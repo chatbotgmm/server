@@ -1,0 +1,39 @@
+{
+  "name": "galmaegiman-confirmed",
+  "version": "0.2.6",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node --env-file=.env dist/src/server.js",
+    "tablet:start": "npm start",
+    "setup": "bash scripts/setup.sh",
+    "test": "vitest run --maxWorkers=1",
+    "test:db": "node scripts/test-db.mjs",
+    "db:generate": "prisma generate",
+    "data:check": "node --import tsx scripts/check-content.ts",
+    "backup": "bash scripts/backup.sh",
+    "url": "node scripts/set-url.mjs",
+    "refill": "node --import tsx scripts/refill.ts",
+    "tunnel": "bash scripts/tunnel.sh"
+  },
+  "dependencies": {
+    "@fastify/rate-limit": "^10.1.1",
+    "@prisma/client": "^6.16.2",
+    "fastify": "^5.6.0",
+    "luxon": "^3.7.2",
+    "prisma": "^6.16.2",
+    "yaml": "^2.8.1",
+    "zod": "^4.1.8"
+  },
+  "devDependencies": {
+    "@types/luxon": "^3.6.2",
+    "@types/node": "^24.5.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

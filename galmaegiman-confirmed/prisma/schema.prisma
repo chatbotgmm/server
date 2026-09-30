@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "sqlite"
+  url = env("DATABASE_URL")
+}
+model AppMeta {
+  key String @id
+  value String
+}
+model Player {
+  id String @id @default(uuid())
+  identity String @unique
+  credits Int @default(3)
+  snack Int @default(0)
+  peanut Int @default(0)
+  lastGrantAt DateTime
+  revision Int @default(0)
+  repeatCursor Int @default(0)
+  attendanceDate String?
+  lastExploreAt DateTime?
+  createdAt DateTime @default(now())
+  characters OwnedCharacter[]
+  collection CollectionEntry[]
+  actions PendingAction[]
+  ledger AuditEvent[]
+}
+model CharacterDefinition {
+  id String @id
+  name String
+  rarity String
+  sex String
+  position Int @unique
+  quote String
+  imageUrl String
+  nameStatus String
+  artVersion String
+  owned OwnedCharacter[]
+  collection CollectionEntry[]
+}
+model OwnedCharacter {
+  id Int @id @default(autoincrement())
+  playerId String
+  characterId String
+  status String @default("AVAILABLE")
+  locked Boolean @default(false)
+  peanutRemoved Boolean @default(false)
+  obtainedVia String
+  obtainedAt DateTime @default(now())
+  consumedAt DateTime?
+  player Player @relation(fields: [playerId], references: [id])
+  character CharacterDefinition @relation(fields: [characterId], references: [id])
+  @@index([playerId, status, characterId])
+}
+model CollectionEntry {
+  playerId String
+  characterId String
+  count Int @default(1)
+  player Player @relation(fields: [playerId], references: [id])
+  character CharacterDefinition @relation(fields: [characterId], references: [id])
+  @@id([playerId, characterId])
+}
+model PendingAction {
+  token String @id
+  playerId String
+  revision Int
+  kind String
+  payload Json
+  result Json?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  player Player @relation(fields: [playerId], references: [id])
+  @@index([playerId, createdAt])
+}
+model AuditEvent {
+  id String @id @default(uuid())
+  playerId String
+  kind String
+  detail Json
+  createdAt DateTime @default(now())
+  player Player @relation(fields: [playerId], references: [id])
+  @@index([playerId, createdAt])
+}

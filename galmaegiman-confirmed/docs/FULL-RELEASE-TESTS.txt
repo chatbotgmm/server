@@ -1,0 +1,123 @@
+
+ RUN  v3.2.7 /workspace/scratch/2fd601c2b6dd/galmaegiman-confirmed
+
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 선택 교환 미리보기는 소비하지 않으며 확정 후에만 지급 63ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 같은 확정 요청 10개 동시 재전송: 지급/소비 한 번 33ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 다른 사용자 토큰 사용 차단 21ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 만료된 미리보기는 소비 없음 11ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 성공한 토큰은 만료 후에도 같은 결과 회신 30ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 뽑기는 즉시 랜덤 지급하며 첫 획득 희귀/중복 모두 가능 22ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 동시 뽑기 10개도 보유 3장을 초과 소비하지 않음 51ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 랜덤 결과 지급 실패 시 획득권/도감/로그 모두 원복 64ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 이전 버전의 미완료 순서 지급은 새 랜덤 뽑기로 안내 14ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 이전 버전 완료 요청 재전송도 번호를 숨기고 추가 지급 없음 14ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 도움말/버튼은 뽑기, 내정보는 다음 캐릭터를 예고하지 않음 17ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 09/12/18 지급은 누적되고 재시작에도 중복 없음 16ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 선택 재료는 중복 획득 가능 28ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 획득권 부족 시 추가 캐릭터 없음 20ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 75종 도감을 완성해도 등록 여부로 추첨 후보를 제외하지 않음 93ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 소비한 개체의 도감 등록은 유지 50ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 2개 미리보기 중 먼저 확정된 하나만 소비 27ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 재료 부족/잠금/표식 전환/다른 사용자 재료는 사용하지 않음 52ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 동일 종류 재료 2개는 서로 다른 개체여야 함 42ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 조합 확인 뒤 잠금하면 오래된 확정은 취소 19ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 조합 69개 모두 실제 소비/지급 가능 1247ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 원자적 처리: 결과 지급 실패 시 재료와 revision 되돌림 29ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 희귀 수컷 표식은 1회만 전환, 희귀 미만 불가 29ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 출석/탐험 고정 보상과 확정 교환 28ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > HTTP 인증·이미지·카카오 응답 144ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 이전 DB의 코드명 개체도 이름 표시하며 보유 기록과 재화 보존 42ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 이름만으로 조합 미리보기와 재료 수량 확인 후 확정 38ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 이름이 여러 종류와 일치하면 후보만 보여주고 조합하지 않음 13ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 조합가능은 같은 종류 수량·보호·표식 상태까지 반영 42ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 같은 이름은 수량으로 묶고 이름 잠금은 한 마리에만 적용 23ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 취소 버튼은 미완료 요청을 닫고, 텍스트 확정만으로 소비하지 않음 13ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > HTTP 목록 선택→이름 조합→숨긴 토큰 확정, 재전송 1회 처리 60ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 설정 변경은 재시작 없이 읽고 미정산 슬롯은 각 시점의 충전량으로 지급 26ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 10회 충전과 0회 중지 모두 잔액 안내가 일치하고 누적 상한을 초과하지 않음 15ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 일반 채팅은 관리자 설정을 바꿀 수 없음 8ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 등급별 9/20/40종 조합목록과 필터를 유지하는 페이지 이동 49ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 뽑기는 전 등급 첫 수집에 이미지, 중복도 목록 클릭으로 원본 이미지 보기 72ms
+ ✓ test/game.integration.test.ts > 격리 SQLite 실제 트랜잭션 > 전체 도감과 조합목록에서 표시·발화에 코드가 없고 페이지 누락 없음 56ms
+ ✓ test/refill-settings.test.ts > 관리자 충전 설정과 시점별 정산 > 설정이 없는 경우 기본 10회, 날짜가 바뀌어도 모든 지나간 슬롯 정산 21ms
+ ✓ test/refill-settings.test.ts > 관리자 충전 설정과 시점별 정산 > 접속이 늦어도 오전은 10회, 변경 후 점심·저녁은 20회 11ms
+ ✓ test/refill-settings.test.ts > 관리자 충전 설정과 시점별 정산 > 정각 변경은 그 정각부터, 정각 직후 변경은 다음 슬롯부터 적용 1ms
+ ✓ test/refill-settings.test.ts > 관리자 충전 설정과 시점별 정산 > 동일 슬롯 사이 여러 변경과 0회 중지는 소급·중복 지급하지 않음 9ms
+ ✓ test/refill-settings.test.ts > 관리자 충전 설정과 시점별 정산 > 음수·소수·초과값·깨진 설정은 파일을 덮어쓰거나 기본값으로 처리하지 않음 9ms
+ ✓ test/refill-settings.test.ts > 관리자 충전 설정과 시점별 정산 > 동시 설정 작업은 잠금으로 직렬화하며 마지막 변경을 유실하지 않음 5ms
+ ✓ test/refill-settings.test.ts > 관리자 충전 설정과 시점별 정산 > 관리 명령으로 변경·조회하고 잘못된 입력은 기존 설정 보존 1608ms
+ ✓ test/content.test.ts > 75종 콘텐츠 > 75종과 모든 비흔함 조합식 69개 2ms
+ ✓ test/content.test.ts > 75종 콘텐츠 > 75개 PNG 연결, 수정본25/기존50 126ms
+ ✓ test/content.test.ts > 75종 콘텐츠 > 교배·초반 한마리 밈 없음 1ms
+ ✓ test/content.test.ts > 75종 콘텐츠 > 흔함을 시작점으로 모든 결과 도달 가능 0ms
+ ✓ test/content.test.ts > 75종 콘텐츠 > 누락된 11종은 콘셉트 표시명, 기존 64종의 이름은 보존 8ms
+ ✓ test/content.test.ts > 75종 콘텐츠 > 기존 이름을 표시명 설정으로 덮어쓰지 못함 19ms
+ ✓ test/content.test.ts > 75종 콘텐츠 > 이름이 다시 빠지면 코드명으로 숨기지 않고 검증 실패 14ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > 등급 추첨 0: 첫 발견 C001M와 중복의 서로 다른 보상 58ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > 등급 추첨 40: 첫 발견 U001M와 중복의 서로 다른 보상 17ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > 등급 추첨 70: 첫 발견 S001M와 중복의 서로 다른 보상 16ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > 등급 추첨 90: 첫 발견 R001M와 중복의 서로 다른 보상 16ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > 동시 희귀 뽑기 두 번은 첫 발견 1회와 중복 1회로 정산 17ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > 조합 U001M: 첫 수집만 이미지, 재조합은 텍스트 39ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > 조합 S001M: 첫 수집만 이미지, 재조합은 텍스트 46ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > 조합 R001M: 첫 수집만 이미지, 재조합은 텍스트 39ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > 선택 교환과 뽑기는 같은 수집 이력으로 이미지를 판단 26ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > 수집 이력은 사용자별로 구분하여 다른 사용자의 첫 획득에 이미지 표시 17ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > 희귀 조합 확인을 8번 재전송해도 재료 소비와 보상은 한 번 44ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > 희귀 첫 보상은 실제로 흔함 재료 3마리와 교환되며 교환 보너스 없음 54ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > 조합에 소비한 종류를 재획득해도 첫 발견 보상은 다시 생기지 않음 47ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > 업데이트 이전 도감은 조회 시 소급 보상 없이 다음 획득부터 중복 보상 20ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > 이전 판의 이미 완료된 조합 버튼에는 새 보상을 소급 지급하지 않음 9ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > GACHA 보상 로그 실패는 캐릭터·재료·재화·도감·확인 결과까지 원복 58ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > COMBINATION 보상 로그 실패는 캐릭터·재료·재화·도감·확인 결과까지 원복 30ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > 새 보상은 새우깡 상한 안에서 실제 지급량만 안내하고 기록 12ms
+ ✓ test/acquisition.integration.test.ts > 소개와 획득 보상의 실제 트랜잭션 > 획득 버튼→소개와 보상 안내는 이름으로 연결되며 카카오 본문에 보상 보존 12ms
+ ✓ test/acquisition.test.ts > 75종 소개와 보상 데이터 > 75종 모두 고유 별칭·등장·기록이 있고 비흔함 69종은 조합 서사가 있음 5ms
+ ✓ test/acquisition.test.ts > 75종 소개와 보상 데이터 > 전체 등급 획득 및 조합 소개는 500자 안에 이름·보상을 담음 9ms
+ ✓ test/acquisition.test.ts > 75종 소개와 보상 데이터 > 소개만 바꾸어도 기존 DB 콘텐츠 해시 및 캐릭터·레시피 데이터는 그대로 39ms
+ ✓ test/acquisition.test.ts > 75종 소개와 보상 데이터 > 잘못된 소개 데이터 누락는 시작 전 거부 30ms
+ ✓ test/acquisition.test.ts > 75종 소개와 보상 데이터 > 잘못된 소개 데이터 중복는 시작 전 거부 21ms
+ ✓ test/acquisition.test.ts > 75종 소개와 보상 데이터 > 잘못된 소개 데이터 과도한 본문는 시작 전 거부 19ms
+ ✓ test/acquisition.test.ts > 75종 소개와 보상 데이터 > 잘못된 소개 데이터 조합 설명 누락는 시작 전 거부 17ms
+ ✓ test/acquisition.test.ts > 75종 소개와 보상 데이터 > 잘못된 보상 데이터 음수는 시작 전 거부 12ms
+ ✓ test/acquisition.test.ts > 75종 소개와 보상 데이터 > 잘못된 보상 데이터 소수는 시작 전 거부 15ms
+ ✓ test/acquisition.test.ts > 75종 소개와 보상 데이터 > 잘못된 보상 데이터 기본 재료 교환 보너스는 시작 전 거부 14ms
+ ✓ test/acquisition.test.ts > 75종 소개와 보상 데이터 > 잘못된 보상 데이터 등급 역전는 시작 전 거부 13ms
+ ✓ test/acquisition.test.ts > 75종 소개와 보상 데이터 > 잘못된 보상 데이터 첫 발견보다 높은 중복는 시작 전 거부 13ms
+ ✓ test/presentation.test.ts > 이름 선택과 카카오 목록 > 75종 전체 이름·짧은 이름·띄어쓰기 차이로 같은 종류 찾기 18ms
+ ✓ test/presentation.test.ts > 이름 선택과 카카오 목록 > 짧은 이름이 겹치면 임의 선택하지 않고 후보 반환 1ms
+ ✓ test/presentation.test.ts > 이름 선택과 카카오 목록 > 기존 ID 입력도 호환 0ms
+ ✓ test/presentation.test.ts > 이름 선택과 카카오 목록 > 목록은 이름으로 선택하며 중복 텍스트·내부번호 노출 없음 1ms
+ ✓ test/presentation.test.ts > 이름 선택과 카카오 목록 > 확인 토큰은 ListItem.extra에서 action.clientExtra로 전달 4ms
+ ✓ test/presentation.test.ts > 이름 선택과 카카오 목록 > 다른 clientExtra는 허용하고 잘못된 확인 토큰은 거부 2ms
+ ✓ test/presentation.test.ts > 이름 선택과 카카오 목록 > 카카오 목록 크기 제한 준수 0ms
+ ✓ test/backup.integration.test.ts > 백업 검증 > VACUUM INTO는 상태를 복사하며 기존 백업은 덮어쓰지 않음 38ms
+ ✓ test/schedule.test.ts > 한국 시간 09/12/18 +3 누적 > 2026-09-18T08:59:59 최신 슬롯 23ms
+ ✓ test/schedule.test.ts > 한국 시간 09/12/18 +3 누적 > 2026-09-18T09:00:00 최신 슬롯 1ms
+ ✓ test/schedule.test.ts > 한국 시간 09/12/18 +3 누적 > 2026-09-18T11:59:59 최신 슬롯 1ms
+ ✓ test/schedule.test.ts > 한국 시간 09/12/18 +3 누적 > 2026-09-18T12:00:00 최신 슬롯 0ms
+ ✓ test/schedule.test.ts > 한국 시간 09/12/18 +3 누적 > 2026-09-18T17:59:59 최신 슬롯 0ms
+ ✓ test/schedule.test.ts > 한국 시간 09/12/18 +3 누적 > 2026-09-18T18:00:00 최신 슬롯 0ms
+ ✓ test/schedule.test.ts > 한국 시간 09/12/18 +3 누적 > 2026-09-19T00:00:00 최신 슬롯 0ms
+ ✓ test/schedule.test.ts > 한국 시간 09/12/18 +3 누적 > 경계 1회, 중복 없음 1ms
+ ✓ test/schedule.test.ts > 한국 시간 09/12/18 +3 누적 > 오프라인과 월/연 경계 0ms
+ ✓ test/schedule.test.ts > 한국 시간 09/12/18 +3 누적 > 시계 역행은 추가 지급하지 않음 0ms
+ ✓ test/schedule.test.ts > 한국 시간 09/12/18 +3 누적 > 자정은 출석 경계일 뿐 획득권 초기화 아님 2ms
+ ✓ test/gacha.test.ts > 일반 뽑기 확률 > 사용자가 지정한 40/30/20/10 설정 2ms
+ ✓ test/gacha.test.ts > 일반 뽑기 확률 > 0부터 99까지 모든 등급 추첨값의 분포와 경계 5ms
+ ✓ test/gacha.test.ts > 일반 뽑기 확률 > 각 등급의 모든 캐릭터가 동일 크기 색인으로 선택 가능 3ms
+ ✓ test/gacha.test.ts > 일반 뽑기 확률 > 합계/빈 등급/난수 오류를 대체 보상으로 숨기지 않음 3ms
+ ✓ test/kakao.test.ts > 카카오 공식 요청·응답 > isFriend boolean/null 선택 필드 허용 8ms
+ ✓ test/kakao.test.ts > 카카오 공식 요청·응답 > 다른 봇 사용자 분리 1ms
+ ✓ test/kakao.test.ts > 카카오 공식 요청·응답 > 테스트 계정과 실제 계정 식별형 분리 1ms
+ ✓ test/kakao.test.ts > 카카오 공식 요청·응답 > 설정된 봇만 허용 1ms
+ ✓ test/kakao.test.ts > 카카오 공식 요청·응답 > 필수 발화 누락 거절 1ms
+ ✓ test/kakao.test.ts > 카카오 공식 요청·응답 > 이미지+긴 텍스트도 outputs3 이하 2ms
+ ✓ test/kakao.test.ts > 카카오 공식 요청·응답 > 공개 HTTPS 미설정 시 이미지 URL을 조작해서 만들지 않음 0ms
+ ✓ test/kakao.test.ts > 카카오 공식 요청·응답 > 이미지 대체 텍스트에도 캐릭터 이름 표시 0ms
+
+ Test Files  10 passed (10)
+      Tests  114 passed (114)
+   Start at  13:00:19
+   Duration  9.53s (transform 481ms, setup 0ms, collect 1.96s, tests 5.38s, environment 2ms, prepare 692ms)
+

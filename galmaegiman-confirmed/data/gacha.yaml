@@ -1,0 +1,6 @@
+mode: RANDOM
+rarityWeights:
+  COMMON: 40
+  UNCOMMON: 30
+  SPECIAL: 20
+  RARE: 10

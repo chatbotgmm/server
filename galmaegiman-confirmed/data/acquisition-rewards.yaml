@@ -1,0 +1,8 @@
+version: ACQUISITION_REWARDS_V1
+# 무료 게임 내 새우깡. 첫 도감 등록과 이후 획득의 지급량입니다.
+# 이미 도감에 등록된 캐릭터는 소비 후 다시 얻어도 중복 보상입니다.
+rewards:
+  COMMON: { first: 0, duplicate: 0 }
+  UNCOMMON: { first: 10, duplicate: 3 }
+  SPECIAL: { first: 30, duplicate: 10 }
+  RARE: { first: 90, duplicate: 30 }
