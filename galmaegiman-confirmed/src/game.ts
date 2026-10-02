@@ -336,15 +336,26 @@ export class GameService {
       return {text:`${acquisitionText(this.content,c,'GACHA',receipt,known)}\n\n${tail}`,...(receipt.first?{imageId:this.image(c.id,known)}:{}),
         choices:[...next.choices.slice(0,2),...(receipt.first?[choice('유닛 보기',`도감 ${c.name}`)]:[]),...next.choices.slice(2)]};
     }
-    const best=[...results].sort((a,b)=>tiers[b.c.rarity]-tiers[a.c.rarity])[0];
     const firstNew=results.filter(r=>r.receipt.first).sort((a,b)=>tiers[b.c.rarity]-tiers[a.c.rarity])[0];
+    const top=[...results].sort((a,b)=>tiers[b.c.rarity]-tiers[a.c.rarity])[0];
     const snacks=results.reduce((sum,r)=>sum+r.receipt.snacks,0);
-    const lines=results.map(r=>`${r.receipt.first?'🆕':'　'} ${emblems[r.c.rarity]} ${r.c.name}`);
     const news=results.filter(r=>r.receipt.first).length;
-    const highlight=firstNew&&tiers[firstNew.c.rarity]>=tiers.RARE?`\n\n${prelude(firstNew.c,true)}${emblems[firstNew.c.rarity]} ${firstNew.c.name}`:'';
+    // 같은 유닛은 한 줄로 묶고, 높은 등급부터 등급별로 보여 줍니다.
+    const groups=new Map<string,{c:Character;n:number;first:boolean}>();
+    for(const r of results){const g=groups.get(r.c.id)??{c:r.c,n:0,first:false};g.n++;g.first||=r.receipt.first;groups.set(r.c.id,g);}
+    const sorted=[...groups.values()].sort((a,b)=>tiers[b.c.rarity]-tiers[a.c.rarity]||Number(b.first)-Number(a.first)||a.c.position-b.c.position);
+    const blocks:string[]=[];
+    for(const t of [...new Set(sorted.map(x=>x.c.rarity))]){
+      const rows=sorted.filter(x=>x.c.rarity===t).map(x=>`  ${x.first?'🆕 ':''}${x.c.name}${x.n>1?` ×${x.n}`:''}`);
+      blocks.push(`${emblems[t]} ${rarityNames[t]}\n${rows.join('\n')}`);
+    }
+    // 희귀 이상을 새로 찾았거나 전설 이상이 나오면 맨 위에서 연출합니다.
+    const drama=tiers[top.c.rarity]>=tiers.LEGEND?prelude(top.c,!!top.receipt.first):firstNew&&tiers[firstNew.c.rarity]>=tiers.RARE?prelude(firstNew.c,true):'';
+    const head=`${drama}🥚 ${g.label} 뽑기 ×${times}${news?` · 🆕 새 발견 ${news}종!`:''}`;
+    const gains=[...(snacks?[`🍤 +${snacks}`]:[]),...missions].join('\n');
     const achieved=results.filter(r=>r.receipt.achievement).map(r=>achievementText(r.receipt.achievement!));
-    return {text:mask(this.content,`🥚 ${g.label} 뽑기 ×${times}\n\n${lines.join('\n')}${highlight}\n\n${news?`🆕 새 발견 ${news}종`:`새 발견 없음 · 최고 ${rarityNames[best.c.rarity]}`}${snacks?` · 🍤 +${snacks}`:''}${achieved.length?`\n\n${achieved.join('\n\n')}`:''}\n\n${tail}`,known),
-      ...(firstNew?{imageId:this.image(firstNew.c.id,known)}:{}),choices:next.choices};
+    const body=[head,blocks.join('\n\n'),...(gains?[gains]:[]),...achieved,`━━━━━━━━━━\n${next.line}`].join('\n\n');
+    return {text:mask(this.content,body,known),...(firstNew?{imageId:this.image(firstNew.c.id,known)}:{}),choices:next.choices};
   }
   private probabilityText(){
     const g=this.content.economy.gachas;
