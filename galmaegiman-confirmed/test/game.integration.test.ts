@@ -43,9 +43,9 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await send('내정보')).text).toContain('🎟 30장');
     expect((await send('뽑기권 받기')).text).toContain('뽑기권 +10');
     expect((await me()).credits).toBe(40);
-    expect((await send('뽑기권받기')).text).toContain('5시간 뒤에');
+    expect((await send('뽑기권받기')).text).toContain('5시간 뒤 (');
     now=new Date(now.getTime()+4*HOUR+59*60000);
-    expect((await send('받기')).text).toContain('1분 뒤에');
+    expect((await send('받기')).text).toContain('1분 뒤 (');
     now=new Date(now.getTime()+20*HOUR);
     await send('받기');
     expect((await me()).credits).toBe(50);
@@ -60,7 +60,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     // 뽑기 8회째에 '뽑기 5회' 미션 달성 → +2
     expect(multi.text).toContain('오늘의 미션 완료');
     expect((await me()).credits).toBe(12);
-    expect((await send('고급뽑기 3')).text).toContain('뽑기권이 부족해요');
+    expect((await send('고급뽑기 3')).text).toContain('뽑기권이 모자라요');
     expect((await me()).credits).toBe(12);
     expect(await db.ownedCharacter.count()).toBe(8);
   });
@@ -174,6 +174,20 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(dup.text).not.toContain('도감 기록');
     expect(dup.text).toContain('지금 조합 가능 1종');
   });
+  it('뽑기권이 없을 때: 뽑기 메뉴·받기·부족 안내에 다음 시각과 할 일을 보여 줌',async()=>{
+    await fixtures(['C1','C1','C2'],{credits:0});
+    await send('뽑기권받기');
+    await db.player.update({where:{identity:actor},data:{credits:0}});
+    const menuReply=await send('뽑기');
+    expect(menuReply.list).toBeUndefined();
+    expect(menuReply.text).toContain('다음 뽑기권: 5시간 뒤 (오후 1:00)');
+    expect(menuReply.text).toContain('✨ 조합 가능 1종');
+    expect((await send('뽑기권받기')).text).toContain('그동안 해 볼 것');
+    await db.player.update({where:{identity:actor},data:{credits:3}});
+    const short=await send('고급뽑기');
+    expect(short.text).toContain('고급 1회 5장 · 지금 3장');
+    expect(short.text).toContain('하급·중급 뽑기는 지금 할 수 있어요');
+  });
   it('관리자: 코드가 맞으면 뽑기권을 쓰지 않음, 틀리면 변화 없음, 해제 가능',async()=>{
     const code='admin-test-code-0123456789';
     game=new GameService(db,content,()=>now,new GachaEngine(content.characters,content.economy.gachas,()=>0),max=>max-1,process.cwd(),code);
@@ -220,7 +234,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     };
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.3'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.4'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});

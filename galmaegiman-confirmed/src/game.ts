@@ -103,6 +103,32 @@ export class GameService {
     if(!p.lastClaimAt)return 0;
     return Math.max(0,p.lastClaimAt.getTime()+this.content.economy.tickets.cooldownHours*3_600_000-now.getTime());
   }
+  // "다음 뽑기권: 4시간 48분 뒤 (오후 11:24)"
+  private waitLine(p:Player,now:Date){
+    const wait=this.claimWait(p,now);
+    if(!wait)return '🎟 지금 뽑기권을 받을 수 있어요!';
+    // 서버의 ICU 데이터에 따라 'PM'이 나올 수 있어 오전/오후를 직접 붙입니다.
+    const t=DateTime.fromMillis(now.getTime()+wait).setZone('Asia/Seoul');
+    return `⏳ 다음 뽑기권: ${duration(wait)} 뒤 (${t.hour<12?'오전':'오후'} ${t.hour%12||12}:${String(t.minute).padStart(2,'0')})`;
+  }
+  // 뽑기권이 없을 때 대신 할 수 있는 것
+  private async meanwhile(tx:Tx,p:Player,now:Date){
+    const lines:string[]=[],choices:Choice[]=[];
+    const ready=await this.craftable(tx,p);
+    if(ready){lines.push(`✨ 조합 가능 ${ready}종`);choices.push(choice(`조합가능 ${ready}`,'조합가능'));}
+    const trip=await this.activeExpedition(tx,p);
+    if(trip){
+      const left=trip.endsAt.getTime()-now.getTime();
+      lines.push(left>0?`🧭 탐험대 귀환까지 ${duration(left)}`:'🧭 탐험대가 돌아왔어요!');
+      if(left<=0)choices.push(choice('탐험 보상 받기','탐험보상받기'));
+    }else if(await this.hasTop(tx,p)){lines.push('🧭 탐험을 보낼 수 있어요');choices.push(choice('탐험'));}
+    const day=DateTime.fromJSDate(now).setZone('Asia/Seoul').toISODate()!;
+    const row=await tx.dailyProgress.findUnique({where:{playerId_day:{playerId:p.id,day}}});
+    const done=(row?.rewarded??'').split(',').filter(Boolean).length,total=this.content.economy.missions.length;
+    if(done<total){lines.push(`🎯 오늘의 미션 ${done}/${total}`);choices.push(choice('미션'));}
+    if(p.snack>=this.content.economy.exchange.snackCost&&await this.hasTop(tx,p)){lines.push(`🍤 새우깡 ${p.snack}개로 교환 가능`);choices.push(choice('교환'));}
+    return {text:lines.length?`\n\n그동안 해 볼 것\n${lines.join('\n')}`:'',choices};
+  }
   private claimHint(p:Player,now:Date){
     const wait=this.claimWait(p,now);
     return wait?`다음 뽑기권 받기: ${duration(wait)} 뒤`:'🎟 지금 뽑기권을 받을 수 있습니다.';
@@ -199,7 +225,7 @@ export class GameService {
     const canClaim=!this.claimWait(account,now);
     const lines=[`🎟 ${account.isAdmin?'무제한(관리자)':`${account.credits}장`} · 🍤 ${account.snack}개`];
     if(ready)lines.push(`✨ 지금 조합 가능 ${ready}종!`);
-    if(!account.isAdmin&&account.credits<cheapest)lines.push(canClaim?'🎟 뽑기권 받기를 눌러 10장을 받으세요!':`⏳ 다음 뽑기권까지 ${duration(this.claimWait(account,now))}`);
+    if(!account.isAdmin&&account.credits<cheapest)lines.push(canClaim?'🎟 뽑기권 받기를 눌러 10장을 받으세요!':this.waitLine(account,now));
     const choices=[...first,...(ready?[choice(`조합가능 ${ready}`,'조합가능')]:[]),...(canClaim?[choice('뽑기권 받기','뽑기권받기')]:[]),choice('뽑기'),...menu.slice(2)];
     return {line:lines.join('\n'),choices,account};
   }
@@ -222,17 +248,26 @@ export class GameService {
   private async claim(tx:Tx,p:Player,now:Date):Promise<GameReply>{
     const t=this.content.economy.tickets;
     const wait=this.claimWait(p,now);
-    if(wait)return {text:`⏳ 뽑기권은 ${duration(wait)} 뒤에 받을 수 있어요.\n🎟 지금 ${p.credits}장`,choices:[choice('뽑기'),choice('조합가능'),choice('탐험'),...menu]};
+    if(wait){
+      const alt=await this.meanwhile(tx,p,now);
+      return {text:`⏳ 아직 받을 수 없어요\n${this.waitLine(p,now).slice(2)}\n🎟 지금 ${p.credits}장${alt.text}`,choices:[...alt.choices,choice('뽑기'),...menu.slice(2)]};
+    }
     const updated=await tx.player.updateMany({where:{id:p.id,revision:p.revision},data:{credits:{increment:t.claim},lastClaimAt:now,revision:{increment:1}}});
     if(updated.count!==1)throw new GameError('잠깐 겹쳤어요. 뽑기권 받기를 다시 눌러 주세요.');
     await this.audit(tx,p,'TICKET_CLAIM',{delta:t.claim,balanceAfter:p.credits+t.claim});
     return {text:`🎟 뽑기권 +${t.claim}!\n지금 ${p.credits+t.claim}장 · 다음은 ${t.cooldownHours}시간 뒤`,choices:[choice('하급 ×5','하급뽑기 5'),choice('중급 ×3','중급뽑기 3'),choice('고급 ×2','고급뽑기 2'),choice('뽑기'),...menu.slice(2)]};
   }
-  private gachaMenu(p:Player,now:Date):GameReply{
+  private async gachaMenu(tx:Tx,p:Player,now:Date):Promise<GameReply>{
     const g=this.content.economy.gachas;
+    const cheapest=Math.min(...Object.values(g).map(x=>x.cost));
+    if(!p.isAdmin&&p.credits<cheapest){
+      const alt=await this.meanwhile(tx,p,now);
+      return {text:`🥚 뽑기 · 🎟 ${p.credits}장\n뽑기권이 모자라요. (하급 ${g.LOW.cost}장부터)\n${this.waitLine(p,now)}${alt.text}`,
+        choices:[...(this.claimWait(p,now)?[]:[choice('뽑기권 받기','뽑기권받기')]),...alt.choices,choice('확률'),...menu.slice(2)]};
+    }
     const items=(['LOW','MID','HIGH'] as GachaKind[]).map(kind=>({
-      title:`${g[kind].label} 뽑기 · ${g[kind].cost}장`,
-      description:Object.entries(g[kind].weights).map(([t,w])=>`${rarityNames[t]} ${w}%`).join(' / '),
+      title:`${g[kind].label} 뽑기 · 🎟 ${g[kind].cost}`,
+      description:Object.entries(g[kind].weights).map(([t,w])=>`${emblems[t]}${rarityNames[t]} ${w}`).join(' · ')+'%',
       message:`${g[kind].label}뽑기`
     }));
     return {...listReply(`🥚 뽑기 · 🎟 ${p.isAdmin?'무제한(관리자)':`${p.credits}장`}`,items,`숫자를 붙이면 여러 번 (최대 10): 하급뽑기 5${this.claimWait(p,now)?'':'\n🎟 지금 뽑기권을 받을 수 있어요!'}`),
@@ -242,7 +277,12 @@ export class GameService {
     const g=this.content.economy.gachas[kind];
     const cost=g.cost*times;
     const admin=p.isAdmin;
-    if(!admin&&p.credits<cost)return {text:`🎟 뽑기권이 부족해요. ${g.label} ${times}회는 ${cost}장, 지금 ${p.credits}장.\n${this.claimWait(p,now)?`⏳ 다음 뽑기권까지 ${duration(this.claimWait(p,now))}`:'🎟 지금 뽑기권을 받을 수 있어요!'}`,choices:[choice('뽑기권 받기','뽑기권받기'),choice('뽑기'),choice('내정보')]};
+    if(!admin&&p.credits<cost){
+      const cheaper=(['LOW','MID','HIGH'] as GachaKind[]).filter(k=>this.content.economy.gachas[k].cost<=p.credits);
+      const alt=await this.meanwhile(tx,p,now);
+      return {text:`🎟 뽑기권이 모자라요\n${g.label} ${times}회 ${cost}장 · 지금 ${p.credits}장${cheaper.length?`\n(${cheaper.map(k=>this.content.economy.gachas[k].label).join('·')} 뽑기는 지금 할 수 있어요)`:''}\n${this.waitLine(p,now)}${alt.text}`,
+        choices:[...cheaper.map(k=>choice(`${this.content.economy.gachas[k].label}뽑기`)),...(this.claimWait(p,now)?[]:[choice('뽑기권 받기','뽑기권받기')]),...alt.choices,...menu.slice(2)]};
+    }
     // 관리자는 테스트용으로 뽑기권을 쓰지 않습니다.
     const paid=await tx.player.updateMany({where:{id:p.id,revision:p.revision,...(admin?{}:{credits:{gte:cost}})},data:{...(admin?{}:{credits:{decrement:cost}}),revision:{increment:1}}});
     if(paid.count!==1)throw new GameError('잠깐 겹쳤어요. 뽑기를 다시 눌러 주세요.');
@@ -613,7 +653,7 @@ export class GameService {
       if(!Number.isSafeInteger(times)||times<1||times>10)throw new GameError('뽑기는 한 번에 1~10회예요. 예: 하급뽑기 5');
       return this.draw(tx,p,gachaWords[gm[1]??gm[2]],times,now);
     }
-    if(compact==='뽑기')return this.gachaMenu(p,now);
+    if(compact==='뽑기')return this.gachaMenu(tx,p,now);
     if(command==='확률')return {text:`🎲 뽑기 확률\n\n${this.probabilityText()}\n\n같은 등급 안에선 모두 같은 확률이에요.`,choices:[choice('뽑기'),...menu.slice(1)]};
     if(command==='보상')return {text:rewardGuide(this.content),choices:[choice('교환'),...menu]};
     if(command==='교환'){
