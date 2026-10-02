@@ -20,6 +20,7 @@ const gachaWords:Record<string,GachaKind>={하급:'LOW',중급:'MID',고급:'HIG
 const menu=[choice('뽑기'),choice('뽑기권 받기','뽑기권받기'),choice('내갈매미'),choice('조합가능'),choice('조합목록'),choice('탐험'),choice('도감'),choice('내정보')];
 // 관리자로 등록되어 있고 관리자 모드를 켰을 때만 뽑기권 무제한
 const unlimited=(p:{isAdmin:boolean;adminMode:boolean})=>p.isAdmin&&p.adminMode;
+const adminOnText='🛠 관리자 모드 켜짐!\n뽑기에 뽑기권을 쓰지 않아요(무제한).\n⚠ 모드를 끄면 그동안 뽑은 유닛·조합·탐험·재화가 모두 켜기 전으로 돌아가요.';
 const help=[
   '🏝 갈매미맨 — 갈매미를 모아 조합하는 게임',
   '',
@@ -100,6 +101,36 @@ export class GameService {
   }
   private async hasTop(tx:Tx,p:Player){
     return (await tx.ownedCharacter.count({where:{playerId:p.id,status:{in:['AVAILABLE','EXPEDITION']},characterId:{in:this.topIds}}}))>0;
+  }
+  // 관리자 모드를 켜는 순간의 계정 상태를 저장합니다.
+  private async saveSnapshot(tx:Tx,p:Player,now:Date){
+    const where={playerId:p.id};
+    const [owned,collection,expeditions,achievements,daily]=await Promise.all([
+      tx.ownedCharacter.findMany({where}),tx.collectionEntry.findMany({where}),tx.expedition.findMany({where}),tx.achievement.findMany({where}),tx.dailyProgress.findMany({where})]);
+    const data={player:{credits:p.credits,snack:p.snack,lastClaimAt:p.lastClaimAt},owned,collection,expeditions,achievements,daily};
+    await tx.adminSnapshot.upsert({where:{playerId:p.id},create:{playerId:p.id,data:json(data),createdAt:now},update:{data:json(data),createdAt:now}});
+  }
+  // 저장해 둔 상태로 되돌립니다. 저장된 것이 없으면 아무것도 바꾸지 않습니다.
+  private async restoreSnapshot(tx:Tx,p:Player){
+    const snap=await tx.adminSnapshot.findUnique({where:{playerId:p.id}});
+    if(!snap)return false;
+    const d=snap.data as any;
+    const date=(v:string|null)=>v?new Date(v):null;
+    const where={playerId:p.id};
+    await tx.pendingAction.deleteMany({where});
+    await tx.ownedCharacter.deleteMany({where});
+    await tx.collectionEntry.deleteMany({where});
+    await tx.expedition.deleteMany({where});
+    await tx.achievement.deleteMany({where});
+    await tx.dailyProgress.deleteMany({where});
+    if(d.owned.length)await tx.ownedCharacter.createMany({data:d.owned.map((o:any)=>({...o,obtainedAt:new Date(o.obtainedAt),consumedAt:date(o.consumedAt)}))});
+    if(d.collection.length)await tx.collectionEntry.createMany({data:d.collection});
+    if(d.expeditions.length)await tx.expedition.createMany({data:d.expeditions.map((e:any)=>({...e,startedAt:new Date(e.startedAt),endsAt:new Date(e.endsAt),claimedAt:date(e.claimedAt),result:e.result??Prisma.DbNull}))});
+    if(d.achievements.length)await tx.achievement.createMany({data:d.achievements.map((a:any)=>({...a,createdAt:new Date(a.createdAt)}))});
+    if(d.daily.length)await tx.dailyProgress.createMany({data:d.daily});
+    await tx.player.update({where:{id:p.id},data:{credits:d.player.credits,snack:d.player.snack,lastClaimAt:date(d.player.lastClaimAt),revision:{increment:1}}});
+    await tx.adminSnapshot.delete({where:{playerId:p.id}});
+    return true;
   }
   private claimWait(p:Player,now:Date){
     if(!p.lastClaimAt)return 0;
@@ -710,25 +741,30 @@ export class GameService {
     if(command==='관리자'||command==='관리자모드'){
       const sub=args[0]??'';
       if(sub==='해제'){
+        const restored=p.adminMode?await this.restoreSnapshot(tx,p):false;
         await tx.player.update({where:{id:p.id},data:{isAdmin:false,adminMode:false}});
-        await this.audit(tx,p,'ADMIN',{registered:false,mode:false});
-        return {text:'관리자 등록을 해제했어요. 다시 쓰려면 관리자 코드를 입력하세요.',choices:menu};
+        await this.audit(tx,p,'ADMIN',{registered:false,mode:false,restored});
+        return {text:`관리자 등록을 해제했어요.${restored?'\n🔄 관리자 모드 동안의 뽑기·조합·재화는 모두 켜기 전으로 되돌렸어요.':''}\n다시 쓰려면 관리자 코드를 입력하세요.`,choices:menu};
       }
       if(['켜기','켬','on','끄기','끔','off'].includes(sub)||!sub){
         if(!p.isAdmin)return {text:'관리자로 등록된 계정이 아니에요. (관리자 코드 입력 필요)',choices:menu};
         if(!sub)return {text:`🛠 관리자 모드: ${p.adminMode?'켜짐 (뽑기권 무제한)':'꺼짐 (일반 유저와 같음)'}`,choices:[choice(p.adminMode?'관리자 끄기':'관리자 켜기'),...menu]};
         const on=['켜기','켬','on'].includes(sub);
+        if(on===p.adminMode)return {text:on?'이미 관리자 모드가 켜져 있어요.':'이미 관리자 모드가 꺼져 있어요.',choices:[choice(on?'관리자 끄기':'관리자 켜기'),...menu]};
+        if(on)await this.saveSnapshot(tx,p,now);
+        const restored=on?false:await this.restoreSnapshot(tx,p);
         await tx.player.update({where:{id:p.id},data:{adminMode:on}});
-        await this.audit(tx,p,'ADMIN',{registered:true,mode:on});
-        return on?{text:'🛠 관리자 모드 켜짐!\n뽑기에 뽑기권을 쓰지 않아요(무제한).\n끄려면: 관리자 끄기',choices:[choice('뽑기'),choice('관리자 끄기'),...menu]}
-          :{text:'관리자 모드를 껐어요. 이제 일반 유저처럼 뽑기권이 줄어요.\n다시 켜려면: 관리자 켜기',choices:[choice('관리자 켜기'),...menu]};
+        await this.audit(tx,p,'ADMIN',{registered:true,mode:on,restored});
+        return on?{text:`${adminOnText}\n끄려면: 관리자 끄기`,choices:[choice('뽑기'),choice('관리자 끄기'),...menu]}
+          :{text:`관리자 모드를 껐어요.${restored?'\n🔄 모드 동안의 뽑기·조합·재화를 모두 켜기 전으로 되돌렸어요.':''}\n이제 일반 유저처럼 뽑기권이 줄어요. 다시 켜려면: 관리자 켜기`,choices:[choice('내정보'),choice('관리자 켜기'),...menu]};
       }
       if(!this.adminCode)return {text:'관리자 기능이 꺼져 있어요. (서버 .env에 ADMIN_CODE가 없어요)',choices:menu};
       const given=Buffer.from(args.join(' ')),expected=Buffer.from(this.adminCode);
       if(given.length!==expected.length||!timingSafeEqual(given,expected))return {text:'관리자 코드가 맞지 않아요.',choices:menu};
+      if(!p.adminMode)await this.saveSnapshot(tx,p,now);
       await tx.player.update({where:{id:p.id},data:{isAdmin:true,adminMode:true}});
       await this.audit(tx,p,'ADMIN',{registered:true,mode:true});
-      return {text:'🛠 관리자로 등록했어요. 관리자 모드 켜짐!\n뽑기에 뽑기권을 쓰지 않아요(무제한).\n끄기: 관리자 끄기 · 켜기: 관리자 켜기\n등록 해제: 관리자 해제',choices:[choice('뽑기'),choice('관리자 끄기'),...menu]};
+      return {text:`🛠 관리자로 등록했어요.\n${adminOnText}\n끄기: 관리자 끄기 · 켜기: 관리자 켜기\n등록 해제: 관리자 해제`,choices:[choice('뽑기'),choice('관리자 끄기'),...menu]};
     }
     if(command==='미션')return {text:`🎯 오늘의 미션 · 밤 12시 초기화\n\n${await this.missionText(tx,p,now)}\n\n채우는 순간 바로 받아요.`,choices:[choice('뽑기'),choice('조합가능'),choice('탐험'),...menu]};
     if(command==='칭호'){

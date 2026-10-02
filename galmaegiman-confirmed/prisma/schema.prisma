@@ -26,6 +26,7 @@ model Player {
   expeditions Expedition[]
   achievements Achievement[]
   daily DailyProgress[]
+  adminSnapshot AdminSnapshot?
 }
 model CharacterDefinition {
   id String @id
@@ -109,4 +110,11 @@ model DailyProgress {
   rewarded String @default("")
   player Player @relation(fields: [playerId], references: [id])
   @@id([playerId, day])
+}
+// 관리자 모드를 켠 순간의 계정 상태. 모드를 끄거나 해제하면 이 상태로 되돌립니다.
+model AdminSnapshot {
+  playerId String @id
+  data Json
+  createdAt DateTime @default(now())
+  player Player @relation(fields: [playerId], references: [id])
 }

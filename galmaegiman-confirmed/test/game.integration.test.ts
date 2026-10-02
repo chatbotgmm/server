@@ -25,7 +25,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   });
   beforeEach(async()=>{
     await db.$transaction([
-      db.pendingAction.deleteMany(),db.auditEvent.deleteMany(),db.achievement.deleteMany(),db.dailyProgress.deleteMany(),db.collectionEntry.deleteMany(),db.ownedCharacter.deleteMany(),db.expedition.deleteMany(),db.player.deleteMany()
+      db.pendingAction.deleteMany(),db.adminSnapshot.deleteMany(),db.auditEvent.deleteMany(),db.achievement.deleteMany(),db.dailyProgress.deleteMany(),db.collectionEntry.deleteMany(),db.ownedCharacter.deleteMany(),db.expedition.deleteMany(),db.player.deleteMany()
     ]);
     now=new Date('2026-10-02T08:00:00+09:00');
     // 뽑기 난수 0 → 각 등급의 첫 유닛, 탐험 확률 판정은 항상 실패(max-1)
@@ -188,9 +188,10 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(short.text).toContain('고급 1회 5장 · 지금 3장');
     expect(short.text).toContain('하급·중급 뽑기는 지금 할 수 있어요');
   });
-  it('관리자: 등록 후 모드를 켰을 때만 무제한, 끄면 일반 유저처럼, 해제 가능',async()=>{
+  it('관리자: 모드를 켰을 때만 무제한, 끄거나 해제하면 모드 동안의 변화가 원상복구',async()=>{
     const code='admin-test-code-0123456789';
     game=new GameService(db,content,()=>now,new GachaEngine(content.characters,content.economy.gachas,()=>0),max=>max-1,process.cwd(),code);
+    const counts=async()=>({owned:await db.ownedCharacter.count(),dex:await db.collectionEntry.count(),daily:await db.dailyProgress.count(),snap:await db.adminSnapshot.count()});
     expect((await send('관리자 켜기')).text).toContain('등록된 계정이 아니에요');
     expect((await send('관리자 wrong-code-0000000000')).text).toContain('맞지 않아요');
     expect((await me()).isAdmin).toBe(false);
@@ -199,22 +200,42 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(r.text).toContain('무제한(관리자)');
     // 뽑기권은 그대로, 뽑기 5회 미션 보상(+2)만 들어옴
     expect((await me()).credits).toBe(32);
-    expect(await db.ownedCharacter.count()).toBe(10);
-    // 모드를 끄면 등록은 유지되지만 일반 유저처럼 뽑기권이 줄어듦
-    expect((await send('관리자 끄기')).text).toContain('일반 유저처럼');
+    expect((await me()).snack).toBeGreaterThan(0);
+    expect(await counts()).toMatchObject({owned:10,snap:1});
+    expect((await send('관리자 켜기')).text).toContain('이미');
+    // 끄면 모드 동안 뽑은 유닛·도감·새우깡·미션·뽑기권이 켜기 전으로
+    expect((await send('관리자 끄기')).text).toContain('되돌렸어요');
+    expect(await counts()).toEqual({owned:0,dex:0,daily:0,snap:0});
+    expect(await me()).toMatchObject({credits:30,snack:0,isAdmin:true,adminMode:false});
+    // 꺼진 동안은 일반 유저: 뽑기권이 줄고 결과도 남음
     await send('고급뽑기');
-    expect((await me()).credits).toBe(27);
-    expect((await me()).isAdmin).toBe(true);
+    expect((await me()).credits).toBe(25);
     expect((await send('내정보')).text).toContain('관리자(모드 꺼짐)');
     expect((await send('관리자')).text).toContain('꺼짐');
-    // 다시 켜면 코드 없이 무제한
+    // 다시 켜서 뽑은 것은 해제할 때도 되돌림. 꺼진 동안 뽑은 1마리는 유지
     expect((await send('관리자 켜기')).text).toContain('관리자 모드 켜짐');
-    await send('고급뽑기');
-    expect((await me()).credits).toBe(27);
-    await send('관리자 해제');
+    await send('고급뽑기 3');
+    expect((await me()).credits).toBe(25);
+    expect(await db.ownedCharacter.count()).toBe(4);
+    expect((await send('관리자 해제')).text).toContain('되돌렸어요');
+    expect(await db.ownedCharacter.count()).toBe(1);
+    expect(await me()).toMatchObject({credits:25,isAdmin:false,adminMode:false});
     expect((await send('관리자 켜기')).text).toContain('등록된 계정이 아니에요');
     await send('고급뽑기');
-    expect((await me()).credits).toBe(22);
+    expect((await me()).credits).toBe(20);
+  });
+  it('관리자 모드 원상복구: 보유 유닛의 잠금 상태와 번호까지 그대로',async()=>{
+    const code='admin-test-code-0123456789';
+    game=new GameService(db,content,()=>now,new GachaEngine(content.characters,content.economy.gachas,()=>0),max=>max-1,process.cwd(),code);
+    await fixtures(['C1','C1','C2']);
+    const before=await db.ownedCharacter.findMany({orderBy:{id:'asc'}});
+    await db.ownedCharacter.update({where:{id:before[0].id},data:{locked:true}});
+    const locked=await db.ownedCharacter.findMany({orderBy:{id:'asc'}});
+    await send(`관리자 ${code}`);
+    await send('잠금해제 C1');
+    await send('하급뽑기 10');
+    await send('관리자 끄기');
+    expect(await db.ownedCharacter.findMany({orderBy:{id:'asc'}})).toEqual(locked);
   });
   it('관리자 코드가 설정되지 않으면 관리자가 될 수 없음',async()=>{
     expect((await send('관리자 아무거나')).text).toContain('꺼져 있어요');
@@ -247,7 +268,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     };
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.5'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.6'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});
