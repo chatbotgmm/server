@@ -39,12 +39,12 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     return p;
   }
 
-  it('신규 30장, 첫 받기는 즉시 +10, 5시간 쿨타임, 늦어도 1회분만',async()=>{
+  it('신규 30장, 첫 받기는 즉시 +10, 1시간 쿨타임, 늦어도 1회분만',async()=>{
     expect((await send('내정보')).text).toContain('🎟 30장');
     expect((await send('뽑기권 받기')).text).toContain('뽑기권 +10');
     expect((await me()).credits).toBe(40);
-    expect((await send('뽑기권받기')).text).toContain('5시간 뒤 (');
-    now=new Date(now.getTime()+4*HOUR+59*60000);
+    expect((await send('뽑기권받기')).text).toContain('1시간 뒤 (');
+    now=new Date(now.getTime()+59*60000);
     expect((await send('받기')).text).toContain('1분 뒤 (');
     now=new Date(now.getTime()+20*HOUR);
     await send('받기');
@@ -180,7 +180,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await db.player.update({where:{identity:actor},data:{credits:0}});
     const menuReply=await send('뽑기');
     expect(menuReply.list).toBeUndefined();
-    expect(menuReply.text).toContain('다음 뽑기권: 5시간 뒤 (오후 1:00)');
+    expect(menuReply.text).toContain('다음 뽑기권: 1시간 뒤 (오전 9:00)');
     expect(menuReply.text).toContain('✨ 조합 가능 1종');
     expect((await send('뽑기권받기')).text).toContain('그동안 해 볼 것');
     await db.player.update({where:{identity:actor},data:{credits:3}});
@@ -279,7 +279,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     };
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.9'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.10'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});

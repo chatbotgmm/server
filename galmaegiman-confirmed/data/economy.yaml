@@ -4,7 +4,7 @@ version: ECONOMY_V1
 tickets:
   welcome: 30          # 신규 가입 지급
   claim: 10            # 뽑기권 받기 1회
-  cooldownHours: 5     # 받은 뒤 다시 받을 수 있을 때까지. 누적 없음
+  cooldownHours: 1     # 받은 뒤 다시 받을 수 있을 때까지. 누적 없음
 
 gachas:                # 등급 확률 합계는 100
   LOW:  { label: 하급, cost: 2, weights: { COMMON: 70, UNCOMMON: 30 } }

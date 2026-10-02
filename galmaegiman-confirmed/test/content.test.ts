@@ -29,12 +29,12 @@ describe('118종 콘텐츠',()=>{
   it('조합식 수량: 금갑 = 기본×2 + 황금',()=>{
     expect(content.recipes.find(r=>r.resultId==='U1')!.materials.sort()).toEqual(['C1','C1','C2']);
   });
-  it('경제 수치: 뽑기 비용 2/3/5, 교환 150, 뽑기권 30/10/5시간',()=>{
+  it('경제 수치: 뽑기 비용 2/3/5, 교환 150, 뽑기권 30/10/1시간',()=>{
     const e=content.economy;
     expect([e.gachas.LOW.cost,e.gachas.MID.cost,e.gachas.HIGH.cost]).toEqual([2,3,5]);
     expect(e.gachas.HIGH.weights).toEqual({SPECIAL:79,RARE:20,LEGEND:1});
     expect(e.exchange.snackCost).toBe(150);
-    expect(e.tickets).toEqual({welcome:30,claim:10,cooldownHours:5});
+    expect(e.tickets).toEqual({welcome:30,claim:10,cooldownHours:1});
     expect(e.rewards.COMMON).toEqual({first:0,duplicate:0});
     expect(e.rewards.IMMORTAL).toEqual({first:1400,duplicate:280});
   });
