@@ -18,6 +18,8 @@ type ActionPayload={characterId?:string;ids?:number[];recipeId?:string};
 const json=(x:unknown)=>x as Prisma.InputJsonValue;
 const gachaWords:Record<string,GachaKind>={하급:'LOW',중급:'MID',고급:'HIGH'};
 const menu=[choice('뽑기'),choice('뽑기권 받기','뽑기권받기'),choice('내갈매미'),choice('조합가능'),choice('조합목록'),choice('탐험'),choice('도감'),choice('내정보')];
+// 관리자로 등록되어 있고 관리자 모드를 켰을 때만 뽑기권 무제한
+const unlimited=(p:{isAdmin:boolean;adminMode:boolean})=>p.isAdmin&&p.adminMode;
 const help=[
   '🏝 갈매미맨 — 갈매미를 모아 조합하는 게임',
   '',
@@ -223,9 +225,9 @@ export class GameService {
     const ready=await this.craftable(tx,p);
     const cheapest=Math.min(...Object.values(this.content.economy.gachas).map(g=>g.cost));
     const canClaim=!this.claimWait(account,now);
-    const lines=[`🎟 ${account.isAdmin?'무제한(관리자)':`${account.credits}장`} · 🍤 ${account.snack}개`];
+    const lines=[`🎟 ${unlimited(account)?'무제한(관리자)':`${account.credits}장`} · 🍤 ${account.snack}개`];
     if(ready)lines.push(`✨ 지금 조합 가능 ${ready}종!`);
-    if(!account.isAdmin&&account.credits<cheapest)lines.push(canClaim?'🎟 뽑기권 받기를 눌러 10장을 받으세요!':this.waitLine(account,now));
+    if(!unlimited(account)&&account.credits<cheapest)lines.push(canClaim?'🎟 뽑기권 받기를 눌러 10장을 받으세요!':this.waitLine(account,now));
     const choices=[...first,...(ready?[choice(`조합가능 ${ready}`,'조합가능')]:[]),...(canClaim?[choice('뽑기권 받기','뽑기권받기')]:[]),choice('뽑기'),...menu.slice(2)];
     return {line:lines.join('\n'),choices,account};
   }
@@ -260,7 +262,7 @@ export class GameService {
   private async gachaMenu(tx:Tx,p:Player,now:Date):Promise<GameReply>{
     const g=this.content.economy.gachas;
     const cheapest=Math.min(...Object.values(g).map(x=>x.cost));
-    if(!p.isAdmin&&p.credits<cheapest){
+    if(!unlimited(p)&&p.credits<cheapest){
       const alt=await this.meanwhile(tx,p,now);
       return {text:`🥚 뽑기 · 🎟 ${p.credits}장\n뽑기권이 모자라요. (하급 ${g.LOW.cost}장부터)\n${this.waitLine(p,now)}${alt.text}`,
         choices:[...(this.claimWait(p,now)?[]:[choice('뽑기권 받기','뽑기권받기')]),...alt.choices,choice('확률'),...menu.slice(2)]};
@@ -270,20 +272,20 @@ export class GameService {
       description:Object.entries(g[kind].weights).map(([t,w])=>`${emblems[t]}${rarityNames[t]} ${w}`).join(' · ')+'%',
       message:`${g[kind].label}뽑기`
     }));
-    return {...listReply(`🥚 뽑기 · 🎟 ${p.isAdmin?'무제한(관리자)':`${p.credits}장`}`,items,`숫자를 붙이면 여러 번 (최대 10): 하급뽑기 5${this.claimWait(p,now)?'':'\n🎟 지금 뽑기권을 받을 수 있어요!'}`),
+    return {...listReply(`🥚 뽑기 · 🎟 ${unlimited(p)?'무제한(관리자)':`${p.credits}장`}`,items,`숫자를 붙이면 여러 번 (최대 10): 하급뽑기 5${this.claimWait(p,now)?'':'\n🎟 지금 뽑기권을 받을 수 있어요!'}`),
       choices:[choice('하급 ×5','하급뽑기 5'),choice('중급 ×5','중급뽑기 5'),choice('고급 ×2','고급뽑기 2'),choice('뽑기권 받기','뽑기권받기'),choice('확률'),...menu.slice(2,6)]};
   }
   private async draw(tx:Tx,p:Player,kind:GachaKind,times:number,now:Date):Promise<GameReply>{
     const g=this.content.economy.gachas[kind];
     const cost=g.cost*times;
-    const admin=p.isAdmin;
+    const admin=unlimited(p);
     if(!admin&&p.credits<cost){
       const cheaper=(['LOW','MID','HIGH'] as GachaKind[]).filter(k=>this.content.economy.gachas[k].cost<=p.credits);
       const alt=await this.meanwhile(tx,p,now);
       return {text:`🎟 뽑기권이 모자라요\n${g.label} ${times}회 ${cost}장 · 지금 ${p.credits}장${cheaper.length?`\n(${cheaper.map(k=>this.content.economy.gachas[k].label).join('·')} 뽑기는 지금 할 수 있어요)`:''}\n${this.waitLine(p,now)}${alt.text}`,
         choices:[...cheaper.map(k=>choice(`${this.content.economy.gachas[k].label}뽑기`)),...(this.claimWait(p,now)?[]:[choice('뽑기권 받기','뽑기권받기')]),...alt.choices,...menu.slice(2)]};
     }
-    // 관리자는 테스트용으로 뽑기권을 쓰지 않습니다.
+    // 관리자 모드를 켠 관리자는 테스트용으로 뽑기권을 쓰지 않습니다.
     const paid=await tx.player.updateMany({where:{id:p.id,revision:p.revision,...(admin?{}:{credits:{gte:cost}})},data:{...(admin?{}:{credits:{decrement:cost}}),revision:{increment:1}}});
     if(paid.count!==1)throw new GameError('잠깐 겹쳤어요. 뽑기를 다시 눌러 주세요.');
     const known=await this.known(tx,p);
@@ -705,18 +707,28 @@ export class GameService {
     if(compact.startsWith('탐험보내기')||(command==='탐험'&&args[0]==='보내기'))return this.sendExpedition(tx,p,trimmed.replace(/^탐험\s*보내기/u,'').trim(),now);
     if(['탐험보상받기','탐험보상','탐험받기'].includes(compact))return this.claimExpedition(tx,p,now);
     if(command==='시너지')return {text:this.synergyGuide(),choices:[choice('탐험'),...menu]};
-    if(command==='관리자'){
-      if(args[0]==='해제'){
-        await tx.player.update({where:{id:p.id},data:{isAdmin:false}});
-        await this.audit(tx,p,'ADMIN',{enabled:false});
-        return {text:'관리자 모드를 껐어요. 이제 뽑기권이 일반 유저처럼 줄어요.',choices:menu};
+    if(command==='관리자'||command==='관리자모드'){
+      const sub=args[0]??'';
+      if(sub==='해제'){
+        await tx.player.update({where:{id:p.id},data:{isAdmin:false,adminMode:false}});
+        await this.audit(tx,p,'ADMIN',{registered:false,mode:false});
+        return {text:'관리자 등록을 해제했어요. 다시 쓰려면 관리자 코드를 입력하세요.',choices:menu};
+      }
+      if(['켜기','켬','on','끄기','끔','off'].includes(sub)||!sub){
+        if(!p.isAdmin)return {text:'관리자로 등록된 계정이 아니에요. (관리자 코드 입력 필요)',choices:menu};
+        if(!sub)return {text:`🛠 관리자 모드: ${p.adminMode?'켜짐 (뽑기권 무제한)':'꺼짐 (일반 유저와 같음)'}`,choices:[choice(p.adminMode?'관리자 끄기':'관리자 켜기'),...menu]};
+        const on=['켜기','켬','on'].includes(sub);
+        await tx.player.update({where:{id:p.id},data:{adminMode:on}});
+        await this.audit(tx,p,'ADMIN',{registered:true,mode:on});
+        return on?{text:'🛠 관리자 모드 켜짐!\n뽑기에 뽑기권을 쓰지 않아요(무제한).\n끄려면: 관리자 끄기',choices:[choice('뽑기'),choice('관리자 끄기'),...menu]}
+          :{text:'관리자 모드를 껐어요. 이제 일반 유저처럼 뽑기권이 줄어요.\n다시 켜려면: 관리자 켜기',choices:[choice('관리자 켜기'),...menu]};
       }
       if(!this.adminCode)return {text:'관리자 기능이 꺼져 있어요. (서버 .env에 ADMIN_CODE가 없어요)',choices:menu};
       const given=Buffer.from(args.join(' ')),expected=Buffer.from(this.adminCode);
       if(given.length!==expected.length||!timingSafeEqual(given,expected))return {text:'관리자 코드가 맞지 않아요.',choices:menu};
-      await tx.player.update({where:{id:p.id},data:{isAdmin:true}});
-      await this.audit(tx,p,'ADMIN',{enabled:true});
-      return {text:'🛠 관리자 모드 켜짐!\n이 계정은 뽑기에 뽑기권을 쓰지 않아요(무제한).\n끄려면: 관리자 해제',choices:[choice('뽑기'),...menu]};
+      await tx.player.update({where:{id:p.id},data:{isAdmin:true,adminMode:true}});
+      await this.audit(tx,p,'ADMIN',{registered:true,mode:true});
+      return {text:'🛠 관리자로 등록했어요. 관리자 모드 켜짐!\n뽑기에 뽑기권을 쓰지 않아요(무제한).\n끄기: 관리자 끄기 · 켜기: 관리자 켜기\n등록 해제: 관리자 해제',choices:[choice('뽑기'),choice('관리자 끄기'),...menu]};
     }
     if(command==='미션')return {text:`🎯 오늘의 미션 · 밤 12시 초기화\n\n${await this.missionText(tx,p,now)}\n\n채우는 순간 바로 받아요.`,choices:[choice('뽑기'),choice('조합가능'),choice('탐험'),...menu]};
     if(command==='칭호'){
@@ -729,7 +741,7 @@ export class GameService {
       const active=await this.activeExpedition(tx,p);
       const trip=active?(active.endsAt>now?`탐험 중 · 귀환까지 ${duration(active.endsAt.getTime()-now.getTime())}`:'탐험 귀환 · 보상 받기 대기'):'탐험 없음';
       const titles=await this.titles(tx,p);
-      return {text:`🏝 갈매미 섬${titles.length?` · 「${titles.at(-1)}」`:''}${p.isAdmin?' · 🛠 관리자':''}\n🎟 ${p.isAdmin?'무제한':`${p.credits}장`} · 🍤 ${p.snack}개\n📚 도감 ${count}/${this.content.characters.length} · 🏆 칭호 ${titles.length}개\n${this.claimHint(p,now)}\n🧭 ${trip}\n\n🎯 오늘의 미션\n${await this.missionText(tx,p,now)}`,choices:[choice('미션'),choice('칭호'),...menu]};
+      return {text:`🏝 갈매미 섬${titles.length?` · 「${titles.at(-1)}」`:''}${p.isAdmin?(p.adminMode?' · 🛠 관리자 모드':' · 관리자(모드 꺼짐)'):''}\n🎟 ${unlimited(p)?'무제한':`${p.credits}장`} · 🍤 ${p.snack}개\n📚 도감 ${count}/${this.content.characters.length} · 🏆 칭호 ${titles.length}개\n${this.claimHint(p,now)}\n🧭 ${trip}\n\n🎯 오늘의 미션\n${await this.missionText(tx,p,now)}`,choices:[choice('미션'),choice('칭호'),...menu]};
     }
     if((command==='도감'||command==='내갈매미')&&query&&!/^\d+$/.test(query)&&!this.gradeOf(args[0]))return this.detail(tx,p,command,query);
     if(['내갈매미','도감','조합목록','조합가능'].includes(command))return this.browse(tx,p,command,query);

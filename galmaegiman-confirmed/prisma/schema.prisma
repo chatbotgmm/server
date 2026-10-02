@@ -16,6 +16,7 @@ model Player {
   snack Int @default(0)
   lastClaimAt DateTime?
   isAdmin Boolean @default(false)
+  adminMode Boolean @default(false)
   revision Int @default(0)
   createdAt DateTime @default(now())
   characters OwnedCharacter[]
