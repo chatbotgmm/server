@@ -18,4 +18,17 @@ describe('카카오 공식 요청·응답',()=>{
     const response=kakaoResponse({text:'암흑 갈매미맨 등장!',imageId:'C3',imageName:'암흑 갈매미맨'},'https://example.com');
     expect(response.template.outputs[0]).toEqual({simpleImage:{imageUrl:'https://example.com/images/C3.png',altText:'암흑 갈매미맨'}});
   });
+  it('여러 번 뽑기: 연출 문구 → 카드 넘기기 → 요약, 이미지 주소가 없으면 글로만',()=>{
+    const reply={text:'전체 글',imageId:'L2',cards:{intro:'🥚 고급 뽑기 ×2',outro:'🎟 3장',items:[
+      {imageId:'L2',title:'★ 쌍패성왕',description:'전설 · 🆕 새 발견!',label:'도감 보기',message:'도감 쌍패성왕'},
+      {imageId:'S1',title:'✦ 쌍패수호자 ×2',description:'특별',label:'도감 보기',message:'도감 쌍패수호자'}]}};
+    const out=kakaoResponse(reply,'https://example.com').template.outputs as any[];
+    expect(out).toHaveLength(3);
+    expect(out[0]).toEqual({simpleText:{text:'🥚 고급 뽑기 ×2'}});
+    expect(out[1].carousel.type).toBe('basicCard');
+    expect(out[1].carousel.items[0]).toEqual({title:'★ 쌍패성왕',description:'전설 · 🆕 새 발견!',
+      thumbnail:{imageUrl:'https://example.com/images/L2.png',altText:'★ 쌍패성왕'},buttons:[{action:'message',label:'도감 보기',messageText:'도감 쌍패성왕'}]});
+    expect(out[2]).toEqual({simpleText:{text:'🎟 3장'}});
+    expect(kakaoResponse(reply).template.outputs).toEqual([{simpleText:{text:'전체 글'}}]);
+  });
 });

@@ -60,6 +60,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     // 같은 유닛은 한 줄로 묶고 등급 머리말 아래에 표시
     expect(multi.text).toContain('🥚 흔함\n  기본 갈매미맨 ×5');
     expect(multi.text).toContain('━━━━━━━━━━\n🎟');
+    expect(multi.cards?.items).toEqual([{imageId:'C1',title:'🥚 기본 갈매미맨 ×5',description:'흔함',label:'도감 보기',message:'도감 기본 갈매미맨'}]);
+    expect(multi.cards?.outro).toContain('━━━━━━━━━━\n🎟');
     // 뽑기 8회째에 '뽑기 5회' 미션 달성 → +2
     expect(multi.text).toContain('오늘의 미션 완료');
     expect((await me()).credits).toBe(12);
@@ -282,7 +284,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     };
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.11'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.12'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});

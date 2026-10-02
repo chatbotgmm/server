@@ -354,8 +354,13 @@ export class GameService {
     const head=`${drama}🥚 ${g.label} 뽑기 ×${times}${news?` · 🆕 새 발견 ${news}종!`:''}`;
     const gains=[...(snacks?[`🍤 +${snacks}`]:[]),...missions].join('\n');
     const achieved=results.filter(r=>r.receipt.achievement).map(r=>achievementText(r.receipt.achievement!));
-    const body=[head,blocks.join('\n\n'),...(gains?[gains]:[]),...achieved,`━━━━━━━━━━\n${next.line}`].join('\n\n');
-    return {text:mask(this.content,body,known),...(firstNew?{imageId:this.image(firstNew.c.id,known)}:{}),choices:next.choices};
+    const outro=[...(gains?[gains]:[]),...achieved,`━━━━━━━━━━\n${next.line}`].join('\n\n');
+    const body=[head,blocks.join('\n\n'),outro].join('\n\n');
+    // 카드 넘기기: 유닛마다 그림 카드 1장(높은 등급부터). 그림이 하나라도 없으면 글로만 보냅니다.
+    const items=sorted.map(x=>({imageId:this.image(x.c.id,known)??'',title:`${emblems[x.c.rarity]} ${x.c.name}${x.n>1?` ×${x.n}`:''}`,
+      description:`${rarityNames[x.c.rarity]}${x.first?' · 🆕 새 발견!':''}`,label:'도감 보기',message:`도감 ${x.c.name}`}));
+    const cards=items.every(i=>i.imageId)?{cards:{intro:mask(this.content,head,known),items:items.map(i=>({...i,title:mask(this.content,i.title,known),message:mask(this.content,i.message,known)})),outro:mask(this.content,outro,known)}}:{};
+    return {text:mask(this.content,body,known),...cards,...(firstNew?{imageId:this.image(firstNew.c.id,known)}:{}),choices:next.choices};
   }
   private probabilityText(){
     const g=this.content.economy.gachas;

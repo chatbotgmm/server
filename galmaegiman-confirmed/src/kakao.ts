@@ -22,6 +22,18 @@ export function parseKakao(input:unknown,expectedBot?:string){
 }
 export function kakaoResponse(result:GameReply,baseUrl=''){
   const outputs:object[]=[];
+  const idOk=(id:string)=>/^[CUSRLHDTEI]\d{1,2}$/.test(id);
+  if(result.cards&&baseUrl&&result.cards.items.length>=1&&result.cards.items.length<=10&&result.cards.items.every(c=>idOk(c.imageId))){
+    const {intro,items,outro}=result.cards;
+    if(intro)outputs.push({simpleText:{text:intro.slice(0,950)}});
+    outputs.push({carousel:{type:'basicCard',items:items.map(c=>({
+      title:c.title.slice(0,50),description:c.description.slice(0,230),
+      thumbnail:{imageUrl:`${baseUrl}/images/${c.imageId}.png`,altText:c.title.slice(0,50)},
+      buttons:[{action:'message',label:c.label.slice(0,14),messageText:c.message}]
+    }))}});
+    if(outro)outputs.push({simpleText:{text:outro.slice(0,950)}});
+    return {version:'2.0',template:{outputs,quickReplies:(result.choices??[]).slice(0,10).map(c=>({action:'message',label:c.label.slice(0,14),messageText:c.message}))}};
+  }
   if(result.imageId&&baseUrl&&/^[CUSRLHDTEI]\d{1,2}$/.test(result.imageId)){
     outputs.push({simpleImage:{imageUrl:`${baseUrl}/images/${result.imageId}.png`,altText:(result.imageName??'갈매미맨').slice(0,50)}});
   }
