@@ -9,7 +9,7 @@ const env=z.object({
   HOST:z.literal('127.0.0.1').default('127.0.0.1'),
   PORT:z.coerce.number().int().min(1024).max(65535).default(3000),
   SKILL_SECRET:z.string().min(32),KAKAO_BOT_ID:z.string().optional(),
-  PUBLIC_BASE_URL:z.string().optional(),LOG_ENABLED:z.enum(['true','false']).default('true')
+  PUBLIC_BASE_URL:z.string().optional(),ADMIN_CODE:z.preprocess(v=>v===''?undefined:v,z.string().min(16).optional()),LOG_ENABLED:z.enum(['true','false']).default('true')
 }).parse(process.env);
 const db=new PrismaClient();
 const content=loadContent();
@@ -25,7 +25,7 @@ async function baseUrl(){
   if(!value)return '';
   try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&u.pathname==='/'&&!u.search&&!u.hash?u.origin:'';}catch{return '';}
 }
-const app=await buildApp(db,new GameService(db,content),{secret:env.SKILL_SECRET,botId:env.KAKAO_BOT_ID,baseUrl,log:env.LOG_ENABLED==='true'});
+const app=await buildApp(db,new GameService(db,content,undefined,undefined,undefined,undefined,env.ADMIN_CODE),{secret:env.SKILL_SECRET,botId:env.KAKAO_BOT_ID,baseUrl,log:env.LOG_ENABLED==='true'});
 let closing=false;
 const close=async()=>{if(closing)return;closing=true;await app.close();await db.$disconnect();};
 process.on('SIGTERM',()=>void close());process.on('SIGINT',()=>void close());

@@ -174,6 +174,25 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(dup.text).not.toContain('도감 기록');
     expect(dup.text).toContain('지금 조합 가능 1종');
   });
+  it('관리자: 코드가 맞으면 뽑기권을 쓰지 않음, 틀리면 변화 없음, 해제 가능',async()=>{
+    const code='admin-test-code-0123456789';
+    game=new GameService(db,content,()=>now,new GachaEngine(content.characters,content.economy.gachas,()=>0),max=>max-1,process.cwd(),code);
+    expect((await send('관리자 wrong-code-0000000000')).text).toContain('맞지 않아요');
+    expect((await me()).isAdmin).toBe(false);
+    expect((await send(`관리자 ${code}`)).text).toContain('관리자 모드 켜짐');
+    const r=await send('고급뽑기 10');
+    expect(r.text).toContain('무제한(관리자)');
+    // 뽑기권은 그대로, 뽑기 5회 미션 보상(+2)만 들어옴
+    expect((await me()).credits).toBe(32);
+    expect(await db.ownedCharacter.count()).toBe(10);
+    await send('관리자 해제');
+    await send('고급뽑기');
+    expect((await me()).credits).toBe(27);
+  });
+  it('관리자 코드가 설정되지 않으면 관리자가 될 수 없음',async()=>{
+    expect((await send('관리자 아무거나')).text).toContain('꺼져 있어요');
+    expect((await me()).isAdmin).toBe(false);
+  });
   it('종료된 기능(출석·재료·땅콩)은 안내만 하고 재화를 바꾸지 않음',async()=>{
     for(const cmd of ['출석','재료 기본','땅콩떼기 금갑'])expect((await send(cmd)).text).toContain('종료');
     expect((await me()).snack).toBe(0);
@@ -201,7 +220,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     };
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.2'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.3'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});

@@ -1,6 +1,6 @@
 {
   "name": "galmaegiman-confirmed",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "type": "module",
   "engines": {
@@ -18,7 +18,8 @@
     "backup": "bash scripts/backup.sh",
     "url": "node scripts/set-url.mjs",
     "tunnel": "bash scripts/tunnel.sh",
-    "reset-data": "bash scripts/reset-data.sh"
+    "reset-data": "bash scripts/reset-data.sh",
+    "admin-code": "node scripts/admin-code.mjs"
   },
   "dependencies": {
     "@fastify/rate-limit": "^10.1.1",
