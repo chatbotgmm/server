@@ -72,7 +72,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(await db.ownedCharacter.count({where:{status:'CONSUMED'}})).toBe(0);
     const done=await confirm(preview);
     expect(done.text).toContain('조합 성공! 새 안흔함 발견');
-    expect(done.text).toContain('💬 금갑:');
+    expect(done.text).not.toContain('💬');
     expect(await db.ownedCharacter.count({where:{status:'CONSUMED'}})).toBe(3);
     expect((await me()).snack).toBe(50);
   });
@@ -237,7 +237,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await send('관리자 끄기');
     expect(await db.ownedCharacter.findMany({orderBy:{id:'asc'}})).toEqual(locked);
   });
-  it('뽑기 결과에는 한 줄 소개·대사가 없고 도감에서만 보임',async()=>{
+  it('획득 결과에는 한 줄 소개·대사가 없고 도감에서만 보임',async()=>{
     await fixtures([],{credits:30});
     const one=await send('하급뽑기');
     expect(one.text).not.toContain('💬');
@@ -279,7 +279,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     };
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.8'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.9'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});

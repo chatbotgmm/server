@@ -20,15 +20,14 @@ export function prelude(c:Character,first:boolean){
 export function acquisitionText(content:Content,c:Character,kind:AcquisitionKind,receipt:Receipt,known:Set<string>):string{
   const e=emblems[c.rarity],grade=rarityNames[c.rarity];
   const snack=receipt.snacks?` · 🍤 +${receipt.snacks}`:'';
-  // 뽑기 결과에는 한 줄 소개와 대사를 넣지 않습니다. 도감에서 봅니다.
-  const talk=kind!=='GACHA';
+  // 획득 결과(뽑기·조합·교환·탐험)에는 한 줄 소개와 대사를 넣지 않습니다. 도감에서 봅니다.
   let text:string;
   if(receipt.first){
     const head=kind==='COMBINATION'?`🧩 조합 성공! 새 ${grade} 발견!`:kind==='EXPEDITION'?`🧭 탐험에서 새 ${grade} 발견!`:`${e}${e} 새 ${grade} 발견! ${e}${e}`;
-    text=`${prelude(c,true)}${head}\n【${c.name}】\n${talk?`${c.tagline}\n${speech(c)}\n`:''}📖 ${grade} 도감 ${receipt.tierKnown}/${receipt.tierTotal}${snack}`;
+    text=`${prelude(c,true)}${head}\n【${c.name}】\n📖 ${grade} 도감 ${receipt.tierKnown}/${receipt.tierTotal}${snack}`;
   }else{
     const head=kind==='COMBINATION'?`🧩 ${c.name} 조합 완료`:`${e} ${c.name}`;
-    text=`${high.has(c.rarity)?prelude(c,false):''}${head} (${receipt.count}번째)${talk?`\n💬 "${c.quote}"`:''}${receipt.snacks?`\n🍤 +${receipt.snacks}`:''}`;
+    text=`${high.has(c.rarity)?prelude(c,false):''}${head} (${receipt.count}번째)${receipt.snacks?`\n🍤 +${receipt.snacks}`:''}`;
   }
   if(receipt.achievement)text+=`\n\n${achievementText(receipt.achievement)}`;
   return mask(content,text,known);

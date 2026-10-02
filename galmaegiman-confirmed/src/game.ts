@@ -381,7 +381,7 @@ export class GameService {
     });
     const ready=this.canCraft(recipe,stock);
     const missing=[...materialCounts(recipe.materials)].filter(([id,n])=>statusOf(stock.get(id)).usable<n).length;
-    const flavor=collected===false?'처음 만드는 갈매미예요!':collected?result.tagline:'';
+    const flavor=collected===false?'🆕 처음 만드는 갈매미예요!':'';
     return mask(this.content,`🧩 ${emblems[result.rarity]} ${result.name} (${rarityNames[result.rarity]})${flavor?`\n${flavor}`:''}\n\n${lines.join('\n')}\n\n${ready?'✨ 재료가 모두 모였어요!':`재료 ${missing}종이 더 필요해요.`}`,known);
   }
   private visibleRecipes(known:Set<string>){
