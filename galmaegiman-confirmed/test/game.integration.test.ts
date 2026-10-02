@@ -41,7 +41,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
 
   it('신규 30장, 첫 받기는 즉시 +10, 5시간 쿨타임, 늦어도 1회분만',async()=>{
     expect((await send('내정보')).text).toContain('🎟 30장');
-    expect((await send('뽑기권 받기')).text).toContain('10장을 받았습니다');
+    expect((await send('뽑기권 받기')).text).toContain('뽑기권 +10');
     expect((await me()).credits).toBe(40);
     expect((await send('뽑기권받기')).text).toContain('5시간 뒤에');
     now=new Date(now.getTime()+4*HOUR+59*60000);
@@ -60,14 +60,15 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     // 뽑기 8회째에 '뽑기 5회' 미션 달성 → +2
     expect(multi.text).toContain('오늘의 미션 완료');
     expect((await me()).credits).toBe(12);
-    expect((await send('고급뽑기 3')).text).toContain('뽑기권이 부족합니다');
+    expect((await send('고급뽑기 3')).text).toContain('뽑기권이 부족해요');
     expect((await me()).credits).toBe(12);
     expect(await db.ownedCharacter.count()).toBe(8);
   });
   it('조합 미리보기는 소비하지 않고 확정 시 재료 소비 + 첫 도감 보상 50',async()=>{
     await fixtures(['C1','C1','C2']);
     const preview=await send('조합 금갑');
-    expect(preview.text).toContain('조합 준비 완료');
+    expect(preview.text).toContain('재료가 모두 모였어요');
+    expect(preview.text).not.toContain('가리키기');
     expect(await db.ownedCharacter.count({where:{status:'CONSUMED'}})).toBe(0);
     const done=await confirm(preview);
     expect(done.text).toContain('조합 성공! 새 안흔함 발견');
@@ -84,9 +85,9 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   });
   it('히든: 목록·도감·이름 검색에서 숨김, 합치기로 발견하면 공개',async()=>{
     await fixtures(['R1','R2']);
-    expect((await send('조합목록')).text).toContain('히든 · 발견 0/13종');
+    expect((await send('조합목록')).text).toContain('히든 · 발견 0/13');
     expect((await send('조합목록 히든')).text).toContain('아직 발견한 히든 조합이 없습니다');
-    expect((await send('도감 브라자 갈매미맨')).text).toContain('이름을 찾지 못했습니다');
+    expect((await send('도감 브라자 갈매미맨')).text).toContain('그런 갈매미는 없어요');
     const dex=await send('도감 히든');
     expect(dex.list!.items[0].title).toBe('???');
     expect(JSON.stringify(dex)).not.toContain('브라자');
@@ -97,7 +98,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const done=await confirm(preview);
     expect(done.text).toContain('숨은 조합을 발견했습니다');
     expect(done.text).toContain('브라자 갈매미맨');
-    expect((await send('조합목록 히든')).list!.items[0].title).toBe('브라자 갈매미맨');
+    expect((await send('조합목록 히든')).list!.items[0].title).toBe('❔ 브라자 갈매미맨');
   });
   it('히든을 재료로 쓰는 최상위 조합식은 발견 전 ???로 표시',async()=>{
     await fixtures([]);
@@ -109,7 +110,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   });
   it('교환: 최상위 유닛이 없으면 불가, 있으면 새우깡 150으로 흔함 1마리',async()=>{
     await fixtures([],{snack:300});
-    expect((await send('교환 기본')).text).toContain('최상위 유닛');
+    expect((await send('교환 기본')).text).toContain('최상위 갈매미');
     await fixtures(['D1']);
     const preview=await send('교환 기본');
     expect(preview.text).toContain('새우깡 150개');
@@ -122,11 +123,11 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const basic=content.characters.filter(c=>c.synergy==='BASIC').map(c=>c.id);
     await fixtures([...basic,'C1','C1','C2']);
     const preview=await send(`탐험보내기 ${basic.map(id=>content.map.get(id)!.name).join(', ')}`);
-    expect(preview.text).toContain('기본 4마리 → 2단계');
-    expect(preview.text).toContain('시너지 반영 52개');
+    expect(preview.text).toContain('기본 ×4 (2단계)');
+    expect(preview.text).toContain('예상 52개');
     await confirm(preview);
     expect(await db.ownedCharacter.count({where:{status:'EXPEDITION'}})).toBe(4);
-    expect((await send('잠금 태초의 갈매미맨')).text).toContain('할 수 있는 개체가 없습니다');
+    expect((await send('잠금 태초의 갈매미맨')).text).toContain('없어요');
     expect((await send('탐험보내기 자동')).text).toContain('이미 탐험 중');
     expect((await send('내정보')).text).toContain('탐험 중');
     expect((await send('탐험보상받기')).text).toContain('아직 탐험 중');
@@ -141,7 +142,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   it('탐험 자동 편성은 최대 10마리, 같은 유닛 다섯 마리 연출',async()=>{
     await fixtures(Array(12).fill('D7'));
     const preview=await send('탐험보내기 자동');
-    expect(preview.text).toContain('파견 10마리');
+    expect(preview.text).toContain('🧭 10마리');
     await confirm(preview);
     now=new Date(now.getTime()+HOUR);
     expect((await send('탐험보상받기')).text).toContain('앙~~~~ 갈매미맨이야!!!!');
@@ -200,12 +201,12 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     };
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.1'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.2'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});
       const item=selected(await request('조합목록 안흔함'));
-      expect(item.title).toBe('금갑');
+      expect(item.title).toBe('🔹 금갑');
       const confirmItem=selected(await request(item.messageText));
       expect(confirmItem.messageText).toBe('조합 확정');
       const stolen=await request(confirmItem.messageText,confirmItem.extra,'other-user');
