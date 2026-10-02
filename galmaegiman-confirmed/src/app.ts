@@ -13,12 +13,12 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
   const app=Fastify({logger:options.log??false,bodyLimit:32_768,trustProxy:false});
   await app.register(rateLimit,{global:false});
-  app.get('/health',async()=>({ok:true,mode:'KAKAO_CHANNEL',edition:'RANDOM_75',version:'0.2.6'}));
+  app.get('/health',async()=>({ok:true,mode:'KAKAO_CHANNEL',edition:'GALMAEMI_118',version:'0.3.0'}));
   app.get('/ready',async(_req,reply)=>{
     try{await db.$queryRaw`SELECT 1`;return {ready:true};}catch{return reply.code(503).send({ready:false});}
   });
   app.get<{Params:{file:string}}>('/images/:file',async(req,reply)=>{
-    if(!/^[CUSR]\d{3}[MF]\.png$/.test(req.params.file)||!game.content.map.has(req.params.file.slice(0,-4)))return reply.code(404).send({error:'not found'});
+    if(!/^[CUSRLHDTEI]\d{1,2}\.png$/.test(req.params.file)||!game.content.map.has(req.params.file.slice(0,-4)))return reply.code(404).send({error:'not found'});
     try{return reply.type('image/png').header('Cache-Control','public, max-age=3600').send(await readFile(resolve(options.root??process.cwd(),'public/images',req.params.file)));}
     catch{return reply.code(404).send({error:'image missing'});}
   });

@@ -22,7 +22,7 @@ export function parseKakao(input:unknown,expectedBot?:string){
 }
 export function kakaoResponse(result:GameReply,baseUrl=''){
   const outputs:object[]=[];
-  if(result.imageId&&baseUrl&&/^[CUSR]\d{3}[MF]$/.test(result.imageId)){
+  if(result.imageId&&baseUrl&&/^[CUSRLHDTEI]\d{1,2}$/.test(result.imageId)){
     outputs.push({simpleImage:{imageUrl:`${baseUrl}/images/${result.imageId}.png`,altText:(result.imageName??'갈매미맨').slice(0,50)}});
   }
   if(result.list){
@@ -31,7 +31,7 @@ export function kakaoResponse(result:GameReply,baseUrl=''){
     // 목록은 중복 본문 없이 터치할 수 있는 이름과 설명으로 표시합니다.
     outputs.push({listCard:{header:{title:result.list.title},items:result.list.items.map(item=>({
       title:item.title,description:item.description,action:'message',messageText:item.message,
-      ...(baseUrl&&item.imageId&&/^[CUSR]\d{3}[MF]$/.test(item.imageId)?{imageUrl:`${baseUrl}/images/${item.imageId}.png`}:{}),
+      ...(baseUrl&&item.imageId&&/^[CUSRLHDTEI]\d{1,2}$/.test(item.imageId)?{imageUrl:`${baseUrl}/images/${item.imageId}.png`}:{}),
       ...(item.button?{extra:{gmAction:item.button.action,gmToken:item.button.token}}:{})
     }))}});
   }else{

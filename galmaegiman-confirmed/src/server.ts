@@ -4,7 +4,6 @@ import { z } from 'zod';
 import { loadContent } from './content.js';
 import { GameService } from './game.js';
 import { buildApp } from './app.js';
-import {readRefillSettings} from './refill-settings.js';
 const env=z.object({
   DATABASE_URL:z.string().startsWith('file:'),
   HOST:z.literal('127.0.0.1').default('127.0.0.1'),
@@ -26,8 +25,7 @@ async function baseUrl(){
   if(!value)return '';
   try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&u.pathname==='/'&&!u.search&&!u.hash?u.origin:'';}catch{return '';}
 }
-await readRefillSettings();
-const app=await buildApp(db,new GameService(db,content,undefined,undefined,()=>readRefillSettings()),{secret:env.SKILL_SECRET,botId:env.KAKAO_BOT_ID,baseUrl,log:env.LOG_ENABLED==='true'});
+const app=await buildApp(db,new GameService(db,content),{secret:env.SKILL_SECRET,botId:env.KAKAO_BOT_ID,baseUrl,log:env.LOG_ENABLED==='true'});
 let closing=false;
 const close=async()=>{if(closing)return;closing=true;await app.close();await db.$disconnect();};
 process.on('SIGTERM',()=>void close());process.on('SIGINT',()=>void close());

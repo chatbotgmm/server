@@ -20,7 +20,7 @@ writeFileSync('docs/package-checksums.sha256',manifest);
 if(!files.includes('docs/package-checksums.sha256'))files.push('docs/package-checksums.sha256');
 const out=resolve(root,'../outputs');mkdirSync(out,{recursive:true});
 const version=JSON.parse(readFileSync('package.json','utf8')).version;
-const archive=join(out,`galmaegiman-random-75-tablet-v${version}.zip`);
+const archive=join(out,`galmaegiman-118-v${version}.zip`);
 if(existsSync(archive))throw new Error('기존 ZIP을 덮어쓰지 않습니다. 버전/출력 경로를 확인하세요.');
 const result=spawnSync('zip',['-q','-1',archive,'-@'],{cwd:resolve(root,'..'),input:files.map(f=>`galmaegiman-confirmed/${f}`).join('\n')+'\n',encoding:'utf8'});
 if(result.status!==0)throw new Error(result.stderr);

@@ -15,8 +15,9 @@ npm ci --no-audit --no-fund
 npm run db:generate
 if [ -f storage/confirmed.db ]; then
   edition="$(node scripts/db-tools.mjs inspect storage/confirmed.db)"
-  if [ "$edition" != confirmed-75-v1 ]; then
-    echo '다른 DB이거나 미완료 DB입니다. 자동 변경을 중단했습니다. 파일을 보존하고 문의하세요.'; exit 1
+  if [ "$edition" != galmaemi-118-v1 ]; then
+    echo '이전 판(75종) DB이거나 미완료 DB입니다. 자동 변경을 중단했습니다.'
+    echo '개편판은 유저 데이터를 초기화합니다: 서버를 멈춘 뒤 npm run reset-data -- --confirm'; exit 1
   fi
   bash scripts/backup.sh
 fi

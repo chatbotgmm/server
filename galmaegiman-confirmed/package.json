@@ -1,6 +1,6 @@
 {
   "name": "galmaegiman-confirmed",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -17,8 +17,8 @@
     "data:check": "node --import tsx scripts/check-content.ts",
     "backup": "bash scripts/backup.sh",
     "url": "node scripts/set-url.mjs",
-    "refill": "node --import tsx scripts/refill.ts",
-    "tunnel": "bash scripts/tunnel.sh"
+    "tunnel": "bash scripts/tunnel.sh",
+    "reset-data": "bash scripts/reset-data.sh"
   },
   "dependencies": {
     "@fastify/rate-limit": "^10.1.1",

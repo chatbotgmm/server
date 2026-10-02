@@ -1,0 +1,42 @@
+# 갈매미맨 v0.3 경제 수치. 근거: design/SYSTEM-SPEC.md
+version: ECONOMY_V1
+
+tickets:
+  welcome: 30          # 신규 가입 지급
+  claim: 10            # 뽑기권 받기 1회
+  cooldownHours: 5     # 받은 뒤 다시 받을 수 있을 때까지. 누적 없음
+
+gachas:                # 등급 확률 합계는 100
+  LOW:  { label: 하급, cost: 2, weights: { COMMON: 70, UNCOMMON: 30 } }
+  MID:  { label: 중급, cost: 3, weights: { UNCOMMON: 70, SPECIAL: 30 } }
+  HIGH: { label: 고급, cost: 5, weights: { SPECIAL: 79, RARE: 20, LEGEND: 1 } }
+
+exchange:
+  snackCost: 150       # 흔함 1마리. 최상위 유닛 보유 시에만 가능
+
+expedition:
+  minutes: 60
+  snackPerUnit: 10
+  maxParty: 10
+  levels: [2, 4]       # 같은 시너지 2마리+ = 1단계, 4마리+ = 2단계 (중복 포함)
+  effects:
+    BASIC:   { label: 기본,   concept: 수호,       snackPercent: [15, 30] }
+    GOLD:    { label: 황금,   concept: 금고,       doublePercent: [15, 30] }
+    DARK:    { label: 암흑,   concept: 밤,         minutes: [50, 40] }
+    SEA:     { label: 바다,   concept: 해저앙영,   commonPercent: [10, 20] }
+    BLOSSOM: { label: 벚꽃,   concept: 개화,       uncommonPercent: [5, 10] }
+    COSMOS:  { label: 우주,   concept: 별,         ticketPercent: [15, 30] }
+    OUTFIT:  { label: 갈 의복, concept: 튼튼한 빤스, snackPerUnit: [2, 4] }
+  countBonusPercent: { 2: 5, 3: 10, 4: 15, 5: 25 }   # 같은 유닛 여러 마리, 가장 많은 유닛 기준
+
+rewards:               # 획득 보상 새우깡 (첫 도감 / 중복)
+  COMMON:    { first: 0,    duplicate: 0 }
+  UNCOMMON:  { first: 50,   duplicate: 10 }
+  SPECIAL:   { first: 100,  duplicate: 20 }
+  RARE:      { first: 200,  duplicate: 40 }
+  LEGEND:    { first: 400,  duplicate: 80 }
+  HIDDEN:    { first: 400,  duplicate: 80 }
+  LIMITED:   { first: 800,  duplicate: 160 }
+  TRANSCEND: { first: 1000, duplicate: 200 }
+  ETERNAL:   { first: 1200, duplicate: 240 }
+  IMMORTAL:  { first: 1400, duplicate: 280 }

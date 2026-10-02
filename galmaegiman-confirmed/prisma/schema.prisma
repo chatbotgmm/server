@@ -12,30 +12,25 @@ model AppMeta {
 model Player {
   id String @id @default(uuid())
   identity String @unique
-  credits Int @default(3)
+  credits Int @default(30)
   snack Int @default(0)
-  peanut Int @default(0)
-  lastGrantAt DateTime
+  lastClaimAt DateTime?
   revision Int @default(0)
-  repeatCursor Int @default(0)
-  attendanceDate String?
-  lastExploreAt DateTime?
   createdAt DateTime @default(now())
   characters OwnedCharacter[]
   collection CollectionEntry[]
   actions PendingAction[]
   ledger AuditEvent[]
+  expeditions Expedition[]
 }
 model CharacterDefinition {
   id String @id
   name String
   rarity String
-  sex String
   position Int @unique
   quote String
   imageUrl String
-  nameStatus String
-  artVersion String
+  synergy String?
   owned OwnedCharacter[]
   collection CollectionEntry[]
 }
@@ -43,9 +38,9 @@ model OwnedCharacter {
   id Int @id @default(autoincrement())
   playerId String
   characterId String
-  status String @default("AVAILABLE")
+  status String @default("AVAILABLE") // AVAILABLE | CONSUMED | EXPEDITION
   locked Boolean @default(false)
-  peanutRemoved Boolean @default(false)
+  expeditionId String?
   obtainedVia String
   obtainedAt DateTime @default(now())
   consumedAt DateTime?
@@ -60,6 +55,18 @@ model CollectionEntry {
   player Player @relation(fields: [playerId], references: [id])
   character CharacterDefinition @relation(fields: [characterId], references: [id])
   @@id([playerId, characterId])
+}
+model Expedition {
+  id String @id @default(uuid())
+  playerId String
+  unitIds Json
+  plan Json
+  startedAt DateTime
+  endsAt DateTime
+  claimedAt DateTime?
+  result Json?
+  player Player @relation(fields: [playerId], references: [id])
+  @@index([playerId, claimedAt])
 }
 model PendingAction {
   token String @id

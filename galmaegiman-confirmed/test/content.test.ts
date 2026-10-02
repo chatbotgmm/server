@@ -1,50 +1,41 @@
 import {describe,it,expect} from 'vitest';
-import {loadContent} from '../src/content.js';
-import {readFileSync,mkdtempSync,mkdirSync,copyFileSync,writeFileSync,rmSync} from 'node:fs';
-import {tmpdir} from 'node:os';
-import {join} from 'node:path';
-import {parse,stringify} from 'yaml';
-const data=loadContent();
-describe('75종 콘텐츠',()=>{
-  it('75종과 모든 비흔함 조합식 69개',()=>{
-    expect(data.characters).toHaveLength(75);expect(data.recipes).toHaveLength(69);
+import {loadContent,tiers,topTiers} from '../src/content.js';
+const content=loadContent();
+describe('118종 콘텐츠',()=>{
+  it('등급별 수량 6/11/15/20/20/13/8/8/8/9 = 118',()=>{
+    const count=(t:string)=>content.characters.filter(c=>c.rarity===t).length;
+    expect([count('COMMON'),count('UNCOMMON'),count('SPECIAL'),count('RARE'),count('LEGEND'),count('HIDDEN'),count('LIMITED'),count('TRANSCEND'),count('ETERNAL'),count('IMMORTAL')]).toEqual([6,11,15,20,20,13,8,8,8,9]);
+    expect(content.characters).toHaveLength(118);
   });
-  it('75개 PNG 연결, 수정본25/기존50',()=>{
-    expect(data.characters.filter(c=>c.artVersion==='v3')).toHaveLength(25);
-    for(const c of data.characters)expect(readFileSync(`public${c.imageUrl}`).subarray(0,8).toString('hex')).toBe('89504e470d0a1a0a');
+  it('흔함을 뺀 112종 모두 조합식 1개, 재료는 결과보다 낮은 단계',()=>{
+    expect(content.recipes).toHaveLength(112);
+    for(const r of content.recipes)for(const m of r.materials)expect(tiers[content.map.get(m)!.rarity]).toBeLessThan(tiers[content.map.get(r.resultId)!.rarity]);
   });
-  it('교배·초반 한마리 밈 없음',()=>{
-    const text=readFileSync('data/catalog.yaml','utf8')+readFileSync('data/recipes.yaml','utf8');
-    expect(text).not.toMatch(/BREEDING|갈매미 한마리/);
+  it('히든 13종만 비공개 조합',()=>{
+    expect(content.recipes.filter(r=>r.hidden).map(r=>r.resultId).sort()).toEqual([...content.hiddenIds].sort());
+    expect(content.hiddenIds).toHaveLength(13);
   });
-  it('흔함을 시작점으로 모든 결과 도달 가능',()=>{
-    const reached=new Set(data.characters.filter(c=>c.rarity==='COMMON').map(c=>c.id));
-    for(let pass=0;pass<3;pass++)for(const r of data.recipes)if(r.materials.every(id=>reached.has(id)))reached.add(r.resultId);
-    expect(reached.size).toBe(75);
+  it('최상위 33종 시너지: 원형 6그룹×4 + 갈 의복 9',()=>{
+    const top=content.characters.filter(c=>topTiers.has(c.rarity));
+    expect(top).toHaveLength(33);
+    const groups:Record<string,number>={};
+    for(const c of top)groups[c.synergy!]=(groups[c.synergy!]??0)+1;
+    expect(groups).toEqual({BASIC:4,GOLD:4,DARK:4,SEA:4,BLOSSOM:4,COSMOS:4,OUTFIT:9});
   });
-  it('누락된 11종은 콘셉트 표시명, 기존 64종의 이름은 보존',()=>{
-    const original=parse(readFileSync('data/catalog.yaml','utf8')).characters as [string,string|null,string,string][];
-    expect(data.characters.filter(c=>c.nameStatus==='CONCEPT_DISPLAY')).toHaveLength(11);
-    expect(data.characters.filter(c=>c.nameStatus==='REFERENCE')).toHaveLength(64);
-    expect(data.characters.every(c=>c.name.length>0&&!/^갈매미맨 [CUSR]\d{3}[MF]$/.test(c.name))).toBe(true);
-    expect(data.map.get('C003F')?.name).toBe('비닐봉지 갈매미맨');
-    for(const [id,name] of original)if(name!==null)expect(data.map.get(id)?.name).toBe(name);
+  it('최상위는 다른 조합의 재료가 아님',()=>{
+    const top=new Set(content.characters.filter(c=>topTiers.has(c.rarity)).map(c=>c.id));
+    expect(content.recipes.flatMap(r=>r.materials).filter(m=>top.has(m))).toEqual([]);
   });
-  function invalidNames(change:(names:Record<string,string>)=>void){
-    const root=mkdtempSync(join(tmpdir(),'galmaegiman-names-'));
-    try{
-      mkdirSync(join(root,'data'));
-      for(const file of ['catalog.yaml','recipes.yaml'])copyFileSync(`data/${file}`,join(root,'data',file));
-      const names=parse(readFileSync('data/display-names.yaml','utf8'));
-      change(names.names);
-      writeFileSync(join(root,'data/display-names.yaml'),stringify(names));
-      return ()=>{try{return loadContent(root);}finally{rmSync(root,{recursive:true});}};
-    }catch(error){rmSync(root,{recursive:true});throw error;}
-  }
-  it('기존 이름을 표시명 설정으로 덮어쓰지 못함',()=>{
-    expect(invalidNames(names=>{names.R001M='덮어쓴 이름';})).toThrow('덮어쓸 수 없습니다');
+  it('조합식 수량: 금갑 = 기본×2 + 황금',()=>{
+    expect(content.recipes.find(r=>r.resultId==='U1')!.materials.sort()).toEqual(['C1','C1','C2']);
   });
-  it('이름이 다시 빠지면 코드명으로 숨기지 않고 검증 실패',()=>{
-    expect(invalidNames(names=>{delete names.C003F;})).toThrow('표시명이 누락되었습니다');
+  it('경제 수치: 뽑기 비용 2/3/5, 교환 150, 뽑기권 30/10/5시간',()=>{
+    const e=content.economy;
+    expect([e.gachas.LOW.cost,e.gachas.MID.cost,e.gachas.HIGH.cost]).toEqual([2,3,5]);
+    expect(e.gachas.HIGH.weights).toEqual({SPECIAL:79,RARE:20,LEGEND:1});
+    expect(e.exchange.snackCost).toBe(150);
+    expect(e.tickets).toEqual({welcome:30,claim:10,cooldownHours:5});
+    expect(e.rewards.COMMON).toEqual({first:0,duplicate:0});
+    expect(e.rewards.IMMORTAL).toEqual({first:1400,duplicate:280});
   });
 });
