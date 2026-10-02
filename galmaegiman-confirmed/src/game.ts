@@ -341,7 +341,7 @@ export class GameService {
     const snacks=results.reduce((sum,r)=>sum+r.receipt.snacks,0);
     const lines=results.map(r=>`${r.receipt.first?'🆕':'　'} ${emblems[r.c.rarity]} ${r.c.name}`);
     const news=results.filter(r=>r.receipt.first).length;
-    const highlight=firstNew&&tiers[firstNew.c.rarity]>=tiers.RARE?`\n\n${prelude(firstNew.c,true)}${emblems[firstNew.c.rarity]} ${firstNew.c.name}\n${firstNew.c.tagline}\n${speech(firstNew.c)}`:'';
+    const highlight=firstNew&&tiers[firstNew.c.rarity]>=tiers.RARE?`\n\n${prelude(firstNew.c,true)}${emblems[firstNew.c.rarity]} ${firstNew.c.name}\n${firstNew.c.tagline}`:'';
     const achieved=results.filter(r=>r.receipt.achievement).map(r=>achievementText(r.receipt.achievement!));
     return {text:mask(this.content,`🥚 ${g.label} 뽑기 ×${times}\n\n${lines.join('\n')}${highlight}\n\n${news?`🆕 새 발견 ${news}종`:`새 발견 없음 · 최고 ${rarityNames[best.c.rarity]}`}${snacks?` · 🍤 +${snacks}`:''}${achieved.length?`\n\n${achieved.join('\n\n')}`:''}\n\n${tail}`,known),
       ...(firstNew?{imageId:this.image(firstNew.c.id,known)}:{}),choices:next.choices};

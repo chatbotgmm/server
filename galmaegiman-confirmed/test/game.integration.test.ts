@@ -237,6 +237,15 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await send('관리자 끄기');
     expect(await db.ownedCharacter.findMany({orderBy:{id:'asc'}})).toEqual(locked);
   });
+  it('뽑기 결과에는 대사가 없고 도감에서만 보임',async()=>{
+    await fixtures([],{credits:30});
+    const one=await send('하급뽑기');
+    expect(one.text).not.toContain('💬');
+    expect(one.text).toContain('새 흔함 발견');
+    expect((await send('하급뽑기')).text).not.toContain('💬');
+    expect((await send('고급뽑기 3')).text).not.toContain('💬');
+    expect((await send('도감 C1')).text).toContain('💬');
+  });
   it('관리자 코드가 설정되지 않으면 관리자가 될 수 없음',async()=>{
     expect((await send('관리자 아무거나')).text).toContain('꺼져 있어요');
     expect((await me()).isAdmin).toBe(false);
@@ -268,7 +277,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     };
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.6'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.7'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});
