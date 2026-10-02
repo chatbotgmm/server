@@ -17,7 +17,7 @@ export const EDITION='galmaemi-118-v1';
 const id=z.string().regex(/^[CUSRLHDTEI]\d{1,2}$/);
 const text=z.string().trim().min(1);
 const unitSchema=z.object({
-  id,name:text.max(30),tier:z.enum(tierOrder),quote:text.max(60),introduction:text.max(400),reason:text.max(400),
+  id,name:text.max(30),tier:z.enum(tierOrder),quote:text.max(60),tagline:text.max(60),introduction:text.max(400),reason:text.max(400),
   recipe:z.array(z.tuple([id,z.number().int().min(1).max(5)])).max(6),
   synergy:z.enum(synergyKeys).optional(),stage:text.max(300).optional()
 }).strict();
@@ -26,6 +26,7 @@ const unitsSchema=z.object({edition:z.literal(EDITION),source:text,units:z.array
 const percentPair=z.tuple([z.number().min(0).max(100),z.number().min(0).max(100)]);
 const weights=z.partialRecord(z.enum(tierOrder),z.number().int().min(1).max(100));
 const gacha=z.object({label:text,cost:z.number().int().min(1).max(100),weights}).strict();
+const achievement=z.object({tickets:z.number().int().min(0).max(1000),title:z.string().trim().min(1).max(30)}).strict();
 const reward=z.object({first:z.number().int().min(0).max(100000),duplicate:z.number().int().min(0).max(100000)}).strict();
 const economySchema=z.object({
   version:z.literal('ECONOMY_V1'),
@@ -46,11 +47,13 @@ const economySchema=z.object({
     }).strict(),
     countBonusPercent:z.record(z.string().regex(/^\d+$/),z.number().min(0).max(100))
   }).strict(),
-  rewards:z.object(Object.fromEntries(tierOrder.map(t=>[t,reward])) as Record<Tier,typeof reward>).strict()
+  rewards:z.object(Object.fromEntries(tierOrder.map(t=>[t,reward])) as Record<Tier,typeof reward>).strict(),
+  achievements:z.object(Object.fromEntries(tierOrder.map(t=>[t,achievement])) as Record<Tier,typeof achievement>).strict(),
+  missions:z.array(z.object({key:z.enum(['DRAW','CRAFT','EXPEDITION']),label:text,goal:z.number().int().min(1).max(1000),tickets:z.number().int().min(0).max(1000)}).strict()).max(10)
 }).strict();
 export type Economy=z.infer<typeof economySchema>;
 
-export interface Character {id:string;name:string;rarity:Tier;position:number;quote:string;imageUrl:string;introduction:string;reason:string;synergy?:SynergyKey;stage?:string}
+export interface Character {id:string;name:string;rarity:Tier;position:number;quote:string;tagline:string;imageUrl:string;introduction:string;reason:string;synergy?:SynergyKey;stage?:string}
 export interface Recipe {resultId:string;materials:string[];story:string;hidden:boolean}
 
 export function loadEconomy(root=process.cwd()):Economy{
@@ -69,7 +72,7 @@ export function loadContent(root=process.cwd()) {
   const raw=readFileSync(`${root}/data/units.json`,'utf8');
   const input=unitsSchema.parse(JSON.parse(raw));
   const characters:Character[]=input.units.map((u,position)=>({
-    id:u.id,name:u.name,rarity:u.tier,position,quote:u.quote,imageUrl:`/images/${u.id}.png`,
+    id:u.id,name:u.name,rarity:u.tier,position,quote:u.quote,tagline:u.tagline,imageUrl:`/images/${u.id}.png`,
     introduction:u.introduction,reason:u.reason,...(u.synergy?{synergy:u.synergy}:{}),...(u.stage?{stage:u.stage}:{})
   }));
   const map=new Map(characters.map(c=>[c.id,c]));

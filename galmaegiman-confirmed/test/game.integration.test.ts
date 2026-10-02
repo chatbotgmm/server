@@ -25,7 +25,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   });
   beforeEach(async()=>{
     await db.$transaction([
-      db.pendingAction.deleteMany(),db.auditEvent.deleteMany(),db.collectionEntry.deleteMany(),db.ownedCharacter.deleteMany(),db.expedition.deleteMany(),db.player.deleteMany()
+      db.pendingAction.deleteMany(),db.auditEvent.deleteMany(),db.achievement.deleteMany(),db.dailyProgress.deleteMany(),db.collectionEntry.deleteMany(),db.ownedCharacter.deleteMany(),db.expedition.deleteMany(),db.player.deleteMany()
     ]);
     now=new Date('2026-10-02T08:00:00+09:00');
     // 뽑기 난수 0 → 각 등급의 첫 유닛, 탐험 확률 판정은 항상 실패(max-1)
@@ -40,7 +40,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   }
 
   it('신규 30장, 첫 받기는 즉시 +10, 5시간 쿨타임, 늦어도 1회분만',async()=>{
-    expect((await send('내정보')).text).toContain('뽑기권 30장');
+    expect((await send('내정보')).text).toContain('🎟 30장');
     expect((await send('뽑기권 받기')).text).toContain('10장을 받았습니다');
     expect((await me()).credits).toBe(40);
     expect((await send('뽑기권받기')).text).toContain('5시간 뒤에');
@@ -51,15 +51,17 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await me()).credits).toBe(50);
   });
   it('뽑기 비용 하급 2 / 중급 3 / 고급 5, 여러 번 뽑기, 부족하면 차감 없음',async()=>{
-    expect((await send('하급뽑기')).text).toContain('흔함 등장');
+    expect((await send('하급뽑기')).text).toContain('새 흔함 발견');
     expect((await me()).credits).toBe(28);
     await send('중급 뽑기');expect((await me()).credits).toBe(25);
     await send('뽑기 고급');expect((await me()).credits).toBe(20);
     const multi=await send('하급뽑기 5');
-    expect(multi.text).toContain('하급 뽑기 5회 결과');
-    expect((await me()).credits).toBe(10);
+    expect(multi.text).toContain('하급 뽑기 ×5');
+    // 뽑기 8회째에 '뽑기 5회' 미션 달성 → +2
+    expect(multi.text).toContain('오늘의 미션 완료');
+    expect((await me()).credits).toBe(12);
     expect((await send('고급뽑기 3')).text).toContain('뽑기권이 부족합니다');
-    expect((await me()).credits).toBe(10);
+    expect((await me()).credits).toBe(12);
     expect(await db.ownedCharacter.count()).toBe(8);
   });
   it('조합 미리보기는 소비하지 않고 확정 시 재료 소비 + 첫 도감 보상 50',async()=>{
@@ -68,7 +70,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(preview.text).toContain('조합 준비 완료');
     expect(await db.ownedCharacter.count({where:{status:'CONSUMED'}})).toBe(0);
     const done=await confirm(preview);
-    expect(done.text).toContain('안흔함 조합 완성');
+    expect(done.text).toContain('조합 성공! 새 안흔함 발견');
+    expect(done.text).toContain('💬 금갑:');
     expect(await db.ownedCharacter.count({where:{status:'CONSUMED'}})).toBe(3);
     expect((await me()).snack).toBe(50);
   });
@@ -111,7 +114,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const preview=await send('교환 기본');
     expect(preview.text).toContain('새우깡 150개');
     const done=await confirm(preview);
-    expect(done.text).toContain('교환 완료');
+    expect(done.text).toContain('기본 갈매미맨');
     expect((await me()).snack).toBe(150);
     expect(await db.ownedCharacter.count({where:{characterId:'C1'}})).toBe(1);
   });
@@ -143,6 +146,33 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     now=new Date(now.getTime()+HOUR);
     expect((await send('탐험보상받기')).text).toContain('앙~~~~ 갈매미맨이야!!!!');
   });
+  it('흔함 도감 완성: 칭호와 뽑기권 5장 1회만',async()=>{
+    const p=await fixtures(['D1'],{snack:300});
+    for(const id of ['C2','C3','C4','C5','C6'])await db.collectionEntry.create({data:{playerId:p.id,characterId:id}});
+    const done=await confirm(await send('교환 기본'));
+    expect(done.text).toContain('흔함 도감 완성');
+    expect(done.text).toContain('바닷가 산책자');
+    expect((await me()).credits).toBe(35);
+    await confirm(await send('교환 기본'));
+    expect((await me()).credits).toBe(35);
+    expect((await send('칭호')).text).toContain('칭호 1/10');
+    expect((await send('내정보')).text).toContain('「바닷가 산책자」');
+  });
+  it('미션: 하루 단위, 한국 시간 0시에 초기화',async()=>{
+    await send('하급뽑기 5');
+    expect((await send('미션')).text).toContain('✅ 뽑기 5회 (5/5)');
+    expect((await me()).credits).toBe(22);
+    now=new Date('2026-10-03T00:00:00+09:00');
+    expect((await send('미션')).text).toContain('⬜ 뽑기 5회 (0/5)');
+  });
+  it('중복 결과는 짧게, 조합 가능하면 알려 줌',async()=>{
+    const p=await fixtures(['C1','C2']);
+    await db.collectionEntry.create({data:{playerId:p.id,characterId:'C1'}});
+    const dup=await send('하급뽑기');
+    expect(dup.text).toContain('기본 갈매미맨 (2번째)');
+    expect(dup.text).not.toContain('도감 기록');
+    expect(dup.text).toContain('지금 조합 가능 1종');
+  });
   it('종료된 기능(출석·재료·땅콩)은 안내만 하고 재화를 바꾸지 않음',async()=>{
     for(const cmd of ['출석','재료 기본','땅콩떼기 금갑'])expect((await send(cmd)).text).toContain('종료');
     expect((await me()).snack).toBe(0);
@@ -170,7 +200,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     };
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.0'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.1'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});

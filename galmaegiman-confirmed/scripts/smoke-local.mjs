@@ -15,6 +15,6 @@ const request=async utterance=>{
 };
 const textOf=r=>r.template.outputs.map(x=>x.simpleText?.text??'').join('\n');
 const result=await request('하급뽑기');
-assert.ok(textOf(result).includes('등장!')||textOf(result).includes('부족'));
+assert.ok(textOf(result).includes('🎟')||textOf(result).includes('부족'));
 assert.match(textOf(await request('확률')),/하급 뽑기 \(2장\): 흔함 70%/);
 console.log('로컬 HTTP /health /ready /kakao/skill 및 하급 뽑기·확률 안내 확인 완료.');

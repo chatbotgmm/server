@@ -40,3 +40,20 @@ rewards:               # 획득 보상 새우깡 (첫 도감 / 중복)
   TRANSCEND: { first: 1000, duplicate: 200 }
   ETERNAL:   { first: 1200, duplicate: 240 }
   IMMORTAL:  { first: 1400, duplicate: 280 }
+
+achievements:          # 등급 도감을 처음 모두 채우면 1회 지급 + 칭호
+  COMMON:    { tickets: 5,  title: 바닷가 산책자 }
+  UNCOMMON:  { tickets: 10, title: 항구 단골 }
+  SPECIAL:   { tickets: 15, title: 부두의 수집가 }
+  RARE:      { tickets: 20, title: 등대지기 }
+  LEGEND:    { tickets: 30, title: 전설 사냥꾼 }
+  HIDDEN:    { tickets: 30, title: 비밀을 아는 자 }
+  LIMITED:   { tickets: 30, title: 원형의 계승자 }
+  TRANSCEND: { tickets: 30, title: 경계를 넘은 자 }
+  ETERNAL:   { tickets: 30, title: 시간 밖의 수호자 }
+  IMMORTAL:  { tickets: 30, title: 다섯 마리째를 들은 자 }
+
+missions:              # 매일 한국 시간 0시 초기화. 목표 달성 시 자동 지급
+  - { key: DRAW,       label: 뽑기 5회,          goal: 5, tickets: 2 }
+  - { key: CRAFT,      label: 조합 3회,          goal: 3, tickets: 2 }
+  - { key: EXPEDITION, label: 탐험 보상 받기 1회, goal: 1, tickets: 1 }

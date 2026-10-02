@@ -1,26 +1,39 @@
-import type {Character,Content} from './content.js';
+import type {Character,Content,Tier} from './content.js';
 import {rarityNames,tierOrder} from './content.js';
-import {characterInfo,mask} from './presentation.js';
+import {mask} from './presentation.js';
 export interface Receipt {
   first:boolean;count:number;snacks:number;snackBalance:number;tierKnown:number;tierTotal:number;
+  achievement?:{tier:Tier;title:string;tickets:number};
 }
 export type AcquisitionKind='GACHA'|'COMBINATION'|'EXCHANGE'|'EXPEDITION';
-const emblems:Record<string,string>={COMMON:'🥚',UNCOMMON:'🔹',SPECIAL:'✦',RARE:'◆',LEGEND:'★',HIDDEN:'❔',LIMITED:'⛓',TRANSCEND:'✴',ETERNAL:'♾',IMMORTAL:'🗿'};
-export function introduction(content:Content,c:Character,kind:AcquisitionKind,known:Set<string>):string{
-  const grade=rarityNames[c.rarity];
-  const headline=kind==='COMBINATION'?`${emblems[c.rarity]} ${grade} 조합 완성!`:
-    kind==='EXCHANGE'?`${emblems[c.rarity]} 교환 완료!`:kind==='EXPEDITION'?`${emblems[c.rarity]} 탐험에서 합류!`:`${emblems[c.rarity]} ${grade} 등장!`;
-  const scene=kind==='COMBINATION'?`🧩 ${c.reason}\n\n`:'';
-  const stage=kind==='COMBINATION'&&c.stage?`${c.stage}\n\n`:'';
-  return mask(content,`${headline}\n\n${stage}【${c.name}】\n${characterInfo(content,c)}\n\n${scene}${c.introduction}\n\n「${c.quote}」`,known);
+export const emblems:Record<string,string>={COMMON:'🥚',UNCOMMON:'🔹',SPECIAL:'✦',RARE:'◆',LEGEND:'★',HIDDEN:'❔',LIMITED:'⛓',TRANSCEND:'✴',ETERNAL:'♾',IMMORTAL:'🗿'};
+const high=new Set(['LEGEND','HIDDEN','LIMITED','TRANSCEND','ETERNAL','IMMORTAL']);
+
+export const speech=(c:Character)=>`💬 ${c.name}: "${c.quote}"`;
+// 높은 등급은 갈매미 카운트로 뜸을 들입니다. 불멸 등 stage가 있으면 그것을 씁니다.
+export function prelude(c:Character,first:boolean){
+  if(c.stage)return `${c.stage}\n\n`;
+  if(high.has(c.rarity))return '……하늘이 어두워진다.\n갈매미 한 마리… 두 마리… 세 마리… 네 마리…\n(정적)\n다섯 마리.\n\n';
+  if(c.rarity==='RARE'&&first)return '……공기가 무거워진다.\n\n';
+  return '';
 }
-export function receiptText(c:Character,receipt:Receipt):string{
-  const found=receipt.first?'📖 첫 발견 · 도감에 새로 기록했습니다.':`📚 다시 합류! · 누적 ${receipt.count}회 획득`;
-  return `${found}\n${rarityNames[c.rarity]} 도감 ${receipt.tierKnown}/${receipt.tierTotal}`+
-    (receipt.snacks?`\n🎁 ${receipt.first?'첫 발견':'중복 획득'} 보상 · 새우깡 +${receipt.snacks}\n새우깡 현재 ${receipt.snackBalance}개`:'');
+export function acquisitionText(content:Content,c:Character,kind:AcquisitionKind,receipt:Receipt,known:Set<string>):string{
+  const e=emblems[c.rarity],grade=rarityNames[c.rarity];
+  const snack=receipt.snacks?` · 🍤 +${receipt.snacks}`:'';
+  let text:string;
+  if(receipt.first){
+    const head=kind==='COMBINATION'?`🧩 조합 성공! 새 ${grade} 발견!`:kind==='EXPEDITION'?`🧭 탐험에서 새 ${grade} 발견!`:`${e}${e} 새 ${grade} 발견! ${e}${e}`;
+    text=`${prelude(c,true)}${head}\n【${c.name}】\n${c.tagline}\n${speech(c)}\n📖 ${grade} 도감 ${receipt.tierKnown}/${receipt.tierTotal}${snack}`;
+  }else{
+    const head=kind==='COMBINATION'?`🧩 ${c.name} 조합 완료`:`${e} ${c.name}`;
+    text=`${high.has(c.rarity)?prelude(c,false):''}${head} (${receipt.count}번째)\n💬 "${c.quote}"${receipt.snacks?`\n🍤 +${receipt.snacks}`:''}`;
+  }
+  if(receipt.achievement)text+=`\n\n${achievementText(receipt.achievement)}`;
+  return mask(content,text,known);
 }
+export const achievementText=(a:{tier:Tier;title:string;tickets:number})=>`🏆 ${rarityNames[a.tier]} 도감 완성!\n칭호 「${a.title}」 획득 · 🎟 +${a.tickets}`;
 export function rewardGuide(content:Content):string{
   const r=content.economy.rewards;
-  return '🎁 획득 보상 (새우깡)\n\n'+tierOrder.filter(t=>t!=='COMMON').map(t=>`${rarityNames[t]} · 첫 도감 ${r[t].first} / 중복 ${r[t].duplicate}`).join('\n')+
-    `\n\n뽑기·조합·탐험으로 유닛을 얻으면 함께 지급합니다.\n흔함은 보상이 없습니다.\n새우깡 ${content.economy.exchange.snackCost}개로 원하는 흔함 1마리를 교환합니다.\n교환은 최상위 유닛(제한·초월·영원·불멸)을 보유해야 할 수 있습니다.`;
+  return '🎁 획득 보상 (새우깡)\n\n'+tierOrder.filter(t=>t!=='COMMON').map(t=>`${rarityNames[t]} · 첫 발견 ${r[t].first} / 중복 ${r[t].duplicate}`).join('\n')+
+    `\n\n흔함은 보상이 없습니다.\n새우깡 ${content.economy.exchange.snackCost}개로 원하는 흔함 1마리를 교환합니다.\n교환은 최상위 유닛(제한·초월·영원·불멸)을 보유해야 할 수 있습니다.\n\n등급 도감을 모두 채우면 칭호와 뽑기권을 받습니다. (칭호)`;
 }

@@ -22,6 +22,8 @@ model Player {
   actions PendingAction[]
   ledger AuditEvent[]
   expeditions Expedition[]
+  achievements Achievement[]
+  daily DailyProgress[]
 }
 model CharacterDefinition {
   id String @id
@@ -88,4 +90,21 @@ model AuditEvent {
   createdAt DateTime @default(now())
   player Player @relation(fields: [playerId], references: [id])
   @@index([playerId, createdAt])
+}
+model Achievement {
+  playerId String
+  key String
+  createdAt DateTime @default(now())
+  player Player @relation(fields: [playerId], references: [id])
+  @@id([playerId, key])
+}
+model DailyProgress {
+  playerId String
+  day String
+  draws Int @default(0)
+  crafts Int @default(0)
+  expeditions Int @default(0)
+  rewarded String @default("")
+  player Player @relation(fields: [playerId], references: [id])
+  @@id([playerId, day])
 }

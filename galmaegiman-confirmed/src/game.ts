@@ -7,7 +7,8 @@ import { rarityNames, tierOrder, topTiers, tiers } from './content.js';
 import { GameError, choice, type GameReply, type ButtonAction, type ListEntry, type Choice } from './types.js';
 import { GachaEngine, type GachaKind } from './gacha.js';
 import { characterInfo, matchCharacters, listReply, materialCounts, displayName, isRevealed, mask, duration, HIDDEN_NAME } from './presentation.js';
-import { introduction, receiptText, rewardGuide, type Receipt } from './acquisition.js';
+import { acquisitionText, achievementText, emblems, prelude, rewardGuide, speech, type Receipt } from './acquisition.js';
+import { DateTime } from 'luxon';
 import { planExpedition, rollExpedition, expectedSnacks, type ExpeditionPlan, type Roll } from './expedition.js';
 
 type Count={total:number;usable:number;locked:number;away:number};
@@ -17,7 +18,7 @@ type ActionPayload={characterId?:string;ids?:number[];recipeId?:string};
 const json=(x:unknown)=>x as Prisma.InputJsonValue;
 const gachaWords:Record<string,GachaKind>={하급:'LOW',중급:'MID',고급:'HIGH'};
 const menu=[choice('뽑기'),choice('뽑기권 받기','뽑기권받기'),choice('내갈매미'),choice('조합가능'),choice('조합목록'),choice('탐험'),choice('도감'),choice('내정보')];
-const help='갈매미맨\n\n🎟 뽑기권 받기 — 10장 (5시간마다)\n🥚 뽑기 — 하급 / 중급 / 고급\n🧩 조합목록 — 이름을 눌러 재료 확인\n✅ 조합가능 — 지금 만들 수 있는 유닛\n🔮 합치기 — 재료를 직접 골라 조합 (숨은 조합 발견)\n🐦 내갈매미 — 보유 유닛\n📚 도감 — 수집 기록\n🧭 탐험 — 최상위 유닛 파견\n\n이름으로 바로 입력해도 됩니다.\n하급뽑기 5 / 조합 금갑 / 도감 야경\n합치기 황금쌍패성기사, 은하매듭직조자\n탐험보내기 갈발 ×3, 갈내복\n\n내정보 / 확률 / 보상 / 교환';
+const help='갈매미맨\n\n🎯 미션 — 오늘의 미션 / 🏆 칭호\n🎟 뽑기권 받기 — 10장 (5시간마다)\n🥚 뽑기 — 하급 / 중급 / 고급\n🧩 조합목록 — 이름을 눌러 재료 확인\n✅ 조합가능 — 지금 만들 수 있는 유닛\n🔮 합치기 — 재료를 직접 골라 조합 (숨은 조합 발견)\n🐦 내갈매미 — 보유 유닛\n📚 도감 — 수집 기록\n🧭 탐험 — 최상위 유닛 파견\n\n이름으로 바로 입력해도 됩니다.\n하급뽑기 5 / 조합 금갑 / 도감 야경\n합치기 황금쌍패성기사, 은하매듭직조자\n탐험보내기 갈발 ×3, 갈내복\n\n내정보 / 확률 / 보상 / 교환';
 const statusOf=(c:Count|undefined):Count=>c??{total:0,usable:0,locked:0,away:0};
 
 export class GameService {
@@ -127,10 +128,67 @@ export class GameService {
     const tierIds=this.content.characters.filter(x=>x.rarity===c.rarity).map(x=>x.id);
     const tierKnown=await tx.collectionEntry.count({where:{playerId:p.id,characterId:{in:tierIds}}});
     const receipt:Receipt={first,count:collection.count,snacks,snackBalance:account.snack+snacks,tierKnown,tierTotal:tierIds.length};
+    if(first&&tierKnown===tierIds.length){
+      const key=`TIER_${c.rarity}`;
+      if(!(await tx.achievement.findUnique({where:{playerId_key:{playerId:p.id,key}}}))){
+        const a=this.content.economy.achievements[c.rarity];
+        await tx.achievement.create({data:{playerId:p.id,key,createdAt:now}});
+        if(a.tickets)await tx.player.update({where:{id:p.id},data:{credits:{increment:a.tickets}}});
+        await this.audit(tx,p,'ACHIEVEMENT',{key,title:a.title,tickets:a.tickets});
+        receipt.achievement={tier:c.rarity,title:a.title,tickets:a.tickets};
+      }
+    }
     return {...owned,receipt};
   }
-  private acquisitionChoices(c:Character,receipt:Receipt,extra:Choice[]=[]){
-    return [choice('유닛 보기',`내갈매미 ${c.name}`),...extra,choice('획득 보상','보상'),...menu].slice(0,10);
+  // 오늘(한국 시간)의 미션 진행을 올리고, 새로 달성한 미션 보상을 지급합니다.
+  private async progress(tx:Tx,p:Player,kind:'DRAW'|'CRAFT'|'EXPEDITION',amount:number,now:Date):Promise<string[]>{
+    const day=DateTime.fromJSDate(now).setZone('Asia/Seoul').toISODate()!;
+    const field=kind==='DRAW'?'draws':kind==='CRAFT'?'crafts':'expeditions';
+    const row=await tx.dailyProgress.upsert({where:{playerId_day:{playerId:p.id,day}},create:{playerId:p.id,day,[field]:amount},update:{[field]:{increment:amount}}});
+    const done=new Set(row.rewarded.split(',').filter(Boolean));
+    const lines:string[]=[];
+    for(const m of this.content.economy.missions){
+      const value=m.key==='DRAW'?row.draws:m.key==='CRAFT'?row.crafts:row.expeditions;
+      if(value<m.goal||done.has(m.key))continue;
+      done.add(m.key);
+      if(m.tickets)await tx.player.update({where:{id:p.id},data:{credits:{increment:m.tickets}}});
+      await this.audit(tx,p,'MISSION',{day,key:m.key,tickets:m.tickets});
+      lines.push(`🎯 오늘의 미션 완료! ${m.label} · 🎟 +${m.tickets}`);
+    }
+    if(lines.length)await tx.dailyProgress.update({where:{playerId_day:{playerId:p.id,day}},data:{rewarded:[...done].join(',')}});
+    return lines;
+  }
+  private async missionText(tx:Tx,p:Player,now:Date){
+    const day=DateTime.fromJSDate(now).setZone('Asia/Seoul').toISODate()!;
+    const row=await tx.dailyProgress.findUnique({where:{playerId_day:{playerId:p.id,day}}});
+    const done=new Set((row?.rewarded??'').split(',').filter(Boolean));
+    return this.content.economy.missions.map(m=>{
+      const value=Math.min(m.goal,(m.key==='DRAW'?row?.draws:m.key==='CRAFT'?row?.crafts:row?.expeditions)??0);
+      return `${done.has(m.key)?'✅':'⬜'} ${m.label} (${value}/${m.goal}) · 🎟 ${m.tickets}`;
+    }).join('\n');
+  }
+  private async titles(tx:Tx,p:Player){
+    const rows=await tx.achievement.findMany({where:{playerId:p.id,key:{startsWith:'TIER_'}}});
+    const got=new Set(rows.map(r=>r.key.slice(5)));
+    return tierOrder.filter(t=>got.has(t)).map(t=>this.content.economy.achievements[t].title);
+  }
+  // 지금 만들 수 있는 조합 수(공개된 조합식 기준)
+  private async craftable(tx:Tx,p:Player){
+    const known=await this.known(tx,p);
+    const stock=await this.stock(tx,p);
+    return this.visibleRecipes(known).filter(r=>this.canCraft(r,stock)).length;
+  }
+  // 결과 끝에 붙는 다음 행동 안내와 버튼
+  private async nextStep(tx:Tx,p:Player,now:Date,first:Choice[]=[]){
+    const account=await tx.player.findUniqueOrThrow({where:{id:p.id}});
+    const ready=await this.craftable(tx,p);
+    const cheapest=Math.min(...Object.values(this.content.economy.gachas).map(g=>g.cost));
+    const canClaim=!this.claimWait(account,now);
+    const lines=[`🎟 ${account.credits}장 · 🍤 ${account.snack}개`];
+    if(ready)lines.push(`✨ 지금 조합 가능 ${ready}종!`);
+    if(account.credits<cheapest)lines.push(canClaim?'🎟 뽑기권 받기를 눌러 10장을 받으세요!':`⏳ 다음 뽑기권까지 ${duration(this.claimWait(account,now))}`);
+    const choices=[...first,...(ready?[choice(`조합가능 ${ready}`,'조합가능')]:[]),...(canClaim?[choice('뽑기권 받기','뽑기권받기')]:[]),choice('뽑기'),...menu.slice(2)];
+    return {line:lines.join('\n'),choices,account};
   }
   private async stock(tx:Tx,p:Player):Promise<Stock>{
     const rows=await tx.ownedCharacter.groupBy({by:['characterId','locked','status'],where:{playerId:p.id,status:{in:['AVAILABLE','EXPEDITION']}},_count:{_all:true}});
@@ -181,19 +239,24 @@ export class GameService {
       results.push({c,receipt:owned.receipt});
     }
     await this.audit(tx,p,'GACHA',{kind,times,cost,results:results.map(r=>r.c.id),balanceAfter:p.credits-cost});
-    const left=`뽑기권 ${p.credits-cost}장 남음`;
+    const missions=await this.progress(tx,p,'DRAW',times,now);
+    const again=p.credits-cost>=cost;
+    const next=await this.nextStep(tx,p,now,again?[choice(times>1?`${g.label} ×${times} 더`:`${g.label} 한 번 더`,`${g.label}뽑기${times>1?` ${times}`:''}`)]:[]);
+    const tail=[...missions,next.line].join('\n');
     if(times===1){
       const {c,receipt}=results[0];
-      return {text:`${introduction(this.content,c,'GACHA',known)}\n\n${receiptText(c,receipt)}\n\n${left}`,...(receipt.first?{imageId:this.image(c.id,known)}:{}),
-        choices:this.acquisitionChoices(c,receipt,[choice(`${g.label} 한 번 더`,`${g.label}뽑기`)])};
+      return {text:`${acquisitionText(this.content,c,'GACHA',receipt,known)}\n\n${tail}`,...(receipt.first?{imageId:this.image(c.id,known)}:{}),
+        choices:[...next.choices.slice(0,2),...(receipt.first?[choice('유닛 보기',`도감 ${c.name}`)]:[]),...next.choices.slice(2)]};
     }
     const best=[...results].sort((a,b)=>tiers[b.c.rarity]-tiers[a.c.rarity])[0];
     const firstNew=results.filter(r=>r.receipt.first).sort((a,b)=>tiers[b.c.rarity]-tiers[a.c.rarity])[0];
     const snacks=results.reduce((sum,r)=>sum+r.receipt.snacks,0);
-    const lines=results.map(r=>`${r.receipt.first?'🆕':'・'} ${rarityNames[r.c.rarity]} ${r.c.name}`);
-    return {text:`🥚 ${g.label} 뽑기 ${times}회 결과\n\n${lines.join('\n')}\n\n최고 등급: ${rarityNames[best.c.rarity]} ${best.c.name}\n새로 발견 ${results.filter(r=>r.receipt.first).length}종${snacks?` · 새우깡 +${snacks}`:''}\n${left}`,
-      ...(firstNew?{imageId:this.image(firstNew.c.id,known)}:{}),
-      choices:[choice(`${g.label} ×${times} 더`,`${g.label}뽑기 ${times}`),choice('조합가능'),...menu.slice(2)].slice(0,10)};
+    const lines=results.map(r=>`${r.receipt.first?'🆕':'　'} ${emblems[r.c.rarity]} ${r.c.name}`);
+    const news=results.filter(r=>r.receipt.first).length;
+    const highlight=firstNew&&tiers[firstNew.c.rarity]>=tiers.RARE?`\n\n${prelude(firstNew.c,true)}${emblems[firstNew.c.rarity]} ${firstNew.c.name}\n${firstNew.c.tagline}\n${speech(firstNew.c)}`:'';
+    const achieved=results.filter(r=>r.receipt.achievement).map(r=>achievementText(r.receipt.achievement!));
+    return {text:mask(this.content,`🥚 ${g.label} 뽑기 ×${times}\n\n${lines.join('\n')}${highlight}\n\n${news?`🆕 새 발견 ${news}종`:`새 발견 없음 · 최고 ${rarityNames[best.c.rarity]}`}${snacks?` · 🍤 +${snacks}`:''}${achieved.length?`\n\n${achieved.join('\n\n')}`:''}\n\n${tail}`,known),
+      ...(firstNew?{imageId:this.image(firstNew.c.id,known)}:{}),choices:next.choices};
   }
   private probabilityText(){
     const g=this.content.economy.gachas;
@@ -313,7 +376,7 @@ export class GameService {
     if(!('id' in c))return c;
     const entry=await tx.collectionEntry.findUnique({where:{playerId_characterId:{playerId:p.id,characterId:c.id}}});
     const count=statusOf((await this.stock(tx,p)).get(c.id));
-    const text=mask(this.content,`【${c.name}】\n${characterInfo(this.content,c)}\n\n📜 도감 기록\n${c.introduction}\n\n「${c.quote}」\n\n보유 ${count.total}마리 · 조합에 사용 가능 ${count.usable}마리\n보호 ${count.locked}마리 · 탐험 중 ${count.away}마리\n${entry?`누적 ${entry.count}회 획득`:'아직 수집하지 못했습니다.'}`,known);
+    const text=mask(this.content,`【${c.name}】\n${characterInfo(this.content,c)}\n${c.tagline}\n\n📜 도감 기록\n${c.introduction}\n\n${speech(c)}\n\n보유 ${count.total}마리 · 조합에 사용 가능 ${count.usable}마리\n보호 ${count.locked}마리 · 탐험 중 ${count.away}마리\n${entry?`누적 ${entry.count}회 획득`:'아직 수집하지 못했습니다.'}`,known);
     const manage=command==='내갈매미';
     return {text,imageId:entry?this.image(c.id,known):undefined,choices:[
       ...(c.rarity==='COMMON'?[choice('교환',`교환 ${c.name}`)]:[choice('조합식 보기',`조합식 ${c.name}`)]),
@@ -413,17 +476,18 @@ export class GameService {
     for(const id of [rolled.commonId,rolled.uncommonId].filter((x):x is string=>Boolean(x))){
       const owned=await this.grant(tx,p,id,'EXPEDITION',now);
       const c=this.content.map.get(id)!;
-      lines.push(`${owned.receipt.first?'🆕':'🐦'} ${rarityNames[c.rarity]} ${c.name} 합류${owned.receipt.snacks?` (새우깡 +${owned.receipt.snacks})`:''}`);
+      lines.push(`${owned.receipt.first?'🆕':'🐦'} ${emblems[c.rarity]} ${c.name} 합류!${owned.receipt.snacks?` (🍤 +${owned.receipt.snacks})`:''}`);
+      if(owned.receipt.achievement)lines.push('',achievementText(owned.receipt.achievement));
       if(owned.receipt.first&&!imageId)imageId=this.image(id,known);
     }
     if(rolled.tickets)lines.push(`🎟 뽑기권 +${rolled.tickets}`);
     const result={...rolled,snacks};
     await tx.expedition.update({where:{id:active.id},data:{result:json(result)}});
     await this.audit(tx,p,'EXPEDITION_CLAIM',{expeditionId:active.id,...result});
-    const after=await tx.player.findUniqueOrThrow({where:{id:p.id},select:{snack:true,credits:true}});
+    const missions=await this.progress(tx,p,'EXPEDITION',1,now);
+    const next=await this.nextStep(tx,p,now,[choice('다시 보내기','탐험보내기 자동'),choice('교환')]);
     const five=plan.countBonus&&plan.countBonus.count>=5?'\n\n갈매미 한 마리… 갈매미 두 마리… 갈매미 세 마리… 네 마리…\n(정적)\n다섯 마리.\n앙~~~~ 갈매미맨이야!!!!':'';
-    return {text:`🧭 탐험 귀환!${five}\n\n${lines.join('\n')}\n\n새우깡 ${after.snack}개 · 뽑기권 ${after.credits}장\n유닛들은 다시 자유롭게 쓸 수 있습니다.`,imageId,
-      choices:[choice('다시 보내기','탐험보내기 자동'),choice('교환'),...menu]};
+    return {text:mask(this.content,`🧭 탐험대 귀환!${five}\n\n${lines.join('\n')}\n\n${[...missions,next.line].join('\n')}`,known),imageId,choices:next.choices};
   }
 
   // ───────── 확정 · 취소 ─────────
@@ -454,7 +518,8 @@ export class GameService {
       if(p.snack<cost)throw new GameError('새우깡이 부족합니다. 상태를 확인하고 다시 진행하세요.');
       await tx.player.update({where:{id:p.id},data:{snack:{decrement:cost}}});
       const owned=await this.grant(tx,p,c.id,'EXCHANGE',now);
-      result={text:`${introduction(this.content,c,'EXCHANGE',known)}\n\n${receiptText(c,owned.receipt)}\n\n새우깡 ${owned.receipt.snackBalance}개 남음`,...(owned.receipt.first?{imageId:this.image(c.id,known)}:{}),choices:this.acquisitionChoices(c,owned.receipt,[choice('더 교환','교환')])};
+      const next=await this.nextStep(tx,p,now,[choice('더 교환','교환')]);
+      result={text:`🍤 → ${acquisitionText(this.content,c,'EXCHANGE',owned.receipt,known)}\n\n${next.line}`,...(owned.receipt.first?{imageId:this.image(c.id,known)}:{}),choices:next.choices};
       await this.audit(tx,p,'EXCHANGE',{token,characterId:c.id,ownedId:owned.id,delta:-cost,balanceAfter:p.snack-cost});
     }else if(action.kind==='CRAFT'){
       const recipe=this.content.recipes.find(r=>r.resultId===payload.recipeId);
@@ -467,9 +532,11 @@ export class GameService {
       const owned=await this.grant(tx,p,recipe.resultId,'COMBINATION',now);
       const c=this.content.map.get(recipe.resultId)!;
       const after=new Set([...known,...(c.rarity==='HIDDEN'?[c.id]:[])]);
-      const discovered=c.rarity==='HIDDEN'&&owned.receipt.first?'🔓 숨은 조합을 발견했습니다! 이제 조합목록 히든에 표시됩니다.\n\n':'';
-      result={text:`${discovered}${introduction(this.content,c,'COMBINATION',after)}\n\n재료 ${ids.length}마리를 사용해 1마리를 얻었습니다.\n${receiptText(c,owned.receipt)}`,...(owned.receipt.first?{imageId:this.image(c.id,after)}:{}),
-        choices:this.acquisitionChoices(c,owned.receipt,c.synergy?[choice('탐험 보내기','탐험')]:[])};
+      const discovered=c.rarity==='HIDDEN'&&owned.receipt.first?'🔓 숨은 조합을 발견했습니다!\n\n':'';
+      const missions=await this.progress(tx,p,'CRAFT',1,now);
+      const next=await this.nextStep(tx,p,now,c.synergy?[choice('탐험 보내기','탐험')]:[]);
+      result={text:`${discovered}${acquisitionText(this.content,c,'COMBINATION',owned.receipt,after)}\n\n${[...missions,next.line].join('\n')}`,...(owned.receipt.first?{imageId:this.image(c.id,after)}:{}),
+        choices:[...next.choices.slice(0,2),...(owned.receipt.first?[choice('유닛 보기',`도감 ${c.name}`)]:[]),...next.choices.slice(2)]};
       await this.audit(tx,p,'CRAFT',{token,recipe:recipe.resultId,consumed:ids,ownedId:owned.id});
     }else if(action.kind==='EXPEDITION'){
       if(await this.activeExpedition(tx,p))throw new GameError('이미 탐험 중입니다.');
@@ -556,11 +623,18 @@ export class GameService {
     if(compact.startsWith('탐험보내기')||(command==='탐험'&&args[0]==='보내기'))return this.sendExpedition(tx,p,trimmed.replace(/^탐험\s*보내기/u,'').trim(),now);
     if(['탐험보상받기','탐험보상','탐험받기'].includes(compact))return this.claimExpedition(tx,p,now);
     if(command==='시너지')return {text:this.synergyGuide(),choices:[choice('탐험'),...menu]};
+    if(command==='미션')return {text:`🎯 오늘의 미션 (한국 시간 0시 초기화)\n\n${await this.missionText(tx,p,now)}\n\n목표를 채우면 바로 지급됩니다.`,choices:menu};
+    if(command==='칭호'){
+      const got=await this.titles(tx,p);
+      const all=tierOrder.map(t=>`${got.includes(this.content.economy.achievements[t].title)?'🏆':'・'} ${rarityNames[t]} 도감 완성 → 「${this.content.economy.achievements[t].title}」 · 🎟 ${this.content.economy.achievements[t].tickets}`);
+      return {text:`🏆 칭호 ${got.length}/${tierOrder.length}\n\n${all.join('\n')}\n\n등급 도감을 처음 모두 채우면 칭호와 뽑기권을 받습니다.`,choices:[choice('도감'),...menu]};
+    }
     if(command==='내정보'){
       const count=await tx.collectionEntry.count({where:{playerId:p.id}});
       const active=await this.activeExpedition(tx,p);
       const trip=active?(active.endsAt>now?`탐험 중 · 귀환까지 ${duration(active.endsAt.getTime()-now.getTime())}`:'탐험 귀환 · 보상 받기 대기'):'탐험 없음';
-      return {text:`갈매미 섬\n뽑기권 ${p.credits}장 / 새우깡 ${p.snack}개\n도감 ${count}/${this.content.characters.length}\n${this.claimHint(p,now)}\n${trip}\n교환: ${(await this.hasTop(tx,p))?'가능':'최상위 유닛 보유 시 가능'}`,choices:menu};
+      const titles=await this.titles(tx,p);
+      return {text:`🏝 갈매미 섬${titles.length?` · 「${titles.at(-1)}」`:''}\n🎟 ${p.credits}장 · 🍤 ${p.snack}개\n📚 도감 ${count}/${this.content.characters.length} · 🏆 칭호 ${titles.length}개\n${this.claimHint(p,now)}\n🧭 ${trip}\n\n🎯 오늘의 미션\n${await this.missionText(tx,p,now)}`,choices:[choice('미션'),choice('칭호'),...menu]};
     }
     if((command==='도감'||command==='내갈매미')&&query&&!/^\d+$/.test(query)&&!this.gradeOf(args[0]))return this.detail(tx,p,command,query);
     if(['내갈매미','도감','조합목록','조합가능'].includes(command))return this.browse(tx,p,command,query);
