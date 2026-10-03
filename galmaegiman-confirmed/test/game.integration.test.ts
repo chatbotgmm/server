@@ -336,6 +336,13 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await me()).credits).toBe(30+50+100+20);
     expect((await send('미션')).text).toContain('✅ 최상위 유닛 조합하기 · 🎟 100');
   });
+  it('합치기: 이름이 여럿 맞으면 고른 유닛으로 나머지 재료를 지킨 채 다시 보냄',async()=>{
+    await fixtures(['R1','R2']);
+    const pick=await send('합치기 황금쌍패성기사, 은하');
+    const button=pick.cards!.items.find(c=>c.title.includes('은하매듭직조자'))!.buttons![0];
+    expect(button).toEqual({label:'이걸로',message:'합치기 황금쌍패성기사, 은하매듭직조자'});
+    expect((await send(button.message)).text).toContain('???');
+  });
   it('관리자 코드가 설정되지 않으면 관리자가 될 수 없음',async()=>{
     expect((await send('관리자 아무거나')).text).toContain('꺼져 있어요');
     expect((await me()).isAdmin).toBe(false);
@@ -368,7 +375,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.6.3'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.6.4'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});

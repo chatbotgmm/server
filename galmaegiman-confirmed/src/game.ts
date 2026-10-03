@@ -215,14 +215,15 @@ export class GameService {
     const wait=this.claimWait(p,now);
     return wait?`다음 뽑기권 받기: ${duration(wait)} 뒤`:'🎟 지금 뽑기권을 받을 수 있습니다.';
   }
-  private resolve(query:string,pool:Character[],command:string,known:Set<string>):Character|GameReply{
+  // again: 고른 유닛으로 다시 보낼 전체 명령(여러 재료 중 하나만 고를 때 나머지 재료를 지키기 위함)
+  private resolve(query:string,pool:Character[],command:string,known:Set<string>,again:(c:Character)=>string=c=>`${command} ${c.name}`):Character|GameReply{
     const found=matchCharacters(pool,query);
     if(found.length===1)return found[0];
     if(!found.length)return this.info({text:`🤔 "${query}"… 그런 갈매미는 없어요.\n이름 일부만 써도 돼요. 예: ${command} 금갑`,choices:[choice('조합목록'),choice('도감'),choice('내갈매미')]},'unknown');
     const picks=found.slice(0,10);
-    return {...listReply('어떤 갈매미일까요?',picks.slice(0,5).map(c=>({title:`${emblems[c.rarity]} ${c.name}`,description:characterInfo(this.content,c),message:`${command} ${c.name}`})),
+    return {...listReply('어떤 갈매미일까요?',picks.slice(0,5).map(c=>({title:`${emblems[c.rarity]} ${c.name}`,description:characterInfo(this.content,c),message:again(c)})),
       '눌러서 골라 주세요. 없으면 이름을 더 길게 써 주세요.',[choice('도움말')]),list:undefined,
-      cards:{intro:'🤔 어떤 갈매미일까요?',items:picks.map(c=>({imageId:this.cardImage(c.id,known),title:`${emblems[c.rarity]} ${c.name}`,description:characterInfo(this.content,c),buttons:[choice('이걸로',`${command} ${c.name}`)]}))}};
+      cards:{intro:'🤔 어떤 갈매미일까요?',items:picks.map(c=>({imageId:this.cardImage(c.id,known),title:`${emblems[c.rarity]} ${c.name}`,description:characterInfo(this.content,c),buttons:[choice('이걸로',again(c))]}))}};
   }
   private async issue(tx:Tx,p:Player,kind:string,payload:ActionPayload,now:Date,text:string,imageId?:string,detail?:string,cards?:GameReply['cards']):Promise<GameReply>{
     await tx.pendingAction.deleteMany({where:{playerId:p.id,result:{equals:Prisma.DbNull},expiresAt:{lt:now}}});
@@ -508,8 +509,10 @@ export class GameService {
     const known=await this.known(tx,p);
     if(!query)return this.info({text:'🔮 합치기\n재료를 직접 골라 섞어요.\n목록에 없는 숨은 조합도 이렇게 찾아요.\n\n이렇게 써요\n합치기 황금쌍패성기사, 은하매듭직조자\n합치기 기본 갈매미맨 ×2, 황금 갈매미맨\n\n❔ 히든 힌트: 조합목록 히든',choices:[choice('히든 힌트','조합목록 히든'),choice('조합목록'),choice('내갈매미')]},'unknown');
     const materials:string[]=[];
-    for(const {name,count} of this.parseUnits(query)){
-      const c=this.resolve(name,this.revealed(known),'합치기',known);
+    const units=this.parseUnits(query);
+    const rebuild=(command:string,i:number,c:Character)=>`${command} ${units.map((u,j)=>`${j===i?c.name:u.name}${u.count>1?` ×${u.count}`:''}`).join(', ')}`;
+    for(const [i,{name,count}] of units.entries()){
+      const c=this.resolve(name,this.revealed(known),'합치기',known,c=>rebuild('합치기',i,c));
       if(!('id' in c))return c;
       for(let i=0;i<count;i++)materials.push(c.id);
     }
@@ -735,8 +738,9 @@ export class GameService {
       selected=selected.slice(0,e.maxParty);
     }else{
       const pool=this.content.characters.filter(c=>c.synergy);
-      for(const {name,count} of this.parseUnits(query)){
-        const c=this.resolve(name,pool,'탐험보내기',new Set());
+      const parts=this.parseUnits(query);
+      for(const [i,{name,count}] of parts.entries()){
+        const c=this.resolve(name,pool,'탐험보내기',new Set(),c=>`탐험보내기 ${parts.map((u,j)=>`${j===i?c.name:u.name}${u.count>1?` ×${u.count}`:''}`).join(', ')}`);
         if(!('id' in c))return c;
         const free=available.filter(o=>o.characterId===c.id&&!selected.includes(o));
         if(free.length<count)throw new GameError(`${c.name}은(는) 지금 ${free.length}마리만 보낼 수 있어요.`);
