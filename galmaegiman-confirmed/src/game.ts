@@ -106,6 +106,11 @@ export class GameService {
       items:[this.maskCard({imageId:this.cardImage(c.id,known),title:a.title,description:a.description,buttons:[choice('도감 보기',`도감 ${c.name}`),...buttons].slice(0,3)},known)],
       outro:`${below?`${below}\n\n`:''}━━━━━━━━━━\n${nextLine}`}};
   }
+  // 등급 카드 그림: 그 등급의 첫 유닛. 히든은 발견한 것이 있으면 그것, 없으면 실루엣
+  private gradeImage(t:Tier,known:Set<string>){
+    const first=this.content.characters.find(c=>c.rarity===t&&isRevealed(c,known));
+    return first?this.cardImage(first.id,known):'unknown';
+  }
   private helpCards():CardEntry[]{
     const g=this.content.economy.gachas,t=this.content.economy.tickets,none=new Set<string>();
     return [
@@ -536,7 +541,15 @@ export class GameService {
         const count=t==='HIDDEN'?`발견 ${shown.length}/${all.length}`:`${all.length}종`;
         return `${emblems[t]} ${rarityNames[t]} · ${count}${ready?` · ✨ ${ready}`:''}`;
       });
-      return {text:`🧩 ${command} · 등급을 고르세요\n\n${lines.join('\n')}\n\n✨ = 지금 만들 수 있는 수\n❔ 히든은 합치기로 찾아요.`,choices:grades.slice(0,9).map(t=>choice(rarityNames[t],`${command} ${rarityNames[t]}`)).concat(choice('합치기'))};
+      const cards:CardEntry[]=grades.map(t=>{
+        const all=this.content.recipes.filter(r=>this.content.map.get(r.resultId)!.rarity===t);
+        const shown=visible.filter(r=>this.content.map.get(r.resultId)!.rarity===t);
+        const ready=shown.filter(r=>this.canCraft(r,stock)).length;
+        return {imageId:this.gradeImage(t,known),title:`${emblems[t]} ${rarityNames[t]}`,
+          description:`${t==='HIDDEN'?`발견 ${shown.length}/${all.length} · 합치기로 찾아요`:`${all.length}종`}${ready?`\n✨ 지금 ${ready}종 만들 수 있어요`:''}`,
+          buttons:[choice('목록 보기',`${command} ${rarityNames[t]}`),...(ready&&command!=='조합가능'?[choice(`만들 수 있는 것 ${ready}`,`조합가능 ${rarityNames[t]}`)]:[]),...(t==='HIDDEN'?[choice('합치기')]:[])]};
+      });
+      return {text:`🧩 ${command} · 등급을 고르세요\n\n${lines.join('\n')}\n\n✨ = 지금 만들 수 있는 수\n❔ 히든은 합치기로 찾아요.`,cards:{intro:`🧩 ${command} · 등급을 골라 보세요`,items:cards},choices:grades.slice(0,9).map(t=>choice(rarityNames[t],`${command} ${rarityNames[t]}`)).concat(choice('합치기'))};
     }
     if(command==='도감'&&!grade){
       const lines=tierOrder.map(t=>{
@@ -544,7 +557,12 @@ export class GameService {
         const got=ids.filter(id=>collected.has(id)).length;
         return `${emblems[t]} ${rarityNames[t]} · ${got}/${ids.length}${got===ids.length?' 🏆':''}`;
       });
-      return {text:`📚 도감 · ${collected.size}/${this.content.characters.length}\n\n${lines.join('\n')}\n\n등급을 골라 보세요.`,choices:tierOrder.map(t=>choice(rarityNames[t],`도감 ${rarityNames[t]}`))};
+      const cards:CardEntry[]=tierOrder.map(t=>{
+        const ids=this.content.characters.filter(c=>c.rarity===t).map(c=>c.id);
+        const got=ids.filter(id=>collected.has(id)).length;
+        return {imageId:this.gradeImage(t,known),title:`${emblems[t]} ${rarityNames[t]}`,description:`수집 ${got}/${ids.length}${got===ids.length?' · 🏆 완성!':''}`,buttons:[choice('보기',`도감 ${rarityNames[t]}`)]};
+      });
+      return {text:`📚 도감 · ${collected.size}/${this.content.characters.length}\n\n${lines.join('\n')}\n\n등급을 골라 보세요.`,cards:{intro:`📚 도감 · ${collected.size}/${this.content.characters.length}`,items:cards},choices:tierOrder.map(t=>choice(rarityNames[t],`도감 ${rarityNames[t]}`))};
     }
     let characters:Character[];
     // 재료가 몇 종 모였는지: 만들 수 있는 것과 거의 다 모인 것을 앞에 보여 줍니다.

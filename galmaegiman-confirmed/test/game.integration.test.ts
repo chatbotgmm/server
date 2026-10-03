@@ -268,6 +268,11 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(done.cards!.items[0].description).toContain('🧩 조합 성공!');
     const dex=await send('도감');
     expect(dex.text).toContain('📚 도감 ·');
+    expect(dex.cards!.items).toHaveLength(10);
+    expect(dex.cards!.items[5]).toMatchObject({imageId:'unknown',title:'❔ 히든'});
+    const grades=await send('조합목록');
+    expect(grades.cards!.items).toHaveLength(9);
+    expect(grades.cards!.items[0].buttons![0]).toEqual({label:'목록 보기',message:'조합목록 안흔함'});
     const common=await send('도감 흔함');
     expect(common.cards!.items).toHaveLength(6);
     expect(common.cards!.items.find(c=>c.title.includes('우주'))!.imageId).toBe('unknown');
@@ -360,7 +365,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.5.2'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.5.3'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});
