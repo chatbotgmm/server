@@ -780,7 +780,7 @@ export class GameService {
     await this.audit(tx,p,'EXPEDITION_CLAIM',{expeditionId:active.id,...result});
     const missions=await this.progress(tx,p,'EXPEDITION',1,now);
     const next=await this.nextStep(tx,p,now,[choice('다시 보내기','탐험보내기 자동'),choice('교환')]);
-    const five=plan.countBonus&&plan.countBonus.count>=5?'\n\n갈매미 한 마리… 갈매미 두 마리… 갈매미 세 마리… 네 마리…\n(정적)\n다섯 마리.\n앙~~~~ 갈매미맨이야!!!!':'';
+    const five=plan.countBonus&&plan.countBonus.count>=5?'\n\n갈매미 한 마리…\n갈매미 두 마리…\n갈매미 세 마리…\n갈매미 네 마리…\n(정적)\n갈매미 다섯 마리.\n앙~~~~ 갈매미맨이야!!!!':'';
     // 카드: 합류한 유닛, 없으면 탐험대 대표 유닛 1장
     const leader=this.content.map.get((active.unitIds as string[])[0])!;
     const items=joined.length?joined:[{imageId:this.cardImage(leader.id,known),title:'🧭 탐험대 귀환!',description:`${emblems[leader.rarity]} ${leader.name}${plan.size>1?` 외 ${plan.size-1}마리`:''}\n🍤 새우깡 +${snacks}`}];
@@ -1023,6 +1023,6 @@ export class GameService {
     if((command==='도감'||command==='내갈매미')&&query&&!/^\d+$/.test(query)&&!this.gradeOf(args[0]))return this.detail(tx,p,command,query);
     if(['내갈매미','도감','조합목록','조합가능'].includes(command))return this.browse(tx,p,command,query);
     if(['출석','재료','땅콩떼기','땅콩교환','교배'].includes(command))return {text:'이 기능은 개편으로 종료되었어요.\n🎟 뽑기권은 "뽑기권 받기", 🍤 새우깡은 획득 보상과 탐험으로 얻어요.',choices:menu};
-    return {text:help,cards:{intro:'🏝 갈매미맨 — 갈매미를 모아 조합하는 게임',items:this.helpCards(),outro:'이렇게도 써요\n하급뽑기 5 · 조합 금갑 · 도감 야경\n합치기 황금쌍패성기사, 은하매듭직조자\n탐험보내기 갈발 ×3, 갈내복'},choices:menu};
+    return {text:help,cards:{intro:'🏝 이 섬의 항구는 돌이 지킨다.\n그들을 갈매미라 부른다. 갈매미는 존재한다.',items:this.helpCards(),outro:'이렇게도 써요\n하급뽑기 5 · 조합 금갑 · 도감 야경\n합치기 황금쌍패성기사, 은하매듭직조자\n탐험보내기 갈발 ×3, 갈내복'},choices:menu};
   }
 }

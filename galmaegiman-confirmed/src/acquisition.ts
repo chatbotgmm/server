@@ -13,7 +13,7 @@ export const speech=(c:Character)=>`💬 ${c.name}: "${c.quote}"`;
 // 높은 등급은 갈매미 카운트로 뜸을 들입니다. 불멸 등 stage가 있으면 그것을 씁니다.
 export function prelude(c:Character,first:boolean){
   if(c.stage)return `${c.stage}\n\n`;
-  if(high.has(c.rarity))return '……하늘이 어두워진다.\n갈매미 한 마리… 두 마리… 세 마리… 네 마리…\n(정적)\n다섯 마리.\n\n';
+  if(high.has(c.rarity))return '……하늘이 어두워진다.\n갈매미 한 마리…\n갈매미 두 마리…\n갈매미 세 마리…\n갈매미 네 마리…\n(정적)\n갈매미 다섯 마리.\n\n';
   if(c.rarity==='RARE'&&first)return '……공기가 무거워진다.\n\n';
   return '';
 }
