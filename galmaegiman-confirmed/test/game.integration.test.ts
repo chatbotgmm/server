@@ -92,7 +92,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await fixtures(['R1','R2']);
     expect((await send('조합목록')).text).toContain('히든 · 발견 0/13');
     const hint=await send('조합목록 히든');
-    expect(hint.cards!.items[0]).toMatchObject({imageId:'unknown',title:'???',description:'❔ 힌트: 황금 방패와 풀리지 않는 매듭의 만남'});
+    expect(hint.cards!.items[0]).toMatchObject({imageId:'unknown',title:'???',description:'❔ 힌트: 방패 두 장을 매듭으로 묶었다. 왜 그 모양인지는 묻지 말 것.'});
     expect(hint.cards!.items).toHaveLength(10);
     expect(JSON.stringify(hint)).not.toContain('브라자');
     expect((await send('도감 브라자 갈매미맨')).text).toContain('그런 갈매미는 없어요');
@@ -368,7 +368,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.6.1'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.6.2'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});
