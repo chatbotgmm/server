@@ -109,6 +109,9 @@ model DailyProgress {
   draws Int @default(0)
   crafts Int @default(0)
   expeditions Int @default(0)
+  craftRare Int @default(0)     // 희귀 조합
+  craftLegend Int @default(0)   // 전설·히든 조합
+  craftTop Int @default(0)      // 최상위(제한·초월·영원·불멸) 조합
   rewarded String @default("")
   player Player @relation(fields: [playerId], references: [id])
   @@id([playerId, day])

@@ -50,7 +50,7 @@ const economySchema=z.object({
   }).strict(),
   rewards:z.object(Object.fromEntries(tierOrder.map(t=>[t,reward])) as Record<Tier,typeof reward>).strict(),
   achievements:z.object(Object.fromEntries(tierOrder.map(t=>[t,achievement])) as Record<Tier,typeof achievement>).strict(),
-  missions:z.array(z.object({key:z.enum(['DRAW','CRAFT','EXPEDITION']),label:text,goal:z.number().int().min(1).max(1000),tickets:z.number().int().min(0).max(1000)}).strict()).max(10)
+  missions:z.array(z.object({key:z.enum(['DRAW','CRAFT','CRAFT_RARE','CRAFT_LEGEND','CRAFT_TOP','EXPEDITION']),label:text,goal:z.number().int().min(1).max(1000),tickets:z.number().int().min(0).max(1000)}).strict()).max(10)
 }).strict();
 export type Economy=z.infer<typeof economySchema>;
 

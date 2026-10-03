@@ -239,14 +239,24 @@ export class GameService {
     return {...owned,receipt};
   }
   // 오늘(한국 시간)의 미션 진행을 올리고, 새로 달성한 미션 보상을 지급합니다.
-  private async progress(tx:Tx,p:Player,kind:'DRAW'|'CRAFT'|'EXPEDITION',amount:number,now:Date):Promise<string[]>{
+  // 미션 키 → 오늘 진행 칸
+  private static missionField={DRAW:'draws',CRAFT:'crafts',CRAFT_RARE:'craftRare',CRAFT_LEGEND:'craftLegend',CRAFT_TOP:'craftTop',EXPEDITION:'expeditions'} as const;
+  // 오늘(한국 시간)의 미션 진행을 올리고, 새로 달성한 미션 보상을 지급합니다.
+  // 조합은 결과 등급에 따라 희귀·전설/히든·최상위 칸도 함께 올립니다.
+  private async progress(tx:Tx,p:Player,kind:'DRAW'|'CRAFT'|'EXPEDITION',amount:number,now:Date,crafted?:Tier):Promise<string[]>{
     const day=DateTime.fromJSDate(now).setZone('Asia/Seoul').toISODate()!;
-    const field=kind==='DRAW'?'draws':kind==='CRAFT'?'crafts':'expeditions';
-    const row=await tx.dailyProgress.upsert({where:{playerId_day:{playerId:p.id,day}},create:{playerId:p.id,day,[field]:amount},update:{[field]:{increment:amount}}});
+    const add:Record<string,number>={[GameService.missionField[kind]]:amount};
+    if(kind==='CRAFT'&&crafted){
+      if(crafted==='RARE')add.craftRare=amount;
+      if(crafted==='LEGEND'||crafted==='HIDDEN')add.craftLegend=amount;
+      if(topTiers.has(crafted))add.craftTop=amount;
+    }
+    const row=await tx.dailyProgress.upsert({where:{playerId_day:{playerId:p.id,day}},create:{playerId:p.id,day,...add},
+      update:Object.fromEntries(Object.entries(add).map(([k,v])=>[k,{increment:v}]))});
     const done=new Set(row.rewarded.split(',').filter(Boolean));
     const lines:string[]=[];
     for(const m of this.content.economy.missions){
-      const value=m.key==='DRAW'?row.draws:m.key==='CRAFT'?row.crafts:row.expeditions;
+      const value=row[GameService.missionField[m.key]];
       if(value<m.goal||done.has(m.key))continue;
       done.add(m.key);
       if(m.tickets)await tx.player.update({where:{id:p.id},data:{credits:{increment:m.tickets}}});
@@ -261,8 +271,8 @@ export class GameService {
     const row=await tx.dailyProgress.findUnique({where:{playerId_day:{playerId:p.id,day}}});
     const done=new Set((row?.rewarded??'').split(',').filter(Boolean));
     return this.content.economy.missions.map(m=>{
-      const value=Math.min(m.goal,(m.key==='DRAW'?row?.draws:m.key==='CRAFT'?row?.crafts:row?.expeditions)??0);
-      return `${done.has(m.key)?'✅':'⬜'} ${m.label} (${value}/${m.goal}) · 🎟 ${m.tickets}`;
+      const value=Math.min(m.goal,row?.[GameService.missionField[m.key]]??0);
+      return `${done.has(m.key)?'✅':'⬜'} ${m.label}${m.goal>1?` (${value}/${m.goal})`:''} · 🎟 ${m.tickets}`;
     }).join('\n');
   }
   private async titles(tx:Tx,p:Player){
@@ -786,7 +796,7 @@ export class GameService {
       const c=this.content.map.get(recipe.resultId)!;
       const after=new Set([...known,...(c.rarity==='HIDDEN'?[c.id]:[])]);
       const discovered=c.rarity==='HIDDEN'&&owned.receipt.first?'🔓 숨은 조합을 발견했습니다!\n\n':'';
-      const missions=await this.progress(tx,p,'CRAFT',1,now);
+      const missions=await this.progress(tx,p,'CRAFT',1,now,c.rarity);
       const next=await this.nextStep(tx,p,now,c.synergy?[choice('탐험 보내기','탐험')]:[]);
       result={text:`${discovered}${acquisitionText(this.content,c,'COMBINATION',owned.receipt,after)}\n\n${[...missions,next.line].join('\n')}`,...(owned.receipt.first?{imageId:this.image(c.id,after)}:{}),
         ...this.acquired(c,'COMBINATION',owned.receipt,after,missions,next.line,discovered.trim(),c.synergy?[choice('탐험 보내기','탐험')]:[]),

@@ -313,6 +313,21 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await send('닉네임 갈매미왕','other-rank')).text).toContain('이미 누가');
     expect((await send('닉네임 a')).text).toContain('2~10자');
   });
+  it('일일 미션: 희귀·전설/히든·최상위 조합은 결과 등급으로 달성, 한 번만 지급',async()=>{
+    await fixtures(['S1','U1','R1','R20','L2','H1','S1','U1'],{credits:0});
+    await db.collectionEntry.create({data:{playerId:(await me()).id,characterId:'H1'}});
+    const rare=await confirm(await send('조합 황금쌍패성기사'));
+    expect(rare.text).toContain('🎯 오늘의 미션 완료! 희귀 조합하기 · 🎟 +3');
+    const legend=await confirm(await send('조합 쌍패성왕'));
+    expect(legend.text).toContain('🎯 오늘의 미션 완료! 전설 또는 히든 조합하기 · 🎟 +5');
+    expect(legend.text).not.toContain('조합 3회');
+    const top=await confirm(await send('조합 갈크탑'));
+    expect(top.text).toContain('🎯 오늘의 미션 완료! 최상위 유닛 조합하기 · 🎟 +10');
+    expect(top.text).toContain('🎯 오늘의 미션 완료! 조합 3회 · 🎟 +2');
+    expect((await confirm(await send('조합 황금쌍패성기사'))).text).not.toContain('희귀 조합하기');
+    expect((await me()).credits).toBe(3+5+10+2);
+    expect((await send('미션')).text).toContain('✅ 최상위 유닛 조합하기 · 🎟 10');
+  });
   it('관리자 코드가 설정되지 않으면 관리자가 될 수 없음',async()=>{
     expect((await send('관리자 아무거나')).text).toContain('꺼져 있어요');
     expect((await me()).isAdmin).toBe(false);
@@ -345,7 +360,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.5.0'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.5.1'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});
