@@ -45,6 +45,7 @@ rewards:               # 획득 보상 새우깡 (첫 도감 / 중복)
   TRANSCEND: { first: 1000, duplicate: 200 }
   ETERNAL:   { first: 1200, duplicate: 240 }
   IMMORTAL:  { first: 1400, duplicate: 280 }
+  NEUTRAL:   { first: 50,   duplicate: 10 }     # 특수함(중성 갈매미): 땅콩떼기로만 얻음
 
 achievements:          # 등급 도감을 처음 모두 채우면 1회 지급 + 칭호
   COMMON:    { tickets: 5,  title: 바닷가 산책자 }
@@ -57,6 +58,7 @@ achievements:          # 등급 도감을 처음 모두 채우면 1회 지급 + 
   TRANSCEND: { tickets: 30, title: 경계를 넘은 자 }
   ETERNAL:   { tickets: 30, title: 시간 밖의 수호자 }
   IMMORTAL:  { tickets: 30, title: 다섯 마리째를 들은 자 }
+  NEUTRAL:   { tickets: 10, title: 땅콩 없는 자 }
 
 missions:              # 매일 한국 시간 0시 초기화. 목표 달성 시 자동 지급
   - { key: DRAW,         label: 뽑기 5회,              goal: 5, tickets: 20 }

@@ -1,19 +1,19 @@
 import {describe,it,expect} from 'vitest';
 import {loadContent,tiers,topTiers} from '../src/content.js';
 const content=loadContent();
-describe('118종 콘텐츠',()=>{
-  it('등급별 수량 6/11/15/20/20/13/8/8/8/9 = 118',()=>{
+describe('139종 콘텐츠',()=>{
+  it('등급별 수량 9/16/19/23/23/15/8/8/8/9/특수함 1 = 139',()=>{
     const count=(t:string)=>content.characters.filter(c=>c.rarity===t).length;
-    expect([count('COMMON'),count('UNCOMMON'),count('SPECIAL'),count('RARE'),count('LEGEND'),count('HIDDEN'),count('LIMITED'),count('TRANSCEND'),count('ETERNAL'),count('IMMORTAL')]).toEqual([6,11,15,20,20,13,8,8,8,9]);
-    expect(content.characters).toHaveLength(118);
+    expect([count('COMMON'),count('UNCOMMON'),count('SPECIAL'),count('RARE'),count('LEGEND'),count('HIDDEN'),count('LIMITED'),count('TRANSCEND'),count('ETERNAL'),count('IMMORTAL'),count('NEUTRAL')]).toEqual([9,16,19,23,23,15,8,8,8,9,1]);
+    expect(content.characters).toHaveLength(139);
   });
-  it('흔함을 뺀 112종 모두 조합식 1개, 재료는 결과보다 낮은 단계',()=>{
-    expect(content.recipes).toHaveLength(112);
+  it('흔함·특수함을 뺀 129종 모두 조합식 1개, 재료는 결과보다 낮은 단계',()=>{
+    expect(content.recipes).toHaveLength(129);
     for(const r of content.recipes)for(const m of r.materials)expect(tiers[content.map.get(m)!.rarity]).toBeLessThan(tiers[content.map.get(r.resultId)!.rarity]);
   });
-  it('히든 13종만 비공개 조합',()=>{
+  it('히든 15종만 비공개 조합',()=>{
     expect(content.recipes.filter(r=>r.hidden).map(r=>r.resultId).sort()).toEqual([...content.hiddenIds].sort());
-    expect(content.hiddenIds).toHaveLength(13);
+    expect(content.hiddenIds).toHaveLength(15);
   });
   it('최상위 33종 시너지: 원형 6그룹×4 + 갈 의복 9',()=>{
     const top=content.characters.filter(c=>topTiers.has(c.rarity));
@@ -37,5 +37,10 @@ describe('118종 콘텐츠',()=>{
     expect(e.tickets).toEqual({welcome:30,claim:10,cooldownHours:1});
     expect(e.rewards.COMMON).toEqual({first:0,duplicate:0});
     expect(e.rewards.IMMORTAL).toEqual({first:1400,duplicate:280});
+  });
+  it('새 계열: 흔함 3종과 파생 15종은 뽑기에 안 나오고, 중성 갈매미는 조합식 없음',()=>{
+    expect(content.characters.filter(c=>c.noGacha).map(c=>c.id).sort()).toEqual(['C7','C8','C9','L21','L22','L23','R21','R22','R23','S16','S17','S18','S19','U12','U13','U14','U15','U16'].sort());
+    expect(content.recipes.find(r=>r.resultId==='N1')).toBeUndefined();
+    expect(content.map.get('N1')!.rarity).toBe('NEUTRAL');
   });
 });

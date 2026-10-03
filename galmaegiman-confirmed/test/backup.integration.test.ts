@@ -15,7 +15,7 @@ suite('백업 검증',()=>{
     expect(existsSync(path)).toBe(true);
     expect(await tools.edition(path)).toBe('galmaemi-118-v1');
     const backup=new PrismaClient({datasources:{db:{url:`file:${path}`}}});
-    try{expect(await backup.characterDefinition.count()).toBe(118);}finally{await backup.$disconnect();}
+    try{expect(await backup.characterDefinition.count()).toBe(139);}finally{await backup.$disconnect();}
     await expect(tools.snapshot(source,path)).rejects.toThrow('덮어쓰지');
   });
 });

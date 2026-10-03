@@ -13,7 +13,7 @@ export class GachaEngine {
       const weights=Object.entries(config[kind].weights);
       if(weights.reduce((sum,[,w])=>sum+w,0)!==100)throw new Error(`${kind} 확률 합계는 100이어야 합니다.`);
       for(const [tier] of weights){
-        const pool=characters.filter(c=>c.rarity===tier);
+        const pool=characters.filter(c=>c.rarity===tier&&!c.noGacha);
         if(!pool.length)throw new Error(`뽑기 유닛이 없는 등급: ${tier}`);
         this.pools.set(tier as Tier,pool);
       }

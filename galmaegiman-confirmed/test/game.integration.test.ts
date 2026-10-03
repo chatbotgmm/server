@@ -90,7 +90,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   });
   it('히든: 목록·도감·이름 검색에서 숨김, 합치기로 발견하면 공개',async()=>{
     await fixtures(['R1','R2']);
-    expect((await send('조합목록')).text).toContain('히든 · 발견 0/13');
+    expect((await send('조합목록')).text).toContain('히든 · 발견 0/15');
     const hint=await send('조합목록 히든');
     expect(hint.cards!.items[0]).toMatchObject({imageId:'unknown',title:'???',description:'❔ 힌트: 방패 두 장을 매듭으로 묶었다. 왜 그 모양인지는 묻지 말 것.'});
     expect(hint.cards!.items).toHaveLength(10);
@@ -168,14 +168,14 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   });
   it('흔함 도감 완성: 칭호와 뽑기권 5장 1회만',async()=>{
     const p=await fixtures(['D1'],{snack:300});
-    for(const id of ['C2','C3','C4','C5','C6'])await db.collectionEntry.create({data:{playerId:p.id,characterId:id}});
+    for(const id of ['C2','C3','C4','C5','C6','C7','C8','C9'])await db.collectionEntry.create({data:{playerId:p.id,characterId:id}});
     const done=await confirm(await send('교환 기본'));
     expect(done.text).toContain('흔함 도감 완성');
     expect(done.text).toContain('바닷가 산책자');
     expect((await me()).credits).toBe(35);
     await confirm(await send('교환 기본'));
     expect((await me()).credits).toBe(35);
-    expect((await send('칭호')).text).toContain('칭호 1/10');
+    expect((await send('칭호')).text).toContain('칭호 1/11');
     expect((await send('내정보')).text).toContain('「바닷가 산책자」');
   });
   it('미션: 하루 단위, 한국 시간 0시에 초기화',async()=>{
@@ -282,13 +282,13 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(done.cards!.items[0].description).toContain('🧩 조합 성공!');
     const dex=await send('도감');
     expect(dex.text).toContain('📚 도감 ·');
-    expect(dex.cards!.items).toHaveLength(10);
+    expect(dex.cards!.items).toHaveLength(11);   // 등급 11개(특수함 포함) → 카카오에서는 10+1 두 묶음
     expect(dex.cards!.items[5]).toMatchObject({imageId:'unknown',title:'❔ 히든'});
     const grades=await send('조합목록');
     expect(grades.cards!.items).toHaveLength(9);
     expect(grades.cards!.items[0].buttons![0]).toEqual({label:'목록 보기',message:'조합목록 안흔함'});
     const common=await send('도감 흔함');
-    expect(common.cards!.items).toHaveLength(6);
+    expect(common.cards!.items).toHaveLength(9);
     expect(common.cards!.items.find(c=>c.title.includes('우주'))!.imageId).toBe('unknown');
     expect(common.cards!.items.find(c=>c.title.includes('기본'))!.imageId).toBe('C1');
     const info=await send('내정보');
@@ -327,7 +327,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await db.collectionEntry.create({data:{playerId:other.id,characterId:'C3'}});
     const rank=await send('랭킹');
     expect(rank.cards!.items.map(i=>i.title)).toEqual(['🥇 갈매미왕','🥈 둘째']);
-    expect(rank.cards!.items[0].description).toContain('📚 2/118');
+    expect(rank.cards!.items[0].description).toContain('📚 2/139');
     expect(rank.text).toContain('내 순위: 1위 / 2명');
     expect((await send('닉네임 갈매미왕','other-rank')).text).toContain('이미 누가');
     expect((await send('닉네임 a')).text).toContain('2~10자');
@@ -369,12 +369,27 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(preview.list!.items[0].button!.action).toBe('confirm');
     expect((await send('조합목록 히든')).cards!.items[0].buttons![0]).toEqual({label:'재료 골라 합치기',message:'합치기'});
   });
+  it('땅콩떼기: 갈매미맨만 가능, 1마리 → 중성 갈매미 + 땅콩 1, 갈매미걸은 불가',async()=>{
+    await fixtures(['C1','C9','U1']);
+    const pick=await send('땅콩떼기');
+    expect(pick.cards!.items.map(c=>c.title)).toEqual(['🥚 기본 갈매미맨']);
+    expect((await send('땅콩떼기 갈매미걸')).text).toContain('그런 갈매미는 없어요');
+    const preview=await send('땅콩떼기 기본 갈매미맨');
+    expect(preview.list!.items[0].message).toBe('땅콩떼기 확정');
+    const done=await confirm(preview);
+    expect(done.cards!.items[0]).toMatchObject({title:'🔘 중성 갈매미'});
+    expect(done.cards!.intro).toContain('땅콩을 뗐다');
+    expect((await me()).peanut).toBe(1);
+    expect(await db.ownedCharacter.count({where:{characterId:'C1',status:'AVAILABLE'}})).toBe(0);
+    expect(await db.ownedCharacter.count({where:{characterId:'N1'}})).toBe(1);
+    expect((await send('내정보')).cards!.items[0].description).toContain('🥜 1');
+  });
   it('관리자 코드가 설정되지 않으면 관리자가 될 수 없음',async()=>{
     expect((await send('관리자 아무거나')).text).toContain('꺼져 있어요');
     expect((await me()).isAdmin).toBe(false);
   });
-  it('종료된 기능(출석·재료·땅콩)은 안내만 하고 재화를 바꾸지 않음',async()=>{
-    for(const cmd of ['출석','재료 기본','땅콩떼기 금갑'])expect((await send(cmd)).text).toContain('종료');
+  it('종료된 기능(출석·재료·땅콩교환)은 안내만 하고 재화를 바꾸지 않음',async()=>{
+    for(const cmd of ['출석','재료 기본','땅콩교환'])expect((await send(cmd)).text).toContain('종료');
     expect((await me()).snack).toBe(0);
     expect((await me()).credits).toBe(30);
   });
@@ -401,7 +416,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.7.0'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.8.0'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});

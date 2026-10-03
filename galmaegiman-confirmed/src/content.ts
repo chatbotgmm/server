@@ -3,25 +3,27 @@ import { createHash } from 'node:crypto';
 import { parse } from 'yaml';
 import { z } from 'zod';
 
-export const tierOrder=['COMMON','UNCOMMON','SPECIAL','RARE','LEGEND','HIDDEN','LIMITED','TRANSCEND','ETERNAL','IMMORTAL'] as const;
+// NEUTRAL(특수함): 뽑기·조합으로 나오지 않고 '땅콩떼기'로만 얻는 등급. 히든 조합 재료로 쓸 예정
+export const tierOrder=['COMMON','UNCOMMON','SPECIAL','RARE','LEGEND','HIDDEN','LIMITED','TRANSCEND','ETERNAL','IMMORTAL','NEUTRAL'] as const;
 export type Tier=typeof tierOrder[number];
-export const rarityNames:Record<string,string>={COMMON:'흔함',UNCOMMON:'안흔함',SPECIAL:'특별',RARE:'희귀',LEGEND:'전설',HIDDEN:'히든',LIMITED:'제한',TRANSCEND:'초월',ETERNAL:'영원',IMMORTAL:'불멸'};
+export const rarityNames:Record<string,string>={COMMON:'흔함',UNCOMMON:'안흔함',SPECIAL:'특별',RARE:'희귀',LEGEND:'전설',HIDDEN:'히든',LIMITED:'제한',TRANSCEND:'초월',ETERNAL:'영원',IMMORTAL:'불멸',NEUTRAL:'특수함'};
 // 조합 재료는 결과보다 낮은 단계여야 합니다. 전설=히든, 최상위 4분류는 서로 동급입니다.
-export const tiers:Record<string,number>={COMMON:1,UNCOMMON:2,SPECIAL:3,RARE:4,LEGEND:5,HIDDEN:5,LIMITED:6,TRANSCEND:6,ETERNAL:6,IMMORTAL:6};
+export const tiers:Record<string,number>={COMMON:1,UNCOMMON:2,SPECIAL:3,RARE:4,LEGEND:5,HIDDEN:5,LIMITED:6,TRANSCEND:6,ETERNAL:6,IMMORTAL:6,NEUTRAL:2};
 export const topTiers=new Set<string>(['LIMITED','TRANSCEND','ETERNAL','IMMORTAL']);
 export const synergyKeys=['BASIC','GOLD','DARK','SEA','BLOSSOM','COSMOS','OUTFIT'] as const;
 export type SynergyKey=typeof synergyKeys[number];
-const expected:Record<Tier,number>={COMMON:6,UNCOMMON:11,SPECIAL:15,RARE:20,LEGEND:20,HIDDEN:13,LIMITED:8,TRANSCEND:8,ETERNAL:8,IMMORTAL:9};
+const expected:Record<Tier,number>={COMMON:9,UNCOMMON:16,SPECIAL:19,RARE:23,LEGEND:23,HIDDEN:15,LIMITED:8,TRANSCEND:8,ETERNAL:8,IMMORTAL:9,NEUTRAL:1};
+export const UNIT_COUNT=Object.values(expected).reduce((a,b)=>a+b,0);
 export const EDITION='galmaemi-118-v1';
 
-const id=z.string().regex(/^[CUSRLHDTEI]\d{1,2}$/);
+const id=z.string().regex(/^[CUSRLHDTEIN]\d{1,2}$/);
 const text=z.string().trim().min(1);
 const unitSchema=z.object({
   id,name:text.max(30),tier:z.enum(tierOrder),quote:text.max(60),tagline:text.max(60),introduction:text.max(400),reason:text.max(400),
   recipe:z.array(z.tuple([id,z.number().int().min(1).max(5)])).max(6),
-  synergy:z.enum(synergyKeys).optional(),stage:text.max(300).optional(),hint:text.max(80).optional()
+  synergy:z.enum(synergyKeys).optional(),stage:text.max(300).optional(),hint:text.max(80).optional(),noGacha:z.literal(true).optional()   // 뽑기에서 안 나옴(상점·탐험으로 얻기)
 }).strict();
-const unitsSchema=z.object({edition:z.literal(EDITION),source:text,units:z.array(unitSchema).length(118)}).strict();
+const unitsSchema=z.object({edition:z.literal(EDITION),source:text,units:z.array(unitSchema)}).strict();
 
 const percentPair=z.tuple([z.number().min(0).max(100),z.number().min(0).max(100)]);
 const weights=z.partialRecord(z.enum(tierOrder),z.number().int().min(1).max(100));
@@ -55,7 +57,7 @@ const economySchema=z.object({
 }).strict();
 export type Economy=z.infer<typeof economySchema>;
 
-export interface Character {id:string;name:string;rarity:Tier;position:number;quote:string;tagline:string;imageUrl:string;introduction:string;reason:string;synergy?:SynergyKey;stage?:string;hint?:string}
+export interface Character {id:string;name:string;rarity:Tier;position:number;quote:string;tagline:string;imageUrl:string;introduction:string;reason:string;synergy?:SynergyKey;stage?:string;hint?:string;noGacha?:boolean}
 export interface Recipe {resultId:string;materials:string[];story:string;hidden:boolean}
 
 export function loadEconomy(root=process.cwd()):Economy{
@@ -77,17 +79,18 @@ export function loadContent(root=process.cwd()) {
   const input=unitsSchema.parse(JSON.parse(raw));
   const characters:Character[]=input.units.map((u,position)=>({
     id:u.id,name:u.name,rarity:u.tier,position,quote:u.quote,tagline:u.tagline,imageUrl:`/images/${u.id}.png`,
-    introduction:u.introduction,reason:u.reason,...(u.synergy?{synergy:u.synergy}:{}),...(u.stage?{stage:u.stage}:{}),...(u.hint?{hint:u.hint}:{})
+    introduction:u.introduction,reason:u.reason,...(u.synergy?{synergy:u.synergy}:{}),...(u.stage?{stage:u.stage}:{}),...(u.hint?{hint:u.hint}:{}),...(u.noGacha?{noGacha:true}:{})
   }));
   const map=new Map(characters.map(c=>[c.id,c]));
-  if(map.size!==118)throw new Error('중복 유닛 ID');
-  if(new Set(characters.map(c=>c.name)).size!==118)throw new Error('중복 유닛 이름');
+  if(characters.length!==UNIT_COUNT)throw new Error(`유닛 수 오류: ${characters.length}/${UNIT_COUNT}`);
+  if(map.size!==UNIT_COUNT)throw new Error('중복 유닛 ID');
+  if(new Set(characters.map(c=>c.name)).size!==UNIT_COUNT)throw new Error('중복 유닛 이름');
   for(const t of tierOrder)if(characters.filter(c=>c.rarity===t).length!==expected[t])throw new Error(`등급 수량 오류 ${t}`);
   for(const c of characters)if(topTiers.has(c.rarity)!==Boolean(c.synergy))throw new Error(`시너지는 최상위 유닛에만 있습니다: ${c.id}`);
   const recipes:Recipe[]=[];
   const bundles=new Set<string>();
   for(const u of input.units){
-    if(u.tier==='COMMON'){if(u.recipe.length)throw new Error(`흔함은 조합식이 없습니다: ${u.id}`);continue;}
+    if(u.tier==='COMMON'||u.tier==='NEUTRAL'){if(u.recipe.length)throw new Error(`흔함·특수함은 조합식이 없습니다: ${u.id}`);continue;}
     if(!u.recipe.length)throw new Error(`조합식 누락: ${u.id}`);
     const materials=u.recipe.flatMap(([m,q])=>Array.from({length:q},()=>m));
     if(materials.length<2)throw new Error(`재료는 2마리 이상: ${u.id}`);

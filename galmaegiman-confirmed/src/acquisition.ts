@@ -5,8 +5,8 @@ export interface Receipt {
   first:boolean;count:number;snacks:number;snackBalance:number;tierKnown:number;tierTotal:number;
   achievement?:{tier:Tier;title:string;tickets:number};
 }
-export type AcquisitionKind='GACHA'|'COMBINATION'|'EXCHANGE'|'EXPEDITION';
-export const emblems:Record<string,string>={COMMON:'🥚',UNCOMMON:'🔹',SPECIAL:'✦',RARE:'◆',LEGEND:'★',HIDDEN:'❔',LIMITED:'⛓',TRANSCEND:'✴',ETERNAL:'♾',IMMORTAL:'🗿'};
+export type AcquisitionKind='GACHA'|'COMBINATION'|'EXCHANGE'|'EXPEDITION'|'PEANUT';
+export const emblems:Record<string,string>={COMMON:'🥚',UNCOMMON:'🔹',SPECIAL:'✦',RARE:'◆',LEGEND:'★',HIDDEN:'❔',LIMITED:'⛓',TRANSCEND:'✴',ETERNAL:'♾',IMMORTAL:'🗿',NEUTRAL:'🔘'};
 const high=new Set(['LEGEND','HIDDEN','LIMITED','TRANSCEND','ETERNAL','IMMORTAL']);
 
 export const speech=(c:Character)=>`💬 ${c.name}: "${c.quote}"`;
@@ -35,7 +35,7 @@ export function acquisitionText(content:Content,c:Character,kind:AcquisitionKind
 // 그림 카드용: 연출(카드 위 말풍선), 카드 제목·설명, 카드 아래에 붙일 보상 줄
 export function acquisitionCard(content:Content,c:Character,kind:AcquisitionKind,receipt:Receipt,known:Set<string>){
   const grade=rarityNames[c.rarity];
-  const head=kind==='COMBINATION'?'🧩 조합 성공! ':kind==='EXCHANGE'?'🍤 교환 완료! ':kind==='EXPEDITION'?'🧭 탐험에서 합류! ':'';
+  const head=kind==='COMBINATION'?'🧩 조합 성공! ':kind==='EXCHANGE'?'🍤 교환 완료! ':kind==='EXPEDITION'?'🧭 탐험에서 합류! ':kind==='PEANUT'?'🥜 땅콩떼기! ':'';
   const description=receipt.first?`${head}🆕 새 ${grade} 발견!\n📖 ${grade} 도감 ${receipt.tierKnown}/${receipt.tierTotal}`:`${head}${grade} · ${receipt.count}번째`;
   const drama=(receipt.first||high.has(c.rarity)?prelude(c,receipt.first):'').trim();
   const extra=[...(receipt.snacks?[`🍤 +${receipt.snacks}`]:[]),...(receipt.achievement?[achievementText(receipt.achievement)]:[])];

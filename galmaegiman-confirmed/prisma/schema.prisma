@@ -19,6 +19,7 @@ model Player {
   adminMode Boolean @default(false)
   highPity Int @default(0)      // 고급 뽑기 천장 카운트(전설 없이 뽑은 횟수)
   nickname String? @unique      // 랭킹 표시 이름
+  peanut Int @default(0)        // 땅콩: 땅콩떼기로 얻음(쓰임새는 추후)
   revision Int @default(0)
   createdAt DateTime @default(now())
   characters OwnedCharacter[]

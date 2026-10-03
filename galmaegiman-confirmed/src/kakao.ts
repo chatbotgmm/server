@@ -20,7 +20,7 @@ export function parseKakao(input:unknown,expectedBot?:string){
   }
   return {identity:JSON.stringify(['KAKAO_CHANNEL',p.bot.id,p.userRequest.user.type??'botUserKey',p.userRequest.user.id]),message:p.userRequest.utterance,button};
 }
-export const imageIdPattern=/^(?:[CUSRLHDTEI]\d{1,2}|unknown)$/;
+export const imageIdPattern=/^(?:[CUSRLHDTEIN]\d{1,2}|unknown)$/;
 const quick=(result:GameReply)=>(result.choices??[]).slice(0,10).map(c=>({action:'message',label:c.label.slice(0,14),messageText:c.message}));
 const listCard=(list:NonNullable<GameReply['list']>,baseUrl:string)=>{
   if(list.items.length<1||list.items.length>5)throw new Error('리스트 항목 수 오류');
@@ -34,19 +34,21 @@ const listCard=(list:NonNullable<GameReply['list']>,baseUrl:string)=>{
 export function kakaoResponse(result:GameReply,baseUrl=''){
   const outputs:object[]=[];
   const cards=result.cards;
-  if(cards&&baseUrl&&cards.items.length>=1&&cards.items.length<=10&&cards.items.every(c=>imageIdPattern.test(c.imageId))){
+  if(cards&&baseUrl&&cards.items.length>=1&&cards.items.length<=20&&cards.items.every(c=>imageIdPattern.test(c.imageId))){
     const card=(c:typeof cards.items[number])=>({
       title:c.title.slice(0,50),...(c.description?{description:c.description.slice(0,230)}:{}),
       thumbnail:{imageUrl:`${baseUrl}/thumbs/${c.imageId}.jpg`,altText:c.title.slice(0,50),fixedRatio:true},
       ...(c.buttons?.length?{buttons:c.buttons.slice(0,3).map(b=>({action:'message',label:b.label.slice(0,14),messageText:b.message}))}:{})
     });
-    const visual=cards.items.length===1?{basicCard:card(cards.items[0])}:{carousel:{type:'basicCard',items:cards.items.map(card)}};
+    // 카드 넘기기는 한 묶음 10장까지라 11장 이상이면 두 묶음으로 나눕니다
+    const chunks=[cards.items.slice(0,10),cards.items.slice(10,20)].filter(c=>c.length);
+    const visuals=cards.items.length===1?[{basicCard:card(cards.items[0])}]:chunks.map(c=>({carousel:{type:'basicCard',items:c.map(card)}}));
     const text=(t?:string)=>t?[{simpleText:{text:t.slice(0,950)}}]:[];
     // 말풍선은 최대 3개: 넘치면 머리말부터 뺍니다(확인 목록·그림·본문은 남김).
-    outputs.push(...text(cards.intro),visual,...text(cards.outro),...(result.list?[listCard(result.list,baseUrl)]:[]));
+    outputs.push(...text(cards.intro),...visuals,...text(cards.outro),...(result.list?[listCard(result.list,baseUrl)]:[]));
     return {version:'2.0',template:{outputs:outputs.slice(-3),quickReplies:quick(result)}};
   }
-  if(result.imageId&&baseUrl&&/^[CUSRLHDTEI]\d{1,2}$/.test(result.imageId)){
+  if(result.imageId&&baseUrl&&/^[CUSRLHDTEIN]\d{1,2}$/.test(result.imageId)){
     outputs.push({simpleImage:{imageUrl:`${baseUrl}/images/${result.imageId}.png`,altText:(result.imageName??'갈매미맨').slice(0,50)}});
   }
   if(result.list){

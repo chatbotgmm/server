@@ -16,8 +16,8 @@ describe('3단 뽑기 확률',()=>{
       expect(counts).toEqual(config[kind].weights);
     }
   });
-  it('고급 뽑기에서 전설 20종 모두 선택 가능',()=>{
-    const legends=content.characters.filter(c=>c.rarity==='LEGEND');
+  it('고급 뽑기에서 전설 20종 모두 선택 가능 (새 계열은 뽑기 제외)',()=>{
+    const legends=content.characters.filter(c=>c.rarity==='LEGEND'&&!c.noGacha);
     const reached=new Set<string>();
     for(let i=0;i<legends.length;i++){
       let call=0;
