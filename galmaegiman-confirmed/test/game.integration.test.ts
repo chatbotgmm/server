@@ -60,7 +60,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     // 같은 유닛은 한 줄로 묶고 등급 머리말 아래에 표시
     expect(multi.text).toContain('🥚 흔함\n  기본 갈매미맨 ×5');
     expect(multi.text).toContain('━━━━━━━━━━\n🎟');
-    expect(multi.cards?.items).toEqual([{imageId:'C1',title:'🥚 기본 갈매미맨 ×5',description:'흔함',label:'도감 보기',message:'도감 기본 갈매미맨'}]);
+    expect(multi.cards?.items).toEqual([{imageId:'C1',title:'🥚 기본 갈매미맨 ×5',description:'흔함',buttons:[{label:'도감 보기',message:'도감 기본 갈매미맨'}]}]);
     expect(multi.cards?.outro).toContain('━━━━━━━━━━\n🎟');
     // 뽑기 8회째에 '뽑기 5회' 미션 달성 → +2
     expect(multi.text).toContain('오늘의 미션 완료');
@@ -94,7 +94,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await send('조합목록 히든')).text).toContain('아직 발견한 히든 조합이 없습니다');
     expect((await send('도감 브라자 갈매미맨')).text).toContain('그런 갈매미는 없어요');
     const dex=await send('도감 히든');
-    expect(dex.list!.items[0].title).toBe('???');
+    expect(dex.cards!.items[0]).toMatchObject({title:'???',imageId:'unknown'});
     expect(JSON.stringify(dex)).not.toContain('브라자');
     expect((await send('합치기 황금쌍패성기사, 심해중력군주')).text).toContain('아무 일도 일어나지 않았다');
     const preview=await send('합치기 황금쌍패성기사, 은하매듭직조자');
@@ -253,6 +253,33 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await send('고급뽑기 3')).text).not.toContain('💬');
     expect((await send('도감 C1')).text).toContain('💬');
   });
+  it('그림 카드: 1회 뽑기·조합 미리보기·도감·내정보·뽑기 메뉴·도움말',async()=>{
+    await fixtures(['C1','C1','C2']);
+    const one=await send('하급뽑기');
+    expect(one.cards!.items).toHaveLength(1);
+    expect(one.cards!.items[0].buttons![0]).toEqual({label:'도감 보기',message:`도감 ${one.cards!.items[0].title.split(' ').slice(1).join(' ')}`});
+    expect(one.cards!.outro).toContain('━━━━━━━━━━');
+    const preview=await send('조합 금갑');
+    expect(preview.cards!.items[0]).toMatchObject({imageId:'U1',title:'🧩 🔹 금갑'});
+    expect(preview.cards!.outro).toContain('✅');
+    expect(preview.list!.items[0].button!.action).toBe('confirm');
+    const done=await confirm(preview);
+    expect(done.cards!.items[0]).toMatchObject({imageId:'U1',title:'🔹 금갑'});
+    expect(done.cards!.items[0].description).toContain('🧩 조합 성공!');
+    const dex=await send('도감');
+    expect(dex.text).toContain('📚 도감 ·');
+    const common=await send('도감 흔함');
+    expect(common.cards!.items).toHaveLength(6);
+    expect(common.cards!.items.find(c=>c.title.includes('우주'))!.imageId).toBe('unknown');
+    expect(common.cards!.items.find(c=>c.title.includes('기본'))!.imageId).toBe('C1');
+    const info=await send('내정보');
+    expect(info.cards!.items[0].imageId).toBe('U1');
+    const menuReply=await send('뽑기');
+    expect(menuReply.cards!.items.map(c=>c.buttons!.length)).toEqual([3,3,3]);
+    expect(menuReply.list).toBeUndefined();
+    expect((await send('뭐야이건')).cards!.items).toHaveLength(5);
+    expect((await send('도감 금갑')).cards!.outro).toContain('💬');
+  });
   it('관리자 코드가 설정되지 않으면 관리자가 될 수 없음',async()=>{
     expect((await send('관리자 아무거나')).text).toContain('꺼져 있어요');
     expect((await me()).isAdmin).toBe(false);
@@ -271,7 +298,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
         const r=await send(`${cmd} ${page}`);
         const body=JSON.stringify(r);
         for(const name of hiddenNames)expect(body).not.toContain(name);
-        pages=Number(r.list?.title.match(/(\d+) \/ (\d+)/)?.[2]??1);
+        pages=Number((r.list?.title??r.cards?.intro??'').match(/(\d+) \/ (\d+)/)?.[2]??1);
       }while(++page<=pages);
     }
   });
@@ -284,7 +311,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     };
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.3.12'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.4.0'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});

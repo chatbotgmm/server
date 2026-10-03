@@ -13,14 +13,26 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
   const app=Fastify({logger:options.log??false,bodyLimit:32_768,trustProxy:false});
   await app.register(rateLimit,{global:false});
-  app.get('/health',async()=>({ok:true,mode:'KAKAO_CHANNEL',edition:'GALMAEMI_118',version:'0.3.12'}));
+  app.get('/health',async()=>({ok:true,mode:'KAKAO_CHANNEL',edition:'GALMAEMI_118',version:'0.4.0'}));
   app.get('/ready',async(_req,reply)=>{
     try{await db.$queryRaw`SELECT 1`;return {ready:true};}catch{return reply.code(503).send({ready:false});}
   });
+  const known=(id:string)=>id==='unknown'||game.content.map.has(id);
   app.get<{Params:{file:string}}>('/images/:file',async(req,reply)=>{
-    if(!/^[CUSRLHDTEI]\d{1,2}\.png$/.test(req.params.file)||!game.content.map.has(req.params.file.slice(0,-4)))return reply.code(404).send({error:'not found'});
+    if(!/^(?:[CUSRLHDTEI]\d{1,2}|unknown)\.png$/.test(req.params.file)||!known(req.params.file.slice(0,-4)))return reply.code(404).send({error:'not found'});
     try{return reply.type('image/png').header('Cache-Control','public, max-age=3600').send(await readFile(resolve(options.root??process.cwd(),'public/images',req.params.file)));}
     catch{return reply.code(404).send({error:'image missing'});}
+  });
+  // 카드용 작은 그림(JPEG). 없으면 원본 PNG로 대신합니다.
+  app.get<{Params:{file:string}}>('/thumbs/:file',async(req,reply)=>{
+    const id=req.params.file.slice(0,-4);
+    if(!/^(?:[CUSRLHDTEI]\d{1,2}|unknown)\.jpg$/.test(req.params.file)||!known(id))return reply.code(404).send({error:'not found'});
+    const root=options.root??process.cwd();
+    try{return reply.type('image/jpeg').header('Cache-Control','public, max-age=3600').send(await readFile(resolve(root,'public/thumbs',req.params.file)));}
+    catch{
+      try{return reply.type('image/png').header('Cache-Control','public, max-age=3600').send(await readFile(resolve(root,'public/images',`${id}.png`)));}
+      catch{return reply.code(404).send({error:'image missing'});}
+    }
   });
   for(const path of ['/kakao/skill','/kakao'])app.post(path,{
     // 카카오가 보내는 요청만 키 검증 후 처리. 외부 전달 헤더를 사용자 권한으로 쓰지 않습니다.

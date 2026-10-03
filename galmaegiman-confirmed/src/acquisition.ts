@@ -32,6 +32,16 @@ export function acquisitionText(content:Content,c:Character,kind:AcquisitionKind
   if(receipt.achievement)text+=`\n\n${achievementText(receipt.achievement)}`;
   return mask(content,text,known);
 }
+// 그림 카드용: 연출(카드 위 말풍선), 카드 제목·설명, 카드 아래에 붙일 보상 줄
+export function acquisitionCard(content:Content,c:Character,kind:AcquisitionKind,receipt:Receipt,known:Set<string>){
+  const grade=rarityNames[c.rarity];
+  const head=kind==='COMBINATION'?'🧩 조합 성공! ':kind==='EXCHANGE'?'🍤 교환 완료! ':kind==='EXPEDITION'?'🧭 탐험에서 합류! ':'';
+  const description=receipt.first?`${head}🆕 새 ${grade} 발견!\n📖 ${grade} 도감 ${receipt.tierKnown}/${receipt.tierTotal}`:`${head}${grade} · ${receipt.count}번째`;
+  const drama=(receipt.first||high.has(c.rarity)?prelude(c,receipt.first):'').trim();
+  const extra=[...(receipt.snacks?[`🍤 +${receipt.snacks}`]:[]),...(receipt.achievement?[achievementText(receipt.achievement)]:[])];
+  const m=(t:string)=>mask(content,t,known);
+  return {drama:m(drama),title:m(`${emblems[c.rarity]} ${c.name}`),description:m(description),extra:extra.map(m)};
+}
 export const achievementText=(a:{tier:Tier;title:string;tickets:number})=>`🏆 ${rarityNames[a.tier]} 도감 완성!\n칭호 「${a.title}」 획득 · 🎟 +${a.tickets}`;
 export function rewardGuide(content:Content):string{
   const r=content.economy.rewards;

@@ -20,35 +20,41 @@ export function parseKakao(input:unknown,expectedBot?:string){
   }
   return {identity:JSON.stringify(['KAKAO_CHANNEL',p.bot.id,p.userRequest.user.type??'botUserKey',p.userRequest.user.id]),message:p.userRequest.utterance,button};
 }
+export const imageIdPattern=/^(?:[CUSRLHDTEI]\d{1,2}|unknown)$/;
+const quick=(result:GameReply)=>(result.choices??[]).slice(0,10).map(c=>({action:'message',label:c.label.slice(0,14),messageText:c.message}));
+const listCard=(list:NonNullable<GameReply['list']>,baseUrl:string)=>{
+  if(list.items.length<1||list.items.length>5)throw new Error('리스트 항목 수 오류');
+  // 목록은 중복 본문 없이 터치할 수 있는 이름과 설명으로 표시합니다.
+  return {listCard:{header:{title:list.title},items:list.items.map(item=>({
+    title:item.title,description:item.description,action:'message',messageText:item.message,
+    ...(baseUrl&&item.imageId&&imageIdPattern.test(item.imageId)?{imageUrl:`${baseUrl}/thumbs/${item.imageId}.jpg`}:{}),
+    ...(item.button?{extra:{gmAction:item.button.action,gmToken:item.button.token}}:{})
+  }))}};
+};
 export function kakaoResponse(result:GameReply,baseUrl=''){
   const outputs:object[]=[];
-  const idOk=(id:string)=>/^[CUSRLHDTEI]\d{1,2}$/.test(id);
-  if(result.cards&&baseUrl&&result.cards.items.length>=1&&result.cards.items.length<=10&&result.cards.items.every(c=>idOk(c.imageId))){
-    const {intro,items,outro}=result.cards;
-    if(intro)outputs.push({simpleText:{text:intro.slice(0,950)}});
-    outputs.push({carousel:{type:'basicCard',items:items.map(c=>({
+  const cards=result.cards;
+  if(cards&&baseUrl&&cards.items.length>=1&&cards.items.length<=10&&cards.items.every(c=>imageIdPattern.test(c.imageId))){
+    const card=(c:typeof cards.items[number])=>({
       title:c.title.slice(0,50),description:c.description.slice(0,230),
-      thumbnail:{imageUrl:`${baseUrl}/images/${c.imageId}.png`,altText:c.title.slice(0,50)},
-      buttons:[{action:'message',label:c.label.slice(0,14),messageText:c.message}]
-    }))}});
-    if(outro)outputs.push({simpleText:{text:outro.slice(0,950)}});
-    return {version:'2.0',template:{outputs,quickReplies:(result.choices??[]).slice(0,10).map(c=>({action:'message',label:c.label.slice(0,14),messageText:c.message}))}};
+      thumbnail:{imageUrl:`${baseUrl}/thumbs/${c.imageId}.jpg`,altText:c.title.slice(0,50),fixedRatio:true},
+      ...(c.buttons?.length?{buttons:c.buttons.slice(0,3).map(b=>({action:'message',label:b.label.slice(0,14),messageText:b.message}))}:{})
+    });
+    const visual=cards.items.length===1?{basicCard:card(cards.items[0])}:{carousel:{type:'basicCard',items:cards.items.map(card)}};
+    const text=(t?:string)=>t?[{simpleText:{text:t.slice(0,950)}}]:[];
+    // 말풍선은 최대 3개: 넘치면 머리말부터 뺍니다(확인 목록·그림·본문은 남김).
+    outputs.push(...text(cards.intro),visual,...text(cards.outro),...(result.list?[listCard(result.list,baseUrl)]:[]));
+    return {version:'2.0',template:{outputs:outputs.slice(-3),quickReplies:quick(result)}};
   }
   if(result.imageId&&baseUrl&&/^[CUSRLHDTEI]\d{1,2}$/.test(result.imageId)){
     outputs.push({simpleImage:{imageUrl:`${baseUrl}/images/${result.imageId}.png`,altText:(result.imageName??'갈매미맨').slice(0,50)}});
   }
   if(result.list){
-    if(result.list.items.length<1||result.list.items.length>5)throw new Error('리스트 항목 수 오류');
     if(result.list.showText)outputs.push({simpleText:{text:result.text.slice(0,950)}});
-    // 목록은 중복 본문 없이 터치할 수 있는 이름과 설명으로 표시합니다.
-    outputs.push({listCard:{header:{title:result.list.title},items:result.list.items.map(item=>({
-      title:item.title,description:item.description,action:'message',messageText:item.message,
-      ...(baseUrl&&item.imageId&&/^[CUSRLHDTEI]\d{1,2}$/.test(item.imageId)?{imageUrl:`${baseUrl}/images/${item.imageId}.png`}:{}),
-      ...(item.button?{extra:{gmAction:item.button.action,gmToken:item.button.token}}:{})
-    }))}});
+    outputs.push(listCard(result.list,baseUrl));
   }else{
     // 일반 본문은 카카오 제한 안에서 분할합니다.
     for(let i=0;i<Math.min(result.text.length,1900);i+=950)outputs.push({simpleText:{text:result.text.slice(i,i+950)}});
   }
-  return {version:'2.0',template:{outputs:outputs.slice(0,3),quickReplies:(result.choices??[]).slice(0,10).map(c=>({action:'message',label:c.label.slice(0,14),messageText:c.message}))}};
+  return {version:'2.0',template:{outputs:outputs.slice(0,3),quickReplies:quick(result)}};
 }
