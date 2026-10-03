@@ -36,7 +36,7 @@ export function kakaoResponse(result:GameReply,baseUrl=''){
   const cards=result.cards;
   if(cards&&baseUrl&&cards.items.length>=1&&cards.items.length<=10&&cards.items.every(c=>imageIdPattern.test(c.imageId))){
     const card=(c:typeof cards.items[number])=>({
-      title:c.title.slice(0,50),description:c.description.slice(0,230),
+      title:c.title.slice(0,50),...(c.description?{description:c.description.slice(0,230)}:{}),
       thumbnail:{imageUrl:`${baseUrl}/thumbs/${c.imageId}.jpg`,altText:c.title.slice(0,50),fixedRatio:true},
       ...(c.buttons?.length?{buttons:c.buttons.slice(0,3).map(b=>({action:'message',label:b.label.slice(0,14),messageText:b.message}))}:{})
     });

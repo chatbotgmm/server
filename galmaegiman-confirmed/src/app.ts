@@ -13,7 +13,7 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
   const app=Fastify({logger:options.log??false,bodyLimit:32_768,trustProxy:false});
   await app.register(rateLimit,{global:false});
-  app.get('/health',async()=>({ok:true,mode:'KAKAO_CHANNEL',edition:'GALMAEMI_118',version:'0.5.3'}));
+  app.get('/health',async()=>({ok:true,mode:'KAKAO_CHANNEL',edition:'GALMAEMI_118',version:'0.6.0'}));
   app.get('/ready',async(_req,reply)=>{
     try{await db.$queryRaw`SELECT 1`;return {ready:true};}catch{return reply.code(503).send({ready:false});}
   });
@@ -49,7 +49,11 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
       const result=await game.handle(input.identity,input.message,input.button);
       return kakaoResponse(result,await options.baseUrl());
     }catch(e){
-      if(e instanceof GameError)return kakaoResponse({text:e.message});
+      if(e instanceof GameError){
+        // 게임 안내 오류도 카드로: 첫 줄 = 제목, 나머지 = 설명
+        const [title,...rest]=e.message.split('\n');
+        return kakaoResponse({text:e.message,cards:{items:[{imageId:'C3',title,description:rest.join('\n')}]},choices:[{label:'도움말',message:'도움말'},{label:'뽑기',message:'뽑기'},{label:'내정보',message:'내정보'}]},await options.baseUrl());
+      }
       if(e instanceof ZodError)return reply.code(400).send(kakaoResponse({text:'스킬 요청의 bot.id, userRequest.user.id, utterance를 확인하세요.'}));
       if(e instanceof Error&&e.message==='BOT_MISMATCH')return reply.code(403).send({error:'bot mismatch'});
       // 사용자의 발화/ID/비밀키/요청 본문은 기록하지 않습니다.

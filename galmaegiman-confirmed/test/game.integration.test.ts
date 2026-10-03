@@ -135,7 +135,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await send('잠금 태초의 갈매미맨')).text).toContain('없어요');
     expect((await send('탐험보내기 자동')).text).toContain('이미 탐험 중');
     expect((await send('내정보')).text).toContain('탐험 중');
-    expect((await send('탐험보상받기')).text).toContain('아직 탐험 중');
+    expect((await send('탐험보상받기')).text).toContain('🧭 탐험 중 ·');
     now=new Date(now.getTime()+HOUR);
     expect((await send('내정보')).text).toContain('보상 받기 대기');
     const back=await send('탐험 보상 받기');
@@ -312,8 +312,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const other=await db.player.create({data:{identity:'other-rank',nickname:'둘째'}});
     await db.collectionEntry.create({data:{playerId:other.id,characterId:'C3'}});
     const rank=await send('랭킹');
-    expect(rank.list!.items.map(i=>i.title)).toEqual(['🥇 갈매미왕','🥈 둘째']);
-    expect(rank.list!.items[0].description).toContain('📚 2/118');
+    expect(rank.cards!.items.map(i=>i.title)).toEqual(['🥇 갈매미왕','🥈 둘째']);
+    expect(rank.cards!.items[0].description).toContain('📚 2/118');
     expect(rank.text).toContain('내 순위: 1위 / 2명');
     expect((await send('닉네임 갈매미왕','other-rank')).text).toContain('이미 누가');
     expect((await send('닉네임 a')).text).toContain('2~10자');
@@ -365,7 +365,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.5.3'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.6.0'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});
@@ -374,7 +374,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const confirmItem=selected(await request(item.messageText));
       expect(confirmItem.messageText).toBe('조합 확정');
       const stolen=await request(confirmItem.messageText,confirmItem.extra,'other-user');
-      expect(stolen.template.outputs[0].simpleText.text).toContain('본인의');
+      expect(stolen.template.outputs[0].basicCard.title).toContain('본인의');
       const done=await request(confirmItem.messageText,confirmItem.extra);
       expect(await request(confirmItem.messageText,confirmItem.extra)).toEqual(done);
       expect(await db.ownedCharacter.count({where:{characterId:'U1'}})).toBe(1);
