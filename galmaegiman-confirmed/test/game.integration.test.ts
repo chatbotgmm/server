@@ -343,6 +343,21 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(button).toEqual({label:'이걸로',message:'합치기 황금쌍패성기사, 은하매듭직조자'});
     expect((await send(button.message)).text).toContain('???');
   });
+  it('합치기 카드로 재료 고르기: 첫 재료 → 두 번째 재료 → 바로 미리보기',async()=>{
+    await fixtures(['R1','R2','C1']);
+    const step1=await send('합치기');
+    expect(step1.cards!.items.map(c=>c.title)).toEqual(['◆ 황금쌍패성기사','◆ 은하매듭직조자','🥚 기본 갈매미맨']);
+    expect(step1.cards!.items[0].buttons![0]).toEqual({label:'첫 재료로',message:'합치기 황금쌍패성기사 +'});
+    const step2=await send('합치기 황금쌍패성기사 +');
+    // 황금쌍패성기사는 1마리뿐이라 두 번째 재료 후보에서 빠짐
+    expect(step2.cards!.items.map(c=>c.title)).toEqual(['◆ 은하매듭직조자','🥚 기본 갈매미맨']);
+    const mix=step2.cards!.items[0].buttons![0];
+    expect(mix).toEqual({label:'이걸 섞기',message:'합치기 황금쌍패성기사, 은하매듭직조자'});
+    const preview=await send(mix.message);
+    expect(preview.cards!.items[0].imageId).toBe('unknown');
+    expect(preview.list!.items[0].button!.action).toBe('confirm');
+    expect((await send('조합목록 히든')).cards!.items[0].buttons![0]).toEqual({label:'재료 골라 합치기',message:'합치기'});
+  });
   it('관리자 코드가 설정되지 않으면 관리자가 될 수 없음',async()=>{
     expect((await send('관리자 아무거나')).text).toContain('꺼져 있어요');
     expect((await me()).isAdmin).toBe(false);
@@ -375,7 +390,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.6.4'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.6.5'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});

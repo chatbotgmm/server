@@ -507,7 +507,9 @@ export class GameService {
   }
   private async combine(tx:Tx,p:Player,query:string,now:Date):Promise<GameReply>{
     const known=await this.known(tx,p);
-    if(!query)return this.info({text:'🔮 합치기\n재료를 직접 골라 섞어요.\n목록에 없는 숨은 조합도 이렇게 찾아요.\n\n이렇게 써요\n합치기 황금쌍패성기사, 은하매듭직조자\n합치기 기본 갈매미맨 ×2, 황금 갈매미맨\n\n❔ 히든 힌트: 조합목록 히든',choices:[choice('히든 힌트','조합목록 히든'),choice('조합목록'),choice('내갈매미')]},'unknown');
+    // 카드로 재료 고르기: "합치기" → 첫 재료, "합치기 A +" → 두 번째 재료, 버튼이 "합치기 A, B"를 보냄
+    const step=query.match(/^(?:(.+?)\s*\+)?\s*(?:쪽\s*(\d+))?$/u);
+    if(step&&(step[1]||!query||step[2]))return this.combinePicker(tx,p,known,step[1]?.trim(),Number(step[2]??1));
     const materials:string[]=[];
     const units=this.parseUnits(query);
     const rebuild=(command:string,i:number,c:Character)=>`${command} ${units.map((u,j)=>`${j===i?c.name:u.name}${u.count>1?` ×${u.count}`:''}`).join(', ')}`;
@@ -519,7 +521,7 @@ export class GameService {
     if(materials.length<2)throw new GameError('재료는 2마리 이상, 쉼표(,)로 구분해 주세요.');
     const key=[...materials].sort().join('+');
     const recipe=this.content.recipes.find(r=>[...r.materials].sort().join('+')===key);
-    if(!recipe)return this.info({text:`🔮 …아무 일도 일어나지 않았다.\n${materials.map(id=>this.name(id,known)).join(' + ')}\n(이 조합으로는 아무것도 안 나와요)`,choices:[choice('조합목록'),choice('내갈매미')]},'unknown');
+    if(!recipe)return this.info({text:`🔮 …아무 일도 일어나지 않았다.\n${materials.map(id=>this.name(id,known)).join(' + ')}\n(이 조합으로는 아무것도 안 나와요)`,choices:[choice('다시 고르기','합치기'),choice('히든 힌트','조합목록 히든'),choice('조합목록')]},'unknown');
     const ids=await this.chooseMaterials(tx,p,recipe,known);
     const result=this.content.map.get(recipe.resultId)!;
     if(!isRevealed(result,known))
@@ -528,6 +530,30 @@ export class GameService {
     const seen=Boolean(await tx.collectionEntry.findUnique({where:{playerId_characterId:{playerId:p.id,characterId:result.id}}}));
     const parts=this.recipeParts(recipe,await this.stock(tx,p),known,seen);
     return this.issue(tx,p,'CRAFT',{recipeId:recipe.resultId,ids},now,parts.text,this.image(result.id,known),`재료 ${ids.length}마리를 써요`,{items:[parts.card],outro:parts.body});
+  }
+
+  private async combinePicker(tx:Tx,p:Player,known:Set<string>,firstName:string|undefined,pageNo:number):Promise<GameReply>{
+    const stock=await this.stock(tx,p);
+    let first:Character|undefined;
+    if(firstName){
+      const c=this.resolve(firstName,this.revealed(known),'합치기',known,c=>`합치기 ${c.name} +`);
+      if(!('id' in c))return c;
+      first=c;
+    }
+    // 쓸 수 있는 보유 유닛, 높은 등급부터. 같은 유닛을 두 번 고르려면 2마리 이상 있어야 함
+    const pool=this.content.characters.filter(c=>isRevealed(c,known)&&statusOf(stock.get(c.id)).usable>=(first&&c.id===first.id?2:1))
+      .sort((a,b)=>tiers[b.rarity]-tiers[a.rarity]||a.position-b.position);
+    const guide='❔ 숨은 조합 힌트는 "조합목록 히든"에서 볼 수 있어요.\n직접 입력도 돼요: 합치기 이름, 이름';
+    if(!pool.length)return this.info({text:`🔮 합치기\n${first?'두 번째 재료로 쓸 갈매미가 없어요.':'재료로 쓸 갈매미가 없어요. 뽑기부터!'}`,choices:[choice('뽑기'),choice('히든 힌트','조합목록 히든'),...menu.slice(2,5)]},'unknown');
+    const {page,pages,start}=this.page(String(pageNo),pool.length,10);
+    const base=first?`합치기 ${first.name} +`:'합치기';
+    const items:CardEntry[]=pool.slice(start,start+10).map(c=>({imageId:this.cardImage(c.id,known),title:`${emblems[c.rarity]} ${c.name}`,
+      description:`${rarityNames[c.rarity]} · 쓸 수 있는 ${statusOf(stock.get(c.id)).usable}마리`,
+      buttons:[first?choice('이걸 섞기',`합치기 ${first.name}, ${c.name}`):choice('첫 재료로',`합치기 ${c.name} +`)]}));
+    const head=first?`🔮 첫 재료: ${emblems[first.rarity]} ${first.name}\n두 번째 재료를 고르세요 (${page}/${pages})`:`🔮 합치기 · 첫 재료를 고르세요 (${page}/${pages})\n목록에 없는 숨은 조합도 이렇게 찾아요.`;
+    const nav=[...(page>1?[choice('이전',`${base} 쪽 ${page-1}`)]:[]),...(page<pages?[choice('다음 쪽',`${base} 쪽 ${page+1}`)]:[])];
+    return {text:mask(this.content,`${head}\n\n${items.map(i=>i.title).join('\n')}\n\n${guide}`,known),cards:{intro:mask(this.content,head,known),items:items.map(i=>this.maskCard(i,known)),outro:guide},
+      choices:[...nav,...(first?[choice('처음부터','합치기')]:[]),choice('히든 힌트','조합목록 히든'),choice('조합목록'),choice('내갈매미')]};
   }
 
   // ───────── 목록 ─────────
@@ -602,7 +628,7 @@ export class GameService {
     const nav=[...(page>1?[choice('이전',`${base} ${page-1}`)]:[]),...(page<pages?[choice('다음 페이지',`${base} ${page+1}`)]:[])];
     const gradeChoices=grades.filter(t=>t!==grade).slice(0,6).map(t=>choice(rarityNames[t],`${command} ${rarityNames[t]}`));
     const cards:CardEntry[]=characters.slice(start,start+10).map(c=>{
-      if(!isRevealed(c,known))return {imageId:'unknown',title:HIDDEN_NAME,description:`❔ 힌트: ${c.hint??'합치기로 찾아요'}`,buttons:[choice('합치기')]};
+      if(!isRevealed(c,known))return {imageId:'unknown',title:HIDDEN_NAME,description:`❔ 힌트: ${c.hint??'합치기로 찾아요'}`,buttons:[choice('재료 골라 합치기','합치기')]};
       const have=statusOf(stock.get(c.id)),own=collected.has(c.id),title=`${emblems[c.rarity]} ${c.name}`;
       if(recipeMode){
         const recipe=this.content.recipes.find(r=>r.resultId===c.id)!,pr=progressOf(recipe),ok=this.canCraft(recipe,stock);
