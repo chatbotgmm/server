@@ -506,7 +506,7 @@ export class GameService {
   }
   private async combine(tx:Tx,p:Player,query:string,now:Date):Promise<GameReply>{
     const known=await this.known(tx,p);
-    if(!query)return this.info({text:'🔮 합치기\n재료를 직접 골라 섞어요.\n목록에 없는 숨은 조합도 이렇게 찾아요.\n\n이렇게 써요\n합치기 황금쌍패성기사, 은하매듭직조자\n합치기 기본 갈매미맨 ×2, 황금 갈매미맨',choices:[choice('조합목록'),choice('내갈매미')]},'unknown');
+    if(!query)return this.info({text:'🔮 합치기\n재료를 직접 골라 섞어요.\n목록에 없는 숨은 조합도 이렇게 찾아요.\n\n이렇게 써요\n합치기 황금쌍패성기사, 은하매듭직조자\n합치기 기본 갈매미맨 ×2, 황금 갈매미맨\n\n❔ 히든 힌트: 조합목록 히든',choices:[choice('히든 힌트','조합목록 히든'),choice('조합목록'),choice('내갈매미')]},'unknown');
     const materials:string[]=[];
     for(const {name,count} of this.parseUnits(query)){
       const c=this.resolve(name,this.revealed(known),'합치기',known);
@@ -562,7 +562,7 @@ export class GameService {
         const shown=visible.filter(r=>this.content.map.get(r.resultId)!.rarity===t);
         const ready=shown.filter(r=>this.canCraft(r,stock)).length;
         return {imageId:this.gradeImage(t,known),title:`${emblems[t]} ${rarityNames[t]}`,
-          description:`${t==='HIDDEN'?`발견 ${shown.length}/${all.length} · 합치기로 찾아요`:`${all.length}종`}${ready?`\n✨ 지금 ${ready}종 만들 수 있어요`:''}`,
+          description:`${t==='HIDDEN'?`발견 ${shown.length}/${all.length} · 목록에서 힌트 보기`:`${all.length}종`}${ready?`\n✨ 지금 ${ready}종 만들 수 있어요`:''}`,
           buttons:[choice('목록 보기',`${command} ${rarityNames[t]}`),...(ready&&command!=='조합가능'?[choice(`만들 수 있는 것 ${ready}`,`조합가능 ${rarityNames[t]}`)]:[]),...(t==='HIDDEN'?[choice('합치기')]:[])]};
       });
       return {text:`🧩 ${command} · 등급을 고르세요\n\n${lines.join('\n')}\n\n✨ = 지금 만들 수 있는 수\n❔ 히든은 합치기로 찾아요.`,cards:{intro:`🧩 ${command} · 등급을 골라 보세요`,items:cards},choices:grades.slice(0,9).map(t=>choice(rarityNames[t],`${command} ${rarityNames[t]}`)).concat(choice('합치기'))};
@@ -590,6 +590,8 @@ export class GameService {
     else characters=this.content.characters;
     if(command==='교환')characters=this.content.characters.filter(c=>c.rarity==='COMMON');
     if(grade)characters=characters.filter(c=>c.rarity===grade);
+    // 히든 조합목록: 못 찾은 히든도 ??? 카드와 힌트로 보여 줍니다(찾은 것 먼저)
+    if(command==='조합목록'&&grade==='HIDDEN')characters=this.content.characters.filter(c=>c.rarity==='HIDDEN').sort((a,b)=>Number(isRevealed(b,known))-Number(isRevealed(a,known))||a.position-b.position);
     if(!characters.length)return this.info({text:command==='조합가능'?'지금 만들 수 있는 게 없어요.\n조합목록에서 모자란 재료를 확인해 보세요.':grade==='HIDDEN'&&recipeMode?'아직 발견한 히든 조합이 없습니다.\n합치기로 숨은 조합을 찾아보세요.':'아직 갈매미가 없어요. 뽑기부터 해 볼까요?',choices:[choice('조합목록'),choice('뽑기'),choice('합치기'),choice('내갈매미')]},'unknown');
     // 목록은 모두 그림 카드 넘기기(한 쪽 10장)
     const {page,pages,start}=this.page(pageQuery,characters.length,10);
@@ -597,7 +599,7 @@ export class GameService {
     const nav=[...(page>1?[choice('이전',`${base} ${page-1}`)]:[]),...(page<pages?[choice('다음 페이지',`${base} ${page+1}`)]:[])];
     const gradeChoices=grades.filter(t=>t!==grade).slice(0,6).map(t=>choice(rarityNames[t],`${command} ${rarityNames[t]}`));
     const cards:CardEntry[]=characters.slice(start,start+10).map(c=>{
-      if(!isRevealed(c,known))return {imageId:'unknown',title:HIDDEN_NAME,description:'❔ 아직 못 찾은 히든\n합치기로 찾아요',buttons:[choice('합치기')]};
+      if(!isRevealed(c,known))return {imageId:'unknown',title:HIDDEN_NAME,description:`❔ 힌트: ${c.hint??'합치기로 찾아요'}`,buttons:[choice('합치기')]};
       const have=statusOf(stock.get(c.id)),own=collected.has(c.id),title=`${emblems[c.rarity]} ${c.name}`;
       if(recipeMode){
         const recipe=this.content.recipes.find(r=>r.resultId===c.id)!,pr=progressOf(recipe),ok=this.canCraft(recipe,stock);

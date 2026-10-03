@@ -19,7 +19,7 @@ const text=z.string().trim().min(1);
 const unitSchema=z.object({
   id,name:text.max(30),tier:z.enum(tierOrder),quote:text.max(60),tagline:text.max(60),introduction:text.max(400),reason:text.max(400),
   recipe:z.array(z.tuple([id,z.number().int().min(1).max(5)])).max(6),
-  synergy:z.enum(synergyKeys).optional(),stage:text.max(300).optional()
+  synergy:z.enum(synergyKeys).optional(),stage:text.max(300).optional(),hint:text.max(80).optional()
 }).strict();
 const unitsSchema=z.object({edition:z.literal(EDITION),source:text,units:z.array(unitSchema).length(118)}).strict();
 
@@ -54,7 +54,7 @@ const economySchema=z.object({
 }).strict();
 export type Economy=z.infer<typeof economySchema>;
 
-export interface Character {id:string;name:string;rarity:Tier;position:number;quote:string;tagline:string;imageUrl:string;introduction:string;reason:string;synergy?:SynergyKey;stage?:string}
+export interface Character {id:string;name:string;rarity:Tier;position:number;quote:string;tagline:string;imageUrl:string;introduction:string;reason:string;synergy?:SynergyKey;stage?:string;hint?:string}
 export interface Recipe {resultId:string;materials:string[];story:string;hidden:boolean}
 
 export function loadEconomy(root=process.cwd()):Economy{
@@ -76,7 +76,7 @@ export function loadContent(root=process.cwd()) {
   const input=unitsSchema.parse(JSON.parse(raw));
   const characters:Character[]=input.units.map((u,position)=>({
     id:u.id,name:u.name,rarity:u.tier,position,quote:u.quote,tagline:u.tagline,imageUrl:`/images/${u.id}.png`,
-    introduction:u.introduction,reason:u.reason,...(u.synergy?{synergy:u.synergy}:{}),...(u.stage?{stage:u.stage}:{})
+    introduction:u.introduction,reason:u.reason,...(u.synergy?{synergy:u.synergy}:{}),...(u.stage?{stage:u.stage}:{}),...(u.hint?{hint:u.hint}:{})
   }));
   const map=new Map(characters.map(c=>[c.id,c]));
   if(map.size!==118)throw new Error('중복 유닛 ID');
