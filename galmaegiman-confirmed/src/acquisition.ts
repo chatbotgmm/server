@@ -46,5 +46,5 @@ export const achievementText=(a:{tier:Tier;title:string;tickets:number})=>`🏆 
 export function rewardGuide(content:Content):string{
   const r=content.economy.rewards;
   return '🎁 획득 보상 (새우깡)\n\n'+tierOrder.filter(t=>t!=='COMMON').map(t=>`${rarityNames[t]} · 첫 발견 ${r[t].first} / 중복 ${r[t].duplicate}`).join('\n')+
-    `\n\n흔함은 보상이 없습니다.\n새우깡 ${content.economy.exchange.snackCost}개로 원하는 흔함 1마리를 교환합니다.\n교환은 최상위 유닛(제한·초월·영원·불멸)을 보유해야 할 수 있습니다.\n\n등급 도감을 모두 채우면 칭호와 뽑기권을 받습니다. (칭호)`;
+    `\n\n흔함은 보상이 없습니다.\n새우깡은 상점에서 써요: 흔함 ${content.economy.exchange.snackCost} · 안흔함 ${content.economy.exchange.uncommonCost} · 뽑기권 ${content.economy.shop.tickets.amount}장 ${content.economy.shop.tickets.snacks}.\n\n등급 도감을 모두 채우면 칭호와 뽑기권을 받습니다. (칭호)`;
 }

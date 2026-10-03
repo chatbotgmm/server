@@ -12,7 +12,12 @@ gachas:                # 등급 확률 합계는 100
   HIGH: { label: 고급, cost: 5, weights: { SPECIAL: 79, RARE: 20, LEGEND: 1 }, pity: { tier: LEGEND, count: 100 } }   # 천장: 100회 안에 전설 확정
 
 exchange:
-  snackCost: 150       # 흔함 1마리. 최상위 유닛 보유 시에만 가능
+  snackCost: 150       # 흔함 1마리 (최상위 유닛 없어도 가능, v0.7.0)
+  uncommonCost: 350    # 안흔함 1마리 = 흔함 환산 평균 2.27마리(25/11) × 150 ≈ 341 → 350
+
+shop:                  # 상점 (새우깡 사용처)
+  tickets: { snacks: 1000, amount: 10 }   # 뽑기권 1장 ≈ 하급 기대가치 흔함 0.69마리 × 150 ≈ 104 → 장당 100
+  expeditionSkip: { snacks: 100 }          # 진행 중인 탐험 바로 귀환
 
 expedition:
   minutes: 60

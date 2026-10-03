@@ -116,16 +116,27 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await db.collectionEntry.create({data:{playerId:(await me()).id,characterId:'H1'}});
     expect((await send('조합식 갈크탑')).text).toContain('브라자 갈매미맨');
   });
-  it('교환: 최상위 유닛이 없으면 불가, 있으면 새우깡 150으로 흔함 1마리',async()=>{
-    await fixtures([],{snack:300});
-    expect((await send('교환 기본')).text).toContain('최상위 갈매미');
-    await fixtures(['D1']);
+  it('교환·상점: 최상위 없이도 흔함 150·안흔함 350, 뽑기권 10장 1000, 탐험 즉시 귀환 100',async()=>{
+    await fixtures([],{snack:1600});
     const preview=await send('교환 기본');
     expect(preview.text).toContain('새우깡 150개');
-    const done=await confirm(preview);
-    expect(done.text).toContain('기본 갈매미맨');
-    expect((await me()).snack).toBe(150);
-    expect(await db.ownedCharacter.count({where:{characterId:'C1'}})).toBe(1);
+    expect((await confirm(preview)).text).toContain('기본 갈매미맨');
+    expect((await me()).snack).toBe(1450);
+    const list=await send('교환 안흔함');
+    expect(list.cards!.items).toHaveLength(10);   // 안흔함 11종 → 한 쪽 10장
+    expect(list.cards!.items[0].description).toContain('🍤 350');
+    await confirm(await send('교환 금갑'));
+    expect((await me()).snack).toBe(1450-350+50);   // 금갑 첫 발견 보상 +50
+    expect(await db.ownedCharacter.count({where:{characterId:'U1'}})).toBe(1);
+    const shop=await send('상점');
+    expect(shop.cards!.items.map(i=>i.title)).toEqual(['🥚 흔함 고르기','🔹 안흔함 고르기','🎟 뽑기권 10장','🧭 탐험 즉시 귀환']);
+    const before=(await me()).credits;
+    const tickets=await send('상점 뽑기권');
+    expect(tickets.list!.items[0].message).toBe('구매 확정');
+    await confirm(tickets);
+    expect(await me()).toMatchObject({snack:150,credits:before+10});
+    expect((await send('상점 탐험귀환')).text).toContain('바로 돌아오게 할 탐험이 없어요');
+    expect((await send('상점 뽑기권')).text).toContain('새우깡이 부족해요');
   });
   it('탐험: 출발→잠김→1시간 뒤 보상 받기를 눌러야 지급→복귀',async()=>{
     const basic=content.characters.filter(c=>c.synergy==='BASIC').map(c=>c.id);
@@ -285,7 +296,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const menuReply=await send('뽑기');
     expect(menuReply.cards!.items.map(c=>c.buttons!.length)).toEqual([3,3,3]);
     expect(menuReply.list).toBeUndefined();
-    expect((await send('뭐야이건')).cards!.items).toHaveLength(6);
+    expect((await send('뭐야이건')).cards!.items).toHaveLength(7);
     expect((await send('도감 금갑')).cards!.outro).toContain('💬');
   });
   it('고급 뽑기 천장: 100회 안에 전설 확정, 전설이 나오면 다시 0부터',async()=>{
@@ -390,7 +401,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.6.5'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.7.0'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});

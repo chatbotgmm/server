@@ -33,7 +33,8 @@ const economySchema=z.object({
   version:z.literal('ECONOMY_V1'),
   tickets:z.object({welcome:z.number().int().min(0).max(1000),claim:z.number().int().min(1).max(1000),cooldownHours:z.number().positive().max(168)}).strict(),
   gachas:z.object({LOW:gacha,MID:gacha,HIGH:gacha}).strict(),
-  exchange:z.object({snackCost:z.number().int().min(1).max(100000)}).strict(),
+  exchange:z.object({snackCost:z.number().int().min(1).max(100000),uncommonCost:z.number().int().min(1).max(100000)}).strict(),
+  shop:z.object({tickets:z.object({snacks:z.number().int().min(1).max(1000000),amount:z.number().int().min(1).max(1000)}).strict(),expeditionSkip:z.object({snacks:z.number().int().min(1).max(1000000)}).strict()}).strict(),
   expedition:z.object({
     minutes:z.number().int().min(1).max(1440),snackPerUnit:z.number().int().min(0).max(10000),maxParty:z.number().int().min(1).max(30),
     levels:z.tuple([z.number().int().min(1),z.number().int().min(1)]),
