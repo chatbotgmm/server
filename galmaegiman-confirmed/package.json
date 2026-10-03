@@ -1,6 +1,6 @@
 {
   "name": "galmaegiman-confirmed",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -16,6 +16,7 @@
     "db:generate": "prisma generate",
     "data:check": "node --import tsx scripts/check-content.ts",
     "backup": "bash scripts/backup.sh",
+    "backup:auto": "bash scripts/backup-auto.sh",
     "url": "node scripts/set-url.mjs",
     "tunnel": "bash scripts/tunnel.sh",
     "reset-data": "bash scripts/reset-data.sh",

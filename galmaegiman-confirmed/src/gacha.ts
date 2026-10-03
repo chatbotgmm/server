@@ -24,6 +24,12 @@ export class GachaEngine {
     if(!Number.isInteger(value)||value<0||value>=max)throw new Error('난수 범위 오류');
     return value;
   }
+  // 천장: 지정 등급에서 바로 뽑습니다(등급 안에서는 동일 확률).
+  drawTier(tier:Tier):Character{
+    const pool=this.pools.get(tier);
+    if(!pool)throw new Error(`뽑기 유닛이 없는 등급: ${tier}`);
+    return pool[this.index(pool.length)];
+  }
   draw(kind:GachaKind):Character{
     // 1. 등급 추첨(합계 100). 2. 같은 등급 안에서는 유닛마다 동일 확률.
     let ticket=this.index(100);

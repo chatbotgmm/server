@@ -25,7 +25,8 @@ const unitsSchema=z.object({edition:z.literal(EDITION),source:text,units:z.array
 
 const percentPair=z.tuple([z.number().min(0).max(100),z.number().min(0).max(100)]);
 const weights=z.partialRecord(z.enum(tierOrder),z.number().int().min(1).max(100));
-const gacha=z.object({label:text,cost:z.number().int().min(1).max(100),weights}).strict();
+// pity: 이 횟수 동안 해당 등급(이상)이 안 나오면 마지막 회차에 확정
+const gacha=z.object({label:text,cost:z.number().int().min(1).max(100),weights,pity:z.object({tier:z.enum(tierOrder),count:z.number().int().min(2).max(1000)}).strict().optional()}).strict();
 const achievement=z.object({tickets:z.number().int().min(0).max(1000),title:z.string().trim().min(1).max(30)}).strict();
 const reward=z.object({first:z.number().int().min(0).max(100000),duplicate:z.number().int().min(0).max(100000)}).strict();
 const economySchema=z.object({
@@ -60,6 +61,8 @@ export function loadEconomy(root=process.cwd()):Economy{
   const economy=economySchema.parse(parse(readFileSync(`${root}/data/economy.yaml`,'utf8')));
   for(const [key,g] of Object.entries(economy.gachas))
     if(Object.values(g.weights).reduce((a,b)=>a+b,0)!==100)throw new Error(`${key} 뽑기 확률 합계는 100이어야 합니다.`);
+  for(const [key,g] of Object.entries(economy.gachas))
+    if(g.pity&&!g.weights[g.pity.tier])throw new Error(`${key} 천장 등급은 그 뽑기에서 나오는 등급이어야 합니다.`);
   const r=economy.rewards;
   if(r.COMMON.first!==0||r.COMMON.duplicate!==0)throw new Error('흔함 획득에는 보상을 지급하지 않습니다.');
   for(const t of tierOrder)if(r[t].first<r[t].duplicate)throw new Error('첫 도감 보상은 중복 보상 이상이어야 합니다.');

@@ -103,7 +103,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const done=await confirm(preview);
     expect(done.text).toContain('숨은 조합을 발견했습니다');
     expect(done.text).toContain('브라자 갈매미맨');
-    expect((await send('조합목록 히든')).list!.items[0].title).toBe('❔ 브라자 갈매미맨');
+    expect((await send('조합목록 히든')).cards!.items[0].title).toBe('❔ 브라자 갈매미맨');
   });
   it('히든을 재료로 쓰는 최상위 조합식은 발견 전 ???로 표시',async()=>{
     await fixtures([]);
@@ -277,8 +277,41 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const menuReply=await send('뽑기');
     expect(menuReply.cards!.items.map(c=>c.buttons!.length)).toEqual([3,3,3]);
     expect(menuReply.list).toBeUndefined();
-    expect((await send('뭐야이건')).cards!.items).toHaveLength(5);
+    expect((await send('뭐야이건')).cards!.items).toHaveLength(6);
     expect((await send('도감 금갑')).cards!.outro).toContain('💬');
+  });
+  it('고급 뽑기 천장: 100회 안에 전설 확정, 전설이 나오면 다시 0부터',async()=>{
+    // 난수 0 = 항상 특별만 나오는 상황
+    await fixtures([],{credits:1000});
+    await db.player.update({where:{identity:actor},data:{highPity:95}});
+    const r=await send('고급뽑기 5');
+    expect(r.text).toContain('🎯 천장! 전설 확정');
+    expect(r.text).toContain('★ 전설');
+    expect((await me()).highPity).toBe(0);
+    expect((await send('고급뽑기')).text).toContain('🎯 전설 보장까지 99회');
+    expect((await send('뽑기')).cards!.items[2].description).toContain('전설 보장까지 99회');
+    expect((await send('확률')).text).toContain('천장: 100회 안에 전설 확정');
+  });
+  it('조합 직전 알림: 재료 1마리만 모자라면 다음 안내에 표시',async()=>{
+    // 1마리 차이인 조합이 여럿이면 높은 등급 하나를 안내(여기선 특별 유성대장장이 = 운석 + 기본 + 황금)
+    await fixtures(['C2','C2'],{credits:30});
+    const r=await send('하급뽑기');   // 난수 0 → 기본 갈매미맨 1마리
+    const m=r.text.match(/🔜 \S+ (.+)까지 (.+) 1마리!/);
+    expect(m).not.toBeNull();
+    expect(r.choices!.some(c=>c.message===`조합식 ${m![1]}`)).toBe(true);
+  });
+  it('랭킹·닉네임: 도감 수 순위, 닉네임 중복 불가, 관리자 모드 제외',async()=>{
+    await fixtures(['C1','C2']);
+    for(const id of ['C1','C2'])await db.collectionEntry.create({data:{playerId:(await me()).id,characterId:id}});
+    expect((await send('닉네임 갈매미왕')).text).toContain('갈매미왕');
+    const other=await db.player.create({data:{identity:'other-rank',nickname:'둘째'}});
+    await db.collectionEntry.create({data:{playerId:other.id,characterId:'C3'}});
+    const rank=await send('랭킹');
+    expect(rank.list!.items.map(i=>i.title)).toEqual(['🥇 갈매미왕','🥈 둘째']);
+    expect(rank.list!.items[0].description).toContain('📚 2/118');
+    expect(rank.text).toContain('내 순위: 1위 / 2명');
+    expect((await send('닉네임 갈매미왕','other-rank')).text).toContain('이미 누가');
+    expect((await send('닉네임 a')).text).toContain('2~10자');
   });
   it('관리자 코드가 설정되지 않으면 관리자가 될 수 없음',async()=>{
     expect((await send('관리자 아무거나')).text).toContain('꺼져 있어요');
@@ -310,13 +343,14 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(response.statusCode).toBe(200);return response.json();
     };
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
+    const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.4.0'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.5.0'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});
-      const item=selected(await request('조합목록 안흔함'));
-      expect(item.title).toBe('🔹 금갑');
+      const item=firstButton(await request('조합목록 안흔함'));
+      expect(item).toEqual({action:'message',label:'만들기',messageText:'조합 금갑'});
       const confirmItem=selected(await request(item.messageText));
       expect(confirmItem.messageText).toBe('조합 확정');
       const stolen=await request(confirmItem.messageText,confirmItem.extra,'other-user');

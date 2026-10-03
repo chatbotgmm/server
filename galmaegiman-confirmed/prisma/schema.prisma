@@ -17,6 +17,8 @@ model Player {
   lastClaimAt DateTime?
   isAdmin Boolean @default(false)
   adminMode Boolean @default(false)
+  highPity Int @default(0)      // 고급 뽑기 천장 카운트(전설 없이 뽑은 횟수)
+  nickname String? @unique      // 랭킹 표시 이름
   revision Int @default(0)
   createdAt DateTime @default(now())
   characters OwnedCharacter[]

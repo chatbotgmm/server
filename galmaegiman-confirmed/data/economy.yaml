@@ -9,7 +9,7 @@ tickets:
 gachas:                # 등급 확률 합계는 100
   LOW:  { label: 하급, cost: 2, weights: { COMMON: 70, UNCOMMON: 30 } }
   MID:  { label: 중급, cost: 3, weights: { UNCOMMON: 70, SPECIAL: 30 } }
-  HIGH: { label: 고급, cost: 5, weights: { SPECIAL: 79, RARE: 20, LEGEND: 1 } }
+  HIGH: { label: 고급, cost: 5, weights: { SPECIAL: 79, RARE: 20, LEGEND: 1 }, pity: { tier: LEGEND, count: 100 } }   # 천장: 100회 안에 전설 확정
 
 exchange:
   snackCost: 150       # 흔함 1마리. 최상위 유닛 보유 시에만 가능
