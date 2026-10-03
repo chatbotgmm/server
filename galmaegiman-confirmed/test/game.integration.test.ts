@@ -62,11 +62,11 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(multi.text).toContain('━━━━━━━━━━\n🎟');
     expect(multi.cards?.items).toEqual([{imageId:'C1',title:'🥚 기본 갈매미맨 ×5',description:'흔함',buttons:[{label:'도감 보기',message:'도감 기본 갈매미맨'}]}]);
     expect(multi.cards?.outro).toContain('━━━━━━━━━━\n🎟');
-    // 뽑기 8회째에 '뽑기 5회' 미션 달성 → +2
+    // 뽑기 8회째에 '뽑기 5회' 미션 달성 → +20
     expect(multi.text).toContain('오늘의 미션 완료');
-    expect((await me()).credits).toBe(12);
-    expect((await send('고급뽑기 3')).text).toContain('뽑기권이 모자라요');
-    expect((await me()).credits).toBe(12);
+    expect((await me()).credits).toBe(30);
+    expect((await send('고급뽑기 10')).text).toContain('뽑기권이 모자라요');
+    expect((await me()).credits).toBe(30);
     expect(await db.ownedCharacter.count()).toBe(8);
   });
   it('조합 미리보기는 소비하지 않고 확정 시 재료 소비 + 첫 도감 보상 50',async()=>{
@@ -167,7 +167,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   it('미션: 하루 단위, 한국 시간 0시에 초기화',async()=>{
     await send('하급뽑기 5');
     expect((await send('미션')).text).toContain('✅ 뽑기 5회 (5/5)');
-    expect((await me()).credits).toBe(22);
+    expect((await me()).credits).toBe(40);
     now=new Date('2026-10-03T00:00:00+09:00');
     expect((await send('미션')).text).toContain('⬜ 뽑기 5회 (0/5)');
   });
@@ -203,8 +203,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await send(`관리자 ${code}`)).text).toContain('관리자 모드 켜짐');
     const r=await send('고급뽑기 10');
     expect(r.text).toContain('무제한(관리자)');
-    // 뽑기권은 그대로, 뽑기 5회 미션 보상(+2)만 들어옴
-    expect((await me()).credits).toBe(32);
+    // 뽑기권은 그대로, 뽑기 5회 미션 보상(+20)만 들어옴
+    expect((await me()).credits).toBe(50);
     expect((await me()).snack).toBeGreaterThan(0);
     expect(await counts()).toMatchObject({owned:10,snap:1});
     expect((await send('관리자 켜기')).text).toContain('이미');
@@ -317,16 +317,16 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await fixtures(['S1','U1','R1','R20','L2','H1','S1','U1'],{credits:0});
     await db.collectionEntry.create({data:{playerId:(await me()).id,characterId:'H1'}});
     const rare=await confirm(await send('조합 황금쌍패성기사'));
-    expect(rare.text).toContain('🎯 오늘의 미션 완료! 희귀 조합하기 · 🎟 +3');
+    expect(rare.text).toContain('🎯 오늘의 미션 완료! 희귀 조합하기 · 🎟 +30');
     const legend=await confirm(await send('조합 쌍패성왕'));
-    expect(legend.text).toContain('🎯 오늘의 미션 완료! 전설 또는 히든 조합하기 · 🎟 +5');
+    expect(legend.text).toContain('🎯 오늘의 미션 완료! 전설 또는 히든 조합하기 · 🎟 +50');
     expect(legend.text).not.toContain('조합 3회');
     const top=await confirm(await send('조합 갈크탑'));
-    expect(top.text).toContain('🎯 오늘의 미션 완료! 최상위 유닛 조합하기 · 🎟 +10');
-    expect(top.text).toContain('🎯 오늘의 미션 완료! 조합 3회 · 🎟 +2');
+    expect(top.text).toContain('🎯 오늘의 미션 완료! 최상위 유닛 조합하기 · 🎟 +100');
+    expect(top.text).toContain('🎯 오늘의 미션 완료! 조합 3회 · 🎟 +20');
     expect((await confirm(await send('조합 황금쌍패성기사'))).text).not.toContain('희귀 조합하기');
-    expect((await me()).credits).toBe(3+5+10+2);
-    expect((await send('미션')).text).toContain('✅ 최상위 유닛 조합하기 · 🎟 10');
+    expect((await me()).credits).toBe(30+50+100+20);
+    expect((await send('미션')).text).toContain('✅ 최상위 유닛 조합하기 · 🎟 100');
   });
   it('관리자 코드가 설정되지 않으면 관리자가 될 수 없음',async()=>{
     expect((await send('관리자 아무거나')).text).toContain('꺼져 있어요');
@@ -360,7 +360,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.5.1'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.5.2'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});

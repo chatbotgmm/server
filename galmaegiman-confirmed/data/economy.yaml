@@ -54,9 +54,9 @@ achievements:          # 등급 도감을 처음 모두 채우면 1회 지급 + 
   IMMORTAL:  { tickets: 30, title: 다섯 마리째를 들은 자 }
 
 missions:              # 매일 한국 시간 0시 초기화. 목표 달성 시 자동 지급
-  - { key: DRAW,         label: 뽑기 5회,              goal: 5, tickets: 2 }
-  - { key: CRAFT,        label: 조합 3회,              goal: 3, tickets: 2 }
-  - { key: CRAFT_RARE,   label: 희귀 조합하기,         goal: 1, tickets: 3 }
-  - { key: CRAFT_LEGEND, label: 전설 또는 히든 조합하기, goal: 1, tickets: 5 }
-  - { key: CRAFT_TOP,    label: 최상위 유닛 조합하기,   goal: 1, tickets: 10 }   # 제한·초월·영원·불멸
-  - { key: EXPEDITION,   label: 탐험 다녀오기 1회,      goal: 1, tickets: 1 }    # 탐험 보상 받기 기준
+  - { key: DRAW,         label: 뽑기 5회,              goal: 5, tickets: 20 }
+  - { key: CRAFT,        label: 조합 3회,              goal: 3, tickets: 20 }
+  - { key: CRAFT_RARE,   label: 희귀 조합하기,         goal: 1, tickets: 30 }
+  - { key: CRAFT_LEGEND, label: 전설 또는 히든 조합하기, goal: 1, tickets: 50 }
+  - { key: CRAFT_TOP,    label: 최상위 유닛 조합하기,   goal: 1, tickets: 100 }  # 제한·초월·영원·불멸
+  - { key: EXPEDITION,   label: 탐험 다녀오기 1회,      goal: 1, tickets: 10 }   # 탐험 보상 받기 기준
