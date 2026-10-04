@@ -20,7 +20,8 @@ export function parseKakao(input:unknown,expectedBot?:string){
   }
   return {identity:JSON.stringify(['KAKAO_CHANNEL',p.bot.id,p.userRequest.user.type??'botUserKey',p.userRequest.user.id]),message:p.userRequest.utterance,button};
 }
-export const imageIdPattern=/^(?:[CUSRLHDTEIN]\d{1,2}|unknown)$/;
+// 유닛 ID와 화면용 그림(미발견·탐험·뽑기 3종)
+export const imageIdPattern=/^(?:[CUSRLHDTEIN]\d{1,2}|unknown|explore|gacha-(?:LOW|MID|HIGH))$/;
 const quick=(result:GameReply)=>(result.choices??[]).slice(0,10).map(c=>({action:'message',label:c.label.slice(0,14),messageText:c.message}));
 const listCard=(list:NonNullable<GameReply['list']>,baseUrl:string)=>{
   if(list.items.length<1||list.items.length>5)throw new Error('리스트 항목 수 오류');

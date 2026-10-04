@@ -13,20 +13,20 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
   const app=Fastify({logger:options.log??false,bodyLimit:32_768,trustProxy:false});
   await app.register(rateLimit,{global:false});
-  app.get('/health',async()=>({ok:true,mode:'KAKAO_CHANNEL',edition:'GALMAEMI_118',version:'0.8.0'}));
+  app.get('/health',async()=>({ok:true,mode:'KAKAO_CHANNEL',edition:'GALMAEMI_118',version:'0.8.1'}));
   app.get('/ready',async(_req,reply)=>{
     try{await db.$queryRaw`SELECT 1`;return {ready:true};}catch{return reply.code(503).send({ready:false});}
   });
-  const known=(id:string)=>id==='unknown'||game.content.map.has(id);
+  const known=(id:string)=>['unknown','explore','gacha-LOW','gacha-MID','gacha-HIGH'].includes(id)||game.content.map.has(id);
   app.get<{Params:{file:string}}>('/images/:file',async(req,reply)=>{
-    if(!/^(?:[CUSRLHDTEIN]\d{1,2}|unknown)\.png$/.test(req.params.file)||!known(req.params.file.slice(0,-4)))return reply.code(404).send({error:'not found'});
+    if(!/^(?:[CUSRLHDTEIN]\d{1,2}|unknown|explore|gacha-(?:LOW|MID|HIGH))\.png$/.test(req.params.file)||!known(req.params.file.slice(0,-4)))return reply.code(404).send({error:'not found'});
     try{return reply.type('image/png').header('Cache-Control','public, max-age=3600').send(await readFile(resolve(options.root??process.cwd(),'public/images',req.params.file)));}
     catch{return reply.code(404).send({error:'image missing'});}
   });
   // 카드용 작은 그림(JPEG). 없으면 원본 PNG로 대신합니다.
   app.get<{Params:{file:string}}>('/thumbs/:file',async(req,reply)=>{
     const id=req.params.file.slice(0,-4);
-    if(!/^(?:[CUSRLHDTEIN]\d{1,2}|unknown)\.jpg$/.test(req.params.file)||!known(id))return reply.code(404).send({error:'not found'});
+    if(!/^(?:[CUSRLHDTEIN]\d{1,2}|unknown|explore|gacha-(?:LOW|MID|HIGH))\.jpg$/.test(req.params.file)||!known(id))return reply.code(404).send({error:'not found'});
     const root=options.root??process.cwd();
     try{return reply.type('image/jpeg').header('Cache-Control','public, max-age=3600').send(await readFile(resolve(root,'public/thumbs',req.params.file)));}
     catch{
