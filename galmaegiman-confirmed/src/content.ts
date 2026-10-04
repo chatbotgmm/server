@@ -12,7 +12,7 @@ export const tiers:Record<string,number>={COMMON:1,UNCOMMON:2,SPECIAL:3,RARE:4,L
 export const topTiers=new Set<string>(['LIMITED','TRANSCEND','ETERNAL','IMMORTAL']);
 export const synergyKeys=['BASIC','GOLD','DARK','SEA','BLOSSOM','COSMOS','OUTFIT'] as const;
 export type SynergyKey=typeof synergyKeys[number];
-const expected:Record<Tier,number>={COMMON:9,UNCOMMON:16,SPECIAL:19,RARE:23,LEGEND:23,HIDDEN:15,LIMITED:8,TRANSCEND:8,ETERNAL:8,IMMORTAL:9,NEUTRAL:1};
+const expected:Record<Tier,number>={COMMON:9,UNCOMMON:16,SPECIAL:19,RARE:23,LEGEND:23,HIDDEN:18,LIMITED:8,TRANSCEND:8,ETERNAL:8,IMMORTAL:9,NEUTRAL:1};
 export const UNIT_COUNT=Object.values(expected).reduce((a,b)=>a+b,0);
 export const EDITION='galmaemi-118-v1';
 

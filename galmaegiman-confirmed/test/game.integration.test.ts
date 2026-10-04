@@ -90,7 +90,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   });
   it('히든: 목록·도감·이름 검색에서 숨김, 합치기로 발견하면 공개',async()=>{
     await fixtures(['R1','R2']);
-    expect((await send('조합목록')).text).toContain('히든 · 발견 0/15');
+    expect((await send('조합목록')).text).toContain('히든 · 발견 0/18');
     const hint=await send('조합목록 히든');
     expect(hint.cards!.items[0]).toMatchObject({imageId:'unknown',title:'???',description:'❔ 힌트: 방패 두 장을 매듭으로 묶었다. 왜 그 모양인지는 묻지 말 것.'});
     expect(hint.cards!.items).toHaveLength(10);
@@ -327,7 +327,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await db.collectionEntry.create({data:{playerId:other.id,characterId:'C3'}});
     const rank=await send('랭킹');
     expect(rank.cards!.items.map(i=>i.title)).toEqual(['🥇 갈매미왕','🥈 둘째']);
-    expect(rank.cards!.items[0].description).toContain('📚 2/139');
+    expect(rank.cards!.items[0].description).toContain('📚 2/142');
     expect(rank.text).toContain('내 순위: 1위 / 2명');
     expect((await send('닉네임 갈매미왕','other-rank')).text).toContain('이미 누가');
     expect((await send('닉네임 a')).text).toContain('2~10자');
@@ -384,6 +384,15 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(await db.ownedCharacter.count({where:{characterId:'N1'}})).toBe(1);
     expect((await send('내정보')).cards!.items[0].description).toContain('🥜 1');
   });
+  it('특수함 히든: 땅콩떼기로 얻은 중성 갈매미를 합치기 재료로 써서 발견',async()=>{
+    await fixtures(['C1','C1','R18','U6']);
+    for(let i=0;i<2;i++)await confirm(await send('땅콩떼기 기본 갈매미맨'));
+    const preview=await send('합치기 중성 갈매미 ×2, 천체금고주, 금조개');
+    expect(JSON.stringify(preview)).not.toContain('땅콩 보관소');
+    const done=await confirm(preview);
+    expect(done.text).toContain('숨은 조합을 발견했습니다');
+    expect(done.text).toContain('땅콩 보관소');
+  });
   it('관리자 코드가 설정되지 않으면 관리자가 될 수 없음',async()=>{
     expect((await send('관리자 아무거나')).text).toContain('꺼져 있어요');
     expect((await me()).isAdmin).toBe(false);
@@ -416,7 +425,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.8.1'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.8.2'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});
