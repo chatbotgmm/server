@@ -41,4 +41,13 @@ describe('카카오 공식 요청·응답',()=>{
     expect(withList.map(o=>Object.keys(o)[0])).toEqual(['basicCard','simpleText','listCard']);
     expect(withList[2].listCard.items[0].extra).toEqual({gmAction:'confirm',gmToken:'0123456789abcdef'});
   });
+  it('카드 넘기기 안의 버튼은 2개까지, 그림 주소에 버전 값을 붙임',()=>{
+    const b=[{label:'a',message:'a'},{label:'b',message:'b'},{label:'c',message:'c'}];
+    const out=kakaoResponse({text:'t',cards:{items:[{imageId:'C1',title:'x',description:'d',buttons:b},{imageId:'C2',title:'y',description:'d',buttons:b}]}},'https://e.com',p=>p.length.toString()).template.outputs as any[];
+    expect(out[0].carousel.items[0].buttons).toHaveLength(2);
+    expect(out[0].carousel.items[0].thumbnail.imageUrl).toBe('https://e.com/thumbs/C1.jpg?v=13');
+    const one=kakaoResponse({text:'t',cards:{items:[{imageId:'C1',title:'x',description:'d',buttons:b}]}},'https://e.com').template.outputs as any[];
+    expect(one[0].basicCard.buttons).toHaveLength(3);
+    expect(one[0].basicCard.thumbnail.imageUrl).toBe('https://e.com/thumbs/C1.jpg');
+  });
 });

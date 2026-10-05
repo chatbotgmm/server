@@ -123,7 +123,7 @@ export class GameService {
     const g=this.content.economy.gachas;
     return (['LOW','MID','HIGH'] as GachaKind[]).map(kind=>({imageId:`gacha-${kind}`,title:`${g[kind].label} 뽑기 · 🎟 ${g[kind].cost}장`,
       description:Object.entries(g[kind].weights).map(([t,w])=>`${emblems[t]} ${rarityNames[t]} ${w}%`).join('\n')+(g[kind].pity?`\n🎯 ${rarityNames[g[kind].pity!.tier]} 보장까지 ${g[kind].pity!.count-p.highPity}회`:''),
-      buttons:[choice('1회',`${g[kind].label}뽑기`),choice('10회',`${g[kind].label}뽑기 10`),choice('50회',`${g[kind].label}뽑기 50`)]}));
+      buttons:[choice('1회',`${g[kind].label}뽑기`),choice('10회',`${g[kind].label}뽑기 10`)]}));
   }
   // 등급 카드 그림: 그 등급의 첫 유닛. 히든은 발견한 것이 있으면 그것, 없으면 실루엣
   private gradeImage(t:Tier,known:Set<string>){
@@ -387,7 +387,7 @@ export class GameService {
     const hint=`숫자를 붙이면 여러 번 (최대 50): 하급뽑기 30${this.claimWait(p,now)?'':'\n🎟 지금 뽑기권을 받을 수 있어요!'}`;
     const cards=[...(ev?[{imageId:'s-event',title:`🎉 ${ev.label}`,description:`${ev.claimBonus?`뽑기권 받기 +${ev.claimBonus}`:''}${ev.claimBonus&&ev.snackMultiplier>1?' · ':''}${ev.snackMultiplier>1?`새우깡 보상 ×${ev.snackMultiplier}`:''}\n~ ${DateTime.fromISO(ev.to).setZone('Asia/Seoul').toFormat('M/d HH:mm')}`} as CardEntry]:[]),...this.gachaCards(p)];
     return {text:listReply(title,items,hint).text,cards:{intro:title,items:cards,outro:hint},
-      choices:[choice('하급 ×5','하급뽑기 5'),choice('중급 ×5','중급뽑기 5'),choice('고급 ×2','고급뽑기 2'),choice('뽑기권 받기','뽑기권받기'),...menu.slice(2,6)]};
+      choices:[choice('하급 ×50','하급뽑기 50'),choice('중급 ×50','중급뽑기 50'),choice('고급 ×50','고급뽑기 50'),choice('뽑기권 받기','뽑기권받기'),...menu.slice(2,6)]};
   }
   private async draw(tx:Tx,p:Player,kind:GachaKind,times:number,now:Date):Promise<GameReply>{
     const g=this.content.economy.gachas[kind];

@@ -294,7 +294,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const info=await send('내정보');
     expect(info.cards!.items[0].imageId).toBe('U1');
     const menuReply=await send('뽑기');
-    expect(menuReply.cards!.items.map(c=>c.buttons!.length)).toEqual([3,3,3]);
+    expect(menuReply.cards!.items.map(c=>c.buttons!.length)).toEqual([2,2,2]);
     expect(menuReply.list).toBeUndefined();
     expect((await send('뭐야이건')).cards!.items).toHaveLength(8);
     expect((await send('도감 금갑')).cards!.outro).toContain('💬');
@@ -513,13 +513,15 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.3'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.4'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['S1','U1'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});
-      const item=firstButton(await request('조합목록 희귀'));
+      const list=await request('조합목록 희귀');
+      expect(list.template.outputs.find((o:any)=>o.carousel).carousel.items[0].thumbnail.imageUrl).toMatch(/^https:\/\/example\.com\/thumbs\/R1\.jpg\?v=[0-9a-z]+$/);
+      const item=firstButton(list);
       expect(item).toEqual({action:'message',label:'만들기',messageText:'조합 황금쌍패성기사'});
       const confirmItem=selected(await request(item.messageText));
       expect(confirmItem.messageText).toBe('조합 확정');
