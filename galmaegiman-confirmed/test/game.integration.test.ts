@@ -433,7 +433,9 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await db.player.update({where:{identity:actor},data:{tutorial:0}});
     const r=await send('하급뽑기');
     expect(r.text).toContain('📘 튜토리얼 1/3 완료! 🎟 +10');
-    expect((await send('튜토리얼')).cards!.items[1].title).toContain('👉 2.');
+    const tut=await send('튜토리얼');
+    expect(tut.cards!.items[0].imageId).toBe('s-tutorial');
+    expect(tut.cards!.items[2].title).toContain('👉 2.');
     const code=(await send('초대코드')).text.match(/초대 코드: ([0-9A-F]{6})/)![1];
     expect((await send(`초대 ${code}`)).text).toContain('내 코드는');
     expect((await send(`초대 ${code}`,'friend')).text).toContain('초대 완료');
@@ -472,6 +474,13 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(busy.text).toContain('탐험 중');
     expect((await send('탐험보내기 만상의 수호자')).text).toContain('이미 탐험 중');
   });
+  it('이벤트 기간: 뽑기권 받기 추가 지급과 뽑기 메뉴 배너',async()=>{
+    const ev={label:'벚꽃 주간',from:'2026-10-01T00:00:00+09:00',to:'2026-10-08T00:00:00+09:00',claimBonus:10,snackMultiplier:2};
+    game=new GameService(db,{...content,economy:{...content.economy,events:[ev]}},()=>now,new GachaEngine(content.characters,content.economy.gachas,()=>0),max=>max-1);
+    expect((await send('뽑기권받기')).text).toContain('뽑기권 +20');
+    const menuReply=await send('뽑기');
+    expect(menuReply.cards!.items[0]).toMatchObject({imageId:'s-event',title:'🎉 벚꽃 주간'});
+  });
   it('관리자 코드가 설정되지 않으면 관리자가 될 수 없음',async()=>{
     expect((await send('관리자 아무거나')).text).toContain('꺼져 있어요');
     expect((await me()).isAdmin).toBe(false);
@@ -504,7 +513,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.2'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.3'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
