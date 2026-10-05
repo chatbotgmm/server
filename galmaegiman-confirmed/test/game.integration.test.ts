@@ -452,6 +452,26 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(late.choices).toContainEqual({label:'다시 하기',message:'조합 황금쌍패성기사'});
     expect((await send('관리자 상태')).text).toContain('관리자로 등록된 계정이 아니에요');
   });
+  it('탐험대 편성: 하나씩 추가·빼기, 최대 10마리, 출발 후 다른 편성 불가',async()=>{
+    await fixtures(['D1','D1','T1','E1','I1',...Array(8).fill('D7')]);
+    const start=await send('탐험');
+    expect(start.cards!.intro).toContain('탐험대 편성 0/10');
+    const add=start.cards!.items.find(c=>c.title.includes('태초의 갈매미맨'))!.buttons![0];
+    expect(add).toEqual({label:'➕ 추가',message:'탐험편성 태초의 갈매미맨'});
+    const one=await send(add.message);
+    expect(one.cards!.intro).toContain('편성 1/10');
+    expect(one.cards!.items[0]).toMatchObject({title:'✅ ⛓ 태초의 갈매미맨',buttons:[{label:'빼기',message:'탐험편성'}]});
+    expect(one.choices).toContainEqual({label:'🚀 출발 (1마리)',message:'탐험보내기 태초의 갈매미맨'});
+    const full=await send('탐험편성 갈크탑 ×8, 태초의 갈매미맨 ×2');
+    expect(full.cards!.intro).toContain('편성 10/10');
+    expect(full.cards!.items.filter(c=>!c.title.startsWith('✅')).every(c=>!c.buttons)).toBe(true);
+    expect((await send('탐험편성 갈크탑 ×8, 태초의 갈매미맨 ×2, 만상의 수호자')).text).toContain('최대 10마리');
+    expect((await send('탐험편성 태초의 갈매미맨 ×3')).text).toContain('2마리만');
+    await confirm(await send(full.choices!.find(c=>c.label.startsWith('🚀'))!.message));
+    const busy=await send('탐험편성 만상의 수호자');
+    expect(busy.text).toContain('탐험 중');
+    expect((await send('탐험보내기 만상의 수호자')).text).toContain('이미 탐험 중');
+  });
   it('관리자 코드가 설정되지 않으면 관리자가 될 수 없음',async()=>{
     expect((await send('관리자 아무거나')).text).toContain('꺼져 있어요');
     expect((await me()).isAdmin).toBe(false);
@@ -484,7 +504,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.0'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.1'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
