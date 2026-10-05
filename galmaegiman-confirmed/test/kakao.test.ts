@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {parseKakao,kakaoResponse} from '../src/kakao.js';
+import {parseKakao,kakaoResponse,cardCost,cardsPerPage,CAROUSEL_TEXT_BUDGET} from '../src/kakao.js';
 const payload={bot:{id:'bot'},userRequest:{utterance:'뽑기',lang:null,user:{id:'user',type:'accountId',properties:{isFriend:true,nickname:null}}},action:{clientExtra:null}};
 describe('카카오 공식 요청·응답',()=>{
   it('isFriend boolean/null 선택 필드 허용',()=>expect(parseKakao(payload).message).toBe('뽑기'));
@@ -50,17 +50,23 @@ describe('카카오 공식 요청·응답',()=>{
     expect(one[0].basicCard.buttons).toHaveLength(3);
     expect(one[0].basicCard.thumbnail.imageUrl).toBe('https://e.com/thumbs/C1.jpg');
   });
-  it('카드 넘기기 버튼 명령 합계가 예산(600바이트)을 넘으면 뒤 카드부터 두 번째 버튼, 그다음 버튼을 뺌',()=>{
-    const long='합치기 '+'가'.repeat(12);// 3+1+36 = 40바이트
-    const items=Array.from({length:10},(_,i)=>({imageId:'C1',title:`카드${i}`,description:'d',buttons:[{label:'a',message:long},{label:'b',message:long}]}));
+  it('카드 넘기기 글자 합계가 예산(1150바이트)을 넘으면 뒤 카드부터 두 번째 버튼 → 설명 둘째 줄 → 버튼을 뺌, 카드는 그대로',()=>{
+    const long='합치기 '+'가'.repeat(12);// 40바이트
+    const items=Array.from({length:10},(_,i)=>({imageId:'C1',title:`카드${i}`,description:'첫 줄\n둘째 줄',buttons:[{label:'a',message:long},{label:'b',message:long}]}));
     const out=(kakaoResponse({text:'t',cards:{items}},'https://e.com').template.outputs as any[]).find(o=>o.carousel).carousel.items;
-    const bytes=out.flatMap((c:any)=>c.buttons??[]).reduce((s:number,b:any)=>s+Buffer.byteLength(b.messageText),0);
-    expect(bytes).toBeLessThanOrEqual(600);
+    expect(out).toHaveLength(10);
+    const cost=out.reduce((s:number,c:any)=>s+cardCost({imageId:'C1',title:c.title,description:c.description,buttons:(c.buttons??[]).map((b:any)=>({label:b.label,message:b.messageText}))}),0);
+    expect(cost).toBeLessThanOrEqual(CAROUSEL_TEXT_BUDGET);
     expect(out[0].buttons).toHaveLength(2);// 앞 카드는 그대로
     expect(out[9].buttons).toHaveLength(1);
-    // 짧은 명령은 건드리지 않음
+    // 예산 안이면 건드리지 않음
     const short=Array.from({length:10},(_,i)=>({imageId:'C1',title:`카드${i}`,description:'d',buttons:[{label:'a',message:'도감'},{label:'b',message:'조합'}]}));
     const kept=(kakaoResponse({text:'t',cards:{items:short}},'https://e.com').template.outputs as any[]).find(o=>o.carousel).carousel.items;
     expect(kept.every((c:any)=>c.buttons.length===2)).toBe(true);
+  });
+  it('쪽당 카드 수: 가장 무거운 카드 기준으로 예산 안에 드는 만큼(1~10)',()=>{
+    const card=(n:number)=>({imageId:'C1',title:'가'.repeat(n),description:'d'});
+    expect(cardsPerPage([card(1)])).toBe(10);
+    expect(cardsPerPage([card(1),card(50)])).toBe(Math.floor(CAROUSEL_TEXT_BUDGET/(150*2+1)));
   });
 });

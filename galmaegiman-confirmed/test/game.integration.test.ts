@@ -5,6 +5,7 @@ import {loadContent} from '../src/content.js';
 import {buildApp} from '../src/app.js';
 import {GachaEngine} from '../src/gacha.js';
 import {GameError,type GameReply} from '../src/types.js';
+import {cardCost,CAROUSEL_TEXT_BUDGET} from '../src/kakao.js';
 const enabled=Boolean(process.env.TEST_DB_URL);
 const suite=enabled?describe:describe.skip;
 suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
@@ -95,7 +96,9 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await send('조합목록')).text).toContain('히든 · 발견 0/18');
     const hint=await send('조합목록 히든');
     expect(hint.cards!.items[0]).toMatchObject({imageId:'unknown',title:'???',description:'❔ 힌트: 방패 두 장을 매듭으로 묶었다. 왜 그 모양인지는 묻지 말 것.'});
-    expect(hint.cards!.items).toHaveLength(10);
+    // 한 쪽 카드 수는 카카오 글자 예산 안에서(힌트 문구가 길어 10장보다 적음)
+    expect(hint.cards!.items.length).toBeGreaterThanOrEqual(6);
+    expect(hint.cards!.items.reduce((s,c)=>s+cardCost(c),0)).toBeLessThanOrEqual(CAROUSEL_TEXT_BUDGET);
     expect(JSON.stringify(hint)).not.toContain('브라자');
     expect((await send('도감 브라자 갈매미맨')).text).toContain('그런 갈매미는 없어요');
     const dex=await send('도감 히든');
@@ -125,7 +128,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await confirm(preview)).text).toContain('기본 갈매미맨');
     expect((await me()).snack).toBe(1450);
     const list=await send('교환 안흔함');
-    expect(list.cards!.items).toHaveLength(10);   // 안흔함 11종 → 한 쪽 10장
+    expect(list.cards!.items.length).toBeGreaterThanOrEqual(8);   // 한 쪽은 글자 예산 안에서 최대 10장
+    expect(list.cards!.items.reduce((s,c)=>s+cardCost(c),0)).toBeLessThanOrEqual(CAROUSEL_TEXT_BUDGET);
     expect(list.cards!.items[0].description).toContain('🍤 350');
     await confirm(await send('교환 금갑'));
     expect((await me()).snack).toBe(1450-350+50);   // 금갑 첫 발견 보상 +50
@@ -549,7 +553,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.14'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.15'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
