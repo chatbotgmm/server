@@ -954,8 +954,18 @@ export class GameService {
   // 임시 진단(합치기 2단계 무응답 원인 찾기): 1~6 카드 버튼 조건, 7 카드 10장, 8~10 실제 2단계 응답 변형. 원인을 찾으면 지웁니다
   private async diagnose(tx:Tx,p:Player,query:string,now:Date):Promise<GameReply>{
     const [a,b,c]=['L1','L2','L3'].map(id=>this.content.characters.find(x=>x.id===id)!);
-    const n=Math.min(10,Math.max(1,Number(query)||1));
+    const [nq,mq]=query.split(/\s+/);
+    const n=Math.min(12,Math.max(1,Number(nq)||1));
     const others=[1,2,3,4,5,6,7,8,9,10].filter(i=>i!==n&&i>=4).map(i=>choice(`진단 ${i}`));
+    if(n===11||n===12){
+      // 11: 진단 4 형식(긴 명령) 카드 m장 / 12: 진단 2 형식(짧은 명령) 카드 m장
+      const m=Math.min(10,Math.max(2,Number(mq)||4));
+      const list=this.content.characters.filter(x=>x.rarity==='LEGEND').slice(0,m);
+      const items:CardEntry[]=list.map(x=>({imageId:x.id,title:`${emblems[x.rarity]} ${x.name}`,description:`${rarityNames[x.rarity]} · 진단 ${n}-${m}`,
+        buttons:n===11?[choice('섞기',`합치기 ${a.name}, ${x.name}`),choice('재료 추가',`합치기 ${a.name}, ${x.name} 다음`)]:[choice('도감',`도감 ${x.name}`),choice('조합',`조합 ${x.name}`)]}));
+      const next=[4,5,6,7,8,10].map(k=>choice(`${n}-${k}장`,`진단 ${n} ${k}`));
+      return {text:`🩺 진단 ${n}-${m}`,cards:{intro:`🩺 진단 ${n}-${m}: 버튼 2개 · ${n===11?'긴':'짧은'} 명령 · 카드 ${m}장`,items,outro:`진단 ${n}-${m} 끝 — 이 글이 보이면 성공`},choices:next};
+    }
     if(n===7){
       // 진단 4 형식 그대로, 카드만 10장
       const list=this.content.characters.filter(x=>x.rarity==='LEGEND').slice(0,10);
