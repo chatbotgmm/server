@@ -50,4 +50,17 @@ describe('카카오 공식 요청·응답',()=>{
     expect(one[0].basicCard.buttons).toHaveLength(3);
     expect(one[0].basicCard.thumbnail.imageUrl).toBe('https://e.com/thumbs/C1.jpg');
   });
+  it('카드 넘기기 버튼 명령 합계가 예산(600바이트)을 넘으면 뒤 카드부터 두 번째 버튼, 그다음 버튼을 뺌',()=>{
+    const long='합치기 '+'가'.repeat(12);// 3+1+36 = 40바이트
+    const items=Array.from({length:10},(_,i)=>({imageId:'C1',title:`카드${i}`,description:'d',buttons:[{label:'a',message:long},{label:'b',message:long}]}));
+    const out=(kakaoResponse({text:'t',cards:{items}},'https://e.com').template.outputs as any[]).find(o=>o.carousel).carousel.items;
+    const bytes=out.flatMap((c:any)=>c.buttons??[]).reduce((s:number,b:any)=>s+Buffer.byteLength(b.messageText),0);
+    expect(bytes).toBeLessThanOrEqual(600);
+    expect(out[0].buttons).toHaveLength(2);// 앞 카드는 그대로
+    expect(out[9].buttons).toHaveLength(1);
+    // 짧은 명령은 건드리지 않음
+    const short=Array.from({length:10},(_,i)=>({imageId:'C1',title:`카드${i}`,description:'d',buttons:[{label:'a',message:'도감'},{label:'b',message:'조합'}]}));
+    const kept=(kakaoResponse({text:'t',cards:{items:short}},'https://e.com').template.outputs as any[]).find(o=>o.carousel).carousel.items;
+    expect(kept.every((c:any)=>c.buttons.length===2)).toBe(true);
+  });
 });

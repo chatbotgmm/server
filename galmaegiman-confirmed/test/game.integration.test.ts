@@ -459,24 +459,35 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(late.choices).toContainEqual({label:'다시 하기',message:'조합 황금쌍패성기사'});
     expect((await send('관리자 상태')).text).toContain('관리자로 등록된 계정이 아니에요');
   });
-  it('탐험대 편성: 하나씩 추가·빼기, 최대 10마리, 출발 후 다른 편성 불가',async()=>{
+  it('탐험대 편성: 하나씩 추가·빼기(서버에 저장, 짧은 버튼 명령), 최대 10마리, 출발 후 다른 편성 불가',async()=>{
     await fixtures(['D1','D1','T1','E1','I1',...Array(8).fill('D7')]);
     const start=await send('탐험');
     expect(start.cards!.intro).toContain('탐험대 편성 0/10');
     const add=start.cards!.items.find(c=>c.title.includes('태초의 갈매미맨'))!.buttons![0];
-    expect(add).toEqual({label:'➕ 추가',message:'탐험편성 태초의 갈매미맨'});
+    expect(add).toEqual({label:'➕ 추가',message:'편성추가 태초의 갈매미맨'});
     const one=await send(add.message);
     expect(one.cards!.intro).toContain('편성 1/10');
-    expect(one.cards!.items[0]).toMatchObject({title:'✅ ⛓ 태초의 갈매미맨',buttons:[{label:'빼기',message:'탐험편성'}]});
-    expect(one.choices).toContainEqual({label:'🚀 출발 (1마리)',message:'탐험보내기 태초의 갈매미맨'});
+    expect(one.cards!.items[0]).toMatchObject({title:'✅ ⛓ 태초의 갈매미맨',buttons:[{label:'빼기',message:'편성빼기 태초의 갈매미맨'}]});
+    expect(one.choices).toContainEqual({label:'🚀 출발 (1마리)',message:'편성출발'});
+    // 다시 열어도 편성이 남아 있음
+    expect((await send('탐험편성')).cards!.intro).toContain('편성 1/10');
+    expect((await send('편성추가 태초의 갈매미맨')).cards!.intro).toContain('태초의 갈매미맨 ×2');
+    expect((await send('편성빼기 태초의 갈매미맨')).cards!.intro).toContain('편성 1/10');
+    expect((await send('편성추가 갈크탑 3')).cards!.intro).toContain('편성 4/10');
+    expect((await send('편성비우기')).cards!.intro).toContain('편성 0/10');
+    // 모든 카드 버튼은 짧은 명령(카카오 표시 한도)
+    for(const c of one.cards!.items)for(const b of c.buttons??[])expect(Buffer.byteLength(b.message)).toBeLessThan(60);
     const full=await send('탐험편성 갈크탑 ×8, 태초의 갈매미맨 ×2');
     expect(full.cards!.intro).toContain('편성 10/10');
-    expect(full.cards!.items.filter(c=>!c.title.startsWith('✅')).every(c=>!c.buttons)).toBe(true);
+    expect(full.cards!.items.every(c=>c.title.startsWith('✅'))).toBe(true);
+    expect((await send('편성추가 만상의 수호자')).text).toContain('최대 10마리');
     expect((await send('탐험편성 갈크탑 ×8, 태초의 갈매미맨 ×2, 만상의 수호자')).text).toContain('최대 10마리');
     expect((await send('탐험편성 태초의 갈매미맨 ×3')).text).toContain('2마리만');
     await confirm(await send(full.choices!.find(c=>c.label.startsWith('🚀'))!.message));
+    expect((await me()).partyDraft).toBe('');
     const busy=await send('탐험편성 만상의 수호자');
     expect(busy.text).toContain('탐험 중');
+    expect((await send('편성추가 만상의 수호자')).text).toContain('탐험 중');
     expect((await send('탐험보내기 만상의 수호자')).text).toContain('이미 탐험 중');
   });
   it('이벤트 기간: 뽑기권 받기 추가 지급과 뽑기 메뉴 배너',async()=>{
@@ -518,7 +529,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.10'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.11'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

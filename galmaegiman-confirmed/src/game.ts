@@ -955,91 +955,85 @@ export class GameService {
     if(!owned.length)return this.info({text:`🧭 탐험\n최상위 갈매미(제한·초월·영원·불멸)를 보내면 ${duration(e.minutes*60000)} 뒤 새우깡을 가져와요.\n1마리당 🍤 ${e.snackPerUnit} · 최대 ${e.maxParty}마리\n\n같은 시너지끼리 보내면 보너스!\n아직 보낼 갈매미가 없어요. 전설을 모아 최상위를 만들어 보세요.`,choices:[choice('조합목록 제한'),choice('시너지'),...menu]},'explore');
     return this.partyBuilder(tx,p,'',now);
   }
-  // 임시 진단(합치기 2단계 무응답 원인 찾기): 1~6 카드 버튼 조건, 7 카드 10장, 8~10 실제 2단계 응답 변형. 원인을 찾으면 지웁니다
-  private async diagnose(tx:Tx,p:Player,query:string,now:Date):Promise<GameReply>{
-    const [a,b,c]=['L1','L2','L3'].map(id=>this.content.characters.find(x=>x.id===id)!);
-    const [nq,mq]=query.split(/\s+/);
-    const n=Math.min(12,Math.max(1,Number(nq)||1));
-    const others=[1,2,3,4,5,6,7,8,9,10].filter(i=>i!==n&&i>=4).map(i=>choice(`진단 ${i}`));
-    if(n===11||n===12){
-      // 11: 진단 4 형식(긴 명령) 카드 m장 / 12: 진단 2 형식(짧은 명령) 카드 m장
-      const m=Math.min(10,Math.max(2,Number(mq)||4));
-      const list=this.content.characters.filter(x=>x.rarity==='LEGEND').slice(0,m);
-      const items:CardEntry[]=list.map(x=>({imageId:x.id,title:`${emblems[x.rarity]} ${x.name}`,description:`${rarityNames[x.rarity]} · 진단 ${n}-${m}`,
-        buttons:n===11?[choice('섞기',`합치기 ${a.name}, ${x.name}`),choice('재료 추가',`합치기 ${a.name}, ${x.name} 다음`)]:[choice('도감',`도감 ${x.name}`),choice('조합',`조합 ${x.name}`)]}));
-      const next=[4,5,6,7,8,10].map(k=>choice(`${n}-${k}장`,`진단 ${n} ${k}`));
-      return {text:`🩺 진단 ${n}-${m}`,cards:{intro:`🩺 진단 ${n}-${m}: 버튼 2개 · ${n===11?'긴':'짧은'} 명령 · 카드 ${m}장`,items,outro:`진단 ${n}-${m} 끝 — 이 글이 보이면 성공`},choices:next};
-    }
-    if(n===7){
-      // 진단 4 형식 그대로, 카드만 10장
-      const list=this.content.characters.filter(x=>x.rarity==='LEGEND').slice(0,10);
-      const items:CardEntry[]=list.map(x=>({imageId:x.id,title:`${emblems[x.rarity]} ${x.name}`,description:`${rarityNames[x.rarity]} · 진단 7`,buttons:[choice('섞기',`합치기 ${a.name}, ${x.name}`),choice('재료 추가',`합치기 ${a.name}, ${x.name} 다음`)]}));
-      return {text:'🩺 진단 7',cards:{intro:'🩺 진단 7: 진단 4 형식 · 카드 10장',items,outro:'진단 7 끝 — 이 글이 보이면 성공'},choices:others};
-    }
-    if(n>=8){
-      // 실제 합치기 2단계 응답(내 첫 재료 카드 기준)을 조금씩 줄인 것
-      const first=(await this.combine(tx,p,'',now)).cards?.items[0]?.buttons?.[0]?.message;
-      if(!first)return {text:'🩺 진단: 합치기 재료가 없어 실행할 수 없어요'};
-      const real=await this.combine(tx,p,first.replace(/^합치기\s*/u,''),now);
-      if(!real.cards)return {text:'🩺 진단: 2단계 카드를 만들지 못했어요'};
-      const tag=n===8?'실제 2단계 · 카드 3장만':n===9?'실제 2단계 · 아래 메뉴 없이':'실제 2단계 · 카드당 버튼 1개';
-      const items=n===8?real.cards.items.slice(0,3):n===10?real.cards.items.map(i=>({...i,buttons:i.buttons?.slice(0,1)})):real.cards.items;
-      return {text:`🩺 진단 ${n}`,cards:{intro:`🩺 진단 ${n}: ${tag}\n${real.cards.intro??''}`,items,outro:`진단 ${n} 끝 — 이 글이 보이면 성공`},choices:n===9?[]:[...(real.choices??[]),...others].slice(0,9)};
-    }
-    const pair=(x:Character)=>`합치기 ${a.name}, ${x.name}`;
-    const variants:[string,(x:Character)=>ReturnType<typeof choice>[]][]=[
-      ['버튼 1개 · 쉼표 없음',x=>[choice('도감',`도감 ${x.name}`)]],
-      ['버튼 2개 · 쉼표 없음',x=>[choice('도감',`도감 ${x.name}`),choice('조합',`조합 ${x.name}`)]],
-      ['버튼 1개 · 쉼표 있음',x=>[choice('섞기',pair(x))]],
-      ['버튼 2개 · 둘 다 쉼표 (합치기 2단계와 같음)',x=>[choice('섞기',pair(x)),choice('재료 추가',`${pair(x)} 다음`)]],
-      ['버튼 2개 · 첫째만 쉼표',x=>[choice('섞기',pair(x)),choice('재료 추가',`합치기 ${x.name} 다음`)]],
-      ['버튼 2개 · 쉼표 없음 · 이름 섞기/재료 추가',x=>[choice('섞기',`도감 ${x.name}`),choice('재료 추가',`조합 ${x.name}`)]],
-    ];
-    const [title,buttons]=variants[n-1];
-    const items:CardEntry[]=[b,c,a].map(x=>({imageId:x.id,title:`${emblems[x.rarity]} ${x.name}`,description:`${rarityNames[x.rarity]} · 진단 ${n}`,buttons:buttons(x)}));
-    const choices=[1,2,3,4,5,6,7,8,9,10].filter(i=>i!==n).map(i=>choice(`진단 ${i}`)).slice(0,9);
-    return {text:`🩺 진단 ${n}: ${title}`,cards:{intro:`🩺 진단 ${n}: ${title}`,items,outro:`진단 ${n} 끝 — 이 글이 보이면 성공`},choices};
-  }
-  // 탐험대 편성: "탐험편성 A, B ×2" = 지금까지 넣은 유닛. 카드에서 하나씩 추가/빼기 후 출발
+  // 탐험대 편성: 넣은 유닛은 서버(partyDraft)에 저장하고, 카드 버튼은 "편성추가 이름"·"편성빼기 이름"처럼 짧게 보냄.
+  // (카카오는 카드 넘기기의 버튼 명령 합계가 길면(실기기 854바이트) 응답을 표시하지 않음)
+  // "탐험편성 A, B ×2"를 직접 입력하면 그 구성으로 바꿉니다. "탐험편성 쪽 N"은 후보 쪽 넘기기
   private async partyBuilder(tx:Tx,p:Player,query:string,now:Date):Promise<GameReply>{
     if(await this.activeExpedition(tx,p))return this.expeditionStatus(tx,p,now);
-    const e=this.content.economy.expedition,none=new Set<string>();
-    const pool=this.content.characters.filter(c=>c.synergy);
-    const party:Character[]=[];
-    for(const {name,count} of query?this.parseUnits(query):[]){
-      const c=this.resolve(name,pool,'탐험편성',none);
-      if(!('id' in c))return c;
-      for(let i=0;i<count;i++)party.push(c);
+    const pageArg=query.match(/^쪽\s*(\d+)$/u);
+    if(query&&!pageArg){
+      const pool=this.content.characters.filter(c=>c.synergy),ids:string[]=[];
+      for(const {name,count} of this.parseUnits(query)){
+        const c=this.resolve(name,pool,'탐험편성',new Set());
+        if(!('id' in c))return c;
+        for(let i=0;i<count;i++)ids.push(c.id);
+      }
+      await this.saveDraft(tx,p,ids);
     }
-    if(party.length>e.maxParty)throw new GameError(`탐험대는 최대 ${e.maxParty}마리예요.`);
+    return this.partyView(tx,p,now,Number(pageArg?.[1]??1));
+  }
+  private draftIds(p:Player){return p.partyDraft?p.partyDraft.split(',').filter(id=>this.content.map.has(id)):[];}
+  private async saveDraft(tx:Tx,p:Player,ids:string[]){
+    const e=this.content.economy.expedition;
+    if(ids.length>e.maxParty)throw new GameError(`탐험대는 최대 ${e.maxParty}마리예요.`);
+    const have=await this.topStock(tx,p);
+    for(const [id,n] of materialCounts(ids))if((have.get(id)??0)<n)throw new GameError(`${this.content.map.get(id)!.name}은(는) ${have.get(id)??0}마리만 보낼 수 있어요.`);
+    p.partyDraft=ids.join(',');
+    await tx.player.update({where:{id:p.id},data:{partyDraft:p.partyDraft}});
+  }
+  private async topStock(tx:Tx,p:Player){
     const owned=await tx.ownedCharacter.groupBy({by:['characterId'],where:{playerId:p.id,status:'AVAILABLE',characterId:{in:this.topIds}},_count:{_all:true}});
-    const have=new Map(owned.map(o=>[o.characterId,o._count._all]));
-    const used=materialCounts(party.map(c=>c.id));
-    for(const [id,n] of used)if((have.get(id)??0)<n)throw new GameError(`${this.content.map.get(id)!.name}은(는) ${have.get(id)??0}마리만 보낼 수 있어요.`);
-    if(!owned.length)return this.expeditionStatus(tx,p,now);
+    return new Map(owned.map(o=>[o.characterId,o._count._all]));
+  }
+  private async partyDraft(tx:Tx,p:Player,action:string,query:string,now:Date):Promise<GameReply>{
+    if(await this.activeExpedition(tx,p))return this.expeditionStatus(tx,p,now);
+    const ids=this.draftIds(p);
+    if(action==='비우기'){await this.saveDraft(tx,p,[]);return this.partyView(tx,p,now,1);}
+    if(action==='출발'){
+      if(!ids.length)throw new GameError('편성된 갈매미가 없어요. 카드의 ➕ 추가로 넣어 주세요.');
+      return this.sendExpedition(tx,p,[...materialCounts(ids)].map(([id,n])=>`${this.content.map.get(id)!.name}${n>1?` ×${n}`:''}`).join(', '),now);
+    }
+    // "편성추가 이름 [수]" / "편성빼기 이름"
+    const m=query.match(/^(.+?)(?:\s*[x×]?\s*(\d+))?$/u);
+    if(!m)throw new GameError('예: 편성추가 태초의 갈매미맨 · 편성추가 태초의 갈매미맨 3');
+    const c=this.resolve(m[1].trim(),this.content.characters.filter(c=>c.synergy),`편성${action}`,new Set());
+    if(!('id' in c))return c;
+    const n=Number(m[2]??1);
+    if(!Number.isSafeInteger(n)||n<1)throw new GameError('수는 1 이상이에요.');
+    if(action==='추가')await this.saveDraft(tx,p,[...ids,...Array(n).fill(c.id)]);
+    else{const i=ids.lastIndexOf(c.id);if(i<0)throw new GameError(`${c.name}은(는) 편성에 없어요.`);await this.saveDraft(tx,p,ids.filter((_,j)=>j!==i));}
+    return this.partyView(tx,p,now,1);
+  }
+  private async partyView(tx:Tx,p:Player,now:Date,pageNo:number):Promise<GameReply>{
+    const e=this.content.economy.expedition,none=new Set<string>();
+    const have=await this.topStock(tx,p);
+    if(!have.size)return this.expeditionStatus(tx,p,now);
+    // 저장된 편성 중 지금 없는 유닛은 빼고 봅니다
+    const counted=new Map<string,number>(),party:Character[]=[];
+    for(const id of this.draftIds(p)){const k=(counted.get(id)??0)+1;if(k<=(have.get(id)??0)&&party.length<e.maxParty){counted.set(id,k);party.push(this.content.map.get(id)!);}}
     const label=(list:Character[])=>[...materialCounts(list.map(c=>c.id))].map(([id,n])=>`${this.content.map.get(id)!.name}${n>1?` ×${n}`:''}`).join(', ');
-    const cmd=(list:Character[])=>list.length?`탐험편성 ${label(list)}`:'탐험편성';
-    const without=(c:Character)=>{const i=party.findIndex(x=>x.id===c.id);return party.filter((_,j)=>j!==i);};
+    const used=materialCounts(party.map(c=>c.id));
     const full=party.length>=e.maxParty;
-    // 남은 후보: 보유 수 - 넣은 수 > 0, 같은 시너지 많은 순
-    const syn=new Map<string,number>();for(const c of party)syn.set(c.synergy!,(syn.get(c.synergy!)??0)+1);
-    const left=owned.map(o=>this.content.map.get(o.characterId)!).filter(c=>(have.get(c.id)??0)-(used.get(c.id)??0)>0)
-      .sort((a,b)=>(syn.get(b.synergy!)??0)-(syn.get(a.synergy!)??0)||tiers[b.rarity]-tiers[a.rarity]||a.position-b.position);
     const cards:CardEntry[]=[];
     // 넣은 유닛 카드(빼기)
     for(const [id,n] of used){const c=this.content.map.get(id)!;
-      cards.push({imageId:this.cardImage(id,none),title:`✅ ${emblems[c.rarity]} ${c.name}${n>1?` ×${n}`:''}`,description:`편성됨 · ${e.effects[c.synergy!].label} 시너지`,buttons:[choice('빼기',cmd(without(c)))]});}
-    // 후보 카드(추가)
-    for(const c of left.slice(0,Math.max(0,20-cards.length))){
+      cards.push({imageId:this.cardImage(id,none),title:`✅ ${emblems[c.rarity]} ${c.name}${n>1?` ×${n}`:''}`,description:`편성됨 · ${e.effects[c.synergy!].label} 시너지`,buttons:[choice('빼기',`편성빼기 ${c.name}`)]});}
+    // 후보 카드(추가): 남은 자리만큼 쪽으로 나눔, 같은 시너지 많은 순
+    const syn=new Map<string,number>();for(const c of party)syn.set(c.synergy!,(syn.get(c.synergy!)??0)+1);
+    const left=[...have.keys()].map(id=>this.content.map.get(id)!).filter(c=>(have.get(c.id)??0)-(used.get(c.id)??0)>0)
+      .sort((a,b)=>(syn.get(b.synergy!)??0)-(syn.get(a.synergy!)??0)||tiers[b.rarity]-tiers[a.rarity]||a.position-b.position);
+    const size=Math.max(1,10-cards.length);
+    const {page,pages,start}=full?{page:1,pages:1,start:0}:this.page(String(pageNo),left.length,size);
+    if(!full)for(const c of left.slice(start,start+size)){
       const rest=(have.get(c.id)??0)-(used.get(c.id)??0);
-      cards.push({imageId:this.cardImage(c.id,none),title:`${emblems[c.rarity]} ${c.name}`,description:`${rarityNames[c.rarity]} · ${e.effects[c.synergy!].label} 시너지 · 남은 ${rest}마리`,
-        ...(full?{}:{buttons:[choice('➕ 추가',cmd([...party,c])),...(rest>1&&party.length+1<e.maxParty?[choice(`➕ ${Math.min(rest,e.maxParty-party.length)}마리`,cmd([...party,...Array(Math.min(rest,e.maxParty-party.length)).fill(c)]))]:[])]})});
+      cards.push({imageId:this.cardImage(c.id,none),title:`${emblems[c.rarity]} ${c.name}`,description:`${rarityNames[c.rarity]} · ${e.effects[c.synergy!].label} 시너지 · 남은 ${rest}마리`,buttons:[choice('➕ 추가',`편성추가 ${c.name}`)]});
     }
     const plan=party.length?planExpedition(this.content,party.map(c=>c.id)):undefined;
-    const head=`🧭 탐험대 편성 ${party.length}/${e.maxParty}${party.length?`\n${label(party)}`:'\n카드의 ➕ 추가로 한 마리씩 넣어요.'}`;
+    const head=`🧭 탐험대 편성 ${party.length}/${e.maxParty}${party.length?`\n${label(party)}`:'\n카드의 ➕ 추가로 한 마리씩 넣어요.'}${pages>1?` (${page}/${pages})`:''}`;
     const info=plan?this.planText(plan):`1마리당 🍤 ${e.snackPerUnit} · ⏱ ${duration(e.minutes*60000)} · 같은 시너지 ${e.levels[0]}마리부터 보너스`;
-    return {text:`${head}\n\n${info}\n\n${cards.map(c=>c.title).join('\n')}`,cards:{intro:head,items:cards,outro:`${info}${full?'\n탐험대가 꽉 찼어요.':''}`},
-      choices:[...(party.length?[choice(`🚀 출발 (${party.length}마리)`,`탐험보내기 ${label(party)}`),choice('비우기','탐험편성')]:[]),choice('자동 편성','탐험보내기 자동'),choice('시너지 안내','시너지'),...menu]};
+    const nav=[...(page>1?[choice('이전',`탐험편성 쪽 ${page-1}`)]:[]),...(page<pages?[choice('다음 쪽',`탐험편성 쪽 ${page+1}`)]:[])];
+    return {text:`${head}\n\n${info}\n\n${cards.map(c=>c.title).join('\n')}`,cards:{intro:head,items:cards,outro:`${info}${full?'\n탐험대가 꽉 찼어요.':'\n여러 마리는 입력: 편성추가 이름 3'}`},
+      choices:[...(party.length?[choice(`🚀 출발 (${party.length}마리)`,'편성출발'),choice('비우기','편성비우기')]:[]),...nav,choice('자동 편성','탐험보내기 자동'),choice('시너지 안내','시너지'),...menu]};
   }
   private synergyGuide(){
     const e=this.content.economy.expedition,fx=e.effects;
@@ -1216,6 +1210,7 @@ export class GameService {
       const expedition=await tx.expedition.create({data:{playerId:p.id,unitIds:json(unitIds),plan:json(plan),startedAt:now,endsAt:ends}});
       const moved=await tx.ownedCharacter.updateMany({where:{id:{in:ids},playerId:p.id,status:'AVAILABLE'},data:{status:'EXPEDITION',expeditionId:expedition.id}});
       if(moved.count!==ids.length)throw new GameError('탐험 출발 충돌입니다. 다시 시도하세요.');
+      await tx.player.update({where:{id:p.id},data:{partyDraft:''}});
       result={text:`🧭 탐험대 출발! (${ids.length}마리)\n⏱ ${duration(plan.minutes*60000)} 뒤 돌아와요.\n돌아오면 '탐험 보상 받기'를 눌러 주세요. 🍤 예상 ${expectedSnacks(plan)}개`,
         cards:{intro:`🧭 탐험대 출발! ⏱ ${duration(plan.minutes*60000)} 뒤 귀환 · 🍤 예상 ${expectedSnacks(plan)}개`,items:this.partyCards(unitIds),outro:"돌아오면 '탐험 보상 받기'를 눌러 주세요."},choices:[choice('탐험'),...menu]};
       await this.audit(tx,p,'EXPEDITION_SEND',{token,expeditionId:expedition.id,ownedIds:ids,unitIds,minutes:plan.minutes});
@@ -1292,7 +1287,6 @@ export class GameService {
     if(command==='초대코드'||(command==='초대'&&!query))return this.invite(tx,p,'',now);
     if(command==='초대')return this.invite(tx,p,query.trim(),now);
     if(compact.startsWith('땅콩떼기'))return this.peanut(tx,p,trimmed.replace(/^땅콩\s*떼기/u,'').trim(),now);
-    if(command==='진단')return this.diagnose(tx,p,query,now);
     if(command==='합치기')return this.combine(tx,p,query,now);
     if(command==='조합'||command==='조합식'){
       if(!query)return this.browse(tx,p,'조합목록','');
@@ -1339,6 +1333,8 @@ export class GameService {
       return this.info({text:locked?`🔒 ${c.name} 보호\n${changed.count}마리를 모두 보호했어요. 조합 재료·팔기에 안 써요.`:`🔓 ${c.name} 보호 해제\n${changed.count}마리 보호를 모두 풀었어요.`,choices:[choice('보유 상태',`내갈매미 ${c.name}`),...menu.slice(0,3)]},'s-lock');
     }
     if(command==='탐험'&&!query)return this.expeditionStatus(tx,p,now);
+    const draftCmd=compact.match(/^편성(추가|빼기|비우기|출발)/u);
+    if(draftCmd)return this.partyDraft(tx,p,draftCmd[1],trimmed.replace(/^편성\s*(추가|빼기|비우기|출발)/u,'').trim(),now);
     if(compact.startsWith('탐험편성'))return this.partyBuilder(tx,p,trimmed.replace(/^탐험\s*편성/u,'').trim(),now);
     if(compact.startsWith('탐험보내기')||(command==='탐험'&&args[0]==='보내기'))return this.sendExpedition(tx,p,trimmed.replace(/^탐험\s*보내기/u,'').trim(),now);
     if(['탐험보상받기','탐험보상','탐험받기'].includes(compact))return this.claimExpedition(tx,p,now);

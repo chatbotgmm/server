@@ -33,6 +33,18 @@ const listCard=(list:NonNullable<GameReply['list']>,url?:(path:string)=>string)=
   }))}};
 };
 // stamp: 그림 파일이 바뀌면 주소도 바뀌게 붙이는 버전 값(카카오 그림 캐시 무효화)
+// 카드 넘기기 버튼 명령(messageText) 합계 예산. 실기기 진단: 743바이트는 표시, 854바이트부터 카카오가
+// 응답을 표시하지 않음(서버는 200). 여유를 두고 600바이트로 제한하고, 넘치면 뒤 카드부터 두 번째 버튼을 빼고,
+// 그래도 넘치면 뒤 카드의 버튼을 뺍니다. 화면별로 예산 안에 들도록 만들고 이건 안전장치로만 씁니다.
+export const CAROUSEL_BUTTON_BUDGET=600;
+type CardItem=NonNullable<GameReply['cards']>['items'][number];
+export function fitButtons(items:CardItem[],budget=CAROUSEL_BUTTON_BUDGET):CardItem[]{
+  const out=items.map(c=>({...c,buttons:c.buttons?.slice(0,2)}));
+  const bytes=()=>out.reduce((sum,c)=>sum+(c.buttons??[]).reduce((s,b)=>s+Buffer.byteLength(b.message),0),0);
+  for(let i=out.length-1;i>=0&&bytes()>budget;i--)if((out[i].buttons?.length??0)>1)out[i]={...out[i],buttons:out[i].buttons!.slice(0,1)};
+  for(let i=out.length-1;i>=0&&bytes()>budget;i--)if(out[i].buttons?.length)out[i]={...out[i],buttons:[]};
+  return out;
+}
 export function kakaoResponse(result:GameReply,baseUrl='',stamp:(path:string)=>string=()=>''){
   const url=(path:string)=>{const v=stamp(path);return `${baseUrl}/${path}${v?`?v=${v}`:''}`;};
   const outputs:object[]=[];
@@ -46,7 +58,8 @@ export function kakaoResponse(result:GameReply,baseUrl='',stamp:(path:string)=>s
       ...(c.buttons?.length?{buttons:c.buttons.slice(0,many?2:3).map((b,_,all)=>({action:'message',label:b.label.slice(0,all.length===2?7:14),messageText:b.message}))}:{})
     });
     // 카드 넘기기는 한 묶음 10장까지라 11장 이상이면 두 묶음으로 나눕니다
-    const chunks=[cards.items.slice(0,10),cards.items.slice(10,20)].filter(c=>c.length);
+    const shown=many?fitButtons(cards.items.slice(0,20)):cards.items;
+    const chunks=[shown.slice(0,10),shown.slice(10,20)].filter(c=>c.length);
     const visuals=cards.items.length===1?[{basicCard:card(cards.items[0])}]:chunks.map(c=>({carousel:{type:'basicCard',items:c.map(card)}}));
     const text=(t?:string)=>t?[{simpleText:{text:t.slice(0,950)}}]:[];
     // 말풍선은 최대 3개: 넘치면 머리말부터 뺍니다(확인 목록·그림·본문은 남김).

@@ -23,6 +23,7 @@ model Player {
   tutorial Int @default(0)      // 튜토리얼 진행 단계(0~3)
   inviteCode String? @unique    // 내 초대 코드
   invitedBy String?             // 나를 초대한 플레이어 id
+  partyDraft String @default("") // 탐험대 편성 중인 유닛 id(쉼표 구분)
   revision Int @default(0)
   createdAt DateTime @default(now())
   characters OwnedCharacter[]
