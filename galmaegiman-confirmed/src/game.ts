@@ -601,7 +601,7 @@ export class GameService {
     const items:CardEntry[]=pool.slice(start,start+10).map(c=>{
       const next=[...chosen,c];
       return {imageId:this.cardImage(c.id,known),title:`${emblems[c.rarity]} ${c.name}`,description:`${rarityNames[c.rarity]} · 쓸 수 있는 ${left(c)}마리`,
-        buttons:chosen.length?[choice('이걸로 섞기',`합치기 ${label(next)}`),...(next.length<6?[choice('하나 더 고르기',`합치기 ${label(next)} +`)]:[])]:[choice('첫 재료로',`합치기 ${c.name} +`)]};
+        buttons:chosen.length?[choice('섞기',`합치기 ${label(next)}`),...(next.length<6?[choice('재료 추가',`합치기 ${label(next)} +`)]:[])]:[choice('첫 재료로',`합치기 ${c.name} +`)]};
     });
     const head=chosen.length?`🔮 고른 재료: ${label(chosen)}\n${chosen.length+1}번째 재료를 고르세요 (${page}/${pages})`:`🔮 합치기 · 첫 재료를 고르세요 (${page}/${pages})\n목록에 없는 숨은 조합도 이렇게 찾아요.`;
     const nav=[...(page>1?[choice('이전',`${base} 쪽 ${page-1}`)]:[]),...(page<pages?[choice('다음 쪽',`${base} 쪽 ${page+1}`)]:[])];
@@ -790,7 +790,7 @@ export class GameService {
         const ready=shown.filter(r=>this.canCraft(r,stock)).length;
         return {imageId:this.gradeImage(t,known),title:`${emblems[t]} ${rarityNames[t]}`,
           description:`${t==='HIDDEN'?`발견 ${shown.length}/${all.length} · 목록에서 힌트 보기`:`${all.length}종`}${ready?`\n✨ 지금 ${ready}종 만들 수 있어요`:''}`,
-          buttons:[choice('목록 보기',`${command} ${rarityNames[t]}`),...(ready?[choice(`만들 수 있는 것 ${ready}`,`조합가능 ${rarityNames[t]}`)]:[]),...(t==='HIDDEN'?[choice('합치기')]:[])]};
+          buttons:[choice('목록 보기',`${command} ${rarityNames[t]}`),...(ready?[choice(`✨ ${ready}종`,`조합가능 ${rarityNames[t]}`)]:[]),...(t==='HIDDEN'?[choice('합치기')]:[])]};
       });
       return {text:`🧩 ${command} · 등급을 고르세요\n\n${lines.join('\n')}\n\n✨ = 지금 만들 수 있는 수\n❔ 히든은 합치기로 찾아요.`,cards:{intro:`🧩 ${command} · 등급을 골라 보세요`,items:cards},choices:grades.slice(0,9).map(t=>choice(rarityNames[t],`${command} ${rarityNames[t]}`)).concat(choice('합치기'))};
     }

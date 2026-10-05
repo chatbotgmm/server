@@ -43,7 +43,7 @@ export function kakaoResponse(result:GameReply,baseUrl='',stamp:(path:string)=>s
     const card=(c:typeof cards.items[number])=>({
       title:c.title.slice(0,50),...(c.description?{description:c.description.slice(0,230)}:{}),
       thumbnail:{imageUrl:url(`thumbs/${c.imageId}.jpg`),altText:c.title.slice(0,50),fixedRatio:true},
-      ...(c.buttons?.length?{buttons:c.buttons.slice(0,many?2:3).map(b=>({action:'message',label:b.label.slice(0,14),messageText:b.message}))}:{})
+      ...(c.buttons?.length?{buttons:c.buttons.slice(0,many?2:3).map((b,_,all)=>({action:'message',label:b.label.slice(0,all.length===2?7:14),messageText:b.message}))}:{})
     });
     // 카드 넘기기는 한 묶음 10장까지라 11장 이상이면 두 묶음으로 나눕니다
     const chunks=[cards.items.slice(0,10),cards.items.slice(10,20)].filter(c=>c.length);
