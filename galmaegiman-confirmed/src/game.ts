@@ -530,8 +530,11 @@ export class GameService {
   private source(id:string){
     const c=this.content.map.get(id)!;
     const g=this.content.economy.gachas;
-    const from=(['LOW','MID','HIGH'] as GachaKind[]).filter(k=>g[k].weights[c.rarity]).map(k=>g[k].label);
-    return [...(from.length?[`${from.join('·')} 뽑기`]:[]),...(c.rarity==='COMMON'?[]:['조합'])].join(' / ');
+    // 실제로 얻을 수 있는 곳만: 뽑기(noGacha 제외), 교환·탐험(흔함·안흔함), 조합(조합식 있는 것), 땅콩떼기(특수함)
+    const from=c.noGacha?[]:(['LOW','MID','HIGH'] as GachaKind[]).filter(k=>g[k].weights[c.rarity]).map(k=>g[k].label);
+    const low=c.rarity==='COMMON'||c.rarity==='UNCOMMON';
+    return [...(from.length?[`${from.join('·')} 뽑기`]:[]),...(low?['교환']:[]),...(this.content.recipes.some(r=>r.resultId===id)?['조합']:[]),
+      ...(c.rarity==='NEUTRAL'?['땅콩떼기']:[]),...(low?[`탐험(${c.rarity==='COMMON'?'바다':'벚꽃'} 시너지)`]:[])].join(' / ');
   }
   private recipeParts(recipe:Recipe,stock:Stock,known:Set<string>,collected?:boolean){
     const result=this.content.map.get(recipe.resultId)!;
@@ -1315,7 +1318,8 @@ export class GameService {
       if(command==='조합식'||!this.canCraft(recipe,stock)){
         // 모자란 재료로 바로 가는 버튼: 조합 재료는 그 조합식, 뽑기 재료는 해당 뽑기
         const lacking=[...materialCounts(recipe.materials)].filter(([id,n])=>statusOf(stock.get(id)).usable<n).map(([id])=>this.content.map.get(id)!);
-        const jump=lacking.filter(m=>m.rarity!=='COMMON'&&isRevealed(m,known)).slice(0,3).map(m=>choice(`${m.name.slice(0,9)} 조합식`,`조합식 ${m.name}`));
+        // 흔함·안흔함은 바로 교환, 그 위는 그 조합식으로
+        const jump=lacking.filter(m=>isRevealed(m,known)).slice(0,3).map(m=>m.rarity==='COMMON'||m.rarity==='UNCOMMON'?choice(`${m.name.slice(0,9)} 교환`,`교환 ${m.name}`):choice(`${m.name.slice(0,9)} 조합식`,`조합식 ${m.name}`));
         const make=this.canCraft(recipe,stock)?[choice('조합하기',`조합 ${c.name}`)]:[];
         return {text,imageId:this.seenImage(c.id,known),cards:{items:[{...parts.card,buttons:[...make,...jump].slice(0,3)}],outro:parts.body},
           choices:[...make,...jump,choice('뽑기'),choice('조합가능'),choice('조합목록'),choice('내갈매미')]};
