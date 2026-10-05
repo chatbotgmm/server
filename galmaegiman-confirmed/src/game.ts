@@ -951,6 +951,24 @@ export class GameService {
     if(!owned.length)return this.info({text:`🧭 탐험\n최상위 갈매미(제한·초월·영원·불멸)를 보내면 ${duration(e.minutes*60000)} 뒤 새우깡을 가져와요.\n1마리당 🍤 ${e.snackPerUnit} · 최대 ${e.maxParty}마리\n\n같은 시너지끼리 보내면 보너스!\n아직 보낼 갈매미가 없어요. 전설을 모아 최상위를 만들어 보세요.`,choices:[choice('조합목록 제한'),choice('시너지'),...menu]},'explore');
     return this.partyBuilder(tx,p,'',now);
   }
+  // 임시 진단(합치기 2단계 무응답 원인 찾기): 카드 버튼 조건만 바꾼 응답 6종. 원인을 찾으면 지웁니다
+  private diagnose(query:string):GameReply{
+    const [a,b,c]=['L1','L2','L3'].map(id=>this.content.characters.find(x=>x.id===id)!);
+    const n=Math.min(6,Math.max(1,Number(query)||1));
+    const pair=(x:Character)=>`합치기 ${a.name}, ${x.name}`;
+    const variants:[string,(x:Character)=>ReturnType<typeof choice>[]][]=[
+      ['버튼 1개 · 쉼표 없음',x=>[choice('도감',`도감 ${x.name}`)]],
+      ['버튼 2개 · 쉼표 없음',x=>[choice('도감',`도감 ${x.name}`),choice('조합',`조합 ${x.name}`)]],
+      ['버튼 1개 · 쉼표 있음',x=>[choice('섞기',pair(x))]],
+      ['버튼 2개 · 둘 다 쉼표 (합치기 2단계와 같음)',x=>[choice('섞기',pair(x)),choice('재료 추가',`${pair(x)} 다음`)]],
+      ['버튼 2개 · 첫째만 쉼표',x=>[choice('섞기',pair(x)),choice('재료 추가',`합치기 ${x.name} 다음`)]],
+      ['버튼 2개 · 쉼표 없음 · 이름 섞기/재료 추가',x=>[choice('섞기',`도감 ${x.name}`),choice('재료 추가',`조합 ${x.name}`)]],
+    ];
+    const [title,buttons]=variants[n-1];
+    const items:CardEntry[]=[b,c,a].map(x=>({imageId:x.id,title:`${emblems[x.rarity]} ${x.name}`,description:`${rarityNames[x.rarity]} · 진단 ${n}`,buttons:buttons(x)}));
+    const choices=[1,2,3,4,5,6].filter(i=>i!==n).map(i=>choice(`진단 ${i}`));
+    return {text:`🩺 진단 ${n}: ${title}`,cards:{intro:`🩺 진단 ${n}: ${title}`,items,outro:`진단 ${n} 끝 — 이 글이 보이면 성공`},choices};
+  }
   // 탐험대 편성: "탐험편성 A, B ×2" = 지금까지 넣은 유닛. 카드에서 하나씩 추가/빼기 후 출발
   private async partyBuilder(tx:Tx,p:Player,query:string,now:Date):Promise<GameReply>{
     if(await this.activeExpedition(tx,p))return this.expeditionStatus(tx,p,now);
@@ -1243,6 +1261,7 @@ export class GameService {
     if(command==='초대코드'||(command==='초대'&&!query))return this.invite(tx,p,'',now);
     if(command==='초대')return this.invite(tx,p,query.trim(),now);
     if(compact.startsWith('땅콩떼기'))return this.peanut(tx,p,trimmed.replace(/^땅콩\s*떼기/u,'').trim(),now);
+    if(command==='진단')return this.diagnose(query);
     if(command==='합치기')return this.combine(tx,p,query,now);
     if(command==='조합'||command==='조합식'){
       if(!query)return this.browse(tx,p,'조합목록','');
