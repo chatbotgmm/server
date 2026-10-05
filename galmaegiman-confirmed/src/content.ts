@@ -36,6 +36,10 @@ const economySchema=z.object({
   tickets:z.object({welcome:z.number().int().min(0).max(1000),claim:z.number().int().min(1).max(1000),cooldownHours:z.number().positive().max(168)}).strict(),
   gachas:z.object({LOW:gacha,MID:gacha,HIGH:gacha}).strict(),
   exchange:z.object({snackCost:z.number().int().min(1).max(100000),uncommonCost:z.number().int().min(1).max(100000)}).strict(),
+  sell:z.partialRecord(z.enum(tierOrder),z.number().int().min(0).max(100000)),
+  invite:z.object({tickets:z.number().int().min(0).max(1000),max:z.number().int().min(0).max(1000),days:z.number().int().min(1).max(365)}).strict(),
+  tutorial:z.object({tickets:z.number().int().min(0).max(1000)}).strict(),
+  events:z.array(z.object({label:text,from:z.string().datetime({offset:true}),to:z.string().datetime({offset:true}),claimBonus:z.number().int().min(0).max(1000).default(0),snackMultiplier:z.number().min(1).max(10).default(1)}).strict()).max(20),
   shop:z.object({tickets:z.object({snacks:z.number().int().min(1).max(1000000),amount:z.number().int().min(1).max(1000)}).strict(),expeditionSkip:z.object({snacks:z.number().int().min(1).max(1000000)}).strict()}).strict(),
   expedition:z.object({
     minutes:z.number().int().min(1).max(1440),snackPerUnit:z.number().int().min(0).max(10000),maxParty:z.number().int().min(1).max(30),

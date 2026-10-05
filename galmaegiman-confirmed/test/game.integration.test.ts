@@ -28,6 +28,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       db.pendingAction.deleteMany(),db.adminSnapshot.deleteMany(),db.auditEvent.deleteMany(),db.achievement.deleteMany(),db.dailyProgress.deleteMany(),db.collectionEntry.deleteMany(),db.ownedCharacter.deleteMany(),db.expedition.deleteMany(),db.player.deleteMany()
     ]);
     now=new Date('2026-10-02T08:00:00+09:00');
+    // 기본 테스트 계정은 튜토리얼을 마친 상태(튜토리얼 보상은 별도 테스트)
+    await db.player.create({data:{identity:actor,tutorial:3,createdAt:now}});
     // 뽑기 난수 0 → 각 등급의 첫 유닛, 탐험 확률 판정은 항상 실패(max-1)
     game=new GameService(db,content,()=>now,new GachaEngine(content.characters,content.economy.gachas,()=>0),max=>max-1);
   });
@@ -69,24 +71,24 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await me()).credits).toBe(30);
     expect(await db.ownedCharacter.count()).toBe(8);
   });
-  it('조합 미리보기는 소비하지 않고 확정 시 재료 소비 + 첫 도감 보상 50',async()=>{
-    await fixtures(['C1','C1','C2']);
-    const preview=await send('조합 금갑');
+  it('희귀 이상 조합: 미리보기는 소비하지 않고 확정 시 재료 소비 + 첫 도감 보상 200',async()=>{
+    await fixtures(['S1','U1']);
+    const preview=await send('조합 황금쌍패성기사');
     expect(preview.text).toContain('재료가 모두 모였어요');
     expect(preview.text).not.toContain('가리키기');
     expect(await db.ownedCharacter.count({where:{status:'CONSUMED'}})).toBe(0);
     const done=await confirm(preview);
-    expect(done.text).toContain('조합 성공! 새 안흔함 발견');
+    expect(done.text).toContain('조합 성공! 새 희귀 발견');
     expect(done.text).not.toContain('💬');
-    expect(await db.ownedCharacter.count({where:{status:'CONSUMED'}})).toBe(3);
-    expect((await me()).snack).toBe(50);
+    expect(await db.ownedCharacter.count({where:{status:'CONSUMED'}})).toBe(2);
+    expect((await me()).snack).toBe(200);
   });
   it('같은 확정 요청 10개 동시 재전송: 소비·지급 한 번',async()=>{
-    await fixtures(['C1','C1','C2']);
-    const preview=await send('조합 금갑');
+    await fixtures(['S1','U1']);
+    const preview=await send('조합 황금쌍패성기사');
     const results=await Promise.all(Array.from({length:10},()=>confirm(preview)));
     expect(results.every(r=>JSON.stringify(r)===JSON.stringify(results[0]))).toBe(true);
-    expect(await db.ownedCharacter.count({where:{characterId:'U1'}})).toBe(1);
+    expect(await db.ownedCharacter.count({where:{characterId:'R1'}})).toBe(1);
   });
   it('히든: 목록·도감·이름 검색에서 숨김, 합치기로 발견하면 공개',async()=>{
     await fixtures(['R1','R2']);
@@ -129,7 +131,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await me()).snack).toBe(1450-350+50);   // 금갑 첫 발견 보상 +50
     expect(await db.ownedCharacter.count({where:{characterId:'U1'}})).toBe(1);
     const shop=await send('상점');
-    expect(shop.cards!.items.map(i=>i.title)).toEqual(['🥚 흔함 고르기','🔹 안흔함 고르기','🎟 뽑기권 10장','🧭 탐험 즉시 귀환']);
+    expect(shop.cards!.items.map(i=>i.title)).toEqual(['🥚 흔함 고르기','🔹 안흔함 고르기','🎟 뽑기권 10장','🍤 남는 갈매미 팔기','🧭 탐험 즉시 귀환']);
     const before=(await me()).credits;
     const tickets=await send('상점 뽑기권');
     expect(tickets.list!.items[0].message).toBe('구매 확정');
@@ -273,11 +275,9 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(one.cards!.items).toHaveLength(1);
     expect(one.cards!.items[0].buttons![0]).toEqual({label:'도감 보기',message:`도감 ${one.cards!.items[0].title.split(' ').slice(1).join(' ')}`});
     expect(one.cards!.outro).toContain('━━━━━━━━━━');
-    const preview=await send('조합 금갑');
-    expect(preview.cards!.items[0]).toMatchObject({imageId:'U1',title:'🧩 🔹 금갑'});
-    expect(preview.cards!.outro).toContain('✅');
-    expect(preview.list!.items[0].button!.action).toBe('confirm');
-    const done=await confirm(preview);
+    // 특별 이하는 확인 없이 바로 조합
+    const done=await send('조합 금갑');
+    expect(done.list).toBeUndefined();
     expect(done.cards!.items[0]).toMatchObject({imageId:'U1',title:'🔹 금갑'});
     expect(done.cards!.items[0].description).toContain('🧩 조합 성공!');
     const dex=await send('도감');
@@ -296,7 +296,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const menuReply=await send('뽑기');
     expect(menuReply.cards!.items.map(c=>c.buttons!.length)).toEqual([3,3,3]);
     expect(menuReply.list).toBeUndefined();
-    expect((await send('뭐야이건')).cards!.items).toHaveLength(7);
+    expect((await send('뭐야이건')).cards!.items).toHaveLength(8);
     expect((await send('도감 금갑')).cards!.outro).toContain('💬');
   });
   it('고급 뽑기 천장: 100회 안에 전설 확정, 전설이 나오면 다시 0부터',async()=>{
@@ -363,7 +363,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     // 황금쌍패성기사는 1마리뿐이라 두 번째 재료 후보에서 빠짐
     expect(step2.cards!.items.map(c=>c.title)).toEqual(['◆ 은하매듭직조자','🥚 기본 갈매미맨']);
     const mix=step2.cards!.items[0].buttons![0];
-    expect(mix).toEqual({label:'이걸 섞기',message:'합치기 황금쌍패성기사, 은하매듭직조자'});
+    expect(mix).toEqual({label:'이걸로 섞기',message:'합치기 황금쌍패성기사, 은하매듭직조자'});
+    expect(step2.cards!.items[0].buttons![1]).toEqual({label:'하나 더 고르기',message:'합치기 황금쌍패성기사, 은하매듭직조자 +'});
     const preview=await send(mix.message);
     expect(preview.cards!.items[0].imageId).toBe('unknown');
     expect(preview.list!.items[0].button!.action).toBe('confirm');
@@ -410,12 +411,53 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(info.choices!.some(c=>c.message==='상점')).toBe(true);
     expect((await send('하급뽑기')).choices![0]).toEqual({label:'하급 한 번 더',message:'하급뽑기'});
   });
+  it('여러 개 조합·최대 버튼, 팔기(1마리는 남김), 잠금은 전부',async()=>{
+    await fixtures(['C1','C1','C1','C1','C1','C1','C2','C2','C2','C3','C3','C3','C3']);
+    const card=(await send('조합가능')).cards!.items.find(c=>c.title.includes('금갑'))!;
+    expect(card.buttons!.map(b=>b.label)).toEqual(['지금 만들기','최대 3개','재료 보기']);
+    const many=await send('조합 금갑 최대');
+    expect(many.cards!.items[0].title).toBe('🔹 금갑 ×3');
+    expect(await db.ownedCharacter.count({where:{characterId:'U1',status:'AVAILABLE'}})).toBe(3);
+    const list=await send('팔기');
+    expect(list.cards!.items.find(c=>c.title.includes('암흑'))!.description).toContain('남는 3마리');
+    const sell=await send('팔기 암흑 갈매미맨 전부');
+    expect(sell.list!.items[0].message).toBe('팔기 확정');
+    await confirm(sell);
+    expect(await db.ownedCharacter.count({where:{characterId:'C3',status:'AVAILABLE'}})).toBe(1);
+    expect((await me()).snack).toBe(50+10+10+30);   // 금갑 첫 50 + 중복 10×2 + 흔함 10×3
+    expect((await send('팔기 암흑 갈매미맨')).text).toContain('팔 수 있는');
+    await send('잠금 금갑');
+    expect(await db.ownedCharacter.count({where:{characterId:'U1',locked:true}})).toBe(3);
+  });
+  it('튜토리얼 3단계 보상, 친구 초대 둘 다 보상(자기 코드·두 번 입력 불가)',async()=>{
+    await db.player.update({where:{identity:actor},data:{tutorial:0}});
+    const r=await send('하급뽑기');
+    expect(r.text).toContain('📘 튜토리얼 1/3 완료! 🎟 +10');
+    expect((await send('튜토리얼')).cards!.items[1].title).toContain('👉 2.');
+    const code=(await send('초대코드')).text.match(/초대 코드: ([0-9A-F]{6})/)![1];
+    expect((await send(`초대 ${code}`)).text).toContain('내 코드는');
+    expect((await send(`초대 ${code}`,'friend')).text).toContain('초대 완료');
+    expect((await send(`초대 ${code}`,'friend')).text).toContain('이미');
+    expect((await db.player.findUniqueOrThrow({where:{identity:'friend'}})).credits).toBe(30+30);
+    expect((await me()).credits).toBe(30-2+10+30);
+  });
+  it('랭킹 탭(도감·최상위·주간), 관리자 상태, 확인 만료 시 다시 하기',async()=>{
+    await fixtures(['S1','U1','D1']);
+    expect((await send('랭킹 최상위')).cards!.items[0].description).toContain('🗿 1');
+    expect((await send('랭킹 주간')).text).toContain('이번 주 조합');
+    const preview=await send('조합 황금쌍패성기사');
+    now=new Date(now.getTime()+11*60000);
+    const late=await confirm(preview);
+    expect(late.text).toContain('10분이 지나');
+    expect(late.choices).toContainEqual({label:'다시 하기',message:'조합 황금쌍패성기사'});
+    expect((await send('관리자 상태')).text).toContain('관리자로 등록된 계정이 아니에요');
+  });
   it('관리자 코드가 설정되지 않으면 관리자가 될 수 없음',async()=>{
     expect((await send('관리자 아무거나')).text).toContain('꺼져 있어요');
     expect((await me()).isAdmin).toBe(false);
   });
-  it('종료된 기능(출석·재료·땅콩교환)은 안내만 하고 재화를 바꾸지 않음',async()=>{
-    for(const cmd of ['출석','재료 기본','땅콩교환'])expect((await send(cmd)).text).toContain('종료');
+  it('종료된 기능 명령은 따로 안내하지 않고 도움말로, 재화는 그대로',async()=>{
+    for(const cmd of ['출석','재료 기본','땅콩교환'])expect((await send(cmd)).text).toContain('갈매미맨 — 갈매미를 모아');
     expect((await me()).snack).toBe(0);
     expect((await me()).credits).toBe(30);
   });
@@ -442,19 +484,21 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.8.3'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.0'});
+      for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
+      for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
-      for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});
-      const item=firstButton(await request('조합목록 안흔함'));
-      expect(item).toEqual({action:'message',label:'만들기',messageText:'조합 금갑'});
+      for(const id of ['S1','U1'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});
+      const item=firstButton(await request('조합목록 희귀'));
+      expect(item).toEqual({action:'message',label:'만들기',messageText:'조합 황금쌍패성기사'});
       const confirmItem=selected(await request(item.messageText));
       expect(confirmItem.messageText).toBe('조합 확정');
       const stolen=await request(confirmItem.messageText,confirmItem.extra,'other-user');
       expect(stolen.template.outputs[0].basicCard.title).toContain('본인의');
       const done=await request(confirmItem.messageText,confirmItem.extra);
       expect(await request(confirmItem.messageText,confirmItem.extra)).toEqual(done);
-      expect(await db.ownedCharacter.count({where:{characterId:'U1'}})).toBe(1);
+      expect(await db.ownedCharacter.count({where:{characterId:'R1'}})).toBe(1);
     }finally{await app.close();}
   });
 });

@@ -15,6 +15,19 @@ exchange:
   snackCost: 150       # 흔함 1마리 (최상위 유닛 없어도 가능, v0.7.0)
   uncommonCost: 350    # 안흔함 1마리 = 흔함 환산 평균 2.27마리(25/11) × 150 ≈ 341 → 350
 
+sell:                  # 남는 유닛 팔기(1마리 값, 새우깡). 각 유닛 1마리는 남깁니다. 최상위는 팔 수 없음
+  COMMON: 10
+  UNCOMMON: 25
+  SPECIAL: 50
+  RARE: 100
+  LEGEND: 200
+  HIDDEN: 200
+  NEUTRAL: 25
+
+invite: { tickets: 30, max: 20, days: 3 }   # 초대한 사람·받은 사람 각각 🎟, 1인 최대 초대 수, 가입 후 며칠 안에 입력
+tutorial: { tickets: 10 }                    # 튜토리얼 단계마다 🎟
+events: []                                   # 예: - { label: 벚꽃 주간, from: 2026-10-10T00:00:00+09:00, to: 2026-10-17T00:00:00+09:00, claimBonus: 10, snackMultiplier: 2 }
+
 shop:                  # 상점 (새우깡 사용처)
   tickets: { snacks: 1000, amount: 10 }   # 뽑기권 1장 ≈ 하급 기대가치 흔함 0.69마리 × 150 ≈ 104 → 장당 100
   expeditionSkip: { snacks: 100 }          # 진행 중인 탐험 바로 귀환
