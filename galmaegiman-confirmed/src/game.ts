@@ -17,7 +17,7 @@ type Tx=Prisma.TransactionClient;
 type ActionPayload={characterId?:string;ids?:number[];recipeId?:string};
 const json=(x:unknown)=>x as Prisma.InputJsonValue;
 const gachaWords:Record<string,GachaKind>={하급:'LOW',중급:'MID',고급:'HIGH'};
-const menu=[choice('뽑기'),choice('뽑기권 받기','뽑기권받기'),choice('내갈매미'),choice('조합가능'),choice('조합목록'),choice('탐험'),choice('도감'),choice('내정보')];
+const menu=[choice('뽑기'),choice('뽑기권 받기','뽑기권받기'),choice('조합가능'),choice('내갈매미'),choice('미션'),choice('상점'),choice('조합목록'),choice('탐험'),choice('도감'),choice('내정보')];
 // 관리자로 등록되어 있고 관리자 모드를 켰을 때만 뽑기권 무제한
 const unlimited=(p:{isAdmin:boolean;adminMode:boolean})=>p.isAdmin&&p.adminMode;
 const adminOnText='🛠 관리자 모드 켜짐!\n뽑기에 뽑기권을 쓰지 않아요(무제한).\n⚠ 모드를 끄면 그동안 뽑은 유닛·조합·탐험·재화가 모두 켜기 전으로 돌아가요.';
@@ -61,7 +61,7 @@ export class GameService {
       return this.db.$transaction(async tx=>{
         const now=this.clock();
         const player=await this.player(tx,identity,now);
-        return this.dispatch(tx,player,message,now,button);
+        return this.tidy(tx,player,message,now,await this.dispatch(tx,player,message,now,button));
       },{maxWait:500,timeout:2500});
     });
     this.tail=task.catch(()=>{});
@@ -629,7 +629,7 @@ export class GameService {
       if(!grade||!grades.includes(grade)||extra.length)throw new GameError(`그런 등급은 없어요. 예: ${command} ${recipeMode?'전설':'특별'}`);
       pageQuery=second??'';
     }
-    if(recipeMode&&!grade){
+    if(command==='조합목록'&&!grade){
       const visible=this.visibleRecipes(known);
       const lines=grades.map(t=>{
         const all=this.content.recipes.filter(r=>this.content.map.get(r.resultId)!.rarity===t);
@@ -644,7 +644,7 @@ export class GameService {
         const ready=shown.filter(r=>this.canCraft(r,stock)).length;
         return {imageId:this.gradeImage(t,known),title:`${emblems[t]} ${rarityNames[t]}`,
           description:`${t==='HIDDEN'?`발견 ${shown.length}/${all.length} · 목록에서 힌트 보기`:`${all.length}종`}${ready?`\n✨ 지금 ${ready}종 만들 수 있어요`:''}`,
-          buttons:[choice('목록 보기',`${command} ${rarityNames[t]}`),...(ready&&command!=='조합가능'?[choice(`만들 수 있는 것 ${ready}`,`조합가능 ${rarityNames[t]}`)]:[]),...(t==='HIDDEN'?[choice('합치기')]:[])]};
+          buttons:[choice('목록 보기',`${command} ${rarityNames[t]}`),...(ready?[choice(`만들 수 있는 것 ${ready}`,`조합가능 ${rarityNames[t]}`)]:[]),...(t==='HIDDEN'?[choice('합치기')]:[])]};
       });
       return {text:`🧩 ${command} · 등급을 고르세요\n\n${lines.join('\n')}\n\n✨ = 지금 만들 수 있는 수\n❔ 히든은 합치기로 찾아요.`,cards:{intro:`🧩 ${command} · 등급을 골라 보세요`,items:cards},choices:grades.slice(0,9).map(t=>choice(rarityNames[t],`${command} ${rarityNames[t]}`)).concat(choice('합치기'))};
     }
@@ -664,7 +664,10 @@ export class GameService {
     let characters:Character[];
     // 재료가 몇 종 모였는지: 만들 수 있는 것과 거의 다 모인 것을 앞에 보여 줍니다.
     const progressOf=(r:Recipe)=>{const need=[...materialCounts(r.materials)];return {have:need.filter(([id,n])=>statusOf(stock.get(id)).usable>=n).length,total:need.length};};
-    if(recipeMode)characters=this.visibleRecipes(known).filter(r=>command!=='조합가능'||this.canCraft(r,stock))
+    if(command==='조합가능')characters=this.visibleRecipes(known).filter(r=>this.canCraft(r,stock)).map(r=>this.content.map.get(r.resultId)!)
+      // 만들 수 있는 것: 높은 등급부터, 같은 등급이면 처음 만드는 것 먼저
+      .sort((a,b)=>tiers[b.rarity]-tiers[a.rarity]||Number(collected.has(a.id))-Number(collected.has(b.id))||a.position-b.position);
+    else if(recipeMode)characters=this.visibleRecipes(known)
       .map(r=>({r,pr:progressOf(r)})).sort((a,b)=>Number(this.canCraft(b.r,stock))-Number(this.canCraft(a.r,stock))||b.pr.have/b.pr.total-a.pr.have/a.pr.total)
       .map(({r})=>this.content.map.get(r.resultId)!);
     else if(command==='내갈매미')characters=this.content.characters.filter(c=>stock.has(c.id));
@@ -678,13 +681,17 @@ export class GameService {
     const {page,pages,start}=this.page(pageQuery,characters.length,10);
     const base=grade?`${command} ${rarityNames[grade]}`:command;
     const nav=[...(page>1?[choice('이전',`${base} ${page-1}`)]:[]),...(page<pages?[choice('다음 페이지',`${base} ${page+1}`)]:[])];
-    const gradeChoices=grades.filter(t=>t!==grade).slice(0,6).map(t=>choice(rarityNames[t],`${command} ${rarityNames[t]}`));
+    const gradePool=command==='조합가능'?grades.filter(t=>this.visibleRecipes(known).some(r=>this.content.map.get(r.resultId)!.rarity===t&&this.canCraft(r,stock))):grades;
+    const gradeChoices=[...(command==='조합가능'&&grade?[choice('전체','조합가능')]:[]),...gradePool.filter(t=>t!==grade).slice(0,6).map(t=>choice(rarityNames[t],`${command} ${rarityNames[t]}`))];
     const cards:CardEntry[]=characters.slice(start,start+10).map(c=>{
       if(!isRevealed(c,known))return {imageId:'unknown',title:HIDDEN_NAME,description:`❔ 힌트: ${c.hint??'합치기로 찾아요'}`,buttons:[choice('재료 골라 합치기','합치기')]};
       const have=statusOf(stock.get(c.id)),own=collected.has(c.id),title=`${emblems[c.rarity]} ${c.name}`;
       if(recipeMode){
         const recipe=this.content.recipes.find(r=>r.resultId===c.id)!,pr=progressOf(recipe),ok=this.canCraft(recipe,stock);
         const lack=ok?'':[...materialCounts(recipe.materials)].filter(([id,n])=>statusOf(stock.get(id)).usable<n).map(([id])=>this.name(id,known)).slice(0,2).join(', ');
+        if(command==='조합가능')return {imageId:this.cardImage(c.id,known),title:`✨ ${title}`,
+          description:`${rarityNames[c.rarity]} · ${own?`보유 ${have.total}마리`:'🆕 처음 만드는 갈매미!'}\n재료: ${[...materialCounts(recipe.materials)].map(([id,n])=>`${this.name(id,known)}${n>1?` ×${n}`:''}`).join(' + ')}`,
+          buttons:[choice('지금 만들기',`조합 ${c.name}`),choice('재료 보기',`조합식 ${c.name}`)]};
         return {imageId:this.cardImage(c.id,known),title,description:ok?`${rarityNames[c.rarity]} · ✨ 만들 수 있어요`:`${rarityNames[c.rarity]} · 재료 ${pr.have}/${pr.total}종\n모자람: ${lack}`,
           buttons:ok?[choice('만들기',`조합 ${c.name}`),choice('재료 보기',`조합식 ${c.name}`)]:[choice('재료 보기',`조합식 ${c.name}`)]};
       }
@@ -692,7 +699,8 @@ export class GameService {
       if(command==='내갈매미')return {imageId:this.cardImage(c.id,known),title,description:`${rarityNames[c.rarity]} · ${have.total}마리${have.away?` · 탐험 ${have.away}`:''}${have.locked?` · 보호 ${have.locked}`:''}`,buttons:[choice('자세히',`내갈매미 ${c.name}`)]};
       return {imageId:own?this.cardImage(c.id,known):'unknown',title,description:`${rarityNames[c.rarity]} · ${own?'✅ 수집':`⬜ 미수집\n얻는 곳: ${this.source(c.id)}`}`,buttons:[choice('자세히',`도감 ${c.name}`)]};
     });
-    const head=`${command==='조합가능'?'✨':command==='조합목록'?'🧩':command==='교환'?'🍤':command==='도감'?'📚':'🐦'} ${base} · ${page} / ${pages}`;
+    const fresh=command==='조합가능'?characters.filter(c=>!collected.has(c.id)).length:0;
+    const head=command==='조합가능'?`✨ 지금 만들 수 있는 갈매미 ${characters.length}종${fresh?` · 🆕 처음 ${fresh}종`:''}${grade?` (${rarityNames[grade]})`:''}${pages>1?` · ${page}/${pages}`:''}`:`${command==='조합가능'?'✨':command==='조합목록'?'🧩':command==='교환'?'🍤':command==='도감'?'📚':'🐦'} ${base} · ${page} / ${pages}`;
     const text=mask(this.content,`${head}\n\n${cards.map(c=>`${c.title}\n${c.description}`).join('\n\n')}`,known);
     return {text,cards:{intro:head,items:cards.map(c=>this.maskCard(c,known))},choices:[...nav,...gradeChoices,...menu.slice(0,2)].slice(0,10)};
   }
@@ -711,6 +719,7 @@ export class GameService {
       ...(c.synergy&&count.usable+count.locked?[choice('탐험 보내기',`탐험보내기 ${c.name}`)]:[]),
       ...(manage&&count.usable?[choice('1마리 보호',`잠금 ${c.name}`)]:[]),
       ...(manage&&count.locked?[choice('1마리 보호 해제',`잠금해제 ${c.name}`)]:[]),
+      ...(this.peanutable(c)&&count.usable?[choice('땅콩떼기',`땅콩떼기 ${c.name}`)]:[]),
       ...(manage?[]:[choice('보유 상태',`내갈매미 ${c.name}`)]),
       ...menu.slice(0,4)
     ].slice(0,10);
@@ -968,6 +977,25 @@ export class GameService {
   }
 
   // ───────── 명령 분기 ─────────
+  // 바로가기 버튼 정리: 지금 못 쓰는 것·지금 화면과 같은 것은 빼고, 뽑기권을 받을 수 있으면 앞에 둡니다
+  private async tidy(tx:Tx,p:Player,message:string,now:Date,reply:GameReply):Promise<GameReply>{
+    if(!reply.choices?.length)return reply;
+    const account=await tx.player.findUniqueOrThrow({where:{id:p.id}});
+    const here=message.trim().replace(/\s+/g,' ');
+    const canClaim=!this.claimWait(account,now);
+    const ready=await this.craftable(tx,account);
+    const explore=Boolean(await this.activeExpedition(tx,account))||await this.hasTop(tx,account);
+    let choices=reply.choices.filter(c=>{
+      // 같은 화면 버튼은 빼되, 뽑기 '한 번 더'처럼 반복하는 행동은 남깁니다
+      if(c.message===here&&!/^(하급|중급|고급)뽑기/.test(here))return false;
+      if(c.message==='뽑기권받기')return canClaim;
+      if(c.message==='조합가능')return ready>0;
+      if(c.message==='탐험')return explore;
+      return true;
+    });
+    if(canClaim)choices=[choice('🎟 뽑기권 받기','뽑기권받기'),...choices.filter(c=>c.message!=='뽑기권받기')].slice(0,10);
+    return {...reply,choices};
+  }
   private async dispatch(tx:Tx,p:Player,message:string,now:Date,button?:ButtonAction):Promise<GameReply>{
     const trimmed=message.trim().replace(/^[!/]/,'');
     const parts=trimmed.split(/\s+/);

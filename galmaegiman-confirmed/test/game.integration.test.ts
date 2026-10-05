@@ -393,6 +393,23 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(done.text).toContain('숨은 조합을 발견했습니다');
     expect(done.text).toContain('땅콩 보관소');
   });
+  it('조합가능은 만들 수 있는 유닛 카드를 바로, 바로가기는 지금 쓸 수 있는 것만',async()=>{
+    await fixtures(['C1','C1','C2','C1','C3']);
+    const r=await send('조합가능');
+    expect(r.cards!.intro).toContain('✨ 지금 만들 수 있는 갈매미');
+    expect(r.cards!.items[0].title.startsWith('✨ ')).toBe(true);
+    expect(r.cards!.items[0].buttons![0].label).toBe('지금 만들기');
+    expect(r.cards!.items[0].description).toContain('🆕 처음 만드는 갈매미!');
+    // 뽑기권 받기 전: 맨 앞에 받기 버튼, 받은 뒤엔 사라짐
+    expect(r.choices![0].message).toBe('뽑기권받기');
+    await send('뽑기권받기');
+    const info=await send('내정보');
+    expect(info.choices!.some(c=>c.message==='뽑기권받기')).toBe(false);
+    expect(info.choices!.some(c=>c.message==='내정보')).toBe(false);
+    expect(info.choices!.some(c=>c.message==='탐험')).toBe(false);   // 최상위가 없으면 탐험 버튼 숨김
+    expect(info.choices!.some(c=>c.message==='상점')).toBe(true);
+    expect((await send('하급뽑기')).choices![0]).toEqual({label:'하급 한 번 더',message:'하급뽑기'});
+  });
   it('관리자 코드가 설정되지 않으면 관리자가 될 수 없음',async()=>{
     expect((await send('관리자 아무거나')).text).toContain('꺼져 있어요');
     expect((await me()).isAdmin).toBe(false);
@@ -425,7 +442,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.8.2'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.8.3'});
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['C1','C1','C2'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});
