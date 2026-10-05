@@ -459,6 +459,20 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(late.choices).toContainEqual({label:'다시 하기',message:'조합 황금쌍패성기사'});
     expect((await send('관리자 상태')).text).toContain('관리자로 등록된 계정이 아니에요');
   });
+  it('스포일러 방지: 얻은 적 없는 유닛은 그림 대신 실루엣(도감 등급 카드·조합목록·조합식·시너지)',async()=>{
+    await fixtures(['C1','C2']);
+    await db.collectionEntry.create({data:{playerId:(await me()).id,characterId:'C1'}});
+    const face=(r:GameReply,title:string)=>r.cards!.items.find(c=>c.title.includes(title))!.imageId;
+    const dex=await send('도감');
+    expect(face(dex,'흔함')).toBe('C1');// 얻은 유닛
+    expect(['q-IMMORTAL','unknown']).toContain(face(dex,'불멸'));// 못 얻은 등급
+    expect(['q-RARE','unknown']).toContain((await send('조합목록 희귀')).cards!.items[0].imageId);
+    expect(['q-RARE','unknown']).toContain((await send('조합식 황금쌍패성기사')).cards!.items[0].imageId);
+    expect((await send('시너지')).cards!.items.every(c=>c.imageId==='unknown'||c.imageId.startsWith('y-'))).toBe(true);
+    // 얻고 나면 그림
+    await fixtures(['R1']);await db.collectionEntry.create({data:{playerId:(await me()).id,characterId:'R1'}});
+    expect((await send('조합식 황금쌍패성기사')).cards!.items[0].imageId).toBe('R1');
+  });
   it('탐험대 편성: 하나씩 추가·빼기(서버에 저장, 짧은 버튼 명령), 최대 10마리, 출발 후 다른 편성 불가',async()=>{
     await fixtures(['D1','D1','T1','E1','I1',...Array(8).fill('D7')]);
     const start=await send('탐험');
@@ -529,14 +543,14 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.11'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.12'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
       const flow=await db.player.findFirstOrThrow({where:{identity:{contains:'flow-user'}}});
       for(const id of ['S1','U1'])await db.ownedCharacter.create({data:{playerId:flow.id,characterId:id,obtainedVia:'TEST'}});
       const list=await request('조합목록 희귀');
-      expect(list.template.outputs.find((o:any)=>o.carousel).carousel.items[0].thumbnail.imageUrl).toMatch(/^https:\/\/example\.com\/thumbs\/R1\.jpg\?v=[0-9a-z]+$/);
+      expect(list.template.outputs.find((o:any)=>o.carousel).carousel.items[0].thumbnail.imageUrl).toMatch(/^https:\/\/example\.com\/thumbs\/(?:q-RARE|unknown)\.jpg(?:\?v=[0-9a-z]+)?$/);// 아직 못 얻은 R1은 그림 대신 실루엣
       const item=firstButton(list);
       expect(item).toEqual({action:'message',label:'만들기',messageText:'조합 황금쌍패성기사'});
       const confirmItem=selected(await request(item.messageText));
