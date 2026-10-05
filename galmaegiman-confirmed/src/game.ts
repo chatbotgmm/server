@@ -554,7 +554,8 @@ export class GameService {
   private async combine(tx:Tx,p:Player,query:string,now:Date):Promise<GameReply>{
     const known=await this.known(tx,p);
     // 카드로 재료 고르기: "합치기" → 첫 재료, "합치기 A +" → 두 번째 재료, 버튼이 "합치기 A, B"를 보냄
-    const step=query.match(/^(?:(.+?)\s*\+)?\s*(?:쪽\s*(\d+))?$/u);
+    // 카드 고르기 단계: "합치기 A, B 다음"(예전 "+"도 허용) [쪽 N]
+    const step=query.match(/^(?:(.+?)\s*(?:\+|다음))?\s*(?:쪽\s*(\d+))?$/u);
     if(step&&(step[1]||!query||step[2]))return this.combinePicker(tx,p,known,step[1]?.trim(),Number(step[2]??1));
     const materials:string[]=[];
     const units=this.parseUnits(query);
@@ -584,7 +585,7 @@ export class GameService {
     const chosen:Character[]=[];
     const units=chosenText?this.parseUnits(chosenText):[];
     for(const [i,{name,count}] of units.entries()){
-      const c=this.resolve(name,this.revealed(known),'합치기',known,c=>`합치기 ${units.map((u,j)=>`${j===i?c.name:u.name}${u.count>1?` ×${u.count}`:''}`).join(', ')} +`);
+      const c=this.resolve(name,this.revealed(known),'합치기',known,c=>`합치기 ${units.map((u,j)=>`${j===i?c.name:u.name}${u.count>1?` ×${u.count}`:''}`).join(', ')} 다음`);
       if(!('id' in c))return c;
       for(let k=0;k<count;k++)chosen.push(c);
     }
@@ -597,11 +598,11 @@ export class GameService {
     const guide='❔ 숨은 조합 힌트는 "조합목록 히든"에서 볼 수 있어요.\n직접 입력도 돼요: 합치기 이름, 이름';
     if(!pool.length)return this.info({text:`🔮 합치기\n${chosen.length?'더 고를 갈매미가 없어요.':'재료로 쓸 갈매미가 없어요. 뽑기부터!'}`,choices:[...(chosen.length>=2?[choice('이대로 섞기',`합치기 ${label(chosen)}`)]:[]),choice('뽑기'),choice('히든 힌트','조합목록 히든')]},'s-mix');
     const {page,pages,start}=this.page(String(pageNo),pool.length,10);
-    const base=chosen.length?`합치기 ${label(chosen)} +`:'합치기';
+    const base=chosen.length?`합치기 ${label(chosen)} 다음`:'합치기';
     const items:CardEntry[]=pool.slice(start,start+10).map(c=>{
       const next=[...chosen,c];
       return {imageId:this.cardImage(c.id,known),title:`${emblems[c.rarity]} ${c.name}`,description:`${rarityNames[c.rarity]} · 쓸 수 있는 ${left(c)}마리`,
-        buttons:chosen.length?[choice('섞기',`합치기 ${label(next)}`),...(next.length<6?[choice('재료 추가',`합치기 ${label(next)} +`)]:[])]:[choice('첫 재료로',`합치기 ${c.name} +`)]};
+        buttons:chosen.length?[choice('섞기',`합치기 ${label(next)}`),...(next.length<6?[choice('재료 추가',`합치기 ${label(next)} 다음`)]:[])]:[choice('첫 재료로',`합치기 ${c.name} 다음`)]};
     });
     const head=chosen.length?`🔮 고른 재료: ${label(chosen)}\n${chosen.length+1}번째 재료를 고르세요 (${page}/${pages})`:`🔮 합치기 · 첫 재료를 고르세요 (${page}/${pages})\n목록에 없는 숨은 조합도 이렇게 찾아요.`;
     const nav=[...(page>1?[choice('이전',`${base} 쪽 ${page-1}`)]:[]),...(page<pages?[choice('다음 쪽',`${base} 쪽 ${page+1}`)]:[])];

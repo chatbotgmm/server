@@ -358,13 +358,13 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await fixtures(['R1','R2','C1']);
     const step1=await send('합치기');
     expect(step1.cards!.items.map(c=>c.title)).toEqual(['◆ 황금쌍패성기사','◆ 은하매듭직조자','🥚 기본 갈매미맨']);
-    expect(step1.cards!.items[0].buttons![0]).toEqual({label:'첫 재료로',message:'합치기 황금쌍패성기사 +'});
-    const step2=await send('합치기 황금쌍패성기사 +');
+    expect(step1.cards!.items[0].buttons![0]).toEqual({label:'첫 재료로',message:'합치기 황금쌍패성기사 다음'});
+    const step2=await send('합치기 황금쌍패성기사 다음');
     // 황금쌍패성기사는 1마리뿐이라 두 번째 재료 후보에서 빠짐
     expect(step2.cards!.items.map(c=>c.title)).toEqual(['◆ 은하매듭직조자','🥚 기본 갈매미맨']);
     const mix=step2.cards!.items[0].buttons![0];
     expect(mix).toEqual({label:'섞기',message:'합치기 황금쌍패성기사, 은하매듭직조자'});
-    expect(step2.cards!.items[0].buttons![1]).toEqual({label:'재료 추가',message:'합치기 황금쌍패성기사, 은하매듭직조자 +'});
+    expect(step2.cards!.items[0].buttons![1]).toEqual({label:'재료 추가',message:'합치기 황금쌍패성기사, 은하매듭직조자 다음'});
     const preview=await send(mix.message);
     expect(preview.cards!.items[0].imageId).toBe('unknown');
     expect(preview.list!.items[0].button!.action).toBe('confirm');
@@ -513,7 +513,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.5'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.6'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

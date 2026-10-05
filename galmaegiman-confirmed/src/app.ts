@@ -14,7 +14,7 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
   const app=Fastify({logger:options.log??false,bodyLimit:32_768,trustProxy:false});
   await app.register(rateLimit,{global:false});
-  app.get('/health',async()=>({ok:true,mode:'KAKAO_CHANNEL',edition:'GALMAEMI_118',version:'0.9.5'}));
+  app.get('/health',async()=>({ok:true,mode:'KAKAO_CHANNEL',edition:'GALMAEMI_118',version:'0.9.6'}));
   app.get('/ready',async(_req,reply)=>{
     try{await db.$queryRaw`SELECT 1`;return {ready:true};}catch{return reply.code(503).send({ready:false});}
   });
@@ -56,7 +56,10 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
     try{
       const input=parseKakao(req.body,options.botId);
       const result=await game.handle(input.identity,input.message,input.button);
-      return kakaoResponse(result,await options.baseUrl(),stamp);
+      const out=kakaoResponse(result,await options.baseUrl(),stamp);
+      // 진단용: 카카오에 보낸 응답 요약(말풍선 종류·크기·버튼). 개인정보 없음
+      req.log.info({utterance:input.message.slice(0,60),outputs:out.template.outputs.map(o=>Object.keys(o)[0]),bytes:JSON.stringify(out).length,quick:out.template.quickReplies.map(q=>q.label)},'kakao response');
+      return out;
     }catch(e){
       if(e instanceof GameError){
         // 게임 안내 오류도 카드로: 첫 줄 = 제목, 나머지 = 설명
