@@ -498,6 +498,24 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(r.cards!.outro).toContain('기본 갈매미맨 0/2 · 하급 뽑기 / 교환 / 탐험(바다 시너지)');
     expect(r.cards!.items[0].buttons).toContainEqual({label:'기본 갈매미맨 교환',message:'교환 기본 갈매미맨'});
   });
+  it('공개 웹: 홈·세계관·도감, 히든·최상위 스포일러 가림',async()=>{
+    const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com'});
+    try{
+      const get=async(url:string)=>{const r=await app.inject({method:'GET',url});expect(r.statusCode).toBe(200);expect(r.headers['content-type']).toContain('text/html');return r.body;};
+      expect(await get('/')).toContain('갈매미는 존재한다');
+      const world=await get('/world');
+      expect(world).toContain('<h1>갈매미 섬 이야기</h1>');
+      expect(world).toContain('<table>');
+      const dex=await get('/dex');
+      const hidden=content.characters.filter(c=>c.rarity==='HIDDEN');
+      const top=content.characters.filter(c=>['LIMITED','TRANSCEND','ETERNAL','IMMORTAL'].includes(c.rarity));
+      expect(hidden.some(c=>dex.includes(c.name))).toBe(false);          // 히든 이름 비공개
+      expect(hidden.every(c=>!c.hint||dex.includes(c.hint))).toBe(true); // 힌트는 공개
+      expect(top.some(c=>dex.includes(c.introduction))).toBe(false);     // 최상위 이야기 비공개
+      expect(top.some(c=>dex.includes(`thumbs/${c.id}.jpg`))).toBe(false); // 최상위 그림 비공개
+      expect(dex).toContain(content.map.get('C1')!.introduction);
+    }finally{await app.close();}
+  });
   it('탐험대 편성: 하나씩 추가·빼기(서버에 저장, 짧은 버튼 명령), 최대 10마리, 출발 후 다른 편성 불가',async()=>{
     await fixtures(['D1','D1','T1','E1','I1',...Array(8).fill('D7')]);
     const start=await send('탐험');
@@ -568,7 +586,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.18'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.19'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

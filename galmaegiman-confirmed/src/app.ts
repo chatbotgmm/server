@@ -9,12 +9,14 @@ import { ZodError } from 'zod';
 import { GameService } from './game.js';
 import { parseKakao, kakaoResponse, imageIdPattern } from './kakao.js';
 import { GameError } from './types.js';
+import { registerWeb } from './web.js';
+export const VERSION='0.9.19';
 export interface AppOptions {secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string}
 export async function buildApp(db:PrismaClient,game:GameService,options:AppOptions){
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
   const app=Fastify({logger:options.log??false,bodyLimit:32_768,trustProxy:false});
   await app.register(rateLimit,{global:false});
-  app.get('/health',async()=>({ok:true,mode:'KAKAO_CHANNEL',edition:'GALMAEMI_118',version:'0.9.18'}));
+  app.get('/health',async()=>({ok:true,mode:'KAKAO_CHANNEL',edition:'GALMAEMI_118',version:VERSION}));
   app.get('/ready',async(_req,reply)=>{
     try{await db.$queryRaw`SELECT 1`;return {ready:true};}catch{return reply.code(503).send({ready:false});}
   });
@@ -43,6 +45,8 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
     }
     return stamps.get(path)!;
   };
+  // 공개 웹페이지(홈·세계관·도감)
+  registerWeb(app,game.content,{root:options.root??process.cwd(),stamp,version:VERSION});
   for(const path of ['/kakao/skill','/kakao'])app.post(path,{
     // 카카오가 보내는 요청만 키 검증 후 처리. 외부 전달 헤더를 사용자 권한으로 쓰지 않습니다.
     onRequest:async(req,reply)=>{
