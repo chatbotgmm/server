@@ -128,6 +128,10 @@ else if(ev.key==='Enter'&&k>=0){ev.preventDefault();location.href=a[k].href}else
 @media (prefers-color-scheme:dark){:root{--bg:#16181c;--card:#20242a;--text:#ececec;--muted:#a3a3a3;--line:#353a42;--accent:#8fb8e8;--accent-soft:#25303d}}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
 h1,h2,.logo,.stat b,.links a b,.today h3{font-family:"Jua",system-ui,sans-serif;font-weight:400;letter-spacing:.01em}
+/* 사이트 전체 Jua(굵기 1개뿐): 가짜 굵게를 끄고, 강조는 색으로 */
+body{font-synthesis:none}
+p b,p strong,li b,li strong,.prose td b,.prose td strong{color:var(--accent)}
+.event b,.event strong{color:#a0461a}
 body{background-image:radial-gradient(var(--line) 1px,transparent 1.2px),linear-gradient(180deg,transparent 0,transparent 70%,rgba(31,78,121,.06) 100%);background-size:22px 22px,100% 100%;background-attachment:fixed}
 .tabbar{display:none}
 @media (max-width:719px){
@@ -142,7 +146,7 @@ body{background-image:radial-gradient(var(--line) 1px,transparent 1.2px),linear-
 .play{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:999px;background:#fee500;color:#191600;font-weight:800;text-decoration:none;font-size:.9rem;white-space:nowrap;box-shadow:0 1px 0 rgba(0,0,0,.08)}
 .play svg{flex:none}.play:hover{background:#fada0a}
 .play.big{padding:12px 22px;font-size:1rem;box-shadow:0 4px 14px rgba(254,229,0,.35)}
-body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;line-height:1.65;word-break:keep-all;overflow-wrap:anywhere}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Jua",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;line-height:1.65;word-break:keep-all;overflow-wrap:anywhere}
 a{color:var(--accent)}
 header{background:var(--card);border-bottom:1px solid var(--line)}
 @media (min-width:900px){header{position:sticky;top:0;z-index:5}}
@@ -151,7 +155,7 @@ header{background:var(--card);border-bottom:1px solid var(--line)}
 nav{display:flex;gap:2px;flex-wrap:wrap}
 nav a{text-decoration:none;color:var(--muted);padding:5px 10px;border-radius:999px;font-weight:600;font-size:.92rem}
 nav a.on{background:var(--accent-soft);color:var(--accent)}
-form.search{display:flex;gap:6px;flex:1 1 220px;min-width:0}
+form.search{display:flex;gap:6px;flex:1 1 300px;min-width:0}
 form.search input{flex:1;min-width:0;padding:8px 12px;border-radius:999px;border:1.5px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-size:.95rem}
 form.search button{padding:8px 14px;border-radius:999px;border:0;background:var(--accent);color:#fff;font-weight:700;font:inherit}
 @media (prefers-color-scheme:dark){form.search button{color:#10151b}}
