@@ -48,6 +48,20 @@ export function registerWeb(app:FastifyInstance,content:Content,options:WebOptio
   const chip=(id:string,n=1)=>{const c=content.map.get(id)!;
     if(c.rarity==='HIDDEN')return `<a class="uc" href="/hidden#h${hiddenIndex(c)}"><img loading="lazy" src="${img('thumbs','unknown')}" alt="" width="28" height="28">???${n>1?` ×${n}`:''}</a>`;
     return `<a class="uc" href="/dex/${c.id}"><img loading="lazy" src="${img('thumbs',face(c))}" alt="" width="28" height="28">${esc(c.name)}${n>1?` ×${n}`:''}</a>`;};
+  // 조합 계보도: 재료를 거슬러 내려감. 히든 재료는 ??? 로 멈춤(스포일러), 깊은 단계는 접어 둠
+  const expandable=(id:string)=>{const c=content.map.get(id)!;return c.rarity!=='HIDDEN'&&Boolean(recipeOf(id));};
+  const tree=(id:string,n:number,depth:number):string=>{
+    const head=chip(id,n);
+    if(!expandable(id)||depth>12)return `<li>${head}</li>`;
+    const kids=counts(recipeOf(id)!.materials).map(([m,k])=>tree(m,k,depth+1)).join('');
+    return `<li><details${depth<1?' open':''}><summary>${head}</summary><ul>${kids}</ul></details></li>`;
+  };
+  // 흔함 기준 총 필요 수: 더 내려갈 수 없는 재료(흔함·특수함·히든 등)까지 곱해서 합산
+  const baseNeeds=(id:string,mult:number,acc:Map<string,number>)=>{
+    if(!expandable(id)){acc.set(id,(acc.get(id)??0)+mult);return acc;}
+    for(const [m,k] of counts(recipeOf(id)!.materials))baseNeeds(m,mult*k,acc);
+    return acc;
+  };
   const empty:WebData={ranking:async()=>({total:0,generatedAt:new Date(),rows:[]}),seenCounts:async()=>new Map(),hiddenFirsts:async()=>new Map(),searchPlayers:async()=>[],profile:async()=>null,source:()=>''};
   const data=options.data??empty;
 
@@ -86,17 +100,37 @@ document.addEventListener('click',ev=>{if(!f.contains(ev.target))box.hidden=true
 i.addEventListener('keydown',ev=>{const a=[...box.querySelectorAll('a')];if(box.hidden||!a.length)return;let k=a.findIndex(x=>x.classList.contains('on'));
 if(ev.key==='ArrowDown'||ev.key==='ArrowUp'){ev.preventDefault();a[k]?.classList.remove('on');k=ev.key==='ArrowDown'?(k+1)%a.length:(k<=0?a.length-1:k-1);a[k].classList.add('on')}
 else if(ev.key==='Enter'&&k>=0){ev.preventDefault();location.href=a[k].href}else if(ev.key==='Escape')box.hidden=true});})();`;
-  const navItems=[['/','홈'],['/world','세계관'],['/dex','도감'],['/recipes','조합법'],['/hidden','히든'],['/rank','랭킹']];
-  const page=(title:string,active:string,body:string,q='')=>`<!doctype html>
+  const navItems=[['/','홈','🏝'],['/world','세계관','📜'],['/dex','도감','📚'],['/recipes','조합법','🧩'],['/hidden','히든','❔'],['/rank','랭킹','🏆']];
+  // 공유 미리보기(카톡·SNS): 절대 주소가 필요해 economy.homepage 를 씀
+  const site=(content.economy.homepage??'').replace(/\/$/,'');
+  const channel=content.economy.kakaoChannel;
+  const logo=()=>exists('logo')?`<img src="${img('images','logo')}" alt="갈매미맨" height="32" style="height:32px;width:auto;vertical-align:middle">`:'🪨 갈매미맨';
+  interface Og{image?:string;desc?:string}
+  const page=(title:string,active:string,body:string,q='',og:Og={})=>`<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)} · 갈매미맨</title>
-<meta name="description" content="돌로 된 갈매미들이 항구 수비대에 출근하는 섬, 갈매미 섬 이야기">
+<meta name="description" content="${esc(og.desc??'돌로 된 갈매미들이 항구 수비대에 출근하는 섬, 갈매미 섬 이야기')}">
+<meta property="og:type" content="website"><meta property="og:site_name" content="갈매미맨"><meta property="og:description" content="${esc(og.desc??'돌로 된 갈매미들이 항구 수비대에 출근하는 섬, 갈매미 섬 이야기')}">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%AA%A8%3C/text%3E%3C/svg%3E">
-<meta property="og:title" content="${esc(title)} · 갈매미맨"><meta property="og:image" content="${img('images','C1')}">
+<meta property="og:title" content="${esc(title)} · 갈매미맨"><meta property="og:image" content="${site}${og.image??img('images','C1')}">
 <style>
 :root{--bg:#f6f4ef;--card:#fff;--text:#2b2b2b;--muted:#6b6b6b;--line:#e2ddd3;--accent:#1f4e79;--accent-soft:#e3ecf5;--gold:#d9a400}
 @media (prefers-color-scheme:dark){:root{--bg:#16181c;--card:#20242a;--text:#ececec;--muted:#a3a3a3;--line:#353a42;--accent:#8fb8e8;--accent-soft:#25303d}}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+h1,h2,.logo,.stat b,.links a b,.today h3{font-family:"Jua",system-ui,sans-serif;font-weight:400;letter-spacing:.01em}
+body{background-image:radial-gradient(var(--line) 1px,transparent 1.2px),linear-gradient(180deg,transparent 0,transparent 70%,rgba(31,78,121,.06) 100%);background-size:22px 22px,100% 100%;background-attachment:fixed}
+.tabbar{display:none}
+@media (max-width:719px){
+ header nav{display:none}
+ .tabbar{display:grid;grid-template-columns:repeat(6,1fr);position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);padding:4px 2px calc(4px + env(safe-area-inset-bottom))}
+ .tabbar a{display:flex;flex-direction:column;align-items:center;gap:1px;text-decoration:none;color:var(--muted);font-size:.7rem;font-weight:700;padding:4px 0;border-radius:10px}
+ .tabbar a i{font-style:normal;font-size:1.25rem;line-height:1.2}
+ .tabbar a.on{color:var(--accent);background:var(--accent-soft)}
+ main{padding-bottom:96px}
+ footer{padding-bottom:96px}
+}
+.play{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:#fee500;color:#191600;font-weight:800;text-decoration:none;font-size:.9rem;white-space:nowrap}
 body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;line-height:1.65;word-break:keep-all;overflow-wrap:anywhere}
 a{color:var(--accent)}
 header{background:var(--card);border-bottom:1px solid var(--line)}
@@ -187,14 +221,33 @@ a.card:hover{border-color:var(--accent)}
 .title{display:inline-block;margin:2px 4px 2px 0;padding:2px 10px;border-radius:999px;background:#fff3c4;color:#5a4300;font-size:.85rem;font-weight:700}
 .empty{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:24px;text-align:center;color:var(--muted)}
 .note{color:var(--muted);font-size:.85rem}
+.today{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px;text-decoration:none;color:var(--text);box-shadow:0 6px 24px rgba(0,0,0,.08)}
+@media (min-width:720px){.today{grid-template-columns:1fr;max-width:340px;justify-self:center}}
+.today img{width:100%;height:auto;border-radius:12px}
+.today small{color:var(--gold);font-weight:800}.today h3{margin:2px 0;font-size:1.3rem}.today p{margin:0;font-size:.88rem;color:var(--muted)}
+.homegrid{display:grid;gap:10px;grid-template-columns:1fr}
+@media (min-width:720px){.homegrid{grid-template-columns:1fr 1fr}}
+.mini{list-style:none;margin:0 0 6px;padding:0;display:grid;gap:4px}
+.mini li{display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:8px}
+.mini .no{font-size:1.2rem}.mini .sc{font-weight:800}
+.tree,.tree ul{list-style:none;margin:0;padding-left:0}
+.tree ul{padding-left:18px;border-left:2px dashed var(--line);margin-left:14px}
+.tree li{margin:2px 0}
+.tree summary{cursor:pointer;list-style:none;display:inline-block}
+.tree summary::-webkit-details-marker{display:none}
+.tree summary::before{content:'▸ ';color:var(--muted)}.tree details[open]>summary::before{content:'▾ '}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
+.tile{display:block;text-decoration:none;color:var(--text);text-align:center;font-size:.72rem;font-weight:700;line-height:1.25}
+.tile img{width:100%;height:auto;aspect-ratio:1;border-radius:10px;display:block;margin-bottom:3px;background:var(--line)}
 .piece{margin:32px 0 0;padding:16px;border-radius:14px;border:2px dashed var(--gold);background:var(--card);display:grid;gap:4px;text-align:center}
 .piece span{color:var(--muted);font-weight:700}.piece>b{font-size:1.5rem}.piece small{color:var(--muted)}
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40px}
 </style></head><body>
-<header><div class="bar"><a class="logo" href="/">🪨 갈매미맨</a>
-<nav>${navItems.map(([h,l])=>`<a href="${h}"${active===h?' class="on"':''}>${l}</a>`).join('')}</nav>
+<header><div class="bar"><a class="logo" href="/">${logo()}</a>
+<nav>${navItems.map(([h,l])=>`<a href="${h}"${active===h?' class="on"':''}>${l}</a>`).join('')}</nav>${channel?`<a class="play" href="${esc(channel)}" target="_blank" rel="noopener">💬 카톡에서 플레이</a>`:''}
 <form class="search" action="/search" method="get" role="search" autocomplete="off"><input name="q" value="${esc(q)}" placeholder="갈매미·닉네임·이야기 검색 (초성 OK)" aria-label="검색" maxlength="30"><button>검색</button><div class="sug" hidden></div></form></div></header>
 <main>${body}${piece(active)}</main>
+<nav class="tabbar" aria-label="메뉴">${navItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}><i>${i}</i>${l}</a>`).join('')}</nav>
 <footer>갈매미맨 · 카카오톡 채널 챗봇 게임 · v${esc(options.version)}</footer>
 <script>${suggestJs}</script>
 </body></html>`;
@@ -203,16 +256,31 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40
   const limit={config:{rateLimit:{max:600,timeWindow:'1 minute',keyGenerator:()=> 'web'}}};
   const notFound=(reply:FastifyReply,msg:string)=>reply.code(404).type('text/html; charset=utf-8').send(page('없음','',`<div class="empty">${esc(msg)}<br><a href="/">홈으로</a></div>`));
 
-  // ── 홈 ──
+  // ── 홈: 오늘의 갈매미 · 이번 주 TOP 3 · 최근 발견된 히든 · 이벤트 ──
   app.get('/',limit,async(_req,reply)=>{
     const count=(t:string)=>content.characters.filter(c=>c.rarity===t).length;
     const c=huntCoupon();
+    // 오늘의 갈매미: 한국 날짜마다 바뀜(히든·최상위 제외)
+    const pool=content.characters.filter(x=>x.rarity!=='HIDDEN'&&!topTiers.has(x.rarity));
+    const day=Math.floor(DateTime.now().setZone('Asia/Seoul').startOf('day').toSeconds()/86400);
+    const today=pool[((day%pool.length)+pool.length)%pool.length];
+    const week=await data.ranking('WEEK');
+    const board=week.rows.length?{rows:week.rows,unit:'회',label:'이번 주 조합',k:'week'}:{rows:(await data.ranking('DEX')).rows,unit:`/${content.characters.length}`,label:'도감 수집',k:'dex'};
+    const medal=['🥇','🥈','🥉'];
+    const top3=board.rows.slice(0,3).map((r,i)=>`<li><span class="no">${medal[i]}</span><span class="who"><b>${r.nick?`<a href="/p/${encodeURIComponent(r.name)}">${esc(r.name)}</a>`:esc(r.name)}</b></span><span class="sc">${r.score}${board.unit}</span></li>`).join('');
+    const hidden=content.characters.filter(x=>x.rarity==='HIDDEN');
+    const recent=[...(await data.hiddenFirsts())].sort((x,y)=>y[1].at.getTime()-x[1].at.getTime()).slice(0,3)
+      .map(([id,f])=>{const n=hidden.findIndex(x=>x.id===id)+1;return `<a class="uc" href="/hidden#h${n}"><img src="${img('thumbs','unknown')}" alt="" width="28" height="28">히든 #${n} 발견! · ${f.name?esc(f.name):'이름 없는 갈매미'} · ${esc(DateTime.fromJSDate(f.at).setZone('Asia/Seoul').toFormat('M/d'))}</a>`;}).join('');
     const body=`<section class="hero"><div>
 <h1>갈매미는 존재한다.</h1>
 <p class="lead">돌로 된 갈매미들이 <b>갈매미 섬 항구 수비대</b>에 출근해서 항구를 지켜요. 몸이 돌이라 날지는 못해요. 새우깡 봉지 소리에는 약해요.</p>
-<div class="btns"><a class="btn" href="/world">세계관 보기</a><a class="btn ghost" href="/dex">도감 보기</a></div>
-</div><img src="${img('images','C1')}" alt="기본 갈매미맨" width="800" height="800"></section>
+<div class="btns">${channel?`<a class="play" href="${esc(channel)}" target="_blank" rel="noopener">💬 카톡에서 플레이</a>`:''}<a class="btn" href="/world">세계관</a><a class="btn ghost" href="/dex">도감</a></div>
+</div><a class="today" href="/dex/${today.id}"><img src="${img('thumbs',today.id)}" alt="${esc(today.name)}" width="480" height="480"><div><small>☀️ 오늘의 갈매미</small><h3>${esc(today.name)}</h3><p>${esc(today.introduction.split(/(?<=[.!?…])\s+/u)[0])}</p></div></a></section>
 ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 어딘가에 <b>쿠폰 조각 ${c.pieces.length}개</b>가 숨어 있어요. 모두 찾아 카톡에 <b>쿠폰 조각들</b>을 보내면 뽑기권 <b>${c.tickets}장</b>! (1인 1회)</div>`:''}
+<div class="homegrid">
+<div class="box"><h3>🏆 ${board.label} TOP 3</h3>${top3?`<ol class="mini">${top3}</ol>`:'<p class="note">아직 기록이 없어요.</p>'}<a class="note" href="/rank?k=${board.k}">전체 랭킹 →</a></div>
+<div class="box"><h3>❔ 최근 발견된 히든</h3>${recent||'<p class="note">아직 아무도 히든을 찾지 못했어요. 첫 발견자가 되어 보세요!</p>'}<br><a class="note" href="/hidden">히든 단서 보기 →</a></div>
+</div>
 <div class="stats">
 <div class="stat"><b>${content.characters.length}종</b>모을 수 있는 갈매미</div>
 <div class="stat"><b>${content.recipes.length}가지</b>합체 조합</div>
@@ -225,13 +293,18 @@ ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 �
 <a href="/hidden"><b>❔ 히든 단서</b><span>함께 찾을수록 열리는 단서</span></a>
 <a href="/rank"><b>🏆 랭킹</b><span>수비대 근무 평가</span></a>
 </div>`;
-    return send(reply,page('홈','/',body),60);
+    return send(reply,page('홈','/',body,'',{image:img('images',today.id),desc:`오늘의 갈매미: ${today.name} · 돌로 된 갈매미들이 항구 수비대에 출근하는 섬`}),60);
   });
 
   app.get('/world',limit,async(_req,reply)=>send(reply,page('세계관','/world',`<article class="prose">${worldHtml()}</article>`)));
 
   // ── 도감 목록 ──
-  app.get('/dex',limit,async(_req,reply)=>{
+  app.get<{Querystring:{view?:string;sort?:string}}>('/dex',limit,async(req,reply)=>{
+    // 보기: 큰 카드(기본) / 작은 그림(view=s). 정렬: 기본 / 이름순(sort=name)
+    const small=req.query.view==='s',byName=req.query.sort==='name';
+    const qs=(v:boolean,n:boolean)=>{const p=[...(v?['view=s']:[]),...(n?['sort=name']:[])];return `/dex${p.length?`?${p.join('&')}`:''}`;};
+    const tile=(c:Character)=>{const hid=c.rarity==='HIDDEN';
+      return `<a class="tile" href="${hid?`/hidden#h${hiddenIndex(c)}`:`/dex/${c.id}`}" title="${hid?'???':esc(c.name)}"><img loading="lazy" src="${img('thumbs',face(c))}" alt="" width="480" height="480"><span>${hid?'???':esc(c.name)}</span></a>`;};
     const card=(c:Character)=>{
       if(c.rarity==='HIDDEN')return `<a class="card locked" href="/hidden#h${hiddenIndex(c)}"><img loading="lazy" src="${img('thumbs','unknown')}" alt="???" width="480" height="480"><div class="in">${badge(c.rarity)}<h3>???</h3><p>❔ ${esc(c.hint??'합치기로 찾아요')}</p></div></a>`;
       if(topTiers.has(c.rarity))return `<a class="card locked" href="/dex/${c.id}"><img loading="lazy" src="${img('thumbs',face(c))}" alt="${esc(c.name)}" width="480" height="480"><div class="in">${badge(c.rarity)}<h3>${esc(c.name)}</h3><p>모습과 이야기는 게임에서 직접 만나면 열려요.</p></div></a>`;
@@ -239,9 +312,9 @@ ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 �
     };
     const tiers=dexOrder.filter(t=>content.characters.some(c=>c.rarity===t));
     const chips=tiers.map(t=>`<a class="chip" style="color:${tierColor[t]}" href="#${t}">${esc(rarityNames[t])}</a>`).join('');
-    const sections=tiers.map(t=>{const list=content.characters.filter(c=>c.rarity===t);
-      return `<h2 id="${t}" style="scroll-margin-top:110px">${esc(rarityNames[t])} <small style="color:var(--muted);font-weight:500">${list.length}종</small></h2><div class="grid">${list.map(card).join('')}</div>`;}).join('');
-    return send(reply,page('도감','/dex',`<h1>갈매미 도감</h1><p class="lead">${content.characters.length}종의 갈매미. 카드를 누르면 만드는 법과 재료로 쓰이는 곳을 볼 수 있어요.</p><div class="chips">${chips}</div>${sections}`));
+    const sections=tiers.map(t=>{const list=content.characters.filter(c=>c.rarity===t).sort((a,b)=>byName&&a.rarity!=='HIDDEN'?a.name.localeCompare(b.name,'ko'):0);
+      return `<h2 id="${t}" style="scroll-margin-top:110px">${esc(rarityNames[t])} <small style="color:var(--muted);font-weight:500">${list.length}종</small></h2><div class="${small?'tiles':'grid'}">${list.map(small?tile:card).join('')}</div>`;}).join('');
+    return send(reply,page('도감','/dex',`<h1>갈매미 도감</h1><p class="lead">${content.characters.length}종의 갈매미. 카드를 누르면 만드는 법과 재료로 쓰이는 곳을 볼 수 있어요.</p><div class="tabs"><a href="${qs(false,byName)}"${small?'':' class="on"'}>🃏 큰 카드</a><a href="${qs(true,byName)}"${small?' class="on"':''}>🔳 작은 그림</a><a href="${qs(small,false)}"${byName?'':' class="on"'}>번호순</a><a href="${qs(small,true)}"${byName?' class="on"':''}>가나다순</a></div><div class="chips">${chips}</div>${sections}`));
   });
 
   // ── 도감 상세 ──
@@ -253,6 +326,9 @@ ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 �
     const recipe=recipeOf(c.id);
     const usedIn=content.recipes.filter(r=>r.materials.includes(c.id));
     const how=recipe?`<div class="box"><h3>🧩 만드는 법</h3>${counts(recipe.materials).map(([id,n])=>chip(id,n)).join('<span class="eq">+</span>')}</div>`:'';
+    const needs=recipe?[...baseNeeds(c.id,1,new Map())].sort((x,y)=>y[1]-x[1]):[];
+    const lineage=recipe?`<div class="box"><h3>🌳 조합 계보도</h3><ul class="tree">${tree(c.id,1,0)}</ul>
+<p class="note" style="margin:8px 0 4px">처음부터 만들면 필요한 기본 재료 (총 ${needs.reduce((x,y)=>x+y[1],0)}마리)</p>${needs.map(([id,k])=>chip(id,k)).join('')}</div>`:'';
     const used=usedIn.length?`<div class="box"><h3>➡️ 재료로 쓰이는 곳 (${usedIn.length})</h3>${usedIn.map(r=>chip(r.resultId)).join('')}</div>`:'';
     const where=data.source(c.id);
     const body=`<p class="note"><a href="/dex#${c.rarity}">← ${esc(rarityNames[c.rarity])} 도감</a></p>
@@ -260,8 +336,8 @@ ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 �
 <div>${badge(c.rarity)}<h1 style="margin-top:.2em">${esc(c.name)}</h1>
 ${top?'<p class="lead">이 원형의 모습과 이야기는 게임에서 직접 만나면 열려요.</p>':`<p>${esc(c.introduction)}</p><p class="note">💬 「${esc(c.quote)}」</p>`}
 <p class="note">🐦 지금까지 <b>${seen}명</b>의 수비대원이 만났어요.${where?` · 얻는 곳: ${esc(where)}`:''}</p>
-${how}${used}</div></div>`;
-    return send(reply,page(c.name,'/dex',body),60);
+${how}${used}</div></div>${lineage}`;
+    return send(reply,page(c.name,'/dex',body,'',{image:img(top?'thumbs':'images',face(c)),desc:top?`${rarityNames[c.rarity]} ${c.name} · 갈매미맨 도감`:`${rarityNames[c.rarity]} ${c.name} — ${c.introduction.split(/(?<=[.!?…])\s+/u)[0]}`}),60);
   });
 
   // ── 조합법 ──

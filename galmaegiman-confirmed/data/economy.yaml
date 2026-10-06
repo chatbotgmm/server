@@ -29,6 +29,7 @@ tutorial: { tickets: 10 }                    # 튜토리얼 단계마다 🎟
 events: []                                   # 예: - { label: 벚꽃 주간, from: 2026-10-10T00:00:00+09:00, to: 2026-10-17T00:00:00+09:00, claimBonus: 10, snackMultiplier: 2 }
 
 homepage: https://gmm.dpdns.org   # 공식 홈페이지(카톡 안내에 표시)
+# kakaoChannel: https://pf.kakao.com/_xxxxx   # 카톡 채널 주소를 넣으면 웹에 '카톡에서 플레이' 버튼이 생김
 
 coupons:               # 카톡 '쿠폰 코드' 1인 1회. pieces는 홈페이지(세계관·조합법·히든)에 하나씩 숨김. 합치면 code
   - { id: HOMEPAGE_OPEN, label: 공식 홈페이지 창설 기념, code: 따개비도새우깡은못참지, tickets: 500, pieces: [따개비도, 새우깡은, 못참지] }

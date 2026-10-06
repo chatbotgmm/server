@@ -41,6 +41,7 @@ const economySchema=z.object({
   tutorial:z.object({tickets:z.number().int().min(0).max(1000)}).strict(),
   events:z.array(z.object({label:text,from:z.string().datetime({offset:true}),to:z.string().datetime({offset:true}),claimBonus:z.number().int().min(0).max(1000).default(0),snackMultiplier:z.number().min(1).max(10).default(1)}).strict()).max(20),
   homepage:z.string().url().optional(),   // 공식 홈페이지 주소(카톡 안내용)
+  kakaoChannel:z.string().url().optional(),   // 카카오톡 채널 주소(웹 '카톡에서 플레이' 버튼). 비우면 버튼 숨김
   // 쿠폰: 카톡 '쿠폰 코드'로 1인 1회. pieces = 홈페이지에 숨기는 조각(합치면 code). to 없으면 기한 없음
   coupons:z.array(z.object({id:z.string().regex(/^[A-Z0-9_]{2,30}$/),label:text,code:z.string().min(2).max(30),tickets:z.number().int().min(1).max(10000),
     pieces:z.array(z.string().min(1).max(20)).max(5).default([]),from:z.string().datetime({offset:true}).optional(),to:z.string().datetime({offset:true}).optional()}).strict()).max(20).default([]),
