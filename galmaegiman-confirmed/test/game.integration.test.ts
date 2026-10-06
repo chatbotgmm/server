@@ -449,8 +449,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await send(`초대 ${code}`)).text).toContain('내 코드는');
     expect((await send(`초대 ${code}`,'friend')).text).toContain('초대 완료');
     expect((await send(`초대 ${code}`,'friend')).text).toContain('이미');
-    expect((await db.player.findUniqueOrThrow({where:{identity:'friend'}})).credits).toBe(30+30);
-    expect((await me()).credits).toBe(30-2+10+30);
+    expect((await db.player.findUniqueOrThrow({where:{identity:'friend'}})).credits).toBe(30+100);
+    expect((await me()).credits).toBe(30-2+10+100);
   });
   it('랭킹 탭(도감·최상위·주간), 관리자 상태, 확인 만료 시 다시 하기',async()=>{
     await fixtures(['S1','U1','D1']);
@@ -685,7 +685,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.26'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.27'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

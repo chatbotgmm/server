@@ -24,7 +24,7 @@ sell:                  # 남는 유닛 팔기(1마리 값, 새우깡). 각 유�
   HIDDEN: 200
   NEUTRAL: 25
 
-invite: { tickets: 30, max: 20, days: 3 }   # 초대한 사람·받은 사람 각각 🎟, 1인 최대 초대 수, 가입 후 며칠 안에 입력
+invite: { tickets: 100, max: 20, days: 3 }   # 초대한 사람·받은 사람 각각 🎟, 1인 최대 초대 수, 가입 후 며칠 안에 입력
 tutorial: { tickets: 10 }                    # 튜토리얼 단계마다 🎟
 events: []                                   # 예: - { label: 벚꽃 주간, from: 2026-10-10T00:00:00+09:00, to: 2026-10-17T00:00:00+09:00, claimBonus: 10, snackMultiplier: 2 }
 
