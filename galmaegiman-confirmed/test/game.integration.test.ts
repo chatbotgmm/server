@@ -62,9 +62,9 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(multi.text).toContain('하급 뽑기 ×5');
     // 같은 유닛은 한 줄로 묶고 등급 머리말 아래에 표시
     expect(multi.text).toContain('🥚 흔함\n  기본 갈매미맨 ×5');
-    expect(multi.text).toContain('━━━━━━━━━━\n🎟');
+    expect(multi.text).toContain('📌 지금\n🎟');
     expect(multi.cards?.items).toEqual([{imageId:'C1',title:'🥚 기본 갈매미맨 ×5',description:'흔함',buttons:[{label:'도감 보기',message:'도감 기본 갈매미맨'}]}]);
-    expect(multi.cards?.outro).toContain('━━━━━━━━━━\n🎟');
+    expect(multi.cards?.outro).toContain('📌 지금\n🎟');
     // 뽑기 8회째에 '뽑기 5회' 미션 달성 → +20
     expect(multi.text).toContain('오늘의 미션 완료');
     expect((await me()).credits).toBe(30);
@@ -195,9 +195,9 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const p=await fixtures(['C1','C2']);
     await db.collectionEntry.create({data:{playerId:p.id,characterId:'C1'}});
     const dup=await send('하급뽑기');
-    expect(dup.text).toContain('기본 갈매미맨 (2번째)');
+    expect(dup.text).toContain('기본 갈매미맨 (2번째 만남)');
     expect(dup.text).not.toContain('도감 기록');
-    expect(dup.text).toContain('지금 조합 가능 1종');
+    expect(dup.text).toContain('✨ 조합 가능 1종');
   });
   it('뽑기권이 없을 때: 뽑기 메뉴·받기·부족 안내에 다음 시각과 할 일을 보여 줌',async()=>{
     await fixtures(['C1','C1','C2'],{credits:0});
@@ -278,7 +278,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const one=await send('하급뽑기');
     expect(one.cards!.items).toHaveLength(1);
     expect(one.cards!.items[0].buttons![0]).toEqual({label:'도감 보기',message:`도감 ${one.cards!.items[0].title.split(' ').slice(1).join(' ')}`});
-    expect(one.cards!.outro).toContain('━━━━━━━━━━');
+    expect(one.cards!.outro).toContain('📌 지금');
     // 특별 이하는 확인 없이 바로 조합
     const done=await send('조합 금갑');
     expect(done.list).toBeUndefined();
@@ -319,7 +319,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     // 1마리 차이인 조합이 여럿이면 높은 등급 하나를 안내(여기선 특별 유성대장장이 = 운석 + 기본 + 황금)
     await fixtures(['C2','C2'],{credits:30});
     const r=await send('하급뽑기');   // 난수 0 → 기본 갈매미맨 1마리
-    const m=r.text.match(/🔜 \S+ (.+)까지 (.+) 1마리!/);
+    const m=r.text.match(/🔜 \S+ (.+): (.+) 1마리만 더!/);
     expect(m).not.toBeNull();
     expect(r.choices!.some(c=>c.message===`조합식 ${m![1]}`)).toBe(true);
   });
@@ -407,7 +407,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await fixtures(['C1','C1','C2','C1','C3']);
     const r=await send('조합가능');
     expect(r.cards!.intro).toContain('✨ 지금 만들 수 있는 갈매미');
-    expect(r.cards!.items[0].title.startsWith('✨ ')).toBe(true);
+    expect(r.cards!.items[0].description).toMatch(/보유|처음/);
     expect(r.cards!.items[0].buttons![0].label).toBe('지금 만들기');
     expect(r.cards!.items[0].description).toContain('🆕 처음 만드는 갈매미!');
     // 뽑기권 받기 전: 맨 앞에 받기 버튼, 받은 뒤엔 사라짐
@@ -428,7 +428,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(many.cards!.items[0].title).toBe('🔹 금갑 ×3');
     expect(await db.ownedCharacter.count({where:{characterId:'U1',status:'AVAILABLE'}})).toBe(3);
     const list=await send('팔기');
-    expect(list.cards!.items.find(c=>c.title.includes('암흑'))!.description).toContain('남는 3마리');
+    expect(list.cards!.items.find(c=>c.title.includes('암흑'))!.description).toContain('팔 수 있는 3마리');
     const sell=await send('팔기 암흑 갈매미맨 전부');
     expect(sell.list!.items[0].message).toBe('팔기 확정');
     await confirm(sell);
@@ -483,6 +483,14 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(r.cards!.outro).toMatch(/^📖 이야기\n/);
     expect(r.cards!.outro).toMatch(/\n\n💬 「.+」$/);
     expect(r.cards!.outro!.split('\n').length).toBeGreaterThan(3);
+  });
+  it('이벤트: 진행 중이 아니면 안내, 기간이면 내용과 기한',async()=>{
+    expect((await send('이벤트')).text).toContain('진행 중인 이벤트가 없어요');
+    const ev={label:'벚꽃 주간',from:'2026-10-01T00:00:00+09:00',to:'2026-10-08T00:00:00+09:00',claimBonus:10,snackMultiplier:2};
+    game=new GameService(db,{...content,economy:{...content.economy,events:[ev]}},()=>now,new GachaEngine(content.characters,content.economy.gachas,()=>0),max=>max-1);
+    const r=await send('이벤트');
+    expect(r.text).toContain('벚꽃 주간');
+    expect(r.text).toContain('새우깡 보상 ×2');
   });
   it('조합식: 얻는 곳에 교환·탐험도 표시, 모자란 흔함·안흔함은 교환 버튼',async()=>{
     await fixtures(['C2']);
@@ -560,7 +568,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.16'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.17'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
