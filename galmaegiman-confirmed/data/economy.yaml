@@ -28,6 +28,11 @@ invite: { tickets: 30, max: 20, days: 3 }   # 초대한 사람·받은 사람 �
 tutorial: { tickets: 10 }                    # 튜토리얼 단계마다 🎟
 events: []                                   # 예: - { label: 벚꽃 주간, from: 2026-10-10T00:00:00+09:00, to: 2026-10-17T00:00:00+09:00, claimBonus: 10, snackMultiplier: 2 }
 
+homepage: https://gmm.dpdns.org   # 공식 홈페이지(카톡 안내에 표시)
+
+coupons:               # 카톡 '쿠폰 코드' 1인 1회. pieces는 홈페이지(세계관·조합법·히든)에 하나씩 숨김. 합치면 code
+  - { id: HOMEPAGE_OPEN, label: 공식 홈페이지 창설 기념, code: 끼룩단은새우깡을못가져간다, tickets: 500, pieces: [끼룩단은, 새우깡을, 못가져간다] }
+
 shop:                  # 상점 (새우깡 사용처)
   tickets: { snacks: 1000, amount: 10 }   # 뽑기권 1장 ≈ 하급 기대가치 흔함 0.69마리 × 150 ≈ 104 → 장당 100
   expeditionSkip: { snacks: 100 }          # 진행 중인 탐험 바로 귀환

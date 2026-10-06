@@ -485,12 +485,28 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(r.cards!.outro!.split('\n').length).toBeGreaterThan(3);
   });
   it('이벤트: 진행 중이 아니면 안내, 기간이면 내용과 기한',async()=>{
+    expect((await send('이벤트')).text).toContain('쿠폰');   // 쿠폰 진행 중이면 쿠폰 안내
+    game=new GameService(db,{...content,economy:{...content.economy,coupons:[]}},()=>now,new GachaEngine(content.characters,content.economy.gachas,()=>0),max=>max-1);
     expect((await send('이벤트')).text).toContain('진행 중인 이벤트가 없어요');
     const ev={label:'벚꽃 주간',from:'2026-10-01T00:00:00+09:00',to:'2026-10-08T00:00:00+09:00',claimBonus:10,snackMultiplier:2};
     game=new GameService(db,{...content,economy:{...content.economy,events:[ev]}},()=>now,new GachaEngine(content.characters,content.economy.gachas,()=>0),max=>max-1);
     const r=await send('이벤트');
     expect(r.text).toContain('벚꽃 주간');
     expect(r.text).toContain('새우깡 보상 ×2');
+  });
+  it('쿠폰: 조각을 합친 코드(공백 무시)로 뽑기권, 1인 1회, 틀린 코드·기간 밖은 거절',async()=>{
+    const c=content.economy.coupons.find(x=>x.id==='HOMEPAGE_OPEN')!;
+    expect(c.pieces.join('')).toBe(c.code);
+    const before=(await me()).credits;
+    expect((await send('쿠폰')).text).toContain(c.label);
+    expect((await send('쿠폰 갈매미는없다')).text).toContain('맞는 쿠폰이 없어요');
+    expect((await send(`쿠폰 ${c.pieces.join(' ')}`)).text).toContain(`뽑기권 +${c.tickets}`);
+    expect((await me()).credits).toBe(before+c.tickets);
+    expect((await send(`쿠폰 ${c.code}`)).text).toContain('이미 받은 쿠폰');
+    expect((await me()).credits).toBe(before+c.tickets);
+    // 기간이 끝난 쿠폰은 없는 것처럼
+    game=new GameService(db,{...content,economy:{...content.economy,coupons:[{...c,id:'OLD',to:'2026-01-01T00:00:00+09:00'}]}},()=>now,new GachaEngine(content.characters,content.economy.gachas,()=>0),max=>max-1);
+    expect((await send(`쿠폰 ${c.code}`,'other-user')).text).toContain('맞는 쿠폰이 없어요');
   });
   it('조합식: 얻는 곳에 교환·탐험도 표시, 모자란 흔함·안흔함은 교환 버튼',async()=>{
     await fixtures(['C2']);
@@ -538,6 +554,38 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(body).not.toContain('thumbs/D1.jpg');                          // 최상위 그림 가림
       expect((await app.inject({method:'GET',url:'/rank?k=week'})).statusCode).toBe(200);
       expect((await app.inject({method:'GET',url:'/rank?k=top'})).body).toContain(content.map.get('D1')!.name);
+    }finally{await app.close();}
+  });
+  it('공개 웹: 검색(이름·초성·닉네임)·조합법·히든 단서·상세·프로필·쿠폰 조각, 히든 이름 비공개',async()=>{
+    const p1=await db.player.create({data:{identity:'w1',nickname:'돌왕',tutorial:3}});
+    await db.collectionEntry.createMany({data:['C1','C2','U1','H1'].map(characterId=>({playerId:p1.id,characterId}))});
+    await db.auditEvent.create({data:{playerId:p1.id,kind:'CRAFT',detail:{recipe:'H1',times:1}}});
+    const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com'});
+    try{
+      const get=async(url:string,code=200)=>{const r=await app.inject({method:'GET',url});expect(r.statusCode).toBe(code);return r.body;};
+      const hiddenNames=content.characters.filter(c=>c.rarity==='HIDDEN').map(c=>c.name);
+      const noHidden=(html:string)=>expect(hiddenNames.filter(n=>html.includes(`>${n}<`)||html.includes(`${n}</`))).toEqual([]);
+      // 검색: 이름, 초성, 닉네임
+      const byName=await get('/search?q='+encodeURIComponent('금갑'));expect(byName).toContain('/dex/U1');
+      expect(await get('/search?q='+encodeURIComponent('ㄱㄱ'))).toContain('/dex/U1');
+      expect(await get('/search?q='+encodeURIComponent('돌'))).toContain('/p/'+encodeURIComponent('돌왕'));
+      noHidden(await get('/search?q='+encodeURIComponent('갈매미')));
+      // 조합법·상세
+      const rec=await get('/recipes');expect(rec).toContain('/dex/U1');noHidden(rec);
+      const det=await get('/dex/U1');expect(det).toContain('만드는 법');expect(det).toContain('재료로 쓰이는 곳');
+      expect((await app.inject({method:'GET',url:'/dex/H1'})).statusCode).toBe(302);
+      await get('/dex/ZZ9',404);
+      // 히든: 1명 발견 → 초성 공개, 3명 전 → 재료 이름 잠김, 최초 발견자 표시
+      const hid=await get('/hidden');noHidden(hid);
+      expect(hid).toContain('재료 초성');expect(hid).toContain('최초 발견: <a href="/p/'+encodeURIComponent('돌왕'));
+      expect(hid).toContain('🔒 단서 4');
+      // 프로필
+      const prof=await get('/p/'+encodeURIComponent('돌왕'));expect(prof).toContain('4/'+content.characters.length);expect(prof).toContain('1개</b>히든 최초 발견');
+      await get('/p/'+encodeURIComponent('없는사람'),404);
+      // 쿠폰 조각: 세계관·조합법·히든에 하나씩, 홈에 이벤트 배너
+      const c=content.economy.coupons.find(x=>x.id==='HOMEPAGE_OPEN')!;
+      expect(await get('/world')).toContain(`「${c.pieces[0]}」`);expect(rec).toContain(`「${c.pieces[1]}」`);expect(hid).toContain(`「${c.pieces[2]}」`);
+      const home=await get('/');expect(home).toContain(c.label);expect(home).not.toContain(c.code);
     }finally{await app.close();}
   });
   it('탐험대 편성: 하나씩 추가·빼기(서버에 저장, 짧은 버튼 명령), 최대 10마리, 출발 후 다른 편성 불가',async()=>{
@@ -610,7 +658,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.20'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.21'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

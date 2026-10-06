@@ -938,8 +938,68 @@ export class GameService {
       const best=new Map<string,Character>();
       // 최고 유닛: 등급이 높고, 같으면 뒤 번호(카톡 랭킹과 같은 기준)
       for(const g of got){const c=this.content.map.get(g.characterId),b=best.get(g.playerId);if(c&&(!b||tiers[c.rarity]>tiers[b.rarity]||(tiers[c.rarity]===tiers[b.rarity]&&c.position>b.position)))best.set(g.playerId,c);}
-      return {total:rows.length,generatedAt:now,rows:top.map((r,i)=>({rank:i+1,name:players.find(x=>x.id===r.playerId)?.nickname??`갈매미 #${r.playerId.slice(0,4)}`,score:r.score,best:best.get(r.playerId)??null}))};
+      return {total:rows.length,generatedAt:now,rows:top.map((r,i)=>{const nick=players.find(x=>x.id===r.playerId)?.nickname;return {rank:i+1,name:nick??`갈매미 #${r.playerId.slice(0,4)}`,nick:Boolean(nick),score:r.score,best:best.get(r.playerId)??null};})};
     }
+  }
+  // 쿠폰: 공백 무시하고 코드 비교, 1인 1회(Achievement 키 COUPON_<id>), 기간 확인
+  private async coupon(tx:Tx,p:Player,query:string,now:Date):Promise<GameReply>{
+    const site=this.content.economy.homepage?.replace(/^https?:\/\//,'')??'공식 홈페이지';
+    const active=this.content.economy.coupons.filter(c=>(!c.from||new Date(c.from)<=now)&&(!c.to||now<new Date(c.to)));
+    const typed=query.replace(/\s+/g,'');
+    if(!typed)return this.info({text:`🎟 쿠폰\n${active.length?`지금 진행 중: ${active.map(c=>`${c.label} (뽑기권 ${c.tickets}장)`).join(', ')}\n${site} 곳곳에 숨은 쿠폰 조각을 모아 보세요.`:'지금 진행 중인 쿠폰이 없어요.'}\n입력: 쿠폰 코드`,choices:[choice('뽑기'),...menu.slice(1)]},'s-event');
+    const c=active.find(x=>x.code.replace(/\s+/g,'')===typed);
+    if(!c)throw new GameError(`🎟 맞는 쿠폰이 없어요.\n조각을 모두 모았는지, 순서가 맞는지 확인해 보세요.\n힌트는 ${site} 에 있어요.`);
+    const key=`COUPON_${c.id}`;
+    if(await tx.achievement.findUnique({where:{playerId_key:{playerId:p.id,key}}}))throw new GameError(`🎟 이미 받은 쿠폰이에요.\n${c.label} 쿠폰은 한 번만 받을 수 있어요.`);
+    await tx.achievement.create({data:{playerId:p.id,key,createdAt:now}});
+    await tx.player.update({where:{id:p.id},data:{credits:{increment:c.tickets},revision:{increment:1}}});
+    await this.audit(tx,p,'COUPON',{coupon:c.id,tickets:c.tickets});
+    return this.info({text:`🎉 쿠폰 사용 완료!\n${c.label}\n🎟 뽑기권 +${c.tickets}장 (지금 ${unlimited(p)?'무제한':`${p.credits+c.tickets}장`})`,choices:[choice('고급 ×10','고급뽑기 10'),choice('뽑기'),...menu.slice(1)]},'s-ticket');
+  }
+  // ───────── 공개 웹용 읽기 (트랜잭션 없이, 짧게 캐시) ─────────
+  private webCache=new Map<string,{at:number;data:unknown}>();
+  private async cached<T>(key:string,ms:number,load:()=>Promise<T>):Promise<T>{
+    const now=Date.now(),hit=this.webCache.get(key);
+    if(hit&&now-hit.at<ms)return hit.data as T;
+    const data=await load();this.webCache.set(key,{at:now,data});return data;
+  }
+  private get reader(){return this.db as unknown as Tx;}
+  sourceText(id:string){return this.source(id);}
+  // 유닛별로 만난 사람 수(관리자 모드 제외)
+  async seenCounts():Promise<Map<string,number>>{
+    return this.cached('seen',60_000,async()=>new Map((await this.reader.collectionEntry.groupBy({by:['characterId'],where:{player:{adminMode:false}},_count:{_all:true}})).map(r=>[r.characterId,r._count._all])));
+  }
+  // 히든별 최초 발견자(닉네임 없으면 null)와 시각: 조합 기록에서 가장 이른 것
+  async hiddenFirsts():Promise<Map<string,{name:string|null;at:Date}>>{
+    return this.cached('firsts',60_000,async()=>{
+      const want=new Set(this.content.hiddenIds),found=new Map<string,{playerId:string;at:Date}>();
+      for(let skip=0;want.size;skip+=1000){
+        const batch=await this.reader.auditEvent.findMany({where:{kind:'CRAFT',player:{adminMode:false}},orderBy:{createdAt:'asc'},skip,take:1000,select:{playerId:true,detail:true,createdAt:true}});
+        for(const e of batch){const id=String((e.detail as {recipe?:string}).recipe??'');if(want.has(id)){want.delete(id);found.set(id,{playerId:e.playerId,at:e.createdAt});}}
+        if(batch.length<1000)break;
+      }
+      const players=await this.reader.player.findMany({where:{id:{in:[...found.values()].map(f=>f.playerId)}},select:{id:true,nickname:true}});
+      return new Map([...found].map(([id,f])=>[id,{name:players.find(x=>x.id===f.playerId)?.nickname??null,at:f.at}]));
+    });
+  }
+  // 닉네임 검색(관리자 모드 제외, 최대 10명)
+  async searchPlayers(q:string){
+    if(!q.trim())return [];
+    return (await this.reader.player.findMany({where:{nickname:{contains:q.trim()},adminMode:false},select:{nickname:true},take:10,orderBy:{nickname:'asc'}})).map(p=>p.nickname!);
+  }
+  // 공개 프로필: 등급별 수집 수, 순위, 칭호, 최고 유닛, 최초 발견 히든 수
+  async webProfile(nickname:string){
+    const p=await this.reader.player.findFirst({where:{nickname,adminMode:false}});
+    if(!p)return null;
+    const now=this.clock();
+    const got=(await this.reader.collectionEntry.findMany({where:{playerId:p.id},select:{characterId:true}})).map(g=>this.content.map.get(g.characterId)).filter((c):c is Character=>Boolean(c));
+    const byTier=new Map<string,number>();for(const c of got)byTier.set(c.rarity,(byTier.get(c.rarity)??0)+1);
+    const best=[...got].sort((a,b)=>tiers[b.rarity]-tiers[a.rarity]||b.position-a.position)[0]??null;
+    const rankOf=async(kind:'DEX'|'TOP'|'WEEK')=>{const rows=await this.rankRows(this.reader,kind,now);const i=rows.findIndex(r=>r.playerId===p.id);return i<0?null:{rank:i+1,total:rows.length,score:rows[i].score};};
+    const [dex,top,week]=[await rankOf('DEX'),await rankOf('TOP'),await rankOf('WEEK')];
+    const titles=await this.titles(this.reader,p);
+    const firsts=[...(await this.hiddenFirsts()).values()].filter(f=>f.name===nickname).length;
+    return {nickname,joined:p.createdAt,dex:got.length,byTier,best,dexRank:dex,topRank:top,weekRank:week,titles,firsts};
   }
   private async ranking(tx:Tx,p:Player,mode:string,now:Date):Promise<GameReply>{
     const kind=mode==='최상위'?'TOP':mode==='주간'?'WEEK':'DEX';
@@ -1332,11 +1392,16 @@ export class GameService {
       return this.issue(tx,p,'RECEIVE',{characterId:c.id},now,`🍤 → ${emblems[c.rarity]} ${c.name}\n새우깡 ${cost}개 (지금 ${p.snack}개)`,this.seenImage(c.id,new Set()),`새우깡 ${cost}개를 써요`,
         {items:[{imageId:this.face(c.id,new Set()),title:`🍤 → ${emblems[c.rarity]} ${c.name}`,description:`새우깡 ${cost}개 · 지금 ${p.snack}개`}]});
     }
+    if(command==='쿠폰'||command==='코드')return this.coupon(tx,p,query,now);
     if(command==='이벤트'){
       const ev=this.event(now);
+      const site=this.content.economy.homepage?.replace(/^https?:\/\//,'')??'공식 홈페이지';
+      const coupons=this.content.economy.coupons.filter(c=>(!c.from||new Date(c.from)<=now)&&(!c.to||now<new Date(c.to)));
+      const couponLine=coupons.length?`\n\n🎟 쿠폰: ${coupons.map(c=>`${c.label} (뽑기권 ${c.tickets}장)`).join(', ')}\n${site} 에 숨은 조각을 모아 '쿠폰 코드'로 입력!`:'';
+      if(!ev&&coupons.length)return this.info({text:`🎉 이벤트${couponLine}`,choices:[choice('쿠폰'),choice('뽑기'),...menu.slice(1)]},'s-event');
       if(!ev)return this.info({text:'🎉 이벤트\n지금 진행 중인 이벤트가 없어요.\n열리면 뽑기 화면 맨 앞에 알려 드려요.',choices:[choice('뽑기'),...menu.slice(1)]},'s-event');
       const what=[...(ev.claimBonus?[`뽑기권 받기 +${ev.claimBonus}장 더`]:[]),...(ev.snackMultiplier>1?[`새우깡 보상 ×${ev.snackMultiplier}`]:[])];
-      return this.info({text:`🎉 ${ev.label}\n${what.join('\n')}\n~ ${DateTime.fromISO(ev.to).setZone('Asia/Seoul').toFormat('M/d HH:mm')}까지`,choices:[choice('뽑기권 받기','뽑기권받기'),choice('뽑기'),...menu.slice(1)]},'s-event');
+      return this.info({text:`🎉 ${ev.label}\n${what.join('\n')}\n~ ${DateTime.fromISO(ev.to).setZone('Asia/Seoul').toFormat('M/d HH:mm')}까지${couponLine}`,choices:[choice('뽑기권 받기','뽑기권받기'),choice('뽑기'),...menu.slice(1)]},'s-event');
     }
     if(command==='상점')return this.shop(tx,p,args.join(''),now);
     if(command==='팔기'||command==='판매')return this.sell(tx,p,query,now);
