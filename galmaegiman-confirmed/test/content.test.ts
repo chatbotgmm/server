@@ -1,19 +1,19 @@
 import {describe,it,expect} from 'vitest';
 import {loadContent,tiers,topTiers} from '../src/content.js';
 const content=loadContent();
-describe('142종 콘텐츠',()=>{
-  it('등급별 수량 9/16/19/23/23/18/8/8/8/9/특수함 1 = 142',()=>{
+describe('145종 콘텐츠',()=>{
+  it('등급별 수량 9/16/19/23/23/21/8/8/8/9/특수함 1 = 145',()=>{
     const count=(t:string)=>content.characters.filter(c=>c.rarity===t).length;
-    expect([count('COMMON'),count('UNCOMMON'),count('SPECIAL'),count('RARE'),count('LEGEND'),count('HIDDEN'),count('LIMITED'),count('TRANSCEND'),count('ETERNAL'),count('IMMORTAL'),count('NEUTRAL')]).toEqual([9,16,19,23,23,18,8,8,8,9,1]);
-    expect(content.characters).toHaveLength(142);
+    expect([count('COMMON'),count('UNCOMMON'),count('SPECIAL'),count('RARE'),count('LEGEND'),count('HIDDEN'),count('LIMITED'),count('TRANSCEND'),count('ETERNAL'),count('IMMORTAL'),count('NEUTRAL')]).toEqual([9,16,19,23,23,21,8,8,8,9,1]);
+    expect(content.characters).toHaveLength(145);
   });
-  it('흔함·특수함을 뺀 132종 모두 조합식 1개, 재료는 결과보다 낮은 단계',()=>{
-    expect(content.recipes).toHaveLength(132);
+  it('흔함·특수함을 뺀 135종 모두 조합식 1개, 재료는 결과보다 낮은 단계',()=>{
+    expect(content.recipes).toHaveLength(135);
     for(const r of content.recipes)for(const m of r.materials)expect(tiers[content.map.get(m)!.rarity]).toBeLessThan(tiers[content.map.get(r.resultId)!.rarity]);
   });
-  it('히든 18종만 비공개 조합',()=>{
+  it('히든 21종만 비공개 조합',()=>{
     expect(content.recipes.filter(r=>r.hidden).map(r=>r.resultId).sort()).toEqual([...content.hiddenIds].sort());
-    expect(content.hiddenIds).toHaveLength(18);
+    expect(content.hiddenIds).toHaveLength(21);
   });
   it('최상위 33종 시너지: 원형 6그룹×4 + 갈 의복 9',()=>{
     const top=content.characters.filter(c=>topTiers.has(c.rarity));

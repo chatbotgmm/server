@@ -94,7 +94,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   });
   it('히든: 목록·도감·이름 검색에서 숨김, 합치기로 발견하면 공개',async()=>{
     await fixtures(['R1','R2']);
-    expect((await send('조합목록')).text).toContain('히든 · 발견 0/18');
+    expect((await send('조합목록')).text).toContain('히든 · 발견 0/21');
     const hint=await send('조합목록 히든');
     expect(hint.cards!.items[0]).toMatchObject({imageId:'unknown',title:'???',description:'❔ 힌트: 방패 두 장을 매듭으로 묶었다. 왜 그 모양인지는 묻지 말 것.'});
     // 한 쪽 카드 수는 카카오 글자 예산 안에서(힌트 문구가 길어 10장보다 적음)
@@ -359,7 +359,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await db.collectionEntry.create({data:{playerId:other.id,characterId:'C3'}});
     const rank=await send('랭킹');
     expect(rank.cards!.items.map(i=>i.title)).toEqual(['🥇 갈매미왕','🥈 둘째']);
-    expect(rank.cards!.items[0].description).toContain('📚 2/142');
+    expect(rank.cards!.items[0].description).toContain('📚 2/145');
     expect(rank.text).toContain('내 순위: 1위 / 2명');
     expect((await send('닉네임 갈매미왕','other-rank')).text).toContain('이미 누가');
     expect((await send('닉네임 a')).text).toContain('2~10자');
@@ -836,6 +836,15 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await send('장식 빼기');expect((await me()).badge).toBeNull();
     await send('장식 달기 왕관');expect((await me()).badge).toBe('CROWN');
   });
+  it('새 히든(중성 갈매미 재료): 회의 중 갈매미·바스락상회 사장·인사팀장 갈매미를 재료로 직접 조합해서 발견',async()=>{
+    for(const [mats,name] of [[['N1','N1','N1','C1'],'회의 중 갈매미'],[['N1','C2','U1'],'바스락상회 사장'],[['N1','R17','R19'],'인사팀장 갈매미']] as const){
+      await fixtures([...mats]);
+      const names=[...new Set(mats)].map(id=>{const n=mats.filter(x=>x===id).length;return `${content.map.get(id)!.name}${n>1?` ×${n}`:''}`;}).join(', ');
+      const preview=await send(`조합 ${names}`);
+      expect(preview.text).toContain('???');expect(JSON.stringify(preview)).not.toContain(name);
+      expect((await confirm(preview)).text).toContain(name);
+    }
+  });
   it('HTTP 요청 제한: 웹은 방문자(CF-Connecting-IP)마다, 카톡은 사람마다 따로',async()=>{
     const secret='rate-limit-http-secret-'.repeat(3);
     const app=await buildApp(db,game,{secret,baseUrl:async()=>''});
@@ -860,7 +869,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.41'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.42'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
