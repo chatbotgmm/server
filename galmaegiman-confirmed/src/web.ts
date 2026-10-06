@@ -374,7 +374,7 @@ ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 �
 <a href="/event"><b>🎁 이벤트</b><span>쿠폰·친구 초대·튜토리얼 보상</span></a>
 <a href="/world"><b>📜 세계관</b><span>섬과 동네, 악당 끼룩단</span></a>
 <a href="/dex"><b>📚 도감</b><span>${content.characters.length}종의 이야기</span></a>
-<a href="/recipes"><b>🧩 조합법</b><span>누구랑 안으면 뭐가 될까</span></a>
+<a href="/recipes"><b>🧩 조합법</b><span>누구를 같은 자리로 발령 낼까</span></a>
 <a href="/hidden"><b>❔ 히든 단서</b><span>함께 찾을수록 열리는 단서</span></a>
 <a href="/talk"><b>💬 수다방</b><span>갈매미마다 남긴 한마디</span></a>
 <a href="/rank"><b>🏆 랭킹</b><span>수비대 근무 평가</span></a>
@@ -491,7 +491,7 @@ ${how}${used}</div></div>${lineage}
         list.map(r=>`<div class="rec"><div>${chip(r.resultId)}</div><div><span class="eq">=</span>${counts(r.materials).map(([id,n])=>chip(id,n)).join('<span class="eq">+</span>')}</div></div>`).join('');
     }).join('');
     const hiddenCount=content.characters.filter(c=>c.rarity==='HIDDEN').length;
-    return send(reply,page('조합법','/recipes',`${recipeTabs('/recipes')}<h1>조합법</h1><p class="lead">누구를 누구랑 꼭 안아 주면 무엇이 될까요? 이름을 누르면 그 갈매미의 상세로 가요. 히든 ${hiddenCount}종의 조합법은 비밀이에요. <a href="/hidden">단서 보러 가기</a></p><div class="chips">${chips}</div>${sections}`));
+    return send(reply,page('조합법','/recipes',`${recipeTabs('/recipes')}<h1>조합법</h1><p class="lead">누구랑 누구를 같은 자리로 발령 내면 무엇이 될까요? (수비대 인사팀 발령 명단) 이름을 누르면 그 갈매미의 상세로 가요. 히든 ${hiddenCount}종의 조합법은 비밀이에요. <a href="/hidden">단서 보러 가기</a></p><div class="chips">${chips}</div>${sections}`));
   });
 
   // ── 히든 단서 ──
