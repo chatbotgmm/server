@@ -904,8 +904,8 @@ export class GameService {
   // ───────── 랭킹 ─────────
   // 도감 수집 수 순위. 관리자 모드를 켠 계정은 제외합니다.
   // 랭킹: 도감(수집 종 수) / 최상위(보유 최상위 수) / 주간(이번 주 조합 횟수, 월요일 0시 기준)
-  private async ranking(tx:Tx,p:Player,mode:string,now:Date):Promise<GameReply>{
-    const kind=mode==='최상위'?'TOP':mode==='주간'?'WEEK':'DEX';
+  // 랭킹 점수(관리자 모드 제외). 카톡 랭킹과 웹 랭킹이 같은 기준을 씁니다
+  private async rankRows(tx:Tx,kind:'DEX'|'TOP'|'WEEK',now:Date){
     const where={player:{adminMode:false}};
     let rows:{playerId:string;score:number}[];
     if(kind==='DEX')rows=(await tx.collectionEntry.groupBy({by:['playerId'],where,_count:{_all:true}})).map(r=>({playerId:r.playerId,score:r._count._all}));
@@ -917,7 +917,33 @@ export class GameService {
       for(const c of crafts)sum.set(c.playerId,(sum.get(c.playerId)??0)+Number((c.detail as {times?:number}).times??1));
       rows=[...sum].map(([playerId,score])=>({playerId,score}));
     }
-    rows.sort((a,b)=>b.score-a.score||a.playerId.localeCompare(b.playerId));
+    return rows.sort((a,b)=>b.score-a.score||a.playerId.localeCompare(b.playerId));
+  }
+  // 웹 공개 랭킹: 순위·이름(닉네임 없으면 갈매미 #앞4자리)·점수·최고 유닛.
+  // 게임 요청 처리(트랜잭션 대기열)를 막지 않도록 트랜잭션 없이 읽고, 30초 동안 결과를 재사용합니다
+  private rankCache=new Map<string,{at:number;data:Awaited<ReturnType<GameService['loadRanking']>>}>();
+  async publicRanking(kind:'DEX'|'TOP'|'WEEK',limit=50){
+    const now=this.clock(),hit=this.rankCache.get(kind);
+    if(hit&&now.getTime()-hit.at<30_000)return hit.data;
+    const data=await this.loadRanking(kind,limit,now);
+    this.rankCache.set(kind,{at:now.getTime(),data});
+    return data;
+  }
+  private async loadRanking(kind:'DEX'|'TOP'|'WEEK',limit:number,now:Date){
+    const tx=this.db as unknown as Tx;
+    {
+      const rows=await this.rankRows(tx,kind,now),top=rows.slice(0,limit),ids=top.map(r=>r.playerId);
+      const players=await tx.player.findMany({where:{id:{in:ids}},select:{id:true,nickname:true}});
+      const got=await tx.collectionEntry.findMany({where:{playerId:{in:ids}},select:{playerId:true,characterId:true}});
+      const best=new Map<string,Character>();
+      // 최고 유닛: 등급이 높고, 같으면 뒤 번호(카톡 랭킹과 같은 기준)
+      for(const g of got){const c=this.content.map.get(g.characterId),b=best.get(g.playerId);if(c&&(!b||tiers[c.rarity]>tiers[b.rarity]||(tiers[c.rarity]===tiers[b.rarity]&&c.position>b.position)))best.set(g.playerId,c);}
+      return {total:rows.length,generatedAt:now,rows:top.map((r,i)=>({rank:i+1,name:players.find(x=>x.id===r.playerId)?.nickname??`갈매미 #${r.playerId.slice(0,4)}`,score:r.score,best:best.get(r.playerId)??null}))};
+    }
+  }
+  private async ranking(tx:Tx,p:Player,mode:string,now:Date):Promise<GameReply>{
+    const kind=mode==='최상위'?'TOP':mode==='주간'?'WEEK':'DEX';
+    const rows=await this.rankRows(tx,kind,now);
     const unit=kind==='DEX'?'📚':kind==='TOP'?'🗿':'🧩';
     const title=kind==='DEX'?'도감 수집':kind==='TOP'?'최상위 보유':'이번 주 조합';
     const known=await this.known(tx,p);

@@ -6,6 +6,7 @@ import { readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { marked } from 'marked';
+import { DateTime } from 'luxon';
 import type { Character, Content } from './content.js';
 import { rarityNames, topTiers } from './content.js';
 
@@ -15,7 +16,8 @@ const tierColor:Record<string,string>={COMMON:'#7d7d7d',UNCOMMON:'#2e9d5b',SPECI
 // 웹 도감 등급 순서(특수함은 안흔함 다음)
 const dexOrder=['COMMON','UNCOMMON','NEUTRAL','SPECIAL','RARE','LEGEND','HIDDEN','LIMITED','TRANSCEND','ETERNAL','IMMORTAL'] as const;
 
-export interface WebOptions{root:string;stamp:(path:string)=>string;version:string}
+export interface RankRow{rank:number;name:string;score:number;best:Character|null}
+export interface WebOptions{root:string;stamp:(path:string)=>string;version:string;ranking?:(kind:'DEX'|'TOP'|'WEEK')=>Promise<{total:number;generatedAt:Date;rows:RankRow[]}>}
 
 export function registerWeb(app:FastifyInstance,content:Content,options:WebOptions){
   const img=(kind:'thumbs'|'images',id:string)=>{const file=`${kind}/${id}.${kind==='thumbs'?'jpg':'png'}`;const v=options.stamp(file);return `/${file}${v?`?v=${v}`:''}`;};
@@ -81,10 +83,23 @@ blockquote p{margin:0}
 .card p{margin:4px 0;font-size:.88rem}
 .card .q{color:var(--muted)}.card .r{color:var(--muted);font-size:.8rem}
 .card.locked .in p{color:var(--muted)}
+
+.tabs{display:flex;gap:6px;margin:4px 0 14px;flex-wrap:wrap}
+.tabs a{text-decoration:none;padding:7px 14px;border-radius:999px;border:1.5px solid var(--line);color:var(--muted);font-weight:700;background:var(--card)}
+.tabs a.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.rank{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.rank li{display:grid;grid-template-columns:44px 56px 1fr auto;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px 12px}
+.rank li.top1{border-color:#d9a400;box-shadow:0 0 0 2px rgba(217,164,0,.25)}
+.rank .no{font-size:1.25rem;font-weight:800;text-align:center}
+.rank img{width:56px;height:56px;border-radius:10px;object-fit:cover;background:var(--line)}
+.rank .who b{display:block;font-size:1rem}.rank .who span{font-size:.82rem;color:var(--muted)}
+.rank .sc{font-weight:800;font-size:1.05rem;white-space:nowrap}
+.empty{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:24px;text-align:center;color:var(--muted)}
+.note{color:var(--muted);font-size:.85rem}
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40px}
 </style></head><body>
 <header><div class="bar"><a class="logo" href="/">🪨 갈매미맨</a>
-<nav>${[['/','홈'],['/world','세계관'],['/dex','도감']].map(([h,l])=>`<a href="${h}"${active===h?' class="on"':''}>${l}</a>`).join('')}</nav></div></header>
+<nav>${[['/','홈'],['/world','세계관'],['/dex','도감'],['/rank','랭킹']].map(([h,l])=>`<a href="${h}"${active===h?' class="on"':''}>${l}</a>`).join('')}</nav></div></header>
 <main>${body}</main>
 <footer>갈매미맨 · 카카오톡 채널 챗봇 게임 · v${esc(options.version)}</footer>
 </body></html>`;
@@ -97,18 +112,42 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40
     const body=`<section class="hero"><div>
 <h1>갈매미는 존재한다.</h1>
 <p class="lead">돌로 된 갈매미들이 <b>갈매미 섬 항구 수비대</b>에 출근해서 항구를 지켜요. 몸이 돌이라 날지는 못해요. 새우깡 봉지 소리에는 약해요.</p>
-<div class="btns"><a class="btn" href="/world">세계관 보기</a><a class="btn ghost" href="/dex">도감 보기</a></div>
+<div class="btns"><a class="btn" href="/world">세계관 보기</a><a class="btn ghost" href="/dex">도감 보기</a><a class="btn ghost" href="/rank">랭킹 보기</a></div>
 </div><img src="${img('images','C1')}" alt="기본 갈매미맨" width="800" height="800"></section>
 <div class="stats">
 <div class="stat"><b>${content.characters.length}종</b>모을 수 있는 갈매미</div>
 <div class="stat"><b>${content.recipes.length}가지</b>합체 조합</div>
 <div class="stat"><b>${count('HIDDEN')}종</b>서류에 없는 갈매미</div>
 <div class="stat"><b>7곳</b>섬의 동네</div></div>
-<p>카카오톡 채널 챗봇에서 갈매미를 뽑고, 끌어안아 합체시키고, 끼룩단 섬으로 출장을 보내 보세요. 랭킹 페이지는 준비 중이에요.</p>`;
+<p>카카오톡 채널 챗봇에서 갈매미를 뽑고, 끌어안아 합체시키고, 끼룩단 섬으로 출장을 보내 보세요. 수비대원들의 순위는 <a href="/rank">랭킹</a>에서 볼 수 있어요.</p>`;
     return send(reply,page('홈','/',body));
   });
 
   app.get('/world',limit,async(_req,reply)=>send(reply,page('세계관','/world',`<article class="prose">${worldHtml()}</article>`)));
+
+  app.get<{Querystring:{k?:string}}>('/rank',limit,async(req,reply)=>{
+    const tabs=[['dex','도감 수집','DEX','📚'],['top','최상위 보유','TOP','🗿'],['week','이번 주 조합','WEEK','🧩']] as const;
+    const tab=tabs.find(t=>t[0]===req.query.k)??tabs[0];
+    const nav=`<div class="tabs">${tabs.map(t=>`<a href="/rank?k=${t[0]}"${t===tab?' class="on"':''}>${t[3]} ${t[1]}</a>`).join('')}</div>`;
+    if(!options.ranking)return send(reply,page('랭킹','/rank',`<h1>랭킹</h1>${nav}<div class="empty">랭킹을 불러올 수 없어요.</div>`));
+    const board=await options.ranking(tab[2]);
+    const medal=(n:number)=>['🥇','🥈','🥉'][n-1]??String(n);
+    // 웹 공개 규칙: 히든 최고 유닛은 ???, 최상위는 이름만(그림은 등급 실루엣)
+    const bestOf=(c:Character|null)=>{
+      if(!c)return {img:img('thumbs','unknown'),label:'아직 없음'};
+      if(c.rarity==='HIDDEN')return {img:img('thumbs','unknown'),label:`${rarityNames[c.rarity]} ???`};
+      return {img:img('thumbs',face(c)),label:`${rarityNames[c.rarity]} ${c.name}`};
+    };
+    const unit=tab[2]==='DEX'?`/${content.characters.length}`:tab[2]==='TOP'?'마리':'회';
+    const list=board.rows.map(r=>{const b=bestOf(r.best);
+      return `<li${r.rank===1?' class="top1"':''}><span class="no">${medal(r.rank)}</span><img loading="lazy" src="${b.img}" alt="" width="56" height="56"><span class="who"><b>${esc(r.name)}</b><span>최고: ${esc(b.label)}</span></span><span class="sc">${tab[3]} ${r.score}${unit}</span></li>`;}).join('');
+    const when=DateTime.fromJSDate(board.generatedAt).setZone('Asia/Seoul').toFormat('M/d HH:mm');
+    const body=`<h1>랭킹</h1>${nav}
+${list?`<ol class="rank">${list}</ol>`:'<div class="empty">아직 기록이 없어요. 카톡에서 첫 기록을 만들어 보세요!</div>'}
+<p class="note">참여 ${board.total}명 중 상위 ${board.rows.length}명 · ${esc(when)} 기준(30초마다 갱신)${tab[2]==='WEEK'?' · 매주 월요일 0시(한국 시간)에 새로 시작':''}<br>
+내 순위는 카톡에서 <b>랭킹</b>, 이름 표시는 <b>닉네임 원하는이름</b> 으로 정할 수 있어요. 관리자 모드 계정은 빠져요.</p>`;
+    return reply.type('text/html; charset=utf-8').header('Cache-Control','public, max-age=30').send(page('랭킹','/rank',body));
+  });
 
   app.get('/dex',limit,async(_req,reply)=>{
     const card=(c:Character)=>{

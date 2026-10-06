@@ -10,7 +10,7 @@ import { GameService } from './game.js';
 import { parseKakao, kakaoResponse, imageIdPattern } from './kakao.js';
 import { GameError } from './types.js';
 import { registerWeb } from './web.js';
-export const VERSION='0.9.19';
+export const VERSION='0.9.20';
 export interface AppOptions {secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string}
 export async function buildApp(db:PrismaClient,game:GameService,options:AppOptions){
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
@@ -46,7 +46,7 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
     return stamps.get(path)!;
   };
   // 공개 웹페이지(홈·세계관·도감)
-  registerWeb(app,game.content,{root:options.root??process.cwd(),stamp,version:VERSION});
+  registerWeb(app,game.content,{root:options.root??process.cwd(),stamp,version:VERSION,ranking:kind=>game.publicRanking(kind)});
   for(const path of ['/kakao/skill','/kakao'])app.post(path,{
     // 카카오가 보내는 요청만 키 검증 후 처리. 외부 전달 헤더를 사용자 권한으로 쓰지 않습니다.
     onRequest:async(req,reply)=>{

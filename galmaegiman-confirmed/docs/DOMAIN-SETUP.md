@@ -80,4 +80,4 @@ sudo systemctl enable --now gmm-tunnel
 - 홈: `https://내도메인/`
 - 세계관: `https://내도메인/world` (글은 `data/world.md`를 고치면 반영)
 - 도감: `https://내도메인/dex` (유닛 데이터 `data/units.json`에서 자동 생성, 히든·최상위는 가림)
-- 랭킹: 다음 단계
+- 랭킹: `https://내도메인/rank` (도감·최상위·주간 탭)

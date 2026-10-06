@@ -516,6 +516,30 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(dex).toContain(content.map.get('C1')!.introduction);
     }finally{await app.close();}
   });
+  it('공개 웹 랭킹: 카톡과 같은 순위, 닉네임 표시, 히든·최상위 가림, 관리자 모드 제외',async()=>{
+    const mk=async(identity:string,nickname:string|null,ids:string[],adminMode=false)=>{
+      const p=await db.player.create({data:{identity,nickname,tutorial:3,adminMode}});
+      await db.collectionEntry.createMany({data:ids.map(characterId=>({playerId:p.id,characterId}))});
+      return p;
+    };
+    await mk('r1','돌왕',['C1','C2','C3','H1']);
+    const r2=await mk('r2',null,['C1','C2','D1']);
+    await db.ownedCharacter.create({data:{playerId:r2.id,characterId:'D1',obtainedVia:'TEST'}});   // 최상위 랭킹은 보유 수 기준
+    await mk('r3','관리자',['C1','C2','C3','C4','C5'],true);
+    const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com'});
+    try{
+      const r=await app.inject({method:'GET',url:'/rank'});
+      expect(r.statusCode).toBe(200);
+      const body=r.body;
+      expect(body.indexOf('돌왕')).toBeGreaterThan(-1);
+      expect(body.indexOf('돌왕')).toBeLessThan(body.indexOf('갈매미 #'));   // 4종 > 3종
+      expect(body).not.toContain('관리자</b>');                              // 관리자 모드 제외
+      expect(body).not.toContain(content.map.get('H1')!.name);              // 히든 이름 가림
+      expect(body).not.toContain('thumbs/D1.jpg');                          // 최상위 그림 가림
+      expect((await app.inject({method:'GET',url:'/rank?k=week'})).statusCode).toBe(200);
+      expect((await app.inject({method:'GET',url:'/rank?k=top'})).body).toContain(content.map.get('D1')!.name);
+    }finally{await app.close();}
+  });
   it('탐험대 편성: 하나씩 추가·빼기(서버에 저장, 짧은 버튼 명령), 최대 10마리, 출발 후 다른 편성 불가',async()=>{
     await fixtures(['D1','D1','T1','E1','I1',...Array(8).fill('D7')]);
     const start=await send('탐험');
@@ -586,7 +610,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.19'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.20'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
