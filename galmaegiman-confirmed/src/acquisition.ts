@@ -10,6 +10,8 @@ export const emblems:Record<string,string>={COMMON:'🥚',UNCOMMON:'🔹',SPECIA
 const high=new Set(['LEGEND','HIDDEN','LIMITED','TRANSCEND','ETERNAL','IMMORTAL']);
 
 export const speech=(c:Character)=>`💬 ${c.name}: "${c.quote}"`;
+// 도감 상세 이야기: 문장마다 줄을 나누고 대사는 따로(긴 문단은 카톡에서 읽기 어려움)
+export const story=(c:Character)=>`📖 이야기\n${c.introduction.split(/(?<=[.!?…])\s+/u).map(l=>l.trim()).filter(Boolean).join('\n')}\n\n💬 「${c.quote}」`;
 // 높은 등급은 갈매미 카운트로 뜸을 들입니다. 불멸 등 stage가 있으면 그것을 씁니다.
 export function prelude(c:Character,first:boolean){
   if(c.stage)return `${c.stage}\n\n`;

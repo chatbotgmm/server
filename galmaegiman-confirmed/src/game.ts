@@ -7,7 +7,7 @@ import { rarityNames, tierOrder, topTiers, tiers } from './content.js';
 import { GameError, choice, type GameReply, type ButtonAction, type ListEntry, type Choice, type CardEntry } from './types.js';
 import { GachaEngine, type GachaKind } from './gacha.js';
 import { characterInfo, matchCharacters, listReply, materialCounts, displayName, isRevealed, mask, duration, HIDDEN_NAME } from './presentation.js';
-import { acquisitionText, acquisitionCard, achievementText, emblems, prelude, rewardGuide, speech, type AcquisitionKind, type Receipt } from './acquisition.js';
+import { acquisitionText, acquisitionCard, achievementText, emblems, prelude, rewardGuide, speech, story, type AcquisitionKind, type Receipt } from './acquisition.js';
 import { cardsPerPage, cardCost } from './kakao.js';
 import { DateTime } from 'luxon';
 import { planExpedition, rollExpedition, expectedSnacks, type ExpeditionPlan, type Roll } from './expedition.js';
@@ -885,7 +885,7 @@ export class GameService {
     const count=statusOf((await this.stock(tx,p)).get(c.id));
     const held=[count.locked?`🔒 보호 ${count.locked}`:'',count.away?`🧭 탐험 ${count.away}`:''].filter(Boolean).join(' · ');
     const own=entry?`🐦 ${count.total}마리 보유${held?` (${held})`:''} · ${entry.count}번 만남`:`⬜ 아직 못 만났어요\n얻는 곳: ${this.source(c.id)}`;
-    const text=mask(this.content,`${emblems[c.rarity]} 【${c.name}】 ${characterInfo(this.content,c)}\n\n${c.introduction}\n\n${speech(c)}\n\n${own}`,known);
+    const text=mask(this.content,`${emblems[c.rarity]} 【${c.name}】 ${characterInfo(this.content,c)}\n\n${story(c)}\n\n${own}`,known);
     const manage=command==='내갈매미';
     const choices=[
       ...(c.rarity==='COMMON'?[choice('교환',`교환 ${c.name}`)]:[choice('조합식 보기',`조합식 ${c.name}`)]),
@@ -898,7 +898,7 @@ export class GameService {
       ...menu.slice(0,4)
     ].slice(0,10);
     const card=this.maskCard({imageId:entry?this.cardImage(c.id,known):this.face(c.id,known),title:`${emblems[c.rarity]} ${c.name}`,description:`${characterInfo(this.content,c)}\n${own}`,buttons:choices.slice(0,3)},known);
-    return {text,imageId:entry?this.image(c.id,known):undefined,cards:{items:[card],outro:mask(this.content,`${c.introduction}\n\n${speech(c)}`,known)},choices};
+    return {text,imageId:entry?this.image(c.id,known):undefined,cards:{items:[card],outro:mask(this.content,story(c),known)},choices};
   }
 
   // ───────── 랭킹 ─────────

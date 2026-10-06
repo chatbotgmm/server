@@ -477,6 +477,13 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await fixtures(['R1']);await db.collectionEntry.create({data:{playerId:(await me()).id,characterId:'R1'}});
     expect((await send('조합식 황금쌍패성기사')).cards!.items[0].imageId).toBe('R1');
   });
+  it('도감 상세: 이야기는 문장마다 줄바꿈, 대사는 따로',async()=>{
+    await fixtures(['U1']);
+    const r=await send('도감 금갑');
+    expect(r.cards!.outro).toMatch(/^📖 이야기\n/);
+    expect(r.cards!.outro).toMatch(/\n\n💬 「.+」$/);
+    expect(r.cards!.outro!.split('\n').length).toBeGreaterThan(3);
+  });
   it('조합식: 얻는 곳에 교환·탐험도 표시, 모자란 흔함·안흔함은 교환 버튼',async()=>{
     await fixtures(['C2']);
     const r=await send('조합식 금갑');
@@ -553,7 +560,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.15'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.16'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
