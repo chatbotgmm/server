@@ -570,6 +570,16 @@ ${!total&&!players.length?'<p class="note">예: <a href="/search?q=전설">전�
   });
 
   // ── 프로필 ──
+  // ── 검색엔진용: robots.txt · sitemap.xml (주소는 economy.homepage 기준) ──
+  app.get('/robots.txt',limit,async(_req,reply)=>reply.type('text/plain; charset=utf-8').header('Cache-Control','public, max-age=3600')
+    .send(`User-agent: *\nAllow: /\nDisallow: /api/\n${site?`Sitemap: ${site}/sitemap.xml\n`:''}`));
+  app.get('/sitemap.xml',limit,async(_req,reply)=>{
+    // 히든 상세는 히든 페이지로 넘어가므로 빼고, 프로필·검색 결과는 넣지 않음
+    const paths=['/','/event','/world','/dex','/recipes','/hidden','/talk','/rank',...content.characters.filter(c=>c.rarity!=='HIDDEN').map(c=>`/dex/${c.id}`)];
+    const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${paths.map(p=>`<url><loc>${esc(site+p)}</loc></url>`).join('\n')}\n</urlset>\n`;
+    return reply.type('application/xml; charset=utf-8').header('Cache-Control','public, max-age=3600').send(xml);
+  });
+
   // ── 수다방: 이번 주 인기 한마디 + 최근 한마디 ──
   app.get('/talk',limit,async(_req,reply)=>{
     const [top,recent]=await Promise.all([data.topComments(5),data.recentComments(40)]);
