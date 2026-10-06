@@ -265,6 +265,14 @@ a.card:hover{border-color:var(--accent)}
 .tag.live{background:#ffe0e0;color:#b4232a}.tag.soon{background:var(--accent-soft);color:var(--accent)}
 .ev .mono{letter-spacing:0;background:var(--bg);border:1px solid var(--line);padding:0 6px;border-radius:6px;font-family:inherit;font-weight:700}.cmd .mono{letter-spacing:0;font-family:inherit;color:var(--accent)}
 table.cmd{width:100%;border-collapse:collapse}.cmd td{padding:7px 4px;border-bottom:1px solid var(--line);vertical-align:top}.cmd tr:last-child td{border-bottom:0}.cmd td:first-child{white-space:nowrap;font-weight:700;padding-right:12px}
+/* 세계관: 동화책처럼 읽히게(가운데 좁은 단, 넉넉한 줄 간격, 장 제목은 이야기 머리글) */
+.tale{max-width:680px;margin:0 auto;font-size:1.06rem;line-height:1.95}
+.tale h1{text-align:center;font-size:2rem;margin:.6em 0 .3em}
+.tale>blockquote{border:0;background:none;text-align:center;color:var(--muted);font-size:1.1rem;padding:0;margin:0 0 2em}
+.tale h2{border:0;text-align:center;font-size:1.3rem;margin:2.6em 0 1em;color:var(--accent)}
+.tale h2::after{content:'';display:block;width:42px;height:3px;border-radius:3px;background:var(--gold);margin:10px auto 0}
+.tale p{margin:0 0 1.1em}
+.tale p:last-child{text-align:center;font-size:1.15rem;margin-top:2em}
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40px}
 </style></head><body>
 <header><div class="bar"><a class="logo" href="/">${logo()}</a>
@@ -368,7 +376,7 @@ ${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이
     return send(reply,page('이벤트','/event',body,'',{desc:`친구 초대하면 둘 다 뽑기권 ${e.invite.tickets}장! 갈매미맨 이벤트·혜택 모음`}),60);
   });
 
-  app.get('/world',limit,async(_req,reply)=>send(reply,page('세계관','/world',`<article class="prose">${worldHtml()}</article>`)));
+  app.get('/world',limit,async(_req,reply)=>send(reply,page('세계관','/world',`<article class="prose tale">${worldHtml()}</article>`)));
 
   // ── 도감 목록 ──
   app.get<{Querystring:{view?:string;sort?:string}}>('/dex',limit,async(req,reply)=>{
