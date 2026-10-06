@@ -1,4 +1,5 @@
-export interface Choice { label: string; message: string }
+// kind: 'share' = 카카오 말풍선 공유 버튼(카드 버튼에서만 동작, 바로가기에는 못 씀)
+export interface Choice { label: string; message: string; kind?: 'share' }
 export interface ButtonAction { action: 'confirm'|'cancel'; token: string }
 export interface ListEntry {
   title: string;
@@ -21,3 +22,4 @@ export interface GameReply {
 export interface CardEntry { imageId: string; title: string; description: string; buttons?: Choice[] }
 export class GameError extends Error {}
 export const choice = (label: string, message = label): Choice => ({label, message});
+export const shareChoice = (label = '📤 공유하기'): Choice => ({label, message: '', kind: 'share'});

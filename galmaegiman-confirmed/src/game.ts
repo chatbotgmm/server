@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { Prisma, type PrismaClient, type Player } from '@prisma/client';
 import type { Character, Content, Recipe, Tier } from './content.js';
 import { rarityNames, tierOrder, topTiers, tiers } from './content.js';
-import { GameError, choice, type GameReply, type ButtonAction, type ListEntry, type Choice, type CardEntry } from './types.js';
+import { GameError, choice, shareChoice, type GameReply, type ButtonAction, type ListEntry, type Choice, type CardEntry } from './types.js';
 import { GachaEngine, type GachaKind } from './gacha.js';
 import { characterInfo, matchCharacters, listReply, materialCounts, displayName, isRevealed, mask, duration, HIDDEN_NAME } from './presentation.js';
 import { acquisitionText, acquisitionCard, achievementText, emblems, prelude, rewardGuide, speech, story, type AcquisitionKind, type Receipt } from './acquisition.js';
@@ -112,7 +112,7 @@ export class GameService {
   private seenImage(id:string,known:Set<string>){return this.viewerSeen.has(id)?this.image(id,known):undefined;}
   private maskCard(c:CardEntry,known:Set<string>):CardEntry{
     const m=(t:string)=>mask(this.content,t,known);
-    return {...c,title:m(c.title),description:m(c.description),...(c.buttons?{buttons:c.buttons.map(b=>({label:m(b.label),message:m(b.message)}))}:{})};
+    return {...c,title:m(c.title),description:m(c.description),...(c.buttons?{buttons:c.buttons.map(b=>({...b,label:m(b.label),message:m(b.message)}))}:{})};
   }
   // 획득 결과 카드 1장: 연출 → 그림 카드 → 보상·미션 / 구분선 / 잔액 안내
   private acquired(c:Character,kind:AcquisitionKind,receipt:Receipt,known:Set<string>,gains:string[],nextLine:string,intro='',buttons:Choice[]=[]):Pick<GameReply,'cards'>{
@@ -512,7 +512,8 @@ export class GameService {
     if(times===1){
       const receipt=receipts[0];
       return {text:`${discovered}${acquisitionText(this.content,c,'COMBINATION',receipt,after)}\n\n${[...missions,next.line].join('\n')}`,...(receipt.first?{imageId:this.image(c.id,after)}:{}),
-        ...this.acquired(c,'COMBINATION',receipt,after,missions,next.line,discovered.trim(),c.synergy?[choice('탐험 보내기','탐험')]:[]),
+        // 전설 이상(전설·히든·최상위)은 카톡 공유 버튼
+        ...this.acquired(c,'COMBINATION',receipt,after,missions,next.line,discovered.trim(),[...(tiers[c.rarity]>=tiers.LEGEND?[shareChoice()]:[]),...(c.synergy?[choice('탐험 보내기','탐험')]:[])]),
         choices:[...more,...next.choices.slice(0,2),...(receipt.first?[choice('유닛 보기',`도감 ${c.name}`)]:[]),...next.choices.slice(2)]};
     }
     const snacks=receipts.reduce((a,r)=>a+r.snacks,0);
@@ -522,7 +523,7 @@ export class GameService {
     const outro=`${below?`${below}\n\n`:''}📌 지금\n${next.line}`;
     return {text:mask(this.content,`${discovered}${head}\n\n${outro}`,after),
       cards:{intro:mask(this.content,`${discovered}${head}`,after)||undefined,items:[this.maskCard({imageId:this.cardImage(c.id,after),title:`${emblems[c.rarity]} ${c.name} ×${times}`,
-        description:`${rarityNames[c.rarity]}${first?' · 🆕 새 발견!':''} · 보유 ${receipts.at(-1)!.count}마리`,buttons:[choice('도감 보기',`도감 ${c.name}`)]},after)],outro:mask(this.content,outro,after)},
+        description:`${rarityNames[c.rarity]}${first?' · 🆕 새 발견!':''} · 보유 ${receipts.at(-1)!.count}마리`,buttons:[choice('도감 보기',`도감 ${c.name}`),...(tiers[c.rarity]>=tiers.LEGEND?[shareChoice()]:[])]},after)],outro:mask(this.content,outro,after)},
       choices:[...more,...next.choices]};
   }
   private canCraft(recipe:Recipe,stock:Stock){

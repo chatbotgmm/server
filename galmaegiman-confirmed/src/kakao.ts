@@ -22,7 +22,7 @@ export function parseKakao(input:unknown,expectedBot?:string){
 }
 // 유닛 ID와 화면용 그림(미발견·탐험·뽑기 3종)
 export const imageIdPattern=/^(?:[CUSRLHDTEIN]\d{1,2}|unknown|logo|explore|ticket|s-(?:info|oops|wait|shop|exchange|mix|dex|rank|peanut|ticket|event|lock|tutorial|timeout|invite|sell)|m-(?:draw|craft|rare|legend|top)|gacha-(?:LOW|MID|HIGH)|q-(?:COMMON|UNCOMMON|SPECIAL|RARE|LEGEND|HIDDEN|LIMITED|TRANSCEND|ETERNAL|IMMORTAL|NEUTRAL)|y-(?:BASIC|GOLD|DARK|SEA|BLOSSOM|COSMOS|OUTFIT))$/;
-const quick=(result:GameReply)=>(result.choices??[]).slice(0,10).map(c=>({action:'message',label:c.label.slice(0,14),messageText:c.message}));
+const quick=(result:GameReply)=>(result.choices??[]).filter(c=>c.kind!=='share').slice(0,10).map(c=>({action:'message',label:c.label.slice(0,14),messageText:c.message}));
 const listCard=(list:NonNullable<GameReply['list']>,url?:(path:string)=>string)=>{
   if(list.items.length<1||list.items.length>5)throw new Error('리스트 항목 수 오류');
   // 목록은 중복 본문 없이 터치할 수 있는 이름과 설명으로 표시합니다.
@@ -66,7 +66,7 @@ export function kakaoResponse(result:GameReply,baseUrl='',stamp:(path:string)=>s
     const card=(c:typeof cards.items[number])=>({
       title:c.title.slice(0,50),...(c.description?{description:c.description.slice(0,230)}:{}),
       thumbnail:{imageUrl:url(`thumbs/${c.imageId}.jpg`),altText:c.title.slice(0,50),fixedRatio:true},
-      ...(c.buttons?.length?{buttons:c.buttons.slice(0,many?2:3).map((b,_,all)=>({action:'message',label:b.label.slice(0,all.length===2?7:14),messageText:b.message}))}:{})
+      ...(c.buttons?.length?{buttons:c.buttons.slice(0,many?2:3).map((b,_,all)=>b.kind==='share'?{action:'share',label:b.label.slice(0,all.length===2?7:14)}:{action:'message',label:b.label.slice(0,all.length===2?7:14),messageText:b.message})}:{})
     });
     // 카드 넘기기는 한 묶음 10장까지라 11장 이상이면 두 묶음으로 나누고, 묶음마다 글자 예산 안전장치
     const chunks=[cards.items.slice(0,10),cards.items.slice(10,20)].filter(c=>c.length).map(c=>many?fitCards(c):c);

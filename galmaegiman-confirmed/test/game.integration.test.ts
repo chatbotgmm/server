@@ -5,7 +5,7 @@ import {loadContent} from '../src/content.js';
 import {buildApp} from '../src/app.js';
 import {GachaEngine} from '../src/gacha.js';
 import {GameError,type GameReply} from '../src/types.js';
-import {cardCost,CAROUSEL_TEXT_BUDGET} from '../src/kakao.js';
+import {cardCost,CAROUSEL_TEXT_BUDGET,kakaoResponse} from '../src/kakao.js';
 const enabled=Boolean(process.env.TEST_DB_URL);
 const suite=enabled?describe:describe.skip;
 suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
@@ -508,6 +508,19 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     game=new GameService(db,{...content,economy:{...content.economy,coupons:[{...c,id:'OLD',to:'2026-01-01T00:00:00+09:00'}]}},()=>now,new GachaEngine(content.characters,content.economy.gachas,()=>0),max=>max-1);
     expect((await send(`쿠폰 ${c.code}`,'other-user')).text).toContain('맞는 쿠폰이 없어요');
   });
+  it('공유: 전설 이상 조합 결과 카드에 카톡 공유 버튼(희귀 이하는 없음), 카카오 응답은 action share',async()=>{
+    await fixtures(['R3','R4','S1','U1']);
+    const legend=await confirm(await send('조합 만조의 갈매미맨'));
+    const btns=legend.cards!.items[0].buttons!;
+    expect(btns.some(b=>b.kind==='share')).toBe(true);
+    const out=kakaoResponse(legend,'https://example.com').template as any;
+    const card=out.outputs.find((o:any)=>o.basicCard||o.carousel);
+    const kb=(card.basicCard??card.carousel.items[0]).buttons;
+    expect(kb).toContainEqual({action:'share',label:'📤 공유하기'});
+    expect(out.quickReplies.every((q:any)=>q.action==='message')).toBe(true);
+    const rare=await confirm(await send('조합 황금쌍패성기사'));
+    expect((rare.cards?.items[0].buttons??[]).some(b=>b.kind==='share')).toBe(false);
+  });
   it('조합식: 얻는 곳에 교환·탐험도 표시, 모자란 흔함·안흔함은 교환 버튼',async()=>{
     await fixtures(['C2']);
     const r=await send('조합식 금갑');
@@ -672,7 +685,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.23'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.24'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
