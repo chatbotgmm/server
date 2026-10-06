@@ -69,11 +69,29 @@ export function registerWeb(app:FastifyInstance,content:Content,options:WebOptio
     return world.html;
   };
 
+  // 자동완성: 입력하면 갈매미(초성 가능)·닉네임 추천. 갈매미 목록은 /search-index.json 을 한 번 받아 씀
+  const suggestJs=`(()=>{const f=document.querySelector('form.search');if(!f)return;const i=f.q,box=f.querySelector('.sug');let idx=null,t,n=0;
+const CHO='${CHO}',ini=s=>[...s].map(ch=>{const c=ch.charCodeAt(0)-44032;return c>=0&&c<11172?CHO[Math.floor(c/588)]:ch}).join(''),
+e=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const load=async()=>idx||(idx=await (await fetch('/search-index.json')).json());
+async function run(){const my=++n,q=i.value.replace(/\\s+/g,'');if(!q){box.hidden=true;return}
+const list=await load(),only=/^[ㄱ-ㅎ]+$/.test(q),units=list.filter(u=>(only?ini(u.n.replace(/\\s+/g,'')):u.n.replace(/\\s+/g,'')).includes(q)).slice(0,6);
+let ps=[];if(!only){try{ps=await (await fetch('/api/players?q='+encodeURIComponent(q))).json()}catch(_){}}
+if(my!==n)return;
+box.innerHTML=units.map(u=>'<a href="/dex/'+u.i+'"><img src="'+u.p+'" alt="">'+e(u.n)+'<small style="color:'+u.c+'">'+e(u.t)+'</small></a>').join('')
++ps.slice(0,4).map(p=>'<a href="/p/'+encodeURIComponent(p)+'">🪨 '+e(p)+'<small>수비대원</small></a>').join('')
++'<a href="/search?q='+encodeURIComponent(i.value.trim())+'">🔍 “'+e(i.value.trim())+'” 전체 검색</a>';box.hidden=false}
+i.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(run,120)});i.addEventListener('focus',()=>{load();if(i.value)run()});
+document.addEventListener('click',ev=>{if(!f.contains(ev.target))box.hidden=true});
+i.addEventListener('keydown',ev=>{const a=[...box.querySelectorAll('a')];if(box.hidden||!a.length)return;let k=a.findIndex(x=>x.classList.contains('on'));
+if(ev.key==='ArrowDown'||ev.key==='ArrowUp'){ev.preventDefault();a[k]?.classList.remove('on');k=ev.key==='ArrowDown'?(k+1)%a.length:(k<=0?a.length-1:k-1);a[k].classList.add('on')}
+else if(ev.key==='Enter'&&k>=0){ev.preventDefault();location.href=a[k].href}else if(ev.key==='Escape')box.hidden=true});})();`;
   const navItems=[['/','홈'],['/world','세계관'],['/dex','도감'],['/recipes','조합법'],['/hidden','히든'],['/rank','랭킹']];
   const page=(title:string,active:string,body:string,q='')=>`<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)} · 갈매미맨</title>
 <meta name="description" content="돌로 된 갈매미들이 항구 수비대에 출근하는 섬, 갈매미 섬 이야기">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%AA%A8%3C/text%3E%3C/svg%3E">
 <meta property="og:title" content="${esc(title)} · 갈매미맨"><meta property="og:image" content="${img('images','C1')}">
 <style>
 :root{--bg:#f6f4ef;--card:#fff;--text:#2b2b2b;--muted:#6b6b6b;--line:#e2ddd3;--accent:#1f4e79;--accent-soft:#e3ecf5;--gold:#d9a400}
@@ -92,6 +110,13 @@ form.search{display:flex;gap:6px;flex:1 1 220px;min-width:0}
 form.search input{flex:1;min-width:0;padding:8px 12px;border-radius:999px;border:1.5px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-size:.95rem}
 form.search button{padding:8px 14px;border-radius:999px;border:0;background:var(--accent);color:#fff;font-weight:700;font:inherit}
 @media (prefers-color-scheme:dark){form.search button{color:#10151b}}
+form.search{position:relative}
+.sug{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:20;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:6px;max-height:70vh;overflow:auto}
+.sug a,.sug span{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:10px;text-decoration:none;color:var(--text);font-weight:600}
+.sug a:hover,.sug a.on{background:var(--accent-soft)}
+.sug img{width:32px;height:32px;border-radius:8px;object-fit:cover}
+.sug small{margin-left:auto;font-size:.75rem;font-weight:800}
+.sug span{color:var(--muted);font-weight:500}
 main{max-width:1080px;margin:0 auto;padding:20px 16px 48px}
 h1{font-size:1.7rem;margin:.4em 0 .5em}h2{font-size:1.25rem;margin:1.8em 0 .6em;padding-bottom:.3em;border-bottom:2px solid var(--line)}
 blockquote{margin:0 0 1em;padding:10px 14px;border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;color:var(--text)}
@@ -168,9 +193,10 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40
 </style></head><body>
 <header><div class="bar"><a class="logo" href="/">🪨 갈매미맨</a>
 <nav>${navItems.map(([h,l])=>`<a href="${h}"${active===h?' class="on"':''}>${l}</a>`).join('')}</nav>
-<form class="search" action="/search" method="get" role="search"><input name="q" value="${esc(q)}" placeholder="갈매미·닉네임 검색 (초성 OK)" aria-label="검색" maxlength="30"><button>검색</button></form></div></header>
+<form class="search" action="/search" method="get" role="search" autocomplete="off"><input name="q" value="${esc(q)}" placeholder="갈매미·닉네임·이야기 검색 (초성 OK)" aria-label="검색" maxlength="30"><button>검색</button><div class="sug" hidden></div></form></div></header>
 <main>${body}${piece(active)}</main>
 <footer>갈매미맨 · 카카오톡 채널 챗봇 게임 · v${esc(options.version)}</footer>
+<script>${suggestJs}</script>
 </body></html>`;
 
   const send=(reply:FastifyReply,html:string,maxAge=300)=>reply.type('text/html; charset=utf-8').header('Cache-Control',`public, max-age=${maxAge}`).send(html);
@@ -301,17 +327,37 @@ ${list?`<ol class="rank">${list}</ol>`:'<div class="empty">아직 기록이 없�
     return send(reply,page('랭킹','/rank',body),30);
   });
 
-  // ── 검색: 갈매미 이름(초성 가능) · 닉네임 ──
+  // 자동완성용: 히든 제외 갈매미 목록, 닉네임 검색
+  const searchIndex=()=>JSON.stringify(content.characters.filter(c=>c.rarity!=='HIDDEN').map(c=>({i:c.id,n:c.name,t:rarityNames[c.rarity],c:tierColor[c.rarity],p:img('thumbs',face(c))})));
+  app.get('/search-index.json',limit,async(_req,reply)=>reply.type('application/json; charset=utf-8').header('Cache-Control','public, max-age=600').send(searchIndex()));
+  app.get<{Querystring:{q?:string}}>('/api/players',limit,async(req,reply)=>{
+    const q=String(req.query.q??'').trim().slice(0,20);
+    return reply.header('Cache-Control','public, max-age=30').send(q?await data.searchPlayers(q):[]);
+  });
+
+  // ── 검색: 갈매미 이름(초성 가능) · 등급 · 이야기 · 닉네임 ──
   app.get<{Querystring:{q?:string}}>('/search',limit,async(req,reply)=>{
     const q=String(req.query.q??'').trim().slice(0,30);
     if(!q)return send(reply,page('검색','',`<h1>검색</h1><p class="lead">갈매미 이름이나 닉네임을 찾아요. 초성도 돼요. 예: <a href="/search?q=금갑">금갑</a> · <a href="/search?q=ㄱㄱ">ㄱㄱ</a> · <a href="/search?q=갈매미">갈매미</a></p>`,q),60);
     const plain=q.replace(/\s+/g,''),ini=isInitials(plain);
     const units=content.characters.filter(c=>c.rarity!=='HIDDEN'&&(ini?initials(c.name.replace(/\s+/g,'')).includes(plain):c.name.replace(/\s+/g,'').includes(plain))).slice(0,40);
     const players=ini?[]:await data.searchPlayers(q);
-    const unitCards=units.map(c=>`<a class="card${topTiers.has(c.rarity)?' locked':''}" href="/dex/${c.id}"><img loading="lazy" src="${img('thumbs',face(c))}" alt="${esc(c.name)}" width="480" height="480"><div class="in">${badge(c.rarity)}<h3>${esc(c.name)}</h3></div></a>`).join('');
+    const card=(c:Character)=>`<a class="card${topTiers.has(c.rarity)?' locked':''}" href="/dex/${c.id}"><img loading="lazy" src="${img('thumbs',face(c))}" alt="${esc(c.name)}" width="480" height="480"><div class="in">${badge(c.rarity)}<h3>${esc(c.name)}</h3></div></a>`;
+    // 등급 이름으로 찾기(예: 전설), 이야기 속 낱말로 찾기(히든·최상위 제외)
+    const tier=Object.keys(rarityNames).find(t=>rarityNames[t]===plain&&t!=='HIDDEN');
+    const byTier=tier?content.characters.filter(c=>c.rarity===tier):[];
+    const byStory=ini?[]:content.characters.filter(c=>c.rarity!=='HIDDEN'&&!topTiers.has(c.rarity)&&!units.includes(c)&&c.introduction.replace(/\s+/g,'').includes(plain)).slice(0,24);
+    // 이름이 정확히 맞으면: 이 갈매미로 만들 수 있는 것
+    const exact=units.find(c=>c.name.replace(/\s+/g,'')===plain);
+    const makes=exact?content.recipes.filter(r=>r.materials.includes(exact.id)):[];
+    const total=units.length+byTier.length+byStory.length;
     const body=`<h1>“${esc(q)}” 검색</h1>
-<h2>🧑‍✈️ 수비대원 ${players.length}명</h2>${players.length?players.map(n=>`<a class="uc" href="/p/${encodeURIComponent(n)}">🪨 ${esc(n)}</a>`).join(''):`<p class="note">${ini?'초성 검색은 갈매미 이름에만 돼요.':'찾는 닉네임이 없어요. 닉네임을 정한 수비대원만 검색돼요.'}</p>`}
-<h2>🐦 갈매미 ${units.length}종</h2>${units.length?`<div class="grid">${unitCards}</div>`:'<p class="note">찾는 갈매미가 없어요. 히든은 검색되지 않아요. <a href="/hidden">히든 단서 보기</a></p>'}`;
+${exact?`<div class="box"><h3>${badge(exact.rarity)} <a href="/dex/${exact.id}">${esc(exact.name)}</a></h3>${makes.length?`이 갈매미로 만들 수 있는 것 (${makes.length}): ${makes.map(r=>chip(r.resultId)).join('')}`:'<span class="note">재료로 쓰이는 조합이 없어요.</span>'}</div>`:''}
+${players.length?`<h2>🧑‍✈️ 수비대원 ${players.length}명</h2>${players.map(n=>`<a class="uc" href="/p/${encodeURIComponent(n)}">🪨 ${esc(n)}</a>`).join('')}`:''}
+<h2>🐦 이름에 “${esc(q)}” ${units.length}종</h2>${units.length?`<div class="grid">${units.map(card).join('')}</div>`:'<p class="note">이름이 맞는 갈매미가 없어요. 히든은 검색되지 않아요. <a href="/hidden">히든 단서 보기</a></p>'}
+${byTier.length?`<h2>${badge(tier!)} ${esc(rarityNames[tier!])} 등급 ${byTier.length}종</h2><div class="grid">${byTier.map(card).join('')}</div>`:''}
+${byStory.length?`<h2>📖 이야기에 “${esc(q)}” ${byStory.length}종</h2><div class="grid">${byStory.map(card).join('')}</div>`:''}
+${!total&&!players.length?'<p class="note">예: <a href="/search?q=전설">전설</a> · <a href="/search?q=빤스">빤스</a> · <a href="/search?q=ㄱㄱ">ㄱㄱ</a></p>':''}`;
     return send(reply,page(`${q} 검색`,'',body,q),60);
   });
 

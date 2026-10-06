@@ -570,6 +570,13 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(await get('/search?q='+encodeURIComponent('ㄱㄱ'))).toContain('/dex/U1');
       expect(await get('/search?q='+encodeURIComponent('돌'))).toContain('/p/'+encodeURIComponent('돌왕'));
       noHidden(await get('/search?q='+encodeURIComponent('갈매미')));
+      // 자동완성 목록(히든 제외)·닉네임 API·등급/이야기 검색·재료 쓰임
+      const idx=JSON.parse(await get('/search-index.json'));
+      expect(idx.some((u:any)=>u.i==='U1')).toBe(true);expect(idx.some((u:any)=>u.i==='H1')).toBe(false);
+      expect(JSON.parse(await get('/api/players?q='+encodeURIComponent('돌')))).toEqual(['돌왕']);
+      expect(await get('/search?q='+encodeURIComponent('전설'))).toContain('전설 등급 23종');
+      expect(await get('/search?q='+encodeURIComponent('엘리베이터'))).toContain('/dex/U1');
+      expect(await get('/search?q='+encodeURIComponent('금갑'))).toContain('이 갈매미로 만들 수 있는 것');
       // 조합법·상세
       const rec=await get('/recipes');expect(rec).toContain('/dex/U1');noHidden(rec);
       const det=await get('/dex/U1');expect(det).toContain('만드는 법');expect(det).toContain('재료로 쓰이는 곳');
@@ -658,7 +665,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.21'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.22'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
