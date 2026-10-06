@@ -34,6 +34,19 @@ kakaoChannel: https://pf.kakao.com/_GIAaX   # 카톡 채널(웹 "카톡에서 �
 coupons:               # 카톡 '쿠폰 코드' 1인 1회. pieces는 홈페이지(세계관·조합법·히든)에 하나씩 숨김. 합치면 code
   - { id: HOMEPAGE_OPEN, label: 공식 홈페이지 창설 기념, code: 따개비도새우깡은못참지, tickets: 500, pieces: [따개비도, 새우깡은, 못참지] }
 
+# 땅콩 상점: 땅콩은 땅콩떼기로만 얻는 귀한 재화. tickets = 땅콩 1개당 뽑기권, special = 원하는 특별 1마리 값(땅콩),
+# badges = 닉네임 옆 장식(웹 랭킹·수다방·프로필·카톡 랭킹에 표시)
+peanutShop:
+  tickets: 20
+  special: 3
+  badges:
+    - { id: PEANUT,  emoji: 🥜, label: 땅콩 배지, cost: 1 }
+    - { id: SHELL,   emoji: 🐚, label: 조개 배지, cost: 2 }
+    - { id: WAVE,    emoji: 🌊, label: 파도 배지, cost: 2 }
+    - { id: BLOSSOM, emoji: 🌸, label: 벚꽃 배지, cost: 2 }
+    - { id: STAR,    emoji: ⭐, label: 별 배지,   cost: 3 }
+    - { id: CROWN,   emoji: 👑, label: 왕관 배지, cost: 5 }
+
 shop:                  # 상점 (새우깡 사용처)
   tickets: { snacks: 1000, amount: 10 }   # 뽑기권 1장 ≈ 하급 기대가치 흔함 0.69마리 × 150 ≈ 104 → 장당 100
   expeditionSkip: { snacks: 100 }          # 진행 중인 탐험 바로 귀환

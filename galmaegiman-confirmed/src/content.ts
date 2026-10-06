@@ -45,6 +45,8 @@ const economySchema=z.object({
   // 쿠폰: 카톡 '쿠폰 코드'로 1인 1회. pieces = 홈페이지에 숨기는 조각(합치면 code). to 없으면 기한 없음
   coupons:z.array(z.object({id:z.string().regex(/^[A-Z0-9_]{2,30}$/),label:text,code:z.string().min(2).max(30),tickets:z.number().int().min(1).max(10000),
     pieces:z.array(z.string().min(1).max(20)).max(5).default([]),from:z.string().datetime({offset:true}).optional(),to:z.string().datetime({offset:true}).optional()}).strict()).max(20).default([]),
+  peanutShop:z.object({tickets:z.number().int().min(1).max(1000),special:z.number().int().min(1).max(100),
+    badges:z.array(z.object({id:z.string().regex(/^[A-Z0-9_]{2,20}$/),emoji:z.string().min(1).max(8),label:text,cost:z.number().int().min(1).max(100)}).strict()).max(30)}).strict(),
   shop:z.object({tickets:z.object({snacks:z.number().int().min(1).max(1000000),amount:z.number().int().min(1).max(1000)}).strict(),expeditionSkip:z.object({snacks:z.number().int().min(1).max(1000000)}).strict()}).strict(),
   expedition:z.object({
     minutes:z.number().int().min(1).max(1440),snackPerUnit:z.number().int().min(0).max(10000),maxParty:z.number().int().min(1).max(30),

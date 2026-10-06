@@ -26,9 +26,9 @@ const CHO='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
 export const initials=(s:string)=>[...s].map(ch=>{const c=ch.charCodeAt(0)-0xac00;return c>=0&&c<11172?CHO[Math.floor(c/588)]:ch;}).join('');
 const isInitials=(q:string)=>/^[ㄱ-ㅎ\s]+$/.test(q);
 
-export interface RankRow{rank:number;name:string;nick:boolean;score:number;best:Character|null}
-export interface WebProfile{nickname:string;joined:Date;dex:number;byTier:Map<string,number>;best:Character|null;dexRank:{rank:number;total:number;score:number}|null;topRank:{rank:number;total:number;score:number}|null;weekRank:{rank:number;total:number;score:number}|null;titles:string[];firsts:number}
-export interface WebComment{id:number;text:string;likes:number;at:Date;name:string;characterId:string}
+export interface RankRow{rank:number;name:string;nick:boolean;badge?:string;score:number;best:Character|null}
+export interface WebProfile{nickname:string;badge?:string;joined:Date;dex:number;byTier:Map<string,number>;best:Character|null;dexRank:{rank:number;total:number;score:number}|null;topRank:{rank:number;total:number;score:number}|null;weekRank:{rank:number;total:number;score:number}|null;titles:string[];firsts:number}
+export interface WebComment{id:number;text:string;likes:number;at:Date;name:string;badge?:string;characterId:string}
 export interface WebData{
   unitComments:(id:string)=>Promise<WebComment[]>;
   recentComments:(take?:number)=>Promise<WebComment[]>;
@@ -109,7 +109,7 @@ if(ev.key==='ArrowDown'||ev.key==='ArrowUp'){ev.preventDefault();a[k]?.classList
 else if(ev.key==='Enter'&&k>=0){ev.preventDefault();location.href=a[k].href}else if(ev.key==='Escape')box.hidden=true});})();`;
   // 댓글 한 줄: 닉네임(프로필 링크)·시간·좋아요 버튼. unit=true면 어느 유닛 댓글인지 칩도
   const when=(d:Date)=>DateTime.fromJSDate(d).setZone('Asia/Seoul').toFormat('M/d HH:mm');
-  const commentItem=(c:WebComment,unit=false)=>`<li class="cm"><div class="cm-h"><a href="/p/${encodeURIComponent(c.name)}"><b>${esc(c.name)}</b></a> <span class="note">${esc(when(c.at))}</span>${unit?` ${chip(c.characterId)}`:''}</div>
+  const commentItem=(c:WebComment,unit=false)=>`<li class="cm"><div class="cm-h"><a href="/p/${encodeURIComponent(c.name)}"><b>${c.badge?`${esc(c.badge)} `:''}${esc(c.name)}</b></a> <span class="note">${esc(when(c.at))}</span>${unit?` ${chip(c.characterId)}`:''}</div>
 <p>${esc(c.text)}</p><button class="like" type="button" data-id="${c.id}" aria-label="좋아요">👍 <b>${c.likes}</b></button></li>`;
   const likeJs=`document.addEventListener('click',async ev=>{const b=ev.target.closest&&ev.target.closest('button.like');if(!b||b.disabled)return;b.disabled=true;
 try{const r=await fetch('/api/comments/'+b.dataset.id+'/like',{method:'POST'});if(r.ok){const j=await r.json();b.querySelector('b').textContent=j.likes;b.classList.add('on');}else b.disabled=false}catch(_){b.disabled=false}});`;
@@ -350,7 +350,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40
     const talk=await data.recentComments(3);
     const board=week.rows.length?{rows:week.rows,unit:'회',label:'이번 주 조합',k:'week'}:{rows:(await data.ranking('DEX')).rows,unit:`/${content.characters.length}`,label:'도감 수집',k:'dex'};
     const medal=['🥇','🥈','🥉'];
-    const top3=board.rows.slice(0,3).map((r,i)=>`<li><span class="no">${medal[i]}</span><span class="who"><b>${r.nick?`<a href="/p/${encodeURIComponent(r.name)}">${esc(r.name)}</a>`:esc(r.name)}</b></span><span class="sc">${r.score}${board.unit}</span></li>`).join('');
+    const top3=board.rows.slice(0,3).map((r,i)=>`<li><span class="no">${medal[i]}</span><span class="who"><b>${r.badge?`${esc(r.badge)} `:''}${r.nick?`<a href="/p/${encodeURIComponent(r.name)}">${esc(r.name)}</a>`:esc(r.name)}</b></span><span class="sc">${r.score}${board.unit}</span></li>`).join('');
     const hidden=content.characters.filter(x=>x.rarity==='HIDDEN');
     const recent=[...(await data.hiddenFirsts())].sort((x,y)=>y[1].at.getTime()-x[1].at.getTime()).slice(0,3)
       .map(([id,f])=>{const n=hidden.findIndex(x=>x.id===id)+1;return `<a class="uc" href="/hidden#h${n}"><img src="${img('thumbs','unknown')}" alt="" width="28" height="28">히든 #${n} 발견! · ${f.name?esc(f.name):'이름 없는 갈매미'} · ${esc(DateTime.fromJSDate(f.at).setZone('Asia/Seoul').toFormat('M/d'))}</a>`;}).join('');
@@ -425,6 +425,7 @@ ${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이
 <tr><td class="mono">튜토리얼</td><td>튜토리얼 진행 보기</td></tr>
 <tr><td class="mono">닉네임 갈매미왕</td><td>닉네임 정하기 (랭킹에 이름이 나와요)</td></tr>
 <tr><td class="mono">조합 고르기</td><td>재료를 직접 골라 조합하기 (숨은 조합 찾기)</td></tr>
+<tr><td class="mono">상점 땅콩</td><td>🥜 땅콩 상점 (뽑기권·특별 골라 받기·닉네임 장식)</td></tr>
 <tr><td class="mono">댓글 금갑 귀여워요</td><td>만나 본 갈매미에게 한마디 (수다방·도감에 올라가요)</td></tr>
 <tr><td class="mono">좋아요 12</td><td>댓글 12번에 좋아요</td></tr>
 <tr><td class="mono">이벤트</td><td>진행 중인 이벤트 보기</td></tr>
@@ -535,7 +536,8 @@ ${cards}`;
     };
     const unit=tab[2]==='DEX'?`/${content.characters.length}`:tab[2]==='TOP'?'마리':'회';
     const list=board.rows.map(r=>{const b=bestOf(r.best);
-      const name=r.nick?`<a href="/p/${encodeURIComponent(r.name)}">${esc(r.name)}</a>`:esc(r.name);
+      const shown=`${r.badge?`${esc(r.badge)} `:''}${esc(r.name)}`;
+      const name=r.nick?`<a href="/p/${encodeURIComponent(r.name)}">${shown}</a>`:shown;
       return `<li${r.rank===1?' class="top1"':''}><span class="no">${medal(r.rank)}</span><img loading="lazy" src="${b.img}" alt="" width="56" height="56"><span class="who"><b>${name}</b><span>최고: ${esc(b.label)}</span></span><span class="sc">${tab[3]} ${r.score}${unit}</span></li>`;}).join('');
     const when=DateTime.fromJSDate(board.generatedAt).setZone('Asia/Seoul').toFormat('M/d HH:mm');
     const body=`<h1>랭킹</h1>${nav}
@@ -618,7 +620,7 @@ ${howToComment()}
       return `<div><span>${esc(rarityNames[t])}</span><i><s style="width:${Math.round(got/total*100)}%;background:${tierColor[t]}"></s></i><span>${got}/${total}</span></div>`;}).join('');
     const rk=(r:WebProfile['dexRank'],u:string)=>r?`<b>${r.rank}위</b> / ${r.total}명 · ${r.score}${u}`:'기록 없음';
     const body=`<div class="detail"><img class="big" src="${bestImg}" alt="" width="480" height="480" style="max-width:280px">
-<div><h1 style="margin:.1em 0">🪨 ${esc(p.nickname)}</h1>
+<div><h1 style="margin:.1em 0">${p.badge?esc(p.badge):'🪨'} ${esc(p.nickname)}</h1>
 <p class="note">최고 갈매미: ${esc(bestLabel)} · 입사 ${esc(DateTime.fromJSDate(p.joined).setZone('Asia/Seoul').toFormat('yyyy. M. d.'))}</p>
 ${p.titles.length?`<p>${p.titles.map(t=>`<span class="title">🏆 ${esc(t)}</span>`).join('')}</p>`:''}
 <div class="stats"><div class="stat"><b>${p.dex}/${content.characters.length}</b>도감</div><div class="stat"><b>${p.firsts}개</b>히든 최초 발견</div></div>

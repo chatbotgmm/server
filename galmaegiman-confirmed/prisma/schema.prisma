@@ -27,6 +27,7 @@ model Player {
   inviteCode    String?           @unique // 내 초대 코드
   invitedBy     String? // 나를 초대한 플레이어 id
   partyDraft    String            @default("") // 탐험대 편성 중인 유닛 id(쉼표 구분)
+  badge         String? // 닉네임 옆 장식(땅콩 상점 배지 id)
   revision      Int               @default(0)
   createdAt     DateTime          @default(now())
   characters    OwnedCharacter[]

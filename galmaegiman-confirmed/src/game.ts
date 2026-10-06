@@ -15,7 +15,7 @@ import { planExpedition, rollExpedition, expectedSnacks, type ExpeditionPlan, ty
 type Count={total:number;usable:number;locked:number;away:number};
 type Stock=Map<string,Count>;
 type Tx=Prisma.TransactionClient;
-type ActionPayload={characterId?:string;ids?:number[];recipeId?:string;times?:number};
+type ActionPayload={characterId?:string;ids?:number[];recipeId?:string;times?:number;badge?:string};
 const json=(x:unknown)=>x as Prisma.InputJsonValue;
 const gachaWords:Record<string,GachaKind>={하급:'LOW',중급:'MID',고급:'HIGH'};
 const menu=[choice('뽑기'),choice('뽑기권 받기','뽑기권받기'),choice('조합가능'),choice('내갈매미'),choice('미션'),choice('상점'),choice('조합목록'),choice('탐험'),choice('도감'),choice('내정보')];
@@ -258,7 +258,7 @@ export class GameService {
     const token=randomBytes(8).toString('hex');
     await tx.pendingAction.create({data:{token,playerId:p.id,revision:p.revision,kind,payload:json(payload),expiresAt:new Date(now.getTime()+600_000)}});
     const [header,title,message,fallback]=kind==='CRAFT'?['만들까요?','🧩 조합하기','조합 확정','재료를 써서 1마리를 만들어요']:
-      kind==='EXPEDITION'?['출발할까요?','🧭 탐험 출발','탐험 확정','돌아올 때까지 다른 데 못 써요']:kind.startsWith('SHOP')?['살까요?','🛒 구매하기','구매 확정','새우깡을 써요']:kind==='PEANUT'?['땅콩을 뗄까요?','🥜 땅콩떼기','땅콩떼기 확정','되돌릴 수 없어요']:kind==='SELL'?['팔까요?','🍤 팔기','팔기 확정','되돌릴 수 없어요']:['교환할까요?','🍤 교환하기','교환 확정','새우깡을 써서 받아요'];
+      kind==='EXPEDITION'?['출발할까요?','🧭 탐험 출발','탐험 확정','돌아올 때까지 다른 데 못 써요']:kind.startsWith('SHOP')?['살까요?','🛒 구매하기','구매 확정',kind==='SHOP_BADGE'||kind==='SHOP_PEANUT_TICKETS'?'땅콩을 써요':'새우깡을 써요']:kind==='PEANUT'?['땅콩을 뗄까요?','🥜 땅콩떼기','땅콩떼기 확정','되돌릴 수 없어요']:kind==='SELL'?['팔까요?','🍤 팔기','팔기 확정','되돌릴 수 없어요']:['교환할까요?','🍤 교환하기','교환 확정','새우깡을 써서 받아요'];
     return {text,imageId,...(cards?{cards}:{}),list:{title:header,showText:true,items:[
       {title,description:detail??fallback,message,button:{action:'confirm',token}},
       {title:'그만두기',description:'아무것도 쓰지 않아요',message:'취소',button:{action:'cancel',token}}
@@ -547,7 +547,7 @@ export class GameService {
     // 실제로 얻을 수 있는 곳만: 뽑기(noGacha 제외), 교환·탐험(흔함·안흔함), 조합(조합식 있는 것), 땅콩떼기(특수함)
     const from=c.noGacha?[]:(['LOW','MID','HIGH'] as GachaKind[]).filter(k=>g[k].weights[c.rarity]).map(k=>g[k].label);
     const low=c.rarity==='COMMON'||c.rarity==='UNCOMMON';
-    return [...(from.length?[`${from.join('·')} 뽑기`]:[]),...(low?['교환']:[]),...(this.content.recipes.some(r=>r.resultId===id)?['조합']:[]),
+    return [...(from.length?[`${from.join('·')} 뽑기`]:[]),...(low?['교환']:[]),...(c.rarity==='SPECIAL'?['땅콩 교환']:[]),...(this.content.recipes.some(r=>r.resultId===id)?['조합']:[]),
       ...(c.rarity==='NEUTRAL'?['땅콩떼기']:[]),...(low?[`탐험(${c.rarity==='COMMON'?'바다':'벚꽃'} 시너지)`]:[])].join(' / ');
   }
   private recipeParts(recipe:Recipe,stock:Stock,known:Set<string>,collected?:boolean){
@@ -660,7 +660,7 @@ export class GameService {
       // 낮은 등급부터 보여 줍니다(높은 등급을 실수로 떼지 않도록)
       const pool=this.content.characters.filter(c=>this.peanutable(c)&&isRevealed(c,known)&&statusOf(stock.get(c.id)).usable>0)
         .sort((a,b)=>tiers[a.rarity]-tiers[b.rarity]||a.position-b.position).slice(0,10);
-      const guide='🥜 갈매미맨 1마리 → 중성 갈매미 1마리 + 땅콩 1개\n땅콩은 곧 상점에서 쓸 수 있어요. 차곡차곡 모아 두세요!';
+      const guide='🥜 갈매미맨 1마리 → 중성 갈매미 1마리 + 땅콩 1개\n땅콩은 🥜 땅콩 상점에서 써요(뽑기권·특별 골라 받기·닉네임 장식).';
       if(!pool.length)return this.info({text:`🥜 땅콩떼기\n땅콩을 뗄 갈매미맨이 없어요.\n\n${guide}`,choices:[choice('뽑기'),...menu]},'s-peanut');
       return {text:`🥜 땅콩떼기 · 갈매미맨을 고르세요\n\n${pool.map(c=>`${emblems[c.rarity]} ${c.name}`).join('\n')}\n\n${guide}`,
         cards:{intro:`🥜 땅콩떼기 · 갈매미맨을 고르세요 (지금 🥜 ${p.peanut}개)`,items:pool.map(c=>({imageId:this.cardImage(c.id,known),title:`${emblems[c.rarity]} ${c.name}`,description:`${rarityNames[c.rarity]} · 쓸 수 있는 ${statusOf(stock.get(c.id)).usable}마리`,buttons:[choice('땅콩 떼기',`땅콩떼기 ${c.name}`)]})),outro:guide},
@@ -803,6 +803,12 @@ export class GameService {
     const e=this.content.economy.exchange;
     return c.rarity==='UNCOMMON'?e.uncommonCost:e.snackCost;
   }
+  // 교환 값: 흔함·안흔함은 새우깡, 특별은 땅콩(땅콩 상점)
+  private exchangePrice(c:Character){return c.rarity==='SPECIAL'?{peanut:this.content.economy.peanutShop.special}:{snack:this.exchangeCost(c)};}
+  private priceText(c:Character){const x=this.exchangePrice(c);return x.peanut?`🥜 ${x.peanut}`:`🍤 ${x.snack}`;}
+  // 닉네임 장식(땅콩 상점 배지)
+  private badgeEmoji(id?:string|null){return this.content.economy.peanutShop.badges.find(b=>b.id===id)?.emoji??'';}
+  private named(nick:string|null|undefined,badge?:string|null,fallback=''){const e=this.badgeEmoji(badge);return nick?`${e?`${e} `:''}${nick}`:fallback;}
   // ───────── 상점 (새우깡 사용처) ─────────
   private async shop(tx:Tx,p:Player,sub:string,now:Date):Promise<GameReply>{
     const e=this.content.economy,none=new Set<string>();
@@ -812,6 +818,22 @@ export class GameService {
       return this.issue(tx,p,'SHOP_TICKETS',{},now,`🛒 뽑기권 ${t.amount}장\n새우깡 ${t.snacks}개 (지금 ${p.snack}개)`,undefined,`새우깡 ${t.snacks}개를 써요`,
         {items:[{imageId:'s-ticket',title:`🛒 뽑기권 ${t.amount}장`,description:`새우깡 ${t.snacks}개 · 지금 ${p.snack}개`}]});
     }
+    if(sub==='땅콩'){
+      const ps=e.peanutShop;
+      const items:CardEntry[]=[
+        {imageId:'s-ticket',title:`🎟 뽑기권 ${ps.tickets}장`,description:`🥜 1개 · 지금 🥜 ${p.peanut}개`,buttons:[choice('바꾸기','상점 땅콩뽑기권')]},
+        {imageId:'s-exchange',title:'✦ 특별 골라 받기',description:`원하는 특별 1마리 · 🥜 ${ps.special}`,buttons:[choice('고르기','교환 특별')]},
+        {imageId:'s-rank',title:'🎀 닉네임 장식',description:`랭킹·수다방·프로필에 이름 옆으로 보여요 · 🥜 ${Math.min(...ps.badges.map(b=>b.cost))}~${Math.max(...ps.badges.map(b=>b.cost))}`,buttons:[choice('보기','상점 장식')]}];
+      const outro='🥜 땅콩은 땅콩떼기로 얻어요(갈매미맨 1마리 → 중성 갈매미 + 땅콩 1개).';
+      return {text:`🥜 땅콩 상점 · 지금 🥜 ${p.peanut}개\n\n${items.map(i=>`${i.title} · ${i.description}`).join('\n')}\n\n${outro}`,cards:{intro:`🥜 땅콩 상점 · 지금 🥜 ${p.peanut}개`,items,outro},choices:[choice('땅콩떼기'),choice('상점'),...menu]};
+    }
+    if(sub==='땅콩뽑기권'){
+      const t=e.peanutShop.tickets;
+      if(p.peanut<1)throw new GameError(`🥜 땅콩이 없어요.\n땅콩떼기로 갈매미맨의 땅콩을 떼면 생겨요.`);
+      return this.issue(tx,p,'SHOP_PEANUT_TICKETS',{},now,`🥜 → 🎟 뽑기권 ${t}장\n땅콩 1개 (지금 ${p.peanut}개)`,undefined,`땅콩 1개를 써요`,
+        {items:[{imageId:'s-ticket',title:`🥜 → 🎟 뽑기권 ${t}장`,description:`땅콩 1개 · 지금 🥜 ${p.peanut}개`}]});
+    }
+    if(sub==='장식')return this.badgeShop(tx,p);
     if(sub==='탐험귀환'){
       const cost=e.shop.expeditionSkip.snacks,active=await this.activeExpedition(tx,p);
       if(!active||active.endsAt<=now)throw new GameError('바로 돌아오게 할 탐험이 없어요.\n탐험 중일 때만 쓸 수 있어요.');
@@ -824,10 +846,21 @@ export class GameService {
       {imageId:'s-exchange',title:'🔹 안흔함 고르기',description:`원하는 안흔함 1마리 · 🍤 ${e.exchange.uncommonCost}`,buttons:[choice('고르기','교환 안흔함')]},
       {imageId:'s-ticket',title:`🎟 뽑기권 ${e.shop.tickets.amount}장`,description:`🍤 ${e.shop.tickets.snacks}`,buttons:[choice('사기','상점 뽑기권')]},
       {imageId:'s-sell',title:'🍤 남는 갈매미 팔기',description:`흔함 ${e.sell.COMMON??0} · 안흔함 ${e.sell.UNCOMMON??0} · 특별 ${e.sell.SPECIAL??0}…(1마리당)`,buttons:[choice('팔기','팔기')]},
-      {imageId:'explore',title:'🧭 탐험 즉시 귀환',description:`진행 중인 탐험을 바로 끝냄 · 🍤 ${e.shop.expeditionSkip.snacks}`,buttons:[choice('사기','상점 탐험귀환')]}
+      {imageId:'explore',title:'🧭 탐험 즉시 귀환',description:`진행 중인 탐험을 바로 끝냄 · 🍤 ${e.shop.expeditionSkip.snacks}`,buttons:[choice('사기','상점 탐험귀환')]},
+      {imageId:'s-peanut',title:'🥜 땅콩 상점',description:`뽑기권 ${e.peanutShop.tickets}장 · 특별 골라 받기 · 닉네임 장식 · 지금 🥜 ${p.peanut}개`,buttons:[choice('들어가기','상점 땅콩')]}
     ];
     const outro='🍤 새우깡 얻는 법: 처음 발견·중복 획득 보상, 팔기, 탐험 (자세히: 보상)';
-    return {text:`🛒 상점 · 🍤 ${p.snack}개\n\n${items.map(i=>`${i.title} · ${i.description}`).join('\n')}\n\n${outro}`,cards:{intro:`🛒 상점 · 지금 🍤 ${p.snack}개`,items,outro},choices:[choice('흔함 교환','교환 흔함'),choice('안흔함 교환','교환 안흔함'),choice('뽑기권 사기','상점 뽑기권'),...menu]};
+    return {text:`🛒 상점 · 🍤 ${p.snack}개 · 🥜 ${p.peanut}개\n\n${items.map(i=>`${i.title} · ${i.description}`).join('\n')}\n\n${outro}`,cards:{intro:`🛒 상점 · 지금 🍤 ${p.snack}개 · 🥜 ${p.peanut}개`,items,outro},choices:[choice('흔함 교환','교환 흔함'),choice('안흔함 교환','교환 안흔함'),choice('🥜 땅콩 상점','상점 땅콩'),choice('뽑기권 사기','상점 뽑기권'),...menu]};
+  }
+  // 닉네임 장식: 산 것은 '달기', 안 산 것은 '사기'(땅콩)
+  private async badgeShop(tx:Tx,p:Player):Promise<GameReply>{
+    const owned=new Set((await tx.achievement.findMany({where:{playerId:p.id,key:{startsWith:'BADGE_'}}})).map(a=>a.key.slice(6)));
+    const items:CardEntry[]=this.content.economy.peanutShop.badges.map(b=>{const has=owned.has(b.id),on=p.badge===b.id;
+      return {imageId:'s-rank',title:`${b.emoji} ${b.label}${on?' · 달고 있음':''}`,description:has?`가지고 있어요 · 예) ${b.emoji} ${p.nickname??'닉네임'}`:`🥜 ${b.cost} · 예) ${b.emoji} ${p.nickname??'닉네임'}`,
+        buttons:[has?(on?choice('빼기','장식 빼기'):choice('달기',`장식 달기 ${b.label}`)):choice('사기',`장식 사기 ${b.label}`)]};});
+    const head=`🎀 닉네임 장식 · 지금 🥜 ${p.peanut}개`;
+    const outro=`${p.nickname?'':'장식은 닉네임 옆에 보여요. 먼저: 닉네임 갈매미왕\n'}한 번 사면 계속 쓸 수 있고, 하나만 달 수 있어요.`;
+    return {text:`${head}\n\n${items.map(i=>`${i.title} · ${i.description}`).join('\n')}\n\n${outro}`,cards:{intro:head,items,outro},choices:[choice('땅콩 상점','상점 땅콩'),...menu]};
   }
   // ───────── 목록 ─────────
   private gradeOf(label:string){return tierOrder.find(t=>rarityNames[t]===label);}
@@ -893,7 +926,7 @@ export class GameService {
       .map(({r})=>this.content.map.get(r.resultId)!);
     else if(command==='내갈매미')characters=this.content.characters.filter(c=>stock.has(c.id));
     else characters=this.content.characters;
-    if(command==='교환')characters=this.content.characters.filter(c=>c.rarity===(grade==='UNCOMMON'?'UNCOMMON':'COMMON'));
+    if(command==='교환')characters=this.content.characters.filter(c=>c.rarity===(grade==='UNCOMMON'||grade==='SPECIAL'?grade:'COMMON'));
     if(grade)characters=characters.filter(c=>c.rarity===grade);
     // 히든 조합목록: 못 찾은 히든도 ??? 카드와 힌트로 보여 줍니다(찾은 것 먼저)
     if(command==='조합목록'&&grade==='HIDDEN')characters=this.content.characters.filter(c=>c.rarity==='HIDDEN').sort((a,b)=>Number(isRevealed(b,known))-Number(isRevealed(a,known))||a.position-b.position);
@@ -912,7 +945,7 @@ export class GameService {
         return {imageId:this.face(c.id,known),title,description:ok?`${rarityNames[c.rarity]} · ✨ 만들 수 있어요`:`${rarityNames[c.rarity]} · 재료 ${pr.have}/${pr.total}종\n모자람: ${lack}`,
           buttons:ok?[choice('만들기',`조합 ${c.name}`),choice('재료 보기',`조합식 ${c.name}`)]:[choice('재료 보기',`조합식 ${c.name}`)]};
       }
-      if(command==='교환')return {imageId:this.face(c.id,known),title,description:`${rarityNames[c.rarity]} · 🍤 ${this.exchangeCost(c)} · 보유 ${have.total}마리`,buttons:[choice('교환하기',`교환 ${c.name}`)]};
+      if(command==='교환')return {imageId:this.face(c.id,known),title,description:`${rarityNames[c.rarity]} · ${this.priceText(c)} · 보유 ${have.total}마리`,buttons:[choice('교환하기',`교환 ${c.name}`)]};
       if(command==='내갈매미')return {imageId:this.cardImage(c.id,known),title,description:`${rarityNames[c.rarity]} · ${have.total}마리${have.away?` · 탐험 ${have.away}`:''}${have.locked?` · 보호 ${have.locked}`:''}`,buttons:[choice('자세히',`내갈매미 ${c.name}`)]};
       return {imageId:this.face(c.id,known),title,description:`${rarityNames[c.rarity]} · ${own?'✅ 수집':'⬜ 미수집'}`,buttons:[choice('자세히',`도감 ${c.name}`)]};
     };
@@ -962,8 +995,8 @@ export class GameService {
     if(GameService.bannedWords.some(w=>plain.includes(w)))return '고운 말로 다시 써 주세요. 🪨';
     return '';
   }
-  private commentLine(c:{id:number;text:string;likes:number;createdAt:Date;player:{nickname:string|null}},known:Set<string>){
-    return `#${c.id} ${c.player.nickname??'이름 없는 갈매미'} · 👍 ${c.likes} · ${DateTime.fromJSDate(c.createdAt).setZone('Asia/Seoul').toFormat('M/d HH:mm')}\n${mask(this.content,c.text,known)}`;
+  private commentLine(c:{id:number;text:string;likes:number;createdAt:Date;player:{nickname:string|null;badge:string|null}},known:Set<string>){
+    return `#${c.id} ${this.named(c.player.nickname,c.player.badge,'이름 없는 갈매미')} · 👍 ${c.likes} · ${DateTime.fromJSDate(c.createdAt).setZone('Asia/Seoul').toFormat('M/d HH:mm')}\n${mask(this.content,c.text,known)}`;
   }
   private async commentCommand(tx:Tx,p:Player,query:string,now:Date):Promise<GameReply>{
     const known=await this.known(tx,p);
@@ -983,7 +1016,7 @@ export class GameService {
     }
     const c=unit;
     if(!rest){
-      const shown=await tx.comment.findMany({where:{characterId:c.id,hidden:false},orderBy:[{likes:'desc'},{createdAt:'desc'}],take:5,include:{player:{select:{nickname:true}}}});
+      const shown=await tx.comment.findMany({where:{characterId:c.id,hidden:false},orderBy:[{likes:'desc'},{createdAt:'desc'}],take:5,include:{player:{select:{nickname:true,badge:true}}}});
       const total=await tx.comment.count({where:{characterId:c.id,hidden:false}});
       const head=`💬 ${emblems[c.rarity]} ${c.name} 댓글 ${total}개${total>5?' (좋아요 많은 5개)':''}`;
       const body=shown.length?shown.map(x=>this.commentLine(x,known)).join('\n\n'):'아직 댓글이 없어요. 첫 댓글을 남겨 보세요!';
@@ -1024,17 +1057,17 @@ export class GameService {
   async unitComments(characterId:string,take=30){
     const c=this.content.map.get(characterId);
     if(!c||c.rarity==='HIDDEN')return [];
-    return (await this.reader.comment.findMany({where:{characterId,hidden:false},orderBy:[{likes:'desc'},{createdAt:'desc'}],take,include:{player:{select:{nickname:true}}}}))
-      .map(x=>({id:x.id,text:mask(this.content,x.text,new Set()),likes:x.likes,at:x.createdAt,name:x.player.nickname??'이름 없는 갈매미',characterId:x.characterId}));
+    return (await this.reader.comment.findMany({where:{characterId,hidden:false},orderBy:[{likes:'desc'},{createdAt:'desc'}],take,include:{player:{select:{nickname:true,badge:true}}}}))
+      .map(x=>({id:x.id,text:mask(this.content,x.text,new Set()),likes:x.likes,at:x.createdAt,name:x.player.nickname??'이름 없는 갈매미',badge:this.badgeEmoji(x.player.badge),characterId:x.characterId}));
   }
   async recentComments(take=30){
-    return this.cached(`recent-comments-${take}`,15_000,async()=>(await this.reader.comment.findMany({where:{hidden:false,characterId:{notIn:this.content.hiddenIds}},orderBy:{createdAt:'desc'},take,include:{player:{select:{nickname:true}}}}))
-      .map(x=>({id:x.id,text:mask(this.content,x.text,new Set()),likes:x.likes,at:x.createdAt,name:x.player.nickname??'이름 없는 갈매미',characterId:x.characterId})));
+    return this.cached(`recent-comments-${take}`,15_000,async()=>(await this.reader.comment.findMany({where:{hidden:false,characterId:{notIn:this.content.hiddenIds}},orderBy:{createdAt:'desc'},take,include:{player:{select:{nickname:true,badge:true}}}}))
+      .map(x=>({id:x.id,text:mask(this.content,x.text,new Set()),likes:x.likes,at:x.createdAt,name:x.player.nickname??'이름 없는 갈매미',badge:this.badgeEmoji(x.player.badge),characterId:x.characterId})));
   }
   async topComments(take=10){
     const since=new Date(this.clock().getTime()-7*86_400_000);
-    return this.cached(`top-comments-${take}`,15_000,async()=>(await this.reader.comment.findMany({where:{hidden:false,likes:{gt:0},createdAt:{gte:since},characterId:{notIn:this.content.hiddenIds}},orderBy:[{likes:'desc'},{createdAt:'desc'}],take,include:{player:{select:{nickname:true}}}}))
-      .map(x=>({id:x.id,text:mask(this.content,x.text,new Set()),likes:x.likes,at:x.createdAt,name:x.player.nickname??'이름 없는 갈매미',characterId:x.characterId})));
+    return this.cached(`top-comments-${take}`,15_000,async()=>(await this.reader.comment.findMany({where:{hidden:false,likes:{gt:0},createdAt:{gte:since},characterId:{notIn:this.content.hiddenIds}},orderBy:[{likes:'desc'},{createdAt:'desc'}],take,include:{player:{select:{nickname:true,badge:true}}}}))
+      .map(x=>({id:x.id,text:mask(this.content,x.text,new Set()),likes:x.likes,at:x.createdAt,name:x.player.nickname??'이름 없는 갈매미',badge:this.badgeEmoji(x.player.badge),characterId:x.characterId})));
   }
 
   // ───────── 랭킹 ─────────
@@ -1083,12 +1116,12 @@ export class GameService {
     const tx=this.db as unknown as Tx;
     {
       const rows=await this.rankRows(tx,kind,now),top=rows.slice(0,limit),ids=top.map(r=>r.playerId);
-      const players=await tx.player.findMany({where:{id:{in:ids}},select:{id:true,nickname:true}});
+      const players=await tx.player.findMany({where:{id:{in:ids}},select:{id:true,nickname:true,badge:true}});
       const got=await tx.collectionEntry.findMany({where:{playerId:{in:ids}},select:{playerId:true,characterId:true}});
       const best=new Map<string,Character>();
       // 최고 유닛: 등급이 높고, 같으면 뒤 번호(카톡 랭킹과 같은 기준)
       for(const g of got){const c=this.content.map.get(g.characterId),b=best.get(g.playerId);if(c&&(!b||tiers[c.rarity]>tiers[b.rarity]||(tiers[c.rarity]===tiers[b.rarity]&&c.position>b.position)))best.set(g.playerId,c);}
-      return {total:rows.length,generatedAt:now,rows:top.map((r,i)=>{const nick=players.find(x=>x.id===r.playerId)?.nickname;return {rank:i+1,name:nick??`갈매미 #${r.playerId.slice(0,4)}`,nick:Boolean(nick),score:r.score,best:best.get(r.playerId)??null};})};
+      return {total:rows.length,generatedAt:now,rows:top.map((r,i)=>{const pl=players.find(x=>x.id===r.playerId),nick=pl?.nickname;return {rank:i+1,name:nick??`갈매미 #${r.playerId.slice(0,4)}`,nick:Boolean(nick),badge:this.badgeEmoji(pl?.badge),score:r.score,best:best.get(r.playerId)??null};})};
     }
   }
   // 쿠폰: 공백 무시하고 코드 비교, 1인 1회(Achievement 키 COUPON_<id>), 기간 확인
@@ -1149,7 +1182,7 @@ export class GameService {
     const [dex,top,week]=[await rankOf('DEX'),await rankOf('TOP'),await rankOf('WEEK')];
     const titles=await this.titles(this.reader,p);
     const firsts=[...(await this.hiddenFirsts()).values()].filter(f=>f.name===nickname).length;
-    return {nickname,joined:p.createdAt,dex:got.length,byTier,best,dexRank:dex,topRank:top,weekRank:week,titles,firsts};
+    return {nickname,badge:this.badgeEmoji(p.badge),joined:p.createdAt,dex:got.length,byTier,best,dexRank:dex,topRank:top,weekRank:week,titles,firsts};
   }
   private async ranking(tx:Tx,p:Player,mode:string,now:Date):Promise<GameReply>{
     const kind=mode==='최상위'?'TOP':mode==='주간'?'WEEK':'DEX';
@@ -1158,8 +1191,8 @@ export class GameService {
     const title=kind==='DEX'?'도감 수집':kind==='TOP'?'최상위 보유':'이번 주 조합';
     const known=await this.known(tx,p);
     const top=rows.slice(0,10);
-    const players=await tx.player.findMany({where:{id:{in:top.map(r=>r.playerId)}},select:{id:true,nickname:true}});
-    const label=(id:string)=>players.find(x=>x.id===id)?.nickname??`갈매미 #${id.slice(0,4)}`;
+    const players=await tx.player.findMany({where:{id:{in:top.map(r=>r.playerId)}},select:{id:true,nickname:true,badge:true}});
+    const label=(id:string)=>{const x=players.find(y=>y.id===id);return this.named(x?.nickname,x?.badge,`갈매미 #${id.slice(0,4)}`);};
     const medal=(i:number)=>['🥇','🥈','🥉'][i]??`${i+1}위`;
     const items:CardEntry[]=[];
     for(const [i,r] of top.entries()){
@@ -1407,15 +1440,17 @@ export class GameService {
     let result:GameReply;
     if(action.kind==='RECEIVE'){
       const c=this.content.map.get(payload.characterId??'');
-      if(!c||(c.rarity!=='COMMON'&&c.rarity!=='UNCOMMON'))throw new GameError('교환할 수 없는 갈매미예요.');
-      const cost=this.exchangeCost(c);
-      if(p.snack<cost)throw new GameError('🍤 새우깡이 부족해요.');
-      await tx.player.update({where:{id:p.id},data:{snack:{decrement:cost}}});
+      if(!c||(c.rarity!=='COMMON'&&c.rarity!=='UNCOMMON'&&c.rarity!=='SPECIAL'))throw new GameError('교환할 수 없는 갈매미예요.');
+      const price=this.exchangePrice(c);
+      if(price.peanut&&p.peanut<price.peanut)throw new GameError('🥜 땅콩이 부족해요.');
+      if(price.snack&&p.snack<price.snack)throw new GameError('🍤 새우깡이 부족해요.');
+      const cost=price.snack??0;
+      await tx.player.update({where:{id:p.id},data:price.peanut?{peanut:{decrement:price.peanut}}:{snack:{decrement:cost}}});
       const owned=await this.grant(tx,p,c.id,'EXCHANGE',now);
       const next=await this.nextStep(tx,p,now,[choice('더 교환','교환')]);
       result={text:`🍤 → ${acquisitionText(this.content,c,'EXCHANGE',owned.receipt,known)}\n\n${next.line}`,...(owned.receipt.first?{imageId:this.image(c.id,known)}:{}),
         ...this.acquired(c,'EXCHANGE',owned.receipt,known,[],next.line),choices:next.choices};
-      await this.audit(tx,p,'EXCHANGE',{token,characterId:c.id,ownedId:owned.id,delta:-cost,balanceAfter:p.snack-cost});
+      await this.audit(tx,p,'EXCHANGE',{token,characterId:c.id,ownedId:owned.id,...(price.peanut?{peanut:-price.peanut,peanutAfter:p.peanut-price.peanut}:{delta:-cost,balanceAfter:p.snack-cost})});
     }else if(action.kind==='PEANUT'){
       const c=this.content.map.get(payload.characterId??'');
       if(!c||!this.peanutable(c))throw new GameError('땅콩을 뗄 수 없는 갈매미예요.');
@@ -1446,6 +1481,21 @@ export class GameService {
       await tx.player.update({where:{id:p.id},data:{snack:{decrement:t.snacks},credits:{increment:t.amount}}});
       await this.audit(tx,p,'SHOP',{token,item:'TICKETS',snacks:-t.snacks,tickets:t.amount});
       result=this.info({text:`🛒 뽑기권 +${t.amount}!\n🍤 -${t.snacks} · 지금 🎟 ${p.credits+t.amount}장 · 🍤 ${p.snack-t.snacks}개`,choices:[choice('뽑기'),choice('상점'),...menu.slice(2)]},'s-ticket');
+    }else if(action.kind==='SHOP_PEANUT_TICKETS'){
+      const t=this.content.economy.peanutShop.tickets;
+      if(p.peanut<1)throw new GameError('🥜 땅콩이 없어요.');
+      await tx.player.update({where:{id:p.id},data:{peanut:{decrement:1},credits:{increment:t}}});
+      await this.audit(tx,p,'SHOP',{token,item:'PEANUT_TICKETS',peanut:-1,tickets:t});
+      result=this.info({text:`🎟 뽑기권 +${t}!\n🥜 -1 · 지금 🎟 ${p.credits+t}장 · 🥜 ${p.peanut-1}개`,choices:[...this.drawChoices(p,p.credits+t),choice('땅콩 상점','상점 땅콩'),...menu.slice(2)]},'s-ticket');
+    }else if(action.kind==='SHOP_BADGE'){
+      const b=this.content.economy.peanutShop.badges.find(x=>x.id===payload.badge);
+      if(!b)throw new GameError('그런 장식은 없어요.');
+      if(await tx.achievement.findUnique({where:{playerId_key:{playerId:p.id,key:`BADGE_${b.id}`}}}))throw new GameError('이미 가지고 있는 장식이에요.');
+      if(p.peanut<b.cost)throw new GameError('🥜 땅콩이 부족해요.');
+      await tx.player.update({where:{id:p.id},data:{peanut:{decrement:b.cost},badge:b.id}});
+      await tx.achievement.create({data:{playerId:p.id,key:`BADGE_${b.id}`,createdAt:now}});
+      await this.audit(tx,p,'SHOP',{token,item:'BADGE',badge:b.id,peanut:-b.cost});
+      result=this.info({text:`🎀 ${b.label}을(를) 달았어요!\n${this.named(p.nickname,b.id,'(닉네임을 정하면 이름 옆에 보여요)')}\n🥜 -${b.cost} · 지금 🥜 ${p.peanut-b.cost}개`,choices:[choice('장식 보기','상점 장식'),choice('랭킹'),...menu]},'s-rank');
     }else if(action.kind==='SHOP_SKIP'){
       const cost=this.content.economy.shop.expeditionSkip.snacks;
       const active=await this.activeExpedition(tx,p);
@@ -1532,18 +1582,20 @@ export class GameService {
     }
     if(command==='교환'){
       // 흔함·안흔함을 골라 새우깡으로 받습니다. "교환 안흔함"이면 안흔함 목록
-      const tierArg=args[0]==='안흔함'?'UNCOMMON':args[0]==='흔함'?'COMMON':undefined;
+      const tierArg=args[0]==='안흔함'?'UNCOMMON':args[0]==='흔함'?'COMMON':args[0]==='특별'?'SPECIAL':undefined;
       if(!query||/^\d+$/.test(query)||(tierArg&&args.length<=2&&(!args[1]||/^\d+$/.test(args[1])))){
         const reply=await this.browse(tx,p,'교환',query);
-        const note=`🍤 흔함 ${this.content.economy.exchange.snackCost} · 안흔함 ${this.content.economy.exchange.uncommonCost} · 지금 🍤 ${p.snack}개`;
+        const note=tierArg==='SPECIAL'?`✦ 특별 1마리 🥜 ${this.content.economy.peanutShop.special} · 지금 🥜 ${p.peanut}개`:`🍤 흔함 ${this.content.economy.exchange.snackCost} · 안흔함 ${this.content.economy.exchange.uncommonCost} · 지금 🍤 ${p.snack}개`;
         return {...reply,text:`${reply.text}\n\n${note}`,...(reply.cards?{cards:{...reply.cards,outro:note}}:{}),choices:[choice(tierArg==='UNCOMMON'?'흔함 교환':'안흔함 교환',tierArg==='UNCOMMON'?'교환 흔함':'교환 안흔함'),choice('상점'),...(reply.choices??[]).filter(c=>!/^교환 /.test(c.message))]};
       }
-      const c=this.resolve(query,this.content.characters.filter(c=>c.rarity==='COMMON'||c.rarity==='UNCOMMON'),'교환',new Set());
+      const c=this.resolve(query.replace(/^특별\s+/,''),this.content.characters.filter(c=>c.rarity==='COMMON'||c.rarity==='UNCOMMON'||c.rarity==='SPECIAL'),'교환',new Set());
       if(!('id' in c))return c;
-      const cost=this.exchangeCost(c);
-      if(p.snack<cost)throw new GameError(`🍤 새우깡이 부족해요. ${cost}개 필요, 지금 ${p.snack}개.`);
-      return this.issue(tx,p,'RECEIVE',{characterId:c.id},now,`🍤 → ${emblems[c.rarity]} ${c.name}\n새우깡 ${cost}개 (지금 ${p.snack}개)`,this.seenImage(c.id,new Set()),`새우깡 ${cost}개를 써요`,
-        {items:[{imageId:this.face(c.id,new Set()),title:`🍤 → ${emblems[c.rarity]} ${c.name}`,description:`새우깡 ${cost}개 · 지금 ${p.snack}개`}]});
+      const price=this.exchangePrice(c);
+      if(price.peanut&&p.peanut<price.peanut)throw new GameError(`🥜 땅콩이 부족해요. ${price.peanut}개 필요, 지금 ${p.peanut}개.\n땅콩떼기로 모을 수 있어요.`);
+      if(price.snack&&p.snack<price.snack)throw new GameError(`🍤 새우깡이 부족해요. ${price.snack}개 필요, 지금 ${p.snack}개.`);
+      const pay=price.peanut?`땅콩 ${price.peanut}개`:`새우깡 ${price.snack}개`,have=price.peanut?`🥜 ${p.peanut}개`:`🍤 ${p.snack}개`,icon=price.peanut?'🥜':'🍤';
+      return this.issue(tx,p,'RECEIVE',{characterId:c.id},now,`${icon} → ${emblems[c.rarity]} ${c.name}\n${pay} (지금 ${have})`,this.seenImage(c.id,new Set()),`${pay}를 써요`,
+        {items:[{imageId:this.face(c.id,new Set()),title:`${icon} → ${emblems[c.rarity]} ${c.name}`,description:`${pay} · 지금 ${have}`}]});
     }
     if(command==='쿠폰'||command==='코드')return this.coupon(tx,p,query,now);
     if(command==='이벤트'){
@@ -1560,7 +1612,26 @@ export class GameService {
       const what=[...(ev.claimBonus?[`뽑기권 받기 +${ev.claimBonus}장 더`]:[]),...(ev.snackMultiplier>1?[`새우깡 보상 ×${ev.snackMultiplier}`]:[])];
       return this.info({text:`🎉 ${ev.label}\n${what.join('\n')}\n~ ${DateTime.fromISO(ev.to).setZone('Asia/Seoul').toFormat('M/d HH:mm')}까지${couponLine}${always}`,choices:[choice('뽑기권 받기','뽑기권받기'),choice('뽑기'),...menu.slice(1)]},'s-event');
     }
-    if(command==='상점')return this.shop(tx,p,args.join(''),now);
+    if(command==='상점'||compact==='땅콩상점')return this.shop(tx,p,compact==='땅콩상점'?'땅콩':args.join(''),now);
+    if(command==='장식'){
+      const [act,...rest]=args,name=rest.join(' ').trim();
+      const b=this.content.economy.peanutShop.badges.find(x=>x.label===name||x.label.replace(/\s*배지$/,'')===name||x.emoji===name);
+      if(act==='빼기'){await tx.player.update({where:{id:p.id},data:{badge:null}});return this.info({text:'🎀 장식을 뺐어요.',choices:[choice('장식 보기','상점 장식'),...menu]},'s-rank');}
+      if(!act||!b)return this.badgeShop(tx,p);
+      const has=await tx.achievement.findUnique({where:{playerId_key:{playerId:p.id,key:`BADGE_${b.id}`}}});
+      if(act==='달기'){
+        if(!has)throw new GameError(`${b.label}은(는) 아직 없어요. 장식 사기 ${b.label}`);
+        await tx.player.update({where:{id:p.id},data:{badge:b.id}});
+        return this.info({text:`🎀 ${b.label}을(를) 달았어요!\n${this.named(p.nickname,b.id,'(닉네임을 정하면 이름 옆에 보여요)')}`,choices:[choice('장식 보기','상점 장식'),choice('랭킹'),...menu]},'s-rank');
+      }
+      if(act==='사기'){
+        if(has)throw new GameError('이미 가지고 있는 장식이에요. 장식 달기로 쓰세요.');
+        if(p.peanut<b.cost)throw new GameError(`🥜 땅콩이 부족해요. ${b.cost}개 필요, 지금 ${p.peanut}개.\n땅콩떼기로 모을 수 있어요.`);
+        return this.issue(tx,p,'SHOP_BADGE',{badge:b.id},now,`🎀 ${b.label}\n${b.emoji} ${p.nickname??'닉네임'} · 땅콩 ${b.cost}개 (지금 ${p.peanut}개)`,undefined,`땅콩 ${b.cost}개를 써요`,
+          {items:[{imageId:'s-rank',title:`🎀 ${b.label}`,description:`${b.emoji} ${p.nickname??'닉네임'}\n땅콩 ${b.cost}개 · 지금 🥜 ${p.peanut}개`}]});
+      }
+      return this.badgeShop(tx,p);
+    }
     if(command==='팔기'||command==='판매')return this.sell(tx,p,query,now);
     if(command==='초대코드'||(command==='초대'&&!query))return this.invite(tx,p,'',now);
     if(command==='초대')return this.invite(tx,p,query.trim(),now);

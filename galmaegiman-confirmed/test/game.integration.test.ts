@@ -140,7 +140,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await me()).snack).toBe(1450-350+50);   // 금갑 첫 발견 보상 +50
     expect(await db.ownedCharacter.count({where:{characterId:'U1'}})).toBe(1);
     const shop=await send('상점');
-    expect(shop.cards!.items.map(i=>i.title)).toEqual(['🥚 흔함 고르기','🔹 안흔함 고르기','🎟 뽑기권 10장','🍤 남는 갈매미 팔기','🧭 탐험 즉시 귀환']);
+    expect(shop.cards!.items.map(i=>i.title)).toEqual(['🥚 흔함 고르기','🔹 안흔함 고르기','🎟 뽑기권 10장','🍤 남는 갈매미 팔기','🧭 탐험 즉시 귀환','🥜 땅콩 상점']);
     const before=(await me()).credits;
     const tickets=await send('상점 뽑기권');
     expect(tickets.list!.items[0].message).toBe('구매 확정');
@@ -815,6 +815,27 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(await db.comment.count({where:{id:cm.id}})).toBe(0);
     }finally{await app.close();}
   });
+  it('땅콩 상점: 땅콩 1 → 뽑기권 20, 땅콩 3 → 특별 골라 받기, 닉네임 장식 사기·달기·빼기(랭킹에 표시)',async()=>{
+    await fixtures([],{credits:0});
+    await db.player.update({where:{identity:actor},data:{peanut:10,nickname:'땅콩부자'}});
+    const shop=await send('상점 땅콩');
+    expect(shop.cards!.items.map(i=>i.title)).toEqual(['🎟 뽑기권 20장','✦ 특별 골라 받기','🎀 닉네임 장식']);
+    await confirm(await send('상점 땅콩뽑기권'));
+    expect(await me()).toMatchObject({credits:20,peanut:9});
+    const list=await send('교환 특별');
+    expect(list.cards!.items[0].description).toContain('🥜 3');
+    const s1=content.characters.find(c=>c.rarity==='SPECIAL')!;
+    await confirm(await send(`교환 ${s1.name}`));
+    expect((await me()).peanut).toBe(6);
+    expect(await db.ownedCharacter.count({where:{characterId:s1.id}})).toBe(1);
+    await confirm(await send('장식 사기 왕관'));
+    expect(await me()).toMatchObject({peanut:1,badge:'CROWN'});
+    expect((await send('장식 사기 별')).text).toContain('땅콩이 부족');
+    expect((await send('장식 사기 왕관')).text).toContain('이미 가지고');
+    expect((await send('랭킹')).text).toContain('👑 땅콩부자');
+    await send('장식 빼기');expect((await me()).badge).toBeNull();
+    await send('장식 달기 왕관');expect((await me()).badge).toBe('CROWN');
+  });
   it('HTTP 요청 제한: 웹은 방문자(CF-Connecting-IP)마다, 카톡은 사람마다 따로',async()=>{
     const secret='rate-limit-http-secret-'.repeat(3);
     const app=await buildApp(db,game,{secret,baseUrl:async()=>''});
@@ -839,7 +860,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.40'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.41'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
