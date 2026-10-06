@@ -110,6 +110,9 @@ else if(ev.key==='Enter'&&k>=0){ev.preventDefault();location.href=a[k].href}else
   // 공유 미리보기(카톡·SNS): 절대 주소가 필요해 economy.homepage 를 씀
   const site=(content.economy.homepage??'').replace(/\/$/,'');
   const channel=content.economy.kakaoChannel;
+  // 카톡 채널 버튼: 말풍선 아이콘(이모지 대신 단색 그림) + 글자. big은 홈·이벤트 본문용
+  const bubble='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.7l-.9 3.4c-.1.4.3.7.6.5l4-2.7c.6.1 1.1.1 1.7.1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>';
+  const playBtn=(big=false)=>channel?`<a class="play${big?' big':''}" href="${esc(channel)}" target="_blank" rel="noopener">${bubble}<span>카톡에서 플레이</span></a>`:'';
   const logo=()=>exists('logo')?`<img src="${img('images','logo')}" alt="갈매미맨" height="40" style="height:40px;width:auto;vertical-align:middle">`:'🪨 갈매미맨';
   interface Og{image?:string;desc?:string}
   const page=(title:string,active:string,body:string,q='',og:Og={})=>`<!doctype html>
@@ -136,7 +139,9 @@ body{background-image:radial-gradient(var(--line) 1px,transparent 1.2px),linear-
  main{padding-bottom:96px}
  footer{padding-bottom:96px}
 }
-.play{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:#fee500;color:#191600;font-weight:800;text-decoration:none;font-size:.9rem;white-space:nowrap}
+.play{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:999px;background:#fee500;color:#191600;font-weight:800;text-decoration:none;font-size:.9rem;white-space:nowrap;box-shadow:0 1px 0 rgba(0,0,0,.08)}
+.play svg{flex:none}.play:hover{background:#fada0a}
+.play.big{padding:12px 22px;font-size:1rem;box-shadow:0 4px 14px rgba(254,229,0,.35)}
 body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;line-height:1.65;word-break:keep-all;overflow-wrap:anywhere}
 a{color:var(--accent)}
 header{background:var(--card);border-bottom:1px solid var(--line)}
@@ -169,12 +174,12 @@ blockquote p{margin:0}
 @media (min-width:720px){.hero{grid-template-columns:1.1fr .9fr}}
 .hero img{width:100%;max-width:420px;height:auto;justify-self:center;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.15)}
 .lead{font-size:1.05rem;color:var(--muted)}
-.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
-.btn{display:inline-block;padding:10px 16px;border-radius:12px;background:var(--accent);color:#fff;text-decoration:none;font-weight:700}
-@media (prefers-color-scheme:dark){.btn{color:#10151b}}
-.btn.ghost{background:transparent;color:var(--accent);border:2px solid var(--accent)}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:11px 18px;border-radius:999px;background:var(--card);color:var(--text);border:1.5px solid var(--line);text-decoration:none;font-weight:700;font-size:.95rem}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+@media (max-width:719px){.hero .btns .play.big{flex:1 1 100%}.hero .btns .btn{flex:1 1 0}}
 .event{margin:18px 0;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#fff3c4,#ffe0ef);color:#3b2a00;border:1px solid #f0d27a}
-.event b{font-size:1.05rem}
+.event b{font-size:1.05rem}.event a{color:#7a4300;font-weight:800}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:20px 0}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .stat b{display:block;font-size:1.4rem}
@@ -259,7 +264,7 @@ table.cmd{width:100%;border-collapse:collapse}.cmd td{padding:7px 4px;border-bot
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40px}
 </style></head><body>
 <header><div class="bar"><a class="logo" href="/">${logo()}</a>
-<nav>${navItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}>${i} ${l}</a>`).join('')}</nav>${channel?`<a class="play" href="${esc(channel)}" target="_blank" rel="noopener">💬 카톡에서 플레이</a>`:''}
+<nav>${navItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}>${i} ${l}</a>`).join('')}</nav>${playBtn()}
 <form class="search" action="/search" method="get" role="search" autocomplete="off"><input name="q" value="${esc(q)}" placeholder="갈매미·닉네임·이야기 검색 (초성 OK)" aria-label="검색" maxlength="30"><button>검색</button><div class="sug" hidden></div></form></div></header>
 <main>${body}${piece(active)}</main>
 <nav class="tabbar" aria-label="메뉴">${tabItems.map(([h,l,i])=>`<a href="${h}"${tabOn(h,active)?' class="on"':''}><i>${i}</i>${l}</a>`).join('')}</nav>
@@ -289,7 +294,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40
     const body=`<section class="hero"><div>
 <h1>갈매미는 존재한다.</h1>
 <p class="lead">돌로 된 갈매미들이 <b>갈매미 섬 항구 수비대</b>에 출근해서 항구를 지켜요. 몸이 돌이라 날지는 못해요. 새우깡 봉지 소리에는 약해요.</p>
-<div class="btns">${channel?`<a class="play" href="${esc(channel)}" target="_blank" rel="noopener">💬 카톡에서 플레이</a>`:''}<a class="btn" href="/world">세계관</a><a class="btn ghost" href="/dex">도감</a></div>
+<div class="btns">${playBtn(true)}<a class="btn" href="/world">세계관 보기</a><a class="btn" href="/dex">도감 보기</a></div>
 </div><a class="today" href="/dex/${today.id}"><img src="${img('thumbs',today.id)}" alt="${esc(today.name)}" width="480" height="480"><div><small>☀️ 오늘의 갈매미</small><h3>${esc(today.name)}</h3><p>${esc(today.introduction.split(/(?<=[.!?…])\s+/u)[0])}</p></div></a></section>
 ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 어딘가에 <b>쿠폰 조각 ${c.pieces.length}개</b>가 숨어 있어요. 모두 찾아 카톡에 <b>쿠폰 조각들</b>을 보내면 뽑기권 <b>${c.tickets}장</b>! (1인 1회)<br><a href="/event">🎁 이벤트·혜택 모두 보기 →</a></div>`:`<div class="event"><b>🎁 이벤트·혜택</b><br>친구 초대하면 둘 다 뽑기권 <b>${content.economy.invite.tickets}장</b>! <a href="/event">자세히 보기 →</a></div>`}
 <div class="homegrid">
@@ -330,7 +335,7 @@ ${c.pieces.length?`<ol><li>이 사이트 곳곳에 숨은 <b>쿠폰 조각 ${c.p
     const tTotal=tutorialSteps.length*e.tutorial.tickets;
     const body=`<h1>🎁 이벤트 · 혜택</h1>
 <p class="lead">카톡 채널 <b>갈매미맨</b>에서 받을 수 있는 뽑기권을 한곳에 모았어요.</p>
-${channel?`<div class="btns" style="margin:0 0 8px"><a class="play" href="${esc(channel)}" target="_blank" rel="noopener">💬 카톡에서 플레이</a></div>`:''}
+${channel?`<div class="btns" style="margin:0 0 8px">${playBtn(true)}</div>`:''}
 <h2>🔥 지금 진행 중</h2>
 ${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이벤트는 없어요. 아래 상시 혜택은 언제든 받을 수 있어요!</div>'}
 <h2>🎟 언제나 받는 혜택</h2>
