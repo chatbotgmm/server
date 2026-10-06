@@ -1,130 +1,174 @@
 generator client {
   provider = "prisma-client-js"
 }
+
 datasource db {
   provider = "sqlite"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
+
 model AppMeta {
-  key String @id
+  key   String @id
   value String
 }
+
 model Player {
-  id String @id @default(uuid())
-  identity String @unique
-  credits Int @default(30)
-  snack Int @default(0)
-  lastClaimAt DateTime?
-  isAdmin Boolean @default(false)
-  adminMode Boolean @default(false)
-  highPity Int @default(0)      // 고급 뽑기 천장 카운트(전설 없이 뽑은 횟수)
-  nickname String? @unique      // 랭킹 표시 이름
-  peanut Int @default(0)        // 땅콩: 땅콩떼기로 얻음(쓰임새는 추후)
-  tutorial Int @default(0)      // 튜토리얼 진행 단계(0~4, 4단계: 닉네임)
-  inviteCode String? @unique    // 내 초대 코드
-  invitedBy String?             // 나를 초대한 플레이어 id
-  partyDraft String @default("") // 탐험대 편성 중인 유닛 id(쉼표 구분)
-  revision Int @default(0)
-  createdAt DateTime @default(now())
-  characters OwnedCharacter[]
-  collection CollectionEntry[]
-  actions PendingAction[]
-  ledger AuditEvent[]
-  expeditions Expedition[]
-  achievements Achievement[]
-  daily DailyProgress[]
+  id            String            @id @default(uuid())
+  identity      String            @unique
+  credits       Int               @default(30)
+  snack         Int               @default(0)
+  lastClaimAt   DateTime?
+  isAdmin       Boolean           @default(false)
+  adminMode     Boolean           @default(false)
+  highPity      Int               @default(0) // 고급 뽑기 천장 카운트(전설 없이 뽑은 횟수)
+  nickname      String?           @unique // 랭킹 표시 이름
+  peanut        Int               @default(0) // 땅콩: 땅콩떼기로 얻음(쓰임새는 추후)
+  tutorial      Int               @default(0) // 튜토리얼 진행 단계(0~4, 4단계: 닉네임)
+  inviteCode    String?           @unique // 내 초대 코드
+  invitedBy     String? // 나를 초대한 플레이어 id
+  partyDraft    String            @default("") // 탐험대 편성 중인 유닛 id(쉼표 구분)
+  revision      Int               @default(0)
+  createdAt     DateTime          @default(now())
+  characters    OwnedCharacter[]
+  collection    CollectionEntry[]
+  actions       PendingAction[]
+  ledger        AuditEvent[]
+  expeditions   Expedition[]
+  achievements  Achievement[]
+  daily         DailyProgress[]
   adminSnapshot AdminSnapshot?
+  comments      Comment[]
 }
+
 model CharacterDefinition {
-  id String @id
-  name String
-  rarity String
-  position Int @unique
-  quote String
-  imageUrl String
-  synergy String?
-  owned OwnedCharacter[]
+  id         String            @id
+  name       String
+  rarity     String
+  position   Int               @unique
+  quote      String
+  imageUrl   String
+  synergy    String?
+  owned      OwnedCharacter[]
   collection CollectionEntry[]
 }
+
 model OwnedCharacter {
-  id Int @id @default(autoincrement())
-  playerId String
-  characterId String
-  status String @default("AVAILABLE") // AVAILABLE | CONSUMED | EXPEDITION
-  locked Boolean @default(false)
+  id           Int                 @id @default(autoincrement())
+  playerId     String
+  characterId  String
+  status       String              @default("AVAILABLE") // AVAILABLE | CONSUMED | EXPEDITION
+  locked       Boolean             @default(false)
   expeditionId String?
-  obtainedVia String
-  obtainedAt DateTime @default(now())
-  consumedAt DateTime?
-  player Player @relation(fields: [playerId], references: [id])
-  character CharacterDefinition @relation(fields: [characterId], references: [id])
+  obtainedVia  String
+  obtainedAt   DateTime            @default(now())
+  consumedAt   DateTime?
+  player       Player              @relation(fields: [playerId], references: [id])
+  character    CharacterDefinition @relation(fields: [characterId], references: [id])
+
   @@index([playerId, status, characterId])
 }
+
 model CollectionEntry {
-  playerId String
+  playerId    String
   characterId String
-  count Int @default(1)
-  player Player @relation(fields: [playerId], references: [id])
-  character CharacterDefinition @relation(fields: [characterId], references: [id])
+  count       Int                 @default(1)
+  player      Player              @relation(fields: [playerId], references: [id])
+  character   CharacterDefinition @relation(fields: [characterId], references: [id])
+
   @@id([playerId, characterId])
 }
+
 model Expedition {
-  id String @id @default(uuid())
-  playerId String
-  unitIds Json
-  plan Json
+  id        String    @id @default(uuid())
+  playerId  String
+  unitIds   Json
+  plan      Json
   startedAt DateTime
-  endsAt DateTime
+  endsAt    DateTime
   claimedAt DateTime?
-  result Json?
-  player Player @relation(fields: [playerId], references: [id])
+  result    Json?
+  player    Player    @relation(fields: [playerId], references: [id])
+
   @@index([playerId, claimedAt])
 }
+
 model PendingAction {
-  token String @id
-  playerId String
-  revision Int
-  kind String
-  payload Json
-  result Json?
+  token     String   @id
+  playerId  String
+  revision  Int
+  kind      String
+  payload   Json
+  result    Json?
   expiresAt DateTime
   createdAt DateTime @default(now())
-  player Player @relation(fields: [playerId], references: [id])
+  player    Player   @relation(fields: [playerId], references: [id])
+
   @@index([playerId, createdAt])
 }
+
 model AuditEvent {
-  id String @id @default(uuid())
-  playerId String
-  kind String
-  detail Json
+  id        String   @id @default(uuid())
+  playerId  String
+  kind      String
+  detail    Json
   createdAt DateTime @default(now())
-  player Player @relation(fields: [playerId], references: [id])
+  player    Player   @relation(fields: [playerId], references: [id])
+
   @@index([playerId, createdAt])
 }
+
 model Achievement {
-  playerId String
-  key String
+  playerId  String
+  key       String
   createdAt DateTime @default(now())
-  player Player @relation(fields: [playerId], references: [id])
+  player    Player   @relation(fields: [playerId], references: [id])
+
   @@id([playerId, key])
 }
+
 model DailyProgress {
-  playerId String
-  day String
-  draws Int @default(0)
-  crafts Int @default(0)
-  expeditions Int @default(0)
-  craftRare Int @default(0)     // 희귀 조합
-  craftLegend Int @default(0)   // 전설·히든 조합
-  craftTop Int @default(0)      // 최상위(제한·초월·영원·불멸) 조합
-  rewarded String @default("")
-  player Player @relation(fields: [playerId], references: [id])
+  playerId    String
+  day         String
+  draws       Int    @default(0)
+  crafts      Int    @default(0)
+  expeditions Int    @default(0)
+  craftRare   Int    @default(0) // 희귀 조합
+  craftLegend Int    @default(0) // 전설·히든 조합
+  craftTop    Int    @default(0) // 최상위(제한·초월·영원·불멸) 조합
+  rewarded    String @default("")
+  player      Player @relation(fields: [playerId], references: [id])
+
   @@id([playerId, day])
 }
+
 // 관리자 모드를 켠 순간의 계정 상태. 모드를 끄거나 해제하면 이 상태로 되돌립니다.
 model AdminSnapshot {
-  playerId String @id
-  data Json
+  playerId  String   @id
+  data      Json
   createdAt DateTime @default(now())
-  player Player @relation(fields: [playerId], references: [id])
+  player    Player   @relation(fields: [playerId], references: [id])
+}
+
+// 유닛 댓글(카톡에서 쓰고 웹·카톡에서 봄). hidden: 관리자가 숨김
+model Comment {
+  id          Int      @id @default(autoincrement())
+  playerId    String
+  characterId String
+  text        String
+  hidden      Boolean  @default(false)
+  likes       Int      @default(0)
+  createdAt   DateTime @default(now())
+  player      Player   @relation(fields: [playerId], references: [id])
+
+  @@index([characterId, hidden, createdAt])
+  @@index([playerId, createdAt])
+}
+
+// 좋아요(한 사람·한 브라우저당 댓글마다 1번). voter = "p:플레이어id"(카톡) 또는 "w:방문자 해시"(웹)
+model CommentLike {
+  commentId Int
+  voter     String
+  createdAt DateTime @default(now())
+
+  @@id([commentId, voter])
 }

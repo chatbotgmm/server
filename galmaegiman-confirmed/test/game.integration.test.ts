@@ -26,7 +26,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   });
   beforeEach(async()=>{
     await db.$transaction([
-      db.pendingAction.deleteMany(),db.adminSnapshot.deleteMany(),db.auditEvent.deleteMany(),db.achievement.deleteMany(),db.dailyProgress.deleteMany(),db.collectionEntry.deleteMany(),db.ownedCharacter.deleteMany(),db.expedition.deleteMany(),db.player.deleteMany()
+      db.commentLike.deleteMany(),db.comment.deleteMany(),db.pendingAction.deleteMany(),db.adminSnapshot.deleteMany(),db.auditEvent.deleteMany(),db.achievement.deleteMany(),db.dailyProgress.deleteMany(),db.collectionEntry.deleteMany(),db.ownedCharacter.deleteMany(),db.expedition.deleteMany(),db.player.deleteMany()
     ]);
     now=new Date('2026-10-02T08:00:00+09:00');
     // 기본 테스트 계정은 튜토리얼을 마친 상태(튜토리얼 보상은 별도 테스트)
@@ -750,6 +750,50 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       }while(++page<=pages);
     }
   });
+  it('댓글: 닉네임·만나 본 유닛만, 1분 1개·링크·금지어 차단, 좋아요(카톡·웹 1번씩), 관리자 숨김, 웹 표시·히든 가림',async()=>{
+    const secret='comment-http-secret-'.repeat(3);
+    const app=await buildApp(db,game,{secret,baseUrl:async()=>''});
+    const page=async(url:string)=>{const r=await app.inject({method:'GET',url});expect(r.statusCode).toBe(200);return r.body;};
+    const like=async(id:number,ip:string)=>app.inject({method:'POST',url:`/api/comments/${id}/like`,headers:{'cf-connecting-ip':ip}});
+    try{
+      const c1=content.map.get('C1')!.name;
+      expect((await send(`댓글 ${c1} 안녕`)).text).toContain('닉네임이 있어야');
+      await send('닉네임 수다왕');
+      expect((await send(`댓글 ${c1} 안녕`)).text).toContain('아직 만나지 못했어요');
+      const p=await fixtures(['C1']);await db.collectionEntry.create({data:{playerId:p.id,characterId:'C1'}});
+      expect((await send(`댓글 ${c1} https://spam.example 놀러와`)).text).toContain('링크');
+      expect((await send(`댓글 ${c1} 시 발`)).text).toContain('고운 말');
+      const ok=await send(`댓글 ${c1} 너무 귀여워요 브라자 갈매미맨 보다 좋아`);
+      expect(ok.text).toContain('댓글을 남겼어요');
+      expect((await send(`댓글 ${c1} 또 쓸래`)).text).toContain('1분에 1개');
+      const cm=await db.comment.findFirstOrThrow();
+      expect((await send(`좋아요 ${cm.id}`)).text).toContain('내 댓글');
+      await send('내정보','fan');
+      expect((await send(`좋아요 ${cm.id}`,'fan')).text).toContain('👍 좋아요');
+      expect((await send(`좋아요 ${cm.id}`,'fan')).text).toContain('이미');
+      const view=await send(`댓글 ${c1}`,'fan');
+      expect(view.text).toContain('수다왕');expect(view.text).toContain('👍 1');expect(view.text).not.toContain('브라자');
+      // 웹: 도감·수다방·홈에 보이고, 히든 이름은 ???
+      const dex=await page('/dex/C1');expect(dex).toContain('너무 귀여워요');expect(dex).not.toContain('브라자');
+      expect(await page('/talk')).toContain('수다왕');expect(await page('/')).toContain('최근 한마디');
+      expect((await like(cm.id,'198.51.100.1')).json()).toEqual({likes:2,already:false});
+      expect((await like(cm.id,'198.51.100.1')).json()).toEqual({likes:2,already:true});
+      expect((await like(cm.id,'198.51.100.2')).json()).toEqual({likes:3,already:false});
+      expect((await like(99999,'198.51.100.1')).statusCode).toBe(404);
+      // 히든 유닛 댓글은 웹에 안 보임
+      await db.comment.create({data:{playerId:p.id,characterId:'H1',text:'히든 비밀 댓글'}});
+      expect(await page('/talk')).not.toContain('히든 비밀 댓글');
+      // 관리자 숨김 → 웹·카톡에서 사라짐, 다른 사람은 내 댓글 못 지움
+      await db.player.update({where:{identity:'fan'},data:{isAdmin:true}});
+      expect((await send(`관리자 댓글숨김 ${cm.id}`,'fan')).text).toContain('숨겼어요');
+      expect(await page('/dex/C1')).not.toContain('너무 귀여워요');
+      expect((await like(cm.id,'198.51.100.9')).statusCode).toBe(404);
+      await send('내정보','other');
+      expect((await send(`댓글삭제 ${cm.id}`,'other')).text).toContain('내 댓글 번호');
+      expect((await send(`댓글삭제 ${cm.id}`)).text).toContain('지웠어요');
+      expect(await db.comment.count({where:{id:cm.id}})).toBe(0);
+    }finally{await app.close();}
+  });
   it('HTTP 요청 제한: 웹은 방문자(CF-Connecting-IP)마다, 카톡은 사람마다 따로',async()=>{
     const secret='rate-limit-http-secret-'.repeat(3);
     const app=await buildApp(db,game,{secret,baseUrl:async()=>''});
@@ -774,7 +818,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.34'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.35'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

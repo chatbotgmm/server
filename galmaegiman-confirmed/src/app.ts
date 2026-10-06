@@ -10,7 +10,7 @@ import { GameService } from './game.js';
 import { parseKakao, kakaoResponse, imageIdPattern } from './kakao.js';
 import { GameError } from './types.js';
 import { registerWeb } from './web.js';
-export const VERSION='0.9.34';
+export const VERSION='0.9.35';
 export interface AppOptions {secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string}
 export async function buildApp(db:PrismaClient,game:GameService,options:AppOptions){
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
@@ -46,7 +46,8 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
     return stamps.get(path)!;
   };
   // 공개 웹페이지(홈·세계관·도감)
-  registerWeb(app,game.content,{root:options.root??process.cwd(),stamp,version:VERSION,data:{
+  registerWeb(app,game.content,{root:options.root??process.cwd(),stamp,version:VERSION,salt:options.secret,data:{
+    unitComments:id=>game.unitComments(id),recentComments:n=>game.recentComments(n),topComments:n=>game.topComments(n),like:(id,v)=>game.webLike(id,v),
     ranking:kind=>game.publicRanking(kind),seenCounts:()=>game.seenCounts(),hiddenFirsts:()=>game.hiddenFirsts(),
     searchPlayers:q=>game.searchPlayers(q),profile:n=>game.webProfile(n),source:id=>game.sourceText(id)}});
   // 한 사람당 1분에 40번까지(카톡 버튼 연타·자동 입력 방지). 메모리에만 두고 1분 지난 기록은 버립니다

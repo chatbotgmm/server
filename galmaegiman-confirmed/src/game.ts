@@ -33,7 +33,7 @@ const helpText=(e:Economy)=>[
   '🔮 합치기 · 재료를 골라 숨은 조합 찾기',
   '🧭 탐험 · 최상위 유닛을 보내 새우깡 벌기',
   '🎯 미션 · 🏆 칭호 · 📚 도감 · 🐦 내갈매미',
-  '🥇 랭킹 · 🏷 닉네임 · 🛒 상점 · 🍤 팔기 · 🥜 땅콩떼기',
+  '🥇 랭킹 · 🏷 닉네임 · 💬 댓글 · 🛒 상점 · 🍤 팔기 · 🥜 땅콩떼기',
   '💌 초대코드 · 📘 튜토리얼 · 🎉 이벤트',
   '',
   '이렇게도 써요',
@@ -931,10 +931,96 @@ export class GameService {
       ...(this.peanutable(c)&&count.usable?[choice('땅콩떼기',`땅콩떼기 ${c.name}`)]:[]),
       ...(manage&&this.sellPrice(c)&&count.usable&&count.total>1?[choice('남는 것 팔기',`팔기 ${c.name} 전부`)]:[]),
       ...(manage?[]:[choice('보유 상태',`내갈매미 ${c.name}`)]),
+      choice('💬 댓글',`댓글 ${c.name}`),
       ...menu.slice(0,4)
     ].slice(0,10);
     const card=this.maskCard({imageId:entry?this.cardImage(c.id,known):this.face(c.id,known),title:`${emblems[c.rarity]} ${c.name}`,description:`${characterInfo(this.content,c)}\n${own}`,buttons:choices.slice(0,3)},known);
     return {text,imageId:entry?this.image(c.id,known):undefined,cards:{items:[card],outro:mask(this.content,story(c),known)},choices};
+  }
+
+  // ───────── 댓글 (카톡에서 쓰고, 웹·카톡에서 봄) ─────────
+  // 쓰기: 닉네임 + 그 유닛을 만나 본 사람만. 1분에 1개·하루 30개, 2~100자, 링크·금지어 불가
+  private static bannedWords=['시발','씨발','ㅅㅂ','ㅆㅂ','병신','ㅂㅅ','개새','새끼','좆','지랄','미친놈','미친년','닥쳐','꺼져','느금','니애미','섹스','fuck','shit','bitch'];
+  private commentProblem(text:string){
+    const plain=text.replace(/\s+/g,'').toLowerCase();
+    if(text.length<2||text.length>100)return '댓글은 2~100자로 써 주세요.';
+    if(/https?:|www\.|\.(com|net|kr|io|me|gg|ly)\b|open\.kakao/i.test(text))return '댓글에는 링크를 넣을 수 없어요.';
+    if(GameService.bannedWords.some(w=>plain.includes(w)))return '고운 말로 다시 써 주세요. 🪨';
+    return '';
+  }
+  private commentLine(c:{id:number;text:string;likes:number;createdAt:Date;player:{nickname:string|null}},known:Set<string>){
+    return `#${c.id} ${c.player.nickname??'이름 없는 갈매미'} · 👍 ${c.likes} · ${DateTime.fromJSDate(c.createdAt).setZone('Asia/Seoul').toFormat('M/d HH:mm')}\n${mask(this.content,c.text,known)}`;
+  }
+  private async commentCommand(tx:Tx,p:Player,query:string,now:Date):Promise<GameReply>{
+    const known=await this.known(tx,p);
+    if(!query)return this.info({text:'💬 갈매미 댓글\n만나 본 갈매미에게 댓글을 남겨요.\n쓰기: 댓글 금갑 너무 귀여워요\n보기: 댓글 금갑\n좋아요: 좋아요 번호 · 지우기: 댓글삭제 번호\n\n남긴 댓글은 홈페이지 도감에도 올라가요.',choices:[choice('도감'),choice('닉네임'),...menu]},'s-info');
+    // "댓글 이름 내용": 이름은 앞에서부터 가장 길게 맞는 유닛
+    const words=query.split(/\s+/);
+    let unit:Character|undefined,rest='';
+    for(let k=words.length;k>=1&&!unit;k--){
+      const name=words.slice(0,k).join(' ');
+      const exact=this.revealed(known).find(c=>c.name===name)??this.revealed(known).find(c=>c.name.replace(/\s+/g,'')===name.replace(/\s+/g,''));
+      if(exact){unit=exact;rest=words.slice(k).join(' ');}
+    }
+    if(!unit){
+      const found=this.resolve(words[0],this.revealed(known),'댓글',known);
+      if(!('id' in found))return found;
+      unit=found;rest=words.slice(1).join(' ');
+    }
+    const c=unit;
+    if(!rest){
+      const shown=await tx.comment.findMany({where:{characterId:c.id,hidden:false},orderBy:[{likes:'desc'},{createdAt:'desc'}],take:5,include:{player:{select:{nickname:true}}}});
+      const total=await tx.comment.count({where:{characterId:c.id,hidden:false}});
+      const head=`💬 ${emblems[c.rarity]} ${c.name} 댓글 ${total}개${total>5?' (좋아요 많은 5개)':''}`;
+      const body=shown.length?shown.map(x=>this.commentLine(x,known)).join('\n\n'):'아직 댓글이 없어요. 첫 댓글을 남겨 보세요!';
+      return {text:`${head}\n\n${body}\n\n쓰기: 댓글 ${c.name} 내용`,cards:{intro:head,items:[{imageId:this.face(c.id,known),title:`💬 ${c.name}`,description:`댓글 ${total}개\n쓰기: 댓글 ${c.name} 내용`}],outro:`${body}\n\n좋아요: 아래 👍 버튼`},
+        choices:[...shown.map(x=>choice(`👍 #${x.id}`,`좋아요 ${x.id}`)),choice('도감 보기',`도감 ${c.name}`),...menu.slice(0,3)]};
+    }
+    if(!p.nickname)throw new GameError('댓글은 닉네임이 있어야 쓸 수 있어요.\n먼저: 닉네임 갈매미왕');
+    if(!(await tx.collectionEntry.findUnique({where:{playerId_characterId:{playerId:p.id,characterId:c.id}}})))throw new GameError(`${c.name}을(를) 아직 만나지 못했어요.\n만나 본 갈매미에게만 댓글을 남길 수 있어요.`);
+    const problem=this.commentProblem(rest.trim());
+    if(problem)throw new GameError(problem);
+    const last=await tx.comment.findFirst({where:{playerId:p.id},orderBy:{createdAt:'desc'}});
+    if(last&&now.getTime()-last.createdAt.getTime()<60_000)throw new GameError('댓글은 1분에 1개까지 쓸 수 있어요. 잠깐 뒤에 다시!');
+    const today=DateTime.fromJSDate(now).setZone('Asia/Seoul').startOf('day').toJSDate();
+    if(await tx.comment.count({where:{playerId:p.id,createdAt:{gte:today}}})>=30)throw new GameError('댓글은 하루 30개까지예요. 내일 또 만나요!');
+    const made=await tx.comment.create({data:{playerId:p.id,characterId:c.id,text:rest.trim(),createdAt:now}});
+    await this.audit(tx,p,'COMMENT',{commentId:made.id,characterId:c.id});
+    const site=this.content.economy.homepage?.replace(/\/$/,'');
+    return this.info({text:`💬 댓글을 남겼어요 (#${made.id})\n${emblems[c.rarity]} ${c.name}\n「${rest.trim()}」${site&&c.rarity!=='HIDDEN'?`\n\n홈페이지에서 보기: ${site}/dex/${c.id}`:''}`,choices:[choice('댓글 보기',`댓글 ${c.name}`),choice('지우기',`댓글삭제 ${made.id}`),...menu.slice(0,3)]},this.face(c.id,known));
+  }
+  // 좋아요: 사람(카톡)·방문자(웹)마다 댓글당 1번, 내 댓글은 안 됨
+  private async likeComment(tx:Tx,id:number,voter:string,ownerCheck?:string){
+    const c=await tx.comment.findUnique({where:{id}});
+    if(!c||c.hidden)throw new GameError('그런 댓글은 없어요.');
+    if(ownerCheck&&c.playerId===ownerCheck)throw new GameError('내 댓글에는 좋아요를 누를 수 없어요.');
+    if(await tx.commentLike.findUnique({where:{commentId_voter:{commentId:id,voter}}}))return {comment:c,already:true};
+    await tx.commentLike.create({data:{commentId:id,voter}});
+    const updated=await tx.comment.update({where:{id},data:{likes:{increment:1}}});
+    return {comment:updated,already:false};
+  }
+  async webLike(id:number,visitor:string){
+    if(!Number.isSafeInteger(id)||id<1)return null;
+    try{
+      const r=await this.db.$transaction(tx=>this.likeComment(tx as unknown as Tx,id,`w:${visitor}`));
+      return {likes:r.comment.likes,already:r.already};
+    }catch(e){if(e instanceof GameError)return null;throw e;}
+  }
+  // 웹: 유닛 댓글(숨김 제외). 히든 유닛 댓글은 웹에 안 보임(스포일러)
+  async unitComments(characterId:string,take=30){
+    const c=this.content.map.get(characterId);
+    if(!c||c.rarity==='HIDDEN')return [];
+    return (await this.reader.comment.findMany({where:{characterId,hidden:false},orderBy:[{likes:'desc'},{createdAt:'desc'}],take,include:{player:{select:{nickname:true}}}}))
+      .map(x=>({id:x.id,text:mask(this.content,x.text,new Set()),likes:x.likes,at:x.createdAt,name:x.player.nickname??'이름 없는 갈매미',characterId:x.characterId}));
+  }
+  async recentComments(take=30){
+    return this.cached(`recent-comments-${take}`,15_000,async()=>(await this.reader.comment.findMany({where:{hidden:false,characterId:{notIn:this.content.hiddenIds}},orderBy:{createdAt:'desc'},take,include:{player:{select:{nickname:true}}}}))
+      .map(x=>({id:x.id,text:mask(this.content,x.text,new Set()),likes:x.likes,at:x.createdAt,name:x.player.nickname??'이름 없는 갈매미',characterId:x.characterId})));
+  }
+  async topComments(take=10){
+    const since=new Date(this.clock().getTime()-7*86_400_000);
+    return this.cached(`top-comments-${take}`,15_000,async()=>(await this.reader.comment.findMany({where:{hidden:false,likes:{gt:0},createdAt:{gte:since},characterId:{notIn:this.content.hiddenIds}},orderBy:[{likes:'desc'},{createdAt:'desc'}],take,include:{player:{select:{nickname:true}}}}))
+      .map(x=>({id:x.id,text:mask(this.content,x.text,new Set()),likes:x.likes,at:x.createdAt,name:x.player.nickname??'이름 없는 갈매미',characterId:x.characterId})));
   }
 
   // ───────── 랭킹 ─────────
@@ -1535,6 +1621,15 @@ export class GameService {
         const newbies=await tx.player.count({where:{createdAt:{gte:since}}});
         return this.info({text:`🛠 운영 상태\n👥 전체 ${players}명 · 오늘 활동 ${today}명 · 24시간 신규 ${newbies}명\n🧭 진행 중 탐험 ${trips}\n\n최근 24시간\n🥚 뽑기 ${n('GACHA')} · 🧩 조합 ${n('CRAFT')} · 🍤 교환 ${n('EXCHANGE')} · 팔기 ${n('SELL')} · 🛒 상점 ${n('SHOP')} · 🥜 땅콩 ${n('PEANUT')} · 💌 초대 ${n('INVITE')}\n(서버 오류 수는 EC2 로그에서 확인: journalctl -u gmm-server)`,choices:menu},'s-info');
       }
+      if(sub==='댓글숨김'||sub==='댓글보이기'){
+        if(!p.isAdmin)return this.info({text:'관리자로 등록된 계정이 아니에요.',choices:menu},'unknown');
+        const id=Number((args[1]??'').replace(/^#/,''));
+        const c=Number.isSafeInteger(id)&&id>0?await tx.comment.findUnique({where:{id}}):null;
+        if(!c)throw new GameError('그런 댓글은 없어요. 예: 관리자 댓글숨김 12');
+        await tx.comment.update({where:{id},data:{hidden:sub==='댓글숨김'}});
+        await this.audit(tx,p,'COMMENT_MODERATE',{commentId:id,hidden:sub==='댓글숨김'});
+        return {text:`${sub==='댓글숨김'?'🙈 숨겼어요':'👀 다시 보이게 했어요'} (#${id})\n「${c.text.slice(0,40)}」`,choices:menu};
+      }
       if(sub==='해제'){
         const restored=p.adminMode?await this.restoreSnapshot(tx,p):false;
         await tx.player.update({where:{id:p.id},data:{isAdmin:false,adminMode:false}});
@@ -1576,6 +1671,23 @@ export class GameService {
       return {text:`🏷 닉네임을 「${name}」(으)로 정했어요.${step.length?`\n\n${step[0]}`:''}`,choices:[choice('랭킹'),...menu]};
     }
     if(command==='랭킹'||command==='순위')return this.ranking(tx,p,args[0]??'',now);
+    if(command==='댓글')return this.commentCommand(tx,p,query,now);
+    if(command==='좋아요'){
+      const id=Number(query.replace(/^#/,''));
+      if(!Number.isSafeInteger(id)||id<1)throw new GameError('좋아요 뒤에 댓글 번호를 붙여 주세요. 예: 좋아요 12');
+      const r=await this.likeComment(tx,id,`p:${p.id}`,p.id);
+      const unit=this.content.map.get(r.comment.characterId)!;
+      return this.info({text:`${r.already?'이미 좋아요를 눌렀어요':'👍 좋아요!'} (#${id})\n지금 👍 ${r.comment.likes}`,choices:[choice('댓글 더 보기',`댓글 ${unit.name}`),...menu.slice(0,3)]},'s-info');
+    }
+    if(command==='댓글삭제'||command==='댓글지우기'){
+      const id=Number(query.replace(/^#/,''));
+      const c=Number.isSafeInteger(id)&&id>0?await tx.comment.findUnique({where:{id}}):null;
+      if(!c||(c.playerId!==p.id&&!p.isAdmin))throw new GameError('내 댓글 번호를 확인해 주세요. 예: 댓글삭제 12');
+      await tx.commentLike.deleteMany({where:{commentId:id}});
+      await tx.comment.delete({where:{id}});
+      await this.audit(tx,p,'COMMENT_DELETE',{commentId:id,byAdmin:c.playerId!==p.id});
+      return {text:`🗑 댓글 #${id}을(를) 지웠어요.`,choices:menu};
+    }
     if(command==='미션'){
       const day=DateTime.fromJSDate(now).setZone('Asia/Seoul').toISODate()!;
       const row=await tx.dailyProgress.findUnique({where:{playerId_day:{playerId:p.id,day}}});

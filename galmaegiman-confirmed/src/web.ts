@@ -1,9 +1,10 @@
-// 공개 웹페이지: 홈 · 이벤트 · 세계관 · 도감(+상세) · 조합법 · 히든 단서 · 랭킹 · 검색 · 프로필
+// 공개 웹페이지: 홈 · 이벤트 · 수다방 · 세계관 · 도감(+상세) · 조합법 · 히든 단서 · 랭킹 · 검색 · 프로필
 // 누구나 보는 페이지라 스포일러를 가립니다.
 // - 히든: 이름·그림·이야기 대신 ??? 와 단서(발견한 사람이 늘수록 더 열림)
 // - 최상위(제한~불멸): 이름만, 그림은 등급 실루엣, 이야기는 가림
 // 세계관 글은 data/world.md(마크다운)를 고치면 바로 반영됩니다.
 import { readFileSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { marked } from 'marked';
@@ -27,7 +28,12 @@ const isInitials=(q:string)=>/^[ㄱ-ㅎ\s]+$/.test(q);
 
 export interface RankRow{rank:number;name:string;nick:boolean;score:number;best:Character|null}
 export interface WebProfile{nickname:string;joined:Date;dex:number;byTier:Map<string,number>;best:Character|null;dexRank:{rank:number;total:number;score:number}|null;topRank:{rank:number;total:number;score:number}|null;weekRank:{rank:number;total:number;score:number}|null;titles:string[];firsts:number}
+export interface WebComment{id:number;text:string;likes:number;at:Date;name:string;characterId:string}
 export interface WebData{
+  unitComments:(id:string)=>Promise<WebComment[]>;
+  recentComments:(take?:number)=>Promise<WebComment[]>;
+  topComments:(take?:number)=>Promise<WebComment[]>;
+  like:(id:number,visitor:string)=>Promise<{likes:number;already:boolean}|null>;
   ranking:(kind:'DEX'|'TOP'|'WEEK')=>Promise<{total:number;generatedAt:Date;rows:RankRow[]}>;
   seenCounts:()=>Promise<Map<string,number>>;
   hiddenFirsts:()=>Promise<Map<string,{name:string|null;at:Date}>>;
@@ -35,7 +41,7 @@ export interface WebData{
   profile:(nickname:string)=>Promise<WebProfile|null>;
   source:(id:string)=>string;
 }
-export interface WebOptions{root:string;stamp:(path:string)=>string;version:string;data?:WebData}
+export interface WebOptions{root:string;stamp:(path:string)=>string;version:string;data?:WebData;salt?:string}
 
 export function registerWeb(app:FastifyInstance,content:Content,options:WebOptions){
   const img=(kind:'thumbs'|'images',id:string)=>{const file=`${kind}/${id}.${kind==='thumbs'?'jpg':'png'}`;const v=options.stamp(file);return `/${file}${v?`?v=${v}`:''}`;};
@@ -63,7 +69,7 @@ export function registerWeb(app:FastifyInstance,content:Content,options:WebOptio
     for(const [m,k] of counts(recipeOf(id)!.materials))baseNeeds(m,mult*k,acc);
     return acc;
   };
-  const empty:WebData={ranking:async()=>({total:0,generatedAt:new Date(),rows:[]}),seenCounts:async()=>new Map(),hiddenFirsts:async()=>new Map(),searchPlayers:async()=>[],profile:async()=>null,source:()=>''};
+  const empty:WebData={unitComments:async()=>[],recentComments:async()=>[],topComments:async()=>[],like:async()=>null,ranking:async()=>({total:0,generatedAt:new Date(),rows:[]}),seenCounts:async()=>new Map(),hiddenFirsts:async()=>new Map(),searchPlayers:async()=>[],profile:async()=>null,source:()=>''};
   const data=options.data??empty;
 
   // 홈페이지 창설 쿠폰 조각: 세계관·조합법·히든 페이지 맨 아래에 하나씩
@@ -101,8 +107,15 @@ document.addEventListener('click',ev=>{if(!f.contains(ev.target))box.hidden=true
 i.addEventListener('keydown',ev=>{const a=[...box.querySelectorAll('a')];if(box.hidden||!a.length)return;let k=a.findIndex(x=>x.classList.contains('on'));
 if(ev.key==='ArrowDown'||ev.key==='ArrowUp'){ev.preventDefault();a[k]?.classList.remove('on');k=ev.key==='ArrowDown'?(k+1)%a.length:(k<=0?a.length-1:k-1);a[k].classList.add('on')}
 else if(ev.key==='Enter'&&k>=0){ev.preventDefault();location.href=a[k].href}else if(ev.key==='Escape')box.hidden=true});})();`;
+  // 댓글 한 줄: 닉네임(프로필 링크)·시간·좋아요 버튼. unit=true면 어느 유닛 댓글인지 칩도
+  const when=(d:Date)=>DateTime.fromJSDate(d).setZone('Asia/Seoul').toFormat('M/d HH:mm');
+  const commentItem=(c:WebComment,unit=false)=>`<li class="cm"><div class="cm-h"><a href="/p/${encodeURIComponent(c.name)}"><b>${esc(c.name)}</b></a> <span class="note">${esc(when(c.at))}</span>${unit?` ${chip(c.characterId)}`:''}</div>
+<p>${esc(c.text)}</p><button class="like" type="button" data-id="${c.id}" aria-label="좋아요">👍 <b>${c.likes}</b></button></li>`;
+  const likeJs=`document.addEventListener('click',async ev=>{const b=ev.target.closest&&ev.target.closest('button.like');if(!b||b.disabled)return;b.disabled=true;
+try{const r=await fetch('/api/comments/'+b.dataset.id+'/like',{method:'POST'});if(r.ok){const j=await r.json();b.querySelector('b').textContent=j.likes;b.classList.add('on');}else b.disabled=false}catch(_){b.disabled=false}});`;
+  const howToComment=(name?:string)=>`<p class="note">💬 카톡에서 <span class="mono">댓글 ${esc(name??'갈매미이름')} 하고 싶은 말</span> 로 남겨요. 만나 본 갈매미에게만 쓸 수 있고, 닉네임이 함께 보여요.</p>`;
   // 메뉴: 자주 쓰는 순서. 모바일 하단 탭은 6칸이라 히든은 조합법 탭에 묶음(히든 페이지에서 조합법 탭이 켜짐)
-  const navItems=[['/','홈','🏝'],['/event','이벤트','🎁'],['/dex','도감','📚'],['/recipes','조합법','🧩'],['/hidden','히든','❔'],['/rank','랭킹','🏆'],['/world','세계관','📜']];
+  const navItems=[['/','홈','🏝'],['/event','이벤트','🎁'],['/dex','도감','📚'],['/recipes','조합법','🧩'],['/hidden','히든','❔'],['/talk','수다방','💬'],['/rank','랭킹','🏆'],['/world','세계관','📜']];
   const tabItems=navItems.filter(([h])=>h!=='/hidden');
   const tabOn=(h:string,active:string)=>active===h||(h==='/recipes'&&active==='/hidden');
   // 조합법·히든 페이지 위 전환 탭
@@ -136,8 +149,8 @@ body{background-image:radial-gradient(var(--line) 1px,transparent 1.2px),linear-
 .tabbar{display:none}
 @media (max-width:719px){
  header nav{display:none}
- .tabbar{display:grid;grid-template-columns:repeat(6,1fr);position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);padding:4px 2px calc(4px + env(safe-area-inset-bottom))}
- .tabbar a{display:flex;flex-direction:column;align-items:center;gap:1px;text-decoration:none;color:var(--muted);font-size:.7rem;font-weight:700;padding:4px 0;border-radius:10px}
+ .tabbar{display:grid;grid-template-columns:repeat(7,1fr);position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);padding:4px 2px calc(4px + env(safe-area-inset-bottom))}
+ .tabbar a{display:flex;flex-direction:column;align-items:center;gap:1px;text-decoration:none;color:var(--muted);font-size:.66rem;white-space:nowrap;font-weight:700;padding:4px 0;border-radius:10px}
  .tabbar a i{font-style:normal;font-size:1.25rem;line-height:1.2}
  .tabbar a.on{color:var(--accent);background:var(--accent-soft)}
  main{padding-bottom:96px}
@@ -287,10 +300,18 @@ main>h2:nth-of-type(6n+5),.tale h2:nth-of-type(6n+5){color:var(--c5)}main>h2:nth
 .links a:nth-child(6n+6) b,.stats .stat:nth-child(6n+6) b,.evgrid .ev:nth-child(6n+6) h3,.evgrid .ev:nth-child(6n+6) .big b{color:var(--c6)}
 .links a:nth-child(6n+1){border-top:3px solid var(--c1)}.links a:nth-child(6n+2){border-top:3px solid var(--c2)}.links a:nth-child(6n+3){border-top:3px solid var(--c3)}
 .links a:nth-child(6n+4){border-top:3px solid var(--c4)}.links a:nth-child(6n+5){border-top:3px solid var(--c5)}.links a:nth-child(6n+6){border-top:3px solid var(--c6)}
-.homegrid .box:nth-child(1) h3{color:var(--c5)}.homegrid .box:nth-child(2) h3{color:var(--c4)}
+.homegrid .box:nth-child(1) h3{color:var(--c5)}.homegrid .box:nth-child(2) h3{color:var(--c4)}.homegrid .box:nth-child(3) h3{color:var(--c3)}
+@media (min-width:1000px){.homegrid{grid-template-columns:1fr 1fr 1fr}}
 .today h3{color:var(--c3)}
 .lead b{color:var(--c1)}
 .tale p b,.tale li b{color:var(--c3)}
+.cms{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.cm{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;position:relative}
+.cm-h{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-right:64px}.cm-h a{text-decoration:none;color:var(--c4)}
+.cm p{margin:4px 0 0;white-space:pre-wrap}
+.like{position:absolute;top:8px;right:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--text);border-radius:999px;padding:3px 10px;font:inherit;cursor:pointer}
+.like.on{border-color:var(--c2);color:var(--c2)}.like b{color:inherit}
+.cm .mono,.note .mono{letter-spacing:0;font-family:inherit;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:0 5px}
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40px}
 </style></head><body>
 <header><div class="bar"><a class="logo" href="/">${logo()}</a>
@@ -299,7 +320,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40
 <main>${body}${piece(active)}</main>
 <nav class="tabbar" aria-label="메뉴">${tabItems.map(([h,l,i])=>`<a href="${h}"${tabOn(h,active)?' class="on"':''}><i>${i}</i>${l}</a>`).join('')}</nav>
 <footer>갈매미맨 · 카카오톡 채널 챗봇 게임 · v${esc(options.version)}</footer>
-<script>${suggestJs}</script>
+<script>${suggestJs}${likeJs}</script>
 </body></html>`;
 
   const send=(reply:FastifyReply,html:string,maxAge=300)=>reply.type('text/html; charset=utf-8').header('Cache-Control',`public, max-age=${maxAge}`).send(html);
@@ -317,6 +338,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40
     const day=Math.floor(DateTime.now().setZone('Asia/Seoul').startOf('day').toSeconds()/86400);
     const today=pool[((day%pool.length)+pool.length)%pool.length];
     const week=await data.ranking('WEEK');
+    const talk=await data.recentComments(3);
     const board=week.rows.length?{rows:week.rows,unit:'회',label:'이번 주 조합',k:'week'}:{rows:(await data.ranking('DEX')).rows,unit:`/${content.characters.length}`,label:'도감 수집',k:'dex'};
     const medal=['🥇','🥈','🥉'];
     const top3=board.rows.slice(0,3).map((r,i)=>`<li><span class="no">${medal[i]}</span><span class="who"><b>${r.nick?`<a href="/p/${encodeURIComponent(r.name)}">${esc(r.name)}</a>`:esc(r.name)}</b></span><span class="sc">${r.score}${board.unit}</span></li>`).join('');
@@ -331,6 +353,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40
 ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 어딘가에 <b>쿠폰 조각 ${c.pieces.length}개</b>가 숨어 있어요. 모두 찾아 카톡에 <b>쿠폰 조각들</b>을 보내면 뽑기권 <b>${c.tickets}장</b>! (1인 1회)<br><a href="/event">🎁 이벤트·혜택 모두 보기 →</a></div>`:`<div class="event"><b>🎁 이벤트·혜택</b><br>친구 초대하면 친구도 나도 뽑기권 <b>${content.economy.invite.tickets}장</b>! <a href="/event">자세히 보기 →</a></div>`}
 <div class="homegrid">
 <div class="box"><h3>🏆 ${board.label} TOP 3</h3>${top3?`<ol class="mini">${top3}</ol>`:'<p class="note">아직 기록이 없어요.</p>'}<a class="note" href="/rank?k=${board.k}">전체 랭킹 →</a></div>
+<div class="box"><h3>💬 최근 한마디</h3>${talk.length?`<ul class="cms">${talk.map(x=>commentItem(x,true)).join('')}</ul>`:'<p class="note">아직 댓글이 없어요. 카톡에서 <b>댓글 갈매미이름 하고 싶은 말</b>!</p>'}<br><a class="note" href="/talk">수다방 가기 →</a></div>
 <div class="box"><h3>❔ 최근 발견된 히든</h3>${recent||'<p class="note">아직 아무도 히든을 찾지 못했어요. 첫 발견자가 되어 보세요!</p>'}<br><a class="note" href="/hidden">히든 단서 보기 →</a></div>
 </div>
 <div class="stats">
@@ -344,6 +367,7 @@ ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 �
 <a href="/dex"><b>📚 도감</b><span>${content.characters.length}종의 이야기</span></a>
 <a href="/recipes"><b>🧩 조합법</b><span>누구랑 안으면 뭐가 될까</span></a>
 <a href="/hidden"><b>❔ 히든 단서</b><span>함께 찾을수록 열리는 단서</span></a>
+<a href="/talk"><b>💬 수다방</b><span>갈매미마다 남긴 한마디</span></a>
 <a href="/rank"><b>🏆 랭킹</b><span>수비대 근무 평가</span></a>
 </div>`;
     return send(reply,page('홈','/',body,'',{image:img('images',today.id),desc:`오늘의 갈매미: ${today.name} · 돌로 된 갈매미들이 항구 수비대에 출근하는 섬`}),60);
@@ -391,6 +415,8 @@ ${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이
 <tr><td class="mono">쿠폰 코드</td><td>쿠폰 입력하기</td></tr>
 <tr><td class="mono">튜토리얼</td><td>튜토리얼 진행 보기</td></tr>
 <tr><td class="mono">닉네임 갈매미왕</td><td>닉네임 정하기 (랭킹에 이름이 나와요)</td></tr>
+<tr><td class="mono">댓글 금갑 귀여워요</td><td>만나 본 갈매미에게 한마디 (수다방·도감에 올라가요)</td></tr>
+<tr><td class="mono">좋아요 12</td><td>댓글 12번에 좋아요</td></tr>
 <tr><td class="mono">이벤트</td><td>진행 중인 이벤트 보기</td></tr>
 </tbody></table></div>`;
     return send(reply,page('이벤트','/event',body,'',{desc:`친구 초대하면 친구도 나도 뽑기권 ${e.invite.tickets}장! 갈매미맨 이벤트·혜택 모음`}),60);
@@ -435,12 +461,14 @@ ${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이
 <p class="note" style="margin:8px 0 4px">처음부터 만들면 필요한 기본 재료 (총 ${needs.reduce((x,y)=>x+y[1],0)}마리${secret.length?', 히든 제외':''})</p>${needs.map(([id,k])=>chip(id,k)).join('')}${secretNote}</div>`:'';
     const used=usedIn.length?`<div class="box"><h3>➡️ 재료로 쓰이는 곳 (${usedIn.length})</h3>${usedIn.map(r=>chip(r.resultId)).join('')}</div>`:'';
     const where=data.source(c.id);
+    const comments=await data.unitComments(c.id);
     const body=`<p class="note"><a href="/dex#${c.rarity}">← ${esc(rarityNames[c.rarity])} 도감</a></p>
 <div class="detail"><img class="big" src="${img(top?'thumbs':'images',face(c))}" alt="${esc(c.name)}" width="800" height="800">
 <div>${badge(c.rarity)}<h1 style="margin-top:.2em">${esc(c.name)}</h1>
 ${top?'<p class="lead">이 원형의 모습과 이야기는 게임에서 직접 만나면 열려요.</p>':`<p>${esc(c.introduction)}</p><p class="note">💬 「${esc(c.quote)}」</p>`}
 <p class="note">🐦 지금까지 <b>${seen}명</b>의 수비대원이 만났어요.${where?` · 얻는 곳: ${esc(where)}`:''}</p>
-${how}${used}</div></div>${lineage}`;
+${how}${used}</div></div>${lineage}
+<div class="box"><h3>💬 수비대원들의 한마디 (${comments.length})</h3>${comments.length?`<ul class="cms">${comments.map(x=>commentItem(x)).join('')}</ul>`:'<p class="note">아직 한마디가 없어요. 첫 댓글의 주인공이 되어 보세요!</p>'}${howToComment(c.name)}</div>`;
     return send(reply,page(c.name,'/dex',body,'',{image:img(top?'thumbs':'images',face(c)),desc:top?`${rarityNames[c.rarity]} ${c.name} · 갈매미맨 도감`:`${rarityNames[c.rarity]} ${c.name} — ${c.introduction.split(/(?<=[.!?…])\s+/u)[0]}`}),60);
   });
 
@@ -542,6 +570,24 @@ ${!total&&!players.length?'<p class="note">예: <a href="/search?q=전설">전�
   });
 
   // ── 프로필 ──
+  // ── 수다방: 이번 주 인기 한마디 + 최근 한마디 ──
+  app.get('/talk',limit,async(_req,reply)=>{
+    const [top,recent]=await Promise.all([data.topComments(5),data.recentComments(40)]);
+    const body=`<h1>💬 수다방</h1><p class="lead">갈매미마다 남긴 수비대원들의 한마디예요. 마음에 드는 말에는 👍를 눌러 주세요.</p>
+${howToComment()}
+<h2>🔥 이번 주 인기 한마디</h2>${top.length?`<ul class="cms">${top.map(x=>commentItem(x,true)).join('')}</ul>`:'<div class="empty">아직 좋아요를 받은 한마디가 없어요.</div>'}
+<h2>🕊 방금 올라온 한마디</h2>${recent.length?`<ul class="cms">${recent.map(x=>commentItem(x,true)).join('')}</ul>`:'<div class="empty">아직 댓글이 없어요. 카톡에서 첫 댓글을 남겨 보세요!</div>'}`;
+    return send(reply,page('수다방','/talk',body),15);
+  });
+  // 좋아요(웹): 방문자 주소를 그대로 저장하지 않고 해시로만 구분(같은 방문자는 댓글당 1번)
+  app.post<{Params:{id:string}}>('/api/comments/:id/like',{config:{rateLimit:{max:30,timeWindow:'1 minute',keyGenerator:(req:FastifyRequest)=>{const ip=req.headers['cf-connecting-ip'];return typeof ip==='string'&&ip.length<=45?`like:${ip}`:'like';}}}},async(req,reply)=>{
+    const ip=req.headers['cf-connecting-ip'];
+    const visitor=createHash('sha256').update(`${options.salt??''}|${typeof ip==='string'?ip:'local'}`).digest('hex').slice(0,32);
+    const r=await data.like(Number(req.params.id),visitor);
+    if(!r)return reply.code(404).send({error:'not found'});
+    return reply.header('Cache-Control','no-store').send(r);
+  });
+
   app.get<{Params:{name:string}}>('/p/:name',limit,async(req,reply)=>{
     const name=String(req.params.name).slice(0,20);
     const p=await data.profile(name);
