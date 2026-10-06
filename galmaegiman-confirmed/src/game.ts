@@ -128,7 +128,8 @@ export class GameService {
   private acquired(c:Character,kind:AcquisitionKind,receipt:Receipt,known:Set<string>,gains:string[],nextLine:string,intro='',buttons:Choice[]=[]):Pick<GameReply,'cards'>{
     const a=acquisitionCard(this.content,c,kind,receipt,known);
     const below=[...a.extra,...gains].join('\n');
-    return {cards:{intro:[intro,a.drama].filter(Boolean).join('\n\n')||undefined,
+    // 전설 이상 등장 연출은 카드 앞 말풍선으로 남김(그 밖의 글은 카드 설명으로 합쳐짐)
+    return {cards:{intro:[intro,a.drama].filter(Boolean).join('\n\n')||undefined,keepIntro:Boolean(a.drama)&&tiers[c.rarity]>=tiers.LEGEND,
       items:[this.maskCard({imageId:this.cardImage(c.id,known),title:a.title,description:a.description,buttons:[choice('도감 보기',`도감 ${c.name}`),...buttons].slice(0,3)},known)],
       outro:report(below,nextLine)}};
   }
@@ -478,7 +479,7 @@ export class GameService {
       description:`${rarityNames[x.c.rarity]}${x.first?' · 🆕 새 발견!':''}`,buttons:[choice('도감 보기',`도감 ${x.c.name}`),...(tiers[x.c.rarity]>=tiers.LEGEND?[shareChoice()]:[])]},known));
     // 카드는 높은 등급부터 20장까지(카카오 2묶음), 나머지는 아래 말풍선에 수로만
     const hidden=items.length>20?`\n(그 밖에 ${items.length-20}종은 위 목록 참고)`:'';
-    const cards={cards:{intro:mask(this.content,head,known),items:items.slice(0,20),outro:mask(this.content,outro+hidden,known)}};
+    const cards={cards:{intro:mask(this.content,head,known),items:items.slice(0,20),outro:mask(this.content,outro+hidden,known),keepIntro:Boolean(drama)&&tiers[top.c.rarity]>=tiers.LEGEND}};
     return {text:mask(this.content,body,known),...cards,...(firstNew?{imageId:this.image(firstNew.c.id,known)}:{}),choices:next.choices};
   }
   private probabilityText(){

@@ -70,10 +70,20 @@ export function kakaoResponse(result:GameReply,baseUrl='',stamp:(path:string)=>s
     });
     // 카드 넘기기는 한 묶음 10장까지라 11장 이상이면 두 묶음으로 나누고, 묶음마다 글자 예산 안전장치
     const chunks=[cards.items.slice(0,10),cards.items.slice(10,20)].filter(c=>c.length).map(c=>many?fitCards(c):c);
-    const visuals=cards.items.length===1?[{basicCard:card(cards.items[0])}]:chunks.map(c=>({carousel:{type:'basicCard',items:c.map(card)}}));
+    const visuals:object[]=cards.items.length===1?[{basicCard:card(cards.items[0])}]:chunks.map(c=>({carousel:{type:'basicCard',items:c.map(card)}}));
     const text=(t?:string)=>t?[{simpleText:{text:t.slice(0,950)}}]:[];
-    // 말풍선은 최대 3개: 넘치면 머리말부터 뺍니다(확인 목록·그림·본문은 남김).
-    outputs.push(...text(cards.intro),...visuals,...text(cards.outro),...(result.list?[listCard(result.list,baseUrl?url:undefined)]:[]));
+    // 카드 위주로: 연출(keepIntro)만 카드 앞 말풍선으로 남기고, 나머지 글은
+    // 카드 1장이면 그 카드 설명에 합치고(230자 안일 때), 아니면 카드 뒤 말풍선 1개로 모읍니다.
+    const lead=cards.keepIntro?cards.intro:undefined;
+    const rest=[cards.keepIntro?undefined:cards.intro,cards.outro].filter((t):t is string=>Boolean(t&&t.trim()));
+    let tail=rest.join('\n\n');
+    if(cards.items.length===1&&tail){
+      const compact=(t:string)=>t.split('\n').filter(l=>l.trim()&&!/^─+$/.test(l.trim())).join('\n');
+      const c0=cards.items[0],merged=[compact(cards.keepIntro?'':(cards.intro??'')),compact(c0.description??''),compact(cards.outro??'')].filter(Boolean).join('\n');
+      if(merged.length<=230){visuals[0]={basicCard:card({...c0,description:merged})};tail='';}
+    }
+    // 말풍선은 최대 3개: 넘치면 앞에서부터 뺍니다(확인 목록·그림은 남김).
+    outputs.push(...text(lead),...visuals,...text(tail),...(result.list?[listCard(result.list,baseUrl?url:undefined)]:[]));
     return {version:'2.0',template:{outputs:outputs.slice(-3),quickReplies:quick(result)}};
   }
   if(result.imageId&&baseUrl&&/^[CUSRLHDTEIN]\d{1,2}$/.test(result.imageId)){
