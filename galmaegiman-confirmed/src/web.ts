@@ -5,7 +5,7 @@
 // 세계관 글은 data/world.md(마크다운)를 고치면 바로 반영됩니다.
 import { readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { marked } from 'marked';
 import { DateTime } from 'luxon';
 import type { Character, Content } from './content.js';
@@ -53,7 +53,7 @@ export function registerWeb(app:FastifyInstance,content:Content,options:WebOptio
   const expandable=(id:string)=>{const c=content.map.get(id)!;return c.rarity!=='HIDDEN'&&Boolean(recipeOf(id));};
   const tree=(id:string,n:number,depth:number):string=>{
     const head=chip(id,n);
-    if(!expandable(id)||depth>12)return `<li>${head}</li>`;
+    if(!expandable(id)||depth>12)return `<li class="leaf">${head}</li>`;
     const kids=counts(recipeOf(id)!.materials).map(([m,k])=>tree(m,k,depth+1)).join('');
     return `<li><details${depth<1?' open':''}><summary>${head}</summary><ul>${kids}</ul></details></li>`;
   };
@@ -124,8 +124,8 @@ else if(ev.key==='Enter'&&k>=0){ev.preventDefault();location.href=a[k].href}else
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%AA%A8%3C/text%3E%3C/svg%3E">
 <meta property="og:title" content="${esc(title)} · 갈매미맨"><meta property="og:image" content="${site}${og.image??img('images','C1')}">
 <style>
-:root{--bg:#f6f4ef;--card:#fff;--text:#2b2b2b;--muted:#6b6b6b;--line:#e2ddd3;--accent:#1f4e79;--accent-soft:#e3ecf5;--gold:#d9a400}
-@media (prefers-color-scheme:dark){:root{--bg:#16181c;--card:#20242a;--text:#ececec;--muted:#a3a3a3;--line:#353a42;--accent:#8fb8e8;--accent-soft:#25303d}}
+:root{--c1:#2a6fc0;--c2:#d9483b;--c3:#0f8a7b;--c4:#7a4fd0;--c5:#b06f00;--c6:#c93f7c;--bg:#f6f4ef;--card:#fff;--text:#2b2b2b;--muted:#6b6b6b;--line:#e2ddd3;--accent:#1f4e79;--accent-soft:#e3ecf5;--gold:#d9a400}
+@media (prefers-color-scheme:dark){:root{--c1:#7db4ff;--c2:#ff8a7a;--c3:#5fd3c3;--c4:#b9a0ff;--c5:#f2b84b;--c6:#ff92c2;--bg:#16181c;--card:#20242a;--text:#ececec;--muted:#a3a3a3;--line:#353a42;--accent:#8fb8e8;--accent-soft:#25303d}}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
 h1,h2,.logo,.stat b,.links a b,.today h3{font-family:"Jua",system-ui,sans-serif;font-weight:400;letter-spacing:.01em}
 /* 사이트 전체 Jua(굵기 1개뿐): 가짜 굵게를 끄고, 강조는 색으로 */
@@ -248,9 +248,10 @@ a.card:hover{border-color:var(--accent)}
 .tree,.tree ul{list-style:none;margin:0;padding-left:0}
 .tree ul{padding-left:18px;border-left:2px dashed var(--line);margin-left:14px}
 .tree li{margin:2px 0}
-.tree summary{cursor:pointer;list-style:none;display:inline-block}
+.tree summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:2px}
 .tree summary::-webkit-details-marker{display:none}
-.tree summary::before{content:'▸ ';color:var(--muted)}.tree details[open]>summary::before{content:'▾ '}
+.tree summary::before{content:'▸';color:var(--muted);width:16px;flex:none;text-align:center}.tree details[open]>summary::before{content:'▾'}
+.tree li.leaf{padding-left:18px}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
 .tile{display:block;text-decoration:none;color:var(--text);text-align:center;font-size:.72rem;font-weight:700;line-height:1.25}
 .tile img{width:100%;height:auto;aspect-ratio:1;border-radius:10px;display:block;margin-bottom:3px;background:var(--line)}
@@ -273,6 +274,23 @@ table.cmd{width:100%;border-collapse:collapse}.cmd td{padding:7px 4px;border-bot
 .tale h2::after{content:'';display:block;width:42px;height:3px;border-radius:3px;background:var(--gold);margin:10px auto 0}
 .tale p{margin:0 0 1.1em}
 .tale p:last-child{text-align:center;font-size:1.15rem;margin-top:2em}
+/* 색 다양하게: 제목·카드·숫자마다 6가지 색을 돌아가며(어두운 화면은 밝은 톤) */
+.hl{color:var(--c2)}
+main>h2:nth-of-type(6n+1),.tale h2:nth-of-type(6n+1){color:var(--c1)}main>h2:nth-of-type(6n+2),.tale h2:nth-of-type(6n+2){color:var(--c2)}
+main>h2:nth-of-type(6n+3),.tale h2:nth-of-type(6n+3){color:var(--c3)}main>h2:nth-of-type(6n+4),.tale h2:nth-of-type(6n+4){color:var(--c4)}
+main>h2:nth-of-type(6n+5),.tale h2:nth-of-type(6n+5){color:var(--c5)}main>h2:nth-of-type(6n+6),.tale h2:nth-of-type(6n+6){color:var(--c6)}
+.links a:nth-child(6n+1) b,.stats .stat:nth-child(6n+1) b,.evgrid .ev:nth-child(6n+1) h3,.evgrid .ev:nth-child(6n+1) .big b{color:var(--c1)}
+.links a:nth-child(6n+2) b,.stats .stat:nth-child(6n+2) b,.evgrid .ev:nth-child(6n+2) h3,.evgrid .ev:nth-child(6n+2) .big b{color:var(--c2)}
+.links a:nth-child(6n+3) b,.stats .stat:nth-child(6n+3) b,.evgrid .ev:nth-child(6n+3) h3,.evgrid .ev:nth-child(6n+3) .big b{color:var(--c3)}
+.links a:nth-child(6n+4) b,.stats .stat:nth-child(6n+4) b,.evgrid .ev:nth-child(6n+4) h3,.evgrid .ev:nth-child(6n+4) .big b{color:var(--c4)}
+.links a:nth-child(6n+5) b,.stats .stat:nth-child(6n+5) b,.evgrid .ev:nth-child(6n+5) h3,.evgrid .ev:nth-child(6n+5) .big b{color:var(--c5)}
+.links a:nth-child(6n+6) b,.stats .stat:nth-child(6n+6) b,.evgrid .ev:nth-child(6n+6) h3,.evgrid .ev:nth-child(6n+6) .big b{color:var(--c6)}
+.links a:nth-child(6n+1){border-top:3px solid var(--c1)}.links a:nth-child(6n+2){border-top:3px solid var(--c2)}.links a:nth-child(6n+3){border-top:3px solid var(--c3)}
+.links a:nth-child(6n+4){border-top:3px solid var(--c4)}.links a:nth-child(6n+5){border-top:3px solid var(--c5)}.links a:nth-child(6n+6){border-top:3px solid var(--c6)}
+.homegrid .box:nth-child(1) h3{color:var(--c5)}.homegrid .box:nth-child(2) h3{color:var(--c4)}
+.today h3{color:var(--c3)}
+.lead b{color:var(--c1)}
+.tale p b,.tale li b{color:var(--c3)}
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40px}
 </style></head><body>
 <header><div class="bar"><a class="logo" href="/">${logo()}</a>
@@ -285,7 +303,9 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40
 </body></html>`;
 
   const send=(reply:FastifyReply,html:string,maxAge=300)=>reply.type('text/html; charset=utf-8').header('Cache-Control',`public, max-age=${maxAge}`).send(html);
-  const limit={config:{rateLimit:{max:600,timeWindow:'1 minute',keyGenerator:()=> 'web'}}};
+  // 방문자마다 따로 셉니다. 서버는 127.0.0.1에서만 받고 Cloudflare 터널을 거쳐 오므로 CF-Connecting-IP가 실제 방문자 주소예요
+  // (헤더가 없으면 한 묶음으로 셈)
+  const limit={config:{rateLimit:{max:300,timeWindow:'1 minute',keyGenerator:(req:FastifyRequest)=>{const ip=req.headers['cf-connecting-ip'];return typeof ip==='string'&&ip.length<=45?`web:${ip}`:'web';}}}};
   const notFound=(reply:FastifyReply,msg:string)=>reply.code(404).type('text/html; charset=utf-8').send(page('없음','',`<div class="empty">${esc(msg)}<br><a href="/">홈으로</a></div>`));
 
   // ── 홈: 오늘의 갈매미 · 이번 주 TOP 3 · 최근 발견된 히든 · 이벤트 ──
@@ -304,11 +324,11 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40
     const recent=[...(await data.hiddenFirsts())].sort((x,y)=>y[1].at.getTime()-x[1].at.getTime()).slice(0,3)
       .map(([id,f])=>{const n=hidden.findIndex(x=>x.id===id)+1;return `<a class="uc" href="/hidden#h${n}"><img src="${img('thumbs','unknown')}" alt="" width="28" height="28">히든 #${n} 발견! · ${f.name?esc(f.name):'이름 없는 갈매미'} · ${esc(DateTime.fromJSDate(f.at).setZone('Asia/Seoul').toFormat('M/d'))}</a>`;}).join('');
     const body=`<section class="hero"><div>
-<h1>갈매미는 존재한다.</h1>
+<h1>갈매미는 <span class="hl">존재</span>한다.</h1>
 <p class="lead">돌로 된 갈매미들이 <b>갈매미 섬 항구 수비대</b>에 출근해서 항구를 지켜요. 몸이 돌이라 날지는 못해요. 새우깡 봉지 소리에는 약해요.</p>
 <div class="btns">${playBtn(true)}<a class="btn" href="/world">세계관 보기</a><a class="btn" href="/dex">도감 보기</a></div>
 </div><a class="today" href="/dex/${today.id}"><img src="${img('thumbs',today.id)}" alt="${esc(today.name)}" width="480" height="480"><div><small>☀️ 오늘의 갈매미</small><h3>${esc(today.name)}</h3><p>${esc(today.introduction.split(/(?<=[.!?…])\s+/u)[0])}</p></div></a></section>
-${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 어딘가에 <b>쿠폰 조각 ${c.pieces.length}개</b>가 숨어 있어요. 모두 찾아 카톡에 <b>쿠폰 조각들</b>을 보내면 뽑기권 <b>${c.tickets}장</b>! (1인 1회)<br><a href="/event">🎁 이벤트·혜택 모두 보기 →</a></div>`:`<div class="event"><b>🎁 이벤트·혜택</b><br>친구 초대하면 둘 다 뽑기권 <b>${content.economy.invite.tickets}장</b>! <a href="/event">자세히 보기 →</a></div>`}
+${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 어딘가에 <b>쿠폰 조각 ${c.pieces.length}개</b>가 숨어 있어요. 모두 찾아 카톡에 <b>쿠폰 조각들</b>을 보내면 뽑기권 <b>${c.tickets}장</b>! (1인 1회)<br><a href="/event">🎁 이벤트·혜택 모두 보기 →</a></div>`:`<div class="event"><b>🎁 이벤트·혜택</b><br>친구 초대하면 친구도 나도 뽑기권 <b>${content.economy.invite.tickets}장</b>! <a href="/event">자세히 보기 →</a></div>`}
 <div class="homegrid">
 <div class="box"><h3>🏆 ${board.label} TOP 3</h3>${top3?`<ol class="mini">${top3}</ol>`:'<p class="note">아직 기록이 없어요.</p>'}<a class="note" href="/rank?k=${board.k}">전체 랭킹 →</a></div>
 <div class="box"><h3>❔ 최근 발견된 히든</h3>${recent||'<p class="note">아직 아무도 히든을 찾지 못했어요. 첫 발견자가 되어 보세요!</p>'}<br><a class="note" href="/hidden">히든 단서 보기 →</a></div>
@@ -352,8 +372,8 @@ ${channel?`<div class="btns" style="margin:0 0 8px">${playBtn(true)}</div>`:''}
 ${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이벤트는 없어요. 아래 상시 혜택은 언제든 받을 수 있어요!</div>'}
 <h2>🎟 언제나 받는 혜택</h2>
 <div class="evgrid">
-<div class="box ev"><h3>💌 친구 초대</h3><p class="big">나도 친구도 🎟 <b>${e.invite.tickets}장</b></p>
-<ol><li>카톡에 <span class="mono">초대코드</span> → 내 코드 확인</li><li>친구가 채널 추가 후 <span class="mono">초대 내코드</span> 입력 (예: 초대 ABC123)</li></ol>
+<div class="box ev"><h3>💌 친구 초대</h3><p class="big">친구도 나도 🎟 <b>${e.invite.tickets}장</b>씩</p>
+<ol><li>카톡에 <span class="mono">초대코드</span> → 내 코드 확인</li><li>친구가 채널 추가 후 <span class="mono">초대 내코드</span> 입력 (예: 초대 ABC123) → 친구는 바로 🎟 ${e.invite.tickets}</li><li>친구가 튜토리얼 ${tutorialSteps.length}단계를 끝내면 → 나도 🎟 ${e.invite.tickets}</li></ol>
 <p class="note">한 사람당 최대 ${e.invite.max}명 → 최대 ${(e.invite.max*e.invite.tickets).toLocaleString('ko-KR')}장 · 친구는 가입 후 ${e.invite.days}일 안에 입력</p></div>
 <div class="box ev"><h3>📘 튜토리얼</h3><p class="big">${tutorialSteps.length}단계 · 단계마다 🎟 <b>${e.tutorial.tickets}장</b> (총 ${tTotal}장)</p>
 <ol>${tutorialSteps.map(t=>`<li><b>${esc(t.title)}</b> · ${esc(t.how)}</li>`).join('')}</ol>
@@ -373,7 +393,7 @@ ${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이
 <tr><td class="mono">닉네임 갈매미왕</td><td>닉네임 정하기 (랭킹에 이름이 나와요)</td></tr>
 <tr><td class="mono">이벤트</td><td>진행 중인 이벤트 보기</td></tr>
 </tbody></table></div>`;
-    return send(reply,page('이벤트','/event',body,'',{desc:`친구 초대하면 둘 다 뽑기권 ${e.invite.tickets}장! 갈매미맨 이벤트·혜택 모음`}),60);
+    return send(reply,page('이벤트','/event',body,'',{desc:`친구 초대하면 친구도 나도 뽑기권 ${e.invite.tickets}장! 갈매미맨 이벤트·혜택 모음`}),60);
   });
 
   app.get('/world',limit,async(_req,reply)=>send(reply,page('세계관','/world',`<article class="prose tale">${worldHtml()}</article>`)));
@@ -404,11 +424,15 @@ ${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이
     if(c.rarity==='HIDDEN')return reply.redirect(`/hidden#h${hiddenIndex(c)}`);
     const top=topTiers.has(c.rarity),seen=(await data.seenCounts()).get(c.id)??0;
     const recipe=recipeOf(c.id);
-    const usedIn=content.recipes.filter(r=>r.materials.includes(c.id));
+    // 히든이 결과인 조합은 빼요('이 유닛이 히든 재료'라는 것도 비밀)
+    const usedIn=content.recipes.filter(r=>!r.hidden&&r.materials.includes(c.id));
     const how=recipe?`<div class="box"><h3>🧩 만드는 법</h3>${counts(recipe.materials).map(([id,n])=>chip(id,n)).join('<span class="eq">+</span>')}</div>`:'';
-    const needs=recipe?[...baseNeeds(c.id,1,new Map())].sort((x,y)=>y[1]-x[1]):[];
+    // 기본 재료 합계: 히든은 재료를 펼칠 수 없어(비밀) 따로 셉니다
+    const all=recipe?[...baseNeeds(c.id,1,new Map())].sort((x,y)=>y[1]-x[1]):[];
+    const needs=all.filter(([id])=>content.map.get(id)!.rarity!=='HIDDEN'),secret=all.filter(([id])=>content.map.get(id)!.rarity==='HIDDEN');
+    const secretNote=secret.length?`<p class="note" style="margin:6px 0 0">＋ 히든 ${secret.reduce((x,y)=>x+y[1],0)}마리 ${secret.map(([id,k])=>chip(id,k)).join('')} — 히든은 재료가 비밀이라 합계에 넣지 않았어요. <a href="/hidden">단서 보기</a></p>`:'';
     const lineage=recipe?`<div class="box"><h3>🌳 조합 계보도</h3><ul class="tree">${tree(c.id,1,0)}</ul>
-<p class="note" style="margin:8px 0 4px">처음부터 만들면 필요한 기본 재료 (총 ${needs.reduce((x,y)=>x+y[1],0)}마리)</p>${needs.map(([id,k])=>chip(id,k)).join('')}</div>`:'';
+<p class="note" style="margin:8px 0 4px">처음부터 만들면 필요한 기본 재료 (총 ${needs.reduce((x,y)=>x+y[1],0)}마리${secret.length?', 히든 제외':''})</p>${needs.map(([id,k])=>chip(id,k)).join('')}${secretNote}</div>`:'';
     const used=usedIn.length?`<div class="box"><h3>➡️ 재료로 쓰이는 곳 (${usedIn.length})</h3>${usedIn.map(r=>chip(r.resultId)).join('')}</div>`:'';
     const where=data.source(c.id);
     const body=`<p class="note"><a href="/dex#${c.rarity}">← ${esc(rarityNames[c.rarity])} 도감</a></p>
@@ -452,7 +476,7 @@ ${how}${used}</div></div>${lineage}`;
 <p class="note" style="margin:8px 0 0">${who}</p></div>`;
     }).join('');
     const body=`<h1>❔ 서류에 없는 갈매미</h1>
-<p class="lead">히든 ${hidden.length}종은 조합목록에 없어요. 카톡에서 <b>합치기</b>로 재료를 직접 골라 안아 줘야 나타나요. 누군가 찾을 때마다 모두의 단서가 하나씩 더 열려요.</p>
+<p class="lead">히든 ${hidden.length}종은 조합목록에 없어요. 카톡에서 <b>합치기</b>로 재료를 직접 골라 섞어 봐야 찾을 수 있어요. 누군가 찾을 때마다 모두의 단서가 하나씩 더 열려요.</p>
 <div class="stats"><div class="stat"><b>${found}/${hidden.length}</b>섬에서 발견된 히든</div><div class="stat"><b>1명</b>찾으면 초성 공개</div><div class="stat"><b>${HINT_NAME}명</b>찾으면 재료 이름 공개</div></div>
 ${cards}`;
     return send(reply,page('히든 단서','/hidden',recipeTabs('/hidden')+body),60);
@@ -505,7 +529,7 @@ ${list?`<ol class="rank">${list}</ol>`:'<div class="empty">아직 기록이 없�
     const byStory=ini?[]:content.characters.filter(c=>c.rarity!=='HIDDEN'&&!topTiers.has(c.rarity)&&!units.includes(c)&&c.introduction.replace(/\s+/g,'').includes(plain)).slice(0,24);
     // 이름이 정확히 맞으면: 이 갈매미로 만들 수 있는 것
     const exact=units.find(c=>c.name.replace(/\s+/g,'')===plain);
-    const makes=exact?content.recipes.filter(r=>r.materials.includes(exact.id)):[];
+    const makes=exact?content.recipes.filter(r=>!r.hidden&&r.materials.includes(exact.id)):[];
     const total=units.length+byTier.length+byStory.length;
     const body=`<h1>“${esc(q)}” 검색</h1>
 ${exact?`<div class="box"><h3>${badge(exact.rarity)} <a href="/dex/${exact.id}">${esc(exact.name)}</a></h3>${makes.length?`이 갈매미로 만들 수 있는 것 (${makes.length}): ${makes.map(r=>chip(r.resultId)).join('')}`:'<span class="note">재료로 쓰이는 조합이 없어요.</span>'}</div>`:''}

@@ -10,7 +10,7 @@ import { GameService } from './game.js';
 import { parseKakao, kakaoResponse, imageIdPattern } from './kakao.js';
 import { GameError } from './types.js';
 import { registerWeb } from './web.js';
-export const VERSION='0.9.33';
+export const VERSION='0.9.34';
 export interface AppOptions {secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string}
 export async function buildApp(db:PrismaClient,game:GameService,options:AppOptions){
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
@@ -49,6 +49,15 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
   registerWeb(app,game.content,{root:options.root??process.cwd(),stamp,version:VERSION,data:{
     ranking:kind=>game.publicRanking(kind),seenCounts:()=>game.seenCounts(),hiddenFirsts:()=>game.hiddenFirsts(),
     searchPlayers:q=>game.searchPlayers(q),profile:n=>game.webProfile(n),source:id=>game.sourceText(id)}});
+  // 한 사람당 1분에 40번까지(카톡 버튼 연타·자동 입력 방지). 메모리에만 두고 1분 지난 기록은 버립니다
+  const hits=new Map<string,number[]>();
+  const perUser=(id:string,now=Date.now())=>{
+    const recent=(hits.get(id)??[]).filter(t=>now-t<60_000);
+    if(recent.length>=40){hits.set(id,recent);return false;}
+    recent.push(now);hits.set(id,recent);
+    if(hits.size>5000)for(const [k,v] of hits)if(!v.some(t=>now-t<60_000))hits.delete(k);
+    return true;
+  };
   for(const path of ['/kakao/skill','/kakao'])app.post(path,{
     // 카카오가 보내는 요청만 키 검증 후 처리. 외부 전달 헤더를 사용자 권한으로 쓰지 않습니다.
     onRequest:async(req,reply)=>{
@@ -57,14 +66,17 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
       const expected=Buffer.from(options.secret);
       if(supplied.length!==expected.length||!timingSafeEqual(supplied,expected))return reply.code(401).send({error:'skill authentication required'});
     },
-    config:{rateLimit:{max:180,timeWindow:'1 minute',keyGenerator:()=> 'kakao-skill'}},
+    // 카카오 서버 전체 상한(모든 유저 합계). 한 사람이 너무 빠르게 보내는 것은 아래 perUser로 따로 막습니다
+    config:{rateLimit:{max:1200,timeWindow:'1 minute',keyGenerator:()=> 'kakao-skill'}},
   },async(req,reply)=>{
     try{
       const input=parseKakao(req.body,options.botId);
+      if(!perUser(input.identity))return kakaoResponse({text:'⏳ 너무 빨리 보내고 있어요. 잠깐 쉬었다가 다시 보내 주세요.'});
       const result=await game.handle(input.identity,input.message,input.button);
       const out=kakaoResponse(result,await options.baseUrl(),stamp);
-      // 진단용: 카카오에 보낸 응답 요약(말풍선 종류·크기·버튼). 개인정보 없음
-      req.log.info({utterance:input.message.slice(0,60),outputs:out.template.outputs.map(o=>Object.keys(o)[0]),bytes:JSON.stringify(out).length,quick:out.template.quickReplies.map(q=>q.label)},'kakao response');
+      // 진단용: 카카오에 보낸 응답 요약(말풍선 종류·크기·버튼). 명령어 첫 낱말만 남깁니다
+      // (뒤의 글자에는 관리자 코드·쿠폰 코드·닉네임이 들어갈 수 있어 기록하지 않음). bot은 카카오 봇 ID(.env의 KAKAO_BOT_ID 확인용)
+      req.log.info({command:input.message.trim().split(/\s+/)[0].slice(0,12),bot:input.bot,outputs:out.template.outputs.map(o=>Object.keys(o)[0]),bytes:JSON.stringify(out).length,quick:out.template.quickReplies.map(q=>q.label)},'kakao response');
       return out;
     }catch(e){
       if(e instanceof GameError){
@@ -76,7 +88,7 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
       if(e instanceof Error&&e.message==='BOT_MISMATCH')return reply.code(403).send({error:'bot mismatch'});
       // 사용자의 발화/ID/비밀키/요청 본문은 기록하지 않습니다.
       req.log.error({errorCode:e instanceof Error?e.name:'Unknown',reference:createHash('sha256').update(req.id).digest('hex').slice(0,12)},'game request failed');
-      return kakaoResponse({text:'처리에 실패했습니다. 서버 터미널과 DB 준비 상태를 확인해 주세요. 미완료 작업은 취소됩니다.'});
+      return kakaoResponse({text:'처리하다 문제가 생겼어요. 잠시 뒤 다시 해 주세요. 끝나지 않은 작업은 취소돼요.'});
     }
   });
   return app;

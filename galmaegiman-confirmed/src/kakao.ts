@@ -18,7 +18,7 @@ export function parseKakao(input:unknown,expectedBot?:string){
     const value=buttonSchema.parse(extra);
     button={action:value.gmAction,token:value.gmToken};
   }
-  return {identity:JSON.stringify(['KAKAO_CHANNEL',p.bot.id,p.userRequest.user.type??'botUserKey',p.userRequest.user.id]),message:p.userRequest.utterance,button};
+  return {identity:JSON.stringify(['KAKAO_CHANNEL',p.bot.id,p.userRequest.user.type??'botUserKey',p.userRequest.user.id]),message:p.userRequest.utterance,button,bot:p.bot.id};
 }
 // 유닛 ID와 화면용 그림(미발견·탐험·뽑기 3종)
 export const imageIdPattern=/^(?:[CUSRLHDTEIN]\d{1,2}|unknown|logo|explore|ticket|s-(?:info|oops|wait|shop|exchange|mix|dex|rank|peanut|ticket|event|lock|tutorial|timeout|invite|sell)|m-(?:draw|craft|rare|legend|top)|gacha-(?:LOW|MID|HIGH)|q-(?:COMMON|UNCOMMON|SPECIAL|RARE|LEGEND|HIDDEN|LIMITED|TRANSCEND|ETERNAL|IMMORTAL|NEUTRAL)|y-(?:BASIC|GOLD|DARK|SEA|BLOSSOM|COSMOS|OUTFIT))$/;

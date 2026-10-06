@@ -1,6 +1,6 @@
 {
   "name": "galmaegiman-confirmed",
-  "version": "0.9.33",
+  "version": "0.9.34",
   "private": true,
   "type": "module",
   "engines": {
@@ -37,6 +37,9 @@
     "@types/node": "^24.5.2",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "^5.0.3"
+  },
+  "overrides": {
+    "deepmerge-ts": "^8.0.2"
   }
 }
