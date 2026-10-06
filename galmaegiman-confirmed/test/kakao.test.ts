@@ -33,7 +33,7 @@ describe('카카오 공식 요청·응답',()=>{
       thumbnail:{imageUrl:'https://example.com/thumbs/L2.jpg',altText:'★ 쌍패성왕',fixedRatio:true},buttons:[{action:'message',label:'도감 보기',messageText:'도감 쌍패성왕'}]});
     expect(kakaoResponse(reply).template.outputs).toEqual([{simpleText:{text:'전체 글'}}]);
   });
-  it('카드 1장은 큰 카드, 아래 글은 카드 설명에 합침(230자 안), 길면 말풍선 1개, 확인 목록은 꼭 넣음',()=>{
+  it('카드 1장은 큰 카드, 아래 글은 카드 설명에 합침(230자 안), 길면 말풍선 1개, 머리말은 카드 앞, 확인 목록은 꼭 넣음',()=>{
     const one=kakaoResponse({text:'글',cards:{items:[{imageId:'unknown',title:'???',description:'미발견'}],outro:'아래\n\n──────────\n📌 지금'}},'https://e.com').template.outputs as any[];
     expect(one).toHaveLength(1);
     expect(one[0].basicCard.thumbnail.imageUrl).toBe('https://e.com/thumbs/unknown.jpg');
@@ -42,9 +42,10 @@ describe('카카오 공식 요청·응답',()=>{
     expect(long.map(o=>Object.keys(o)[0])).toEqual(['basicCard','simpleText']);expect(long[0].basicCard.description).toBe('미발견');
     const withList=kakaoResponse({text:'글',cards:{intro:'머리',items:[{imageId:'U1',title:'금갑',description:'재료'}],outro:'재료 목록'},
       list:{title:'만들까요?',showText:true,items:[{title:'조합하기',description:'d',message:'조합 확정',button:{action:'confirm',token:'0123456789abcdef'}}]}},'https://e.com').template.outputs as any[];
-    expect(withList.map(o=>Object.keys(o)[0])).toEqual(['basicCard','listCard']);
-    expect(withList[0].basicCard.description).toBe('머리\n재료\n재료 목록');
-    expect(withList[1].listCard.items[0].extra).toEqual({gmAction:'confirm',gmToken:'0123456789abcdef'});
+    // 머리말은 카드 앞 말풍선(유닛 카드 안에 섞지 않음), 아래 글은 카드 설명에
+    expect(withList.map(o=>Object.keys(o)[0])).toEqual(['simpleText','basicCard','listCard']);
+    expect(withList[1].basicCard.description).toBe('재료\n재료 목록');
+    expect(withList[2].listCard.items[0].extra).toEqual({gmAction:'confirm',gmToken:'0123456789abcdef'});
   });
   it('카드 넘기기 안의 버튼은 2개까지, 그림 주소에 버전 값을 붙임',()=>{
     const b=[{label:'a',message:'a'},{label:'b',message:'b'},{label:'c',message:'c'}];

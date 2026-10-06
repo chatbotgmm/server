@@ -74,12 +74,14 @@ export function kakaoResponse(result:GameReply,baseUrl='',stamp:(path:string)=>s
     const text=(t?:string)=>t?[{simpleText:{text:t.slice(0,950)}}]:[];
     // 카드 위주로: 연출(keepIntro)만 카드 앞 말풍선으로 남기고, 나머지 글은
     // 카드 1장이면 그 카드 설명에 합치고(230자 안일 때), 아니면 카드 뒤 말풍선 1개로 모읍니다.
-    const lead=cards.keepIntro?cards.intro:undefined;
-    const rest=[cards.keepIntro?undefined:cards.intro,cards.outro].filter((t):t is string=>Boolean(t&&t.trim()));
-    let tail=rest.join('\n\n');
-    if(cards.items.length===1&&tail){
+    // 카드 1장: 아래 글(outro)은 카드 설명에 합치고, 머리말(intro)은 카드 앞 말풍선(유닛 카드 안에 머리말이 섞이면 헷갈려서)
+    // 카드 여러 장: 머리말·요약을 카드 뒤 말풍선 1개로. 전설 이상 연출(keepIntro)은 항상 카드 앞
+    const single=cards.items.length===1;
+    const lead=cards.keepIntro||single?cards.intro:undefined;
+    let tail=[lead?undefined:cards.intro,cards.outro].filter((t):t is string=>Boolean(t&&t.trim())).join('\n\n');
+    if(single&&cards.outro){
       const compact=(t:string)=>t.split('\n').filter(l=>l.trim()&&!/^─+$/.test(l.trim())).join('\n');
-      const c0=cards.items[0],merged=[compact(cards.keepIntro?'':(cards.intro??'')),compact(c0.description??''),compact(cards.outro??'')].filter(Boolean).join('\n');
+      const c0=cards.items[0],merged=[compact(c0.description??''),compact(cards.outro)].filter(Boolean).join('\n');
       if(merged.length<=230){visuals[0]={basicCard:card({...c0,description:merged})};tail='';}
     }
     // 말풍선은 최대 3개: 넘치면 앞에서부터 뺍니다(확인 목록·그림은 남김).

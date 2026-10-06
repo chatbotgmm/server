@@ -346,9 +346,9 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     // 1마리 차이인 조합이 여럿이면 높은 등급 하나를 안내(여기선 특별 유성대장장이 = 운석 + 기본 + 황금)
     await fixtures(['C2','C2'],{credits:30});
     const r=await send('하급뽑기');   // 난수 0 → 기본 갈매미맨 1마리
-    const m=r.text.match(/🔜 \S+ (.+): (.+) 1마리만 더!/);
+    const m=r.text.match(/🔜 (.+) 1마리만 더 있으면 \S+ (.+)!/);
     expect(m).not.toBeNull();
-    expect(r.choices!.some(c=>c.message===`조합식 ${m![1]}`)).toBe(true);
+    expect(r.choices!.some(c=>c.message===`조합식 ${m![2]}`)).toBe(true);
   });
   it('랭킹·닉네임: 도감 수 순위, 닉네임 중복 불가, 관리자 모드 제외',async()=>{
     await fixtures(['C1','C2']);
@@ -824,7 +824,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.38'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.39'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
