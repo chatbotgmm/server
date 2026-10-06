@@ -424,6 +424,7 @@ ${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이
 <tr><td class="mono">쿠폰 코드</td><td>쿠폰 입력하기</td></tr>
 <tr><td class="mono">튜토리얼</td><td>튜토리얼 진행 보기</td></tr>
 <tr><td class="mono">닉네임 갈매미왕</td><td>닉네임 정하기 (랭킹에 이름이 나와요)</td></tr>
+<tr><td class="mono">조합 고르기</td><td>재료를 직접 골라 조합하기 (숨은 조합 찾기)</td></tr>
 <tr><td class="mono">댓글 금갑 귀여워요</td><td>만나 본 갈매미에게 한마디 (수다방·도감에 올라가요)</td></tr>
 <tr><td class="mono">좋아요 12</td><td>댓글 12번에 좋아요</td></tr>
 <tr><td class="mono">이벤트</td><td>진행 중인 이벤트 보기</td></tr>
@@ -441,7 +442,7 @@ ${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이
     const tile=(c:Character)=>{const hid=c.rarity==='HIDDEN';
       return `<a class="tile" href="${hid?`/hidden#h${hiddenIndex(c)}`:`/dex/${c.id}`}" title="${hid?'???':esc(c.name)}"><img loading="lazy" src="${img('thumbs',face(c))}" alt="" width="480" height="480"><span>${hid?'???':esc(c.name)}</span></a>`;};
     const card=(c:Character)=>{
-      if(c.rarity==='HIDDEN')return `<a class="card locked" href="/hidden#h${hiddenIndex(c)}"><img loading="lazy" src="${img('thumbs','unknown')}" alt="???" width="480" height="480"><div class="in">${badge(c.rarity)}<h3>???</h3><p>❔ ${esc(c.hint??'합치기로 찾아요')}</p></div></a>`;
+      if(c.rarity==='HIDDEN')return `<a class="card locked" href="/hidden#h${hiddenIndex(c)}"><img loading="lazy" src="${img('thumbs','unknown')}" alt="???" width="480" height="480"><div class="in">${badge(c.rarity)}<h3>???</h3><p>❔ ${esc(c.hint??'재료로 직접 조합해서 찾아요')}</p></div></a>`;
       if(topTiers.has(c.rarity))return `<a class="card locked" href="/dex/${c.id}"><img loading="lazy" src="${img('thumbs',face(c))}" alt="${esc(c.name)}" width="480" height="480"><div class="in">${badge(c.rarity)}<h3>${esc(c.name)}</h3><p>모습과 이야기는 게임에서 직접 만나면 열려요.</p></div></a>`;
       return `<a class="card" href="/dex/${c.id}"><img loading="lazy" src="${img('thumbs',face(c))}" alt="${esc(c.name)}" width="480" height="480"><div class="in">${badge(c.rarity)}<h3>${esc(c.name)}</h3><p>${esc(c.introduction)}</p><p class="q">💬 「${esc(c.quote)}」</p></div></a>`;
     };
@@ -509,11 +510,11 @@ ${how}${used}</div></div>${lineage}
       const h4=n>=HINT_NAME?`<div class="h"><b>단서 4</b>재료 하나는 ${reveal.rarity==='HIDDEN'?'???':`<a href="/dex/${reveal.id}">${esc(reveal.name)}</a>`}</div>`:`<div class="h lock"><b>🔒 단서 4</b>${HINT_NAME}명이 찾으면 재료 하나의 이름이 열려요. (지금 ${n}명)</div>`;
       const who=first?`🏅 최초 발견: ${first.name?`<a href="/p/${encodeURIComponent(first.name)}">${esc(first.name)}</a>`:'이름 없는 갈매미'} · ${esc(DateTime.fromJSDate(first.at).setZone('Asia/Seoul').toFormat('M/d HH:mm'))}`:'아직 아무도 찾지 못했어요. 첫 발견자가 되어 보세요!';
       return `<div class="box" id="h${i+1}" style="scroll-margin-top:110px"><h3>${badge('HIDDEN')} 히든 #${i+1} <small class="note">· ${n}명 발견</small></h3>
-<div class="hint"><div class="h"><b>단서 1</b>${esc(c.hint??'합치기로 찾아요')}</div><div class="h"><b>단서 2</b>재료 구성: ${esc(tiersLine)}</div>${h3}${h4}</div>
+<div class="hint"><div class="h"><b>단서 1</b>${esc(c.hint??'재료로 직접 조합해서 찾아요')}</div><div class="h"><b>단서 2</b>재료 구성: ${esc(tiersLine)}</div>${h3}${h4}</div>
 <p class="note" style="margin:8px 0 0">${who}</p></div>`;
     }).join('');
     const body=`<h1>❔ 서류에 없는 갈매미</h1>
-<p class="lead">히든 ${hidden.length}종은 조합목록에 없어요. 카톡에서 <b>합치기</b>로 재료를 직접 골라 섞어 봐야 찾을 수 있어요. 누군가 찾을 때마다 모두의 단서가 하나씩 더 열려요.</p>
+<p class="lead">히든 ${hidden.length}종은 조합목록에 없어요. 카톡에서 <b>조합 고르기</b>로 재료를 직접 골라 섞어 봐야 찾을 수 있어요. 누군가 찾을 때마다 모두의 단서가 하나씩 더 열려요.</p>
 <div class="stats"><div class="stat"><b>${found}/${hidden.length}</b>섬에서 발견된 히든</div><div class="stat"><b>1명</b>찾으면 초성 공개</div><div class="stat"><b>${HINT_NAME}명</b>찾으면 재료 이름 공개</div></div>
 ${cards}`;
     return send(reply,page('히든 단서','/hidden',recipeTabs('/hidden')+body),60);

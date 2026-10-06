@@ -2,8 +2,8 @@
 version: ECONOMY_V1
 
 tickets:
-  welcome: 30          # 신규 가입 지급
-  claim: 10            # 뽑기권 받기 1회
+  welcome: 200         # 신규 가입 지급 (v0.9.40: 30 → 200)
+  claim: 30            # 뽑기권 받기 1회 (v0.9.40: 10 → 30)
   cooldownHours: 1     # 받은 뒤 다시 받을 수 있을 때까지. 누적 없음
 
 gachas:                # 등급 확률 합계는 100
@@ -47,7 +47,7 @@ expedition:
     BASIC:   { label: 기본,   concept: 수호,       snackPercent: [15, 30] }
     GOLD:    { label: 황금,   concept: 금고,       doublePercent: [15, 30] }
     DARK:    { label: 암흑,   concept: 밤,         minutes: [50, 40] }
-    SEA:     { label: 바다,   concept: 해저앙영,   commonPercent: [10, 20] }
+    SEA:     { label: 바다,   concept: 심해,       commonPercent: [10, 20] }
     BLOSSOM: { label: 벚꽃,   concept: 개화,       uncommonPercent: [5, 10] }
     COSMOS:  { label: 우주,   concept: 별,         ticketPercent: [15, 30] }
     OUTFIT:  { label: 갈 의복, concept: 튼튼한 빤스, snackPerUnit: [2, 4] }
