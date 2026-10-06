@@ -26,6 +26,20 @@
    `sudo cloudflared service install 긴토큰` 한 줄을 복사(토큰은 비밀번호처럼 남에게 보이지 않게)
 4. **Public hostname** 추가: Subdomain 비움(또는 `www`), Domain `내도메인`, Service `HTTP` / `localhost:3000` → 저장
 
+## 3-B. 대시보드가 결제 수단을 요구하면: 서버에서 직접 만들기 (Zero Trust 불필요)
+3번 대신 EC2에서(한 줄씩):
+```bash
+sudo -iu ubuntu
+```
+```bash
+cloudflared tunnel login
+```
+→ 나오는 `https://dash.cloudflare.com/argotunnel?...` 주소를 휴대폰 브라우저로 열고 `gmm.dpdns.org` 선택 → Authorize. 서버 화면에 성공 메시지가 나오면:
+```bash
+cd ~/gmm/galmaegiman-confirmed && bash scripts/named-tunnel.sh gmm.dpdns.org
+```
+→ 터널 만들기·DNS 연결·서비스(`gmm-named-tunnel`) 설치·확인까지 자동. `✅ 고정 주소 동작`이 나오면 4번의 `npm run url` 부터 이어서 하면 됩니다(`cloudflared service install` 줄은 건너뜀). 되돌릴 때는 `sudo systemctl disable --now gmm-named-tunnel`.
+
 ## 4. EC2에서 (Session Manager, 한 줄씩)
 ```bash
 sudo -iu ubuntu
