@@ -45,6 +45,10 @@ export const tutorialSteps=[
   {title:'조합해 보기',how:'조합가능에서 하나 만들기',go:choice('조합가능'),image:'m-craft'},
   {title:'도감 열어 보기',how:'모은 갈매미 확인하기',go:choice('도감'),image:'s-dex'},
   {title:'닉네임 정하기',how:'"닉네임 갈매미왕"처럼 입력',go:choice('닉네임'),image:'s-rank'}];
+// 결과 말풍선: 이번에 얻은 것 → 구분선 → 📌 지금 상태. 숫자는 천 단위 쉼표
+const RULE='──────────';
+const num=(n:number)=>n.toLocaleString('ko-KR');
+const report=(below:string,nextLine:string)=>`${below?`${below}\n\n${RULE}\n`:''}${nextLine}`;
 const statusOf=(c:Count|undefined):Count=>c??{total:0,usable:0,locked:0,away:0};
 
 export class GameService {
@@ -126,7 +130,7 @@ export class GameService {
     const below=[...a.extra,...gains].join('\n');
     return {cards:{intro:[intro,a.drama].filter(Boolean).join('\n\n')||undefined,
       items:[this.maskCard({imageId:this.cardImage(c.id,known),title:a.title,description:a.description,buttons:[choice('도감 보기',`도감 ${c.name}`),...buttons].slice(0,3)},known)],
-      outro:`${below?`${below}\n\n`:''}📌 지금\n${nextLine}`}};
+      outro:report(below,nextLine)}};
   }
   // 글 응답을 큰 카드 1장으로: 첫 줄 = 제목, 다음 줄들(빈 줄 전까지, 최대 3줄) = 설명, 나머지 = 아래 말풍선
   private info(reply:GameReply,imageId:string,buttons?:Choice[]):GameReply{
@@ -310,7 +314,7 @@ export class GameService {
       done.add(m.key);
       if(m.tickets)await tx.player.update({where:{id:p.id},data:{credits:{increment:m.tickets}}});
       await this.audit(tx,p,'MISSION',{day,key:m.key,tickets:m.tickets});
-      lines.push(`🎯 오늘의 미션 완료! ${m.label} · 🎟 +${m.tickets}`);
+      lines.push(`🎉 오늘의 미션 완료! ${m.label} · 🎟 +${m.tickets}`);
     }
     if(lines.length)await tx.dailyProgress.update({where:{playerId_day:{playerId:p.id,day}},data:{rewarded:[...done].join(',')}});
     return lines;
@@ -351,7 +355,7 @@ export class GameService {
     const ready=await this.craftable(tx,p);
     const cheapest=Math.min(...Object.values(this.content.economy.gachas).map(g=>g.cost));
     const canClaim=!this.claimWait(account,now);
-    const lines=[`🎟 ${unlimited(account)?'무제한(관리자)':`${account.credits}장`} · 🍤 ${account.snack}개`];
+    const lines=[`📌 지금  🎟 ${unlimited(account)?'무제한(관리자)':`${num(account.credits)}장`} · 🍤 ${num(account.snack)}개`];
     if(ready)lines.push(`✨ 조합 가능 ${ready}종`);
     const near=(await this.almost(tx,p))[0];
     if(near)lines.push(`🔜 ${emblems[near.c.rarity]} ${near.c.name}: ${near.lack} 1마리만 더!`);
@@ -439,7 +443,7 @@ export class GameService {
     if(pity)await tx.player.update({where:{id:p.id},data:{highPity:counter}});
     const pityLine=pity?(pityHit?`🎯 천장! ${rarityNames[pity.tier]} 확정`:`🎯 ${rarityNames[pity.tier]} 보장까지 ${pity.count-counter}회`):'';
     await this.audit(tx,p,'GACHA',{kind,times,cost:admin?0:cost,admin,results:results.map(r=>r.c.id),balanceAfter:admin?p.credits:p.credits-cost,...(pity?{pityAfter:counter,pityHit}:{})});
-    const missions=[...(pityLine?[pityLine]:[]),...await this.progress(tx,p,'DRAW',times,now),...await this.tutorialStep(tx,p,1)];
+    const missions=[...await this.progress(tx,p,'DRAW',times,now),...await this.tutorialStep(tx,p,1),...(pityLine?[pityLine]:[])];
     const again=admin||p.credits-cost>=cost;
     const next=await this.nextStep(tx,p,now,again?[choice(times>1?`${g.label} ×${times} 더`:`${g.label} 한 번 더`,`${g.label}뽑기${times>1?` ${times}`:''}`)]:[]);
     const tail=[...missions,next.line].join('\n');
@@ -465,9 +469,9 @@ export class GameService {
     // 희귀 이상을 새로 찾았거나 전설 이상이 나오면 맨 위에서 연출합니다.
     const drama=tiers[top.c.rarity]>=tiers.LEGEND?prelude(top.c,!!top.receipt.first):firstNew&&tiers[firstNew.c.rarity]>=tiers.RARE?prelude(firstNew.c,true):'';
     const head=`${drama}🥚 ${g.label} 뽑기 ×${times}${news?` · 🆕 새 발견 ${news}종!`:''}`;
-    const gains=[...(snacks?[`🍤 새우깡 +${snacks}`]:[]),...missions].join('\n');
+    const gains=[...(snacks?[`🍤 새우깡 +${num(snacks)}`]:[]),...missions].join('\n');
     const achieved=results.filter(r=>r.receipt.achievement).map(r=>achievementText(r.receipt.achievement!));
-    const outro=[...(gains?[gains]:[]),...achieved,`📌 지금\n${next.line}`].join('\n\n');
+    const outro=report([...(gains?[gains]:[]),...achieved].join('\n\n'),next.line);
     const body=[head,blocks.join('\n\n'),outro].join('\n\n');
     // 카드 넘기기: 유닛마다 그림 카드 1장(높은 등급부터). 그림이 하나라도 없으면 글로만 보냅니다. 전설 이상은 📤 공유하기
     const items=sorted.map(x=>this.maskCard({imageId:this.cardImage(x.c.id,known),title:`${emblems[x.c.rarity]} ${x.c.name}${x.n>1?` ×${x.n}`:''}`,
@@ -525,8 +529,8 @@ export class GameService {
     const snacks=receipts.reduce((a,r)=>a+r.snacks,0);
     const achieved=receipts.filter(r=>r.achievement).map(r=>achievementText(r.achievement!));
     const head=`🧩 ${emblems[c.rarity]} ${c.name} ×${times} 조합 완료!`;
-    const below=[...(snacks?[`🍤 새우깡 +${snacks}`]:[]),...achieved,...missions].join('\n');
-    const outro=`${below?`${below}\n\n`:''}📌 지금\n${next.line}`;
+    const below=[...(snacks?[`🍤 새우깡 +${num(snacks)}`]:[]),...achieved,...missions].join('\n');
+    const outro=report(below,next.line);
     return {text:mask(this.content,`${discovered}${head}\n\n${outro}`,after),
       cards:{intro:mask(this.content,`${discovered}${head}`,after)||undefined,items:[this.maskCard({imageId:this.cardImage(c.id,after),title:`${emblems[c.rarity]} ${c.name} ×${times}`,
         description:`${rarityNames[c.rarity]}${first?' · 🆕 새 발견!':''} · 보유 ${receipts.at(-1)!.count}마리`,buttons:[choice('도감 보기',`도감 ${c.name}`),...(tiers[c.rarity]>=tiers.LEGEND?[shareChoice()]:[])]},after)],outro:mask(this.content,outro,after)},
@@ -1237,7 +1241,7 @@ export class GameService {
     const items=joined.length?joined:[{imageId:this.cardImage(leader.id,known),title:'🧭 탐험대 귀환!',description:`${emblems[leader.rarity]} ${leader.name}${plan.size>1?` 외 ${plan.size-1}마리`:''}\n🍤 새우깡 +${snacks}`}];
     const below=[...lines,...missions].join('\n');
     return {text:mask(this.content,`🧭 탐험대 귀환!${five}\n\n${lines.join('\n')}\n\n${[...missions,next.line].join('\n')}`,known),imageId,
-      cards:{intro:mask(this.content,`🧭 탐험대 귀환!${five}`,known),items:items.map(i=>this.maskCard(i,known)),outro:mask(this.content,`${below}\n\n📌 지금\n${next.line}`,known)},choices:next.choices};
+      cards:{intro:mask(this.content,`🧭 탐험대 귀환!${five}`,known),items:items.map(i=>this.maskCard(i,known)),outro:mask(this.content,report(below,next.line),known)},choices:next.choices};
   }
 
   // ───────── 확정 · 취소 ─────────

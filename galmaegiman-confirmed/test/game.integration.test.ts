@@ -62,9 +62,9 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(multi.text).toContain('하급 뽑기 ×5');
     // 같은 유닛은 한 줄로 묶고 등급 머리말 아래에 표시
     expect(multi.text).toContain('🥚 흔함\n  기본 갈매미맨 ×5');
-    expect(multi.text).toContain('📌 지금\n🎟');
+    expect(multi.text).toContain('──────────\n📌 지금  🎟');
     expect(multi.cards?.items).toEqual([{imageId:'C1',title:'🥚 기본 갈매미맨 ×5',description:'흔함',buttons:[{label:'도감 보기',message:'도감 기본 갈매미맨'}]}]);
-    expect(multi.cards?.outro).toContain('📌 지금\n🎟');
+    expect(multi.cards?.outro).toContain('──────────\n📌 지금  🎟');
     // 뽑기 8회째에 '뽑기 5회' 미션 달성 → +20
     expect(multi.text).toContain('오늘의 미션 완료');
     expect((await me()).credits).toBe(30);
@@ -347,13 +347,13 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await fixtures(['S1','U1','R1','R20','L2','H1','S1','U1'],{credits:0});
     await db.collectionEntry.create({data:{playerId:(await me()).id,characterId:'H1'}});
     const rare=await confirm(await send('조합 황금쌍패성기사'));
-    expect(rare.text).toContain('🎯 오늘의 미션 완료! 희귀 조합하기 · 🎟 +30');
+    expect(rare.text).toContain('🎉 오늘의 미션 완료! 희귀 조합하기 · 🎟 +30');
     const legend=await confirm(await send('조합 쌍패성왕'));
-    expect(legend.text).toContain('🎯 오늘의 미션 완료! 전설 또는 히든 조합하기 · 🎟 +50');
+    expect(legend.text).toContain('🎉 오늘의 미션 완료! 전설 또는 히든 조합하기 · 🎟 +50');
     expect(legend.text).not.toContain('조합 3회');
     const top=await confirm(await send('조합 갈크탑'));
-    expect(top.text).toContain('🎯 오늘의 미션 완료! 최상위 유닛 조합하기 · 🎟 +100');
-    expect(top.text).toContain('🎯 오늘의 미션 완료! 조합 3회 · 🎟 +20');
+    expect(top.text).toContain('🎉 오늘의 미션 완료! 최상위 유닛 조합하기 · 🎟 +100');
+    expect(top.text).toContain('🎉 오늘의 미션 완료! 조합 3회 · 🎟 +20');
     expect((await confirm(await send('조합 황금쌍패성기사'))).text).not.toContain('희귀 조합하기');
     expect((await me()).credits).toBe(30+50+100+20);
     expect((await send('미션')).text).toContain('✅ 최상위 유닛 조합하기 · 🎟 100');
@@ -721,7 +721,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.30'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.31'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
