@@ -39,6 +39,12 @@ const help=[
   '합치기 황금쌍패성기사, 은하매듭직조자',
   '탐험보내기 갈발 ×3, 갈내복'
 ].join('\n');
+// 튜토리얼: 1 뽑기 → 2 조합 → 3 도감 보기 → 4 닉네임 정하기. 순서대로 달성하면 단계마다 뽑기권(웹 이벤트 페이지도 이 목록을 씀)
+export const tutorialSteps=[
+  {title:'뽑기 해 보기',how:'아무 뽑기나 1번',go:choice('뽑기'),image:'m-draw'},
+  {title:'조합해 보기',how:'조합가능에서 하나 만들기',go:choice('조합가능'),image:'m-craft'},
+  {title:'도감 열어 보기',how:'모은 갈매미 확인하기',go:choice('도감'),image:'s-dex'},
+  {title:'닉네임 정하기',how:'"닉네임 갈매미왕"처럼 입력',go:choice('닉네임'),image:'s-rank'}];
 const statusOf=(c:Count|undefined):Count=>c??{total:0,usable:0,locked:0,away:0};
 
 export class GameService {
@@ -656,11 +662,8 @@ export class GameService {
     return this.issue(tx,p,'PEANUT',{characterId:c.id},now,`🥜 ${c.name}의 땅콩을 뗄까요?\n→ ${emblems[neutral.rarity]} ${neutral.name} 1마리 + 🥜 땅콩 1개${warn}`,undefined,'되돌릴 수 없어요',
       {items:[{imageId:this.cardImage(c.id,known),title:`🥜 ${c.name}`,description:`→ ${emblems[neutral.rarity]} ${neutral.name} + 🥜 1개${warn}`}]});
   }
-  // 튜토리얼: 1 뽑기 → 2 조합 → 3 도감 보기. 순서대로 달성하면 단계마다 뽑기권
-  private static tutorialSteps=[
-    {title:'뽑기 해 보기',how:'아무 뽑기나 1번',go:choice('뽑기'),image:'m-draw'},
-    {title:'조합해 보기',how:'조합가능에서 하나 만들기',go:choice('조합가능'),image:'m-craft'},
-    {title:'도감 열어 보기',how:'모은 갈매미 확인하기',go:choice('도감'),image:'s-dex'}];
+  private static tutorialSteps=tutorialSteps;
+  private static tutorialDone=GameService.tutorialSteps.length;
   private event(now:Date){
     return this.content.economy.events.find(e=>new Date(e.from)<=now&&now<new Date(e.to));
   }
@@ -669,16 +672,23 @@ export class GameService {
     if(!done.count)return [];
     await this.audit(tx,p,'TUTORIAL',{step,tickets:this.content.economy.tutorial.tickets});
     const next=GameService.tutorialSteps[step];
-    return [`📘 튜토리얼 ${step}/3 완료! 🎟 +${this.content.economy.tutorial.tickets}${next?`\n다음: ${next.title} (${next.how})`:'\n🎉 튜토리얼 끝! 이제 자유롭게 모아 보세요.'}`];
+    const line=`📘 튜토리얼 ${step}/${GameService.tutorialDone} 완료! 🎟 +${this.content.economy.tutorial.tickets}`;
+    // 닉네임을 이미 정해 둔 사람은 닉네임 단계까지 바로 완료
+    if(next?.go.message==='닉네임'&&(await tx.player.findUniqueOrThrow({where:{id:p.id},select:{nickname:true}})).nickname)return [`${line}\n${(await this.tutorialStep(tx,p,step+1))[0]}`];
+    return [`${line}${next?`\n다음: ${next.title} (${next.how})`:'\n🎉 튜토리얼 끝! 이제 자유롭게 모아 보세요.'}`];
   }
   private async tutorialView(tx:Tx,p:Player):Promise<GameReply>{
+    const N=GameService.tutorialDone;
+    // 닉네임 단계가 생기기 전에 튜토리얼을 끝낸 사람: 닉네임이 있으면 여기서 완료 처리
+    const before=await tx.player.findUniqueOrThrow({where:{id:p.id},select:{tutorial:true,nickname:true}});
+    const late=before.tutorial===N-1&&before.nickname?await this.tutorialStep(tx,p,N):[];
     const account=await tx.player.findUniqueOrThrow({where:{id:p.id},select:{tutorial:true}});
     const t=this.content.economy.tutorial.tickets;
     const items:CardEntry[]=GameService.tutorialSteps.map((s,i)=>({imageId:/^[A-Z]\d/.test(s.image)?this.cardImage(s.image,new Set()):s.image,
       title:`${account.tutorial>i?'✅':account.tutorial===i?'👉':'⬜'} ${i+1}. ${s.title}`,description:`${s.how} · 🎟 ${t}`,...(account.tutorial===i?{buttons:[s.go]}:{})}));
-    const head=account.tutorial>=3?'📘 튜토리얼 완료! 🎉':`📘 튜토리얼 ${account.tutorial}/3 · 단계마다 🎟 ${t}`;
-    const cover:CardEntry={imageId:'s-tutorial',title:account.tutorial>=3?'🎉 튜토리얼 완료!':'📘 튜토리얼',description:account.tutorial>=3?'이제 자유롭게 모아 보세요.':`${account.tutorial}/3 단계 · 단계마다 🎟 ${t}`};
-    return {text:`${head}\n\n${items.map(i=>`${i.title} · ${i.description}`).join('\n')}`,cards:{intro:head,items:[cover,...items]},choices:[...(account.tutorial<3?[GameService.tutorialSteps[account.tutorial].go]:[]),...menu]};
+    const head=`${late.length?`${late[0]}\n\n`:''}${account.tutorial>=N?'📘 튜토리얼 완료! 🎉':`📘 튜토리얼 ${account.tutorial}/${N} · 단계마다 🎟 ${t}`}`;
+    const cover:CardEntry={imageId:'s-tutorial',title:account.tutorial>=N?'🎉 튜토리얼 완료!':'📘 튜토리얼',description:account.tutorial>=N?'이제 자유롭게 모아 보세요.':`${account.tutorial}/${N} 단계 · 단계마다 🎟 ${t}`};
+    return {text:`${head}\n\n${items.map(i=>`${i.title} · ${i.description}`).join('\n')}`,cards:{intro:head,items:[cover,...items]},choices:[...(account.tutorial<N?[GameService.tutorialSteps[account.tutorial].go]:[]),...menu]};
   }
   // ───────── 팔기 · 초대 ─────────
   private sellPrice(c:Character){return this.content.economy.sell[c.rarity]??0;}
@@ -1347,7 +1357,8 @@ export class GameService {
       if(c.message==='탐험')return explore;
       return true;
     });
-    if(account.tutorial<3&&here!=='튜토리얼')choices=[...choices.slice(0,8),choice('📘 튜토리얼','튜토리얼')];
+    const tutorialLeft=account.tutorial<GameService.tutorialDone&&!(account.tutorial===GameService.tutorialDone-1&&account.nickname);
+    if(tutorialLeft&&here!=='튜토리얼')choices=[...choices.slice(0,8),choice('📘 튜토리얼','튜토리얼')];
     if(canClaim)choices=[choice('🎟 뽑기권 받기','뽑기권받기'),...choices.filter(c=>c.message!=='뽑기권받기')].slice(0,10);
     return {...reply,choices};
   }
@@ -1399,10 +1410,14 @@ export class GameService {
       const site=this.content.economy.homepage?.replace(/^https?:\/\//,'')??'공식 홈페이지';
       const coupons=this.content.economy.coupons.filter(c=>(!c.from||new Date(c.from)<=now)&&(!c.to||now<new Date(c.to)));
       const couponLine=coupons.length?`\n\n🎟 쿠폰: ${coupons.map(c=>`${c.label} (뽑기권 ${c.tickets}장)`).join(', ')}\n${site} 에 숨은 조각을 모아 '쿠폰 코드'로 입력!`:'';
-      if(!ev&&coupons.length)return this.info({text:`🎉 이벤트${couponLine}`,choices:[choice('쿠폰'),choice('뽑기'),...menu.slice(1)]},'s-event');
-      if(!ev)return this.info({text:'🎉 이벤트\n지금 진행 중인 이벤트가 없어요.\n열리면 뽑기 화면 맨 앞에 알려 드려요.',choices:[choice('뽑기'),...menu.slice(1)]},'s-event');
+      // 언제나 받는 혜택: 친구 초대 · 튜토리얼 + 웹 이벤트 페이지 안내
+      const inv=this.content.economy.invite;
+      const always=`\n\n💌 친구 초대: 나도 친구도 뽑기권 ${inv.tickets}장 (최대 ${inv.max}명)\n📘 튜토리얼: ${tutorialSteps.length}단계, 단계마다 뽑기권 ${this.content.economy.tutorial.tickets}장${this.content.economy.homepage?`\n\n자세히: ${this.content.economy.homepage.replace(/\/$/,'')}/event`:''}`;
+      const extra=[choice('초대코드'),choice('튜토리얼')];
+      if(!ev&&coupons.length)return this.info({text:`🎉 이벤트${couponLine}${always}`,choices:[choice('쿠폰'),...extra,choice('뽑기'),...menu.slice(1)]},'s-event');
+      if(!ev)return this.info({text:`🎉 이벤트\n지금 진행 중인 기간 이벤트는 없어요.\n열리면 뽑기 화면 맨 앞에 알려 드려요.${always}`,choices:[...extra,choice('뽑기'),...menu.slice(1)]},'s-event');
       const what=[...(ev.claimBonus?[`뽑기권 받기 +${ev.claimBonus}장 더`]:[]),...(ev.snackMultiplier>1?[`새우깡 보상 ×${ev.snackMultiplier}`]:[])];
-      return this.info({text:`🎉 ${ev.label}\n${what.join('\n')}\n~ ${DateTime.fromISO(ev.to).setZone('Asia/Seoul').toFormat('M/d HH:mm')}까지${couponLine}`,choices:[choice('뽑기권 받기','뽑기권받기'),choice('뽑기'),...menu.slice(1)]},'s-event');
+      return this.info({text:`🎉 ${ev.label}\n${what.join('\n')}\n~ ${DateTime.fromISO(ev.to).setZone('Asia/Seoul').toFormat('M/d HH:mm')}까지${couponLine}${always}`,choices:[choice('뽑기권 받기','뽑기권받기'),choice('뽑기'),...menu.slice(1)]},'s-event');
     }
     if(command==='상점')return this.shop(tx,p,args.join(''),now);
     if(command==='팔기'||command==='판매')return this.sell(tx,p,query,now);
@@ -1515,7 +1530,8 @@ export class GameService {
       if(await tx.player.findUnique({where:{nickname:name}}))throw new GameError(`「${name}」은(는) 이미 누가 쓰고 있어요.`);
       await tx.player.update({where:{id:p.id},data:{nickname:name}});
       await this.audit(tx,p,'NICKNAME',{from:p.nickname,to:name});
-      return {text:`🏷 닉네임을 「${name}」(으)로 정했어요.`,choices:[choice('랭킹'),...menu]};
+      const step=await this.tutorialStep(tx,p,GameService.tutorialDone);
+      return {text:`🏷 닉네임을 「${name}」(으)로 정했어요.${step.length?`\n\n${step[0]}`:''}`,choices:[choice('랭킹'),...menu]};
     }
     if(command==='랭킹'||command==='순위')return this.ranking(tx,p,args[0]??'',now);
     if(command==='미션'){

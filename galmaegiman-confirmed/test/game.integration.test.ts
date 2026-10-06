@@ -30,7 +30,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     ]);
     now=new Date('2026-10-02T08:00:00+09:00');
     // 기본 테스트 계정은 튜토리얼을 마친 상태(튜토리얼 보상은 별도 테스트)
-    await db.player.create({data:{identity:actor,tutorial:3,createdAt:now}});
+    await db.player.create({data:{identity:actor,tutorial:4,createdAt:now}});
     // 뽑기 난수 0 → 각 등급의 첫 유닛, 탐험 확률 판정은 항상 실패(max-1)
     game=new GameService(db,content,()=>now,new GachaEngine(content.characters,content.economy.gachas,()=>0),max=>max-1);
   });
@@ -441,7 +441,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   it('튜토리얼 3단계 보상, 친구 초대 둘 다 보상(자기 코드·두 번 입력 불가)',async()=>{
     await db.player.update({where:{identity:actor},data:{tutorial:0}});
     const r=await send('하급뽑기');
-    expect(r.text).toContain('📘 튜토리얼 1/3 완료! 🎟 +10');
+    expect(r.text).toContain('📘 튜토리얼 1/4 완료! 🎟 +10');
     const tut=await send('튜토리얼');
     expect(tut.cards!.items[0].imageId).toBe('s-tutorial');
     expect(tut.cards!.items[2].title).toContain('👉 2.');
@@ -451,6 +451,28 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await send(`초대 ${code}`,'friend')).text).toContain('이미');
     expect((await db.player.findUniqueOrThrow({where:{identity:'friend'}})).credits).toBe(30+100);
     expect((await me()).credits).toBe(30-2+10+100);
+  });
+  it('튜토리얼 4단계 닉네임: 정하면 완료, 이미 정해 둔 사람은 도감 단계에서 이어서·옛 완료자는 튜토리얼에서 완료',async()=>{
+    await send('내정보');
+    await db.player.update({where:{identity:actor},data:{tutorial:3,credits:0}});
+    expect((await send('뽑기')).choices!.some(c=>c.message==='튜토리얼')).toBe(true);
+    expect((await send('튜토리얼')).cards!.items[4].title).toContain('👉 4. 닉네임 정하기');
+    const set=await send('닉네임 튜토왕');
+    expect(set.text).toContain('📘 튜토리얼 4/4 완료! 🎟 +10');
+    expect(set.text).toContain('튜토리얼 끝');
+    expect((await me()).tutorial).toBe(4);
+    expect((await send('닉네임 튜토왕2')).text).not.toContain('튜토리얼');
+    // 닉네임이 있는 채로 도감 단계 → 4단계까지 한 번에
+    await db.player.update({where:{identity:actor},data:{tutorial:2,credits:0}});
+    const dex=await send('도감');
+    expect(dex.text).toContain('3/4 완료');
+    expect(dex.text).toContain('4/4 완료');
+    expect((await me()).credits).toBe(20);
+    // 예전에 3단계로 끝낸 사람(닉네임 있음): 튜토리얼 버튼은 안 보이고, 튜토리얼을 열면 완료 처리
+    await db.player.update({where:{identity:actor},data:{tutorial:3,credits:0}});
+    expect((await send('뽑기')).choices!.some(c=>c.message==='튜토리얼')).toBe(false);
+    expect((await send('튜토리얼')).text).toContain('4/4 완료');
+    expect((await me()).tutorial).toBe(4);
   });
   it('랭킹 탭(도감·최상위·주간), 관리자 상태, 확인 만료 시 다시 하기',async()=>{
     await fixtures(['S1','U1','D1']);
@@ -487,7 +509,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   it('이벤트: 진행 중이 아니면 안내, 기간이면 내용과 기한',async()=>{
     expect((await send('이벤트')).text).toContain('쿠폰');   // 쿠폰 진행 중이면 쿠폰 안내
     game=new GameService(db,{...content,economy:{...content.economy,coupons:[]}},()=>now,new GachaEngine(content.characters,content.economy.gachas,()=>0),max=>max-1);
-    expect((await send('이벤트')).text).toContain('진행 중인 이벤트가 없어요');
+    {const t=(await send('이벤트')).text;expect(t).toContain('진행 중인 기간 이벤트는 없어요');expect(t).toContain('💌 친구 초대: 나도 친구도 뽑기권 100장 (최대 20명)');expect(t).toContain('📘 튜토리얼: 4단계');}
     const ev={label:'벚꽃 주간',from:'2026-10-01T00:00:00+09:00',to:'2026-10-08T00:00:00+09:00',claimBonus:10,snackMultiplier:2};
     game=new GameService(db,{...content,economy:{...content.economy,events:[ev]}},()=>now,new GachaEngine(content.characters,content.economy.gachas,()=>0),max=>max-1);
     const r=await send('이벤트');
@@ -547,7 +569,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   });
   it('공개 웹 랭킹: 카톡과 같은 순위, 닉네임 표시, 히든·최상위 가림, 관리자 모드 제외',async()=>{
     const mk=async(identity:string,nickname:string|null,ids:string[],adminMode=false)=>{
-      const p=await db.player.create({data:{identity,nickname,tutorial:3,adminMode}});
+      const p=await db.player.create({data:{identity,nickname,tutorial:4,adminMode}});
       await db.collectionEntry.createMany({data:ids.map(characterId=>({playerId:p.id,characterId}))});
       return p;
     };
@@ -570,7 +592,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     }finally{await app.close();}
   });
   it('공개 웹: 검색(이름·초성·닉네임)·조합법·히든 단서·상세·프로필·쿠폰 조각, 히든 이름 비공개',async()=>{
-    const p1=await db.player.create({data:{identity:'w1',nickname:'돌왕',tutorial:3}});
+    const p1=await db.player.create({data:{identity:'w1',nickname:'돌왕',tutorial:4}});
     await db.collectionEntry.createMany({data:['C1','C2','U1','H1'].map(characterId=>({playerId:p1.id,characterId}))});
     await db.auditEvent.create({data:{playerId:p1.id,kind:'CRAFT',detail:{recipe:'H1',times:1}}});
     const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com'});
@@ -602,6 +624,13 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       // 도감 작은 그림·가나다순, 홈 구성
       const small=await get('/dex?view=s&sort=name');expect(small).toContain('class="tiles"');noHidden(small);
       const homeHtml=await get('/');expect(homeHtml).toContain('href="https://pf.kakao.com/_GIAaX"');expect(homeHtml).toContain('오늘의 갈매미');expect(homeHtml).toContain('TOP 3');expect(homeHtml).toContain('최근 발견된 히든');expect(homeHtml).toContain('class="tabbar"');
+      expect(homeHtml).toContain('href="/event"');
+      const ev=await get('/event');
+      expect(ev).toContain('나도 친구도 🎟 <b>100장</b>');expect(ev).toContain('최대 2,000장');
+      expect(ev).toContain('4단계 · 단계마다 🎟 <b>10장</b> (총 40장)');expect(ev).toContain('<b>닉네임 정하기</b>');
+      expect(ev).toContain('하루 최대 🎟 <b>230장</b>');expect(ev).toContain('진행 중');
+      expect(ev).not.toContain('따개비도새우깡은못참지');
+      expect(await get('/hidden')).toMatch(/class="tabbar"[^]*href="\/recipes" class="on"/);
       // 히든: 1명 발견 → 초성 공개, 3명 전 → 재료 이름 잠김, 최초 발견자 표시
       const hid=await get('/hidden');noHidden(hid);
       expect(hid).toContain('재료 초성');expect(hid).toContain('최초 발견: <a href="/p/'+encodeURIComponent('돌왕'));
@@ -685,7 +714,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.27'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.28'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

@@ -20,7 +20,7 @@ model Player {
   highPity Int @default(0)      // 고급 뽑기 천장 카운트(전설 없이 뽑은 횟수)
   nickname String? @unique      // 랭킹 표시 이름
   peanut Int @default(0)        // 땅콩: 땅콩떼기로 얻음(쓰임새는 추후)
-  tutorial Int @default(0)      // 튜토리얼 진행 단계(0~3)
+  tutorial Int @default(0)      // 튜토리얼 진행 단계(0~4, 4단계: 닉네임)
   inviteCode String? @unique    // 내 초대 코드
   invitedBy String?             // 나를 초대한 플레이어 id
   partyDraft String @default("") // 탐험대 편성 중인 유닛 id(쉼표 구분)

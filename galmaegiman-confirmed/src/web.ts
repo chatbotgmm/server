@@ -1,4 +1,4 @@
-// 공개 웹페이지: 홈 · 세계관 · 도감(+상세) · 조합법 · 히든 단서 · 랭킹 · 검색 · 프로필
+// 공개 웹페이지: 홈 · 이벤트 · 세계관 · 도감(+상세) · 조합법 · 히든 단서 · 랭킹 · 검색 · 프로필
 // 누구나 보는 페이지라 스포일러를 가립니다.
 // - 히든: 이름·그림·이야기 대신 ??? 와 단서(발견한 사람이 늘수록 더 열림)
 // - 최상위(제한~불멸): 이름만, 그림은 등급 실루엣, 이야기는 가림
@@ -11,6 +11,7 @@ import { DateTime } from 'luxon';
 import type { Character, Content } from './content.js';
 import { rarityNames, topTiers } from './content.js';
 import { emblems } from './acquisition.js';
+import { tutorialSteps } from './game.js';
 
 const esc=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 const tierColor:Record<string,string>={COMMON:'#7d7d7d',UNCOMMON:'#2e9d5b',SPECIAL:'#1a9fb3',RARE:'#8b4fd1',LEGEND:'#c99a1c',HIDDEN:'#5b3f8c',
@@ -100,7 +101,12 @@ document.addEventListener('click',ev=>{if(!f.contains(ev.target))box.hidden=true
 i.addEventListener('keydown',ev=>{const a=[...box.querySelectorAll('a')];if(box.hidden||!a.length)return;let k=a.findIndex(x=>x.classList.contains('on'));
 if(ev.key==='ArrowDown'||ev.key==='ArrowUp'){ev.preventDefault();a[k]?.classList.remove('on');k=ev.key==='ArrowDown'?(k+1)%a.length:(k<=0?a.length-1:k-1);a[k].classList.add('on')}
 else if(ev.key==='Enter'&&k>=0){ev.preventDefault();location.href=a[k].href}else if(ev.key==='Escape')box.hidden=true});})();`;
-  const navItems=[['/','홈','🏝'],['/world','세계관','📜'],['/dex','도감','📚'],['/recipes','조합법','🧩'],['/hidden','히든','❔'],['/rank','랭킹','🏆']];
+  // 메뉴: 자주 쓰는 순서. 모바일 하단 탭은 6칸이라 히든은 조합법 탭에 묶음(히든 페이지에서 조합법 탭이 켜짐)
+  const navItems=[['/','홈','🏝'],['/event','이벤트','🎁'],['/dex','도감','📚'],['/recipes','조합법','🧩'],['/hidden','히든','❔'],['/rank','랭킹','🏆'],['/world','세계관','📜']];
+  const tabItems=navItems.filter(([h])=>h!=='/hidden');
+  const tabOn=(h:string,active:string)=>active===h||(h==='/recipes'&&active==='/hidden');
+  // 조합법·히든 페이지 위 전환 탭
+  const recipeTabs=(active:string)=>`<div class="tabs"><a href="/recipes"${active==='/recipes'?' class="on"':''}>🧩 조합법</a><a href="/hidden"${active==='/hidden'?' class="on"':''}>❔ 히든 단서</a></div>`;
   // 공유 미리보기(카톡·SNS): 절대 주소가 필요해 economy.homepage 를 씀
   const site=(content.economy.homepage??'').replace(/\/$/,'');
   const channel=content.economy.kakaoChannel;
@@ -241,13 +247,22 @@ a.card:hover{border-color:var(--accent)}
 .tile img{width:100%;height:auto;aspect-ratio:1;border-radius:10px;display:block;margin-bottom:3px;background:var(--line)}
 .piece{margin:32px 0 0;padding:16px;border-radius:14px;border:2px dashed var(--gold);background:var(--card);display:grid;gap:4px;text-align:center}
 .piece span{color:var(--muted);font-weight:700}.piece>b{font-size:1.5rem}.piece small{color:var(--muted)}
+.evgrid{display:grid;gap:10px;grid-template-columns:1fr}
+@media (min-width:720px){.evgrid{grid-template-columns:1fr 1fr}}
+.ev{position:relative;margin:0 0 10px}.evgrid .ev{margin:0}
+.ev h3{font-size:1.1rem}.ev ul{margin:6px 0;padding-left:1.3em}.ev ol{margin:6px 0;padding-left:1.3em}.ev li{margin:3px 0}
+.ev .big{margin:4px 0 6px;font-size:1.05rem}.ev .big b{color:var(--accent);font-size:1.2rem}
+.tag{position:absolute;top:10px;right:12px;font-size:.75rem;font-weight:800;padding:2px 8px;border-radius:999px}
+.tag.live{background:#ffe0e0;color:#b4232a}.tag.soon{background:var(--accent-soft);color:var(--accent)}
+.ev .mono{letter-spacing:0;background:var(--bg);border:1px solid var(--line);padding:0 6px;border-radius:6px;font-family:inherit;font-weight:700}.cmd .mono{letter-spacing:0;font-family:inherit;color:var(--accent)}
+table.cmd{width:100%;border-collapse:collapse}.cmd td{padding:7px 4px;border-bottom:1px solid var(--line);vertical-align:top}.cmd tr:last-child td{border-bottom:0}.cmd td:first-child{white-space:nowrap;font-weight:700;padding-right:12px}
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40px}
 </style></head><body>
 <header><div class="bar"><a class="logo" href="/">${logo()}</a>
-<nav>${navItems.map(([h,l])=>`<a href="${h}"${active===h?' class="on"':''}>${l}</a>`).join('')}</nav>${channel?`<a class="play" href="${esc(channel)}" target="_blank" rel="noopener">💬 카톡에서 플레이</a>`:''}
+<nav>${navItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}>${i} ${l}</a>`).join('')}</nav>${channel?`<a class="play" href="${esc(channel)}" target="_blank" rel="noopener">💬 카톡에서 플레이</a>`:''}
 <form class="search" action="/search" method="get" role="search" autocomplete="off"><input name="q" value="${esc(q)}" placeholder="갈매미·닉네임·이야기 검색 (초성 OK)" aria-label="검색" maxlength="30"><button>검색</button><div class="sug" hidden></div></form></div></header>
 <main>${body}${piece(active)}</main>
-<nav class="tabbar" aria-label="메뉴">${navItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}><i>${i}</i>${l}</a>`).join('')}</nav>
+<nav class="tabbar" aria-label="메뉴">${tabItems.map(([h,l,i])=>`<a href="${h}"${tabOn(h,active)?' class="on"':''}><i>${i}</i>${l}</a>`).join('')}</nav>
 <footer>갈매미맨 · 카카오톡 채널 챗봇 게임 · v${esc(options.version)}</footer>
 <script>${suggestJs}</script>
 </body></html>`;
@@ -276,7 +291,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40
 <p class="lead">돌로 된 갈매미들이 <b>갈매미 섬 항구 수비대</b>에 출근해서 항구를 지켜요. 몸이 돌이라 날지는 못해요. 새우깡 봉지 소리에는 약해요.</p>
 <div class="btns">${channel?`<a class="play" href="${esc(channel)}" target="_blank" rel="noopener">💬 카톡에서 플레이</a>`:''}<a class="btn" href="/world">세계관</a><a class="btn ghost" href="/dex">도감</a></div>
 </div><a class="today" href="/dex/${today.id}"><img src="${img('thumbs',today.id)}" alt="${esc(today.name)}" width="480" height="480"><div><small>☀️ 오늘의 갈매미</small><h3>${esc(today.name)}</h3><p>${esc(today.introduction.split(/(?<=[.!?…])\s+/u)[0])}</p></div></a></section>
-${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 어딘가에 <b>쿠폰 조각 ${c.pieces.length}개</b>가 숨어 있어요. 모두 찾아 카톡에 <b>쿠폰 조각들</b>을 보내면 뽑기권 <b>${c.tickets}장</b>! (1인 1회)</div>`:''}
+${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 어딘가에 <b>쿠폰 조각 ${c.pieces.length}개</b>가 숨어 있어요. 모두 찾아 카톡에 <b>쿠폰 조각들</b>을 보내면 뽑기권 <b>${c.tickets}장</b>! (1인 1회)<br><a href="/event">🎁 이벤트·혜택 모두 보기 →</a></div>`:`<div class="event"><b>🎁 이벤트·혜택</b><br>친구 초대하면 둘 다 뽑기권 <b>${content.economy.invite.tickets}장</b>! <a href="/event">자세히 보기 →</a></div>`}
 <div class="homegrid">
 <div class="box"><h3>🏆 ${board.label} TOP 3</h3>${top3?`<ol class="mini">${top3}</ol>`:'<p class="note">아직 기록이 없어요.</p>'}<a class="note" href="/rank?k=${board.k}">전체 랭킹 →</a></div>
 <div class="box"><h3>❔ 최근 발견된 히든</h3>${recent||'<p class="note">아직 아무도 히든을 찾지 못했어요. 첫 발견자가 되어 보세요!</p>'}<br><a class="note" href="/hidden">히든 단서 보기 →</a></div>
@@ -287,6 +302,7 @@ ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 �
 <div class="stat"><b>${count('HIDDEN')}종</b>서류에 없는 갈매미</div>
 <div class="stat"><b>7곳</b>섬의 동네</div></div>
 <div class="links">
+<a href="/event"><b>🎁 이벤트</b><span>쿠폰·친구 초대·튜토리얼 보상</span></a>
 <a href="/world"><b>📜 세계관</b><span>섬과 동네, 악당 끼룩단</span></a>
 <a href="/dex"><b>📚 도감</b><span>${content.characters.length}종의 이야기</span></a>
 <a href="/recipes"><b>🧩 조합법</b><span>누구랑 안으면 뭐가 될까</span></a>
@@ -294,6 +310,53 @@ ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 �
 <a href="/rank"><b>🏆 랭킹</b><span>수비대 근무 평가</span></a>
 </div>`;
     return send(reply,page('홈','/',body,'',{image:img('images',today.id),desc:`오늘의 갈매미: ${today.name} · 돌로 된 갈매미들이 항구 수비대에 출근하는 섬`}),60);
+  });
+
+  // ── 이벤트·혜택: 진행 중 쿠폰·기간 이벤트 + 상시 혜택(가입·뽑기권 받기·튜토리얼·친구 초대) ──
+  app.get('/event',limit,async(_req,reply)=>{
+    const e=content.economy,at=now();
+    const kst=(iso:string)=>DateTime.fromISO(iso).setZone('Asia/Seoul').toFormat('M월 d일 HH:mm');
+    const period=(from?:string,to?:string)=>to?`${from?`${kst(from)} ~ `:''}${kst(to)}까지`:'끝날 때까지 (종료일 미정)';
+    const live=e.events.filter(x=>new Date(x.from)<=at&&at<new Date(x.to));
+    const soon=e.events.filter(x=>at<new Date(x.from)).sort((a,b)=>a.from.localeCompare(b.from));
+    const effects=(x:typeof e.events[number])=>[x.claimBonus?`뽑기권 받기 +${x.claimBonus}장`:'',x.snackMultiplier>1?`새우깡 ×${x.snackMultiplier}`:''].filter(Boolean).join(' · ')||'특별 이벤트';
+    const coupons=e.coupons.filter(c=>(!c.from||new Date(c.from)<=at)&&(!c.to||at<new Date(c.to)));
+    const couponBox=coupons.map(c=>`<div class="box ev"><span class="tag live">진행 중</span><h3>🧩 ${esc(c.label)} 쿠폰</h3>
+<p class="big">🎟 뽑기권 <b>${c.tickets}장</b> <small>(1인 1회)</small></p>
+${c.pieces.length?`<ol><li>이 사이트 곳곳에 숨은 <b>쿠폰 조각 ${c.pieces.length}개</b>를 찾아요. 페이지 맨 아래를 잘 보세요.</li><li>조각을 순서대로 이어서 카톡에 보내요. <span class="mono">쿠폰 조각1조각2…</span> (띄어쓰기 상관없음)</li></ol>
+<p class="note">💡 힌트: 섬의 이야기, 조합하는 법, 서류에 없는 갈매미</p>`:'<p>카톡에 <span class="mono">쿠폰 코드</span>로 입력해요.</p>'}
+<p class="note">📅 ${esc(period(c.from,c.to))}</p></div>`).join('');
+    const eventBox=[...live.map(x=>[x,'live'] as const),...soon.map(x=>[x,'soon'] as const)].map(([x,k])=>`<div class="box ev"><span class="tag ${k}">${k==='live'?'진행 중':'곧 시작'}</span><h3>🎉 ${esc(x.label)}</h3><p class="big">${esc(effects(x))}</p><p class="note">📅 ${esc(kst(x.from))} ~ ${esc(kst(x.to))}</p></div>`).join('');
+    const tTotal=tutorialSteps.length*e.tutorial.tickets;
+    const body=`<h1>🎁 이벤트 · 혜택</h1>
+<p class="lead">카톡 채널 <b>갈매미맨</b>에서 받을 수 있는 뽑기권을 한곳에 모았어요.</p>
+${channel?`<div class="btns" style="margin:0 0 8px"><a class="play" href="${esc(channel)}" target="_blank" rel="noopener">💬 카톡에서 플레이</a></div>`:''}
+<h2>🔥 지금 진행 중</h2>
+${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이벤트는 없어요. 아래 상시 혜택은 언제든 받을 수 있어요!</div>'}
+<h2>🎟 언제나 받는 혜택</h2>
+<div class="evgrid">
+<div class="box ev"><h3>💌 친구 초대</h3><p class="big">나도 친구도 🎟 <b>${e.invite.tickets}장</b></p>
+<ol><li>카톡에 <span class="mono">초대코드</span> → 내 코드 확인</li><li>친구가 채널 추가 후 <span class="mono">초대 내코드</span> 입력 (예: 초대 ABC123)</li></ol>
+<p class="note">한 사람당 최대 ${e.invite.max}명 → 최대 ${(e.invite.max*e.invite.tickets).toLocaleString('ko-KR')}장 · 친구는 가입 후 ${e.invite.days}일 안에 입력</p></div>
+<div class="box ev"><h3>📘 튜토리얼</h3><p class="big">${tutorialSteps.length}단계 · 단계마다 🎟 <b>${e.tutorial.tickets}장</b> (총 ${tTotal}장)</p>
+<ol>${tutorialSteps.map(t=>`<li><b>${esc(t.title)}</b> · ${esc(t.how)}</li>`).join('')}</ol>
+<p class="note">카톡에 <span class="mono">튜토리얼</span>을 보내면 지금 몇 단계인지 보여요.</p></div>
+<div class="box ev"><h3>⏰ 뽑기권 받기</h3><p class="big">${e.tickets.cooldownHours}시간마다 🎟 <b>${e.tickets.claim}장</b></p><p>카톡에 <span class="mono">뽑기권받기</span>. 받지 않은 시간은 쌓이지 않으니 자주 들러 주세요.</p></div>
+<div class="box ev"><h3>🐣 가입 선물</h3><p class="big">처음 말을 걸면 🎟 <b>${e.tickets.welcome}장</b></p><p>카톡 채널을 추가하고 아무 말이나 보내면 시작해요.</p></div>
+<div class="box ev"><h3>🎯 오늘의 미션</h3><p class="big">매일 0시(한국 시간) 새로 시작 · 하루 최대 🎟 <b>${e.missions.reduce((n,m)=>n+m.tickets,0)}장</b></p>
+<ul>${e.missions.map(m=>`<li>${esc(m.label)} · 🎟 ${m.tickets}</li>`).join('')}</ul><p class="note">달성하면 자동으로 들어와요. 카톡에 <span class="mono">미션</span>을 보내면 진행 상황이 보여요.</p></div>
+</div>
+<h2>⌨ 카톡에서 이렇게 보내요</h2>
+<div class="box"><table class="cmd"><tbody>
+<tr><td class="mono">뽑기권받기</td><td>${e.tickets.cooldownHours}시간마다 뽑기권 받기</td></tr>
+<tr><td class="mono">초대코드</td><td>내 초대 코드 보기</td></tr>
+<tr><td class="mono">초대 ABC123</td><td>친구 코드 입력하기</td></tr>
+<tr><td class="mono">쿠폰 코드</td><td>쿠폰 입력하기</td></tr>
+<tr><td class="mono">튜토리얼</td><td>튜토리얼 진행 보기</td></tr>
+<tr><td class="mono">닉네임 갈매미왕</td><td>닉네임 정하기 (랭킹에 이름이 나와요)</td></tr>
+<tr><td class="mono">이벤트</td><td>진행 중인 이벤트 보기</td></tr>
+</tbody></table></div>`;
+    return send(reply,page('이벤트','/event',body,'',{desc:`친구 초대하면 둘 다 뽑기권 ${e.invite.tickets}장! 갈매미맨 이벤트·혜택 모음`}),60);
   });
 
   app.get('/world',limit,async(_req,reply)=>send(reply,page('세계관','/world',`<article class="prose">${worldHtml()}</article>`)));
@@ -350,7 +413,7 @@ ${how}${used}</div></div>${lineage}`;
         list.map(r=>`<div class="rec"><div>${chip(r.resultId)}</div><div><span class="eq">=</span>${counts(r.materials).map(([id,n])=>chip(id,n)).join('<span class="eq">+</span>')}</div></div>`).join('');
     }).join('');
     const hiddenCount=content.characters.filter(c=>c.rarity==='HIDDEN').length;
-    return send(reply,page('조합법','/recipes',`<h1>조합법</h1><p class="lead">누구를 누구랑 꼭 안아 주면 무엇이 될까요? 이름을 누르면 그 갈매미의 상세로 가요. 히든 ${hiddenCount}종의 조합법은 비밀이에요. <a href="/hidden">단서 보러 가기</a></p><div class="chips">${chips}</div>${sections}`));
+    return send(reply,page('조합법','/recipes',`${recipeTabs('/recipes')}<h1>조합법</h1><p class="lead">누구를 누구랑 꼭 안아 주면 무엇이 될까요? 이름을 누르면 그 갈매미의 상세로 가요. 히든 ${hiddenCount}종의 조합법은 비밀이에요. <a href="/hidden">단서 보러 가기</a></p><div class="chips">${chips}</div>${sections}`));
   });
 
   // ── 히든 단서 ──
@@ -375,7 +438,7 @@ ${how}${used}</div></div>${lineage}`;
 <p class="lead">히든 ${hidden.length}종은 조합목록에 없어요. 카톡에서 <b>합치기</b>로 재료를 직접 골라 안아 줘야 나타나요. 누군가 찾을 때마다 모두의 단서가 하나씩 더 열려요.</p>
 <div class="stats"><div class="stat"><b>${found}/${hidden.length}</b>섬에서 발견된 히든</div><div class="stat"><b>1명</b>찾으면 초성 공개</div><div class="stat"><b>${HINT_NAME}명</b>찾으면 재료 이름 공개</div></div>
 ${cards}`;
-    return send(reply,page('히든 단서','/hidden',body),60);
+    return send(reply,page('히든 단서','/hidden',recipeTabs('/hidden')+body),60);
   });
 
   // ── 랭킹 ──
