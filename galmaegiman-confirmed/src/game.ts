@@ -446,7 +446,7 @@ export class GameService {
     if(times===1){
       const {c,receipt}=results[0];
       return {text:`${acquisitionText(this.content,c,'GACHA',receipt,known)}\n\n${tail}`,...(receipt.first?{imageId:this.image(c.id,known)}:{}),
-        ...this.acquired(c,'GACHA',receipt,known,missions,next.line),
+        ...this.acquired(c,'GACHA',receipt,known,missions,next.line,'',tiers[c.rarity]>=tiers.LEGEND?[shareChoice()]:[]),
         choices:[...next.choices.slice(0,2),...(receipt.first?[choice('유닛 보기',`도감 ${c.name}`)]:[]),...next.choices.slice(2)]};
     }
     const firstNew=results.filter(r=>r.receipt.first).sort((a,b)=>tiers[b.c.rarity]-tiers[a.c.rarity])[0];
@@ -469,9 +469,9 @@ export class GameService {
     const achieved=results.filter(r=>r.receipt.achievement).map(r=>achievementText(r.receipt.achievement!));
     const outro=[...(gains?[gains]:[]),...achieved,`📌 지금\n${next.line}`].join('\n\n');
     const body=[head,blocks.join('\n\n'),outro].join('\n\n');
-    // 카드 넘기기: 유닛마다 그림 카드 1장(높은 등급부터). 그림이 하나라도 없으면 글로만 보냅니다.
+    // 카드 넘기기: 유닛마다 그림 카드 1장(높은 등급부터). 그림이 하나라도 없으면 글로만 보냅니다. 전설 이상은 📤 공유하기
     const items=sorted.map(x=>this.maskCard({imageId:this.cardImage(x.c.id,known),title:`${emblems[x.c.rarity]} ${x.c.name}${x.n>1?` ×${x.n}`:''}`,
-      description:`${rarityNames[x.c.rarity]}${x.first?' · 🆕 새 발견!':''}`,buttons:[choice('도감 보기',`도감 ${x.c.name}`)]},known));
+      description:`${rarityNames[x.c.rarity]}${x.first?' · 🆕 새 발견!':''}`,buttons:[choice('도감 보기',`도감 ${x.c.name}`),...(tiers[x.c.rarity]>=tiers.LEGEND?[shareChoice()]:[])]},known));
     // 카드는 높은 등급부터 20장까지(카카오 2묶음), 나머지는 아래 말풍선에 수로만
     const hidden=items.length>20?`\n(그 밖에 ${items.length-20}종은 위 목록 참고)`:'';
     const cards={cards:{intro:mask(this.content,head,known),items:items.slice(0,20),outro:mask(this.content,outro+hidden,known)}};

@@ -310,9 +310,16 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const r=await send('고급뽑기 5');
     expect(r.text).toContain('🎯 천장! 전설 확정');
     expect(r.text).toContain('★ 전설');
+    // 뽑기 결과도 전설 이상 카드에만 📤 공유하기
+    const shared=r.cards!.items.filter(i=>i.buttons?.some(b=>b.kind==='share'));
+    expect(shared.length).toBe(1);expect(shared[0].description).toContain('전설');
     expect((await me()).highPity).toBe(0);
-    expect((await send('고급뽑기')).text).toContain('🎯 전설 보장까지 99회');
-    expect((await send('뽑기')).cards!.items[2].description).toContain('전설 보장까지 99회');
+    await db.player.update({where:{identity:actor},data:{highPity:99}});
+    const one=await send('고급뽑기');
+    expect(one.cards!.items[0].buttons!.some(b=>b.kind==='share')).toBe(true);
+    expect((await send('고급뽑기')).cards!.items[0].buttons!.some(b=>b.kind==='share')).toBe(false);
+    expect((await send('고급뽑기')).text).toContain('🎯 전설 보장까지 98회');
+    expect((await send('뽑기')).cards!.items[2].description).toContain('전설 보장까지 98회');
     expect((await send('확률')).text).toContain('천장: 100회 안에 전설 확정');
   });
   it('조합 직전 알림: 재료 1마리만 모자라면 다음 안내에 표시',async()=>{
@@ -714,7 +721,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.28'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.29'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
