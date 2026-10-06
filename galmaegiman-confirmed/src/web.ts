@@ -323,7 +323,16 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40
 <script>${suggestJs}${likeJs}</script>
 </body></html>`;
 
-  const send=(reply:FastifyReply,html:string,maxAge=300)=>reply.type('text/html; charset=utf-8').header('Cache-Control',`public, max-age=${maxAge}`).send(html);
+  // 검색엔진용 표준 주소(canonical): 보기 옵션(?view, ?sort) 없는 주소로 묶음. 랭킹 탭(?k)만 유지. 검색 결과는 색인하지 않음(noindex)
+  const headFor=(url:string)=>{
+    const [path,qs='']=url.split('?');
+    if(path==='/search')return '<meta name="robots" content="noindex">';
+    const k=new URLSearchParams(qs).get('k');
+    const keep=path==='/rank'&&k&&/^(dex|top|week)$/.test(k)?`?k=${k}`:'';
+    return site?`<link rel="canonical" href="${esc(site+path+keep)}">`:'';
+  };
+  const send=(reply:FastifyReply,html:string,maxAge=300)=>reply.type('text/html; charset=utf-8').header('Cache-Control',`public, max-age=${maxAge}`)
+    .send(html.replace('</head>',`${headFor(reply.request.url)}</head>`));
   // 방문자마다 따로 셉니다. 서버는 127.0.0.1에서만 받고 Cloudflare 터널을 거쳐 오므로 CF-Connecting-IP가 실제 방문자 주소예요
   // (헤더가 없으면 한 묶음으로 셈)
   const limit={config:{rateLimit:{max:300,timeWindow:'1 minute',keyGenerator:(req:FastifyRequest)=>{const ip=req.headers['cf-connecting-ip'];return typeof ip==='string'&&ip.length<=45?`web:${ip}`:'web';}}}};

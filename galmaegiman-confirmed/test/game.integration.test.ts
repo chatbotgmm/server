@@ -597,6 +597,9 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     try{
       const get=async(url:string)=>{const r=await app.inject({method:'GET',url});expect(r.statusCode).toBe(200);expect(r.headers['content-type']).toContain('text/html');return r.body;};
       expect(await get('/')).toContain('갈매미는 <span class="hl">존재</span>한다');
+      expect(await get('/dex?view=s&sort=name')).toContain('<link rel="canonical" href="https://gmm.dpdns.org/dex">');
+      expect(await get('/rank?k=top')).toContain('<link rel="canonical" href="https://gmm.dpdns.org/rank?k=top">');
+      expect(await get('/search?q=금갑')).toContain('<meta name="robots" content="noindex">');
       const robots=(await app.inject({method:'GET',url:'/robots.txt'})).body;expect(robots).toContain('Sitemap: https://gmm.dpdns.org/sitemap.xml');expect(robots).toContain('Disallow: /api/');
       const sm=(await app.inject({method:'GET',url:'/sitemap.xml'})).body;expect(sm).toContain('<loc>https://gmm.dpdns.org/dex/C1</loc>');expect(sm).toContain('<loc>https://gmm.dpdns.org/talk</loc>');expect(sm).not.toContain('/dex/H1<');
       expect((sm.match(/<loc>/g)??[]).length).toBe(8+content.characters.filter(c=>c.rarity!=='HIDDEN').length);
@@ -821,7 +824,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.36'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.37'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
