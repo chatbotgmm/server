@@ -104,7 +104,7 @@ else if(ev.key==='Enter'&&k>=0){ev.preventDefault();location.href=a[k].href}else
   // 공유 미리보기(카톡·SNS): 절대 주소가 필요해 economy.homepage 를 씀
   const site=(content.economy.homepage??'').replace(/\/$/,'');
   const channel=content.economy.kakaoChannel;
-  const logo=()=>exists('logo')?`<img src="${img('images','logo')}" alt="갈매미맨" height="32" style="height:32px;width:auto;vertical-align:middle">`:'🪨 갈매미맨';
+  const logo=()=>exists('logo')?`<img src="${img('images','logo')}" alt="갈매미맨" height="40" style="height:40px;width:auto;vertical-align:middle">`:'🪨 갈매미맨';
   interface Og{image?:string;desc?:string}
   const page=(title:string,active:string,body:string,q='',og:Og={})=>`<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
