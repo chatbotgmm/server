@@ -1,12 +1,16 @@
-# 사용: python3 -I scripts/slice-sprites.py <시트> public/play/sprites <이름1,이름2,...> [기준높이px=520] [출력높이=512]
+# 사용: python3 -I scripts/slice-sprites.py <시트> public/play/sprites <이름1,이름2,...> [기준높이px=520] [출력높이=512] [cut=x1,x2]
 # 가로 한 줄 시트를 투명 틈으로 칸 나누기.
 # 모든 시트·칸이 같은 비율이 되도록: 캔버스 높이 = 원본 기준높이(고정), 발 가운데를 캔버스 가로 가운데·바닥에 맞춤.
 # (그림 폭은 칸마다 달라도 됨: 게임은 높이로 크기를 맞추고 가로 가운데를 발 위치로 씀)
 import sys
 from PIL import Image
-src, out, names = sys.argv[1], sys.argv[2], sys.argv[3].split(',')
-REF = int(sys.argv[4]) if len(sys.argv) > 4 else 520
-H = int(sys.argv[5]) if len(sys.argv) > 5 else 512
+# 칸끼리 붙어 있으면 cut=x1,x2 로 자를 세로줄(원본 px)을 지정
+opts = dict(v.split('=', 1) for v in sys.argv[1:] if '=' in v)
+args = [v for v in sys.argv[1:] if '=' not in v]
+src, out, names = args[0], args[1], args[2].split(',')
+REF = int(args[3]) if len(args) > 3 else 520
+H = int(args[4]) if len(args) > 4 else 512
+CUTS = [int(v) for v in opts.get('cut', '').split(',') if v]
 im = Image.open(src).convert('RGBA'); w, h = im.size
 ap = im.getchannel('A').load()
 cols = [any(ap[x, y] > 24 for y in range(0, h, 2)) for x in range(w)]
@@ -17,6 +21,8 @@ while x < w:
         while x < w and cols[x]: x += 1
         runs.append([s, x])
     else: x += 1
+for c in CUTS:
+    runs = [piece for r in runs for piece in ([[r[0], c], [c, r[1]]] if r[0] < c < r[1] else [r])]
 big = [r for r in runs if r[1] - r[0] > 60]
 for r in runs:  # 작은 조각(부스러기·바람 선)은 가장 가까운 칸에 붙임
     if r in big: continue
