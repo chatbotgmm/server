@@ -1,7 +1,7 @@
 // 턴제 배틀 시험판(/battle)용 전투 정보. 유닛마다 따로 적지 않고 등급·출신 동네로 자동 계산합니다.
 // 출신 동네(타입): 조합 재료를 흔함까지 거슬러 올라가 가장 많이 들어간 동네. 둘째 동네가 30% 이상이면 복합 타입.
 // 히든·최상위·특수함은 넣지 않습니다(공개 웹에 올라가는 정보라 스포일러 방지).
-import type { Content, SynergyKey } from './content.js';
+import type { Content, SynergyKey } from '../content.js';
 
 export const battleTiers=['COMMON','UNCOMMON','SPECIAL','RARE','LEGEND'] as const;
 type BattleTier=typeof battleTiers[number];
