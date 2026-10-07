@@ -5,6 +5,8 @@
 # GPT가 앞·뒤를 따로 준 경우: art/gpt/<ID>_front.png, art/gpt/<ID>_back.png 가 있으면 그걸 먼저 씀
 #   진짜 투명 배경(네 귀퉁이 투명)이면 배경 제거 없이 그대로, 아니면 위와 같이 배경 제거
 # 사용: python3 scripts/process-sprites.py D1 D2 ...   (아무것도 안 주면 art/gpt·art/raw 전부)
+#   flip=front  앞모습을 좌우반전(상대는 화면 왼쪽의 내 갈매미를 봐야 함. GPT 첫 시트는 앞모습이 모두 오른쪽을 봐서 이걸로 뒤집음)
+#   flip=back / flip=both 도 가능
 import sys, os, glob, subprocess, tempfile
 from PIL import Image
 
@@ -58,6 +60,9 @@ def is_transparent(im):
     a = im.getchannel('A'); w, h = im.size
     return all(a.getpixel(p) < 10 for p in [(1, 1), (w - 2, 1), (1, h - 2), (w - 2, h - 2)])
 
+FLIP = dict(v.split('=', 1) for v in sys.argv[1:] if '=' in v).get('flip', '')
+sys.argv = [v for v in sys.argv if '=' not in v]
+
 def load_panel(path):
     im = Image.open(path)
     im = im.convert('RGBA') if im.mode in ('RGBA', 'LA', 'P') else im.convert('RGB')
@@ -82,7 +87,10 @@ def main():
         with tempfile.TemporaryDirectory() as t:
             keyed_path = os.path.join(t, 'keyed.png')
             if os.path.exists(gf) and os.path.exists(gb):
-                keyed, cut = pair_sheet(load_panel(gf), load_panel(gb)); keyed.save(keyed_path)
+                f, bk = load_panel(gf), load_panel(gb)
+                if FLIP in ('front', 'both'): f = f.transpose(Image.FLIP_LEFT_RIGHT)
+                if FLIP in ('back', 'both'): bk = bk.transpose(Image.FLIP_LEFT_RIGHT)
+                keyed, cut = pair_sheet(f, bk); keyed.save(keyed_path)
                 slice_pair(root, i, keyed_path, out, cut); continue
             if not os.path.exists(src): print(f'{i}: 원본 없음'); continue
             # 칸마다 따로 배경 제거(시트 전체로 하면 뒷모습 몸통이 반투명해지는 경우가 있었음)
