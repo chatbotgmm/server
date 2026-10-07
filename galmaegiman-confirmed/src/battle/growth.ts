@@ -1,5 +1,5 @@
 // 성장: 레벨·경험치·진화(승진) 3단계·진화 증강체(직무 표창). 수치는 data/battle.yaml의 growth·evoAugments
-import type { EvoAugment, Passive, Rules, TopTier } from './rules.js';
+import type { EvoAugment, Passive, Rules, TopTier } from './core.js';
 
 export type Stage=0|1|2|3;
 export const stageName=['원형','1단계','2단계','3단계'] as const;

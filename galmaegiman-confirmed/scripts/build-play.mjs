@@ -6,3 +6,10 @@ await build({
   bundle: true, minify: true, format: 'esm', target: 'es2020',
   legalComments: 'eof', logLevel: 'warning',
 });
+// 수비대 대결 시험판(public/duel/duel.js)을 전투 엔진(src/battle)과 함께 묶음 → dist/duel/duel.js
+await build({
+  entryPoints: ['public/duel/duel.js'],
+  outfile: 'dist/duel/duel.js',
+  bundle: true, minify: true, format: 'esm', target: 'es2020',
+  legalComments: 'eof', logLevel: 'warning',
+});

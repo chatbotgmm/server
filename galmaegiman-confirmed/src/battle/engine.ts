@@ -1,8 +1,8 @@
 // 수비대 대결 엔진: 3:3, 한 마리씩 나와 싸우는 턴제. 같은 시드면 같은 결과(서버가 다시 계산해 검증 가능).
 // 전투 증강체(공통)는 ① 전투 시작 ② 어느 쪽이든 유닛이 전투불가가 될 때, 양쪽 모두 3개 중 1개를 고름.
-import { attrKeys, statusName, type Attr, type Effect, type Role, type Rules, type Skill, type Stat, type Status, type Passive } from './rules.js';
+import { attrKeys, statusName, type Attr, type Effect, type Role, type Rules, type Skill, type Stat, type Status, type Passive } from './core.js';
 import { levelScale, passiveOf, statsOf, type UnitRecord } from './growth.js';
-export type { BattleAugment } from './rules.js';
+export type { BattleAugment } from './core.js';
 
 // ── 상태 ──
 interface Mod {stat:Stat;pct:number;turns:number}

@@ -12,7 +12,8 @@ import { parseKakao, kakaoResponse, imageIdPattern } from './kakao.js';
 import { GameError } from './types.js';
 import { registerWeb } from './web.js';
 import { battleRoster } from './battle/prototype.js';
-export const VERSION='0.9.45';
+import { registerDuel } from './duel.js';
+export const VERSION='0.9.46';
 export interface AppOptions {secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string}
 export async function buildApp(db:PrismaClient,game:GameService,options:AppOptions){
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
@@ -66,6 +67,7 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
   app.get('/battle',async(_req,reply)=>sendFile(reply,'text/html; charset=utf-8',resolve(battleDir,'index.html')));
   app.get('/battle/battle.js',async(_req,reply)=>sendFile(reply,'text/javascript; charset=utf-8',resolve(battleDir,'battle.js')));
   app.get('/battle/roster.json',async(_req,reply)=>reply.type('application/json; charset=utf-8').header('Cache-Control','public, max-age=300').send(roster));
+  registerDuel(app,game.content,{root:options.root??process.cwd(),secret:options.secret});
   // 그림 파일 수정 시각을 주소 뒤에 붙여, 그림을 바꾸면 카카오가 새로 받아 가게 합니다
   const stamps=new Map<string,string>();
   const stamp=(path:string)=>{

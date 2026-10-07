@@ -1,6 +1,6 @@
 {
   "name": "galmaegiman-confirmed",
-  "version": "0.9.45",
+  "version": "0.9.46",
   "private": true,
   "type": "module",
   "engines": {
@@ -20,7 +20,8 @@
     "url": "node scripts/set-url.mjs",
     "tunnel": "bash scripts/tunnel.sh",
     "reset-data": "bash scripts/reset-data.sh",
-    "admin-code": "node scripts/admin-code.mjs"
+    "admin-code": "node scripts/admin-code.mjs",
+    "duel-link": "node scripts/duel-link.mjs"
   },
   "dependencies": {
     "@fastify/rate-limit": "^10.1.1",

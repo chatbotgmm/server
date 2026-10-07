@@ -1,6 +1,6 @@
 // 외근(스토리 클리어 후 개인 활동): 내 레벨대의 갈매미를 만나 대결에서 이기면 스카우트를 시도.
 // 성공하면 레벨·경험치·진화 단계·진화 증강체까지 그대로 데려옴. 수치는 data/battle.yaml의 scout
-import type { Rules, TopTier } from './rules.js';
+import type { Rules, TopTier } from './core.js';
 import type { Stage, UnitRecord } from './growth.js';
 
 // 기준 레벨: 내 전투 유닛 중 레벨 높은 3마리의 평균(내림)
