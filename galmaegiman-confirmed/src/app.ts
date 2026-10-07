@@ -11,7 +11,7 @@ import { GameService } from './game.js';
 import { parseKakao, kakaoResponse, imageIdPattern } from './kakao.js';
 import { GameError } from './types.js';
 import { registerWeb } from './web.js';
-export const VERSION='0.9.43';
+export const VERSION='0.9.44';
 export interface AppOptions {secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string}
 export async function buildApp(db:PrismaClient,game:GameService,options:AppOptions){
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
@@ -48,6 +48,8 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
   };
   app.get('/play',async(_req,reply)=>sendFile(reply,'text/html; charset=utf-8',resolve(playDir,'index.html')));
   app.get('/play/game.js',async(_req,reply)=>sendFile(reply,'text/javascript; charset=utf-8',resolve(playDir,'game.js')));
+  // 2.5D(Three.js 포함) 묶음 파일은 빌드 때 만들어짐(scripts/build-play.mjs)
+  app.get('/play/game3d.js',async(_req,reply)=>sendFile(reply,'text/javascript; charset=utf-8',resolve(options.root??process.cwd(),'dist/play/game3d.js')));
   app.get('/play/phaser.js',async(_req,reply)=>sendFile(reply,'text/javascript; charset=utf-8',phaserFile,86_400));
   app.get('/play/sprites.json',async(_req,reply)=>{
     const names=await readdir(resolve(playDir,'sprites')).catch(()=>[] as string[]);

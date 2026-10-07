@@ -9,16 +9,57 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
 <style>
-  html,body{margin:0;height:100%;background:#1b2a3a;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  html,body{margin:0;height:100%;background:#1b2a3a;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;font-family:Jua,sans-serif;color:#fff}
   #game{position:fixed;inset:0}
-  #rotate{display:none;position:fixed;inset:0;z-index:5;background:#1b2a3a;color:#fff;font:22px Jua,sans-serif;align-items:center;justify-content:center;text-align:center;line-height:1.6}
+  #game canvas{display:block}
+  .ol{text-shadow:0 0 4px #1b2a3a,0 2px 0 #1b2a3a,0 -2px 0 #1b2a3a,2px 0 0 #1b2a3a,-2px 0 0 #1b2a3a}
+  #hud{position:fixed;inset:0 0 auto 0;display:flex;justify-content:space-between;align-items:flex-start;padding:calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 0 calc(16px + env(safe-area-inset-left));pointer-events:none;z-index:3}
+  #hearts i{display:inline-block;width:24px;height:22px;margin-right:6px;background:#5b5b66;clip-path:path('M12 21 L2 10 A5.5 5.5 0 0 1 12 4 A5.5 5.5 0 0 1 22 10 Z')}
+  #hearts i.on{background:#e2554f}
+  #score{font-size:24px}
+  #boss{position:absolute;left:50%;top:calc(8px + env(safe-area-inset-top));transform:translateX(-50%);width:min(400px,46vw);text-align:center;font-size:18px}
+  #boss i{display:block;height:14px;margin-top:4px;border:3px solid #fff;border-radius:4px;background:rgba(0,0,0,.3)}
+  #boss span{display:block;height:100%;width:100%;background:#d23b3b;transition:width .15s}
+  #banner{position:fixed;left:0;right:0;top:24%;text-align:center;opacity:0;transition:opacity .5s;pointer-events:none;z-index:3}
+  #banner.show{opacity:1}
+  #banner b{display:block;font-weight:normal;font-size:clamp(28px,6vw,46px)}
+  #banner span{display:block;color:#ffe9a8;font-size:clamp(16px,3vw,24px);margin-top:6px}
+  .pop{position:fixed;transform:translate(-50%,-100%);font-size:24px;pointer-events:none;z-index:4;animation:up .7s ease-out forwards;text-shadow:0 0 4px #1b2a3a,0 2px 0 #1b2a3a}
+  @keyframes up{to{transform:translate(-50%,-180%);opacity:0}}
+  #pad{position:fixed;inset:0;z-index:2}
+  #pad [data-k]{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.22);border:3px solid rgba(255,255,255,.6);font-size:22px;color:#fff}
+  #pad [data-k].on{background:rgba(255,255,255,.45)}
+  #pad [data-k=left]{left:calc(20px + env(safe-area-inset-left));bottom:24px;width:96px;height:96px}
+  #pad [data-k=right]{left:calc(132px + env(safe-area-inset-left));bottom:24px;width:96px;height:96px}
+  #pad [data-k=jump]{right:calc(150px + env(safe-area-inset-right));bottom:20px;width:100px;height:100px}
+  #pad [data-k=attack]{right:calc(20px + env(safe-area-inset-right));bottom:56px;width:120px;height:120px;font-size:26px}
+  #screen{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(11,22,34,.55);text-align:center;padding:16px}
+  #screen[hidden]{display:none}
+  #screen h1{font-weight:normal;font-size:clamp(36px,8vw,64px);margin:0 0 6px}
+  #screen p{font-size:clamp(16px,3vw,24px);line-height:1.6;margin:6px 0}
+  #screen .sub{color:#ffe9a8}
+  #screen .help{color:#dfe8f0;font-size:18px}
+  #screen button{font:inherit;font-size:30px;color:#1b2a3a;background:#ffe9a8;border:0;border-radius:14px;padding:12px 30px;margin:18px 0 10px;cursor:pointer}
+  #screen a{color:#dfe8f0;font-size:20px}
+  #rotate{display:none;position:fixed;inset:0;z-index:9;background:#1b2a3a;font-size:22px;align-items:center;justify-content:center;text-align:center;line-height:1.6}
   @media (orientation:portrait) and (max-width:900px){#rotate{display:flex}}
 </style>
 </head>
 <body>
 <div id="game"></div>
+<div id="hud" class="ol"><div id="hearts"></div><div id="boss" hidden>끼룩단 행동대장<i><span id="bossbar"></span></i></div><div id="score"></div></div>
+<div id="banner" class="ol"></div>
+<div id="pad" hidden><div data-k="left">◀</div><div data-k="right">▶</div><div data-k="jump">점프</div><div data-k="attack">공격</div></div>
+<div id="screen" class="ol" hidden></div>
 <div id="rotate">📱↻<br>휴대폰을 가로로 돌려 주세요</div>
-<script src="/play/phaser.js"></script>
-<script src="/play/game.js"></script>
+<script>
+  // 기본은 2.5D(3D 무대). 주소 끝에 ?2d 를 붙이면 예전 2D 시험판
+  if (/[?&]2d\b/.test(location.search)) {
+    for (const id of ['hud', 'banner', 'pad', 'screen']) document.getElementById(id).remove();
+    for (const src of ['/play/phaser.js', '/play/game.js']) { const s = document.createElement('script'); s.src = src; s.async = false; document.body.appendChild(s); }
+  } else {
+    const s = document.createElement('script'); s.type = 'module'; s.src = '/play/game3d.js'; document.body.appendChild(s);
+  }
+</script>
 </body>
 </html>

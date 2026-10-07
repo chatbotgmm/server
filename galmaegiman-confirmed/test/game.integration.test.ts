@@ -620,7 +620,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((sm.match(/<loc>/g)??[]).length).toBe(8+content.characters.filter(c=>c.rarity!=='HIDDEN').length);
       // 횡스크롤 시험판: 색인 제외, 엔진·스크립트 제공, 그림 목록은 png 이름만, 이상한 파일 이름은 거절
       const play=await get('/play');expect(play).toContain('<meta name="robots" content="noindex">');expect(sm).not.toContain('/play');
-      for(const url of ['/play/game.js','/play/phaser.js']){const r=await app.inject({method:'GET',url});expect(r.statusCode).toBe(200);expect(r.headers['content-type']).toContain('javascript');}
+      for(const url of ['/play/game.js','/play/phaser.js','/play/game3d.js']){const r=await app.inject({method:'GET',url});expect(r.statusCode).toBe(200);expect(r.headers['content-type']).toContain('javascript');}
       expect(Array.isArray((await app.inject({method:'GET',url:'/play/sprites.json'})).json())).toBe(true);
       for(const url of ['/play/sprites/..%2Fgame.js','/play/sprites/Player.PNG','/play/sprites/nope.png'])expect((await app.inject({method:'GET',url})).statusCode).toBe(404);
       const world=await get('/world');
@@ -874,7 +874,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.43'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.44'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
