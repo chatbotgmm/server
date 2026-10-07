@@ -1,6 +1,6 @@
 # 전투 그림 후처리: art/raw/<ID>_s0.png(앞·뒤 두 칸 시트) → 배경 제거 → 두 칸으로 잘라
 # public/battle/sprites/<ID>_s0_front.png, <ID>_s0_back.png
-# 배경 제거: rembg(일러스트용 isnet-anime 모델)가 있으면 그것으로(어두운 배경·후광도 지움), 없으면 자홍색(#FF00FF) 배경만 지움
+# 앞·뒤 칸을 먼저 나눈 뒤 칸마다 배경 제거: rembg(일러스트용 isnet-anime 모델)가 있으면 그것으로(어두운 배경·후광도 지움), 없으면 자홍색(#FF00FF) 배경만 지움
 #   설치: pip install "rembg[cpu]"  (처음 실행 때 모델 약 176MB 내려받음)
 # 사용: python3 scripts/process-sprites.py D1 D2 ...   (아무것도 안 주면 art/raw 전부)
 import sys, os, glob, subprocess, tempfile
@@ -16,18 +16,36 @@ def key_magenta(im):
             elif d > 60 and r > 120 and b > 120: px[x, y] = (r, g, b, min(a, int(max(0, min(255, (130 - d) * 3)))))
     return im
 
-_session = None
+_sessions = {}
+def _rembg(im, model):
+    from rembg import remove, new_session
+    if model not in _sessions: _sessions[model] = new_session(model)
+    return remove(im, session=_sessions[model])
+
+def strong(im):  # 거의 불투명한 픽셀 수(캐릭터를 얼마나 살렸는지)
+    return sum(1 for v in im.getchannel('A').getdata() if v > 200)
+
+def cleanup(im):
+    # 배경 쪽 남은 얼룩: 아주 옅은 픽셀, 어둡고 반투명한 픽셀은 지움(어두운 캐릭터 몸은 불투명이라 남음)
+    px = im.load(); w, h = im.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a < 30 or (a < 128 and (r * 299 + g * 587 + b * 114) / 1000 < 70): px[x, y] = (r, g, b, 0)
+    return im
+
 def remove_bg(im):
-    global _session
     try:
-        from rembg import remove, new_session
+        import rembg  # noqa: F401
     except ImportError:
         return key_magenta(im)
-    if _session is None: _session = new_session('isnet-anime')
-    return remove(im, session=_session)
+    # 일러스트 모델(isnet-anime)이 기본. 어두운 캐릭터 등에서 캐릭터를 많이 놓치면(불투명 픽셀이 u2net의 85% 미만) u2net 결과를 씀
+    a = _rembg(im, 'isnet-anime'); u = _rembg(im, 'u2net')
+    pick = a if strong(a) >= strong(u) * 0.85 else u
+    return cleanup(pick)
 
 def middle_cut(im):
-    # 앞·뒤 칸이 붙어 있을 때를 대비해, 가운데(35~65%)에서 그림이 가장 적은 세로줄
+    # 앞·뒤 칸 경계: 시트 전체를 배경 제거한 결과에서 가운데(35~65%) 중 그림이 가장 적은 세로줄
     a = im.getchannel('A').load(); w, h = im.size
     cols = [sum(1 for y in range(0, h, 2) if a[x, y] > 24) for x in range(w)]
     lo, hi = int(w * 0.35), int(w * 0.65)
@@ -42,10 +60,15 @@ def main():
         if not os.path.exists(src): print(f'{i}: 원본 없음'); continue
         with tempfile.TemporaryDirectory() as t:
             keyed_path = os.path.join(t, 'keyed.png')
-            keyed = remove_bg(Image.open(src).convert('RGB')); keyed.save(keyed_path)
-            cut = middle_cut(keyed)
+            # 칸마다 따로 배경 제거(시트 전체로 하면 뒷모습 몸통이 반투명해지는 경우가 있었음)
+            # 칸마다 '시트 전체로 지운 결과'와 '칸만 지운 결과' 중 캐릭터(불투명 픽셀)가 더 많이 남은 쪽을 씀
+            raw = Image.open(src).convert('RGB'); whole = remove_bg(raw); cut = middle_cut(whole); w, h = raw.size
+            keyed = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+            for box in [(0, 0, cut, h), (cut, 0, w, h)]:
+                keyed.paste(max([whole.crop(box), remove_bg(raw.crop(box))], key=strong), box[:2])
+            keyed.save(keyed_path)
             r = subprocess.run([sys.executable, '-I', os.path.join(root, 'scripts/slice-sprites.py'), keyed_path, out,
-                                f'{i}_s0_front,{i}_s0_back', 'auto', '512', f'cut={cut}'], capture_output=True, text=True)
+                                f'{i}_s0_front,{i}_s0_back', 'auto', '512', f'split={cut}', 'anchor=box'], capture_output=True, text=True)
             print(f'{i}: ' + (r.stdout.strip().replace('\n', ' | ') or r.stderr.strip()[-300:]))
 
 main()

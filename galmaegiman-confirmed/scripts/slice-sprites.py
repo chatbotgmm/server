@@ -11,6 +11,8 @@ src, out, names = args[0], args[1], args[2].split(',')
 REF = args[3] if len(args) > 3 else '520'   # 'auto'면 그 시트에서 가장 큰 칸 높이 × 1.04
 H = int(args[4]) if len(args) > 4 else 512
 CUTS = [int(v) for v in opts.get('cut', '').split(',') if v]
+SPLIT = int(opts['split']) if 'split' in opts else None   # split=x: 칸 찾기 없이 x에서 바로 둘로 나눔(앞·뒤 시트용)
+ANCHOR = opts.get('anchor', 'foot')                       # foot: 발 가운데 / box: 그림 전체 가운데
 im = Image.open(src).convert('RGBA'); w, h = im.size
 ap = im.getchannel('A').load()
 cols = [any(ap[x, y] > 24 for y in range(0, h, 2)) for x in range(w)]
@@ -24,7 +26,9 @@ while x < w:
 for c in CUTS:
     runs = [piece for r in runs for piece in ([[r[0], c], [c, r[1]]] if r[0] < c < r[1] else [r])]
 big = [r for r in runs if r[1] - r[0] > 60]
-for r in runs:  # 작은 조각(부스러기·바람 선)은 가장 가까운 칸에 붙임
+if SPLIT is not None:
+    big = [[0, SPLIT], [SPLIT, w]]
+for r in ([] if SPLIT is not None else runs):  # 작은 조각(부스러기·바람 선)은 가장 가까운 칸에 붙임
     if r in big: continue
     near = min(big, key=lambda b: 0 if b[0] <= r[0] <= b[1] else min(abs(r[0] - b[1]), abs(r[1] - b[0])))
     near[0] = min(near[0], r[0]); near[1] = max(near[1], r[1])
@@ -40,7 +44,7 @@ for c, name in zip(crops, names):
     for yy in range(fy0, c.height):
         for xx in range(c.width):
             if ca[xx, yy] > 128: sx += xx; n += 1
-    foot = sx / max(n, 1)
+    foot = c.width / 2 if ANCHOR == 'box' else sx / max(n, 1)
     half = int(max(foot, c.width - foot)) + 4
     ch = max(REF, c.height + 4)
     if ch > REF: print(f'  ! {name}: 높이 {c.height}px가 기준 {REF}px보다 큼 → 기준높이를 올려 다시 자르세요')
