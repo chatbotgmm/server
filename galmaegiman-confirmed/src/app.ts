@@ -1,16 +1,17 @@
 import { statSync } from 'node:fs';
-import Fastify from 'fastify';
+import Fastify, { type FastifyReply } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { readFile, readdir } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { dirname, resolve } from 'node:path';
 import type { PrismaClient } from '@prisma/client';
 import { ZodError } from 'zod';
 import { GameService } from './game.js';
 import { parseKakao, kakaoResponse, imageIdPattern } from './kakao.js';
 import { GameError } from './types.js';
 import { registerWeb } from './web.js';
-export const VERSION='0.9.42';
+export const VERSION='0.9.43';
 export interface AppOptions {secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string}
 export async function buildApp(db:PrismaClient,game:GameService,options:AppOptions){
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
@@ -36,6 +37,25 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
       try{return reply.type('image/png').header('Cache-Control','public, max-age=3600').send(await readFile(resolve(root,'public/images',`${id}.png`)));}
       catch{return reply.code(404).send({error:'image missing'});}
     }
+  });
+  // 횡스크롤 전투 시험판(/play). 그림 목록은 실제 있는 파일만 알려 주고, 없는 그림은 게임이 임시 도형으로 대신합니다.
+  const playDir=resolve(options.root??process.cwd(),'public/play');
+  const phaserFile=resolve(dirname(createRequire(import.meta.url).resolve('phaser/package.json')),'dist/phaser-arcade-physics.min.js');
+  const sendFile=async(reply:FastifyReply,type:string,path:string,maxAge=300)=>{
+    const body=await readFile(path).catch(()=>null);
+    if(!body)return reply.code(404).send({error:'not found'});
+    return reply.type(type).header('Cache-Control',`public, max-age=${maxAge}`).send(body);
+  };
+  app.get('/play',async(_req,reply)=>sendFile(reply,'text/html; charset=utf-8',resolve(playDir,'index.html')));
+  app.get('/play/game.js',async(_req,reply)=>sendFile(reply,'text/javascript; charset=utf-8',resolve(playDir,'game.js')));
+  app.get('/play/phaser.js',async(_req,reply)=>sendFile(reply,'text/javascript; charset=utf-8',phaserFile,86_400));
+  app.get('/play/sprites.json',async(_req,reply)=>{
+    const names=await readdir(resolve(playDir,'sprites')).catch(()=>[] as string[]);
+    return reply.header('Cache-Control','public, max-age=300').send(names.filter(n=>/^[a-z0-9_]+\.png$/.test(n)).map(n=>n.slice(0,-4)).sort());
+  });
+  app.get<{Params:{file:string}}>('/play/sprites/:file',async(req,reply)=>{
+    if(!/^[a-z0-9_]+\.png$/.test(req.params.file))return reply.code(404).send({error:'not found'});
+    return sendFile(reply,'image/png',resolve(playDir,'sprites',req.params.file),3600);
   });
   // 그림 파일 수정 시각을 주소 뒤에 붙여, 그림을 바꾸면 카카오가 새로 받아 가게 합니다
   const stamps=new Map<string,string>();

@@ -6,6 +6,7 @@
 
 - 카톡 채널: https://pf.kakao.com/_GIAaX
 - 홈페이지: https://gmm.dpdns.org (세계관·이벤트·도감·조합법·히든 단서·랭킹·검색·프로필)
+- 횡스크롤 전투 시험판: https://gmm.dpdns.org/play (`public/play/`, 그림 요청문 [docs/PLAY-SPRITE-PROMPTS.md](docs/PLAY-SPRITE-PROMPTS.md))
 - 변경 이력·버전별 배포 메모: [docs/V0.3-DEPLOY.md](docs/V0.3-DEPLOY.md)
 
 ## 구성

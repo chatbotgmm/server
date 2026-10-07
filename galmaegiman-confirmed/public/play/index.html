@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1b2a3a">
+<title>갈매미맨: 출근길 (시험판)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
+<style>
+  html,body{margin:0;height:100%;background:#1b2a3a;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  #game{position:fixed;inset:0}
+  #rotate{display:none;position:fixed;inset:0;z-index:5;background:#1b2a3a;color:#fff;font:22px Jua,sans-serif;align-items:center;justify-content:center;text-align:center;line-height:1.6}
+  @media (orientation:portrait) and (max-width:900px){#rotate{display:flex}}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="rotate">📱↻<br>휴대폰을 가로로 돌려 주세요</div>
+<script src="/play/phaser.js"></script>
+<script src="/play/game.js"></script>
+</body>
+</html>
