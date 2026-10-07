@@ -13,7 +13,18 @@
 
 ①부터 하고, **D1(태초의 갈매미맨)으로 먼저 1장 시험**해서 그림체를 확인한 뒤 나머지를 진행하는 걸 추천해요.
 
-## 쓰는 방법
+## 자동 생성(추천)
+하나씩 붙여 넣지 않고 스크립트가 OpenAI 이미지 API로 33종을 차례로 만들 수 있어요(유료, API 키 필요).
+```
+OPENAI_API_KEY=... node scripts/gen-sprites.mjs --ids D1      # 먼저 1장 시험
+OPENAI_API_KEY=... node scripts/gen-sprites.mjs --all         # 나머지(이미 만든 건 건너뜀)
+python3 -I scripts/process-sprites.py                         # 자홍 배경 제거 + 앞·뒤 자르기 → public/battle/sprites/
+```
+- `--dry`를 붙이면 요청문만 보여 주고 요청은 안 보내요(비용 없음). 모델은 `--model` 또는 환경변수 `OPENAI_IMAGE_MODEL`(기본 gpt-image-2).
+- 요청마다 API가 알려 준 사용량을 `art/raw/usage.log`에 남겨요. 원본 시트(art/raw)는 저장소에 올리지 않아요.
+- 키는 채팅·파일에 쓰지 말고 환경변수(또는 Claude 작업 환경의 비밀 값)로만 넣어요.
+
+## 직접 하는 방법
 1. ChatGPT 새 대화에서 **그 유닛의 카드 그림**(`public/images/<ID>.png`)을 첨부해요.
 2. 아래 [공통 요청문]을 붙이고, 맨 끝의 `<이름>`만 바꿔요.
 3. 받은 그림(한 장에 앞·뒤 두 칸)을 이 대화에 **새 메시지로** 보내 주세요. 제가 칸을 잘라 크기와 발 위치를 맞추고 `public/battle/sprites/<ID>_s0_front.png`, `<ID>_s0_back.png`로 넣을게요.

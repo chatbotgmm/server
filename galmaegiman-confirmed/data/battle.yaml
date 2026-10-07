@@ -1,0 +1,182 @@
+# 수비대 대결(모바일 턴제) 데이터 — 이 파일만 고치면 이름·수치가 바뀌어요.
+#
+# 고치는 법
+#   1. 이 파일에서 이름이나 숫자를 바꿔요. (# 뒤는 메모라 게임에 영향 없음)
+#   2. 검사: npm run data:check   ← 잘못 쓰면 어느 줄이 틀렸는지 알려 줘요
+#   3. 밸런스 확인(선택): npx tsx scripts/battle-balance.ts 3000 30
+#   4. 커밋 → 서버 업데이트(update.sh)
+#
+# 기술 설명(desc)은 적지 않으면 숫자로 자동으로 만들어져요(위력을 바꾸면 설명도 같이 바뀜).
+# 직접 쓰고 싶으면 desc: "..." 를 넣으면 그 글이 우선이에요.
+#
+# 속성 코드: STONE 돌, GOLD 황금, FIRE 불, ICE 얼음, BLOSSOM 꽃, SEA 바다, SHADOW 그림자, STAR 별, THREAD 실, GRAVITY 중력
+# 역할 코드: ATTACK 공격, DEFENSE 수비, UTILITY 유틸
+# 상태 이상: burn 화상, freeze 빙결, sleep 잠, bind 묶임, rage 땅콩 폭주
+#
+# 효과(effects) 쓰는 법
+#   { buff: atk, pct: 25, turns: 3, to: self }   능력치 +25% (atk 공격 / def 방어 / spd 속도). pct가 음수면 약화. to: self 나 / team 아군 전체 / foe 상대
+#   { status: sleep, chance: 30, turns: 1 }       상대에게 상태 이상(확률 %)
+#   { heal: 30, to: self }                        체력 30% 회복 (to: self 나 / bench 대기 아군)
+#   { guard: 40, turns: 2 }                       받는 피해 -40%
+#   { endure: 3 }                                 3턴 동안 체력이 1 아래로 안 떨어짐
+#   { regen: 8, turns: 4, to: team }             턴이 끝날 때마다 체력 8% 회복 (to: self / team)
+#   { cleanse: 2 }                                아군 상태 이상을 풀고 2턴 동안 막음
+#   { revive: 50 }                                쓰러진 아군 하나를 체력 50%로 (전투당 1번)
+#   { strip: true }                               상대 강화 모두 지우기
+#   { recharge: true }                            쓴 다음 턴은 쉼
+#   { lockSelf: 25 }                              이후 교체 불가, 대신 공격 +25%
+#   { protect: true }                             이번 턴 공격 모두 막기
+# 기술 옵션: power 위력, hits 타수, priority: true 무조건 먼저, crit: true 반드시 급소, cd 재사용 대기(턴), attr 공격 속성
+
+version: BATTLE_V1
+
+multipliers: { strong: 1.5, weak: 0.67, sameAttr: 1.2, crit: 1.5, critChance: 6.25, maxGuard: 60 }
+
+attributes:
+  STONE:   { name: 돌,     basic: 돌머리 박치기 }
+  GOLD:    { name: 황금,   basic: 금화 튕기기 }
+  FIRE:    { name: 불,     basic: 불씨 쪼기 }
+  ICE:     { name: 얼음,   basic: 얼음 깃 }
+  BLOSSOM: { name: 꽃,     basic: 꽃잎 바람 }
+  SEA:     { name: 바다,   basic: 물보라 }
+  SHADOW:  { name: 그림자, basic: 그늘 할퀴기 }
+  STAR:    { name: 별,     basic: 별똥 박치기 }
+  THREAD:  { name: 실,     basic: 실 채찍 }
+  GRAVITY: { name: 중력,   basic: 끌어당기기 }
+basicPower: 50
+
+# 상성: 왼쪽 속성이 오른쪽 두 속성에 강함. 모든 속성이 강점 2·약점 2가 되도록 검사해요
+chart:
+  SEA:     { strong: [FIRE, STONE],     why: [물이 불을 꺼요, 파도가 바위를 깎아요] }
+  FIRE:    { strong: [ICE, BLOSSOM],    why: [불이 얼음을 녹여요, 불이 꽃을 태워요] }
+  ICE:     { strong: [SEA, GOLD],       why: [얼음이 바다를 얼려요, 금도 얼면 냉동금고행] }
+  BLOSSOM: { strong: [STONE, SHADOW],   why: [뿌리가 바위를 쪼개요, 꽃이 피면 그늘이 밝아져요] }
+  STONE:   { strong: [ICE, GRAVITY],    why: [얼음은 돌에 부딪혀 깨져요, 원래 무거운 돌은 끄떡없어요] }
+  GOLD:    { strong: [THREAD, GRAVITY], why: [금 장식 앞에서 옷이 초라해져요, 금 저울 위에선 무게가 다 들통나요] }
+  THREAD:  { strong: [BLOSSOM, STAR],   why: [옷으로 꽃가루를 막아요, 별자리를 바느질로 꿰매요] }
+  SHADOW:  { strong: [STAR, GOLD],      why: [어둠이 별빛을 삼켜요, 그늘에선 금이 반짝이지 못해요] }
+  STAR:    { strong: [SEA, SHADOW],     why: [달이 바닷물을 끌어당겨요, 별빛이 밤을 밝혀요] }
+  GRAVITY: { strong: [THREAD, FIRE],    why: [실을 끌어당겨 풀어 버려요, 불씨를 꾹 눌러 꺼요] }
+
+# 역할: 레벨 1·진화 전 기본 능력치와 역할기. 역할기 이름의 {속성}은 그 유닛 속성 이름으로 바뀜
+roles:
+  ATTACK:  { name: 공격, hp: 92,  atk: 30, def: 14, spd: 14, skill: { name: "{속성} 강타", cd: 2, power: 85 } }
+  DEFENSE: { name: 수비, hp: 128, atk: 19, def: 26, spd: 9,  skill: { name: 버티기 자세, cd: 3, effects: [ { buff: def, pct: 40, turns: 2, to: self } ] } }
+  UTILITY: { name: 유틸, hp: 106, atk: 21, def: 18, spd: 15, skill: { name: 기세 꺾기, cd: 3, power: 40, effects: [ { buff: atk, pct: -25, turns: 3, to: foe } ] } }
+
+# 등급 보정(체력·공격·방어에 곱함). 차이를 작게 둬요
+tiers: { LIMITED: 1, TRANSCEND: 1.03, ETERNAL: 1.06, IMMORTAL: 1.09 }
+
+# 최상위 33종: 속성·역할·고유기
+units:
+  # 돌
+  D1: { attr: STONE, role: DEFENSE, skill: { name: 사방 방패, cd: 4, power: 55, effects: [ { guard: 45, turns: 3 } ] } }
+  T1: { attr: STONE, role: DEFENSE, skill: { name: 만상 방어, cd: 3, power: 70, effects: [ { guard: 30, turns: 3 } ] } }
+  E1: { attr: STONE, role: ATTACK,  skill: { name: 뒤로 안 걷기, cd: 4, power: 100, effects: [ { lockSelf: 25 } ] } }
+  I1: { attr: STONE, role: UTILITY, skill: { name: 다섯 번째 목소리, cd: 5, effects: [ { revive: 50 } ] } }
+  # 황금
+  D2: { attr: GOLD, role: ATTACK,  skill: { name: 순금 일격, cd: 3, power: 110, effects: [ { strip: true } ] } }
+  D7: { attr: GOLD, role: DEFENSE, skill: { name: 노출형 전신 방어, cd: 4, power: 55, effects: [ { buff: def, pct: 60, turns: 3, to: self }, { buff: spd, pct: -20, turns: 3, to: self } ] } }
+  E2: { attr: GOLD, role: UTILITY, skill: { name: 황금 마을 입주, cd: 3, power: 55, effects: [ { buff: def, pct: 25, turns: 3, to: team } ] } }
+  # 불
+  T2: { attr: FIRE, role: ATTACK,  skill: { name: 1그램 정밀 주조, cd: 3, power: 95, crit: true } }
+  I2: { attr: FIRE, role: DEFENSE, skill: { name: 다시 부어 만들기, cd: 5, effects: [ { heal: 30, to: self } ] } }
+  E8: { attr: FIRE, role: UTILITY, skill: { name: 온도 순환, cd: 3, power: 60, effects: [ { cleanse: 2 }, { heal: 10, to: self }, { heal: 10, to: bench } ] } }
+  # 얼음
+  T7: { attr: ICE, role: ATTACK,  skill: { name: 봉인 해제, cd: 3, power: 135, effects: [ { recharge: true } ] } }
+  D5: { attr: ICE, role: UTILITY, skill: { name: 한겨울 개화, cd: 3, power: 55, effects: [ { buff: spd, pct: -40, turns: 3, to: foe }, { status: freeze, chance: 30, turns: 1 } ] } }
+  # 꽃
+  E5: { attr: BLOSSOM, role: DEFENSE, skill: { name: 지지 않는 꽃, cd: 5, effects: [ { heal: 20, to: self }, { endure: 3 } ] } }
+  T5: { attr: BLOSSOM, role: UTILITY, skill: { name: 골목 꽃밭, cd: 4, power: 55, effects: [ { regen: 8, turns: 4, to: team } ] } }
+  I5: { attr: BLOSSOM, role: UTILITY, skill: { name: 다음 봄, cd: 4, effects: [ { heal: 35, to: self }, { regen: 6, turns: 3, to: self } ] } }
+  # 바다
+  D4: { attr: SEA, role: ATTACK,  skill: { name: 두 개의 바다, cd: 3, power: 65, hits: 2 } }
+  I9: { attr: SEA, role: ATTACK,  skill: { name: 바다 가르기, cd: 3, power: 100, effects: [ { buff: def, pct: -25, turns: 3, to: foe } ] } }
+  I4: { attr: SEA, role: DEFENSE, skill: { name: 바다부터 말려라, cd: 4, effects: [ { heal: 30, to: self }, { guard: 30, turns: 2 } ] } }
+  E4: { attr: SEA, role: UTILITY, skill: { name: 되돌아오는 물, cd: 3, power: 50, effects: [ { heal: 20, to: bench }, { heal: 15, to: self } ] } }
+  # 그림자
+  T3: { attr: SHADOW, role: ATTACK,  skill: { name: 그림자 기습, cd: 3, power: 90, priority: true, effects: [ { status: sleep, chance: 30, turns: 1 } ] } }
+  I3: { attr: SHADOW, role: DEFENSE, skill: { name: 그림자에서 일어서기, cd: 5, effects: [ { heal: 20, to: self }, { endure: 2 } ] } }
+  D3: { attr: SHADOW, role: UTILITY, skill: { name: 졸려서 만든 밤, cd: 3, power: 45, effects: [ { status: sleep, chance: 100, turns: 1 } ] } }
+  E3: { attr: SHADOW, role: UTILITY, skill: { name: 아침이 안 오는 동네, cd: 4, power: 55, effects: [ { buff: atk, pct: -20, turns: 4, to: foe }, { buff: spd, pct: -15, turns: 4, to: foe } ] } }
+  # 별
+  D6: { attr: STAR, role: ATTACK,  skill: { name: 몇 억 년 만의 점등, cd: 4, power: 150 } }
+  E6: { attr: STAR, role: UTILITY, skill: { name: 약점 기록, cd: 3, power: 55, effects: [ { buff: def, pct: -35, turns: 3, to: foe } ] } }
+  # 실
+  E7: { attr: THREAD, role: ATTACK,  skill: { name: 가발 선발대, cd: 2, power: 45, hits: 2, priority: true } }
+  T8: { attr: THREAD, role: DEFENSE, skill: { name: 수호 무늬 점등, cd: 4, power: 55, effects: [ { buff: def, pct: 40, turns: 3, to: self }, { buff: spd, pct: 20, turns: 3, to: self } ] } }
+  I7: { attr: THREAD, role: DEFENSE, skill: { name: 절대 안 흘러내림, cd: 4, effects: [ { guard: 35, turns: 4 } ] } }
+  D8: { attr: THREAD, role: UTILITY, skill: { name: 포장 완료, cd: 3, power: 75, effects: [ { status: bind, chance: 100, turns: 3 } ] } }
+  # 중력
+  T4: { attr: GRAVITY, role: ATTACK,  skill: { name: 바다를 한 점에, cd: 3, power: 120 } }
+  I6: { attr: GRAVITY, role: DEFENSE, skill: { name: 공전, cd: 4, effects: [ { guard: 40, turns: 2 }, { regen: 10, turns: 3, to: self } ] } }
+  I8: { attr: GRAVITY, role: DEFENSE, skill: { name: 중력 압박, cd: 3, effects: [ { buff: spd, pct: -50, turns: 3, to: foe }, { buff: def, pct: 20, turns: 3, to: self } ] } }
+  T6: { attr: GRAVITY, role: UTILITY, skill: { name: 궤도 조정, cd: 3, power: 60, effects: [ { buff: spd, pct: 30, turns: 3, to: team }, { buff: spd, pct: -20, turns: 3, to: foe } ] } }
+
+# 상태 이상 수치
+status: { burnDamage: 6, burnAtk: -20, bindSpd: -30, rageAtk: 30, rageDef: -30 }
+
+# 공통 전투 증강체(전투 시작·전투불가 때 양쪽이 3개 중 1개). 이름과 숫자를 고칠 수 있어요. 효과 종류(코드)는 그대로
+battleAugments:
+  reverse:    { name: 역상성 }
+  weakguard:  { name: 약점 보강 }
+  focus:      { name: 집중 공략, value: 1.9 }               # 상성 강할 때 배율
+  neutral:    { name: 무속성 지대, turns: 3 }
+  camo:       { name: 보호색 }
+  dual:       { name: 이중 속성 }
+  counter:    { name: 역습 태세, power: 40 }
+  learn:      { name: 상성 학습, step: 15, max: 45 }        # 같은 속성에 맞을 때마다 % 감소, 최대
+  first:      { name: 출근 도장 }
+  bulwark:    { name: 철벽, pct: 40, turns: 2 }
+  firstaid:   { name: 응급처치, pct: 25 }
+  freeswitch: { name: 인사 발령 }
+  lastone:    { name: 마지막 출근, pct: 30 }
+  strip:      { name: 기세 꺾기, pct: 20, turns: 2 }
+  rustle:     { name: 바스락 }
+  peanut:     { name: 땅콩 기세, atk: 30, taken: 15 }       # 갈매미맨만 공격 +, 받는 피해 +
+
+# 성장
+growth:
+  maxLevel: 60
+  evolveLevel: [20, 35, 50]          # 1·2·3단계 진화 레벨(스토리 1·2·3부 클리어도 필요)
+  stageMult: [1, 1.12, 1.25, 1.4]    # 원형·1·2·3단계 능력치 배율
+  levelGrowth: 4                     # 레벨 1당 능력치 +%
+  xpBase: 20                         # 다음 레벨 경험치 = xpBase × 레벨^xpExp
+  xpExp: 1.5
+  winXp: 60                          # 이기면 60 × 상대 평균 레벨
+  loseXp: 20
+
+# 진화 증강체(직무 표창): 진화할 때 역할에 맞는 것 중 3개 제안, 1개 선택. roles: ANY 는 모든 역할
+evoAugments:
+  pierce:    { name: 관통 표창,       roles: [ATTACK],            pierce: 25 }
+  execute:   { name: 마무리 표창,     roles: [ATTACK],            execute: 40 }
+  crit:      { name: 급소 표창,       roles: [ATTACK],            critPlus: 15 }
+  opener:    { name: 선봉 표창,       roles: [ATTACK],            opener: 50 }
+  lifesteal: { name: 야근 식대 표창,  roles: [ATTACK],            lifesteal: 20 }
+  reflect:   { name: 반사 표창,       roles: [DEFENSE],           reflect: 20 }
+  cut:       { name: 철갑 표창,       roles: [DEFENSE],           cut: 12 }
+  regen:     { name: 근속 표창,       roles: [DEFENSE],           regen: 5 }
+  laststand: { name: 불굴 표창,       roles: [DEFENSE],           lastStand: true }
+  resist:    { name: 정신력 표창,     roles: [DEFENSE, UTILITY],  statusResist: 50 }
+  status:    { name: 전문가 표창,     roles: [UTILITY],           statusPlus: 20 }
+  duration:  { name: 꼼꼼 표창,       roles: [UTILITY],           durationPlus: 1 }
+  sigcd:     { name: 능률 표창,       roles: [UTILITY, ATTACK],   sigCd: 1 }
+  handoff:   { name: 인수인계 표창,   roles: [UTILITY, DEFENSE],  handoff: 15 }
+  hp:        { name: 체력 표창,       roles: ANY,                 hpPct: 12 }
+  atk:       { name: 힘 표창,         roles: ANY,                 atkPct: 10 }
+  def:       { name: 맷집 표창,       roles: ANY,                 defPct: 10 }
+  spd:       { name: 출근 속도 표창,  roles: ANY,                 spdPct: 10 }
+
+# 외근(스카우트). 근거·기대값 표: design/BATTLE-SYSTEM.md
+scout:
+  freeOutingsPerDay: 3
+  extraOutingPeanut: 1
+  maxExtraPerDay: 10
+  levelBand: 3                                                   # 기준 레벨 ±
+  encounter:   { LIMITED: 45, TRANSCEND: 30, ETERNAL: 17, IMMORTAL: 8 }   # 만나는 등급 비율(%)
+  base:        { LIMITED: 35, TRANSCEND: 22, ETERNAL: 12, IMMORTAL: 6 }   # 기본 성공률(%)
+  stageFactor: [1, 0.85, 0.7, 0.55]                              # 진화 단계 보정
+  cardBonus: 0.5                                                 # 명함(땅콩) 1개당 ×(1 + 0.5)
+  maxCards: 3
+  cap: 90                                                        # 최대 성공률(%)
+  pity:        { LIMITED: 4, TRANSCEND: 6, ETERNAL: 10, IMMORTAL: 16 }    # N번째 시도는 반드시 성공

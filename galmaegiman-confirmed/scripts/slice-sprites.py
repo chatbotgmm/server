@@ -8,7 +8,7 @@ from PIL import Image
 opts = dict(v.split('=', 1) for v in sys.argv[1:] if '=' in v)
 args = [v for v in sys.argv[1:] if '=' not in v]
 src, out, names = args[0], args[1], args[2].split(',')
-REF = int(args[3]) if len(args) > 3 else 520
+REF = args[3] if len(args) > 3 else '520'   # 'auto'면 그 시트에서 가장 큰 칸 높이 × 1.04
 H = int(args[4]) if len(args) > 4 else 512
 CUTS = [int(v) for v in opts.get('cut', '').split(',') if v]
 im = Image.open(src).convert('RGBA'); w, h = im.size
@@ -29,8 +29,11 @@ for r in runs:  # 작은 조각(부스러기·바람 선)은 가장 가까운 �
     near = min(big, key=lambda b: 0 if b[0] <= r[0] <= b[1] else min(abs(r[0] - b[1]), abs(r[1] - b[0])))
     near[0] = min(near[0], r[0]); near[1] = max(near[1], r[1])
 assert len(big) == len(names), f'칸 {len(big)}개, 이름 {len(names)}개'
-for (x0, x1), name in zip(big, names):
-    c = im.crop((x0, 0, x1, h)); c = c.crop(c.getchannel('A').point(lambda v: 255 if v > 24 else 0).getbbox())
+crops = []
+for (x0, x1) in big:
+    c = im.crop((x0, 0, x1, h)); crops.append(c.crop(c.getchannel('A').point(lambda v: 255 if v > 24 else 0).getbbox()))
+REF = int(max(c.height for c in crops) * 1.04) if REF == 'auto' else int(REF)
+for c, name in zip(crops, names):
     ca = c.getchannel('A').load()
     # 발: 맨 아래 10% 줄의 불투명 픽셀 가로 평균
     fy0 = int(c.height * 0.9); sx = n = 0

@@ -1,30 +1,8 @@
 // 수비대 대결 엔진: 3:3, 한 마리씩 나와 싸우는 턴제. 같은 시드면 같은 결과(서버가 다시 계산해 검증 가능).
 // 전투 증강체(공통)는 ① 전투 시작 ② 어느 쪽이든 유닛이 전투불가가 될 때, 양쪽 모두 3개 중 1개를 고름.
-import { attrName, basicSkill, roleSkill, statusName, strongAgainst, typeMult, unitDefMap, STRONG, WEAK,
-  type Attr, type Effect, type Role, type Skill, type Stat, type Status } from './units.js';
-import { levelScale, passiveOf, statsOf, type Passive, type UnitRecord } from './growth.js';
-
-// ── 공통 전투 증강체: 상성을 뒤집을 만한 전투 개입형 ──
-export interface BattleAugment {id:string;name:string;desc:string}
-export const battleAugments:BattleAugment[]=[
-  {id:'reverse',name:'역상성',desc:'이번 전투 동안 내 공격의 상성이 뒤집혀요(×1.5 ↔ ×0.67)'},
-  {id:'weakguard',name:'약점 보강',desc:'내가 받는 상성 피해 ×1.5가 ×1.0이 돼요'},
-  {id:'focus',name:'집중 공략',desc:'내 상성 공격이 ×1.5 대신 ×1.9가 돼요'},
-  {id:'neutral',name:'무속성 지대',desc:'3턴 동안 양쪽 모든 상성이 ×1.0이 돼요'},
-  {id:'camo',name:'보호색',desc:'지금 나와 있는 내 갈매미의 속성이 상대에게 강한 속성으로 바뀌어요'},
-  {id:'dual',name:'이중 속성',desc:'지금 나와 있는 내 갈매미가 상대 약점을 찌르는 공격 속성을 하나 더 얻어요'},
-  {id:'counter',name:'역습 태세',desc:'상성이 불리한 공격을 받으면 위력 40으로 바로 반격해요'},
-  {id:'learn',name:'상성 학습',desc:'같은 속성에 맞을 때마다 그 속성 피해가 15%씩 줄어요(최대 45%)'},
-  {id:'first',name:'출근 도장',desc:'다음 턴에는 무조건 내가 먼저 움직여요'},
-  {id:'bulwark',name:'철벽',desc:'지금 나와 있는 내 갈매미가 2턴 동안 받는 피해 -40%'},
-  {id:'firstaid',name:'응급처치',desc:'쓰러지지 않은 아군 모두 체력 25% 회복'},
-  {id:'freeswitch',name:'인사 발령',desc:'이번 전투 동안 교체가 턴을 쓰지 않아요'},
-  {id:'lastone',name:'마지막 출근',desc:'아군이 하나만 남으면 그 갈매미의 공격·방어·속도 +30%'},
-  {id:'strip',name:'기세 꺾기',desc:'상대 강화를 모두 지우고 상대 선두 공격 -20%(2턴)'},
-  {id:'rustle',name:'바스락',desc:'상대 선두가 새우깡 소리에 1턴 멈춰요'},
-  {id:'peanut',name:'땅콩 기세',desc:'내 갈매미맨들의 공격 +30%, 대신 받는 피해 +15%'},
-];
-export const battleAugmentMap=new Map(battleAugments.map(a=>[a.id,a]));
+import { attrKeys, statusName, type Attr, type Effect, type Role, type Rules, type Skill, type Stat, type Status, type Passive } from './rules.js';
+import { levelScale, passiveOf, statsOf, type UnitRecord } from './growth.js';
+export type { BattleAugment } from './rules.js';
 
 // ── 상태 ──
 interface Mod {stat:Stat;pct:number;turns:number}
@@ -38,26 +16,26 @@ export interface Fighter {
 interface SideState {fighters:Fighter[];active:number;augs:string[];offers:string[]|null;needSwitch:boolean;reviveUsed:boolean;goFirst:boolean;neutral:number}
 // 교체: '인사 발령' 증강체가 있으면 턴을 안 쓰므로 then(바로 쓸 기술)을 함께 보냄(없으면 AI가 고름)
 export type Action={kind:'skill';skillId:string}|{kind:'switch';to:number;then?:string};
-export interface Battle {rng:number;turn:number;phase:'choose'|'action'|'over';winner:0|1|null;sides:[SideState,SideState];log:string[]}
+export interface Battle {R:Rules;rng:number;turn:number;phase:'choose'|'action'|'over';winner:0|1|null;sides:[SideState,SideState];log:string[]}
 
 // 같은 시드 → 같은 난수(mulberry32)
 function rand(b:Battle){let t=(b.rng=(b.rng+0x6d2b79f5)|0);t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;}
 const josa=(w:string,pair:string)=>{const c=w.charCodeAt(w.length-1);const has=c>=0xac00&&c<=0xd7a3&&(c-0xac00)%28>0;return w+(has?pair[0]:pair[1]);};
 
-function makeFighter(rec:UnitRecord,side:0|1):Fighter{
-  const def=unitDefMap.get(rec.id);if(!def)throw new Error(`전투 유닛이 아님: ${rec.id}`);
-  const s=statsOf(rec),passive=passiveOf(rec);
+function makeFighter(R:Rules,rec:UnitRecord,side:0|1):Fighter{
+  const def=R.units.get(rec.id);if(!def)throw new Error(`전투 유닛이 아님: ${rec.id}`);
+  const s=statsOf(R,rec),passive=passiveOf(R,rec);
   const sigCd=Math.max(1,def.signature.cd-(passive.sigCd??0));
-  return {side,rec,name:rec.name,scale:levelScale(rec),attr:def.attr,role:def.role,peanut:rec.name.includes('갈매미맨'),passive,
-    skills:[basicSkill(def.attr),roleSkill(def.role,def.attr),{...def.signature,cd:sigCd}],
+  return {side,rec,name:rec.name,scale:levelScale(R,rec),attr:def.attr,role:def.role,peanut:rec.name.includes('갈매미맨'),passive,
+    skills:[R.basicSkill(def.attr),R.roleSkill(def.role,def.attr),{...def.signature,cd:sigCd}],
     maxHp:s.hp,hp:s.hp,base:{atk:s.atk,def:s.def,spd:s.spd},cds:{},mods:[],status:{},guards:[],regens:[],
     endure:0,protect:false,recharge:false,immune:0,lockAtk:0,lastStandUsed:false,attacked:false,actedTurn:0,hitBy:{}};
 }
 
-export function createBattle(teamA:UnitRecord[],teamB:UnitRecord[],seed:number):Battle{
+export function createBattle(R:Rules,teamA:UnitRecord[],teamB:UnitRecord[],seed:number):Battle{
   if(!teamA.length||!teamB.length||teamA.length>3||teamB.length>3)throw new Error('팀은 1~3마리');
-  const side=(t:UnitRecord[],i:0|1):SideState=>({fighters:t.map(r=>makeFighter(r,i)),active:0,augs:[],offers:null,needSwitch:false,reviveUsed:false,goFirst:false,neutral:0});
-  const b:Battle={rng:seed|0,turn:1,phase:'choose',winner:null,sides:[side(teamA,0),side(teamB,1)],log:[]};
+  const side=(t:UnitRecord[],i:0|1):SideState=>({fighters:t.map(r=>makeFighter(R,r,i)),active:0,augs:[],offers:null,needSwitch:false,reviveUsed:false,goFirst:false,neutral:0});
+  const b:Battle={R,rng:seed|0,turn:1,phase:'choose',winner:null,sides:[side(teamA,0),side(teamB,1)],log:[]};
   offerAugments(b);
   b.log.push('대결 시작! 전투 증강체를 하나씩 골라요.');
   return b;
@@ -68,7 +46,7 @@ const alive=(f:Fighter)=>f.hp>0;
 
 function offerAugments(b:Battle){
   for(const s of b.sides){
-    const pool=battleAugments.filter(a=>!s.augs.includes(a.id)).map(a=>a.id);const out:string[]=[];
+    const pool=b.R.battleAugments.filter(a=>!s.augs.includes(a.id)).map(a=>a.id);const out:string[]=[];
     while(out.length<3&&pool.length)out.push(pool.splice(Math.floor(rand(b)*pool.length),1)[0]);
     s.offers=out.length?out:null;
   }
@@ -94,60 +72,64 @@ export const pending=(b:Battle,side:0|1)=>({augments:b.sides[side].offers,needSw
 
 function applyAugment(b:Battle,side:0|1,id:string){
   const me=activeOf(b,side),foe=activeOf(b,foeSide(side)),s=b.sides[side];
-  const a=battleAugmentMap.get(id)!;b.log.push(`[${side===0?'내 팀':'상대'}] 증강체 「${a.name}」!`);
-  if(id==='neutral'){b.sides[0].neutral=b.sides[1].neutral=3;}
-  if(id==='camo'){const pick=(Object.keys(strongAgainst) as Attr[]).find(x=>strongAgainst[x].includes(foe.attr));if(pick){me.attr=pick;b.log.push(`${me.name}의 속성이 ${attrName[pick]}(으)로 바뀌었어요.`);}}
-  if(id==='dual'){const pick=(Object.keys(strongAgainst) as Attr[]).find(x=>strongAgainst[x].includes(foe.attr));if(pick)me.extraAttr=pick;}
+  const R=b.R,a=R.battleAug.get(id)!,p=a.p;b.log.push(`[${side===0?'내 팀':'상대'}] 증강체 「${a.name}」!`);
+  if(id==='neutral'){b.sides[0].neutral=b.sides[1].neutral=p.turns??3;}
+  // 상대에게 강한 속성 2개 중, 상대 속성 공격을 덜 아프게 받는 쪽(같으면 속성 목록 순서)
+  const cands=attrKeys.filter(x=>R.data.chart[x].strong.includes(foe.attr));
+  const beats=cands.sort((x,y)=>R.typeMult(foe.attr,x)-R.typeMult(foe.attr,y))[0];
+  if(id==='camo'&&beats){me.attr=beats;b.log.push(`${me.name}의 속성이 ${R.attrName(beats)}(으)로 바뀌었어요.`);}
+  if(id==='dual'&&beats)me.extraAttr=beats;
   if(id==='first')s.goFirst=true;
-  if(id==='bulwark')me.guards.push({pct:40,turns:2});
-  if(id==='firstaid')for(const f of s.fighters)if(alive(f))f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*0.25));
-  if(id==='strip'){foe.mods=foe.mods.filter(m=>m.pct<0);foe.guards=[];foe.mods.push({stat:'atk',pct:-20,turns:2});}
+  if(id==='bulwark')me.guards.push({pct:p.pct??40,turns:p.turns??2});
+  if(id==='firstaid')for(const f of s.fighters)if(alive(f))f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*(p.pct??25)/100));
+  if(id==='strip'){foe.mods=foe.mods.filter(m=>m.pct<0);foe.guards=[];foe.mods.push({stat:'atk',pct:-(p.pct??20),turns:p.turns??2});}
   if(id==='rustle'&&!foe.immune){foe.status.sleep=1;b.log.push(`바스락… ${josa(foe.name,'이가')} 멈췄어요!`);}
 }
 
 // ── 능력치 계산 ──
 function statOf(b:Battle,f:Fighter,stat:Stat){
-  let v=f.base[stat];
+  const st=b.R.data.status;let v=f.base[stat];
   for(const m of f.mods)if(m.stat===stat)v*=1+m.pct/100;
   if(stat==='atk'&&f.lockAtk)v*=1+f.lockAtk/100;
-  if(stat==='atk'&&f.status.burn)v*=0.8;
-  if(f.status.rage){if(stat==='atk')v*=1.3;if(stat==='def')v*=0.7;}
-  if(stat==='spd'&&f.status.bind)v*=0.7;
+  if(stat==='atk'&&f.status.burn)v*=1+st.burnAtk/100;
+  if(f.status.rage){if(stat==='atk')v*=1+st.rageAtk/100;if(stat==='def')v*=1+st.rageDef/100;}
+  if(stat==='spd'&&f.status.bind)v*=1+st.bindSpd/100;
   const s=b.sides[f.side];
-  if(s.augs.includes('lastone')&&s.fighters.filter(alive).length===1)v*=1.3;
+  if(s.augs.includes('lastone')&&s.fighters.filter(alive).length===1)v*=1+(b.R.battleAug.get('lastone')!.p.pct??30)/100;
   return Math.max(1,v);
 }
-function attackAttr(f:Fighter,move:Skill,target:Fighter):Attr{
+function attackAttr(R:Rules,f:Fighter,move:Skill,target:Fighter):Attr{
   const a=move.attr??f.attr;
-  if(f.extraAttr&&(move.id.startsWith('basic')||move.id==='role-strike')&&typeMult(f.extraAttr,target.attr)>typeMult(a,target.attr))return f.extraAttr;
+  if(f.extraAttr&&(move.id.startsWith('basic')||move.id==='role-ATTACK')&&R.typeMult(f.extraAttr,target.attr)>R.typeMult(a,target.attr))return f.extraAttr;
   return a;
 }
 function multiplier(b:Battle,att:Fighter,def:Fighter,a:Attr){
   if(b.sides[0].neutral>0)return 1;
-  let m=typeMult(a,def.attr);
+  const M=b.R.data.multipliers;let m=b.R.typeMult(a,def.attr);
   const as=b.sides[att.side],ds=b.sides[def.side];
-  if(as.augs.includes('reverse'))m=m===STRONG?WEAK:m===WEAK?STRONG:1;
-  if(m===STRONG&&as.augs.includes('focus'))m=1.9;
+  if(as.augs.includes('reverse'))m=m===M.strong?M.weak:m===M.weak?M.strong:1;
+  if(m===M.strong&&as.augs.includes('focus'))m=b.R.battleAug.get('focus')!.p.value??1.9;
   if(m>1&&ds.augs.includes('weakguard'))m=1;
   return m;
 }
 
 function damage(b:Battle,att:Fighter,def:Fighter,move:Skill){
-  const a=attackAttr(att,move,def),mult=multiplier(b,att,def,a);
+  const R=b.R,M=R.data.multipliers,a=attackAttr(R,att,move,def),mult=multiplier(b,att,def,a);
   let atk=statOf(b,att,'atk'),dv=statOf(b,def,'def');
   if(att.passive.pierce)dv*=1-att.passive.pierce/100;
-  const crit=move.crit||rand(b)<0.0625+(att.passive.critPlus??0)/100;
+  const crit=move.crit||rand(b)<(M.critChance+(att.passive.critPlus??0))/100;
   // 체력이 레벨·진화로 커지는 만큼 피해도 같은 비율로 커짐(같은 레벨이면 몇 대에 쓰러지는지 일정)
-  let d=((atk/dv)*(move.power??0)*0.5+2)*att.scale*(a===att.attr?1.2:1)*mult*(0.9+rand(b)*0.1)*(crit?1.5:1);
+  let d=((atk/dv)*(move.power??0)*0.5+2)*att.scale*(a===att.attr?M.sameAttr:1)*mult*(0.9+rand(b)*0.1)*(crit?M.crit:1);
   if(att.passive.execute&&def.hp<=def.maxHp*0.3)d*=1+att.passive.execute/100;
   if(att.passive.opener&&!att.attacked)d*=1+att.passive.opener/100;
   const as=b.sides[att.side],ds=b.sides[def.side];
-  if(as.augs.includes('peanut')&&att.peanut)d*=1.3;
-  if(ds.augs.includes('peanut')&&def.peanut)d*=1.15;
-  if(ds.augs.includes('learn'))d*=1-0.15*Math.min(3,def.hitBy[a]??0);
-  // 받는 피해 감소는 모두 합쳐 최대 60%
+  const pea=R.battleAug.get('peanut')!.p,lrn=R.battleAug.get('learn')!.p;
+  if(as.augs.includes('peanut')&&att.peanut)d*=1+(pea.atk??30)/100;
+  if(ds.augs.includes('peanut')&&def.peanut)d*=1+(pea.taken??15)/100;
+  if(ds.augs.includes('learn'))d*=1-Math.min(lrn.max??45,(lrn.step??15)*(def.hitBy[a]??0))/100;
+  // 받는 피해 감소는 모두 합쳐 최대 maxGuard%
   let keep=1;for(const g of def.guards)keep*=1-g.pct/100;if(def.passive.cut)keep*=1-def.passive.cut/100;
-  d*=Math.max(0.4,keep);
+  d*=Math.max(1-M.maxGuard/100,keep);
   return {amount:Math.max(1,Math.round(d)),mult,crit,attr:a};
 }
 
@@ -208,7 +190,7 @@ function useSkill(b:Battle,user:Fighter,target:Fighter,skill:Skill){
     if(user.passive.lifesteal)user.hp=Math.min(user.maxHp,user.hp+Math.round(total*user.passive.lifesteal/100));
     if(target.passive.reflect&&target.hp>0){const r=Math.round(total*target.passive.reflect/100);hurt(b,user,r);b.log.push(`반사! ${josa(user.name,'이가')} ${r} 피해를 돌려받았어요.`);}
     if(last.mult<1&&b.sides[target.side].augs.includes('counter')&&target.hp>0){
-      const r=damage(b,target,user,{id:'counter',name:'역습',power:40,cd:0,effects:[],desc:''});hurt(b,user,r.amount);b.log.push(`역습! ${josa(user.name,'이가')} ${r.amount} 피해를 입었어요.`);
+      const r=damage(b,target,user,{id:'counter',name:'역습',power:b.R.battleAug.get('counter')!.p.power??40,cd:0,effects:[],desc:''});hurt(b,user,r.amount);b.log.push(`역습! ${josa(user.name,'이가')} ${r.amount} 피해를 입었어요.`);
     }
   }
   applyEffects(b,user,target,skill.effects);
@@ -264,7 +246,7 @@ function endTurn(b:Battle){
   for(const s of b.sides){
     const f=s.fighters[s.active];
     if(alive(f)){
-      if(f.status.burn){const d=Math.max(1,Math.round(f.maxHp*0.06));hurt(b,f,d);b.log.push(`${josa(f.name,'이가')} 화상으로 ${d} 피해를 입었어요.`);}
+      if(f.status.burn){const d=Math.max(1,Math.round(f.maxHp*b.R.data.status.burnDamage/100));hurt(b,f,d);b.log.push(`${josa(f.name,'이가')} 화상으로 ${d} 피해를 입었어요.`);}
       let heal=0;for(const r of f.regens)heal+=r.pct;if(f.passive.regen)heal+=f.passive.regen;
       if(heal&&alive(f))f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*heal/100));
     }
@@ -296,7 +278,7 @@ export function pickAi(b:Battle,side:0|1):Action{
   let best:Action=legal[0]??{kind:'skill',skillId:f.skills[0].id},score=-1;
   for(const a of legal){
     const sk=f.skills.find(k=>k.id===a.skillId)!;let v=0;
-    if(sk.power)v=sk.power*(sk.hits??1)*typeMult(attackAttr(f,sk,foe),foe.attr);
+    if(sk.power)v=sk.power*(sk.hits??1)*b.R.typeMult(attackAttr(b.R,f,sk,foe),foe.attr);
     if(sk.effects.some(e=>e.kind==='heal'))v=f.hp<f.maxHp*0.45?200:5;
     else if(sk.effects.some(e=>e.kind==='revive'))v=b.sides[side].fighters.some(x=>x.hp<=0)&&!b.sides[side].reviveUsed?250:0;
     else if(!sk.power){
@@ -313,11 +295,11 @@ export function aiChoose(b:Battle,side:0|1){
   if(s.offers){
     // 상대 선두에게 상성이 불리하면 상성 뒤집기류를 먼저
     const me=activeOf(b,side),foe=activeOf(b,foeSide(side));
-    const bad=typeMult(foe.attr,me.attr)>1||typeMult(me.attr,foe.attr)<1;
+    const bad=b.R.typeMult(foe.attr,me.attr)>1||b.R.typeMult(me.attr,foe.attr)<1;
     const prefer=bad?['camo','reverse','weakguard','neutral','dual','counter']:['focus','dual','first','peanut','strip','bulwark'];
     p.augment=prefer.find(id=>s.offers!.includes(id))??s.offers[0];
   }
   if(s.needSwitch){const foe=activeOf(b,foeSide(side));let bi=-1,bv=-1;
-    s.fighters.forEach((f,i)=>{if(!alive(f))return;const v=typeMult(f.attr,foe.attr)/typeMult(foe.attr,f.attr);if(v>bv){bv=v;bi=i;}});p.switchTo=bi;}
+    s.fighters.forEach((f,i)=>{if(!alive(f))return;const v=b.R.typeMult(f.attr,foe.attr)/b.R.typeMult(foe.attr,f.attr);if(v>bv){bv=v;bi=i;}});p.switchTo=bi;}
   choose(b,side,p);
 }

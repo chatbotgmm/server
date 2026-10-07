@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { loadContent } from '../src/content.js';
-import { attrs, strongAgainst, typeMult, unitDefs, unitDefMap, type TopTier } from '../src/battle/units.js';
-import { addXp, battleXp, canEvolve, statsOf, xpToNext, type UnitRecord } from '../src/battle/growth.js';
+import { attrKeys as attrs, buildRules, type TopTier } from '../src/battle/rules.js';
+import { loadBattleRules } from '../src/battle/load.js';
+import { parse } from 'yaml';
+import { readFileSync } from 'node:fs';
+import { addXp, battleXp, canEvolve, maxStageAt, statsOf, xpToNext, type UnitRecord } from '../src/battle/growth.js';
 import { act, activeOf, aiChoose, choose, createBattle, pending, pickAi, type Battle } from '../src/battle/engine.js';
-import { expectedAttempts, levelRange, maxStageAt, referenceLevel, scoutChance, scoutCopy, scoutRules } from '../src/battle/scout.js';
+import { expectedAttempts, levelRange, referenceLevel, scoutChance, scoutCopy } from '../src/battle/scout.js';
+
+const R=loadBattleRules();
+const unitDefs=[...R.units.values()],unitDefMap=R.units,typeMult=R.typeMult,scoutRules=R.data.scout;
+const strongAgainst=Object.fromEntries(attrs.map(a=>[a,R.data.chart[a].strong])) as Record<string,string[]>;
 
 const content=loadContent();
 const top=content.characters.filter(c=>['LIMITED','TRANSCEND','ETERNAL','IMMORTAL'].includes(c.rarity));
@@ -31,26 +38,26 @@ describe('수비대 대결 데이터', ()=>{
 
 describe('성장', ()=>{
   it('경험치로 레벨이 오르고, 진화는 레벨과 스토리 조건을 둘 다 봄', ()=>{
-    const r=rec('D1',1);addXp(r,xpToNext(1)+xpToNext(2));expect(r.level).toBe(3);
-    const r20=rec('D1',20);expect(canEvolve(r20,0)).toBe(false);expect(canEvolve(r20,1)).toBe(true);
-    expect(canEvolve(rec('D1',34,{stage:1}),2)).toBe(false);
-    expect(battleXp(10,true)).toBe(600);expect(battleXp(10,false)).toBe(200);
-    let total=0;for(let l=1;l<20;l++)total+=xpToNext(l);expect(total).toBe(13427);
+    const r=rec('D1',1);addXp(R,r,xpToNext(R,1)+xpToNext(R,2));expect(r.level).toBe(3);
+    const r20=rec('D1',20);expect(canEvolve(R,r20,0)).toBe(false);expect(canEvolve(R,r20,1)).toBe(true);
+    expect(canEvolve(R,rec('D1',34,{stage:1}),2)).toBe(false);
+    expect(battleXp(R,10,true)).toBe(600);expect(battleXp(R,10,false)).toBe(200);
+    let total=0;for(let l=1;l<20;l++)total+=xpToNext(R,l);expect(total).toBe(13427);
   });
   it('레벨·진화가 오르면 능력치가 커짐', ()=>{
-    expect(statsOf(rec('T4',30)).hp).toBeGreaterThan(statsOf(rec('T4',10)).hp);
-    expect(statsOf(rec('T4',30,{stage:1})).atk).toBeGreaterThan(statsOf(rec('T4',30)).atk);
+    expect(statsOf(R,rec('T4',30)).hp).toBeGreaterThan(statsOf(R,rec('T4',10)).hp);
+    expect(statsOf(R,rec('T4',30,{stage:1})).atk).toBeGreaterThan(statsOf(R,rec('T4',30)).atk);
   });
 });
 
 describe('전투 엔진', ()=>{
   it('같은 시드면 같은 결과', ()=>{
-    const mk=()=>play(createBattle([rec('D6'),rec('T3'),rec('I4')],[rec('D4'),rec('E2'),rec('T7')],42));
+    const mk=()=>play(createBattle(R,[rec('D6'),rec('T3'),rec('I4')],[rec('D4'),rec('E2'),rec('T7')],42));
     const a=mk(),b=mk();expect(a.log).toEqual(b.log);expect(a.winner).toEqual(b.winner);
     expect(a.phase).toBe('over');
   });
   it('전투 시작 때와 전투불가 때 양쪽 모두 증강체를 고름', ()=>{
-    const b=createBattle([rec('D6',60)],[rec('D4',1),rec('E2',1)],7);
+    const b=createBattle(R,[rec('D6',60)],[rec('D4',1),rec('E2',1)],7);
     expect(pending(b,0).augments).toHaveLength(3);expect(pending(b,1).augments).toHaveLength(3);
     aiChoose(b,0);aiChoose(b,1);expect(b.phase).toBe('action');
     // 레벨 60 별(바다에 강함)이 레벨 1 바다를 한 방에
@@ -61,7 +68,7 @@ describe('전투 엔진', ()=>{
   });
   it('상성: 별 → 바다가 바다 → 별보다 아픔, 역상성 증강체는 뒤집음', ()=>{
     const hit=(a:string,d:string,aug?:string)=>{
-      const b=createBattle([rec(a)],[rec(d)],1);
+      const b=createBattle(R,[rec(a)],[rec(d)],1);
       b.sides[0].offers=null;b.sides[1].offers=null;b.phase='action';if(aug)b.sides[0].augs.push(aug);
       const before=activeOf(b,1).hp;act(b,[{kind:'skill',skillId:`basic-${unitDefMap.get(a)!.attr}`},{kind:'skill',skillId:`basic-${unitDefMap.get(d)!.attr}`}]);
       return (before-activeOf(b,1).hp)/activeOf(b,1).maxHp;
@@ -70,7 +77,7 @@ describe('전투 엔진', ()=>{
     expect(hit('D6','D4','reverse')).toBeLessThan(hit('D6','D4'));     // 역상성
   });
   it('땅콩 폭주는 이름에 갈매미맨이 붙은 갈매미에게만', ()=>{
-    const b=createBattle([rec('D7')],[rec('D1')],3);   // 갈크탑 vs 태초의 갈매미맨
+    const b=createBattle(R,[rec('D7')],[rec('D1')],3);   // 갈크탑 vs 태초의 갈매미맨
     expect(activeOf(b,0).peanut).toBe(false);expect(activeOf(b,1).peanut).toBe(true);
   });
 });
@@ -78,14 +85,14 @@ describe('전투 엔진', ()=>{
 describe('외근(스카우트)', ()=>{
   it('기준 레벨은 높은 3마리 평균, 만나는 범위는 ±3', ()=>{
     expect(referenceLevel([rec('D1',40),rec('D2',30),rec('D3',20),rec('D4',1)])).toBe(30);
-    expect(levelRange(2)).toEqual([1,5]);expect(levelRange(59)).toEqual([56,60]);
-    expect(maxStageAt(19)).toBe(0);expect(maxStageAt(35)).toBe(2);expect(maxStageAt(60)).toBe(3);
+    expect(levelRange(R,2)).toEqual([1,5]);expect(levelRange(R,59)).toEqual([56,60]);
+    expect(maxStageAt(R,19)).toBe(0);expect(maxStageAt(R,35)).toBe(2);expect(maxStageAt(R,60)).toBe(3);
   });
   it('성공률: 등급·진화·명함 반영, 최대 90%, 천장에서 100%', ()=>{
-    expect(scoutChance('LIMITED',0,0,0)).toBe(35);
-    expect(scoutChance('IMMORTAL',2,3,0)).toBeCloseTo(6*0.7*2.5);
-    expect(scoutChance('LIMITED',0,3,0)).toBe(87.5);expect(scoutChance('LIMITED',0,9,0)).toBe(87.5);
-    expect(scoutChance('IMMORTAL',0,0,scoutRules.pity.IMMORTAL-1)).toBe(100);
+    expect(scoutChance(R,'LIMITED',0,0,0)).toBe(35);
+    expect(scoutChance(R,'IMMORTAL',2,3,0)).toBeCloseTo(6*0.7*2.5);
+    expect(scoutChance(R,'LIMITED',0,3,0)).toBe(87.5);expect(scoutChance(R,'LIMITED',0,9,0)).toBe(87.5);
+    expect(scoutChance(R,'IMMORTAL',0,0,scoutRules.pity.IMMORTAL-1)).toBe(100);
     expect(expectedAttempts(100,4)).toBe(1);
     expect(expectedAttempts(6,16)).toBeCloseTo((1-0.94**16)/0.06);
   });
@@ -95,3 +102,21 @@ describe('외근(스카우트)', ()=>{
     expect(copy).toEqual({...src,uid:'new-1'});expect(copy.evoAugs).not.toBe(src.evoAugs);
   });
 });
+
+describe('data/battle.yaml 편집', ()=>{
+  const raw=()=>parse(readFileSync('data/battle.yaml','utf8'));
+  it('기술 설명은 숫자로 자동 생성되고, 숫자를 바꾸면 설명도 바뀜', ()=>{
+    expect(R.units.get('D6')!.signature.desc).toBe('위력 150');
+    const d=raw();d.units.D6.skill.power=170;
+    expect(buildRules(d).units.get('D6')!.signature.desc).toBe('위력 170');
+    expect(R.units.get('D8')!.signature.desc).toBe('위력 75, 상대 묶임(3턴)');
+    expect(R.roleSkill('ATTACK','SEA').name).toBe('바다 강타');
+    expect(R.battleAug.get('focus')!.desc).toContain('×1.9');
+  });
+  it('잘못 쓰면 검사에서 걸림', ()=>{
+    const bad1=raw();bad1.units.D1.attr='WATER';expect(()=>buildRules(bad1)).toThrow();
+    const bad2=raw();bad2.chart.SEA.strong=['FIRE','ICE'];expect(()=>buildRules(bad2)).toThrow(/상성 오류/);
+    const bad3=raw();bad3.units.D1.skill.effects=[{guard:45}];expect(()=>buildRules(bad3)).toThrow();
+  });
+});
+

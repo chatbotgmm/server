@@ -20,6 +20,7 @@
 | 홈페이지 | `src/web.ts` (서버가 HTML을 직접 만듦) |
 | 유닛·조합식 | `data/units.json` (145종) |
 | 수치·이벤트·쿠폰 | `data/economy.yaml` (뽑기 확률, 보상, 초대, 미션, 이벤트 기간 등) |
+| 수비대 대결 수치·기술 | `data/battle.yaml` (기술 이름·위력·효과, 증강체, 성장, 외근 확률. 고치는 법은 파일 맨 위) |
 | 세계관 글 | `data/world.md` (홈페이지 /world, 고치면 바로 반영) |
 | 세계관 설정집 | `design/WORLD.md`, `design/갈매미맨_세계관_스토리라인.docx` |
 | 그림 | `public/images/*.png`, 카드용 작은 그림 `public/thumbs/*.jpg` ([파일명](docs/IMAGE-FILES.md)) |

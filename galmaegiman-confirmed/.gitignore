@@ -6,3 +6,4 @@ backups/
 config/
 *.log
 *.db*
+art/raw/
