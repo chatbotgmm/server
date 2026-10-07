@@ -622,6 +622,14 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const play=await get('/play');expect(play).toContain('<meta name="robots" content="noindex">');expect(sm).not.toContain('/play');
       for(const url of ['/play/game.js','/play/phaser.js','/play/game3d.js']){const r=await app.inject({method:'GET',url});expect(r.statusCode).toBe(200);expect(r.headers['content-type']).toContain('javascript');}
       expect(Array.isArray((await app.inject({method:'GET',url:'/play/sprites.json'})).json())).toBe(true);
+      // 턴제 배틀 시험판: 흔함~전설 90종만(히든·최상위 정보 없음), 타입은 7개 동네 중 1~2개, 같은 값이 항상 나옴
+      expect(await get('/battle')).toContain('<meta name="robots" content="noindex">');
+      expect((await app.inject({method:'GET',url:'/battle/battle.js'})).headers['content-type']).toContain('javascript');
+      const roster=(await app.inject({method:'GET',url:'/battle/roster.json'})).json() as {id:string;tier:string;types:string[];hp:number}[];
+      expect(roster).toHaveLength(content.characters.filter(c=>['COMMON','UNCOMMON','SPECIAL','RARE','LEGEND'].includes(c.rarity)).length);
+      expect(roster.every(u=>['COMMON','UNCOMMON','SPECIAL','RARE','LEGEND'].includes(u.tier)&&u.types.length>=1&&u.types.length<=2&&u.types.every(t=>['BASIC','GOLD','DARK','SEA','BLOSSOM','COSMOS','OUTFIT'].includes(t))&&u.hp>0)).toBe(true);
+      expect(JSON.stringify(roster)).not.toMatch(/"id":"[HDTEIN]\d/);
+      expect(roster.find(u=>u.id==='C2')!.types[0]).toBe('GOLD');
       for(const url of ['/play/sprites/..%2Fgame.js','/play/sprites/Player.PNG','/play/sprites/nope.png'])expect((await app.inject({method:'GET',url})).statusCode).toBe(404);
       const world=await get('/world');
       expect(world).toContain('<h1>갈매미 섬 이야기</h1>');
@@ -874,7 +882,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.44'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.45'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

@@ -11,7 +11,8 @@ import { GameService } from './game.js';
 import { parseKakao, kakaoResponse, imageIdPattern } from './kakao.js';
 import { GameError } from './types.js';
 import { registerWeb } from './web.js';
-export const VERSION='0.9.44';
+import { battleRoster } from './battle.js';
+export const VERSION='0.9.45';
 export interface AppOptions {secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string}
 export async function buildApp(db:PrismaClient,game:GameService,options:AppOptions){
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
@@ -59,6 +60,12 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
     if(!/^[a-z0-9_]+\.png$/.test(req.params.file))return reply.code(404).send({error:'not found'});
     return sendFile(reply,'image/png',resolve(playDir,'sprites',req.params.file),3600);
   });
+  // 턴제 배틀 시험판(/battle): 화면·스크립트, 유닛 전투 정보(등급·출신 동네로 계산, 히든·최상위 제외)
+  const battleDir=resolve(options.root??process.cwd(),'public/battle');
+  const roster=JSON.stringify(battleRoster(game.content));
+  app.get('/battle',async(_req,reply)=>sendFile(reply,'text/html; charset=utf-8',resolve(battleDir,'index.html')));
+  app.get('/battle/battle.js',async(_req,reply)=>sendFile(reply,'text/javascript; charset=utf-8',resolve(battleDir,'battle.js')));
+  app.get('/battle/roster.json',async(_req,reply)=>reply.type('application/json; charset=utf-8').header('Cache-Control','public, max-age=300').send(roster));
   // 그림 파일 수정 시각을 주소 뒤에 붙여, 그림을 바꾸면 카카오가 새로 받아 가게 합니다
   const stamps=new Map<string,string>();
   const stamp=(path:string)=>{
