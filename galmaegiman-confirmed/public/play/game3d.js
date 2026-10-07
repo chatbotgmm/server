@@ -23,7 +23,7 @@ const ANIMS = {
   boss_hurt: [['boss_hurt'], 1, false],
 };
 // 화면 키(단위)와 몸통 충돌 상자(폭, 높이)
-const SIZE = { player: [1.0, 0.5, 0.8], walker: [0.84, 0.5, 0.6], diver: [0.76, 0.5, 0.5], boss: [1.9, 1.0, 1.35], item: [0.4, 0.4, 0.4], feather: [0.14, 0.25, 0.15] };
+const SIZE = { player: [1.15, 0.5, 0.8], walker: [0.84, 0.5, 0.6], diver: [0.76, 0.5, 0.5], boss: [1.9, 1.0, 1.35], item: [0.4, 0.4, 0.4], feather: [0.14, 0.25, 0.15] };
 const PLATFORMS = [[7, 1.1, 1.92], [12.5, 1.4, 2.56], [19, 1.2, 1.92], [24.5, 1.5, 2.56]]; // [왼쪽 x, 높이, 폭]
 const WAVES = [
   { at: 2.5, spawn: [['walker', 9]] },
@@ -129,13 +129,23 @@ const PLACEHOLDERS = {
   }],
 };
 
+// 아직 없는 동작 그림은 받은 그림으로 대신(임시 도형과 섞여 보이지 않게)
+const FALLBACK = {
+  player_walk_1: 'player_idle_1', player_walk_2: 'player_idle_2', player_walk_3: 'player_idle_1', player_walk_4: 'player_idle_2',
+  player_attack_1: 'player_idle_1', player_attack_2: 'player_jump', player_attack_3: 'player_idle_1',
+  kkiruk_hurt: 'kkiruk_walk_1', diver_dive: 'diver_fly_2', diver_hurt: 'diver_fly_1',
+  boss_idle_2: 'boss_idle_1', boss_dash: 'boss_idle_1', boss_throw: 'boss_idle_2', boss_hurt: 'boss_idle_1',
+};
+const spriteFile = (key, available) => available.has(key) ? key : available.has(FALLBACK[key]) ? FALLBACK[key] : null;
+
 // ── 그림 불러오기: 있는 그림은 파일로, 없는 그림은 임시 도형으로 ──
 const TEX = {};
 async function loadTextures(available) {
   const loader = new THREE.TextureLoader();
   await Promise.all(Object.keys(PLACEHOLDERS).map(async key => {
     let tex = null;
-    if (available.has(key)) tex = await loader.loadAsync(`/play/sprites/${key}.png`).catch(() => null);
+    const file = spriteFile(key, available);
+    if (file) tex = await loader.loadAsync(`/play/sprites/${file}.png`).catch(() => null);
     if (!tex) {
       const [w, h, fn] = PLACEHOLDERS[key];
       const cv = document.createElement('canvas'); cv.width = w * 2; cv.height = h * 2;

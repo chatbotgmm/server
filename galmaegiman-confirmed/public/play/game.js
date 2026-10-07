@@ -38,6 +38,14 @@
   ];
 
   let available = new Set();
+  // 아직 없는 동작 그림은 받은 그림으로 대신(임시 도형과 섞여 보이지 않게)
+  const FALLBACK = {
+    player_walk_1: 'player_idle_1', player_walk_2: 'player_idle_2', player_walk_3: 'player_idle_1', player_walk_4: 'player_idle_2',
+    player_attack_1: 'player_idle_1', player_attack_2: 'player_jump', player_attack_3: 'player_idle_1',
+    kkiruk_hurt: 'kkiruk_walk_1', diver_dive: 'diver_fly_2', diver_hurt: 'diver_fly_1',
+    boss_idle_2: 'boss_idle_1', boss_dash: 'boss_idle_1', boss_throw: 'boss_idle_2', boss_hurt: 'boss_idle_1',
+  };
+  const spriteFile = (key, available) => available.has(key) ? key : available.has(FALLBACK[key]) ? FALLBACK[key] : null;
 
   // ── 임시 도형 그림 ──────────────────────────────────────────
   const C = { line: 0x4b3f33, white: 0xfdfbf6, fluff: 0xece6da, crest: 0xd8c08a, stone: 0xcdbf9f, stoneDark: 0x9a8d72, beak: 0xe2b04a, blush: 0xf4a6a6, leg: 0xd9a066 };
@@ -93,7 +101,7 @@
 
   function drawPlaceholders(scene) {
     const make = (key, w, h, fn) => {
-      if (available.has(key) || scene.textures.exists(key)) return;
+      if (scene.textures.exists(key)) return;
       const g = scene.add.graphics(); fn(g); g.generateTexture(key, w, h); g.destroy();
     };
     make('player_idle_1', 100, 100, g => drawGull(g, {}));
@@ -189,7 +197,10 @@
   // ── 시작 화면 ──────────────────────────────────────────────
   class Title extends Phaser.Scene {
     constructor() { super('title'); }
-    preload() { for (const k of available) this.load.image(k, `/play/sprites/${k}.png`); }
+    preload() {
+      const keys = new Set([...available, ...Object.keys(FALLBACK)]);
+      for (const k of keys) { const f = spriteFile(k, available); if (f) this.load.image(k, `/play/sprites/${f}.png`); }
+    }
     create() {
       drawPlaceholders(this); defineAnims(this);
       this.add.image(0, 0, 'bg_far').setOrigin(0).setDisplaySize(W, H);
