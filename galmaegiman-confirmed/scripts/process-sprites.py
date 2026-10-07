@@ -2,7 +2,9 @@
 # public/battle/sprites/<ID>_s0_front.png, <ID>_s0_back.png
 # 앞·뒤 칸을 먼저 나눈 뒤 칸마다 배경 제거: rembg(일러스트용 isnet-anime 모델)가 있으면 그것으로(어두운 배경·후광도 지움), 없으면 자홍색(#FF00FF) 배경만 지움
 #   설치: pip install "rembg[cpu]"  (처음 실행 때 모델 약 176MB 내려받음)
-# 사용: python3 scripts/process-sprites.py D1 D2 ...   (아무것도 안 주면 art/raw 전부)
+# GPT가 앞·뒤를 따로 준 경우: art/gpt/<ID>_front.png, art/gpt/<ID>_back.png 가 있으면 그걸 먼저 씀
+#   진짜 투명 배경(네 귀퉁이 투명)이면 배경 제거 없이 그대로, 아니면 위와 같이 배경 제거
+# 사용: python3 scripts/process-sprites.py D1 D2 ...   (아무것도 안 주면 art/gpt·art/raw 전부)
 import sys, os, glob, subprocess, tempfile
 from PIL import Image
 
@@ -51,15 +53,38 @@ def middle_cut(im):
     lo, hi = int(w * 0.35), int(w * 0.65)
     return min(range(lo, hi), key=lambda x: cols[x])
 
+def is_transparent(im):
+    if im.mode != 'RGBA': return False
+    a = im.getchannel('A'); w, h = im.size
+    return all(a.getpixel(p) < 10 for p in [(1, 1), (w - 2, 1), (1, h - 2), (w - 2, h - 2)])
+
+def load_panel(path):
+    im = Image.open(path)
+    im = im.convert('RGBA') if im.mode in ('RGBA', 'LA', 'P') else im.convert('RGB')
+    if is_transparent(im): return cleanup(im)
+    return remove_bg(im.convert('RGB'))
+
+def pair_sheet(front, back):
+    # 앞·뒤 두 장을 가로로 붙여 한 시트로(사이 40px), 경계 x를 함께 돌려줌
+    w, h = front.width + back.width + 40, max(front.height, back.height)
+    sheet = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    sheet.paste(front, (0, h - front.height)); sheet.paste(back, (front.width + 40, h - back.height))
+    return sheet, front.width + 20
+
 def main():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    ids = sys.argv[1:] or sorted(os.path.basename(p).split('_')[0] for p in glob.glob(os.path.join(root, 'art/raw/*_s0.png')))
+    ids = sys.argv[1:] or sorted({os.path.basename(p).split('_')[0] for p in
+                                  glob.glob(os.path.join(root, 'art/raw/*_s0.png')) + glob.glob(os.path.join(root, 'art/gpt/*_front.png'))})
     out = os.path.join(root, 'public/battle/sprites'); os.makedirs(out, exist_ok=True)
     for i in ids:
         src = os.path.join(root, f'art/raw/{i}_s0.png')
-        if not os.path.exists(src): print(f'{i}: 원본 없음'); continue
+        gf, gb = (os.path.join(root, f'art/gpt/{i}_{s}.png') for s in ('front', 'back'))
         with tempfile.TemporaryDirectory() as t:
             keyed_path = os.path.join(t, 'keyed.png')
+            if os.path.exists(gf) and os.path.exists(gb):
+                keyed, cut = pair_sheet(load_panel(gf), load_panel(gb)); keyed.save(keyed_path)
+                slice_pair(root, i, keyed_path, out, cut); continue
+            if not os.path.exists(src): print(f'{i}: 원본 없음'); continue
             # 칸마다 따로 배경 제거(시트 전체로 하면 뒷모습 몸통이 반투명해지는 경우가 있었음)
             # 칸마다 '시트 전체로 지운 결과'와 '칸만 지운 결과' 중 캐릭터(불투명 픽셀)가 더 많이 남은 쪽을 씀
             raw = Image.open(src).convert('RGB'); whole = remove_bg(raw); cut = middle_cut(whole); w, h = raw.size
@@ -67,8 +92,11 @@ def main():
             for box in [(0, 0, cut, h), (cut, 0, w, h)]:
                 keyed.paste(max([whole.crop(box), remove_bg(raw.crop(box))], key=strong), box[:2])
             keyed.save(keyed_path)
-            r = subprocess.run([sys.executable, '-I', os.path.join(root, 'scripts/slice-sprites.py'), keyed_path, out,
-                                f'{i}_s0_front,{i}_s0_back', 'auto', '512', f'split={cut}', 'anchor=box'], capture_output=True, text=True)
-            print(f'{i}: ' + (r.stdout.strip().replace('\n', ' | ') or r.stderr.strip()[-300:]))
+            slice_pair(root, i, keyed_path, out, cut)
+
+def slice_pair(root, i, keyed_path, out, cut):
+    r = subprocess.run([sys.executable, '-I', os.path.join(root, 'scripts/slice-sprites.py'), keyed_path, out,
+                        f'{i}_s0_front,{i}_s0_back', 'auto', '512', f'split={cut}', 'anchor=box'], capture_output=True, text=True)
+    print(f'{i}: ' + (r.stdout.strip().replace('\n', ' | ') or r.stderr.strip()[-300:]))
 
 main()

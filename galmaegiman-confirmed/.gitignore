@@ -7,3 +7,6 @@ config/
 *.log
 *.db*
 art/raw/
+
+# ChatGPT가 gpt-art 브랜치로 보낸 원본(작업 브랜치에는 결과만 올림)
+art/gpt/
