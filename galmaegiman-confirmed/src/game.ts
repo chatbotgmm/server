@@ -1125,6 +1125,8 @@ export class GameService {
     const task=this.tail.then(()=>this.db.$transaction(async tx=>{
       const p=await tx.player.findUnique({where:{id:playerId}});
       if(!p)throw new GameError('로그인을 다시 해 주세요.');
+      // 카톡 요청과 같게: 이 사람이 얻은 적 있는 유닛(그림을 보여 줄지 정할 때 씀)
+      this.viewerSeen=new Set((await tx.collectionEntry.findMany({where:{playerId:p.id},select:{characterId:true}})).map(r=>r.characterId));
       return fn(tx,p,this.clock());
     },{maxWait:500,timeout:2500}));
     this.tail=task.catch(()=>{});
@@ -1172,6 +1174,56 @@ export class GameService {
       return `🛒 ${item.name} ×${count} 샀어요! 🍤 -${cost}`;
     });
   }
+  // ───────── 웹 조합(카톡 「조합」과 같은 처리) ─────────
+  // 조합식 목록(공개된 것 + 발견한 히든)과 재료로 섞을 수 있는 가진 유닛. 아직 얻지 못한 유닛은 그림 대신 등급 실루엣
+  async webCraftInfo(playerId:string){
+    return this.webRun(playerId,async(tx,p)=>{
+      const known=await this.known(tx,p),stock=await this.stock(tx,p);
+      const unit=(id:string)=>{const c=this.content.map.get(id)!;return {id,name:this.name(id,known),tier:c.rarity,tierName:rarityNames[c.rarity],img:this.face(id,known)};};
+      const recipes=this.visibleRecipes(known).map(r=>{
+        const c=this.content.map.get(r.resultId)!;
+        return {...unit(c.id),isNew:!this.viewerSeen.has(c.id),ready:this.canCraft(r,stock),max:this.maxCraft(r,stock),confirm:tiers[c.rarity]>tiers.SPECIAL||c.rarity==='HIDDEN',
+          materials:[...materialCounts(r.materials)].map(([id,n])=>{const s=statusOf(stock.get(id));return {...unit(id),need:n,usable:s.usable,locked:s.locked,away:s.away};})};
+      }).sort((a,b)=>Number(b.ready)-Number(a.ready)||tiers[b.tier as Tier]-tiers[a.tier as Tier]);
+      const pool=this.revealed(known).map(c=>({c,u:statusOf(stock.get(c.id)).usable})).filter(x=>x.u>0)
+        .sort((a,b)=>tiers[b.c.rarity]-tiers[a.c.rarity]||a.c.position-b.c.position).map(({c,u})=>({...unit(c.id),usable:u}));
+      return {recipes,pool};
+    });
+  }
+  // 이름(결과 유닛)으로 조합: times번(재료가 되는 만큼까지)
+  async webCraft(playerId:string,resultId:string,times:number){
+    if(!Number.isSafeInteger(times)||times<1||times>50)throw new GameError('한 번에 1~50개까지 만들 수 있어요.');
+    return this.webRun(playerId,async(tx,p,now)=>{
+      const known=await this.known(tx,p);
+      const recipe=this.visibleRecipes(known).find(r=>r.resultId===resultId);
+      if(!recipe)throw new GameError('그런 조합식은 없어요.');
+      const stock=await this.stock(tx,p);
+      if(!this.canCraft(recipe,stock))throw new GameError('재료가 모자라요. (보호·탐험 중인 갈매미는 재료로 쓰지 않아요)');
+      const most=this.maxCraft(recipe,stock);
+      if(times>most)throw new GameError(`재료가 ${most}개 만들 만큼만 있어요.`);
+      const ids=await this.chooseMaterials(tx,p,recipe,known,times);
+      return this.replyText(await this.craft(tx,p,recipe,ids,times,now,known));
+    });
+  }
+  // 재료로 직접 섞기(숨은 조합 찾기): 맞는 조합식이 없으면 재료는 그대로
+  async webMix(playerId:string,ids:string[]){
+    if(!Array.isArray(ids)||ids.length<2||ids.length>6||ids.some(id=>typeof id!=='string'||!this.content.map.has(id)))throw new GameError('재료는 2~6마리를 골라 주세요.');
+    return this.webRun(playerId,async(tx,p,now)=>{
+      const known=await this.known(tx,p);
+      if(ids.some(id=>!isRevealed(this.content.map.get(id)!,known)))throw new GameError('재료는 가진 갈매미로만 골라 주세요.');
+      const owned=await this.stock(tx,p);
+      const short=[...materialCounts(ids)].find(([id,n])=>statusOf(owned.get(id)).usable<n);
+      if(short)throw new GameError(`${this.name(short[0],known)}이(가) 부족해요. (보호·탐험 중인 갈매미는 빼고 세요)`);
+      const lesson=await this.tutorialStep(tx,p,GameService.tutorialSteps.findIndex(t=>t.go.message==='조합 고르기')+1);
+      const key=[...ids].sort().join('+');
+      const recipe=this.content.recipes.find(r=>[...r.materials].sort().join('+')===key);
+      const head=lesson.length?`${lesson[0]}\n\n`:'';
+      if(!recipe)return {made:false,text:`${head}🔮 …아무 일도 일어나지 않았다.\n${ids.map(id=>this.name(id,known)).join(' + ')}\n(이 조합으로는 아무것도 안 나와요. 재료는 그대로예요)`};
+      const chosen=await this.chooseMaterials(tx,p,recipe,known);
+      return {made:true,text:head+this.replyText(await this.craft(tx,p,recipe,chosen,1,now,known))};
+    });
+  }
+
   // 대결 중 아이템 쓰기: 가진 개수에서 1개 빼기(0개면 거절)
   async webUseItem(playerId:string,item:{id:string;name:string}){
     return this.webRun(playerId,async(tx,p)=>{

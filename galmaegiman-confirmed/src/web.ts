@@ -316,7 +316,7 @@ main>h2:nth-of-type(6n+5),.tale h2:nth-of-type(6n+5){color:var(--c5)}main>h2:nth
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40px}
 </style></head><body>
 <header><div class="bar"><a class="logo" href="/">${logo()}</a>
-<nav>${navItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}>${i} ${l}</a>`).join('')}</nav>${playBtn()}<a class="mylink" href="/my">🪨 내 갈매미</a>
+<nav>${navItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}>${i} ${l}</a>`).join('')}</nav>${playBtn()}<a class="mylink" href="/my" title="카카오·카톡 코드로 로그인해서 조합·편성·상점">🔑 로그인 · 내 갈매미</a>
 <form class="search" action="/search" method="get" role="search" autocomplete="off"><input name="q" value="${esc(q)}" placeholder="갈매미·닉네임·이야기 검색 (초성 OK)" aria-label="검색" maxlength="30"><button>검색</button><div class="sug" hidden></div></form></div></header>
 <main>${body}${piece(active)}</main>
 <nav class="tabbar" aria-label="메뉴">${tabItems.map(([h,l,i])=>`<a href="${h}"${tabOn(h,active)?' class="on"':''}><i>${i}</i>${l}</a>`).join('')}</nav>

@@ -832,6 +832,46 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await db.kakaoLink.findUnique({where:{kakaoId:'4242'}}))?.playerId).toBe(p.id);
     }finally{await app.close();}
   });
+  it('웹 조합: 목록(숨은 조합 가림)·이름으로 조합·재료로 섞기(안 맞으면 재료 그대로)·히든 발견',async()=>{
+    const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com'});
+    try{
+      const code=/(\d{6})/.exec((await send('웹 로그인')).text!)![1];
+      const p=await db.player.findUniqueOrThrow({where:{identity:actor}});
+      const post=(url:string,body:unknown,cookie:string)=>app.inject({method:'POST',url,payload:body as object,headers:{'x-gmm':'1',cookie}});
+      const cookie=String((await app.inject({method:'POST',url:'/my/api/login',payload:{code},headers:{'x-gmm':'1'}})).headers['set-cookie']).split(';')[0];
+      const info=async()=>(await app.inject({method:'GET',url:'/my/api/craft',headers:{'x-gmm':'1',cookie}})).json() as {recipes:{id:string;name:string;img:string;ready:boolean;max:number}[];pool:{id:string;usable:number}[]};
+      const open=content.recipes.find(r=>!r.hidden&&new Set(r.materials).size>=2)!;
+      const hidden=content.recipes.find(r=>r.hidden)!;
+      const give=async(ids:string[])=>{for(const id of ids)await db.ownedCharacter.create({data:{playerId:p.id,characterId:id,obtainedVia:'TEST'}});};
+      await give([...open.materials,...open.materials]);
+      let list=await info();
+      const row=list.recipes.find(r=>r.id===open.resultId)!;
+      expect(row).toMatchObject({ready:true,max:2});
+      expect(list.recipes.some(r=>r.id===hidden.resultId)).toBe(false);                    // 발견 안 한 히든 조합식은 안 보임
+      expect(JSON.stringify(list)).not.toContain(content.map.get(hidden.resultId)!.name);
+      expect(row.img).not.toBe(open.resultId);                                               // 아직 못 얻은 결과는 그림 대신 실루엣
+      expect((await post('/my/api/craft',{id:hidden.resultId,times:1},cookie)).statusCode).toBe(400);
+      expect((await post('/my/api/craft',{id:open.resultId,times:3},cookie)).statusCode).toBe(400);   // 2개 만들 재료뿐
+      const made=await post('/my/api/craft',{id:open.resultId,times:1},cookie);
+      expect(made.statusCode).toBe(200);expect((made.json() as {result:string}).result).toContain(content.map.get(open.resultId)!.name);
+      expect(await db.ownedCharacter.count({where:{playerId:p.id,characterId:open.resultId,status:'AVAILABLE'}})).toBe(1);
+      list=await info();
+      expect(list.recipes.find(r=>r.id===open.resultId)).toMatchObject({ready:true,max:1});
+      // 섞기: 안 맞는 조합이면 재료 그대로
+      const before=await db.ownedCharacter.count({where:{playerId:p.id,status:'AVAILABLE'}});
+      const wrong=[open.materials[0],open.resultId];
+      const r1=(await post('/my/api/mix',{ids:wrong},cookie)).json() as {result:{made:boolean;text:string}};
+      expect(r1.result.made).toBe(false);
+      expect(await db.ownedCharacter.count({where:{playerId:p.id,status:'AVAILABLE'}})).toBe(before);
+      expect((await post('/my/api/mix',{ids:[hidden.materials[0]]},cookie)).statusCode).toBe(400);   // 1마리
+      expect((await post('/my/api/mix',{ids:hidden.materials},cookie)).statusCode).toBe(400);         // 재료 없음
+      // 히든: 재료를 갖고 섞으면 발견
+      await give(hidden.materials);
+      const r2=(await post('/my/api/mix',{ids:hidden.materials},cookie)).json() as {result:{made:boolean;text:string}};
+      expect(r2.result.made).toBe(true);expect(r2.result.text).toContain('숨은 조합을 발견');
+      expect((await info()).recipes.some(r=>r.id===hidden.resultId)).toBe(true);
+    }finally{await app.close();}
+  });
   it('공개 웹 랭킹: 카톡과 같은 순위, 닉네임 표시, 히든·최상위 가림, 관리자 모드 제외',async()=>{
     const mk=async(identity:string,nickname:string|null,ids:string[],adminMode=false)=>{
       const p=await db.player.create({data:{identity,nickname,tutorial:5,adminMode}});
@@ -1070,7 +1110,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.62'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.63'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

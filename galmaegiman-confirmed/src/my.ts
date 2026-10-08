@@ -97,6 +97,15 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     catch(e){if(e instanceof GameError)return reply.code(400).send({error:e.message});throw e;}
   });
 
+  // 조합(카톡 「조합」과 같은 처리)
+  app.get('/my/api/craft',limit,async(req,reply)=>{
+    if(!guard(req,reply))return;
+    const id=session(req);
+    if(!id)return reply.code(401).send({error:'login'});
+    return reply.header('Cache-Control','no-store').send(await game.webCraftInfo(id));
+  });
+  act<{id?:unknown;times?:unknown}>('/my/api/craft',(id,b)=>game.webCraft(id,String(b.id??''),Number(b.times??1)));
+  act<{ids?:unknown}>('/my/api/mix',(id,b)=>game.webMix(id,b.ids as string[]));
   act('/my/api/kakao/unlink',id=>game.webLinkKakao(id,null));
 
   // ── 수비대 대결 스토리: 진행 저장(계정), 대결 중 아이템 ──

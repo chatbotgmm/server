@@ -51,15 +51,15 @@
     draw();
   }
   function draw() {
-    const tabs = [['units', '🪨 갈매미'], ['battle', '⚔️ 전투 편성'], ['party', '🧭 탐험 편성'], ['items', '🎒 아이템'], ['shop', '🛒 상점']];
+    const tabs = [['units', '🪨 갈매미'], ['craft', '🧩 조합'], ['battle', '⚔️ 전투 편성'], ['party', '🧭 탐험 편성'], ['items', '🎒 아이템'], ['shop', '🛒 상점']];
     app.innerHTML = `${head('<button class="btn ghost" id="out" style="padding:6px 12px;font-size:.85rem">로그아웃</button>')}
       <div class="card"><div class="row" style="margin-bottom:10px"><b style="font-weight:400;font-size:1.15rem">${esc(me.nickname || '이름 없는 수비조장')}</b><span class="tag">도감 ${me.dex}/${me.dexTotal}</span></div>
         <div class="money"><div><b>🍤 ${me.snack}</b><small>새우깡</small></div><div><b>🥜 ${me.peanut}</b><small>땅콩</small></div><div><b>🎫 ${me.credits}</b><small>뽑기권</small></div><div><b>${me.units.reduce((a, u) => a + u.have, 0)}</b><small>가진 갈매미</small></div></div></div>
       <div class="tabs">${tabs.map(([k, t]) => `<button data-t="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>
       <div id="body"></div>`;
     app.querySelector('#out').onclick = async () => { await api('logout', {}).catch(() => {}); loginScreen('로그아웃했어요.'); };
-    app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; draw(); });
-    ({ units, battle, party, items, shop })[tab](app.querySelector('#body'));
+    app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; if (tab === 'craft') craftData = null; draw(); });
+    ({ units, craft, battle, party, items, shop })[tab](app.querySelector('#body'));
   }
 
   // 갈매미 목록: 등급별로 걸러 보기
@@ -105,6 +105,61 @@
     try { const r = await api(path, body ?? {}); const t = typeof r.result === 'string' ? r.result : ''; toast(t.split('\n')[0] || '완료!'); me = await api('me'); draw(); }
     catch (e) { if (e.message !== 'login') toast(e.message.split('\n')[0]); }
   };
+
+  // 조합: 카톡 「조합」과 같은 처리. 만들 수 있는 것 / 전체 조합식(등급·이름 찾기) / 재료로 섞기(숨은 조합 찾기)
+  let craftView = 'ready', craftGrade = 'all', craftQ = '', mixPick = [], craftData = null;
+  const cimg = img => `/thumbs/${encodeURIComponent(img)}.jpg`;
+  // 조합 결과(카톡 답장과 같은 글)를 창으로 보여 줌
+  const showResult = text => {
+    const box = document.createElement('div'); box.className = 'result';
+    box.innerHTML = `<div class="card"><p class="pre">${esc(text)}</p><button class="btn wide" id="rok">확인</button></div>`;
+    document.body.append(box); box.querySelector('#rok').onclick = () => box.remove(); box.onclick = e => { if (e.target === box) box.remove(); };
+  };
+  async function craft(el) {
+    if (!craftData) { el.innerHTML = '<p class="empty">조합식을 불러오는 중…</p>'; try { craftData = await api('craft'); } catch (e) { if (e.message !== 'login') el.innerHTML = `<p class="empty">${esc(e.message)}</p>`; return; } }
+    const { recipes, pool } = craftData, ready = recipes.filter(r => r.ready);
+    const seg = [['ready', `✨ 만들 수 있는 것 ${ready.length}`], ['all', '📜 전체 조합식'], ['mix', '🔮 재료로 섞기']];
+    const head = `<div class="filters">${seg.map(([k, t]) => `<button data-v="${k}" class="${craftView === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+    const card = r => `<div class="rc ${r.ready ? 'ok' : ''}"><div class="rh"><img loading="lazy" src="${cimg(r.img)}" alt=""><div><b>${esc(r.name)}</b>${r.isNew ? ' <span class="tag">🆕 처음</span>' : ''}<small>${esc(r.tierName)}</small></div></div>
+      <ul>${r.materials.map(m => `<li class="${m.usable >= m.need ? 'have' : ''}">${m.usable >= m.need ? '✅' : '⬜'} ${esc(m.name)} <b>${Math.min(m.usable, m.need)}/${m.need}</b>${m.locked || m.away ? ` <small>(${[m.locked ? `보호 ${m.locked}` : '', m.away ? `탐험 ${m.away}` : ''].filter(Boolean).join('·')})</small>` : ''}</li>`).join('')}</ul>
+      ${r.ready ? `<div class="row"><button class="btn" data-c="${r.id}" data-n="1">만들기</button>${r.max > 1 ? `<button class="btn ghost" data-c="${r.id}" data-n="${r.max}">${r.max}개 모두</button>` : ''}</div>` : ''}</div>`;
+    let body = '';
+    if (craftView === 'ready') body = ready.length ? `<div class="rgrid">${ready.map(card).join('')}</div>` : '<p class="empty">지금 만들 수 있는 게 없어요. 「전체 조합식」에서 모자란 재료를 확인해 보세요.</p>';
+    if (craftView === 'all') {
+      const grades = [...new Map(recipes.map(r => [r.tier, r.tierName])).entries()];
+      const list = recipes.filter(r => (craftGrade === 'all' || r.tier === craftGrade) && (!craftQ || r.name.includes(craftQ) || r.materials.some(m => m.name.includes(craftQ))));
+      body = `<div class="row" style="margin-bottom:8px"><input id="cq" class="search" placeholder="이름으로 찾기 (결과·재료)" value="${esc(craftQ)}"></div>
+        <div class="filters"><button data-g="all" class="${craftGrade === 'all' ? 'on' : ''}">전체</button>${grades.map(([k, t]) => `<button data-g="${k}" class="${craftGrade === k ? 'on' : ''}">${esc(t)}</button>`).join('')}</div>
+        ${list.length ? `<div class="rgrid">${list.map(card).join('')}</div>` : '<p class="empty">찾는 조합식이 없어요.</p>'}`;
+    }
+    if (craftView === 'mix') {
+      const left = id => (pool.find(u => u.id === id)?.usable ?? 0) - mixPick.filter(x => x === id).length;
+      const nm = id => pool.find(u => u.id === id)?.name ?? id;
+      body = `<div class="card"><b style="font-weight:400">🔮 재료 ${mixPick.length}/6</b>
+        <p class="note">${mixPick.length ? mixPick.map(id => esc(nm(id))).join(' + ') : '아래에서 재료를 2~6마리 골라 섞어요. 조합목록에 없는 숨은 조합도 이렇게 찾아요. 아무것도 안 나오면 재료는 그대로예요.'}</p>
+        <div class="row"><button class="btn ghost" id="mclr" ${mixPick.length ? '' : 'disabled'}>비우기</button><button class="btn" id="mgo" ${mixPick.length >= 2 ? '' : 'disabled'}>🔮 섞기</button></div></div>
+        ${pool.length ? `<div class="grid">${pool.map(u => { const n = mixPick.filter(x => x === u.id).length; return `<div class="u ${n ? 'on' : ''}"><img loading="lazy" src="${cimg(u.img)}" alt="">${n ? `<span class="ord">${n}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)} · 남은 ${left(u.id)}</small>
+          <div class="row" style="justify-content:center;margin-top:4px"><button class="btn ghost" data-mm="${u.id}" style="padding:2px 10px" ${n ? '' : 'disabled'}>－</button><button class="btn ghost" data-mp="${u.id}" style="padding:2px 10px" ${left(u.id) > 0 && mixPick.length < 6 ? '' : 'disabled'}>＋</button></div></div>`; }).join('')}</div>` : '<p class="empty">재료로 쓸 갈매미가 없어요.</p>'}`;
+    }
+    el.innerHTML = head + body;
+    el.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { craftView = b.dataset.v; craft(el); });
+    el.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { craftGrade = b.dataset.g; craft(el); });
+    const q = el.querySelector('#cq'); if (q) { q.oninput = () => { craftQ = q.value.trim(); clearTimeout(q.t); q.t = setTimeout(() => { craft(el); const n = el.querySelector('#cq'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 250); }; }
+    const done = async text => { showResult(text); craftData = null; mixPick = []; try { me = await api('me'); } catch { /* 무시 */ } draw(); };
+    el.querySelectorAll('[data-c]').forEach(b => b.onclick = async () => {
+      const r = recipes.find(x => x.id === b.dataset.c), n = +b.dataset.n;
+      if ((r.confirm || n > 1) && !confirm(`재료 ${r.materials.reduce((a, m) => a + m.need, 0) * n}마리를 써서 ${r.name}${n > 1 ? ` ${n}개` : ''}를 만들까요?`)) return;
+      b.disabled = true;
+      try { done((await api('craft', { id: r.id, times: n })).result); } catch (e) { if (e.message !== 'login') { toast(e.message.split('\n')[0]); b.disabled = false; } }
+    });
+    el.querySelectorAll('[data-mp]').forEach(b => b.onclick = () => { mixPick.push(b.dataset.mp); craft(el); });
+    el.querySelectorAll('[data-mm]').forEach(b => b.onclick = () => { mixPick.splice(mixPick.lastIndexOf(b.dataset.mm), 1); craft(el); });
+    el.querySelector('#mclr')?.addEventListener('click', () => { mixPick = []; craft(el); });
+    el.querySelector('#mgo')?.addEventListener('click', async () => {
+      if (!confirm(`${mixPick.length}마리를 섞어 볼까요? 맞는 조합이면 재료를 쓰고, 아니면 재료는 그대로예요.`)) return;
+      try { const r = (await api('mix', { ids: mixPick })).result; if (r.made) done(r.text); else { showResult(r.text); } } catch (e) { if (e.message !== 'login') toast(e.message.split('\n')[0]); }
+    });
+  }
 
   // 탐험 편성: 카톡 「탐험」과 같은 편성·같은 규칙(최상위만, 같은 유닛 여러 마리 가능)
   function party(el) {
