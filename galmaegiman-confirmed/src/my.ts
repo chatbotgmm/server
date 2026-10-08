@@ -8,6 +8,7 @@ import { z } from 'zod';
 import type { GameService } from './game.js';
 import { GameError } from './types.js';
 import { loadBattleRules } from './battle/load.js';
+import { duelKey } from './duel.js';
 
 const COOKIE='gmm_s',DAYS=30,KSTATE='gmm_ks',KPEND='gmm_kp',KAPP='gmm_ka';
 // 안드로이드 앱(Capacitor) 화면 주소. 앱에서 오는 요청만 다른 주소에서 받음(CORS)
@@ -31,7 +32,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
   // 웹은 쿠키, 앱은 머리글(x-gmm-s)에 같은 서명 값
   const session=(req:FastifyRequest)=>{const h=req.headers['x-gmm-s'];return unsign('',typeof h==='string'&&h.length<200?h:cookie(req,COOKIE));};
   app.addHook('onRequest',async(req,reply)=>{
-    if(!req.url.startsWith('/my/api/'))return;
+    if(!req.url.startsWith('/my/api/')&&!req.url.startsWith('/duel/data.json'))return;   // 게임 데이터도 앱에서 받음
     const o=req.headers.origin;
     if(typeof o!=='string'||!APP_ORIGINS.has(o))return;
     reply.header('Access-Control-Allow-Origin',o).header('Vary','Origin')
@@ -160,6 +161,12 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     const want=Buffer.from(e.challenge),got=Buffer.from(createHash('sha256').update(verifier).digest('base64url'));
     if(want.length!==got.length||!timingSafeEqual(want,got))return reply.code(400).send({error:'로그인을 다시 해 주세요.'});
     return {token:issue(e.player)};
+  });
+  // 「갈매미맨 수비대」(대결 게임) 열쇠: 로그인한 사람만(최상위 그림·이름이 나오는 게임이라 공개하지 않음)
+  app.get('/my/api/duel-key',limit,async(req,reply)=>{
+    if(!guard(req,reply))return;
+    if(!session(req))return reply.code(401).send({error:'login'});
+    return reply.header('Cache-Control','no-store').send({k:duelKey(opt.secret)});
   });
   act('/my/api/kakao/unlink',id=>game.webLinkKakao(id,null));
 

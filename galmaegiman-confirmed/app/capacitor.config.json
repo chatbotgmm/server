@@ -1,6 +1,6 @@
 {
   "appId": "org.dpdns.gmm",
-  "appName": "갈매미맨",
+  "appName": "갈매미맨 수비대",
   "webDir": "www",
   "android": { "allowMixedContent": false },
   "server": { "androidScheme": "https" },

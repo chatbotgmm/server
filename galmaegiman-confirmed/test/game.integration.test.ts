@@ -967,6 +967,11 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const token=(login.json() as {token:string}).token;expect(token).toMatch(/\./);
       expect((await app.inject({method:'GET',url:'/my/api/me',headers:{'x-gmm':'1','x-gmm-s':token}})).statusCode).toBe(200);
       expect((await app.inject({method:'GET',url:'/my/api/me',headers:{'x-gmm':'1','x-gmm-s':token.slice(0,-2)+'xx'}})).statusCode).toBe(401);
+      // 「갈매미맨 수비대」 열쇠는 로그인한 사람만, 게임 데이터도 앱 주소에서 받을 수 있음
+      expect((await app.inject({method:'GET',url:'/my/api/duel-key',headers:{'x-gmm':'1'}})).statusCode).toBe(401);
+      const k=((await app.inject({method:'GET',url:'/my/api/duel-key',headers:{'x-gmm':'1','x-gmm-s':token}})).json() as {k:string}).k;
+      const dj=await app.inject({method:'GET',url:`/duel/data.json?k=${k}`,headers:{origin:'https://localhost'}});
+      expect(dj.statusCode).toBe(200);expect(dj.headers['access-control-allow-origin']).toBe('https://localhost');
       // 카카오 앱 로그인(이미 연결된 계정)
       const p=await db.player.findUniqueOrThrow({where:{identity:actor}});
       await db.kakaoLink.create({data:{kakaoId:'8080',playerId:p.id}});
@@ -1235,7 +1240,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.71'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.72'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

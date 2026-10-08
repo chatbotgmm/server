@@ -8,6 +8,7 @@
   const BASE = 'https://gmm.dpdns.org';
   const P = (window.Capacitor && window.Capacitor.Plugins) || {};
   const KEY = 'gmm-token', VKEY = 'gmm-kakao-verifier';
+  const onMy = location.pathname.endsWith('my.html');   // 지금 화면: 게임(index.html) / 내 갈매미(my.html)
   window.GMM_BASE = BASE;
 
   const store = {
@@ -62,7 +63,10 @@
     if (h.startsWith('#')) return;
     e.preventDefault();
     if (h.startsWith('/my/kakao')) return void kakao();
-    if (h === '/my' || h.startsWith('/my#')) { location.hash = h.split('#')[1] || ''; return; }
+    // 앱 안 화면: 게임(index.html) ↔ 내 갈매미(my.html)
+    const tab = h.split('#')[1] || '';
+    if (h === '/my' || h.startsWith('/my#') || h.startsWith('my.html')) { if (onMy) location.hash = tab; else location.href = `my.html${tab ? `#${tab}` : ''}`; return; }
+    if (h === '/' || h.startsWith('/duel') || h === 'index.html') { location.href = 'index.html'; return; }
     open(h.startsWith('http') ? h : BASE + h);
   }, true);
 
@@ -75,19 +79,25 @@
       const r = await fetch(`${BASE}/my/api/app/exchange`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-gmm': '1' }, body: JSON.stringify({ code, verifier: v }) });
       const j = await r.json().catch(() => ({}));
       P.Browser?.close().catch(() => {});
-      if (r.ok && j.token) { store.set(KEY, j.token); location.reload(); }
+      if (r.ok && j.token) { store.set(KEY, j.token); location.href = 'index.html'; }
     } catch { /* 다시 시도하면 됨 */ }
   });
   // 알림을 누르면 그 탭으로
   P.LocalNotifications?.addListener('localNotificationActionPerformed', ({ notification }) => {
     const tab = notification?.extra?.tab;
-    if (tab) location.hash = tab;
+    if (tab) { if (onMy) location.hash = tab; else location.href = `my.html#${tab}`; }
   });
-  // 뒤로 가기: 열린 창 닫기 → 첫 탭(뽑기)으로 → 앱 끝내기
+  // 뒤로 가기: 게임은 화면 안 ‹ 버튼 → 첫 화면에선 앱 끝내기 / 내 갈매미는 열린 창 닫기 → 게임으로
   P.App?.addListener('backButton', () => {
-    const res = document.querySelector('.result');
-    if (res) return void res.remove();
-    if (location.hash && location.hash !== '#draw') { location.hash = 'draw'; return; }
+    if (onMy) {
+      const res = document.querySelector('.result');
+      if (res) return void res.remove();
+      location.href = 'index.html'; return;
+    }
+    const modal = document.getElementById('modal');
+    const bk = document.getElementById('bk');
+    if (modal && !modal.hidden && !modal.classList.contains('scene-on')) { modal.hidden = true; return; }
+    if (bk) return void bk.click();
     P.App.exitApp();
   });
 })();

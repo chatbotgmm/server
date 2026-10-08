@@ -39,7 +39,7 @@
       const code = app.querySelector('#code').value.replace(/\D/g, '');
       if (code.length !== 6) { app.querySelector('#err').textContent = '6자리 숫자를 입력해 주세요.'; return; }
       app.querySelector('#go').disabled = true;
-      try { const r = await api('login', { code }); if (APP && r.token) APP.setToken(r.token); if (r.kakao) toast(r.kakao === 'linked' ? '카카오 계정을 연결했어요!' : r.kakao); main(); }
+      try { const r = await api('login', { code }); if (APP && r.token) APP.setToken(r.token); if (APP && new URLSearchParams(location.search).get('next') === 'game') { location.href = 'index.html'; return; } if (r.kakao) toast(r.kakao === 'linked' ? '카카오 계정을 연결했어요!' : r.kakao); main(); }
       catch (e) { app.querySelector('#err').textContent = e.message; app.querySelector('#go').disabled = false; }
     };
     app.querySelector('#go').onclick = go;

@@ -6,13 +6,17 @@ import { rulesFrom } from '../../src/battle/core.ts';
 import { createBattle, choose, act, pending, legalActions, pickAi, aiChoose, activeOf, itemProblem } from '../../src/battle/engine.ts';
 import { addXp, battleXp, canEvolve, evoChoices, learnChances, learnOffers, learnSkill, xpToNext } from '../../src/battle/growth.ts';
 
-const K = new URLSearchParams(location.search).get('k') || '';
+// 앱: 화면은 앱 안, 서버는 GMM_BASE, 열쇠는 「내 갈매미」에서 받아 둔 것(GMM_DUEL_KEY), 로그인은 토큰 머리글
+const BASE = window.GMM_BASE || '', APP = window.gmmApp || null;
+let K = new URLSearchParams(location.search).get('k') || '';
 const app = document.getElementById('app'), modal = document.getElementById('modal');
 const COLOR = { STONE: '#c9b48a', GOLD: '#f0b93a', FIRE: '#f26b3a', ICE: '#8fdcf5', BLOSSOM: '#f7a3c6', SEA: '#3d94e6', SHADOW: '#8a6bb8', STAR: '#ffe36e', THREAD: '#c3c6dc', GRAVITY: '#5b63c9' };
 const ROLE = { ATTACK: '공격', DEFENSE: '수비', UTILITY: '유틸' };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const q = `?k=${encodeURIComponent(K)}`;
+let q = `?k=${encodeURIComponent(K)}`;
+// 게임 이름(바꾸려면 여기만)
+const GAME = { name: '갈매미맨 수비대', sub: '항구를 지켜라' };
 const chip = a => `<span class="chip" style="background:${COLOR[a]}">${esc(R.attrName(a))}</span>`;
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
@@ -21,7 +25,8 @@ let ACC = null;      // 로그인한 계정: { nickname, battleTeam, owned, item
 let fightId = null;  // 지금 스토리 대결의 서버 표(아이템 쓰기용)
 // 「내 갈매미」 API(같은 사이트 쿠키로 로그인 확인)
 const myApi = async (path, body) => {
-  const r = await fetch(`/my/api/${path}`, body === undefined ? { headers: { 'x-gmm': '1' } } : { method: 'POST', headers: { 'content-type': 'application/json', 'x-gmm': '1' }, body: JSON.stringify(body) });
+  const h = { 'x-gmm': '1', ...(APP && APP.token() ? { 'x-gmm-app': '1', 'x-gmm-s': APP.token() } : {}) };
+  const r = await fetch(`${BASE}/my/api/${path}`, body === undefined ? { headers: h } : { method: 'POST', headers: { 'content-type': 'application/json', ...h }, body: JSON.stringify(body) });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) { const e = new Error(j.error || `오류(${r.status})`); e.status = r.status; throw e; }
   return j;
@@ -31,12 +36,12 @@ let onEnd = null;  // 대결이 끝나면 부를 함수(자유 대결 / 스토�
 let hintNow = ''; // 스테이지 도움말(첫 증강체 창에도 보여 줌)
 
 // ── 그림: 최상위는 앞·뒤 그림, 빌런은 그림이 있으면 그것, 없으면 코드로 그린 임시 그림 ──
-const sprite = (id, side) => id.startsWith('V') ? villainArt(id) : `/duel/sprites/${id}_s0_${side}.png${q}`;
+const sprite = (id, side) => id.startsWith('V') ? villainArt(id) : `${BASE}/duel/sprites/${id}_s0_${side}.png${q}`;
 function villainArt(id) {
-  if (ART.includes(id)) return `/duel/sprites/${id}_front.png${q}`;
+  if (ART.includes(id)) return `${BASE}/duel/sprites/${id}_front.png${q}`;
   // 블랙 갈매미맨: 그림(V17)이 있으면 거울·땅콩 단계도 그 그림에 색만 바꿔 씀, 없으면 원형(look) 그림을 검게 칠해 씀
   const vd = R.data.villains[id];
-  if (vd?.tint && ART.includes('V17')) return `/duel/sprites/V17_front.png${q}`;
+  if (vd?.tint && ART.includes('V17')) return `${BASE}/duel/sprites/V17_front.png${q}`;
   if (vd?.look) return sprite(vd.look, 'front');
   const v = R.villains.get(id), c = { V1: '#d9805a', V2: '#5b4a78', V3: '#e98fa6', V4: '#bfe3f2', V5: '#c4573f', V6: '#8e3b46' }[id] ?? '#d9805a';
   let svg;
@@ -82,7 +87,7 @@ function villainArt(id) {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">${svg}</svg>`)}`;
 }
 
-const bgStyle = scene => BG.includes(scene) ? `background:url(/duel/bg/${scene}.jpg${q}) center/cover` : '';
+const bgStyle = scene => BG.includes(scene) ? `background:url(${BASE}/duel/bg/${scene}.jpg${q}) center/cover` : '';
 const tintOf = id => { const t = R.data.villains?.[id]?.tint; return !t ? '' : ART.includes('V17') ? (t === 'shadow' ? '' : `tint-${t}-art`) : `tint-${t}`; };   // 진짜 그림이 있으면 가볍게만
 const setTint = (img, id) => { img.classList.remove('tint-shadow', 'tint-mirror', 'tint-peanut', 'tint-mirror-art', 'tint-peanut-art'); const t = tintOf(id); if (t) img.classList.add(t); };
 
@@ -120,9 +125,16 @@ function teamCombos(ids) {
   return Object.entries(by).filter(([, v]) => v.length >= 2).map(([k, v]) => ({ k, skill: R.data.synergies[k].skill.name, names: v.map(id => UNITS.find(u => u.id === id).name) }));
 }
 
+document.title = GAME.name;
 async function boot() {
   try {
-    const r = await fetch(`/duel/data.json${q}`);
+    // 앱: 로그인한 계정으로 게임 열쇠를 받음(로그인 전이면 로그인 화면으로)
+    if (!K && APP) {
+      if (!APP.token()) { location.href = 'my.html?next=game'; return; }
+      try { K = (await myApi('duel-key')).k; q = `?k=${encodeURIComponent(K)}`; }
+      catch (e) { if (e.status === 401) { APP.setToken(null); location.href = 'my.html?next=game'; return; } throw e; }
+    }
+    const r = await fetch(`${BASE}/duel/data.json${q}`);
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || `불러오기 실패(${r.status})`);
     R = rulesFrom(j.rules); STORY = j.story; ART = j.villainArt ?? []; NAMES = j.names ?? {}; BG = j.bgArt ?? [];
@@ -142,9 +154,12 @@ async function boot() {
 
 function menu() {
   modal.hidden = true;
-  app.innerHTML = `<header><h1>수비대 대결</h1><small>시험판</small></header>
+  // 첫 화면: 게임 이름 + 스토리·자유 대결 + 챗봇 기능 바로가기(「내 갈매미」 탭)
+  const my = h => APP ? `my.html#${h}` : `/my#${h}`;
+  app.innerHTML = `<div class="gtitle"><img src="${APP ? 'gull.png' : '/gull.png'}" alt=""><b>${esc(GAME.name)}</b><small>${esc(GAME.sub)}</small></div>
   <p class="hint">${ACC ? `<img class="gi" src="/gull.png" alt=""> ${esc(ACC.nickname || '내 계정')}에 스토리 진행이 저장돼요. 스토리 대결에서 가진 아이템을 쓸 수 있어요.` : '스토리 진행이 이 브라우저에만 저장돼요. <a href="/my">내 갈매미</a>에서 로그인하면 계정에 저장되고 아이템도 쓸 수 있어요.'}</p>
-  <div class="menu"><button class="big" id="st">스토리 모드</button><button class="ghost" id="fr">자유 대결 (무작위 상대)</button></div>`;
+  <div class="menu"><button class="big" id="st">⚔️ 스토리 모드</button><button class="ghost" id="fr">자유 대결 (무작위 상대)</button></div>
+  <div class="gmenu">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '내 갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점'], ['account', '⚙️', '계정']].map(([h, i, t]) => `<a href="${my(h)}"><i>${i}</i>${t}</a>`).join('')}</div>`;
   app.querySelector('#st').onclick = storyScreen;
   app.querySelector('#fr').onclick = () => pickScreen('free');
 }
@@ -158,7 +173,7 @@ function pickScreen(mode) {
   <p class="hint">갈매미 3마리를 고르세요. 처음 고른 갈매미가 먼저 나가요.${story ? ' 시험판이라 최상위 33종을 모두 쓸 수 있어요(실제 게임은 가진 갈매미만).' : ' 상대는 같은 레벨의 무작위 3마리예요.'}</p>
   ${story ? '' : `<div class="bar"><span class="role">레벨</span><div class="seg" id="lv">${[10, 30, 50].map(l => `<button data-l="${l}" class="${l === freeLevel ? 'on' : ''}">${l}</button>`).join('')}</div></div>`}
   ${story && ACC ? `<p class="hint" style="margin-top:-6px"><img class="gi" src="/gull.png" alt=""> 표시는 내가 가진 갈매미예요. 셋 다 가진 갈매미로 고르면 「내 갈매미」 전투 편성도 같이 바뀌어요.${ACC.battleTeam.length === 3 ? ' <button class="ghost" id="mine" style="display:inline-block;padding:4px 10px">내 전투 편성 불러오기</button>' : ''}</p>` : ''}
-  <div class="grid">${(story && ACC ? [...UNITS].sort((x, y) => ACC.owned.includes(y.id) - ACC.owned.includes(x.id)) : UNITS).map(u => `<button class="card" data-id="${u.id}"><img loading="lazy" src="/thumbs/${u.id}.jpg" alt=""><b>${story && ACC?.owned.includes(u.id) ? '<img class="gi" src="/gull.png" alt=""> ' : ''}${esc(u.name)}</b>${chip(u.def.attr)}<span class="role">${ROLE[u.def.role]}${story ? ` · Lv${SAVE.units[u.id].level}` : ''}</span><span class="syn">${esc(synName(u.id))}</span></button>`).join('')}</div>
+  <div class="grid">${(story && ACC ? [...UNITS].sort((x, y) => ACC.owned.includes(y.id) - ACC.owned.includes(x.id)) : UNITS).map(u => `<button class="card" data-id="${u.id}"><img loading="lazy" src="${BASE}/thumbs/${u.id}.jpg" alt=""><b>${story && ACC?.owned.includes(u.id) ? '<img class="gi" src="/gull.png" alt=""> ' : ''}${esc(u.name)}</b>${chip(u.def.attr)}<span class="role">${ROLE[u.def.role]}${story ? ` · Lv${SAVE.units[u.id].level}` : ''}</span><span class="syn">${esc(synName(u.id))}</span></button>`).join('')}</div>
   <div class="foot"><div class="combo" id="combo"></div><div class="in"><button class="ghost" id="rnd">무작위</button><button class="big" id="go">${story ? '이 팀으로' : '대결 시작'}</button></div></div>`;
   const paint = () => {
     app.querySelectorAll('.card').forEach(c => {
@@ -315,7 +330,7 @@ function talk(lines, opt = {}) {
     const $ = id => modal.querySelector(`#${id}`);
     const draw = () => {
       const l = lines[i], v = /^V\d+$/.test(l.who) ? R.villains.get(l.who) : null, ally = /^[DTEIN]\d+$/.test(l.who) ? l.who : null;
-      const pic = v ? sprite(l.who, 'front') : ally ? (R.units.has(ally) ? sprite(ally, 'front') : `/thumbs/${ally}.jpg`) : null;
+      const pic = v ? sprite(l.who, 'front') : ally ? (R.units.has(ally) ? sprite(ally, 'front') : `${BASE}/thumbs/${ally}.jpg`) : null;
       if (pic) { const p = $('pFoe'); p.hidden = false; if (p.dataset.src !== pic) { p.src = pic; p.dataset.src = pic; p.classList.toggle('bossp', !!v?.boss); p.classList.toggle('card', !!ally && !R.units.has(ally)); setTint(p, l.who); } }
       const speaker = l.who === 'ME' ? 'me' : v ? 'foe' : ally ? 'ally' : '';
       $('pMe').classList.toggle('on', speaker === 'me'); $('pFoe').classList.toggle('on', speaker === 'foe' || speaker === 'ally');

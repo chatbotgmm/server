@@ -16,7 +16,16 @@ html = html.replace(/<script>if\('serviceWorker'[^<]*<\/script>\n?/, '')
 if (!html.includes('src="app.js"')) throw new Error('index.html 에서 my.js 줄을 못 찾았어요');
 // 화면 안 그림 경로(/gull.png 등)는 앱 안 파일로
 html = html.replaceAll('href="/favicon.png"', 'href="favicon.png"').replaceAll('href="/icon-192.png"', 'href="icon-192.png"');
-writeFileSync(resolve(out, 'index.html'), html);
+writeFileSync(resolve(out, 'my.html'), html);
+
+// 메인 = 「갈매미맨 수비대」(대결 게임): public/duel/index.html + 묶음 dist/duel/duel.js (먼저 루트에서 npm run build)
+let game = readFileSync(resolve(root, 'public/duel/index.html'), 'utf8');
+game = game.replace(/<script>if\('serviceWorker'[^<]*<\/script>\n?/, '').replace(/<link rel="manifest"[^>]*>/, '')
+  .replace('<script type="module" src="/duel/duel.js"></script>', '<script src="app.js"></script>\n<script type="module" src="duel.js"></script>')
+  .replaceAll('href="/favicon.png"', 'href="favicon.png"').replaceAll('href="/icon-192.png"', 'href="icon-192.png"');
+if (!game.includes('src="duel.js"')) throw new Error('duel index.html 에서 duel.js 줄을 못 찾았어요');
+writeFileSync(resolve(out, 'index.html'), game);
+writeFileSync(resolve(out, 'duel.js'), readFileSync(resolve(root, 'dist/duel/duel.js'), 'utf8').replaceAll('src="/gull.png"', 'src="gull.png"'));
 
 let js = readFileSync(resolve(root, 'public/my/my.js'), 'utf8');
 js = js.replaceAll('src="/gull.png"', 'src="gull.png"').replaceAll('src="/images/logo.png"', 'src="images/logo.png"');
