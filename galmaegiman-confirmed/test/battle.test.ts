@@ -6,6 +6,7 @@ import { parse } from 'yaml';
 import { readFileSync } from 'node:fs';
 import { addXp, battleXp, canEvolve, maxStageAt, statsOf, xpToNext, type UnitRecord } from '../src/battle/growth.js';
 import { act, activeOf, aiChoose, choose, createBattle, pending, pickAi, type Battle } from '../src/battle/engine.js';
+import { checkStory, loadStory } from '../src/battle/story.js';
 import { expectedAttempts, levelRange, referenceLevel, scoutChance, scoutCopy } from '../src/battle/scout.js';
 
 const R=loadBattleRules();
@@ -120,3 +121,22 @@ describe('data/battle.yaml 편집', ()=>{
   });
 });
 
+describe('스토리 모드(data/story.yaml)',()=>{
+  it('스토리 파일 검사: 빌런 번호·스테이지 번호, 보스는 같은 레벨 졸병보다 체력이 큼',()=>{
+    const story=loadStory(process.cwd(),R);
+    expect(story.chapters.map(c=>c.id)).toEqual(['P','1']);
+    const v=(id:string,level:number):UnitRecord=>({uid:id,id,name:R.villains.get(id)!.name!,tier:'LIMITED',level,xp:0,stage:0,evoAugs:[]});
+    expect(statsOf(R,v('V6',13)).hp).toBeGreaterThan(statsOf(R,v('V3',13)).hp*2);
+    const raw=()=>parse(readFileSync('data/story.yaml','utf8'));
+    const bad=raw();bad.chapters[0].stages[0].enemy[0].id='V99';expect(()=>checkStory(bad,R)).toThrow(/V99/);
+    const dup=raw();dup.chapters[1].stages[1].id=dup.chapters[1].stages[0].id;expect(()=>checkStory(dup,R)).toThrow(/겹쳐요/);
+  });
+  it('스토리 대결: 빌런 팀과 끝까지 싸울 수 있음',()=>{
+    const story=loadStory(process.cwd(),R),st=story.chapters[1].stages.at(-1)!;
+    const me=['D1','T4','I3'].map((id,i):UnitRecord=>({uid:`a${i}`,id,name:id,tier:'LIMITED',level:15,xp:0,stage:0,evoAugs:[]}));
+    const foe=st.enemy.map((e,i):UnitRecord=>({uid:`b${i}`,id:e.id,name:R.villains.get(e.id)!.name!,tier:'LIMITED',level:e.level,xp:0,stage:0,evoAugs:[]}));
+    const b=createBattle(R,me,foe,7);
+    for(let g=0;g<400&&b.phase!=='over';g++){if(b.phase==='choose'){aiChoose(b,0);aiChoose(b,1);continue;}act(b,[pickAi(b,0),pickAi(b,1)]);}
+    expect(b.phase).toBe('over');
+  });
+});

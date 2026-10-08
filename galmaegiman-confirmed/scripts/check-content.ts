@@ -1,6 +1,7 @@
 import { loadContent, tierOrder, rarityNames } from '../src/content.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { loadBattleRules } from '../src/battle/load.js';
+import { loadStory } from '../src/battle/story.js';
 const data=loadContent();
 const missing:string[]=[];
 for(const c of data.characters){
@@ -20,5 +21,7 @@ const battle=loadBattleRules();
 const top=data.characters.filter(c=>['LIMITED','TRANSCEND','ETERNAL','IMMORTAL'].includes(c.rarity)).map(c=>c.id);
 const missingBattle=top.filter(id=>!battle.units.has(id)),extraBattle=[...battle.units.keys()].filter(id=>!top.includes(id));
 if(missingBattle.length||extraBattle.length)throw new Error(`battle.yaml 유닛 오류 — 빠짐: ${missingBattle.join(',')||'없음'} / 최상위가 아님: ${extraBattle.join(',')||'없음'}`);
-console.log(JSON.stringify({battle:{units:battle.units.size,battleAugments:battle.battleAugments.length,evoAugments:battle.evoAugments.length}}));
+// 스토리(data/story.yaml): 형식 + 나오는 빌런이 battle.yaml에 있는지
+const story=loadStory(process.cwd(),battle);
+console.log(JSON.stringify({battle:{units:battle.units.size,battleAugments:battle.battleAugments.length,evoAugments:battle.evoAugments.length,villains:battle.villains.size},story:{chapters:story.chapters.length,stages:story.chapters.reduce((n,c)=>n+c.stages.length,0)}}));
 

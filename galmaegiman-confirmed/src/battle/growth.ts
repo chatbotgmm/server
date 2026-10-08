@@ -25,7 +25,7 @@ export function canEvolve(r:Rules,rec:UnitRecord,storyCleared:number){
 export const maxStageAt=(r:Rules,level:number)=>r.data.growth.evolveLevel.filter(l=>level>=l).length as Stage;
 
 export function evoChoices(r:Rules,rec:UnitRecord,rand:()=>number){
-  const role=r.units.get(rec.id)!.role;
+  const role=r.unitDef(rec.id)!.role;
   const pool=r.evoAugments.filter(a=>(a.roles==='ANY'||a.roles.includes(role))&&!rec.evoAugs.includes(a.id));
   const out:EvoAugment[]=[];
   while(out.length<3&&pool.length)out.push(pool.splice(Math.floor(rand()*pool.length),1)[0]);
@@ -43,9 +43,10 @@ export const levelScale=(r:Rules,rec:{level:number;stage:Stage})=>(1+r.data.grow
 // 같은 유닛은 언제나 같은 개성(±5%)
 function jitter(id:string,salt:number){let h=2166136261^salt;for(const ch of id)h=Math.imul(h^ch.charCodeAt(0),16777619);return 0.95+((h>>>0)%1000)/1000*0.1;}
 export function statsOf(r:Rules,rec:UnitRecord){
-  const def=r.units.get(rec.id);if(!def)throw new Error(`전투 유닛이 아님: ${rec.id}`);
+  const def=r.unitDef(rec.id);if(!def)throw new Error(`전투 유닛이 아님: ${rec.id}`);
   const b=r.data.roles[def.role],t=r.data.tiers[rec.tier],scale=levelScale(r,rec),p=passiveOf(r,rec);
   const lv=1+r.data.growth.levelGrowth/100*(rec.level-1),st=r.data.growth.stageMult[rec.stage];
-  const f=(v:number,salt:number,pct=0)=>Math.round(v*t*scale*jitter(rec.id,salt)*(1+pct/100));
-  return {hp:f(b.hp,1,p.hpPct),atk:f(b.atk,2,p.atkPct),def:f(b.def,3,p.defPct),spd:Math.round(b.spd*jitter(rec.id,4)*(1+(lv-1)*0.25)*(1+(st-1)*0.5)*(1+(p.spdPct??0)/100))};
+  const pw=def.power??1,hm=def.hpMult??pw;
+  const f=(v:number,salt:number,pct=0,m=pw)=>Math.round(v*t*m*scale*jitter(rec.id,salt)*(1+pct/100));
+  return {hp:f(b.hp,1,p.hpPct,hm),atk:f(b.atk,2,p.atkPct),def:f(b.def,3,p.defPct),spd:Math.round(b.spd*jitter(rec.id,4)*(1+(lv-1)*0.25)*(1+(st-1)*0.5)*(1+(p.spdPct??0)/100))};
 }

@@ -35,6 +35,7 @@ export const battleSchema=z.object({
   roles:z.record(role,z.object({name:z.string(),hp:z.number().positive(),atk:z.number().positive(),def:z.number().positive(),spd:z.number().positive(),skill:skillIn}).strict()),
   tiers:tierNums,
   units:z.record(z.string().regex(/^[DTEI]\d+$/),z.object({attr,role,skill:skillIn}).strict()),
+  villains:z.record(z.string().regex(/^V\d+$/),z.object({name:z.string().min(1).max(20),attr,role,power:z.number().min(0.2).max(10),hp:z.number().min(0.2).max(20).optional(),boss:z.boolean().optional(),skill:skillIn}).strict()),
   status:z.object({burnDamage:z.number(),burnAtk:z.number(),bindSpd:z.number(),rageAtk:z.number(),rageDef:z.number()}).strict(),
   battleAugments:z.record(z.enum(battleAugIds),z.object({name:z.string().min(1).max(20),desc:z.string().max(120).optional()}).catchall(z.number())),
   growth:z.object({maxLevel:z.number().int().min(2).max(200),evolveLevel:z.tuple([z.number().int(),z.number().int(),z.number().int()]),stageMult:z.tuple([z.number(),z.number(),z.number(),z.number()]),

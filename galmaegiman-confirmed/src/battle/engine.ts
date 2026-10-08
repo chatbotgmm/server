@@ -23,7 +23,7 @@ function rand(b:Battle){let t=(b.rng=(b.rng+0x6d2b79f5)|0);t=Math.imul(t^(t>>>15
 const josa=(w:string,pair:string)=>{const c=w.charCodeAt(w.length-1);const has=c>=0xac00&&c<=0xd7a3&&(c-0xac00)%28>0;return w+(has?pair[0]:pair[1]);};
 
 function makeFighter(R:Rules,rec:UnitRecord,side:0|1):Fighter{
-  const def=R.units.get(rec.id);if(!def)throw new Error(`전투 유닛이 아님: ${rec.id}`);
+  const def=R.unitDef(rec.id);if(!def)throw new Error(`전투 유닛이 아님: ${rec.id}`);
   const s=statsOf(R,rec),passive=passiveOf(R,rec);
   const sigCd=Math.max(1,def.signature.cd-(passive.sigCd??0));
   return {side,rec,name:rec.name,scale:levelScale(R,rec),attr:def.attr,role:def.role,peanut:rec.name.includes('갈매미맨'),passive,

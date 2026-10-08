@@ -636,8 +636,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const k=duelKey('s'.repeat(40));
       for(const url of ['/duel','/duel?k=wrong','/duel/data.json','/duel/sprites/D1_s0_front.png','/duel/data.json?k='+k.slice(1)])expect((await app.inject({method:'GET',url})).statusCode).toBe(404);
       expect(await get('/duel?k='+k)).toContain('<meta name="robots" content="noindex">');
-      const duel=(await app.inject({method:'GET',url:'/duel/data.json?k='+k})).json() as {units:{id:string;name:string}[];rules:{version:string}};
-      expect(duel.units).toHaveLength(33);expect(duel.rules.version).toBe('BATTLE_V1');
+      const duel=(await app.inject({method:'GET',url:'/duel/data.json?k='+k})).json() as {units:{id:string;name:string}[];rules:{version:string};story:{chapters:{stages:unknown[]}[]}};
+      expect(duel.units).toHaveLength(33);expect(duel.rules.version).toBe('BATTLE_V1');expect(duel.story.chapters[0].stages.length).toBeGreaterThan(0);
       expect((await app.inject({method:'GET',url:'/duel/sprites/D1_s0_back.png?k='+k})).headers['content-type']).toBe('image/png');
       for(const url of ['/duel/sprites/..%2F..%2F.env?k='+k,'/duel/sprites/C1_s0_front.png?k='+k])expect((await app.inject({method:'GET',url})).statusCode).toBe(404);
       const js=await app.inject({method:'GET',url:'/duel/duel.js'});expect(js.statusCode).toBe(200);expect(js.body).not.toContain(content.map.get('D1')!.name);
@@ -892,7 +892,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.46'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.47'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

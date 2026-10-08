@@ -73,6 +73,35 @@ header small{color:var(--dim)}
 .sw button{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;display:flex;align-items:center;gap:6px;font-size:12px;text-align:left}
 .sw button:disabled{opacity:.42}
 .sw img{width:34px;height:34px;object-fit:contain}
+/* 메뉴·스토리 */
+.menu{display:flex;flex-direction:column;gap:10px;padding:8px 16px}
+.back{background:none;border:0;font-size:26px;line-height:1;padding:0 6px 0 0;color:var(--ink)}
+.teambar{margin:4px 16px 12px;padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.teambar .ghost{grid-column:1/-1;padding:10px}
+.mini{text-align:center;font-size:11px;min-width:0}
+.mini img{width:100%;height:70px;object-fit:contain}
+.mini b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+.xp{display:block;height:4px;background:#0b1218;border-radius:2px;overflow:hidden;margin-top:3px}
+.xp i{display:block;height:100%;background:var(--gold)}
+.chap{padding:0 16px 8px}
+.chap h2{font-size:16px;margin:10px 0 6px}
+.stage{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:6px}
+.stage:disabled{opacity:.4}
+.stage .no{font-weight:800;color:var(--gold);width:34px;flex:none}
+.stage .tt{flex:1;min-width:0;font-weight:700}
+.stage .tt small{display:block;color:var(--dim);font-weight:400;font-size:11px;margin-top:2px}
+.stage .tt em{font-style:normal;font-size:10px;background:#8e3b46;color:#fff;border-radius:4px;padding:0 4px;margin-left:4px}
+.stage .mk{font-size:12px;color:var(--dim);flex:none}
+.stage.done .mk{color:var(--hp);font-weight:800}
+.talk{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;min-height:150px;cursor:pointer}
+.talk>img{width:84px;height:84px;object-fit:contain;flex:none}
+.talk>div:first-of-type{flex:1;min-width:0}
+.talk b{color:var(--gold)}
+.talk p{margin:4px 0 0;font-size:15px;line-height:1.55}
+.talk.narr p{color:var(--dim);font-style:italic}
+.tk{width:100%;display:flex;justify-content:space-between;align-items:center;color:var(--dim);font-size:12px}
+.tk .ghost{padding:6px 10px;font-size:12px}
+.mon.foe.boss{height:46%;right:4%;top:2%}
 /* 고르기 창 */
 #modal{position:fixed;inset:0;background:rgba(5,10,15,.72);display:flex;align-items:flex-end;justify-content:center;z-index:5}
 #modal[hidden]{display:none}
