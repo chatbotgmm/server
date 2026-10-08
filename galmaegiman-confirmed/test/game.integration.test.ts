@@ -955,6 +955,48 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await app.inject({method:'GET',url:'/'})).body).toContain('rel="manifest"');
     }finally{await app.close();}
   });
+  it('안드로이드 앱: 앱 주소만 허용(CORS), 토큰 머리글 로그인, 카카오 앱 로그인은 한 번 쓰는 코드+비밀값 교환',async()=>{
+    const fakeFetch=(async(url:string|URL)=>String(url).includes('/oauth/token')?new Response(JSON.stringify({access_token:'t'}),{status:200}):new Response(JSON.stringify({id:8080}),{status:200})) as typeof fetch;
+    const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com',kakaoLogin:{restKey:'0123456789abcdef0123456789abcdef'},fetch:fakeFetch});
+    try{
+      const pre=await app.inject({method:'OPTIONS',url:'/my/api/me',headers:{origin:'https://localhost','access-control-request-headers':'x-gmm,x-gmm-s'}});
+      expect(pre.statusCode).toBe(204);expect(pre.headers['access-control-allow-origin']).toBe('https://localhost');
+      expect((await app.inject({method:'GET',url:'/my/api/who',headers:{origin:'https://evil.example','x-gmm':'1'}})).headers['access-control-allow-origin']).toBeUndefined();
+      const code=/(\d{6})/.exec((await send('웹 로그인')).text!)![1];
+      const login=await app.inject({method:'POST',url:'/my/api/login',payload:{code},headers:{'x-gmm':'1','x-gmm-app':'1',origin:'https://localhost'}});
+      const token=(login.json() as {token:string}).token;expect(token).toMatch(/\./);
+      expect((await app.inject({method:'GET',url:'/my/api/me',headers:{'x-gmm':'1','x-gmm-s':token}})).statusCode).toBe(200);
+      expect((await app.inject({method:'GET',url:'/my/api/me',headers:{'x-gmm':'1','x-gmm-s':token.slice(0,-2)+'xx'}})).statusCode).toBe(401);
+      // 카카오 앱 로그인(이미 연결된 계정)
+      const p=await db.player.findUniqueOrThrow({where:{identity:actor}});
+      await db.kakaoLink.create({data:{kakaoId:'8080',playerId:p.id}});
+      const {createHash}=await import('node:crypto');
+      const verifier='v'.repeat(50),challenge=createHash('sha256').update(verifier).digest('base64url');
+      const start=await app.inject({method:'GET',url:`/my/kakao?app=1&c=${challenge}`});
+      const state=new URL(String(start.headers.location)).searchParams.get('state')!;
+      const ck=(start.headers['set-cookie'] as string[]).map(c=>c.split(';')[0]).filter(c=>!/=$/.test(c)).join('; ');
+      const cb=await app.inject({method:'GET',url:`/my/kakao/callback?code=x&state=${state}`,headers:{cookie:ck}});
+      const loc=String(cb.headers.location);expect(loc).toMatch(/^gmmapp:\/\/auth\?code=/);
+      const one=new URL(loc).searchParams.get('code')!;
+      const ex=(body:object)=>app.inject({method:'POST',url:'/my/api/app/exchange',payload:body,headers:{'x-gmm':'1',origin:'https://localhost'}});
+      expect((await ex({code:one,verifier:'w'.repeat(50)})).statusCode).toBe(400);   // 비밀값 틀림(코드도 버려짐)
+      const cb2=await app.inject({method:'GET',url:`/my/kakao/callback?code=x&state=${state}`,headers:{cookie:ck}});
+      const two=new URL(String(cb2.headers.location)).searchParams.get('code')!;
+      const okx=await ex({code:two,verifier});
+      expect(okx.statusCode).toBe(200);
+      const t2=(okx.json() as {token:string}).token;
+      expect((await app.inject({method:'GET',url:'/my/api/who',headers:{'x-gmm':'1','x-gmm-s':t2}})).statusCode).toBe(200);
+      expect((await ex({code:two,verifier})).statusCode).toBe(400);                  // 한 번만
+    }finally{await app.close();}
+    // 심사용 코드: 정해 둔 경우만, 심사 전용 계정으로
+    const rv=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com',reviewCode:'424242'});
+    try{
+      const r=await rv.inject({method:'POST',url:'/my/api/login',payload:{code:'424242'},headers:{'x-gmm':'1','x-gmm-app':'1'}});
+      expect(r.statusCode).toBe(200);
+      const me=(await rv.inject({method:'GET',url:'/my/api/me',headers:{'x-gmm':'1','x-gmm-s':(r.json() as {token:string}).token}})).json() as {nickname:string};
+      expect(me.nickname).toBe('심사용 수비대원');
+    }finally{await app.close();}
+  });
   it('공개 웹 랭킹: 카톡과 같은 순위, 닉네임 표시, 히든·최상위 가림, 관리자 모드 제외',async()=>{
     const mk=async(identity:string,nickname:string|null,ids:string[],adminMode=false)=>{
       const p=await db.player.create({data:{identity,nickname,tutorial:5,adminMode}});
@@ -1193,7 +1235,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.70'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.71'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

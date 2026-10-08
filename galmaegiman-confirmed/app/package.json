@@ -1,0 +1,22 @@
+{
+  "name": "galmaegiman-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "갈매미맨 안드로이드 앱(Capacitor). 화면은 ../public/my 를 앱 안에 넣고, 서버는 gmm.dpdns.org",
+  "scripts": {
+    "www": "node build-www.mjs",
+    "sync": "node build-www.mjs && npx cap sync android",
+    "open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/browser": "8.0.5",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/local-notifications": "8.3.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3"
+  }
+}

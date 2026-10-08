@@ -1,6 +1,6 @@
 // 웹 「내 갈매미」(/my): 카톡에서 받은 6자리 코드로 로그인 → 내 갈매미 목록·전투 편성·탐험 편성
 // 로그인 상태는 서명된 쿠키(30일). 쿠키에는 플레이어 id와 만료 시각만, 서명 키는 SKILL_SECRET에서 따로 계산
-import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -9,9 +9,11 @@ import type { GameService } from './game.js';
 import { GameError } from './types.js';
 import { loadBattleRules } from './battle/load.js';
 
-const COOKIE='gmm_s',DAYS=30,KSTATE='gmm_ks',KPEND='gmm_kp';
+const COOKIE='gmm_s',DAYS=30,KSTATE='gmm_ks',KPEND='gmm_kp',KAPP='gmm_ka';
+// 안드로이드 앱(Capacitor) 화면 주소. 앱에서 오는 요청만 다른 주소에서 받음(CORS)
+const APP_ORIGINS=new Set(['https://localhost','capacitor://localhost','http://localhost']);
 export interface KakaoLogin {restKey:string;clientSecret?:string}
-export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string;secret:string;baseUrl:()=>Promise<string>;kakao?:KakaoLogin;fetch?:typeof fetch}){
+export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string;secret:string;baseUrl:()=>Promise<string>;kakao?:KakaoLogin;fetch?:typeof fetch;reviewCode?:string}){
   const key=createHmac('sha256',opt.secret).update('web-session').digest();
   const sign=(v:string)=>createHmac('sha256',key).update(v).digest('base64url');
   const issue=(playerId:string)=>{const exp=Math.floor(Date.now()/1000)+DAYS*86400,v=`${playerId}.${exp}`;return `${v}.${sign(v)}`;};
@@ -26,7 +28,18 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     if(want.length!==got.length||!timingSafeEqual(want,got)||Number(exp)<Date.now()/1000)return null;
     return id;
   };
-  const session=(req:FastifyRequest)=>unsign('',cookie(req,COOKIE));
+  // 웹은 쿠키, 앱은 머리글(x-gmm-s)에 같은 서명 값
+  const session=(req:FastifyRequest)=>{const h=req.headers['x-gmm-s'];return unsign('',typeof h==='string'&&h.length<200?h:cookie(req,COOKIE));};
+  app.addHook('onRequest',async(req,reply)=>{
+    if(!req.url.startsWith('/my/api/'))return;
+    const o=req.headers.origin;
+    if(typeof o!=='string'||!APP_ORIGINS.has(o))return;
+    reply.header('Access-Control-Allow-Origin',o).header('Vary','Origin')
+      .header('Access-Control-Allow-Headers','content-type,x-gmm,x-gmm-s,x-gmm-app').header('Access-Control-Allow-Methods','GET,POST').header('Access-Control-Max-Age','600');
+    if(req.method==='OPTIONS')return reply.code(204).send();
+  });
+  // 앱 카카오 로그인: 브라우저에서 로그인 → 앱으로 한 번 쓰는 코드만 보냄 → 앱이 처음 만든 비밀값(verifier)으로 토큰 교환(PKCE)
+  const appCodes=new Map<string,{player:string;challenge:string;exp:number}>();
   // https로 들어온 요청이면 Secure 쿠키(클라우드플레어 터널 뒤라 전달 헤더로 판단)
   const secure=(req:FastifyRequest)=>/https/.test(String(req.headers['cf-visitor']??req.headers['x-forwarded-proto']??''));
   const cookieLine=(req:FastifyRequest,name:string,value:string,maxAge:number)=>`${name}=${value}; Path=/my; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${secure(req)?'; Secure':''}`;
@@ -45,7 +58,8 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
   app.post<{Body:{code?:unknown}}>('/my/api/login',{config:{rateLimit:{max:10,timeWindow:'1 minute',keyGenerator:ipKey('mylogin')}}},async(req,reply)=>{
     if(!guard(req,reply))return;
     const code=typeof req.body?.code==='string'?req.body.code.replace(/\s/g,''):'';
-    const playerId=await game.webLoginCode(code);
+    // 스토어 심사용 코드(.env REVIEW_CODE): 심사 전용 계정으로만 들어감
+    const playerId=opt.reviewCode&&code===opt.reviewCode?await game.webReviewPlayer():await game.webLoginCode(code);
     if(!playerId)return reply.code(400).send({error:'코드가 맞지 않거나 시간이 지났어요. 카톡에서 「웹 로그인」을 다시 보내 새 코드를 받아 주세요.'});
     // 카카오로 로그인하다 넘어온 경우: 이번 로그인한 계정에 그 카카오 계정을 연결
     const kakaoId=unsign('kp.',cookie(req,KPEND));
@@ -54,8 +68,9 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
       try{await game.webLinkKakao(playerId,kakaoId);kakao='linked';}
       catch(e){if(!(e instanceof GameError))throw e;kakao=e.message;}
     }
-    reply.header('Set-Cookie',[cookieLine(req,COOKIE,issue(playerId),DAYS*86400),...(kakaoId?[cookieLine(req,KPEND,'',0)]:[])]);
-    return {ok:true,kakao};
+    const token=issue(playerId);
+    reply.header('Set-Cookie',[cookieLine(req,COOKIE,token,DAYS*86400),...(kakaoId?[cookieLine(req,KPEND,'',0)]:[])]);
+    return {ok:true,kakao,...(req.headers['x-gmm-app']==='1'?{token}:{})};
   });
   app.post('/my/api/logout',async(req,reply)=>{if(!guard(req,reply))return;setCookie(req,reply,'',0);return {ok:true};});
   const limit={config:{rateLimit:{max:120,timeWindow:'1 minute',keyGenerator:ipKey('myapi')}}};
@@ -136,6 +151,16 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     setCookie(req,reply,'',0);
     return {ok:true};
   });
+  app.post<{Body:{code?:unknown;verifier?:unknown}}>('/my/api/app/exchange',{config:{rateLimit:{max:10,timeWindow:'1 minute',keyGenerator:ipKey('myapp')}}},async(req,reply)=>{
+    if(!guard(req,reply))return;
+    const code=typeof req.body?.code==='string'?req.body.code:'',verifier=typeof req.body?.verifier==='string'?req.body.verifier:'';
+    const e=appCodes.get(code);
+    appCodes.delete(code);   // 한 번만
+    if(!e||e.exp<Date.now()||verifier.length<43||verifier.length>128)return reply.code(400).send({error:'로그인을 다시 해 주세요.'});
+    const want=Buffer.from(e.challenge),got=Buffer.from(createHash('sha256').update(verifier).digest('base64url'));
+    if(want.length!==got.length||!timingSafeEqual(want,got))return reply.code(400).send({error:'로그인을 다시 해 주세요.'});
+    return {token:issue(e.player)};
+  });
   act('/my/api/kakao/unlink',id=>game.webLinkKakao(id,null));
 
   // ── 수비대 대결 스토리: 진행 저장(계정), 대결 중 아이템 ──
@@ -192,9 +217,11 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
   app.get('/my/kakao',async(req,reply)=>{
     if(!kakao)return reply.code(404).send({error:'not found'});
     const state=randomBytes(16).toString('base64url');
+    const q=req.query as {app?:string;c?:string};
+    const appC=q.app==='1'&&typeof q.c==='string'&&/^[A-Za-z0-9_-]{43}$/.test(q.c)?q.c:null;
     const u=new URL('https://kauth.kakao.com/oauth/authorize');
     u.search=new URLSearchParams({client_id:kakao.restKey,redirect_uri:`${await origin(req)}/my/kakao/callback`,response_type:'code',state}).toString();
-    reply.header('Set-Cookie',cookieLine(req,KSTATE,state,600));
+    reply.header('Set-Cookie',[cookieLine(req,KSTATE,state,600),cookieLine(req,KAPP,appC??'',appC?600:0)]);
     return reply.redirect(u.toString());
   });
   app.get<{Querystring:{code?:string;state?:string;error?:string}}>('/my/kakao/callback',{config:{rateLimit:{max:20,timeWindow:'1 minute',keyGenerator:ipKey('mykakao')}}},async(req,reply)=>{
@@ -214,6 +241,13 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
       kakaoId=String(u.id);
     }catch(e){req.log.warn({err:String(e)},'kakao login failed');return back(reply.header('Set-Cookie',clear),'?kakao=fail');}
     const linked=await game.webKakaoPlayer(kakaoId);
+    const appC=cookie(req,KAPP);
+    if(linked&&appC&&/^[A-Za-z0-9_-]{43}$/.test(appC)){
+      for(const [k,v] of appCodes)if(v.exp<Date.now())appCodes.delete(k);
+      const code=randomBytes(18).toString('base64url');
+      appCodes.set(code,{player:linked,challenge:appC,exp:Date.now()+120_000});
+      return reply.header('Set-Cookie',[clear,cookieLine(req,KAPP,'',0)]).redirect(`gmmapp://auth?code=${code}`);
+    }
     if(linked)return back(reply.header('Set-Cookie',[clear,cookieLine(req,COOKIE,issue(linked),DAYS*86400)]),'');
     const now=session(req);
     if(now){   // 이미 코드로 로그인한 상태에서 「카카오 연결」

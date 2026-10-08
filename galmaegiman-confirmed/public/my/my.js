@@ -2,15 +2,18 @@
 (() => {
   const app = document.getElementById('app'), toastEl = document.getElementById('toast');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // 안드로이드 앱: 화면은 앱 안에 있고(GMM_BASE = 서버 주소), 로그인은 쿠키 대신 토큰 머리글(x-gmm-s)
+  const BASE = window.GMM_BASE || '', APP = window.gmmApp || null;
   const api = async (path, body) => {
-    const r = await fetch(`/my/api/${path}`, body === undefined ? { headers: { 'x-gmm': '1' } } : { method: 'POST', headers: { 'content-type': 'application/json', 'x-gmm': '1' }, body: JSON.stringify(body) });
+    const h = { 'x-gmm': '1', ...(APP ? { 'x-gmm-app': '1', ...(APP.token() ? { 'x-gmm-s': APP.token() } : {}) } : {}) };
+    const r = await fetch(`${BASE}/my/api/${path}`, body === undefined ? { headers: h } : { method: 'POST', headers: { 'content-type': 'application/json', ...h }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({}));
-    if (r.status === 401) { auth = j; loginScreen(); throw new Error('login'); }
+    if (r.status === 401) { if (APP && path !== 'login') APP.setToken(null); auth = j; loginScreen(); throw new Error('login'); }
     if (!r.ok) throw new Error(j.error || `오류(${r.status})`);
     return j;
   };
   const toast = t => { toastEl.textContent = t; toastEl.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.classList.remove('on'), 1800); };
-  const thumb = id => `/thumbs/${encodeURIComponent(id)}.jpg`;
+  const thumb = id => `${BASE}/thumbs/${encodeURIComponent(id)}.jpg`;
   const head = right => `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span><a class="hl" href="/dex" title="도감">📚<span class="lt"> 도감</span></a><a class="hl" href="/search" title="검색">🔍</a>${right ?? ''}<a class="home" href="/" title="홈">🏠<span class="lt"> 홈</span></a></header>`;
 
   // ── 로그인 ──
@@ -36,7 +39,7 @@
       const code = app.querySelector('#code').value.replace(/\D/g, '');
       if (code.length !== 6) { app.querySelector('#err').textContent = '6자리 숫자를 입력해 주세요.'; return; }
       app.querySelector('#go').disabled = true;
-      try { const r = await api('login', { code }); if (r.kakao) toast(r.kakao === 'linked' ? '카카오 계정을 연결했어요!' : r.kakao); main(); }
+      try { const r = await api('login', { code }); if (APP && r.token) APP.setToken(r.token); if (r.kakao) toast(r.kakao === 'linked' ? '카카오 계정을 연결했어요!' : r.kakao); main(); }
       catch (e) { app.querySelector('#err').textContent = e.message; app.querySelector('#go').disabled = false; }
     };
     app.querySelector('#go').onclick = go;
@@ -51,7 +54,7 @@
   let me, tab = fromHash() ?? 'draw', filter = 'all';
   addEventListener('hashchange', () => { const h = fromHash(); if (h && h !== tab && me) { tab = h; if (tab === 'craft') craftData = null; if (tab === 'draw') drawData = null; draw(); } });
   async function main() {
-    try { me = await api('me'); if (kmsg && !main.shown) { main.shown = 1; toast(kmsg); } } catch (e) { if (e.message !== 'login') app.innerHTML = `${head()}<p class="empty">${esc(e.message)}</p>`; return; }
+    try { me = await api('me'); APP?.onMe(me); if (kmsg && !main.shown) { main.shown = 1; toast(kmsg); } } catch (e) { if (e.message !== 'login') app.innerHTML = `${head()}<p class="empty">${esc(e.message)}</p>`; return; }
     draw();
   }
   function draw() {
@@ -61,7 +64,7 @@
         <div class="money"><div><b>🍤 ${me.snack}</b><small>새우깡</small></div><div><b>🥜 ${me.peanut}</b><small>땅콩</small></div><div><b>🎫 ${me.credits}</b><small>뽑기권</small></div><div><b>${me.units.reduce((a, u) => a + u.have, 0)}</b><small>가진 갈매미</small></div></div></div>
       <div class="tabs">${tabs.map(([k, t]) => `<button data-t="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>
       <div id="body"></div>`;
-    app.querySelector('#out').onclick = async () => { await api('logout', {}).catch(() => {}); loginScreen('로그아웃했어요.'); };
+    app.querySelector('#out').onclick = async () => { await api('logout', {}).catch(() => {}); APP?.setToken(null); loginScreen('로그아웃했어요.'); };
     app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; if (tab === 'craft') craftData = null; if (tab === 'draw') drawData = null; history.replaceState(null, '', `#${tab}`); draw(); });
     ({ draw: drawTab, units, craft, battle, party, items, shop, account })[tab](app.querySelector('#body'));
   }
@@ -106,7 +109,7 @@
   // 실행 → 결과 알림 → 다시 불러오기
   const run = async (path, body, confirmText) => {
     if (confirmText && !confirm(confirmText)) return;
-    try { const r = await api(path, body ?? {}); const t = typeof r.result === 'string' ? r.result : ''; toast(t.split('\n')[0] || '완료!'); me = await api('me'); draw(); }
+    try { const r = await api(path, body ?? {}); const t = typeof r.result === 'string' ? r.result : ''; toast(t.split('\n')[0] || '완료!'); me = await api('me'); APP?.onMe(me); draw(); }
     catch (e) { if (e.message !== 'login') toast(e.message.split('\n')[0]); }
   };
 
@@ -126,17 +129,17 @@
         ${g.kind === 'HIGH' && d.pity ? `<small>🎯 ${esc(d.pity.tierName)} 보장까지 ${d.pity.left}회</small>` : ''}
         <div class="row">${[1, 5, 10].map(n => `<button class="btn ${n === 1 ? '' : 'ghost'}" data-k="${g.kind}" data-n="${n}" ${credits >= g.cost * n ? '' : 'disabled'}>${n}회<small>🎟 ${g.cost * n}</small></button>`).join('')}</div></div></div>`).join('')}</div>
       <p class="note">결과·보상·미션은 카톡과 같이 계정에 바로 들어가요.</p>`;
-    el.querySelector('#claim').onclick = async () => { try { const r = await api('claim', {}); toast(String(r.result).split('\n')[0]); drawData = null; me = await api('me'); draw(); } catch (e) { if (e.message !== 'login') toast(e.message.split('\n')[0]); } };
+    el.querySelector('#claim').onclick = async () => { try { const r = await api('claim', {}); toast(String(r.result).split('\n')[0]); drawData = null; me = await api('me'); APP?.onMe(me); draw(); } catch (e) { if (e.message !== 'login') toast(e.message.split('\n')[0]); } };
     el.querySelectorAll('[data-k]').forEach(b => b.onclick = async () => {
       el.querySelectorAll('[data-k]').forEach(x => { x.disabled = true; });
-      try { drawLast = (await api('draw', { kind: b.dataset.k, times: +b.dataset.n })).result; drawData = null; me = await api('me'); draw(); scrollTo({ top: 0, behavior: 'smooth' }); }
+      try { drawLast = (await api('draw', { kind: b.dataset.k, times: +b.dataset.n })).result; APP?.onDraw(drawLast.items); drawData = null; me = await api('me'); APP?.onMe(me); draw(); scrollTo({ top: 0, behavior: 'smooth' }); }
       catch (e) { if (e.message !== 'login') { toast(e.message.split('\n')[0]); drawData = null; drawTab(el); } }
     });
   }
 
   // 조합: 카톡 「조합」과 같은 처리. 만들 수 있는 것 / 전체 조합식(등급·이름 찾기) / 재료로 섞기(숨은 조합 찾기)
   let craftView = 'ready', craftGrade = 'all', craftQ = '', mixPick = [], craftData = null;
-  const cimg = img => `/thumbs/${encodeURIComponent(img)}.jpg`;
+  const cimg = img => `${BASE}/thumbs/${encodeURIComponent(img)}.jpg`;
   // 조합 결과(카톡 답장과 같은 글)를 창으로 보여 줌
   const showResult = text => {
     const box = document.createElement('div'); box.className = 'result';
@@ -173,7 +176,7 @@
     el.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { craftView = b.dataset.v; craft(el); });
     el.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { craftGrade = b.dataset.g; craft(el); });
     const q = el.querySelector('#cq'); if (q) { q.oninput = () => { craftQ = q.value.trim(); clearTimeout(q.t); q.t = setTimeout(() => { craft(el); const n = el.querySelector('#cq'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 250); }; }
-    const done = async text => { showResult(text); craftData = null; mixPick = []; try { me = await api('me'); } catch { /* 무시 */ } draw(); };
+    const done = async text => { showResult(text); craftData = null; mixPick = []; try { me = await api('me'); APP?.onMe(me); } catch { /* 무시 */ } draw(); };
     el.querySelectorAll('[data-c]').forEach(b => b.onclick = async () => {
       const r = recipes.find(x => x.id === b.dataset.c), n = +b.dataset.n;
       if ((r.confirm || n > 1) && !confirm(`재료 ${r.materials.reduce((a, m) => a + m.need, 0) * n}마리를 써서 ${r.name}${n > 1 ? ` ${n}개` : ''}를 만들까요?`)) return;
@@ -268,13 +271,13 @@
         <input id="delc" class="search" placeholder="확인을 위해 탈퇴 라고 적어 주세요" autocomplete="off">
         <button class="btn wide" id="del" style="background:var(--bad);box-shadow:0 3px 0 #7a1f17" disabled>계정 삭제</button></div>`;
     el.querySelector('#unlink2')?.addEventListener('click', () => run('kakao/unlink', {}, '카카오 계정 연결을 끊을까요? 그다음엔 카톡 코드로 로그인해요.'));
-    el.querySelector('#out2').onclick = async () => { await api('logout', {}).catch(() => {}); loginScreen('로그아웃했어요.'); };
+    el.querySelector('#out2').onclick = async () => { await api('logout', {}).catch(() => {}); APP?.setToken(null); loginScreen('로그아웃했어요.'); };
     const c = el.querySelector('#delc'), d = el.querySelector('#del');
     c.oninput = () => { d.disabled = c.value.trim() !== '탈퇴'; };
     d.onclick = async () => {
       if (!confirm('정말 계정을 삭제할까요? 되돌릴 수 없어요.')) return;
       d.disabled = true;
-      try { await api('account/delete', { confirm: '탈퇴' }); app.innerHTML = `${head()}<div class="card login"><h2 style="font-weight:400">계정을 삭제했어요</h2><p class="note">그동안 갈매미 섬을 지켜 주셔서 고마워요. 🫡</p><a class="btn wide" href="/">홈으로</a></div>`; }
+      try { await api('account/delete', { confirm: '탈퇴' }); APP?.setToken(null); app.innerHTML = `${head()}<div class="card login"><h2 style="font-weight:400">계정을 삭제했어요</h2><p class="note">그동안 갈매미 섬을 지켜 주셔서 고마워요. 🫡</p><a class="btn wide" href="/">홈으로</a></div>`; }
       catch (e) { if (e.message !== 'login') { toast(e.message); d.disabled = false; } }
     };
   }

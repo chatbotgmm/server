@@ -1115,6 +1115,12 @@ export class GameService {
       return true;
     });
   }
+  // 스토어 심사 전용 계정(없으면 만들고 튜토리얼은 끝난 상태, 뽑기권 넉넉히)
+  async webReviewPlayer(){
+    const identity='review:store';
+    const p=await this.db.player.upsert({where:{identity},create:{identity,nickname:'심사용 수비대원',tutorial:5,credits:500,snack:5000},update:{}});
+    return p.id;
+  }
   async webWho(playerId:string){
     const p=await this.db.player.findUnique({where:{id:playerId},select:{nickname:true,credits:true}});
     return p?{nickname:p.nickname,credits:p.credits}:null;
@@ -1134,7 +1140,7 @@ export class GameService {
     const units=[...by].map(([id,e])=>{const c=this.content.map.get(id)!;return {id,name:c.name,tier:c.rarity,tierName:rarityNames[c.rarity],top:topTiers.has(c.rarity),synergy:c.synergy??null,...e};})
       .sort((a,b)=>tiers[b.tier]-tiers[a.tier]||this.content.map.get(a.id)!.position-this.content.map.get(b.id)!.position);
     const ids=(s:string)=>s?s.split(',').filter(id=>this.content.map.has(id)):[];
-    return {nickname:p.nickname,snack:p.snack,peanut:p.peanut,credits:p.credits,kakao:kakao>0,dex,dexTotal:this.content.characters.length,units,
+    return {nickname:p.nickname,snack:p.snack,peanut:p.peanut,credits:p.credits,kakao:kakao>0,claimReadyAt:new Date((p.lastClaimAt?.getTime()??0)+this.content.economy.tickets.cooldownHours*3_600_000).toISOString(),dex,dexTotal:this.content.characters.length,units,
       battleTeam:ids(p.battleTeam),party:ids(p.partyDraft),
       trip:trip?{endsAt:trip.endsAt.toISOString(),units:(trip.unitIds as string[]).map(id=>this.content.map.get(id)?.name??id)}:null};
   }
