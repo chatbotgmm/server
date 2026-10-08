@@ -139,7 +139,7 @@ try{const r=await fetch('/api/comments/'+b.dataset.id+'/like',{method:'POST'});i
 <title>${esc(title)} · 갈매미맨</title>
 <meta name="description" content="${esc(og.desc??'돌로 된 갈매미들이 항구 수비대에 출근하는 섬, 갈매미 섬 이야기')}">
 <meta property="og:type" content="website"><meta property="og:site_name" content="갈매미맨"><meta property="og:description" content="${esc(og.desc??'돌로 된 갈매미들이 항구 수비대에 출근하는 섬, 갈매미 섬 이야기')}">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%AA%A8%3C/text%3E%3C/svg%3E">
 <meta property="og:title" content="${esc(title)} · 갈매미맨"><meta property="og:image" content="${site}${og.image??img('images','C1')}">
 <style>
@@ -148,8 +148,8 @@ try{const r=await fetch('/api/comments/'+b.dataset.id+'/like',{method:'POST'});i
 @media (prefers-color-scheme:dark){:root{--c1:#7db4ff;--c2:#ff8a7a;--c3:#5fd3c3;--c4:#b9a0ff;--c5:#f2b84b;--c6:#ff92c2;--bg:#121820;--card:#1c242e;--text:#ececec;--muted:#a3a9b1;--line:#2d3845;--edge:#0c1117;--accent:#8fc1f0;--accent-soft:#22324a;
  --sea1:#1f5d99;--sea2:#0e2c4d;--sky:#1d4a78;--shadow:0 2px 0 var(--edge),0 10px 24px rgba(0,0,0,.25)}}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
-h1,h2,.logo,.stat b,.links a b,.today h3{font-family:"Jua",system-ui,sans-serif;font-weight:400;letter-spacing:.01em}
-/* 사이트 전체 Jua(굵기 1개뿐): 가짜 굵게를 끄고, 강조는 색으로 */
+/* 글꼴: 제목·버튼·메뉴·이름은 Black Han Sans, 본문은 Gowun Dodum(둘 다 굵기 1개뿐이라 강조는 색으로) */
+h1,h2,h3,.logo,.stat b,.links a b,.today h3,header nav a,.mylink,.btn,.play,.tabs a,.chip,.badge,.tabbar a,.hstats,.more a,.tag,.rank .no,.rank .sc,.mini .sc,.title,.like,form.search button{font-family:"Black Han Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-weight:400;letter-spacing:.01em}
 body{font-synthesis:none}
 p b,p strong,li b,li strong,.prose td b,.prose td strong{color:var(--accent)}
 .event b,.event strong{color:#a0461a}
@@ -179,7 +179,7 @@ body{background-image:radial-gradient(var(--line) 1px,transparent 1.2px),linear-
 header .play{flex:none;box-shadow:0 3px 0 #c9b200}
 @media (max-width:899px){.mylink{display:none}header .play span{display:none}header .play{padding:9px 11px}}
 .play.big{padding:13px 24px;font-size:1.08rem;box-shadow:0 4px 0 #c9b200,0 8px 20px rgba(254,229,0,.35)}
-body{margin:0;background:var(--bg);color:var(--text);font-family:"Jua",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;line-height:1.65;word-break:keep-all;overflow-wrap:anywhere}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;line-height:1.7;word-break:keep-all;overflow-wrap:anywhere}
 a{color:var(--accent)}
 /* 머리말: 바다색 한 줄(로고 · 메뉴 · 검색 · 로그인 · 카톡 플레이). 검색은 🔍로 펼침 */
 header{background:linear-gradient(180deg,var(--sea1),var(--sea2));color:#fff;position:sticky;top:0;z-index:25;box-shadow:0 2px 0 rgba(0,0,0,.12)}
