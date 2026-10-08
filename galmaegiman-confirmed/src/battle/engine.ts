@@ -27,7 +27,7 @@ function makeFighter(R:Rules,rec:UnitRecord,side:0|1,combo?:Skill):Fighter{
   const s=statsOf(R,rec),passive=passiveOf(R,rec);
   const sigCd=Math.max(1,def.signature.cd-(passive.sigCd??0));
   return {side,rec,name:rec.name,scale:levelScale(R,rec),attr:def.attr,role:def.role,peanut:rec.name.includes('갈매미맨'),passive,
-    skills:[R.basicSkill(def.attr),R.roleSkill(def.role,def.attr),{...def.signature,cd:sigCd},...(def.sub&&def.sub!==def.attr?[R.subSkill(def.sub)]:[]),
+    skills:[{...R.basicSkill(def.attr),...(def.basic?{name:def.basic}:{})},R.roleSkill(def.role,def.attr),{...def.signature,cd:sigCd},...(def.sub&&def.sub!==def.attr?[R.subSkill(def.sub)]:[]),
       ...(rec.learned??[]).map(id=>R.learnSkill(id,def.attr)).filter((k):k is Skill=>!!k),...(combo?[combo]:[])],
     maxHp:s.hp,hp:s.hp,base:{atk:s.atk,def:s.def,spd:s.spd},cds:{},mods:[],status:{},guards:[],regens:[],
     endure:0,protect:false,recharge:false,immune:0,lockAtk:0,lastStandUsed:false,attacked:false,actedTurn:0,hitBy:{}};

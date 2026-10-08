@@ -30,6 +30,17 @@ function villainArt(id) {
     <circle cx="112" cy="78" r="34" fill="#f4f1ea" stroke="#5a4636" stroke-width="4"/><path d="M80 66 Q112 34 144 66 L140 74 Q112 52 84 74Z" fill="#d63a3a" stroke="#5a4636" stroke-width="3"/>
     <path d="M70 82 L46 90 L72 96Z" fill="#f2a33a" stroke="#5a4636" stroke-width="3"/><circle cx="100" cy="82" r="5" fill="#222"/><path d="M92 72 L108 78" stroke="#222" stroke-width="4"/>
     <path d="M86 172 L80 192 M116 172 L120 192" stroke="#f2a33a" stroke-width="7" stroke-linecap="round"/>`;
+  else if (['V7', 'V8', 'V9', 'V10', 'V11'].includes(id)) {   // 랍매미: 집게 달린 붉은 랍스타
+    const lc = { V7: '#d9483b', V8: '#b5533c', V9: '#d9783b', V10: '#c23a3a', V11: '#8e2f3f' }[id];
+    svg = `<path d="M70 70 Q40 20 20 18 M130 70 Q160 20 180 18" stroke="#5a2a22" stroke-width="3" fill="none"/>
+      <ellipse cx="100" cy="125" rx="40" ry="55" fill="${lc}" stroke="#5a2a22" stroke-width="4"/>
+      <path d="M72 150 L60 190 M88 160 L84 194 M112 160 L116 194 M128 150 L140 190" stroke="#5a2a22" stroke-width="6" stroke-linecap="round"/>
+      <path d="M62 100 Q30 90 26 60" stroke="${lc}" stroke-width="12" fill="none"/><path d="M138 100 Q170 90 174 60" stroke="${lc}" stroke-width="12" fill="none"/>
+      <path d="M8 58 Q26 20 44 52 Q30 48 26 62Z" fill="${lc}" stroke="#5a2a22" stroke-width="4"/><path d="M192 58 Q174 20 156 52 Q170 48 174 62Z" fill="${lc}" stroke="#5a2a22" stroke-width="4"/>
+      <circle cx="86" cy="92" r="9" fill="#fff"/><circle cx="114" cy="92" r="9" fill="#fff"/><circle cx="88" cy="94" r="4" fill="#222"/><circle cx="112" cy="94" r="4" fill="#222"/>
+      <rect x="84" y="118" width="32" height="20" rx="3" fill="#f4f1ea" stroke="#5a2a22" stroke-width="2"/>
+      ${id === 'V10' ? '<path d="M68 70 L132 70 L120 50 L80 50Z" fill="#222"/>' : ''}${id === 'V9' ? '<rect x="76" y="140" width="48" height="26" rx="4" fill="#f0b93a" stroke="#5a2a22" stroke-width="2"/>' : ''}`;
+  }
   else if (id === 'V4') svg = [[70, 150], [110, 150], [150, 152], [90, 115], [130, 115], [110, 82]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="27" fill="${c}" fill-opacity=".75" stroke="#6a8fa3" stroke-width="3"/><circle cx="${x - 7}" cy="${y - 4}" r="4" fill="#3a4a55"/><circle cx="${x + 7}" cy="${y - 4}" r="4" fill="#3a4a55"/><path d="M${x - 8} ${y - 24} L${x - 3} ${y - 36} L${x + 2} ${y - 25} L${x + 7} ${y - 35} L${x + 10} ${y - 23}" fill="#fff8e7" stroke="#b9a27a" stroke-width="2"/>`).join('');
   else {
     const legs = Array.from({ length: 8 }, (_, i) => { const x = 58 + i * 12, ex = 30 + i * 20; return `<path d="M${x} 120 Q${(x + ex) / 2 + (i % 2 ? 10 : -10)} 160 ${ex} 190" stroke="${c}" stroke-width="13" fill="none" stroke-linecap="round"/>`; }).join('');
@@ -171,7 +182,7 @@ function skillSheet(id) {
   const offers = learnOffers(R, rec), tier = R.data.learn.levels[rec.learnUsed ?? 0], full = mine.length >= R.data.learn.slots;
   const nextLv = R.data.learn.levels.find(l => l > rec.level);
   let pick = null, rep = null;
-  const icon = (k, attr) => k.name.includes('똥') ? '💩' : GLYPH[attr] ?? '✨';
+  const icon = (k, attr) => glyphOf(k.name) ?? GLYPH[attr] ?? '✨';
   const card = (k, attr, data, on, note = '') => `<button class="aug ${on ? 'on' : ''}" ${data}><span class="ic">${icon(k, attr)}</span><span class="tx"><b>${esc(k.name)}${note}</b><small>${k.power ? `${esc(R.attrName(attr))} · 위력 ${k.power}${k.hits > 1 ? `×${k.hits}` : ''}` : '보조 기술'}${k.cd ? ` · 재사용 ${k.cd}턴` : ''}</small><span>${esc(k.desc)}</span></span><span class="ck">${on ? '✓' : ''}</span></button>`;
   const draw = () => {
     modal.innerHTML = `<div class="sheet pick">
@@ -413,7 +424,7 @@ async function play(from) {
       const side = [0, 1].find(s => shown(s).name === m[1] && s !== lastAtk) ?? [0, 1].find(s => shown(s).name === m[1]) ?? lastAtk;
       lastAtk = side; lastSkill = shown(side).skills.find(k => k.name === m[2]);
       lunge(side);
-      if (lastSkill?.power) await shoot(side, lastSkill.attr ?? shown(side).attr, lastSkill.hits ?? 1, lastSkill.name.includes('똥') ? '💩' : null);
+      if (lastSkill?.power) await shoot(side, lastSkill.attr ?? shown(side).attr, lastSkill.hits ?? 1, glyphOf(lastSkill.name));
       else if (lastSkill) aura(side, lastSkill.attr ?? shown(side).attr);
       wait = lastSkill?.power ? 120 : 600;
     } else if ((m = line.match(/화상으로 (\d+) 피해/))) {
@@ -497,6 +508,8 @@ function faint(s) {
 }
 // 속성별로 날아가는 효과(그림 없이 글자 그림 + 빛 꼬리)
 const GLYPH = { STONE: '🪨', GOLD: '🪙', FIRE: '🔥', ICE: '❄️', BLOSSOM: '🌸', SEA: '💧', SHADOW: '🌑', STAR: '⭐', THREAD: '🧵', GRAVITY: '🌀' };
+// 기술 이름으로 정해지는 그림(기본기): 똥폭탄 💩, 먹물 ⚫, 집게 🦞
+const glyphOf = name => name.includes('똥') ? '💩' : name.includes('먹물') ? '⚫' : name.includes('집게') ? '🦞' : null;
 function shoot(from, attr, hits, glyph) {
   const [x0, y0] = center(from), [x1, y1] = center(1 - from), fx = document.getElementById('fx'), n = Math.min(5, Math.max(2, hits + 1));
   return new Promise(res => {

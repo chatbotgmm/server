@@ -171,3 +171,12 @@ describe('합동기·기술 배우기',()=>{
     expect(b.sides[0].fighters[0].skills.filter(k=>k.id.startsWith('learn-'))).toHaveLength(2);
   });
 });
+
+describe('빌런 기본기 이름',()=>{
+  it('쭈매미는 먹물 뿌리기, 랍매미는 집게 꼬집기, 갈매미·끼룩단은 똥폭탄',()=>{
+    const mk=(id:string,i:number):UnitRecord=>({uid:`u${i}`,id,name:id,tier:'LIMITED',level:10,xp:0,stage:0,evoAugs:[]});
+    const b=createBattle(R,[mk('D1',0),mk('V12',1)],[mk('V1',2),mk('V7',3)],1);
+    const basic=(s:0|1,i:number)=>b.sides[s].fighters[i].skills.find(k=>k.id.startsWith('basic-'))!.name;
+    expect([basic(0,0),basic(0,1),basic(1,0),basic(1,1)]).toEqual(['똥폭탄','똥폭탄','먹물 뿌리기','집게 꼬집기']);
+  });
+});
