@@ -6,7 +6,8 @@
   "scripts": {
     "www": "node build-www.mjs",
     "sync": "node build-www.mjs && npx cap sync android",
-    "open": "npx cap open android"
+    "open": "npx cap open android",
+    "publish-apk": "node publish-apk.mjs"
   },
   "dependencies": {
     "@capacitor/android": "8.5.3",

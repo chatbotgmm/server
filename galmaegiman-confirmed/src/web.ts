@@ -3,7 +3,7 @@
 // - 히든: 이름·그림·이야기 대신 ??? 와 단서(발견한 사람이 늘수록 더 열림)
 // - 최상위(제한~불멸): 이름만, 그림은 등급 실루엣, 이야기는 가림
 // 세계관 글은 data/world.md(마크다운)를 고치면 바로 반영됩니다.
-import { readFileSync, statSync } from 'node:fs';
+import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -702,6 +702,17 @@ ${!total&&!players.length?'<p class="note">예: <a href="/search?q=전설">전�
   app.get('/.well-known/assetlinks.json',async(_req,reply)=>{
     try{return reply.type('application/json').header('Cache-Control','public, max-age=3600').send(readFileSync(resolve(options.root,'config/assetlinks.json')));}
     catch{return reply.code(404).send({error:'not found'});}
+  });
+  // 안드로이드 앱 「갈매미맨 수비대」 내려받기(「내 갈매미」 맨 아래 설치 칸). 파일은 app/publish-apk.mjs로 public/app/에 넣음
+  app.get('/app/apk.json',async(_req,reply)=>{
+    try{return reply.type('application/json; charset=utf-8').header('Cache-Control','no-cache').send(readFileSync(resolve(options.root,'public/app/apk.json')));}
+    catch{return reply.code(404).send({error:'not found'});}
+  });
+  app.get('/app/galmaegiman-suhbidae.apk',async(_req,reply)=>{
+    const f=resolve(options.root,'public/app/galmaegiman-suhbidae.apk');
+    if(!existsSync(f))return reply.code(404).send({error:'not found'});
+    return reply.type('application/vnd.android.package-archive').header('Cache-Control','no-cache')
+      .header('Content-Disposition','attachment; filename="galmaegiman-suhbidae.apk"').send(createReadStream(f));
   });
   app.get('/robots.txt',limit,async(_req,reply)=>reply.type('text/plain; charset=utf-8').header('Cache-Control','public, max-age=3600')
     .send(`User-agent: *\nAllow: /\nDisallow: /api/\n${site?`Sitemap: ${site}/sitemap.xml\n`:''}`));

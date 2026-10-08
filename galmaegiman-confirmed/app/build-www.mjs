@@ -10,10 +10,11 @@ mkdirSync(resolve(out, 'images'), { recursive: true });
 
 let html = readFileSync(resolve(root, 'public/my/index.html'), 'utf8');
 // 웹 전용(서비스 워커·앱 정보 파일)은 빼고, 앱 연결부를 my.js 앞에
-html = html.replace(/<script>if\('serviceWorker'[^<]*<\/script>\n?/, '')
+html = html.replace(/<!--install-->[\s\S]*?<!--\/install-->\n?/, '')   // 웹의 「앱 설치」 칸은 앱에선 필요 없음
+  .replace(/<script>if\('serviceWorker'[^<]*<\/script>\n?/, '')
   .replace(/<link rel="manifest"[^>]*>/, '')
   .replace('<script src="/my/my.js"></script>', '<script src="app.js"></script>\n<script src="my.js"></script>');
-if (!html.includes('src="app.js"')) throw new Error('index.html 에서 my.js 줄을 못 찾았어요');
+if (!html.includes('src="app.js"') || html.includes('id="inst"')) throw new Error('index.html 에서 my.js 줄 또는 앱 설치 칸 표시(<!--install-->)를 못 찾았어요');
 // 화면 안 그림 경로(/gull.png 등)는 앱 안 파일로
 html = html.replaceAll('href="/favicon.png"', 'href="favicon.png"').replaceAll('href="/icon-192.png"', 'href="icon-192.png"');
 writeFileSync(resolve(out, 'my.html'), html.replace(', viewport-fit=cover', ''));

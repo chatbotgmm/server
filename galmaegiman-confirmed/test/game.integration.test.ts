@@ -953,6 +953,13 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await app.inject({method:'GET',url:'/sw.js'})).body).toContain('offline.html');
       expect((await app.inject({method:'GET',url:'/icon-512.png'})).headers['content-type']).toBe('image/png');
       expect((await app.inject({method:'GET',url:'/'})).body).toContain('rel="manifest"');
+      // 안드로이드 앱 내려받기(「내 갈매미」 맨 아래 설치 칸)
+      const info=await app.inject({method:'GET',url:'/app/apk.json'});
+      expect(info.statusCode).toBe(200);expect(info.json()).toMatchObject({versionName:expect.any(String),versionCode:expect.any(Number)});
+      const apk=await app.inject({method:'GET',url:'/app/galmaegiman-suhbidae.apk'});
+      expect(apk.headers['content-type']).toBe('application/vnd.android.package-archive');expect(apk.headers['content-disposition']).toContain('attachment');
+      expect(apk.rawPayload.subarray(0,2).toString()).toBe('PK');
+      expect((await app.inject({method:'GET',url:'/my'})).body).toContain('id="inst"');
     }finally{await app.close();}
   });
   it('안드로이드 앱: 앱 주소만 허용(CORS), 토큰 머리글 로그인, 카카오 앱 로그인은 한 번 쓰는 코드+비밀값 교환',async()=>{
@@ -1240,7 +1247,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.73'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.74'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
