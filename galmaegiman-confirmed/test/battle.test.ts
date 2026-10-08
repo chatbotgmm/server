@@ -5,7 +5,7 @@ import { loadBattleRules } from '../src/battle/load.js';
 import { parse } from 'yaml';
 import { readFileSync } from 'node:fs';
 import { addXp, battleXp, canEvolve, learnChances, learnOffers, learnSkill, maxStageAt, statsOf, xpToNext, type UnitRecord } from '../src/battle/growth.js';
-import { act, activeOf, aiChoose, choose, createBattle, legalActions, pending, pickAi, type Battle } from '../src/battle/engine.js';
+import { act, activeOf, aiChoose, choose, createBattle, itemProblem, legalActions, pending, pickAi, type Battle } from '../src/battle/engine.js';
 import { checkStory, loadStory } from '../src/battle/story.js';
 import { expectedAttempts, levelRange, referenceLevel, scoutChance, scoutCopy } from '../src/battle/scout.js';
 
@@ -22,6 +22,32 @@ function play(b:Battle,limit=400){
 }
 
 describe('수비대 대결 데이터', ()=>{
+  it('대결 아이템: 턴을 쓰고 기술보다 먼저, 회복·상태 풀기·다시 일으키기, 대결당 개수 제한', ()=>{
+    const b=createBattle(R,[rec('D6',30),rec('T3',30)],[rec('D4',1)],3);   // 상대는 Lv1이라 몇 턴 맞아도 안 쓰러짐
+    aiChoose(b,0);aiChoose(b,1);
+    const me=activeOf(b,0),per=R.data.itemRules.perBattle;
+    expect(itemProblem(b,0,'potion')).toBe('체력이 가득해요.');
+    expect(itemProblem(b,0,'clear')).toBe('풀 상태 이상이 없어요.');
+    expect(itemProblem(b,0,'feather')).toBe('다시 일으킬 갈매미가 없어요.');
+    expect(itemProblem(b,0,'nope')).toBe('없는 아이템');
+    me.hp=Math.round(me.maxHp*0.2);
+    const turn=b.turn,from=b.log.length;
+    act(b,[{kind:'item',item:'potion'},pickAi(b,1)]);
+    const log=b.log.slice(from);
+    expect(log[0]).toContain('아이템 「치료약」');expect(log[1]).toMatch(/체력이 \d+ 회복됐어요/);   // 상대 기술보다 먼저
+    expect(b.turn).toBe(turn+1);expect(b.phase).toBe('action');
+    me.status={sleep:2};
+    act(b,[{kind:'item',item:'clear'},pickAi(b,1)]);
+    expect(b.log.some(l=>l.includes('정신을 차렸어요'))).toBe(true);
+    b.sides[0].fighters[1].hp=0;
+    expect(itemProblem(b,0,'feather',0)).toBe('다시 일으킬 갈매미가 없어요.');
+    act(b,[{kind:'item',item:'feather',target:1},pickAi(b,1)]);
+    expect(b.sides[0].fighters[1].hp).toBe(Math.round(b.sides[0].fighters[1].maxHp*R.data.items.feather.revive!/100));
+    expect(b.sides[0].itemsUsed).toBe(3);expect(per).toBe(3);
+    me.hp=1;
+    expect(itemProblem(b,0,'potion')).toBe('아이템은 대결 한 번에 3개까지예요.');
+    expect(()=>act(b,[{kind:'item',item:'potion'},pickAi(b,1)])).toThrow();
+  });
   it('10속성: 모두 강점 2·약점 2, 배율 1.5 / 0.67', ()=>{
     for(const a of attrs){
       expect(strongAgainst[a]).toHaveLength(2);

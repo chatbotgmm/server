@@ -43,6 +43,8 @@ model Player {
   webLogins     WebLogin[]
   items         PlayerItem[]
   kakao         KakaoLink?
+  story         StorySave?
+  chatApp       ChatAppUser?
 }
 
 model CharacterDefinition {
@@ -196,6 +198,22 @@ model KakaoLink {
   kakaoId   String   @id
   playerId  String   @unique
   createdAt DateTime @default(now())
+  player    Player   @relation(fields: [playerId], references: [id])
+}
+
+// 수비대 대결 스토리 진행(레벨·경험치·배운 기술·승진·깬 스테이지·팀). JSON 한 덩어리, 웹에서 저장
+model StorySave {
+  playerId  String   @id
+  data      String
+  updatedAt DateTime @updatedAt
+  player    Player   @relation(fields: [playerId], references: [id])
+}
+
+// 챗봇 요청에 카카오 로그인 회원번호(appUserId)가 같이 오면 기록 → 웹 카카오 로그인 때 코드 없이 자동 연결
+model ChatAppUser {
+  appUserId String   @id
+  playerId  String   @unique
+  updatedAt DateTime @updatedAt
   player    Player   @relation(fields: [playerId], references: [id])
 }
 

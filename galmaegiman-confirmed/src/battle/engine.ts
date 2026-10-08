@@ -13,9 +13,10 @@ export interface Fighter {
   endure:number;protect:boolean;recharge:boolean;immune:number;lockAtk:number;lastStandUsed:boolean;attacked:boolean;actedTurn:number;
   extraAttr?:Attr;hitBy:Partial<Record<Attr,number>>;
 }
-interface SideState {fighters:Fighter[];active:number;comboUsed:boolean;augs:string[];offers:string[]|null;needSwitch:boolean;reviveUsed:boolean;goFirst:boolean;neutral:number}
+interface SideState {fighters:Fighter[];active:number;comboUsed:boolean;augs:string[];offers:string[]|null;needSwitch:boolean;reviveUsed:boolean;goFirst:boolean;neutral:number;itemsUsed:number}
 // 교체: '인사 발령' 증강체가 있으면 턴을 안 쓰므로 then(바로 쓸 기술)을 함께 보냄(없으면 AI가 고름)
-export type Action={kind:'skill';skillId:string}|{kind:'switch';to:number;then?:string};
+// 아이템: 그 턴 행동을 쓰고, 기술보다 먼저 쓰임. target = 다시 일으킬 갈매미 순서(다시 출근 깃털)
+export type Action={kind:'skill';skillId:string}|{kind:'switch';to:number;then?:string}|{kind:'item';item:string;target?:number};
 export interface Battle {R:Rules;rng:number;turn:number;phase:'choose'|'action'|'over';winner:0|1|null;sides:[SideState,SideState];log:string[]}
 
 // 같은 시드 → 같은 난수(mulberry32)
@@ -37,7 +38,7 @@ export function createBattle(R:Rules,teamA:UnitRecord[],teamB:UnitRecord[],seed:
   if(!teamA.length||!teamB.length||teamA.length>3||teamB.length>3)throw new Error('팀은 1~3마리');
   // 같은 시너지가 2마리 이상이면 그 유닛들에게 합동기
   const comboFor=(t:UnitRecord[],r:UnitRecord)=>{const k=R.unitDef(r.id)?.syn;if(!k||t.filter(x=>R.unitDef(x.id)?.syn===k).length<2)return undefined;return R.comboSkill(k,R.unitDef(r.id)!.attr);};
-  const side=(t:UnitRecord[],i:0|1):SideState=>({fighters:t.map(r=>makeFighter(R,r,i,comboFor(t,r))),active:0,comboUsed:false,augs:[],offers:null,needSwitch:false,reviveUsed:false,goFirst:false,neutral:0});
+  const side=(t:UnitRecord[],i:0|1):SideState=>({fighters:t.map(r=>makeFighter(R,r,i,comboFor(t,r))),active:0,comboUsed:false,augs:[],offers:null,needSwitch:false,reviveUsed:false,goFirst:false,neutral:0,itemsUsed:0});
   const b:Battle={R,rng:seed|0,turn:1,phase:'choose',winner:null,sides:[side(teamA,0),side(teamB,1)],log:[]};
   // 거울(mirror) 빌런: 상대 팀에 가장 많은 속성을 그대로 비춤(같으면 상대 선두 속성)
   for(const i of [0,1] as const)for(const f of b.sides[i].fighters)if(R.unitDef(f.rec.id)?.mirror){
@@ -214,6 +215,27 @@ function doSwitch(b:Battle,side:0|1,to:number){
   s.active=to;b.log.push(`${josa(out.name,'은는')} 들어가고 ${josa(inn.name,'이가')} 나왔어요!`);
 }
 
+// 아이템을 지금 쓸 수 있는지(못 쓰면 이유). 개수는 엔진 밖(계정)에서 따로 셈
+export function itemProblem(b:Battle,side:0|1,item:string,target?:number):string|null{
+  const it=b.R.data.items?.[item],s=b.sides[side],f=activeOf(b,side);
+  if(!it)return '없는 아이템';
+  if(s.itemsUsed>=(b.R.data.itemRules?.perBattle??0))return `아이템은 대결 한 번에 ${b.R.data.itemRules?.perBattle??0}개까지예요.`;
+  if(it.revive){const t=target===undefined?s.fighters.findIndex(x=>!alive(x)):target;return s.fighters[t]&&!alive(s.fighters[t])?null:'다시 일으킬 갈매미가 없어요.';}
+  if(!alive(f))return '나와 있는 갈매미가 전투불가예요.';
+  if(it.heal&&f.hp>=f.maxHp&&!it.cleanse)return '체력이 가득해요.';
+  if(it.cleanse&&!it.heal&&!Object.keys(f.status).length)return '풀 상태 이상이 없어요.';
+  return null;
+}
+function useItem(b:Battle,side:0|1,item:string,target?:number){
+  const why=itemProblem(b,side,item,target);if(why)throw new Error(why);
+  const it=b.R.data.items[item],s=b.sides[side],f=activeOf(b,side),who=side===0?'내 팀':'상대';
+  s.itemsUsed++;
+  b.log.push(`[${who}] 아이템 「${it.name}」!`);
+  if(it.revive){const t=target===undefined?s.fighters.findIndex(x=>!alive(x)):target,d=s.fighters[t];d.hp=Math.round(d.maxHp*it.revive/100);d.status={};b.log.push(`"앙~" ${josa(d.name,'이가')} 다시 일어났어요!`);}
+  if(it.heal){const before=f.hp;f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*it.heal/100));b.log.push(`${f.name}의 체력이 ${f.hp-before} 회복됐어요.`);}
+  if(it.cleanse){f.status={};b.log.push(`${josa(f.name,'이가')} 정신을 차렸어요! 상태 이상이 풀렸어요.`);}
+}
+
 // 합동기: 팀당 1번, 같은 시너지 동료가 하나 이상 살아 있어야
 function comboReady(b:Battle,side:0|1,sk:Skill){
   if(!sk.id.startsWith('combo-'))return true;
@@ -234,6 +256,7 @@ export function act(b:Battle,actions:[Action,Action]){
   for(const side of [0,1] as const){
     let action=actions[side];
     const s=b.sides[side];
+    if(action.kind==='item'){useItem(b,side,action.item,action.target);continue;}
     if(action.kind==='switch'){
       doSwitch(b,side,action.to);
       if(s.augs.includes('freeswitch'))action=action.then?{kind:'skill',skillId:action.then}:pickAi(b,side);   // 교체가 턴을 안 쓰면 새로 나온 갈매미가 바로 행동

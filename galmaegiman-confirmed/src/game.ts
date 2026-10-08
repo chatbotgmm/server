@@ -1068,9 +1068,27 @@ export class GameService {
       return row.playerId;
     });
   }
-  // 카카오 로그인: 연결된 플레이어 id(없으면 null) / 플레이어에 카카오 회원번호 연결
+  // 카카오 로그인: 연결된 플레이어 id(없으면 null). 연결이 없어도 챗봇이 같은 회원번호(appUserId)를 보낸 적이 있으면 그 플레이어로 자동 연결
   async webKakaoPlayer(kakaoId:string){
-    return (await this.db.kakaoLink.findUnique({where:{kakaoId}}))?.playerId??null;
+    const linked=(await this.db.kakaoLink.findUnique({where:{kakaoId}}))?.playerId;
+    if(linked)return linked;
+    const chat=await this.db.chatAppUser.findUnique({where:{appUserId:kakaoId}});
+    if(!chat)return null;
+    try{await this.webLinkKakao(chat.playerId,kakaoId);return chat.playerId;}catch(e){if(e instanceof GameError)return null;throw e;}
+  }
+  // 챗봇 요청에 온 appUserId 기록(이 서버가 켜진 뒤 처음 본 짝만 DB에 씀). 처음 기록했으면 true
+  private seenApp=new Map<string,string>();
+  async noteChatApp(identity:string,appUserId:string){
+    if(this.seenApp.get(identity)===appUserId)return false;
+    const p=await this.db.player.findUnique({where:{identity},select:{id:true}});
+    if(!p)return false;
+    await this.db.$transaction([
+      this.db.chatAppUser.deleteMany({where:{appUserId,NOT:{playerId:p.id}}}),
+      this.db.chatAppUser.upsert({where:{playerId:p.id},create:{appUserId,playerId:p.id},update:{appUserId}}),
+    ]);
+    if(this.seenApp.size>5000)this.seenApp.clear();
+    this.seenApp.set(identity,appUserId);
+    return true;
   }
   async webLinkKakao(playerId:string,kakaoId:string|null){
     return this.webRun(playerId,async(tx,p)=>{
@@ -1152,6 +1170,29 @@ export class GameService {
       await tx.playerItem.upsert({where:{playerId_itemId:{playerId:p.id,itemId:item.id}},create:{playerId:p.id,itemId:item.id,count},update:{count:{increment:count}}});
       await this.audit(tx,p,'SHOP',{item:`ITEM_${item.id}`,count,snacks:-cost});
       return `🛒 ${item.name} ×${count} 샀어요! 🍤 -${cost}`;
+    });
+  }
+  // 대결 중 아이템 쓰기: 가진 개수에서 1개 빼기(0개면 거절)
+  async webUseItem(playerId:string,item:{id:string;name:string}){
+    return this.webRun(playerId,async(tx,p)=>{
+      const used=await tx.playerItem.updateMany({where:{playerId:p.id,itemId:item.id,count:{gte:1}},data:{count:{decrement:1}}});
+      if(used.count!==1)throw new GameError(`${item.name}이(가) 없어요. 「내 갈매미」 상점에서 살 수 있어요.`);
+      await this.audit(tx,p,'ITEM_USE',{item:item.id});
+      return (await tx.playerItem.findUniqueOrThrow({where:{playerId_itemId:{playerId:p.id,itemId:item.id}}})).count;
+    });
+  }
+  // 스토리 진행(JSON, 모양 검사는 my.ts에서)
+  async webStory(playerId:string):Promise<unknown>{
+    const row=await this.db.storySave.findUnique({where:{playerId}});
+    if(!row)return null;
+    try{return JSON.parse(row.data);}catch{return null;}
+  }
+  async webSaveStory(playerId:string,data:unknown){
+    const text=data===null?null:JSON.stringify(data);
+    return this.webRun(playerId,async(tx,p)=>{
+      if(text===null)await tx.storySave.deleteMany({where:{playerId:p.id}});
+      else await tx.storySave.upsert({where:{playerId:p.id},create:{playerId:p.id,data:text},update:{data:text}});
+      return true;
     });
   }
   async webItems(playerId:string){

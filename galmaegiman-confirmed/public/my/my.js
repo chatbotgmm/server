@@ -144,7 +144,7 @@
   // 아이템: 가진 대결 아이템
   function items(el) {
     const mine = id => me.items.find(i => i.id === id)?.count ?? 0;
-    el.innerHTML = `<div class="card"><b style="font-weight:400">🎒 대결 아이템</b><p class="note">대결 중에 쓰면 그 턴 행동을 써요. 대결 한 번에 ${me.itemRules.perBattle}개까지. 스토리 진행을 계정에 저장하는 다음 업데이트부터 대결에서 쓸 수 있어요.</p></div>
+    el.innerHTML = `<div class="card"><b style="font-weight:400">🎒 대결 아이템</b><p class="note">수비대 대결 스토리에서 「🎒 아이템」으로 써요. 쓰면 그 턴 행동을 쓰고, 대결 한 번에 ${me.itemRules.perBattle}개까지예요.</p></div>
       ${me.itemDefs.map(d => `<div class="card row" style="justify-content:space-between"><div><b style="font-weight:400">${esc(d.name)}</b> <span class="tag">${mine(d.id)}개</span><p class="note" style="margin:2px 0 0">${esc(d.desc)}</p></div></div>`).join('')}`;
   }
 

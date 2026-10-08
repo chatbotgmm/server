@@ -4,6 +4,7 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { z } from 'zod';
 import type { GameService } from './game.js';
 import { GameError } from './types.js';
 import { loadBattleRules } from './battle/load.js';
@@ -97,6 +98,52 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
   });
 
   act('/my/api/kakao/unlink',id=>game.webLinkKakao(id,null));
+
+  // ── 수비대 대결 스토리: 진행 저장(계정), 대결 중 아이템 ──
+  // 진행은 브라우저가 계산해 보냄(스토리는 혼자 하는 모드라 재화 보상 없음). 모양·범위만 검사
+  const storyShape=(R:ReturnType<typeof loadBattleRules>)=>{
+    const unit=z.object({level:z.number().int().min(1).max(R.data.growth.maxLevel),xp:z.number().int().min(0).max(1e9),
+      learned:z.array(z.string().max(30)).max(R.data.learn.slots).optional(),learnUsed:z.number().int().min(0).max(R.data.learn.levels.length).optional(),
+      stage:z.number().int().min(0).max(3).optional(),evoAugs:z.array(z.string().max(30)).max(3).optional()}).strict();
+    return z.object({units:z.record(z.string().regex(/^[DTEI]\d{1,2}$/),unit).refine(u=>Object.keys(u).every(id=>R.units.has(id)),'없는 갈매미'),
+      team:z.array(z.string().max(4)).max(3),cleared:z.array(z.string().max(12)).max(300)}).strict();
+  };
+  app.get('/my/api/story',limit,async(req,reply)=>{
+    if(!guard(req,reply))return;
+    const id=session(req);
+    if(!id)return reply.code(401).send({error:'login'});
+    const me=await game.webMe(id);
+    if(!me)return reply.code(401).send({error:'login'});
+    return reply.header('Cache-Control','no-store').send({data:await game.webStory(id),nickname:me.nickname,battleTeam:me.battleTeam,
+      owned:me.units.filter(u=>u.top).map(u=>u.id),items:await game.webItems(id)});
+  });
+  act<{data?:unknown}>('/my/api/story',async(id,b)=>{
+    if(b.data===null)return game.webSaveStory(id,null);   // 처음부터 다시
+    if(JSON.stringify(b.data??null).length>64_000)throw new GameError('저장할 내용이 너무 커요.');
+    const r=storyShape(loadBattleRules(opt.root)).safeParse(b.data);
+    if(!r.success)throw new GameError('스토리 진행 모양이 맞지 않아요.');
+    return game.webSaveStory(id,r.data);
+  });
+  // 대결 하나마다 표(서버 메모리, 2시간): 대결 한 번에 쓸 수 있는 아이템 수를 서버에서도 셈
+  const fights=new Map<string,{player:string;used:number;exp:number}>();
+  act('/my/api/story/battle',async id=>{
+    const now=Date.now();
+    for(const [k,v] of fights)if(v.exp<now)fights.delete(k);
+    if(fights.size>20_000)fights.clear();
+    const token=randomBytes(12).toString('base64url');
+    fights.set(token,{player:id,used:0,exp:now+2*3600_000});
+    return {battle:token,items:await game.webItems(id)};
+  });
+  act<{battle?:unknown;id?:unknown}>('/my/api/items/use',async(id,b)=>{
+    const f=typeof b.battle==='string'?fights.get(b.battle):undefined;
+    if(!f||f.player!==id||f.exp<Date.now())throw new GameError('대결 정보가 없어요. 대결을 다시 시작해 주세요.');
+    const defs=itemDefs(),item=defs.items.find(x=>x.id===b.id);
+    if(!item)throw new GameError('없는 아이템이에요.');
+    if(f.used>=defs.rules.perBattle)throw new GameError(`아이템은 대결 한 번에 ${defs.rules.perBattle}개까지예요.`);
+    const left=await game.webUseItem(id,{id:item.id,name:item.name});
+    f.used++;
+    return {left};
+  });
 
   // ── 카카오 로그인(KAKAO_REST_KEY가 있을 때만) ──
   // 처음: 카카오 → 연결된 계정 없음 → 카톡 코드로 한 번 로그인하면 그 계정에 연결. 다음부터는 카카오만 누르면 로그인

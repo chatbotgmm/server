@@ -14,7 +14,7 @@ import { registerWeb } from './web.js';
 import { battleRoster } from './battle/prototype.js';
 import { registerDuel } from './duel.js';
 import { registerMy, type KakaoLogin } from './my.js';
-export const VERSION='0.9.60';
+export const VERSION='0.9.61';
 export interface AppOptions {secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string;kakaoLogin?:KakaoLogin;fetch?:typeof fetch}
 export async function buildApp(db:PrismaClient,game:GameService,options:AppOptions){
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
@@ -107,6 +107,8 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
       const input=parseKakao(req.body,options.botId);
       if(!perUser(input.identity))return kakaoResponse({text:'⏳ 너무 빨리 보내고 있어요. 잠깐 쉬었다가 다시 보내 주세요.'});
       const result=await game.handle(input.identity,input.message,input.button);
+      // 카카오 로그인 회원번호가 왔는지(값은 기록하지 않음): 오면 웹 카카오 로그인을 코드 없이 연결할 수 있음
+      if(input.appUserId)void game.noteChatApp(input.identity,input.appUserId).then(fresh=>{if(fresh)req.log.info({appUserId:'present'},'kakao appUserId received');}).catch(()=>{});
       const out=kakaoResponse(result,await options.baseUrl(),stamp);
       // 진단용: 카카오에 보낸 응답 요약(말풍선 종류·크기·버튼). 명령어 첫 낱말만 남깁니다
       // (뒤의 글자에는 관리자 코드·쿠폰 코드·닉네임이 들어갈 수 있어 기록하지 않음). bot은 카카오 봇 ID(.env의 KAKAO_BOT_ID 확인용)

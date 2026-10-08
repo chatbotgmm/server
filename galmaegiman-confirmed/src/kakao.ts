@@ -18,7 +18,10 @@ export function parseKakao(input:unknown,expectedBot?:string){
     const value=buttonSchema.parse(extra);
     button={action:value.gmAction,token:value.gmToken};
   }
-  return {identity:JSON.stringify(['KAKAO_CHANNEL',p.bot.id,p.userRequest.user.type??'botUserKey',p.userRequest.user.id]),message:p.userRequest.utterance,button,bot:p.bot.id};
+  // 채널이 카카오 디벨로퍼스 앱과 연결돼 있으면 카카오 로그인 회원번호(appUserId)가 같이 올 수 있음(숫자만 받음)
+  const app=p.userRequest.user.properties?.appUserId;
+  const appUserId=(typeof app==='string'||typeof app==='number')&&/^\d{1,20}$/.test(String(app))?String(app):undefined;
+  return {identity:JSON.stringify(['KAKAO_CHANNEL',p.bot.id,p.userRequest.user.type??'botUserKey',p.userRequest.user.id]),message:p.userRequest.utterance,button,bot:p.bot.id,appUserId};
 }
 // 유닛 ID와 화면용 그림(미발견·탐험·뽑기 3종)
 export const imageIdPattern=/^(?:[CUSRLHDTEIN]\d{1,2}|unknown|logo|explore|ticket|s-(?:info|oops|wait|shop|exchange|mix|dex|rank|peanut|ticket|event|lock|tutorial|timeout|invite|sell)|m-(?:draw|craft|rare|legend|top)|gacha-(?:LOW|MID|HIGH)|q-(?:COMMON|UNCOMMON|SPECIAL|RARE|LEGEND|HIDDEN|LIMITED|TRANSCEND|ETERNAL|IMMORTAL|NEUTRAL)|y-(?:BASIC|GOLD|DARK|SEA|BLOSSOM|COSMOS|OUTFIT))$/;
