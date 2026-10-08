@@ -447,6 +447,7 @@ async function play(from) {
       const side = [0, 1].find(s => shown(s).name === m[1] && s !== lastAtk) ?? [0, 1].find(s => shown(s).name === m[1]) ?? lastAtk;
       lastAtk = side; lastSkill = shown(side).skills.find(k => k.name === m[2]);
       lunge(side);
+      if (m[2] === '다섯 번째 목소리') await fiveVoices();   // 앙~ 갈매미맨이야의 고유기: 세는 소리 연출
       if (lastSkill?.power) await shoot(side, lastSkill.attr ?? shown(side).attr, lastSkill.hits ?? 1, glyphOf(lastSkill.name));
       else if (lastSkill) aura(side, lastSkill.attr ?? shown(side).attr);
       wait = lastSkill?.power ? 120 : 600;
@@ -560,6 +561,27 @@ function aura(s, attr) {
   }
 }
 function popIn(s) { const img = document.getElementById(`m${s}`); img.getAnimations().forEach(a => a.cancel()); img.animate([{ transform: 'scale(.5)', opacity: 0 }, { transform: 'scale(1.05)', opacity: 1 }, { transform: 'scale(1)', opacity: 1 }], { duration: 420, easing: 'ease-out' }); }
+// 「다섯 번째 목소리」: 갈매미 한 마리.. 두 마리.. 세 마리.. 네 마리.. (정적) 다섯 마리... 앙~ 갈매미맨이야~
+async function fiveVoices() {
+  const fx = document.getElementById('fx'), arena = document.getElementById('arena');
+  const dim = document.createElement('div'); dim.className = 'five'; fx.append(dim);
+  dim.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, fill: 'forwards' });
+  const say = async (t, ms, cls = '') => {
+    const d = document.createElement('div'); d.className = `five-line ${cls}`; d.textContent = t; dim.append(d);
+    d.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 350, fill: 'forwards' });
+    await sleep(ms);
+  };
+  for (const n of ['한', '두', '세', '네']) await say(`갈매미 ${n} 마리..`, 520);
+  await sleep(900);                                   // (정적)
+  await say('갈매미 다섯 마리...', 1000, 'slow');
+  dim.innerHTML = '';
+  const big = document.createElement('div'); big.className = 'five-big'; big.textContent = '앙~ 갈매미맨이야~'; dim.append(big);
+  arena.animate([{ filter: 'brightness(1)' }, { filter: 'brightness(2.2) saturate(1.4)' }, { filter: 'brightness(1)' }], { duration: 700 });
+  big.animate([{ opacity: 0, transform: 'scale(.4)' }, { opacity: 1, transform: 'scale(1.12)', offset: .35 }, { opacity: 1, transform: 'scale(1)' }], { duration: 700, fill: 'forwards' });
+  await sleep(1300);
+  dim.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300 }).onfinish = () => dim.remove();
+  await sleep(250);
+}
 function comboFlash(name) {
   const a = document.getElementById('arena'), d = document.createElement('div'); d.className = 'comboflash'; d.innerHTML = `<small>🤝 합동기</small><b>${esc(name)}</b>`;
   document.getElementById('fx').append(d);
