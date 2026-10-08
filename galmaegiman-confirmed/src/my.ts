@@ -61,6 +61,14 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
   const limit={config:{rateLimit:{max:120,timeWindow:'1 minute',keyGenerator:ipKey('myapi')}}};
   // 아이템 종류·가격(battle.yaml을 요청 때마다 읽어 고치면 바로 반영)
   const itemDefs=()=>{const R=loadBattleRules(opt.root);return {items:Object.entries(R.data.items).map(([id,v])=>({id,...v})),rules:R.data.itemRules};};
+  // 홈페이지 메뉴용: 로그인돼 있으면 닉네임만(없으면 401). 홈페이지는 모두에게 같은 화면이라 화면에서 물어봄
+  app.get('/my/api/who',limit,async(req,reply)=>{
+    if(!guard(req,reply))return;
+    const id=session(req);
+    const who=id?await game.webWho(id):null;
+    if(!who)return reply.code(401).header('Cache-Control','no-store').send({error:'login'});
+    return reply.header('Cache-Control','no-store').send(who);
+  });
   app.get('/my/api/me',limit,async(req,reply)=>{
     const id=session(req);
     if(!id)return reply.code(401).send({error:'login',kakao:!!opt.kakao,linking:!!unsign('kp.',cookie(req,KPEND))});

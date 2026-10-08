@@ -1102,6 +1102,10 @@ export class GameService {
       return !!kakaoId;
     });
   }
+  async webWho(playerId:string){
+    const p=await this.db.player.findUnique({where:{id:playerId},select:{nickname:true,credits:true}});
+    return p?{nickname:p.nickname,credits:p.credits}:null;
+  }
   // 내 갈매미 요약: 재화, 가진 유닛(종류별 수·탐험 중), 전투·탐험 편성, 진행 중인 탐험
   async webMe(playerId:string){
     const p=await this.db.player.findUnique({where:{id:playerId}});

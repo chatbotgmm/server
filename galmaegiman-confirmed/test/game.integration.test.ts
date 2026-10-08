@@ -678,6 +678,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await post('/my/api/battle-team',{ids:['D1']},{cookie})).json()).toEqual({battleTeam:['D1']});
       expect((await db.player.findUniqueOrThrow({where:{id:p.id}})).battleTeam).toBe('D1');
       expect((await app.inject({method:'GET',url:'/my'})).headers['content-type']).toContain('text/html');
+      expect((await app.inject({method:'GET',url:'/my/api/who',headers:{'x-gmm':'1'}})).statusCode).toBe(401);
+      expect((await app.inject({method:'GET',url:'/my/api/who',headers:{'x-gmm':'1',cookie}})).json()).toMatchObject({credits:expect.any(Number)});
       // 탐험 편성 → 출발 → (시간 지나) 받기
       expect((await post('/my/api/party',{ids:['D1','D1']},{cookie})).statusCode).toBe(400);   // 1마리뿐
       expect((await post('/my/api/party',{ids:['C1']},{cookie})).statusCode).toBe(400);        // 최상위 아님
@@ -1146,7 +1148,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.67'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.68'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
