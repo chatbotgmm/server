@@ -4,8 +4,8 @@ import { attrKeys as attrs, buildRules, type TopTier } from '../src/battle/rules
 import { loadBattleRules } from '../src/battle/load.js';
 import { parse } from 'yaml';
 import { readFileSync } from 'node:fs';
-import { addXp, battleXp, canEvolve, maxStageAt, statsOf, xpToNext, type UnitRecord } from '../src/battle/growth.js';
-import { act, activeOf, aiChoose, choose, createBattle, pending, pickAi, type Battle } from '../src/battle/engine.js';
+import { addXp, battleXp, canEvolve, learnChances, learnOffers, learnSkill, maxStageAt, statsOf, xpToNext, type UnitRecord } from '../src/battle/growth.js';
+import { act, activeOf, aiChoose, choose, createBattle, legalActions, pending, pickAi, type Battle } from '../src/battle/engine.js';
 import { checkStory, loadStory } from '../src/battle/story.js';
 import { expectedAttempts, levelRange, referenceLevel, scoutChance, scoutCopy } from '../src/battle/scout.js';
 
@@ -138,5 +138,36 @@ describe('스토리 모드(data/story.yaml)',()=>{
     const b=createBattle(R,me,foe,7);
     for(let g=0;g<400&&b.phase!=='over';g++){if(b.phase==='choose'){aiChoose(b,0);aiChoose(b,1);continue;}act(b,[pickAi(b,0),pickAi(b,1)]);}
     expect(b.phase).toBe('over');
+  });
+});
+
+describe('합동기·기술 배우기',()=>{
+  const mk=(id:string,i:number,level=30):UnitRecord=>({uid:`u${i}`,id,name:id,tier:'LIMITED',level,xp:0,stage:0,evoAugs:[]});
+  it('같은 시너지 2마리면 그 둘만 합동기, 팀당 1번',()=>{
+    const b=createBattle(R,[mk('D2',0),mk('T2',1),mk('D1',2)],[mk('D3',3),mk('T3',4),mk('E3',5)],3);
+    expect(b.sides[0].fighters[0].skills.some(k=>k.id==='combo-GOLD')).toBe(true);
+    expect(b.sides[0].fighters[1].skills.some(k=>k.id==='combo-GOLD')).toBe(true);
+    expect(b.sides[0].fighters[2].skills.some(k=>k.id.startsWith('combo-'))).toBe(false);
+    expect(b.sides[1].fighters.every(f=>f.skills.some(k=>k.id==='combo-DARK'))).toBe(true);
+    aiChoose(b,0);aiChoose(b,1);
+    act(b,[{kind:'skill',skillId:'combo-GOLD'},pickAi(b,1)]);
+    expect(b.sides[0].comboUsed).toBe(true);
+    expect(b.log.some(l=>l.includes('합동기 「금고 문 열기」'))).toBe(true);
+    if(b.phase==='action')expect(legalActions(b,0).some(a=>a.kind==='skill'&&a.skillId==='combo-GOLD')).toBe(false);
+  });
+  it('레벨 10·20…마다 기회, 후보는 항상 같고, 칸이 차면 바꿔야 함',()=>{
+    const r=mk('T7',0,25);
+    expect(learnChances(R,r)).toBe(2);
+    const o=learnOffers(R,r);
+    expect(o).toHaveLength(3);expect(learnOffers(R,r).map(k=>k.id)).toEqual(o.map(k=>k.id));
+    expect(o.every(k=>R.learnables.find(x=>`learn-${x.id}`===k.id)!.level<=10)).toBe(true);
+    learnSkill(R,r,o[0].id);expect(r.learned).toEqual([o[0].id.slice(6)]);
+    learnSkill(R,r,learnOffers(R,r)[0].id);expect(r.learned).toHaveLength(2);expect(learnChances(R,r)).toBe(0);
+    r.level=31;const o3=learnOffers(R,r);
+    expect(()=>learnSkill(R,r,o3[0].id)).toThrow(/꽉 찼어요/);
+    learnSkill(R,r,o3[0].id,r.learned![0]);expect(r.learned).toHaveLength(2);expect(r.learned).toContain(o3[0].id.slice(6));
+    r.level=45;learnSkill(R,r,null);expect(r.learnUsed).toBe(4);expect(learnChances(R,r)).toBe(0);
+    const b=createBattle(R,[r],[mk('D1',1)],1);
+    expect(b.sides[0].fighters[0].skills.filter(k=>k.id.startsWith('learn-'))).toHaveLength(2);
   });
 });

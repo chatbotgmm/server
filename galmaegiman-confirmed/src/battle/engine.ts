@@ -13,7 +13,7 @@ export interface Fighter {
   endure:number;protect:boolean;recharge:boolean;immune:number;lockAtk:number;lastStandUsed:boolean;attacked:boolean;actedTurn:number;
   extraAttr?:Attr;hitBy:Partial<Record<Attr,number>>;
 }
-interface SideState {fighters:Fighter[];active:number;augs:string[];offers:string[]|null;needSwitch:boolean;reviveUsed:boolean;goFirst:boolean;neutral:number}
+interface SideState {fighters:Fighter[];active:number;comboUsed:boolean;augs:string[];offers:string[]|null;needSwitch:boolean;reviveUsed:boolean;goFirst:boolean;neutral:number}
 // 교체: '인사 발령' 증강체가 있으면 턴을 안 쓰므로 then(바로 쓸 기술)을 함께 보냄(없으면 AI가 고름)
 export type Action={kind:'skill';skillId:string}|{kind:'switch';to:number;then?:string};
 export interface Battle {R:Rules;rng:number;turn:number;phase:'choose'|'action'|'over';winner:0|1|null;sides:[SideState,SideState];log:string[]}
@@ -22,19 +22,22 @@ export interface Battle {R:Rules;rng:number;turn:number;phase:'choose'|'action'|
 function rand(b:Battle){let t=(b.rng=(b.rng+0x6d2b79f5)|0);t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;}
 const josa=(w:string,pair:string)=>{const c=w.charCodeAt(w.length-1);const has=c>=0xac00&&c<=0xd7a3&&(c-0xac00)%28>0;return w+(has?pair[0]:pair[1]);};
 
-function makeFighter(R:Rules,rec:UnitRecord,side:0|1):Fighter{
+function makeFighter(R:Rules,rec:UnitRecord,side:0|1,combo?:Skill):Fighter{
   const def=R.unitDef(rec.id);if(!def)throw new Error(`전투 유닛이 아님: ${rec.id}`);
   const s=statsOf(R,rec),passive=passiveOf(R,rec);
   const sigCd=Math.max(1,def.signature.cd-(passive.sigCd??0));
   return {side,rec,name:rec.name,scale:levelScale(R,rec),attr:def.attr,role:def.role,peanut:rec.name.includes('갈매미맨'),passive,
-    skills:[R.basicSkill(def.attr),R.roleSkill(def.role,def.attr),{...def.signature,cd:sigCd},...(def.sub&&def.sub!==def.attr?[R.subSkill(def.sub)]:[])],
+    skills:[R.basicSkill(def.attr),R.roleSkill(def.role,def.attr),{...def.signature,cd:sigCd},...(def.sub&&def.sub!==def.attr?[R.subSkill(def.sub)]:[]),
+      ...(rec.learned??[]).map(id=>R.learnSkill(id,def.attr)).filter((k):k is Skill=>!!k),...(combo?[combo]:[])],
     maxHp:s.hp,hp:s.hp,base:{atk:s.atk,def:s.def,spd:s.spd},cds:{},mods:[],status:{},guards:[],regens:[],
     endure:0,protect:false,recharge:false,immune:0,lockAtk:0,lastStandUsed:false,attacked:false,actedTurn:0,hitBy:{}};
 }
 
 export function createBattle(R:Rules,teamA:UnitRecord[],teamB:UnitRecord[],seed:number):Battle{
   if(!teamA.length||!teamB.length||teamA.length>3||teamB.length>3)throw new Error('팀은 1~3마리');
-  const side=(t:UnitRecord[],i:0|1):SideState=>({fighters:t.map(r=>makeFighter(R,r,i)),active:0,augs:[],offers:null,needSwitch:false,reviveUsed:false,goFirst:false,neutral:0});
+  // 같은 시너지가 2마리 이상이면 그 유닛들에게 합동기
+  const comboFor=(t:UnitRecord[],r:UnitRecord)=>{const k=R.unitDef(r.id)?.syn;if(!k||t.filter(x=>R.unitDef(x.id)?.syn===k).length<2)return undefined;return R.comboSkill(k,R.unitDef(r.id)!.attr);};
+  const side=(t:UnitRecord[],i:0|1):SideState=>({fighters:t.map(r=>makeFighter(R,r,i,comboFor(t,r))),active:0,comboUsed:false,augs:[],offers:null,needSwitch:false,reviveUsed:false,goFirst:false,neutral:0});
   const b:Battle={R,rng:seed|0,turn:1,phase:'choose',winner:null,sides:[side(teamA,0),side(teamB,1)],log:[]};
   offerAugments(b);
   b.log.push('대결 시작! 전투 증강체를 하나씩 골라요.');
@@ -205,9 +208,15 @@ function doSwitch(b:Battle,side:0|1,to:number){
   s.active=to;b.log.push(`${josa(out.name,'은는')} 들어가고 ${josa(inn.name,'이가')} 나왔어요!`);
 }
 
+// 합동기: 팀당 1번, 같은 시너지 동료가 하나 이상 살아 있어야
+function comboReady(b:Battle,side:0|1,sk:Skill){
+  if(!sk.id.startsWith('combo-'))return true;
+  const s=b.sides[side],f=s.fighters[s.active],k=b.R.unitDef(f.rec.id)?.syn;
+  return !s.comboUsed&&s.fighters.some(x=>x!==f&&alive(x)&&b.R.unitDef(x.rec.id)?.syn===k);
+}
 export function legalActions(b:Battle,side:0|1):Action[]{
   const s=b.sides[side],f=activeOf(b,side),out:Action[]=[];
-  for(const sk of f.skills)if(!(f.cds[sk.id]>0))out.push({kind:'skill',skillId:sk.id});
+  for(const sk of f.skills)if(!(f.cds[sk.id]>0)&&comboReady(b,side,sk))out.push({kind:'skill',skillId:sk.id});
   if(!f.status.bind&&!(f.lockAtk&&alive(f)))s.fighters.forEach((x,i)=>{if(i!==s.active&&alive(x))out.push({kind:'switch',to:i});});
   return out;
 }
@@ -225,7 +234,7 @@ export function act(b:Battle,actions:[Action,Action]){
       else continue;
     }
     const f=activeOf(b,side),skill=f.skills.find(k=>k.id===(action as {skillId:string}).skillId);
-    if(!skill||f.cds[skill.id]>0)throw new Error('쓸 수 없는 기술');
+    if(!skill||f.cds[skill.id]>0||!comboReady(b,side,skill))throw new Error('쓸 수 없는 기술');
     order.push({side,action,pri:(s.goFirst?2:0)+(skill.priority?1:0),spd:statOf(b,f,'spd'),tie:rand(b)});
     s.goFirst=false;
   }
@@ -237,7 +246,9 @@ export function act(b:Battle,actions:[Action,Action]){
     if(user.recharge){user.recharge=false;b.log.push(`${josa(user.name,'은는')} 힘을 너무 써서 쉬고 있어요.`);continue;}
     if(user.status.sleep){b.log.push(`${josa(user.name,'은는')} 쿨쿨 자고 있어요.`);continue;}
     if(user.status.freeze){b.log.push(`${josa(user.name,'은는')} 얼어서 움직이지 못해요.`);continue;}
-    useSkill(b,user,target,user.skills.find(k=>k.id===(o.action as {skillId:string}).skillId)!);
+    const sk=user.skills.find(k=>k.id===(o.action as {skillId:string}).skillId)!;
+    if(sk.id.startsWith('combo-')){b.sides[o.side].comboUsed=true;b.log.push(`합동기 「${sk.name}」! ${b.R.data.synergies[sk.id.slice(6)]?.name??''}의 힘이 모였어요!`);}
+    useSkill(b,user,target,sk);
   }
   endTurn(b);
 }

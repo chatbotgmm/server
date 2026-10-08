@@ -5,7 +5,7 @@ import { loadContent } from '../src/content.js';
 import type { TopTier } from '../src/battle/rules.js';
 import { loadBattleRules } from '../src/battle/load.js';
 import { loadStory } from '../src/battle/story.js';
-import { addXp, battleXp, type UnitRecord } from '../src/battle/growth.js';
+import { addXp, battleXp, learnChances, learnOffers, learnSkill, type UnitRecord } from '../src/battle/growth.js';
 import { createBattle, act, pickAi, aiChoose, type Battle } from '../src/battle/engine.js';
 
 const R=loadBattleRules(),story=loadStory(process.cwd(),R),content=loadContent();
@@ -28,7 +28,7 @@ for(let n=0;n<N;n++){
     for(let t=1;t<=20;t++){
       stat[si].tries++;
       const b=run(createBattle(R,team.map(u=>({...u})),foe.map(u=>({...u})),Math.floor(rnd()*1e9)));
-      const won=b.winner===0;for(const u of team)addXp(R,u,battleXp(R,avg,won));
+      const won=b.winner===0;for(const u of team){addXp(R,u,battleXp(R,avg,won));while(learnChances(R,u)>0){const o=learnOffers(R,u);learnSkill(R,u,o[0]?.id??null,u.learned?.[0]);}}
       if(won){if(t===1)stat[si].first++;break;}
       if(t===20)stat[si].stuck++;
     }

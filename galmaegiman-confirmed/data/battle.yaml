@@ -127,6 +127,51 @@ villains:
   V5:  { name: 여덟발 대장,   attr: SEA, sub: SHADOW,    role: ATTACK,  power: 1.0,  hp: 1.5, boss: true, skill: { name: 이력서 여덟 장, cd: 3, power: 28, hits: 4 } }
   V6:  { name: 쭈라켄,       attr: SEA, sub: GRAVITY,    role: DEFENSE, power: 1.0,  hp: 2.4, boss: true, skill: { name: 자리는 하나 지원자는 천 마리, cd: 3, power: 70, hits: 2, effects: [ { buff: atk, pct: 15, turns: 3, to: self } ] } }
 
+# 시너지 합동기: 같은 시너지(카톡 조합의 계열) 유닛이 팀에 2마리 이상이면, 그 유닛들이 합동기를 쓸 수 있어요.
+#   팀당 대결 1번, 같은 시너지 동료가 하나 이상 살아 있어야 써요. members는 data/units.json의 synergy와 같아야 해요(검사함)
+synergies:
+  BASIC:   { name: 기본 시너지,   members: [D1, T1, E1, I1], skill: { name: 원형 수호진, cd: 0, power: 60, effects: [ { buff: def, pct: 40, turns: 3, to: team } ] } }
+  GOLD:    { name: 황금 시너지,   members: [D2, T2, E2, I2], skill: { name: 금고 문 열기, cd: 0, power: 100, crit: true } }
+  DARK:    { name: 암흑 시너지,   members: [D3, T3, E3, I3], skill: { name: 다 같이 잘 시간, cd: 0, power: 50, effects: [ { status: sleep, chance: 100, turns: 1 } ] } }
+  SEA:     { name: 바다 시너지,   members: [D4, T4, E4, I4], skill: { name: 심해 소용돌이, cd: 0, power: 40, hits: 3, effects: [ { buff: spd, pct: -30, turns: 2, to: foe } ] } }
+  BLOSSOM: { name: 벚꽃 시너지,   members: [D5, T5, E5, I5], skill: { name: 만개, cd: 0, effects: [ { regen: 12, turns: 4, to: team }, { cleanse: 2 } ] } }
+  COSMOS:  { name: 우주 시너지,   members: [D6, T6, E6, I6], skill: { name: 별자리 잇기, cd: 0, power: 110, effects: [ { buff: spd, pct: 30, turns: 2, to: team } ] } }
+  OUTFIT:  { name: 갈 의복 시너지, members: [D7, D8, T7, T8, E7, E8, I7, I8, I9], skill: { name: 튼튼한 빤스 결속, cd: 0, effects: [ { endure: 2 }, { buff: atk, pct: 25, turns: 3, to: team } ] } }
+
+# 레벨업 기술 배우기: levels에 도달할 때마다 1번 기회(후보 offers개 중 1개 또는 건너뛰기). 배운 기술 칸은 slots개(차면 하나와 바꿈)
+#   기술마다 level(이 레벨 기회부터 후보에 나옴), roles(그 역할만, 없으면 모두), attr(없으면 배우는 유닛의 속성)
+learn:
+  levels: [10, 20, 30, 40, 50]
+  slots: 2
+  offers: 3
+  skills:
+    quick:    { name: 재빠른 쪼기,   level: 10, cd: 1, power: 40, priority: true }
+    peck:     { name: 연속 쪼기,     level: 10, cd: 2, power: 22, hits: 3 }
+    sand:     { name: 모래 끼얹기,   level: 10, cd: 2, effects: [ { buff: spd, pct: -30, turns: 3, to: foe } ] }
+    growl:    { name: 끼룩 위협,     level: 10, cd: 2, effects: [ { buff: atk, pct: -20, turns: 3, to: foe } ] }
+    preen:    { name: 깃털 고르기,   level: 10, cd: 3, roles: [DEFENSE, UTILITY], effects: [ { heal: 25, to: self } ] }
+    snack:    { name: 새우깡 미끼,   level: 10, cd: 4, roles: [UTILITY], effects: [ { status: sleep, chance: 60, turns: 1 } ] }
+    flame:    { name: 불꽃 부리,     level: 20, attr: FIRE,   cd: 2, power: 55, effects: [ { status: burn, chance: 30, turns: 3 } ] }
+    frost:    { name: 얼음 숨결,     level: 20, attr: ICE,    cd: 2, power: 55, effects: [ { status: freeze, chance: 20, turns: 1 } ] }
+    wrap:     { name: 실 감기,       level: 20, attr: THREAD, cd: 3, power: 40, effects: [ { status: bind, chance: 100, turns: 2 } ] }
+    brace:    { name: 철벽 자세,     level: 20, cd: 4, roles: [DEFENSE], effects: [ { guard: 50, turns: 2 } ] }
+    pump:     { name: 기합 넣기,     level: 20, cd: 3, roles: [ATTACK], effects: [ { buff: atk, pct: 30, turns: 3, to: self } ] }
+    cheer:    { name: 출근 응원가,   level: 20, cd: 4, roles: [UTILITY], effects: [ { buff: atk, pct: 15, turns: 3, to: team } ] }
+    pierce:   { name: 급소 찌르기,   level: 30, cd: 3, power: 70, crit: true, roles: [ATTACK, UTILITY] }
+    grit:     { name: 악으로 버티기, level: 30, cd: 5, roles: [DEFENSE, ATTACK], effects: [ { endure: 2 } ] }
+    block:    { name: 날개로 막기,   level: 30, cd: 3, effects: [ { protect: true } ] }
+    steal:    { name: 기세 빼앗기,   level: 30, cd: 3, power: 50, roles: [UTILITY], effects: [ { strip: true } ] }
+    rest:     { name: 휴식 시간,     level: 30, cd: 5, roles: [UTILITY, DEFENSE], effects: [ { regen: 8, turns: 3, to: team } ] }
+    ambush:   { name: 그림자 기습,   level: 30, attr: SHADOW, cd: 3, power: 60, priority: true }
+    rush:     { name: 전력 돌진,     level: 40, cd: 3, power: 130, roles: [ATTACK], effects: [ { recharge: true } ] }
+    meteor:   { name: 별똥 낙하,     level: 40, attr: STAR, cd: 3, power: 80 }
+    armor:    { name: 돌 갑옷,       level: 40, cd: 4, roles: [DEFENSE], effects: [ { buff: def, pct: 30, turns: 3, to: team } ] }
+    quake:    { name: 땅 울리기,     level: 40, attr: STONE, cd: 3, power: 75, effects: [ { buff: spd, pct: -20, turns: 2, to: foe } ] }
+    finisher: { name: 필살 갈매기 낙하, level: 50, cd: 4, power: 160, roles: [ATTACK], effects: [ { recharge: true } ] }
+    flag:     { name: 만선 깃발,     level: 50, cd: 5, effects: [ { buff: atk, pct: 20, turns: 3, to: team }, { buff: def, pct: 20, turns: 3, to: team } ] }
+    comeback: { name: 다시 출근,     level: 50, cd: 6, roles: [UTILITY, DEFENSE], effects: [ { revive: 40 } ] }
+    blizzard: { name: 눈보라,        level: 50, attr: ICE, cd: 4, power: 90, effects: [ { status: freeze, chance: 30, turns: 1 } ] }
+
 # 상태 이상 수치
 status: { burnDamage: 6, burnAtk: -20, bindSpd: -30, rageAtk: 30, rageDef: -30 }
 
