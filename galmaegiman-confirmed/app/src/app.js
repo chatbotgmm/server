@@ -27,18 +27,22 @@
   const open = url => (P.Browser ? P.Browser.open({ url }) : window.open(url, '_blank'));
 
   // 알림 예약(같은 번호는 덮어씀): 1 = 탐험 귀환, 2 = 뽑기권 받기
-  let asked = false;
+  // 대략적인 시각(isExactNotification:false): 「정확한 알람」 권한을 쓰지 않으므로, true(기본값)면 예약할 때마다 「알람 및 리마인더」 설정 화면이 떠요
+  let asked = false, last = '';
   async function onMe(me) {
     const N = P.LocalNotifications;
     if (!N) return;
+    const key = `${me.trip?.endsAt ?? ''}|${me.claimReadyAt ?? ''}`;
+    if (key === last) return;   // 시각이 바뀔 때만 다시 예약
+    last = key;
     try {
       if (!asked) { asked = true; const p = await N.checkPermissions(); if (p.display !== 'granted') await N.requestPermissions(); }
       await N.cancel({ notifications: [{ id: 1 }, { id: 2 }] }).catch(() => {});
       const soon = Date.now() + 5000, list = [];
       const trip = me.trip && new Date(me.trip.endsAt).getTime();
-      if (trip && trip > soon) list.push({ id: 1, title: '🧭 탐험대가 돌아왔어요!', body: '보상을 받으러 가 볼까요?', schedule: { at: new Date(trip) }, extra: { tab: 'party' } });
+      if (trip && trip > soon) list.push({ id: 1, title: '🧭 탐험대가 돌아왔어요!', body: '보상을 받으러 가 볼까요?', schedule: { at: new Date(trip), allowWhileIdle: true }, isExactNotification: false, extra: { tab: 'party' } });
       const claim = me.claimReadyAt && new Date(me.claimReadyAt).getTime();
-      if (claim && claim > soon) list.push({ id: 2, title: '🎟 뽑기권을 받을 수 있어요', body: '「뽑기」에서 뽑기권 받기를 눌러요.', schedule: { at: new Date(claim) }, extra: { tab: 'draw' } });
+      if (claim && claim > soon) list.push({ id: 2, title: '🎟 뽑기권을 받을 수 있어요', body: '「뽑기」에서 뽑기권 받기를 눌러요.', schedule: { at: new Date(claim), allowWhileIdle: true }, isExactNotification: false, extra: { tab: 'draw' } });
       if (list.length) await N.schedule({ notifications: list });
     } catch { /* 알림을 못 써도 게임은 그대로 */ }
   }
