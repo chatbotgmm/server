@@ -644,7 +644,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const world=await get('/world');
       expect(world).toContain('<h1>갈매미 섬 이야기</h1>');
       expect(world).toContain('class="prose tale"');expect(world).toContain('갈매미 섬 항구 수비대');expect(world).not.toContain('<table>');
-      const dex=await get('/dex');
+      const dex=await get('/dex?view=card');   // 소개가 나오는 큰 카드 보기(기본은 그림만)
       const hidden=content.characters.filter(c=>c.rarity==='HIDDEN');
       const top=content.characters.filter(c=>['LIMITED','TRANSCEND','ETERNAL','IMMORTAL'].includes(c.rarity));
       expect(hidden.some(c=>dex.includes(c.name))).toBe(false);          // 히든 이름 비공개
@@ -1110,7 +1110,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.63'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.64'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

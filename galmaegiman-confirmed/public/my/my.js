@@ -11,7 +11,7 @@
   };
   const toast = t => { toastEl.textContent = t; toastEl.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.classList.remove('on'), 1800); };
   const thumb = id => `/thumbs/${encodeURIComponent(id)}.jpg`;
-  const head = right => `<header><h1>🪨 내 갈매미</h1><span class="sp"></span>${right ?? ''}<a class="home" href="/">홈</a></header>`;
+  const head = right => `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span>${right ?? ''}<a class="home" href="/">홈</a></header>`;
 
   // ── 로그인 ──
   // 카카오 로그인에서 돌아온 결과(?kakao=…)는 한 번 보여 주고 주소에서 지움

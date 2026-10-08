@@ -107,6 +107,9 @@ document.addEventListener('click',ev=>{if(!f.contains(ev.target))box.hidden=true
 i.addEventListener('keydown',ev=>{const a=[...box.querySelectorAll('a')];if(box.hidden||!a.length)return;let k=a.findIndex(x=>x.classList.contains('on'));
 if(ev.key==='ArrowDown'||ev.key==='ArrowUp'){ev.preventDefault();a[k]?.classList.remove('on');k=ev.key==='ArrowDown'?(k+1)%a.length:(k<=0?a.length-1:k-1);a[k].classList.add('on')}
 else if(ev.key==='Enter'&&k>=0){ev.preventDefault();location.href=a[k].href}else if(ev.key==='Escape')box.hidden=true});})();`;
+  // 머리말 🔍(검색 줄 펼치기)·폰 아래 「더보기」
+  const headerJs=`(()=>{const sb=document.getElementById('sbtn'),sr=document.getElementById('srow');sb&&sb.addEventListener('click',()=>{sr.hidden=!sr.hidden;sb.setAttribute('aria-expanded',String(!sr.hidden));if(!sr.hidden)sr.querySelector('input').focus();});
+const mb=document.getElementById('mbtn'),mo=document.getElementById('more');mb&&mb.addEventListener('click',e=>{e.stopPropagation();mo.hidden=!mo.hidden;});document.addEventListener('click',e=>{if(mo&&!mo.hidden&&!mo.contains(e.target))mo.hidden=true;});})();`;
   // 댓글 한 줄: 닉네임(프로필 링크)·시간·좋아요 버튼. unit=true면 어느 유닛 댓글인지 칩도
   const when=(d:Date)=>DateTime.fromJSDate(d).setZone('Asia/Seoul').toFormat('M/d HH:mm');
   const commentItem=(c:WebComment,unit=false)=>`<li class="cm"><div class="cm-h"><a href="/p/${encodeURIComponent(c.name)}"><b>${c.badge?`${esc(c.badge)} `:''}${esc(c.name)}</b></a> <span class="note">${esc(when(c.at))}</span>${unit?` ${chip(c.characterId)}`:''}</div>
@@ -116,7 +119,9 @@ try{const r=await fetch('/api/comments/'+b.dataset.id+'/like',{method:'POST'});i
   const howToComment=(name?:string)=>`<p class="note">💬 카톡에서 <span class="mono">댓글 ${esc(name??'갈매미이름')} 하고 싶은 말</span> 로 남겨요. 만나 본 갈매미에게만 쓸 수 있고, 닉네임이 함께 보여요.</p>`;
   // 메뉴: 자주 쓰는 순서. 모바일 하단 탭은 6칸이라 히든은 조합법 탭에 묶음(히든 페이지에서 조합법 탭이 켜짐)
   const navItems=[['/','홈','🏝'],['/event','이벤트','🎁'],['/dex','도감','📚'],['/recipes','조합법','🧩'],['/hidden','히든','❔'],['/talk','수다방','💬'],['/rank','랭킹','🏆'],['/world','세계관','📜']];
-  const tabItems=navItems.filter(([h])=>h!=='/hidden');
+  // 폰 아래 탭은 5칸: 자주 쓰는 4개 + 더보기(이벤트·수다방·세계관·히든·내 갈매미)
+  const tabItems=[['/','홈','🏝'],['/dex','도감','📚'],['/recipes','조합법','🧩'],['/rank','랭킹','🏆']];
+  const moreItems=[['/event','이벤트','🎁'],['/talk','수다방','💬'],['/world','세계관','📜'],['/hidden','히든 단서','❔'],['/my','로그인 · 내 갈매미','🔑']];
   const tabOn=(h:string,active:string)=>active===h||(h==='/recipes'&&active==='/hidden');
   // 조합법·히든 페이지 위 전환 탭
   const recipeTabs=(active:string)=>`<div class="tabs"><a href="/recipes"${active==='/recipes'?' class="on"':''}>🧩 조합법</a><a href="/hidden"${active==='/hidden'?' class="on"':''}>❔ 히든 단서</a></div>`;
@@ -137,8 +142,10 @@ try{const r=await fetch('/api/comments/'+b.dataset.id+'/like',{method:'POST'});i
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%AA%A8%3C/text%3E%3C/svg%3E">
 <meta property="og:title" content="${esc(title)} · 갈매미맨"><meta property="og:image" content="${site}${og.image??img('images','C1')}">
 <style>
-:root{--c1:#2a6fc0;--c2:#d9483b;--c3:#0f8a7b;--c4:#7a4fd0;--c5:#b06f00;--c6:#c93f7c;--bg:#f6f4ef;--card:#fff;--text:#2b2b2b;--muted:#6b6b6b;--line:#e2ddd3;--accent:#1f4e79;--accent-soft:#e3ecf5;--gold:#d9a400}
-@media (prefers-color-scheme:dark){:root{--c1:#7db4ff;--c2:#ff8a7a;--c3:#5fd3c3;--c4:#b9a0ff;--c5:#f2b84b;--c6:#ff92c2;--bg:#16181c;--card:#20242a;--text:#ececec;--muted:#a3a3a3;--line:#353a42;--accent:#8fb8e8;--accent-soft:#25303d}}
+:root{--c1:#2a6fc0;--c2:#d9483b;--c3:#0f8a7b;--c4:#7a4fd0;--c5:#b06f00;--c6:#c93f7c;--bg:#f7f0e3;--card:#fffdf8;--text:#2d2a26;--muted:#6f675c;--line:#e8dcc6;--edge:#d8c7a6;--accent:#1d5b94;--accent-soft:#e2edf7;--gold:#d9a400;
+ --sea1:#2b7cc4;--sea2:#164b80;--sky:#9fd3f5;--shadow:0 2px 0 var(--edge),0 10px 24px rgba(80,55,20,.07)}
+@media (prefers-color-scheme:dark){:root{--c1:#7db4ff;--c2:#ff8a7a;--c3:#5fd3c3;--c4:#b9a0ff;--c5:#f2b84b;--c6:#ff92c2;--bg:#121820;--card:#1c242e;--text:#ececec;--muted:#a3a9b1;--line:#2d3845;--edge:#0c1117;--accent:#8fc1f0;--accent-soft:#22324a;
+ --sea1:#1f5d99;--sea2:#0e2c4d;--sky:#1d4a78;--shadow:0 2px 0 var(--edge),0 10px 24px rgba(0,0,0,.25)}}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
 h1,h2,.logo,.stat b,.links a b,.today h3{font-family:"Jua",system-ui,sans-serif;font-weight:400;letter-spacing:.01em}
 /* 사이트 전체 Jua(굵기 1개뿐): 가짜 굵게를 끄고, 강조는 색으로 */
@@ -146,72 +153,113 @@ body{font-synthesis:none}
 p b,p strong,li b,li strong,.prose td b,.prose td strong{color:var(--accent)}
 .event b,.event strong{color:#a0461a}
 body{background-image:radial-gradient(var(--line) 1px,transparent 1.2px),linear-gradient(180deg,transparent 0,transparent 70%,rgba(31,78,121,.06) 100%);background-size:22px 22px,100% 100%;background-attachment:fixed}
-.tabbar{display:none}
-@media (max-width:719px){
+.tabbar,.more{display:none}
+@media (max-width:899px){
  header nav{display:none}
- .tabbar{display:grid;grid-template-columns:repeat(7,1fr);position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);padding:4px 2px calc(4px + env(safe-area-inset-bottom))}
- .tabbar a{display:flex;flex-direction:column;align-items:center;gap:1px;text-decoration:none;color:var(--muted);font-size:.66rem;white-space:nowrap;font-weight:700;padding:4px 0;border-radius:10px}
- .tabbar a i{font-style:normal;font-size:1.25rem;line-height:1.2}
- .tabbar a.on{color:var(--accent);background:var(--accent-soft)}
+ .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);padding:4px 2px calc(4px + env(safe-area-inset-bottom))}
+ .tabbar a,.tabbar button{display:flex;flex-direction:column;align-items:center;gap:1px;text-decoration:none;color:var(--muted);font:inherit;font-size:.72rem;white-space:nowrap;padding:4px 0;border-radius:12px;border:0;background:none;cursor:pointer}
+ .tabbar i{font-style:normal;font-size:1.3rem;line-height:1.2}
+ .tabbar .on{color:var(--accent);background:var(--accent-soft)}
+ .more{position:fixed;left:8px;right:8px;bottom:calc(68px + env(safe-area-inset-bottom));z-index:31;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.25);padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+ .more[hidden]{display:none}
+ .more a{display:flex;align-items:center;gap:8px;padding:12px;border-radius:12px;background:var(--bg);text-decoration:none;color:var(--text)}
+ .more a.on{background:var(--accent-soft);color:var(--accent)}
  main{padding-bottom:96px}
  footer{padding-bottom:96px}
 }
-.play{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:999px;background:#fee500;color:#191600;font-weight:800;text-decoration:none;font-size:.9rem;white-space:nowrap;box-shadow:0 1px 0 rgba(0,0,0,.08)}
+.play{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:999px;background:#fee500;color:#191600;text-decoration:none;font-size:.95rem;white-space:nowrap;box-shadow:0 3px 0 #c9b200}
+.play:active,.btn:active{transform:translateY(2px);box-shadow:none}
 .play svg{flex:none}.play:hover{background:#fada0a}
-.mylink{display:inline-flex;align-items:center;padding:7px 12px;border-radius:999px;border:1.5px solid var(--line);color:var(--text);text-decoration:none;font-size:.9rem;white-space:nowrap}
-.play.big{padding:12px 22px;font-size:1rem;box-shadow:0 4px 14px rgba(254,229,0,.35)}
+.mylink{flex:none;display:inline-flex;align-items:center;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,.16);color:#fff;text-decoration:none;font-size:.9rem;white-space:nowrap}
+.mylink:hover{background:rgba(255,255,255,.28)}
+header .play{flex:none;box-shadow:0 3px 0 #c9b200}
+@media (max-width:899px){.mylink{display:none}header .play span{display:none}header .play{padding:9px 11px}}
+.play.big{padding:13px 24px;font-size:1.08rem;box-shadow:0 4px 0 #c9b200,0 8px 20px rgba(254,229,0,.35)}
 body{margin:0;background:var(--bg);color:var(--text);font-family:"Jua",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;line-height:1.65;word-break:keep-all;overflow-wrap:anywhere}
 a{color:var(--accent)}
-header{background:var(--card);border-bottom:1px solid var(--line)}
-@media (min-width:900px){header{position:sticky;top:0;z-index:5}}
-.bar{max-width:1080px;margin:0 auto;padding:8px 16px;display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap}
-.logo{font-weight:800;font-size:1.1rem;text-decoration:none;color:var(--text)}
-nav{display:flex;gap:2px;flex-wrap:wrap}
-nav a{text-decoration:none;color:var(--muted);padding:5px 10px;border-radius:999px;font-weight:600;font-size:.92rem}
-nav a.on{background:var(--accent-soft);color:var(--accent)}
-form.search{display:flex;gap:6px;flex:1 1 300px;min-width:0}
-form.search input{flex:1;min-width:0;padding:8px 12px;border-radius:999px;border:1.5px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-size:.95rem}
-form.search button{padding:8px 14px;border-radius:999px;border:0;background:var(--accent);color:#fff;font-weight:700;font:inherit}
-@media (prefers-color-scheme:dark){form.search button{color:#10151b}}
+/* 머리말: 바다색 한 줄(로고 · 메뉴 · 검색 · 로그인 · 카톡 플레이). 검색은 🔍로 펼침 */
+header{background:linear-gradient(180deg,var(--sea1),var(--sea2));color:#fff;position:sticky;top:0;z-index:25;box-shadow:0 2px 0 rgba(0,0,0,.12)}
+.bar{max-width:1080px;margin:0 auto;padding:8px 16px;display:flex;align-items:center;gap:8px}
+.logo{font-size:1.1rem;text-decoration:none;color:#fff;flex:none;filter:drop-shadow(0 2px 0 rgba(0,0,0,.18))}
+header nav{display:flex;gap:2px;flex:1;min-width:0}
+header nav a{text-decoration:none;color:rgba(255,255,255,.88);padding:6px 10px;border-radius:999px;font-size:.95rem;white-space:nowrap}
+header nav a:hover{background:rgba(255,255,255,.14)}
+header nav a.on{background:#fff;color:var(--sea2);box-shadow:0 2px 0 rgba(0,0,0,.15)}
+.hbtn{flex:none;display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.16);color:#fff;font-size:1.05rem;cursor:pointer;text-decoration:none}
+.hbtn:hover{background:rgba(255,255,255,.28)}
+.sp{flex:1}
+@media (min-width:900px){.sp{display:none}}
+@media (max-width:899px){header nav{display:none}}
+.searchrow{max-width:1080px;margin:0 auto;padding:0 16px 10px}
+.searchrow[hidden]{display:none}
+form.search{display:flex;gap:6px;min-width:0}
+form.search input{flex:1;min-width:0;padding:10px 14px;border-radius:999px;border:0;background:var(--card);color:var(--text);font:inherit;font-size:1rem}
+form.search button{padding:10px 16px;border-radius:999px;border:0;background:#fee500;color:#191600;font:inherit;box-shadow:0 3px 0 #c9b200;cursor:pointer}
 form.search{position:relative}
 .sug{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:20;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:6px;max-height:70vh;overflow:auto}
-.sug a,.sug span{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:10px;text-decoration:none;color:var(--text);font-weight:600}
+.sug a,.sug span{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:10px;text-decoration:none;color:var(--text)}
 .sug a:hover,.sug a.on{background:var(--accent-soft)}
 .sug img{width:32px;height:32px;border-radius:8px;object-fit:cover}
 .sug small{margin-left:auto;font-size:.75rem;font-weight:800}
 .sug span{color:var(--muted);font-weight:500}
 main{max-width:1080px;margin:0 auto;padding:20px 16px 48px}
-h1{font-size:1.7rem;margin:.4em 0 .5em}h2{font-size:1.25rem;margin:1.8em 0 .6em;padding-bottom:.3em;border-bottom:2px solid var(--line)}
+h1{font-size:1.8rem;margin:.4em 0 .5em}h2{font-size:1.3rem;margin:1.8em 0 .7em}
+main>h2::after,section>h2::after{content:'';display:block;width:40px;height:4px;border-radius:4px;background:var(--gold);margin-top:6px}
 blockquote{margin:0 0 1em;padding:10px 14px;border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;color:var(--text)}
 blockquote p{margin:0}
 .prose table{width:100%;border-collapse:collapse;background:var(--card);border-radius:10px;overflow:hidden;margin:.5em 0 1em;font-size:.95rem}
 .prose th,.prose td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 .prose th{background:var(--accent-soft)}.prose td:first-child,.prose th:first-child{white-space:nowrap}.prose thead:empty,.prose th:empty{display:none}
 .prose ol,.prose ul{padding-left:1.3em}.prose li{margin:.35em 0}
-.hero{display:grid;gap:20px;align-items:center;grid-template-columns:1fr}
-@media (min-width:720px){.hero{grid-template-columns:1.1fr .9fr}}
+/* 홈 배너: 하늘 → 바다, 아래 물결. 안에 소개·버튼·숫자, 오른쪽 오늘의 갈매미 */
+.hero{display:grid;gap:20px;align-items:center;grid-template-columns:1fr;position:relative;overflow:hidden;border-radius:24px;padding:26px 22px 54px;
+ background:linear-gradient(180deg,var(--sky) 0%,#d7eefb 70%,#7cc0ec 70.3%,var(--sea1) 100%);box-shadow:var(--shadow)}
+@media (prefers-color-scheme:dark){.hero{background:linear-gradient(180deg,#0f2a47 0%,#173d63 70%,#1a4e80 70.3%,#0d2b4b 100%)}}
+.hero .btns .btn{white-space:nowrap}
+@media (max-width:719px){.hero{background:linear-gradient(180deg,var(--sky) 0%,#d7eefb 52%,#7cc0ec 52.3%,var(--sea1) 100%)}.hero h1{font-size:1.9rem}.hero .btns .btn{padding:11px 12px}}
+@media (max-width:719px) and (prefers-color-scheme:dark){.hero{background:linear-gradient(180deg,#0f2a47 0%,#173d63 52%,#1a4e80 52.3%,#0d2b4b 100%)}}
+.hero::after{content:'';position:absolute;left:0;right:0;bottom:0;height:46px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 46' preserveAspectRatio='none'%3E%3Cpath d='M0 20 Q15 8 30 20 T60 20 T90 20 T120 20 V46 H0Z' fill='%23f2e3c4'/%3E%3C/svg%3E") repeat-x;background-size:120px 46px}
+@media (prefers-color-scheme:dark){.hero::after{filter:brightness(.25)}}
+.hero>*{position:relative;z-index:1}
+.hero h1{font-size:2.3rem;margin:.1em 0 .3em;color:#123a63;text-shadow:0 2px 0 rgba(255,255,255,.6)}
+@media (prefers-color-scheme:dark){.hero h1{color:#fff;text-shadow:none}}
+.hero .lead{color:#21476d;background:rgba(255,255,255,.55);border-radius:14px;padding:10px 14px;margin:0}
+@media (prefers-color-scheme:dark){.hero .lead{color:#dce9f6;background:rgba(0,0,0,.25)}}
+.hero .lead b{color:#0d5a9e}
+@media (prefers-color-scheme:dark){.hero .lead b{color:#9fd0ff}.hstats span{background:rgba(255,255,255,.14);color:#e6f0fa}}
+.hstats{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.hstats span{background:rgba(255,255,255,.85);color:#1b3d60;border-radius:999px;padding:4px 12px;font-size:.88rem;box-shadow:0 2px 0 rgba(0,0,0,.08)}
+.hstats b{color:var(--c2)}
+@media (min-width:720px){.hero{grid-template-columns:1.25fr .75fr;padding:34px 34px 60px}}
 .hero img{width:100%;max-width:420px;height:auto;justify-self:center;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.15)}
 .lead{font-size:1.05rem;color:var(--muted)}
 .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center}
-.btn{display:inline-flex;align-items:center;justify-content:center;padding:11px 18px;border-radius:999px;background:var(--card);color:var(--text);border:1.5px solid var(--line);text-decoration:none;font-weight:700;font-size:.95rem}
-.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:11px 18px;border-radius:999px;background:var(--card);color:var(--text);border:1.5px solid var(--edge);text-decoration:none;font-size:1rem;box-shadow:0 3px 0 var(--edge)}
+.btn:hover{color:var(--accent)}
 @media (max-width:719px){.hero .btns .play.big{flex:1 1 100%}.hero .btns .btn{flex:1 1 0}}
 .event{margin:18px 0;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#fff3c4,#ffe0ef);color:#3b2a00;border:1px solid #f0d27a}
 .event b{font-size:1.05rem}.event a{color:#7a4300;font-weight:800}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:20px 0}
-.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow)}
 .stat b{display:block;font-size:1.4rem}
-.links{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-.links a{display:block;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;text-decoration:none;color:var(--text)}
-.links a b{display:block;font-size:1.05rem}.links a span{color:var(--muted);font-size:.85rem}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px;position:sticky;top:0;z-index:4;background:var(--bg);padding:8px 0}
-@media (min-width:900px){.chips{top:52px}}
+/* 바로가기: 앱 아이콘처럼(아이콘 동그라미 + 이름 + 짧은 설명) */
+.links{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (min-width:900px){.links{grid-template-columns:repeat(7,1fr)}}
+.links a{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 6px;text-decoration:none;color:var(--text);box-shadow:var(--shadow);transition:transform .15s}
+.links a:hover{transform:translateY(-3px)}
+.links a i{font-style:normal;font-size:1.6rem;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft)}
+.links a b{display:block;font-size:1rem}.links a span{color:var(--muted);font-size:.78rem;line-height:1.35}
+@media (max-width:719px){.links a span{display:none}.links a{padding:10px 4px}}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px;position:sticky;top:54px;z-index:4;background:var(--bg);padding:8px 0}
 .chip{text-decoration:none;font-size:.85rem;font-weight:700;padding:5px 10px;border-radius:999px;border:1.5px solid currentColor;background:var(--card)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
-@media (min-width:720px){.grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:var(--text)}
-a.card:hover{border-color:var(--accent)}
-.card img{width:100%;height:auto;aspect-ratio:1;object-fit:cover;display:block;background:var(--line)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media (min-width:600px){.grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:var(--text);box-shadow:var(--shadow);transition:transform .15s}
+a.card:hover{transform:translateY(-3px)}
+.card img{width:100%;height:auto;aspect-ratio:1;object-fit:cover;display:block;background:linear-gradient(135deg,var(--line),var(--bg))}
+/* 도감 카드: 소개는 2줄까지(전체는 상세에서) */
+.grid .card .in>p:not(.q){display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.grid .card .q{display:none}
 .card .in{padding:10px 12px 12px}
 .badge{display:inline-block;font-size:.75rem;font-weight:800;color:#fff;padding:2px 8px;border-radius:999px}
 .card h3{margin:6px 0 4px;font-size:1rem}
@@ -220,13 +268,16 @@ a.card:hover{border-color:var(--accent)}
 .card.locked .in p{color:var(--muted)}
 .uc{display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 3px;margin:3px 4px 3px 0;border-radius:999px;background:var(--card);border:1px solid var(--line);text-decoration:none;color:var(--text);font-size:.9rem;font-weight:600}
 .uc img{width:28px;height:28px;border-radius:50%;object-fit:cover}
-.rec{display:grid;grid-template-columns:1fr;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:8px 0}
-@media (min-width:720px){.rec{grid-template-columns:260px 1fr;align-items:center}}
+/* 조합법: PC는 2단, 한 칸 = 결과 한 줄 + 재료 한 줄 */
+.recs{display:grid;gap:8px;grid-template-columns:1fr}
+@media (min-width:900px){.recs{grid-template-columns:1fr 1fr}}
+.rec{display:flex;flex-wrap:wrap;align-items:center;gap:0 2px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:8px 10px;box-shadow:var(--shadow)}
+.rec>div{display:contents}
 .rec .eq{color:var(--muted);font-weight:800;margin:0 4px}
 .detail{display:grid;gap:18px;grid-template-columns:1fr}
 @media (min-width:720px){.detail{grid-template-columns:360px 1fr}}
 .detail img.big{width:100%;height:auto;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.15)}
-.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0}
+.box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 16px;margin:10px 0;box-shadow:var(--shadow)}
 .box h3{margin:0 0 6px;font-size:1rem}
 .hint{display:grid;gap:6px}
 .hint .h{padding:8px 10px;border-radius:10px;background:var(--bg);border:1px dashed var(--line)}
@@ -234,8 +285,8 @@ a.card:hover{border-color:var(--accent)}
 .hint .h b{margin-right:6px}
 .mono{font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em}
 .tabs{display:flex;gap:6px;margin:4px 0 14px;flex-wrap:wrap}
-.tabs a{text-decoration:none;padding:7px 14px;border-radius:999px;border:1.5px solid var(--line);color:var(--muted);font-weight:700;background:var(--card)}
-.tabs a.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.tabs a{text-decoration:none;padding:7px 14px;border-radius:999px;border:1.5px solid var(--edge);color:var(--muted);background:var(--card);box-shadow:0 2px 0 var(--edge)}
+.tabs a.on{border-color:var(--accent);color:#fff;background:var(--accent);box-shadow:0 2px 0 var(--sea2)}
 .rank{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .rank li{display:grid;grid-template-columns:44px 56px 1fr auto;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px 12px}
 .rank li.top1{border-color:var(--gold);box-shadow:0 0 0 2px rgba(217,164,0,.25)}
@@ -251,7 +302,7 @@ a.card:hover{border-color:var(--accent)}
 .empty{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:24px;text-align:center;color:var(--muted)}
 .note{color:var(--muted);font-size:.85rem}
 .today{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px;text-decoration:none;color:var(--text);box-shadow:0 6px 24px rgba(0,0,0,.08)}
-@media (min-width:720px){.today{grid-template-columns:1fr;max-width:340px;justify-self:center}}
+@media (min-width:720px){.today{grid-template-columns:1fr;max-width:300px;justify-self:center;transform:rotate(2deg);border:4px solid #fff;transition:transform .2s}.today:hover{transform:rotate(0) scale(1.02)}}
 .today img{width:100%;height:auto;border-radius:12px}
 .today small{color:var(--gold);font-weight:800}.today h3{margin:2px 0;font-size:1.3rem}.today p{margin:0;font-size:.88rem;color:var(--muted)}
 .homegrid{display:grid;gap:10px;grid-template-columns:1fr}
@@ -266,9 +317,11 @@ a.card:hover{border-color:var(--accent)}
 .tree summary::-webkit-details-marker{display:none}
 .tree summary::before{content:'▸';color:var(--muted);width:16px;flex:none;text-align:center}.tree details[open]>summary::before{content:'▾'}
 .tree li.leaf{padding-left:18px}
-.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
-.tile{display:block;text-decoration:none;color:var(--text);text-align:center;font-size:.72rem;font-weight:700;line-height:1.25}
-.tile img{width:100%;height:auto;aspect-ratio:1;border-radius:10px;display:block;margin-bottom:3px;background:var(--line)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+@media (min-width:900px){.tiles{grid-template-columns:repeat(auto-fill,minmax(118px,1fr))}}
+.tile{display:block;text-decoration:none;color:var(--text);text-align:center;font-size:.8rem;line-height:1.25;transition:transform .15s}
+.tile:hover{transform:translateY(-3px)}
+.tile img{width:100%;height:auto;aspect-ratio:1;border-radius:14px;display:block;margin-bottom:4px;background:linear-gradient(135deg,var(--line),var(--bg));box-shadow:var(--shadow)}
 .piece{margin:32px 0 0;padding:16px;border-radius:14px;border:2px dashed var(--gold);background:var(--card);display:grid;gap:4px;text-align:center}
 .piece span{color:var(--muted);font-weight:700}.piece>b{font-size:1.5rem}.piece small{color:var(--muted)}
 .evgrid{display:grid;gap:10px;grid-template-columns:1fr}
@@ -299,8 +352,7 @@ main>h2:nth-of-type(6n+5),.tale h2:nth-of-type(6n+5){color:var(--c5)}main>h2:nth
 .links a:nth-child(6n+4) b,.stats .stat:nth-child(6n+4) b,.evgrid .ev:nth-child(6n+4) h3,.evgrid .ev:nth-child(6n+4) .big b{color:var(--c4)}
 .links a:nth-child(6n+5) b,.stats .stat:nth-child(6n+5) b,.evgrid .ev:nth-child(6n+5) h3,.evgrid .ev:nth-child(6n+5) .big b{color:var(--c5)}
 .links a:nth-child(6n+6) b,.stats .stat:nth-child(6n+6) b,.evgrid .ev:nth-child(6n+6) h3,.evgrid .ev:nth-child(6n+6) .big b{color:var(--c6)}
-.links a:nth-child(6n+1){border-top:3px solid var(--c1)}.links a:nth-child(6n+2){border-top:3px solid var(--c2)}.links a:nth-child(6n+3){border-top:3px solid var(--c3)}
-.links a:nth-child(6n+4){border-top:3px solid var(--c4)}.links a:nth-child(6n+5){border-top:3px solid var(--c5)}.links a:nth-child(6n+6){border-top:3px solid var(--c6)}
+
 .homegrid .box:nth-child(1) h3{color:var(--c5)}.homegrid .box:nth-child(2) h3{color:var(--c4)}.homegrid .box:nth-child(3) h3{color:var(--c3)}
 @media (min-width:1000px){.homegrid{grid-template-columns:1fr 1fr 1fr}}
 .today h3{color:var(--c3)}
@@ -316,12 +368,14 @@ main>h2:nth-of-type(6n+5),.tale h2:nth-of-type(6n+5){color:var(--c5)}main>h2:nth
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40px}
 </style></head><body>
 <header><div class="bar"><a class="logo" href="/">${logo()}</a>
-<nav>${navItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}>${i} ${l}</a>`).join('')}</nav>${playBtn()}<a class="mylink" href="/my" title="카카오·카톡 코드로 로그인해서 조합·편성·상점">🔑 로그인 · 내 갈매미</a>
-<form class="search" action="/search" method="get" role="search" autocomplete="off"><input name="q" value="${esc(q)}" placeholder="갈매미·닉네임·이야기 검색 (초성 OK)" aria-label="검색" maxlength="30"><button>검색</button><div class="sug" hidden></div></form></div></header>
+<nav>${navItems.map(([h,l])=>`<a href="${h}"${active===h?' class="on"':''}>${l}</a>`).join('')}</nav><span class="sp"></span>
+<button class="hbtn" type="button" id="sbtn" aria-label="검색" aria-expanded="${q?'true':'false'}">🔍</button><a class="mylink" href="/my" title="카카오·카톡 코드로 로그인해서 조합·편성·상점">🔑 로그인 · 내 갈매미</a>${playBtn()}</div>
+<div class="searchrow" id="srow"${q?'':' hidden'}><form class="search" action="/search" method="get" role="search" autocomplete="off"><input name="q" value="${esc(q)}" placeholder="갈매미·닉네임·이야기 검색 (초성 OK)" aria-label="검색" maxlength="30"><button>검색</button><div class="sug" hidden></div></form></div></header>
 <main>${body}${piece(active)}</main>
-<nav class="tabbar" aria-label="메뉴">${tabItems.map(([h,l,i])=>`<a href="${h}"${tabOn(h,active)?' class="on"':''}><i>${i}</i>${l}</a>`).join('')}</nav>
+<nav class="tabbar" aria-label="메뉴">${tabItems.map(([h,l,i])=>`<a href="${h}"${tabOn(h,active)?' class="on"':''}><i>${i}</i>${l}</a>`).join('')}<button type="button" id="mbtn"${moreItems.some(([h])=>h===active&&h!=='/hidden')?' class="on"':''}><i>☰</i>더보기</button></nav>
+<div class="more" id="more" hidden>${moreItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}>${i} ${l}</a>`).join('')}</div>
 <footer>갈매미맨 · 카카오톡 채널 챗봇 게임 · v${esc(options.version)}</footer>
-<script>${suggestJs}${likeJs}</script>
+<script>${suggestJs}${likeJs}${headerJs}</script>
 </body></html>`;
 
   // 검색엔진용 표준 주소(canonical): 보기 옵션(?view, ?sort) 없는 주소로 묶음. 랭킹 탭(?k)만 유지. 검색 결과는 색인하지 않음(noindex)
@@ -358,7 +412,8 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40
     const body=`<section class="hero"><div>
 <h1>갈매미는 <span class="hl">존재</span>한다.</h1>
 <p class="lead">돌로 된 갈매미들이 <b>갈매미 섬 항구 수비대</b>에 출근해서 항구를 지켜요. 몸이 돌이라 날지는 못해요. 새우깡 봉지 소리에는 약해요.</p>
-<div class="btns">${playBtn(true)}<a class="btn" href="/world">세계관 보기</a><a class="btn" href="/dex">도감 보기</a></div>
+<div class="btns">${playBtn(true)}<a class="btn" href="/my">🔑 내 갈매미</a><a class="btn" href="/dex">📚 도감</a></div>
+<div class="hstats"><span>🪨 <b>${content.characters.length}</b>종 갈매미</span><span>🧩 <b>${content.recipes.length}</b>가지 조합</span><span>❔ 히든 <b>${count('HIDDEN')}</b>종</span><span>🏘 동네 <b>7</b>곳</span></div>
 </div><a class="today" href="/dex/${today.id}"><img src="${img('thumbs',today.id)}" alt="${esc(today.name)}" width="480" height="480"><div><small>☀️ 오늘의 갈매미</small><h3>${esc(today.name)}</h3><p>${esc(today.introduction.split(/(?<=[.!?…])\s+/u)[0])}</p></div></a></section>
 ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 어딘가에 <b>쿠폰 조각 ${c.pieces.length}개</b>가 숨어 있어요. 모두 찾아 카톡에 <b>쿠폰 조각들</b>을 보내면 뽑기권 <b>${c.tickets}장</b>! (1인 1회)<br><a href="/event">🎁 이벤트·혜택 모두 보기 →</a></div>`:`<div class="event"><b>🎁 이벤트·혜택</b><br>친구 초대하면 친구도 나도 뽑기권 <b>${content.economy.invite.tickets}장</b>! <a href="/event">자세히 보기 →</a></div>`}
 <div class="homegrid">
@@ -366,19 +421,15 @@ ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 �
 <div class="box"><h3>💬 최근 한마디</h3>${talk.length?`<ul class="cms">${talk.map(x=>commentItem(x,true)).join('')}</ul>`:'<p class="note">아직 댓글이 없어요. 카톡에서 <b>댓글 갈매미이름 하고 싶은 말</b>!</p>'}<br><a class="note" href="/talk">수다방 가기 →</a></div>
 <div class="box"><h3>❔ 최근 발견된 히든</h3>${recent||'<p class="note">아직 아무도 히든을 찾지 못했어요. 첫 발견자가 되어 보세요!</p>'}<br><a class="note" href="/hidden">히든 단서 보기 →</a></div>
 </div>
-<div class="stats">
-<div class="stat"><b>${content.characters.length}종</b>모을 수 있는 갈매미</div>
-<div class="stat"><b>${content.recipes.length}가지</b>합체 조합</div>
-<div class="stat"><b>${count('HIDDEN')}종</b>서류에 없는 갈매미</div>
-<div class="stat"><b>7곳</b>섬의 동네</div></div>
+<h2>바로 가기</h2>
 <div class="links">
-<a href="/event"><b>🎁 이벤트</b><span>쿠폰·친구 초대·튜토리얼 보상</span></a>
-<a href="/world"><b>📜 세계관</b><span>섬과 동네, 악당 끼룩단</span></a>
-<a href="/dex"><b>📚 도감</b><span>${content.characters.length}종의 이야기</span></a>
-<a href="/recipes"><b>🧩 조합법</b><span>누구를 같은 자리로 발령 낼까</span></a>
-<a href="/hidden"><b>❔ 히든 단서</b><span>함께 찾을수록 열리는 단서</span></a>
-<a href="/talk"><b>💬 수다방</b><span>갈매미마다 남긴 한마디</span></a>
-<a href="/rank"><b>🏆 랭킹</b><span>수비대 근무 평가</span></a>
+<a href="/event"><i>🎁</i><b>이벤트</b><span>쿠폰·친구 초대·튜토리얼 보상</span></a>
+<a href="/world"><i>📜</i><b>세계관</b><span>섬과 동네, 악당 끼룩단</span></a>
+<a href="/dex"><i>📚</i><b>도감</b><span>${content.characters.length}종의 이야기</span></a>
+<a href="/recipes"><i>🧩</i><b>조합법</b><span>누구를 같은 자리로 발령 낼까</span></a>
+<a href="/hidden"><i>❔</i><b>히든 단서</b><span>함께 찾을수록 열리는 단서</span></a>
+<a href="/talk"><i>💬</i><b>수다방</b><span>갈매미마다 남긴 한마디</span></a>
+<a href="/rank"><i>🏆</i><b>랭킹</b><span>수비대 근무 평가</span></a>
 </div>`;
     return send(reply,page('홈','/',body,'',{image:img('images',today.id),desc:`오늘의 갈매미: ${today.name} · 돌로 된 갈매미들이 항구 수비대에 출근하는 섬`}),60);
   });
@@ -438,9 +489,9 @@ ${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이
 
   // ── 도감 목록 ──
   app.get<{Querystring:{view?:string;sort?:string}}>('/dex',limit,async(req,reply)=>{
-    // 보기: 큰 카드(기본) / 작은 그림(view=s). 정렬: 기본 / 이름순(sort=name)
-    const small=req.query.view==='s',byName=req.query.sort==='name';
-    const qs=(v:boolean,n:boolean)=>{const p=[...(v?['view=s']:[]),...(n?['sort=name']:[])];return `/dex${p.length?`?${p.join('&')}`:''}`;};
+    // 보기: 작은 그림(기본, 예전 주소 view=s도 같음) / 소개가 있는 큰 카드(view=card). 정렬: 기본 / 이름순(sort=name)
+    const small=req.query.view!=='card',byName=req.query.sort==='name';
+    const qs=(v:boolean,n:boolean)=>{const p=[...(v?[]:['view=card']),...(n?['sort=name']:[])];return `/dex${p.length?`?${p.join('&')}`:''}`;};
     const tile=(c:Character)=>{const hid=c.rarity==='HIDDEN';
       return `<a class="tile" href="${hid?`/hidden#h${hiddenIndex(c)}`:`/dex/${c.id}`}" title="${hid?'???':esc(c.name)}"><img loading="lazy" src="${img('thumbs',face(c))}" alt="" width="480" height="480"><span>${hid?'???':esc(c.name)}</span></a>`;};
     const card=(c:Character)=>{
@@ -452,7 +503,7 @@ ${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이
     const chips=tiers.map(t=>`<a class="chip" style="color:${tierColor[t]}" href="#${t}">${esc(rarityNames[t])}</a>`).join('');
     const sections=tiers.map(t=>{const list=content.characters.filter(c=>c.rarity===t).sort((a,b)=>byName&&a.rarity!=='HIDDEN'?a.name.localeCompare(b.name,'ko'):0);
       return `<h2 id="${t}" style="scroll-margin-top:110px">${esc(rarityNames[t])} <small style="color:var(--muted);font-weight:500">${list.length}종</small></h2><div class="${small?'tiles':'grid'}">${list.map(small?tile:card).join('')}</div>`;}).join('');
-    return send(reply,page('도감','/dex',`<h1>갈매미 도감</h1><p class="lead">${content.characters.length}종의 갈매미. 카드를 누르면 만드는 법과 재료로 쓰이는 곳을 볼 수 있어요.</p><div class="tabs"><a href="${qs(false,byName)}"${small?'':' class="on"'}>🃏 큰 카드</a><a href="${qs(true,byName)}"${small?' class="on"':''}>🔳 작은 그림</a><a href="${qs(small,false)}"${byName?'':' class="on"'}>번호순</a><a href="${qs(small,true)}"${byName?' class="on"':''}>가나다순</a></div><div class="chips">${chips}</div>${sections}`));
+    return send(reply,page('도감','/dex',`<h1>갈매미 도감</h1><p class="lead">${content.characters.length}종의 갈매미. 카드를 누르면 만드는 법과 재료로 쓰이는 곳을 볼 수 있어요.</p><div class="tabs"><a href="${qs(true,byName)}"${small?' class="on"':''}>🔳 그림</a><a href="${qs(false,byName)}"${small?'':' class="on"'}>🃏 소개 카드</a><a href="${qs(small,false)}"${byName?'':' class="on"'}>번호순</a><a href="${qs(small,true)}"${byName?' class="on"':''}>가나다순</a></div><div class="chips">${chips}</div>${sections}`));
   });
 
   // ── 도감 상세 ──
@@ -491,7 +542,7 @@ ${how}${used}</div></div>${lineage}
     const sections=order.map(t=>{
       const list=content.recipes.filter(r=>content.map.get(r.resultId)!.rarity===t);
       return `<h2 id="r-${t}" style="scroll-margin-top:110px">${esc(rarityNames[t])} <small style="color:var(--muted);font-weight:500">${list.length}가지</small></h2>`+
-        list.map(r=>`<div class="rec"><div>${chip(r.resultId)}</div><div><span class="eq">=</span>${counts(r.materials).map(([id,n])=>chip(id,n)).join('<span class="eq">+</span>')}</div></div>`).join('');
+        `<div class="recs">${list.map(r=>`<div class="rec"><div>${chip(r.resultId)}</div><div><span class="eq">=</span>${counts(r.materials).map(([id,n])=>chip(id,n)).join('<span class="eq">+</span>')}</div></div>`).join('')}</div>`;
     }).join('');
     const hiddenCount=content.characters.filter(c=>c.rarity==='HIDDEN').length;
     return send(reply,page('조합법','/recipes',`${recipeTabs('/recipes')}<h1>조합법</h1><p class="lead">누구랑 누구를 같은 자리로 발령 내면 무엇이 될까요? (수비대 인사팀 발령 명단) 이름을 누르면 그 갈매미의 상세로 가요. 히든 ${hiddenCount}종의 조합법은 비밀이에요. <a href="/hidden">단서 보러 가기</a></p><div class="chips">${chips}</div>${sections}`));
