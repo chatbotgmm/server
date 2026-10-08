@@ -1,5 +1,5 @@
 // 수비대 대결 시험판(/duel): 새 전투 엔진(src/battle)을 브라우저에서 그대로 돌림.
-// 최상위 33종의 이름·그림이 나오므로 공개하지 않고, 비밀 키(k)가 맞을 때만 열림(키는 npm run duel-link 로 확인)
+// 최상위 33종의 이름·그림이 나오므로 공개하지 않고, 비밀 키(k)가 맞을 때만 열림(주소 확인: sudo -iu ubuntu node gmm/galmaegiman-confirmed/scripts/duel-link.mjs)
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
