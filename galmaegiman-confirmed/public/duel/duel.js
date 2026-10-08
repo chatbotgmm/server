@@ -313,11 +313,16 @@ function actionPanel() {
   const f = activeOf(b, 0), legal = legalActions(b, 0), s = b.sides[0];
   const can = a => legal.some(x => x.kind === a.kind && (a.kind === 'skill' ? x.skillId === a.skillId : x.to === a.to));
   const panel = document.getElementById('panel');
-  panel.innerHTML = f.skills.map(k => {
-    const cd = f.cds[k.id] > 0 ? `${f.cds[k.id]}턴 뒤` : k.cd ? `재사용 ${k.cd}턴` : '';
-    return `<button class="sk" data-k="${k.id}" style="--c:${COLOR[k.attr ?? f.attr]}" ${can({ kind: 'skill', skillId: k.id }) ? '' : 'disabled'}>
-      <div class="t"><span>${esc(k.name)}</span><small>${k.power ? `${R.attrName(k.attr ?? f.attr)} · 위력 ${k.power}${k.hits > 1 ? `×${k.hits}` : ''}` : '보조'}${cd ? ` · ${cd}` : ''}</small></div><p>${esc(k.desc)}</p></button>`;
-  }).join('') + `<div class="sw">${s.fighters.map((x, i) => i === s.active ? '' : `<button data-s="${i}" ${can({ kind: 'switch', to: i }) ? '' : 'disabled'}><img src="${sprite(x.rec.id, 'front')}" alt=""><span>${esc(x.name)}<br><small>${x.hp > 0 ? `교체 · ${Math.round(x.hp / x.maxHp * 100)}%` : '전투불가'}</small></span></button>`).join('')}</div>`;
+  const foe = activeOf(b, 1);
+  // 기술 4개(기본·역할·고유·보조 속성)를 2×2로. 지금 상대에게 유리/불리를 같이 보여 줌
+  panel.innerHTML = `<div class="skills">${f.skills.map(k => {
+    const at = k.attr ?? f.attr, m = k.power ? R.typeMult(at, foe.attr) : 1, wait = f.cds[k.id] > 0;
+    const kind = k.id.startsWith('sub-') ? '보조 속성' : k.id === 'sig' ? '고유기' : k.id.startsWith('role-') ? '역할기' : '기본';
+    return `<button class="sk" data-k="${k.id}" style="--c:${COLOR[at]}" ${can({ kind: 'skill', skillId: k.id }) ? '' : 'disabled'}>
+      <span class="kd">${kind}${wait ? ` · ${f.cds[k.id]}턴 뒤` : k.cd ? ` · 재사용 ${k.cd}턴` : ''}</span><b>${esc(k.name)}</b>
+      <span class="ln">${k.power ? `${chip(at)}<small>위력 ${k.power}${k.hits > 1 ? `×${k.hits}` : ''}</small>${m > 1 ? '<em class="good">▲유리</em>' : m < 1 ? '<em class="bad">▼불리</em>' : ''}` : '<small>보조 기술</small>'}</span>
+      <p>${esc(k.desc)}</p></button>`;
+  }).join('')}</div><div class="sw">${s.fighters.map((x, i) => i === s.active ? '' : `<button data-s="${i}" ${can({ kind: 'switch', to: i }) ? '' : 'disabled'}><img src="${sprite(x.rec.id, 'front')}" alt=""><span>${esc(x.name)}<br><small>${x.hp > 0 ? `교체 · ${Math.round(x.hp / x.maxHp * 100)}%` : '전투불가'}</small></span></button>`).join('')}</div>`;
   panel.querySelectorAll('[data-k]').forEach(x => x.onclick = () => turn({ kind: 'skill', skillId: x.dataset.k }));
   panel.insertAdjacentHTML('beforeend', '<button class="flee" id="flee">🏃 도망치기</button>');
   panel.querySelectorAll('[data-s]').forEach(x => x.onclick = () => turn({ kind: 'switch', to: +x.dataset.s }));
@@ -355,7 +360,10 @@ async function play(from) {
     if ((m = line.match(/^(.+)의 (.+)!$/))) {
       const side = [0, 1].find(s => shown(s).name === m[1] && s !== lastAtk) ?? [0, 1].find(s => shown(s).name === m[1]) ?? lastAtk;
       lastAtk = side; lastSkill = shown(side).skills.find(k => k.name === m[2]);
-      lunge(side); wait = 450;
+      lunge(side);
+      if (lastSkill?.power) await shoot(side, lastSkill.attr ?? shown(side).attr, lastSkill.hits ?? 1);
+      else if (lastSkill) aura(side, lastSkill.attr ?? shown(side).attr);
+      wait = lastSkill?.power ? 120 : 600;
     } else if ((m = line.match(/화상으로 (\d+) 피해/))) {
       const t = [0, 1].find(s => line.startsWith(shown(s).name)) ?? 0; hit(t, +m[1], COLOR.FIRE, false, false);
     } else if ((m = line.match(/ (\d+) 피해를 입었어요\.(.*)$/)) && !line.startsWith('역습')) {
@@ -370,7 +378,7 @@ async function play(from) {
       }
     } else if (line.includes('전투불가가 됐어요')) {
       const t = [0, 1].find(s => line.startsWith(shown(s).name) && !view[s].down[view[s].active]) ?? 0;
-      view[t].down[view[t].active] = true; faint(t); wait = 900;
+      view[t].down[view[t].active] = true; faint(t); wait = 1500;
     } else if (line.includes('모두 막아 냈어요')) { burst(1 - lastAtk, '#ffffff', 10, 60); }
     else if (line.includes('상태가 됐어요')) { const t = [0, 1].find(s => line.startsWith(shown(s).name)); if (t !== undefined) burst(t, '#b07cff', 12, 50); }
     else if (line.includes('증강체 「')) { banner(line.replace(/^\[.+?\] /, '')); wait = 1000; }
@@ -405,7 +413,70 @@ function burst(t, color, n, dist) {
     p.animate([{ transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }, { transform: `translate(${Math.cos(ang) * r - sz / 2}px,${Math.sin(ang) * r - sz / 2}px) scale(.3)`, opacity: 0 }], { duration: 500 + Math.random() * 250, easing: 'cubic-bezier(.2,.7,.3,1)' }).onfinish = () => p.remove();
   }
 }
-function faint(s) { document.getElementById(`m${s}`).animate([{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(30px)', opacity: 0 }], { duration: 600, fill: 'forwards' }); }
+// 쓰러짐: 번쩍 → 색이 빠지며 기울고 → 털썩 주저앉음 → 먼지·깃털 → 「전투불가!」 도장
+function faint(s) {
+  const img = document.getElementById(`m${s}`), dir = s === 0 ? -1 : 1;
+  img.getAnimations().forEach(a => a.cancel());
+  img.animate([
+    { transform: 'none', filter: 'brightness(1)', opacity: 1 },
+    { transform: 'none', filter: 'brightness(3)', opacity: 1, offset: .08 },
+    { transform: `rotate(${4 * dir}deg)`, filter: 'grayscale(.6) brightness(.9)', opacity: 1, offset: .3 },
+    { transform: `rotate(${-6 * dir}deg) translateY(4px)`, filter: 'grayscale(1) brightness(.8)', opacity: 1, offset: .45 },
+    { transform: `rotate(${14 * dir}deg) translateY(18%) scaleY(.82)`, filter: 'grayscale(1) brightness(.6)', opacity: .9, offset: .7 },
+    { transform: `rotate(${18 * dir}deg) translateY(40%) scaleY(.6)`, filter: 'grayscale(1) brightness(.5)', opacity: 0 },
+  ], { duration: 1300, easing: 'ease-in', fill: 'forwards' });
+  const a = document.getElementById('arena').getBoundingClientRect(), r = img.getBoundingClientRect(), fx = document.getElementById('fx');
+  const footX = r.left - a.left + r.width / 2, footY = r.bottom - a.top - r.height * 0.08;
+  setTimeout(() => {
+    for (let i = 0; i < 14; i++) {          // 먼지
+      const p = document.createElement('div'), sz = 10 + Math.random() * 16, dx = (Math.random() - .5) * r.width * 1.1;
+      p.className = 'dust'; p.style.cssText = `left:${footX}px;top:${footY}px;width:${sz}px;height:${sz}px`;
+      fx.append(p);
+      p.animate([{ transform: 'translate(-50%,-50%) scale(.4)', opacity: .9 }, { transform: `translate(${dx}px,${-10 - Math.random() * 25}px) scale(1.4)`, opacity: 0 }], { duration: 800 + Math.random() * 400, easing: 'ease-out' }).onfinish = () => p.remove();
+    }
+    for (let i = 0; i < 7; i++) {           // 깃털
+      const p = document.createElement('div'), dx = (Math.random() - .5) * r.width, rot = (Math.random() - .5) * 720;
+      p.className = 'feather'; p.style.cssText = `left:${footX}px;top:${footY - r.height * .5}px`;
+      fx.append(p);
+      p.animate([{ transform: 'translate(0,0) rotate(0)', opacity: 0 }, { opacity: 1, offset: .15 }, { transform: `translate(${dx}px,${r.height * .45}px) rotate(${rot}deg)`, opacity: 0 }], { duration: 1500 + Math.random() * 600, easing: 'ease-in-out' }).onfinish = () => p.remove();
+    }
+  }, 750);
+  setTimeout(() => {
+    const st = document.createElement('div'); st.className = 'stamp'; st.textContent = '전투불가!';
+    st.style.left = `${footX}px`; st.style.top = `${r.top - a.top + r.height * .4}px`;
+    fx.append(st);
+    st.animate([{ transform: 'translate(-50%,-50%) rotate(-14deg) scale(2.4)', opacity: 0 }, { transform: 'translate(-50%,-50%) rotate(-14deg) scale(.95)', opacity: 1, offset: .25 }, { transform: 'translate(-50%,-50%) rotate(-14deg) scale(1)', opacity: 1, offset: .8 }, { transform: 'translate(-50%,-50%) rotate(-14deg) scale(1)', opacity: 0 }], { duration: 1400 }).onfinish = () => st.remove();
+    document.getElementById('arena').animate([{ transform: 'translateY(0)' }, { transform: 'translateY(5px)' }, { transform: 'translateY(0)' }], { duration: 180 });
+  }, 600);
+}
+// 속성별로 날아가는 효과(그림 없이 글자 그림 + 빛 꼬리)
+const GLYPH = { STONE: '🪨', GOLD: '🪙', FIRE: '🔥', ICE: '❄️', BLOSSOM: '🌸', SEA: '💧', SHADOW: '🌑', STAR: '⭐', THREAD: '🧵', GRAVITY: '🌀' };
+function shoot(from, attr, hits) {
+  const [x0, y0] = center(from), [x1, y1] = center(1 - from), fx = document.getElementById('fx'), n = Math.min(5, Math.max(2, hits + 1));
+  return new Promise(res => {
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('div'); p.className = 'shot'; p.textContent = GLYPH[attr] ?? '✨';
+      p.style.cssText = `left:${x0}px;top:${y0}px;filter:drop-shadow(0 0 6px ${COLOR[attr]})`;
+      fx.append(p);
+      const arc = (i - (n - 1) / 2) * 26, mx = (x0 + x1) / 2 - x0 + arc, my = (y0 + y1) / 2 - y0 - 40 - Math.abs(arc);
+      p.animate([{ transform: 'translate(-50%,-50%) scale(.5) rotate(0)', opacity: 0 }, { opacity: 1, offset: .1 },
+        { transform: `translate(calc(-50% + ${mx}px),calc(-50% + ${my}px)) scale(1.1) rotate(180deg)`, offset: .5 },
+        { transform: `translate(calc(-50% + ${x1 - x0}px),calc(-50% + ${y1 - y0}px)) scale(1.3) rotate(360deg)`, opacity: 1 }],
+      { duration: 420, delay: i * 70, easing: 'ease-in' }).onfinish = () => { p.remove(); if (i === n - 1) res(); };
+    }
+  });
+}
+// 보조 기술(강화·회복 등): 자기 주위로 빛과 글자 그림이 솟아오름
+function aura(s, attr) {
+  const [x, y] = center(s), fx = document.getElementById('fx');
+  burst(s, COLOR[attr], 10, 50);
+  for (let i = 0; i < 5; i++) {
+    const p = document.createElement('div'); p.className = 'shot'; p.textContent = GLYPH[attr] ?? '✨';
+    p.style.cssText = `left:${x + (i - 2) * 22}px;top:${y + 20}px;font-size:18px`;
+    fx.append(p);
+    p.animate([{ transform: 'translate(-50%,0)', opacity: 0 }, { opacity: 1, offset: .3 }, { transform: 'translate(-50%,-70px)', opacity: 0 }], { duration: 700, delay: i * 60 }).onfinish = () => p.remove();
+  }
+}
 function popIn(s) { const img = document.getElementById(`m${s}`); img.getAnimations().forEach(a => a.cancel()); img.animate([{ transform: 'scale(.5)', opacity: 0 }, { transform: 'scale(1.05)', opacity: 1 }, { transform: 'scale(1)', opacity: 1 }], { duration: 420, easing: 'ease-out' }); }
 function banner(text) {
   const d = document.createElement('div'); d.className = 'banner'; d.textContent = text;

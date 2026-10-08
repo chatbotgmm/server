@@ -28,7 +28,7 @@ export type Effect=
   |{kind:'recharge'}
   |{kind:'lockSelf';atkPct:number};
 export interface Skill {id:string;name:string;attr?:Attr;power?:number;hits?:number;priority?:boolean;crit?:boolean;cd:number;effects:Effect[];desc:string}
-export interface UnitDef {id:string;attr:Attr;role:Role;signature:Skill;name?:string;power?:number;hpMult?:number;boss?:boolean}
+export interface UnitDef {id:string;attr:Attr;sub?:Attr;role:Role;signature:Skill;name?:string;power?:number;hpMult?:number;boss?:boolean}
 export interface Passive {hpPct?:number;atkPct?:number;defPct?:number;spdPct?:number;pierce?:number;execute?:number;critPlus?:number;opener?:number;
   lifesteal?:number;reflect?:number;cut?:number;regen?:number;lastStand?:boolean;statusPlus?:number;statusResist?:number;sigCd?:number;handoff?:number;durationPlus?:number}
 export interface EvoAugment {id:string;name:string;desc:string;roles:Role[]|'ANY';passive:Passive}
@@ -128,9 +128,11 @@ export function rulesFrom(d:BattleData){
   };
   const basicSkill=(a:Attr):Skill=>({id:`basic-${a}`,name:d.attributes[a].basic,attr:a,power:d.basicPower,cd:0,effects:[],desc:`위력 ${d.basicPower}`});
   const roleSkill=(r:Role,a:Attr):Skill=>mkSkill(`role-${r}`,d.roles[r].skill,a);
-  const units=new Map<string,UnitDef>(Object.entries(d.units).map(([id,u])=>[id,{id,attr:u.attr,role:u.role,signature:mkSkill('sig',u.skill,u.attr)}]));
+  // 보조 속성 기술: 자기 속성이 아닌 공격(상성이 불리할 때 꺼내 씀)
+  const subSkill=(a:Attr):Skill=>({id:`sub-${a}`,name:d.attributes[a].sub,attr:a,power:d.subSkill.power,cd:d.subSkill.cd,effects:[],desc:`${attrName(a)} 속성 공격 · 위력 ${d.subSkill.power}`});
+  const units=new Map<string,UnitDef>(Object.entries(d.units).map(([id,u])=>[id,{id,attr:u.attr,sub:u.sub,role:u.role,signature:mkSkill('sig',u.skill,u.attr)}]));
   // 스토리 빌런: 공격·방어는 역할 기본값 × power, 체력은 × hp(없으면 power). 졸병 1 미만, 보스는 hp를 크게
-  const villains=new Map<string,UnitDef>(Object.entries(d.villains).map(([id,v])=>[id,{id,name:v.name,attr:v.attr,role:v.role,power:v.power,hpMult:v.hp??v.power,boss:v.boss??false,signature:mkSkill('sig',v.skill,v.attr)}]));
+  const villains=new Map<string,UnitDef>(Object.entries(d.villains).map(([id,v])=>[id,{id,name:v.name,attr:v.attr,sub:v.sub,role:v.role,power:v.power,hpMult:v.hp??v.power,boss:v.boss??false,signature:mkSkill('sig',v.skill,v.attr)}]));
   const unitDef=(id:string)=>units.get(id)??villains.get(id);
   const battleAugments:BattleAugment[]=battleAugIds.map(id=>{
     const raw=d.battleAugments[id] as {name:string;desc?:string}&Record<string,unknown>;
@@ -142,7 +144,7 @@ export function rulesFrom(d:BattleData){
     const text=(Object.entries(passive) as [keyof Passive,number|boolean][]).map(([k,v])=>passiveText[k](Number(v))).join(', ');
     return {id,name,roles,passive:passive as Passive,desc:desc??text};
   });
-  return {data:d,attrName,typeMult,basicSkill,roleSkill,units,villains,unitDef,battleAugments,battleAug:new Map(battleAugments.map(a=>[a.id,a])),
+  return {data:d,attrName,typeMult,basicSkill,roleSkill,subSkill,units,villains,unitDef,battleAugments,battleAug:new Map(battleAugments.map(a=>[a.id,a])),
     evoAugments,evoAug:new Map(evoAugments.map(a=>[a.id,a]))};
 }
 export type Rules=ReturnType<typeof rulesFrom>;

@@ -27,7 +27,7 @@ function makeFighter(R:Rules,rec:UnitRecord,side:0|1):Fighter{
   const s=statsOf(R,rec),passive=passiveOf(R,rec);
   const sigCd=Math.max(1,def.signature.cd-(passive.sigCd??0));
   return {side,rec,name:rec.name,scale:levelScale(R,rec),attr:def.attr,role:def.role,peanut:rec.name.includes('갈매미맨'),passive,
-    skills:[R.basicSkill(def.attr),R.roleSkill(def.role,def.attr),{...def.signature,cd:sigCd}],
+    skills:[R.basicSkill(def.attr),R.roleSkill(def.role,def.attr),{...def.signature,cd:sigCd},...(def.sub&&def.sub!==def.attr?[R.subSkill(def.sub)]:[])],
     maxHp:s.hp,hp:s.hp,base:{atk:s.atk,def:s.def,spd:s.spd},cds:{},mods:[],status:{},guards:[],regens:[],
     endure:0,protect:false,recharge:false,immune:0,lockAtk:0,lastStandUsed:false,attacked:false,actedTurn:0,hitBy:{}};
 }
@@ -278,7 +278,7 @@ export function pickAi(b:Battle,side:0|1):Action{
   let best:Action=legal[0]??{kind:'skill',skillId:f.skills[0].id},score=-1;
   for(const a of legal){
     const sk=f.skills.find(k=>k.id===a.skillId)!;let v=0;
-    if(sk.power)v=sk.power*(sk.hits??1)*b.R.typeMult(attackAttr(b.R,f,sk,foe),foe.attr);
+    if(sk.power){const at=attackAttr(b.R,f,sk,foe);v=sk.power*(sk.hits??1)*b.R.typeMult(at,foe.attr)*(at===f.attr?b.R.data.multipliers.sameAttr:1);}
     if(sk.effects.some(e=>e.kind==='heal'))v=f.hp<f.maxHp*0.45?200:5;
     else if(sk.effects.some(e=>e.kind==='revive'))v=b.sides[side].fighters.some(x=>x.hp<=0)&&!b.sides[side].reviveUsed?250:0;
     else if(!sk.power){
