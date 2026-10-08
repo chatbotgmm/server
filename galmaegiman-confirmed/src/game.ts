@@ -1086,6 +1086,62 @@ export class GameService {
       battleTeam:ids(p.battleTeam),party:ids(p.partyDraft),
       trip:trip?{endsAt:trip.endsAt.toISOString(),units:(trip.unitIds as string[]).map(id=>this.content.map.get(id)?.name??id)}:null};
   }
+  // 웹 요청도 카톡 요청과 같은 줄에 세워(동시에 처리되지 않게) 한 거래로 실행
+  private webRun<T>(playerId:string,fn:(tx:Tx,p:Player,now:Date)=>Promise<T>):Promise<T>{
+    const task=this.tail.then(()=>this.db.$transaction(async tx=>{
+      const p=await tx.player.findUnique({where:{id:playerId}});
+      if(!p)throw new GameError('로그인을 다시 해 주세요.');
+      return fn(tx,p,this.clock());
+    },{maxWait:500,timeout:2500}));
+    this.tail=task.catch(()=>{});
+    return task;
+  }
+  // 카톡과 같은 미리보기(확인 요청)를 만들고 바로 확정: 웹은 화면에서 한 번 묻고 보냄
+  private async confirmNow(tx:Tx,p:Player,now:Date,reply:GameReply){
+    const token=reply.list?.items.find(i=>i.button?.action==='confirm')?.button?.token;
+    if(!token)return reply;
+    return this.confirm(tx,p,token,now);
+  }
+  private replyText=(r:GameReply)=>(r.text??'').trim();
+  // 탐험 편성(카톡 「탐험」과 같은 편성): 최상위 유닛 종류 id 목록(같은 유닛 여러 번 가능)
+  async webSetParty(playerId:string,ids:string[]){
+    if(!Array.isArray(ids)||ids.some(id=>typeof id!=='string'||!this.topIds.includes(id)))throw new GameError('탐험은 최상위 갈매미만 보낼 수 있어요.');
+    return this.webRun(playerId,async(tx,p)=>{
+      if(await this.activeExpedition(tx,p))throw new GameError('이미 탐험 중이에요. 돌아온 뒤 편성해 주세요.');
+      await this.saveDraft(tx,p,ids);
+      return this.draftIds(p);
+    });
+  }
+  async webStartExpedition(playerId:string){
+    return this.webRun(playerId,async(tx,p,now)=>this.replyText(await this.confirmNow(tx,p,now,await this.partyDraft(tx,p,'출발','',now))));
+  }
+  async webClaimExpedition(playerId:string){
+    return this.webRun(playerId,async(tx,p,now)=>this.replyText(await this.claimExpedition(tx,p,now)));
+  }
+  // 상점: 카톡 상점과 같은 물건·같은 확인 과정
+  async webShop(playerId:string,item:'tickets'|'peanutTickets'|'skip'){
+    const sub={tickets:'뽑기권',peanutTickets:'땅콩뽑기권',skip:'탐험귀환'}[item];
+    if(!sub)throw new GameError('없는 물건이에요.');
+    return this.webRun(playerId,async(tx,p,now)=>this.replyText(await this.confirmNow(tx,p,now,await this.shop(tx,p,sub,now))));
+  }
+  // 대결 아이템 사기(종류·가격은 battle.yaml items에서 검사한 값을 받음)
+  async webBuyItem(playerId:string,item:{id:string;name:string;price:number},count:number,maxStack:number){
+    if(!Number.isSafeInteger(count)||count<1||count>10)throw new GameError('한 번에 1~10개까지 살 수 있어요.');
+    return this.webRun(playerId,async(tx,p)=>{
+      const cost=item.price*count;
+      const have=(await tx.playerItem.findUnique({where:{playerId_itemId:{playerId:p.id,itemId:item.id}}}))?.count??0;
+      if(have+count>maxStack)throw new GameError(`${item.name}은(는) ${maxStack}개까지 가질 수 있어요. 지금 ${have}개.`);
+      const paid=await tx.player.updateMany({where:{id:p.id,snack:{gte:cost}},data:{snack:{decrement:cost}}});
+      if(paid.count!==1)throw new GameError(`🍤 새우깡이 부족해요. ${cost}개 필요, 지금 ${p.snack}개.`);
+      await tx.playerItem.upsert({where:{playerId_itemId:{playerId:p.id,itemId:item.id}},create:{playerId:p.id,itemId:item.id,count},update:{count:{increment:count}}});
+      await this.audit(tx,p,'SHOP',{item:`ITEM_${item.id}`,count,snacks:-cost});
+      return `🛒 ${item.name} ×${count} 샀어요! 🍤 -${cost}`;
+    });
+  }
+  async webItems(playerId:string){
+    return (await this.db.playerItem.findMany({where:{playerId,count:{gt:0}}})).map(r=>({id:r.itemId,count:r.count}));
+  }
+  webPrices(){const e=this.content.economy;return {tickets:{snack:e.shop.tickets.snacks,amount:e.shop.tickets.amount},peanutTickets:{peanut:1,amount:e.peanutShop.tickets},skip:{snack:e.shop.expeditionSkip.snacks},maxParty:e.expedition.maxParty};}
   // 전투 편성: 가진 최상위 유닛 종류 0~3개(순서 = 출전 순서)
   async webSetBattleTeam(playerId:string,ids:string[]){
     if(!Array.isArray(ids)||ids.length>3||new Set(ids).size!==ids.length)throw new GameError('전투 편성은 서로 다른 최상위 갈매미 3마리까지예요.');

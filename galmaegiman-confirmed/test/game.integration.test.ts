@@ -28,7 +28,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   });
   beforeEach(async()=>{
     await db.$transaction([
-      db.webLogin.deleteMany(),db.commentLike.deleteMany(),db.comment.deleteMany(),db.pendingAction.deleteMany(),db.adminSnapshot.deleteMany(),db.auditEvent.deleteMany(),db.achievement.deleteMany(),db.dailyProgress.deleteMany(),db.collectionEntry.deleteMany(),db.ownedCharacter.deleteMany(),db.expedition.deleteMany(),db.player.deleteMany()
+      db.webLogin.deleteMany(),db.playerItem.deleteMany(),db.commentLike.deleteMany(),db.comment.deleteMany(),db.pendingAction.deleteMany(),db.adminSnapshot.deleteMany(),db.auditEvent.deleteMany(),db.achievement.deleteMany(),db.dailyProgress.deleteMany(),db.collectionEntry.deleteMany(),db.ownedCharacter.deleteMany(),db.expedition.deleteMany(),db.player.deleteMany()
     ]);
     now=new Date('2026-10-02T08:00:00+09:00');
     // 기본 테스트 계정은 튜토리얼을 마친 상태(튜토리얼 보상은 별도 테스트)
@@ -678,6 +678,36 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await post('/my/api/battle-team',{ids:['D1']},{cookie})).json()).toEqual({battleTeam:['D1']});
       expect((await db.player.findUniqueOrThrow({where:{id:p.id}})).battleTeam).toBe('D1');
       expect((await app.inject({method:'GET',url:'/my'})).headers['content-type']).toContain('text/html');
+      // 탐험 편성 → 출발 → (시간 지나) 받기
+      expect((await post('/my/api/party',{ids:['D1','D1']},{cookie})).statusCode).toBe(400);   // 1마리뿐
+      expect((await post('/my/api/party',{ids:['C1']},{cookie})).statusCode).toBe(400);        // 최상위 아님
+      expect((await post('/my/api/party',{ids:['D1']},{cookie})).json()).toEqual({ok:true,result:['D1']});
+      expect((await post('/my/api/expedition/start',{},{cookie})).statusCode).toBe(200);
+      expect(await db.expedition.count({where:{playerId:p.id}})).toBe(1);
+      expect((await post('/my/api/party',{ids:[]},{cookie})).statusCode).toBe(400);            // 탐험 중엔 편성 못 고침
+      const trip=(await app.inject({method:'GET',url:'/my/api/me',headers:{cookie}})).json() as {trip:{units:string[]}|null};
+      expect(trip.trip?.units).toEqual([content.map.get('D1')!.name]);
+      await db.expedition.updateMany({where:{playerId:p.id},data:{endsAt:new Date(now.getTime()-60_000)}});
+      expect((await post('/my/api/expedition/claim',{},{cookie})).statusCode).toBe(200);
+      expect((await db.expedition.findFirstOrThrow({where:{playerId:p.id}})).claimedAt).not.toBeNull();
+      // 아이템: 새우깡 부족·없는 아이템·보유 한도
+      await db.player.update({where:{id:p.id},data:{snack:100}});
+      expect((await post('/my/api/items/buy',{id:'nope',count:1},{cookie})).statusCode).toBe(400);
+      expect((await post('/my/api/items/buy',{id:'potion',count:0},{cookie})).statusCode).toBe(400);
+      expect((await post('/my/api/items/buy',{id:'potion',count:1},{cookie})).statusCode).toBe(200);
+      expect((await post('/my/api/items/buy',{id:'potion',count:1},{cookie})).statusCode).toBe(400);   // 40개 남음, 60 필요
+      expect((await db.player.findUniqueOrThrow({where:{id:p.id}})).snack).toBe(40);
+      await db.player.update({where:{id:p.id},data:{snack:100000}});
+      await db.playerItem.update({where:{playerId_itemId:{playerId:p.id,itemId:'potion'}},data:{count:19}});
+      expect((await post('/my/api/items/buy',{id:'potion',count:2},{cookie})).statusCode).toBe(400);   // 20개 한도
+      expect((await post('/my/api/items/buy',{id:'potion',count:1},{cookie})).statusCode).toBe(200);
+      const after=(await app.inject({method:'GET',url:'/my/api/me',headers:{cookie}})).json() as {items:{id:string;count:number}[];itemDefs:{id:string}[]};
+      expect(after.items).toEqual([{id:'potion',count:20}]);expect(after.itemDefs.length).toBeGreaterThan(0);
+      // 상점: 카톡 상점과 같은 확인 과정을 웹에서 바로 확정
+      expect((await post('/my/api/shop',{item:'x'},{cookie})).statusCode).toBe(400);
+      const tickets=(await db.player.findUniqueOrThrow({where:{id:p.id}})).credits;
+      expect((await post('/my/api/shop',{item:'tickets'},{cookie})).statusCode).toBe(200);
+      expect((await db.player.findUniqueOrThrow({where:{id:p.id}})).credits).toBeGreaterThan(tickets);
     }finally{await app.close();}
   });
   it('공개 웹 랭킹: 카톡과 같은 순위, 닉네임 표시, 히든·최상위 가림, 관리자 모드 제외',async()=>{

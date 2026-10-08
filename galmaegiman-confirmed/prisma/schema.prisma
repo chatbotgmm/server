@@ -41,6 +41,7 @@ model Player {
   adminSnapshot AdminSnapshot?
   comments      Comment[]
   webLogins     WebLogin[]
+  items         PlayerItem[]
 }
 
 model CharacterDefinition {
@@ -186,4 +187,14 @@ model WebLogin {
   player    Player    @relation(fields: [playerId], references: [id])
 
   @@index([playerId])
+}
+
+// 대결 아이템(치료약 등) 보유 수. 종류·가격·효과는 data/battle.yaml items
+model PlayerItem {
+  playerId String
+  itemId   String
+  count    Int    @default(0)
+  player   Player @relation(fields: [playerId], references: [id])
+
+  @@id([playerId, itemId])
 }

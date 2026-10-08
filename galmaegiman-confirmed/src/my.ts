@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { GameService } from './game.js';
 import { GameError } from './types.js';
+import { loadBattleRules } from './battle/load.js';
 
 const COOKIE='gmm_s',DAYS=30;
 export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string;secret:string}){
@@ -46,11 +47,35 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
   });
   app.post('/my/api/logout',async(req,reply)=>{if(!guard(req,reply))return;setCookie(req,reply,'',0);return {ok:true};});
   const limit={config:{rateLimit:{max:120,timeWindow:'1 minute',keyGenerator:ipKey('myapi')}}};
+  // 아이템 종류·가격(battle.yaml을 요청 때마다 읽어 고치면 바로 반영)
+  const itemDefs=()=>{const R=loadBattleRules(opt.root);return {items:Object.entries(R.data.items).map(([id,v])=>({id,...v})),rules:R.data.itemRules};};
   app.get('/my/api/me',limit,async(req,reply)=>{
     const id=session(req);
     if(!id)return reply.code(401).send({error:'login'});
     const me=await game.webMe(id);
-    return me?reply.header('Cache-Control','no-store').send(me):reply.code(401).send({error:'login'});
+    if(!me)return reply.code(401).send({error:'login'});
+    const defs=itemDefs();
+    return reply.header('Cache-Control','no-store').send({...me,items:await game.webItems(id),itemDefs:defs.items,itemRules:defs.rules,prices:game.webPrices()});
+  });
+  // 로그인한 사람의 요청을 실행하고, 게임 안내 오류는 그대로 보여 줌
+  const act=<B,>(path:string,run:(id:string,body:B)=>Promise<unknown>)=>app.post<{Body:B}>(path,limit,async(req,reply)=>{
+    if(!guard(req,reply))return;
+    const id=session(req);
+    if(!id)return reply.code(401).send({error:'login'});
+    try{return {ok:true,result:await run(id,(req.body??{}) as B)};}
+    catch(e){if(e instanceof GameError)return reply.code(400).send({error:e.message});throw e;}
+  });
+  act<{ids?:unknown}>('/my/api/party',(id,b)=>game.webSetParty(id,b.ids as string[]));
+  act('/my/api/expedition/start',id=>game.webStartExpedition(id));
+  act('/my/api/expedition/claim',id=>game.webClaimExpedition(id));
+  act<{item?:unknown}>('/my/api/shop',(id,b)=>{
+    if(b.item!=='tickets'&&b.item!=='peanutTickets'&&b.item!=='skip')throw new GameError('없는 물건이에요.');
+    return game.webShop(id,b.item);
+  });
+  act<{id?:unknown;count?:unknown}>('/my/api/items/buy',(id,b)=>{
+    const defs=itemDefs(),item=defs.items.find(x=>x.id===b.id);
+    if(!item)throw new GameError('없는 아이템이에요.');
+    return game.webBuyItem(id,{id:item.id,name:item.name,price:item.price},Number(b.count??1),defs.rules.maxStack);
   });
   app.post<{Body:{ids?:unknown}}>('/my/api/battle-team',limit,async(req,reply)=>{
     if(!guard(req,reply))return;

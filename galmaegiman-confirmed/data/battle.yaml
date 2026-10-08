@@ -192,6 +192,15 @@ learn:
     comeback: { name: 다시 출근,     level: 50, cd: 6, roles: [UTILITY, DEFENSE], effects: [ { revive: 40 } ] }
     blizzard: { name: 눈보라,        level: 50, attr: ICE, cd: 4, power: 90, effects: [ { status: freeze, chance: 30, turns: 1 } ] }
 
+# 대결 아이템: 웹 「내 갈매미 → 상점」에서 새우깡으로 사요. 대결 중 쓰면 그 턴 행동을 써요(스토리 계정 저장 이후 대결에서 사용)
+#   heal: 지금 나와 있는 갈매미 체력 % 회복 / cleanse: 지금 나와 있는 갈매미 상태 이상 풀기 / revive: 쓰러진 아군 하나를 체력 %로
+items:
+  potion:  { name: 치료약,          price: 60,  heal: 35,  desc: 지금 나와 있는 갈매미의 체력을 35% 회복해요 }
+  big:     { name: 큰 치료약,       price: 150, heal: 75,  desc: 지금 나와 있는 갈매미의 체력을 75% 회복해요 }
+  clear:   { name: 정신 차리기 물,   price: 80,  cleanse: true, desc: 지금 나와 있는 갈매미의 상태 이상(화상·빙결·잠·묶임·폭주)을 풀어요 }
+  feather: { name: 다시 출근 깃털,  price: 300, revive: 50, desc: 쓰러진 아군 하나를 체력 50%로 다시 일으켜요 }
+itemRules: { perBattle: 3, maxStack: 20 }   # 대결 한 번에 쓸 수 있는 개수, 한 종류 최대 보유 수
+
 # 상태 이상 수치
 status: { burnDamage: 6, burnAtk: -20, bindSpd: -30, rageAtk: 30, rageDef: -30 }
 
