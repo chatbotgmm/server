@@ -5,9 +5,9 @@ import { parse } from 'yaml';
 import { z } from 'zod';
 import type { Rules } from './core.js';
 
-// who: N = 해설, ME = 내 선두 갈매미, V1 같은 빌런 번호 = 그 빌런, 그 밖의 글자 = 그 이름 그대로(예: 마을 회관 방송)
-// 대사 화면 배경: harbor 항구(맑음) / ink 먹물 항구 / deep 바다 밑 동굴 / hall 마을 회관
-export const scenes=['harbor','ink','deep','hall'] as const;
+// who: N = 해설, ME = 내 선두 갈매미, V1 같은 빌런 번호 = 그 빌런, D2·N1 같은 유닛 번호 = 그 갈매미(그림과 이름), 그 밖의 글자 = 그 이름 그대로(예: 마을 회관 방송)
+// 대사 화면 배경: harbor 항구(맑음) / ink 먹물 항구 / deep 바다 밑 동굴 / hall 마을 회관 / market 금빛 시장 / strait 해협 / laundry 빨래터 언덕 / sky 끼룩단 하늘 / nest 끼룩단 섬
+export const scenes=['harbor','ink','deep','hall','market','strait','laundry','sky','nest'] as const;
 const line=z.object({who:z.string().min(1).max(20),say:z.string().min(1).max(200)}).strict();
 const stage=z.object({
   id:z.string().regex(/^[A-Z0-9]+-\d+$/),title:z.string().min(1).max(30),
@@ -37,6 +37,7 @@ export function checkStory(raw:unknown,R:Rules):Story{
     ids.add(st.id);
     for(const e of st.enemy)if(!R.villains.has(e.id))throw new Error(`${st.id}: battle.yaml villains에 없는 빌런 ${e.id}`);
     for(const l of [...st.before,...st.after,...(st.lose??[])])if(/^V\d+$/.test(l.who)&&!R.villains.has(l.who))throw new Error(`${st.id}: 대사의 빌런 ${l.who}가 battle.yaml villains에 없어요`);
+    for(const l of [...st.before,...st.after,...(st.lose??[])])if(/^[DTEI]\d+$/.test(l.who)&&!R.units.has(l.who))throw new Error(`${st.id}: 대사의 유닛 ${l.who}가 없어요`);
   }
   return s;
 }

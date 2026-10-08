@@ -30,7 +30,11 @@ export function registerDuel(app:FastifyInstance,content:Content,opt:{root:strin
       const story=loadStory(opt.root,R);
       // 빌런 그림(public/battle/sprites/V1_front.png)이 있는 것만 알려 줌. 없으면 화면이 임시 그림을 그림
       const villainArt=(await readdir(resolve(opt.root,'public/battle/sprites')).catch(()=>[] as string[])).map(f=>/^(V\d+)_front\.png$/.exec(f)?.[1]).filter((v):v is string=>!!v);
-      return reply.header('Cache-Control','no-store').send({rules:R.data,units,story,villainArt});
+      // 대사에 나오는 갈매미 이름(원금 갈매미맨·갈크탑·중성 갈매미 등)
+      const names:Record<string,string>={};
+      for(const c of story.chapters)for(const l of [...c.stages.flatMap(st=>[...st.before,...st.after,...(st.lose??[])]),...(c.clear??[])])
+        if(/^[DTEIN]\d+$/.test(l.who)){const u=content.map.get(l.who);if(u)names[l.who]=u.name;}
+      return reply.header('Cache-Control','no-store').send({rules:R.data,units,story,villainArt,names});
     }catch(e){return reply.code(500).send({error:(e as Error).message});}
   });
   app.get<{Params:{file:string};Querystring:{k?:string}}>('/duel/sprites/:file',async(req,reply)=>{

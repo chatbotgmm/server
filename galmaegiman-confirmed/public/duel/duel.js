@@ -15,7 +15,7 @@ const q = `?k=${encodeURIComponent(K)}`;
 const chip = a => `<span class="chip" style="background:${COLOR[a]}">${esc(R.attrName(a))}</span>`;
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
-let R, UNITS, STORY, ART, b, busy = false, freeLevel = 30, freePick = [];
+let R, UNITS, STORY, ART, NAMES = {}, b, busy = false, freeLevel = 30, freePick = [];
 let view;          // 화면에 보이는 상태(엔진은 한 턴을 한꺼번에 계산하므로, 기록을 한 줄씩 보여 주며 체력을 따라 줄임)
 let onEnd = null;  // 대결이 끝나면 부를 함수(자유 대결 / 스토리)
 let hintNow = ''; // 스테이지 도움말(첫 증강체 창에도 보여 줌)
@@ -24,12 +24,24 @@ let hintNow = ''; // 스테이지 도움말(첫 증강체 창에도 보여 줌)
 const sprite = (id, side) => id.startsWith('V') ? villainArt(id) : `/duel/sprites/${id}_s0_${side}.png${q}`;
 function villainArt(id) {
   if (ART.includes(id)) return `/duel/sprites/${id}_front.png${q}`;
+  const look = R.data.villains[id]?.look; if (look) return sprite(look, 'front');   // 원형 그림을 색칠해 씀(블랙 갈매미맨)
   const v = R.villains.get(id), c = { V1: '#d9805a', V2: '#5b4a78', V3: '#e98fa6', V4: '#bfe3f2', V5: '#c4573f', V6: '#8e3b46' }[id] ?? '#d9805a';
   let svg;
-  if (id === 'V12') svg = `<ellipse cx="100" cy="130" rx="52" ry="46" fill="#f4f1ea" stroke="#5a4636" stroke-width="4"/><path d="M58 120 Q30 150 52 172 L84 150Z" fill="#3a3340" stroke="#5a4636" stroke-width="4"/>
-    <circle cx="112" cy="78" r="34" fill="#f4f1ea" stroke="#5a4636" stroke-width="4"/><path d="M80 66 Q112 34 144 66 L140 74 Q112 52 84 74Z" fill="#d63a3a" stroke="#5a4636" stroke-width="3"/>
-    <path d="M70 82 L46 90 L72 96Z" fill="#f2a33a" stroke="#5a4636" stroke-width="3"/><circle cx="100" cy="82" r="5" fill="#222"/><path d="M92 72 L108 78" stroke="#222" stroke-width="4"/>
-    <path d="M86 172 L80 192 M116 172 L120 192" stroke="#f2a33a" stroke-width="7" stroke-linecap="round"/>`;
+  const GULL = { V12: ['#f4f1ea', 'band'], V19: ['#3b3742', 'band red'], V13: ['#3b3742', 'goggle'], V14: ['#3b3742', 'squint'], V15: ['#2f2b35', 'patch medal'], V16: ['#262330', 'red'], V20: ['#f4f1ea', 'bag'] };
+  if (GULL[id]) {   // 끼룩단: 갈매기(까맣게 물든 정도·소품이 다름)
+    const [body, kit] = GULL[id], has = k => kit.includes(k), ln = body === '#f4f1ea' ? '#5a4636' : '#15121a';
+    svg = `<ellipse cx="100" cy="130" rx="${has('medal') ? 60 : 52}" ry="${has('medal') ? 52 : 46}" fill="${body}" stroke="${ln}" stroke-width="4"/><path d="M58 120 Q30 150 52 172 L84 150Z" fill="#3a3340" stroke="${ln}" stroke-width="4"/>
+      <circle cx="112" cy="78" r="34" fill="${body}" stroke="${ln}" stroke-width="4"/>
+      ${has('band') ? `<path d="M80 66 Q112 34 144 66 L140 74 Q112 52 84 74Z" fill="#d63a3a" stroke="${ln}" stroke-width="3"/>` : ''}
+      <path d="M70 82 L46 90 L72 96Z" fill="#f2a33a" stroke="${ln}" stroke-width="3"/>
+      ${has('goggle') ? '<circle cx="104" cy="80" r="11" fill="#9fd8f2" stroke="#222" stroke-width="4"/><path d="M115 78 L146 72" stroke="#222" stroke-width="4"/>'
+        : has('patch') ? '<circle cx="104" cy="80" r="10" fill="#111"/><path d="M90 66 L146 92" stroke="#111" stroke-width="3"/>'
+        : has('squint') ? '<path d="M94 82 L110 82" stroke="#fff" stroke-width="4"/>'
+        : `<circle cx="100" cy="82" r="5" fill="${has('red') ? '#ff3b3b' : body === '#f4f1ea' ? '#222' : '#eee'}"/><path d="M92 72 L108 78" stroke="${body === '#f4f1ea' ? '#222' : '#eee'}" stroke-width="4"/>`}
+      ${has('medal') ? '<circle cx="104" cy="140" r="12" fill="#f0b93a" stroke="#8a6a1a" stroke-width="3"/><path d="M98 118 L104 128 L110 118" stroke="#d63a3a" stroke-width="4" fill="none"/>' : ''}
+      ${has('bag') ? '<rect x="118" y="120" width="40" height="30" rx="5" fill="#5b8bd9" stroke="#2c4a80" stroke-width="3"/><path d="M118 124 L92 104" stroke="#2c4a80" stroke-width="3"/>' : ''}
+      <path d="M86 172 L80 192 M116 172 L120 192" stroke="#f2a33a" stroke-width="7" stroke-linecap="round"/>`;
+  }
   else if (['V7', 'V8', 'V9', 'V10', 'V11'].includes(id)) {   // 랍매미: 집게 달린 붉은 랍스타
     const lc = { V7: '#d9483b', V8: '#b5533c', V9: '#d9783b', V10: '#c23a3a', V11: '#8e2f3f' }[id];
     svg = `<path d="M70 70 Q40 20 20 18 M130 70 Q160 20 180 18" stroke="#5a2a22" stroke-width="3" fill="none"/>
@@ -57,6 +69,9 @@ function villainArt(id) {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">${svg}</svg>`)}`;
 }
 
+const tintOf = id => { const t = R.data.villains?.[id]?.tint; return t ? `tint-${t}` : ''; };
+const setTint = (img, id) => { img.classList.remove('tint-shadow', 'tint-mirror', 'tint-peanut'); const t = tintOf(id); if (t) img.classList.add(t); };
+
 // ── 저장(시험판: 이 브라우저에만) ──
 const SAVE_KEY = 'gmm-duel-story-v1';
 function load() {
@@ -83,7 +98,7 @@ async function boot() {
     const r = await fetch(`/duel/data.json${q}`);
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || `불러오기 실패(${r.status})`);
-    R = rulesFrom(j.rules); STORY = j.story; ART = j.villainArt ?? [];
+    R = rulesFrom(j.rules); STORY = j.story; ART = j.villainArt ?? []; NAMES = j.names ?? {};
     UNITS = j.units.map(u => ({ ...u, def: R.units.get(u.id) }));
     SAVE = load();
     menu();
@@ -215,7 +230,7 @@ function talk(lines, opt = {}) {
     if (!lines.length) return resolve();
     const lead = UNITS.find(u => u.id === SAVE.team[0]);
     let i = 0, typing = null, full = '';
-    const foeId = lines.find(l => /^V\d+$/.test(l.who))?.who;
+    const foeId = lines.find(l => /^[VDTEIN]\d+$/.test(l.who))?.who;
     modal.className = 'scene-on';
     modal.innerHTML = `<div class="scene sc-${opt.scene || 'harbor'}">
       ${opt.title ? `<div class="place">${esc(opt.title)}</div>` : ''}
@@ -226,13 +241,14 @@ function talk(lines, opt = {}) {
       ${opt.title ? `<div class="titlecard" id="card"><small>${esc(opt.sub || '')}</small><b>${esc(opt.title)}</b></div>` : ''}</div>`;
     const $ = id => modal.querySelector(`#${id}`);
     const draw = () => {
-      const l = lines[i], v = /^V\d+$/.test(l.who) ? R.villains.get(l.who) : null;
-      if (v) { const p = $('pFoe'); p.hidden = false; const src = sprite(l.who, 'front'); if (p.dataset.src !== src) { p.src = src; p.dataset.src = src; p.classList.toggle('big', !!v.boss); } }
-      const speaker = l.who === 'ME' ? 'me' : v ? 'foe' : '';
-      $('pMe').classList.toggle('on', speaker === 'me'); $('pFoe').classList.toggle('on', speaker === 'foe');
+      const l = lines[i], v = /^V\d+$/.test(l.who) ? R.villains.get(l.who) : null, ally = /^[DTEIN]\d+$/.test(l.who) ? l.who : null;
+      const pic = v ? sprite(l.who, 'front') : ally ? (R.units.has(ally) ? sprite(ally, 'front') : `/thumbs/${ally}.jpg`) : null;
+      if (pic) { const p = $('pFoe'); p.hidden = false; if (p.dataset.src !== pic) { p.src = pic; p.dataset.src = pic; p.classList.toggle('bossp', !!v?.boss); p.classList.toggle('card', !!ally && !R.units.has(ally)); setTint(p, l.who); } }
+      const speaker = l.who === 'ME' ? 'me' : v ? 'foe' : ally ? 'ally' : '';
+      $('pMe').classList.toggle('on', speaker === 'me'); $('pFoe').classList.toggle('on', speaker === 'foe' || speaker === 'ally');
       const box = modal.querySelector('.dbox');
       box.className = `dbox ${l.who === 'N' ? 'narr' : l.who === 'TIP' ? 'tip' : speaker || 'other'}`;
-      $('who').textContent = l.who === 'N' ? '' : l.who === 'TIP' ? '💡 대결 팁' : l.who === 'ME' ? lead.name : v ? v.name : l.who;
+      $('who').textContent = l.who === 'N' ? '' : l.who === 'TIP' ? '💡 대결 팁' : l.who === 'ME' ? lead.name : v ? v.name : ally ? (NAMES[ally] ?? ally) : l.who;
       $('pg').textContent = `${i + 1} / ${lines.length}  ▼`;
       full = hl(l.say); const plain = l.say; let n = 0;
       clearInterval(typing); $('say').textContent = '';
@@ -301,7 +317,7 @@ const say = t => { document.getElementById('msg').textContent = t || ''; };
 function render() {
   for (const s of [0, 1]) {
     const f = shown(s), img = document.getElementById(`m${s}`), src = sprite(f.rec.id, s === 0 ? 'back' : 'front');
-    if (img.dataset.src !== src) { img.src = src; img.dataset.src = src; }
+    if (img.dataset.src !== src) { img.src = src; img.dataset.src = src; setTint(img, f.rec.id); }
     img.style.opacity = view[s].down[view[s].active] ? 0 : 1;
     const hp = view[s].hp[view[s].active], pct = Math.max(0, hp / f.maxHp * 100);
     const col = pct > 50 ? 'var(--hp)' : pct > 20 ? 'var(--hpmid)' : 'var(--hplow)';
@@ -342,12 +358,12 @@ function chooseSheet(p) {
   const me = activeOf(b, 0), foe = activeOf(b, 1);
   const alive = b.sides[0].fighters.map((f, i) => [f, i]).filter(([f]) => f.hp > 0);
   const atk = R.typeMult(me.attr, foe.attr), def = R.typeMult(foe.attr, me.attr), bad = atk < 1 || def > 1;
-  const face = f => sprite(f.rec.id, 'front');
+  const face = f => sprite(f.rec.id, 'front'), faceCls = f => tintOf(f.rec.id);
   const draw = () => {
     const vs = p.augments ? `<div class="vs">
         <div class="side"><img src="${face(me)}" class="flip" alt=""><b>${esc(me.name)}</b>${chip(me.attr)}</div>
         <div class="mid"><small>내 공격</small>${multTag(atk)}<small>상대 공격</small>${multTag(def)}</div>
-        <div class="side"><img src="${face(foe)}" alt=""><b>${esc(foe.name)}</b>${chip(foe.attr)}</div></div>` : '';
+        <div class="side"><img src="${face(foe)}" class="${faceCls(foe)}" alt=""><b>${esc(foe.name)}</b>${chip(foe.attr)}</div></div>` : '';
     modal.innerHTML = `<div class="sheet pick">
       ${p.augments ? `<h2>전투 증강체</h2><p class="sub">${b.turn === 1 ? '대결 시작' : '전투불가 발생'} · 3개 중 하나를 골라요. 상대도 하나를 골라요.</p>${vs}
         ${hintNow && b.turn === 1 ? `<div class="tipline">💡 ${hl(hintNow)}</div>` : ''}

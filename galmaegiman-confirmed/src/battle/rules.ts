@@ -39,7 +39,7 @@ export const battleSchema=z.object({
   synergies:z.record(z.string().regex(/^[A-Z]+$/),z.object({name:z.string().min(1).max(20),members:z.array(z.string().regex(/^[DTEI]\d+$/)).min(2),skill:skillIn}).strict()),
   learn:z.object({levels:z.array(z.number().int().min(2).max(200)).min(1).max(10),slots:z.number().int().min(0).max(4),offers:z.number().int().min(1).max(5),
     skills:z.record(z.string().regex(/^[a-z0-9]+$/),z.object({...skillIn.shape,level:z.number().int().min(1).max(200),roles:z.array(role).min(1).optional()}).strict())}).strict(),
-  villains:z.record(z.string().regex(/^V\d+$/),z.object({name:z.string().min(1).max(20),basic:z.string().min(1).max(30).optional(),attr,sub:attr.optional(),role,power:z.number().min(0.2).max(10),hp:z.number().min(0.2).max(20).optional(),boss:z.boolean().optional(),skill:skillIn}).strict()),
+  villains:z.record(z.string().regex(/^V\d+$/),z.object({name:z.string().min(1).max(20),basic:z.string().min(1).max(30).optional(),look:z.string().regex(/^[DTEI]\d+$/).optional(),tint:z.enum(['shadow','mirror','peanut']).optional(),mirror:z.boolean().optional(),attr,sub:attr.optional(),role,power:z.number().min(0.2).max(10),hp:z.number().min(0.2).max(20).optional(),boss:z.boolean().optional(),skill:skillIn}).strict()),
   status:z.object({burnDamage:z.number(),burnAtk:z.number(),bindSpd:z.number(),rageAtk:z.number(),rageDef:z.number()}).strict(),
   battleAugments:z.record(z.enum(battleAugIds),z.object({name:z.string().min(1).max(20),desc:z.string().max(120).optional()}).catchall(z.number())),
   growth:z.object({maxLevel:z.number().int().min(2).max(200),evolveLevel:z.tuple([z.number().int(),z.number().int(),z.number().int()]),stageMult:z.tuple([z.number(),z.number(),z.number(),z.number()]),

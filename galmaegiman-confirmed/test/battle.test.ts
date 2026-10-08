@@ -124,7 +124,7 @@ describe('data/battle.yaml 편집', ()=>{
 describe('스토리 모드(data/story.yaml)',()=>{
   it('스토리 파일 검사: 빌런 번호·스테이지 번호, 보스는 같은 레벨 졸병보다 체력이 큼',()=>{
     const story=loadStory(process.cwd(),R);
-    expect(story.chapters.map(c=>c.id)).toEqual(['P','1']);
+    expect(story.chapters.map(c=>c.id)).toEqual(['P','1','2','3']);
     const v=(id:string,level:number):UnitRecord=>({uid:id,id,name:R.villains.get(id)!.name!,tier:'LIMITED',level,xp:0,stage:0,evoAugs:[]});
     expect(statsOf(R,v('V6',13)).hp).toBeGreaterThan(statsOf(R,v('V3',13)).hp*2);
     const raw=()=>parse(readFileSync('data/story.yaml','utf8'));
@@ -178,5 +178,17 @@ describe('빌런 기본기 이름',()=>{
     const b=createBattle(R,[mk('D1',0),mk('V12',1)],[mk('V1',2),mk('V7',3)],1);
     const basic=(s:0|1,i:number)=>b.sides[s].fighters[i].skills.find(k=>k.id.startsWith('basic-'))!.name;
     expect([basic(0,0),basic(0,1),basic(1,0),basic(1,1)]).toEqual(['똥폭탄','똥폭탄','먹물 뿌리기','집게 꼬집기']);
+  });
+});
+
+describe('3부 블랙 갈매미맨',()=>{
+  it('거울 단계는 상대 팀에 가장 많은 속성을 복사, 땅콩 폭주는 이름에 갈매미맨이 있는 쪽만',()=>{
+    const mk=(id:string,i:number,level=24):UnitRecord=>({uid:`u${i}`,id,name:(R.units.has(id)?id:R.villains.get(id)!.name!),tier:'LIMITED',level,xp:0,stage:0,evoAugs:[]});
+    // D7 갈크탑(황금)·D2 원금 갈매미맨(황금)·T8 갈쫄쫄이(실) → 거울은 황금
+    const team=[{...mk('D7',0),name:'갈크탑'},{...mk('D2',1),name:'원금 갈매미맨'},{...mk('T8',2),name:'갈쫄쫄이'}];
+    const b=createBattle(R,team,[mk('V17',3),mk('V21',4),mk('V22',5)],5);
+    expect(b.sides[1].fighters[1].attr).toBe('GOLD');
+    expect(b.sides[1].fighters[0].attr).toBe('SHADOW');
+    expect(b.sides[0].fighters.map(f=>f.peanut)).toEqual([false,true,false]);
   });
 });

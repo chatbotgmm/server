@@ -39,6 +39,12 @@ export function createBattle(R:Rules,teamA:UnitRecord[],teamB:UnitRecord[],seed:
   const comboFor=(t:UnitRecord[],r:UnitRecord)=>{const k=R.unitDef(r.id)?.syn;if(!k||t.filter(x=>R.unitDef(x.id)?.syn===k).length<2)return undefined;return R.comboSkill(k,R.unitDef(r.id)!.attr);};
   const side=(t:UnitRecord[],i:0|1):SideState=>({fighters:t.map(r=>makeFighter(R,r,i,comboFor(t,r))),active:0,comboUsed:false,augs:[],offers:null,needSwitch:false,reviveUsed:false,goFirst:false,neutral:0});
   const b:Battle={R,rng:seed|0,turn:1,phase:'choose',winner:null,sides:[side(teamA,0),side(teamB,1)],log:[]};
+  // 거울(mirror) 빌런: 상대 팀에 가장 많은 속성을 그대로 비춤(같으면 상대 선두 속성)
+  for(const i of [0,1] as const)for(const f of b.sides[i].fighters)if(R.unitDef(f.rec.id)?.mirror){
+    const foes=b.sides[i===0?1:0].fighters,cnt=new Map<Attr,number>();for(const x of foes)cnt.set(x.attr,(cnt.get(x.attr)??0)+1);
+    const top=Math.max(...cnt.values());f.attr=cnt.get(foes[0].attr)===top?foes[0].attr:[...cnt].find(([,n])=>n===top)![0];
+    f.skills=f.skills.map(k=>k.id.startsWith('basic-')||k.id==='role-ATTACK'||k.id==='role-UTILITY'||k.id==='role-DEFENSE'?{...k,attr:k.power?f.attr:k.attr}:k);
+  }
   offerAugments(b);
   b.log.push('대결 시작! 전투 증강체를 하나씩 골라요.');
   return b;
