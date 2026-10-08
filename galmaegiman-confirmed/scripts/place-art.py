@@ -29,6 +29,13 @@ if kind == 'villains':
         x0, y0 = (i % gx) * cw, (i // gx) * ch
         cell = np.array(im.crop((x0, y0, x0 + cw, y0 + ch))); cell[:lab, :, 3] = 0
         a = cell[:, :, 3]; a[a < 30] = 0
+        # 옆 칸에서 넘어온 조각 지우기: 가장 큰 덩어리는 남기고, 칸 테두리에 닿은 다른 덩어리는 지움
+        from scipy import ndimage
+        lbl, k = ndimage.label(a > 24)
+        if k > 1:
+            sizes = ndimage.sum(np.ones_like(lbl), lbl, range(1, k + 1)); main = int(np.argmax(sizes)) + 1
+            edge = set(np.unique(np.concatenate([lbl[0], lbl[-1], lbl[:, 0], lbl[:, -1]]))) - {0, main}
+            for e in edge: a[lbl == e] = 0
         c = Image.fromarray(cell); box = c.getchannel('A').point(lambda v: 255 if v > 24 else 0).getbbox()
         if not box: print(f'{n}: 빈 칸'); continue
         c = c.crop(box)
