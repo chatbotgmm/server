@@ -11,7 +11,7 @@
   };
   const toast = t => { toastEl.textContent = t; toastEl.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.classList.remove('on'), 1800); };
   const thumb = id => `/thumbs/${encodeURIComponent(id)}.jpg`;
-  const head = right => `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span><a class="hl" href="/dex">📚 도감</a><a class="hl" href="/search">🔍</a>${right ?? ''}<a class="home" href="/">홈</a></header>`;
+  const head = right => `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span><a class="hl" href="/dex" title="도감">📚<span class="lt"> 도감</span></a><a class="hl" href="/search" title="검색">🔍</a>${right ?? ''}<a class="home" href="/" title="홈">🏠<span class="lt"> 홈</span></a></header>`;
 
   // ── 로그인 ──
   // 카카오 로그인에서 돌아온 결과(?kakao=…)는 한 번 보여 주고 주소에서 지움
@@ -56,7 +56,7 @@
   }
   function draw() {
     const tabs = [['draw', '🥚 뽑기'], ['craft', '🧩 조합'], ['units', '🪨 내 갈매미'], ['party', '🧭 탐험대 편성'], ['battle', '⚔️ 전투 편성'], ['items', '🎒 아이템'], ['shop', '🛒 상점']];
-    app.innerHTML = `${head('<button class="btn ghost" id="out" style="padding:6px 12px;font-size:.85rem">로그아웃</button>')}
+    app.innerHTML = `${head('<button class="btn ghost" id="out" title="로그아웃" style="padding:6px 12px;font-size:.85rem">🚪<span class="lt"> 로그아웃</span></button>')}
       <div class="card"><div class="row" style="margin-bottom:10px"><b style="font-weight:400;font-size:1.15rem">${esc(me.nickname || '이름 없는 수비조장')}</b><span class="tag">도감 ${me.dex}/${me.dexTotal}</span></div>
         <div class="money"><div><b>🍤 ${me.snack}</b><small>새우깡</small></div><div><b>🥜 ${me.peanut}</b><small>땅콩</small></div><div><b>🎫 ${me.credits}</b><small>뽑기권</small></div><div><b>${me.units.reduce((a, u) => a + u.have, 0)}</b><small>가진 갈매미</small></div></div></div>
       <div class="tabs">${tabs.map(([k, t]) => `<button data-t="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>
@@ -231,19 +231,30 @@
       ${me.itemDefs.map(d => `<div class="card row" style="justify-content:space-between"><div><b style="font-weight:400">${esc(d.name)}</b> <span class="tag">${mine(d.id)}개</span><p class="note" style="margin:2px 0 0">${esc(d.desc)}</p></div></div>`).join('')}`;
   }
 
-  // 상점: 카톡 상점과 같은 물건 + 대결 아이템
+  // 상점: 카톡 상점과 같은 물건 + 대결 아이템. 수량을 적어서 사요(가격 합계를 바로 보여 줌)
   function shop(el) {
-    const p = me.prices, mine = id => me.items.find(i => i.id === id)?.count ?? 0;
-    el.innerHTML = `<div class="card"><b style="font-weight:400">🛒 상점</b><p class="note">지금 🍤 ${me.snack} · 🥜 ${me.peanut}</p></div>
-      <div class="card row" style="justify-content:space-between"><div>🎫 뽑기권 ${p.tickets.amount}장<p class="note" style="margin:0">🍤 ${p.tickets.snack}</p></div><button class="btn" id="t1" ${me.snack >= p.tickets.snack ? '' : 'disabled'}>사기</button></div>
-      <div class="card row" style="justify-content:space-between"><div>🥜 → 🎫 뽑기권 ${p.peanutTickets.amount}장<p class="note" style="margin:0">땅콩 1개</p></div><button class="btn" id="t2" ${me.peanut >= 1 ? '' : 'disabled'}>바꾸기</button></div>
-      <div class="card"><b style="font-weight:400">🎒 대결 아이템</b></div>
-      ${me.itemDefs.map(d => `<div class="card row" style="justify-content:space-between"><div>${esc(d.name)} <span class="tag">가진 ${mine(d.id)}개</span><p class="note" style="margin:0">${esc(d.desc)}<br>🍤 ${d.price}</p></div>
-        <div class="row"><button class="btn ghost" data-buy="${d.id}" data-n="1" ${me.snack >= d.price ? '' : 'disabled'}>1개</button><button class="btn ghost" data-buy="${d.id}" data-n="5" ${me.snack >= d.price * 5 ? '' : 'disabled'}>5개</button></div></div>`).join('')}
+    const p = me.prices, mine = id => me.items.find(i => i.id === id)?.count ?? 0, max = me.itemRules.maxStack;
+    // 물건마다: 이름·설명, 수량 칸(최소 1 ~ 살 수 있는 만큼), 사기 버튼(합계)
+    const goods = [
+      { key: 't1', title: `🎟 뽑기권 ${p.tickets.amount}장`, note: '새우깡으로 사요', unit: p.tickets.snack, cur: '🍤', limit: Math.min(50, Math.floor(me.snack / p.tickets.snack)), buy: n => run('shop', { item: 'tickets', count: n }, `새우깡 ${p.tickets.snack * n}개로 뽑기권 ${p.tickets.amount * n}장을 살까요?`) },
+      { key: 't2', title: `🥜 → 🎟 뽑기권 ${p.peanutTickets.amount}장`, note: '땅콩으로 바꿔요', unit: 1, cur: '🥜', limit: Math.min(50, me.peanut), buy: n => run('shop', { item: 'peanutTickets', count: n }, `땅콩 ${n}개로 뽑기권 ${p.peanutTickets.amount * n}장을 바꿀까요?`) },
+      ...me.itemDefs.map(d => ({ key: d.id, title: `${d.name} <span class="tag">가진 ${mine(d.id)}개</span>`, note: d.desc, unit: d.price, cur: '🍤', limit: Math.max(0, Math.min(max - mine(d.id), Math.floor(me.snack / d.price))),
+        buy: n => run('items/buy', { id: d.id, count: n }, `${d.name} ${n}개를 새우깡 ${d.price * n}개로 살까요?`) })),
+    ];
+    el.innerHTML = `<div class="card"><b style="font-weight:400">🛒 상점</b><p class="note" style="margin:2px 0 0">지금 🍤 ${me.snack} · 🥜 ${me.peanut} · 대결 아이템은 종류마다 ${max}개까지</p></div>
+      ${goods.map(g => `<div class="card shopi"><div><b style="font-weight:400">${g.title}</b><p class="note" style="margin:2px 0 0">${esc(g.note)} · ${g.cur} ${g.unit}</p></div>
+        <div class="qty"><button class="btn ghost" data-q="${g.key}" data-d="-1" ${g.limit ? '' : 'disabled'}>－</button><input type="number" inputmode="numeric" min="1" max="${Math.max(1, g.limit)}" value="1" data-i="${g.key}" ${g.limit ? '' : 'disabled'}><button class="btn ghost" data-q="${g.key}" data-d="1" ${g.limit ? '' : 'disabled'}>＋</button>
+        <button class="btn" data-b="${g.key}" ${g.limit ? '' : 'disabled'}>${g.limit ? `사기 ${g.cur} ${g.unit}` : g.cur === '🥜' ? '땅콩 부족' : '살 수 없음'}</button></div></div>`).join('')}
       <p class="note">갈매미 교환·팔기·닉네임 장식은 카톡 「상점」에서 할 수 있어요.</p>`;
-    el.querySelector('#t1').onclick = () => run('shop', { item: 'tickets' }, `새우깡 ${p.tickets.snack}개로 뽑기권 ${p.tickets.amount}장을 살까요?`);
-    el.querySelector('#t2').onclick = () => run('shop', { item: 'peanutTickets' }, `땅콩 1개로 뽑기권 ${p.peanutTickets.amount}장을 바꿀까요?`);
-    el.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => { const d = me.itemDefs.find(x => x.id === b.dataset.buy), n = +b.dataset.n; run('items/buy', { id: d.id, count: n }, `${d.name} ${n}개를 새우깡 ${d.price * n}개로 살까요?`); });
+    const val = g => { const i = el.querySelector(`[data-i="${g.key}"]`); const n = Math.max(1, Math.min(g.limit, Math.floor(+i.value || 1))); return n; };
+    const paint = g => { const n = val(g), b = el.querySelector(`[data-b="${g.key}"]`); if (g.limit) b.textContent = `사기 ${g.cur} ${(g.unit * n).toLocaleString('ko-KR')}`; };
+    for (const g of goods) {
+      const i = el.querySelector(`[data-i="${g.key}"]`);
+      i.oninput = () => paint(g);
+      i.onblur = () => { i.value = val(g); paint(g); };
+      el.querySelectorAll(`[data-q="${g.key}"]`).forEach(b => b.onclick = () => { i.value = Math.max(1, Math.min(g.limit, val(g) + +b.dataset.d)); paint(g); });
+      el.querySelector(`[data-b="${g.key}"]`).onclick = () => g.buy(val(g));
+    }
   }
 
   main();

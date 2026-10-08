@@ -708,6 +708,16 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const tickets=(await db.player.findUniqueOrThrow({where:{id:p.id}})).credits;
       expect((await post('/my/api/shop',{item:'tickets'},{cookie})).statusCode).toBe(200);
       expect((await db.player.findUniqueOrThrow({where:{id:p.id}})).credits).toBeGreaterThan(tickets);
+      // 수량: 뽑기권 3묶음 = 한 거래, 새우깡이 모자라면 하나도 안 삼
+      const t=content.economy.shop.tickets,b0=await db.player.findUniqueOrThrow({where:{id:p.id}});
+      expect((await post('/my/api/shop',{item:'tickets',count:3},{cookie})).statusCode).toBe(200);
+      const b1=await db.player.findUniqueOrThrow({where:{id:p.id}});
+      expect(b1.credits-b0.credits).toBe(t.amount*3);expect(b0.snack-b1.snack).toBe(t.snacks*3);
+      await db.player.update({where:{id:p.id},data:{snack:t.snacks*2}});
+      expect((await post('/my/api/shop',{item:'tickets',count:3},{cookie})).statusCode).toBe(400);
+      const b2=await db.player.findUniqueOrThrow({where:{id:p.id}});
+      expect(b2.snack).toBe(t.snacks*2);expect(b2.credits).toBe(b1.credits);   // 전부 취소
+      expect((await post('/my/api/shop',{item:'tickets',count:51},{cookie})).statusCode).toBe(400);
     }finally{await app.close();}
   });
   it('카카오 로그인: 처음엔 카톡 코드로 한 번 연결, 다음부터 카카오만, 상태값 틀리면 거절',async()=>{
@@ -1136,7 +1146,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.66'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.67'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

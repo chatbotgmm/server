@@ -21,7 +21,14 @@ header{display:flex;align-items:center;gap:10px;padding:12px 16px;margin:0 -16px
 header h1{font-size:1.3rem;margin:0;font-weight:400;text-shadow:0 2px 0 rgba(0,0,0,.18)}
 header .sp{flex:1}
 header a.hl{text-decoration:none;color:#fff;font-size:.9rem;background:rgba(255,255,255,.16);padding:6px 10px;border-radius:999px;white-space:nowrap}
-@media (max-width:520px){header h1{display:none}}
+@media (max-width:520px){header h1{display:none}header .lt{display:none}header .logo img{height:26px}}
+header{flex-wrap:nowrap;min-width:0}header>*{flex:none}header .sp{flex:1;min-width:0}
+html,body{overflow-x:clip}
+.shopi{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.qty{display:flex;align-items:center;gap:6px}
+.qty .btn.ghost{padding:6px 12px}
+.qty input{width:58px;text-align:center;padding:8px 4px;border:1.5px solid var(--edge);border-radius:12px;background:var(--bg);font-size:1rem}
+.qty .btn:not(.ghost){white-space:nowrap}
 header a.home{text-decoration:none;color:#fff;font-size:.9rem;background:rgba(255,255,255,.16);padding:6px 12px;border-radius:999px}
 header .btn.ghost{color:#fff;border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.12);box-shadow:none}
 .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}

@@ -1156,14 +1156,23 @@ export class GameService {
     return this.webRun(playerId,async(tx,p,now)=>this.replyText(await this.claimExpedition(tx,p,now)));
   }
   // 상점: 카톡 상점과 같은 물건·같은 확인 과정
-  async webShop(playerId:string,item:'tickets'|'peanutTickets'|'skip'){
+  // count: 웹에서 적은 수량. 카톡과 같은 구매를 그 수만큼 한 거래로 반복(중간에 모자라면 전부 취소)
+  async webShop(playerId:string,item:'tickets'|'peanutTickets'|'skip',count=1){
     const sub={tickets:'뽑기권',peanutTickets:'땅콩뽑기권',skip:'탐험귀환'}[item];
     if(!sub)throw new GameError('없는 물건이에요.');
-    return this.webRun(playerId,async(tx,p,now)=>this.replyText(await this.confirmNow(tx,p,now,await this.shop(tx,p,sub,now))));
+    if(!Number.isSafeInteger(count)||count<1||count>(item==='skip'?1:50))throw new GameError(item==='skip'?'한 번만 살 수 있어요.':'한 번에 1~50개까지 살 수 있어요.');
+    return this.webRun(playerId,async(tx,p,now)=>{
+      let text='';
+      for(let i=0;i<count;i++){
+        const fresh=i?await tx.player.findUniqueOrThrow({where:{id:p.id}}):p;
+        text=this.replyText(await this.confirmNow(tx,fresh,now,await this.shop(tx,fresh,sub,now)));
+      }
+      return count>1?`🛒 ×${count} 완료!\n${text}`:text;
+    });
   }
   // 대결 아이템 사기(종류·가격은 battle.yaml items에서 검사한 값을 받음)
   async webBuyItem(playerId:string,item:{id:string;name:string;price:number},count:number,maxStack:number){
-    if(!Number.isSafeInteger(count)||count<1||count>10)throw new GameError('한 번에 1~10개까지 살 수 있어요.');
+    if(!Number.isSafeInteger(count)||count<1||count>maxStack)throw new GameError(`한 번에 1~${maxStack}개까지 살 수 있어요.`);
     return this.webRun(playerId,async(tx,p)=>{
       const cost=item.price*count;
       const have=(await tx.playerItem.findUnique({where:{playerId_itemId:{playerId:p.id,itemId:item.id}}}))?.count??0;

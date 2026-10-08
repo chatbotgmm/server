@@ -80,9 +80,9 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
   act<{ids?:unknown}>('/my/api/party',(id,b)=>game.webSetParty(id,b.ids as string[]));
   act('/my/api/expedition/start',id=>game.webStartExpedition(id));
   act('/my/api/expedition/claim',id=>game.webClaimExpedition(id));
-  act<{item?:unknown}>('/my/api/shop',(id,b)=>{
+  act<{item?:unknown;count?:unknown}>('/my/api/shop',(id,b)=>{
     if(b.item!=='tickets'&&b.item!=='peanutTickets'&&b.item!=='skip')throw new GameError('없는 물건이에요.');
-    return game.webShop(id,b.item);
+    return game.webShop(id,b.item,Number(b.count??1));
   });
   act<{id?:unknown;count?:unknown}>('/my/api/items/buy',(id,b)=>{
     const defs=itemDefs(),item=defs.items.find(x=>x.id===b.id);
