@@ -1046,6 +1046,58 @@ export class GameService {
     const updated=await tx.comment.update({where:{id},data:{likes:{increment:1}}});
     return {comment:updated,already:false};
   }
+  // ───────── 웹 「내 갈매미」(로그인: 카톡에서 받은 6자리 코드) ─────────
+  private async webCode(tx:Tx,p:Player,now:Date):Promise<GameReply>{
+    // 만료된 코드와, 이 사람의 아직 안 쓴 예전 코드는 지움(코드는 한 사람당 하나만 유효)
+    await tx.webLogin.deleteMany({where:{OR:[{expiresAt:{lt:now}},{playerId:p.id,usedAt:null}]}});
+    let code='';
+    for(let i=0;i<8;i++){code=String(randomInt(0,1_000_000)).padStart(6,'0');if(!await tx.webLogin.findUnique({where:{code}}))break;}
+    await tx.webLogin.create({data:{code,playerId:p.id,expiresAt:new Date(now.getTime()+10*60_000)}});
+    const site=(this.content.economy.homepage??'').replace(/\/$/,'');
+    return {text:`🔑 웹 로그인 코드: ${code}\n10분 안에 ${site?`${site}/my`:'홈페이지 「내 갈매미」'}에 입력하세요. 한 번만 쓸 수 있어요.\n\n이 코드는 다른 사람에게 알려 주지 마세요.`,choices:menu};
+  }
+  // 코드 확인 → 플레이어 id(맞지 않거나 만료·사용됨이면 null)
+  async webLoginCode(code:string){
+    if(!/^\d{6}$/.test(code))return null;
+    return this.db.$transaction(async tx=>{
+      const now=this.clock(),row=await tx.webLogin.findUnique({where:{code}});
+      if(!row||row.usedAt||row.expiresAt<now)return null;
+      const used=await tx.webLogin.updateMany({where:{code,usedAt:null},data:{usedAt:now}});
+      if(used.count!==1)return null;
+      await tx.auditEvent.create({data:{playerId:row.playerId,kind:'WEB_LOGIN',detail:json({})}});
+      return row.playerId;
+    });
+  }
+  // 내 갈매미 요약: 재화, 가진 유닛(종류별 수·탐험 중), 전투·탐험 편성, 진행 중인 탐험
+  async webMe(playerId:string){
+    const p=await this.db.player.findUnique({where:{id:playerId}});
+    if(!p)return null;
+    const [owned,dex,trip]=await Promise.all([
+      this.db.ownedCharacter.groupBy({by:['characterId','status'],where:{playerId,status:{in:['AVAILABLE','EXPEDITION']}},_count:{_all:true}}),
+      this.db.collectionEntry.count({where:{playerId}}),
+      this.db.expedition.findFirst({where:{playerId,claimedAt:null}}),
+    ]);
+    const by=new Map<string,{have:number;away:number}>();
+    for(const r of owned){const e=by.get(r.characterId)??{have:0,away:0};e.have+=r._count._all;if(r.status==='EXPEDITION')e.away+=r._count._all;by.set(r.characterId,e);}
+    const units=[...by].map(([id,e])=>{const c=this.content.map.get(id)!;return {id,name:c.name,tier:c.rarity,tierName:rarityNames[c.rarity],top:topTiers.has(c.rarity),synergy:c.synergy??null,...e};})
+      .sort((a,b)=>tiers[b.tier]-tiers[a.tier]||this.content.map.get(a.id)!.position-this.content.map.get(b.id)!.position);
+    const ids=(s:string)=>s?s.split(',').filter(id=>this.content.map.has(id)):[];
+    return {nickname:p.nickname,snack:p.snack,peanut:p.peanut,credits:p.credits,dex,dexTotal:this.content.characters.length,units,
+      battleTeam:ids(p.battleTeam),party:ids(p.partyDraft),
+      trip:trip?{endsAt:trip.endsAt.toISOString(),units:(trip.unitIds as string[]).map(id=>this.content.map.get(id)?.name??id)}:null};
+  }
+  // 전투 편성: 가진 최상위 유닛 종류 0~3개(순서 = 출전 순서)
+  async webSetBattleTeam(playerId:string,ids:string[]){
+    if(!Array.isArray(ids)||ids.length>3||new Set(ids).size!==ids.length)throw new GameError('전투 편성은 서로 다른 최상위 갈매미 3마리까지예요.');
+    for(const id of ids)if(typeof id!=='string'||!this.topIds.includes(id))throw new GameError('최상위 갈매미만 전투에 나갈 수 있어요.');
+    const have=await this.db.ownedCharacter.findMany({where:{playerId,characterId:{in:ids},status:{in:['AVAILABLE','EXPEDITION']}},select:{characterId:true}});
+    const mine=new Set(have.map(h=>h.characterId));
+    const missing=ids.filter(id=>!mine.has(id));
+    if(missing.length)throw new GameError(`가지고 있지 않은 갈매미예요: ${missing.map(id=>this.content.map.get(id)?.name??id).join(', ')}`);
+    await this.db.player.update({where:{id:playerId},data:{battleTeam:ids.join(',')}});
+    return ids;
+  }
+
   async webLike(id:number,visitor:string){
     if(!Number.isSafeInteger(id)||id<1)return null;
     try{
@@ -1612,6 +1664,7 @@ export class GameService {
       const what=[...(ev.claimBonus?[`뽑기권 받기 +${ev.claimBonus}장 더`]:[]),...(ev.snackMultiplier>1?[`새우깡 보상 ×${ev.snackMultiplier}`]:[])];
       return this.info({text:`🎉 ${ev.label}\n${what.join('\n')}\n~ ${DateTime.fromISO(ev.to).setZone('Asia/Seoul').toFormat('M/d HH:mm')}까지${couponLine}${always}`,choices:[choice('뽑기권 받기','뽑기권받기'),choice('뽑기'),...menu.slice(1)]},'s-event');
     }
+    if(compact==='웹로그인'||compact==='로그인')return this.webCode(tx,p,now);
     if(command==='상점'||compact==='땅콩상점')return this.shop(tx,p,compact==='땅콩상점'?'땅콩':args.join(''),now);
     if(command==='장식'){
       const [act,...rest]=args,name=rest.join(' ').trim();

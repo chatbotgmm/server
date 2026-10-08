@@ -28,7 +28,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   });
   beforeEach(async()=>{
     await db.$transaction([
-      db.commentLike.deleteMany(),db.comment.deleteMany(),db.pendingAction.deleteMany(),db.adminSnapshot.deleteMany(),db.auditEvent.deleteMany(),db.achievement.deleteMany(),db.dailyProgress.deleteMany(),db.collectionEntry.deleteMany(),db.ownedCharacter.deleteMany(),db.expedition.deleteMany(),db.player.deleteMany()
+      db.webLogin.deleteMany(),db.commentLike.deleteMany(),db.comment.deleteMany(),db.pendingAction.deleteMany(),db.adminSnapshot.deleteMany(),db.auditEvent.deleteMany(),db.achievement.deleteMany(),db.dailyProgress.deleteMany(),db.collectionEntry.deleteMany(),db.ownedCharacter.deleteMany(),db.expedition.deleteMany(),db.player.deleteMany()
     ]);
     now=new Date('2026-10-02T08:00:00+09:00');
     // 기본 테스트 계정은 튜토리얼을 마친 상태(튜토리얼 보상은 별도 테스트)
@@ -654,6 +654,32 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(dex).toContain(content.map.get('C1')!.introduction);
     }finally{await app.close();}
   });
+  it('내 갈매미(/my): 카톡 코드로 로그인, 코드는 한 번만, 다른 사이트 요청·가지지 않은 유닛 막기',async()=>{
+    const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com'});
+    try{
+      const r=await send('웹 로그인');
+      const code=/(\d{6})/.exec(r.text??JSON.stringify(r))![1];
+      const p=await db.player.findUniqueOrThrow({where:{identity:actor}});
+      await db.ownedCharacter.create({data:{playerId:p.id,characterId:'D1',obtainedVia:'TEST'}});
+      const post=(url:string,body:unknown,headers:Record<string,string>={})=>app.inject({method:'POST',url,payload:body as object,headers:{'x-gmm':'1',...headers}});
+      expect((await app.inject({method:'POST',url:'/my/api/login',payload:{code}})).statusCode).toBe(403);   // 머리글 없으면 거절
+      expect((await post('/my/api/login',{code:'000000'})).statusCode).toBe(400);
+      const ok=await post('/my/api/login',{code});
+      expect(ok.statusCode).toBe(200);
+      const cookie=String(ok.headers['set-cookie']).split(';')[0];
+      expect(cookie).toMatch(/^gmm_s=/);expect(String(ok.headers['set-cookie'])).toContain('HttpOnly');
+      expect((await post('/my/api/login',{code})).statusCode).toBe(400);   // 같은 코드 다시 안 됨
+      expect((await app.inject({method:'GET',url:'/my/api/me'})).statusCode).toBe(401);
+      expect((await app.inject({method:'GET',url:'/my/api/me',headers:{cookie:cookie.replace(/.$/,'x')}})).statusCode).toBe(401);   // 서명 틀림
+      const me=(await app.inject({method:'GET',url:'/my/api/me',headers:{cookie}})).json() as {units:{id:string;have:number}[];battleTeam:string[]};
+      expect(me.units.find(u=>u.id==='D1')?.have).toBe(1);expect(me.battleTeam).toEqual([]);
+      expect((await post('/my/api/battle-team',{ids:['D1','T1']},{cookie})).statusCode).toBe(400);   // T1은 없음
+      expect((await post('/my/api/battle-team',{ids:['C1']},{cookie})).statusCode).toBe(400);   // 최상위가 아님
+      expect((await post('/my/api/battle-team',{ids:['D1']},{cookie})).json()).toEqual({battleTeam:['D1']});
+      expect((await db.player.findUniqueOrThrow({where:{id:p.id}})).battleTeam).toBe('D1');
+      expect((await app.inject({method:'GET',url:'/my'})).headers['content-type']).toContain('text/html');
+    }finally{await app.close();}
+  });
   it('공개 웹 랭킹: 카톡과 같은 순위, 닉네임 표시, 히든·최상위 가림, 관리자 모드 제외',async()=>{
     const mk=async(identity:string,nickname:string|null,ids:string[],adminMode=false)=>{
       const p=await db.player.create({data:{identity,nickname,tutorial:5,adminMode}});
@@ -892,7 +918,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.57'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.58'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

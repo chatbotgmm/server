@@ -158,6 +158,7 @@ body{background-image:radial-gradient(var(--line) 1px,transparent 1.2px),linear-
 }
 .play{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:999px;background:#fee500;color:#191600;font-weight:800;text-decoration:none;font-size:.9rem;white-space:nowrap;box-shadow:0 1px 0 rgba(0,0,0,.08)}
 .play svg{flex:none}.play:hover{background:#fada0a}
+.mylink{display:inline-flex;align-items:center;padding:7px 12px;border-radius:999px;border:1.5px solid var(--line);color:var(--text);text-decoration:none;font-size:.9rem;white-space:nowrap}
 .play.big{padding:12px 22px;font-size:1rem;box-shadow:0 4px 14px rgba(254,229,0,.35)}
 body{margin:0;background:var(--bg);color:var(--text);font-family:"Jua",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;line-height:1.65;word-break:keep-all;overflow-wrap:anywhere}
 a{color:var(--accent)}
@@ -315,7 +316,7 @@ main>h2:nth-of-type(6n+5),.tale h2:nth-of-type(6n+5){color:var(--c5)}main>h2:nth
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40px}
 </style></head><body>
 <header><div class="bar"><a class="logo" href="/">${logo()}</a>
-<nav>${navItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}>${i} ${l}</a>`).join('')}</nav>${playBtn()}
+<nav>${navItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}>${i} ${l}</a>`).join('')}</nav>${playBtn()}<a class="mylink" href="/my">🪨 내 갈매미</a>
 <form class="search" action="/search" method="get" role="search" autocomplete="off"><input name="q" value="${esc(q)}" placeholder="갈매미·닉네임·이야기 검색 (초성 OK)" aria-label="검색" maxlength="30"><button>검색</button><div class="sug" hidden></div></form></div></header>
 <main>${body}${piece(active)}</main>
 <nav class="tabbar" aria-label="메뉴">${tabItems.map(([h,l,i])=>`<a href="${h}"${tabOn(h,active)?' class="on"':''}><i>${i}</i>${l}</a>`).join('')}</nav>
