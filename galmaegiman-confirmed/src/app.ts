@@ -13,7 +13,7 @@ import { GameError } from './types.js';
 import { registerWeb } from './web.js';
 import { battleRoster } from './battle/prototype.js';
 import { registerDuel } from './duel.js';
-export const VERSION='0.9.50';
+export const VERSION='0.9.51';
 export interface AppOptions {secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string}
 export async function buildApp(db:PrismaClient,game:GameService,options:AppOptions){
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');

@@ -295,7 +295,9 @@ function render() {
     const col = pct > 50 ? 'var(--hp)' : pct > 20 ? 'var(--hpmid)' : 'var(--hplow)';
     const st = Object.keys(f.status).map(k => `<span class="st">${({ burn: '화상', freeze: '빙결', sleep: '잠', bind: '묶임', rage: '폭주' })[k]}</span>`).join('');
     const augs = b.sides[s].augs.map(id => R.battleAug.get(id).name).join(' · ');
-    document.getElementById(`b${s}`).innerHTML = `<div class="nm"><span>${esc(f.name)}</span><em>Lv${f.rec.level}</em></div>
+    const box = document.getElementById(`b${s}`), downNow = view[s].down[view[s].active];
+    box.classList.toggle('down', downNow);
+    box.innerHTML = `<div class="nm"><span>${esc(f.name)}</span>${downNow ? '<em class="ko">전투불가</em>' : `<em>Lv${f.rec.level}</em>`}</div>
       <div class="hpb"><i style="width:${pct}%;background:${col}"></i></div>
       <div class="row"><span>${chip(f.attr)}${f.extraAttr ? chip(f.extraAttr) : ''}${st}</span>${s === 0 ? `<small>${Math.max(0, Math.round(hp))}/${f.maxHp}</small>` : ''}</div>
       <div class="row"><div class="dots">${view[s].down.map((d, i) => `<i class="${d ? 'down' : ''}" title="${esc(b.sides[s].fighters[i].name)}"></i>`).join('')}</div></div>
@@ -462,41 +464,35 @@ function burst(t, color, n, dist) {
     p.animate([{ transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }, { transform: `translate(${Math.cos(ang) * r - sz / 2}px,${Math.sin(ang) * r - sz / 2}px) scale(.3)`, opacity: 0 }], { duration: 500 + Math.random() * 250, easing: 'cubic-bezier(.2,.7,.3,1)' }).onfinish = () => p.remove();
   }
 }
-// 쓰러짐: 번쩍 → 색이 빠지며 기울고 → 털썩 주저앉음 → 먼지·깃털 → 「전투불가!」 도장
+// 쓰러짐: 짧게 멈칫(화면이 살짝 어두워짐) → 하얀 실루엣 → 깃털·빛 조각으로 흩어지며 위로 사라짐. 이름 칸은 회색 + 작은 「전투불가」
 function faint(s) {
-  const img = document.getElementById(`m${s}`), dir = s === 0 ? -1 : 1;
+  const img = document.getElementById(`m${s}`), arena = document.getElementById('arena'), fx = document.getElementById('fx');
   img.getAnimations().forEach(a => a.cancel());
+  const veil = document.createElement('div'); veil.className = 'veil'; fx.append(veil);
+  veil.animate([{ opacity: 0 }, { opacity: 1, offset: .15 }, { opacity: 1, offset: .6 }, { opacity: 0 }], { duration: 1500 }).onfinish = () => veil.remove();
+  arena.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.025)', offset: .12 }, { transform: 'scale(1.025)', offset: .3 }, { transform: 'scale(1)' }], { duration: 900, easing: 'ease-out' });
   img.animate([
-    { transform: 'none', filter: 'brightness(1)', opacity: 1 },
-    { transform: 'none', filter: 'brightness(3)', opacity: 1, offset: .08 },
-    { transform: `rotate(${4 * dir}deg)`, filter: 'grayscale(.6) brightness(.9)', opacity: 1, offset: .3 },
-    { transform: `rotate(${-6 * dir}deg) translateY(4px)`, filter: 'grayscale(1) brightness(.8)', opacity: 1, offset: .45 },
-    { transform: `rotate(${14 * dir}deg) translateY(18%) scaleY(.82)`, filter: 'grayscale(1) brightness(.6)', opacity: .9, offset: .7 },
-    { transform: `rotate(${18 * dir}deg) translateY(40%) scaleY(.6)`, filter: 'grayscale(1) brightness(.5)', opacity: 0 },
-  ], { duration: 1300, easing: 'ease-in', fill: 'forwards' });
-  const a = document.getElementById('arena').getBoundingClientRect(), r = img.getBoundingClientRect(), fx = document.getElementById('fx');
-  const footX = r.left - a.left + r.width / 2, footY = r.bottom - a.top - r.height * 0.08;
+    { filter: 'brightness(1)', transform: 'none', opacity: 1 },
+    { filter: 'brightness(0) invert(1)', transform: 'none', opacity: 1, offset: .18 },
+    { filter: 'brightness(0) invert(1)', transform: 'scale(1.02)', opacity: 1, offset: .35 },
+    { filter: 'brightness(0) invert(1) blur(2px)', transform: 'scaleX(.9) scaleY(.75) translateY(6%)', opacity: .55, offset: .7 },
+    { filter: 'brightness(0) invert(1) blur(4px)', transform: 'scaleX(.8) scaleY(.4) translateY(14%)', opacity: 0 },
+  ], { duration: 1400, easing: 'ease-in', fill: 'forwards' });
+  const a = arena.getBoundingClientRect(), r = img.getBoundingClientRect();
+  const cx = r.left - a.left + r.width / 2, top = r.top - a.top, h = r.height;
   setTimeout(() => {
-    for (let i = 0; i < 14; i++) {          // 먼지
-      const p = document.createElement('div'), sz = 10 + Math.random() * 16, dx = (Math.random() - .5) * r.width * 1.1;
-      p.className = 'dust'; p.style.cssText = `left:${footX}px;top:${footY}px;width:${sz}px;height:${sz}px`;
+    for (let i = 0; i < 22; i++) {
+      const feather = i % 3 !== 0, p = document.createElement('div');
+      p.className = feather ? 'feather' : 'mote';
+      const x = cx + (Math.random() - .5) * r.width * .8, y = top + h * (.25 + Math.random() * .6);
+      p.style.cssText = `left:${x}px;top:${y}px`;
       fx.append(p);
-      p.animate([{ transform: 'translate(-50%,-50%) scale(.4)', opacity: .9 }, { transform: `translate(${dx}px,${-10 - Math.random() * 25}px) scale(1.4)`, opacity: 0 }], { duration: 800 + Math.random() * 400, easing: 'ease-out' }).onfinish = () => p.remove();
+      const dx = (Math.random() - .5) * 60, rise = 50 + Math.random() * 90, rot = (Math.random() - .5) * 300;
+      p.animate([{ transform: 'translate(-50%,-50%) rotate(0) scale(1)', opacity: 0 }, { opacity: .95, offset: .15 },
+        { transform: `translate(calc(-50% + ${dx}px),calc(-50% - ${rise}px)) rotate(${rot}deg) scale(${feather ? .8 : .3})`, opacity: 0 }],
+      { duration: 1300 + Math.random() * 700, delay: Math.random() * 250, easing: 'cubic-bezier(.2,.6,.3,1)' }).onfinish = () => p.remove();
     }
-    for (let i = 0; i < 7; i++) {           // 깃털
-      const p = document.createElement('div'), dx = (Math.random() - .5) * r.width, rot = (Math.random() - .5) * 720;
-      p.className = 'feather'; p.style.cssText = `left:${footX}px;top:${footY - r.height * .5}px`;
-      fx.append(p);
-      p.animate([{ transform: 'translate(0,0) rotate(0)', opacity: 0 }, { opacity: 1, offset: .15 }, { transform: `translate(${dx}px,${r.height * .45}px) rotate(${rot}deg)`, opacity: 0 }], { duration: 1500 + Math.random() * 600, easing: 'ease-in-out' }).onfinish = () => p.remove();
-    }
-  }, 750);
-  setTimeout(() => {
-    const st = document.createElement('div'); st.className = 'stamp'; st.textContent = '전투불가!';
-    st.style.left = `${footX}px`; st.style.top = `${r.top - a.top + r.height * .4}px`;
-    fx.append(st);
-    st.animate([{ transform: 'translate(-50%,-50%) rotate(-14deg) scale(2.4)', opacity: 0 }, { transform: 'translate(-50%,-50%) rotate(-14deg) scale(.95)', opacity: 1, offset: .25 }, { transform: 'translate(-50%,-50%) rotate(-14deg) scale(1)', opacity: 1, offset: .8 }, { transform: 'translate(-50%,-50%) rotate(-14deg) scale(1)', opacity: 0 }], { duration: 1400 }).onfinish = () => st.remove();
-    document.getElementById('arena').animate([{ transform: 'translateY(0)' }, { transform: 'translateY(5px)' }, { transform: 'translateY(0)' }], { duration: 180 });
-  }, 600);
+  }, 420);
 }
 // 속성별로 날아가는 효과(그림 없이 글자 그림 + 빛 꼬리)
 const GLYPH = { STONE: '🪨', GOLD: '🪙', FIRE: '🔥', ICE: '❄️', BLOSSOM: '🌸', SEA: '💧', SHADOW: '🌑', STAR: '⭐', THREAD: '🧵', GRAVITY: '🌀' };
