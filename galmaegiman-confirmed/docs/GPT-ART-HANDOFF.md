@@ -14,7 +14,8 @@ ChatGPT가 GitHub에 그림을 직접 올릴 때 지킬 규칙이에요. 이 문
 | 유닛 하나씩 | `<번호>_front.png`, `<번호>_back.png` | `D1_front.png`, `T6_back.png` |
 | 등급별 시트 | `sheet_<등급>_front.png`, `sheet_<등급>_back.png` | `sheet_D_back.png` |
 | 진화 단계 | `<번호>_s<단계>_front.png` | `D1_s1_front.png` |
-| 빌런 | `V<번호>.png` | `V6.png` |
+| 빌런 세력별 시트 | `villains_jju.png`, `villains_lob.png`, `villains_gull.png` | (할 일 목록: docs/GPT-TODO.md) |
+| 배경 9곳 시트 | `bg_all.png` | |
 | 아이콘 시트 | `icons_<1~5>.png` | `icons_3.png` |
 | 전투 배경 | `B<번호>.png` | `B2.png` |
 | 진화 설계표 | `evolution-design.md` | |

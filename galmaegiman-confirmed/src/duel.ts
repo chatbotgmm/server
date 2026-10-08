@@ -34,8 +34,14 @@ export function registerDuel(app:FastifyInstance,content:Content,opt:{root:strin
       const names:Record<string,string>={};
       for(const c of story.chapters)for(const l of [...c.stages.flatMap(st=>[...st.before,...st.after,...(st.lose??[])]),...(c.clear??[])])
         if(/^[DTEIN]\d+$/.test(l.who)){const u=content.map.get(l.who);if(u)names[l.who]=u.name;}
-      return reply.header('Cache-Control','no-store').send({rules:R.data,units,story,villainArt,names});
+      const bgArt=(await readdir(resolve(opt.root,'public/battle/bg')).catch(()=>[] as string[])).map(f=>/^([a-z]+)\.jpg$/.exec(f)?.[1]).filter((v):v is string=>!!v);
+      return reply.header('Cache-Control','no-store').send({rules:R.data,units,story,villainArt,names,bgArt});
     }catch(e){return reply.code(500).send({error:(e as Error).message});}
+  });
+  // 배경 그림(public/battle/bg/harbor.jpg): 없으면 화면이 색 그라데이션으로 그림
+  app.get<{Params:{file:string};Querystring:{k?:string}}>('/duel/bg/:file',async(req,reply)=>{
+    if(!ok(req.query.k)||!/^[a-z]+\.jpg$/.test(req.params.file))return deny(reply);
+    return file(reply,'image/jpeg',resolve(opt.root,'public/battle/bg',req.params.file));
   });
   app.get<{Params:{file:string};Querystring:{k?:string}}>('/duel/sprites/:file',async(req,reply)=>{
     if(!ok(req.query.k)||!/^([DTEI]\d_s[0-3]_(front|back)|V\d+_front)\.png$/.test(req.params.file))return deny(reply);

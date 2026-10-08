@@ -15,7 +15,7 @@ const q = `?k=${encodeURIComponent(K)}`;
 const chip = a => `<span class="chip" style="background:${COLOR[a]}">${esc(R.attrName(a))}</span>`;
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
-let R, UNITS, STORY, ART, NAMES = {}, b, busy = false, freeLevel = 30, freePick = [];
+let R, UNITS, STORY, ART, NAMES = {}, BG = [], b, busy = false, freeLevel = 30, freePick = [];
 let view;          // 화면에 보이는 상태(엔진은 한 턴을 한꺼번에 계산하므로, 기록을 한 줄씩 보여 주며 체력을 따라 줄임)
 let onEnd = null;  // 대결이 끝나면 부를 함수(자유 대결 / 스토리)
 let hintNow = ''; // 스테이지 도움말(첫 증강체 창에도 보여 줌)
@@ -24,7 +24,10 @@ let hintNow = ''; // 스테이지 도움말(첫 증강체 창에도 보여 줌)
 const sprite = (id, side) => id.startsWith('V') ? villainArt(id) : `/duel/sprites/${id}_s0_${side}.png${q}`;
 function villainArt(id) {
   if (ART.includes(id)) return `/duel/sprites/${id}_front.png${q}`;
-  const look = R.data.villains[id]?.look; if (look) return sprite(look, 'front');   // 원형 그림을 색칠해 씀(블랙 갈매미맨)
+  // 블랙 갈매미맨: 그림(V17)이 있으면 거울·땅콩 단계도 그 그림에 색만 바꿔 씀, 없으면 원형(look) 그림을 검게 칠해 씀
+  const vd = R.data.villains[id];
+  if (vd?.tint && ART.includes('V17')) return `/duel/sprites/V17_front.png${q}`;
+  if (vd?.look) return sprite(vd.look, 'front');
   const v = R.villains.get(id), c = { V1: '#d9805a', V2: '#5b4a78', V3: '#e98fa6', V4: '#bfe3f2', V5: '#c4573f', V6: '#8e3b46' }[id] ?? '#d9805a';
   let svg;
   const GULL = { V12: ['#f4f1ea', 'band'], V19: ['#3b3742', 'band red'], V13: ['#3b3742', 'goggle'], V14: ['#3b3742', 'squint'], V15: ['#2f2b35', 'patch medal'], V16: ['#262330', 'red'], V20: ['#f4f1ea', 'bag'] };
@@ -69,8 +72,9 @@ function villainArt(id) {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">${svg}</svg>`)}`;
 }
 
-const tintOf = id => { const t = R.data.villains?.[id]?.tint; return t ? `tint-${t}` : ''; };
-const setTint = (img, id) => { img.classList.remove('tint-shadow', 'tint-mirror', 'tint-peanut'); const t = tintOf(id); if (t) img.classList.add(t); };
+const bgStyle = scene => BG.includes(scene) ? `background:url(/duel/bg/${scene}.jpg${q}) center/cover` : '';
+const tintOf = id => { const t = R.data.villains?.[id]?.tint; return !t ? '' : ART.includes('V17') ? (t === 'shadow' ? '' : `tint-${t}-art`) : `tint-${t}`; };   // 진짜 그림이 있으면 가볍게만
+const setTint = (img, id) => { img.classList.remove('tint-shadow', 'tint-mirror', 'tint-peanut', 'tint-mirror-art', 'tint-peanut-art'); const t = tintOf(id); if (t) img.classList.add(t); };
 
 // ── 저장(시험판: 이 브라우저에만) ──
 const SAVE_KEY = 'gmm-duel-story-v1';
@@ -98,7 +102,7 @@ async function boot() {
     const r = await fetch(`/duel/data.json${q}`);
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || `불러오기 실패(${r.status})`);
-    R = rulesFrom(j.rules); STORY = j.story; ART = j.villainArt ?? []; NAMES = j.names ?? {};
+    R = rulesFrom(j.rules); STORY = j.story; ART = j.villainArt ?? []; NAMES = j.names ?? {}; BG = j.bgArt ?? [];
     UNITS = j.units.map(u => ({ ...u, def: R.units.get(u.id) }));
     SAVE = load();
     menu();
@@ -151,6 +155,7 @@ function pickScreen(mode) {
 }
 
 function freeBattle() {
+  sceneNow = 'harbor';
   const rec = (id, i, side) => {
     const u = UNITS.find(x => x.id === id), r = { uid: `${side}${i}`, id, name: u.name, tier: u.tier, level: freeLevel, xp: 0, stage: 0, evoAugs: [] };
     while (learnChances(R, r) > 0) { const o = learnOffers(R, r); learnSkill(R, r, o.length ? o[Math.floor(Math.random() * o.length)].id : null, r.learned?.[0]); }   // 그 레벨까지 배울 기술을 무작위로
@@ -232,7 +237,7 @@ function talk(lines, opt = {}) {
     let i = 0, typing = null, full = '';
     const foeId = lines.find(l => /^[VDTEIN]\d+$/.test(l.who))?.who;
     modal.className = 'scene-on';
-    modal.innerHTML = `<div class="scene sc-${opt.scene || 'harbor'}">
+    modal.innerHTML = `<div class="scene sc-${opt.scene || 'harbor'}" style="${bgStyle(opt.scene || 'harbor')}">
       ${opt.title ? `<div class="place">${esc(opt.title)}</div>` : ''}
       <img class="por me" id="pMe" src="${sprite(lead.id, 'front')}" alt="">
       <img class="por foe" id="pFoe" alt="" ${foeId ? '' : 'hidden'}>
@@ -272,6 +277,7 @@ async function playStage(st) {
   fight(st);
 }
 function fight(st) {
+  sceneNow = st.scene || 'harbor';
   const foe = st.enemy.map((e, i) => { const v = R.villains.get(e.id); return { uid: `b${i}`, id: e.id, name: v.name, tier: 'LIMITED', level: e.level, xp: 0, stage: 0, evoAugs: [] }; });
   const mine = SAVE.team.map(myRec);
   startBattle(mine, foe, won => {
@@ -298,11 +304,12 @@ function fight(st) {
 
 // ── 대결 ──
 let fleeTo = null; // 도망치기: { retry, back }
+let sceneNow = '';
 function startBattle(mine, foe, end, hint, flee) {
   onEnd = end; hintNow = hint || ''; fleeTo = flee;
   b = createBattle(R, mine, foe, (Math.random() * 2 ** 31) | 0);
   const boss = foe.some(f => R.villains.get(f.id)?.boss);
-  app.innerHTML = `<div id="arena"><div class="plat foe"></div><div class="plat me"></div>
+  app.innerHTML = `<div id="arena" style="${bgStyle(sceneNow)}"><div class="plat foe"></div><div class="plat me"></div>
     <img class="mon foe ${boss ? 'boss' : ''}" id="m1" alt=""><img class="mon me" id="m0" alt="">
     <div class="box foe" id="b1"></div><div class="box me" id="b0"></div><div id="fx"></div></div>
     <div id="msg"></div><div id="panel"></div>`;

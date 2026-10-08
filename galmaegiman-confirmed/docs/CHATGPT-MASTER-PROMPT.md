@@ -1,5 +1,7 @@
 # ChatGPT 마스터 요청문 — GitHub 연결 버전
 
+> **지금 남은 그림은 `docs/GPT-TODO.md`(사용량 절약판, 그림 4장)로 진행해요.** GPT에게 "GPT-TODO 다음 할 일 해 줘"만 보내면 돼요. 아래 요청문은 참고용이에요.
+
 ChatGPT에 GitHub(`chatbotgmm/server`)를 연결해 두면, ChatGPT가 **저장소의 카드 그림을 직접 보고** 그리고, 결과를 **`gpt-art` 브랜치에 올려요.**
 그림을 올리거나 내려받아 옮길 필요가 없어요.
 
