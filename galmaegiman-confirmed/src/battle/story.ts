@@ -14,7 +14,8 @@ const stage=z.object({
   scene:z.enum(scenes).optional(),
   before:z.array(line).min(1).max(30),
   hint:z.string().max(120).optional(),
-  enemy:z.array(z.object({id:z.string().regex(/^V\d+$/),level:z.number().int().min(1).max(60)}).strict()).min(1).max(3),
+  // stage: 상대의 승진 단계(없으면 그 장의 needStage). 승진한 내 팀과 맞추려고 씀
+  enemy:z.array(z.object({id:z.string().regex(/^V\d+$/),level:z.number().int().min(1).max(60),stage:z.number().int().min(0).max(3).optional()}).strict()).min(1).max(3),
   after:z.array(line).min(1).max(30),
   lose:z.array(line).max(10).optional(),
 }).strict();
@@ -23,6 +24,7 @@ export const storySchema=z.object({
   start:z.object({level:z.number().int().min(1).max(60)}).strict(),
   chapters:z.array(z.object({
     id:z.string().regex(/^[A-Z0-9]+$/),title:z.string().min(1).max(30),intro:z.string().max(200).optional(),
+    needStage:z.number().int().min(0).max(3).optional(),   // 이 장에 들어가려면 팀 전원이 이 승진 단계 이상
     stages:z.array(stage).min(1),
     clear:z.array(line).max(10).optional(),
   }).strict()).min(1),
