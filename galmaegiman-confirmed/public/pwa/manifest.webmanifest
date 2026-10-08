@@ -1,0 +1,25 @@
+{
+  "name": "갈매미맨",
+  "short_name": "갈매미맨",
+  "description": "돌로 된 갈매미들이 항구 수비대에 출근하는 섬, 갈매미 모으기 게임",
+  "lang": "ko",
+  "id": "/",
+  "start_url": "/?source=app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f0e3",
+  "theme_color": "#164b80",
+  "categories": ["games"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "뽑기", "url": "/my#draw", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "조합", "url": "/my#craft", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "탐험대 편성", "url": "/my#party", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

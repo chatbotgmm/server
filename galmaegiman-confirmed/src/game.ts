@@ -1102,6 +1102,19 @@ export class GameService {
       return !!kakaoId;
     });
   }
+  // 계정 삭제(탈퇴): 이 사람의 모든 게임 데이터를 한 거래로 지움. 다음에 카톡에 말을 걸면 새 계정으로 시작
+  async webDeleteAccount(playerId:string){
+    return this.webRun(playerId,async(tx,p)=>{
+      const where={playerId:p.id};
+      const mine=(await tx.comment.findMany({where,select:{id:true}})).map(c=>c.id);
+      await tx.commentLike.deleteMany({where:{OR:[{commentId:{in:mine}},{voter:`p:${p.id}`}]}});
+      await tx.comment.deleteMany({where});
+      for(const m of [tx.ownedCharacter,tx.collectionEntry,tx.expedition,tx.pendingAction,tx.auditEvent,tx.achievement,tx.dailyProgress,tx.adminSnapshot,tx.webLogin,tx.kakaoLink,tx.storySave,tx.chatAppUser,tx.playerItem] as unknown as {deleteMany:(a:{where:{playerId:string}})=>Promise<unknown>}[])
+        await m.deleteMany({where});
+      await tx.player.delete({where:{id:p.id}});
+      return true;
+    });
+  }
   async webWho(playerId:string){
     const p=await this.db.player.findUnique({where:{id:playerId},select:{nickname:true,credits:true}});
     return p?{nickname:p.nickname,credits:p.credits}:null;
@@ -1875,6 +1888,11 @@ export class GameService {
       return this.info({text:`🎉 ${ev.label}\n${what.join('\n')}\n~ ${DateTime.fromISO(ev.to).setZone('Asia/Seoul').toFormat('M/d HH:mm')}까지${couponLine}${always}`,choices:[choice('뽑기권 받기','뽑기권받기'),choice('뽑기'),...menu.slice(1)]},'s-event');
     }
     if(compact==='웹로그인'||compact==='로그인')return this.webCode(tx,p,now);
+    // 탈퇴는 웹에서(실수로 지우지 않게 이름을 한 번 더 적어 확인)
+    if(compact==='탈퇴'||compact==='계정삭제'||compact==='회원탈퇴'){
+      const site=(this.content.economy.homepage??'').replace(/\/$/,'');
+      return this.info({text:`🗑 계정 삭제(탈퇴)\n${site?`${site}/my#account`:'홈페이지 「내 갈매미」'} 에서 로그인한 뒤 「계정 삭제」를 누르면 바로 지워져요.\n로그인 코드는 여기서 「웹 로그인」을 보내면 받아요.\n\n지우면 갈매미·도감·재화·댓글이 모두 사라지고 되돌릴 수 없어요.`,choices:[choice('웹 로그인'),...menu.slice(0,4)]},'s-info');
+    }
     if(command==='상점'||compact==='땅콩상점')return this.shop(tx,p,compact==='땅콩상점'?'땅콩':args.join(''),now);
     if(command==='장식'){
       const [act,...rest]=args,name=rest.join(' ').trim();

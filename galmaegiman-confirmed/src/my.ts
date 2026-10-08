@@ -125,6 +125,17 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
   });
   act('/my/api/claim',id=>game.webClaim(id));
   act<{kind?:unknown;times?:unknown}>('/my/api/draw',(id,b)=>game.webDraw(id,String(b.kind??''),Number(b.times??1)));
+  // 계정 삭제(탈퇴): 「탈퇴」를 직접 적어야 실행. 지우고 나면 로그인 쿠키도 지움
+  app.post<{Body:{confirm?:unknown}}>('/my/api/account/delete',{config:{rateLimit:{max:5,timeWindow:'1 minute',keyGenerator:ipKey('mydel')}}},async(req,reply)=>{
+    if(!guard(req,reply))return;
+    const id=session(req);
+    if(!id)return reply.code(401).send({error:'login'});
+    if(req.body?.confirm!=='탈퇴')return reply.code(400).send({error:'확인 칸에 「탈퇴」를 적어 주세요.'});
+    try{await game.webDeleteAccount(id);}catch(e){if(e instanceof GameError)return reply.code(400).send({error:e.message});throw e;}
+    req.log.info('account deleted');
+    setCookie(req,reply,'',0);
+    return {ok:true};
+  });
   act('/my/api/kakao/unlink',id=>game.webLinkKakao(id,null));
 
   // ── 수비대 대결 스토리: 진행 저장(계정), 대결 중 아이템 ──

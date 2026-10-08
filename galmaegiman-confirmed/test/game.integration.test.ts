@@ -910,6 +910,51 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(poor.statusCode).toBe(400);expect(poor.json().error).toContain('뽑기권이 모자라요');
     }finally{await app.close();}
   });
+  it('계정 삭제: 확인 글자 필수, 이 사람 데이터만 전부 지움, 다시 말 걸면 새 계정 · 방침·확률·앱 파일',async()=>{
+    const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com'});
+    try{
+      expect((await send('탈퇴')).text).toContain('/my#account');
+      await send('닉네임 지울사람');
+      const code=/(\d{6})/.exec((await send('웹 로그인')).text!)![1];
+      const p=await db.player.findUniqueOrThrow({where:{identity:actor}});
+      const other=await db.player.create({data:{identity:'keep-me',tutorial:5}});
+      await db.ownedCharacter.createMany({data:[{playerId:p.id,characterId:'C1',obtainedVia:'TEST'},{playerId:other.id,characterId:'C1',obtainedVia:'TEST'}]});
+      await db.collectionEntry.create({data:{playerId:p.id,characterId:'C1'}});
+      await db.playerItem.create({data:{playerId:p.id,itemId:'potion',count:2}});
+      await db.storySave.create({data:{playerId:p.id,data:'{}'}});
+      await db.kakaoLink.create({data:{kakaoId:'555',playerId:p.id}});
+      const c=await db.comment.create({data:{playerId:p.id,characterId:'C1',text:'안녕'}});
+      const oc=await db.comment.create({data:{playerId:other.id,characterId:'C1',text:'남아요'}});
+      await db.commentLike.createMany({data:[{commentId:c.id,voter:'w:x'},{commentId:oc.id,voter:`p:${p.id}`},{commentId:oc.id,voter:'w:y'}]});
+      const cookie=String((await app.inject({method:'POST',url:'/my/api/login',payload:{code},headers:{'x-gmm':'1'}})).headers['set-cookie']).split(';')[0];
+      const del=(body:object,h:Record<string,string>={'x-gmm':'1',cookie})=>app.inject({method:'POST',url:'/my/api/account/delete',payload:body,headers:h});
+      expect((await del({confirm:'탈퇴'},{cookie})).statusCode).toBe(403);   // 다른 사이트 요청 막기
+      expect((await del({confirm:'네'})).statusCode).toBe(400);
+      const ok=await del({confirm:'탈퇴'});
+      expect(ok.statusCode).toBe(200);expect(String(ok.headers['set-cookie'])).toContain('Max-Age=0');
+      expect(await db.player.count({where:{id:p.id}})).toBe(0);
+      for(const n of [await db.ownedCharacter.count({where:{playerId:p.id}}),await db.collectionEntry.count({where:{playerId:p.id}}),await db.playerItem.count({where:{playerId:p.id}}),
+        await db.storySave.count({where:{playerId:p.id}}),await db.kakaoLink.count({where:{playerId:p.id}}),await db.comment.count({where:{playerId:p.id}}),await db.auditEvent.count({where:{playerId:p.id}}),await db.webLogin.count({where:{playerId:p.id}})])expect(n).toBe(0);
+      expect(await db.commentLike.count()).toBe(1);                        // 남의 댓글에 남이 누른 좋아요만 남음
+      expect(await db.ownedCharacter.count({where:{playerId:other.id}})).toBe(1);expect(await db.comment.count({where:{id:oc.id}})).toBe(1);
+      expect((await app.inject({method:'GET',url:'/my/api/me',headers:{cookie}})).statusCode).toBe(401);
+      await send('내정보');                                                   // 다시 말 걸면 새 계정
+      const again=await db.player.findUniqueOrThrow({where:{identity:actor}});
+      expect(again.id).not.toBe(p.id);expect(again.nickname).toBeNull();
+      // 공개 페이지·앱 파일
+      for(const [url,has] of [['/privacy','개인정보처리방침'],['/account/delete','계정 삭제'],['/odds','뽑기 확률']] as const){
+        const r=await app.inject({method:'GET',url});expect(r.statusCode).toBe(200);expect(r.body).toContain(has);
+      }
+      const odds=(await app.inject({method:'GET',url:'/odds'})).body;
+      for(const k of ['LOW','MID','HIGH'] as const)expect(odds).toContain(`${content.economy.gachas[k].label} 뽑기`);
+      expect(content.characters.filter(x=>x.rarity==='HIDDEN').some(x=>odds.includes(x.name))).toBe(false);
+      const man=await app.inject({method:'GET',url:'/manifest.webmanifest'});
+      expect(man.headers['content-type']).toContain('application/manifest+json');expect((man.json() as {icons:unknown[]}).icons.length).toBe(4);
+      expect((await app.inject({method:'GET',url:'/sw.js'})).body).toContain('offline.html');
+      expect((await app.inject({method:'GET',url:'/icon-512.png'})).headers['content-type']).toBe('image/png');
+      expect((await app.inject({method:'GET',url:'/'})).body).toContain('rel="manifest"');
+    }finally{await app.close();}
+  });
   it('공개 웹 랭킹: 카톡과 같은 순위, 닉네임 표시, 히든·최상위 가림, 관리자 모드 제외',async()=>{
     const mk=async(identity:string,nickname:string|null,ids:string[],adminMode=false)=>{
       const p=await db.player.create({data:{identity,nickname,tutorial:5,adminMode}});
@@ -1148,7 +1193,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.69'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.70'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

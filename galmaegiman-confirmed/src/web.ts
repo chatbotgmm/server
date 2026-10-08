@@ -81,9 +81,20 @@ export function registerWeb(app:FastifyInstance,content:Content,options:WebOptio
 
   // data/world.md: 파일이 바뀌면 다시 읽음
   let world={mtime:0,html:''};
-  const worldHtml=()=>{
-    const path=resolve(options.root,'data/world.md');
+  // data/*.md 글(고치면 서버를 다시 켜지 않아도 반영)
+  const mdCache=new Map<string,{mtime:number;html:string}>();
+  const mdHtml=(file:string,empty:string)=>{
+    const path=resolve(options.root,'data',file);
     try{
+      const m=statSync(path).mtimeMs,c=mdCache.get(file);
+      if(c?.mtime===m)return c.html;
+      const html=marked.parse(readFileSync(path,'utf8'),{async:false}) as string;
+      mdCache.set(file,{mtime:m,html});return html;
+    }catch{return empty;}
+  };
+  const worldHtml=()=>{
+    try{
+      const path=resolve(options.root,'data/world.md');
       const m=statSync(path).mtimeMs;
       if(m!==world.mtime)world={mtime:m,html:marked.parse(readFileSync(path,'utf8'),{async:false}) as string};
     }catch{world={mtime:0,html:'<p>세계관 글을 준비 중이에요.</p>'};}
@@ -143,7 +154,7 @@ try{const r=await fetch('/api/comments/'+b.dataset.id+'/like',{method:'POST'});i
 <meta name="description" content="${esc(og.desc??'돌로 된 갈매미들이 항구 수비대에 출근하는 섬, 갈매미 섬 이야기')}">
 <meta property="og:type" content="website"><meta property="og:site_name" content="갈매미맨"><meta property="og:description" content="${esc(og.desc??'돌로 된 갈매미들이 항구 수비대에 출근하는 섬, 갈매미 섬 이야기')}">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&display=swap" rel="stylesheet">
-<link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/gull.png">
+<link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/icon-192.png"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#164b80"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <meta property="og:title" content="${esc(title)} · 갈매미맨"><meta property="og:image" content="${site}${og.image??img('images','C1')}">
 <style>
 :root{--c1:#2a6fc0;--c2:#d9483b;--c3:#0f8a7b;--c4:#7a4fd0;--c5:#b06f00;--c6:#c93f7c;--bg:#f7f0e3;--card:#fffdf8;--text:#2d2a26;--muted:#6f675c;--line:#e8dcc6;--edge:#d8c7a6;--accent:#1d5b94;--accent-soft:#e2edf7;--gold:#d9a400;
@@ -380,6 +391,8 @@ main>h2:nth-of-type(6n+5),.tale h2:nth-of-type(6n+5){color:var(--c5)}main>h2:nth
 .like.on{border-color:var(--c2);color:var(--c2)}.like b{color:inherit}
 .cm .mono,.note .mono{letter-spacing:0;font-family:inherit;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:0 5px}
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40px}
+footer a{color:var(--muted)}
+.box details{margin:4px 0}.box summary{cursor:pointer}
 </style></head><body>
 <header><div class="bar"><a class="logo" href="/">${logo()}</a>
 <nav>${mainItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}>${i} ${l}</a>`).join('')}<a href="/search" class="sbtn${active==='/search'?' on':''}">🔍 검색</a><a href="/my" class="lbtn lgn" data-l="내 갈매미">🔑 로그인</a></nav><span class="sp"></span>
@@ -388,8 +401,8 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40
 <main>${body}${piece(active)}</main>
 <nav class="tabbar" aria-label="메뉴">${tabItems.map(([h,l,i])=>`<a href="${h}"${tabOn(h,active)?' class="on"':''}><i>${i}</i>${l}</a>`).join('')}<a href="/search" class="sbtn${active==='/search'?' on':''}"><i>🔍</i>검색</a><a href="/my" class="lgn" data-i="gull" data-l="내 갈매미"><i>🔑</i>로그인</a></nav>
 <div class="more" id="more" hidden>${moreItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}>${i} ${l}</a>`).join('')}</div>
-<footer>갈매미맨 · 카카오톡 채널 챗봇 게임 · v${esc(options.version)}</footer>
-<script>${suggestJs}${likeJs}${headerJs}</script>
+<footer>갈매미맨 · 카카오톡 채널 챗봇 게임 · v${esc(options.version)}<br><a href="/privacy">개인정보처리방침</a> · <a href="/odds">뽑기 확률</a> · <a href="/account/delete">계정 삭제</a></footer>
+<script>${suggestJs}${likeJs}${headerJs}if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});</script>
 </body></html>`;
 
   // 검색엔진용 표준 주소(canonical): 보기 옵션(?view, ?sort) 없는 주소로 묶음. 랭킹 탭(?k)만 유지. 검색 결과는 색인하지 않음(noindex)
@@ -499,6 +512,31 @@ ${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이
     return send(reply,page('이벤트','/event',body,'',{desc:`친구 초대하면 친구도 나도 뽑기권 ${e.invite.tickets}장! 갈매미맨 이벤트·혜택 모음`}),60);
   });
 
+  // ── 개인정보처리방침 · 계정 삭제 안내 · 뽑기 확률 공시 ──
+  app.get('/privacy',limit,async(_req,reply)=>send(reply,page('개인정보처리방침','',`<article class="prose tale">${mdHtml('privacy.md','<p>준비 중이에요.</p>')}</article>`)));
+  app.get('/account/delete',limit,async(_req,reply)=>send(reply,page('계정 삭제','',`<article class="prose tale"><h1>🗑 계정 삭제(탈퇴) 안내</h1>
+<p>앱을 지웠어도 아래 순서로 언제든 계정과 게임 데이터를 지울 수 있어요.</p>
+<ol><li>카카오톡 채널 「갈매미맨」에 <b>웹 로그인</b>을 보내 6자리 코드를 받거나, 카카오 계정을 연결해 두었다면 「카카오로 로그인」을 눌러요.</li>
+<li><a href="/my#account">내 갈매미 → ⚙️ 계정</a>에서 로그인해요.</li>
+<li>「계정 삭제」 칸에 <b>탈퇴</b>라고 적고 버튼을 눌러요. 바로 지워져요.</li></ol>
+<p><b>지워지는 것:</b> 가진 갈매미, 도감, 뽑기권·새우깡·땅콩, 아이템, 탐험·미션·업적 기록, 스토리 진행, 닉네임, 댓글, 로그인 연결(카카오 회원번호 포함).</p>
+<p><b>남는 것:</b> 서버 백업에 최대 7일 동안 남았다가 자동으로 사라져요. 다른 사람이 남긴 댓글이나 기록은 지워지지 않아요.</p>
+<p>카톡 채널에 <b>탈퇴</b>를 보내도 이 방법을 알려 드려요. 자세한 내용은 <a href="/privacy">개인정보처리방침</a>을 봐 주세요.</p>
+<p style="text-align:center"><a class="btn" href="/my#account">계정 삭제하러 가기</a></p></article>`)));
+  app.get('/odds',limit,async(_req,reply)=>{
+    const g=content.economy.gachas,pct=(n:number)=>`${Number(n.toFixed(4))}%`;
+    const pool=(t:string)=>content.characters.filter(c=>c.rarity===t&&!c.noGacha);
+    const secret=(t:string)=>t==='HIDDEN'||topTiers.has(t as Character['rarity']);
+    const rows=(['LOW','MID','HIGH'] as const).map(k=>{
+      const tiers=Object.entries(g[k].weights);
+      const units=tiers.map(([t,w])=>{const list=pool(t);return `<details><summary><b>${esc(rarityNames[t])} ${w}%</b> <span class="note">· ${list.length}종 · 한 종마다 ${pct(w/list.length)}</span></summary><p>${secret(t)?'(이 등급은 이름을 비밀로 해요)':list.map(c=>chip(c.id)).join('')}</p></details>`;}).join('');
+      const pity=k==='HIGH'?g[k].pity:undefined;   // 천장은 고급 뽑기에만(게임 처리와 같게)
+      return `<div class="box"><h3>🥚 ${esc(g[k].label)} 뽑기 · 🎟 ${g[k].cost}장</h3>${units}${pity?`<p class="note">🎯 천장: ${pity.count}회 안에 ${esc(rarityNames[pity.tier])} 이상이 한 번도 안 나오면 ${pity.count}번째에 ${esc(rarityNames[pity.tier])} 확정(그 등급 안에서는 같은 확률). ${esc(rarityNames[pity.tier])} 이상이 나오면 다시 0부터 세요.</p>`:''}</div>`;
+    }).join('');
+    return send(reply,page('뽑기 확률','',`<h1>🎲 뽑기 확률 정보</h1>
+<p class="lead">카톡과 홈페이지의 뽑기는 모두 같은 확률이에요. 등급을 먼저 정하고, 그 등급 안에서는 모든 갈매미가 같은 확률로 나와요. 한 종의 확률 = 등급 확률 ÷ 그 등급의 갈매미 수.</p>${rows}
+<p class="note">뽑기권은 게임 안에서 무료로 받아요(${content.economy.tickets.cooldownHours}시간마다 받기·미션·이벤트 등). 확률을 바꿀 때는 미리 알려 드려요.</p>`));
+  });
   app.get('/world',limit,async(_req,reply)=>send(reply,page('세계관','/world',`<article class="prose tale">${worldHtml()}</article>`)));
 
   // ── 도감 목록 ──
@@ -650,8 +688,21 @@ ${!total&&!players.length?'<p class="note">예: <a href="/search?q=전설">전�
   // ── 프로필 ──
   // ── 검색엔진용: robots.txt · sitemap.xml (주소는 economy.homepage 기준) ──
   // 갈매미 아이콘(돌 이모지 대신 쓰는 그림)·파비콘
-  for(const [path,file] of [['/gull.png','public/gull.png'],['/favicon.png','public/favicon-32.png'],['/favicon.ico','public/favicon-32.png']] as const)
-    app.get(path,async(_req,reply)=>reply.type('image/png').header('Cache-Control','public, max-age=86400').send(readFileSync(resolve(options.root,file))));
+  // 앱 설치(PWA) 파일: 아이콘·앱 정보·서비스 워커(사이트 전체를 맡으려면 맨 위 주소여야 함)·연결 끊김 화면
+  const statics:[string,string,string,string][]=[
+    ['/gull.png','public/gull.png','image/png','public, max-age=86400'],['/favicon.png','public/favicon-32.png','image/png','public, max-age=86400'],['/favicon.ico','public/favicon-32.png','image/png','public, max-age=86400'],
+    ...[192,512].flatMap(n=>[[`/icon-${n}.png`,`public/icon-${n}.png`,'image/png','public, max-age=86400'],[`/icon-${n}-maskable.png`,`public/icon-${n}-maskable.png`,'image/png','public, max-age=86400']] as [string,string,string,string][]),
+    ['/manifest.webmanifest','public/pwa/manifest.webmanifest','application/manifest+json; charset=utf-8','public, max-age=3600'],
+    ['/sw.js','public/pwa/sw.js','text/javascript; charset=utf-8','no-cache'],
+    ['/pwa/offline.html','public/pwa/offline.html','text/html; charset=utf-8','public, max-age=3600'],
+  ];
+  for(const [path,file,type,cache] of statics)
+    app.get(path,async(_req,reply)=>reply.type(type).header('Cache-Control',cache).send(readFileSync(resolve(options.root,file))));
+  // 구글 플레이 앱(TWA)과 이 사이트를 잇는 파일. config/assetlinks.json이 있을 때만(서명 키 지문은 플레이 콘솔에서 받음)
+  app.get('/.well-known/assetlinks.json',async(_req,reply)=>{
+    try{return reply.type('application/json').header('Cache-Control','public, max-age=3600').send(readFileSync(resolve(options.root,'config/assetlinks.json')));}
+    catch{return reply.code(404).send({error:'not found'});}
+  });
   app.get('/robots.txt',limit,async(_req,reply)=>reply.type('text/plain; charset=utf-8').header('Cache-Control','public, max-age=3600')
     .send(`User-agent: *\nAllow: /\nDisallow: /api/\n${site?`Sitemap: ${site}/sitemap.xml\n`:''}`));
   app.get('/sitemap.xml',limit,async(_req,reply)=>{

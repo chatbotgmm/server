@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>내 갈매미 · 갈매미맨</title>
-<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="icon" type="image/png" href="/favicon.png"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#164b80"><link rel="apple-touch-icon" href="/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&display=swap" rel="stylesheet">
 <style>
@@ -26,6 +26,9 @@ header a.hl{text-decoration:none;color:#fff;font-size:.9rem;background:rgba(255,
 @media (max-width:520px){header h1{display:none}header .lt{display:none}header .logo img{height:26px}}
 header{flex-wrap:nowrap;min-width:0}header>*{flex:none}header .sp{flex:1;min-width:0}
 html,body{overflow-x:clip}
+.card.danger{border-color:var(--bad)}
+.card.danger .search{margin:6px 0 0}
+.search{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
 .shopi{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .qty{display:flex;align-items:center;gap:6px}
 .qty .btn.ghost{padding:6px 12px}
@@ -112,5 +115,6 @@ button.u{cursor:pointer}
 <div id="app"><p class="empty">불러오는 중…</p></div>
 <div class="toast" id="toast"></div>
 <script src="/my/my.js"></script>
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});</script>
 </body>
 </html>

@@ -46,7 +46,7 @@
 
   // ── 내 갈매미 ──
   // 탭: 주소 #draw·#craft·#units·#party… 로 바로 열 수 있음(홈페이지 메뉴에서 씀)
-  const TABS = ['draw', 'craft', 'units', 'party', 'battle', 'items', 'shop'];
+  const TABS = ['draw', 'craft', 'units', 'party', 'battle', 'items', 'shop', 'account'];
   const fromHash = () => { const h = location.hash.slice(1); return TABS.includes(h) ? h : null; };
   let me, tab = fromHash() ?? 'draw', filter = 'all';
   addEventListener('hashchange', () => { const h = fromHash(); if (h && h !== tab && me) { tab = h; if (tab === 'craft') craftData = null; if (tab === 'draw') drawData = null; draw(); } });
@@ -55,7 +55,7 @@
     draw();
   }
   function draw() {
-    const tabs = [['draw', '🥚 뽑기'], ['craft', '🧩 조합'], ['units', '<img class="gi" src="/gull.png" alt=""> 내 갈매미'], ['party', '🧭 탐험대 편성'], ['battle', '⚔️ 전투 편성'], ['items', '🎒 아이템'], ['shop', '🛒 상점']];
+    const tabs = [['draw', '🥚 뽑기'], ['craft', '🧩 조합'], ['units', '<img class="gi" src="/gull.png" alt=""> 내 갈매미'], ['party', '🧭 탐험대 편성'], ['battle', '⚔️ 전투 편성'], ['items', '🎒 아이템'], ['shop', '🛒 상점'], ['account', '⚙️ 계정']];
     app.innerHTML = `${head('<button class="btn ghost" id="out" title="로그아웃" style="padding:6px 12px;font-size:.85rem">🚪<span class="lt"> 로그아웃</span></button>')}
       <div class="card"><div class="row" style="margin-bottom:10px"><b style="font-weight:400;font-size:1.15rem">${esc(me.nickname || '이름 없는 수비조장')}</b><span class="tag">도감 ${me.dex}/${me.dexTotal}</span></div>
         <div class="money"><div><b>🍤 ${me.snack}</b><small>새우깡</small></div><div><b>🥜 ${me.peanut}</b><small>땅콩</small></div><div><b>🎫 ${me.credits}</b><small>뽑기권</small></div><div><b>${me.units.reduce((a, u) => a + u.have, 0)}</b><small>가진 갈매미</small></div></div></div>
@@ -63,7 +63,7 @@
       <div id="body"></div>`;
     app.querySelector('#out').onclick = async () => { await api('logout', {}).catch(() => {}); loginScreen('로그아웃했어요.'); };
     app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; if (tab === 'craft') craftData = null; if (tab === 'draw') drawData = null; history.replaceState(null, '', `#${tab}`); draw(); });
-    ({ draw: drawTab, units, craft, battle, party, items, shop })[tab](app.querySelector('#body'));
+    ({ draw: drawTab, units, craft, battle, party, items, shop, account })[tab](app.querySelector('#body'));
   }
 
   // 갈매미 목록: 등급별로 걸러 보기
@@ -255,6 +255,28 @@
       el.querySelectorAll(`[data-q="${g.key}"]`).forEach(b => b.onclick = () => { i.value = Math.max(1, Math.min(g.limit, val(g) + +b.dataset.d)); paint(g); });
       el.querySelector(`[data-b="${g.key}"]`).onclick = () => g.buy(val(g));
     }
+  }
+
+  // 계정: 카카오 연결 · 로그아웃 · 개인정보처리방침 · 계정 삭제(탈퇴)
+  function account(el) {
+    el.innerHTML = `<div class="card"><b style="font-weight:400">${esc(me.nickname || '이름 없는 수비조장')}</b><p class="note" style="margin:2px 0 0">도감 ${me.dex}/${me.dexTotal} · 🎟 ${me.credits} · 🍤 ${me.snack}</p></div>
+      ${me.kakaoLogin ? `<div class="card row" style="justify-content:space-between"><span class="note">${me.kakao ? '✅ 카카오 계정 연결됨' : '카카오 계정을 연결하면 다음부터 코드 없이 로그인해요.'}</span>${me.kakao ? '<button class="btn ghost" id="unlink2">연결 해제</button>' : '<a class="btn kakao" href="/my/kakao">카카오 연결</a>'}</div>` : ''}
+      <div class="card row" style="justify-content:space-between"><span class="note">이 기기에서 로그아웃해요.</span><button class="btn ghost" id="out2">🚪 로그아웃</button></div>
+      <div class="card row" style="justify-content:space-between"><span class="note">어떤 정보를 왜 저장하는지</span><a class="btn ghost" href="/privacy">개인정보처리방침</a></div>
+      <div class="card danger"><b style="font-weight:400">🗑 계정 삭제(탈퇴)</b>
+        <p class="note">갈매미·도감·재화·아이템·탐험·스토리 진행·댓글이 <b>모두 지워지고 되돌릴 수 없어요.</b> 카톡 채널에 다시 말을 걸면 새 계정으로 시작해요.<br>서버 백업에는 최대 7일 동안 남아 있다가 자동으로 사라져요.</p>
+        <input id="delc" class="search" placeholder="확인을 위해 탈퇴 라고 적어 주세요" autocomplete="off">
+        <button class="btn wide" id="del" style="background:var(--bad);box-shadow:0 3px 0 #7a1f17" disabled>계정 삭제</button></div>`;
+    el.querySelector('#unlink2')?.addEventListener('click', () => run('kakao/unlink', {}, '카카오 계정 연결을 끊을까요? 그다음엔 카톡 코드로 로그인해요.'));
+    el.querySelector('#out2').onclick = async () => { await api('logout', {}).catch(() => {}); loginScreen('로그아웃했어요.'); };
+    const c = el.querySelector('#delc'), d = el.querySelector('#del');
+    c.oninput = () => { d.disabled = c.value.trim() !== '탈퇴'; };
+    d.onclick = async () => {
+      if (!confirm('정말 계정을 삭제할까요? 되돌릴 수 없어요.')) return;
+      d.disabled = true;
+      try { await api('account/delete', { confirm: '탈퇴' }); app.innerHTML = `${head()}<div class="card login"><h2 style="font-weight:400">계정을 삭제했어요</h2><p class="note">그동안 갈매미 섬을 지켜 주셔서 고마워요. 🫡</p><a class="btn wide" href="/">홈으로</a></div>`; }
+      catch (e) { if (e.message !== 'login') { toast(e.message); d.disabled = false; } }
+    };
   }
 
   main();
