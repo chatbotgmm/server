@@ -6,9 +6,12 @@ import { z } from 'zod';
 import type { Rules } from './core.js';
 
 // who: N = 해설, ME = 내 선두 갈매미, V1 같은 빌런 번호 = 그 빌런, 그 밖의 글자 = 그 이름 그대로(예: 마을 회관 방송)
+// 대사 화면 배경: harbor 항구(맑음) / ink 먹물 항구 / deep 바다 밑 동굴 / hall 마을 회관
+export const scenes=['harbor','ink','deep','hall'] as const;
 const line=z.object({who:z.string().min(1).max(20),say:z.string().min(1).max(200)}).strict();
 const stage=z.object({
   id:z.string().regex(/^[A-Z0-9]+-\d+$/),title:z.string().min(1).max(30),
+  scene:z.enum(scenes).optional(),
   before:z.array(line).min(1).max(30),
   hint:z.string().max(120).optional(),
   enemy:z.array(z.object({id:z.string().regex(/^V\d+$/),level:z.number().int().min(1).max(60)}).strict()).min(1).max(3),

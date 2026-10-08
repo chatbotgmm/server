@@ -93,15 +93,67 @@ header small{color:var(--dim)}
 .stage .tt em{font-style:normal;font-size:10px;background:#8e3b46;color:#fff;border-radius:4px;padding:0 4px;margin-left:4px}
 .stage .mk{font-size:12px;color:var(--dim);flex:none}
 .stage.done .mk{color:var(--hp);font-weight:800}
-.talk{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;min-height:150px;cursor:pointer}
-.talk>img{width:84px;height:84px;object-fit:contain;flex:none}
-.talk>div:first-of-type{flex:1;min-width:0}
-.talk b{color:var(--gold)}
-.talk p{margin:4px 0 0;font-size:15px;line-height:1.55}
-.talk.narr p{color:var(--dim);font-style:italic}
-.tk{width:100%;display:flex;justify-content:space-between;align-items:center;color:var(--dim);font-size:12px}
-.tk .ghost{padding:6px 10px;font-size:12px}
+/* 대사 화면(비주얼노벨) */
+#modal.scene-on{align-items:stretch;background:#000}
+.scene{position:relative;width:100%;max-width:520px;height:100%;overflow:hidden;cursor:pointer;user-select:none}
+.sc-harbor{background:linear-gradient(#8fd0f0 0%,#cdeefa 40%,#5fb0db 40.3%,#2f7fb5 58%,#e6d3a3 58.3%,#cdb27a 100%)}
+.sc-ink{background:radial-gradient(circle at 20% 70%,#111a 0 7%,transparent 7.5%),radial-gradient(circle at 75% 80%,#111b 0 9%,transparent 9.5%),radial-gradient(circle at 55% 64%,#1119 0 5%,transparent 5.5%),linear-gradient(#a9b6bf 0%,#d5dde0 40%,#4d6d85 40.3%,#24384a 58%,#5b5446 58.3%,#3b362d 100%)}
+.sc-deep{background:linear-gradient(115deg,transparent 30%,#9fd8ff22 38%,transparent 46%),linear-gradient(65deg,transparent 55%,#9fd8ff1a 62%,transparent 70%),linear-gradient(#174a73 0%,#0d2c48 50%,#071a2c 100%)}
+.sc-hall{background:linear-gradient(#f6c98a 0%,#f2dcb5 45%,#c9a272 45.3%,#a8804f 100%)}
+.place{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.45);color:#fff;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px}
+.por{position:absolute;bottom:31%;height:36%;max-width:58%;object-fit:contain;transition:filter .25s,transform .25s,opacity .25s;filter:brightness(.55) saturate(.6);opacity:.9}
+.por.me{left:-2%;transform:scaleX(-1)}
+.por.foe{right:-2%}
+.por.foe.big{height:44%}
+.por.on{filter:none;opacity:1}
+.por.me.on{transform:scaleX(-1) translateY(-6px)}
+.por.foe.on{transform:translateY(-6px)}
+.dbox{position:absolute;left:10px;right:10px;bottom:14px;min-height:27%;background:rgba(14,22,30,.93);border:2px solid rgba(255,255,255,.18);border-radius:16px;padding:14px 16px 10px;display:flex;flex-direction:column}
+.dbox .who{align-self:flex-start;margin:-28px 0 6px;background:var(--gold);color:#222;font-weight:800;font-size:15px;padding:4px 12px;border-radius:10px;min-height:0}
+.dbox .who:empty{display:none}
+.dbox.foe .who{align-self:flex-end;background:#e07a5f;color:#fff}
+.dbox.other .who{background:#6c8aa3;color:#fff}
+.dbox .say{flex:1;margin:0;font-size:18px;line-height:1.7;color:#fff;word-break:keep-all}
+.dbox.narr{text-align:center;justify-content:center;background:rgba(0,0,0,.78)}
+.dbox.narr .say{font-size:17px;color:#f1ead8}
+.dbox.tip{border-color:var(--gold)}
+.dbox.tip .who{background:#2d4a33;color:#bff0c8}
+.dbox.tip .say{font-size:16px}
+.q{font-style:normal;color:var(--gold);font-weight:700}
+.dbox .tk{display:flex;justify-content:space-between;align-items:center;color:var(--dim);font-size:12px;margin-top:6px}
+.dbox .tk .ghost{padding:5px 10px;font-size:12px}
+.titlecard{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(5,10,15,.82);color:#fff;transition:opacity .6s}
+.titlecard small{color:var(--gold);font-size:14px;font-weight:700}
+.titlecard b{font-size:26px}
+.titlecard.fade{opacity:0;pointer-events:none}
 .mon.foe.boss{height:46%;right:4%;top:2%}
+/* 증강체·교체 고르기 */
+.sheet.pick{padding-bottom:0}
+.vs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;margin-bottom:10px}
+.vs .side{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;text-align:center}
+.vs .side img{height:64px;max-width:100%;object-fit:contain}
+.vs .side img.flip{transform:scaleX(-1)}
+.vs .side b{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.vs .mid{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:12px}
+.vs .mid small{color:var(--dim);font-size:10px}
+.good{color:#6fe08d}.bad{color:#ff8a7a}
+.tipline{background:#1f3326;border:1px solid #2f5a3c;color:#d6f5de;border-radius:12px;padding:8px 10px;font-size:13px;line-height:1.5;margin-bottom:10px}
+.aug{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:8px;transition:border-color .15s,transform .1s}
+.aug:active{transform:scale(.99)}
+.aug.on{border-color:var(--gold);background:#2a2a1e}
+.aug .ic{font-size:26px;width:40px;height:40px;flex:none;display:grid;place-items:center;object-fit:contain}
+.aug .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.aug .tx b{font-size:15px;display:flex;align-items:center;gap:6px}
+.aug .tx b em{font-style:normal;font-size:10px;background:#2f6b45;color:#d6f5de;border-radius:6px;padding:1px 6px}
+.aug .tx small{color:var(--gold);font-size:11px}
+.aug .tx span{color:var(--dim);font-size:12px;line-height:1.45}
+.aug .ck{width:24px;height:24px;flex:none;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;color:#222;font-weight:900;font-size:14px}
+.aug.on .ck{background:var(--gold);border-color:var(--gold)}
+.hpmini{display:block;height:5px;background:#0b1218;border-radius:3px;overflow:hidden;margin-top:3px}
+.hpmini i{display:block;height:100%;background:var(--hp)}
+.big.wide{display:block;width:100%;position:sticky;bottom:0;margin:6px 0 0;box-shadow:0 -12px 16px var(--bg)}
+.sheet.pick .big.wide{margin-bottom:16px}
+.flee{align-self:flex-end;background:none;border:1px solid var(--line);border-radius:999px;color:var(--dim);font-size:13px;padding:6px 14px}
 /* 고르기 창 */
 #modal{position:fixed;inset:0;background:rgba(5,10,15,.72);display:flex;align-items:flex-end;justify-content:center;z-index:5}
 #modal[hidden]{display:none}

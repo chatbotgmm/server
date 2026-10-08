@@ -4,6 +4,7 @@
 # who(말하는 이): N = 해설, ME = 내 선두 갈매미(이름이 자동으로 들어감), V1 같은 번호 = 그 빌런(battle.yaml villains),
 #                 그 밖의 글자는 그 이름 그대로 보여 줘요(예: 마을 회관 방송)
 # enemy: 상대 팀 1~3마리 { id: 빌런 번호, level: 레벨 }. 첫 번째가 먼저 나와요
+# scene: 대사 화면 배경 — harbor 항구(맑음) / ink 먹물 항구 / deep 바다 밑 동굴 / hall 마을 회관
 # hint: 대결 전에 보여 주는 한 줄 도움말 / lose: 졌을 때 대사(없으면 기본 문구)
 # 밸런스 확인: npx tsx scripts/story-balance.ts
 # 톤: 위기도 직장인 개그로. 진지한 장면 끝엔 허술한 한 줄. 이기면 처벌하지 않고 채용·계약.
@@ -18,6 +19,7 @@ chapters:
     stages:
       - id: P-1
         title: "첫 출근"
+        scene: harbor
         before:
           - { who: N, say: "큰 태풍이 지나가고, 갈매미 섬 수비대가 다시 일어났어요." }
           - { who: N, say: "그런데 수비대장 자리가 비어 있어요. 마을 회관은 승진 심사로 새 수비대장을 뽑기로 했어요." }
@@ -41,6 +43,7 @@ chapters:
     stages:
       - id: 1-1
         title: "항구의 먹물"
+        scene: ink
         before:
           - { who: N, say: "다음 날 아침, 항구가 시커매요." }
           - { who: V1, say: "안녕하세요! 저희도 갈매미예요! 입사 지원하러 왔어요!" }
@@ -58,6 +61,7 @@ chapters:
 
       - id: 1-2
         title: "이력서 폭탄"
+        scene: ink
         before:
           - { who: N, say: "항구 우체통이 터지기 직전이에요. 먹물 이력서가 끝없이 들어와요." }
           - { who: V2, say: "이력서 3만 장 접수 완료! 하나는 붙겠지!" }
@@ -75,6 +79,7 @@ chapters:
 
       - id: 1-3
         title: "출근 도장대 사수"
+        scene: harbor
         before:
           - { who: N, say: "수비대 출근 도장대에 빨판이 철썩 붙어 있어요." }
           - { who: V3, say: "도장 찍기 전엔 안 놔요! 출근 도장은 직원의 상징이니까요!" }
@@ -91,6 +96,7 @@ chapters:
 
       - id: 1-4
         title: "해저 2층 입구"
+        scene: deep
         before:
           - { who: N, say: "쭈매미들이 올라온 길을 따라가니 바다 밑 동굴이 나와요. 입구에 「해저 2층」 조개 간판이 걸려 있어요." }
           - { who: N, say: "그 앞을 반투명한 알 무더기가 막고 있어요. 알마다 작은 종이 볏이 붙어 있어요." }
@@ -108,6 +114,7 @@ chapters:
 
       - id: 1-5
         title: "여덟발 대장"
+        scene: deep
         before:
           - { who: V5, say: "여기까지 왔나, 수비조장! 나는 쭈매미 취업 준비단 단장, 여덟발 대장이다!" }
           - { who: V5, say: "다리 여덟 개에 이력서 여덟 장. 너희는 손이 두 개뿐이지?" }
@@ -126,6 +133,7 @@ chapters:
 
       - id: 1-6
         title: "쭈라켄"
+        scene: deep
         before:
           - { who: N, say: "수천 마리 쭈매미가 다리를 꼬아 하나로 뭉쳤어요. 머리에는 거대한 종이 볏이 얹혀 있어요." }
           - { who: V6, say: "자리는! 하나! 지원자는! 천 마리!" }

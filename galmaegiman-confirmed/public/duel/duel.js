@@ -121,7 +121,7 @@ function freeBattle() {
   startBattle(freePick.map((id, i) => rec(id, i, 'a')), foe.map((id, i) => rec(id, i, 'b')), won => {
     const xp = battleXp(R, freeLevel, won);
     return { text: `실제 게임이라면 출전한 갈매미마다 경험치 ${xp}을 받아요(자유 대결은 저장하지 않아요).`, buttons: [['같은 팀으로 다시', freeBattle], ['편성으로', () => pickScreen('free')]] };
-  });
+  }, '', { retry: freeBattle, back: () => pickScreen('free') });
 }
 
 // ── 스토리 ──
@@ -147,28 +147,57 @@ function storyScreen() {
   app.querySelectorAll('[data-s]').forEach(x => x.onclick = () => playStage(stages().find(s => s.id === x.dataset.s)));
 }
 
-// 대사: 한 줄씩, 화면을 누르면 다음
-function talk(lines) {
+// 대사: 비주얼노벨처럼 전체 화면. 내 갈매미는 왼쪽, 빌런은 오른쪽(말하는 쪽만 밝게). 글자가 하나씩 나오고,
+// 누르면 그 줄을 바로 다 보여 주고, 한 번 더 누르면 다음 줄. 「」 안의 말은 금색으로 강조
+const hl = t => esc(t).replace(/「([^」]+)」/g, '<em class="q">「$1」</em>');
+function talk(lines, opt = {}) {
   return new Promise(resolve => {
-    if (!lines?.length) return resolve();
+    lines = [...(lines ?? [])];
+    if (opt.tip) lines.push({ who: 'TIP', say: opt.tip });
+    if (!lines.length) return resolve();
     const lead = UNITS.find(u => u.id === SAVE.team[0]);
-    let i = 0;
+    let i = 0, typing = null, full = '';
+    const foeId = lines.find(l => /^V\d+$/.test(l.who))?.who;
+    modal.className = 'scene-on';
+    modal.innerHTML = `<div class="scene sc-${opt.scene || 'harbor'}">
+      ${opt.title ? `<div class="place">${esc(opt.title)}</div>` : ''}
+      <img class="por me" id="pMe" src="${sprite(lead.id, 'front')}" alt="">
+      <img class="por foe" id="pFoe" alt="" ${foeId ? '' : 'hidden'}>
+      <div class="dbox"><div class="who" id="who"></div><p class="say" id="say"></p>
+        <div class="tk"><button class="ghost" id="skip">건너뛰기</button><span id="pg"></span></div></div>
+      ${opt.title ? `<div class="titlecard" id="card"><small>${esc(opt.sub || '')}</small><b>${esc(opt.title)}</b></div>` : ''}</div>`;
+    const $ = id => modal.querySelector(`#${id}`);
     const draw = () => {
       const l = lines[i], v = /^V\d+$/.test(l.who) ? R.villains.get(l.who) : null;
-      const who = l.who === 'N' ? '' : l.who === 'ME' ? lead.name : v ? v.name : l.who;
-      const pic = l.who === 'ME' ? sprite(lead.id, 'front') : v ? sprite(l.who, 'front') : '';
-      modal.innerHTML = `<div class="sheet talk ${l.who === 'N' ? 'narr' : ''}">${pic ? `<img src="${pic}" alt="">` : ''}<div>${who ? `<b>${esc(who)}</b>` : ''}<p>${esc(l.say)}</p></div>
-        <div class="tk"><button class="ghost" id="skip">건너뛰기</button><span>${i + 1}/${lines.length} · 누르면 다음</span></div></div>`;
-      modal.querySelector('#skip').onclick = e => { e.stopPropagation(); done(); };
+      if (v) { const p = $('pFoe'); p.hidden = false; const src = sprite(l.who, 'front'); if (p.dataset.src !== src) { p.src = src; p.dataset.src = src; p.classList.toggle('big', !!v.boss); } }
+      const speaker = l.who === 'ME' ? 'me' : v ? 'foe' : '';
+      $('pMe').classList.toggle('on', speaker === 'me'); $('pFoe').classList.toggle('on', speaker === 'foe');
+      const box = modal.querySelector('.dbox');
+      box.className = `dbox ${l.who === 'N' ? 'narr' : l.who === 'TIP' ? 'tip' : speaker || 'other'}`;
+      $('who').textContent = l.who === 'N' ? '' : l.who === 'TIP' ? '💡 대결 팁' : l.who === 'ME' ? lead.name : v ? v.name : l.who;
+      $('pg').textContent = `${i + 1} / ${lines.length}  ▼`;
+      full = hl(l.say); const plain = l.say; let n = 0;
+      clearInterval(typing); $('say').textContent = '';
+      typing = setInterval(() => { n += 1; $('say').textContent = plain.slice(0, n); if (n >= plain.length) { clearInterval(typing); typing = null; $('say').innerHTML = full; } }, 28);
     };
-    const done = () => { modal.onclick = null; modal.hidden = true; resolve(); };
-    modal.onclick = () => { i++; if (i >= lines.length) done(); else draw(); };
+    const done = () => { clearInterval(typing); modal.onclick = null; modal.hidden = true; modal.className = ''; resolve(); };
+    $('skip').onclick = e => { e.stopPropagation(); done(); };
+    modal.onclick = () => {
+      if ($('card')) { $('card').remove(); return; }
+      if (typing) { clearInterval(typing); typing = null; $('say').innerHTML = full; return; }
+      i++; if (i >= lines.length) done(); else draw();
+    };
     modal.hidden = false; draw();
+    if ($('card')) setTimeout(() => { $('card')?.classList.add('fade'); setTimeout(() => $('card')?.remove(), 650); }, 1300);
   });
 }
 
+const sceneTitle = st => ({ title: `${st.id} ${st.title}`, sub: st.chapter.title, scene: st.scene });
 async function playStage(st) {
-  await talk(st.before);
+  await talk(st.before, { ...sceneTitle(st), tip: st.hint });
+  fight(st);
+}
+function fight(st) {
   const foe = st.enemy.map((e, i) => { const v = R.villains.get(e.id); return { uid: `b${i}`, id: e.id, name: v.name, tier: 'LIMITED', level: e.level, xp: 0, stage: 0, evoAugs: [] }; });
   const mine = SAVE.team.map(myRec);
   startBattle(mine, foe, won => {
@@ -183,18 +212,19 @@ async function playStage(st) {
     persist();
     const last = st.chapter.stages.at(-1).id === st.id;
     const after = async () => {
-      if (won) { await talk(st.after); if (first && last) await talk(st.chapter.clear); }
-      else await talk(st.lose ?? [{ who: 'N', say: '수비조가 물러났어요. 레벨을 올리거나 편성·상성을 바꿔 다시 도전해 보세요.' }]);
+      if (won) { await talk(st.after, { scene: st.scene }); if (first && last) await talk(st.chapter.clear, { title: `${st.chapter.title} 끝`, sub: '실적 달성', scene: 'hall' }); }
+      else await talk(st.lose ?? [{ who: 'N', say: '수비조가 물러났어요. 레벨을 올리거나 편성·상성을 바꿔 다시 도전해 보세요.' }], { scene: st.scene });
       storyScreen();
     };
     return { text: `출전한 갈매미마다 경험치 +${xp}${ups.length ? ` · 레벨 업! ${ups.join(', ')}` : ''}${first && last && /^\d+$/.test(st.chapter.id) ? ` · ${st.chapter.id}단계 승진 심사가 열렸어요(승진 기능은 준비 중)` : ''}`,
-      buttons: won ? [['다음으로', after]] : [['다시 도전', () => playStage(st)], ['스토리로', after]] };
-  }, st.hint);
+      buttons: won ? [['다음으로', after]] : [['다시 도전', () => fight(st)], ['스토리로', after]] };
+  }, st.hint, { retry: () => fight(st), back: storyScreen });
 }
 
 // ── 대결 ──
-function startBattle(mine, foe, end, hint) {
-  onEnd = end; hintNow = hint || '';
+let fleeTo = null; // 도망치기: { retry, back }
+function startBattle(mine, foe, end, hint, flee) {
+  onEnd = end; hintNow = hint || ''; fleeTo = flee;
   b = createBattle(R, mine, foe, (Math.random() * 2 ** 31) | 0);
   const boss = foe.some(f => R.villains.get(f.id)?.boss);
   app.innerHTML = `<div id="arena"><div class="plat foe"></div><div class="plat me"></div>
@@ -239,16 +269,33 @@ async function flow() {
   actionPanel();
 }
 
+// 증강체: 그림 표시와 분류(어떤 상황에 쓰는지)
+const AUG_ICON = { reverse: ['🔄', '상성 뒤집기'], weakguard: ['🛡️', '상성 방어'], focus: ['🎯', '상성 공격'], neutral: ['🌫️', '상성 없애기'], camo: ['🦎', '속성 바꾸기'], dual: ['➕', '공격 속성 추가'],
+  counter: ['↩️', '반격'], learn: ['📖', '피해 줄이기'], first: ['⏱️', '선공'], bulwark: ['🧱', '방어'], firstaid: ['🩹', '회복'], freeswitch: ['🔀', '교체'],
+  lastone: ['🔥', '역전'], strip: ['✂️', '약화'], rustle: ['🍤', '멈추기'], peanut: ['🥜', '공격'] };
+const FLIP = ['camo', 'reverse', 'weakguard', 'neutral', 'dual', 'counter'];   // 상성이 불리할 때 쓸 만한 것
+const multTag = m => m > 1 ? `<b class="good">×${m} 유리</b>` : m < 1 ? `<b class="bad">×${m} 불리</b>` : '<b>×1 보통</b>';
+
 function chooseSheet(p) {
   let aug = null, to = null;
   const me = activeOf(b, 0), foe = activeOf(b, 1);
   const alive = b.sides[0].fighters.map((f, i) => [f, i]).filter(([f]) => f.hp > 0);
+  const atk = R.typeMult(me.attr, foe.attr), def = R.typeMult(foe.attr, me.attr), bad = atk < 1 || def > 1;
+  const face = f => sprite(f.rec.id, 'front');
   const draw = () => {
-    modal.innerHTML = `<div class="sheet">
-      ${p.augments ? `<h2>전투 증강체 고르기</h2><p class="sub">상대 선두: ${esc(foe.name)} ${chip(foe.attr)} · 내 선두: ${esc(me.name)} ${chip(me.attr)}<br>상대도 하나를 골라요.</p>${hintNow && b.turn === 1 ? `<p class="sub">💡 ${esc(hintNow)}</p>` : ''}
-        ${p.augments.map(id => { const a = R.battleAug.get(id); return `<button class="opt ${aug === id ? 'on' : ''}" data-a="${id}"><b>${esc(a.name)}</b><span>${esc(a.desc)}</span></button>`; }).join('')}` : ''}
-      ${p.needSwitch ? `<h2>다음에 나갈 갈매미</h2>${alive.map(([f, i]) => `<button class="opt ${to === i ? 'on' : ''}" data-t="${i}"><b>${esc(f.name)}</b><span>${R.attrName(f.attr)} · ${ROLE[f.role]} · 체력 ${f.hp}/${f.maxHp}</span></button>`).join('')}` : ''}
-      <button class="big" id="ok" ${(p.augments && !aug) || (p.needSwitch && to === null) ? 'disabled' : ''}>확인</button></div>`;
+    const vs = p.augments ? `<div class="vs">
+        <div class="side"><img src="${face(me)}" class="flip" alt=""><b>${esc(me.name)}</b>${chip(me.attr)}</div>
+        <div class="mid"><small>내 공격</small>${multTag(atk)}<small>상대 공격</small>${multTag(def)}</div>
+        <div class="side"><img src="${face(foe)}" alt=""><b>${esc(foe.name)}</b>${chip(foe.attr)}</div></div>` : '';
+    modal.innerHTML = `<div class="sheet pick">
+      ${p.augments ? `<h2>전투 증강체</h2><p class="sub">${b.turn === 1 ? '대결 시작' : '전투불가 발생'} · 3개 중 하나를 골라요. 상대도 하나를 골라요.</p>${vs}
+        ${hintNow && b.turn === 1 ? `<div class="tipline">💡 ${hl(hintNow)}</div>` : ''}
+        ${p.augments.map(id => { const a = R.battleAug.get(id), [ic, kind] = AUG_ICON[id] ?? ['✨', ''], rec = bad && FLIP.includes(id);
+          return `<button class="aug ${aug === id ? 'on' : ''}" data-a="${id}"><span class="ic">${ic}</span><span class="tx"><b>${esc(a.name)}${rec ? '<em>지금 추천</em>' : ''}</b><small>${esc(kind)}</small><span>${esc(a.desc)}</span></span><span class="ck">${aug === id ? '✓' : ''}</span></button>`; }).join('')}` : ''}
+      ${p.needSwitch ? `<h2>다음에 나갈 갈매미</h2><p class="sub">상대: ${esc(foe.name)} ${chip(foe.attr)}</p>
+        ${alive.map(([f, i]) => { const m = R.typeMult(f.attr, foe.attr), pct = Math.round(f.hp / f.maxHp * 100);
+          return `<button class="aug ${to === i ? 'on' : ''}" data-t="${i}"><img class="ic" src="${face(f)}" alt=""><span class="tx"><b>${esc(f.name)}</b><small>${R.attrName(f.attr)} · ${ROLE[f.role]} · 상대에게 ${m > 1 ? '유리' : m < 1 ? '불리' : '보통'}</small><i class="hpmini"><i style="width:${pct}%"></i></i></span><span class="ck">${to === i ? '✓' : ''}</span></button>`; }).join('')}` : ''}
+      <button class="big wide" id="ok" ${(p.augments && !aug) || (p.needSwitch && to === null) ? 'disabled' : ''}>${aug ? `「${esc(R.battleAug.get(aug).name)}」 선택` : ''}${aug && p.needSwitch && to !== null ? ' · ' : ''}${p.needSwitch && to !== null ? `${esc(b.sides[0].fighters[to].name)} 출전` : ''}${(!aug && p.augments) || (p.needSwitch && to === null) ? '골라 주세요' : ''}</button></div>`;
     modal.querySelectorAll('[data-a]').forEach(x => x.onclick = () => { aug = x.dataset.a; draw(); });
     modal.querySelectorAll('[data-t]').forEach(x => x.onclick = () => { to = +x.dataset.t; draw(); });
     modal.querySelector('#ok').onclick = async () => {
@@ -259,7 +306,7 @@ function chooseSheet(p) {
       await play(from); flow();
     };
   };
-  modal.onclick = null; modal.hidden = false; draw();
+  modal.onclick = null; modal.className = ''; modal.hidden = false; draw();
 }
 
 function actionPanel() {
@@ -272,7 +319,21 @@ function actionPanel() {
       <div class="t"><span>${esc(k.name)}</span><small>${k.power ? `${R.attrName(k.attr ?? f.attr)} · 위력 ${k.power}${k.hits > 1 ? `×${k.hits}` : ''}` : '보조'}${cd ? ` · ${cd}` : ''}</small></div><p>${esc(k.desc)}</p></button>`;
   }).join('') + `<div class="sw">${s.fighters.map((x, i) => i === s.active ? '' : `<button data-s="${i}" ${can({ kind: 'switch', to: i }) ? '' : 'disabled'}><img src="${sprite(x.rec.id, 'front')}" alt=""><span>${esc(x.name)}<br><small>${x.hp > 0 ? `교체 · ${Math.round(x.hp / x.maxHp * 100)}%` : '전투불가'}</small></span></button>`).join('')}</div>`;
   panel.querySelectorAll('[data-k]').forEach(x => x.onclick = () => turn({ kind: 'skill', skillId: x.dataset.k }));
+  panel.insertAdjacentHTML('beforeend', '<button class="flee" id="flee">🏃 도망치기</button>');
   panel.querySelectorAll('[data-s]').forEach(x => x.onclick = () => turn({ kind: 'switch', to: +x.dataset.s }));
+  panel.querySelector('#flee').onclick = runAway;
+}
+// 도망치기: 경험치 없음, 깬 것으로 치지 않음
+function runAway() {
+  if (busy || !confirm('대결에서 도망칠까요? 경험치를 받지 못해요.')) return;
+  b.phase = 'over';
+  document.getElementById('m0').animate([{ transform: 'translateX(0)', opacity: 1 }, { transform: 'translateX(-120px)', opacity: 0 }], { duration: 500, fill: 'forwards' });
+  say('수비조가 재빨리 물러났어요!');
+  document.getElementById('panel').innerHTML = `<div class="sheet" style="border-radius:14px"><h2>도망쳤어요</h2>
+    <p class="sub">경험치는 없어요. 편성이나 상성을 바꿔 다시 도전해 보세요.</p>
+    <div class="sw"><button class="ghost" id="fr" style="justify-content:center">다시 도전</button><button class="ghost" id="fb" style="justify-content:center">돌아가기</button></div></div>`;
+  document.getElementById('fr').onclick = fleeTo.retry;
+  document.getElementById('fb').onclick = fleeTo.back;
 }
 
 async function turn(mine) {
