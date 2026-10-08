@@ -13,9 +13,9 @@ import { GameError } from './types.js';
 import { registerWeb } from './web.js';
 import { battleRoster } from './battle/prototype.js';
 import { registerDuel } from './duel.js';
-import { registerMy } from './my.js';
-export const VERSION='0.9.59';
-export interface AppOptions {secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string}
+import { registerMy, type KakaoLogin } from './my.js';
+export const VERSION='0.9.60';
+export interface AppOptions {secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string;kakaoLogin?:KakaoLogin;fetch?:typeof fetch}
 export async function buildApp(db:PrismaClient,game:GameService,options:AppOptions){
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
   const app=Fastify({logger:options.log??false,bodyLimit:32_768,trustProxy:false});
@@ -69,7 +69,7 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
   app.get('/battle/battle.js',async(_req,reply)=>sendFile(reply,'text/javascript; charset=utf-8',resolve(battleDir,'battle.js')));
   app.get('/battle/roster.json',async(_req,reply)=>reply.type('application/json; charset=utf-8').header('Cache-Control','public, max-age=300').send(roster));
   registerDuel(app,game.content,{root:options.root??process.cwd(),secret:options.secret});
-  registerMy(app,game,{root:options.root??process.cwd(),secret:options.secret});
+  registerMy(app,game,{root:options.root??process.cwd(),secret:options.secret,baseUrl:options.baseUrl,kakao:options.kakaoLogin,fetch:options.fetch});
   // 그림 파일 수정 시각을 주소 뒤에 붙여, 그림을 바꾸면 카카오가 새로 받아 가게 합니다
   const stamps=new Map<string,string>();
   const stamp=(path:string)=>{

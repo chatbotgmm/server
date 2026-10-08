@@ -42,6 +42,7 @@ model Player {
   comments      Comment[]
   webLogins     WebLogin[]
   items         PlayerItem[]
+  kakao         KakaoLink?
 }
 
 model CharacterDefinition {
@@ -190,6 +191,14 @@ model WebLogin {
 }
 
 // 대결 아이템(치료약 등) 보유 수. 종류·가격·효과는 data/battle.yaml items
+// 카카오 로그인 연결(웹 「카카오로 로그인」. 처음 한 번은 카톡 코드로 로그인해 연결). 카카오 회원번호 하나 ↔ 플레이어 하나
+model KakaoLink {
+  kakaoId   String   @id
+  playerId  String   @unique
+  createdAt DateTime @default(now())
+  player    Player   @relation(fields: [playerId], references: [id])
+}
+
 model PlayerItem {
   playerId String
   itemId   String

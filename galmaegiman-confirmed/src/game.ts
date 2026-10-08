@@ -1068,21 +1068,37 @@ export class GameService {
       return row.playerId;
     });
   }
+  // 카카오 로그인: 연결된 플레이어 id(없으면 null) / 플레이어에 카카오 회원번호 연결
+  async webKakaoPlayer(kakaoId:string){
+    return (await this.db.kakaoLink.findUnique({where:{kakaoId}}))?.playerId??null;
+  }
+  async webLinkKakao(playerId:string,kakaoId:string|null){
+    return this.webRun(playerId,async(tx,p)=>{
+      if(kakaoId){
+        const other=await tx.kakaoLink.findUnique({where:{kakaoId}});
+        if(other&&other.playerId!==p.id)throw new GameError('이 카카오 계정은 이미 다른 갈매미맨 계정에 연결돼 있어요.');
+        await tx.kakaoLink.upsert({where:{playerId:p.id},create:{kakaoId,playerId:p.id},update:{kakaoId}});
+      }else await tx.kakaoLink.deleteMany({where:{playerId:p.id}});
+      await this.audit(tx,p,'WEB_KAKAO',{linked:!!kakaoId});
+      return !!kakaoId;
+    });
+  }
   // 내 갈매미 요약: 재화, 가진 유닛(종류별 수·탐험 중), 전투·탐험 편성, 진행 중인 탐험
   async webMe(playerId:string){
     const p=await this.db.player.findUnique({where:{id:playerId}});
     if(!p)return null;
-    const [owned,dex,trip]=await Promise.all([
+    const [owned,dex,trip,kakao]=await Promise.all([
       this.db.ownedCharacter.groupBy({by:['characterId','status'],where:{playerId,status:{in:['AVAILABLE','EXPEDITION']}},_count:{_all:true}}),
       this.db.collectionEntry.count({where:{playerId}}),
       this.db.expedition.findFirst({where:{playerId,claimedAt:null}}),
+      this.db.kakaoLink.count({where:{playerId}}),
     ]);
     const by=new Map<string,{have:number;away:number}>();
     for(const r of owned){const e=by.get(r.characterId)??{have:0,away:0};e.have+=r._count._all;if(r.status==='EXPEDITION')e.away+=r._count._all;by.set(r.characterId,e);}
     const units=[...by].map(([id,e])=>{const c=this.content.map.get(id)!;return {id,name:c.name,tier:c.rarity,tierName:rarityNames[c.rarity],top:topTiers.has(c.rarity),synergy:c.synergy??null,...e};})
       .sort((a,b)=>tiers[b.tier]-tiers[a.tier]||this.content.map.get(a.id)!.position-this.content.map.get(b.id)!.position);
     const ids=(s:string)=>s?s.split(',').filter(id=>this.content.map.has(id)):[];
-    return {nickname:p.nickname,snack:p.snack,peanut:p.peanut,credits:p.credits,dex,dexTotal:this.content.characters.length,units,
+    return {nickname:p.nickname,snack:p.snack,peanut:p.peanut,credits:p.credits,kakao:kakao>0,dex,dexTotal:this.content.characters.length,units,
       battleTeam:ids(p.battleTeam),party:ids(p.partyDraft),
       trip:trip?{endsAt:trip.endsAt.toISOString(),units:(trip.unitIds as string[]).map(id=>this.content.map.get(id)?.name??id)}:null};
   }

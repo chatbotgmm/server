@@ -5,7 +5,7 @@
   const api = async (path, body) => {
     const r = await fetch(`/my/api/${path}`, body === undefined ? { headers: { 'x-gmm': '1' } } : { method: 'POST', headers: { 'content-type': 'application/json', 'x-gmm': '1' }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({}));
-    if (r.status === 401) { loginScreen(); throw new Error('login'); }
+    if (r.status === 401) { auth = j; loginScreen(); throw new Error('login'); }
     if (!r.ok) throw new Error(j.error || `오류(${r.status})`);
     return j;
   };
@@ -14,9 +14,19 @@
   const head = right => `<header><h1>🪨 내 갈매미</h1><span class="sp"></span>${right ?? ''}<a class="home" href="/">홈</a></header>`;
 
   // ── 로그인 ──
-  function loginScreen(msg = '') {
+  // 카카오 로그인에서 돌아온 결과(?kakao=…)는 한 번 보여 주고 주소에서 지움
+  let auth = {};
+  const kq = new URLSearchParams(location.search).get('kakao');
+  if (kq) history.replaceState(null, '', '/my');
+  const kmsg = { cancel: '카카오 로그인을 취소했어요.', fail: '카카오 로그인에 실패했어요. 잠시 뒤 다시 해 주세요.', taken: '이 카카오 계정은 이미 다른 갈매미맨 계정에 연결돼 있어요.', linked: '카카오 계정을 연결했어요! 다음부터는 카카오로 로그인만 누르면 돼요.' }[kq] ?? '';
+  const kakaoBtn = '<a class="btn wide kakao" href="/my/kakao">카카오로 로그인</a>';
+  function loginScreen(msg = kmsg) {
+    const linking = auth.linking || kq === 'link';
+    if (linking) msg = '';
     app.innerHTML = `${head()}<div class="card login">
-      <h2 style="font-weight:400;margin:4px 0 6px">로그인</h2>
+      <h2 style="font-weight:400;margin:4px 0 6px">${linking ? '카카오 계정 처음 연결' : '로그인'}</h2>
+      ${linking ? '<p class="note">처음 한 번만 카톡 코드로 내 갈매미맨 계정을 알려 주세요. 그러면 이 카카오 계정이 연결돼서, 다음부터는 카카오로 로그인만 누르면 돼요.</p>'
+        : auth.kakao ? `${kakaoBtn}<p class="note" style="margin:10px 0 4px">또는 카톡 코드로 로그인</p>` : ''}
       <ol class="steps"><li>카톡 갈매미맨 채널에 <b>웹 로그인</b>이라고 보내요.</li><li>받은 6자리 코드를 아래에 입력해요. (10분 안에, 한 번만)</li></ol>
       <input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
       <p class="err" id="err">${esc(msg)}</p>
@@ -26,7 +36,7 @@
       const code = app.querySelector('#code').value.replace(/\D/g, '');
       if (code.length !== 6) { app.querySelector('#err').textContent = '6자리 숫자를 입력해 주세요.'; return; }
       app.querySelector('#go').disabled = true;
-      try { await api('login', { code }); main(); }
+      try { const r = await api('login', { code }); if (r.kakao) toast(r.kakao === 'linked' ? '카카오 계정을 연결했어요!' : r.kakao); main(); }
       catch (e) { app.querySelector('#err').textContent = e.message; app.querySelector('#go').disabled = false; }
     };
     app.querySelector('#go').onclick = go;
@@ -37,7 +47,7 @@
   // ── 내 갈매미 ──
   let me, tab = 'units', filter = 'all';
   async function main() {
-    try { me = await api('me'); } catch (e) { if (e.message !== 'login') app.innerHTML = `${head()}<p class="empty">${esc(e.message)}</p>`; return; }
+    try { me = await api('me'); if (kmsg && !main.shown) { main.shown = 1; toast(kmsg); } } catch (e) { if (e.message !== 'login') app.innerHTML = `${head()}<p class="empty">${esc(e.message)}</p>`; return; }
     draw();
   }
   function draw() {
@@ -59,8 +69,11 @@
     const list = me.units.filter(pass);
     el.innerHTML = `<div class="filters">${groups.map(([k, t]) => `<button data-f="${k}" class="${filter === k ? 'on' : ''}">${t}</button>`).join('')}</div>
       ${list.length ? `<div class="grid">${list.map(u => `<div class="u"><img loading="lazy" src="${thumb(u.id)}" alt=""><span class="n">×${u.have}</span>${u.away ? `<span class="away">탐험 ${u.away}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}</small></div>`).join('')}</div>`
-        : '<p class="empty">이 등급의 갈매미가 아직 없어요.</p>'}`;
+        : '<p class="empty">이 등급의 갈매미가 아직 없어요.</p>'}
+      ${me.kakaoLogin ? `<div class="card row" style="justify-content:space-between;margin-top:14px"><span class="note">${me.kakao ? '✅ 카카오 계정 연결됨 (카카오로 로그인 가능)' : '카카오 계정을 연결하면 다음부터 코드 없이 로그인해요.'}</span>
+        ${me.kakao ? '<button class="btn ghost" id="unlink" style="padding:6px 12px;font-size:.85rem">연결 해제</button>' : '<a class="btn kakao" href="/my/kakao" style="padding:8px 14px;font-size:.9rem">카카오 연결</a>'}</div>` : ''}`;
     el.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { filter = b.dataset.f; draw(); });
+    el.querySelector('#unlink')?.addEventListener('click', () => run('kakao/unlink', {}, '카카오 계정 연결을 끊을까요? 그다음엔 카톡 코드로 로그인해요.'));
   }
 
   // 전투 편성: 최상위 3마리(순서 = 출전 순서)
