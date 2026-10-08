@@ -171,11 +171,12 @@ function skillSheet(id) {
   const offers = learnOffers(R, rec), tier = R.data.learn.levels[rec.learnUsed ?? 0], full = mine.length >= R.data.learn.slots;
   const nextLv = R.data.learn.levels.find(l => l > rec.level);
   let pick = null, rep = null;
-  const card = (k, attr, data, on, note = '') => `<button class="aug ${on ? 'on' : ''}" ${data}><span class="ic">${GLYPH[attr] ?? '✨'}</span><span class="tx"><b>${esc(k.name)}${note}</b><small>${k.power ? `${esc(R.attrName(attr))} · 위력 ${k.power}${k.hits > 1 ? `×${k.hits}` : ''}` : '보조 기술'}${k.cd ? ` · 재사용 ${k.cd}턴` : ''}</small><span>${esc(k.desc)}</span></span><span class="ck">${on ? '✓' : ''}</span></button>`;
+  const icon = (k, attr) => k.name.includes('똥') ? '💩' : GLYPH[attr] ?? '✨';
+  const card = (k, attr, data, on, note = '') => `<button class="aug ${on ? 'on' : ''}" ${data}><span class="ic">${icon(k, attr)}</span><span class="tx"><b>${esc(k.name)}${note}</b><small>${k.power ? `${esc(R.attrName(attr))} · 위력 ${k.power}${k.hits > 1 ? `×${k.hits}` : ''}` : '보조 기술'}${k.cd ? ` · 재사용 ${k.cd}턴` : ''}</small><span>${esc(k.desc)}</span></span><span class="ck">${on ? '✓' : ''}</span></button>`;
   const draw = () => {
     modal.innerHTML = `<div class="sheet pick">
       <div class="who-head"><img src="${sprite(id, 'front')}" alt=""><div><b>${esc(u.name)}</b><small>Lv${rec.level} · ${esc(R.attrName(def.attr))} · ${ROLE[def.role]}${synName(id) ? ` · ${esc(synName(id))}` : ''}</small></div></div>
-      <h2>기본 기술</h2>${base.map(k => `<div class="skrow"><span>${GLYPH[k.attr ?? def.attr] ?? '✨'}</span><b>${esc(k.name)}</b><small>${esc(k.desc)}</small></div>`).join('')}
+      <h2>기본 기술</h2>${base.map(k => `<div class="skrow"><span>${icon(k, k.attr ?? def.attr)}</span><b>${esc(k.name)}</b><small>${esc(k.desc)}</small></div>`).join('')}
       <h2>배운 기술 <small>${mine.length}/${R.data.learn.slots}칸</small></h2>${mine.length ? mine.map(k => `<div class="skrow"><span>${GLYPH[k.attr ?? def.attr] ?? '✨'}</span><b>${esc(k.name)}</b><small>${esc(k.desc)}</small></div>`).join('') : '<p class="sub">아직 없어요</p>'}
       ${offers.length ? `<h2>✨ 새 기술 배우기 <small>Lv${tier} 기회 · ${learnChances(R, rec)}번 남음</small></h2>
         ${offers.map(k => card(k, k.attr ?? def.attr, `data-p="${k.id}"`, pick === k.id)).join('')}
@@ -412,7 +413,7 @@ async function play(from) {
       const side = [0, 1].find(s => shown(s).name === m[1] && s !== lastAtk) ?? [0, 1].find(s => shown(s).name === m[1]) ?? lastAtk;
       lastAtk = side; lastSkill = shown(side).skills.find(k => k.name === m[2]);
       lunge(side);
-      if (lastSkill?.power) await shoot(side, lastSkill.attr ?? shown(side).attr, lastSkill.hits ?? 1);
+      if (lastSkill?.power) await shoot(side, lastSkill.attr ?? shown(side).attr, lastSkill.hits ?? 1, lastSkill.name.includes('똥') ? '💩' : null);
       else if (lastSkill) aura(side, lastSkill.attr ?? shown(side).attr);
       wait = lastSkill?.power ? 120 : 600;
     } else if ((m = line.match(/화상으로 (\d+) 피해/))) {
@@ -496,11 +497,11 @@ function faint(s) {
 }
 // 속성별로 날아가는 효과(그림 없이 글자 그림 + 빛 꼬리)
 const GLYPH = { STONE: '🪨', GOLD: '🪙', FIRE: '🔥', ICE: '❄️', BLOSSOM: '🌸', SEA: '💧', SHADOW: '🌑', STAR: '⭐', THREAD: '🧵', GRAVITY: '🌀' };
-function shoot(from, attr, hits) {
+function shoot(from, attr, hits, glyph) {
   const [x0, y0] = center(from), [x1, y1] = center(1 - from), fx = document.getElementById('fx'), n = Math.min(5, Math.max(2, hits + 1));
   return new Promise(res => {
     for (let i = 0; i < n; i++) {
-      const p = document.createElement('div'); p.className = 'shot'; p.textContent = GLYPH[attr] ?? '✨';
+      const p = document.createElement('div'); p.className = 'shot'; p.textContent = glyph ?? GLYPH[attr] ?? '✨';
       p.style.cssText = `left:${x0}px;top:${y0}px;filter:drop-shadow(0 0 6px ${COLOR[attr]})`;
       fx.append(p);
       const arc = (i - (n - 1) / 2) * 26, mx = (x0 + x1) / 2 - x0 + arc, my = (y0 + y1) / 2 - y0 - 40 - Math.abs(arc);

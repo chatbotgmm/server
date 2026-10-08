@@ -33,17 +33,19 @@ version: BATTLE_V1
 
 multipliers: { strong: 1.5, weak: 0.67, sameAttr: 1.2, crit: 1.5, critChance: 6.25, maxGuard: 60 }
 
+# 기본기(basic)는 모두 「똥폭탄」(쓰는 유닛의 속성으로 날아감). 예전 이름으로 되돌리려면 basic만 바꿔요:
+#   STONE 돌머리 박치기, GOLD 금화 튕기기, FIRE 불씨 쪼기, ICE 얼음 깃, BLOSSOM 꽃잎 바람, SEA 물보라, SHADOW 그늘 할퀴기, STAR 별똥 박치기, THREAD 실 채찍, GRAVITY 끌어당기기
 attributes:
-  STONE:   { name: 돌,     basic: 돌머리 박치기, sub: 돌팔매 }
-  GOLD:    { name: 황금,   basic: 금화 튕기기, sub: 금빛 일격 }
-  FIRE:    { name: 불,     basic: 불씨 쪼기, sub: 뜨거운 입김 }
-  ICE:     { name: 얼음,   basic: 얼음 깃, sub: 서리 바람 }
-  BLOSSOM: { name: 꽃,     basic: 꽃잎 바람, sub: 꽃잎 칼날 }
-  SEA:     { name: 바다,   basic: 물보라, sub: 물대포 }
-  SHADOW:  { name: 그림자, basic: 그늘 할퀴기, sub: 그림자 찌르기 }
-  STAR:    { name: 별,     basic: 별똥 박치기, sub: 별빛 화살 }
-  THREAD:  { name: 실,     basic: 실 채찍, sub: 바늘 찌르기 }
-  GRAVITY: { name: 중력,   basic: 끌어당기기, sub: 짓누르기 }
+  STONE:   { name: 돌,     basic: 똥폭탄, sub: 돌팔매 }
+  GOLD:    { name: 황금,   basic: 똥폭탄, sub: 금빛 일격 }
+  FIRE:    { name: 불,     basic: 똥폭탄, sub: 뜨거운 입김 }
+  ICE:     { name: 얼음,   basic: 똥폭탄, sub: 서리 바람 }
+  BLOSSOM: { name: 꽃,     basic: 똥폭탄, sub: 꽃잎 칼날 }
+  SEA:     { name: 바다,   basic: 똥폭탄, sub: 물대포 }
+  SHADOW:  { name: 그림자, basic: 똥폭탄, sub: 그림자 찌르기 }
+  STAR:    { name: 별,     basic: 똥폭탄, sub: 별빛 화살 }
+  THREAD:  { name: 실,     basic: 똥폭탄, sub: 바늘 찌르기 }
+  GRAVITY: { name: 중력,   basic: 똥폭탄, sub: 짓누르기 }
 basicPower: 50
 # 보조 속성 기술(유닛마다 units·villains의 sub로 속성을 정함). 이름은 attributes의 sub. 같은 속성 보너스(×1.2)는 없음
 subSkill: { power: 60, cd: 2 }
