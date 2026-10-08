@@ -108,7 +108,7 @@ i.addEventListener('keydown',ev=>{const a=[...box.querySelectorAll('a')];if(box.
 if(ev.key==='ArrowDown'||ev.key==='ArrowUp'){ev.preventDefault();a[k]?.classList.remove('on');k=ev.key==='ArrowDown'?(k+1)%a.length:(k<=0?a.length-1:k-1);a[k].classList.add('on')}
 else if(ev.key==='Enter'&&k>=0){ev.preventDefault();location.href=a[k].href}else if(ev.key==='Escape')box.hidden=true});})();`;
   // 머리말 🔍(검색 줄 펼치기)·폰 아래 「더보기」
-  const headerJs=`(()=>{const sb=document.getElementById('sbtn'),sr=document.getElementById('srow');sb&&sb.addEventListener('click',()=>{sr.hidden=!sr.hidden;sb.setAttribute('aria-expanded',String(!sr.hidden));if(!sr.hidden)sr.querySelector('input').focus();});
+  const headerJs=`(()=>{const sr=document.getElementById('srow');document.querySelectorAll('a.sbtn').forEach(sb=>sb.addEventListener('click',ev=>{ev.preventDefault();sr.hidden=!sr.hidden;if(!sr.hidden){scrollTo({top:0});sr.querySelector('input').focus();}}));
 const mb=document.getElementById('mbtn'),mo=document.getElementById('more');mb&&mb.addEventListener('click',e=>{e.stopPropagation();mo.hidden=!mo.hidden;});document.addEventListener('click',e=>{if(mo&&!mo.hidden&&!mo.contains(e.target))mo.hidden=true;});})();`;
   // 댓글 한 줄: 닉네임(프로필 링크)·시간·좋아요 버튼. unit=true면 어느 유닛 댓글인지 칩도
   const when=(d:Date)=>DateTime.fromJSDate(d).setZone('Asia/Seoul').toFormat('M/d HH:mm');
@@ -118,10 +118,11 @@ const mb=document.getElementById('mbtn'),mo=document.getElementById('more');mb&&
 try{const r=await fetch('/api/comments/'+b.dataset.id+'/like',{method:'POST'});if(r.ok){const j=await r.json();b.querySelector('b').textContent=j.likes;b.classList.add('on');}else b.disabled=false}catch(_){b.disabled=false}});`;
   const howToComment=(name?:string)=>`<p class="note">💬 카톡에서 <span class="mono">댓글 ${esc(name??'갈매미이름')} 하고 싶은 말</span> 로 남겨요. 만나 본 갈매미에게만 쓸 수 있고, 닉네임이 함께 보여요.</p>`;
   // 메뉴: 자주 쓰는 순서. 모바일 하단 탭은 6칸이라 히든은 조합법 탭에 묶음(히든 페이지에서 조합법 탭이 켜짐)
-  const navItems=[['/','홈','🏝'],['/event','이벤트','🎁'],['/dex','도감','📚'],['/recipes','조합법','🧩'],['/hidden','히든','❔'],['/talk','수다방','💬'],['/rank','랭킹','🏆'],['/world','세계관','📜']];
-  // 폰 아래 탭은 5칸: 자주 쓰는 4개 + 더보기(이벤트·수다방·세계관·히든·내 갈매미)
-  const tabItems=[['/','홈','🏝'],['/dex','도감','📚'],['/recipes','조합법','🧩'],['/rank','랭킹','🏆']];
-  const moreItems=[['/event','이벤트','🎁'],['/talk','수다방','💬'],['/world','세계관','📜'],['/hidden','히든 단서','❔'],['/my','로그인 · 내 갈매미','🔑']];
+  // 큰 메뉴 6개: 뽑기 · 조합 · 도감 · 탐험대 편성 · 검색 · 로그인(뽑기·조합·탐험대는 「내 갈매미」 탭으로 바로)
+  // 나머지(홈·이벤트·조합법·히든·수다방·랭킹·세계관)는 ☰ 더보기
+  const mainItems=[['/my#draw','뽑기','🥚'],['/my#craft','조합','🧩'],['/dex','도감','📚'],['/my#party','탐험대 편성','🧭']];
+  const tabItems=mainItems.map(([h,l,i])=>[h,l==='탐험대 편성'?'탐험대':l,i]);
+  const moreItems=[['/','홈','🏝'],['/event','이벤트','🎁'],['/recipes','조합법','📜'],['/hidden','히든 단서','❔'],['/talk','수다방','💬'],['/rank','랭킹','🏆'],['/world','세계관','🗺']];
   const tabOn=(h:string,active:string)=>active===h||(h==='/recipes'&&active==='/hidden');
   // 조합법·히든 페이지 위 전환 탭
   const recipeTabs=(active:string)=>`<div class="tabs"><a href="/recipes"${active==='/recipes'?' class="on"':''}>🧩 조합법</a><a href="/hidden"${active==='/hidden'?' class="on"':''}>❔ 히든 단서</a></div>`;
@@ -154,16 +155,19 @@ p b,p strong,li b,li strong,.prose td b,.prose td strong{color:var(--accent)}
 .event b,.event strong{color:#a0461a}
 body{background-image:radial-gradient(var(--line) 1px,transparent 1.2px),linear-gradient(180deg,transparent 0,transparent 70%,rgba(31,78,121,.06) 100%);background-size:22px 22px,100% 100%;background-attachment:fixed}
 .tabbar,.more{display:none}
+/* 더보기 메뉴: 폰은 아래 탭 위에, PC는 머리말 ☰ 아래에 뜸 */
+.more{position:fixed;z-index:31;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.25);padding:8px;grid-template-columns:1fr 1fr;gap:6px}
+.more:not([hidden]){display:grid}
+.more a{display:flex;align-items:center;gap:8px;padding:12px;border-radius:12px;background:var(--bg);text-decoration:none;color:var(--text)}
+.more a.on{background:var(--accent-soft);color:var(--accent)}
+@media (min-width:900px){.more{right:max(16px,calc(50vw - 524px));top:60px;width:320px}}
 @media (max-width:899px){
  header nav{display:none}
- .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);padding:4px 2px calc(4px + env(safe-area-inset-bottom))}
- .tabbar a,.tabbar button{display:flex;flex-direction:column;align-items:center;gap:1px;text-decoration:none;color:var(--muted);font:inherit;font-size:.72rem;white-space:nowrap;padding:4px 0;border-radius:12px;border:0;background:none;cursor:pointer}
+ .more{left:8px;right:8px;top:62px}
+ .tabbar{display:grid;grid-template-columns:repeat(6,1fr);position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);padding:4px 2px calc(4px + env(safe-area-inset-bottom))}
+ .tabbar a{display:flex;flex-direction:column;align-items:center;gap:1px;text-decoration:none;color:var(--muted);font-size:.72rem;white-space:nowrap;padding:4px 0;border-radius:12px}
  .tabbar i{font-style:normal;font-size:1.3rem;line-height:1.2}
  .tabbar .on{color:var(--accent);background:var(--accent-soft)}
- .more{position:fixed;left:8px;right:8px;bottom:calc(68px + env(safe-area-inset-bottom));z-index:31;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.25);padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
- .more[hidden]{display:none}
- .more a{display:flex;align-items:center;gap:8px;padding:12px;border-radius:12px;background:var(--bg);text-decoration:none;color:var(--text)}
- .more a.on{background:var(--accent-soft);color:var(--accent)}
  main{padding-bottom:96px}
  footer{padding-bottom:96px}
 }
@@ -185,6 +189,8 @@ header nav{display:flex;gap:2px;flex:1;min-width:0}
 header nav a{text-decoration:none;color:rgba(255,255,255,.88);padding:6px 10px;border-radius:999px;font-size:.95rem;white-space:nowrap}
 header nav a:hover{background:rgba(255,255,255,.14)}
 header nav a.on{background:#fff;color:var(--sea2);box-shadow:0 2px 0 rgba(0,0,0,.15)}
+header nav .sbtn,header nav .lbtn{background:rgba(255,255,255,.14)}
+header nav .sbtn{margin-left:auto}
 .hbtn{flex:none;display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.16);color:#fff;font-size:1.05rem;cursor:pointer;text-decoration:none}
 .hbtn:hover{background:rgba(255,255,255,.28)}
 .sp{flex:1}
@@ -244,7 +250,8 @@ blockquote p{margin:0}
 .stat b{display:block;font-size:1.4rem}
 /* 바로가기: 앱 아이콘처럼(아이콘 동그라미 + 이름 + 짧은 설명) */
 .links{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-@media (min-width:900px){.links{grid-template-columns:repeat(7,1fr)}}
+@media (min-width:900px){.links{grid-template-columns:repeat(7,1fr)}.links.six{grid-template-columns:repeat(6,1fr)}}
+@media (max-width:899px){.links.six{grid-template-columns:repeat(3,1fr)}}
 .links a{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 6px;text-decoration:none;color:var(--text);box-shadow:var(--shadow);transition:transform .15s}
 .links a:hover{transform:translateY(-3px)}
 .links a i{font-style:normal;font-size:1.6rem;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft)}
@@ -368,11 +375,11 @@ main>h2:nth-of-type(6n+5),.tale h2:nth-of-type(6n+5){color:var(--c5)}main>h2:nth
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40px}
 </style></head><body>
 <header><div class="bar"><a class="logo" href="/">${logo()}</a>
-<nav>${navItems.map(([h,l])=>`<a href="${h}"${active===h?' class="on"':''}>${l}</a>`).join('')}</nav><span class="sp"></span>
-<button class="hbtn" type="button" id="sbtn" aria-label="검색" aria-expanded="${q?'true':'false'}">🔍</button><a class="mylink" href="/my" title="카카오·카톡 코드로 로그인해서 조합·편성·상점">🔑 로그인 · 내 갈매미</a>${playBtn()}</div>
+<nav>${mainItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}>${i} ${l}</a>`).join('')}<a href="/search" class="sbtn${active==='/search'?' on':''}">🔍 검색</a><a href="/my" class="lbtn">🔑 로그인</a></nav><span class="sp"></span>
+<button class="hbtn" type="button" id="mbtn" aria-label="더보기" aria-expanded="false">☰</button>${playBtn()}</div>
 <div class="searchrow" id="srow"${q?'':' hidden'}><form class="search" action="/search" method="get" role="search" autocomplete="off"><input name="q" value="${esc(q)}" placeholder="갈매미·닉네임·이야기 검색 (초성 OK)" aria-label="검색" maxlength="30"><button>검색</button><div class="sug" hidden></div></form></div></header>
 <main>${body}${piece(active)}</main>
-<nav class="tabbar" aria-label="메뉴">${tabItems.map(([h,l,i])=>`<a href="${h}"${tabOn(h,active)?' class="on"':''}><i>${i}</i>${l}</a>`).join('')}<button type="button" id="mbtn"${moreItems.some(([h])=>h===active&&h!=='/hidden')?' class="on"':''}><i>☰</i>더보기</button></nav>
+<nav class="tabbar" aria-label="메뉴">${tabItems.map(([h,l,i])=>`<a href="${h}"${tabOn(h,active)?' class="on"':''}><i>${i}</i>${l}</a>`).join('')}<a href="/search" class="sbtn${active==='/search'?' on':''}"><i>🔍</i>검색</a><a href="/my"><i>🔑</i>로그인</a></nav>
 <div class="more" id="more" hidden>${moreItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}>${i} ${l}</a>`).join('')}</div>
 <footer>갈매미맨 · 카카오톡 채널 챗봇 게임 · v${esc(options.version)}</footer>
 <script>${suggestJs}${likeJs}${headerJs}</script>
@@ -412,7 +419,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40
     const body=`<section class="hero"><div>
 <h1>갈매미는 <span class="hl">존재</span>한다.</h1>
 <p class="lead">돌로 된 갈매미들이 <b>갈매미 섬 항구 수비대</b>에 출근해서 항구를 지켜요. 몸이 돌이라 날지는 못해요. 새우깡 봉지 소리에는 약해요.</p>
-<div class="btns">${playBtn(true)}<a class="btn" href="/my">🔑 내 갈매미</a><a class="btn" href="/dex">📚 도감</a></div>
+<div class="btns">${playBtn(true)}<a class="btn" href="/my#draw">🥚 웹에서 뽑기</a><a class="btn" href="/my#craft">🧩 조합</a></div>
 <div class="hstats"><span>🪨 <b>${content.characters.length}</b>종 갈매미</span><span>🧩 <b>${content.recipes.length}</b>가지 조합</span><span>❔ 히든 <b>${count('HIDDEN')}</b>종</span><span>🏘 동네 <b>7</b>곳</span></div>
 </div><a class="today" href="/dex/${today.id}"><img src="${img('thumbs',today.id)}" alt="${esc(today.name)}" width="480" height="480"><div><small>☀️ 오늘의 갈매미</small><h3>${esc(today.name)}</h3><p>${esc(today.introduction.split(/(?<=[.!?…])\s+/u)[0])}</p></div></a></section>
 ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 어딘가에 <b>쿠폰 조각 ${c.pieces.length}개</b>가 숨어 있어요. 모두 찾아 카톡에 <b>쿠폰 조각들</b>을 보내면 뽑기권 <b>${c.tickets}장</b>! (1인 1회)<br><a href="/event">🎁 이벤트·혜택 모두 보기 →</a></div>`:`<div class="event"><b>🎁 이벤트·혜택</b><br>친구 초대하면 친구도 나도 뽑기권 <b>${content.economy.invite.tickets}장</b>! <a href="/event">자세히 보기 →</a></div>`}
@@ -422,15 +429,15 @@ ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 �
 <div class="box"><h3>❔ 최근 발견된 히든</h3>${recent||'<p class="note">아직 아무도 히든을 찾지 못했어요. 첫 발견자가 되어 보세요!</p>'}<br><a class="note" href="/hidden">히든 단서 보기 →</a></div>
 </div>
 <h2>바로 가기</h2>
-<div class="links">
-<a href="/event"><i>🎁</i><b>이벤트</b><span>쿠폰·친구 초대·튜토리얼 보상</span></a>
-<a href="/world"><i>📜</i><b>세계관</b><span>섬과 동네, 악당 끼룩단</span></a>
+<div class="links six">
+<a href="/my#draw"><i>🥚</i><b>뽑기</b><span>뽑기권 받기·하급·중급·고급</span></a>
+<a href="/my#craft"><i>🧩</i><b>조합</b><span>만들 수 있는 것·재료로 섞기</span></a>
 <a href="/dex"><i>📚</i><b>도감</b><span>${content.characters.length}종의 이야기</span></a>
-<a href="/recipes"><i>🧩</i><b>조합법</b><span>누구를 같은 자리로 발령 낼까</span></a>
-<a href="/hidden"><i>❔</i><b>히든 단서</b><span>함께 찾을수록 열리는 단서</span></a>
-<a href="/talk"><i>💬</i><b>수다방</b><span>갈매미마다 남긴 한마디</span></a>
-<a href="/rank"><i>🏆</i><b>랭킹</b><span>수비대 근무 평가</span></a>
-</div>`;
+<a href="/my#party"><i>🧭</i><b>탐험대 편성</b><span>보내기·돌아오면 보상</span></a>
+<a href="/search" class="sbtn"><i>🔍</i><b>검색</b><span>갈매미·닉네임·이야기</span></a>
+<a href="/my"><i>🔑</i><b>로그인</b><span>카카오·카톡 코드</span></a>
+</div>
+<p class="note" style="text-align:center;margin-top:14px">그 밖에: <a href="/event">🎁 이벤트</a> · <a href="/recipes">📜 조합법</a> · <a href="/hidden">❔ 히든 단서</a> · <a href="/talk">💬 수다방</a> · <a href="/rank">🏆 랭킹</a> · <a href="/world">🗺 세계관</a></p>`;
     return send(reply,page('홈','/',body,'',{image:img('images',today.id),desc:`오늘의 갈매미: ${today.name} · 돌로 된 갈매미들이 항구 수비대에 출근하는 섬`}),60);
   });
 

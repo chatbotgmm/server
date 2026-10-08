@@ -414,7 +414,8 @@ export class GameService {
     return {text:listReply(title,items,hint).text,cards:{intro:title,items:cards,outro:hint},
       choices:[...this.drawChoices(p),choice('뽑기권 받기','뽑기권받기'),...menu.slice(2,6)]};
   }
-  private async draw(tx:Tx,p:Player,kind:GachaKind,times:number,now:Date):Promise<GameReply>{
+  // out: 웹 화면용으로 뽑은 결과(유닛·처음 발견)를 받아 감
+  private async draw(tx:Tx,p:Player,kind:GachaKind,times:number,now:Date,out?:{c:Character;first:boolean}[]):Promise<GameReply>{
     const g=this.content.economy.gachas[kind];
     const cost=g.cost*times;
     const admin=unlimited(p);
@@ -440,7 +441,7 @@ export class GameService {
         if(tiers[c.rarity]>=tiers[pity.tier])counter=0;
       }
       const owned=await this.grant(tx,p,c.id,'GACHA',now);
-      results.push({c,receipt:owned.receipt});
+      results.push({c,receipt:owned.receipt});out?.push({c,first:Boolean(owned.receipt.first)});
     }
     if(pity)await tx.player.update({where:{id:p.id},data:{highPity:counter}});
     const pityLine=pity?(pityHit?`🎯 천장! ${rarityNames[pity.tier]} 확정`:`🎯 ${rarityNames[pity.tier]} 보장까지 ${pity.count-counter}회`):'';
@@ -1174,6 +1175,37 @@ export class GameService {
       return `🛒 ${item.name} ×${count} 샀어요! 🍤 -${cost}`;
     });
   }
+  // ───────── 웹 뽑기(카톡 「뽑기」·「뽑기권받기」와 같은 처리) ─────────
+  async webDrawInfo(playerId:string){
+    const p=await this.db.player.findUnique({where:{id:playerId}});
+    if(!p)return null;
+    const now=this.clock(),g=this.content.economy.gachas,ev=this.event(now),pity=g.HIGH.pity;
+    return {credits:p.credits,unlimited:unlimited(p),wait:this.claimWait(p,now),claim:this.content.economy.tickets.claim+(ev?.claimBonus??0),cooldownHours:this.content.economy.tickets.cooldownHours,
+      event:ev?{label:ev.label,claimBonus:ev.claimBonus??0,snack:ev.snackMultiplier}:null,
+      pity:pity?{tierName:rarityNames[pity.tier],left:Math.max(0,pity.count-p.highPity)}:null,
+      gachas:(['LOW','MID','HIGH'] as GachaKind[]).map(kind=>({kind,label:g[kind].label,cost:g[kind].cost,img:`gacha-${kind}`,
+        weights:Object.entries(g[kind].weights).map(([t,w])=>({tier:t,tierName:rarityNames[t],w}))}))};
+  }
+  async webClaim(playerId:string){
+    return this.webRun(playerId,async(tx,p,now)=>this.replyText(await this.claim(tx,p,now)));
+  }
+  async webDraw(playerId:string,kind:string,times:number){
+    if(kind!=='LOW'&&kind!=='MID'&&kind!=='HIGH')throw new GameError('없는 뽑기예요.');
+    if(!Number.isSafeInteger(times)||times<1||times>50)throw new GameError('뽑기는 한 번에 1~50회예요.');
+    return this.webRun(playerId,async(tx,p,now)=>{
+      const out:{c:Character;first:boolean}[]=[];
+      const r=await this.draw(tx,p,kind,times,now,out);
+      if(!out.length)throw new GameError(this.replyText(r));   // 뽑기권 부족 안내
+      const known=await this.known(tx,p);
+      // 같은 유닛은 묶고 높은 등급부터
+      const by=new Map<string,{c:Character;n:number;first:boolean}>();
+      for(const x of out){const e=by.get(x.c.id)??{c:x.c,n:0,first:false};e.n++;e.first||=x.first;by.set(x.c.id,e);}
+      const items=[...by.values()].sort((a,b)=>tiers[b.c.rarity]-tiers[a.c.rarity]||Number(b.first)-Number(a.first)||a.c.position-b.c.position)
+        .map(x=>({id:x.c.id,name:this.name(x.c.id,known),tier:x.c.rarity,tierName:rarityNames[x.c.rarity],img:this.cardImage(x.c.id,known),n:x.n,first:x.first}));
+      return {items,summary:(times>1?r.cards?.outro:undefined)??this.replyText(r)};
+    });
+  }
+
   // ───────── 웹 조합(카톡 「조합」과 같은 처리) ─────────
   // 조합식 목록(공개된 것 + 발견한 히든)과 재료로 섞을 수 있는 가진 유닛. 아직 얻지 못한 유닛은 그림 대신 등급 실루엣
   async webCraftInfo(playerId:string){

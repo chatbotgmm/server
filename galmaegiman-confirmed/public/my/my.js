@@ -11,7 +11,7 @@
   };
   const toast = t => { toastEl.textContent = t; toastEl.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.classList.remove('on'), 1800); };
   const thumb = id => `/thumbs/${encodeURIComponent(id)}.jpg`;
-  const head = right => `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span>${right ?? ''}<a class="home" href="/">홈</a></header>`;
+  const head = right => `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span><a class="hl" href="/dex">📚 도감</a><a class="hl" href="/search">🔍</a>${right ?? ''}<a class="home" href="/">홈</a></header>`;
 
   // ── 로그인 ──
   // 카카오 로그인에서 돌아온 결과(?kakao=…)는 한 번 보여 주고 주소에서 지움
@@ -45,21 +45,25 @@
   }
 
   // ── 내 갈매미 ──
-  let me, tab = 'units', filter = 'all';
+  // 탭: 주소 #draw·#craft·#units·#party… 로 바로 열 수 있음(홈페이지 메뉴에서 씀)
+  const TABS = ['draw', 'craft', 'units', 'party', 'battle', 'items', 'shop'];
+  const fromHash = () => { const h = location.hash.slice(1); return TABS.includes(h) ? h : null; };
+  let me, tab = fromHash() ?? 'draw', filter = 'all';
+  addEventListener('hashchange', () => { const h = fromHash(); if (h && h !== tab && me) { tab = h; if (tab === 'craft') craftData = null; if (tab === 'draw') drawData = null; draw(); } });
   async function main() {
     try { me = await api('me'); if (kmsg && !main.shown) { main.shown = 1; toast(kmsg); } } catch (e) { if (e.message !== 'login') app.innerHTML = `${head()}<p class="empty">${esc(e.message)}</p>`; return; }
     draw();
   }
   function draw() {
-    const tabs = [['units', '🪨 갈매미'], ['craft', '🧩 조합'], ['battle', '⚔️ 전투 편성'], ['party', '🧭 탐험 편성'], ['items', '🎒 아이템'], ['shop', '🛒 상점']];
+    const tabs = [['draw', '🥚 뽑기'], ['craft', '🧩 조합'], ['units', '🪨 내 갈매미'], ['party', '🧭 탐험대 편성'], ['battle', '⚔️ 전투 편성'], ['items', '🎒 아이템'], ['shop', '🛒 상점']];
     app.innerHTML = `${head('<button class="btn ghost" id="out" style="padding:6px 12px;font-size:.85rem">로그아웃</button>')}
       <div class="card"><div class="row" style="margin-bottom:10px"><b style="font-weight:400;font-size:1.15rem">${esc(me.nickname || '이름 없는 수비조장')}</b><span class="tag">도감 ${me.dex}/${me.dexTotal}</span></div>
         <div class="money"><div><b>🍤 ${me.snack}</b><small>새우깡</small></div><div><b>🥜 ${me.peanut}</b><small>땅콩</small></div><div><b>🎫 ${me.credits}</b><small>뽑기권</small></div><div><b>${me.units.reduce((a, u) => a + u.have, 0)}</b><small>가진 갈매미</small></div></div></div>
       <div class="tabs">${tabs.map(([k, t]) => `<button data-t="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>
       <div id="body"></div>`;
     app.querySelector('#out').onclick = async () => { await api('logout', {}).catch(() => {}); loginScreen('로그아웃했어요.'); };
-    app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; if (tab === 'craft') craftData = null; draw(); });
-    ({ units, craft, battle, party, items, shop })[tab](app.querySelector('#body'));
+    app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; if (tab === 'craft') craftData = null; if (tab === 'draw') drawData = null; history.replaceState(null, '', `#${tab}`); draw(); });
+    ({ draw: drawTab, units, craft, battle, party, items, shop })[tab](app.querySelector('#body'));
   }
 
   // 갈매미 목록: 등급별로 걸러 보기
@@ -105,6 +109,30 @@
     try { const r = await api(path, body ?? {}); const t = typeof r.result === 'string' ? r.result : ''; toast(t.split('\n')[0] || '완료!'); me = await api('me'); draw(); }
     catch (e) { if (e.message !== 'login') toast(e.message.split('\n')[0]); }
   };
+
+  // 뽑기: 카톡 「뽑기」·「뽑기권받기」와 같은 처리. 결과는 그림 카드로
+  let drawData = null, drawLast = null;
+  const TIER_COLOR = { COMMON: '#8a8a8a', UNCOMMON: '#2f8f5b', SPECIAL: '#8a7a6a', RARE: '#1f8fb0', EPIC: '#7a4fd0', LEGEND: '#d9a400', HIDDEN: '#5b3d8f', LIMITED: '#d9483b', TRANSCEND: '#2a6fc0', ETERNAL: '#0f8a7b', IMMORTAL: '#d9a400', NEUTRAL: '#8a7a6a' };
+  const waitText = ms => { const m = Math.ceil(ms / 60000), h = Math.floor(m / 60); return h ? `${h}시간 ${m % 60}분` : `${m}분`; };
+  async function drawTab(el) {
+    if (!drawData) { el.innerHTML = '<p class="empty">불러오는 중…</p>'; try { drawData = await api('draw'); } catch (e) { if (e.message !== 'login') el.innerHTML = `<p class="empty">${esc(e.message)}</p>`; return; } }
+    const d = drawData, credits = d.unlimited ? Infinity : d.credits;
+    el.innerHTML = `<div class="card row" style="justify-content:space-between">
+        <div><b style="font-weight:400;font-size:1.15rem">🎟 뽑기권 ${d.unlimited ? '무제한(관리자)' : `${d.credits}장`}</b>
+        <p class="note" style="margin:2px 0 0">${d.wait ? `다음 뽑기권 받기까지 ${waitText(d.wait)}` : `지금 뽑기권 ${d.claim}장을 받을 수 있어요! (${d.cooldownHours}시간마다)`}${d.event ? ` · 🎉 ${esc(d.event.label)}` : ''}</p></div>
+        <button class="btn" id="claim" ${d.wait ? 'disabled' : ''}>🎟 뽑기권 받기</button></div>
+      ${drawLast ? `<div class="card drawres"><b style="font-weight:400">🥚 결과</b><div class="dgrid">${drawLast.items.map(u => `<div class="du ${u.first ? 'new' : ''}" style="--tc:${TIER_COLOR[u.tier] ?? '#888'}"><img src="${cimg(u.img)}" alt="">${u.first ? '<span class="nb">NEW</span>' : ''}${u.n > 1 ? `<span class="n">×${u.n}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}</small></div>`).join('')}</div><p class="pre note" style="margin-top:8px">${esc(drawLast.summary)}</p></div>` : ''}
+      <div class="ggrid">${d.gachas.map(g => `<div class="gc"><img src="${cimg(g.img)}" alt=""><div class="gi"><b>${esc(g.label)} 뽑기</b><small>🎟 ${g.cost}장 · ${g.weights.map(w => `${esc(w.tierName)} ${w.w}%`).join(' · ')}</small>
+        ${g.kind === 'HIGH' && d.pity ? `<small>🎯 ${esc(d.pity.tierName)} 보장까지 ${d.pity.left}회</small>` : ''}
+        <div class="row">${[1, 5, 10].map(n => `<button class="btn ${n === 1 ? '' : 'ghost'}" data-k="${g.kind}" data-n="${n}" ${credits >= g.cost * n ? '' : 'disabled'}>${n}회<small>🎟 ${g.cost * n}</small></button>`).join('')}</div></div></div>`).join('')}</div>
+      <p class="note">결과·보상·미션은 카톡과 같이 계정에 바로 들어가요.</p>`;
+    el.querySelector('#claim').onclick = async () => { try { const r = await api('claim', {}); toast(String(r.result).split('\n')[0]); drawData = null; me = await api('me'); draw(); } catch (e) { if (e.message !== 'login') toast(e.message.split('\n')[0]); } };
+    el.querySelectorAll('[data-k]').forEach(b => b.onclick = async () => {
+      el.querySelectorAll('[data-k]').forEach(x => { x.disabled = true; });
+      try { drawLast = (await api('draw', { kind: b.dataset.k, times: +b.dataset.n })).result; drawData = null; me = await api('me'); draw(); scrollTo({ top: 0, behavior: 'smooth' }); }
+      catch (e) { if (e.message !== 'login') { toast(e.message.split('\n')[0]); drawData = null; drawTab(el); } }
+    });
+  }
 
   // 조합: 카톡 「조합」과 같은 처리. 만들 수 있는 것 / 전체 조합식(등급·이름 찾기) / 재료로 섞기(숨은 조합 찾기)
   let craftView = 'ready', craftGrade = 'all', craftQ = '', mixPick = [], craftData = null;

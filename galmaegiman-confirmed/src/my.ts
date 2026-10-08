@@ -106,6 +106,17 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
   });
   act<{id?:unknown;times?:unknown}>('/my/api/craft',(id,b)=>game.webCraft(id,String(b.id??''),Number(b.times??1)));
   act<{ids?:unknown}>('/my/api/mix',(id,b)=>game.webMix(id,b.ids as string[]));
+  // 뽑기
+  app.get('/my/api/draw',limit,async(req,reply)=>{
+    if(!guard(req,reply))return;
+    const id=session(req);
+    if(!id)return reply.code(401).send({error:'login'});
+    const info=await game.webDrawInfo(id);
+    if(!info)return reply.code(401).send({error:'login'});
+    return reply.header('Cache-Control','no-store').send(info);
+  });
+  act('/my/api/claim',id=>game.webClaim(id));
+  act<{kind?:unknown;times?:unknown}>('/my/api/draw',(id,b)=>game.webDraw(id,String(b.kind??''),Number(b.times??1)));
   act('/my/api/kakao/unlink',id=>game.webLinkKakao(id,null));
 
   // ── 수비대 대결 스토리: 진행 저장(계정), 대결 중 아이템 ──

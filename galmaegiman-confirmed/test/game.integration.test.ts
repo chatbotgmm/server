@@ -872,6 +872,32 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await info()).recipes.some(r=>r.id===hidden.resultId)).toBe(true);
     }finally{await app.close();}
   });
+  it('웹 뽑기: 정보·뽑기권 받기(대기 시간)·뽑기(그림 카드 결과, 차감)·부족·잘못된 종류',async()=>{
+    const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com'});
+    try{
+      const code=/(\d{6})/.exec((await send('웹 로그인')).text!)![1];
+      const p=await db.player.findUniqueOrThrow({where:{identity:actor}});
+      const cookie=String((await app.inject({method:'POST',url:'/my/api/login',payload:{code},headers:{'x-gmm':'1'}})).headers['set-cookie']).split(';')[0];
+      const post=(url:string,body:unknown)=>app.inject({method:'POST',url,payload:body as object,headers:{'x-gmm':'1',cookie}});
+      const info=async()=>(await app.inject({method:'GET',url:'/my/api/draw',headers:{'x-gmm':'1',cookie}})).json() as {credits:number;wait:number;gachas:{kind:string;cost:number}[]};
+      const before=await info();
+      expect(before.gachas.map(g=>g.kind)).toEqual(['LOW','MID','HIGH']);
+      await db.player.update({where:{id:p.id},data:{lastClaimAt:null}});
+      expect((await post('/my/api/claim',{})).statusCode).toBe(200);
+      const after=await info();
+      expect(after.credits).toBe(before.credits+content.economy.tickets.claim);expect(after.wait).toBeGreaterThan(0);
+      const low=content.economy.gachas.LOW.cost;
+      const r=(await post('/my/api/draw',{kind:'LOW',times:2})).json() as {result:{items:{id:string;n:number;img:string}[];summary:string}};
+      expect(r.result.items.reduce((a,x)=>a+x.n,0)).toBe(2);
+      expect((await info()).credits).toBe(after.credits-low*2);
+      expect(await db.ownedCharacter.count({where:{playerId:p.id,obtainedVia:'GACHA'}})).toBe(2);
+      expect((await post('/my/api/draw',{kind:'NOPE',times:1})).statusCode).toBe(400);
+      expect((await post('/my/api/draw',{kind:'LOW',times:51})).statusCode).toBe(400);
+      await db.player.update({where:{id:p.id},data:{credits:0}});
+      const poor=await post('/my/api/draw',{kind:'HIGH',times:1});
+      expect(poor.statusCode).toBe(400);expect(poor.json().error).toContain('뽑기권이 모자라요');
+    }finally{await app.close();}
+  });
   it('공개 웹 랭킹: 카톡과 같은 순위, 닉네임 표시, 히든·최상위 가림, 관리자 모드 제외',async()=>{
     const mk=async(identity:string,nickname:string|null,ids:string[],adminMode=false)=>{
       const p=await db.player.create({data:{identity,nickname,tutorial:5,adminMode}});
@@ -938,7 +964,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(ev).toContain('5단계 · 단계마다 🎟 <b>10장</b> (총 50장)');expect(ev).toContain('<b>재료로 직접 조합해 보기</b>');expect(ev).toContain('<b>닉네임 정하기</b>');
       expect(ev).toContain('하루 최대 🎟 <b>230장</b>');expect(ev).toContain('진행 중');
       expect(ev).not.toContain('따개비도새우깡은못참지');
-      expect(await get('/hidden')).toMatch(/class="tabbar"[^]*href="\/recipes" class="on"/);
+      expect(await get('/hidden')).toMatch(/class="more"[^]*href="\/hidden" class="on"/);
       // 히든: 1명 발견 → 초성 공개, 3명 전 → 재료 이름 잠김, 최초 발견자 표시
       const hid=await get('/hidden');noHidden(hid);
       expect(hid).toContain('재료 초성');expect(hid).toContain('최초 발견: <a href="/p/'+encodeURIComponent('돌왕'));
@@ -1110,7 +1136,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.64'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.65'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
