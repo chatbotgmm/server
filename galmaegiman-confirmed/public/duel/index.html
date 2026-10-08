@@ -15,6 +15,7 @@ h1,h2,.big,.nm span,.dmg,.banner,.comboflash b,.five-big,.titlecard b,.place,.wh
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;-webkit-tap-highlight-color:transparent}
 button{font:inherit;color:inherit;cursor:pointer}
+body{font-synthesis:none}
 #app{max-width:520px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
 header{padding:12px 16px 4px;display:flex;align-items:baseline;gap:8px}
 header h1{font-size:18px;margin:0}
@@ -127,7 +128,7 @@ header small{color:var(--dim)}
 .tint-peanut-art,.por.on.tint-peanut-art,.vs img.tint-peanut-art{filter:drop-shadow(0 0 12px #ffd34d) drop-shadow(0 0 4px #ffd34d)}
 .por.card{height:30%;border-radius:12px}
 .dbox.ally .who{align-self:flex-end;background:#3f8f6b;color:#fff}
-.place{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.45);color:#fff;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px}
+.place{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.55);color:#fff;font-size:14px;font-weight:400;letter-spacing:.05em;padding:5px 12px;border-radius:999px}
 .por{position:absolute;bottom:31%;height:36%;max-width:58%;object-fit:contain;transition:filter .25s,transform .25s,opacity .25s;filter:brightness(.55) saturate(.6);opacity:.9}
 .por.me{left:-2%;transform:scaleX(-1)}
 .por.foe{right:-2%}
@@ -136,7 +137,7 @@ header small{color:var(--dim)}
 .por.me.on{transform:scaleX(-1) translateY(-6px)}
 .por.foe.on{transform:translateY(-6px)}
 .dbox{position:absolute;left:10px;right:10px;bottom:14px;min-height:27%;background:rgba(14,22,30,.93);border:2px solid rgba(255,255,255,.18);border-radius:16px;padding:14px 16px 10px;display:flex;flex-direction:column}
-.dbox .who{align-self:flex-start;margin:-28px 0 6px;background:var(--gold);color:#222;font-weight:800;font-size:15px;padding:4px 12px;border-radius:10px;min-height:0}
+.dbox .who{align-self:flex-start;margin:-30px 0 6px;background:var(--gold);color:#1b1b1b;font-weight:400;font-size:18px;letter-spacing:.08em;line-height:1.2;padding:6px 14px;border-radius:10px;min-height:0;box-shadow:0 2px 0 rgba(0,0,0,.35)}
 .dbox .who:empty{display:none}
 .dbox.foe .who{align-self:flex-end;background:#e07a5f;color:#fff}
 .dbox.other .who{background:#6c8aa3;color:#fff}
@@ -239,6 +240,18 @@ button.mini{background:none;border:0;padding:0;color:var(--ink);display:flex;fle
 .gmenu{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:8px 16px 24px}
 .gmenu a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 4px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:inherit;text-decoration:none;font-size:14px}
 .gmenu a i{font-style:normal;font-size:24px}
+.cont{margin:6px 16px 4px;border-radius:18px;overflow:hidden;position:relative;min-height:190px;display:flex;align-items:flex-end;box-shadow:0 8px 24px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15)}
+.cont .in,.chead .in{position:relative;width:100%;padding:14px 16px;background:linear-gradient(transparent,rgba(10,14,20,.88) 38%)}
+.cont small,.chead small{color:#ffd77a;font-size:13px}
+.cont b{display:block;font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:24px;color:#fff;margin:2px 0 4px;letter-spacing:.02em}
+.cont p,.chead p{margin:0 0 8px;color:#e8e2d6;font-size:14px;line-height:1.55}
+.prog{height:8px;border-radius:99px;background:rgba(255,255,255,.18);overflow:hidden;margin:8px 0 4px}.prog i{display:block;height:100%;background:var(--gold);border-radius:99px}
+.pn{font-size:12px;color:#cfd6df}
+.cont .big{width:100%;margin-top:10px}
+.chead{border-radius:16px;overflow:hidden;margin:12px 0 6px;min-height:120px;display:flex;align-items:flex-end;border:1px solid rgba(255,255,255,.12)}
+.chead h2{display:inline-block;margin:0 8px 4px 0;font-size:20px;color:#fff}
+.chap details>summary{cursor:pointer;color:var(--dim);font-size:13px;padding:4px 2px 8px;list-style:none}.chap details>summary::before{content:'▸ '}.chap details[open]>summary::before{content:'▾ '}
+.mute{position:fixed;top:10px;right:10px;z-index:60;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.45);font-size:18px;line-height:1;cursor:pointer}
 </style>
 </head>
 <body>

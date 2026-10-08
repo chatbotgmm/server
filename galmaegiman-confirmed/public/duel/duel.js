@@ -4,6 +4,7 @@
 // 로그인돼 있으면 「내 갈매미」 전투 편성을 스토리 팀으로 쓸 수 있고, 스토리 대결에서 가진 아이템을 쓸 수 있음
 import { rulesFrom } from '../../src/battle/core.ts';
 import { createBattle, choose, act, pending, legalActions, pickAi, aiChoose, activeOf, itemProblem } from '../../src/battle/engine.ts';
+import { bgm, sfx, isMuted, toggleMute } from './sound.js';
 import { addXp, battleXp, canEvolve, evoChoices, learnChances, learnOffers, learnSkill, xpToNext } from '../../src/battle/growth.ts';
 
 // 앱: 화면은 앱 안, 서버는 GMM_BASE, 열쇠는 「내 갈매미」에서 받아 둔 것(GMM_DUEL_KEY), 로그인은 토큰 머리글
@@ -126,6 +127,14 @@ function teamCombos(ids) {
 }
 
 document.title = GAME.name;
+function muteBtn() {
+  if (document.getElementById('mute')) return;
+  const m = document.createElement('button'); m.id = 'mute'; m.className = 'mute'; m.setAttribute('aria-label', '소리');
+  const paint = () => { m.textContent = isMuted() ? '🔇' : '🔊'; };
+  m.onclick = e => { e.stopPropagation(); toggleMute(); paint(); };
+  paint(); document.body.append(m);
+}
+document.addEventListener('click', e => { if (e.target.closest && e.target.closest('button:not(#mute)')) sfx('tap'); }, true);
 async function boot() {
   try {
     // 앱: 로그인한 계정으로 게임 열쇠를 받음(로그인 전이면 로그인 화면으로)
@@ -153,20 +162,43 @@ async function boot() {
 }
 
 function menu() {
-  modal.hidden = true;
+  modal.hidden = true; bgm('title'); muteBtn();
   // 첫 화면: 게임 이름 + 스토리·자유 대결 + 챗봇 기능 바로가기(「내 갈매미」 탭)
   const my = h => APP ? `my.html#${h}` : `/my#${h}`;
   app.innerHTML = `<div class="gtitle"><img src="${APP ? 'gull.png' : '/gull.png'}" alt=""><b>${esc(GAME.name)}</b><small>${esc(GAME.sub)}</small></div>
   <p class="hint">${ACC ? `<img class="gi" src="/gull.png" alt=""> ${esc(ACC.nickname || '내 계정')}에 스토리 진행이 저장돼요. 스토리 대결에서 가진 아이템을 쓸 수 있어요.` : '스토리 진행이 이 브라우저에만 저장돼요. <a href="/my">내 갈매미</a>에서 로그인하면 계정에 저장되고 아이템도 쓸 수 있어요.'}</p>
-  <div class="menu"><button class="big" id="st">⚔️ 스토리 모드</button><button class="ghost" id="fr">자유 대결 (무작위 상대)</button></div>
+  ${contCard()}
+  <div class="menu"><button class="ghost" id="st">📖 스토리 전체 보기</button><button class="ghost" id="fr">⚔️ 자유 대결 (무작위 상대)</button></div>
   <div class="gmenu">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '내 갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점'], ['account', '⚙️', '계정']].map(([h, i, t]) => `<a href="${my(h)}"><i>${i}</i>${t}</a>`).join('')}</div>`;
   app.querySelector('#st').onclick = storyScreen;
   app.querySelector('#fr').onclick = () => pickScreen('free');
+  app.querySelector('#go')?.addEventListener('click', () => {
+    const st = nextStage();
+    if (!st) return storyScreen();
+    const go = () => (unlocked(st.id) ? playStage(st) : storyScreen());   // 승진이 필요한 부면 목록으로
+    if (SAVE.team.length !== 3) return pickScreen('story', go);
+    go();
+  });
+}
+// 다음에 할 스테이지: 열린 것 중 아직 안 깬 첫 스테이지(없으면 잠긴 다음 스테이지, 다 깼으면 없음)
+function nextStage() {
+  const all = stages();
+  return all.find(s => unlocked(s.id) && !SAVE.cleared.includes(s.id)) ?? all.find(s => !SAVE.cleared.includes(s.id)) ?? null;
+}
+// 첫 화면 「이어하기」 카드: 지금 이야기(부·스테이지·줄거리)와 진행률
+function contCard() {
+  const all = stages(), st = nextStage(), done = SAVE.cleared.length, pct = Math.round(done / all.length * 100);
+  if (!st) return `<div class="cont sc-hall"><small>모든 이야기를 끝냈어요!</small><b>🎖 수비대장 취임</b><p>깬 스테이지에 다시 도전해 레벨을 올리거나, 자유 대결을 해 보세요.</p><div class="prog"><i style="width:100%"></i></div><button class="big" id="go">📖 이야기 다시 보기</button></div>`;
+  const c = st.chapter, first = !done, line = c.intro || (st.before ?? []).find(l => l.who === 'N')?.say || '';
+  const lock = !unlocked(st.id) && c.needStage ? `<p class="need">🔒 팀 전원 ${c.needStage}단계 승진하면 열려요 (${STARS[c.needStage]})</p>` : '';
+  return `<div class="cont sc-${st.scene || 'harbor'}" style="${bgStyle(st.scene || 'harbor')}"><div class="in"><small>${esc(c.title)}</small><b>${esc(st.id)} ${esc(st.title)}</b>${line ? `<p>${esc(line)}</p>` : ''}${lock}
+    <div class="prog"><i style="width:${pct}%"></i></div><span class="pn">실적 ${done}/${all.length}</span>
+    <button class="big" id="go">${first ? '▶ 이야기 시작' : SAVE.team.length !== 3 ? '▶ 팀 정하고 이어하기' : '▶ 이어하기'}</button></div></div>`;
 }
 
 // ── 편성(자유 대결: 레벨 선택 / 스토리: 저장된 레벨) ──
-function pickScreen(mode) {
-  modal.hidden = true;
+function pickScreen(mode, then) {   // then: 스토리 팀을 정한 뒤 바로 할 일(이어하기)
+  modal.hidden = true; bgm('title');
   const story = mode === 'story';
   let picked = story ? [...SAVE.team] : freePick;
   app.innerHTML = `<header><button class="back" id="bk">‹</button><h1>${story ? '스토리 팀 편성' : '자유 대결'}</h1></header>
@@ -198,7 +230,7 @@ function pickScreen(mode) {
       SAVE.team = [...picked]; persist();
       if (ACC && picked.every(id => ACC.owned.includes(id)) && picked.join() !== ACC.battleTeam.join())
         myApi('battle-team', { ids: picked }).then(r => { ACC.battleTeam = r.battleTeam; }).catch(() => {});
-      storyScreen();
+      then ? then() : storyScreen();
     }
     else { freePick = picked; freeBattle(); }
   };
@@ -225,7 +257,7 @@ const teamStageOk = need => !need || (SAVE.team.length === 3 && SAVE.team.every(
 const unlocked = id => { const all = stages(), i = all.findIndex(s => s.id === id); return (i === 0 || SAVE.cleared.includes(all[i - 1].id)) && teamStageOk(all[i].chapter.needStage); };
 
 function storyScreen() {
-  modal.hidden = true;
+  modal.hidden = true; bgm('title');
   const team = SAVE.team.map(id => UNITS.find(u => u.id === id));
   app.innerHTML = `<header><button class="back" id="bk">‹</button><h1>스토리</h1><small>${SAVE.cleared.length}/${stages().length} 실적</small></header>
   <section class="teambar">${team.length === 3 ? team.map(u => { const s = SAVE.units[u.id], need = xpToNext(R, s.level);
@@ -233,10 +265,12 @@ function storyScreen() {
       return `<button class="mini" data-u="${u.id}"><img src="${sprite(u.id, 'front')}" class="st-${r.stage}" alt=""><b>${esc(u.name)}</b><span>Lv${s.level} ${chip(u.def.attr)}${r.stage ? `<em class="stars">${STARS[r.stage]}</em>` : ''}</span><i class="xp"><i style="width:${Math.min(100, s.xp / need * 100)}%"></i></i>${up ? '<em class="learn promo">⬆ 승진 가능</em>' : n ? `<em class="learn">✨ 기술 배우기 ${n}</em>` : '<small>기술·승진 보기</small>'}</button>`; }).join('')
       + (team.length === 3 ? `<p class="combo">${teamCombos(SAVE.team).map(x => `🤝 합동기 「${esc(x.skill)}」`).join(' · ') || '합동기 없음(같은 시너지 2마리면 생겨요)'}</p>` : '')
     : '<p class="hint" style="margin:0">먼저 팀 3마리를 정해 주세요.</p>'}<button class="ghost" id="ed">${team.length === 3 ? '편성 바꾸기' : '팀 정하기'}</button></section>
-  ${STORY.chapters.map(c => `<section class="chap"><h2>${esc(c.title)}</h2>${c.needStage ? `<p class="need ${teamStageOk(c.needStage) ? 'ok' : ''}">${teamStageOk(c.needStage) ? '✓' : '🔒'} 팀 전원 ${c.needStage}단계 승진 필요 (${STARS[c.needStage]})</p>` : ''}${c.intro ? `<p class="hint" style="margin:0 0 8px">${esc(c.intro)}</p>` : ''}
+  ${STORY.chapters.map(c => { const sc = c.stages[0].scene || 'harbor', cl = c.stages.filter(s => SAVE.cleared.includes(s.id)).length, open = c.stages.some(s => unlocked(s.id)), all = cl === c.stages.length;
+    return `<section class="chap"><div class="chead sc-${sc}" style="${bgStyle(sc)}"><div class="in"><h2>${esc(c.title)}</h2><span class="pn">${all ? '✓ 완료' : `${cl}/${c.stages.length}`}</span>${c.intro ? `<p>${esc(c.intro)}</p>` : ''}${c.needStage ? `<p class="need ${teamStageOk(c.needStage) ? 'ok' : ''}">${teamStageOk(c.needStage) ? '✓' : '🔒'} 팀 전원 ${c.needStage}단계 승진 필요 (${STARS[c.needStage]})</p>` : ''}</div></div>
+    <details ${open && !all ? 'open' : ''}><summary>${open ? '스테이지 보기' : '스테이지 미리 보기'} (${c.stages.length})</summary>
     ${c.stages.map(s => { const done = SAVE.cleared.includes(s.id), open = unlocked(s.id);
       const boss = s.enemy.some(e => R.villains.get(e.id).boss);
-      return `<button class="stage ${done ? 'done' : ''}" data-s="${s.id}" ${open && team.length === 3 ? '' : 'disabled'}><span class="no">${s.id}</span><span class="tt">${esc(s.title)}${boss ? ' <em>보스</em>' : ''}<small>${s.enemy.map(e => `${esc(R.villains.get(e.id).name)} Lv${e.level}`).join(' · ')}</small></span><span class="mk">${done ? '✓' : open ? '도전' : '잠김'}</span></button>`; }).join('')}</section>`).join('')}
+      return `<button class="stage ${done ? 'done' : ''}" data-s="${s.id}" ${open && team.length === 3 ? '' : 'disabled'}><span class="no">${s.id}</span><span class="tt">${esc(s.title)}${boss ? ' <em>보스</em>' : ''}<small>${s.enemy.map(e => `${esc(R.villains.get(e.id).name)} Lv${e.level}`).join(' · ')}</small></span><span class="mk">${done ? '✓' : open ? '도전' : '잠김'}</span></button>`; }).join('')}</details></section>`; }).join('')}
   <p class="hint">진 대결도 경험치를 조금 받아요. 깬 스테이지는 다시 도전해 레벨을 올릴 수 있어요.</p>
   <p class="hint" id="savewarn" style="color:#ff8a7a" ${saveFail ? '' : 'hidden'}>⚠ 계정에 저장하지 못했어요. 인터넷이 연결되면 다음 진행 때 다시 저장해요.</p>
   <div style="padding:0 16px 24px"><button class="ghost" id="reset" style="width:100%">스토리 진행 처음부터(${ACC ? '계정' : '이 브라우저'})</button></div>`;
@@ -316,6 +350,7 @@ function talk(lines, opt = {}) {
     lines = [...(lines ?? [])];
     if (opt.tip) lines.push({ who: 'TIP', say: opt.tip });
     if (!lines.length) return resolve();
+    bgm('story');
     const lead = UNITS.find(u => u.id === SAVE.team[0]);
     let i = 0, typing = null, full = '';
     const foeId = lines.find(l => /^[VDTEIN]\d+$/.test(l.who))?.who;
@@ -394,6 +429,7 @@ function startBattle(mine, foe, end, hint, flee) {
   onEnd = end; hintNow = hint || ''; fleeTo = flee;
   b = createBattle(R, mine, foe, (Math.random() * 2 ** 31) | 0);
   const boss = foe.some(f => R.villains.get(f.id)?.boss);
+  bgm(boss ? 'boss' : 'battle');
   app.innerHTML = `<div id="arena" style="${bgStyle(sceneNow)}"><div class="plat foe"></div><div class="plat me"></div>
     <img class="mon foe ${boss ? 'boss' : ''}" id="m1" alt=""><img class="mon me" id="m0" alt="">
     <div class="box foe" id="b1"></div><div class="box me" id="b0"></div><div id="fx"></div></div>
@@ -586,9 +622,11 @@ async function play(from) {
     else if (line.includes('상태가 됐어요')) { const t = [0, 1].find(s => line.startsWith(shown(s).name)); if (t !== undefined) burst(t, '#b07cff', 12, 50); }
     else if (line.includes('증강체 「') || line.includes('] 아이템 「')) { banner(line.replace(/^\[.+?\] /, '')); wait = 1000; }
     else if ((m = line.match(/^(.+)의 체력이 (\d+) 회복됐어요/))) {
+      sfx('heal');
       const t = [0, 1].find(s => shown(s).name === m[1]) ?? 0; view[t].hp[view[t].active] = Math.min(shown(t).maxHp, view[t].hp[view[t].active] + +m[2]); burst(t, '#7ce3a0', 14, 60);
     } else if (line.includes('정신을 차렸어요')) { const t = [0, 1].find(s => line.startsWith(shown(s).name)) ?? 0; burst(t, '#8fdcf5', 12, 50); }
     else if (line.includes('다시 일어났어요')) {
+      sfx('heal');
       // 뒤에 있던 갈매미가 일어남: 그 갈매미만 지금 체력으로(나와 있는 갈매미의 이번 턴 피해는 줄마다 따로 보여 줌)
       for (const s of [0, 1]) b.sides[s].fighters.forEach((f, i) => { if (view[s].down[i] && f.hp > 0) { view[s].down[i] = false; view[s].hp[i] = f.hp; } });
       render();
@@ -605,6 +643,7 @@ function lunge(s) {
   document.getElementById(`m${s}`).animate([{ transform: 'translate(0,0)' }, { transform: `translate(${dx}px,${dy}px)` }, { transform: 'translate(0,0)' }], { duration: 320, easing: 'ease-out' });
 }
 function hit(t, n, color, big, crit) {
+  sfx(crit ? 'crit' : big ? 'big' : 'hit');
   view[t].hp[view[t].active] = Math.max(0, view[t].hp[view[t].active] - n);
   const img = document.getElementById(`m${t}`);
   img.animate([{ transform: 'translateX(0)', filter: 'brightness(1)' }, { transform: 'translateX(-8px)', filter: 'brightness(2.2)' }, { transform: 'translateX(7px)' }, { transform: 'translateX(-4px)' }, { transform: 'translateX(0)', filter: 'brightness(1)' }], { duration: 380 });
@@ -625,6 +664,7 @@ function burst(t, color, n, dist) {
 }
 // 쓰러짐: 짧게 멈칫(화면이 살짝 어두워짐) → 하얀 실루엣 → 깃털·빛 조각으로 흩어지며 위로 사라짐. 이름 칸은 회색 + 작은 「전투불가」
 function faint(s) {
+  sfx('faint');
   const img = document.getElementById(`m${s}`), arena = document.getElementById('arena'), fx = document.getElementById('fx');
   img.getAnimations().forEach(a => a.cancel());
   const veil = document.createElement('div'); veil.className = 'veil'; fx.append(veil);
@@ -706,12 +746,14 @@ async function fiveVoices() {
   await sleep(250);
 }
 function comboFlash(name) {
+  sfx('combo');
   const a = document.getElementById('arena'), d = document.createElement('div'); d.className = 'comboflash'; d.innerHTML = `<small>🤝 합동기</small><b>${esc(name)}</b>`;
   document.getElementById('fx').append(d);
   a.animate([{ filter: 'brightness(1)' }, { filter: 'brightness(1.8) saturate(1.4)' }, { filter: 'brightness(1)' }], { duration: 600 });
   d.animate([{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'scale(1.08)', offset: .2 }, { opacity: 1, transform: 'scale(1)', offset: .8 }, { opacity: 0 }], { duration: 1300 }).onfinish = () => d.remove();
 }
 function banner(text) {
+  sfx('aug');
   const d = document.createElement('div'); d.className = 'banner'; d.textContent = text;
   document.getElementById('fx').append(d);
   d.animate([{ opacity: 0, transform: 'scale(.8)' }, { opacity: 1, transform: 'scale(1)', offset: .2 }, { opacity: 1, offset: .8 }, { opacity: 0 }], { duration: 1000 }).onfinish = () => d.remove();
@@ -719,6 +761,7 @@ function banner(text) {
 
 function result() {
   const won = b.winner === 0, r = onEnd(won);
+  bgm(null); sfx(won ? 'win' : 'lose');
   document.getElementById('panel').innerHTML = `<div class="sheet" style="border-radius:14px"><h2>${b.winner === null ? '무승부' : won ? '승리!' : '패배…'}</h2>
     <p class="sub">${b.turn - 1}턴 · ${esc(r.text)}</p>
     <div class="sw">${r.buttons.map(([t], i) => `<button class="ghost" data-r="${i}" style="justify-content:center">${esc(t)}</button>`).join('')}</div></div>`;
