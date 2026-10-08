@@ -55,7 +55,7 @@
     draw();
   }
   function draw() {
-    const tabs = [['draw', '🥚 뽑기'], ['craft', '🧩 조합'], ['units', '🪨 내 갈매미'], ['party', '🧭 탐험대 편성'], ['battle', '⚔️ 전투 편성'], ['items', '🎒 아이템'], ['shop', '🛒 상점']];
+    const tabs = [['draw', '🥚 뽑기'], ['craft', '🧩 조합'], ['units', '<img class="gi" src="/gull.png" alt=""> 내 갈매미'], ['party', '🧭 탐험대 편성'], ['battle', '⚔️ 전투 편성'], ['items', '🎒 아이템'], ['shop', '🛒 상점']];
     app.innerHTML = `${head('<button class="btn ghost" id="out" title="로그아웃" style="padding:6px 12px;font-size:.85rem">🚪<span class="lt"> 로그아웃</span></button>')}
       <div class="card"><div class="row" style="margin-bottom:10px"><b style="font-weight:400;font-size:1.15rem">${esc(me.nickname || '이름 없는 수비조장')}</b><span class="tag">도감 ${me.dex}/${me.dexTotal}</span></div>
         <div class="money"><div><b>🍤 ${me.snack}</b><small>새우깡</small></div><div><b>🥜 ${me.peanut}</b><small>땅콩</small></div><div><b>🎫 ${me.credits}</b><small>뽑기권</small></div><div><b>${me.units.reduce((a, u) => a + u.have, 0)}</b><small>가진 갈매미</small></div></div></div>

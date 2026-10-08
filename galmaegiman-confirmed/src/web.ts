@@ -100,7 +100,7 @@ const list=await load(),only=/^[ㄱ-ㅎ]+$/.test(q),units=list.filter(u=>(only?i
 let ps=[];if(!only){try{ps=await (await fetch('/api/players?q='+encodeURIComponent(q))).json()}catch(_){}}
 if(my!==n)return;
 box.innerHTML=units.map(u=>'<a href="/dex/'+u.i+'"><img src="'+u.p+'" alt="">'+e(u.n)+'<small style="color:'+u.c+'">'+e(u.t)+'</small></a>').join('')
-+ps.slice(0,4).map(p=>'<a href="/p/'+encodeURIComponent(p)+'">🪨 '+e(p)+'<small>수비대원</small></a>').join('')
++ps.slice(0,4).map(p=>'<a href="/p/'+encodeURIComponent(p)+'"><img class="gi" src="/gull.png" alt=""> '+e(p)+'<small>수비대원</small></a>').join('')
 +'<a href="/search?q='+encodeURIComponent(i.value.trim())+'">🔍 “'+e(i.value.trim())+'” 전체 검색</a>';box.hidden=false}
 i.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(run,120)});i.addEventListener('focus',()=>{load();if(i.value)run()});
 document.addEventListener('click',ev=>{if(!f.contains(ev.target))box.hidden=true});
@@ -111,7 +111,7 @@ else if(ev.key==='Enter'&&k>=0){ev.preventDefault();location.href=a[k].href}else
   const headerJs=`(()=>{const sr=document.getElementById('srow');document.querySelectorAll('a.sbtn').forEach(sb=>sb.addEventListener('click',ev=>{ev.preventDefault();sr.hidden=!sr.hidden;if(!sr.hidden){scrollTo({top:0});sr.querySelector('input').focus();}}));
 fetch('/my/api/who',{headers:{'x-gmm':'1'}}).then(r=>r.ok?r.json():null).then(j=>{if(!j)return;
 document.querySelectorAll('a.lgn').forEach(a=>{a.href='/my#units';a.title=(j.nickname||'내 계정')+' · 🎟 '+j.credits+'장';const i=a.querySelector('i'),b=a.querySelector('b'),s=a.querySelector('span');
-if(i){i.textContent=a.dataset.i;if(b){b.textContent=a.dataset.l;if(s)s.textContent=a.dataset.s}else{a.lastChild.textContent=a.dataset.l}}else a.textContent=a.dataset.l;});}).catch(()=>{});
+const g='<img class="gi" src="/gull.png" alt="">';if(i){i.innerHTML=g;if(b){b.textContent=a.dataset.l;if(s)s.textContent=a.dataset.s}else{a.lastChild.textContent=a.dataset.l}}else a.innerHTML=g+' '+a.dataset.l;});}).catch(()=>{});
 const mb=document.getElementById('mbtn'),mo=document.getElementById('more');mb&&mb.addEventListener('click',e=>{e.stopPropagation();mo.hidden=!mo.hidden;});document.addEventListener('click',e=>{if(mo&&!mo.hidden&&!mo.contains(e.target))mo.hidden=true;});})();`;
   // 댓글 한 줄: 닉네임(프로필 링크)·시간·좋아요 버튼. unit=true면 어느 유닛 댓글인지 칩도
   const when=(d:Date)=>DateTime.fromJSDate(d).setZone('Asia/Seoul').toFormat('M/d HH:mm');
@@ -135,7 +135,7 @@ try{const r=await fetch('/api/comments/'+b.dataset.id+'/like',{method:'POST'});i
   // 카톡 채널 버튼: 말풍선 아이콘(이모지 대신 단색 그림) + 글자. big은 홈·이벤트 본문용
   const bubble='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.7l-.9 3.4c-.1.4.3.7.6.5l4-2.7c.6.1 1.1.1 1.7.1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>';
   const playBtn=(big=false)=>channel?`<a class="play${big?' big':''}" href="${esc(channel)}" target="_blank" rel="noopener">${bubble}<span>카톡에서 플레이</span></a>`:'';
-  const logo=()=>exists('logo')?`<img src="${img('images','logo')}" alt="갈매미맨" height="40" style="height:40px;width:auto;vertical-align:middle">`:'🪨 갈매미맨';
+  const logo=()=>exists('logo')?`<img src="${img('images','logo')}" alt="갈매미맨" height="40" style="height:40px;width:auto;vertical-align:middle">`:'<img class="gi" src="/gull.png" alt=""> 갈매미맨';
   interface Og{image?:string;desc?:string}
   const page=(title:string,active:string,body:string,q='',og:Og={})=>`<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -143,7 +143,7 @@ try{const r=await fetch('/api/comments/'+b.dataset.id+'/like',{method:'POST'});i
 <meta name="description" content="${esc(og.desc??'돌로 된 갈매미들이 항구 수비대에 출근하는 섬, 갈매미 섬 이야기')}">
 <meta property="og:type" content="website"><meta property="og:site_name" content="갈매미맨"><meta property="og:description" content="${esc(og.desc??'돌로 된 갈매미들이 항구 수비대에 출근하는 섬, 갈매미 섬 이야기')}">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&display=swap" rel="stylesheet">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%AA%A8%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/gull.png">
 <meta property="og:title" content="${esc(title)} · 갈매미맨"><meta property="og:image" content="${site}${og.image??img('images','C1')}">
 <style>
 :root{--c1:#2a6fc0;--c2:#d9483b;--c3:#0f8a7b;--c4:#7a4fd0;--c5:#b06f00;--c6:#c93f7c;--bg:#f7f0e3;--card:#fffdf8;--text:#2d2a26;--muted:#6f675c;--line:#e8dcc6;--edge:#d8c7a6;--accent:#1d5b94;--accent-soft:#e2edf7;--gold:#d9a400;
@@ -154,6 +154,10 @@ try{const r=await fetch('/api/comments/'+b.dataset.id+'/like',{method:'POST'});i
 /* 글꼴: 제목·버튼·메뉴·이름은 Black Han Sans, 본문은 Gowun Dodum(둘 다 굵기 1개뿐이라 강조는 색으로) */
 h1,h2,h3,.logo,.stat b,.links a b,.today h3,header nav a,.mylink,.btn,.play,.tabs a,.chip,.badge,.tabbar a,.hstats,.more a,.tag,.rank .no,.rank .sc,.mini .sc,.title,.like,form.search button{font-family:"Black Han Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-weight:400;letter-spacing:.01em}
 body{font-synthesis:none}
+/* 갈매미 아이콘: 글자 크기에 맞춰 이모지처럼 */
+img.gi{width:1.25em;height:1.25em;vertical-align:-.28em;display:inline-block}
+.tabbar i img.gi,.links a i img.gi{width:1.35em;height:1.35em;vertical-align:middle}
+.hero img.gi,.today img.gi{width:1.25em;height:1.25em;max-width:none;border-radius:0;box-shadow:none;justify-self:auto}
 p b,p strong,li b,li strong,.prose td b,.prose td strong{color:var(--accent)}
 .event b,.event strong{color:#a0461a}
 body{background-image:radial-gradient(var(--line) 1px,transparent 1.2px),linear-gradient(180deg,transparent 0,transparent 70%,rgba(31,78,121,.06) 100%);background-size:22px 22px,100% 100%;background-attachment:fixed}
@@ -378,11 +382,11 @@ main>h2:nth-of-type(6n+5),.tale h2:nth-of-type(6n+5){color:var(--c5)}main>h2:nth
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40px}
 </style></head><body>
 <header><div class="bar"><a class="logo" href="/">${logo()}</a>
-<nav>${mainItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}>${i} ${l}</a>`).join('')}<a href="/search" class="sbtn${active==='/search'?' on':''}">🔍 검색</a><a href="/my" class="lbtn lgn" data-l="🪨 내 갈매미">🔑 로그인</a></nav><span class="sp"></span>
+<nav>${mainItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}>${i} ${l}</a>`).join('')}<a href="/search" class="sbtn${active==='/search'?' on':''}">🔍 검색</a><a href="/my" class="lbtn lgn" data-l="내 갈매미">🔑 로그인</a></nav><span class="sp"></span>
 <button class="hbtn" type="button" id="mbtn" aria-label="더보기" aria-expanded="false">☰</button>${playBtn()}</div>
 <div class="searchrow" id="srow"${q?'':' hidden'}><form class="search" action="/search" method="get" role="search" autocomplete="off"><input name="q" value="${esc(q)}" placeholder="갈매미·닉네임·이야기 검색 (초성 OK)" aria-label="검색" maxlength="30"><button>검색</button><div class="sug" hidden></div></form></div></header>
 <main>${body}${piece(active)}</main>
-<nav class="tabbar" aria-label="메뉴">${tabItems.map(([h,l,i])=>`<a href="${h}"${tabOn(h,active)?' class="on"':''}><i>${i}</i>${l}</a>`).join('')}<a href="/search" class="sbtn${active==='/search'?' on':''}"><i>🔍</i>검색</a><a href="/my" class="lgn" data-i="🪨" data-l="내 갈매미"><i>🔑</i>로그인</a></nav>
+<nav class="tabbar" aria-label="메뉴">${tabItems.map(([h,l,i])=>`<a href="${h}"${tabOn(h,active)?' class="on"':''}><i>${i}</i>${l}</a>`).join('')}<a href="/search" class="sbtn${active==='/search'?' on':''}"><i>🔍</i>검색</a><a href="/my" class="lgn" data-i="gull" data-l="내 갈매미"><i>🔑</i>로그인</a></nav>
 <div class="more" id="more" hidden>${moreItems.map(([h,l,i])=>`<a href="${h}"${active===h?' class="on"':''}>${i} ${l}</a>`).join('')}</div>
 <footer>갈매미맨 · 카카오톡 채널 챗봇 게임 · v${esc(options.version)}</footer>
 <script>${suggestJs}${likeJs}${headerJs}</script>
@@ -423,7 +427,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px 40
 <h1>갈매미는 <span class="hl">존재</span>한다.</h1>
 <p class="lead">돌로 된 갈매미들이 <b>갈매미 섬 항구 수비대</b>에 출근해서 항구를 지켜요. 몸이 돌이라 날지는 못해요. 새우깡 봉지 소리에는 약해요.</p>
 <div class="btns">${playBtn(true)}<a class="btn" href="/my#draw">🥚 웹에서 뽑기</a><a class="btn" href="/my#craft">🧩 조합</a></div>
-<div class="hstats"><span>🪨 <b>${content.characters.length}</b>종 갈매미</span><span>🧩 <b>${content.recipes.length}</b>가지 조합</span><span>❔ 히든 <b>${count('HIDDEN')}</b>종</span><span>🏘 동네 <b>7</b>곳</span></div>
+<div class="hstats"><span><img class="gi" src="/gull.png" alt=""> <b>${content.characters.length}</b>종 갈매미</span><span>🧩 <b>${content.recipes.length}</b>가지 조합</span><span>❔ 히든 <b>${count('HIDDEN')}</b>종</span><span>🏘 동네 <b>7</b>곳</span></div>
 </div><a class="today" href="/dex/${today.id}"><img src="${img('thumbs',today.id)}" alt="${esc(today.name)}" width="480" height="480"><div><small>☀️ 오늘의 갈매미</small><h3>${esc(today.name)}</h3><p>${esc(today.introduction.split(/(?<=[.!?…])\s+/u)[0])}</p></div></a></section>
 ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 어딘가에 <b>쿠폰 조각 ${c.pieces.length}개</b>가 숨어 있어요. 모두 찾아 카톡에 <b>쿠폰 조각들</b>을 보내면 뽑기권 <b>${c.tickets}장</b>! (1인 1회)<br><a href="/event">🎁 이벤트·혜택 모두 보기 →</a></div>`:`<div class="event"><b>🎁 이벤트·혜택</b><br>친구 초대하면 친구도 나도 뽑기권 <b>${content.economy.invite.tickets}장</b>! <a href="/event">자세히 보기 →</a></div>`}
 <div class="homegrid">
@@ -438,7 +442,7 @@ ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 �
 <a href="/dex"><i>📚</i><b>도감</b><span>${content.characters.length}종의 이야기</span></a>
 <a href="/my#party"><i>🧭</i><b>탐험대 편성</b><span>보내기·돌아오면 보상</span></a>
 <a href="/search" class="sbtn"><i>🔍</i><b>검색</b><span>갈매미·닉네임·이야기</span></a>
-<a href="/my" class="lgn" data-i="🪨" data-l="내 갈매미" data-s="내 정보·뽑기권·편성"><i>🔑</i><b>로그인</b><span>카카오·카톡 코드</span></a>
+<a href="/my" class="lgn" data-i="gull" data-l="내 갈매미" data-s="내 정보·뽑기권·편성"><i>🔑</i><b>로그인</b><span>카카오·카톡 코드</span></a>
 </div>
 <p class="note" style="text-align:center;margin-top:14px">그 밖에: <a href="/event">🎁 이벤트</a> · <a href="/recipes">📜 조합법</a> · <a href="/hidden">❔ 히든 단서</a> · <a href="/talk">💬 수다방</a> · <a href="/rank">🏆 랭킹</a> · <a href="/world">🗺 세계관</a></p>`;
     return send(reply,page('홈','/',body,'',{image:img('images',today.id),desc:`오늘의 갈매미: ${today.name} · 돌로 된 갈매미들이 항구 수비대에 출근하는 섬`}),60);
@@ -635,7 +639,7 @@ ${list?`<ol class="rank">${list}</ol>`:'<div class="empty">아직 기록이 없�
     const total=units.length+byTier.length+byStory.length;
     const body=`<h1>“${esc(q)}” 검색</h1>
 ${exact?`<div class="box"><h3>${badge(exact.rarity)} <a href="/dex/${exact.id}">${esc(exact.name)}</a></h3>${makes.length?`이 갈매미로 만들 수 있는 것 (${makes.length}): ${makes.map(r=>chip(r.resultId)).join('')}`:'<span class="note">재료로 쓰이는 조합이 없어요.</span>'}</div>`:''}
-${players.length?`<h2>🧑‍✈️ 수비대원 ${players.length}명</h2>${players.map(n=>`<a class="uc" href="/p/${encodeURIComponent(n)}">🪨 ${esc(n)}</a>`).join('')}`:''}
+${players.length?`<h2>🧑‍✈️ 수비대원 ${players.length}명</h2>${players.map(n=>`<a class="uc" href="/p/${encodeURIComponent(n)}"><img class="gi" src="/gull.png" alt=""> ${esc(n)}</a>`).join('')}`:''}
 <h2>🐦 이름에 “${esc(q)}” ${units.length}종</h2>${units.length?`<div class="grid">${units.map(card).join('')}</div>`:'<p class="note">이름이 맞는 갈매미가 없어요. 히든은 검색되지 않아요. <a href="/hidden">히든 단서 보기</a></p>'}
 ${byTier.length?`<h2>${badge(tier!)} ${esc(rarityNames[tier!])} 등급 ${byTier.length}종</h2><div class="grid">${byTier.map(card).join('')}</div>`:''}
 ${byStory.length?`<h2>📖 이야기에 “${esc(q)}” ${byStory.length}종</h2><div class="grid">${byStory.map(card).join('')}</div>`:''}
@@ -645,6 +649,9 @@ ${!total&&!players.length?'<p class="note">예: <a href="/search?q=전설">전�
 
   // ── 프로필 ──
   // ── 검색엔진용: robots.txt · sitemap.xml (주소는 economy.homepage 기준) ──
+  // 갈매미 아이콘(돌 이모지 대신 쓰는 그림)·파비콘
+  for(const [path,file] of [['/gull.png','public/gull.png'],['/favicon.png','public/favicon-32.png'],['/favicon.ico','public/favicon-32.png']] as const)
+    app.get(path,async(_req,reply)=>reply.type('image/png').header('Cache-Control','public, max-age=86400').send(readFileSync(resolve(options.root,file))));
   app.get('/robots.txt',limit,async(_req,reply)=>reply.type('text/plain; charset=utf-8').header('Cache-Control','public, max-age=3600')
     .send(`User-agent: *\nAllow: /\nDisallow: /api/\n${site?`Sitemap: ${site}/sitemap.xml\n`:''}`));
   app.get('/sitemap.xml',limit,async(_req,reply)=>{
@@ -682,7 +689,7 @@ ${howToComment()}
       return `<div><span>${esc(rarityNames[t])}</span><i><s style="width:${Math.round(got/total*100)}%;background:${tierColor[t]}"></s></i><span>${got}/${total}</span></div>`;}).join('');
     const rk=(r:WebProfile['dexRank'],u:string)=>r?`<b>${r.rank}위</b> / ${r.total}명 · ${r.score}${u}`:'기록 없음';
     const body=`<div class="detail"><img class="big" src="${bestImg}" alt="" width="480" height="480" style="max-width:280px">
-<div><h1 style="margin:.1em 0">${p.badge?esc(p.badge):'🪨'} ${esc(p.nickname)}</h1>
+<div><h1 style="margin:.1em 0">${p.badge?esc(p.badge):'<img class="gi" src="/gull.png" alt="">'} ${esc(p.nickname)}</h1>
 <p class="note">최고 갈매미: ${esc(bestLabel)} · 입사 ${esc(DateTime.fromJSDate(p.joined).setZone('Asia/Seoul').toFormat('yyyy. M. d.'))}</p>
 ${p.titles.length?`<p>${p.titles.map(t=>`<span class="title">🏆 ${esc(t)}</span>`).join('')}</p>`:''}
 <div class="stats"><div class="stat"><b>${p.dex}/${content.characters.length}</b>도감</div><div class="stat"><b>${p.firsts}개</b>히든 최초 발견</div></div>

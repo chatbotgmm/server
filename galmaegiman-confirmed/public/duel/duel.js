@@ -143,7 +143,7 @@ async function boot() {
 function menu() {
   modal.hidden = true;
   app.innerHTML = `<header><h1>수비대 대결</h1><small>시험판</small></header>
-  <p class="hint">${ACC ? `🪨 ${esc(ACC.nickname || '내 계정')}에 스토리 진행이 저장돼요. 스토리 대결에서 가진 아이템을 쓸 수 있어요.` : '스토리 진행이 이 브라우저에만 저장돼요. <a href="/my">내 갈매미</a>에서 로그인하면 계정에 저장되고 아이템도 쓸 수 있어요.'}</p>
+  <p class="hint">${ACC ? `<img class="gi" src="/gull.png" alt=""> ${esc(ACC.nickname || '내 계정')}에 스토리 진행이 저장돼요. 스토리 대결에서 가진 아이템을 쓸 수 있어요.` : '스토리 진행이 이 브라우저에만 저장돼요. <a href="/my">내 갈매미</a>에서 로그인하면 계정에 저장되고 아이템도 쓸 수 있어요.'}</p>
   <div class="menu"><button class="big" id="st">스토리 모드</button><button class="ghost" id="fr">자유 대결 (무작위 상대)</button></div>`;
   app.querySelector('#st').onclick = storyScreen;
   app.querySelector('#fr').onclick = () => pickScreen('free');
@@ -157,8 +157,8 @@ function pickScreen(mode) {
   app.innerHTML = `<header><button class="back" id="bk">‹</button><h1>${story ? '스토리 팀 편성' : '자유 대결'}</h1></header>
   <p class="hint">갈매미 3마리를 고르세요. 처음 고른 갈매미가 먼저 나가요.${story ? ' 시험판이라 최상위 33종을 모두 쓸 수 있어요(실제 게임은 가진 갈매미만).' : ' 상대는 같은 레벨의 무작위 3마리예요.'}</p>
   ${story ? '' : `<div class="bar"><span class="role">레벨</span><div class="seg" id="lv">${[10, 30, 50].map(l => `<button data-l="${l}" class="${l === freeLevel ? 'on' : ''}">${l}</button>`).join('')}</div></div>`}
-  ${story && ACC ? `<p class="hint" style="margin-top:-6px">🪨 표시는 내가 가진 갈매미예요. 셋 다 가진 갈매미로 고르면 「내 갈매미」 전투 편성도 같이 바뀌어요.${ACC.battleTeam.length === 3 ? ' <button class="ghost" id="mine" style="display:inline-block;padding:4px 10px">내 전투 편성 불러오기</button>' : ''}</p>` : ''}
-  <div class="grid">${(story && ACC ? [...UNITS].sort((x, y) => ACC.owned.includes(y.id) - ACC.owned.includes(x.id)) : UNITS).map(u => `<button class="card" data-id="${u.id}"><img loading="lazy" src="/thumbs/${u.id}.jpg" alt=""><b>${story && ACC?.owned.includes(u.id) ? '🪨 ' : ''}${esc(u.name)}</b>${chip(u.def.attr)}<span class="role">${ROLE[u.def.role]}${story ? ` · Lv${SAVE.units[u.id].level}` : ''}</span><span class="syn">${esc(synName(u.id))}</span></button>`).join('')}</div>
+  ${story && ACC ? `<p class="hint" style="margin-top:-6px"><img class="gi" src="/gull.png" alt=""> 표시는 내가 가진 갈매미예요. 셋 다 가진 갈매미로 고르면 「내 갈매미」 전투 편성도 같이 바뀌어요.${ACC.battleTeam.length === 3 ? ' <button class="ghost" id="mine" style="display:inline-block;padding:4px 10px">내 전투 편성 불러오기</button>' : ''}</p>` : ''}
+  <div class="grid">${(story && ACC ? [...UNITS].sort((x, y) => ACC.owned.includes(y.id) - ACC.owned.includes(x.id)) : UNITS).map(u => `<button class="card" data-id="${u.id}"><img loading="lazy" src="/thumbs/${u.id}.jpg" alt=""><b>${story && ACC?.owned.includes(u.id) ? '<img class="gi" src="/gull.png" alt=""> ' : ''}${esc(u.name)}</b>${chip(u.def.attr)}<span class="role">${ROLE[u.def.role]}${story ? ` · Lv${SAVE.units[u.id].level}` : ''}</span><span class="syn">${esc(synName(u.id))}</span></button>`).join('')}</div>
   <div class="foot"><div class="combo" id="combo"></div><div class="in"><button class="ghost" id="rnd">무작위</button><button class="big" id="go">${story ? '이 팀으로' : '대결 시작'}</button></div></div>`;
   const paint = () => {
     app.querySelectorAll('.card').forEach(c => {
