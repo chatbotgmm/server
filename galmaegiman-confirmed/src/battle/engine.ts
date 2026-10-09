@@ -1,7 +1,7 @@
 // 수비대 대결 엔진: 3:3, 한 마리씩 나와 싸우는 턴제. 같은 시드면 같은 결과(서버가 다시 계산해 검증 가능).
 // 전투 증강체(공통)는 ① 전투 시작 ② 어느 쪽이든 유닛이 전투불가가 될 때, 양쪽 모두 3개 중 1개를 고름.
 import { attrKeys, statusName, type Attr, type Effect, type Role, type Rules, type Skill, type Stat, type Status, type Passive } from './core.js';
-import { levelScale, passiveOf, statsOf, type UnitRecord } from './growth.js';
+import { levelScale, passiveOf, slotSkills, statsOf, type UnitRecord } from './growth.js';
 export type { BattleAugment } from './core.js';
 
 // ── 상태 ──
@@ -28,8 +28,8 @@ function makeFighter(R:Rules,rec:UnitRecord,side:0|1,combo?:Skill):Fighter{
   const s=statsOf(R,rec),passive=passiveOf(R,rec);
   const sigCd=Math.max(1,def.signature.cd-(passive.sigCd??0));
   return {side,rec,name:rec.name,scale:levelScale(R,rec),attr:def.attr,role:def.role,peanut:rec.name.includes('갈매미맨'),passive,
-    skills:[{...R.basicSkill(def.attr,def.basicCat),...(def.basic?{name:def.basic}:{})},R.roleSkill(def.role,def.attr),{...def.signature,cd:sigCd},...(def.sub&&def.sub!==def.attr?[R.subSkill(def.sub)]:[]),
-      ...(rec.learned??[]).map(id=>R.learnSkill(id,def.attr)).filter((k):k is Skill=>!!k),...(combo?[combo]:[])],
+    // 기본기·고유기(고정) + 바꿀 수 있는 칸(역할기·보조 속성 기술·배운 기술)
+    skills:[{...R.basicSkill(def.attr,def.basicCat),...(def.basic?{name:def.basic}:{})},{...def.signature,cd:sigCd},...slotSkills(R,rec),...(combo?[combo]:[])],
     maxHp:s.hp,hp:s.hp,base:{patk:s.patk,pdef:s.pdef,matk:s.matk,mdef:s.mdef,spd:s.spd},cds:{},mods:[],status:{},guards:[],regens:[],
     endure:0,protect:false,recharge:false,immune:0,lockAtk:0,lastStandUsed:false,attacked:false,actedTurn:0,hitBy:{}};
 }

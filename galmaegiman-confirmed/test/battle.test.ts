@@ -4,7 +4,7 @@ import { attrKeys as attrs, buildRules, type TopTier } from '../src/battle/rules
 import { loadBattleRules } from '../src/battle/load.js';
 import { parse } from 'yaml';
 import { readFileSync } from 'node:fs';
-import { addXp, battleXp, canEvolve, learnChances, learnOffers, learnSkill, maxStageAt, statsOf, xpToNext, type UnitRecord } from '../src/battle/growth.js';
+import { addXp, battleXp, canEvolve, learnChances, learnOffers, learnSkill, maxStageAt, slotSkills, statsOf, xpToNext, type UnitRecord } from '../src/battle/growth.js';
 import { act, activeOf, aiChoose, choose, createBattle, itemProblem, legalActions, pending, pickAi, type Battle } from '../src/battle/engine.js';
 import { checkStory, loadStory } from '../src/battle/story.js';
 import { expectedAttempts, levelRange, referenceLevel, scoutChance, scoutCopy } from '../src/battle/scout.js';
@@ -181,20 +181,26 @@ describe('합동기·기술 배우기',()=>{
     expect(b.log.some(l=>l.includes('합동기 「금고 문 열기」'))).toBe(true);
     if(b.phase==='action')expect(legalActions(b,0).some(a=>a.kind==='skill'&&a.skillId==='combo-GOLD')).toBe(false);
   });
-  it('레벨 10·20…마다 기회, 후보는 항상 같고, 칸이 차면 바꿔야 함',()=>{
+  it('레벨 10·20…마다 기회, 후보는 항상 같고, 새 기술은 바꿀 수 있는 칸(역할기·보조 속성·배운 기술) 하나를 잊고 배움',()=>{
     const r=mk('T7',0,25);
     expect(learnChances(R,r)).toBe(2);
+    expect(slotSkills(R,r).map(k=>k.id)).toEqual(['role-ATTACK','sub-GRAVITY']);   // 처음 칸: 역할기·보조 속성
     const o=learnOffers(R,r);
     expect(o).toHaveLength(3);expect(learnOffers(R,r).map(k=>k.id)).toEqual(o.map(k=>k.id));
     expect(o.every(k=>R.learnables.find(x=>`learn-${x.id}`===k.id)!.level<=10)).toBe(true);
-    learnSkill(R,r,o[0].id);expect(r.learned).toEqual([o[0].id.slice(6)]);
-    learnSkill(R,r,learnOffers(R,r)[0].id);expect(r.learned).toHaveLength(2);expect(learnChances(R,r)).toBe(0);
+    expect(()=>learnSkill(R,r,o[0].id)).toThrow(/꽉 찼어요/);   // 칸이 늘 차 있으므로 잊을 기술이 꼭 필요
+    learnSkill(R,r,o[0].id,'role-ATTACK');expect(slotSkills(R,r).map(k=>k.id)).toEqual(['sub-GRAVITY',o[0].id]);
+    const o2=learnOffers(R,r)[0];learnSkill(R,r,o2.id,'sub-GRAVITY');
+    expect(slotSkills(R,r).map(k=>k.id)).toEqual([o[0].id,o2.id]);expect(learnChances(R,r)).toBe(0);
     r.level=31;const o3=learnOffers(R,r);
-    expect(()=>learnSkill(R,r,o3[0].id)).toThrow(/꽉 찼어요/);
-    learnSkill(R,r,o3[0].id,r.learned![0]);expect(r.learned).toHaveLength(2);expect(r.learned).toContain(o3[0].id.slice(6));
+    expect(o3.map(k=>k.id)).not.toContain(o[0].id);   // 이미 가진 기술은 후보에 안 나옴
+    learnSkill(R,r,o3[0].id,o[0].id);expect(slotSkills(R,r).map(k=>k.id)).toEqual([o2.id,o3[0].id]);
+    expect(()=>learnSkill(R,r,learnOffers(R,r)[0]?.id??null,'basic-ICE')).toThrow();   // 기본기·고유기는 못 잊음(기회도 이미 다 씀)
     r.level=45;learnSkill(R,r,null);expect(r.learnUsed).toBe(4);expect(learnChances(R,r)).toBe(0);
-    const b=createBattle(R,[r],[mk('D1',1)],1);
-    expect(b.sides[0].fighters[0].skills.filter(k=>k.id.startsWith('learn-'))).toHaveLength(2);
+    const b=createBattle(R,[r],[mk('D1',1)],1),ids=b.sides[0].fighters[0].skills.map(k=>k.id).filter(id=>!id.startsWith('combo-'));
+    expect(ids).toEqual(['basic-ICE','sig',o2.id,o3[0].id]);   // 기본기·고유기 + 칸 2개 = 4개
+    // 예전 저장(배운 기술만 적혀 있음): 배운 기술 → 역할기 → 보조 속성 순으로 2칸
+    expect(slotSkills(R,{...mk('T7',0,25),learned:['quick']}).map(k=>k.id)).toEqual(['learn-quick','role-ATTACK']);
   });
 });
 

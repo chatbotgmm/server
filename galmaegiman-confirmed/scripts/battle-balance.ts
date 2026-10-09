@@ -3,7 +3,7 @@
 import { loadContent } from '../src/content.js';
 import type { TopTier } from '../src/battle/rules.js';
 import { loadBattleRules } from '../src/battle/load.js';
-import { evoChoices, learnChances, learnOffers, learnSkill, maxStageAt, type UnitRecord, type Stage } from '../src/battle/growth.js';
+import { evoChoices, learnChances, learnOffers, learnSkill, maxStageAt, slotSkills, type UnitRecord, type Stage } from '../src/battle/growth.js';
 import { createBattle, act, pickAi, aiChoose, type Battle } from '../src/battle/engine.js';
 import { scoutChance, expectedAttempts } from '../src/battle/scout.js';
 
@@ -19,7 +19,7 @@ function rec(id:string,level:number,i:number):UnitRecord{
   const r:UnitRecord={uid:`u${i}`,id,name:name(id),tier:tierOf(id),level,xp:0,stage:maxStageAt(R,level),evoAugs:[]};
   for(let s=0;s<r.stage;s++){const c=evoChoices(R,r,rnd);if(c[0])r.evoAugs.push(c[Math.floor(rnd()*c.length)].id);}
   // 레벨업 기술: 기회마다 후보 중 무작위 1개(칸이 차면 오래된 것과 바꿈)
-  while(learnChances(R,r)>0){const o=learnOffers(R,r);learnSkill(R,r,o.length?o[Math.floor(rnd()*o.length)].id:null,r.learned?.[0]);}
+  while(learnChances(R,r)>0){const o=learnOffers(R,r);learnSkill(R,r,o.length?o[Math.floor(rnd()*o.length)].id:null,slotSkills(R,r)[0]?.id);}
   return r;
 }
 function run(b:Battle){

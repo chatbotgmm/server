@@ -5,7 +5,7 @@
 import { rulesFrom } from '../../src/battle/core.ts';
 import { createBattle, choose, act, pending, legalActions, pickAi, aiChoose, activeOf, itemProblem } from '../../src/battle/engine.ts';
 import { bgm, sfx, isMuted, toggleMute } from './sound.js';
-import { addXp, battleXp, canEvolve, evoChoices, learnChances, learnOffers, learnSkill, statsOf, xpToNext } from '../../src/battle/growth.ts';
+import { addXp, battleXp, canEvolve, evoChoices, learnChances, learnOffers, learnSkill, slotSkills, statsOf, xpToNext } from '../../src/battle/growth.ts';
 
 // 앱: 화면은 앱 안, 서버는 GMM_BASE, 열쇠는 「내 갈매미」에서 받아 둔 것(GMM_DUEL_KEY), 로그인은 토큰 머리글
 const BASE = window.GMM_BASE || '', APP = window.gmmApp || null;
@@ -271,7 +271,7 @@ function freeBattle() {
   sceneNow = 'harbor'; fightId = null;
   const rec = (id, i, side) => {
     const u = UNITS.find(x => x.id === id), r = { uid: `${side}${i}`, id, name: u.name, tier: u.tier, level: freeLevel, xp: 0, stage: 0, evoAugs: [] };
-    while (learnChances(R, r) > 0) { const o = learnOffers(R, r); learnSkill(R, r, o.length ? o[Math.floor(Math.random() * o.length)].id : null, r.learned?.[0]); }   // 그 레벨까지 배울 기술을 무작위로
+    while (learnChances(R, r) > 0) { const o = learnOffers(R, r); learnSkill(R, r, o.length ? o[Math.floor(Math.random() * o.length)].id : null, slotSkills(R, r)[0]?.id); }   // 그 레벨까지 배울 기술을 무작위로
     return r;
   };
   const foe = shuffle(UNITS.map(u => u.id)).slice(0, 3);
@@ -319,8 +319,8 @@ function storyScreen() {
 // 기술 창: 지금 기술(기본 4개 + 배운 기술) 보기, 배울 기회가 있으면 후보 3개 중 1개(칸이 차면 하나와 바꿈) 또는 건너뛰기
 function skillSheet(id) {
   const u = UNITS.find(x => x.id === id), def = R.unitDef(id), rec = myRec(id, 0), st = statsOf(R, rec);
-  const base = [R.basicSkill(def.attr), R.roleSkill(def.role, def.attr), def.signature, ...(def.sub ? [R.subSkill(def.sub)] : [])];
-  const mine = (rec.learned ?? []).map(k => R.learnSkill(k, def.attr)).filter(Boolean);
+  const base = [{ ...R.basicSkill(def.attr), ...(def.basic ? { name: def.basic } : {}) }, def.signature];   // 고정
+  const mine = slotSkills(R, rec);   // 바꿀 수 있는 칸(역할기·보조 속성·배운 기술)
   const offers = learnOffers(R, rec), tier = R.data.learn.levels[rec.learnUsed ?? 0], full = mine.length >= R.data.learn.slots;
   const nextLv = R.data.learn.levels.find(l => l > rec.level);
   let pick = null, rep = null;
@@ -333,11 +333,11 @@ function skillSheet(id) {
       <h2>승진 <small>${rec.stage >= 3 ? '최고 단계' : `다음: ${promoNeed(rec)}`}</small></h2>
       ${rec.evoAugs.length ? rec.evoAugs.map(a => { const e = R.evoAug.get(a); return `<div class="skrow"><span>🎖️</span><b>${esc(e.name)}</b><small>${esc(e.desc)}</small></div>`; }).join('') : '<p class="sub">아직 받은 직무 표창이 없어요. 승진할 때 표창 3개 중 1개를 받아요.</p>'}
       ${canEvolve(R, rec, partsCleared()) ? `<button class="big wide" id="promo">⬆ ${rec.stage + 1}단계 승진하기</button>` : ''}
-      <h2>기본 기술</h2>${base.map(k => `<div class="skrow"><span>${icon(k, k.attr ?? def.attr)}</span><b>${esc(k.name)} ${catTag(k, st)}</b><small>${esc(k.desc)}</small></div>`).join('')}
-      <h2>배운 기술 <small>${mine.length}/${R.data.learn.slots}칸</small></h2>${mine.length ? mine.map(k => `<div class="skrow"><span>${GLYPH[k.attr ?? def.attr] ?? '✨'}</span><b>${esc(k.name)} ${catTag(k, st)}</b><small>${esc(k.desc)}</small></div>`).join('') : '<p class="sub">아직 없어요</p>'}
+      <h2>고정 기술 <small>잊을 수 없어요</small></h2>${base.map(k => `<div class="skrow"><span>${icon(k, k.attr ?? def.attr)}</span><b>${esc(k.name)} ${catTag(k, st)}</b><small>${esc(k.desc)}</small></div>`).join('')}
+      <h2>바꿀 수 있는 기술 <small>${mine.length}/${R.data.learn.slots}칸 · 새 기술을 배우면 하나를 잊어요</small></h2>${mine.length ? mine.map(k => `<div class="skrow"><span>${icon(k, k.attr ?? def.attr)}</span><b>${esc(k.name)} ${catTag(k, st)}</b><small>${esc(k.desc)}</small></div>`).join('') : '<p class="sub">아직 없어요</p>'}
       ${offers.length ? `<h2>✨ 새 기술 배우기 <small>Lv${tier} 기회 · ${learnChances(R, rec)}번 남음</small></h2>
         ${offers.map(k => card(k, k.attr ?? def.attr, `data-p="${k.id}"`, pick === k.id)).join('')}
-        ${pick && full ? `<h2>잊을 기술 고르기 <small>칸이 꽉 찼어요</small></h2>${mine.map(k => card(k, k.attr ?? def.attr, `data-r="${k.id}"`, rep === k.id)).join('')}` : ''}
+        ${pick && full ? `<h2>잊을 기술 고르기 <small>이 중 하나를 잊고 새로 배워요</small></h2>${mine.map(k => card(k, k.attr ?? def.attr, `data-r="${k.id}"`, rep === k.id)).join('')}` : ''}
         <div class="sw"><button class="ghost" id="skipL" style="justify-content:center">이번엔 안 배우기</button><button class="big" id="doL" ${!pick || (full && !rep) ? 'disabled' : ''}>${pick ? `「${esc(offers.find(o => o.id === pick).name)}」 배우기` : '기술을 골라요'}</button></div>`
         : `<p class="sub">${nextLv ? `다음 배울 기회: Lv${nextLv}` : '모든 기회를 썼어요'}</p>`}
       <button class="ghost wide" id="closeL">닫기</button></div>`;

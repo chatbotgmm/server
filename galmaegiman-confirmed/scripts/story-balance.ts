@@ -5,7 +5,7 @@ import type { TopTier } from '../src/battle/rules.js';
 import { loadContent } from '../src/content.js';
 import { loadBattleRules } from '../src/battle/load.js';
 import { loadStory } from '../src/battle/story.js';
-import { addXp, battleXp, canEvolve, evoChoices, learnChances, learnOffers, learnSkill, type UnitRecord, type Stage } from '../src/battle/growth.js';
+import { addXp, battleXp, canEvolve, evoChoices, learnChances, learnOffers, learnSkill, slotSkills, type UnitRecord, type Stage } from '../src/battle/growth.js';
 import { createBattle, act, pickAi, aiChoose, type Battle } from '../src/battle/engine.js';
 
 const R=loadBattleRules(),story=loadStory(process.cwd(),R),content=loadContent();
@@ -23,7 +23,7 @@ for(let n=0;n<N;n++){
   const fight=(st:typeof stages[number])=>{
     const foe=st.enemy.map((e,i)=>({uid:`b${i}`,id:e.id,name:R.villains.get(e.id)!.name!,tier:'LIMITED' as TopTier,level:e.level,xp:0,stage:(e.stage??st.ch.needStage??0) as Stage,evoAugs:[]}));
     const b=run(createBattle(R,team.map(u=>({...u})),foe,Math.floor(rnd()*1e9))),won=b.winner===0,avg=st.enemy.reduce((a,e)=>a+e.level,0)/st.enemy.length;
-    for(const u of team){addXp(R,u,battleXp(R,avg,won));while(learnChances(R,u)>0){const o=learnOffers(R,u);learnSkill(R,u,o[0]?.id??null,u.learned?.[0]);}}
+    for(const u of team){addXp(R,u,battleXp(R,avg,won));while(learnChances(R,u)>0){const o=learnOffers(R,u);learnSkill(R,u,o[0]?.id??null,slotSkills(R,u)[0]?.id);}}
     return won;
   };
   const evolveAll=()=>{for(const u of team)while(canEvolve(R,u,parts)){const c=evoChoices(R,u,rnd);u.stage=(u.stage+1) as Stage;if(c.length)u.evoAugs.push(c[Math.floor(rnd()*c.length)].id);}};
