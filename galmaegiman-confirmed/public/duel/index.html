@@ -393,7 +393,10 @@ header h1,header small,.chap h2{color:var(--ink)}
 .dbox .say{color:var(--ink)}
 .dbox .tk .ghost{background:transparent;border:1.5px solid var(--line);box-shadow:none;color:var(--dim)}
 .dbox .who{border:2px solid var(--edge);box-shadow:0 2px 0 rgba(60,35,15,.4)}
-.dbox.narr{background:rgba(255,247,228,.9)}
+.dbox.narr{background:rgba(255,247,228,.97)}
+.dbox.narr .say{color:var(--ink)}
+.dbox.tip .who{background:#dff0d6;color:#2c4a22}
+.dbox{-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
 .place,.mute{background:rgba(255,247,228,.92);color:var(--ink);border:2px solid var(--edge)}
 /* 물리·마법은 색 대신 기호(정보 표시가 버튼 색과 겨루지 않게) */
 i.cat{background:transparent !important;border:1.5px solid var(--line);color:var(--dim) !important;font-weight:700}
@@ -520,6 +523,25 @@ i.cat.phys::before{content:"⚔ "}i.cat.mag::before{content:"✦ "}
 @media (orientation:portrait){.title{background-position:22% 50%}.mon.me{height:52%;left:-2%;bottom:-4%}.plat.me{width:52%}}
 /* 로비: 게임 이름을 뺀 만큼 대표 그림 영역을 낮게 */
 .ts .hero{min-height:0}
+
+/* ════ 검토 반영(v0.9.88) ════ */
+/* 첫 화면: 버튼을 아래 부두 쪽에, 게임 이름과 같은 크림·갈색 팻말로(그림과 한 세트). 아래는 땅처럼 어둡게 */
+.title{justify-content:space-between}
+.title::before{background:radial-gradient(ellipse at 50% 22%,rgba(255,240,200,.3),transparent 55%),linear-gradient(transparent 62%,rgba(45,25,8,.35) 78%,rgba(35,18,5,.72))}
+.tgo{font-size:clamp(20px,2.6vw,28px);padding:10px 44px;color:#4a2a10;letter-spacing:.08em;text-shadow:none;
+  background:linear-gradient(#fffaf0,#f6dfae);border:3px solid #4a2a10;box-shadow:0 5px 0 #4a2a10,0 10px 24px rgba(30,15,5,.5);animation:none}
+.tgo:active{transform:translateY(4px);box-shadow:0 1px 0 #4a2a10}
+.title .tgo{position:relative}
+/* 로비: 배경 그림을 흐리고 어둡게 → 칸이 그림 앞에 놓인 느낌 */
+.lbg{position:absolute;inset:-20px;z-index:0 !important;background:var(--key) center 40%/cover no-repeat;filter:blur(7px) saturate(.85) brightness(.72);pointer-events:none}
+.ts{background-image:none !important;background-color:#3b2614;overflow:hidden}
+.ts::before{z-index:0;background:linear-gradient(rgba(40,22,8,.15),rgba(40,22,8,.35)) !important}
+.ts>*:not(.lbg){z-index:1}
+@media (orientation:landscape) and (max-height:600px), (orientation:landscape) and (min-width:900px){
+  .ts{background-image:none !important}
+  /* 위쪽엔 흐리지 않은 그림 띠를 살짝(장소감), 아래 칸들은 흐린 바탕 위 */
+  .hero{position:relative;min-height:28vh}
+}
 </style>
 </head>
 <body>

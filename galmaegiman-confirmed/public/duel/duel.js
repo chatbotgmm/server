@@ -113,10 +113,10 @@ const AMB = {
   ink: [['drop', 14], ['paper', 5]], deep: [['bubble', 16], ['ray', 3]], market: [['dust', 18], ['cloud', 2]],
   strait: [['cloud', 5], ['spray', 12], ['glint', 6]], sky: [['cloud', 6], ['feather2', 10]], nest: [['feather2', 8], ['ember', 14]],
 };
-function ambient(scene) {
+function ambient(scene, painted = false) {   // painted: 그림이 깔린 화면 → 그림에 이미 있는 구름·물 반짝임·물보라는 빼고(얼룩처럼 보여서)
   let t = 7; for (const ch of scene || 'harbor') t = (t * 31 + ch.charCodeAt(0)) >>> 0;
   const r = () => { t = (t * 1103515245 + 12345) >>> 0; return (t >>> 8) / 16777216; };
-  return `<div class="amb" aria-hidden="true">${(AMB[scene] ?? AMB.harbor).flatMap(([k, n]) => Array.from({ length: n }, () =>
+  return `<div class="amb" aria-hidden="true">${(AMB[scene] ?? AMB.harbor).filter(([k]) => !painted || !['cloud', 'glint', 'spray'].includes(k)).flatMap(([k, n]) => Array.from({ length: n }, () =>
     `<i class="a-${k}" style="--x:${(r() * 100).toFixed(1)}%;--y:${(r() * 100).toFixed(1)}%;--s:${(0.6 + r() * 0.8).toFixed(2)};--d:${(6 + r() * 14).toFixed(1)}s;--dl:-${(r() * 20).toFixed(1)}s"></i>`)).join('')}</div>`;
 }
 const bgStyle = scene => BG.includes(scene) ? `background:url(${BASE}/duel/bg/${scene}.jpg${q}) center/cover` : '';
@@ -197,7 +197,7 @@ function titleScreen(loggedIn) {
   modal.hidden = true; muteBtn(); if (R) bgm('title');
   const art = APP ? 'title.jpg' : BG.includes('key') ? `${BASE}/duel/bg/key.jpg${q}` : '';
   const login = APP ? 'my.html?next=game' : '/my?next=duel';
-  app.innerHTML = `<div class="title" style="${art ? `background-image:url(${art})` : ''}">${ambient('harbor')}
+  app.innerHTML = `<div class="title" style="${art ? `background-image:url(${art})` : ''}">${ambient('harbor', true)}
     <div class="tlogo"><b><span class="stroke">${esc(GAME.name)}</span><span class="fill">${esc(GAME.name)}</span></b><small>${esc(GAME.sub)}</small></div>
     ${loggedIn ? '<button class="tgo" id="tgo">▶ 게임 시작</button>' : `<a class="tgo" href="${login}">로그인</a>`}
     ${loggedIn && ACC ? `<span class="tacc"><img src="${APP ? 'gull.png' : '/gull.png'}" alt="">${esc(ACC.nickname || '내 계정')}</span>` : ''}</div>`;
@@ -212,8 +212,8 @@ function menu() {
   const who = ACC ? `<span class="badge"><img src="${gull}" alt="">${esc(ACC.nickname || '내 계정')}</span>`
     : '';
   // 세로: 항구 배경 + 위쪽 대표 그림 / 가로(앱): 대표 그림을 화면 전체에
-  app.innerHTML = `<div class="ts" style="${bg};${hero ? `--key:url(${BASE}/duel/bg/key.jpg${q})` : ''}">
-    ${ambient('harbor')}<div class="hero ${hero ? '' : 'noart'}" style="${hero}">${who}
+  app.innerHTML = `<div class="ts" style="${bg};${hero ? `--key:url(${BASE}/duel/bg/key.jpg${q})` : ''}"><div class="lbg" aria-hidden="true"></div>
+    ${ambient('harbor', true)}<div class="hero ${hero ? '' : 'noart'}" style="${hero}">${who}
 </div>
     <div class="tmid">${nowCard()}
     <div class="two"><button id="st"><i>📖</i>스토리</button><button id="fr"><i>⚔️</i>자유 대결</button></div></div>
@@ -410,7 +410,7 @@ function talk(lines, opt = {}) {
     let i = 0, typing = null, full = '';
     const foeId = lines.find(l => /^[VDTEIN]\d+$/.test(l.who))?.who;
     modal.className = 'scene-on';
-    modal.innerHTML = `<div class="scene sc-${opt.scene || 'harbor'}">${bgStyle(opt.scene || 'harbor') ? `<div class="kb" style="${bgStyle(opt.scene || 'harbor')}"></div>` : ''}${ambient(opt.scene || 'harbor')}
+    modal.innerHTML = `<div class="scene sc-${opt.scene || 'harbor'}">${bgStyle(opt.scene || 'harbor') ? `<div class="kb" style="${bgStyle(opt.scene || 'harbor')}"></div>` : ''}${ambient(opt.scene || 'harbor', !!bgStyle(opt.scene || 'harbor'))}
       ${opt.title ? `<div class="place">${esc(opt.title)}</div>` : ''}
       <img class="por me" id="pMe" src="${sprite(lead.id, 'front', SAVE.units[lead.id]?.stage ?? 0)}" alt="">
       <img class="por foe" id="pFoe" alt="" ${foeId ? '' : 'hidden'}>
