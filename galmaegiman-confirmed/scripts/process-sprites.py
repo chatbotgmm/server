@@ -7,6 +7,7 @@
 # 사용: python3 scripts/process-sprites.py D1 D2 ...   (아무것도 안 주면 art/gpt·art/raw 전부)
 #   flip=front  앞모습을 좌우반전(상대는 화면 왼쪽의 내 갈매미를 봐야 함. GPT 첫 시트는 앞모습이 모두 오른쪽을 봐서 이걸로 뒤집음)
 #   flip=back / flip=both 도 가능
+# 승진 단계: stage=3 → art/gpt/<ID>_s3_front.png·_s3_back.png(split-grade-sheet.py stage=3 결과)를 public/battle/sprites/<ID>_s3_front·back.png 로
 import sys, os, glob, subprocess, tempfile
 from PIL import Image
 
@@ -60,7 +61,9 @@ def is_transparent(im):
     a = im.getchannel('A'); w, h = im.size
     return all(a.getpixel(p) < 10 for p in [(1, 1), (w - 2, 1), (1, h - 2), (w - 2, h - 2)])
 
-FLIP = dict(v.split('=', 1) for v in sys.argv[1:] if '=' in v).get('flip', '')
+OPTS = dict(v.split('=', 1) for v in sys.argv[1:] if '=' in v)
+FLIP, STAGE = OPTS.get('flip', ''), int(OPTS.get('stage', 0))
+TAG = f'_s{STAGE}' if STAGE else ''   # art/gpt 파일 이름 안의 단계 표시
 sys.argv = [v for v in sys.argv if '=' not in v]
 
 def load_panel(path):
@@ -79,11 +82,11 @@ def pair_sheet(front, back):
 def main():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     ids = sys.argv[1:] or sorted({os.path.basename(p).split('_')[0] for p in
-                                  glob.glob(os.path.join(root, 'art/raw/*_s0.png')) + glob.glob(os.path.join(root, 'art/gpt/*_front.png'))})
+                                  ([] if STAGE else glob.glob(os.path.join(root, 'art/raw/*_s0.png'))) + glob.glob(os.path.join(root, f'art/gpt/*{TAG}_front.png'))})
     out = os.path.join(root, 'public/battle/sprites'); os.makedirs(out, exist_ok=True)
     for i in ids:
         src = os.path.join(root, f'art/raw/{i}_s0.png')
-        gf, gb = (os.path.join(root, f'art/gpt/{i}_{s}.png') for s in ('front', 'back'))
+        gf, gb = (os.path.join(root, f'art/gpt/{i}{TAG}_{s}.png') for s in ('front', 'back'))
         with tempfile.TemporaryDirectory() as t:
             keyed_path = os.path.join(t, 'keyed.png')
             if os.path.exists(gf) and os.path.exists(gb):
@@ -92,7 +95,7 @@ def main():
                 if FLIP in ('back', 'both'): bk = bk.transpose(Image.FLIP_LEFT_RIGHT)
                 keyed, cut = pair_sheet(f, bk); keyed.save(keyed_path)
                 slice_pair(root, i, keyed_path, out, cut); continue
-            if not os.path.exists(src): print(f'{i}: 원본 없음'); continue
+            if STAGE or not os.path.exists(src): print(f'{i}: 원본 없음(앞·뒤 둘 다 있어야 함)'); continue
             # 칸마다 따로 배경 제거(시트 전체로 하면 뒷모습 몸통이 반투명해지는 경우가 있었음)
             # 칸마다 '시트 전체로 지운 결과'와 '칸만 지운 결과' 중 캐릭터(불투명 픽셀)가 더 많이 남은 쪽을 씀
             raw = Image.open(src).convert('RGB'); whole = remove_bg(raw); cut = middle_cut(whole); w, h = raw.size
@@ -104,7 +107,7 @@ def main():
 
 def slice_pair(root, i, keyed_path, out, cut):
     r = subprocess.run([sys.executable, '-I', os.path.join(root, 'scripts/slice-sprites.py'), keyed_path, out,
-                        f'{i}_s0_front,{i}_s0_back', 'auto', '512', f'split={cut}', 'anchor=box'], capture_output=True, text=True)
+                        f'{i}_s{STAGE}_front,{i}_s{STAGE}_back', 'auto', '512', f'split={cut}', 'anchor=box'], capture_output=True, text=True)
     print(f'{i}: ' + (r.stdout.strip().replace('\n', ' | ') or r.stderr.strip()[-300:]))
 
 main()

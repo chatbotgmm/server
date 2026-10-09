@@ -35,9 +35,11 @@ export function registerDuel(app:FastifyInstance,content:Content,opt:{root:strin
       for(const c of story.chapters)for(const l of [...c.stages.flatMap(st=>[...st.before,...st.after,...(st.lose??[])]),...(c.clear??[])])
         if(/^[DTEIN]\d+$/.test(l.who)){const u=content.map.get(l.who);if(u)names[l.who]=u.name;}
       const bgArt=(await readdir(resolve(opt.root,'public/battle/bg')).catch(()=>[] as string[])).map(f=>/^([a-z]+)\.jpg$/.exec(f)?.[1]).filter((v):v is string=>!!v);
+      // 승진 단계 그림(D1_s1_front.png … s3): 있는 것만 알려 줌. 없으면 화면이 원형 그림 + 빛 효과
+      const stageArt=(await readdir(resolve(opt.root,'public/battle/sprites')).catch(()=>[] as string[])).map(f=>/^([DTEI]\d_s[1-3]_(front|back))\.png$/.exec(f)?.[1]).filter((v):v is string=>!!v);
       // 아이템·증강체 아이콘(public/battle/icons/potion.png): 없으면 화면이 글자 그림(이모지)
       const iconArt=(await readdir(resolve(opt.root,'public/battle/icons')).catch(()=>[] as string[])).map(f=>/^([a-z]+)\.png$/.exec(f)?.[1]).filter((v):v is string=>!!v);
-      return reply.header('Cache-Control','no-store').send({rules:R.data,units,story,villainArt,names,bgArt,iconArt});
+      return reply.header('Cache-Control','no-store').send({rules:R.data,units,story,villainArt,names,bgArt,iconArt,stageArt});
     }catch(e){return reply.code(500).send({error:(e as Error).message});}
   });
   // 배경 그림(public/battle/bg/harbor.jpg): 없으면 화면이 색 그라데이션으로 그림

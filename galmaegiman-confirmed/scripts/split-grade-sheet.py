@@ -6,6 +6,7 @@
 # 배경: 진짜 투명이면 그대로, 아니면 rembg(isnet-anime)로 지움
 # 칸이 고른 격자 시트(예: 33종 11×3, 칸 왼쪽 위에 번호 글자): grid=11x3 label=50 → 칸대로 자르고 칸 위쪽 50px(글자)를 지움
 #   등급 자리에 ALL을 주면 순서 D1~D8, T1~T8, E1~E8, I1~I9
+# 승진 단계 시트(GPT evo_D_s3_front.png 등): stage=3 → art/gpt/<ID>_s3_<front|back>.png
 import sys, os
 import numpy as np
 from PIL import Image
@@ -18,6 +19,7 @@ n = int(args[3]) if len(args) > 3 else (9 if grade == 'I' else 8)
 ALL = [f'{g}{k}' for g, m in (('D', 8), ('T', 8), ('E', 8), ('I', 9)) for k in range(1, m + 1)]
 ids = opts['order'].split(',') if 'order' in opts else ALL if grade == 'ALL' else [f'{grade}{k}' for k in range(1, n + 1)]
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+stg = f"_s{opts['stage']}" if opts.get('stage') else ''   # 승진 단계 그림이면 파일 이름에 _s<단계>
 
 im = Image.open(src).convert('RGBA'); w, h = im.size
 a = np.asarray(im)[:, :, 3]
@@ -36,7 +38,7 @@ if 'grid' in opts:   # 격자 시트: 칸대로 자르기
         cell = px[y0:y0 + ch, x0:x0 + cw].copy(); cell[:lab_h, :, 3] = 0
         img = Image.fromarray(cell); box = img.getchannel('A').point(lambda v: 255 if v > 24 else 0).getbbox()
         if not box: print(f'{uid}_{side}: 빈 칸'); continue
-        img = img.crop(box); img.save(os.path.join(out, f'{uid}_{side}.png'))
+        img = img.crop(box); img.save(os.path.join(out, f'{uid}{stg}_{side}.png'))
         edge = [box[0] <= 1, box[2] >= cw - 1, box[1] <= lab_h + 1, box[3] >= ch - 1]
         print(f'{uid}_{side}: {img.size}' + ('  ! 칸 가장자리에 닿음(잘렸을 수 있음)' if any(edge) else ''))
     sys.exit(0)
@@ -75,5 +77,5 @@ for uid, b in zip(ids, seq):
     keep = np.isin(lab, [j for j, o in owner.items() if o == b]) & mask
     one = px.copy(); one[:, :, 3] = np.where(keep, px[:, :, 3], 0)
     img = Image.fromarray(one); img = img.crop(img.getchannel('A').getbbox())
-    path = os.path.join(out, f'{uid}_{side}.png'); img.save(path)
+    path = os.path.join(out, f'{uid}{stg}_{side}.png'); img.save(path)
     print(f'{uid}_{side}: {img.size}')

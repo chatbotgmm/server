@@ -8,7 +8,7 @@ GPT는 이 파일과 `docs/GPT-ART-HANDOFF.md`(올리는 규칙)를 읽고, 아�
 - 할 일 4~6: 완료, 게임에 넣음(v0.9.75). 배경 9곳·아이콘 20개·마을 회관 방송 얼굴.
 - 할 일 7: 완료, 넣음(v0.9.77). 사이트·앱·플레이 아이콘, 시작 화면. 마을 회관 방송은 얼굴 없는 확성기로 고친 그림으로 바꿈.
 - 할 일 8: 완료, 넣음(v0.9.78). 게임 첫 화면 제목 뒤 + 구글 플레이 그래픽 이미지(app/store/feature-graphic-1024x500.jpg).
-- **지금 남은 할 일 없음.** 새 그림이 필요해지면 Claude가 여기에 할 일 9부터 추가해요.
+- 할 일 9~32(승진 1·2·3단계 그림 24장): 새로 추가, 남음. 9번부터 순서대로.
 
 ## 공통 규칙 (모든 할 일)
 - 그림체: 저장소의 `galmaegiman-confirmed/public/images/D1.png` 같은 갈매미맨 카드 그림과 같은 그림체(부드러운 채색, 갈색 외곽선, 귀엽지만 얄미운 악당). 무섭거나 징그럽지 않게.
@@ -102,6 +102,57 @@ Avoid: text, letters, numbers, watermark, frame, drop shadow, glow, background s
 - **위쪽 가운데 1/3은 하늘만**(그 자리에 Claude가 게임 이름 글자를 얹어요). 캐릭터는 아래쪽 2/3에.
 - 밝고 신나는 분위기, 무섭지 않게. 글자·로고·번호 없이.
 
+## 할 일 9~32 · 승진(진화) 1·2·3단계 그림 (24장)
+갈매미 33종(D·T·E 8종, I 9종)이 승진하면 바뀌는 모습. **할 일 하나 = 등급 하나 · 단계 하나 · 앞 또는 뒤 1장**, 표의 번호 순서대로.
+
+**참고 그림(꼭 열어 보기):** `galmaegiman-confirmed/art/ref/ref_<등급>_<front|back>.png` — 지금(원형) 모습을 **그려야 할 순서·배치 그대로** 모아 둔 시트예요. 같은 자리에 같은 캐릭터를 그려요(왼쪽 위부터 오른쪽, 다음 줄: D1, D2, …).
+2·3단계는 바로 앞 단계 결과(`gpt-art`의 `evo_<등급>_s<단계-1>_<front|back>.png`)도 같이 보고, 그 위에 한 단계 더 붙여요.
+
+### 모든 단계 공통
+- **같은 캐릭터예요.** 얼굴·눈·부리·몸 색·볏 모양·무늬·들고 있는 소품은 그대로 두고, 아래 「단계별로 더하는 것」만 더해요. 다른 캐릭터처럼 보이면 다시 그리기.
+- 칸 배치·순서·방향은 참고 시트와 똑같이: 앞모습은 보는 사람 기준 **화면 왼쪽**을 향해 몸을 살짝 튼 대기 자세, 뒷모습은 화면 오른쪽 위를 향함. 전신.
+- 진짜 투명 배경(안 되면 단색 #FF00FF). 그림자·빛 번짐·후광은 **캐릭터 밖으로 나가지 않게**(빛 효과는 Claude가 따로 넣어요). 칸끼리 닿지 않게. 글자·번호·숫자 없이.
+- 「속성 색」 = 게임 화면의 속성 색과 같게: 돌 베이지(#c9b48a), 황금 금색(#f0b93a), 불 주황빛 빨강(#f26b3a), 얼음 하늘색(#8fdcf5), 꽃 분홍(#f7a3c6), 바다 파랑(#3d94e6), 그림자 보라(#8a6bb8), 별 노랑(#ffe36e), 실 은빛 회색(#c3c6dc), 중력 남색(#5b63c9).
+
+### 단계별로 더하는 것 (직장 승진처럼)
+- **1단계 ★ 주임:** 목에 속성 색 끈의 작은 사원증. 볏 끝이 살짝 금빛. 표정이 조금 더 자신 있게. 나머지는 원형과 거의 같게.
+- **2단계 ★★ 과장:** 1단계 그대로 + 어깨에 속성 색 작은 견장(또는 스카프), 날개 끝·볏에 속성 색 무늬가 은은하게, 들고 있는 소품이 한 단계 멋있어짐(테두리·장식 추가). 자세가 더 당당하게.
+- **3단계 ★★★ 수비대장:** 2단계 그대로 + 등에 속성 색 짧은 망토, 가슴에 금빛 별 배지, 볏이 조금 더 크고 금빛 테두리, 소품이 가장 화려하게. 늠름하고 든든한 자세(무섭지 않게).
+
+### 등급별 속성 (칸 순서대로)
+- D: D1 돌 · D2 황금 · D3 그림자 · D4 바다 · D5 얼음 · D6 별 · D7 황금 · D8 실
+- T: T1 돌 · T2 불 · T3 그림자 · T4 중력 · T5 꽃 · T6 중력 · T7 얼음 · T8 실
+- E: E1 돌 · E2 황금 · E3 그림자 · E4 바다 · E5 꽃 · E6 별 · E7 실 · E8 불
+- I: I1 돌 · I2 불 · I3 그림자 · I4 바다 · I5 꽃 · I6 중력 · I7 실 · I8 중력 · I9 바다
+
+### 순서표
+| 할 일 | 단계 | 등급 | 앞/뒤 | 배치 | 참고 | 올릴 파일 이름 |
+|---|---|---|---|---|---|---|
+| 9 | 1단계 | D 8종 | 앞 | 4×2 | `art/ref/ref_D_front.png` | `evo_D_s1_front.png` |
+| 10 | 1단계 | D 8종 | 뒤 | 4×2 | `art/ref/ref_D_back.png` | `evo_D_s1_back.png` |
+| 11 | 1단계 | T 8종 | 앞 | 4×2 | `art/ref/ref_T_front.png` | `evo_T_s1_front.png` |
+| 12 | 1단계 | T 8종 | 뒤 | 4×2 | `art/ref/ref_T_back.png` | `evo_T_s1_back.png` |
+| 13 | 1단계 | E 8종 | 앞 | 4×2 | `art/ref/ref_E_front.png` | `evo_E_s1_front.png` |
+| 14 | 1단계 | E 8종 | 뒤 | 4×2 | `art/ref/ref_E_back.png` | `evo_E_s1_back.png` |
+| 15 | 1단계 | I 9종 | 앞 | 3×3 | `art/ref/ref_I_front.png` | `evo_I_s1_front.png` |
+| 16 | 1단계 | I 9종 | 뒤 | 3×3 | `art/ref/ref_I_back.png` | `evo_I_s1_back.png` |
+| 17 | 2단계 | D 8종 | 앞 | 4×2 | `art/ref/ref_D_front.png` + 1단계 결과 | `evo_D_s2_front.png` |
+| 18 | 2단계 | D 8종 | 뒤 | 4×2 | `art/ref/ref_D_back.png` + 1단계 결과 | `evo_D_s2_back.png` |
+| 19 | 2단계 | T 8종 | 앞 | 4×2 | `art/ref/ref_T_front.png` + 1단계 결과 | `evo_T_s2_front.png` |
+| 20 | 2단계 | T 8종 | 뒤 | 4×2 | `art/ref/ref_T_back.png` + 1단계 결과 | `evo_T_s2_back.png` |
+| 21 | 2단계 | E 8종 | 앞 | 4×2 | `art/ref/ref_E_front.png` + 1단계 결과 | `evo_E_s2_front.png` |
+| 22 | 2단계 | E 8종 | 뒤 | 4×2 | `art/ref/ref_E_back.png` + 1단계 결과 | `evo_E_s2_back.png` |
+| 23 | 2단계 | I 9종 | 앞 | 3×3 | `art/ref/ref_I_front.png` + 1단계 결과 | `evo_I_s2_front.png` |
+| 24 | 2단계 | I 9종 | 뒤 | 3×3 | `art/ref/ref_I_back.png` + 1단계 결과 | `evo_I_s2_back.png` |
+| 25 | 3단계 | D 8종 | 앞 | 4×2 | `art/ref/ref_D_front.png` + 2단계 결과 | `evo_D_s3_front.png` |
+| 26 | 3단계 | D 8종 | 뒤 | 4×2 | `art/ref/ref_D_back.png` + 2단계 결과 | `evo_D_s3_back.png` |
+| 27 | 3단계 | T 8종 | 앞 | 4×2 | `art/ref/ref_T_front.png` + 2단계 결과 | `evo_T_s3_front.png` |
+| 28 | 3단계 | T 8종 | 뒤 | 4×2 | `art/ref/ref_T_back.png` + 2단계 결과 | `evo_T_s3_back.png` |
+| 29 | 3단계 | E 8종 | 앞 | 4×2 | `art/ref/ref_E_front.png` + 2단계 결과 | `evo_E_s3_front.png` |
+| 30 | 3단계 | E 8종 | 뒤 | 4×2 | `art/ref/ref_E_back.png` + 2단계 결과 | `evo_E_s3_back.png` |
+| 31 | 3단계 | I 9종 | 앞 | 3×3 | `art/ref/ref_I_front.png` + 2단계 결과 | `evo_I_s3_front.png` |
+| 32 | 3단계 | I 9종 | 뒤 | 3×3 | `art/ref/ref_I_back.png` + 2단계 결과 | `evo_I_s3_back.png` |
+
 ---
 
 ## Claude가 하는 일 (받은 뒤)
@@ -111,7 +162,8 @@ Avoid: text, letters, numbers, watermark, frame, drop shadow, glow, background s
 - 할 일 6: `python3 -I scripts/place-art.py villains art/gpt/npc_hall.png 1x1 HALL` → 대사 화면에서 「마을 회관 방송」 얼굴로 씀
 - 할 일 7: `python3 -I scripts/make-icons.py art/gpt/app_icon.png` — 배경을 붙여 `public/icon-192/512(-maskable).png`, 파비콘, 안드로이드 앱 아이콘(`app/android` 적응형 아이콘)·시작 화면을 다시 만듦. 구글 플레이 아이콘(512×512)도 이걸로.
 - 할 일 8: 게임 첫 화면 위쪽 대표 그림 + 구글 플레이 「그래픽 이미지」(1024×500으로 잘라 냄).
+- 할 일 9~32: 앞·뒤 두 장이 다 오면(예: 9·10번) `python3 -I scripts/split-grade-sheet.py art/gpt/evo_D_s1_front.png D front stage=1` · `… evo_D_s1_back.png D back stage=1` → `python3 -I scripts/process-sprites.py stage=1` → `public/battle/sprites/D1_s1_front.png`… 넣으면 승진한 갈매미가 목록·대사·전투에서 바로 그 그림으로 나옴(없으면 원형 그림 + 빛).
 - 넣으면 대결·대사 화면이 임시 그림·색 대신 그 그림을 바로 씀(서버 다시 켤 필요 없음). 블랙 갈매미맨 거울·땅콩 단계는 8번 그림에 색만 바꿔 씀.
 
 ## 나중에 (지금은 하지 않기)
-- 진화 1·2·3단계 그림: 먼저 코드 연출(직급 배지·속성 빛·후광)로 만들고, 꼭 필요한 유닛만 나중에 그려요(전부 그리면 198장).
+- (없음)
