@@ -10,3 +10,6 @@ art/raw/
 
 # ChatGPT가 gpt-art 브랜치로 보낸 원본(작업 브랜치에는 결과만 올림)
 art/gpt/
+
+# 안드로이드 앱 파일은 apk 브랜치에(저장소 크기 때문에). 서버는 update.sh가 여기로 꺼냄
+public/app/

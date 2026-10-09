@@ -7,6 +7,8 @@ import {duelKey} from '../src/duel.js';
 import {GachaEngine} from '../src/gacha.js';
 import {GameError,type GameReply} from '../src/types.js';
 import {cardCost,CAROUSEL_TEXT_BUDGET,kakaoResponse} from '../src/kakao.js';
+import {existsSync} from 'node:fs';
+import {resolve} from 'node:path';
 const enabled=Boolean(process.env.TEST_DB_URL);
 const suite=enabled?describe:describe.skip;
 suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
@@ -954,11 +956,14 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await app.inject({method:'GET',url:'/icon-512.png'})).headers['content-type']).toBe('image/png');
       expect((await app.inject({method:'GET',url:'/'})).body).toContain('rel="manifest"');
       // 안드로이드 앱 내려받기(「내 갈매미」 맨 아래 설치 칸)
+      // 파일은 git이 아니라 apk 브랜치에서 update.sh가 꺼내 둠 → 없으면 404(설치 칸 숨김)
       const info=await app.inject({method:'GET',url:'/app/apk.json'});
-      expect(info.statusCode).toBe(200);expect(info.json()).toMatchObject({versionName:expect.any(String),versionCode:expect.any(Number)});
       const apk=await app.inject({method:'GET',url:'/app/galmaegiman-suhbidae.apk'});
-      expect(apk.headers['content-type']).toBe('application/vnd.android.package-archive');expect(apk.headers['content-disposition']).toContain('attachment');
-      expect(apk.rawPayload.subarray(0,2).toString()).toBe('PK');
+      if(existsSync(resolve(process.cwd(),'public/app/galmaegiman-suhbidae.apk'))){
+        expect(info.statusCode).toBe(200);expect(info.json()).toMatchObject({versionName:expect.any(String),versionCode:expect.any(Number)});
+        expect(apk.headers['content-type']).toBe('application/vnd.android.package-archive');expect(apk.headers['content-disposition']).toContain('attachment');
+        expect(apk.rawPayload.subarray(0,2).toString()).toBe('PK');
+      }else{expect(info.statusCode).toBe(404);expect(apk.statusCode).toBe(404);}
       expect((await app.inject({method:'GET',url:'/my'})).body).toContain('id="inst"');
     }finally{await app.close();}
   });
@@ -1247,7 +1252,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.75'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.76'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

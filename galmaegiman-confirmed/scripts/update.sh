@@ -17,6 +17,7 @@ main() {
   before="$(git -C "$repo" rev-parse HEAD)"
   git -C "$repo" fetch -q origin "$branch"
   after="$(git -C "$repo" rev-parse "origin/$branch")"
+  apk "$repo" "$app"
   if [ "$before" = "$after" ] && [ "$force" = 0 ]; then
     echo "이미 최신입니다 (${before:0:7}). 다시 설치하려면: 같은 명령 끝에 -f"
     health; checks; return 0
@@ -46,6 +47,20 @@ main() {
   sudo systemctl start "$service"
   health
   checks
+}
+
+# 안드로이드 앱 파일: 저장소를 키우지 않으려고 작업 브랜치가 아닌 apk 브랜치(최신 1개만)에 둠 → public/app/ 로 꺼냄(git 제외)
+# 코드 변경이 없어도 새 APK만 올라왔을 수 있어서 매번 확인. 실패해도 업데이트는 계속
+apk() {
+  local repo="$1" app="$2" dir="$2/public/app"
+  git -C "$repo" fetch -q origin apk 2>/dev/null || { echo "ℹ apk 브랜치 없음(앱 받기 칸 숨김)"; return 0; }
+  mkdir -p "$dir"
+  if git -C "$repo" show origin/apk:apk.json > "$dir/apk.json.new" 2>/dev/null && ! cmp -s "$dir/apk.json.new" "$dir/apk.json" \
+     && git -C "$repo" show origin/apk:galmaegiman-suhbidae.apk > "$dir/galmaegiman-suhbidae.apk.new"; then
+    mv "$dir/galmaegiman-suhbidae.apk.new" "$dir/galmaegiman-suhbidae.apk" && mv "$dir/apk.json.new" "$dir/apk.json"
+    echo "📲 앱 파일 갱신: $(grep -o '"versionName": "[^"]*"' "$dir/apk.json")"
+  fi
+  rm -f "$dir"/*.new
 }
 
 health() {
