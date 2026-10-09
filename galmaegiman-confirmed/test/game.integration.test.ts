@@ -636,12 +636,12 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       for(const url of ['/play/sprites/..%2Fgame.js','/play/sprites/Player.PNG','/play/sprites/nope.png'])expect((await app.inject({method:'GET',url})).statusCode).toBe(404);
       // 수비대 대결 시험판: 최상위 33종이 나오므로 비밀 키가 있어야만 열림, 엔진 묶음에는 이름·그림 없음
       const k=duelKey('s'.repeat(40));
-      for(const url of ['/duel','/duel?k=wrong','/duel/data.json','/duel/sprites/D1_s0_front.png','/duel/data.json?k='+k.slice(1)])expect((await app.inject({method:'GET',url})).statusCode).toBe(404);
+      for(const url of ['/duel','/duel?k=wrong','/duel/data.json','/duel/sprites/D1_s0_front.webp','/duel/data.json?k='+k.slice(1)])expect((await app.inject({method:'GET',url})).statusCode).toBe(404);
       expect(await get('/duel?k='+k)).toContain('<meta name="robots" content="noindex">');
       const duel=(await app.inject({method:'GET',url:'/duel/data.json?k='+k})).json() as {units:{id:string;name:string}[];rules:{version:string};story:{chapters:{stages:unknown[]}[]}};
       expect(duel.units).toHaveLength(33);expect(duel.rules.version).toBe('BATTLE_V1');expect(duel.story.chapters[0].stages.length).toBeGreaterThan(0);
-      expect((await app.inject({method:'GET',url:'/duel/sprites/D1_s0_back.png?k='+k})).headers['content-type']).toBe('image/png');
-      for(const url of ['/duel/sprites/..%2F..%2F.env?k='+k,'/duel/sprites/C1_s0_front.png?k='+k])expect((await app.inject({method:'GET',url})).statusCode).toBe(404);
+      expect((await app.inject({method:'GET',url:'/duel/sprites/D1_s0_back.webp?k='+k})).headers['content-type']).toMatch(/^image\/(webp|png)/);
+      for(const url of ['/duel/sprites/..%2F..%2F.env?k='+k,'/duel/sprites/C1_s0_front.webp?k='+k])expect((await app.inject({method:'GET',url})).statusCode).toBe(404);
       const js=await app.inject({method:'GET',url:'/duel/duel.js'});expect(js.statusCode).toBe(200);expect(js.body).not.toContain(content.map.get('D1')!.name);
       const world=await get('/world');
       expect(world).toContain('<h1>갈매미 섬 이야기</h1>');
@@ -1252,7 +1252,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.79'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.80'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

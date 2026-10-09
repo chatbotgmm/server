@@ -2,6 +2,7 @@
 // 최상위 33종의 이름·그림이 나오므로 공개하지 않고, 비밀 키(k)가 맞을 때만 열림(주소 확인: sudo -iu ubuntu node gmm/galmaegiman-confirmed/scripts/duel-link.mjs)
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { Content } from './content.js';
@@ -28,15 +29,15 @@ export function registerDuel(app:FastifyInstance,content:Content,opt:{root:strin
       const R=loadBattleRules(opt.root);
       const units=[...R.units.keys()].map(id=>{const c=content.map.get(id);return {id,name:c?.name??id,tier:c?.rarity??''};});
       const story=loadStory(opt.root,R);
-      // 빌런 그림(public/battle/sprites/V1_front.png)이 있는 것만 알려 줌. 없으면 화면이 임시 그림을 그림
-      const villainArt=(await readdir(resolve(opt.root,'public/battle/sprites')).catch(()=>[] as string[])).map(f=>/^(V\d+|HALL)_front\.png$/.exec(f)?.[1]).filter((v):v is string=>!!v);
+      // 빌런 그림(public/battle/sprites/V1_front.webp)이 있는 것만 알려 줌. 없으면 화면이 임시 그림을 그림
+      const villainArt=(await readdir(resolve(opt.root,'public/battle/sprites')).catch(()=>[] as string[])).map(f=>/^(V\d+|HALL)_front\.(webp|png)$/.exec(f)?.[1]).filter((v):v is string=>!!v);
       // 대사에 나오는 갈매미 이름(원금 갈매미맨·갈크탑·중성 갈매미 등)
       const names:Record<string,string>={};
       for(const c of story.chapters)for(const l of [...c.stages.flatMap(st=>[...st.before,...st.after,...(st.lose??[])]),...(c.clear??[])])
         if(/^[DTEIN]\d+$/.test(l.who)){const u=content.map.get(l.who);if(u)names[l.who]=u.name;}
       const bgArt=(await readdir(resolve(opt.root,'public/battle/bg')).catch(()=>[] as string[])).map(f=>/^([a-z]+)\.jpg$/.exec(f)?.[1]).filter((v):v is string=>!!v);
-      // 승진 단계 그림(D1_s1_front.png … s3): 있는 것만 알려 줌. 없으면 화면이 원형 그림 + 빛 효과
-      const stageArt=(await readdir(resolve(opt.root,'public/battle/sprites')).catch(()=>[] as string[])).map(f=>/^([DTEI]\d_s[1-3]_(front|back))\.png$/.exec(f)?.[1]).filter((v):v is string=>!!v);
+      // 승진 단계 그림(D1_s1_front.webp … s3): 있는 것만 알려 줌. 없으면 화면이 원형 그림 + 빛 효과
+      const stageArt=(await readdir(resolve(opt.root,'public/battle/sprites')).catch(()=>[] as string[])).map(f=>/^([DTEI]\d_s[1-3]_(front|back))\.(webp|png)$/.exec(f)?.[1]).filter((v):v is string=>!!v);
       // 아이템·증강체 아이콘(public/battle/icons/potion.png): 없으면 화면이 글자 그림(이모지)
       const iconArt=(await readdir(resolve(opt.root,'public/battle/icons')).catch(()=>[] as string[])).map(f=>/^([a-z]+)\.png$/.exec(f)?.[1]).filter((v):v is string=>!!v);
       return reply.header('Cache-Control','no-store').send({rules:R.data,units,story,villainArt,names,bgArt,iconArt,stageArt});
@@ -53,7 +54,9 @@ export function registerDuel(app:FastifyInstance,content:Content,opt:{root:strin
     return file(reply,'image/png',resolve(opt.root,'public/battle/icons',req.params.file));
   });
   app.get<{Params:{file:string};Querystring:{k?:string}}>('/duel/sprites/:file',async(req,reply)=>{
-    if(!ok(req.query.k)||!/^([DTEI]\d_s[0-3]_(front|back)|V\d+_front|HALL_front)\.png$/.test(req.params.file))return deny(reply);
-    return file(reply,'image/png',resolve(opt.root,'public/battle/sprites',req.params.file));
+    if(!ok(req.query.k)||!/^([DTEI]\d_s[0-3]_(front|back)|V\d+_front|HALL_front)\.webp$/.test(req.params.file))return deny(reply);
+    // webp(선명하게 키운 그림)가 없으면 같은 이름의 png로(그림을 바꾸는 중에도 화면이 깨지지 않게)
+    const f=resolve(opt.root,'public/battle/sprites',req.params.file);
+    return existsSync(f)?file(reply,'image/webp',f):file(reply,'image/png',f.replace(/\.webp$/,'.png'));
   });
 }

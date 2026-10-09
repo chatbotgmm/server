@@ -9,7 +9,7 @@ for g, n, (gx, gy) in (('D', 8, (4, 2)), ('T', 8, (4, 2)), ('E', 8, (4, 2)), ('I
     for side in ('front', 'back'):
         sheet = Image.new('RGBA', (gx * CELL, gy * CELL))
         for k in range(n):
-            im = Image.open(os.path.join(root, f'public/battle/sprites/{g}{k + 1}_s0_{side}.png')).convert('RGBA')
+            im = Image.open(os.path.join(root, f'public/battle/sprites/{g}{k + 1}_s0_{side}.webp')).convert('RGBA')
             im.thumbnail((CELL - 60, CELL - 60), Image.LANCZOS)
             x, y = (k % gx) * CELL, (k // gx) * CELL
             sheet.alpha_composite(im, (x + (CELL - im.width) // 2, y + CELL - 30 - im.height))

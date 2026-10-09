@@ -156,13 +156,14 @@ Avoid: text, letters, numbers, watermark, frame, drop shadow, glow, background s
 ---
 
 ## Claude가 하는 일 (받은 뒤)
+- 캐릭터 그림(빌런·갈매미·마을 사람)은 자른 뒤 `scripts/upscale-art.py`(애니메 그림용 AI 업스케일 ×2)로 높이 768px webp로 만들어 넣어요(폰에서 흐리지 않게, 용량은 png의 약 1/3).
 - 할 일 1~3: `python3 -I scripts/place-art.py villains art/gpt/villains_jju.png 3x2 V1,V2,V3,V4,V5,V6` (랍매미 `3x2 V7,V8,V9,V10,V11,-`, 끼룩단 `4x2 V12,V19,V13,V14,V16,V15,V20,V17`). 방향이 반대면 끝에 `flip`.
 - 할 일 4: `python3 -I scripts/place-art.py bg art/gpt/bg_all.png 3x3 harbor,ink,deep,hall,market,strait,laundry,sky,nest`
 - 할 일 5: `python3 -I scripts/place-art.py icons art/gpt/icons_all.png 5x4 potion,big,clear,feather,reverse,weakguard,focus,neutral,camo,dual,counter,learn,first,bulwark,firstaid,freeswitch,lastone,strip,rustle,peanut` → 화면의 글자 그림(이모지)을 이 아이콘으로 바꿈
 - 할 일 6: `python3 -I scripts/place-art.py villains art/gpt/npc_hall.png 1x1 HALL` → 대사 화면에서 「마을 회관 방송」 얼굴로 씀
 - 할 일 7: `python3 -I scripts/make-icons.py art/gpt/app_icon.png` — 배경을 붙여 `public/icon-192/512(-maskable).png`, 파비콘, 안드로이드 앱 아이콘(`app/android` 적응형 아이콘)·시작 화면을 다시 만듦. 구글 플레이 아이콘(512×512)도 이걸로.
 - 할 일 8: 게임 첫 화면 위쪽 대표 그림 + 구글 플레이 「그래픽 이미지」(1024×500으로 잘라 냄).
-- 할 일 9~32: 앞·뒤 두 장이 다 오면(예: 9·10번) `python3 -I scripts/split-grade-sheet.py art/gpt/evo_D_s1_front.png D front stage=1` · `… evo_D_s1_back.png D back stage=1` → `python3 -I scripts/process-sprites.py stage=1` → `public/battle/sprites/D1_s1_front.png`… 넣으면 승진한 갈매미가 목록·대사·전투에서 바로 그 그림으로 나옴(없으면 원형 그림 + 빛).
+- 할 일 9~32: 앞·뒤 두 장이 다 오면(예: 9·10번) `python3 -I scripts/split-grade-sheet.py art/gpt/evo_D_s1_front.png D front stage=1` · `… evo_D_s1_back.png D back stage=1` → `python3 -I scripts/process-sprites.py stage=1` → 선명하게 키워 webp로: `python3 -I scripts/upscale-art.py public/battle/sprites/*_s1_*.png out=public/battle/sprites webp` 후 그 png 지움 → `public/battle/sprites/D1_s1_front.webp`… 넣으면 승진한 갈매미가 목록·대사·전투에서 바로 그 그림으로 나옴(없으면 원형 그림 + 빛).
 - 넣으면 대결·대사 화면이 임시 그림·색 대신 그 그림을 바로 씀(서버 다시 켤 필요 없음). 블랙 갈매미맨 거울·땅콩 단계는 8번 그림에 색만 바꿔 씀.
 
 ## 나중에 (지금은 하지 않기)

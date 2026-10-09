@@ -130,11 +130,11 @@ header small{color:var(--dim)}
 .tint-peanut-art,.por.on.tint-peanut-art,.vs img.tint-peanut-art{filter:drop-shadow(0 0 12px #ffd34d) drop-shadow(0 0 4px #ffd34d)}
 .por.card{height:30%;border-radius:12px}
 .dbox.ally .who{align-self:flex-end;background:#3f8f6b;color:#fff}
-.place{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.55);color:#fff;font-size:14px;font-weight:400;letter-spacing:.05em;padding:5px 12px;border-radius:999px}
-.por{position:absolute;bottom:31%;height:36%;max-width:58%;object-fit:contain;transition:filter .25s,transform .25s,opacity .25s;filter:brightness(.55) saturate(.6);opacity:.9}
-.por.me{left:-2%;transform:scaleX(-1)}
-.por.foe{right:-2%}
-.por.foe.bossp{height:44%}
+.place{position:absolute;top:calc(12px + var(--safe-area-inset-top, 0px));left:12px;background:rgba(0,0,0,.55);color:#fff;font-size:14px;font-weight:400;letter-spacing:.05em;padding:5px 12px;border-radius:999px}
+.por{position:absolute;bottom:31%;height:30%;max-width:46%;object-fit:contain;transition:filter .25s,transform .25s,opacity .25s;filter:brightness(.55) saturate(.6);opacity:.9}
+.por.me{left:-3%;transform:scaleX(-1)}
+.por.foe{right:-3%}
+.por.foe.bossp{height:36%;max-width:52%}
 .por.on{filter:none;opacity:1}
 .por.me.on{transform:scaleX(-1) translateY(-6px)}
 .por.foe.on{transform:translateY(-6px)}
@@ -261,7 +261,7 @@ button.mini{background:none;border:0;padding:0;color:var(--ink);display:flex;fle
 .chead{border-radius:16px;overflow:hidden;margin:12px 0 6px;min-height:120px;display:flex;align-items:flex-end;border:1px solid rgba(255,255,255,.12)}
 .chead h2{display:inline-block;margin:0 8px 4px 0;font-size:20px;color:#fff}
 .chap details>summary{cursor:pointer;color:var(--dim);font-size:13px;padding:4px 2px 8px;list-style:none}.chap details>summary::before{content:'▸ '}.chap details[open]>summary::before{content:'▾ '}
-.mute{position:fixed;top:10px;right:10px;z-index:60;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.45);font-size:18px;line-height:1;cursor:pointer}
+.mute{position:fixed;top:calc(10px + var(--safe-area-inset-top, 0px));right:10px;z-index:60;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.45);font-size:18px;line-height:1;cursor:pointer}
 </style>
 </head>
 <body>

@@ -37,13 +37,13 @@ let onEnd = null;  // 대결이 끝나면 부를 함수(자유 대결 / 스토�
 let hintNow = ''; // 스테이지 도움말(첫 증강체 창에도 보여 줌)
 
 // ── 그림: 최상위는 앞·뒤 그림, 빌런은 그림이 있으면 그것, 없으면 코드로 그린 임시 그림 ──
-// 승진 단계 그림(public/battle/sprites/D1_s3_back.png)이 있으면 그것, 없으면 원형 그림(+빛 효과)
-const sprite = (id, side, stage = 0) => id.startsWith('V') ? villainArt(id) : `${BASE}/duel/sprites/${id}_s${stage && EVO.has(`${id}_s${stage}_${side}`) ? stage : 0}_${side}.png${q}`;
+// 승진 단계 그림(public/battle/sprites/D1_s3_back.webp)이 있으면 그것, 없으면 원형 그림(+빛 효과)
+const sprite = (id, side, stage = 0) => id.startsWith('V') ? villainArt(id) : `${BASE}/duel/sprites/${id}_s${stage && EVO.has(`${id}_s${stage}_${side}`) ? stage : 0}_${side}.webp${q}`;
 function villainArt(id) {
-  if (ART.includes(id)) return `${BASE}/duel/sprites/${id}_front.png${q}`;
+  if (ART.includes(id)) return `${BASE}/duel/sprites/${id}_front.webp${q}`;
   // 블랙 갈매미맨: 그림(V17)이 있으면 거울·땅콩 단계도 그 그림에 색만 바꿔 씀, 없으면 원형(look) 그림을 검게 칠해 씀
   const vd = R.data.villains[id];
-  if (vd?.tint && ART.includes('V17')) return `${BASE}/duel/sprites/V17_front.png${q}`;
+  if (vd?.tint && ART.includes('V17')) return `${BASE}/duel/sprites/V17_front.webp${q}`;
   if (vd?.look) return sprite(vd.look, 'front');
   const v = R.villains.get(id), c = { V1: '#d9805a', V2: '#5b4a78', V3: '#e98fa6', V4: '#bfe3f2', V5: '#c4573f', V6: '#8e3b46' }[id] ?? '#d9805a';
   let svg;
@@ -89,7 +89,7 @@ function villainArt(id) {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">${svg}</svg>`)}`;
 }
 
-// 대사에 얼굴이 있는 마을 사람(이름 → 그림 public/battle/sprites/HALL_front.png)
+// 대사에 얼굴이 있는 마을 사람(이름 → 그림 public/battle/sprites/HALL_front.webp)
 const NPC = { '마을 회관 방송': 'HALL' };
 // 아이템·증강체 그림(public/battle/icons/potion.png): 없으면 글자 그림(이모지)
 const ico = (id, emoji) => ICONS.includes(id) ? `<img class="ico" src="${BASE}/duel/icons/${id}.png" alt="">` : emoji;
@@ -371,7 +371,7 @@ function talk(lines, opt = {}) {
     const draw = () => {
       const l = lines[i], v = /^V\d+$/.test(l.who) ? R.villains.get(l.who) : null, ally = /^[DTEIN]\d+$/.test(l.who) ? l.who : null;
       const npc = NPC[l.who] && ART.includes(NPC[l.who]) ? NPC[l.who] : null;
-      const pic = npc ? `${BASE}/duel/sprites/${npc}_front.png${q}` : v ? sprite(l.who, 'front') : ally ? (R.units.has(ally) ? sprite(ally, 'front') : `${BASE}/thumbs/${ally}.jpg`) : null;
+      const pic = npc ? `${BASE}/duel/sprites/${npc}_front.webp${q}` : v ? sprite(l.who, 'front') : ally ? (R.units.has(ally) ? sprite(ally, 'front') : `${BASE}/thumbs/${ally}.jpg`) : null;
       if (pic) { const p = $('pFoe'); p.hidden = false; if (p.dataset.src !== pic) { p.src = pic; p.dataset.src = pic; p.classList.toggle('bossp', !!v?.boss); p.classList.toggle('card', !!ally && !R.units.has(ally)); setTint(p, l.who); } }
       const speaker = l.who === 'ME' ? 'me' : v ? 'foe' : ally || npc ? 'ally' : '';
       $('pMe').classList.toggle('on', speaker === 'me'); $('pFoe').classList.toggle('on', speaker === 'foe' || speaker === 'ally');
