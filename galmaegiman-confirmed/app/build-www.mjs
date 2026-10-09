@@ -17,15 +17,15 @@ html = html.replace(/<!--install-->[\s\S]*?<!--\/install-->\n?/, '')   // 웹의
 if (!html.includes('src="app.js"') || html.includes('id="inst"')) throw new Error('index.html 에서 my.js 줄 또는 앱 설치 칸 표시(<!--install-->)를 못 찾았어요');
 // 화면 안 그림 경로(/gull.png 등)는 앱 안 파일로
 html = html.replaceAll('href="/favicon.png"', 'href="favicon.png"').replaceAll('href="/icon-192.png"', 'href="icon-192.png"');
-writeFileSync(resolve(out, 'my.html'), html.replace(', viewport-fit=cover', ''));
+// 「내 갈매미」도 전체 화면: 노치만큼 안쪽으로
+writeFileSync(resolve(out, 'my.html'), html.replace('</style>', 'body{padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}\n</style>'));
 
 // 메인 = 「갈매미맨 수비대」(대결 게임): public/duel/index.html + 묶음 dist/duel/duel.js (먼저 루트에서 npm run build)
 let game = readFileSync(resolve(root, 'public/duel/index.html'), 'utf8');
 game = game.replace(/<script>if\('serviceWorker'[^<]*<\/script>\n?/, '').replace(/<link rel="manifest"[^>]*>/, '')
   .replace('<script type="module" src="/duel/duel.js"></script>', '<script src="app.js"></script>\n<script type="module" src="duel.js"></script>')
   .replaceAll('href="/favicon.png"', 'href="favicon.png"').replaceAll('href="/icon-192.png"', 'href="icon-192.png"');
-// 앱: 상태 표시줄 밑까지 그리지 않게(viewport-fit=cover를 빼면 Capacitor가 상태 표시줄·내비게이션 바만큼 띄워 줌)
-game = game.replace(', viewport-fit=cover', '');
+// 앱: 전체 화면(바 숨김)·노치 자리까지 그림. viewport-fit=cover 는 그대로 둬서 env(safe-area-inset-*)로 노치를 피함
 if (!game.includes('src="duel.js"')) throw new Error('duel index.html 에서 duel.js 줄을 못 찾았어요');
 writeFileSync(resolve(out, 'index.html'), game);
 writeFileSync(resolve(out, 'duel.js'), readFileSync(resolve(root, 'dist/duel/duel.js'), 'utf8').replaceAll('src="/gull.png"', 'src="gull.png"'));

@@ -2,9 +2,19 @@
   "appId": "org.dpdns.gmm",
   "appName": "갈매미맨 수비대",
   "webDir": "www",
-  "android": { "allowMixedContent": false },
-  "server": { "androidScheme": "https" },
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  },
   "plugins": {
-    "LocalNotifications": { "iconColor": "#2B7CC4" }
+    "LocalNotifications": {
+      "iconColor": "#2B7CC4"
+    },
+    "SystemBars": {
+      "hidden": true,
+      "insetsHandling": "disable"
+    }
   }
 }
