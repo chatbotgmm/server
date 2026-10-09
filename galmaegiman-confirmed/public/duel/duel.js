@@ -171,13 +171,19 @@ async function boot() {
 
 function menu() {
   modal.hidden = true; bgm('title'); muteBtn();
-  // 첫 화면: 게임 이름 + 스토리·자유 대결 + 챗봇 기능 바로가기(「내 갈매미」 탭)
-  const my = h => APP ? `my.html#${h}` : `/my#${h}`;
-  app.innerHTML = `<div class="gtitle${BG.includes('key') ? ' art' : ''}" style="${BG.includes('key') ? `background-image:url(${BASE}/duel/bg/key.jpg${q})` : ''}"><img src="${APP ? 'gull.png' : '/gull.png'}" alt=""><b>${esc(GAME.name)}</b><small>${esc(GAME.sub)}</small></div>
-  <p class="hint">${ACC ? `<img class="gi" src="/gull.png" alt=""> ${esc(ACC.nickname || '내 계정')}에 스토리 진행이 저장돼요. 스토리 대결에서 가진 아이템을 쓸 수 있어요.` : '스토리 진행이 이 브라우저에만 저장돼요. <a href="/my">내 갈매미</a>에서 로그인하면 계정에 저장되고 아이템도 쓸 수 있어요.'}</p>
-  ${contCard()}
-  <div class="menu"><button class="ghost" id="st">📖 스토리 전체 보기</button><button class="ghost" id="fr">⚔️ 자유 대결 (무작위 상대)</button></div>
-  <div class="gmenu">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '내 갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점'], ['account', '⚙️', '계정']].map(([h, i, t]) => `<a href="${my(h)}"><i>${i}</i>${t}</a>`).join('')}</div>`;
+  // 첫 화면(게임 타이틀): 항구 배경 + 대표 그림·제목 + 큰 「이어하기」 + 스토리·자유 대결 + 챗봇 기능 아이콘 줄(「내 갈매미」 탭)
+  const my = h => APP ? `my.html#${h}` : `/my#${h}`, gull = APP ? 'gull.png' : '/gull.png';
+  const bg = BG.includes('harbor') ? `background-image:url(${BASE}/duel/bg/harbor.jpg${q})` : '';
+  const hero = BG.includes('key') ? `background-image:url(${BASE}/duel/bg/key.jpg${q})` : '';
+  const who = ACC ? `<span class="badge"><img src="${gull}" alt="">${esc(ACC.nickname || '내 계정')}</span>`
+    : `<a class="badge out" href="${my('account')}">로그인하면 진행이 계정에 저장돼요 ›</a>`;
+  app.innerHTML = `<div class="ts" style="${bg}">
+    <div class="hero ${hero ? '' : 'noart'}" style="${hero}">${who}
+      <div class="logo"><b>${esc(GAME.name)}</b><small>${esc(GAME.sub)}</small></div></div>
+    <div class="mid">${nowCard()}
+    <div class="two"><button id="st"><i>📖</i>스토리</button><button id="fr"><i>⚔️</i>자유 대결</button></div></div>
+    ${squad()}
+    <nav class="dock">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점'], ['account', '⚙️', '계정']].map(([h, i, t]) => `<a href="${my(h)}"><i>${i}</i><span>${t}</span></a>`).join('')}</nav></div>`;
   app.querySelector('#st').onclick = storyScreen;
   app.querySelector('#fr').onclick = () => pickScreen('free');
   app.querySelector('#go')?.addEventListener('click', () => {
@@ -193,15 +199,20 @@ function nextStage() {
   const all = stages();
   return all.find(s => unlocked(s.id) && !SAVE.cleared.includes(s.id)) ?? all.find(s => !SAVE.cleared.includes(s.id)) ?? null;
 }
-// 첫 화면 「이어하기」 카드: 지금 이야기(부·스테이지·줄거리)와 진행률
-function contCard() {
+// 첫 화면 내 수비대(스토리 팀 셋, 승진 그림 반영). 팀이 없으면 비워 둠
+function squad() {
+  const team = SAVE.team.length === 3 ? SAVE.team : [];
+  if (!team.length) return '<div class="squad empty"><span>스토리를 시작하면 내 수비대가 여기 서요</span></div>';
+  return `<div class="squad">${team.map((id, i) => `<img src="${sprite(id, 'front', SAVE.units[id]?.stage ?? 0)}" style="animation-delay:${i * .4}s" alt="">`).join('')}</div>`;
+}
+// 첫 화면 「지금 이야기」: 부·스테이지·진행률 한 줄 + 큰 이어하기 버튼
+function nowCard() {
   const all = stages(), st = nextStage(), done = SAVE.cleared.length, pct = Math.round(done / all.length * 100);
-  if (!st) return `<div class="cont sc-hall"><small>모든 이야기를 끝냈어요!</small><b>🎖 수비대장 취임</b><p>깬 스테이지에 다시 도전해 레벨을 올리거나, 자유 대결을 해 보세요.</p><div class="prog"><i style="width:100%"></i></div><button class="big" id="go">📖 이야기 다시 보기</button></div>`;
-  const c = st.chapter, first = !done, line = c.intro || (st.before ?? []).find(l => l.who === 'N')?.say || '';
+  if (!st) return `<div class="now"><small>모든 이야기를 끝냈어요</small><b>🎖 수비대장 취임</b><div class="prog"><i style="width:100%"></i><em>${done}/${all.length}</em></div></div><button class="play" id="go">📖 이야기 다시 보기</button>`;
+  const c = st.chapter, first = !done;
   const lock = !unlocked(st.id) && c.needStage ? `<p class="need">🔒 팀 전원 ${c.needStage}단계 승진하면 열려요 (${STARS[c.needStage]})</p>` : '';
-  return `<div class="cont sc-${st.scene || 'harbor'}" style="${bgStyle(st.scene || 'harbor')}"><div class="in"><small>${esc(c.title)}</small><b>${esc(st.id)} ${esc(st.title)}</b>${line ? `<p>${esc(line)}</p>` : ''}${lock}
-    <div class="prog"><i style="width:${pct}%"></i></div><span class="pn">실적 ${done}/${all.length}</span>
-    <button class="big" id="go">${first ? '▶ 이야기 시작' : SAVE.team.length !== 3 ? '▶ 팀 정하고 이어하기' : '▶ 이어하기'}</button></div></div>`;
+  return `<div class="now"><small>${esc(c.title)}</small><b>${esc(st.id)} ${esc(st.title)}</b>${lock}<div class="prog"><i style="width:${pct}%"></i><em>${done}/${all.length}</em></div></div>
+    <button class="play" id="go"><span>${first ? '▶ 이야기 시작' : SAVE.team.length !== 3 ? '▶ 팀 정하고 이어하기' : '▶ 이어하기'}</span></button>`;
 }
 
 // ── 편성(자유 대결: 레벨 선택 / 스토리: 저장된 레벨) ──
