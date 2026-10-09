@@ -169,7 +169,7 @@ function menu() {
   modal.hidden = true; bgm('title'); muteBtn();
   // 첫 화면: 게임 이름 + 스토리·자유 대결 + 챗봇 기능 바로가기(「내 갈매미」 탭)
   const my = h => APP ? `my.html#${h}` : `/my#${h}`;
-  app.innerHTML = `<div class="gtitle"><img src="${APP ? 'gull.png' : '/gull.png'}" alt=""><b>${esc(GAME.name)}</b><small>${esc(GAME.sub)}</small></div>
+  app.innerHTML = `<div class="gtitle${BG.includes('key') ? ' art' : ''}" style="${BG.includes('key') ? `background-image:url(${BASE}/duel/bg/key.jpg${q})` : ''}"><img src="${APP ? 'gull.png' : '/gull.png'}" alt=""><b>${esc(GAME.name)}</b><small>${esc(GAME.sub)}</small></div>
   <p class="hint">${ACC ? `<img class="gi" src="/gull.png" alt=""> ${esc(ACC.nickname || '내 계정')}에 스토리 진행이 저장돼요. 스토리 대결에서 가진 아이템을 쓸 수 있어요.` : '스토리 진행이 이 브라우저에만 저장돼요. <a href="/my">내 갈매미</a>에서 로그인하면 계정에 저장되고 아이템도 쓸 수 있어요.'}</p>
   ${contCard()}
   <div class="menu"><button class="ghost" id="st">📖 스토리 전체 보기</button><button class="ghost" id="fr">⚔️ 자유 대결 (무작위 상대)</button></div>

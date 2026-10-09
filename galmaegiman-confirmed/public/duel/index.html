@@ -238,6 +238,14 @@ button.mini{background:none;border:0;padding:0;color:var(--ink);display:flex;fle
 .gtitle img{width:96px;height:96px;filter:drop-shadow(0 6px 12px rgba(0,0,0,.35));animation:bob 2.4s ease-in-out infinite}
 .gtitle b{font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:34px;letter-spacing:.02em;color:var(--gold);text-shadow:0 3px 0 rgba(0,0,0,.35)}
 .gtitle small{color:var(--dim);font-size:14px}
+/* 대표 그림(GPT 할 일 8)이 있으면 제목 뒤에: 위쪽 하늘에 글자, 아래는 화면 바탕색으로 스며듦 */
+.gtitle.art{position:relative;aspect-ratio:2/1;max-height:340px;justify-content:flex-start;padding-top:18px;margin:0 0 6px;background:center top/cover no-repeat;border-radius:0 0 22px 22px;overflow:hidden}
+.gtitle.art::after{content:"";position:absolute;inset:auto 0 0;height:28%;background:linear-gradient(transparent,var(--bg));pointer-events:none}
+.gtitle.art::before{content:"";position:absolute;inset:0 0 auto;height:48%;background:linear-gradient(rgba(12,45,85,.45),transparent);pointer-events:none}
+.gtitle.art>*{position:relative;z-index:1}
+.gtitle.art img{display:none}
+.gtitle.art b{color:#fff;font-size:38px;text-shadow:0 3px 0 #164b80,0 0 18px rgba(10,40,80,.45)}
+.gtitle.art small{color:#fff;font-size:15px;font-weight:700;text-shadow:0 1px 2px #0c2d55,0 0 8px rgba(10,40,80,.8)}
 @keyframes bob{50%{transform:translateY(-6px)}}
 .gmenu{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:8px 16px 24px}
 .gmenu a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 4px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:inherit;text-decoration:none;font-size:14px}
