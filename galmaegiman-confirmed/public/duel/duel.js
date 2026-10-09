@@ -188,10 +188,11 @@ function menu() {
   const hero = BG.includes('key') ? `background-image:url(${BASE}/duel/bg/key.jpg${q})` : '';
   const who = ACC ? `<span class="badge"><img src="${gull}" alt="">${esc(ACC.nickname || '내 계정')}</span>`
     : `<a class="badge out" href="${my('account')}">로그인하면 진행이 계정에 저장돼요 ›</a>`;
-  app.innerHTML = `<div class="ts" style="${bg}">
+  // 세로: 항구 배경 + 위쪽 대표 그림 / 가로(앱): 대표 그림을 화면 전체에
+  app.innerHTML = `<div class="ts" style="${bg};${hero ? `--key:url(${BASE}/duel/bg/key.jpg${q})` : ''}">
     <div class="hero ${hero ? '' : 'noart'}" style="${hero}">${who}
       <div class="logo"><b>${esc(GAME.name)}</b><small>${esc(GAME.sub)}</small></div></div>
-    <div class="mid">${nowCard()}
+    <div class="tmid">${nowCard()}
     <div class="two"><button id="st"><i>📖</i>스토리</button><button id="fr"><i>⚔️</i>자유 대결</button></div></div>
     ${squad()}
     <nav class="dock">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점'], ['account', '⚙️', '계정']].map(([h, i, t]) => `<a href="${my(h)}"><i>${i}</i><span>${t}</span></a>`).join('')}</nav></div>`;
