@@ -4,7 +4,7 @@
 #         → public/battle/sprites/V1_front.png (높이 512, 투명 배경, 칸마다 그림만 잘라 크기 맞춤)
 #           flip: 좌우 반전(빌런은 화면 오른쪽에서 왼쪽의 내 갈매미를 봐야 함)
 #   아이콘: python3 -I scripts/place-art.py icons <시트.png> <열x행> <potion,big,...>
-#         → public/battle/icons/potion.png (256×256, 투명 배경, 가운데 맞춤)
+#         → public/battle/icons/potion.png (128×128, 투명 배경, 가운데 맞춤, 옆 칸 조각 지움)
 #   배경: python3 -I scripts/place-art.py bg <시트.png> <열x행> <harbor,ink,...> [label=50]
 #         → public/battle/bg/harbor.jpg (가로 1024, 16:10으로 잘라 JPEG)
 import sys, os
@@ -49,11 +49,20 @@ elif kind == 'icons':
     for i, n in enumerate(names):
         if not n or n == '-': continue
         x0, y0 = (i % gx) * cw, (i // gx) * ch
-        c = im.crop((x0, y0, x0 + cw, y0 + ch)); box = c.getchannel('A').point(lambda v: 255 if v > 24 else 0).getbbox()
+        cell = np.array(im.crop((x0, y0, x0 + cw, y0 + ch))); a = cell[:, :, 3]
+        # 옆 칸에서 넘어온 조각 지우기: 칸 테두리에 닿은 덩어리 중 가장 큰 것(아이콘)만 남김. 안쪽 반짝이·선은 그대로
+        from scipy import ndimage
+        lbl, k = ndimage.label(a > 24)
+        if k > 1:
+            sizes = ndimage.sum(np.ones_like(lbl), lbl, range(1, k + 1)); main = int(np.argmax(sizes)) + 1
+            edge = set(np.unique(np.concatenate([lbl[0], lbl[-1], lbl[:, 0], lbl[:, -1]]))) - {0, main}
+            for e in edge: a[ndimage.binary_dilation(lbl == e, iterations=2)] = 0
+        c = Image.fromarray(cell); box = c.getchannel('A').point(lambda v: 255 if v > 24 else 0).getbbox()
         if not box: print(f'{n}: 빈 칸'); continue
-        c = c.crop(box); c.thumbnail((232, 232), Image.LANCZOS)
-        sq = Image.new('RGBA', (256, 256)); sq.paste(c, ((256 - c.width) // 2, (256 - c.height) // 2), c)
-        sq.save(os.path.join(out, f'{n}.png')); print(f'{n}.png')
+        # 화면에선 40px 안팎으로 작게 보여서 128px·256색으로 가볍게
+        c = c.crop(box); c.thumbnail((116, 116), Image.LANCZOS)
+        sq = Image.new('RGBA', (128, 128)); sq.paste(c, ((128 - c.width) // 2, (128 - c.height) // 2), c)
+        sq.quantize(colors=255, method=Image.FASTOCTREE).save(os.path.join(out, f'{n}.png'), optimize=True); print(f'{n}.png')
 elif kind == 'bg':
     out = os.path.join(root, 'public/battle/bg'); os.makedirs(out, exist_ok=True)
     for i, n in enumerate(names):

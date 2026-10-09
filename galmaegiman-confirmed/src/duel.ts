@@ -29,13 +29,15 @@ export function registerDuel(app:FastifyInstance,content:Content,opt:{root:strin
       const units=[...R.units.keys()].map(id=>{const c=content.map.get(id);return {id,name:c?.name??id,tier:c?.rarity??''};});
       const story=loadStory(opt.root,R);
       // 빌런 그림(public/battle/sprites/V1_front.png)이 있는 것만 알려 줌. 없으면 화면이 임시 그림을 그림
-      const villainArt=(await readdir(resolve(opt.root,'public/battle/sprites')).catch(()=>[] as string[])).map(f=>/^(V\d+)_front\.png$/.exec(f)?.[1]).filter((v):v is string=>!!v);
+      const villainArt=(await readdir(resolve(opt.root,'public/battle/sprites')).catch(()=>[] as string[])).map(f=>/^(V\d+|HALL)_front\.png$/.exec(f)?.[1]).filter((v):v is string=>!!v);
       // 대사에 나오는 갈매미 이름(원금 갈매미맨·갈크탑·중성 갈매미 등)
       const names:Record<string,string>={};
       for(const c of story.chapters)for(const l of [...c.stages.flatMap(st=>[...st.before,...st.after,...(st.lose??[])]),...(c.clear??[])])
         if(/^[DTEIN]\d+$/.test(l.who)){const u=content.map.get(l.who);if(u)names[l.who]=u.name;}
       const bgArt=(await readdir(resolve(opt.root,'public/battle/bg')).catch(()=>[] as string[])).map(f=>/^([a-z]+)\.jpg$/.exec(f)?.[1]).filter((v):v is string=>!!v);
-      return reply.header('Cache-Control','no-store').send({rules:R.data,units,story,villainArt,names,bgArt});
+      // 아이템·증강체 아이콘(public/battle/icons/potion.png): 없으면 화면이 글자 그림(이모지)
+      const iconArt=(await readdir(resolve(opt.root,'public/battle/icons')).catch(()=>[] as string[])).map(f=>/^([a-z]+)\.png$/.exec(f)?.[1]).filter((v):v is string=>!!v);
+      return reply.header('Cache-Control','no-store').send({rules:R.data,units,story,villainArt,names,bgArt,iconArt});
     }catch(e){return reply.code(500).send({error:(e as Error).message});}
   });
   // 배경 그림(public/battle/bg/harbor.jpg): 없으면 화면이 색 그라데이션으로 그림
@@ -43,8 +45,13 @@ export function registerDuel(app:FastifyInstance,content:Content,opt:{root:strin
     if(!ok(req.query.k)||!/^[a-z]+\.jpg$/.test(req.params.file))return deny(reply);
     return file(reply,'image/jpeg',resolve(opt.root,'public/battle/bg',req.params.file));
   });
+  // 아이콘은 비밀이 아니라 열쇠 없이(아이템·증강체 그림)
+  app.get<{Params:{file:string}}>('/duel/icons/:file',async(req,reply)=>{
+    if(!/^[a-z]+\.png$/.test(req.params.file))return reply.code(404).send({error:'not found'});
+    return file(reply,'image/png',resolve(opt.root,'public/battle/icons',req.params.file));
+  });
   app.get<{Params:{file:string};Querystring:{k?:string}}>('/duel/sprites/:file',async(req,reply)=>{
-    if(!ok(req.query.k)||!/^([DTEI]\d_s[0-3]_(front|back)|V\d+_front)\.png$/.test(req.params.file))return deny(reply);
+    if(!ok(req.query.k)||!/^([DTEI]\d_s[0-3]_(front|back)|V\d+_front|HALL_front)\.png$/.test(req.params.file))return deny(reply);
     return file(reply,'image/png',resolve(opt.root,'public/battle/sprites',req.params.file));
   });
 }
