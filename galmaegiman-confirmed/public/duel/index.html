@@ -183,6 +183,8 @@ header small{color:var(--dim)}
 .hpmini i{display:block;height:100%;background:var(--hp)}
 .big.wide{display:block;width:100%;position:sticky;bottom:0;margin:6px 0 0;box-shadow:0 -12px 16px var(--bg)}
 .sheet.pick .big.wide{margin-bottom:16px}
+/* 아래에 붙는 큰 버튼은 비활성이어도 불투명하게(뒤 카드 글자가 비쳐 겹쳐 보이지 않게) */
+.big.wide:disabled{opacity:1;background:#334152;color:#8a9aab;box-shadow:0 -12px 16px var(--bg)}
 .flee{align-self:flex-end;background:none;border:1px solid var(--line);border-radius:999px;color:var(--dim);font-size:13px;padding:6px 14px}
 .card .syn{display:block;font-size:10px;color:var(--gold);margin-top:2px}
 .foot .combo,p.combo{font-size:12px;color:#ffe9a8;text-align:center;margin:0 0 8px;line-height:1.5}

@@ -640,6 +640,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(await get('/duel?k='+k)).toContain('<meta name="robots" content="noindex">');
       const duel=(await app.inject({method:'GET',url:'/duel/data.json?k='+k})).json() as {units:{id:string;name:string}[];rules:{version:string};story:{chapters:{stages:unknown[]}[]}};
       expect(duel.units).toHaveLength(33);expect(duel.rules.version).toBe('BATTLE_V1');expect(duel.story.chapters[0].stages.length).toBeGreaterThan(0);
+      // 옛 앱은 .png 주소로 물어봄 → 같은 그림을 보내 줌
+      expect((await app.inject({method:'GET',url:'/duel/sprites/D1_s0_front.png?k='+k})).statusCode).toBe(200);
       expect((await app.inject({method:'GET',url:'/duel/sprites/D1_s0_back.webp?k='+k})).headers['content-type']).toMatch(/^image\/(webp|png)/);
       for(const url of ['/duel/sprites/..%2F..%2F.env?k='+k,'/duel/sprites/C1_s0_front.webp?k='+k])expect((await app.inject({method:'GET',url})).statusCode).toBe(404);
       const js=await app.inject({method:'GET',url:'/duel/duel.js'});expect(js.statusCode).toBe(200);expect(js.body).not.toContain(content.map.get('D1')!.name);
@@ -958,6 +960,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       // 안드로이드 앱 내려받기(「내 갈매미」 맨 아래 설치 칸)
       // 파일은 git이 아니라 apk 브랜치에서 update.sh가 꺼내 둠 → 없으면 404(설치 칸 숨김)
       const info=await app.inject({method:'GET',url:'/app/apk.json'});
+      // 앱이 새 버전을 확인할 수 있게(앱 주소에서 읽기 허용)
+      expect((await app.inject({method:'GET',url:'/app/apk.json',headers:{origin:'https://localhost'}})).headers['access-control-allow-origin']).toBe('https://localhost');
       const apk=await app.inject({method:'GET',url:'/app/galmaegiman-suhbidae.apk'});
       if(existsSync(resolve(process.cwd(),'public/app/galmaegiman-suhbidae.apk'))){
         expect(info.statusCode).toBe(200);expect(info.json()).toMatchObject({versionName:expect.any(String),versionCode:expect.any(Number)});
@@ -1252,7 +1256,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.80'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.81'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

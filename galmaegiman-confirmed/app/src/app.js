@@ -59,6 +59,23 @@
 
   window.gmmApp = { token: () => store.get(KEY), setToken: t => store.set(KEY, t || null), onMe, onDraw, kakao };
 
+  // 새 앱이 나왔으면 화면 위에 알림(누르면 사이트에서 새 APK 받기). 같은 버전은 하루에 한 번만
+  (async () => {
+    try {
+      const info = await P.App?.getInfo(); const mine = +(info?.build || 0);
+      const j = await fetch(`${BASE}/app/apk.json`).then(r => r.ok ? r.json() : null);
+      if (!mine || !j || !(j.versionCode > mine)) return;
+      const seen = `gmm-upd-${j.versionCode}`, day = new Date().toISOString().slice(0, 10);
+      if (store.get(seen) === day) return;
+      const bar = document.createElement('button');
+      bar.textContent = `📲 새 버전 ${j.versionName}이 있어요 · 눌러서 받기`;
+      bar.style.cssText = 'position:fixed;left:12px;right:12px;bottom:16px;z-index:9999;padding:12px 14px;border:0;border-radius:14px;background:#e9c46a;color:#1d2c3a;font:inherit;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.4)';
+      bar.onclick = () => { store.set(seen, day); bar.remove(); open(`${BASE}/app/galmaegiman-suhbidae.apk`); };
+      document.body.appendChild(bar);
+      setTimeout(() => { store.set(seen, day); bar.remove(); }, 12000);
+    } catch { /* 확인 못 해도 게임은 그대로 */ }
+  })();
+
   // 링크: 화면 안 탭(#…)은 그대로, 카카오 로그인은 앱 방식, 나머지 사이트 주소는 앱 안 브라우저로
   document.addEventListener('click', e => {
     const a = e.target.closest && e.target.closest('a[href]');

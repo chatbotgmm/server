@@ -89,6 +89,9 @@ function villainArt(id) {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">${svg}</svg>`)}`;
 }
 
+// 그림을 못 불러오면 깨진 그림 표시 대신 그냥 비워 둠
+addEventListener('error', e => { if (e.target?.tagName === 'IMG') e.target.style.visibility = 'hidden'; }, true);
+addEventListener('load', e => { if (e.target?.tagName === 'IMG') e.target.style.visibility = ''; }, true);
 // 대사에 얼굴이 있는 마을 사람(이름 → 그림 public/battle/sprites/HALL_front.webp)
 const NPC = { '마을 회관 방송': 'HALL' };
 // 아이템·증강체 그림(public/battle/icons/potion.png): 없으면 글자 그림(이모지)

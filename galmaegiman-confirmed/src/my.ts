@@ -32,7 +32,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
   // 웹은 쿠키, 앱은 머리글(x-gmm-s)에 같은 서명 값
   const session=(req:FastifyRequest)=>{const h=req.headers['x-gmm-s'];return unsign('',typeof h==='string'&&h.length<200?h:cookie(req,COOKIE));};
   app.addHook('onRequest',async(req,reply)=>{
-    if(!req.url.startsWith('/my/api/')&&!req.url.startsWith('/duel/data.json'))return;   // 게임 데이터도 앱에서 받음
+    if(!req.url.startsWith('/my/api/')&&!req.url.startsWith('/duel/data.json')&&!req.url.startsWith('/app/apk.json'))return;   // 게임 데이터·새 앱 버전 정보도 앱에서 받음
     const o=req.headers.origin;
     if(typeof o!=='string'||!APP_ORIGINS.has(o))return;
     reply.header('Access-Control-Allow-Origin',o).header('Vary','Origin')

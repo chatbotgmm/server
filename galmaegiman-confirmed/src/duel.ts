@@ -54,9 +54,9 @@ export function registerDuel(app:FastifyInstance,content:Content,opt:{root:strin
     return file(reply,'image/png',resolve(opt.root,'public/battle/icons',req.params.file));
   });
   app.get<{Params:{file:string};Querystring:{k?:string}}>('/duel/sprites/:file',async(req,reply)=>{
-    if(!ok(req.query.k)||!/^([DTEI]\d_s[0-3]_(front|back)|V\d+_front|HALL_front)\.webp$/.test(req.params.file))return deny(reply);
-    // webp(선명하게 키운 그림)가 없으면 같은 이름의 png로(그림을 바꾸는 중에도 화면이 깨지지 않게)
-    const f=resolve(opt.root,'public/battle/sprites',req.params.file);
-    return existsSync(f)?file(reply,'image/webp',f):file(reply,'image/png',f.replace(/\.webp$/,'.png'));
+    if(!ok(req.query.k)||!/^([DTEI]\d_s[0-3]_(front|back)|V\d+_front|HALL_front)\.(webp|png)$/.test(req.params.file))return deny(reply);
+    // 같은 이름의 webp(선명하게 키운 그림)를 먼저, 없으면 png. 옛 앱(1.0.5 이하)은 .png 주소로 묻기 때문에 그때도 webp를 보내 줌
+    const base=resolve(opt.root,'public/battle/sprites',req.params.file.replace(/\.(webp|png)$/,''));
+    return existsSync(`${base}.webp`)?file(reply,'image/webp',`${base}.webp`):file(reply,'image/png',`${base}.png`);
   });
 }
