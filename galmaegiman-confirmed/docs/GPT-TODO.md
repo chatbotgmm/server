@@ -8,7 +8,7 @@ GPT는 이 파일과 `docs/GPT-ART-HANDOFF.md`(올리는 규칙)를 읽고, 아�
 - 할 일 4~6: 완료, 게임에 넣음(v0.9.75). 배경 9곳·아이콘 20개·마을 회관 방송 얼굴.
 - 할 일 7: 완료, 넣음(v0.9.77). 사이트·앱·플레이 아이콘, 시작 화면. 마을 회관 방송은 얼굴 없는 확성기로 고친 그림으로 바꿈.
 - 할 일 8: 완료, 넣음(v0.9.78). 게임 첫 화면 제목 뒤 + 구글 플레이 그래픽 이미지(app/store/feature-graphic-1024x500.jpg).
-- 할 일 9~32(승진 1·2·3단계 그림 24장): 새로 추가, 남음. 9번부터 순서대로.
+- **할 일 33(첫 화면 세로 그림)을 가장 먼저.** 그다음 할 일 9~32(승진 그림 24장)를 9번부터 순서대로.
 
 ## 공통 규칙 (모든 할 일)
 - 그림체: 저장소의 `galmaegiman-confirmed/public/images/D1.png` 같은 갈매미맨 카드 그림과 같은 그림체(부드러운 채색, 갈색 외곽선, 귀엽지만 얄미운 악당). 무섭거나 징그럽지 않게.
@@ -153,6 +153,17 @@ Avoid: text, letters, numbers, watermark, frame, drop shadow, glow, background s
 | 31 | 3단계 | I 9종 | 앞 | 3×3 | `art/ref/ref_I_front.png` + 2단계 결과 | `evo_I_s3_front.png` |
 | 32 | 3단계 | I 9종 | 뒤 | 3×3 | `art/ref/ref_I_back.png` + 2단계 결과 | `evo_I_s3_back.png` |
 
+## 할 일 33 · 게임 첫 화면 세로 그림 → `title_portrait.png`
+휴대폰 첫 화면 전체에 까는 **세로 그림 1장**(가로:세로 = 9:16, 예 1024×1820). 투명 배경 아님. 글자·로고·숫자 없이.
+- 지금 첫 화면은 가로 그림(key_art)을 잘라 써서 캐릭터가 잘리고 아래가 비어 있어요. 이 그림으로 바꿔요.
+- **구도(위에서 아래로)**
+  - 위쪽 1/4: 맑은 하늘과 구름만(Claude가 게임 이름을 얹음). 멀리 갈매미 섬의 하얀 돌 성채와 수비대 깃발.
+  - 가운데: 해 질 녘 금빛 항구. 부두 위에 `public/images/D1.png` 태초의 갈매미맨이 가운데에서 당당히 서 있고, 양옆에 갈매미 수비대원 둘(할 일 7 아이콘의 갈매미처럼 돌 볏·돌 날개). 셋 다 보는 사람 쪽을 봄.
+  - 가운데 뒤쪽 바다 멀리: 작게 쭈매미·랍매미·끼룩단 그림자(할 일 1~3 그림과 같은 생김새), 다가오는 느낌. 무섭지 않게.
+  - 아래쪽 1/3: 단순한 돌 부두 바닥과 잔잔한 물결(버튼이 올라가는 자리라 복잡한 무늬 없이, 조금 어둡게).
+- **색**: 해 질 녘 따뜻한 주황·금빛 하늘 + 청록 바다 + 하얀 돌. 어두운 남색만 가득하지 않게, 밝고 따뜻하게.
+- 그림체는 지금까지와 같게(부드러운 채색, 갈색 외곽선).
+
 ---
 
 ## Claude가 하는 일 (받은 뒤)
@@ -162,6 +173,7 @@ Avoid: text, letters, numbers, watermark, frame, drop shadow, glow, background s
 - 할 일 5: `python3 -I scripts/place-art.py icons art/gpt/icons_all.png 5x4 potion,big,clear,feather,reverse,weakguard,focus,neutral,camo,dual,counter,learn,first,bulwark,firstaid,freeswitch,lastone,strip,rustle,peanut` → 화면의 글자 그림(이모지)을 이 아이콘으로 바꿈
 - 할 일 6: `python3 -I scripts/place-art.py villains art/gpt/npc_hall.png 1x1 HALL` → 대사 화면에서 「마을 회관 방송」 얼굴로 씀
 - 할 일 7: `python3 -I scripts/make-icons.py art/gpt/app_icon.png` — 배경을 붙여 `public/icon-192/512(-maskable).png`, 파비콘, 안드로이드 앱 아이콘(`app/android` 적응형 아이콘)·시작 화면을 다시 만듦. 구글 플레이 아이콘(512×512)도 이걸로.
+- 할 일 33: 첫 화면 배경으로 깔고, 그림 색에 맞춰 첫 화면 색(버튼·글자)을 다시 정함.
 - 할 일 8: 게임 첫 화면 위쪽 대표 그림 + 구글 플레이 「그래픽 이미지」(1024×500으로 잘라 냄).
 - 할 일 9~32: 앞·뒤 두 장이 다 오면(예: 9·10번) `python3 -I scripts/split-grade-sheet.py art/gpt/evo_D_s1_front.png D front stage=1` · `… evo_D_s1_back.png D back stage=1` → `python3 -I scripts/process-sprites.py stage=1` → 선명하게 키워 webp로: `python3 -I scripts/upscale-art.py public/battle/sprites/*_s1_*.png out=public/battle/sprites webp` 후 그 png 지움 → `public/battle/sprites/D1_s1_front.webp`… 넣으면 승진한 갈매미가 목록·대사·전투에서 바로 그 그림으로 나옴(없으면 원형 그림 + 빛).
 - 넣으면 대결·대사 화면이 임시 그림·색 대신 그 그림을 바로 씀(서버 다시 켤 필요 없음). 블랙 갈매미맨 거울·땅콩 단계는 8번 그림에 색만 바꿔 씀.
