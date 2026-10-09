@@ -73,7 +73,7 @@ describe('성장', ()=>{
   });
   it('레벨·진화가 오르면 능력치가 커짐', ()=>{
     expect(statsOf(R,rec('T4',30)).hp).toBeGreaterThan(statsOf(R,rec('T4',10)).hp);
-    expect(statsOf(R,rec('T4',30,{stage:1})).atk).toBeGreaterThan(statsOf(R,rec('T4',30)).atk);
+    expect(statsOf(R,rec('T4',30,{stage:1})).matk).toBeGreaterThan(statsOf(R,rec('T4',30)).matk);
   });
 });
 
@@ -176,7 +176,7 @@ describe('합동기·기술 배우기',()=>{
     expect(b.sides[0].fighters[2].skills.some(k=>k.id.startsWith('combo-'))).toBe(false);
     expect(b.sides[1].fighters.every(f=>f.skills.some(k=>k.id==='combo-DARK'))).toBe(true);
     aiChoose(b,0);aiChoose(b,1);
-    act(b,[{kind:'skill',skillId:'combo-GOLD'},pickAi(b,1)]);
+    act(b,[{kind:'skill',skillId:'combo-GOLD'},{kind:'skill',skillId:'basic-SHADOW'}]);   // 상대는 기본기(잠재우기로 합동기가 막히지 않게)
     expect(b.sides[0].comboUsed).toBe(true);
     expect(b.log.some(l=>l.includes('합동기 「금고 문 열기」'))).toBe(true);
     if(b.phase==='action')expect(legalActions(b,0).some(a=>a.kind==='skill'&&a.skillId==='combo-GOLD')).toBe(false);

@@ -27,8 +27,12 @@ export type Effect=
   |{kind:'strip'}
   |{kind:'recharge'}
   |{kind:'lockSelf';atkPct:number};
-export interface Skill {id:string;name:string;attr?:Attr;power?:number;hits?:number;priority?:boolean;crit?:boolean;cd:number;effects:Effect[];desc:string}
-export interface UnitDef {id:string;attr:Attr;sub?:Attr;syn?:string;basic?:string;mirror?:boolean;role:Role;signature:Skill;name?:string;power?:number;hpMult?:number;boss?:boolean}
+// cat: 물리(물리공격↔물리방어)·마법(마법공격↔마법방어)·자동(쓰는 유닛의 더 높은 공격)
+export type Cat='phys'|'mag'|'auto';
+export const catName:Record<Cat,string>={phys:'물리',mag:'마법',auto:'자동'};
+export interface Skill {id:string;name:string;attr?:Attr;power?:number;cat?:Cat;hits?:number;priority?:boolean;crit?:boolean;cd:number;effects:Effect[];desc:string}
+export interface UnitStats {hp:number;patk:number;pdef:number;matk:number;mdef:number;spd:number}
+export interface UnitDef {id:string;attr:Attr;sub?:Attr;syn?:string;basic?:string;basicCat?:Cat;stats?:UnitStats;mirror?:boolean;role:Role;signature:Skill;name?:string;power?:number;hpMult?:number;boss?:boolean}
 export interface Passive {hpPct?:number;atkPct?:number;defPct?:number;spdPct?:number;pierce?:number;execute?:number;critPlus?:number;opener?:number;
   lifesteal?:number;reflect?:number;cut?:number;regen?:number;lastStand?:boolean;statusPlus?:number;statusResist?:number;sigCd?:number;handoff?:number;durationPlus?:number}
 export interface EvoAugment {id:string;name:string;desc:string;roles:Role[]|'ANY';passive:Passive}
@@ -85,7 +89,7 @@ const passiveText:Record<keyof Passive,(v:number)=>string>={
   lifesteal:v=>`준 피해의 ${v}% 회복`,reflect:v=>`받은 피해의 ${v}%를 되돌려 줌`,cut:v=>`받는 피해 -${v}%`,regen:v=>`턴이 끝날 때 체력 ${v}% 회복`,
   lastStand:()=>'전투당 한 번, 쓰러질 피해를 체력 1로 버팀',statusResist:v=>`상태 이상에 걸릴 확률 -${v}%`,statusPlus:v=>`상태 이상 확률 +${v}%p`,
   durationPlus:v=>`주는 강화·약화가 ${v}턴 더 감`,sigCd:v=>`고유기 재사용 ${v}턴 줄어듦`,handoff:v=>`교체되어 나갈 때 들어오는 아군 체력 ${v}% 회복`,
-  hpPct:v=>`최대 체력 +${v}%`,atkPct:v=>`공격 +${v}%`,defPct:v=>`방어 +${v}%`,spdPct:v=>`속도 +${v}%`,
+  hpPct:v=>`최대 체력 +${v}%`,atkPct:v=>`물리·마법 공격 +${v}%`,defPct:v=>`물리·마법 방어 +${v}%`,spdPct:v=>`속도 +${v}%`,
 };
 function augDesc(id:string,p:Record<string,number>,attrNm:string){
   void attrNm;
@@ -121,19 +125,21 @@ export function rulesFrom(d:BattleData){
   }
   const attrName=(a:Attr)=>d.attributes[a].name;
   const typeMult=(atk:Attr,def:Attr)=>d.chart[atk].strong.includes(def)?d.multipliers.strong:d.chart[def].strong.includes(atk)?d.multipliers.weak:1;
+  const toCat=(c?:string):Cat|undefined=>c==='물리'?'phys':c==='마법'?'mag':c==='자동'?'auto':undefined;
   const mkSkill=(id:string,s:SkillIn,a:Attr):Skill=>{
+    if(s.power&&!s.cat)throw new Error(`기술 「${s.name}」: 공격 기술은 cat(물리·마법·자동)을 정해야 해요`);
     const base={name:s.name.replaceAll('{속성}',attrName(a)),cd:s.cd,effects:(s.effects??[]).map(toEffect),
-      ...(s.power?{power:s.power,attr:s.attr??a}:{}),...(s.hits?{hits:s.hits}:{}),...(s.priority?{priority:true}:{}),...(s.crit?{crit:true}:{})};
+      ...(s.power?{power:s.power,attr:s.attr??a,cat:toCat(s.cat)}:{}),...(s.hits?{hits:s.hits}:{}),...(s.priority?{priority:true}:{}),...(s.crit?{crit:true}:{})};
     return {id,...base,desc:s.desc??skillDesc(base,attrName)};
   };
-  const basicSkill=(a:Attr):Skill=>({id:`basic-${a}`,name:d.attributes[a].basic,attr:a,power:d.basicPower,cd:0,effects:[],desc:`위력 ${d.basicPower}`});
+  const basicSkill=(a:Attr,cat?:Cat):Skill=>({id:`basic-${a}`,name:d.attributes[a].basic,attr:a,power:d.basicPower,cat:cat??toCat(d.attributes[a].basicCat),cd:0,effects:[],desc:`위력 ${d.basicPower}`});
   const roleSkill=(r:Role,a:Attr):Skill=>mkSkill(`role-${r}`,d.roles[r].skill,a);
   // 보조 속성 기술: 자기 속성이 아닌 공격(상성이 불리할 때 꺼내 씀)
-  const subSkill=(a:Attr):Skill=>({id:`sub-${a}`,name:d.attributes[a].sub,attr:a,power:d.subSkill.power,cd:d.subSkill.cd,effects:[],desc:`${attrName(a)} 속성 공격 · 위력 ${d.subSkill.power}`});
+  const subSkill=(a:Attr):Skill=>({id:`sub-${a}`,name:d.attributes[a].sub,attr:a,power:d.subSkill.power,cat:toCat(d.attributes[a].subCat),cd:d.subSkill.cd,effects:[],desc:`${attrName(a)} 속성 공격 · 위력 ${d.subSkill.power}`});
   const synOf=new Map<string,string>();for(const [k,v] of Object.entries(d.synergies))for(const m of v.members)synOf.set(m,k);
-  const units=new Map<string,UnitDef>(Object.entries(d.units).map(([id,u])=>[id,{id,attr:u.attr,sub:u.sub,syn:synOf.get(id),role:u.role,signature:mkSkill('sig',u.skill,u.attr)}]));
+  const units=new Map<string,UnitDef>(Object.entries(d.units).map(([id,u])=>[id,{id,attr:u.attr,sub:u.sub,syn:synOf.get(id),role:u.role,stats:u.stats,signature:mkSkill('sig',u.skill,u.attr)}]));
   // 스토리 빌런: 공격·방어는 역할 기본값 × power, 체력은 × hp(없으면 power). 졸병 1 미만, 보스는 hp를 크게
-  const villains=new Map<string,UnitDef>(Object.entries(d.villains).map(([id,v])=>[id,{id,name:v.name,basic:v.basic,mirror:v.mirror,attr:v.attr,sub:v.sub,role:v.role,power:v.power,hpMult:v.hp??v.power,boss:v.boss??false,signature:mkSkill('sig',v.skill,v.attr)}]));
+  const villains=new Map<string,UnitDef>(Object.entries(d.villains).map(([id,v])=>[id,{id,name:v.name,basic:v.basic,basicCat:toCat(v.basicCat),mirror:v.mirror,attr:v.attr,sub:v.sub,role:v.role,power:v.power,hpMult:v.hp??v.power,boss:v.boss??false,signature:mkSkill('sig',v.skill,v.attr)}]));
   const unitDef=(id:string)=>units.get(id)??villains.get(id);
   // 시너지 합동기(같은 시너지 2마리+, 팀당 1번)·레벨업으로 배우는 기술. 속성을 안 적은 기술은 쓰는 유닛의 속성
   const comboSkill=(k:string,a:Attr):Skill|undefined=>d.synergies[k]?mkSkill(`combo-${k}`,d.synergies[k].skill,a):undefined;

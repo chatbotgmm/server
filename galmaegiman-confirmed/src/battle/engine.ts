@@ -8,7 +8,7 @@ export type { BattleAugment } from './core.js';
 interface Mod {stat:Stat;pct:number;turns:number}
 export interface Fighter {
   side:0|1;rec:UnitRecord;name:string;scale:number;attr:Attr;role:Role;peanut:boolean;skills:Skill[];passive:Passive;
-  maxHp:number;hp:number;base:{atk:number;def:number;spd:number};cds:Record<string,number>;mods:Mod[];
+  maxHp:number;hp:number;base:{patk:number;pdef:number;matk:number;mdef:number;spd:number};cds:Record<string,number>;mods:Mod[];
   status:Partial<Record<Status,number>>;guards:{pct:number;turns:number}[];regens:{pct:number;turns:number}[];
   endure:number;protect:boolean;recharge:boolean;immune:number;lockAtk:number;lastStandUsed:boolean;attacked:boolean;actedTurn:number;
   extraAttr?:Attr;hitBy:Partial<Record<Attr,number>>;
@@ -28,9 +28,9 @@ function makeFighter(R:Rules,rec:UnitRecord,side:0|1,combo?:Skill):Fighter{
   const s=statsOf(R,rec),passive=passiveOf(R,rec);
   const sigCd=Math.max(1,def.signature.cd-(passive.sigCd??0));
   return {side,rec,name:rec.name,scale:levelScale(R,rec),attr:def.attr,role:def.role,peanut:rec.name.includes('갈매미맨'),passive,
-    skills:[{...R.basicSkill(def.attr),...(def.basic?{name:def.basic}:{})},R.roleSkill(def.role,def.attr),{...def.signature,cd:sigCd},...(def.sub&&def.sub!==def.attr?[R.subSkill(def.sub)]:[]),
+    skills:[{...R.basicSkill(def.attr,def.basicCat),...(def.basic?{name:def.basic}:{})},R.roleSkill(def.role,def.attr),{...def.signature,cd:sigCd},...(def.sub&&def.sub!==def.attr?[R.subSkill(def.sub)]:[]),
       ...(rec.learned??[]).map(id=>R.learnSkill(id,def.attr)).filter((k):k is Skill=>!!k),...(combo?[combo]:[])],
-    maxHp:s.hp,hp:s.hp,base:{atk:s.atk,def:s.def,spd:s.spd},cds:{},mods:[],status:{},guards:[],regens:[],
+    maxHp:s.hp,hp:s.hp,base:{patk:s.patk,pdef:s.pdef,matk:s.matk,mdef:s.mdef,spd:s.spd},cds:{},mods:[],status:{},guards:[],regens:[],
     endure:0,protect:false,recharge:false,immune:0,lockAtk:0,lastStandUsed:false,attacked:false,actedTurn:0,hitBy:{}};
 }
 
@@ -97,8 +97,11 @@ function applyAugment(b:Battle,side:0|1,id:string){
 }
 
 // ── 능력치 계산 ──
-function statOf(b:Battle,f:Fighter,stat:Stat){
-  const st=b.R.data.status;let v=f.base[stat];
+// 강화·약화(「공격」「방어」)는 물리·마법 둘 다에 걸림
+type BaseStat='patk'|'pdef'|'matk'|'mdef'|'spd';
+const groupOf=(k:BaseStat):Stat=>k==='patk'||k==='matk'?'atk':k==='pdef'||k==='mdef'?'def':'spd';
+function statOf(b:Battle,f:Fighter,key:BaseStat){
+  const st=b.R.data.status,stat=groupOf(key);let v=f.base[key];
   for(const m of f.mods)if(m.stat===stat)v*=1+m.pct/100;
   if(stat==='atk'&&f.lockAtk)v*=1+f.lockAtk/100;
   if(stat==='atk'&&f.status.burn)v*=1+st.burnAtk/100;
@@ -125,7 +128,9 @@ function multiplier(b:Battle,att:Fighter,def:Fighter,a:Attr){
 
 function damage(b:Battle,att:Fighter,def:Fighter,move:Skill){
   const R=b.R,M=R.data.multipliers,a=attackAttr(R,att,move,def),mult=multiplier(b,att,def,a);
-  let atk=statOf(b,att,'atk'),dv=statOf(b,def,'def');
+  // 물리 기술: 물리공격↔물리방어, 마법 기술: 마법공격↔마법방어, 자동(역할기·합동기·반격): 쓰는 유닛의 더 높은 공격
+  const mag=move.cat==='mag'||((move.cat??'auto')==='auto'&&att.base.matk>att.base.patk);
+  let atk=statOf(b,att,mag?'matk':'patk'),dv=statOf(b,def,mag?'mdef':'pdef');
   if(att.passive.pierce)dv*=1-att.passive.pierce/100;
   const crit=move.crit||rand(b)<(M.critChance+(att.passive.critPlus??0))/100;
   // 체력이 레벨·진화로 커지는 만큼 피해도 같은 비율로 커짐(같은 레벨이면 몇 대에 쓰러지는지 일정)

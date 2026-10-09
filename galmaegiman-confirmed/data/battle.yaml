@@ -33,19 +33,20 @@ version: BATTLE_V1
 
 multipliers: { strong: 1.5, weak: 0.67, sameAttr: 1.2, crit: 1.5, critChance: 6.25, maxGuard: 60 }
 
+# basicCat·subCat: 기본기·보조 속성 기술이 물리인지 마법인지(물리공격↔물리방어, 마법공격↔마법방어)
 # 기본기(basic)는 모두 「똥폭탄」(쓰는 유닛의 속성으로 날아감). 예전 이름으로 되돌리려면 basic만 바꿔요:
 #   STONE 돌머리 박치기, GOLD 금화 튕기기, FIRE 불씨 쪼기, ICE 얼음 깃, BLOSSOM 꽃잎 바람, SEA 물보라, SHADOW 그늘 할퀴기, STAR 별똥 박치기, THREAD 실 채찍, GRAVITY 끌어당기기
 attributes:
-  STONE:   { name: 돌,     basic: 똥폭탄, sub: 돌팔매 }
-  GOLD:    { name: 황금,   basic: 똥폭탄, sub: 금빛 일격 }
-  FIRE:    { name: 불,     basic: 똥폭탄, sub: 뜨거운 입김 }
-  ICE:     { name: 얼음,   basic: 똥폭탄, sub: 서리 바람 }
-  BLOSSOM: { name: 꽃,     basic: 똥폭탄, sub: 꽃잎 칼날 }
-  SEA:     { name: 바다,   basic: 똥폭탄, sub: 물대포 }
-  SHADOW:  { name: 그림자, basic: 똥폭탄, sub: 그림자 찌르기 }
-  STAR:    { name: 별,     basic: 똥폭탄, sub: 별빛 화살 }
-  THREAD:  { name: 실,     basic: 똥폭탄, sub: 바늘 찌르기 }
-  GRAVITY: { name: 중력,   basic: 똥폭탄, sub: 짓누르기 }
+  STONE:   { name: 돌,     basic: 똥폭탄, sub: 돌팔매, basicCat: 물리, subCat: 물리 }
+  GOLD:    { name: 황금,   basic: 똥폭탄, sub: 금빛 일격, basicCat: 물리, subCat: 물리 }
+  FIRE:    { name: 불,     basic: 똥폭탄, sub: 뜨거운 입김, basicCat: 물리, subCat: 마법 }
+  ICE:     { name: 얼음,   basic: 똥폭탄, sub: 서리 바람, basicCat: 물리, subCat: 마법 }
+  BLOSSOM: { name: 꽃,     basic: 똥폭탄, sub: 꽃잎 칼날, basicCat: 물리, subCat: 물리 }
+  SEA:     { name: 바다,   basic: 똥폭탄, sub: 물대포, basicCat: 물리, subCat: 물리 }
+  SHADOW:  { name: 그림자, basic: 똥폭탄, sub: 그림자 찌르기, basicCat: 물리, subCat: 물리 }
+  STAR:    { name: 별,     basic: 똥폭탄, sub: 별빛 화살, basicCat: 물리, subCat: 마법 }
+  THREAD:  { name: 실,     basic: 똥폭탄, sub: 바늘 찌르기, basicCat: 물리, subCat: 물리 }
+  GRAVITY: { name: 중력,   basic: 똥폭탄, sub: 짓누르기, basicCat: 물리, subCat: 마법 }
 basicPower: 50
 # 보조 속성 기술(유닛마다 units·villains의 sub로 속성을 정함). 이름은 attributes의 sub. 같은 속성 보너스(×1.2)는 없음
 subSkill: { power: 60, cd: 2 }
@@ -63,99 +64,104 @@ chart:
   STAR:    { strong: [SEA, SHADOW],     why: [달이 바닷물을 끌어당겨요, 별빛이 밤을 밝혀요] }
   GRAVITY: { strong: [THREAD, FIRE],    why: [실을 끌어당겨 풀어 버려요, 불씨를 꾹 눌러 꺼요] }
 
-# 역할: 레벨 1·진화 전 기본 능력치와 역할기. 역할기 이름의 {속성}은 그 유닛 속성 이름으로 바뀜
+# 역할: 역할기와, 빌런이 쓰는 기본 능력치(빌런은 atk·def를 물리·마법 둘 다로 씀. 유닛은 units의 stats를 씀). 역할기 이름의 {속성}은 그 유닛 속성 이름으로 바뀜
 roles:
-  ATTACK:  { name: 공격, hp: 92,  atk: 30, def: 14, spd: 14, skill: { name: "{속성} 강타", cd: 2, power: 85 } }
+  ATTACK:  { name: 공격, hp: 92,  atk: 30, def: 14, spd: 14, skill: { name: "{속성} 강타", cat: 자동, cd: 2, power: 85 } }
   DEFENSE: { name: 수비, hp: 128, atk: 19, def: 26, spd: 9,  skill: { name: 버티기 자세, cd: 3, effects: [ { buff: def, pct: 40, turns: 2, to: self } ] } }
-  UTILITY: { name: 유틸, hp: 106, atk: 21, def: 18, spd: 15, skill: { name: 기세 꺾기, cd: 3, power: 40, effects: [ { buff: atk, pct: -25, turns: 3, to: foe } ] } }
+  UTILITY: { name: 유틸, hp: 106, atk: 21, def: 18, spd: 15, skill: { name: 기세 꺾기, cat: 자동, cd: 3, power: 40, effects: [ { buff: atk, pct: -25, turns: 3, to: foe } ] } }
 
 # 등급 보정(체력·공격·방어에 곱함). 차이를 작게 둬요
 tiers: { LIMITED: 1, TRANSCEND: 1.03, ETERNAL: 1.06, IMMORTAL: 1.09 }
 
-# 최상위 33종: 속성·역할·고유기
+# 최상위 33종: 속성·역할·능력치·고유기
+#   stats(레벨 1·원형 기준, 유닛마다 따로): hp 체력, patk 물리공격, pdef 물리방어, matk 마법공격, mdef 마법방어, spd 속도
+#     물리 기술은 물리공격 ↔ 상대 물리방어, 마법 기술은 마법공격 ↔ 상대 마법방어로 피해를 계산해요. 속도가 높으면 먼저 움직여요(「무조건 먼저」 기술·출근 도장이 우선)
+#     실제 값 = stats × 등급 보정 × 레벨·승진 배율 × 직무 표창. 「공격」「방어」 강화·약화는 물리·마법 둘 다에 걸려요
+#     고친 뒤 밸런스 확인: npx tsx scripts/battle-balance.ts (유닛 승률이 한쪽으로 크게 쏠리지 않는지)
+#   기술의 cat: 물리 / 마법 / 자동(쓰는 유닛의 물리공격·마법공격 중 높은 쪽). 위력이 있는 기술은 꼭 적어야 해요
 units:
   # 돌
-  D1: { attr: STONE, sub: GOLD, role: DEFENSE, skill: { name: 사방 방패, cd: 4, power: 55, effects: [ { guard: 45, turns: 3 } ] } }
-  T1: { attr: STONE, sub: STAR, role: DEFENSE, skill: { name: 만상 방어, cd: 3, power: 70, effects: [ { guard: 30, turns: 3 } ] } }
-  E1: { attr: STONE, sub: STAR, role: ATTACK,  skill: { name: 뒤로 안 걷기, cd: 4, power: 100, effects: [ { lockSelf: 25 } ] } }
-  I1: { attr: STONE, sub: GOLD, role: UTILITY, skill: { name: 다섯 번째 목소리, cd: 5, effects: [ { revive: 50 } ] } }
+  D1: { attr: STONE, sub: GOLD, role: DEFENSE, stats: { hp: 120, patk: 17, pdef: 29, matk: 10, mdef: 23, spd: 8 }, skill: { name: 사방 방패, cat: 물리, cd: 4, power: 55, effects: [ { guard: 45, turns: 3 } ] } }
+  T1: { attr: STONE, sub: STAR, role: DEFENSE, stats: { hp: 134, patk: 12, pdef: 24, matk: 20, mdef: 28, spd: 9 }, skill: { name: 만상 방어, cat: 마법, cd: 3, power: 70, effects: [ { guard: 30, turns: 3 } ] } }
+  E1: { attr: STONE, sub: STAR, role: ATTACK,  stats: { hp: 99, patk: 32, pdef: 16, matk: 19, mdef: 12, spd: 10 }, skill: { name: 뒤로 안 걷기, cat: 물리, cd: 4, power: 100, effects: [ { lockSelf: 25 } ] } }
+  I1: { attr: STONE, sub: GOLD, role: UTILITY, stats: { hp: 121, patk: 13, pdef: 18, matk: 22, mdef: 18, spd: 16 }, skill: { name: 다섯 번째 목소리, cd: 5, effects: [ { revive: 50 } ] } }
   # 황금
-  D2: { attr: GOLD, sub: ICE, role: ATTACK,  skill: { name: 순금 일격, cd: 3, power: 110, effects: [ { strip: true } ] } }
-  D7: { attr: GOLD, sub: SEA, role: DEFENSE, skill: { name: 노출형 전신 방어, cd: 4, power: 55, effects: [ { buff: def, pct: 60, turns: 3, to: self }, { buff: spd, pct: -20, turns: 3, to: self } ] } }
-  E2: { attr: GOLD, sub: STONE, role: UTILITY, skill: { name: 황금 마을 입주, cd: 3, power: 55, effects: [ { buff: def, pct: 25, turns: 3, to: team } ] } }
+  D2: { attr: GOLD, sub: ICE, role: ATTACK,  stats: { hp: 92, patk: 30, pdef: 15, matk: 18, mdef: 13, spd: 13 }, skill: { name: 순금 일격, cat: 물리, cd: 3, power: 110, effects: [ { strip: true } ] } }
+  D7: { attr: GOLD, sub: SEA, role: DEFENSE, stats: { hp: 134, patk: 19, pdef: 35, matk: 11, mdef: 17, spd: 7 }, skill: { name: 노출형 전신 방어, cat: 물리, cd: 4, power: 55, effects: [ { buff: def, pct: 60, turns: 3, to: self }, { buff: spd, pct: -20, turns: 3, to: self } ] } }
+  E2: { attr: GOLD, sub: STONE, role: UTILITY, stats: { hp: 114, patk: 14, pdef: 18, matk: 23, mdef: 18, spd: 14 }, skill: { name: 황금 마을 입주, cat: 마법, cd: 3, power: 55, effects: [ { buff: def, pct: 25, turns: 3, to: team } ] } }
   # 불
-  T2: { attr: FIRE, sub: GOLD, role: ATTACK,  skill: { name: 1그램 정밀 주조, cd: 3, power: 95, crit: true } }
-  I2: { attr: FIRE, sub: GOLD, role: DEFENSE, skill: { name: 다시 부어 만들기, cd: 5, effects: [ { heal: 30, to: self } ] } }
-  E8: { attr: FIRE, sub: ICE, role: UTILITY, skill: { name: 온도 순환, cd: 3, power: 60, effects: [ { cleanse: 2 }, { heal: 10, to: self }, { heal: 10, to: bench } ] } }
+  T2: { attr: FIRE, sub: GOLD, role: ATTACK,  stats: { hp: 89, patk: 27, pdef: 14, matk: 16, mdef: 14, spd: 14 }, skill: { name: 1그램 정밀 주조, cat: 물리, cd: 3, power: 95, crit: true } }
+  I2: { attr: FIRE, sub: GOLD, role: DEFENSE, stats: { hp: 148, patk: 13, pdef: 23, matk: 22, mdef: 29, spd: 9 }, skill: { name: 다시 부어 만들기, cd: 5, effects: [ { heal: 30, to: self } ] } }
+  E8: { attr: FIRE, sub: ICE, role: UTILITY, stats: { hp: 111, patk: 13, pdef: 17, matk: 22, mdef: 19, spd: 15 }, skill: { name: 온도 순환, cat: 마법, cd: 3, power: 60, effects: [ { cleanse: 2 }, { heal: 10, to: self }, { heal: 10, to: bench } ] } }
   # 얼음
-  T7: { attr: ICE, sub: GRAVITY, role: ATTACK,  skill: { name: 봉인 해제, cd: 3, power: 135, effects: [ { recharge: true } ] } }
-  D5: { attr: ICE, sub: SEA, role: UTILITY, skill: { name: 한겨울 개화, cd: 3, power: 55, effects: [ { buff: spd, pct: -40, turns: 3, to: foe }, { status: freeze, chance: 30, turns: 1 } ] } }
+  T7: { attr: ICE, sub: GRAVITY, role: ATTACK,  stats: { hp: 108, patk: 39, pdef: 15, matk: 23, mdef: 13, spd: 10 }, skill: { name: 봉인 해제, cat: 물리, cd: 3, power: 135, effects: [ { recharge: true } ] } }
+  D5: { attr: ICE, sub: SEA, role: UTILITY, stats: { hp: 106, patk: 13, pdef: 17, matk: 22, mdef: 19, spd: 18 }, skill: { name: 한겨울 개화, cat: 마법, cd: 3, power: 55, effects: [ { buff: spd, pct: -40, turns: 3, to: foe }, { status: freeze, chance: 30, turns: 1 } ] } }
   # 꽃
-  E5: { attr: BLOSSOM, sub: SEA, role: DEFENSE, skill: { name: 지지 않는 꽃, cd: 5, effects: [ { heal: 20, to: self }, { endure: 3 } ] } }
-  T5: { attr: BLOSSOM, sub: THREAD, role: UTILITY, skill: { name: 골목 꽃밭, cd: 4, power: 55, effects: [ { regen: 8, turns: 4, to: team } ] } }
-  I5: { attr: BLOSSOM, sub: SEA, role: UTILITY, skill: { name: 다음 봄, cd: 4, effects: [ { heal: 35, to: self }, { regen: 6, turns: 3, to: self } ] } }
+  E5: { attr: BLOSSOM, sub: SEA, role: DEFENSE, stats: { hp: 134, patk: 11, pdef: 23, matk: 18, mdef: 29, spd: 8 }, skill: { name: 지지 않는 꽃, cd: 5, effects: [ { heal: 20, to: self }, { endure: 3 } ] } }
+  T5: { attr: BLOSSOM, sub: THREAD, role: UTILITY, stats: { hp: 109, patk: 13, pdef: 17, matk: 22, mdef: 19, spd: 15 }, skill: { name: 골목 꽃밭, cat: 마법, cd: 4, power: 55, effects: [ { regen: 8, turns: 4, to: team } ] } }
+  I5: { attr: BLOSSOM, sub: SEA, role: UTILITY, stats: { hp: 117, patk: 12, pdef: 17, matk: 20, mdef: 19, spd: 15 }, skill: { name: 다음 봄, cd: 4, effects: [ { heal: 35, to: self }, { regen: 6, turns: 3, to: self } ] } }
   # 바다
-  D4: { attr: SEA, sub: GRAVITY, role: ATTACK,  skill: { name: 두 개의 바다, cd: 3, power: 65, hits: 2 } }
-  I9: { attr: SEA, sub: GOLD, role: ATTACK,  skill: { name: 바다 가르기, cd: 3, power: 100, effects: [ { buff: def, pct: -25, turns: 3, to: foe } ] } }
-  I4: { attr: SEA, sub: THREAD, role: DEFENSE, skill: { name: 바다부터 말려라, cd: 4, effects: [ { heal: 30, to: self }, { guard: 30, turns: 2 } ] } }
-  E4: { attr: SEA, sub: GRAVITY, role: UTILITY, skill: { name: 되돌아오는 물, cd: 3, power: 50, effects: [ { heal: 20, to: bench }, { heal: 15, to: self } ] } }
+  D4: { attr: SEA, sub: GRAVITY, role: ATTACK,  stats: { hp: 92, patk: 29, pdef: 14, matk: 17, mdef: 14, spd: 13 }, skill: { name: 두 개의 바다, cat: 물리, cd: 3, power: 65, hits: 2 } }
+  I9: { attr: SEA, sub: GOLD, role: ATTACK,  stats: { hp: 86, patk: 29, pdef: 15, matk: 17, mdef: 13, spd: 17 }, skill: { name: 바다 가르기, cat: 물리, cd: 3, power: 100, effects: [ { buff: def, pct: -25, turns: 3, to: foe } ] } }
+  I4: { attr: SEA, sub: THREAD, role: DEFENSE, stats: { hp: 120, patk: 11, pdef: 22, matk: 18, mdef: 30, spd: 7 }, skill: { name: 바다부터 말려라, cd: 4, effects: [ { heal: 30, to: self }, { guard: 30, turns: 2 } ] } }
+  E4: { attr: SEA, sub: GRAVITY, role: UTILITY, stats: { hp: 109, patk: 13, pdef: 17, matk: 21, mdef: 19, spd: 14 }, skill: { name: 되돌아오는 물, cat: 마법, cd: 3, power: 50, effects: [ { heal: 20, to: bench }, { heal: 15, to: self } ] } }
   # 그림자
-  T3: { attr: SHADOW, sub: BLOSSOM, role: ATTACK,  skill: { name: 그림자 기습, cd: 3, power: 90, priority: true, effects: [ { status: sleep, chance: 30, turns: 1 } ] } }
-  I3: { attr: SHADOW, sub: SEA, role: DEFENSE, skill: { name: 그림자에서 일어서기, cd: 5, effects: [ { heal: 20, to: self }, { endure: 2 } ] } }
-  D3: { attr: SHADOW, sub: STAR, role: UTILITY, skill: { name: 졸려서 만든 밤, cd: 3, power: 45, effects: [ { status: sleep, chance: 100, turns: 1 } ] } }
-  E3: { attr: SHADOW, sub: FIRE, role: UTILITY, skill: { name: 아침이 안 오는 동네, cd: 4, power: 55, effects: [ { buff: atk, pct: -20, turns: 4, to: foe }, { buff: spd, pct: -15, turns: 4, to: foe } ] } }
+  T3: { attr: SHADOW, sub: BLOSSOM, role: ATTACK,  stats: { hp: 81, patk: 27, pdef: 14, matk: 16, mdef: 14, spd: 15 }, skill: { name: 그림자 기습, cat: 물리, cd: 3, power: 90, priority: true, effects: [ { status: sleep, chance: 30, turns: 1 } ] } }
+  I3: { attr: SHADOW, sub: SEA, role: DEFENSE, stats: { hp: 146, patk: 13, pdef: 25, matk: 21, mdef: 27, spd: 9 }, skill: { name: 그림자에서 일어서기, cd: 5, effects: [ { heal: 20, to: self }, { endure: 2 } ] } }
+  D3: { attr: SHADOW, sub: STAR, role: UTILITY, stats: { hp: 106, patk: 13, pdef: 17, matk: 21, mdef: 19, spd: 18 }, skill: { name: 졸려서 만든 밤, cat: 마법, cd: 3, power: 45, effects: [ { status: sleep, chance: 100, turns: 1 } ] } }
+  E3: { attr: SHADOW, sub: FIRE, role: UTILITY, stats: { hp: 113, patk: 14, pdef: 17, matk: 24, mdef: 19, spd: 14 }, skill: { name: 아침이 안 오는 동네, cat: 마법, cd: 4, power: 55, effects: [ { buff: atk, pct: -20, turns: 4, to: foe }, { buff: spd, pct: -15, turns: 4, to: foe } ] } }
   # 별
-  D6: { attr: STAR, sub: SHADOW, role: ATTACK,  skill: { name: 몇 억 년 만의 점등, cd: 4, power: 150 } }
-  E6: { attr: STAR, sub: STONE, role: UTILITY, skill: { name: 약점 기록, cd: 3, power: 55, effects: [ { buff: def, pct: -35, turns: 3, to: foe } ] } }
+  D6: { attr: STAR, sub: SHADOW, role: ATTACK,  stats: { hp: 89, patk: 20, pdef: 13, matk: 34, mdef: 15, spd: 12 }, skill: { name: 몇 억 년 만의 점등, cat: 마법, cd: 4, power: 150 } }
+  E6: { attr: STAR, sub: STONE, role: UTILITY, stats: { hp: 106, patk: 13, pdef: 17, matk: 21, mdef: 19, spd: 18 }, skill: { name: 약점 기록, cat: 마법, cd: 3, power: 55, effects: [ { buff: def, pct: -35, turns: 3, to: foe } ] } }
   # 실
-  E7: { attr: THREAD, sub: SHADOW, role: ATTACK,  skill: { name: 가발 선발대, cd: 2, power: 45, hits: 2, priority: true } }
-  T8: { attr: THREAD, sub: STAR, role: DEFENSE, skill: { name: 수호 무늬 점등, cd: 4, power: 55, effects: [ { buff: def, pct: 40, turns: 3, to: self }, { buff: spd, pct: 20, turns: 3, to: self } ] } }
-  I7: { attr: THREAD, sub: GOLD, role: DEFENSE, skill: { name: 절대 안 흘러내림, cd: 4, effects: [ { guard: 35, turns: 4 } ] } }
-  D8: { attr: THREAD, sub: STAR, role: UTILITY, skill: { name: 포장 완료, cd: 3, power: 75, effects: [ { status: bind, chance: 100, turns: 3 } ] } }
+  E7: { attr: THREAD, sub: SHADOW, role: ATTACK,  stats: { hp: 79, patk: 27, pdef: 15, matk: 16, mdef: 13, spd: 20 }, skill: { name: 가발 선발대, cat: 물리, cd: 2, power: 45, hits: 2, priority: true } }
+  T8: { attr: THREAD, sub: STAR, role: DEFENSE, stats: { hp: 124, patk: 17, pdef: 30, matk: 10, mdef: 22, spd: 10 }, skill: { name: 수호 무늬 점등, cat: 물리, cd: 4, power: 55, effects: [ { buff: def, pct: 40, turns: 3, to: self }, { buff: spd, pct: 20, turns: 3, to: self } ] } }
+  I7: { attr: THREAD, sub: GOLD, role: DEFENSE, stats: { hp: 138, patk: 20, pdef: 34, matk: 12, mdef: 18, spd: 8 }, skill: { name: 절대 안 흘러내림, cd: 4, effects: [ { guard: 35, turns: 4 } ] } }
+  D8: { attr: THREAD, sub: STAR, role: UTILITY, stats: { hp: 111, patk: 23, pdef: 19, matk: 14, mdef: 17, spd: 15 }, skill: { name: 포장 완료, cat: 물리, cd: 3, power: 75, effects: [ { status: bind, chance: 100, turns: 3 } ] } }
   # 중력
-  T4: { attr: GRAVITY, sub: SEA, role: ATTACK,  skill: { name: 바다를 한 점에, cd: 3, power: 120 } }
-  I6: { attr: GRAVITY, sub: STAR, role: DEFENSE, skill: { name: 공전, cd: 4, effects: [ { guard: 40, turns: 2 }, { regen: 10, turns: 3, to: self } ] } }
-  I8: { attr: GRAVITY, sub: THREAD, role: DEFENSE, skill: { name: 중력 압박, cd: 3, effects: [ { buff: spd, pct: -50, turns: 3, to: foe }, { buff: def, pct: 20, turns: 3, to: self } ] } }
-  T6: { attr: GRAVITY, sub: STONE, role: UTILITY, skill: { name: 궤도 조정, cd: 3, power: 60, effects: [ { buff: spd, pct: 30, turns: 3, to: team }, { buff: spd, pct: -20, turns: 3, to: foe } ] } }
+  T4: { attr: GRAVITY, sub: SEA, role: ATTACK,  stats: { hp: 100, patk: 22, pdef: 13, matk: 37, mdef: 15, spd: 10 }, skill: { name: 바다를 한 점에, cat: 마법, cd: 3, power: 120 } }
+  I6: { attr: GRAVITY, sub: STAR, role: DEFENSE, stats: { hp: 148, patk: 13, pdef: 25, matk: 21, mdef: 27, spd: 8 }, skill: { name: 공전, cd: 4, effects: [ { guard: 40, turns: 2 }, { regen: 10, turns: 3, to: self } ] } }
+  I8: { attr: GRAVITY, sub: THREAD, role: DEFENSE, stats: { hp: 132, patk: 19, pdef: 30, matk: 11, mdef: 22, spd: 7 }, skill: { name: 중력 압박, cd: 3, effects: [ { buff: spd, pct: -50, turns: 3, to: foe }, { buff: def, pct: 20, turns: 3, to: self } ] } }
+  T6: { attr: GRAVITY, sub: STONE, role: UTILITY, stats: { hp: 109, patk: 13, pdef: 17, matk: 22, mdef: 19, spd: 17 }, skill: { name: 궤도 조정, cat: 마법, cd: 3, power: 60, effects: [ { buff: spd, pct: 30, turns: 3, to: team }, { buff: spd, pct: -20, turns: 3, to: foe } ] } }
 
 # 스토리 빌런(상대 전용). look/tint: 원형 그림을 색칠해 씀, mirror: 상대 팀 속성 복사. basic: 기본기 이름(없으면 똥폭탄 등 속성 기본기). 능력치 = 역할 기본값 × power(공격·방어), 체력은 × hp(없으면 power). boss: true면 화면에 크게
 # 대사·등장 순서·레벨은 data/story.yaml
 villains:
-  V12: { name: 끼룩단 졸개,   attr: SHADOW, sub: GRAVITY, role: ATTACK,  power: 0.7,  skill: { name: 새우깡 낚아채기, cd: 2, power: 60 } }
+  V12: { name: 끼룩단 졸개,   attr: SHADOW, sub: GRAVITY, role: ATTACK,  power: 0.7,  skill: { name: 새우깡 낚아채기, cat: 물리, cd: 2, power: 60 } }
   # 끼룩단(3부 「검은 깃털」). 땅콩 억지로 먹이기 = 상대 「땅콩 폭주」(이름에 갈매미맨이 있는 갈매미만 걸림)
-  V19: { name: 검게 물든 졸개, attr: SHADOW, sub: GRAVITY, role: ATTACK,  power: 0.9,  skill: { name: 땅콩 억지로 먹이기, cd: 3, power: 40, effects: [ { status: rage, chance: 100, turns: 3 } ] } }
-  V13: { name: 급강하 대원,   attr: GRAVITY, sub: SHADOW, role: ATTACK,  power: 0.95, skill: { name: 내리꽂기, cd: 2, power: 65, priority: true } }
-  V14: { name: 깃털 저격수,   attr: STAR,   sub: SHADOW,  role: ATTACK,  power: 0.95, skill: { name: 깃털 저격, cd: 3, power: 75, crit: true } }
-  V16: { name: 검은 깃털 정예, attr: SHADOW, sub: GRAVITY, role: UTILITY, power: 1.0,  skill: { name: 검은 깃털 장막, cd: 3, power: 45, effects: [ { buff: atk, pct: -20, turns: 3, to: foe }, { status: rage, chance: 50, turns: 2 } ] } }
-  V15: { name: 끼룩단 행동대장, attr: SHADOW, sub: STONE,  role: ATTACK,  power: 1.1,  hp: 1.7, boss: true, skill: { name: 날갯짓 돌진, cd: 3, power: 95, effects: [ { buff: atk, pct: 20, turns: 2, to: self } ] } }
-  V20: { name: 돌아온 졸개,   attr: STAR,   sub: SEA,     role: UTILITY, power: 0.7,  skill: { name: 하늘 배달, cd: 2, power: 40 } }
+  V19: { name: 검게 물든 졸개, attr: SHADOW, sub: GRAVITY, role: ATTACK,  power: 0.9,  skill: { name: 땅콩 억지로 먹이기, cat: 물리, cd: 3, power: 40, effects: [ { status: rage, chance: 100, turns: 3 } ] } }
+  V13: { name: 급강하 대원,   attr: GRAVITY, sub: SHADOW, role: ATTACK,  power: 0.95, skill: { name: 내리꽂기, cat: 물리, cd: 2, power: 65, priority: true } }
+  V14: { name: 깃털 저격수,   attr: STAR,   sub: SHADOW,  role: ATTACK,  power: 0.95, skill: { name: 깃털 저격, cat: 물리, cd: 3, power: 75, crit: true } }
+  V16: { name: 검은 깃털 정예, attr: SHADOW, sub: GRAVITY, role: UTILITY, power: 1.0,  skill: { name: 검은 깃털 장막, cat: 마법, cd: 3, power: 45, effects: [ { buff: atk, pct: -20, turns: 3, to: foe }, { status: rage, chance: 50, turns: 2 } ] } }
+  V15: { name: 끼룩단 행동대장, attr: SHADOW, sub: STONE,  role: ATTACK,  power: 1.1,  hp: 1.7, boss: true, skill: { name: 날갯짓 돌진, cat: 물리, cd: 3, power: 95, effects: [ { buff: atk, pct: 20, turns: 2, to: self } ] } }
+  V20: { name: 돌아온 졸개,   attr: STAR,   sub: SEA,     role: UTILITY, power: 0.7,  skill: { name: 하늘 배달, cat: 물리, cd: 2, power: 40 } }
   # 블랙 갈매미맨(3부 최종 보스) 3단계: 그림자 → 거울(mirror: 상대 팀에 가장 많은 속성을 복사) → 땅콩(쓰러질 듯해도 다시 붙음)
   #   look: 그림으로 쓸 원형(그 앞모습을 tint 색으로 칠함)
-  V17: { name: 블랙 갈매미맨,     look: D1, tint: shadow, attr: SHADOW, sub: STONE, role: ATTACK,  power: 1.0,  hp: 1.3, boss: true, skill: { name: 버려진 기세, cd: 3, power: 100 } }
-  V21: { name: 거울 블랙 갈매미맨, look: D1, tint: mirror, mirror: true, attr: SHADOW, sub: STONE, role: UTILITY, power: 0.95, hp: 1.3, boss: true, skill: { name: 기세 비추기, cd: 3, power: 70, effects: [ { strip: true } ] } }
+  V17: { name: 블랙 갈매미맨,     look: D1, tint: shadow, attr: SHADOW, sub: STONE, role: ATTACK,  power: 1.0,  hp: 1.3, boss: true, skill: { name: 버려진 기세, cat: 마법, cd: 3, power: 100 } }
+  V21: { name: 거울 블랙 갈매미맨, look: D1, tint: mirror, mirror: true, attr: SHADOW, sub: STONE, role: UTILITY, power: 0.95, hp: 1.3, boss: true, skill: { name: 기세 비추기, cat: 마법, cd: 3, power: 70, effects: [ { strip: true } ] } }
   V22: { name: 땅콩 블랙 갈매미맨, look: D1, tint: peanut, attr: STONE, sub: SHADOW, role: DEFENSE, power: 0.95, hp: 1.4, boss: true, skill: { name: 다시 붙는 땅콩, cd: 3, effects: [ { endure: 2 }, { heal: 20, to: self } ] } }
-  V1:  { name: 쭈매미 졸병, basic: 먹물 뿌리기,   attr: SEA, sub: SHADOW,    role: ATTACK,  power: 0.85, skill: { name: 먹물 찍찍, cd: 2, power: 55, effects: [ { buff: spd, pct: -20, turns: 2, to: foe } ] } }
-  V2:  { name: 먹물 쭈매미, basic: 먹물 뿌리기,   attr: SHADOW, sub: SEA, role: UTILITY, power: 0.9,  skill: { name: 먹물 이력서, cd: 3, power: 40, effects: [ { buff: atk, pct: -20, turns: 2, to: foe } ] } }
-  V3:  { name: 빨판 쭈매미, basic: 먹물 뿌리기,   attr: SEA, sub: STONE,    role: DEFENSE, power: 0.9,  skill: { name: 출근 도장대 붙잡기, cd: 3, power: 45, effects: [ { status: bind, chance: 100, turns: 2 } ] } }
-  V4:  { name: 쭈매미 알 무더기, basic: 먹물 뿌리기, attr: SEA, sub: SHADOW, role: DEFENSE, power: 0.8,  hp: 1.3, skill: { name: 부화 대기, cd: 4, effects: [ { regen: 10, turns: 3, to: self }, { guard: 30, turns: 2 } ] } }
-  V5:  { name: 여덟발 대장, basic: 먹물 뿌리기,   attr: SEA, sub: SHADOW,    role: ATTACK,  power: 1.0,  hp: 1.5, boss: true, skill: { name: 이력서 여덟 장, cd: 3, power: 28, hits: 4 } }
-  V6:  { name: 쭈라켄, basic: 먹물 뿌리기,       attr: SEA, sub: GRAVITY,    role: DEFENSE, power: 1.0,  hp: 2.4, boss: true, skill: { name: 자리는 하나 지원자는 천 마리, cd: 3, power: 70, hits: 2, effects: [ { buff: atk, pct: 15, turns: 3, to: self } ] } }
+  V1:  { name: 쭈매미 졸병, basic: 먹물 뿌리기, basicCat: 마법,   attr: SEA, sub: SHADOW,    role: ATTACK,  power: 0.85, skill: { name: 먹물 찍찍, cat: 마법, cd: 2, power: 55, effects: [ { buff: spd, pct: -20, turns: 2, to: foe } ] } }
+  V2:  { name: 먹물 쭈매미, basic: 먹물 뿌리기, basicCat: 마법,   attr: SHADOW, sub: SEA, role: UTILITY, power: 0.9,  skill: { name: 먹물 이력서, cat: 마법, cd: 3, power: 40, effects: [ { buff: atk, pct: -20, turns: 2, to: foe } ] } }
+  V3:  { name: 빨판 쭈매미, basic: 먹물 뿌리기, basicCat: 마법,   attr: SEA, sub: STONE,    role: DEFENSE, power: 0.9,  skill: { name: 출근 도장대 붙잡기, cat: 물리, cd: 3, power: 45, effects: [ { status: bind, chance: 100, turns: 2 } ] } }
+  V4:  { name: 쭈매미 알 무더기, basic: 먹물 뿌리기, basicCat: 마법, attr: SEA, sub: SHADOW, role: DEFENSE, power: 0.8,  hp: 1.3, skill: { name: 부화 대기, cd: 4, effects: [ { regen: 10, turns: 3, to: self }, { guard: 30, turns: 2 } ] } }
+  V5:  { name: 여덟발 대장, basic: 먹물 뿌리기, basicCat: 마법,   attr: SEA, sub: SHADOW,    role: ATTACK,  power: 1.0,  hp: 1.5, boss: true, skill: { name: 이력서 여덟 장, cat: 물리, cd: 3, power: 28, hits: 4 } }
+  V6:  { name: 쭈라켄, basic: 먹물 뿌리기, basicCat: 마법,       attr: SEA, sub: GRAVITY,    role: DEFENSE, power: 1.0,  hp: 2.4, boss: true, skill: { name: 자리는 하나 지원자는 천 마리, cat: 물리, cd: 3, power: 70, hits: 2, effects: [ { buff: atk, pct: 15, turns: 3, to: self } ] } }
   # 랍매미(2부 「인수합병 소용돌이」용, 아직 스토리에 안 나옴). 기본기는 집게 꼬집기
-  V7:  { name: 집게 랍매미,   basic: 집게 꼬집기, attr: THREAD, sub: SEA,     role: ATTACK,  power: 0.95, skill: { name: 끈 자르기, cd: 3, power: 60, effects: [ { strip: true } ] } }
-  V8:  { name: 껍데기 랍매미, basic: 집게 꼬집기, attr: STONE,  sub: SEA,     role: DEFENSE, power: 1.0,  hp: 1.3, skill: { name: 허물 벗기, cd: 4, effects: [ { heal: 30, to: self }, { buff: def, pct: 30, turns: 2, to: self } ] } }
-  V9:  { name: 랍매미 경매사, basic: 집게 꼬집기, attr: GOLD,   sub: SEA,     role: UTILITY, power: 1.0,  skill: { name: 낙찰, cd: 3, power: 50, effects: [ { buff: atk, pct: -25, turns: 3, to: foe } ] } }
-  V10: { name: 대집게 선장,   basic: 집게 꼬집기, attr: SEA,    sub: THREAD,  role: ATTACK,  power: 1.15, hp: 1.6, boss: true, skill: { name: 빨래 돛 돌격, cd: 3, power: 95, effects: [ { buff: spd, pct: 20, turns: 2, to: self } ] } }
-  V11: { name: 카랍디스,     basic: 집게 꼬집기, attr: GRAVITY, sub: SEA,    role: DEFENSE, power: 1.0,  hp: 2.8, boss: true, skill: { name: 자회사 삼키기, cd: 3, power: 75, effects: [ { strip: true }, { heal: 15, to: self } ] } }
+  V7:  { name: 집게 랍매미,   basic: 집게 꼬집기, basicCat: 물리, attr: THREAD, sub: SEA,     role: ATTACK,  power: 0.95, skill: { name: 끈 자르기, cat: 물리, cd: 3, power: 60, effects: [ { strip: true } ] } }
+  V8:  { name: 껍데기 랍매미, basic: 집게 꼬집기, basicCat: 물리, attr: STONE,  sub: SEA,     role: DEFENSE, power: 1.0,  hp: 1.3, skill: { name: 허물 벗기, cd: 4, effects: [ { heal: 30, to: self }, { buff: def, pct: 30, turns: 2, to: self } ] } }
+  V9:  { name: 랍매미 경매사, basic: 집게 꼬집기, basicCat: 물리, attr: GOLD,   sub: SEA,     role: UTILITY, power: 1.0,  skill: { name: 낙찰, cat: 마법, cd: 3, power: 50, effects: [ { buff: atk, pct: -25, turns: 3, to: foe } ] } }
+  V10: { name: 대집게 선장,   basic: 집게 꼬집기, basicCat: 물리, attr: SEA,    sub: THREAD,  role: ATTACK,  power: 1.15, hp: 1.6, boss: true, skill: { name: 빨래 돛 돌격, cat: 물리, cd: 3, power: 95, effects: [ { buff: spd, pct: 20, turns: 2, to: self } ] } }
+  V11: { name: 카랍디스,     basic: 집게 꼬집기, basicCat: 물리, attr: GRAVITY, sub: SEA,    role: DEFENSE, power: 1.0,  hp: 2.8, boss: true, skill: { name: 자회사 삼키기, cat: 물리, cd: 3, power: 75, effects: [ { strip: true }, { heal: 15, to: self } ] } }
 
 # 시너지 합동기: 같은 시너지(카톡 조합의 계열) 유닛이 팀에 2마리 이상이면, 그 유닛들이 합동기를 쓸 수 있어요.
 #   팀당 대결 1번, 같은 시너지 동료가 하나 이상 살아 있어야 써요. members는 data/units.json의 synergy와 같아야 해요(검사함)
 synergies:
-  BASIC:   { name: 기본 시너지,   members: [D1, T1, E1, I1], skill: { name: 원형 수호진, cd: 0, power: 60, effects: [ { buff: def, pct: 40, turns: 3, to: team } ] } }
-  GOLD:    { name: 황금 시너지,   members: [D2, T2, E2, I2], skill: { name: 금고 문 열기, cd: 0, power: 100, crit: true } }
-  DARK:    { name: 암흑 시너지,   members: [D3, T3, E3, I3], skill: { name: 다 같이 잘 시간, cd: 0, power: 50, effects: [ { status: sleep, chance: 100, turns: 1 } ] } }
-  SEA:     { name: 바다 시너지,   members: [D4, T4, E4, I4], skill: { name: 심해 소용돌이, cd: 0, power: 40, hits: 3, effects: [ { buff: spd, pct: -30, turns: 2, to: foe } ] } }
+  BASIC:   { name: 기본 시너지,   members: [D1, T1, E1, I1], skill: { name: 원형 수호진, cat: 자동, cd: 0, power: 60, effects: [ { buff: def, pct: 40, turns: 3, to: team } ] } }
+  GOLD:    { name: 황금 시너지,   members: [D2, T2, E2, I2], skill: { name: 금고 문 열기, cat: 자동, cd: 0, power: 100, crit: true } }
+  DARK:    { name: 암흑 시너지,   members: [D3, T3, E3, I3], skill: { name: 다 같이 잘 시간, cat: 자동, cd: 0, power: 50, effects: [ { status: sleep, chance: 100, turns: 1 } ] } }
+  SEA:     { name: 바다 시너지,   members: [D4, T4, E4, I4], skill: { name: 심해 소용돌이, cat: 자동, cd: 0, power: 40, hits: 3, effects: [ { buff: spd, pct: -30, turns: 2, to: foe } ] } }
   BLOSSOM: { name: 벚꽃 시너지,   members: [D5, T5, E5, I5], skill: { name: 만개, cd: 0, effects: [ { regen: 12, turns: 4, to: team }, { cleanse: 2 } ] } }
-  COSMOS:  { name: 우주 시너지,   members: [D6, T6, E6, I6], skill: { name: 별자리 잇기, cd: 0, power: 110, effects: [ { buff: spd, pct: 30, turns: 2, to: team } ] } }
+  COSMOS:  { name: 우주 시너지,   members: [D6, T6, E6, I6], skill: { name: 별자리 잇기, cat: 자동, cd: 0, power: 110, effects: [ { buff: spd, pct: 30, turns: 2, to: team } ] } }
   OUTFIT:  { name: 갈 의복 시너지, members: [D7, D8, T7, T8, E7, E8, I7, I8, I9], skill: { name: 튼튼한 빤스 결속, cd: 0, effects: [ { endure: 2 }, { buff: atk, pct: 25, turns: 3, to: team } ] } }
 
 # 레벨업 기술 배우기: levels에 도달할 때마다 1번 기회(후보 offers개 중 1개 또는 건너뛰기). 배운 기술 칸은 slots개(차면 하나와 바꿈)
@@ -165,32 +171,32 @@ learn:
   slots: 2
   offers: 3
   skills:
-    quick:    { name: 재빠른 쪼기,   level: 10, cd: 1, power: 40, priority: true }
-    peck:     { name: 연속 쪼기,     level: 10, cd: 2, power: 22, hits: 3 }
+    quick:    { name: 재빠른 쪼기, cat: 물리,   level: 10, cd: 1, power: 40, priority: true }
+    peck:     { name: 연속 쪼기, cat: 물리,     level: 10, cd: 2, power: 22, hits: 3 }
     sand:     { name: 모래 끼얹기,   level: 10, cd: 2, effects: [ { buff: spd, pct: -30, turns: 3, to: foe } ] }
     growl:    { name: 끼룩 위협,     level: 10, cd: 2, effects: [ { buff: atk, pct: -20, turns: 3, to: foe } ] }
     preen:    { name: 깃털 고르기,   level: 10, cd: 3, roles: [DEFENSE, UTILITY], effects: [ { heal: 25, to: self } ] }
     snack:    { name: 새우깡 미끼,   level: 10, cd: 4, roles: [UTILITY], effects: [ { status: sleep, chance: 60, turns: 1 } ] }
-    flame:    { name: 불꽃 부리,     level: 20, attr: FIRE,   cd: 2, power: 55, effects: [ { status: burn, chance: 30, turns: 3 } ] }
-    frost:    { name: 얼음 숨결,     level: 20, attr: ICE,    cd: 2, power: 55, effects: [ { status: freeze, chance: 20, turns: 1 } ] }
-    wrap:     { name: 실 감기,       level: 20, attr: THREAD, cd: 3, power: 40, effects: [ { status: bind, chance: 100, turns: 2 } ] }
+    flame:    { name: 불꽃 부리, cat: 마법,     level: 20, attr: FIRE,   cd: 2, power: 55, effects: [ { status: burn, chance: 30, turns: 3 } ] }
+    frost:    { name: 얼음 숨결, cat: 마법,     level: 20, attr: ICE,    cd: 2, power: 55, effects: [ { status: freeze, chance: 20, turns: 1 } ] }
+    wrap:     { name: 실 감기, cat: 물리,       level: 20, attr: THREAD, cd: 3, power: 40, effects: [ { status: bind, chance: 100, turns: 2 } ] }
     brace:    { name: 철벽 자세,     level: 20, cd: 4, roles: [DEFENSE], effects: [ { guard: 50, turns: 2 } ] }
     pump:     { name: 기합 넣기,     level: 20, cd: 3, roles: [ATTACK], effects: [ { buff: atk, pct: 30, turns: 3, to: self } ] }
     cheer:    { name: 출근 응원가,   level: 20, cd: 4, roles: [UTILITY], effects: [ { buff: atk, pct: 15, turns: 3, to: team } ] }
-    pierce:   { name: 급소 찌르기,   level: 30, cd: 3, power: 70, crit: true, roles: [ATTACK, UTILITY] }
+    pierce:   { name: 급소 찌르기, cat: 물리,   level: 30, cd: 3, power: 70, crit: true, roles: [ATTACK, UTILITY] }
     grit:     { name: 악으로 버티기, level: 30, cd: 5, roles: [DEFENSE, ATTACK], effects: [ { endure: 2 } ] }
     block:    { name: 날개로 막기,   level: 30, cd: 3, effects: [ { protect: true } ] }
-    steal:    { name: 기세 빼앗기,   level: 30, cd: 3, power: 50, roles: [UTILITY], effects: [ { strip: true } ] }
+    steal:    { name: 기세 빼앗기, cat: 마법,   level: 30, cd: 3, power: 50, roles: [UTILITY], effects: [ { strip: true } ] }
     rest:     { name: 휴식 시간,     level: 30, cd: 5, roles: [UTILITY, DEFENSE], effects: [ { regen: 8, turns: 3, to: team } ] }
-    ambush:   { name: 그림자 기습,   level: 30, attr: SHADOW, cd: 3, power: 60, priority: true }
-    rush:     { name: 전력 돌진,     level: 40, cd: 3, power: 130, roles: [ATTACK], effects: [ { recharge: true } ] }
-    meteor:   { name: 별똥 낙하,     level: 40, attr: STAR, cd: 3, power: 80 }
+    ambush:   { name: 그림자 기습, cat: 물리,   level: 30, attr: SHADOW, cd: 3, power: 60, priority: true }
+    rush:     { name: 전력 돌진, cat: 물리,     level: 40, cd: 3, power: 130, roles: [ATTACK], effects: [ { recharge: true } ] }
+    meteor:   { name: 별똥 낙하, cat: 마법,     level: 40, attr: STAR, cd: 3, power: 80 }
     armor:    { name: 돌 갑옷,       level: 40, cd: 4, roles: [DEFENSE], effects: [ { buff: def, pct: 30, turns: 3, to: team } ] }
-    quake:    { name: 땅 울리기,     level: 40, attr: STONE, cd: 3, power: 75, effects: [ { buff: spd, pct: -20, turns: 2, to: foe } ] }
-    finisher: { name: 필살 갈매기 낙하, level: 50, cd: 4, power: 160, roles: [ATTACK], effects: [ { recharge: true } ] }
+    quake:    { name: 땅 울리기, cat: 물리,     level: 40, attr: STONE, cd: 3, power: 75, effects: [ { buff: spd, pct: -20, turns: 2, to: foe } ] }
+    finisher: { name: 필살 갈매기 낙하, cat: 물리, level: 50, cd: 4, power: 160, roles: [ATTACK], effects: [ { recharge: true } ] }
     flag:     { name: 만선 깃발,     level: 50, cd: 5, effects: [ { buff: atk, pct: 20, turns: 3, to: team }, { buff: def, pct: 20, turns: 3, to: team } ] }
     comeback: { name: 다시 출근,     level: 50, cd: 6, roles: [UTILITY, DEFENSE], effects: [ { revive: 40 } ] }
-    blizzard: { name: 눈보라,        level: 50, attr: ICE, cd: 4, power: 90, effects: [ { status: freeze, chance: 30, turns: 1 } ] }
+    blizzard: { name: 눈보라, cat: 마법,        level: 50, attr: ICE, cd: 4, power: 90, effects: [ { status: freeze, chance: 30, turns: 1 } ] }
 
 # 대결 아이템: 웹 「내 갈매미 → 상점」에서 새우깡으로 사요. 대결 중 쓰면 그 턴 행동을 써요(스토리 계정 저장 이후 대결에서 사용)
 #   heal: 지금 나와 있는 갈매미 체력 % 회복 / cleanse: 지금 나와 있는 갈매미 상태 이상 풀기 / revive: 쓰러진 아군 하나를 체력 %로

@@ -303,6 +303,15 @@ button.mini{background:none;border:0;padding:0;color:var(--ink);display:flex;fle
 .dock a{display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none;color:#e8e2d6;font-size:11px}
 .dock a i{font-style:normal;font-size:22px;width:46px;height:46px;display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3c5878,#1a2a3e);border:2px solid #c9a24a;box-shadow:0 3px 0 rgba(0,0,0,.45)}
 .dock a:active i{transform:translateY(2px)}
+
+/* 능력치 표·물리/마법 표시 */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0 4px}
+.stats div{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:6px 8px;display:flex;flex-direction:column}
+.stats small{color:var(--dim);font-size:11px}
+.stats b{font-size:18px;font-family:"Black Han Sans",sans-serif;font-weight:400}
+.stats .main{border-color:var(--gold)}.stats .main b{color:var(--gold)}
+i.cat{font-style:normal;font-size:10px;padding:1px 6px;border-radius:999px;margin:0 4px;vertical-align:2px;font-weight:700}
+i.cat.phys{background:#5a3a22;color:#ffd9b0}i.cat.mag{background:#3a2d66;color:#d9ccff}
 </style>
 </head>
 <body>

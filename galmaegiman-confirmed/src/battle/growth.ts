@@ -40,15 +40,18 @@ export function passiveOf(r:Rules,rec:UnitRecord):Passive{
 
 // 레벨·진화로 커지는 배율(체력·공격·방어와 피해에 같이 씀)
 export const levelScale=(r:Rules,rec:{level:number;stage:Stage})=>(1+r.data.growth.levelGrowth/100*(rec.level-1))*r.data.growth.stageMult[rec.stage];
-// 같은 유닛은 언제나 같은 개성(±5%)
-function jitter(id:string,salt:number){let h=2166136261^salt;for(const ch of id)h=Math.imul(h^ch.charCodeAt(0),16777619);return 0.95+((h>>>0)%1000)/1000*0.1;}
+// 능력치: 유닛은 data/battle.yaml units의 stats(유닛마다 따로), 빌런은 역할 기본값 × power(체력은 × hp).
+//   체력·물리공격·물리방어·마법공격·마법방어 = 값 × 등급 보정 × 레벨·진화 배율 × 직무 표창(%)
+//   속도 = 값 × (레벨 1당 +1%) × (진화 1·2·3단계 +6·12.5·20%) × 직무 표창 → 레벨 차이로 순서가 크게 뒤집히진 않음
 export function statsOf(r:Rules,rec:UnitRecord){
   const def=r.unitDef(rec.id);if(!def)throw new Error(`전투 유닛이 아님: ${rec.id}`);
-  const b=r.data.roles[def.role],t=r.data.tiers[rec.tier],scale=levelScale(r,rec),p=passiveOf(r,rec);
+  const role=r.data.roles[def.role],t=r.data.tiers[rec.tier],scale=levelScale(r,rec),p=passiveOf(r,rec);
   const lv=1+r.data.growth.levelGrowth/100*(rec.level-1),st=r.data.growth.stageMult[rec.stage];
   const pw=def.power??1,hm=def.hpMult??pw;
-  const f=(v:number,salt:number,pct=0,m=pw)=>Math.round(v*t*m*scale*jitter(rec.id,salt)*(1+pct/100));
-  return {hp:f(b.hp,1,p.hpPct,hm),atk:f(b.atk,2,p.atkPct),def:f(b.def,3,p.defPct),spd:Math.round(b.spd*jitter(rec.id,4)*(1+(lv-1)*0.25)*(1+(st-1)*0.5)*(1+(p.spdPct??0)/100))};
+  const b=def.stats??{hp:role.hp*hm/pw,patk:role.atk,pdef:role.def,matk:role.atk,mdef:role.def,spd:role.spd};
+  const f=(v:number,pct=0,m=def.stats?1:pw)=>Math.round(v*t*m*scale*(1+pct/100));
+  return {hp:f(b.hp,p.hpPct),patk:f(b.patk,p.atkPct),pdef:f(b.pdef,p.defPct),matk:f(b.matk,p.atkPct),mdef:f(b.mdef,p.defPct),
+    spd:Math.round(b.spd*(1+(lv-1)*0.25)*(1+(st-1)*0.5)*(1+(p.spdPct??0)/100))};
 }
 
 // ── 레벨업 기술 배우기(진화와 별개): learn.levels에 도달할 때마다 1번 기회. 후보는 그 유닛·그 기회마다 항상 같음(다시 열어도 안 바뀜) ──
