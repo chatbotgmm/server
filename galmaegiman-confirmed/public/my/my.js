@@ -53,8 +53,15 @@
   const fromHash = () => { const h = location.hash.slice(1); return TABS.includes(h) ? h : null; };
   let me, tab = fromHash() ?? 'draw', filter = 'all';
   addEventListener('hashchange', () => { const h = fromHash(); if (h && h !== tab && me) { tab = h; if (tab === 'craft') craftData = null; if (tab === 'draw') drawData = null; draw(); } });
+  // 웹 게임 첫 화면의 「로그인」으로 왔으면(next=duel) 로그인 뒤 게임으로 돌려보냄(카카오 로그인으로 다녀와도 기억)
+  if (!APP && new URLSearchParams(location.search).get('next') === 'duel') try { sessionStorage.setItem('gmm-next', 'duel'); } catch { /* 무시 */ }
+  async function toDuel() {
+    let go = false; try { go = sessionStorage.getItem('gmm-next') === 'duel'; sessionStorage.removeItem('gmm-next'); } catch { /* 무시 */ }
+    if (!go) return false;
+    try { const { k } = await api('duel-key'); location.href = `/duel?k=${encodeURIComponent(k)}`; return true; } catch { return false; }
+  }
   async function main() {
-    try { me = await api('me'); APP?.onMe(me); if (kmsg && !main.shown) { main.shown = 1; toast(kmsg); } } catch (e) { if (e.message !== 'login') app.innerHTML = `${head()}<p class="empty">${esc(e.message)}</p>`; return; }
+    try { me = await api('me'); if (await toDuel()) return; APP?.onMe(me); if (kmsg && !main.shown) { main.shown = 1; toast(kmsg); } } catch (e) { if (e.message !== 'login') app.innerHTML = `${head()}<p class="empty">${esc(e.message)}</p>`; return; }
     draw();
   }
   function draw() {

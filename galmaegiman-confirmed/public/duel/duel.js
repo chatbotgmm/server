@@ -107,6 +107,18 @@ addEventListener('load', e => { if (e.target?.tagName === 'IMG') e.target.style.
 const NPC = { '마을 회관 방송': 'HALL' };
 // 아이템·증강체 그림(public/battle/icons/potion.png): 없으면 글자 그림(이모지)
 const ico = (id, emoji) => ICONS.includes(id) ? `<img class="ico" src="${BASE}/duel/icons/${id}.png" alt="">` : emoji;
+// 장소별 움직이는 배경(그림 없이 코드로): 구름·갈매기·물 반짝임·먹물·거품·금가루·깃털·불티. 같은 장소면 늘 같은 배치(seed)
+const AMB = {
+  harbor: [['cloud', 4], ['gull', 3], ['glint', 10]], hall: [['cloud', 4], ['gull', 2]], laundry: [['cloud', 3], ['gull', 2], ['cloth', 6]],
+  ink: [['drop', 14], ['paper', 5]], deep: [['bubble', 16], ['ray', 3]], market: [['dust', 18], ['cloud', 2]],
+  strait: [['cloud', 5], ['spray', 12], ['glint', 6]], sky: [['cloud', 6], ['feather2', 10]], nest: [['feather2', 8], ['ember', 14]],
+};
+function ambient(scene) {
+  let t = 7; for (const ch of scene || 'harbor') t = (t * 31 + ch.charCodeAt(0)) >>> 0;
+  const r = () => { t = (t * 1103515245 + 12345) >>> 0; return (t >>> 8) / 16777216; };
+  return `<div class="amb" aria-hidden="true">${(AMB[scene] ?? AMB.harbor).flatMap(([k, n]) => Array.from({ length: n }, () =>
+    `<i class="a-${k}" style="--x:${(r() * 100).toFixed(1)}%;--y:${(r() * 100).toFixed(1)}%;--s:${(0.6 + r() * 0.8).toFixed(2)};--d:${(6 + r() * 14).toFixed(1)}s;--dl:-${(r() * 20).toFixed(1)}s"></i>`)).join('')}</div>`;
+}
 const bgStyle = scene => BG.includes(scene) ? `background:url(${BASE}/duel/bg/${scene}.jpg${q}) center/cover` : '';
 const tintOf = id => { const t = R.data.villains?.[id]?.tint; return !t ? '' : ART.includes('V17') ? (t === 'shadow' ? '' : `tint-${t}-art`) : `tint-${t}`; };   // 진짜 그림이 있으면 가볍게만
 const setTint = (img, id) => { img.classList.remove('tint-shadow', 'tint-mirror', 'tint-peanut', 'tint-mirror-art', 'tint-peanut-art'); const t = tintOf(id); if (t) img.classList.add(t); };
@@ -158,7 +170,7 @@ async function boot() {
   try {
     // 앱: 로그인한 계정으로 게임 열쇠를 받음(로그인 전이면 로그인 화면으로)
     if (!K && APP) {
-      if (!APP.token()) { location.href = 'my.html?next=game'; return; }
+      if (!APP.token()) { titleScreen(false); return; }
       try { K = (await myApi('duel-key')).k; q = `?k=${encodeURIComponent(K)}`; }
       catch (e) { if (e.status === 401) { APP.setToken(null); location.href = 'my.html?next=game'; return; } throw e; }
     }
@@ -174,12 +186,23 @@ async function boot() {
       else { SAVE = load(progressed(local()) ? local() : null); if (progressed(local())) persist(); }
       if (SAVE.team.length !== 3 && ACC.battleTeam.length === 3) { SAVE.team = [...ACC.battleTeam]; persist(); }
     } else SAVE = load();
-    menu();
+    titleScreen(!!ACC);
   } catch (e) {
     app.innerHTML = `<header><h1>수비대 대결</h1></header><div class="err">${esc(e.message)}</div>`;
   }
 }
 
+// 첫 화면: 대표 그림 + 큰 게임 이름 + 버튼 하나(로그인 전 「로그인」, 로그인 뒤 「게임 시작」 → 로비)
+function titleScreen(loggedIn) {
+  modal.hidden = true; muteBtn(); if (R) bgm('title');
+  const art = APP ? 'title.jpg' : BG.includes('key') ? `${BASE}/duel/bg/key.jpg${q}` : '';
+  const login = APP ? 'my.html?next=game' : '/my?next=duel';
+  app.innerHTML = `<div class="title" style="${art ? `background-image:url(${art})` : ''}">${ambient('harbor')}
+    <div class="tlogo"><b><span class="stroke">${esc(GAME.name)}</span><span class="fill">${esc(GAME.name)}</span></b><small>${esc(GAME.sub)}</small></div>
+    ${loggedIn ? '<button class="tgo" id="tgo">▶ 게임 시작</button>' : `<a class="tgo" href="${login}">로그인</a>`}
+    ${loggedIn && ACC ? `<span class="tacc"><img src="${APP ? 'gull.png' : '/gull.png'}" alt="">${esc(ACC.nickname || '내 계정')}</span>` : ''}</div>`;
+  app.querySelector('#tgo')?.addEventListener('click', menu);
+}
 function menu() {
   modal.hidden = true; bgm('title'); muteBtn();
   // 첫 화면(게임 타이틀): 항구 배경 + 대표 그림·제목 + 큰 「이어하기」 + 스토리·자유 대결 + 챗봇 기능 아이콘 줄(「내 갈매미」 탭)
@@ -187,11 +210,11 @@ function menu() {
   const bg = BG.includes('harbor') ? `background-image:url(${BASE}/duel/bg/harbor.jpg${q})` : '';
   const hero = BG.includes('key') ? `background-image:url(${BASE}/duel/bg/key.jpg${q})` : '';
   const who = ACC ? `<span class="badge"><img src="${gull}" alt="">${esc(ACC.nickname || '내 계정')}</span>`
-    : `<a class="badge out" href="${my('account')}">로그인하면 진행이 계정에 저장돼요 ›</a>`;
+    : '';
   // 세로: 항구 배경 + 위쪽 대표 그림 / 가로(앱): 대표 그림을 화면 전체에
   app.innerHTML = `<div class="ts" style="${bg};${hero ? `--key:url(${BASE}/duel/bg/key.jpg${q})` : ''}">
-    <div class="hero ${hero ? '' : 'noart'}" style="${hero}">${who}
-      <div class="logo"><b>${esc(GAME.name)}</b><small>${esc(GAME.sub)}</small></div></div>
+    ${ambient('harbor')}<div class="hero ${hero ? '' : 'noart'}" style="${hero}">${who}
+</div>
     <div class="tmid">${nowCard()}
     <div class="two"><button id="st"><i>📖</i>스토리</button><button id="fr"><i>⚔️</i>자유 대결</button></div></div>
     ${squad()}
@@ -387,7 +410,7 @@ function talk(lines, opt = {}) {
     let i = 0, typing = null, full = '';
     const foeId = lines.find(l => /^[VDTEIN]\d+$/.test(l.who))?.who;
     modal.className = 'scene-on';
-    modal.innerHTML = `<div class="scene sc-${opt.scene || 'harbor'}" style="${bgStyle(opt.scene || 'harbor')}">
+    modal.innerHTML = `<div class="scene sc-${opt.scene || 'harbor'}">${bgStyle(opt.scene || 'harbor') ? `<div class="kb" style="${bgStyle(opt.scene || 'harbor')}"></div>` : ''}${ambient(opt.scene || 'harbor')}
       ${opt.title ? `<div class="place">${esc(opt.title)}</div>` : ''}
       <img class="por me" id="pMe" src="${sprite(lead.id, 'front', SAVE.units[lead.id]?.stage ?? 0)}" alt="">
       <img class="por foe" id="pFoe" alt="" ${foeId ? '' : 'hidden'}>
@@ -463,7 +486,7 @@ function startBattle(mine, foe, end, hint, flee) {
   b = createBattle(R, mine, foe, (Math.random() * 2 ** 31) | 0);
   const boss = foe.some(f => R.villains.get(f.id)?.boss);
   bgm(boss ? 'boss' : 'battle');
-  app.innerHTML = `<div id="arena" style="${bgStyle(sceneNow)}"><div class="plat foe"></div><div class="plat me"></div>
+  app.innerHTML = `<div id="arena" class="sc-${sceneNow || 'harbor'}">${ambient(sceneNow || 'harbor')}<div class="ground"></div><div class="haze"></div><div class="plat foe"></div><div class="plat me"></div>
     <img class="mon foe ${boss ? 'boss' : ''}" id="m1" alt=""><img class="mon me" id="m0" alt="">
     <div class="box foe" id="b1"></div><div class="box me" id="b0"></div><div id="fx"></div></div>
     <div id="msg"></div><div id="panel"></div>`;

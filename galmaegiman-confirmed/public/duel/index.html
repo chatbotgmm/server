@@ -428,6 +428,98 @@ i.cat.phys::before{content:"⚔ "}i.cat.mag::before{content:"✦ "}
 @media (orientation:landscape) and (max-height:600px), (orientation:landscape) and (min-width:900px){
   #app:has(#arena) #panel,#app:has(#arena){background:transparent}
 }
+
+/* ════ 움직이는 배경·숨쉬기 ════ */
+.amb{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+#arena>*:not(.amb){z-index:1}
+.amb i{position:absolute;left:var(--x);top:var(--y);display:block;animation-delay:var(--dl) !important}
+/* 구름: 하늘 띠에서 왼→오른쪽으로 천천히 */
+.a-cloud{top:calc(var(--y) * .3) !important;width:calc(120px * var(--s));height:calc(36px * var(--s));border-radius:999px;background:radial-gradient(ellipse at 50% 60%,#fffffff0 30%,#ffffff00 70%);filter:blur(1px);opacity:.85;animation:drift calc(var(--d) * 4) linear infinite}
+.a-cloud::before,.a-cloud::after{content:"";position:absolute;border-radius:50%;background:radial-gradient(#fffffff0 40%,#fff0 70%)}
+.a-cloud::before{width:55%;height:120%;left:15%;top:-55%}.a-cloud::after{width:40%;height:95%;left:48%;top:-35%}
+@keyframes drift{from{transform:translateX(-140%)}to{transform:translateX(110vw)}}
+/* 갈매기: 하늘을 가로질러 날갯짓 */
+.a-gull{top:calc(5% + var(--y) * .25) !important;width:calc(18px * var(--s));height:calc(8px * var(--s));animation:fly calc(var(--d) * 1.6) linear infinite}
+.a-gull::before,.a-gull::after{content:"";position:absolute;top:0;width:50%;height:100%;border-top:2px solid #3b3a44;border-radius:60% 60% 0 0;animation:flap .5s ease-in-out infinite alternate}
+.a-gull::before{left:0;transform-origin:100% 100%}.a-gull::after{right:0;transform-origin:0 100%}
+@keyframes fly{from{transform:translate(-30vw,0)}50%{transform:translate(40vw,-12px)}to{transform:translate(120vw,4px)}}
+@keyframes flap{from{transform:rotate(14deg)}to{transform:rotate(-14deg)}}
+.a-gull::after{animation-direction:alternate-reverse}
+/* 물 반짝임: 바다 띠에서 깜빡 */
+.a-glint{top:calc(40% + var(--y) * .18) !important;width:calc(14px * var(--s));height:2px;border-radius:2px;background:#fffffff0;box-shadow:0 0 6px #fff;animation:twinkle calc(var(--d) * .25) ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:0;transform:scaleX(.3)}50%{opacity:1;transform:scaleX(1)}}
+/* 먹물 방울·종이 */
+.a-drop{width:calc(7px * var(--s));height:calc(10px * var(--s));border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:#16121c;opacity:.75;animation:fall calc(var(--d) * .5) linear infinite}
+.a-paper{width:calc(16px * var(--s));height:calc(20px * var(--s));background:#f3ead8;border:1px solid #b9ab92;box-shadow:inset 3px 4px 0 -1px #1a1a1a55;animation:flutter calc(var(--d) * 1.2) linear infinite}
+@keyframes fall{from{transform:translateY(-120%) }to{transform:translateY(110vh)}}
+@keyframes flutter{0%{transform:translate(0,-20vh) rotate(0)}25%{transform:translate(4vw,10vh) rotate(90deg)}50%{transform:translate(-3vw,40vh) rotate(160deg)}75%{transform:translate(5vw,70vh) rotate(250deg)}100%{transform:translate(0,110vh) rotate(360deg)}}
+/* 거품·물빛 */
+.a-bubble{top:100% !important;width:calc(10px * var(--s));height:calc(10px * var(--s));border-radius:50%;border:1.5px solid #cfefffcc;background:radial-gradient(circle at 30% 30%,#ffffffaa 0 18%,transparent 30%);animation:rise calc(var(--d) * .6) ease-in infinite}
+@keyframes rise{from{transform:translate(0,0)}50%{transform:translate(8px,-55vh)}to{transform:translate(-6px,-115vh)}}
+.a-ray{top:-10% !important;width:calc(60px * var(--s));height:130%;background:linear-gradient(#bfe8ff33,#bfe8ff00);transform-origin:50% 0;animation:sway calc(var(--d) * .8) ease-in-out infinite alternate}
+@keyframes sway{from{transform:rotate(-12deg)}to{transform:rotate(12deg)}}
+/* 금가루·불티 */
+.a-dust{width:calc(4px * var(--s));height:calc(4px * var(--s));border-radius:50%;background:#ffe9a8;box-shadow:0 0 8px 2px #ffd34d;animation:twinkle calc(var(--d) * .3) ease-in-out infinite}
+.a-ember{top:100% !important;width:calc(4px * var(--s));height:calc(4px * var(--s));border-radius:50%;background:#ffd34d;box-shadow:0 0 8px 3px #ffb12aaa;animation:rise calc(var(--d) * .5) ease-out infinite}
+/* 물보라·천 조각·검은 깃털 */
+.a-spray{top:calc(36% + var(--y) * .25) !important;width:calc(6px * var(--s));height:calc(6px * var(--s));border-radius:50%;background:#ffffffd0;animation:splash calc(var(--d) * .2) ease-out infinite}
+@keyframes splash{0%{transform:translate(0,0);opacity:0}20%{opacity:1}100%{transform:translate(14px,-30px);opacity:0}}
+.a-cloth{width:calc(14px * var(--s));height:calc(10px * var(--s));border-radius:3px;background:#fffaf0;box-shadow:inset 0 -2px 0 #e8d9bd;animation:flutter calc(var(--d) * 1.4) linear infinite}
+.a-feather2{width:calc(8px * var(--s));height:calc(18px * var(--s));border-radius:50% 50% 50% 50%/70% 70% 30% 30%;background:linear-gradient(#2a2730,#0f0d12);animation:flutter calc(var(--d) * 1.1) linear infinite}
+/* 대사·첫 화면 그림: 아주 천천히 확대·이동 */
+.kb{position:absolute;inset:-4%;background-size:cover !important;animation:kb 40s ease-in-out infinite alternate}
+@keyframes kb{from{transform:scale(1) translate(0,0)}to{transform:scale(1.08) translate(-2%,-1%)}}
+.scene>.amb,.scene>.kb{z-index:0}.scene>*:not(.amb):not(.kb){z-index:1}
+.ts>.amb{z-index:0}
+/* 숨쉬기: 서 있는 캐릭터가 살짝 늘었다 줄었다(공격·맞는 움직임과 겹쳐도 되게 scale 속성만) */
+.mon,.por{animation:breathe 2.8s ease-in-out infinite}
+.mon.foe,.por.foe{animation-duration:3.3s}
+@keyframes breathe{0%,100%{scale:1 1}50%{scale:1.015 1.03}}
+@media (prefers-reduced-motion:reduce){.amb,.kb{display:none}.mon,.por,.ts,.logo,.play,.squad img{animation:none !important}}
+
+/* ════ 게임 첫 화면(로그인 화면) ════ */
+.title{position:relative;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:calc(6vh + var(--safe-area-inset-top, 0px)) 16px calc(7vh + var(--safe-area-inset-bottom, 0px));background:#7fb7e0 center 40%/cover no-repeat;overflow:hidden}
+.title::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(255,240,200,.35),transparent 60%),linear-gradient(transparent 55%,rgba(50,28,8,.55));pointer-events:none;z-index:0}
+.title>*:not(.amb){position:relative;z-index:1}
+/* 게임 이름: 두꺼운 갈색 테두리 + 크림→금빛 글자 + 빛, 천천히 둥실 */
+.tlogo{display:flex;flex-direction:column;align-items:center;animation:bob 3.2s ease-in-out infinite}
+.tlogo b{position:relative;display:grid;font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:clamp(44px,8.5vw,96px);line-height:1.1;letter-spacing:.02em;white-space:nowrap}
+/* 두 층을 같은 자리에 겹침: 뒤 = 두꺼운 갈색 테두리·그림자, 앞 = 크림→금빛 글자 */
+.tlogo b span{grid-area:1/1}
+.tlogo .stroke{color:#4a2a10;-webkit-text-stroke:clamp(9px,1.5vw,15px) #4a2a10;text-shadow:0 7px 0 #4a2a10,0 12px 18px rgba(40,20,5,.45)}
+.tlogo .fill{background:linear-gradient(#fffcef 0%,#ffeeb3 40%,#f7c24c 72%,#e8922a 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tlogo small{margin-top:12px;font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:clamp(15px,2vw,21px);letter-spacing:.12em;color:#4a2a10;background:#fff3d6;padding:4px 18px;border-radius:999px;border:3px solid #4a2a10;box-shadow:0 3px 0 #4a2a10}
+.tgo{display:inline-block;text-decoration:none;font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:clamp(22px,3vw,30px);letter-spacing:.06em;color:#fff;padding:14px 56px;border-radius:999px;
+  background:linear-gradient(var(--accent-hi,#8466e0),var(--accent,#6a46c8) 55%,#5636ad);border:3px solid var(--accent-d,#3f2585);box-shadow:0 6px 0 var(--accent-d,#3f2585),0 10px 30px rgba(60,30,120,.45);text-shadow:0 2px 0 var(--accent-d,#3f2585);animation:pulse 2.2s ease-in-out infinite}
+.tacc{position:absolute !important;bottom:calc(14px + var(--safe-area-inset-bottom, 0px));left:14px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,247,228,.92);color:var(--ink);border:2px solid var(--edge,#7a4e2a);font-size:13px;padding:4px 12px 4px 4px;border-radius:999px}
+.tacc img{width:22px;height:22px}
+
+/* ════ 전투 원근감: 내 갈매미 = 카메라 앞(크게·아래 잘림), 상대 = 지평선 근처(작게·뿌옇게) ════ */
+#arena{--hz:58.3%}
+#arena.sc-hall,#arena.sc-nest{--hz:45.3%}#arena.sc-market{--hz:38.3%}#arena.sc-strait{--hz:62.3%}#arena.sc-laundry{--hz:40.3%}#arena.sc-ink{--hz:58.3%}
+#arena.sc-deep,#arena.sc-sky{--hz:62%}
+/* 땅: 소실점으로 모이는 줄(멀수록 촘촘) */
+#arena .ground{position:absolute;left:-60%;right:-60%;top:var(--hz);height:120%;transform:perspective(260px) rotateX(62deg);transform-origin:50% 0;pointer-events:none;
+  background:repeating-linear-gradient(90deg,rgba(90,55,25,.16) 0 2px,transparent 2px 9%),repeating-linear-gradient(0deg,rgba(90,55,25,.12) 0 2px,transparent 2px 70px);
+  -webkit-mask-image:linear-gradient(transparent,#000 12%);mask-image:linear-gradient(transparent,#000 12%)}
+#arena.sc-deep .ground,#arena.sc-sky .ground{display:none}
+/* 지평선 근처 공기(멀리 있는 것이 뿌옇게) */
+#arena .haze{position:absolute;left:0;right:0;top:calc(var(--hz) - 14%);height:22%;background:linear-gradient(transparent,rgba(255,250,235,.28) 55%,transparent);pointer-events:none}
+/* 상대: 작게, 지평선 바로 아래에 발 */
+.mon.foe{height:30%;right:13%;top:calc(var(--hz) - 23%)}
+.mon.foe.boss{height:38%;right:9%;top:calc(var(--hz) - 31%)}
+.mon.foe:not([class*="tint-"]){filter:saturate(.9) brightness(1.04) drop-shadow(0 3px 2px rgba(0,0,0,.15))}
+/* 내 갈매미: 크게, 화면 아래로 살짝 잘림 */
+.mon.me{height:66%;left:0;bottom:-7%}
+/* 그림자: 가까운 쪽 크고 진하게, 먼 쪽 작고 옅게 */
+.plat{background:radial-gradient(ellipse,rgba(60,35,15,.42) 0%,rgba(60,35,15,.18) 45%,rgba(60,35,15,0) 70%) !important}
+.plat.foe{width:26%;height:7%;right:15%;top:calc(var(--hz) + 3.5%)}
+.plat.me{width:62%;height:16%;left:-6%;bottom:-6%}
+
+/* 검토 반영: 세로 첫 화면은 갈매미 쪽을 보여 줌, 세로 전투는 내 갈매미를 조금 작게(상태 칸에 안 가리게) */
+@media (orientation:portrait){.title{background-position:22% 50%}.mon.me{height:52%;left:-2%;bottom:-4%}.plat.me{width:52%}}
+/* 로비: 게임 이름을 뺀 만큼 대표 그림 영역을 낮게 */
+.ts .hero{min-height:0}
 </style>
 </head>
 <body>

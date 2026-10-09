@@ -36,4 +36,6 @@ writeFileSync(resolve(out, 'my.js'), js);
 copyFileSync(resolve(here, 'src/app.js'), resolve(out, 'app.js'));
 for (const f of ['gull.png', 'favicon-32.png', 'icon-192.png']) copyFileSync(resolve(root, 'public', f), resolve(out, f === 'favicon-32.png' ? 'favicon.png' : f));
 copyFileSync(resolve(root, 'public/images/logo.png'), resolve(out, 'images/logo.png'));
+// 게임 첫 화면 그림(로그인 전에도 보여야 해서 앱 안에): 대표 그림
+copyFileSync(resolve(root, 'public/battle/bg/key.jpg'), resolve(out, 'title.jpg'));
 console.log('www/ 준비 완료');

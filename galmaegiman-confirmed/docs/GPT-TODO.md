@@ -9,7 +9,7 @@ GPT는 이 파일과 `docs/GPT-ART-HANDOFF.md`(올리는 규칙)를 읽고, 아�
 - 할 일 7: 완료, 넣음(v0.9.77). 사이트·앱·플레이 아이콘, 시작 화면. 마을 회관 방송은 얼굴 없는 확성기로 고친 그림으로 바꿈.
 - 할 일 8: 완료, 넣음(v0.9.78). 게임 첫 화면 제목 뒤 + 구글 플레이 그래픽 이미지(app/store/feature-graphic-1024x500.jpg).
 - 할 일 33(세로 첫 화면 그림): **취소** — 앱을 가로 화면으로 바꿔서 가로 대표 그림(할 일 8)을 그대로 씀. 하지 않기.
-- **할 일 34(메뉴 아이콘 6개)를 먼저.** 그다음 할 일 9~32(승진 그림 24장)를 9번부터 순서대로.
+- **순서: 할 일 34(메뉴 아이콘) → 35(첫 화면 층 나눈 그림) → 36(전투 발판) → 9~32(승진 그림 24장).**
 
 ## 공통 규칙 (모든 할 일)
 - 그림체: 저장소의 `galmaegiman-confirmed/public/images/D1.png` 같은 갈매미맨 카드 그림과 같은 그림체(부드러운 채색, 갈색 외곽선, 귀엽지만 얄미운 악당). 무섭거나 징그럽지 않게.
@@ -174,6 +174,18 @@ Avoid: text, letters, numbers, watermark, frame, drop shadow, glow, background s
 5. 상점: 새우깡 봉지와 금화 몇 개가 든 작은 나무 수레(글자 없이).
 6. 계정: 갈매미 그림이 찍힌 둥근 금빛 사원증(글자 없이).
 
+## 할 일 35 · 첫 화면 그림을 층 3장으로 → `title_sky.png`, `title_town.png`, `title_front.png`
+지금 첫 화면 대표 그림(`public/battle/bg/key.jpg`, 할 일 8)을 **같은 장면 그대로** 앞뒤 3층으로 나눠 그린 3장. Claude가 층마다 다른 속도로 움직여 깊이감(시차 효과)을 만들어요. 크기는 모두 같게(가로:세로 2:1, 예 1536×768).
+1. `title_sky.png`: 하늘과 구름만(맨 뒤, 투명 아님).
+2. `title_town.png`: 먼 성채·항구·배·바다(투명 배경, 하늘 자리는 비움).
+3. `title_front.png`: 앞쪽 부두 바닥과 캐릭터들(갈매미 수비대·쭈매미·랍매미·끼룩단, 투명 배경).
+- 세 장을 겹치면 지금 대표 그림과 같아 보여야 해요. 글자 없이.
+
+## 할 일 36 · 전투 발판 2개 × 장소 9곳 → `plat_all.png`
+**6열 × 3줄**(칸 18개), 왼쪽 위부터 장소 순서대로 [먼 발판, 가까운 발판] 짝: 맑은 항구, 먹물 항구, 바다 밑 동굴, 마을 회관, 금빛 시장, 해협, 빨래터 언덕, 끼룩단 하늘, 끼룩단 섬.
+- 위에서 비스듬히 내려다본 납작한 타원형 땅 조각(캐릭터가 서는 자리). 장소에 맞는 재질: 돌 부두, 먹물 묻은 돌, 산호 바닥, 나무 마루, 금화 깔린 돌, 바위, 풀밭, 구름 위 바위, 검은 돌.
+- 먼 발판은 작고 덜 선명하게, 가까운 발판은 크고 선명하게. 투명 배경, 글자 없이.
+
 ---
 
 ## Claude가 하는 일 (받은 뒤)
@@ -184,6 +196,8 @@ Avoid: text, letters, numbers, watermark, frame, drop shadow, glow, background s
 - 할 일 6: `python3 -I scripts/place-art.py villains art/gpt/npc_hall.png 1x1 HALL` → 대사 화면에서 「마을 회관 방송」 얼굴로 씀
 - 할 일 7: `python3 -I scripts/make-icons.py art/gpt/app_icon.png` — 배경을 붙여 `public/icon-192/512(-maskable).png`, 파비콘, 안드로이드 앱 아이콘(`app/android` 적응형 아이콘)·시작 화면을 다시 만듦. 구글 플레이 아이콘(512×512)도 이걸로.
 - 할 일 34: `python3 -I scripts/place-art.py icons art/gpt/icons_menu.png 3x2 m-draw,m-craft,m-units,m-party,m-shop,m-account` → 첫 화면 아이콘 줄의 이모지를 이 그림으로.
+- 할 일 35: 첫 화면에 3층으로 깔고, 손가락·폰 기울임·시간에 따라 층마다 다른 속도로 움직임(시차 효과).
+- 할 일 36: `place-art.py`로 잘라 전투 화면의 타원 그림자 대신 장소별 발판 그림으로(먼 쪽·가까운 쪽 크기 차이로 원근감).
 - 할 일 8: 게임 첫 화면 위쪽 대표 그림 + 구글 플레이 「그래픽 이미지」(1024×500으로 잘라 냄).
 - 할 일 9~32: 앞·뒤 두 장이 다 오면(예: 9·10번) `python3 -I scripts/split-grade-sheet.py art/gpt/evo_D_s1_front.png D front stage=1` · `… evo_D_s1_back.png D back stage=1` → `python3 -I scripts/process-sprites.py stage=1` → 선명하게 키워 webp로: `python3 -I scripts/upscale-art.py public/battle/sprites/*_s1_*.png out=public/battle/sprites webp` 후 그 png 지움 → `public/battle/sprites/D1_s1_front.webp`… 넣으면 승진한 갈매미가 목록·대사·전투에서 바로 그 그림으로 나옴(없으면 원형 그림 + 빛).
 - 넣으면 대결·대사 화면이 임시 그림·색 대신 그 그림을 바로 씀(서버 다시 켤 필요 없음). 블랙 갈매미맨 거울·땅콩 단계는 8번 그림에 색만 바꿔 씀.
