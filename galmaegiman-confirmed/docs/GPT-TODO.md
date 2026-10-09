@@ -6,7 +6,8 @@ GPT는 이 파일과 `docs/GPT-ART-HANDOFF.md`(올리는 규칙)를 읽고, 아�
 ## 진행 상황
 - 할 일 1~3: 완료, 게임에 넣음(v0.9.62). 끼룩단 4번(깃털 저격수)은 오른쪽을 봐서 좌우 반전, 블랙 갈매미맨은 날개가 옆 칸까지 넘어가 범위를 넓혀 자름.
 - 할 일 4~6: 완료, 게임에 넣음(v0.9.75). 배경 9곳·아이콘 20개·마을 회관 방송 얼굴.
-- 할 일 7(앱 아이콘 큰 그림)·8(대표 그림): 새로 추가, 남음.
+- 할 일 7: 완료, 넣음(v0.9.77). 사이트·앱·플레이 아이콘, 시작 화면. 마을 회관 방송은 얼굴 없는 확성기로 고친 그림으로 바꿈.
+- 할 일 8(대표 그림): 남음.
 
 ## 공통 규칙 (모든 할 일)
 - 그림체: 저장소의 `galmaegiman-confirmed/public/images/D1.png` 같은 갈매미맨 카드 그림과 같은 그림체(부드러운 채색, 갈색 외곽선, 귀엽지만 얄미운 악당). 무섭거나 징그럽지 않게.
@@ -107,7 +108,7 @@ Avoid: text, letters, numbers, watermark, frame, drop shadow, glow, background s
 - 할 일 4: `python3 -I scripts/place-art.py bg art/gpt/bg_all.png 3x3 harbor,ink,deep,hall,market,strait,laundry,sky,nest`
 - 할 일 5: `python3 -I scripts/place-art.py icons art/gpt/icons_all.png 5x4 potion,big,clear,feather,reverse,weakguard,focus,neutral,camo,dual,counter,learn,first,bulwark,firstaid,freeswitch,lastone,strip,rustle,peanut` → 화면의 글자 그림(이모지)을 이 아이콘으로 바꿈
 - 할 일 6: `python3 -I scripts/place-art.py villains art/gpt/npc_hall.png 1x1 HALL` → 대사 화면에서 「마을 회관 방송」 얼굴로 씀
-- 할 일 7: 배경을 붙여 `public/icon-192/512(-maskable).png`, 파비콘, 안드로이드 앱 아이콘(`app/android` 적응형 아이콘)·시작 화면을 다시 만듦. 구글 플레이 아이콘(512×512)도 이걸로.
+- 할 일 7: `python3 -I scripts/make-icons.py art/gpt/app_icon.png` — 배경을 붙여 `public/icon-192/512(-maskable).png`, 파비콘, 안드로이드 앱 아이콘(`app/android` 적응형 아이콘)·시작 화면을 다시 만듦. 구글 플레이 아이콘(512×512)도 이걸로.
 - 할 일 8: 게임 첫 화면 위쪽 대표 그림 + 구글 플레이 「그래픽 이미지」(1024×500으로 잘라 냄).
 - 넣으면 대결·대사 화면이 임시 그림·색 대신 그 그림을 바로 씀(서버 다시 켤 필요 없음). 블랙 갈매미맨 거울·땅콩 단계는 8번 그림에 색만 바꿔 씀.
 
