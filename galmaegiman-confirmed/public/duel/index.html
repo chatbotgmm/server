@@ -358,56 +358,61 @@ i.cat.phys{background:#5a3a22;color:#ffd9b0}i.cat.mag{background:#3a2d66;color:#
   .sheet.pick h2{margin:4px 0 0}
 }
 
-/* ════ 색 테마 「따뜻한 항구 동화책」: 그림의 갈색 선·크림 돌·금빛·바다 청록에서 뽑은 색. 이 덩어리를 지우면 예전 남색 테마로 돌아감 ════ */
-:root{--bg:#efdcb6;--panel:#fff7e4;--line:#d9b98a;--ink:#3b2614;--dim:#7d5f40;--gold:#f2a93b;--edge:#7a4e2a;--sea:#1f8fa6;--coral:#f0703a;--card:#fffaf0}
+/* ════ 색 규칙(docs/UI-COLOR.md). 이 덩어리를 지우면 예전 남색 테마로 돌아감 ════
+   1) 바탕·칸 = 그림의 크림 돌·갈색 선(중립)  2) 주요 행동 하나 = 보라(그림에 거의 없는 색이라 잘 보임, 흰 글자 대비 6.3)
+   3) 보조 행동 = 크림 종이 버튼(색 없이 테두리)  4) 금빛 = 진행·보상만  5) 초록·빨강 = 유리·불리·체력 같은 정보만 */
+:root{--bg:#efdcb6;--panel:#fff7e4;--line:#d9b98a;--ink:#3b2614;--dim:#7d5f40;--gold:#e9a630;--edge:#7a4e2a;--card:#fffaf0;
+  --accent:#6a46c8;--accent-hi:#8466e0;--accent-d:#3f2585;--accent-soft:#efe9ff}
 html,body{background:#efdcb6 radial-gradient(rgba(122,78,42,.10) 1px,transparent 1.3px) 0 0/18px 18px;color:var(--ink)}
 header h1,header small,.chap h2{color:var(--ink)}
-/* 종이 칸: 크림 바탕 + 갈색 테두리 + 아래 그림자 */
+/* 종이 칸 */
 .sk,.aug,.mini,.card,.stage,.ghost,.sw button,.opt,.skrow,.stats div,.combo-btn,.cont,.chead,.teambar .ghost{background:var(--card);border:2px solid var(--line);color:var(--ink);box-shadow:0 3px 0 rgba(122,78,42,.25)}
 .sk{border-top:6px solid var(--c,#c9a46a)}
 .sk .kd,.sk p,.sk .ln small,.aug .tx span,.aug .tx small,.skrow small,.stats small,.stage .tt small,.mini small,.hint,.sheet .sub{color:var(--dim)}
 .sk:disabled{opacity:.5}
-.aug.on,.card.on,.opt.on{border-color:var(--coral);background:#fff1e6;box-shadow:0 3px 0 var(--coral)}
-.aug .ck{border-color:var(--line)}.aug.on .ck{background:var(--coral);border-color:var(--coral);color:#fff}
-/* 큰 버튼: 산호빛 주황 + 진한 테두리 그림자, 보조는 바다 청록 */
-.big{background:linear-gradient(#ff9a5c,var(--coral));color:#fff;border:2px solid #b64a1c;box-shadow:0 4px 0 #b64a1c;text-shadow:0 1px 0 rgba(120,40,10,.6);border-radius:14px}
-.big:disabled{background:#e3d2b3;border-color:#c4ab82;box-shadow:0 3px 0 #c4ab82;color:#9b8466;text-shadow:none;opacity:1}
-.big.wide:disabled{background:#e3d2b3;color:#9b8466;box-shadow:0 -10px 14px var(--bg)}
-.big.wide{box-shadow:0 4px 0 #b64a1c,0 -10px 14px var(--bg)}
+/* 고른 것 = 보라 테두리(주요 행동과 같은 색 → "이걸로 할게"가 한눈에) */
+.aug.on,.card.on,.opt.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 3px 0 var(--accent-d)}
+.aug .ck{border-color:var(--line)}.aug.on .ck{background:var(--accent);border-color:var(--accent);color:#fff}
+/* 주요 행동(화면마다 하나): 보라 */
+.big{background:linear-gradient(var(--accent-hi),var(--accent));color:#fff;border:2px solid var(--accent-d);box-shadow:0 4px 0 var(--accent-d);text-shadow:0 1px 0 rgba(30,10,70,.5);border-radius:14px}
+.big:disabled{background:#e6d7bb;border-color:#c9b08a;box-shadow:0 3px 0 #c9b08a;color:#9b8466;text-shadow:none;opacity:1}
+.big.wide:disabled{background:#e6d7bb;color:#9b8466;box-shadow:0 -10px 14px var(--bg)}
+.big.wide{box-shadow:0 4px 0 var(--accent-d),0 -10px 14px var(--bg)}
 .sheet{background:var(--bg) radial-gradient(rgba(122,78,42,.08) 1px,transparent 1.3px) 0 0/18px 18px;border-top:3px solid var(--edge)}
 #modal{background:rgba(40,22,8,.55)}
-/* 전투: 상태 칸·알림은 종이 말풍선 */
+/* 전투 */
 .box{background:rgba(255,248,232,.94);border:2px solid var(--edge);color:var(--ink);box-shadow:0 3px 0 rgba(60,35,15,.35)}
 .box .nm em{color:var(--dim)}.box .row small{color:var(--dim)}
 .hpb{background:#e3cfa9;border:1px solid #b8975c}
 #msg{background:var(--card);border:2px solid var(--edge);color:var(--ink);border-radius:14px;box-shadow:0 3px 0 rgba(122,78,42,.3)}
-.augs{color:#a5560f}
-.flee{background:var(--card);border:2px solid var(--line);color:var(--dim)}
+.augs{color:#8a5a12}
+.flee{background:transparent;border:1.5px dashed var(--line);color:var(--dim);box-shadow:none}
 .plat{background:radial-gradient(ellipse,rgba(110,72,36,.45) 0%,rgba(110,72,36,.22) 45%,rgba(110,72,36,0) 70%)}
-/* 대사창: 양피지 */
+/* 대사 */
 .dbox{background:rgba(255,247,228,.96);border:3px solid var(--edge);color:var(--ink);box-shadow:0 4px 0 rgba(60,35,15,.4)}
 .dbox .say{color:var(--ink)}
 .dbox .tk .ghost{background:transparent;border:1.5px solid var(--line);box-shadow:none;color:var(--dim)}
 .dbox .who{border:2px solid var(--edge);box-shadow:0 2px 0 rgba(60,35,15,.4)}
 .dbox.narr{background:rgba(255,247,228,.9)}
 .place,.mute{background:rgba(255,247,228,.92);color:var(--ink);border:2px solid var(--edge)}
-/* 물리·마법 표시 */
-i.cat.phys{background:#ffe0c2;color:#8a3d0c}i.cat.mag{background:#e8dcff;color:#4b2fa0}
-.stats .main{border-color:var(--coral)}.stats .main b{color:var(--coral)}
-.xp{background:#e3cfa9}.need{color:#b0441c}
-/* 첫 화면 */
-.ts::before{background:linear-gradient(rgba(255,240,210,.15),rgba(80,45,15,.15) 45%,rgba(70,38,12,.7))}
+/* 물리·마법은 색 대신 기호(정보 표시가 버튼 색과 겨루지 않게) */
+i.cat{background:transparent !important;border:1.5px solid var(--line);color:var(--dim) !important;font-weight:700}
+i.cat.phys::before{content:"⚔ "}i.cat.mag::before{content:"✦ "}
+.stats .main{border-color:var(--accent)}.stats .main b{color:var(--accent)}
+.xp{background:#e3cfa9}.need{color:#a8431c}
+/* 첫 화면: 주요 행동은 「이어하기」 하나만 보라, 나머지는 종이 */
+.ts::before{background:linear-gradient(rgba(255,240,210,.12),rgba(80,45,15,.12) 45%,rgba(60,32,10,.62))}
 .hero .badge{background:rgba(255,247,228,.92);color:var(--ink);border:2px solid var(--edge)}
-.hero .badge.out{color:#a5560f}
+.hero .badge.out{color:#7a4e2a}
 .logo b{color:#fff6dc;-webkit-text-stroke:2px #5a3416;text-shadow:0 4px 0 #5a3416,0 7px 0 rgba(0,0,0,.25),0 0 22px rgba(255,200,90,.6)}
-.logo small{color:#fff;background:linear-gradient(#2fb1c7,var(--sea));box-shadow:0 2px 0 #11586a;border:2px solid #11586a}
-.now{background:rgba(255,247,228,.93);border:2.5px solid var(--edge);border-radius:14px;padding:8px 12px 10px;box-shadow:0 3px 0 rgba(60,35,15,.4)}
-.now small{color:#a5560f;font-weight:700}
+.logo small{color:#5a3416;background:#fff3d6;box-shadow:0 2px 0 #5a3416;border:2px solid #5a3416}
+.now{background:rgba(255,247,228,.94);border:2.5px solid var(--edge);border-radius:14px;padding:8px 12px 10px;box-shadow:0 3px 0 rgba(60,35,15,.4)}
+.now small{color:#8a5a12;font-weight:700}
 .now b{color:var(--ink);text-shadow:none}
-.now .prog{background:#ead6ae;border:1.5px solid #c4a274}.now .prog i{background:linear-gradient(90deg,#ffd27a,var(--coral))}
+.now .prog{background:#ead6ae;border:1.5px solid #c4a274}.now .prog i{background:linear-gradient(90deg,#ffd27a,var(--gold))}
 .now .prog em{color:var(--dim);text-shadow:none}
-.play{color:#fff;background:linear-gradient(#ffb070,#ff8a45 50%,#e8622a);border:3px solid #8f3a12;box-shadow:0 6px 0 #8f3a12,0 10px 24px rgba(240,112,58,.4),inset 0 2px 0 rgba(255,255,255,.55);text-shadow:0 2px 0 #8f3a12}
-.two button{background:linear-gradient(#36b6cb,var(--sea));border:3px solid #11586a;box-shadow:0 4px 0 #11586a;color:#fff;text-shadow:0 1px 0 #11586a}
+.play{color:#fff;background:linear-gradient(#9b7ff0,var(--accent) 55%,#5636ad);border:3px solid var(--accent-d);box-shadow:0 6px 0 var(--accent-d),0 10px 24px rgba(106,70,200,.35),inset 0 2px 0 rgba(255,255,255,.45);text-shadow:0 2px 0 var(--accent-d)}
+.two button{background:rgba(255,250,240,.96);border:2.5px solid var(--edge);box-shadow:0 4px 0 rgba(90,52,22,.55);color:var(--ink);text-shadow:none}
 .dock{background:rgba(255,247,228,.92);border:3px solid var(--edge);box-shadow:0 4px 0 rgba(60,35,15,.4)}
 .dock a{color:var(--ink);font-weight:700}
 .dock a i{background:radial-gradient(circle at 35% 30%,#fffdf5,#f6e2b8);border:2.5px solid var(--edge);box-shadow:0 3px 0 rgba(90,52,22,.45)}
