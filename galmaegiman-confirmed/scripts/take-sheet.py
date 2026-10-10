@@ -37,6 +37,19 @@ cores = np.zeros(a.shape, int)
 for j, i in enumerate(big): cores[lab == i] = j + 1
 _, (iy, ix) = ndimage.distance_transform_edt(cores == 0, return_indices=True)
 own = cores[iy, ix]
+# 몸에서 떨어져 떠 있는 장식은 「핵」이 아니라 「몸」이 가장 가까운 캐릭터 것으로(옆 캐릭터 핵이 더 가까워 잘못 붙던 것)
+allm = a > 60
+lb0, k0 = ndimage.label(allm); s0 = ndimage.sum(allm, lb0, range(1, k0 + 1))
+bodies = []
+for j in range(n):
+    bm = allm & (own == j + 1); lbj, kj = ndimage.label(bm)
+    bodies.append(lbj == (int(np.argmax(ndimage.sum(bm, lbj, range(1, kj + 1)))) + 1) if kj else bm)
+dist = np.stack([ndimage.distance_transform_edt(~bm) for bm in bodies])
+for i, sz0 in enumerate(s0):
+    comp = lb0 == i + 1
+    if any((comp & bm).any() for bm in bodies): continue   # 몸통 덩어리(붙은 캐릭터 포함)는 위의 나눔 그대로
+    near = int(np.argmin([d[comp].min() for d in dist]))
+    own[ndimage.binary_dilation(comp, iterations=3) & (a > 0)] = near + 1
 
 for j, uid in enumerate(ids):
     p = px.copy(); p[(own != j + 1), 3] = 0
