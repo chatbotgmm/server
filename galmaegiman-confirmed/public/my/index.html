@@ -53,7 +53,8 @@ header .logo img{height:32px;width:auto;display:block;filter:drop-shadow(0 2px 0
 .money{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .money div{background:var(--accent-soft);border-radius:12px;padding:8px;text-align:center}
 .money b{display:block;font-size:1.2rem;font-weight:400}
-.money small{color:var(--muted);font-size:.75rem}
+.money small{color:var(--muted);font-size:.75rem;white-space:nowrap}
+.money b i{display:block;font-style:normal;font-size:1.1rem;line-height:1.3}
 .tabs{display:flex;gap:4px;overflow-x:auto;margin:6px 0 12px;padding-bottom:2px}
 .tabs button{flex:none;border:0;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer}
 .tabs button.on{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 2px 0 var(--sea2)}
@@ -141,6 +142,10 @@ html.game .tag{background:#efe3c8;color:var(--text)}
 html.game input,html.game .search,html.game .login input{background:#fffdf7;color:var(--text);border-color:var(--line)}
 html.game .result{background:rgba(40,22,8,.55)}
 html.game .inst{display:none}
+html.game header.gbar h1{display:block}
+/* 색 규칙 「주요 행동 보라는 화면마다 하나」: 뽑기 화면은 「뽑기권 받기」만 보라, 횟수 버튼은 크림 */
+html.game .gc .row .btn{background:var(--card);color:var(--text);border:2px solid var(--edge);box-shadow:0 3px 0 rgba(90,52,22,.45)}
+html.game .gc .row .btn:disabled{opacity:.5}   /* 좁은 화면에서도 화면 이름은 보이게(사이트 머리줄은 좁으면 숨김) */
 </style>
 </head>
 <body>

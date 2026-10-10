@@ -603,6 +603,15 @@ i.cat.phys::before{content:"⚔ "}i.cat.mag::before{content:"✦ "}
 .setdel .big{background:linear-gradient(#e25c4a,#c53b25);border-color:#7a1f12;box-shadow:0 4px 0 #7a1f12}
 .setdel .big:disabled{background:#e6d7bb;border-color:#c9b08a;box-shadow:0 3px 0 #c9b08a}
 .sheet.set .ghost.wide{margin-top:8px}
+/* 가로(높이 낮음): 설정 창이 화면 밖으로 잘리지 않게 가운데에 촘촘히 */
+@media (orientation:landscape) and (max-height:600px){
+  #modal:has(.sheet.set){align-items:center}
+  .sheet.set{border-radius:18px;border:3px solid var(--edge);max-height:calc(100dvh - 16px);padding-top:10px;padding-bottom:10px}
+  .sheet.set h2{margin:0 0 2px}
+  .sheet.set .setrow{padding:6px 12px;margin:6px 0}
+  .sheet.set .setdel{margin:6px 0;padding:6px 12px}
+  .sheet.set .ghost.wide{margin-top:4px;padding:8px}
+}
 
 /* ── 전투 증강체: 화면 전체 + 칸마다 다시 뽑기 1번(v0.9.91) ── */
 #modal.full{align-items:stretch;justify-content:stretch;background:rgba(40,22,8,.78)}
