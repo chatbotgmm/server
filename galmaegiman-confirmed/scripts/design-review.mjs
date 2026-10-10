@@ -27,6 +27,8 @@ for(const [n,w,h] of [['L',915,412],['P',412,915]]){
   await p.click('#go',{force:true});await p.waitForTimeout(1200);if(await p.$('#rnd')){await p.click('#rnd');await p.click('#go');await p.waitForTimeout(1200);}
   await p.waitForSelector('.dbox');await p.waitForTimeout(1800);await p.screenshot({path:`${out}/R${n}-3b-talk.png`});console.log(n,'대사',JSON.stringify(await ov()));
   for(let i=0;i<40 && !(await p.$('.aug'));i++){await p.click('.dbox').catch(()=>{});await p.waitForTimeout(200);}
+  await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-3d-aug.png`});console.log(n,'증강체',JSON.stringify(await ov()));
+  if(await p.$('[data-r]')){await p.click('[data-r]');await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-3e-reroll.png`});}
   await p.click('.aug');await p.click('#ok');await p.waitForSelector('.sk');await p.waitForTimeout(2200);
   await p.screenshot({path:`${out}/R${n}-4battle.png`});console.log(n,'전투',JSON.stringify(await ov()));
   // 겹침 검사: 상태 칸과 캐릭터 그림

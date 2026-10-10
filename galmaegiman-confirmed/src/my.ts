@@ -140,6 +140,14 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     return reply.header('Cache-Control','no-store').send(info);
   });
   act('/my/api/claim',id=>game.webClaim(id));
+  // 쿠폰 입력: 코드 맞히기를 막으려고 따로 1분 10번까지
+  app.post<{Body:{code?:unknown}}>('/my/api/coupon',{config:{rateLimit:{max:10,timeWindow:'1 minute',keyGenerator:ipKey('mycoupon')}}},async(req,reply)=>{
+    if(!guard(req,reply))return;
+    const id=session(req);
+    if(!id)return reply.code(401).send({error:'login'});
+    try{return {ok:true,result:await game.webCoupon(id,typeof req.body?.code==='string'?req.body.code:'')};}
+    catch(e){if(e instanceof GameError)return reply.code(400).send({error:e.message});throw e;}
+  });
   act<{kind?:unknown;times?:unknown}>('/my/api/draw',(id,b)=>game.webDraw(id,String(b.kind??''),Number(b.times??1)));
   // 계정 삭제(탈퇴): 「탈퇴」를 직접 적어야 실행. 지우고 나면 로그인 쿠키도 지움
   app.post<{Body:{confirm?:unknown}}>('/my/api/account/delete',{config:{rateLimit:{max:5,timeWindow:'1 minute',keyGenerator:ipKey('mydel')}}},async(req,reply)=>{

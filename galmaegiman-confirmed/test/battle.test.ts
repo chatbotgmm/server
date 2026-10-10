@@ -5,7 +5,7 @@ import { loadBattleRules } from '../src/battle/load.js';
 import { parse } from 'yaml';
 import { readFileSync } from 'node:fs';
 import { addXp, battleXp, canEvolve, learnChances, learnOffers, learnSkill, maxStageAt, slotSkills, statsOf, xpToNext, type UnitRecord } from '../src/battle/growth.js';
-import { act, activeOf, aiChoose, choose, createBattle, itemProblem, legalActions, pending, pickAi, type Battle } from '../src/battle/engine.js';
+import { act, activeOf, aiChoose, choose, createBattle, rerollAugment, itemProblem, legalActions, pending, pickAi, type Battle } from '../src/battle/engine.js';
 import { checkStory, loadStory } from '../src/battle/story.js';
 import { expectedAttempts, levelRange, referenceLevel, scoutChance, scoutCopy } from '../src/battle/scout.js';
 
@@ -22,6 +22,21 @@ function play(b:Battle,limit=400){
 }
 
 describe('수비대 대결 데이터', ()=>{
+  it('증강체 다시 뽑기: 칸마다 제안 한 번에 1번, 이미 보인 것·가진 것은 안 나옴, 새 제안이 오면 다시 가능', ()=>{
+    const b=createBattle(R,[rec('D6'),rec('T3'),rec('I4')],[rec('D4'),rec('E2'),rec('T7')],7);
+    const first=[...b.sides[0].offers!];
+    const got=rerollAugment(b,0,1);
+    expect(first).not.toContain(got);
+    expect(b.sides[0].offers![1]).toBe(got);
+    expect(new Set(b.sides[0].offers).size).toBe(3);
+    expect(()=>rerollAugment(b,0,1)).toThrow();          // 같은 칸 두 번은 안 됨
+    const got0=rerollAugment(b,0,0);                       // 다른 칸은 됨
+    expect([...first,got]).not.toContain(got0);
+    expect(()=>choose(b,0,{augment:first[1]})).toThrow(); // 바꿔 버린 것은 고를 수 없음
+    choose(b,0,{augment:got});aiChoose(b,1);
+    expect(b.sides[0].augs).toContain(got);
+    expect(()=>rerollAugment(b,0,2)).toThrow();          // 고르기가 끝나면 다시 뽑기 없음
+  });
   it('대결 아이템: 턴을 쓰고 기술보다 먼저, 회복·상태 풀기·다시 일으키기, 대결당 개수 제한', ()=>{
     const b=createBattle(R,[rec('D6',30),rec('T3',30)],[rec('D4',1)],3);   // 상대는 Lv1이라 몇 턴 맞아도 안 쓰러짐
     aiChoose(b,0);aiChoose(b,1);

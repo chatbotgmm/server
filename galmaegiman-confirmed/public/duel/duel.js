@@ -3,7 +3,7 @@
 // 스토리 진행(레벨·경험치·배운 기술·승진·깬 스테이지): 「내 갈매미」에 로그인돼 있으면 계정에, 아니면 이 브라우저에 저장
 // 로그인돼 있으면 「내 갈매미」 전투 편성을 스토리 팀으로 쓸 수 있고, 스토리 대결에서 가진 아이템을 쓸 수 있음
 import { rulesFrom } from '../../src/battle/core.ts';
-import { createBattle, choose, act, pending, legalActions, pickAi, aiChoose, activeOf, itemProblem } from '../../src/battle/engine.ts';
+import { createBattle, choose, rerollAugment, act, pending, legalActions, pickAi, aiChoose, activeOf, itemProblem } from '../../src/battle/engine.ts';
 import { bgm, sfx, isMuted, toggleMute } from './sound.js';
 import { addXp, battleXp, canEvolve, evoChoices, learnChances, learnOffers, learnSkill, slotSkills, statsOf, xpToNext } from '../../src/battle/growth.ts';
 
@@ -171,11 +171,14 @@ function muteBtn(show = true) {
 function settingsSheet() {
   const prev = modal.innerHTML, wasHidden = modal.hidden, prevClass = modal.className, prevClick = modal.onclick;
   const close = () => { if (wasHidden) { modal.hidden = true; modal.innerHTML = ''; } else { modal.innerHTML = prev; modal.className = prevClass; modal.onclick = prevClick; } };
+  let coupMsg = '';
   const draw = () => {
     modal.className = ''; modal.hidden = false;
     modal.innerHTML = `<div class="sheet set"><h2>⚙️ 설정</h2>
       <div class="setrow"><span>🔊 소리(배경음악·효과음)</span><button class="tog ${isMuted() ? '' : 'on'}" id="sSnd">${isMuted() ? '꺼짐' : '켜짐'}</button></div>
       ${ACC ? `<div class="setrow"><span>👤 ${esc(ACC.nickname || '내 계정')}</span><button class="ghost" id="sOut">로그아웃</button></div>
+      <div class="setrow coup"><span>🎟 쿠폰</span><input id="sCode" placeholder="쿠폰 코드" autocomplete="off" maxlength="60"><button class="ghost" id="sCoup">받기</button></div>
+      ${coupMsg ? `<p class="coupmsg">${esc(coupMsg)}</p>` : ''}
       <details class="setdel"><summary>계정 삭제(탈퇴)</summary>
         <p class="sub">갈매미·도감·재화·아이템·탐험·스토리 진행이 <b>모두 지워지고 되돌릴 수 없어요.</b></p>
         <input id="sDelc" placeholder="확인을 위해 탈퇴 라고 적어 주세요" autocomplete="off"><button class="big wide" id="sDel" disabled>계정 삭제</button></details>` : ''}
@@ -186,6 +189,17 @@ function settingsSheet() {
       if (!confirm('로그아웃할까요?')) return;
       await myApi('logout', {}).catch(() => {}); APP?.setToken(null); ACC = null; titleScreen(false);
     });
+    const cb = modal.querySelector('#sCoup'), ci = modal.querySelector('#sCode');
+    if (cb) {
+      const go = async () => {
+        if (!ci.value.trim()) { ci.focus(); return; }
+        cb.disabled = true;
+        try { coupMsg = (await myApi('coupon', { code: ci.value })).result; sfx('win'); }
+        catch (e) { coupMsg = e.status === 429 ? '너무 많이 시도했어요. 잠시 뒤에 다시 해 주세요.' : e.message; }
+        draw();
+      };
+      cb.onclick = go; ci.onkeydown = e => { if (e.key === 'Enter') go(); };
+    }
     const c = modal.querySelector('#sDelc'), d = modal.querySelector('#sDel');
     if (c) {
       c.oninput = () => { d.disabled = c.value.trim() !== '탈퇴'; };
@@ -254,7 +268,7 @@ function menu() {
     <div class="tmid">${nowCard()}
     <div class="two"><button id="st"><i>📖</i>스토리</button><button id="fr"><i>⚔️</i>자유 대결</button></div></div>
     ${squad()}
-    <nav class="dock">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점'], ['account', '⚙️', '계정']].map(([h, i, t]) => `<a href="${my(h)}"><i>${i}</i><span>${t}</span></a>`).join('')}</nav></div>`;
+    <nav class="dock">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점'], ['account', '👤', '계정']].map(([h, i, t]) => `<a href="${my(h)}"><i>${i}</i><span>${t}</span></a>`).join('')}</nav></div>`;
   app.querySelector('#st').onclick = storyScreen;
   app.querySelector('#fr').onclick = () => pickScreen('free');
   app.querySelector('#go')?.addEventListener('click', () => {
@@ -585,26 +599,34 @@ function chooseSheet(p) {
         <div class="side"><img src="${face(me)}" class="flip" alt=""><b>${esc(me.name)}</b>${chip(me.attr)}</div>
         <div class="mid"><small>내 공격</small>${multTag(atk)}<small>상대 공격</small>${multTag(def)}</div>
         <div class="side"><img src="${face(foe)}" class="${faceCls(foe)}" alt=""><b>${esc(foe.name)}</b>${chip(foe.attr)}</div></div>` : '';
-    modal.innerHTML = `<div class="sheet pick">
-      ${p.augments ? `<h2>전투 증강체</h2><p class="sub">${b.turn === 1 ? '대결 시작' : '전투불가 발생'} · 3개 중 하나를 골라요. 상대도 하나를 골라요.</p>${vs}
+    const rr = b.sides[0].rerolled ?? [];
+    modal.innerHTML = `<div class="sheet pick ${p.augments ? 'full' : ''}">
+      ${p.augments ? `<h2>전투 증강체</h2><p class="sub">${b.turn === 1 ? '대결 시작' : '전투불가 발생'} · 3개 중 하나를 골라요. 마음에 안 들면 칸마다 한 번씩 🎲 다시 뽑을 수 있어요.</p>${vs}
         ${hintNow && b.turn === 1 ? `<div class="tipline">💡 ${hl(hintNow)}</div>` : ''}
         ${p.augments.map(id => { const a = R.battleAug.get(id), [ic, kind] = AUG_ICON[id] ?? ['✨', ''], rec = bad && FLIP.includes(id);
-          return `<button class="aug ${aug === id ? 'on' : ''}" data-a="${id}"><span class="ic">${ico(id, ic)}</span><span class="tx"><b>${esc(a.name)}${rec ? '<em>지금 추천</em>' : ''}</b><small>${esc(kind)}</small><span>${esc(a.desc)}</span></span><span class="ck">${aug === id ? '✓' : ''}</span></button>`; }).join('')}` : ''}
+          return `<div class="augc"><button class="aug ${aug === id ? 'on' : ''}" data-a="${id}"><span class="ic">${ico(id, ic)}</span><span class="tx"><b>${esc(a.name)}${rec ? '<em>지금 추천</em>' : ''}</b><small>${esc(kind)}</small><span>${esc(a.desc)}</span></span><span class="ck">${aug === id ? '✓' : ''}</span></button>
+            <button class="ghost reroll" data-r="${p.augments.indexOf(id)}" ${rr[p.augments.indexOf(id)] ? 'disabled' : ''}>${rr[p.augments.indexOf(id)] ? '다시 뽑기 끝' : '🎲 다시 뽑기'}</button></div>`; }).join('')}` : ''}
       ${p.needSwitch ? `<h2>다음에 나갈 갈매미</h2><p class="sub">상대: ${esc(foe.name)} ${chip(foe.attr)}</p>
         ${alive.map(([f, i]) => { const m = R.typeMult(f.attr, foe.attr), pct = Math.round(f.hp / f.maxHp * 100);
           return `<button class="aug ${to === i ? 'on' : ''}" data-t="${i}"><img class="ic" src="${face(f)}" alt=""><span class="tx"><b>${esc(f.name)}</b><small>${R.attrName(f.attr)} · ${ROLE[f.role]} · 상대에게 ${m > 1 ? '유리' : m < 1 ? '불리' : '보통'}</small><i class="hpmini"><i style="width:${pct}%"></i></i></span><span class="ck">${to === i ? '✓' : ''}</span></button>`; }).join('')}` : ''}
       <button class="big wide" id="ok" ${(p.augments && !aug) || (p.needSwitch && to === null) ? 'disabled' : ''}>${aug ? `「${esc(R.battleAug.get(aug).name)}」 선택` : ''}${aug && p.needSwitch && to !== null ? ' · ' : ''}${p.needSwitch && to !== null ? `${esc(b.sides[0].fighters[to].name)} 출전` : ''}${(!aug && p.augments) || (p.needSwitch && to === null) ? '골라 주세요' : ''}</button></div>`;
     modal.querySelectorAll('[data-a]').forEach(x => x.onclick = () => { aug = x.dataset.a; draw(); });
+    modal.querySelectorAll('[data-r]').forEach(x => x.onclick = () => {
+      const i = +x.dataset.r, old = p.augments[i];
+      try { rerollAugment(b, 0, i); } catch { x.disabled = true; x.textContent = '다른 증강체가 없어요'; return; }
+      p.augments = b.sides[0].offers; if (aug === old) aug = null; sfx('aug'); draw();
+      modal.querySelectorAll('.augc')[i]?.classList.add('rolled');
+    });
     modal.querySelectorAll('[data-t]').forEach(x => x.onclick = () => { to = +x.dataset.t; draw(); });
     modal.querySelector('#ok').onclick = async () => {
-      modal.hidden = true;
+      modal.hidden = true; modal.className = '';
       const from = b.log.length;
       choose(b, 0, { ...(aug ? { augment: aug } : {}), ...(to !== null ? { switchTo: to } : {}) });
       if (b.phase === 'choose') aiChoose(b, 1);
       await play(from); flow();
     };
   };
-  modal.onclick = null; modal.className = ''; modal.hidden = false; draw();
+  modal.onclick = null; modal.className = p.augments ? 'full' : ''; modal.hidden = false; draw();
 }
 
 function actionPanel() {

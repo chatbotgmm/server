@@ -539,8 +539,16 @@ i.cat.phys::before{content:"⚔ "}i.cat.mag::before{content:"✦ "}
 .ts>*:not(.lbg){z-index:1}
 @media (orientation:landscape) and (max-height:600px), (orientation:landscape) and (min-width:900px){
   .ts{background-image:none !important}
-  /* 위쪽엔 흐리지 않은 그림 띠를 살짝(장소감), 아래 칸들은 흐린 바탕 위 */
-  .hero{position:relative;min-height:28vh}
+  /* 로비 가로(v0.9.91): 비어 있던 위쪽(제목이 첫 화면으로 옮겨 간 자리)을 없애고
+     왼쪽 = 지금 이야기·이어하기, 오른쪽 = 내 수비대 셋(크게) + 아래 메뉴 */
+  .ts{grid-template-rows:minmax(0,1fr) auto;padding-top:calc(12px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))}
+  .hero{display:none}
+  .tmid{grid-column:1;grid-row:1/3;align-self:center}
+  .squad{display:flex;grid-column:2;grid-row:1;min-height:0;align-items:flex-end;padding:0 4px 6px;margin-right:56px}
+  .squad img{height:min(44vh,230px);max-width:33%}
+  .squad img:nth-child(2){height:min(50vh,260px)}
+  .squad.empty{align-items:center}
+  .squad.empty span{background:rgba(255,250,240,.92);color:var(--ink);border:2px solid var(--edge);border-radius:14px;padding:10px 16px;font-size:15px}
 }
 
 /* 앱 전체 화면(v0.9.89): 노치·둥근 모서리 피하기. 그림은 끝까지, 버튼·글자만 안쪽으로 */
@@ -587,12 +595,54 @@ i.cat.phys::before{content:"⚔ "}i.cat.mag::before{content:"✦ "}
 .setrow .ghost{padding:8px 14px}
 .tog{min-width:72px;padding:8px 12px;border-radius:999px;border:2px solid var(--edge);background:#e6d7bb;color:var(--dim);font-weight:700}
 .tog.on{background:var(--accent);border-color:var(--accent-d);color:#fff}
+.setrow.coup input{flex:1;min-width:0;padding:8px 10px;border-radius:10px;border:2px solid var(--line);background:#fff;font:inherit}
+.coupmsg{white-space:pre-line;margin:4px 2px 8px;padding:8px 12px;border-radius:12px;background:var(--card);border:1.5px solid var(--line);font-size:14px}
 .setdel{margin:8px 0;padding:8px 12px;border:1.5px dashed var(--line);border-radius:14px;color:var(--dim)}
 .setdel summary{cursor:pointer;font-weight:700}
 .setdel input{width:100%;margin:6px 0;padding:10px;border-radius:10px;border:2px solid var(--line);background:var(--card);font:inherit}
 .setdel .big{background:linear-gradient(#e25c4a,#c53b25);border-color:#7a1f12;box-shadow:0 4px 0 #7a1f12}
 .setdel .big:disabled{background:#e6d7bb;border-color:#c9b08a;box-shadow:0 3px 0 #c9b08a}
 .sheet.set .ghost.wide{margin-top:8px}
+
+/* ── 전투 증강체: 화면 전체 + 칸마다 다시 뽑기 1번(v0.9.91) ── */
+#modal.full{align-items:stretch;justify-content:stretch;background:rgba(40,22,8,.78)}
+#modal.full .sheet.pick.full{max-width:none;width:100%;max-height:none;height:100vh;height:100dvh;border-radius:0;border-top:0;
+  padding:calc(12px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px))) calc(16px + var(--sr)) calc(12px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) calc(16px + var(--sl));
+  display:flex;flex-direction:column;gap:8px;overflow:auto}
+.sheet.pick.full h2{font-size:22px;margin:0;text-align:center}
+.sheet.pick.full .sub{text-align:center;margin:0}
+.sheet.pick.full .vs,.sheet.pick.full .tipline{margin:0}
+.augc{display:flex;flex-direction:column;gap:6px;min-width:0}
+.augc .aug{margin:0;flex:1}
+.augc .reroll{align-self:center;padding:6px 16px;font-size:14px;border-style:dashed}
+.augc .reroll:disabled{opacity:.5}
+.augc.rolled .aug{animation:rollin .35s ease-out}
+@keyframes rollin{from{transform:rotateY(80deg) scale(.9);opacity:.3}to{transform:none;opacity:1}}
+.sheet.pick.full .big.wide{margin:4px auto 0;max-width:520px;flex:none}
+@media (orientation:landscape) and (max-height:600px), (orientation:landscape) and (min-width:900px){
+  .sheet.pick.full{display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr));align-content:center;gap:8px 12px}
+  .sheet.pick.full>*:not(.augc){grid-column:1/-1}
+  .sheet.pick.full>.augc{grid-column:auto}
+  .sheet.pick.full .augc .aug{flex-direction:column;align-items:center;text-align:center;justify-content:center;position:relative;padding:14px 12px}
+  .sheet.pick.full .augc .aug .tx{align-items:center}
+  .sheet.pick.full .augc .aug .tx b{justify-content:center;font-size:18px}
+  .sheet.pick.full .augc .aug .tx span{font-size:13px}
+  .sheet.pick.full .augc .aug .ic,.sheet.pick.full .augc .aug .ic .ico{width:56px;height:56px;font-size:36px}
+  .sheet.pick.full .augc .aug .ck{position:absolute;top:8px;right:8px}
+  .sheet.pick.full .vs .side img{display:none}
+  /* 가로는 높이가 낮아(412px 등) 촘촘하게: 설명 줄은 버튼이 대신하고, 확인 버튼은 덮지 않게 */
+  .sheet.pick.full{gap:6px 12px;padding-top:calc(8px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));padding-bottom:calc(8px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
+  .sheet.pick.full h2{font-size:20px}
+  .sheet.pick.full .sub{display:none}
+  .sheet.pick.full .augc .aug{padding:8px 10px;gap:4px}
+  .sheet.pick.full .augc .aug .ic,.sheet.pick.full .augc .aug .ic .ico{width:44px;height:44px;font-size:30px}
+  .sheet.pick.full .augc .aug .tx b{font-size:17px}
+  .sheet.pick.full .augc .reroll{padding:4px 14px;font-size:13px}
+  .sheet.pick.full .big.wide{position:static;box-shadow:0 4px 0 var(--accent-d);padding:10px;margin:2px auto 0}
+  .sheet.pick.full .big.wide:disabled{box-shadow:none}
+}
+@media (prefers-reduced-motion:reduce){.augc.rolled .aug{animation:none}}
+body:has(#modal.full:not([hidden])) #mute{display:none}
 </style>
 </head>
 <body>

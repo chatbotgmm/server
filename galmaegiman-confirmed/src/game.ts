@@ -1221,6 +1221,12 @@ export class GameService {
   async webClaim(playerId:string){
     return this.webRun(playerId,async(tx,p,now)=>this.replyText(await this.claim(tx,p,now)));
   }
+  // 웹·앱 쿠폰 입력(카톡 「쿠폰 코드」와 같은 처리: 1인 1회·기간 확인)
+  async webCoupon(playerId:string,code:string){
+    if(!code.replace(/\s+/g,''))throw new GameError('쿠폰 코드를 적어 주세요.');
+    if(code.length>60)throw new GameError('🎟 맞는 쿠폰이 없어요.');
+    return this.webRun(playerId,async(tx,p,now)=>this.replyText(await this.coupon(tx,p,code,now)));
+  }
   async webDraw(playerId:string,kind:string,times:number){
     if(kind!=='LOW'&&kind!=='MID'&&kind!=='HIGH')throw new GameError('없는 뽑기예요.');
     if(!Number.isSafeInteger(times)||times<1||times>50)throw new GameError('뽑기는 한 번에 1~50회예요.');

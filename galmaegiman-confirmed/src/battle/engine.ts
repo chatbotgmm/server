@@ -13,7 +13,7 @@ export interface Fighter {
   endure:number;protect:boolean;recharge:boolean;immune:number;lockAtk:number;lastStandUsed:boolean;attacked:boolean;actedTurn:number;
   extraAttr?:Attr;hitBy:Partial<Record<Attr,number>>;
 }
-interface SideState {fighters:Fighter[];active:number;comboUsed:boolean;augs:string[];offers:string[]|null;needSwitch:boolean;reviveUsed:boolean;goFirst:boolean;neutral:number;itemsUsed:number}
+interface SideState {fighters:Fighter[];active:number;comboUsed:boolean;augs:string[];offers:string[]|null;rerolled:boolean[];offerSeen:string[];needSwitch:boolean;reviveUsed:boolean;goFirst:boolean;neutral:number;itemsUsed:number}
 // 교체: '인사 발령' 증강체가 있으면 턴을 안 쓰므로 then(바로 쓸 기술)을 함께 보냄(없으면 AI가 고름)
 // 아이템: 그 턴 행동을 쓰고, 기술보다 먼저 쓰임. target = 다시 일으킬 갈매미 순서(다시 출근 깃털)
 export type Action={kind:'skill';skillId:string}|{kind:'switch';to:number;then?:string}|{kind:'item';item:string;target?:number};
@@ -38,7 +38,7 @@ export function createBattle(R:Rules,teamA:UnitRecord[],teamB:UnitRecord[],seed:
   if(!teamA.length||!teamB.length||teamA.length>3||teamB.length>3)throw new Error('팀은 1~3마리');
   // 같은 시너지가 2마리 이상이면 그 유닛들에게 합동기
   const comboFor=(t:UnitRecord[],r:UnitRecord)=>{const k=R.unitDef(r.id)?.syn;if(!k||t.filter(x=>R.unitDef(x.id)?.syn===k).length<2)return undefined;return R.comboSkill(k,R.unitDef(r.id)!.attr);};
-  const side=(t:UnitRecord[],i:0|1):SideState=>({fighters:t.map(r=>makeFighter(R,r,i,comboFor(t,r))),active:0,comboUsed:false,augs:[],offers:null,needSwitch:false,reviveUsed:false,goFirst:false,neutral:0,itemsUsed:0});
+  const side=(t:UnitRecord[],i:0|1):SideState=>({fighters:t.map(r=>makeFighter(R,r,i,comboFor(t,r))),active:0,comboUsed:false,augs:[],offers:null,rerolled:[],offerSeen:[],needSwitch:false,reviveUsed:false,goFirst:false,neutral:0,itemsUsed:0});
   const b:Battle={R,rng:seed|0,turn:1,phase:'choose',winner:null,sides:[side(teamA,0),side(teamB,1)],log:[]};
   // 거울(mirror) 빌런: 상대 팀에 가장 많은 속성을 그대로 비춤(같으면 상대 선두 속성)
   for(const i of [0,1] as const)for(const f of b.sides[i].fighters)if(R.unitDef(f.rec.id)?.mirror){
@@ -58,11 +58,22 @@ function offerAugments(b:Battle){
   for(const s of b.sides){
     const pool=b.R.battleAugments.filter(a=>!s.augs.includes(a.id)).map(a=>a.id);const out:string[]=[];
     while(out.length<3&&pool.length)out.push(pool.splice(Math.floor(rand(b)*pool.length),1)[0]);
-    s.offers=out.length?out:null;
+    s.offers=out.length?out:null;s.rerolled=out.map(()=>false);s.offerSeen=[...out];
   }
   b.phase='choose';
 }
 
+// 증강체 다시 뽑기: 제안 칸마다 제안이 나올 때마다 한 번씩. 이번에 이미 보인 것·가진 것은 다시 안 나옴
+export function rerollAugment(b:Battle,side:0|1,i:number){
+  const s=b.sides[side];
+  if(b.phase!=='choose'||!s.offers||!s.offers[i])throw new Error('다시 뽑을 증강체가 없음');
+  if(s.rerolled[i])throw new Error('이 칸은 이미 다시 뽑았음');
+  const pool=b.R.battleAugments.map(a=>a.id).filter(id=>!s.augs.includes(id)&&!s.offers!.includes(id)&&!s.offerSeen.includes(id));
+  if(!pool.length)throw new Error('다른 증강체가 없음');
+  const id=pool[Math.floor(rand(b)*pool.length)];
+  s.offers[i]=id;s.rerolled[i]=true;s.offerSeen.push(id);
+  return id;
+}
 // 고르기 단계: 증강체(제안이 있으면 필수), 쓰러진 선두 교체(필요하면 필수)
 export function choose(b:Battle,side:0|1,pick:{augment?:string;switchTo?:number}){
   if(b.phase!=='choose')throw new Error('지금은 고를 때가 아님');

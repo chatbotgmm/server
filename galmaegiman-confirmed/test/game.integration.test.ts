@@ -888,6 +888,24 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await info()).recipes.some(r=>r.id===hidden.resultId)).toBe(true);
     }finally{await app.close();}
   });
+  it('웹 쿠폰: 설정 창 입력(1인 1회·틀린 코드·빈 코드·로그인 필요)',async()=>{
+    const c0=content.economy.coupons[0]!;
+    game=new GameService(db,{...content,economy:{...content.economy,coupons:[{...c0,id:'WEBTEST',code:'웹 시험 코드',from:undefined,to:undefined}]}});
+    const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com'});
+    try{
+      const code=/(\d{6})/.exec((await send('웹 로그인')).text!)![1];
+      const p=await db.player.findUniqueOrThrow({where:{identity:actor}});
+      const cookie=String((await app.inject({method:'POST',url:'/my/api/login',payload:{code},headers:{'x-gmm':'1'}})).headers['set-cookie']).split(';')[0];
+      const post=(body:unknown,ck=cookie)=>app.inject({method:'POST',url:'/my/api/coupon',payload:body as object,headers:{'x-gmm':'1',...(ck?{cookie:ck}:{})}});
+      expect((await post({code:'웹시험코드'},'')).statusCode).toBe(401);
+      expect((await post({code:'  '})).statusCode).toBe(400);
+      const wrong=await post({code:'아무말'});expect(wrong.statusCode).toBe(400);expect(wrong.json().error).toContain('맞는 쿠폰이 없어요');
+      const before=(await db.player.findUniqueOrThrow({where:{id:p.id}})).credits;
+      const ok=await post({code:'웹시험코드'});expect(ok.statusCode).toBe(200);expect(ok.json().result).toContain(`뽑기권 +${c0.tickets}`);
+      expect((await db.player.findUniqueOrThrow({where:{id:p.id}})).credits).toBe(before+c0.tickets);
+      const again=await post({code:'웹 시험 코드'});expect(again.statusCode).toBe(400);expect(again.json().error).toContain('이미 받은 쿠폰');
+    }finally{await app.close();}
+  });
   it('웹 뽑기: 정보·뽑기권 받기(대기 시간)·뽑기(그림 카드 결과, 차감)·부족·잘못된 종류',async()=>{
     const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com'});
     try{
@@ -1256,7 +1274,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.90'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.9.91'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
