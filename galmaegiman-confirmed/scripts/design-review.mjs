@@ -1,11 +1,12 @@
 // 디자인 검토용 캡처(빌드 전에 꼭): 가로(휴대폰·큰 화면) × 첫 화면(로그인 전·후)·로비·대사·전투, 화면 넘침·상태 칸 겹침 검사
-// 사용: node scripts/design-review.mjs <결과 폴더> <게임 열쇠>  (시험 서버 :3999, 심사 코드 135790 로그인 필요)
-//   <결과 폴더>/fonts 에 @fontsource/black-han-sans·gowun-dodum 패키지를 풀어 두면 실제 글꼴로 찍힘(없으면 기본 글꼴)
+// 사용: node scripts/design-review.mjs <결과 폴더> <게임 열쇠> [글꼴 폴더]  (시험 서버 :3999, 심사 코드 135790 로그인 필요)
+//   [글꼴 폴더](기본 <결과 폴더>/fonts)에 @fontsource/black-han-sans·gowun-dodum·bagel-fat-one 패키지가 있어야 함(없으면 멈춤: 기본 글꼴로 찍으면 검토가 틀려져서)
 import { chromium } from "/opt/node22/lib/node_modules/playwright/index.mjs";
 import { readFileSync } from "node:fs";
-const out=process.argv[2],K=process.argv[3],F=out+'/fonts';
+const out=process.argv[2],K=process.argv[3],F=process.argv[4]||out+'/fonts';
 const pk={bhs:F+'/_fontsource_black-han-sans/package',gd:F+'/_fontsource_gowun-dodum/package',bfo:F+'/_fontsource_bagel-fat-one/package'};
-let css=null;try{css=Object.entries(pk).map(([k,d])=>readFileSync(d+'/index.css','utf8').replace(/url\(\.\/files\//g,`url(https://fonts.gstatic.com/${k}/`)).join('\n');}catch{console.log('글꼴 패키지 없음: 기본 글꼴로 찍어요');}
+let css=null;try{css=Object.entries(pk).map(([k,d])=>readFileSync(d+'/index.css','utf8').replace(/url\(\.\/files\//g,`url(https://fonts.gstatic.com/${k}/`)).join('\n');}
+catch{console.error('글꼴 패키지가 없어요: '+F+' — 실제 게임 글꼴이 아니면 검토가 틀려지니 멈춰요(세 번째 인자로 글꼴 폴더를 주세요)');process.exit(1);}
 const b=await chromium.launch();
 for(const [n,w,h] of [['L',915,412],['W',1280,720]]){   // 게임은 가로만(앱 가로 고정): 휴대폰 가로·큰 화면 가로
   const c=await b.newContext({viewport:{width:w,height:h},deviceScaleFactor:2,serviceWorkers:'block'});   // 서비스 워커가 글꼴을 직접 받으면 아래 가로채기가 안 먹어서 막음

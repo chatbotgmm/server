@@ -244,7 +244,7 @@ async function boot() {
 function titleScreen(loggedIn) {
   modal.hidden = true; muteBtn(false); if (R) bgm('title');
   const art = APP ? 'title.jpg' : BG.includes('key') ? `${BASE}/duel/bg/key.jpg${q}` : '';
-  const login = APP ? 'my.html?next=game' : '/my?next=duel';
+  const login = APP ? 'my.html?next=game' : '/my?next=duel&g=1';
   // 배경: 그림이 천천히 움직이고(카메라) 빛 줄기가 지나감 + 반짝이·흰 깃털·갈매기
   app.innerHTML = `<div class="title"><div class="tbg" style="${art ? `background-image:url(${art})` : ''}"></div><div class="tray"></div>${ambient('title', true)}
     <div class="tlogo"><b><span class="stroke">${esc(GAME.name)}</span><span class="fill">${esc(GAME.name)}</span></b><small class="tsub">— ${esc(GAME.sub)} —</small></div>
@@ -305,7 +305,7 @@ function pickScreen(mode, then) {   // then: 스토리 팀을 정한 뒤 바로 
   modal.hidden = true; bgm('title');
   const story = mode === 'story';
   let picked = story ? [...SAVE.team] : freePick;
-  app.innerHTML = `<header><button class="back" id="bk">‹</button><h1>${story ? '스토리 팀 편성' : '자유 대결'}</h1></header>
+  app.innerHTML = `<header><button class="back" id="bk">‹ 뒤로</button><h1>${story ? '스토리 팀 편성' : '자유 대결'}</h1></header>
   <p class="hint">갈매미 3마리를 고르세요. 처음 고른 갈매미가 먼저 나가요.${story ? ' 시험판이라 최상위 33종을 모두 쓸 수 있어요(실제 게임은 가진 갈매미만).' : ' 상대는 같은 레벨의 무작위 3마리예요.'}</p>
   ${story ? '' : `<div class="bar"><span class="role">레벨</span><div class="seg" id="lv">${[10, 30, 50].map(l => `<button data-l="${l}" class="${l === freeLevel ? 'on' : ''}">${l}</button>`).join('')}</div></div>`}
   ${story && ACC ? `<p class="hint" style="margin-top:-6px"><img class="gi" src="/gull.png" alt=""> 표시는 내가 가진 갈매미예요. 셋 다 가진 갈매미로 고르면 「내 갈매미」 전투 편성도 같이 바뀌어요.${ACC.battleTeam.length === 3 ? ' <button class="ghost" id="mine" style="display:inline-block;padding:4px 10px">내 전투 편성 불러오기</button>' : ''}</p>` : ''}
@@ -363,7 +363,7 @@ const unlocked = id => { const all = stages(), i = all.findIndex(s => s.id === i
 function storyScreen() {
   modal.hidden = true; bgm('title');
   const team = SAVE.team.map(id => UNITS.find(u => u.id === id));
-  app.innerHTML = `<header><button class="back" id="bk">‹</button><h1>스토리</h1><small>${SAVE.cleared.length}/${stages().length} 실적</small></header>
+  app.innerHTML = `<header><button class="back" id="bk">‹ 뒤로</button><h1>스토리</h1><small>${SAVE.cleared.length}/${stages().length} 실적</small></header>
   <section class="teambar">${team.length === 3 ? team.map(u => { const s = SAVE.units[u.id], need = xpToNext(R, s.level);
       const r = myRec(u.id, 0), n = learnChances(R, r), up = canEvolve(R, r, partsCleared());
       return `<button class="mini" data-u="${u.id}"><img src="${sprite(u.id, 'front', r.stage)}" class="st-${r.stage}" alt=""><b>${esc(u.name)}</b><span>Lv${s.level} ${chip(u.def.attr)}${r.stage ? `<em class="stars">${STARS[r.stage]}</em>` : ''}</span><i class="xp"><i style="width:${Math.min(100, s.xp / need * 100)}%"></i></i>${up ? '<em class="learn promo">⬆ 승진 가능</em>' : n ? `<em class="learn">✨ 기술 배우기 ${n}</em>` : '<small>기술·승진 보기</small>'}</button>`; }).join('')
@@ -600,7 +600,10 @@ function chooseSheet(p) {
         <div class="mid"><small>내 공격</small>${multTag(atk)}<small>상대 공격</small>${multTag(def)}</div>
         <div class="side"><img src="${face(foe)}" class="${faceCls(foe)}" alt=""><b>${esc(foe.name)}</b>${chip(foe.attr)}</div></div>` : '';
     const rr = b.sides[0].rerolled ?? [];
-    modal.innerHTML = `<div class="sheet pick ${p.augments ? 'full' : ''}">
+    // 확인 버튼 글자: 고른 것은 이름으로, 아직 안 고른 것은 무엇을 고를지(둘 다 있으면 「 · 」로 이음)
+    const okLabel = () => [p.augments && (aug ? `「${esc(R.battleAug.get(aug).name)}」 선택` : '증강체를 골라요'),
+      p.needSwitch && (to !== null ? `${esc(b.sides[0].fighters[to].name)} 출전` : '나갈 갈매미를 골라요')].filter(Boolean).join(' · ');
+    modal.innerHTML = `<div class="sheet pick ${p.augments ? 'full' : ''} ${p.augments && p.needSwitch ? 'both' : ''}">
       ${p.augments ? `<h2>전투 증강체</h2><p class="sub">${b.turn === 1 ? '대결 시작' : '전투불가 발생'} · 3개 중 하나를 골라요. 마음에 안 들면 칸마다 한 번씩 🎲 다시 뽑을 수 있어요.</p>${vs}
         ${hintNow && b.turn === 1 ? `<div class="tipline">💡 ${hl(hintNow)}</div>` : ''}
         ${p.augments.map(id => { const a = R.battleAug.get(id), [ic, kind] = AUG_ICON[id] ?? ['✨', ''], rec = bad && FLIP.includes(id);
@@ -609,7 +612,7 @@ function chooseSheet(p) {
       ${p.needSwitch ? `<h2>다음에 나갈 갈매미</h2><p class="sub">상대: ${esc(foe.name)} ${chip(foe.attr)}</p>
         ${alive.map(([f, i]) => { const m = R.typeMult(f.attr, foe.attr), pct = Math.round(f.hp / f.maxHp * 100);
           return `<button class="aug ${to === i ? 'on' : ''}" data-t="${i}"><img class="ic" src="${face(f)}" alt=""><span class="tx"><b>${esc(f.name)}</b><small>${R.attrName(f.attr)} · ${ROLE[f.role]} · 상대에게 ${m > 1 ? '유리' : m < 1 ? '불리' : '보통'}</small><i class="hpmini"><i style="width:${pct}%"></i></i></span><span class="ck">${to === i ? '✓' : ''}</span></button>`; }).join('')}` : ''}
-      <button class="big wide" id="ok" ${(p.augments && !aug) || (p.needSwitch && to === null) ? 'disabled' : ''}>${aug ? `「${esc(R.battleAug.get(aug).name)}」 선택` : ''}${aug && p.needSwitch && to !== null ? ' · ' : ''}${p.needSwitch && to !== null ? `${esc(b.sides[0].fighters[to].name)} 출전` : ''}${(!aug && p.augments) || (p.needSwitch && to === null) ? '골라 주세요' : ''}</button></div>`;
+      <button class="big wide" id="ok" ${(p.augments && !aug) || (p.needSwitch && to === null) ? 'disabled' : ''}>${okLabel()}</button></div>`;
     modal.querySelectorAll('[data-a]').forEach(x => x.onclick = () => { aug = x.dataset.a; draw(); });
     modal.querySelectorAll('[data-r]').forEach(x => x.onclick = () => {
       const i = +x.dataset.r, old = p.augments[i];
@@ -878,7 +881,7 @@ function result() {
   bgm(null); sfx(won ? 'win' : 'lose');
   document.getElementById('panel').innerHTML = `<div class="sheet" style="border-radius:14px"><h2>${b.winner === null ? '무승부' : won ? '승리!' : '패배…'}</h2>
     <p class="sub">${b.turn - 1}턴 · ${esc(r.text)}</p>
-    <div class="sw">${r.buttons.map(([t], i) => `<button class="ghost" data-r="${i}" style="justify-content:center">${esc(t)}</button>`).join('')}</div></div>`;
+    <div class="sw">${r.buttons.map(([t], i) => `<button class="${i ? 'ghost' : 'big'}" data-r="${i}" style="justify-content:center">${esc(t)}</button>`).join('')}</div></div>`;
   document.querySelectorAll('[data-r]').forEach(x => x.onclick = () => r.buttons[+x.dataset.r][1]());
 }
 
