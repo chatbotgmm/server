@@ -48,10 +48,14 @@ for j in range(n):
     szj = ndimage.sum(bm, lbj, range(1, kj + 1)); hit = np.union1d(hit, [i + 1 for i, v in enumerate(szj) if v >= 0.03 * allm.sum()])
     bodies.append(np.isin(lbj, hit) if len(hit) else bm)
 dist = np.stack([ndimage.distance_transform_edt(~bm) for bm in bodies])
+spans = [(np.where(bm)[1].min(), np.where(bm)[1].max()) if bm.any() else (0, -1) for bm in bodies]
 for i, sz0 in enumerate(s0):
     comp = lb0 == i + 1
     if any((comp & bm).any() for bm in bodies): continue   # 몸통 덩어리(붙은 캐릭터 포함)는 위의 나눔 그대로
-    near = int(np.argmin([d[comp].min() for d in dist]))
+    # 조각의 가로 가운데가 어느 캐릭터 몸 가로 범위 안에 있으면 그 캐릭터들 중에서, 아니면 전체에서 가장 가까운 몸
+    cx = np.where(comp)[1].mean()
+    cand = [j for j, rg in enumerate(spans) if rg[0] <= cx <= rg[1]] or list(range(n))
+    near = min(cand, key=lambda j: dist[j][comp].min())
     own[ndimage.binary_dilation(comp, iterations=3) & (a > 0)] = near + 1
 
 for j, uid in enumerate(ids):
