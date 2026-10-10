@@ -9,6 +9,7 @@ GPT는 이 파일과 `docs/GPT-ART-HANDOFF.md`(올리는 규칙)를 읽고, 아�
 - 할 일 7: 완료, 넣음(v0.9.77). 사이트·앱·플레이 아이콘, 시작 화면. 마을 회관 방송은 얼굴 없는 확성기로 고친 그림으로 바꿈.
 - 할 일 8: 완료, 넣음(v0.9.78). 게임 첫 화면 제목 뒤 + 구글 플레이 그래픽 이미지(app/store/feature-graphic-1024x500.jpg).
 - 할 일 33(세로 첫 화면 그림): **취소** — 앱을 가로 화면으로 바꿔서 가로 대표 그림(할 일 8)을 그대로 씀. 하지 않기.
+- **할 일 37~44는 `docs/GPT-NOW.md`의 작게 나눈 메시지로 해요**(한 번에 시트 8마리를 그리고 올리다 연결이 자주 끊겨서, 3~4마리씩 그리기·올리기를 따로). 결과 파일 이름도 그 문서대로(`sheet_D_front_a.png` 등).
 - **33종 원형 다시 그리기(할 일 37~44)를 가장 먼저.** 기준: `docs/UNIT-IDENTITY.md`(실루엣·몸 색·상징물이 33종 모두 다르게).
 - 순서: 37~44(원형 앞·뒤) → 34(메뉴 아이콘) → 35(첫 화면 층) → 36(전투 발판) → 9~32(승진, 새 원형 기준).
 
@@ -214,6 +215,7 @@ Avoid: text, letters, numbers, watermark, frame, drop shadow, glow, background s
 ---
 
 ## Claude가 하는 일 (받은 뒤)
+- 나눈 시트(GPT-NOW.md): `python3 -I scripts/split-grade-sheet.py art/gpt/sheet_D_front_a.png D front 4 order=D1,D2,D3,D4` 처럼 그룹마다 개수·순서를 줘서 잘라요.
 - 캐릭터 그림(빌런·갈매미·마을 사람)은 자른 뒤 `scripts/upscale-art.py`(애니메 그림용 AI 업스케일 ×2)로 높이 768px webp로 만들어 넣어요(폰에서 흐리지 않게, 용량은 png의 약 1/3).
 - 할 일 1~3: `python3 -I scripts/place-art.py villains art/gpt/villains_jju.png 3x2 V1,V2,V3,V4,V5,V6` (랍매미 `3x2 V7,V8,V9,V10,V11,-`, 끼룩단 `4x2 V12,V19,V13,V14,V16,V15,V20,V17`). 방향이 반대면 끝에 `flip`.
 - 할 일 4: `python3 -I scripts/place-art.py bg art/gpt/bg_all.png 3x3 harbor,ink,deep,hall,market,strait,laundry,sky,nest`
