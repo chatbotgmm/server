@@ -24,7 +24,9 @@
   document.addEventListener('click', e => { if (e.target.closest && e.target.closest('#gback')) backToGame(); });
   const toast = t => { toastEl.textContent = t; toastEl.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.classList.remove('on'), 1800); };
   const thumb = id => `${BASE}/thumbs/${encodeURIComponent(id)}.jpg`;
-  const head = right => GAMEUI ? `<header class="gbar"><button class="gback" id="gback">‹ 게임으로</button><h1>내 갈매미</h1><span class="sp"></span></header>` : `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span><a class="hl" href="/dex" title="도감">📚<span class="lt"> 도감</span></a><a class="hl" href="/search" title="검색">🔍</a>${right ?? ''}<a class="home" href="/" title="홈">🏠<span class="lt"> 홈</span></a></header>`;
+  // 게임 모드: 재화는 위쪽 줄 오른쪽에 작게(재화 확인이 화면의 목적처럼 보이지 않게)
+  const curBar = m => m ? `<div class="cur">${[['🍤', m.snack, '새우깡'], ['🥜', m.peanut, '땅콩'], ['🎫', m.credits, '뽑기권']].map(([i, n, t]) => `<span title="${t}">${i}<b>${Number(n).toLocaleString('ko-KR')}</b></span>`).join('')}</div>` : '';
+  const head = (right, m) => GAMEUI ? `<header class="gbar"><button class="gback" id="gback">‹ 게임으로</button><h1>내 갈매미</h1><span class="sp"></span>${curBar(m)}</header>` : `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span><a class="hl" href="/dex" title="도감">📚<span class="lt"> 도감</span></a><a class="hl" href="/search" title="검색">🔍</a>${right ?? ''}<a class="home" href="/" title="홈">🏠<span class="lt"> 홈</span></a></header>`;
 
   // ── 로그인 ──
   // 카카오 로그인에서 돌아온 결과(?kakao=…)는 한 번 보여 주고 주소에서 지움
@@ -76,9 +78,9 @@
   }
   function draw() {
     const tabs = [['draw', '🥚 뽑기'], ['craft', '🧩 조합'], ['units', '<img class="gi" src="/gull.png" alt=""> 내 갈매미'], ['party', '🧭 탐험대 편성'], ['battle', '⚔️ 전투 편성'], ['items', '🎒 아이템'], ['shop', '🛒 상점'], ['account', '👤 계정']];
-    app.innerHTML = `${head('<button class="btn ghost" id="out" title="로그아웃" style="padding:6px 12px;font-size:.85rem">🚪<span class="lt"> 로그아웃</span></button>')}
-      <div class="card"><div class="row" style="margin-bottom:10px"><b style="font-weight:400;font-size:1.15rem">${esc(me.nickname || '이름 없는 수비조장')}</b><span class="tag">도감 ${me.dex}/${me.dexTotal}</span></div>
-        <div class="money"><div><b><i>🍤</i>${me.snack}</b><small>새우깡</small></div><div><b><i>🥜</i>${me.peanut}</b><small>땅콩</small></div><div><b><i>🎫</i>${me.credits}</b><small>뽑기권</small></div><div><b><i>🪺</i>${me.units.reduce((a, u) => a + u.have, 0)}</b><small>갈매미</small></div></div></div>
+    app.innerHTML = `${head('<button class="btn ghost" id="out" title="로그아웃" style="padding:6px 12px;font-size:.85rem">🚪<span class="lt"> 로그아웃</span></button>', me)}
+      ${GAMEUI ? '' : `<div class="card"><div class="row" style="margin-bottom:10px"><b style="font-weight:400;font-size:1.15rem">${esc(me.nickname || '이름 없는 수비조장')}</b><span class="tag">도감 ${me.dex}/${me.dexTotal}</span></div>
+        <div class="money"><div><b><i>🍤</i>${me.snack}</b><small>새우깡</small></div><div><b><i>🥜</i>${me.peanut}</b><small>땅콩</small></div><div><b><i>🎫</i>${me.credits}</b><small>뽑기권</small></div><div><b><i>🪺</i>${me.units.reduce((a, u) => a + u.have, 0)}</b><small>갈매미</small></div></div></div>`}
       <div class="tabs">${tabs.map(([k, t]) => `<button data-t="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>
       <div id="body"></div>`;
     app.querySelector('#out')?.addEventListener('click', async () => { await api('logout', {}).catch(() => {}); APP?.setToken(null); loginScreen('로그아웃했어요.'); });
@@ -142,7 +144,7 @@
         <p class="note" style="margin:2px 0 0">${d.wait ? `다음 뽑기권 받기까지 ${waitText(d.wait)}` : `지금 뽑기권 ${d.claim}장을 받을 수 있어요! (${d.cooldownHours}시간마다)`}${d.event ? ` · 🎉 ${esc(d.event.label)}` : ''}</p></div>
         <button class="btn" id="claim" ${d.wait ? 'disabled' : ''}>🎟 뽑기권 받기</button></div>
       ${drawLast ? `<div class="card drawres"><b style="font-weight:400">🥚 결과</b><div class="dgrid">${drawLast.items.map(u => `<div class="du ${u.first ? 'new' : ''}" style="--tc:${TIER_COLOR[u.tier] ?? '#888'}"><img src="${cimg(u.img)}" alt="">${u.first ? '<span class="nb">NEW</span>' : ''}${u.n > 1 ? `<span class="n">×${u.n}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}</small></div>`).join('')}</div><p class="pre note" style="margin-top:8px">${esc(drawLast.summary)}</p></div>` : ''}
-      <div class="ggrid">${d.gachas.map(g => `<div class="gc"><img src="${cimg(g.img)}" alt=""><div class="gi"><b>${esc(g.label)} 뽑기</b><small>🎟 ${g.cost}장 · ${g.weights.map(w => `${esc(w.tierName)} ${w.w}%`).join(' · ')}</small>
+      <div class="ggrid">${d.gachas.map(g => `<div class="gc"><img src="${cimg(g.img)}" alt=""><div class="gi"><b>${esc(g.label)} 뽑기</b><small>🎟 ${g.cost}장 · ${g.weights.map(w => `<span class="nw">${esc(w.tierName)} ${w.w}%</span>`).join(' · ')}</small>
         ${g.kind === 'HIGH' && d.pity ? `<small>🎯 ${esc(d.pity.tierName)} 보장까지 ${d.pity.left}회</small>` : ''}
         <div class="row">${[1, 5, 10].map(n => `<button class="btn ${n === 1 ? '' : 'ghost'}" data-k="${g.kind}" data-n="${n}" ${credits >= g.cost * n ? '' : 'disabled'}>${n}회<small>🎟 ${g.cost * n}</small></button>`).join('')}</div></div></div>`).join('')}</div>
       <p class="note">결과·보상·미션은 카톡과 같이 계정에 바로 들어가요.</p>`;

@@ -143,6 +143,10 @@ html.game input,html.game .search,html.game .login input{background:#fffdf7;colo
 html.game .result{background:rgba(40,22,8,.55)}
 html.game .inst{display:none}
 html.game header.gbar h1{display:block}
+.nw{white-space:nowrap}
+html.game .gbar .cur{display:flex;gap:6px;flex-wrap:nowrap}
+html.game .gbar .cur span{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;background:#efe3c8;border:1.5px solid var(--line);font-size:.85rem;white-space:nowrap}
+html.game .gbar .cur b{font-weight:700;font-family:inherit}
 /* 색 규칙 「주요 행동 보라는 화면마다 하나」: 뽑기 화면은 「뽑기권 받기」만 보라, 횟수 버튼은 크림 */
 html.game .gc .row .btn{background:var(--card);color:var(--text);border:2px solid var(--edge);box-shadow:0 3px 0 rgba(90,52,22,.45)}
 html.game .gc .row .btn:disabled{opacity:.5}   /* 좁은 화면에서도 화면 이름은 보이게(사이트 머리줄은 좁으면 숨김) */
