@@ -215,6 +215,7 @@ Avoid: text, letters, numbers, watermark, frame, drop shadow, glow, background s
 ---
 
 ## Claude가 하는 일 (받은 뒤)
+- 사용자가 건네준 그림(GPT-NOW.md 1~18번): `python3 -I scripts/take-sheet.py <그림> <번호> [비교 폴더]` → 시트 저장·유닛별 자르기(붙어 있어도 나눔)·비교 그림. 그다음 시트를 `gpt-art`에 올려 GPT가 다음 번호로 넘어가게.
 - 나눈 시트(GPT-NOW.md): `python3 -I scripts/split-grade-sheet.py art/gpt/sheet_D_front_a.png D front 4 order=D1,D2,D3,D4` 처럼 그룹마다 개수·순서를 줘서 잘라요.
 - 캐릭터 그림(빌런·갈매미·마을 사람)은 자른 뒤 `scripts/upscale-art.py`(애니메 그림용 AI 업스케일 ×2)로 높이 768px webp로 만들어 넣어요(폰에서 흐리지 않게, 용량은 png의 약 1/3).
 - 할 일 1~3: `python3 -I scripts/place-art.py villains art/gpt/villains_jju.png 3x2 V1,V2,V3,V4,V5,V6` (랍매미 `3x2 V7,V8,V9,V10,V11,-`, 끼룩단 `4x2 V12,V19,V13,V14,V16,V15,V20,V17`). 방향이 반대면 끝에 `flip`.
