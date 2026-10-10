@@ -268,7 +268,7 @@ function menu() {
     <div class="tmid">${nowCard()}
     <div class="two"><button id="st"><i>📖</i>스토리</button><button id="fr"><i>⚔️</i>자유 대결</button></div></div>
     ${squad()}
-    <nav class="dock">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점'], ['account', '👤', '계정']].map(([h, i, t]) => `<a href="${my(h)}"><i>${i}</i><span>${t}</span></a>`).join('')}</nav></div>`;
+    <nav class="dock">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점'], ['account', '👤', '계정']].map(([h, i, t]) => `<a href="${my(h)}"><i class="${ICONS.includes(`m-${h}`) ? 'art' : ''}">${ico(`m-${h}`, i)}</i><span>${t}</span></a>`).join('')}</nav></div>`;
   app.querySelector('#st').onclick = storyScreen;
   app.querySelector('#fr').onclick = () => pickScreen('free');
   app.querySelector('#go')?.addEventListener('click', () => {
