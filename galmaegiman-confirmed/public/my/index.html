@@ -119,6 +119,28 @@ button.u{cursor:pointer}
 .inst .bt{display:flex;gap:8px;flex-wrap:wrap}
 .inst details{flex-basis:100%;font-size:.88rem;color:var(--muted)}
 .inst details ol{margin:6px 0 0;padding-left:20px}
+
+/* ════ 게임에서 들어왔을 때(html.game): 사이트가 아니라 게임 화면처럼. 색은 게임 색 규칙(docs/UI-COLOR.md)과 같게 ════ */
+html.game{--bg:#efdcb6;--card:#fffaf0;--text:#3b2614;--muted:#7d5f40;--line:#d9b98a;--edge:#7a4e2a;--accent:#6a46c8;--accent-soft:#efe9ff;--gold:#e9a630;--ok:#1f8a46;--bad:#c53b25;--sea1:#7a4e2a;--sea2:#5a3416;--shadow:0 3px 0 rgba(122,78,42,.3)}
+html.game body{background:#3b2614;color:var(--text);color-scheme:light}
+html.game body::before{content:"";position:fixed;inset:-24px;z-index:-1;background:var(--gbg,none) center 40%/cover no-repeat,#c9a46a;filter:blur(8px) saturate(.85) brightness(.75)}
+html.game #app{max-width:1100px;padding:0 calc(14px + env(safe-area-inset-right,0px)) 40px calc(14px + env(safe-area-inset-left,0px))}
+html.game header.gbar{display:flex;align-items:center;gap:12px;margin:10px 0 12px;padding:8px 10px;background:rgba(255,247,228,.94);border:3px solid var(--edge);border-radius:18px;box-shadow:0 4px 0 rgba(60,35,15,.45);color:var(--text)}
+html.game header.gbar h1{font-size:1.35rem;margin:0;color:var(--text);text-shadow:none;font-family:"Black Han Sans",sans-serif;font-weight:400}
+html.game .gback{font-family:"Black Han Sans",sans-serif;font-size:1rem;padding:8px 16px;border-radius:999px;border:2.5px solid var(--edge);background:linear-gradient(#fffdf5,#f1d9a8);color:var(--text);box-shadow:0 3px 0 var(--edge);cursor:pointer}
+html.game .gback:active{transform:translateY(2px);box-shadow:0 1px 0 var(--edge)}
+html.game .card,html.game .money div,html.game .u,html.game .rc,html.game .gc,html.game .du,html.game .slot{background:var(--card);border:2px solid var(--line);box-shadow:0 3px 0 rgba(122,78,42,.25);color:var(--text)}
+html.game .card{border-color:var(--edge)}
+html.game .tabs button,html.game .filters button{background:var(--card);border:2px solid var(--edge);color:var(--text);box-shadow:0 3px 0 rgba(90,52,22,.45)}
+html.game .tabs button.on,html.game .filters button.on{background:var(--accent);border-color:#3f2585;color:#fff;box-shadow:0 3px 0 #3f2585}
+html.game .btn{background:linear-gradient(#8466e0,var(--accent));color:#fff;border:2px solid #3f2585;box-shadow:0 3px 0 #3f2585}
+html.game .btn.ghost{background:var(--card);color:var(--text);border:2px solid var(--edge);box-shadow:0 3px 0 rgba(90,52,22,.45)}
+html.game .btn.kakao{background:#fee500;color:#191600;border-color:#a89600;box-shadow:0 3px 0 #a89600}
+html.game .note,html.game .money small,html.game .u small,html.game .empty{color:var(--muted)}
+html.game .tag{background:#efe3c8;color:var(--text)}
+html.game input,html.game .search,html.game .login input{background:#fffdf7;color:var(--text);border-color:var(--line)}
+html.game .result{background:rgba(40,22,8,.55)}
+html.game .inst{display:none}
 </style>
 </head>
 <body>

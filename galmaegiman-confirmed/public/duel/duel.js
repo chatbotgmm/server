@@ -109,6 +109,7 @@ const NPC = { '마을 회관 방송': 'HALL' };
 const ico = (id, emoji) => ICONS.includes(id) ? `<img class="ico" src="${BASE}/duel/icons/${id}.png" alt="">` : emoji;
 // 장소별 움직이는 배경(그림 없이 코드로): 구름·갈매기·물 반짝임·먹물·거품·금가루·깃털·불티. 같은 장소면 늘 같은 배치(seed)
 const AMB = {
+  title: [['gull', 3], ['mote', 16], ['wfeather', 7]],
   harbor: [['cloud', 4], ['gull', 3], ['glint', 10]], hall: [['cloud', 4], ['gull', 2]], laundry: [['cloud', 3], ['gull', 2], ['cloth', 6]],
   ink: [['drop', 14], ['paper', 5]], deep: [['bubble', 16], ['ray', 3]], market: [['dust', 18], ['cloud', 2]],
   strait: [['cloud', 5], ['spray', 12], ['glint', 6]], sky: [['cloud', 6], ['feather2', 10]], nest: [['feather2', 8], ['ember', 14]],
@@ -158,12 +159,45 @@ function teamCombos(ids) {
 }
 
 document.title = GAME.name;
-function muteBtn() {
-  if (document.getElementById('mute')) return;
-  const m = document.createElement('button'); m.id = 'mute'; m.className = 'mute'; m.setAttribute('aria-label', '소리');
-  const paint = () => { m.textContent = isMuted() ? '🔇' : '🔊'; };
-  m.onclick = e => { e.stopPropagation(); toggleMute(); paint(); };
-  paint(); document.body.append(m);
+// ⚙ 설정: 소리 켜기·끄기, 로그아웃, 계정 삭제를 한곳에(첫 화면은 오른쪽 아래, 다른 화면은 오른쪽 위에 떠 있음)
+function muteBtn(show = true) {
+  let m = document.getElementById('mute');
+  if (!show) { m?.remove(); return; }
+  if (m) return;
+  m = document.createElement('button'); m.id = 'mute'; m.className = 'mute'; m.setAttribute('aria-label', '설정'); m.textContent = '⚙️';
+  m.onclick = e => { e.stopPropagation(); settingsSheet(); };
+  document.body.append(m);
+}
+function settingsSheet() {
+  const prev = modal.innerHTML, wasHidden = modal.hidden, prevClass = modal.className, prevClick = modal.onclick;
+  const close = () => { if (wasHidden) { modal.hidden = true; modal.innerHTML = ''; } else { modal.innerHTML = prev; modal.className = prevClass; modal.onclick = prevClick; } };
+  const draw = () => {
+    modal.className = ''; modal.hidden = false;
+    modal.innerHTML = `<div class="sheet set"><h2>⚙️ 설정</h2>
+      <div class="setrow"><span>🔊 소리(배경음악·효과음)</span><button class="tog ${isMuted() ? '' : 'on'}" id="sSnd">${isMuted() ? '꺼짐' : '켜짐'}</button></div>
+      ${ACC ? `<div class="setrow"><span>👤 ${esc(ACC.nickname || '내 계정')}</span><button class="ghost" id="sOut">로그아웃</button></div>
+      <details class="setdel"><summary>계정 삭제(탈퇴)</summary>
+        <p class="sub">갈매미·도감·재화·아이템·탐험·스토리 진행이 <b>모두 지워지고 되돌릴 수 없어요.</b></p>
+        <input id="sDelc" placeholder="확인을 위해 탈퇴 라고 적어 주세요" autocomplete="off"><button class="big wide" id="sDel" disabled>계정 삭제</button></details>` : ''}
+      <button class="ghost wide" id="sClose">닫기</button></div>`;
+    modal.querySelector('#sSnd').onclick = () => { toggleMute(); draw(); };
+    modal.querySelector('#sClose').onclick = close;
+    modal.querySelector('#sOut')?.addEventListener('click', async () => {
+      if (!confirm('로그아웃할까요?')) return;
+      await myApi('logout', {}).catch(() => {}); APP?.setToken(null); ACC = null; titleScreen(false);
+    });
+    const c = modal.querySelector('#sDelc'), d = modal.querySelector('#sDel');
+    if (c) {
+      c.oninput = () => { d.disabled = c.value.trim() !== '탈퇴'; };
+      d.onclick = async () => {
+        if (!confirm('정말 계정을 삭제할까요? 되돌릴 수 없어요.')) return;
+        d.disabled = true;
+        try { await myApi('account/delete', { confirm: '탈퇴' }); APP?.setToken(null); ACC = null; alert('계정을 삭제했어요. 그동안 고마웠어요.'); titleScreen(false); }
+        catch (e) { alert(e.message); d.disabled = false; }
+      };
+    }
+  };
+  modal.onclick = null; draw();
 }
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('button:not(#mute)')) sfx('tap'); }, true);
 async function boot() {
@@ -194,23 +228,25 @@ async function boot() {
 
 // 첫 화면: 대표 그림 + 큰 게임 이름 + 버튼 하나(로그인 전 「로그인」, 로그인 뒤 「게임 시작」 → 로비)
 function titleScreen(loggedIn) {
-  modal.hidden = true; muteBtn(); if (R) bgm('title');
+  modal.hidden = true; muteBtn(false); if (R) bgm('title');
   const art = APP ? 'title.jpg' : BG.includes('key') ? `${BASE}/duel/bg/key.jpg${q}` : '';
   const login = APP ? 'my.html?next=game' : '/my?next=duel';
-  app.innerHTML = `<div class="title" style="${art ? `background-image:url(${art})` : ''}">${ambient('harbor', true)}
-    <div class="tlogo"><b><span class="stroke">${esc(GAME.name)}</span><span class="fill">${esc(GAME.name)}</span></b><small>${esc(GAME.sub)}</small></div>
+  // 배경: 그림이 천천히 움직이고(카메라) 빛 줄기가 지나감 + 반짝이·흰 깃털·갈매기
+  app.innerHTML = `<div class="title"><div class="tbg" style="${art ? `background-image:url(${art})` : ''}"></div><div class="tray"></div>${ambient('title', true)}
+    <div class="tlogo"><b><span class="stroke">${esc(GAME.name)}</span><span class="fill">${esc(GAME.name)}</span></b><small class="tsub">— ${esc(GAME.sub)} —</small></div>
     ${loggedIn ? '<button class="tgo" id="tgo">▶ 게임 시작</button>' : `<a class="tgo" href="${login}">로그인</a>`}
-    ${loggedIn && ACC ? `<span class="tacc"><img src="${APP ? 'gull.png' : '/gull.png'}" alt="">${esc(ACC.nickname || '내 계정')}</span>` : ''}</div>`;
+    <div class="tcorner">${loggedIn && ACC ? `<span class="tacc">${esc(ACC.nickname || '내 계정')}</span>` : ''}<button class="tset" id="tset" aria-label="설정">⚙️</button></div></div>`;
   app.querySelector('#tgo')?.addEventListener('click', menu);
+  app.querySelector('#tset').addEventListener('click', settingsSheet);
 }
 function menu() {
+  try { sessionStorage.setItem('gmm-k', K); } catch { /* 무시 */ }
   modal.hidden = true; bgm('title'); muteBtn();
   // 첫 화면(게임 타이틀): 항구 배경 + 대표 그림·제목 + 큰 「이어하기」 + 스토리·자유 대결 + 챗봇 기능 아이콘 줄(「내 갈매미」 탭)
-  const my = h => APP ? `my.html#${h}` : `/my#${h}`, gull = APP ? 'gull.png' : '/gull.png';
+  const my = h => APP ? `my.html#${h}` : `/my?g=1#${h}`, gull = APP ? 'gull.png' : '/gull.png';
   const bg = BG.includes('harbor') ? `background-image:url(${BASE}/duel/bg/harbor.jpg${q})` : '';
   const hero = BG.includes('key') ? `background-image:url(${BASE}/duel/bg/key.jpg${q})` : '';
-  const who = ACC ? `<span class="badge"><img src="${gull}" alt="">${esc(ACC.nickname || '내 계정')}</span>`
-    : '';
+  const who = '';   // 계정 이름은 ⚙ 설정 안에서만
   // 세로: 항구 배경 + 위쪽 대표 그림 / 가로(앱): 대표 그림을 화면 전체에
   app.innerHTML = `<div class="ts" style="${bg};${hero ? `--key:url(${BASE}/duel/bg/key.jpg${q})` : ''}"><div class="lbg" aria-hidden="true"></div>
     ${ambient('harbor', true)}<div class="hero ${hero ? '' : 'noart'}" style="${hero}">${who}

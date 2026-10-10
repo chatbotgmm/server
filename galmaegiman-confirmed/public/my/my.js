@@ -12,9 +12,19 @@
     if (!r.ok) throw new Error(j.error || `오류(${r.status})`);
     return j;
   };
+  // 게임에서 들어왔으면(앱이거나 /my?g=1) 사이트 머리글 대신 게임 화면 모양: 흐린 항구 배경 + 「‹ 게임으로」
+  const GAMEUI = (() => { try { if (APP || new URLSearchParams(location.search).get('g') === '1') sessionStorage.setItem('gmm-g', '1'); return !!APP || sessionStorage.getItem('gmm-g') === '1'; } catch { return !!APP; } })();
+  if (GAMEUI) {
+    document.documentElement.classList.add('game');
+    let k = ''; try { k = sessionStorage.getItem('gmm-k') || ''; } catch { /* 무시 */ }
+    const art = APP ? 'title.jpg' : k ? `/duel/bg/key.jpg?k=${encodeURIComponent(k)}` : '';
+    if (art) document.documentElement.style.setProperty('--gbg', `url("${art}")`);
+  }
+  const backToGame = () => { if (APP) location.href = 'index.html'; else { let k = ''; try { k = sessionStorage.getItem('gmm-k') || ''; } catch { /* 무시 */ } location.href = k ? `/duel?k=${encodeURIComponent(k)}` : '/'; } };
+  document.addEventListener('click', e => { if (e.target.closest && e.target.closest('#gback')) backToGame(); });
   const toast = t => { toastEl.textContent = t; toastEl.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.classList.remove('on'), 1800); };
   const thumb = id => `${BASE}/thumbs/${encodeURIComponent(id)}.jpg`;
-  const head = right => `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span><a class="hl" href="/dex" title="도감">📚<span class="lt"> 도감</span></a><a class="hl" href="/search" title="검색">🔍</a>${right ?? ''}<a class="home" href="/" title="홈">🏠<span class="lt"> 홈</span></a></header>`;
+  const head = right => GAMEUI ? `<header class="gbar"><button class="gback" id="gback">‹ 게임으로</button><h1>내 갈매미</h1><span class="sp"></span></header>` : `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span><a class="hl" href="/dex" title="도감">📚<span class="lt"> 도감</span></a><a class="hl" href="/search" title="검색">🔍</a>${right ?? ''}<a class="home" href="/" title="홈">🏠<span class="lt"> 홈</span></a></header>`;
 
   // ── 로그인 ──
   // 카카오 로그인에서 돌아온 결과(?kakao=…)는 한 번 보여 주고 주소에서 지움
@@ -71,7 +81,7 @@
         <div class="money"><div><b>🍤 ${me.snack}</b><small>새우깡</small></div><div><b>🥜 ${me.peanut}</b><small>땅콩</small></div><div><b>🎫 ${me.credits}</b><small>뽑기권</small></div><div><b>${me.units.reduce((a, u) => a + u.have, 0)}</b><small>가진 갈매미</small></div></div></div>
       <div class="tabs">${tabs.map(([k, t]) => `<button data-t="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>
       <div id="body"></div>`;
-    app.querySelector('#out').onclick = async () => { await api('logout', {}).catch(() => {}); APP?.setToken(null); loginScreen('로그아웃했어요.'); };
+    app.querySelector('#out')?.addEventListener('click', async () => { await api('logout', {}).catch(() => {}); APP?.setToken(null); loginScreen('로그아웃했어요.'); });
     app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; if (tab === 'craft') craftData = null; if (tab === 'draw') drawData = null; history.replaceState(null, '', `#${tab}`); draw(); });
     ({ draw: drawTab, units, craft, battle, party, items, shop, account })[tab](app.querySelector('#body'));
   }
