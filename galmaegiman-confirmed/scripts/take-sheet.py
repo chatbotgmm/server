@@ -41,11 +41,17 @@ own = cores[iy, ix]
 for j, uid in enumerate(ids):
     p = px.copy(); p[(own != j + 1), 3] = 0
     al = p[:, :, 3]
-    # 몸과 이어진 큰 덩어리만(옆 캐릭터 부스러기·먼지 지움). 큰 덩어리 = 전체의 2% 이상
-    m = ndimage.binary_opening(al > 60, iterations=2)
-    lb, kk = ndimage.label(m); s2 = ndimage.sum(m, lb, range(1, kk + 1))
-    keep = np.isin(lb, [i + 1 for i, s in enumerate(s2) if s >= 0.02 * s2.sum()])
-    p[~ndimage.binary_dilation(keep, iterations=4), 3] = 0
+    # 떠 있는 장식(보석·꽃잎·물방울)은 남기고, 지우는 것: ① 옆 캐릭터에서 잘려 온 조각(다른 캐릭터와의 경계선에 닿은 작은 덩어리) ② 먼지
+    m = al > 60
+    lb, kk = ndimage.label(m); s2 = ndimage.sum(m, lb, range(1, kk + 1)); main = int(np.argmax(s2)) + 1
+    other = (own != j + 1) & (a > 60)
+    edge = ndimage.binary_dilation(other, iterations=3)
+    drop = np.zeros(a.shape, bool)
+    for i, s in enumerate(s2):
+        if i + 1 == main: continue
+        comp = lb == i + 1
+        if s < 0.0005 * s2.sum() or (s < 0.05 * s2.sum() and (comp & edge).any()): drop |= comp
+    p[ndimage.binary_dilation(drop, iterations=2) & ~ndimage.binary_dilation(lb == main, iterations=1), 3] = 0
     ys, xs = np.where(p[:, :, 3] > 10)
     img = Image.fromarray(p).crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
     path = os.path.join(out, f'{uid}_{side}.png'); img.save(path); print(uid, img.size)
