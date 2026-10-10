@@ -359,10 +359,10 @@ i.cat.phys{background:#5a3a22;color:#ffd9b0}i.cat.mag{background:#3a2d66;color:#
 }
 
 /* ════ 색 규칙(docs/UI-COLOR.md). 이 덩어리를 지우면 예전 남색 테마로 돌아감 ════
-   1) 바탕·칸 = 그림의 크림 돌·갈색 선(중립)  2) 주요 행동 하나 = 보라(그림에 거의 없는 색이라 잘 보임, 흰 글자 대비 6.3)
+   1) 바탕·칸 = 그림의 크림 돌·갈색 선(중립)  2) 주요 행동 하나 = 캐러멜(그림과 같은 따뜻한 계열, 크기·두께로 강조, 흰 글자 대비 5.47 — v0.9.93)
    3) 보조 행동 = 크림 종이 버튼(색 없이 테두리)  4) 금빛 = 진행·보상만  5) 초록·빨강 = 유리·불리·체력 같은 정보만 */
 :root{--bg:#efdcb6;--panel:#fff7e4;--line:#d9b98a;--ink:#3b2614;--dim:#7d5f40;--gold:#e9a630;--edge:#7a4e2a;--card:#fffaf0;
-  --accent:#6a46c8;--accent-hi:#8466e0;--accent-d:#3f2585;--accent-soft:#efe9ff}
+  --accent:#a3541b;--accent-hi:#c4732f;--accent-d:#5e2c0a;--accent-soft:#fbe8d3}
 html,body{background:#efdcb6 radial-gradient(rgba(122,78,42,.10) 1px,transparent 1.3px) 0 0/18px 18px;color:var(--ink)}
 header h1,header small,.chap h2{color:var(--ink)}
 /* 종이 칸 */
@@ -370,10 +370,10 @@ header h1,header small,.chap h2{color:var(--ink)}
 .sk{border-top:6px solid var(--c,#c9a46a)}
 .sk .kd,.sk p,.sk .ln small,.aug .tx span,.aug .tx small,.skrow small,.stats small,.stage .tt small,.mini small,.hint,.sheet .sub{color:var(--dim)}
 .sk:disabled{opacity:.5}
-/* 고른 것 = 보라 테두리(주요 행동과 같은 색 → "이걸로 할게"가 한눈에) */
+/* 고른 것 = 캐러멜 테두리(주요 행동과 같은 색 → "이걸로 할게"가 한눈에) */
 .aug.on,.card.on,.opt.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 3px 0 var(--accent-d)}
 .aug .ck{border-color:var(--line)}.aug.on .ck{background:var(--accent);border-color:var(--accent);color:#fff}
-/* 주요 행동(화면마다 하나): 보라 */
+/* 주요 행동(화면마다 하나): 캐러멜 */
 .big{background:linear-gradient(var(--accent-hi),var(--accent));color:#fff;border:2px solid var(--accent-d);box-shadow:0 4px 0 var(--accent-d);text-shadow:0 1px 0 rgba(30,10,70,.5);border-radius:14px}
 .big:disabled{background:#e6d7bb;border-color:#c9b08a;box-shadow:0 3px 0 #c9b08a;color:#9b8466;text-shadow:none;opacity:1}
 .big.wide:disabled{background:#e6d7bb;color:#9b8466;box-shadow:0 -10px 14px var(--bg)}
@@ -403,7 +403,7 @@ i.cat{background:transparent !important;border:1.5px solid var(--line);color:var
 i.cat.phys::before{content:"⚔ "}i.cat.mag::before{content:"✦ "}
 .stats .main{border-color:var(--accent)}.stats .main b{color:var(--accent)}
 .xp{background:#e3cfa9}.need{color:#a8431c}
-/* 첫 화면: 주요 행동은 「이어하기」 하나만 보라, 나머지는 종이 */
+/* 첫 화면: 주요 행동은 「이어하기」 하나만 캐러멜, 나머지는 종이 */
 .ts::before{background:linear-gradient(rgba(255,240,210,.12),rgba(80,45,15,.12) 45%,rgba(60,32,10,.62))}
 .hero .badge{background:rgba(255,247,228,.92);color:var(--ink);border:2px solid var(--edge)}
 .hero .badge.out{color:#7a4e2a}
@@ -414,7 +414,7 @@ i.cat.phys::before{content:"⚔ "}i.cat.mag::before{content:"✦ "}
 .now b{color:var(--ink);text-shadow:none}
 .now .prog{background:#ead6ae;border:1.5px solid #c4a274}.now .prog i{background:linear-gradient(90deg,#ffd27a,var(--gold))}
 .now .prog em{color:var(--dim);text-shadow:none}
-.play{color:#fff;background:linear-gradient(#9b7ff0,var(--accent) 55%,#5636ad);border:3px solid var(--accent-d);box-shadow:0 6px 0 var(--accent-d),0 10px 24px rgba(106,70,200,.35),inset 0 2px 0 rgba(255,255,255,.45);text-shadow:0 2px 0 var(--accent-d)}
+.play{color:#fff;background:linear-gradient(#d9914a,var(--accent) 55%,#8a4413);border:3px solid var(--accent-d);box-shadow:0 6px 0 var(--accent-d),0 10px 24px rgba(163,84,27,.35),inset 0 2px 0 rgba(255,255,255,.45);text-shadow:0 2px 0 var(--accent-d)}
 .two button{background:rgba(255,250,240,.96);border:2.5px solid var(--edge);box-shadow:0 4px 0 rgba(90,52,22,.55);color:var(--ink);text-shadow:none}
 .dock{background:rgba(255,247,228,.92);border:3px solid var(--edge);box-shadow:0 4px 0 rgba(60,35,15,.4)}
 .dock a{color:var(--ink);font-weight:700}
@@ -493,7 +493,7 @@ i.cat.phys::before{content:"⚔ "}i.cat.mag::before{content:"✦ "}
 .tlogo .fill{background:linear-gradient(#fffcef 0%,#ffeeb3 40%,#f7c24c 72%,#e8922a 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .tlogo small{margin-top:12px;font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:clamp(15px,2vw,21px);letter-spacing:.12em;color:#4a2a10;background:#fff3d6;padding:4px 18px;border-radius:999px;border:3px solid #4a2a10;box-shadow:0 3px 0 #4a2a10}
 .tgo{display:inline-block;text-decoration:none;font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:clamp(22px,3vw,30px);letter-spacing:.06em;color:#fff;padding:14px 56px;border-radius:999px;
-  background:linear-gradient(var(--accent-hi,#8466e0),var(--accent,#6a46c8) 55%,#5636ad);border:3px solid var(--accent-d,#3f2585);box-shadow:0 6px 0 var(--accent-d,#3f2585),0 10px 30px rgba(60,30,120,.45);text-shadow:0 2px 0 var(--accent-d,#3f2585);animation:pulse 2.2s ease-in-out infinite}
+  background:linear-gradient(var(--accent-hi),var(--accent) 55%,#8a4413);border:3px solid var(--accent-d);box-shadow:0 6px 0 var(--accent-d),0 10px 30px rgba(80,35,8,.45);text-shadow:0 2px 0 var(--accent-d);animation:pulse 2.2s ease-in-out infinite}
 .tacc{position:absolute !important;bottom:calc(14px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));left:14px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,247,228,.92);color:var(--ink);border:2px solid var(--edge,#7a4e2a);font-size:13px;padding:4px 12px 4px 4px;border-radius:999px}
 .tacc img{width:22px;height:22px}
 
@@ -652,6 +652,21 @@ i.cat.phys::before{content:"⚔ "}i.cat.mag::before{content:"✦ "}
 }
 @media (prefers-reduced-motion:reduce){.augc.rolled .aug{animation:none}}
 body:has(#modal.full:not([hidden])) #mute{display:none}
+/* 큰 가로 화면(높이 600 넘음): 증강체 카드를 키워 위아래가 비지 않게 */
+@media (orientation:landscape) and (min-height:601px){
+  #modal.full .sheet.pick.full{padding-left:max(24px,calc((100vw - 1200px)/2));padding-right:max(24px,calc((100vw - 1200px)/2));gap:12px 18px}
+  .sheet.pick.full h2{font-size:30px}
+  .sheet.pick.full .augc .aug{min-height:min(42vh,380px);gap:10px;justify-content:center}
+  .sheet.pick.full .augc .aug .tx{flex:0 0 auto}
+  .sheet.pick.full .vs{font-size:16px;padding:10px}
+  .sheet.pick.full .tipline{font-size:15px;padding:10px 14px}
+  .sheet.pick.full .augc .aug .ic,.sheet.pick.full .augc .aug .ic .ico{width:88px;height:88px;font-size:56px}
+  .sheet.pick.full .augc .aug .tx b{font-size:26px}
+  .sheet.pick.full .augc .aug .tx small{font-size:15px}
+  .sheet.pick.full .augc .aug .tx span{font-size:17px}
+  .sheet.pick.full .augc .reroll{font-size:16px;padding:8px 20px}
+  .sheet.pick.full .big.wide{font-size:22px;padding:14px}
+}
 </style>
 </head>
 <body>

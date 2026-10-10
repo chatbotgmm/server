@@ -122,7 +122,7 @@ button.u{cursor:pointer}
 .inst details ol{margin:6px 0 0;padding-left:20px}
 
 /* ════ 게임에서 들어왔을 때(html.game): 사이트가 아니라 게임 화면처럼. 색은 게임 색 규칙(docs/UI-COLOR.md)과 같게 ════ */
-html.game{--bg:#efdcb6;--card:#fffaf0;--text:#3b2614;--muted:#7d5f40;--line:#d9b98a;--edge:#7a4e2a;--accent:#6a46c8;--accent-soft:#efe9ff;--gold:#e9a630;--ok:#1f8a46;--bad:#c53b25;--sea1:#7a4e2a;--sea2:#5a3416;--shadow:0 3px 0 rgba(122,78,42,.3)}
+html.game{--bg:#efdcb6;--card:#fffaf0;--text:#3b2614;--muted:#7d5f40;--line:#d9b98a;--edge:#7a4e2a;--accent:#a3541b;--accent-hi:#c4732f;--accent-d:#5e2c0a;--accent-soft:#fbe8d3;--gold:#e9a630;--ok:#1f8a46;--bad:#c53b25;--sea1:#7a4e2a;--sea2:#5a3416;--shadow:0 3px 0 rgba(122,78,42,.3)}
 html.game body{background:#3b2614;color:var(--text);color-scheme:light}
 html.game body::before{content:"";position:fixed;inset:-24px;z-index:-1;background:var(--gbg,none) center 40%/cover no-repeat,#c9a46a;filter:blur(8px) saturate(.85) brightness(.75)}
 html.game #app{max-width:1100px;padding:0 calc(14px + env(safe-area-inset-right,0px)) 40px calc(14px + env(safe-area-inset-left,0px))}
@@ -133,8 +133,8 @@ html.game .gback:active{transform:translateY(2px);box-shadow:0 1px 0 var(--edge)
 html.game .card,html.game .money div,html.game .u,html.game .rc,html.game .gc,html.game .du,html.game .slot{background:var(--card);border:2px solid var(--line);box-shadow:0 3px 0 rgba(122,78,42,.25);color:var(--text)}
 html.game .card{border-color:var(--edge)}
 html.game .tabs button,html.game .filters button{background:var(--card);border:2px solid var(--edge);color:var(--text);box-shadow:0 3px 0 rgba(90,52,22,.45)}
-html.game .tabs button.on,html.game .filters button.on{background:var(--accent);border-color:#3f2585;color:#fff;box-shadow:0 3px 0 #3f2585}
-html.game .btn{background:linear-gradient(#8466e0,var(--accent));color:#fff;border:2px solid #3f2585;box-shadow:0 3px 0 #3f2585}
+html.game .tabs button.on,html.game .filters button.on{background:var(--accent);border-color:var(--accent-d);color:#fff;box-shadow:0 3px 0 var(--accent-d)}
+html.game .btn{background:linear-gradient(var(--accent-hi),var(--accent));color:#fff;border:2px solid var(--accent-d);box-shadow:0 3px 0 var(--accent-d)}
 html.game .btn.ghost{background:var(--card);color:var(--text);border:2px solid var(--edge);box-shadow:0 3px 0 rgba(90,52,22,.45)}
 html.game .btn.kakao{background:#fee500;color:#191600;border-color:#a89600;box-shadow:0 3px 0 #a89600}
 html.game .note,html.game .money small,html.game .u small,html.game .empty{color:var(--muted)}
@@ -147,7 +147,7 @@ html.game header.gbar h1{display:block}
 html.game .gbar .cur{display:flex;gap:6px;flex-wrap:nowrap}
 html.game .gbar .cur span{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;background:#efe3c8;border:1.5px solid var(--line);font-size:.85rem;white-space:nowrap}
 html.game .gbar .cur b{font-weight:700;font-family:inherit}
-/* 색 규칙 「주요 행동 보라는 화면마다 하나」: 뽑기 화면은 「뽑기권 받기」만 보라, 횟수 버튼은 크림 */
+/* 색 규칙 「주요 행동 색은 화면마다 하나」: 뽑기 화면은 「뽑기권 받기」만 캐러멜, 횟수 버튼은 크림 */
 html.game .gc .row .btn{background:var(--card);color:var(--text);border:2px solid var(--edge);box-shadow:0 3px 0 rgba(90,52,22,.45)}
 html.game .gc .row .btn:disabled{opacity:.5}   /* 좁은 화면에서도 화면 이름은 보이게(사이트 머리줄은 좁으면 숨김) */
 </style>
