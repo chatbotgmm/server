@@ -697,6 +697,15 @@ header .back:active{transform:translateY(2px);box-shadow:0 1px 0 var(--edge)}
 /* 메뉴 아이콘 그림(GPT 할 일 34): 동그란 칸 밖으로 살짝 튀어나오게 크게 */
 .dock a i.art{overflow:visible}
 .dock a i.art .ico{width:118%;height:118%;object-fit:contain;filter:drop-shadow(0 2px 1px rgba(60,35,15,.35))}
+
+/* 몸 크기 맞춤(v0.9.98): --sz = 갈매미별 배율(duel.js BODY). 발 위치는 그대로, 위로만 커짐 */
+.mon.me{height:calc(66% * min(var(--sz,1), 1.25));max-width:56%;object-fit:contain;object-position:0 100%}   /* 내 쪽은 이미 커서 1.25배까지만, 가로는 전투 칸의 56%까지(넓은 그림이 상대를 가리지 않게) */
+.mon.foe{height:calc(30% * var(--sz,1));top:calc(var(--hz) + 7% - 30% * var(--sz,1))}
+.mon.foe.boss{height:calc(38% * var(--sz,1));top:calc(var(--hz) + 7% - 38% * var(--sz,1))}
+@media (orientation:landscape) and (max-height:600px), (orientation:landscape) and (min-width:900px){
+  .por{height:calc(62% * var(--sz,1));max-width:calc(34% * var(--sz,1))}
+  .por.me{transform-origin:50% 100%}
+}
 </style>
 </head>
 <body>

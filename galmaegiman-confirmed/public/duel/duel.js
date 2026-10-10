@@ -38,6 +38,10 @@ let hintNow = ''; // 스테이지 도움말(첫 증강체 창에도 보여 줌)
 
 // ── 그림: 최상위는 앞·뒤 그림, 빌런은 그림이 있으면 그것, 없으면 코드로 그린 임시 그림 ──
 // 승진 단계 그림(public/battle/sprites/D1_s3_back.webp)이 있으면 그것, 없으면 원형 그림(+빛 효과)
+// 몸 크기 맞춤(v0.9.98): 원형 그림은 상징물(머리 위 별·성채·가발 등)까지 그림 높이를 같게 맞춰서 상징물이 큰 갈매미는 몸이 작아 보였음.
+// 눈 높이(발에서 눈까지 / 그림 높이)를 재서 보통(0.68)보다 낮은 갈매미만 그만큼 크게. 줄이지는 않음(다리가 긴 I7·I8 등은 원래 큰 것)
+const BODY = { D1: 1.19, D3: 1.36, D4: 1.24, D6: 1.7, D8: 1.19, T1: 1.51, T3: 1.51, T4: 1.08, T6: 1.24, T7: 1.1, E2: 1.1, E4: 1.17, E5: 1.7, E6: 1.05, E7: 1.8, I2: 1.17, I3: 1.8, I4: 1.24, I5: 1.1, I6: 1.17 };
+const bodySz = (id, stage = 0) => (stage && EVO.has(`${id}_s${stage}_front`)) ? 1 : (BODY[id] ?? 1);   // 승진 그림이 있으면 그 그림 기준(아직 없음)
 const sprite = (id, side, stage = 0) => id.startsWith('V') ? villainArt(id) : `${BASE}/duel/sprites/${id}_s${stage && EVO.has(`${id}_s${stage}_${side}`) ? stage : 0}_${side}.webp${q}`;
 function villainArt(id) {
   if (ART.includes(id)) return `${BASE}/duel/sprites/${id}_front.webp${q}`;
@@ -462,7 +466,7 @@ function talk(lines, opt = {}) {
     modal.className = 'scene-on';
     modal.innerHTML = `<div class="scene sc-${opt.scene || 'harbor'}">${bgStyle(opt.scene || 'harbor') ? `<div class="kb" style="${bgStyle(opt.scene || 'harbor')}"></div>` : ''}${ambient(opt.scene || 'harbor', !!bgStyle(opt.scene || 'harbor'))}
       ${opt.title ? `<div class="place">${esc(opt.title)}</div>` : ''}
-      <img class="por me" id="pMe" src="${sprite(lead.id, 'front', SAVE.units[lead.id]?.stage ?? 0)}" alt="">
+      <img class="por me" id="pMe" src="${sprite(lead.id, 'front', SAVE.units[lead.id]?.stage ?? 0)}" style="--sz:${bodySz(lead.id, SAVE.units[lead.id]?.stage ?? 0)}" alt="">
       <img class="por foe" id="pFoe" alt="" ${foeId ? '' : 'hidden'}>
       <div class="dbox"><div class="who" id="who"></div><p class="say" id="say"></p>
         <div class="tk"><button class="ghost" id="skip">건너뛰기</button><span id="pg"></span></div></div>
@@ -472,7 +476,7 @@ function talk(lines, opt = {}) {
       const l = lines[i], v = /^V\d+$/.test(l.who) ? R.villains.get(l.who) : null, ally = /^[DTEIN]\d+$/.test(l.who) ? l.who : null;
       const npc = NPC[l.who] && ART.includes(NPC[l.who]) ? NPC[l.who] : null;
       const pic = npc ? `${BASE}/duel/sprites/${npc}_front.webp${q}` : v ? sprite(l.who, 'front') : ally ? (R.units.has(ally) ? sprite(ally, 'front') : `${BASE}/thumbs/${ally}.jpg`) : null;
-      if (pic) { const p = $('pFoe'); p.hidden = false; if (p.dataset.src !== pic) { p.src = pic; p.dataset.src = pic; p.classList.toggle('bossp', !!v?.boss); p.classList.toggle('card', !!ally && !R.units.has(ally)); setTint(p, l.who); } }
+      if (pic) { const p = $('pFoe'); p.hidden = false; if (p.dataset.src !== pic) { p.src = pic; p.dataset.src = pic; { const pid = v ? l.who : ally; p.style.setProperty('--sz', !npc && pid && R.units.has(pid) ? bodySz(pid) : 1); } p.classList.toggle('bossp', !!v?.boss); p.classList.toggle('card', !!ally && !R.units.has(ally)); setTint(p, l.who); } }
       const speaker = l.who === 'ME' ? 'me' : v ? 'foe' : ally || npc ? 'ally' : '';
       $('pMe').classList.toggle('on', speaker === 'me'); $('pFoe').classList.toggle('on', speaker === 'foe' || speaker === 'ally');
       const box = modal.querySelector('.dbox');
@@ -551,7 +555,7 @@ const say = t => { document.getElementById('msg').textContent = t || ''; };
 function render() {
   for (const s of [0, 1]) {
     const f = shown(s), img = document.getElementById(`m${s}`), src = sprite(f.rec.id, s === 0 ? 'back' : 'front', f.rec.stage);
-    if (img.dataset.src !== src) { img.src = src; img.dataset.src = src; setTint(img, f.rec.id); }
+    if (img.dataset.src !== src) { img.src = src; img.dataset.src = src; setTint(img, f.rec.id); img.style.setProperty('--sz', f.rec.id.startsWith('V') ? 1 : bodySz(f.rec.id, f.rec.stage)); }
     img.style.opacity = view[s].down[view[s].active] ? 0 : 1;
     const hp = view[s].hp[view[s].active], pct = Math.max(0, hp / f.maxHp * 100);
     const col = pct > 50 ? 'var(--hp)' : pct > 20 ? 'var(--hpmid)' : 'var(--hplow)';

@@ -1,6 +1,7 @@
-# 사용자가 건네준 GPT 그림(한 줄에 3~4마리) → 시트로 저장하고 유닛별로 자르기 (docs/GPT-NOW.md 1~18번)
-# 사용: python3 -I scripts/take-sheet.py <받은 그림> <번호 1~18> [비교 그림 저장 폴더]
-#   결과: art/gpt/sheet_<등급>_<front|back>_<a|b|c>.png, art/gpt/<ID>_<front|back>.png
+# 사용자가 건네준 GPT 그림(한 줄에 3~4마리) → 시트로 저장하고 유닛별로 자르기 (docs/GPT-NOW.md 번호)
+# 사용: python3 -I scripts/take-sheet.py <받은 그림> <번호> [비교 그림 저장 폴더]
+#   1~18번 원형: art/gpt/sheet_<등급>_<front|back>_<a|b|c>.png, art/gpt/<ID>_<front|back>.png
+#   21~74번 승진: 단계마다 18번(그룹마다 앞→뒤). art/gpt/sheet_<등급>_s<단계>_<front|back>_<a|b|c>.png, art/gpt/<ID>_s<단계>_<front|back>.png
 #   캐릭터끼리 닿아 있어도 나눔: 그림을 깎아 몸통 핵을 찾고, 모든 픽셀을 가장 가까운 핵에 붙임. 몸에서 떨어진 작은 조각·옆 캐릭터 부스러기는 지움
 #   gpt-art 브랜치에 올리기는 따로(scripts 밖에서 git으로)
 import sys, os
@@ -12,8 +13,10 @@ GROUPS = [('D', 'a', ['D1', 'D2', 'D3', 'D4']), ('D', 'b', ['D5', 'D6', 'D7', 'D
           ('E', 'a', ['E1', 'E2', 'E3', 'E4']), ('E', 'b', ['E5', 'E6', 'E7', 'E8']), ('I', 'a', ['I1', 'I2', 'I3']), ('I', 'b', ['I4', 'I5', 'I6']), ('I', 'c', ['I7', 'I8', 'I9'])]
 src, num = sys.argv[1], int(sys.argv[2])
 cmp_dir = sys.argv[3] if len(sys.argv) > 3 else None
-side = 'front' if num <= 9 else 'back'
-grade, part, ids = GROUPS[(num - 1) % 9]
+if num <= 18: stage, side, (grade, part, ids) = 0, 'front' if num <= 9 else 'back', GROUPS[(num - 1) % 9]
+elif 21 <= num <= 74: k = num - 21; stage, side, (grade, part, ids) = k // 18 + 1, 'front' if k % 2 == 0 else 'back', GROUPS[(k % 18) // 2]
+else: sys.exit('번호는 1~18(원형) 또는 21~74(승진)')
+stg = f'_s{stage}' if stage else ''
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 out = os.path.join(root, 'art/gpt'); os.makedirs(out, exist_ok=True)
 
@@ -22,7 +25,7 @@ if not all(a[y, x] < 10 for y, x in [(1, 1), (1, -2), (-2, 1), (-2, -2)]):
     from rembg import remove, new_session
     im = remove(im.convert('RGB'), session=new_session('isnet-anime')).convert('RGBA'); px = np.array(im); a = px[:, :, 3]
     print('투명 배경이 아니어서 rembg로 배경을 지웠어요')
-sheet = os.path.join(out, f'sheet_{grade}_{side}_{part}.png'); im.save(sheet); print('시트:', sheet, im.size)
+sheet = os.path.join(out, f'sheet_{grade}{stg}_{side}_{part}.png'); im.save(sheet); print('시트:', sheet, im.size)
 
 # 몸통 핵: 깎을수록 붙은 캐릭터가 떨어짐. 핵 개수가 마리 수가 될 때까지
 n = len(ids)
@@ -74,14 +77,14 @@ for j, uid in enumerate(ids):
     p[ndimage.binary_dilation(drop, iterations=2) & ~ndimage.binary_dilation(lb == main, iterations=1), 3] = 0
     ys, xs = np.where(p[:, :, 3] > 10)
     img = Image.fromarray(p).crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
-    path = os.path.join(out, f'{uid}_{side}.png'); img.save(path); print(uid, img.size)
+    path = os.path.join(out, f'{uid}{stg}_{side}.png'); img.save(path); print(uid, img.size)
 
 if cmp_dir:   # 비교용: 유닛 그림 줄 + 검은 실루엣 줄
     W, H = 360, 400
     c = Image.new('RGBA', (W * n, H * 2 + 30), (239, 220, 182, 255))
     for j, uid in enumerate(ids):
-        t = Image.open(os.path.join(out, f'{uid}_{side}.png')).convert('RGBA'); t.thumbnail((W - 20, H - 20))
+        t = Image.open(os.path.join(out, f'{uid}{stg}_{side}.png')).convert('RGBA'); t.thumbnail((W - 20, H - 20))
         c.alpha_composite(t, (j * W + (W - t.width) // 2, H - t.height))
         sil = Image.new('RGBA', t.size, (30, 30, 30, 255)); sil.putalpha(Image.fromarray(np.where(np.asarray(t)[:, :, 3] > 40, 255, 0).astype('uint8')))
         c.alpha_composite(sil, (j * W + (W - t.width) // 2, 2 * H + 30 - t.height))
-    os.makedirs(cmp_dir, exist_ok=True); fp = os.path.join(cmp_dir, f'{grade}_{side}_{part}.png'); c.save(fp); print('비교:', fp)
+    os.makedirs(cmp_dir, exist_ok=True); fp = os.path.join(cmp_dir, f'{grade}{stg}_{side}_{part}.png'); c.save(fp); print('비교:', fp)
