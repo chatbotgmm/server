@@ -43,7 +43,10 @@ lb0, k0 = ndimage.label(allm); s0 = ndimage.sum(allm, lb0, range(1, k0 + 1))
 bodies = []
 for j in range(n):
     bm = allm & (own == j + 1); lbj, kj = ndimage.label(bm)
-    bodies.append(lbj == (int(np.argmax(ndimage.sum(bm, lbj, range(1, kj + 1)))) + 1) if kj else bm)
+    # 몸 = 몸통 핵이 들어 있는 덩어리 + 큰 장식 덩어리(떠 있는 가발·별처럼). 작은 조각은 이 「몸」과의 거리로 주인을 정함
+    hit = np.unique(lbj[(cores == j + 1) & bm]); hit = hit[hit > 0]
+    szj = ndimage.sum(bm, lbj, range(1, kj + 1)); hit = np.union1d(hit, [i + 1 for i, v in enumerate(szj) if v >= 0.03 * allm.sum()])
+    bodies.append(np.isin(lbj, hit) if len(hit) else bm)
 dist = np.stack([ndimage.distance_transform_edt(~bm) for bm in bodies])
 for i, sz0 in enumerate(s0):
     comp = lb0 == i + 1
