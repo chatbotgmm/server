@@ -157,6 +157,18 @@ html.game .shopi .btn:not(.ghost){background:var(--card);color:var(--text);borde
 /* 빈 안내 글이 흐린 배경 위에서 안 읽히던 것 → 크림 칸 위에 */
 html.game .empty{background:rgba(255,250,240,.94);border:2px solid var(--line);border-radius:14px;padding:14px 16px;color:var(--muted);text-align:center}
 html.game #app>.note{background:rgba(255,250,240,.9);border-radius:10px;padding:6px 12px;display:inline-block}   /* 좁은 화면에서도 화면 이름은 보이게(사이트 머리줄은 좁으면 숨김) */
+
+/* 게임 안 확인 창(기본 팝업 대신, v0.9.99) */
+.gdlg{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(40,22,8,.55);padding:16px;animation:gdlgIn .15s ease-out}
+.gdlg-box{width:min(440px,100%);background:#fffaf0;border:3px solid #7a4e2a;border-radius:20px;box-shadow:0 6px 0 rgba(90,52,22,.45),0 16px 40px rgba(0,0,0,.35);padding:20px 20px 16px;color:#3b2614;text-align:center}
+.gdlg-box p{margin:4px 0 18px;font-size:17px;line-height:1.55;white-space:pre-line;word-break:keep-all}
+.gdlg-row{display:flex;gap:10px;justify-content:center}
+.gdlg-row button{flex:1;max-width:180px;padding:11px 14px;border-radius:999px;font:inherit;font-weight:700;font-size:16px;cursor:pointer}
+.gdlg-no{background:#fffaf0;color:#3b2614;border:2px solid #7a4e2a;box-shadow:0 3px 0 rgba(90,52,22,.45)}
+.gdlg-ok{background:linear-gradient(#f0bd85,#dd9a58);color:#3b2614;border:2px solid #7a4e2a;box-shadow:0 3px 0 #7a4e2a}
+.gdlg-ok.danger{background:linear-gradient(#e25c4a,#c53b25);color:#fff;border-color:#7a1f12;box-shadow:0 3px 0 #7a1f12}
+.gdlg-row button:active{transform:translateY(2px)}
+@keyframes gdlgIn{from{opacity:0}to{opacity:1}}
 </style>
 </head>
 <body>

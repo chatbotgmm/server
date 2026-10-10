@@ -22,6 +22,14 @@ function play(b:Battle,limit=400){
 }
 
 describe('수비대 대결 데이터', ()=>{
+  it('증강체: 대결 시작엔 응급처치가 안 나오고, 새 증강체(야근 수당·두꺼운 깃털·점심시간)가 효과를 냄', ()=>{
+    for(let seed=1;seed<200;seed++){const b=createBattle(R,[rec('D6'),rec('T3'),rec('I4')],[rec('D4'),rec('E2'),rec('T7')],seed);expect(b.sides[0].offers).not.toContain('firstaid');expect(b.sides[1].offers).not.toContain('firstaid');}
+    expect(R.battleAugments.length).toBeGreaterThanOrEqual(24);
+    const run=(aug:string|null)=>{const b=createBattle(R,[rec('D6',30)],[rec('D4',30)],5);b.sides[0].offers=null;b.sides[1].offers=null;b.phase='action';if(aug)b.sides[0].augs.push(aug);
+      const f=activeOf(b,1);f.hp=f.maxHp;act(b,[{kind:'skill',skillId:activeOf(b,0).skills[0].id},{kind:'skill',skillId:activeOf(b,1).skills[0].id}]);return {foe:f.maxHp-f.hp,me:activeOf(b,0)};};
+    expect(run('overtime').foe).toBeGreaterThan(run(null).foe);
+    const lunch=run('lunch').me,plain=run(null).me;expect(lunch.hp).toBeGreaterThan(plain.hp);
+  });
   it('증강체 다시 뽑기: 칸마다 제안 한 번에 1번, 이미 보인 것·가진 것은 안 나옴, 새 제안이 오면 다시 가능', ()=>{
     const b=createBattle(R,[rec('D6'),rec('T3'),rec('I4')],[rec('D4'),rec('E2'),rec('T7')],7);
     const first=[...b.sides[0].offers!];

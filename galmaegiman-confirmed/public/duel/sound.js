@@ -2,9 +2,13 @@
 // - 브라우저·앱은 사람이 한 번 누르기 전에는 소리를 못 내서, 첫 터치 때 켜짐
 // - 🔊 음소거는 이 기기에 저장
 // - 나중에 진짜 음악 파일로 바꾸려면 bgm()에서 <audio>로 틀면 됨
-const MUTE_KEY = 'gmm-mute';
-let ctx = null, master = null, music = null, cur = null, want = null, timer = null, step = 0, nextAt = 0;
+// - 음량: 배경음악·효과음 따로 0~100(이 기기에 저장, ⚙️ 설정에서 조절). v0.9.99부터 기본 음량을 키우고 소리가 깨지지 않게 압축기를 거침
+const MUTE_KEY = 'gmm-mute', VOL_KEY = { music: 'gmm-vol-music', sfx: 'gmm-vol-sfx' }, VOL_DEF = { music: 70, sfx: 80 };
+let ctx = null, master = null, music = null, sfxBus = null, cur = null, want = null, timer = null, step = 0, nextAt = 0;
 let muted = (() => { try { return localStorage.getItem(MUTE_KEY) === '1'; } catch { return false; } })();
+const vol = { music: VOL_DEF.music, sfx: VOL_DEF.sfx };
+for (const k of ['music', 'sfx']) try { const v = localStorage.getItem(VOL_KEY[k]); if (v !== null && !isNaN(+v)) vol[k] = Math.max(0, Math.min(100, +v)); } catch { /* 무시 */ }
+const gainOf = k => (k === 'music' ? 0.65 : 0.9) * (vol[k] / 100) ** 1.5;   // 귀에 고르게 들리도록 곡선
 
 const hz = m => 440 * 2 ** ((m - 69) / 12);   // 미디 음 번호 → 주파수
 function init() {
@@ -12,10 +16,12 @@ function init() {
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return;
   ctx = new AC();
-  master = ctx.createGain(); master.gain.value = muted ? 0 : 0.55; master.connect(ctx.destination);
-  music = ctx.createGain(); music.gain.value = 0.32; music.connect(master);
+  const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 4; comp.connect(ctx.destination);
+  master = ctx.createGain(); master.gain.value = muted ? 0 : 1; master.connect(comp);
+  music = ctx.createGain(); music.gain.value = gainOf('music'); music.connect(master);
+  sfxBus = ctx.createGain(); sfxBus.gain.value = gainOf('sfx'); sfxBus.connect(master);
 }
-function tone(f, t, dur, { type = 'square', vol = 0.18, to = master, slide = 0, attack = 0.008 } = {}) {
+function tone(f, t, dur, { type = 'square', vol = 0.18, to = sfxBus, slide = 0, attack = 0.008 } = {}) {
   const o = ctx.createOscillator(), g = ctx.createGain();
   o.type = type; o.frequency.setValueAtTime(f, t);
   if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f * slide), t + dur);
@@ -23,7 +29,7 @@ function tone(f, t, dur, { type = 'square', vol = 0.18, to = master, slide = 0, 
   o.connect(g); g.connect(to); o.start(t); o.stop(t + dur + 0.03);
 }
 let noiseBuf = null;
-function noise(t, dur, { vol = 0.2, freq = 1800, to = master } = {}) {
+function noise(t, dur, { vol = 0.2, freq = 1800, to = sfxBus } = {}) {
   if (!noiseBuf) { noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
   const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
   s.buffer = noiseBuf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 0.9;
@@ -90,11 +96,19 @@ export function sfx(name) {
   FX[name](ctx.currentTime + 0.005);
 }
 export const isMuted = () => muted;
+export const getVol = k => vol[k];
+export function setVol(k, v) {
+  vol[k] = Math.max(0, Math.min(100, Math.round(v)));
+  try { localStorage.setItem(VOL_KEY[k], String(vol[k])); } catch { /* 무시 */ }
+  init();
+  const node = k === 'music' ? music : sfxBus;
+  if (node) node.gain.setTargetAtTime(gainOf(k), ctx.currentTime, 0.03);
+}
 export function toggleMute() {
   muted = !muted;
   try { localStorage.setItem(MUTE_KEY, muted ? '1' : '0'); } catch { /* 무시 */ }
   init();
-  if (master) master.gain.setTargetAtTime(muted ? 0 : 0.55, ctx.currentTime, 0.05);
+  if (master) master.gain.setTargetAtTime(muted ? 0 : 1, ctx.currentTime, 0.05);
   return muted;
 }
 // 첫 터치에 켜기, 앱을 내리면 멈춤

@@ -1,5 +1,18 @@
 // 내 갈매미(/my): 로그인(카톡에서 받은 6자리 코드) → 갈매미 목록·전투 편성·탐험 편성·아이템·상점
 (() => {
+// 게임 안 확인 창(안드로이드·브라우저 기본 팝업 대신): ask(글, {ok, cancel, danger}) → true/false, tell(글) → 확인만
+const gdlg = (text, o = {}) => new Promise(res => {
+  const w = document.createElement('div'); w.className = 'gdlg';
+  w.innerHTML = `<div class="gdlg-box" role="dialog" aria-modal="true"><p></p><div class="gdlg-row">${o.alert ? '' : `<button class="gdlg-no">${o.cancel ?? '취소'}</button>`}<button class="gdlg-ok ${o.danger ? 'danger' : ''}">${o.ok ?? '확인'}</button></div></div>`;
+  w.querySelector('p').textContent = text;
+  const end = v => { w.remove(); document.removeEventListener('keydown', key); res(v); };
+  const key = e => { if (e.key === 'Escape') end(false); if (e.key === 'Enter') end(true); };
+  w.querySelector('.gdlg-ok').onclick = () => end(true); w.querySelector('.gdlg-no')?.addEventListener('click', () => end(false));
+  w.onclick = e => { if (e.target === w && !o.alert) end(false); };
+  document.addEventListener('keydown', key); document.body.appendChild(w); w.querySelector('.gdlg-ok').focus();
+});
+const ask = (text, o) => gdlg(text, o), tell = text => gdlg(text, { alert: true });
+const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? '을' : '를'; };
   const app = document.getElementById('app'), toastEl = document.getElementById('toast');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   // 안드로이드 앱: 화면은 앱 안에 있고(GMM_BASE = 서버 주소), 로그인은 쿠키 대신 토큰 머리글(x-gmm-s)
@@ -127,7 +140,7 @@
 
   // 실행 → 결과 알림 → 다시 불러오기
   const run = async (path, body, confirmText) => {
-    if (confirmText && !confirm(confirmText)) return;
+    if (confirmText && !(await ask(confirmText))) return;
     try { const r = await api(path, body ?? {}); const t = typeof r.result === 'string' ? r.result : ''; toast(t.split('\n')[0] || '완료!'); me = await api('me'); APP?.onMe(me); draw(); }
     catch (e) { if (e.message !== 'login') toast(e.message.split('\n')[0]); }
   };
@@ -198,7 +211,7 @@
     const done = async text => { showResult(text); craftData = null; mixPick = []; try { me = await api('me'); APP?.onMe(me); } catch { /* 무시 */ } draw(); };
     el.querySelectorAll('[data-c]').forEach(b => b.onclick = async () => {
       const r = recipes.find(x => x.id === b.dataset.c), n = +b.dataset.n;
-      if ((r.confirm || n > 1) && !confirm(`재료 ${r.materials.reduce((a, m) => a + m.need, 0) * n}마리를 써서 ${r.name}${n > 1 ? ` ${n}개` : ''}를 만들까요?`)) return;
+      if ((r.confirm || n > 1) && !(await ask(`재료 ${r.materials.reduce((a, m) => a + m.need, 0) * n}마리를 써서\n${r.name}${n > 1 ? ` ${n}개` : ''}${n > 1 ? '를' : josaEul(r.name)} 만들까요?`, { ok: '만들기' }))) return;
       b.disabled = true;
       try { done((await api('craft', { id: r.id, times: n })).result); } catch (e) { if (e.message !== 'login') { toast(e.message.split('\n')[0]); b.disabled = false; } }
     });
@@ -206,7 +219,7 @@
     el.querySelectorAll('[data-mm]').forEach(b => b.onclick = () => { mixPick.splice(mixPick.lastIndexOf(b.dataset.mm), 1); craft(el); });
     el.querySelector('#mclr')?.addEventListener('click', () => { mixPick = []; craft(el); });
     el.querySelector('#mgo')?.addEventListener('click', async () => {
-      if (!confirm(`${mixPick.length}마리를 섞어 볼까요? 맞는 조합이면 재료를 쓰고, 아니면 재료는 그대로예요.`)) return;
+      if (!(await ask(`${mixPick.length}마리를 섞어 볼까요?\n맞는 조합이면 재료를 쓰고, 아니면 재료는 그대로예요.`, { ok: '섞기' }))) return;
       try { const r = (await api('mix', { ids: mixPick })).result; if (r.made) done(r.text); else { showResult(r.text); } } catch (e) { if (e.message !== 'login') toast(e.message.split('\n')[0]); }
     });
   }
@@ -294,7 +307,7 @@
     const c = el.querySelector('#delc'), d = el.querySelector('#del');
     c.oninput = () => { d.disabled = c.value.trim() !== '탈퇴'; };
     d.onclick = async () => {
-      if (!confirm('정말 계정을 삭제할까요? 되돌릴 수 없어요.')) return;
+      if (!(await ask('정말 계정을 삭제할까요? 되돌릴 수 없어요.', { ok: '삭제', danger: true }))) return;
       d.disabled = true;
       try { await api('account/delete', { confirm: '탈퇴' }); APP?.setToken(null); app.innerHTML = `${head()}<div class="card login"><h2 style="font-weight:400">계정을 삭제했어요</h2><p class="note">그동안 갈매미 섬을 지켜 주셔서 고마워요. 🫡</p><a class="btn wide" href="/">홈으로</a></div>`; }
       catch (e) { if (e.message !== 'login') { toast(e.message); d.disabled = false; } }

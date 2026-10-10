@@ -37,7 +37,7 @@ export interface Passive {hpPct?:number;atkPct?:number;defPct?:number;spdPct?:nu
   lifesteal?:number;reflect?:number;cut?:number;regen?:number;lastStand?:boolean;statusPlus?:number;statusResist?:number;sigCd?:number;handoff?:number;durationPlus?:number}
 export interface EvoAugment {id:string;name:string;desc:string;roles:Role[]|'ANY';passive:Passive}
 export interface BattleAugment {id:string;name:string;desc:string;p:Record<string,number>}
-export const battleAugIds=['reverse','weakguard','focus','neutral','camo','dual','counter','learn','first','bulwark','firstaid','freeswitch','lastone','strip','rustle','peanut'] as const;
+export const battleAugIds=['reverse','weakguard','focus','neutral','camo','dual','counter','learn','first','bulwark','firstaid','freeswitch','lastone','strip','rustle','peanut','sharp','swift','thick','overtime','drain','thorns','pierce','lunch'] as const;
 type SkillIn=BattleData['roles']['ATTACK']['skill'];
 type EffectIn=NonNullable<SkillIn['effects']>[number];
 
@@ -110,6 +110,14 @@ function augDesc(id:string,p:Record<string,number>,attrNm:string){
     case 'strip':return `상대 강화를 모두 지우고 상대 선두 공격 -${p.pct}%(${p.turns}턴)`;
     case 'rustle':return '상대 선두가 새우깡 소리에 1턴 멈춰요';
     case 'peanut':return `내 갈매미맨들의 공격 +${p.atk}%, 대신 받는 피해 +${p.taken}%`;
+    case 'sharp':return `내 갈매미들의 급소 확률 +${p.pct}%`;
+    case 'swift':return `내 갈매미들의 속도 +${p.pct}%(먼저 움직이기 쉬워요)`;
+    case 'thick':return `내 갈매미들의 물리·마법 방어 +${p.pct}%`;
+    case 'overtime':return `내 갈매미들의 물리·마법 공격 +${p.pct}%`;
+    case 'drain':return `내가 준 피해의 ${p.pct}%만큼 체력 회복`;
+    case 'thorns':return `나를 때린 상대가 준 피해의 ${p.pct}%를 돌려받아요`;
+    case 'pierce':return `내 공격이 상대 방어를 ${p.pct}% 무시해요`;
+    case 'lunch':return `턴이 끝날 때마다 나와 있는 내 갈매미 체력 ${p.pct}% 회복`;
   }
   return '';
 }

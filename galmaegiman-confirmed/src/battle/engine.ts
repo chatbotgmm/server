@@ -56,7 +56,8 @@ const alive=(f:Fighter)=>f.hp>0;
 
 function offerAugments(b:Battle){
   for(const s of b.sides){
-    const pool=b.R.battleAugments.filter(a=>!s.augs.includes(a.id)).map(a=>a.id);const out:string[]=[];
+    // 대결 시작(모두 체력 가득)에는 회복 증강체(응급처치)를 내지 않음
+    const pool=b.R.battleAugments.filter(a=>!s.augs.includes(a.id)&&!(a.id==='firstaid'&&s.fighters.every(f=>f.hp>=f.maxHp))).map(a=>a.id);const out:string[]=[];
     while(out.length<3&&pool.length)out.push(pool.splice(Math.floor(rand(b)*pool.length),1)[0]);
     s.offers=out.length?out:null;s.rerolled=out.map(()=>false);s.offerSeen=[...out];
   }
@@ -68,7 +69,7 @@ export function rerollAugment(b:Battle,side:0|1,i:number){
   const s=b.sides[side];
   if(b.phase!=='choose'||!s.offers||!s.offers[i])throw new Error('다시 뽑을 증강체가 없음');
   if(s.rerolled[i])throw new Error('이 칸은 이미 다시 뽑았음');
-  const pool=b.R.battleAugments.map(a=>a.id).filter(id=>!s.augs.includes(id)&&!s.offers!.includes(id)&&!s.offerSeen.includes(id));
+  const pool=b.R.battleAugments.map(a=>a.id).filter(id=>!s.augs.includes(id)&&!s.offers!.includes(id)&&!s.offerSeen.includes(id)&&!(id==='firstaid'&&s.fighters.every(f=>f.hp>=f.maxHp)));
   if(!pool.length)throw new Error('다른 증강체가 없음');
   const id=pool[Math.floor(rand(b)*pool.length)];
   s.offers[i]=id;s.rerolled[i]=true;s.offerSeen.push(id);
@@ -120,6 +121,10 @@ function statOf(b:Battle,f:Fighter,key:BaseStat){
   if(stat==='spd'&&f.status.bind)v*=1+st.bindSpd/100;
   const s=b.sides[f.side];
   if(s.augs.includes('lastone')&&s.fighters.filter(alive).length===1)v*=1+(b.R.battleAug.get('lastone')!.p.pct??30)/100;
+  const ap=(id:string)=>(b.R.battleAug.get(id)!.p.pct??0)/100;
+  if(stat==='spd'&&s.augs.includes('swift'))v*=1+ap('swift');
+  if(stat==='def'&&s.augs.includes('thick'))v*=1+ap('thick');
+  if(stat==='atk'&&s.augs.includes('overtime'))v*=1+ap('overtime');
   return Math.max(1,v);
 }
 function attackAttr(R:Rules,f:Fighter,move:Skill,target:Fighter):Attr{
@@ -143,7 +148,9 @@ function damage(b:Battle,att:Fighter,def:Fighter,move:Skill){
   const mag=move.cat==='mag'||((move.cat??'auto')==='auto'&&att.base.matk>att.base.patk);
   let atk=statOf(b,att,mag?'matk':'patk'),dv=statOf(b,def,mag?'mdef':'pdef');
   if(att.passive.pierce)dv*=1-att.passive.pierce/100;
-  const crit=move.crit||rand(b)<(M.critChance+(att.passive.critPlus??0))/100;
+  const aug=(s:0|1,id:string)=>b.sides[s].augs.includes(id)?(R.battleAug.get(id)!.p.pct??0):0;
+  if(aug(att.side,'pierce'))dv*=1-aug(att.side,'pierce')/100;
+  const crit=move.crit||rand(b)<(M.critChance+(att.passive.critPlus??0)+aug(att.side,'sharp'))/100;
   // 체력이 레벨·진화로 커지는 만큼 피해도 같은 비율로 커짐(같은 레벨이면 몇 대에 쓰러지는지 일정)
   let d=((atk/dv)*(move.power??0)*0.5+2)*att.scale*(a===att.attr?M.sameAttr:1)*mult*(0.9+rand(b)*0.1)*(crit?M.crit:1);
   if(att.passive.execute&&def.hp<=def.maxHp*0.3)d*=1+att.passive.execute/100;
@@ -214,6 +221,9 @@ function useSkill(b:Battle,user:Fighter,target:Fighter,skill:Skill){
     target.hitBy[last.attr]=(target.hitBy[last.attr]??0)+1;
     b.log.push(`${josa(target.name,'이가')} ${total} 피해를 입었어요.${last.crit?' 급소!':''}${last.mult>1?' 효과가 굉장해요!':last.mult<1?' 효과가 별로예요…':''}`);
     if(user.passive.lifesteal)user.hp=Math.min(user.maxHp,user.hp+Math.round(total*user.passive.lifesteal/100));
+    const ug=(s:0|1,id:string)=>b.sides[s].augs.includes(id)?(b.R.battleAug.get(id)!.p.pct??0):0;
+    if(ug(user.side,'drain')&&user.hp>0&&total>0){const h=Math.round(total*ug(user.side,'drain')/100);user.hp=Math.min(user.maxHp,user.hp+h);b.log.push(`${josa(user.name,'이가')} 체력을 ${h} 되찾았어요.`);}
+    if(ug(target.side,'thorns')&&total>0){const r=Math.max(1,Math.round(total*ug(target.side,'thorns')/100));hurt(b,user,r);b.log.push(`가시 깃털! ${josa(user.name,'이가')} ${r} 피해를 돌려받았어요.`);}
     if(target.passive.reflect&&target.hp>0){const r=Math.round(total*target.passive.reflect/100);hurt(b,user,r);b.log.push(`반사! ${josa(user.name,'이가')} ${r} 피해를 돌려받았어요.`);}
     if(last.mult<1&&b.sides[target.side].augs.includes('counter')&&target.hp>0){
       const r=damage(b,target,user,{id:'counter',name:'역습',power:b.R.battleAug.get('counter')!.p.power??40,cd:0,effects:[],desc:''});hurt(b,user,r.amount);b.log.push(`역습! ${josa(user.name,'이가')} ${r.amount} 피해를 입었어요.`);
@@ -304,6 +314,7 @@ function endTurn(b:Battle){
     if(alive(f)){
       if(f.status.burn){const d=Math.max(1,Math.round(f.maxHp*b.R.data.status.burnDamage/100));hurt(b,f,d);b.log.push(`${josa(f.name,'이가')} 화상으로 ${d} 피해를 입었어요.`);}
       let heal=0;for(const r of f.regens)heal+=r.pct;if(f.passive.regen)heal+=f.passive.regen;
+      if(s.augs.includes('lunch'))heal+=b.R.battleAug.get('lunch')!.p.pct??0;
       if(heal&&alive(f))f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*heal/100));
     }
     for(const x of s.fighters){
@@ -352,7 +363,7 @@ export function aiChoose(b:Battle,side:0|1){
     // 상대 선두에게 상성이 불리하면 상성 뒤집기류를 먼저
     const me=activeOf(b,side),foe=activeOf(b,foeSide(side));
     const bad=b.R.typeMult(foe.attr,me.attr)>1||b.R.typeMult(me.attr,foe.attr)<1;
-    const prefer=bad?['camo','reverse','weakguard','neutral','dual','counter']:['focus','dual','first','peanut','strip','bulwark'];
+    const prefer=bad?['camo','reverse','weakguard','neutral','dual','counter']:['focus','dual','overtime','pierce','first','peanut','strip','sharp','bulwark'];
     p.augment=prefer.find(id=>s.offers!.includes(id))??s.offers[0];
   }
   if(s.needSwitch){const foe=activeOf(b,foeSide(side));let bi=-1,bv=-1;

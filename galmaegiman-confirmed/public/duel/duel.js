@@ -4,7 +4,7 @@
 // 로그인돼 있으면 「내 갈매미」 전투 편성을 스토리 팀으로 쓸 수 있고, 스토리 대결에서 가진 아이템을 쓸 수 있음
 import { rulesFrom } from '../../src/battle/core.ts';
 import { createBattle, choose, rerollAugment, act, pending, legalActions, pickAi, aiChoose, activeOf, itemProblem } from '../../src/battle/engine.ts';
-import { bgm, sfx, isMuted, toggleMute } from './sound.js';
+import { bgm, sfx, isMuted, toggleMute, getVol, setVol } from './sound.js';
 import { addXp, battleXp, canEvolve, evoChoices, learnChances, learnOffers, learnSkill, slotSkills, statsOf, xpToNext } from '../../src/battle/growth.ts';
 
 // 앱: 화면은 앱 안, 서버는 GMM_BASE, 열쇠는 「내 갈매미」에서 받아 둔 것(GMM_DUEL_KEY), 로그인은 토큰 머리글
@@ -22,6 +22,19 @@ const chip = a => `<span class="chip" style="background:${COLOR[a]}">${esc(R.att
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 let R, UNITS, STORY, ART, NAMES = {}, BG = [], ICONS = [], EVO = new Set(), b, busy = false, freeLevel = 30, freePick = [];
+// 게임 안 확인 창(안드로이드·브라우저 기본 팝업 대신): ask(글, {ok, cancel, danger}) → true/false, tell(글) → 확인만
+const gdlg = (text, o = {}) => new Promise(res => {
+  const w = document.createElement('div'); w.className = 'gdlg';
+  w.innerHTML = `<div class="gdlg-box" role="dialog" aria-modal="true"><p></p><div class="gdlg-row">${o.alert ? '' : `<button class="gdlg-no">${o.cancel ?? '취소'}</button>`}<button class="gdlg-ok ${o.danger ? 'danger' : ''}">${o.ok ?? '확인'}</button></div></div>`;
+  w.querySelector('p').textContent = text;
+  const end = v => { w.remove(); document.removeEventListener('keydown', key); res(v); };
+  const key = e => { if (e.key === 'Escape') end(false); if (e.key === 'Enter') end(true); };
+  w.querySelector('.gdlg-ok').onclick = () => end(true); w.querySelector('.gdlg-no')?.addEventListener('click', () => end(false));
+  w.onclick = e => { if (e.target === w && !o.alert) end(false); };
+  document.addEventListener('keydown', key); document.body.appendChild(w); w.querySelector('.gdlg-ok').focus();
+});
+const ask = (text, o) => gdlg(text, o), tell = text => gdlg(text, { alert: true });
+const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? '을' : '를'; };
 let ACC = null;      // 로그인한 계정: { nickname, battleTeam, owned, items }(로그인 안 했으면 null)
 let fightId = null;  // 지금 스토리 대결의 서버 표(아이템 쓰기용)
 // 「내 갈매미」 API(같은 사이트 쿠키로 로그인 확인)
@@ -178,19 +191,26 @@ function settingsSheet() {
   let coupMsg = '';
   const draw = () => {
     modal.className = ''; modal.hidden = false;
-    modal.innerHTML = `<div class="sheet set"><h2>⚙️ 설정</h2>
-      <div class="setrow"><span>🔊 소리(배경음악·효과음)</span><button class="tog ${isMuted() ? '' : 'on'}" id="sSnd">${isMuted() ? '꺼짐' : '켜짐'}</button></div>
+    modal.innerHTML = `<div class="sheet set"><h2>⚙️ 설정<button class="xbtn" id="sX" aria-label="닫기">✕</button></h2><div class="scols"><div class="scol">
+      <div class="setrow"><span>🔊 소리</span><button class="tog ${isMuted() ? '' : 'on'}" id="sSnd">${isMuted() ? '꺼짐' : '켜짐'}</button></div>
+      <div class="setrow vol ${isMuted() ? 'off' : ''}"><span>🎵 배경음악</span><input type="range" min="0" max="100" step="5" value="${getVol('music')}" id="vMusic" aria-label="배경음악 음량"><b id="vMusicN">${getVol('music')}</b></div>
+      <div class="setrow vol ${isMuted() ? 'off' : ''}"><span>💥 효과음</span><input type="range" min="0" max="100" step="5" value="${getVol('sfx')}" id="vSfx" aria-label="효과음 음량"><b id="vSfxN">${getVol('sfx')}</b></div></div><div class="scol">
       ${ACC ? `<div class="setrow"><span>👤 ${esc(ACC.nickname || '내 계정')}</span><button class="ghost" id="sOut">로그아웃</button></div>
       <div class="setrow coup"><span>🎟 쿠폰</span><input id="sCode" placeholder="쿠폰 코드" autocomplete="off" maxlength="60"><button class="ghost" id="sCoup">받기</button></div>
       ${coupMsg ? `<p class="coupmsg">${esc(coupMsg)}</p>` : ''}
       <details class="setdel"><summary>계정 삭제(탈퇴)</summary>
         <p class="sub">갈매미·도감·재화·아이템·탐험·스토리 진행이 <b>모두 지워지고 되돌릴 수 없어요.</b></p>
         <input id="sDelc" placeholder="확인을 위해 탈퇴 라고 적어 주세요" autocomplete="off"><button class="big wide" id="sDel" disabled>계정 삭제</button></details>` : ''}
-      <button class="ghost wide" id="sClose">닫기</button></div>`;
+      </div></div><button class="ghost wide" id="sClose">닫기</button></div>`;
     modal.querySelector('#sSnd').onclick = () => { toggleMute(); draw(); };
-    modal.querySelector('#sClose').onclick = close;
+    for (const [id, k] of [['vMusic', 'music'], ['vSfx', 'sfx']]) {
+      const r = modal.querySelector('#' + id), n = modal.querySelector(`#${id}N`);
+      r.oninput = () => { if (isMuted()) { toggleMute(); modal.querySelectorAll('.setrow.vol').forEach(x => x.classList.remove('off')); const t = modal.querySelector('#sSnd'); t.classList.add('on'); t.textContent = '켜짐'; } setVol(k, +r.value); n.textContent = r.value; };
+      if (k === 'sfx') r.onchange = () => sfx('hit');   // 손을 떼면 효과음 크기를 들려줌
+    }
+    modal.querySelector('#sClose').onclick = close; modal.querySelector('#sX').onclick = close;
     modal.querySelector('#sOut')?.addEventListener('click', async () => {
-      if (!confirm('로그아웃할까요?')) return;
+      if (!(await ask('로그아웃할까요?', { ok: '로그아웃' }))) return;
       await myApi('logout', {}).catch(() => {}); APP?.setToken(null); ACC = null; titleScreen(false);
     });
     const cb = modal.querySelector('#sCoup'), ci = modal.querySelector('#sCode');
@@ -208,10 +228,10 @@ function settingsSheet() {
     if (c) {
       c.oninput = () => { d.disabled = c.value.trim() !== '탈퇴'; };
       d.onclick = async () => {
-        if (!confirm('정말 계정을 삭제할까요? 되돌릴 수 없어요.')) return;
+        if (!(await ask('정말 계정을 삭제할까요? 되돌릴 수 없어요.', { ok: '삭제', danger: true }))) return;
         d.disabled = true;
-        try { await myApi('account/delete', { confirm: '탈퇴' }); APP?.setToken(null); ACC = null; alert('계정을 삭제했어요. 그동안 고마웠어요.'); titleScreen(false); }
-        catch (e) { alert(e.message); d.disabled = false; }
+        try { await myApi('account/delete', { confirm: '탈퇴' }); APP?.setToken(null); ACC = null; await tell('계정을 삭제했어요. 그동안 고마웠어요.'); titleScreen(false); }
+        catch (e) { await tell(e.message); d.disabled = false; }
       };
     }
   };
@@ -271,7 +291,7 @@ function menu() {
 </div>
     <div class="tmid">${nowCard()}
     <div class="two"><button id="st"><i>📖</i>스토리</button><button id="fr"><i>⚔️</i>자유 대결</button></div></div>
-    ${squad()}
+    ${squad()}${sideSquad()}
     <nav class="dock">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점'], ['account', '👤', '계정']].map(([h, i, t]) => `<a href="${my(h)}"><i class="${ICONS.includes(`m-${h}`) ? 'art' : ''}">${ico(`m-${h}`, i)}</i><span>${t}</span></a>`).join('')}</nav></div>`;
   app.querySelector('#st').onclick = storyScreen;
   app.querySelector('#fr').onclick = () => pickScreen('free');
@@ -294,13 +314,29 @@ function squad() {
   if (!team.length) return '<div class="squad empty"><span>스토리를 시작하면 내 수비대가 여기 서요</span></div>';
   return `<div class="squad">${team.map((id, i) => `<img src="${sprite(id, 'front', SAVE.units[id]?.stage ?? 0)}" style="animation-delay:${i * .4}s" alt="">`).join('')}</div>`;
 }
+// 가로 로비: 이야기 칸 양옆에 내 수비대(왼쪽 선두, 오른쪽 둘)
+function sideSquad() {
+  const team = SAVE.team.length === 3 ? SAVE.team : [];
+  if (!team.length) return '';
+  const im = (id, i) => `<img src="${sprite(id, 'front', SAVE.units[id]?.stage ?? 0)}" class="${i ? '' : 'flip'}" style="--sz:${bodySz(id, SAVE.units[id]?.stage ?? 0)};animation-delay:${i * .4}s" alt="">`;
+  return `<div class="sqL">${im(team[0], 0)}</div><div class="sqR">${im(team[1], 1)}${im(team[2], 2)}</div>`;
+}
+// 지난 이야기 한 줄: 마지막으로 깬 스테이지의 끝 해설(없으면 다음 이야기의 첫 해설·장 소개)
+function recap() {
+  const all = stages(), last = [...all].reverse().find(s => SAVE.cleared.includes(s.id)), next = nextStage();
+  const say = l => (l?.say ?? '').replace(/^\(.*?\)\s*/, '');
+  if (last) { const n = [...(last.after ?? [])].reverse().find(l => l.who === 'N') ?? (last.after ?? []).at(-1); return n ? `지난 이야기 · ${say(n)}` : ''; }
+  if (next) return next.chapter.intro || say((next.before ?? []).find(l => l.who === 'N'));
+  return '';
+}
 // 첫 화면 「지금 이야기」: 부·스테이지·진행률 한 줄 + 큰 이어하기 버튼
 function nowCard() {
   const all = stages(), st = nextStage(), done = SAVE.cleared.length, pct = Math.round(done / all.length * 100);
   if (!st) return `<div class="now"><small>모든 이야기를 끝냈어요</small><b>🎖 수비대장 취임</b><div class="prog"><i style="width:100%"></i><em>${done}/${all.length}</em></div></div><button class="play" id="go">📖 이야기 다시 보기</button>`;
   const c = st.chapter, first = !done;
   const lock = !unlocked(st.id) && c.needStage ? `<p class="need">🔒 팀 전원 ${c.needStage}단계 승진하면 열려요 (${STARS[c.needStage]})</p>` : '';
-  return `<div class="now"><small>${esc(c.title)}</small><b>${esc(st.id)} ${esc(st.title)}</b>${lock}<div class="prog"><i style="width:${pct}%"></i><em>${done}/${all.length}</em></div></div>
+  const rc = recap();
+  return `<div class="now"><small>${esc(c.title)}</small><b>${esc(st.id)} ${esc(st.title)}</b>${rc ? `<p class="recap">${esc(rc)}</p>` : ''}${lock}<div class="prog"><i style="width:${pct}%"></i><em>${done}/${all.length}</em></div></div>
     <button class="play" id="go"><span>${first ? '▶ 이야기 시작' : SAVE.team.length !== 3 ? '▶ 팀 정하고 이어하기' : '▶ 이어하기'}</span></button>`;
 }
 
@@ -386,8 +422,8 @@ function storyScreen() {
   app.querySelector('#ed').onclick = () => pickScreen('story');
   app.querySelectorAll('[data-u]').forEach(x => x.onclick = () => skillSheet(x.dataset.u));
   app.querySelector('#reset').onclick = async () => {
-    if (!confirm('레벨·경험치·배운 기술·승진·깬 스테이지를 모두 지울까요?')) return;
-    if (ACC) { try { await myApi('story', { data: null }); } catch (e) { alert(e.message); return; } SAVE = load(null); }
+    if (!(await ask('레벨·경험치·배운 기술·승진·깬 스테이지를 모두 지울까요?', { ok: '처음부터', danger: true }))) return;
+    if (ACC) { try { await myApi('story', { data: null }); } catch (e) { await tell(e.message); return; } SAVE = load(null); }
     else { try { localStorage.removeItem(SAVE_KEY); } catch { /* 무시 */ } SAVE = load(); }
     storyScreen();
   };
@@ -425,7 +461,7 @@ function skillSheet(id) {
     modal.querySelector('#promo')?.addEventListener('click', () => promoSheet(id));
     const after = () => { keep(rec); persist(); learnChances(R, rec) > 0 ? skillSheet(id) : (modal.hidden = true, storyScreen()); };
     modal.querySelector('#doL')?.addEventListener('click', () => { learnSkill(R, rec, pick, rep ?? undefined); after(); });
-    modal.querySelector('#skipL')?.addEventListener('click', () => { if (confirm('이번 기회를 건너뛸까요? 다시 받을 수 없어요.')) { learnSkill(R, rec, null); after(); } });
+    modal.querySelector('#skipL')?.addEventListener('click', async () => { if (await ask('이번 기회를 건너뛸까요? 다시 받을 수 없어요.', { ok: '건너뛰기' })) { learnSkill(R, rec, null); after(); } });
   };
   modal.onclick = null; modal.className = ''; modal.hidden = false; draw();
 }
@@ -560,7 +596,7 @@ function render() {
     const hp = view[s].hp[view[s].active], pct = Math.max(0, hp / f.maxHp * 100);
     const col = pct > 50 ? 'var(--hp)' : pct > 20 ? 'var(--hpmid)' : 'var(--hplow)';
     const st = Object.keys(f.status).map(k => `<span class="st">${({ burn: '화상', freeze: '빙결', sleep: '잠', bind: '묶임', rage: '폭주' })[k]}</span>`).join('');
-    const augs = b.sides[s].augs.map(id => `<span>${ico(id, '')}${esc(R.battleAug.get(id).name)}</span>`).join('');
+    const augs = b.sides[s].augs.map(id => `<span>${ico(id, AUG_ICON[id]?.[0] ?? '')}${esc(R.battleAug.get(id).name)}</span>`).join('');
     const box = document.getElementById(`b${s}`), downNow = view[s].down[view[s].active];
     box.classList.toggle('down', downNow);
     img.classList.remove('st-1', 'st-2', 'st-3'); if (f.rec.stage && !tintOf(f.rec.id)) img.classList.add(`st-${f.rec.stage}`);
@@ -568,8 +604,23 @@ function render() {
       <div class="hpb"><i style="width:${pct}%;background:${col}"></i></div>
       <div class="row"><span>${chip(f.attr)}${f.extraAttr ? chip(f.extraAttr) : ''}${st}</span>${s === 0 ? `<small>${Math.max(0, Math.round(hp))}/${f.maxHp}</small>` : ''}</div>
       <div class="row"><div class="dots">${view[s].down.map((d, i) => `<i class="${d ? 'down' : ''}" title="${esc(b.sides[s].fighters[i].name)}"></i>`).join('')}</div></div>
-      ${augs ? `<div class="augs">${augs}</div>` : ''}`;
+      ${augs ? `<div class="augs">${augs}</div>` : ''}${s === 1 ? `<button class="finfo" ${b.turn > 1 ? '' : 'disabled'} title="${b.turn > 1 ? '상대 정보' : '한 턴이 지나면 볼 수 있어요'}">🔍 ${b.turn > 1 ? '정보' : '1턴 뒤'}</button>` : ''}`;
+    if (s === 1) box.querySelector('.finfo').onclick = e => { e.stopPropagation(); if (b.turn > 1 && b.phase === 'action' && !busy) foeInfo(); };
   }
+}
+// 상대 정보(한 턴이 지난 뒤): 능력치·역할·기술·증강체. 숫자는 레벨·승진이 반영된 이번 전투 값
+function foeInfo() {
+  const f = activeOf(b, 1), hp = Math.max(0, Math.round(view[1].hp[view[1].active]));
+  const st = { hp: f.maxHp, ...Object.fromEntries(['patk', 'pdef', 'matk', 'mdef', 'spd'].map(k => [k, Math.round(f.base[k])])) };
+  const me = activeOf(b, 0), faster = st.spd > me.base.spd ? '상대가 더 빨라요(먼저 움직여요)' : st.spd < me.base.spd ? '내가 더 빨라요' : '속도가 같아요';
+  const skills = f.skills.map(k => `<div class="fi-k"><b>${esc(k.name)}</b><small>${k.power ? `${chip(k.attr ?? f.attr)} ${catTag(k, f.base)} 위력 ${k.power}${k.hits > 1 ? `×${k.hits}` : ''}` : '보조 기술'}${k.cd ? ` · 재사용 ${k.cd}턴` : ''}</small></div>`).join('');
+  const augs = b.sides[1].augs.map(id => `<div class="fi-k"><b>${ico(id, AUG_ICON[id]?.[0] ?? '✨')} ${esc(R.battleAug.get(id).name)}</b><small>${esc(R.battleAug.get(id).desc)}</small></div>`).join('');
+  modal.className = ''; modal.hidden = false;
+  modal.innerHTML = `<div class="sheet finfo-sheet"><h2>🔍 ${esc(f.name)} <small>Lv${f.rec.level} · ${R.attrName(f.attr)}${f.extraAttr ? `+${R.attrName(f.extraAttr)}` : ''} · ${ROLE[f.role] ?? ''}</small></h2>
+    <p class="sub">체력 ${hp} / ${f.maxHp} · ${faster} (내 속도 ${Math.round(me.base.spd)})</p>${statGrid(st)}
+    <h2>기술</h2><div class="fi-grid">${skills}</div>${augs ? `<h2>증강체</h2><div class="fi-grid">${augs}</div>` : ''}<button class="ghost wide" id="fiClose">닫기</button></div>`;
+  modal.querySelector('#fiClose').onclick = () => { modal.hidden = true; };
+  modal.onclick = e => { if (e.target === modal) modal.hidden = true; };
 }
 
 // 고르기·행동 차례 정하기
@@ -588,7 +639,8 @@ async function flow() {
 // 증강체: 그림 표시와 분류(어떤 상황에 쓰는지)
 const AUG_ICON = { reverse: ['🔄', '상성 뒤집기'], weakguard: ['🛡️', '상성 방어'], focus: ['🎯', '상성 공격'], neutral: ['🌫️', '상성 없애기'], camo: ['🦎', '속성 바꾸기'], dual: ['➕', '공격 속성 추가'],
   counter: ['↩️', '반격'], learn: ['📖', '피해 줄이기'], first: ['⏱️', '선공'], bulwark: ['🧱', '방어'], firstaid: ['🩹', '회복'], freeswitch: ['🔀', '교체'],
-  lastone: ['🔥', '역전'], strip: ['✂️', '약화'], rustle: ['🍤', '멈추기'], peanut: ['🥜', '공격'] };
+  lastone: ['🔥', '역전'], strip: ['✂️', '약화'], rustle: ['🍤', '멈추기'], peanut: ['🥜', '공격'],
+  sharp: ['🦅', '급소'], swift: ['💨', '속도'], thick: ['🪶', '방어'], overtime: ['💪', '공격'], drain: ['🍗', '흡수'], thorns: ['🌵', '반사'], pierce: ['📌', '관통'], lunch: ['🍱', '지속 회복'] };
 const FLIP = ['camo', 'reverse', 'weakguard', 'neutral', 'dual', 'counter'];   // 상성이 불리할 때 쓸 만한 것
 const multTag = m => m > 1 ? `<b class="good">×${m} 유리</b>` : m < 1 ? `<b class="bad">×${m} 불리</b>` : '<b>×1 보통</b>';
 
@@ -653,9 +705,9 @@ function actionPanel() {
   }).join('')}</div><div class="sw">${s.fighters.map((x, i) => i === s.active ? '' : `<button data-s="${i}" ${can({ kind: 'switch', to: i }) ? '' : 'disabled'}><img src="${sprite(x.rec.id, 'front', x.rec.stage)}" alt=""><span>${esc(x.name)}<br><small>${x.hp > 0 ? `교체 · ${Math.round(x.hp / x.maxHp * 100)}%` : '전투불가'}</small></span></button>`).join('')}</div>`;
   panel.querySelectorAll('[data-k]').forEach(x => x.onclick = () => turn({ kind: 'skill', skillId: x.dataset.k }));
   if (fightId) { const n = s.itemsUsed, max = R.data.itemRules.perBattle, have = ACC.items.reduce((a, i) => a + i.count, 0);
-    panel.insertAdjacentHTML('beforeend', `<button class="flee" id="bag" ${n >= max || !have ? 'disabled' : ''}>🎒 아이템 (${n}/${max} 사용 · 가진 ${have}개)</button>`);
+    panel.insertAdjacentHTML('beforeend', `<div class="fleerow"><button class="flee" id="bag" ${n >= max || !have ? 'disabled' : ''}>🎒 아이템 ${n}/${max} <small>(가진 ${have})</small></button></div>`);
     panel.querySelector('#bag').onclick = itemSheet; }
-  panel.insertAdjacentHTML('beforeend', '<button class="flee" id="flee">🏃 도망치기</button>');
+  (panel.querySelector('.fleerow') ?? panel.appendChild(Object.assign(document.createElement('div'), { className: 'fleerow' }))).insertAdjacentHTML('beforeend', '<button class="flee" id="flee">🏃 도망치기</button>');
   panel.querySelectorAll('[data-s]').forEach(x => x.onclick = () => turn({ kind: 'switch', to: +x.dataset.s }));
   panel.querySelector('#flee').onclick = runAway;
 }
@@ -687,8 +739,8 @@ function itemSheet() {
   modal.onclick = null; modal.className = ''; modal.hidden = false; draw();
 }
 // 도망치기: 경험치 없음, 깬 것으로 치지 않음
-function runAway() {
-  if (busy || !confirm('대결에서 도망칠까요? 경험치를 받지 못해요.')) return;
+async function runAway() {
+  if (busy || !(await ask('대결에서 도망칠까요? 경험치를 받지 못해요.', { ok: '도망치기' }))) return;
   b.phase = 'over';
   document.getElementById('m0').animate([{ transform: 'translateX(0)', opacity: 1 }, { transform: 'translateX(-120px)', opacity: 0 }], { duration: 500, fill: 'forwards' });
   say('수비조가 재빨리 물러났어요!');

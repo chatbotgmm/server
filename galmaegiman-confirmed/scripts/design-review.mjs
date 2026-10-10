@@ -8,7 +8,7 @@ const pk={bhs:F+'/_fontsource_black-han-sans/package',gd:F+'/_fontsource_gowun-d
 let css=null;try{css=Object.entries(pk).map(([k,d])=>readFileSync(d+'/index.css','utf8').replace(/url\(\.\/files\//g,`url(https://fonts.gstatic.com/${k}/`)).join('\n');}
 catch{console.error('글꼴 패키지가 없어요: '+F+' — 실제 게임 글꼴이 아니면 검토가 틀려지니 멈춰요(세 번째 인자로 글꼴 폴더를 주세요)');process.exit(1);}
 const b=await chromium.launch();
-for(const [n,w,h] of [['L',915,412],['W',1280,720]]){   // 게임은 가로만(앱 가로 고정): 휴대폰 가로·큰 화면 가로
+for(const [n,w,h] of [['L',915,412],['S',780,360],['W',1280,720]]){   // 게임은 가로만(앱 가로 고정): 휴대폰 가로·큰 화면 가로
   const c=await b.newContext({viewport:{width:w,height:h},deviceScaleFactor:2,serviceWorkers:'block'});   // 서비스 워커가 글꼴을 직접 받으면 아래 가로채기가 안 먹어서 막음
   if(css)await c.route('https://fonts.googleapis.com/**',r=>r.fulfill({contentType:'text/css',body:css}));
   if(css)await c.route('https://fonts.gstatic.com/**',r=>{const [k,f]=r.request().url().split('fonts.gstatic.com/')[1].split('/');r.fulfill({contentType:'font/woff2',headers:{'access-control-allow-origin':'*'},body:readFileSync(pk[k]+'/files/'+f)});});
@@ -19,7 +19,7 @@ for(const [n,w,h] of [['L',915,412],['W',1280,720]]){   // 게임은 가로만(�
   await p.click('a.tgo',{force:true});await p.waitForSelector('#code');await p.fill('#code','135790');await p.click('#go');await p.waitForURL(/\/duel\?k=/,{timeout:15000});
   await p.waitForSelector('.title');await p.evaluate(async()=>{for(const f of ['400 100px "Bagel Fat One"','400 40px "Black Han Sans"','400 20px "Gowun Dodum"'])await document.fonts.load(f,'갈매미맨 수비대 항구를 지켜라 게임 시작 로그인 이어하기 스토리 자유 대결');await document.fonts.ready;});await p.waitForTimeout(1500);
   await p.screenshot({path:`${out}/R${n}-2title-in.png`});console.log(n,'첫 화면(로그인 뒤)',JSON.stringify(await ov()));
-  await p.click('#tset');await p.waitForSelector('.sheet.set');await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-2b-settings.png`});await p.click('#sClose');
+  await p.click('#tset');await p.waitForSelector('.sheet.set');await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-2b-settings.png`});console.log(n,'설정 창 안 스크롤',await p.evaluate(()=>{const e=document.querySelector('.sheet.set');return e.scrollHeight>e.clientHeight+1;}));await p.click('#sX');
   await p.click('#tgo',{force:true});await p.waitForSelector('.ts');await p.waitForTimeout(1200);
   await p.screenshot({path:`${out}/R${n}-3lobby.png`});console.log(n,'로비',JSON.stringify(await ov()));
   await p.click('.dock a[href*="draw"]');await p.waitForSelector('.gbar',{timeout:15000});await p.evaluate(()=>document.fonts.ready);await p.waitForTimeout(1500);
@@ -28,7 +28,7 @@ for(const [n,w,h] of [['L',915,412],['W',1280,720]]){   // 게임은 가로만(�
   await p.click('#go',{force:true});await p.waitForTimeout(1200);if(await p.$('#rnd')){await p.click('#rnd');await p.click('#go');await p.waitForTimeout(1200);}
   await p.waitForSelector('.dbox');await p.waitForTimeout(1800);await p.screenshot({path:`${out}/R${n}-3b-talk.png`});console.log(n,'대사',JSON.stringify(await ov()));
   for(let i=0;i<40 && !(await p.$('.aug'));i++){await p.click('.dbox').catch(()=>{});await p.waitForTimeout(200);}
-  await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-3d-aug.png`});console.log(n,'증강체',JSON.stringify(await ov()));
+  await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-3d-aug.png`});console.log(n,'증강체',JSON.stringify(await ov()),'창 안 스크롤',await p.evaluate(()=>{const e=document.querySelector('#modal .sheet');return e?e.scrollHeight>e.clientHeight+1:null;}));
   if(await p.$('[data-r]')){await p.click('[data-r]');await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-3e-reroll.png`});}
   await p.click('.aug');await p.click('#ok');await p.waitForSelector('.sk');await p.waitForTimeout(2200);
   await p.screenshot({path:`${out}/R${n}-4battle.png`});console.log(n,'전투',JSON.stringify(await ov()));

@@ -229,6 +229,14 @@ battleAugments:
   strip:      { name: 기세 꺾기, pct: 20, turns: 2 }
   rustle:     { name: 바스락 }
   peanut:     { name: 땅콩 기세, atk: 30, taken: 15 }       # 갈매미맨만 공격 +, 받는 피해 +
+  sharp:      { name: 매의 눈, pct: 15 }                    # 급소 확률 +%
+  swift:      { name: 칼퇴 준비, pct: 25 }                  # 속도 +%
+  thick:      { name: 두꺼운 깃털, pct: 15 }                # 물리·마법 방어 +%
+  overtime:   { name: 야근 수당, pct: 12 }                  # 물리·마법 공격 +%
+  drain:      { name: 회식비 정산, pct: 20 }                # 준 피해의 % 회복
+  thorns:     { name: 가시 깃털, pct: 20 }                  # 받은 피해의 % 되돌림
+  pierce:     { name: 송곳 부리, pct: 20 }                  # 상대 방어 % 무시
+  lunch:      { name: 점심시간, pct: 6 }                    # 턴 끝마다 체력 % 회복
 
 # 성장
 growth:
