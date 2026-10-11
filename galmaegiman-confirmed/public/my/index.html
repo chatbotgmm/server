@@ -403,6 +403,14 @@ html.game body::before{filter:blur(5px) saturate(.95) brightness(.97)}
 
 /* v0.12.0: 칸 테두리 나무색(로비 팻말과 같은 계열) */
 html.game{--edge:#a8672e}
+
+/* v0.12.2 받은 버튼 그림: 돌아가기·편성 저장(못 누를 때는 흐리게) */
+html.game .gback.img{background:none;border:0;box-shadow:none;padding:0;filter:drop-shadow(0 3px 0 rgba(90,52,24,.3))}
+html.game .gback.img img{height:40px;width:auto;display:block}
+html.game .btn.imgsave{background:none;border:0;box-shadow:none;padding:0;display:flex;justify-content:center;filter:drop-shadow(0 3px 0 rgba(90,52,24,.3))}
+html.game .btn.imgsave img{height:52px;width:auto;max-width:100%;object-fit:contain}
+html.game .btn.imgsave:disabled{opacity:1;filter:grayscale(.85) brightness(1.08) opacity(.7)}
+@media (orientation:landscape) and (max-height:430px){ html.game .gback.img img{height:32px} html.game .btn.imgsave img{height:40px} }
 </style>
 </head>
 <body>

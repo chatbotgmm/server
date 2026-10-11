@@ -292,11 +292,11 @@ function menu() {
   const MENU = [['party', '탐험', '🧭', 'mint'], ['draw', '뽑기', '🥚', 'pink'], ['units', '수비대', '🛡️', 'lilac'], ['craft', '조합', '🧩', 'sky'], ['shop', '상점', '🏪', 'peach']];
   app.innerHTML = `<div class="home8" style="${bg}">
     <header class="h8top"><button class="lprof" id="lprof" aria-haspopup="menu"><i>${ico('u-profile', '🪪')}</i><span><b>${esc(ACC?.nickname || '수비조장')}</b><small>${lvl ? `수비대 Lv${lvl} · 실적 ${SAVE.cleared.length}/${stages().length}` : '아직 팀이 없어요'}</small></span><em class="caret">▾</em></button><div class="lcur" id="lcur"></div></header>
-    ${ACC ? `<button class="h8att" id="td"><i>${ico('u-attend', '📅')}</i><span>출석체크</span></button>` : ''}
+    ${ACC ? `${ICONS.includes('btn-attend') ? `<button class="h8att img" id="td" aria-label="출석체크"><img src="${BASE}/duel/icons/btn-attend.png" alt=""></button>` : `<button class="h8att" id="td"><i>${ico('u-attend', '📅')}</i><span>출석체크</span></button>`}` : ''}
     <nav class="h8menu">${MENU.map(([h, t, i, c]) => ICONS.includes(`btn-${h}`)
       ? `<a href="${my(h)}" data-h="${h}" class="h8b img" aria-label="${t}"><img src="${BASE}/duel/icons/btn-${h}.png" alt=""></a>`
       : `<a href="${my(h)}" data-h="${h}" class="h8b code ${c}"><i>${i}</i><span>${t}</span></a>`).join('')}</nav>
-    <button class="h8play" id="go"><b>▶ 플레이</b><small>${st ? `${esc(st.id)} ${esc(st.title)}` : '모든 이야기 완료'}</small></button></div>`;
+    <button class="h8play ${ICONS.includes('btn-play') ? 'img' : ''}" id="go" aria-label="플레이">${ICONS.includes('btn-play') ? `<img src="${BASE}/duel/icons/btn-play.png" alt="">` : '<b>▶ 플레이</b>'}<small>${st ? `${esc(st.id)} ${esc(st.title)}` : '모든 이야기 완료'}</small></button></div>`;
   app.querySelector('#td')?.addEventListener('click', todaySheet);
   app.querySelector('#lprof').onclick = e => { e.stopPropagation(); profMenu(); };
   if (ACC) myApi('daily').then(d => { if (!d.attend.today || d.missions.some(m => !m.done && m.value >= m.goal)) app.querySelector('#td')?.insertAdjacentHTML('beforeend', '<em class="dot"></em>'); }).catch(() => {});
@@ -356,7 +356,7 @@ function modeScreen() {
         <button class="mbtn" id="mRankGo" ${ACC ? '' : 'disabled'}><i>${ico('mode-rank', '🏆')}</i><span><b>랭크게임</b><small id="mRankSub">이기면 점수가 올라요</small></span></button>
         <div class="mlinks"><button class="mlink" id="mTop" ${ACC ? '' : 'disabled'}>순위표</button><button class="mlink" id="mFree">연습(자유 대결)</button></div></section>
     </div>
-    <button class="mback" id="mBack">‹ 돌아가기</button></div>`;
+    <button class="mback ${ICONS.includes('btn-back') ? 'img' : ''}" id="mBack" aria-label="돌아가기">${ICONS.includes('btn-back') ? `<img src="${BASE}/duel/icons/btn-back.png" alt="">` : '‹ 돌아가기'}</button></div>`;
   app.querySelector('#mStory').onclick = continueStory;
   app.querySelector('#mList').onclick = storyScreen;
   app.querySelector('#mFree').onclick = () => pickScreen('free');
