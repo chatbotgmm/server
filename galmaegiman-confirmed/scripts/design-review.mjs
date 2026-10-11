@@ -22,12 +22,25 @@ for(const [n,w,h] of [['L',915,412],['S',780,360],['W',1280,720]]){   // 게임�
   await p.click('#tset');await p.waitForSelector('.sheet.set');await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-2b-settings.png`});console.log(n,'설정 창 안 스크롤',await p.evaluate(()=>{const e=document.querySelector('.sheet.set');return e.scrollHeight>e.clientHeight+1;}));await p.click('#sX');
   await p.click('#tgo',{force:true});await p.waitForSelector('.ts');await p.waitForTimeout(1200);
   await p.screenshot({path:`${out}/R${n}-3lobby.png`});console.log(n,'로비',JSON.stringify(await ov()));
+  await p.click('#lprof');await p.waitForSelector('.pmenu');await p.waitForTimeout(900);await p.screenshot({path:`${out}/R${n}-3h-profmenu.png`});console.log(n,'프로필 메뉴 화면 밖',await p.evaluate(()=>{const r=document.querySelector('.pmenu').getBoundingClientRect();return r.bottom>innerHeight||r.right>innerWidth;}));
+  await p.mouse.click(w/2,h/2);await p.waitForTimeout(300);
   await p.click('.dock a[data-h="draw"]');const mf=p.frameLocator('.myov iframe');await mf.locator('.gbar').waitFor({timeout:15000});await p.waitForTimeout(1800);
   await p.screenshot({path:`${out}/R${n}-3c-my.png`});console.log(n,'내 갈매미',JSON.stringify(await ov()));
+  // 뽑기: 수량 8로 고르고 뽑기 → 알 → 카드(화면 안에 다 들어오는지) → 확인 뒤 뽑기 화면이 넘어가지 않는지
+  const fr=p.frames().find(f=>f.url().includes('/my'));
+  await mf.locator('[data-di="LOW"]').fill('8');await mf.locator('[data-di="LOW"]').blur();await mf.locator('.dgo[data-k="LOW"]').click();
+  await mf.locator('.rv-egg').waitFor();await mf.locator('.rv-egg').click();await p.waitForTimeout(3200);await p.screenshot({path:`${out}/R${n}-3j-reveal.png`});
+  console.log(n,'뽑기 결과 화면 밖',await fr.evaluate(()=>{const c=[...document.querySelectorAll('.rv-c,.rv-btns')].map(e=>e.getBoundingClientRect());return c.some(r=>r.bottom>innerHeight+1||r.right>innerWidth+1);}));
+  await mf.locator('#rvOk').click();await p.waitForTimeout(800);await p.screenshot({path:`${out}/R${n}-3k-drawafter.png`});
+  console.log(n,'뽑기 화면 넘김',await fr.evaluate(()=>document.scrollingElement.scrollHeight>innerHeight+1));
+  await mf.locator('#gback').click();await p.waitForSelector('.myov',{state:'detached'});await p.waitForSelector('.ts');await p.waitForTimeout(800);
+  await p.click('.dock a[data-h="units"]');await mf.locator('.tabs.gseg').waitFor({timeout:15000});await p.waitForTimeout(1500);await p.screenshot({path:`${out}/R${n}-3l-units.png`});
   await mf.locator('#gback').click();await p.waitForSelector('.myov',{state:'detached'});await p.waitForSelector('.ts');await p.waitForTimeout(800);
   await p.click('#td');await p.waitForSelector('.sheet.today .att-week');await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-3f-attend.png`});console.log(n,'출석체크 창 안 스크롤',await p.evaluate(()=>{const e=document.querySelector('.sheet.today');return e.scrollHeight>e.clientHeight+1;}));
   await p.click('#tdX');await p.waitForSelector('.ts.lobby');await p.waitForTimeout(600);
   await p.click('#go',{force:true});await p.waitForSelector('.modes');await p.waitForTimeout(1200);await p.screenshot({path:`${out}/R${n}-3g-modes.png`});console.log(n,'모드 고르기',JSON.stringify(await ov()),'칸 넘침',await p.evaluate(()=>[...document.querySelectorAll('.mcard')].some(e=>e.scrollHeight>e.clientHeight+1)));
+  await p.click('#mList');await p.waitForSelector('.teambar');await p.waitForTimeout(900);await p.screenshot({path:`${out}/R${n}-3i-story.png`});console.log(n,'스토리 목록',JSON.stringify(await ov()));
+  await p.click('#bk');await p.waitForSelector('.ts.lobby');await p.waitForTimeout(500);await p.click('#go',{force:true});await p.waitForSelector('.modes');await p.waitForTimeout(500);
   await p.click('#mStory',{force:true});await p.waitForTimeout(1200);if(await p.$('#rnd')){await p.click('#rnd');await p.click('#go');await p.waitForTimeout(1200);}
   await p.waitForSelector('.dbox');await p.waitForTimeout(1800);await p.screenshot({path:`${out}/R${n}-3b-talk.png`});console.log(n,'대사',JSON.stringify(await ov()));
   for(let i=0;i<40 && !(await p.$('.aug'));i++){await p.click('.dbox').catch(()=>{});await p.waitForTimeout(200);}

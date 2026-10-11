@@ -345,6 +345,50 @@ html.game .ware .btn.price:disabled{background:#e6d7bb;box-shadow:none}
 html,body,*{-webkit-tap-highlight-color:transparent}
 :focus:not(:focus-visible){outline:none}
 .rv-egg,.reveal,.forge,.u,.lhero,.pd,.ware{-webkit-user-select:none;user-select:none}
+
+/* 게임에서는 글자를 길게 눌러도 선택·번역·복사 팝업이 뜨지 않게(입력칸은 그대로, v0.11.1) */
+html.game,html.game body,html.game body *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+img{-webkit-user-drag:none;-webkit-touch-callout:none}
+
+/* 게임 안: 묶음 탭만(v0.11.1). 한 가지면 탭 없이 화면 전체, 갈매미 묶음은 위쪽 가운데 알약 탭 */
+html.game #app.gsolo{max-width:1200px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+html.game #app.gsolo>header{position:sticky;top:0;z-index:5}
+html.game .tabs.gseg{justify-content:center;gap:10px;overflow:visible;margin:2px 0 12px}
+html.game .tabs.gseg button{padding:7px 22px;font-size:1rem;border-radius:999px;display:inline-flex;align-items:center;gap:6px}
+html.game .tabs.gseg .gi{width:22px;height:22px}
+@media (orientation:landscape) and (max-height:430px){ html.game .tabs.gseg{margin:0 0 8px} html.game .tabs.gseg button{padding:4px 16px;font-size:.9rem} }
+
+/* 뽑기: 수량 고른 뒤 뽑기(v0.11.1) · 결과 카드는 몇 장이든 화면 안에(--cw를 화면 크기로 계산) */
+.dqty{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.dqty .qty{gap:4px}.dqty .qty .btn{padding:3px 10px}.dqty .qty input{width:48px;padding:4px;border-radius:9px;text-align:center;border:1.5px solid var(--line)}
+.dqty .dmax{font-size:.85rem}
+.dqty .dgo{width:100%;white-space:nowrap}
+.drawagain{display:flex;justify-content:flex-end;margin:-4px 0 8px}
+.reveal .rv-cards{overflow:visible;max-height:none}
+.reveal .rv-c,.reveal .rv-cards:has(.rv-c:only-child) .rv-c{width:var(--cw,120px)}
+.rv-btns [hidden]{display:none}
+
+/* 뽑기 화면 게임 가로: 한 화면에 다 들어오게(넘김 없이) */
+@media (orientation:landscape){
+  html.game .gc{padding:10px;gap:10px;grid-template-columns:60px minmax(0,1fr)}
+  html.game .gc img{width:60px;height:60px}
+  html.game .gc .gi{gap:4px}
+  html.game .gc small{font-size:.76rem;line-height:1.35}
+}
+@media (orientation:landscape) and (max-height:430px){
+  html.game #body>.card:first-child{padding:8px 12px;margin-bottom:8px}
+  html.game #body>.card:first-child b{font-size:1rem !important}
+  html.game #body>.card:first-child .note{font-size:.78rem}
+  html.game #body>.card:first-child .btn{padding:6px 12px;font-size:.9rem}
+  html.game .gc{padding:7px 9px;gap:8px;grid-template-columns:48px minmax(0,1fr);border-radius:14px}
+  html.game .gc img{width:48px;height:48px;border-radius:10px}
+  html.game .gc b{font-size:1rem}
+  html.game .gc small{font-size:.7rem}
+  .dqty{gap:4px;margin-top:2px}
+  .dqty .qty .btn{padding:1px 8px}.dqty .qty input{width:40px;padding:2px}
+  .dqty .dgo{padding:5px 8px;font-size:.88rem}
+}
 </style>
 </head>
 <body>

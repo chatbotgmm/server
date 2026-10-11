@@ -34,6 +34,9 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     if (art) document.documentElement.style.setProperty('--gbg', `url("${art}")`);
   }
   // 게임 안 창(v0.10.1): 게임 로비가 이 화면을 안에 띄우면(iframe) 페이지를 옮기지 않고 창만 닫음
+  // 게임 안에서는 아래 메뉴에서 들어온 묶음의 탭만 보여 줌(v0.11.1): 갈매미 = 내 갈매미·전투 편성·아이템(포켓몬의 파티·박스·가방처럼), 나머지는 단독. 다른 메뉴는 로비로 돌아가서
+  const GROUP = { units: ['units', 'battle', 'items'], battle: ['units', 'battle', 'items'], items: ['units', 'battle', 'items'] };
+  const groupOf = t => GROUP[t] ?? [t];
   const TABNAME = { draw: '뽑기', craft: '조합', units: '내 갈매미', party: '탐험대 편성', battle: '전투 편성', items: '아이템', shop: '상점', account: '계정' };
   const EMBED = (() => { try { return window.parent !== window; } catch { return true; } })();
   if (EMBED) document.documentElement.classList.add('embed');
@@ -43,7 +46,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
   const thumb = id => `${BASE}/thumbs/${encodeURIComponent(id)}.jpg`;
   // 게임 모드: 재화는 위쪽 줄 오른쪽에 작게(재화 확인이 화면의 목적처럼 보이지 않게)
   const curBar = m => m ? `<div class="cur">${[['🍤', m.snack, '새우깡'], ['🥜', m.peanut, '땅콩'], ['🎫', m.credits, '뽑기권']].map(([i, n, t]) => `<span title="${t}">${i}<b>${Number(n).toLocaleString('ko-KR')}</b></span>`).join('')}</div>` : '';
-  const head = (right, m) => GAMEUI ? `<header class="gbar"><button class="gback" id="gback">‹ ${EMBED ? '로비' : '게임으로'}</button><h1>${GAMEUI && me && TABNAME[tab] ? TABNAME[tab] : '내 갈매미'}</h1><span class="sp"></span>${curBar(m)}</header>` : `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span><a class="hl" href="/dex" title="도감">📚<span class="lt"> 도감</span></a><a class="hl" href="/search" title="검색">🔍</a>${right ?? ''}<a class="home" href="/" title="홈">🏠<span class="lt"> 홈</span></a></header>`;
+  const head = (right, m) => GAMEUI ? `<header class="gbar"><button class="gback" id="gback">‹ ${EMBED ? '로비' : '게임으로'}</button><h1>${GAMEUI && me && TABNAME[tab] ? (groupOf(tab).length > 1 ? '갈매미' : TABNAME[tab]) : '내 갈매미'}</h1><span class="sp"></span>${curBar(m)}</header>` : `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span><a class="hl" href="/dex" title="도감">📚<span class="lt"> 도감</span></a><a class="hl" href="/search" title="검색">🔍</a>${right ?? ''}<a class="home" href="/" title="홈">🏠<span class="lt"> 홈</span></a></header>`;
 
   // ── 로그인 ──
   // 카카오 로그인에서 돌아온 결과(?kakao=…)는 한 번 보여 주고 주소에서 지움
@@ -96,12 +99,12 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     draw();
   }
   function draw() {
-    app.classList.add('gv');
+    app.classList.toggle('gv', !GAMEUI); app.classList.toggle('gsolo', GAMEUI);
     const tabs = [['draw', '🥚 뽑기'], ['craft', '🧩 조합'], ['units', '<img class="gi" src="/gull.png" alt=""> 내 갈매미'], ['party', '🧭 탐험대 편성'], ['battle', '⚔️ 전투 편성'], ['items', '🎒 아이템'], ['shop', '🛒 상점'], ['account', '👤 계정']];
     app.innerHTML = `${head('<button class="btn ghost" id="out" title="로그아웃" style="padding:6px 12px;font-size:.85rem">🚪<span class="lt"> 로그아웃</span></button>', me)}
       ${GAMEUI ? '' : `<div class="card"><div class="row" style="margin-bottom:10px"><b style="font-weight:400;font-size:1.15rem">${esc(me.nickname || '이름 없는 수비조장')}</b><span class="tag">도감 ${me.dex}/${me.dexTotal}</span></div>
         <div class="money"><div><b><i>🍤</i>${me.snack}</b><small>새우깡</small></div><div><b><i>🥜</i>${me.peanut}</b><small>땅콩</small></div><div><b><i>🎫</i>${me.credits}</b><small>뽑기권</small></div><div><b><i>🪺</i>${me.units.reduce((a, u) => a + u.have, 0)}</b><small>갈매미</small></div></div></div>`}
-      <div class="tabs">${tabs.map(([k, t]) => `<button data-t="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      ${(() => { const show = GAMEUI ? tabs.filter(([k]) => groupOf(tab).includes(k)) : tabs; return show.length > 1 ? `<div class="tabs ${GAMEUI ? 'gseg' : ''}">${show.map(([k, t]) => `<button data-t="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>` : ''; })()}
       <div id="body"></div>`;
     app.querySelector('#out')?.addEventListener('click', async () => { await api('logout', {}).catch(() => {}); APP?.setToken(null); loginScreen('로그아웃했어요.'); });
     app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; if (tab === 'craft') craftData = null; if (tab === 'draw') drawData = null; history.replaceState(null, '', `#${tab}`); draw(); });
@@ -166,12 +169,23 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     el.innerHTML = `<div class="card row" style="justify-content:space-between">
         <div><b style="font-weight:400;font-size:1.15rem">🎟 뽑기권 ${d.unlimited ? '무제한(관리자)' : `${d.credits}장`}</b>
         <p class="note" style="margin:2px 0 0">${d.wait ? `다음 뽑기권 받기까지 ${waitText(d.wait)}` : `지금 뽑기권 ${d.claim}장을 받을 수 있어요! (${d.cooldownHours}시간마다)`}${d.event ? ` · 🎉 ${esc(d.event.label)}` : ''}</p></div>
-        <button class="btn" id="claim" ${d.wait ? 'disabled' : ''}>🎟 뽑기권 받기</button></div>
-      ${drawLast ? `<div class="card drawres"><b style="font-weight:400">🥚 결과</b><div class="dgrid">${drawLast.items.map(u => `<div class="du ${u.first ? 'new' : ''}" style="--tc:${TIER_COLOR[u.tier] ?? '#888'}"><img src="${cimg(u.img)}" alt="">${u.first ? '<span class="nb">NEW</span>' : ''}${u.n > 1 ? `<span class="n">×${u.n}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}</small></div>`).join('')}</div><p class="pre note" style="margin-top:8px">${esc(drawLast.summary)}</p></div>` : ''}
+        <div class="row" style="gap:8px">${drawLast && GAMEUI ? '<button class="btn ghost" id="rvAgain">🥚 지난 결과</button>' : ''}<button class="btn" id="claim" ${d.wait ? 'disabled' : ''}>🎟 뽑기권 받기</button></div></div>
+      ${drawLast && !GAMEUI ? `<div class="card drawres"><b style="font-weight:400">🥚 결과</b><div class="dgrid">${drawLast.items.map(u => `<div class="du ${u.first ? 'new' : ''}" style="--tc:${TIER_COLOR[u.tier] ?? '#888'}"><img src="${cimg(u.img)}" alt="">${u.first ? '<span class="nb">NEW</span>' : ''}${u.n > 1 ? `<span class="n">×${u.n}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}</small></div>`).join('')}</div><p class="pre note" style="margin-top:8px">${esc(drawLast.summary)}</p></div>` : ''}
       <div class="ggrid">${d.gachas.map(g => `<div class="gc"><img src="${cimg(g.img)}" alt=""><div class="gi"><b>${esc(g.label)} 뽑기</b><small>🎟 ${g.cost}장 · ${g.weights.map(w => `<span class="nw">${esc(w.tierName)} ${w.w}%</span>`).join(' · ')}</small>
         ${g.kind === 'HIGH' && d.pity ? `<small>🎯 ${esc(d.pity.tierName)} 보장까지 ${d.pity.left}회</small>` : ''}
-        <div class="row">${[1, 5, 10].map(n => `<button class="btn ${n === 1 ? '' : 'ghost'}" data-k="${g.kind}" data-n="${n}" ${credits >= g.cost * n ? '' : 'disabled'}>${n}회<small>🎟 ${g.cost * n}</small></button>`).join('')}</div></div></div>`).join('')}</div>
-      <p class="note">결과·보상·미션은 카톡과 같이 계정에 바로 들어가요.</p>`;
+        ${GAMEUI ? (() => { const lim = Math.min(50, Math.floor(credits / g.cost)); return `<div class="dqty"><div class="qty"><button class="btn ghost" data-dq="${g.kind}" data-d="-1" ${lim ? '' : 'disabled'}>－</button><input type="number" inputmode="numeric" min="1" max="${Math.max(1, lim)}" value="1" data-di="${g.kind}" data-lim="${lim}" ${lim ? '' : 'disabled'}><button class="btn ghost" data-dq="${g.kind}" data-d="1" ${lim ? '' : 'disabled'}>＋</button><button class="btn ghost dmax" data-dq="${g.kind}" data-d="max" ${lim > 1 ? '' : 'disabled'}>최대</button></div>
+          <button class="btn dgo" data-k="${g.kind}" data-n="1" data-cost="${g.cost}" ${lim ? '' : 'disabled'}>${lim ? `1회 뽑기 · 🎟 ${g.cost}` : '뽑기권 부족'}</button></div>`; })()
+        : `<div class="row">${[1, 5, 10].map(n => `<button class="btn ${n === 1 ? '' : 'ghost'}" data-k="${g.kind}" data-n="${n}" ${credits >= g.cost * n ? '' : 'disabled'}>${n}회<small>🎟 ${g.cost * n}</small></button>`).join('')}</div>`}</div></div>`).join('')}</div>
+      ${GAMEUI ? '' : '<p class="note">결과·보상·미션은 카톡과 같이 계정에 바로 들어가요.</p>'}`;
+    // 수량 고르기(게임 화면, v0.11.1): －/＋/최대 → 뽑기 버튼에 횟수·뽑기권 표시
+    el.querySelectorAll('[data-di]').forEach(i => {
+      const k = i.dataset.di, lim = +i.dataset.lim, go = el.querySelector(`.dgo[data-k="${k}"]`), cost = +go.dataset.cost;
+      const val = () => Math.max(1, Math.min(lim, Math.floor(+i.value || 1)));
+      const paint = () => { const n = val(); go.dataset.n = n; if (lim) go.textContent = `${n}회 뽑기 · 🎟 ${(cost * n).toLocaleString('ko-KR')}`; };
+      i.oninput = paint; i.onblur = () => { i.value = val(); paint(); };
+      el.querySelectorAll(`[data-dq="${k}"]`).forEach(b => b.onclick = () => { i.value = b.dataset.d === 'max' ? lim : Math.max(1, Math.min(lim, val() + +b.dataset.d)); paint(); });
+    });
+    el.querySelector('#rvAgain')?.addEventListener('click', () => reveal(drawLast.items, true));
     el.querySelector('#claim').onclick = async () => { try { const r = await api('claim', {}); toast(String(r.result).split('\n')[0]); drawData = null; me = await api('me'); APP?.onMe(me); draw(); } catch (e) { if (e.message !== 'login') toast(e.message.split('\n')[0]); } };
     el.querySelectorAll('[data-k]').forEach(b => b.onclick = async () => {
       el.querySelectorAll('[data-k]').forEach(x => { x.disabled = true; });
@@ -185,7 +199,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
   const rank = t => Math.max(0, TIER_RANK.indexOf(t));
   const big = id => `${BASE}/images/${encodeURIComponent(id)}.png`;
   // 뽑기 결과: 알이 흔들리다 깨지고(가장 좋은 등급 색으로 빛남) → 카드가 한 장씩 뒤집힘. 전설 이상은 빛줄기
-  function reveal(items) {
+  function reveal(items, again = false) {   // again: 지난 결과 다시 보기(알 없이 바로 카드)
     const top = items.reduce((a, u) => (rank(u.tier) > rank(a.tier) ? u : a), items[0]), col = TIER_COLOR[top.tier] ?? '#d9a400', hi = rank(top.tier) >= rank('LEGEND');
     const ov = document.createElement('div'); ov.className = `reveal ${hi ? 'hi' : ''}`; ov.style.setProperty('--tc', col);
     ov.innerHTML = `<div class="rv-egg"><div class="egg"></div><p>눌러서 열기</p></div>
@@ -199,8 +213,20 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
       setTimeout(() => { ov.classList.add('cracked'); ov.querySelector('.rv-cards').hidden = false; ov.querySelector('.rv-btns').hidden = false; requestAnimationFrame(() => ov.classList.add('flip')); }, 700);
     };
     ov.querySelector('.rv-egg').onclick = open;
+    // 카드 크기: 몇 장이든 화면 안에 다 들어오게(스크롤 없이) 열 수를 골라 가장 크게
+    const fit = () => {
+      // 쓸 수 있는 넓이 = 화면 − 바깥 여백(16×2) − 카드 칸 여백(6×2), 높이 = 화면 − 여백 − 버튼 줄
+      const n = items.length, W = Math.min(innerWidth - 32, 920) - 14, H = innerHeight - 32 - 12 - 14 - 50, gap = 10;
+      let best = 50, bc = n;
+      for (let cols = 1; cols <= n; cols++) { const rows = Math.ceil(n / cols), w = Math.min((W - gap * (cols - 1)) / cols, ((H - gap * (rows - 1)) / rows) * 3 / 4.1); if (w > best) { best = w; bc = cols; } }
+      const cw = Math.floor(Math.min(best, n === 1 ? 220 : 150));
+      ov.style.setProperty('--cw', `${cw}px`);
+      ov.querySelector('.rv-cards').style.maxWidth = `${bc * cw + gap * (bc - 1) + 12}px`;   // 고른 열 수에서 정확히 줄바꿈
+    };
+    fit(); addEventListener('resize', fit);
+    if (again) { ov.classList.add('cracked', 'all'); ov.querySelector('.rv-cards').hidden = false; ov.querySelector('.rv-btns').hidden = false; ov.querySelector('#rvAll').hidden = true; }
     ov.querySelector('#rvAll').onclick = () => ov.classList.add('all');
-    ov.querySelector('#rvOk').onclick = () => { ov.classList.add('bye'); setTimeout(() => ov.remove(), 200); };
+    ov.querySelector('#rvOk').onclick = () => { removeEventListener('resize', fit); ov.classList.add('bye'); setTimeout(() => ov.remove(), 200); };
   }
   // 조합 연출: 재료 카드가 둥글게 모였다가 한가운데로 빨려 들어가 번쩍 → 결과 카드(섞기 실패면 펑 하고 흩어짐). 누르면 넘어감
   function forge(mats, r, n = 1, fail = false) {

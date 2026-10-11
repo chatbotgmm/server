@@ -287,17 +287,19 @@ function menu() {
   const lvl = team.length ? Math.round(team.reduce((a, id) => a + (SAVE.units[id]?.level ?? 1), 0) / team.length) : 0;
   const storyDot = team.some(id => { const r = myRec(id, 0); return learnChances(R, r) > 0 || canEvolve(R, r, partsCleared()); });
   app.innerHTML = `<div class="ts lobby" style="${bg};${BG.includes('key') ? `--key:url(${BASE}/duel/bg/key.jpg${q})` : ''}"><div class="lbg" aria-hidden="true"></div>${ambient('harbor', true)}
-    <header class="ltop"><div class="lprof"><i>${ico('u-profile', '🪪')}</i><span><b>${esc(ACC?.nickname || '수비조장')}</b><small>${lvl ? `수비대 Lv${lvl} · 실적 ${SAVE.cleared.length}/${stages().length}` : '아직 팀이 없어요'}</small></span></div><div class="lcur" id="lcur"></div></header>
-    <aside class="lside">${ACC ? `<button id="td"><i>${ico('u-attend', '📅')}</i><span>출석체크</span></button>` : ''}<button id="st"><i>${ico('u-story', '📖')}</i><span>스토리</span>${storyDot ? '<em class="dot"></em>' : ''}</button></aside>
+    <header class="ltop"><button class="lprof" id="lprof" aria-haspopup="menu"><i>${ico('u-profile', '🪪')}</i><span><b>${esc(ACC?.nickname || '수비조장')}</b><small>${lvl ? `수비대 Lv${lvl} · 실적 ${SAVE.cleared.length}/${stages().length}` : '아직 팀이 없어요'}</small></span><em class="caret">▾</em></button><div class="lcur" id="lcur"></div></header>
+    <aside class="lside">${ACC ? `<button id="td"><i>${ico('u-attend', '📅')}</i><span>출석체크</span></button>` : ''}${ACC ? `<button id="bt"><i>${ico('u-battle', '⚔️')}</i><span>전투 편성</span></button>` : ''}</aside>
     <div class="lhero" id="lhero">${team.length ? `<div class="lplat"></div><img id="lheroImg" alt=""><div class="lbub" id="lbub" hidden></div><div class="lname" id="lname"></div>` : '<button class="lnoteam" id="lnoteam">🐣 팀 3마리를 정하면<br>여기에 대표 갈매미가 서요</button>'}</div>
     <div class="lstory">${nowCard()}</div>
-    <nav class="dock">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점'], ['account', '👤', '계정']].map(([h, i, t]) => `<a href="${my(h)}" data-h="${h}"><i class="${ICONS.includes(`m-${h}`) ? 'art' : ''}">${ico(`m-${h}`, i)}</i><span>${t}</span></a>`).join('')}</nav></div>`;
-  app.querySelector('#st').onclick = storyScreen;
+    <nav class="dock">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점']].map(([h, i, t]) => `<a href="${my(h)}" data-h="${h}"><i class="${ICONS.includes(`m-${h}`) ? 'art' : ''}">${ico(`m-${h}`, i)}</i><span>${t}</span></a>`).join('')}</nav></div>`;
+  app.querySelector('#bt')?.addEventListener('click', () => openMy('battle'));   // 스토리는 「플레이」로 들어가니 왼쪽에는 편성 바로가기(v0.11.1)
   app.querySelector('#td')?.addEventListener('click', todaySheet);
+  app.querySelector('#lprof').onclick = e => { e.stopPropagation(); profMenu(); };
   if (ACC) myApi('daily').then(d => { if (!d.attend.today || d.missions.some(m => !m.done && m.value >= m.goal)) app.querySelector('#td')?.insertAdjacentHTML('beforeend', '<em class="dot"></em>'); }).catch(() => {});
   app.querySelectorAll('.dock a[data-h]').forEach(a => a.onclick = e => { e.preventDefault(); openMy(a.dataset.h); });
   app.querySelector('#lnoteam')?.addEventListener('click', () => pickScreen('story'));
   app.querySelector('#go')?.addEventListener('click', () => { sfx('tap'); modeScreen(); });
+  if (storyDot) app.querySelector('#go')?.insertAdjacentHTML('beforeend', '<em class="dot"></em>');   // 배울 기술·승진이 있으면(스토리 목록에서 함)
   // 대표 갈매미: 누르면 한마디, 다시 누르면 다음 팀원
   if (team.length) {
     let at = 0, hide = null;
@@ -315,11 +317,30 @@ function menu() {
   // 재화·빨간 점(로그인했으면 서버에서): 뽑기권 받을 수 있음 · 탐험 끝남
   if (ACC) myApi('me').then(me => {
     const cur = app.querySelector('#lcur'); if (!cur) return;
-    cur.innerHTML = [[ico('u-snack', '🍤'), me.snack, '새우깡'], [ico('u-peanut', '🥜'), me.peanut, '땅콩'], [ico('u-ticket', '🎫'), me.credits, '뽑기권']].map(([i, n, t]) => `<span title="${t}">${i}<b>${Number(n).toLocaleString('ko-KR')}</b></span>`).join('');
+    cur.innerHTML = [[ico('u-snack', '🍤'), me.snack, '새우깡'], [ico('u-peanut', '🥜'), me.peanut, '땅콩'], [ico('u-ticket', '🎫'), me.credits, '뽑기권']].map(([i, n, t]) => `<button class="cur" title="${t} · 상점으로">${i}<b>${Number(n).toLocaleString('ko-KR')}</b><em class="plus" aria-hidden="true">+</em></button>`).join('');
+    cur.querySelectorAll('.cur').forEach(x => x.onclick = () => openMy('shop'));   // 재화를 누르면 상점
     const now = Date.now(), dot = h => app.querySelector(`.dock a[data-h="${h}"]`)?.insertAdjacentHTML('beforeend', '<em class="dot"></em>');
     if (new Date(me.claimReadyAt).getTime() <= now) dot('draw');
     if (me.trip && new Date(me.trip.endsAt).getTime() <= now) dot('party');
   }).catch(() => {});
+}
+// 프로필(왼쪽 위 이름)을 누르면 작은 메뉴: 내 정보 + 계정·랭크·설정
+function profMenu() {
+  const old = document.querySelector('.pmenu'); if (old) { old.remove(); return; }
+  const login = APP ? 'my.html?next=game' : '/my?next=duel&g=1';
+  const m = document.createElement('div'); m.className = 'pmenu'; m.setAttribute('role', 'menu');
+  m.innerHTML = ACC ? `<div class="pm-head"><b>${esc(ACC.nickname || '내 계정')}</b><small id="pmRank">랭크 불러오는 중…</small></div>
+      <button role="menuitem" data-m="account"><i>${ico('m-account', '👤')}</i>계정 관리</button>
+      <button role="menuitem" data-m="rank"><i>${ico('mode-rank', '🏆')}</i>랭크 순위</button>
+      <button role="menuitem" data-m="set"><i>⚙️</i>설정</button>`
+    : `<div class="pm-head"><b>로그인 전</b><small>로그인하면 진행이 계정에 저장돼요</small></div><a role="menuitem" class="pm-a" href="${login}"><i>🔑</i>로그인</a><button role="menuitem" data-m="set"><i>⚙️</i>설정</button>`;
+  document.body.appendChild(m); sfx('tap');
+  const r = document.querySelector('#lprof')?.getBoundingClientRect(); if (r) { m.style.top = `${r.bottom + 12}px`; m.style.left = `${r.left}px`; }   // 이름표 바로 아래
+  const close = () => { m.remove(); removeEventListener('pointerdown', out, true); };
+  const out = e => { if (!m.contains(e.target) && !e.target.closest('#lprof')) close(); };
+  addEventListener('pointerdown', out, true);
+  m.querySelectorAll('[data-m]').forEach(x => x.onclick = () => { close(); ({ account: () => openMy('account'), rank: pvpTop, set: settingsSheet })[x.dataset.m](); });
+  if (ACC) myApi('pvp').then(d => { const el = m.querySelector('#pmRank'); if (el) el.innerHTML = `${tierIco(d, d.me.tier)}${esc(d.me.tier)} · ${d.me.point}점 · ${d.me.wins}승 ${d.me.losses}패`; }).catch(() => { const el = m.querySelector('#pmRank'); if (el) el.textContent = ''; });
 }
 // 스토리 이어하기(다음 스테이지 바로, 팀이 없으면 편성부터)
 function continueStory() {
@@ -339,7 +360,7 @@ function modeScreen() {
       <section class="mcard camp"><div class="mhead"><i>${ico('mode-camp', '🗺️')}</i><span><b>캠페인</b><small>이야기를 따라 항구를 지키고, 상위 갈매미를 찾아 모험</small></span></div>
         <button class="mbtn main" id="mStory"><i>${ico('u-story', '📖')}</i><span><b>스토리</b><small>${st ? `${esc(st.id)} ${esc(st.title)}` : '모든 이야기 완료 · 다시 보기'}</small></span></button>
         <button class="mbtn" id="mAdv" disabled><i>${ico('mode-adv', '🧭')}</i><span><b>모험 · 상위 갈매미 포획</b><small>준비 중 · 다음 업데이트</small></span></button>
-        <button class="mlink" id="mList">스토리 목록</button></section>
+        <button class="mlink" id="mList">스토리 목록 · 기술·승진</button></section>
       <section class="mcard pvp"><div class="mhead"><i>${ico('mode-pvp', '⚔️')}</i><span><b>PvP</b><small>다른 수비대의 「전투 편성」 팀과 대결 · 모두 같은 레벨</small></span></div>
         <div class="mrank" id="mRank">${ACC ? '랭크 불러오는 중…' : '로그인하면 PvP를 할 수 있어요'}</div>
         <button class="mbtn" id="mNormal" ${ACC ? '' : 'disabled'}><i>${ico('mode-normal', '🤝')}</i><span><b>일반게임</b><small>점수 없이 가볍게</small></span></button>
@@ -533,13 +554,14 @@ const unlocked = id => { const all = stages(), i = all.findIndex(s => s.id === i
 function storyScreen() {
   modal.hidden = true; bgm('title');
   const team = SAVE.team.map(id => UNITS.find(u => u.id === id));
-  app.innerHTML = `<header><button class="back" id="bk">‹ 뒤로</button><h1>스토리</h1><small>${SAVE.cleared.length}/${stages().length} 실적</small></header>
-  <section class="teambar">${team.length === 3 ? team.map(u => { const s = SAVE.units[u.id], need = xpToNext(R, s.level);
+  // 가로(v0.11.1): 왼쪽 팀(글자 크게, 기술·승진 버튼) · 오른쪽 장 목록(그 안에서만 넘김)
+  app.innerHTML = `<div class="story"><header><button class="back" id="bk">‹ 뒤로</button><h1>스토리</h1><small>${SAVE.cleared.length}/${stages().length} 실적</small></header>
+  <aside class="steam"><section class="teambar">${team.length === 3 ? team.map(u => { const s = SAVE.units[u.id], need = xpToNext(R, s.level);
       const r = myRec(u.id, 0), n = learnChances(R, r), up = canEvolve(R, r, partsCleared());
-      return `<button class="mini" data-u="${u.id}"><img src="${sprite(u.id, 'front', r.stage)}" class="st-${r.stage}" alt=""><b>${esc(u.name)}</b><span>Lv${s.level} ${chip(u.def.attr)}${r.stage ? `<em class="stars">${STARS[r.stage]}</em>` : ''}</span><i class="xp"><i style="width:${Math.min(100, s.xp / need * 100)}%"></i></i>${up ? '<em class="learn promo">⬆ 승진 가능</em>' : n ? `<em class="learn">✨ 기술 배우기 ${n}</em>` : '<small>기술·승진 보기</small>'}</button>`; }).join('')
+      return `<button class="mini" data-u="${u.id}"><img src="${sprite(u.id, 'front', r.stage)}" class="st-${r.stage}" alt=""><b>${esc(u.name)}</b><span>Lv${s.level} ${chip(u.def.attr)}${r.stage ? `<em class="stars">${STARS[r.stage]}</em>` : ''}</span><i class="xp"><i style="width:${Math.min(100, s.xp / need * 100)}%"></i></i>${up ? '<em class="learn promo">⬆ 승진 가능</em>' : n ? `<em class="learn">✨ 기술 배우기 ${n}</em>` : '<small>기술·승진 보기 ›</small>'}</button>`; }).join('')
       + (team.length === 3 ? `<p class="combo">${teamCombos(SAVE.team).map(x => `🤝 합동기 「${esc(x.skill)}」`).join(' · ') || '합동기 없음(같은 시너지 2마리면 생겨요)'}</p>` : '')
-    : '<p class="hint" style="margin:0">먼저 팀 3마리를 정해 주세요.</p>'}<button class="ghost" id="ed">${team.length === 3 ? '편성 바꾸기' : '팀 정하기'}</button></section>
-  ${STORY.chapters.map(c => { const sc = c.stages[0].scene || 'harbor', cl = c.stages.filter(s => SAVE.cleared.includes(s.id)).length, open = c.stages.some(s => unlocked(s.id)), all = cl === c.stages.length;
+    : '<p class="hint" style="margin:0">먼저 팀 3마리를 정해 주세요.</p>'}<button class="ghost" id="ed">${team.length === 3 ? '편성 바꾸기' : '팀 정하기'}</button></section></aside>
+  <main class="schap">${STORY.chapters.map(c => { const sc = c.stages[0].scene || 'harbor', cl = c.stages.filter(s => SAVE.cleared.includes(s.id)).length, open = c.stages.some(s => unlocked(s.id)), all = cl === c.stages.length;
     return `<section class="chap"><div class="chead sc-${sc}" style="${bgStyle(sc)}"><div class="in"><h2>${esc(c.title)}</h2><span class="pn">${all ? '✓ 완료' : `${cl}/${c.stages.length}`}</span>${c.intro ? `<p>${esc(c.intro)}</p>` : ''}${c.needStage ? `<p class="need ${teamStageOk(c.needStage) ? 'ok' : ''}">${teamStageOk(c.needStage) ? '✓' : '🔒'} 팀 전원 ${c.needStage}단계 승진 필요 (${STARS[c.needStage]})</p>` : ''}</div></div>
     <details ${open && !all ? 'open' : ''}><summary>${open ? '스테이지 보기' : '스테이지 미리 보기'} (${c.stages.length})</summary>
     ${c.stages.map(s => { const done = SAVE.cleared.includes(s.id), open = unlocked(s.id);
@@ -547,7 +569,7 @@ function storyScreen() {
       return `<button class="stage ${done ? 'done' : ''}" data-s="${s.id}" ${open && team.length === 3 ? '' : 'disabled'}><span class="no">${s.id}</span><span class="tt">${esc(s.title)}${boss ? ' <em>보스</em>' : ''}<small>${s.enemy.map(e => `${esc(R.villains.get(e.id).name)} Lv${e.level}`).join(' · ')}</small></span><span class="mk">${done ? '✓' : open ? '도전' : '잠김'}</span></button>`; }).join('')}</details></section>`; }).join('')}
   <p class="hint">진 대결도 경험치를 조금 받아요. 깬 스테이지는 다시 도전해 레벨을 올릴 수 있어요.</p>
   <p class="hint" id="savewarn" style="color:#ff8a7a" ${saveFail ? '' : 'hidden'}>⚠ 계정에 저장하지 못했어요. 인터넷이 연결되면 다음 진행 때 다시 저장해요.</p>
-  <div style="padding:0 16px 24px"><button class="ghost" id="reset" style="width:100%">스토리 진행 처음부터(${ACC ? '계정' : '이 브라우저'})</button></div>`;
+  <div style="padding:0 16px 24px"><button class="ghost" id="reset" style="width:100%">스토리 진행 처음부터(${ACC ? '계정' : '이 브라우저'})</button></div></main></div>`;
   app.querySelector('#bk').onclick = menu;
   app.querySelector('#ed').onclick = () => pickScreen('story');
   app.querySelectorAll('[data-u]').forEach(x => x.onclick = () => skillSheet(x.dataset.u));
