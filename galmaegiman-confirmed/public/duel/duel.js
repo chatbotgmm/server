@@ -783,30 +783,32 @@ const FLIP = ['camo', 'reverse', 'weakguard', 'neutral', 'dual', 'counter'];   /
 const multTag = m => m > 1 ? `<b class="good">×${m} 유리</b>` : m < 1 ? `<b class="bad">×${m} 불리</b>` : '<b>×1 보통</b>';
 
 function chooseSheet(p) {
-  let aug = null, to = null, enter = true;   // enter: 처음 열 때만 카드가 떠오름(고를 때마다 다시 그려도 반복 안 함)
+  let aug = null, to = null, enter = true, step = p.augments && p.needSwitch ? 'aug' : null;   // 둘 다 고를 때: 증강체 먼저 → 다음 갈매미(v0.14.1)   // enter: 처음 열 때만 카드가 떠오름(고를 때마다 다시 그려도 반복 안 함)
   const me = activeOf(b, 0), foe = activeOf(b, 1);
   const alive = b.sides[0].fighters.map((f, i) => [f, i]).filter(([f]) => f.hp > 0);
   const atk = R.typeMult(me.attr, foe.attr), def = R.typeMult(foe.attr, me.attr), bad = atk < 1 || def > 1;
   const face = f => sprite(f.rec.id, 'front', f.rec.stage), faceCls = f => tintOf(f.rec.id);
   const draw = () => {
+    const showAug = p.augments && step !== 'sw', showSw = p.needSwitch && step !== 'aug';
+    modal.className = showAug ? 'full' : '';
     const vs = p.augments ? `<div class="vs">
         <div class="side"><img src="${face(me)}" class="flip" alt=""><b>${esc(me.name)}</b>${chip(me.attr)}</div>
         <div class="mid"><small>내 공격</small>${multTag(atk)}<small>상대 공격</small>${multTag(def)}</div>
         <div class="side"><img src="${face(foe)}" class="${faceCls(foe)}" alt=""><b>${esc(foe.name)}</b>${chip(foe.attr)}</div></div>` : '';
     const rr = b.sides[0].rerolled ?? [];
     // 확인 버튼 글자: 고른 것은 이름으로, 아직 안 고른 것은 무엇을 고를지(둘 다 있으면 「 · 」로 이음)
-    const okLabel = () => [p.augments && (aug ? `「${esc(R.battleAug.get(aug).name)}」 선택` : '증강체를 골라요'),
-      p.needSwitch && (to !== null ? `${esc(b.sides[0].fighters[to].name)} 출전` : '나갈 갈매미를 골라요')].filter(Boolean).join(' · ');
-    modal.innerHTML = `<div class="sheet pick ${p.augments ? 'full' : ''} ${p.augments && p.needSwitch ? 'both' : ''} ${enter ? 'enter' : ''}">
-      ${p.augments ? `<h2>전투 증강체</h2><p class="sub">${b.turn === 1 ? '대결 시작' : '전투불가 발생'} · 3개 중 하나를 골라요. 마음에 안 들면 칸마다 한 번씩 🎲 다시 뽑을 수 있어요.</p>${vs}
+    const okLabel = () => step === 'aug' ? (aug ? `「${esc(R.battleAug.get(aug).name)}」 선택 · 다음: 나갈 갈매미 ›` : '증강체를 골라요')
+      : [showAug && (aug ? `「${esc(R.battleAug.get(aug).name)}」 선택` : '증강체를 골라요'), showSw && (to !== null ? `${esc(b.sides[0].fighters[to].name)} 출전` : '나갈 갈매미를 골라요')].filter(Boolean).join(' · ');
+    modal.innerHTML = `<div class="sheet pick ${showAug ? 'full' : ''} ${enter ? 'enter' : ''}">
+      ${showAug ? `${step === 'aug' ? '<p class="steps">① 증강체 고르기 → ② 다음 갈매미</p>' : ''}<h2>전투 증강체</h2><p class="sub">${b.turn === 1 ? '대결 시작' : '전투불가 발생'} · 3개 중 하나를 골라요. 마음에 안 들면 칸마다 한 번씩 🎲 다시 뽑을 수 있어요.</p>${vs}
         ${hintNow && b.turn === 1 ? `<div class="tipline">💡 ${hl(hintNow)}</div>` : ''}
         ${p.augments.map(id => { const a = R.battleAug.get(id), [ic, kind] = AUG_ICON[id] ?? ['✨', ''], rec = bad && FLIP.includes(id);
           return `<div class="augc"><button class="aug ${aug === id ? 'on' : ''}" data-a="${id}"><span class="ic">${ico(id, ic)}</span><span class="tx"><b>${esc(a.name)}${rec ? '<em>지금 추천</em>' : ''}</b><small>${esc(kind)}</small><span>${esc(a.desc)}</span></span><span class="ck">${aug === id ? '✓' : ''}</span></button>
             <button class="ghost reroll" data-r="${p.augments.indexOf(id)}" ${rr[p.augments.indexOf(id)] ? 'disabled' : ''}>${rr[p.augments.indexOf(id)] ? '다시 뽑기 끝' : '🎲 다시 뽑기'}</button></div>`; }).join('')}` : ''}
-      ${p.needSwitch ? `<h2>다음에 나갈 갈매미</h2><p class="sub">상대: ${esc(foe.name)} ${chip(foe.attr)}</p>
+      ${showSw ? `${step === 'sw' ? `<p class="steps"><button class="ghost" id="backAug">‹ 증강체 다시 고르기</button><span>✓ 증강체 「${esc(R.battleAug.get(aug).name)}」 → ② 다음 갈매미</span></p>` : ''}<h2>다음에 나갈 갈매미</h2><p class="sub">상대: ${esc(foe.name)} ${chip(foe.attr)}</p>
         ${alive.map(([f, i]) => { const m = R.typeMult(f.attr, foe.attr), pct = Math.round(f.hp / f.maxHp * 100);
           return `<button class="aug ${to === i ? 'on' : ''}" data-t="${i}"><img class="ic" src="${face(f)}" alt=""><span class="tx"><b>${esc(f.name)}</b><small>${R.attrName(f.attr)} · ${ROLE[f.role]} · 상대에게 ${m > 1 ? '유리' : m < 1 ? '불리' : '보통'}</small><i class="hpmini"><i style="width:${pct}%"></i></i></span><span class="ck">${to === i ? '✓' : ''}</span></button>`; }).join('')}` : ''}
-      <button class="big wide" id="ok" ${(p.augments && !aug) || (p.needSwitch && to === null) ? 'disabled' : ''}>${okLabel()}</button></div>`;
+      <button class="big wide" id="ok" ${(showAug && !aug) || (showSw && to === null) ? 'disabled' : ''}>${okLabel()}</button></div>`;
     enter = false;
     modal.querySelectorAll('[data-a]').forEach(x => x.onclick = () => { aug = x.dataset.a; draw(); });
     modal.querySelectorAll('[data-r]').forEach(x => x.onclick = () => {
@@ -816,7 +818,9 @@ function chooseSheet(p) {
       modal.querySelectorAll('.augc')[i]?.classList.add('rolled');
     });
     modal.querySelectorAll('[data-t]').forEach(x => x.onclick = () => { to = +x.dataset.t; draw(); });
+    modal.querySelector('#backAug')?.addEventListener('click', () => { step = 'aug'; enter = false; draw(); });
     modal.querySelector('#ok').onclick = async () => {
+      if (step === 'aug') { step = 'sw'; draw(); return; }   // 둘 다면 다음 갈매미 고르기로(엔진에는 마지막에 한 번에)
       modal.hidden = true; modal.className = '';
       const from = b.log.length;
       const pick = { ...(aug ? { augment: aug } : {}), ...(to !== null ? { switchTo: to } : {}) };
@@ -825,7 +829,7 @@ function chooseSheet(p) {
       await play(from); flow();
     };
   };
-  modal.onclick = null; modal.className = p.augments ? 'full' : ''; modal.hidden = false; draw();
+  modal.onclick = null; modal.hidden = false; draw();
 }
 
 function actionPanel() {
@@ -835,7 +839,7 @@ function actionPanel() {
   const foe = activeOf(b, 1);
   // 기술 4개(기본·역할·고유·보조 속성)를 2×2로. 지금 상대에게 유리/불리를 같이 보여 줌
   const combo = f.skills.find(k => k.id.startsWith('combo-')), ready = combo && can({ kind: 'skill', skillId: combo.id });
-  panel.innerHTML = `${combo ? `<button class="combo-btn" data-k="${combo.id}" ${ready ? '' : 'disabled'}><small>🤝 합동기 · ${esc(R.data.synergies[combo.id.slice(6)].name)} · 대결당 1번</small><b>${esc(combo.name)}</b><span>${esc(combo.desc)}${ready ? '' : b.sides[0].comboUsed ? ' (이미 씀)' : ' (같은 시너지 동료가 있어야 해요)'}</span></button>` : ''}<div class="skills">${f.skills.filter(k => !k.id.startsWith('combo-')).map(k => {
+  panel.innerHTML = `${combo ? `<button class="combo-btn" data-k="${combo.id}" title="${esc(combo.desc)}" ${ready ? '' : 'disabled'}><small>🤝 합동기 · ${esc(R.data.synergies[combo.id.slice(6)].name)} · 대결당 1번</small><b>${esc(combo.name)}</b><span>${esc(combo.desc)}${ready ? '' : b.sides[0].comboUsed ? ' (이미 씀)' : ' (같은 시너지 동료가 있어야 해요)'}</span></button>` : ''}<div class="skills">${f.skills.filter(k => !k.id.startsWith('combo-')).map(k => {
     const at = k.attr ?? f.attr, m = k.power ? R.typeMult(at, foe.attr) : 1, wait = f.cds[k.id] > 0;
     const kind = k.id.startsWith('sub-') ? '보조 속성' : k.id.startsWith('learn-') ? '배운 기술' : k.id === 'sig' ? '고유기' : k.id.startsWith('role-') ? '역할기' : '기본';
     return `<button class="sk" data-k="${k.id}" style="--c:${COLOR[at]}" ${can({ kind: 'skill', skillId: k.id }) ? '' : 'disabled'}>

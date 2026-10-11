@@ -8,7 +8,7 @@ const pk={bhs:F+'/_fontsource_black-han-sans/package',gd:F+'/_fontsource_gowun-d
 let css=null;try{css=Object.entries(pk).map(([k,d])=>readFileSync(d+'/index.css','utf8').replace(/url\(\.\/files\//g,`url(https://fonts.gstatic.com/${k}/`)).join('\n');}
 catch{console.error('글꼴 패키지가 없어요: '+F+' — 실제 게임 글꼴이 아니면 검토가 틀려지니 멈춰요(세 번째 인자로 글꼴 폴더를 주세요)');process.exit(1);}
 const b=await chromium.launch();
-for(const [n,w,h] of [['L',915,412],['S',780,360],['W',1280,720]]){   // 게임은 가로만(앱 가로 고정): 휴대폰 가로·큰 화면 가로
+for(const [n,w,h] of [['Z',1006,411],['L',915,412],['S',780,360],['W',1280,720]]){   // 게임은 가로만(앱 가로 고정): 휴대폰 가로·큰 화면 가로
   const c=await b.newContext({viewport:{width:w,height:h},deviceScaleFactor:2,serviceWorkers:'block'});   // 서비스 워커가 글꼴을 직접 받으면 아래 가로채기가 안 먹어서 막음
   if(css)await c.route('https://fonts.googleapis.com/**',r=>r.fulfill({contentType:'text/css',body:css}));
   if(css)await c.route('https://fonts.gstatic.com/**',r=>{const [k,f]=r.request().url().split('fonts.gstatic.com/')[1].split('/');r.fulfill({contentType:'font/woff2',headers:{'access-control-allow-origin':'*'},body:readFileSync(pk[k]+'/files/'+f)});});
@@ -47,8 +47,16 @@ for(const [n,w,h] of [['L',915,412],['S',780,360],['W',1280,720]]){   // 게임�
   for(let i=0;i<40 && !(await p.$('.aug'));i++){await p.click('.dbox').catch(()=>{});await p.waitForTimeout(200);}
   await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-3d-aug.png`});console.log(n,'증강체',JSON.stringify(await ov()),'창 안 스크롤',await p.evaluate(()=>{const e=document.querySelector('#modal .sheet');return e?e.scrollHeight>e.clientHeight+1:null;}));
   if(await p.$('[data-r]')){await p.click('[data-r]');await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-3e-reroll.png`});}
-  await p.click('.aug');await p.click('#ok');await p.waitForSelector('.sk');await p.waitForTimeout(2200);
+  await p.click('.aug');await p.waitForTimeout(400);await p.screenshot({path:`${out}/R${n}-3d2-aug-on.png`});
+  console.log(n,'고른 증강체 표시가 카드 안',await p.evaluate(()=>{const a=document.querySelector('.aug.on');if(!a)return null;const r=a.getBoundingClientRect(),s=getComputedStyle(a,'::after');return s.content!=='none'&&r.top>=0&&r.bottom<=innerHeight;}));
+  await p.click('#ok');await p.waitForSelector('.sk');await p.waitForTimeout(2200);
   await p.screenshot({path:`${out}/R${n}-4battle.png`});console.log(n,'전투',JSON.stringify(await ov()));
+  // 잘림 검사: 전투 판 안 버튼이 판 밖으로 나가는데 스크롤도 안 되면 잘린 것
+  const clip=()=>p.evaluate(()=>{const pn=document.getElementById('panel');if(!pn)return null;const R=pn.getBoundingClientRect(),cut=[...pn.querySelectorAll('button')].filter(e=>{const r=e.getBoundingClientRect();return r.bottom>R.bottom+1||r.right>R.right+1;});return {밖으로나간버튼:cut.length,스크롤됨:pn.scrollHeight>pn.clientHeight+1&&getComputedStyle(pn).overflowY!=='hidden',화면밖:R.bottom>innerHeight+1};});
+  console.log(n,'전투 판 잘림',JSON.stringify(await clip()));
+  // 휴대폰 글자 크기 설정을 크게 한 경우 흉내(글자만 130%): 앱은 setTextZoom(100)으로 막지만 웹으로 열 때 대비
+  await p.evaluate(()=>{for(const e of document.querySelectorAll('#app *')){const f=parseFloat(getComputedStyle(e).fontSize);e.style.fontSize=(f*1.3)+'px';}});await p.waitForTimeout(300);
+  await p.screenshot({path:`${out}/R${n}-4battle-bigtext.png`});console.log(n,'전투(글자 130%) 판 잘림',JSON.stringify(await clip()));
   // 겹침 검사: 상태 칸과 캐릭터 그림
   console.log(n,'겹침',JSON.stringify(await p.evaluate(()=>{const r=id=>document.getElementById(id).getBoundingClientRect();const o=(a,b)=>!(a.right<b.left||b.right<a.left||a.bottom<b.top||b.bottom<a.top);return {내칸_상대그림:o(r('b0'),r('m1')),상대칸_상대그림:o(r('b1'),r('m1'))};})));
   console.log(n,'errors',JSON.stringify(errs));await c.close();

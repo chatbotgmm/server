@@ -23,6 +23,8 @@ public class MainActivity extends BridgeActivity {
             getWindow().setAttributes(lp);
         }
         immersive();
+        // 폰 「글자 크기」 설정이 게임 화면 글자를 키워 칸이 잘리던 것: 게임은 화면 비율이 정해져 있어 글자 배율을 100%로 고정(v0.14.1)
+        if (getBridge() != null && getBridge().getWebView() != null) getBridge().getWebView().getSettings().setTextZoom(100);
     }
 
     @Override

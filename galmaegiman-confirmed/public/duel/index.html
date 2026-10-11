@@ -1296,6 +1296,33 @@ img{-webkit-user-drag:none;-webkit-touch-callout:none}
 .ttl9 .i9b span{justify-content:center;font-size:6.2cqh}
 .ttl9 .i9b:active{transform:translateY(2px) scale(.99)}
 @media (prefers-reduced-motion:reduce){.ttl9 .i9b::before{animation:none}}
+
+/* v0.14.1: 증강체 화면 뒤 전투 화면이 비쳐 글자가 겹쳐 보이던 것 → 불투명, 「✓ 선택」 표시는 카드 안쪽 위(잘리던 것), 단계 표시 */
+#modal.full{background:#2a170a !important}
+.sheet.pick.full .augc .aug.on::after{top:6px;left:auto;right:8px;transform:none;font-size:11px;padding:0 8px}
+.sheet.pick .steps{margin:0;text-align:center;font-size:12.5px;font-weight:700;color:#e9c99a;letter-spacing:.02em}
+.sheet.pick:not(.full) .steps{color:var(--dim)}
+.sheet.pick .steps:has(#backAug){display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
+#backAug{min-height:36px;padding:4px 14px;font-size:12.5px;border-radius:999px;width:auto}
+/* 전투 기술 칸: 내용이 길면(폰 글자 크기 등) 잘리지 않고 칸 안에서 넘김 */
+#panel{overflow-y:auto;overscroll-behavior:contain}
+/* v0.14.1 휴대폰 가로 전투 판: 기술·교체·도망이 스크롤 없이 한 화면에 들어오게 촘촘히 */
+@media (orientation:landscape) and (max-height:430px){
+  #app:has(#arena) #msg{margin:6px 12px 4px;padding:6px 12px;font-size:12.5px}
+  #app:has(#arena) #panel{gap:5px}
+  #app:has(#arena) .combo-btn{padding:5px 12px;margin-bottom:0;gap:0}
+  #app:has(#arena) .combo-btn small{font-size:10px}
+  #app:has(#arena) .combo-btn b{font-size:14px;line-height:1.2}
+  #app:has(#arena) .combo-btn span{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #app:has(#arena) .skills{gap:5px}
+  #app:has(#arena) .sk{padding:4px 8px;gap:1px;border-top-width:4px}
+  #app:has(#arena) .sk .kd{font-size:9.5px}
+  #app:has(#arena) .sk b{font-size:13.5px}
+  #app:has(#arena) .sw{gap:5px}
+  #app:has(#arena) .sw button{padding:3px 8px;font-size:11px;min-height:40px}
+  #app:has(#arena) .sw button img{width:30px;height:30px}
+  #app:has(#arena) #panel .fleerow .flee{padding:4px 12px;font-size:12px;min-height:34px}
+}
 </style>
 </head>
 <body>
