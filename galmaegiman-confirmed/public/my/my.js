@@ -46,6 +46,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
   const thumb = id => `${BASE}/thumbs/${encodeURIComponent(id)}.jpg`;
   // 게임 모드: 재화는 위쪽 줄 오른쪽에 작게(재화 확인이 화면의 목적처럼 보이지 않게)
   const cIco = (id, e) => `<img class="ci" src="${BASE}/duel/icons/${id}.png" alt="" onerror="this.replaceWith('${e}')">`;   // 재화 그림(없으면 이모지)
+  const gI = (id, e) => GAMEUI ? cIco(id, e) : e;   // 게임 화면에서는 이모지 대신 그림 아이콘(v0.12.7)
   const curBar = m => m ? `<div class="cur">${[[cIco('u-snack', '🍤'), m.snack, '새우깡'], [cIco('u-peanut', '🥜'), m.peanut, '땅콩'], [cIco('u-ticket', '🎫'), m.credits, '뽑기권']].map(([i, n, t]) => `<span title="${t}">${i}<b>${Number(n).toLocaleString('ko-KR')}</b></span>`).join('')}</div>` : '';
   const head = (right, m) => GAMEUI ? `<header class="gbar"><button class="gback img" id="gback" aria-label="돌아가기"><img src="${BASE}/duel/icons/btn-back.png" alt="" onerror="this.parentNode.classList.remove('img');this.replaceWith('‹ 돌아가기')"></button><h1>${GAMEUI && me && TABNAME[tab] ? (groupOf(tab).length > 1 ? '수비대' : TABNAME[tab]) : '내 갈매미'}</h1><span class="sp"></span>${curBar(m)}</header>` : `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span><a class="hl" href="/dex" title="도감">📚<span class="lt"> 도감</span></a><a class="hl" href="/search" title="검색">🔍</a>${right ?? ''}<a class="home" href="/" title="홈">🏠<span class="lt"> 홈</span></a></header>`;
 
@@ -104,7 +105,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
   const tabBg = () => { if (!GAMEUI) return; let k = ''; try { k = sessionStorage.getItem('gmm-k') || ''; } catch { /* 무시 */ } if (k) document.documentElement.style.setProperty('--gbg', `url("${BASE}/duel/bg/${BG_OF[tab] ?? 'attic'}.jpg?k=${encodeURIComponent(k)}")`); };
   function draw() {
     app.classList.toggle('gv', !GAMEUI); app.classList.toggle('gsolo', GAMEUI); tabBg();
-    const tabs = [['draw', '🥚 뽑기'], ['craft', '🧩 조합'], ['units', '<img class="gi" src="/gull.png" alt=""> 내 갈매미'], ['party', '🧭 탐험대 편성'], ['battle', '⚔️ 전투 편성'], ['items', '🎒 아이템'], ['shop', '🛒 상점'], ['account', '👤 계정']];
+    const tabs = [['draw', `${gI('m-draw', '🥚')} 뽑기`], ['craft', `${gI('u-emblem', '🧩')} 조합`], ['units', '<img class="gi" src="/gull.png" alt=""> 내 갈매미'], ['party', `${gI('mode-camp', '🧭')} 탐험대 편성`], ['battle', `${gI('mode-pvp', '⚔️')} 전투 편성`], ['items', `${gI('potion', '🎒')} 아이템`], ['shop', `${gI('m-shop', '🛒')} 상점`], ['account', '👤 계정']];
     app.innerHTML = `${head('<button class="btn ghost" id="out" title="로그아웃" style="padding:6px 12px;font-size:.85rem">🚪<span class="lt"> 로그아웃</span></button>', me)}
       ${GAMEUI ? '' : `<div class="card"><div class="row" style="margin-bottom:10px"><b style="font-weight:400;font-size:1.15rem">${esc(me.nickname || '이름 없는 수비조장')}</b><span class="tag">도감 ${me.dex}/${me.dexTotal}</span></div>
         <div class="money"><div><b><i>🍤</i>${me.snack}</b><small>새우깡</small></div><div><b><i>🥜</i>${me.peanut}</b><small>땅콩</small></div><div><b><i>🎫</i>${me.credits}</b><small>뽑기권</small></div><div><b><i>🪺</i>${me.units.reduce((a, u) => a + u.have, 0)}</b><small>갈매미</small></div></div></div>`}
@@ -140,23 +141,38 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
       const step = () => { if (!el.isConnected) return clearInterval(talk); const ps = [...el.querySelectorAll('.pd.full')].filter(p => p.querySelector('.pd-bub')); ps.forEach(p => p.classList.remove('talk')); if (ps.length) ps[k++ % ps.length].classList.add('talk'); };
       step(); talk = setInterval(step, 3600);
     };
+    let saving = false;
+    const ROLE = ['선봉', '2번', '3번'];
+    const same = () => JSON.stringify(pick) === JSON.stringify(me.battleTeam);
+    // 저장 상태: 변경 없음(회색) · 저장 가능(노랑) · 저장 중(흐림+글)
+    const stateText = () => saving ? '저장 중…' : same() ? (pick.length ? '✓ 저장된 편성이에요' : '아직 편성이 없어요') : pick.length === 3 ? '바뀐 편성이 있어요 · 저장해 주세요' : `${pick.length}/3마리 · 3마리를 채워야 대결에 나가요`;
+    const saveBtn = () => `<button class="btn wide ${GAMEUI ? 'imgsave' : ''} ${saving ? 'saving' : ''}" id="save" ${same() || saving ? 'disabled' : ''} aria-label="편성 저장">${GAMEUI ? `<img class="on" src="${BASE}/duel/icons/btn-save.png" alt="편성 저장" onerror="this.replaceWith('편성 저장')"><img class="off" src="${BASE}/duel/icons/btn-save-off.png" alt="" onerror="this.remove()">` : '편성 저장'}</button>`;
+    const grid = () => tops.length ? `<div class="grid ${GAMEUI ? 'btgrid' : ''}">${tops.map(u => { const i = pick.indexOf(u.id); return `<button class="u ${i >= 0 ? 'on' : ''}" data-id="${u.id}" aria-pressed="${i >= 0}"><img loading="lazy" src="${thumb(u.id)}" alt="">${i >= 0 ? `<span class="ord">✓</span><span class="selb s${i + 1}">${ROLE[i]}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}</small></button>`; }).join('')}</div>`
+      : '<p class="empty">아직 최상위 갈매미가 없어요. 카톡에서 조합해 깨워 주세요.</p>';
     const render = () => {
-      el.innerHTML = `<div class="card"><p class="note" style="margin-top:0">수비대 대결에 나갈 <b>최상위 갈매미 3마리</b>를 골라요. 처음 고른 갈매미가 먼저 나가요.</p>
-        ${GAMEUI ? `<div class="podium">${[1, 0, 2].map(i => { const u = tops.find(x => x.id === pick[i]); return `<div class="pd pd${i + 1} ${u ? 'full' : ''}" ${u ? `data-rm="${u.id}"` : ''} style="--tc:${u ? TIER_COLOR[u.tier] ?? '#888' : '#c9b08a'}">
-            ${u && (u.quote || u.tagline) ? `<div class="pd-bub">${esc(u.quote || u.tagline)}</div>` : ''}<div class="pd-card">${u ? `<img src="${thumb(u.id)}" alt=""><b>${esc(u.name)}</b>` : '<span>＋</span><small>비어 있음</small>'}</div><div class="pd-step"><em>${i + 1}</em>${i ? `${i + 1}번` : '선봉'}</div></div>`; }).join('')}</div>`
-        : `<div class="slots">${[0, 1, 2].map(i => { const u = tops.find(x => x.id === pick[i]); return u ? `<div class="slot full"><img src="${thumb(u.id)}" alt=""><span>${i + 1}. ${esc(u.name)}</span></div>` : `<div class="slot">${i + 1}번 자리<br>비어 있음</div>`; }).join('')}</div>`}
-        <button class="btn wide ${GAMEUI ? 'imgsave' : ''}" id="save" ${JSON.stringify(pick) === JSON.stringify(me.battleTeam) ? 'disabled' : ''}>${GAMEUI ? `<img class="on" src="${BASE}/duel/icons/btn-save.png" alt="편성 저장" onerror="this.replaceWith('편성 저장')"><img class="off" src="${BASE}/duel/icons/btn-save-off.png" alt="" onerror="this.remove()">` : '편성 저장'}</button></div>
-        ${tops.length ? `<div class="grid">${tops.map(u => { const i = pick.indexOf(u.id); return `<button class="u ${i >= 0 ? 'on' : ''}" data-id="${u.id}"><img loading="lazy" src="${thumb(u.id)}" alt="">${i >= 0 ? `<span class="ord">${i + 1}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}</small></button>`; }).join('')}</div>`
-          : '<p class="empty">아직 최상위 갈매미가 없어요. 카톡에서 조합해 깨워 주세요.</p>'}`;
-      el.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { pick.splice(pick.indexOf(b.dataset.rm), 1); render(); });
+      // 게임 화면(가로, v0.12.7): 왼쪽 단상 · 오른쪽 갈매미 목록(여기만 넘김) · 아래 저장 줄(늘 보임)
+      el.innerHTML = GAMEUI ? `<div class="btwrap">
+        <section class="btleft"><p class="note">선봉이 먼저 나가요 · 단상을 누르면 빠져요</p>
+          <div class="podium">${[1, 0, 2].map(i => { const u = tops.find(x => x.id === pick[i]); return `<div class="pd pd${i + 1} ${u ? 'full' : ''}" ${u ? `data-rm="${u.id}"` : ''} style="--tc:${u ? TIER_COLOR[u.tier] ?? '#888' : '#c9b08a'}">
+            ${u && (u.quote || u.tagline) ? `<div class="pd-bub">${esc(u.quote || u.tagline)}</div>` : ''}<div class="pd-card">${u ? `<img src="${thumb(u.id)}" alt=""><b>${esc(u.name)}</b>` : '<span>＋</span><small>비어 있음</small>'}</div><div class="pd-step"><em>${i + 1}</em>${ROLE[i]}</div></div>`; }).join('')}</div></section>
+        <section class="btright"><div class="btlist-h"><b>최상위 갈매미 ${tops.length}마리</b><small>눌러서 넣기 · 다시 누르면 빼기</small></div>${grid()}</section>
+        <footer class="btbar"><span class="savest ${saving ? 'busy' : same() ? 'clean' : 'dirty'}" role="status">${stateText()}</span>${saveBtn()}</footer></div>`
+      : `<div class="card"><p class="note" style="margin-top:0">수비대 대결에 나갈 <b>최상위 갈매미 3마리</b>를 골라요. 처음 고른 갈매미가 먼저 나가요.</p>
+        <div class="slots">${[0, 1, 2].map(i => { const u = tops.find(x => x.id === pick[i]); return u ? `<div class="slot full"><img src="${thumb(u.id)}" alt=""><span>${i + 1}. ${esc(u.name)}</span></div>` : `<div class="slot">${i + 1}번 자리<br>비어 있음</div>`; }).join('')}</div>
+        <p class="note savest">${stateText()}</p>${saveBtn()}</div>${grid()}`;
+      el.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { if (saving) return; pick.splice(pick.indexOf(b.dataset.rm), 1); render(); });
       el.querySelectorAll('[data-id]').forEach(b => b.onclick = () => {
-        const id = b.dataset.id, i = pick.indexOf(id);
-        if (i >= 0) pick.splice(i, 1); else if (pick.length < 3) pick.push(id); else toast('3마리까지예요. 먼저 하나를 빼 주세요.');
-        render();
+        if (saving) return;
+        const id = b.dataset.id, i = pick.indexOf(id), y = el.querySelector('.btright')?.scrollTop;
+        if (i >= 0) pick.splice(i, 1); else if (pick.length < 3) pick.push(id); else { toast('3마리까지예요. 먼저 하나를 빼 주세요.'); return; }
+        render(); const r = el.querySelector('.btright'); if (r && y) r.scrollTop = y;   // 목록 위치 그대로
       });
       el.querySelector('#save').onclick = async () => {
-        try { const r = await api('battle-team', { ids: pick }); me.battleTeam = r.battleTeam; toast('전투 편성을 저장했어요'); render(); }
+        if (saving || same()) return;
+        saving = true; render();
+        try { const r = await api('battle-team', { ids: pick }); me.battleTeam = r.battleTeam; toast('전투 편성을 저장했어요'); }
         catch (e) { if (e.message !== 'login') toast(e.message); }
+        saving = false; render();
       };
       if (GAMEUI) chat();
     };
@@ -178,21 +194,21 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     if (!drawData) { el.innerHTML = '<p class="empty">불러오는 중…</p>'; try { drawData = await api('draw'); } catch (e) { if (e.message !== 'login') el.innerHTML = `<p class="empty">${esc(e.message)}</p>`; return; } }
     const d = drawData, credits = d.unlimited ? Infinity : d.credits;
     el.innerHTML = `<div class="card row" style="justify-content:space-between">
-        <div><b style="font-weight:400;font-size:1.15rem">🎟 뽑기권 ${d.unlimited ? '무제한(관리자)' : `${d.credits}장`}</b>
+        <div><b style="font-weight:400;font-size:1.15rem">${gI('u-ticket', '🎟')} 뽑기권 ${d.unlimited ? '무제한(관리자)' : `${d.credits}장`}</b>
         <p class="note" style="margin:2px 0 0">${d.wait ? `다음 뽑기권 받기까지 ${waitText(d.wait)}` : `지금 뽑기권 ${d.claim}장을 받을 수 있어요! (${d.cooldownHours}시간마다)`}${d.event ? ` · 🎉 ${esc(d.event.label)}` : ''}</p></div>
-        <div class="row" style="gap:8px">${drawLast && GAMEUI ? '<button class="btn ghost" id="rvAgain">🥚 지난 결과</button>' : ''}<button class="btn" id="claim" ${d.wait ? 'disabled' : ''}>🎟 뽑기권 받기</button></div></div>
+        <div class="row" style="gap:8px">${drawLast && GAMEUI ? `<button class="btn ghost" id="rvAgain">${gI('m-draw', '🥚')} 지난 결과</button>` : ''}<button class="btn" id="claim" ${d.wait ? 'disabled' : ''}>${gI('u-ticket', '🎟')} 뽑기권 받기</button></div></div>
       ${drawLast && !GAMEUI ? `<div class="card drawres"><b style="font-weight:400">🥚 결과</b><div class="dgrid">${drawLast.items.map(u => `<div class="du ${u.first ? 'new' : ''}" style="--tc:${TIER_COLOR[u.tier] ?? '#888'}"><img src="${cimg(u.img)}" alt="">${u.first ? '<span class="nb">NEW</span>' : ''}${u.n > 1 ? `<span class="n">×${u.n}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}</small></div>`).join('')}</div><p class="pre note" style="margin-top:8px">${esc(drawLast.summary)}</p></div>` : ''}
-      <div class="ggrid">${d.gachas.map(g => `<div class="gc"><img src="${cimg(g.img)}" alt=""><div class="gi"><b>${esc(g.label)} 뽑기</b><small>🎟 ${g.cost}장 · ${g.weights.map(w => `<span class="nw">${esc(w.tierName)} ${w.w}%</span>`).join(' · ')}</small>
+      <div class="ggrid">${d.gachas.map(g => `<div class="gc"><img src="${cimg(g.img)}" alt=""><div class="gi"><b>${esc(g.label)} 뽑기</b><small>${gI('u-ticket', '🎟')} ${g.cost}장 · ${g.weights.map(w => `<span class="nw">${esc(w.tierName)} ${w.w}%</span>`).join(' · ')}</small>
         ${g.kind === 'HIGH' && d.pity ? `<small>🎯 ${esc(d.pity.tierName)} 보장까지 ${d.pity.left}회</small>` : ''}
         ${GAMEUI ? (() => { const lim = Math.min(50, Math.floor(credits / g.cost)); return `<div class="dqty"><div class="qty"><button class="btn ghost" data-dq="${g.kind}" data-d="-1" ${lim ? '' : 'disabled'}>－</button><input type="number" inputmode="numeric" min="1" max="${Math.max(1, lim)}" value="1" data-di="${g.kind}" data-lim="${lim}" ${lim ? '' : 'disabled'}><button class="btn ghost" data-dq="${g.kind}" data-d="1" ${lim ? '' : 'disabled'}>＋</button><button class="btn ghost dmax" data-dq="${g.kind}" data-d="max" ${lim > 1 ? '' : 'disabled'}>최대</button></div>
-          <button class="btn dgo" data-k="${g.kind}" data-n="1" data-cost="${g.cost}" ${lim ? '' : 'disabled'}>${lim ? `1회 뽑기 · 🎟 ${g.cost}` : '뽑기권 부족'}</button></div>`; })()
+          <button class="btn dgo" data-k="${g.kind}" data-n="1" data-cost="${g.cost}" ${lim ? '' : 'disabled'}>${lim ? `1회 뽑기 · ${gI('u-ticket', '🎟')} ${g.cost}` : '뽑기권 부족'}</button></div>`; })()
         : `<div class="row">${[1, 5, 10].map(n => `<button class="btn ${n === 1 ? '' : 'ghost'}" data-k="${g.kind}" data-n="${n}" ${credits >= g.cost * n ? '' : 'disabled'}>${n}회<small>🎟 ${g.cost * n}</small></button>`).join('')}</div>`}</div></div>`).join('')}</div>
       ${GAMEUI ? '' : '<p class="note">결과·보상·미션은 카톡과 같이 계정에 바로 들어가요.</p>'}`;
     // 수량 고르기(게임 화면, v0.11.1): －/＋/최대 → 뽑기 버튼에 횟수·뽑기권 표시
     el.querySelectorAll('[data-di]').forEach(i => {
       const k = i.dataset.di, lim = +i.dataset.lim, go = el.querySelector(`.dgo[data-k="${k}"]`), cost = +go.dataset.cost;
       const val = () => Math.max(1, Math.min(lim, Math.floor(+i.value || 1)));
-      const paint = () => { const n = val(); go.dataset.n = n; if (lim) go.textContent = `${n}회 뽑기 · 🎟 ${(cost * n).toLocaleString('ko-KR')}`; };
+      const paint = () => { const n = val(); go.dataset.n = n; if (lim) go.innerHTML = `${n}회 뽑기 · ${gI('u-ticket', '🎟')} ${(cost * n).toLocaleString('ko-KR')}`; };
       i.oninput = paint; i.onblur = () => { i.value = val(); paint(); };
       el.querySelectorAll(`[data-dq="${k}"]`).forEach(b => b.onclick = () => { i.value = b.dataset.d === 'max' ? lim : Math.max(1, Math.min(lim, val() + +b.dataset.d)); paint(); });
     });
@@ -381,7 +397,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
   // 아이템: 가진 대결 아이템
   function items(el) {
     const mine = id => me.items.find(i => i.id === id)?.count ?? 0;
-    el.innerHTML = `<div class="card"><b style="font-weight:400">🎒 대결 아이템</b><p class="note">수비대 대결 스토리에서 「🎒 아이템」으로 써요. 쓰면 그 턴 행동을 쓰고, 대결 한 번에 ${me.itemRules.perBattle}개까지예요.</p></div>
+    el.innerHTML = `<div class="card"><b style="font-weight:400">${gI('potion', '🎒')} 대결 아이템</b><p class="note">수비대 대결 스토리에서 「🎒 아이템」으로 써요. 쓰면 그 턴 행동을 쓰고, 대결 한 번에 ${me.itemRules.perBattle}개까지예요.</p></div>
       ${me.itemDefs.map(d => `<div class="card row" style="justify-content:space-between"><div><b style="font-weight:400">${esc(d.name)}</b> <span class="tag">${mine(d.id)}개</span><p class="note" style="margin:2px 0 0">${esc(d.desc)}</p></div></div>`).join('')}`;
   }
 
@@ -390,23 +406,23 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     const p = me.prices, mine = id => me.items.find(i => i.id === id)?.count ?? 0, max = me.itemRules.maxStack;
     // 물건마다: 이름·설명, 수량 칸(최소 1 ~ 살 수 있는 만큼), 사기 버튼(합계)
     const goods = [
-      { key: 't1', title: `🎟 뽑기권 ${p.tickets.amount}장`, note: '새우깡으로 사요', unit: p.tickets.snack, cur: '🍤', limit: Math.min(50, Math.floor(me.snack / p.tickets.snack)), buy: n => run('shop', { item: 'tickets', count: n }, `새우깡 ${p.tickets.snack * n}개로 뽑기권 ${p.tickets.amount * n}장을 살까요?`) },
-      { key: 't2', title: `🥜 → 🎟 뽑기권 ${p.peanutTickets.amount}장`, note: '땅콩으로 바꿔요', unit: 1, cur: '🥜', limit: Math.min(50, me.peanut), buy: n => run('shop', { item: 'peanutTickets', count: n }, `땅콩 ${n}개로 뽑기권 ${p.peanutTickets.amount * n}장을 바꿀까요?`) },
-      ...me.itemDefs.map(d => ({ key: d.id, title: `${d.name} <span class="tag">가진 ${mine(d.id)}개</span>`, note: d.desc, unit: d.price, cur: '🍤', limit: Math.max(0, Math.min(max - mine(d.id), Math.floor(me.snack / d.price))),
+      { key: 't1', title: `뽑기권 ${p.tickets.amount}장`, note: '새우깡으로 사요', unit: p.tickets.snack, cur: gI('u-snack', '🍤'), limit: Math.min(50, Math.floor(me.snack / p.tickets.snack)), buy: n => run('shop', { item: 'tickets', count: n }, `새우깡 ${p.tickets.snack * n}개로 뽑기권 ${p.tickets.amount * n}장을 살까요?`) },
+      { key: 't2', title: `땅콩 → 뽑기권 ${p.peanutTickets.amount}장`, note: '땅콩으로 바꿔요', unit: 1, cur: gI('u-peanut', '🥜'), peanut: true, limit: Math.min(50, me.peanut), buy: n => run('shop', { item: 'peanutTickets', count: n }, `땅콩 ${n}개로 뽑기권 ${p.peanutTickets.amount * n}장을 바꿀까요?`) },
+      ...me.itemDefs.map(d => ({ key: d.id, title: `${d.name} <span class="tag">가진 ${mine(d.id)}개</span>`, note: d.desc, unit: d.price, cur: gI('u-snack', '🍤'), limit: Math.max(0, Math.min(max - mine(d.id), Math.floor(me.snack / d.price))),
         buy: n => run('items/buy', { id: d.id, count: n }, `${d.name} ${n}개를 새우깡 ${d.price * n}개로 살까요?`) })),
     ];
-    const icon = { t1: '🎟', t2: '🥜', ...Object.fromEntries(me.itemDefs.map(d => [d.id, `<img src="${BASE}/duel/icons/${d.id}.png" alt="" onerror="this.replaceWith('🎒')">`])) };
-    el.innerHTML = GAMEUI ? `<div class="shelf-head"><b>🛒 수비대 매점</b><small>대결 아이템은 종류마다 ${max}개까지 · 갈매미 교환·팔기는 카톡 「상점」</small></div>
+    const icon = { t1: gI('u-ticket', '🎟'), t2: gI('u-peanut', '🥜'), ...Object.fromEntries(me.itemDefs.map(d => [d.id, `<img src="${BASE}/duel/icons/${d.id}.png" alt="" onerror="this.replaceWith('🎒')">`])) };
+    el.innerHTML = GAMEUI ? `<div class="shelf-head"><b>${gI('m-shop', '🛒')} 수비대 매점</b><small>대결 아이템은 종류마다 ${max}개까지 · 갈매미 교환·팔기는 카톡 「상점」</small></div>
       <div class="shelf">${goods.map(g => `<div class="ware ${g.limit ? '' : 'off'}"><div class="ware-ic">${icon[g.key] ?? '🎁'}</div><b>${g.title}</b><small>${esc(g.note)}</small>
         <div class="qty"><button class="btn ghost" data-q="${g.key}" data-d="-1" ${g.limit ? '' : 'disabled'}>－</button><input type="number" inputmode="numeric" min="1" max="${Math.max(1, g.limit)}" value="1" data-i="${g.key}" ${g.limit ? '' : 'disabled'}><button class="btn ghost" data-q="${g.key}" data-d="1" ${g.limit ? '' : 'disabled'}>＋</button></div>
-        <button class="btn price" data-b="${g.key}" ${g.limit ? '' : 'disabled'}>${g.limit ? `${g.cur} ${g.unit}` : g.cur === '🥜' ? '땅콩 부족' : '살 수 없음'}</button></div>`).join('')}</div>`
+        <button class="btn price" data-b="${g.key}" ${g.limit ? '' : 'disabled'}>${g.limit ? `${g.cur} ${g.unit}` : g.peanut ? '땅콩 부족' : '살 수 없음'}</button></div>`).join('')}</div>`
     : `<div class="card"><b style="font-weight:400">🛒 상점</b><p class="note" style="margin:2px 0 0">지금 🍤 ${me.snack} · 🥜 ${me.peanut} · 대결 아이템은 종류마다 ${max}개까지</p></div>
       ${goods.map(g => `<div class="card shopi"><div><b style="font-weight:400">${g.title}</b><p class="note" style="margin:2px 0 0">${esc(g.note)} · ${g.cur} ${g.unit}</p></div>
         <div class="qty"><button class="btn ghost" data-q="${g.key}" data-d="-1" ${g.limit ? '' : 'disabled'}>－</button><input type="number" inputmode="numeric" min="1" max="${Math.max(1, g.limit)}" value="1" data-i="${g.key}" ${g.limit ? '' : 'disabled'}><button class="btn ghost" data-q="${g.key}" data-d="1" ${g.limit ? '' : 'disabled'}>＋</button>
-        <button class="btn" data-b="${g.key}" ${g.limit ? '' : 'disabled'}>${g.limit ? `사기 ${g.cur} ${g.unit}` : g.cur === '🥜' ? '땅콩 부족' : '살 수 없음'}</button></div></div>`).join('')}
+        <button class="btn" data-b="${g.key}" ${g.limit ? '' : 'disabled'}>${g.limit ? `사기 ${g.cur} ${g.unit}` : g.peanut ? '땅콩 부족' : '살 수 없음'}</button></div></div>`).join('')}
       <p class="note">갈매미 교환·팔기·닉네임 장식은 카톡 「상점」에서 할 수 있어요.</p>`;
     const val = g => { const i = el.querySelector(`[data-i="${g.key}"]`); const n = Math.max(1, Math.min(g.limit, Math.floor(+i.value || 1))); return n; };
-    const paint = g => { const n = val(g), b = el.querySelector(`[data-b="${g.key}"]`); if (g.limit) b.textContent = `${GAMEUI ? '' : '사기 '}${g.cur} ${(g.unit * n).toLocaleString('ko-KR')}`; };
+    const paint = g => { const n = val(g), b = el.querySelector(`[data-b="${g.key}"]`); if (g.limit) b.innerHTML = `${GAMEUI ? '' : '사기 '}${g.cur} ${(g.unit * n).toLocaleString('ko-KR')}`; };
     for (const g of goods) {
       const i = el.querySelector(`[data-i="${g.key}"]`);
       i.oninput = () => paint(g);

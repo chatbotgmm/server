@@ -1150,6 +1150,110 @@ img{-webkit-user-drag:none;-webkit-touch-callout:none}
 
 .sheet.today h2 .ico{width:30px;height:30px;object-fit:contain;vertical-align:-7px}
 .tdh{display:inline-flex;align-items:center;gap:6px}
+
+/* ── 출석·미션(v0.12.7): 창은 화면 높이 안, 제목·닫기는 늘 보이고 목록만 넘김. 상태는 색+글로 구분 ── */
+.sheet.today{display:flex;flex-direction:column;max-height:calc(100dvh - 16px);overflow:hidden !important;padding-bottom:12px}
+.sheet.today h2{flex:none;margin:0 0 8px}
+.sheet.today .scols{flex:1;min-height:0}
+@media (orientation:landscape){ .sheet.today .scols{align-items:stretch !important} }
+.sheet.today .scol{min-height:0;display:flex;flex-direction:column}
+.att,.msn{flex:1;min-height:0;border:2.5px solid #e2b77e;background:#fffaf0}
+.att-h,.msn-h{display:flex;flex-direction:column;gap:1px}
+.att-h b,.msn-h b{font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:16px}
+.msn-h em{font-style:normal;color:#a3541b}
+.msn-h small{color:var(--dim);font-size:11.5px}
+.ai .ico{width:20px;height:20px;object-fit:contain;display:block}
+/* 출석 칸 */
+.att-d{position:relative;padding:4px 2px 3px;gap:0}
+.att-d em{font-size:13px}
+.att-d .as{font-style:normal;font-size:10px;font-weight:700;border-radius:999px;padding:0 5px;margin-top:2px;line-height:1.5}
+.att-d.got{background:#f3ead8;border-color:#d9c3a0;opacity:.85}.att-d.got .ai{filter:grayscale(.5) opacity(.7)}.att-d.got .as{background:#e2d3b8;color:#6b5236}
+.att-d.today{border-color:#e07b2e;background:#fff0dc;box-shadow:0 0 0 3px #ffc27a;z-index:1;animation:attGlow 1.6s ease-in-out infinite}.att-d.today .as{background:#e07b2e;color:#fff}
+.att-d.today-got{border-color:#5a9a4a;background:#eaf5e2}.att-d.today-got .as{background:#5a9a4a;color:#fff}
+.att-d.lock{background:#faf6ee;border-style:dashed;color:#9b8a73}.att-d.lock .ai{filter:grayscale(1) opacity(.45)}.att-d.lock .as{background:#ece4d6;color:#8d7b63}
+.att-d.big:not(.got){border-color:var(--gold)}.att-d.big .ai .ico{width:26px;height:26px}
+@keyframes attGlow{50%{box-shadow:0 0 0 5px #ffd9a6}}
+@media (prefers-reduced-motion:reduce){.att-d.today{animation:none}}
+.att-now{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:12px;background:#fff3e0;border:2px dashed #e2b77e;margin-top:auto}
+.att-now .ai .ico{width:34px;height:34px}
+.att-now small{display:block;color:var(--dim);font-size:11.5px}.att-now b{font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:18px;color:#3b2614}
+.att-now.got{background:#eef6e8;border-color:#a9cf95}
+#tdAtt:disabled{background:#e8dcc6 !important;color:#6b5236 !important;border-color:#cdb894 !important;box-shadow:none !important;opacity:1}
+/* 미션: 이름+막대 | 진행 수 | 보상 | 상태 — 숫자 칸은 고정 너비로 줄 맞춤 */
+.msn-list{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:6px;padding-right:2px}
+.msn-r{display:grid;grid-template-columns:minmax(0,1fr) 44px 52px 58px;align-items:center;gap:6px;padding:6px 8px;border-radius:10px;border:1.5px solid #eadbc0;background:#fffdf8}
+.msn-r .mt b{display:block;font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msn-r .bar{display:block;height:7px;border-radius:999px;background:#ead6ae;margin-top:4px;overflow:hidden}.msn-r .bar>i{display:block;height:100%;background:linear-gradient(90deg,#ffd27a,var(--gold))}
+.msn-r .mv{text-align:right;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;color:#5a3418}
+.msn-r .mr{display:flex;align-items:center;justify-content:flex-end;gap:3px;font-variant-numeric:tabular-nums}.msn-r .mr b{font-size:13px}.msn-r .mr .ico{width:18px;height:18px;object-fit:contain}
+.msn-r .ms{text-align:center;font-size:11px;font-weight:800;border-radius:999px;padding:2px 0}
+.msn-r.run .ms{background:#efe5d3;color:#6b5236}
+.msn-r.ready{border-color:#ffc27a;background:#fff4e2}.msn-r.ready .ms{background:#e07b2e;color:#fff}
+.msn-r.done{background:#f1f7ec;border-color:#c5dfb6}.msn-r.done .ms{background:#5a9a4a;color:#fff}.msn-r.done .mt b{color:#6b7f5c;text-decoration:none}.msn-r.done .bar>i{background:#8cc274}
+@media (orientation:landscape) and (max-height:430px){
+  .sheet.today{padding-top:8px;padding-bottom:8px}.sheet.today h2{margin-bottom:4px}
+  .att,.msn{gap:5px}.att-now{padding:4px 10px}.att-now .ai .ico{width:26px;height:26px}.att-now b{font-size:15px}
+  .att-d .as{font-size:9px;padding:0 3px}.att-d em{font-size:12px}
+  .msn-r{padding:4px 6px;grid-template-columns:minmax(0,1fr) 38px 46px 52px}.msn-r .mt b{font-size:12.5px}.msn-r .bar{height:5px;margin-top:2px}
+  #tdAtt{padding:8px !important;font-size:15px !important}
+}
+
+#tdAtt{flex:none}
+/* 1920×1080처럼 큰 화면(높이 900 이상): 로비·모드·창을 1.5배로(작게 보이던 것) */
+@media (min-height:900px) and (min-width:1500px){
+  .home8>*:not(.amb),.modes>*:not(.lbg):not(.amb){zoom:1.5}
+  #modal .sheet{zoom:1.5}
+  .sheet.today{max-height:calc((100dvh - 16px) / 1.5)}
+}
+
+/* ── 로비 아래(v0.12.7): 메뉴 5개(같은 높이·같은 글자) | 다음 이야기 + 플레이. 겹치지 않게 한 줄 격자 ── */
+.h8bot{left:calc(12px + var(--sl));right:calc(12px + var(--sr));bottom:calc(8px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:14px}
+.h8bot .h8menu{position:static;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;max-width:760px}
+.h8bot .h8b{position:relative;height:var(--bh);display:flex;align-items:center;justify-content:center;gap:4px;padding:0 6px;border-radius:calc(var(--bh) * .32);text-decoration:none;
+  background:var(--pc);border:calc(var(--bh) * .1) solid var(--wood);box-shadow:inset 0 0 0 2px var(--wood-d),inset 0 -5px 0 rgba(0,0,0,.08),0 4px 0 var(--wood-dd);filter:none;aspect-ratio:auto;min-width:0}
+.h8bot .h8b i{font-style:normal;flex:none;width:calc(var(--bh) * .72);height:calc(var(--bh) * .72);display:grid;place-items:center;font-size:calc(var(--bh) * .48);line-height:1}
+.h8bot .h8b i .ico{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 1px 1px rgba(60,35,15,.35))}
+.h8bot .h8b span{font-family:"Black Han Sans",sans-serif;font-size:var(--mf);color:#fff;-webkit-text-stroke:calc(var(--mf) * .2) #5a3418;paint-order:stroke fill;letter-spacing:.02em;white-space:nowrap;line-height:1}
+.h8bot .h8b:active{transform:translateY(3px);box-shadow:inset 0 0 0 2px var(--wood-d),0 1px 0 var(--wood-dd)}
+.h8go{display:flex;flex-direction:column;align-items:stretch;gap:5px}
+.h8stage{background:rgba(255,250,240,.96);border:2.5px solid var(--wood);border-radius:12px;padding:3px 12px 4px;box-shadow:0 2px 0 var(--wood-d);text-align:center;max-width:calc(var(--bh) * 4.2)}
+.h8stage small{display:block;font-size:11px;color:#8a6a48;line-height:1.2}
+.h8stage b{display:block;font-size:14px;color:#3b2614;font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.h8go .h8play{position:relative;inset:auto;right:auto;bottom:auto;align-self:center}
+.h8go .h8play.img img{height:calc(var(--bh) * 1.3)}
+/* 알림 점: 어디든 같은 크기·같은 위치(오른쪽 위, 칸 안쪽으로 걸침) */
+.home8 .dot{width:16px;height:16px;top:-5px;right:-5px;border-width:2.5px}
+/* 재화: 보이는 알약은 작게, 누르는 칸은 40px */
+.home8 .cur{background:none !important;border:0 !important;box-shadow:none !important;padding:0 !important;min-height:40px;display:flex;align-items:center}
+.home8 .cur .pill{display:inline-flex;align-items:center;gap:4px;padding:3px 4px 3px 11px;border-radius:999px;background:rgba(255,250,240,.96);border:2.5px solid var(--wood);box-shadow:0 3px 0 var(--wood-d)}
+.home8 .cur:active .pill{transform:translateY(2px);box-shadow:0 1px 0 var(--wood-d)}
+.home8{--bh:58px;--mf:20px}
+@media (orientation:landscape) and (max-height:430px){
+  .home8{--bh:46px;--mf:16px}
+  .h8bot{gap:10px}.h8bot .h8menu{gap:6px}
+  .h8stage{padding:2px 10px 3px}.h8stage small{font-size:10.5px}.h8stage b{font-size:12.5px}
+  .home8 .cur .pill{padding:2px 3px 2px 9px}
+}
+@media (orientation:landscape) and (min-height:601px){ .home8{--bh:64px;--mf:22px} .h8stage b{font-size:16px}.h8stage small{font-size:12px} }
+.h8bot .h8b .dot{top:calc(-5px - var(--bh) * .1);right:calc(-5px - var(--bh) * .1)}
+
+/* 계정 메뉴(v0.12.7): 로비 팻말과 같은 나무 테두리·크림 바탕, 항목은 같은 높이·간격, 누를 때·고를 때(키보드) 표시 */
+.pmenu{border:3px solid var(--wood);box-shadow:inset 0 0 0 2px #fff3dc,0 5px 0 var(--wood-d),0 10px 22px rgba(60,35,15,.3);border-radius:18px;padding:8px;gap:6px;min-width:240px}
+.pmenu::before{border-color:var(--wood)}
+.pm-head{padding:4px 8px 8px;border-bottom:2px dashed #e2b77e}
+.pm-head b{font-size:17px;color:#3b2614}.pm-head small{color:#8a6a48}
+.pmenu button,.pm-a{min-height:44px;padding:6px 12px;border:2.5px solid #e2b77e;background:#fffdf7;border-radius:12px;box-shadow:0 3px 0 #e2b77e;font-weight:700;color:#3b2614}
+.pmenu button:hover,.pm-a:hover,.pmenu button:focus-visible,.pm-a:focus-visible{background:#fff0dc;border-color:var(--wood);outline:none;box-shadow:0 3px 0 var(--wood-d)}
+.pmenu button:active,.pm-a:active{background:#ffe2bd}
+.pmenu button i .ico,.pm-a i .ico{width:26px;height:26px;object-fit:contain;vertical-align:middle}
+@media (orientation:landscape) and (max-height:430px){ .pmenu{gap:5px;padding:6px} .pmenu button,.pm-a{min-height:40px;padding:4px 10px} }
+@media (min-height:900px) and (min-width:1500px){ .pmenu{zoom:1.5} }
+
+/* 출석 칸이 남는 높이를 채워 위아래 균형(빈칸 없앰) */
+.att-week{flex:1;min-height:0;align-items:stretch}
+.att-d{justify-content:center;gap:2px}
+.att-now{margin-top:0}
+@media (orientation:landscape) and (min-height:431px){ .att-d .ai .ico{width:26px;height:26px}.att-d.big .ai .ico{width:32px;height:32px}.att-d em{font-size:15px} }
 </style>
 </head>
 <body>

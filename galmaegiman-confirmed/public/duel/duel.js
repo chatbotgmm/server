@@ -289,14 +289,14 @@ function menu() {
   const storyDot = team.some(id => { const r = myRec(id, 0); return learnChances(R, r) > 0 || canEvolve(R, r, partsCleared()); });
   const st = nextStage();
   // 메뉴 팻말: 그림(btn-*.png, 글자 포함)이 있으면 그림, 없으면 같은 모양을 코드로(조합은 아직 그림이 없음)
-  const MENU = [['party', '탐험', '🧭', 'mint'], ['draw', '뽑기', '🥚', 'pink'], ['units', '수비대', '🛡️', 'lilac'], ['craft', '조합', '🧩', 'sky'], ['shop', '상점', '🏪', 'peach']];
+  // 메뉴(v0.12.7): 글자는 그림이 아닌 실제 글자(크기·높이 통일), 그림은 아이콘만. 조합 = 깃털·잎 메달
+  const MENU = [['party', '탐험', 'mode-camp', '🧭', 'mint'], ['draw', '뽑기', 'm-draw', '🥚', 'pink'], ['units', '수비대', 'mode-normal', '🛡️', 'lilac'], ['craft', '조합', 'u-emblem', '🧩', 'sky'], ['shop', '상점', 'm-shop', '🏪', 'peach']];
   app.innerHTML = `<div class="home8" style="${bg}">
     <header class="h8top"><button class="lprof" id="lprof" aria-haspopup="menu"><i>${ico('u-profile', '🪪')}</i><span><b>${esc(ACC?.nickname || '수비조장')}</b><small>${lvl ? `수비대 Lv${lvl} · 실적 ${SAVE.cleared.length}/${stages().length}` : '아직 팀이 없어요'}</small></span><em class="caret">▾</em></button><div class="lcur" id="lcur"></div></header>
     ${ACC ? `${ICONS.includes('btn-attend') ? `<button class="h8att img" id="td" aria-label="출석체크"><img src="${BASE}/duel/icons/btn-attend.png" alt=""></button>` : `<button class="h8att" id="td"><i>${ico('u-attend', '📅')}</i><span>출석체크</span></button>`}` : ''}
-    <nav class="h8menu">${MENU.map(([h, t, i, c]) => ICONS.includes(`btn-${h}`)
-      ? `<a href="${my(h)}" data-h="${h}" class="h8b img" aria-label="${t}"><img src="${BASE}/duel/icons/btn-${h}.png" alt=""></a>`
-      : `<a href="${my(h)}" data-h="${h}" class="h8b code ${c}"><i>${i}</i><span>${t}</span></a>`).join('')}</nav>
-    <button class="h8play ${ICONS.includes('btn-play') ? 'img' : ''}" id="go" aria-label="플레이">${ICONS.includes('btn-play') ? `<img src="${BASE}/duel/icons/btn-play.png" alt="">` : '<b>▶ 플레이</b>'}<small>${st ? `${esc(st.id)} ${esc(st.title)}` : '모든 이야기 완료'}</small></button></div>`;
+    <div class="h8bot"><nav class="h8menu">${MENU.map(([h, t, ic, e, c]) => `<a href="${my(h)}" data-h="${h}" class="h8b ${c}"><i>${ico(ic, e)}</i><span>${t}</span></a>`).join('')}</nav>
+      <div class="h8go"><div class="h8stage"><small>${st ? '다음 이야기' : '이야기'}</small><b>${st ? `${esc(st.id)} ${esc(st.title)}` : '모든 이야기 완료'}</b></div>
+      <button class="h8play ${ICONS.includes('btn-play') ? 'img' : ''}" id="go" aria-label="플레이">${ICONS.includes('btn-play') ? `<img src="${BASE}/duel/icons/btn-play.png" alt="">` : '<b>▶ 플레이</b>'}</button></div></div></div>`;
   app.querySelector('#td')?.addEventListener('click', todaySheet);
   app.querySelector('#lprof').onclick = e => { e.stopPropagation(); profMenu(); };
   if (ACC) myApi('daily').then(d => { if (!d.attend.today || d.missions.some(m => !m.done && m.value >= m.goal)) app.querySelector('#td')?.insertAdjacentHTML('beforeend', '<em class="dot"></em>'); }).catch(() => {});
@@ -306,7 +306,7 @@ function menu() {
   // 재화·빨간 점(로그인했으면 서버에서): 뽑기권 받을 수 있음 · 탐험 끝남
   if (ACC) myApi('me').then(me => {
     const cur = app.querySelector('#lcur'); if (!cur) return;
-    cur.innerHTML = [[ico('u-snack', '🍤'), me.snack, '새우깡'], [ico('u-peanut', '🥜'), me.peanut, '땅콩'], [ico('u-ticket', '🎫'), me.credits, '뽑기권']].map(([i, n, t]) => `<button class="cur" title="${t} · 상점으로">${i}<b>${Number(n).toLocaleString('ko-KR')}</b><em class="plus" aria-hidden="true">+</em></button>`).join('');
+    cur.innerHTML = [[ico('u-snack', '🍤'), me.snack, '새우깡'], [ico('u-peanut', '🥜'), me.peanut, '땅콩'], [ico('u-ticket', '🎫'), me.credits, '뽑기권']].map(([i, n, t]) => `<button class="cur" title="${t} · 상점으로" aria-label="${t} ${Number(n).toLocaleString('ko-KR')} · 상점으로"><span class="pill">${i}<b>${Number(n).toLocaleString('ko-KR')}</b><em class="plus" aria-hidden="true">+</em></span></button>`).join('');
     cur.querySelectorAll('.cur').forEach(x => x.onclick = () => openMy('shop'));   // 재화를 누르면 상점
     const now = Date.now(), dot = h => app.querySelector(`.h8menu a[data-h="${h}"]`)?.insertAdjacentHTML('beforeend', '<em class="dot"></em>');
     if (new Date(me.claimReadyAt).getTime() <= now) dot('draw');
@@ -322,9 +322,9 @@ function profMenu() {
       <button role="menuitem" data-m="account"><i>${ico('m-account', '👤')}</i>계정 관리</button>
       <button role="menuitem" data-m="rank"><i>${ico('mode-rank', '🏆')}</i>랭크 순위</button>
       <button role="menuitem" data-m="set"><i>${ico('u-settings', '⚙️')}</i>설정</button>`
-    : `<div class="pm-head"><b>로그인 전</b><small>로그인하면 진행이 계정에 저장돼요</small></div><a role="menuitem" class="pm-a" href="${login}"><i>🔑</i>로그인</a><button role="menuitem" data-m="set"><i>⚙️</i>설정</button>`;
+    : `<div class="pm-head"><b>로그인 전</b><small>로그인하면 진행이 계정에 저장돼요</small></div><a role="menuitem" class="pm-a" href="${login}"><i>${ico('u-profile', '🔑')}</i>로그인</a><button role="menuitem" data-m="set"><i>⚙️</i>설정</button>`;
   document.body.appendChild(m); sfx('tap');
-  const r = document.querySelector('#lprof')?.getBoundingClientRect(); if (r) { m.style.top = `${r.bottom + 12}px`; m.style.left = `${r.left}px`; }   // 이름표 바로 아래
+  const r = document.querySelector('#lprof')?.getBoundingClientRect(); if (r) { const z = parseFloat(getComputedStyle(m).zoom) || 1; m.style.top = `${(r.bottom + 12) / z}px`; m.style.left = `${r.left / z}px`; }   // 큰 화면 배율(zoom)만큼 나눔   // 이름표 바로 아래
   const close = () => { m.remove(); removeEventListener('pointerdown', out, true); };
   const out = e => { if (!m.contains(e.target) && !e.target.closest('#lprof')) close(); };
   addEventListener('pointerdown', out, true);
@@ -417,13 +417,21 @@ async function todaySheet() {
   modal.className = ''; modal.hidden = false; modal.innerHTML = '<div class="sheet today"><p class="sub">불러오는 중…</p></div>';
   let d; try { d = await myApi('daily'); } catch (e) { modal.innerHTML = `<div class="sheet today"><p class="sub">${esc(e.message)}</p><button class="ghost wide" id="tdX">닫기</button></div>`; modal.querySelector('#tdX').onclick = () => { modal.hidden = true; }; return; }
   const a = d.attend, got = a.today ? a.dayInWeek : a.dayInWeek - 1;   // 이번 주에 이미 받은 칸 수
-  const done = d.missions.filter(m => m.done).length;
+  const done = d.missions.filter(m => m.done).length, tk = ico('u-ticket', '🎟');
+  // 출석 칸 상태(v0.12.7): 받음(지난 날) · 오늘 받을 수 있음 · 오늘 받음 · 잠김(아직 안 온 날)
+  const dayState = n => n < got || (n === got && !a.today) ? 'got' : n === got && a.today ? 'today-got' : n === got + 1 && !a.today ? 'today' : 'lock';
+  const DAYTXT = { got: '받음', 'today-got': '오늘 받음', today: '오늘', lock: '잠김' };
+  // 미션 상태: 진행 중 · 달성(보상은 달성 순간 자동 지급, 카톡과 같은 규칙) · 받음
+  const mState = m => m.done ? 'done' : m.value >= m.goal ? 'ready' : 'run';
+  const MTXT = { done: '✓ 받음', ready: '지급 중', run: '진행 중' };
   modal.innerHTML = `<div class="sheet today"><h2><span class="tdh">${ico('u-attend', '📅')} 출석체크</span><button class="xbtn" id="tdX" aria-label="닫기">✕</button></h2><div class="scols"><div class="scol">
-      <div class="att"><b>${a.week}주째${a.streak ? ` · ${a.streak}일 연속` : ''}</b><small class="att-note">날이 갈수록, 주가 갈수록 보상이 커져요 · 하루 빠지면 1일째부터</small>
-        <div class="att-week">${a.rewards.map((t, k) => { const n = k + 1, st = n <= got ? 'on' : n === got + 1 && !a.today ? 'now' : ''; return `<div class="att-d ${st} ${n === 7 ? 'big' : ''}"><small>${n}일</small><span>${n <= got ? '✅' : n === 7 ? '🎁' : '🎟'}</span><em>${t}</em></div>`; }).join('')}</div>
-        <button class="big wide" id="tdAtt" ${a.today ? 'disabled' : ''}>${a.today ? '오늘 출석 완료 · 내일 또 와요' : `출석하고 🎟 ${a.next}장 받기`}</button></div></div>
-    <div class="scol"><div class="msn"><b>오늘의 미션 ${done}/${d.missions.length}</b><small>채우는 순간 바로 받아요 · 밤 12시 초기화</small>
-      ${d.missions.map(m => `<div class="msn-r ${m.done ? 'ok' : ''}"><span>${m.done ? '✅' : '🎯'}</span><div><b>${esc(m.label)}</b><i><i style="width:${Math.round(m.value / m.goal * 100)}%"></i></i></div><em>${m.goal > 1 ? `${m.value}/${m.goal}` : m.done ? '완료' : ''} · 🎟 ${m.tickets}</em></div>`).join('')}</div></div></div></div>`;
+      <div class="att"><div class="att-h"><b>${a.week}주째${a.streak ? ` · ${a.streak}일 연속` : ''}</b><small class="att-note">날이 갈수록, 주가 갈수록 보상이 커져요 · 하루 빠지면 1일째부터</small></div>
+        <div class="att-week">${a.rewards.map((t, k) => { const n = k + 1, st = dayState(n); return `<div class="att-d ${st} ${n === 7 ? 'big' : ''}" aria-label="${n}일 ${DAYTXT[st]} 뽑기권 ${t}장"><small>${n}일</small><span class="ai">${tk}</span><em>${t}</em><i class="as">${DAYTXT[st]}</i></div>`; }).join('')}</div>
+        <div class="att-now ${a.today ? 'got' : 'ready'}"><span class="ai">${tk}</span><div><small>${a.today ? '내일 받을 보상' : '오늘 받을 보상'}</small><b>${!a.today ? `뽑기권 ${a.next}장` : a.rewards[a.dayInWeek] !== undefined ? `뽑기권 ${a.rewards[a.dayInWeek]}장` : '다음 주 1일째 · 더 크게'}</b></div></div>
+        <button class="big wide" id="tdAtt" ${a.today ? 'disabled' : ''}>${a.today ? '✓ 오늘 출석 완료 · 내일 또 와요' : `출석하고 뽑기권 ${a.next}장 받기`}</button></div></div>
+    <div class="scol"><div class="msn"><div class="msn-h"><b>오늘의 미션 <em>${done}/${d.missions.length}</em></b><small>달성하면 보상이 바로 들어와요 · 밤 12시 초기화</small></div>
+      <div class="msn-list">${d.missions.map(m => { const st = mState(m), pct = Math.min(100, Math.round(m.value / m.goal * 100)); return `<div class="msn-r ${st}"><div class="mt"><b>${esc(m.label)}</b><i class="bar"><i style="width:${pct}%"></i></i></div>
+        <span class="mv">${Math.min(m.value, m.goal)}/${m.goal}</span><span class="mr">${tk}<b>${m.tickets}</b></span><span class="ms">${MTXT[st]}</span></div>`; }).join('')}</div></div></div></div></div>`;
   modal.querySelector('#tdX').onclick = () => { modal.hidden = true; menu(); };
   modal.querySelector('#tdAtt').onclick = async () => {
     try { const r = await myApi('attend', {}); sfx('win'); await tell(`출석 완료! ${r.result.streak}일 연속\n🎟 뽑기권 ${r.result.tickets}장${r.result.dayInWeek === 7 ? ' · 이번 주 큰 보상!' : ''}`); todaySheet(); }
