@@ -1335,6 +1335,26 @@ img{-webkit-user-drag:none;-webkit-touch-callout:none}
 .h8room .r0{scale:1.03;translate:calc(var(--px,0) * 1.2%) calc(var(--py,0) * .6%)}
 .h8room .r1{translate:calc(var(--px,0) * 2.6%) calc(var(--py,0) * 1.2%)}
 .h8room .r2{translate:calc(var(--px,0) * 2.9%) calc(var(--py,0) * 1.4%)}
+/* v0.14.5 첫 화면(title-clean): 배경은 화면을 덮고(아래 부두 쪽 기준), 나머지는 같은 비율 s로 줄여 무리별로 붙임(잘림·겹침 없음) */
+.ttl9.t2{container-type:size;background:#7fc4ea;--s:min(calc(100cqh / 802),calc(100cqw / 1961));--ox:calc((100cqw - 1961 * var(--s)) / 2);--oy:calc(100cqh - 802 * var(--s))}
+.t2 .t2bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 78%;pointer-events:none;-webkit-user-drag:none}
+.t2 .t2p{position:absolute;display:block;left:calc(var(--ox) * var(--gx) + var(--x) * var(--s));top:calc(var(--oy) * var(--gy) + var(--y) * var(--s));width:calc(var(--w) * var(--s));height:calc(var(--h) * var(--s))}
+.t2 img.t2p{pointer-events:none;-webkit-user-drag:none;object-fit:fill}
+.t2 .t2btn{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .08s,filter .08s}
+.t2 .t2btn:active{transform:translateY(2px) scale(.985);filter:brightness(.96)}
+.t2 .t2btn:focus-visible,.t2 .t2acc:focus-visible,.t2 .t2set:focus-visible{outline:3px solid #fff3c4;outline-offset:3px;border-radius:999px}
+.t2 .t2acc{position:absolute;right:max(12px,env(safe-area-inset-right,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:6px;height:clamp(40px,calc(64 * var(--s)),52px);max-width:min(34vw,260px);padding:0 14px 0 6px;border-radius:999px;background:linear-gradient(#fffaf0,#f3e3c6);border:2px solid #b8823f;box-shadow:0 3px 0 #8a5a26,inset 0 0 0 2px #fff6e2;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.t2 .t2acc i{flex:none;display:grid;place-items:center;width:clamp(30px,calc(50 * var(--s)),40px);aspect-ratio:1;font-style:normal}
+.t2 .t2acc i .ico{width:100%;height:100%}
+.t2 .t2acc span{min-width:0;font-family:"Jua",sans-serif;font-size:clamp(14px,calc(28 * var(--s)),19px);line-height:1;color:#4a2a10;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t2 .t2acc:active{transform:translateY(2px);box-shadow:0 1px 0 #8a5a26}
+.t2 .t2set{position:absolute;top:max(10px,env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));width:clamp(44px,calc(78 * var(--s)),64px);aspect-ratio:94/88;padding:0;border:0;background:none;cursor:pointer}
+.t2 .t2set img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.t2 .t2set img.g{inset:auto;left:23.4%;top:25%;width:53.19%;height:55.68%}
+.t2 .t2set:active{transform:translateY(2px)}
+/* 세로 화면: 게임은 가로 전용(앱은 가로 고정) → 웹에서 세로로 열면 첫 화면 전체를 줄여 보여 주고 돌리라고 안내 */
+.t2 .t2rot{display:none}
+@media (orientation:portrait){ .t2 .t2acc{bottom:auto;top:calc(max(10px,env(safe-area-inset-top,0px)) + 62px)} .t2 .t2rot{display:block;position:absolute;left:max(12px,env(safe-area-inset-left,0px));top:max(14px,env(safe-area-inset-top,0px));max-width:calc(100% - 96px);overflow:hidden;text-overflow:ellipsis;margin:0;padding:8px 14px;border-radius:999px;background:rgba(255,250,238,.92);border:2px solid #b8823f;color:#4a2a10;font-size:14px;font-weight:700;white-space:nowrap;box-shadow:0 3px 0 rgba(122,78,42,.3)} }
 </style>
 </head>
 <body>

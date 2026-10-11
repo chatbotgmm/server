@@ -278,13 +278,30 @@ async function boot() {
   }
 }
 
-// 첫 화면(v0.13.0, 받은 시안 layout.json 2640×1080): 풍경·캐릭터는 화면을 덮게(가운데 기준), 시작 버튼은 가운데, 계정·설정은 화면 오른쪽 아래에 붙여 잘리지 않게.
-// 글자 중 바뀌는 것(게임 시작/로그인, 닉네임)은 그림이 아닌 실제 글자(Jua)
+// 첫 화면(v0.14.5, galmaegiman-title-clean): 배경 1 + 로고·부제 + 캐릭터 4 + 버튼 2(로그인·게임 시작, 글자는 그림에 있음 → 코드로 다시 쓰지 않음)
+// 좌표는 1961×802 설계 기준(layout-example.json을 참고해 캐릭터·버튼이 서로 안 겹치게 조금 옮김, 그림의 투명 여백은 잘라 냄 → 누르는 칸 = 보이는 버튼 크기).
+// 크기 s = min(화면 높이/802, 화면 너비/1961)로 전부 같은 비율로 줄이고, 남는 가로는 왼쪽 무리·가운데·오른쪽 무리 사이로, 남는 세로는 위(로고)·아래(캐릭터·버튼) 사이로 나눔.
+// [x, y, 너비, 높이, 가로 무리(0 왼쪽·1 가운데·2 오른쪽), 세로(0~1: 남는 세로 중 얼마나 내려갈지)]
+const T2 = {
+  logo: [596.5, 26.5, 777.1, 285.4, 1, 0.3], sub: [807.9, 287.9, 344.1, 107.5, 1, 0.3],
+  guardian: [62.8, 232.8, 644.4, 458.2, 0, 1], octopus: [1264.3, 612.3, 195.3, 159.6, 2, 1], lobster: [1344.8, 326.8, 400.4, 325.9, 2, 1], gull: [1758.8, 480.8, 192.3, 148.1, 2, 1],
+  start: [818.4, 663.4, 438.2, 126.0, 1, 1], login: [834.3, 663.4, 406.4, 126.0, 1, 1],   // 로그인은 게임 시작과 같은 자리(같은 높이, 가운데 맞춤)
+};
+const t2at = k => { const [x, y, w, h, gx, gy] = T2[k]; return `--x:${x};--y:${y};--w:${w};--h:${h};--gx:${gx};--gy:${gy}`; };
 function titleScreen(loggedIn) {
   modal.hidden = true; muteBtn(false); if (R) bgm('title');
   const IN = APP ? 'intro' : `${BASE}/duel/intro`;
-  const login = APP ? 'my.html?next=game' : '/my?next=duel&g=1';
-  app.innerHTML = `<div class="ttl9"><div class="i9st"><img class="" src="${IN}/title_harbor_background.jpg" alt="" style="left:0.000%;top:0.000%;width:100.000%;height:100.000%"><img class="" src="${IN}/title_wooden_dock.webp" alt="" style="left:0.000%;top:58.333%;width:100.000%;height:41.667%"><img class="sh" src="${IN}/title_guardian_ground_shadow.webp" alt="" style="left:9.356%;top:77.037%;width:20.114%;height:6.667%"><img class="ch c1" src="${IN}/title_guardian.webp" alt="" style="left:5.114%;top:27.778%;width:28.598%;height:52.037%"><img class="sh" src="${IN}/title_lobster_ground_shadow.webp" alt="" style="left:72.576%;top:84.537%;width:13.939%;height:6.667%"><img class="ch c2" src="${IN}/title_lobster.webp" alt="" style="left:70.076%;top:46.759%;width:18.939%;height:40.556%"><img class="sh" src="${IN}/title_octopus_ground_shadow.webp" alt="" style="left:64.318%;top:84.815%;width:8.258%;height:6.667%"><img class="ch c3" src="${IN}/title_octopus.webp" alt="" style="left:63.447%;top:65.741%;width:10.038%;height:21.852%"><img class="sh" src="${IN}/title_pirate_seagull_ground_shadow.webp" alt="" style="left:89.129%;top:76.111%;width:8.106%;height:6.667%"><img class="ch c4" src="${IN}/title_pirate_seagull.webp" alt="" style="left:88.258%;top:59.722%;width:9.848%;height:19.167%"><img class="" src="${IN}/title_logo_text.webp" alt="" style="left:27.614%;top:6.019%;width:44.773%;height:20.278%"><img class="" src="${IN}/title_subtitle_text.webp" alt="" style="left:44.811%;top:26.852%;width:10.417%;height:6.944%"><${loggedIn ? 'button id="tgo"' : `a href="${login}"`} class="tgo i9b" style="left:36.742%;top:75.370%;width:26.515%;height:14.630%"><img src="${IN}/title_start_button_base.webp" alt=""><img class="pl" src="${IN}/title_start_play_icon.webp" alt="" style="left:11.43%;top:31.01%;width:8.29%;height:40.51%">${loggedIn ? `<img class="tx" src="${IN}/title_start_button_text.webp" alt="게임 시작" style="left:26.43%;top:24.05%;width:34.57%;height:40.51%">` : `<span style="left:26.43%;top:24.05%;width:34.57%;height:40.51%">로그인</span>`}</${loggedIn ? 'button' : 'a'}></div><div class="i9st i9r">${loggedIn && ACC ? `<button class="i9acc" id="tacc" style="left:82.955%;top:90.000%;width:9.848%;height:7.222%" aria-label="계정"><img src="${IN}/title_account_button_base.webp" alt=""><span>${esc(ACC.nickname || '내 계정')}</span></button>` : ''}<button class="tset i9set" id="tset" aria-label="설정" style="left:94.697%;top:88.796%;width:3.561%;height:8.148%"><img src="${IN}/title_settings_button_base.webp" alt=""><img src="${IN}/title_settings_gear.webp" alt="" style="left:23.40%;top:25.00%;width:53.19%;height:55.68%"></button></div></div>`;
+  const login = APP ? 'my.html?next=game' : '/my?next=duel&g=1';   // 로그인 화면(로그인하면 게임으로 돌아옴) — 기존 흐름 그대로
+  const img = (k, f, alt = '', cls = '') => `<img class="t2p ${cls}" src="${IN}/t2_${f}.webp" alt="${alt}" style="${t2at(k)}" draggable="false">`;
+  // 가운데 한 자리: 로그인 전 「로그인」(로그인 화면으로, 로그인하면 게임으로 돌아옴) → 로그인 뒤 「게임 시작」(로비). 오른쪽 아래: 로그인 뒤에만 계정(이름은 코드 글자)
+  const main = loggedIn ? `<button class="t2p t2btn tgo" id="tgo" style="${t2at('start')}" aria-label="게임 시작"><img src="${IN}/t2_start.webp" alt="" draggable="false"></button>`
+    : `<a class="t2p t2btn tgo" id="tlogin" href="${login}" style="${t2at('login')}" aria-label="로그인"><img src="${IN}/t2_login.webp" alt="" draggable="false"></a>`;
+  const acc = loggedIn && ACC ? `<button class="t2acc" id="tacc" aria-label="계정 정보 ${esc(ACC.nickname || '내 계정')}"><i aria-hidden="true">${ico('u-profile', '👤')}</i><span>${esc(ACC.nickname || '내 계정')}</span></button>` : '';
+  app.innerHTML = `<div class="ttl9 t2"><img class="t2bg" src="${IN}/t2_bg.webp" alt="" draggable="false">
+    ${img('guardian', 'guardian', '', 'ch c1')}${img('lobster', 'lobster', '', 'ch c2')}${img('octopus', 'octopus', '', 'ch c3')}${img('gull', 'gull', '', 'ch c4')}
+    ${img('logo', 'logo', '갈매미맨 수비대')}${img('sub', 'sub', '항구를 지켜라')}${main}${acc}
+    <p class="t2rot" role="note">📱 가로로 돌려 주세요</p>
+    <button class="tset t2set" id="tset" aria-label="설정"><img src="${IN}/title_settings_button_base.webp" alt=""><img class="g" src="${IN}/title_settings_gear.webp" alt=""></button></div>`;
   app.querySelector('#tgo')?.addEventListener('click', menu);
   app.querySelector('#tset').addEventListener('click', settingsSheet);
   app.querySelector('#tacc')?.addEventListener('click', () => openMy('account', () => titleScreen(loggedIn)));   // 계정 창을 닫으면 첫 화면으로(로비 아님)
