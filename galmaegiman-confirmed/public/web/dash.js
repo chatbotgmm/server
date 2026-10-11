@@ -133,9 +133,10 @@
         <p class="note" style="margin-bottom:12px">${d.wait ? `다음 뽑기권 받기까지 ${waitText(d.wait)}` : `지금 뽑기권 ${d.claim}장을 받을 수 있어요 (${d.cooldownHours}시간마다)`}${d.event ? ` · 🎉 ${esc(d.event.label)}` : ''}</p>
         <button class="btn coral wide" id="claim" ${d.wait ? 'disabled' : ''}>뽑기권 받기</button></section>
       <section class="panel"><div class="ph">${icon('egg')}<h2>뽑기</h2></div><div class="gachas">${d.gachas.map(g => { const lim = Math.min(50, Math.floor(credits / g.cost)); return `<div class="gc">
-        <h3>${esc(g.label)} 뽑기</h3><div class="w">🎫 ${g.cost}장 · ${g.weights.map(w => `${esc(w.tierName)} ${w.w}%`).join(' · ')}${g.kind === 'HIGH' && d.pity ? `<br>🎯 ${esc(d.pity.tierName)} 보장까지 ${d.pity.left}회` : ''}</div>
+        <h3>${esc(g.label)} 뽑기</h3>${g.kind === 'HIGH' && d.pity ? `<div class="w">🎯 ${esc(d.pity.tierName)} 보장까지 ${d.pity.left}회</div>` : ''}
         <div class="qty"><button data-q="${g.kind}" data-d="-1" aria-label="하나 줄이기" ${lim ? '' : 'disabled'}>−</button><input type="number" inputmode="numeric" min="1" max="${Math.max(1, lim)}" value="1" data-i="${g.kind}" aria-label="횟수" ${lim ? '' : 'disabled'}><button data-q="${g.kind}" data-d="1" aria-label="하나 늘리기" ${lim ? '' : 'disabled'}>+</button></div>
-        <button class="btn coral" data-go="${g.kind}" data-cost="${g.cost}" data-lim="${lim}" ${lim ? '' : 'disabled'}>${lim ? `1회 뽑기 · 🎫 ${g.cost}` : '뽑기권 부족'}</button></div>`; }).join('')}</div>
+        <button class="btn coral" data-go="${g.kind}" data-cost="${g.cost}" data-lim="${lim}" ${lim ? '' : 'disabled'}>${lim ? `1회 뽑기 · 🎫 ${g.cost}` : '뽑기권 부족'}</button>
+        <div class="odds">확률 · ${g.weights.map(w => `${esc(w.tierName)} ${w.w}%`).join(' · ')}</div></div>`; }).join('')}</div>
         <div id="dres">${last ? drawResult(last) : ''}</div></section></div>`;
     $('#claim').onclick = async () => { $('#claim').disabled = true; try { const r = await api('claim', {}); toast(String(r.result).split('\n')[0]); await refreshMe(); draw(); } catch (e) { toast(e.message); $('#claim').disabled = false; } };
     main.querySelectorAll('[data-i]').forEach(i => {
