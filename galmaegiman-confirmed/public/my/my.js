@@ -240,16 +240,16 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
       setTimeout(() => { ov.classList.add('cracked'); ov.querySelector('.rv-cards').hidden = false; ov.querySelector('.rv-btns').hidden = false; requestAnimationFrame(() => ov.classList.add('flip')); }, 700);
     };
     ov.querySelector('.rv-egg').onclick = open;
-    // 카드 크기: 몇 장이든 화면 안에 다 들어오게(스크롤 없이) 열 수를 골라 가장 크게
+    // 카드: 한 줄로 늘어놓고 많으면 가로로 넘김(세로 스크롤 없음, v0.14.6). 카드 높이는 화면 높이에 맞춤
+    const row = ov.querySelector('.rv-cards');
     const fit = () => {
-      // 쓸 수 있는 넓이 = 화면 − 바깥 여백(16×2) − 카드 칸 여백(6×2), 높이 = 화면 − 여백 − 버튼 줄
-      const n = items.length, W = Math.min(innerWidth - 32, 920) - 14, H = innerHeight - 32 - 12 - 14 - 50, gap = 10;
-      let best = 50, bc = n;
-      for (let cols = 1; cols <= n; cols++) { const rows = Math.ceil(n / cols), w = Math.min((W - gap * (cols - 1)) / cols, ((H - gap * (rows - 1)) / rows) * 3 / 4.1); if (w > best) { best = w; bc = cols; } }
-      const cw = Math.floor(Math.min(best, n === 1 ? 220 : 150));
+      const n = items.length, H = innerHeight - 40 - 56 - 36;   // 위아래 여백·버튼 줄·카드 줄 여백·가로 스크롤 막대 자리
+      const cw = Math.floor(Math.max(84, Math.min(n === 1 ? 220 : 168, H * 3 / 4.15)));
       ov.style.setProperty('--cw', `${cw}px`);
-      ov.querySelector('.rv-cards').style.maxWidth = `${bc * cw + gap * (bc - 1) + 12}px`;   // 고른 열 수에서 정확히 줄바꿈
+      row.style.maxWidth = '';
     };
+    // 마우스 휠(세로)도 가로로 넘기게
+    row.addEventListener('wheel', e => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && row.scrollWidth > row.clientWidth) { row.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
     fit(); addEventListener('resize', fit);
     if (again) { ov.classList.add('cracked', 'all'); ov.querySelector('.rv-cards').hidden = false; ov.querySelector('.rv-btns').hidden = false; ov.querySelector('#rvAll').hidden = true; }
     ov.querySelector('#rvAll').onclick = () => ov.classList.add('all');

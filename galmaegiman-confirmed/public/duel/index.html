@@ -1355,6 +1355,91 @@ img{-webkit-user-drag:none;-webkit-touch-callout:none}
 /* 세로 화면: 게임은 가로 전용(앱은 가로 고정) → 웹에서 세로로 열면 첫 화면 전체를 줄여 보여 주고 돌리라고 안내 */
 .t2 .t2rot{display:none}
 @media (orientation:portrait){ .t2 .t2acc{bottom:auto;top:calc(max(10px,env(safe-area-inset-top,0px)) + 62px)} .t2 .t2rot{display:block;position:absolute;left:max(12px,env(safe-area-inset-left,0px));top:max(14px,env(safe-area-inset-top,0px));max-width:calc(100% - 96px);overflow:hidden;text-overflow:ellipsis;margin:0;padding:8px 14px;border-radius:999px;background:rgba(255,250,238,.92);border:2px solid #b8823f;color:#4a2a10;font-size:14px;font-weight:700;white-space:nowrap;box-shadow:0 3px 0 rgba(122,78,42,.3)} }
+/* v0.14.6 출석 칸 상태 글자가 칸 밖으로 나가지 않게(오늘 받은 날은 초록 칸 + 「✓ 받음」) */
+.att-d{min-width:0;overflow:hidden}
+.att-d .as{white-space:nowrap;max-width:100%;overflow:hidden;box-sizing:border-box}
+/* v0.14.6 스토리: 장(章)을 카드로 옆으로 늘어놓고 가로로 넘김. 카드 안에 스테이지를 바로 보임(접기 없음) */
+.stl.pre .stage{opacity:.75}
+.stpre{margin:0 0 6px;font-size:12.5px;color:var(--dim)}
+@media (orientation:landscape){
+  .schap{display:flex;flex-direction:row;gap:12px;overflow-x:auto;overflow-y:hidden;padding:0 4px 8px 0;scroll-snap-type:x proximity;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:#c98443 transparent}
+  .schap::-webkit-scrollbar{height:6px}.schap::-webkit-scrollbar-thumb{background:#c98443;border-radius:3px}
+  .schap .chap{flex:none;width:min(380px,74%);display:flex;flex-direction:column;min-height:0;padding:0;scroll-snap-align:start}
+  .schap .chead{flex:none;min-height:0;margin:0 0 6px}
+  .schap .chead p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .schap .stl{flex:1;min-height:0;overflow-y:auto;padding:0 2px 2px}
+  .schap .send{flex:none;width:min(260px,60%);display:flex;flex-direction:column;justify-content:center;scroll-snap-align:start}
+  .schap .send>div{padding:0 !important}
+}
+@media (orientation:landscape) and (max-height:430px){
+  .schap .chead .in{padding:8px 12px}
+  .schap .chead h2{font-size:16px;margin:0}
+  .schap .chead p{font-size:12.5px;margin:2px 0 0;-webkit-line-clamp:1}
+  .schap .stage{padding:5px 10px;margin-bottom:5px;gap:8px}
+  .schap .stage .tt{font-size:13.5px}.schap .stage .tt small{font-size:11.5px}
+}
+/* v0.14.6 스토리: 왼쪽 팀은 내려 보지 않게 촘촘히(편성 바꾸기는 위 막대로), 장 카드 안 스테이지는 2열 */
+.story>header .edtop{margin-left:auto;flex:none;padding:6px 14px;font-size:14px;min-height:40px}
+@media (orientation:landscape){
+  .story>header{display:flex;align-items:center;gap:10px}
+  .steam{overflow:hidden}
+  .steam .teambar{gap:6px;padding:6px}
+  .steam button.mini{grid-template-columns:48px minmax(0,1fr);grid-template-rows:auto auto auto;padding:5px 9px;row-gap:1px}
+  .steam .mini img{grid-row:1/4;width:48px;height:48px}
+  .steam .mini b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .steam .mini span{font-size:13px}
+  .steam .mini small{display:none}
+  .steam .mini .xp{height:6px}
+  .steam .combo{font-size:12.5px;margin:0;line-height:1.3}
+  .schap .chap{width:min(560px,92%)}
+  .schap .stl{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-content:start;overflow:hidden}
+  .schap .stl .stpre{grid-column:1/-1}
+  .schap .stl .stage{margin:0;min-width:0;padding:6px 8px;gap:6px}
+  .schap .stl .stage .tt{min-width:0}
+  .schap .stl .stage .tt,.schap .stl .stage .tt small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .schap .stl .stage .tt{font-size:14px}.schap .stl .stage .tt small{font-size:11.5px}
+  .schap .stl .stage .no{font-size:15px;min-width:0}
+  .schap .stl .stage .mk{font-size:12.5px}
+}
+@media (orientation:landscape) and (max-height:430px){
+  .steam button.mini{grid-template-columns:40px minmax(0,1fr);padding:3px 8px}
+  .steam .mini img{width:40px;height:40px}
+  .steam .mini b{font-size:14px}.steam .mini span{font-size:12px}
+  .schap .stl .stage{padding:4px 7px}
+  .schap .stl .stage .tt{font-size:13px}.schap .stl .stage .tt small{font-size:11px}
+}
+/* v0.14.6 팀 편성(스토리·자유 대결): 가로 화면에선 세로로 내려 보지 않고 옆으로 넘김. 아래 버튼 줄은 고정 */
+.card img.gi{width:1.25em;height:1.25em;aspect-ratio:auto;display:inline-block;vertical-align:-.28em;border-radius:0;background:none}
+@media (orientation:landscape){
+  #app:has(.grid.pickrow){display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden;padding-top:env(safe-area-inset-top,0px)}
+  #app:has(.grid.pickrow)>header{flex:none}
+  #app:has(.grid.pickrow)>.hint{flex:none;margin:2px 16px 6px;font-size:13px;line-height:1.4}
+  #app:has(.grid.pickrow)>.bar{flex:none}
+  .grid.pickrow{flex:1;min-height:0;display:grid;grid-auto-flow:column;grid-template-columns:none;grid-template-rows:repeat(var(--rows,1),max-content);grid-auto-columns:var(--cw,130px);align-content:center;gap:10px;padding:4px 16px 8px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:#c98443 transparent}
+  .grid.pickrow::-webkit-scrollbar{height:6px}.grid.pickrow::-webkit-scrollbar-thumb{background:#c98443;border-radius:3px}
+  .grid.pickrow .card{width:var(--cw,130px);scroll-snap-align:start;padding:6px;display:flex;flex-direction:column;gap:2px}
+  .grid.pickrow .card b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+  .grid.pickrow .card .role,.grid.pickrow .card .syn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11.5px}
+  #app:has(.grid.pickrow)>.foot{position:static;flex:none;padding:4px 16px calc(8px + env(safe-area-inset-bottom,0px));background:none}
+  #app:has(.grid.pickrow)>.foot .combo{margin:0 0 4px}
+}
+header.pkh{display:flex;align-items:center;gap:10px}
+header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px;font-size:13.5px;min-height:40px}
+@media (orientation:landscape){
+  .grid.pickrow .card{display:grid;grid-template-columns:auto minmax(0,1fr);align-content:start;column-gap:6px;row-gap:2px}
+  .grid.pickrow .card>img:first-child,.grid.pickrow .card b,.grid.pickrow .card .syn{grid-column:1/-1}
+  .grid.pickrow .card .chip{align-self:center;margin:0}
+  .grid.pickrow .card .role{align-self:center}
+  #app:has(.grid.pickrow)>.foot{display:flex;align-items:center;gap:12px}
+  #app:has(.grid.pickrow)>.foot .combo{flex:1;min-width:0;text-align:left;margin:0}
+  #app:has(.grid.pickrow)>.foot .in{flex:none;width:min(420px,52%);margin:0}
+}
+@media (orientation:landscape) and (max-height:430px){
+  #app:has(.grid.pickrow)>.hint{font-size:12px;margin:0 16px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #app:has(.grid.pickrow)>.hint+.hint{display:none}
+  #app:has(.grid.pickrow)>.foot .in .big{padding:8px 12px;min-height:44px}
+  #app:has(.grid.pickrow)>.foot .in .ghost{min-height:44px;padding:6px 12px}
+}
 </style>
 </head>
 <body>

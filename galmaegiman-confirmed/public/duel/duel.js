@@ -470,7 +470,7 @@ async function todaySheet() {
   const done = d.missions.filter(m => m.done).length, tk = ico('u-ticket', '🎟');
   // 출석 칸 상태(v0.12.7): 받음(지난 날) · 오늘 받을 수 있음 · 오늘 받음 · 잠김(아직 안 온 날)
   const dayState = n => n < got || (n === got && !a.today) ? 'got' : n === got && a.today ? 'today-got' : n === got + 1 && !a.today ? 'today' : 'lock';
-  const DAYTXT = { got: '받음', 'today-got': '오늘 받음', today: '오늘', lock: '잠김' };
+  const DAYTXT = { got: '받음', 'today-got': '✓ 받음', today: '오늘', lock: '잠김' };
   // 미션 상태: 진행 중 · 달성(보상은 달성 순간 자동 지급, 카톡과 같은 규칙) · 받음
   const mState = m => m.done ? 'done' : m.value >= m.goal ? 'ready' : 'run';
   const MTXT = { done: '✓ 받음', ready: '지급 중', run: '진행 중' };
@@ -527,12 +527,22 @@ function pickScreen(mode, then) {   // then: 스토리 팀을 정한 뒤 바로 
   modal.hidden = true; bgm('title');
   const story = mode === 'story';
   let picked = story ? [...SAVE.team] : freePick;
-  app.innerHTML = `<header><button class="back" id="bk">‹ 뒤로</button><h1>${story ? '스토리 팀 편성' : '자유 대결'}</h1></header>
+  app.innerHTML = `<header class="pkh"><button class="back" id="bk">‹ 뒤로</button><h1>${story ? '스토리 팀 편성' : '자유 대결'}</h1>${story && ACC?.battleTeam.length === 3 ? '<button class="ghost pkmine" id="mine">내 전투 편성 불러오기</button>' : ''}</header>
   <p class="hint">갈매미 3마리를 고르세요. 처음 고른 갈매미가 먼저 나가요.${story ? ' 시험판이라 최상위 33종을 모두 쓸 수 있어요(실제 게임은 가진 갈매미만).' : ' 상대는 같은 레벨의 무작위 3마리예요.'}</p>
   ${story ? '' : `<div class="bar"><span class="role">레벨</span><div class="seg" id="lv">${[10, 30, 50].map(l => `<button data-l="${l}" class="${l === freeLevel ? 'on' : ''}">${l}</button>`).join('')}</div></div>`}
-  ${story && ACC ? `<p class="hint" style="margin-top:-6px"><img class="gi" src="/gull.png" alt=""> 표시는 내가 가진 갈매미예요. 셋 다 가진 갈매미로 고르면 「내 갈매미」 전투 편성도 같이 바뀌어요.${ACC.battleTeam.length === 3 ? ' <button class="ghost" id="mine" style="display:inline-block;padding:4px 10px">내 전투 편성 불러오기</button>' : ''}</p>` : ''}
-  <div class="grid">${(story && ACC ? [...UNITS].sort((x, y) => ACC.owned.includes(y.id) - ACC.owned.includes(x.id)) : UNITS).map(u => `<button class="card" data-id="${u.id}"><img loading="lazy" src="${BASE}/thumbs/${u.id}.jpg" alt=""><b>${story && ACC?.owned.includes(u.id) ? '<img class="gi" src="/gull.png" alt=""> ' : ''}${esc(u.name)}</b>${chip(u.def.attr)}<span class="role">${ROLE[u.def.role]}${story ? ` · Lv${SAVE.units[u.id].level}` : ''}</span><span class="syn">${esc(synName(u.id))}</span></button>`).join('')}</div>
+  ${story && ACC ? `<p class="hint" style="margin-top:-6px"><img class="gi" src="/gull.png" alt=""> 표시는 내가 가진 갈매미예요. 셋 다 가진 갈매미로 고르면 「내 갈매미」 전투 편성도 같이 바뀌어요.</p>` : ''}
+  <div class="grid pickrow">${(story && ACC ? [...UNITS].sort((x, y) => ACC.owned.includes(y.id) - ACC.owned.includes(x.id)) : UNITS).map(u => `<button class="card" data-id="${u.id}"><img loading="lazy" src="${BASE}/thumbs/${u.id}.jpg" alt=""><b>${story && ACC?.owned.includes(u.id) ? '<img class="gi" src="/gull.png" alt=""> ' : ''}${esc(u.name)}</b>${chip(u.def.attr)}<span class="role">${ROLE[u.def.role]}${story ? ` · Lv${SAVE.units[u.id].level}` : ''}</span><span class="syn">${esc(synName(u.id))}</span></button>`).join('')}</div>
   <div class="foot"><div class="combo" id="combo"></div><div class="in"><button class="ghost" id="rnd">무작위</button><button class="big" id="go">${story ? '이 팀으로' : '대결 시작'}</button></div></div>`;
+  // 가로 화면(v0.14.6): 카드를 한 줄(높은 화면은 두 줄)로 늘어놓고 옆으로 넘김. 카드 크기는 남은 높이에 맞춤
+  const g = app.querySelector('.grid.pickrow');
+  const fitPick = () => {
+    if (!g.isConnected) { removeEventListener('resize', fitPick); return; }
+    if (!matchMedia('(orientation:landscape)').matches) { g.style.removeProperty('--cw'); return; }
+    const H = g.clientHeight - 14, rows = H > 440 ? 2 : 1, ch = (H - (rows - 1) * 10) / rows;
+    g.style.setProperty('--rows', rows); g.style.setProperty('--cw', `${Math.floor(Math.max(90, Math.min(ch - 74, 168)))}px`);
+  };
+  requestAnimationFrame(fitPick); addEventListener('resize', fitPick);
+  g.addEventListener('wheel', e => { if (g.scrollWidth > g.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) { g.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
   const paint = () => {
     app.querySelectorAll('.card').forEach(c => {
       const i = picked.indexOf(c.dataset.id); c.classList.toggle('on', i >= 0);
@@ -586,22 +596,27 @@ function storyScreen() {
   modal.hidden = true; bgm('title');
   const team = SAVE.team.map(id => UNITS.find(u => u.id === id));
   // 가로(v0.11.1): 왼쪽 팀(글자 크게, 기술·승진 버튼) · 오른쪽 장 목록(그 안에서만 넘김)
-  app.innerHTML = `<div class="story"><header><button class="back" id="bk">‹ 뒤로</button><h1>스토리</h1><small>${SAVE.cleared.length}/${stages().length} 실적</small></header>
+  app.innerHTML = `<div class="story"><header><button class="back" id="bk">‹ 뒤로</button><h1>스토리</h1><small>${SAVE.cleared.length}/${stages().length} 실적</small><button class="ghost edtop" id="ed">${team.length === 3 ? '편성 바꾸기' : '팀 정하기'}</button></header>
   <aside class="steam"><section class="teambar">${team.length === 3 ? team.map(u => { const s = SAVE.units[u.id], need = xpToNext(R, s.level);
       const r = myRec(u.id, 0), n = learnChances(R, r), up = canEvolve(R, r, partsCleared());
       return `<button class="mini" data-u="${u.id}"><img src="${sprite(u.id, 'front', r.stage)}" class="st-${r.stage}" alt=""><b>${esc(u.name)}</b><span>Lv${s.level} ${chip(u.def.attr)}${r.stage ? `<em class="stars">${STARS[r.stage]}</em>` : ''}</span><i class="xp"><i style="width:${Math.min(100, s.xp / need * 100)}%"></i></i>${up ? '<em class="learn promo">⬆ 승진 가능</em>' : n ? `<em class="learn">✨ 기술 배우기 ${n}</em>` : '<small>기술·승진 보기 ›</small>'}</button>`; }).join('')
       + (team.length === 3 ? `<p class="combo">${teamCombos(SAVE.team).map(x => `🤝 합동기 「${esc(x.skill)}」`).join(' · ') || '합동기 없음(같은 시너지 2마리면 생겨요)'}</p>` : '')
-    : '<p class="hint" style="margin:0">먼저 팀 3마리를 정해 주세요.</p>'}<button class="ghost" id="ed">${team.length === 3 ? '편성 바꾸기' : '팀 정하기'}</button></section></aside>
+    : '<p class="hint" style="margin:0">먼저 팀 3마리를 정해 주세요. 위 「팀 정하기」를 눌러요.</p>'}</section></aside>
   <main class="schap">${STORY.chapters.map(c => { const sc = c.stages[0].scene || 'harbor', cl = c.stages.filter(s => SAVE.cleared.includes(s.id)).length, open = c.stages.some(s => unlocked(s.id)), all = cl === c.stages.length;
     return `<section class="chap"><div class="chead sc-${sc}" style="${bgStyle(sc)}"><div class="in"><h2>${esc(c.title)}</h2><span class="pn">${all ? '✓ 완료' : `${cl}/${c.stages.length}`}</span>${c.intro ? `<p>${esc(c.intro)}</p>` : ''}${c.needStage ? `<p class="need ${teamStageOk(c.needStage) ? 'ok' : ''}">${teamStageOk(c.needStage) ? '✓' : '🔒'} 팀 전원 ${c.needStage}단계 승진 필요 (${STARS[c.needStage]})</p>` : ''}</div></div>
-    <details ${open && !all ? 'open' : ''}><summary>${open ? '스테이지 보기' : '스테이지 미리 보기'} (${c.stages.length})</summary>
+    <div class="stl ${open ? '' : 'pre'}">${open ? '' : '<p class="stpre">미리 보기 · 앞 장을 깨면 열려요</p>'}
     ${c.stages.map(s => { const done = SAVE.cleared.includes(s.id), open = unlocked(s.id);
       const boss = s.enemy.some(e => R.villains.get(e.id).boss);
-      return `<button class="stage ${done ? 'done' : ''}" data-s="${s.id}" ${open && team.length === 3 ? '' : 'disabled'}><span class="no">${s.id}</span><span class="tt">${esc(s.title)}${boss ? ' <em>보스</em>' : ''}<small>${s.enemy.map(e => `${esc(R.villains.get(e.id).name)} Lv${e.level}`).join(' · ')}</small></span><span class="mk">${done ? '✓' : open ? '도전' : '잠김'}</span></button>`; }).join('')}</details></section>`; }).join('')}
-  <p class="hint">진 대결도 경험치를 조금 받아요. 깬 스테이지는 다시 도전해 레벨을 올릴 수 있어요.</p>
+      return `<button class="stage ${done ? 'done' : ''}" data-s="${s.id}" ${open && team.length === 3 ? '' : 'disabled'}><span class="no">${s.id}</span><span class="tt">${esc(s.title)}${boss ? ' <em>보스</em>' : ''}<small>${s.enemy.map(e => `${esc(R.villains.get(e.id).name)} Lv${e.level}`).join(' · ')}</small></span><span class="mk">${done ? '✓' : open ? '도전' : '잠김'}</span></button>`; }).join('')}</div></section>`; }).join('')}
+  <section class="send"><p class="hint">진 대결도 경험치를 조금 받아요. 깬 스테이지는 다시 도전해 레벨을 올릴 수 있어요.</p>
   <p class="hint" id="savewarn" style="color:#ff8a7a" ${saveFail ? '' : 'hidden'}>⚠ 계정에 저장하지 못했어요. 인터넷이 연결되면 다음 진행 때 다시 저장해요.</p>
-  <div style="padding:0 16px 24px"><button class="ghost" id="reset" style="width:100%">스토리 진행 처음부터(${ACC ? '계정' : '이 브라우저'})</button></div></main></div>`;
+  <div style="padding:0 16px 24px"><button class="ghost" id="reset" style="width:100%">스토리 진행 처음부터(${ACC ? '계정' : '이 브라우저'})</button></div></section></main></div>`;
   app.querySelector('#bk').onclick = menu;
+  // 장 목록은 가로로 넘김(v0.14.6): 지금 할 장(열렸고 다 안 깬 첫 장)으로 바로 넘겨 두고, 마우스 휠(세로)도 가로로
+  const sch = app.querySelector('.schap'), chs = [...sch.querySelectorAll('.chap')];
+  const cur = STORY.chapters.findIndex(c => c.stages.some(s => unlocked(s.id) && !SAVE.cleared.includes(s.id)));
+  if (cur > 0 && chs[cur] && getComputedStyle(sch).overflowX !== 'visible') sch.scrollLeft = chs[cur].offsetLeft - sch.offsetLeft - 4;
+  sch.addEventListener('wheel', e => { if (getComputedStyle(sch).flexDirection === 'row' && Math.abs(e.deltaY) > Math.abs(e.deltaX) && !e.target.closest('.stl')) { sch.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
   app.querySelector('#ed').onclick = () => pickScreen('story');
   app.querySelectorAll('[data-u]').forEach(x => x.onclick = () => skillSheet(x.dataset.u));
   app.querySelector('#reset').onclick = async () => {

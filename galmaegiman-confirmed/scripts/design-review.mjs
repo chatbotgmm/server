@@ -30,7 +30,7 @@ for(const [n,w,h] of [['Z',1006,411],['L',915,412],['S',780,360],['W',1280,720]]
   const fr=p.frames().find(f=>f.url().includes('/my'));
   await mf.locator('[data-di="LOW"]').fill('8');await mf.locator('[data-di="LOW"]').blur();await mf.locator('.dgo[data-k="LOW"]').click();
   await mf.locator('.rv-egg').waitFor();await mf.locator('.rv-egg').click();await p.waitForTimeout(3200);await p.screenshot({path:`${out}/R${n}-3j-reveal.png`});
-  console.log(n,'뽑기 결과 화면 밖',await fr.evaluate(()=>{const c=[...document.querySelectorAll('.rv-c,.rv-btns')].map(e=>e.getBoundingClientRect());return c.some(r=>r.bottom>innerHeight+1||r.right>innerWidth+1);}));
+  console.log(n,'뽑기 결과 화면 밖(세로·버튼, 카드 줄은 가로로 넘김)',await fr.evaluate(()=>{const c=[...document.querySelectorAll('.rv-c,.rv-btns')].map(e=>e.getBoundingClientRect()),b=document.querySelector('.rv-btns').getBoundingClientRect(),row=document.querySelector('.rv-cards');return c.some(r=>r.bottom>innerHeight+1||r.top<-1)||b.right>innerWidth+1||row.scrollHeight>row.clientHeight+1;}));
   await mf.locator('#rvOk').click();await p.waitForTimeout(800);await p.screenshot({path:`${out}/R${n}-3k-drawafter.png`});
   console.log(n,'뽑기 화면 넘김',await fr.evaluate(()=>document.scrollingElement.scrollHeight>innerHeight+1));
   await mf.locator('#gback').click();await p.waitForSelector('.myov',{state:'detached'});await p.waitForSelector('.home8');await p.waitForTimeout(800);
