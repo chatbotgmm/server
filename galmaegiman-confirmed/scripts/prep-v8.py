@@ -1,5 +1,5 @@
 # 8번 디자인 소스(art/ref/v8) → 게임에 쓰는 파일
-#  - 배경 4장(830×466으로 받음): AI 업스케일(Real-ESRGAN animevideov3 ×4) 뒤 1920×1080 → public/battle/bg/<이름>.jpg
+#  - 배경 4장: 1920 넓이 원본이면 그대로 1920×1080(v0.12.1부터 원본 받음), 작으면 AI 업스케일(Real-ESRGAN animevideov3 ×4) 뒤 → public/battle/bg/<이름>.jpg
 #  - 메뉴 버튼 시트(투명, 4개 가로): 덩어리마다 잘라 높이 180px → public/battle/icons/btn-<메뉴>.png
 # 사용: VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json python3 -I scripts/prep-v8.py
 import os
@@ -8,11 +8,15 @@ from PIL import Image
 from scipy import ndimage
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ref = os.path.join(root, 'art/ref/v8')
-from realesrgan_ncnn_py import Realesrgan
-model = Realesrgan(gpuid=0, model=3)
+model = None
 for n in ['attic', 'cafe', 'greenhouse', 'cabin']:
     im = Image.open(os.path.join(ref, f'bg_{n}.webp')).convert('RGB')
-    out = model.process_pil(im).resize((1920, 1080), Image.LANCZOS)
+    if im.width < 1900:
+        if model is None:
+            from realesrgan_ncnn_py import Realesrgan
+            model = Realesrgan(gpuid=0, model=3)
+        im = model.process_pil(im)
+    out = im.resize((1920, 1080), Image.LANCZOS)
     out.save(os.path.join(root, f'public/battle/bg/{n}.jpg'), quality=86, optimize=True, progressive=True); print(n, out.size, flush=True)
 sheet = Image.open(os.path.join(ref, 'menu_buttons4.webp')).convert('RGBA'); a = np.array(sheet)[:, :, 3] > 20
 lab, k = ndimage.label(ndimage.binary_closing(a, iterations=3)); sl = sorted(ndimage.find_objects(lab), key=lambda s: s[1].start)
