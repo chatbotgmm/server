@@ -1,7 +1,7 @@
 import {beforeAll,beforeEach,afterAll,describe,it,expect} from 'vitest';
 import {PrismaClient} from '@prisma/client';
 import {GameService} from '../src/game.js';
-import {loadContent} from '../src/content.js';
+import {loadContent,topTiers} from '../src/content.js';
 import {buildApp} from '../src/app.js';
 import {duelKey} from '../src/duel.js';
 import {GachaEngine} from '../src/gacha.js';
@@ -9,6 +9,11 @@ import {GameError,type GameReply} from '../src/types.js';
 import {cardCost,CAROUSEL_TEXT_BUDGET,kakaoResponse} from '../src/kakao.js';
 import {existsSync} from 'node:fs';
 import {resolve} from 'node:path';
+import {DateTime} from 'luxon';
+import {loadBattleRules} from '../src/battle/load.js';
+import {createBattle,pending,pickAi} from '../src/battle/engine.js';
+import {applyEvent,type PvpEvent} from '../src/battle/replay.js';
+import type {UnitRecord} from '../src/battle/growth.js';
 const enabled=Boolean(process.env.TEST_DB_URL);
 const suite=enabled?describe:describe.skip;
 suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
@@ -898,10 +903,66 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const d0=await get();expect(d0.missions.length).toBe(content.economy.missions.length);expect(d0.attend.today).toBe(false);
       const before=(await db.player.findUniqueOrThrow({where:{id:p.id}})).credits;
       const ok=await app.inject({method:'POST',url:'/my/api/attend',payload:{},headers:{'x-gmm':'1',cookie}});expect(ok.statusCode).toBe(200);
-      expect((await db.player.findUniqueOrThrow({where:{id:p.id}})).credits).toBe(before+content.economy.attendance.tickets);
+      expect((await db.player.findUniqueOrThrow({where:{id:p.id}})).credits).toBe(before+content.economy.attendance.days[0]);
       const d1=await get();expect(d1.attend.today).toBe(true);expect(d1.attend.streak).toBe(1);expect(d1.attend.next).toBeNull();
       const again=await app.inject({method:'POST',url:'/my/api/attend',payload:{},headers:{'x-gmm':'1',cookie}});expect(again.statusCode).toBe(400);
+      // 날이 갈수록·주가 갈수록 커짐: 지난 7일 연속 출석이 있으면 오늘은 2주째 1일째(1일째 보상 + weekStep)
+      const a=content.economy.attendance,today=(d1 as unknown as {day:string}).day;
+      expect(a.days[6]).toBeGreaterThan(a.days[0]);
+      await db.achievement.deleteMany({where:{playerId:p.id,key:`ATTEND_${today}`}});
+      for(let k=1;k<=7;k++)await db.achievement.create({data:{playerId:p.id,key:`ATTEND_${DateTime.fromISO(today).minus({days:k}).toISODate()}`}});
+      const d2=(await get()) as unknown as {attend:{week:number;dayInWeek:number;rewards:number[];next:number}};
+      expect(d2.attend).toMatchObject({week:2,dayInWeek:1,next:a.days[0]+a.weekStep});expect(d2.attend.rewards).toEqual(a.days.map(t=>t+a.weekStep));
+      const c2=(await db.player.findUniqueOrThrow({where:{id:p.id}})).credits;
+      expect((await app.inject({method:'POST',url:'/my/api/attend',payload:{},headers:{'x-gmm':'1',cookie}})).json().result).toMatchObject({streak:8,tickets:a.days[0]+a.weekStep});
+      expect((await db.player.findUniqueOrThrow({where:{id:p.id}})).credits).toBe(c2+a.days[0]+a.weekStep);
       expect((await app.inject({method:'POST',url:'/my/api/draw',payload:{kind:'LOW',times:1},headers:{'x-gmm':'1',cookie}})).statusCode).toBe(200);expect((await get()).missions.find(m=>m.key==='DRAW')!.value).toBe(1);
+    }finally{await app.close();}
+  });
+  it('PvP: 같은 레벨 대전 · 랭크는 서버가 기록을 다시 돌려 승패 확인 · 중간에 나가면 패배',async()=>{
+    const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com'});
+    try{
+      const code=/(\d{6})/.exec((await send('웹 로그인')).text!)![1];
+      const p=await db.player.findUniqueOrThrow({where:{identity:actor}});
+      for(const c of ['D1','T1','E1'])await db.ownedCharacter.create({data:{playerId:p.id,characterId:c,obtainedVia:'TEST'}});
+      const post=(url:string,body:unknown,cookie='')=>app.inject({method:'POST',url,payload:body as object,headers:{'x-gmm':'1',...(cookie?{cookie}:{})}});
+      const cookie=String((await post('/my/api/login',{code})).headers['set-cookie']).split(';')[0];
+      expect((await post('/my/api/pvp/match',{mode:'normal'},cookie)).statusCode).toBe(400);   // 편성 전
+      expect((await post('/my/api/battle-team',{ids:['D1','T1','E1']},cookie)).statusCode).toBe(200);
+      expect((await post('/my/api/pvp/match',{mode:'rank'},cookie)).statusCode).toBe(400);   // 랭크 상대 없음
+      const bot=(await post('/my/api/pvp/match',{mode:'normal'},cookie)).json().result;
+      expect(bot.bot).toBe(true);expect(bot.foe).toHaveLength(3);expect(bot.mine.map((r:{level:number})=>r.level)).toEqual([30,30,30]);
+      const foe=await db.player.create({data:{identity:'pvp-foe',nickname:'상대왕',battleTeam:'D2,T2,E2'}});
+      const R=loadBattleRules();
+      // 화면처럼 한 판 두기: 고를 게 있으면 첫 칸(시작 때 한 번 다시 뽑기), 행동은 간단 AI. 같은 함수(applyEvent)로 기록
+      const play=(m:{seed:number;mine:UnitRecord[];foe:UnitRecord[]})=>{
+        const b=createBattle(R,m.mine,m.foe,m.seed),log:PvpEvent[]=[];let first=true;
+        const push=(e:PvpEvent)=>{applyEvent(b,e);log.push(e);};
+        while(b.phase!=='over'&&log.length<500){
+          const pd=pending(b,0);
+          if(b.phase==='choose'){if(first&&pd.augments){first=false;push({r:0});continue;}
+            push({c:{...(pd.augments?{augment:b.sides[0].offers![0]}:{}),...(pd.needSwitch?{switchTo:b.sides[0].fighters.findIndex(f=>f.hp>0)}:{})}});}
+          else push({a:pickAi(b,0)});
+        }
+        return {log,won:b.winner===0};
+      };
+      const before=(await db.player.findUniqueOrThrow({where:{id:p.id}})).rankPoint;
+      const m=(await post('/my/api/pvp/match',{mode:'rank'},cookie)).json().result;
+      expect(m.foeName).toBe('상대왕');expect(m.foe.map((r:{id:string})=>r.id)).toEqual(['D2','T2','E2']);
+      expect((await db.player.findUniqueOrThrow({where:{id:p.id}})).rankPoint).toBe(before-content.economy.pvp.lose);   // 시작하면 먼저 패배로
+      const g=play(m);
+      expect((await post('/my/api/pvp/result',{match:m.match,log:g.log.slice(0,1)},cookie)).statusCode).toBe(400);   // 덜 끝난 기록
+      expect((await post('/my/api/pvp/result',{match:m.match,log:[{a:{kind:'skill',skillId:'없는기술'}}]},cookie)).statusCode).toBe(400);   // 맞지 않는 기록
+      const r=(await post('/my/api/pvp/result',{match:m.match,log:g.log},cookie)).json().result;
+      expect(r.won).toBe(g.won);
+      const after=await db.player.findUniqueOrThrow({where:{id:p.id}});
+      expect(after.rankPoint).toBe(g.won?before+content.economy.pvp.win:before-content.economy.pvp.lose);
+      expect([after.rankWins,after.rankLosses]).toEqual(g.won?[1,0]:[0,1]);
+      expect((await post('/my/api/pvp/result',{match:m.match,log:g.log},cookie)).statusCode).toBe(400);   // 같은 대전 두 번 안 됨
+      const info=(await app.inject({method:'GET',url:'/my/api/pvp',headers:{'x-gmm':'1',cookie}})).json();
+      expect(info.me).toMatchObject({point:after.rankPoint,rank:1});expect(info.top[0].me).toBe(true);
+      expect(content.characters.filter(c=>topTiers.has(c.rarity)).every(c=>R.units.has(c.id))).toBe(true);   // 편성할 수 있는 갈매미는 모두 전투 유닛
+      await db.player.delete({where:{id:foe.id}});
     }finally{await app.close();}
   });
   it('웹 쿠폰: 설정 창 입력(1인 1회·틀린 코드·빈 코드·로그인 필요)',async()=>{
@@ -1290,7 +1351,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.10.5'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.11.0'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

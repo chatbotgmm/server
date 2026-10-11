@@ -92,7 +92,8 @@ achievements:          # 등급 도감을 처음 모두 채우면 1회 지급 + 
   IMMORTAL:  { tickets: 30, title: 다섯 마리째를 들은 자 }
   NEUTRAL:   { tickets: 10, title: 땅콩 없는 자 }
 
-attendance: { tickets: 10, weekBonus: 30 }   # 게임(앱·웹) 출석: 하루 한 번 뽑기권, 7일 연속마다 보너스 더
+# 게임(앱·웹) 출석체크: 하루 한 번 뽑기권. 연속 1~7일째 days, 2주째부터 하루마다 weekStep씩 더(weekCap주까지). 하루 빠지면 1일째부터
+attendance: { days: [8, 10, 12, 14, 16, 18, 40], weekStep: 2, weekCap: 5 }
 missions:              # 매일 한국 시간 0시 초기화. 목표 달성 시 자동 지급
   - { key: DRAW,         label: 뽑기 5회,              goal: 5, tickets: 20 }
   - { key: CRAFT,        label: 조합 3회,              goal: 3, tickets: 20 }
@@ -100,3 +101,16 @@ missions:              # 매일 한국 시간 0시 초기화. 목표 달성 시 
   - { key: CRAFT_LEGEND, label: 전설 또는 히든 조합하기, goal: 1, tickets: 50 }
   - { key: CRAFT_TOP,    label: 최상위 유닛 조합하기,   goal: 1, tickets: 100 }  # 제한·초월·영원·불멸
   - { key: EXPEDITION,   label: 탐험 다녀오기 1회,      goal: 1, tickets: 10 }   # 탐험 보상 받기 기준
+# PvP(일반·랭크): 상대 = 다른 유저의 「전투 편성」 팀(컴퓨터가 조종). 양쪽 모두 같은 레벨, 승진·배운 기술 없이 기본 기술로
+# 랭크: 시작할 때 진 것으로 먼저 셈(중간에 나가면 패배), 서버가 대결 기록을 다시 돌려 이긴 게 맞으면 되돌리고 +win. 랭크 점수는 1000에서 시작
+pvp:
+  level: 30
+  win: 20
+  lose: 15
+  tiers:
+    - { name: 브론즈, min: 0 }
+    - { name: 실버, min: 1100 }
+    - { name: 골드, min: 1250 }
+    - { name: 플래티넘, min: 1400 }
+    - { name: 다이아, min: 1600 }
+    - { name: 갈매미 마스터, min: 1850 }

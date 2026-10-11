@@ -29,6 +29,9 @@ model Player {
   partyDraft    String            @default("") // 탐험대 편성 중인 유닛 id(쉼표 구분)
   battleTeam    String            @default("") // 수비대 대결 팀(최상위 유닛 종류 id 3개, 쉼표 구분, 웹에서 편성)
   badge         String? // 닉네임 옆 장식(땅콩 상점 배지 id)
+  rankPoint     Int               @default(1000) // PvP 랭크 점수(v0.11.0)
+  rankWins      Int               @default(0)
+  rankLosses    Int               @default(0)
   revision      Int               @default(0)
   createdAt     DateTime          @default(now())
   characters    OwnedCharacter[]

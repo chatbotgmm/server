@@ -877,6 +877,8 @@ header .back:active{transform:translateY(2px);box-shadow:0 1px 0 var(--edge)}
 .att-d small{font-size:10.5px;color:var(--dim)}.att-d span{font-size:18px}.att-d em{font-style:normal;font-size:11px;font-weight:700}
 .att-d.on{border-color:var(--gold);background:#fff4d6}
 .att-d.big{border-color:var(--gold)}
+.att-d.now{border-color:var(--accent-d);background:#fbe6cf;box-shadow:0 0 0 2px var(--accent-hi)}
+.att-note{display:block;font-size:11px;color:var(--dim);margin-top:-2px}
 .msn-r{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px}
 .msn-r b{display:block;font-size:13.5px;font-weight:700}
 .msn-r>div>i{display:block;height:7px;border-radius:999px;background:#ead6ae;margin-top:3px;overflow:hidden}
@@ -898,6 +900,101 @@ html,body,*{-webkit-tap-highlight-color:transparent}
 .lbub.pop{animation:bubPop2 .25s ease-out}
 @keyframes bubPop2{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
 .lhero img{margin-top:34px}
+
+/* ── 플레이 → 모드 고르기(v0.11.0): 왼쪽 캠페인 · 오른쪽 PvP · 아래 돌아가기 ── */
+.modes{position:fixed;z-index:5;inset:0;max-width:none;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:10px;align-items:stretch;
+  padding:calc(12px + env(safe-area-inset-top,0px)) calc(20px + var(--sr)) calc(12px + env(safe-area-inset-bottom,0px)) calc(20px + var(--sl));background:center/cover no-repeat #cfe3ef;overflow:hidden}
+.modes .lbg{position:absolute;inset:-20px;background:inherit;filter:blur(6px) saturate(.9) brightness(1.04);z-index:0}
+.modes>*:not(.lbg):not(.amb){position:relative;z-index:1}
+.mtitle{margin:0;text-align:center;font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:26px;color:#fffaf0;text-shadow:0 2px 0 var(--edge),0 0 8px rgba(60,35,15,.5)}
+.mrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;max-width:1080px;width:100%;margin:0 auto;min-height:0}
+.modes .mrow{align-self:center;max-height:100%}   /* 카드는 내용만큼(큰 화면에서 아래가 비지 않게), 위아래 가운데 */
+body:has(.modes) #mute{display:none}
+.mcard{background:rgba(255,250,240,.96);border:3px solid var(--edge);border-radius:20px;box-shadow:0 6px 0 rgba(90,52,22,.45);padding:14px 16px;display:flex;flex-direction:column;gap:9px;min-height:0;overflow:auto}
+.mhead{display:flex;align-items:center;gap:10px;border-bottom:2px dashed var(--line);padding-bottom:8px}
+.mhead>i{font-style:normal;font-size:34px;line-height:1}
+.mhead b{display:block;font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:24px;color:var(--ink)}
+.mhead small{display:block;color:var(--dim);font-size:12.5px;line-height:1.35}
+.mbtn{display:flex;align-items:center;gap:10px;text-align:left;padding:10px 14px;border-radius:14px;border:2.5px solid var(--line);background:var(--card);color:var(--ink);box-shadow:0 3px 0 rgba(122,78,42,.3)}
+.mbtn>i{font-style:normal;font-size:26px;line-height:1}
+.mbtn b{display:block;font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:19px}
+.mbtn small{display:block;color:var(--dim);font-size:12px}
+.mbtn.main{background:linear-gradient(var(--accent-hi),var(--accent));border-color:var(--accent-d);box-shadow:0 4px 0 var(--accent-d);color:var(--on-accent)}
+.mbtn.main small{color:#5a3a1c}
+.mbtn:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 var(--accent-d)}
+.mbtn:disabled{opacity:.55;border-style:dashed;box-shadow:none}
+.mlinks{display:flex;gap:8px;justify-content:center}
+.mlink{align-self:center;border:2px dashed var(--line);background:transparent;border-radius:999px;padding:4px 14px;font-size:13px;color:var(--dim)}
+.mlink:disabled{opacity:.5}
+.mrank{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:7px 10px;border-radius:12px;background:#f6ead2;border:2px solid var(--line);font-size:13px;color:var(--dim)}
+.mrank .tier{font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:17px;color:var(--ink)}
+.mwarn{font-style:normal;color:#a3541b;font-size:12px;flex-basis:100%}
+.mback{justify-self:center;font-family:"Black Han Sans",sans-serif;font-size:18px;padding:8px 30px;border-radius:999px;border:2.5px solid var(--edge);background:linear-gradient(#fffdf5,#f1d9a8);color:var(--ink);box-shadow:0 3px 0 var(--edge)}
+@media (orientation:landscape) and (max-height:430px){
+  .modes{gap:6px;padding-top:calc(6px + env(safe-area-inset-top,0px));padding-bottom:calc(6px + env(safe-area-inset-bottom,0px))}
+  .mtitle{font-size:20px}.mcard{padding:8px 12px;gap:6px}.mhead{padding-bottom:5px}.mhead>i{font-size:26px}.mhead b{font-size:19px}.mhead small{font-size:11px}
+  .mbtn{padding:6px 12px}.mbtn>i{font-size:20px}.mbtn b{font-size:16px}.mbtn small{font-size:11px}.mrank{padding:4px 8px}.mrank .tier{font-size:15px}.mback{font-size:15px;padding:5px 24px}
+}
+@media (orientation:landscape) and (min-height:601px){ .mtitle{font-size:34px} .mcard{padding:20px 22px;gap:14px} .mbtn{padding:16px 18px} .mbtn b{font-size:23px} .mbtn small{font-size:14px} .mhead b{font-size:30px} .mhead small{font-size:15px} }
+/* PvP 상대 소개(VS) · 순위표 */
+#modal:has(.sheet.pvs){align-items:center}
+.sheet.pvs{max-width:min(720px,94vw) !important;border-radius:20px;border:3px solid var(--edge);text-align:center;display:flex;flex-direction:column;gap:8px}
+.pvs-mode{color:var(--dim)}
+.pvs-row{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px}
+.pvs-side b{display:block;font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:19px}
+.pvs-side small{display:block;color:var(--dim);font-size:12px}
+.pvs-team{display:flex;justify-content:center;gap:2px;margin-top:4px}
+.pvs-team img{width:min(76px,11vw);height:min(76px,11vw);object-fit:contain}
+.pvs-side.me .pvs-team img{transform:scaleX(-1)}
+.pvs-vs{font-style:normal;font-family:"Bagel Fat One","Black Han Sans",sans-serif;font-size:34px;color:var(--accent-d)}
+.sheet.pvs .sub{margin:0}
+.ptl{display:flex;flex-direction:column;gap:5px;max-height:min(60vh,420px);overflow:auto}
+.ptr{display:grid;grid-template-columns:32px minmax(0,1fr) auto auto;align-items:center;gap:8px;padding:6px 10px;border-radius:12px;background:var(--card);border:2px solid var(--line)}
+.ptr em{font-style:normal;font-weight:700;text-align:center}.ptr b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ptr span{font-size:13px}.ptr small{color:var(--dim);font-size:12px}
+.ptr.me{border-color:var(--accent-d);background:var(--accent-soft)}
+
+/* ── 증강체 고르기 v0.11.0: 전략적 팀 전투·칼바람 아수라장처럼 — 어두운 장막 위에 세로로 긴 카드 3장이 차례로 떠오르고, 고른 카드는 빛남, 카드 아래 다시 뽑기 ── */
+#modal.full{background:radial-gradient(ellipse at 50% 45%,rgba(64,36,12,.97),rgba(16,8,2,.99))}
+#modal.full .sheet.pick.full{background:transparent;border:0;box-shadow:none;color:#fff3dc}
+#modal.full .sheet.pick.full h2{color:#ffe9c4;text-shadow:0 2px 0 #3b2614,0 0 14px rgba(240,189,133,.55);letter-spacing:.06em}
+#modal.full .sheet.pick.full h2::before,#modal.full .sheet.pick.full h2::after{content:'◆';font-size:.5em;color:var(--accent-hi);vertical-align:middle;margin:0 .7em;opacity:.8}
+#modal.full .sheet.pick.full .vs{background:rgba(255,243,220,.1);border:1.5px solid rgba(240,189,133,.45);color:#fff3dc}
+#modal.full .sheet.pick.full .vs .mid small,#modal.full .sheet.pick.full .vs .side b{color:#f3dfc0}
+#modal.full .sheet.pick.full .tipline{background:rgba(230,244,220,.92)}
+.sheet.pick.full .augc{perspective:900px}
+.sheet.pick.full .augc .aug{position:relative;border-radius:18px;border:3px solid #c9965a;background:linear-gradient(170deg,#fffaf0 0%,#fbecd0 55%,#f1d6a6 100%);
+  box-shadow:inset 0 0 0 3px #fffaf0,inset 0 0 0 5px rgba(201,150,90,.55),0 8px 0 rgba(0,0,0,.35);transition:transform .16s ease,box-shadow .16s ease,border-color .16s}
+.sheet.pick.full.enter .augc .aug{animation:augRise .45s cubic-bezier(.2,.9,.3,1.2) both}
+.sheet.pick.full.enter .augc:nth-of-type(2) .aug{animation-delay:.08s}.sheet.pick.full.enter .augc:nth-of-type(3) .aug{animation-delay:.16s}
+.sheet.pick.full .augc.rolled .aug{animation:rollin .35s ease-out}
+@keyframes augRise{from{transform:translateY(40px) rotateX(35deg) scale(.9);opacity:0}to{transform:none;opacity:1}}
+.sheet.pick.full .augc .aug:hover{transform:translateY(-4px)}
+.sheet.pick.full .augc .aug.on{border-color:var(--accent-hi);transform:translateY(-6px);
+  box-shadow:inset 0 0 0 3px #fffaf0,inset 0 0 0 5px var(--accent),0 0 0 3px var(--accent-hi),0 0 26px 6px rgba(240,189,133,.75),0 10px 0 rgba(0,0,0,.35)}
+.sheet.pick.full .augc .aug .ic{border-radius:50%;background:radial-gradient(circle at 50% 40%,#fffdf6,#f3dcb2);box-shadow:0 0 0 3px #c9965a,0 0 0 6px #fffaf0,0 3px 6px rgba(60,35,15,.35);padding:6px;box-sizing:content-box}
+.sheet.pick.full .augc .aug .tx small{display:inline-block;align-self:center;background:#7a4e2a;color:#fff3dc !important;border-radius:999px;padding:1px 10px;font-size:11.5px;letter-spacing:.05em}
+.sheet.pick.full .augc .aug .ck{display:none}
+.sheet.pick.full .augc .aug.on::after{content:'✓ 선택';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(var(--accent-hi),var(--accent));color:var(--on-accent);border:2px solid var(--accent-d);border-radius:999px;padding:1px 12px;font-size:12px;font-weight:700;white-space:nowrap}
+.sheet.pick.full .augc .reroll{background:rgba(255,243,220,.12);border:1.5px dashed rgba(240,189,133,.7);color:#fff3dc;border-radius:999px}
+.sheet.pick.full .augc .reroll:disabled{opacity:.45}
+.sheet.pick.full>.aug{background:rgba(255,250,240,.95)}
+@media (prefers-reduced-motion:reduce){.sheet.pick.full .augc .aug,.sheet.pick.full.enter .augc .aug{animation:none !important}}
+@media (orientation:landscape) and (min-height:601px){ .sheet.pick.full .augc .aug .tx small{font-size:14px;padding:2px 14px} }
+/* 작은 가로(높이 400 이하): 메달·글자를 줄여 카드 안에 다 들어가게(위 메달 잘림·설명 넘침 고침) */
+@media (orientation:landscape) and (max-height:400px){
+  .sheet.pick.full .augc .aug{padding:6px 8px;gap:2px}
+  .sheet.pick.full .augc .aug .ic,.sheet.pick.full .augc .aug .ic .ico{width:30px;height:30px;font-size:22px}
+  .sheet.pick.full .augc .aug .ic{padding:3px;box-shadow:0 0 0 2px #c9965a,0 0 0 4px #fffaf0;margin-top:4px}
+  .sheet.pick.full .augc .aug .tx{gap:1px}
+  .sheet.pick.full .augc .aug .tx b{font-size:15px}
+  .sheet.pick.full .augc .aug .tx small{font-size:10.5px;padding:0 8px}
+  .sheet.pick.full .augc .aug .tx span{font-size:12px;line-height:1.35}
+}
+
+/* 그림 아이콘(GPT 75~81번, public/battle/icons): 들어오면 이모지 대신 자동으로 */
+.lside i .ico,.lprof i .ico,.mhead>i .ico,.mbtn>i .ico{width:1.25em;height:1.25em;object-fit:contain;vertical-align:middle;filter:drop-shadow(0 1px 1px rgba(60,35,15,.3))}
+.lcur .ico{width:17px;height:17px;object-fit:contain;vertical-align:-3px}
+.tico:empty{display:none}.tico .ico{width:22px;height:22px;object-fit:contain;vertical-align:-5px;margin-right:2px}
 </style>
 </head>
 <body>

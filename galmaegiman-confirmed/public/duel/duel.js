@@ -287,24 +287,17 @@ function menu() {
   const lvl = team.length ? Math.round(team.reduce((a, id) => a + (SAVE.units[id]?.level ?? 1), 0) / team.length) : 0;
   const storyDot = team.some(id => { const r = myRec(id, 0); return learnChances(R, r) > 0 || canEvolve(R, r, partsCleared()); });
   app.innerHTML = `<div class="ts lobby" style="${bg};${BG.includes('key') ? `--key:url(${BASE}/duel/bg/key.jpg${q})` : ''}"><div class="lbg" aria-hidden="true"></div>${ambient('harbor', true)}
-    <header class="ltop"><div class="lprof"><i>🪪</i><span><b>${esc(ACC?.nickname || '수비조장')}</b><small>${lvl ? `수비대 Lv${lvl} · 실적 ${SAVE.cleared.length}/${stages().length}` : '아직 팀이 없어요'}</small></span></div><div class="lcur" id="lcur"></div></header>
-    <aside class="lside">${ACC ? '<button id="td"><i>📅</i><span>오늘</span></button>' : ''}<button id="st"><i>📖</i><span>스토리</span>${storyDot ? '<em class="dot"></em>' : ''}</button><button id="fr"><i>⚔️</i><span>자유 대결</span></button></aside>
+    <header class="ltop"><div class="lprof"><i>${ico('u-profile', '🪪')}</i><span><b>${esc(ACC?.nickname || '수비조장')}</b><small>${lvl ? `수비대 Lv${lvl} · 실적 ${SAVE.cleared.length}/${stages().length}` : '아직 팀이 없어요'}</small></span></div><div class="lcur" id="lcur"></div></header>
+    <aside class="lside">${ACC ? `<button id="td"><i>${ico('u-attend', '📅')}</i><span>출석체크</span></button>` : ''}<button id="st"><i>${ico('u-story', '📖')}</i><span>스토리</span>${storyDot ? '<em class="dot"></em>' : ''}</button></aside>
     <div class="lhero" id="lhero">${team.length ? `<div class="lplat"></div><img id="lheroImg" alt=""><div class="lbub" id="lbub" hidden></div><div class="lname" id="lname"></div>` : '<button class="lnoteam" id="lnoteam">🐣 팀 3마리를 정하면<br>여기에 대표 갈매미가 서요</button>'}</div>
     <div class="lstory">${nowCard()}</div>
     <nav class="dock">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점'], ['account', '👤', '계정']].map(([h, i, t]) => `<a href="${my(h)}" data-h="${h}"><i class="${ICONS.includes(`m-${h}`) ? 'art' : ''}">${ico(`m-${h}`, i)}</i><span>${t}</span></a>`).join('')}</nav></div>`;
   app.querySelector('#st').onclick = storyScreen;
-  app.querySelector('#fr').onclick = () => pickScreen('free');
   app.querySelector('#td')?.addEventListener('click', todaySheet);
   if (ACC) myApi('daily').then(d => { if (!d.attend.today || d.missions.some(m => !m.done && m.value >= m.goal)) app.querySelector('#td')?.insertAdjacentHTML('beforeend', '<em class="dot"></em>'); }).catch(() => {});
   app.querySelectorAll('.dock a[data-h]').forEach(a => a.onclick = e => { e.preventDefault(); openMy(a.dataset.h); });
   app.querySelector('#lnoteam')?.addEventListener('click', () => pickScreen('story'));
-  app.querySelector('#go')?.addEventListener('click', () => {
-    const st = nextStage();
-    if (!st) return storyScreen();
-    const go = () => (unlocked(st.id) ? playStage(st) : storyScreen());   // 승진이 필요한 부면 목록으로
-    if (SAVE.team.length !== 3) return pickScreen('story', go);
-    go();
-  });
+  app.querySelector('#go')?.addEventListener('click', () => { sfx('tap'); modeScreen(); });
   // 대표 갈매미: 누르면 한마디, 다시 누르면 다음 팀원
   if (team.length) {
     let at = 0, hide = null;
@@ -322,27 +315,108 @@ function menu() {
   // 재화·빨간 점(로그인했으면 서버에서): 뽑기권 받을 수 있음 · 탐험 끝남
   if (ACC) myApi('me').then(me => {
     const cur = app.querySelector('#lcur'); if (!cur) return;
-    cur.innerHTML = [['🍤', me.snack, '새우깡'], ['🥜', me.peanut, '땅콩'], ['🎫', me.credits, '뽑기권']].map(([i, n, t]) => `<span title="${t}">${i}<b>${Number(n).toLocaleString('ko-KR')}</b></span>`).join('');
+    cur.innerHTML = [[ico('u-snack', '🍤'), me.snack, '새우깡'], [ico('u-peanut', '🥜'), me.peanut, '땅콩'], [ico('u-ticket', '🎫'), me.credits, '뽑기권']].map(([i, n, t]) => `<span title="${t}">${i}<b>${Number(n).toLocaleString('ko-KR')}</b></span>`).join('');
     const now = Date.now(), dot = h => app.querySelector(`.dock a[data-h="${h}"]`)?.insertAdjacentHTML('beforeend', '<em class="dot"></em>');
     if (new Date(me.claimReadyAt).getTime() <= now) dot('draw');
     if (me.trip && new Date(me.trip.endsAt).getTime() <= now) dot('party');
   }).catch(() => {});
 }
-// 로비 「오늘」: 출석(하루 한 번 뽑기권, 7일 연속 보너스) + 오늘의 미션(카톡과 같은 진행, 채우면 바로 지급)
+// 스토리 이어하기(다음 스테이지 바로, 팀이 없으면 편성부터)
+function continueStory() {
+  const st = nextStage();
+  if (!st) return storyScreen();
+  const go = () => (unlocked(st.id) ? playStage(st) : storyScreen());   // 승진이 필요한 부면 목록으로
+  if (SAVE.team.length !== 3) return pickScreen('story', go);
+  go();
+}
+// 플레이 → 모드 고르기(v0.11.0): 왼쪽 캠페인(스토리·모험), 오른쪽 PvP(일반·랭크), 아래 돌아가기
+function modeScreen() {
+  modal.hidden = true; bgm('title'); muteBtn();
+  const st = nextStage(), bg = BG.includes('harbor') ? `background-image:url(${BASE}/duel/bg/harbor.jpg${q})` : '';
+  app.innerHTML = `<div class="modes" style="${bg}"><div class="lbg" aria-hidden="true"></div>${ambient('harbor', true)}
+    <h1 class="mtitle">게임 모드</h1>
+    <div class="mrow">
+      <section class="mcard camp"><div class="mhead"><i>${ico('mode-camp', '🗺️')}</i><span><b>캠페인</b><small>이야기를 따라 항구를 지키고, 상위 갈매미를 찾아 모험</small></span></div>
+        <button class="mbtn main" id="mStory"><i>${ico('u-story', '📖')}</i><span><b>스토리</b><small>${st ? `${esc(st.id)} ${esc(st.title)}` : '모든 이야기 완료 · 다시 보기'}</small></span></button>
+        <button class="mbtn" id="mAdv" disabled><i>${ico('mode-adv', '🧭')}</i><span><b>모험 · 상위 갈매미 포획</b><small>준비 중 · 다음 업데이트</small></span></button>
+        <button class="mlink" id="mList">스토리 목록</button></section>
+      <section class="mcard pvp"><div class="mhead"><i>${ico('mode-pvp', '⚔️')}</i><span><b>PvP</b><small>다른 수비대의 「전투 편성」 팀과 대결 · 모두 같은 레벨</small></span></div>
+        <div class="mrank" id="mRank">${ACC ? '랭크 불러오는 중…' : '로그인하면 PvP를 할 수 있어요'}</div>
+        <button class="mbtn" id="mNormal" ${ACC ? '' : 'disabled'}><i>${ico('mode-normal', '🤝')}</i><span><b>일반게임</b><small>점수 없이 가볍게</small></span></button>
+        <button class="mbtn" id="mRankGo" ${ACC ? '' : 'disabled'}><i>${ico('mode-rank', '🏆')}</i><span><b>랭크게임</b><small id="mRankSub">이기면 점수가 올라요</small></span></button>
+        <div class="mlinks"><button class="mlink" id="mTop" ${ACC ? '' : 'disabled'}>순위표</button><button class="mlink" id="mFree">연습(자유 대결)</button></div></section>
+    </div>
+    <button class="mback" id="mBack">‹ 돌아가기</button></div>`;
+  app.querySelector('#mStory').onclick = continueStory;
+  app.querySelector('#mList').onclick = storyScreen;
+  app.querySelector('#mFree').onclick = () => pickScreen('free');
+  app.querySelector('#mBack').onclick = menu;
+  app.querySelector('#mNormal').onclick = () => pvpStart('normal');
+  app.querySelector('#mRankGo').onclick = () => pvpStart('rank');
+  app.querySelector('#mTop').onclick = pvpTop;
+  if (ACC) myApi('pvp').then(d => {
+    const el = app.querySelector('#mRank'); if (!el) return;
+    el.innerHTML = `${tierIco(d, d.me.tier)}<b class="tier">${esc(d.me.tier)}</b><span>${d.me.point.toLocaleString('ko-KR')}점 · ${d.me.wins}승 ${d.me.losses}패${d.me.rank ? ` · ${d.me.rank}위` : ''}</span>`;
+    app.querySelector('#mRankSub').textContent = `이기면 +${d.win} · 지면 -${d.lose} · Lv${d.level}로 맞춤`;
+    if (!d.team) el.insertAdjacentHTML('beforeend', '<em class="mwarn">「전투 편성」에서 3마리를 먼저 정해요</em>');
+  }).catch(() => { const el = app.querySelector('#mRank'); if (el) el.textContent = '랭크 정보를 불러오지 못했어요'; });
+}
+// 티어 배지 그림(icons/tier-1.png ~ tier-6.png, 낮은 티어부터). 그림이 없으면 빈칸
+const tierIco = (d, name) => { const n = (d.tiers ?? []).indexOf(name) + 1; return n ? `<span class="tico">${ico(`tier-${n}`, '')}</span>` : ''; };
+// PvP 순위표(상위 20)
+async function pvpTop() {
+  modal.className = ''; modal.hidden = false; modal.innerHTML = '<div class="sheet today"><p class="sub">불러오는 중…</p></div>';
+  let d; try { d = await myApi('pvp'); } catch (e) { modal.hidden = true; return tell(e.message); }
+  modal.innerHTML = `<div class="sheet today ptop"><h2>🏆 랭크 순위<button class="xbtn" id="ptX" aria-label="닫기">✕</button></h2>
+    <p class="sub">내 랭크: ${esc(d.me.tier)} · ${d.me.point}점${d.me.rank ? ` · ${d.me.rank}위` : ' · 아직 랭크게임을 안 했어요'}</p>
+    <div class="ptl">${d.top.length ? d.top.map(r => `<div class="ptr ${r.me ? 'me' : ''}"><em>${r.rank}</em><b>${esc(r.name)}</b><span>${tierIco(d, r.tier)}${esc(r.tier)}</span><small>${r.point}점 · ${r.wins}승 ${r.losses}패</small></div>`).join('') : '<p class="sub">아직 랭크게임을 한 사람이 없어요. 첫 번째가 되어 보세요!</p>'}</div></div>`;
+  modal.querySelector('#ptX').onclick = () => { modal.hidden = true; };
+  modal.onclick = e => { if (e.target === modal) modal.hidden = true; };
+}
+// PvP 대전: 서버가 상대·시드·양쪽 팀(같은 레벨)을 정함 → 내가 고른 것을 기록 → 끝나면 서버가 다시 돌려 승패 확인
+let pvp = null;   // { match, mode, log }
+async function pvpStart(mode) {
+  let m;
+  try { m = (await myApi('pvp/match', { mode })).result; }
+  catch (e) {
+    if (/전투 편성/.test(e.message)) { if (await ask(`${e.message}\n지금 편성할까요?`, { ok: '전투 편성으로' })) openMy('battle'); return; }
+    return tell(e.message);
+  }
+  // 상대 소개(VS)
+  modal.className = ''; modal.hidden = false;
+  const row = recs => recs.map(r => `<img src="${sprite(r.id, 'front', 0)}" class="${tintOf(r.id)}" alt="" title="${esc(r.name)}">`).join('');
+  modal.innerHTML = `<div class="sheet pvs"><small class="pvs-mode">${mode === 'rank' ? '🏆 랭크게임' : '🤝 일반게임'} · 모두 Lv${m.mine[0].level}</small>
+    <div class="pvs-row"><div class="pvs-side me"><b>${esc(ACC?.nickname || '내 수비대')}</b><div class="pvs-team">${row(m.mine)}</div></div><em class="pvs-vs">VS</em>
+    <div class="pvs-side foe"><b>${esc(m.foeName)}</b>${m.foeTier ? `<small>${esc(m.foeTier)}</small>` : m.bot ? '<small>상대가 없어 연습 팀과 붙어요</small>' : ''}<div class="pvs-team">${row(m.foe)}</div></div></div>
+    <button class="big wide" id="pvsGo">대전 시작</button>${mode === 'rank' ? '<p class="sub">랭크는 중간에 나가면 패배로 처리돼요.</p>' : ''}</div>`;
+  modal.querySelector('#pvsGo').onclick = () => {
+    modal.hidden = true; sceneNow = 'harbor'; fightId = null;
+    startBattle(m.mine, m.foe, won => {
+      const sent = pvp; pvp = null;
+      myApi('pvp/result', { match: sent.match, log: sent.log }).then(r => {
+        const t = r.result, el = document.querySelector('#panel .sheet .sub');
+        if (el) el.textContent = t.mode === 'rank' ? `랭크 ${t.change >= 0 ? '+' : ''}${t.change}점 → ${t.point}점 (${t.tier}) · ${t.wins}승 ${t.losses}패` : '일반게임은 점수가 없어요. 랭크게임에서 실력을 겨뤄 봐요!';
+      }).catch(e => { const el = document.querySelector('#panel .sheet .sub'); if (el) el.textContent = `결과를 확인하지 못했어요: ${e.message}`; });
+      return { text: mode === 'rank' ? '결과 확인 중…' : '결과 확인 중…', buttons: [['한 판 더', () => pvpStart(mode)], ['모드 고르기로', modeScreen]] };
+    }, '', { retry: () => pvpStart(mode), back: modeScreen }, m.seed);
+    pvp = { match: m.match, mode, log: [] };
+  };
+}
+// 로비 「출석체크」: 출석(하루 한 번 뽑기권, 날·주가 갈수록 커짐) + 오늘의 미션(카톡과 같은 진행, 채우면 바로 지급)
 async function todaySheet() {
   modal.className = ''; modal.hidden = false; modal.innerHTML = '<div class="sheet today"><p class="sub">불러오는 중…</p></div>';
   let d; try { d = await myApi('daily'); } catch (e) { modal.innerHTML = `<div class="sheet today"><p class="sub">${esc(e.message)}</p><button class="ghost wide" id="tdX">닫기</button></div>`; modal.querySelector('#tdX').onclick = () => { modal.hidden = true; }; return; }
-  const a = d.attend, week = [1, 2, 3, 4, 5, 6, 7], inWeek = a.today ? ((a.streak - 1) % 7) + 1 : a.streak % 7;
+  const a = d.attend, got = a.today ? a.dayInWeek : a.dayInWeek - 1;   // 이번 주에 이미 받은 칸 수
   const done = d.missions.filter(m => m.done).length;
-  modal.innerHTML = `<div class="sheet today"><h2>📅 오늘<button class="xbtn" id="tdX" aria-label="닫기">✕</button></h2><div class="scols"><div class="scol">
-      <div class="att"><b>출석 ${a.streak ? `· ${a.streak}일 연속` : ''}</b>
-        <div class="att-week">${week.map(n => `<div class="att-d ${n <= inWeek ? 'on' : ''} ${n === 7 ? 'big' : ''}"><small>${n}일</small><span>${n <= inWeek ? '✅' : n === 7 ? '🎁' : '🎟'}</span><em>${n === 7 ? a.tickets + a.weekBonus : a.tickets}</em></div>`).join('')}</div>
+  modal.innerHTML = `<div class="sheet today"><h2>📅 출석체크<button class="xbtn" id="tdX" aria-label="닫기">✕</button></h2><div class="scols"><div class="scol">
+      <div class="att"><b>${a.week}주째${a.streak ? ` · ${a.streak}일 연속` : ''}</b><small class="att-note">날이 갈수록, 주가 갈수록 보상이 커져요 · 하루 빠지면 1일째부터</small>
+        <div class="att-week">${a.rewards.map((t, k) => { const n = k + 1, st = n <= got ? 'on' : n === got + 1 && !a.today ? 'now' : ''; return `<div class="att-d ${st} ${n === 7 ? 'big' : ''}"><small>${n}일</small><span>${n <= got ? '✅' : n === 7 ? '🎁' : '🎟'}</span><em>${t}</em></div>`; }).join('')}</div>
         <button class="big wide" id="tdAtt" ${a.today ? 'disabled' : ''}>${a.today ? '오늘 출석 완료 · 내일 또 와요' : `출석하고 🎟 ${a.next}장 받기`}</button></div></div>
     <div class="scol"><div class="msn"><b>오늘의 미션 ${done}/${d.missions.length}</b><small>채우는 순간 바로 받아요 · 밤 12시 초기화</small>
       ${d.missions.map(m => `<div class="msn-r ${m.done ? 'ok' : ''}"><span>${m.done ? '✅' : '🎯'}</span><div><b>${esc(m.label)}</b><i><i style="width:${Math.round(m.value / m.goal * 100)}%"></i></i></div><em>${m.goal > 1 ? `${m.value}/${m.goal}` : m.done ? '완료' : ''} · 🎟 ${m.tickets}</em></div>`).join('')}</div></div></div></div>`;
   modal.querySelector('#tdX').onclick = () => { modal.hidden = true; menu(); };
   modal.querySelector('#tdAtt').onclick = async () => {
-    try { const r = await myApi('attend', {}); sfx('win'); await tell(`출석 완료! ${r.result.streak}일 연속\n🎟 뽑기권 ${r.result.tickets}장${r.result.bonus ? `(7일 보너스 +${r.result.bonus} 포함)` : ''}`); todaySheet(); }
+    try { const r = await myApi('attend', {}); sfx('win'); await tell(`출석 완료! ${r.result.streak}일 연속\n🎟 뽑기권 ${r.result.tickets}장${r.result.dayInWeek === 7 ? ' · 이번 주 큰 보상!' : ''}`); todaySheet(); }
     catch (e) { await tell(e.message); }
   };
 }
@@ -387,12 +461,13 @@ function recap() {
 // 첫 화면 「지금 이야기」: 부·스테이지·진행률 한 줄 + 큰 이어하기 버튼
 function nowCard() {
   const all = stages(), st = nextStage(), done = SAVE.cleared.length, pct = Math.round(done / all.length * 100);
-  if (!st) return `<div class="now"><small>모든 이야기를 끝냈어요</small><b>🎖 수비대장 취임</b><div class="prog"><i style="width:100%"></i><em>${done}/${all.length}</em></div></div><button class="play" id="go">📖 이야기 다시 보기</button>`;
-  const c = st.chapter, first = !done;
+  const play = '<button class="play" id="go"><span>▶ 플레이</span></button>';   // 플레이 → 모드 고르기(캠페인 / PvP)
+  if (!st) return `<div class="now"><small>모든 이야기를 끝냈어요</small><b>🎖 수비대장 취임</b><div class="prog"><i style="width:100%"></i><em>${done}/${all.length}</em></div></div>${play}`;
+  const c = st.chapter;
   const lock = !unlocked(st.id) && c.needStage ? `<p class="need">🔒 팀 전원 ${c.needStage}단계 승진하면 열려요 (${STARS[c.needStage]})</p>` : '';
   const rc = recap();
   return `<div class="now"><small>${esc(c.title)}</small><b>${esc(st.id)} ${esc(st.title)}</b>${rc ? `<p class="recap">${esc(rc)}</p>` : ''}${lock}<div class="prog"><i style="width:${pct}%"></i><em>${done}/${all.length}</em></div></div>
-    <button class="play" id="go"><span>${first ? '▶ 이야기 시작' : SAVE.team.length !== 3 ? '▶ 팀 정하고 이어하기' : '▶ 이어하기'}</span></button>`;
+    ${play}`;
 }
 
 // ── 편성(자유 대결: 레벨 선택 / 스토리: 저장된 레벨) ──
@@ -626,9 +701,9 @@ function fight(st) {
 // ── 대결 ──
 let fleeTo = null; // 도망치기: { retry, back }
 let sceneNow = '';
-function startBattle(mine, foe, end, hint, flee) {
-  onEnd = end; hintNow = hint || ''; fleeTo = flee;
-  b = createBattle(R, mine, foe, (Math.random() * 2 ** 31) | 0);
+function startBattle(mine, foe, end, hint, flee, seed) {   // seed: PvP는 서버가 준 시드(서버가 같은 대결을 다시 돌려 확인)
+  onEnd = end; hintNow = hint || ''; fleeTo = flee; if (seed === undefined) pvp = null;
+  b = createBattle(R, mine, foe, seed ?? ((Math.random() * 2 ** 31) | 0));
   const boss = foe.some(f => R.villains.get(f.id)?.boss);
   bgm(boss ? 'boss' : 'battle');
   app.innerHTML = `<div id="arena" class="sc-${sceneNow || 'harbor'}">${ambient(sceneNow || 'harbor')}<div class="ground"></div><div class="haze"></div><div class="plat foe"></div><div class="plat me"></div>
@@ -700,7 +775,7 @@ const FLIP = ['camo', 'reverse', 'weakguard', 'neutral', 'dual', 'counter'];   /
 const multTag = m => m > 1 ? `<b class="good">×${m} 유리</b>` : m < 1 ? `<b class="bad">×${m} 불리</b>` : '<b>×1 보통</b>';
 
 function chooseSheet(p) {
-  let aug = null, to = null;
+  let aug = null, to = null, enter = true;   // enter: 처음 열 때만 카드가 떠오름(고를 때마다 다시 그려도 반복 안 함)
   const me = activeOf(b, 0), foe = activeOf(b, 1);
   const alive = b.sides[0].fighters.map((f, i) => [f, i]).filter(([f]) => f.hp > 0);
   const atk = R.typeMult(me.attr, foe.attr), def = R.typeMult(foe.attr, me.attr), bad = atk < 1 || def > 1;
@@ -714,7 +789,7 @@ function chooseSheet(p) {
     // 확인 버튼 글자: 고른 것은 이름으로, 아직 안 고른 것은 무엇을 고를지(둘 다 있으면 「 · 」로 이음)
     const okLabel = () => [p.augments && (aug ? `「${esc(R.battleAug.get(aug).name)}」 선택` : '증강체를 골라요'),
       p.needSwitch && (to !== null ? `${esc(b.sides[0].fighters[to].name)} 출전` : '나갈 갈매미를 골라요')].filter(Boolean).join(' · ');
-    modal.innerHTML = `<div class="sheet pick ${p.augments ? 'full' : ''} ${p.augments && p.needSwitch ? 'both' : ''}">
+    modal.innerHTML = `<div class="sheet pick ${p.augments ? 'full' : ''} ${p.augments && p.needSwitch ? 'both' : ''} ${enter ? 'enter' : ''}">
       ${p.augments ? `<h2>전투 증강체</h2><p class="sub">${b.turn === 1 ? '대결 시작' : '전투불가 발생'} · 3개 중 하나를 골라요. 마음에 안 들면 칸마다 한 번씩 🎲 다시 뽑을 수 있어요.</p>${vs}
         ${hintNow && b.turn === 1 ? `<div class="tipline">💡 ${hl(hintNow)}</div>` : ''}
         ${p.augments.map(id => { const a = R.battleAug.get(id), [ic, kind] = AUG_ICON[id] ?? ['✨', ''], rec = bad && FLIP.includes(id);
@@ -724,10 +799,11 @@ function chooseSheet(p) {
         ${alive.map(([f, i]) => { const m = R.typeMult(f.attr, foe.attr), pct = Math.round(f.hp / f.maxHp * 100);
           return `<button class="aug ${to === i ? 'on' : ''}" data-t="${i}"><img class="ic" src="${face(f)}" alt=""><span class="tx"><b>${esc(f.name)}</b><small>${R.attrName(f.attr)} · ${ROLE[f.role]} · 상대에게 ${m > 1 ? '유리' : m < 1 ? '불리' : '보통'}</small><i class="hpmini"><i style="width:${pct}%"></i></i></span><span class="ck">${to === i ? '✓' : ''}</span></button>`; }).join('')}` : ''}
       <button class="big wide" id="ok" ${(p.augments && !aug) || (p.needSwitch && to === null) ? 'disabled' : ''}>${okLabel()}</button></div>`;
+    enter = false;
     modal.querySelectorAll('[data-a]').forEach(x => x.onclick = () => { aug = x.dataset.a; draw(); });
     modal.querySelectorAll('[data-r]').forEach(x => x.onclick = () => {
       const i = +x.dataset.r, old = p.augments[i];
-      try { rerollAugment(b, 0, i); } catch { x.disabled = true; x.textContent = '다른 증강체가 없어요'; return; }
+      try { rerollAugment(b, 0, i); if (pvp) pvp.log.push({ r: i }); } catch { x.disabled = true; x.textContent = '다른 증강체가 없어요'; return; }
       p.augments = b.sides[0].offers; if (aug === old) aug = null; sfx('aug'); draw();
       modal.querySelectorAll('.augc')[i]?.classList.add('rolled');
     });
@@ -735,7 +811,8 @@ function chooseSheet(p) {
     modal.querySelector('#ok').onclick = async () => {
       modal.hidden = true; modal.className = '';
       const from = b.log.length;
-      choose(b, 0, { ...(aug ? { augment: aug } : {}), ...(to !== null ? { switchTo: to } : {}) });
+      const pick = { ...(aug ? { augment: aug } : {}), ...(to !== null ? { switchTo: to } : {}) };
+      choose(b, 0, pick); if (pvp) pvp.log.push({ c: pick });
       if (b.phase === 'choose') aiChoose(b, 1);
       await play(from); flow();
     };
@@ -795,7 +872,8 @@ function itemSheet() {
 }
 // 도망치기: 경험치 없음, 깬 것으로 치지 않음
 async function runAway() {
-  if (busy || !(await ask('대결에서 도망칠까요? 경험치를 받지 못해요.', { ok: '도망치기' }))) return;
+  if (busy || !(await ask(pvp?.mode === 'rank' ? '랭크게임에서 나갈까요? 패배로 처리돼요.' : pvp ? '대전에서 나갈까요?' : '대결에서 도망칠까요? 경험치를 받지 못해요.', { ok: pvp ? '나가기' : '도망치기' }))) return;
+  pvp = null;
   b.phase = 'over';
   document.getElementById('m0').animate([{ transform: 'translateX(0)', opacity: 1 }, { transform: 'translateX(-120px)', opacity: 0 }], { duration: 500, fill: 'forwards' });
   say('수비조가 재빨리 물러났어요!');
@@ -810,7 +888,7 @@ async function turn(mine) {
   if (busy) return; busy = true;
   document.getElementById('panel').innerHTML = '';
   const from = b.log.length;
-  try { act(b, [mine, pickAi(b, 1)]); } catch (e) { say(e.message); busy = false; return actionPanel(); }
+  try { act(b, [mine, pickAi(b, 1)]); if (pvp) pvp.log.push({ a: mine }); } catch (e) { say(e.message); busy = false; return actionPanel(); }
   await play(from);
   busy = false; flow();
 }

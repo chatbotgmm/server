@@ -65,7 +65,12 @@ const economySchema=z.object({
   rewards:z.object(Object.fromEntries(tierOrder.map(t=>[t,reward])) as Record<Tier,typeof reward>).strict(),
   achievements:z.object(Object.fromEntries(tierOrder.map(t=>[t,achievement])) as Record<Tier,typeof achievement>).strict(),
   missions:z.array(z.object({key:z.enum(['DRAW','CRAFT','CRAFT_RARE','CRAFT_LEGEND','CRAFT_TOP','EXPEDITION']),label:text,goal:z.number().int().min(1).max(1000),tickets:z.number().int().min(0).max(1000)}).strict()).max(10),
-  attendance:z.object({tickets:z.number().int().min(0).max(1000),weekBonus:z.number().int().min(0).max(1000)}).strict().default({tickets:10,weekBonus:30}),   // 게임 출석: 하루 한 번, 7일 연속마다 보너스
+  // PvP: 양쪽 모두 같은 레벨(승진·배운 기술 없이 기본 기술). 랭크는 이기면 +win, 지면 -lose(0 밑으로는 안 내려감), 점수 구간마다 티어
+  pvp:z.object({level:z.number().int().min(1).max(100),win:z.number().int().min(1).max(200),lose:z.number().int().min(0).max(200),
+    tiers:z.array(z.object({name:z.string().min(1).max(20),min:z.number().int().min(0)}).strict()).min(1)}).strict()
+    .default({level:30,win:20,lose:15,tiers:[{name:'브론즈',min:0},{name:'실버',min:1100},{name:'골드',min:1250},{name:'플래티넘',min:1400},{name:'다이아',min:1600},{name:'갈매미 마스터',min:1850}]}),
+  // 게임 출석체크: 하루 한 번. 연속 n일째 보상 = days[(n-1)%7] + weekStep×min(지난 주 수, weekCap) → 날이 갈수록, 주가 갈수록 커짐(하루 빠지면 1일째부터)
+  attendance:z.object({days:z.array(z.number().int().min(0).max(1000)).length(7),weekStep:z.number().int().min(0).max(100),weekCap:z.number().int().min(0).max(52)}).strict().default({days:[8,10,12,14,16,18,40],weekStep:2,weekCap:5}),
 }).strict();
 export type Economy=z.infer<typeof economySchema>;
 

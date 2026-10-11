@@ -210,6 +210,24 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     if(!r.success)throw new GameError('스토리 진행 모양이 맞지 않아요.');
     return game.webSaveStory(id,r.data);
   });
+  // PvP(일반·랭크): 내 랭크·순위표 / 대전 시작(상대·시드는 서버가) / 결과(기록을 서버가 다시 돌려 승패 확인)
+  app.get('/my/api/pvp',limit,async(req,reply)=>{
+    if(!guard(req,reply))return;
+    const id=session(req);
+    if(!id)return reply.code(401).send({error:'login'});
+    try{return reply.header('Cache-Control','no-store').send(await game.webPvp(id));}
+    catch(e){if(e instanceof GameError)return reply.code(400).send({error:e.message});throw e;}
+  });
+  act<{mode?:unknown}>('/my/api/pvp/match',(id,b)=>game.webPvpMatch(id,String(b.mode??'')));
+  const pvpEvent=z.union([z.object({r:z.number().int().min(0).max(2)}).strict(),
+    z.object({c:z.object({augment:z.string().max(30).optional(),switchTo:z.number().int().min(0).max(2).optional()}).strict()}).strict(),
+    z.object({a:z.union([z.object({kind:z.literal('skill'),skillId:z.string().max(40)}).strict(),
+      z.object({kind:z.literal('switch'),to:z.number().int().min(0).max(2),then:z.string().max(40).optional()}).strict()])}).strict()]);
+  act<{match?:unknown;log?:unknown}>('/my/api/pvp/result',async(id,b)=>{
+    const log=z.array(pvpEvent).max(600).safeParse(b.log);
+    if(!log.success||typeof b.match!=='string')throw new GameError('대전 기록이 맞지 않아요.');
+    return game.webPvpResult(id,loadBattleRules(opt.root),b.match,log.data);
+  });
   // 대결 하나마다 표(서버 메모리, 2시간): 대결 한 번에 쓸 수 있는 아이템 수를 서버에서도 셈
   const fights=new Map<string,{player:string;used:number;exp:number}>();
   act('/my/api/story/battle',async id=>{

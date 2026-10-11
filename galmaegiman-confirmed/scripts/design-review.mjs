@@ -25,7 +25,10 @@ for(const [n,w,h] of [['L',915,412],['S',780,360],['W',1280,720]]){   // 게임�
   await p.click('.dock a[data-h="draw"]');const mf=p.frameLocator('.myov iframe');await mf.locator('.gbar').waitFor({timeout:15000});await p.waitForTimeout(1800);
   await p.screenshot({path:`${out}/R${n}-3c-my.png`});console.log(n,'내 갈매미',JSON.stringify(await ov()));
   await mf.locator('#gback').click();await p.waitForSelector('.myov',{state:'detached'});await p.waitForSelector('.ts');await p.waitForTimeout(800);
-  await p.click('#go',{force:true});await p.waitForTimeout(1200);if(await p.$('#rnd')){await p.click('#rnd');await p.click('#go');await p.waitForTimeout(1200);}
+  await p.click('#td');await p.waitForSelector('.sheet.today .att-week');await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-3f-attend.png`});console.log(n,'출석체크 창 안 스크롤',await p.evaluate(()=>{const e=document.querySelector('.sheet.today');return e.scrollHeight>e.clientHeight+1;}));
+  await p.click('#tdX');await p.waitForSelector('.ts.lobby');await p.waitForTimeout(600);
+  await p.click('#go',{force:true});await p.waitForSelector('.modes');await p.waitForTimeout(1200);await p.screenshot({path:`${out}/R${n}-3g-modes.png`});console.log(n,'모드 고르기',JSON.stringify(await ov()),'칸 넘침',await p.evaluate(()=>[...document.querySelectorAll('.mcard')].some(e=>e.scrollHeight>e.clientHeight+1)));
+  await p.click('#mStory',{force:true});await p.waitForTimeout(1200);if(await p.$('#rnd')){await p.click('#rnd');await p.click('#go');await p.waitForTimeout(1200);}
   await p.waitForSelector('.dbox');await p.waitForTimeout(1800);await p.screenshot({path:`${out}/R${n}-3b-talk.png`});console.log(n,'대사',JSON.stringify(await ov()));
   for(let i=0;i<40 && !(await p.$('.aug'));i++){await p.click('.dbox').catch(()=>{});await p.waitForTimeout(200);}
   await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-3d-aug.png`});console.log(n,'증강체',JSON.stringify(await ov()),'창 안 스크롤',await p.evaluate(()=>{const e=document.querySelector('#modal .sheet');return e?e.scrollHeight>e.clientHeight+1:null;}));

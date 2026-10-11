@@ -10,6 +10,10 @@ import { characterInfo, matchCharacters, listReply, materialCounts, displayName,
 import { acquisitionText, acquisitionCard, achievementText, emblems, prelude, rewardGuide, speech, story, type AcquisitionKind, type Receipt } from './acquisition.js';
 import { cardsPerPage, cardCost } from './kakao.js';
 import { DateTime } from 'luxon';
+import type { Rules } from './battle/core.js';
+import type { UnitRecord } from './battle/growth.js';
+import { createBattle } from './battle/engine.js';
+import { replay, type PvpEvent } from './battle/replay.js';
 import { planExpedition, rollExpedition, expectedSnacks, type ExpeditionPlan, type Roll } from './expedition.js';
 
 type Count={total:number;usable:number;locked:number;away:number};
@@ -1227,7 +1231,7 @@ export class GameService {
     if(code.length>60)throw new GameError('🎟 맞는 쿠폰이 없어요.');
     return this.webRun(playerId,async(tx,p,now)=>this.replyText(await this.coupon(tx,p,code,now)));
   }
-  // 게임 로비 「오늘」: 오늘의 미션 진행(카톡과 같은 칸) + 출석(하루 한 번, Achievement ATTEND_<날짜>)
+  // 게임 로비 「출석체크」: 오늘의 미션 진행(카톡과 같은 칸) + 출석(하루 한 번, Achievement ATTEND_<날짜>)
   async webDaily(playerId:string){
     const now=this.clock(),day=DateTime.fromJSDate(now).setZone('Asia/Seoul').toISODate()!;
     const row=await this.db.dailyProgress.findUnique({where:{playerId_day:{playerId,day}}});
@@ -1236,19 +1240,89 @@ export class GameService {
     const att=await this.db.achievement.findMany({where:{playerId,key:{startsWith:'ATTEND_'}},select:{key:true},orderBy:{key:'desc'},take:40});
     const days=new Set(att.map(a=>a.key.slice(7)));
     let streak=0;for(let d=DateTime.fromISO(day).minus({days:days.has(day)?0:1});days.has(d.toISODate()!);d=d.minus({days:1}))streak++;
+    // 이번 주(연속 1~7일째 칸) 보상표: 오늘 출석했으면 오늘이 든 주, 아니면 내일 받을 칸이 든 주
+    const n=days.has(day)?streak:streak+1,week=Math.floor((n-1)/7);
+    return {day,missions,attend:{today:days.has(day),streak,week:week+1,dayInWeek:((n-1)%7)+1,rewards:[1,2,3,4,5,6,7].map(k=>this.attendReward(week*7+k)),next:days.has(day)?null:this.attendReward(n)}};
+  }
+  // 연속 n일째 출석 보상(뽑기권)
+  private attendReward(n:number){
     const a=this.content.economy.attendance;
-    return {day,missions,attend:{today:days.has(day),streak,tickets:a.tickets,weekBonus:a.weekBonus,next:days.has(day)?null:(streak+1)%7===0?a.tickets+a.weekBonus:a.tickets}};
+    return a.days[(n-1)%7]+a.weekStep*Math.min(Math.floor((n-1)/7),a.weekCap);
   }
   async webAttend(playerId:string){
     return this.webRun(playerId,async(tx,p,now)=>{
       const day=DateTime.fromJSDate(now).setZone('Asia/Seoul').toISODate()!,key=`ATTEND_${day}`;
       if(await tx.achievement.findUnique({where:{playerId_key:{playerId:p.id,key}}}))throw new GameError('오늘은 이미 출석했어요. 내일 또 와요!');
       let streak=1;for(let d=DateTime.fromISO(day).minus({days:1});await tx.achievement.findUnique({where:{playerId_key:{playerId:p.id,key:`ATTEND_${d.toISODate()}`}}});d=d.minus({days:1})){streak++;if(streak>400)break;}
-      const a=this.content.economy.attendance,bonus=streak%7===0?a.weekBonus:0,tickets=a.tickets+bonus;
+      const tickets=this.attendReward(streak);
       await tx.achievement.create({data:{playerId:p.id,key,createdAt:now}});
       if(tickets)await tx.player.update({where:{id:p.id},data:{credits:{increment:tickets},revision:{increment:1}}});
       await this.audit(tx,p,'ATTEND',{day,streak,tickets});
-      return {streak,tickets,bonus};
+      return {streak,tickets,dayInWeek:((streak-1)%7)+1};
+    });
+  }
+  // ── PvP(v0.11.0): 상대 = 다른 유저의 「전투 편성」 팀(컴퓨터가 조종), 양쪽 모두 같은 레벨 ──
+  // 대결 표는 서버 메모리(1시간). 랭크는 시작 때 패배로 먼저 셈(중간에 나가도 패배), 기록을 다시 돌려 이긴 게 맞으면 되돌리고 승리 점수
+  private pvpMatches=new Map<string,{player:string;mode:'normal'|'rank';seed:number;mine:UnitRecord[];foe:UnitRecord[];exp:number;lost:number;done:boolean}>();
+  private pvpTier(point:number){const t=[...this.content.economy.pvp.tiers].sort((a,b)=>a.min-b.min);return [...t].reverse().find(x=>point>=x.min)?.name??t[0].name;}
+  private pvpRecs(ids:string[],side:string):UnitRecord[]{
+    const lv=this.content.economy.pvp.level;
+    return ids.map((id,i)=>({uid:`${side}${i}`,id,name:this.content.map.get(id)?.name??id,tier:this.content.map.get(id)!.rarity as UnitRecord['tier'],level:lv,xp:0,stage:0,evoAugs:[]}));
+  }
+  private pvpTeam(raw:string){const ids=raw.split(',').filter(Boolean);return ids.length===3&&ids.every(id=>this.topIds.includes(id))&&new Set(ids).size===3?ids:null;}
+  async webPvp(playerId:string){
+    const p=await this.db.player.findUnique({where:{id:playerId}});
+    if(!p)throw new GameError('로그인을 다시 해 주세요.');
+    const top=await this.db.player.findMany({where:{OR:[{rankWins:{gt:0}},{rankLosses:{gt:0}}]},orderBy:[{rankPoint:'desc'},{rankWins:'desc'}],take:20,select:{id:true,nickname:true,rankPoint:true,rankWins:true,rankLosses:true}});
+    const played=p.rankWins+p.rankLosses>0,rank=played?await this.db.player.count({where:{rankPoint:{gt:p.rankPoint},OR:[{rankWins:{gt:0}},{rankLosses:{gt:0}}]}})+1:null;
+    return {tiers:[...this.content.economy.pvp.tiers].sort((a,b)=>a.min-b.min).map(t=>t.name),level:this.content.economy.pvp.level,win:this.content.economy.pvp.win,lose:this.content.economy.pvp.lose,team:this.pvpTeam(p.battleTeam),
+      me:{point:p.rankPoint,tier:this.pvpTier(p.rankPoint),wins:p.rankWins,losses:p.rankLosses,rank},
+      top:top.map((r,i)=>({rank:i+1,name:r.nickname??`갈매미 #${r.id.slice(0,4)}`,point:r.rankPoint,tier:this.pvpTier(r.rankPoint),wins:r.rankWins,losses:r.rankLosses,me:r.id===p.id}))};
+  }
+  async webPvpMatch(playerId:string,mode:string){
+    if(mode!=='normal'&&mode!=='rank')throw new GameError('없는 대전 방식이에요.');
+    const now=this.clock().getTime();
+    for(const [k,v] of this.pvpMatches)if(v.exp<now)this.pvpMatches.delete(k);
+    if(this.pvpMatches.size>20_000)this.pvpMatches.clear();
+    return this.webRun(playerId,async(tx,p)=>{
+      const mine=this.pvpTeam(p.battleTeam);
+      if(!mine)throw new GameError('「전투 편성」에서 최상위 갈매미 3마리를 먼저 정해 주세요.');
+      const have=await tx.ownedCharacter.findMany({where:{playerId:p.id,characterId:{in:mine},status:{in:['AVAILABLE','EXPEDITION']}},select:{characterId:true}});
+      if(new Set(have.map(h=>h.characterId)).size!==3)throw new GameError('전투 편성에 지금 가지고 있지 않은 갈매미가 있어요. 편성을 다시 해 주세요.');
+      // 상대: 3마리를 편성한 다른 유저. 랭크는 점수가 가까운 10명 중에서
+      const cands=(await tx.player.findMany({where:{id:{not:p.id},battleTeam:{contains:','}},select:{id:true,nickname:true,battleTeam:true,rankPoint:true},take:500}))
+        .map(r=>({...r,team:this.pvpTeam(r.battleTeam)})).filter(r=>r.team);
+      const pool=mode==='rank'?cands.sort((a,b)=>Math.abs(a.rankPoint-p.rankPoint)-Math.abs(b.rankPoint-p.rankPoint)).slice(0,10):cands;
+      const pick=pool.length?pool[randomInt(pool.length)]:null;
+      if(!pick&&mode==='rank')throw new GameError('아직 랭크 상대가 없어요. 일반게임으로 먼저 해 보세요.');
+      const bot=[...this.topIds];for(let i=bot.length-1;i>0;i--){const j=randomInt(i+1);[bot[i],bot[j]]=[bot[j],bot[i]];}   // 상대가 없으면(일반만) 무작위 연습 팀
+      const foeIds=pick?pick.team!:bot.slice(0,3);
+      let lost=0;
+      if(mode==='rank'){lost=Math.min(this.content.economy.pvp.lose,p.rankPoint);
+        await tx.player.update({where:{id:p.id},data:{rankPoint:{decrement:lost},rankLosses:{increment:1}}});}
+      const id=randomBytes(12).toString('base64url'),seed=randomInt(2**31-1);
+      const m={player:p.id,mode:mode as 'normal'|'rank',seed,mine:this.pvpRecs(mine,'a'),foe:this.pvpRecs(foeIds,'b'),exp:now+3600_000,lost,done:false};
+      this.pvpMatches.set(id,m);
+      await this.audit(tx,p,'PVP_START',{mode,foe:pick?.id??'BOT'});
+      return {match:id,mode,seed,mine:m.mine,foe:m.foe,foeName:pick?(pick.nickname??`갈매미 #${pick.id.slice(0,4)}`):'훈련 교관 팀',
+        foeTier:pick?this.pvpTier(pick.rankPoint):null,bot:!pick};
+    });
+  }
+  // 대결 기록 확인: 같은 시드·팀으로 다시 돌려 이긴 쪽을 서버가 정함(화면이 보낸 승패는 믿지 않음)
+  async webPvpResult(playerId:string,R:Rules,match:string,events:PvpEvent[]){
+    const m=this.pvpMatches.get(match);
+    if(!m||m.player!==playerId||m.exp<this.clock().getTime())throw new GameError('대전 정보가 없어요. 다시 시작해 주세요.');
+    if(m.done)throw new GameError('이미 결과를 받은 대전이에요.');
+    let winner:0|1|null;
+    try{winner=replay(createBattle(R,m.mine,m.foe,m.seed),events);}catch{throw new GameError('대전 기록이 맞지 않아요.');}
+    if(winner===null)throw new GameError('대전이 아직 끝나지 않았어요.');
+    m.done=true;
+    const won=winner===0,pv=this.content.economy.pvp;
+    return this.webRun(playerId,async(tx,p)=>{
+      if(m.mode==='rank'&&won)await tx.player.update({where:{id:p.id},data:{rankPoint:{increment:m.lost+pv.win},rankLosses:{decrement:1},rankWins:{increment:1}}});
+      await this.audit(tx,p,'PVP_END',{mode:m.mode,won});
+      const after=await tx.player.findUniqueOrThrow({where:{id:p.id}});
+      return {won,mode:m.mode,change:m.mode==='rank'?(won?pv.win:-m.lost):0,point:after.rankPoint,tier:this.pvpTier(after.rankPoint),wins:after.rankWins,losses:after.rankLosses};
     });
   }
   async webDraw(playerId:string,kind:string,times:number){
