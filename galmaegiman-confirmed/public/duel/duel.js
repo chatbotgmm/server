@@ -290,7 +290,7 @@ function menu() {
   const st = nextStage();
   // 메뉴 팻말: 그림(btn-*.png, 글자 포함)이 있으면 그림, 없으면 같은 모양을 코드로(조합은 아직 그림이 없음)
   // 메뉴(v0.12.7): 글자는 그림이 아닌 실제 글자(크기·높이 통일), 그림은 아이콘만. 조합 = 깃털·잎 메달
-  const MENU = [['party', '탐험', 'mode-camp', '🧭', 'mint'], ['draw', '뽑기', 'm-draw', '🥚', 'pink'], ['units', '수비대', 'mode-normal', '🛡️', 'lilac'], ['craft', '조합', 'u-emblem', '🧩', 'sky'], ['shop', '상점', 'm-shop', '🏪', 'peach']];
+  const MENU = [['party', '탐험', 'mode-camp', '🧭', 'mint'], ['draw', '뽑기', 'u-draw', '🥚', 'pink'], ['units', '수비대', 'mode-normal', '🛡️', 'lilac'], ['craft', '조합', 'u-emblem', '🧩', 'sky'], ['shop', '상점', 'u-shop', '🏪', 'peach']];
   app.innerHTML = `<div class="home8" style="${bg}">
     <header class="h8top"><button class="lprof" id="lprof" aria-haspopup="menu"><i>${ico('u-profile', '🪪')}</i><span><b>${esc(ACC?.nickname || '수비조장')}</b><small>${lvl ? `수비대 Lv${lvl} · 실적 ${SAVE.cleared.length}/${stages().length}` : '아직 팀이 없어요'}</small></span><em class="caret">▾</em></button><div class="lcur" id="lcur"></div></header>
     ${ACC ? `${ICONS.includes('btn-attend') ? `<button class="h8att img" id="td" aria-label="출석체크"><img src="${BASE}/duel/icons/btn-attend.png" alt=""></button>` : `<button class="h8att" id="td"><i>${ico('u-attend', '📅')}</i><span>출석체크</span></button>`}` : ''}
@@ -426,7 +426,7 @@ async function todaySheet() {
   const MTXT = { done: '✓ 받음', ready: '지급 중', run: '진행 중' };
   modal.innerHTML = `<div class="sheet today"><h2><span class="tdh">${ico('u-attend', '📅')} 출석체크</span><button class="xbtn" id="tdX" aria-label="닫기">✕</button></h2><div class="scols"><div class="scol">
       <div class="att"><div class="att-h"><b>${a.week}주째${a.streak ? ` · ${a.streak}일 연속` : ''}</b><small class="att-note">날이 갈수록, 주가 갈수록 보상이 커져요 · 하루 빠지면 1일째부터</small></div>
-        <div class="att-week">${a.rewards.map((t, k) => { const n = k + 1, st = dayState(n); return `<div class="att-d ${st} ${n === 7 ? 'big' : ''}" aria-label="${n}일 ${DAYTXT[st]} 뽑기권 ${t}장"><small>${n}일</small><span class="ai">${tk}</span><em>${t}</em><i class="as">${DAYTXT[st]}</i></div>`; }).join('')}</div>
+        <div class="att-week">${a.rewards.map((t, k) => { const n = k + 1, st = dayState(n); return `<div class="att-d ${st} ${n === 7 ? 'big' : ''}" aria-label="${n}일 ${DAYTXT[st]} 뽑기권 ${t}장"><small>${n}일</small><span class="ai">${n === 7 ? ico('u-gift', '🎁') : tk}</span><em>${t}</em><i class="as">${DAYTXT[st]}</i></div>`; }).join('')}</div>
         <div class="att-now ${a.today ? 'got' : 'ready'}"><span class="ai">${tk}</span><div><small>${a.today ? '내일 받을 보상' : '오늘 받을 보상'}</small><b>${!a.today ? `뽑기권 ${a.next}장` : a.rewards[a.dayInWeek] !== undefined ? `뽑기권 ${a.rewards[a.dayInWeek]}장` : '다음 주 1일째 · 더 크게'}</b></div></div>
         <button class="big wide" id="tdAtt" ${a.today ? 'disabled' : ''}>${a.today ? '✓ 오늘 출석 완료 · 내일 또 와요' : `출석하고 뽑기권 ${a.next}장 받기`}</button></div></div>
     <div class="scol"><div class="msn"><div class="msn-h"><b>오늘의 미션 <em>${done}/${d.missions.length}</em></b><small>달성하면 보상이 바로 들어와요 · 밤 12시 초기화</small></div>

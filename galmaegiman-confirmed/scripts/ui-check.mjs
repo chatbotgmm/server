@@ -21,7 +21,7 @@ for(const [n,w,h,dpr] of [['S',780,360,2],['L',915,412,2],['W',1280,720,2],['X',
   const lob=await p.evaluate(()=>{
     const r=e=>e.getBoundingClientRect(),bs=[...document.querySelectorAll('.h8menu a')],play=document.querySelector('#go');
     const hs=bs.map(e=>Math.round(r(e).height)),fs=bs.map(e=>{const t=e.querySelector('span,b');return t?parseFloat(getComputedStyle(t).fontSize):null});
-    const dots=[...document.querySelectorAll('.home8 .dot')].map(d=>{const a=r(d),p=r(d.parentElement);return {w:Math.round(a.width),out:a.top<0||a.right>innerWidth||a.left<0,dx:Math.round(a.right-p.right),dy:Math.round(a.top-p.top)}});
+    const dots=[...document.querySelectorAll('.home8 .dot')].map(d=>{const a=r(d),p=r(d.parentElement);return {w:d.offsetWidth,out:a.top<0||a.right>innerWidth||a.left<0,dx:Math.round(a.right-p.right),dy:Math.round(a.top-p.top)}});
     const pr=r(play),overlap=bs.some(e=>{const a=r(e);return !(a.right<=pr.left||a.left>=pr.right||a.bottom<=pr.top||a.top>=pr.bottom)});
     const small=[...document.querySelectorAll('.home8 button,.home8 a')].filter(e=>{const a=r(e);return a.width>0&&(a.width<40||a.height<40)}).map(e=>e.id||e.className);
     const stage=document.querySelector('.h8stage b');
