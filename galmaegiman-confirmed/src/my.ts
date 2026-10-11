@@ -100,7 +100,10 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     const me=await game.webMe(id);
     if(!me)return reply.code(401).send({error:'login',kakao:!!opt.kakao});
     const defs=itemDefs();
-    return reply.header('Cache-Control','no-store').send({...me,kakaoLogin:!!opt.kakao,items:await game.webItems(id),itemDefs:defs.items,itemRules:defs.rules,prices:game.webPrices()});
+    // 최상위 갈매미는 속성도(v0.14.9, 편성 덱 짜기용): attr 코드 + 이름
+    const BR=loadBattleRules(opt.root);
+    const units=me.units.map(u=>{const d=u.top?BR.unitDef(u.id):undefined;return d?{...u,attr:d.attr,attrName:BR.data.attributes[d.attr]?.name??d.attr}:u;});
+    return reply.header('Cache-Control','no-store').send({...me,units,kakaoLogin:!!opt.kakao,items:await game.webItems(id),itemDefs:defs.items,itemRules:defs.rules,prices:game.webPrices()});
   });
   // 로그인한 사람의 요청을 실행하고, 게임 안내 오류는 그대로 보여 줌
   const act=<B,>(path:string,run:(id:string,body:B)=>Promise<unknown>)=>app.post<{Body:B}>(path,limit,async(req,reply)=>{

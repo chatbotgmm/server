@@ -139,7 +139,12 @@ function ambient(scene, painted = false) {   // painted: 그림이 깔린 화면
 }
 const bgStyle = scene => BG.includes(scene) ? `background:url(${BASE}/duel/bg/${scene}.jpg${q}) center/cover` : '';
 const tintOf = id => { const t = R.data.villains?.[id]?.tint; return !t ? '' : ART.includes('V17') ? (t === 'shadow' ? '' : `tint-${t}-art`) : `tint-${t}`; };   // 진짜 그림이 있으면 가볍게만
-const setTint = (img, id) => { img.classList.remove('tint-shadow', 'tint-mirror', 'tint-peanut', 'tint-mirror-art', 'tint-peanut-art'); const t = tintOf(id); if (t) img.classList.add(t); };
+// 그림 가장자리가 잘린 악당 그림(원본 자체가 잘림, v0.14.9 검사): 잘린 쪽만 부드럽게 흐리게 해서 직선으로 잘린 티가 안 나게. 새 그림을 받으면 지우기
+const CUT = { V15: 'L' };   // V5·V6·V8·V10·V11·V14는 v0.14.9에 새 그림(잘림 없음)으로 바꿈
+const EDGE = { L: 'to right', R: 'to left', T: 'to bottom', B: 'to top' };
+const cutMask = (img, id) => { const c = CUT[id] ?? '', m = [...c].map(k => `linear-gradient(${EDGE[k]},transparent,#000 24%)`).join(',');
+  img.style.webkitMaskImage = img.style.maskImage = m; img.style.webkitMaskComposite = c.length > 1 ? 'source-in' : ''; img.style.maskComposite = c.length > 1 ? 'intersect' : ''; };
+const setTint = (img, id) => { cutMask(img, id); img.classList.remove('tint-shadow', 'tint-mirror', 'tint-peanut', 'tint-mirror-art', 'tint-peanut-art'); const t = tintOf(id); if (t) img.classList.add(t); };
 
 // ── 저장: 로그인돼 있으면 계정(서버), 아니면 이 브라우저 ──
 const SAVE_KEY = 'gmm-duel-story-v1';
@@ -311,6 +316,7 @@ function titleScreen(loggedIn) {
     ${img('logo', 'logo', '갈매미맨 수비대')}${img('sub', 'sub', '항구를 지켜라')}${main}${acc}
     <p class="t2rot" role="note">📱 가로로 돌려 주세요</p>
     <button class="tset t2set" id="tset" aria-label="설정"><img src="${IN}/title_settings_button_base.webp" alt=""><img class="g" src="${IN}/title_settings_gear.webp" alt=""></button></div>`;
+  roomParallax(app.querySelector('.t2'), app.querySelector('.t2'));   // 첫 화면도 끌면 배경·캐릭터가 서로 다르게 움직임(v0.14.9), 로고·버튼은 그대로
   app.querySelector('#tgo')?.addEventListener('click', () => { ROOM = null; menu(); });   // 첫 화면에서 들어갈 때마다 방을 새로 고름
   app.querySelector('#tset').addEventListener('click', settingsSheet);
   app.querySelector('#tacc')?.addEventListener('click', () => openMy('account', () => titleScreen(loggedIn)));   // 계정 창을 닫으면 첫 화면으로(로비 아님)
@@ -359,8 +365,8 @@ function menu() {
   }).catch(() => {});
 }
 // 로비 방 패럴랙스(v0.14.4): 버튼이 아닌 빈 곳을 끌면 레이어마다 다르게 움직임(배경 < 받침대 < 갈매미맨), 손을 떼면 제자리로. UI는 그대로
-function roomParallax(home) {
-  const room = home?.querySelector('.h8room'); if (!room) return;
+function roomParallax(home, room = home?.querySelector('.h8room')) {   // room: --px·--py를 받을 곳(로비는 방, 첫 화면은 화면 전체)
+  if (!home || !room) return;
   let drag = null, x = 0, y = 0, raf = 0;
   const clamp = v => Math.max(-1, Math.min(1, v));
   const put = (nx, ny) => { x = nx; y = ny; if (!raf) raf = requestAnimationFrame(() => { raf = 0; room.style.setProperty('--px', x.toFixed(3)); room.style.setProperty('--py', y.toFixed(3)); }); };
@@ -609,13 +615,13 @@ function storyScreen() {
   modal.hidden = true; bgm('title');
   const team = SAVE.team.map(id => UNITS.find(u => u.id === id));
   // 가로(v0.11.1): 왼쪽 팀(글자 크게, 기술·승진 버튼) · 오른쪽 장 목록(그 안에서만 넘김)
-  app.innerHTML = `<div class="story"><header><button class="back" id="bk">‹ ${PART === null ? '뒤로' : '부 목록'}</button><h1>스토리</h1><small>${SAVE.cleared.length}/${stages().length} 실적</small>${team.length === 3 && ACC && team.some(u => hpFrac(u.id) < 1) ? '<button class="ghost edtop heal" id="heal">🩹 치료약</button>' : ''}<button class="ghost edtop" id="ed">${team.length === 3 ? '편성 바꾸기' : '팀 정하기'}</button></header>
+  app.innerHTML = `<div class="story"><header>${PART === null ? '<button class="back" id="bk">‹ 뒤로</button>' : ''}<h1>스토리</h1><small>${SAVE.cleared.length}/${stages().length} 실적</small>${team.length === 3 && ACC && team.some(u => hpFrac(u.id) < 1) ? '<button class="ghost edtop heal" id="heal">🩹 치료약</button>' : ''}<button class="ghost edtop" id="ed">${team.length === 3 ? '편성 바꾸기' : '팀 정하기'}</button></header>
   <aside class="steam"><section class="teambar">${team.length === 3 ? team.map(u => { const s = SAVE.units[u.id], need = xpToNext(R, s.level);
       const r = myRec(u.id, 0), n = learnChances(R, r), up = canEvolve(R, r, partsCleared());
       return `<button class="mini" data-u="${u.id}"><img src="${sprite(u.id, 'front', r.stage)}" class="st-${r.stage}" alt=""><b>${esc(u.name)}</b><span>Lv${s.level} ${chip(u.def.attr)}${r.stage ? `<em class="stars">${STARS[r.stage]}</em>` : ''}</span>${hpBar(u.id)}${up ? '<em class="learn promo">⬆ 승진 가능</em>' : n ? `<em class="learn">✨ 기술 배우기 ${n}</em>` : '<small>기술·승진 보기 ›</small>'}</button>`; }).join('')
       + (team.length === 3 ? `<p class="combo">${teamCombos(SAVE.team).map(x => `🤝 합동기 「${esc(x.skill)}」`).join(' · ') || '합동기 없음(같은 시너지 2마리면 생겨요)'}</p>` : '')
     : '<p class="hint" style="margin:0">먼저 팀 3마리를 정해 주세요. 위 「팀 정하기」를 눌러요.</p>'}</section></aside>
-  <main class="schap ${PART === null ? 'parts' : 'part'}">${PART === null ? partList() : partView(STORY.chapters[PART])}</main></div>`;
+  <main class="schap ${PART === null ? 'parts' : 'part'}">${PART === null ? partList() : partView(STORY.chapters[PART])}</main></div>`;   // 부 화면: 뒤로(부 목록으로)는 오른쪽 아래
   // 처음엔 부(部) 버튼만 가로로(v0.14.7) → 누르면 그 부의 스테이지 → 위 「‹ 뒤로」는 부 목록으로
   app.querySelector('#bk').onclick = () => { if (PART !== null) { PART = null; storyScreen(); } else menu(); };
   const sch = app.querySelector('.schap');
@@ -680,7 +686,8 @@ function partView(c) {
   const team3 = SAVE.team.length === 3, { sc, cl, open, all } = chapInfo(c);
   return `<div class="chead pv sc-${sc}" style="${bgStyle(sc)}"><div class="in"><h2>${esc(c.title)}</h2><span class="pn">${all ? '✓ 완료' : `${cl}/${c.stages.length}`}</span>${c.intro ? `<p>${esc(c.intro)}</p>` : ''}${needLine(c)}</div></div>
     <div class="stl ${open ? '' : 'pre'}">${open ? '' : '<p class="stpre">미리 보기 · 앞 부를 깨면 열려요</p>'}${c.stages.map(s => { const done = SAVE.cleared.includes(s.id), op = unlocked(s.id), boss = s.enemy.some(e => R.villains.get(e.id).boss);
-      return `<button class="stage ${done ? 'done' : ''}" data-s="${s.id}" ${op && team3 ? '' : 'disabled'}><span class="no">${s.id}</span><span class="tt">${esc(s.title)}${boss ? ' <em>보스</em>' : ''}<small>${s.enemy.map(e => `${esc(R.villains.get(e.id).name)} Lv${e.level}`).join(' · ')}</small></span><span class="mk">${done ? '✓' : op ? '도전' : '잠김'}</span></button>`; }).join('')}</div>`;
+      return `<button class="stage ${done ? 'done' : ''}" data-s="${s.id}" ${op && team3 ? '' : 'disabled'}><span class="no">${s.id}</span><span class="tt">${esc(s.title)}${boss ? ' <em>보스</em>' : ''}<small>${s.enemy.map(e => `${esc(R.villains.get(e.id).name)} Lv${e.level}`).join(' · ')}</small></span><span class="mk">${done ? '✓' : op ? '도전' : '잠김'}</span></button>`; }).join('')}</div>
+    <div class="pfoot"><button class="ghost pback" id="bk">‹ 뒤로</button></div>`;   // 부 목록으로: 오른쪽 아래
 }
 
 // 기술 창: 지금 기술(기본 4개 + 배운 기술) 보기, 배울 기회가 있으면 후보 3개 중 1개(칸이 차면 하나와 바꿈) 또는 건너뛰기
@@ -1002,9 +1009,13 @@ function itemSheet() {
   let pick = null, target = null;
   const draw = () => {
     const it = pick && R.data.items[pick];
-    modal.innerHTML = `<div class="sheet pick"><h2>🎒 아이템 <small>대결 한 번에 ${R.data.itemRules.perBattle}개까지 · 쓰면 이번 턴 행동을 써요</small></h2>
-      ${Object.entries(R.data.items).map(([id, d]) => { const why = mine(id) ? itemProblem(b, 0, id) : '없어요'; return `<button class="aug ${pick === id ? 'on' : ''}" data-i="${id}" ${why ? 'disabled' : ''}><span class="ic">${ico(id, d.revive ? '🪶' : d.cleanse && !d.heal ? '💧' : '🩹')}</span><span class="tx"><b>${esc(d.name)} <em>${mine(id)}개</em></b><span>${esc(d.desc)}${why && mine(id) ? ` (${esc(why)})` : ''}</span></span><span class="ck">${pick === id ? '✓' : ''}</span></button>`; }).join('')}
-      ${it?.revive ? `<h2>다시 일으킬 갈매미</h2>${down.map(([f, i]) => `<button class="aug ${target === i ? 'on' : ''}" data-t="${i}"><img class="ic" src="${sprite(f.rec.id, 'front', f.rec.stage)}" alt=""><span class="tx"><b>${esc(f.name)}</b></span><span class="ck">${target === i ? '✓' : ''}</span></button>`).join('')}` : ''}
+    // 읽기 쉽게(v0.14.9): 이름 크게 · 효과는 짧게 한 줄 · 못 쓰는 이유는 따로 · 2×2
+    const eff = d => d.heal ? `체력 ${d.heal}% 회복` : d.revive ? `쓰러진 갈매미를 체력 ${d.revive}%로` : d.cleanse ? '상태 이상 풀기' : esc(d.desc);
+    const left = R.data.itemRules.perBattle - b.sides[0].itemsUsed;
+    modal.innerHTML = `<div class="sheet pick items"><div class="ihead"><h2>🎒 아이템</h2><p>이번 대결에 <b>${left}개</b> 더 쓸 수 있어요 · 쓰면 이번 턴 행동이 끝나요</p></div>
+      <div class="igrid">${Object.entries(R.data.items).map(([id, d]) => { const n = mine(id), why = n ? itemProblem(b, 0, id) : '가진 게 없어요';
+        return `<button class="itm ${pick === id ? 'on' : ''}" data-i="${id}" ${why ? 'disabled' : ''}><span class="ic">${ico(id, d.revive ? '🪶' : d.cleanse && !d.heal ? '💧' : '🩹')}</span><span class="tx"><b>${esc(d.name)}</b><span class="ef">${eff(d)}</span>${why ? `<small class="why">${esc(why)}</small>` : ''}</span><em class="cnt">×${n}</em></button>`; }).join('')}</div>
+      ${it?.revive ? `<p class="isub">다시 일으킬 갈매미</p><div class="igrid">${down.map(([f, i]) => `<button class="itm ${target === i ? 'on' : ''}" data-t="${i}"><img class="ic" src="${sprite(f.rec.id, 'front', f.rec.stage)}" alt=""><span class="tx"><b>${esc(f.name)}</b><span class="ef">${chip(f.attr)}</span></span></button>`).join('')}</div>` : ''}
       <p class="sub" id="ierr"></p>
       <div class="sw"><button class="ghost" id="ix" style="justify-content:center">닫기</button><button class="big" id="iu" ${!pick || (it?.revive && target === null) ? 'disabled' : ''}>${it ? `「${esc(it.name)}」 쓰기` : '아이템을 골라요'}</button></div></div>`;
     modal.querySelectorAll('[data-i]').forEach(x => x.onclick = () => { pick = x.dataset.i; target = null; draw(); });
@@ -1030,9 +1041,13 @@ async function runAway() {
   b.phase = 'over';
   document.getElementById('m0').animate([{ transform: 'translateX(0)', opacity: 1 }, { transform: 'translateX(-120px)', opacity: 0 }], { duration: 500, fill: 'forwards' });
   say('수비조가 재빨리 물러났어요!');
-  document.getElementById('panel').innerHTML = `<div class="sheet" style="border-radius:14px"><h2>도망쳤어요</h2>
-    <p class="sub">경험치는 없어요. 편성이나 상성을 바꿔 다시 도전해 보세요.</p>
-    <div class="sw"><button class="ghost" id="fr" style="justify-content:center">다시 도전</button><button class="ghost" id="fb" style="justify-content:center">돌아가기</button></div></div>`;
+  // 도망친 뒤(v0.14.9): 우리 팀 남은 체력을 보여 주고, 큰 버튼 두 개(다시 도전 · 돌아가기). 스토리면 체력이 이어진다는 것도 알려 줌
+  const story = !!fleeTo?.save, low = b.sides[0].fighters.some(f => f.hp / f.maxHp < 0.3);
+  document.getElementById('panel').innerHTML = `<div class="fled"><div class="fh"><i>🏃</i><div><b>도망쳤어요</b><small>경험치는 없어요${story ? ' · 남은 체력은 다음 전투로 이어져요' : ''}</small></div></div>
+    <div class="fteam">${b.sides[0].fighters.map(f => { const pct = Math.max(0, Math.round(f.hp / f.maxHp * 100)), col = pct > 50 ? 'var(--hp)' : pct > 20 ? 'var(--hpmid)' : 'var(--hplow)';
+      return `<div class="fm"><img src="${sprite(f.rec.id, 'front', f.rec.stage)}" alt=""><span><b>${esc(f.name)}</b><i class="hpb"><i style="width:${pct}%;background:${col}"></i></i><small>${f.hp > 0 ? `체력 ${Math.max(0, f.hp)}/${f.maxHp}` : '쓰러짐'}</small></span></div>`; }).join('')}</div>
+    ${story && low ? '<p class="ftip">💡 체력이 적어요. 스토리 화면 위 「🩹 치료약」으로 회복하거나 잠시 쉬었다 와요.</p>' : ''}
+    <div class="fbtns"><button class="big" id="fr">다시 도전</button><button class="ghost" id="fb">${story ? '스토리로' : '돌아가기'}</button></div></div>`;
   document.getElementById('fr').onclick = fleeTo.retry;
   document.getElementById('fb').onclick = fleeTo.back;
 }

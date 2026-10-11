@@ -1516,6 +1516,62 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
 .bm{align-content:center}
 .bhead b{white-space:nowrap}
 #app:has(#arena) #panel:has(.bmenu){justify-content:flex-end}
+/* v0.14.9 첫 화면 패럴랙스: 배경(한 장) 조금, 캐릭터는 더 많이(앞에 있을수록). 로고·부제·버튼·계정은 고정 */
+.ttl9.t2{touch-action:none}
+.t2 .t2bg,.t2 .ch{transition:translate .6s cubic-bezier(.2,.8,.2,1)}
+.t2.drag .t2bg,.t2.drag .ch{transition:none}
+.t2 .t2bg{scale:1.04;translate:calc(var(--px,0) * 1.4%) calc(var(--py,0) * .7%)}
+.t2 .ch.c1{translate:calc(var(--px,0) * 18px) calc(var(--py,0) * 8px)}
+.t2 .ch.c2{translate:calc(var(--px,0) * 14px) calc(var(--py,0) * 6px)}
+.t2 .ch.c3{translate:calc(var(--px,0) * 20px) calc(var(--py,0) * 9px)}
+.t2 .ch.c4{translate:calc(var(--px,0) * 4px) calc(var(--py,0) * 4px)}
+/* 부 화면 「‹ 뒤로」: 스테이지 아래 줄 오른쪽 */
+.schap.part .pfoot{flex:none;display:flex;justify-content:flex-end}
+.schap.part .pback{min-height:44px;padding:6px 20px;font-size:15px;border:2px solid var(--edge);box-shadow:0 3px 0 rgba(60,35,15,.45);border-radius:999px}
+@media (orientation:landscape) and (max-height:430px){ .schap.part{gap:6px} .schap.part .chead.pv p:not(.need){display:none} .schap.part .chead.pv .in{padding:8px 12px} .schap.part .pback{min-height:40px;padding:4px 16px} }
+/* v0.14.9 아이템 창: 제목·안내는 보통 글꼴, 이름 크게, 효과 한 줄, 개수는 오른쪽, 못 쓰는 이유는 빨간 작은 글씨 */
+.sheet.items{display:flex !important;flex-direction:column;gap:8px}
+.sheet.items .ihead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.sheet.items .ihead h2{margin:0}
+.sheet.items .ihead p{margin:0;font-size:14px;color:var(--ink);font-family:inherit}
+.sheet.items .ihead p b{color:#b3541e}
+.igrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.itm{display:flex;align-items:center;gap:12px;text-align:left;padding:10px 14px;border-radius:14px;border:2px solid var(--line);background:var(--card);color:var(--ink);box-shadow:0 3px 0 rgba(122,78,42,.25);min-height:64px}
+.itm .ic{width:44px;height:44px;flex:none;display:grid;place-items:center;font-size:30px}
+.itm .ic .ico,.itm img.ic{width:44px;height:44px;object-fit:contain}
+.itm .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.itm .tx b{font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:18px;line-height:1.15}
+.itm .ef{font-size:14px;color:#5e4329;font-weight:700}
+.itm .why{font-size:12px;color:#b03a2e}
+.itm .cnt{flex:none;font-style:normal;font-weight:800;font-size:16px;color:#3b6b45;background:#e2f1e3;border-radius:999px;padding:2px 10px}
+.itm.on{border-color:var(--accent-d);background:#fbe6cf;box-shadow:0 0 0 3px #f2c08a,0 3px 0 rgba(122,78,42,.25)}
+.itm:disabled{opacity:1;background:#f1e9da;box-shadow:none}.itm:disabled .ic{filter:grayscale(.7) opacity(.6)}.itm:disabled .tx b{color:#7d6a55}.itm:disabled .cnt{background:#e6ddcd;color:#7d6a55}
+.sheet.items .isub{margin:2px 0 0;font-weight:700;color:var(--ink)}
+@media (orientation:landscape) and (max-height:430px){
+  .itm{min-height:52px;padding:6px 10px;gap:8px}.itm .ic,.itm .ic .ico,.itm img.ic{width:36px;height:36px}
+  .itm .tx b{font-size:16px}.itm .ef{font-size:12.5px}.itm .cnt{font-size:14px}
+  .sheet.items .ihead p{font-size:12.5px}
+}
+/* v0.14.9 도망친 뒤 판 */
+.fled{display:flex;flex-direction:column;gap:10px;flex:1;min-height:0;justify-content:center}
+.fled .fh{display:flex;align-items:center;gap:12px}
+.fled .fh i{font-style:normal;font-size:34px}
+.fled .fh b{display:block;font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:22px;color:var(--ink)}
+.fled .fh small{font-size:13px;color:var(--dim)}
+.fteam{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.fm{display:flex;align-items:center;gap:8px;padding:8px;border-radius:12px;background:var(--card);border:2px solid var(--line)}
+.fm img{width:40px;height:40px;object-fit:contain;flex:none}
+.fm span{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.fm b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.fm small{font-size:11.5px;color:var(--dim);white-space:nowrap}
+.fled .ftip{margin:0;font-size:13px;color:#8a4a1c;background:#fff1d6;border-radius:10px;padding:6px 10px}
+.fbtns{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+.fbtns button{min-height:52px;font-size:17px;justify-content:center}
+@media (orientation:landscape) and (max-height:430px){
+  .fled{gap:6px}.fled .fh i{font-size:26px}.fled .fh b{font-size:18px}.fled .fh small{font-size:12px}
+  .fteam{grid-template-columns:1fr;gap:4px}.fm{padding:4px 8px}.fm img{width:30px;height:30px}.fm span{flex-direction:row;align-items:center;gap:8px}.fm b{width:6.5em;flex:none}.fm .hpb{flex:1}
+  .fbtns button{min-height:44px;font-size:15px}
+}
 </style>
 </head>
 <body>

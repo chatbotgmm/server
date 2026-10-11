@@ -122,7 +122,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     const pass = u => filter === 'all' || (filter === 'top' ? u.top : filter === 'low' ? !u.top && !['LEGEND', 'HIDDEN'].includes(u.tier) : u.tier === filter);
     const list = me.units.filter(pass);
     el.innerHTML = `<div class="filters">${groups.map(([k, t]) => `<button data-f="${k}" class="${filter === k ? 'on' : ''}">${t}</button>`).join('')}</div>
-      ${list.length ? `<div class="grid">${list.map((u, i) => `<div class="u" data-ui="${i}" style="--tc:${TIER_COLOR[u.tier] ?? '#888'}"><img loading="lazy" src="${thumb(u.id)}" alt=""><span class="n">×${u.have}</span>${u.away ? `<span class="away">탐험 ${u.away}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}</small></div>`).join('')}</div>`
+      ${list.length ? `<div class="grid">${list.map((u, i) => `<div class="u" data-ui="${i}" style="--tc:${TIER_COLOR[u.tier] ?? '#888'}"><img loading="lazy" src="${thumb(u.id)}" alt=""><span class="n">×${u.have}</span>${u.away ? `<span class="away">탐험 ${u.away}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}${u.attrName ? ` <span class="achip" style="--ac:${ACOLOR[u.attr] ?? '#c9b48a'}">${esc(u.attrName)}</span>` : ''}</small></div>`).join('')}</div>`
         : '<p class="empty">이 등급의 갈매미가 아직 없어요.</p>'}
       ${me.kakaoLogin && !GAMEUI ? `<div class="card row" style="justify-content:space-between;margin-top:14px"><span class="note">${me.kakao ? '✅ 카카오 계정 연결됨 (카카오로 로그인 가능)' : '카카오 계정을 연결하면 다음부터 코드 없이 로그인해요.'}</span>
         ${me.kakao ? '<button class="btn ghost" id="unlink" style="padding:6px 12px;font-size:.85rem">연결 해제</button>' : '<a class="btn kakao" href="/my/kakao" style="padding:8px 14px;font-size:.9rem">카카오 연결</a>'}</div>` : ''}`;
@@ -147,7 +147,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     // 저장 상태: 변경 없음(회색) · 저장 가능(노랑) · 저장 중(흐림+글)
     const stateText = () => saving ? '저장 중…' : same() ? (pick.length ? '✓ 저장된 편성이에요' : '아직 편성이 없어요') : pick.length === 3 ? '바뀐 편성이 있어요 · 저장해 주세요' : `${pick.length}/3마리 · 3마리를 채워야 대결에 나가요`;
     const saveBtn = () => `<button class="btn wide ${GAMEUI ? 'imgsave' : ''} ${saving ? 'saving' : ''}" id="save" ${same() || saving ? 'disabled' : ''} aria-label="편성 저장">${GAMEUI ? `<img class="on" src="${BASE}/duel/icons/btn-save.png" alt="편성 저장" onerror="this.replaceWith('편성 저장')"><img class="off" src="${BASE}/duel/icons/btn-save-off.png" alt="" onerror="this.remove()">` : '편성 저장'}</button>`;
-    const grid = () => tops.length ? `<div class="grid ${GAMEUI ? 'btgrid' : ''}">${tops.map(u => { const i = pick.indexOf(u.id); return `<button class="u ${i >= 0 ? 'on' : ''}" data-id="${u.id}" aria-pressed="${i >= 0}"><img loading="lazy" src="${thumb(u.id)}" alt="">${i >= 0 ? `<span class="ord">✓</span><span class="selb s${i + 1}">${ROLE[i]}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}</small></button>`; }).join('')}</div>`
+    const grid = () => tops.length ? `<div class="grid ${GAMEUI ? 'btgrid' : ''}">${tops.map(u => { const i = pick.indexOf(u.id); return `<button class="u ${i >= 0 ? 'on' : ''}" data-id="${u.id}" aria-pressed="${i >= 0}"><img loading="lazy" src="${thumb(u.id)}" alt="">${i >= 0 ? `<span class="ord">✓</span><span class="selb s${i + 1}">${ROLE[i]}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}${u.attrName ? ` <span class="achip" style="--ac:${ACOLOR[u.attr] ?? '#c9b48a'}">${esc(u.attrName)}</span>` : ''}</small></button>`; }).join('')}</div>`
       : '<p class="empty">아직 최상위 갈매미가 없어요. 카톡에서 조합해 깨워 주세요.</p>';
     const render = () => {
       // 게임 화면(가로, v0.12.7): 왼쪽 단상 · 오른쪽 갈매미 목록(여기만 넘김) · 아래 저장 줄(늘 보임)
@@ -188,6 +188,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
 
   // 뽑기: 카톡 「뽑기」·「뽑기권받기」와 같은 처리. 결과는 그림 카드로
   let drawData = null, drawLast = null;
+  const ACOLOR = { STONE: '#c9b48a', GOLD: '#f0b93a', FIRE: '#f26b3a', ICE: '#8fdcf5', BLOSSOM: '#f7a3c6', SEA: '#3d94e6', SHADOW: '#8a6bb8', STAR: '#ffe36e', THREAD: '#c3c6dc', GRAVITY: '#5b63c9' };   // 속성 색(게임과 같음)
   const TIER_COLOR = { COMMON: '#8a8a8a', UNCOMMON: '#2f8f5b', SPECIAL: '#8a7a6a', RARE: '#1f8fb0', EPIC: '#7a4fd0', LEGEND: '#d9a400', HIDDEN: '#5b3d8f', LIMITED: '#d9483b', TRANSCEND: '#2a6fc0', ETERNAL: '#0f8a7b', IMMORTAL: '#d9a400', NEUTRAL: '#8a7a6a' };
   const waitText = ms => { const m = Math.ceil(ms / 60000), h = Math.floor(m / 60); return h ? `${h}시간 ${m % 60}분` : `${m}분`; };
   async function drawTab(el) {
@@ -277,7 +278,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     const ov = document.createElement('div'); ov.className = 'udet'; ov.style.setProperty('--tc', col);
     ov.innerHTML = `<div class="ud-box"><button class="ud-x" aria-label="닫기">✕</button>
       <div class="ud-art"><img src="${big(u.id)}" alt=""></div>
-      <div class="ud-tx"><span class="ud-tier">${esc(u.tierName)}</span><h2>${esc(u.name)}</h2>
+      <div class="ud-tx"><span class="ud-tier">${esc(u.tierName)}</span>${u.attrName ? ` <span class="achip" style="--ac:${ACOLOR[u.attr] ?? '#c9b48a'}">${esc(u.attrName)}</span>` : ''}<h2>${esc(u.name)}</h2>
         ${u.quote ? `<p class="ud-q">「${esc(u.quote)}」</p>` : ''}${u.tagline ? `<p class="ud-tag">${esc(u.tagline)}</p>` : ''}
         ${u.intro ? `<p class="ud-intro">${esc(u.intro)}</p>` : ''}
         <div class="ud-chips"><span>🪺 ${u.have}마리</span>${u.away ? `<span>🧭 탐험 중 ${u.away}</span>` : ''}${u.top ? '<span>⚔️ 수비대 대결 출전 가능</span>' : ''}</div></div>
