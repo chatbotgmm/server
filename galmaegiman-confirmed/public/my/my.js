@@ -199,6 +199,22 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     ov.querySelector('#rvAll').onclick = () => ov.classList.add('all');
     ov.querySelector('#rvOk').onclick = () => { ov.classList.add('bye'); setTimeout(() => ov.remove(), 200); };
   }
+  // 조합 연출: 재료 카드가 둥글게 모였다가 한가운데로 빨려 들어가 번쩍 → 결과 카드(섞기 실패면 펑 하고 흩어짐). 누르면 넘어감
+  function forge(mats, r, n = 1, fail = false) {
+    return new Promise(res => {
+      const col = r ? TIER_COLOR[r.tier] ?? '#d9a400' : '#c98443';
+      const ov = document.createElement('div'); ov.className = `forge ${fail ? 'fail' : ''}`; ov.style.setProperty('--tc', col);
+      const k = mats.length;
+      ov.innerHTML = `<div class="fg-ring">${mats.map((m, i) => `<img class="fg-m" src="${cimg(m)}" style="--a:${(360 / k) * i}deg" alt="">`).join('')}<div class="fg-core"></div></div>
+        ${r ? `<div class="fg-res"><img src="${thumb(r.id)}" alt=""><b>${esc(r.name)}${n > 1 ? ` ×${n}` : ''}</b><small>${esc(r.tierName)}</small></div>` : ''}
+        <p class="fg-tip">${fail ? '…아무 일도 일어나지 않았어요' : '누르면 계속'}</p>`;
+      document.body.append(ov);
+      requestAnimationFrame(() => ov.classList.add('go'));
+      let ended = false; const end = () => { if (ended) return; ended = true; ov.classList.add('bye'); setTimeout(() => { ov.remove(); res(); }, 200); };
+      setTimeout(() => { ov.classList.add('done'); ov.onclick = end; }, fail ? 1300 : 1500);
+      setTimeout(end, 6000);
+    });
+  }
   // 갈매미 상세: 큰 카드·한마디·소개·가진 수. ◀ ▶로 목록 넘기기
   function unitDetail(list, at) {
     document.querySelector('.udet')?.remove();
@@ -262,20 +278,34 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
       const r = recipes.find(x => x.id === b.dataset.c), n = +b.dataset.n;
       if ((r.confirm || n > 1) && !(await ask(`재료 ${r.materials.reduce((a, m) => a + m.need, 0) * n}마리를 써서\n${r.name}${n > 1 ? ` ${n}개` : ''}${n > 1 ? '를' : josaEul(r.name)} 만들까요?`, { ok: '만들기' }))) return;
       b.disabled = true;
-      try { done((await api('craft', { id: r.id, times: n })).result); } catch (e) { if (e.message !== 'login') { toast(e.message.split('\n')[0]); b.disabled = false; } }
+      try { const t = (await api('craft', { id: r.id, times: n })).result; if (GAMEUI) { await forge(r.materials.map(m => m.img), r, n); } done(t); } catch (e) { if (e.message !== 'login') { toast(e.message.split('\n')[0]); b.disabled = false; } }
     });
     el.querySelectorAll('[data-mp]').forEach(b => b.onclick = () => { mixPick.push(b.dataset.mp); craft(el); });
     el.querySelectorAll('[data-mm]').forEach(b => b.onclick = () => { mixPick.splice(mixPick.lastIndexOf(b.dataset.mm), 1); craft(el); });
     el.querySelector('#mclr')?.addEventListener('click', () => { mixPick = []; craft(el); });
     el.querySelector('#mgo')?.addEventListener('click', async () => {
       if (!(await ask(`${mixPick.length}마리를 섞어 볼까요?\n맞는 조합이면 재료를 쓰고, 아니면 재료는 그대로예요.`, { ok: '섞기' }))) return;
-      try { const r = (await api('mix', { ids: mixPick })).result; if (r.made) done(r.text); else { showResult(r.text); } } catch (e) { if (e.message !== 'login') toast(e.message.split('\n')[0]); }
+      try { const imgs = mixPick.map(id => pool.find(u => u.id === id)?.img).filter(Boolean); const r = (await api('mix', { ids: mixPick })).result; if (GAMEUI) await forge(imgs, null, 1, !r.made); if (r.made) done(r.text); else { showResult(r.text); } } catch (e) { if (e.message !== 'login') toast(e.message.split('\n')[0]); }
     });
   }
 
   // 탐험 편성: 카톡 「탐험」과 같은 편성·같은 규칙(최상위만, 같은 유닛 여러 마리 가능)
   function party(el) {
     const name = id => me.units.find(u => u.id === id)?.name ?? id;
+    if (me.trip && GAMEUI) {
+      const t0 = new Date(me.trip.startedAt ?? Date.now()).getTime(), t1 = new Date(me.trip.endsAt).getTime(), left = Math.max(0, t1 - Date.now());
+      const pct = Math.min(100, Math.max(0, (Date.now() - t0) / Math.max(1, t1 - t0) * 100)), ids = me.trip.ids ?? [];
+      const hm = ms => { const m = Math.ceil(ms / 60000); return m >= 60 ? `${Math.floor(m / 60)}시간 ${m % 60}분` : `${m}분`; };
+      el.innerHTML = `<div class="card exp ${left ? '' : 'back'}"><div class="ex-head"><b>🧭 ${left ? '탐험 중' : '탐험대가 돌아왔어요!'}</b><span>${left ? `남은 시간 <b>${hm(left)}</b>` : '보상을 받아요'}</span></div>
+        <div class="ex-road"><div class="ex-path"><i style="width:${pct}%"></i></div><span class="ex-home">🏠</span><span class="ex-goal">${left ? '🏝️' : '🎁'}</span>
+          <div class="ex-track"><div class="ex-party" style="left:${left ? pct : 0}%">${ids.slice(0, 5).map((id, i) => `<img src="${thumb(id)}" style="--i:${i}" alt="">`).join('')}${ids.length > 5 ? `<em>+${ids.length - 5}</em>` : ''}</div></div></div>
+        <p class="note">${me.trip.units.map(esc).join(', ')}</p>
+        ${left ? `<button class="btn ghost wide" id="skip">⚡ 바로 돌아오게 하기 (🍤 ${me.prices.skip.snack})</button>` : '<button class="btn wide" id="claim">🎁 탐험 보상 받기</button>'}</div>`;
+      el.querySelector('#claim')?.addEventListener('click', () => run('expedition/claim'));
+      el.querySelector('#skip')?.addEventListener('click', () => run('shop', { item: 'skip' }, `새우깡 ${me.prices.skip.snack}개로 탐험대를 바로 돌아오게 할까요?`));
+      if (left) { clearTimeout(party.t); party.t = setTimeout(() => { if (tab === 'party') party(el); }, Math.min(60000, left + 500)); }
+      return;
+    }
     if (me.trip) {
       const left = Math.max(0, new Date(me.trip.endsAt) - Date.now());
       el.innerHTML = `<div class="card"><b style="font-weight:400">🧭 탐험 중</b><p class="note">${me.trip.units.map(esc).join(', ')}</p>

@@ -1142,7 +1142,7 @@ export class GameService {
     const ids=(s:string)=>s?s.split(',').filter(id=>this.content.map.has(id)):[];
     return {nickname:p.nickname,snack:p.snack,peanut:p.peanut,credits:p.credits,kakao:kakao>0,claimReadyAt:new Date((p.lastClaimAt?.getTime()??0)+this.content.economy.tickets.cooldownHours*3_600_000).toISOString(),dex,dexTotal:this.content.characters.length,units,
       battleTeam:ids(p.battleTeam),party:ids(p.partyDraft),
-      trip:trip?{endsAt:trip.endsAt.toISOString(),units:(trip.unitIds as string[]).map(id=>this.content.map.get(id)?.name??id)}:null};
+      trip:trip?{startedAt:trip.startedAt.toISOString(),endsAt:trip.endsAt.toISOString(),units:(trip.unitIds as string[]).map(id=>this.content.map.get(id)?.name??id),ids:trip.unitIds as string[]}:null};
   }
   // 웹 요청도 카톡 요청과 같은 줄에 세워(동시에 처리되지 않게) 한 거래로 실행
   private webRun<T>(playerId:string,fn:(tx:Tx,p:Player,now:Date)=>Promise<T>):Promise<T>{

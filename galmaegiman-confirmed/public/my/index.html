@@ -259,6 +259,50 @@ html.game .u:active{transform:translateY(2px)}
 .rv-cards[hidden],.rv-btns[hidden]{display:none !important}
 .reveal.hi.cracked::after{background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--tc) 18%,transparent) 0 8deg,transparent 8deg 22deg)}
 .rv-c{width:min(clamp(92px,15vw,140px),calc((100dvh - 120px) / 2 * 3 / 4.1))}
+
+/* ════ 조합 연출(v0.10.3) ════ */
+.forge{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:radial-gradient(circle,color-mix(in srgb,var(--tc) 30%,#2a1708),#1b0f05 70%);color:#fff7e6;animation:rvIn .2s ease-out;cursor:pointer}
+.forge.bye{animation:rvOut .2s ease-in forwards}
+.fg-ring{position:relative;width:min(56vh,300px);height:min(56vh,300px)}
+.fg-m{position:absolute;left:50%;top:50%;width:min(15vh,84px);height:min(15vh,84px);margin:calc(min(15vh,84px) / -2) 0 0 calc(min(15vh,84px) / -2);border-radius:14px;border:3px solid #fff3c4;object-fit:cover;box-shadow:0 4px 0 rgba(0,0,0,.4);transform:rotate(var(--a)) translateY(calc(min(56vh,300px) / -2.6)) rotate(calc(-1 * var(--a)));transition:transform 1s cubic-bezier(.6,-.3,.7,.2),opacity .3s 1s}
+.forge.go .fg-m{transform:rotate(calc(var(--a) + 200deg)) translateY(0) rotate(calc(-1 * var(--a) - 200deg)) scale(.2);opacity:0}
+.forge.fail.go .fg-m{transform:rotate(var(--a)) translateY(calc(min(56vh,300px) / -1.4)) rotate(calc(-1 * var(--a))) scale(.6);opacity:0;transition:transform .9s cubic-bezier(.2,.8,.3,1) .5s,opacity .4s 1s}
+.fg-core{position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:#fff;box-shadow:0 0 30px 12px var(--tc);opacity:0}
+.forge.go .fg-core{animation:core 1.5s ease-in forwards}
+@keyframes core{0%{opacity:0}60%{opacity:1;transform:scale(1)}85%{transform:scale(6);opacity:1}100%{transform:scale(14);opacity:0}}
+.forge.fail.go .fg-core{animation:puff 1.2s ease-out forwards}
+@keyframes puff{0%{opacity:0}40%{opacity:.9;transform:scale(3);background:#d9c7a8;box-shadow:0 0 20px 6px #a89070}100%{opacity:0;transform:scale(5)}}
+.fg-res{position:absolute;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px;background:#fffaf0;color:#3b2614;border:4px solid var(--tc);border-radius:18px;box-shadow:0 0 0 3px #fff3c4,0 0 40px 10px color-mix(in srgb,var(--tc) 70%,transparent);opacity:0;transform:scale(.4)}
+.fg-res img{width:min(42vh,200px);aspect-ratio:1;object-fit:cover;border-radius:12px}
+.fg-res b{font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:20px}
+.fg-res small{color:var(--tc);font-weight:700}
+.forge.done .fg-res{animation:resIn .45s cubic-bezier(.3,1.5,.5,1) forwards}
+@keyframes resIn{to{opacity:1;transform:scale(1)}}
+.fg-tip{position:absolute;bottom:14px;margin:0;font-size:14px;opacity:0;transition:opacity .3s}
+.forge.done .fg-tip,.forge.fail .fg-tip{opacity:.85}
+@media (prefers-reduced-motion:reduce){.fg-m,.fg-core,.fg-res{transition:none;animation:none}.forge.done .fg-res{opacity:1;transform:none}}
+
+/* ════ 탐험 중(v0.10.3): 길 위를 걸어가는 탐험대 ════ */
+.card.exp .ex-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.card.exp .ex-head>b{font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:1.2rem}
+.ex-road{position:relative;height:110px;margin:12px 6px 6px;border-radius:16px;background:linear-gradient(#bfe3f2 0 45%,#e9d3a2 45%);border:2px solid var(--line);overflow:hidden}
+.ex-path{position:absolute;left:44px;right:44px;bottom:22px;height:10px;border-radius:999px;background:repeating-linear-gradient(90deg,#c9a46a 0 14px,transparent 14px 22px)}
+.ex-path i{display:block;height:100%;border-radius:999px;background:var(--accent)}
+.ex-home,.ex-goal{position:absolute;bottom:12px;font-size:30px}
+.ex-home{left:8px}.ex-goal{right:8px}
+.ex-track{position:absolute;left:44px;right:44px;bottom:30px;height:56px}
+.ex-party{position:absolute;bottom:0;display:flex;padding-left:14px;transform:translateX(-50%);transition:left .6s}
+.ex-party img{width:46px;height:46px;border-radius:50%;border:2.5px solid #fffaf0;object-fit:cover;margin-left:-14px;box-shadow:0 2px 0 rgba(0,0,0,.25);animation:walk .5s ease-in-out infinite alternate;animation-delay:calc(var(--i) * .12s)}
+.ex-party em{font-style:normal;font-size:12px;font-weight:700;align-self:center;margin-left:4px}
+@keyframes walk{to{transform:translateY(-5px)}}
+.card.exp.back .ex-party img{animation:hop .6s ease-in-out infinite alternate}
+@keyframes hop{to{transform:translateY(-10px) rotate(-6deg)}}
+.card.exp .btn.wide{margin-top:8px}
+
+/* 조합 결과 글 창이 낮은 화면에서 잘리던 것 → 창 안 스크롤, 탐험대가 집 그림을 덮던 것 */
+.result .card{max-height:calc(100dvh - 24px);overflow:auto}
+.result .card #rok{position:sticky;bottom:0;box-shadow:0 -10px 14px #fffaf0,0 3px 0 var(--accent-d,#7a4e2a)}
+.ex-track{left:62px !important}
 </style>
 </head>
 <body>
