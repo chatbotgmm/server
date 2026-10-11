@@ -294,6 +294,7 @@ function menu() {
     <nav class="dock">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점'], ['account', '👤', '계정']].map(([h, i, t]) => `<a href="${my(h)}" data-h="${h}"><i class="${ICONS.includes(`m-${h}`) ? 'art' : ''}">${ico(`m-${h}`, i)}</i><span>${t}</span></a>`).join('')}</nav></div>`;
   app.querySelector('#st').onclick = storyScreen;
   app.querySelector('#fr').onclick = () => pickScreen('free');
+  app.querySelectorAll('.dock a[data-h]').forEach(a => a.onclick = e => { e.preventDefault(); openMy(a.dataset.h); });
   app.querySelector('#lnoteam')?.addEventListener('click', () => pickScreen('story'));
   app.querySelector('#go')?.addEventListener('click', () => {
     const st = nextStage();
@@ -323,6 +324,18 @@ function menu() {
     if (new Date(me.claimReadyAt).getTime() <= now) dot('draw');
     if (me.trip && new Date(me.trip.endsAt).getTime() <= now) dot('party');
   }).catch(() => {});
+}
+// 「내 갈매미」(뽑기·조합·탐험·상점…)를 페이지 이동 없이 게임 안 창으로(로비는 뒤에 그대로, 닫으면 재화·빨간 점 새로)
+function openMy(h) {
+  document.querySelector('.myov')?.remove();
+  const url = APP ? `my.html#${h}` : `/my?g=1#${h}`;
+  const ov = document.createElement('div'); ov.className = 'myov';
+  ov.innerHTML = `<div class="myov-load">불러오는 중…</div><iframe src="${url}" title="내 갈매미"></iframe>`;
+  const fr = ov.querySelector('iframe');
+  fr.onload = () => ov.classList.add('ready');
+  const onMsg = e => { if (e.source === fr.contentWindow && e.data?.gmm === 'close') { removeEventListener('message', onMsg); ov.classList.add('out'); setTimeout(() => { ov.remove(); menu(); }, 180); } };
+  addEventListener('message', onMsg);
+  document.body.appendChild(ov); sfx('tap'); muteBtn(false);
 }
 // 다음에 할 스테이지: 열린 것 중 아직 안 깬 첫 스테이지(없으면 잠긴 다음 스테이지, 다 깼으면 없음)
 function nextStage() {

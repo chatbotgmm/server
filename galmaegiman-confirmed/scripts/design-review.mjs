@@ -22,9 +22,9 @@ for(const [n,w,h] of [['L',915,412],['S',780,360],['W',1280,720]]){   // 게임�
   await p.click('#tset');await p.waitForSelector('.sheet.set');await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-2b-settings.png`});console.log(n,'설정 창 안 스크롤',await p.evaluate(()=>{const e=document.querySelector('.sheet.set');return e.scrollHeight>e.clientHeight+1;}));await p.click('#sX');
   await p.click('#tgo',{force:true});await p.waitForSelector('.ts');await p.waitForTimeout(1200);
   await p.screenshot({path:`${out}/R${n}-3lobby.png`});console.log(n,'로비',JSON.stringify(await ov()));
-  await p.click('.dock a[href*="draw"]');await p.waitForSelector('.gbar',{timeout:15000});await p.evaluate(()=>document.fonts.ready);await p.waitForTimeout(1500);
+  await p.click('.dock a[data-h="draw"]');const mf=p.frameLocator('.myov iframe');await mf.locator('.gbar').waitFor({timeout:15000});await p.waitForTimeout(1800);
   await p.screenshot({path:`${out}/R${n}-3c-my.png`});console.log(n,'내 갈매미',JSON.stringify(await ov()));
-  await p.click('#gback');await p.waitForSelector('.title');await p.click('#tgo',{force:true});await p.waitForSelector('.ts');await p.waitForTimeout(800);
+  await mf.locator('#gback').click();await p.waitForSelector('.myov',{state:'detached'});await p.waitForSelector('.ts');await p.waitForTimeout(800);
   await p.click('#go',{force:true});await p.waitForTimeout(1200);if(await p.$('#rnd')){await p.click('#rnd');await p.click('#go');await p.waitForTimeout(1200);}
   await p.waitForSelector('.dbox');await p.waitForTimeout(1800);await p.screenshot({path:`${out}/R${n}-3b-talk.png`});console.log(n,'대사',JSON.stringify(await ov()));
   for(let i=0;i<40 && !(await p.$('.aug'));i++){await p.click('.dbox').catch(()=>{});await p.waitForTimeout(200);}

@@ -33,13 +33,17 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     const art = APP ? 'title.jpg' : k ? `/duel/bg/key.jpg?k=${encodeURIComponent(k)}` : '';
     if (art) document.documentElement.style.setProperty('--gbg', `url("${art}")`);
   }
-  const backToGame = () => { if (APP) location.href = 'index.html'; else { let k = ''; try { k = sessionStorage.getItem('gmm-k') || ''; } catch { /* 무시 */ } location.href = k ? `/duel?k=${encodeURIComponent(k)}` : '/'; } };
+  // 게임 안 창(v0.10.1): 게임 로비가 이 화면을 안에 띄우면(iframe) 페이지를 옮기지 않고 창만 닫음
+  const TABNAME = { draw: '뽑기', craft: '조합', units: '내 갈매미', party: '탐험대 편성', battle: '전투 편성', items: '아이템', shop: '상점', account: '계정' };
+  const EMBED = (() => { try { return window.parent !== window; } catch { return true; } })();
+  if (EMBED) document.documentElement.classList.add('embed');
+  const backToGame = () => { if (EMBED) { parent.postMessage({ gmm: 'close' }, '*'); return; } if (APP) location.href = 'index.html'; else { let k = ''; try { k = sessionStorage.getItem('gmm-k') || ''; } catch { /* 무시 */ } location.href = k ? `/duel?k=${encodeURIComponent(k)}` : '/'; } };
   document.addEventListener('click', e => { if (e.target.closest && e.target.closest('#gback')) backToGame(); });
   const toast = t => { toastEl.textContent = t; toastEl.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.classList.remove('on'), 1800); };
   const thumb = id => `${BASE}/thumbs/${encodeURIComponent(id)}.jpg`;
   // 게임 모드: 재화는 위쪽 줄 오른쪽에 작게(재화 확인이 화면의 목적처럼 보이지 않게)
   const curBar = m => m ? `<div class="cur">${[['🍤', m.snack, '새우깡'], ['🥜', m.peanut, '땅콩'], ['🎫', m.credits, '뽑기권']].map(([i, n, t]) => `<span title="${t}">${i}<b>${Number(n).toLocaleString('ko-KR')}</b></span>`).join('')}</div>` : '';
-  const head = (right, m) => GAMEUI ? `<header class="gbar"><button class="gback" id="gback">‹ 게임으로</button><h1>내 갈매미</h1><span class="sp"></span>${curBar(m)}</header>` : `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span><a class="hl" href="/dex" title="도감">📚<span class="lt"> 도감</span></a><a class="hl" href="/search" title="검색">🔍</a>${right ?? ''}<a class="home" href="/" title="홈">🏠<span class="lt"> 홈</span></a></header>`;
+  const head = (right, m) => GAMEUI ? `<header class="gbar"><button class="gback" id="gback">‹ ${EMBED ? '로비' : '게임으로'}</button><h1>${GAMEUI && me && TABNAME[tab] ? TABNAME[tab] : '내 갈매미'}</h1><span class="sp"></span>${curBar(m)}</header>` : `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span><a class="hl" href="/dex" title="도감">📚<span class="lt"> 도감</span></a><a class="hl" href="/search" title="검색">🔍</a>${right ?? ''}<a class="home" href="/" title="홈">🏠<span class="lt"> 홈</span></a></header>`;
 
   // ── 로그인 ──
   // 카카오 로그인에서 돌아온 결과(?kakao=…)는 한 번 보여 주고 주소에서 지움
@@ -49,6 +53,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
   const kmsg = { cancel: '카카오 로그인을 취소했어요.', fail: '카카오 로그인에 실패했어요. 잠시 뒤 다시 해 주세요.', taken: '이 카카오 계정은 이미 다른 갈매미맨 계정에 연결돼 있어요.', linked: '카카오 계정을 연결했어요! 다음부터는 카카오로 로그인만 누르면 돼요.' }[kq] ?? '';
   const kakaoBtn = '<a class="btn wide kakao" href="/my/kakao">카카오로 로그인</a>';
   function loginScreen(msg = kmsg) {
+    app.classList.remove('gv');
     const linking = auth.linking || kq === 'link';
     if (linking) msg = '';
     app.innerHTML = `${head()}<div class="card login">
@@ -81,6 +86,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
   // 웹 게임 첫 화면의 「로그인」으로 왔으면(next=duel) 로그인 뒤 게임으로 돌려보냄(카카오 로그인으로 다녀와도 기억)
   if (!APP && new URLSearchParams(location.search).get('next') === 'duel') try { sessionStorage.setItem('gmm-next', 'duel'); } catch { /* 무시 */ }
   async function toDuel() {
+    if (EMBED) return false;
     let go = false; try { go = sessionStorage.getItem('gmm-next') === 'duel'; sessionStorage.removeItem('gmm-next'); } catch { /* 무시 */ }
     if (!go) return false;
     try { const { k } = await api('duel-key'); location.href = `/duel?k=${encodeURIComponent(k)}`; return true; } catch { return false; }
@@ -90,6 +96,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     draw();
   }
   function draw() {
+    app.classList.add('gv');
     const tabs = [['draw', '🥚 뽑기'], ['craft', '🧩 조합'], ['units', '<img class="gi" src="/gull.png" alt=""> 내 갈매미'], ['party', '🧭 탐험대 편성'], ['battle', '⚔️ 전투 편성'], ['items', '🎒 아이템'], ['shop', '🛒 상점'], ['account', '👤 계정']];
     app.innerHTML = `${head('<button class="btn ghost" id="out" title="로그아웃" style="padding:6px 12px;font-size:.85rem">🚪<span class="lt"> 로그아웃</span></button>', me)}
       ${GAMEUI ? '' : `<div class="card"><div class="row" style="margin-bottom:10px"><b style="font-weight:400;font-size:1.15rem">${esc(me.nickname || '이름 없는 수비조장')}</b><span class="tag">도감 ${me.dex}/${me.dexTotal}</span></div>

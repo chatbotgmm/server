@@ -59,8 +59,11 @@
 
   window.gmmApp = { token: () => store.get(KEY), setToken: t => store.set(KEY, t || null), onMe, onDraw, kakao };
 
+  // 게임 안 창(로비가 내 갈매미를 안에 띄움)에서 도는 거면: 알림·뒤로 버튼은 바깥 게임이 맡음
+  const EMB = (() => { try { return window.parent !== window; } catch { return true; } })();
   // 새 앱이 나왔으면 화면 위에 알림(누르면 사이트에서 새 APK 받기). 같은 버전은 하루에 한 번만
   (async () => {
+    if (EMB) return;
     try {
       const info = await P.App?.getInfo(); const mine = +(info?.build || 0);
       const j = await fetch(`${BASE}/app/apk.json`).then(r => r.ok ? r.json() : null);
@@ -79,7 +82,7 @@
   // 링크: 화면 안 탭(#…)은 그대로, 카카오 로그인은 앱 방식, 나머지 사이트 주소는 앱 안 브라우저로
   document.addEventListener('click', e => {
     const a = e.target.closest && e.target.closest('a[href]');
-    if (!a) return;
+    if (!a || a.dataset.h) return;   // data-h: 로비 메뉴(게임이 직접 게임 안 창으로 엶)
     const h = a.getAttribute('href');
     if (h.startsWith('#')) return;
     e.preventDefault();
@@ -87,10 +90,11 @@
     // 앱 안 화면: 게임(index.html) ↔ 내 갈매미(my.html)
     const tab = h.split('#')[1] || '';
     if (h === '/my' || h.startsWith('/my#') || h.startsWith('my.html')) { if (onMy) location.hash = tab; else location.href = `my.html${tab ? `#${tab}` : ''}`; return; }
-    if (h === '/' || h.startsWith('/duel') || h === 'index.html') { location.href = 'index.html'; return; }
+    if (h === '/' || h.startsWith('/duel') || h === 'index.html') { if (EMB) parent.postMessage({ gmm: 'close' }, '*'); else location.href = 'index.html'; return; }
     open(h.startsWith('http') ? h : BASE + h);
   }, true);
 
+  if (EMB) return;   // 아래 앱 이벤트(카카오 돌아옴·알림·뒤로 가기)는 바깥 게임 화면에서만
   // 카카오 로그인에서 돌아옴: gmmapp://auth?code=…
   P.App?.addListener('appUrlOpen', async ({ url }) => {
     try {
@@ -115,6 +119,9 @@
       if (res) return void res.remove();
       location.href = 'index.html'; return;
     }
+    // 게임 안 「내 갈매미」 창: 그 안의 결과 창 → 닫기, 아니면 창 닫고 로비로
+    const ov = document.querySelector('.myov iframe');
+    if (ov) { try { const d = ov.contentDocument, res = d.querySelector('.result'); if (res) return void res.remove(); const g = d.querySelector('#gback'); if (g) return void g.click(); } catch { /* 무시 */ } ov.parentElement.remove(); location.reload(); return; }
     const modal = document.getElementById('modal');
     const bk = document.getElementById('bk');
     if (modal && !modal.hidden && !modal.classList.contains('scene-on')) { modal.hidden = true; return; }
