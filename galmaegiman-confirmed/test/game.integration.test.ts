@@ -888,6 +888,22 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await info()).recipes.some(r=>r.id===hidden.resultId)).toBe(true);
     }finally{await app.close();}
   });
+  it('게임 출석·오늘의 미션: 하루 한 번 뽑기권, 연속 일수, 미션 진행 보기',async()=>{
+    const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com'});
+    try{
+      const code=/(\d{6})/.exec((await send('웹 로그인')).text!)![1];
+      const p=await db.player.findUniqueOrThrow({where:{identity:actor}});
+      const cookie=String((await app.inject({method:'POST',url:'/my/api/login',payload:{code},headers:{'x-gmm':'1'}})).headers['set-cookie']).split(';')[0];
+      const get=async()=>(await app.inject({method:'GET',url:'/my/api/daily',headers:{'x-gmm':'1',cookie}})).json() as {missions:{key:string;value:number;done:boolean}[];attend:{today:boolean;streak:number;next:number|null}};
+      const d0=await get();expect(d0.missions.length).toBe(content.economy.missions.length);expect(d0.attend.today).toBe(false);
+      const before=(await db.player.findUniqueOrThrow({where:{id:p.id}})).credits;
+      const ok=await app.inject({method:'POST',url:'/my/api/attend',payload:{},headers:{'x-gmm':'1',cookie}});expect(ok.statusCode).toBe(200);
+      expect((await db.player.findUniqueOrThrow({where:{id:p.id}})).credits).toBe(before+content.economy.attendance.tickets);
+      const d1=await get();expect(d1.attend.today).toBe(true);expect(d1.attend.streak).toBe(1);expect(d1.attend.next).toBeNull();
+      const again=await app.inject({method:'POST',url:'/my/api/attend',payload:{},headers:{'x-gmm':'1',cookie}});expect(again.statusCode).toBe(400);
+      expect((await app.inject({method:'POST',url:'/my/api/draw',payload:{kind:'LOW',times:1},headers:{'x-gmm':'1',cookie}})).statusCode).toBe(200);expect((await get()).missions.find(m=>m.key==='DRAW')!.value).toBe(1);
+    }finally{await app.close();}
+  });
   it('웹 쿠폰: 설정 창 입력(1인 1회·틀린 코드·빈 코드·로그인 필요)',async()=>{
     const c0=content.economy.coupons[0]!;
     game=new GameService(db,{...content,economy:{...content.economy,coupons:[{...c0,id:'WEBTEST',code:'웹 시험 코드',from:undefined,to:undefined}]}});
@@ -1274,7 +1290,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.10.3'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.10.4'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

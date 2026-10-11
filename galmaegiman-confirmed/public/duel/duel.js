@@ -288,12 +288,14 @@ function menu() {
   const storyDot = team.some(id => { const r = myRec(id, 0); return learnChances(R, r) > 0 || canEvolve(R, r, partsCleared()); });
   app.innerHTML = `<div class="ts lobby" style="${bg};${BG.includes('key') ? `--key:url(${BASE}/duel/bg/key.jpg${q})` : ''}"><div class="lbg" aria-hidden="true"></div>${ambient('harbor', true)}
     <header class="ltop"><div class="lprof"><i>🪪</i><span><b>${esc(ACC?.nickname || '수비조장')}</b><small>${lvl ? `수비대 Lv${lvl} · 실적 ${SAVE.cleared.length}/${stages().length}` : '아직 팀이 없어요'}</small></span></div><div class="lcur" id="lcur"></div></header>
-    <aside class="lside"><button id="st"><i>📖</i><span>스토리</span>${storyDot ? '<em class="dot"></em>' : ''}</button><button id="fr"><i>⚔️</i><span>자유 대결</span></button></aside>
+    <aside class="lside">${ACC ? '<button id="td"><i>📅</i><span>오늘</span></button>' : ''}<button id="st"><i>📖</i><span>스토리</span>${storyDot ? '<em class="dot"></em>' : ''}</button><button id="fr"><i>⚔️</i><span>자유 대결</span></button></aside>
     <div class="lhero" id="lhero">${team.length ? `<div class="lplat"></div><img id="lheroImg" alt=""><div class="lbub" id="lbub" hidden></div><div class="lname" id="lname"></div>` : '<button class="lnoteam" id="lnoteam">🐣 팀 3마리를 정하면<br>여기에 대표 갈매미가 서요</button>'}</div>
     <div class="lstory">${nowCard()}</div>
     <nav class="dock">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점'], ['account', '👤', '계정']].map(([h, i, t]) => `<a href="${my(h)}" data-h="${h}"><i class="${ICONS.includes(`m-${h}`) ? 'art' : ''}">${ico(`m-${h}`, i)}</i><span>${t}</span></a>`).join('')}</nav></div>`;
   app.querySelector('#st').onclick = storyScreen;
   app.querySelector('#fr').onclick = () => pickScreen('free');
+  app.querySelector('#td')?.addEventListener('click', todaySheet);
+  if (ACC) myApi('daily').then(d => { if (!d.attend.today || d.missions.some(m => !m.done && m.value >= m.goal)) app.querySelector('#td')?.insertAdjacentHTML('beforeend', '<em class="dot"></em>'); }).catch(() => {});
   app.querySelectorAll('.dock a[data-h]').forEach(a => a.onclick = e => { e.preventDefault(); openMy(a.dataset.h); });
   app.querySelector('#lnoteam')?.addEventListener('click', () => pickScreen('story'));
   app.querySelector('#go')?.addEventListener('click', () => {
@@ -324,6 +326,24 @@ function menu() {
     if (new Date(me.claimReadyAt).getTime() <= now) dot('draw');
     if (me.trip && new Date(me.trip.endsAt).getTime() <= now) dot('party');
   }).catch(() => {});
+}
+// 로비 「오늘」: 출석(하루 한 번 뽑기권, 7일 연속 보너스) + 오늘의 미션(카톡과 같은 진행, 채우면 바로 지급)
+async function todaySheet() {
+  modal.className = ''; modal.hidden = false; modal.innerHTML = '<div class="sheet today"><p class="sub">불러오는 중…</p></div>';
+  let d; try { d = await myApi('daily'); } catch (e) { modal.innerHTML = `<div class="sheet today"><p class="sub">${esc(e.message)}</p><button class="ghost wide" id="tdX">닫기</button></div>`; modal.querySelector('#tdX').onclick = () => { modal.hidden = true; }; return; }
+  const a = d.attend, week = [1, 2, 3, 4, 5, 6, 7], inWeek = a.today ? ((a.streak - 1) % 7) + 1 : a.streak % 7;
+  const done = d.missions.filter(m => m.done).length;
+  modal.innerHTML = `<div class="sheet today"><h2>📅 오늘<button class="xbtn" id="tdX" aria-label="닫기">✕</button></h2><div class="scols"><div class="scol">
+      <div class="att"><b>출석 ${a.streak ? `· ${a.streak}일 연속` : ''}</b>
+        <div class="att-week">${week.map(n => `<div class="att-d ${n <= inWeek ? 'on' : ''} ${n === 7 ? 'big' : ''}"><small>${n}일</small><span>${n <= inWeek ? '✅' : n === 7 ? '🎁' : '🎟'}</span><em>${n === 7 ? a.tickets + a.weekBonus : a.tickets}</em></div>`).join('')}</div>
+        <button class="big wide" id="tdAtt" ${a.today ? 'disabled' : ''}>${a.today ? '오늘 출석 완료 · 내일 또 와요' : `출석하고 🎟 ${a.next}장 받기`}</button></div></div>
+    <div class="scol"><div class="msn"><b>오늘의 미션 ${done}/${d.missions.length}</b><small>채우는 순간 바로 받아요 · 밤 12시 초기화</small>
+      ${d.missions.map(m => `<div class="msn-r ${m.done ? 'ok' : ''}"><span>${m.done ? '✅' : '🎯'}</span><div><b>${esc(m.label)}</b><i><i style="width:${Math.round(m.value / m.goal * 100)}%"></i></i></div><em>${m.goal > 1 ? `${m.value}/${m.goal}` : m.done ? '완료' : ''} · 🎟 ${m.tickets}</em></div>`).join('')}</div></div></div></div>`;
+  modal.querySelector('#tdX').onclick = () => { modal.hidden = true; menu(); };
+  modal.querySelector('#tdAtt').onclick = async () => {
+    try { const r = await myApi('attend', {}); sfx('win'); await tell(`출석 완료! ${r.result.streak}일 연속\n🎟 뽑기권 ${r.result.tickets}장${r.result.bonus ? `(7일 보너스 +${r.result.bonus} 포함)` : ''}`); todaySheet(); }
+    catch (e) { await tell(e.message); }
+  };
 }
 // 「내 갈매미」(뽑기·조합·탐험·상점…)를 페이지 이동 없이 게임 안 창으로(로비는 뒤에 그대로, 닫으면 재화·빨간 점 새로)
 function openMy(h) {

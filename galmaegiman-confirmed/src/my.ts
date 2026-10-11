@@ -140,6 +140,13 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     return reply.header('Cache-Control','no-store').send(info);
   });
   act('/my/api/claim',id=>game.webClaim(id));
+  app.get('/my/api/daily',limit,async(req,reply)=>{
+    if(!guard(req,reply))return;
+    const id=session(req);
+    if(!id)return reply.code(401).send({error:'login'});
+    return reply.header('Cache-Control','no-store').send(await game.webDaily(id));
+  });
+  act('/my/api/attend',id=>game.webAttend(id));
   // 쿠폰 입력: 코드 맞히기를 막으려고 따로 1분 10번까지
   app.post<{Body:{code?:unknown}}>('/my/api/coupon',{config:{rateLimit:{max:10,timeWindow:'1 minute',keyGenerator:ipKey('mycoupon')}}},async(req,reply)=>{
     if(!guard(req,reply))return;

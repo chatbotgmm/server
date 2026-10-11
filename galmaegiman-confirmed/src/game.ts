@@ -1227,6 +1227,30 @@ export class GameService {
     if(code.length>60)throw new GameError('🎟 맞는 쿠폰이 없어요.');
     return this.webRun(playerId,async(tx,p,now)=>this.replyText(await this.coupon(tx,p,code,now)));
   }
+  // 게임 로비 「오늘」: 오늘의 미션 진행(카톡과 같은 칸) + 출석(하루 한 번, Achievement ATTEND_<날짜>)
+  async webDaily(playerId:string){
+    const now=this.clock(),day=DateTime.fromJSDate(now).setZone('Asia/Seoul').toISODate()!;
+    const row=await this.db.dailyProgress.findUnique({where:{playerId_day:{playerId,day}}});
+    const done=new Set((row?.rewarded??'').split(',').filter(Boolean));
+    const missions=this.content.economy.missions.map(m=>({key:m.key,label:m.label,goal:m.goal,value:Math.min(m.goal,row?.[GameService.missionField[m.key]]??0),done:done.has(m.key),tickets:m.tickets}));
+    const att=await this.db.achievement.findMany({where:{playerId,key:{startsWith:'ATTEND_'}},select:{key:true},orderBy:{key:'desc'},take:40});
+    const days=new Set(att.map(a=>a.key.slice(7)));
+    let streak=0;for(let d=DateTime.fromISO(day).minus({days:days.has(day)?0:1});days.has(d.toISODate()!);d=d.minus({days:1}))streak++;
+    const a=this.content.economy.attendance;
+    return {day,missions,attend:{today:days.has(day),streak,tickets:a.tickets,weekBonus:a.weekBonus,next:days.has(day)?null:(streak+1)%7===0?a.tickets+a.weekBonus:a.tickets}};
+  }
+  async webAttend(playerId:string){
+    return this.webRun(playerId,async(tx,p,now)=>{
+      const day=DateTime.fromJSDate(now).setZone('Asia/Seoul').toISODate()!,key=`ATTEND_${day}`;
+      if(await tx.achievement.findUnique({where:{playerId_key:{playerId:p.id,key}}}))throw new GameError('오늘은 이미 출석했어요. 내일 또 와요!');
+      let streak=1;for(let d=DateTime.fromISO(day).minus({days:1});await tx.achievement.findUnique({where:{playerId_key:{playerId:p.id,key:`ATTEND_${d.toISODate()}`}}});d=d.minus({days:1})){streak++;if(streak>400)break;}
+      const a=this.content.economy.attendance,bonus=streak%7===0?a.weekBonus:0,tickets=a.tickets+bonus;
+      await tx.achievement.create({data:{playerId:p.id,key,createdAt:now}});
+      if(tickets)await tx.player.update({where:{id:p.id},data:{credits:{increment:tickets},revision:{increment:1}}});
+      await this.audit(tx,p,'ATTEND',{day,streak,tickets});
+      return {streak,tickets,bonus};
+    });
+  }
   async webDraw(playerId:string,kind:string,times:number){
     if(kind!=='LOW'&&kind!=='MID'&&kind!=='HIGH')throw new GameError('없는 뽑기예요.');
     if(!Number.isSafeInteger(times)||times<1||times>50)throw new GameError('뽑기는 한 번에 1~50회예요.');

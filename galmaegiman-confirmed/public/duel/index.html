@@ -859,6 +859,28 @@ header .back:active{transform:translateY(2px);box-shadow:0 1px 0 var(--edge)}
 .myov.out{animation:myOut .18s ease-in forwards}
 @keyframes myIn{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:none}}
 @keyframes myOut{to{opacity:0;transform:scale(.98)}}
+
+/* ════ 로비 「오늘」(v0.10.4): 출석 7칸 + 오늘의 미션 ════ */
+.sheet.today h2{display:flex;align-items:center;justify-content:space-between}
+.sheet.today .xbtn{width:36px;height:36px;border-radius:50%;border:2px solid var(--edge);background:#fffaf0;color:var(--ink);font-size:16px;box-shadow:0 2px 0 rgba(90,52,22,.4)}
+@media (orientation:landscape){ .sheet.today{max-width:min(940px,96vw) !important} .sheet.today .scols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 14px;align-items:start} }
+.att,.msn{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.att>b,.msn>b{font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:16px}
+.msn>small{color:var(--dim);margin-top:-6px}
+.att-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.att-d{display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 2px;border-radius:10px;border:2px solid var(--line);background:#fffdf7}
+.att-d small{font-size:10.5px;color:var(--dim)}.att-d span{font-size:18px}.att-d em{font-style:normal;font-size:11px;font-weight:700}
+.att-d.on{border-color:var(--gold);background:#fff4d6}
+.att-d.big{border-color:var(--gold)}
+.msn-r{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px}
+.msn-r b{display:block;font-size:13.5px;font-weight:700}
+.msn-r>div>i{display:block;height:7px;border-radius:999px;background:#ead6ae;margin-top:3px;overflow:hidden}
+.msn-r>div>i>i{display:block;height:100%;background:linear-gradient(90deg,#ffd27a,var(--gold))}
+.msn-r em{font-style:normal;font-size:12px;color:var(--dim);white-space:nowrap}
+.msn-r.ok b{color:var(--dim);text-decoration:line-through}
+@media (orientation:landscape) and (max-height:400px){ .att,.msn{padding:6px 10px;gap:5px} .msn-r b{font-size:12.5px} .att-d span{font-size:15px} }
+#modal:has(.sheet.today){align-items:center}
+.sheet.today{border-radius:18px;border:3px solid var(--edge)}
 </style>
 </head>
 <body>
