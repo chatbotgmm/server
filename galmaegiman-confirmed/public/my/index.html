@@ -413,6 +413,12 @@ html.game .btn.imgsave:disabled{opacity:1;filter:grayscale(.85) brightness(1.08)
 @media (orientation:landscape) and (max-height:430px){ html.game .gback.img img{height:32px} html.game .btn.imgsave img{height:40px} }
 
 .cur .ci{width:18px;height:18px;object-fit:contain;vertical-align:-4px;margin-right:2px}
+
+/* 편성 저장: 저장할 게 없으면 회색 그림(받은 그림), 있으면 노란 그림 */
+html.game .btn.imgsave .off{display:none}
+html.game .btn.imgsave:disabled{filter:drop-shadow(0 2px 0 rgba(90,52,24,.2))}
+html.game .btn.imgsave:disabled:has(.off) .on{display:none}
+html.game .btn.imgsave:disabled .off{display:block}
 </style>
 </head>
 <body>

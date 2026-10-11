@@ -418,7 +418,7 @@ async function todaySheet() {
   let d; try { d = await myApi('daily'); } catch (e) { modal.innerHTML = `<div class="sheet today"><p class="sub">${esc(e.message)}</p><button class="ghost wide" id="tdX">닫기</button></div>`; modal.querySelector('#tdX').onclick = () => { modal.hidden = true; }; return; }
   const a = d.attend, got = a.today ? a.dayInWeek : a.dayInWeek - 1;   // 이번 주에 이미 받은 칸 수
   const done = d.missions.filter(m => m.done).length;
-  modal.innerHTML = `<div class="sheet today"><h2>📅 출석체크<button class="xbtn" id="tdX" aria-label="닫기">✕</button></h2><div class="scols"><div class="scol">
+  modal.innerHTML = `<div class="sheet today"><h2><span class="tdh">${ico('u-attend', '📅')} 출석체크</span><button class="xbtn" id="tdX" aria-label="닫기">✕</button></h2><div class="scols"><div class="scol">
       <div class="att"><b>${a.week}주째${a.streak ? ` · ${a.streak}일 연속` : ''}</b><small class="att-note">날이 갈수록, 주가 갈수록 보상이 커져요 · 하루 빠지면 1일째부터</small>
         <div class="att-week">${a.rewards.map((t, k) => { const n = k + 1, st = n <= got ? 'on' : n === got + 1 && !a.today ? 'now' : ''; return `<div class="att-d ${st} ${n === 7 ? 'big' : ''}"><small>${n}일</small><span>${n <= got ? '✅' : n === 7 ? '🎁' : '🎟'}</span><em>${t}</em></div>`; }).join('')}</div>
         <button class="big wide" id="tdAtt" ${a.today ? 'disabled' : ''}>${a.today ? '오늘 출석 완료 · 내일 또 와요' : `출석하고 🎟 ${a.next}장 받기`}</button></div></div>
