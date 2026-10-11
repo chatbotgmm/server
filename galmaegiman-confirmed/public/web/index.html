@@ -69,7 +69,7 @@ main{max-width:1280px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-ri
 .tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:800;color:#fff;background:var(--tc,#8a7a6a)}
 /* 그림 자리: 이미지가 없으면 크기 정해진 점선 칸 + 파일 이름 */
 .art{position:relative;display:grid;place-items:center;overflow:hidden}
-.art>img{width:100%;height:100%;object-fit:contain;display:block}
+.art>img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}   /* 칸 높이에 맞춰 전체가 들어가게(그리드 안 100% 높이가 그림 비율로 커지던 것) */
 .art.miss{border:2px dashed rgba(74,47,29,.25);border-radius:18px;background:rgba(255,255,255,.45)}
 .art.miss>img{display:none}
 .art.miss::after{content:"그림 자리\A" attr(data-art);white-space:pre;text-align:center;font-size:12px;color:var(--dim);line-height:1.5}
