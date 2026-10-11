@@ -280,46 +280,35 @@ function titleScreen(loggedIn) {
 function menu() {
   try { sessionStorage.setItem('gmm-k', K); } catch { /* 무시 */ }
   modal.hidden = true; bgm('title'); muteBtn();
-  // 로비(v1.0, 한국 수집형 게임 로비 구조): 위 줄 프로필·재화 / 왼쪽 작은 입구(스토리·자유 대결) / 가운데 대표 갈매미(누르면 한마디, 팀 셋을 돌아가며) / 오른쪽 이야기 칸·큰 이어하기 / 아래 메뉴. 할 일이 있으면 빨간 점
+  // 로비(v0.12.0, 8번 시안): 그림 배경(다락방) 위에 내 정보·재화만 작게, 아래 나무 팻말 메뉴 5개 + 오른쪽 큰 「플레이」.
+  // 대표 갈매미는 로비에서 빼고 「수비대 → 전투 편성」 단상에서(배경 그림의 갈매미는 장식)
   const my = h => APP ? `my.html#${h}` : `/my?g=1#${h}`;
-  const bg = BG.includes('harbor') ? `background-image:url(${BASE}/duel/bg/harbor.jpg${q})` : '';
+  const bg = BG.includes('attic') ? `background-image:url(${BASE}/duel/bg/attic.jpg${q})` : BG.includes('harbor') ? `background-image:url(${BASE}/duel/bg/harbor.jpg${q})` : '';
   const team = SAVE.team.length === 3 ? SAVE.team : [];
   const lvl = team.length ? Math.round(team.reduce((a, id) => a + (SAVE.units[id]?.level ?? 1), 0) / team.length) : 0;
   const storyDot = team.some(id => { const r = myRec(id, 0); return learnChances(R, r) > 0 || canEvolve(R, r, partsCleared()); });
-  app.innerHTML = `<div class="ts lobby" style="${bg};${BG.includes('key') ? `--key:url(${BASE}/duel/bg/key.jpg${q})` : ''}"><div class="lbg" aria-hidden="true"></div>${ambient('harbor', true)}
-    <header class="ltop"><button class="lprof" id="lprof" aria-haspopup="menu"><i>${ico('u-profile', '🪪')}</i><span><b>${esc(ACC?.nickname || '수비조장')}</b><small>${lvl ? `수비대 Lv${lvl} · 실적 ${SAVE.cleared.length}/${stages().length}` : '아직 팀이 없어요'}</small></span><em class="caret">▾</em></button><div class="lcur" id="lcur"></div></header>
-    <aside class="lside">${ACC ? `<button id="td"><i>${ico('u-attend', '📅')}</i><span>출석체크</span></button>` : ''}${ACC ? `<button id="bt"><i>${ico('u-battle', '⚔️')}</i><span>전투 편성</span></button>` : ''}</aside>
-    <div class="lhero" id="lhero">${team.length ? `<div class="lplat"></div><img id="lheroImg" alt=""><div class="lbub" id="lbub" hidden></div><div class="lname" id="lname"></div>` : '<button class="lnoteam" id="lnoteam">🐣 팀 3마리를 정하면<br>여기에 대표 갈매미가 서요</button>'}</div>
-    <div class="lstory">${nowCard()}</div>
-    <nav class="dock">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점']].map(([h, i, t]) => `<a href="${my(h)}" data-h="${h}"><i class="${ICONS.includes(`m-${h}`) ? 'art' : ''}">${ico(`m-${h}`, i)}</i><span>${t}</span></a>`).join('')}</nav></div>`;
-  app.querySelector('#bt')?.addEventListener('click', () => openMy('battle'));   // 스토리는 「플레이」로 들어가니 왼쪽에는 편성 바로가기(v0.11.1)
+  const st = nextStage();
+  // 메뉴 팻말: 그림(btn-*.png, 글자 포함)이 있으면 그림, 없으면 같은 모양을 코드로(조합은 아직 그림이 없음)
+  const MENU = [['party', '탐험', '🧭', 'mint'], ['draw', '뽑기', '🥚', 'pink'], ['units', '수비대', '🛡️', 'lilac'], ['craft', '조합', '🧩', 'sky'], ['shop', '상점', '🏪', 'peach']];
+  app.innerHTML = `<div class="home8" style="${bg}">
+    <header class="h8top"><button class="lprof" id="lprof" aria-haspopup="menu"><i>${ico('u-profile', '🪪')}</i><span><b>${esc(ACC?.nickname || '수비조장')}</b><small>${lvl ? `수비대 Lv${lvl} · 실적 ${SAVE.cleared.length}/${stages().length}` : '아직 팀이 없어요'}</small></span><em class="caret">▾</em></button><div class="lcur" id="lcur"></div></header>
+    ${ACC ? `<button class="h8att" id="td"><i>${ico('u-attend', '📅')}</i><span>출석체크</span></button>` : ''}
+    <nav class="h8menu">${MENU.map(([h, t, i, c]) => ICONS.includes(`btn-${h}`)
+      ? `<a href="${my(h)}" data-h="${h}" class="h8b img" aria-label="${t}"><img src="${BASE}/duel/icons/btn-${h}.png" alt=""></a>`
+      : `<a href="${my(h)}" data-h="${h}" class="h8b code ${c}"><i>${i}</i><span>${t}</span></a>`).join('')}</nav>
+    <button class="h8play" id="go"><b>▶ 플레이</b><small>${st ? `${esc(st.id)} ${esc(st.title)}` : '모든 이야기 완료'}</small></button></div>`;
   app.querySelector('#td')?.addEventListener('click', todaySheet);
   app.querySelector('#lprof').onclick = e => { e.stopPropagation(); profMenu(); };
   if (ACC) myApi('daily').then(d => { if (!d.attend.today || d.missions.some(m => !m.done && m.value >= m.goal)) app.querySelector('#td')?.insertAdjacentHTML('beforeend', '<em class="dot"></em>'); }).catch(() => {});
-  app.querySelectorAll('.dock a[data-h]').forEach(a => a.onclick = e => { e.preventDefault(); openMy(a.dataset.h); });
-  app.querySelector('#lnoteam')?.addEventListener('click', () => pickScreen('story'));
-  app.querySelector('#go')?.addEventListener('click', () => { sfx('tap'); modeScreen(); });
-  if (storyDot) app.querySelector('#go')?.insertAdjacentHTML('beforeend', '<em class="dot"></em>');   // 배울 기술·승진이 있으면(스토리 목록에서 함)
-  // 대표 갈매미: 누르면 한마디, 다시 누르면 다음 팀원
-  if (team.length) {
-    let at = 0, hide = null;
-    const show = (talk) => {
-      const id = team[at], u = UNITS.find(x => x.id === id), st = SAVE.units[id]?.stage ?? 0, img = app.querySelector('#lheroImg');
-      img.src = sprite(id, 'front', st); img.style.setProperty('--sz', bodySz(id, st)); img.className = st ? `st-${st}` : '';
-      app.querySelector('#lname').innerHTML = `<b>${esc(u.name)}</b><small>Lv${SAVE.units[id]?.level ?? 1}${st ? ` ${STARS[st]}` : ''} · ${chip(u.def.attr)}</small>`;
-      const bub = app.querySelector('#lbub');
-      if (talk && (u.quote || u.tagline)) { bub.textContent = u.quote || u.tagline; bub.hidden = false; bub.style.top = `${Math.max(0, img.offsetTop - bub.offsetHeight * 0.55)}px`; bub.style.left = `${img.offsetLeft + img.offsetWidth * 0.55}px`; bub.style.right = 'auto'; bub.classList.remove('pop');   // 말풍선은 머리 높이 옆에(큰 화면에서 붕 뜨지 않게)
-         void bub.offsetWidth; bub.classList.add('pop'); clearTimeout(hide); hide = setTimeout(() => { bub.hidden = true; }, 3200); }
-    };
-    show(false);
-    app.querySelector('#lhero').onclick = () => { if (!app.querySelector('#lbub').hidden) at = (at + 1) % team.length; show(true); sfx('tap'); };
-  }
+  app.querySelectorAll('.h8menu a[data-h]').forEach(a => a.onclick = e => { e.preventDefault(); sfx('tap'); openMy(a.dataset.h); });
+  app.querySelector('#go').addEventListener('click', () => { sfx('tap'); modeScreen(); });
+  if (storyDot) app.querySelector('#go').insertAdjacentHTML('beforeend', '<em class="dot"></em>');   // 배울 기술·승진이 있으면(스토리 목록에서 함)
   // 재화·빨간 점(로그인했으면 서버에서): 뽑기권 받을 수 있음 · 탐험 끝남
   if (ACC) myApi('me').then(me => {
     const cur = app.querySelector('#lcur'); if (!cur) return;
     cur.innerHTML = [[ico('u-snack', '🍤'), me.snack, '새우깡'], [ico('u-peanut', '🥜'), me.peanut, '땅콩'], [ico('u-ticket', '🎫'), me.credits, '뽑기권']].map(([i, n, t]) => `<button class="cur" title="${t} · 상점으로">${i}<b>${Number(n).toLocaleString('ko-KR')}</b><em class="plus" aria-hidden="true">+</em></button>`).join('');
     cur.querySelectorAll('.cur').forEach(x => x.onclick = () => openMy('shop'));   // 재화를 누르면 상점
-    const now = Date.now(), dot = h => app.querySelector(`.dock a[data-h="${h}"]`)?.insertAdjacentHTML('beforeend', '<em class="dot"></em>');
+    const now = Date.now(), dot = h => app.querySelector(`.h8menu a[data-h="${h}"]`)?.insertAdjacentHTML('beforeend', '<em class="dot"></em>');
     if (new Date(me.claimReadyAt).getTime() <= now) dot('draw');
     if (me.trip && new Date(me.trip.endsAt).getTime() <= now) dot('party');
   }).catch(() => {});
@@ -353,12 +342,12 @@ function continueStory() {
 // 플레이 → 모드 고르기(v0.11.0): 왼쪽 캠페인(스토리·모험), 오른쪽 PvP(일반·랭크), 아래 돌아가기
 function modeScreen() {
   modal.hidden = true; bgm('title'); muteBtn();
-  const st = nextStage(), bg = BG.includes('harbor') ? `background-image:url(${BASE}/duel/bg/harbor.jpg${q})` : '';
+  const st = nextStage(), bg = BG.includes('cabin') ? `background-image:url(${BASE}/duel/bg/cabin.jpg${q})` : BG.includes('harbor') ? `background-image:url(${BASE}/duel/bg/harbor.jpg${q})` : '';   // 배 선실(출항 준비)
   app.innerHTML = `<div class="modes" style="${bg}"><div class="lbg" aria-hidden="true"></div>${ambient('harbor', true)}
     <h1 class="mtitle">게임 모드</h1>
     <div class="mrow">
       <section class="mcard camp"><div class="mhead"><i>${ico('mode-camp', '🗺️')}</i><span><b>캠페인</b><small>이야기를 따라 항구를 지키고, 상위 갈매미를 찾아 모험</small></span></div>
-        <button class="mbtn main" id="mStory"><i>${ico('u-story', '📖')}</i><span><b>스토리</b><small>${st ? `${esc(st.id)} ${esc(st.title)}` : '모든 이야기 완료 · 다시 보기'}</small></span></button>
+        <button class="mbtn main" id="mStory"><i>${ico('u-story', '📖')}</i><span><b>스토리</b><small>${st ? `${esc(st.id)} ${esc(st.title)}` : '모든 이야기 완료 · 다시 보기'}</small>${recap() ? `<small class="mrecap">${esc(recap())}</small>` : ''}</span></button>
         <button class="mbtn" id="mAdv" disabled><i>${ico('mode-adv', '🧭')}</i><span><b>모험 · 상위 갈매미 포획</b><small>준비 중 · 다음 업데이트</small></span></button>
         <button class="mlink" id="mList">스토리 목록 · 기술·승진</button></section>
       <section class="mcard pvp"><div class="mhead"><i>${ico('mode-pvp', '⚔️')}</i><span><b>PvP</b><small>다른 수비대의 「전투 편성」 팀과 대결 · 모두 같은 레벨</small></span></div>
@@ -458,12 +447,6 @@ function nextStage() {
   const all = stages();
   return all.find(s => unlocked(s.id) && !SAVE.cleared.includes(s.id)) ?? all.find(s => !SAVE.cleared.includes(s.id)) ?? null;
 }
-// 첫 화면 내 수비대(스토리 팀 셋, 승진 그림 반영). 팀이 없으면 비워 둠
-function squad() {
-  const team = SAVE.team.length === 3 ? SAVE.team : [];
-  if (!team.length) return '<div class="squad empty"><span>스토리를 시작하면 내 수비대가 여기 서요</span></div>';
-  return `<div class="squad">${team.map((id, i) => `<img src="${sprite(id, 'front', SAVE.units[id]?.stage ?? 0)}" style="animation-delay:${i * .4}s" alt="">`).join('')}</div>`;
-}
 // 가로 로비: 이야기 칸 양옆에 내 수비대(왼쪽 선두, 오른쪽 둘)
 function sideSquad() {
   const team = SAVE.team.length === 3 ? SAVE.team : [];
@@ -480,16 +463,6 @@ function recap() {
   return '';
 }
 // 첫 화면 「지금 이야기」: 부·스테이지·진행률 한 줄 + 큰 이어하기 버튼
-function nowCard() {
-  const all = stages(), st = nextStage(), done = SAVE.cleared.length, pct = Math.round(done / all.length * 100);
-  const play = '<button class="play" id="go"><span>▶ 플레이</span></button>';   // 플레이 → 모드 고르기(캠페인 / PvP)
-  if (!st) return `<div class="now"><small>모든 이야기를 끝냈어요</small><b>🎖 수비대장 취임</b><div class="prog"><i style="width:100%"></i><em>${done}/${all.length}</em></div></div>${play}`;
-  const c = st.chapter;
-  const lock = !unlocked(st.id) && c.needStage ? `<p class="need">🔒 팀 전원 ${c.needStage}단계 승진하면 열려요 (${STARS[c.needStage]})</p>` : '';
-  const rc = recap();
-  return `<div class="now"><small>${esc(c.title)}</small><b>${esc(st.id)} ${esc(st.title)}</b>${rc ? `<p class="recap">${esc(rc)}</p>` : ''}${lock}<div class="prog"><i style="width:${pct}%"></i><em>${done}/${all.length}</em></div></div>
-    ${play}`;
-}
 
 // ── 편성(자유 대결: 레벨 선택 / 스토리: 저장된 레벨) ──
 function pickScreen(mode, then) {   // then: 스토리 팀을 정한 뒤 바로 할 일(이어하기)

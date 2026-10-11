@@ -389,6 +389,20 @@ html.game .tabs.gseg .gi{width:22px;height:22px}
   .dqty .qty .btn{padding:1px 8px}.dqty .qty input{width:40px;padding:2px}
   .dqty .dgo{padding:5px 8px;font-size:.88rem}
 }
+
+/* 전투 편성 단상 말풍선(v0.12.0): 단상의 갈매미가 돌아가며 한마디 */
+.pd{position:relative}
+.pd-bub{position:absolute;left:50%;bottom:calc(100% - 6px);transform:translate(-50%,6px) scale(.85);opacity:0;pointer-events:none;z-index:3;width:max-content;max-width:min(240px,40vw);
+  background:#fff;color:#3b2614;border:2.5px solid #c27c3d;border-radius:14px;padding:5px 10px;font-size:13px;line-height:1.35;text-align:center;box-shadow:0 3px 0 rgba(90,52,24,.3);transition:opacity .25s,transform .25s}
+.pd-bub::after{content:"";position:absolute;left:50%;bottom:-8px;width:12px;height:12px;background:#fff;border-right:2.5px solid #c27c3d;border-bottom:2.5px solid #c27c3d;transform:translateX(-50%) rotate(45deg)}
+.pd.talk .pd-bub{opacity:1;transform:translate(-50%,0) scale(1)}
+@media (prefers-reduced-motion:reduce){.pd-bub{transition:none}}
+
+/* v0.12.0 배경: 8번 시안 그림은 밝고 파스텔이라 덜 어둡게·덜 흐리게 */
+html.game body::before{filter:blur(5px) saturate(.95) brightness(.97)}
+
+/* v0.12.0: 칸 테두리 나무색(로비 팻말과 같은 계열) */
+html.game{--edge:#a8672e}
 </style>
 </head>
 <body>

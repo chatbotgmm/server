@@ -46,7 +46,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
   const thumb = id => `${BASE}/thumbs/${encodeURIComponent(id)}.jpg`;
   // 게임 모드: 재화는 위쪽 줄 오른쪽에 작게(재화 확인이 화면의 목적처럼 보이지 않게)
   const curBar = m => m ? `<div class="cur">${[['🍤', m.snack, '새우깡'], ['🥜', m.peanut, '땅콩'], ['🎫', m.credits, '뽑기권']].map(([i, n, t]) => `<span title="${t}">${i}<b>${Number(n).toLocaleString('ko-KR')}</b></span>`).join('')}</div>` : '';
-  const head = (right, m) => GAMEUI ? `<header class="gbar"><button class="gback" id="gback">‹ ${EMBED ? '로비' : '게임으로'}</button><h1>${GAMEUI && me && TABNAME[tab] ? (groupOf(tab).length > 1 ? '갈매미' : TABNAME[tab]) : '내 갈매미'}</h1><span class="sp"></span>${curBar(m)}</header>` : `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span><a class="hl" href="/dex" title="도감">📚<span class="lt"> 도감</span></a><a class="hl" href="/search" title="검색">🔍</a>${right ?? ''}<a class="home" href="/" title="홈">🏠<span class="lt"> 홈</span></a></header>`;
+  const head = (right, m) => GAMEUI ? `<header class="gbar"><button class="gback" id="gback">‹ ${EMBED ? '로비' : '게임으로'}</button><h1>${GAMEUI && me && TABNAME[tab] ? (groupOf(tab).length > 1 ? '수비대' : TABNAME[tab]) : '내 갈매미'}</h1><span class="sp"></span>${curBar(m)}</header>` : `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span><a class="hl" href="/dex" title="도감">📚<span class="lt"> 도감</span></a><a class="hl" href="/search" title="검색">🔍</a>${right ?? ''}<a class="home" href="/" title="홈">🏠<span class="lt"> 홈</span></a></header>`;
 
   // ── 로그인 ──
   // 카카오 로그인에서 돌아온 결과(?kakao=…)는 한 번 보여 주고 주소에서 지움
@@ -98,8 +98,11 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     try { me = await api('me'); if (await toDuel()) return; APP?.onMe(me); if (kmsg && !main.shown) { main.shown = 1; toast(kmsg); } } catch (e) { if (e.message !== 'login') app.innerHTML = `${head()}<p class="empty">${esc(e.message)}</p>`; return; }
     draw();
   }
+  // 게임 안 창 배경(v0.12.0, 8번 시안 그림): 뽑기 = 온실, 상점 = 해변 카페, 탐험 = 배 선실, 나머지 = 다락방
+  const BG_OF = { draw: 'greenhouse', shop: 'cafe', party: 'cabin' };
+  const tabBg = () => { if (!GAMEUI) return; let k = ''; try { k = sessionStorage.getItem('gmm-k') || ''; } catch { /* 무시 */ } if (k) document.documentElement.style.setProperty('--gbg', `url("${BASE}/duel/bg/${BG_OF[tab] ?? 'attic'}.jpg?k=${encodeURIComponent(k)}")`); };
   function draw() {
-    app.classList.toggle('gv', !GAMEUI); app.classList.toggle('gsolo', GAMEUI);
+    app.classList.toggle('gv', !GAMEUI); app.classList.toggle('gsolo', GAMEUI); tabBg();
     const tabs = [['draw', '🥚 뽑기'], ['craft', '🧩 조합'], ['units', '<img class="gi" src="/gull.png" alt=""> 내 갈매미'], ['party', '🧭 탐험대 편성'], ['battle', '⚔️ 전투 편성'], ['items', '🎒 아이템'], ['shop', '🛒 상점'], ['account', '👤 계정']];
     app.innerHTML = `${head('<button class="btn ghost" id="out" title="로그아웃" style="padding:6px 12px;font-size:.85rem">🚪<span class="lt"> 로그아웃</span></button>', me)}
       ${GAMEUI ? '' : `<div class="card"><div class="row" style="margin-bottom:10px"><b style="font-weight:400;font-size:1.15rem">${esc(me.nickname || '이름 없는 수비조장')}</b><span class="tag">도감 ${me.dex}/${me.dexTotal}</span></div>
@@ -128,12 +131,18 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
 
   // 전투 편성: 최상위 3마리(순서 = 출전 순서)
   function battle(el) {
-    let pick = [...me.battleTeam];
+    let pick = [...me.battleTeam], talk = null;
     const tops = me.units.filter(u => u.top);
+    // 단상의 갈매미가 돌아가며 한마디(v0.12.0, 예전 로비 대표 갈매미 말풍선을 여기로)
+    const chat = () => {
+      clearInterval(talk); let k = 0;
+      const step = () => { if (!el.isConnected) return clearInterval(talk); const ps = [...el.querySelectorAll('.pd.full')].filter(p => p.querySelector('.pd-bub')); ps.forEach(p => p.classList.remove('talk')); if (ps.length) ps[k++ % ps.length].classList.add('talk'); };
+      step(); talk = setInterval(step, 3600);
+    };
     const render = () => {
       el.innerHTML = `<div class="card"><p class="note" style="margin-top:0">수비대 대결에 나갈 <b>최상위 갈매미 3마리</b>를 골라요. 처음 고른 갈매미가 먼저 나가요.</p>
         ${GAMEUI ? `<div class="podium">${[1, 0, 2].map(i => { const u = tops.find(x => x.id === pick[i]); return `<div class="pd pd${i + 1} ${u ? 'full' : ''}" ${u ? `data-rm="${u.id}"` : ''} style="--tc:${u ? TIER_COLOR[u.tier] ?? '#888' : '#c9b08a'}">
-            <div class="pd-card">${u ? `<img src="${thumb(u.id)}" alt=""><b>${esc(u.name)}</b>` : '<span>＋</span><small>비어 있음</small>'}</div><div class="pd-step"><em>${i + 1}</em>${i ? `${i + 1}번` : '선봉'}</div></div>`; }).join('')}</div>`
+            ${u && (u.quote || u.tagline) ? `<div class="pd-bub">${esc(u.quote || u.tagline)}</div>` : ''}<div class="pd-card">${u ? `<img src="${thumb(u.id)}" alt=""><b>${esc(u.name)}</b>` : '<span>＋</span><small>비어 있음</small>'}</div><div class="pd-step"><em>${i + 1}</em>${i ? `${i + 1}번` : '선봉'}</div></div>`; }).join('')}</div>`
         : `<div class="slots">${[0, 1, 2].map(i => { const u = tops.find(x => x.id === pick[i]); return u ? `<div class="slot full"><img src="${thumb(u.id)}" alt=""><span>${i + 1}. ${esc(u.name)}</span></div>` : `<div class="slot">${i + 1}번 자리<br>비어 있음</div>`; }).join('')}</div>`}
         <button class="btn wide" id="save" ${JSON.stringify(pick) === JSON.stringify(me.battleTeam) ? 'disabled' : ''}>편성 저장</button></div>
         ${tops.length ? `<div class="grid">${tops.map(u => { const i = pick.indexOf(u.id); return `<button class="u ${i >= 0 ? 'on' : ''}" data-id="${u.id}"><img loading="lazy" src="${thumb(u.id)}" alt="">${i >= 0 ? `<span class="ord">${i + 1}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}</small></button>`; }).join('')}</div>`
@@ -148,6 +157,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
         try { const r = await api('battle-team', { ids: pick }); me.battleTeam = r.battleTeam; toast('전투 편성을 저장했어요'); render(); }
         catch (e) { if (e.message !== 'login') toast(e.message); }
       };
+      if (GAMEUI) chat();
     };
     render();
   }

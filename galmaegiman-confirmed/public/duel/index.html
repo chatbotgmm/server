@@ -1066,6 +1066,52 @@ img{-webkit-user-drag:none;-webkit-touch-callout:none}
 
 /* 아래 메뉴는 들어 있는 개수만큼 칸(계정은 프로필 메뉴로 옮겨 5개, v0.11.1) */
 .ts.lobby .dock{grid-template-columns:none !important;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);max-width:560px}
+
+/* ── 로비 v0.12.0(8번 시안): 그림 배경 + 내 정보·재화 작게 + 아래 나무 팻말 메뉴 + 큰 플레이 ──
+   색: 나무 테두리 #e2a764/#c27c3d/#8a5527, 판 색은 메뉴마다(민트·분홍·연보라·하늘·살구), 글자는 흰색+갈색 테두리(받은 버튼 그림과 같게) */
+:root{--wood:#e2a764;--wood-d:#c27c3d;--wood-dd:#8a5527;--p-mint:#a9d3a4;--p-pink:#f29aa6;--p-lilac:#b9a2dc;--p-sky:#9fcbe6;--p-peach:#f5a98f}
+#app:has(.home8){max-width:none}
+.home8{position:fixed;inset:0;background:#e9d6f0 center/cover no-repeat;overflow:hidden}
+.home8>.amb{z-index:0}
+.home8>*:not(.amb){position:absolute;z-index:1}
+.h8top{top:calc(10px + env(safe-area-inset-top,0px));left:calc(14px + var(--sl));right:calc(78px + var(--sr));display:flex;align-items:center;justify-content:space-between;gap:10px}
+.home8 .lprof{background:rgba(255,250,240,.95);border:3px solid var(--wood);box-shadow:0 4px 0 var(--wood-d)}
+.home8 .lprof>i{border-color:var(--wood)}
+.home8 .lcur{display:flex;gap:6px}
+.home8 .cur{border:2.5px solid var(--wood);box-shadow:0 3px 0 var(--wood-d)}
+.h8att{left:calc(14px + var(--sl));top:calc(50% - 46px);width:84px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;border-radius:18px;background:rgba(255,250,240,.95);border:3px solid var(--wood);box-shadow:0 4px 0 var(--wood-d);font:inherit;color:#5a3418;cursor:pointer}
+.h8att i{font-style:normal;font-size:28px;line-height:1}.h8att i .ico{width:34px;height:34px;object-fit:contain}
+.h8att span{font-family:"Black Han Sans",sans-serif;font-size:14px}
+.h8att:active,.h8b:active,.h8play:active{transform:translateY(3px)}
+.home8 .dot{position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;background:#ff5a5a;border:2.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.h8menu{left:calc(14px + var(--sl));bottom:calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;align-items:flex-end}
+.h8b{position:relative;display:block;height:var(--bh,64px);text-decoration:none;filter:drop-shadow(0 4px 0 rgba(90,52,24,.35))}
+.h8b.img img{height:100%;width:auto;display:block}
+/* 그림이 없는 메뉴(조합)는 같은 모양을 코드로: 둥근 나무 테두리 + 파스텔 판 + 글자 */
+.h8b.code{display:flex;align-items:center;gap:6px;padding:0 calc(var(--bh,64px) * .32) 0 calc(var(--bh,64px) * .22);border-radius:calc(var(--bh,64px) * .3);
+  background:var(--pc,#ccc);border:calc(var(--bh,64px) * .09) solid var(--wood);box-shadow:inset 0 0 0 2px var(--wood-d),inset 0 -6px 0 rgba(0,0,0,.08);aspect-ratio:2.47/1;justify-content:center}
+.h8b.code i{font-style:normal;font-size:calc(var(--bh,64px) * .5);line-height:1}
+.h8b.code span{font-family:"Bagel Fat One","Black Han Sans",sans-serif;font-size:calc(var(--bh,64px) * .38);color:#fff;-webkit-text-stroke:calc(var(--bh,64px) * .07) #5a3418;paint-order:stroke fill;letter-spacing:.02em}
+.h8b.mint{--pc:var(--p-mint)}.h8b.pink{--pc:var(--p-pink)}.h8b.lilac{--pc:var(--p-lilac)}.h8b.sky{--pc:var(--p-sky)}.h8b.peach{--pc:var(--p-peach)}
+.h8play{right:calc(16px + var(--sr));bottom:calc(10px + env(safe-area-inset-bottom,0px));min-width:min(30vw,300px);height:calc(var(--bh,64px) * 1.25);padding:0 22px;border-radius:calc(var(--bh,64px) * .45);
+  background:linear-gradient(#ffc27a,#ff9d52);border:calc(var(--bh,64px) * .1) solid var(--wood);box-shadow:inset 0 0 0 2px var(--wood-d),inset 0 -8px 0 rgba(160,70,20,.25),0 5px 0 var(--wood-dd);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;font:inherit;cursor:pointer}
+.h8play b{font-family:"Bagel Fat One","Black Han Sans",sans-serif;font-weight:400;font-size:calc(var(--bh,64px) * .5);color:#fff;-webkit-text-stroke:calc(var(--bh,64px) * .08) #5a3418;paint-order:stroke fill;line-height:1.05}
+.h8play small{font-size:calc(var(--bh,64px) * .2);color:#5a3418;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (orientation:landscape) and (max-height:430px){
+  .home8{--bh:42px}
+  .h8top{top:calc(6px + env(safe-area-inset-top,0px));right:calc(64px + var(--sr))}
+  .h8att{width:66px;padding:5px 3px 4px;border-radius:14px}.h8att i{font-size:22px}.h8att i .ico{width:26px;height:26px}.h8att span{font-size:12px}
+  .h8menu{gap:6px}.h8play{padding:0 14px;min-width:0}
+}
+@media (orientation:landscape) and (min-height:431px) and (max-height:600px){ .home8{--bh:50px} }
+@media (orientation:landscape) and (min-height:601px){ .home8{--bh:70px} .h8att{width:96px} }
+.mrecap{display:block;font-size:11px;opacity:.85;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* v0.12.0 8번 시안 맞춤: 칸 테두리를 짙은 갈색 → 나무색(받은 버튼 테두리와 같은 계열), 조합 팻말 테두리 두껍게, 모드 버튼 요약 줄 넘침 막기 */
+:root{--edge:#a8672e}
+.h8b.code{border-width:calc(var(--bh,64px) * .13);box-shadow:inset 0 0 0 2.5px var(--wood-d),inset 0 -7px 0 rgba(0,0,0,.08),0 0 0 2px var(--wood-d)}
+.mbtn>span{min-width:0;flex:1}
 </style>
 </head>
 <body>
