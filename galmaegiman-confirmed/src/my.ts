@@ -53,7 +53,16 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     return body?reply.type(type).header('Cache-Control','no-cache').send(body):reply.code(404).send({error:'not found'});
   };
 
-  app.get('/my',async(_req,reply)=>file(reply,'text/html; charset=utf-8','public/my/index.html'));
+  // /my: 웹은 새 대시보드(public/web, v0.14.0), 게임 안 창(?g=1)은 기존 화면. 대시보드에 없는 메뉴(탐험대·상점·계정)는 /my/classic(기존 화면)
+  app.get<{Querystring:{g?:string;next?:string}}>('/my',async(req,reply)=>file(reply,'text/html; charset=utf-8',req.query.g==='1'||req.query.next==='duel'?'public/my/index.html':'public/web/index.html'));
+  app.get('/my/classic',async(_req,reply)=>file(reply,'text/html; charset=utf-8','public/my/index.html'));
+  app.get('/my/dash.js',async(_req,reply)=>file(reply,'text/javascript; charset=utf-8','public/web/dash.js'));
+  // 웹 그림(ChatGPT가 만든 것, public/web/img): 없으면 화면이 크기 정해진 빈 칸을 그림
+  app.get<{Params:{file:string}}>('/web/img/:file',async(req,reply)=>{
+    if(!/^[a-z0-9][a-z0-9-]*\.(webp|png|jpg)$/i.test(req.params.file))return reply.code(404).send({error:'not found'});
+    const ext=req.params.file.split('.').pop()!.toLowerCase();
+    return file(reply,ext==='jpg'?'image/jpeg':`image/${ext}`,`public/web/img/${req.params.file}`);
+  });
   app.get('/my/my.js',async(_req,reply)=>file(reply,'text/javascript; charset=utf-8','public/my/my.js'));
   // 로그인: 6자리 코드(같은 곳에서 1분에 10번까지)
   app.post<{Body:{code?:unknown}}>('/my/api/login',{config:{rateLimit:{max:10,timeWindow:'1 minute',keyGenerator:ipKey('mylogin')}}},async(req,reply)=>{
