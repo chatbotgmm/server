@@ -201,7 +201,8 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
       learned:z.array(z.string().max(30)).max(R.data.learn.slots).optional(),learnUsed:z.number().int().min(0).max(R.data.learn.levels.length).optional(),
       stage:z.number().int().min(0).max(3).optional(),evoAugs:z.array(z.string().max(30)).max(3).optional()}).strict();
     return z.object({units:z.record(z.string().regex(/^[DTEI]\d{1,2}$/),unit).refine(u=>Object.keys(u).every(id=>R.units.has(id)),'없는 갈매미'),
-      team:z.array(z.string().max(4)).max(3),cleared:z.array(z.string().max(12)).max(300)}).strict();
+      team:z.array(z.string().max(4)).max(3),cleared:z.array(z.string().max(12)).max(300),
+      hp:z.record(z.string().regex(/^[DTEI]\d{1,2}$/),z.object({f:z.number().min(0).max(1),at:z.number().int().min(0)}).strict()).optional()}).strict();   // 스토리 체력(v0.14.7): 전투 뒤 남은 비율과 그 시각(시간이 지나면 클라이언트가 회복 계산)
   };
   app.get('/my/api/story',limit,async(req,reply)=>{
     if(!guard(req,reply))return;
@@ -246,6 +247,14 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     const token=randomBytes(12).toString('base64url');
     fights.set(token,{player:id,used:0,exp:now+2*3600_000});
     return {battle:token,items:await game.webItems(id)};
+  });
+  // 전투 밖에서 회복 아이템 쓰기(v0.14.7, 스토리 체력): 체력 회복(heal)이 있는 아이템만, 대결당 개수 제한 없음. 회복은 클라이언트 스토리 저장에 반영
+  act<{id?:unknown}>('/my/api/items/use-field',async(id,b)=>{
+    const item=itemDefs().items.find(x=>x.id===b.id);
+    if(!item)throw new GameError('없는 아이템이에요.');
+    if(!item.heal)throw new GameError('이 아이템은 대결 중에만 쓸 수 있어요.');
+    const left=await game.webUseItem(id,{id:item.id,name:item.name});
+    return {left,heal:item.heal};
   });
   act<{battle?:unknown;id?:unknown}>('/my/api/items/use',async(id,b)=>{
     const f=typeof b.battle==='string'?fights.get(b.battle):undefined;

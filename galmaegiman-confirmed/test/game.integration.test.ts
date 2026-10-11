@@ -811,6 +811,13 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       for(const bad of [{...data,units:{D1:{level:999,xp:0}}},{...data,units:{C1:{level:1,xp:0}}},{...data,extra:1},{...data,units:{D1:{level:1,xp:0,hack:1}}},'x'])
         expect((await post('/my/api/story',{data:bad},cookie)).statusCode).toBe(400);
       expect((await get()).data).toEqual(data);   // 잘못된 저장은 반영 안 됨
+      // 스토리 체력(v0.14.7): 갈매미별 남은 비율(0~1)과 시각만 저장
+      const withHp={...data,hp:{D1:{f:0.4,at:1700000000000}}};
+      expect((await post('/my/api/story',{data:withHp},cookie)).statusCode).toBe(200);
+      expect((await get()).data).toEqual(withHp);
+      for(const bad of [{...data,hp:{D1:{f:1.5,at:1}}},{...data,hp:{D1:{f:0.5,at:1,x:1}}},{...data,hp:{C1:{f:0.5,at:1}}}])
+        expect((await post('/my/api/story',{data:bad},cookie)).statusCode).toBe(400);
+      expect((await post('/my/api/story',{data},cookie)).statusCode).toBe(200);
       // 아이템: 대결 표 없으면 거절, 표마다 대결당 3개, 계정에서 1개씩 빠짐, 없으면 거절
       await db.playerItem.create({data:{playerId:p.id,itemId:'potion',count:4}});
       expect((await post('/my/api/items/use',{battle:'nope',id:'potion'},cookie)).statusCode).toBe(400);
@@ -822,6 +829,14 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await post('/my/api/items/use',{battle:fight2.result.battle,id:'big'},cookie)).statusCode).toBe(400);   // 없는 아이템
       expect((await post('/my/api/items/use',{battle:fight2.result.battle,id:'potion'},cookie)).json()).toEqual({ok:true,result:{left:0}});
       expect((await post('/my/api/items/use',{battle:fight2.result.battle,id:'potion'},cookie)).statusCode).toBe(400);   // 다 씀
+      // 전투 밖 치료(v0.14.7): 체력 회복 아이템만, 대결 표 없이, 계정에서 1개 빠짐
+      await db.playerItem.update({where:{playerId_itemId:{playerId:p.id,itemId:'potion'}},data:{count:2}});
+      await db.playerItem.create({data:{playerId:p.id,itemId:'clear',count:1}});
+      expect((await post('/my/api/items/use-field',{id:'potion'},cookie)).json()).toEqual({ok:true,result:{left:1,heal:35}});
+      expect((await post('/my/api/items/use-field',{id:'clear'},cookie)).json()).toMatchObject({error:expect.stringContaining('대결 중에만')});
+      expect((await post('/my/api/items/use-field',{id:'big'},cookie)).statusCode).toBe(400);   // 없는 아이템
+      expect((await post('/my/api/items/use-field',{id:'potion'},cookie)).json()).toEqual({ok:true,result:{left:0,heal:35}});
+      expect((await post('/my/api/items/use-field',{id:'potion'},cookie)).statusCode).toBe(400);   // 다 씀
       // 다른 사람의 대결 표는 못 씀
       const code2=/(\d{6})/.exec((await send('웹 로그인','other-user')).text!)![1];
       const other=String((await post('/my/api/login',{code:code2})).headers['set-cookie']).split(';')[0];
@@ -1351,7 +1366,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.14.6'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.14.7'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

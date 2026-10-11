@@ -1118,7 +1118,7 @@ img{-webkit-user-drag:none;-webkit-touch-callout:none}
 .h8att.img{top:calc(50% - var(--bh,64px) * .75)}
 .h8att.img img{height:calc(var(--bh,64px) * 1.45);width:auto;display:block}
 .h8play.img{height:auto}
-.h8play.img img{height:calc(var(--bh,64px) * 1.3);width:auto;display:block}
+.h8play.img img{height:calc(var(--bh,64px) * 1.3);width:auto;aspect-ratio:535/180;display:block}   /* 그림이 오기 전에도 크기가 잡히게(누르는 칸 0 방지) */
 .h8play.img small{position:absolute;left:0;right:0;bottom:calc(var(--bh,64px) * -.08);text-align:center;font-size:calc(var(--bh,64px) * .19);color:#fff;text-shadow:0 1px 2px #5a3418,0 0 3px #5a3418}
 .h8play.img .dot{top:2px;right:2px}
 .mback.img img{height:44px;width:auto;display:block}
@@ -1379,7 +1379,8 @@ img{-webkit-user-drag:none;-webkit-touch-callout:none}
   .schap .stage .tt{font-size:13.5px}.schap .stage .tt small{font-size:11.5px}
 }
 /* v0.14.6 스토리: 왼쪽 팀은 내려 보지 않게 촘촘히(편성 바꾸기는 위 막대로), 장 카드 안 스테이지는 2열 */
-.story>header .edtop{margin-left:auto;flex:none;padding:6px 14px;font-size:14px;min-height:40px}
+.story>header>small{margin-right:auto}
+.story>header .edtop{flex:none;padding:6px 14px;font-size:14px;min-height:40px}
 @media (orientation:landscape){
   .story>header{display:flex;align-items:center;gap:10px}
   .steam{overflow:hidden}
@@ -1439,6 +1440,46 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
   #app:has(.grid.pickrow)>.hint+.hint{display:none}
   #app:has(.grid.pickrow)>.foot .in .big{padding:8px 12px;min-height:44px}
   #app:has(.grid.pickrow)>.foot .in .ghost{min-height:44px;padding:6px 12px}
+}
+/* v0.14.7 스토리: 부 목록(가로 넘김 카드) → 부 화면(그 부의 스테이지) */
+.pcard{display:flex;align-items:flex-end;text-align:left;padding:0;cursor:pointer;color:inherit;font:inherit}
+.pcard .pgo{display:inline-block;margin-top:6px;padding:3px 12px;border-radius:999px;background:linear-gradient(var(--accent-hi),var(--accent));color:var(--on-accent);font-weight:700;font-size:13px;box-shadow:0 2px 0 var(--accent-d)}
+.pcard.locked{filter:saturate(.55) brightness(.85)}
+.pcard.locked .pgo{background:#e9dcc6;color:#6b5236;box-shadow:0 2px 0 #b9a27f}
+.pcard:active{transform:translateY(2px)}
+@media (orientation:landscape){
+  .schap.parts{display:flex;flex-direction:row;gap:12px;align-items:stretch;overflow-x:auto;overflow-y:hidden}
+  .schap.parts .pcard{flex:none;width:min(300px,46%);min-height:0;height:100%;margin:0;scroll-snap-align:start}
+  .schap.parts .pcard .in{padding:12px 14px}
+  .schap.parts .pcard p{-webkit-line-clamp:4}
+  .schap.part{display:flex;flex-direction:column;gap:8px;overflow:hidden}
+  .schap.part .chead.pv{flex:none;min-height:0;margin:0}
+  .schap.part .chead.pv p{-webkit-line-clamp:2}
+  .schap.part .stl{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:max-content;gap:8px;align-content:start;overflow:hidden}
+}
+@media (orientation:landscape) and (max-width:900px){ .schap.part .stl{grid-template-columns:repeat(2,minmax(0,1fr))} .schap.parts .pcard{width:min(260px,58%)} }
+@media (orientation:landscape) and (max-height:430px){ .schap.parts .pcard h2{font-size:17px} .schap.parts .pcard p{font-size:12.5px;-webkit-line-clamp:3} }
+/* v0.14.7 스토리 체력 막대(경험치 대신) */
+.hpb{display:block;width:100%;height:8px;border-radius:999px;background:#e6d8c0;overflow:hidden;box-shadow:inset 0 1px 0 rgba(0,0,0,.08)}
+.hpb>i{display:block;height:100%;border-radius:999px;transition:width .4s}
+.hpb.zero{background:#e9c9c0}
+.hpt{display:block;font-size:11.5px;color:var(--dim);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.steam .mini .hpb{margin:2px 0 0}
+.steam .mini .hpt{display:block !important;color:var(--edge)}
+.steam .teambar .heal{padding:5px 10px;font-size:13.5px;min-height:38px;border:2px solid var(--edge)}
+.sheet.heals .aug .tx .hpb{margin-top:4px}
+@media (orientation:landscape){ .steam button.mini{grid-template-rows:auto auto auto auto} .steam .mini img{grid-row:1/5} }
+/* 치료약 창: 한 화면에(아이템 줄 · 갈매미 줄 · 버튼) */
+@media (orientation:landscape){
+  .sheet.heals{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .sheet.heals>.aug{flex-direction:row !important;align-items:center !important;gap:8px;padding:6px 10px !important}
+  .sheet.heals>.aug .ic{width:38px;height:38px;flex:none}
+  .sheet.heals>.aug .tx{min-width:0;flex:1}
+  .sheet.heals>.aug .tx b{font-size:14px}
+  .sheet.heals>.aug .tx>span,.sheet.heals .hpt{font-size:11.5px}
+  .sheet.heals>.aug .ck{position:static !important;flex:none}
+  .sheet.heals h2{font-size:16px;margin:0}
+  .sheet.heals .sub:empty{display:none}
 }
 </style>
 </head>

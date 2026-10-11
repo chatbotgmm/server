@@ -207,6 +207,7 @@ items:
   clear:   { name: 정신 차리기 물,   price: 80,  cleanse: true, desc: 지금 나와 있는 갈매미의 상태 이상(화상·빙결·잠·묶임·폭주)을 풀어요 }
   feather: { name: 다시 출근 깃털,  price: 300, revive: 50, desc: 쓰러진 아군 하나를 체력 50%로 다시 일으켜요 }
 itemRules: { perBattle: 3, maxStack: 20 }   # 대결 한 번에 쓸 수 있는 개수, 한 종류 최대 보유 수
+storyHp: { fullMinutes: 60 }                # 스토리: 전투가 끝난 체력이 다음 전투로 이어짐. 0에서 가득까지 회복에 걸리는 시간(분), 체력 0이면 못 나감
 
 # 상태 이상 수치
 status: { burnDamage: 6, burnAtk: -20, bindSpd: -30, rageAtk: 30, rageDef: -30 }

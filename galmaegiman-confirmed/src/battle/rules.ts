@@ -44,6 +44,7 @@ export const battleSchema=z.object({
   items:z.record(z.string().regex(/^[a-z0-9]+$/),z.object({name:z.string().min(1).max(20),price:z.number().int().min(1).max(100000),desc:z.string().max(120),
     heal:z.number().min(1).max(100).optional(),cleanse:z.literal(true).optional(),revive:z.number().min(1).max(100).optional()}).strict()),
   itemRules:z.object({perBattle:z.number().int().min(0).max(20),maxStack:z.number().int().min(1).max(999)}).strict(),
+  storyHp:z.object({fullMinutes:z.number().positive().max(10080)}).strict().optional(),
   villains:z.record(z.string().regex(/^V\d+$/),z.object({name:z.string().min(1).max(20),basic:z.string().min(1).max(30).optional(),basicCat:cat.optional(),look:z.string().regex(/^[DTEI]\d+$/).optional(),tint:z.enum(['shadow','mirror','peanut']).optional(),mirror:z.boolean().optional(),attr,sub:attr.optional(),role,power:z.number().min(0.2).max(10),hp:z.number().min(0.2).max(20).optional(),boss:z.boolean().optional(),skill:skillIn}).strict()),
   status:z.object({burnDamage:z.number(),burnAtk:z.number(),bindSpd:z.number(),rageAtk:z.number(),rageDef:z.number()}).strict(),
   battleAugments:z.record(z.enum(battleAugIds),z.object({name:z.string().min(1).max(20),desc:z.string().max(120).optional()}).catchall(z.number())),

@@ -230,9 +230,9 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     const top = items.reduce((a, u) => (rank(u.tier) > rank(a.tier) ? u : a), items[0]), col = TIER_COLOR[top.tier] ?? '#d9a400', hi = rank(top.tier) >= rank('LEGEND');
     const ov = document.createElement('div'); ov.className = `reveal ${hi ? 'hi' : ''}`; ov.style.setProperty('--tc', col);
     ov.innerHTML = `<div class="rv-egg"><div class="egg"></div><p>눌러서 열기</p></div>
-      <div class="rv-cards" hidden>${items.map((u, i) => `<div class="rv-c ${rank(u.tier) >= rank('LEGEND') ? 'hi' : ''}" style="--tc:${TIER_COLOR[u.tier] ?? '#888'};--d:${i * 0.12}s"><div class="rv-in"><div class="rv-back">🥚</div>
+      <div class="rv-cards" hidden>${items.map((u, i) => `<div class="rv-c ${rank(u.tier) >= rank('LEGEND') ? 'hi' : ''}" style="--tc:${TIER_COLOR[u.tier] ?? '#888'};--d:${(Math.min(i, 12) * 0.12).toFixed(2)}s"><div class="rv-in"><div class="rv-back">🥚</div>
         <div class="rv-front"><img src="${cimg(u.img)}" alt="">${u.first ? '<span class="nb">NEW</span>' : ''}${u.n > 1 ? `<span class="n">×${u.n}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}</small></div></div></div>`).join('')}</div>
-      <div class="rv-btns" hidden><button class="btn ghost" id="rvAll">모두 열기</button><button class="btn" id="rvOk">확인</button></div>`;
+      <div class="rv-btns" hidden><button class="btn" id="rvOk">확인</button></div>`;
     document.body.append(ov);
     const open = () => {
       if (ov.classList.contains('cracked')) return;
@@ -251,8 +251,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     // 마우스 휠(세로)도 가로로 넘기게
     row.addEventListener('wheel', e => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && row.scrollWidth > row.clientWidth) { row.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
     fit(); addEventListener('resize', fit);
-    if (again) { ov.classList.add('cracked', 'all'); ov.querySelector('.rv-cards').hidden = false; ov.querySelector('.rv-btns').hidden = false; ov.querySelector('#rvAll').hidden = true; }
-    ov.querySelector('#rvAll').onclick = () => ov.classList.add('all');
+    if (again) { ov.classList.add('cracked', 'all'); ov.querySelector('.rv-cards').hidden = false; ov.querySelector('.rv-btns').hidden = false; }
     ov.querySelector('#rvOk').onclick = () => { removeEventListener('resize', fit); ov.classList.add('bye'); setTimeout(() => ov.remove(), 200); };
   }
   // 조합 연출: 재료 카드가 둥글게 모였다가 한가운데로 빨려 들어가 번쩍 → 결과 카드(섞기 실패면 펑 하고 흩어짐). 누르면 넘어감
