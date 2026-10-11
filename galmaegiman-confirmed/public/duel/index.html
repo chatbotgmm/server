@@ -1140,6 +1140,13 @@ img{-webkit-user-drag:none;-webkit-touch-callout:none}
 .mbtn>i .ico{width:1.9em;height:1.9em}
 
 @media (orientation:landscape) and (max-height:430px){ .mback.img img{height:32px} .modes .mrow{max-height:calc(100% - 4px)} .mhead>i .ico{width:1.8em;height:1.8em} .mbtn>i .ico{width:1.6em;height:1.6em} }
+
+/* 설정 톱니 그림(둥근 나무 버튼 통째로) */
+.mute.img,.tset.img{background:none !important;border:0 !important;box-shadow:none !important;padding:0 !important;width:52px !important;height:auto !important;filter:drop-shadow(0 3px 0 rgba(90,52,24,.35))}
+.mute.img img,.tset.img img{width:100%;height:auto;display:block}
+@media (orientation:landscape) and (max-height:430px){ .mute.img,.tset.img{width:44px !important} }
+@media (orientation:landscape) and (min-height:601px){ .mute.img,.tset.img{width:64px !important} }
+.pmenu button i .ico{width:24px;height:24px}
 </style>
 </head>
 <body>

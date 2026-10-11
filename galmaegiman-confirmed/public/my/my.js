@@ -45,7 +45,8 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
   const toast = t => { toastEl.textContent = t; toastEl.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.classList.remove('on'), 1800); };
   const thumb = id => `${BASE}/thumbs/${encodeURIComponent(id)}.jpg`;
   // 게임 모드: 재화는 위쪽 줄 오른쪽에 작게(재화 확인이 화면의 목적처럼 보이지 않게)
-  const curBar = m => m ? `<div class="cur">${[['🍤', m.snack, '새우깡'], ['🥜', m.peanut, '땅콩'], ['🎫', m.credits, '뽑기권']].map(([i, n, t]) => `<span title="${t}">${i}<b>${Number(n).toLocaleString('ko-KR')}</b></span>`).join('')}</div>` : '';
+  const cIco = (id, e) => `<img class="ci" src="${BASE}/duel/icons/${id}.png" alt="" onerror="this.replaceWith('${e}')">`;   // 재화 그림(없으면 이모지)
+  const curBar = m => m ? `<div class="cur">${[[cIco('u-snack', '🍤'), m.snack, '새우깡'], [cIco('u-peanut', '🥜'), m.peanut, '땅콩'], [cIco('u-ticket', '🎫'), m.credits, '뽑기권']].map(([i, n, t]) => `<span title="${t}">${i}<b>${Number(n).toLocaleString('ko-KR')}</b></span>`).join('')}</div>` : '';
   const head = (right, m) => GAMEUI ? `<header class="gbar"><button class="gback img" id="gback" aria-label="돌아가기"><img src="${BASE}/duel/icons/btn-back.png" alt="" onerror="this.parentNode.classList.remove('img');this.replaceWith('‹ 돌아가기')"></button><h1>${GAMEUI && me && TABNAME[tab] ? (groupOf(tab).length > 1 ? '수비대' : TABNAME[tab]) : '내 갈매미'}</h1><span class="sp"></span>${curBar(m)}</header>` : `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span><a class="hl" href="/dex" title="도감">📚<span class="lt"> 도감</span></a><a class="hl" href="/search" title="검색">🔍</a>${right ?? ''}<a class="home" href="/" title="홈">🏠<span class="lt"> 홈</span></a></header>`;
 
   // ── 로그인 ──

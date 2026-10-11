@@ -181,7 +181,7 @@ function muteBtn(show = true) {
   let m = document.getElementById('mute');
   if (!show) { m?.remove(); return; }
   if (m) return;
-  m = document.createElement('button'); m.id = 'mute'; m.className = 'mute'; m.setAttribute('aria-label', '설정'); m.textContent = '⚙️';
+  m = document.createElement('button'); m.id = 'mute'; m.className = 'mute'; m.setAttribute('aria-label', '설정'); if (ICONS.includes('u-settings')) { m.classList.add('img'); m.innerHTML = `<img src="${BASE}/duel/icons/u-settings.png" alt="">`; } else m.textContent = '⚙️';
   m.onclick = e => { e.stopPropagation(); settingsSheet(); };
   document.body.append(m);
 }
@@ -273,7 +273,7 @@ function titleScreen(loggedIn) {
   app.innerHTML = `<div class="title"><div class="tbg" style="${art ? `background-image:url(${art})` : ''}"></div><div class="tray"></div>${ambient('title', true)}
     <div class="tlogo"><b><span class="stroke">${esc(GAME.name)}</span><span class="fill">${esc(GAME.name)}</span></b><small class="tsub">— ${esc(GAME.sub)} —</small></div>
     ${loggedIn ? '<button class="tgo" id="tgo">▶ 게임 시작</button>' : `<a class="tgo" href="${login}">로그인</a>`}
-    <div class="tcorner">${loggedIn && ACC ? `<span class="tacc">${esc(ACC.nickname || '내 계정')}</span>` : ''}<button class="tset" id="tset" aria-label="설정">⚙️</button></div></div>`;
+    <div class="tcorner">${loggedIn && ACC ? `<span class="tacc">${esc(ACC.nickname || '내 계정')}</span>` : ''}<button class="tset ${ICONS.includes('u-settings') ? 'img' : ''}" id="tset" aria-label="설정">${ICONS.includes('u-settings') ? `<img src="${BASE}/duel/icons/u-settings.png" alt="">` : '⚙️'}</button></div></div>`;
   app.querySelector('#tgo')?.addEventListener('click', menu);
   app.querySelector('#tset').addEventListener('click', settingsSheet);
 }
@@ -321,7 +321,7 @@ function profMenu() {
   m.innerHTML = ACC ? `<div class="pm-head"><b>${esc(ACC.nickname || '내 계정')}</b><small id="pmRank">랭크 불러오는 중…</small></div>
       <button role="menuitem" data-m="account"><i>${ico('m-account', '👤')}</i>계정 관리</button>
       <button role="menuitem" data-m="rank"><i>${ico('mode-rank', '🏆')}</i>랭크 순위</button>
-      <button role="menuitem" data-m="set"><i>⚙️</i>설정</button>`
+      <button role="menuitem" data-m="set"><i>${ico('u-settings', '⚙️')}</i>설정</button>`
     : `<div class="pm-head"><b>로그인 전</b><small>로그인하면 진행이 계정에 저장돼요</small></div><a role="menuitem" class="pm-a" href="${login}"><i>🔑</i>로그인</a><button role="menuitem" data-m="set"><i>⚙️</i>설정</button>`;
   document.body.appendChild(m); sfx('tap');
   const r = document.querySelector('#lprof')?.getBoundingClientRect(); if (r) { m.style.top = `${r.bottom + 12}px`; m.style.left = `${r.left}px`; }   // 이름표 바로 아래
