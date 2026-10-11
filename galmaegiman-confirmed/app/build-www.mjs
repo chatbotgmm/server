@@ -1,6 +1,6 @@
 // 앱 화면 만들기: ../public/my(「내 갈매미」)를 www/ 로 복사하고, 앱 연결부(src/app.js)를 먼저 불러오게 끼워 넣음
 // 사용: npm run www (그다음 npx cap sync android)
-import { mkdirSync, readFileSync, writeFileSync, copyFileSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, copyFileSync, rmSync, readdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -27,6 +27,10 @@ game = game.replace(/<script>if\('serviceWorker'[^<]*<\/script>\n?/, '').replace
   .replaceAll('href="/favicon.png"', 'href="favicon.png"').replaceAll('href="/icon-192.png"', 'href="icon-192.png"');
 // 앱: 전체 화면(바 숨김)·노치 자리까지 그림. viewport-fit=cover 는 그대로 둬서 env(safe-area-inset-*)로 노치를 피함
 if (!game.includes('src="duel.js"')) throw new Error('duel index.html 에서 duel.js 줄을 못 찾았어요');
+// 첫 화면·불러오는 중 그림·글꼴(v0.13.0): 로그인 전·인터넷 없어도 보이게 앱 안에(intro/)
+game = game.replaceAll('/duel/intro/', 'intro/');
+mkdirSync(resolve(out, 'intro'), { recursive: true });
+for (const f of readdirSync(resolve(root, 'public/duel/intro'))) copyFileSync(resolve(root, 'public/duel/intro', f), resolve(out, 'intro', f));
 writeFileSync(resolve(out, 'index.html'), game);
 writeFileSync(resolve(out, 'duel.js'), readFileSync(resolve(root, 'dist/duel/duel.js'), 'utf8').replaceAll('src="/gull.png"', 'src="gull.png"'));
 

@@ -45,8 +45,14 @@ export function registerDuel(app:FastifyInstance,content:Content,opt:{root:strin
   });
   // 배경 그림(public/battle/bg/harbor.jpg): 없으면 화면이 색 그라데이션으로 그림
   app.get<{Params:{file:string};Querystring:{k?:string}}>('/duel/bg/:file',async(req,reply)=>{
-    if(!ok(req.query.k)||!/^[a-z]+\.jpg$/.test(req.params.file))return deny(reply);
-    return file(reply,'image/jpeg',resolve(opt.root,'public/battle/bg',req.params.file));
+    if(!ok(req.query.k)||!/^[a-z]+\.(jpg|webp)$/.test(req.params.file))return deny(reply);   // 방 레이어(atticplat.webp 등, v0.13.0)
+    return file(reply,req.params.file.endsWith('.webp')?'image/webp':'image/jpeg',resolve(opt.root,'public/battle/bg',req.params.file));
+  });
+  // 시작·로딩 화면 그림·글꼴(public/duel/intro): 로그인 전·데이터 받기 전에도 보여야 해서 열쇠 없이
+  app.get<{Params:{file:string}}>('/duel/intro/:file',async(req,reply)=>{
+    const m=/^[a-z0-9_-]+\.(webp|jpg|woff2)$/.exec(req.params.file);
+    if(!m)return reply.code(404).send({error:'not found'});
+    return file(reply,{webp:'image/webp',jpg:'image/jpeg',woff2:'font/woff2'}[m[1]]!,resolve(opt.root,'public/duel/intro',req.params.file));
   });
   // 아이콘은 비밀이 아니라 열쇠 없이(아이템·증강체 그림)
   app.get<{Params:{file:string}}>('/duel/icons/:file',async(req,reply)=>{

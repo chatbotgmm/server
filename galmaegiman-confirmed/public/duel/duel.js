@@ -238,6 +238,8 @@ function settingsSheet() {
   modal.onclick = null; draw();
 }
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('button:not(#mute)')) sfx('tap'); }, true);
+// 불러오는 중 화면(index.html에 처음부터 있음): 실제로 끝낸 단계 수만큼 막대를 채움(열쇠 → 게임 자료 → 계정 진행)
+const loadStep = (n, msg) => { const f = document.getElementById('ldFill'), t = document.getElementById('ldMsg'); if (f) f.style.width = `${Math.round(n / 3 * 100)}%`; if (t && msg) t.textContent = msg; };
 async function boot() {
   try {
     // 앱: 로그인한 계정으로 게임 열쇠를 받음(로그인 전이면 로그인 화면으로)
@@ -246,13 +248,16 @@ async function boot() {
       try { K = (await myApi('duel-key')).k; q = `?k=${encodeURIComponent(K)}`; }
       catch (e) { if (e.status === 401) { APP.setToken(null); location.href = 'my.html?next=game'; return; } throw e; }
     }
+    loadStep(1, '게임 자료 받는 중…');
     const r = await fetch(`${BASE}/duel/data.json${q}`);
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || `불러오기 실패(${r.status})`);
     R = rulesFrom(j.rules); STORY = j.story; ART = j.villainArt ?? []; NAMES = j.names ?? {}; BG = j.bgArt ?? []; ICONS = j.iconArt ?? []; EVO = new Set(j.stageArt ?? []);
     UNITS = j.units.map(u => ({ ...u, def: R.units.get(u.id) }));
     // 로그인돼 있으면 계정 진행을 불러옴. 계정에 아직 없고 이 브라우저에 진행이 있으면 계정으로 옮김
+    loadStep(2, '내 수비대 불러오는 중…');
     try { ACC = await myApi('story'); } catch { ACC = null; }
+    loadStep(3, '준비 완료!');
     if (ACC) {
       if (ACC.data) SAVE = load(ACC.data);
       else { SAVE = load(progressed(local()) ? local() : null); if (progressed(local())) persist(); }
@@ -264,18 +269,16 @@ async function boot() {
   }
 }
 
-// 첫 화면: 대표 그림 + 큰 게임 이름 + 버튼 하나(로그인 전 「로그인」, 로그인 뒤 「게임 시작」 → 로비)
+// 첫 화면(v0.13.0, 받은 시안 layout.json 2640×1080): 풍경·캐릭터는 화면을 덮게(가운데 기준), 시작 버튼은 가운데, 계정·설정은 화면 오른쪽 아래에 붙여 잘리지 않게.
+// 글자 중 바뀌는 것(게임 시작/로그인, 닉네임)은 그림이 아닌 실제 글자(Jua)
 function titleScreen(loggedIn) {
   modal.hidden = true; muteBtn(false); if (R) bgm('title');
-  const art = APP ? 'title.jpg' : BG.includes('key') ? `${BASE}/duel/bg/key.jpg${q}` : '';
+  const IN = APP ? 'intro' : `${BASE}/duel/intro`;
   const login = APP ? 'my.html?next=game' : '/my?next=duel&g=1';
-  // 배경: 그림이 천천히 움직이고(카메라) 빛 줄기가 지나감 + 반짝이·흰 깃털·갈매기
-  app.innerHTML = `<div class="title"><div class="tbg" style="${art ? `background-image:url(${art})` : ''}"></div><div class="tray"></div>${ambient('title', true)}
-    <div class="tlogo"><b><span class="stroke">${esc(GAME.name)}</span><span class="fill">${esc(GAME.name)}</span></b><small class="tsub">— ${esc(GAME.sub)} —</small></div>
-    ${loggedIn ? '<button class="tgo" id="tgo">▶ 게임 시작</button>' : `<a class="tgo" href="${login}">로그인</a>`}
-    <div class="tcorner">${loggedIn && ACC ? `<span class="tacc">${esc(ACC.nickname || '내 계정')}</span>` : ''}<button class="tset ${ICONS.includes('u-settings') ? 'img' : ''}" id="tset" aria-label="설정">${ICONS.includes('u-settings') ? `<img src="${BASE}/duel/icons/u-settings.png" alt="">` : '⚙️'}</button></div></div>`;
+  app.innerHTML = `<div class="ttl9"><div class="i9st"><img class="" src="${IN}/title_harbor_background.jpg" alt="" style="left:0.000%;top:0.000%;width:100.000%;height:100.000%"><img class="" src="${IN}/title_wooden_dock.webp" alt="" style="left:0.000%;top:58.333%;width:100.000%;height:41.667%"><img class="sh" src="${IN}/title_guardian_ground_shadow.webp" alt="" style="left:9.356%;top:77.037%;width:20.114%;height:6.667%"><img class="ch c1" src="${IN}/title_guardian.webp" alt="" style="left:5.114%;top:27.778%;width:28.598%;height:52.037%"><img class="sh" src="${IN}/title_lobster_ground_shadow.webp" alt="" style="left:72.576%;top:84.537%;width:13.939%;height:6.667%"><img class="ch c2" src="${IN}/title_lobster.webp" alt="" style="left:70.076%;top:46.759%;width:18.939%;height:40.556%"><img class="sh" src="${IN}/title_octopus_ground_shadow.webp" alt="" style="left:64.318%;top:84.815%;width:8.258%;height:6.667%"><img class="ch c3" src="${IN}/title_octopus.webp" alt="" style="left:63.447%;top:65.741%;width:10.038%;height:21.852%"><img class="sh" src="${IN}/title_pirate_seagull_ground_shadow.webp" alt="" style="left:89.129%;top:76.111%;width:8.106%;height:6.667%"><img class="ch c4" src="${IN}/title_pirate_seagull.webp" alt="" style="left:88.258%;top:59.722%;width:9.848%;height:19.167%"><img class="" src="${IN}/title_logo_text.webp" alt="" style="left:27.614%;top:6.019%;width:44.773%;height:20.278%"><img class="" src="${IN}/title_subtitle_text.webp" alt="" style="left:44.811%;top:26.852%;width:10.417%;height:6.944%"><${loggedIn ? 'button id="tgo"' : `a href="${login}"`} class="tgo i9b" style="left:36.742%;top:75.370%;width:26.515%;height:14.630%"><img src="${IN}/title_start_button_base.webp" alt=""><img class="pl" src="${IN}/title_start_play_icon.webp" alt="" style="left:11.43%;top:31.01%;width:8.29%;height:40.51%"><span style="left:26.43%;top:24.05%;width:34.57%;height:40.51%">${loggedIn ? '게임 시작' : '로그인'}</span></${loggedIn ? 'button' : 'a'}></div><div class="i9st i9r">${loggedIn && ACC ? `<button class="i9acc" id="tacc" style="left:82.955%;top:90.000%;width:9.848%;height:7.222%" aria-label="계정"><img src="${IN}/title_account_button_base.webp" alt=""><span>${esc(ACC.nickname || '내 계정')}</span></button>` : ''}<button class="tset i9set" id="tset" aria-label="설정" style="left:94.697%;top:88.796%;width:3.561%;height:8.148%"><img src="${IN}/title_settings_button_base.webp" alt=""><img src="${IN}/title_settings_gear.webp" alt="" style="left:23.40%;top:25.00%;width:53.19%;height:55.68%"></button></div></div>`;
   app.querySelector('#tgo')?.addEventListener('click', menu);
   app.querySelector('#tset').addEventListener('click', settingsSheet);
+  app.querySelector('#tacc')?.addEventListener('click', () => openMy('account'));
 }
 function menu() {
   try { sessionStorage.setItem('gmm-k', K); } catch { /* 무시 */ }
@@ -291,7 +294,9 @@ function menu() {
   // 메뉴 팻말: 그림(btn-*.png, 글자 포함)이 있으면 그림, 없으면 같은 모양을 코드로(조합은 아직 그림이 없음)
   // 메뉴(v0.12.7): 글자는 그림이 아닌 실제 글자(크기·높이 통일), 그림은 아이콘만. 조합 = 깃털·잎 메달
   const MENU = [['party', '탐험', 'mode-camp', '🧭', 'mint'], ['draw', '뽑기', 'u-draw', '🥚', 'pink'], ['units', '수비대', 'mode-normal', '🛡️', 'lilac'], ['craft', '조합', 'u-emblem', '🧩', 'sky'], ['shop', '상점', 'u-shop', '🏪', 'peach']];
-  app.innerHTML = `<div class="home8" style="${bg}">
+  // 방 그림이 레이어로 있으면(배경·받침대·갈매미맨, 같은 원점·같은 크기) 겹쳐 놓고 갈매미맨만 살짝 숨 쉬게(v0.13.0)
+  const room = BG.includes('atticbase') ? `<div class="h8room" aria-hidden="true">${['base.jpg', 'plat.webp', 'char.webp'].map((f, i) => `<i class="rl r${i}" style="background-image:url(${BASE}/duel/bg/attic${f}${q})"></i>`).join('')}</div>` : '';
+  app.innerHTML = `<div class="home8" style="${bg}">${room}
     <header class="h8top"><button class="lprof" id="lprof" aria-haspopup="menu"><i>${ico('u-profile', '🪪')}</i><span><b>${esc(ACC?.nickname || '수비조장')}</b><small>${lvl ? `수비대 Lv${lvl} · 실적 ${SAVE.cleared.length}/${stages().length}` : '아직 팀이 없어요'}</small></span><em class="caret">▾</em></button><div class="lcur" id="lcur"></div></header>
     ${ACC ? `${ICONS.includes('btn-attend') ? `<button class="h8att img" id="td" aria-label="출석체크"><img src="${BASE}/duel/icons/btn-attend.png" alt=""></button>` : `<button class="h8att" id="td"><i>${ico('u-attend', '📅')}</i><span>출석체크</span></button>`}` : ''}
     <div class="h8bot"><nav class="h8menu">${MENU.map(([h, t, ic, e, c]) => `<a href="${my(h)}" data-h="${h}" class="h8b ${c}"><i>${ico(ic, e)}</i><span>${t}</span></a>`).join('')}</nav>

@@ -9,15 +9,16 @@ const pk={bhs:F+'/_fontsource_black-han-sans/package',gd:F+'/_fontsource_gowun-d
 const css=Object.entries(pk).map(([k,d])=>readFileSync(d+'/index.css','utf8').replace(/url\(\.\/files\//g,`url(https://fonts.gstatic.com/${k}/`)).join('\n');
 const b=await chromium.launch();let bad=0;
 const R=(n,what,ok,info='')=>{if(!ok)bad++;console.log(`${ok?'✓':'✗'} ${n} ${what}${info?' '+info:''}`);};
-for(const [n,w,h,dpr] of [['S',780,360,2],['L',915,412,2],['W',1280,720,2],['X',1920,1080,1]]){
+for(const [n,w,h,dpr] of [['Z',1006,411,2.625],['S',780,360,2],['L',915,412,2],['W',1280,720,2],['X',1920,1080,1]]){
   const c=await b.newContext({viewport:{width:w,height:h},deviceScaleFactor:dpr,serviceWorkers:'block'});
   await c.route('https://fonts.googleapis.com/**',r=>r.fulfill({contentType:'text/css',body:css}));
   await c.route('https://fonts.gstatic.com/**',r=>{const [k,f]=r.request().url().split('fonts.gstatic.com/')[1].split('/');r.fulfill({contentType:'font/woff2',headers:{'access-control-allow-origin':'*'},body:readFileSync(pk[k]+'/files/'+f)});});
   const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
-  await p.goto(`http://localhost:3999/duel?k=${K}`);await p.waitForSelector('.title');
+  await p.goto(`http://localhost:3999/duel?k=${K}`);await p.waitForSelector('.ttl9:not(.ld9)');
   await p.click('a.tgo',{force:true});await p.waitForSelector('#code');await p.fill('#code','135790');await p.click('#go');await p.waitForURL(/\/duel\?k=/,{timeout:15000});
-  await p.waitForSelector('.title');await p.click('#tgo',{force:true});await p.waitForSelector('.home8');await p.waitForTimeout(1800);
+  await p.waitForSelector('.ttl9:not(.ld9)');await p.click('#tgo',{force:true});await p.waitForSelector('.home8');await p.waitForTimeout(1800);
   await p.screenshot({path:`${out}/${n}-1lobby.png`});
+  await p.addStyleTag({content:'.home8 .dot{animation:none!important}'});   // 깜빡임 중간 값으로 재지 않게
   const lob=await p.evaluate(()=>{
     const r=e=>e.getBoundingClientRect(),bs=[...document.querySelectorAll('.h8menu a')],play=document.querySelector('#go');
     const hs=bs.map(e=>Math.round(r(e).height)),fs=bs.map(e=>{const t=e.querySelector('span,b');return t?parseFloat(getComputedStyle(t).fontSize):null});
