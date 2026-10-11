@@ -313,7 +313,8 @@ function menu() {
       img.src = sprite(id, 'front', st); img.style.setProperty('--sz', bodySz(id, st)); img.className = st ? `st-${st}` : '';
       app.querySelector('#lname').innerHTML = `<b>${esc(u.name)}</b><small>Lv${SAVE.units[id]?.level ?? 1}${st ? ` ${STARS[st]}` : ''} · ${chip(u.def.attr)}</small>`;
       const bub = app.querySelector('#lbub');
-      if (talk && (u.quote || u.tagline)) { bub.textContent = u.quote || u.tagline; bub.hidden = false; bub.classList.remove('pop'); void bub.offsetWidth; bub.classList.add('pop'); clearTimeout(hide); hide = setTimeout(() => { bub.hidden = true; }, 3200); }
+      if (talk && (u.quote || u.tagline)) { bub.textContent = u.quote || u.tagline; bub.hidden = false; bub.style.top = `${Math.max(0, img.offsetTop - bub.offsetHeight * 0.55)}px`; bub.style.left = `${img.offsetLeft + img.offsetWidth * 0.55}px`; bub.style.right = 'auto'; bub.classList.remove('pop');   // 말풍선은 머리 높이 옆에(큰 화면에서 붕 뜨지 않게)
+         void bub.offsetWidth; bub.classList.add('pop'); clearTimeout(hide); hide = setTimeout(() => { bub.hidden = true; }, 3200); }
     };
     show(false);
     app.querySelector('#lhero').onclick = () => { if (!app.querySelector('#lbub').hidden) at = (at + 1) % team.length; show(true); sfx('tap'); };
