@@ -954,28 +954,46 @@ function chooseSheet(p) {
   modal.onclick = null; modal.hidden = false; draw();
 }
 
-function actionPanel() {
+// 행동 고르기(v0.14.8, 포켓몬처럼): 먼저 큰 버튼 4개(공격·아이템·교체·도망) → 공격을 누르면 기술, 교체를 누르면 바꿀 갈매미(속성·체력·상성)
+function actionPanel(pane = 'menu') {
   const f = activeOf(b, 0), legal = legalActions(b, 0), s = b.sides[0];
   const can = a => legal.some(x => x.kind === a.kind && (a.kind === 'skill' ? x.skillId === a.skillId : x.to === a.to));
   const panel = document.getElementById('panel');
   const foe = activeOf(b, 1);
-  // 기술 4개(기본·역할·고유·보조 속성)를 2×2로. 지금 상대에게 유리/불리를 같이 보여 줌
-  const combo = f.skills.find(k => k.id.startsWith('combo-')), ready = combo && can({ kind: 'skill', skillId: combo.id });
-  panel.innerHTML = `${combo ? `<button class="combo-btn" data-k="${combo.id}" title="${esc(combo.desc)}" ${ready ? '' : 'disabled'}><small>🤝 합동기 · ${esc(R.data.synergies[combo.id.slice(6)].name)} · 대결당 1번</small><b>${esc(combo.name)}</b><span>${esc(combo.desc)}${ready ? '' : b.sides[0].comboUsed ? ' (이미 씀)' : ' (같은 시너지 동료가 있어야 해요)'}</span></button>` : ''}<div class="skills">${f.skills.filter(k => !k.id.startsWith('combo-')).map(k => {
-    const at = k.attr ?? f.attr, m = k.power ? R.typeMult(at, foe.attr) : 1, wait = f.cds[k.id] > 0;
-    const kind = k.id.startsWith('sub-') ? '보조 속성' : k.id.startsWith('learn-') ? '배운 기술' : k.id === 'sig' ? '고유기' : k.id.startsWith('role-') ? '역할기' : '기본';
-    return `<button class="sk" data-k="${k.id}" style="--c:${COLOR[at]}" ${can({ kind: 'skill', skillId: k.id }) ? '' : 'disabled'}>
-      <span class="kd">${kind}${wait ? ` · ${f.cds[k.id]}턴 뒤` : k.cd ? ` · 재사용 ${k.cd}턴` : ''}</span><b>${esc(k.name)}</b>
-      <span class="ln">${k.power ? `${chip(at)}${catTag(k, f.base)}<small>위력 ${k.power}${k.hits > 1 ? `×${k.hits}` : ''}</small>${m > 1 ? '<em class="good">▲유리</em>' : m < 1 ? '<em class="bad">▼불리</em>' : ''}` : '<small>보조 기술</small>'}</span>
-      ${restDesc(k) ? `<p>${esc(restDesc(k))}</p>` : ''}</button>`;
-  }).join('')}</div><div class="sw">${s.fighters.map((x, i) => i === s.active ? '' : `<button data-s="${i}" ${can({ kind: 'switch', to: i }) ? '' : 'disabled'}><img src="${sprite(x.rec.id, 'front', x.rec.stage)}" alt=""><span>${esc(x.name)}<br><small>${x.hp > 0 ? `교체 · ${Math.round(x.hp / x.maxHp * 100)}%` : '전투불가'}</small></span></button>`).join('')}</div>`;
-  panel.querySelectorAll('[data-k]').forEach(x => x.onclick = () => turn({ kind: 'skill', skillId: x.dataset.k }));
-  if (fightId) { const n = s.itemsUsed, max = R.data.itemRules.perBattle, have = ACC.items.reduce((a, i) => a + i.count, 0);
-    panel.insertAdjacentHTML('beforeend', `<div class="fleerow"><button class="flee" id="bag" ${n >= max || !have ? 'disabled' : ''}>🎒 아이템 ${n}/${max} <small>(가진 ${have})</small></button></div>`);
-    panel.querySelector('#bag').onclick = itemSheet; }
-  (panel.querySelector('.fleerow') ?? panel.appendChild(Object.assign(document.createElement('div'), { className: 'fleerow' }))).insertAdjacentHTML('beforeend', '<button class="flee" id="flee">🏃 도망치기</button>');
-  panel.querySelectorAll('[data-s]').forEach(x => x.onclick = () => turn({ kind: 'switch', to: +x.dataset.s }));
-  panel.querySelector('#flee').onclick = runAway;
+  const bench = s.fighters.map((x, i) => [x, i]).filter(([, i]) => i !== s.active), swaps = bench.filter(([, i]) => can({ kind: 'switch', to: i })).length;
+  const items = fightId ? { n: s.itemsUsed, max: R.data.itemRules.perBattle, have: ACC.items.reduce((a, i) => a + i.count, 0) } : null;
+  const itemOk = items && items.n < items.max && items.have;
+  const back = '<button class="ghost bback" id="bback">‹ 뒤로</button>';
+  if (pane === 'fight') {
+    // 기술 4개(기본·역할·고유·보조 속성)를 2×2로. 지금 상대에게 유리/불리를 같이 보여 줌
+    const combo = f.skills.find(k => k.id.startsWith('combo-')), ready = combo && can({ kind: 'skill', skillId: combo.id });
+    panel.innerHTML = `<div class="bhead">${back}<b>⚔️ 기술 고르기</b></div>${combo ? `<button class="combo-btn" data-k="${combo.id}" title="${esc(combo.desc)}" ${ready ? '' : 'disabled'}><small>🤝 합동기 · ${esc(R.data.synergies[combo.id.slice(6)].name)} · 대결당 1번</small><b>${esc(combo.name)}</b><span>${esc(combo.desc)}${ready ? '' : b.sides[0].comboUsed ? ' (이미 씀)' : ' (같은 시너지 동료가 있어야 해요)'}</span></button>` : ''}<div class="skills">${f.skills.filter(k => !k.id.startsWith('combo-')).map(k => {
+      const at = k.attr ?? f.attr, m = k.power ? R.typeMult(at, foe.attr) : 1, wait = f.cds[k.id] > 0;
+      const kind = k.id.startsWith('sub-') ? '보조 속성' : k.id.startsWith('learn-') ? '배운 기술' : k.id === 'sig' ? '고유기' : k.id.startsWith('role-') ? '역할기' : '기본';
+      return `<button class="sk" data-k="${k.id}" style="--c:${COLOR[at]}" ${can({ kind: 'skill', skillId: k.id }) ? '' : 'disabled'}>
+        <span class="kd">${kind}${wait ? ` · ${f.cds[k.id]}턴 뒤` : k.cd ? ` · 재사용 ${k.cd}턴` : ''}</span><b>${esc(k.name)}</b>
+        <span class="ln">${k.power ? `${chip(at)}${catTag(k, f.base)}<small>위력 ${k.power}${k.hits > 1 ? `×${k.hits}` : ''}</small>${m > 1 ? '<em class="good">▲유리</em>' : m < 1 ? '<em class="bad">▼불리</em>' : ''}` : '<small>보조 기술</small>'}</span>
+        ${restDesc(k) ? `<p>${esc(restDesc(k))}</p>` : ''}</button>`;
+    }).join('')}</div>`;
+    panel.querySelectorAll('[data-k]').forEach(x => x.onclick = () => turn({ kind: 'skill', skillId: x.dataset.k }));
+  } else if (pane === 'swap') {
+    panel.innerHTML = `<div class="bhead">${back}<b>🔁 교체</b><small>상대: ${esc(foe.name)} ${chip(foe.attr)}</small></div><div class="swl">${bench.map(([x, i]) => {
+      const pct = Math.max(0, Math.round(x.hp / x.maxHp * 100)), atk = R.typeMult(x.attr, foe.attr), def = R.typeMult(foe.attr, x.attr), col = pct > 50 ? 'var(--hp)' : pct > 20 ? 'var(--hpmid)' : 'var(--hplow)';
+      return `<button class="swc" data-s="${i}" ${can({ kind: 'switch', to: i }) ? '' : 'disabled'}><img src="${sprite(x.rec.id, 'front', x.rec.stage)}" class="${tintOf(x.rec.id)}" alt=""><span class="tx"><b>${esc(x.name)}</b><span class="at">${chip(x.attr)}<small>${ROLE[x.role] ?? ''}</small></span>
+        <i class="hpb"><i style="width:${pct}%;background:${col}"></i></i><small>${x.hp > 0 ? `체력 ${Math.max(0, x.hp)}/${x.maxHp}` : '전투불가'}${x.hp > 0 ? ` · 공격 ${atk > 1 ? '<em class="good">유리</em>' : atk < 1 ? '<em class="bad">불리</em>' : '보통'} · 방어 ${def > 1 ? '<em class="bad">불리</em>' : def < 1 ? '<em class="good">유리</em>' : '보통'}` : ''}</small></span></button>`; }).join('')}</div>`;
+    panel.querySelectorAll('[data-s]').forEach(x => x.onclick = () => turn({ kind: 'switch', to: +x.dataset.s }));
+  } else {
+    panel.innerHTML = `<div class="bmenu">
+      <button class="bm atk" id="bAtk"><i>⚔️</i><b>공격</b><small>기술 ${f.skills.filter(k => can({ kind: 'skill', skillId: k.id })).length}개</small></button>
+      <button class="bm bag" id="bag" ${itemOk ? '' : 'disabled'}><i>🎒</i><b>아이템</b><small>${items ? `${items.n}/${items.max} · 가진 ${items.have}` : pvp ? '대전에선 못 써요' : '불러오는 중'}</small></button>
+      <button class="bm sw" id="bSw" ${swaps ? '' : 'disabled'}><i>🔁</i><b>교체</b><small>${swaps ? `${swaps}마리 대기` : '바꿀 갈매미 없음'}</small></button>
+      <button class="bm run" id="flee"><i>🏃</i><b>${pvp ? '나가기' : '도망가기'}</b><small>${pvp?.mode === 'rank' ? '패배로 처리' : pvp ? '대전 끝내기' : '경험치 없음'}</small></button></div>`;
+    panel.querySelector('#bAtk').onclick = () => actionPanel('fight');
+    panel.querySelector('#bSw').onclick = () => actionPanel('swap');
+    panel.querySelector('#bag').onclick = itemSheet;
+    panel.querySelector('#flee').onclick = runAway;
+  }
+  panel.querySelector('#bback')?.addEventListener('click', () => actionPanel('menu'));
 }
 // 아이템: 가진 것 중 하나(다시 출근 깃털은 일으킬 갈매미도 고름). 계정에서 1개 빼고 → 그 턴 행동으로 씀
 function itemSheet() {

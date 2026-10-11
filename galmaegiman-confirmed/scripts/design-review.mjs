@@ -49,7 +49,7 @@ for(const [n,w,h] of [['Z',1006,411],['L',915,412],['S',780,360],['W',1280,720]]
   if(await p.$('[data-r]')){await p.click('[data-r]');await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-3e-reroll.png`});}
   await p.click('.aug');await p.waitForTimeout(400);await p.screenshot({path:`${out}/R${n}-3d2-aug-on.png`});
   console.log(n,'고른 증강체 표시가 카드 안',await p.evaluate(()=>{const a=document.querySelector('.aug.on');if(!a)return null;const r=a.getBoundingClientRect(),s=getComputedStyle(a,'::after');return s.content!=='none'&&r.top>=0&&r.bottom<=innerHeight;}));
-  await p.click('#ok');await p.waitForSelector('.sk');await p.waitForTimeout(2200);
+  await p.click('#ok');await p.waitForSelector('.bmenu');await p.waitForTimeout(2200);await p.screenshot({path:`${out}/R${n}-4a-bmenu.png`});await p.click('#bAtk');await p.waitForSelector('.sk');await p.waitForTimeout(300);
   await p.screenshot({path:`${out}/R${n}-4battle.png`});console.log(n,'전투',JSON.stringify(await ov()));
   // 잘림 검사: 전투 판 안 버튼이 판 밖으로 나가는데 스크롤도 안 되면 잘린 것
   const clip=()=>p.evaluate(()=>{const pn=document.getElementById('panel');if(!pn)return null;const R=pn.getBoundingClientRect(),cut=[...pn.querySelectorAll('button')].filter(e=>{const r=e.getBoundingClientRect();return r.bottom>R.bottom+1||r.right>R.right+1;});return {밖으로나간버튼:cut.length,스크롤됨:pn.scrollHeight>pn.clientHeight+1&&getComputedStyle(pn).overflowY!=='hidden',화면밖:R.bottom>innerHeight+1};});
