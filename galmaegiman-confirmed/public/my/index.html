@@ -199,6 +199,66 @@ html.game #body>.note,html.game #body>p.note{background:rgba(255,250,240,.92);bo
   html.game #app.gv>.tabs button{flex:1 1 0;min-height:0;display:flex;align-items:center;gap:6px;overflow:hidden}
 }
 @media (orientation:landscape) and (max-height:600px){ html.game{--gh:56px} html.game #app.gv>.tabs{gap:4px} }
+
+/* ════ 뽑기 연출(v0.10.2): 알 흔들림 → 깨짐(최고 등급 색 빛) → 카드 차례로 뒤집힘 ════ */
+.reveal{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px;background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--tc) 35%,#2a1708) 0%,#1b0f05 70%);color:#fff7e6;animation:rvIn .2s ease-out}
+.reveal.bye{animation:rvOut .2s ease-in forwards}
+@keyframes rvIn{from{opacity:0}}@keyframes rvOut{to{opacity:0}}
+.rv-egg{display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer}
+.rv-egg p{margin:0;font-size:15px;opacity:.85;animation:blink 1.4s ease-in-out infinite}
+@keyframes blink{50%{opacity:.35}}
+.egg{width:130px;height:165px;border-radius:50% 50% 46% 46%/60% 60% 40% 40%;background:radial-gradient(circle at 35% 30%,#fffef8,#f3e2bf 55%,#d9b98a);border:4px solid #7a4e2a;box-shadow:0 0 40px 8px color-mix(in srgb,var(--tc) 70%,transparent),inset -10px -14px 0 rgba(122,78,42,.18);animation:eggIdle 1.6s ease-in-out infinite}
+@keyframes eggIdle{50%{transform:translateY(-6px) rotate(-3deg)}}
+.reveal.shake .egg{animation:eggShake .12s linear infinite}
+@keyframes eggShake{0%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}100%{transform:rotate(-8deg)}}
+.reveal.cracked .rv-egg{display:none}
+.reveal.cracked::before{content:"";position:absolute;inset:0;background:radial-gradient(circle,#fff,color-mix(in srgb,var(--tc) 60%,transparent) 40%,transparent 70%);animation:flash .5s ease-out forwards;pointer-events:none}
+@keyframes flash{from{opacity:1;transform:scale(.4)}to{opacity:0;transform:scale(1.6)}}
+.reveal.hi.cracked::after{content:"";position:absolute;inset:-40%;background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--tc) 35%,transparent) 0 8deg,transparent 8deg 22deg);animation:spin 14s linear infinite;pointer-events:none;z-index:-1}
+@keyframes spin{to{transform:rotate(360deg)}}
+.rv-cards{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:min(920px,100%);max-height:calc(100dvh - 110px);overflow:auto;padding:6px}
+.rv-c{width:clamp(92px,15vw,140px);aspect-ratio:3/4.1;perspective:700px}
+.rv-cards:has(.rv-c:only-child) .rv-c{width:min(220px,45vw)}
+.rv-in{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.3,1.4,.5,1);transition-delay:var(--d)}
+.reveal.flip .rv-in,.reveal.all .rv-in{transform:rotateY(180deg)}
+.reveal.all .rv-in{transition-delay:0s}
+.rv-back,.rv-front{position:absolute;inset:0;backface-visibility:hidden;border-radius:14px;border:3px solid var(--tc);box-shadow:0 4px 0 rgba(0,0,0,.35)}
+.rv-back{display:grid;place-items:center;font-size:40px;background:linear-gradient(#f6e2b8,#d9b98a)}
+.rv-front{transform:rotateY(180deg);background:#fffaf0;color:#3b2614;padding:5px;display:flex;flex-direction:column;align-items:center;text-align:center;overflow:hidden}
+.rv-front img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px}
+.rv-front b{font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:13px;line-height:1.2;margin-top:4px;word-break:keep-all}
+.rv-front small{color:var(--tc);font-weight:700;font-size:11.5px}
+.rv-front .nb{position:absolute;top:8px;left:8px;background:#d9a400;color:#222;border-radius:999px;font-size:10.5px;padding:0 6px;font-weight:700}
+.rv-front .n{position:absolute;top:8px;right:8px;background:#dd9a58;color:#3b2614;border-radius:999px;font-size:11px;padding:0 6px;font-weight:700}
+.rv-c.hi .rv-front{box-shadow:0 0 0 3px #fff3c4,0 0 26px 6px color-mix(in srgb,var(--tc) 80%,transparent)}
+.rv-btns{display:flex;gap:10px}
+.rv-btns .btn{min-width:120px}
+@media (prefers-reduced-motion:reduce){.egg,.reveal.shake .egg,.reveal.hi.cracked::after,.rv-egg p{animation:none}.rv-in{transition:none}}
+
+/* ════ 갈매미 상세(v0.10.2): 큰 카드 + 한마디·소개 ════ */
+html.game .u{cursor:pointer;border-color:color-mix(in srgb,var(--tc,#d9b98a) 70%,#d9b98a)}
+html.game .u:active{transform:translateY(2px)}
+.udet{position:fixed;inset:0;z-index:65;display:grid;place-items:center;padding:12px;background:rgba(40,22,8,.62);animation:rvIn .15s ease-out}
+.ud-box{position:relative;display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:18px;align-items:center;width:min(860px,100%);max-height:calc(100dvh - 24px);background:#fffaf0;border:3px solid #7a4e2a;border-radius:22px;padding:16px 56px 16px 16px;box-shadow:0 6px 0 rgba(90,52,22,.45),0 20px 50px rgba(0,0,0,.4);color:#3b2614}
+.ud-art img{display:block;height:min(66dvh,380px);max-width:42vw;aspect-ratio:1;object-fit:cover;border-radius:16px;border:4px solid var(--tc);box-shadow:0 0 0 3px #fff3c4}
+.ud-tx{min-width:0;overflow:auto;max-height:calc(100dvh - 60px)}
+.ud-tier{display:inline-block;background:var(--tc);color:#fff;border-radius:999px;padding:2px 12px;font-size:13px;font-weight:700}
+.ud-tx h2{margin:6px 0 4px;font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:26px}
+.ud-q{margin:4px 0 6px;font-size:17px;font-weight:700;color:#5a3416}
+.ud-tag{margin:0 0 8px;color:#7d5f40;font-size:14px}
+.ud-intro{margin:0 0 10px;font-size:14px;line-height:1.6;color:#3b2614;word-break:keep-all}
+.ud-chips{display:flex;flex-wrap:wrap;gap:6px}
+.ud-chips span{background:#efe3c8;border:1.5px solid #d9b98a;border-radius:999px;padding:3px 10px;font-size:13px}
+.ud-x{position:absolute;top:10px;right:10px;width:38px;height:38px;border-radius:50%;border:2px solid #7a4e2a;background:#fffaf0;font-size:16px;box-shadow:0 2px 0 rgba(90,52,22,.4)}
+.ud-nav{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:56px;border-radius:12px;border:2px solid #7a4e2a;background:#fffaf0;font-size:26px;line-height:1;color:#3b2614;box-shadow:0 3px 0 rgba(90,52,22,.4)}
+.ud-nav.prev{left:-20px}.ud-nav.next{right:8px;top:auto;bottom:14px;transform:none}
+.ud-nav.prev{top:auto;bottom:14px;transform:none;left:auto;right:56px}
+@media (orientation:portrait){.ud-box{grid-template-columns:1fr;padding:16px}.ud-art img{height:auto;width:100%;max-width:none}}
+
+/* 뽑기 연출 검토 고침: 알 깨기 전에 카드 뒷면·버튼이 보이던 것, 낮은 화면에서 둘째 줄이 잘리던 것, 빛줄기가 너무 진하던 것 */
+.rv-cards[hidden],.rv-btns[hidden]{display:none !important}
+.reveal.hi.cracked::after{background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--tc) 18%,transparent) 0 8deg,transparent 8deg 22deg)}
+.rv-c{width:min(clamp(92px,15vw,140px),calc((100dvh - 120px) / 2 * 3 / 4.1))}
 </style>
 </head>
 <body>

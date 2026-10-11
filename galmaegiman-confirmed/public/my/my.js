@@ -114,11 +114,12 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     const pass = u => filter === 'all' || (filter === 'top' ? u.top : filter === 'low' ? !u.top && !['LEGEND', 'HIDDEN'].includes(u.tier) : u.tier === filter);
     const list = me.units.filter(pass);
     el.innerHTML = `<div class="filters">${groups.map(([k, t]) => `<button data-f="${k}" class="${filter === k ? 'on' : ''}">${t}</button>`).join('')}</div>
-      ${list.length ? `<div class="grid">${list.map(u => `<div class="u"><img loading="lazy" src="${thumb(u.id)}" alt=""><span class="n">×${u.have}</span>${u.away ? `<span class="away">탐험 ${u.away}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}</small></div>`).join('')}</div>`
+      ${list.length ? `<div class="grid">${list.map((u, i) => `<div class="u" data-ui="${i}" style="--tc:${TIER_COLOR[u.tier] ?? '#888'}"><img loading="lazy" src="${thumb(u.id)}" alt=""><span class="n">×${u.have}</span>${u.away ? `<span class="away">탐험 ${u.away}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}</small></div>`).join('')}</div>`
         : '<p class="empty">이 등급의 갈매미가 아직 없어요.</p>'}
       ${me.kakaoLogin && !GAMEUI ? `<div class="card row" style="justify-content:space-between;margin-top:14px"><span class="note">${me.kakao ? '✅ 카카오 계정 연결됨 (카카오로 로그인 가능)' : '카카오 계정을 연결하면 다음부터 코드 없이 로그인해요.'}</span>
         ${me.kakao ? '<button class="btn ghost" id="unlink" style="padding:6px 12px;font-size:.85rem">연결 해제</button>' : '<a class="btn kakao" href="/my/kakao" style="padding:8px 14px;font-size:.9rem">카카오 연결</a>'}</div>` : ''}`;
     el.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { filter = b.dataset.f; draw(); });
+    if (GAMEUI) el.querySelectorAll('[data-ui]').forEach(c => { c.tabIndex = 0; c.onclick = () => unitDetail(list, +c.dataset.ui); });
     el.querySelector('#unlink')?.addEventListener('click', () => run('kakao/unlink', {}, '카카오 계정 연결을 끊을까요? 그다음엔 카톡 코드로 로그인해요.'));
   }
 
@@ -171,9 +172,50 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     el.querySelector('#claim').onclick = async () => { try { const r = await api('claim', {}); toast(String(r.result).split('\n')[0]); drawData = null; me = await api('me'); APP?.onMe(me); draw(); } catch (e) { if (e.message !== 'login') toast(e.message.split('\n')[0]); } };
     el.querySelectorAll('[data-k]').forEach(b => b.onclick = async () => {
       el.querySelectorAll('[data-k]').forEach(x => { x.disabled = true; });
-      try { drawLast = (await api('draw', { kind: b.dataset.k, times: +b.dataset.n })).result; APP?.onDraw(drawLast.items); drawData = null; me = await api('me'); APP?.onMe(me); draw(); scrollTo({ top: 0, behavior: 'smooth' }); }
+      try { drawLast = (await api('draw', { kind: b.dataset.k, times: +b.dataset.n })).result; APP?.onDraw(drawLast.items); drawData = null; me = await api('me'); APP?.onMe(me); draw(); scrollTo({ top: 0, behavior: 'smooth' }); if (GAMEUI) reveal(drawLast.items); }
       catch (e) { if (e.message !== 'login') { toast(e.message.split('\n')[0]); drawData = null; drawTab(el); } }
     });
+  }
+
+  // ── 게임 연출(v0.10.2) ──
+  const TIER_RANK = ['COMMON', 'NEUTRAL', 'UNCOMMON', 'SPECIAL', 'RARE', 'EPIC', 'LEGEND', 'HIDDEN', 'LIMITED', 'TRANSCEND', 'ETERNAL', 'IMMORTAL'];
+  const rank = t => Math.max(0, TIER_RANK.indexOf(t));
+  const big = id => `${BASE}/images/${encodeURIComponent(id)}.png`;
+  // 뽑기 결과: 알이 흔들리다 깨지고(가장 좋은 등급 색으로 빛남) → 카드가 한 장씩 뒤집힘. 전설 이상은 빛줄기
+  function reveal(items) {
+    const top = items.reduce((a, u) => (rank(u.tier) > rank(a.tier) ? u : a), items[0]), col = TIER_COLOR[top.tier] ?? '#d9a400', hi = rank(top.tier) >= rank('LEGEND');
+    const ov = document.createElement('div'); ov.className = `reveal ${hi ? 'hi' : ''}`; ov.style.setProperty('--tc', col);
+    ov.innerHTML = `<div class="rv-egg"><div class="egg"></div><p>눌러서 열기</p></div>
+      <div class="rv-cards" hidden>${items.map((u, i) => `<div class="rv-c ${rank(u.tier) >= rank('LEGEND') ? 'hi' : ''}" style="--tc:${TIER_COLOR[u.tier] ?? '#888'};--d:${i * 0.12}s"><div class="rv-in"><div class="rv-back">🥚</div>
+        <div class="rv-front"><img src="${cimg(u.img)}" alt="">${u.first ? '<span class="nb">NEW</span>' : ''}${u.n > 1 ? `<span class="n">×${u.n}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}</small></div></div></div>`).join('')}</div>
+      <div class="rv-btns" hidden><button class="btn ghost" id="rvAll">모두 열기</button><button class="btn" id="rvOk">확인</button></div>`;
+    document.body.append(ov);
+    const open = () => {
+      if (ov.classList.contains('cracked')) return;
+      ov.classList.add('shake');
+      setTimeout(() => { ov.classList.add('cracked'); ov.querySelector('.rv-cards').hidden = false; ov.querySelector('.rv-btns').hidden = false; requestAnimationFrame(() => ov.classList.add('flip')); }, 700);
+    };
+    ov.querySelector('.rv-egg').onclick = open;
+    ov.querySelector('#rvAll').onclick = () => ov.classList.add('all');
+    ov.querySelector('#rvOk').onclick = () => { ov.classList.add('bye'); setTimeout(() => ov.remove(), 200); };
+  }
+  // 갈매미 상세: 큰 카드·한마디·소개·가진 수. ◀ ▶로 목록 넘기기
+  function unitDetail(list, at) {
+    document.querySelector('.udet')?.remove();
+    const u = list[at], col = TIER_COLOR[u.tier] ?? '#888';
+    const ov = document.createElement('div'); ov.className = 'udet'; ov.style.setProperty('--tc', col);
+    ov.innerHTML = `<div class="ud-box"><button class="ud-x" aria-label="닫기">✕</button>
+      <div class="ud-art"><img src="${big(u.id)}" alt=""></div>
+      <div class="ud-tx"><span class="ud-tier">${esc(u.tierName)}</span><h2>${esc(u.name)}</h2>
+        ${u.quote ? `<p class="ud-q">「${esc(u.quote)}」</p>` : ''}${u.tagline ? `<p class="ud-tag">${esc(u.tagline)}</p>` : ''}
+        ${u.intro ? `<p class="ud-intro">${esc(u.intro)}</p>` : ''}
+        <div class="ud-chips"><span>🪺 ${u.have}마리</span>${u.away ? `<span>🧭 탐험 중 ${u.away}</span>` : ''}${u.top ? '<span>⚔️ 수비대 대결 출전 가능</span>' : ''}</div></div>
+      ${list.length > 1 ? `<button class="ud-nav prev" aria-label="이전">‹</button><button class="ud-nav next" aria-label="다음">›</button>` : ''}</div>`;
+    document.body.append(ov);
+    const close = () => ov.remove();
+    ov.querySelector('.ud-x').onclick = close; ov.onclick = e => { if (e.target === ov) close(); };
+    ov.querySelector('.prev')?.addEventListener('click', () => unitDetail(list, (at - 1 + list.length) % list.length));
+    ov.querySelector('.next')?.addEventListener('click', () => unitDetail(list, (at + 1) % list.length));
   }
 
   // 조합: 카톡 「조합」과 같은 처리. 만들 수 있는 것 / 전체 조합식(등급·이름 찾기) / 재료로 섞기(숨은 조합 찾기)

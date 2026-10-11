@@ -1137,7 +1137,7 @@ export class GameService {
     ]);
     const by=new Map<string,{have:number;away:number}>();
     for(const r of owned){const e=by.get(r.characterId)??{have:0,away:0};e.have+=r._count._all;if(r.status==='EXPEDITION')e.away+=r._count._all;by.set(r.characterId,e);}
-    const units=[...by].map(([id,e])=>{const c=this.content.map.get(id)!;return {id,name:c.name,tier:c.rarity,tierName:rarityNames[c.rarity],top:topTiers.has(c.rarity),synergy:c.synergy??null,...e};})
+    const units=[...by].map(([id,e])=>{const c=this.content.map.get(id)!;return {id,name:c.name,tier:c.rarity,tierName:rarityNames[c.rarity],top:topTiers.has(c.rarity),synergy:c.synergy??null,quote:c.quote,tagline:c.tagline,intro:c.introduction,...e};})   // 한마디·소개: 게임 안 갈매미 상세 화면용(가진 갈매미만)
       .sort((a,b)=>tiers[b.tier]-tiers[a.tier]||this.content.map.get(a.id)!.position-this.content.map.get(b.id)!.position);
     const ids=(s:string)=>s?s.split(',').filter(id=>this.content.map.has(id)):[];
     return {nickname:p.nickname,snack:p.snack,peanut:p.peanut,credits:p.credits,kakao:kakao>0,claimReadyAt:new Date((p.lastClaimAt?.getTime()??0)+this.content.economy.tickets.cooldownHours*3_600_000).toISOString(),dex,dexTotal:this.content.characters.length,units,
