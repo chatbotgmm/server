@@ -1287,6 +1287,15 @@ img{-webkit-user-drag:none;-webkit-touch-callout:none}
 @media (prefers-reduced-motion:reduce){.h8room .r2{animation:none}}
 /* 첫 화면 버튼: 예전 .tgo/.tset 모양 지우기 */
 .ttl9 .tgo,.ttl9 .tset{box-shadow:none;text-shadow:none;letter-spacing:0;min-width:0;border-radius:0;color:inherit;display:block}
+
+/* v0.13.1 시작 버튼: filter 애니메이션은 안드로이드에서 버튼을 흐리게·이상하게 그려서 뺌. 빛은 뒤쪽 빛무리(투명도만 움직임)로. 「게임 시작」 글자는 시안 그림, 「로그인」만 실제 글자(가운데) */
+.ttl9 .i9b{animation:none !important;filter:none !important;isolation:isolate}
+.ttl9 .i9b::before{content:"";position:absolute;inset:-12% -4%;border-radius:999px;background:radial-gradient(closest-side,rgba(255,240,190,.75),rgba(255,240,190,0));z-index:-1;animation:i9glow 2.4s ease-in-out infinite;pointer-events:none}
+@keyframes i9glow{0%,100%{opacity:.25}50%{opacity:.9}}
+.ttl9 .i9b img.tx{position:absolute}
+.ttl9 .i9b span{justify-content:center;font-size:6.2cqh}
+.ttl9 .i9b:active{transform:translateY(2px) scale(.99)}
+@media (prefers-reduced-motion:reduce){.ttl9 .i9b::before{animation:none}}
 </style>
 </head>
 <body>
