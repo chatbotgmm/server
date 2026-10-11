@@ -1323,6 +1323,18 @@ img{-webkit-user-drag:none;-webkit-touch-callout:none}
   #app:has(#arena) .sw button img{width:30px;height:30px}
   #app:has(#arena) #panel .fleerow .flee{padding:4px 12px;font-size:12px;min-height:34px}
 }
+/* v0.14.4 설정: 배경음악·효과음 줄마다 음소거(슬라이더 오른쪽) */
+.setrow.vol .chmute{flex:none;width:44px;height:44px;min-height:44px;padding:0;border-radius:12px;display:grid;place-items:center;background:var(--card);border:2px solid var(--line);color:var(--ink);box-shadow:0 2px 0 rgba(122,78,42,.25)}
+.setrow.vol .chmute.on{background:#e9d3b4;color:#9a5b2c;border-color:#c98443}
+.setrow.vol.chm input[type=range],.setrow.vol.chm b{opacity:.45}
+@media (orientation:landscape) and (max-height:430px){ .setrow.vol .chmute{width:40px;height:40px;min-height:40px} }
+/* v0.14.4 로비 방 패럴랙스: 빈 곳을 끌면 --px·--py(-1~1)만큼 레이어마다 다르게(배경 1.2% < 받침대 2.6% < 갈매미맨 2.9%). 배경은 3% 키워서 가장자리가 안 보이게 */
+.home8:has(.h8room){touch-action:none}
+.h8room .rl{transition:translate .6s cubic-bezier(.2,.8,.2,1)}
+.h8room.drag .rl{transition:none}
+.h8room .r0{scale:1.03;translate:calc(var(--px,0) * 1.2%) calc(var(--py,0) * .6%)}
+.h8room .r1{translate:calc(var(--px,0) * 2.6%) calc(var(--py,0) * 1.2%)}
+.h8room .r2{translate:calc(var(--px,0) * 2.9%) calc(var(--py,0) * 1.4%)}
 </style>
 </head>
 <body>

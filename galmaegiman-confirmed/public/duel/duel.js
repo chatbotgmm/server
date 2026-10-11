@@ -4,7 +4,7 @@
 // 로그인돼 있으면 「내 갈매미」 전투 편성을 스토리 팀으로 쓸 수 있고, 스토리 대결에서 가진 아이템을 쓸 수 있음
 import { rulesFrom } from '../../src/battle/core.ts';
 import { createBattle, choose, rerollAugment, act, pending, legalActions, pickAi, aiChoose, activeOf, itemProblem } from '../../src/battle/engine.ts';
-import { bgm, sfx, isMuted, toggleMute, getVol, setVol } from './sound.js';
+import { bgm, sfx, isMuted, toggleMute, getVol, setVol, isChMuted, setChMute } from './sound.js';
 import { addXp, battleXp, canEvolve, evoChoices, learnChances, learnOffers, learnSkill, slotSkills, statsOf, xpToNext } from '../../src/battle/growth.ts';
 
 // 앱: 화면은 앱 안, 서버는 GMM_BASE, 열쇠는 「내 갈매미」에서 받아 둔 것(GMM_DUEL_KEY), 로그인은 토큰 머리글
@@ -185,6 +185,8 @@ function muteBtn(show = true) {
   m.onclick = e => { e.stopPropagation(); settingsSheet(); };
   document.body.append(m);
 }
+// 스피커 그림(켜짐: 소리 물결, 꺼짐: X)
+const spk = off => `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>${off ? '<path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>' : '<path d="M16 9.2a4 4 0 0 1 0 5.6M18.6 6.6a7.6 7.6 0 0 1 0 10.8" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>'}</svg>`;
 function settingsSheet() {
   const prev = modal.innerHTML, wasHidden = modal.hidden, prevClass = modal.className, prevClick = modal.onclick;
   const close = () => { if (wasHidden) { modal.hidden = true; modal.innerHTML = ''; } else { modal.innerHTML = prev; modal.className = prevClass; modal.onclick = prevClick; } };
@@ -193,8 +195,7 @@ function settingsSheet() {
     modal.className = ''; modal.hidden = false;
     modal.innerHTML = `<div class="sheet set"><h2>⚙️ 설정<button class="xbtn" id="sX" aria-label="닫기">✕</button></h2><div class="scols"><div class="scol">
       <div class="setrow"><span>🔊 소리</span><button class="tog ${isMuted() ? '' : 'on'}" id="sSnd">${isMuted() ? '꺼짐' : '켜짐'}</button></div>
-      <div class="setrow vol ${isMuted() ? 'off' : ''}"><span>🎵 배경음악</span><input type="range" min="0" max="100" step="5" value="${getVol('music')}" id="vMusic" aria-label="배경음악 음량"><b id="vMusicN">${getVol('music')}</b></div>
-      <div class="setrow vol ${isMuted() ? 'off' : ''}"><span>💥 효과음</span><input type="range" min="0" max="100" step="5" value="${getVol('sfx')}" id="vSfx" aria-label="효과음 음량"><b id="vSfxN">${getVol('sfx')}</b></div></div><div class="scol">
+      ${[['vMusic', 'music', '🎵 배경음악'], ['vSfx', 'sfx', '💥 효과음']].map(([id, k, lb]) => { const m = isChMuted(k); return `<div class="setrow vol ${isMuted() ? 'off' : ''} ${m ? 'chm' : ''}"><span>${lb}</span><input type="range" min="0" max="100" step="5" value="${getVol(k)}" id="${id}" aria-label="${lb.slice(3)} 음량"><b id="${id}N">${getVol(k)}</b><button class="chmute ${m ? 'on' : ''}" data-ch="${k}" aria-pressed="${m}" aria-label="${lb.slice(3)} ${m ? '음소거 풀기' : '음소거'}">${spk(m)}</button></div>`; }).join('')}</div><div class="scol">
       ${ACC ? `<div class="setrow"><span>👤 ${esc(ACC.nickname || '내 계정')}</span><button class="ghost" id="sOut">로그아웃</button></div>
       <div class="setrow coup"><span>🎟 쿠폰</span><input id="sCode" placeholder="쿠폰 코드" autocomplete="off" maxlength="60"><button class="ghost" id="sCoup">받기</button></div>
       ${coupMsg ? `<p class="coupmsg">${esc(coupMsg)}</p>` : ''}
@@ -205,9 +206,17 @@ function settingsSheet() {
     modal.querySelector('#sSnd').onclick = () => { toggleMute(); draw(); };
     for (const [id, k] of [['vMusic', 'music'], ['vSfx', 'sfx']]) {
       const r = modal.querySelector('#' + id), n = modal.querySelector(`#${id}N`);
-      r.oninput = () => { if (isMuted()) { toggleMute(); modal.querySelectorAll('.setrow.vol').forEach(x => x.classList.remove('off')); const t = modal.querySelector('#sSnd'); t.classList.add('on'); t.textContent = '켜짐'; } setVol(k, +r.value); n.textContent = r.value; };
+      r.oninput = () => { if (isMuted()) { toggleMute(); modal.querySelectorAll('.setrow.vol').forEach(x => x.classList.remove('off')); const t = modal.querySelector('#sSnd'); t.classList.add('on'); t.textContent = '켜짐'; } if (isChMuted(k)) { setChMute(k, false); chUi(k); } setVol(k, +r.value); n.textContent = r.value; };
       if (k === 'sfx') r.onchange = () => sfx('hit');   // 손을 떼면 효과음 크기를 들려줌
     }
+    // 줄마다 음소거: 음량 값은 그대로 두고 소리만 끔 → 풀면 원래 음량(0이었으면 50으로)
+    const chUi = k => { const b = modal.querySelector(`[data-ch="${k}"]`), m = isChMuted(k), lb = k === 'music' ? '배경음악' : '효과음';
+      b.classList.toggle('on', m); b.setAttribute('aria-pressed', m); b.setAttribute('aria-label', `${lb} ${m ? '음소거 풀기' : '음소거'}`); b.innerHTML = spk(m); b.closest('.setrow').classList.toggle('chm', m); };
+    modal.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => { const k = b.dataset.ch, m = !isChMuted(k);
+      if (!m && isMuted()) { toggleMute(); modal.querySelectorAll('.setrow.vol').forEach(x => x.classList.remove('off')); const t = modal.querySelector('#sSnd'); t.classList.add('on'); t.textContent = '켜짐'; }
+      setChMute(k, m);
+      if (!m && getVol(k) === 0) { setVol(k, 50); const id = k === 'music' ? 'vMusic' : 'vSfx'; modal.querySelector('#' + id).value = 50; modal.querySelector(`#${id}N`).textContent = 50; }
+      chUi(k); if (!m && k === 'sfx') sfx('hit'); });
     modal.querySelector('#sClose').onclick = close; modal.querySelector('#sX').onclick = close;
     modal.querySelector('#sOut')?.addEventListener('click', async () => {
       if (!(await ask('로그아웃할까요?', { ok: '로그아웃' }))) return;
@@ -302,6 +311,7 @@ function menu() {
     <div class="h8bot"><nav class="h8menu">${MENU.map(([h, t, ic, e, c]) => `<a href="${my(h)}" data-h="${h}" class="h8b ${c}"><i>${ico(ic, e)}</i><span>${t}</span></a>`).join('')}</nav>
       <div class="h8go"><div class="h8stage"><small>${st ? '다음 이야기' : '이야기'}</small><b>${st ? `${esc(st.id)} ${esc(st.title)}` : '모든 이야기 완료'}</b></div>
       <button class="h8play ${ICONS.includes('btn-play') ? 'img' : ''}" id="go" aria-label="플레이">${ICONS.includes('btn-play') ? `<img src="${BASE}/duel/icons/btn-play.png" alt="">` : '<b>▶ 플레이</b>'}</button></div></div></div>`;
+  roomParallax(app.querySelector('.home8'));
   app.querySelector('#td')?.addEventListener('click', todaySheet);
   app.querySelector('#lprof').onclick = e => { e.stopPropagation(); profMenu(); };
   if (ACC) myApi('daily').then(d => { if (!d.attend.today || d.missions.some(m => !m.done && m.value >= m.goal)) app.querySelector('#td')?.insertAdjacentHTML('beforeend', '<em class="dot"></em>'); }).catch(() => {});
@@ -317,6 +327,24 @@ function menu() {
     if (new Date(me.claimReadyAt).getTime() <= now) dot('draw');
     if (me.trip && new Date(me.trip.endsAt).getTime() <= now) dot('party');
   }).catch(() => {});
+}
+// 로비 방 패럴랙스(v0.14.4): 버튼이 아닌 빈 곳을 끌면 레이어마다 다르게 움직임(배경 < 받침대 < 갈매미맨), 손을 떼면 제자리로. UI는 그대로
+function roomParallax(home) {
+  const room = home?.querySelector('.h8room'); if (!room) return;
+  let drag = null, x = 0, y = 0, raf = 0;
+  const clamp = v => Math.max(-1, Math.min(1, v));
+  const put = (nx, ny) => { x = nx; y = ny; if (!raf) raf = requestAnimationFrame(() => { raf = 0; room.style.setProperty('--px', x.toFixed(3)); room.style.setProperty('--py', y.toFixed(3)); }); };
+  home.addEventListener('pointerdown', e => {
+    if (drag || e.button > 0 || e.target.closest('button,a,input,select,label,.pmenu')) return;
+    drag = { id: e.pointerId, cx: e.clientX, cy: e.clientY, x, y }; room.classList.add('drag');
+    try { home.setPointerCapture(e.pointerId); } catch { /* 무시 */ }
+  });
+  home.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    put(clamp(drag.x + (e.clientX - drag.cx) / (innerWidth * 0.45)), clamp(drag.y + (e.clientY - drag.cy) / (innerHeight * 0.45)));
+  });
+  const end = e => { if (!drag || e.pointerId !== drag.id) return; drag = null; room.classList.remove('drag'); put(0, 0); };
+  home.addEventListener('pointerup', end); home.addEventListener('pointercancel', end);
 }
 // 프로필(왼쪽 위 이름)을 누르면 작은 메뉴: 내 정보 + 계정·랭크·설정
 function profMenu() {

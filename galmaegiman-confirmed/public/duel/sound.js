@@ -8,7 +8,11 @@ let ctx = null, master = null, music = null, sfxBus = null, cur = null, want = n
 let muted = (() => { try { return localStorage.getItem(MUTE_KEY) === '1'; } catch { return false; } })();
 const vol = { music: VOL_DEF.music, sfx: VOL_DEF.sfx };
 for (const k of ['music', 'sfx']) try { const v = localStorage.getItem(VOL_KEY[k]); if (v !== null && !isNaN(+v)) vol[k] = Math.max(0, Math.min(100, +v)); } catch { /* 무시 */ }
-const gainOf = k => (k === 'music' ? 0.65 : 0.9) * (vol[k] / 100) ** 1.5;   // 귀에 고르게 들리도록 곡선
+// 배경음악·효과음 따로 음소거(v0.14.4): 음량 값은 그대로 두고 소리만 0 → 풀면 원래 음량으로
+const CH_MUTE_KEY = { music: 'gmm-mute-music', sfx: 'gmm-mute-sfx' };
+const chMute = { music: false, sfx: false };
+for (const k of ['music', 'sfx']) try { chMute[k] = localStorage.getItem(CH_MUTE_KEY[k]) === '1'; } catch { /* 무시 */ }
+const gainOf = k => chMute[k] ? 0 : (k === 'music' ? 0.65 : 0.9) * (vol[k] / 100) ** 1.5;   // 귀에 고르게 들리도록 곡선
 
 const hz = m => 440 * 2 ** ((m - 69) / 12);   // 미디 음 번호 → 주파수
 function init() {
@@ -110,7 +114,7 @@ const FX = {
   levelup: t => [[72, 0], [79, 0.08], [84, 0.16]].forEach(([m, d]) => tone(hz(m), t + d, 0.2, { vol: 0.14 })),
 };
 export function sfx(name) {
-  if (!ctx || ctx.state !== 'running' || muted || !FX[name]) return;
+  if (!ctx || ctx.state !== 'running' || muted || chMute.sfx || !FX[name]) return;
   FX[name](ctx.currentTime + 0.005);
 }
 export const isMuted = () => muted;
@@ -118,6 +122,14 @@ export const getVol = k => vol[k];
 export function setVol(k, v) {
   vol[k] = Math.max(0, Math.min(100, Math.round(v)));
   try { localStorage.setItem(VOL_KEY[k], String(vol[k])); } catch { /* 무시 */ }
+  init();
+  const node = k === 'music' ? music : sfxBus;
+  if (node) node.gain.setTargetAtTime(gainOf(k), ctx.currentTime, 0.03);
+}
+export const isChMuted = k => chMute[k];
+export function setChMute(k, on) {
+  chMute[k] = !!on;
+  try { localStorage.setItem(CH_MUTE_KEY[k], on ? '1' : '0'); } catch { /* 무시 */ }
   init();
   const node = k === 'music' ? music : sfxBus;
   if (node) node.gain.setTargetAtTime(gainOf(k), ctx.currentTime, 0.03);
