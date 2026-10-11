@@ -280,21 +280,21 @@ function titleScreen(loggedIn) {
 function menu() {
   try { sessionStorage.setItem('gmm-k', K); } catch { /* 무시 */ }
   modal.hidden = true; bgm('title'); muteBtn();
-  // 첫 화면(게임 타이틀): 항구 배경 + 대표 그림·제목 + 큰 「이어하기」 + 스토리·자유 대결 + 챗봇 기능 아이콘 줄(「내 갈매미」 탭)
-  const my = h => APP ? `my.html#${h}` : `/my?g=1#${h}`, gull = APP ? 'gull.png' : '/gull.png';
+  // 로비(v1.0, 한국 수집형 게임 로비 구조): 위 줄 프로필·재화 / 왼쪽 작은 입구(스토리·자유 대결) / 가운데 대표 갈매미(누르면 한마디, 팀 셋을 돌아가며) / 오른쪽 이야기 칸·큰 이어하기 / 아래 메뉴. 할 일이 있으면 빨간 점
+  const my = h => APP ? `my.html#${h}` : `/my?g=1#${h}`;
   const bg = BG.includes('harbor') ? `background-image:url(${BASE}/duel/bg/harbor.jpg${q})` : '';
-  const hero = BG.includes('key') ? `background-image:url(${BASE}/duel/bg/key.jpg${q})` : '';
-  const who = '';   // 계정 이름은 ⚙ 설정 안에서만
-  // 세로: 항구 배경 + 위쪽 대표 그림 / 가로(앱): 대표 그림을 화면 전체에
-  app.innerHTML = `<div class="ts" style="${bg};${hero ? `--key:url(${BASE}/duel/bg/key.jpg${q})` : ''}"><div class="lbg" aria-hidden="true"></div>
-    ${ambient('harbor', true)}<div class="hero ${hero ? '' : 'noart'}" style="${hero}">${who}
-</div>
-    <div class="tmid">${nowCard()}
-    <div class="two"><button id="st"><i>📖</i>스토리</button><button id="fr"><i>⚔️</i>자유 대결</button></div></div>
-    ${squad()}${sideSquad()}
-    <nav class="dock">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점'], ['account', '👤', '계정']].map(([h, i, t]) => `<a href="${my(h)}"><i class="${ICONS.includes(`m-${h}`) ? 'art' : ''}">${ico(`m-${h}`, i)}</i><span>${t}</span></a>`).join('')}</nav></div>`;
+  const team = SAVE.team.length === 3 ? SAVE.team : [];
+  const lvl = team.length ? Math.round(team.reduce((a, id) => a + (SAVE.units[id]?.level ?? 1), 0) / team.length) : 0;
+  const storyDot = team.some(id => { const r = myRec(id, 0); return learnChances(R, r) > 0 || canEvolve(R, r, partsCleared()); });
+  app.innerHTML = `<div class="ts lobby" style="${bg};${BG.includes('key') ? `--key:url(${BASE}/duel/bg/key.jpg${q})` : ''}"><div class="lbg" aria-hidden="true"></div>${ambient('harbor', true)}
+    <header class="ltop"><div class="lprof"><i>🪪</i><span><b>${esc(ACC?.nickname || '수비조장')}</b><small>${lvl ? `수비대 Lv${lvl} · 실적 ${SAVE.cleared.length}/${stages().length}` : '아직 팀이 없어요'}</small></span></div><div class="lcur" id="lcur"></div></header>
+    <aside class="lside"><button id="st"><i>📖</i><span>스토리</span>${storyDot ? '<em class="dot"></em>' : ''}</button><button id="fr"><i>⚔️</i><span>자유 대결</span></button></aside>
+    <div class="lhero" id="lhero">${team.length ? `<div class="lplat"></div><img id="lheroImg" alt=""><div class="lbub" id="lbub" hidden></div><div class="lname" id="lname"></div>` : '<button class="lnoteam" id="lnoteam">🐣 팀 3마리를 정하면<br>여기에 대표 갈매미가 서요</button>'}</div>
+    <div class="lstory">${nowCard()}</div>
+    <nav class="dock">${[['draw', '🥚', '뽑기'], ['craft', '🧩', '조합'], ['units', '🪺', '갈매미'], ['party', '🧭', '탐험대'], ['shop', '🛒', '상점'], ['account', '👤', '계정']].map(([h, i, t]) => `<a href="${my(h)}" data-h="${h}"><i class="${ICONS.includes(`m-${h}`) ? 'art' : ''}">${ico(`m-${h}`, i)}</i><span>${t}</span></a>`).join('')}</nav></div>`;
   app.querySelector('#st').onclick = storyScreen;
   app.querySelector('#fr').onclick = () => pickScreen('free');
+  app.querySelector('#lnoteam')?.addEventListener('click', () => pickScreen('story'));
   app.querySelector('#go')?.addEventListener('click', () => {
     const st = nextStage();
     if (!st) return storyScreen();
@@ -302,6 +302,27 @@ function menu() {
     if (SAVE.team.length !== 3) return pickScreen('story', go);
     go();
   });
+  // 대표 갈매미: 누르면 한마디, 다시 누르면 다음 팀원
+  if (team.length) {
+    let at = 0, hide = null;
+    const show = (talk) => {
+      const id = team[at], u = UNITS.find(x => x.id === id), st = SAVE.units[id]?.stage ?? 0, img = app.querySelector('#lheroImg');
+      img.src = sprite(id, 'front', st); img.style.setProperty('--sz', bodySz(id, st)); img.className = st ? `st-${st}` : '';
+      app.querySelector('#lname').innerHTML = `<b>${esc(u.name)}</b><small>Lv${SAVE.units[id]?.level ?? 1}${st ? ` ${STARS[st]}` : ''} · ${chip(u.def.attr)}</small>`;
+      const bub = app.querySelector('#lbub');
+      if (talk && (u.quote || u.tagline)) { bub.textContent = u.quote || u.tagline; bub.hidden = false; bub.classList.remove('pop'); void bub.offsetWidth; bub.classList.add('pop'); clearTimeout(hide); hide = setTimeout(() => { bub.hidden = true; }, 3200); }
+    };
+    show(false);
+    app.querySelector('#lhero').onclick = () => { if (!app.querySelector('#lbub').hidden) at = (at + 1) % team.length; show(true); sfx('tap'); };
+  }
+  // 재화·빨간 점(로그인했으면 서버에서): 뽑기권 받을 수 있음 · 탐험 끝남
+  if (ACC) myApi('me').then(me => {
+    const cur = app.querySelector('#lcur'); if (!cur) return;
+    cur.innerHTML = [['🍤', me.snack, '새우깡'], ['🥜', me.peanut, '땅콩'], ['🎫', me.credits, '뽑기권']].map(([i, n, t]) => `<span title="${t}">${i}<b>${Number(n).toLocaleString('ko-KR')}</b></span>`).join('');
+    const now = Date.now(), dot = h => app.querySelector(`.dock a[data-h="${h}"]`)?.insertAdjacentHTML('beforeend', '<em class="dot"></em>');
+    if (new Date(me.claimReadyAt).getTime() <= now) dot('draw');
+    if (me.trip && new Date(me.trip.endsAt).getTime() <= now) dot('party');
+  }).catch(() => {});
 }
 // 다음에 할 스테이지: 열린 것 중 아직 안 깬 첫 스테이지(없으면 잠긴 다음 스테이지, 다 깼으면 없음)
 function nextStage() {

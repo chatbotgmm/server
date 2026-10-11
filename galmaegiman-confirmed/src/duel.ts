@@ -27,7 +27,7 @@ export function registerDuel(app:FastifyInstance,content:Content,opt:{root:strin
     if(!ok(req.query.k))return deny(reply);
     try{
       const R=loadBattleRules(opt.root);
-      const units=[...R.units.keys()].map(id=>{const c=content.map.get(id);return {id,name:c?.name??id,tier:c?.rarity??''};});
+      const units=[...R.units.keys()].map(id=>{const c=content.map.get(id);return {id,name:c?.name??id,tier:c?.rarity??'',quote:c?.quote??'',tagline:c?.tagline??''};});   // 한마디·소개(로비에서 대표 갈매미를 누르면)
       const story=loadStory(opt.root,R);
       // 빌런 그림(public/battle/sprites/V1_front.webp)이 있는 것만 알려 줌. 없으면 화면이 임시 그림을 그림
       const villainArt=(await readdir(resolve(opt.root,'public/battle/sprites')).catch(()=>[] as string[])).map(f=>/^(V\d+|HALL)_front\.(webp|png)$/.exec(f)?.[1]).filter((v):v is string=>!!v);

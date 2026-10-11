@@ -785,6 +785,71 @@ header .back:active{transform:translateY(2px);box-shadow:0 1px 0 var(--edge)}
 .finfo-sheet .fi-k small{color:var(--dim);display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .finfo-sheet h2{margin:8px 0 4px}
 @media (orientation:landscape) and (max-height:600px){ .sheet.finfo-sheet{max-width:min(920px,96vw) !important} .finfo-sheet .stats{grid-template-columns:repeat(6,1fr)} }
+
+/* ════ 로비 v1.0(한국 수집형 게임 로비 구조): 위 프로필·재화 / 왼쪽 입구 / 가운데 대표 갈매미 / 오른쪽 이야기·이어하기 / 아래 메뉴 ════ */
+.ts.lobby{display:flex;flex-direction:column;gap:10px;padding:calc(10px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px))) calc(14px + var(--sr,0px)) calc(10px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) calc(14px + var(--sl,0px))}
+.ts.lobby>*:not(.lbg):not(.amb){position:relative;z-index:1}
+.ltop{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-right:64px}
+.lprof{display:flex;align-items:center;gap:8px;background:rgba(255,250,240,.94);border:2.5px solid var(--edge);border-radius:999px;padding:4px 16px 4px 5px;box-shadow:0 3px 0 rgba(60,35,15,.4)}
+.lprof>i{font-style:normal;font-size:20px;width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fffdf5,#f6e2b8);border:2px solid var(--edge)}
+.lprof span{display:flex;flex-direction:column;line-height:1.15}
+.lprof b{font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:16px;color:var(--ink)}
+.lprof small{font-size:11.5px;color:var(--dim)}
+.lcur{display:flex;gap:6px}
+.lcur span{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:999px;background:rgba(255,250,240,.94);border:2px solid var(--edge);font-size:13px;color:var(--ink);box-shadow:0 2px 0 rgba(60,35,15,.35);white-space:nowrap}
+.lcur b{font-weight:700}
+.lside{display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center}
+.lside button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;width:78px;padding:8px 4px 6px;border-radius:18px;background:rgba(255,250,240,.95);border:2.5px solid var(--edge);box-shadow:0 4px 0 rgba(60,35,15,.45);color:var(--ink);font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:13px}
+.lside button i{font-style:normal;font-size:26px;line-height:1}
+.lside button:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(60,35,15,.45)}
+.lhero{position:relative;display:flex;align-items:flex-end;justify-content:center;min-height:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.lhero img{position:relative;z-index:1;height:calc(min(56vh,300px) * min(var(--sz,1),1.45));max-width:100%;object-fit:contain;object-position:50% 100%;margin-bottom:26px;animation:bob 2.6s ease-in-out infinite;filter:drop-shadow(0 8px 6px rgba(0,0,0,.4))}
+.lplat{position:absolute;bottom:14px;left:50%;width:min(70%,320px);height:38px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(rgba(255,226,150,.65),rgba(255,210,120,.18) 60%,transparent 72%)}
+.lname{position:absolute;z-index:2;bottom:0;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;white-space:nowrap;background:rgba(255,250,240,.96);border:2.5px solid var(--edge);border-radius:12px;padding:3px 12px;box-shadow:0 3px 0 rgba(60,35,15,.4)}
+.lname b{font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:15px;color:var(--ink)}
+.lname small{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--dim)}
+.lbub{position:absolute;z-index:3;top:4%;left:50%;transform:translateX(-50%);max-width:min(90%,360px);background:#fffaf0;border:2.5px solid var(--edge);border-radius:16px;padding:8px 14px;font-size:14px;line-height:1.45;color:var(--ink);box-shadow:0 4px 0 rgba(60,35,15,.35);text-align:center;word-break:keep-all}
+.lbub::after{content:"";position:absolute;left:50%;bottom:-10px;width:16px;height:16px;transform:translateX(-50%) rotate(45deg);background:#fffaf0;border-right:2.5px solid var(--edge);border-bottom:2.5px solid var(--edge)}
+.lbub.pop{animation:bubPop .25s ease-out}
+@keyframes bubPop{from{transform:translateX(-50%) scale(.6);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
+.lnoteam{margin:auto;padding:16px 22px;border-radius:18px;background:rgba(255,250,240,.95);border:2.5px dashed var(--edge);color:var(--ink);font-size:15px;line-height:1.5}
+.lstory{display:flex;flex-direction:column;gap:8px;justify-content:center}
+.lstory .now{text-align:left !important;margin:0 !important}
+.lstory .play{margin:0 !important;font-size:24px}
+.ts.lobby .dock{margin:0 !important}
+.dot{position:absolute;top:-3px;right:-3px;width:14px;height:14px;border-radius:50%;background:#e2402a;border:2px solid #fffaf0;box-shadow:0 1px 2px rgba(0,0,0,.3);animation:dotPulse 1.6s ease-in-out infinite}
+.dock a{position:relative}
+.dock a .dot{top:0;right:calc(50% - 30px)}
+@keyframes dotPulse{50%{transform:scale(1.2)}}
+@media (orientation:landscape) and (max-height:600px), (orientation:landscape) and (min-width:900px){
+  .ts.lobby{height:100vh;height:100dvh;min-height:0 !important;display:grid !important;grid-template-columns:auto minmax(0,1fr) minmax(0,min(400px,40vw)) !important;grid-template-rows:auto minmax(0,1fr) auto !important;gap:6px 16px !important}
+  .ltop{grid-column:1/4;grid-row:1}
+  .lside{grid-column:1;grid-row:2}
+  .lhero{grid-column:2;grid-row:2}
+  .lstory{grid-column:3;grid-row:2}
+  .ts.lobby .dock{grid-column:1/4 !important;grid-row:3 !important;justify-self:center;width:min(640px,100%)}
+}
+@media (orientation:landscape) and (max-height:400px){
+  .lside button{width:68px;padding:6px 4px 4px}.lside button i{font-size:22px}
+  .lprof>i{width:30px;height:30px;font-size:17px}.lprof b{font-size:14px}
+  .lhero img{margin-bottom:22px}
+  .lstory .play{font-size:20px !important}
+}
+@media (prefers-reduced-motion:reduce){.lhero img,.dot{animation:none}}
+
+/* 로비: 가운데 칸 높이를 넘지 않게(낮은 화면에서 그림·이어하기가 아래 메뉴에 덮이던 것) */
+.ts.lobby .lhero,.ts.lobby .lstory{min-height:0;overflow:visible}
+.lhero img{max-height:calc(100% - 26px)}
+.lhero{height:100%}
+@media (orientation:landscape) and (max-height:400px){
+  .ts.lobby{gap:4px 14px !important;padding-top:calc(6px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));padding-bottom:calc(6px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
+  .ts.lobby .dock{padding:4px 6px 2px !important}
+  .ts.lobby .dock a i{width:38px !important;height:38px !important}
+  .ts.lobby .dock a span{font-size:11px}
+  .lprof{padding:2px 12px 2px 3px}.lcur span{padding:2px 10px;font-size:12px}
+  .lstory{gap:6px}.lstory .now .prog{height:8px}
+  .lstory .play{padding:8px !important}
+}
 </style>
 </head>
 <body>
