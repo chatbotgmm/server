@@ -318,6 +318,8 @@ async function boot() {
       if (!SAVE.team.length && ACC.battleTeam.length) { for (const sp of ACC.battleTeam) SAVE.team.push(keyFor(sp)); persist(); }   // 스토리는 1~3마리(v0.15.0), 개체로
     } else SAVE = load();
     titleScreen(!!ACC);
+    const fieldItem = new URLSearchParams(location.search).get('fieldItem');
+    if (fieldItem && R.data.items[fieldItem]?.heal) { menu(); healSheet(fieldItem, menu); const url = new URL(location.href); url.searchParams.delete('fieldItem'); history.replaceState(null, '', url); }
     if (TUT) setInterval(tutTick, 350);
   } catch (e) {
     app.innerHTML = `<header><h1>수비대 대결</h1></header><div class="err">${esc(e.message)}</div>`;
@@ -379,7 +381,7 @@ function menu() {
     <div class="h8bot"><nav class="h8menu">${MENU.map(([h, t, ic, e, c]) => `<a href="${my(h)}" data-h="${h}" class="h8b ${c}"><i>${ico(ic, e)}</i><span>${t}</span></a>`).join('')}</nav>
       <div class="h8go"><div class="h8stage"><small>${st ? '다음 이야기' : '이야기'}</small><b>${st ? `${esc(st.id)} ${esc(st.title)}` : '모든 이야기 완료'}</b></div>
       <button class="h8play ${ICONS.includes('btn-play') ? 'img' : ''}" id="go" aria-label="플레이">${ICONS.includes('btn-play') ? `<img src="${BASE}/duel/icons/btn-play.png" alt="">` : '<b>▶ 플레이</b>'}</button></div></div></div>`;
-  roomParallax(app.querySelector('.home8'), undefined, (x, y) => gullTip(x, y));
+  roomParallax(app.querySelector('.home8'));
   app.querySelector('#td')?.addEventListener('click', todaySheet);
   app.querySelector('#lprof').onclick = e => { e.stopPropagation(); profMenu(); };
   if (ACC) myApi('daily').then(d => { if (!d.attend.today || d.missions.some(m => !m.done && m.value >= m.goal)) app.querySelector('#td')?.insertAdjacentHTML('beforeend', '<em class="dot"></em>'); }).catch(() => {});
@@ -597,17 +599,16 @@ function modeScreen() {
       <section class="mcard camp"><div class="mhead"><i>${ico('mode-camp', '🗺️')}</i><span><b>캠페인</b><small>이야기를 따라 항구를 지키고, 상위 갈매미를 찾아 모험</small></span></div>
         <button class="mbtn main" id="mStory"><i>${ico('u-story', '📖')}</i><span><b>스토리</b><small>${st ? `${esc(st.id)} ${esc(st.title)}` : '모든 이야기 완료 · 다시 보기'}</small>${recap() ? `<small class="mrecap">${esc(recap())}</small>` : ''}</span></button>
         <button class="mbtn" id="mAdv" disabled><i>${ico('mode-adv', '🧭')}</i><span><b>모험 · 상위 갈매미 포획</b><small>준비 중 · 다음 업데이트</small></span></button>
-        <button class="mlink" id="mList">스토리 목록 · 기술·승진</button></section>
+        <button class="mbtn" id="mList"><i>${ico('u-story', '📖')}</i><span><b>스토리 목록 · 기술·승진</b><small>이야기 선택과 수비대 성장 관리</small></span></button></section>
       <section class="mcard pvp"><div class="mhead"><i>${ico('mode-pvp', '⚔️')}</i><span><b>PvP</b><small>다른 수비대의 「전투 편성」 팀과 대결 · 모두 같은 레벨</small></span></div>
         <div class="mrank" id="mRank">${ACC ? '랭크 불러오는 중…' : '로그인하면 PvP를 할 수 있어요'}</div>
         <button class="mbtn" id="mNormal" ${ACC ? '' : 'disabled'}><i>${ico('mode-normal', '🤝')}</i><span><b>일반게임</b><small>점수 없이 가볍게</small></span></button>
         <button class="mbtn" id="mRankGo" ${ACC ? '' : 'disabled'}><i>${ico('mode-rank', '🏆')}</i><span><b>랭크게임</b><small id="mRankSub">이기면 점수가 올라요</small></span></button>
-        <div class="mlinks"><button class="mlink" id="mTop" ${ACC ? '' : 'disabled'}>순위표</button><button class="mlink" id="mFree">연습(자유 대결)</button></div></section>
+        <div class="mlinks"><button class="mlink" id="mTop" ${ACC ? '' : 'disabled'}>순위표</button></div></section>
     </div>
     <button class="mback ${ICONS.includes('btn-back') ? 'img' : ''}" id="mBack" aria-label="돌아가기">${ICONS.includes('btn-back') ? `<img src="${BASE}/duel/icons/btn-back.png" alt="">` : '‹ 돌아가기'}</button></div>`;
   app.querySelector('#mStory').onclick = continueStory;
   app.querySelector('#mList').onclick = storyScreen;
-  app.querySelector('#mFree').onclick = () => pickScreen('free');
   app.querySelector('#mBack').onclick = menu;
   app.querySelector('#mNormal').onclick = () => pvpStart('normal');
   app.querySelector('#mRankGo').onclick = () => pvpStart('rank');
@@ -694,7 +695,16 @@ function openMy(h, onClose = menu) {   // onClose: 창을 닫은 뒤 갈 화면(
   ov.innerHTML = `<div class="myov-load">불러오는 중…</div><iframe src="${url}" title="내 갈매미"></iframe>`;
   const fr = ov.querySelector('iframe');
   fr.onload = () => ov.classList.add('ready');
-  const onMsg = e => { if (e.source === fr.contentWindow && e.data?.gmm === 'close') { removeEventListener('message', onMsg); ov.classList.add('out'); setTimeout(() => { ov.remove(); onClose(); }, 180); } };
+  const onMsg = async e => {
+    if (e.source !== fr.contentWindow || !['close', 'field-item'].includes(e.data?.gmm)) return;
+    const item = e.data.gmm === 'field-item' ? e.data.id : null;
+    if (item && !R.data.items[item]?.heal) return;
+    removeEventListener('message', onMsg); ov.classList.add('out');
+    setTimeout(async () => {
+      ov.remove(); onClose();
+      if (item) { try { const data = await myApi('story'); ACC.items = data.items; healSheet(item, onClose); } catch (error) { tell(error.message); } }
+    }, 180);
+  };
   addEventListener('message', onMsg);
   document.body.appendChild(ov); sfx('tap'); muteBtn(false);
 }
@@ -872,10 +882,14 @@ function dragOrder(bar) {
   });
 }
 // 전투 밖 치료(v0.14.7): 체력 회복 아이템(치료약·큰 치료약)을 골라 팀 갈매미 하나에 씀. 아이템은 서버에서 1개 빠지고, 체력은 스토리 저장에 반영
-function healSheet() {
+function healSheet(initial = null, returnTo = storyScreen) {
+  if (!ACC) return tell('로그인하면 치료약을 쓸 수 있어요.');
+  if (!SAVE.team.length) return pickScreen('story', () => healSheet(initial, returnTo));
   const healers = Object.entries(R.data.items).filter(([, d]) => d.heal), have = id => ACC.items.find(i => i.id === id)?.count ?? 0;
-  let pick = healers.find(([id]) => have(id))?.[0] ?? null, to = SAVE.team.find(id => hpFrac(id) < 1) ?? null;
+  let pick = typeof initial === 'string' && have(initial) && R.data.items[initial]?.heal ? initial : healers.find(([id]) => have(id))?.[0] ?? null, to = SAVE.team.find(id => hpFrac(id) < 1) ?? null;
   const draw = () => {
+    if (pick && !have(pick)) pick = null;
+    if (to && hpFrac(to) >= 1) to = null;
     modal.innerHTML = `<div class="sheet pick heals"><h2>🩹 치료약 쓰기 <small>시간이 지나도 차올라요(0→가득 ${R.data.storyHp?.fullMinutes ?? 60}분)</small></h2>
       ${healers.map(([id, d]) => `<button class="aug ${pick === id ? 'on' : ''}" data-i="${id}" ${have(id) ? '' : 'disabled'}><span class="ic">${ico(id, '🩹')}</span><span class="tx"><b>${esc(d.name)} <em>${have(id)}개</em></b><span>체력 ${d.heal}% 회복${have(id) ? '' : ' · 상점에서 살 수 있어요'}</span></span><span class="ck">${pick === id ? '✓' : ''}</span></button>`).join('')}
       <h2>누구에게</h2>${SAVE.team.map(id => { const u = UNITS.find(x => x.id === spOf(id)), full = hpFrac(id) >= 1;
@@ -884,7 +898,7 @@ function healSheet() {
       <div class="sw"><button class="ghost" id="hx" style="justify-content:center">닫기</button><button class="big" id="hu" ${pick && to ? '' : 'disabled'}>${pick && to ? `${esc(R.data.items[pick].name)} 쓰기` : '아이템과 갈매미를 골라요'}</button></div></div>`;
     modal.querySelectorAll('[data-i]').forEach(x => x.onclick = () => { pick = x.dataset.i; draw(); });
     modal.querySelectorAll('[data-t]').forEach(x => x.onclick = () => { to = x.dataset.t; draw(); });
-    modal.querySelector('#hx').onclick = () => { modal.hidden = true; storyScreen(); };
+    modal.querySelector('#hx').onclick = () => { modal.hidden = true; returnTo(); };
     modal.querySelector('#hu').onclick = async () => {
       modal.querySelector('#hu').disabled = true;
       try {
@@ -1159,6 +1173,7 @@ function placeMon(s) {
 addEventListener('resize', () => { if (document.getElementById('arena')) { placeMon(0); placeMon(1); } });
 
 function render() {
+  closeAugmentInfo?.();
   for (const s of [0, 1]) {
     const f = shown(s), img = document.getElementById(`m${s}`), src = sprite(f.rec.id, s === 0 ? 'back' : 'front', f.rec.stage);
     // 그림이 바뀔 때(교체): 새 그림을 다 받을 때까지 숨김. 안 그러면 브라우저가 받는 동안 이전 갈매미 그림을 그대로 보여 줌(v0.15.9)
@@ -1167,7 +1182,7 @@ function render() {
     const hp = view[s].hp[view[s].active], pct = Math.max(0, hp / f.maxHp * 100);
     const col = pct > 50 ? 'var(--hp)' : pct > 20 ? 'var(--hpmid)' : 'var(--hplow)';
     const st = Object.keys(f.status).map(k => `<span class="st">${({ burn: '화상', freeze: '빙결', sleep: '잠', bind: '묶임', rage: '폭주' })[k]}</span>`).join('');
-    const augs = b.sides[s].augs.map(id => `<span>${ico(id, AUG_ICON[id]?.[0] ?? '')}${esc(R.battleAug.get(id).name)}</span>`).join('');
+    const augs = b.sides[s].augs.map(id => `<button class="aug-chip ${augKind(id)}" data-aug-info="${id}" aria-label="${esc(R.battleAug.get(id).name)} 설명">${ico(id, AUG_ICON[id]?.[0] ?? '✨')}<span>${esc(R.battleAug.get(id).name)}</span></button>`).join('');
     const box = document.getElementById(`b${s}`), downNow = view[s].down[view[s].active];
     box.classList.toggle('down', downNow);
     img.classList.remove('st-1', 'st-2', 'st-3'); if (f.rec.stage && !tintOf(f.rec.id)) img.classList.add(`st-${f.rec.stage}`);
@@ -1177,6 +1192,7 @@ function render() {
       <div class="dots" aria-label="남은 갈매미 ${view[s].down.filter(d => !d).length}마리">${view[s].down.map((d, i) => `<i class="${d ? 'down' : ''}" title="${esc(b.sides[s].fighters[i].name)}"></i>`).join('')}</div>
       ${augs ? `<div class="augs">${augs}</div>` : ''}${s === 1 ? `<button class="finfo" ${b.turn > 1 ? '' : 'disabled'} title="${b.turn > 1 ? '상대 정보' : '한 턴이 지나면 볼 수 있어요'}">🔍 ${b.turn > 1 ? '정보' : '1턴 뒤'}</button>` : ''}`;
     if (s === 1) box.querySelector('.finfo').onclick = e => { e.stopPropagation(); if (b.turn > 1 && b.phase === 'action' && !busy) foeInfo(); };
+    box.querySelectorAll('[data-aug-info]').forEach(button => button.onclick = e => { e.stopPropagation(); augmentInfo(button, button.dataset.augInfo); });
   }
   // 상태창 높이가 바뀐 뒤 위치를 계산해야 큰 글자·여러 증강체도 반영된다.
   for (const s of [0, 1]) placeMon(s);
@@ -1215,6 +1231,30 @@ const AUG_ICON = { reverse: ['🔄', '상성 뒤집기'], weakguard: ['🛡️',
   lastone: ['🔥', '역전'], strip: ['✂️', '약화'], rustle: ['🍤', '멈추기'], peanut: ['🥜', '공격'],
   sharp: ['🦅', '급소'], swift: ['💨', '속도'], thick: ['🪶', '방어'], overtime: ['💪', '공격'], drain: ['🍗', '흡수'], thorns: ['🌵', '반사'], pierce: ['📌', '관통'], lunch: ['🍱', '지속 회복'] };
 const FLIP = ['camo', 'reverse', 'weakguard', 'neutral', 'dual', 'counter'];   // 상성이 불리할 때 쓸 만한 것
+const AUG_KINDS = {
+  attack: ['focus', 'dual', 'first', 'lastone', 'peanut', 'sharp', 'overtime', 'drain', 'pierce'],
+  defense: ['weakguard', 'counter', 'learn', 'bulwark', 'firstaid', 'thick', 'thorns', 'lunch'],
+};
+const augKind = id => Object.entries(AUG_KINDS).find(([, ids]) => ids.includes(id))?.[0] ?? 'utility';
+const augKindName = id => ({ attack: '공격', defense: '수비', utility: '유틸' })[augKind(id)];
+let closeAugmentInfo = null;
+function augmentInfo(anchor, id) {
+  closeAugmentInfo?.();
+  const a = R.battleAug.get(id); if (!a) return;
+  const tip = document.createElement('div'); tip.className = `augment-info ${augKind(id)}`;
+  tip.setAttribute('role', 'dialog'); tip.setAttribute('aria-label', `${a.name} 설명`);
+  const category = AUG_ICON[id]?.[1] ?? '';
+  tip.innerHTML = `<button class="aug-tip-close" aria-label="닫기">✕</button><small>${augKindName(id)}${category && category !== augKindName(id) ? ` · ${esc(category)}` : ''}</small><b>${esc(a.name)}</b><p>${esc(a.desc)}</p>`;
+  document.body.append(tip);
+  const r = anchor.getBoundingClientRect(), width = tip.offsetWidth, height = tip.offsetHeight;
+  tip.style.left = `${Math.max(8, Math.min(innerWidth - width - 8, r.left))}px`;
+  tip.style.top = `${Math.max(8, Math.min(innerHeight - height - 8, r.bottom + height + 8 < innerHeight ? r.bottom + 8 : r.top - height - 8))}px`;
+  const close = () => { tip.remove(); document.removeEventListener('pointerdown', outside, true); document.removeEventListener('keydown', key); removeEventListener('resize', close); closeAugmentInfo = null; };
+  const outside = e => { if (!tip.contains(e.target) && !anchor.contains(e.target)) close(); };
+  const key = e => { if (e.key === 'Escape') { close(); if (anchor.isConnected) anchor.focus(); } };
+  tip.querySelector('button').onclick = () => { close(); if (anchor.isConnected) anchor.focus(); };
+  document.addEventListener('pointerdown', outside, true); document.addEventListener('keydown', key); addEventListener('resize', close); closeAugmentInfo = close;
+}
 const multTag = m => m > 1 ? `<b class="good">×${m} 유리</b>` : m < 1 ? `<b class="bad">×${m} 불리</b>` : '<b>×1 보통</b>';
 
 function chooseSheet(p) {
@@ -1238,7 +1278,7 @@ function chooseSheet(p) {
       ${showAug ? `${step === 'aug' ? '<p class="steps">① 증강체 고르기 → ② 다음 갈매미</p>' : ''}<h2>전투 증강체</h2><p class="sub">${b.turn === 1 ? '대결 시작' : '전투불가 발생'} · 3개 중 하나를 골라요. 마음에 안 들면 칸마다 한 번씩 🎲 다시 뽑을 수 있어요.</p>${vs}
         ${hintNow && b.turn === 1 ? `<div class="tipline">💡 ${hl(hintNow)}</div>` : ''}
         ${p.augments.map(id => { const a = R.battleAug.get(id), [ic, kind] = AUG_ICON[id] ?? ['✨', ''], rec = bad && FLIP.includes(id);
-          return `<div class="augc"><button class="aug ${aug === id ? 'on' : ''}" data-a="${id}"><span class="ic">${ico(id, ic)}</span><span class="tx"><b>${esc(a.name)}${rec ? '<em>지금 추천</em>' : ''}</b><small>${esc(kind)}</small><span>${esc(a.desc)}</span></span><span class="ck">${aug === id ? '✓' : ''}</span></button>
+          return `<div class="augc ${augKind(id)}"><button class="aug ${aug === id ? 'on' : ''}" data-a="${id}"><span class="ic">${ico(id, ic)}</span><span class="tx"><b>${esc(a.name)}${rec ? '<em>지금 추천</em>' : ''}</b><small>${augKindName(id)}${kind && kind !== augKindName(id) ? ` · ${esc(kind)}` : ''}</small><span>${esc(a.desc)}</span></span><span class="ck">${aug === id ? '✓' : ''}</span></button>
             <button class="ghost reroll" data-r="${p.augments.indexOf(id)}" ${rr[p.augments.indexOf(id)] ? 'disabled' : ''}>${rr[p.augments.indexOf(id)] ? '다시 뽑기 끝' : '🎲 다시 뽑기'}</button></div>`; }).join('')}` : ''}
       ${showSw ? `${step === 'sw' ? `<p class="steps"><button class="ghost" id="backAug">‹ 증강체 다시 고르기</button><span>✓ 증강체 「${esc(R.battleAug.get(aug).name)}」 → ② 다음 갈매미</span></p>` : ''}<h2>다음에 나갈 갈매미</h2><p class="sub">상대: ${esc(foe.name)} ${chip(foe.attr)}</p>
         ${alive.map(([f, i]) => { const m = R.typeMult(f.attr, foe.attr), pct = Math.round(f.hp / f.maxHp * 100);

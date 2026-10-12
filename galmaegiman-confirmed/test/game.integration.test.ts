@@ -51,6 +51,33 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     return p;
   }
 
+  it('카드 보호 API는 로그인한 사람의 대기 중인 개체만 보호하고 보호 수를 반환한다',async()=>{
+    const p=await fixtures(['D1','D1']);
+    const other=await db.player.create({data:{identity:'other-owner'}});
+    const otherUnit=await db.ownedCharacter.create({data:{playerId:other.id,characterId:'D1',obtainedVia:'TEST'}});
+    const away=await db.ownedCharacter.create({data:{playerId:p.id,characterId:'D1',status:'EXPEDITION',obtainedVia:'TEST'}});
+    const app=await buildApp(db,game,{secret:'protect-test-secret'.repeat(3),baseUrl:async()=>'https://example.com'});
+    try{
+      const code=(await send('웹 로그인')).text!.match(/\b\d{6}\b/)![0];
+      const login=await app.inject({method:'POST',url:'/my/api/login',payload:{code},headers:{'x-gmm':'1'}});
+      const cookie=String(login.headers['set-cookie']).split(';')[0];
+      const post=(payload:object,headers:Record<string,string>={'x-gmm':'1',cookie})=>app.inject({method:'POST',url:'/my/api/units/protect',payload,headers});
+      expect((await post({id:'D1',locked:true},{cookie})).statusCode).toBe(403);
+      expect((await post({id:'D1',locked:true},{'x-gmm':'1'})).statusCode).toBe(401);
+      expect((await post({id:'D1',locked:'true'})).statusCode).toBe(400);
+      expect((await post({id:'missing',locked:true})).statusCode).toBe(400);
+      expect((await post({id:'D1',locked:true})).statusCode).toBe(200);
+      expect(await db.ownedCharacter.count({where:{playerId:p.id,locked:true}})).toBe(2);
+      expect((await db.ownedCharacter.findUniqueOrThrow({where:{id:otherUnit.id}})).locked).toBe(false);
+      expect((await db.ownedCharacter.findUniqueOrThrow({where:{id:away.id}})).locked).toBe(false);
+      expect((await game.webMe(p.id))!.units.find(u=>u.id==='D1')).toMatchObject({have:3,away:1,locked:2});
+      expect((await post({id:'D1',locked:false})).statusCode).toBe(200);
+      expect(await db.ownedCharacter.count({where:{playerId:p.id,locked:true}})).toBe(0);
+      const images=await app.inject({method:'GET',url:'/image-state.js'});
+      expect(images.statusCode).toBe(200);expect(images.headers['content-type']).toContain('javascript');
+    }finally{await app.close();}
+  });
+
   it('신규 30장, 첫 받기는 즉시 +10, 1시간 쿨타임, 늦어도 1회분만',async()=>{
     expect((await send('내정보')).text).toContain('🎟 30장');
     expect((await send('뽑기권 받기')).text).toContain('뽑기권 +10');

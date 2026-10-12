@@ -1134,13 +1134,13 @@ export class GameService {
     const p=await this.db.player.findUnique({where:{id:playerId}});
     if(!p)return null;
     const [owned,dex,trip,kakao]=await Promise.all([
-      this.db.ownedCharacter.groupBy({by:['characterId','status'],where:{playerId,status:{in:['AVAILABLE','EXPEDITION']}},_count:{_all:true}}),
+      this.db.ownedCharacter.groupBy({by:['characterId','status','locked'],where:{playerId,status:{in:['AVAILABLE','EXPEDITION']}},_count:{_all:true}}),
       this.db.collectionEntry.count({where:{playerId}}),
       this.db.expedition.findFirst({where:{playerId,claimedAt:null}}),
       this.db.kakaoLink.count({where:{playerId}}),
     ]);
-    const by=new Map<string,{have:number;away:number}>();
-    for(const r of owned){const e=by.get(r.characterId)??{have:0,away:0};e.have+=r._count._all;if(r.status==='EXPEDITION')e.away+=r._count._all;by.set(r.characterId,e);}
+    const by=new Map<string,{have:number;away:number;locked:number}>();
+    for(const r of owned){const e=by.get(r.characterId)??{have:0,away:0,locked:0};e.have+=r._count._all;if(r.status==='EXPEDITION')e.away+=r._count._all;else if(r.locked)e.locked+=r._count._all;by.set(r.characterId,e);}
     const units=[...by].map(([id,e])=>{const c=this.content.map.get(id)!;return {id,name:c.name,tier:c.rarity,tierName:rarityNames[c.rarity],top:topTiers.has(c.rarity),synergy:c.synergy??null,quote:c.quote,tagline:c.tagline,intro:c.introduction,...e};})   // 한마디·소개: 게임 안 갈매미 상세 화면용(가진 갈매미만)
       .sort((a,b)=>tiers[b.tier]-tiers[a.tier]||this.content.map.get(a.id)!.position-this.content.map.get(b.id)!.position);
     const ids=(s:string)=>s?s.split(',').filter(id=>this.content.map.has(id)):[];
@@ -1167,6 +1167,16 @@ export class GameService {
     return this.confirm(tx,p,token,now);
   }
   private replyText=(r:GameReply)=>(r.text??'').trim();
+  async webProtect(playerId:string,id:string,locked:boolean){
+    if(!this.content.map.has(id))throw new GameError('없는 갈매미예요.');
+    return this.webRun(playerId,async(tx,p)=>{
+      const changed=await tx.ownedCharacter.updateMany({where:{playerId:p.id,characterId:id,status:'AVAILABLE',locked:!locked},data:{locked}});
+      if(!changed.count)throw new GameError('보호 상태를 바꿀 갈매미가 없어요. 탐험·보유 상태를 확인해 주세요.');
+      await tx.player.update({where:{id:p.id},data:{revision:{increment:1}}});
+      await this.audit(tx,p,'LOCK',{characterId:id,count:changed.count,locked});
+      return `${changed.count}마리 ${locked?'보호했어요':'보호를 해제했어요'}`;
+    });
+  }
   // 탐험 편성(카톡 「탐험」과 같은 편성): 최상위 유닛 종류 id 목록(같은 유닛 여러 번 가능)
   async webSetParty(playerId:string,ids:string[]){
     if(!Array.isArray(ids)||ids.some(id=>typeof id!=='string'||!this.topIds.includes(id)))throw new GameError('탐험은 최상위 갈매미만 보낼 수 있어요.');

@@ -64,6 +64,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     return file(reply,ext==='jpg'?'image/jpeg':`image/${ext}`,`public/web/img/${req.params.file}`);
   });
   app.get('/my/my.js',async(_req,reply)=>file(reply,'text/javascript; charset=utf-8','public/my/my.js'));
+  app.get('/image-state.js',async(_req,reply)=>file(reply,'text/javascript; charset=utf-8','public/image-state.js'));
   // 로그인: 6자리 코드(같은 곳에서 1분에 10번까지)
   app.post<{Body:{code?:unknown}}>('/my/api/login',{config:{rateLimit:{max:10,timeWindow:'1 minute',keyGenerator:ipKey('mylogin')}}},async(req,reply)=>{
     if(!guard(req,reply))return;
@@ -115,6 +116,10 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     catch(e){if(e instanceof GameError)return reply.code(400).send({error:e.message});throw e;}
   });
   act<{ids?:unknown}>('/my/api/party',(id,b)=>game.webSetParty(id,b.ids as string[]));
+  act<{id?:unknown;locked?:unknown}>('/my/api/units/protect',(id,b)=>{
+    if(typeof b.id!=='string'||typeof b.locked!=='boolean')throw new GameError('갈매미와 보호 상태를 확인해 주세요.');
+    return game.webProtect(id,b.id,b.locked);
+  });
   act('/my/api/expedition/start',id=>game.webStartExpedition(id));
   act('/my/api/expedition/claim',id=>game.webClaimExpedition(id));
   act<{item?:unknown;count?:unknown}>('/my/api/shop',(id,b)=>{

@@ -1878,7 +1878,22 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
 /* 편성 카드(v0.16.2): 개체 번호·타고난 기술 */
 .card b .no{font-style:normal;font-size:.75em;color:#a3541b;margin-left:2px}
 .card .sks{font-size:10.5px;line-height:1.3;color:var(--dim);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* 증강체는 공격/유틸/수비 색과 이름을 함께 표시한다. */
+.attack{--aug-color:#b94339;--aug-soft:#ffe4df}.utility{--aug-color:#927017;--aug-soft:#fff1b7}.defense{--aug-color:#326eaa;--aug-soft:#dceeff}
+.sheet.pick.full .augc .aug{border-color:var(--aug-color);background:linear-gradient(170deg,#fffaf0,var(--aug-soft))}
+.sheet.pick.full .augc .aug .tx small{background:var(--aug-color)}
+.sheet.pick.full .augc .aug .ic{box-shadow:0 0 0 3px var(--aug-color),0 0 0 6px #fffaf0,0 3px 6px #3c230f55}
+.sheet.pick.full .augc .aug.on{border-color:var(--aug-color);outline:3px solid var(--aug-color);outline-offset:3px}
+#arena .box>.augs{gap:4px}
+.aug-chip{display:inline-flex;align-items:center;gap:3px;min-height:28px;padding:2px 6px;border:1px solid var(--aug-color);border-radius:999px;background:var(--aug-soft);color:var(--aug-color);font:inherit;font-size:.8em;cursor:pointer;max-width:100%}
+.aug-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aug-chip:focus-visible{outline:3px solid var(--aug-color);outline-offset:2px}
+.augment-info{position:fixed;z-index:1200;box-sizing:border-box;width:min(310px,calc(100vw - 16px));max-height:calc(100dvh - 16px);overflow:auto;padding:14px 36px 12px 14px;border:2px solid var(--aug-color);border-radius:14px;background:#fffaf0;color:#493323;box-shadow:0 5px 24px #26180855;font-family:Jua,sans-serif}
+.augment-info small,.augment-info b{display:block}.augment-info small{color:var(--aug-color)}.augment-info p{margin:8px 0 0;line-height:1.5}
+.aug-tip-close{position:absolute;right:3px;top:3px;min-width:32px;min-height:32px;border:0;border-radius:8px;background:var(--aug-soft);color:var(--aug-color);cursor:pointer}
+img.art-fallback{object-fit:contain !important;background:#eee4ce}
 </style>
+<script src="/image-state.js"></script>
 </head>
 <body>
 <div id="app"><div class="ttl9 ld9" role="status" aria-live="polite"><div class="i9st">

@@ -576,7 +576,29 @@ html.game .gc img.ci,html.game .btn img.ci{width:1.2em !important;height:1.2em !
 .btwrap .pd{width:min(31%,150px,calc((100dvh - 262px) / 1.25))}
 .btleft .podium{padding-top:24px}
 @media (orientation:landscape) and (max-height:430px){ .btwrap .pd{width:min(31%,150px,calc((100dvh - 266px) / 1.2))} .btleft .podium{padding-top:20px} .bthead{min-height:0;flex:none} }
+/* PDF 메모: 목록 검색, 가로 카드 선반, 간단한 저장 표시 */
+.unit-search{display:flex;align-items:center;gap:8px;margin:8px 0 10px}
+.unit-search input{flex:1;min-width:0;padding:9px 12px;border:2px solid var(--edge);border-radius:12px;background:#fffaf0;color:var(--text);font:inherit}
+.unit-menu{position:fixed;inset:0;z-index:1000;background:#241b17aa;display:grid;place-items:center;padding:16px}
+.unit-menu-box{width:min(340px,100%);max-height:90dvh;overflow:auto;background:#fffaf0;border:3px solid var(--edge);border-radius:18px;padding:16px;display:grid;gap:8px}
+.unit-menu-box h2{margin:0 0 6px;font-size:1.2rem}.unit-menu-box button{font:inherit;min-height:44px;padding:8px;border:2px solid var(--edge);border-radius:12px;background:#f8e3bb;color:var(--text)}
+.unit-menu-box button:disabled{opacity:.5}.unit-menu-box button:focus-visible,.u:focus-visible{outline:3px solid #318978;outline-offset:3px}
+.item-shelf{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(220px,32%);gap:10px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;padding-bottom:8px}
+.item-shelf>.card{margin:0;scroll-snap-align:start;display:flex;flex-direction:column;align-items:flex-start}.item-shelf .note{flex:1}.item-shelf .btn{width:100%}
+.item-shelf>.card{padding:10px 12px}.item-name{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.item-shelf .note{margin:5px 0;line-height:1.35}.item-shelf .btn{min-height:44px;padding:6px 10px}
+html.game #app.gsolo:has(.item-shelf){height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+html.game #app.gsolo:has(.item-shelf)>#body{flex:1;min-height:0;display:flex;flex-direction:column}
+html.game .item-shelf{flex:1;min-height:0;overflow-y:auto}
+.u img:not(.art-ready){background:linear-gradient(110deg,#e9d9bb,#fffaf0,#e9d9bb)}
+html.game .btgrid{display:grid;grid-template-columns:none;grid-template-rows:1fr;grid-auto-flow:column;grid-auto-columns:clamp(86px,12vw,140px);align-items:start;overflow-x:auto;overflow-y:auto;scroll-snap-type:x proximity;overscroll-behavior:contain}
+html.game .btgrid .u{scroll-snap-align:start}
+html.game .btbar{border:0;background:none;box-shadow:none;padding:3px 8px;gap:8px}
+html.game .btbar .savest{font-size:.78rem;color:var(--muted)}
+@media (orientation:portrait){.item-shelf{grid-auto-columns:80%}}
+img.art-fallback{object-fit:contain !important;background:#eee4ce}
 </style>
+<script src="/image-state.js"></script>
 </head>
 <body>
 <div id="app"><p class="empty">불러오는 중…</p></div>
