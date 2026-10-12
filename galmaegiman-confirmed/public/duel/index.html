@@ -1801,8 +1801,8 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
 #arena .box>.augs .ico{width:1em;height:1em}
 @media (orientation:landscape){
   #app:has(#arena){grid-template-columns:minmax(0,64.5fr) minmax(0,35.5fr);grid-template-rows:auto minmax(0,1fr)}
-  #app:has(#arena) .cmdbg{z-index:0;margin:-2vh -1vw -2vh -3vw;border-width:12vh 4vw 10vh 6vw;border-image:url(/duel/intro/b2_command_panel.webp) 120 90 80 150 fill / 12vh 4vw 10vh 6vw stretch}
-  #app:has(#arena) #msg{grid-row:1 !important;align-self:center;margin:9.5vh calc(5.5% + var(--sr)) 2vh 8% !important;padding:2vh max(1.8vw,10vh) 2vh 1.8vw !important;min-height:11vh !important;font-size:clamp(12px,3vh,20px);line-height:1.4}
+  #app:has(#arena) .cmdbg{z-index:0;margin:-2vh -1vw -2vh -3vw;border-width:14vh 4vw 10vh 6vw;border-image:url(/duel/intro/b4_command_panel.webp) 240 140 180 240 fill / 14vh 4vw 10vh 6vw stretch}
+  #app:has(#arena) #msg{grid-row:1 !important;align-self:center;margin:11.5vh calc(5.5% + var(--sr)) 2vh 8% !important;padding:2vh max(1.8vw,10vh) 2vh 1.8vw !important;min-height:11vh !important;font-size:clamp(12px,3vh,20px);line-height:1.4}
   #app:has(#arena) #msg::before{background:#fff2de;border:clamp(2px,.5vh,4px) solid #dba456;border-radius:999px;box-shadow:inset 0 0 0 2px #ffe4ac,0 2px 0 #9e683a}
   #app:has(#arena) #msg .lp{display:none}
   #app:has(#arena) #msg .lc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
@@ -1847,6 +1847,15 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
     #app:has(#arena) #panel .sk .kd{font-size:9px}
     #app:has(#arena) #panel .combo-btn{flex:none}
   }
+}
+/* 큰 가로 화면은 버튼 위의 여백을 전투 기록으로 채운다. 기술 선택은 기존 공간을 유지한다. */
+@media (orientation:landscape) and (min-width:1000px) and (min-height:600px){
+  #app:has(#arena):has(#panel .bmenu.img){grid-template-rows:minmax(0,1fr) auto}
+  #app:has(#arena) #panel:has(.bmenu.img){height:calc((35.5vw * .905 - .25vw) / 1.2 + 10vh);max-height:65vh}
+  #app:has(#arena):has(#panel .bmenu.img) #msg{align-self:stretch;display:flex;flex-direction:column;justify-content:safe center;gap:1em;min-height:0 !important;padding-right:1.8vw !important;font-size:clamp(20px,3.2vh,28px);overflow:auto}
+  #app:has(#arena):has(#panel .bmenu.img) #msg::before{border-radius:24px}
+  #app:has(#arena):has(#panel .bmenu.img) #msg .lp{display:block;flex:none;margin:0;font-size:.8em;line-height:1.5;color:#947455}
+  #app:has(#arena):has(#panel .bmenu.img) #msg .lc{display:block;flex:none;overflow:visible}
 }
 /* 기술 창(v0.15.9): 한 화면, 세로 넘김 없음. 배우기는 팝업 */
 #modal.full .sheet.skv{position:relative;display:grid;grid-template-columns:minmax(220px,30%) 1fr;gap:14px 20px;width:100%;max-width:none;height:100vh;height:100dvh;max-height:none;border-radius:0;border-top:0;overflow:hidden;
