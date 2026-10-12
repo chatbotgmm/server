@@ -1043,7 +1043,18 @@ function startBattle(mine, foe, end, hint, flee, seed) {   // seed: PvP는 서�
 }
 const snap = () => b.sides.map(s => ({ active: s.active, hp: s.fighters.map(f => f.hp), down: s.fighters.map(f => f.hp <= 0) }));
 const shown = s => b.sides[s].fighters[view[s].active];
-const say = t => { document.getElementById('msg').textContent = t || ''; };
+// 전투 기록(v0.15.5): 지난 줄은 흐리게 한 줄, 지금 줄은 「나/상대」 표시와 함께. [내 팀]/[상대] 머리말이나 「이름의 …」로 누구 쪽인지 앎
+const logTag = t => {
+  let m = t.match(/^\[(내 팀|상대)\] (.*)$/s), side = null, rest = t;
+  if (m) { side = m[1] === '상대' ? 1 : 0; rest = m[2]; }
+  else if (b && view) { try { side = [0, 1].find(s => t.startsWith(`${shown(s).name}의 `) || t.startsWith(`${shown(s).name}(이)`) || t.startsWith(`${shown(s).name}이 `) || t.startsWith(`${shown(s).name}가 `)) ?? null; } catch { side = null; } }
+  return `${side === null ? '' : `<em class="tg ${side ? 'foe' : 'me'}">${side ? '상대' : '나'}</em>`}${esc(rest)}`;
+};
+const say = t => {
+  const el = document.getElementById('msg'); if (!el) return;
+  const prev = el.querySelector('.lc')?.dataset.t ?? '';
+  el.innerHTML = `${prev && prev !== t ? `<span class="lp">${logTag(prev)}</span>` : ''}<span class="lc" data-t="${esc(t || '')}">${logTag(t || '')}</span>`;
+};
 // 전투 캐릭터 자리(v0.15.4, 가로 화면): 그림의 투명 여백을 뺀 「실제 그림 영역」을 재서, 정해 둔 칸 안에 비율 그대로 맞춤.
 // 같은 너비를 모두에게 주지 않고 그림마다 실제 영역으로 계산 → 아군은 날개·발이 화면 안에, 상대는 조금 크게. 발(그림 아래)은 칸 바닥 가운데
 const OPAQ = new Map();
@@ -1073,7 +1084,8 @@ function placeMon(s) {
   // 몸집(--sz)은 0.8~1배로만 반영, 보스가 아닌 상대는 0.9배
   const k = Math.max(0.8, Math.min(1, parseFloat(st.getPropertyValue('--sz')) || 1)) * (s === 1 && !img.classList.contains('boss') ? 0.9 : 1);
   // 상대 칸 위쪽은 턴 표시(🔍) 아래로: 낮은 화면에서도 겹치지 않게
-  const pill = s === 1 && arena.querySelector('.finfo')?.getBoundingClientRect(), top = Math.max(t * A.height, pill && pill.height ? pill.bottom - A.top + 8 : 0);
+  const pill = s === 1 && arena.querySelector('.finfo')?.getBoundingClientRect(), gear = s === 1 && document.querySelector('.mute')?.getBoundingClientRect();
+  const top = Math.max(t * A.height, pill && pill.height ? pill.bottom - A.top + 8 : 0, gear && gear.height && gear.left < A.right ? gear.bottom - A.top + 6 : 0);
   const RW = (r - l) * A.width * k, RH = (bt * A.height - top) * k, a = ((o.x1 - o.x0) * img.naturalWidth) / ((o.y1 - o.y0) * img.naturalHeight);
   const vw = Math.min(RW, RH * a), vh = vw / a, ew = vw / (o.x1 - o.x0), eh = vh / (o.y1 - o.y0), cx = (l + r) / 2 * A.width, by = bt * A.height;
   Object.assign(st, { left: `${cx - (o.x0 + o.x1) / 2 * ew}px`, top: `${by - o.y1 * eh}px`, width: `${ew}px`, height: `${eh}px`, right: 'auto', bottom: 'auto', maxWidth: 'none', maxHeight: 'none' });
