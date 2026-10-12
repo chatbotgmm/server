@@ -1037,6 +1037,7 @@ function startBattle(mine, foe, end, hint, flee, seed) {   // seed: PvP는 서�
     app.querySelector('#arena').classList.add('bg2');
     app.insertAdjacentHTML('afterbegin', `<div class="bbg" aria-hidden="true" style="background-image:url(${BASE}/duel/bg/deepbattle.webp${q})"></div>`);
   }
+  for (const [k, side] of [[0, 'back'], [1, 'front']]) for (const f of b.sides[k].fighters) new Image().src = sprite(f.rec.id, side, f.rec.stage);   // 교체 때 바로 보이게 양 팀 그림을 미리 받아 둠(v0.15.9)
   view = snap();
   render(); say(hint ? `💡 ${hint}` : b.log.at(-1));
   flow();
@@ -1096,7 +1097,8 @@ addEventListener('resize', () => { if (document.getElementById('arena')) { place
 function render() {
   for (const s of [0, 1]) {
     const f = shown(s), img = document.getElementById(`m${s}`), src = sprite(f.rec.id, s === 0 ? 'back' : 'front', f.rec.stage);
-    if (img.dataset.src !== src) { img.onload = () => placeMon(s); img.src = src; img.dataset.src = src; setTint(img, f.rec.id); img.style.setProperty('--sz', f.rec.id.startsWith('V') ? 1 : bodySz(f.rec.id, f.rec.stage)); }
+    // 그림이 바뀔 때(교체): 새 그림을 다 받을 때까지 숨김. 안 그러면 브라우저가 받는 동안 이전 갈매미 그림을 그대로 보여 줌(v0.15.9)
+    if (img.dataset.src !== src) { img.style.visibility = 'hidden'; img.onload = () => { if (img.dataset.src === src) { img.style.visibility = ''; placeMon(s); } }; img.onerror = () => { img.style.visibility = ''; }; img.src = src; img.dataset.src = src; if (img.complete && img.naturalWidth) img.style.visibility = ''; setTint(img, f.rec.id); img.style.setProperty('--sz', f.rec.id.startsWith('V') ? 1 : bodySz(f.rec.id, f.rec.stage)); }
     img.style.opacity = view[s].down[view[s].active] ? 0 : 1;
     if (img.complete) placeMon(s);
     const hp = view[s].hp[view[s].active], pct = Math.max(0, hp / f.maxHp * 100);
@@ -1307,15 +1309,7 @@ async function play(from) {
     say(line);
     let m, wait = 700;
     if (line.startsWith('합동기 「')) { comboFlash(line.match(/「(.+?)」/)?.[1] ?? ''); wait = 1300; }   // 「…의 …!」 모양이라 공격 문장보다 먼저
-    else if ((m = line.match(/^(.+)의 (.+)!$/))) {
-      const side = [0, 1].find(s => shown(s).name === m[1] && s !== lastAtk) ?? [0, 1].find(s => shown(s).name === m[1]) ?? lastAtk;
-      lastAtk = side; lastSkill = shown(side).skills.find(k => k.name === m[2]);
-      lunge(side);
-      if (m[2] === '다섯 번째 목소리') await fiveVoices();   // 앙~ 갈매미맨이야의 고유기: 세는 소리 연출
-      if (lastSkill?.power) await shoot(side, lastSkill.attr ?? shown(side).attr, lastSkill.hits ?? 1, glyphOf(lastSkill.name));
-      else if (lastSkill) aura(side, lastSkill.attr ?? shown(side).attr);
-      wait = lastSkill?.power ? 120 : 600;
-    } else if ((m = line.match(/화상으로 (\d+) 피해/))) {
+    else if ((m = line.match(/화상으로 (\d+) 피해/))) {
       const t = [0, 1].find(s => line.startsWith(shown(s).name)) ?? 0; hit(t, +m[1], COLOR.FIRE, false, false);
     } else if ((m = line.match(/ (\d+) 피해를 입었어요\.(.*)$/)) && !line.startsWith('역습')) {
       const t = 1 - lastAtk, big = m[2].includes('굉장');
@@ -1342,6 +1336,14 @@ async function play(from) {
       // 뒤에 있던 갈매미가 일어남: 그 갈매미만 지금 체력으로(나와 있는 갈매미의 이번 턴 피해는 줄마다 따로 보여 줌)
       for (const s of [0, 1]) b.sides[s].fighters.forEach((f, i) => { if (view[s].down[i] && f.hp > 0) { view[s].down[i] = false; view[s].hp[i] = f.hp; } });
       render();
+    } else if ((m = line.match(/^(.+)의 (.+)!$/))) {   // 공격 문장은 맨 끝에서: 「태초의 갈매미맨은 들어가고 …」처럼 이름에 「의 」가 든 교체·피해·쓰러짐 문장을 공격으로 잘못 읽지 않게(v0.15.9)
+      const side = [0, 1].find(s => shown(s).name === m[1] && s !== lastAtk) ?? [0, 1].find(s => shown(s).name === m[1]) ?? lastAtk;
+      lastAtk = side; lastSkill = shown(side).skills.find(k => k.name === m[2]);
+      lunge(side);
+      if (m[2] === '다섯 번째 목소리') await fiveVoices();   // 앙~ 갈매미맨이야의 고유기: 세는 소리 연출
+      if (lastSkill?.power) await shoot(side, lastSkill.attr ?? shown(side).attr, lastSkill.hits ?? 1, glyphOf(lastSkill.name));
+      else if (lastSkill) aura(side, lastSkill.attr ?? shown(side).attr);
+      wait = lastSkill?.power ? 120 : 600;
     }
     render();
     await sleep(wait);
@@ -1435,7 +1437,8 @@ function aura(s, attr) {
     p.animate([{ transform: 'translate(-50%,0)', opacity: 0 }, { opacity: 1, offset: .3 }, { transform: 'translate(-50%,-70px)', opacity: 0 }], { duration: 700, delay: i * 60 }).onfinish = () => p.remove();
   }
 }
-function popIn(s) { const img = document.getElementById(`m${s}`); img.getAnimations().forEach(a => a.cancel()); img.animate([{ transform: 'scale(.5)', opacity: 0 }, { transform: 'scale(1.05)', opacity: 1 }, { transform: 'scale(1)', opacity: 1 }], { duration: 420, easing: 'ease-out' }); }
+// 나오는 효과는 새 그림을 받은 뒤에(v0.15.9)
+function popIn(s) { const img = document.getElementById(`m${s}`); if (!img.complete) { img.addEventListener('load', () => popIn(s), { once: true }); return; } img.getAnimations().forEach(a => a.cancel()); img.animate([{ transform: 'scale(.5)', opacity: 0 }, { transform: 'scale(1.05)', opacity: 1 }, { transform: 'scale(1)', opacity: 1 }], { duration: 420, easing: 'ease-out' }); }
 // 「다섯 번째 목소리」: 갈매미 한 마리.. 두 마리.. 세 마리.. 네 마리.. (정적) 다섯 마리... 앙~ 갈매미맨이야~
 async function fiveVoices() {
   const fx = document.getElementById('fx'), arena = document.getElementById('arena');
