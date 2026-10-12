@@ -595,6 +595,9 @@ html.game .btgrid{display:grid;grid-template-columns:none;grid-template-rows:1fr
 html.game .btgrid .u{scroll-snap-align:start}
 html.game .btbar{border:0;background:none;box-shadow:none;padding:3px 8px;gap:8px}
 html.game .btbar .savest{font-size:.78rem;color:var(--muted)}
+@media (max-height:380px) and (orientation:landscape){
+  html.game .btgrid .u img{max-height:64px;object-fit:contain}
+}
 @media (orientation:portrait){.item-shelf{grid-auto-columns:80%}}
 img.art-fallback{object-fit:contain !important;background:#eee4ce}
 </style>
