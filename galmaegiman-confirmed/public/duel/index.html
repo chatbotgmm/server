@@ -1666,32 +1666,44 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
 .teambar button.mini[data-u]{touch-action:none;position:relative}
 .teambar button.mini.drag{z-index:5;background:#fffaf0 !important;opacity:1 !important;box-shadow:0 8px 18px rgba(60,35,15,.35) !important;transition:none}
 .teambar button.mini.drop{outline:2.5px dashed #c98a2e;outline-offset:2px}
+/* 정보창 줄(v0.15.4): 이름·레벨 → 체력바+수치 → 속성·상태·증강체(+남은 수 점). 빈 줄 없이 */
+.box .hpr{display:flex;align-items:center;gap:8px;margin:3px 0 4px}
+.box .hpr .hpb{flex:1;margin:0}
+.box .hpn{flex:none;font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums;text-align:right;min-width:3.4em}
+.box .row .chips{display:flex;flex-wrap:wrap;align-items:center;gap:3px 6px;min-width:0}
+.box .row .augs{margin:0;display:inline-flex;gap:2px 8px;flex-wrap:wrap}
+.box .row .dots{flex:none;align-self:center}
 /* ── 시안 맞춤(2640×1080 시안을 비율로 옮김): 버튼은 글자 없는 그림 + 글자 그림을 따로 겹침 ── */
 .bm .lb,.dnext .lb,.dskip .lb{position:absolute !important;inset:auto !important;left:var(--x) !important;top:var(--y) !important;transform:translate(-50%,-50%);height:auto !important;pointer-events:none}
 .dnext{position:relative}
 .dnext .lb,.dskip .lb{width:calc(var(--w) * 1%) !important}
 .bmenu.img .bm{container-type:size}
 .bmenu.img .bm>img:first-child{object-fit:fill}
-.bmenu.img .bm .lb{width:calc(var(--w) * 1.08cqh) !important;max-width:86%}
-.bmenu.img .bm small{top:86%;transform:translateY(-50%);font-weight:600;color:#6b4a2e;font-size:clamp(10px,2.6vh,16px)}
+.bmenu.img .bm .lb{width:auto !important;height:16cqh !important;max-width:84%;object-fit:contain}
+.bmenu.img .bm small{top:84%;transform:translateY(-50%);font-family:"Gowun Dodum","Apple SD Gothic Neo",sans-serif;font-weight:400 !important;font-synthesis:none;color:#5e3f24;font-size:clamp(10px,7.2cqh,17px);letter-spacing:0;font-variant-numeric:tabular-nums}
+.bmenu.img .bm small *{font:inherit;color:inherit}
 .scene .dbox #pg{font-weight:400;color:#8a7a6a}
 @media (orientation:landscape){
   /* 전투: 왼쪽 64.5% 전장 · 오른쪽 35.5% 명령판(시안 1265/1961) */
-  #app:has(#arena){grid-template-columns:minmax(0,64.5fr) minmax(0,35.5fr)}
+  #app:has(#arena){grid-template-columns:minmax(0,66.5fr) minmax(0,33.5fr)}
   #app:has(#arena) .cmdbg{margin:2px 2px 4px 0}
-  #app:has(#arena) #msg{margin:4.5vh 6% 1vh 7% !important;padding:1.2vh 14px;font-size:clamp(12px,3.2vh,20px);min-height:8.5vh;display:flex;align-items:center}
+  #app:has(#arena) #msg{margin:4.5vh calc(64px + 4% + var(--sr)) 1vh 7% !important;padding:1.2vh 14px;font-size:clamp(12px,3.2vh,20px);min-height:8.5vh;display:flex;align-items:center}
   #app:has(#arena) #panel{padding:0 5.5% calc(18px + env(safe-area-inset-bottom,0px)) 6.5% !important}
   #app:has(#arena) #panel:has(.bmenu.img){justify-content:flex-start;padding-top:3vh !important;padding-bottom:9vh !important}
   .bmenu.img{gap:2.4vh 0;grid-template-columns:auto auto;grid-template-rows:auto auto;align-content:center;justify-content:space-between}
   .bmenu.img .bm{width:min(calc(48.5cqw),calc((50cqh - 1.2vh) * 1.3));height:min(calc(50cqh - 1.2vh),calc(48.5cqw * 1.08))}
   /* 상태창·턴 알림 자리(시안: 상대 5.6~34.7%·3.7~30% / 나 30~56.9%·68~94%를 전장 칸 기준으로) */
-  #arena .box.foe{left:8.7%;top:3.7%;width:45%;min-height:min(26%,130px)}
-  #arena .box.me{left:46.5%;right:auto;bottom:3.5%;width:41.7%;min-height:min(25.5%,130px)}
+  #arena .box.foe{left:7%;top:3.7%;width:42%}
+  #arena .box.me{left:47.5%;right:auto;bottom:4%;width:40%}
   #arena .box{font-size:clamp(11px,2.7vh,17px)}
   #arena .box .nm span{font-family:"Black Han Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-weight:400;font-size:clamp(14px,3.7vh,24px)}
   #arena .box .nm em{font-size:clamp(12px,3.4vh,20px);color:#6b4a2e}
   #arena .box .hpb{height:clamp(7px,1.9vh,12px);border-radius:999px}
-  #arena .box.foe .finfo{right:-4%;top:0}
+  #arena .box .hpn{font-size:clamp(11px,2.7vh,16px);color:#6b4a2e}
+  #arena .box .row .augs{font-size:clamp(10px,2.5vh,14px);color:#8a5a12}
+  #arena .box .row .augs .ico{width:1.2em;height:1.2em}
+  #arena .box{padding:0 6px 0 !important}
+  #arena .box.foe .finfo{right:-38px;top:4px}
   #app:has(#arena) .sk .kd{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* 해저 그림 배경: 캐릭터 자리(시안 상대 36~58%·23~65%, 나 4~29%·38~94%) */
   #arena.bg2 .mon.foe{max-width:34%;object-fit:contain;object-position:50% 100%;right:12%;top:calc(58% - 39% * var(--sz,1));height:calc(39% * var(--sz,1))}

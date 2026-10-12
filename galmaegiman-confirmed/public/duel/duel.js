@@ -1044,12 +1044,49 @@ function startBattle(mine, foe, end, hint, flee, seed) {   // seed: PvP는 서�
 const snap = () => b.sides.map(s => ({ active: s.active, hp: s.fighters.map(f => f.hp), down: s.fighters.map(f => f.hp <= 0) }));
 const shown = s => b.sides[s].fighters[view[s].active];
 const say = t => { document.getElementById('msg').textContent = t || ''; };
+// 전투 캐릭터 자리(v0.15.4, 가로 화면): 그림의 투명 여백을 뺀 「실제 그림 영역」을 재서, 정해 둔 칸 안에 비율 그대로 맞춤.
+// 같은 너비를 모두에게 주지 않고 그림마다 실제 영역으로 계산 → 아군은 날개·발이 화면 안에, 상대는 조금 크게. 발(그림 아래)은 칸 바닥 가운데
+const OPAQ = new Map();
+function opaqueBox(img) {
+  const key = img.currentSrc || img.src;
+  if (OPAQ.has(key)) return OPAQ.get(key);
+  let r = { x0: 0, y0: 0, x1: 1, y1: 1 };
+  try {
+    const W = img.naturalWidth, H = img.naturalHeight, k = Math.min(1, 160 / Math.max(W, H)), w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0, w, h);
+    const d = g.getImageData(0, 0, w, h).data; let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 24) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 >= x0) r = { x0: x0 / w, y0: y0 / h, x1: (x1 + 1) / w, y1: (y1 + 1) / h };
+  } catch { /* 그림을 못 읽으면 그림 전체를 영역으로 */ }
+  OPAQ.set(key, r); return r;
+}
+// 칸: 전장(#arena) 크기에 대한 비율 [왼, 위, 오른, 아래]. 아군 = 왼쪽 아래(내 정보창 왼쪽), 상대 = 오른쪽 가운데(상대 정보창·턴 표시 아래)
+const MON_BOX = { 0: [0.05, 0.42, 0.40, 0.95], 1: [0.53, 0.16, 0.95, 0.66] };
+function placeMon(s) {
+  const img = document.getElementById(`m${s}`), arena = document.getElementById('arena');
+  if (!img || !arena) return;
+  const st = img.style, keys = ['left', 'top', 'width', 'height', 'right', 'bottom', 'maxWidth', 'maxHeight'];
+  const plat = arena.querySelector(`.plat.${s ? 'foe' : 'me'}`);
+  if (!matchMedia('(orientation:landscape)').matches || !img.naturalWidth) { for (const k of keys) { st[k] = ''; if (plat) plat.style[k] = ''; } return; }
+  const A = arena.getBoundingClientRect(), [l, t, r, bt] = MON_BOX[s], o = opaqueBox(img);
+  // 몸집(--sz)은 0.8~1배로만 반영, 보스가 아닌 상대는 0.9배
+  const k = Math.max(0.8, Math.min(1, parseFloat(st.getPropertyValue('--sz')) || 1)) * (s === 1 && !img.classList.contains('boss') ? 0.9 : 1);
+  // 상대 칸 위쪽은 턴 표시(🔍) 아래로: 낮은 화면에서도 겹치지 않게
+  const pill = s === 1 && arena.querySelector('.finfo')?.getBoundingClientRect(), top = Math.max(t * A.height, pill && pill.height ? pill.bottom - A.top + 8 : 0);
+  const RW = (r - l) * A.width * k, RH = (bt * A.height - top) * k, a = ((o.x1 - o.x0) * img.naturalWidth) / ((o.y1 - o.y0) * img.naturalHeight);
+  const vw = Math.min(RW, RH * a), vh = vw / a, ew = vw / (o.x1 - o.x0), eh = vh / (o.y1 - o.y0), cx = (l + r) / 2 * A.width, by = bt * A.height;
+  Object.assign(st, { left: `${cx - (o.x0 + o.x1) / 2 * ew}px`, top: `${by - o.y1 * eh}px`, width: `${ew}px`, height: `${eh}px`, right: 'auto', bottom: 'auto', maxWidth: 'none', maxHeight: 'none' });
+  if (plat) Object.assign(plat.style, { left: `${cx - vw * 0.55}px`, width: `${vw * 1.1}px`, top: `${by - vw * 0.08}px`, height: `${vw * 0.16}px`, right: 'auto', bottom: 'auto' });
+}
+addEventListener('resize', () => { if (document.getElementById('arena')) { placeMon(0); placeMon(1); } });
 
 function render() {
   for (const s of [0, 1]) {
     const f = shown(s), img = document.getElementById(`m${s}`), src = sprite(f.rec.id, s === 0 ? 'back' : 'front', f.rec.stage);
-    if (img.dataset.src !== src) { img.src = src; img.dataset.src = src; setTint(img, f.rec.id); img.style.setProperty('--sz', f.rec.id.startsWith('V') ? 1 : bodySz(f.rec.id, f.rec.stage)); }
+    if (img.dataset.src !== src) { img.onload = () => placeMon(s); img.src = src; img.dataset.src = src; setTint(img, f.rec.id); img.style.setProperty('--sz', f.rec.id.startsWith('V') ? 1 : bodySz(f.rec.id, f.rec.stage)); }
     img.style.opacity = view[s].down[view[s].active] ? 0 : 1;
+    if (img.complete) placeMon(s);
     const hp = view[s].hp[view[s].active], pct = Math.max(0, hp / f.maxHp * 100);
     const col = pct > 50 ? 'var(--hp)' : pct > 20 ? 'var(--hpmid)' : 'var(--hplow)';
     const st = Object.keys(f.status).map(k => `<span class="st">${({ burn: '화상', freeze: '빙결', sleep: '잠', bind: '묶임', rage: '폭주' })[k]}</span>`).join('');
@@ -1058,10 +1095,8 @@ function render() {
     box.classList.toggle('down', downNow);
     img.classList.remove('st-1', 'st-2', 'st-3'); if (f.rec.stage && !tintOf(f.rec.id)) img.classList.add(`st-${f.rec.stage}`);
     box.innerHTML = `<div class="nm"><span>${esc(f.name)}${f.rec.stage ? ` <em class="stars">${STARS[f.rec.stage]}</em>` : ''}</span>${downNow ? '<em class="ko">전투불가</em>' : `<em>Lv${f.rec.level}</em>`}</div>
-      <div class="hpb"><i style="width:${pct}%;background:${col}"></i></div>
-      <div class="row"><span>${chip(f.attr)}${f.extraAttr ? chip(f.extraAttr) : ''}${st}</span>${s === 0 ? `<small>${Math.max(0, Math.round(hp))}/${f.maxHp}</small>` : ''}</div>
-      <div class="row"><div class="dots">${view[s].down.map((d, i) => `<i class="${d ? 'down' : ''}" title="${esc(b.sides[s].fighters[i].name)}"></i>`).join('')}</div></div>
-      ${augs ? `<div class="augs">${augs}</div>` : ''}${s === 1 ? `<button class="finfo" ${b.turn > 1 ? '' : 'disabled'} title="${b.turn > 1 ? '상대 정보' : '한 턴이 지나면 볼 수 있어요'}">🔍 ${b.turn > 1 ? '정보' : '1턴 뒤'}</button>` : ''}`;
+      <div class="hpr"><div class="hpb"><i style="width:${pct}%;background:${col}"></i></div><small class="hpn">${s === 0 ? `${Math.max(0, Math.round(hp))}/${f.maxHp}` : `${Math.ceil(pct)}%`}</small></div>
+      <div class="row"><span class="chips">${chip(f.attr)}${f.extraAttr ? chip(f.extraAttr) : ''}${st}${augs ? `<span class="augs">${augs}</span>` : ''}</span><div class="dots" title="남은 갈매미">${view[s].down.map((d, i) => `<i class="${d ? 'down' : ''}" title="${esc(b.sides[s].fighters[i].name)}"></i>`).join('')}</div></div>${s === 1 ? `<button class="finfo" ${b.turn > 1 ? '' : 'disabled'} title="${b.turn > 1 ? '상대 정보' : '한 턴이 지나면 볼 수 있어요'}">🔍 ${b.turn > 1 ? '정보' : '1턴 뒤'}</button>` : ''}`;
     if (s === 1) box.querySelector('.finfo').onclick = e => { e.stopPropagation(); if (b.turn > 1 && b.phase === 'action' && !busy) foeInfo(); };
   }
 }
@@ -1182,10 +1217,10 @@ function actionPanel(pane = 'menu') {
   } else {
     const UI = APP ? 'intro' : `${BASE}/duel/intro`;   // v0.15.4 그림 버튼(글자·아이콘은 그림에 있음 → 아래 안내만 코드)
     panel.innerHTML = `<div class="bmenu img">
-      <button class="bm atk" id="bAtk" aria-label="공격"><img src="${UI}/b3_button_attack.webp" alt=""><img class="lb" src="${UI}/b3_label_attack.webp" alt="" style="--x:50%;--y:68%;--w:34"><small>기술 ${f.skills.filter(k => can({ kind: 'skill', skillId: k.id })).length}개</small></button>
-      <button class="bm bag" id="bag" aria-label="아이템" ${itemOk ? '' : 'disabled'}><img src="${UI}/b3_button_item.webp" alt=""><img class="lb" src="${UI}/b3_label_item.webp" alt="" style="--x:50%;--y:68%;--w:44"><small>${items ? `${items.n}/${items.max} · 가진 ${items.have}` : pvp ? '대전에선 못 써요' : '불러오는 중'}</small></button>
-      <button class="bm sw" id="bSw" aria-label="교체" ${swaps ? '' : 'disabled'}><img src="${UI}/b3_button_switch.webp" alt=""><img class="lb" src="${UI}/b3_label_switch.webp" alt="" style="--x:50%;--y:68%;--w:34"><small>${swaps ? `${swaps}마리 대기` : '바꿀 갈매미 없음'}</small></button>
-      <button class="bm run" id="flee" aria-label="${pvp ? '나가기' : '도망가기'}"><img src="${UI}/b3_button_run.webp" alt=""><img class="lb" src="${UI}/b3_label_run.webp" alt="" style="--x:50%;--y:70%;--w:60"><small>${pvp?.mode === 'rank' ? '패배로 처리' : pvp ? '대전 끝내기' : '경험치 없음'}</small></button></div>`;
+      <button class="bm atk" id="bAtk" aria-label="공격"><img src="${UI}/b3_button_attack.webp" alt=""><img class="lb" src="${UI}/b3_label_attack.webp" alt="" style="--x:50%;--y:66%;--w:34"><small>기술 ${f.skills.filter(k => can({ kind: 'skill', skillId: k.id })).length}개</small></button>
+      <button class="bm bag" id="bag" aria-label="아이템" ${itemOk ? '' : 'disabled'}><img src="${UI}/b3_button_item.webp" alt=""><img class="lb" src="${UI}/b3_label_item.webp" alt="" style="--x:50%;--y:66%;--w:44"><small>${items ? `${items.n}/${items.max} · 가진 ${items.have}` : pvp ? '대전에선 못 써요' : '불러오는 중'}</small></button>
+      <button class="bm sw" id="bSw" aria-label="교체" ${swaps ? '' : 'disabled'}><img src="${UI}/b3_button_switch.webp" alt=""><img class="lb" src="${UI}/b3_label_switch.webp" alt="" style="--x:50%;--y:66%;--w:34"><small>${swaps ? `${swaps}마리 대기` : '바꿀 갈매미 없음'}</small></button>
+      <button class="bm run" id="flee" aria-label="${pvp ? '나가기' : '도망가기'}"><img src="${UI}/b3_button_run.webp" alt=""><img class="lb" src="${UI}/b3_label_run.webp" alt="" style="--x:50%;--y:66%;--w:60"><small>${pvp?.mode === 'rank' ? '패배로 처리' : pvp ? '대전 끝내기' : '경험치 없음'}</small></button></div>`;
     panel.querySelector('#bAtk').onclick = () => actionPanel('fight');
     panel.querySelector('#bSw').onclick = () => actionPanel('swap');
     panel.querySelector('#bag').onclick = itemSheet;
