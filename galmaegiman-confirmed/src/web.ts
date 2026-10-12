@@ -147,15 +147,17 @@ try{const r=await fetch('/api/comments/'+b.dataset.id+'/like',{method:'POST'});i
   const bubble='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.7l-.9 3.4c-.1.4.3.7.6.5l4-2.7c.6.1 1.1.1 1.7.1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>';
   const playBtn=(big=false)=>channel?`<a class="play${big?' big':''}" href="${esc(channel)}" target="_blank" rel="noopener">${bubble}<span>카톡에서 플레이</span></a>`:'';
   const logo=()=>exists('logo')?`<img src="${img('images','logo')}" alt="갈매미맨" height="40" style="height:40px;width:auto;vertical-align:middle">`:'<img class="gi" src="/gull.png" alt=""> 갈매미맨';
+  // 사이트 이름(구글 검색 결과 「사이트 이름」): 홈 제목·og:site_name·WebSite 구조화 데이터를 같은 이름으로
+  const SITE_NAME='갈매미맨',SITE_ALT=['갈매미맨 수비대'];
   interface Og{image?:string;desc?:string}
   const page=(title:string,active:string,body:string,q='',og:Og={})=>`<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(title)} · 갈매미맨</title>
+<title>${active==='/'?SITE_NAME:`${esc(title)} · ${SITE_NAME}`}</title>
 <meta name="description" content="${esc(og.desc??'돌로 된 갈매미들이 항구 수비대에 출근하는 섬, 갈매미 섬 이야기')}">
-<meta property="og:type" content="website"><meta property="og:site_name" content="갈매미맨"><meta property="og:description" content="${esc(og.desc??'돌로 된 갈매미들이 항구 수비대에 출근하는 섬, 갈매미 섬 이야기')}">
+<meta property="og:type" content="website"><meta property="og:site_name" content="${SITE_NAME}"><meta property="og:description" content="${esc(og.desc??'돌로 된 갈매미들이 항구 수비대에 출근하는 섬, 갈매미 섬 이야기')}">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/icon-192.png"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#164b80"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
-<meta property="og:title" content="${esc(title)} · 갈매미맨"><meta property="og:image" content="${site}${og.image??img('images','C1')}">
+<meta property="og:title" content="${active==='/'?SITE_NAME:`${esc(title)} · ${SITE_NAME}`}"><meta property="og:image" content="${site}${og.image??img('images','C1')}">
 <style>
 :root{--c1:#2a6fc0;--c2:#d9483b;--c3:#0f8a7b;--c4:#7a4fd0;--c5:#b06f00;--c6:#c93f7c;--bg:#f7f0e3;--card:#fffdf8;--text:#2d2a26;--muted:#6f675c;--line:#e8dcc6;--edge:#d8c7a6;--accent:#1d5b94;--accent-soft:#e2edf7;--gold:#d9a400;
  --sea1:#2b7cc4;--sea2:#164b80;--sky:#9fd3f5;--shadow:0 2px 0 var(--edge),0 10px 24px rgba(80,55,20,.07)}
@@ -411,7 +413,8 @@ footer a{color:var(--muted)}
     if(path==='/search')return '<meta name="robots" content="noindex">';
     const k=new URLSearchParams(qs).get('k');
     const keep=path==='/rank'&&k&&/^(dex|top|week)$/.test(k)?`?k=${k}`:'';
-    return site?`<link rel="canonical" href="${esc(site+path+keep)}">`:'';
+    const ld=path==='/'&&site?`<meta property="og:url" content="${esc(site)}/"><script type="application/ld+json">${JSON.stringify({'@context':'https://schema.org','@type':'WebSite',name:SITE_NAME,alternateName:SITE_ALT,url:`${site}/`}).replace(/</g,'\\u003c')}</script>`:'';
+    return site?`<link rel="canonical" href="${esc(site+path+keep)}">${ld}`:'';
   };
   const send=(reply:FastifyReply,html:string,maxAge=300)=>reply.type('text/html; charset=utf-8').header('Cache-Control',`public, max-age=${maxAge}`)
     .send(html.replace('</head>',`${headFor(reply.request.url)}</head>`));
