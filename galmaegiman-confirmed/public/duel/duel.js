@@ -1046,12 +1046,12 @@ function startBattle(mine, foe, end, hint, flee, seed) {   // seed: PvP는 서�
   app.innerHTML = `<div id="arena" class="sc-${sceneNow || 'harbor'}">${ambient(sceneNow || 'harbor')}<div class="ground"></div><div class="haze"></div><div class="plat foe"></div><div class="plat me"></div>
     <img class="mon foe ${boss ? 'boss' : ''}" id="m1" alt=""><img class="mon me" id="m0" alt="">
     <div class="box foe" id="b1"></div><div class="box me" id="b0"></div><div id="fx"></div></div>
-    <div class="cmdbg" aria-hidden="true"></div><div id="msg"></div><div id="panel"></div>`;
+    <div class="cmdbg" aria-hidden="true"></div><div id="msg" role="log" aria-live="polite"></div><div id="panel"></div>`;
   if (sceneNow === 'deep') {   // v0.15.4: 해저(deep)는 새 전투 배경(한 장 그림)을 화면 전체(오른쪽 명령판 뒤까지)에
     app.querySelector('#arena').classList.add('bg2');
     app.insertAdjacentHTML('afterbegin', `<div class="bbg" aria-hidden="true" style="background-image:url(${BASE}/duel/bg/deepbattle.webp${q})"></div>`);
   }
-  for (const [k, side] of [[0, 'back'], [1, 'front']]) for (const f of b.sides[k].fighters) { const im = new Image(); im.src = sprite(f.rec.id, side, f.rec.stage); }   // 교체 때 바로 보이게 미리 받기
+  for (const [k, side] of [[0, 'back'], [1, 'front']]) for (const f of b.sides[k].fighters) new Image().src = sprite(f.rec.id, side, f.rec.stage);   // 교체 때 바로 보이게 양 팀 그림을 미리 받아 둠(v0.15.9)
   view = snap();
   render(); say(hint ? `💡 ${hint}` : b.log.at(-1));
   flow();
@@ -1088,7 +1088,7 @@ function opaqueBox(img) {
   OPAQ.set(key, r); return r;
 }
 // 칸: 전장(#arena) 크기에 대한 비율 [왼, 위, 오른, 아래]. 아군 = 왼쪽 아래(내 정보창 왼쪽), 상대 = 오른쪽 가운데(상대 정보창·턴 표시 아래)
-const MON_BOX = { 0: [0.05, 0.42, 0.40, 0.95], 1: [0.53, 0.16, 0.95, 0.66] };
+const MON_BOX = { 0: [0.04, 0.40, 0.44, 0.93], 1: [0.55, 0.23, 0.93, 0.65] };
 function placeMon(s) {
   const img = document.getElementById(`m${s}`), arena = document.getElementById('arena');
   if (!img || !arena) return;
@@ -1101,8 +1101,11 @@ function placeMon(s) {
   // 상대 칸 위쪽은 턴 표시(🔍) 아래로: 낮은 화면에서도 겹치지 않게
   const pill = s === 1 && arena.querySelector('.finfo')?.getBoundingClientRect(), gear = s === 1 && document.querySelector('.mute')?.getBoundingClientRect();
   const top = Math.max(t * A.height, pill && pill.height ? pill.bottom - A.top + 8 : 0, gear && gear.height && gear.left < A.right ? gear.bottom - A.top + 6 : 0);
-  const RW = (r - l) * A.width * k, RH = (bt * A.height - top) * k, a = ((o.x1 - o.x0) * img.naturalWidth) / ((o.y1 - o.y0) * img.naturalHeight);
-  const vw = Math.min(RW, RH * a), vh = vw / a, ew = vw / (o.x1 - o.x0), eh = vh / (o.y1 - o.y0), cx = (l + r) / 2 * A.width, by = bt * A.height;
+  // 큰 글자·긴 증강체로 내 상태창이 위로 커져도 상대 그림이 그 아래로 들어가지 않게 한다.
+  const meBox = s === 1 && document.getElementById('b0')?.getBoundingClientRect();
+  const by = Math.min(bt * A.height, meBox && meBox.height ? meBox.top - A.top - A.height * .02 : Infinity);
+  const RW = (r - l) * A.width * k, RH = Math.max(1, by - top) * k, a = ((o.x1 - o.x0) * img.naturalWidth) / ((o.y1 - o.y0) * img.naturalHeight);
+  const vw = Math.min(RW, RH * a), vh = vw / a, ew = vw / (o.x1 - o.x0), eh = vh / (o.y1 - o.y0), cx = (l + r) / 2 * A.width;
   Object.assign(st, { left: `${cx - (o.x0 + o.x1) / 2 * ew}px`, top: `${by - o.y1 * eh}px`, width: `${ew}px`, height: `${eh}px`, right: 'auto', bottom: 'auto', maxWidth: 'none', maxHeight: 'none' });
   if (plat) Object.assign(plat.style, { left: `${cx - vw * 0.55}px`, width: `${vw * 1.1}px`, top: `${by - vw * 0.08}px`, height: `${vw * 0.16}px`, right: 'auto', bottom: 'auto' });
 }
@@ -1111,10 +1114,9 @@ addEventListener('resize', () => { if (document.getElementById('arena')) { place
 function render() {
   for (const s of [0, 1]) {
     const f = shown(s), img = document.getElementById(`m${s}`), src = sprite(f.rec.id, s === 0 ? 'back' : 'front', f.rec.stage);
-    // 그림이 바뀔 때(교체): 새 그림을 다 받을 때까지 숨김. 안 그러면 브라우저가 이전 갈매미 그림을 계속 보여 줌(v0.15.8)
+    // 그림이 바뀔 때(교체): 새 그림을 다 받을 때까지 숨김. 안 그러면 브라우저가 받는 동안 이전 갈매미 그림을 그대로 보여 줌(v0.15.9)
     if (img.dataset.src !== src) { img.style.visibility = 'hidden'; img.onload = () => { if (img.dataset.src === src) { img.style.visibility = ''; placeMon(s); } }; img.onerror = () => { img.style.visibility = ''; }; img.src = src; img.dataset.src = src; if (img.complete && img.naturalWidth) img.style.visibility = ''; setTint(img, f.rec.id); img.style.setProperty('--sz', f.rec.id.startsWith('V') ? 1 : bodySz(f.rec.id, f.rec.stage)); }
     img.style.opacity = view[s].down[view[s].active] ? 0 : 1;
-    if (img.complete) placeMon(s);
     const hp = view[s].hp[view[s].active], pct = Math.max(0, hp / f.maxHp * 100);
     const col = pct > 50 ? 'var(--hp)' : pct > 20 ? 'var(--hpmid)' : 'var(--hplow)';
     const st = Object.keys(f.status).map(k => `<span class="st">${({ burn: '화상', freeze: '빙결', sleep: '잠', bind: '묶임', rage: '폭주' })[k]}</span>`).join('');
@@ -1123,10 +1125,14 @@ function render() {
     box.classList.toggle('down', downNow);
     img.classList.remove('st-1', 'st-2', 'st-3'); if (f.rec.stage && !tintOf(f.rec.id)) img.classList.add(`st-${f.rec.stage}`);
     box.innerHTML = `<div class="nm"><span>${esc(f.name)}${f.rec.stage ? ` <em class="stars">${STARS[f.rec.stage]}</em>` : ''}</span>${downNow ? '<em class="ko">전투불가</em>' : `<em>Lv${f.rec.level}</em>`}</div>
-      <div class="hpr"><div class="hpb"><i style="width:${pct}%;background:${col}"></i></div><small class="hpn">${s === 0 ? `${Math.max(0, Math.round(hp))}/${f.maxHp}` : `${Math.ceil(pct)}%`}</small></div>
-      <div class="row"><span class="chips">${chip(f.attr)}${f.extraAttr ? chip(f.extraAttr) : ''}${st}${augs ? `<span class="augs">${augs}</span>` : ''}</span><div class="dots" title="남은 갈매미">${view[s].down.map((d, i) => `<i class="${d ? 'down' : ''}" title="${esc(b.sides[s].fighters[i].name)}"></i>`).join('')}</div></div>${s === 1 ? `<button class="finfo" ${b.turn > 1 ? '' : 'disabled'} title="${b.turn > 1 ? '상대 정보' : '한 턴이 지나면 볼 수 있어요'}">🔍 ${b.turn > 1 ? '정보' : '1턴 뒤'}</button>` : ''}`;
+      <div class="hpr"><div class="hpb" role="meter" aria-label="${esc(f.name)} 체력" aria-valuemin="0" aria-valuemax="${f.maxHp}" aria-valuenow="${Math.max(0, Math.round(hp))}"><i style="width:${pct}%;background:${col}"></i></div></div>
+      <div class="row"><span class="chips">${chip(f.attr)}${f.extraAttr ? chip(f.extraAttr) : ''}${st}</span><small class="hpn">${s === 0 ? `${Math.max(0, Math.round(hp))}/${f.maxHp}` : `${Math.ceil(pct)}%`}</small></div>
+      <div class="dots" aria-label="남은 갈매미 ${view[s].down.filter(d => !d).length}마리">${view[s].down.map((d, i) => `<i class="${d ? 'down' : ''}" title="${esc(b.sides[s].fighters[i].name)}"></i>`).join('')}</div>
+      ${augs ? `<div class="augs">${augs}</div>` : ''}${s === 1 ? `<button class="finfo" ${b.turn > 1 ? '' : 'disabled'} title="${b.turn > 1 ? '상대 정보' : '한 턴이 지나면 볼 수 있어요'}">🔍 ${b.turn > 1 ? '정보' : '1턴 뒤'}</button>` : ''}`;
     if (s === 1) box.querySelector('.finfo').onclick = e => { e.stopPropagation(); if (b.turn > 1 && b.phase === 'action' && !busy) foeInfo(); };
   }
+  // 상태창 높이가 바뀐 뒤 위치를 계산해야 큰 글자·여러 증강체도 반영된다.
+  for (const s of [0, 1]) placeMon(s);
 }
 // 상대 정보(한 턴이 지난 뒤): 능력치·역할·기술·증강체. 숫자는 레벨·승진이 반영된 이번 전투 값
 function foeInfo() {
@@ -1245,10 +1251,10 @@ function actionPanel(pane = 'menu') {
   } else {
     const UI = APP ? 'intro' : `${BASE}/duel/intro`;   // v0.15.4 그림 버튼(글자·아이콘은 그림에 있음 → 아래 안내만 코드)
     panel.innerHTML = `<div class="bmenu img">
-      <button class="bm atk" id="bAtk" aria-label="공격" title="기술 ${f.skills.filter(k => can({ kind: 'skill', skillId: k.id })).length}개"><img src="${UI}/b3_button_attack.webp" alt=""><img class="lb" src="${UI}/b3_label_attack.webp" alt="" style="--x:50%;--y:66%;--w:34"></button>
-      <button class="bm bag" id="bag" aria-label="아이템" ${itemOk ? '' : 'disabled'} title="${items ? `${items.n}/${items.max} · 가진 ${items.have}` : pvp ? '대전에선 못 써요' : '불러오는 중'}"><img src="${UI}/b3_button_item.webp" alt=""><img class="lb" src="${UI}/b3_label_item.webp" alt="" style="--x:50%;--y:66%;--w:44"></button>
-      <button class="bm sw" id="bSw" aria-label="교체" ${swaps ? '' : 'disabled'} title="${swaps ? `${swaps}마리 대기` : '바꿀 갈매미 없음'}"><img src="${UI}/b3_button_switch.webp" alt=""><img class="lb" src="${UI}/b3_label_switch.webp" alt="" style="--x:50%;--y:66%;--w:34"></button>
-      <button class="bm run" id="flee" aria-label="${pvp ? '나가기' : '도망가기'}" title="${pvp?.mode === 'rank' ? '패배로 처리' : pvp ? '대전 끝내기' : '경험치 없음'}"><img src="${UI}/b3_button_run.webp" alt=""><img class="lb" src="${UI}/b3_label_run.webp" alt="" style="--x:50%;--y:66%;--w:60"></button></div>`;
+      <button class="bm atk" id="bAtk" aria-label="공격" title="기술 ${f.skills.filter(k => can({ kind: 'skill', skillId: k.id })).length}개"><img src="${UI}/b3_button_attack.webp" alt=""><img class="lb" src="${UI}/b3_label_attack.webp" alt="" style="--x:50%;--y:66%;--w:34"><small>기술 ${f.skills.filter(k => can({ kind: 'skill', skillId: k.id })).length}개</small></button>
+      <button class="bm bag" id="bag" aria-label="아이템" ${itemOk ? '' : 'disabled'} title="${items ? `${items.n}/${items.max} · 가진 ${items.have}` : pvp ? '대전에선 못 써요' : '불러오는 중'}"><img src="${UI}/b3_button_item.webp" alt=""><img class="lb" src="${UI}/b3_label_item.webp" alt="" style="--x:50%;--y:66%;--w:44"><small>${items ? `${items.n}/${items.max} · 가진 ${items.have}` : pvp ? '대전에선 못 써요' : '불러오는 중'}</small></button>
+      <button class="bm sw" id="bSw" aria-label="교체" ${swaps ? '' : 'disabled'} title="${swaps ? `${swaps}마리 대기` : '바꿀 갈매미 없음'}"><img src="${UI}/b3_button_switch.webp" alt=""><img class="lb" src="${UI}/b3_label_switch.webp" alt="" style="--x:50%;--y:66%;--w:34"><small>${swaps ? `${swaps}마리 대기` : '바꿀 갈매미 없음'}</small></button>
+      <button class="bm run" id="flee" aria-label="${pvp ? '나가기' : '도망가기'}" title="${pvp?.mode === 'rank' ? '패배로 처리' : pvp ? '대전 끝내기' : '경험치 없음'}"><img src="${UI}/b3_button_run.webp" alt=""><img class="lb" src="${UI}/b3_label_run.webp" alt="" style="--x:50%;--y:66%;--w:60"><small>${pvp?.mode === 'rank' ? '패배로 처리' : pvp ? '대전 끝내기' : '경험치 없음'}</small></button></div>`;
     panel.querySelector('#bAtk').onclick = () => actionPanel('fight');
     panel.querySelector('#bSw').onclick = () => actionPanel('swap');
     panel.querySelector('#bag').onclick = itemSheet;
@@ -1323,15 +1329,7 @@ async function play(from) {
     say(line);
     let m, wait = 700;
     if (line.startsWith('합동기 「')) { comboFlash(line.match(/「(.+?)」/)?.[1] ?? ''); wait = 1300; }   // 「…의 …!」 모양이라 공격 문장보다 먼저
-    else if ((m = line.match(/^(.+)의 (.+)!$/))) {
-      const side = [0, 1].find(s => shown(s).name === m[1] && s !== lastAtk) ?? [0, 1].find(s => shown(s).name === m[1]) ?? lastAtk;
-      lastAtk = side; lastSkill = shown(side).skills.find(k => k.name === m[2]);
-      lunge(side);
-      if (m[2] === '다섯 번째 목소리') await fiveVoices();   // 앙~ 갈매미맨이야의 고유기: 세는 소리 연출
-      if (lastSkill?.power) await shoot(side, lastSkill.attr ?? shown(side).attr, lastSkill.hits ?? 1, glyphOf(lastSkill.name));
-      else if (lastSkill) aura(side, lastSkill.attr ?? shown(side).attr);
-      wait = lastSkill?.power ? 120 : 600;
-    } else if ((m = line.match(/화상으로 (\d+) 피해/))) {
+    else if ((m = line.match(/화상으로 (\d+) 피해/))) {
       const t = [0, 1].find(s => line.startsWith(shown(s).name)) ?? 0; hit(t, +m[1], COLOR.FIRE, false, false);
     } else if ((m = line.match(/ (\d+) 피해를 입었어요\.(.*)$/)) && !line.startsWith('역습')) {
       const t = 1 - lastAtk, big = m[2].includes('굉장');
@@ -1358,6 +1356,14 @@ async function play(from) {
       // 뒤에 있던 갈매미가 일어남: 그 갈매미만 지금 체력으로(나와 있는 갈매미의 이번 턴 피해는 줄마다 따로 보여 줌)
       for (const s of [0, 1]) b.sides[s].fighters.forEach((f, i) => { if (view[s].down[i] && f.hp > 0) { view[s].down[i] = false; view[s].hp[i] = f.hp; } });
       render();
+    } else if ((m = line.match(/^(.+)의 (.+)!$/))) {   // 공격 문장은 맨 끝에서: 「태초의 갈매미맨은 들어가고 …」처럼 이름에 「의 」가 든 교체·피해·쓰러짐 문장을 공격으로 잘못 읽지 않게(v0.15.9)
+      const side = [0, 1].find(s => shown(s).name === m[1] && s !== lastAtk) ?? [0, 1].find(s => shown(s).name === m[1]) ?? lastAtk;
+      lastAtk = side; lastSkill = shown(side).skills.find(k => k.name === m[2]);
+      lunge(side);
+      if (m[2] === '다섯 번째 목소리') await fiveVoices();   // 앙~ 갈매미맨이야의 고유기: 세는 소리 연출
+      if (lastSkill?.power) await shoot(side, lastSkill.attr ?? shown(side).attr, lastSkill.hits ?? 1, glyphOf(lastSkill.name));
+      else if (lastSkill) aura(side, lastSkill.attr ?? shown(side).attr);
+      wait = lastSkill?.power ? 120 : 600;
     }
     render();
     await sleep(wait);
@@ -1451,6 +1457,7 @@ function aura(s, attr) {
     p.animate([{ transform: 'translate(-50%,0)', opacity: 0 }, { opacity: 1, offset: .3 }, { transform: 'translate(-50%,-70px)', opacity: 0 }], { duration: 700, delay: i * 60 }).onfinish = () => p.remove();
   }
 }
+// 나오는 효과는 새 그림을 받은 뒤에(v0.15.9)
 function popIn(s) { const img = document.getElementById(`m${s}`); if (!img.complete) { img.addEventListener('load', () => popIn(s), { once: true }); return; } img.getAnimations().forEach(a => a.cancel()); img.animate([{ transform: 'scale(.5)', opacity: 0 }, { transform: 'scale(1.05)', opacity: 1 }, { transform: 'scale(1)', opacity: 1 }], { duration: 420, easing: 'ease-out' }); }
 // 「다섯 번째 목소리」: 갈매미 한 마리.. 두 마리.. 세 마리.. 네 마리.. (정적) 다섯 마리... 앙~ 갈매미맨이야~
 async function fiveVoices() {

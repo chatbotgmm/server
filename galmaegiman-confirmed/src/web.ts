@@ -423,46 +423,76 @@ footer a{color:var(--muted)}
   const limit={config:{rateLimit:{max:300,timeWindow:'1 minute',keyGenerator:(req:FastifyRequest)=>{const ip=req.headers['cf-connecting-ip'];return typeof ip==='string'&&ip.length<=45?`web:${ip}`:'web';}}}};
   const notFound=(reply:FastifyReply,msg:string)=>reply.code(404).type('text/html; charset=utf-8').send(page('없음','',`<div class="empty">${esc(msg)}<br><a href="/">홈으로</a></div>`));
 
-  // ── 홈: 오늘의 갈매미 · 이번 주 TOP 3 · 최근 발견된 히든 · 이벤트 ──
-  app.get('/',limit,async(_req,reply)=>{
-    const count=(t:string)=>content.characters.filter(c=>c.rarity===t).length;
-    const c=huntCoupon();
-    // 오늘의 갈매미: 한국 날짜마다 바뀜(히든·최상위 제외)
+  // ── 홈(v0.16.0): 「내 갈매미」 대시보드(public/web, 민트 테마)를 메인으로 씀 ──
+  // 로그인 전에는 서버가 소개 화면(landing)을 <main>에 넣어 보냄(검색엔진도 이 내용을 읽음). 로그인돼 있으면 dash.js가 대시보드로 바꿈.
+  // 세션 쿠키는 Path=/my라서 여기서는 로그인 여부를 알 수 없음 → 판단은 화면(dash.js)이 /my/api/me로.
+  const todayUnit=()=>{   // 오늘의 갈매미: 한국 날짜마다 바뀜(히든·최상위 제외)
     const pool=content.characters.filter(x=>x.rarity!=='HIDDEN'&&!topTiers.has(x.rarity));
     const day=Math.floor(DateTime.now().setZone('Asia/Seoul').startOf('day').toSeconds()/86400);
-    const today=pool[((day%pool.length)+pool.length)%pool.length];
+    return {pool,day,today:pool[((day%pool.length)+pool.length)%pool.length]};
+  };
+  // 갈매미 이름 링크(히든은 ??? 로, 스포일러 가림)
+  const unitLink=(id:string)=>{const c=content.map.get(id);if(!c)return '';return c.rarity==='HIDDEN'?`<a href="/hidden#h${hiddenIndex(c)}">???</a>`:`<a href="/dex/${c.id}">${esc(c.name)}</a>`;};
+  const landing=async()=>{
+    const count=(t:string)=>content.characters.filter(c=>c.rarity===t).length;
+    const c=huntCoupon();
+    const {pool,day,today}=todayUnit();
+    // 갈매미 미리보기 6마리(날마다 바뀜, 오늘의 갈매미 다음부터). 카드 그림은 기존 카드 그림(thumbs) 그대로
+    const pick=Array.from({length:6},(_,i)=>pool[(((day+1+i*7)%pool.length)+pool.length)%pool.length]).filter((x,i,a)=>x.id!==today.id&&a.indexOf(x)===i);
     const week=await data.ranking('WEEK');
     const talk=await data.recentComments(3);
     const board=week.rows.length?{rows:week.rows,unit:'회',label:'이번 주 조합',k:'week'}:{rows:(await data.ranking('DEX')).rows,unit:`/${content.characters.length}`,label:'도감 수집',k:'dex'};
     const medal=['🥇','🥈','🥉'];
-    const top3=board.rows.slice(0,3).map((r,i)=>`<li><span class="no">${medal[i]}</span><span class="who"><b>${r.badge?`${esc(r.badge)} `:''}${r.nick?`<a href="/p/${encodeURIComponent(r.name)}">${esc(r.name)}</a>`:esc(r.name)}</b></span><span class="sc">${r.score}${board.unit}</span></li>`).join('');
+    const top3=board.rows.slice(0,3).map((r,i)=>`<li><span class="no">${medal[i]}</span><span class="who">${r.badge?`${esc(r.badge)} `:''}${r.nick?`<a href="/p/${encodeURIComponent(r.name)}">${esc(r.name)}</a>`:esc(r.name)}</span><span class="sc">${r.score}${board.unit}</span></li>`).join('');
     const hidden=content.characters.filter(x=>x.rarity==='HIDDEN');
     const recent=[...(await data.hiddenFirsts())].sort((x,y)=>y[1].at.getTime()-x[1].at.getTime()).slice(0,3)
-      .map(([id,f])=>{const n=hidden.findIndex(x=>x.id===id)+1;return `<a class="uc" href="/hidden#h${n}"><img src="${img('thumbs','unknown')}" alt="" width="28" height="28">히든 #${n} 발견! · ${f.name?esc(f.name):'이름 없는 갈매미'} · ${esc(DateTime.fromJSDate(f.at).setZone('Asia/Seoul').toFormat('M/d'))}</a>`;}).join('');
-    const body=`<section class="hero"><div>
+      .map(([id,f])=>{const n=hidden.findIndex(x=>x.id===id)+1;return `<li><a href="/hidden#h${n}">❔ 히든 #${n} 발견!</a> <span>${f.name?esc(f.name):'이름 없는 갈매미'} · ${esc(DateTime.fromJSDate(f.at).setZone('Asia/Seoul').toFormat('M월 d일'))}</span></li>`;}).join('');
+    const kakao=channel?`<a class="btn kakao lg" href="${esc(channel)}" target="_blank" rel="noopener">${bubble}카톡에서 플레이</a>`:'';
+    const card=(x:Character,cls='')=>`<a class="lcard ${cls}" href="/dex/${x.id}"><img src="${img('thumbs',x.id)}" alt="${esc(x.name)}" width="480" height="480" loading="lazy"><b>${esc(x.name)}</b><small>${esc(rarityNames[x.rarity])}</small></a>`;
+    return `<div class="landing">
+<section class="lhero panel"><div class="lh-tx">
+<p class="kicker">카카오톡 채널 챗봇 게임</p>
 <h1>갈매미는 <span class="hl">존재</span>한다.</h1>
 <p class="lead">돌로 된 갈매미들이 <b>갈매미 섬 항구 수비대</b>에 출근해서 항구를 지켜요. 몸이 돌이라 날지는 못해요. 새우gang 봉지 소리에는 약해요.</p>
-<div class="btns">${playBtn(true)}<a class="btn" href="/my#draw">🥚 웹에서 뽑기</a><a class="btn" href="/my#craft">🧩 조합</a></div>
-<div class="hstats"><span><img class="gi" src="/gull.png" alt=""> <b>${content.characters.length}</b>종 갈매미</span><span>🧩 <b>${content.recipes.length}</b>가지 조합</span><span>❔ 히든 <b>${count('HIDDEN')}</b>종</span><span>🏘 동네 <b>7</b>곳</span></div>
-</div><a class="today" href="/dex/${today.id}"><img src="${img('thumbs',today.id)}" alt="${esc(today.name)}" width="480" height="480"><div><small>☀️ 오늘의 갈매미</small><h3>${esc(today.name)}</h3><p>${esc(today.introduction.split(/(?<=[.!?…])\s+/u)[0])}</p></div></a></section>
-${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 어딘가에 <b>쿠폰 조각 ${c.pieces.length}개</b>가 숨어 있어요. 모두 찾아 카톡에 <b>쿠폰 조각들</b>을 보내면 뽑기권 <b>${c.tickets}장</b>! (1인 1회)<br><a href="/event">🎁 이벤트·혜택 모두 보기 →</a></div>`:`<div class="event"><b>🎁 이벤트·혜택</b><br>친구 초대하면 친구도 나도 뽑기권 <b>${content.economy.invite.tickets}장</b>! <a href="/event">자세히 보기 →</a></div>`}
-<div class="homegrid">
-<div class="box"><h3>🏆 ${board.label} TOP 3</h3>${top3?`<ol class="mini">${top3}</ol>`:'<p class="note">아직 기록이 없어요.</p>'}<a class="note" href="/rank?k=${board.k}">전체 랭킹 →</a></div>
-<div class="box"><h3>💬 최근 한마디</h3>${talk.length?`<ul class="cms">${talk.map(x=>commentItem(x,true)).join('')}</ul>`:'<p class="note">아직 댓글이 없어요. 카톡에서 <b>댓글 갈매미이름 하고 싶은 말</b>!</p>'}<br><a class="note" href="/talk">수다방 가기 →</a></div>
-<div class="box"><h3>❔ 최근 발견된 히든</h3>${recent||'<p class="note">아직 아무도 히든을 찾지 못했어요. 첫 발견자가 되어 보세요!</p>'}<br><a class="note" href="/hidden">히든 단서 보기 →</a></div>
+<div class="lbtns">${kakao}<a class="btn ghost lg" href="#login">🔑 웹에서 시작하기</a></div>
+<ul class="lstats"><li><b>${content.characters.length}</b>종 갈매미</li><li><b>${content.recipes.length}</b>가지 조합</li><li>히든 <b>${count('HIDDEN')}</b>종</li><li>동네 <b>7</b>곳</li></ul>
+</div><a class="ltoday" href="/dex/${today.id}"><img src="${img('thumbs',today.id)}" alt="${esc(today.name)}" width="480" height="480"><span><small>☀️ 오늘의 갈매미</small><b>${esc(today.name)}</b><em>${esc(today.introduction.split(/(?<=[.!?…])\s+/u)[0])}</em></span></a></section>
+<section class="panel login" id="login"><div class="ph"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg><h2>로그인</h2></div>
+<div id="kslot"></div>
+<p class="note">카톡 갈매미맨 채널에 <b>웹 로그인</b>이라고 보내고, 받은 6자리 코드를 적어요. (10분 안에 한 번만)</p>
+<label class="sr" for="code">로그인 코드</label><input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+<p class="note err" id="lerr" role="alert"></p><button class="btn wide" id="go">로그인</button>
+<p class="note">로그인하면 웹에서 <b>뽑기·조합·보관함</b>을 하고, 카톡과 같은 계정으로 이어져요.</p></section>
+${c?`<a class="levent panel" href="/event"><b>🎉 ${esc(c.label)} 이벤트</b><span>이 사이트 어딘가에 <b>쿠폰 조각 ${c.pieces.length}개</b>가 숨어 있어요. 모두 찾아 카톡에 보내면 뽑기권 <b>${c.tickets}장</b>! (1인 1회)</span><em>이벤트·혜택 모두 보기 →</em></a>`:'<a class="levent panel" href="/event"><b>🎁 이벤트·혜택</b><span>가입 선물·친구 초대·튜토리얼 보상을 확인해요.</span><em>보러 가기 →</em></a>'}
+<section class="panel lmeet"><div class="ph"><h2>갈매미 만나기</h2><span class="sp"></span><a class="more" href="/dex">도감 전체 →</a></div><div class="lcards">${pick.map(x=>card(x)).join('')}</div></section>
+<div class="lgrid">
+<section class="panel"><h3>🏆 ${board.label} TOP 3</h3>${top3?`<ol class="ltop">${top3}</ol>`:'<p class="note">아직 기록이 없어요.</p>'}<a class="more" href="/rank?k=${board.k}">전체 랭킹 →</a></section>
+<section class="panel"><h3>💬 최근 한마디</h3>${talk.length?`<ul class="ltalk">${talk.map(x=>`<li><b><a href="/p/${encodeURIComponent(x.name)}">${x.badge?`${esc(x.badge)} `:''}${esc(x.name)}</a></b> → ${unitLink(x.characterId)}<span>${esc(x.text)}</span></li>`).join('')}</ul>`:'<p class="note">아직 댓글이 없어요. 카톡에서 <b>댓글 갈매미이름 하고 싶은 말</b>!</p>'}<a class="more" href="/talk">수다방 가기 →</a></section>
+<section class="panel"><h3>❔ 최근 발견된 히든</h3>${recent?`<ul class="lhid">${recent}</ul>`:'<p class="note">아직 아무도 히든을 찾지 못했어요. 첫 발견자가 되어 보세요!</p>'}<a class="more" href="/hidden">히든 단서 보기 →</a></section>
 </div>
-<h2>바로 가기</h2>
-<div class="links six">
-<a href="/my#draw"><i>🥚</i><b>뽑기</b><span>뽑기권 받기·하급·중급·고급</span></a>
-<a href="/my#craft"><i>🧩</i><b>조합</b><span>만들 수 있는 것·재료로 섞기</span></a>
-<a href="/dex"><i>📚</i><b>도감</b><span>${content.characters.length}종의 이야기</span></a>
-<a href="/my#party"><i>🧭</i><b>탐험대 편성</b><span>보내기·돌아오면 보상</span></a>
-<a href="/search" class="sbtn"><i>🔍</i><b>검색</b><span>갈매미·닉네임·이야기</span></a>
-<a href="/my" class="lgn" data-i="gull" data-l="내 갈매미" data-s="내 정보·뽑기권·편성"><i>🔑</i><b>로그인</b><span>카카오·카톡 코드</span></a>
-</div>
-<p class="note" style="text-align:center;margin-top:14px">그 밖에: <a href="/event">🎁 이벤트</a> · <a href="/recipes">📜 조합법</a> · <a href="/hidden">❔ 히든 단서</a> · <a href="/talk">💬 수다방</a> · <a href="/rank">🏆 랭킹</a> · <a href="/world">🗺 세계관</a></p>`;
-    return send(reply,page('홈','/',body,'',{image:img('images',today.id),desc:`오늘의 갈매미: ${today.name} · 돌로 된 갈매미들이 항구 수비대에 출근하는 섬`}),60);
+<section class="panel lhow"><h2>이렇게 놀아요</h2><ol>
+<li><b>뽑기</b><span>뽑기권으로 하급·중급·고급 뽑기. 카톡에서 <b>뽑기권받기</b>로 충전해요.</span></li>
+<li><b>조합</b><span>같은 자리로 발령 내 합체! ${content.recipes.length}가지 조합법이 있어요.</span></li>
+<li><b>히든 찾기</b><span>숨은 히든 ${count('HIDDEN')}종은 단서를 모아 찾아요.</span></li>
+<li><b>탐험·대결</b><span>최상위 갈매미를 탐험에 보내고, 앱에서 스토리 대결을 해요.</span></li></ol></section>
+</div>`;
+  };
+  // 공용 아래쪽(로그인 전·후 모두): 공개 페이지 바로 가기 + 정보
+  const dashFoot=()=>`<footer class="foot"><nav aria-label="둘러보기"><a href="/dex">📚 도감</a><a href="/recipes">📜 조합법</a><a href="/hidden">❔ 히든 단서</a><a href="/rank">🏆 랭킹</a><a href="/talk">💬 수다방</a><a href="/world">🗺 세계관</a><a href="/event">🎁 이벤트</a><a href="/search">🔍 검색</a></nav>
+<p>갈매미맨 · 카카오톡 채널 챗봇 게임 · v${esc(options.version)}<br><a href="/privacy">개인정보처리방침</a> · <a href="/odds">뽑기 확률</a> · <a href="/account/delete">계정 삭제</a></p></footer>`;
+  const dashShell=()=>readFileSync(resolve(options.root,'public/web/index.html'),'utf8');
+  app.get('/',limit,async(_req,reply)=>{
+    const {today}=todayUnit();
+    const desc=`오늘의 갈매미: ${today.name} · 돌로 된 갈매미들이 항구 수비대에 출근하는 섬`;
+    const head=`<title>${SITE_NAME}</title><meta name="description" content="${esc(desc)}"><meta property="og:type" content="website"><meta property="og:site_name" content="${SITE_NAME}"><meta property="og:title" content="${SITE_NAME}"><meta property="og:description" content="${esc(desc)}"><meta property="og:image" content="${site}${img('images',today.id)}">`;
+    const html=dashShell().replace('<title>내 갈매미맨</title>',head).replace('<meta name="robots" content="noindex">\n','')
+      .replace('<main id="main"><div class="state"><div class="spin"></div>불러오는 중…</div></main>',`<main id="main" data-landing="1">${await landing()}</main>`)
+      .replace('<!--foot-->',dashFoot());
+    return reply.type('text/html; charset=utf-8').header('Cache-Control','no-cache').send(html.replace('</head>',`${headFor('/')}</head>`));
   });
+  // /my(로그인 전)·로그인이 풀린 화면이 같은 소개 화면을 받아 감
+  app.get('/web/landing',limit,async(_req,reply)=>reply.type('text/html; charset=utf-8').header('Cache-Control','no-cache').send(await landing()));
+  app.get('/web/foot',limit,async(_req,reply)=>reply.type('text/html; charset=utf-8').header('Cache-Control','public, max-age=300').send(dashFoot()));
 
   // ── 이벤트·혜택: 진행 중 쿠폰·기간 이벤트 + 상시 혜택(가입·뽑기권 받기·튜토리얼·친구 초대) ──
   app.get('/event',limit,async(_req,reply)=>{

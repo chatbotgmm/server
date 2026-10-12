@@ -8,9 +8,11 @@
 <link rel="icon" type="image/png" href="/favicon.png"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#b9ead2"><link rel="apple-touch-icon" href="/icon-192.png">
 <script>
 // 게임에서 들어온 창(?g=1 또는 이번 세션에 게임 화면을 연 적 있음)·게임으로 돌아갈 로그인은 예전 게임 화면(/my?g=1)이 맡음
-(function(){try{var q=new URLSearchParams(location.search);if(q.get('g')==='1'||sessionStorage.getItem('gmm-g')==='1'||sessionStorage.getItem('gmm-next')==='duel'||q.get('next')==='duel'){q.set('g','1');location.replace('/my?'+q.toString()+location.hash);}}catch(e){}
+(function(){try{var q=new URLSearchParams(location.search);if(q.get('g')==='1'||q.get('next')==='duel'||location.pathname==='/my'&&(sessionStorage.getItem('gmm-g')==='1'||sessionStorage.getItem('gmm-next')==='duel')){q.set('g','1');location.replace('/my?'+q.toString()+location.hash);}}catch(e){}
 // 대시보드에 없는 메뉴(탐험대·상점·아이템·전투 편성·계정)는 기존 화면으로
 var h=location.hash.slice(1);if(['party','shop','items','battle','account'].indexOf(h)>=0)location.replace('/my/classic#'+h);})();
+// 이 기기에서 로그인한 적 있으면(gmm-in) 메인(/)의 로그인 전 소개 화면을 잠깐 숨기고 불러오는 중을 보여 줌(v0.16.0)
+try{if(localStorage.getItem('gmm-in')==='1')document.documentElement.classList.add('pre-in');}catch(e){}
 </script>
 <style>
 /* ── 갈매미맨 웹(민트 대시보드, v0.14.0) ──
@@ -73,7 +75,7 @@ main{max-width:1280px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-ri
 .art.miss{border:2px dashed rgba(74,47,29,.25);border-radius:18px;background:rgba(255,255,255,.45)}
 .art.miss>img{display:none}
 .art.miss::after{content:"그림 자리\A" attr(data-art);white-space:pre;text-align:center;font-size:12px;color:var(--dim);line-height:1.5}
-/* 캐릭터 그림: 기존 카드 그림(테두리·이름판 포함)을 잘라서 캐릭터만. 새 그림(web/img/char-<id>.webp)이 오면 그대로 */
+/* 캐릭터 그림: 기존 카드 그림(테두리·이름판 포함)을 잘라서 캐릭터만(모든 갈매미 같은 방식) */
 .ch{position:relative;overflow:hidden;background:#f6efe2}
 .ch>img{width:100%;height:100%;object-fit:cover;display:block}
 .ch>img.card{transform:scale(1.32);transform-origin:50% 40%}
@@ -196,6 +198,68 @@ main{max-width:1280px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-ri
 [hidden]{display:none !important}
 body:not(.on-home) .instwrap{display:none}
 .inst .btn{white-space:nowrap}
+/* ── 로그인 전 소개 화면(v0.16.0): 메인(/)과 /my가 같이 씀. 민트 테마 그대로 ── */
+html.pre-in main[data-landing]>.landing{display:none}
+html.pre-in main[data-landing]::before{content:"불러오는 중…";display:flex;align-items:center;justify-content:center;min-height:220px;color:var(--dim)}
+.landing{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:18px;align-items:start}
+.landing>*{min-width:0}
+.landing .login{grid-column:2;grid-row:1;margin:0;max-width:none}
+.landing>.lhero{grid-column:1;grid-row:1}
+.landing>.levent,.landing>.lmeet,.landing>.lgrid,.landing>.lhow{grid-column:1/-1}
+.lhero{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:20px;align-items:center;background:linear-gradient(150deg,#d6f5e6,#b9ead2 60%,#a4e0c5);padding:28px}
+.kicker{margin:0 0 8px;font-size:13px;font-weight:800;color:var(--mint-dd);letter-spacing:.02em}
+.lhero h1{font-size:40px;line-height:1.2;word-break:keep-all}
+.lhero .hl{color:var(--coral-d)}
+.lhero .lead{margin:12px 0 18px;font-size:16px;line-height:1.65;color:#3d4a40;word-break:keep-all}
+.lbtns{display:flex;flex-wrap:wrap;gap:10px}
+.btn.lg{min-height:52px;padding:0 24px}
+.btn.kakao svg{flex:none}
+.lstats{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:16px 0 0;padding:0}
+.lstats li{padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.75);font-size:13px;font-weight:700;color:#2d4f40}
+.lstats b{color:var(--ink)}
+.ltoday{display:flex;flex-direction:column;background:#fff;border-radius:20px;box-shadow:var(--sh);text-decoration:none;overflow:hidden}
+.ltoday img{display:block;width:100%;height:auto;aspect-ratio:1}
+.ltoday span{display:flex;flex-direction:column;gap:3px;padding:12px 14px 14px}
+.ltoday small{font-size:12px;font-weight:700;color:var(--mint-dd)}.ltoday b{font-size:17px}
+.ltoday em{font-style:normal;font-size:13px;color:var(--dim);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.landing .login .btn+.note{margin-top:12px}
+.levent{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;background:linear-gradient(120deg,#ffe9df,#fde3d5);text-decoration:none;padding:16px 20px}
+.levent b{font-size:16px}.levent span{flex:1 1 320px;font-size:14px;line-height:1.5}.levent em{font-style:normal;font-weight:800;color:var(--coral-d);font-size:14px;white-space:nowrap}
+.ph .more,.landing .more{display:inline-flex;align-items:center;min-height:40px;font-size:14px;font-weight:700;color:var(--mint-dd);text-decoration:none;white-space:nowrap}
+.landing .more:hover{text-decoration:underline}
+.lcards{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+.lcard{display:flex;flex-direction:column;gap:2px;background:#fff;border-radius:16px;box-shadow:var(--sh);text-decoration:none;overflow:hidden;padding-bottom:10px}
+.lcard img{display:block;width:100%;height:auto;aspect-ratio:1;margin-bottom:6px}
+.lcard b{padding:0 10px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lcard small{padding:0 10px;font-size:12px;color:var(--dim)}
+.lgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.lgrid .panel{display:flex;flex-direction:column;gap:10px}
+.lgrid h3{font-size:17px}
+.lgrid .more{margin-top:auto;align-self:flex-start}
+.ltop,.ltalk,.lhid{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.ltop li{display:flex;align-items:center;gap:8px}.ltop .who{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}.ltop .sc{font-weight:800;color:var(--mint-dd)}
+.ltop a,.ltalk a,.lhid a{color:var(--ink)}
+.ltalk li{display:flex;flex-wrap:wrap;gap:2px 6px;line-height:1.45}.ltalk span{flex-basis:100%;color:#5d4a3b;overflow-wrap:anywhere}
+.lhid span{color:var(--dim);font-size:13px}
+.lhow h2{font-size:20px;margin-bottom:12px}
+.lhow ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;counter-reset:s}
+.lhow li{counter-increment:s;display:flex;flex-direction:column;gap:4px;padding:14px;border-radius:16px;background:var(--cream);font-size:14px;line-height:1.5}
+.lhow li>b:first-child::before{content:counter(s) ". ";color:var(--mint-d)}
+.lgin{white-space:nowrap}
+/* 아래쪽(로그인 전·후 모두) */
+.foot{max-width:1280px;margin:8px auto 0;padding:8px max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left));text-align:center;color:var(--dim);font-size:13px;line-height:1.7}
+.foot nav{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-bottom:10px}
+.foot nav a{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:999px;background:#fff;box-shadow:var(--sh);text-decoration:none;font-weight:700;color:var(--ink);font-size:14px}
+.foot p{margin:0}.foot p a{display:inline-flex;align-items:center;min-height:40px;padding:0 6px;color:var(--dim)}
+@media (max-width:1100px){ .landing{grid-template-columns:1fr} .landing .login,.landing>.lhero{grid-column:1;grid-row:auto} .lcards{grid-template-columns:repeat(3,minmax(0,1fr))} .lhow ol{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:900px){
+  .lhero{grid-template-columns:1fr;padding:22px}
+  .lhero h1{font-size:30px}
+  .ltoday{flex-direction:row;align-items:center}.ltoday img{width:96px;flex:none}
+  .lgrid{grid-template-columns:1fr}
+  .foot{padding-bottom:110px}
+  main{padding-bottom:16px} .instwrap{margin-top:0;padding-bottom:8px}
+}
+@media (max-width:520px){ .lcards{grid-template-columns:repeat(2,minmax(0,1fr))} .lhow ol{grid-template-columns:1fr} .lbtns .btn{flex:1 1 auto} }
 </style>
 </head>
 <body>
@@ -266,6 +330,7 @@ body:not(.on-home) .instwrap{display:none}
 })();
 </script>
 <!--/install--></div>
+<div id="foot"><!--foot--></div>
 <nav class="tabbar" id="tabbar" aria-label="메뉴"></nav>
 <script src="/my/dash.js"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});</script>

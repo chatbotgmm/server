@@ -1206,6 +1206,13 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const small=await get('/dex?view=s&sort=name');expect(small).toContain('class="tiles"');noHidden(small);
       const homeHtml=await get('/');expect(homeHtml).toContain('href="https://pf.kakao.com/_GIAaX"');expect(homeHtml).toContain('오늘의 갈매미');expect(homeHtml).toContain('TOP 3');expect(homeHtml).toContain('최근 발견된 히든');expect(homeHtml).toContain('class="tabbar"');
       expect(homeHtml).toContain('href="/event"');
+      // v0.16.0: 메인(/)은 「내 갈매미」 대시보드 + 로그인 전 소개 화면. 검색엔진용 정보는 그대로, /my는 색인 제외
+      expect(homeHtml).toContain('<script src="/my/dash.js"></script>');expect(homeHtml).toContain('id="login"');expect(homeHtml).toContain('<title>갈매미맨</title>');
+      expect(homeHtml).toContain('"@type":"WebSite"');expect(homeHtml).toContain('<link rel="canonical" href="https://gmm.dpdns.org/">');expect(homeHtml).not.toContain('noindex');
+      expect(homeHtml).toContain('class="foot"');expect(homeHtml).not.toContain('/web/img/char-');
+      expect(await get('/web/landing')).toContain('갈매미는 <span class="hl">존재</span>한다');
+      expect(await get('/web/foot')).toContain('href="/privacy"');
+      expect(await get('/my')).toContain('<meta name="robots" content="noindex">');
       const ev=await get('/event');
       expect(ev).toContain('친구도 나도 🎟 <b>100장</b>씩');expect(ev).toContain('튜토리얼 5단계를 끝내면 → 나도 🎟 100');expect(ev).toContain('최대 2,000장');
       expect(ev).toContain('5단계 · 단계마다 🎟 <b>10장</b> (총 50장)');expect(ev).toContain('<b>재료로 직접 조합해 보기</b>');expect(ev).toContain('<b>닉네임 정하기</b>');
@@ -1383,7 +1390,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.15.9'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.16.1'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');
