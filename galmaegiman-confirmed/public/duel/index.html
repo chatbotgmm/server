@@ -1779,6 +1779,56 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
   #app:has(#arena) #msg{margin:0 6.5% calc(max(24px,5.5vh) + env(safe-area-inset-bottom,0px)) 9% !important}
   @media (max-height:430px){ #app:has(#arena) #panel{padding-top:22px !important} #app:has(#arena) #msg{margin-bottom:20px !important} }
 }
+/* 시안의 전투 배치: 위쪽 기록, 넓은 상태창, 산호·조개 프레임. 웹과 앱이 같은 리소스를 사용한다. */
+#arena .box .dots{display:flex;gap:4px;margin:4px 0}
+#arena .box>.augs{display:flex;flex-wrap:wrap;gap:2px 8px;color:#7d5f40;font-size:inherit;line-height:1.3}
+#arena .box>.augs>span{display:inline-flex;align-items:center;gap:3px;min-width:0}
+#arena .box>.augs .ico{width:1em;height:1em}
+@media (orientation:landscape){
+  #app:has(#arena){grid-template-columns:minmax(0,64.5fr) minmax(0,35.5fr);grid-template-rows:auto minmax(0,1fr)}
+  #app:has(#arena) .cmdbg{z-index:0;margin:-2vh -1vw -2vh -3vw;border-width:12vh 4vw 10vh 6vw;border-image:url(/duel/intro/b2_command_panel.webp) 120 90 80 150 fill / 12vh 4vw 10vh 6vw stretch}
+  #app:has(#arena) #msg{grid-row:1 !important;align-self:center;margin:9.5vh calc(5.5% + var(--sr)) 2vh 8% !important;padding:2vh max(1.8vw,10vh) 2vh 1.8vw !important;min-height:11vh !important;font-size:clamp(12px,3vh,20px);line-height:1.4}
+  #app:has(#arena) #msg::before{background:#fff2de;border:clamp(2px,.5vh,4px) solid #dba456;border-radius:999px;box-shadow:inset 0 0 0 2px #ffe4ac,0 2px 0 #9e683a}
+  #app:has(#arena) #msg .lp{display:none}
+  #app:has(#arena) #msg .lc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  #app:has(#arena) #msg .tg{padding:0;background:none;color:inherit;font-size:inherit;font-weight:700;vertical-align:0;margin-right:.35em}
+  #app:has(#arena) #msg .tg::before{content:"["}#app:has(#arena) #msg .tg::after{content:"]"}
+  #app:has(#arena) #panel,#app:has(#arena) #panel:has(.bmenu.img){grid-row:2 !important;min-height:0;padding:1vh calc(4% + var(--sr)) calc(8.5vh + env(safe-area-inset-bottom,0px)) 5.5% !important;gap:5px;overflow:auto}
+  #app:has(#arena) #panel:has(.bmenu.img){overflow:hidden}
+  #app:has(#arena) .bmenu.img{flex:1;min-height:0;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:.5vh .25vw;align-content:stretch;justify-content:stretch}
+  #app:has(#arena) .bmenu.img .bm{width:min(100%,calc((50cqh - .25vh) * 1.2));height:min(calc(50cqh - .25vh),calc((50cqw - .125vw) / 1.2));aspect-ratio:1.2;max-height:100%}
+  #app:has(#arena) .bmenu.img .bm .lb{height:14cqh !important;top:70% !important}
+  #app:has(#arena) .bmenu.img .bm small{top:86%;font-size:clamp(10px,7.5cqh,18px);font-weight:400;color:#7d5f40}
+  #arena .box{font-size:clamp(11px,2.7vh,18px);padding:3vh 2.1vw 2.4vh !important}
+  #arena .box::before{background:none;border-style:solid;border-width:2.2vh 3vw 4vh;border-image:url(/duel/intro/b2_status_panel.webp) 32 110 74 110 fill / 2.2vh 3vw 4vh stretch}
+  #arena .box.foe{left:8%;top:3.7%;width:46%}
+  #arena .box.me{left:46%;right:auto;bottom:5.5%;width:44%}
+  #arena .box .nm span{font-size:clamp(13px,3.5vh,24px)}
+  #arena .box .nm em{font-size:clamp(12px,3.3vh,22px)}
+  #arena .box .hpr{margin:1vh 0 .8vh}
+  #arena .box .hpb{height:clamp(7px,2.2vh,14px);border:1px solid #a39365}
+  #arena .box .row{display:flex;align-items:center;justify-content:space-between;gap:4px}
+  #arena .box .chips{flex:1;min-width:0;gap:2px 4px}
+  #arena .box .chip{font-size:inherit;line-height:1.25;padding:.2vh .65vw}
+  #arena .box .hpn{font-size:inherit}
+  #arena .box.foe .hpn{display:none}
+  #arena .box .dots{margin:.7vh 0;gap:.5vh}
+  #arena .box .dots i{width:2.1vh;height:2.1vh;min-width:7px;min-height:7px}
+  #arena .box.foe .finfo{left:calc(100% + 1.6vw);right:auto;top:1.2vh;transform:none;padding:.9vh 1.2vw;font-size:clamp(12px,3vh,20px);font-weight:400;border-color:#d6b080;background:#fff4df;color:#7d5f40}
+  body:has(#arena) .mute{top:3.5vh !important;right:calc(1.5vw + var(--sr)) !important;width:clamp(38px,11vh,72px) !important}
+  #app:has(#arena) #panel .bhead{flex:none;min-height:0;margin:0}
+  #app:has(#arena) #panel .bhead>small{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #app:has(#arena) #panel .skills{flex:1;min-height:0;gap:5px;grid-template-rows:repeat(2,minmax(min-content,1fr))}
+  #app:has(#arena) #panel .sk{min-height:0}
+  @media (max-height:430px){
+    #arena .box{padding:2.3vh 1.8vw 2vh !important;font-size:clamp(10px,2.7vh,12px)}
+    #arena .box .nm span{font-size:clamp(12px,3.5vh,16px)}
+    #arena .box>.augs{font-size:clamp(10px,2.6vh,12px)}
+    #app:has(#arena) #panel .sk b{font-size:12px}
+    #app:has(#arena) #panel .sk .kd{font-size:9px}
+    #app:has(#arena) #panel .combo-btn{flex:none}
+  }
+}
 </style>
 </head>
 <body>
