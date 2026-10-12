@@ -4,7 +4,7 @@ import { attrKeys as attrs, buildRules, type TopTier } from '../src/battle/rules
 import { loadBattleRules } from '../src/battle/load.js';
 import { parse } from 'yaml';
 import { readFileSync } from 'node:fs';
-import { addXp, battleXp, canEvolve, learnChances, learnLeft, learnOffers, learnSkill, maxStageAt, slotSkills, statsOf, xpToNext, type UnitRecord } from '../src/battle/growth.js';
+import { addXp, battleXp, canEvolve, innateLearned, learnChances, learnLeft, learnOffers, learnPromo, promoSkills, slotKeys, learnSkill, maxStageAt, slotSkills, statsOf, xpToNext, type UnitRecord } from '../src/battle/growth.js';
 import { act, activeOf, aiChoose, choose, createBattle, rerollAugment, itemProblem, legalActions, pending, pickAi, type Battle } from '../src/battle/engine.js';
 import { checkStory, loadStory } from '../src/battle/story.js';
 import { expectedAttempts, levelRange, referenceLevel, scoutChance, scoutCopy } from '../src/battle/scout.js';
@@ -229,6 +229,24 @@ describe('합동기·기술 배우기',()=>{
     // 예전 저장: 기본기·고유기는 앞에 붙여 읽음(배운 기술 → 역할기 → 보조 속성 순으로 남은 2칸)
     expect(slotSkills(R,{...mk('T7',0,25),learned:['quick']}).map(k=>k.id)).toEqual(['basic-ICE','sig','learn-quick','role-ATTACK']);
     expect(slotSkills(R,{...mk('T7',0,25),learned:['role','sub']}).map(k=>k.id)).toEqual(['basic-ICE','sig','role-ATTACK','sub-GRAVITY']);
+  });
+});
+
+describe('타고나는 기술·승진 전용 기술(v0.16.2)',()=>{
+  const mk=(id:string,i:number,level=30):UnitRecord=>({uid:`u${i}`,id,name:id,tier:'LIMITED',level,xp:0,stage:0,evoAugs:[]});
+  it('똥폭탄 + 무작위 1~2개, 같은 씨앗이면 같고 개체마다 다를 수 있음, 1단계 승진하면 고유기를 배울 수 있음',()=>{
+    const a=innateLearned(R,'E7','o1'),again=innateLearned(R,'E7','o1');
+    expect(a).toEqual(again);expect(a.slice(0,2)).toEqual(['@','basic']);expect(a.length).toBeGreaterThanOrEqual(3);expect(a.length).toBeLessThanOrEqual(4);
+    const sets=new Set(Array.from({length:12},(_,i)=>innateLearned(R,'E7',`o${i}`).join()));expect(sets.size).toBeGreaterThan(1);
+    const r={...mk('E7',0,5),learned:a};
+    expect(slotSkills(R,r)[0].name).toBe('똥폭탄');expect(promoSkills(R,r)).toEqual([]);   // 승진 전엔 전용 기술 없음
+    r.stage=1;expect(promoSkills(R,r).map(k=>k.id)).toEqual(['sig']);
+    learnPromo(R,r,'sig');expect(slotKeys(R,r)).toContain('sig');expect(promoSkills(R,r)).toEqual([]);expect(r.learnUsed??0).toBe(0);   // 배울 기회는 안 씀
+    const b=createBattle(R,[r],[mk('D1',1)],1);expect(b.sides[0].fighters[0].skills.map(k=>k.id)).toContain('sig');
+  });
+  it('같은 종류 2마리는 합동기 시너지로 안 셈',()=>{
+    const b=createBattle(R,[mk('D1',0),mk('D1',0)],[mk('D1',1)],1);
+    expect(b.sides[0].fighters[0].skills.some(k=>k.id.startsWith('combo-'))).toBe(false);
   });
 });
 

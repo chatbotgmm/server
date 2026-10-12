@@ -204,9 +204,11 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     const unit=z.object({level:z.number().int().min(1).max(R.data.growth.maxLevel),xp:z.number().int().min(0).max(1e9),
       learned:z.array(z.string().max(30)).max(R.data.learn.slots+1).optional(),learnUsed:z.number().int().min(0).max(R.data.learn.levels.length).optional(),learnPick:z.number().int().min(0).max(4).optional(),
       stage:z.number().int().min(0).max(3).optional(),evoAugs:z.array(z.string().max(30)).max(3).optional()}).strict();
-    return z.object({units:z.record(z.string().regex(/^[DTEI]\d{1,2}$/),unit).refine(u=>Object.keys(u).every(id=>R.units.has(id)),'없는 갈매미'),
-      team:z.array(z.string().max(4)).max(3),cleared:z.array(z.string().max(12)).max(300),
-      hp:z.record(z.string().regex(/^[DTEI]\d{1,2}$/),z.object({f:z.number().min(0).max(1),at:z.number().int().min(0)}).strict()).optional()}).strict();   // 스토리 체력(v0.14.7): 전투 뒤 남은 비율과 그 시각(시간이 지나면 클라이언트가 회복 계산)
+    // 열쇠: 종류 id(시험판·로그인 전, 예전 저장) 또는 개체 o번호(v0.16.2)
+    const key=z.string().regex(/^([DTEI]\d{1,2}|o\d{1,10})$/);
+    return z.object({units:z.record(key,unit).refine(u=>Object.keys(u).every(id=>id.startsWith('o')||R.units.has(id)),'없는 갈매미').refine(u=>Object.keys(u).length<=500,'너무 많아요'),
+      team:z.array(key).max(3),cleared:z.array(z.string().max(12)).max(300),
+      hp:z.record(key,z.object({f:z.number().min(0).max(1),at:z.number().int().min(0)}).strict()).optional()}).strict();   // 스토리 체력(v0.14.7): 전투 뒤 남은 비율과 그 시각(시간이 지나면 클라이언트가 회복 계산)
   };
   app.get('/my/api/story',limit,async(req,reply)=>{
     if(!guard(req,reply))return;
@@ -215,7 +217,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     const me=await game.webMe(id);
     if(!me)return reply.code(401).send({error:'login'});
     return reply.header('Cache-Control','no-store').send({data:await game.webStory(id),nickname:me.nickname,battleTeam:me.battleTeam,
-      owned:me.units.filter(u=>u.top).map(u=>u.id),items:await game.webItems(id)});
+      owned:me.units.filter(u=>u.top).map(u=>u.id),mine:await game.webStoryUnits(id),items:await game.webItems(id)});
   });
   act<{data?:unknown}>('/my/api/story',async(id,b)=>{
     if(b.data===null)return game.webSaveStory(id,null);   // 처음부터 다시

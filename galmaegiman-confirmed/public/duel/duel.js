@@ -5,7 +5,7 @@
 import { rulesFrom } from '../../src/battle/core.ts';
 import { createBattle, choose, rerollAugment, act, pending, legalActions, pickAi, aiChoose, activeOf, itemProblem } from '../../src/battle/engine.ts';
 import { bgm, sfx, isMuted, toggleMute, getVol, setVol, isChMuted, setChMute } from './sound.js';
-import { addXp, battleXp, canEvolve, evoChoices, learnChances, learnLeft, learnOffers, learnSkill, slotSkills, statsOf, xpToNext } from '../../src/battle/growth.ts';
+import { addXp, battleXp, canEvolve, evoChoices, innateLearned, learnChances, learnLeft, learnOffers, learnPromo, learnSkill, promoSkills, slotSkills, statsOf, xpToNext } from '../../src/battle/growth.ts';
 
 // 앱: 화면은 앱 안, 서버는 GMM_BASE, 열쇠는 「내 갈매미」에서 받아 둔 것(GMM_DUEL_KEY), 로그인은 토큰 머리글
 const BASE = window.GMM_BASE || '', APP = window.gmmApp || null;
@@ -149,13 +149,40 @@ const setTint = (img, id) => { cutMask(img, id); img.classList.remove('tint-shad
 // ── 저장: 로그인돼 있으면 계정(서버), 아니면 이 브라우저 ──
 const SAVE_KEY = 'gmm-duel-story-v1';
 const local = () => { try { return JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch { return null; } };
+// 열쇠(v0.16.2): 계정 = 개체마다 「o번호」(OwnedCharacter.id) — 같은 종류도 마리마다 레벨·기술이 따로.
+//   종류 id 열쇠는 시험판(아직 없는 갈매미)·로그인 전에만. 예전 저장(종류 id)은 그 종류의 가장 오래된 개체로 옮김
+let OWN = {};   // 'o12' → 'D1'
+const spOf = k => (k && k[0] === 'o' ? OWN[k] : k);
+const okKey = k => !!spOf(k) && UNITS.some(u => u.id === spOf(k));
+const myKeys = sp => Object.keys(OWN).filter(k => OWN[k] === sp);   // 이 종류의 내 개체(오래된 순)
+const keyFor = sp => myKeys(sp).find(k => !SAVE?.team.includes(k)) ?? myKeys(sp)[0] ?? sp;
+// 가진 개체 목록 다시 받기(뽑기·조합 뒤). 팀에 종류 열쇠로 들어간 게 내 개체가 생겼으면 개체로 바꿈
+async function refreshOwn() {
+  try { const j = await myApi('story'); ACC.mine = j.mine; ACC.owned = [...new Set([...ACC.owned, ...j.owned])]; setOwn(j.mine);
+    let ch = false; SAVE.team = SAVE.team.map(t => { if (t[0] === 'o' || !myKeys(t).length) return t; ch = true; return keyFor(t); });
+    if (ch) { SAVE.team = [...new Set(SAVE.team)]; persist(); } } catch { /* 다음에 */ }
+}
+const setOwn = mine => { OWN = Object.fromEntries((mine ?? []).map(m => [`o${m.oid}`, m.id])); };
+const pristine = u => !u || (u.level <= STORY.start.level && !u.xp && !(u.stage > 0) && !(u.learned ?? []).length && !(u.learnUsed > 0));
 function load(s = local()) {
   s = s && typeof s === 'object' ? JSON.parse(JSON.stringify(s)) : {};
   s.units ??= {}; s.team ??= []; s.cleared ??= [];
-  for (const u of UNITS) s.units[u.id] ??= { level: STORY.start.level, xp: 0 };
-  s.team = s.team.filter(id => UNITS.some(u => u.id === id)).slice(0, 3);
+  for (const k of Object.keys(s.units)) if (k[0] !== 'o' && pristine(s.units[k])) delete s.units[k];   // 손대지 않은 기본 기록(예전엔 33종 모두 만들어 둠)
+  if (ACC) for (const k of Object.keys(s.units)) {   // 예전 종류 열쇠 → 가장 오래된(아직 기록 없는) 개체로
+    if (k[0] === 'o') continue;
+    const to = myKeys(k).find(o => !s.units[o]);
+    if (!to) continue;
+    s.units[to] = s.units[k]; delete s.units[k]; s.moved = true;
+    s.team = s.team.map(t => (t === k ? to : t));
+    if (s.hp?.[k]) { s.hp[to] = s.hp[k]; delete s.hp[k]; }
+  }
+  if (ACC) s.team = s.team.map(t => (t[0] !== 'o' && myKeys(t).length ? keyFor(t) : t));
+  s.team = [...new Set(s.team.filter(okKey))].slice(0, 3);
+  for (const k of Object.keys(s.units)) if (!okKey(k)) delete s.units[k];   // 조합·판매로 없어진 개체
   return s;
 }
+// 기록이 없으면 지금 만듦: 타고나는 기술(똥폭탄 + 무작위 1~2개, 열쇠로 정해져 늘 같음)
+const unitRec = k => (SAVE.units[k] ??= { level: STORY.start.level, xp: 0, learned: innateLearned(R, spOf(k), k), learnUsed: 0, learnPick: 0, stage: 0, evoAugs: [] });
 let SAVE;
 let saveTimer = null, saveFail = false;
 const persist = () => {
@@ -164,7 +191,7 @@ const persist = () => {
   saveTimer = setTimeout(() => myApi('story', { data: { units: SAVE.units, team: SAVE.team, cleared: SAVE.cleared, ...(SAVE.hp ? { hp: SAVE.hp } : {}) } }).then(() => { saveFail = false; }).catch(() => { saveFail = true; const h = document.getElementById('savewarn'); if (h) h.hidden = false; }), 400);
 };
 const progressed = s => !!s && (s.cleared?.length > 0 || Object.values(s.units ?? {}).some(u => u.xp > 0 || u.level > STORY.start.level));
-const myRec = (id, i) => { const u = UNITS.find(x => x.id === id), s = SAVE.units[id]; return { uid: `a${i}`, id, name: u.name, tier: u.tier, level: s.level, xp: s.xp, stage: s.stage ?? 0, evoAugs: [...(s.evoAugs ?? [])], learned: [...(s.learned ?? [])], learnUsed: s.learnUsed ?? 0, learnPick: s.learnPick ?? 0 }; };
+const myRec = (key, i) => { const id = spOf(key), u = UNITS.find(x => x.id === id), s = unitRec(key); return { uid: `a${i}`, id, key, name: u.name, tier: u.tier, level: s.level, xp: s.xp, stage: s.stage ?? 0, evoAugs: [...(s.evoAugs ?? [])], learned: [...(s.learned ?? [])], learnUsed: s.learnUsed ?? 0, learnPick: s.learnPick ?? 0 }; };
 // 스토리 체력(v0.14.7): 전투가 끝난 체력 비율이 이어지고, 시간이 지나면 차오름(0→가득 storyHp.fullMinutes분). 체력 0이면 전투에 못 나감
 const HP_FULL_MS = () => (R.data.storyHp?.fullMinutes ?? 60) * 60000;
 const hpFrac = id => { const h = SAVE.hp?.[id]; return h ? Math.min(1, h.f + (Date.now() - h.at) / HP_FULL_MS()) : 1; };
@@ -174,18 +201,18 @@ const hpNow = id => Math.floor(hpMax(id) * hpFrac(id));
 const hpWaitMin = id => Math.ceil((1 - hpFrac(id)) * HP_FULL_MS() / 60000);
 const hpBar = id => { const f = hpFrac(id), pct = Math.round(f * 100), col = pct > 50 ? 'var(--hp)' : pct > 20 ? 'var(--hpmid)' : 'var(--hplow)';
   return `<i class="hpb ${hpNow(id) < 1 ? 'zero' : ''}" title="체력 ${hpNow(id)}/${hpMax(id)}"><i style="width:${pct}%;background:${col}"></i></i><small class="hpt">${hpNow(id) < 1 ? `기절 · ${hpWaitMin(id)}분 뒤 출근` : `체력 ${hpNow(id)}/${hpMax(id)}${pct < 100 ? ` · 가득까지 ${hpWaitMin(id)}분` : ''}`}</small>`; };
-const keep = r => { SAVE.units[r.id] = { level: r.level, xp: r.xp, learned: r.learned ?? [], learnUsed: r.learnUsed ?? 0, learnPick: r.learnPick ?? 0, stage: r.stage ?? 0, evoAugs: r.evoAugs ?? [] }; };
+const keep = r => { SAVE.units[r.key ?? r.id] = { level: r.level, xp: r.xp, learned: r.learned ?? [], learnUsed: r.learnUsed ?? 0, learnPick: r.learnPick ?? 0, stage: r.stage ?? 0, evoAugs: r.evoAugs ?? [] }; };
 // 승진(진화): 깬 부(1·2·3부) 수 = 열린 승진 단계. 표창 후보는 유닛·단계마다 항상 같음(다시 열어도 안 바뀜)
 const partsCleared = () => STORY.chapters.filter(c => /^\d+$/.test(c.id) && SAVE.cleared.includes(c.stages.at(-1).id)).length;
 const STARS = ['', '★', '★★', '★★★'];
 function seededRand(seed) { let h = 2166136261; for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); let t = h >>> 0;
   return () => { t = (t + 0x6d2b79f5) | 0; let x = Math.imul(t ^ (t >>> 15), t | 1); x ^= x + Math.imul(x ^ (x >>> 7), x | 61); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; }; }
-const promoChoices = rec => evoChoices(R, rec, seededRand(`${rec.id}:evo:${rec.stage}`));
+const promoChoices = rec => evoChoices(R, rec, seededRand(`${rec.key ?? rec.id}:evo:${rec.stage}`));
 const promoNeed = rec => { const lv = R.data.growth.evolveLevel[rec.stage]; return rec.stage >= 3 ? '' : `Lv${lv} + ${rec.stage + 1}부 완료`; };
 // 시너지: 이름과, 팀에서 같은 시너지 2마리+면 생기는 합동기
 const synName = id => { const k = R.unitDef(id)?.syn; return k ? R.data.synergies[k].name : ''; };
-function teamCombos(ids) {
-  const by = {}; for (const id of ids) { const k = R.unitDef(id)?.syn; if (k) (by[k] ??= []).push(id); }
+function teamCombos(keys) {   // 같은 종류 2마리는 시너지 1마리로 셈
+  const by = {}; for (const id of new Set(keys.map(spOf))) { const k = R.unitDef(id)?.syn; if (k) (by[k] ??= []).push(id); }
   return Object.entries(by).filter(([, v]) => v.length >= 2).map(([k, v]) => ({ k, skill: R.data.synergies[k].skill.name, names: v.map(id => UNITS.find(u => u.id === id).name) }));
 }
 
@@ -285,9 +312,10 @@ async function boot() {
     if (ACC) { try { TUT = await myApi('tutorial'); if (TUT.step === 1 && !TUT.seen.includes('tut')) { TUT.seen.push('tut'); myApi('tutorial', { step: 1, seen: 'tut' }).catch(() => {}); } } catch { TUT = null; } }   // 스토리 저장보다 먼저 물어야 새 유저로 판정됨
     loadStep(3, '준비 완료!');
     if (ACC) {
-      if (ACC.data) SAVE = load(ACC.data);
+      setOwn(ACC.mine);
+      if (ACC.data) { SAVE = load(ACC.data); if (SAVE.moved) { delete SAVE.moved; persist(); } }   // 예전 저장을 개체로 옮겼으면 바로 저장(편성 개체 보호도 같이)
       else { SAVE = load(progressed(local()) ? local() : null); if (progressed(local())) persist(); }
-      if (!SAVE.team.length && ACC.battleTeam.length) { SAVE.team = [...ACC.battleTeam]; persist(); }   // 스토리는 1~3마리(v0.15.0)
+      if (!SAVE.team.length && ACC.battleTeam.length) { for (const sp of ACC.battleTeam) SAVE.team.push(keyFor(sp)); persist(); }   // 스토리는 1~3마리(v0.15.0), 개체로
     } else SAVE = load();
     titleScreen(!!ACC);
     if (TUT) setInterval(tutTick, 350);
@@ -418,9 +446,11 @@ function gullTip(x, y) {
 let TUT = null;
 const tutGo = step => {
   const from = TUT.step; TUT.step = step;
-  if (step >= 3 && from <= 2 && ACC && !ACC.owned.includes('D1')) ACC.owned.push('D1');   // 태초의 갈매미맨이 들어옴
-  if ((step === 4 || step === 9) && !SAVE.team.length && ACC?.owned.includes('D1')) { SAVE.team = ['D1']; persist(); if (!ACC.battleTeam.length) ACC.battleTeam = ['D1']; }   // 편성을 마쳤거나 건너뛰면 스토리 팀도 이 한 마리로
-  if (!TUT.replay) myApi('tutorial', { step }).catch(() => {});
+  const got = step >= 3 && from <= 2 && ACC && !ACC.owned.includes('D1');
+  if (got) ACC.owned.push('D1');   // 태초의 갈매미맨이 들어옴(개체 번호는 서버가 단계를 저장한 뒤 다시 받음)
+  if ((step === 4 || step === 9) && !SAVE.team.length && ACC?.owned.includes('D1')) { SAVE.team = [keyFor('D1')]; persist(); if (!ACC.battleTeam.length) ACC.battleTeam = ['D1']; }   // 편성을 마쳤거나 건너뛰면 스토리 팀도 이 한 마리로
+  if (!TUT.replay) myApi('tutorial', { step }).then(() => { if (got) refreshOwn(); }).catch(() => {});
+  else if (got) refreshOwn();
 };
 const tutFrame = () => { const f = document.querySelector('.myov.ready iframe'); try { return f?.contentDocument?.body ? f : null; } catch { return null; } };
 const tutFind = sel => {
@@ -677,7 +707,7 @@ function nextStage() {
 function sideSquad() {
   const team = SAVE.team.length === 3 ? SAVE.team : [];
   if (!team.length) return '';
-  const im = (id, i) => `<img src="${sprite(id, 'front', SAVE.units[id]?.stage ?? 0)}" class="${i ? '' : 'flip'}" style="--sz:${bodySz(id, SAVE.units[id]?.stage ?? 0)};animation-delay:${i * .4}s" alt="">`;
+  const im = (k, i) => { const id = spOf(k), st = SAVE.units[k]?.stage ?? 0; return `<img src="${sprite(id, 'front', st)}" class="${i ? '' : 'flip'}" style="--sz:${bodySz(id, st)};animation-delay:${i * .4}s" alt="">`; };
   return `<div class="sqL">${im(team[0], 0)}</div><div class="sqR">${im(team[1], 1)}${im(team[2], 2)}</div>`;
 }
 // 지난 이야기 한 줄: 마지막으로 깬 스테이지의 끝 해설(없으면 다음 이야기의 첫 해설·장 소개)
@@ -690,16 +720,24 @@ function recap() {
 }
 // 첫 화면 「지금 이야기」: 부·스테이지·진행률 한 줄 + 큰 이어하기 버튼
 
+// 편성 후보(v0.16.2): 스토리+로그인 = 내 개체(같은 종류도 마리마다 따로, 기술이 다름) 먼저, 그다음 아직 없는 종류(시험판). 그 밖엔 종류
+const pickList = story => {
+  if (!story || !ACC) return UNITS.map(u => [u.id, u]);
+  const mine = Object.keys(OWN).map(k => [k, UNITS.find(u => u.id === OWN[k])]).filter(([, u]) => u);
+  return [...mine, ...UNITS.filter(u => !myKeys(u.id).length).map(u => [u.id, u])];
+};
 // ── 편성(자유 대결: 레벨 선택 / 스토리: 저장된 레벨) ──
-function pickScreen(mode, then) {   // then: 스토리 팀을 정한 뒤 바로 할 일(이어하기)
+function pickScreen(mode, then, fresh) {   // then: 스토리 팀을 정한 뒤 바로 할 일(이어하기)
   modal.hidden = true; bgm('title');
   const story = mode === 'story';
+  if (story && ACC && !fresh) return refreshOwn().then(() => pickScreen(mode, then, true));   // 뽑기·조합으로 바뀐 내 개체 목록부터
   let picked = story ? [...SAVE.team] : freePick;
   app.innerHTML = `<header class="pkh"><button class="back" id="bk">‹ 뒤로</button><h1>${story ? '스토리 팀 편성' : '자유 대결'}</h1>${story && ACC?.battleTeam.length === 3 ? '<button class="ghost pkmine" id="mine">내 전투 편성 불러오기</button>' : ''}</header>
   <p class="hint">${story ? '갈매미 1~3마리를 고르세요' : '갈매미 3마리를 고르세요'}. 처음 고른 갈매미가 먼저 나가요.${story ? ' 시험판이라 최상위 33종을 모두 쓸 수 있어요(실제 게임은 가진 갈매미만).' : ' 상대는 같은 레벨의 무작위 3마리예요.'}</p>
   ${story ? '' : `<div class="bar"><span class="role">레벨</span><div class="seg" id="lv">${[10, 30, 50].map(l => `<button data-l="${l}" class="${l === freeLevel ? 'on' : ''}">${l}</button>`).join('')}</div></div>`}
-  ${story && ACC ? `<p class="hint" style="margin-top:-6px"><img class="gi" src="/gull.png" alt=""> 표시는 내가 가진 갈매미예요. 셋 다 가진 갈매미로 고르면 「내 갈매미」 전투 편성도 같이 바뀌어요.</p>` : ''}
-  <div class="grid pickrow">${(story && ACC ? [...UNITS].sort((x, y) => ACC.owned.includes(y.id) - ACC.owned.includes(x.id)) : UNITS).map(u => `<button class="card" data-id="${u.id}"><img loading="lazy" src="${BASE}/thumbs/${u.id}.jpg" alt=""><b>${story && ACC?.owned.includes(u.id) ? '<img class="gi" src="/gull.png" alt=""> ' : ''}${esc(u.name)}</b>${chip(u.def.attr)}<span class="role">${ROLE[u.def.role]}${story ? ` · Lv${SAVE.units[u.id].level}` : ''}</span><span class="syn">${esc(synName(u.id))}</span></button>`).join('')}</div>
+  ${story && ACC ? `<p class="hint" style="margin-top:-6px"><img class="gi" src="/gull.png" alt=""> 표시는 내가 가진 갈매미예요. 같은 종류도 마리마다 레벨·기술이 따로예요(#번호). 편성하거나 키운 갈매미는 조합·판매 재료로 안 쓰이게 보호돼요.</p>` : ''}
+  <div class="grid pickrow">${pickList(story).map(([k, u]) => { const mineK = k[0] === 'o', r = story ? myRec(k, 0) : null, same = mineK && myKeys(u.id).length > 1;
+    return `<button class="card" data-id="${k}"><img loading="lazy" src="${BASE}/thumbs/${u.id}.jpg" alt=""><b>${story && mineK ? '<img class="gi" src="/gull.png" alt=""> ' : ''}${esc(u.name)}${same ? ` <em class="no">#${myKeys(u.id).indexOf(k) + 1}</em>` : ''}</b>${chip(u.def.attr)}<span class="role">${ROLE[u.def.role]}${story ? ` · Lv${r.level}` : ''}</span>${story ? `<span class="sks">${slotSkills(R, r).map(x => esc(x.name)).join(' · ')}</span>` : `<span class="syn">${esc(synName(u.id))}</span>`}</button>`; }).join('')}</div>
   <div class="foot"><div class="combo" id="combo"></div><div class="in"><button class="ghost" id="rnd">무작위</button><button class="big" id="go">${story ? '이 팀으로' : '대결 시작'}</button></div></div>`;
   // 가로 화면(v0.14.6): 카드를 한 줄(높은 화면은 두 줄)로 늘어놓고 옆으로 넘김. 카드 크기는 남은 높이에 맞춤
   const g = app.querySelector('.grid.pickrow');
@@ -726,14 +764,15 @@ function pickScreen(mode, then) {   // then: 스토리 팀을 정한 뒤 바로 
     paint();
   });
   app.querySelectorAll('#lv button').forEach(x => x.onclick = () => { freeLevel = +x.dataset.l; app.querySelectorAll('#lv button').forEach(y => y.classList.toggle('on', y === x)); });
-  app.querySelector('#rnd').onclick = () => { picked.splice(0, 3, ...shuffle(UNITS.map(u => u.id)).slice(0, 3)); paint(); };
-  app.querySelector('#mine')?.addEventListener('click', () => { picked.splice(0, 3, ...ACC.battleTeam); paint(); });
+  app.querySelector('#rnd').onclick = () => { picked.splice(0, 3, ...shuffle(pickList(story).map(([k]) => k)).slice(0, 3)); paint(); };
+  app.querySelector('#mine')?.addEventListener('click', () => { const ks = []; for (const sp of ACC.battleTeam) ks.push(myKeys(sp).find(k => !ks.includes(k)) ?? sp); picked.splice(0, 3, ...ks); paint(); });
   app.querySelector('#bk').onclick = story ? storyScreen : menu;
   app.querySelector('#go').onclick = () => {
     if (story) {
       SAVE.team = [...picked]; persist();
-      if (ACC && picked.every(id => ACC.owned.includes(id)) && picked.join() !== ACC.battleTeam.join())
-        myApi('battle-team', { ids: picked }).then(r => { ACC.battleTeam = r.battleTeam; }).catch(() => {});
+      const sps = [...new Set(picked.map(spOf))];   // 「내 갈매미」 전투 편성은 종류 3개(PvP)
+      if (ACC && sps.length === 3 && sps.every(id => ACC.owned.includes(id)) && sps.join() !== ACC.battleTeam.join())
+        myApi('battle-team', { ids: sps }).then(r => { ACC.battleTeam = r.battleTeam; }).catch(() => {});
       then ? then() : storyScreen();
     }
     else { freePick = picked; freeBattle(); }
@@ -762,17 +801,17 @@ function freeBattle() {
 
 // ── 스토리 ──
 const stages = () => STORY.chapters.flatMap(c => c.stages.map(s => ({ ...s, chapter: c })));
-const teamStageOk = need => !need || (SAVE.team.length > 0 && SAVE.team.every(id => (SAVE.units[id].stage ?? 0) >= need));
+const teamStageOk = need => !need || (SAVE.team.length > 0 && SAVE.team.every(id => (unitRec(id).stage ?? 0) >= need));
 const unlocked = id => { const all = stages(), i = all.findIndex(s => s.id === id); return (i === 0 || SAVE.cleared.includes(all[i - 1].id)) && teamStageOk(all[i].chapter.needStage); };
 
 function storyScreen() {
   modal.hidden = true; bgm('title');
-  const team = SAVE.team.map(id => UNITS.find(u => u.id === id));
+  const team = SAVE.team.map(k => ({ ...UNITS.find(u => u.id === spOf(k)), key: k }));   // 개체(열쇠) + 종류 정보
   // 가로(v0.11.1): 왼쪽 팀(글자 크게, 기술·승진 버튼) · 오른쪽 장 목록(그 안에서만 넘김)
-  app.innerHTML = `<div class="story"><header>${PART === null ? '<button class="back" id="bk">‹ 뒤로</button>' : ''}<h1>스토리</h1><small>${SAVE.cleared.length}/${stages().length} 실적</small>${team.length === 3 && ACC && team.some(u => hpFrac(u.id) < 1) ? '<button class="ghost edtop heal" id="heal">🩹 치료약</button>' : ''}<button class="ghost edtop" id="ed">${team.length ? '편성 바꾸기' : '팀 정하기'}</button></header>
-  <aside class="steam"><section class="teambar">${team.length ? team.map(u => { const s = SAVE.units[u.id], need = xpToNext(R, s.level);
-      const r = myRec(u.id, 0), n = learnChances(R, r), up = canEvolve(R, r, partsCleared());
-      return `<button class="mini" data-u="${u.id}"><img src="${sprite(u.id, 'front', r.stage)}" class="st-${r.stage}" alt=""><b>${esc(u.name)}</b><span>Lv${s.level} ${chip(u.def.attr)}${r.stage ? `<em class="stars">${STARS[r.stage]}</em>` : ''}</span>${hpBar(u.id)}${up ? '<em class="learn promo">⬆ 승진 가능</em>' : n ? `<em class="learn">✨ 기술 배우기 ${n}</em>` : '<small>기술·승진 보기 ›</small>'}</button>`; }).join('')
+  app.innerHTML = `<div class="story"><header>${PART === null ? '<button class="back" id="bk">‹ 뒤로</button>' : ''}<h1>스토리</h1><small>${SAVE.cleared.length}/${stages().length} 실적</small>${team.length === 3 && ACC && team.some(u => hpFrac(u.key) < 1) ? '<button class="ghost edtop heal" id="heal">🩹 치료약</button>' : ''}<button class="ghost edtop" id="ed">${team.length ? '편성 바꾸기' : '팀 정하기'}</button></header>
+  <aside class="steam"><section class="teambar">${team.length ? team.map(u => { const s = unitRec(u.key), need = xpToNext(R, s.level);
+      const r = myRec(u.key, 0), n = learnChances(R, r), up = canEvolve(R, r, partsCleared());
+      return `<button class="mini" data-u="${u.key}"><img src="${sprite(u.id, 'front', r.stage)}" class="st-${r.stage}" alt=""><b>${esc(u.name)}</b><span>Lv${s.level} ${chip(u.def.attr)}${r.stage ? `<em class="stars">${STARS[r.stage]}</em>` : ''}</span>${hpBar(u.key)}${up ? '<em class="learn promo">⬆ 승진 가능</em>' : promoSkills(R, r).length ? '<em class="learn promo">🎖️ 전용 기술</em>' : n ? `<em class="learn">✨ 기술 배우기 ${n}</em>` : '<small>기술·승진 보기 ›</small>'}</button>`; }).join('')
       + (team.length ? `<p class="combo">${teamCombos(SAVE.team).map(x => `🤝 합동기 「${esc(x.skill)}」`).join(' · ') || '합동기 없음(같은 시너지 2마리면 생겨요)'}</p>` : '')
     : '<p class="hint" style="margin:0">먼저 팀을 정해 주세요(1~3마리). 위 「팀 정하기」를 눌러요.</p>'}</section></aside>
   <main class="schap ${PART === null ? 'parts' : 'part'}">${PART === null ? partList() : partView(STORY.chapters[PART])}</main></div>`;   // 부 화면: 뒤로(부 목록으로)는 오른쪽 아래
@@ -839,8 +878,8 @@ function healSheet() {
   const draw = () => {
     modal.innerHTML = `<div class="sheet pick heals"><h2>🩹 치료약 쓰기 <small>시간이 지나도 차올라요(0→가득 ${R.data.storyHp?.fullMinutes ?? 60}분)</small></h2>
       ${healers.map(([id, d]) => `<button class="aug ${pick === id ? 'on' : ''}" data-i="${id}" ${have(id) ? '' : 'disabled'}><span class="ic">${ico(id, '🩹')}</span><span class="tx"><b>${esc(d.name)} <em>${have(id)}개</em></b><span>체력 ${d.heal}% 회복${have(id) ? '' : ' · 상점에서 살 수 있어요'}</span></span><span class="ck">${pick === id ? '✓' : ''}</span></button>`).join('')}
-      <h2>누구에게</h2>${SAVE.team.map(id => { const u = UNITS.find(x => x.id === id), full = hpFrac(id) >= 1;
-        return `<button class="aug ${to === id ? 'on' : ''}" data-t="${id}" ${full ? 'disabled' : ''}><img class="ic" src="${sprite(id, 'front', SAVE.units[id].stage ?? 0)}" alt=""><span class="tx"><b>${esc(u.name)}</b>${hpBar(id)}</span><span class="ck">${to === id ? '✓' : ''}</span></button>`; }).join('')}
+      <h2>누구에게</h2>${SAVE.team.map(id => { const u = UNITS.find(x => x.id === spOf(id)), full = hpFrac(id) >= 1;
+        return `<button class="aug ${to === id ? 'on' : ''}" data-t="${id}" ${full ? 'disabled' : ''}><img class="ic" src="${sprite(spOf(id), 'front', unitRec(id).stage ?? 0)}" alt=""><span class="tx"><b>${esc(u.name)}</b>${hpBar(id)}</span><span class="ck">${to === id ? '✓' : ''}</span></button>`; }).join('')}
       <p class="sub" id="herr"></p>
       <div class="sw"><button class="ghost" id="hx" style="justify-content:center">닫기</button><button class="big" id="hu" ${pick && to ? '' : 'disabled'}>${pick && to ? `${esc(R.data.items[pick].name)} 쓰기` : '아이템과 갈매미를 골라요'}</button></div></div>`;
     modal.querySelectorAll('[data-i]').forEach(x => x.onclick = () => { pick = x.dataset.i; draw(); });
@@ -879,19 +918,23 @@ function partView(c) {
 
 // 기술 창(v0.15.9): 한 화면(세로 넘김 없음). 왼쪽 = 갈매미·능력치·승진, 오른쪽 = 기술 4칸(2×2).
 // 배울 기회가 있으면 「새 기술 배우기」 → 팝업: ① 배울 기술(그 레벨에 새로 열린 것) → ② 잊을 칸(4칸 중 하나) → 배우기. 한 기회에 최대 2개
-function skillSheet(id) {
-  const u = UNITS.find(x => x.id === id), def = R.unitDef(id), rec = myRec(id, 0), st = statsOf(R, rec);
-  const kindOf = k => k.id.startsWith('basic-') ? '기본기' : k.id === 'sig' ? '고유기' : k.id.startsWith('role-') ? '역할기' : k.id.startsWith('sub-') ? '보조 속성' : '배운 기술';
+function skillSheet(key, open = null) {   // open: 'promo'면 승진 전용 기술 팝업부터   // key: 개체 열쇠(o번호) 또는 종류 id
+  const id = spOf(key), u = UNITS.find(x => x.id === id), def = R.unitDef(id), rec = myRec(key, 0), st = statsOf(R, rec);
+  const kindOf = k => k.id.startsWith('basic-') ? '기본기' : k.id === 'sig' ? '전용 기술' : k.id.startsWith('role-') ? '역할기' : k.id.startsWith('sub-') ? '보조 속성' : '일반 기술';
   const icon = (k, attr) => glyphOf(k.name) ?? GLYPH[attr] ?? '✨';
   const meta = k => `${k.power ? `${esc(R.attrName(k.attr ?? def.attr))} · ${catOf(k, st)} · 위력 ${k.power}${k.hits > 1 ? `×${k.hits}` : ''}` : '보조 기술'}${k.cd ? ` · 재사용 ${k.cd}턴` : ''}`;
   const skc = (k, data = '', on = false, tag = '') => `<button class="skc ${on ? 'on' : ''}" ${data} ${data ? '' : 'tabindex="-1"'}><span class="ic">${icon(k, k.attr ?? def.attr)}</span><span class="tx"><em>${tag || kindOf(k)}</em><b>${esc(k.name)}</b><small>${meta(k)}</small><span class="ds">${esc(restDesc(k) || k.desc || '')}</span></span></button>`;
-  let pop = null, pick = null, rep = null;   // pop: null | 'learn' | 'forget'
+  let pop = null, pick = null, rep = null, via = 'learn';   // pop: null | 'learn' | 'promo' | 'forget', via: 잊을 칸을 고른 뒤 무엇으로 배우나
   const draw = () => {
-    const mine = slotSkills(R, rec), offers = learnOffers(R, rec), left = learnLeft(R, rec), per = R.data.learn.perChance ?? 1;
+    const mine = slotSkills(R, rec), promos = promoSkills(R, rec), offers = via === 'promo' ? promos : learnOffers(R, rec), left = learnLeft(R, rec), per = R.data.learn.perChance ?? 1;
     const tier = R.data.learn.levels[rec.learnUsed ?? 0], nextLv = R.data.learn.levels.find(l => l > rec.level), full = mine.length >= R.data.learn.slots;
-    const learnBtn = offers.length ? `<button class="big" id="openL">✨ 새 기술 배우기 <small>Lv${tier} · ${left}개 더</small></button>` : `<p class="sub">${nextLv ? `다음 배울 기회: Lv${nextLv}` : '모든 배울 기회를 썼어요'}</p>`;
+    const promoBtn = promos.length ? `<button class="big promo-b" id="openP">🎖️ 승진 전용 기술</button>` : '';
+    const learnBtn = learnOffers(R, rec).length ? `<button class="big" id="openL">✨ 새 기술 배우기 <small>Lv${tier} · ${left}개 더</small></button>` : `<p class="sub">${nextLv ? `다음 배울 기회: Lv${nextLv}` : '모든 배울 기회를 썼어요'}</p>`;
     const popHtml = !pop ? '' : `<div class="skpop" id="pop"><div class="pbox">
-      ${pop === 'learn' ? `<h2>✨ 새 기술 배우기 <small>Lv${tier}에 새로 열린 기술 · 이번에 ${left}개 더(최대 ${per}개)</small></h2>
+      ${pop === 'promo' ? `<h2>🎖️ 승진 전용 기술 <small>${rec.stage}단계까지 열린 ${esc(u.name)} 전용 기술 · 배울 기회는 안 써요</small></h2>
+        <div class="skg off">${promos.map(k => skc(k, `data-p="${k.id}"`, pick === k.id, '승진 전용')).join('')}</div>
+        <div class="sw"><button class="ghost" id="popX2">나중에</button><button class="big" id="nextL" ${pick ? '' : 'disabled'}>${pick ? (full ? '다음: 잊을 기술 고르기 ›' : `「${esc(promos.find(o => o.id === pick).name)}」 배우기`) : '배울 기술을 골라요'}</button></div>`
+      : pop === 'learn' ? `<h2>✨ 새 기술 배우기 <small>Lv${tier}에 새로 열린 기술 · 이번에 ${left}개 더(최대 ${per}개)</small></h2>
         <div class="skg off">${offers.map(k => skc(k, `data-p="${k.id}"`, pick === k.id, '새 기술')).join('')}</div>
         <div class="sw"><button class="ghost" id="skipL">${left < per ? '그만 배우기' : '이번엔 안 배우기'}</button><button class="big" id="nextL" ${pick ? '' : 'disabled'}>${pick ? (full ? '다음: 잊을 기술 고르기 ›' : `「${esc(offers.find(o => o.id === pick).name)}」 배우기`) : '배울 기술을 골라요'}</button></div>`
       : `<h2>잊을 기술 고르기 <small>「${esc(offers.find(o => o.id === pick)?.name ?? '')}」 대신 잊을 칸 하나</small></h2>
@@ -903,28 +946,32 @@ function skillSheet(id) {
         ${statGrid(st)}
         <div class="promo"><b>승진</b> <small>${rec.stage >= 3 ? '최고 단계' : `다음: ${promoNeed(rec)}`}</small>${rec.evoAugs.length ? `<div class="evo">${rec.evoAugs.map(a => { const e = R.evoAug.get(a); return `<span title="${esc(e.desc)}">🎖️ ${esc(e.name)}</span>`; }).join('')}</div>` : ''}
         ${canEvolve(R, rec, partsCleared()) ? `<button class="big wide" id="promo">⬆ ${rec.stage + 1}단계 승진하기</button>` : ''}</div></aside>
-      <main class="skr"><div class="skh"><h2>기술 <small>4칸 모두 바꿀 수 있어요</small></h2>${learnBtn}</div>
-        <div class="skg">${mine.map(k => skc(k)).join('')}</div></main>
+      <main class="skr"><div class="skh"><h2>기술 <small>${mine.length}/${R.data.learn.slots}칸 · 모두 바꿀 수 있어요</small></h2><div class="skbtn">${promoBtn}${learnBtn}</div></div>
+        <div class="skg">${mine.map(k => skc(k)).join('')}${Array.from({ length: Math.max(0, R.data.learn.slots - mine.length) }, () => `<div class="skc empty"><span class="ic">＋</span><span class="tx"><em>빈칸</em><b>비어 있어요</b><small>${nextLv || offers.length ? '레벨업·승진으로 배워서 채워요' : '전용 기술·새 기술로 채워요'}</small></span></div>`).join('')}</div></main>
       <button class="pclose" id="closeL" aria-label="닫기">✕</button>${popHtml}</div>`;
     const $ = s => modal.querySelector(s);
     $('#closeL').onclick = () => { modal.hidden = true; modal.className = ''; storyScreen(); };
-    $('#promo')?.addEventListener('click', () => promoSheet(id));
-    $('#openL')?.addEventListener('click', () => { pop = 'learn'; pick = null; rep = null; draw(); });
+    $('#promo')?.addEventListener('click', () => promoSheet(key));
+    $('#openL')?.addEventListener('click', () => { pop = 'learn'; via = 'learn'; pick = null; rep = null; draw(); });
+    $('#openP')?.addEventListener('click', () => { pop = 'promo'; via = 'promo'; pick = null; rep = null; draw(); });
+    $('#popX2')?.addEventListener('click', () => { pop = null; via = 'learn'; draw(); });
     $('#popX')?.addEventListener('click', () => { pop = null; draw(); });
     modal.querySelectorAll('[data-p]').forEach(x => x.onclick = () => { pick = x.dataset.p; draw(); });
     modal.querySelectorAll('[data-r]').forEach(x => x.onclick = () => { rep = x.dataset.r; draw(); });
-    const save = () => { keep(rec); persist(); pick = null; rep = null; pop = learnOffers(R, rec).length ? 'learn' : null; draw(); };
-    $('#nextL')?.addEventListener('click', () => { if (full) { pop = 'forget'; rep = null; draw(); } else { learnSkill(R, rec, pick); save(); } });
-    $('#backL')?.addEventListener('click', () => { pop = 'learn'; draw(); });
-    $('#doL')?.addEventListener('click', () => { learnSkill(R, rec, pick, rep); sfx('aug'); save(); });
+    const save = () => { keep(rec); persist(); pick = null; rep = null; const was = via; via = 'learn'; pop = was === 'learn' && learnOffers(R, rec).length ? 'learn' : null; draw(); };
+    const doLearn = () => (via === 'promo' ? learnPromo(R, rec, pick, rep ?? undefined) : learnSkill(R, rec, pick, rep ?? undefined));
+    $('#nextL')?.addEventListener('click', () => { if (full) { pop = 'forget'; rep = null; draw(); } else { doLearn(); sfx('aug'); save(); } });
+    $('#backL')?.addEventListener('click', () => { pop = via; draw(); });
+    $('#doL')?.addEventListener('click', () => { doLearn(); sfx('aug'); save(); });
     $('#skipL')?.addEventListener('click', async () => { if (await ask(left < per ? `이번 기회를 끝낼까요? 남은 ${left}개는 다시 받을 수 없어요.` : '이번 기회를 건너뛸까요? 다시 받을 수 없어요.', { ok: left < per ? '끝내기' : '건너뛰기' })) { learnSkill(R, rec, null); save(); } });
   };
+  if (open === 'promo' && promoSkills(R, rec).length) { pop = 'promo'; via = 'promo'; }
   modal.onclick = null; modal.className = 'full'; modal.hidden = false; draw();
 }
 
 // 승진: 직무 표창 3개 중 1개 → 단계 +1(능력치 배율 상승). 단계별 그림이 생기기 전까지는 별·빛으로 표시
-function promoSheet(id) {
-  const rec = myRec(id, 0), u = UNITS.find(x => x.id === id), choices = promoChoices(rec);
+function promoSheet(key) {
+  const id = spOf(key), rec = myRec(key, 0), u = UNITS.find(x => x.id === id), choices = promoChoices(rec);
   let pick = null;
   const draw = () => {
     modal.innerHTML = `<div class="sheet pick"><h2>⬆ ${esc(u.name)} ${rec.stage + 1}단계 승진</h2>
@@ -932,12 +979,12 @@ function promoSheet(id) {
       ${choices.map(e => `<button class="aug ${pick === e.id ? 'on' : ''}" data-e="${e.id}"><span class="ic">🎖️</span><span class="tx"><b>${esc(e.name)}</b><span>${esc(e.desc)}</span></span><span class="ck">${pick === e.id ? '✓' : ''}</span></button>`).join('')}
       <div class="sw"><button class="ghost" id="cancelP" style="justify-content:center">나중에</button><button class="big" id="doP" ${pick ? '' : 'disabled'}>${pick ? `「${esc(R.evoAug.get(pick).name)}」 받고 승진` : '표창을 골라요'}</button></div></div>`;
     modal.querySelectorAll('[data-e]').forEach(x => x.onclick = () => { pick = x.dataset.e; draw(); });
-    modal.querySelector('#cancelP').onclick = () => skillSheet(id);
+    modal.querySelector('#cancelP').onclick = () => skillSheet(key);
     modal.querySelector('#doP').onclick = async () => {
       rec.stage += 1; rec.evoAugs.push(pick); keep(rec); persist();
       modal.innerHTML = `<div class="promo-fx"><img src="${sprite(id, 'front', rec.stage)}" class="st-${rec.stage}" alt=""><b>승진!</b><span>${esc(u.name)} · ${rec.stage}단계 ${STARS[rec.stage]}</span><small>직무 표창 「${esc(R.evoAug.get(pick).name)}」</small></div>`;
       modal.querySelector('.promo-fx').animate([{ opacity: 0, transform: 'scale(.8)' }, { opacity: 1, transform: 'scale(1.04)', offset: .4 }, { opacity: 1, transform: 'none' }], { duration: 700, fill: 'forwards' });
-      await sleep(1800); skillSheet(id);
+      await sleep(1800); skillSheet(key, 'promo');   // 승진 전용 기술 팝업으로
     };
   };
   modal.onclick = null; modal.className = ''; modal.hidden = false; draw();
@@ -952,14 +999,14 @@ function talk(lines, opt = {}) {
     if (opt.tip) lines.push({ who: 'TIP', say: opt.tip });
     if (!lines.length) return resolve();
     bgm('story');
-    const lead = UNITS.find(u => u.id === SAVE.team[0]);
+    const leadKey = SAVE.team[0], lead = UNITS.find(u => u.id === spOf(leadKey));
     let i = 0, typing = null, full = '';
     const foeId = lines.find(l => /^[VDTEIN]\d+$/.test(l.who))?.who;
     modal.className = 'scene-on';
     const UI = APP ? 'intro' : `${BASE}/duel/intro`, deep = (opt.scene || 'harbor') === 'deep';
     modal.innerHTML = `<div class="scene sc-${opt.scene || 'harbor'} ${deep ? 'bg2' : ''}">${deep ? `<div class="kb" style="background:url(${BASE}/duel/bg/deepstory.webp${q}) center/cover"></div>` : bgStyle(opt.scene || 'harbor') ? `<div class="kb" style="${bgStyle(opt.scene || 'harbor')}"></div>` : ''}${ambient(opt.scene || 'harbor', !!bgStyle(opt.scene || 'harbor'))}
       ${opt.title ? `<div class="place">${esc(opt.title)}</div>` : ''}
-      <img class="por me" id="pMe" src="${sprite(lead.id, 'front', SAVE.units[lead.id]?.stage ?? 0)}" style="--sz:${bodySz(lead.id, SAVE.units[lead.id]?.stage ?? 0)}" alt="">
+      <img class="por me" id="pMe" src="${sprite(lead.id, 'front', SAVE.units[leadKey]?.stage ?? 0)}" style="--sz:${bodySz(lead.id, SAVE.units[leadKey]?.stage ?? 0)}" alt="">
       <img class="por foe" id="pFoe" alt="" ${foeId ? '' : 'hidden'}>
       <div class="dbox"><div class="who" id="who"></div><p class="say" id="say"></p>
         <div class="tk"><span id="pg"></span><button class="dnext" id="dnext" aria-label="다음"><img src="${UI}/b3_button_next.webp" alt=""><img class="lb" src="${UI}/b3_label_next.webp" alt="" style="--x:45.5%;--y:50%;--w:34"></button></div></div>
@@ -1005,11 +1052,11 @@ function fight(st) {
   sceneNow = st.scene || 'harbor';
   const foe = st.enemy.map((e, i) => { const v = R.villains.get(e.id); return { uid: `b${i}`, id: e.id, name: v.name, tier: 'LIMITED', level: e.level, xp: 0, stage: e.stage ?? st.chapter.needStage ?? 0, evoAugs: [] }; });
   const down = SAVE.team.filter(id => hpNow(id) < 1);
-  if (down.length) { tell(`체력이 0인 갈매미는 나갈 수 없어요: ${down.map(id => UNITS.find(u => u.id === id).name).join(', ')}. 시간이 지나면 회복되고, 스토리 화면에서 치료약을 쓸 수도 있어요.`).then(storyScreen); return; }
+  if (down.length) { tell(`체력이 0인 갈매미는 나갈 수 없어요: ${down.map(id => UNITS.find(u => u.id === spOf(id)).name).join(', ')}. 시간이 지나면 회복되고, 스토리 화면에서 치료약을 쓸 수도 있어요.`).then(storyScreen); return; }
   const mine = SAVE.team.map(myRec);
   fightId = null;
   if (ACC) myApi('story/battle', {}).then(r => { fightId = r.result.battle; ACC.items = r.result.items; if (b && b.phase === 'action' && !busy) actionPanel(); }).catch(() => {});
-  const saveHp = () => { b.sides[0].fighters.forEach(f => setHp(f.rec.id, f.hp / f.maxHp)); persist(); };
+  const saveHp = () => { b.sides[0].fighters.forEach(f => setHp(f.rec.key ?? f.rec.id, f.hp / f.maxHp)); persist(); };
   startBattle(mine, foe, won => {
     saveHp();
     const avg = st.enemy.reduce((a, e) => a + e.level, 0) / st.enemy.length, xp = battleXp(R, avg, won);
@@ -1031,7 +1078,7 @@ function fight(st) {
     return { text: `출전한 갈매미마다 경험치 +${xp}${ups.length ? ` · 레벨 업! ${ups.join(', ')}` : ''}${canLearn ? ' · ✨ 새 기술을 배울 수 있어요(스토리 화면에서 갈매미를 눌러요)' : ''}${mine.some(r => canEvolve(R, r, partsCleared())) ? ' · ⬆ 승진할 수 있는 갈매미가 있어요' : ''}${first && last && /^\d+$/.test(st.chapter.id) ? ` · ${st.chapter.id}단계 승진 심사가 열렸어요(Lv${R.data.growth.evolveLevel[+st.chapter.id - 1]}부터 승진)` : ''}`,
       buttons: won ? [['다음으로', after]] : [['다시 도전', () => fight(st)], ['스토리로', after]] };
   }, st.hint, { retry: () => fight(st), back: storyScreen, save: saveHp });
-  b.sides[0].fighters.forEach(f => { f.hp = Math.max(1, Math.min(f.maxHp, Math.floor(f.maxHp * hpFrac(f.rec.id)))); });   // 남은 체력으로 시작
+  b.sides[0].fighters.forEach(f => { f.hp = Math.max(1, Math.min(f.maxHp, Math.floor(f.maxHp * hpFrac(f.rec.key ?? f.rec.id)))); });   // 남은 체력으로 시작
   view = snap(); render();
 }
 
@@ -1235,7 +1282,7 @@ function actionPanel(pane = 'menu') {
     const combo = f.skills.find(k => k.id.startsWith('combo-')), ready = combo && can({ kind: 'skill', skillId: combo.id });
     panel.innerHTML = `<div class="bhead">${back}<b>⚔️ 기술 고르기</b></div>${combo ? `<button class="combo-btn" data-k="${combo.id}" title="${esc(combo.desc)}" ${ready ? '' : 'disabled'}><small>🤝 합동기 · ${esc(R.data.synergies[combo.id.slice(6)].name)} · 대결당 1번</small><b>${esc(combo.name)}</b><span>${esc(combo.desc)}${ready ? '' : b.sides[0].comboUsed ? ' (이미 씀)' : ' (같은 시너지 동료가 있어야 해요)'}</span></button>` : ''}<div class="skills">${f.skills.filter(k => !k.id.startsWith('combo-')).map(k => {
       const at = k.attr ?? f.attr, m = k.power ? R.typeMult(at, foe.attr) : 1, wait = f.cds[k.id] > 0;
-      const kind = k.id.startsWith('sub-') ? '보조 속성' : k.id.startsWith('learn-') ? '배운 기술' : k.id === 'sig' ? '고유기' : k.id.startsWith('role-') ? '역할기' : '기본기';
+      const kind = k.id.startsWith('sub-') ? '보조 속성' : k.id.startsWith('learn-') ? '일반 기술' : k.id === 'sig' ? '전용 기술' : k.id.startsWith('role-') ? '역할기' : '기본기';
       return `<button class="sk" data-k="${k.id}" style="--c:${COLOR[at]}" ${can({ kind: 'skill', skillId: k.id }) ? '' : 'disabled'}>
         <span class="kd">${kind}${wait ? ` · ${f.cds[k.id]}턴 뒤` : k.cd ? ` · 재사용 ${k.cd}턴` : ''}</span><b>${esc(k.name)}</b>
         <span class="ln">${k.power ? `${chip(at)}${catTag(k, f.base)}<small>위력 ${k.power}${k.hits > 1 ? `×${k.hits}` : ''}</small>${m > 1 ? '<em class="good">▲유리</em>' : m < 1 ? '<em class="bad">▼불리</em>' : ''}` : '<small>보조 기술</small>'}</span>

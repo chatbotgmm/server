@@ -72,6 +72,34 @@ export function slotSkills(r:Rules,rec:UnitRecord):Skill[]{
 }
 const keyOfSkill=(id:string)=>id.startsWith('basic-')?'basic':id==='sig'?'sig':id.startsWith('role-')?'role':id.startsWith('sub-')?'sub':id.replace(/^learn-/,'');
 
+// 씨앗으로 정해지는 난수(같은 씨앗이면 늘 같은 순서)
+function seeded(seed:string):()=>number{let h=2166136261;for(const ch of seed)h=Math.imul(h^ch.charCodeAt(0),16777619);let t=h>>>0;
+  return ()=>{t=(t+0x6d2b79f5)|0;let x=Math.imul(t^(t>>>15),t|1);x^=x+Math.imul(x^(x>>>7),x|61);return((x^(x>>>14))>>>0)/4294967296;};}
+// ── 타고나는 기술(v0.16.2): 똥폭탄(기본기) + 무작위 1~2개. 후보 = 역할기·보조 속성 기술·그 역할의 첫 배울 레벨 기술.
+//    seed(개체 번호 등)로 정해서 다시 계산해도 같고, 같은 종류라도 개체마다 다름. 나머지 칸은 비어 있다가 레벨업·승진으로 채움
+export function innateLearned(r:Rules,unitId:string,seed:string):string[]{
+  const def=r.unitDef(unitId)!,rand=seeded(`innate:${unitId}:${seed}`),hasSub=!!def.sub&&def.sub!==def.attr,first=r.data.learn.levels[0];
+  const pool=['role',...(hasSub?['sub']:[]),...r.learnables.filter(x=>x.level<=first&&(!x.roles||x.roles.includes(def.role))).map(x=>x.id)];
+  for(let i=pool.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+  return ['@','basic',...pool.slice(0,rand()<0.5?1:2)];
+}
+// ── 승진 전용 기술(v0.16.2): 1단계 = 고유기(sig). 승진한 단계까지의 전용 기술 중 아직 칸에 없는 것은 언제든 배울 수 있음(배울 기회는 안 씀)
+export const PROMO_KEYS=['sig'] as const;
+export function promoSkills(r:Rules,rec:UnitRecord):Skill[]{
+  const have=new Set(slotKeys(r,rec)),def=r.unitDef(rec.id)!;
+  return PROMO_KEYS.filter((k,i)=>(rec.stage??0)>i&&!have.has(k)).map(()=>def.signature);
+}
+export function learnPromo(r:Rules,rec:UnitRecord,key:string,replace?:string){
+  if(!promoSkills(r,rec).some(k=>k.id===key))throw new Error('지금 배울 수 있는 전용 기술이 아니에요');
+  let list=slotKeys(r,rec);
+  if(list.length>=r.data.learn.slots){
+    const old=replace?keyOfSkill(replace):'';
+    if(!old||!list.includes(old))throw new Error('칸이 꽉 찼어요. 잊을 기술을 골라 주세요');
+    list=list.filter(x=>x!==old);
+  }
+  rec.learned=['@',...list,key];
+  return rec;
+}
 // ── 레벨업 기술 배우기(진화와 별개): learn.levels에 도달할 때마다 1번 기회.
 //    후보 = 그 레벨에 새로 열린 기술(역할에 맞고 아직 없는 것). 한 기회에 최대 perChance개까지 배움(다 배우거나 「그만 배우기」로 기회 끝)
 export const learnChances=(r:Rules,rec:UnitRecord)=>Math.max(0,r.data.learn.levels.filter(l=>rec.level>=l).length-(rec.learnUsed??0));

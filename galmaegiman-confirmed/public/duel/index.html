@@ -1871,6 +1871,13 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
   .skpop .pbox{padding:10px 12px;gap:7px}.skpop .skg{gap:6px}
 }
 @media (orientation:portrait){ #modal.full .sheet.skv{grid-template-columns:1fr;grid-template-rows:auto 1fr;overflow:auto} .skpop .skg.off{grid-template-columns:1fr 1fr} }
+/* 기술 창 버튼 두 개(승진 전용·새 기술) */
+.skv .skbtn{display:flex;gap:8px;align-items:center}.skv .skbtn .promo-b{background:linear-gradient(#f6e6b6,#e6c46a);border-color:#a37a1c;color:#4a3208}
+/* 빈 기술 칸 */
+.skc.empty{border-style:dashed;background:rgba(255,252,244,.5);color:var(--dim)}.skc.empty .ic{color:#c9a46a}.skc.empty b{color:var(--dim)}
+/* 편성 카드(v0.16.2): 개체 번호·타고난 기술 */
+.card b .no{font-style:normal;font-size:.75em;color:#a3541b;margin-left:2px}
+.card .sks{font-size:10.5px;line-height:1.3;color:var(--dim);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 </style>
 </head>
 <body>

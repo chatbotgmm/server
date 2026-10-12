@@ -1407,11 +1407,26 @@ export class GameService {
     if(!row)return null;
     try{return JSON.parse(row.data);}catch{return null;}
   }
+  // 스토리용 내 최상위 갈매미(v0.16.2, 개체별): 한 마리마다 번호(oid). 조합·판매로 없어진 것은 빠짐
+  async webStoryUnits(playerId:string){
+    const rows=await this.db.ownedCharacter.findMany({where:{playerId,status:{in:['AVAILABLE','EXPEDITION']},characterId:{in:this.topIds}},select:{id:true,characterId:true,locked:true},orderBy:{id:'asc'}});
+    return rows.map(r=>({oid:r.id,id:r.characterId,locked:r.locked}));
+  }
   async webSaveStory(playerId:string,data:unknown){
-    const text=data===null?null:JSON.stringify(data);
     return this.webRun(playerId,async(tx,p)=>{
-      if(text===null)await tx.storySave.deleteMany({where:{playerId:p.id}});
-      else await tx.storySave.upsert({where:{playerId:p.id},create:{playerId:p.id,data:text},update:{data:text}});
+      if(data===null){await tx.storySave.deleteMany({where:{playerId:p.id}});return true;}
+      // 개체 열쇠(o번호)는 지금 가진 최상위 갈매미만 남김. 편성에 있거나 키운 개체는 보호(조합·판매 재료로 안 쓰이게)
+      const d=data as {units:Record<string,{level:number;xp:number;learned?:string[];stage?:number}>;team:string[];hp?:Record<string,unknown>};
+      const okeys=new Set([...Object.keys(d.units),...d.team,...Object.keys(d.hp??{})].filter(k=>/^o\d+$/.test(k)));
+      const mine=new Set((await tx.ownedCharacter.findMany({where:{playerId:p.id,id:{in:[...okeys].map(k=>+k.slice(1))},status:{in:['AVAILABLE','EXPEDITION']},characterId:{in:this.topIds}},select:{id:true}})).map(r=>`o${r.id}`));
+      const keep=(k:string)=>!/^o\d+$/.test(k)||mine.has(k);
+      d.units=Object.fromEntries(Object.entries(d.units).filter(([k])=>keep(k)));d.team=d.team.filter(keep);
+      if(d.hp)d.hp=Object.fromEntries(Object.entries(d.hp).filter(([k])=>keep(k)));
+      const raised=Object.entries(d.units).filter(([k,u])=>mine.has(k)&&(u.xp>0||u.level>1||(u.stage??0)>0||(u.learned??[]).length>4)).map(([k])=>k);
+      const protect=[...new Set([...d.team.filter(k=>mine.has(k)),...raised])].map(k=>+k.slice(1));
+      if(protect.length)await tx.ownedCharacter.updateMany({where:{playerId:p.id,id:{in:protect},locked:false},data:{locked:true}});
+      const text=JSON.stringify(d);
+      await tx.storySave.upsert({where:{playerId:p.id},create:{playerId:p.id,data:text},update:{data:text}});
       return true;
     });
   }

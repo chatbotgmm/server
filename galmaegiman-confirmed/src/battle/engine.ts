@@ -40,7 +40,8 @@ function makeFighter(R:Rules,rec:UnitRecord,side:0|1,combo?:Skill):Fighter{
 export function createBattle(R:Rules,teamA:UnitRecord[],teamB:UnitRecord[],seed:number):Battle{
   if(!teamA.length||!teamB.length||teamA.length>3||teamB.length>3)throw new Error('팀은 1~3마리');
   // 같은 시너지가 2마리 이상이면 그 유닛들에게 합동기
-  const comboFor=(t:UnitRecord[],r:UnitRecord)=>{const k=R.unitDef(r.id)?.syn;if(!k||t.filter(x=>R.unitDef(x.id)?.syn===k).length<2)return undefined;return R.comboSkill(k,R.unitDef(r.id)!.attr);};
+  const comboFor=(t:UnitRecord[],r:UnitRecord)=>{const k=R.unitDef(r.id)?.syn;if(!k||new Set(t.filter(x=>R.unitDef(x.id)?.syn===k).map(x=>x.id)).size<2)return undefined;   // 같은 종류 2마리는 1마리로 셈
+    return R.comboSkill(k,R.unitDef(r.id)!.attr);};
   const side=(t:UnitRecord[],i:0|1):SideState=>({fighters:t.map(r=>makeFighter(R,r,i,comboFor(t,r))),active:0,comboUsed:false,augs:[],offers:null,rerolled:[],offerSeen:[],needSwitch:false,reviveUsed:false,goFirst:false,neutral:0,itemsUsed:0});
   const b:Battle={R,rng:seed|0,turn:1,phase:'choose',winner:null,sides:[side(teamA,0),side(teamB,1)],log:[]};
   // 거울(mirror) 빌런: 상대 팀에 가장 많은 속성을 그대로 비춤(같으면 상대 선두 속성)
