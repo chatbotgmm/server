@@ -451,7 +451,7 @@ function tutPlan() {
     if (lobby) return { key: '2a', t: '.h8menu a[data-h="draw"]', say: tutSay('② 첫 뽑기', '「뽑기」로 가요. 가입 선물로 받은 뽑기권이 있어요!') };
     if (!fd) return null;
     if (fd.querySelector('.reveal')) { TUT.drew = true; return null; }   // 알 열기·결과 보는 중
-    if (TUT.drew) { tutGo(3); TUT.card = { k: 'd1', html: `<h3>🎁 첫 뽑기 보상</h3><img src="${sprite('D1', 'front', 0)}" alt=""><p><b>태초의 갈매미맨</b> ${chip(R.unitDef('D1').attr)}</p><p class="tsub">모든 갈매미의 원형이에요. ${TUT.replay ? '(다시 보기라 새로 주지는 않아요)' : '수비대에 들어왔어요!'} 이 한 마리로 첫 전투에 나가요.</p><button class="big" data-tc="ok">받기</button>` }; return tutPlan(); }
+    if (TUT.drew) { tutGo(3); TUT.card = { k: 'd1', html: `<h3>🎁 첫 뽑기 보상</h3><img class="rcard" src="${BASE}/images/D1.png" alt="태초의 갈매미맨"><p><b>태초의 갈매미맨</b> ${chip(R.unitDef('D1').attr)}</p><p class="tsub">모든 갈매미의 원형이에요. ${TUT.replay ? '(다시 보기라 새로 주지는 않아요)' : '수비대에 들어왔어요!'} 이 한 마리로 첫 전투에 나가요.</p><button class="big" data-tc="ok">받기</button>` }; return tutPlan(); }
     if (/^#draw/.test(hash) || fd.querySelector('.dgo')) return { key: '2b', t: 'f:.dgo', say: tutSay('② 첫 뽑기', '「1회 뽑기」를 눌러요. 알이 나오면 눌러서 열어요.') };
     return fd.querySelector('#gback') ? { key: '2x', t: 'f:#gback', say: '로비로 돌아가서 「뽑기」로 가요.' } : null;
   }
@@ -499,7 +499,7 @@ function tutHint() {
   const key = f ? hash : document.querySelector('.modes') ? 'modes' : document.querySelector('.story') && modal.hidden ? 'story' : '';
   if (!TUT_HINT[key] || TUT.seen.includes(key)) return;
   TUT.seen.push(key); myApi('tutorial', { step: 9, seen: key }).catch(() => {});
-  const d = document.createElement('div'); d.className = 'thint'; d.innerHTML = `<img src="${APP ? 'intro' : `${BASE}/duel/intro`}/t2_guardian.webp" alt=""><div>${TUT_HINT[key]}<small>눌러서 닫기</small></div>`;
+  const d = document.createElement('div'); d.className = 'thint'; d.innerHTML = `<img src="${APP ? 'intro' : `${BASE}/duel/intro`}/t2_guardian.webp" alt=""><div>${TUT_HINT[key]}</div>`;
   d.onclick = () => d.remove(); document.body.append(d); setTimeout(() => d.remove(), 9000);
 }
 function tutTick() {
