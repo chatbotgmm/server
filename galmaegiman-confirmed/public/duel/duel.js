@@ -504,7 +504,7 @@ function tutPlan() {
     if (SAVE.cleared.includes('P-1') && !document.querySelector('#arena')) { tutGo(5); return tutPlan(); }
     if (fd) return fd.querySelector('#gback') ? { key: '4x', t: 'f:#gback', say: tutSay('④ 첫 전투', '로비로 돌아가요.') } : null;
     if (lobby) return { key: '4a', t: '#go', say: tutSay('④ 첫 전투', '「플레이」를 눌러요.') };
-    if (document.querySelector('.modes') && free) return { key: '4b', t: '#mStory', say: tutSay('④ 첫 전투', '「스토리」로 첫 이야기를 시작해요.') };
+    if (document.querySelector('.modes') && free) return { key: '4b', t: '#mStory', say: tutSay('④ 첫 전투', '「스토리」에서 챕터를 골라요.') };
     if (document.querySelector('.story') && free) { const p0 = document.querySelector('[data-s="P-1"]'); return { key: p0 ? '4s2' : '4s1', t: p0 ? '[data-s="P-1"]' : '.pcard[data-p="0"]', say: tutSay('④ 첫 전투', p0 ? '첫 스테이지 「P-1」을 눌러요.' : '「프롤로그」를 눌러요.') }; }
     if (!document.querySelector('#arena') || !b) return null;
     if (!modal.hidden && modal.querySelector('[data-a]') && !TUT.augSeen) return { key: '4c', say: tutSay('증강체', '전투를 시작할 때 3개 중 하나를 골라요. 이번 전투에만 쓰는 특별한 힘이에요. 하나 고르고 아래 버튼을 눌러요.'), top: true, light: true };
@@ -597,18 +597,19 @@ function modeScreen() {
     <h1 class="mtitle">게임 모드</h1>
     <div class="mrow">
       <section class="mcard camp"><div class="mhead"><i>${ico('mode-camp', '🗺️')}</i><span><b>캠페인</b><small>이야기를 따라 항구를 지키고, 상위 갈매미를 찾아 모험</small></span></div>
-        <button class="mbtn main" id="mStory"><i>${ico('u-story', '📖')}</i><span><b>스토리</b><small>${st ? `${esc(st.id)} ${esc(st.title)}` : '모든 이야기 완료 · 다시 보기'}</small>${recap() ? `<small class="mrecap">${esc(recap())}</small>` : ''}</span></button>
+        <button class="mbtn main" id="mStory"><i>${ico('u-story', '📖')}</i><span><b>스토리</b><small>챕터를 골라 이야기 시작 · 기술·승진 관리</small><small>${st ? `다음 이야기 · ${esc(st.id)} ${esc(st.title)}` : '모든 이야기 완료 · 다시 보기'}</small></span></button>
         <button class="mbtn" id="mAdv" disabled><i>${ico('mode-adv', '🧭')}</i><span><b>모험 · 상위 갈매미 포획</b><small>준비 중 · 다음 업데이트</small></span></button>
-        <button class="mbtn" id="mList"><i>${ico('u-story', '📖')}</i><span><b>스토리 목록 · 기술·승진</b><small>이야기 선택과 수비대 성장 관리</small></span></button></section>
+        </section>
       <section class="mcard pvp"><div class="mhead"><i>${ico('mode-pvp', '⚔️')}</i><span><b>PvP</b><small>다른 수비대의 「전투 편성」 팀과 대결 · 모두 같은 레벨</small></span></div>
         <div class="mrank" id="mRank">${ACC ? '랭크 불러오는 중…' : '로그인하면 PvP를 할 수 있어요'}</div>
         <button class="mbtn" id="mNormal" ${ACC ? '' : 'disabled'}><i>${ico('mode-normal', '🤝')}</i><span><b>일반게임</b><small>점수 없이 가볍게</small></span></button>
         <button class="mbtn" id="mRankGo" ${ACC ? '' : 'disabled'}><i>${ico('mode-rank', '🏆')}</i><span><b>랭크게임</b><small id="mRankSub">이기면 점수가 올라요</small></span></button>
+        <button class="mbtn" id="mFree"><i>${ico('mode-free', '🎯')}</i><span><b>연습 · 자유 대결</b><small>갈매미와 레벨을 골라 가볍게 연습해요</small></span></button>
         <div class="mlinks"><button class="mlink" id="mTop" ${ACC ? '' : 'disabled'}>순위표</button></div></section>
     </div>
     <button class="mback ${ICONS.includes('btn-back') ? 'img' : ''}" id="mBack" aria-label="돌아가기">${ICONS.includes('btn-back') ? `<img src="${BASE}/duel/icons/btn-back.png" alt="">` : '‹ 돌아가기'}</button></div>`;
-  app.querySelector('#mStory').onclick = continueStory;
-  app.querySelector('#mList').onclick = storyScreen;
+  app.querySelector('#mStory').onclick = () => { PART = null; storyScreen(); };
+  app.querySelector('#mFree').onclick = () => pickScreen('free');
   app.querySelector('#mBack').onclick = menu;
   app.querySelector('#mNormal').onclick = () => pvpStart('normal');
   app.querySelector('#mRankGo').onclick = () => pvpStart('rank');

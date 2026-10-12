@@ -17,7 +17,7 @@ for(const [n,w,h] of [['Z',1006,411],['S',780,360],['W',1280,720]]){
   R(n,'출석 칸 글자 칸 안',await p.evaluate(()=>[...document.querySelectorAll('.att-d')].every(d=>{const r=d.getBoundingClientRect();return [...d.querySelectorAll('.as,em,small')].every(e=>{const q=e.getBoundingClientRect();return q.left>=r.left-0.5&&q.right<=r.right+0.5&&e.scrollWidth<=e.clientWidth+1;});})));
   await p.click('#tdX');await p.waitForTimeout(300);
   // 스토리
-  await p.click('#go',{force:true});await p.waitForSelector('.modes');await p.click('#mList');await p.waitForSelector('.schap');await p.waitForTimeout(900);
+  await p.click('#go',{force:true});await p.waitForSelector('.modes');await p.click('#mStory');await p.waitForSelector('.schap');await p.waitForTimeout(900);
   await p.screenshot({path:`${out}/${n}-story.png`});
   R(n,'스토리 가로 넘김·세로 넘침 없음',await p.evaluate(()=>{const s=document.querySelector('.schap');return {h:s.scrollWidth>s.clientWidth,v:s.scrollHeight<=s.clientHeight+1,stl:0,page:document.documentElement.scrollHeight<=innerHeight+1};}).then(r=>(console.log('   ',JSON.stringify(r)),r.h&&r.v&&r.page)));
   R(n,'스토리 왼쪽 팀 칸 안 넘침·편성 버튼 위 막대',await p.evaluate(()=>{const a=document.querySelector('.steam'),e=document.querySelector('#ed').getBoundingClientRect();return a.scrollHeight<=a.clientHeight+1&&e.top<80;}));

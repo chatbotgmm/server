@@ -22,7 +22,7 @@ for(const [n,w,h] of [['Z',1006,411],['L',915,412],['S',780,360],['W',1280,720]]
   await p.click('#tset');await p.waitForSelector('.sheet.set');await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-2b-settings.png`});console.log(n,'설정 창 안 스크롤',await p.evaluate(()=>{const e=document.querySelector('.sheet.set');return e.scrollHeight>e.clientHeight+1;}));await p.click('#sX');
   await p.click('#tgo',{force:true});await p.waitForSelector('.home8');await p.waitForTimeout(1200);
   await p.screenshot({path:`${out}/R${n}-3lobby.png`});console.log(n,'로비',JSON.stringify(await ov()));
-  await p.click('#lprof');await p.waitForSelector('.pmenu');await p.waitForTimeout(900);await p.screenshot({path:`${out}/R${n}-3h-profmenu.png`});console.log(n,'프로필 메뉴 화면 밖',await p.evaluate(()=>{const r=document.querySelector('.pmenu').getBoundingClientRect();return r.bottom>innerHeight||r.right>innerWidth;}));
+  if(await p.$('.tskip')){await p.click('.tskip');await p.click('.gdlg-ok');await p.waitForTimeout(500);} await p.click('#lprof');await p.waitForSelector('.pmenu');await p.waitForTimeout(900);await p.screenshot({path:`${out}/R${n}-3h-profmenu.png`});console.log(n,'프로필 메뉴 화면 밖',await p.evaluate(()=>{const r=document.querySelector('.pmenu').getBoundingClientRect();return r.bottom>innerHeight||r.right>innerWidth;}));
   await p.mouse.click(w/2,h/2);await p.waitForTimeout(300);
   await p.click('.h8menu a[data-h="draw"]');const mf=p.frameLocator('.myov iframe');await mf.locator('.gbar').waitFor({timeout:15000});await p.waitForTimeout(1800);
   await p.screenshot({path:`${out}/R${n}-3c-my.png`});console.log(n,'내 갈매미',JSON.stringify(await ov()));
@@ -40,9 +40,8 @@ for(const [n,w,h] of [['Z',1006,411],['L',915,412],['S',780,360],['W',1280,720]]
   await p.click('#td');await p.waitForSelector('.sheet.today .att-week');await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-3f-attend.png`});console.log(n,'출석체크 창 안 스크롤',await p.evaluate(()=>{const e=document.querySelector('.sheet.today');return e.scrollHeight>e.clientHeight+1;}));
   await p.click('#tdX');await p.waitForSelector('.home8');await p.waitForTimeout(600);
   await p.click('#go',{force:true});await p.waitForSelector('.modes');await p.waitForTimeout(1200);await p.screenshot({path:`${out}/R${n}-3g-modes.png`});console.log(n,'모드 고르기',JSON.stringify(await ov()),'칸 넘침',await p.evaluate(()=>[...document.querySelectorAll('.mcard')].some(e=>e.scrollHeight>e.clientHeight+1)));
-  await p.click('#mList');await p.waitForSelector('.teambar');await p.waitForTimeout(900);await p.screenshot({path:`${out}/R${n}-3i-story.png`});console.log(n,'스토리 목록',JSON.stringify(await ov()));
-  await p.click('#bk');await p.waitForSelector('.home8');await p.waitForTimeout(500);await p.click('#go',{force:true});await p.waitForSelector('.modes');await p.waitForTimeout(500);
-  await p.click('#mStory',{force:true});await p.waitForTimeout(1200);if(await p.$('#rnd')){await p.click('#rnd');await p.click('#go');await p.waitForTimeout(1200);}
+  await p.click('#mStory');await p.waitForSelector('.teambar');await p.waitForTimeout(900);await p.screenshot({path:`${out}/R${n}-3i-story.png`});console.log(n,'스토리 목록',JSON.stringify(await ov()));
+  await p.click('.pcard[data-p="0"]');await p.waitForSelector('.stage');await p.click('.stage:not([disabled])');await p.waitForTimeout(1200);if(await p.$('#rnd')){await p.click('#rnd');await p.click('#go');await p.waitForTimeout(1200);}
   await p.waitForSelector('.dbox');await p.waitForTimeout(1800);await p.screenshot({path:`${out}/R${n}-3b-talk.png`});console.log(n,'대사',JSON.stringify(await ov()));
   for(let i=0;i<40 && !(await p.$('.aug'));i++){await p.click('.dbox').catch(()=>{});await p.waitForTimeout(200);}
   await p.waitForTimeout(500);await p.screenshot({path:`${out}/R${n}-3d-aug.png`});console.log(n,'증강체',JSON.stringify(await ov()),'창 안 스크롤',await p.evaluate(()=>{const e=document.querySelector('#modal .sheet');return e?e.scrollHeight>e.clientHeight+1:null;}));

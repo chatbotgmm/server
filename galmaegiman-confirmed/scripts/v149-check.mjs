@@ -21,7 +21,7 @@ R(n+' 첫 화면 끌면 배경·캐릭터 서로 다르게',new Set(l).size>=4&&
 await p.mouse.up();await p.waitForTimeout(800);R(n+' 놓으면 제자리',(await lay()).every(x=>x==='0px'||x==='0% 0%'||x==='0px 0px'||x==='none'),JSON.stringify(await lay()));
 // 2. 진행: 1-6 열기
 const orig=(await api('story')).j.data;const data=JSON.parse(JSON.stringify(orig));data.cleared=[...new Set([...(data.cleared||[]),'P-1','1-1','1-2','1-3','1-4','1-5'])];data.hp={};await api('story',{data});
-await p.reload();await p.waitForSelector('.t2');await p.click('#tgo');await p.waitForSelector('.home8');await p.waitForTimeout(800);await p.click('#go',{force:true});await p.waitForSelector('.modes');await p.click('#mList');await p.waitForSelector('.schap');
+await p.reload();await p.waitForSelector('.t2');await p.click('#tgo');await p.waitForSelector('.home8');await p.waitForTimeout(800);await p.click('#go',{force:true});await p.waitForSelector('.modes');await p.click('#mStory');await p.waitForSelector('.schap');
 await p.click('.pcard[data-p="1"]');await p.waitForSelector('.stage');await p.waitForTimeout(300);await p.screenshot({path:`${out}/${n}-part.png`});
 R(n+' 부 화면 뒤로: 오른쪽 아래·「‹ 뒤로」',await p.evaluate(()=>{const e=document.querySelector('#bk'),r=e.getBoundingClientRect();return e.textContent.trim()==='‹ 뒤로'&&innerWidth-r.right<60&&innerHeight-r.bottom<40&&!document.querySelector('header #bk');}));
 R(n+' 부 화면 스테이지 안 가림·넘침 없음',await p.evaluate(()=>{const bk=document.querySelector('#bk').getBoundingClientRect(),l=document.querySelector('.stl');return l.scrollHeight<=l.clientHeight+1&&[...document.querySelectorAll('.stage')].every(s=>{const r=s.getBoundingClientRect();return r.bottom<=bk.top+1||r.right<=bk.left+1;});}));

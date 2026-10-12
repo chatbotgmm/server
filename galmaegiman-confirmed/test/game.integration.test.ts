@@ -255,7 +255,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   });
   it('관리자: 모드를 켰을 때만 무제한, 끄거나 해제하면 모드 동안의 변화가 원상복구',async()=>{
     const code='admin-test-code-0123456789';
-    game=new GameService(db,content,()=>now,new GachaEngine(content.characters,content.economy.gachas,()=>0),max=>max-1,process.cwd(),code);
+    // 환급 대상 재화도 복원되는지 확인하기 위해 특별 등급을 확정해서 뽑습니다.
+    game=new GameService(db,content,()=>now,new GachaEngine(content.characters,content.economy.gachas,max=>max===100?25:0),max=>max-1,process.cwd(),code);
     const counts=async()=>({owned:await db.ownedCharacter.count(),dex:await db.collectionEntry.count(),daily:await db.dailyProgress.count(),snap:await db.adminSnapshot.count()});
     expect((await send('관리자 켜기')).text).toContain('등록된 계정이 아니에요');
     expect((await send('관리자 wrong-code-0000000000')).text).toContain('맞지 않아요');
@@ -639,7 +640,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   it('조합식: 얻는 곳에 교환·탐험도 표시, 모자란 흔함·안흔함은 교환 버튼',async()=>{
     await fixtures(['C2']);
     const r=await send('조합식 금갑');
-    expect(r.cards!.outro).toContain('기본 갈매미맨 0/2 · 하급 뽑기 / 교환 / 탐험(바다 시너지)');
+    expect(r.cards!.outro).toContain('기본 갈매미맨 0/2 · 하급·중급·고급 뽑기 / 교환 / 탐험(바다 시너지)');
     expect(r.cards!.items[0].buttons).toContainEqual({label:'기본 갈매미맨 교환',message:'교환 기본 갈매미맨'});
   });
   it('공개 웹: 홈·세계관·도감, 히든·최상위 스포일러 가림',async()=>{

@@ -907,7 +907,7 @@ html,body,*{-webkit-tap-highlight-color:transparent}
 .modes .lbg{position:absolute;inset:-20px;background:inherit;filter:blur(6px) saturate(.9) brightness(1.04);z-index:0}
 .modes>*:not(.lbg):not(.amb){position:relative;z-index:1}
 .mtitle{margin:0;text-align:center;font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:26px;color:#fffaf0;text-shadow:0 2px 0 var(--edge),0 0 8px rgba(60,35,15,.5)}
-.mrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;max-width:1080px;width:100%;margin:0 auto;min-height:0}
+.mrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:minmax(0,1fr);gap:18px;max-width:1080px;width:100%;margin:0 auto;min-height:0}
 .modes .mrow{align-self:center;max-height:100%}   /* 카드는 내용만큼(큰 화면에서 아래가 비지 않게), 위아래 가운데 */
 body:has(.modes) #mute{display:none}
 .mcard{background:rgba(255,250,240,.96);border:3px solid var(--edge);border-radius:20px;box-shadow:0 6px 0 rgba(90,52,22,.45);padding:14px 16px;display:flex;flex-direction:column;gap:9px;min-height:0;overflow:auto}
@@ -1140,6 +1140,21 @@ img{-webkit-user-drag:none;-webkit-touch-callout:none}
 .mbtn>i .ico{width:1.9em;height:1.9em}
 
 @media (orientation:landscape) and (max-height:430px){ .mback.img img{height:32px} .modes .mrow{max-height:calc(100% - 4px)} .mhead>i .ico{width:1.8em;height:1.8em} .mbtn>i .ico{width:1.6em;height:1.6em} }
+@media (orientation:landscape) and (max-height:430px){
+  .mcard.pvp .mhead small{display:none}
+  .mcard.pvp .mbtn{padding-block:4px;min-height:38px}
+  .mcard.pvp .mbtn,.mcard.pvp .mlinks{flex-shrink:0}
+  .mcard.pvp .mbtn>i .ico{width:1.1em;height:1.1em}
+  #mFree small{display:none}
+}
+@media (orientation:landscape) and (max-height:380px){
+  .mcard.pvp{gap:4px;padding-block:6px}
+  .mcard.pvp .mhead{padding-bottom:3px}
+  .mcard.pvp .mhead>i .ico{width:1.3em;height:1.3em}
+  .mcard.pvp .mrank{padding:2px 8px;gap:0 8px;line-height:1.2}
+  .mcard.pvp .mlink{padding-block:2px}
+  #mNormal small{display:none}
+}
 
 /* 설정 톱니 그림(둥근 나무 버튼 통째로) */
 .mute.img,.tset.img{background:none !important;border:0 !important;box-shadow:none !important;padding:0 !important;width:52px !important;height:auto !important;filter:drop-shadow(0 3px 0 rgba(90,52,24,.35))}
