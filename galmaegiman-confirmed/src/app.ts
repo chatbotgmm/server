@@ -14,7 +14,7 @@ import { registerWeb } from './web.js';
 import { battleRoster } from './battle/prototype.js';
 import { registerDuel } from './duel.js';
 import { registerMy, type KakaoLogin } from './my.js';
-export const VERSION='0.15.9';
+export const VERSION='0.16.0';
 export interface AppOptions {secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string;kakaoLogin?:KakaoLogin;fetch?:typeof fetch;reviewCode?:string}
 export async function buildApp(db:PrismaClient,game:GameService,options:AppOptions){
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');

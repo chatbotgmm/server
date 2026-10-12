@@ -11,8 +11,8 @@
   const ROLE = { ATTACK: '공격', DEFENSE: '수비', UTILITY: '유틸' };
   // 그림 자리: web/img/<이름>이 있으면 그 그림, 없으면 같은 크기의 점선 칸(파일 이름 표시)
   const art = (file, cls = '', style = '') => `<div class="art ${cls}" data-art="${file}" style="${style}"><img src="/web/img/${file}" alt="" onerror="this.parentNode.classList.add('miss')"></div>`;
-  // 캐릭터: 새 그림(web/img/char-<id>.webp)이 있으면 그것, 없으면 기존 카드 그림에서 테두리·이름판을 잘라 냄
-  const ch = (id, cls = '') => `<div class="ch ${cls}"><img src="/web/img/char-${encodeURIComponent(id)}.webp" alt="" onerror="this.onerror=null;this.className='card';this.src='/images/${encodeURIComponent(id)}.png'"></div>`;
+  // 캐릭터: 모든 갈매미를 기존 카드 그림(public/images)으로. 테두리·이름판만 잘라 냄(v0.16.0: 최상위 33종의 새 그림 web/img/char-*.webp는 카드와 달라서 쓰지 않음)
+  const ch = (id, cls = '') => `<div class="ch ${cls}"><img class="card" src="/images/${encodeURIComponent(id)}.png" alt=""></div>`;
   const thumb = img => `<div class="ch"><img class="card" src="/thumbs/${encodeURIComponent(img)}.jpg" alt=""></div>`;   // 서버가 준 그림 이름(안 밝혀진 갈매미는 가려진 그림)
   const tag = (tier, name) => `<span class="tag" style="--tc:${TIER_COLOR[tier] ?? '#8a7a6a'}">${esc(name)}</span>`;
   const loading = (t = '불러오는 중…') => `<div class="state" role="status"><div class="spin"></div>${esc(t)}</div>`;
@@ -42,10 +42,15 @@
 
   // ── 상단·하단 메뉴 ──
   const PAGES = [['home', '홈', 'home'], ['draw', '뽑기', 'egg'], ['craft', '조합', 'craft'], ['box', '보관함', 'box'], ['unit', '관리', 'crown']];
+  const PUBLIC = [['/dex', '도감', '📚'], ['/recipes', '조합법', '📜'], ['/rank', '랭킹', '🏆'], ['/event', '이벤트', '🎁']];
   function chrome(page) {
     const items = PAGES.map(([h, t, i]) => `<a href="#${h === 'unit' && sel ? `unit=${sel}` : h}" class="${page === h ? 'on' : ''}" ${page === h ? 'aria-current="page"' : ''}>${icon(i)}<span>${t}</span></a>`).join('');
+    if (!me) {   // 로그인 전(v0.16.0): 공개 페이지 메뉴 + 로그인 버튼
+      const pub = PUBLIC.map(([h, t, e]) => `<a href="${h}"><i aria-hidden="true">${e}</i><span>${t}</span></a>`).join('');
+      $('#nav').innerHTML = pub; $('#tabbar').innerHTML = pub + `<a href="#login" class="on">${icon('home')}<span>로그인</span></a>`;
+      $('#me').innerHTML = `<a class="btn sm lgin" href="#login">🔑 로그인</a>`; return;
+    }
     $('#nav').innerHTML = items; $('#tabbar').innerHTML = items;
-    if (!me) { $('#me').innerHTML = ''; return; }
     const lead = me.battleTeam[0] || me.units[0]?.id;
     $('#me').innerHTML = `<div class="cur" aria-label="재화"><span title="새우gang">🍤 ${me.snack.toLocaleString('ko-KR')}</span><span title="땅콩">🥜 ${me.peanut.toLocaleString('ko-KR')}</span><span title="뽑기권">🎫 ${me.credits.toLocaleString('ko-KR')}</span></div>
       <button class="avatar" id="av" aria-haspopup="menu" aria-expanded="false" aria-label="계정 메뉴"><span class="face">${lead ? `<img src="/thumbs/${encodeURIComponent(lead)}.jpg" alt="">` : ''}</span>${icon('down')}</button>`;
@@ -78,9 +83,34 @@
     const go = async () => {
       const code = $('#code').value.replace(/\D/g, ''); if (code.length !== 6) { $('#lerr').textContent = '6자리 숫자를 입력해 주세요.'; return; }
       $('#go').disabled = true;
-      try { await api('login', { code }); history.replaceState(null, '', '/my' + location.hash); boot(); } catch (e) { $('#lerr').textContent = e.message === 'login' ? '다시 시도해 주세요.' : e.message; $('#go').disabled = false; }
+      try { await api('login', { code }); history.replaceState(null, '', location.pathname + location.hash); boot(); } catch (e) { $('#lerr').textContent = e.message === 'login' ? '다시 시도해 주세요.' : e.message; $('#go').disabled = false; }
     };
     $('#go').onclick = go; $('#code').onkeydown = e => { if (e.key === 'Enter') go(); };
+  }
+
+  // ── 로그인 전 소개 화면(v0.16.0): 메인(/)은 서버가 넣어 보냄, /my·로그인이 풀린 때는 받아 옴 ──
+  const IN_KEY = 'gmm-in';
+  const setIn = v => { try { v ? localStorage.setItem(IN_KEY, '1') : localStorage.removeItem(IN_KEY); } catch { /* 저장 안 되는 브라우저 */ } document.documentElement.classList.remove('pre-in'); };
+  async function landingView(info = {}) {
+    me = null; setIn(false);
+    if (info.linking) return loginView(info);   // 카카오 계정 처음 연결은 기존 로그인 창(안내 문구가 다름)
+    if (!main.dataset.landing) {
+      try { const r = await fetch('/web/landing'); if (!r.ok) throw new Error(); main.innerHTML = await r.text(); main.dataset.landing = '1'; }
+      catch { return loginView(info); }
+    }
+    chrome('home'); document.body.classList.add('on-home');
+    const q = new URLSearchParams(location.search).get('kakao');
+    const msg = { cancel: '카카오 로그인을 취소했어요.', fail: '카카오 로그인에 실패했어요. 잠시 뒤 다시 해 주세요.', taken: '이 카카오 계정은 이미 다른 갈매미맨 계정에 연결돼 있어요.' }[q] || '';
+    if (info.kakao) $('#kslot').innerHTML = '<a class="btn wide kakao" href="/my/kakao">카카오로 로그인</a><p class="note" style="margin:14px 0 4px">또는 카톡 코드로 로그인</p>';
+    $('#lerr').textContent = msg;
+    const go = async () => {
+      const code = $('#code').value.replace(/\D/g, ''); if (code.length !== 6) { $('#lerr').textContent = '6자리 숫자를 입력해 주세요.'; return; }
+      $('#go').disabled = true;
+      try { await api('login', { code }); delete main.dataset.landing; history.replaceState(null, '', location.pathname + (location.hash === '#login' ? '' : location.hash)); boot(); }
+      catch (e) { $('#lerr').textContent = e.message === 'login' ? '다시 시도해 주세요.' : e.message; $('#go').disabled = false; }
+    };
+    $('#go').onclick = go; $('#code').onkeydown = e => { if (e.key === 'Enter') go(); };
+    if (location.hash === '#login' || msg) $('#login').scrollIntoView({ block: 'center' });
   }
 
   // ── 홈 ──
@@ -284,12 +314,14 @@
   }
   addEventListener('hashchange', route);
   async function boot() {
-    main.innerHTML = loading();
-    try { me = await api('me'); } catch (e) { if (e.message === 'login') return loginView(e.info); return failed(e.message, boot); }
+    if (!main.dataset.landing) main.innerHTML = loading();
+    try { me = await api('me'); } catch (e) { if (e.message === 'login') return landingView(e.info); setIn(false); return failed(e.message, boot); }
+    setIn(true); delete main.dataset.landing;
     try { story = await api('story'); } catch { story = null; }   // 레벨 정보가 없어도 나머지는 보여 줌
     loadRules().catch(() => {});
     const q = new URLSearchParams(location.search).get('kakao'); if (q) { toast(q === 'linked' ? '카카오 계정을 연결했어요' : '로그인했어요'); history.replaceState(null, '', '/my' + location.hash); }
     route();
   }
+  const foot = $('#foot'); if (foot && !foot.children.length) fetch('/web/foot').then(r => r.ok ? r.text() : '').then(t => { foot.innerHTML = t; }).catch(() => {});
   boot();
 })();
