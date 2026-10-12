@@ -1229,10 +1229,10 @@ function actionPanel(pane = 'menu') {
   } else {
     const UI = APP ? 'intro' : `${BASE}/duel/intro`;   // v0.15.4 그림 버튼(글자·아이콘은 그림에 있음 → 아래 안내만 코드)
     panel.innerHTML = `<div class="bmenu img">
-      <button class="bm atk" id="bAtk" aria-label="공격"><img src="${UI}/b3_button_attack.webp" alt=""><img class="lb" src="${UI}/b3_label_attack.webp" alt="" style="--x:50%;--y:66%;--w:34"><small>기술 ${f.skills.filter(k => can({ kind: 'skill', skillId: k.id })).length}개</small></button>
-      <button class="bm bag" id="bag" aria-label="아이템" ${itemOk ? '' : 'disabled'}><img src="${UI}/b3_button_item.webp" alt=""><img class="lb" src="${UI}/b3_label_item.webp" alt="" style="--x:50%;--y:66%;--w:44"><small>${items ? `${items.n}/${items.max} · 가진 ${items.have}` : pvp ? '대전에선 못 써요' : '불러오는 중'}</small></button>
-      <button class="bm sw" id="bSw" aria-label="교체" ${swaps ? '' : 'disabled'}><img src="${UI}/b3_button_switch.webp" alt=""><img class="lb" src="${UI}/b3_label_switch.webp" alt="" style="--x:50%;--y:66%;--w:34"><small>${swaps ? `${swaps}마리 대기` : '바꿀 갈매미 없음'}</small></button>
-      <button class="bm run" id="flee" aria-label="${pvp ? '나가기' : '도망가기'}"><img src="${UI}/b3_button_run.webp" alt=""><img class="lb" src="${UI}/b3_label_run.webp" alt="" style="--x:50%;--y:66%;--w:60"><small>${pvp?.mode === 'rank' ? '패배로 처리' : pvp ? '대전 끝내기' : '경험치 없음'}</small></button></div>`;
+      <button class="bm atk" id="bAtk" aria-label="공격" title="기술 ${f.skills.filter(k => can({ kind: 'skill', skillId: k.id })).length}개"><img src="${UI}/b3_button_attack.webp" alt=""><img class="lb" src="${UI}/b3_label_attack.webp" alt="" style="--x:50%;--y:66%;--w:34"></button>
+      <button class="bm bag" id="bag" aria-label="아이템" ${itemOk ? '' : 'disabled'} title="${items ? `${items.n}/${items.max} · 가진 ${items.have}` : pvp ? '대전에선 못 써요' : '불러오는 중'}"><img src="${UI}/b3_button_item.webp" alt=""><img class="lb" src="${UI}/b3_label_item.webp" alt="" style="--x:50%;--y:66%;--w:44"></button>
+      <button class="bm sw" id="bSw" aria-label="교체" ${swaps ? '' : 'disabled'} title="${swaps ? `${swaps}마리 대기` : '바꿀 갈매미 없음'}"><img src="${UI}/b3_button_switch.webp" alt=""><img class="lb" src="${UI}/b3_label_switch.webp" alt="" style="--x:50%;--y:66%;--w:34"></button>
+      <button class="bm run" id="flee" aria-label="${pvp ? '나가기' : '도망가기'}" title="${pvp?.mode === 'rank' ? '패배로 처리' : pvp ? '대전 끝내기' : '경험치 없음'}"><img src="${UI}/b3_button_run.webp" alt=""><img class="lb" src="${UI}/b3_label_run.webp" alt="" style="--x:50%;--y:66%;--w:60"></button></div>`;
     panel.querySelector('#bAtk').onclick = () => actionPanel('fight');
     panel.querySelector('#bSw').onclick = () => actionPanel('swap');
     panel.querySelector('#bag').onclick = itemSheet;
