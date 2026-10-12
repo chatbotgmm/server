@@ -572,6 +572,10 @@ html.game .gc img.ci,html.game .btn img.ci{width:1.2em !important;height:1.2em !
   .btwrap .tchart{grid-template-columns:repeat(3,minmax(0,1fr))}
   .btwrap .trow{gap:2px;padding:0 4px}
 }
+/* 단상/상성표 머리줄이 생긴 만큼 단상 카드를 줄여 잘리지 않게 */
+.btwrap .pd{width:min(31%,150px,calc((100dvh - 262px) / 1.25))}
+.btleft .podium{padding-top:24px}
+@media (orientation:landscape) and (max-height:430px){ .btwrap .pd{width:min(31%,150px,calc((100dvh - 266px) / 1.2))} .btleft .podium{padding-top:20px} .bthead{min-height:0;flex:none} }
 </style>
 </head>
 <body>
