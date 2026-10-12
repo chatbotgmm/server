@@ -1104,14 +1104,15 @@ function startBattle(mine, foe, end, hint, flee, seed) {   // seed: PvP는 서�
   onEnd = end; hintNow = hint || ''; fleeTo = flee; if (seed === undefined) pvp = null;
   b = createBattle(R, mine, foe, seed ?? ((Math.random() * 2 ** 31) | 0));
   const boss = foe.some(f => R.villains.get(f.id)?.boss);
+  const fieldBg = sceneNow === 'deep' ? 'deepbattle.webp' : BG.includes(sceneNow || 'harbor') ? `${sceneNow || 'harbor'}.jpg` : null;
   bgm(boss ? 'boss' : 'battle');
-  app.innerHTML = `<div id="arena" class="sc-${sceneNow || 'harbor'}">${ambient(sceneNow || 'harbor')}<div class="ground"></div><div class="haze"></div><div class="plat foe"></div><div class="plat me"></div>
+  app.innerHTML = `<div id="arena" class="sc-${sceneNow || 'harbor'}">${ambient(sceneNow || 'harbor', !!fieldBg)}<div class="ground"></div><div class="haze"></div><div class="plat foe"></div><div class="plat me"></div>
     <img class="mon foe ${boss ? 'boss' : ''}" id="m1" alt=""><img class="mon me" id="m0" alt="">
     <div class="box foe" id="b1"></div><div class="box me" id="b0"></div><div id="fx"></div></div>
     <div class="cmdbg" aria-hidden="true"></div><div id="msg" role="log" aria-live="polite"></div><div id="panel"></div>`;
-  if (sceneNow === 'deep') {   // v0.15.4: 해저(deep)는 새 전투 배경(한 장 그림)을 화면 전체(오른쪽 명령판 뒤까지)에
+  if (fieldBg) {   // 시안처럼 장면 일러스트를 명령판 뒤까지 연결합니다. 해저는 전투 전용 그림을 사용합니다.
     app.querySelector('#arena').classList.add('bg2');
-    app.insertAdjacentHTML('afterbegin', `<div class="bbg" aria-hidden="true" style="background-image:url(${BASE}/duel/bg/deepbattle.webp${q})"></div>`);
+    app.insertAdjacentHTML('afterbegin', `<div class="bbg" aria-hidden="true" style="background-image:url(${BASE}/duel/bg/${fieldBg}${q})"></div>`);
   }
   for (const [k, side] of [[0, 'back'], [1, 'front']]) for (const f of b.sides[k].fighters) new Image().src = sprite(f.rec.id, side, f.rec.stage);   // 교체 때 바로 보이게 양 팀 그림을 미리 받아 둠(v0.15.9)
   view = snap();
@@ -1150,7 +1151,7 @@ function opaqueBox(img) {
   OPAQ.set(key, r); return r;
 }
 // 칸: 전장(#arena) 크기에 대한 비율 [왼, 위, 오른, 아래]. 아군 = 왼쪽 아래(내 정보창 왼쪽), 상대 = 오른쪽 가운데(상대 정보창·턴 표시 아래)
-const MON_BOX = { 0: [0.04, 0.40, 0.44, 0.93], 1: [0.55, 0.23, 0.93, 0.65] };
+const MON_BOX = { 0: [0.04, 0.36, 0.44, 0.91], 1: [0.55, 0.23, 0.93, 0.65] };
 function placeMon(s) {
   const img = document.getElementById(`m${s}`), arena = document.getElementById('arena');
   if (!img || !arena) return;
