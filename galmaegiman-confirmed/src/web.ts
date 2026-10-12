@@ -438,7 +438,7 @@ footer a{color:var(--muted)}
       .map(([id,f])=>{const n=hidden.findIndex(x=>x.id===id)+1;return `<a class="uc" href="/hidden#h${n}"><img src="${img('thumbs','unknown')}" alt="" width="28" height="28">히든 #${n} 발견! · ${f.name?esc(f.name):'이름 없는 갈매미'} · ${esc(DateTime.fromJSDate(f.at).setZone('Asia/Seoul').toFormat('M/d'))}</a>`;}).join('');
     const body=`<section class="hero"><div>
 <h1>갈매미는 <span class="hl">존재</span>한다.</h1>
-<p class="lead">돌로 된 갈매미들이 <b>갈매미 섬 항구 수비대</b>에 출근해서 항구를 지켜요. 몸이 돌이라 날지는 못해요. 새우깡 봉지 소리에는 약해요.</p>
+<p class="lead">돌로 된 갈매미들이 <b>갈매미 섬 항구 수비대</b>에 출근해서 항구를 지켜요. 몸이 돌이라 날지는 못해요. 새우gang 봉지 소리에는 약해요.</p>
 <div class="btns">${playBtn(true)}<a class="btn" href="/my#draw">🥚 웹에서 뽑기</a><a class="btn" href="/my#craft">🧩 조합</a></div>
 <div class="hstats"><span><img class="gi" src="/gull.png" alt=""> <b>${content.characters.length}</b>종 갈매미</span><span>🧩 <b>${content.recipes.length}</b>가지 조합</span><span>❔ 히든 <b>${count('HIDDEN')}</b>종</span><span>🏘 동네 <b>7</b>곳</span></div>
 </div><a class="today" href="/dex/${today.id}"><img src="${img('thumbs',today.id)}" alt="${esc(today.name)}" width="480" height="480"><div><small>☀️ 오늘의 갈매미</small><h3>${esc(today.name)}</h3><p>${esc(today.introduction.split(/(?<=[.!?…])\s+/u)[0])}</p></div></a></section>
@@ -468,7 +468,7 @@ ${c?`<div class="event"><b>🎉 ${esc(c.label)} 이벤트</b><br>이 사이트 �
     const period=(from?:string,to?:string)=>to?`${from?`${kst(from)} ~ `:''}${kst(to)}까지`:'끝날 때까지 (종료일 미정)';
     const live=e.events.filter(x=>new Date(x.from)<=at&&at<new Date(x.to));
     const soon=e.events.filter(x=>at<new Date(x.from)).sort((a,b)=>a.from.localeCompare(b.from));
-    const effects=(x:typeof e.events[number])=>[x.claimBonus?`뽑기권 받기 +${x.claimBonus}장`:'',x.snackMultiplier>1?`새우깡 ×${x.snackMultiplier}`:''].filter(Boolean).join(' · ')||'특별 이벤트';
+    const effects=(x:typeof e.events[number])=>[x.claimBonus?`뽑기권 받기 +${x.claimBonus}장`:'',x.snackMultiplier>1?`새우gang ×${x.snackMultiplier}`:''].filter(Boolean).join(' · ')||'특별 이벤트';
     const coupons=e.coupons.filter(c=>(!c.from||new Date(c.from)<=at)&&(!c.to||at<new Date(c.to)));
     const couponBox=coupons.map(c=>`<div class="box ev"><span class="tag live">진행 중</span><h3>🧩 ${esc(c.label)} 쿠폰</h3>
 <p class="big">🎟 뽑기권 <b>${c.tickets}장</b> <small>(1인 1회)</small></p>
@@ -519,7 +519,7 @@ ${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이
 <ol><li>카카오톡 채널 「갈매미맨」에 <b>웹 로그인</b>을 보내 6자리 코드를 받거나, 카카오 계정을 연결해 두었다면 「카카오로 로그인」을 눌러요.</li>
 <li><a href="/my#account">내 갈매미 → ⚙️ 계정</a>에서 로그인해요.</li>
 <li>「계정 삭제」 칸에 <b>탈퇴</b>라고 적고 버튼을 눌러요. 바로 지워져요.</li></ol>
-<p><b>지워지는 것:</b> 가진 갈매미, 도감, 뽑기권·새우깡·땅콩, 아이템, 탐험·미션·업적 기록, 스토리 진행, 닉네임, 댓글, 로그인 연결(카카오 회원번호 포함).</p>
+<p><b>지워지는 것:</b> 가진 갈매미, 도감, 뽑기권·새우gang·땅콩, 아이템, 탐험·미션·업적 기록, 스토리 진행, 닉네임, 댓글, 로그인 연결(카카오 회원번호 포함).</p>
 <p><b>남는 것:</b> 서버 백업에 최대 7일 동안 남았다가 자동으로 사라져요. 다른 사람이 남긴 댓글이나 기록은 지워지지 않아요.</p>
 <p>카톡 채널에 <b>탈퇴</b>를 보내도 이 방법을 알려 드려요. 자세한 내용은 <a href="/privacy">개인정보처리방침</a>을 봐 주세요.</p>
 <p style="text-align:center"><a class="btn" href="/my#account">계정 삭제하러 가기</a></p></article>`)));

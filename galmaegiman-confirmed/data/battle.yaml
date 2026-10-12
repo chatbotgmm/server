@@ -127,7 +127,7 @@ units:
 # 스토리 빌런(상대 전용). look/tint: 원형 그림을 색칠해 씀, mirror: 상대 팀 속성 복사. basic: 기본기 이름(없으면 똥폭탄 등 속성 기본기). 능력치 = 역할 기본값 × power(공격·방어), 체력은 × hp(없으면 power). boss: true면 화면에 크게
 # 대사·등장 순서·레벨은 data/story.yaml
 villains:
-  V12: { name: 끼룩단 졸개,   attr: SHADOW, sub: GRAVITY, role: ATTACK,  power: 0.7,  skill: { name: 새우깡 낚아채기, cat: 물리, cd: 2, power: 60 } }
+  V12: { name: 끼룩단 졸개,   attr: SHADOW, sub: GRAVITY, role: ATTACK,  power: 0.7,  skill: { name: 새우gang 낚아채기, cat: 물리, cd: 2, power: 60 } }
   # 끼룩단(3부 「검은 깃털」). 땅콩 억지로 먹이기 = 상대 「땅콩 폭주」(이름에 갈매미맨이 있는 갈매미만 걸림)
   V19: { name: 검게 물든 졸개, attr: SHADOW, sub: GRAVITY, role: ATTACK,  power: 0.9,  skill: { name: 땅콩 억지로 먹이기, cat: 물리, cd: 3, power: 40, effects: [ { status: rage, chance: 100, turns: 3 } ] } }
   V13: { name: 급강하 대원,   attr: GRAVITY, sub: SHADOW, role: ATTACK,  power: 0.95, skill: { name: 내리꽂기, cat: 물리, cd: 2, power: 65, priority: true } }
@@ -177,7 +177,7 @@ learn:
     sand:     { name: 모래 끼얹기,   level: 10, cd: 2, effects: [ { buff: spd, pct: -30, turns: 3, to: foe } ] }
     growl:    { name: 끼룩 위협,     level: 10, cd: 2, effects: [ { buff: atk, pct: -20, turns: 3, to: foe } ] }
     preen:    { name: 깃털 고르기,   level: 10, cd: 3, roles: [DEFENSE, UTILITY], effects: [ { heal: 25, to: self } ] }
-    snack:    { name: 새우깡 미끼,   level: 10, cd: 4, roles: [UTILITY], effects: [ { status: sleep, chance: 60, turns: 1 } ] }
+    snack:    { name: 새우gang 미끼,   level: 10, cd: 4, roles: [UTILITY], effects: [ { status: sleep, chance: 60, turns: 1 } ] }
     flame:    { name: 불꽃 부리, cat: 마법,     level: 20, attr: FIRE,   cd: 2, power: 55, effects: [ { status: burn, chance: 30, turns: 3 } ] }
     frost:    { name: 얼음 숨결, cat: 마법,     level: 20, attr: ICE,    cd: 2, power: 55, effects: [ { status: freeze, chance: 20, turns: 1 } ] }
     wrap:     { name: 실 감기, cat: 물리,       level: 20, attr: THREAD, cd: 3, power: 40, effects: [ { status: bind, chance: 100, turns: 2 } ] }
@@ -199,7 +199,7 @@ learn:
     comeback: { name: 다시 출근,     level: 50, cd: 6, roles: [UTILITY, DEFENSE], effects: [ { revive: 40 } ] }
     blizzard: { name: 눈보라, cat: 마법,        level: 50, attr: ICE, cd: 4, power: 90, effects: [ { status: freeze, chance: 30, turns: 1 } ] }
 
-# 대결 아이템: 웹 「내 갈매미 → 상점」에서 새우깡으로 사요. 대결 중 쓰면 그 턴 행동을 써요(스토리 계정 저장 이후 대결에서 사용)
+# 대결 아이템: 웹 「내 갈매미 → 상점」에서 새우gang으로 사요. 대결 중 쓰면 그 턴 행동을 써요(스토리 계정 저장 이후 대결에서 사용)
 #   heal: 지금 나와 있는 갈매미 체력 % 회복 / cleanse: 지금 나와 있는 갈매미 상태 이상 풀기 / revive: 쓰러진 아군 하나를 체력 %로
 items:
   potion:  { name: 치료약,          price: 60,  heal: 35,  desc: 지금 나와 있는 갈매미의 체력을 35% 회복해요 }

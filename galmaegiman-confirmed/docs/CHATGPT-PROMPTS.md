@@ -38,7 +38,7 @@ scary, insect, cicada, text, letters, watermark
 각 블록 전송 전 **첨부 1 = master.png, 첨부 2 = 기존 해당 ID 이미지**.
 공통 머리말은 각 블록에 이미 포함되어 있다.
 
-### C001M 새우깡봉지
+### C001M 새우gang봉지
 
 ```
 첨부 1은 갈매미 마스터 설정화, 첨부 2는 기존 C001M 이미지(소품·콘셉트 참고용, 그림체는 따르지 말 것)야.
@@ -251,7 +251,7 @@ Avoid: eagle, hooked beak, talons, muscular, gritty, dark, text, letters, waterm
 체크: 곧은 노란 부리+빨간 점 / 물갈퀴 발 / 조약돌 배지 / 글자 없음 / 가장자리 잘림 없음. 틀리면 고쳐서 다시 그려 줘.
 ```
 
-### U005M 새우깡 신도
+### U005M 새우gang 신도
 
 ```
 첨부 1은 갈매미 마스터 설정화, 첨부 2는 기존 U005M 이미지(소품·콘셉트 참고용, 그림체는 따르지 말 것)야.

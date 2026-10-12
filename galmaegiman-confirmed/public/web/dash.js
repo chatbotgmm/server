@@ -47,7 +47,7 @@
     $('#nav').innerHTML = items; $('#tabbar').innerHTML = items;
     if (!me) { $('#me').innerHTML = ''; return; }
     const lead = me.battleTeam[0] || me.units[0]?.id;
-    $('#me').innerHTML = `<div class="cur" aria-label="재화"><span title="새우깡">🍤 ${me.snack.toLocaleString('ko-KR')}</span><span title="땅콩">🥜 ${me.peanut.toLocaleString('ko-KR')}</span><span title="뽑기권">🎫 ${me.credits.toLocaleString('ko-KR')}</span></div>
+    $('#me').innerHTML = `<div class="cur" aria-label="재화"><span title="새우gang">🍤 ${me.snack.toLocaleString('ko-KR')}</span><span title="땅콩">🥜 ${me.peanut.toLocaleString('ko-KR')}</span><span title="뽑기권">🎫 ${me.credits.toLocaleString('ko-KR')}</span></div>
       <button class="avatar" id="av" aria-haspopup="menu" aria-expanded="false" aria-label="계정 메뉴"><span class="face">${lead ? `<img src="/thumbs/${encodeURIComponent(lead)}.jpg" alt="">` : ''}</span>${icon('down')}</button>`;
     $('#av').onclick = e => { e.stopPropagation(); acctMenu(); };
   }

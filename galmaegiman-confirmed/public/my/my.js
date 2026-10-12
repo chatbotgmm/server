@@ -47,7 +47,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
   // 게임 모드: 재화는 위쪽 줄 오른쪽에 작게(재화 확인이 화면의 목적처럼 보이지 않게)
   const cIco = (id, e) => `<img class="ci" src="${BASE}/duel/icons/${id}.png" alt="" onerror="this.replaceWith('${e}')">`;   // 재화 그림(없으면 이모지)
   const gI = (id, e) => GAMEUI ? cIco(id, e) : e;   // 게임 화면에서는 이모지 대신 그림 아이콘(v0.12.7)
-  const curBar = m => m ? `<div class="cur">${[[cIco('u-snack', '🍤'), m.snack, '새우깡'], [cIco('u-peanut', '🥜'), m.peanut, '땅콩'], [cIco('u-ticket', '🎫'), m.credits, '뽑기권']].map(([i, n, t]) => `<span title="${t}">${i}<b>${Number(n).toLocaleString('ko-KR')}</b></span>`).join('')}</div>` : '';
+  const curBar = m => m ? `<div class="cur">${[[cIco('u-snack', '🍤'), m.snack, '새우gang'], [cIco('u-peanut', '🥜'), m.peanut, '땅콩'], [cIco('u-ticket', '🎫'), m.credits, '뽑기권']].map(([i, n, t]) => `<span title="${t}">${i}<b>${Number(n).toLocaleString('ko-KR')}</b></span>`).join('')}</div>` : '';
   const head = (right, m) => GAMEUI ? `<header class="gbar"><button class="gback img" id="gback" aria-label="돌아가기"><img src="${BASE}/duel/icons/btn-back.png" alt="" onerror="this.parentNode.classList.remove('img');this.replaceWith('‹ 돌아가기')"></button><h1>${GAMEUI && me && TABNAME[tab] ? (groupOf(tab).length > 1 ? '수비대' : TABNAME[tab]) : '내 갈매미'}</h1><span class="sp"></span>${curBar(m)}</header>` : `<header><a class="logo" href="/"><img src="/images/logo.png" alt="갈매미맨"></a><h1>내 갈매미</h1><span class="sp"></span><a class="hl" href="/dex" title="도감">📚<span class="lt"> 도감</span></a><a class="hl" href="/search" title="검색">🔍</a>${right ?? ''}<a class="home" href="/" title="홈">🏠<span class="lt"> 홈</span></a></header>`;
 
   // ── 로그인 ──
@@ -108,7 +108,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     const tabs = [['draw', `${gI('u-draw', '🥚')} 뽑기`], ['craft', `${gI('u-emblem', '🧩')} 조합`], ['units', '<img class="gi" src="/gull.png" alt=""> 내 갈매미'], ['party', `${gI('mode-camp', '🧭')} 탐험대 편성`], ['battle', `${gI('mode-pvp', '⚔️')} 전투 편성`], ['items', `${gI('u-bag', '🎒')} 아이템`], ['shop', `${gI('u-shop', '🛒')} 상점`], ['account', '👤 계정']];
     app.innerHTML = `${head('<button class="btn ghost" id="out" title="로그아웃" style="padding:6px 12px;font-size:.85rem">🚪<span class="lt"> 로그아웃</span></button>', me)}
       ${GAMEUI ? '' : `<div class="card"><div class="row" style="margin-bottom:10px"><b style="font-weight:400;font-size:1.15rem">${esc(me.nickname || '이름 없는 수비조장')}</b><span class="tag">도감 ${me.dex}/${me.dexTotal}</span></div>
-        <div class="money"><div><b><i>🍤</i>${me.snack}</b><small>새우깡</small></div><div><b><i>🥜</i>${me.peanut}</b><small>땅콩</small></div><div><b><i>🎫</i>${me.credits}</b><small>뽑기권</small></div><div><b><i>🪺</i>${me.units.reduce((a, u) => a + u.have, 0)}</b><small>갈매미</small></div></div></div>`}
+        <div class="money"><div><b><i>🍤</i>${me.snack}</b><small>새우gang</small></div><div><b><i>🥜</i>${me.peanut}</b><small>땅콩</small></div><div><b><i>🎫</i>${me.credits}</b><small>뽑기권</small></div><div><b><i>🪺</i>${me.units.reduce((a, u) => a + u.have, 0)}</b><small>갈매미</small></div></div></div>`}
       ${(() => { const show = GAMEUI ? tabs.filter(([k]) => groupOf(tab).includes(k)) : tabs; return show.length > 1 ? `<div class="tabs ${GAMEUI ? 'gseg' : ''}">${show.map(([k, t]) => `<button data-t="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>` : ''; })()}
       <div id="body"></div>`;
     app.querySelector('#out')?.addEventListener('click', async () => { await api('logout', {}).catch(() => {}); APP?.setToken(null); loginScreen('로그아웃했어요.'); });
@@ -421,7 +421,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
         <p class="note">${me.trip.units.map(esc).join(', ')}</p>
         ${left ? `<button class="btn ghost wide" id="skip">⚡ 바로 돌아오게 하기 (🍤 ${me.prices.skip.snack})</button>` : '<button class="btn wide" id="claim">🎁 탐험 보상 받기</button>'}</div>`;
       el.querySelector('#claim')?.addEventListener('click', () => run('expedition/claim'));
-      el.querySelector('#skip')?.addEventListener('click', () => run('shop', { item: 'skip' }, `새우깡 ${me.prices.skip.snack}개로 탐험대를 바로 돌아오게 할까요?`));
+      el.querySelector('#skip')?.addEventListener('click', () => run('shop', { item: 'skip' }, `새우gang ${me.prices.skip.snack}개로 탐험대를 바로 돌아오게 할까요?`));
       if (left) { clearTimeout(party.t); party.t = setTimeout(() => { if (tab === 'party') party(el); }, Math.min(60000, left + 500)); }
       return;
     }
@@ -431,7 +431,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
         ${left ? `<p>남은 시간 약 <b>${Math.ceil(left / 60000)}분</b></p><button class="btn ghost wide" id="skip">⚡ 바로 돌아오게 하기 (🍤 ${me.prices.skip.snack})</button>`
           : '<p>돌아왔어요!</p><button class="btn wide" id="claim">🎁 탐험 보상 받기</button>'}</div>`;
       el.querySelector('#claim')?.addEventListener('click', () => run('expedition/claim'));
-      el.querySelector('#skip')?.addEventListener('click', () => run('shop', { item: 'skip' }, `새우깡 ${me.prices.skip.snack}개로 탐험대를 바로 돌아오게 할까요?`));
+      el.querySelector('#skip')?.addEventListener('click', () => run('shop', { item: 'skip' }, `새우gang ${me.prices.skip.snack}개로 탐험대를 바로 돌아오게 할까요?`));
       return;
     }
     let draft = [...me.party];
@@ -469,10 +469,10 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     const p = me.prices, mine = id => me.items.find(i => i.id === id)?.count ?? 0, max = me.itemRules.maxStack;
     // 물건마다: 이름·설명, 수량 칸(최소 1 ~ 살 수 있는 만큼), 사기 버튼(합계)
     const goods = [
-      { key: 't1', title: `뽑기권 ${p.tickets.amount}장`, note: '새우깡으로 사요', unit: p.tickets.snack, cur: gI('u-snack', '🍤'), limit: Math.min(50, Math.floor(me.snack / p.tickets.snack)), buy: n => run('shop', { item: 'tickets', count: n }, `새우깡 ${p.tickets.snack * n}개로 뽑기권 ${p.tickets.amount * n}장을 살까요?`) },
+      { key: 't1', title: `뽑기권 ${p.tickets.amount}장`, note: '새우gang으로 사요', unit: p.tickets.snack, cur: gI('u-snack', '🍤'), limit: Math.min(50, Math.floor(me.snack / p.tickets.snack)), buy: n => run('shop', { item: 'tickets', count: n }, `새우gang ${p.tickets.snack * n}개로 뽑기권 ${p.tickets.amount * n}장을 살까요?`) },
       { key: 't2', title: `땅콩 → 뽑기권 ${p.peanutTickets.amount}장`, note: '땅콩으로 바꿔요', unit: 1, cur: gI('u-peanut', '🥜'), peanut: true, limit: Math.min(50, me.peanut), buy: n => run('shop', { item: 'peanutTickets', count: n }, `땅콩 ${n}개로 뽑기권 ${p.peanutTickets.amount * n}장을 바꿀까요?`) },
       ...me.itemDefs.map(d => ({ key: d.id, title: `${d.name} <span class="tag">가진 ${mine(d.id)}개</span>`, note: d.desc, unit: d.price, cur: gI('u-snack', '🍤'), limit: Math.max(0, Math.min(max - mine(d.id), Math.floor(me.snack / d.price))),
-        buy: n => run('items/buy', { id: d.id, count: n }, `${d.name} ${n}개를 새우깡 ${d.price * n}개로 살까요?`) })),
+        buy: n => run('items/buy', { id: d.id, count: n }, `${d.name} ${n}개를 새우gang ${d.price * n}개로 살까요?`) })),
     ];
     const icon = { t1: gI('u-ticket', '🎟'), t2: gI('u-peanut', '🥜'), ...Object.fromEntries(me.itemDefs.map(d => [d.id, `<img src="${BASE}/duel/icons/${d.id}.png" alt="" onerror="this.replaceWith('🎒')">`])) };
     el.innerHTML = GAMEUI ? `<div class="shelf-head"><b>${gI('u-shop', '🛒')} 수비대 매점</b><small>대결 아이템은 종류마다 ${max}개까지 · 갈매미 교환·팔기는 카톡 「상점」</small></div>

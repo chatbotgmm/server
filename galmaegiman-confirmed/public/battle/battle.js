@@ -33,7 +33,7 @@ const TIER_NAME = { COMMON: '흔함', UNCOMMON: '안흔함', SPECIAL: '특별', 
 
 // 증강체: 1·3·5번째 전투 뒤에 3개 중 1개
 const AUGMENTS = [
-  { id: 'snack', tier: 'silver', name: '새우깡 간식', desc: '전투가 끝날 때마다 체력 25% 더 회복' },
+  { id: 'snack', tier: 'silver', name: '새우gang 간식', desc: '전투가 끝날 때마다 체력 25% 더 회복' },
   { id: 'stonehead', tier: 'silver', name: '돌머리', desc: '모두 방어 +20%' },
   { id: 'stamp', tier: 'silver', name: '출근 도장', desc: '전투 첫 턴에는 무조건 내가 먼저' },
   { id: 'market', tier: 'silver', name: '금빛 시장', desc: '치명타 확률 +20%' },

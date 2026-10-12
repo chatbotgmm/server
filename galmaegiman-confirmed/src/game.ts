@@ -35,7 +35,7 @@ const helpText=(e:Economy)=>[
   `🥚 뽑기 · 하급 ${e.gachas.LOW.cost}장 / 중급 ${e.gachas.MID.cost}장 / 고급 ${e.gachas.HIGH.cost}장`,
   '🧩 조합가능 · 지금 만들 수 있는 것',
   '🔮 조합 고르기 · 재료를 직접 골라 숨은 조합 찾기',
-  '🧭 탐험 · 최상위 갈매미를 보내 새우깡 벌기',
+  '🧭 탐험 · 최상위 갈매미를 보내 새우gang 벌기',
   '🎯 미션 · 🏆 칭호 · 📚 도감 · 🐦 내갈매미',
   '🥇 랭킹 · 🏷 닉네임 · 💬 댓글 · 🛒 상점 · 🍤 팔기 · 🥜 땅콩떼기',
   '💌 초대코드 · 📘 튜토리얼 · 🎉 이벤트',
@@ -165,9 +165,9 @@ export class GameService {
       {imageId:'m-draw',title:'🥚 뽑기',description:`${t.cooldownHours}시간마다 뽑기권 ${t.claim}장\n하급 ${g.LOW.cost} · 중급 ${g.MID.cost} · 고급 ${g.HIGH.cost}장`,buttons:[choice('뽑기'),choice('뽑기권 받기','뽑기권받기'),choice('확률')]},
       {imageId:'m-craft',title:'🧩 조합',description:'재료를 모아 높은 등급을 만들어요',buttons:[choice('조합가능'),choice('조합목록')]},
       {imageId:'s-mix',title:'🔮 재료로 조합',description:'재료를 직접 골라 섞어요. 숨은 조합(히든)도 이렇게 찾아요',buttons:[choice('재료 고르기','조합 고르기')]},
-      {imageId:'explore',title:'🧭 탐험',description:'최상위 갈매미를 보내 새우깡을 벌어요',buttons:[choice('탐험'),choice('시너지')]},
+      {imageId:'explore',title:'🧭 탐험',description:'최상위 갈매미를 보내 새우gang을 벌어요',buttons:[choice('탐험'),choice('시너지')]},
       {imageId:'s-dex',title:'📚 도감',description:'모은 갈매미와 칭호·미션',buttons:[choice('도감'),choice('내갈매미'),choice('내정보')]},
-      {imageId:'s-shop',title:'🛒 상점',description:'새우깡으로 흔함·안흔함·뽑기권',buttons:[choice('상점')]},
+      {imageId:'s-shop',title:'🛒 상점',description:'새우gang으로 흔함·안흔함·뽑기권',buttons:[choice('상점')]},
       {imageId:'s-invite',title:'💌 친구 초대',description:`초대 코드를 나누면 둘 다 🎟 ${this.content.economy.invite.tickets}`,buttons:[choice('초대코드'),choice('튜토리얼')]},
       {imageId:'s-rank',title:'🥇 랭킹',description:'도감 수집 순위\n닉네임을 정하면 이름이 나와요',buttons:[choice('랭킹'),choice('닉네임')]}
     ];
@@ -240,7 +240,7 @@ export class GameService {
     const row=await tx.dailyProgress.findUnique({where:{playerId_day:{playerId:p.id,day}}});
     const done=(row?.rewarded??'').split(',').filter(Boolean).length,total=this.content.economy.missions.length;
     if(done<total){lines.push(`🎯 오늘의 미션 ${done}/${total}`);choices.push(choice('미션'));}
-    if(p.snack>=this.content.economy.exchange.snackCost){lines.push(`🍤 새우깡 ${p.snack}개 · 상점에서 쓸 수 있어요`);choices.push(choice('상점'));}
+    if(p.snack>=this.content.economy.exchange.snackCost){lines.push(`🍤 새우gang ${p.snack}개 · 상점에서 쓸 수 있어요`);choices.push(choice('상점'));}
     return {text:lines.length?`\n\n그동안 해 볼 것\n${lines.join('\n')}`:'',choices};
   }
   private claimHint(p:Player,now:Date){
@@ -262,7 +262,7 @@ export class GameService {
     const token=randomBytes(8).toString('hex');
     await tx.pendingAction.create({data:{token,playerId:p.id,revision:p.revision,kind,payload:json(payload),expiresAt:new Date(now.getTime()+600_000)}});
     const [header,title,message,fallback]=kind==='CRAFT'?['만들까요?','🧩 조합하기','조합 확정','재료를 써서 1마리를 만들어요']:
-      kind==='EXPEDITION'?['출발할까요?','🧭 탐험 출발','탐험 확정','돌아올 때까지 다른 데 못 써요']:kind.startsWith('SHOP')?['살까요?','🛒 구매하기','구매 확정',kind==='SHOP_BADGE'||kind==='SHOP_PEANUT_TICKETS'?'땅콩을 써요':'새우깡을 써요']:kind==='PEANUT'?['땅콩을 뗄까요?','🥜 땅콩떼기','땅콩떼기 확정','되돌릴 수 없어요']:kind==='SELL'?['팔까요?','🍤 팔기','팔기 확정','되돌릴 수 없어요']:['교환할까요?','🍤 교환하기','교환 확정','새우깡을 써서 받아요'];
+      kind==='EXPEDITION'?['출발할까요?','🧭 탐험 출발','탐험 확정','돌아올 때까지 다른 데 못 써요']:kind.startsWith('SHOP')?['살까요?','🛒 구매하기','구매 확정',kind==='SHOP_BADGE'||kind==='SHOP_PEANUT_TICKETS'?'땅콩을 써요':'새우gang을 써요']:kind==='PEANUT'?['땅콩을 뗄까요?','🥜 땅콩떼기','땅콩떼기 확정','되돌릴 수 없어요']:kind==='SELL'?['팔까요?','🍤 팔기','팔기 확정','되돌릴 수 없어요']:['교환할까요?','🍤 교환하기','교환 확정','새우gang을 써서 받아요'];
     return {text,imageId,...(cards?{cards}:{}),list:{title:header,showText:true,items:[
       {title,description:detail??fallback,message,button:{action:'confirm',token}},
       {title:'그만두기',description:'아무것도 쓰지 않아요',message:'취소',button:{action:'cancel',token}}
@@ -412,9 +412,9 @@ export class GameService {
       message:`${g[kind].label}뽑기`
     }));
     const ev=this.event(now);
-    const title=`🥚 뽑기 · 🎟 ${unlimited(p)?'무제한(관리자)':`${p.credits}장`}${ev?`\n🎉 ${ev.label} 진행 중!${ev.claimBonus?` 뽑기권 받기 +${ev.claimBonus}`:''}${ev.snackMultiplier>1?` · 새우깡 보상 ×${ev.snackMultiplier}`:''}`:''}`;
+    const title=`🥚 뽑기 · 🎟 ${unlimited(p)?'무제한(관리자)':`${p.credits}장`}${ev?`\n🎉 ${ev.label} 진행 중!${ev.claimBonus?` 뽑기권 받기 +${ev.claimBonus}`:''}${ev.snackMultiplier>1?` · 새우gang 보상 ×${ev.snackMultiplier}`:''}`:''}`;
     const hint=`숫자를 붙이면 여러 번 (최대 50): 하급뽑기 30${this.claimWait(p,now)?'':'\n🎟 지금 뽑기권을 받을 수 있어요!'}`;
-    const cards=[...(ev?[{imageId:'s-event',title:`🎉 ${ev.label}`,description:`${ev.claimBonus?`뽑기권 받기 +${ev.claimBonus}`:''}${ev.claimBonus&&ev.snackMultiplier>1?' · ':''}${ev.snackMultiplier>1?`새우깡 보상 ×${ev.snackMultiplier}`:''}\n~ ${DateTime.fromISO(ev.to).setZone('Asia/Seoul').toFormat('M/d HH:mm')}`} as CardEntry]:[]),...this.gachaCards(p)];
+    const cards=[...(ev?[{imageId:'s-event',title:`🎉 ${ev.label}`,description:`${ev.claimBonus?`뽑기권 받기 +${ev.claimBonus}`:''}${ev.claimBonus&&ev.snackMultiplier>1?' · ':''}${ev.snackMultiplier>1?`새우gang 보상 ×${ev.snackMultiplier}`:''}\n~ ${DateTime.fromISO(ev.to).setZone('Asia/Seoul').toFormat('M/d HH:mm')}`} as CardEntry]:[]),...this.gachaCards(p)];
     return {text:listReply(title,items,hint).text,cards:{intro:title,items:cards,outro:hint},
       choices:[...this.drawChoices(p),choice('뽑기권 받기','뽑기권받기'),...menu.slice(2,6)]};
   }
@@ -476,7 +476,7 @@ export class GameService {
     // 희귀 이상을 새로 찾았거나 전설 이상이 나오면 맨 위에서 연출합니다.
     const drama=tiers[top.c.rarity]>=tiers.LEGEND?prelude(top.c,!!top.receipt.first):firstNew&&tiers[firstNew.c.rarity]>=tiers.RARE?prelude(firstNew.c,true):'';
     const head=`${drama}🥚 ${g.label} 뽑기 ×${times}${news?` · 🆕 새 발견 ${news}종!`:''}`;
-    const gains=[...(snacks?[`🍤 새우깡 +${num(snacks)}`]:[]),...missions].join('\n');
+    const gains=[...(snacks?[`🍤 새우gang +${num(snacks)}`]:[]),...missions].join('\n');
     const achieved=results.filter(r=>r.receipt.achievement).map(r=>achievementText(r.receipt.achievement!));
     const outro=report([...(gains?[gains]:[]),...achieved].join('\n\n'),next.line);
     const body=[head,blocks.join('\n\n'),outro].join('\n\n');
@@ -536,7 +536,7 @@ export class GameService {
     const snacks=receipts.reduce((a,r)=>a+r.snacks,0);
     const achieved=receipts.filter(r=>r.achievement).map(r=>achievementText(r.achievement!));
     const head=`🧩 ${emblems[c.rarity]} ${c.name} ×${times} 조합 완료!`;
-    const below=[...(snacks?[`🍤 새우깡 +${num(snacks)}`]:[]),...achieved,...missions].join('\n');
+    const below=[...(snacks?[`🍤 새우gang +${num(snacks)}`]:[]),...achieved,...missions].join('\n');
     const outro=report(below,next.line);
     return {text:mask(this.content,`${discovered}${head}\n\n${outro}`,after),
       cards:{intro:mask(this.content,`${discovered}${head}`,after)||undefined,items:[this.maskCard({imageId:this.cardImage(c.id,after),title:`${emblems[c.rarity]} ${c.name} ×${times}`,
@@ -762,7 +762,7 @@ export class GameService {
     const total=lines.reduce((a,[c,n])=>a+this.sellPrice(c)*n,0);
     const summary=lines.map(([c,n])=>`${emblems[c.rarity]} ${c.name} ×${n}`).join('\n');
     const first=lines[0][0];
-    return this.issue(tx,p,'SELL',{ids},now,`🍤 팔기\n${summary}\n→ 새우깡 +${total}`,undefined,`${ids.length}마리 → 🍤 +${total}`,
+    return this.issue(tx,p,'SELL',{ids},now,`🍤 팔기\n${summary}\n→ 새우gang +${total}`,undefined,`${ids.length}마리 → 🍤 +${total}`,
       {items:[{imageId:this.cardImage(first.id,known),title:`🍤 팔기 → +${total}`,description:lines.length>3?`${lines.length}종 ${ids.length}마리`:summary}]});
   }
   private async invite(tx:Tx,p:Player,code:string,now:Date):Promise<GameReply>{
@@ -808,20 +808,20 @@ export class GameService {
     const e=this.content.economy.exchange;
     return c.rarity==='UNCOMMON'?e.uncommonCost:e.snackCost;
   }
-  // 교환 값: 흔함·안흔함은 새우깡, 특별은 땅콩(땅콩 상점)
+  // 교환 값: 흔함·안흔함은 새우gang, 특별은 땅콩(땅콩 상점)
   private exchangePrice(c:Character){return c.rarity==='SPECIAL'?{peanut:this.content.economy.peanutShop.special}:{snack:this.exchangeCost(c)};}
   private priceText(c:Character){const x=this.exchangePrice(c);return x.peanut?`🥜 ${x.peanut}`:`🍤 ${x.snack}`;}
   // 닉네임 장식(땅콩 상점 배지)
   private badgeEmoji(id?:string|null){return this.content.economy.peanutShop.badges.find(b=>b.id===id)?.emoji??'';}
   private named(nick:string|null|undefined,badge?:string|null,fallback=''){const e=this.badgeEmoji(badge);return nick?`${e?`${e} `:''}${nick}`:fallback;}
-  // ───────── 상점 (새우깡 사용처) ─────────
+  // ───────── 상점 (새우gang 사용처) ─────────
   private async shop(tx:Tx,p:Player,sub:string,now:Date):Promise<GameReply>{
     const e=this.content.economy,none=new Set<string>();
     if(sub==='뽑기권'){
       const t=e.shop.tickets;
-      if(p.snack<t.snacks)throw new GameError(`🍤 새우깡이 부족해요. ${t.snacks}개 필요, 지금 ${p.snack}개.`);
-      return this.issue(tx,p,'SHOP_TICKETS',{},now,`🛒 뽑기권 ${t.amount}장\n새우깡 ${t.snacks}개 (지금 ${p.snack}개)`,undefined,`새우깡 ${t.snacks}개를 써요`,
-        {items:[{imageId:'s-ticket',title:`🛒 뽑기권 ${t.amount}장`,description:`새우깡 ${t.snacks}개 · 지금 ${p.snack}개`}]});
+      if(p.snack<t.snacks)throw new GameError(`🍤 새우gang이 부족해요. ${t.snacks}개 필요, 지금 ${p.snack}개.`);
+      return this.issue(tx,p,'SHOP_TICKETS',{},now,`🛒 뽑기권 ${t.amount}장\n새우gang ${t.snacks}개 (지금 ${p.snack}개)`,undefined,`새우gang ${t.snacks}개를 써요`,
+        {items:[{imageId:'s-ticket',title:`🛒 뽑기권 ${t.amount}장`,description:`새우gang ${t.snacks}개 · 지금 ${p.snack}개`}]});
     }
     if(sub==='땅콩'){
       const ps=e.peanutShop;
@@ -842,9 +842,9 @@ export class GameService {
     if(sub==='탐험귀환'){
       const cost=e.shop.expeditionSkip.snacks,active=await this.activeExpedition(tx,p);
       if(!active||active.endsAt<=now)throw new GameError('바로 돌아오게 할 탐험이 없어요.\n탐험 중일 때만 쓸 수 있어요.');
-      if(p.snack<cost)throw new GameError(`🍤 새우깡이 부족해요. ${cost}개 필요, 지금 ${p.snack}개.`);
-      return this.issue(tx,p,'SHOP_SKIP',{},now,`🛒 탐험 즉시 귀환\n남은 ${duration(active.endsAt.getTime()-now.getTime())} · 새우깡 ${cost}개`,undefined,`새우깡 ${cost}개를 써요`,
-        {items:[{imageId:this.cardImage((active.unitIds as string[])[0],none),title:'🛒 탐험 즉시 귀환',description:`남은 시간 ${duration(active.endsAt.getTime()-now.getTime())}\n새우깡 ${cost}개 · 지금 ${p.snack}개`}]});
+      if(p.snack<cost)throw new GameError(`🍤 새우gang이 부족해요. ${cost}개 필요, 지금 ${p.snack}개.`);
+      return this.issue(tx,p,'SHOP_SKIP',{},now,`🛒 탐험 즉시 귀환\n남은 ${duration(active.endsAt.getTime()-now.getTime())} · 새우gang ${cost}개`,undefined,`새우gang ${cost}개를 써요`,
+        {items:[{imageId:this.cardImage((active.unitIds as string[])[0],none),title:'🛒 탐험 즉시 귀환',description:`남은 시간 ${duration(active.endsAt.getTime()-now.getTime())}\n새우gang ${cost}개 · 지금 ${p.snack}개`}]});
     }
     const items:CardEntry[]=[
       {imageId:'s-exchange',title:'🥚 흔함 고르기',description:`원하는 흔함 1마리 · 🍤 ${e.exchange.snackCost}`,buttons:[choice('고르기','교환 흔함')]},
@@ -854,7 +854,7 @@ export class GameService {
       {imageId:'explore',title:'🧭 탐험 즉시 귀환',description:`진행 중인 탐험을 바로 끝냄 · 🍤 ${e.shop.expeditionSkip.snacks}`,buttons:[choice('사기','상점 탐험귀환')]},
       {imageId:'s-peanut',title:'🥜 땅콩 상점',description:`뽑기권 ${e.peanutShop.tickets}장 · 특별 골라 받기 · 닉네임 장식 · 지금 🥜 ${p.peanut}개`,buttons:[choice('들어가기','상점 땅콩')]}
     ];
-    const outro='🍤 새우깡 얻는 법: 처음 발견·중복 획득 보상, 팔기, 탐험 (자세히: 보상)';
+    const outro='🍤 새우gang 얻는 법: 처음 발견·중복 획득 보상, 팔기, 탐험 (자세히: 보상)';
     return {text:`🛒 상점 · 🍤 ${p.snack}개 · 🥜 ${p.peanut}개\n\n${items.map(i=>`${i.title} · ${i.description}`).join('\n')}\n\n${outro}`,cards:{intro:`🛒 상점 · 지금 🍤 ${p.snack}개 · 🥜 ${p.peanut}개`,items,outro},choices:[choice('흔함 교환','교환 흔함'),choice('안흔함 교환','교환 안흔함'),choice('🥜 땅콩 상점','상점 땅콩'),choice('뽑기권 사기','상점 뽑기권'),...menu]};
   }
   // 닉네임 장식: 산 것은 '달기', 안 산 것은 '사기'(땅콩)
@@ -1205,7 +1205,7 @@ export class GameService {
       const have=(await tx.playerItem.findUnique({where:{playerId_itemId:{playerId:p.id,itemId:item.id}}}))?.count??0;
       if(have+count>maxStack)throw new GameError(`${item.name}은(는) ${maxStack}개까지 가질 수 있어요. 지금 ${have}개.`);
       const paid=await tx.player.updateMany({where:{id:p.id,snack:{gte:cost}},data:{snack:{decrement:cost}}});
-      if(paid.count!==1)throw new GameError(`🍤 새우깡이 부족해요. ${cost}개 필요, 지금 ${p.snack}개.`);
+      if(paid.count!==1)throw new GameError(`🍤 새우gang이 부족해요. ${cost}개 필요, 지금 ${p.snack}개.`);
       await tx.playerItem.upsert({where:{playerId_itemId:{playerId:p.id,itemId:item.id}},create:{playerId:p.id,itemId:item.id,count},update:{count:{increment:count}}});
       await this.audit(tx,p,'SHOP',{item:`ITEM_${item.id}`,count,snacks:-cost});
       return `🛒 ${item.name} ×${count} 샀어요! 🍤 -${cost}`;
@@ -1633,8 +1633,8 @@ export class GameService {
   private effectText(key:string,level:1|2){
     const fx=this.content.economy.expedition.effects as Record<string,Record<string,unknown>>;
     const i=level-1,v=(k:string)=>(fx[key][k] as number[])[i];
-    return key==='BASIC'?`새우깡 +${v('snackPercent')}%`:key==='GOLD'?`${v('doublePercent')}% 확률로 새우깡 2배`:key==='DARK'?`${v('minutes')}분 만에 귀환`:
-      key==='SEA'?`${v('commonPercent')}% 확률로 흔함 1마리`:key==='BLOSSOM'?`${v('uncommonPercent')}% 확률로 안흔함 1마리`:key==='COSMOS'?`${v('ticketPercent')}% 확률로 뽑기권 1장`:`마리당 새우깡 +${v('snackPerUnit')}`;
+    return key==='BASIC'?`새우gang +${v('snackPercent')}%`:key==='GOLD'?`${v('doublePercent')}% 확률로 새우gang 2배`:key==='DARK'?`${v('minutes')}분 만에 귀환`:
+      key==='SEA'?`${v('commonPercent')}% 확률로 흔함 1마리`:key==='BLOSSOM'?`${v('uncommonPercent')}% 확률로 안흔함 1마리`:key==='COSMOS'?`${v('ticketPercent')}% 확률로 뽑기권 1장`:`마리당 새우gang +${v('snackPerUnit')}`;
   }
   private planText(plan:ExpeditionPlan){
     const syn=plan.synergies.map(s=>`✨ ${s.label} ×${s.count} (${s.level}단계) · ${this.effectText(s.key,s.level)}`);
@@ -1658,7 +1658,7 @@ export class GameService {
       return {text:`${head}\n\n${units}\n\n${this.planText(plan)}`,cards:{intro:head,items:this.partyCards(active.unitIds as string[]),outro:this.planText(plan)},choices:[...(left>0?[]:[choice('탐험 보상 받기','탐험보상받기')]),...menu]};
     }
     const owned=await tx.ownedCharacter.groupBy({by:['characterId'],where:{playerId:p.id,status:'AVAILABLE',characterId:{in:this.topIds}},_count:{_all:true}});
-    if(!owned.length)return this.info({text:`🧭 탐험\n최상위 갈매미(제한·초월·영원·불멸)를 보내면 ${duration(e.minutes*60000)} 뒤 새우깡을 가져와요.\n1마리당 🍤 ${e.snackPerUnit} · 최대 ${e.maxParty}마리\n\n같은 시너지끼리 보내면 보너스!\n아직 보낼 갈매미가 없어요. 전설을 모아 최상위를 만들어 보세요.`,choices:[choice('조합목록 제한'),choice('시너지'),...menu]},'explore');
+    if(!owned.length)return this.info({text:`🧭 탐험\n최상위 갈매미(제한·초월·영원·불멸)를 보내면 ${duration(e.minutes*60000)} 뒤 새우gang을 가져와요.\n1마리당 🍤 ${e.snackPerUnit} · 최대 ${e.maxParty}마리\n\n같은 시너지끼리 보내면 보너스!\n아직 보낼 갈매미가 없어요. 전설을 모아 최상위를 만들어 보세요.`,choices:[choice('조합목록 제한'),choice('시너지'),...menu]},'explore');
     return this.partyBuilder(tx,p,'',now);
   }
   // 탐험대 편성: 넣은 유닛은 서버(partyDraft)에 저장하고, 카드 버튼은 "편성추가 이름"·"편성빼기 이름"처럼 짧게 보냄.
@@ -1746,13 +1746,13 @@ export class GameService {
   private synergyGuide(){
     const e=this.content.economy.expedition,fx=e.effects;
     const rows=[
-      `기본 (${fx.BASIC.concept}): 새우깡 +${fx.BASIC.snackPercent[0]}% / +${fx.BASIC.snackPercent[1]}%`,
-      `황금 (${fx.GOLD.concept}): ${fx.GOLD.doublePercent[0]}% / ${fx.GOLD.doublePercent[1]}% 확률로 새우깡 2배`,
+      `기본 (${fx.BASIC.concept}): 새우gang +${fx.BASIC.snackPercent[0]}% / +${fx.BASIC.snackPercent[1]}%`,
+      `황금 (${fx.GOLD.concept}): ${fx.GOLD.doublePercent[0]}% / ${fx.GOLD.doublePercent[1]}% 확률로 새우gang 2배`,
       `암흑 (${fx.DARK.concept}): 탐험 시간 ${fx.DARK.minutes[0]}분 / ${fx.DARK.minutes[1]}분`,
       `바다 (${fx.SEA.concept}): ${fx.SEA.commonPercent[0]}% / ${fx.SEA.commonPercent[1]}% 확률로 흔함 1마리`,
       `벚꽃 (${fx.BLOSSOM.concept}): ${fx.BLOSSOM.uncommonPercent[0]}% / ${fx.BLOSSOM.uncommonPercent[1]}% 확률로 안흔함 1마리`,
       `우주 (${fx.COSMOS.concept}): ${fx.COSMOS.ticketPercent[0]}% / ${fx.COSMOS.ticketPercent[1]}% 확률로 뽑기권 1장`,
-      `갈 의복 (${fx.OUTFIT.concept}): 마리당 새우깡 +${fx.OUTFIT.snackPerUnit[0]} / +${fx.OUTFIT.snackPerUnit[1]}`,
+      `갈 의복 (${fx.OUTFIT.concept}): 마리당 새우gang +${fx.OUTFIT.snackPerUnit[0]} / +${fx.OUTFIT.snackPerUnit[1]}`,
       `같은 갈매미 여러 마리: ${Object.entries(e.countBonusPercent).map(([n,v])=>`${n}마리 +${v}%`).join(' · ')}`
     ];
     return `🧭 탐험 시너지\n같은 시너지 ${e.levels[0]}마리 이상 = 1단계 / ${e.levels[1]}마리 이상 = 2단계 (같은 갈매미 중복 포함)\n여러 시너지가 함께 발동하면 효과를 모두 더해요.\n\n${rows.join('\n')}`;
@@ -1800,7 +1800,7 @@ export class GameService {
     const snacks=Math.max(0,Math.min(rolled.snacks,2_000_000_000-account.snack));
     await tx.player.update({where:{id:p.id},data:{snack:{increment:snacks},credits:{increment:rolled.tickets},revision:{increment:1}}});
     const known=await this.known(tx,p);
-    const lines=[`🍤 새우깡 +${snacks}${rolled.doubled?' (황금 시너지 2배!)':''}`];
+    const lines=[`🍤 새우gang +${snacks}${rolled.doubled?' (황금 시너지 2배!)':''}`];
     let imageId:string|undefined;
     const joined:CardEntry[]=[];
     for(const id of [rolled.commonId,rolled.uncommonId].filter((x):x is string=>Boolean(x))){
@@ -1821,7 +1821,7 @@ export class GameService {
     const five=plan.countBonus&&plan.countBonus.count>=5?'\n\n갈매미 한 마리…\n갈매미 두 마리…\n갈매미 세 마리…\n갈매미 네 마리…\n(정적)\n갈매미 다섯 마리.\n앙~~~~ 갈매미맨이야!!!!':'';
     // 카드: 합류한 유닛, 없으면 탐험대 대표 유닛 1장
     const leader=this.content.map.get((active.unitIds as string[])[0])!;
-    const items=joined.length?joined:[{imageId:this.cardImage(leader.id,known),title:'🧭 탐험대 귀환!',description:`${emblems[leader.rarity]} ${leader.name}${plan.size>1?` 외 ${plan.size-1}마리`:''}\n🍤 새우깡 +${snacks}`}];
+    const items=joined.length?joined:[{imageId:this.cardImage(leader.id,known),title:'🧭 탐험대 귀환!',description:`${emblems[leader.rarity]} ${leader.name}${plan.size>1?` 외 ${plan.size-1}마리`:''}\n🍤 새우gang +${snacks}`}];
     const below=[...lines,...missions].join('\n');
     return {text:mask(this.content,`🧭 탐험대 귀환!${five}\n\n${lines.join('\n')}\n\n${[...missions,next.line].join('\n')}`,known),imageId,
       cards:{intro:mask(this.content,`🧭 탐험대 귀환!${five}`,known),items:items.map(i=>this.maskCard(i,known)),outro:mask(this.content,report(below,next.line),known)},choices:next.choices};
@@ -1858,7 +1858,7 @@ export class GameService {
       if(!c||(c.rarity!=='COMMON'&&c.rarity!=='UNCOMMON'&&c.rarity!=='SPECIAL'))throw new GameError('교환할 수 없는 갈매미예요.');
       const price=this.exchangePrice(c);
       if(price.peanut&&p.peanut<price.peanut)throw new GameError('🥜 땅콩이 부족해요.');
-      if(price.snack&&p.snack<price.snack)throw new GameError('🍤 새우깡이 부족해요.');
+      if(price.snack&&p.snack<price.snack)throw new GameError('🍤 새우gang이 부족해요.');
       const cost=price.snack??0;
       await tx.player.update({where:{id:p.id},data:price.peanut?{peanut:{decrement:price.peanut}}:{snack:{decrement:cost}}});
       const owned=await this.grant(tx,p,c.id,'EXCHANGE',now);
@@ -1889,10 +1889,10 @@ export class GameService {
       await tx.ownedCharacter.updateMany({where:{id:{in:ids}},data:{status:'CONSUMED',consumedAt:now}});
       await tx.player.update({where:{id:p.id},data:{snack:{increment:total}}});
       await this.audit(tx,p,'SELL',{token,ids,snacks:total});
-      result=this.info({text:`🍤 팔기 완료!\n${ids.length}마리 → 새우깡 +${total}\n지금 🍤 ${p.snack+total}개`,choices:[choice('더 팔기','팔기'),choice('상점'),...menu]},'s-sell');
+      result=this.info({text:`🍤 팔기 완료!\n${ids.length}마리 → 새우gang +${total}\n지금 🍤 ${p.snack+total}개`,choices:[choice('더 팔기','팔기'),choice('상점'),...menu]},'s-sell');
     }else if(action.kind==='SHOP_TICKETS'){
       const t=this.content.economy.shop.tickets;
-      if(p.snack<t.snacks)throw new GameError('🍤 새우깡이 부족해요.');
+      if(p.snack<t.snacks)throw new GameError('🍤 새우gang이 부족해요.');
       await tx.player.update({where:{id:p.id},data:{snack:{decrement:t.snacks},credits:{increment:t.amount}}});
       await this.audit(tx,p,'SHOP',{token,item:'TICKETS',snacks:-t.snacks,tickets:t.amount});
       result=this.info({text:`🛒 뽑기권 +${t.amount}!\n🍤 -${t.snacks} · 지금 🎟 ${p.credits+t.amount}장 · 🍤 ${p.snack-t.snacks}개`,choices:[choice('뽑기'),choice('상점'),...menu.slice(2)]},'s-ticket');
@@ -1915,7 +1915,7 @@ export class GameService {
       const cost=this.content.economy.shop.expeditionSkip.snacks;
       const active=await this.activeExpedition(tx,p);
       if(!active||active.endsAt<=now)throw new GameError('바로 돌아오게 할 탐험이 없어요.');
-      if(p.snack<cost)throw new GameError('🍤 새우깡이 부족해요.');
+      if(p.snack<cost)throw new GameError('🍤 새우gang이 부족해요.');
       await tx.player.update({where:{id:p.id},data:{snack:{decrement:cost}}});
       await tx.expedition.update({where:{id:active.id},data:{endsAt:now}});
       await this.audit(tx,p,'SHOP',{token,item:'EXPEDITION_SKIP',snacks:-cost,expeditionId:active.id});
@@ -1993,10 +1993,10 @@ export class GameService {
     if(command==='보상'){
       const r=this.content.economy.rewards,known=await this.known(tx,p);
       const items=tierOrder.filter(t=>t!=='COMMON').map(t=>({imageId:this.gradeImage(t,known),title:`${emblems[t]} ${rarityNames[t]}`,description:`첫 발견 🍤 ${r[t].first}\n중복 🍤 ${r[t].duplicate}`}));
-      return {text:rewardGuide(this.content),cards:{intro:'🎁 획득 보상 (새우깡)',items,outro:`흔함은 보상이 없어요.\n새우깡은 상점에서 흔함·안흔함·뽑기권으로 바꿔요.`},choices:[choice('상점'),...menu]};
+      return {text:rewardGuide(this.content),cards:{intro:'🎁 획득 보상 (새우gang)',items,outro:`흔함은 보상이 없어요.\n새우gang은 상점에서 흔함·안흔함·뽑기권으로 바꿔요.`},choices:[choice('상점'),...menu]};
     }
     if(command==='교환'){
-      // 흔함·안흔함을 골라 새우깡으로 받습니다. "교환 안흔함"이면 안흔함 목록
+      // 흔함·안흔함을 골라 새우gang으로 받습니다. "교환 안흔함"이면 안흔함 목록
       const tierArg=args[0]==='안흔함'?'UNCOMMON':args[0]==='흔함'?'COMMON':args[0]==='특별'?'SPECIAL':undefined;
       if(!query||/^\d+$/.test(query)||(tierArg&&args.length<=2&&(!args[1]||/^\d+$/.test(args[1])))){
         const reply=await this.browse(tx,p,'교환',query);
@@ -2007,8 +2007,8 @@ export class GameService {
       if(!('id' in c))return c;
       const price=this.exchangePrice(c);
       if(price.peanut&&p.peanut<price.peanut)throw new GameError(`🥜 땅콩이 부족해요. ${price.peanut}개 필요, 지금 ${p.peanut}개.\n땅콩떼기로 모을 수 있어요.`);
-      if(price.snack&&p.snack<price.snack)throw new GameError(`🍤 새우깡이 부족해요. ${price.snack}개 필요, 지금 ${p.snack}개.`);
-      const pay=price.peanut?`땅콩 ${price.peanut}개`:`새우깡 ${price.snack}개`,have=price.peanut?`🥜 ${p.peanut}개`:`🍤 ${p.snack}개`,icon=price.peanut?'🥜':'🍤';
+      if(price.snack&&p.snack<price.snack)throw new GameError(`🍤 새우gang이 부족해요. ${price.snack}개 필요, 지금 ${p.snack}개.`);
+      const pay=price.peanut?`땅콩 ${price.peanut}개`:`새우gang ${price.snack}개`,have=price.peanut?`🥜 ${p.peanut}개`:`🍤 ${p.snack}개`,icon=price.peanut?'🥜':'🍤';
       return this.issue(tx,p,'RECEIVE',{characterId:c.id},now,`${icon} → ${emblems[c.rarity]} ${c.name}\n${pay} (지금 ${have})`,this.seenImage(c.id,new Set()),`${pay}를 써요`,
         {items:[{imageId:this.face(c.id,new Set()),title:`${icon} → ${emblems[c.rarity]} ${c.name}`,description:`${pay} · 지금 ${have}`}]});
     }
@@ -2024,7 +2024,7 @@ export class GameService {
       const extra=[choice('초대코드'),choice('튜토리얼')];
       if(!ev&&coupons.length)return this.info({text:`🎉 이벤트${couponLine}${always}`,choices:[choice('쿠폰'),...extra,choice('뽑기'),...menu.slice(1)]},'s-event');
       if(!ev)return this.info({text:`🎉 이벤트\n지금 진행 중인 기간 이벤트는 없어요.\n열리면 뽑기 화면 맨 앞에 알려 드려요.${always}`,choices:[...extra,choice('뽑기'),...menu.slice(1)]},'s-event');
-      const what=[...(ev.claimBonus?[`뽑기권 받기 +${ev.claimBonus}장 더`]:[]),...(ev.snackMultiplier>1?[`새우깡 보상 ×${ev.snackMultiplier}`]:[])];
+      const what=[...(ev.claimBonus?[`뽑기권 받기 +${ev.claimBonus}장 더`]:[]),...(ev.snackMultiplier>1?[`새우gang 보상 ×${ev.snackMultiplier}`]:[])];
       return this.info({text:`🎉 ${ev.label}\n${what.join('\n')}\n~ ${DateTime.fromISO(ev.to).setZone('Asia/Seoul').toFormat('M/d HH:mm')}까지${couponLine}${always}`,choices:[choice('뽑기권 받기','뽑기권받기'),choice('뽑기'),...menu.slice(1)]},'s-event');
     }
     if(compact==='웹로그인'||compact==='로그인')return this.webCode(tx,p,now);

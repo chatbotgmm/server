@@ -137,7 +137,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   it('교환·상점: 최상위 없이도 흔함 150·안흔함 350, 뽑기권 10장 1000, 탐험 즉시 귀환 100',async()=>{
     await fixtures([],{snack:1600});
     const preview=await send('교환 기본');
-    expect(preview.text).toContain('새우깡 150개');
+    expect(preview.text).toContain('새우gang 150개');
     expect((await confirm(preview)).text).toContain('기본 갈매미맨');
     expect((await me()).snack).toBe(1450);
     const list=await send('교환 안흔함');
@@ -155,7 +155,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await confirm(tickets);
     expect(await me()).toMatchObject({snack:150,credits:before+10});
     expect((await send('상점 탐험귀환')).text).toContain('바로 돌아오게 할 탐험이 없어요');
-    expect((await send('상점 뽑기권')).text).toContain('새우깡이 부족해요');
+    expect((await send('상점 뽑기권')).text).toContain('새우gang이 부족해요');
   });
   it('탐험: 출발→잠김→1시간 뒤 보상 받기를 눌러야 지급→복귀',async()=>{
     const basic=content.characters.filter(c=>c.synergy==='BASIC').map(c=>c.id);
@@ -172,7 +172,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     now=new Date(now.getTime()+HOUR);
     expect((await send('내정보')).text).toContain('보상 받기 대기');
     const back=await send('탐험 보상 받기');
-    expect(back.text).toContain('새우깡 +52');
+    expect(back.text).toContain('새우gang +52');
     expect((await me()).snack).toBe(52);
     expect(await db.ownedCharacter.count({where:{status:'EXPEDITION'}})).toBe(0);
     expect((await send('탐험보상받기')).text).toContain('진행 중인 탐험이 없어요');
@@ -241,7 +241,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await me()).snack).toBeGreaterThan(0);
     expect(await counts()).toMatchObject({owned:10,snap:1});
     expect((await send('관리자 켜기')).text).toContain('이미');
-    // 끄면 모드 동안 뽑은 유닛·도감·새우깡·미션·뽑기권이 켜기 전으로
+    // 끄면 모드 동안 뽑은 유닛·도감·새우gang·미션·뽑기권이 켜기 전으로
     expect((await send('관리자 끄기')).text).toContain('되돌렸어요');
     expect(await counts()).toEqual({owned:0,dex:0,daily:0,snap:0});
     expect(await me()).toMatchObject({credits:30,snack:0,isAdmin:true,adminMode:false});
@@ -580,7 +580,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     game=new GameService(db,{...content,economy:{...content.economy,events:[ev]}},()=>now,new GachaEngine(content.characters,content.economy.gachas,()=>0),max=>max-1);
     const r=await send('이벤트');
     expect(r.text).toContain('벚꽃 주간');
-    expect(r.text).toContain('새우깡 보상 ×2');
+    expect(r.text).toContain('새우gang 보상 ×2');
   });
   it('쿠폰: 조각을 합친 코드(공백 무시)로 뽑기권, 1인 1회, 틀린 코드·기간 밖은 거절',async()=>{
     const c=content.economy.coupons.find(x=>x.id==='HOMEPAGE_OPEN')!;
@@ -701,7 +701,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       await db.expedition.updateMany({where:{playerId:p.id},data:{endsAt:new Date(now.getTime()-60_000)}});
       expect((await post('/my/api/expedition/claim',{},{cookie})).statusCode).toBe(200);
       expect((await db.expedition.findFirstOrThrow({where:{playerId:p.id}})).claimedAt).not.toBeNull();
-      // 아이템: 새우깡 부족·없는 아이템·보유 한도
+      // 아이템: 새우gang 부족·없는 아이템·보유 한도
       await db.player.update({where:{id:p.id},data:{snack:100}});
       expect((await post('/my/api/items/buy',{id:'nope',count:1},{cookie})).statusCode).toBe(400);
       expect((await post('/my/api/items/buy',{id:'potion',count:0},{cookie})).statusCode).toBe(400);
@@ -719,7 +719,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const tickets=(await db.player.findUniqueOrThrow({where:{id:p.id}})).credits;
       expect((await post('/my/api/shop',{item:'tickets'},{cookie})).statusCode).toBe(200);
       expect((await db.player.findUniqueOrThrow({where:{id:p.id}})).credits).toBeGreaterThan(tickets);
-      // 수량: 뽑기권 3묶음 = 한 거래, 새우깡이 모자라면 하나도 안 삼
+      // 수량: 뽑기권 3묶음 = 한 거래, 새우gang이 모자라면 하나도 안 삼
       const t=content.economy.shop.tickets,b0=await db.player.findUniqueOrThrow({where:{id:p.id}});
       expect((await post('/my/api/shop',{item:'tickets',count:3},{cookie})).statusCode).toBe(200);
       const b1=await db.player.findUniqueOrThrow({where:{id:p.id}});
@@ -1383,7 +1383,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.15.3'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.15.4'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

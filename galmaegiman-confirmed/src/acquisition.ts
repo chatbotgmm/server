@@ -29,7 +29,7 @@ export function acquisitionText(content:Content,c:Character,kind:AcquisitionKind
     text=`${prelude(c,true)}${head}\n【${c.name}】\n📖 ${grade} 도감 ${receipt.tierKnown}/${receipt.tierTotal}${snack}`;
   }else{
     const head=kind==='COMBINATION'?`🧩 ${c.name} 조합 완료`:`${e} ${c.name}`;
-    text=`${high.has(c.rarity)?prelude(c,false):''}${head} (${receipt.count}번째 만남)${receipt.snacks?`\n🍤 새우깡 +${receipt.snacks}`:''}`;
+    text=`${high.has(c.rarity)?prelude(c,false):''}${head} (${receipt.count}번째 만남)${receipt.snacks?`\n🍤 새우gang +${receipt.snacks}`:''}`;
   }
   if(receipt.achievement)text+=`\n\n${achievementText(receipt.achievement)}`;
   return mask(content,text,known);
@@ -40,13 +40,13 @@ export function acquisitionCard(content:Content,c:Character,kind:AcquisitionKind
   const head=kind==='COMBINATION'?'🧩 조합 성공! ':kind==='EXCHANGE'?'🍤 교환 완료! ':kind==='EXPEDITION'?'🧭 탐험에서 합류! ':kind==='PEANUT'?'🥜 땅콩떼기! ':'';
   const description=receipt.first?`${head}🆕 새 ${grade} 발견!\n📖 ${grade} 도감 ${receipt.tierKnown}/${receipt.tierTotal}`:`${head}${grade} · ${receipt.count}번째 만남`;
   const drama=(receipt.first||high.has(c.rarity)?prelude(c,receipt.first):'').trim();
-  const extra=[...(receipt.snacks?[`🍤 새우깡 +${receipt.snacks}`]:[]),...(receipt.achievement?[achievementText(receipt.achievement)]:[])];
+  const extra=[...(receipt.snacks?[`🍤 새우gang +${receipt.snacks}`]:[]),...(receipt.achievement?[achievementText(receipt.achievement)]:[])];
   const m=(t:string)=>mask(content,t,known);
   return {drama:m(drama),title:m(`${emblems[c.rarity]} ${c.name}`),description:m(description),extra:extra.map(m)};
 }
 export const achievementText=(a:{tier:Tier;title:string;tickets:number})=>`🏆 ${rarityNames[a.tier]} 도감 완성!\n칭호 「${a.title}」 획득 · 🎟 +${a.tickets}`;
 export function rewardGuide(content:Content):string{
   const r=content.economy.rewards;
-  return '🎁 획득 보상 (새우깡)\n\n'+tierOrder.filter(t=>t!=='COMMON').map(t=>`${rarityNames[t]} · 첫 발견 ${r[t].first} / 중복 ${r[t].duplicate}`).join('\n')+
-    `\n\n흔함은 보상이 없어요.\n새우깡은 상점에서 써요: 흔함 ${content.economy.exchange.snackCost} · 안흔함 ${content.economy.exchange.uncommonCost} · 뽑기권 ${content.economy.shop.tickets.amount}장 ${content.economy.shop.tickets.snacks}.\n\n등급 도감을 모두 채우면 칭호와 뽑기권을 받습니다. (칭호)`;
+  return '🎁 획득 보상 (새우gang)\n\n'+tierOrder.filter(t=>t!=='COMMON').map(t=>`${rarityNames[t]} · 첫 발견 ${r[t].first} / 중복 ${r[t].duplicate}`).join('\n')+
+    `\n\n흔함은 보상이 없어요.\n새우gang은 상점에서 써요: 흔함 ${content.economy.exchange.snackCost} · 안흔함 ${content.economy.exchange.uncommonCost} · 뽑기권 ${content.economy.shop.tickets.amount}장 ${content.economy.shop.tickets.snacks}.\n\n등급 도감을 모두 채우면 칭호와 뽑기권을 받습니다. (칭호)`;
 }

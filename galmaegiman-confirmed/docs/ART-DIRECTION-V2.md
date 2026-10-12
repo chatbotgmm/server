@@ -62,7 +62,7 @@ scary, horror, insect, cicada, text, letters, watermark, cropped, transparent ed
 
 | ID | 이름 | 장면 (BASE 뒤에 붙임) |
 |---|---|---|
-| C001M | 새우깡봉지 | wearing an empty shrimp-snack bag as a crown, peeking inside it with a puzzled face, a few crumbs falling, pastel sky-blue background with a tiny lighthouse |
+| C001M | 새우gang봉지 | wearing an empty shrimp-snack bag as a crown, peeking inside it with a puzzled face, a few crumbs falling, pastel sky-blue background with a tiny lighthouse |
 | C001F | 짝짝이슬리퍼 | wearing one blue slipper and one pink slipper, wobbling mid-step, one slipper sliding ahead, proud smile, pastel mint background with a pier plank floor |
 | C002M | 도시락 | hugging a small lunch box with both wings, opening the lid happily, a sausage visible, pastel yellow background with a harbor bench |
 | C002F | 우산 | holding a small yellow umbrella under a bright sunny sky, sitting in its shade, content face, pastel peach background with a small cloudless sky |
@@ -81,7 +81,7 @@ scary, horror, insect, cicada, text, letters, watermark, cropped, transparent ed
 | U003F | 구명조끼 | wearing three stacked life vests, very round and puffy, holding a checklist clipboard, standing on a breakwater, calm blue sea background |
 | U004M | 빨대 | carrying a bendy straw as tall as itself toward an empty clear cup, eager face, harbor cafe terrace background |
 | U004F | 선풍기 | several mini handheld fans clipped to both wings, feathers fluttering, slightly sweaty but happy face, sunny harbor alley background |
-| U005M | 새우깡 신도 | wearing a cape made of shrimp-snack bags, sweeping up snack crumbs with a small broom, tiny gull friends waiting nearby, harbor square background |
+| U005M | 새우gang 신도 | wearing a cape made of shrimp-snack bags, sweeping up snack crumbs with a small broom, tiny gull friends waiting nearby, harbor square background |
 
 ## 특별·희귀 프롬프트 템플릿
 

@@ -1183,13 +1183,14 @@ img{-webkit-user-drag:none;-webkit-touch-callout:none}
 .msn-list{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:6px;padding-right:2px}
 .msn-r{display:grid;grid-template-columns:minmax(0,1fr) 44px 52px 58px;align-items:center;gap:6px;padding:6px 8px;border-radius:10px;border:1.5px solid #eadbc0;background:#fffdf8}
 .msn-r .mt b{display:block;font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.msn-r .bar{display:block;height:7px;border-radius:999px;background:#ead6ae;margin-top:4px;overflow:hidden}.msn-r .bar>i{display:block;height:100%;background:linear-gradient(90deg,#ffd27a,var(--gold))}
+/* 공용 .bar(위쪽 줄)의 안쪽 여백 때문에 채움 높이가 0이 돼 게이지가 비어 보였음 → 여백 0. 진행=금빛(UI-COLOR 규칙), 다 채움=초록 */
+.msn-r .bar{display:block;height:7px;padding:0;border-radius:999px;background:#eadcc4;box-shadow:inset 0 1px 1px rgba(90,52,22,.18);margin-top:4px;overflow:hidden}.msn-r .bar>i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#f7c04a,#e39a1c)}
 .msn-r .mv{text-align:right;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;color:#5a3418}
 .msn-r .mr{display:flex;align-items:center;justify-content:flex-end;gap:3px;font-variant-numeric:tabular-nums}.msn-r .mr b{font-size:13px}.msn-r .mr .ico{width:18px;height:18px;object-fit:contain}
 .msn-r .ms{text-align:center;font-size:11px;font-weight:800;border-radius:999px;padding:2px 0}
 .msn-r.run .ms{background:#efe5d3;color:#6b5236}
 .msn-r.ready{border-color:#ffc27a;background:#fff4e2}.msn-r.ready .ms{background:#e07b2e;color:#fff}
-.msn-r.done{background:#f1f7ec;border-color:#c5dfb6}.msn-r.done .ms{background:#5a9a4a;color:#fff}.msn-r.done .mt b{color:#6b7f5c;text-decoration:none}.msn-r.done .bar>i{background:#8cc274}
+.msn-r.done{background:#f1f7ec;border-color:#c5dfb6}.msn-r.done .ms{background:#5a9a4a;color:#fff}.msn-r.done .mt b{color:#6b7f5c;text-decoration:none}.msn-r.done .bar>i{background:#5aa84a}
 @media (orientation:landscape) and (max-height:430px){
   .sheet.today{padding-top:8px;padding-bottom:8px}.sheet.today h2{margin-bottom:4px}
   .att,.msn{gap:5px}.att-now{padding:4px 10px}.att-now .ai .ico{width:26px;height:26px}.att-now b{font-size:15px}
@@ -1618,6 +1619,104 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
 .tut .good,.tut .bad{white-space:nowrap}
 .tut .tcard table{width:auto}
 .tut .tcard img.rcard{width:auto;height:min(46vh,220px);object-fit:contain;border-radius:12px;box-shadow:0 3px 8px rgba(0,0,0,.25)}
+/* ════ v0.15.4 전투·스토리 새 UI(galmaegiman-battle-story-ui): 상태창·명령판·대화창 그림 틀, 버튼 그림. 바뀌는 글자는 코드 ════ */
+/* 상태창: 9-slice(nine-slice.json을 줄인 그림에 맞춤) */
+#arena .box{background:none !important;box-shadow:none !important;border-style:solid !important;border-color:transparent !important;border-width:12px 24px 22px 24px !important;border-image:url(/duel/intro/b2_status_panel.webp) 32 110 74 110 fill / 12px 24px 22px 24px stretch !important;padding:0 4px 2px !important;border-radius:0 !important;color:#3b2614}
+#arena .box .nm{color:#3b2614}
+#arena.bg2{background:transparent !important}
+.bbg{display:none}
+@media (orientation:landscape){ #app:has(#arena) .bbg{display:block;grid-column:1/-1;grid-row:1/3;background:#2b7fb0 left 62%/cover no-repeat;z-index:0} #app:has(#arena) #arena{z-index:1} #app:has(.bbg){background:#2b7fb0} }
+
+#arena.bg2 .ground,#arena.bg2 .haze,#arena.bg2 .plat{display:none}
+#arena.bg2 .amb{opacity:.6}
+
+/* 오른쪽 명령판 틀(가로 화면) */
+@media (orientation:landscape){
+  #app:has(#arena) .cmdbg{grid-column:2;grid-row:1/3;margin:4px 6px 4px 0;border-style:solid;border-width:30px 22px 22px 34px;border-image:url(/duel/intro/b2_command_panel.webp) 120 90 80 150 fill / 30px 22px 22px 34px stretch;pointer-events:none;z-index:0}
+  #app:has(#arena) #arena{grid-column:1}
+  #app:has(#arena) #msg,#app:has(#arena) #panel{grid-column:2;z-index:1;position:relative}
+  #app:has(#arena) #msg{grid-row:1}#app:has(#arena) #panel{grid-row:2}
+  #app:has(#arena) #msg{margin:24px 22px 4px 30px !important;background:rgba(255,252,244,.96);border:2px solid #d9b37a;border-radius:12px}
+  #app:has(#arena) #panel{padding:0 22px calc(18px + env(safe-area-inset-bottom,0px)) 30px !important}
+}
+.cmdbg{display:none}@media (orientation:landscape){#app:has(#arena) .cmdbg{display:block}}
+/* 그림 버튼 4개: 그림 비율 그대로, 안내 글자는 그림 아래쪽 빈 곳(y≈84~89%)에 */
+.bmenu.img{gap:6px}
+.bmenu.img .bm{position:relative;display:block;padding:0;border:0;background:none;box-shadow:none;min-height:0;aspect-ratio:360/345;max-height:100%;justify-self:center;width:100%;filter:drop-shadow(0 3px 0 rgba(90,52,22,.35))}
+.bmenu.img .bm img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
+.bmenu.img .bm small{position:absolute;left:8%;right:8%;top:79%;text-align:center;font-size:clamp(10px,1.5vw,13px);font-weight:800;color:#5a3418;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bmenu.img .bm:active:not(:disabled){transform:translateY(3px);filter:drop-shadow(0 1px 0 rgba(90,52,22,.35)) brightness(.97)}
+.bmenu.img .bm:disabled{opacity:.5;filter:grayscale(.5)}
+/* 스토리 대화창: 그림 틀, 다음·건너뛰기 그림 버튼 */
+.scene .dbox{background:none !important;box-shadow:none !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;border-style:solid !important;border-color:transparent !important;border-width:12px 26px 22px 26px !important;border-image:url(/duel/intro/b2_dialog_panel.webp) 24 147 60 147 fill / 12px 26px 22px 26px stretch !important;border-radius:0 !important;color:#3b2614}
+.scene .dbox .tk{display:flex;align-items:center;justify-content:flex-end;gap:10px}
+.scene .dbox #pg{font-size:13px;font-weight:700;color:#7a5a3a}
+.dnext{padding:0;border:0;background:none;height:40px;aspect-ratio:440/151;cursor:pointer}
+.dnext img,.dskip img{width:100%;height:100%;display:block;pointer-events:none}
+.dskip{position:absolute;top:max(10px,env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));z-index:5;padding:0;border:0;background:none;height:40px;aspect-ratio:440/151;cursor:pointer}
+.dnext:active,.dskip:active{transform:translateY(2px)}
+.scene.bg2 .kb{filter:brightness(.94)}
+@media (orientation:landscape) and (max-height:430px){ .dnext,.dskip{height:34px} .bmenu.img .bm small{font-size:10.5px} }
+/* 그림 버튼 판: 남는 높이를 2줄로 나눠 버튼을 크게(가운데), 큰 화면에서 아래로 몰리지 않게 */
+.bmenu.img{flex:1;margin-top:0;grid-template-rows:1fr 1fr;grid-auto-rows:unset;align-content:stretch;justify-items:center;align-items:center;min-height:0}
+.bmenu.img{container-type:size}
+.bmenu.img .bm{width:min(calc(50cqw - 4px),calc((50cqh - 4px) * 1.04),250px);height:auto;max-width:none;max-height:none}
+#arena.bg2::after{display:none}
+/* 편성대 끌어서 순서 바꾸기(v0.15.4): 끄는 칸은 떠 보이게, 놓일 자리는 점선 */
+.teambar button.mini[data-u]{touch-action:none;position:relative}
+.teambar button.mini.drag{z-index:5;background:#fffaf0 !important;opacity:1 !important;box-shadow:0 8px 18px rgba(60,35,15,.35) !important;transition:none}
+.teambar button.mini.drop{outline:2.5px dashed #c98a2e;outline-offset:2px}
+/* ── 시안 맞춤(2640×1080 시안을 비율로 옮김): 버튼은 글자 없는 그림 + 글자 그림을 따로 겹침 ── */
+.bm .lb,.dnext .lb,.dskip .lb{position:absolute !important;inset:auto !important;left:var(--x) !important;top:var(--y) !important;transform:translate(-50%,-50%);height:auto !important;pointer-events:none}
+.dnext{position:relative}
+.dnext .lb,.dskip .lb{width:calc(var(--w) * 1%) !important}
+.bmenu.img .bm{container-type:size}
+.bmenu.img .bm>img:first-child{object-fit:fill}
+.bmenu.img .bm .lb{width:calc(var(--w) * 1.08cqh) !important;max-width:86%}
+.bmenu.img .bm small{top:86%;transform:translateY(-50%);font-weight:600;color:#6b4a2e;font-size:clamp(10px,2.6vh,16px)}
+.scene .dbox #pg{font-weight:400;color:#8a7a6a}
+@media (orientation:landscape){
+  /* 전투: 왼쪽 64.5% 전장 · 오른쪽 35.5% 명령판(시안 1265/1961) */
+  #app:has(#arena){grid-template-columns:minmax(0,64.5fr) minmax(0,35.5fr)}
+  #app:has(#arena) .cmdbg{margin:2px 2px 4px 0}
+  #app:has(#arena) #msg{margin:4.5vh 6% 1vh 7% !important;padding:1.2vh 14px;font-size:clamp(12px,3.2vh,20px);min-height:8.5vh;display:flex;align-items:center}
+  #app:has(#arena) #panel{padding:0 5.5% calc(18px + env(safe-area-inset-bottom,0px)) 6.5% !important}
+  #app:has(#arena) #panel:has(.bmenu.img){justify-content:flex-start;padding-top:3vh !important;padding-bottom:9vh !important}
+  .bmenu.img{gap:2.4vh 0;grid-template-columns:auto auto;grid-template-rows:auto auto;align-content:center;justify-content:space-between}
+  .bmenu.img .bm{width:min(calc(48.5cqw),calc((50cqh - 1.2vh) * 1.3));height:min(calc(50cqh - 1.2vh),calc(48.5cqw * 1.08))}
+  /* 상태창·턴 알림 자리(시안: 상대 5.6~34.7%·3.7~30% / 나 30~56.9%·68~94%를 전장 칸 기준으로) */
+  #arena .box.foe{left:8.7%;top:3.7%;width:45%;min-height:min(26%,130px)}
+  #arena .box.me{left:46.5%;right:auto;bottom:3.5%;width:41.7%;min-height:min(25.5%,130px)}
+  #arena .box{font-size:clamp(11px,2.7vh,17px)}
+  #arena .box .nm span{font-family:"Black Han Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-weight:400;font-size:clamp(14px,3.7vh,24px)}
+  #arena .box .nm em{font-size:clamp(12px,3.4vh,20px);color:#6b4a2e}
+  #arena .box .hpb{height:clamp(7px,1.9vh,12px);border-radius:999px}
+  #arena .box.foe .finfo{right:-4%;top:0}
+  #app:has(#arena) .sk .kd{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* 해저 그림 배경: 캐릭터 자리(시안 상대 36~58%·23~65%, 나 4~29%·38~94%) */
+  #arena.bg2 .mon.foe{max-width:34%;object-fit:contain;object-position:50% 100%;right:12%;top:calc(58% - 39% * var(--sz,1));height:calc(39% * var(--sz,1))}
+  #arena.bg2 .mon.foe.boss{right:11%;top:calc(58% - 41% * var(--sz,1));height:calc(41% * var(--sz,1))}
+  #arena.bg2 .mon.me{left:5%;bottom:6%;height:calc(56% * min(var(--sz,1),1.25))}
+  /* 스토리 대화(시안: 대화창 16.6~83.6%·71~96.6%, 다음 71.6~81.8%·83~93%, 건너뛰기 오른쪽 위) */
+  .scene .dbox{left:16.6%;right:16.4%;bottom:3.4%;min-height:25.3%;padding:3.6vh 2.6% 1.6vh 3.6% !important;display:flex;flex-direction:column}
+  .scene .dbox .say{font-size:clamp(14px,3.7vh,26px);line-height:1.75}
+  .scene .dbox .tk{position:absolute;right:2.2%;bottom:3.2vh;margin:0}
+  .scene .dbox #pg{font-size:clamp(12px,3vh,20px);margin-right:4.5vh}
+  .scene .dbox .say{padding-right:30%}
+  .dnext{height:clamp(32px,10vh,72px)}
+  .dskip{top:3.1vh;right:1.2%;height:clamp(32px,8.1vh,58px)}
+  .por.me{left:9%;bottom:17%;height:52%;max-width:34%}
+  .por.foe{right:10%;bottom:8.4%;height:64%;max-width:40%}
+  .por.foe.bossp{height:83%;max-width:40%}
+  /* 아주 낮은 화면(높이 380px 이하): 상태창이 길어지니 상대를 조금 위로, 합동기 설명 줄은 접음(이름은 남김) */
+  @media (max-height:380px){ #arena.bg2 .mon.foe,#arena.bg2 .mon.foe.boss{top:calc(54% - 37% * var(--sz,1));height:calc(37% * var(--sz,1))} #app:has(#arena) .combo-btn span{display:none} }
+  .scene .dbox.narr{text-align:left;justify-content:flex-start} .scene .dbox.narr .say{font-size:clamp(14px,3.7vh,26px)}
+  .scene:has(.dbox.narr) .por,.scene:has(.dbox.tip) .por{filter:none;opacity:1}
+  .scene .por:not(.on){filter:brightness(.8) saturate(.85)}
+  /* 장소 알림: 시안의 굵은 글씨 알약 + 조개 장식 */
+  .scene .place{left:3.3%;top:3.1vh;height:9.4vh;min-height:30px;display:flex;align-items:center;padding:0 4.5vh 0 max(10vh,38px);font-size:clamp(13px,3.6vh,24px);letter-spacing:.02em;color:#3b2614;background:#fff7e6;border:3px solid #e0a43a;box-shadow:0 3px 0 rgba(122,78,42,.45);border-radius:999px}
+  .scene .place::before{content:"";position:absolute;left:-2.2vh;top:50%;transform:translateY(-50%);height:max(12vh,44px);aspect-ratio:95/106;background:url(/duel/intro/b3_shell.webp) center/contain no-repeat}
+}
 </style>
 </head>
 <body>

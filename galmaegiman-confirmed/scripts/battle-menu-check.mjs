@@ -17,7 +17,7 @@ for(let i=0;i<40&&!(await p.$('.aug'));i++){await p.click('.dbox').catch(()=>{})
 await p.click('.aug');await p.click('#ok');await p.waitForSelector('.bmenu');await p.waitForTimeout(2500);
 const fit=()=>p.evaluate(()=>{const pn=document.getElementById('panel'),R=pn.getBoundingClientRect();return {cut:[...pn.querySelectorAll('button')].filter(e=>{const r=e.getBoundingClientRect();return r.bottom>R.bottom+1||r.right>R.right+1||r.bottom>innerHeight;}).length,scroll:pn.scrollHeight>pn.clientHeight+1,min:Math.min(...[...pn.querySelectorAll('button')].map(e=>e.getBoundingClientRect().height))};});
 await p.screenshot({path:`${out}/${n}-menu.png`});
-const m=await p.evaluate(()=>[...document.querySelectorAll('.bmenu .bm b')].map(e=>e.textContent));R(n+' 처음엔 4개만',m.join()==='공격,아이템,교체,도망가기'&&!(await p.$('.sk')),m.join());
+const m=await p.evaluate(()=>[...document.querySelectorAll('.bmenu .bm')].map(e=>e.getAttribute('aria-label')));R(n+' 처음엔 4개만',m.join()==='공격,아이템,교체,도망가기'&&!(await p.$('.sk')),m.join());
 R(n+' 4개 판 안·스크롤 없음',(f=>!f.cut&&!f.scroll&&f.min>=40)(await fit()),JSON.stringify(await fit()));
 await p.click('#bAtk');await p.waitForSelector('.sk');await p.waitForTimeout(300);await p.screenshot({path:`${out}/${n}-fight.png`});
 R(n+' 공격 → 기술',(await p.$$('.sk')).length>=4);R(n+' 기술 판 잘림 없음',(f=>!f.cut)(await fit()),JSON.stringify(await fit()));

@@ -108,7 +108,7 @@ function augDesc(id:string,p:Record<string,number>,attrNm:string){
     case 'freeswitch':return '이번 전투 동안 교체가 턴을 쓰지 않아요';
     case 'lastone':return `아군이 하나만 남으면 그 갈매미의 공격·방어·속도 +${p.pct}%`;
     case 'strip':return `상대 강화를 모두 지우고 상대 선두 공격 -${p.pct}%(${p.turns}턴)`;
-    case 'rustle':return '상대 선두가 새우깡 소리에 1턴 멈춰요';
+    case 'rustle':return '상대 선두가 새우gang 소리에 1턴 멈춰요';
     case 'peanut':return `내 갈매미맨들의 공격 +${p.atk}%, 대신 받는 피해 +${p.taken}%`;
     case 'sharp':return `내 갈매미들의 급소 확률 +${p.pct}%`;
     case 'swift':return `내 갈매미들의 속도 +${p.pct}%(먼저 움직이기 쉬워요)`;

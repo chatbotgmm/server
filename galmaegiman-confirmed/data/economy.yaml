@@ -15,7 +15,7 @@ exchange:
   snackCost: 150       # 흔함 1마리 (최상위 유닛 없어도 가능, v0.7.0)
   uncommonCost: 350    # 안흔함 1마리 = 흔함 환산 평균 2.27마리(25/11) × 150 ≈ 341 → 350
 
-sell:                  # 남는 유닛 팔기(1마리 값, 새우깡). 각 유닛 1마리는 남깁니다. 최상위는 팔 수 없음
+sell:                  # 남는 유닛 팔기(1마리 값, 새우gang). 각 유닛 1마리는 남깁니다. 최상위는 팔 수 없음
   COMMON: 10
   UNCOMMON: 25
   SPECIAL: 50
@@ -47,7 +47,7 @@ peanutShop:
     - { id: STAR,    emoji: ⭐, label: 별 배지,   cost: 3 }
     - { id: CROWN,   emoji: 👑, label: 왕관 배지, cost: 5 }
 
-shop:                  # 상점 (새우깡 사용처)
+shop:                  # 상점 (새우gang 사용처)
   tickets: { snacks: 1000, amount: 10 }   # 뽑기권 1장 ≈ 하급 기대가치 흔함 0.69마리 × 150 ≈ 104 → 장당 100
   expeditionSkip: { snacks: 100 }          # 진행 중인 탐험 바로 귀환
 
@@ -66,7 +66,7 @@ expedition:
     OUTFIT:  { label: 갈 의복, concept: 튼튼한 빤스, snackPerUnit: [2, 4] }
   countBonusPercent: { 2: 5, 3: 10, 4: 15, 5: 25 }   # 같은 유닛 여러 마리, 가장 많은 유닛 기준
 
-rewards:               # 획득 보상 새우깡 (첫 도감 / 중복)
+rewards:               # 획득 보상 새우gang (첫 도감 / 중복)
   COMMON:    { first: 0,    duplicate: 0 }
   UNCOMMON:  { first: 50,   duplicate: 10 }
   SPECIAL:   { first: 100,  duplicate: 20 }
