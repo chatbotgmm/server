@@ -133,7 +133,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
 
   // 전투 편성: 최상위 3마리(순서 = 출전 순서)
   function battle(el) {
-    let pick = [...me.battleTeam], talk = null;
+    let pick = [...me.battleTeam], talk = null, view = 'podium';
     const tops = me.units.filter(u => u.top);
     // 단상의 갈매미가 돌아가며 한마디(v0.12.0, 예전 로비 대표 갈매미 말풍선을 여기로)
     const chat = () => {
@@ -149,17 +149,27 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     const saveBtn = () => `<button class="btn wide ${GAMEUI ? 'imgsave' : ''} ${saving ? 'saving' : ''}" id="save" ${same() || saving ? 'disabled' : ''} aria-label="편성 저장">${GAMEUI ? `<img class="on" src="${BASE}/duel/icons/btn-save.png" alt="편성 저장" onerror="this.replaceWith('편성 저장')"><img class="off" src="${BASE}/duel/icons/btn-save-off.png" alt="" onerror="this.remove()">` : '편성 저장'}</button>`;
     const grid = () => tops.length ? `<div class="grid ${GAMEUI ? 'btgrid' : ''}">${tops.map(u => { const i = pick.indexOf(u.id); return `<button class="u ${i >= 0 ? 'on' : ''}" data-id="${u.id}" aria-pressed="${i >= 0}"><img loading="lazy" src="${thumb(u.id)}" alt="">${i >= 0 ? `<span class="ord">✓</span><span class="selb s${i + 1}">${ROLE[i]}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}${u.attrName ? ` <span class="achip" style="--ac:${ACOLOR[u.attr] ?? '#c9b48a'}">${esc(u.attrName)}</span>` : ''}</small></button>`; }).join('')}</div>`
       : '<p class="empty">아직 최상위 갈매미가 없어요. 카톡에서 조합해 깨워 주세요.</p>';
+    // 속성 상성표(v0.15.2): 속성마다 강한 상대 2 · 약한 상대 2(데이터 그대로). 지금 편성의 속성은 줄을 밝히고, 아래에 우리 팀이 강한·조심할 속성 요약
+    const ac = a => `<span class="achip" style="--ac:${ACOLOR[a] ?? '#c9b48a'}">${esc(me.typeChart?.[a]?.name ?? a)}</span>`;
+    const typeTable = () => {
+      const T = me.typeChart ?? {}, ids = Object.keys(T), mine = [...new Set(pick.map(id => tops.find(u => u.id === id)?.attr).filter(Boolean))];
+      const weakTo = a => ids.filter(b => T[b].strong.includes(a));
+      const beats = [...new Set(mine.flatMap(a => T[a]?.strong ?? []))], danger = [...new Set(mine.flatMap(weakTo))].filter(a => !beats.includes(a));
+      return `<div class="tchart">${ids.map(a => `<div class="trow ${mine.includes(a) ? 'mine' : ''}" title="${esc(T[a].strong.map((b, i) => `${T[b]?.name}: ${T[a].why[i]}`).join(' · '))}">${ac(a)}<span class="tg">▲ ${T[a].strong.map(ac).join('')}</span><span class="tb">▼ ${weakTo(a).map(ac).join('')}</span></div>`).join('')}</div>
+        ${mine.length ? `<p class="tsum"><b>우리 팀</b> ▲강함 ${beats.map(ac).join('') || '없음'} · ▼조심 ${danger.map(ac).join('') || '없음'}</p>` : '<p class="tsum">갈매미를 넣으면 우리 팀이 강한·조심할 속성이 나와요</p>'}`;
+    };
     const render = () => {
       // 게임 화면(가로, v0.12.7): 왼쪽 단상 · 오른쪽 갈매미 목록(여기만 넘김) · 아래 저장 줄(늘 보임)
       el.innerHTML = GAMEUI ? `<div class="btwrap">
-        <section class="btleft"><p class="note">선봉이 먼저 나가요 · 단상을 누르면 빠져요</p>
-          <div class="podium">${[1, 0, 2].map(i => { const u = tops.find(x => x.id === pick[i]); return `<div class="pd pd${i + 1} ${u ? 'full' : ''}" ${u ? `data-rm="${u.id}"` : ''} style="--tc:${u ? TIER_COLOR[u.tier] ?? '#888' : '#c9b08a'}">
-            ${u && (u.quote || u.tagline) ? `<div class="pd-bub">${esc(u.quote || u.tagline)}</div>` : ''}<div class="pd-card">${u ? `<img src="${thumb(u.id)}" alt=""><b>${esc(u.name)}</b>` : '<span>＋</span><small>비어 있음</small>'}</div><div class="pd-step"><em>${i + 1}</em>${ROLE[i]}</div></div>`; }).join('')}</div></section>
+        <section class="btleft"><div class="bthead"><div class="btseg"><button data-bv="podium" class="${view === 'podium' ? 'on' : ''}">🏅 단상</button><button data-bv="chart" class="${view === 'chart' ? 'on' : ''}">⚔️ 상성표</button></div><p class="note">${view === 'chart' ? '왼쪽 속성의 공격이 오른쪽 상대에게 ×1.5' : '선봉이 먼저 나가요 · 단상을 누르면 빠져요'}</p></div>
+          ${view === 'chart' ? typeTable() : `<div class="podium">${[1, 0, 2].map(i => { const u = tops.find(x => x.id === pick[i]); return `<div class="pd pd${i + 1} ${u ? 'full' : ''}" ${u ? `data-rm="${u.id}"` : ''} style="--tc:${u ? TIER_COLOR[u.tier] ?? '#888' : '#c9b08a'}">
+            ${u && (u.quote || u.tagline) ? `<div class="pd-bub">${esc(u.quote || u.tagline)}</div>` : ''}<div class="pd-card">${u ? `<img src="${thumb(u.id)}" alt=""><b>${esc(u.name)}</b>` : '<span>＋</span><small>비어 있음</small>'}</div><div class="pd-step"><em>${i + 1}</em>${ROLE[i]}</div></div>`; }).join('')}</div>`}</section>
         <section class="btright"><div class="btlist-h"><b>최상위 갈매미 ${tops.length}마리</b><small>눌러서 넣기 · 다시 누르면 빼기</small></div>${grid()}</section>
         <footer class="btbar"><span class="savest ${saving ? 'busy' : same() ? 'clean' : 'dirty'}" role="status">${stateText()}</span>${saveBtn()}</footer></div>`
       : `<div class="card"><p class="note" style="margin-top:0">수비대 대결에 나갈 <b>최상위 갈매미 1~3마리</b>를 골라요(PvP는 3마리). 처음 고른 갈매미가 먼저 나가요.</p>
         <div class="slots">${[0, 1, 2].map(i => { const u = tops.find(x => x.id === pick[i]); return u ? `<div class="slot full"><img src="${thumb(u.id)}" alt=""><span>${i + 1}. ${esc(u.name)}</span></div>` : `<div class="slot">${i + 1}번 자리<br>비어 있음</div>`; }).join('')}</div>
         <p class="note savest">${stateText()}</p>${saveBtn()}</div>${grid()}`;
+      el.querySelectorAll('[data-bv]').forEach(b => b.onclick = () => { view = b.dataset.bv; render(); });
       el.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { if (saving) return; pick.splice(pick.indexOf(b.dataset.rm), 1); render(); });
       el.querySelectorAll('[data-id]').forEach(b => b.onclick = () => {
         if (saving) return;

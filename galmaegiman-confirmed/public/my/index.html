@@ -552,6 +552,26 @@ html.game .gc img.ci,html.game .btn img.ci{width:1.2em !important;height:1.2em !
 @media (orientation:landscape) and (max-height:430px){ .crh{margin-bottom:2px} .crgo{padding-top:4px} .crgo .btn,.crdo{min-height:40px} .crmats .crslot img{max-width:58px} }
 .crslot small.tg{color:#fff;padding:1px 9px}
 .crr .crmats{flex:1;align-content:center}
+/* v0.15.2 편성 옆 속성 상성표 */
+.bthead{display:flex;align-items:center;gap:8px;min-width:0}
+.btseg{display:flex;flex:none;background:#f1e4cc;border-radius:999px;padding:2px}
+.btseg button{border:0;background:none;border-radius:999px;padding:4px 12px;min-height:34px;font:inherit;font-size:.85rem;font-weight:700;color:#6b5236;cursor:pointer}
+.btseg button.on{background:linear-gradient(#f6c48c,#e08a4a);color:#3b1d08;box-shadow:0 2px 0 #a05a24}
+.bthead .note{flex:1;min-width:0}
+.tchart{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:minmax(0,1fr);gap:4px 8px;margin-top:6px;overflow:hidden}
+.trow{display:grid;grid-template-columns:auto 1fr 1fr;align-items:center;gap:4px;padding:2px 6px;border-radius:10px;background:#fff;border:1.5px solid #eadbc1;min-width:0}
+.trow.mine{background:#fff3e0;border-color:#e08a4a;box-shadow:0 0 0 2px #f6c48c}
+.trow .tg,.trow .tb{display:flex;align-items:center;gap:2px;font-size:.72rem;font-weight:800;white-space:nowrap}
+.trow .tg{color:#2f8a4a}.trow .tb{color:#c0392b}
+.trow .achip{margin:0;font-size:.72rem;padding:0 6px}
+.tsum{margin:6px 0 0;font-size:.78rem;line-height:1.6;color:#5e4329}.tsum .achip{margin:0 1px}
+@media (orientation:landscape) and (max-height:430px){ .tchart{gap:3px 6px;margin-top:4px} .trow{padding:1px 4px} .trow .achip{font-size:.66rem;padding:0 4px} .trow .tg,.trow .tb{font-size:.66rem} .tsum{font-size:.7rem;margin-top:3px} .btseg button{min-height:30px;padding:2px 9px;font-size:.78rem} }
+@media (orientation:landscape) and (max-width:860px){   /* 좁은 화면: 상성표를 볼 땐 왼쪽 칸을 넓게(오른쪽 목록은 단상으로 돌아오면 다시) */
+  .btwrap:has(.tchart){grid-template-columns:1fr}
+  .btwrap:has(.tchart) .btright{display:none}
+  .btwrap .tchart{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .btwrap .trow{gap:2px;padding:0 4px}
+}
 </style>
 </head>
 <body>
