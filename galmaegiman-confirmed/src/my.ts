@@ -259,6 +259,14 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     const left=await game.webUseItem(id,{id:item.id,name:item.name});
     return {left,heal:item.heal};
   });
+  // 게임 튜토리얼(v0.15.0): 단계 읽기 / 앞으로 넘기기(9 = 끝·건너뛰기) · 처음 보는 화면 안내 본 것 기록
+  app.get('/my/api/tutorial',limit,async(req,reply)=>{
+    if(!guard(req,reply))return;
+    const id=session(req);
+    if(!id)return reply.code(401).send({error:'login'});
+    return reply.header('Cache-Control','no-store').send(await game.webTutorial(id));
+  });
+  act<{step?:unknown;seen?:unknown}>('/my/api/tutorial',(id,b)=>game.webTutorialSet(id,Number(b.step),b.seen===undefined?undefined:String(b.seen)));
   act<{battle?:unknown;id?:unknown}>('/my/api/items/use',async(id,b)=>{
     const f=typeof b.battle==='string'?fights.get(b.battle):undefined;
     if(!f||f.player!==id||f.exp<Date.now())throw new GameError('대결 정보가 없어요. 대결을 다시 시작해 주세요.');

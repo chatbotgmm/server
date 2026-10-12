@@ -1572,6 +1572,51 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
   .fteam{grid-template-columns:1fr;gap:4px}.fm{padding:4px 8px}.fm img{width:30px;height:30px}.fm span{flex-direction:row;align-items:center;gap:8px}.fm b{width:6.5em;flex:none}.fm .hpb{flex:1}
   .fbtns button{min-height:44px;font-size:15px}
 }
+/* v0.15.0 로비 갈매미 팁 말풍선 */
+.gtip{position:fixed;z-index:60;max-width:min(300px,42vw);background:#fffaf0;border:3px solid #b8823f;border-radius:18px;padding:10px 14px;color:#3b2614;font-size:14.5px;line-height:1.5;box-shadow:0 4px 0 #8a5a26;animation:gtipIn .18s ease-out;pointer-events:none}
+.gtip b{color:#b3541e}
+.gtip:after{content:"";position:absolute;right:-15px;top:20px;border:8px solid transparent;border-left-color:#b8823f}
+.gtip.below:after{display:none}
+@keyframes gtipIn{from{opacity:0;transform:translateX(8px) scale(.96)}}
+@media (orientation:landscape) and (max-height:430px){ .gtip{font-size:13px;padding:8px 12px} }
+/* v0.15.0 튜토리얼 덮개: 밝힐 곳 둘레 4칸만 어둡게(그 칸이 누르기를 막음), 구멍은 테두리만 */
+.tut{position:fixed;inset:0;z-index:55;pointer-events:none;font-family:"Gowun Dodum",sans-serif}
+.tut .dm{position:fixed;background:rgba(20,12,4,.62);pointer-events:auto}
+.tut .dm.full{inset:0}
+.tut .hole{position:fixed;border-radius:16px;box-shadow:0 0 0 4px #ffe08a,0 0 22px 6px rgba(255,214,120,.9);animation:tutPulse 1.4s ease-in-out infinite}
+@keyframes tutPulse{50%{box-shadow:0 0 0 6px #ffe08a,0 0 30px 10px rgba(255,214,120,.95)}}
+.tut .hand{position:fixed;font-size:36px;font-style:normal;filter:drop-shadow(0 3px 2px rgba(0,0,0,.5));animation:tutHand 1s ease-in-out infinite}
+@keyframes tutHand{50%{transform:translate(4px,8px)}}
+.tut .tguide{position:fixed;display:flex;align-items:flex-end;gap:6px;max-width:min(560px,78vw);left:14px;bottom:12px}
+.tut .tguide.top{top:56px;bottom:auto;left:50%;transform:translateX(-50%)}
+.tut .tguide img{width:84px;height:auto;flex:none;filter:drop-shadow(0 4px 4px rgba(0,0,0,.4))}
+.tut .tsay{background:#fffaf0;border:3px solid #b8823f;border-radius:18px;padding:10px 14px;color:#3b2614;font-size:15px;line-height:1.45;box-shadow:0 4px 0 #8a5a26;pointer-events:auto}
+.tut .tsay>b:first-child{font-family:"Black Han Sans",sans-serif;font-weight:400;color:#b3541e;font-size:16px;display:block;margin-bottom:2px}
+.tut .good{color:#2f8a4a}.tut .bad{color:#c0392b}
+.tut .tok{display:block;margin-top:8px;min-height:40px;padding:4px 18px}
+.tut .ttop{position:fixed;top:8px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px}
+.tut .tdots{display:flex;gap:6px;background:rgba(255,250,240,.94);padding:5px 10px;border-radius:999px;border:2px solid #b8823f}
+.tut .tdots i{width:10px;height:10px;border-radius:50%;background:#e6d8c0}.tut .tdots i.on{background:#e07b2e}.tut .tdots i.done{background:#5a9a4a}
+.tut .tskip{position:fixed;right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));pointer-events:auto;background:#fffaf0;border:2px solid #b8823f;border-radius:999px;padding:5px 14px;font-size:13px;color:#6b5236;min-height:36px}
+.tut .tcard{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:auto;background:#fffaf0;border:3px solid #b8823f;border-radius:22px;padding:14px 20px;box-shadow:0 6px 0 #8a5a26;color:#3b2614;text-align:center;width:min(560px,92vw);max-height:92vh;overflow:auto}
+.tut .tcard h3{margin:0 0 6px;font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:21px}
+.tut .tcard p{margin:4px 0}.tut .tcard .tsub{font-size:13px;color:#6b5236}
+.tut .tcard img{width:120px;height:120px;object-fit:contain}
+.tut .tcard table{border-collapse:collapse;margin:6px auto;font-size:13.5px}.tut .tcard td{padding:3px 6px;text-align:left}.tut .tcard td.why{font-size:12px;color:#6b5236}
+.tut .tcard .good,.tut .tcard .bad{font-weight:800}
+.tut .tcard .big{margin-top:8px;min-height:44px;padding:6px 28px}
+.thint{position:fixed;z-index:55;right:14px;bottom:14px;display:flex;align-items:flex-end;gap:6px;max-width:min(420px,70vw);cursor:pointer;animation:gtipIn .2s ease-out}
+.thint img{width:70px;flex:none;filter:drop-shadow(0 3px 3px rgba(0,0,0,.35))}
+.thint>div{background:#fffaf0;border:3px solid #b8823f;border-radius:18px;padding:9px 13px;color:#3b2614;font-size:14px;line-height:1.45;box-shadow:0 4px 0 #8a5a26}
+.thint b{font-family:"Black Han Sans",sans-serif;font-weight:400;color:#b3541e;display:block}.thint small{display:block;color:#9a7a55;font-size:11.5px;margin-top:3px}
+@media (orientation:landscape) and (max-height:430px){ .tut .tsay{font-size:13.5px;padding:8px 12px} .tut .tguide img{width:64px} .tut .tcard{padding:10px 16px} .tut .tcard img{width:84px;height:84px} .tut .tcard h3{font-size:18px} .tut .tcard table{font-size:12.5px} }
+.tut .tskip.alt{right:auto;left:calc(12px + env(safe-area-inset-left,0px))}
+.tut .tcard p,.tut .tcard .tsub{display:block;text-align:center}
+.tut .tcard b,.tut .tcard .good,.tut .tcard .bad{display:inline}
+.tut .tcard .chip{display:inline-block;vertical-align:1px}
+.tut .tcard img{display:block;margin:4px auto;background:none}
+.tut .good,.tut .bad{white-space:nowrap}
+.tut .tcard table{width:auto}
 </style>
 </head>
 <body>

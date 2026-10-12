@@ -1415,6 +1415,36 @@ export class GameService {
       return true;
     });
   }
+  // 게임 튜토리얼(v0.15.0): 처음 물을 때 새 유저(스토리 저장·가진 갈매미 없음)면 1단계, 아니면 9(끝)로 정함
+  async webTutorial(playerId:string){
+    const p=await this.db.player.findUnique({where:{id:playerId},select:{gameTutorial:true,gameSeen:true}});
+    if(!p)throw new GameError('계정을 찾지 못했어요.');
+    let step=p.gameTutorial;
+    if(step===0){
+      const old=(await this.db.storySave.count({where:{playerId}}))>0||(await this.db.ownedCharacter.count({where:{playerId}}))>0;
+      step=old?9:1;await this.db.player.update({where:{id:playerId},data:{gameTutorial:step}});
+    }
+    return {step,seen:p.gameSeen.split(',').filter(Boolean)};
+  }
+  // 단계는 앞으로만(9 = 끝·건너뛰기). 뽑기 단계(2)를 지나면 태초의 갈매미맨(D1)을 한 번 지급(한 번도 가진 적 없을 때만). 그 자리에서 건너뛰면 전투 편성도 D1로
+  async webTutorialSet(playerId:string,step:number,seen?:string){
+    if(!Number.isInteger(step)||step<1||(step>5&&step!==9))throw new GameError('튜토리얼 단계가 맞지 않아요.');
+    if(seen!==undefined&&!/^[a-z]{1,20}$/.test(seen))throw new GameError('화면 이름이 맞지 않아요.');
+    const now=new Date();
+    return this.webRun(playerId,async(tx,p)=>{
+      const cur=await tx.player.findUniqueOrThrow({where:{id:p.id},select:{gameTutorial:true,gameSeen:true,battleTeam:true}});
+      const next=Math.max(cur.gameTutorial,step);
+      let granted=false;
+      if(cur.gameTutorial>=1&&cur.gameTutorial<=2&&next>=3&&!(await tx.collectionEntry.findUnique({where:{playerId_characterId:{playerId:p.id,characterId:'D1'}}}))){
+        await this.grant(tx,p,'D1','TUTORIAL',now);granted=true;
+        if(next===9&&!cur.battleTeam)await tx.player.update({where:{id:p.id},data:{battleTeam:'D1'}});   // 건너뛰면 전투 편성도 이 한 마리로(진행 중이면 3단계에서 직접 편성)
+      }
+      const seenList=cur.gameSeen.split(',').filter(Boolean);
+      if(seen&&!seenList.includes(seen)&&seenList.length<40)seenList.push(seen);
+      await tx.player.update({where:{id:p.id},data:{gameTutorial:next,gameSeen:seenList.join(',')}});
+      return {step:next,seen:seenList,granted};
+    });
+  }
   async webItems(playerId:string){
     return (await this.db.playerItem.findMany({where:{playerId,count:{gt:0}}})).map(r=>({id:r.itemId,count:r.count}));
   }

@@ -145,7 +145,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     const ROLE = ['선봉', '2번', '3번'];
     const same = () => JSON.stringify(pick) === JSON.stringify(me.battleTeam);
     // 저장 상태: 변경 없음(회색) · 저장 가능(노랑) · 저장 중(흐림+글)
-    const stateText = () => saving ? '저장 중…' : same() ? (pick.length ? '✓ 저장된 편성이에요' : '아직 편성이 없어요') : pick.length === 3 ? '바뀐 편성이 있어요 · 저장해 주세요' : `${pick.length}/3마리 · 3마리를 채워야 대결에 나가요`;
+    const stateText = () => saving ? '저장 중…' : same() ? (pick.length ? '✓ 저장된 편성이에요' : '아직 편성이 없어요') : pick.length ? `바뀐 편성이 있어요(${pick.length}/3마리) · 저장해 주세요` : '한 마리 이상 골라 주세요';
     const saveBtn = () => `<button class="btn wide ${GAMEUI ? 'imgsave' : ''} ${saving ? 'saving' : ''}" id="save" ${same() || saving ? 'disabled' : ''} aria-label="편성 저장">${GAMEUI ? `<img class="on" src="${BASE}/duel/icons/btn-save.png" alt="편성 저장" onerror="this.replaceWith('편성 저장')"><img class="off" src="${BASE}/duel/icons/btn-save-off.png" alt="" onerror="this.remove()">` : '편성 저장'}</button>`;
     const grid = () => tops.length ? `<div class="grid ${GAMEUI ? 'btgrid' : ''}">${tops.map(u => { const i = pick.indexOf(u.id); return `<button class="u ${i >= 0 ? 'on' : ''}" data-id="${u.id}" aria-pressed="${i >= 0}"><img loading="lazy" src="${thumb(u.id)}" alt="">${i >= 0 ? `<span class="ord">✓</span><span class="selb s${i + 1}">${ROLE[i]}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}${u.attrName ? ` <span class="achip" style="--ac:${ACOLOR[u.attr] ?? '#c9b48a'}">${esc(u.attrName)}</span>` : ''}</small></button>`; }).join('')}</div>`
       : '<p class="empty">아직 최상위 갈매미가 없어요. 카톡에서 조합해 깨워 주세요.</p>';
@@ -157,7 +157,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
             ${u && (u.quote || u.tagline) ? `<div class="pd-bub">${esc(u.quote || u.tagline)}</div>` : ''}<div class="pd-card">${u ? `<img src="${thumb(u.id)}" alt=""><b>${esc(u.name)}</b>` : '<span>＋</span><small>비어 있음</small>'}</div><div class="pd-step"><em>${i + 1}</em>${ROLE[i]}</div></div>`; }).join('')}</div></section>
         <section class="btright"><div class="btlist-h"><b>최상위 갈매미 ${tops.length}마리</b><small>눌러서 넣기 · 다시 누르면 빼기</small></div>${grid()}</section>
         <footer class="btbar"><span class="savest ${saving ? 'busy' : same() ? 'clean' : 'dirty'}" role="status">${stateText()}</span>${saveBtn()}</footer></div>`
-      : `<div class="card"><p class="note" style="margin-top:0">수비대 대결에 나갈 <b>최상위 갈매미 3마리</b>를 골라요. 처음 고른 갈매미가 먼저 나가요.</p>
+      : `<div class="card"><p class="note" style="margin-top:0">수비대 대결에 나갈 <b>최상위 갈매미 1~3마리</b>를 골라요(PvP는 3마리). 처음 고른 갈매미가 먼저 나가요.</p>
         <div class="slots">${[0, 1, 2].map(i => { const u = tops.find(x => x.id === pick[i]); return u ? `<div class="slot full"><img src="${thumb(u.id)}" alt=""><span>${i + 1}. ${esc(u.name)}</span></div>` : `<div class="slot">${i + 1}번 자리<br>비어 있음</div>`; }).join('')}</div>
         <p class="note savest">${stateText()}</p>${saveBtn()}</div>${grid()}`;
       el.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { if (saving) return; pick.splice(pick.indexOf(b.dataset.rm), 1); render(); });
@@ -299,8 +299,61 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     box.innerHTML = `<div class="card"><p class="pre">${esc(text)}</p><button class="btn wide" id="rok">확인</button></div>`;
     document.body.append(box); box.querySelector('#rok').onclick = () => box.remove(); box.onclick = e => { if (e.target === box) box.remove(); };
   };
+  // 게임 화면 조합(v0.15.0, 웹 대시보드와 같은 틀): 왼쪽 조합식 목록(그 안에서만 넘김) · 오른쪽 고른 조합식(재료 → 결과, 개수, 만들기). 「재료로 섞기」는 따로 탭
+  let craftSel = null, craftOnly = true;
+  function craftGame(el) {
+    const { recipes, pool } = craftData, ready = recipes.filter(r => r.ready);
+    if (!recipes.some(r => r.id === craftSel)) craftSel = (ready[0] ?? recipes[0])?.id ?? null;
+    const r = recipes.find(x => x.id === craftSel);
+    const tabs = `<div class="crtabs"><button data-v="recipes" class="${craftView !== 'mix' ? 'on' : ''}">📜 조합식 <small>${ready.length}개 가능</small></button><button data-v="mix" class="${craftView === 'mix' ? 'on' : ''}">🔮 재료로 섞기</button></div>`;
+    let body;
+    if (craftView !== 'mix') {
+      const list = recipes.filter(x => (!craftOnly || x.ready) && (!craftQ || x.name.includes(craftQ) || x.materials.some(m => m.name.includes(craftQ))));
+      const slots = r ? `<div class="crmats">${r.materials.map((m, i) => `${i ? '<span class="op">+</span>' : ''}<div class="crslot ${m.usable < m.need ? 'short' : ''}"><img src="${cimg(m.img)}" alt=""><b>${esc(m.name)}</b><small>${m.usable}/${m.need}${m.locked ? ` · 보호 ${m.locked}` : ''}${m.away ? ` · 탐험 ${m.away}` : ''}</small></div>`).join('')}<span class="op">→</span><div class="crslot res"><img src="${cimg(r.img)}" alt=""><b>${esc(r.name)}</b><small class="tg" style="--tc:${TIER_COLOR[r.tier] ?? '#8a7a6a'}">${esc(r.tierName)}</small></div></div>` : '';
+      body = `<div class="cr2"><section class="crl"><div class="crsearch"><input id="cq" placeholder="이름·재료로 찾기" value="${esc(craftQ)}"><button class="crchip ${craftOnly ? 'on' : ''}" id="conly">만들 수 있는 것만</button></div>
+        <div class="crlist">${list.map(x => `<button class="cri ${x.id === craftSel ? 'on' : ''}" data-r="${x.id}"><img loading="lazy" src="${cimg(x.img)}" alt=""><span><b>${esc(x.name)}</b><small>${esc(x.tierName)}${x.isNew ? ' · 🆕 처음' : ''}</small></span><em class="${x.ready ? 'ok' : 'no'}">${x.ready ? `${x.max}개 가능` : '재료 부족'}</em></button>`).join('') || `<p class="empty">${craftOnly ? '지금 만들 수 있는 게 없어요. 「만들 수 있는 것만」을 끄면 전체 조합식이 보여요.' : '찾는 조합식이 없어요.'}</p>`}</div></section>
+        <section class="crr">${r ? `<div class="crh"><h2>${esc(r.name)}</h2><span class="tg" style="--tc:${TIER_COLOR[r.tier] ?? '#8a7a6a'}">${esc(r.tierName)}</span>${r.isNew ? '<span class="tag">🆕 처음</span>' : ''}</div>${slots}
+          <p class="note">${r.ready ? `재료가 있어요. 한 번에 최대 <b>${r.max}개</b>까지 만들 수 있어요.` : '빨간 칸의 재료가 모자라요. 보호·탐험 중인 갈매미는 재료로 쓰지 않아요.'}</p>
+          <div class="crgo"><div class="qty"><button class="btn ghost" data-cq="-1" ${r.ready ? '' : 'disabled'}>－</button><input id="ct" type="number" inputmode="numeric" min="1" max="${Math.max(1, r.max)}" value="1" ${r.ready ? '' : 'disabled'}><button class="btn ghost" data-cq="1" ${r.ready ? '' : 'disabled'}>＋</button><button class="btn ghost" data-cq="max" ${r.max > 1 ? '' : 'disabled'}>최대</button></div>
+          <button class="btn crdo" id="doCraft" ${r.ready ? '' : 'disabled'}>${r.ready ? '만들기' : '재료가 모자라요'}</button></div>` : '<p class="empty">볼 수 있는 조합식이 없어요.</p>'}</section></div>`;
+    } else {
+      const left = id => (pool.find(u => u.id === id)?.usable ?? 0) - mixPick.filter(x => x === id).length, u0 = id => pool.find(u => u.id === id);
+      body = `<div class="cr2"><section class="crl"><p class="note" style="margin:0 0 6px">눌러서 넣기 · 숨은 조합 찾기</p>
+        <div class="crpool">${pool.map(u => { const n = mixPick.filter(x => x === u.id).length; return `<button class="crp ${n ? 'on' : ''}" data-mp="${u.id}" ${left(u.id) > 0 && mixPick.length < 6 ? '' : n ? '' : 'disabled'}><img loading="lazy" src="${cimg(u.img)}" alt="">${n ? `<span class="ord">${n}</span>` : ''}<b>${esc(u.name)}</b><small>남은 ${left(u.id)}</small></button>`; }).join('') || '<p class="empty">재료로 쓸 갈매미가 없어요.</p>'}</div></section>
+        <section class="crr"><div class="crh"><h2>🔮 섞기</h2><span class="note">${mixPick.length}/6마리 · 2마리부터</span></div>
+          <div class="crmix">${[0, 1, 2, 3, 4, 5].map(i => { const id = mixPick[i], u = id && u0(id); return u ? `<button class="crslot" data-mm="${i}"><img src="${cimg(u.img)}" alt=""><b>${esc(u.name)}</b><small>빼기 ✕</small></button>` : '<div class="crslot empty"><span>＋</span></div>'; }).join('')}</div>
+          <p class="note">맞으면 새 갈매미가 나와요 · 아니면 재료는 그대로</p>
+          <div class="crgo"><button class="btn ghost" id="mclr" ${mixPick.length ? '' : 'disabled'}>비우기</button><button class="btn crdo" id="mgo" ${mixPick.length >= 2 ? '' : 'disabled'}>🔮 섞기</button></div></section></div>`;
+    }
+    el.innerHTML = tabs + body;
+    const fit = () => { const c = el.querySelector('.cr2'); if (!c) return; let h = Math.max(200, innerHeight - c.getBoundingClientRect().top - 8); c.style.height = `${h}px`; const over = document.documentElement.scrollHeight - innerHeight; if (over > 0) c.style.height = `${Math.max(200, h - over)}px`; };   // 페이지가 안 넘어가게(아래 여백까지 빼고)
+    fit(); removeEventListener('resize', craftGame.fit ?? (() => {})); craftGame.fit = fit; addEventListener('resize', fit);
+    el.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { craftView = b.dataset.v; craft(el); });
+    el.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { craftSel = b.dataset.r; const y = el.querySelector('.crlist').scrollTop; craft(el); el.querySelector('.crlist').scrollTop = y; });
+    el.querySelector('#conly')?.addEventListener('click', () => { craftOnly = !craftOnly; craft(el); });
+    const q = el.querySelector('#cq'); if (q) q.oninput = () => { craftQ = q.value.trim(); clearTimeout(q.t); q.t = setTimeout(() => { craft(el); const n = el.querySelector('#cq'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 250); };
+    const ct = el.querySelector('#ct'), val = () => Math.max(1, Math.min(r?.max || 1, Math.floor(+ct.value || 1)));
+    el.querySelectorAll('[data-cq]').forEach(b => b.onclick = () => { ct.value = b.dataset.cq === 'max' ? r.max : Math.max(1, Math.min(r.max, val() + +b.dataset.cq)); el.querySelector('#doCraft').textContent = `${val() > 1 ? `${val()}개 ` : ''}만들기`; });
+    if (ct) ct.oninput = () => { el.querySelector('#doCraft').textContent = `${val() > 1 ? `${val()}개 ` : ''}만들기`; };
+    const done = async text => { showResult(text); craftData = null; mixPick = []; try { me = await api('me'); APP?.onMe(me); } catch { /* 무시 */ } draw(); };
+    el.querySelector('#doCraft')?.addEventListener('click', async e => {
+      const b = e.currentTarget, n = val();
+      if ((r.confirm || n > 1) && !(await ask(`재료 ${r.materials.reduce((a, m) => a + m.need, 0) * n}마리를 써서\n${r.name}${n > 1 ? ` ${n}개` : ''}${n > 1 ? '를' : josaEul(r.name)} 만들까요?`, { ok: '만들기' }))) return;
+      b.disabled = true;
+      try { const t = (await api('craft', { id: r.id, times: n })).result; await forge(r.materials.map(m => m.img), r, n); done(t); } catch (err) { if (err.message !== 'login') { toast(err.message.split('\n')[0]); b.disabled = false; } }
+    });
+    el.querySelectorAll('[data-mp]').forEach(b => b.onclick = () => { if (left(b.dataset.mp) <= 0 || mixPick.length >= 6) { const i = mixPick.lastIndexOf(b.dataset.mp); if (i >= 0) mixPick.splice(i, 1); } else mixPick.push(b.dataset.mp); craft(el); });
+    function left(id) { return (pool.find(u => u.id === id)?.usable ?? 0) - mixPick.filter(x => x === id).length; }
+    el.querySelectorAll('[data-mm]').forEach(b => b.onclick = () => { mixPick.splice(+b.dataset.mm, 1); craft(el); });
+    el.querySelector('#mclr')?.addEventListener('click', () => { mixPick = []; craft(el); });
+    el.querySelector('#mgo')?.addEventListener('click', async () => {
+      if (!(await ask(`${mixPick.length}마리를 섞어 볼까요?\n맞는 조합이면 재료를 쓰고, 아니면 재료는 그대로예요.`, { ok: '섞기' }))) return;
+      try { const imgs = mixPick.map(id => pool.find(u => u.id === id)?.img).filter(Boolean); const res = (await api('mix', { ids: mixPick })).result; await forge(imgs, null, 1, !res.made); if (res.made) done(res.text); else showResult(res.text); } catch (err) { if (err.message !== 'login') toast(err.message.split('\n')[0]); }
+    });
+  }
   async function craft(el) {
     if (!craftData) { el.innerHTML = '<p class="empty">조합식을 불러오는 중…</p>'; try { craftData = await api('craft'); } catch (e) { if (e.message !== 'login') el.innerHTML = `<p class="empty">${esc(e.message)}</p>`; return; } }
+    if (GAMEUI) return craftGame(el);
     const { recipes, pool } = craftData, ready = recipes.filter(r => r.ready);
     const seg = [['ready', `✨ 만들 수 있는 것 ${ready.length}`], ['all', '📜 전체 조합식'], ['mix', '🔮 재료로 섞기']];
     const head = `<div class="filters">${seg.map(([k, t]) => `<button data-v="${k}" class="${craftView === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;

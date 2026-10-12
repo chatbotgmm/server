@@ -837,6 +837,23 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await post('/my/api/items/use-field',{id:'big'},cookie)).statusCode).toBe(400);   // 없는 아이템
       expect((await post('/my/api/items/use-field',{id:'potion'},cookie)).json()).toEqual({ok:true,result:{left:0,heal:35}});
       expect((await post('/my/api/items/use-field',{id:'potion'},cookie)).statusCode).toBe(400);   // 다 씀
+      // 게임 튜토리얼(v0.15.0): 스토리 저장이 있는 이 계정은 기존 유저 → 9(끝). 새 계정은 1 → 뽑기 단계 지나면 D1 한 번 지급
+      expect((await app.inject({method:'GET',url:'/my/api/tutorial',headers:{'x-gmm':'1',cookie}})).json()).toMatchObject({step:9});
+      {
+        const nc=/(\d{6})/.exec((await send('웹 로그인','tut-new-user')).text!)![1];
+        const lr=await post('/my/api/login',{code:nc});const ck=String(lr.headers['set-cookie']).split(';')[0];
+        const np=await db.player.findUniqueOrThrow({where:{identity:'tut-new-user'}});
+        await db.ownedCharacter.deleteMany({where:{playerId:np.id}});await db.collectionEntry.deleteMany({where:{playerId:np.id}});await db.storySave.deleteMany({where:{playerId:np.id}});
+        expect((await app.inject({method:'GET',url:'/my/api/tutorial',headers:{'x-gmm':'1',cookie:ck}})).json()).toEqual({step:1,seen:[]});
+        expect((await post('/my/api/tutorial',{step:2},ck)).json()).toMatchObject({ok:true,result:{step:2,granted:false}});
+        expect((await post('/my/api/tutorial',{step:3,seen:'craft'},ck)).json()).toMatchObject({ok:true,result:{step:3,granted:true,seen:['craft']}});
+        expect(await db.ownedCharacter.count({where:{playerId:np.id,characterId:'D1'}})).toBe(1);
+        expect((await db.player.findUniqueOrThrow({where:{id:np.id}})).battleTeam).toBe('');   // 진행 중이면 편성은 직접(3단계)
+        expect((await post('/my/api/tutorial',{step:2},ck)).json()).toMatchObject({result:{step:3}});   // 뒤로는 안 감
+        expect((await post('/my/api/tutorial',{step:9},ck)).json()).toMatchObject({result:{step:9,granted:false}});
+        expect(await db.ownedCharacter.count({where:{playerId:np.id,characterId:'D1'}})).toBe(1);   // 두 번 안 줌
+        for(const bad of [{step:0},{step:7},{step:'x'},{step:4,seen:'A B'}])expect((await post('/my/api/tutorial',bad,ck)).statusCode).toBe(400);
+      }
       // 다른 사람의 대결 표는 못 씀
       const code2=/(\d{6})/.exec((await send('웹 로그인','other-user')).text!)![1];
       const other=String((await post('/my/api/login',{code:code2})).headers['set-cookie']).split(';')[0];
@@ -1366,7 +1383,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const selected=(response:any)=>response.template.outputs.find((output:any)=>output.listCard).listCard.items[0];
     const firstButton=(response:any)=>response.template.outputs.find((output:any)=>output.carousel).carousel.items[0].buttons[0];
     try{
-      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.14.9'});
+      expect((await app.inject({method:'GET',url:'/health'})).json()).toMatchObject({edition:'GALMAEMI_118',version:'0.15.0'});
       for(const f of ['m-draw.jpg','ticket.jpg','gacha-MID.jpg','C1.jpg','s-oops.jpg','s-info.jpg','unknown.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(200);
       for(const f of ['X99.jpg','secret.jpg','..%2Fenv.jpg'])expect((await app.inject({method:'GET',url:`/thumbs/${f}`})).statusCode).toBe(404);
       await request('하급뽑기 2');

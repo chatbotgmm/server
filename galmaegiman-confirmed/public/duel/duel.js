@@ -213,6 +213,7 @@ function settingsSheet() {
       ${ACC ? `<div class="setrow"><span>👤 ${esc(ACC.nickname || '내 계정')}</span><button class="ghost" id="sOut">로그아웃</button></div>
       <div class="setrow coup"><span>🎟 쿠폰</span><input id="sCode" placeholder="쿠폰 코드" autocomplete="off" maxlength="60"><button class="ghost" id="sCoup">받기</button></div>
       ${coupMsg ? `<p class="coupmsg">${esc(coupMsg)}</p>` : ''}
+      ${TUT ? '<div class="setrow"><span>📖 튜토리얼</span><button class="ghost" id="sTut">다시 보기</button></div>' : ''}
       <details class="setdel"><summary>계정 삭제(탈퇴)</summary>
         <p class="sub">갈매미·도감·재화·아이템·탐험·스토리 진행이 <b>모두 지워지고 되돌릴 수 없어요.</b></p>
         <input id="sDelc" placeholder="확인을 위해 탈퇴 라고 적어 주세요" autocomplete="off"><button class="big wide" id="sDel" disabled>계정 삭제</button></details>` : ''}
@@ -232,6 +233,7 @@ function settingsSheet() {
       if (!m && getVol(k) === 0) { setVol(k, 50); const id = k === 'music' ? 'vMusic' : 'vSfx'; modal.querySelector('#' + id).value = 50; modal.querySelector(`#${id}N`).textContent = 50; }
       chUi(k); if (!m && k === 'sfx') sfx('hit'); });
     modal.querySelector('#sClose').onclick = close; modal.querySelector('#sX').onclick = close;
+    modal.querySelector('#sTut')?.addEventListener('click', () => { TUT = { step: 1, seen: TUT.seen, replay: true }; modal.hidden = true; modal.innerHTML = ''; document.querySelector('.myov')?.remove(); menu(); });
     modal.querySelector('#sOut')?.addEventListener('click', async () => {
       if (!(await ask('로그아웃할까요?', { ok: '로그아웃' }))) return;
       await myApi('logout', {}).catch(() => {}); APP?.setToken(null); ACC = null; titleScreen(false);
@@ -280,13 +282,15 @@ async function boot() {
     // 로그인돼 있으면 계정 진행을 불러옴. 계정에 아직 없고 이 브라우저에 진행이 있으면 계정으로 옮김
     loadStep(2, '내 수비대 불러오는 중…');
     try { ACC = await myApi('story'); } catch { ACC = null; }
+    if (ACC) { try { TUT = await myApi('tutorial'); if (TUT.step === 1 && !TUT.seen.includes('tut')) { TUT.seen.push('tut'); myApi('tutorial', { step: 1, seen: 'tut' }).catch(() => {}); } } catch { TUT = null; } }   // 스토리 저장보다 먼저 물어야 새 유저로 판정됨
     loadStep(3, '준비 완료!');
     if (ACC) {
       if (ACC.data) SAVE = load(ACC.data);
       else { SAVE = load(progressed(local()) ? local() : null); if (progressed(local())) persist(); }
-      if (SAVE.team.length !== 3 && ACC.battleTeam.length === 3) { SAVE.team = [...ACC.battleTeam]; persist(); }
+      if (!SAVE.team.length && ACC.battleTeam.length) { SAVE.team = [...ACC.battleTeam]; persist(); }   // 스토리는 1~3마리(v0.15.0)
     } else SAVE = load();
     titleScreen(!!ACC);
+    if (TUT) setInterval(tutTick, 350);
   } catch (e) {
     app.innerHTML = `<header><h1>수비대 대결</h1></header><div class="err">${esc(e.message)}</div>`;
   }
@@ -329,7 +333,7 @@ function menu() {
   // 대표 갈매미는 로비에서 빼고 「수비대 → 전투 편성」 단상에서(배경 그림의 갈매미는 장식)
   const my = h => APP ? `my.html#${h}` : `/my?g=1#${h}`;
   const bg = BG.includes('attic') ? `background-image:url(${BASE}/duel/bg/attic.jpg${q})` : BG.includes('harbor') ? `background-image:url(${BASE}/duel/bg/harbor.jpg${q})` : '';
-  const team = SAVE.team.length === 3 ? SAVE.team : [];
+  const team = SAVE.team;
   const lvl = team.length ? Math.round(team.reduce((a, id) => a + (SAVE.units[id]?.level ?? 1), 0) / team.length) : 0;
   const storyDot = team.some(id => { const r = myRec(id, 0); return learnChances(R, r) > 0 || canEvolve(R, r, partsCleared()); });
   const st = nextStage();
@@ -347,7 +351,7 @@ function menu() {
     <div class="h8bot"><nav class="h8menu">${MENU.map(([h, t, ic, e, c]) => `<a href="${my(h)}" data-h="${h}" class="h8b ${c}"><i>${ico(ic, e)}</i><span>${t}</span></a>`).join('')}</nav>
       <div class="h8go"><div class="h8stage"><small>${st ? '다음 이야기' : '이야기'}</small><b>${st ? `${esc(st.id)} ${esc(st.title)}` : '모든 이야기 완료'}</b></div>
       <button class="h8play ${ICONS.includes('btn-play') ? 'img' : ''}" id="go" aria-label="플레이">${ICONS.includes('btn-play') ? `<img src="${BASE}/duel/icons/btn-play.png" alt="">` : '<b>▶ 플레이</b>'}</button></div></div></div>`;
-  roomParallax(app.querySelector('.home8'));
+  roomParallax(app.querySelector('.home8'), undefined, (x, y) => gullTip(x, y));
   app.querySelector('#td')?.addEventListener('click', todaySheet);
   app.querySelector('#lprof').onclick = e => { e.stopPropagation(); profMenu(); };
   if (ACC) myApi('daily').then(d => { if (!d.attend.today || d.missions.some(m => !m.done && m.value >= m.goal)) app.querySelector('#td')?.insertAdjacentHTML('beforeend', '<em class="dot"></em>'); }).catch(() => {});
@@ -365,7 +369,7 @@ function menu() {
   }).catch(() => {});
 }
 // 로비 방 패럴랙스(v0.14.4): 버튼이 아닌 빈 곳을 끌면 레이어마다 다르게 움직임(배경 < 받침대 < 갈매미맨), 손을 떼면 제자리로. UI는 그대로
-function roomParallax(home, room = home?.querySelector('.h8room')) {   // room: --px·--py를 받을 곳(로비는 방, 첫 화면은 화면 전체)
+function roomParallax(home, room = home?.querySelector('.h8room'), onTap = null) {   // onTap(x, y): 끌지 않고 톡 눌렀을 때   // room: --px·--py를 받을 곳(로비는 방, 첫 화면은 화면 전체)
   if (!home || !room) return;
   let drag = null, x = 0, y = 0, raf = 0;
   const clamp = v => Math.max(-1, Math.min(1, v));
@@ -379,8 +383,153 @@ function roomParallax(home, room = home?.querySelector('.h8room')) {   // room: 
     if (!drag || e.pointerId !== drag.id) return;
     put(clamp(drag.x + (e.clientX - drag.cx) / (innerWidth * 0.45)), clamp(drag.y + (e.clientY - drag.cy) / (innerHeight * 0.45)));
   });
-  const end = e => { if (!drag || e.pointerId !== drag.id) return; drag = null; room.classList.remove('drag'); put(0, 0); };
+  const end = e => { if (!drag || e.pointerId !== drag.id) return; const tap = e.type === 'pointerup' && Math.hypot(e.clientX - drag.cx, e.clientY - drag.cy) < 10; drag = null; room.classList.remove('drag'); put(0, 0); if (tap) onTap?.(e.clientX, e.clientY); };
   home.addEventListener('pointerup', end); home.addEventListener('pointercancel', end);
+}
+// 로비 갈매미맨을 톡 누르면 왼쪽에 말풍선 팁(v0.15.0, 갈매미 말투). 방마다 그림 속 갈매미맨 자리(2640×1080 원본 좌표)
+const ROOM_GULL = { attic: [1633, 195, 2420, 758], cabin: [1348, 208, 2111, 719], cafe: [1609, 310, 2269, 765], greenhouse: [1343, 241, 2128, 781] };
+const GULL_TIPS = () => [
+  '끼룩! 상대 속성에 강한 기술은 <b>1.5배</b>야. 기술 칸의 <b>▲유리</b>를 찾아봐!',
+  '속성마다 <b>강한 상대 2개, 약한 상대 2개</b>가 있어. 상대 속성을 먼저 보자, 끼룩.',
+  `체력은 전투가 끝나도 그대로야. <b>${R.data.storyHp?.fullMinutes ?? 60}분</b>이면 가득 차고, 치료약으로 바로 채울 수도 있어!`,
+  '같은 시너지 갈매미 <b>2마리</b>를 같이 데려가면 <b>합동기</b>가 생겨. 대결당 한 번뿐이니 아껴 써!',
+  '출석은 날마다 보상이 커져. 하루 빠지면 <b>1일째부터</b>니까 매일 들러 줘, 끼룩!',
+  '전투를 시작하면 <b>증강체 3개</b> 중 하나를 골라. 마음에 안 들면 칸마다 한 번씩 다시 뽑을 수 있어.',
+  '레벨이 오르면 <b>새 기술</b>을 배울 수 있어. 스토리 화면에서 갈매미를 눌러 봐!',
+  '진 대결도 경험치를 조금 줘. 깬 스테이지는 다시 도전해서 레벨을 올려도 돼, 끼룩.',
+];
+let tipAt = -1;
+function gullTip(x, y) {
+  const room = document.querySelector('.h8room'), bb = ROOM_GULL[ROOM]; if (!room || !bb) return;
+  const R0 = room.getBoundingClientRect(), s = Math.max(R0.width / 2640, R0.height / 1080), ox = R0.left + (R0.width - 2640 * s) / 2, oy = R0.top + (R0.height - 1080 * s) / 2;
+  const g = { l: ox + bb[0] * s, t: oy + bb[1] * s, r: ox + bb[2] * s, b: oy + bb[3] * s };
+  if (x < g.l || x > g.r || y < g.t || y > g.b) return;   // 갈매미맨을 누를 때만
+  document.querySelector('.gtip')?.remove();
+  const tips = GULL_TIPS(); tipAt = (tipAt + 1 + Math.floor(Math.random() * (tips.length - 1))) % tips.length;
+  const d = document.createElement('div'); d.className = 'gtip'; d.innerHTML = tips[tipAt]; document.body.append(d); sfx('tap');
+  d.style.left = `${Math.max(8, g.l - d.offsetWidth - 10)}px`; d.style.top = `${Math.max(56, Math.min(innerHeight - d.offsetHeight - 90, g.t + (g.b - g.t) * 0.12))}px`;
+  if (g.l - d.offsetWidth - 10 < 8) d.classList.add('below');
+  const close = () => { d.remove(); removeEventListener('pointerdown', close, true); };
+  setTimeout(() => addEventListener('pointerdown', close, true), 50); setTimeout(close, 6000);
+}
+// ── 게임 튜토리얼(v0.15.0, 새 유저만·계정에 단계 저장) ──
+// 1 출석 → 2 첫 뽑기(끝나면 태초의 갈매미맨 지급) → 3 전투 편성(1마리) → 4 첫 전투(속성 상성·공격·체력) → 5 끝. 9 = 끝·건너뜀
+// 화면 상태를 0.35초마다 보고 지금 단계에서 누를 곳 하나만 밝게(나머지는 덮개가 막음). 끝난 뒤엔 처음 보는 화면에서 짧은 말풍선 한 번
+let TUT = null;
+const tutGo = step => {
+  const from = TUT.step; TUT.step = step;
+  if (step >= 3 && from <= 2 && ACC && !ACC.owned.includes('D1')) ACC.owned.push('D1');   // 태초의 갈매미맨이 들어옴
+  if ((step === 4 || step === 9) && !SAVE.team.length && ACC?.owned.includes('D1')) { SAVE.team = ['D1']; persist(); if (!ACC.battleTeam.length) ACC.battleTeam = ['D1']; }   // 편성을 마쳤거나 건너뛰면 스토리 팀도 이 한 마리로
+  if (!TUT.replay) myApi('tutorial', { step }).catch(() => {});
+};
+const tutFrame = () => { const f = document.querySelector('.myov.ready iframe'); try { return f?.contentDocument?.body ? f : null; } catch { return null; } };
+const tutFind = sel => {
+  let el, off = { x: 0, y: 0 };
+  if (sel.startsWith('f:')) { const f = tutFrame(); if (!f) return null; el = f.contentDocument.querySelector(sel.slice(2)); const a = f.getBoundingClientRect(); off = { x: a.left, y: a.top }; }
+  else el = document.querySelector(sel);
+  if (!el) return null; const r = el.getBoundingClientRect(); if (!r.width || !r.height) return null;
+  return { el, r: { x: off.x + r.left, y: off.y + r.top, w: r.width, h: r.height } };
+};
+const tutSay = (t, d) => `<b>${t}</b>${d}`;
+function tutTypeCard() {   // 지금 상대와 내 기술로 속성 상성 설명(데이터 그대로)
+  const me = activeOf(b, 0), foe = activeOf(b, 1), name = a => R.attrName(a);
+  const rows = [...new Set(me.skills.filter(k => k.power).map(k => k.attr ?? me.attr))].map(a => { const m = R.typeMult(a, foe.attr), ch = R.data.chart[a], i = ch?.strong.indexOf(foe.attr) ?? -1;
+    const why = i >= 0 ? ch.why[i] : (() => { const c = R.data.chart[foe.attr], j = c?.strong.indexOf(a) ?? -1; return j >= 0 ? c.why[j] : ''; })();
+    return `<tr><td>${chip(a)} 기술</td><td>→ ${esc(foe.name)}</td><td class="${m > 1 ? 'good' : m < 1 ? 'bad' : ''}">${m > 1 ? `▲유리 ×${m}` : m < 1 ? `▼불리 ×${m}` : '보통 ×1'}</td><td class="why">${esc(why)}</td></tr>`; }).join('');
+  const strong = Object.entries(R.data.chart).filter(([, c]) => c.strong.includes(foe.attr)).map(([a]) => a);
+  return `<h3>⚔️ 속성 상성</h3><p>상대 <b>${esc(foe.name)}</b> ${chip(foe.attr)} · 내 <b>${esc(me.name)}</b> ${chip(me.attr)}</p><table>${rows}</table>
+    <p class="tsub">${chip(foe.attr)}에 강한 속성: ${strong.map(chip).join(' ')} · 속성마다 강한 상대 2개, 약한 상대 2개예요. 기술 칸의 <b class="good">▲유리</b>를 찾아요.</p><button class="big" data-tc="type">알겠어요</button>`;
+}
+function tutPlan() {
+  const st = TUT.step, f = tutFrame(), fd = f?.contentDocument, hash = f ? f.contentWindow.location.hash : '';
+  const free = modal.hidden && !document.querySelector('.gdlg');
+  const lobby = !document.querySelector('.myov') && document.querySelector('.home8') && free;
+  if (TUT.card) return { key: 'card-' + TUT.card.k, card: TUT.card.html };
+  if ([...document.querySelectorAll('.dbox')].some(e => e.getClientRects().length)) return null;   // 대사 보는 중엔 덮개 없음(닫힌 창에 남은 대사 칸은 무시)
+  if (st === 1) return lobby ? { key: '1', t: '#td', say: tutSay('① 출석체크', '매일 들르면 뽑기권을 줘요. 날마다 보상이 커지고, 7일째엔 선물 상자! 눌러서 받아 봐요.'), hit: () => tutGo(2) } : null;
+  if (st === 2) {
+    if (lobby) return { key: '2a', t: '.h8menu a[data-h="draw"]', say: tutSay('② 첫 뽑기', '「뽑기」로 가요. 가입 선물로 받은 뽑기권이 있어요!') };
+    if (!fd) return null;
+    if (fd.querySelector('.reveal')) { TUT.drew = true; return null; }   // 알 열기·결과 보는 중
+    if (TUT.drew) { tutGo(3); TUT.card = { k: 'd1', html: `<h3>🎁 첫 뽑기 보상</h3><img src="${sprite('D1', 'front', 0)}" alt=""><p><b>태초의 갈매미맨</b> ${chip(R.unitDef('D1').attr)}</p><p class="tsub">모든 갈매미의 원형이에요. ${TUT.replay ? '(다시 보기라 새로 주지는 않아요)' : '수비대에 들어왔어요!'} 이 한 마리로 첫 전투에 나가요.</p><button class="big" data-tc="ok">받기</button>` }; return tutPlan(); }
+    if (/^#draw/.test(hash) || fd.querySelector('.dgo')) return { key: '2b', t: 'f:.dgo', say: tutSay('② 첫 뽑기', '「1회 뽑기」를 눌러요. 알이 나오면 눌러서 열어요.') };
+    return fd.querySelector('#gback') ? { key: '2x', t: 'f:#gback', say: '로비로 돌아가서 「뽑기」로 가요.' } : null;
+  }
+  if (st === 3) {
+    if (lobby) return { key: '3a', t: '.h8menu a[data-h="units"]', say: tutSay('③ 전투 편성', '「수비대」에서 전투에 나갈 갈매미를 정해요.') };
+    if (!fd) return null;
+    if (fd.querySelector('.btgrid')) {
+      const on = fd.querySelector('.btgrid .u.on'), save = fd.querySelector('#save:not([disabled])');
+      if (!on) return { key: '3c', t: fd.querySelector('.btgrid .u[data-id="D1"]') ? 'f:.btgrid .u[data-id="D1"]' : 'f:.btgrid .u', say: tutSay('③ 전투 편성', '갈매미를 눌러 단상에 올려요. <b>1마리만 있어도 출전</b>할 수 있어요! 이름 옆 칩은 <b>속성</b>이에요.') };
+      if (save) return { key: '3d', t: 'f:#save', say: tutSay('③ 전투 편성', '「편성 저장」을 눌러요.') };
+      if (fd.querySelector('.savest.clean')) { tutGo(4); return tutPlan(); }
+      return null;
+    }
+    if (fd.querySelector('.tabs.gseg [data-t="battle"]')) return { key: '3b', t: 'f:.tabs.gseg [data-t="battle"]', say: tutSay('③ 전투 편성', '「전투 편성」을 눌러요.') };
+    return fd.querySelector('#gback') ? { key: '3x', t: 'f:#gback', say: '로비로 돌아가서 「수비대」로 가요.' } : null;
+  }
+  if (st === 4) {
+    if (SAVE.cleared.includes('P-1') && !document.querySelector('#arena')) { tutGo(5); return tutPlan(); }
+    if (fd) return fd.querySelector('#gback') ? { key: '4x', t: 'f:#gback', say: tutSay('④ 첫 전투', '로비로 돌아가요.') } : null;
+    if (lobby) return { key: '4a', t: '#go', say: tutSay('④ 첫 전투', '「플레이」를 눌러요.') };
+    if (document.querySelector('.modes') && free) return { key: '4b', t: '#mStory', say: tutSay('④ 첫 전투', '「스토리」로 첫 이야기를 시작해요.') };
+    if (document.querySelector('.story') && free) { const p0 = document.querySelector('[data-s="P-1"]'); return { key: p0 ? '4s2' : '4s1', t: p0 ? '[data-s="P-1"]' : '.pcard[data-p="0"]', say: tutSay('④ 첫 전투', p0 ? '첫 스테이지 「P-1」을 눌러요.' : '「프롤로그」를 눌러요.') }; }
+    if (!document.querySelector('#arena') || !b) return null;
+    if (!modal.hidden && modal.querySelector('[data-a]') && !TUT.augSeen) return { key: '4c', say: tutSay('증강체', '전투를 시작할 때 3개 중 하나를 골라요. 이번 전투에만 쓰는 특별한 힘이에요. 하나 고르고 아래 버튼을 눌러요.'), top: true, light: true };
+    if (!modal.hidden) { if (modal.querySelector('[data-a]')) return null; TUT.augSeen = true; return null; }
+    if (b.phase === 'over') return !TUT.hpSeen && document.querySelector('#panel [data-r]') ? { key: '4g', t: '#b0', hand: false, say: tutSay('체력', '전투가 끝나도 체력은 그대로예요. 시간이 지나면 차오르고, 치료약으로도 회복해요.') + '<button class="big tok" data-tc="hp">알겠어요</button>' } : null;
+    if (document.querySelector('.bmenu')) {
+      TUT.augSeen = true;
+      if (!TUT.typeSeen) return { key: '4d', card: tutTypeCard() };
+      if (!TUT.attacked) return { key: '4e', t: '#bAtk', say: tutSay('④ 공격', '「공격」을 누르면 기술이 나와요.') };
+      if (!TUT.hpSeen && b.turn > 1) return { key: '4g', t: '#b0', hand: false, say: tutSay('체력', '전투가 끝나도 체력은 그대로예요. 시간이 지나면 차오르고, 치료약으로도 회복해요.') + '<button class="big tok" data-tc="hp">알겠어요</button>' };
+      return null;
+    }
+    if (document.querySelector('#panel .sk') && !TUT.attacked) { const best = [...document.querySelectorAll('#panel .sk:not([disabled])')].find(x => x.querySelector('.good')); return { key: '4f', t: best ? `#panel .sk[data-k="${best.dataset.k}"]` : '#panel .sk:not([disabled])', say: tutSay('④ 기술 고르기', best ? '<b class="good">▲유리</b> 기술은 1.5배로 세요. 눌러 봐요!' : '기술을 하나 골라요. <b class="good">▲유리</b>가 붙은 기술이 1.5배로 세요.'), hit: () => { TUT.attacked = true; } }; }
+    return null;
+  }
+  if (st === 5) return (lobby || (document.querySelector('.story') && free)) ? { key: 'done', card: `<h3>🎉 신입 연수 끝!</h3><p>이제 자유롭게 출근해요.<br>처음 보는 화면에선 짧게 또 알려 줄게요.</p><p class="tsub">설정에서 언제든 다시 볼 수 있어요.</p><button class="big" data-tc="end">좋아요</button>` } : null;
+  return null;
+}
+// 끝난 뒤: 처음 보는 화면 안내(한 번만, 튜토리얼을 한 유저만)
+const TUT_HINT = { craft: tutSay('조합', '재료 갈매미가 모이면 「만들기」로 새 갈매미를 깨워요. 「재료로 섞기」로 직접 섞어 볼 수도 있어요.'), party: tutSay('탐험', '갈매미를 탐험에 보내면 시간이 지난 뒤 보상을 가지고 돌아와요.'), shop: tutSay('상점', '새우깡으로 뽑기권과 아이템을 살 수 있어요.'), modes: tutSay('모드', '왼쪽은 스토리, 오른쪽은 다른 수비조장과 겨루는 PvP예요. PvP는 3마리 편성이 필요해요.'), story: tutSay('스토리', '부를 고르면 스테이지가 나와요. 깬 스테이지도 다시 도전해 레벨을 올릴 수 있어요.') };
+function tutHint() {
+  if (TUT.replay || !TUT.seen.includes('tut') || document.querySelector('.thint')) return;
+  const f = tutFrame(), hash = f ? f.contentWindow.location.hash.slice(1).split(/[=&]/)[0] : '';
+  const key = f ? hash : document.querySelector('.modes') ? 'modes' : document.querySelector('.story') && modal.hidden ? 'story' : '';
+  if (!TUT_HINT[key] || TUT.seen.includes(key)) return;
+  TUT.seen.push(key); myApi('tutorial', { step: 9, seen: key }).catch(() => {});
+  const d = document.createElement('div'); d.className = 'thint'; d.innerHTML = `<img src="${APP ? 'intro' : `${BASE}/duel/intro`}/t2_guardian.webp" alt=""><div>${TUT_HINT[key]}<small>눌러서 닫기</small></div>`;
+  d.onclick = () => d.remove(); document.body.append(d); setTimeout(() => d.remove(), 9000);
+}
+function tutTick() {
+  if (!TUT) return;
+  if (TUT.step >= 9 || !document.querySelector('.home8, .myov, .modes, .story, #arena, .dbox')) { document.querySelector('.tut')?.remove(); if (TUT.step >= 9) tutHint(); return; }
+  const v = tutPlan(); let o = document.querySelector('.tut');
+  if (!v) { o?.remove(); return; }
+  const hit = v.t ? tutFind(v.t) : null;
+  if (v.t && !hit) { o?.remove(); return; }
+  if (!o || o.dataset.key !== v.key) {
+    o?.remove(); o = document.createElement('div'); o.className = `tut ${v.card ? 'card' : ''} ${v.light ? 'light' : ''}`; o.dataset.key = v.key;
+    o.innerHTML = `${v.card ? '<i class="dm full"></i>' : v.light ? '' : '<i class="dm t"></i><i class="dm b"></i><i class="dm l"></i><i class="dm r"></i>'}${hit ? `<i class="hole"></i>${v.hand === false ? '' : '<i class="hand">👆</i>'}` : ''}
+      <div class="ttop"><div class="tdots">${[1, 2, 3, 4, 5].map(i => `<i class="${i < TUT.step ? 'done' : i === TUT.step ? 'on' : ''}"></i>`).join('')}</div></div><button class="tskip">건너뛰기 ›</button>
+      ${v.card ? `<div class="tcard">${v.card}</div>` : `<div class="tguide ${v.top ? 'top' : ''}"><img src="${APP ? 'intro' : `${BASE}/duel/intro`}/t2_guardian.webp" alt=""><div class="tsay">${v.say}</div></div>`}`;
+    document.body.append(o);
+    o.querySelector('.tskip').onclick = async () => { if (await ask('튜토리얼을 건너뛸까요? 설정에서 다시 볼 수 있어요.', { ok: '건너뛰기' })) { tutGo(9); TUT.card = null; o.remove(); } };
+    o.querySelectorAll('[data-tc]').forEach(x => x.onclick = () => { const k = x.dataset.tc; if (k === 'type') TUT.typeSeen = true; if (k === 'hp') TUT.hpSeen = true; if (k === 'ok') TUT.card = null; if (k === 'end') { TUT.card = null; tutGo(9); } o.remove(); tutTick(); });
+    if (hit && v.hit) hit.el.addEventListener('click', v.hit, { once: true });
+  }
+  if (hit) {   // 위치는 매번 맞춤(화면이 움직여도)
+    const p = 6, r = { x: hit.r.x - p, y: hit.r.y - p, w: hit.r.w + 2 * p, h: hit.r.h + 2 * p }, set = (sel, css) => { const e = o.querySelector(sel); if (e) Object.assign(e.style, css); };
+    set('.hole', { left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` });
+    set('.hand', { left: `${r.x + r.w * 0.55}px`, top: `${r.y + r.h * 0.5}px` });
+    set('.dm.t', { left: 0, top: 0, width: '100%', height: `${Math.max(0, r.y)}px` }); set('.dm.b', { left: 0, top: `${r.y + r.h}px`, width: '100%', bottom: 0 });
+    set('.dm.l', { left: 0, top: `${r.y}px`, width: `${Math.max(0, r.x)}px`, height: `${r.h}px` }); set('.dm.r', { left: `${r.x + r.w}px`, top: `${r.y}px`, right: 0, height: `${r.h}px` });
+    const sk = o.querySelector('.tskip'); if (sk) sk.classList.toggle('alt', r.x + r.w > innerWidth - 170 && r.y + r.h > innerHeight - 70);   // 오른쪽 아래가 밝힌 곳이면 왼쪽 아래로
+    const g = o.querySelector('.tguide');   // 말풍선은 밝힌 곳과 안 겹치게 위·아래 중 넓은 쪽
+    if (g && !v.top) { const below = r.y + r.h / 2 < innerHeight / 2; Object.assign(g.style, below ? { top: `${Math.min(innerHeight - g.offsetHeight - 8, r.y + r.h + 10)}px`, bottom: 'auto' } : { bottom: `${Math.min(innerHeight - g.offsetHeight - 8, innerHeight - r.y + 10)}px`, top: 'auto' });
+      g.style.left = `${Math.max(8, Math.min(innerWidth - g.offsetWidth - 8, r.x + r.w / 2 - g.offsetWidth / 2))}px`; }
+  }
 }
 // 프로필(왼쪽 위 이름)을 누르면 작은 메뉴: 내 정보 + 계정·랭크·설정
 function profMenu() {
@@ -405,7 +554,7 @@ function continueStory() {
   const st = nextStage();
   if (!st) return storyScreen();
   const go = () => (unlocked(st.id) ? playStage(st) : storyScreen());   // 승진이 필요한 부면 목록으로
-  if (SAVE.team.length !== 3) return pickScreen('story', go);
+  if (!SAVE.team.length) return pickScreen('story', go);
   go();
 }
 // 플레이 → 모드 고르기(v0.11.0): 왼쪽 캠페인(스토리·모험), 오른쪽 PvP(일반·랭크), 아래 돌아가기
@@ -547,7 +696,7 @@ function pickScreen(mode, then) {   // then: 스토리 팀을 정한 뒤 바로 
   const story = mode === 'story';
   let picked = story ? [...SAVE.team] : freePick;
   app.innerHTML = `<header class="pkh"><button class="back" id="bk">‹ 뒤로</button><h1>${story ? '스토리 팀 편성' : '자유 대결'}</h1>${story && ACC?.battleTeam.length === 3 ? '<button class="ghost pkmine" id="mine">내 전투 편성 불러오기</button>' : ''}</header>
-  <p class="hint">갈매미 3마리를 고르세요. 처음 고른 갈매미가 먼저 나가요.${story ? ' 시험판이라 최상위 33종을 모두 쓸 수 있어요(실제 게임은 가진 갈매미만).' : ' 상대는 같은 레벨의 무작위 3마리예요.'}</p>
+  <p class="hint">${story ? '갈매미 1~3마리를 고르세요' : '갈매미 3마리를 고르세요'}. 처음 고른 갈매미가 먼저 나가요.${story ? ' 시험판이라 최상위 33종을 모두 쓸 수 있어요(실제 게임은 가진 갈매미만).' : ' 상대는 같은 레벨의 무작위 3마리예요.'}</p>
   ${story ? '' : `<div class="bar"><span class="role">레벨</span><div class="seg" id="lv">${[10, 30, 50].map(l => `<button data-l="${l}" class="${l === freeLevel ? 'on' : ''}">${l}</button>`).join('')}</div></div>`}
   ${story && ACC ? `<p class="hint" style="margin-top:-6px"><img class="gi" src="/gull.png" alt=""> 표시는 내가 가진 갈매미예요. 셋 다 가진 갈매미로 고르면 「내 갈매미」 전투 편성도 같이 바뀌어요.</p>` : ''}
   <div class="grid pickrow">${(story && ACC ? [...UNITS].sort((x, y) => ACC.owned.includes(y.id) - ACC.owned.includes(x.id)) : UNITS).map(u => `<button class="card" data-id="${u.id}"><img loading="lazy" src="${BASE}/thumbs/${u.id}.jpg" alt=""><b>${story && ACC?.owned.includes(u.id) ? '<img class="gi" src="/gull.png" alt=""> ' : ''}${esc(u.name)}</b>${chip(u.def.attr)}<span class="role">${ROLE[u.def.role]}${story ? ` · Lv${SAVE.units[u.id].level}` : ''}</span><span class="syn">${esc(synName(u.id))}</span></button>`).join('')}</div>
@@ -567,7 +716,7 @@ function pickScreen(mode, then) {   // then: 스토리 팀을 정한 뒤 바로 
       const i = picked.indexOf(c.dataset.id); c.classList.toggle('on', i >= 0);
       c.querySelector('.n')?.remove(); if (i >= 0) c.insertAdjacentHTML('beforeend', `<span class="n">${i + 1}</span>`);
     });
-    app.querySelector('#go').disabled = picked.length !== 3;
+    app.querySelector('#go').disabled = story ? !picked.length : picked.length !== 3;   // 스토리는 1~3마리, 자유 대결은 3마리
     const c = teamCombos(picked), box = app.querySelector('#combo');
     box.innerHTML = c.length ? c.map(x => `🤝 합동기 「${esc(x.skill)}」 · ${x.names.map(esc).join(' + ')}`).join('<br>') : '같은 시너지 2마리를 넣으면 합동기가 생겨요';
   };
@@ -608,19 +757,19 @@ function freeBattle() {
 
 // ── 스토리 ──
 const stages = () => STORY.chapters.flatMap(c => c.stages.map(s => ({ ...s, chapter: c })));
-const teamStageOk = need => !need || (SAVE.team.length === 3 && SAVE.team.every(id => (SAVE.units[id].stage ?? 0) >= need));
+const teamStageOk = need => !need || (SAVE.team.length > 0 && SAVE.team.every(id => (SAVE.units[id].stage ?? 0) >= need));
 const unlocked = id => { const all = stages(), i = all.findIndex(s => s.id === id); return (i === 0 || SAVE.cleared.includes(all[i - 1].id)) && teamStageOk(all[i].chapter.needStage); };
 
 function storyScreen() {
   modal.hidden = true; bgm('title');
   const team = SAVE.team.map(id => UNITS.find(u => u.id === id));
   // 가로(v0.11.1): 왼쪽 팀(글자 크게, 기술·승진 버튼) · 오른쪽 장 목록(그 안에서만 넘김)
-  app.innerHTML = `<div class="story"><header>${PART === null ? '<button class="back" id="bk">‹ 뒤로</button>' : ''}<h1>스토리</h1><small>${SAVE.cleared.length}/${stages().length} 실적</small>${team.length === 3 && ACC && team.some(u => hpFrac(u.id) < 1) ? '<button class="ghost edtop heal" id="heal">🩹 치료약</button>' : ''}<button class="ghost edtop" id="ed">${team.length === 3 ? '편성 바꾸기' : '팀 정하기'}</button></header>
-  <aside class="steam"><section class="teambar">${team.length === 3 ? team.map(u => { const s = SAVE.units[u.id], need = xpToNext(R, s.level);
+  app.innerHTML = `<div class="story"><header>${PART === null ? '<button class="back" id="bk">‹ 뒤로</button>' : ''}<h1>스토리</h1><small>${SAVE.cleared.length}/${stages().length} 실적</small>${team.length === 3 && ACC && team.some(u => hpFrac(u.id) < 1) ? '<button class="ghost edtop heal" id="heal">🩹 치료약</button>' : ''}<button class="ghost edtop" id="ed">${team.length ? '편성 바꾸기' : '팀 정하기'}</button></header>
+  <aside class="steam"><section class="teambar">${team.length ? team.map(u => { const s = SAVE.units[u.id], need = xpToNext(R, s.level);
       const r = myRec(u.id, 0), n = learnChances(R, r), up = canEvolve(R, r, partsCleared());
       return `<button class="mini" data-u="${u.id}"><img src="${sprite(u.id, 'front', r.stage)}" class="st-${r.stage}" alt=""><b>${esc(u.name)}</b><span>Lv${s.level} ${chip(u.def.attr)}${r.stage ? `<em class="stars">${STARS[r.stage]}</em>` : ''}</span>${hpBar(u.id)}${up ? '<em class="learn promo">⬆ 승진 가능</em>' : n ? `<em class="learn">✨ 기술 배우기 ${n}</em>` : '<small>기술·승진 보기 ›</small>'}</button>`; }).join('')
-      + (team.length === 3 ? `<p class="combo">${teamCombos(SAVE.team).map(x => `🤝 합동기 「${esc(x.skill)}」`).join(' · ') || '합동기 없음(같은 시너지 2마리면 생겨요)'}</p>` : '')
-    : '<p class="hint" style="margin:0">먼저 팀 3마리를 정해 주세요. 위 「팀 정하기」를 눌러요.</p>'}</section></aside>
+      + (team.length ? `<p class="combo">${teamCombos(SAVE.team).map(x => `🤝 합동기 「${esc(x.skill)}」`).join(' · ') || '합동기 없음(같은 시너지 2마리면 생겨요)'}</p>` : '')
+    : '<p class="hint" style="margin:0">먼저 팀을 정해 주세요(1~3마리). 위 「팀 정하기」를 눌러요.</p>'}</section></aside>
   <main class="schap ${PART === null ? 'parts' : 'part'}">${PART === null ? partList() : partView(STORY.chapters[PART])}</main></div>`;   // 부 화면: 뒤로(부 목록으로)는 오른쪽 아래
   // 처음엔 부(部) 버튼만 가로로(v0.14.7) → 누르면 그 부의 스테이지 → 위 「‹ 뒤로」는 부 목록으로
   app.querySelector('#bk').onclick = () => { if (PART !== null) { PART = null; storyScreen(); } else menu(); };
@@ -683,7 +832,7 @@ function partList() {
   <button class="ghost" id="reset" style="width:100%">스토리 진행 처음부터(${ACC ? '계정' : '이 브라우저'})</button></section>`;
 }
 function partView(c) {
-  const team3 = SAVE.team.length === 3, { sc, cl, open, all } = chapInfo(c);
+  const team3 = SAVE.team.length > 0, { sc, cl, open, all } = chapInfo(c);
   return `<div class="chead pv sc-${sc}" style="${bgStyle(sc)}"><div class="in"><h2>${esc(c.title)}</h2><span class="pn">${all ? '✓ 완료' : `${cl}/${c.stages.length}`}</span>${c.intro ? `<p>${esc(c.intro)}</p>` : ''}${needLine(c)}</div></div>
     <div class="stl ${open ? '' : 'pre'}">${open ? '' : '<p class="stpre">미리 보기 · 앞 부를 깨면 열려요</p>'}${c.stages.map(s => { const done = SAVE.cleared.includes(s.id), op = unlocked(s.id), boss = s.enemy.some(e => R.villains.get(e.id).boss);
       return `<button class="stage ${done ? 'done' : ''}" data-s="${s.id}" ${op && team3 ? '' : 'disabled'}><span class="no">${s.id}</span><span class="tt">${esc(s.title)}${boss ? ' <em>보스</em>' : ''}<small>${s.enemy.map(e => `${esc(R.villains.get(e.id).name)} Lv${e.level}`).join(' · ')}</small></span><span class="mk">${done ? '✓' : op ? '도전' : '잠김'}</span></button>`; }).join('')}</div>
