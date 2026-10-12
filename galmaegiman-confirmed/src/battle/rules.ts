@@ -39,7 +39,7 @@ export const battleSchema=z.object({
   tiers:tierNums,
   units:z.record(z.string().regex(/^[DTEI]\d+$/),z.object({attr,sub:attr.optional(),role,stats:statsIn,skill:skillIn}).strict()),
   synergies:z.record(z.string().regex(/^[A-Z]+$/),z.object({name:z.string().min(1).max(20),members:z.array(z.string().regex(/^[DTEI]\d+$/)).min(2),skill:skillIn}).strict()),
-  learn:z.object({levels:z.array(z.number().int().min(2).max(200)).min(1).max(10),slots:z.number().int().min(0).max(4),offers:z.number().int().min(1).max(5),
+  learn:z.object({levels:z.array(z.number().int().min(2).max(200)).min(1).max(10),slots:z.number().int().min(1).max(4),offers:z.number().int().min(1).max(30),perChance:z.number().int().min(1).max(4).default(1),
     skills:z.record(z.string().regex(/^[a-z0-9]+$/),z.object({...skillIn.shape,level:z.number().int().min(1).max(200),roles:z.array(role).min(1).optional()}).strict())}).strict(),
   items:z.record(z.string().regex(/^[a-z0-9]+$/),z.object({name:z.string().min(1).max(20),price:z.number().int().min(1).max(100000),desc:z.string().max(120),
     heal:z.number().min(1).max(100).optional(),cleanse:z.literal(true).optional(),revive:z.number().min(1).max(100).optional()}).strict()),

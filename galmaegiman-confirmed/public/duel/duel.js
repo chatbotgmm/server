@@ -5,7 +5,7 @@
 import { rulesFrom } from '../../src/battle/core.ts';
 import { createBattle, choose, rerollAugment, act, pending, legalActions, pickAi, aiChoose, activeOf, itemProblem } from '../../src/battle/engine.ts';
 import { bgm, sfx, isMuted, toggleMute, getVol, setVol, isChMuted, setChMute } from './sound.js';
-import { addXp, battleXp, canEvolve, evoChoices, learnChances, learnOffers, learnSkill, slotSkills, statsOf, xpToNext } from '../../src/battle/growth.ts';
+import { addXp, battleXp, canEvolve, evoChoices, learnChances, learnLeft, learnOffers, learnSkill, slotSkills, statsOf, xpToNext } from '../../src/battle/growth.ts';
 
 // 앱: 화면은 앱 안, 서버는 GMM_BASE, 열쇠는 「내 갈매미」에서 받아 둔 것(GMM_DUEL_KEY), 로그인은 토큰 머리글
 const BASE = window.GMM_BASE || '', APP = window.gmmApp || null;
@@ -164,7 +164,7 @@ const persist = () => {
   saveTimer = setTimeout(() => myApi('story', { data: { units: SAVE.units, team: SAVE.team, cleared: SAVE.cleared, ...(SAVE.hp ? { hp: SAVE.hp } : {}) } }).then(() => { saveFail = false; }).catch(() => { saveFail = true; const h = document.getElementById('savewarn'); if (h) h.hidden = false; }), 400);
 };
 const progressed = s => !!s && (s.cleared?.length > 0 || Object.values(s.units ?? {}).some(u => u.xp > 0 || u.level > STORY.start.level));
-const myRec = (id, i) => { const u = UNITS.find(x => x.id === id), s = SAVE.units[id]; return { uid: `a${i}`, id, name: u.name, tier: u.tier, level: s.level, xp: s.xp, stage: s.stage ?? 0, evoAugs: [...(s.evoAugs ?? [])], learned: [...(s.learned ?? [])], learnUsed: s.learnUsed ?? 0 }; };
+const myRec = (id, i) => { const u = UNITS.find(x => x.id === id), s = SAVE.units[id]; return { uid: `a${i}`, id, name: u.name, tier: u.tier, level: s.level, xp: s.xp, stage: s.stage ?? 0, evoAugs: [...(s.evoAugs ?? [])], learned: [...(s.learned ?? [])], learnUsed: s.learnUsed ?? 0, learnPick: s.learnPick ?? 0 }; };
 // 스토리 체력(v0.14.7): 전투가 끝난 체력 비율이 이어지고, 시간이 지나면 차오름(0→가득 storyHp.fullMinutes분). 체력 0이면 전투에 못 나감
 const HP_FULL_MS = () => (R.data.storyHp?.fullMinutes ?? 60) * 60000;
 const hpFrac = id => { const h = SAVE.hp?.[id]; return h ? Math.min(1, h.f + (Date.now() - h.at) / HP_FULL_MS()) : 1; };
@@ -174,7 +174,7 @@ const hpNow = id => Math.floor(hpMax(id) * hpFrac(id));
 const hpWaitMin = id => Math.ceil((1 - hpFrac(id)) * HP_FULL_MS() / 60000);
 const hpBar = id => { const f = hpFrac(id), pct = Math.round(f * 100), col = pct > 50 ? 'var(--hp)' : pct > 20 ? 'var(--hpmid)' : 'var(--hplow)';
   return `<i class="hpb ${hpNow(id) < 1 ? 'zero' : ''}" title="체력 ${hpNow(id)}/${hpMax(id)}"><i style="width:${pct}%;background:${col}"></i></i><small class="hpt">${hpNow(id) < 1 ? `기절 · ${hpWaitMin(id)}분 뒤 출근` : `체력 ${hpNow(id)}/${hpMax(id)}${pct < 100 ? ` · 가득까지 ${hpWaitMin(id)}분` : ''}`}</small>`; };
-const keep = r => { SAVE.units[r.id] = { level: r.level, xp: r.xp, learned: r.learned ?? [], learnUsed: r.learnUsed ?? 0, stage: r.stage ?? 0, evoAugs: r.evoAugs ?? [] }; };
+const keep = r => { SAVE.units[r.id] = { level: r.level, xp: r.xp, learned: r.learned ?? [], learnUsed: r.learnUsed ?? 0, learnPick: r.learnPick ?? 0, stage: r.stage ?? 0, evoAugs: r.evoAugs ?? [] }; };
 // 승진(진화): 깬 부(1·2·3부) 수 = 열린 승진 단계. 표창 후보는 유닛·단계마다 항상 같음(다시 열어도 안 바뀜)
 const partsCleared = () => STORY.chapters.filter(c => /^\d+$/.test(c.id) && SAVE.cleared.includes(c.stages.at(-1).id)).length;
 const STARS = ['', '★', '★★', '★★★'];
@@ -745,7 +745,12 @@ function freeBattle() {
   sceneNow = 'harbor'; fightId = null;
   const rec = (id, i, side) => {
     const u = UNITS.find(x => x.id === id), r = { uid: `${side}${i}`, id, name: u.name, tier: u.tier, level: freeLevel, xp: 0, stage: 0, evoAugs: [] };
-    while (learnChances(R, r) > 0) { const o = learnOffers(R, r); learnSkill(R, r, o.length ? o[Math.floor(Math.random() * o.length)].id : null, slotSkills(R, r)[0]?.id); }   // 그 레벨까지 배울 기술을 무작위로
+    // 그 레벨까지 배울 기술을 무작위로 1개씩(역할기·보조 속성·예전에 배운 기술 칸과 바꿈. 기본기·고유기는 남겨 둠)
+    while (learnChances(R, r) > 0) {
+      const o = learnOffers(R, r), used = r.learnUsed ?? 0, rep = slotSkills(R, r).find(k => !k.id.startsWith('basic-') && k.id !== 'sig')?.id;
+      learnSkill(R, r, o.length && rep ? o[Math.floor(Math.random() * o.length)].id : null, rep);
+      if ((r.learnUsed ?? 0) === used) learnSkill(R, r, null);
+    }
     return r;
   };
   const foe = shuffle(UNITS.map(u => u.id)).slice(0, 3);
@@ -872,40 +877,49 @@ function partView(c) {
     <div class="pfoot"><button class="ghost pback" id="bk">‹ 뒤로</button></div>`;   // 부 목록으로: 오른쪽 아래
 }
 
-// 기술 창: 지금 기술(기본 4개 + 배운 기술) 보기, 배울 기회가 있으면 후보 3개 중 1개(칸이 차면 하나와 바꿈) 또는 건너뛰기
+// 기술 창(v0.15.9): 한 화면(세로 넘김 없음). 왼쪽 = 갈매미·능력치·승진, 오른쪽 = 기술 4칸(2×2).
+// 배울 기회가 있으면 「새 기술 배우기」 → 팝업: ① 배울 기술(그 레벨에 새로 열린 것) → ② 잊을 칸(4칸 중 하나) → 배우기. 한 기회에 최대 2개
 function skillSheet(id) {
   const u = UNITS.find(x => x.id === id), def = R.unitDef(id), rec = myRec(id, 0), st = statsOf(R, rec);
-  const base = [{ ...R.basicSkill(def.attr), ...(def.basic ? { name: def.basic } : {}) }, def.signature];   // 고정
-  const mine = slotSkills(R, rec);   // 바꿀 수 있는 칸(역할기·보조 속성·배운 기술)
-  const offers = learnOffers(R, rec), tier = R.data.learn.levels[rec.learnUsed ?? 0], full = mine.length >= R.data.learn.slots;
-  const nextLv = R.data.learn.levels.find(l => l > rec.level);
-  let pick = null, rep = null;
+  const kindOf = k => k.id.startsWith('basic-') ? '기본기' : k.id === 'sig' ? '고유기' : k.id.startsWith('role-') ? '역할기' : k.id.startsWith('sub-') ? '보조 속성' : '배운 기술';
   const icon = (k, attr) => glyphOf(k.name) ?? GLYPH[attr] ?? '✨';
-  const card = (k, attr, data, on, note = '') => `<button class="aug ${on ? 'on' : ''}" ${data}><span class="ic">${icon(k, attr)}</span><span class="tx"><b>${esc(k.name)}${note}</b><small>${k.power ? `${esc(R.attrName(attr))} · ${catOf(k, st)} · 위력 ${k.power}${k.hits > 1 ? `×${k.hits}` : ''}` : '보조 기술'}${k.cd ? ` · 재사용 ${k.cd}턴` : ''}</small><span>${esc(k.desc)}</span></span><span class="ck">${on ? '✓' : ''}</span></button>`;
+  const meta = k => `${k.power ? `${esc(R.attrName(k.attr ?? def.attr))} · ${catOf(k, st)} · 위력 ${k.power}${k.hits > 1 ? `×${k.hits}` : ''}` : '보조 기술'}${k.cd ? ` · 재사용 ${k.cd}턴` : ''}`;
+  const skc = (k, data = '', on = false, tag = '') => `<button class="skc ${on ? 'on' : ''}" ${data} ${data ? '' : 'tabindex="-1"'}><span class="ic">${icon(k, k.attr ?? def.attr)}</span><span class="tx"><em>${tag || kindOf(k)}</em><b>${esc(k.name)}</b><small>${meta(k)}</small><span class="ds">${esc(restDesc(k) || k.desc || '')}</span></span></button>`;
+  let pop = null, pick = null, rep = null;   // pop: null | 'learn' | 'forget'
   const draw = () => {
-    modal.innerHTML = `<div class="sheet pick">
-      <div class="who-head"><img src="${sprite(id, 'front', rec.stage)}" class="st-${rec.stage}" alt=""><div><b>${esc(u.name)} ${rec.stage ? `<em class="stars">${STARS[rec.stage]}</em>` : ''}</b><small>Lv${rec.level} · ${rec.stage ? `${rec.stage}단계 승진` : '원형'} · ${esc(R.attrName(def.attr))} · ${ROLE[def.role]}${synName(id) ? ` · ${esc(synName(id))}` : ''}</small></div></div>
-      ${statGrid(st)}
-      <h2>승진 <small>${rec.stage >= 3 ? '최고 단계' : `다음: ${promoNeed(rec)}`}</small></h2>
-      ${rec.evoAugs.length ? rec.evoAugs.map(a => { const e = R.evoAug.get(a); return `<div class="skrow"><span>🎖️</span><b>${esc(e.name)}</b><small>${esc(e.desc)}</small></div>`; }).join('') : '<p class="sub">아직 받은 직무 표창이 없어요. 승진할 때 표창 3개 중 1개를 받아요.</p>'}
-      ${canEvolve(R, rec, partsCleared()) ? `<button class="big wide" id="promo">⬆ ${rec.stage + 1}단계 승진하기</button>` : ''}
-      <h2>고정 기술 <small>잊을 수 없어요</small></h2>${base.map(k => `<div class="skrow"><span>${icon(k, k.attr ?? def.attr)}</span><b>${esc(k.name)} ${catTag(k, st)}</b><small>${esc(k.desc)}</small></div>`).join('')}
-      <h2>바꿀 수 있는 기술 <small>${mine.length}/${R.data.learn.slots}칸 · 새 기술을 배우면 하나를 잊어요</small></h2>${mine.length ? mine.map(k => `<div class="skrow"><span>${icon(k, k.attr ?? def.attr)}</span><b>${esc(k.name)} ${catTag(k, st)}</b><small>${esc(k.desc)}</small></div>`).join('') : '<p class="sub">아직 없어요</p>'}
-      ${offers.length ? `<h2>✨ 새 기술 배우기 <small>Lv${tier} 기회 · ${learnChances(R, rec)}번 남음</small></h2>
-        ${offers.map(k => card(k, k.attr ?? def.attr, `data-p="${k.id}"`, pick === k.id)).join('')}
-        ${pick && full ? `<h2>잊을 기술 고르기 <small>이 중 하나를 잊고 새로 배워요</small></h2>${mine.map(k => card(k, k.attr ?? def.attr, `data-r="${k.id}"`, rep === k.id)).join('')}` : ''}
-        <div class="sw"><button class="ghost" id="skipL" style="justify-content:center">이번엔 안 배우기</button><button class="big" id="doL" ${!pick || (full && !rep) ? 'disabled' : ''}>${pick ? `「${esc(offers.find(o => o.id === pick).name)}」 배우기` : '기술을 골라요'}</button></div>`
-        : `<p class="sub">${nextLv ? `다음 배울 기회: Lv${nextLv}` : '모든 기회를 썼어요'}</p>`}
-      <button class="ghost wide" id="closeL">닫기</button></div>`;
-    modal.querySelectorAll('[data-p]').forEach(x => x.onclick = () => { pick = x.dataset.p; rep = null; draw(); });
+    const mine = slotSkills(R, rec), offers = learnOffers(R, rec), left = learnLeft(R, rec), per = R.data.learn.perChance ?? 1;
+    const tier = R.data.learn.levels[rec.learnUsed ?? 0], nextLv = R.data.learn.levels.find(l => l > rec.level), full = mine.length >= R.data.learn.slots;
+    const learnBtn = offers.length ? `<button class="big" id="openL">✨ 새 기술 배우기 <small>Lv${tier} · ${left}개 더</small></button>` : `<p class="sub">${nextLv ? `다음 배울 기회: Lv${nextLv}` : '모든 배울 기회를 썼어요'}</p>`;
+    const popHtml = !pop ? '' : `<div class="skpop" id="pop"><div class="pbox">
+      ${pop === 'learn' ? `<h2>✨ 새 기술 배우기 <small>Lv${tier}에 새로 열린 기술 · 이번에 ${left}개 더(최대 ${per}개)</small></h2>
+        <div class="skg off">${offers.map(k => skc(k, `data-p="${k.id}"`, pick === k.id, '새 기술')).join('')}</div>
+        <div class="sw"><button class="ghost" id="skipL">${left < per ? '그만 배우기' : '이번엔 안 배우기'}</button><button class="big" id="nextL" ${pick ? '' : 'disabled'}>${pick ? (full ? '다음: 잊을 기술 고르기 ›' : `「${esc(offers.find(o => o.id === pick).name)}」 배우기`) : '배울 기술을 골라요'}</button></div>`
+      : `<h2>잊을 기술 고르기 <small>「${esc(offers.find(o => o.id === pick)?.name ?? '')}」 대신 잊을 칸 하나</small></h2>
+        <div class="skg">${mine.map(k => skc(k, `data-r="${k.id}"`, rep === k.id)).join('')}</div>
+        <div class="sw"><button class="ghost" id="backL">‹ 다시 고르기</button><button class="big" id="doL" ${rep ? '' : 'disabled'}>${rep ? `「${esc(mine.find(k => k.id === rep).name)}」 잊고 배우기` : '잊을 기술을 골라요'}</button></div>`}
+      <button class="pclose" id="popX" aria-label="닫기">✕</button></div></div>`;
+    modal.innerHTML = `<div class="sheet skv">
+      <aside class="skl"><div class="who-head"><img src="${sprite(id, 'front', rec.stage)}" class="st-${rec.stage}" alt=""><div><b>${esc(u.name)} ${rec.stage ? `<em class="stars">${STARS[rec.stage]}</em>` : ''}</b><small>Lv${rec.level} · ${rec.stage ? `${rec.stage}단계 승진` : '원형'} · ${esc(R.attrName(def.attr))} · ${ROLE[def.role]}${synName(id) ? ` · ${esc(synName(id))}` : ''}</small></div></div>
+        ${statGrid(st)}
+        <div class="promo"><b>승진</b> <small>${rec.stage >= 3 ? '최고 단계' : `다음: ${promoNeed(rec)}`}</small>${rec.evoAugs.length ? `<div class="evo">${rec.evoAugs.map(a => { const e = R.evoAug.get(a); return `<span title="${esc(e.desc)}">🎖️ ${esc(e.name)}</span>`; }).join('')}</div>` : ''}
+        ${canEvolve(R, rec, partsCleared()) ? `<button class="big wide" id="promo">⬆ ${rec.stage + 1}단계 승진하기</button>` : ''}</div></aside>
+      <main class="skr"><div class="skh"><h2>기술 <small>4칸 모두 바꿀 수 있어요</small></h2>${learnBtn}</div>
+        <div class="skg">${mine.map(k => skc(k)).join('')}</div></main>
+      <button class="pclose" id="closeL" aria-label="닫기">✕</button>${popHtml}</div>`;
+    const $ = s => modal.querySelector(s);
+    $('#closeL').onclick = () => { modal.hidden = true; modal.className = ''; storyScreen(); };
+    $('#promo')?.addEventListener('click', () => promoSheet(id));
+    $('#openL')?.addEventListener('click', () => { pop = 'learn'; pick = null; rep = null; draw(); });
+    $('#popX')?.addEventListener('click', () => { pop = null; draw(); });
+    modal.querySelectorAll('[data-p]').forEach(x => x.onclick = () => { pick = x.dataset.p; draw(); });
     modal.querySelectorAll('[data-r]').forEach(x => x.onclick = () => { rep = x.dataset.r; draw(); });
-    modal.querySelector('#closeL').onclick = () => { modal.hidden = true; storyScreen(); };
-    modal.querySelector('#promo')?.addEventListener('click', () => promoSheet(id));
-    const after = () => { keep(rec); persist(); learnChances(R, rec) > 0 ? skillSheet(id) : (modal.hidden = true, storyScreen()); };
-    modal.querySelector('#doL')?.addEventListener('click', () => { learnSkill(R, rec, pick, rep ?? undefined); after(); });
-    modal.querySelector('#skipL')?.addEventListener('click', async () => { if (await ask('이번 기회를 건너뛸까요? 다시 받을 수 없어요.', { ok: '건너뛰기' })) { learnSkill(R, rec, null); after(); } });
+    const save = () => { keep(rec); persist(); pick = null; rep = null; pop = learnOffers(R, rec).length ? 'learn' : null; draw(); };
+    $('#nextL')?.addEventListener('click', () => { if (full) { pop = 'forget'; rep = null; draw(); } else { learnSkill(R, rec, pick); save(); } });
+    $('#backL')?.addEventListener('click', () => { pop = 'learn'; draw(); });
+    $('#doL')?.addEventListener('click', () => { learnSkill(R, rec, pick, rep); sfx('aug'); save(); });
+    $('#skipL')?.addEventListener('click', async () => { if (await ask(left < per ? `이번 기회를 끝낼까요? 남은 ${left}개는 다시 받을 수 없어요.` : '이번 기회를 건너뛸까요? 다시 받을 수 없어요.', { ok: left < per ? '끝내기' : '건너뛰기' })) { learnSkill(R, rec, null); save(); } });
   };
-  modal.onclick = null; modal.className = ''; modal.hidden = false; draw();
+  modal.onclick = null; modal.className = 'full'; modal.hidden = false; draw();
 }
 
 // 승진: 직무 표창 3개 중 1개 → 단계 +1(능력치 배율 상승). 단계별 그림이 생기기 전까지는 별·빛으로 표시
@@ -1037,6 +1051,7 @@ function startBattle(mine, foe, end, hint, flee, seed) {   // seed: PvP는 서�
     app.querySelector('#arena').classList.add('bg2');
     app.insertAdjacentHTML('afterbegin', `<div class="bbg" aria-hidden="true" style="background-image:url(${BASE}/duel/bg/deepbattle.webp${q})"></div>`);
   }
+  for (const [k, side] of [[0, 'back'], [1, 'front']]) for (const f of b.sides[k].fighters) { const im = new Image(); im.src = sprite(f.rec.id, side, f.rec.stage); }   // 교체 때 바로 보이게 미리 받기
   view = snap();
   render(); say(hint ? `💡 ${hint}` : b.log.at(-1));
   flow();
@@ -1096,7 +1111,8 @@ addEventListener('resize', () => { if (document.getElementById('arena')) { place
 function render() {
   for (const s of [0, 1]) {
     const f = shown(s), img = document.getElementById(`m${s}`), src = sprite(f.rec.id, s === 0 ? 'back' : 'front', f.rec.stage);
-    if (img.dataset.src !== src) { img.onload = () => placeMon(s); img.src = src; img.dataset.src = src; setTint(img, f.rec.id); img.style.setProperty('--sz', f.rec.id.startsWith('V') ? 1 : bodySz(f.rec.id, f.rec.stage)); }
+    // 그림이 바뀔 때(교체): 새 그림을 다 받을 때까지 숨김. 안 그러면 브라우저가 이전 갈매미 그림을 계속 보여 줌(v0.15.8)
+    if (img.dataset.src !== src) { img.style.visibility = 'hidden'; img.onload = () => { if (img.dataset.src === src) { img.style.visibility = ''; placeMon(s); } }; img.onerror = () => { img.style.visibility = ''; }; img.src = src; img.dataset.src = src; if (img.complete && img.naturalWidth) img.style.visibility = ''; setTint(img, f.rec.id); img.style.setProperty('--sz', f.rec.id.startsWith('V') ? 1 : bodySz(f.rec.id, f.rec.stage)); }
     img.style.opacity = view[s].down[view[s].active] ? 0 : 1;
     if (img.complete) placeMon(s);
     const hp = view[s].hp[view[s].active], pct = Math.max(0, hp / f.maxHp * 100);
@@ -1209,16 +1225,16 @@ function actionPanel(pane = 'menu') {
   const itemOk = items && items.n < items.max && items.have;
   const back = '<button class="ghost bback" id="bback">‹ 뒤로</button>';
   if (pane === 'fight') {
-    // 기술 4개(기본·역할·고유·보조 속성)를 2×2로. 지금 상대에게 유리/불리를 같이 보여 줌
+    // 기술 4칸(무엇을 넣었든)을 2×2로. 모두 재사용 대기면 몸통 박치기 버튼. 지금 상대에게 유리/불리를 같이 보여 줌
     const combo = f.skills.find(k => k.id.startsWith('combo-')), ready = combo && can({ kind: 'skill', skillId: combo.id });
     panel.innerHTML = `<div class="bhead">${back}<b>⚔️ 기술 고르기</b></div>${combo ? `<button class="combo-btn" data-k="${combo.id}" title="${esc(combo.desc)}" ${ready ? '' : 'disabled'}><small>🤝 합동기 · ${esc(R.data.synergies[combo.id.slice(6)].name)} · 대결당 1번</small><b>${esc(combo.name)}</b><span>${esc(combo.desc)}${ready ? '' : b.sides[0].comboUsed ? ' (이미 씀)' : ' (같은 시너지 동료가 있어야 해요)'}</span></button>` : ''}<div class="skills">${f.skills.filter(k => !k.id.startsWith('combo-')).map(k => {
       const at = k.attr ?? f.attr, m = k.power ? R.typeMult(at, foe.attr) : 1, wait = f.cds[k.id] > 0;
-      const kind = k.id.startsWith('sub-') ? '보조 속성' : k.id.startsWith('learn-') ? '배운 기술' : k.id === 'sig' ? '고유기' : k.id.startsWith('role-') ? '역할기' : '기본';
+      const kind = k.id.startsWith('sub-') ? '보조 속성' : k.id.startsWith('learn-') ? '배운 기술' : k.id === 'sig' ? '고유기' : k.id.startsWith('role-') ? '역할기' : '기본기';
       return `<button class="sk" data-k="${k.id}" style="--c:${COLOR[at]}" ${can({ kind: 'skill', skillId: k.id }) ? '' : 'disabled'}>
         <span class="kd">${kind}${wait ? ` · ${f.cds[k.id]}턴 뒤` : k.cd ? ` · 재사용 ${k.cd}턴` : ''}</span><b>${esc(k.name)}</b>
         <span class="ln">${k.power ? `${chip(at)}${catTag(k, f.base)}<small>위력 ${k.power}${k.hits > 1 ? `×${k.hits}` : ''}</small>${m > 1 ? '<em class="good">▲유리</em>' : m < 1 ? '<em class="bad">▼불리</em>' : ''}` : '<small>보조 기술</small>'}</span>
         ${restDesc(k) ? `<p>${esc(restDesc(k))}</p>` : ''}</button>`;
-    }).join('')}</div>`;
+    }).join('')}</div>${can({ kind: 'skill', skillId: 'struggle' }) ? '<button class="sk struggle" data-k="struggle" style="margin-top:6px;width:100%"><span class="kd">쓸 기술이 없을 때</span><b>몸통 박치기</b><span class="ln"><small>위력 30</small></span></button>' : ''}`;
     panel.querySelectorAll('[data-k]').forEach(x => x.onclick = () => turn({ kind: 'skill', skillId: x.dataset.k }));
   } else if (pane === 'swap') {
     panel.innerHTML = `<div class="bhead">${back}<b>🔁 교체</b><small>상대: ${esc(foe.name)} ${chip(foe.attr)}</small></div><div class="swl">${bench.map(([x, i]) => {
@@ -1435,7 +1451,7 @@ function aura(s, attr) {
     p.animate([{ transform: 'translate(-50%,0)', opacity: 0 }, { opacity: 1, offset: .3 }, { transform: 'translate(-50%,-70px)', opacity: 0 }], { duration: 700, delay: i * 60 }).onfinish = () => p.remove();
   }
 }
-function popIn(s) { const img = document.getElementById(`m${s}`); img.getAnimations().forEach(a => a.cancel()); img.animate([{ transform: 'scale(.5)', opacity: 0 }, { transform: 'scale(1.05)', opacity: 1 }, { transform: 'scale(1)', opacity: 1 }], { duration: 420, easing: 'ease-out' }); }
+function popIn(s) { const img = document.getElementById(`m${s}`); if (!img.complete) { img.addEventListener('load', () => popIn(s), { once: true }); return; } img.getAnimations().forEach(a => a.cancel()); img.animate([{ transform: 'scale(.5)', opacity: 0 }, { transform: 'scale(1.05)', opacity: 1 }, { transform: 'scale(1)', opacity: 1 }], { duration: 420, easing: 'ease-out' }); }
 // 「다섯 번째 목소리」: 갈매미 한 마리.. 두 마리.. 세 마리.. 네 마리.. (정적) 다섯 마리... 앙~ 갈매미맨이야~
 async function fiveVoices() {
   const fx = document.getElementById('fx'), arena = document.getElementById('arena');

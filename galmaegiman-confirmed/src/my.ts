@@ -202,7 +202,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
   // 진행은 브라우저가 계산해 보냄(스토리는 혼자 하는 모드라 재화 보상 없음). 모양·범위만 검사
   const storyShape=(R:ReturnType<typeof loadBattleRules>)=>{
     const unit=z.object({level:z.number().int().min(1).max(R.data.growth.maxLevel),xp:z.number().int().min(0).max(1e9),
-      learned:z.array(z.string().max(30)).max(R.data.learn.slots).optional(),learnUsed:z.number().int().min(0).max(R.data.learn.levels.length).optional(),
+      learned:z.array(z.string().max(30)).max(R.data.learn.slots+1).optional(),learnUsed:z.number().int().min(0).max(R.data.learn.levels.length).optional(),learnPick:z.number().int().min(0).max(4).optional(),
       stage:z.number().int().min(0).max(3).optional(),evoAugs:z.array(z.string().max(30)).max(3).optional()}).strict();
     return z.object({units:z.record(z.string().regex(/^[DTEI]\d{1,2}$/),unit).refine(u=>Object.keys(u).every(id=>R.units.has(id)),'없는 갈매미'),
       team:z.array(z.string().max(4)).max(3),cleared:z.array(z.string().max(12)).max(300),

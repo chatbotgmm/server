@@ -23,13 +23,16 @@ export interface Battle {R:Rules;rng:number;turn:number;phase:'choose'|'action'|
 function rand(b:Battle){let t=(b.rng=(b.rng+0x6d2b79f5)|0);t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;}
 const josa=(w:string,pair:string)=>{const c=w.charCodeAt(w.length-1);const has=c>=0xac00&&c<=0xd7a3&&(c-0xac00)%28>0;return w+(has?pair[0]:pair[1]);};
 
+// 쓸 기술이 없을 때만 나오는 약한 공격(기본기를 잊었을 때 대비). 속성 없음·재사용 없음
+export const STRUGGLE:Skill={id:'struggle',name:'몸통 박치기',power:30,cat:'phys',cd:0,effects:[],desc:'쓸 기술이 없을 때 나가는 약한 공격'};
+const skillOf=(f:Fighter,id:string)=>id===STRUGGLE.id?{...STRUGGLE,attr:f.attr}:f.skills.find(k=>k.id===id);
 function makeFighter(R:Rules,rec:UnitRecord,side:0|1,combo?:Skill):Fighter{
   const def=R.unitDef(rec.id);if(!def)throw new Error(`전투 유닛이 아님: ${rec.id}`);
   const s=statsOf(R,rec),passive=passiveOf(R,rec);
   const sigCd=Math.max(1,def.signature.cd-(passive.sigCd??0));
   return {side,rec,name:rec.name,scale:levelScale(R,rec),attr:def.attr,role:def.role,peanut:rec.name.includes('갈매미맨'),passive,
-    // 기본기·고유기(고정) + 바꿀 수 있는 칸(역할기·보조 속성 기술·배운 기술)
-    skills:[{...R.basicSkill(def.attr,def.basicCat),...(def.basic?{name:def.basic}:{})},{...def.signature,cd:sigCd},...slotSkills(R,rec),...(combo?[combo]:[])],
+    // 기술 4칸(v0.15.8: 기본기·고유기도 바꿀 수 있음) + 합동기. 쓸 기술이 하나도 없을 때만 「몸통 박치기」(legalActions)
+    skills:[...slotSkills(R,rec).map(k=>k.id==='sig'?{...k,cd:sigCd}:k),...(combo?[combo]:[])],
     maxHp:s.hp,hp:s.hp,base:{patk:s.patk,pdef:s.pdef,matk:s.matk,mdef:s.mdef,spd:s.spd},cds:{},mods:[],status:{},guards:[],regens:[],
     endure:0,protect:false,recharge:false,immune:0,lockAtk:0,lastStandUsed:false,attacked:false,actedTurn:0,hitBy:{}};
 }
@@ -271,6 +274,7 @@ function comboReady(b:Battle,side:0|1,sk:Skill){
 export function legalActions(b:Battle,side:0|1):Action[]{
   const s=b.sides[side],f=activeOf(b,side),out:Action[]=[];
   for(const sk of f.skills)if(!(f.cds[sk.id]>0)&&comboReady(b,side,sk))out.push({kind:'skill',skillId:sk.id});
+  if(!out.length)out.push({kind:'skill',skillId:STRUGGLE.id});   // 모든 기술이 재사용 대기면 몸통 박치기
   if(!f.status.bind&&!(f.lockAtk&&alive(f)))s.fighters.forEach((x,i)=>{if(i!==s.active&&alive(x))out.push({kind:'switch',to:i});});
   return out;
 }
@@ -288,7 +292,7 @@ export function act(b:Battle,actions:[Action,Action]){
       if(s.augs.includes('freeswitch'))action=action.then?{kind:'skill',skillId:action.then}:pickAi(b,side);   // 교체가 턴을 안 쓰면 새로 나온 갈매미가 바로 행동
       else continue;
     }
-    const f=activeOf(b,side),skill=f.skills.find(k=>k.id===(action as {skillId:string}).skillId);
+    const f=activeOf(b,side),skill=skillOf(f,(action as {skillId:string}).skillId);
     if(!skill||f.cds[skill.id]>0||!comboReady(b,side,skill))throw new Error('쓸 수 없는 기술');
     order.push({side,action,pri:(s.goFirst?2:0)+(skill.priority?1:0),spd:statOf(b,f,'spd'),tie:rand(b)});
     s.goFirst=false;
@@ -301,7 +305,7 @@ export function act(b:Battle,actions:[Action,Action]){
     if(user.recharge){user.recharge=false;b.log.push(`${josa(user.name,'은는')} 힘을 너무 써서 쉬고 있어요.`);continue;}
     if(user.status.sleep){b.log.push(`${josa(user.name,'은는')} 쿨쿨 자고 있어요.`);continue;}
     if(user.status.freeze){b.log.push(`${josa(user.name,'은는')} 얼어서 움직이지 못해요.`);continue;}
-    const sk=user.skills.find(k=>k.id===(o.action as {skillId:string}).skillId)!;
+    const sk=skillOf(user,(o.action as {skillId:string}).skillId)!;
     if(sk.id.startsWith('combo-')){b.sides[o.side].comboUsed=true;b.log.push(`합동기 「${sk.name}」! ${b.R.data.synergies[sk.id.slice(6)]?.name??''}의 힘이 모였어요!`);}
     useSkill(b,user,target,sk);
   }
@@ -344,7 +348,7 @@ export function pickAi(b:Battle,side:0|1):Action{
   const legal=legalActions(b,side).filter((a):a is {kind:'skill';skillId:string}=>a.kind==='skill');
   let best:Action=legal[0]??{kind:'skill',skillId:f.skills[0].id},score=-1;
   for(const a of legal){
-    const sk=f.skills.find(k=>k.id===a.skillId)!;let v=0;
+    const sk=skillOf(f,a.skillId)!;let v=0;
     if(sk.power){const at=attackAttr(b.R,f,sk,foe);v=sk.power*(sk.hits??1)*b.R.typeMult(at,foe.attr)*(at===f.attr?b.R.data.multipliers.sameAttr:1);}
     if(sk.effects.some(e=>e.kind==='heal'))v=f.hp<f.maxHp*0.45?200:5;
     else if(sk.effects.some(e=>e.kind==='revive'))v=b.sides[side].fighters.some(x=>x.hp<=0)&&!b.sides[side].reviveUsed?250:0;
