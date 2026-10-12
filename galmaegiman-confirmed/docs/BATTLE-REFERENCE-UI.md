@@ -28,8 +28,16 @@
 - 가로 1536×628, 1006×411, 915×412, 780×360, 1280×720: 기본 메뉴, 기술, 교체, 아이템, 교체 후 그림, 1마리 팀과 항구 배경 캡처. 915×412·1280×720의 로그인 전/후 첫 화면, 로비, 스토리 목록도 직접 검토했다.
 - 기본 메뉴의 화면 넘침·버튼 잘림·상태창 겹침 없음. 글자 130%에서도 기록과 버튼판, 상태창과 상대 그림이 겹치지 않음. 780×360에서는 기술/교체 목록에 내부 스크롤이 필요할 수 있다.
 
-## 검증 제한 및 적용
+## 후속 서버·DB 검증 (2026-10-12)
 
-이 환경에서 `binaries.prisma.sh` 다운로드가 403으로 차단되어 Prisma Client를 생성하지 못했다. `npm run build`의 TypeScript 단계는 미생성 Client의 `Player`, `Prisma.InputJsonValue` 등 타입 누락으로 실패했다. 전체 서버 빌드·DB 통합 테스트·APK 빌드는 통과했다고 주장하지 않는다. 배포 환경에서 `npm ci`, `npm run db:generate`, `npm run build`, `npm run test:db`를 실행해야 한다.
+PR #1의 `codex/battle-reference-ui` 커밋 `83092235038ef03d6d9325cebecea6fd5806d7a4`에서 재검증했다. 이전 Prisma 다운로드 제한과 미생성 Client로 인한 빌드 실패는 아래 결과로 해소됐다. 애플리케이션 코드 수정은 필요하지 않았다.
+
+- 환경의 네트워크 허용 목록에 `binaries.prisma.sh`가 포함되어 있다. 프록시를 통해 실제 Prisma 엔진의 `all_commits/c2990dca591cba766e3b7ef5d9e8a84796e47ab7/debian-openssl-3.0.x/schema-engine.gz.sha256` 경로에 접속해 HTTP 200을 확인했다.
+- Node.js `v24.19.0`, npm `11.9.0`에서 `npm ci --cache /tmp/battle-reference-npm-cache --no-audit --no-fund` 통과. 실행 환경의 기본 npm 캐시 경로에 쓸 수 없어 임시 캐시를 사용했다. 잠금 파일은 변경하지 않았다.
+- `npm run db:generate` 통과: Prisma Client `v6.19.3` 생성.
+- `npm run build` 통과: TypeScript 컴파일 및 `scripts/build-play.mjs`의 웹 번들 생성 완료.
+- `npm run test:db` 통과: 임시 SQLite DB에 스키마 적용과 145종 콘텐츠 시드를 수행한 뒤, DB 통합 테스트를 포함한 8개 테스트 파일·121개 테스트 통과. 기존 DB는 수정하지 않았다.
+
+## 적용
 
 웹 화면은 정상 빌드 후 적용된다. 앱에 반영하려면 정상 빌드 후 `app/`에서 `npm run sync`와 APK 빌드가 별도로 필요하다. 현재 변경은 검토용이며 운영 배포하지 않았다.
