@@ -78,6 +78,19 @@ public class NativeScreensTest {
   public void dialogFrame() throws Exception {
     assertEquals("http://127.0.0.1:4004", BuildConfig.SERVER_URL);
     try (ActivityScenario<MainActivity> s = ActivityScenario.launch(MainActivity.class)) {
+      waitFor(s, a -> !a.busy && (a.screen.equals("login") || a.screen.equals("home")));
+      s.onActivity(
+          a -> {
+            if (a.screen.equals("login"))
+              a.request(
+                  "login",
+                  MainActivity.obj("code", "135790"),
+                  (r, e) -> {
+                    if (e != null) throw new AssertionError("검토 계정 로그인 실패: " + e);
+                    a.api.token(r.optString("token"));
+                    a.load("home");
+                  });
+          });
       waitFor(s, a -> !a.busy && a.state.has("me") && a.screen.equals("home"));
       s.onActivity(
           a ->
