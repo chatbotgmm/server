@@ -1104,7 +1104,7 @@ function startBattle(mine, foe, end, hint, flee, seed) {   // seed: PvP는 서�
   onEnd = end; hintNow = hint || ''; fleeTo = flee; if (seed === undefined) pvp = null;
   b = createBattle(R, mine, foe, seed ?? ((Math.random() * 2 ** 31) | 0));
   const boss = foe.some(f => R.villains.get(f.id)?.boss);
-  const fieldBg = sceneNow === 'deep' ? 'deepbattle.webp' : BG.includes(sceneNow || 'harbor') ? `${sceneNow || 'harbor'}.jpg` : null;
+  const fieldBg = sceneNow === 'deep' ? 'deepbattleb.webp' : BG.includes(sceneNow || 'harbor') ? `${sceneNow || 'harbor'}.jpg` : null;
   bgm(boss ? 'boss' : 'battle');
   app.innerHTML = `<div id="arena" class="sc-${sceneNow || 'harbor'}">${ambient(sceneNow || 'harbor', !!fieldBg)}<div class="ground"></div><div class="haze"></div><div class="plat foe"></div><div class="plat me"></div>
     <img class="mon foe ${boss ? 'boss' : ''}" id="m1" alt=""><img class="mon me" id="m0" alt="">
@@ -1131,7 +1131,7 @@ const logTag = t => {
 const say = t => {
   const el = document.getElementById('msg'); if (!el) return;
   const prev = el.querySelector('.lc')?.dataset.t ?? '';
-  el.innerHTML = `${prev && prev !== t ? `<span class="lp">${logTag(prev)}</span>` : ''}<span class="lc" data-t="${esc(t || '')}">${logTag(t || '')}</span>`;
+  el.innerHTML = `<div class="loglines">${prev && prev !== t ? `<span class="lp">${logTag(prev)}</span>` : ''}<span class="lc" data-t="${esc(t || '')}">${logTag(t || '')}</span></div>`;
 };
 // 전투 캐릭터 자리(v0.15.4, 가로 화면): 그림의 투명 여백을 뺀 「실제 그림 영역」을 재서, 정해 둔 칸 안에 비율 그대로 맞춤.
 // 같은 너비를 모두에게 주지 않고 그림마다 실제 영역으로 계산 → 아군은 날개·발이 화면 안에, 상대는 조금 크게. 발(그림 아래)은 칸 바닥 가운데
@@ -1310,6 +1310,8 @@ function chooseSheet(p) {
 }
 
 // 행동 고르기(v0.14.8, 포켓몬처럼): 먼저 큰 버튼 4개(공격·아이템·교체·도망) → 공격을 누르면 기술, 교체를 누르면 바꿀 갈매미(속성·체력·상성)
+// 한 장의 UI 시트를 고정 좌표로 표시한다. 이미지를 비율대로 보여 주고 글자는 HTML로 둔다.
+const commandArt = (ui, x, y) => `<span class="bart" aria-hidden="true" style="--ax:${x};--ay:${y};--my:${-(y + 324) / 64 * 100}%"><span class="arttop"><img src="${ui}/b5_command_buttons.webp" alt=""></span><span class="artmid"><img src="${ui}/b5_command_buttons.webp" alt=""></span><span class="artbottom"><img src="${ui}/b5_command_buttons.webp" alt=""></span></span>`;
 function actionPanel(pane = 'menu') {
   const f = activeOf(b, 0), legal = legalActions(b, 0), s = b.sides[0];
   const can = a => legal.some(x => x.kind === a.kind && (a.kind === 'skill' ? x.skillId === a.skillId : x.to === a.to));
@@ -1338,12 +1340,12 @@ function actionPanel(pane = 'menu') {
         <i class="hpb"><i style="width:${pct}%;background:${col}"></i></i><small>${x.hp > 0 ? `체력 ${Math.max(0, x.hp)}/${x.maxHp}` : '전투불가'}${x.hp > 0 ? ` · 공격 ${atk > 1 ? '<em class="good">유리</em>' : atk < 1 ? '<em class="bad">불리</em>' : '보통'} · 방어 ${def > 1 ? '<em class="bad">불리</em>' : def < 1 ? '<em class="good">유리</em>' : '보통'}` : ''}</small></span></button>`; }).join('')}</div>`;
     panel.querySelectorAll('[data-s]').forEach(x => x.onclick = () => turn({ kind: 'switch', to: +x.dataset.s }));
   } else {
-    const UI = APP ? 'intro' : `${BASE}/duel/intro`;   // v0.15.4 그림 버튼(글자·아이콘은 그림에 있음 → 아래 안내만 코드)
+    const UI = APP ? 'intro' : `${BASE}/duel/intro`;   // 모바일 그림 버튼: 재질·아이콘은 시트, 제목·안내는 실제 글꼴
     panel.innerHTML = `<div class="bmenu img">
-      <button class="bm atk" id="bAtk" aria-label="공격" title="기술 ${f.skills.filter(k => can({ kind: 'skill', skillId: k.id })).length}개"><img src="${UI}/b3_button_attack.webp" alt=""><img class="lb" src="${UI}/b3_label_attack.webp" alt="" style="--x:50%;--y:66%;--w:34"><small>기술 ${f.skills.filter(k => can({ kind: 'skill', skillId: k.id })).length}개</small></button>
-      <button class="bm bag" id="bag" aria-label="아이템" ${itemOk ? '' : 'disabled'} title="${items ? `${items.n}/${items.max} · 가진 ${items.have}` : pvp ? '대전에선 못 써요' : '불러오는 중'}"><img src="${UI}/b3_button_item.webp" alt=""><img class="lb" src="${UI}/b3_label_item.webp" alt="" style="--x:50%;--y:66%;--w:44"><small>${items ? `${items.n}/${items.max} · 가진 ${items.have}` : pvp ? '대전에선 못 써요' : '불러오는 중'}</small></button>
-      <button class="bm sw" id="bSw" aria-label="교체" ${swaps ? '' : 'disabled'} title="${swaps ? `${swaps}마리 대기` : '바꿀 갈매미 없음'}"><img src="${UI}/b3_button_switch.webp" alt=""><img class="lb" src="${UI}/b3_label_switch.webp" alt="" style="--x:50%;--y:66%;--w:34"><small>${swaps ? `${swaps}마리 대기` : '바꿀 갈매미 없음'}</small></button>
-      <button class="bm run" id="flee" aria-label="${pvp ? '나가기' : '도망가기'}" title="${pvp?.mode === 'rank' ? '패배로 처리' : pvp ? '대전 끝내기' : '경험치 없음'}"><img src="${UI}/b3_button_run.webp" alt=""><img class="lb" src="${UI}/b3_label_run.webp" alt="" style="--x:50%;--y:66%;--w:60"><small>${pvp?.mode === 'rank' ? '패배로 처리' : pvp ? '대전 끝내기' : '경험치 없음'}</small></button></div>`;
+      <button class="bm atk" id="bAtk" aria-label="공격" title="기술 ${f.skills.filter(k => can({ kind: 'skill', skillId: k.id })).length}개">${commandArt(UI, 42, 74)}<b class="bt">공격</b></button>
+      <button class="bm bag" id="bag" aria-label="아이템" ${itemOk ? '' : 'disabled'} title="${items ? `${items.n}/${items.max} · 가진 ${items.have}` : pvp ? '대전에선 못 써요' : '불러오는 중'}">${commandArt(UI, 638, 74)}<b class="bt">아이템</b></button>
+      <button class="bm sw" id="bSw" aria-label="교체" ${swaps ? '' : 'disabled'} title="${swaps ? `${swaps}마리 대기` : '바꿀 갈매미 없음'}">${commandArt(UI, 42, 639)}<b class="bt">교체</b></button>
+      <button class="bm run" id="flee" aria-label="${pvp ? '나가기' : '도망가기'}" title="${pvp?.mode === 'rank' ? '패배로 처리' : pvp ? '대전 끝내기' : '경험치 없음'}">${commandArt(UI, 638, 639)}<b class="bt">${pvp ? '나가기' : '도망가기'}</b></button></div>`;
     panel.querySelector('#bAtk').onclick = () => actionPanel('fight');
     panel.querySelector('#bSw').onclick = () => actionPanel('swap');
     panel.querySelector('#bag').onclick = itemSheet;

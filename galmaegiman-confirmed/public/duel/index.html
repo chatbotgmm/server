@@ -1803,7 +1803,7 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
   #app:has(#arena){grid-template-columns:minmax(0,64.5fr) minmax(0,35.5fr);grid-template-rows:auto minmax(0,1fr)}
   #app:has(#arena) .cmdbg{z-index:0;margin:-2vh -1vw -2vh -3vw;border-width:14vh 4vw 10vh 6vw;border-image:url(/duel/intro/b4_command_panel.webp) 240 140 180 240 fill / 14vh 4vw 10vh 6vw stretch}
   #app:has(#arena) #msg{grid-row:1 !important;align-self:center;margin:11.5vh calc(5.5% + var(--sr)) 2vh 8% !important;padding:2vh max(1.8vw,10vh) 2vh 1.8vw !important;min-height:11vh !important;font-size:clamp(12px,3vh,20px);line-height:1.4}
-  #app:has(#arena) #msg::before{background:#fff2de;border:clamp(2px,.5vh,4px) solid #dba456;border-radius:999px;box-shadow:inset 0 0 0 2px #ffe4ac,0 2px 0 #9e683a}
+  #app:has(#arena) #msg::before{background:none;border:solid transparent;--log-edge:clamp(16px,2vw,28px);border-width:calc(var(--log-edge) * 100 / 180) var(--log-edge);border-image:url(/duel/intro/b5_log_frame.svg) 100 180 fill / calc(var(--log-edge) * 100 / 180) var(--log-edge) stretch;border-radius:0;box-shadow:none}
   #app:has(#arena) #msg .lp{display:none}
   #app:has(#arena) #msg .lc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   #app:has(#arena) #msg .tg{padding:0;background:none;color:inherit;font-size:inherit;font-weight:700;vertical-align:0;margin-right:.35em}
@@ -1811,14 +1811,19 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
   #app:has(#arena) #panel,#app:has(#arena) #panel:has(.bmenu.img){grid-row:2 !important;min-height:0;padding:1vh calc(4% + var(--sr)) calc(8.5vh + env(safe-area-inset-bottom,0px)) 5.5% !important;gap:5px;overflow:auto}
   #app:has(#arena) #panel:has(.bmenu.img){overflow:hidden}
   #app:has(#arena) .bmenu.img{flex:1;min-height:0;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,auto);gap:.5vh .25vw;align-content:center;justify-content:stretch}
-  #app:has(#arena) .bmenu.img .bm{width:min(100%,calc((50cqh - .25vh) * 1.2));height:min(calc(50cqh - .25vh),calc((50cqw - .125vw) / 1.2));aspect-ratio:1.2;max-height:100%}
-  #app:has(#arena) .bmenu.img .bm>img:first-child{inset:-6%;width:112%;height:112%;object-fit:fill}
-  #app:has(#arena) .bmenu.img .bm .lb{height:14cqh !important;top:66% !important}
-  #app:has(#arena) .bmenu.img .bm small{top:82%;font-size:clamp(10px,7.5cqh,18px);font-weight:400;color:#7d5f40}
-  #app:has(#arena) .bmenu.img .bm.run .lb{top:73% !important}
-  #app:has(#arena) .bmenu.img .bm.run small{top:86%}
+  #app:has(#arena) .bmenu.img .bm{width:min(100%,calc((50cqh - .25vh) * 574 / 488));height:min(calc(50cqh - .25vh),calc((50cqw - .125vw) * 488 / 574));aspect-ratio:574/488;max-height:100%;container-type:size}
+  #app:has(#arena) .bmenu.img .bart{position:absolute;inset:0;display:block;overflow:hidden;pointer-events:none}
+  #app:has(#arena) .bmenu.img .bart>span{position:absolute;left:0;right:0;overflow:hidden}
+  #app:has(#arena) .bmenu.img .arttop{top:0;height:calc(324 * 100cqw / 574)}
+  #app:has(#arena) .bmenu.img .artbottom{bottom:0;height:calc(156 * 100cqw / 574)}
+  #app:has(#arena) .bmenu.img .artmid{top:calc(324 * 100cqw / 574);bottom:calc(156 * 100cqw / 574)}
+  #app:has(#arena) .bmenu.img .bart img{inset:auto;left:calc(-1 * var(--ax) * 100cqw / 574);top:calc(-1 * var(--ay) * 100cqw / 574);width:calc(1254 * 100cqw / 574);height:auto;max-width:none;object-fit:fill}
+  #app:has(#arena) .bmenu.img .artbottom img{top:calc(-1 * (var(--ay) + 388) * 100cqw / 574)}
+  #app:has(#arena) .bmenu.img .artmid img{top:var(--my);height:1959.375%}
+  #app:has(#arena) .bmenu.img .bt{position:absolute;left:6%;right:6%;top:76%;transform:translateY(-50%);font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:clamp(16px,20cqh,30px);line-height:1;color:#3b2614;text-align:center;white-space:nowrap}
+  #arena.bg2 .plat{display:block;background:radial-gradient(ellipse,#6d482136 0%,#6d482116 45%,transparent 72%) !important;filter:blur(2px);pointer-events:none}
   #arena .box{font-size:clamp(11px,2.7vh,18px);padding:3vh 2.1vw 2.4vh !important}
-  #arena .box::before{background:none;border-style:solid;border-width:2.2vh 3vw 4vh;border-image:url(/duel/intro/b2_status_panel.webp) 32 110 74 110 fill / 2.2vh 3vw 4vh stretch}
+  #arena .box::before{background:none;border-style:solid;--status-edge:clamp(22px,3vw,38px);border-width:calc(var(--status-edge) * 100 / 280) var(--status-edge) calc(var(--status-edge) * 230 / 280);border-image:url(/duel/intro/b5_status_frame.svg) 100 280 230 280 fill / calc(var(--status-edge) * 100 / 280) var(--status-edge) calc(var(--status-edge) * 230 / 280) stretch}
   #arena .box.foe{left:8%;top:3.7%;width:46%}
   #arena .box.me{left:46%;right:auto;bottom:5.5%;width:44%}
   #arena .box .nm span{font-size:clamp(13px,3.5vh,24px)}
@@ -1851,9 +1856,9 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
 /* 큰 가로 화면은 버튼 위의 여백을 전투 기록으로 채운다. 기술 선택은 기존 공간을 유지한다. */
 @media (orientation:landscape) and (min-width:1000px) and (min-height:600px){
   #app:has(#arena):has(#panel .bmenu.img){grid-template-rows:minmax(0,1fr) auto}
-  #app:has(#arena) #panel:has(.bmenu.img){height:calc((35.5vw * .905 - .25vw) / 1.2 + 10vh);max-height:65vh}
-  #app:has(#arena):has(#panel .bmenu.img) #msg{align-self:stretch;display:flex;flex-direction:column;justify-content:safe center;gap:1em;min-height:0 !important;padding-right:1.8vw !important;font-size:clamp(20px,3.2vh,28px);overflow:auto}
-  #app:has(#arena):has(#panel .bmenu.img) #msg::before{border-radius:24px}
+  #app:has(#arena) #panel:has(.bmenu.img){height:calc((35.5vw * .905 - .25vw) * 488 / 574 + 10vh);max-height:65vh}
+  #app:has(#arena):has(#panel .bmenu.img) #msg{align-self:stretch;display:flex;flex-direction:column;justify-content:safe center;gap:1em;min-height:0 !important;padding-right:1.8vw !important;font-size:clamp(20px,3.2vh,28px);overflow:hidden}
+  #app:has(#arena):has(#panel .bmenu.img) #msg .loglines{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:safe center;gap:1em;overflow:auto}
   #app:has(#arena):has(#panel .bmenu.img) #msg .lp{display:block;flex:none;margin:0;font-size:.8em;line-height:1.5;color:#947455}
   #app:has(#arena):has(#panel .bmenu.img) #msg .lc{display:block;flex:none;overflow:visible}
 }
