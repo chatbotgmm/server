@@ -1,10 +1,10 @@
 {
-  "versionCode": 64,
-  "versionName": "2.0.1-native",
-  "size": 11210483,
+  "versionCode": 65,
+  "versionName": "2.0.2-native",
+  "size": 52129203,
   "date": "2026-10-13",
   "test": true,
   "native": true,
   "applicationId": "org.dpdns.gmm.native",
-  "sha256": "91dfa7c64217be2ba6b78e33ba579e19ef025f7e5fa6a8823ced395f34e1ede7"
+  "sha256": "fb0aa228520c577122ab23638e8275c3f3536895941ed4d049b66ec964ec9280"
 }
