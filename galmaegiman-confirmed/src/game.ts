@@ -1333,7 +1333,7 @@ export class GameService {
       await this.audit(tx,p,'PVP_END',{mode:m.mode,won});
       const after=await tx.player.findUniqueOrThrow({where:{id:p.id}});
       return {won,mode:m.mode,change:m.mode==='rank'?(won?pv.win:-m.lost):0,point:after.rankPoint,tier:this.pvpTier(after.rankPoint),wins:after.rankWins,losses:after.rankLosses};
-    });
+    }).catch(e=>{m.done=false;throw e;});
   }
   async webDraw(playerId:string,kind:string,times:number){
     if(kind!=='LOW'&&kind!=='MID'&&kind!=='HIGH')throw new GameError('없는 뽑기예요.');
@@ -1403,13 +1403,14 @@ export class GameService {
   }
 
   // 대결 중 아이템 쓰기: 가진 개수에서 1개 빼기(0개면 거절)
-  async webUseItem(playerId:string,item:{id:string;name:string}){
-    return this.webRun(playerId,async(tx,p)=>{
+  private async consumeItem(tx:Tx,p:Player,item:{id:string;name:string}){
       const used=await tx.playerItem.updateMany({where:{playerId:p.id,itemId:item.id,count:{gte:1}},data:{count:{decrement:1}}});
       if(used.count!==1)throw new GameError(`${item.name}이(가) 없어요. 「내 갈매미」 상점에서 살 수 있어요.`);
       await this.audit(tx,p,'ITEM_USE',{item:item.id});
       return (await tx.playerItem.findUniqueOrThrow({where:{playerId_itemId:{playerId:p.id,itemId:item.id}}})).count;
-    });
+  }
+  async webUseItem(playerId:string,item:{id:string;name:string}){
+    return this.webRun(playerId,(tx,p)=>this.consumeItem(tx,p,item));
   }
   // 스토리 진행(JSON, 모양 검사는 my.ts에서)
   async webStory(playerId:string):Promise<unknown>{
@@ -1422,8 +1423,7 @@ export class GameService {
     const rows=await this.db.ownedCharacter.findMany({where:{playerId,status:{in:['AVAILABLE','EXPEDITION']},characterId:{in:this.topIds}},select:{id:true,characterId:true,locked:true},orderBy:{id:'asc'}});
     return rows.map(r=>({oid:r.id,id:r.characterId,locked:r.locked}));
   }
-  async webSaveStory(playerId:string,data:unknown){
-    return this.webRun(playerId,async(tx,p)=>{
+  private async saveStory(tx:Tx,p:Player,data:unknown){
       if(data===null){await tx.storySave.deleteMany({where:{playerId:p.id}});return true;}
       // 개체 열쇠(o번호)는 지금 가진 최상위 갈매미만 남김. 편성에 있거나 키운 개체는 보호(조합·판매 재료로 안 쓰이게)
       const d=data as {units:Record<string,{level:number;xp:number;learned?:string[];stage?:number}>;team:string[];hp?:Record<string,unknown>};
@@ -1437,6 +1437,16 @@ export class GameService {
       if(protect.length)await tx.ownedCharacter.updateMany({where:{playerId:p.id,id:{in:protect},locked:false},data:{locked:true}});
       const text=JSON.stringify(d);
       await tx.storySave.upsert({where:{playerId:p.id},create:{playerId:p.id,data:text},update:{data:text}});
+      return true;
+  }
+  async webSaveStory(playerId:string,data:unknown){
+    return this.webRun(playerId,(tx,p)=>this.saveStory(tx,p,data));
+  }
+  // 네이티브 회복·전투 보상: 아이템 차감과 저장을 같은 거래로 확정한다.
+  async webNativeCommit(playerId:string,item?:{id:string;name:string},data?:unknown){
+    return this.webRun(playerId,async(tx,p)=>{
+      if(item)await this.consumeItem(tx,p,item);
+      if(data!==undefined)await this.saveStory(tx,p,data);
       return true;
     });
   }

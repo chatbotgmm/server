@@ -24,10 +24,10 @@
 #   { cleanse: 2 }                                아군 상태 이상을 풀고 2턴 동안 막음
 #   { revive: 50 }                                쓰러진 아군 하나를 체력 50%로 (전투당 1번)
 #   { strip: true }                               상대 강화 모두 지우기
-#   { recharge: true }                            쓴 다음 턴은 쉼
+#   { recharge: true }                            구형 자료 호환용(휴식 적용 안 함)
 #   { lockSelf: 25 }                              이후 교체 불가, 대신 공격 +25%
 #   { protect: true }                             이번 턴 공격 모두 막기
-# 기술 옵션: power 위력, hits 타수, priority: true 무조건 먼저, crit: true 반드시 급소, cd 재사용 대기(턴), attr 공격 속성
+# 기술 옵션: power 위력, hits 타수, priority: true 무조건 먼저, crit: true 반드시 급소, cd 구형 재사용 대기 값(현재 엔진은 0으로 정규화), attr 공격 속성
 
 version: BATTLE_V1
 
@@ -145,7 +145,7 @@ villains:
   V3:  { name: 빨판 쭈매미, basic: 먹물 뿌리기, basicCat: 마법,   attr: SEA, sub: STONE,    role: DEFENSE, power: 0.9,  skill: { name: 출근 도장대 붙잡기, cat: 물리, cd: 3, power: 45, effects: [ { status: bind, chance: 100, turns: 2 } ] } }
   V4:  { name: 쭈매미 알 무더기, basic: 먹물 뿌리기, basicCat: 마법, attr: SEA, sub: SHADOW, role: DEFENSE, power: 0.8,  hp: 1.3, skill: { name: 부화 대기, cd: 4, effects: [ { regen: 10, turns: 3, to: self }, { guard: 30, turns: 2 } ] } }
   V5:  { name: 여덟발 대장, basic: 먹물 뿌리기, basicCat: 마법,   attr: SEA, sub: SHADOW,    role: ATTACK,  power: 1.0,  hp: 1.5, boss: true, skill: { name: 이력서 여덟 장, cat: 물리, cd: 3, power: 28, hits: 4 } }
-  V6:  { name: 쭈라켄, basic: 먹물 뿌리기, basicCat: 마법,       attr: SEA, sub: GRAVITY,    role: DEFENSE, power: 1.0,  hp: 2.4, boss: true, skill: { name: 자리는 하나 지원자는 천 마리, cat: 물리, cd: 3, power: 70, hits: 2, effects: [ { buff: atk, pct: 15, turns: 3, to: self } ] } }
+  V6:  { name: 쭈라켄, basic: 먹물 뿌리기, basicCat: 마법,       attr: SEA, sub: GRAVITY,    role: DEFENSE, power: 1.0,  hp: 2.4, boss: true, skill: { name: 자리는 하나 지원자는 천 마리, cat: 물리, cd: 3, power: 48, hits: 2, effects: [ { buff: atk, pct: 15, turns: 3, to: self } ] } }
   # 랍매미(2부 「인수합병 소용돌이」용, 아직 스토리에 안 나옴). 기본기는 집게 꼬집기
   V7:  { name: 집게 랍매미,   basic: 집게 꼬집기, basicCat: 물리, attr: THREAD, sub: SEA,     role: ATTACK,  power: 0.95, skill: { name: 끈 자르기, cat: 물리, cd: 3, power: 60, effects: [ { strip: true } ] } }
   V8:  { name: 껍데기 랍매미, basic: 집게 꼬집기, basicCat: 물리, attr: STONE,  sub: SEA,     role: DEFENSE, power: 1.0,  hp: 1.3, skill: { name: 허물 벗기, cd: 4, effects: [ { heal: 30, to: self }, { buff: def, pct: 30, turns: 2, to: self } ] } }

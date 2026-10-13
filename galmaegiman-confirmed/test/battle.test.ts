@@ -5,7 +5,7 @@ import { loadBattleRules } from '../src/battle/load.js';
 import { parse } from 'yaml';
 import { readFileSync } from 'node:fs';
 import { addXp, battleXp, canEvolve, innateLearned, learnChances, learnLeft, learnOffers, learnPromo, promoSkills, slotKeys, learnSkill, maxStageAt, slotSkills, statsOf, xpToNext, type UnitRecord } from '../src/battle/growth.js';
-import { act, activeOf, aiChoose, choose, createBattle, rerollAugment, itemProblem, legalActions, pending, pickAi, type Battle } from '../src/battle/engine.js';
+import { act, activeOf, aiChoose, choose, createBattle, rerollAugment, skillProblem, itemProblem, legalActions, pending, pickAi, type Battle } from '../src/battle/engine.js';
 import { checkStory, loadStory } from '../src/battle/story.js';
 import { expectedAttempts, levelRange, referenceLevel, scoutChance, scoutCopy } from '../src/battle/scout.js';
 
@@ -60,8 +60,9 @@ describe('수비대 대결 데이터', ()=>{
     expect(log[0]).toContain('아이템 「치료약」');expect(log[1]).toMatch(/체력이 \d+ 회복됐어요/);   // 상대 기술보다 먼저
     expect(b.turn).toBe(turn+1);expect(b.phase).toBe('action');
     me.status={sleep:2};
-    act(b,[{kind:'item',item:'clear'},pickAi(b,1)]);
+    act(b,[{kind:'item',item:'clear'},{kind:'skill',skillId:'basic-SEA'}]);
     expect(b.log.some(l=>l.includes('정신을 차렸어요'))).toBe(true);
+    me.hp=me.maxHp; // 반복 고유기를 쓰는 상대 피해와 무관하게 부활 대상 검증
     b.sides[0].fighters[1].hp=0;
     expect(itemProblem(b,0,'feather',0)).toBe('다시 일으킬 갈매미가 없어요.');
     act(b,[{kind:'item',item:'feather',target:1},pickAi(b,1)]);
@@ -173,7 +174,7 @@ describe('data/battle.yaml 편집', ()=>{
 describe('스토리 모드(data/story.yaml)',()=>{
   it('스토리 파일 검사: 빌런 번호·스테이지 번호, 보스는 같은 레벨 졸병보다 체력이 큼',()=>{
     const story=loadStory(process.cwd(),R);
-    expect(story.chapters.map(c=>c.id)).toEqual(['P','1','2','3']);
+    expect(story.chapters.map(c=>c.id)).toEqual(['P','1','B','2','C','3']);
     const v=(id:string,level:number):UnitRecord=>({uid:id,id,name:R.villains.get(id)!.name!,tier:'LIMITED',level,xp:0,stage:0,evoAugs:[]});
     expect(statsOf(R,v('V6',13)).hp).toBeGreaterThan(statsOf(R,v('V3',13)).hp*2);
     const raw=()=>parse(readFileSync('data/story.yaml','utf8'));
@@ -225,7 +226,7 @@ describe('합동기·기술 배우기',()=>{
     const b=createBattle(R,[r],[mk('D1',1)],1),f=b.sides[0].fighters[0];
     expect(f.skills.map(k=>k.id).filter(id=>!id.startsWith('combo-'))).toEqual(['sub-GRAVITY',o[0].id,o2[0].id,o3[0].id]);
     b.phase='action';for(const k of f.skills)f.cds[k.id]=3;
-    expect(legalActions(b,0).filter(a=>a.kind==='skill')).toEqual([{kind:'skill',skillId:'struggle'}]);
+    expect(legalActions(b,0).some(a=>a.kind==='skill'&&a.skillId==='sub-GRAVITY')).toBe(true);   // 예전 대기값도 연속 사용을 막지 않음
     // 예전 저장: 기본기·고유기는 앞에 붙여 읽음(배운 기술 → 역할기 → 보조 속성 순으로 남은 2칸)
     expect(slotSkills(R,{...mk('T7',0,25),learned:['quick']}).map(k=>k.id)).toEqual(['basic-ICE','sig','learn-quick','role-ATTACK']);
     expect(slotSkills(R,{...mk('T7',0,25),learned:['role','sub']}).map(k=>k.id)).toEqual(['basic-ICE','sig','role-ATTACK','sub-GRAVITY']);
@@ -274,12 +275,30 @@ describe('3부 블랙 갈매미맨',()=>{
 describe('승진해야 2·3부',()=>{
   it('2부는 팀 전원 1단계, 3부는 2단계 승진이 조건이고, 승진은 레벨+깬 부 수가 필요',()=>{
     const story=loadStory(process.cwd(),R);
-    expect(story.chapters.map(c=>c.needStage??0)).toEqual([0,0,1,2]);
+    expect(story.chapters.map(c=>c.needStage??0)).toEqual([0,0,0,1,1,2]);
     const u:UnitRecord={uid:'a',id:'D2',name:'원금 갈매미맨',tier:'LIMITED',level:20,xp:0,stage:0,evoAugs:[]};
     expect(canEvolve(R,u,0)).toBe(false);            // 1부를 안 깼으면 안 됨
     expect(canEvolve(R,u,1)).toBe(true);
     expect(canEvolve(R,{...u,level:19},1)).toBe(false);
     expect(canEvolve(R,{...u,stage:1,level:35},1)).toBe(false);   // 2단계는 2부까지 깨야
     expect(canEvolve(R,{...u,stage:1,level:35},2)).toBe(true);
+  });
+});
+
+// 공격 재사용과 보조 효과 중복·무한 버티기를 함께 검증한다.
+describe('연속 기술 사용',()=>{
+  it('전용기를 다음 턴에도 사용하고 공격에 딸린 강화는 누적하지 않는다',()=>{
+    const b=createBattle(R,[rec('D1',30)],[{uid:'foe',id:'V6',name:'쭈라켄',tier:'LIMITED',level:30,xp:0,stage:0,evoAugs:[]}],15);aiChoose(b,0);aiChoose(b,1);
+    const f=activeOf(b,1),sk=f.skills.find(k=>k.id==='sig')!;
+    act(b,[{kind:'skill',skillId:'basic-STONE'},{kind:'skill',skillId:'sig'}]);
+    expect(legalActions(b,1).some(a=>a.kind==='skill'&&a.skillId==='sig')).toBe(true);
+    act(b,[{kind:'skill',skillId:'basic-STONE'},{kind:'skill',skillId:'sig'}]);
+    expect(f.mods.filter(m=>m.stat==='atk'&&m.pct===15)).toHaveLength(1);expect(f.cds.sig??0).toBe(0);
+  });
+  it('유지 중인 보조 효과와 바로 다음 턴의 버티기 반복은 막는다',()=>{
+    const b=createBattle(R,[rec('I3',30)],[rec('D1',1)],9);aiChoose(b,0);aiChoose(b,1);const f=activeOf(b,0),sk=f.skills.find(k=>k.id==='sig')!;
+    f.hp=Math.round(f.maxHp*.4);act(b,[{kind:'skill',skillId:'sig'},{kind:'skill',skillId:'basic-STONE'}]);
+    expect(skillProblem(b,0,sk)).toMatch(/이미 적용/);expect(()=>act(b,[{kind:'skill',skillId:'sig'},{kind:'skill',skillId:'basic-STONE'}])).toThrow(/이미 적용/);
+    expect(legalActions(b,0).some(a=>a.kind==='skill'&&a.skillId==='basic-SHADOW')).toBe(true);
   });
 });

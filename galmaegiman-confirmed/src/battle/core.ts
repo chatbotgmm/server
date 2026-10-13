@@ -136,14 +136,14 @@ export function rulesFrom(d:BattleData){
   const toCat=(c?:string):Cat|undefined=>c==='물리'?'phys':c==='마법'?'mag':c==='자동'?'auto':undefined;
   const mkSkill=(id:string,s:SkillIn,a:Attr):Skill=>{
     if(s.power&&!s.cat)throw new Error(`기술 「${s.name}」: 공격 기술은 cat(물리·마법·자동)을 정해야 해요`);
-    const base={name:s.name.replaceAll('{속성}',attrName(a)),cd:s.cd,effects:(s.effects??[]).map(toEffect),
+    const base={name:s.name.replaceAll('{속성}',attrName(a)),cd:0,effects:(s.effects??[]).map(toEffect).filter(e=>e.kind!=='recharge'),
       ...(s.power?{power:s.power,attr:s.attr??a,cat:toCat(s.cat)}:{}),...(s.hits?{hits:s.hits}:{}),...(s.priority?{priority:true}:{}),...(s.crit?{crit:true}:{})};
     return {id,...base,desc:s.desc??skillDesc(base,attrName)};
   };
   const basicSkill=(a:Attr,cat?:Cat):Skill=>({id:`basic-${a}`,name:d.attributes[a].basic,attr:a,power:d.basicPower,cat:cat??toCat(d.attributes[a].basicCat),cd:0,effects:[],desc:`위력 ${d.basicPower}`});
   const roleSkill=(r:Role,a:Attr):Skill=>mkSkill(`role-${r}`,d.roles[r].skill,a);
   // 보조 속성 기술: 자기 속성이 아닌 공격(상성이 불리할 때 꺼내 씀)
-  const subSkill=(a:Attr):Skill=>({id:`sub-${a}`,name:d.attributes[a].sub,attr:a,power:d.subSkill.power,cat:toCat(d.attributes[a].subCat),cd:d.subSkill.cd,effects:[],desc:`${attrName(a)} 속성 공격 · 위력 ${d.subSkill.power}`});
+  const subSkill=(a:Attr):Skill=>({id:`sub-${a}`,name:d.attributes[a].sub,attr:a,power:d.subSkill.power,cat:toCat(d.attributes[a].subCat),cd:0,effects:[],desc:`${attrName(a)} 속성 공격 · 위력 ${d.subSkill.power}`});
   const synOf=new Map<string,string>();for(const [k,v] of Object.entries(d.synergies))for(const m of v.members)synOf.set(m,k);
   const units=new Map<string,UnitDef>(Object.entries(d.units).map(([id,u])=>[id,{id,attr:u.attr,sub:u.sub,syn:synOf.get(id),role:u.role,stats:u.stats,signature:mkSkill('sig',u.skill,u.attr)}]));
   // 스토리 빌런: 공격·방어는 역할 기본값 × power, 체력은 × hp(없으면 power). 졸병 1 미만, 보스는 hp를 크게
@@ -160,6 +160,8 @@ export function rulesFrom(d:BattleData){
   });
   const evoAugments:EvoAugment[]=Object.entries(d.evoAugments).map(([id,a])=>{
     const {name,roles,desc,...passive}=a;
+    // 예전 재사용 감소 표창은 공격 보정으로 이어받아 무효 표창이 되지 않게 함.
+    if(passive.sigCd){passive.atkPct=(passive.atkPct??0)+passive.sigCd*5;delete passive.sigCd;}
     const text=(Object.entries(passive) as [keyof Passive,number|boolean][]).map(([k,v])=>passiveText[k](Number(v))).join(', ');
     return {id,name,roles,passive:passive as Passive,desc:desc??text};
   });

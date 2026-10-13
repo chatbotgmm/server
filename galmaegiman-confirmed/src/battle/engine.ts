@@ -11,7 +11,7 @@ export interface Fighter {
   maxHp:number;hp:number;base:{patk:number;pdef:number;matk:number;mdef:number;spd:number};cds:Record<string,number>;mods:Mod[];
   status:Partial<Record<Status,number>>;guards:{pct:number;turns:number}[];regens:{pct:number;turns:number}[];
   endure:number;protect:boolean;recharge:boolean;immune:number;lockAtk:number;lastStandUsed:boolean;attacked:boolean;actedTurn:number;
-  extraAttr?:Attr;hitBy:Partial<Record<Attr,number>>;
+  lastUtility:Record<string,number>;healUntil:number;statusUntil:Partial<Record<Status,number>>;extraAttr?:Attr;hitBy:Partial<Record<Attr,number>>;
 }
 interface SideState {fighters:Fighter[];active:number;comboUsed:boolean;augs:string[];offers:string[]|null;rerolled:boolean[];offerSeen:string[];needSwitch:boolean;reviveUsed:boolean;goFirst:boolean;neutral:number;itemsUsed:number}
 // 교체: '인사 발령' 증강체가 있으면 턴을 안 쓰므로 then(바로 쓸 기술)을 함께 보냄(없으면 AI가 고름)
@@ -29,12 +29,11 @@ const skillOf=(f:Fighter,id:string)=>id===STRUGGLE.id?{...STRUGGLE,attr:f.attr}:
 function makeFighter(R:Rules,rec:UnitRecord,side:0|1,combo?:Skill):Fighter{
   const def=R.unitDef(rec.id);if(!def)throw new Error(`전투 유닛이 아님: ${rec.id}`);
   const s=statsOf(R,rec),passive=passiveOf(R,rec);
-  const sigCd=Math.max(1,def.signature.cd-(passive.sigCd??0));
   return {side,rec,name:rec.name,scale:levelScale(R,rec),attr:def.attr,role:def.role,peanut:rec.name.includes('갈매미맨'),passive,
     // 기술 4칸(v0.15.8: 기본기·고유기도 바꿀 수 있음) + 합동기. 쓸 기술이 하나도 없을 때만 「몸통 박치기」(legalActions)
-    skills:[...slotSkills(R,rec).map(k=>k.id==='sig'?{...k,cd:sigCd}:k),...(combo?[combo]:[])],
+    skills:[...slotSkills(R,rec),...(combo?[combo]:[])],
     maxHp:s.hp,hp:s.hp,base:{patk:s.patk,pdef:s.pdef,matk:s.matk,mdef:s.mdef,spd:s.spd},cds:{},mods:[],status:{},guards:[],regens:[],
-    endure:0,protect:false,recharge:false,immune:0,lockAtk:0,lastStandUsed:false,attacked:false,actedTurn:0,hitBy:{}};
+    endure:0,protect:false,recharge:false,immune:0,lockAtk:0,lastStandUsed:false,attacked:false,actedTurn:0,lastUtility:{},healUntil:0,statusUntil:{},hitBy:{}};
 }
 
 export function createBattle(R:Rules,teamA:UnitRecord[],teamB:UnitRecord[],seed:number):Battle{
@@ -178,30 +177,36 @@ function hurt(b:Battle,f:Fighter,amount:number){
 }
 
 function applyStatus(b:Battle,src:Fighter,target:Fighter,status:Status,chance:number,turns:number){
-  if(target.hp<=0||target.immune>0)return;
+  if(target.hp<=0||target.immune>0||target.status[status]||(target.statusUntil[status]??0)>=b.turn)return;
   if(status==='rage'&&!target.peanut){b.log.push(`${josa(target.name,'은는')} 땅콩이 없어서 폭주하지 않아요.`);return;}
   let c=chance+(src.passive.statusPlus??0);
   if(target.passive.statusResist)c*=1-target.passive.statusResist/100;
-  if(rand(b)*100<c){target.status[status]=turns+(target.actedTurn===b.turn?1:0);b.log.push(`${josa(target.name,'이가')} ${statusName[status]} 상태가 됐어요!`);}
+  if(rand(b)*100<c){target.statusUntil[status]=b.turn+turns+1;target.status[status]=turns+(target.actedTurn===b.turn?1:0);b.log.push(`${josa(target.name,'이가')} ${statusName[status]} 상태가 됐어요!`);}
 }
 
 function applyEffects(b:Battle,user:Fighter,target:Fighter,effects:Effect[]){
-  const team=b.sides[user.side].fighters,extra=user.passive.durationPlus??0;
+  const team=b.sides[user.side].fighters,extra=user.passive.durationPlus??0,healBlocked=user.healUntil>=b.turn;
+  if(healBlocked&&effects.some(e=>e.kind==='heal'))b.log.push('회복 효과는 이미 적용되었습니다. 공격은 계속됩니다.');
   for(const e of effects){
     if(e.kind==='buff'){
       const turns=e.turns+extra;
       const list=e.target==='self'?[user]:e.target==='team'?team.filter(alive):[target];
-      for(const f of list)if(f.hp>0)f.mods.push({stat:e.stat,pct:e.pct,turns});
+      for(const f of list)if(f.hp>0&&!f.mods.some(m=>m.stat===e.stat&&Math.sign(m.pct)===Math.sign(e.pct)&&Math.abs(m.pct)>=Math.abs(e.pct))){
+        f.mods=f.mods.filter(m=>!(m.stat===e.stat&&Math.sign(m.pct)===Math.sign(e.pct)));
+        f.mods.push({stat:e.stat,pct:e.pct,turns});
+      }
     }
     else if(e.kind==='status')applyStatus(b,user,target,e.status,e.chance,e.turns);
     else if(e.kind==='heal'){
+      if(healBlocked)continue;
+      user.healUntil=b.turn+1;
       const list=e.target==='self'?[user]:team.filter(f=>alive(f)&&f!==user);
       for(const f of list){f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*e.pct/100));if(e.target==='self')delete f.status.burn;}
     }
-    else if(e.kind==='guard')user.guards.push({pct:e.pct,turns:e.turns});
-    else if(e.kind==='endure')user.endure=e.turns;
+    else if(e.kind==='guard'&&!user.guards.some(g=>g.pct>=e.pct))user.guards.push({pct:e.pct,turns:e.turns});
+    else if(e.kind==='endure'&&!user.endure)user.endure=e.turns;
     else if(e.kind==='protect')user.protect=true;
-    else if(e.kind==='regen'){const list=e.target==='self'?[user]:team.filter(alive);for(const f of list)f.regens.push({pct:e.pct,turns:e.turns});}
+    else if(e.kind==='regen'){const list=e.target==='self'?[user]:team.filter(alive);for(const f of list)if(!f.regens.some(g=>g.pct>=e.pct))f.regens.push({pct:e.pct,turns:e.turns});}
     else if(e.kind==='cleanse'){for(const f of team){f.status={};f.immune=e.immuneTurns;}}
     else if(e.kind==='revive'){
       const s=b.sides[user.side];const down=team.find(f=>f.hp<=0);
@@ -209,14 +214,14 @@ function applyEffects(b:Battle,user:Fighter,target:Fighter,effects:Effect[]){
       s.reviveUsed=true;down.hp=Math.round(down.maxHp*e.pct/100);down.status={};b.log.push(`"앙~" ${josa(down.name,'이가')} 다시 일어났어요!`);
     }
     else if(e.kind==='strip'){target.mods=target.mods.filter(m=>m.pct<0);target.guards=[];}
-    else if(e.kind==='recharge')user.recharge=true;
+    // 재사용 대기·공격 뒤 휴식은 사용하지 않음.
     else if(e.kind==='lockSelf')user.lockAtk=e.atkPct;
   }
 }
 
 function useSkill(b:Battle,user:Fighter,target:Fighter,skill:Skill){
   b.log.push(`${user.name}의 ${skill.name}!`);
-  if(skill.cd)user.cds[skill.id]=skill.cd+1;
+  if(!skill.power)user.lastUtility[skill.id]=b.turn;
   if(skill.power){
     if(target.protect){b.log.push(`${josa(target.name,'이가')} 모두 막아 냈어요!`);applyEffects(b,user,target,skill.effects.filter(e=>e.kind!=='status'&&e.kind!=='strip'));return;}
     const hits=skill.hits??1;let total=0,last={mult:1,crit:false,attr:user.attr as Attr};
@@ -272,9 +277,33 @@ function comboReady(b:Battle,side:0|1,sk:Skill){
   const s=b.sides[side],f=s.fighters[s.active],k=b.R.unitDef(f.rec.id)?.syn;
   return !s.comboUsed&&s.fighters.some(x=>x!==f&&alive(x)&&b.R.unitDef(x.rec.id)?.syn===k);
 }
+// 순수 보조 기술은 새 효과가 있을 때만 사용. 공격에 딸린 효과도 중복 누적하지 않음.
+export function skillProblem(b:Battle,side:0|1,sk:Skill):string|null{
+  if(!comboReady(b,side,sk))return '이미 사용했거나 합동기 동료가 없어요.';
+  if(sk.power)return null;
+  const u=activeOf(b,side),t=activeOf(b,foeSide(side)),team=b.sides[side].fighters;
+  if(u.lastUtility[sk.id]===b.turn-1)return '이미 적용되었습니다. 같은 보조 기술을 연속해서 사용할 수 없어요.';
+  const useful=sk.effects.some(e=>{
+    switch(e.kind){
+      case 'buff':return (e.target==='self'?[u]:e.target==='team'?team:[t]).some(f=>alive(f)&&!f.mods.some(m=>m.stat===e.stat&&Math.sign(m.pct)===Math.sign(e.pct)&&Math.abs(m.pct)>=Math.abs(e.pct)));
+      case 'status':return alive(t)&&!t.immune&&!t.status[e.status]&&(t.statusUntil[e.status]??0)<b.turn&&(e.status!=='rage'||t.peanut);
+      case 'heal':return u.healUntil<b.turn&&(e.target==='self'?[u]:team.filter(f=>f!==u)).some(f=>alive(f)&&(f.hp<f.maxHp||(e.target==='self'&&f.status.burn)));
+      case 'guard':return !u.guards.some(g=>g.pct>=e.pct);
+      case 'endure':return !u.endure;
+      case 'protect':return !u.protect;
+      case 'regen':return (e.target==='self'?[u]:team).some(f=>alive(f)&&!f.regens.some(g=>g.pct>=e.pct));
+      case 'cleanse':return team.some(f=>alive(f)&&(Object.keys(f.status).length||!f.immune));
+      case 'revive':return !b.sides[side].reviveUsed&&team.some(f=>!alive(f));
+      case 'strip':return t.mods.some(m=>m.pct>0)||t.guards.length>0;
+      case 'lockSelf':return !u.lockAtk;
+      case 'recharge':return false;
+    }
+  });
+  return useful?null:'이미 적용되었거나 적용할 대상이 없어요.';
+}
 export function legalActions(b:Battle,side:0|1):Action[]{
   const s=b.sides[side],f=activeOf(b,side),out:Action[]=[];
-  for(const sk of f.skills)if(!(f.cds[sk.id]>0)&&comboReady(b,side,sk))out.push({kind:'skill',skillId:sk.id});
+  for(const sk of f.skills)if(!skillProblem(b,side,sk))out.push({kind:'skill',skillId:sk.id});
   if(!out.length)out.push({kind:'skill',skillId:STRUGGLE.id});   // 모든 기술이 재사용 대기면 몸통 박치기
   if(!f.status.bind&&!(f.lockAtk&&alive(f)))s.fighters.forEach((x,i)=>{if(i!==s.active&&alive(x))out.push({kind:'switch',to:i});});
   return out;
@@ -294,7 +323,8 @@ export function act(b:Battle,actions:[Action,Action]){
       else continue;
     }
     const f=activeOf(b,side),skill=skillOf(f,(action as {skillId:string}).skillId);
-    if(!skill||f.cds[skill.id]>0||!comboReady(b,side,skill))throw new Error('쓸 수 없는 기술');
+    if(!skill)throw new Error('쓸 수 없는 기술');
+    const why=skillProblem(b,side,skill);if(why)throw new Error(why);
     order.push({side,action,pri:(s.goFirst?2:0)+(skill.priority?1:0),spd:statOf(b,f,'spd'),tie:rand(b)});
     s.goFirst=false;
   }
@@ -303,7 +333,6 @@ export function act(b:Battle,actions:[Action,Action]){
     const user=activeOf(b,o.side),target=activeOf(b,foeSide(o.side));
     if(!alive(user)||!alive(target))continue;
     user.actedTurn=b.turn;
-    if(user.recharge){user.recharge=false;b.log.push(`${josa(user.name,'은는')} 힘을 너무 써서 쉬고 있어요.`);continue;}
     if(user.status.sleep){b.log.push(`${josa(user.name,'은는')} 쿨쿨 자고 있어요.`);continue;}
     if(user.status.freeze){b.log.push(`${josa(user.name,'은는')} 얼어서 움직이지 못해요.`);continue;}
     const sk=skillOf(user,(o.action as {skillId:string}).skillId)!;

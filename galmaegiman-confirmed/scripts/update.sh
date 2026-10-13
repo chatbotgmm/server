@@ -60,6 +60,15 @@ apk() {
     mv "$dir/galmaegiman-suhbidae.apk.new" "$dir/galmaegiman-suhbidae.apk" && mv "$dir/apk.json.new" "$dir/apk.json"
     echo "📲 앱 파일 갱신: $(grep -o '"versionName": "[^"]*"' "$dir/apk.json")"
   fi
+  # 네이티브 시험판은 기존 APK와 별도 파일로 보존한다. FETCH_HEAD는 단일 브랜치 fetch에도 유효하다.
+  if git -C "$repo" show FETCH_HEAD:native.json > "$dir/native.json.new" 2>/dev/null \
+     && git -C "$repo" show FETCH_HEAD:galmaegiman-native.apk > "$dir/galmaegiman-native.apk.new" 2>/dev/null; then
+    if node --input-type=module -e 'import fs from "node:fs";import{createHash}from"node:crypto";const d=process.argv[1],m=JSON.parse(fs.readFileSync(d+"/native.json.new")),b=fs.readFileSync(d+"/galmaegiman-native.apk.new");if(b.length!==m.size||createHash("sha256").update(b).digest("hex")!==m.sha256)process.exit(1)' "$dir"; then
+      mv "$dir/galmaegiman-native.apk.new" "$dir/galmaegiman-native.apk"
+      mv "$dir/native.json.new" "$dir/native.json"
+      echo "📲 네이티브 앱 파일 확인 완료"
+    fi
+  fi
   rm -f "$dir"/*.new
 }
 

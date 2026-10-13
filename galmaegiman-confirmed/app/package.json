@@ -1,23 +1,11 @@
 {
   "name": "galmaegiman-app",
   "private": true,
-  "version": "1.0.0",
-  "description": "갈매미맨 안드로이드 앱(Capacitor). 화면은 ../public/my 를 앱 안에 넣고, 서버는 gmm.dpdns.org",
+  "version": "2.0.0",
+  "description": "갈매미맨 Android 네이티브 앱. Android View/Canvas + 서버 JSON API",
   "scripts": {
-    "www": "node build-www.mjs",
-    "sync": "node build-www.mjs && npx cap sync android",
-    "open": "npx cap open android",
-    "publish-apk": "node publish-apk.mjs"
-  },
-  "dependencies": {
-    "@capacitor/android": "8.5.3",
-    "@capacitor/app": "8.1.2",
-    "@capacitor/browser": "8.0.5",
-    "@capacitor/core": "8.5.3",
-    "@capacitor/haptics": "8.0.2",
-    "@capacitor/local-notifications": "8.3.1"
-  },
-  "devDependencies": {
-    "@capacitor/cli": "8.5.3"
+    "build": "cd android && ./gradlew assembleDebug",
+    "open": "echo \"Android Studio에서 app/android 폴더를 열어 주세요.\"",
+    "publish-apk": "node publish-native.mjs"
   }
 }

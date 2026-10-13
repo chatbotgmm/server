@@ -9,6 +9,7 @@ import type { GameService } from './game.js';
 import { GameError } from './types.js';
 import { loadBattleRules } from './battle/load.js';
 import { duelKey } from './duel.js';
+import {registerNative} from './native.js';
 
 const COOKIE='gmm_s',DAYS=30,KSTATE='gmm_ks',KPEND='gmm_kp',KAPP='gmm_ka';
 // 안드로이드 앱(Capacitor) 화면 주소. 앱에서 오는 요청만 다른 주소에서 받음(CORS)
@@ -286,6 +287,8 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     return {left};
   });
 
+  registerNative(app,game,opt.root,session,guard);
+
   // ── 카카오 로그인(KAKAO_REST_KEY가 있을 때만) ──
   // 처음: 카카오 → 연결된 계정 없음 → 카톡 코드로 한 번 로그인하면 그 계정에 연결. 다음부터는 카카오만 누르면 로그인
   const kakao=opt.kakao,http=opt.fetch??fetch;
@@ -295,7 +298,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     if(!kakao)return reply.code(404).send({error:'not found'});
     const state=randomBytes(16).toString('base64url');
     const q=req.query as {app?:string;c?:string};
-    const appC=q.app==='1'&&typeof q.c==='string'&&/^[A-Za-z0-9_-]{43}$/.test(q.c)?q.c:null;
+    const appC=(q.app==='1'||q.app==='2')&&typeof q.c==='string'&&/^[A-Za-z0-9_-]{43}$/.test(q.c)?(q.app==='2'?'native:':'')+q.c:null;
     const u=new URL('https://kauth.kakao.com/oauth/authorize');
     u.search=new URLSearchParams({client_id:kakao.restKey,redirect_uri:`${await origin(req)}/my/kakao/callback`,response_type:'code',state}).toString();
     reply.header('Set-Cookie',[cookieLine(req,KSTATE,state,600),cookieLine(req,KAPP,appC??'',appC?600:0)]);
@@ -319,11 +322,12 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     }catch(e){req.log.warn({err:String(e)},'kakao login failed');return back(reply.header('Set-Cookie',clear),'?kakao=fail');}
     const linked=await game.webKakaoPlayer(kakaoId);
     const appC=cookie(req,KAPP);
-    if(linked&&appC&&/^[A-Za-z0-9_-]{43}$/.test(appC)){
+    if(linked&&appC&&/^(native:)?[A-Za-z0-9_-]{43}$/.test(appC)){
+      const native=appC.startsWith('native:'),challenge=native?appC.slice(7):appC;
       for(const [k,v] of appCodes)if(v.exp<Date.now())appCodes.delete(k);
       const code=randomBytes(18).toString('base64url');
-      appCodes.set(code,{player:linked,challenge:appC,exp:Date.now()+120_000});
-      return reply.header('Set-Cookie',[clear,cookieLine(req,KAPP,'',0)]).redirect(`gmmapp://auth?code=${code}`);
+      appCodes.set(code,{player:linked,challenge,exp:Date.now()+120_000});
+      return reply.header('Set-Cookie',[clear,cookieLine(req,KAPP,'',0)]).redirect(`${native?'gmmnative':'gmmapp'}://auth?code=${code}`);
     }
     if(linked)return back(reply.header('Set-Cookie',[clear,cookieLine(req,COOKIE,issue(linked),DAYS*86400)]),'');
     const now=session(req);

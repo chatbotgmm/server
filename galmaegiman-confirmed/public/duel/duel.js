@@ -3,7 +3,7 @@
 // 스토리 진행(레벨·경험치·배운 기술·승진·깬 스테이지): 「내 갈매미」에 로그인돼 있으면 계정에, 아니면 이 브라우저에 저장
 // 로그인돼 있으면 「내 갈매미」 전투 편성을 스토리 팀으로 쓸 수 있고, 스토리 대결에서 가진 아이템을 쓸 수 있음
 import { rulesFrom } from '../../src/battle/core.ts';
-import { createBattle, choose, rerollAugment, act, pending, legalActions, pickAi, aiChoose, activeOf, itemProblem } from '../../src/battle/engine.ts';
+import { createBattle, choose, rerollAugment, act, pending, legalActions, pickAi, aiChoose, skillProblem, activeOf, itemProblem } from '../../src/battle/engine.ts';
 import { bgm, sfx, isMuted, toggleMute, getVol, setVol, isChMuted, setChMute } from './sound.js';
 import { addXp, battleXp, canEvolve, evoChoices, innateLearned, learnChances, learnLeft, learnOffers, learnPromo, learnSkill, promoSkills, slotSkills, statsOf, xpToNext } from '../../src/battle/growth.ts';
 
@@ -813,7 +813,7 @@ function freeBattle() {
 // ── 스토리 ──
 const stages = () => STORY.chapters.flatMap(c => c.stages.map(s => ({ ...s, chapter: c })));
 const teamStageOk = need => !need || (SAVE.team.length > 0 && SAVE.team.every(id => (unitRec(id).stage ?? 0) >= need));
-const unlocked = id => { const all = stages(), i = all.findIndex(s => s.id === id); return (i === 0 || SAVE.cleared.includes(all[i - 1].id)) && teamStageOk(all[i].chapter.needStage); };
+const unlocked = id => { const all = stages(), i = all.findIndex(s => s.id === id); return (i === 0 || (SAVE.cleared.includes(all[i - 1].id) || SAVE.cleared.includes(id) || all.slice(i + 1).some(st => SAVE.cleared.includes(st.id)))) && teamStageOk(all[i].chapter.needStage); };
 
 function storyScreen() {
   modal.hidden = true; bgm('title');
@@ -822,7 +822,7 @@ function storyScreen() {
   app.innerHTML = `<div class="story"><header>${PART === null ? '<button class="back" id="bk">‹ 뒤로</button>' : ''}<h1>스토리</h1><small>${SAVE.cleared.length}/${stages().length} 실적</small>${team.length === 3 && ACC && team.some(u => hpFrac(u.key) < 1) ? '<button class="ghost edtop heal" id="heal">🩹 치료약</button>' : ''}<button class="ghost edtop" id="ed">${team.length ? '편성 바꾸기' : '팀 정하기'}</button></header>
   <aside class="steam"><section class="teambar">${team.length ? team.map(u => { const s = unitRec(u.key), need = xpToNext(R, s.level);
       const r = myRec(u.key, 0), n = learnChances(R, r), up = canEvolve(R, r, partsCleared());
-      return `<button class="mini" data-u="${u.key}"><img src="${sprite(u.id, 'front', r.stage)}" class="st-${r.stage}" alt=""><b>${esc(u.name)}</b><span>Lv${s.level} ${chip(u.def.attr)}${r.stage ? `<em class="stars">${STARS[r.stage]}</em>` : ''}</span>${hpBar(u.key)}${up ? '<em class="learn promo">⬆ 승진 가능</em>' : promoSkills(R, r).length ? '<em class="learn promo">🎖️ 전용 기술</em>' : n ? `<em class="learn">✨ 기술 배우기 ${n}</em>` : '<small>기술·승진 보기 ›</small>'}</button>`; }).join('')
+      return `<button class="mini" data-u="${u.key}"><img src="${sprite(u.id, 'front', r.stage)}" class="st-${r.stage}" alt=""><b>${esc(u.name)}</b><span>Lv${s.level} ${chip(u.def.attr)}${r.stage ? `<em class="stars">${STARS[r.stage]}</em>` : ''}</span>${hpBar(u.key)}<small class="xpinfo">경험치 ${s.xp}/${need}</small>${up ? '<em class="learn promo">⬆ 승진 가능</em>' : promoSkills(R, r).length ? '<em class="learn promo">🎖️ 전용 기술</em>' : n ? `<em class="learn">✨ 기술 배우기 ${n}</em>` : '<small>기술·승진 보기 ›</small>'}</button>`; }).join('')
       + (team.length ? `<p class="combo">${teamCombos(SAVE.team).map(x => `🤝 합동기 「${esc(x.skill)}」`).join(' · ') || '합동기 없음(같은 시너지 2마리면 생겨요)'}</p>` : '')
     : '<p class="hint" style="margin:0">먼저 팀을 정해 주세요(1~3마리). 위 「팀 정하기」를 눌러요.</p>'}</section></aside>
   <main class="schap ${PART === null ? 'parts' : 'part'}">${PART === null ? partList() : partView(STORY.chapters[PART])}</main></div>`;   // 부 화면: 뒤로(부 목록으로)는 오른쪽 아래
@@ -1077,7 +1077,7 @@ function fight(st) {
     const avg = st.enemy.reduce((a, e) => a + e.level, 0) / st.enemy.length, xp = battleXp(R, avg, won);
     const ups = [];
     for (const r of mine) {
-      const before = r.level; addXp(R, r, xp); keep(r);
+      const before = r.level; addXp(R, r, xp); keep(r); if (r.level > before) setHp(r.key ?? r.id, 1);
       if (r.level > before) ups.push(`${r.name} Lv${before}→${r.level}`);
     }
     const canLearn = mine.some(r => learnChances(R, r) > 0);
@@ -1109,7 +1109,7 @@ function startBattle(mine, foe, end, hint, flee, seed) {   // seed: PvP는 서�
   app.innerHTML = `<div id="arena" class="sc-${sceneNow || 'harbor'}">${ambient(sceneNow || 'harbor', !!fieldBg)}<div class="ground"></div><div class="haze"></div><div class="plat foe"></div><div class="plat me"></div>
     <img class="mon foe ${boss ? 'boss' : ''}" id="m1" alt=""><img class="mon me" id="m0" alt="">
     <div class="box foe" id="b1"></div><div class="box me" id="b0"></div><div id="fx"></div></div>
-    <div class="cmdbg" aria-hidden="true"></div><div id="msg" role="log" aria-live="polite"></div><div id="panel"></div>`;
+    <div id="msg" role="log" aria-live="polite"></div><div id="panel"></div>`;
   if (fieldBg) {   // 시안처럼 장면 일러스트를 명령판 뒤까지 연결합니다. 해저는 전투 전용 그림을 사용합니다.
     app.querySelector('#arena').classList.add('bg2');
     app.insertAdjacentHTML('afterbegin', `<div class="bbg" aria-hidden="true" style="background-image:url(${BASE}/duel/bg/${fieldBg}${q})"></div>`);
@@ -1325,10 +1325,10 @@ function actionPanel(pane = 'menu') {
     // 기술 4칸(무엇을 넣었든)을 2×2로. 모두 재사용 대기면 몸통 박치기 버튼. 지금 상대에게 유리/불리를 같이 보여 줌
     const combo = f.skills.find(k => k.id.startsWith('combo-')), ready = combo && can({ kind: 'skill', skillId: combo.id });
     panel.innerHTML = `<div class="bhead">${back}<b>⚔️ 기술 고르기</b></div>${combo ? `<button class="combo-btn" data-k="${combo.id}" title="${esc(combo.desc)}" ${ready ? '' : 'disabled'}><small>🤝 합동기 · ${esc(R.data.synergies[combo.id.slice(6)].name)} · 대결당 1번</small><b>${esc(combo.name)}</b><span>${esc(combo.desc)}${ready ? '' : b.sides[0].comboUsed ? ' (이미 씀)' : ' (같은 시너지 동료가 있어야 해요)'}</span></button>` : ''}<div class="skills">${f.skills.filter(k => !k.id.startsWith('combo-')).map(k => {
-      const at = k.attr ?? f.attr, m = k.power ? R.typeMult(at, foe.attr) : 1, wait = f.cds[k.id] > 0;
+      const at = k.attr ?? f.attr, m = k.power ? R.typeMult(at, foe.attr) : 1, wait = skillProblem(b, 0, k);
       const kind = k.id.startsWith('sub-') ? '보조 속성' : k.id.startsWith('learn-') ? '일반 기술' : k.id === 'sig' ? '전용 기술' : k.id.startsWith('role-') ? '역할기' : '기본기';
       return `<button class="sk" data-k="${k.id}" style="--c:${COLOR[at]}" ${can({ kind: 'skill', skillId: k.id }) ? '' : 'disabled'}>
-        <span class="kd">${kind}${wait ? ` · ${f.cds[k.id]}턴 뒤` : k.cd ? ` · 재사용 ${k.cd}턴` : ''}</span><b>${esc(k.name)}</b>
+        <span class="kd">${kind}${wait ? ' · 적용 중' : ''}</span><b>${esc(k.name)}</b>
         <span class="ln">${k.power ? `${chip(at)}${catTag(k, f.base)}<small>위력 ${k.power}${k.hits > 1 ? `×${k.hits}` : ''}</small>${m > 1 ? '<em class="good">▲유리</em>' : m < 1 ? '<em class="bad">▼불리</em>' : ''}` : '<small>보조 기술</small>'}</span>
         ${restDesc(k) ? `<p>${esc(restDesc(k))}</p>` : ''}</button>`;
     }).join('')}</div>${can({ kind: 'skill', skillId: 'struggle' }) ? '<button class="sk struggle" data-k="struggle" style="margin-top:6px;width:100%"><span class="kd">쓸 기술이 없을 때</span><b>몸통 박치기</b><span class="ln"><small>위력 30</small></span></button>' : ''}`;

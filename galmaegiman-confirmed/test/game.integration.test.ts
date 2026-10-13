@@ -13,7 +13,7 @@ import {DateTime} from 'luxon';
 import {loadBattleRules} from '../src/battle/load.js';
 import {createBattle,pending,pickAi} from '../src/battle/engine.js';
 import {applyEvent,type PvpEvent} from '../src/battle/replay.js';
-import type {UnitRecord} from '../src/battle/growth.js';
+import {xpToNext,type UnitRecord} from '../src/battle/growth.js';
 const enabled=Boolean(process.env.TEST_DB_URL);
 const suite=enabled?describe:describe.skip;
 suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
@@ -1163,6 +1163,14 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const t2=(okx.json() as {token:string}).token;
       expect((await app.inject({method:'GET',url:'/my/api/who',headers:{'x-gmm':'1','x-gmm-s':t2}})).statusCode).toBe(200);
       expect((await ex({code:two,verifier})).statusCode).toBe(400);                  // 한 번만
+      const nativeStart=await app.inject({method:'GET',url:`/my/kakao?app=2&c=${challenge}`});
+      const nativeState=new URL(String(nativeStart.headers.location)).searchParams.get('state')!;
+      const nativeCookie=(nativeStart.headers['set-cookie'] as string[]).map(c=>c.split(';')[0]).join('; ');
+      const nativeCallback=await app.inject({method:'GET',url:`/my/kakao/callback?code=x&state=${nativeState}`,headers:{cookie:nativeCookie}});
+      expect(nativeCallback.headers.location).toMatch(/^gmmnative:\/\/auth\?code=/);
+      const nativeCode=new URL(String(nativeCallback.headers.location)).searchParams.get('code')!;
+      expect((await ex({code:nativeCode,verifier})).statusCode).toBe(200);
+
     }finally{await app.close();}
     // 심사용 코드: 정해 둔 경우만, 심사 전용 계정으로
     const rv=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com',reviewCode:'424242'});
@@ -1437,4 +1445,60 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(await db.ownedCharacter.count({where:{characterId:'R1'}})).toBe(1);
     }finally{await app.close();}
   });
+  it('네이티브 전투는 소유권·행동을 검사하고 같은 리비전의 중복 요청을 한 번만 처리한다',async()=>{
+    await fixtures(['D1']);
+    const app=await buildApp(db,game,{secret:'native-test-secret'.repeat(3),baseUrl:async()=>'https://example.com'});
+    try{
+      const code=(await send('웹 로그인')).text!.match(/\b\d{6}\b/)![0];
+      const login=await app.inject({method:'POST',url:'/my/api/login',payload:{code},headers:{'x-gmm':'1','x-gmm-app':'1'}});
+      const headers={'x-gmm':'1','x-gmm-s':login.json().token};
+      const post=(path:string,payload:object)=>app.inject({method:'POST',url:`/my/api/native/${path}`,headers,payload});
+      expect((await app.inject({method:'GET',url:'/my/api/native/state',headers:{'x-gmm':'1'}})).statusCode).toBe(401);
+      expect((await post('team',{keys:['o99999999']})).statusCode).toBe(400);
+      const state=(await app.inject({method:'GET',url:'/my/api/native/state',headers})).json();expect(state.units[0].xpNext).toBeGreaterThan(0);
+      expect(state.practiceUnits).toHaveLength(33);
+      expect((await post('battle/start',{mode:'story',stage:'P-1',roster:['I9'],level:60})).statusCode).toBe(400);
+      const start=(await post('battle/start',{mode:'practice',stage:'P-1',roster:['I9'],enemyRoster:['T7'],level:22,promotion:1})).json();
+      expect(start.teams[0].fighters[0]).toMatchObject({id:'I9',level:22,stage:1});expect(start.teams[1].fighters[0].id).toBe('T7');
+      expect((await post('battle/start',{mode:'practice'})).statusCode).toBe(400);
+      expect((await post('battle/turn',{session:start.session,revision:0,choose:{augment:'forged'}})).statusCode).toBe(400);
+      const pick={session:start.session,revision:0,choose:{augment:start.teams[0].offers[0].id}};
+      const responses=await Promise.all([post('battle/turn',pick),post('battle/turn',pick)]);
+      expect(responses.map(r=>r.statusCode)).toEqual([200,200]);expect(responses.map(r=>r.json().revision)).toEqual([1,1]);
+      const current=responses[0].json();expect(current.turn).toBe(1);
+      expect((await post('battle/turn',{session:start.session,revision:1,action:{kind:'skill',skillId:'forged'}})).statusCode).toBe(400);
+      const still=(await app.inject({method:'GET',url:'/my/api/native/battle/current',headers})).json();expect(still.revision).toBe(1);expect(still.log).toEqual(current.log);
+      const otherCode=(await send('웹 로그인','native-other')).text!.match(/\b\d{6}\b/)![0];
+      const other=(await app.inject({method:'POST',url:'/my/api/login',payload:{code:otherCode},headers:{'x-gmm':'1','x-gmm-app':'1'}})).json();
+      expect((await app.inject({method:'POST',url:'/my/api/native/battle/turn',payload:{session:start.session,revision:1,leave:true},headers:{'x-gmm':'1','x-gmm-s':other.token}})).statusCode).toBe(400);
+      const before=await game.webStory((await me()).id);
+      await post('battle/turn',{session:start.session,revision:1,leave:true});expect(await game.webStory((await me()).id)).toEqual(before);
+    }finally{await app.close();}
+  });
+  it('네이티브 성장 보상은 종료 때 한 번만 저장하고 레벨업 체력을 가득 회복한다',async()=>{
+    const p=await fixtures(['D1']);const owned=await game.webStoryUnits(p.id),key=`o${owned[0].oid}`;
+    const R=loadBattleRules();await game.webSaveStory(p.id,{units:{[key]:{level:5,xp:xpToNext(R,5)-1,stage:0,evoAugs:[]}},team:[key],cleared:[],hp:{[key]:{f:1,at:Date.now()}}});
+    const app=await buildApp(db,game,{secret:'native-test-secret'.repeat(3),baseUrl:async()=>'https://example.com'});
+    try{const code=(await send('웹 로그인')).text!.match(/\b\d{6}\b/)![0];const token=(await app.inject({method:'POST',url:'/my/api/login',payload:{code},headers:{'x-gmm':'1','x-gmm-app':'1'}})).json().token;
+      const headers={'x-gmm':'1','x-gmm-s':token};const post=async(path:string,payload:object)=>{const r=await app.inject({method:'POST',url:`/my/api/native/${path}`,headers,payload});expect(r.statusCode,r.body).toBe(200);return r.json();};
+      let b=await post('battle/start',{mode:'story',stage:'P-1'}),last:object={};
+      for(let g=0;g<100&&b.phase!=='over';g++){
+        const event=b.phase==='choose'?{choose:{...(b.teams[0].offers.length?{augment:b.teams[0].offers[0].id}:{}),...(b.teams[0].needSwitch?{switchTo:b.teams[0].fighters.findIndex((f:{hp:number})=>f.hp>0)}:{})}}:{action:b.teams[0].legal.find((a:{kind:string})=>a.kind==='skill')};
+        last={session:b.session,revision:b.revision,...event};b=await post('battle/turn',last);
+      }
+      expect(b.phase).toBe('over');expect(b.result.xp).toBeGreaterThan(0);const saved=await game.webStory(p.id) as {units:Record<string,{level:number}>;hp:Record<string,{f:number}>};expect(saved.units[key].level).toBeGreaterThan(5);expect(saved.hp[key].f).toBe(1);
+      const repeated=await post('battle/turn',last);expect(repeated.revision).toBe(b.revision);expect(await game.webStory(p.id)).toEqual(saved);
+    }finally{await app.close();}
+  });
+
+  it('네이티브 아이템 차감·진행 저장은 실패하면 모두 되돌아간다',async()=>{
+    const p=await fixtures(['D1']);await db.playerItem.create({data:{playerId:p.id,itemId:'potion',count:2}});
+    await expect(game.webNativeCommit(p.id,{id:'potion',name:'치료약'},{units:null,team:[]})).rejects.toThrow();
+    expect((await db.playerItem.findUniqueOrThrow({where:{playerId_itemId:{playerId:p.id,itemId:'potion'}}})).count).toBe(2);
+    expect(await game.webStory(p.id)).toBeNull();expect(await db.auditEvent.count({where:{playerId:p.id,kind:'ITEM_USE'}})).toBe(0);
+    await game.webNativeCommit(p.id,{id:'potion',name:'치료약'},{units:{},team:[],cleared:[],hp:{}});
+    expect((await db.playerItem.findUniqueOrThrow({where:{playerId_itemId:{playerId:p.id,itemId:'potion'}}})).count).toBe(1);
+    expect(await game.webStory(p.id)).toMatchObject({cleared:[]});
+  });
+
 });
