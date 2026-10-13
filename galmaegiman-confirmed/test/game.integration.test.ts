@@ -192,6 +192,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(preview.text).toContain('예상 52개');
     await confirm(preview);
     expect(await db.ownedCharacter.count({where:{status:'EXPEDITION'}})).toBe(4);
+    // 이전 버전이 출발 때 지웠던 편성도 이번 보상 수령 때 복원한다.
+    await db.player.update({where:{id:(await me()).id},data:{partyDraft:''}});
     expect((await send('잠금 태초의 갈매미맨')).text).toContain('없어요');
     expect((await send('탐험보내기 자동')).text).toContain('이미 탐험 중');
     expect((await send('내정보')).text).toContain('탐험 중');
@@ -203,6 +205,12 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await me()).snack).toBe(52);
     expect(await db.ownedCharacter.count({where:{status:'EXPEDITION'}})).toBe(0);
     expect((await send('탐험보상받기')).text).toContain('진행 중인 탐험이 없어요');
+    expect((await game.webMe((await me()).id))!.party).toEqual(basic);
+    expect((await game.webMe((await me()).id))!.previousParty).toEqual(basic);
+    await db.player.update({where:{id:(await me()).id},data:{partyDraft:''}});
+    const previous=(await game.webMe((await me()).id))!.previousParty;
+    await game.webSetParty((await me()).id,previous);
+    expect((await game.webMe((await me()).id))!.party).toEqual(basic);
   });
   it('탐험 자동 편성은 최대 10마리, 같은 유닛 다섯 마리 연출',async()=>{
     await fixtures(Array(12).fill('D7'));
@@ -1293,11 +1301,18 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await send('탐험편성 갈크탑 ×8, 태초의 갈매미맨 ×2, 만상의 수호자')).text).toContain('최대 10마리');
     expect((await send('탐험편성 태초의 갈매미맨 ×3')).text).toContain('2마리만');
     await confirm(await send(full.choices!.find(c=>c.label.startsWith('🚀'))!.message));
-    expect((await me()).partyDraft).toBe('');
+    const saved=[...Array(8).fill('D7'),'D1','D1'];
+    expect((await game.webMe((await me()).id))!.party).toEqual(saved);
     const busy=await send('탐험편성 만상의 수호자');
     expect(busy.text).toContain('탐험 중');
     expect((await send('편성추가 만상의 수호자')).text).toContain('탐험 중');
     expect((await send('탐험보내기 만상의 수호자')).text).toContain('이미 탐험 중');
+    now=new Date(now.getTime()+HOUR);
+    await game.webClaimExpedition((await me()).id);
+    expect((await game.webMe((await me()).id))!.party).toEqual(saved);
+    await game.webStartExpedition((await me()).id);
+    expect((await game.webMe((await me()).id))!.trip!.ids).toEqual(saved);
+    expect((await game.webMe((await me()).id))!.party).toEqual(saved);
   });
   it('이벤트 기간: 뽑기권 받기 추가 지급과 뽑기 메뉴 배너',async()=>{
     const ev={label:'벚꽃 주간',from:'2026-10-01T00:00:00+09:00',to:'2026-10-08T00:00:00+09:00',claimBonus:10,snackMultiplier:2};

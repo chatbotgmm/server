@@ -75,6 +75,44 @@ public class NativeScreensTest {
   }
 
   @Test
+  public void dialogFrame() throws Exception {
+    assertEquals("http://127.0.0.1:4004", BuildConfig.SERVER_URL);
+    try (ActivityScenario<MainActivity> s = ActivityScenario.launch(MainActivity.class)) {
+      waitFor(s, a -> !a.busy && a.state.has("me") && a.screen.equals("home"));
+      s.onActivity(
+          a ->
+              a.talk(
+                  new JSONArray()
+                      .put(
+                          MainActivity.obj(
+                              "who", "N", "say", "쭈매미 천 마리가 한꺼번에 출근 도장을 찍어요. 도장대가 조금 찌그러졌어요.")),
+                  "이야기",
+                  () -> a.show("story")));
+      shot(s, "story-dialog");
+      s.onActivity(
+          a -> {
+            Button next = button(a.root, "다음");
+            assertNotNull(next);
+            assertTrue(next.getHeight() >= a.dp(48));
+          });
+      s.onActivity(a -> a.startFight("practice", "1-6"));
+      waitFor(s, a -> a.battle != null && a.screen.equals("battle"));
+      s.onActivity(
+          a -> {
+            JSONObject offer =
+                a.list(a.list(a.battle, "teams").optJSONObject(0), "offers").optJSONObject(0);
+            a.battleTurn(
+                MainActivity.obj("choose", MainActivity.obj("augment", offer.optString("id"))));
+          });
+      waitFor(s, a -> !a.busy && a.battle.optString("phase").equals("action"));
+      Thread.sleep(2000);
+      shot(s, "battle-menu");
+      s.onActivity(a -> a.battleTurn(MainActivity.obj("leave", true)));
+      waitFor(s, a -> !a.busy && a.battle.optString("phase").equals("over"));
+    }
+  }
+
+  @Test
   public void allScreensAndBattle() throws Exception {
     assertTrue(
         "미리보기 테스트 서버로만 검증",
@@ -148,6 +186,24 @@ public class NativeScreensTest {
               assertTrue(a.title.getText().length() > 0);
             });
       }
+      s.onActivity(
+          a ->
+              a.talk(
+                  new JSONArray()
+                      .put(
+                          MainActivity.obj(
+                              "who", "N", "say", "쭈매미 천 마리가 한꺼번에 출근 도장을 찍어요. 도장대가 조금 찌그러졌어요.")),
+                  "이야기",
+                  () -> a.show("story")));
+      shot(s, "story-dialog");
+      s.onActivity(
+          a -> {
+            Button next = button(a.root, "다음");
+            assertNotNull(next);
+            assertTrue(next.getHeight() >= a.dp(48));
+            next.performClick();
+            assertEquals("story", a.screen);
+          });
       java.util.concurrent.atomic.AtomicBoolean cleaned =
           new java.util.concurrent.atomic.AtomicBoolean(false);
       s.onActivity(

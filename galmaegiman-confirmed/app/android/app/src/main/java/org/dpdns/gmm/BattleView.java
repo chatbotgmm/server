@@ -23,7 +23,7 @@ final class BattleView extends FrameLayout {
     battle = b;
     addView(new Scene(), new LayoutParams(-1, -1));
     logBox = new ScrollView(a);
-    logBox.setBackground(new FrameArt("log.webp"));
+    logBox.setBackground(new FrameDrawable(host, "log.webp"));
     TextView log = a.text("", 17);
     log.setPadding(a.dp(18), a.dp(8), a.dp(18), a.dp(8));
     ArrayList<String> lines = new ArrayList<>();
@@ -421,13 +421,15 @@ final class BattleView extends FrameLayout {
 
     void status(Canvas c, JSONObject f, RectF r, boolean own) {
       Bitmap frame = host.art.asset("status.webp");
-      if (frame != null) bitmap(c, frame, host.art.alpha(frame, "status.webp"), r);
-      else {
+      if (frame != null) {
+        p.setAlpha(255);
+        FrameDrawable.drawFrame(c, host, "status.webp", r, p);
+      } else {
         p.setColor(MainActivity.CREAM);
         c.drawRoundRect(r, 12, 12, p);
       }
-      float x = r.left + r.width() * .075f,
-          top = r.top + r.height() * .24f,
+      float x = r.left + Math.max(host.dp(30), r.width() * .075f),
+          top = r.top + Math.max(host.dp(25), r.height() * .24f),
           right = r.right - r.width() * .08f,
           size = Math.min(host.dp(19), r.height() * .17f);
       p.setTypeface(host.font);
@@ -464,7 +466,7 @@ final class BattleView extends FrameLayout {
             battle.optString("mode").equals("practice")
                 ? "연습 · 저장되지 않음"
                 : u.has("key") ? "경험치 " + u.optInt("xp") + " / " + u.optInt("xpNext") : "동일 레벨 대전",
-            x,
+            x + host.dp(28),
             r.bottom - r.height() * .15f,
             p);
       else {
@@ -484,46 +486,6 @@ final class BattleView extends FrameLayout {
           c.drawText(android.text.TextUtils.join(" · ", words), x, r.bottom - r.height() * .15f, p);
         }
       }
-    }
-  }
-
-  final class FrameArt extends Drawable {
-    Paint p = new Paint(3);
-    String name;
-
-    FrameArt(String n) {
-      name = n;
-    }
-
-    public void draw(Canvas c) {
-      Bitmap b = host.art.asset(name);
-      if (b != null) {
-        Rect src = host.art.alpha(b, name), dst = getBounds();
-        int sc = Math.min(125, src.height() / 3), dc = Math.min(host.dp(28), dst.height() / 3);
-        int[] sx = {src.left, src.left + sc, src.right - sc, src.right},
-            sy = {src.top, src.top + sc, src.bottom - sc, src.bottom},
-            dx = {dst.left, dst.left + dc, dst.right - dc, dst.right},
-            dy = {dst.top, dst.top + dc, dst.bottom - dc, dst.bottom};
-        for (int y = 0; y < 3; y++)
-          for (int x = 0; x < 3; x++)
-            c.drawBitmap(
-                b,
-                new Rect(sx[x], sy[y], sx[x + 1], sy[y + 1]),
-                new Rect(dx[x], dy[y], dx[x + 1], dy[y + 1]),
-                p);
-      }
-    }
-
-    public void setAlpha(int a) {
-      p.setAlpha(a);
-    }
-
-    public void setColorFilter(ColorFilter f) {
-      p.setColorFilter(f);
-    }
-
-    public int getOpacity() {
-      return PixelFormat.TRANSLUCENT;
     }
   }
 

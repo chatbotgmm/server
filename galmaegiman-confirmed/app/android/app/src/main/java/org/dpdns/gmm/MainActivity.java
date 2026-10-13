@@ -667,9 +667,12 @@ public class MainActivity extends AppCompatActivity {
       return;
     }
     base(caption, "dialog");
+    body.setBackgroundColor(Color.TRANSPARENT);
     final int[] at = {0};
     LinearLayout speech = new LinearLayout(this);
     speech.setGravity(Gravity.CENTER_VERTICAL);
+    speech.setBackground(new FrameDrawable(this, "dialog.webp"));
+    speech.setPadding(dp(32), dp(28), dp(32), dp(28));
     body.addView(speech);
     ImageView portrait = new ImageView(this);
     portrait.setScaleType(ImageView.ScaleType.FIT_CENTER);
@@ -1275,6 +1278,9 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<String> ids = new ArrayList<>();
     JSONArray old = list(me(), "party");
     for (int i = 0; i < old.length(); i++) ids.add(old.optString(i));
+    JSONArray previous = list(me(), "previousParty");
+    if (ids.isEmpty() && previous.length() > 0)
+      addButton("최근 탐험대 불러오기", () -> mutate("party", obj("ids", previous), "expedition"));
     body.addView(text("탐험에 보낼 갈매미를 선택하세요.", 18));
     ArrayList<View> cards = new ArrayList<>();
     JSONArray units = list(me(), "units");
@@ -1336,7 +1342,9 @@ public class MainActivity extends AppCompatActivity {
             request(
                 "party",
                 obj("ids", arr(ids)),
-                (r, e) -> mutate("expedition/start", obj(), "expedition")));
+                (r, e) -> {
+                  if (e == null) mutate("expedition/start", obj(), "expedition");
+                }));
   }
 
   String dateText(String value) {

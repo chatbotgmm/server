@@ -1133,11 +1133,12 @@ export class GameService {
   async webMe(playerId:string){
     const p=await this.db.player.findUnique({where:{id:playerId}});
     if(!p)return null;
-    const [owned,dex,trip,kakao]=await Promise.all([
+    const [owned,dex,trip,kakao,previous]=await Promise.all([
       this.db.ownedCharacter.groupBy({by:['characterId','status','locked'],where:{playerId,status:{in:['AVAILABLE','EXPEDITION']}},_count:{_all:true}}),
       this.db.collectionEntry.count({where:{playerId}}),
       this.db.expedition.findFirst({where:{playerId,claimedAt:null}}),
       this.db.kakaoLink.count({where:{playerId}}),
+      this.db.expedition.findFirst({where:{playerId,claimedAt:{not:null}},orderBy:{startedAt:"desc"},select:{unitIds:true}}),
     ]);
     const by=new Map<string,{have:number;away:number;locked:number}>();
     for(const r of owned){const e=by.get(r.characterId)??{have:0,away:0,locked:0};e.have+=r._count._all;if(r.status==='EXPEDITION')e.away+=r._count._all;else if(r.locked)e.locked+=r._count._all;by.set(r.characterId,e);}
@@ -1145,7 +1146,7 @@ export class GameService {
       .sort((a,b)=>tiers[b.tier]-tiers[a.tier]||this.content.map.get(a.id)!.position-this.content.map.get(b.id)!.position);
     const ids=(s:string)=>s?s.split(',').filter(id=>this.content.map.has(id)):[];
     return {nickname:p.nickname,snack:p.snack,peanut:p.peanut,credits:p.credits,kakao:kakao>0,claimReadyAt:new Date((p.lastClaimAt?.getTime()??0)+this.content.economy.tickets.cooldownHours*3_600_000).toISOString(),dex,dexTotal:this.content.characters.length,units,
-      battleTeam:ids(p.battleTeam),party:ids(p.partyDraft),
+      battleTeam:ids(p.battleTeam),party:ids(p.partyDraft),previousParty:previous?(previous.unitIds as string[]).filter(id=>this.content.map.has(id)):[],
       trip:trip?{startedAt:trip.startedAt.toISOString(),endsAt:trip.endsAt.toISOString(),units:(trip.unitIds as string[]).map(id=>this.content.map.get(id)?.name??id),ids:trip.unitIds as string[]}:null};
   }
   // 웹 요청도 카톡 요청과 같은 줄에 세워(동시에 처리되지 않게) 한 거래로 실행
@@ -1833,7 +1834,7 @@ export class GameService {
     await tx.ownedCharacter.updateMany({where:{expeditionId:active.id,playerId:p.id,status:'EXPEDITION'},data:{status:'AVAILABLE',expeditionId:null}});
     const account=await tx.player.findUniqueOrThrow({where:{id:p.id},select:{snack:true,credits:true}});
     const snacks=Math.max(0,Math.min(rolled.snacks,2_000_000_000-account.snack));
-    await tx.player.update({where:{id:p.id},data:{snack:{increment:snacks},credits:{increment:rolled.tickets},revision:{increment:1}}});
+    await tx.player.update({where:{id:p.id},data:{snack:{increment:snacks},credits:{increment:rolled.tickets},revision:{increment:1},...(!p.partyDraft?{partyDraft:(active.unitIds as string[]).join(',')}:{})}});
     const known=await this.known(tx,p);
     const lines=[`🍤 새우gang +${snacks}${rolled.doubled?' (황금 시너지 2배!)':''}`];
     let imageId:string|undefined;
@@ -1970,7 +1971,8 @@ export class GameService {
       const expedition=await tx.expedition.create({data:{playerId:p.id,unitIds:json(unitIds),plan:json(plan),startedAt:now,endsAt:ends}});
       const moved=await tx.ownedCharacter.updateMany({where:{id:{in:ids},playerId:p.id,status:'AVAILABLE'},data:{status:'EXPEDITION',expeditionId:expedition.id}});
       if(moved.count!==ids.length)throw new GameError('탐험 출발이 겹쳤어요. 다시 해 주세요.');
-      await tx.player.update({where:{id:p.id},data:{partyDraft:''}});
+      // 실제 출발한 편성을 보존한다. 보상 수령 후 같은 중복 수량으로 다시 보낼 수 있다.
+      await tx.player.update({where:{id:p.id},data:{partyDraft:unitIds.join(',')}});
       result={text:`🧭 탐험대 출발! (${ids.length}마리)\n⏱ ${duration(plan.minutes*60000)} 뒤 돌아와요.\n돌아오면 '탐험 보상 받기'를 눌러 주세요. 🍤 예상 ${expectedSnacks(plan)}개`,
         cards:{intro:`🧭 탐험대 출발! ⏱ ${duration(plan.minutes*60000)} 뒤 귀환 · 🍤 예상 ${expectedSnacks(plan)}개`,items:this.partyCards(unitIds),outro:"돌아오면 '탐험 보상 받기'를 눌러 주세요."},choices:[choice('탐험'),...menu]};
       await this.audit(tx,p,'EXPEDITION_SEND',{token,expeditionId:expedition.id,ownedIds:ids,unitIds,minutes:plan.minutes});
