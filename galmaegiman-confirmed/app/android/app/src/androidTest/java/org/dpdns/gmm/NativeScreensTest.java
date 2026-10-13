@@ -32,23 +32,37 @@ public class NativeScreensTest {
     fail("네이티브 화면/응답 대기 시간 초과");
   }
 
+  void snapshotFilter(View v, boolean enabled) {
+    if (v instanceof ImageView
+        && ((ImageView) v).getDrawable() instanceof android.graphics.drawable.BitmapDrawable)
+      ((android.graphics.drawable.BitmapDrawable) ((ImageView) v).getDrawable())
+          .setFilterBitmap(enabled);
+    if (v instanceof ViewGroup) {
+      ViewGroup g = (ViewGroup) v;
+      for (int i = 0; i < g.getChildCount(); i++) snapshotFilter(g.getChildAt(i), enabled);
+    }
+  }
+
   void shot(ActivityScenario<MainActivity> scenario, String name) throws Exception {
-    // 앱 View를 직접 캡처해 소프트웨어 에뮬레이터의 시스템 오류 창이 결과를 가리지 않게 한다.
     InstrumentationRegistry.getInstrumentation().waitForIdleSync();
     Thread.sleep(400);
     scenario.onActivity(
         a -> {
-          Bitmap bitmap =
-              Bitmap.createBitmap(a.root.getWidth(), a.root.getHeight(), Bitmap.Config.ARGB_8888);
-          int w = a.root.getWidth(), h = a.root.getHeight();
-          for (int i = 0; i < 2; i++) {
-            a.root.forceLayout();
-            a.root.measure(
-                View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY));
-            a.root.layout(0, 0, w, h);
+          int w = a.getResources().getDisplayMetrics().widthPixels,
+              h = a.getResources().getDisplayMetrics().heightPixels;
+          a.root.forceLayout();
+          a.root.measure(
+              View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
+              View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY));
+          a.root.layout(0, 0, w, h);
+          Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+          // TCG 에뮬레이터의 bilinear raster 지연만 피한다. 실제 앱 Drawable 필터는 즉시 복구한다.
+          snapshotFilter(a.root, false);
+          try {
+            a.root.draw(new android.graphics.Canvas(bitmap));
+          } finally {
+            snapshotFilter(a.root, true);
           }
-          a.root.draw(new android.graphics.Canvas(bitmap));
           File dir = new File(a.getExternalFilesDir(null), "review");
           dir.mkdirs();
           try (OutputStream out = new FileOutputStream(new File(dir, name + ".png"))) {
@@ -69,6 +83,20 @@ public class NativeScreensTest {
       for (int i = 0; i < g.getChildCount(); i++) {
         Button b = button(g.getChildAt(i), text);
         if (b != null) return b;
+      }
+    }
+    return null;
+  }
+
+  View clickable(View root, String contains) {
+    if (root.isClickable()
+        && root.getContentDescription() != null
+        && root.getContentDescription().toString().contains(contains)) return root;
+    if (root instanceof ViewGroup) {
+      ViewGroup g = (ViewGroup) root;
+      for (int i = 0; i < g.getChildCount(); i++) {
+        View found = clickable(g.getChildAt(i), contains);
+        if (found != null) return found;
       }
     }
     return null;
@@ -107,7 +135,13 @@ public class NativeScreensTest {
         a -> {
           if (a.screen.equals("title")) button(a.root, "게임 시작").performClick();
         });
-    waitFor(s, a -> !a.busy && a.screen.equals("home"));
+    waitFor(
+        s,
+        a ->
+            !a.busy
+                && a.screen.equals("home")
+                && a.root.getChildAt(0) instanceof LobbyView
+                && ((LobbyView) a.root.getChildAt(0)).ready());
   }
 
   @Test
@@ -119,8 +153,7 @@ public class NativeScreensTest {
           a -> {
             if (!(a.root.getChildAt(0) instanceof LobbyView)) return false;
             LobbyView lobby = (LobbyView) a.root.getChildAt(0);
-            for (String layer : new String[] {"base.jpg", "plat.webp", "char.webp"})
-              if (a.art.peek("/duel/bg/" + lobby.room + layer) == null) return false;
+            if (!lobby.ready()) return false;
             return a.art.peek("/duel/icons/btn-play.png") != null;
           });
       shot(s, "lobby-restored");
@@ -156,20 +189,10 @@ public class NativeScreensTest {
       dialogShot(s, dialog, "popup-exit");
       s.onActivity(
           a -> dialog.get().getButton(android.app.AlertDialog.BUTTON_NEGATIVE).performClick());
-      s.onActivity(
-          a ->
-              dialog.set(
-                  new GameDialog(a)
-                      .setTitle("플레이")
-                      .setItems(new String[] {"스토리", "대전", "연습"}, (d, which) -> a.load("story"))
-                      .setNegativeButton("닫기", null)
-                      .show()));
-      dialogShot(s, dialog, "popup-play");
-      s.onActivity(
-          a -> {
-            android.app.AlertDialog d = dialog.get();
-            d.getListView().performItemClick(d.getListView().getChildAt(0), 0, 0);
-          });
+      s.onActivity(a -> a.load("modes"));
+      waitFor(s, a -> !a.busy && a.screen.equals("modes"));
+      shot(s, "modes-restored");
+      s.onActivity(a -> button(a.root, "스토리 · 챕터 선택").performClick());
       waitFor(s, a -> !a.busy && a.screen.equals("story"));
     }
   }
@@ -196,6 +219,42 @@ public class NativeScreensTest {
             bitmap.recycle();
           }
         });
+  }
+
+  int loadedBackgrounds(View v) {
+    int count =
+        v instanceof ImageView
+                && v.getTag() instanceof String
+                && ((String) v.getTag()).startsWith("/duel/bg/")
+                && ((ImageView) v).getDrawable() instanceof android.graphics.drawable.BitmapDrawable
+            ? 1
+            : 0;
+    if (v instanceof ViewGroup) {
+      ViewGroup g = (ViewGroup) v;
+      for (int i = 0; i < g.getChildCount(); i++) count += loadedBackgrounds(g.getChildAt(i));
+    }
+    return count;
+  }
+
+  @Test
+  public void chapterMedia() throws Exception {
+    try (ActivityScenario<MainActivity> s = ActivityScenario.launch(MainActivity.class)) {
+      enterHome(s);
+      s.onActivity(a -> a.load("story"));
+      waitFor(
+          s,
+          a ->
+              !a.busy
+                  && a.screen.equals("story")
+                  && loadedBackgrounds(a.root) >= a.list(a.state, "chapters").length() + 1);
+      shot(s, "screen-story");
+      s.onActivity(a -> a.show("items"));
+      Thread.sleep(2000);
+      shot(s, "screen-items");
+      s.onActivity(a -> a.unitDetail(a.list(a.state, "units").optJSONObject(0).optString("key")));
+      Thread.sleep(2000);
+      shot(s, "screen-unit");
+    }
   }
 
   @Test
@@ -291,7 +350,9 @@ public class NativeScreensTest {
       waitFor(s, a -> !a.busy && a.screen.equals("expedition"));
       s.onActivity(
           a -> {
-            button(a.root, "＋").performClick();
+            View candidate = clickable(a.root, "남은 ");
+            assertNotNull(candidate);
+            candidate.performClick();
             assertEquals(1, a.expeditionDraft.size());
             a.back();
           });
@@ -299,6 +360,7 @@ public class NativeScreensTest {
       s.onActivity(a -> assertEquals(1, a.list(a.me(), "party").length()));
       for (String screen :
           new String[] {
+            "modes",
             "story",
             "stages",
             "team",
@@ -315,6 +377,7 @@ public class NativeScreensTest {
             "practice",
             "types",
             "settings",
+            "account",
             "tutorial"
           }) {
         s.onActivity(

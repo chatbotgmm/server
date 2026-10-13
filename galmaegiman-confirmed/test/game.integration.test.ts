@@ -1134,6 +1134,38 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await app.inject({method:'GET',url:'/my'})).body).toContain('id="inst"');
     }finally{await app.close();}
   });
+  it('네이티브 카카오: 처음 연결은 코드 확인, 계정 연결은 현재 로그인 계정을 유지',async()=>{
+    let kakaoId=9090;
+    const fakeFetch=(async(url:string|URL)=>new Response(JSON.stringify(String(url).includes('/oauth/token')?{access_token:'t'}:{id:kakaoId}),{status:200})) as typeof fetch;
+    const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com',kakaoLogin:{restKey:'0123456789abcdef0123456789abcdef'},fetch:fakeFetch});
+    const headers={'x-gmm':'1','x-gmm-app':'1'};
+    const {createHash}=await import('node:crypto');const verifier='v'.repeat(50),challenge=createHash('sha256').update(verifier).digest('base64url');
+    const exchange=(code:string)=>app.inject({method:'POST',url:'/my/api/app/exchange',headers,payload:{code,verifier}});
+    const oauth=async(url:string)=>{
+      const start=await app.inject({method:'GET',url});expect(start.statusCode).toBe(302);
+      const state=new URL(String(start.headers.location)).searchParams.get('state')!;
+      const cookie=(start.headers['set-cookie'] as string[]).map(c=>c.split(';')[0]).join('; ');
+      const cb=await app.inject({method:'GET',url:`/my/kakao/callback?code=x&state=${state}`,headers:{cookie}});
+      expect(cb.headers.location).toMatch(/^gmmnative:\/\/auth\?code=/);
+      return new URL(String(cb.headers.location)).searchParams.get('code')!;
+    };
+    try{
+      const one=await oauth(`/my/kakao?app=2&c=${challenge}`),pending=(await exchange(one)).json();
+      expect(pending.needsLink).toBe(true);expect(pending.token).toBeUndefined();expect((await exchange(one)).statusCode).toBe(400);
+      const loginCode=(await send('웹 로그인')).text!.match(/\b\d{6}\b/)![0];
+      const login=await app.inject({method:'POST',url:'/my/api/login',headers,payload:{code:loginCode,linkCode:pending.linkCode}});
+      expect(login.statusCode).toBe(200);const token=login.json().token;const player=await me();
+      expect(await game.webKakaoPlayer('9090')).toBe(player.id);
+      expect((await app.inject({method:'POST',url:'/my/api/login',headers,payload:{code:loginCode,linkCode:pending.linkCode}})).statusCode).toBe(400);
+      expect((await app.inject({method:'POST',url:'/my/api/kakao/link-start',headers,payload:{challenge}})).statusCode).toBe(401);
+      kakaoId=9091;
+      const startLink=await app.inject({method:'POST',url:'/my/api/kakao/link-start',headers:{...headers,'x-gmm-s':token},payload:{challenge}});
+      expect(startLink.statusCode).toBe(200);const url=startLink.json().result.url;
+      const linked=await exchange(await oauth(url));expect(linked.statusCode).toBe(200);
+      expect(linked.json().token.split('.')[0]).toBe(player.id);expect(await game.webKakaoPlayer('9091')).toBe(player.id);
+      expect((await app.inject({method:'GET',url})).statusCode).toBe(400);
+    }finally{await app.close();}
+  });
   it('안드로이드 앱: 앱 주소만 허용(CORS), 토큰 머리글 로그인, 카카오 앱 로그인은 한 번 쓰는 코드+비밀값 교환',async()=>{
     const fakeFetch=(async(url:string|URL)=>String(url).includes('/oauth/token')?new Response(JSON.stringify({access_token:'t'}),{status:200}):new Response(JSON.stringify({id:8080}),{status:200})) as typeof fetch;
     const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com',kakaoLogin:{restKey:'0123456789abcdef0123456789abcdef'},fetch:fakeFetch});

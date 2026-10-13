@@ -146,7 +146,15 @@ final class NativeArt {
               synchronized (this) {
                 listeners = waiters.remove(path);
               }
-              if (listeners != null) for (Runnable callback : listeners) api.ui.post(callback);
+              // UI 처리 전 LRU에서 빠져도 이번 요청의 그림을 잃지 않는다.
+              Bitmap completed = decoded;
+              if (listeners != null)
+                for (Runnable callback : listeners)
+                  api.ui.post(
+                      () -> {
+                        if (completed != null) bitmaps.put(path, completed);
+                        callback.run();
+                      });
             });
     return null;
   }

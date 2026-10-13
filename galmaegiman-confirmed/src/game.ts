@@ -1399,7 +1399,7 @@ export class GameService {
       const head=lesson.length?`${lesson[0]}\n\n`:'';
       if(!recipe)return {made:false,text:`${head}🔮 …아무 일도 일어나지 않았다.\n${ids.map(id=>this.name(id,known)).join(' + ')}\n(이 조합으로는 아무것도 안 나와요. 재료는 그대로예요)`};
       const chosen=await this.chooseMaterials(tx,p,recipe,known);
-      return {made:true,text:head+this.replyText(await this.craft(tx,p,recipe,chosen,1,now,known))};
+      return {made:true,id:recipe.resultId,text:head+this.replyText(await this.craft(tx,p,recipe,chosen,1,now,known))};
     });
   }
 

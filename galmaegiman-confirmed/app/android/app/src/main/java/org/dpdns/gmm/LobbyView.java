@@ -12,8 +12,9 @@ final class LobbyView extends FrameLayout {
   final Paint p = new Paint(3);
   final ArrayList<Button> buttons = new ArrayList<>();
   final String room;
+  final Map<String, Bitmap> visibleArt = new HashMap<>();
   static final String[] NAMES = {"탐험", "뽑기", "수비대", "조합", "상점"};
-  static final String[] IDS = {"expedition", "draw", "team", "craft", "shop"};
+  static final String[] IDS = {"expedition", "draw", "collection", "craft", "shop"};
   static final String[] ICONS = {"mode-camp", "u-draw", "mode-normal", "u-emblem", "u-shop"};
   static final int[] COLORS = {0xffa9d3a4, 0xfff29aa6, 0xffb9a2dc, 0xff9fcbe6, 0xfff5a98f};
   final RectF[] boxes = new RectF[12];
@@ -48,24 +49,14 @@ final class LobbyView extends FrameLayout {
     super(host);
     this.host = host;
     room = room(host);
+    for (String layer : new String[] {"base.jpg", "plat.webp", "char.webp"})
+      image("bg/" + room + layer);
     setWillNotDraw(false);
     for (int i = 0; i < 5; i++) {
       String id = IDS[i];
       add(NAMES[i], () -> host.load(id));
     }
-    add(
-        "플레이",
-        () ->
-            new GameDialog(host)
-                .setTitle("플레이")
-                .setItems(
-                    new String[] {"스토리", "대전", "연습"},
-                    (d, which) -> {
-                      if (which == 2) host.practice();
-                      else host.load(which == 0 ? "story" : "pvp");
-                    })
-                .setNegativeButton("닫기", null)
-                .show());
+    add("플레이", () -> host.load("modes"));
     add("출석·미션", () -> host.load("daily"));
     add(
         "내 정보",
@@ -73,11 +64,8 @@ final class LobbyView extends FrameLayout {
             new GameDialog(host)
                 .setTitle(host.me().optString("nickname", "수비조장"))
                 .setItems(
-                    new String[] {"도감", "속성 상성", "설정", "첫 출근 안내"},
-                    (d, which) -> {
-                      if (which == 3) host.tutorial();
-                      else host.load(new String[] {"collection", "types", "settings"}[which]);
-                    })
+                    new String[] {"계정 관리", "랭크 순위", "설정"},
+                    (d, which) -> host.load(new String[] {"account", "pvp", "settings"}[which]))
                 .setNegativeButton("닫기", null)
                 .show());
     add("설정", () -> host.load("settings"));
@@ -168,7 +156,24 @@ final class LobbyView extends FrameLayout {
   }
 
   Bitmap image(String path) {
-    return host.art.scene("/duel/" + path, this::invalidate);
+    Bitmap held = visibleArt.get(path);
+    if (held != null) return held;
+    Bitmap ready =
+        host.art.scene(
+            "/duel/" + path,
+            () -> {
+              Bitmap loaded = host.art.peek("/duel/" + path);
+              if (loaded != null) visibleArt.put(path, loaded);
+              invalidate();
+            });
+    if (ready != null) visibleArt.put(path, ready);
+    return ready;
+  }
+
+  boolean ready() {
+    for (String layer : new String[] {"base.jpg", "plat.webp", "char.webp"})
+      if (!visibleArt.containsKey("bg/" + room + layer)) return false;
+    return true;
   }
 
   void fit(Canvas c, Bitmap image, RectF r) {

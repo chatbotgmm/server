@@ -11,7 +11,7 @@ import { loadBattleRules } from './battle/load.js';
 import { duelKey } from './duel.js';
 import {registerNative} from './native.js';
 
-const COOKIE='gmm_s',DAYS=30,KSTATE='gmm_ks',KPEND='gmm_kp',KAPP='gmm_ka';
+const COOKIE='gmm_s',DAYS=30,KSTATE='gmm_ks',KPEND='gmm_kp',KAPP='gmm_ka',KLINK='gmm_kl';
 // 안드로이드 앱(Capacitor) 화면 주소. 앱에서 오는 요청만 다른 주소에서 받음(CORS)
 const APP_ORIGINS=new Set(['https://localhost','capacitor://localhost','http://localhost']);
 export interface KakaoLogin {restKey:string;clientSecret?:string}
@@ -41,7 +41,9 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     if(req.method==='OPTIONS')return reply.code(204).send();
   });
   // 앱 카카오 로그인: 브라우저에서 로그인 → 앱으로 한 번 쓰는 코드만 보냄 → 앱이 처음 만든 비밀값(verifier)으로 토큰 교환(PKCE)
-  const appCodes=new Map<string,{player:string;challenge:string;exp:number}>();
+  const appCodes=new Map<string,{player:string;challenge:string;exp:number;kakao?:string;error?:string}>();
+  const appLinkStarts=new Map<string,{player:string;challenge:string;exp:number}>();
+  const appLinkPending=new Map<string,{kakao:string;exp:number}>();
   // https로 들어온 요청이면 Secure 쿠키(클라우드플레어 터널 뒤라 전달 헤더로 판단)
   const secure=(req:FastifyRequest)=>/https/.test(String(req.headers['cf-visitor']??req.headers['x-forwarded-proto']??''));
   const cookieLine=(req:FastifyRequest,name:string,value:string,maxAge:number)=>`${name}=${value}; Path=/my; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${secure(req)?'; Secure':''}`;
@@ -67,15 +69,24 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
   app.get('/my/my.js',async(_req,reply)=>file(reply,'text/javascript; charset=utf-8','public/my/my.js'));
   app.get('/image-state.js',async(_req,reply)=>file(reply,'text/javascript; charset=utf-8','public/image-state.js'));
   // 로그인: 6자리 코드(같은 곳에서 1분에 10번까지)
-  app.post<{Body:{code?:unknown}}>('/my/api/login',{config:{rateLimit:{max:10,timeWindow:'1 minute',keyGenerator:ipKey('mylogin')}}},async(req,reply)=>{
+  app.post<{Body:{code?:unknown;linkCode?:unknown}}>('/my/api/login',{config:{rateLimit:{max:10,timeWindow:'1 minute',keyGenerator:ipKey('mylogin')}}},async(req,reply)=>{
     if(!guard(req,reply))return;
     const code=typeof req.body?.code==='string'?req.body.code.replace(/\s/g,''):'';
+    const linkCode=typeof req.body?.linkCode==='string'?req.body.linkCode:'';
+    const nativeLink=linkCode?appLinkPending.get(linkCode):null;
+    if(linkCode&&(!nativeLink||nativeLink.exp<Date.now()))return reply.code(400).send({error:'카카오 연결 요청이 만료됐어요. 카카오 로그인을 다시 시작해 주세요.'});
     // 스토어 심사용 코드(.env REVIEW_CODE): 심사 전용 계정으로만 들어감
     const playerId=opt.reviewCode&&code===opt.reviewCode?await game.webReviewPlayer():await game.webLoginCode(code);
     if(!playerId)return reply.code(400).send({error:'코드가 맞지 않거나 시간이 지났어요. 카톡에서 「웹 로그인」을 다시 보내 새 코드를 받아 주세요.'});
     // 카카오로 로그인하다 넘어온 경우: 이번 로그인한 계정에 그 카카오 계정을 연결
     const kakaoId=unsign('kp.',cookie(req,KPEND));
     let kakao:string|undefined;
+    if(nativeLink){
+      if(appLinkPending.get(linkCode)!==nativeLink)return reply.code(400).send({error:'이미 처리된 카카오 연결 요청이에요.'});
+      appLinkPending.delete(linkCode);
+      try{await game.webLinkKakao(playerId,nativeLink.kakao);kakao='linked';}
+      catch(e){if(e instanceof GameError)return reply.code(400).send({error:e.message});throw e;}
+    }
     if(kakaoId){
       try{await game.webLinkKakao(playerId,kakaoId);kakao='linked';}
       catch(e){if(!(e instanceof GameError))throw e;kakao=e.message;}
@@ -194,6 +205,12 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     if(!e||e.exp<Date.now()||verifier.length<43||verifier.length>128)return reply.code(400).send({error:'로그인을 다시 해 주세요.'});
     const want=Buffer.from(e.challenge),got=Buffer.from(createHash('sha256').update(verifier).digest('base64url'));
     if(want.length!==got.length||!timingSafeEqual(want,got))return reply.code(400).send({error:'로그인을 다시 해 주세요.'});
+    if(e.error)return reply.code(400).send({error:e.error});
+    if(!e.player&&e.kakao){
+      for(const [k,v] of appLinkPending)if(v.exp<Date.now())appLinkPending.delete(k);
+      const linkCode=randomBytes(18).toString('base64url');appLinkPending.set(linkCode,{kakao:e.kakao,exp:Date.now()+600_000});
+      return {needsLink:true,linkCode};
+    }
     return {token:issue(e.player)};
   });
   // 「갈매미맨 수비대」(대결 게임) 열쇠: 로그인한 사람만(최상위 그림·이름이 나오는 게임이라 공개하지 않음)
@@ -294,24 +311,43 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
 
   // ── 카카오 로그인(KAKAO_REST_KEY가 있을 때만) ──
   // 처음: 카카오 → 연결된 계정 없음 → 카톡 코드로 한 번 로그인하면 그 계정에 연결. 다음부터는 카카오만 누르면 로그인
+  act<{challenge?:unknown}>('/my/api/kakao/link-start',async(id,b)=>{
+    if(!opt.kakao)throw new GameError('카카오 로그인을 사용할 수 없어요.');
+    if(typeof b.challenge!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(b.challenge))throw new GameError('연결 요청을 다시 시작해 주세요.');
+    for(const [k,v] of appLinkStarts)if(v.exp<Date.now())appLinkStarts.delete(k);
+    if(appLinkStarts.size>=20_000)throw new GameError('잠시 뒤 다시 시도해 주세요.');
+    const ticket=randomBytes(18).toString('base64url');appLinkStarts.set(ticket,{player:id,challenge:b.challenge,exp:Date.now()+600_000});
+    return {url:`/my/kakao?app=2&c=${b.challenge}&link=${ticket}`};
+  });
   const kakao=opt.kakao,http=opt.fetch??fetch;
   const origin=async(req:FastifyRequest)=>(await opt.baseUrl())||`${secure(req)?'https':'http'}://${req.headers.host}`;
   const back=(reply:FastifyReply,q:string)=>reply.redirect(`/my${q}`);
+  const kakaoBack=(req:FastifyRequest,reply:FastifyReply,error:string)=>{
+    const appC=cookie(req,KAPP);
+    if(appC?.startsWith('native:'))return reply.header('Set-Cookie',[cookieLine(req,KSTATE,'',0),cookieLine(req,KAPP,'',0),cookieLine(req,KLINK,'',0)]).redirect(`gmmnative://auth?error=${error}`);
+    return back(reply,`?kakao=${error}`);
+  };
   app.get('/my/kakao',async(req,reply)=>{
     if(!kakao)return reply.code(404).send({error:'not found'});
     const state=randomBytes(16).toString('base64url');
-    const q=req.query as {app?:string;c?:string};
+    const q=req.query as {app?:string;c?:string;link?:string};
+    let linkTarget='';
+    if(q.link!==undefined){
+      const ticket=typeof q.link==='string'?q.link:'';const pending=appLinkStarts.get(ticket);appLinkStarts.delete(ticket);
+      if(!pending||pending.exp<Date.now()||q.app!=='2'||q.c!==pending.challenge)return reply.code(400).send({error:'카카오 연결 요청이 만료됐어요. 앱에서 다시 시작해 주세요.'});
+      linkTarget=pending.player;
+    }
     const appC=(q.app==='1'||q.app==='2')&&typeof q.c==='string'&&/^[A-Za-z0-9_-]{43}$/.test(q.c)?(q.app==='2'?'native:':'')+q.c:null;
     const u=new URL('https://kauth.kakao.com/oauth/authorize');
     u.search=new URLSearchParams({client_id:kakao.restKey,redirect_uri:`${await origin(req)}/my/kakao/callback`,response_type:'code',state}).toString();
-    reply.header('Set-Cookie',[cookieLine(req,KSTATE,state,600),cookieLine(req,KAPP,appC??'',appC?600:0)]);
+    reply.header('Set-Cookie',[cookieLine(req,KSTATE,state,600),cookieLine(req,KAPP,appC??'',appC?600:0),cookieLine(req,KLINK,linkTarget?signed('app-link.',`${linkTarget}:${q.c}`,600):'',linkTarget?600:0)]);
     return reply.redirect(u.toString());
   });
   app.get<{Querystring:{code?:string;state?:string;error?:string}}>('/my/kakao/callback',{config:{rateLimit:{max:20,timeWindow:'1 minute',keyGenerator:ipKey('mykakao')}}},async(req,reply)=>{
     if(!kakao)return reply.code(404).send({error:'not found'});
     const state=cookie(req,KSTATE),clear=cookieLine(req,KSTATE,'',0);
-    if(req.query.error)return back(reply.header('Set-Cookie',clear),'?kakao=cancel');
-    if(!state||state!==req.query.state||typeof req.query.code!=='string')return back(reply.header('Set-Cookie',clear),'?kakao=fail');
+    if(req.query.error)return kakaoBack(req,reply.header('Set-Cookie',clear),'cancel');
+    if(!state||state!==req.query.state||typeof req.query.code!=='string')return kakaoBack(req,reply.header('Set-Cookie',clear),'fail');
     let kakaoId:string;
     try{
       const tok=await http('https://kauth.kakao.com/oauth/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded;charset=utf-8'},
@@ -322,14 +358,22 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
       const u=await meRes.json() as {id?:number|string};
       if(!meRes.ok||u.id==null||!/^\d+$/.test(String(u.id)))throw new Error(`me ${meRes.status}`);
       kakaoId=String(u.id);
-    }catch(e){req.log.warn({err:String(e)},'kakao login failed');return back(reply.header('Set-Cookie',clear),'?kakao=fail');}
+    }catch(e){req.log.warn({err:String(e)},'kakao login failed');return kakaoBack(req,reply.header('Set-Cookie',clear),'fail');}
     const linked=await game.webKakaoPlayer(kakaoId);
     const appC=cookie(req,KAPP);
-    if(linked&&appC&&/^(native:)?[A-Za-z0-9_-]{43}$/.test(appC)){
+    const linkRaw=cookie(req,KLINK),linkPayload=unsign('app-link.',linkRaw);const [linkTarget,linkChallenge]=(linkPayload??'').split(':');
+    if(linkRaw&&appC?.startsWith('native:')&&/^[A-Za-z0-9_-]{43}$/.test(appC.slice(7))){
+      let error:string|undefined;
+      if(!linkTarget||linkChallenge!==appC.slice(7))error='카카오 연결 요청이 만료됐어요. 앱에서 다시 시작해 주세요.';
+      else try{await game.webLinkKakao(linkTarget,kakaoId);}catch(e){if(e instanceof GameError)error=e.message;else throw e;}
+      const code=randomBytes(18).toString('base64url');appCodes.set(code,{player:linkTarget??'',challenge:appC.slice(7),exp:Date.now()+120_000,...(error?{error}:{})});
+      return reply.header('Set-Cookie',[clear,cookieLine(req,KAPP,'',0),cookieLine(req,KLINK,'',0)]).redirect(`gmmnative://auth?code=${code}`);
+    }
+    if(appC&&/^(native:)?[A-Za-z0-9_-]{43}$/.test(appC)&&(linked||appC.startsWith('native:'))){
       const native=appC.startsWith('native:'),challenge=native?appC.slice(7):appC;
       for(const [k,v] of appCodes)if(v.exp<Date.now())appCodes.delete(k);
       const code=randomBytes(18).toString('base64url');
-      appCodes.set(code,{player:linked,challenge,exp:Date.now()+120_000});
+      appCodes.set(code,{player:linked??'',challenge,exp:Date.now()+120_000,...(!linked?{kakao:kakaoId}:{})});
       return reply.header('Set-Cookie',[clear,cookieLine(req,KAPP,'',0)]).redirect(`${native?'gmmnative':'gmmapp'}://auth?code=${code}`);
     }
     if(linked)return back(reply.header('Set-Cookie',[clear,cookieLine(req,COOKIE,issue(linked),DAYS*86400)]),'');

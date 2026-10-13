@@ -22,8 +22,8 @@ android {
         applicationId "org.dpdns.gmm.native"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 65
-        versionName "2.0.2-native"
+        versionCode 66
+        versionName "2.0.3-native"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

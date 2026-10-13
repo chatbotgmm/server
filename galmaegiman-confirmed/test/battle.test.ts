@@ -6,7 +6,7 @@ import { loadBattleRules } from '../src/battle/load.js';
 import { parse } from 'yaml';
 import { readFileSync } from 'node:fs';
 import { addXp, battleXp, canEvolve, innateLearned, learnChances, learnLeft, learnOffers, learnPromo, promoSkills, slotKeys, learnSkill, maxStageAt, slotSkills, statsOf, xpToNext, type UnitRecord } from '../src/battle/growth.js';
-import { act, activeOf, aiChoose, choose, createBattle, rerollAugment, skillProblem, itemProblem, legalActions, pending, pickAi, type Battle } from '../src/battle/engine.js';
+import { skillPreview, act, activeOf, aiChoose, choose, createBattle, rerollAugment, skillProblem, itemProblem, legalActions, pending, pickAi, type Battle } from '../src/battle/engine.js';
 import { checkStory, loadStory } from '../src/battle/story.js';
 import { expectedAttempts, levelRange, referenceLevel, scoutChance, scoutCopy } from '../src/battle/scout.js';
 
@@ -23,6 +23,18 @@ function play(b:Battle,limit=400){
 }
 
 describe('수비대 대결 데이터', ()=>{
+  it('기술 화면의 상성 미리보기는 역상성·무속성·약점 보호를 반영하고 전투를 변경하지 않음',()=>{
+    const b=createBattle(R,[rec('D6')],[rec('D4')],7),f=activeOf(b,0),target=activeOf(b,1);
+    const attr=attrs.find(a=>R.data.chart[a].strong.includes(target.attr))!;
+    const move={...f.skills[0],attr,power:80,cat:'phys' as const};
+    const before=JSON.stringify(b);
+    expect(skillPreview(b,0,move)).toMatchObject({attr,multiplier:R.data.multipliers.strong,category:'phys'});
+    expect(JSON.stringify(b)).toBe(before);
+    b.sides[0].augs.push('reverse');expect(skillPreview(b,0,move).multiplier).toBe(R.data.multipliers.weak);
+    b.sides[0].augs=[];b.sides[1].augs.push('weakguard');expect(skillPreview(b,0,move).multiplier).toBe(1);
+    b.sides[1].augs=[];b.sides[0].neutral=2;expect(skillPreview(b,0,move).multiplier).toBe(1);
+  });
+
   it('증강체: 대결 시작엔 응급처치가 안 나오고, 새 증강체(야근 수당·두꺼운 깃털·점심시간)가 효과를 냄', ()=>{
     for(let seed=1;seed<200;seed++){const b=createBattle(R,[rec('D6'),rec('T3'),rec('I4')],[rec('D4'),rec('E2'),rec('T7')],seed);expect(b.sides[0].offers).not.toContain('firstaid');expect(b.sides[1].offers).not.toContain('firstaid');}
     expect(R.battleAugments.length).toBeGreaterThanOrEqual(24);

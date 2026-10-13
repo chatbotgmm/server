@@ -25,6 +25,7 @@ final class BattleView extends FrameLayout {
     logBox = new ScrollView(a);
     logBox.setBackground(new FrameDrawable(host, "log.webp"));
     TextView log = a.text("", 17);
+    log.setTypeface(a.prose);
     log.setPadding(a.dp(18), a.dp(8), a.dp(18), a.dp(8));
     ArrayList<String> lines = new ArrayList<>();
     JSONArray ls = a.list(b, "log");
@@ -92,6 +93,7 @@ final class BattleView extends FrameLayout {
 
   void heading(String s) {
     LinearLayout row = new LinearLayout(host);
+    row.setBackground(host.material(0xfffffaf0));
     row.addView(
         host.button(
             "‹",
@@ -169,8 +171,27 @@ final class BattleView extends FrameLayout {
       }
       JSONObject sk = skills.optJSONObject(i);
       String why = sk.isNull("reason") ? "" : sk.optString("reason");
+      JSONObject preview = sk.optJSONObject("preview");
+      double multiplier = preview == null ? 1 : preview.optDouble("multiplier", 1);
+      String meta =
+          sk.optInt("power") > 0
+              ? (preview == null
+                      ? ""
+                      : preview.optString("attrName")
+                          + " · "
+                          + (preview.optString("category").equals("phys") ? "물리" : "마법")
+                          + " · ")
+                  + "위력 "
+                  + sk.optInt("power")
+                  + (multiplier > 1 ? " · ▲ 유리" : multiplier < 1 ? " · ▼ 불리" : "")
+              : "보조 기술";
       String caption =
-          sk.optString("name") + "\n" + sk.optString("desc") + (why.isEmpty() ? "" : "\n적용 중");
+          sk.optString("name")
+              + "\n"
+              + meta
+              + "\n"
+              + sk.optString("desc")
+              + (why.isEmpty() ? "" : "\n" + why);
       Button button =
           host.button(
               caption,
@@ -184,9 +205,23 @@ final class BattleView extends FrameLayout {
                         "action",
                         MainActivity.obj("kind", "skill", "skillId", sk.optString("id"))));
               });
-      button.setTextSize(15);
+      button.setTypeface(host.prose);
+      button.setTextSize(14);
+      android.text.SpannableString label = new android.text.SpannableString(caption);
+      int nameEnd = sk.optString("name").length();
+      label.setSpan(
+          new android.text.style.StyleSpan(Typeface.BOLD),
+          0,
+          nameEnd,
+          android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+      label.setSpan(
+          new android.text.style.AbsoluteSizeSpan(17, true),
+          0,
+          nameEnd,
+          android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+      button.setText(label);
       button.setGravity(Gravity.START | Gravity.TOP);
-      button.setMaxLines(4);
+      button.setMaxLines(6);
       button.setEllipsize(android.text.TextUtils.TruncateAt.END);
       button.setPadding(host.dp(8), host.dp(8), host.dp(8), host.dp(8));
       button.setBackground(
@@ -268,7 +303,11 @@ final class BattleView extends FrameLayout {
       JSONObject aug = offers.optJSONObject(i);
       LinearLayout row = new LinearLayout(host);
       row.setGravity(Gravity.CENTER_VERTICAL);
+      row.setBackground(host.material(0xfffffaf0));
       controls.addView(row);
+      row.addView(
+          new MenuKit(host)
+              .image("/duel/icons/" + aug.optString("icon", "u-gift") + ".png", 34, 34));
       Button pick =
           host.button(
               aug.optString("name") + "\n" + aug.optString("desc"),
@@ -441,6 +480,7 @@ final class BattleView extends FrameLayout {
       while (p.measureText(name) > space && name.length() > 2)
         name = name.substring(0, name.length() - 2) + "…";
       c.drawText(name, x, top, p);
+      p.setTypeface(host.prose);
       p.setTextSize(size * .8f);
       p.setTextAlign(Paint.Align.RIGHT);
       c.drawText("Lv" + f.optInt("level"), right, top, p);
@@ -452,39 +492,65 @@ final class BattleView extends FrameLayout {
       float frac = (float) f.optInt("hp") / Math.max(1, f.optInt("maxHp"));
       c.drawRoundRect(new RectF(x, barY, x + (right - x) * frac, barY + bh), bh / 2, bh / 2, p);
       p.setTextSize(size * .78f);
-      p.setColor(MainActivity.BLUE);
-      c.drawText(f.optString("attr"), x, barY + bh + r.height() * .17f, p);
+      String attribute =
+          f.optString("attr") + (f.isNull("extraAttr") ? "" : " · " + f.optString("extraAttr"));
+      float attrY = barY + bh + r.height() * .17f;
+      float chipWidth = p.measureText(attribute) + host.dp(10);
+      p.setColor(MenuKit.attrColor(f.optString("attrCode")));
+      c.drawRoundRect(
+          new RectF(x - host.dp(3), attrY - size * .9f, x + chipWidth, attrY + host.dp(3)),
+          host.dp(7),
+          host.dp(7),
+          p);
+      p.setColor(MainActivity.INK);
+      c.drawText(attribute, x + host.dp(2), attrY, p);
       p.setTextAlign(Paint.Align.RIGHT);
       p.setColor(MainActivity.INK);
       c.drawText(f.optInt("hp") + "/" + f.optInt("maxHp"), right, barY + bh + r.height() * .17f, p);
       p.setTextAlign(Paint.Align.LEFT);
       JSONObject u = host.unit(f.optString("key"));
       p.setTextSize(size * .64f);
+      JSONArray team = host.list(side(own ? 0 : 1), "fighters");
+      float dotsY = r.bottom - r.height() * .28f;
+      for (int i = 0; i < team.length(); i++) {
+        p.setColor(team.optJSONObject(i).optInt("hp") > 0 ? 0xff51c98b : 0xffb6ae9d);
+        c.drawCircle(x + i * host.dp(10), dotsY, host.dp(3.5f), p);
+      }
+      JSONObject states = f.optJSONObject("status");
+      ArrayList<String> labels = new ArrayList<>();
+      if (states != null) {
+        Iterator<String> names = states.keys();
+        while (names.hasNext()) {
+          String id = names.next();
+          labels.add(
+              id.equals("burn")
+                  ? "화상"
+                  : id.equals("freeze")
+                      ? "빙결"
+                      : id.equals("sleep") ? "잠" : id.equals("bind") ? "묶임" : "폭주");
+        }
+      }
+      p.setColor(MainActivity.INK);
+      c.drawText(
+          android.text.TextUtils.join(" · ", labels), x + host.dp(35), dotsY + host.dp(4), p);
       p.setColor(MainActivity.BLUE);
       if (own)
         c.drawText(
             battle.optString("mode").equals("practice")
                 ? "연습 · 저장되지 않음"
                 : u.has("key") ? "경험치 " + u.optInt("xp") + " / " + u.optInt("xpNext") : "동일 레벨 대전",
-            x + host.dp(28),
-            r.bottom - r.height() * .15f,
+            x,
+            r.bottom - r.height() * .13f,
             p);
       else {
-        JSONObject st = f.optJSONObject("status");
-        if (st != null && st.length() > 0) {
-          ArrayList<String> words = new ArrayList<>();
-          Iterator<String> ks = st.keys();
-          while (ks.hasNext()) {
-            String s = ks.next();
-            words.add(
-                s.equals("burn")
-                    ? "화상"
-                    : s.equals("freeze")
-                        ? "빙결"
-                        : s.equals("sleep") ? "잠" : s.equals("bind") ? "묶임" : "폭주");
-          }
-          c.drawText(android.text.TextUtils.join(" · ", words), x, r.bottom - r.height() * .15f, p);
-        }
+        JSONArray augs = host.list(side(1), "augments");
+        ArrayList<String> names = new ArrayList<>();
+        for (int i = 0; i < augs.length(); i++)
+          if (augs.optJSONObject(i) != null) names.add(augs.optJSONObject(i).optString("name"));
+        String label = android.text.TextUtils.join(" · ", names);
+        while (p.measureText(label) > right - x && label.length() > 2)
+          label = label.substring(0, label.length() - 2) + "…";
+        c.drawText(label, x, r.bottom - r.height() * .13f, p);
       }
     }
   }

@@ -19,6 +19,7 @@ public class MainActivity extends AppCompatActivity {
   NativeApi api;
   NativeArt art;
   NativeSound sound;
+  NativeMenus menus;
   Typeface font, headline, prose;
   FrameLayout root;
   LinearLayout page, body;
@@ -49,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
     art = new NativeArt(this, api);
     font = Typeface.createFromAsset(getAssets(), "native/Jua-Regular.ttf");
     headline = Typeface.createFromAsset(getAssets(), "native/BlackHanSans-Regular.ttf");
+    font = headline;
     try {
       prose = Typeface.createFromAsset(getAssets(), "native/GowunDodum-Regular.ttf");
     } catch (Exception ignored) {
@@ -57,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
     WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
     root = new FrameLayout(this);
     setContentView(root);
+    menus = new NativeMenus(this);
     ViewCompat.setOnApplyWindowInsetsListener(
         root,
         (v, insets) -> {
@@ -278,9 +281,9 @@ public class MainActivity extends AppCompatActivity {
 
   GradientDrawable material(int color) {
     GradientDrawable d =
-        new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[] {CREAM, color});
+        new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[] {color, color});
     d.setCornerRadius(dp(14));
-    d.setStroke(dp(2), Color.rgb(184, 122, 60));
+    d.setStroke(dp(2), Color.rgb(194, 124, 61));
     return d;
   }
 
@@ -304,7 +307,6 @@ public class MainActivity extends AppCompatActivity {
             action.run();
           }
         });
-    b.setContentDescription(s);
     return b;
   }
 
@@ -316,9 +318,18 @@ public class MainActivity extends AppCompatActivity {
     ImageView bg = new ImageView(this);
     bg.setScaleType(ImageView.ScaleType.CENTER_CROP);
     bg.setImageBitmap(art.asset("harbor.jpg"));
+    String menuBg =
+        id.equals("draw") || id.equals("drawResult")
+            ? "greenhouse"
+            : id.equals("shop")
+                ? "cafe"
+                : id.equals("expedition") || id.equals("modes") || id.equals("pvp")
+                    ? "cabin"
+                    : "attic";
+    art.into(bg, "/duel/bg/" + menuBg + ".jpg");
     root.addView(bg, new FrameLayout.LayoutParams(-1, -1));
     View shade = new View(this);
-    shade.setBackgroundColor(0x48365364);
+    shade.setBackgroundColor(0x08000000);
     root.addView(shade, new FrameLayout.LayoutParams(-1, -1));
     page = new LinearLayout(this);
     page.setOrientation(LinearLayout.VERTICAL);
@@ -327,20 +338,35 @@ public class MainActivity extends AppCompatActivity {
     LinearLayout head = new LinearLayout(this);
     head.setGravity(Gravity.CENTER_VERTICAL);
     head.setPadding(0, 0, 0, dp(6));
-    Button back = button("‹ 뒤로", this::back);
+    Button back = new MenuKit(this).painted("btn-back", "‹ 뒤로", this::back);
     head.addView(back, new LinearLayout.LayoutParams(dp(100), dp(48)));
     title = text(name, 24);
     title.setTypeface(headline);
+    title.setSingleLine(true);
+    title.setEllipsize(android.text.TextUtils.TruncateAt.END);
     title.setTextColor(Color.WHITE);
     title.setShadowLayer(dp(2), 0, dp(1), 0xff3e281e);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
+    MenuKit kit = new MenuKit(this);
+    for (String kind : new String[] {"snack", "peanut", "credits"}) {
+      String icon =
+          kind.equals("snack") ? "u-snack" : kind.equals("peanut") ? "u-peanut" : "u-ticket";
+      Button money =
+          kit.action(
+              icon,
+              String.format(java.util.Locale.KOREA, "%,d", me().optInt(kind)),
+              () -> load("shop"));
+      money.setTextSize(14);
+      money.setPadding(dp(5), 0, dp(5), 0);
+      head.addView(money, new LinearLayout.LayoutParams(dp(100), dp(48)));
+    }
     page.addView(head);
     ScrollView scroll = new ScrollView(this);
     scroll.setFillViewport(true);
     body = new LinearLayout(this);
     body.setOrientation(LinearLayout.VERTICAL);
     body.setPadding(dp(8), dp(8), dp(8), dp(8));
-    body.setBackground(material(Color.rgb(246, 226, 193)));
+    body.setBackgroundColor(Color.TRANSPARENT);
     scroll.addView(body);
     page.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
   }
@@ -401,6 +427,12 @@ public class MainActivity extends AppCompatActivity {
 
   void show(String s) {
     switch (s) {
+      case "modes":
+        menus.modes();
+        break;
+      case "account":
+        menus.extras.account();
+        break;
       case "home":
         home();
         break;
@@ -468,6 +500,13 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void login() {
+    if (api.token().isEmpty() && state.has("me")) {
+      state = new JSONObject();
+      menus.reset();
+      expeditionDraft = null;
+      expeditionDirty = false;
+      currentKey = "";
+    }
     epoch++;
     screen = "login";
     root.removeAllViews();
@@ -496,15 +535,27 @@ public class MainActivity extends AppCompatActivity {
     LinearLayout head = new LinearLayout(this);
     head.setGravity(Gravity.CENTER_VERTICAL);
     form.addView(head);
-    title = text("로그인", 24);
+    boolean linking =
+        !getSharedPreferences("native_account", 0).getString("linkCode", "").isEmpty();
+    title = text(linking ? "카카오 계정 처음 연결" : "로그인", linking ? 18 : 24);
     title.setTypeface(headline);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
-    head.addView(button("×", this::titleScreen), new LinearLayout.LayoutParams(dp(48), dp(48)));
+    head.addView(
+        button(
+            "×",
+            () -> {
+              getSharedPreferences("native_account", 0).edit().remove("linkCode").apply();
+              titleScreen();
+            }),
+        new LinearLayout.LayoutParams(dp(48), dp(48)));
     Button kakao = button("카카오로 로그인", this::kakao);
     kakao.setBackground(material(0xfffee500));
-    form.addView(kakao, new LinearLayout.LayoutParams(-1, dp(48)));
+    if (!linking) form.addView(kakao, new LinearLayout.LayoutParams(-1, dp(48)));
     TextView guidance =
-        text("또는 카톡 코드로 로그인\n1. 갈매미맨 채널에 ‘웹 로그인’을 보내요.\n2. 받은 6자리 코드를 입력해요. (10분 안에, 한 번만)", 16);
+        text(
+            (linking ? "처음 한 번만 기존 계정을 확인하면 카카오가 연결돼요." : "또는 카톡 코드로 로그인")
+                + "\n1. 갈매미맨 채널에 ‘웹 로그인’을 보내요.\n2. 받은 6자리 코드를 입력해요. (10분 안에, 한 번만)",
+            16);
     guidance.setTypeface(prose);
     form.addView(guidance);
     EditText code = new EditText(this);
@@ -535,8 +586,13 @@ public class MainActivity extends AppCompatActivity {
               .hideSoftInputFromWindow(code.getWindowToken(), 0);
           request(
               "login",
-              obj("code", value),
+              obj(
+                  "code",
+                  value,
+                  "linkCode",
+                  getSharedPreferences("native_account", 0).getString("linkCode", "")),
               (r, e) -> {
+                getSharedPreferences("native_account", 0).edit().remove("linkCode").apply();
                 api.token(r.optString("token"));
                 load("title");
               });
@@ -567,25 +623,54 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void kakao() {
+    beginKakao(false);
+  }
+
+  void kakaoLink() {
+    beginKakao(true);
+  }
+
+  void beginKakao(boolean linking) {
     try {
       byte[] bytes = new byte[32];
       new SecureRandom().nextBytes(bytes);
-      String v =
+      String verifier =
           android.util.Base64.encodeToString(
               bytes,
               android.util.Base64.URL_SAFE
                   | android.util.Base64.NO_WRAP
                   | android.util.Base64.NO_PADDING);
-      getSharedPreferences("native_account", 0).edit().putString("verifier", v).apply();
+      getSharedPreferences("native_account", 0)
+          .edit()
+          .putString("verifier", verifier)
+          .putBoolean("linking", linking)
+          .remove("linkCode")
+          .apply();
       String challenge =
           android.util.Base64.encodeToString(
-              MessageDigest.getInstance("SHA-256").digest(v.getBytes("US-ASCII")), 11);
-      startActivity(
-          new Intent(
-              Intent.ACTION_VIEW,
-              Uri.parse(BuildConfig.SERVER_URL + "/my/kakao?app=2&c=" + challenge)));
+              MessageDigest.getInstance("SHA-256").digest(verifier.getBytes("US-ASCII")), 11);
+      if (linking)
+        request(
+            "kakao/link-start",
+            obj("challenge", challenge),
+            (r, e) -> {
+              JSONObject result = r.optJSONObject("result");
+              if (result == null) {
+                message("카카오 연결을 다시 시작해 주세요.");
+                return;
+              }
+              startActivity(
+                  new Intent(
+                      Intent.ACTION_VIEW,
+                      Uri.parse(BuildConfig.SERVER_URL + result.optString("url"))));
+            });
+      else
+        startActivity(
+            new Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse(BuildConfig.SERVER_URL + "/my/kakao?app=2&c=" + challenge)));
     } catch (Exception e) {
-      message("로그인을 열지 못했어요.");
+      message("카카오 로그인을 열지 못했어요.");
     }
   }
 
@@ -593,19 +678,39 @@ public class MainActivity extends AppCompatActivity {
     Uri u = intent.getData();
     if (u == null || !"gmmnative".equals(u.getScheme()) || !"auth".equals(u.getHost()))
       return false;
+    String authError = u.getQueryParameter("error");
+    if (authError != null) {
+      getSharedPreferences("native_account", 0).edit().remove("verifier").remove("linking").apply();
+      message(authError.equals("cancel") ? "카카오 로그인을 취소했어요." : "카카오 로그인에 실패했어요. 다시 시도해 주세요.");
+      return true;
+    }
     if (busy) {
       api.ui.postDelayed(() -> exchange(intent), 250);
       return true;
     }
     String code = u.getQueryParameter("code"),
         v = getSharedPreferences("native_account", 0).getString("verifier", "");
-    getSharedPreferences("native_account", 0).edit().remove("verifier").apply();
+    boolean linking = getSharedPreferences("native_account", 0).getBoolean("linking", false);
+    String oldPlayer = api.token().split("\\.")[0];
+    getSharedPreferences("native_account", 0).edit().remove("verifier").remove("linking").apply();
     request(
         "app/exchange",
         obj("code", code, "verifier", v),
         (r, e) -> {
-          api.token(r.optString("token"));
-          load("title");
+          if (linking && !r.optString("token").split("\\.")[0].equals(oldPlayer)) {
+            message("다른 계정의 카카오 로그인으로 바뀌지 않았어요. 기존 계정에 연결할 수 있는 카카오를 선택해 주세요.");
+            return;
+          }
+          if (r.optBoolean("needsLink")) {
+            getSharedPreferences("native_account", 0)
+                .edit()
+                .putString("linkCode", r.optString("linkCode"))
+                .apply();
+            login();
+          } else {
+            api.token(r.optString("token"));
+            load("title");
+          }
         });
     return true;
   }
@@ -618,69 +723,11 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void chapters() {
-    base("챕터 선택", "story");
-    addButton(
-        "수비대 편성·경험치",
-        () -> {
-          selectionMode = "story";
-          team();
-        });
-    JSONArray cs = list(state, "chapters");
-    ArrayList<View> views = new ArrayList<>();
-    for (int i = 0; i < cs.length(); i++) {
-      final int ci = i;
-      JSONObject c = cs.optJSONObject(i);
-      JSONArray ss = list(c, "stages");
-      int done = 0;
-      for (int j = 0; j < ss.length(); j++) if (ss.optJSONObject(j).optBoolean("cleared")) done++;
-      views.add(
-          button(
-              c.optString("title") + "\n" + done + " / " + ss.length(),
-              () -> {
-                chapter = ci;
-                stages();
-              }));
-    }
-    grid(views);
+    menus.story(false);
   }
 
   void stages() {
-    JSONArray cs = list(state, "chapters");
-    JSONObject c = cs.optJSONObject(chapter);
-    if (c == null) {
-      chapters();
-      return;
-    }
-    base(c.optString("title"), "stages");
-    body.addView(text(c.optString("intro"), 17));
-    ArrayList<View> buttons = new ArrayList<>();
-    JSONArray ss = list(c, "stages");
-    for (int i = 0; i < ss.length(); i++) {
-      JSONObject st = ss.optJSONObject(i);
-      String caption =
-          (st.optBoolean("cleared") ? "✓ " : st.optBoolean("open") ? "" : "🔒 ")
-              + st.optString("title");
-      JSONArray es = list(st, "enemy");
-      int lv = 0;
-      for (int j = 0; j < es.length(); j++) lv = Math.max(lv, es.optJSONObject(j).optInt("level"));
-      Button b =
-          button(
-              caption + "\n상대 Lv" + lv,
-              () -> {
-                if (!st.optBoolean("open")) {
-                  message("앞 전투를 완료하고 팀의 승진 조건을 확인해 주세요.");
-                  return;
-                }
-                storyScene = st.optString("scene", "harbor");
-                storyFoe = list(st, "enemy").optJSONObject(0).optString("id");
-                talk(
-                    list(st, "before"),
-                    st.optString("title"),
-                    () -> startFight("story", st.optString("id")));
-              });
-      buttons.add(b);
-    }
-    grid(buttons);
+    menus.story(true);
   }
 
   void talk(JSONArray lines, String caption, Runnable end) {
@@ -699,61 +746,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void team() {
-    base("수비대 · 편성과 성장", "team");
-    selected.clear();
-    JSONArray ts = list(state, "team");
-    for (int i = 0; i < ts.length(); i++) selected.add(ts.optString(i));
-    body.addView(text("전투에 함께할 1~3마리를 고르세요. 갈매미를 길게 누르면 기술·승진을 확인해요.", 17));
-    ArrayList<View> views = new ArrayList<>();
-    addButton("보유 아이템", this::inventory);
-    JSONArray us = list(state, "units");
-    for (int i = 0; i < us.length(); i++) {
-      JSONObject u = us.optJSONObject(i);
-      String key = u.optString("key");
-      String desc = unitCaption(u, selected.contains(key));
-      LinearLayout v = card(u, u.optString("image"), desc, null);
-      v.setOnClickListener(
-          w -> {
-            if (selected.contains(key)) selected.remove(key);
-            else if (selected.size() < 3) selected.add(key);
-            else {
-              message("3마리까지 고를 수 있어요.");
-              return;
-            }
-            ((TextView) v.getChildAt(1)).setText(unitCaption(u, selected.contains(key)));
-          });
-      v.setOnLongClickListener(
-          w -> {
-            unitDetail(key);
-            return true;
-          });
-      views.add(v);
-    }
-    grid(views);
-    if (us.length() == 0) {
-      body.addView(text("최상위 갈매미가 필요해요. 첫 출근 안내에서 갈매미를 받을 수 있어요.", 18));
-      addButton("첫 출근 안내", this::tutorial);
-    }
-    addButton(
-        "편성 저장",
-        () -> {
-          if (selected.isEmpty()) {
-            message("1마리 이상 골라 주세요.");
-            return;
-          }
-          request("native/team", obj("keys", arr(selected)), (r, e) -> load("team"));
-        });
-    addButton(
-        "갈매미 기술·승진 보기",
-        () -> {
-          if (selected.isEmpty()) {
-            message("갈매미를 골라 주세요.");
-            return;
-          }
-          String[] names = new String[selected.size()];
-          for (int i = 0; i < names.length; i++) names[i] = unit(selected.get(i)).optString("name");
-          new GameDialog(this).setItems(names, (d, w) -> unitDetail(selected.get(w))).show();
-        });
+    menus.team();
   }
 
   String unitCaption(JSONObject u, boolean sel) {
@@ -776,78 +769,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void unitDetail(String key) {
-    currentKey = key;
-    JSONObject u = unit(key);
-    base(u.optString("name") + " · 기술과 승진", "unit");
-    body.addView(card(u, u.optString("image"), unitCaption(u, false), null));
-    JSONArray skills = list(u, "skills");
-    for (int i = 0; i < skills.length(); i++) {
-      JSONObject sk = skills.optJSONObject(i);
-      body.addView(text(sk.optString("name") + " — " + sk.optString("desc"), 18));
-    }
-    addButton(
-        "회복 아이템",
-        () -> {
-          JSONArray its = list(state, "items");
-          ArrayList<String> ids = new ArrayList<>(), names = new ArrayList<>();
-          JSONObject defs = state.optJSONObject("itemDefs");
-          for (int i = 0; i < its.length(); i++) {
-            JSONObject it = its.optJSONObject(i);
-            JSONObject def = defs == null ? null : defs.optJSONObject(it.optString("id"));
-            if (it.optInt("count") > 0 && def != null && def.optInt("heal") > 0) {
-              ids.add(it.optString("id"));
-              names.add(def.optString("name") + " ×" + it.optInt("count"));
-            }
-          }
-          if (ids.isEmpty()) {
-            message("회복 아이템이 없어요. 상점에서 구매해 주세요.");
-            return;
-          }
-          new GameDialog(this)
-              .setItems(
-                  names.toArray(new String[0]),
-                  (d, w) ->
-                      request(
-                          "native/heal",
-                          obj("key", key, "item", ids.get(w)),
-                          (r, e) -> load("unit")))
-              .show();
-        });
-    for (String kind : new String[] {"learn", "promo"}) {
-      JSONArray offers = list(u, kind);
-      for (int i = 0; i < offers.length(); i++) {
-        JSONObject sk = offers.optJSONObject(i);
-        addButton(
-            (kind.equals("promo") ? "전용 기술: " : "배우기: ")
-                + sk.optString("name")
-                + "\n"
-                + sk.optString("desc"),
-            () -> learn(key, kind, sk.optString("id")));
-      }
-    }
-    if (list(u, "learn").length() > 0)
-      addButton(
-          "이번 기술 학습 마치기",
-          () ->
-              request(
-                  "native/growth",
-                  obj("key", key, "kind", "learn", "skill", JSONObject.NULL),
-                  (r, e) -> load("unit")));
-    JSONArray evolve = list(u, "evolve");
-    for (int i = 0; i < evolve.length(); i++) {
-      JSONObject a = evolve.optJSONObject(i);
-      addButton(
-          "승진 · " + a.optString("name") + "\n" + a.optString("desc"),
-          () ->
-              confirm(
-                  "이 직무 표창으로 승진할까요?",
-                  () ->
-                      request(
-                          "native/growth",
-                          obj("key", key, "kind", "evolve", "augment", a.optString("id")),
-                          (r, e) -> load("unit"))));
-    }
-    if (evolve.length() == 0) body.addView(text("승진: 20·35·50레벨과 해당 부의 보스 완료가 필요해요.", 16));
+    menus.library.unit(key);
   }
 
   void learn(String key, String kind, String skill) {
@@ -884,165 +806,15 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void inventory() {
-    base("보유 아이템", "items");
-    JSONArray its = list(state, "items");
-    JSONObject defs = state.optJSONObject("itemDefs");
-    for (int i = 0; i < its.length(); i++) {
-      JSONObject it = its.optJSONObject(i),
-          def = defs == null ? null : defs.optJSONObject(it.optString("id"));
-      if (def == null) continue;
-      addButton(
-          def.optString("name") + " ×" + it.optInt("count"),
-          () -> {
-            if (it.optInt("count") <= 0) {
-              message("아이템이 없어요. 상점에서 구매해 주세요.");
-              return;
-            }
-            if (def.optInt("heal") <= 0) {
-              message("전투 중 아이템 메뉴에서 사용할 수 있어요.");
-              return;
-            }
-            JSONArray us = list(state, "units");
-            String[] names = new String[us.length()];
-            for (int j = 0; j < names.length; j++)
-              names[j] =
-                  us.optJSONObject(j).optString("name")
-                      + " · 체력 "
-                      + us.optJSONObject(j).optInt("hp")
-                      + "/"
-                      + us.optJSONObject(j).optInt("maxHp");
-            new GameDialog(this)
-                .setTitle("회복할 갈매미 선택")
-                .setItems(
-                    names,
-                    (d, w) ->
-                        request(
-                            "native/heal",
-                            obj(
-                                "key",
-                                us.optJSONObject(w).optString("key"),
-                                "item",
-                                it.optString("id")),
-                            (r, e) -> load("items")))
-                .show();
-          });
-    }
-    addButton("아이템 구매", () -> load("shop"));
+    menus.library.items();
   }
 
   void collection() {
-    base("내 갈매미 도감", "collection");
-    body.addView(text("발견 " + me().optInt("dex") + " / " + me().optInt("dexTotal"), 20));
-    JSONArray us = list(me(), "units");
-    ArrayList<View> cards = new ArrayList<>();
-    for (int i = 0; i < us.length(); i++) {
-      JSONObject u = us.optJSONObject(i);
-      String sp = u.optString("id");
-      cards.add(
-          card(
-              u,
-              "/images/" + sp + ".png",
-              u.optString("name")
-                  + "\n"
-                  + u.optString("tierName")
-                  + " · "
-                  + u.optInt("have")
-                  + "마리",
-              () -> {
-                String info =
-                    u.optString("intro")
-                        + "\n\n"
-                        + u.optString("quote")
-                        + "\n보호 "
-                        + u.optInt("locked")
-                        + " · 탐험 "
-                        + u.optInt("away");
-                new GameDialog(this)
-                    .setTitle(u.optString("name"))
-                    .setMessage(info)
-                    .setPositiveButton("닫기", null)
-                    .setNeutralButton(
-                        "보호 상태 변경",
-                        (d, w) ->
-                            confirm(
-                                "이 종류의 갈매미 보호 상태를 변경할까요?",
-                                () ->
-                                    mutate(
-                                        "units/protect",
-                                        obj("id", sp, "locked", u.optInt("locked") == 0),
-                                        "collection")))
-                    .show();
-              }));
-    }
-    grid(cards);
+    menus.library.collection();
   }
 
   void draw() {
-    base("뽑기", "draw");
-    int ep = epoch;
-    api.call(
-        "draw",
-        null,
-        (r, e) -> {
-          if (ep != epoch) return;
-          if (e != null) {
-            message(e);
-            return;
-          }
-          body.addView(
-              text("뽑기권 " + r.optInt("credits") + " · " + waitText(r.optLong("wait")), 20));
-          addButton("뽑기권 받기", () -> mutate("claim", obj(), "draw"));
-          JSONArray gs = list(r, "gachas");
-          for (int i = 0; i < gs.length(); i++) {
-            JSONObject g = gs.optJSONObject(i);
-            LinearLayout card = new LinearLayout(this);
-            card.setOrientation(LinearLayout.VERTICAL);
-            card.setPadding(dp(8), dp(8), dp(8), dp(8));
-            card.setBackground(material(Color.rgb(236, 210, 172)));
-            body.addView(card);
-            TextView rates = text(g.optString("label") + " · 1회 " + g.optInt("cost") + "장", 23);
-            card.addView(rates);
-            StringBuilder weights = new StringBuilder();
-            JSONArray ws = list(g, "weights");
-            double total = 0;
-            for (int w = 0; w < ws.length(); w++) total += ws.optJSONObject(w).optDouble("w");
-            for (int w = 0; w < ws.length(); w++) {
-              JSONObject x = ws.optJSONObject(w);
-              weights
-                  .append(x.optString("tierName"))
-                  .append(" ")
-                  .append(
-                      String.format(
-                          java.util.Locale.KOREA, "%.1f%%", x.optDouble("w") / total * 100))
-                  .append(" · ");
-            }
-            card.addView(text(weights.toString(), 16));
-            LinearLayout buttons = new LinearLayout(this);
-            card.addView(buttons);
-            for (int count : new int[] {1, 10})
-              cell(
-                  buttons,
-                  button(
-                      count + "회 뽑기",
-                      () ->
-                          confirm(
-                              g.optString("label")
-                                  + " "
-                                  + count
-                                  + "회 · "
-                                  + (count * g.optInt("cost"))
-                                  + "장을 사용할까요?",
-                              () ->
-                                  mutate(
-                                      "draw",
-                                      obj("kind", g.optString("kind"), "times", count),
-                                      "draw"))));
-          }
-          JSONObject pity = r.optJSONObject("pity");
-          if (pity != null)
-            body.addView(
-                text("확정 보상까지 " + pity.optInt("left") + "회 · " + pity.optString("tierName"), 18));
-        });
+    menus.economy.draw();
   }
 
   String waitText(long ms) {
@@ -1052,180 +824,19 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void drawResult(JSONObject r, Runnable next) {
-    base("뽑기 결과", "drawResult");
-    body.addView(text(r.optString("summary"), 20));
-    ArrayList<View> cards = new ArrayList<>();
-    JSONArray items = list(r, "items");
-    for (int i = 0; i < items.length(); i++) {
-      JSONObject u = items.optJSONObject(i);
-      cards.add(
-          card(
-              u,
-              "/images/" + u.optString("img") + ".png",
-              (u.optBoolean("first") ? "새 갈매미!\n" : "")
-                  + u.optString("name")
-                  + "\n"
-                  + u.optString("tierName")
-                  + " ×"
-                  + u.optInt("n"),
-              null));
-    }
-    grid(cards);
-    addButton("확인", next);
+    menus.economy.reveal(r, next, false);
   }
 
   void craft() {
-    base("조합", "craft");
-    addButton("재료 직접 섞기", this::mix);
-    int ep = epoch;
-    api.call(
-        "craft",
-        null,
-        (r, e) -> {
-          if (ep != epoch) return;
-          if (e != null) {
-            message(e);
-            return;
-          }
-          JSONArray recipes = list(r, "recipes");
-          ArrayList<View> cards = new ArrayList<>();
-          for (int i = 0; i < recipes.length(); i++) {
-            JSONObject recipe = recipes.optJSONObject(i);
-            StringBuilder desc = new StringBuilder(recipe.optString("name") + "\n");
-            JSONArray ms = list(recipe, "materials");
-            for (int j = 0; j < ms.length(); j++) {
-              JSONObject m = ms.optJSONObject(j);
-              desc.append(m.optString("name"))
-                  .append(" ")
-                  .append(m.optInt("usable"))
-                  .append("/")
-                  .append(m.optInt("need"))
-                  .append("\n");
-            }
-            cards.add(
-                card(
-                    recipe,
-                    "/images/" + recipe.optString("img") + ".png",
-                    desc.toString(),
-                    () -> {
-                      if (!recipe.optBoolean("ready")) {
-                        message("재료가 부족해요. 보호·탐험 중인 갈매미는 사용할 수 없어요.");
-                        return;
-                      }
-                      confirm(
-                          "표시된 재료를 사용해 " + recipe.optString("name") + "을 조합할까요?",
-                          () ->
-                              mutate(
-                                  "craft", obj("id", recipe.optString("id"), "times", 1), "craft"));
-                    }));
-          }
-          grid(cards);
-        });
+    menus.economy.craft(false);
   }
 
   void mix() {
-    base("재료 직접 섞기", "mix");
-    ArrayList<String> ids = new ArrayList<>();
-    TextView count = text("재료 0 / 6", 20);
-    body.addView(count);
-    int ep = epoch;
-    api.call(
-        "craft",
-        null,
-        (r, e) -> {
-          if (ep != epoch) return;
-          if (e != null) {
-            message(e);
-            return;
-          }
-          ArrayList<View> buttons = new ArrayList<>();
-          JSONArray pool = list(r, "pool");
-          for (int i = 0; i < pool.length(); i++) {
-            JSONObject u = pool.optJSONObject(i);
-            String id = u.optString("id");
-            buttons.add(
-                button(
-                    u.optString("name") + " · 사용 가능 " + u.optInt("usable"),
-                    () -> {
-                      if (ids.size() >= 6 || Collections.frequency(ids, id) >= u.optInt("usable")) {
-                        message("사용 가능한 수량을 확인해 주세요.");
-                        return;
-                      }
-                      ids.add(id);
-                      count.setText(
-                          "재료 " + ids.size() + " / 6 · " + android.text.TextUtils.join(", ", ids));
-                    }));
-          }
-          grid(buttons);
-          addButton(
-              "선택 초기화",
-              () -> {
-                ids.clear();
-                count.setText("재료 0 / 6");
-              });
-          addButton(
-              "조합하기",
-              () -> {
-                if (ids.size() < 2) {
-                  message("2~6마리를 선택해 주세요.");
-                  return;
-                }
-                confirm("선택한 재료를 사용해 조합할까요?", () -> mutate("mix", obj("ids", arr(ids)), "craft"));
-              });
-        });
+    menus.economy.craft(true);
   }
 
   void shop() {
-    base("상점", "shop");
-    body.addView(text("땅콩 " + me().optInt("peanut") + " · 간식 " + me().optInt("snack"), 20));
-    int ep = epoch;
-    api.call(
-        "me",
-        null,
-        (r, e) -> {
-          if (ep != epoch) return;
-          if (e != null) {
-            message(e);
-            return;
-          }
-          JSONObject prices = r.optJSONObject("prices");
-          body.addView(text(prices == null ? "" : priceText(prices), 16));
-          addButton(
-              "간식으로 뽑기권 구매",
-              () ->
-                  confirm(
-                      "뽑기권 1묶음을 구매할까요?",
-                      () -> mutate("shop", obj("item", "tickets", "count", 1), "shop")));
-          addButton(
-              "땅콩으로 뽑기권 구매",
-              () ->
-                  confirm(
-                      "뽑기권 1묶음을 구매할까요?",
-                      () -> mutate("shop", obj("item", "peanutTickets", "count", 1), "shop")));
-          addButton(
-              "탐험 즉시 귀환권 구매",
-              () ->
-                  confirm(
-                      "즉시 귀환권을 구매할까요?",
-                      () -> mutate("shop", obj("item", "skip", "count", 1), "shop")));
-          JSONArray items = list(r, "itemDefs");
-          ArrayList<View> cards = new ArrayList<>();
-          for (int i = 0; i < items.length(); i++) {
-            JSONObject it = items.optJSONObject(i);
-            cards.add(
-                button(
-                    it.optString("name") + " · 땅콩 " + it.optInt("price"),
-                    () ->
-                        confirm(
-                            it.optString("name") + " 1개를 구매할까요?",
-                            () ->
-                                mutate(
-                                    "items/buy",
-                                    obj("id", it.optString("id"), "count", 1),
-                                    "shop"))));
-          }
-          grid(cards);
-        });
+    menus.economy.shop();
   }
 
   String priceText(JSONObject p) {
@@ -1244,111 +855,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void expedition() {
-    base("탐험", "expedition");
-    JSONObject trip = me().optJSONObject("trip");
-    if (trip != null) {
-      body.addView(
-          text(
-              "탐험 중\n귀환 시각 "
-                  + dateText(trip.optString("endsAt"))
-                  + "\n"
-                  + tripNames(list(trip, "units")),
-              20));
-      addButton("귀환 보상 받기", () -> mutate("expedition/claim", obj(), "expedition"));
-      return;
-    }
-    ArrayList<String> ids = new ArrayList<>();
-    JSONArray old = list(me(), "party");
-    for (int i = 0; i < old.length(); i++) ids.add(old.optString(i));
-    expeditionDraft = ids;
-    expeditionDirty = false;
-    JSONArray previous = list(me(), "previousParty");
-    if (ids.isEmpty() && previous.length() > 0)
-      addButton("최근 탐험대 불러오기", () -> mutate("party", obj("ids", previous), "expedition"));
-    body.addView(text("탐험에 보낼 갈매미를 선택하세요.", 18));
-    ArrayList<View> cards = new ArrayList<>();
-    JSONArray units = list(me(), "units");
-    TextView chosen = text("탐험대 " + ids.size() + " / 10", 20);
-    body.addView(chosen);
-    for (int i = 0; i < units.length(); i++) {
-      JSONObject u = units.optJSONObject(i);
-      if (!u.optBoolean("top")) continue;
-      String id = u.optString("id");
-      int available = u.optInt("have") - u.optInt("away");
-      LinearLayout c = new LinearLayout(this);
-      c.setOrientation(LinearLayout.VERTICAL);
-      c.setBackground(material(CREAM));
-      TextView label =
-          text(
-              u.optString("name") + " · " + Collections.frequency(ids, id) + "마리 / 남음 " + available,
-              18);
-      c.addView(label);
-      LinearLayout count = new LinearLayout(this);
-      c.addView(count);
-      cell(
-          count,
-          button(
-              "−",
-              () -> {
-                if (ids.remove(id)) expeditionDirty = true;
-                label.setText(
-                    u.optString("name")
-                        + " · "
-                        + Collections.frequency(ids, id)
-                        + "마리 / 남음 "
-                        + available);
-                chosen.setText("탐험대 " + ids.size() + " / 10");
-              }));
-      cell(
-          count,
-          button(
-              "＋",
-              () -> {
-                if (ids.size() >= 10 || Collections.frequency(ids, id) >= available) {
-                  message("탐험 중인 갈매미와 사용 가능한 수량을 확인해 주세요.");
-                  return;
-                }
-                ids.add(id);
-                expeditionDirty = true;
-                label.setText(
-                    u.optString("name")
-                        + " · "
-                        + Collections.frequency(ids, id)
-                        + "마리 / 남음 "
-                        + available);
-                chosen.setText("탐험대 " + ids.size() + " / 10");
-              }));
-      cards.add(c);
-    }
-    grid(cards);
-    addButton(
-        "편성 저장",
-        () ->
-            request(
-                "party",
-                obj("ids", arr(ids)),
-                (r, e) -> {
-                  expeditionDirty = false;
-                  try {
-                    me().put("party", arr(ids));
-                  } catch (JSONException ignored) {
-                  }
-                  android.widget.Toast.makeText(
-                          this, "탐험 편성을 저장했어요.", android.widget.Toast.LENGTH_SHORT)
-                      .show();
-                }));
-    addButton(
-        "탐험 출발",
-        () ->
-            request(
-                "party",
-                obj("ids", arr(ids)),
-                (r, e) -> {
-                  if (e == null) {
-                    expeditionDirty = false;
-                    mutate("expedition/start", obj(), "expedition");
-                  }
-                }));
+    menus.economy.expedition();
   }
 
   String dateText(String value) {
@@ -1368,298 +875,35 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void daily() {
-    base("출석·미션", "daily");
-    int ep = epoch;
-    api.call(
-        "daily",
-        null,
-        (r, e) -> {
-          if (ep != epoch) return;
-          if (e != null) {
-            message(e);
-            return;
-          }
-          JSONObject a = r.optJSONObject("attend");
-          if (a != null) {
-            body.addView(
-                text("연속 출석 " + a.optInt("streak") + "일 · " + a.optInt("week") + "주차", 23));
-            body.addView(text("이번 주 뽑기권 보상: " + list(a, "rewards").toString(), 18));
-            if (!a.optBoolean("today"))
-              addButton("오늘 출석하기", () -> mutate("attend", obj(), "daily"));
-            else body.addView(text("오늘 출석 완료 ✓", 20));
-          }
-          JSONArray ms = list(r, "missions");
-          for (int i = 0; i < ms.length(); i++) {
-            JSONObject m = ms.optJSONObject(i);
-            body.addView(
-                text(
-                    m.optString("label", m.optString("name"))
-                        + " · "
-                        + m.optInt("value")
-                        + " / "
-                        + m.optInt("goal"),
-                    18));
-          }
-        });
+    menus.extras.daily();
   }
 
   void pvp() {
-    base("대전", "pvp");
-    int ep = epoch;
-    api.call(
-        "pvp",
-        null,
-        (r, e) -> {
-          if (ep != epoch) return;
-          if (e != null) {
-            message(e);
-            return;
-          }
-          JSONObject m = r.optJSONObject("me");
-          if (m != null)
-            body.addView(
-                text(
-                    m.optString("tier")
-                        + " · "
-                        + m.optInt("point")
-                        + "점 · "
-                        + m.optInt("wins")
-                        + "승 "
-                        + m.optInt("losses")
-                        + "패",
-                    22));
-          addButton("일반게임", () -> startFight("normal", null));
-          addButton(
-              "랭크게임",
-              () -> confirm("랭크게임은 중간에 나가면 패배로 처리돼요. 시작할까요?", () -> startFight("rank", null)));
-          addButton("전투 편성", this::team);
-          JSONArray top = list(r, "top");
-          for (int i = 0; i < top.length(); i++) {
-            JSONObject x = top.optJSONObject(i);
-            body.addView(
-                text(
-                    x.optInt("rank")
-                        + "위 · "
-                        + x.optString("name")
-                        + " · "
-                        + x.optInt("point")
-                        + "점",
-                    18));
-          }
-        });
+    menus.extras.pvp();
   }
 
   void practicePicker(boolean enemy) {
-    JSONArray units = list(state, "practiceUnits");
-    ArrayList<String> temp = new ArrayList<>(enemy ? practiceEnemy : practiceRoster);
-    String[] names = new String[units.length()];
-    boolean[] checked = new boolean[units.length()];
-    for (int i = 0; i < units.length(); i++) {
-      JSONObject u = units.optJSONObject(i);
-      names[i] = u.optString("name") + " · " + u.optString("attr");
-      checked[i] = temp.contains(u.optString("id"));
-    }
-    new GameDialog(this)
-        .setTitle(enemy ? "연습 상대 1~3마리" : "연습 수비대 1~3마리")
-        .setMultiChoiceItems(
-            names,
-            checked,
-            (d, which, on) -> {
-              String id = units.optJSONObject(which).optString("id");
-              if (!on) temp.remove(id);
-              else if (temp.size() < 3) temp.add(id);
-              else {
-                ((android.app.AlertDialog) d).getListView().setItemChecked(which, false);
-                message("3마리까지 선택해 주세요.");
-              }
-            })
-        .setNegativeButton("취소", null)
-        .setPositiveButton(
-            "선택",
-            (d, w) -> {
-              if (temp.isEmpty()) {
-                message("1마리 이상 선택해 주세요.");
-                return;
-              }
-              if (enemy) practiceEnemy = temp;
-              else practiceRoster = temp;
-              practice();
-            })
-        .show();
+    menus.extras.picker(enemy);
   }
 
   void practice() {
-    base("자유 연습", "practice");
-    body.addView(text("33종 모두 선택할 수 있어요. 계정의 경험치·체력·아이템은 변경되지 않아요.", 17));
-    LinearLayout settings = row();
-    cell(settings, button("내 수비대 선택", () -> practicePicker(false)));
-    cell(
-        settings,
-        button(
-            "레벨 " + practiceLevel,
-            () ->
-                input(
-                    "연습 레벨 1~60",
-                    InputType.TYPE_CLASS_NUMBER,
-                    value -> {
-                      try {
-                        int level = Integer.parseInt(value);
-                        if (level < 1 || level > 60) throw new NumberFormatException();
-                        practiceLevel = level;
-                        practice();
-                      } catch (NumberFormatException e) {
-                        message("1~60 사이 레벨을 입력해 주세요.");
-                      }
-                    })));
-    cell(
-        settings,
-        button(
-            "승진 " + practicePromotion + "단계",
-            () ->
-                new GameDialog(this)
-                    .setItems(
-                        new String[] {"원형", "1단계", "2단계", "3단계"},
-                        (d, w) -> {
-                          practicePromotion = w;
-                          practice();
-                        })
-                    .show()));
-    LinearLayout opponents = row();
-    cell(opponents, button("상대 수비대 선택", () -> practicePicker(true)));
-    cell(
-        opponents,
-        button(
-            "스토리 상대 보기",
-            () -> {
-              practiceEnemy.clear();
-              practice();
-            }));
-    if (!practiceEnemy.isEmpty()) {
-      addButton("수비대 연습 시작", () -> startFight("practice", "P-1"));
-      return;
-    }
-    ArrayList<View> buttons = new ArrayList<>();
-    JSONArray cs = list(state, "chapters");
-    for (int i = 0; i < cs.length(); i++) {
-      JSONArray stages = list(cs.optJSONObject(i), "stages");
-      for (int j = 0; j < stages.length(); j++) {
-        JSONObject st = stages.optJSONObject(j);
-        buttons.add(
-            button(st.optString("title"), () -> startFight("practice", st.optString("id"))));
-      }
-    }
-    grid(buttons);
+    menus.extras.practice();
   }
 
   void types() {
     base("속성 상성", "types");
-    JSONObject chart = state.optJSONObject("typeChart"), attrs = state.optJSONObject("attributes");
-    if (chart == null) return;
-    Iterator<String> it = chart.keys();
-    while (it.hasNext()) {
-      String id = it.next();
-      JSONObject c = chart.optJSONObject(id);
-      String name = attrs.optJSONObject(id).optString("name");
-      JSONArray strong = list(c, "strong");
-      ArrayList<String> targets = new ArrayList<>();
-      for (int i = 0; i < strong.length(); i++)
-        targets.add(attrs.optJSONObject(strong.optString(i)).optString("name"));
-      body.addView(text(name + " → " + android.text.TextUtils.join(" · ", targets) + "에 강함", 20));
-    }
+    ArrayList<String> ids = new ArrayList<>();
+    JSONArray team = list(me(), "battleTeam");
+    for (int i = 0; i < team.length(); i++) ids.add(team.optString(i));
+    menus.chart(body, ids, true);
   }
 
   void settings() {
-    base("설정", "settings");
-    body.addView(text("Android 네이티브 · " + BuildConfig.VERSION_NAME, 20));
-    for (String channel : new String[] {"music", "effects"}) {
-      body.addView(text(channel.equals("music") ? "배경음악" : "효과음", 18));
-      SeekBar slider = new SeekBar(this);
-      slider.setMax(100);
-      slider.setProgress(sound.volume(channel));
-      slider.setOnSeekBarChangeListener(
-          new SeekBar.OnSeekBarChangeListener() {
-            public void onProgressChanged(SeekBar b, int value, boolean user) {
-              if (user) sound.volume(channel, value);
-            }
-
-            public void onStartTrackingTouch(SeekBar b) {}
-
-            public void onStopTrackingTouch(SeekBar b) {}
-          });
-      body.addView(slider, new LinearLayout.LayoutParams(-1, dp(48)));
-    }
-    addButton(
-        "탐험 귀환·뽑기권 알림 켜기",
-        () -> {
-          getSharedPreferences("native_account", 0).edit().putBoolean("alerts", true).apply();
-          if (Build.VERSION.SDK_INT >= 33
-              && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
-                  != android.content.pm.PackageManager.PERMISSION_GRANTED)
-            requestPermissions(new String[] {android.Manifest.permission.POST_NOTIFICATIONS}, 11);
-          NativeAlerts.schedule(this, me());
-        });
-    addButton(
-        "알림 끄기",
-        () -> {
-          getSharedPreferences("native_account", 0).edit().putBoolean("alerts", false).apply();
-          NativeAlerts.schedule(this, new JSONObject());
-        });
-    addButton(
-        "쿠폰 입력",
-        () ->
-            input(
-                "쿠폰 코드",
-                InputType.TYPE_CLASS_TEXT,
-                code -> mutate("coupon", obj("code", code), "settings")));
-    addButton("첫 출근 안내", this::tutorial);
-    addButton(
-        "로그아웃",
-        () ->
-            confirm(
-                "로그아웃할까요?",
-                () -> {
-                  api.token("");
-                  art.clear();
-                  NativeAlerts.schedule(this, new JSONObject());
-                  state = new JSONObject();
-                  titleScreen();
-                }));
-    addButton(
-        "계정 탈퇴",
-        () ->
-            input(
-                "계정과 진행이 삭제됩니다. ‘탈퇴’ 입력",
-                InputType.TYPE_CLASS_TEXT,
-                code -> {
-                  if (!code.equals("탈퇴")) {
-                    message("‘탈퇴’를 입력해야 삭제할 수 있어요.");
-                    return;
-                  }
-                  request(
-                      "account/delete",
-                      obj("confirm", code),
-                      (r, e) -> {
-                        api.token("");
-                        art.clear();
-                        NativeAlerts.schedule(this, new JSONObject());
-                        state = new JSONObject();
-                        titleScreen();
-                      });
-                }));
+    menus.extras.settings();
   }
 
   void tutorial() {
-    base("첫 출근 안내", "tutorial");
-    body.addView(
-        text(
-            "1. 뽑기로 갈매미를 모아요.\n"
-                + "2. 수비대에서 1~3마리를 편성해요.\n"
-                + "3. 스토리에서 챕터와 전투를 골라요.\n"
-                + "4. 20·35·50레벨과 보스 완료로 승진해요.\n\n"
-                + "기술은 바로 다시 사용할 수 있어요. 이미 유지 중인 보조 효과는 중복으로 쌓이지 않아요.\n"
-                + "레벨이 오르면 체력이 모두 회복돼요.",
-            22));
-    addButton("안내 완료 · 첫 갈매미 받기", () -> mutate("tutorial", obj("step", 9), "home"));
+    menus.extras.tutorial();
   }
 
   void startFight(String mode, String stage) {
@@ -1785,10 +1029,18 @@ public class MainActivity extends AppCompatActivity {
       return;
     }
     if (screen.equals("stages")) chapters();
-    else if (screen.equals("unit")) team();
-    else if (screen.equals("dialog")) load("story");
+    else if (screen.equals("unit")) {
+      if (menus.unitReturn.equals("team")) team();
+      else chapters();
+    } else if (screen.equals("collectionDetail")) collection();
+    else if (screen.equals("team")) {
+      if (selectionMode.equals("story")) chapters();
+      else collection();
+    } else if (screen.equals("dialog")) load("story");
     else if (screen.equals("mix")) craft();
     else if (screen.equals("drawResult")) load("draw");
+    else if (screen.equals("story") || screen.equals("pvp") || screen.equals("practice"))
+      load("modes");
     else load("home");
   }
 

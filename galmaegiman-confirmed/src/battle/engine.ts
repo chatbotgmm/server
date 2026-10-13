@@ -145,6 +145,13 @@ function multiplier(b:Battle,att:Fighter,def:Fighter,a:Attr){
   return m;
 }
 
+// 화면의 유불리·공격 종류도 실제 피해 계산과 같은 규칙으로 보여 준다. 난수·전투 상태를 바꾸지 않는다.
+export function skillPreview(b:Battle,side:0|1,move:Skill){
+  const att=activeOf(b,side),def=activeOf(b,(1-side) as 0|1),attr=attackAttr(b.R,att,move,def);
+  return {attr,attrName:b.R.attrName(attr),multiplier:move.power?multiplier(b,att,def,attr):1,
+    category:move.cat==='mag'||((move.cat??'auto')==='auto'&&att.base.matk>att.base.patk)?'mag':'phys'};
+}
+
 function damage(b:Battle,att:Fighter,def:Fighter,move:Skill){
   const R=b.R,M=R.data.multipliers,a=attackAttr(R,att,move,def),mult=multiplier(b,att,def,a);
   // 물리 기술: 물리공격↔물리방어, 마법 기술: 마법공격↔마법방어, 자동(역할기·합동기·반격): 쓰는 유닛의 더 높은 공격
