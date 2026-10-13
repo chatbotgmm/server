@@ -8,7 +8,9 @@
 
 기존 서버 계정과 StorySave를 사용한다. 카톡 로그인 코드와 카카오 PKCE 로그인을 지원한다. 네이티브 앱의 카카오 반환 주소는 `gmmnative://auth`, 기존 앱은 `gmmapp://auth`를 유지한다. 전투 계산은 공통 TypeScript 엔진을 서버에서 실행하며 요청 리비전과 소유권을 검사한다. 아이템 차감과 성장 저장은 같은 DB 거래로 처리한다.
 
-캐릭터 원화는 서버의 기존 그림을 사용한다. `sprite-bounds.json`은 그 그림의 경계 좌표만 담은 표시 최적화 자료다. 개인 계정 토큰과 그림 열쇠를 APK에 넣지 않는다. 게임 이용에는 서버 연결이 필요하다.
+캐릭터·배경·아이콘 원본과 기존 도감 미리보기는 APK에 포함한다. 그림을 수정하지 않고 빌드 시 `bundleGameArt`가 `public/battle`과 `public/thumbs`에서 복사한다. `sprite-bounds.json`은 그 그림의 경계 좌표만 담은 표시 최적화 자료다. 개인 계정 토큰과 그림 열쇠를 APK에 넣지 않는다. 게임 이용에는 서버 연결이 필요하다.
+
+이미지는 메모리·APK·기기 캐시 순서로 읽고, 포함되지 않은 추가 그림만 서버에서 받는다. 추가 그림의 캐시는 최대 40MiB이며 7일 뒤 갱신한다. 연결 실패 시 이전 그림을 사용한다. APK 원본 교체는 앱 업데이트로 반영한다.
 
 ## 빌드
 
@@ -31,6 +33,7 @@ cd app/android
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 adb shell am instrument -w -e class org.dpdns.gmm.NativeScreensTest org.dpdns.gmm.native.test/androidx.test.runner.AndroidJUnitRunner
+adb shell am instrument -w -e class org.dpdns.gmm.NativeArtTest org.dpdns.gmm.native.test/androidx.test.runner.AndroidJUnitRunner
 ```
 
 `NativeScreensTest`는 로컬 검토 서버에만 연결한다. 실제 서버 데이터로 네이티브 화면을 열고 앱 View를 캡처한다. 소프트웨어 에뮬레이터의 System UI 오류 창은 앱 View 캡처에 포함되지 않는다. Z플립 비율 880×360과 태블릿 1280×720에서 각각 실행한다. 폰에서는 스크롤 가능한 본문을 사용하고 태블릿에서는 버튼 이미지의 비율을 유지한 나머지 높이를 전투기록에 배분한다. 최종 배포 APK는 테스트용 서버 옵션 없이 다시 빌드한다.

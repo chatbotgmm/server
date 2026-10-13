@@ -1,3 +1,4 @@
+import {stableEvoChoices} from '../src/battle/growth.js';
 import { describe, expect, it } from 'vitest';
 import { loadContent } from '../src/content.js';
 import { attrKeys as attrs, buildRules, type TopTier } from '../src/battle/rules.js';
@@ -301,4 +302,11 @@ describe('연속 기술 사용',()=>{
     expect(skillProblem(b,0,sk)).toMatch(/이미 적용/);expect(()=>act(b,[{kind:'skill',skillId:'sig'},{kind:'skill',skillId:'basic-STONE'}])).toThrow(/이미 적용/);
     expect(legalActions(b,0).some(a=>a.kind==='skill'&&a.skillId==='basic-SHADOW')).toBe(true);
   });
+});
+
+it('승진 후보는 개체별로 다르고 같은 개체·단계의 재조회에서는 유지된다',()=>{
+ const R=loadBattleRules();const rec={uid:'o1',id:'D1',name:'테스트',tier:'LIMITED' as const,level:20,xp:0,stage:0 as const,evoAugs:[]};
+ expect(stableEvoChoices(R,rec)).toEqual(stableEvoChoices(R,rec));
+ const offers=new Set(Array.from({length:20},(_,i)=>stableEvoChoices(R,{...rec,uid:'o'+(i+1)}).map(a=>a.id).join(',')));
+ expect(offers.size).toBeGreaterThan(3);
 });

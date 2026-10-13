@@ -75,6 +75,10 @@ const keyOfSkill=(id:string)=>id.startsWith('basic-')?'basic':id==='sig'?'sig':i
 // 씨앗으로 정해지는 난수(같은 씨앗이면 늘 같은 순서)
 function seeded(seed:string):()=>number{let h=2166136261;for(const ch of seed)h=Math.imul(h^ch.charCodeAt(0),16777619);let t=h>>>0;
   return ()=>{t=(t+0x6d2b79f5)|0;let x=Math.imul(t^(t>>>15),t|1);x^=x+Math.imul(x^(x>>>7),x|61);return((x^(x>>>14))>>>0)/4294967296;};}
+// 저장된 개체 번호·승진 단계에서 후보를 재현한다. 재접속으로 다시 뽑을 수 없다.
+export function stableEvoChoices(r:Rules,rec:UnitRecord){
+  return evoChoices(r,rec,seeded(`evolve:${rec.uid}:${rec.id}:${rec.stage}:${rec.evoAugs.join(',')}`));
+}
 // ── 타고나는 기술(v0.16.2): 똥폭탄(기본기) + 무작위 1~2개. 후보 = 역할기·보조 속성 기술·그 역할의 첫 배울 레벨 기술.
 //    seed(개체 번호 등)로 정해서 다시 계산해도 같고, 같은 종류라도 개체마다 다름. 나머지 칸은 비어 있다가 레벨업·승진으로 채움
 export function innateLearned(r:Rules,unitId:string,seed:string):string[]{

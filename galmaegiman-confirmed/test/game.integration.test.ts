@@ -1490,6 +1490,26 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       await post('battle/turn',{session:start.session,revision:1,leave:true});expect(await game.webStory((await me()).id)).toEqual(before);
     }finally{await app.close();}
   });
+  it('진행 중인 전투에서는 로비 회복·성장·편성 변경을 막고 치료약을 보존한다',async()=>{
+    const p=await fixtures(['D1']);const key=`o${(await game.webStoryUnits(p.id))[0].oid}`;
+    await game.webSaveStory(p.id,{units:{[key]:{level:11,xp:0,stage:0,evoAugs:[]}},team:[key],cleared:[],hp:{[key]:{f:.25,at:Date.now()}}});
+    await db.playerItem.create({data:{playerId:p.id,itemId:'potion',count:1}});
+    const app=await buildApp(db,game,{secret:'native-idle-secret'.repeat(3),baseUrl:async()=>'https://example.com'});
+    try{
+      const code=(await send('웹 로그인')).text!.match(/\b\d{6}\b/)![0];const token=(await app.inject({method:'POST',url:'/my/api/login',payload:{code},headers:{'x-gmm':'1','x-gmm-app':'1'}})).json().token;
+      const headers={'x-gmm':'1','x-gmm-s':token};const post=(path:string,payload:object)=>app.inject({method:'POST',url:`/my/api/native/${path}`,headers,payload});
+      const b=(await post('battle/start',{mode:'story',stage:'P-1'})).json();
+      for(const [path,payload] of [['heal',{key,item:'potion'}],['growth',{key,kind:'evolve',augment:'reflect'}],['team',{keys:[key]}]] as const){const r=await post(path,payload);expect(r.statusCode).toBe(400);expect(r.json().error).toContain('진행 중인 전투');}
+      expect((await app.inject({method:'POST',url:'/my/api/items/use-field',headers,payload:{id:'potion'}})).statusCode).toBe(400);
+      expect((await app.inject({method:'POST',url:'/my/api/story',headers,payload:{data:await game.webStory(p.id)}})).statusCode).toBe(400);
+      expect((await db.playerItem.findUniqueOrThrow({where:{playerId_itemId:{playerId:p.id,itemId:'potion'}}})).count).toBe(1);
+      expect((await post('battle/turn',{session:b.session,revision:0,leave:true})).statusCode).toBe(200);
+      expect((await post('heal',{key,item:'potion'})).statusCode).toBe(200);
+      const saved=await game.webStory(p.id) as {hp:Record<string,{f:number}>};expect(saved.hp[key].f).toBeGreaterThanOrEqual(.59);
+      expect((await db.playerItem.findUniqueOrThrow({where:{playerId_itemId:{playerId:p.id,itemId:'potion'}}})).count).toBe(0);
+    }finally{await app.close();}
+  });
+
   it('네이티브 성장 보상은 종료 때 한 번만 저장하고 레벨업 체력을 가득 회복한다',async()=>{
     const p=await fixtures(['D1']);const owned=await game.webStoryUnits(p.id),key=`o${owned[0].oid}`;
     const R=loadBattleRules();await game.webSaveStory(p.id,{units:{[key]:{level:5,xp:xpToNext(R,5)-1,stage:0,evoAugs:[]}},team:[key],cleared:[],hp:{[key]:{f:1,at:Date.now()}}});

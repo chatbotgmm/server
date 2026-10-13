@@ -1,14 +1,29 @@
 apply plugin: 'com.android.application'
 
+// 원본 이미지 파일을 복제·편집하지 않고 APK 생성 시에만 함께 묶는다.
+def bundledArt = layout.buildDirectory.dir('generated/game-art')
+tasks.register('bundleGameArt', Sync) {
+    into bundledArt
+    from('../../../public/battle') {
+        include 'sprites/*.webp', 'sprites/*.png', 'bg/*.jpg', 'bg/*.webp', 'icons/*.png'
+        into 'game-art/duel'
+    }
+    from('../../../public/thumbs') {
+        include '*.jpg'
+        into 'game-art/thumbs'
+    }
+}
+
 android {
     namespace = "org.dpdns.gmm"
+    sourceSets.main.assets.srcDir(bundledArt)
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "org.dpdns.gmm.native"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 64
-        versionName "2.0.1-native"
+        versionCode 65
+        versionName "2.0.2-native"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -35,6 +50,8 @@ android {
         }
     }
 }
+
+tasks.named('preBuild').configure { dependsOn('bundleGameArt') }
 
 dependencies {
     coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.5"

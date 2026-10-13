@@ -226,6 +226,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
       owned:me.units.filter(u=>u.top).map(u=>u.id),mine:await game.webStoryUnits(id),items:await game.webItems(id)});
   });
   act<{data?:unknown}>('/my/api/story',async(id,b)=>{
+    if(native.hasActiveStory(id))throw new GameError('진행 중인 네이티브 전투를 마친 뒤 진행을 변경해 주세요.');
     if(b.data===null)return game.webSaveStory(id,null);   // 처음부터 다시
     if(JSON.stringify(b.data??null).length>64_000)throw new GameError('저장할 내용이 너무 커요.');
     const r=storyShape(loadBattleRules(opt.root)).safeParse(b.data);
@@ -262,6 +263,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
   });
   // 전투 밖에서 회복 아이템 쓰기(v0.14.7, 스토리 체력): 체력 회복(heal)이 있는 아이템만, 대결당 개수 제한 없음. 회복은 클라이언트 스토리 저장에 반영
   act<{id?:unknown}>('/my/api/items/use-field',async(id,b)=>{
+    if(native.hasActiveStory(id))throw new GameError('진행 중인 네이티브 전투에서 아이템을 사용해 주세요.');
     const item=itemDefs().items.find(x=>x.id===b.id);
     if(!item)throw new GameError('없는 아이템이에요.');
     if(!item.heal)throw new GameError('이 아이템은 대결 중에만 쓸 수 있어요.');
@@ -277,6 +279,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
   });
   act<{step?:unknown;seen?:unknown}>('/my/api/tutorial',(id,b)=>game.webTutorialSet(id,Number(b.step),b.seen===undefined?undefined:String(b.seen)));
   act<{battle?:unknown;id?:unknown}>('/my/api/items/use',async(id,b)=>{
+    if(native.hasActiveStory(id))throw new GameError('진행 중인 네이티브 전투에서 아이템을 사용해 주세요.');
     const f=typeof b.battle==='string'?fights.get(b.battle):undefined;
     if(!f||f.player!==id||f.exp<Date.now())throw new GameError('대결 정보가 없어요. 대결을 다시 시작해 주세요.');
     const defs=itemDefs(),item=defs.items.find(x=>x.id===b.id);
@@ -287,7 +290,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     return {left};
   });
 
-  registerNative(app,game,opt.root,session,guard);
+  const native=registerNative(app,game,opt.root,session,guard);
 
   // ── 카카오 로그인(KAKAO_REST_KEY가 있을 때만) ──
   // 처음: 카카오 → 연결된 계정 없음 → 카톡 코드로 한 번 로그인하면 그 계정에 연결. 다음부터는 카카오만 누르면 로그인

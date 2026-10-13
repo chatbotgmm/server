@@ -333,7 +333,7 @@ final class BattleView extends FrameLayout {
                       ids.add(j);
                       names.add(fs.optJSONObject(j).optString("name"));
                     }
-                  new android.app.AlertDialog.Builder(host)
+                  new GameDialog(host)
                       .setTitle("회복할 갈매미")
                       .setItems(
                           names.toArray(new String[0]),
@@ -407,7 +407,7 @@ final class BattleView extends FrameLayout {
 
     void fighter(Canvas c, JSONObject f, RectF area) {
       String path = f.optString("image");
-      Bitmap b = host.art.get(path, this::invalidate);
+      Bitmap b = host.art.scene(path, this::invalidate);
       p.setColor(0x35484139);
       c.drawOval(
           new RectF(

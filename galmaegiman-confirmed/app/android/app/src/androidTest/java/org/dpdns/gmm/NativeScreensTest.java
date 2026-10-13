@@ -74,33 +74,152 @@ public class NativeScreensTest {
     return null;
   }
 
+  void enterHome(ActivityScenario<MainActivity> s) throws Exception {
+    waitFor(
+        s,
+        a ->
+            !a.busy
+                && (a.screen.equals("title")
+                    || a.screen.equals("login")
+                    || a.screen.equals("home")));
+    s.onActivity(
+        a -> {
+          if (a.screen.equals("title") && a.api.token().isEmpty())
+            button(a.root, "로그인").performClick();
+        });
+    s.onActivity(
+        a -> {
+          if (a.screen.equals("login"))
+            a.request(
+                "login",
+                MainActivity.obj("code", "135790"),
+                (r, e) -> {
+                  a.api.token(r.optString("token"));
+                  a.load("title");
+                });
+        });
+    waitFor(
+        s,
+        a -> !a.busy && a.state.has("me") && (a.screen.equals("title") || a.screen.equals("home")));
+    if (!s.getState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) fail("액티비티 준비 실패");
+    shot(s, "02-title-in");
+    s.onActivity(
+        a -> {
+          if (a.screen.equals("title")) button(a.root, "게임 시작").performClick();
+        });
+    waitFor(s, a -> !a.busy && a.screen.equals("home"));
+  }
+
+  @Test
+  public void lobbyAndPopups() throws Exception {
+    try (ActivityScenario<MainActivity> s = ActivityScenario.launch(MainActivity.class)) {
+      enterHome(s);
+      waitFor(
+          s,
+          a -> {
+            if (!(a.root.getChildAt(0) instanceof LobbyView)) return false;
+            LobbyView lobby = (LobbyView) a.root.getChildAt(0);
+            for (String layer : new String[] {"base.jpg", "plat.webp", "char.webp"})
+              if (a.art.peek("/duel/bg/" + lobby.room + layer) == null) return false;
+            return a.art.peek("/duel/icons/btn-play.png") != null;
+          });
+      shot(s, "lobby-restored");
+      s.onActivity(
+          a -> {
+            LobbyView lobby = (LobbyView) a.root.getChildAt(0);
+            for (int i = 0; i < lobby.buttons.size(); i++) {
+              Button b = lobby.buttons.get(i);
+              assertTrue(b.getHeight() >= a.dp(48));
+              assertTrue(b.getLeft() >= 0 && b.getRight() <= lobby.getWidth());
+              assertTrue(b.getTop() >= 0 && b.getBottom() <= lobby.getHeight());
+              for (int j = 0; j < i; j++) {
+                Button other = lobby.buttons.get(j);
+                assertFalse(
+                    "로비 버튼 터치 영역 겹침",
+                    android.graphics.Rect.intersects(
+                        new android.graphics.Rect(
+                            b.getLeft(), b.getTop(), b.getRight(), b.getBottom()),
+                        new android.graphics.Rect(
+                            other.getLeft(), other.getTop(), other.getRight(), other.getBottom())));
+              }
+            }
+          });
+      AtomicReference<android.app.AlertDialog> dialog = new AtomicReference<>();
+      s.onActivity(
+          a ->
+              dialog.set(
+                  new GameDialog(a)
+                      .setMessage("게임을 닫을까요?")
+                      .setNegativeButton("취소", null)
+                      .setPositiveButton("확인", null)
+                      .show()));
+      dialogShot(s, dialog, "popup-exit");
+      s.onActivity(
+          a -> dialog.get().getButton(android.app.AlertDialog.BUTTON_NEGATIVE).performClick());
+      s.onActivity(
+          a ->
+              dialog.set(
+                  new GameDialog(a)
+                      .setTitle("플레이")
+                      .setItems(new String[] {"스토리", "대전", "연습"}, (d, which) -> a.load("story"))
+                      .setNegativeButton("닫기", null)
+                      .show()));
+      dialogShot(s, dialog, "popup-play");
+      s.onActivity(
+          a -> {
+            android.app.AlertDialog d = dialog.get();
+            d.getListView().performItemClick(d.getListView().getChildAt(0), 0, 0);
+          });
+      waitFor(s, a -> !a.busy && a.screen.equals("story"));
+    }
+  }
+
+  void dialogShot(
+      ActivityScenario<MainActivity> s, AtomicReference<android.app.AlertDialog> ref, String name)
+      throws Exception {
+    InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+    Thread.sleep(300);
+    s.onActivity(
+        a -> {
+          View v = ref.get().getWindow().getDecorView();
+          assertTrue(v.getWidth() <= a.root.getWidth());
+          assertTrue(v.getHeight() <= a.root.getHeight());
+          Bitmap bitmap = Bitmap.createBitmap(v.getWidth(), v.getHeight(), Bitmap.Config.ARGB_8888);
+          v.draw(new android.graphics.Canvas(bitmap));
+          File dir = new File(a.getExternalFilesDir(null), "review");
+          dir.mkdirs();
+          try (OutputStream out = new FileOutputStream(new File(dir, name + ".png"))) {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+          } catch (IOException e) {
+            throw new AssertionError(e);
+          } finally {
+            bitmap.recycle();
+          }
+        });
+  }
+
   @Test
   public void dialogFrame() throws Exception {
     assertEquals("http://127.0.0.1:4004", BuildConfig.SERVER_URL);
     try (ActivityScenario<MainActivity> s = ActivityScenario.launch(MainActivity.class)) {
-      waitFor(s, a -> !a.busy && (a.screen.equals("login") || a.screen.equals("home")));
+      enterHome(s);
       s.onActivity(
           a -> {
-            if (a.screen.equals("login"))
-              a.request(
-                  "login",
-                  MainActivity.obj("code", "135790"),
-                  (r, e) -> {
-                    if (e != null) throw new AssertionError("검토 계정 로그인 실패: " + e);
-                    a.api.token(r.optString("token"));
-                    a.load("home");
-                  });
+            a.storyScene = "deep";
+            a.talk(
+                new JSONArray()
+                    .put(
+                        MainActivity.obj(
+                            "who", "N", "say", "쭈매미 천 마리가 한꺼번에 출근 도장을 찍어요. 도장대가 조금 찌그러졌어요."))
+                    .put(MainActivity.obj("who", "V1", "say", "항구를 지켜라!")),
+                "이야기",
+                () -> a.show("story"));
           });
-      waitFor(s, a -> !a.busy && a.state.has("me") && a.screen.equals("home"));
-      s.onActivity(
+      waitFor(
+          s,
           a ->
-              a.talk(
-                  new JSONArray()
-                      .put(
-                          MainActivity.obj(
-                              "who", "N", "say", "쭈매미 천 마리가 한꺼번에 출근 도장을 찍어요. 도장대가 조금 찌그러졌어요.")),
-                  "이야기",
-                  () -> a.show("story")));
+              a.root.getChildAt(0) instanceof StoryView
+                  && ((StoryView) a.root.getChildAt(0)).portraitsReady());
       shot(s, "story-dialog");
       s.onActivity(
           a -> {
@@ -145,22 +264,39 @@ public class NativeScreensTest {
         .putInt("effects", 0)
         .apply();
     try (ActivityScenario<MainActivity> s = ActivityScenario.launch(MainActivity.class)) {
-      waitFor(s, a -> a.screen.equals("login") || (!a.busy && a.state.has("me")));
+      waitFor(s, a -> a.screen.equals("title") && !a.busy);
+      shot(s, "00-title-out");
+      s.onActivity(a -> button(a.root, "로그인").performClick());
       shot(s, "01-login");
-      s.onActivity(
-          a -> {
-            if (a.api.token().isEmpty())
-              a.request(
-                  "login",
-                  MainActivity.obj("code", "135790"),
-                  (r, e) -> {
-                    a.api.token(r.optString("token"));
-                    a.load("home");
-                  });
-          });
-      waitFor(s, a -> !a.busy && a.state.has("me") && a.screen.equals("home"));
+      enterHome(s);
       Thread.sleep(1200);
       shot(s, "02-home");
+      // 늦은 상태 응답이 이미 이동한 화면을 덮어쓰지 않는다.
+      s.onActivity(
+          a -> {
+            a.load("home");
+            a.chapters();
+          });
+      waitFor(s, a -> !a.busy);
+      s.onActivity(a -> assertEquals("story", a.screen));
+      s.onActivity(a -> a.load("home"));
+      waitFor(s, a -> !a.busy && a.screen.equals("home"));
+      // 보호된 수비대도 탐험 선택이 가능하며 뒤로 이동할 때 편성을 저장한다.
+      s.onActivity(
+          a ->
+              a.request(
+                  "party",
+                  MainActivity.obj("ids", new JSONArray()),
+                  (r, e) -> a.load("expedition")));
+      waitFor(s, a -> !a.busy && a.screen.equals("expedition"));
+      s.onActivity(
+          a -> {
+            button(a.root, "＋").performClick();
+            assertEquals(1, a.expeditionDraft.size());
+            a.back();
+          });
+      waitFor(s, a -> !a.busy && a.screen.equals("home"));
+      s.onActivity(a -> assertEquals(1, a.list(a.me(), "party").length()));
       for (String screen :
           new String[] {
             "story",
@@ -200,21 +336,29 @@ public class NativeScreensTest {
             });
       }
       s.onActivity(
+          a -> {
+            a.storyScene = "deep";
+            a.talk(
+                new JSONArray()
+                    .put(
+                        MainActivity.obj(
+                            "who", "N", "say", "쭈매미 천 마리가 한꺼번에 출근 도장을 찍어요. 도장대가 조금 찌그러졌어요."))
+                    .put(MainActivity.obj("who", "V1", "say", "항구를 지켜라!")),
+                "이야기",
+                () -> a.show("story"));
+          });
+      waitFor(
+          s,
           a ->
-              a.talk(
-                  new JSONArray()
-                      .put(
-                          MainActivity.obj(
-                              "who", "N", "say", "쭈매미 천 마리가 한꺼번에 출근 도장을 찍어요. 도장대가 조금 찌그러졌어요.")),
-                  "이야기",
-                  () -> a.show("story")));
+              a.root.getChildAt(0) instanceof StoryView
+                  && ((StoryView) a.root.getChildAt(0)).portraitsReady());
       shot(s, "story-dialog");
       s.onActivity(
           a -> {
             Button next = button(a.root, "다음");
             assertNotNull(next);
             assertTrue(next.getHeight() >= a.dp(48));
-            next.performClick();
+            while (a.screen.equals("dialog")) button(a.root, "다음").performClick();
             assertEquals("story", a.screen);
           });
       java.util.concurrent.atomic.AtomicBoolean cleaned =

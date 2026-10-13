@@ -19,10 +19,14 @@ public class MainActivity extends AppCompatActivity {
   NativeApi api;
   NativeArt art;
   NativeSound sound;
-  Typeface font, headline;
+  Typeface font, headline, prose;
   FrameLayout root;
   LinearLayout page, body;
   TextView title;
+  ScrollView loginScroll;
+  ArrayList<String> expeditionDraft;
+  boolean expeditionDirty;
+  String storyScene = "harbor", storyFoe = "", lobbyRoom;
   JSONObject state = new JSONObject(), battle;
   String screen = "home";
   int chapter = 0, epoch = 0;
@@ -45,6 +49,11 @@ public class MainActivity extends AppCompatActivity {
     art = new NativeArt(this, api);
     font = Typeface.createFromAsset(getAssets(), "native/Jua-Regular.ttf");
     headline = Typeface.createFromAsset(getAssets(), "native/BlackHanSans-Regular.ttf");
+    try {
+      prose = Typeface.createFromAsset(getAssets(), "native/GowunDodum-Regular.ttf");
+    } catch (Exception ignored) {
+      prose = font;
+    }
     WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
     root = new FrameLayout(this);
     setContentView(root);
@@ -58,12 +67,13 @@ public class MainActivity extends AppCompatActivity {
               i.top,
               i.right,
               Math.max(i.bottom, insets.getInsets(WindowInsetsCompat.Type.ime()).bottom));
+          if (loginScroll != null) root.post(this::resizeLogin);
           return insets;
         });
     immersive();
     if (!exchange(getIntent())) {
-      if (api.token().isEmpty()) login();
-      else load("home");
+      if (api.token().isEmpty()) titleScreen();
+      else load("title");
     }
   }
 
@@ -136,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
           busy = false;
           if (isFinishing()) return;
           if (e != null) {
-            if (api.token().isEmpty()) login();
+            if (api.token().isEmpty() && !screen.equals("login")) login();
             message(e);
             return;
           }
@@ -145,22 +155,47 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void load(String target) {
-    if (!state.has("me")) {
+    if (busy) return;
+    if (!state.has("me") && target.equals("title")) titleScreen();
+    else if (!state.has("me")) {
       base("수비대 연결", "loading");
       body.addView(text("계정과 진행을 불러오고 있어요.", 22));
       addButton("다시 연결", () -> load(target));
     }
-    request(
+    final int destination = ++epoch;
+    busy = true;
+    api.call(
         "native/state",
         null,
         (r, e) -> {
+          if (isFinishing() || destination != epoch) {
+            busy = false;
+            return;
+          }
+          if (e != null) {
+            busy = false;
+            if (api.token().isEmpty()) login();
+            message(e);
+            return;
+          }
           state = r;
           NativeAlerts.schedule(this, me());
+          if (!art.key.isEmpty()) {
+            busy = false;
+            show(target);
+            return;
+          }
           api.call(
               "duel-key",
               null,
               (key, error) -> {
-                if (error == null) art.key = key.optString("k");
+                busy = false;
+                if (isFinishing() || destination != epoch) return;
+                if (error != null) {
+                  message(error);
+                  return;
+                }
+                art.key = key.optString("k");
                 show(target);
               });
         });
@@ -198,23 +233,20 @@ public class MainActivity extends AppCompatActivity {
         t = android.text.TextUtils.join("\n", lines);
       }
       if (t.isEmpty()) t = "완료됐어요.";
-      new android.app.AlertDialog.Builder(this)
-          .setMessage(t)
-          .setPositiveButton("확인", (d, w) -> next.run())
-          .show();
+      new GameDialog(this).setMessage(t).setPositiveButton("확인", (d, w) -> next.run()).show();
     } else
-      new android.app.AlertDialog.Builder(this)
+      new GameDialog(this)
           .setMessage(String.valueOf(result))
           .setPositiveButton("확인", (d, w) -> next.run())
           .show();
   }
 
   void message(String s) {
-    new android.app.AlertDialog.Builder(this).setMessage(s).setPositiveButton("확인", null).show();
+    new GameDialog(this).setMessage(s).setPositiveButton("확인", null).show();
   }
 
   void confirm(String s, Runnable yes) {
-    new android.app.AlertDialog.Builder(this)
+    new GameDialog(this)
         .setMessage(s)
         .setNegativeButton("취소", null)
         .setPositiveButton("확인", (d, w) -> yes.run())
@@ -226,7 +258,7 @@ public class MainActivity extends AppCompatActivity {
     e.setSingleLine(true);
     e.setTextColor(INK);
     e.setInputType(inputType);
-    new android.app.AlertDialog.Builder(this)
+    new GameDialog(this)
         .setTitle(caption)
         .setView(e)
         .setNegativeButton("취소", null)
@@ -417,46 +449,96 @@ public class MainActivity extends AppCompatActivity {
       case "types":
         types();
         break;
+      case "title":
+        titleScreen();
+        break;
       default:
         home();
     }
   }
 
+  void titleScreen() {
+    epoch++;
+    screen = "title";
+    loginScroll = null;
+    sound.play("title");
+    root.removeAllViews();
+    root.addView(new TitleView(this, !api.token().isEmpty()), new FrameLayout.LayoutParams(-1, -1));
+    title = text("갈매미맨 수비대", 24);
+  }
+
   void login() {
-    base("갈매미맨 수비대", "login");
-    LinearLayout row = row();
-    LinearLayout brand = new LinearLayout(this);
-    brand.setOrientation(LinearLayout.VERTICAL);
-    brand.setGravity(Gravity.CENTER);
-    row.addView(brand, new LinearLayout.LayoutParams(0, -2, .32f));
-    ImageView logo = new ImageView(this);
-    logo.setImageBitmap(art.asset("logo.webp"));
-    logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
-    brand.addView(logo, new LinearLayout.LayoutParams(-1, dp(110)));
-    brand.addView(text("수비대에 오신 것을\n환영해요", 23));
+    epoch++;
+    screen = "login";
+    root.removeAllViews();
+    TitleView background = new TitleView(this, false);
+    background.enter.setVisibility(View.GONE);
+    background.settings.setVisibility(View.GONE);
+    root.addView(background, new FrameLayout.LayoutParams(-1, -1));
+    View shade = new View(this);
+    shade.setBackgroundColor(0x663c2717);
+    root.addView(shade, new FrameLayout.LayoutParams(-1, -1));
+    ScrollView scroll = new ScrollView(this);
+    loginScroll = scroll;
+    scroll.setFillViewport(false);
+    scroll.setBackground(new FrameDrawable(this, "dialog.webp"));
+    FrameLayout.LayoutParams bounds =
+        new FrameLayout.LayoutParams(
+            Math.min(dp(420), (int) (getResources().getDisplayMetrics().widthPixels * .7f)),
+            (int) (getResources().getDisplayMetrics().heightPixels * .88f),
+            Gravity.CENTER);
+    root.addView(scroll, bounds);
+    root.post(this::resizeLogin);
     LinearLayout form = new LinearLayout(this);
     form.setOrientation(LinearLayout.VERTICAL);
-    row.addView(form, new LinearLayout.LayoutParams(0, -2, .68f));
-    form.addView(text("카톡에서 ‘웹 로그인’을 보내 받은 코드를 입력해 주세요.", 17));
+    form.setPadding(dp(28), dp(16), dp(28), dp(16));
+    scroll.addView(form);
+    LinearLayout head = new LinearLayout(this);
+    head.setGravity(Gravity.CENTER_VERTICAL);
+    form.addView(head);
+    title = text("로그인", 24);
+    title.setTypeface(headline);
+    head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
+    head.addView(button("×", this::titleScreen), new LinearLayout.LayoutParams(dp(48), dp(48)));
+    Button kakao = button("카카오로 로그인", this::kakao);
+    kakao.setBackground(material(0xfffee500));
+    form.addView(kakao, new LinearLayout.LayoutParams(-1, dp(48)));
+    TextView guidance =
+        text("또는 카톡 코드로 로그인\n1. 갈매미맨 채널에 ‘웹 로그인’을 보내요.\n2. 받은 6자리 코드를 입력해요. (10분 안에, 한 번만)", 16);
+    guidance.setTypeface(prose);
+    form.addView(guidance);
     EditText code = new EditText(this);
-    code.setHint("6자리 로그인 코드");
+    code.setHint("000000");
     code.setTextColor(INK);
     code.setHintTextColor(BLUE);
-    code.setTypeface(font);
+    code.setTypeface(headline);
+    code.setTextSize(24);
+    code.setGravity(Gravity.CENTER);
     code.setInputType(InputType.TYPE_CLASS_NUMBER);
     code.setSingleLine(true);
+    code.setFilters(new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(6)});
     code.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
     form.addView(code, new LinearLayout.LayoutParams(-1, dp(52)));
+    TextView error = text("", 15);
+    error.setVisibility(View.GONE);
+    error.setTextColor(0xffa83f31);
+    form.addView(error);
     Runnable enter =
         () -> {
+          String value = code.getText().toString().trim();
+          if (!value.matches("[0-9]{6}")) {
+            error.setText("6자리 숫자를 입력해 주세요.");
+            error.setVisibility(View.VISIBLE);
+            return;
+          }
           ((android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE))
               .hideSoftInputFromWindow(code.getWindowToken(), 0);
           request(
               "login",
-              obj("code", code.getText().toString()),
+              obj("code", value),
               (r, e) -> {
                 api.token(r.optString("token"));
-                load("home");
+                load("title");
               });
         };
     code.setOnEditorActionListener(
@@ -467,11 +549,21 @@ public class MainActivity extends AppCompatActivity {
           }
           return false;
         });
-    LinearLayout buttons = new LinearLayout(this);
-    form.addView(buttons);
-    cell(buttons, button("코드로 로그인", enter));
-    cell(buttons, button("카카오로 로그인", this::kakao));
-    form.addView(text("기존 계정의 갈매미와 스토리 진행을 이어서 사용해요.", 16));
+    form.addView(button("로그인", enter), new LinearLayout.LayoutParams(-1, dp(48)));
+    form.addView(text("로그인은 이 기기에서 30일 동안 유지돼요.", 14));
+  }
+
+  void resizeLogin() {
+    if (loginScroll == null || !screen.equals("login") || root.getHeight() == 0) return;
+    FrameLayout.LayoutParams p = (FrameLayout.LayoutParams) loginScroll.getLayoutParams();
+    int height =
+        Math.min(
+            dp(420),
+            (int) ((root.getHeight() - root.getPaddingTop() - root.getPaddingBottom()) * .9f));
+    if (p.height != height) {
+      p.height = Math.max(dp(80), height);
+      loginScroll.setLayoutParams(p);
+    }
   }
 
   void kakao() {
@@ -513,88 +605,16 @@ public class MainActivity extends AppCompatActivity {
         obj("code", code, "verifier", v),
         (r, e) -> {
           api.token(r.optString("token"));
-          load("home");
+          load("title");
         });
     return true;
   }
 
   void home() {
-    base("갈매미맨 수비대", "home");
-    body.addView(
-        text(
-            me().optString("nickname", "수비조장")
-                + " · 뽑기권 "
-                + me().optInt("credits")
-                + " · 땅콩 "
-                + me().optInt("peanut"),
-            18));
-    ArrayList<View> links = new ArrayList<>();
-    String[] names = {
-      "스토리", "수비대", "뽑기", "조합", "상점", "탐험", "출석·미션", "대전", "연습", "도감", "속성 상성", "설정"
-    };
-    String[] ids = {
-      "story",
-      "team",
-      "draw",
-      "craft",
-      "shop",
-      "expedition",
-      "daily",
-      "pvp",
-      "practice",
-      "collection",
-      "types",
-      "settings"
-    };
-    for (int i = 0; i < names.length; i++) {
-      String id = ids[i];
-      links.add(
-          button(
-              names[i],
-              () -> {
-                if (id.equals("practice")) practice();
-                else load(id);
-              }));
-    }
-    // 로비의 메뉴를 첫 화면에 모두 보여 주고 대표 갈매미는 원본 그림으로 배치한다.
-    body.setBackgroundColor(Color.TRANSPARENT);
-    body.getChildAt(0).setBackground(material(CREAM));
-    LinearLayout dashboard = new LinearLayout(this);
-    dashboard.setGravity(Gravity.CENTER_VERTICAL);
-    body.addView(dashboard);
-    ImageView hero = new ImageView(this);
-    hero.setScaleType(ImageView.ScaleType.FIT_CENTER);
-    dashboard.addView(
-        hero,
-        new LinearLayout.LayoutParams(
-            0, dp(getResources().getConfiguration().screenHeightDp > 600 ? 400 : 225), .28f));
-    JSONArray own = list(state, "units");
-    if (own.length() > 0) art.into(hero, own.optJSONObject(0).optString("image"));
-    LinearLayout shortcuts = new LinearLayout(this);
-    shortcuts.setOrientation(LinearLayout.VERTICAL);
-    dashboard.addView(shortcuts, new LinearLayout.LayoutParams(0, -2, .72f));
-    for (int i = 0; i < links.size(); i += 3) {
-      LinearLayout line = new LinearLayout(this);
-      shortcuts.addView(line);
-      for (int j = i; j < Math.min(i + 3, links.size()); j++) {
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(54), 1);
-        p.setMargins(dp(3), dp(2), dp(3), dp(2));
-        line.addView(links.get(j), p);
-      }
-    }
-
-    api.call(
-        "native/battle/current",
-        null,
-        (r, e) -> {
-          if (e == null && !r.isNull("session") && r.has("session") && screen.equals("home"))
-            addButton(
-                "진행 중인 전투로 돌아가기",
-                () -> {
-                  battle = r;
-                  battleScreen();
-                });
-        });
+    screen = "home";
+    loginScroll = null;
+    root.removeAllViews();
+    root.addView(new LobbyView(this), new FrameLayout.LayoutParams(-1, -1));
   }
 
   void chapters() {
@@ -651,6 +671,8 @@ public class MainActivity extends AppCompatActivity {
                   message("앞 전투를 완료하고 팀의 승진 조건을 확인해 주세요.");
                   return;
                 }
+                storyScene = st.optString("scene", "harbor");
+                storyFoe = list(st, "enemy").optJSONObject(0).optString("id");
                 talk(
                     list(st, "before"),
                     st.optString("title"),
@@ -666,52 +688,14 @@ public class MainActivity extends AppCompatActivity {
       end.run();
       return;
     }
-    base(caption, "dialog");
-    body.setBackgroundColor(Color.TRANSPARENT);
-    final int[] at = {0};
-    LinearLayout speech = new LinearLayout(this);
-    speech.setGravity(Gravity.CENTER_VERTICAL);
-    speech.setBackground(new FrameDrawable(this, "dialog.webp"));
-    speech.setPadding(dp(32), dp(28), dp(32), dp(28));
-    body.addView(speech);
-    ImageView portrait = new ImageView(this);
-    portrait.setScaleType(ImageView.ScaleType.FIT_CENTER);
-    speech.addView(portrait, new LinearLayout.LayoutParams(dp(130), dp(160)));
-    TextView line = text("", 22);
-    speech.addView(line, new LinearLayout.LayoutParams(0, -2, 1));
-    Runnable update =
-        () -> {
-          JSONObject l = lines.optJSONObject(at[0]);
-          String id = l.optString("who"), who = id;
-          if (id.equals("N")) who = "이야기";
-          else if (id.equals("ME")) {
-            JSONArray team = list(state, "team");
-            JSONObject unit = team.length() > 0 ? unit(team.optString(0)) : new JSONObject();
-            who = unit.optString("name", "수비조장");
-            String image = unit.optString("image");
-            if (!image.isEmpty()) art.into(portrait, image);
-          } else {
-            JSONObject names = state.optJSONObject("names");
-            if (names != null) who = names.optString(id, id);
-          }
-          JSONObject images = state.optJSONObject("portraits");
-          String image = images == null ? "" : images.optString(id);
-          if (!image.isEmpty()) art.into(portrait, image);
-          portrait.setVisibility(id.equals("ME") || !image.isEmpty() ? View.VISIBLE : View.GONE);
-          line.setText(who + "\n\n" + l.optString("say"));
-        };
-    update.run();
-    LinearLayout footer = new LinearLayout(this);
-    page.addView(footer);
-    cell(
-        footer,
-        button(
-            "다음",
-            () -> {
-              if (++at[0] >= lines.length()) end.run();
-              else update.run();
-            }));
-    cell(footer, button("건너뛰기", end));
+    epoch++;
+    screen = "dialog";
+    loginScroll = null;
+    sound.play("title");
+    root.removeAllViews();
+    StoryView story = new StoryView(this, lines, caption, storyScene, storyFoe, end);
+    root.addView(story, new FrameLayout.LayoutParams(-1, -1));
+    title = text(caption, 24);
   }
 
   void team() {
@@ -768,9 +752,7 @@ public class MainActivity extends AppCompatActivity {
           }
           String[] names = new String[selected.size()];
           for (int i = 0; i < names.length; i++) names[i] = unit(selected.get(i)).optString("name");
-          new android.app.AlertDialog.Builder(this)
-              .setItems(names, (d, w) -> unitDetail(selected.get(w)))
-              .show();
+          new GameDialog(this).setItems(names, (d, w) -> unitDetail(selected.get(w))).show();
         });
   }
 
@@ -821,7 +803,7 @@ public class MainActivity extends AppCompatActivity {
             message("회복 아이템이 없어요. 상점에서 구매해 주세요.");
             return;
           }
-          new android.app.AlertDialog.Builder(this)
+          new GameDialog(this)
               .setItems(
                   names.toArray(new String[0]),
                   (d, w) ->
@@ -878,7 +860,7 @@ public class MainActivity extends AppCompatActivity {
     String[] captions = new String[skills.length()];
     for (int i = 0; i < captions.length; i++)
       captions[i] = skills.optJSONObject(i).optString("name");
-    new android.app.AlertDialog.Builder(this)
+    new GameDialog(this)
         .setTitle("잊을 기술 선택")
         .setItems(
             captions,
@@ -929,7 +911,7 @@ public class MainActivity extends AppCompatActivity {
                       + us.optJSONObject(j).optInt("hp")
                       + "/"
                       + us.optJSONObject(j).optInt("maxHp");
-            new android.app.AlertDialog.Builder(this)
+            new GameDialog(this)
                 .setTitle("회복할 갈매미 선택")
                 .setItems(
                     names,
@@ -975,7 +957,7 @@ public class MainActivity extends AppCompatActivity {
                         + u.optInt("locked")
                         + " · 탐험 "
                         + u.optInt("away");
-                new android.app.AlertDialog.Builder(this)
+                new GameDialog(this)
                     .setTitle(u.optString("name"))
                     .setMessage(info)
                     .setPositiveButton("닫기", null)
@@ -1278,6 +1260,8 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<String> ids = new ArrayList<>();
     JSONArray old = list(me(), "party");
     for (int i = 0; i < old.length(); i++) ids.add(old.optString(i));
+    expeditionDraft = ids;
+    expeditionDirty = false;
     JSONArray previous = list(me(), "previousParty");
     if (ids.isEmpty() && previous.length() > 0)
       addButton("최근 탐험대 불러오기", () -> mutate("party", obj("ids", previous), "expedition"));
@@ -1290,7 +1274,7 @@ public class MainActivity extends AppCompatActivity {
       JSONObject u = units.optJSONObject(i);
       if (!u.optBoolean("top")) continue;
       String id = u.optString("id");
-      int available = u.optInt("have") - u.optInt("away") - u.optInt("locked");
+      int available = u.optInt("have") - u.optInt("away");
       LinearLayout c = new LinearLayout(this);
       c.setOrientation(LinearLayout.VERTICAL);
       c.setBackground(material(CREAM));
@@ -1306,7 +1290,7 @@ public class MainActivity extends AppCompatActivity {
           button(
               "−",
               () -> {
-                ids.remove(id);
+                if (ids.remove(id)) expeditionDirty = true;
                 label.setText(
                     u.optString("name")
                         + " · "
@@ -1321,10 +1305,11 @@ public class MainActivity extends AppCompatActivity {
               "＋",
               () -> {
                 if (ids.size() >= 10 || Collections.frequency(ids, id) >= available) {
-                  message("보호·탐험 중인 갈매미와 사용 가능한 수량을 확인해 주세요.");
+                  message("탐험 중인 갈매미와 사용 가능한 수량을 확인해 주세요.");
                   return;
                 }
                 ids.add(id);
+                expeditionDirty = true;
                 label.setText(
                     u.optString("name")
                         + " · "
@@ -1337,13 +1322,32 @@ public class MainActivity extends AppCompatActivity {
     }
     grid(cards);
     addButton(
+        "편성 저장",
+        () ->
+            request(
+                "party",
+                obj("ids", arr(ids)),
+                (r, e) -> {
+                  expeditionDirty = false;
+                  try {
+                    me().put("party", arr(ids));
+                  } catch (JSONException ignored) {
+                  }
+                  android.widget.Toast.makeText(
+                          this, "탐험 편성을 저장했어요.", android.widget.Toast.LENGTH_SHORT)
+                      .show();
+                }));
+    addButton(
         "탐험 출발",
         () ->
             request(
                 "party",
                 obj("ids", arr(ids)),
                 (r, e) -> {
-                  if (e == null) mutate("expedition/start", obj(), "expedition");
+                  if (e == null) {
+                    expeditionDirty = false;
+                    mutate("expedition/start", obj(), "expedition");
+                  }
                 }));
   }
 
@@ -1455,7 +1459,7 @@ public class MainActivity extends AppCompatActivity {
       names[i] = u.optString("name") + " · " + u.optString("attr");
       checked[i] = temp.contains(u.optString("id"));
     }
-    new android.app.AlertDialog.Builder(this)
+    new GameDialog(this)
         .setTitle(enemy ? "연습 상대 1~3마리" : "연습 수비대 1~3마리")
         .setMultiChoiceItems(
             names,
@@ -1512,7 +1516,7 @@ public class MainActivity extends AppCompatActivity {
         button(
             "승진 " + practicePromotion + "단계",
             () ->
-                new android.app.AlertDialog.Builder(this)
+                new GameDialog(this)
                     .setItems(
                         new String[] {"원형", "1단계", "2단계", "3단계"},
                         (d, w) -> {
@@ -1617,7 +1621,8 @@ public class MainActivity extends AppCompatActivity {
                   api.token("");
                   art.clear();
                   NativeAlerts.schedule(this, new JSONObject());
-                  login();
+                  state = new JSONObject();
+                  titleScreen();
                 }));
     addButton(
         "계정 탈퇴",
@@ -1637,7 +1642,8 @@ public class MainActivity extends AppCompatActivity {
                         api.token("");
                         art.clear();
                         NativeAlerts.schedule(this, new JSONObject());
-                        login();
+                        state = new JSONObject();
+                        titleScreen();
                       });
                 }));
   }
@@ -1721,7 +1727,7 @@ public class MainActivity extends AppCompatActivity {
               JSONArray ups = list(result, "ups");
               for (int i = 0; i < ups.length(); i++) s += "\n" + ups.optString(i);
             }
-            new android.app.AlertDialog.Builder(this)
+            new GameDialog(this)
                 .setMessage(s)
                 .setCancelable(false)
                 .setPositiveButton(
@@ -1731,6 +1737,10 @@ public class MainActivity extends AppCompatActivity {
                       JSONArray clear =
                           result == null ? new JSONArray() : list(result, "chapterClear");
                       for (int i = 0; i < clear.length(); i++) lines.put(clear.opt(i));
+                      if (result != null) {
+                        storyScene = result.optString("scene", "harbor");
+                        storyFoe = result.optString("foe", storyFoe);
+                      }
                       talk(
                           lines,
                           "전투 결과",
@@ -1750,11 +1760,27 @@ public class MainActivity extends AppCompatActivity {
 
   void back() {
     if (busy) return;
+    if (screen.equals("expedition") && expeditionDirty && expeditionDraft != null) {
+      request(
+          "party",
+          obj("ids", arr(expeditionDraft)),
+          (r, e) -> {
+            expeditionDirty = false;
+            load("home");
+          });
+      return;
+    }
     if (screen.equals("battle")) {
       confirm("전투에서 나갈까요?", () -> battleTurn(obj("leave", true)));
       return;
     }
-    if (screen.equals("home") || screen.equals("login")) {
+    if (screen.equals("login")) {
+      ((android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE))
+          .hideSoftInputFromWindow(root.getWindowToken(), 0);
+      titleScreen();
+      return;
+    }
+    if (screen.equals("home") || screen.equals("title")) {
       confirm("게임을 닫을까요?", this::finish);
       return;
     }
