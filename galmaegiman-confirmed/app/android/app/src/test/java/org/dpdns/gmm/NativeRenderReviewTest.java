@@ -131,6 +131,14 @@ public class NativeRenderReviewTest {
             .getBytes(java.nio.charset.StandardCharsets.UTF_8));
   }
 
+  void viewport(MainActivity a, int w, int h) {
+    force(a.root);
+    a.root.measure(
+        View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
+        View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY));
+    a.root.layout(0, 0, w, h);
+  }
+
   void capture(MainActivity a, String name, int w, int h) throws Exception {
     Files.createDirectories(Path.of(System.getProperty("gmm.nativeReviewOutput")));
     force(a.root);
@@ -322,6 +330,7 @@ public class NativeRenderReviewTest {
       for (int[] size : new int[][] {{915, 412}, {1280, 720}}) {
         String prefix = size[0] == 915 ? "phone-" : "tablet-";
         RuntimeEnvironment.setQualifiers("w" + size[0] + "dp-h" + size[1] + "dp-land-mdpi");
+        viewport(a, size[0], size[1]);
         a.lobbyRoom = "cafe";
         a.home();
         await(() -> ((LobbyView) a.root.getChildAt(0)).ready());
@@ -665,6 +674,7 @@ public class NativeRenderReviewTest {
       for (int[] size : new int[][] {{915, 412}, {1280, 720}}) {
         String prefix = size[0] == 915 ? "phone-" : "tablet-";
         RuntimeEnvironment.setQualifiers("w" + size[0] + "dp-h" + size[1] + "dp-land-mdpi");
+        viewport(a, size[0], size[1]);
         a.api.token("");
         a.state = new JSONObject();
         a.titleScreen();
@@ -715,6 +725,7 @@ public class NativeRenderReviewTest {
       assertEquals("카드를 누르는 것만으로 확정하지 않음", pickedRevision, a.battle.optInt("revision"));
       capture(a, "phone-battle-augment-selected", 915, 412);
       RuntimeEnvironment.setQualifiers("w1280dp-h720dp-land-mdpi");
+      viewport(a, 1280, 720);
       a.battleScreen();
       capture(a, "tablet-battle-augment-selected", 1280, 720);
       choice = ((BattleView) a.root.getChildAt(0)).augmentView;
@@ -736,6 +747,7 @@ public class NativeRenderReviewTest {
       view.render();
       capture(a, "phone-battle-skills", 915, 412);
       RuntimeEnvironment.setQualifiers("w1280dp-h720dp-land-mdpi");
+      viewport(a, 1280, 720);
       a.battleScreen();
       capture(a, "tablet-battle-menu", 1280, 720);
       view = (BattleView) a.root.getChildAt(0);

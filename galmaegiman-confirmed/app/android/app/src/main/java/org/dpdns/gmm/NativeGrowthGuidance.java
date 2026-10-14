@@ -26,6 +26,21 @@ final class NativeGrowthGuidance {
     return "기술·승진 보기 ›";
   }
 
+  /** 서버가 제공한 실제 선택지만 안내한다. 회복은 보유 체력으로 판단한다. */
+  static String actionSummary(JSONObject unit) {
+    ArrayList<String> available = new ArrayList<>();
+    if (unit.optJSONArray("evolve") != null && unit.optJSONArray("evolve").length() > 0)
+      available.add("승진 가능");
+    if (unit.optJSONArray("promo") != null && unit.optJSONArray("promo").length() > 0)
+      available.add("전용 기술 배우기");
+    if (unit.optJSONArray("learn") != null && unit.optJSONArray("learn").length() > 0)
+      available.add("새 기술 " + Math.max(1, unit.optInt("learnLeft", 1)) + "개 배우기");
+    if (unit.optInt("hp") < unit.optInt("maxHp")) available.add("회복 필요");
+    if (!available.isEmpty()) return android.text.TextUtils.join(" · ", available);
+    int next = unit.optInt("nextLearnLevel");
+    return next > 0 ? "다음 새 기술 · Lv" + next : "지금은 기술과 체력이 준비됐어요.";
+  }
+
   void meter(LinearLayout parent, int value, int max, int color, int height) {
     ProgressBar bar = new ProgressBar(h, null, android.R.attr.progressBarStyleHorizontal);
     bar.setMax(Math.max(1, max));
@@ -43,6 +58,7 @@ final class NativeGrowthGuidance {
     row.addView(k.image(u.optString("image"), compact ? 43 : 70, compact ? 48 : 76));
     LinearLayout name = k.row();
     TextView title = h.text(u.optString("name"), compact ? 13 : 18);
+    title.setTypeface(h.headline);
     title.setMaxLines(1);
     title.setEllipsize(android.text.TextUtils.TruncateAt.END);
     name.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
@@ -134,6 +150,7 @@ final class NativeGrowthGuidance {
   }
 
   String promotionNeed(JSONObject unit) {
+    if (h.list(unit, "evolve").length() > 0) return "승진 조건 충족 · 재화 소모 없음";
     if (unit.optInt("stage") >= 3) return "최고 승진 단계";
     JSONObject need = unit.optJSONObject("promotionNeed");
     if (need == null) return "다음 승진: 해당 부 완료와 레벨 조건 필요";

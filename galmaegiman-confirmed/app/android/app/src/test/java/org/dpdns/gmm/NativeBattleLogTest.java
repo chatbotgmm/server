@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import android.text.Spannable;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.RelativeSizeSpan;
 import android.text.style.StyleSpan;
 import java.util.List;
 import org.json.*;
@@ -66,6 +67,15 @@ public class NativeBattleLogTest {
           && text.getSpanEnd(span) >= to) return true;
     }
     return false;
+  }
+
+  @Test
+  public void previousEventKeepsBodySizeAndReadableInk() {
+    Spannable text =
+        NativeBattleLog.format(null, List.of("공격을 준비했어요.", "방어가 올랐어요."), new JSONArray(), 1);
+    assertEquals(0, text.getSpans(0, text.length(), RelativeSizeSpan.class).length);
+    assertTrue(hasColor(text, "공격을 준비했어요.", MainActivity.INK));
+    assertTrue(hasColor(text, "방어가 올랐어요.", MainActivity.INK));
   }
 
   @Test

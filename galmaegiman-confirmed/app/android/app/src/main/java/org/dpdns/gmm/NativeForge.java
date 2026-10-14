@@ -72,7 +72,7 @@ final class NativeForge extends FrameLayout {
   }
 
   boolean motion() {
-    return h.motionEnabled && ValueAnimator.areAnimatorsEnabled();
+    return NativeMotion.enabled(h, h.motionEnabled);
   }
 
   int color() {

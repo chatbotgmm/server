@@ -3,11 +3,13 @@ package org.dpdns.gmm;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.media.*;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import androidx.annotation.RequiresApi;
 import java.io.File;
-import java.nio.file.Files;
+import java.io.FileOutputStream;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,7 +28,8 @@ final class NativeSound {
   private final Set<Integer> ready = new HashSet<>();
   private final Map<String, Long> pending = new HashMap<>();
   private MediaPlayer music;
-  private AudioFocusRequest focus;
+  private ModernFocus focus;
+  private final AudioManager.OnAudioFocusChangeListener focusListener = this::focusChanged;
   private boolean focused, interrupted, ducked, stopped, closed;
   String current = "";
   private String requested = "";
@@ -54,7 +57,10 @@ final class NativeSound {
             if (Thread.currentThread().isInterrupted()) return;
             try {
               File file = new File(folder, name + ".wav");
-              if (!file.exists()) Files.write(file.toPath(), GameEffectPcm.wav(name));
+              if (!file.exists())
+                try (FileOutputStream out = new FileOutputStream(file)) {
+                  out.write(GameEffectPcm.wav(name));
+                }
               main.post(
                   () -> {
                     if (closed) return;
@@ -138,17 +144,20 @@ final class NativeSound {
     if (audibleVolume("music") == 0 && audibleVolume("effects") == 0) abandonFocus();
   }
 
+  @SuppressWarnings("deprecation")
   private boolean requestFocus() {
     if (closed || interrupted) return false;
     if (focused || manager == null) return true;
-    if (focus == null) {
-      focus =
-          new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-              .setAudioAttributes(attributes(true))
-              .setOnAudioFocusChangeListener(this::focusChanged, main)
-              .build();
-    }
-    focused = manager.requestAudioFocus(focus) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+    int result;
+    if (Build.VERSION.SDK_INT >= 26) {
+      if (focus == null) focus = new ModernFocus(focusListener, main);
+      result = focus.request(manager);
+    } else
+      // Android 7도 같은 리스너로 중단·복귀·작은 소리 전환을 처리한다.
+      result =
+          manager.requestAudioFocus(
+              focusListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+    focused = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
     return focused;
   }
 
@@ -179,9 +188,36 @@ final class NativeSound {
     }
   }
 
+  @SuppressWarnings("deprecation")
   private void abandonFocus() {
-    if (focus != null && manager != null) manager.abandonAudioFocusRequest(focus);
+    if (manager != null) {
+      if (Build.VERSION.SDK_INT >= 26) {
+        if (focus != null) focus.abandon(manager);
+      } else manager.abandonAudioFocus(focusListener);
+    }
     focused = false;
+  }
+
+  /** Android 7에서 API 26 클래스를 직접 해석하지 않도록 현대 포커스 구현을 분리한다. */
+  @RequiresApi(26)
+  private static final class ModernFocus {
+    final AudioFocusRequest request;
+
+    ModernFocus(AudioManager.OnAudioFocusChangeListener listener, Handler main) {
+      request =
+          new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+              .setAudioAttributes(attributes(true))
+              .setOnAudioFocusChangeListener(listener, main)
+              .build();
+    }
+
+    int request(AudioManager manager) {
+      return manager.requestAudioFocus(request);
+    }
+
+    void abandon(AudioManager manager) {
+      manager.abandonAudioFocusRequest(request);
+    }
   }
 
   void play(String name) {

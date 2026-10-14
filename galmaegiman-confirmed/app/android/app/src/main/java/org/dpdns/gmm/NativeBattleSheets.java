@@ -21,6 +21,17 @@ final class NativeBattleSheets {
     return t;
   }
 
+  static void semanticColor(TextView text, int color) {
+    android.text.SpannableString styled = new android.text.SpannableString(text.getText());
+    styled.setSpan(
+        new android.text.style.ForegroundColorSpan(color),
+        0,
+        styled.length(),
+        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    text.setText(styled);
+    text.setTextColor(color);
+  }
+
   static AlertDialog show(BattleView v, String title, LinearLayout content) {
     MainActivity h = v.host;
     ScrollView scroll = new ScrollView(h);
@@ -57,7 +68,7 @@ final class NativeBattleSheets {
     col.addView(prose(h, "재사용 · " + reuse, 16));
     String why = SkillCardView.reason(v, sk);
     TextView state = prose(h, why.isEmpty() ? "지금 사용할 수 있어요." : "사용 불가 · " + why, 16);
-    state.setTextColor(why.isEmpty() ? 0xff397953 : 0xffad4839);
+    semanticColor(state, why.isEmpty() ? 0xff397953 : 0xffad4839);
     col.addView(state);
     if (sk.optString("id").startsWith("combo-"))
       col.addView(prose(h, "같은 시너지의 살아 있는 동료가 필요해요. 우리 팀은 이 전투에서 한 번만 사용할 수 있어요.", 15));
@@ -115,6 +126,12 @@ final class NativeBattleSheets {
                 + (role(f).isEmpty() ? "" : " · " + role(f)),
             16));
     col.addView(prose(h, "체력 " + f.optInt("hp") + " / " + f.optInt("maxHp"), 17));
+    JSONArray effects = BattleEffects.current(f);
+    for (int i = 0; i < effects.length(); i++) {
+      TextView effect = prose(h, BattleEffects.label(effects.optJSONObject(i)), 16);
+      semanticColor(effect, BattleEffects.color(effects.optJSONObject(i)));
+      col.addView(effect);
+    }
     JSONObject stats = f.optJSONObject("base");
     JSONObject own = v.active(0).optJSONObject("base");
     if (side == 1 && stats != null && own != null) {
@@ -148,6 +165,22 @@ final class NativeBattleSheets {
     show(v, (side == 0 ? "내 정보 · " : "상대 정보 · ") + f.optString("name"), col);
   }
 
+  static void effects(BattleView v, int side) {
+    MainActivity h = v.host;
+    LinearLayout col = column(h);
+    JSONArray current = BattleEffects.current(v.active(side));
+    if (current.length() == 0) col.addView(prose(h, "현재 적용 중인 효과가 없어요.", 17));
+    for (int i = 0; i < current.length(); i++) {
+      JSONObject effect = current.optJSONObject(i);
+      TextView text = prose(h, BattleEffects.label(effect), 18);
+      semanticColor(text, BattleEffects.color(effect));
+      text.setBackground(new GamePaperDrawable(h));
+      col.addView(text, new LinearLayout.LayoutParams(-1, -2));
+    }
+    col.addView(prose(h, "남은 턴은 전투 판정이 끝날 때 갱신돼요. 지속 효과는 조건이 끝날 때 해제돼요.", 16));
+    show(v, (side == 0 ? "내 " : "상대 ") + "현재 효과 · " + v.active(side).optString("name"), col);
+  }
+
   static void appendAugments(BattleView v, LinearLayout col, int side) {
     MainActivity h = v.host;
     JSONArray augs = h.list(v.side(side), "augments");
@@ -161,7 +194,7 @@ final class NativeBattleSheets {
                   + " · "
                   + NativeAugmentView.kindName(NativeAugmentView.kind(aug.optString("id"))),
               18);
-      name.setTextColor(NativeAugmentView.color(NativeAugmentView.kind(aug.optString("id"))));
+      semanticColor(name, NativeAugmentView.color(NativeAugmentView.kind(aug.optString("id"))));
       col.addView(name);
       col.addView(prose(h, aug.optString("desc"), 16));
     }

@@ -103,7 +103,7 @@ final class NativeReveal extends FrameLayout {
   }
 
   boolean motion() {
-    return h.motionEnabled && ValueAnimator.areAnimatorsEnabled();
+    return NativeMotion.enabled(h, h.motionEnabled);
   }
 
   void animate(ValueAnimator animator) {

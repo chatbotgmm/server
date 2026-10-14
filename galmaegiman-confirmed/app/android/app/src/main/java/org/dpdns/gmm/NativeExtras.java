@@ -22,6 +22,12 @@ final class NativeExtras {
     k = m.k;
   }
 
+  TextView heading(String text, float size) {
+    TextView title = h.text(text, size);
+    title.setTypeface(h.headline);
+    return title;
+  }
+
   void daily() {
     h.base("출석체크", "daily");
     LinearLayout[] cols = k.split(.52f);
@@ -38,6 +44,7 @@ final class NativeExtras {
                         + "주째"
                         + (a.optInt("streak") > 0 ? " · " + a.optInt("streak") + "일 연속" : ""),
                     18);
+            heading.setTypeface(h.headline);
             panel.addView(heading);
             TextView note = k.note("날마다·주마다 보상이 커져요 · 하루 빠지면 1일째부터");
             note.setTextSize(12);
@@ -64,6 +71,8 @@ final class NativeExtras {
               card.addView(
                   k.image("/duel/icons/" + (day == 7 ? "u-gift" : "u-ticket") + ".png", 25, 25));
               TextView reward = h.text(rewards.optInt(i) + "", 17);
+              reward.setPadding(0, h.dp(4), 0, h.dp(4));
+              reward.setSingleLine(true);
               card.addView(reward);
               TextView status = k.note(got ? active ? "✓ 받음" : "받음" : active ? "오늘" : "잠김");
               status.setTextSize(11);
@@ -106,47 +115,62 @@ final class NativeExtras {
             if (missions.optJSONObject(i).optBoolean("done")) done++;
           LinearLayout board = k.paper();
           cols[1].addView(board);
-          board.addView(h.text("오늘의 미션 · " + done + "/" + missions.length(), 18));
+          board.addView(heading("오늘의 미션 · " + done + "/" + missions.length(), 18));
           TextView note = k.note("달성하면 자동 지급 · 한국 시간 밤 12시 초기화");
           note.setTextSize(12);
           board.addView(note);
           for (int i = 0; i < missions.length(); i++) {
-            JSONObject mission = missions.optJSONObject(i);
-            LinearLayout card = k.row();
-            card.setPadding(h.dp(5), h.dp(6), h.dp(5), h.dp(6));
-            card.setBackground(new GamePaperDrawable(h));
-            LinearLayout progress = k.column();
-            TextView label = h.text(mission.optString("label"), 15);
-            progress.addView(label);
-            ProgressBar bar = new ProgressBar(h, null, android.R.attr.progressBarStyleHorizontal);
-            int goal = Math.max(1, mission.optInt("goal"));
-            bar.setMax(goal);
-            bar.setProgress(Math.min(goal, Math.max(0, mission.optInt("value"))));
-            bar.setProgressTintList(
-                android.content.res.ColorStateList.valueOf(
-                    mission.optBoolean("done") ? 0xff51b985 : 0xffe9a630));
-            progress.addView(bar, new LinearLayout.LayoutParams(-1, h.dp(7)));
-            card.addView(progress, new LinearLayout.LayoutParams(0, -2, 1));
-            TextView value = k.note(Math.min(goal, mission.optInt("value")) + "/" + goal);
-            value.setGravity(Gravity.CENTER);
-            card.addView(value, new LinearLayout.LayoutParams(h.dp(54), -2));
-            card.addView(k.image("/duel/icons/u-ticket.png", 22, 22));
-            TextView reward = h.text(mission.optInt("tickets") + "", 15);
-            card.addView(reward, new LinearLayout.LayoutParams(h.dp(29), -2));
-            TextView status =
-                k.note(
-                    mission.optBoolean("done")
-                        ? "✓ 받음"
-                        : mission.optInt("value") >= goal ? "지급 중" : "진행 중");
-            status.setTextSize(12);
-            status.setGravity(Gravity.CENTER);
-            if (mission.optBoolean("done")) status.setTextColor(0xff397953);
-            card.addView(status, new LinearLayout.LayoutParams(h.dp(54), -2));
-            LinearLayout.LayoutParams row = new LinearLayout.LayoutParams(-1, -2);
-            row.topMargin = h.dp(5);
-            board.addView(card, row);
+            LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(-1, -2);
+            slot.topMargin = h.dp(5);
+            board.addView(missionCard(missions.optJSONObject(i)), slot);
           }
         });
+  }
+
+  /** 보상은 숫자와 단위를 한 덩어리로 측정해 큰 글자에서도 세로로 갈라지지 않는다. */
+  LinearLayout missionCard(JSONObject mission) {
+    LinearLayout card = k.column();
+    card.setTag("daily-mission-" + mission.optString("id", mission.optString("label")));
+    card.setPadding(h.dp(8), h.dp(7), h.dp(8), h.dp(7));
+    card.setBackground(new GamePaperDrawable(h));
+    LinearLayout heading = k.row();
+    TextView label = h.text(mission.optString("label"), 15);
+    label.setTypeface(h.headline);
+    label.setPadding(0, 0, h.dp(8), 0);
+    heading.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
+    heading.addView(k.image("/duel/icons/u-ticket.png", 22, 22));
+    TextView reward = h.text(String.format(Locale.KOREA, "%,d장", mission.optInt("tickets")), 15);
+    reward.setTypeface(h.prose, android.graphics.Typeface.BOLD);
+    reward.setTag("native-mission-reward");
+    reward.setPadding(h.dp(4), 0, 0, 0);
+    reward.setSingleLine(true);
+    reward.setContentDescription("뽑기권 " + reward.getText());
+    heading.addView(reward, new LinearLayout.LayoutParams(-2, -2));
+    card.addView(heading);
+    int goal = Math.max(1, mission.optInt("goal"));
+    int value = Math.min(goal, Math.max(0, mission.optInt("value")));
+    LinearLayout detail = k.row();
+    TextView progress = k.note("진행 " + value + "/" + goal);
+    progress.setPadding(0, h.dp(3), h.dp(6), h.dp(3));
+    progress.setSingleLine(true);
+    progress.setTextSize(12);
+    detail.addView(progress, new LinearLayout.LayoutParams(0, -2, 1));
+    TextView status =
+        k.note(mission.optBoolean("done") ? "✓ 지급 완료" : value >= goal ? "지급 중" : "진행 중");
+    status.setPadding(0, h.dp(3), 0, h.dp(3));
+    status.setSingleLine(true);
+    status.setTextSize(12);
+    if (mission.optBoolean("done")) status.setTextColor(0xff397953);
+    detail.addView(status, new LinearLayout.LayoutParams(-2, -2));
+    card.addView(detail);
+    ProgressBar bar = new ProgressBar(h, null, android.R.attr.progressBarStyleHorizontal);
+    bar.setMax(goal);
+    bar.setProgress(value);
+    bar.setProgressTintList(
+        android.content.res.ColorStateList.valueOf(
+            mission.optBoolean("done") ? 0xff51b985 : 0xffe9a630));
+    card.addView(bar, new LinearLayout.LayoutParams(-1, h.dp(7)));
+    return card;
   }
 
   void pvp() {
@@ -195,7 +219,7 @@ final class NativeExtras {
           h.body.addView(table);
           LinearLayout header = k.row();
           for (String label : new String[] {"순위", "수비대", "티어", "점수", "승 / 패"})
-            h.cell(header, h.text(label, 17));
+            h.cell(header, heading(label, 17));
           table.addView(header);
           JSONArray top = h.list(r, "top");
           if (top.length() == 0) table.addView(k.note("아직 랭크게임을 한 사람이 없어요. 첫 번째가 되어 보세요!"));
@@ -341,7 +365,7 @@ final class NativeExtras {
     LinearLayout panel = k.paper();
     panel.setPadding(h.dp(12), h.dp(10), h.dp(12), h.dp(10));
     panel.setBackground(new GamePanelDrawable(h));
-    panel.addView(h.text(h.me().optString("nickname", "수비조장"), 20));
+    panel.addView(heading(h.me().optString("nickname", "수비조장"), 20));
     TextView rank = k.note("랭크를 불러오고 있어요…");
     panel.addView(rank);
     int width =
@@ -397,7 +421,7 @@ final class NativeExtras {
     h.base("계정 관리", "account");
     LinearLayout[] cols = k.split(.52f);
     LinearLayout profile = k.paper();
-    profile.addView(h.text(h.me().optString("nickname", "수비조장"), 22));
+    profile.addView(heading(h.me().optString("nickname", "수비조장"), 22));
     profile.addView(
         k.note(
             "도감 "
@@ -417,7 +441,7 @@ final class NativeExtras {
         r -> {
           if (r.optBoolean("kakaoLogin")) {
             LinearLayout link = k.paper();
-            TextView title = h.text("카카오 계정", 18);
+            TextView title = heading("카카오 계정", 18);
             link.addView(title);
             boolean linked = r.optBoolean("kakao");
             boolean linking =
@@ -481,7 +505,7 @@ final class NativeExtras {
                               Uri.parse(BuildConfig.SERVER_URL + "/privacy")))));
           cols[1].addView(privacy);
           LinearLayout danger = k.paper();
-          danger.addView(h.text("계정 삭제(탈퇴)", 19));
+          danger.addView(heading("계정 삭제(탈퇴)", 19));
           TextView warning =
               k.note(
                   "갈매미·도감·재화·아이템·탐험·스토리 진행·댓글이 모두 지워지고 되돌릴 수 없어요.\n"

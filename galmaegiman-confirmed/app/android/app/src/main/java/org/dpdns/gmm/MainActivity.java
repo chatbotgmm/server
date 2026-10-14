@@ -8,6 +8,7 @@ import android.os.*;
 import android.text.InputType;
 import android.view.*;
 import android.widget.*;
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.*;
 import java.security.*;
@@ -20,6 +21,8 @@ public class MainActivity extends AppCompatActivity {
   NativeArt art;
   NativeSound sound;
   NativeMenus menus;
+  NativeOperationUi operations;
+  Button actionButton;
   Typeface font, headline, prose;
   FrameLayout root;
   LinearLayout page, body;
@@ -61,7 +64,17 @@ public class MainActivity extends AppCompatActivity {
     WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
     root = new GameRootLayout(this);
     setContentView(root);
+    operations = new NativeOperationUi(this);
     menus = new NativeMenus(this);
+    getOnBackPressedDispatcher()
+        .addCallback(
+            this,
+            new OnBackPressedCallback(true) {
+              @Override
+              public void handleOnBackPressed() {
+                back();
+              }
+            });
     guide = NativeTutorialController.get(this);
     ViewCompat.setOnApplyWindowInsetsListener(
         root,
@@ -188,6 +201,7 @@ public class MainActivity extends AppCompatActivity {
   void request(String path, JSONObject data, NativeApi.Result done) {
     if (busy) return;
     busy = true;
+    final int operation = operations.begin(NativeOperationUi.label(path), actionButton);
     final int operationEpoch = epoch;
     final String operationAccount = api.token();
     api.call(
@@ -197,12 +211,22 @@ public class MainActivity extends AppCompatActivity {
           if (isFinishing()
               || isDestroyed()
               || operationEpoch != epoch
-              || (!operationAccount.equals(api.token()) && !(e != null && api.token().isEmpty())))
+              || (!operationAccount.equals(api.token()) && !(e != null && api.token().isEmpty()))) {
+            if (operations.finish(operation)) busy = false;
             return;
+          }
+          operations.finish(operation);
           busy = false;
           if (e != null) {
             if (api.token().isEmpty() && !screen.equals("login")) login();
-            message(e);
+            if (!api.token().isEmpty() && e.startsWith("연결하지 못")) {
+              final String current = screen;
+              new GameDialog(this)
+                  .setMessage("연결이 끊어져 처리 결과를 확인하지 못했어요. 같은 행동을 다시 실행하기 전에 진행 상태를 확인해 주세요.")
+                  .setNegativeButton("닫기", null)
+                  .setPositiveButton("진행 확인", (dialog, which) -> refreshProgress(current))
+                  .show();
+            } else message(e);
             return;
           }
           if (guide != null && path.equals("native/team")) guide.onAction("team-saved");
@@ -216,6 +240,10 @@ public class MainActivity extends AppCompatActivity {
 
   void load(String target) {
     if (busy) return;
+    if (screen.equals("team") && !target.equals("team") && menus.isTeamDirty()) {
+      menus.requestLeaveTeam(() -> load(target));
+      return;
+    }
     if (!state.has("me") && target.equals("title")) titleScreen();
     else if (!state.has("me")) {
       base("수비대 연결", "loading");
@@ -224,23 +252,33 @@ public class MainActivity extends AppCompatActivity {
     }
     final int destination = ++epoch;
     busy = true;
+    final int operation = operations.begin("진행 불러오는 중…", actionButton);
     api.call(
         "native/state",
         null,
         (r, e) -> {
-          if (isFinishing() || destination != epoch) {
-            busy = false;
+          if (isFinishing() || isDestroyed() || destination != epoch) {
+            if (operations.finish(operation)) busy = false;
             return;
           }
           if (e != null) {
+            operations.finish(operation);
             busy = false;
-            if (api.token().isEmpty()) login();
-            message(e);
+            if (api.token().isEmpty()) {
+              login();
+              message(e);
+            } else
+              new GameDialog(this)
+                  .setMessage(e)
+                  .setNegativeButton("닫기", null)
+                  .setPositiveButton("다시 연결", (dialog, which) -> load(target))
+                  .show();
             return;
           }
           state = r;
           stateUpdated();
           if (!art.key.isEmpty()) {
+            operations.finish(operation);
             busy = false;
             show(target);
             return;
@@ -249,8 +287,12 @@ public class MainActivity extends AppCompatActivity {
               "duel-key",
               null,
               (key, error) -> {
+                if (isFinishing() || isDestroyed() || destination != epoch) {
+                  if (operations.finish(operation)) busy = false;
+                  return;
+                }
+                operations.finish(operation);
                 busy = false;
-                if (isFinishing() || destination != epoch) return;
                 if (error != null) {
                   message(error);
                   return;
@@ -258,6 +300,26 @@ public class MainActivity extends AppCompatActivity {
                 art.key = key.optString("k");
                 show(target);
               });
+        });
+  }
+
+  void refreshProgress(String current) {
+    if (!current.equals("battle")) {
+      load(current);
+      return;
+    }
+    // 응답을 놓친 행동을 다시 보내지 않고 서버가 확정한 최신 전투만 조회한다.
+    request(
+        "native/battle/current",
+        null,
+        (fresh, error) -> {
+          if (fresh.has("session") && !fresh.isNull("session")) {
+            battle = fresh;
+            battleScreen();
+          } else {
+            battle = null;
+            load("home");
+          }
         });
   }
 
@@ -269,12 +331,17 @@ public class MainActivity extends AppCompatActivity {
           Object result = r.opt("result");
           int operationEpoch = epoch;
           busy = true;
+          int operation = operations.begin("결과 확인 중…", null);
           api.call(
               "native/state",
               null,
               (fresh, error) -> {
+                if (isFinishing() || isDestroyed() || epoch != operationEpoch) {
+                  if (operations.finish(operation)) busy = false;
+                  return;
+                }
+                operations.finish(operation);
                 busy = false;
-                if (isFinishing() || epoch != operationEpoch) return;
                 if (error != null) {
                   // 처리는 이미 성공했으므로 결과를 알리고, 확인 뒤 다시 상태를 가져온다.
                   showResult(result, () -> load(target));
@@ -348,7 +415,7 @@ public class MainActivity extends AppCompatActivity {
     TextView t = new TextView(this);
     t.setText(s);
     t.setTextSize(uiText(size));
-    t.setTypeface(font);
+    t.setTypeface(prose);
     t.setTextColor(INK);
     t.setPadding(dp(8), dp(4), dp(8), dp(4));
     return t;
@@ -379,7 +446,13 @@ public class MainActivity extends AppCompatActivity {
         v -> {
           if (!busy) {
             sound.click();
-            action.run();
+            Button previous = actionButton;
+            actionButton = b;
+            try {
+              action.run();
+            } finally {
+              actionButton = previous;
+            }
           }
         });
     return b;
@@ -438,9 +511,13 @@ public class MainActivity extends AppCompatActivity {
               () -> load("shop"));
       money.setTextSize(14);
       money.setTypeface(prose);
+      money.setSingleLine(true);
+      money.setContentDescription(
+          (kind.equals("snack") ? "새우 " : kind.equals("peanut") ? "땅콩 " : "뽑기권 ")
+              + String.format(java.util.Locale.KOREA, "%,d", me().optInt(kind)));
       money.setBackground(new GamePaperDrawable(this));
       money.setPadding(dp(5), 0, dp(5), 0);
-      head.addView(money, new LinearLayout.LayoutParams(dp(76), dp(48)));
+      head.addView(money, new LinearLayout.LayoutParams(dp(compact() ? 90 : 102), dp(48)));
     }
     page.addView(head);
     ScrollView scroll = new ScrollView(this);
@@ -1122,7 +1199,7 @@ public class MainActivity extends AppCompatActivity {
             key -> {
               sheet[0].dismiss();
               currentKey = key;
-              menus.unitReturn = "story";
+              menus.unitReturn = story ? "stages" : "collection";
               finishBattle(ended, () -> load("unit"));
             }));
     builder.setCancelable(false);
@@ -1170,11 +1247,16 @@ public class MainActivity extends AppCompatActivity {
     // 이전 결과와 성장 상태를 먼저 동기화한다. 체력 0이면 편성 화면에서 치료를 안내한다.
     final int destination = epoch;
     busy = true;
+    final int operation = operations.begin("출전 상태 확인 중…", null);
     api.call(
         "native/state",
         null,
         (fresh, error) -> {
-          if (isFinishing() || destination != epoch) return;
+          if (isFinishing() || isDestroyed() || destination != epoch) {
+            if (operations.finish(operation)) busy = false;
+            return;
+          }
+          operations.finish(operation);
           busy = false;
           if (error != null) {
             message(error);
@@ -1233,19 +1315,13 @@ public class MainActivity extends AppCompatActivity {
       else chapters();
     } else if (screen.equals("collectionDetail")) collection();
     else if (screen.equals("team")) {
-      if (selectionMode.equals("story")) chapters();
-      else collection();
+      menus.requestLeaveTeam(() -> load(menus.teamReturnTarget()));
     } else if (screen.equals("dialog")) load("story");
     else if (screen.equals("mix")) craft();
     else if (screen.equals("drawResult")) load("draw");
     else if (screen.equals("story") || screen.equals("pvp") || screen.equals("practice"))
       load("modes");
     else load("home");
-  }
-
-  @Override
-  public void onBackPressed() {
-    back();
   }
 
   String notificationTarget(Intent intent) {
@@ -1282,6 +1358,7 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onDestroy() {
     super.onDestroy();
+    if (operations != null) operations.close();
     if (guide != null) guide.close();
     art.close();
     api.close();

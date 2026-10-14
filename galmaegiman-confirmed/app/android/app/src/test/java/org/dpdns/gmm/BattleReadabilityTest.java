@@ -154,7 +154,7 @@ public class BattleReadabilityTest {
   }
 
   @Test
-  public void fourSkillsAndComboRemainVisibleInsideZflipSafeArea() {
+  public void fourSkillsAndComboRemainReadableInsideZflipSafeArea() {
     for (boolean inset : new boolean[] {false, true}) {
       try (ActivityController<MainActivity> c =
           Robolectric.buildActivity(MainActivity.class).setup().visible()) {
@@ -168,9 +168,11 @@ public class BattleReadabilityTest {
             y += p.getTop() - p.getScrollY();
             p = (View) p.getParent();
           }
-          assertTrue(
-              card.skill.optString("name") + " 화면 아래 잘림",
-              y + card.getHeight() <= v.menu.getHeight());
+          assertTrue("긴 효과는 명령 패널 스크롤로 접근 가능", y + card.getHeight() <= v.controls.getHeight());
+          assertTrue("제목에 카드 전폭 배정", card.title.getWidth() >= card.getWidth() - 20);
+          assertNotNull(card.title.getLayout());
+          for (int line = 0; line < card.title.getLineCount(); line++)
+            assertEquals("기술 이름 생략", 0, card.title.getLayout().getEllipsisCount(line));
           assertTrue(card.detail.getHeight() >= 48);
           assertTrue(card.use.getHeight() >= 48);
           if (card.effect.getParent() instanceof View) {

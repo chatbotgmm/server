@@ -2,9 +2,9 @@ package org.dpdns.gmm;
 
 import android.content.Context;
 import android.view.View;
-import android.widget.ImageView;
+import androidx.appcompat.widget.AppCompatImageView;
 
-final class GameBackdrop extends ImageView implements FullBleed {
+final class GameBackdrop extends AppCompatImageView implements FullBleed {
   // 같은 원본과 블러 반경은 화면 이동마다 다시 계산하지 않는다.
   static final java.util.WeakHashMap<
           android.graphics.Bitmap, java.util.Map<Integer, android.graphics.Bitmap>>

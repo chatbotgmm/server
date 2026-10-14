@@ -64,6 +64,38 @@ suite('네이티브 게임 기능 복원 API (격리 DB)',()=>{
     }finally{await app.close();}
   });
 
+  it('스토리 잠금 안내는 선행 전투·실제 미승진 개체·승진의 레벨과 부 조건을 구분하며 기존 입장 판정과 같다',async()=>{
+    try{
+      const empty=await get('state');expect(empty.chapters[0].lock.requirements).toContainEqual(expect.objectContaining({kind:'team',met:false,action:'team'}));
+      const a=await own('D1'),b=await own('D2'),flat=story.chapters.flatMap((c,chapterIndex)=>c.stages.map(st=>({...st,chapter:c,chapterIndex})));
+      const chapter=story.chapters.find(c=>c.id==='2')!,target=chapter.stages[0],targetIndex=flat.findIndex(st=>st.id===target.id),previous=flat[targetIndex-1];
+      const save=async(cleared:string[],stageA:0|1,stageB:0|1,level=15)=>{
+        await game.webSaveStory(playerId,{units:{[a]:{...record('D1',level),stage:stageA},[b]:{...record('D2',level),stage:stageB}},team:[a,b],cleared,hp:{}});
+        const state=await get('state');
+        for(const [ix,st] of flat.entries()){
+          const result=state.chapters[st.chapterIndex].stages.find((s:any)=>s.id===st.id),need=st.chapter.needStage??0;
+          const original=(ix===0||cleared.includes(flat[ix-1].id)||flat.slice(ix).some(st=>cleared.includes(st.id)))&&stageA>=need&&stageB>=need;
+          expect(result.open,st.id).toBe(original);expect(result.lock.open,st.id).toBe(original);expect(result.lock.requirements.every((r:any)=>r.met),st.id).toBe(original);
+        }
+        return {state,stage:state.chapters.find((c:any)=>c.id==='2').stages[0]};
+      };
+      const initial=await save([],0,0);expect(initial.stage.lock).toMatchObject({requiredStage:1,previousStageId:previous.id});
+      expect(initial.stage.lock.requirements.find((r:any)=>r.kind==='stage')).toMatchObject({met:false,action:'stage',stageId:previous.id,chapterIndex:previous.chapterIndex});
+      expect(initial.stage.lock.requirements.find((r:any)=>r.key===a)).toMatchObject({kind:'growth',met:false,action:'growth',current:0,required:1,level:15,needLevel:20,clearedParts:0,needParts:1,canEvolve:false,nextStage:1,conditions:[{kind:'level',met:false,current:15,required:20},{kind:'chapter',met:false,current:0,required:1}]});
+      const firstPart=story.chapters.find(c=>c.id==='1')!.stages.at(-1)!.id;
+      const partial=await save([firstPart,previous.id],1,0,20);
+      expect(partial.stage.lock.requirements.filter((r:any)=>!r.met).map((r:any)=>r.key)).toEqual([b]);
+      expect(partial.stage.lock.requirements.find((r:any)=>r.key===b)).toMatchObject({needLevel:20,clearedParts:1,needParts:1,canEvolve:true});
+      const ready=await save([firstPart,previous.id],1,1,20);expect(ready.stage.open).toBe(true);expect(ready.stage.lock.reason).toBe('');expect(ready.state.chapters.find((c:any)=>c.id==='2').open).toBe(true);
+      const battle=await post('battle/start',{mode:'story',stage:target.id});expect(battle.stage).toBe(target.id);await post('battle/turn',{session:battle.session,revision:battle.revision,leave:true});
+      // 후속 단계를 깬 기존 저장은 중간 기록이 없어도 재입장 가능해야 한다.
+      expect((await save([chapter.stages[1].id],1,1,20)).stage.open).toBe(true);
+      // 진행 이력이 있어도 미승진 개체가 남아 있으면 우회되지 않는다.
+      expect((await save([chapter.stages[1].id],1,0,20)).stage.open).toBe(false);
+      expect((await app.inject({method:'POST',url:'/my/api/native/battle/start',headers,payload:{mode:'story',stage:target.id}})).statusCode).toBe(400);
+    }finally{await app.close();}
+  });
+
   it('네이티브 도감은 소유량과 최초 발견 기록을 구분하고 미발견 히든·최상위의 비공개 정보를 막는다',async()=>{
     try{
       await known('D1');await known('H1');await own('C1');await own('C1');await own('U1');
@@ -99,6 +131,7 @@ suite('네이티브 게임 기능 복원 API (격리 DB)',()=>{
       expect(b.teams[0].fighters[0].skills.some((s:any)=>s.id.startsWith('learn-'))).toBe(true);
       expect(b.teams[0].fighters[0].skills.some((s:any)=>s.id==='sig')).toBe(true);
       expect(b.teams[1].fighters[0].base.spd).toBeGreaterThan(0);expect(b.teams[1].fighters[0].role).toBe(R.unitDef('E1')!.role);
+      for(const team of b.teams)for(const fighter of team.fighters)expect(Array.isArray(fighter.effects)).toBe(true);
       expect(b.itemLimit).toBe(R.data.itemRules.perBattle);expect(b.teams[0].comboUsed).toBe(false);expect(b.history).toEqual(b.log);
       const current=await get('battle/current');expect(current).toMatchObject({revision:b.revision,displayEventSeq:b.displayEventSeq,teams:b.teams,history:b.history});
     }finally{await app.close();}

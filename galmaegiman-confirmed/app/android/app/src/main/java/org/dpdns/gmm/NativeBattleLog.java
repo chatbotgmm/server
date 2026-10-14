@@ -33,15 +33,13 @@ final class NativeBattleLog {
       boolean current = i == shown.size() - 1;
       if (end > start) {
         result.setSpan(
-            new ForegroundColorSpan(current ? MainActivity.INK : 0xffa08a74),
+            new ForegroundColorSpan(MainActivity.INK),
             start,
             end,
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         if (current)
           result.setSpan(
               new StyleSpan(Typeface.BOLD), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        else
-          result.setSpan(new RelativeSizeSpan(.82f), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
       }
       highlight(result, start + tag.length(), raw, events, absolute);
       if (side >= 0) {

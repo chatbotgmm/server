@@ -50,32 +50,45 @@ final class SkillCardView extends FrameLayout {
 
     LinearLayout content = new LinearLayout(h);
     content.setOrientation(LinearLayout.VERTICAL);
-    content.setPadding(
-        h.dp(9), h.dp(combo || large ? 7 : 5), h.dp(8), h.dp(combo || large ? 8 : 5));
-    LinearLayout heading = new LinearLayout(h);
-    heading.setGravity(Gravity.CENTER_VERTICAL);
-    LinearLayout names = new LinearLayout(h);
-    names.setOrientation(LinearLayout.VERTICAL);
-    TextView category = h.text(kind, large ? 16 : 12);
-    category.setTextSize(large ? 16 : 12);
-    category.setTypeface(h.prose);
-    category.setTextColor(0xff7b5b3a);
-    category.setPadding(0, 0, 0, 0);
-    category.setIncludeFontPadding(false);
-    TextView title = h.text(name, large ? 25 : 19);
-    title.setTypeface(h.headline);
-    title.setTextSize(large ? 25 : 19);
-    title.setPadding(0, 0, 0, 0);
-    title.setIncludeFontPadding(false);
-    title.setMaxLines(combo ? 1 : 2);
-    title.setEllipsize(TextUtils.TruncateAt.END);
-    if (!combo) names.addView(category);
-    names.addView(title);
+    content.setPadding(h.dp(9), h.dp(7), h.dp(8), h.dp(6));
+    title = label(h, name, large ? 25 : 19, true);
+    title.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
+    title.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
+    // 제목은 상세 버튼과 폭을 나누지 않는다. 긴 이름도 줄바꿈해 전부 보여 준다.
+    content.addView(title, new LinearLayout.LayoutParams(-1, -2));
+    category =
+        label(
+            h,
+            combo ? "합동기 · 전투당 한 번" : shortKind(kind) + " · " + categoryMeta(sk),
+            large ? 16 : 12,
+            false);
+    category.setTextColor(0xff634a35);
+    if (!combo) content.addView(category);
+    power = label(h, powerMeta(sk), large ? 16 : 13, false);
+    power.setTextColor(0xff634a35);
+    if (!combo) content.addView(power);
+    LinearLayout bottom = new LinearLayout(h);
+    bottom.setGravity(Gravity.CENTER_VERTICAL);
+    effect =
+        label(
+            h,
+            (combo ? "전투당 한 번" : conciseEffect(sk))
+                + (reason.isEmpty() ? "" : "\n" + shortReason(reason)),
+            large ? 16 : 13,
+            false);
+    effect.setTextColor(reason.isEmpty() ? 0xff634a35 : 0xffad4839);
+    effect.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
+    effect.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
+    // 핵심 수치와 기간은 생략하지 않는다. 큰 글자나 긴 효과는 카드가 늘어나며 패널을 스크롤한다.
     if (combo) {
-      category.setText(reason.isEmpty() ? "합동기 · 전투당 한 번" : shortReason(reason));
-      names.addView(category);
+      // 합동기는 제목 전폭을 유지하고 사용 횟수·상세만 같은 줄에 모아 첫 기술 두 개를 가리지 않는다.
+      bottom.addView(effect, new LinearLayout.LayoutParams(0, -2, 1));
+    } else {
+      content.addView(effect, new LinearLayout.LayoutParams(-1, -2));
+      // 상세 조작은 본문 아래 독립된 줄에 둔다. 본문 폭을 48dp 줄여 수치·어절을 끊지 않는다.
+      Space spacer = new Space(h);
+      bottom.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1));
     }
-    heading.addView(names, new LinearLayout.LayoutParams(0, -2, 1));
     detail = h.button("상세", () -> NativeBattleSheets.skill(view, sk));
     detail.setTextSize(large ? 16 : 13);
     detail.setPadding(0, 0, 0, h.dp(2));
@@ -84,43 +97,60 @@ final class SkillCardView extends FrameLayout {
     detail.setMinimumHeight(h.dp(48));
     detail.setContentDescription(name + " 전체 효과와 사용 조건 보기");
     LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(h.dp(48), h.dp(48));
-    dp.leftMargin = h.dp(3);
-    heading.addView(detail, dp);
-    content.addView(heading);
-
-    TextView chips = h.text(meta, large ? 16 : 12);
-    chips.setTextSize(large ? 16 : 12);
-    chips.setTypeface(h.prose);
-    chips.setPadding(0, 0, 0, 0);
-    chips.setIncludeFontPadding(false);
-    chips.setSingleLine(true);
-    chips.setEllipsize(TextUtils.TruncateAt.END);
-    SpannableString chipLabel = new SpannableString(meta);
-    int at = 0;
-    for (String token : meta.split("·")) {
-      int end = Math.min(chipLabel.length(), at + token.length());
-      if (end > at)
-        chipLabel.setSpan(
-            new BackgroundColorSpan(at == 0 ? (tint & 0x00ffffff) | 0x55000000 : 0xffeee2ca),
-            at,
-            end,
-            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-      at = end + 1;
-    }
-    chips.setText(chipLabel);
-    if (!combo) content.addView(chips);
-    effect = h.text(reason.isEmpty() ? effect(sk) : shortReason(reason), large ? 16 : 13);
-    effect.setTextSize(large ? 16 : 13);
-    effect.setTypeface(h.prose);
-    effect.setTextColor(reason.isEmpty() ? 0xff634a35 : 0xffad4839);
-    effect.setPadding(0, 0, 0, 0);
-    effect.setIncludeFontPadding(false);
-    effect.setSingleLine(combo);
-    effect.setMaxLines(combo ? 1 : 2);
-    effect.setEllipsize(TextUtils.TruncateAt.END);
-    if (!combo && (!sk.optString("id").startsWith("sub-") || !reason.isEmpty()))
-      content.addView(effect);
+    dp.leftMargin = h.dp(4);
+    bottom.addView(detail, dp);
+    content.addView(bottom, new LinearLayout.LayoutParams(-1, -2));
     addView(content, new LayoutParams(-1, -2));
+    setMinimumHeight(h.dp(combo ? (large ? 88 : 78) : (large ? 154 : 120)));
+  }
+
+  final TextView title, category, power;
+
+  static TextView label(MainActivity h, String text, int size, boolean headline) {
+    TextView label = h.text(text, size);
+    label.setTextSize(size);
+    label.setTypeface(headline ? h.headline : h.prose);
+    label.setPadding(0, 0, 0, 0);
+    label.setIncludeFontPadding(false);
+    label.setTextLocale(java.util.Locale.KOREAN);
+    if (android.os.Build.VERSION.SDK_INT >= 33)
+      label.setLineBreakWordStyle(
+          android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
+    return label;
+  }
+
+  static String shortKind(String kind) {
+    return kind.replace("전용 기술", "전용기").replace("일반 기술", "일반기").replace("보조 속성", "보조");
+  }
+
+  static String categoryMeta(JSONObject sk) {
+    if (sk.optInt("power") <= 0) return "보조 기술";
+    JSONObject p = sk.optJSONObject("preview");
+    if (p == null) return "공격 기술";
+    return p.optString("attrName")
+        + " · "
+        + (p.optString("category").equals("mag") ? "✦ 마법" : "⚔ 물리");
+  }
+
+  static String powerMeta(JSONObject sk) {
+    if (sk.optInt("power") <= 0) return "보조 효과";
+    JSONObject p = sk.optJSONObject("preview");
+    double multiplier = p == null ? 1 : p.optDouble("multiplier", 1);
+    return "위력 "
+        + sk.optInt("power")
+        + (sk.optInt("hits", 1) > 1 ? "×" + sk.optInt("hits") : "")
+        + " · "
+        + (multiplier > 1 ? "▲유리" : multiplier < 1 ? "▼불리" : "상성 보통");
+  }
+
+  static String conciseEffect(JSONObject sk) {
+    return effect(sk)
+        .replace("맞은 상대의", "상대")
+        .replace("우리 팀의", "우리 팀")
+        .replace("체력을 회복해요.", "체력 회복")
+        .replace("방어를 낮추고", "방어 감소 ·")
+        .replace(" 동안 ", " ")
+        .replace("추가 효과 없음", "연속 사용 가능");
   }
 
   static String kind(JSONObject sk) {

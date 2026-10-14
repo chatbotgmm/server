@@ -60,39 +60,34 @@ final class NativeEconomy {
           banner.addView(bannerRow);
           h.body.addView(banner);
           ArrayList<View> cards = new ArrayList<>();
-          LinearLayout drawActions = k.row();
           JSONArray gachas = h.list(r, "gachas");
           for (int i = 0; i < gachas.length(); i++) {
             JSONObject g = gachas.optJSONObject(i);
             int cost = Math.max(1, g.optInt("cost"));
             int limit = r.optBoolean("unlimited") ? 50 : Math.min(50, r.optInt("credits") / cost);
             LinearLayout card = k.paper();
+            card.setTag("draw-card-" + g.optString("kind"));
             LinearLayout line = k.row();
-            line.setGravity(Gravity.TOP);
             card.addView(line);
-            ImageView portrait =
-                k.image(
-                    "/thumbs/" + g.optString("img") + ".jpg",
-                    h.getResources().getConfiguration().screenHeightDp < 600 ? 48 : 60,
-                    h.getResources().getConfiguration().screenHeightDp < 600 ? 48 : 60);
-            line.addView(portrait);
+            line.addView(k.image("/thumbs/" + g.optString("img") + ".jpg", 48, 48));
             LinearLayout info = k.column();
             line.addView(info, new LinearLayout.LayoutParams(0, -2, 1));
-            info.addView(h.text(g.optString("label") + " 뽑기", 18));
-            StringBuilder odds = new StringBuilder();
-            JSONArray weights = h.list(g, "weights");
-            for (int j = 0; j < weights.length(); j++) {
-              JSONObject w = weights.optJSONObject(j);
-              if (j > 0) odds.append(" · ");
-              odds.append(w.optString("tierName"))
-                  .append(" ")
-                  .append(String.format(Locale.KOREA, "%.1f%%", w.optDouble("w")));
-            }
+            TextView name = h.text(g.optString("label") + " 뽑기", compact() ? 18 : 21);
+            name.setPadding(h.dp(4), 0, h.dp(4), 0);
+            info.addView(name);
+            TextView unitCost = k.note("1회당 뽑기권 " + cost + "장");
+            unitCost.setPadding(h.dp(4), 0, h.dp(4), 0);
+            info.addView(unitCost);
             int[] amount = {1};
+            TextView total = h.text("", compact() ? 15 : 17);
+            total.setTag("draw-total-" + g.optString("kind"));
+            total.setPadding(h.dp(4), h.dp(4), h.dp(4), h.dp(4));
+            total.setSingleLine(true);
+            total.setGravity(Gravity.CENTER);
             Button go =
                 k.action(
                     "u-ticket",
-                    g.optString("label") + " 1회 · " + cost,
+                    "1회 뽑기",
                     () ->
                         h.confirm(
                             g.optString("label")
@@ -107,34 +102,42 @@ final class NativeEconomy {
                                     MainActivity.obj(
                                         "kind", g.optString("kind"), "times", amount[0]),
                                     "draw")));
+            go.setTag("draw-submit-" + g.optString("kind"));
             k.compactQuantity(
-                info,
+                card,
                 limit,
                 n -> {
                   amount[0] = n;
-                  go.setText(g.optString("label") + " " + n + "회 · " + cost * n);
+                  total.setText(n + "회 · 총 " + cost * n + "장 사용");
+                  go.setText(n + "회 뽑기");
                 });
-            quantityLimit(info, limit);
+            quantityLimit(card, limit);
+            card.getChildAt(card.getChildCount() - 1)
+                .setTag("draw-quantity-" + g.optString("kind"));
+            card.addView(total);
             go.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
             go.setEnabled(limit > 0);
-            if (limit <= 0) go.setText("뽑기권 부족");
-            go.setTextSize(15);
-            go.setPadding(h.dp(4), h.dp(4), h.dp(4), h.dp(7));
-            h.cell(drawActions, go);
-            TextView chance = k.note("확률 · " + odds);
-            chance.setTextSize(12);
-            chance.setGravity(Gravity.CENTER);
-            info.addView(chance);
+            if (limit <= 0) {
+              go.setText("뽑기권 부족");
+              total.setText("필요 " + cost + "장 · 보유 " + r.optInt("credits") + "장");
+            }
+            go.setTextSize(h.uiText(16));
+            card.addView(go, new LinearLayout.LayoutParams(-1, h.dp(48)));
             JSONObject pity = r.optJSONObject("pity");
-            if (g.optString("kind").equals("HIGH") && pity != null)
-              info.addView(
-                  k.note(pity.optString("tierName") + " 보장까지 " + pity.optInt("left") + "회"));
-            card.setMinimumHeight(h.dp(190));
+            String hint =
+                g.optString("kind").equals("HIGH") && pity != null
+                    ? pity.optString("tierName") + " 보장까지 " + pity.optInt("left") + "회"
+                    : "흔함·안흔함 포함";
+            TextView note = k.note(hint);
+            note.setTextSize(h.uiText(13));
+            note.setGravity(Gravity.CENTER);
+            card.addView(note);
+            Button odds = k.action(null, "확률·보장 보기", () -> gachaGuide(g, r));
+            card.addView(odds, new LinearLayout.LayoutParams(-1, h.dp(48)));
             cards.add(card);
           }
           k.tiles(h.body, cards, 3);
           h.body.addView(k.action(null, "확률·획득 보상 안내", () -> drawGuide(r)));
-          k.footer(drawActions);
         });
   }
 
@@ -403,36 +406,53 @@ final class NativeEconomy {
         () -> {
           cols[0].removeAllViews();
           cols[1].removeAllViews();
-          cols[0].addView(k.notice("눌러서 넣기 · 숨은 조합 찾기"));
+          cols[0].addView(k.notice("재료를 추가해 숨은 조합을 찾아보세요. 보호·탐험 중인 갈매미는 제외해요."));
           ArrayList<View> choices = new ArrayList<>();
           for (int i = 0; i < pool.length(); i++) {
             JSONObject u = pool.optJSONObject(i);
             String id = u.optString("id");
-            int left = u.optInt("usable") - Collections.frequency(m.mixDraft, id);
-            LinearLayout tile =
-                k.tile(
-                    u,
+            int picked = Collections.frequency(m.mixDraft, id);
+            int left = u.optInt("usable") - picked;
+            LinearLayout tile = k.paper();
+            tile.setGravity(Gravity.CENTER_HORIZONTAL);
+            tile.setTag("mix-material-" + id);
+            tile.addView(
+                k.image(
                     "/thumbs/" + u.optString("img") + ".jpg",
-                    "남은 "
-                        + left
-                        + (Collections.frequency(m.mixDraft, id) > 0
-                            ? " · 선택 " + Collections.frequency(m.mixDraft, id)
-                            : ""),
+                    compact() ? 58 : 92,
+                    compact() ? 58 : 92));
+            TextView name = h.text(u.optString("name"), compact() ? 14 : 17);
+            name.setGravity(Gravity.CENTER);
+            tile.addView(name);
+            TextView count = k.note("남은 " + left + " · 선택 " + picked);
+            count.setGravity(Gravity.CENTER);
+            tile.addView(count);
+            if (picked > 0) tile.setBackground(new GamePaperDrawable(h, 0xffa8672e));
+            LinearLayout actions = k.row();
+            Button remove =
+                k.action(
+                    null,
+                    "빼기",
                     () -> {
-                      if (m.mixDraft.size() >= 6 || left <= 0) {
-                        int picked = m.mixDraft.lastIndexOf(id);
-                        if (picked < 0) return;
-                        m.mixDraft.remove(picked);
-                      } else m.mixDraft.add(id);
+                      int index = m.mixDraft.lastIndexOf(id);
+                      if (index >= 0) m.mixDraft.remove(index);
                       paint[0].run();
                     });
-            for (int j = 0; j < tile.getChildCount(); j++)
-              if (tile.getChildAt(j) instanceof ImageView)
-                tile.getChildAt(j)
-                    .setLayoutParams(
-                        new LinearLayout.LayoutParams(
-                            h.dp(compact() ? 58 : 92), h.dp(compact() ? 58 : 92)));
-            tile.setAlpha(left > 0 || m.mixDraft.contains(id) ? 1 : .55f);
+            remove.setTag("mix-remove-" + id);
+            remove.setEnabled(picked > 0);
+            Button add =
+                k.action(
+                    null,
+                    "추가",
+                    () -> {
+                      if (m.mixDraft.size() < 6 && left > 0) m.mixDraft.add(id);
+                      paint[0].run();
+                    });
+            add.setTag("mix-add-" + id);
+            add.setEnabled(m.mixDraft.size() < 6 && left > 0);
+            h.cell(actions, remove);
+            h.cell(actions, add);
+            tile.addView(actions);
             choices.add(tile);
           }
           k.tiles(cols[0], choices, 2);
@@ -442,7 +462,20 @@ final class NativeEconomy {
             int index = i;
             if (i >= m.mixDraft.size()) {
               LinearLayout empty = k.paper();
-              empty.addView(h.text("＋", 30));
+              empty.setTag("mix-empty-slot-" + i);
+              empty.setGravity(Gravity.CENTER);
+              empty.setMinimumHeight(h.dp(compact() ? 112 : 156));
+              TextView plus = h.text("＋", 30);
+              plus.setGravity(Gravity.CENTER);
+              empty.addView(plus);
+              TextView prompt = k.note("재료 추가");
+              prompt.setGravity(Gravity.CENTER);
+              empty.addView(prompt);
+              empty.setContentDescription("재료 " + (i + 1) + " 추가 · 재료 선택 열기");
+              empty.setOnClickListener(
+                  v -> {
+                    if (!h.busy) mixMaterialPicker(pool, paint[0]);
+                  });
               slots.add(empty);
               continue;
             }
@@ -491,6 +524,7 @@ final class NativeEconomy {
                                 null,
                                 mats));
                   });
+          make.setText(m.mixDraft.size() >= 2 ? m.mixDraft.size() + "마리 섞기" : "2마리 이상 선택");
           make.setEnabled(m.mixDraft.size() >= 2);
           make.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
           ((Button) actions.getChildAt(0)).setEnabled(!m.mixDraft.isEmpty());
@@ -499,6 +533,36 @@ final class NativeEconomy {
           craftActions.addView(actions, new LinearLayout.LayoutParams(-1, -2));
         };
     paint[0].run();
+  }
+
+  void mixMaterialPicker(JSONArray pool, Runnable repaint) {
+    LinearLayout panel = k.paper();
+    panel.addView(h.text("재료 추가", 22));
+    panel.addView(k.note("선택 " + m.mixDraft.size() + " / 6마리 · 사용할 수 있는 재료만 보여요."));
+    android.app.AlertDialog[] dialog = new android.app.AlertDialog[1];
+    int available = 0;
+    for (int i = 0; i < pool.length(); i++) {
+      JSONObject unit = pool.optJSONObject(i);
+      String id = unit.optString("id");
+      int left = unit.optInt("usable") - Collections.frequency(m.mixDraft, id);
+      if (left <= 0) continue;
+      available++;
+      Button add =
+          k.action(
+              null,
+              unit.optString("name") + " · 남은 " + left + "마리",
+              () -> {
+                if (h.busy || m.mixDraft.size() >= 6) return;
+                m.mixDraft.add(id);
+                dialog[0].dismiss();
+                repaint.run();
+              });
+      add.setTag("mix-picker-material-" + id);
+      panel.addView(add, new LinearLayout.LayoutParams(-1, h.dp(48)));
+    }
+    if (available == 0) panel.addView(k.note("사용할 수 있는 재료가 없어요. 보호·탐험 중인 갈매미는 재료로 쓰지 않아요."));
+    dialog[0] =
+        new GameDialog(h).setView(k.scroll(panel)).setNegativeButton("닫기", (d, w) -> {}).show();
   }
 
   void performCraft(String endpoint, JSONObject body, JSONObject result, JSONArray materials) {
@@ -679,12 +743,17 @@ final class NativeEconomy {
     int max = partyMax();
     LinearLayout[] cols = k.split(.55f);
     LinearLayout footer = k.row();
+    footer.setBackground(new GamePaperDrawable(h));
+    footer.setPadding(h.dp(6), h.dp(4), h.dp(6), h.dp(4));
     TextView status = k.note("");
+    status.setTextColor(MainActivity.INK);
+    status.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(4));
+    status.setTag("expedition-save-status");
     footer.addView(status, new LinearLayout.LayoutParams(0, -2, 1));
     Runnable[] paint = new Runnable[1];
     Button save =
-        k.painted(
-            "btn-save",
+        k.action(
+            "u-emblem",
             "편성 저장",
             () -> {
               ArrayList<String> submitted = new ArrayList<>(h.expeditionDraft);
@@ -773,10 +842,14 @@ final class NativeEconomy {
             cols[0].addView(k.notice("보낼 수 있는 최상위 갈매미가 없어요. 전설을 모아 조합해 보세요."));
             cols[0].addView(k.action("u-emblem", "조합식 보기", () -> h.load("craft")));
           } else k.tiles(cols[0], choices, compact() ? 3 : 4);
-          cols[1].addView(k.section("탐험대 " + h.expeditionDraft.size() + " / " + max));
+          LinearLayout summary = k.paper();
+          summary.setTag("expedition-summary");
+          summary.addView(
+              h.text("탐험대 " + h.expeditionDraft.size() + " / " + max, compact() ? 18 : 22));
           if (h.expeditionDraft.isEmpty())
-            cols[1].addView(k.note("왼쪽 ＋로 추가해 주세요. 같은 시너지끼리 보내면 보너스!"));
-          showExpeditionEstimate(cols[1], h.expeditionDraft);
+            summary.addView(k.note("왼쪽 ＋로 추가해 주세요. 같은 시너지끼리 보내면 보너스!"));
+          showExpeditionEstimate(summary, h.expeditionDraft);
+          cols[1].addView(summary);
           ArrayList<View> selected = new ArrayList<>();
           for (int i = 0; i < h.expeditionDraft.size(); i++) {
             int index = i;
@@ -836,6 +909,12 @@ final class NativeEconomy {
           cols[1].addView(auxiliary);
           cols[1].addView(k.action(null, "시너지 안내", this::synergyGuide));
           h.expeditionDirty = partyChanged();
+          save.setBackground(
+              new GameButtonDrawable(
+                  h, h.expeditionDirty ? GameButtonDrawable.PRIMARY : GameButtonDrawable.PAPER));
+          go.setBackground(
+              new GameButtonDrawable(
+                  h, h.expeditionDirty ? GameButtonDrawable.PAPER : GameButtonDrawable.PRIMARY));
           save.setEnabled(h.expeditionDirty);
           go.setEnabled(!h.expeditionDraft.isEmpty() && !h.expeditionDirty);
           status.setText(h.expeditionDirty ? "변경된 편성 · 먼저 저장해 주세요" : "저장된 편성");
@@ -933,7 +1012,7 @@ final class NativeEconomy {
   }
 
   boolean compact() {
-    return h.getResources().getConfiguration().screenHeightDp < 600;
+    return h.compact();
   }
 
   String duration(long millis) {
@@ -1027,6 +1106,30 @@ final class NativeEconomy {
     dialog.show();
   }
 
+  void gachaGuide(JSONObject gacha, JSONObject draw) {
+    LinearLayout panel = k.paper();
+    panel.addView(h.text(gacha.optString("label") + " 뽑기 확률", 22));
+    panel.addView(k.note("1회당 뽑기권 " + gacha.optInt("cost") + "장 · 낮은 등급도 나올 수 있어요."));
+    JSONArray weights = h.list(gacha, "weights");
+    for (int i = 0; i < weights.length(); i++) {
+      JSONObject weight = weights.optJSONObject(i);
+      LinearLayout row = k.row();
+      row.addView(k.note(weight.optString("tierName")), new LinearLayout.LayoutParams(0, -2, 1));
+      TextView percent = h.text(String.format(Locale.KOREA, "%.1f%%", weight.optDouble("w")), 17);
+      percent.setSingleLine(true);
+      percent.setPadding(h.dp(8), h.dp(5), h.dp(8), h.dp(5));
+      row.addView(percent, new LinearLayout.LayoutParams(-2, -2));
+      panel.addView(row);
+    }
+    JSONObject pity = draw.optJSONObject("pity");
+    if (gacha.optString("kind").equals("HIGH") && pity != null)
+      panel.addView(
+          k.note(
+              pity.optString("tierName") + " 보장까지 " + pity.optInt("left") + "회 · 고급 뽑기에만 누적돼요."));
+    else panel.addView(k.note("이 뽑기는 보장 횟수를 누적하지 않아요."));
+    new GameDialog(h).setView(k.scroll(panel)).setPositiveButton("확인", (d, w) -> {}).show();
+  }
+
   void drawGuide(JSONObject draw) {
     LinearLayout panel = k.paper();
     panel.addView(h.text("확률·획득 보상", 22));
@@ -1080,7 +1183,9 @@ final class NativeEconomy {
     ArrayList<String> labels = new ArrayList<>();
     for (Map.Entry<String, Integer> group : groups.entrySet())
       labels.add(synergyLabel(group.getKey()) + " " + group.getValue() + "마리");
-    parent.addView(k.note("시너지 · " + String.join(" · ", labels)));
+    TextView synergy = k.note("시너지 · " + String.join(" · ", labels));
+    synergy.setTextColor(MainActivity.INK);
+    parent.addView(synergy);
     JSONObject rules = economy().optJSONObject("expedition");
     if (rules == null) return;
     ArrayList<EconomyPreview.Member> members = new ArrayList<>();

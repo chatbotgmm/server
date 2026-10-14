@@ -162,6 +162,7 @@ final class MenuKit {
     }
     v.addView(image(path, 100, 100));
     TextView title = h.text(u.optString("name"), 15);
+    title.setTypeface(h.headline);
     title.setGravity(Gravity.CENTER);
     v.addView(title);
     TextView sub = note(label);

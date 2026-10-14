@@ -12,7 +12,7 @@ import java.util.concurrent.Executors;
 import org.json.JSONObject;
 
 /** 서버의 서명 세션을 사용. 게임 화면과 전투 코드를 HTML로 실행하지 않는다. */
-final class NativeApi {
+class NativeApi {
   interface Result {
     void done(JSONObject data, String error);
   }

@@ -38,6 +38,7 @@ final class NativeSettingsSheet {
     LinearLayout title = k.row();
     title.addView(k.image("/duel/icons/u-settings.png", 24, 24));
     TextView heading = h.text("설정", 20);
+    heading.setTypeface(h.headline);
     title.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
     Button close = action(h, "×", () -> box[0].dismiss());
     close.setTextSize(24);
