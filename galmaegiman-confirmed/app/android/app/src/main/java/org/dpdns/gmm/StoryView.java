@@ -1,8 +1,13 @@
 package org.dpdns.gmm;
 
 import android.graphics.*;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.StyleSpan;
 import android.view.*;
 import android.widget.*;
+import java.util.regex.*;
 import org.json.*;
 
 /** 장면과 좌우 인물을 유지하는 네이티브 이야기 화면. */
@@ -18,6 +23,14 @@ final class StoryView extends FrameLayout implements FullBleed {
   final ScrollView textScroll;
   final Button next, skip;
   final Scene canvas;
+  final SceneMotion motion;
+  LinearLayout titleCard;
+  boolean ended;
+  final Runnable fadeTitle =
+      () -> {
+        if (titleCard != null)
+          titleCard.animate().alpha(0).setDuration(650).withEndAction(this::dismissTitle).start();
+      };
   String fullText = "";
   int shown;
   boolean typing;
@@ -28,29 +41,87 @@ final class StoryView extends FrameLayout implements FullBleed {
           shown = Math.min(fullText.codePointCount(0, fullText.length()), shown + 1);
           say.setText(fullText.substring(0, fullText.offsetByCodePoints(0, shown)));
           typing = shown < fullText.codePointCount(0, fullText.length());
-          if (typing) postDelayed(this, 28);
+          if (typing) host.api.ui.postDelayed(this, 28);
+          else say.setText(highlight(fullText));
         }
       };
 
   void advance() {
+    if (ended) return;
+    if (titleCard != null) {
+      dismissTitle();
+      return;
+    }
     if (typing) {
       finishTyping();
       return;
     }
-    if (++index >= lines.length()) end.run();
+    if (++index >= lines.length()) finish();
     else update();
   }
 
   void finishTyping() {
-    removeCallbacks(typeTick);
+    host.api.ui.removeCallbacks(typeTick);
     typing = false;
-    say.setText(fullText);
+    shown = fullText.codePointCount(0, fullText.length());
+    say.setText(highlight(fullText));
+  }
+
+  static CharSequence highlight(String text) {
+    SpannableString result = new SpannableString(text);
+    Matcher quoted = Pattern.compile("「[^」]+」").matcher(text);
+    while (quoted.find()) {
+      result.setSpan(
+          new ForegroundColorSpan(0xffa46b13),
+          quoted.start(),
+          quoted.end(),
+          Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+      result.setSpan(
+          new StyleSpan(Typeface.BOLD),
+          quoted.start(),
+          quoted.end(),
+          Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    }
+    return result;
+  }
+
+  void finish() {
+    if (ended) return;
+    ended = true;
+    host.api.ui.removeCallbacks(typeTick);
+    dismissTitle();
+    end.run();
+  }
+
+  void dismissTitle() {
+    removeCallbacks(fadeTitle);
+    if (titleCard != null) {
+      titleCard.animate().cancel();
+      removeView(titleCard);
+      titleCard = null;
+    }
+  }
+
+  @Override
+  protected void onAttachedToWindow() {
+    super.onAttachedToWindow();
+    motion.start();
+    // 생성자에서는 아직 붙지 않은 View의 공용 실행 큐에 넣지 않는다.
+    // 실제 장면 부착 시 한 번만 예약해 화면 전환 직후에도 28ms 간격을 지킨다.
+    if (typing) {
+      host.api.ui.removeCallbacks(typeTick);
+      host.api.ui.postDelayed(typeTick, 28);
+    }
+    if (titleCard != null) postDelayed(fadeTitle, 1300);
   }
 
   @Override
   protected void onDetachedFromWindow() {
-    removeCallbacks(typeTick);
+    host.api.ui.removeCallbacks(typeTick);
     typing = false;
+    removeCallbacks(fadeTitle);
+    if (titleCard != null) titleCard.animate().cancel();
+    motion.close();
     super.onDetachedFromWindow();
   }
 
@@ -66,12 +137,13 @@ final class StoryView extends FrameLayout implements FullBleed {
     this.lines = lines;
     this.scene = scene;
     this.end = end;
+    motion = new SceneMotion(this, a);
     foe = fallback;
     JSONArray team = a.list(a.state, "team");
     if (team.length() > 0) leadImage = a.unit(team.optString(0)).optString("image");
     for (int i = 0; i < lines.length(); i++) {
       String id = lines.optJSONObject(i).optString("who");
-      if (id.startsWith("V")) {
+      if (id.matches("[VDTEIN]\\d+")) {
         foe = id;
         break;
       }
@@ -81,20 +153,22 @@ final class StoryView extends FrameLayout implements FullBleed {
     canvas = new Scene();
     addView(canvas);
     badge = a.text(caption, 16);
+    badge.setVisibility(caption.isEmpty() ? GONE : VISIBLE);
     badge.setBackground(a.material(MainActivity.CREAM));
     badge.setPadding(a.dp(16), a.dp(8), a.dp(16), a.dp(8));
     addView(badge);
     bubble = new LinearLayout(a);
     bubble.setGravity(Gravity.CENTER_VERTICAL);
     bubble.setBackground(new FrameDrawable(a, "dialog.webp"));
-    bubble.setPadding(a.dp(24), a.dp(16), a.dp(24), a.dp(16));
+    bubble.setPadding(a.dp(28), a.dp(16), a.dp(26), a.dp(16));
     addView(bubble);
     words = new LinearLayout(a);
     words.setOrientation(LinearLayout.VERTICAL);
     bubble.addView(words, new LinearLayout.LayoutParams(0, -1, 1));
     who = a.text("", 16);
     who.setTypeface(a.headline);
-    words.addView(who);
+    who.setPadding(a.dp(7), a.dp(2), a.dp(7), a.dp(3));
+    words.addView(who, new LinearLayout.LayoutParams(-2, -2));
     say = a.text("", 18);
     say.setTypeface(a.prose);
     say.setLineSpacing(a.dp(2), 1.15f);
@@ -114,11 +188,33 @@ final class StoryView extends FrameLayout implements FullBleed {
     next.setTextColor(Color.TRANSPARENT);
     next.setBackground(new ArtButton(a, "next"));
     controls.addView(next, new LinearLayout.LayoutParams(a.dp(130), a.dp(48)));
-    skip = a.button("건너뛰기", end);
+    skip = a.button("건너뛰기", this::finish);
     skip.setTextColor(Color.TRANSPARENT);
     skip.setBackground(new ArtButton(a, "skip"));
     addView(skip);
     update();
+    if (a.motionEnabled && !caption.isEmpty()) {
+      titleCard = new LinearLayout(a);
+      titleCard.setOrientation(LinearLayout.VERTICAL);
+      titleCard.setGravity(Gravity.CENTER);
+      titleCard.setBackgroundColor(0xd1050a0f);
+      String sub = "";
+      JSONObject chapter = a.list(a.state, "chapters").optJSONObject(a.chapter);
+      if (chapter != null) sub = chapter.optString("title");
+      TextView subtitle = a.text(sub, 16);
+      subtitle.setTypeface(a.prose);
+      subtitle.setTextColor(0xffffd572);
+      subtitle.setGravity(Gravity.CENTER);
+      titleCard.addView(subtitle);
+      TextView heading = a.text(caption, 28);
+      heading.setTextColor(Color.WHITE);
+      heading.setGravity(Gravity.CENTER);
+      heading.setMaxLines(3);
+      heading.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      titleCard.addView(heading);
+      titleCard.setOnClickListener(v -> dismissTitle());
+      addView(titleCard);
+    }
   }
 
   boolean portraitsReady() {
@@ -133,27 +229,43 @@ final class StoryView extends FrameLayout implements FullBleed {
     if (speaker.equals("ME")) {
       JSONArray t = host.list(host.state, "team");
       if (t.length() > 0) name = host.unit(t.optString(0)).optString("name");
+    } else if (speaker.equals("TIP")) {
+      name = "대결 팁";
     } else if (!speaker.equals("N")) {
       JSONObject names = host.state.optJSONObject("names");
       name = names == null ? speaker : names.optString(speaker, speaker);
       JSONObject portraits = host.state.optJSONObject("portraits");
+      JSONObject actor = actor(speaker);
       String image = portraits == null ? "" : portraits.optString(speaker);
+      if (image.isEmpty() && actor != null) image = actor.optString("image");
+      if (image.isEmpty() && speaker.equals("마을 회관 방송")) image = "/duel/sprites/HALL_front.webp";
       if (!image.isEmpty()) {
         foeImage = image;
         foe = speaker;
       }
     }
     who.setText(name);
+    int color =
+        speaker.equals("TIP")
+            ? 0xffdff0d6
+            : speaker.equals("ME") ? 0xffdcebf4 : speaker.startsWith("V") ? 0xfff8dfd7 : 0xffdff0e3;
+    who.setTextColor(speaker.equals("TIP") ? 0xff2c4a22 : MainActivity.INK);
+    who.setBackground(host.material(color));
     who.setVisibility(name.isEmpty() ? GONE : VISIBLE);
-    removeCallbacks(typeTick);
+    host.api.ui.removeCallbacks(typeTick);
     fullText = l.optString("say");
     shown = 0;
     typing = host.motionEnabled && !fullText.isEmpty();
-    say.setText(typing ? "" : fullText);
-    if (typing) postDelayed(typeTick, 28);
+    say.setText(typing ? "" : highlight(fullText));
+    if (typing && isAttachedToWindow()) host.api.ui.postDelayed(typeTick, 28);
     count.setText((index + 1) + " / " + lines.length());
     textScroll.scrollTo(0, 0);
     canvas.invalidate();
+  }
+
+  JSONObject actor(String id) {
+    JSONObject actors = host.state.optJSONObject("sceneActors");
+    return actors == null ? null : actors.optJSONObject(id);
   }
 
   @Override
@@ -162,7 +274,7 @@ final class StoryView extends FrameLayout implements FullBleed {
     RectF safe = host.safeBounds(fullW, fullH);
     int w = Math.round(safe.width()), h = Math.round(safe.height());
     float density = getResources().getDisplayMetrics().density;
-    say.setTextSize(Math.max(14, Math.min(24, h / density * .034f)));
+    say.setTextSize(Math.max(17, Math.min(24, h / density * .039f)));
     int actionH = Math.max(host.dp(48), Math.min(host.dp(64), (int) (h * .095f)));
     next.setLayoutParams(new LinearLayout.LayoutParams((int) (actionH * 2.7f), actionH));
     count.setTextSize(h / density >= 600 ? 17 : 13);
@@ -170,13 +282,22 @@ final class StoryView extends FrameLayout implements FullBleed {
     canvas.measure(
         MeasureSpec.makeMeasureSpec(fullW, MeasureSpec.EXACTLY),
         MeasureSpec.makeMeasureSpec(fullH, MeasureSpec.EXACTLY));
-    int bh = Math.min((int) (h * .43f), Math.max(host.dp(100), (int) (h * .27f)));
+    int bh =
+        Math.min(
+            (int) (h * .43f),
+            Math.max(
+                host.dp(h / density < 600 ? 136 : 160),
+                (int) (h * (h / density < 600 ? .34f : .28f))));
     bubble.measure(
         MeasureSpec.makeMeasureSpec((int) (w * .68f), MeasureSpec.EXACTLY),
         MeasureSpec.makeMeasureSpec(bh, MeasureSpec.EXACTLY));
     badge.measure(
         MeasureSpec.makeMeasureSpec((int) (w * .45f), MeasureSpec.AT_MOST),
         MeasureSpec.makeMeasureSpec(host.dp(48), MeasureSpec.AT_MOST));
+    if (titleCard != null)
+      titleCard.measure(
+          MeasureSpec.makeMeasureSpec(fullW, MeasureSpec.EXACTLY),
+          MeasureSpec.makeMeasureSpec(fullH, MeasureSpec.EXACTLY));
     skip.measure(
         MeasureSpec.makeMeasureSpec(host.dp(124), MeasureSpec.EXACTLY),
         MeasureSpec.makeMeasureSpec(host.dp(48), MeasureSpec.EXACTLY));
@@ -192,6 +313,7 @@ final class StoryView extends FrameLayout implements FullBleed {
         x = ox + (int) (w * .16f),
         bottom = oy + h - host.dp(12);
     canvas.layout(0, 0, getWidth(), getHeight());
+    if (titleCard != null) titleCard.layout(0, 0, getWidth(), getHeight());
     bubble.layout(x, bottom - bubble.getMeasuredHeight(), x + bubble.getMeasuredWidth(), bottom);
     badge.layout(
         ox + host.dp(20),
@@ -201,6 +323,34 @@ final class StoryView extends FrameLayout implements FullBleed {
     skip.layout(ox + w - host.dp(134), oy + host.dp(8), ox + w - host.dp(10), oy + host.dp(56));
   }
 
+  static ColorMatrix hue(float angle) {
+    float cos = (float) Math.cos(Math.toRadians(angle)),
+        sin = (float) Math.sin(Math.toRadians(angle));
+    return new ColorMatrix(
+        new float[] {
+          .213f + cos * .787f - sin * .213f,
+          .715f - cos * .715f - sin * .715f,
+          .072f - cos * .072f + sin * .928f,
+          0,
+          0,
+          .213f - cos * .213f + sin * .143f,
+          .715f + cos * .285f + sin * .140f,
+          .072f - cos * .072f - sin * .283f,
+          0,
+          0,
+          .213f - cos * .213f - sin * .787f,
+          .715f - cos * .715f + sin * .715f,
+          .072f + cos * .928f + sin * .072f,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0
+        });
+  }
+
   final class Scene extends View {
     final Paint p = new Paint(3);
 
@@ -208,7 +358,7 @@ final class StoryView extends FrameLayout implements FullBleed {
       super(host);
     }
 
-    void fit(Canvas c, String path, RectF area, boolean dim) {
+    void fit(Canvas c, String path, String id, RectF area, boolean dim, float pulse) {
       if (path.isEmpty()) return;
       Bitmap b = host.art.scene(path, this::invalidate);
       if (b == null) return;
@@ -216,19 +366,68 @@ final class StoryView extends FrameLayout implements FullBleed {
       float s = Math.min(area.width() / src.width(), area.height() / src.height()),
           w = src.width() * s,
           h = src.height() * s;
+      JSONObject actor = actor(id);
+      String tint = actor == null ? "" : actor.optString("tint");
+      ColorMatrix filter = new ColorMatrix();
+      boolean colored = false;
+      if (tint.equals("shadow") || tint.equals("mirror") || tint.equals("peanut")) {
+        boolean real = actor.optBoolean("realTintArt");
+        if (!real) {
+          filter.setSaturation(tint.equals("peanut") ? .4f : .3f);
+          float darkness = tint.equals("shadow") ? .25f : tint.equals("mirror") ? .35f : .3f;
+          filter.postConcat(
+              new ColorMatrix(
+                  new float[] {
+                    darkness, 0, 0, 0, 0, 0, darkness, 0, 0, 0, 0, 0, darkness, 0, 0, 0, 0, 0, 1, 0
+                  }));
+          colored = true;
+        }
+        if (tint.equals("mirror")) {
+          filter.postConcat(hue(200));
+          colored = true;
+        } else if (tint.equals("peanut") && !real) {
+          filter.postConcat(
+              new ColorMatrix(
+                  new float[] {
+                    .64f, .46f, .11f, 0, 0, .21f, .83f, .10f, 0, 0, .16f, .32f, .54f, 0, 0, 0, 0, 0,
+                    1, 0
+                  }));
+        }
+      }
+      c.save();
+      c.translate(0, -area.height() * .006f * pulse);
+      c.scale(1 + .006f * pulse, 1 - .004f * pulse, area.centerX(), area.bottom);
       p.setAlpha(255);
-      p.setColorFilter(
-          dim
-              ? new ColorMatrixColorFilter(
-                  new float[] {.8f, 0, 0, 0, 0, 0, .8f, 0, 0, 0, 0, 0, .8f, 0, 0, 0, 0, 0, 1, 0})
-              : null);
-      c.drawBitmap(
-          b,
-          src,
-          new RectF(area.centerX() - w / 2, area.bottom - h, area.centerX() + w / 2, area.bottom),
-          p);
+      if (dim) {
+        ColorMatrix muted = new ColorMatrix();
+        muted.setSaturation(.85f);
+        muted.postConcat(
+            new ColorMatrix(
+                new float[] {.8f, 0, 0, 0, 0, 0, .8f, 0, 0, 0, 0, 0, .8f, 0, 0, 0, 0, 0, 1, 0}));
+        filter.postConcat(muted);
+        colored = true;
+      }
+      RectF destination =
+          new RectF(area.centerX() - w / 2, area.bottom - h, area.centerX() + w / 2, area.bottom);
+      if (!tint.isEmpty()
+          && !tint.equals("null")
+          && !(tint.equals("shadow") && actor.optBoolean("realTintArt"))) {
+        p.setColorFilter(
+            new PorterDuffColorFilter(
+                tint.equals("mirror") ? 0xffb9a0ff : 0xffffd34d, PorterDuff.Mode.SRC_IN));
+        p.setMaskFilter(
+            new BlurMaskFilter(
+                host.dp(tint.equals("peanut") ? 10 : 6), BlurMaskFilter.Blur.NORMAL));
+        p.setAlpha(160);
+        c.drawBitmap(b, src, destination, p);
+        p.setMaskFilter(null);
+        p.setAlpha(255);
+      }
+      p.setColorFilter(colored ? new ColorMatrixColorFilter(filter) : null);
+      c.drawBitmap(b, src, destination, p);
       p.setAlpha(255);
       p.setColorFilter(null);
+      c.restore();
     }
 
     @Override
@@ -251,12 +450,25 @@ final class StoryView extends FrameLayout implements FullBleed {
       c.translate(safe.left, safe.top);
       w = safe.width();
       h = safe.height();
+      JSONArray team = host.list(host.state, "team");
+      String leadId = team.length() == 0 ? "" : host.unit(team.optString(0)).optString("id");
+      boolean narration = speaker.equals("N") || speaker.equals("TIP");
       fit(
           c,
           leadImage,
-          new RectF(w * .07f, h * .22f, w * .42f, h * .93f),
-          !speaker.equals("N") && !speaker.equals("ME"));
-      fit(c, foeImage, new RectF(w * .54f, h * .1f, w * .9f, h * .86f), speaker.equals("ME"));
+          leadId,
+          new RectF(w * .09f, h * .31f, w * .43f, h * .83f),
+          !narration && !speaker.equals("ME"),
+          motion.pulse(2800, 0));
+      JSONObject foeActor = actor(foe);
+      boolean boss = foeActor != null && foeActor.optBoolean("boss");
+      fit(
+          c,
+          foeImage,
+          foe,
+          new RectF(w * .50f, h * (boss ? .086f : .276f), w * .9f, h * .916f),
+          !narration && speaker.equals("ME"),
+          motion.pulse(3300, 0));
       c.restore();
     }
   }

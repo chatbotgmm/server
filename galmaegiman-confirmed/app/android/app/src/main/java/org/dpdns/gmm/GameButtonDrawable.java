@@ -9,8 +9,7 @@ final class GameButtonDrawable extends Drawable {
   final MainActivity host;
   final int color;
   final Paint p = new Paint(3);
-  boolean pressed, enabled = true;
-  int alpha = 255;
+  final GamePressState state = new GamePressState();
 
   GameButtonDrawable(MainActivity h, int c) {
     host = h;
@@ -24,14 +23,7 @@ final class GameButtonDrawable extends Drawable {
 
   @Override
   protected boolean onStateChange(int[] states) {
-    boolean down = false, active = false;
-    for (int state : states) {
-      if (state == android.R.attr.state_pressed) down = true;
-      if (state == android.R.attr.state_enabled) active = true;
-    }
-    boolean changed = down != pressed || active != enabled;
-    pressed = down;
-    enabled = active;
+    boolean changed = state.update(states);
     if (changed) invalidateSelf();
     return changed;
   }
@@ -40,10 +32,9 @@ final class GameButtonDrawable extends Drawable {
   public void draw(Canvas c) {
     RectF r = new RectF(getBounds());
     r.bottom -= host.dp(3);
-    if (pressed) r.offset(0, host.dp(2));
-    c.saveLayerAlpha(new RectF(getBounds()), enabled ? alpha : alpha * 2 / 5);
-    drawSurface(c, r, color, host.dp(16), host.dp(2), pressed ? host.dp(1) : host.dp(3), p);
-    c.restore();
+    int save = state.begin(c, getBounds(), host.getResources().getDisplayMetrics().density);
+    drawSurface(c, r, color, host.dp(16), host.dp(2), state.pressed ? host.dp(1) : host.dp(3), p);
+    state.finish(c, save);
   }
 
   static void drawSurface(
@@ -84,7 +75,7 @@ final class GameButtonDrawable extends Drawable {
 
   @Override
   public void setAlpha(int a) {
-    alpha = a;
+    state.alpha = a;
     invalidateSelf();
   }
 

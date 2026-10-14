@@ -89,10 +89,11 @@ final class BattlePlayback {
             return;
           }
           cursor.accept(e.optLong("id"));
+          playSound(e);
           showThrough(e, next, shownIndex, shown);
           if (effect.equals("none")) {
             view.scene.invalidate();
-            view.post(advance);
+            host.api.ui.post(advance);
             return;
           }
           animator = ValueAnimator.ofFloat(0, 1);
@@ -118,12 +119,39 @@ final class BattlePlayback {
                 public void onAnimationEnd(Animator a) {
                   if (cancelled || !playing) return;
                   if (effect.equals("faint")) down[side] = true;
-                  view.postDelayed(advance, 80);
+                  host.api.ui.postDelayed(advance, 80);
                 }
               });
           animator.start();
         };
     advance.run();
+  }
+
+  void playSound(JSONObject event) {
+    if (effect.equals("none")) return;
+    switch (event.optString("kind")) {
+      case "damage":
+        host.sound.effect(
+            event.optBoolean("crit")
+                ? "crit"
+                : event.optDouble("multiplier", 1) < 1
+                    ? "weak"
+                    : event.optInt("power") >= 120 ? "big" : "hit");
+        break;
+      case "heal":
+      case "revive":
+        host.sound.effect("heal");
+        break;
+      case "faint":
+        host.sound.effect("faint");
+        break;
+      case "augment":
+        host.sound.effect("aug");
+        break;
+      case "skill":
+        if (effect.equals("combo")) host.sound.effect("combo");
+        break;
+    }
   }
 
   String battleSession() {
@@ -132,16 +160,40 @@ final class BattlePlayback {
 
   void showThrough(JSONObject event, JSONObject next, int[] shownIndex, ArrayList<String> shown) {
     int end = event.optInt("logIndex", -1);
+    JSONArray events = host.list(next, "displayEvents");
+    // 같은 기록 행이 여러 타격/대상을 합산할 때 마지막 변화 전에는 합계를 앞당겨 쓰지 않는다.
+    for (int i = 0; i < events.length(); i++) {
+      JSONObject later = events.optJSONObject(i);
+      if (later != null
+          && later.optInt("logIndex", -1) == end
+          && later.optLong("id") > event.optLong("id")) {
+        end--;
+        break;
+      }
+    }
     if (end <= shownIndex[0]) return;
     if (next.has("displayLogStart")) {
       JSONArray lines = host.list(next, "log");
       int start = next.optInt("displayLogStart");
-      for (int i = Math.max(shownIndex[0] + 1, start); i <= end && i < start + lines.length(); i++)
-        shown.add(lines.optString(i - start));
+      for (int i = Math.max(shownIndex[0] + 1, start);
+          i <= end && i < start + lines.length();
+          i++) {
+        String line = lines.optString(i - start);
+        int hits = 0;
+        for (int j = 0; j < events.length(); j++) {
+          JSONObject step = events.optJSONObject(j);
+          if (step != null
+              && step.optInt("logIndex", -1) == i
+              && step.optString("kind").equals("damage")
+              && step.optInt("hit") > 0) hits++;
+        }
+        shown.add(hits > 1 ? "연속 공격 합계 · " + line : line);
+      }
     } else if (!event.optString("text").isEmpty()) shown.add(event.optString("text"));
     shownIndex[0] = end;
     while (shown.size() > 8) shown.remove(0);
-    view.log.setText(android.text.TextUtils.join("\n", shown));
+    view.log.setText(
+        NativeBattleLog.format(host, shown, host.list(next, "displayEvents"), shownIndex[0]));
     view.logBox.post(() -> view.logBox.fullScroll(View.FOCUS_DOWN));
   }
 
@@ -204,8 +256,13 @@ final class BattlePlayback {
           }
           side = targetRef.optInt("side");
           effect = damage ? "hit" : "heal";
-          color = damage ? 0xffffcf70 : 0xff7ce3a0;
+          color = damage ? (e.optBoolean("crit") ? 0xffff866c : 0xffffcf70) : 0xff7ce3a0;
           label = (damage ? "−" : "+") + amount;
+          if (damage && e.optBoolean("crit")) label += " 급소!";
+          else if (damage && e.has("multiplier")) {
+            if (e.optDouble("multiplier", 1) > 1) label += " ▲유리";
+            else if (e.optDouble("multiplier", 1) < 1) label += " ▼불리";
+          }
           if (e.optString("kind").equals("revive")) down[side] = false;
           return true;
         case "switch":
@@ -315,7 +372,12 @@ final class BattlePlayback {
     ArrayList<String> lines = new ArrayList<>();
     JSONArray log = host.list(view.battle, "log");
     for (int i = Math.max(0, log.length() - 8); i < log.length(); i++) lines.add(log.optString(i));
-    view.log.setText(android.text.TextUtils.join("\n", lines));
+    view.log.setText(
+        NativeBattleLog.format(
+            host,
+            lines,
+            host.list(view.battle, "displayEvents"),
+            view.battle.optInt("displayLogStart") + log.length() - 1));
     view.controls.setVisibility(View.VISIBLE);
     view.scene.invalidate();
   }
@@ -417,7 +479,7 @@ final class BattlePlayback {
   void cancel() {
     if (playing) host.busy = false;
     playing = false;
-    if (advance != null) view.removeCallbacks(advance);
+    if (advance != null) host.api.ui.removeCallbacks(advance);
     if (animator != null) animator.cancel();
     restoreFinal();
     pending = null;

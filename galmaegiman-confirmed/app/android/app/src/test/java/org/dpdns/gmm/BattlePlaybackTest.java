@@ -452,4 +452,27 @@ public class BattlePlaybackTest {
       assertEquals(View.VISIBLE, v.controls.getVisibility());
     }
   }
+
+  @Test
+  public void multiHitAggregateAppearsOnlyAfterTheLastLinkedHit() throws Exception {
+    try (ActivityController<MainActivity> controller = activity()) {
+      MainActivity host = controller.get();
+      BattleView view = battle(host, snapshot(0));
+      JSONObject first = MainActivity.obj("id", 1, "kind", "damage", "hit", 1, "logIndex", 1);
+      JSONObject last = MainActivity.obj("id", 2, "kind", "damage", "hit", 2, "logIndex", 1);
+      JSONObject next = snapshot(2);
+      next.put("displayEvents", new JSONArray().put(first).put(last));
+      next.put("log", new JSONArray().put("대결 시작!").put("같은 갈매미가 54 피해를 입었어요."));
+      java.util.ArrayList<String> lines = new java.util.ArrayList<>();
+      lines.add("대결 시작!");
+      int[] index = {0};
+      view.playback.showThrough(first, next, index, lines);
+      assertEquals("첫 타격에 합계 기록을 앞당겨 쓰지 않음", 0, index[0]);
+      assertFalse(view.log.getText().toString().contains("54"));
+      view.playback.showThrough(last, next, index, lines);
+      assertEquals(1, index[0]);
+      assertTrue(view.log.getText().toString().contains("연속 공격 합계"));
+      assertTrue(view.log.getText().toString().contains("54 피해"));
+    }
+  }
 }

@@ -14,6 +14,35 @@ final class LobbyView extends FrameLayout implements FullBleed {
   final Paint p = new Paint(3);
   final ArrayList<Button> buttons = new ArrayList<>();
   final String room;
+  final Button gull;
+  final TextView tip;
+  final Runnable hideTip = this::hideGullTip;
+  final boolean[] badges = new boolean[12];
+  long claimReadyMono = -1;
+  int liveEpoch, tipAt = -1;
+  String dailyDay = "";
+  boolean live, dailyLoading;
+  final Random random = new Random();
+  final Runnable refreshBadges =
+      new Runnable() {
+        @Override
+        public void run() {
+          if (!current()) return;
+          updateBadges();
+          String day = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Seoul")).toString();
+          if (!dailyDay.equals(day) && !dailyLoading) fetchDaily();
+          postDelayed(this, 1000);
+        }
+      };
+  static final Map<String, float[]> ROOM_GULL = new HashMap<>();
+
+  static {
+    ROOM_GULL.put("attic", new float[] {1633, 195, 2420, 758});
+    ROOM_GULL.put("cabin", new float[] {1348, 208, 2111, 719});
+    ROOM_GULL.put("cafe", new float[] {1609, 310, 2269, 765});
+    ROOM_GULL.put("greenhouse", new float[] {1343, 241, 2128, 781});
+  }
+
   final Map<String, Bitmap> visibleArt = new HashMap<>();
   static final String[] NAMES = {"탐험", "뽑기", "수비대", "조합", "상점"};
   static final String[] IDS = {"expedition", "draw", "collection", "craft", "shop"};
@@ -56,26 +85,36 @@ final class LobbyView extends FrameLayout implements FullBleed {
     for (String layer : new String[] {"base.jpg", "plat.webp", "char.webp"})
       image("bg/" + room + layer);
     setWillNotDraw(false);
+    gull = host.button("갈매미 조언", this::showGullTip);
+    gull.setTextColor(Color.TRANSPARENT);
+    gull.setBackground(null);
+    gull.setPadding(0, 0, 0, 0);
+    gull.setTag("lobby-gull");
+    addView(gull);
     for (int i = 0; i < 5; i++) {
       String id = IDS[i];
       add(NAMES[i], () -> host.load(id));
     }
     add("플레이", () -> host.load("modes"));
     add("출석·미션", () -> host.load("daily"));
-    add(
-        "내 정보",
-        () ->
-            new GameDialog(host)
-                .setTitle(host.me().optString("nickname", "수비조장"))
-                .setItems(
-                    new String[] {"계정 관리", "랭크 순위", "설정"},
-                    (d, which) -> host.load(new String[] {"account", "pvp", "settings"}[which]))
-                .setNegativeButton("닫기", null)
-                .show());
+    add("내 정보", () -> host.menus.extras.profile(buttons.get(7)));
     add("설정", () -> host.load("settings"));
     add("새우gang · 상점", () -> host.load("shop"));
     add("땅콩 · 상점", () -> host.load("shop"));
     add("뽑기권 · 상점", () -> host.load("shop"));
+    for (int i = 0; i < 5; i++) buttons.get(i).setTag("lobby-" + IDS[i]);
+    buttons.get(5).setTag("lobby-play");
+    buttons.get(6).setTag("lobby-daily");
+    buttons.get(7).setTag("lobby-profile");
+    buttons.get(8).setTag("lobby-settings");
+    tip = host.text("", host.getResources().getConfiguration().screenHeightDp < 600 ? 13 : 15);
+    tip.setTypeface(host.prose);
+    tip.setTextColor(MainActivity.INK);
+    tip.setPadding(host.dp(12), host.dp(8), host.dp(12), host.dp(8));
+    tip.setBackground(new GamePaperDrawable(host, 0xffb8823f));
+    tip.setVisibility(View.GONE);
+    tip.setTag("lobby-gull-tip");
+    addView(tip);
     if (host.state.optBoolean("activeBattle")) {
       Button resume =
           host.button(
@@ -134,10 +173,27 @@ final class LobbyView extends FrameLayout implements FullBleed {
   protected void onAttachedToWindow() {
     super.onAttachedToWindow();
     motion.start();
+    live = true;
+    liveEpoch = host.epoch;
+    refreshBadges.run();
+    host.api.call(
+        "draw",
+        null,
+        (r, e) -> {
+          if (!current() || e != null || r == null) return;
+          claimReadyMono =
+              android.os.SystemClock.elapsedRealtime() + Math.max(0, r.optLong("wait"));
+          updateBadges();
+        });
   }
 
   @Override
   protected void onDetachedFromWindow() {
+    live = false;
+    dailyLoading = false;
+    removeCallbacks(refreshBadges);
+    removeCallbacks(hideTip);
+    tip.setVisibility(View.GONE);
     motion.close();
     parallax.close();
     super.onDetachedFromWindow();
@@ -179,6 +235,19 @@ final class LobbyView extends FrameLayout implements FullBleed {
     RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
     positions(Math.round(safe.width()), Math.round(safe.height()));
     for (RectF box : boxes) box.offset(safe.left, safe.top);
+    RectF gullRect = gullBox();
+    gullRect.intersect(safe);
+    gull.measure(
+        MeasureSpec.makeMeasureSpec(
+            Math.max(host.dp(48), (int) gullRect.width()), MeasureSpec.EXACTLY),
+        MeasureSpec.makeMeasureSpec(
+            Math.max(host.dp(48), (int) gullRect.height()), MeasureSpec.EXACTLY));
+    if (tip.getVisibility() == View.VISIBLE)
+      tip.measure(
+          MeasureSpec.makeMeasureSpec(
+              Math.round(Math.min(host.dp(300), safe.width() * .42f)), MeasureSpec.EXACTLY),
+          MeasureSpec.makeMeasureSpec(
+              Math.max(host.dp(48), (int) safe.height() - host.dp(140)), MeasureSpec.AT_MOST));
     for (int i = 0; i < buttons.size(); i++) {
       RectF r = boxes[i];
       buttons
@@ -193,6 +262,20 @@ final class LobbyView extends FrameLayout implements FullBleed {
   @Override
   protected void onLayout(boolean changed, int l, int t, int r, int b) {
     super.onLayout(changed, l, t, r, b);
+    RectF safe = host.safeBounds(getWidth(), getHeight()), area = gullBox();
+    area.intersect(safe);
+    gull.layout((int) area.left, (int) area.top, (int) area.right, (int) area.bottom);
+    if (tip.getVisibility() == View.VISIBLE) {
+      int width = tip.getMeasuredWidth(), height = tip.getMeasuredHeight();
+      int x = (int) Math.max(safe.left + host.dp(8), area.left - width - host.dp(10));
+      x = Math.min(x, (int) safe.right - width - host.dp(8));
+      int y =
+          (int)
+              Math.max(
+                  safe.top + host.dp(56),
+                  Math.min(safe.bottom - height - host.dp(90), area.top + area.height() * .12f));
+      tip.layout(x, y, x + width, y + height);
+    }
     for (int i = 0; i < buttons.size(); i++) {
       RectF box = boxes[i];
       Button button = buttons.get(i);
@@ -333,7 +416,11 @@ final class LobbyView extends FrameLayout implements FullBleed {
       nick = nick.substring(0, nick.length() - 1);
     float cx = (profile.left + host.dp(43) + profile.right - host.dp(7)) / 2;
     label(c, nick, cx, profile.top + host.dp(24), host.dp(17), false);
-    label(c, "수비대 · 내 정보 ▾", cx, profile.bottom - host.dp(9), host.dp(11), false);
+    p.setTypeface(host.prose);
+    p.setTextSize(host.dp(11));
+    p.setTextAlign(Paint.Align.CENTER);
+    p.setColor(MainActivity.INK);
+    c.drawText(profileSummary(), cx, profile.bottom - host.dp(9), p);
     fit(c, host.art.asset("title_settings_button_base.webp"), boxes[8]);
     fit(c, host.art.asset("title_settings_gear.webp"), boxes[8]);
     String[] keys = {"snack", "peanut", "credits"}, icons = {"u-snack", "u-peanut", "u-ticket"};
@@ -380,5 +467,157 @@ final class LobbyView extends FrameLayout implements FullBleed {
       next = next.substring(0, next.length() - 1);
     label(c, "다음 이야기", tag.centerX(), tag.top + host.dp(13), host.dp(10), false);
     label(c, next, tag.centerX(), tag.bottom - host.dp(8), host.dp(13), false);
+    for (int i = 0; i < badges.length; i++) if (badges[i]) dot(c, boxes[i]);
+  }
+
+  String profileSummary() {
+    JSONArray team = host.list(host.state, "team");
+    if (team.length() == 0) return "아직 팀이 없어요 ▾";
+    int sum = 0, total = 0, cleared = 0;
+    for (int i = 0; i < team.length(); i++) sum += host.unit(team.optString(i)).optInt("level", 1);
+    JSONArray chapters = host.list(host.state, "chapters");
+    for (int i = 0; i < chapters.length(); i++) {
+      JSONArray stages = host.list(chapters.optJSONObject(i), "stages");
+      total += stages.length();
+      for (int j = 0; j < stages.length(); j++)
+        if (stages.optJSONObject(j).optBoolean("cleared")) cleared++;
+    }
+    return "수비대 Lv"
+        + Math.round(sum / (float) team.length())
+        + " · 실적 "
+        + cleared
+        + "/"
+        + total
+        + " ▾";
+  }
+
+  boolean current() {
+    return live
+        && host.epoch == liveEpoch
+        && host.screen.equals("home")
+        && !host.isFinishing()
+        && host.root.indexOfChild(this) >= 0;
+  }
+
+  void fetchDaily() {
+    dailyLoading = true;
+    String day = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Seoul")).toString();
+    host.api.call(
+        "daily",
+        null,
+        (r, e) -> {
+          if (!current()) return;
+          dailyLoading = false;
+          dailyDay = day; // 오류일 때도 초마다 서버 요청을 반복하지 않는다.
+          if (e != null || r == null) return;
+          JSONObject attend = r.optJSONObject("attend");
+          boolean ready = attend != null && !attend.optBoolean("today");
+          JSONArray missions = host.list(r, "missions");
+          for (int i = 0; i < missions.length(); i++) {
+            JSONObject mission = missions.optJSONObject(i);
+            ready |=
+                !mission.optBoolean("done") && mission.optInt("value") >= mission.optInt("goal");
+          }
+          badges[6] = ready;
+          buttons.get(6).setContentDescription(ready ? "출석·미션 · 받을 보상이 있어요" : "출석·미션");
+          invalidate();
+        });
+  }
+
+  void updateBadges() {
+    long now = System.currentTimeMillis();
+    long claimAt = parseTime(host.me().optString("claimReadyAt"));
+    badges[1] =
+        claimReadyMono >= 0
+            ? android.os.SystemClock.elapsedRealtime() >= claimReadyMono
+            : claimAt > 0 && now >= claimAt;
+    JSONObject trip = host.me().optJSONObject("trip");
+    long tripAt = trip == null ? 0 : parseTime(trip.optString("endsAt"));
+    badges[0] = tripAt > 0 && now >= tripAt;
+    boolean growth = false;
+    JSONArray team = host.list(host.state, "team");
+    for (int i = 0; i < team.length(); i++) {
+      JSONObject unit = host.unit(team.optString(i));
+      growth |= host.list(unit, "learn").length() > 0 || host.list(unit, "evolve").length() > 0;
+    }
+    badges[5] = growth;
+    buttons.get(0).setContentDescription(badges[0] ? "탐험 · 귀환 보상을 받을 수 있어요" : "탐험");
+    buttons.get(1).setContentDescription(badges[1] ? "뽑기 · 뽑기권을 받을 수 있어요" : "뽑기");
+    buttons.get(5).setContentDescription(growth ? "플레이 · 배울 기술 또는 승진이 있어요" : "플레이");
+    invalidate();
+  }
+
+  long parseTime(String value) {
+    try {
+      return java.time.Instant.parse(value).toEpochMilli();
+    } catch (Exception ignored) {
+      return 0;
+    }
+  }
+
+  void dot(Canvas c, RectF target) {
+    RectF safe = host.safeBounds(getWidth(), getHeight());
+    float radius = host.dp(7) * (1 + .2f * motion.pulse(1600, 0));
+    float x = Math.min(safe.right - radius - host.dp(2), target.right - host.dp(3)),
+        y = Math.max(safe.top + radius + host.dp(2), target.top + host.dp(3));
+    p.setStyle(Paint.Style.FILL);
+    p.setColor(0xffff5a5a);
+    c.drawCircle(x, y, radius, p);
+    p.setStyle(Paint.Style.STROKE);
+    p.setStrokeWidth(host.dp(2));
+    p.setColor(0xfffffaf0);
+    c.drawCircle(x, y, radius, p);
+    p.setStyle(Paint.Style.FILL);
+  }
+
+  RectF gullBox() {
+    float[] bounds = ROOM_GULL.get(room);
+    float scale = Math.max(getMeasuredWidth() / 2640f, getMeasuredHeight() / 1080f);
+    float x = (getMeasuredWidth() - 2640 * scale) / 2, y = (getMeasuredHeight() - 1080 * scale) / 2;
+    return new RectF(
+        x + bounds[0] * scale, y + bounds[1] * scale, x + bounds[2] * scale, y + bounds[3] * scale);
+  }
+
+  String[] gullTips() {
+    return new String[] {
+      "끼룩! 상대 속성에 강한 기술은 <b>1.5배</b>야. 기술 칸의 <b>▲유리</b>를 찾아봐!",
+      "속성마다 <b>강한 상대 2개, 약한 상대 2개</b>가 있어. 상대 속성을 먼저 보자, 끼룩.",
+      "체력은 전투가 끝나도 그대로야. <b>"
+          + host.state.optInt("storyHpFullMinutes", 60)
+          + "분</b>이면 가득 차고, 치료약으로 바로 채울 수도 있어!",
+      "같은 시너지 갈매미 <b>2마리</b>를 같이 데려가면 <b>합동기</b>가 생겨. 대결당 한 번뿐이니 아껴 써!",
+      "출석은 날마다 보상이 커져. 하루 빠지면 <b>1일째부터</b>니까 매일 들러 줘, 끼룩!",
+      "전투를 시작하면 <b>증강체 3개</b> 중 하나를 골라. 마음에 안 들면 칸마다 한 번씩 다시 뽑을 수 있어.",
+      "레벨이 오르면 <b>새 기술</b>을 배울 수 있어. 스토리 화면에서 갈매미를 눌러 봐!",
+      "진 대결도 경험치를 조금 줘. 깬 스테이지는 다시 도전해서 레벨을 올려도 돼, 끼룩."
+    };
+  }
+
+  void hideGullTip() {
+    tip.setVisibility(View.GONE);
+  }
+
+  void showGullTip() {
+    String[] tips = gullTips();
+    tipAt =
+        tipAt < 0
+            ? random.nextInt(tips.length)
+            : (tipAt + 1 + random.nextInt(tips.length - 1)) % tips.length;
+    tip.setText(android.text.Html.fromHtml(tips[tipAt], android.text.Html.FROM_HTML_MODE_LEGACY));
+    tip.setVisibility(View.VISIBLE);
+    tip.setContentDescription("갈매미 조언 " + tip.getText());
+    removeCallbacks(hideTip);
+    postDelayed(hideTip, 6000);
+    requestLayout();
+    invalidate();
+  }
+
+  @Override
+  public boolean dispatchTouchEvent(MotionEvent event) {
+    if (event.getActionMasked() == MotionEvent.ACTION_DOWN && tip.getVisibility() == View.VISIBLE) {
+      tip.setVisibility(View.GONE);
+      removeCallbacks(hideTip);
+    }
+    return super.dispatchTouchEvent(event);
   }
 }

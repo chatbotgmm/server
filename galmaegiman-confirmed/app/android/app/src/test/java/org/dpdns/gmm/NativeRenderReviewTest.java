@@ -14,11 +14,13 @@ import java.nio.file.*;
 import java.time.Duration;
 import java.util.function.BooleanSupplier;
 import org.json.*;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.*;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.*;
+import org.robolectric.shadows.ShadowChoreographer;
 
 /** 실제 앱 View와 원본 글꼴·이미지를 Android native Skia로 렌더한다. 웹 모형을 사용하지 않는다. */
 @RunWith(RobolectricTestRunner.class)
@@ -26,6 +28,12 @@ import org.robolectric.annotation.*;
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @LooperMode(LooperMode.Mode.PAUSED)
 public class NativeRenderReviewTest {
+  @Before
+  public void scheduledFramesUseThePausedLooperClock() {
+    ShadowChoreographer.setPaused(true);
+    ShadowChoreographer.setFrameDelay(Duration.ofMillis(16));
+  }
+
   void await(BooleanSupplier condition) throws Exception {
     long end = System.currentTimeMillis() + 30000;
     while (System.currentTimeMillis() < end) {
@@ -124,6 +132,7 @@ public class NativeRenderReviewTest {
   }
 
   void capture(MainActivity a, String name, int w, int h) throws Exception {
+    Files.createDirectories(Path.of(System.getProperty("gmm.nativeReviewOutput")));
     force(a.root);
     a.root.measure(
         View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
@@ -212,6 +221,7 @@ public class NativeRenderReviewTest {
         Robolectric.buildActivity(MainActivity.class).setup().visible();
     MainActivity a = c.get();
     a.motionEnabled = false;
+    NativeTutorialController.get(a).enabled = false;
     await(() -> !a.busy && a.state.has("me"));
     return c;
   }
@@ -232,7 +242,8 @@ public class NativeRenderReviewTest {
     MotionEvent up = MotionEvent.obtain(time, time, MotionEvent.ACTION_UP, 450, 210, 0);
     v.dispatchTouchEvent(up);
     up.recycle();
-    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(400));
+    for (int frame = 0; frame < 30; frame++)
+      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(16));
   }
 
   @Test
@@ -486,20 +497,35 @@ public class NativeRenderReviewTest {
       LobbyView lobby = (LobbyView) a.root.getChildAt(0);
       assertNotNull("로비 반복 모션", lobby.motion.clock);
       boolean[] ended = {false};
+      String firstLine =
+          "안녕 🐦 수비대. 오늘은 항구에서 첫 순찰을 시작해요. 친구들과 바다를 지키며 함께 성장해요. 체력이 부족하면 치료약으로 준비하고, 속성을 살펴 유리한"
+              + " 기술을 골라 보세요. 모든 준비가 끝나면 다음 이야기로 떠나요.";
       a.talk(
           new JSONArray()
-              .put(MainActivity.obj("who", "N", "say", "안녕 🐦 수비대"))
+              .put(MainActivity.obj("who", "N", "say", firstLine))
               .put(MainActivity.obj("who", "N", "say", "두 번째 이야기")),
           "이야기",
           () -> ended[0] = true);
       assertNull("로비 종료 시 모션 중지", lobby.motion.clock);
       StoryView story = (StoryView) a.root.getChildAt(0);
+      story.advance(); // 첫 터치는 장면 제목을 닫는다.
       assertTrue(story.typing);
       Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(60));
-      assertTrue(story.say.length() > 0 && story.say.length() < story.fullText.length());
+      assertTrue(
+          "타이핑 len="
+              + story.say.length()
+              + "/"
+              + story.fullText.length()
+              + " shown="
+              + story.shown
+              + " attached="
+              + story.isAttachedToWindow()
+              + " typing="
+              + story.typing,
+          story.say.length() > 0 && story.say.length() < story.fullText.length());
       story.next.performClick();
       assertFalse("첫 터치는 현재 줄 완성", story.typing);
-      assertEquals("안녕 🐦 수비대", story.say.getText().toString());
+      assertEquals(firstLine, story.say.getText().toString());
       assertEquals(0, story.index);
       story.next.performClick();
       assertEquals("다음 터치는 다음 대사", 1, story.index);
@@ -542,11 +568,11 @@ public class NativeRenderReviewTest {
     long sequence = view.playback.cursor.seen();
     // Skia 자원 준비 중 다음 이벤트로 넘어가지 않도록 현재 프레임만 고정한다.
     view.playback.animator.cancel();
-    view.removeCallbacks(view.playback.advance);
+    a.api.ui.removeCallbacks(view.playback.advance);
     capture(a, name, width, height);
     assertEquals("캡처 중 같은 효과 유지", effect, view.playback.effect);
     assertEquals("캡처 중 같은 이벤트 유지", sequence, view.playback.cursor.seen());
-    view.post(view.playback.advance);
+    a.api.ui.post(view.playback.advance);
   }
 
   @Test
@@ -730,7 +756,24 @@ public class NativeRenderReviewTest {
       await(() -> animationView.playback.playing);
       assertTrue(a.busy);
       assertEquals("재생이 끝날 때까지 서버 상태 교체 보류", revision, a.battle.optInt("revision"));
-      await(() -> animationView.playback.effect.equals("combo"));
+      try {
+        await(() -> animationView.playback.effect.equals("combo"));
+      } catch (AssertionError missing) {
+        JSONArray events = a.list(animationView.battle, "displayEvents");
+        StringBuilder trace = new StringBuilder();
+        for (int i = 0; i < events.length(); i++) {
+          JSONObject event = events.optJSONObject(i);
+          trace
+              .append(event.optString("kind"))
+              .append(":")
+              .append(event.optString("skillId"))
+              .append(" actor=")
+              .append(event.optJSONObject("actor"))
+              .append("; ");
+        }
+        throw new AssertionError(
+            "합동기 재생 확인: " + trace + " log=" + a.list(animationView.battle, "log"), missing);
+      }
       capturePlaybackFrame(a, animationView, "tablet-combo-animation", 1280, 720);
       await(
           () ->
@@ -793,6 +836,20 @@ public class NativeRenderReviewTest {
         assertTrue(card.getGlobalVisibleRect(visible));
         assertEquals("휴대폰 출전 카드 전체 표시", card.getHeight(), visible.height());
       }
+      boolean[] closed = {false};
+      JSONObject live = a.battle;
+      a.api.call(
+          "native/battle/turn",
+          MainActivity.obj(
+              "session",
+              live.optString("session"),
+              "revision",
+              live.optInt("revision"),
+              "leave",
+              true),
+          (response, error) -> closed[0] = true);
+      await(() -> closed[0]);
+      a.battle = null;
     }
   }
 }

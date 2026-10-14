@@ -1,6 +1,8 @@
 package org.dpdns.gmm;
 
 import android.content.*;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.view.*;
 import android.widget.*;
@@ -21,7 +23,7 @@ final class NativeExtras {
   }
 
   void daily() {
-    h.base("출석체크 · 오늘의 미션", "daily");
+    h.base("출석체크", "daily");
     LinearLayout[] cols = k.split(.52f);
     m.fetch(
         "daily",
@@ -30,63 +32,119 @@ final class NativeExtras {
           if (a != null) {
             LinearLayout panel = k.paper();
             cols[0].addView(panel);
-            m.intro(
-                panel,
-                "u-attend",
-                a.optInt("week") + "주째 · " + a.optInt("streak") + "일 연속",
-                "하루 빠지면 1일째부터 · 날마다 보상이 커져요.");
-            HorizontalScrollView week = new HorizontalScrollView(h);
-            LinearLayout line = k.row();
-            week.addView(line);
-            panel.addView(week);
+            TextView heading =
+                h.text(
+                    a.optInt("week")
+                        + "주째"
+                        + (a.optInt("streak") > 0 ? " · " + a.optInt("streak") + "일 연속" : ""),
+                    18);
+            panel.addView(heading);
+            TextView note = k.note("날마다·주마다 보상이 커져요 · 하루 빠지면 1일째부터");
+            note.setTextSize(12);
+            panel.addView(note);
             JSONArray rewards = h.list(a, "rewards");
             int current = a.optInt("dayInWeek", 1);
+            boolean today = a.optBoolean("today");
+            LinearLayout week = k.row();
+            week.setGravity(Gravity.TOP);
             for (int i = 0; i < rewards.length(); i++) {
               int day = i + 1;
-              boolean got = day < current || day == current && a.optBoolean("today");
-              LinearLayout card = k.paper();
-              card.addView(k.note(day + "일"));
+              boolean got = day < current || day == current && today;
+              boolean active = day == current;
+              LinearLayout card = k.column();
+              card.setGravity(Gravity.CENTER_HORIZONTAL);
+              card.setPadding(h.dp(2), h.dp(5), h.dp(2), h.dp(5));
+              card.setBackground(
+                  new GameButtonDrawable(
+                      h, active ? GameButtonDrawable.PRIMARY : GameButtonDrawable.PAPER));
+              if (day > current) card.setAlpha(.62f);
+              TextView dayLabel = k.note(day + "일");
+              dayLabel.setTextSize(12);
+              card.addView(dayLabel);
               card.addView(
-                  k.image("/duel/icons/" + (day == 7 ? "u-gift" : "u-ticket") + ".png", 32, 32));
-              card.addView(h.text(rewards.optInt(i) + "장", 19));
-              card.addView(k.note(got ? "✓ 받음" : day == current ? "오늘" : "잠김"));
-              if (day == current) card.setBackground(h.material(0xfffbe8d3));
-              LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(h.dp(78), -2);
-              lp.setMargins(h.dp(3), 0, h.dp(3), 0);
-              line.addView(card, lp);
+                  k.image("/duel/icons/" + (day == 7 ? "u-gift" : "u-ticket") + ".png", 25, 25));
+              TextView reward = h.text(rewards.optInt(i) + "", 17);
+              card.addView(reward);
+              TextView status = k.note(got ? active ? "✓ 받음" : "받음" : active ? "오늘" : "잠김");
+              status.setTextSize(11);
+              status.setTextColor(got ? 0xff397953 : active ? 0xff9b5521 : 0xff8b7860);
+              card.addView(status);
+              card.setContentDescription(
+                  day + "일 " + status.getText() + " · 뽑기권 " + rewards.optInt(i) + "장");
+              LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
+              lp.setMargins(h.dp(2), h.dp(5), h.dp(2), h.dp(5));
+              week.addView(card, lp);
             }
+            panel.addView(week);
+            String next =
+                !today
+                    ? "뽑기권 " + a.optInt("next") + "장"
+                    : current < rewards.length()
+                        ? "뽑기권 " + rewards.optInt(current) + "장"
+                        : "다음 주 1일째 · 더 크게";
+            LinearLayout preview = k.row();
+            preview.addView(k.image("/duel/icons/u-ticket.png", 28, 28));
+            LinearLayout words = k.column();
+            TextView caption = k.note(today ? "내일 받을 보상" : "오늘 받을 보상");
+            caption.setTextSize(12);
+            words.addView(caption);
+            words.addView(h.text(next, 17));
+            preview.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
+            panel.addView(preview);
             Button attend =
                 k.action(
-                    "u-ticket",
-                    a.optBoolean("today") ? "✓ 오늘 출석 완료" : "출석하고 뽑기권 " + a.optInt("next") + "장 받기",
+                    "u-attend",
+                    today ? "✓ 출석 완료 · 내일 또 와요" : "출석 · " + a.optInt("next") + "장 받기",
                     () -> h.mutate("attend", MainActivity.obj(), "daily"));
-            attend.setEnabled(!a.optBoolean("today"));
-            panel.addView(attend);
+            NativeTutorialController.anchor(attend, "attend");
+            attend.setEnabled(!today);
+            panel.addView(attend, new LinearLayout.LayoutParams(-1, h.dp(48)));
           }
-          cols[1].addView(k.section("오늘의 미션"));
-          cols[1].addView(k.notice("달성하면 보상이 바로 들어와요 · 한국 시간 밤 12시 초기화"));
           JSONArray missions = h.list(r, "missions");
+          int done = 0;
+          for (int i = 0; i < missions.length(); i++)
+            if (missions.optJSONObject(i).optBoolean("done")) done++;
+          LinearLayout board = k.paper();
+          cols[1].addView(board);
+          board.addView(h.text("오늘의 미션 · " + done + "/" + missions.length(), 18));
+          TextView note = k.note("달성하면 자동 지급 · 한국 시간 밤 12시 초기화");
+          note.setTextSize(12);
+          board.addView(note);
           for (int i = 0; i < missions.length(); i++) {
             JSONObject mission = missions.optJSONObject(i);
-            LinearLayout card = k.paper();
-            card.addView(h.text(mission.optString("label"), 18));
-            k.progress(
-                card,
-                mission.optInt("value") + " / " + mission.optInt("goal"),
-                mission.optInt("value"),
-                mission.optInt("goal"),
-                0xffe9a630);
-            card.addView(
+            LinearLayout card = k.row();
+            card.setPadding(h.dp(5), h.dp(6), h.dp(5), h.dp(6));
+            card.setBackground(new GamePaperDrawable(h));
+            LinearLayout progress = k.column();
+            TextView label = h.text(mission.optString("label"), 15);
+            progress.addView(label);
+            ProgressBar bar = new ProgressBar(h, null, android.R.attr.progressBarStyleHorizontal);
+            int goal = Math.max(1, mission.optInt("goal"));
+            bar.setMax(goal);
+            bar.setProgress(Math.min(goal, Math.max(0, mission.optInt("value"))));
+            bar.setProgressTintList(
+                android.content.res.ColorStateList.valueOf(
+                    mission.optBoolean("done") ? 0xff51b985 : 0xffe9a630));
+            progress.addView(bar, new LinearLayout.LayoutParams(-1, h.dp(7)));
+            card.addView(progress, new LinearLayout.LayoutParams(0, -2, 1));
+            TextView value = k.note(Math.min(goal, mission.optInt("value")) + "/" + goal);
+            value.setGravity(Gravity.CENTER);
+            card.addView(value, new LinearLayout.LayoutParams(h.dp(54), -2));
+            card.addView(k.image("/duel/icons/u-ticket.png", 22, 22));
+            TextView reward = h.text(mission.optInt("tickets") + "", 15);
+            card.addView(reward, new LinearLayout.LayoutParams(h.dp(29), -2));
+            TextView status =
                 k.note(
-                    "뽑기권 "
-                        + mission.optInt("tickets")
-                        + "장 · "
-                        + (mission.optBoolean("done")
-                            ? "✓ 받음"
-                            : mission.optInt("value") >= mission.optInt("goal")
-                                ? "지급 중"
-                                : "진행 중")));
-            cols[1].addView(card);
+                    mission.optBoolean("done")
+                        ? "✓ 받음"
+                        : mission.optInt("value") >= goal ? "지급 중" : "진행 중");
+            status.setTextSize(12);
+            status.setGravity(Gravity.CENTER);
+            if (mission.optBoolean("done")) status.setTextColor(0xff397953);
+            card.addView(status, new LinearLayout.LayoutParams(h.dp(54), -2));
+            LinearLayout.LayoutParams row = new LinearLayout.LayoutParams(-1, -2);
+            row.topMargin = h.dp(5);
+            board.addView(card, row);
           }
         });
   }
@@ -103,7 +161,15 @@ final class NativeExtras {
                 card,
                 "mode-rank",
                 me.optString("tier") + " · " + me.optInt("point") + "점",
-                me.optInt("wins") + "승 " + me.optInt("losses") + "패 · 양쪽 Lv" + r.optInt("level"));
+                (me.isNull("rank") || me.optInt("rank") <= 0
+                        ? "아직 랭크게임을 안 했어요"
+                        : "전체 " + me.optInt("rank") + "위")
+                    + " · "
+                    + me.optInt("wins")
+                    + "승 "
+                    + me.optInt("losses")
+                    + "패 · 양쪽 Lv"
+                    + r.optInt("level"));
             h.body.addView(card);
           }
           LinearLayout links = k.row();
@@ -132,7 +198,7 @@ final class NativeExtras {
             h.cell(header, h.text(label, 17));
           table.addView(header);
           JSONArray top = h.list(r, "top");
-          if (top.length() == 0) table.addView(k.note("아직 순위가 없어요."));
+          if (top.length() == 0) table.addView(k.note("아직 랭크게임을 한 사람이 없어요. 첫 번째가 되어 보세요!"));
           for (int i = 0; i < top.length(); i++) {
             JSONObject u = top.optJSONObject(i);
             LinearLayout row = k.row();
@@ -271,42 +337,140 @@ final class NativeExtras {
     NativeSettingsSheet.show(h);
   }
 
+  void profile(View anchor) {
+    LinearLayout panel = k.paper();
+    panel.setPadding(h.dp(12), h.dp(10), h.dp(12), h.dp(10));
+    panel.setBackground(new GamePanelDrawable(h));
+    panel.addView(h.text(h.me().optString("nickname", "수비조장"), 20));
+    TextView rank = k.note("랭크를 불러오고 있어요…");
+    panel.addView(rank);
+    int width =
+        Math.min(
+            h.dp(292),
+            (int) h.safeBounds(h.root.getWidth(), h.root.getHeight()).width() - h.dp(16));
+    PopupWindow popup = new PopupWindow(panel, width, -2, true);
+    popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+    popup.setOutsideTouchable(true);
+    popup.setElevation(h.dp(8));
+    for (String[] entry :
+        new String[][] {
+          {"m-account", "계정 관리", "account"},
+          {"mode-rank", "랭크 순위", "pvp"},
+          {"u-settings", "설정", "settings"}
+        }) {
+      Button button =
+          k.action(
+              entry[0],
+              entry[1],
+              () -> {
+                popup.dismiss();
+                if (entry[2].equals("settings")) settings();
+                else h.load(entry[2]);
+              });
+      button.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
+      LinearLayout.LayoutParams row = new LinearLayout.LayoutParams(-1, h.dp(48));
+      row.topMargin = h.dp(5);
+      panel.addView(button, row);
+    }
+    popup.showAsDropDown(anchor, 0, h.dp(8));
+    h.api.call(
+        "pvp",
+        null,
+        (r, e) -> {
+          if (!popup.isShowing()) return;
+          JSONObject me = r == null ? null : r.optJSONObject("me");
+          if (e != null || me == null) rank.setText("랭크 정보를 불러오지 못했어요.");
+          else
+            rank.setText(
+                me.optString("tier")
+                    + " · "
+                    + me.optInt("point")
+                    + "점 · "
+                    + me.optInt("wins")
+                    + "승 "
+                    + me.optInt("losses")
+                    + "패");
+        });
+  }
+
   void account() {
     h.base("계정 관리", "account");
-    LinearLayout info = k.paper();
-    info.addView(h.text(h.me().optString("nickname", "수비조장"), 22));
-    info.addView(
+    LinearLayout[] cols = k.split(.52f);
+    LinearLayout profile = k.paper();
+    profile.addView(h.text(h.me().optString("nickname", "수비조장"), 22));
+    profile.addView(
         k.note(
             "도감 "
                 + h.me().optInt("dex")
                 + " / "
                 + h.me().optInt("dexTotal")
-                + " · 앱 버전 "
-                + BuildConfig.VERSION_NAME));
-    h.body.addView(info);
+                + " · 뽑기권 "
+                + h.me().optInt("credits")
+                + " · 새우gang "
+                + h.me().optInt("snack")));
+    TextView version = k.note("Android " + BuildConfig.VERSION_NAME);
+    version.setTextSize(12);
+    profile.addView(version);
+    cols[0].addView(profile);
     m.fetch(
         "me",
         r -> {
           if (r.optBoolean("kakaoLogin")) {
             LinearLayout link = k.paper();
+            TextView title = h.text("카카오 계정", 18);
+            link.addView(title);
+            boolean linked = r.optBoolean("kakao");
+            boolean linking =
+                h.getSharedPreferences("native_account", 0).getBoolean("linking", false);
             link.addView(
                 k.note(
-                    r.optBoolean("kakao") ? "카카오 계정 연결됨" : "카카오 계정을 연결하면 다음부터 코드 없이 로그인할 수 있어요."));
-            link.addView(
+                    linking
+                        ? "연결 확인 중 · 현재 계정과 진행은 그대로 유지돼요."
+                        : linked
+                            ? "✓ 카카오 계정 연결됨"
+                            : "기존 갈매미와 스토리를 유지한 채 연결해요. 다음부터 코드 없이 로그인할 수 있어요."));
+            LinearLayout actions = k.row();
+            Button connect =
                 k.action(
                     "m-account",
-                    r.optBoolean("kakao") ? "연결 해제" : "카카오 연결",
+                    linking ? "연결 다시 열기" : linked ? "연결 해제" : "카카오 연결",
                     () -> {
-                      if (r.optBoolean("kakao"))
+                      if (linked)
                         h.confirm(
-                            "카카오 연결을 끊을까요? 다음부터 카톡 코드로 로그인해요.",
+                            "카카오 연결을 끊을까요? 다음부터 카톡 코드로 로그인해요. 진행은 유지돼요.",
                             () -> h.mutate("kakao/unlink", MainActivity.obj(), "account"));
-                      else h.kakaoLink();
-                    }));
-            h.body.addView(link);
+                      else h.confirm("지금 계정에 카카오를 연결해요. 기존 갈매미·재화·스토리 진행이 유지됩니다.", h::kakaoLink);
+                    });
+            h.cell(actions, connect);
+            if (linking)
+              h.cell(
+                  actions,
+                  k.action(
+                      null,
+                      "연결 취소",
+                      () -> {
+                        h.getSharedPreferences("native_account", 0)
+                            .edit()
+                            .remove("verifier")
+                            .remove("linking")
+                            .remove("linkCode")
+                            .apply();
+                        h.load("account");
+                      }));
+            link.addView(actions);
+            cols[0].addView(link);
           }
-          h.body.addView(k.action(null, "로그아웃", () -> h.confirm("이 기기에서 로그아웃할까요?", this::logout)));
-          h.body.addView(
+          LinearLayout session = k.paper();
+          session.addView(k.note("이 기기에서 로그아웃해요. 서버에 저장된 진행은 유지돼요."));
+          session.addView(k.action(null, "로그아웃", () -> h.confirm("이 기기에서 로그아웃할까요?", this::logout)));
+          cols[0].addView(session);
+          LinearLayout links = k.row();
+          h.cell(links, k.action("u-settings", "설정", this::settings));
+          h.cell(links, k.action("mode-rank", "랭크 순위", () -> h.load("pvp")));
+          cols[0].addView(links);
+          LinearLayout privacy = k.paper();
+          privacy.addView(k.note("어떤 정보를 왜 저장하는지 확인할 수 있어요."));
+          privacy.addView(
               k.action(
                   null,
                   "개인정보처리방침",
@@ -315,10 +479,15 @@ final class NativeExtras {
                           new Intent(
                               Intent.ACTION_VIEW,
                               Uri.parse(BuildConfig.SERVER_URL + "/privacy")))));
+          cols[1].addView(privacy);
           LinearLayout danger = k.paper();
-          danger.addView(h.text("계정 삭제(탈퇴)", 20));
-          danger.addView(
-              k.note("갈매미·도감·재화·아이템·탐험·스토리 진행·댓글이 모두 지워지고 되돌릴 수 없어요. 서버 백업에는 최대 7일 남아요."));
+          danger.addView(h.text("계정 삭제(탈퇴)", 19));
+          TextView warning =
+              k.note(
+                  "갈매미·도감·재화·아이템·탐험·스토리 진행·댓글이 모두 지워지고 되돌릴 수 없어요.\n"
+                      + "카톡 채널에 다시 말을 걸면 새 계정으로 시작해요. 서버 백업에는 최대 7일 동안 남아 있다가 사라져요.");
+          warning.setTextColor(0xff9b4034);
+          danger.addView(warning);
           Button remove =
               k.action(
                   null,
@@ -330,8 +499,8 @@ final class NativeExtras {
                               h.request(
                                   "account/delete",
                                   MainActivity.obj("confirm", "탈퇴"),
-                                  (done, error) -> logout())));
-          remove.setBackground(h.material(0xffe8b4aa));
+                                  (done, error) -> finishLogout())));
+          remove.setBackground(new GameButtonDrawable(h, 0xffe8b4aa));
           remove.setEnabled(false);
           k.search(
               danger,
@@ -339,80 +508,43 @@ final class NativeExtras {
               "",
               value -> remove.setEnabled(value.trim().equals("탈퇴")));
           danger.addView(remove);
-          h.body.addView(danger);
+          cols[1].addView(danger);
         });
   }
 
   void logout() {
+    if (h.busy) return;
+    h.epoch++;
+    NativeTutorialController.get(h).close();
+    h.busy = true;
+    h.api.call(
+        "logout",
+        MainActivity.obj(),
+        (r, error) -> {
+          h.busy = false;
+          finishLogout();
+        });
+  }
+
+  void finishLogout() {
+    h.epoch++;
+    h.busy = false;
+    NativeTutorialController.get(h).close();
     h.api.token("");
     h.art.clear();
     h.state = new JSONObject();
     m.reset();
+    h.getSharedPreferences("native_account", 0)
+        .edit()
+        .remove("verifier")
+        .remove("linking")
+        .remove("linkCode")
+        .apply();
     NativeAlerts.schedule(h, new JSONObject());
-    h.titleScreen();
+    if (!h.isFinishing() && !h.isDestroyed()) h.titleScreen();
   }
 
   void tutorial() {
-    h.base("첫 출근 안내", "tutorial");
-    String[] names = {"수비대에 오신 걸 환영해요", "첫 뽑기", "수비대 편성", "이야기 출발", "성장과 승진"},
-        notes =
-            {
-              "항구를 함께 지킬 갈매미를 모으고 이야기를 따라 모험해요.",
-              "뽑기에서 갈매미를 모아요. 중급·고급도 흔함·안흔함이 나올 수 있어요.",
-              "함께할 1~3마리를 고르세요. 전투 편성은 단상에서 출전 순서를 확인해요.",
-              "챕터를 고르고 열린 전투를 시작해요. 대결 뒤에도 스토리 체력은 유지돼요.",
-              "경험치는 스토리 팀과 기술 화면에서 볼 수 있어요. 레벨업하면 체력이 회복돼요. 20·35·50레벨과 보스 완료로 승진해요."
-            },
-        icons = {"u-profile", "u-draw", "m-units", "u-story", "learn"};
-    guide = Math.max(0, Math.min(4, guide));
-    LinearLayout card = k.paper();
-    m.intro(card, icons[guide], (guide + 1) + " / 5 · " + names[guide], notes[guide]);
-    h.body.addView(card);
-    LinearLayout steps = k.row();
-    if (guide > 0)
-      h.cell(
-          steps,
-          k.action(
-              null,
-              "‹ 이전",
-              () -> {
-                guide--;
-                tutorial();
-              }));
-    if (guide < 4)
-      h.cell(
-          steps,
-          k.action(
-              null,
-              "다음 ›",
-              () -> {
-                guide++;
-                tutorial();
-              }));
-    h.body.addView(steps);
-    h.body.addView(
-        k.action(
-            icons[guide],
-            guide == 1 ? "뽑기로 가기" : guide == 2 ? "편성하러 가기" : guide == 3 ? "챕터 선택하기" : "로비로",
-            () -> {
-              String target =
-                  guide == 1 ? "draw" : guide == 2 ? "team" : guide == 3 ? "story" : "home";
-              if (guide == 2) h.selectionMode = "story";
-              JSONObject progress = h.state.optJSONObject("tutorial");
-              if (progress != null && progress.optInt("step") < 9)
-                h.request(
-                    "tutorial",
-                    MainActivity.obj("step", Math.min(5, guide + 2)),
-                    (r, e) -> h.load(target));
-              else h.load(target);
-            }));
-    JSONObject progress = h.state.optJSONObject("tutorial");
-    if (progress != null && progress.optInt("step") < 9)
-      h.body.addView(
-          k.action(
-              null,
-              "안내 마치기 · 첫 갈매미 받기",
-              () -> h.mutate("tutorial", MainActivity.obj("step", 9), "home")));
-    else h.body.addView(k.action(null, "안내 닫기", () -> h.load("home")));
+    NativeTutorialController.get(h).startReplay();
   }
 }

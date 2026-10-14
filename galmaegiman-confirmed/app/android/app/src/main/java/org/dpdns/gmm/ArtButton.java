@@ -8,6 +8,7 @@ final class ArtButton extends Drawable {
   final MainActivity host;
   final String kind;
   final Paint p = new Paint(3);
+  final GamePressState state = new GamePressState();
 
   ArtButton(MainActivity h, String k) {
     host = h;
@@ -16,6 +17,7 @@ final class ArtButton extends Drawable {
 
   @Override
   public void draw(Canvas c) {
+    int save = state.begin(c, getBounds(), host.getResources().getDisplayMetrics().density);
     RectF r = new RectF(getBounds());
     Bitmap base = host.art.asset("b3_button_" + kind + ".webp"),
         label = host.art.asset("b3_label_" + kind + ".webp");
@@ -27,16 +29,31 @@ final class ArtButton extends Drawable {
           y = r.centerY();
       c.drawBitmap(label, null, new RectF(x - w / 2, y - h / 2, x + w / 2, y + h / 2), p);
     }
+    state.finish(c, save);
+  }
+
+  @Override
+  public boolean isStateful() {
+    return true;
+  }
+
+  @Override
+  protected boolean onStateChange(int[] states) {
+    boolean changed = state.update(states);
+    if (changed) invalidateSelf();
+    return changed;
   }
 
   @Override
   public void setAlpha(int a) {
-    p.setAlpha(a);
+    state.alpha = a;
+    invalidateSelf();
   }
 
   @Override
   public void setColorFilter(ColorFilter f) {
     p.setColorFilter(f);
+    invalidateSelf();
   }
 
   @Override

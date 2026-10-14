@@ -45,14 +45,14 @@ final class MenuKit {
   TextView section(String s) {
     TextView v = notice(s);
     v.setTypeface(h.font);
-    v.setTextSize(20);
+    v.setTextSize(h.uiText(20));
     v.setTextColor(MainActivity.INK);
     return v;
   }
 
   LinearLayout paper() {
     LinearLayout v = column();
-    v.setPadding(h.dp(10), h.dp(8), h.dp(10), h.dp(8));
+    v.setPadding(h.dp(10), h.dp(h.compact() ? 6 : 8), h.dp(10), h.dp(h.compact() ? 6 : 8));
     v.setBackground(new GamePaperDrawable(h));
     v.setElevation(h.dp(1));
     return v;
@@ -68,7 +68,7 @@ final class MenuKit {
 
   Button action(String icon, String name, Runnable click) {
     Button b = h.button(name, click);
-    b.setTextSize(16);
+    b.setTextSize(h.uiText(16));
     b.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PAPER));
     if (icon != null) {
       String path = "/duel/icons/" + icon + ".png";
@@ -129,10 +129,10 @@ final class MenuKit {
       int index = i;
       Button b = action(null, names[i], () -> select.accept(index));
       if (i == active) b.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
-      b.setTextSize(15);
+      b.setTextSize(h.uiText(15));
       LinearLayout.LayoutParams slot =
           new LinearLayout.LayoutParams(h.dp(names.length > 3 ? 82 : 124), h.dp(48));
-      slot.setMargins(h.dp(4), h.dp(4), h.dp(4), h.dp(4));
+      slot.setMargins(h.dp(4), h.dp(2), h.dp(4), h.dp(2));
       b.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(7));
       line.addView(b, slot);
     }
@@ -357,16 +357,30 @@ final class MenuKit {
     final MainActivity host;
     final String path;
     final Paint p = new Paint(3);
+    final GamePressState state = new GamePressState();
 
     Picture(MainActivity h, String path) {
       host = h;
       this.path = path;
     }
 
+    @Override
+    public boolean isStateful() {
+      return true;
+    }
+
+    @Override
+    protected boolean onStateChange(int[] states) {
+      boolean changed = state.update(states);
+      if (changed) invalidateSelf();
+      return changed;
+    }
+
     public void draw(Canvas c) {
       Bitmap b = host.art.get(path, this::invalidateSelf);
       if (b == null) return;
       Rect r = getBounds();
+      int saved = state.begin(c, r, host.getResources().getDisplayMetrics().density);
       float scale = Math.min(r.width() / (float) b.getWidth(), r.height() / (float) b.getHeight());
       float w = b.getWidth() * scale, h = b.getHeight() * scale;
       c.drawBitmap(
@@ -375,10 +389,12 @@ final class MenuKit {
           new RectF(
               r.centerX() - w / 2, r.centerY() - h / 2, r.centerX() + w / 2, r.centerY() + h / 2),
           p);
+      state.finish(c, saved);
     }
 
     public void setAlpha(int alpha) {
-      p.setAlpha(alpha);
+      state.alpha = alpha;
+      invalidateSelf();
     }
 
     public void setColorFilter(ColorFilter filter) {

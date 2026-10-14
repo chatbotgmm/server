@@ -6,7 +6,7 @@ import android.os.Build;
 import android.view.*;
 import android.widget.*;
 
-/** 웹 설정의 종이 모달·3줄 소리·계정/쿠폰/튜토리얼/탈퇴. 새 알림은 마지막 줄에 유지한다. */
+/** 웹 설정의 종이 모달·3줄 소리·계정/쿠폰/튜토리얼/탈퇴. 계정과 알림은 위험 행동보다 먼저 배치한다. */
 final class NativeSettingsSheet {
   static Button action(MainActivity h, String label, Runnable run) {
     Button b = new MenuKit(h).action(null, label, run);
@@ -212,7 +212,9 @@ final class NativeSettingsSheet {
                   new String[] {android.Manifest.permission.POST_NOTIFICATIONS}, 11);
             NativeAlerts.schedule(h, on ? h.me() : new org.json.JSONObject());
           });
-      addRow(h, right, alerts);
+      LinearLayout.LayoutParams alertsSlot = new LinearLayout.LayoutParams(-1, -2);
+      alertsSlot.bottomMargin = h.dp(6);
+      right.addView(alerts, 1, alertsSlot);
     } else right.addView(k.note("로그인하면 계정·쿠폰·튜토리얼을 이용할 수 있어요."));
     box[0] = new GameDialog(h).setView(content).show();
     box[0].getWindow().setBackgroundDrawable(new GameSettingsDrawable(h));

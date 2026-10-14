@@ -3,18 +3,78 @@ package org.dpdns.gmm;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.media.*;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
+import java.io.File;
+import java.nio.file.Files;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+/** 웹 원본 음악·효과음을 로컬에서 재생한다. 볼륨 값은 음소거와 별도로 보관한다. */
 final class NativeSound {
   private final Context context;
   private final SharedPreferences prefs;
+  private final AudioManager manager;
+  private final SoundPool effects;
+  private final Handler main = new Handler(Looper.getMainLooper());
+  private final ExecutorService loader = Executors.newSingleThreadExecutor();
+  private final Map<String, Integer> samples = new HashMap<>();
+  private final Map<Integer, String> loading = new HashMap<>();
+  private final Map<Integer, Long> streams = new HashMap<>();
+  private final Set<Integer> ready = new HashSet<>();
+  private final Map<String, Long> pending = new HashMap<>();
   private MediaPlayer music;
-  private ToneGenerator tones;
+  private AudioFocusRequest focus;
+  private boolean focused, interrupted, ducked, stopped, closed;
   String current = "";
   private String requested = "";
 
   NativeSound(Context c) {
     context = c;
     prefs = c.getSharedPreferences("native_audio", 0);
+    manager = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
+    AudioAttributes attributes = attributes(false);
+    effects = new SoundPool.Builder().setMaxStreams(8).setAudioAttributes(attributes).build();
+    effects.setOnLoadCompleteListener(
+        (pool, id, status) -> {
+          if (closed || status != 0) return;
+          ready.add(id);
+          String name = loading.remove(id);
+          Long time = pending.remove(name);
+          // 늦게 로드된 전투 소리가 다음 장면에서 울리지 않도록 오래된 요청은 버린다.
+          if (time != null && SystemClock.uptimeMillis() - time < 350) effect(name);
+        });
+    loader.submit(
+        () -> {
+          File folder = new File(context.getCacheDir(), "game-effects-v1");
+          if (!folder.exists() && !folder.mkdirs()) return;
+          for (String name : GameEffectPcm.NAMES) {
+            if (Thread.currentThread().isInterrupted()) return;
+            try {
+              File file = new File(folder, name + ".wav");
+              if (!file.exists()) Files.write(file.toPath(), GameEffectPcm.wav(name));
+              main.post(
+                  () -> {
+                    if (closed) return;
+                    int id = effects.load(file.getAbsolutePath(), 1);
+                    samples.put(name, id);
+                    loading.put(id, name);
+                  });
+            } catch (Exception ignored) {
+              // 소리 준비 실패가 게임 입력을 막지 않는다.
+            }
+          }
+        });
+  }
+
+  private static AudioAttributes attributes(boolean music) {
+    return new AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_GAME)
+        .setContentType(
+            music ? AudioAttributes.CONTENT_TYPE_MUSIC : AudioAttributes.CONTENT_TYPE_SONIFICATION)
+        .build();
   }
 
   int volume(String key) {
@@ -37,6 +97,7 @@ final class NativeSound {
     prefs.edit().putBoolean("master_muted", muted).apply();
     apply("music");
     apply("effects");
+    if (muted) abandonFocus();
   }
 
   void muted(String key, boolean value) {
@@ -49,24 +110,89 @@ final class NativeSound {
     apply(key);
   }
 
+  private float gain(String key) {
+    float v =
+        key.equals("effects")
+            ? GameEffectPcm.gain(audibleVolume(key))
+            : (float) (.65 * Math.pow(audibleVolume(key) / 100d, 1.5));
+    return ducked ? v * .2f : v;
+  }
+
   private void apply(String key) {
+    if (closed) return;
     if (key.equals("effects")) {
-      if (tones != null) tones.release();
-      tones = null;
+      if (audibleVolume(key) == 0) stopEffects();
+      else {
+        pruneStreams();
+        float v = gain(key);
+        for (int id : streams.keySet()) effects.setVolume(id, v, v);
+      }
     } else if (key.equals("music")) {
       if (music != null) {
-        float v = audibleVolume(key) / 100f;
-        music.setVolume(v, v);
-      } else if (!requested.isEmpty() && audibleVolume(key) > 0) play(requested);
+        float value = gain(key);
+        if (value > 0 && (stopped || interrupted || !requestFocus())) value = 0;
+        music.setVolume(value, value);
+      } else if (!requested.isEmpty() && audibleVolume(key) > 0 && !stopped && !interrupted)
+        play(requested);
+    }
+    if (audibleVolume("music") == 0 && audibleVolume("effects") == 0) abandonFocus();
+  }
+
+  private boolean requestFocus() {
+    if (closed || interrupted) return false;
+    if (focused || manager == null) return true;
+    if (focus == null) {
+      focus =
+          new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+              .setAudioAttributes(attributes(true))
+              .setOnAudioFocusChangeListener(this::focusChanged, main)
+              .build();
+    }
+    focused = manager.requestAudioFocus(focus) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+    return focused;
+  }
+
+  private void focusChanged(int change) {
+    if (closed) return;
+    if (change == AudioManager.AUDIOFOCUS_GAIN) {
+      focused = true;
+      interrupted = false;
+      ducked = false;
+      if (!stopped && !requested.isEmpty() && audibleVolume("music") > 0) play(requested);
+      apply("music");
+      apply("effects");
+    } else if (change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+      ducked = true;
+      apply("music");
+      apply("effects");
+    } else {
+      interrupted = true;
+      focused = false;
+      ducked = false;
+      stopPlayer();
+      stopEffects();
+      if (change == AudioManager.AUDIOFOCUS_LOSS) {
+        stopped = true;
+        requested = "";
+        abandonFocus();
+      }
     }
   }
 
+  private void abandonFocus() {
+    if (focus != null && manager != null) manager.abandonAudioFocusRequest(focus);
+    focused = false;
+  }
+
   void play(String name) {
+    if (closed) return;
     requested = name;
-    if (audibleVolume("music") <= 0) {
+    stopped = false;
+    if (name.isEmpty() || audibleVolume("music") <= 0) {
       stopPlayer();
       return;
     }
+    if (!requestFocus()) return;
     if (name.equals(current) && music != null) return;
     stopPlayer();
     current = name;
@@ -74,46 +200,65 @@ final class NativeSound {
       android.content.res.AssetFileDescriptor f =
           context.getAssets().openFd("native/" + name + ".wav");
       music = new MediaPlayer();
-      music.setAudioAttributes(
-          new AudioAttributes.Builder()
-              .setUsage(AudioAttributes.USAGE_GAME)
-              .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-              .build());
+      music.setAudioAttributes(attributes(true));
       music.setDataSource(f.getFileDescriptor(), f.getStartOffset(), f.getLength());
       f.close();
       music.setLooping(true);
-      float v = audibleVolume("music") / 100f;
-      music.setVolume(v, v);
-      MediaPlayer preparing = music;
-      preparing.setOnPreparedListener(
+      music.setVolume(gain("music"), gain("music"));
+      music.setOnPreparedListener(
           p -> {
-            if (music == p) {
+            if (music == p && !stopped && !interrupted && !closed) {
               try {
                 p.start();
               } catch (IllegalStateException ignored) {
               }
             }
           });
-      preparing.prepareAsync();
+      music.prepareAsync();
     } catch (Exception ignored) {
       stopPlayer();
     }
   }
 
   void click() {
-    if (audibleVolume("effects") <= 0) return;
-    try {
-      if (tones == null)
-        tones = new ToneGenerator(AudioManager.STREAM_MUSIC, audibleVolume("effects"));
-      tones.startTone(ToneGenerator.TONE_PROP_BEEP, 35);
-    } catch (RuntimeException ignored) {
-      tones = null;
+    effect("tap");
+  }
+
+  /** tap/hit/crit/big/weak/faint/heal/aug/combo/win/lose/levelup 및 뽑기·조합 별칭. */
+  void effect(String effect) {
+    if (closed || stopped || audibleVolume("effects") <= 0 || !requestFocus()) return;
+    String name = GameEffectPcm.canonical(effect);
+    Integer sample = samples.get(name);
+    if (sample == null || !ready.contains(sample)) {
+      if (Arrays.asList(GameEffectPcm.NAMES).contains(name))
+        pending.put(name, SystemClock.uptimeMillis());
+      return;
     }
+    pruneStreams();
+    float v = gain("effects");
+    int id = effects.play(sample, v, v, 1, 0, 1);
+    if (id != 0) streams.put(id, SystemClock.uptimeMillis() + 1500);
+  }
+
+  private void pruneStreams() {
+    long now = SystemClock.uptimeMillis();
+    streams.entrySet().removeIf(e -> e.getValue() < now);
+  }
+
+  private void stopEffects() {
+    pending.clear();
+    for (int id : streams.keySet()) effects.stop(id);
+    streams.clear();
   }
 
   void stop() {
+    stopped = true;
     requested = "";
+    interrupted = false;
+    ducked = false;
     stopPlayer();
+    stopEffects();
+    abandonFocus();
   }
 
   private void stopPlayer() {
@@ -125,10 +270,11 @@ final class NativeSound {
   }
 
   void close() {
+    if (closed) return;
     stop();
-    if (tones != null) {
-      tones.release();
-      tones = null;
-    }
+    closed = true;
+    loader.shutdownNow();
+    effects.release();
+    main.removeCallbacksAndMessages(null);
   }
 }

@@ -34,6 +34,7 @@ final class NativeApi {
   }
 
   void call(String path, JSONObject body, Result callback) {
+    final String requestSession = token();
     pool.execute(
         () -> {
           JSONObject result = null;
@@ -48,7 +49,7 @@ final class NativeApi {
             conn.setReadTimeout(20000);
             conn.setRequestProperty("x-gmm", "1");
             conn.setRequestProperty("x-gmm-app", "1");
-            if (!token().isEmpty()) conn.setRequestProperty("x-gmm-s", token());
+            if (!requestSession.isEmpty()) conn.setRequestProperty("x-gmm-s", requestSession);
             if (body != null) {
               conn.setRequestMethod("POST");
               conn.setDoOutput(true);
@@ -72,7 +73,7 @@ final class NativeApi {
             if (status >= 400) {
               error = result.optString("error", "서버에 연결하지 못했어요.");
               if (status == 401) {
-                token("");
+                if (requestSession.equals(token())) token("");
                 error = "로그인이 만료됐어요. 다시 로그인해 주세요.";
               }
             }

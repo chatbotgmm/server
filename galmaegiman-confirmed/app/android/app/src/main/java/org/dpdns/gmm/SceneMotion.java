@@ -9,7 +9,7 @@ final class SceneMotion {
   final View owner;
   final MainActivity host;
   ValueAnimator clock;
-  float millis;
+  double millis;
 
   SceneMotion(View owner, MainActivity host) {
     this.owner = owner;
@@ -24,9 +24,12 @@ final class SceneMotion {
     clock.setDuration(120000);
     clock.setRepeatCount(ValueAnimator.INFINITE);
     clock.setInterpolator(new LinearInterpolator());
+    final long started = android.os.SystemClock.uptimeMillis();
     clock.addUpdateListener(
         a -> {
-          millis = (float) a.getAnimatedValue();
+          // 반복마다 120초 값을 되감으면 2.8/3.4/3.6초 숨쉬기 위상이 튄다.
+          // 전체 재생시간으로 위상을 구하므로 반복 경계에서도 같은 곡선을 잇는다.
+          millis = android.os.SystemClock.uptimeMillis() - started;
           owner.postInvalidateOnAnimation();
         });
     clock.start();
@@ -35,7 +38,7 @@ final class SceneMotion {
   float pulse(float period, float offset) {
     return !host.motionEnabled || clock == null
         ? 0
-        : (float) ((1 - Math.cos((millis + offset) * Math.PI * 2 / period)) / 2);
+        : (float) ((1 - Math.cos(((millis + offset) % period) * Math.PI * 2 / period)) / 2);
   }
 
   void close() {

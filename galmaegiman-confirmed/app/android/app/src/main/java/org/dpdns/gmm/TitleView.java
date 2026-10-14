@@ -7,7 +7,7 @@ import android.widget.*;
 /** 기존 첫 화면의 원본 이미지와 1961×802 배치를 네이티브로 유지한다. */
 final class TitleView extends FrameLayout implements FullBleed {
   final MainActivity host;
-  final Button enter, settings;
+  final Button enter, settings, account;
   final boolean loggedIn;
   final DragParallax parallax;
   final SceneMotion motion;
@@ -49,6 +49,24 @@ final class TitleView extends FrameLayout implements FullBleed {
     settings.setTextColor(Color.TRANSPARENT);
     settings.setPadding(0, 0, 0, 0);
     addView(settings);
+    enter.setTag("title-enter");
+    settings.setTag("title-settings");
+    account =
+        loggedIn
+            ? new MenuKit(host)
+                .action(
+                    "u-profile",
+                    host.me().optString("nickname", "내 계정"),
+                    () -> host.menus.extras.account())
+            : null;
+    if (account != null) {
+      account.setTag("title-account");
+      account.setContentDescription("계정 정보 " + host.me().optString("nickname", "내 계정"));
+      account.setTextSize(15);
+      account.setSingleLine(true);
+      account.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      addView(account);
+    }
   }
 
   @Override
@@ -107,6 +125,16 @@ final class TitleView extends FrameLayout implements FullBleed {
         safe.top + host.dp(8) + size);
   }
 
+  RectF accountBox() {
+    RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
+    float width = Math.min(host.dp(260), safe.width() * .32f);
+    return new RectF(
+        safe.right - host.dp(12) - width,
+        safe.bottom - host.dp(10) - host.dp(48),
+        safe.right - host.dp(12),
+        safe.bottom - host.dp(10));
+  }
+
   @Override
   protected void onMeasure(int ws, int hs) {
     int w = MeasureSpec.getSize(ws), h = MeasureSpec.getSize(hs);
@@ -122,6 +150,10 @@ final class TitleView extends FrameLayout implements FullBleed {
     settings.measure(
         MeasureSpec.makeMeasureSpec(host.dp(64), MeasureSpec.EXACTLY),
         MeasureSpec.makeMeasureSpec(host.dp(64), MeasureSpec.EXACTLY));
+    if (account != null)
+      account.measure(
+          MeasureSpec.makeMeasureSpec((int) accountBox().width(), MeasureSpec.EXACTLY),
+          MeasureSpec.makeMeasureSpec(host.dp(48), MeasureSpec.EXACTLY));
   }
 
   @Override
@@ -133,6 +165,10 @@ final class TitleView extends FrameLayout implements FullBleed {
         (int) m.right,
         (int) (m.centerY() + enter.getMeasuredHeight() / 2f));
     settings.layout((int) g.left, (int) g.top, (int) g.right, (int) g.bottom);
+    if (account != null) {
+      RectF a = accountBox();
+      account.layout((int) a.left, (int) a.top, (int) a.right, (int) a.bottom);
+    }
   }
 
   void draw(Canvas c, String name, RectF r) {

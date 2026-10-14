@@ -35,13 +35,14 @@ public class MainActivity extends AppCompatActivity {
   android.app.AlertDialog visibleDialog;
   ArrayList<String> selected = new ArrayList<>();
   String selectionMode = "story", mixIds = "";
-  String currentKey = "";
+  String currentKey = "", accountReturn = "home";
+  NativeTutorialController guide;
   ArrayList<String> practiceRoster = new ArrayList<>(Arrays.asList("D1", "D2", "D3")),
       practiceEnemy = new ArrayList<>();
   int practiceLevel = 15, practicePromotion = 0;
-  static final int INK = Color.rgb(62, 40, 30),
+  static final int INK = Color.rgb(59, 38, 20),
       BLUE = Color.rgb(44, 88, 113),
-      CREAM = Color.rgb(255, 244, 217);
+      CREAM = Color.rgb(255, 250, 240);
 
   @Override
   public void onCreate(Bundle saved) {
@@ -61,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
     root = new GameRootLayout(this);
     setContentView(root);
     menus = new NativeMenus(this);
+    guide = NativeTutorialController.get(this);
     ViewCompat.setOnApplyWindowInsetsListener(
         root,
         (v, insets) -> {
@@ -117,8 +119,39 @@ public class MainActivity extends AppCompatActivity {
     return Math.round(n * getResources().getDisplayMetrics().density);
   }
 
+  int contentHeightDp() {
+    int pixels =
+        root != null && root.getHeight() > 0
+            ? root.getHeight() - root.getPaddingTop() - root.getPaddingBottom()
+            : getResources().getDisplayMetrics().heightPixels;
+    int actual = Math.round(pixels / getResources().getDisplayMetrics().density);
+    int configured = getResources().getConfiguration().screenHeightDp;
+    return configured > 0 ? Math.min(actual, configured) : actual;
+  }
+
+  boolean compact() {
+    return contentHeightDp() < 450;
+  }
+
+  float uiText(float size) {
+    return size * (contentHeightDp() >= 600 ? 1.14f : contentHeightDp() >= 450 ? 1.06f : 1);
+  }
+
   int cols() {
     return getResources().getConfiguration().screenWidthDp >= 1100 ? 3 : 2;
+  }
+
+  void screenShown() {
+    final int shownEpoch = epoch;
+    root.post(
+        () -> {
+          if (epoch == shownEpoch && guide != null) guide.onScreenShown(screen);
+        });
+  }
+
+  void stateUpdated() {
+    NativeAlerts.schedule(this, me());
+    if (guide != null) guide.onStateUpdated();
   }
 
   static JSONObject obj(Object... xs) {
@@ -155,17 +188,28 @@ public class MainActivity extends AppCompatActivity {
   void request(String path, JSONObject data, NativeApi.Result done) {
     if (busy) return;
     busy = true;
+    final int operationEpoch = epoch;
+    final String operationAccount = api.token();
     api.call(
         path,
         data,
         (r, e) -> {
+          if (isFinishing()
+              || isDestroyed()
+              || operationEpoch != epoch
+              || (!operationAccount.equals(api.token()) && !(e != null && api.token().isEmpty())))
+            return;
           busy = false;
-          if (isFinishing()) return;
           if (e != null) {
             if (api.token().isEmpty() && !screen.equals("login")) login();
             message(e);
             return;
           }
+          if (guide != null && path.equals("native/team")) guide.onAction("team-saved");
+          if (path.equals("native/heal")) sound.effect("heal");
+          if (path.equals("native/growth")) sound.effect("levelup");
+          if (path.equals("attend") || path.equals("coupon") || path.equals("expedition/claim"))
+            sound.effect("win");
           done.done(r, null);
         });
   }
@@ -195,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
             return;
           }
           state = r;
-          NativeAlerts.schedule(this, me());
+          stateUpdated();
           if (!art.key.isEmpty()) {
             busy = false;
             show(target);
@@ -237,7 +281,7 @@ public class MainActivity extends AppCompatActivity {
                   return;
                 }
                 state = fresh;
-                NativeAlerts.schedule(this, me());
+                stateUpdated();
                 show(target);
                 showResult(result, () -> show(target));
               });
@@ -303,7 +347,7 @@ public class MainActivity extends AppCompatActivity {
   TextView text(String s, float size) {
     TextView t = new TextView(this);
     t.setText(s);
-    t.setTextSize(size);
+    t.setTextSize(uiText(size));
     t.setTypeface(font);
     t.setTextColor(INK);
     t.setPadding(dp(8), dp(4), dp(8), dp(4));
@@ -323,7 +367,7 @@ public class MainActivity extends AppCompatActivity {
     b.setText(s);
     b.setAllCaps(false);
     b.setTextColor(INK);
-    b.setTextSize(18);
+    b.setTextSize(uiText(18));
     b.setTypeface(font);
     b.setMinHeight(dp(52));
     b.setMinimumHeight(dp(52));
@@ -342,6 +386,8 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void base(String name, String id) {
+    if (id.equals("account") && !screen.equals("account"))
+      accountReturn = screen.equals("title") ? "title" : "home";
     epoch++;
     screen = id;
     sound.play("title");
@@ -365,13 +411,15 @@ public class MainActivity extends AppCompatActivity {
     root.addView(shade, new FrameLayout.LayoutParams(-1, -1));
     page = new LinearLayout(this);
     page.setOrientation(LinearLayout.VERTICAL);
-    page.setPadding(dp(16), dp(8), dp(16), dp(8));
+    page.setPadding(dp(compact() ? 12 : 16), dp(6), dp(compact() ? 12 : 16), dp(6));
     root.addView(page, new FrameLayout.LayoutParams(-1, -1));
     LinearLayout head = new LinearLayout(this);
     head.setGravity(Gravity.CENTER_VERTICAL);
     head.setBackground(new GameButtonDrawable(this, GameButtonDrawable.PAPER));
-    head.setPadding(dp(10), dp(6), dp(10), dp(9));
-    Button back = new MenuKit(this).painted("btn-back", "‹ 뒤로", this::back);
+    head.setPadding(dp(8), dp(3), dp(8), dp(5));
+    Button back =
+        NativeTutorialController.anchor(
+            new MenuKit(this).painted("btn-back", "‹ 뒤로", this::back), "back");
     head.addView(back, new LinearLayout.LayoutParams(dp(100), dp(48)));
     title = text(name, 24);
     title.setTypeface(headline);
@@ -399,10 +447,11 @@ public class MainActivity extends AppCompatActivity {
     scroll.setFillViewport(true);
     body = new LinearLayout(this);
     body.setOrientation(LinearLayout.VERTICAL);
-    body.setPadding(dp(8), dp(8), dp(8), dp(8));
+    body.setPadding(dp(6), dp(6), dp(6), dp(6));
     body.setBackgroundColor(Color.TRANSPARENT);
     scroll.addView(body);
     page.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+    screenShown();
   }
 
   LinearLayout row() {
@@ -531,6 +580,7 @@ public class MainActivity extends AppCompatActivity {
     root.removeAllViews();
     root.addView(new TitleView(this, !api.token().isEmpty()), new FrameLayout.LayoutParams(-1, -1));
     title = text("갈매미맨 수비대", 24);
+    screenShown();
   }
 
   void login() {
@@ -750,10 +800,13 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void home() {
+    epoch++;
     screen = "home";
+    sound.play("title");
     loginScroll = null;
     root.removeAllViews();
     root.addView(new LobbyView(this), new FrameLayout.LayoutParams(-1, -1));
+    screenShown();
   }
 
   void chapters() {
@@ -772,11 +825,12 @@ public class MainActivity extends AppCompatActivity {
     epoch++;
     screen = "dialog";
     loginScroll = null;
-    sound.play("title");
+    sound.play("story");
     root.removeAllViews();
     StoryView story = new StoryView(this, lines, caption, storyScene, storyFoe, end);
     root.addView(story, new FrameLayout.LayoutParams(-1, -1));
     title = text(caption, 24);
+    screenShown();
   }
 
   void team() {
@@ -858,7 +912,14 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void drawResult(JSONObject r, Runnable next) {
-    menus.economy.reveal(r, next, false);
+    menus.economy.reveal(
+        r,
+        () -> {
+          if (guide != null) guide.onAction("draw-complete");
+          next.run();
+          screenShown();
+        },
+        false);
   }
 
   void craft() {
@@ -963,15 +1024,24 @@ public class MainActivity extends AppCompatActivity {
         (r, e) -> {
           battle = r;
           battleScreen();
+          if (mode.equals("normal") || mode.equals("rank")) NativeVersusView.show(this, r);
         });
   }
 
   void battleScreen() {
     epoch++;
     screen = "battle";
-    sound.play("battle");
+    sound.play(battleMusic());
     root.removeAllViews();
-    root.addView(new BattleView(this, battle), new FrameLayout.LayoutParams(-1, -1));
+    BattleView view = new BattleView(this, battle);
+    root.addView(view, new FrameLayout.LayoutParams(-1, -1));
+    screenShown();
+    root.post(
+        () -> {
+          if (guide != null && view.isAttachedToWindow())
+            guide.onBattleShown(
+                battle, null, null, view.scene, battle.optString("phase").equals("choose"));
+        });
   }
 
   void battleTurn(JSONObject event) {
@@ -1003,37 +1073,13 @@ public class MainActivity extends AppCompatActivity {
                     || battle == null
                     || !requestedSession.equals(battle.optString("session"))) return;
                 battle = r;
+                if (guide != null
+                    && event.optJSONObject("action") != null
+                    && event.optJSONObject("action").optString("kind").equals("skill"))
+                  guide.onAction("skill-used");
                 battleScreen();
                 if (r.optString("phase").equals("over")) {
-                  JSONObject result = r.optJSONObject("result");
-                  new GameDialog(this)
-                      .setView(BattleRewardsView.create(this, r))
-                      .setCancelable(false)
-                      .setPositiveButton(
-                          "계속",
-                          (d, w) -> {
-                            JSONArray lines =
-                                result == null ? new JSONArray() : list(result, "dialog");
-                            JSONArray clear =
-                                result == null ? new JSONArray() : list(result, "chapterClear");
-                            for (int i = 0; i < clear.length(); i++) lines.put(clear.opt(i));
-                            if (result != null) {
-                              storyScene = result.optString("scene", "harbor");
-                              storyFoe = result.optString("foe", storyFoe);
-                            }
-                            talk(
-                                lines,
-                                "전투 결과",
-                                () -> {
-                                  String mode = battle.optString("mode");
-                                  battle = null;
-                                  load(
-                                      mode.equals("normal") || mode.equals("rank")
-                                          ? "pvp"
-                                          : mode.equals("practice") ? "home" : "story");
-                                });
-                          })
-                      .show();
+                  showBattleResult(r);
                 }
               };
           BattleView scene = null;
@@ -1041,6 +1087,110 @@ public class MainActivity extends AppCompatActivity {
             if (root.getChildAt(i) instanceof BattleView) scene = (BattleView) root.getChildAt(i);
           if (scene != null) scene.playTo(r, finishTurn);
           else finishTurn.run();
+        });
+  }
+
+  String battleMusic() {
+    if (battle != null && battle.optBoolean("boss")) return "boss";
+    return "battle";
+  }
+
+  void showBattleResult(JSONObject ended) {
+    JSONObject result = ended.optJSONObject("result");
+    if (result == null) result = new JSONObject();
+    final String mode = ended.optString("mode"), stage = ended.optString("stage");
+    final boolean story = mode.equals("story"), practice = mode.equals("practice");
+    boolean won = ended.optInt("winner", 1) == 0;
+    sound.effect(won ? "win" : "lose");
+    for (int i = 0; i < list(result, "growth").length(); i++) {
+      JSONObject u = list(result, "growth").optJSONObject(i);
+      if (u != null && u.optInt("level") > u.optInt("fromLevel")) {
+        sound.effect("levelup");
+        break;
+      }
+    }
+    if (guide != null) {
+      guide.lastBattle = ended;
+      guide.onAction("battle-complete");
+    }
+    android.app.AlertDialog[] sheet = new android.app.AlertDialog[1];
+    GameDialog builder = new GameDialog(this);
+    builder.setView(
+        BattleRewardsView.create(
+            this,
+            ended,
+            key -> {
+              sheet[0].dismiss();
+              currentKey = key;
+              menus.unitReturn = "story";
+              finishBattle(ended, () -> load("unit"));
+            }));
+    builder.setCancelable(false);
+    String primary = story ? (won ? "스토리로" : "재도전") : "한 판 더";
+    builder.setPositiveButton(
+        primary,
+        (d, w) ->
+            finishBattle(
+                ended,
+                () -> {
+                  if (story && won) load("stages");
+                  else if (story) retryStory(stage);
+                  else startFight(practice ? "practice" : mode, null);
+                }));
+    builder.setNegativeButton(
+        story ? "목록" : practice ? "연습 편성" : "모드 선택",
+        (d, w) ->
+            finishBattle(
+                ended,
+                () -> {
+                  if (practice) {
+                    battle = null;
+                    practice();
+                  } else load(story ? "stages" : "modes");
+                }));
+    sheet[0] = builder.show();
+  }
+
+  void finishBattle(JSONObject ended, Runnable next) {
+    JSONObject result = ended.optJSONObject("result");
+    JSONArray lines = new JSONArray();
+    if (result != null) {
+      for (int i = 0; i < list(result, "dialog").length(); i++)
+        lines.put(list(result, "dialog").opt(i));
+      for (int i = 0; i < list(result, "chapterClear").length(); i++)
+        lines.put(list(result, "chapterClear").opt(i));
+      storyScene = result.optString("scene", storyScene);
+      storyFoe = result.optString("foe", storyFoe);
+    }
+    battle = null;
+    talk(lines, "전투 결과", next);
+  }
+
+  void retryStory(String stage) {
+    // 이전 결과와 성장 상태를 먼저 동기화한다. 체력 0이면 편성 화면에서 치료를 안내한다.
+    final int destination = epoch;
+    busy = true;
+    api.call(
+        "native/state",
+        null,
+        (fresh, error) -> {
+          if (isFinishing() || destination != epoch) return;
+          busy = false;
+          if (error != null) {
+            message(error);
+            load("stages");
+            return;
+          }
+          state = fresh;
+          stateUpdated();
+          boolean alive = list(state, "team").length() > 0;
+          for (int i = 0; i < list(state, "team").length(); i++)
+            alive &= unit(list(state, "team").optString(i)).optInt("hp") > 0;
+          if (alive && !stage.isEmpty()) startFight("story", stage);
+          else {
+            show("stages");
+            message("체력이 부족해요. 치료약으로 회복하거나 편성을 바꿔 주세요.");
+          }
         });
   }
 
@@ -1057,7 +1207,11 @@ public class MainActivity extends AppCompatActivity {
       return;
     }
     if (screen.equals("battle")) {
-      confirm("전투에서 나갈까요?", () -> battleTurn(obj("leave", true)));
+      for (int i = 0; i < root.getChildCount(); i++)
+        if (root.getChildAt(i) instanceof BattleView) {
+          ((BattleView) root.getChildAt(i)).confirmLeave();
+          return;
+        }
       return;
     }
     if (screen.equals("login")) {
@@ -1070,9 +1224,12 @@ public class MainActivity extends AppCompatActivity {
       confirm("게임을 닫을까요?", this::finish);
       return;
     }
-    if (screen.equals("stages")) chapters();
+    if (screen.equals("account")) load(accountReturn);
+    else if (screen.equals("stages")) chapters();
     else if (screen.equals("unit")) {
       if (menus.unitReturn.equals("team")) team();
+      else if (menus.unitReturn.equals("stages")) stages();
+      else if (menus.unitReturn.equals("collection")) collection();
       else chapters();
     } else if (screen.equals("collectionDetail")) collection();
     else if (screen.equals("team")) {
@@ -1117,12 +1274,15 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onStart() {
     super.onStart();
-    if (sound != null) sound.play(screen.equals("battle") ? "battle" : "title");
+    if (sound != null)
+      sound.play(
+          screen.equals("battle") ? battleMusic() : screen.equals("dialog") ? "story" : "title");
   }
 
   @Override
   protected void onDestroy() {
     super.onDestroy();
+    if (guide != null) guide.close();
     art.close();
     api.close();
     sound.close();

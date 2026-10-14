@@ -28,7 +28,12 @@ final class NativeAugmentView extends LinearLayout {
           if (!isAttachedToWindow() || deadline <= 0) return;
           long remaining = Math.max(0, deadline - (System.currentTimeMillis() + clockOffset));
           title.setText(
-              (switching ? "다음 출전" : "전투 증강체") + " · " + ((remaining + 999) / 1000) + "초");
+              (switching
+                      ? "② 다음 출전"
+                      : battleView.side(0).optBoolean("needSwitch") ? "① 증강체" : "전투 증강체")
+                  + " · "
+                  + ((remaining + 999) / 1000)
+                  + "초");
           if (remaining <= 0 && !h.busy && !refreshing) {
             refreshing = true;
             int epoch = h.epoch;
@@ -100,16 +105,15 @@ final class NativeAugmentView extends LinearLayout {
     compare.setPadding(0, 0, 0, 0);
     compare.setTextColor(0xfff3e0b7);
     android.text.SpannableString comparison = new android.text.SpannableString(compare.getText());
-    for (String token : new String[] {"×1.5 유리", "×0.67 불리"}) {
-      for (int at = comparison.toString().indexOf(token);
-          at >= 0;
-          at = comparison.toString().indexOf(token, at + token.length()))
-        comparison.setSpan(
-            new android.text.style.ForegroundColorSpan(
-                token.endsWith("유리") ? 0xff7fd59c : 0xfff08e7f),
-            at,
-            at + token.length(),
-            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    java.util.regex.Matcher match =
+        java.util.regex.Pattern.compile("×[0-9.]+ (유리|불리)").matcher(comparison);
+    while (match.find()) {
+      comparison.setSpan(
+          new android.text.style.ForegroundColorSpan(
+              match.group(1).equals("유리") ? 0xff7fd59c : 0xfff08e7f),
+          match.start(),
+          match.end(),
+          android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
     }
     compare.setText(comparison);
     versus.addView(compare, 1, new LayoutParams(0, -1, 1.4f));
@@ -150,6 +154,15 @@ final class NativeAugmentView extends LinearLayout {
   }
 
   String mult(JSONObject from, JSONObject to) {
+    JSONObject matchup = from.optJSONObject("matchup");
+    JSONObject attack = matchup == null ? null : matchup.optJSONObject("attack");
+    if (attack != null) {
+      double multiplier = attack.optDouble("multiplier", 1);
+      return "×"
+          + java.math.BigDecimal.valueOf(multiplier).stripTrailingZeros().toPlainString()
+          + " "
+          + NativeBattleSheets.relation(multiplier);
+    }
     JSONObject chart = h.state.optJSONObject("typeChart");
     if (chart == null) return "×1 보통";
     String a = from.optString("attrCode"), b = to.optString("attrCode");
@@ -204,7 +217,11 @@ final class NativeAugmentView extends LinearLayout {
     picks.clear();
     rerolls.clear();
     names.clear();
-    title.setText("◆ 전투 증강체 ◆");
+    title.setText(
+        battleView.side(0).optBoolean("needSwitch") ? "① 증강체 선택 → ② 다음 출전" : "◆ 전투 증강체 ◆");
+    boolean disadvantaged =
+        mult(battleView.active(0), battleView.active(1)).contains("불리")
+            || mult(battleView.active(1), battleView.active(0)).contains("유리");
     for (int i = 0; i < offers.length(); i++) {
       int ix = i;
       JSONObject aug = offers.optJSONObject(i);
@@ -228,6 +245,14 @@ final class NativeAugmentView extends LinearLayout {
       name.setGravity(Gravity.CENTER);
       content.addView(name);
       names.add(name);
+      if (disadvantaged
+          && Arrays.asList("camo", "reverse", "weakguard", "neutral", "dual", "counter")
+              .contains(id)) {
+        TextView recommended = h.text("지금 추천", large ? 16 : 12);
+        recommended.setTextColor(0xff397953);
+        recommended.setGravity(Gravity.CENTER);
+        content.addView(recommended);
+      }
       TextView badge = h.text(kindName(type), large ? 15 : 12);
       badge.setTextColor(Color.WHITE);
       badge.setBackground(h.material(color(type)));
@@ -309,9 +334,22 @@ final class NativeAugmentView extends LinearLayout {
       if (f.optInt("hp") <= 0) continue;
       int to = i;
       LinearLayout card = columnCard(0xff927017);
-      card.addView(k.image(f.optString("image"), large ? 150 : 90, large ? 150 : 90));
+      card.addView(
+          k.image(
+              f.optString("image").replace("_back.webp", "_front.webp"),
+              large ? 150 : 90,
+              large ? 150 : 90));
       card.addView(h.text(f.optString("name"), large ? 25 : 19));
-      card.addView(k.note(f.optString("attr") + " · 상대에게 " + mult(f, battleView.active(1))));
+      card.addView(
+          k.note(
+              f.optString("attr")
+                  + (NativeBattleSheets.role(f).isEmpty() ? "" : " · " + NativeBattleSheets.role(f))
+                  + " · "
+                  + NativeBattleSheets.matchupLabel(f)
+                  + " · 공격 "
+                  + NativeBattleSheets.effectiveness(h, f, battleView.active(1))
+                  + " · 방어 "
+                  + NativeBattleSheets.defense(h, battleView.active(1), f)));
       k.progress(
           card,
           "체력 " + f.optInt("hp") + " / " + f.optInt("maxHp"),

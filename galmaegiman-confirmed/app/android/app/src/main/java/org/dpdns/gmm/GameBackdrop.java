@@ -5,6 +5,10 @@ import android.view.View;
 import android.widget.ImageView;
 
 final class GameBackdrop extends ImageView implements FullBleed {
+  // 같은 원본과 블러 반경은 화면 이동마다 다시 계산하지 않는다.
+  static final java.util.WeakHashMap<
+          android.graphics.Bitmap, java.util.Map<Integer, android.graphics.Bitmap>>
+      CACHE = new java.util.WeakHashMap<>();
   boolean blurred;
   android.graphics.Bitmap original;
   int preparedWidth;
@@ -48,18 +52,29 @@ final class GameBackdrop extends ImageView implements FullBleed {
             Math.max(1, Math.round(original.getHeight() * width / (float) original.getWidth()));
     android.graphics.Bitmap small =
         android.graphics.Bitmap.createScaledBitmap(original, width, height, true);
-    int[] pixels = new int[width * height];
-    small.getPixels(pixels, 0, width, 0, 0, width, height);
+
     int radius =
         Math.max(1, Math.round(5 * getResources().getDisplayMetrics().density * width / display));
-    for (int pass = 0; pass < 3; pass++) {
-      pixels = box(pixels, width, height, radius, true);
-      pixels = box(pixels, width, height, radius, false);
+    java.util.Map<Integer, android.graphics.Bitmap> versions = CACHE.get(original);
+    android.graphics.Bitmap result = versions == null ? null : versions.get(radius);
+    if (result == null) {
+      int[] pixels = new int[width * height];
+      small.getPixels(pixels, 0, width, 0, 0, width, height);
+      for (int pass = 0; pass < 3; pass++) {
+        pixels = box(pixels, width, height, radius, true);
+        pixels = box(pixels, width, height, radius, false);
+      }
+      result =
+          android.graphics.Bitmap.createBitmap(
+              width, height, android.graphics.Bitmap.Config.ARGB_8888);
+      result.setPixels(pixels, 0, width, 0, 0, width, height);
+      if (versions == null) {
+        versions = new java.util.LinkedHashMap<>();
+        CACHE.put(original, versions);
+      }
+      if (versions.size() >= 3) versions.remove(versions.keySet().iterator().next());
+      versions.put(radius, result);
     }
-    android.graphics.Bitmap result =
-        android.graphics.Bitmap.createBitmap(
-            width, height, android.graphics.Bitmap.Config.ARGB_8888);
-    result.setPixels(pixels, 0, width, 0, 0, width, height);
     super.setImageBitmap(result);
     android.graphics.ColorMatrix color = new android.graphics.ColorMatrix();
     color.setSaturation(.95f);

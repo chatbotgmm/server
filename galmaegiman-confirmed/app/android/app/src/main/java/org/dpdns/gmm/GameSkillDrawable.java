@@ -9,6 +9,19 @@ final class GameSkillDrawable extends Drawable {
   final int accent;
   final boolean combo;
   final Paint p = new Paint(3);
+  final GamePressState state = new GamePressState();
+
+  @Override
+  public boolean isStateful() {
+    return true;
+  }
+
+  @Override
+  protected boolean onStateChange(int[] states) {
+    boolean changed = state.update(states);
+    if (changed) invalidateSelf();
+    return changed;
+  }
 
   GameSkillDrawable(MainActivity h, int accent, boolean combo) {
     this.h = h;
@@ -17,6 +30,7 @@ final class GameSkillDrawable extends Drawable {
   }
 
   public void draw(Canvas canvas) {
+    int save = state.begin(canvas, getBounds(), h.getResources().getDisplayMetrics().density);
     RectF box = new RectF(getBounds());
     box.inset(h.dp(1), h.dp(1));
     box.bottom -= h.dp(4);
@@ -48,10 +62,11 @@ final class GameSkillDrawable extends Drawable {
     canvas.clipPath(clip);
     canvas.drawRect(box.left, box.top, box.right, box.top + h.dp(6), p);
     canvas.restore();
+    state.finish(canvas, save);
   }
 
   public void setAlpha(int value) {
-    p.setAlpha(value);
+    state.alpha = value;
     invalidateSelf();
   }
 

@@ -1414,6 +1414,10 @@ export class GameService {
     return this.webRun(playerId,(tx,p)=>this.consumeItem(tx,p,item));
   }
   // 스토리 진행(JSON, 모양 검사는 my.ts에서)
+  // 로그인한 네이티브 도감: 현재 보유가 0이어도 한 번 발견한 기록을 유지한다.
+  async webCollectionIds(playerId:string){
+    return (await this.db.collectionEntry.findMany({where:{playerId},select:{characterId:true}})).map(row=>row.characterId);
+  }
   async webStory(playerId:string):Promise<unknown>{
     const row=await this.db.storySave.findUnique({where:{playerId}});
     if(!row)return null;
