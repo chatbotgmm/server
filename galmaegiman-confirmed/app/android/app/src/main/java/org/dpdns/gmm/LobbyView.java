@@ -7,9 +7,10 @@ import java.util.*;
 import org.json.*;
 
 /** 웹 로비의 원본 방 레이어·하단 다섯 메뉴·큰 플레이 버튼을 그대로 사용한다. */
-final class LobbyView extends FrameLayout {
+final class LobbyView extends FrameLayout implements FullBleed {
   final MainActivity host;
   final DragParallax parallax;
+  final SceneMotion motion;
   final Paint p = new Paint(3);
   final ArrayList<Button> buttons = new ArrayList<>();
   final String room;
@@ -49,6 +50,7 @@ final class LobbyView extends FrameLayout {
   LobbyView(MainActivity host) {
     super(host);
     this.host = host;
+    motion = new SceneMotion(this, host);
     parallax = new DragParallax(this, host.dp(18));
     room = room(host);
     for (String layer : new String[] {"base.jpg", "plat.webp", "char.webp"})
@@ -129,7 +131,14 @@ final class LobbyView extends FrameLayout {
   }
 
   @Override
+  protected void onAttachedToWindow() {
+    super.onAttachedToWindow();
+    motion.start();
+  }
+
+  @Override
   protected void onDetachedFromWindow() {
+    motion.close();
     parallax.close();
     super.onDetachedFromWindow();
   }
@@ -161,8 +170,15 @@ final class LobbyView extends FrameLayout {
 
   @Override
   protected void onMeasure(int ws, int hs) {
+    setPadding(
+        host.root.getPaddingLeft(),
+        host.root.getPaddingTop(),
+        host.root.getPaddingRight(),
+        host.root.getPaddingBottom());
     super.onMeasure(ws, hs);
-    positions(getMeasuredWidth(), getMeasuredHeight());
+    RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
+    positions(Math.round(safe.width()), Math.round(safe.height()));
+    for (RectF box : boxes) box.offset(safe.left, safe.top);
     for (int i = 0; i < buttons.size(); i++) {
       RectF r = boxes[i];
       buttons
@@ -266,7 +282,14 @@ final class LobbyView extends FrameLayout {
       float bw = bg.getWidth() * s, bh = bg.getHeight() * s;
       RectF r = new RectF((w - bw) / 2, (h - bh) / 2, (w + bw) / 2, (h + bh) / 2);
       r.offset(parallax.x * depth, parallax.y * depth);
+      c.save();
+      if (layer.equals("char.webp")) {
+        float pulse = motion.pulse(3600, 0);
+        c.translate(0, -getHeight() * .005f * pulse);
+        c.scale(1 + .004f * pulse, 1 - .004f * pulse, getWidth() * .62f, getHeight() * .8f);
+      }
       c.drawBitmap(bg, null, r, p);
+      c.restore();
     }
     for (int i = 0; i < 5; i++) {
       RectF r = new RectF(boxes[i]);

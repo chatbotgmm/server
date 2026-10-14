@@ -6,7 +6,7 @@ import android.widget.*;
 import org.json.*;
 
 /** 장면과 좌우 인물을 유지하는 네이티브 이야기 화면. */
-final class StoryView extends FrameLayout {
+final class StoryView extends FrameLayout implements FullBleed {
   final MainActivity host;
   final JSONArray lines;
   final Runnable end;
@@ -18,6 +18,41 @@ final class StoryView extends FrameLayout {
   final ScrollView textScroll;
   final Button next, skip;
   final Scene canvas;
+  String fullText = "";
+  int shown;
+  boolean typing;
+  final Runnable typeTick =
+      new Runnable() {
+        public void run() {
+          if (!typing || !isAttachedToWindow()) return;
+          shown = Math.min(fullText.codePointCount(0, fullText.length()), shown + 1);
+          say.setText(fullText.substring(0, fullText.offsetByCodePoints(0, shown)));
+          typing = shown < fullText.codePointCount(0, fullText.length());
+          if (typing) postDelayed(this, 28);
+        }
+      };
+
+  void advance() {
+    if (typing) {
+      finishTyping();
+      return;
+    }
+    if (++index >= lines.length()) end.run();
+    else update();
+  }
+
+  void finishTyping() {
+    removeCallbacks(typeTick);
+    typing = false;
+    say.setText(fullText);
+  }
+
+  @Override
+  protected void onDetachedFromWindow() {
+    removeCallbacks(typeTick);
+    typing = false;
+    super.onDetachedFromWindow();
+  }
 
   StoryView(
       MainActivity a,
@@ -72,13 +107,10 @@ final class StoryView extends FrameLayout {
     count = a.text("", 13);
     count.setPadding(a.dp(8), 0, a.dp(8), 0);
     controls.addView(count);
-    next =
-        a.button(
-            "다음",
-            () -> {
-              if (++index >= lines.length()) end.run();
-              else update();
-            });
+    next = a.button("다음", this::advance);
+    setOnClickListener(v -> advance());
+    bubble.setOnClickListener(v -> advance());
+    say.setOnClickListener(v -> advance());
     next.setTextColor(Color.TRANSPARENT);
     next.setBackground(new ArtButton(a, "next"));
     controls.addView(next, new LinearLayout.LayoutParams(a.dp(130), a.dp(48)));
@@ -113,7 +145,12 @@ final class StoryView extends FrameLayout {
     }
     who.setText(name);
     who.setVisibility(name.isEmpty() ? GONE : VISIBLE);
-    say.setText(l.optString("say"));
+    removeCallbacks(typeTick);
+    fullText = l.optString("say");
+    shown = 0;
+    typing = host.motionEnabled && !fullText.isEmpty();
+    say.setText(typing ? "" : fullText);
+    if (typing) postDelayed(typeTick, 28);
     count.setText((index + 1) + " / " + lines.length());
     textScroll.scrollTo(0, 0);
     canvas.invalidate();
@@ -121,16 +158,18 @@ final class StoryView extends FrameLayout {
 
   @Override
   protected void onMeasure(int ws, int hs) {
-    int w = MeasureSpec.getSize(ws), h = MeasureSpec.getSize(hs), small = host.dp(8);
+    int fullW = MeasureSpec.getSize(ws), fullH = MeasureSpec.getSize(hs);
+    RectF safe = host.safeBounds(fullW, fullH);
+    int w = Math.round(safe.width()), h = Math.round(safe.height());
     float density = getResources().getDisplayMetrics().density;
     say.setTextSize(Math.max(14, Math.min(24, h / density * .034f)));
     int actionH = Math.max(host.dp(48), Math.min(host.dp(64), (int) (h * .095f)));
     next.setLayoutParams(new LinearLayout.LayoutParams((int) (actionH * 2.7f), actionH));
     count.setTextSize(h / density >= 600 ? 17 : 13);
-    setMeasuredDimension(w, h);
+    setMeasuredDimension(fullW, fullH);
     canvas.measure(
-        MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY),
-        MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY));
+        MeasureSpec.makeMeasureSpec(fullW, MeasureSpec.EXACTLY),
+        MeasureSpec.makeMeasureSpec(fullH, MeasureSpec.EXACTLY));
     int bh = Math.min((int) (h * .43f), Math.max(host.dp(100), (int) (h * .27f)));
     bubble.measure(
         MeasureSpec.makeMeasureSpec((int) (w * .68f), MeasureSpec.EXACTLY),
@@ -145,15 +184,21 @@ final class StoryView extends FrameLayout {
 
   @Override
   protected void onLayout(boolean changed, int l, int t, int r, int b) {
-    int w = getWidth(), h = getHeight(), x = (int) (w * .16f), bottom = h - host.dp(12);
-    canvas.layout(0, 0, w, h);
+    RectF safe = host.safeBounds(getWidth(), getHeight());
+    int w = Math.round(safe.width()),
+        h = Math.round(safe.height()),
+        ox = Math.round(safe.left),
+        oy = Math.round(safe.top),
+        x = ox + (int) (w * .16f),
+        bottom = oy + h - host.dp(12);
+    canvas.layout(0, 0, getWidth(), getHeight());
     bubble.layout(x, bottom - bubble.getMeasuredHeight(), x + bubble.getMeasuredWidth(), bottom);
     badge.layout(
-        host.dp(20),
-        host.dp(10),
-        host.dp(20) + badge.getMeasuredWidth(),
-        host.dp(10) + badge.getMeasuredHeight());
-    skip.layout(w - host.dp(134), host.dp(8), w - host.dp(10), host.dp(56));
+        ox + host.dp(20),
+        oy + host.dp(10),
+        ox + host.dp(20) + badge.getMeasuredWidth(),
+        oy + host.dp(10) + badge.getMeasuredHeight());
+    skip.layout(ox + w - host.dp(134), oy + host.dp(8), ox + w - host.dp(10), oy + host.dp(56));
   }
 
   final class Scene extends View {
@@ -201,12 +246,18 @@ final class StoryView extends FrameLayout {
         c.drawBitmap(
             bg, null, new RectF((w - bw) / 2, (h - bh) / 2, (w + bw) / 2, (h + bh) / 2), p);
       }
+      RectF safe = host.safeBounds(getWidth(), getHeight());
+      c.save();
+      c.translate(safe.left, safe.top);
+      w = safe.width();
+      h = safe.height();
       fit(
           c,
           leadImage,
           new RectF(w * .07f, h * .22f, w * .42f, h * .93f),
           !speaker.equals("N") && !speaker.equals("ME"));
       fit(c, foeImage, new RectF(w * .54f, h * .1f, w * .9f, h * .86f), speaker.equals("ME"));
+      c.restore();
     }
   }
 }

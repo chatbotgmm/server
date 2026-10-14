@@ -23,23 +23,25 @@ final class NativeEconomy {
     m.fetch(
         "draw",
         r -> {
-          LinearLayout banner = k.paper();
-          intro(
-              banner,
-              "u-ticket",
-              "뽑기권 " + (r.optBoolean("unlimited") ? "무제한" : r.optInt("credits") + "장"),
-              h.waitText(r.optLong("wait")));
+          LinearLayout banner = k.paper(), bannerRow = k.row(), words = k.column();
+          LinearLayout titleLine = k.row();
+          titleLine.addView(k.image("/duel/icons/u-ticket.png", 24, 24));
+          titleLine.addView(
+              h.text("뽑기권 " + (r.optBoolean("unlimited") ? "무제한" : r.optInt("credits") + "장"), 18));
+          words.addView(titleLine);
+          words.addView(k.note(h.waitText(r.optLong("wait"))));
           JSONObject event = r.optJSONObject("event");
-          if (event != null) banner.addView(k.note(event.optString("label")));
-          LinearLayout actions = k.row();
-          Button claim = k.action("u-ticket", "뽑기권 받기", this::claimTickets);
-          claim.setEnabled(r.optLong("wait") <= 0);
-          h.cell(actions, claim);
+          if (event != null) words.addView(k.note(event.optString("label")));
+          bannerRow.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
           if (m.lastDraw != null)
-            h.cell(
-                actions,
-                k.action("u-draw", "지난 결과", () -> reveal(m.lastDraw, () -> h.load("draw"), true)));
-          banner.addView(actions);
+            bannerRow.addView(
+                k.action("u-draw", "지난 결과", () -> reveal(m.lastDraw, () -> h.load("draw"), true)),
+                new LinearLayout.LayoutParams(h.dp(112), h.dp(48)));
+          Button claim = k.action("u-ticket", "뽑기권 받기", this::claimTickets);
+          claim.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
+          claim.setEnabled(r.optLong("wait") <= 0);
+          bannerRow.addView(claim, new LinearLayout.LayoutParams(h.dp(176), h.dp(48)));
+          banner.addView(bannerRow);
           h.body.addView(banner);
           ArrayList<View> cards = new ArrayList<>();
           JSONArray gachas = h.list(r, "gachas");
@@ -48,8 +50,18 @@ final class NativeEconomy {
             int cost = Math.max(1, g.optInt("cost"));
             int limit = r.optBoolean("unlimited") ? 50 : Math.min(50, r.optInt("credits") / cost);
             LinearLayout card = k.paper();
-            card.addView(k.image("/thumbs/" + g.optString("img") + ".jpg", 96, 80));
-            card.addView(h.text(g.optString("label") + " 뽑기", 22));
+            LinearLayout line = k.row();
+            line.setGravity(Gravity.TOP);
+            card.addView(line);
+            ImageView portrait =
+                k.image(
+                    "/thumbs/" + g.optString("img") + ".jpg",
+                    h.getResources().getConfiguration().screenHeightDp < 600 ? 48 : 60,
+                    h.getResources().getConfiguration().screenHeightDp < 600 ? 48 : 60);
+            line.addView(portrait);
+            LinearLayout info = k.column();
+            line.addView(info, new LinearLayout.LayoutParams(0, -2, 1));
+            info.addView(h.text(g.optString("label") + " 뽑기", 18));
             StringBuilder odds = new StringBuilder();
             JSONArray weights = h.list(g, "weights");
             for (int j = 0; j < weights.length(); j++) {
@@ -62,8 +74,8 @@ final class NativeEconomy {
             int[] amount = {1};
             Button go =
                 k.action(
-                    "u-draw",
-                    "1회 뽑기 · 뽑기권 " + cost,
+                    "u-ticket",
+                    "1회 뽑기 · " + cost,
                     () ->
                         h.confirm(
                             g.optString("label")
@@ -78,28 +90,31 @@ final class NativeEconomy {
                                     MainActivity.obj(
                                         "kind", g.optString("kind"), "times", amount[0]),
                                     "draw")));
-            k.quantity(
-                card,
+            k.compactQuantity(
+                info,
                 limit,
                 n -> {
                   amount[0] = n;
-                  go.setText(n + "회 뽑기 · 뽑기권 " + cost * n);
+                  go.setText(n + "회 뽑기 · " + cost * n);
                 });
             go.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
             go.setEnabled(limit > 0);
             if (limit <= 0) go.setText("뽑기권 부족");
-            card.addView(go);
-            card.addView(k.note("확률 · " + odds));
+            go.setTextSize(15);
+            go.setPadding(h.dp(4), h.dp(4), h.dp(4), h.dp(7));
+            info.addView(go, new LinearLayout.LayoutParams(-1, h.dp(48)));
+            TextView chance = k.note("확률 · " + odds);
+            chance.setTextSize(12);
+            chance.setGravity(Gravity.CENTER);
+            info.addView(chance);
+            JSONObject pity = r.optJSONObject("pity");
+            if (g.optString("kind").equals("HIGH") && pity != null)
+              info.addView(
+                  k.note(pity.optString("tierName") + " 보장까지 " + pity.optInt("left") + "회"));
+            card.setMinimumHeight(h.dp(190));
             cards.add(card);
           }
-          k.tiles(h.body, cards, h.getResources().getConfiguration().screenWidthDp >= 1100 ? 3 : 2);
-          JSONObject pity = r.optJSONObject("pity");
-          if (pity != null) {
-            LinearLayout status = k.paper();
-            status.addView(
-                k.note("확정 보상까지 " + pity.optInt("left") + "회 · " + pity.optString("tierName")));
-            h.body.addView(status);
-          }
+          k.tiles(h.body, cards, 3);
         });
   }
 

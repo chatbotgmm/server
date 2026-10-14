@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
   JSONObject state = new JSONObject(), battle;
   String screen = "home", pendingAugment = "";
   int chapter = 0, epoch = 0;
-  boolean busy = false;
+  boolean busy = false, motionEnabled = true;
   android.app.AlertDialog visibleDialog;
   ArrayList<String> selected = new ArrayList<>();
   String selectionMode = "story", mixIds = "";
@@ -58,22 +58,25 @@ public class MainActivity extends AppCompatActivity {
       prose = font;
     }
     WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-    root = new FrameLayout(this);
+    root = new GameRootLayout(this);
     setContentView(root);
     menus = new NativeMenus(this);
     ViewCompat.setOnApplyWindowInsetsListener(
         root,
         (v, insets) -> {
-          androidx.core.graphics.Insets i =
-              insets.getInsets(WindowInsetsCompat.Type.displayCutout());
-          v.setPadding(
-              i.left,
-              i.top,
-              i.right,
-              Math.max(i.bottom, insets.getInsets(WindowInsetsCompat.Type.ime()).bottom));
+          androidx.core.graphics.Insets i = GameSafeArea.read(insets);
+          root.setPadding(i.left, i.top, i.right, i.bottom);
           if (loginScroll != null) root.post(this::resizeLogin);
           return insets;
         });
+    if (Build.VERSION.SDK_INT >= 28) {
+      WindowManager.LayoutParams window = getWindow().getAttributes();
+      window.layoutInDisplayCutoutMode =
+          Build.VERSION.SDK_INT >= 30
+              ? WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+              : WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+      getWindow().setAttributes(window);
+    }
     immersive();
     if (!exchange(getIntent())) {
       if (api.token().isEmpty()) titleScreen();
@@ -100,6 +103,14 @@ public class MainActivity extends AppCompatActivity {
         WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
     c.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
     c.hide(WindowInsetsCompat.Type.systemBars());
+  }
+
+  RectF safeBounds(int w, int h) {
+    return new RectF(
+        root.getPaddingLeft(),
+        root.getPaddingTop(),
+        Math.max(root.getPaddingLeft(), w - root.getPaddingRight()),
+        Math.max(root.getPaddingTop(), h - root.getPaddingBottom()));
   }
 
   int dp(float n) {
@@ -335,7 +346,8 @@ public class MainActivity extends AppCompatActivity {
     screen = id;
     sound.play("title");
     root.removeAllViews();
-    ImageView bg = new ImageView(this);
+    GameBackdrop bg = new GameBackdrop(this);
+    bg.blurred(true);
     bg.setScaleType(ImageView.ScaleType.CENTER_CROP);
     bg.setImageBitmap(art.asset("harbor.jpg"));
     String menuBg =
@@ -348,7 +360,7 @@ public class MainActivity extends AppCompatActivity {
                     : "attic";
     art.into(bg, "/duel/bg/" + menuBg + ".jpg");
     root.addView(bg, new FrameLayout.LayoutParams(-1, -1));
-    View shade = new View(this);
+    View shade = new GameShade(this);
     shade.setBackgroundColor(0x08000000);
     root.addView(shade, new FrameLayout.LayoutParams(-1, -1));
     page = new LinearLayout(this);
@@ -357,15 +369,15 @@ public class MainActivity extends AppCompatActivity {
     root.addView(page, new FrameLayout.LayoutParams(-1, -1));
     LinearLayout head = new LinearLayout(this);
     head.setGravity(Gravity.CENTER_VERTICAL);
-    head.setPadding(0, 0, 0, dp(6));
+    head.setBackground(new GameButtonDrawable(this, GameButtonDrawable.PAPER));
+    head.setPadding(dp(10), dp(6), dp(10), dp(9));
     Button back = new MenuKit(this).painted("btn-back", "‹ 뒤로", this::back);
     head.addView(back, new LinearLayout.LayoutParams(dp(100), dp(48)));
     title = text(name, 24);
     title.setTypeface(headline);
     title.setSingleLine(true);
     title.setEllipsize(android.text.TextUtils.TruncateAt.END);
-    title.setTextColor(Color.WHITE);
-    title.setShadowLayer(dp(2), 0, dp(1), 0xff3e281e);
+    title.setTextColor(INK);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
     MenuKit kit = new MenuKit(this);
     for (String kind : new String[] {"snack", "peanut", "credits"}) {
@@ -377,8 +389,10 @@ public class MainActivity extends AppCompatActivity {
               String.format(java.util.Locale.KOREA, "%,d", me().optInt(kind)),
               () -> load("shop"));
       money.setTextSize(14);
+      money.setTypeface(prose);
+      money.setBackground(new GamePaperDrawable(this));
       money.setPadding(dp(5), 0, dp(5), 0);
-      head.addView(money, new LinearLayout.LayoutParams(dp(100), dp(48)));
+      head.addView(money, new LinearLayout.LayoutParams(dp(76), dp(48)));
     }
     page.addView(head);
     ScrollView scroll = new ScrollView(this);
@@ -534,7 +548,7 @@ public class MainActivity extends AppCompatActivity {
     background.enter.setVisibility(View.GONE);
     background.settings.setVisibility(View.GONE);
     root.addView(background, new FrameLayout.LayoutParams(-1, -1));
-    View shade = new View(this);
+    View shade = new GameShade(this);
     shade.setBackgroundColor(0x663c2717);
     root.addView(shade, new FrameLayout.LayoutParams(-1, -1));
     ScrollView scroll = new ScrollView(this);

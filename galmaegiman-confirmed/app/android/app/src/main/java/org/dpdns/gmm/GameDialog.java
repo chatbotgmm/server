@@ -24,7 +24,7 @@ final class GameDialog extends AlertDialog.Builder {
         });
     Window window = dialog.getWindow();
     if (window != null) {
-      window.setBackgroundDrawable(new FrameDrawable(host, "dialog.webp"));
+      window.setBackgroundDrawable(new GamePaperDrawable(host, 0xffc27c3d));
       window.setDimAmount(.4f);
       window.setLayout(Math.min(host.dp(560), (int) (host.root.getWidth() * .9f)), -2);
       style(window.getDecorView());
@@ -72,13 +72,19 @@ final class GameDialog extends AlertDialog.Builder {
     if (v instanceof TextView) {
       TextView t = (TextView) v;
       t.setTextColor(MainActivity.INK);
-      t.setTypeface(v instanceof Button || t.getTypeface() == host.font ? host.font : host.prose);
+      t.setTypeface(
+          "prose".equals(t.getTag())
+              ? host.prose
+              : v instanceof Button || t.getTypeface() == host.font ? host.font : host.prose);
     }
     if (v instanceof CheckedTextView)
       ((CheckedTextView) v).setCheckMarkTintList(ColorStateList.valueOf(0xffa8672e));
     if (v instanceof CompoundButton)
       ((CompoundButton) v).setButtonTintList(ColorStateList.valueOf(0xffa8672e));
-    if (v instanceof EditText) v.setBackgroundTintList(ColorStateList.valueOf(0xffc27c3d));
+    if (v instanceof EditText) {
+      v.setBackgroundTintList(null);
+      v.setBackground(new GamePaperDrawable(host));
+    }
     if (v instanceof ViewGroup) {
       ViewGroup group = (ViewGroup) v;
       for (int i = 0; i < group.getChildCount(); i++) style(group.getChildAt(i));

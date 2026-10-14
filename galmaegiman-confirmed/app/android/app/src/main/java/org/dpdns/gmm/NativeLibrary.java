@@ -18,7 +18,7 @@ final class NativeLibrary {
   }
 
   void collection() {
-    h.base("수비대 · 내 갈매미", "collection");
+    h.base("수비대", "collection");
     m.defenderTabs(h.body, 0);
     LinearLayout filters = k.column(), list = k.column();
     h.body.addView(filters);
@@ -48,16 +48,27 @@ final class NativeLibrary {
           for (int i = 0; i < visible.size(); i++) {
             int index = i;
             JSONObject u = visible.get(i);
-            LinearLayout card =
-                k.tile(
-                    u,
-                    "/thumbs/" + u.optString("id") + ".jpg",
-                    u.optString("tierName")
-                        + " · ×"
-                        + u.optInt("have")
-                        + (u.optInt("away") > 0 ? " · 탐험 " + u.optInt("away") : "")
-                        + (u.optInt("locked") > 0 ? " · 보호" : ""),
-                    () -> detail(visible, index));
+            LinearLayout card = k.paper();
+            card.setGravity(Gravity.CENTER_HORIZONTAL);
+            FrameLayout portrait = new FrameLayout(h);
+            ImageView art = k.image("/thumbs/" + u.optString("id") + ".jpg", 100, 100);
+            portrait.addView(art, new FrameLayout.LayoutParams(-1, -1));
+            TextView have = h.text("×" + u.optInt("have"), 12);
+            have.setBackground(new GamePaperDrawable(h));
+            have.setPadding(h.dp(4), 0, h.dp(4), 0);
+            portrait.addView(
+                have, new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.RIGHT));
+            card.addView(portrait, new LinearLayout.LayoutParams(-1, h.dp(96)));
+            TextView name = h.text(u.optString("name"), 12);
+            name.setGravity(Gravity.CENTER);
+            name.setMaxLines(1);
+            name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            card.addView(name);
+            TextView grade = k.note(u.optString("tierName") + " · " + u.optString("attrName"));
+            grade.setTextSize(11);
+            grade.setGravity(Gravity.CENTER);
+            card.addView(grade);
+            card.setOnClickListener(v -> detail(visible, index));
             card.setOnLongClickListener(
                 v -> {
                   hold(visible, index);
@@ -65,8 +76,8 @@ final class NativeLibrary {
                 });
             cards.add(card);
           }
-          list.addView(k.notice("발견 " + h.me().optInt("dex") + " / " + h.me().optInt("dexTotal")));
-          k.tiles(list, cards, h.getResources().getConfiguration().screenWidthDp >= 1100 ? 7 : 5);
+          int usable = h.getResources().getConfiguration().screenWidthDp - 32;
+          k.tiles(list, cards, Math.max(3, usable / 125));
           if (cards.isEmpty()) list.addView(k.note("찾는 갈매미가 없어요. 이름·등급·속성을 바꿔 찾아보세요."));
         };
     k.search(
@@ -86,6 +97,7 @@ final class NativeLibrary {
           m.grade = values[i];
           collection();
         });
+    ((LinearLayout) filters.getChildAt(filters.getChildCount() - 1)).setGravity(Gravity.LEFT);
     paint[0].run();
   }
 
@@ -351,7 +363,7 @@ final class NativeLibrary {
   }
 
   void items() {
-    h.base("수비대 · 아이템", "items");
+    h.base("수비대", "items");
     m.defenderTabs(h.body, 2);
     LinearLayout guidance = k.paper();
     guidance.addView(k.note("치료약은 전투 밖에서도 사용할 수 있어요. 다른 아이템은 스토리 대결 중에 사용해요."));

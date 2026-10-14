@@ -8,7 +8,7 @@ import java.util.*;
 import org.json.*;
 
 /** Android Canvas 장면과 네이티브 조작 버튼. 메뉴 뒤 큰 패널은 사용하지 않는다. */
-final class BattleView extends FrameLayout {
+final class BattleView extends FrameLayout implements FullBleed {
   final MainActivity host;
   final DragParallax parallax;
   final JSONObject battle;
@@ -21,6 +21,7 @@ final class BattleView extends FrameLayout {
   final BattlePlayback playback;
   NativeAugmentView augmentView;
   int arenaWidth, arenaHeight, logHeight, panelLeft, panelWidth;
+  int safeLeft, safeTop, uiWidth, uiHeight;
 
   BattleView(MainActivity a, JSONObject b) {
     super(a);
@@ -105,14 +106,23 @@ final class BattleView extends FrameLayout {
   @Override
   protected void onMeasure(int widthSpec, int heightSpec) {
     int w = MeasureSpec.getSize(widthSpec), h = MeasureSpec.getSize(heightSpec), m = host.dp(8);
-    boolean resized = arenaWidth != w || arenaHeight != h;
+    RectF safe = host.safeBounds(w, h);
+    boolean resized =
+        arenaWidth != w
+            || arenaHeight != h
+            || uiWidth != Math.round(safe.width())
+            || uiHeight != Math.round(safe.height());
+    safeLeft = Math.round(safe.left);
+    safeTop = Math.round(safe.top);
+    uiWidth = Math.round(safe.width());
+    uiHeight = Math.round(safe.height());
     arenaWidth = w;
     arenaHeight = h;
-    tablet = (float) w / h < 1.85f;
-    panelLeft = Math.round(w * .655f);
-    panelWidth = w - panelLeft - m;
+    tablet = (float) uiWidth / uiHeight < 1.85f;
+    panelLeft = Math.round(uiWidth * .655f);
+    panelWidth = uiWidth - panelLeft - m;
     int buttonH = Math.max(host.dp(82), Math.round((panelWidth - host.dp(8)) / 2f * 488 / 574));
-    logHeight = Math.max(host.dp(54), h - 2 * buttonH - host.dp(32));
+    logHeight = Math.max(host.dp(54), uiHeight - 2 * buttonH - host.dp(32));
     ((TextView) logBox.getChildAt(0)).setTextSize(tablet ? 22 : 17);
     if (resized) render();
     getChildAt(0)
@@ -124,7 +134,8 @@ final class BattleView extends FrameLayout {
         MeasureSpec.makeMeasureSpec(logHeight, MeasureSpec.EXACTLY));
     menu.measure(
         MeasureSpec.makeMeasureSpec(panelWidth, MeasureSpec.EXACTLY),
-        MeasureSpec.makeMeasureSpec(Math.max(1, h - logHeight - 3 * m), MeasureSpec.EXACTLY));
+        MeasureSpec.makeMeasureSpec(
+            Math.max(1, uiHeight - logHeight - 3 * m), MeasureSpec.EXACTLY));
     if (augmentView != null)
       augmentView.measure(
           MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY),
@@ -136,8 +147,13 @@ final class BattleView extends FrameLayout {
   protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
     int m = host.dp(8);
     getChildAt(0).layout(0, 0, arenaWidth, arenaHeight);
-    logBox.layout(panelLeft, m, arenaWidth - m, m + logHeight);
-    menu.layout(panelLeft, logHeight + 2 * m, arenaWidth - m, arenaHeight - m);
+    logBox.layout(
+        safeLeft + panelLeft, safeTop + m, safeLeft + uiWidth - m, safeTop + m + logHeight);
+    menu.layout(
+        safeLeft + panelLeft,
+        safeTop + logHeight + 2 * m,
+        safeLeft + uiWidth - m,
+        safeTop + uiHeight - m);
     if (augmentView != null) augmentView.layout(0, 0, arenaWidth, arenaHeight);
     if (changed) logBox.post(() -> logBox.fullScroll(FOCUS_DOWN));
   }
@@ -185,8 +201,7 @@ final class BattleView extends FrameLayout {
         items();
         return;
     }
-    int height =
-        Math.max(host.dp(82), Math.round((arenaWidth * .345f - host.dp(16)) / 2 * 488 / 574));
+    int height = Math.max(host.dp(82), Math.round((uiWidth * .345f - host.dp(16)) / 2 * 488 / 574));
     for (int row = 0; row < 2; row++) {
       LinearLayout line = new LinearLayout(host);
       controls.addView(line);
@@ -302,11 +317,12 @@ final class BattleView extends FrameLayout {
       button.setEllipsize(android.text.TextUtils.TruncateAt.END);
       button.setPadding(host.dp(8), host.dp(8), host.dp(8), host.dp(8));
       button.setBackground(
-          new GameButtonDrawable(
+          new GameSkillDrawable(
               host,
               combo
-                  ? 0xffedcc79
-                  : sk.optInt("power") > 0 ? Color.rgb(246, 183, 147) : Color.rgb(163, 212, 195)));
+                  ? 0xffd9a400
+                  : MenuKit.attrColor(preview == null ? "" : preview.optString("attr")),
+              combo));
       button.setOnLongClickListener(
           v -> {
             host.message(
@@ -467,7 +483,10 @@ final class BattleView extends FrameLayout {
     protected void onDraw(Canvas c) {
       super.onDraw(c);
       float w = getWidth(), h = getHeight();
-      Bitmap bg = host.art.asset("battle.webp");
+      Bitmap bg =
+          host.art.scene(
+              "/duel/bg/" + battle.optString("scene", "deep") + ".jpg", this::invalidate);
+      if (bg == null) bg = host.art.asset("battle.webp");
       if (bg != null) {
         float scale = Math.max(w / bg.getWidth(), h / bg.getHeight()) * 1.035f,
             bw = bg.getWidth() * scale,
@@ -476,6 +495,10 @@ final class BattleView extends FrameLayout {
         r.offset(parallax.x * .2f, parallax.y * .2f);
         bitmap(c, bg, null, r);
       } else c.drawColor(0xff89d3dc);
+      c.save();
+      c.translate(safeLeft, safeTop);
+      w = uiWidth;
+      h = uiHeight;
       float world = w * .645f;
       JSONObject a = active(0), b = active(1);
       c.save();
@@ -501,6 +524,7 @@ final class BattleView extends FrameLayout {
       p.setColor(MainActivity.INK);
       c.drawText(battle.optInt("turn") + "턴", w * .415f, h * .095f, p);
       p.setTextAlign(Paint.Align.LEFT);
+      c.restore();
     }
 
     void fighter(Canvas c, JSONObject f, RectF area) {
@@ -579,7 +603,9 @@ final class BattleView extends FrameLayout {
       c.drawText(attribute, x + host.dp(2), attrY, p);
       p.setTextAlign(Paint.Align.RIGHT);
       p.setColor(MainActivity.INK);
-      c.drawText(f.optInt("hp") + "/" + f.optInt("maxHp"), right, barY + bh + r.height() * .17f, p);
+      if (own)
+        c.drawText(
+            f.optInt("hp") + "/" + f.optInt("maxHp"), right, barY + bh + r.height() * .17f, p);
       p.setTextAlign(Paint.Align.LEFT);
       JSONObject u = host.unit(f.optString("key"));
       p.setTextSize(size * .64f);

@@ -211,6 +211,7 @@ public class NativeRenderReviewTest {
     ActivityController<MainActivity> c =
         Robolectric.buildActivity(MainActivity.class).setup().visible();
     MainActivity a = c.get();
+    a.motionEnabled = false;
     await(() -> !a.busy && a.state.has("me"));
     return c;
   }
@@ -395,6 +396,117 @@ public class NativeRenderReviewTest {
       assertEquals(0, Shadows.shadowOf(alarms).getScheduledAlarms().size());
       assertEquals(0, Shadows.shadowOf(manager).size());
       a.getSharedPreferences("native_account", 0).edit().putBoolean("alerts", false).apply();
+    }
+  }
+
+  void checkSafeButtons(View v, MainActivity a) {
+    if (v instanceof Button && v.isShown()) {
+      android.graphics.Rect r = new android.graphics.Rect();
+      if (v.getGlobalVisibleRect(r)) {
+        android.graphics.Rect root = new android.graphics.Rect();
+        a.root.getGlobalVisibleRect(root);
+        assertTrue("컷아웃 왼쪽 조작부", r.left >= root.left + a.root.getPaddingLeft());
+        assertTrue("오른쪽 모서리 조작부", r.right <= root.right - a.root.getPaddingRight());
+        assertTrue("상단 모서리 조작부", r.top >= root.top + a.root.getPaddingTop());
+        assertTrue("하단 시스템 영역 조작부", r.bottom <= root.bottom - a.root.getPaddingBottom());
+      }
+    }
+    if (v instanceof ViewGroup) {
+      ViewGroup g = (ViewGroup) v;
+      for (int i = 0; i < g.getChildCount(); i++) checkSafeButtons(g.getChildAt(i), a);
+    }
+  }
+
+  void fullBleedCapture(MainActivity a, String name) throws Exception {
+    capture(a, "zflip-" + name, 1006, 411);
+    assertEquals(36, a.root.getPaddingLeft());
+    checkSafeButtons(a.root, a);
+    Bitmap image = Bitmap.createBitmap(1006, 411, Bitmap.Config.ARGB_8888);
+    a.root.draw(new Canvas(image));
+    int colored = 0;
+    for (int y = 0; y < 411; y++)
+      if (image.getPixel(4, y) != android.graphics.Color.WHITE
+          && android.graphics.Color.alpha(image.getPixel(4, y)) == 255) colored++;
+    image.recycle();
+    assertTrue("흰 컷아웃 띠 없이 배경 채움", colored > 350);
+  }
+
+  @Test
+  public void zflipFullBleedAndSafeControls() throws Exception {
+    RuntimeEnvironment.setQualifiers("w1006dp-h411dp-land-mdpi");
+    try (ActivityController<MainActivity> c = start()) {
+      MainActivity a = c.get();
+      androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(a.root, (v, insets) -> insets);
+      a.root.setPadding(36, 10, 8, 10);
+      a.titleScreen();
+      fullBleedCapture(a, "title");
+      a.home();
+      await(() -> ((LobbyView) a.root.getChildAt(0)).ready());
+      fullBleedCapture(a, "home");
+      a.login();
+      fullBleedCapture(a, "login");
+      a.show("draw");
+      await(() -> a.menus.pendingFetches == 0);
+      fullBleedCapture(a, "draw");
+      a.show("modes");
+      await(() -> a.menus.pendingFetches == 0);
+      fullBleedCapture(a, "modes");
+      a.settings();
+      popup(a, "zflip-settings");
+      a.visibleDialog.dismiss();
+      a.practiceRoster = new java.util.ArrayList<>(java.util.Arrays.asList("D1", "T1", "E1"));
+      a.startFight("practice", "1-6");
+      await(() -> !a.busy && a.battle != null);
+      fullBleedCapture(a, "augment");
+      NativeAugmentView choice = ((BattleView) a.root.getChildAt(0)).augmentView;
+      choice.picks.get(0).performClick();
+      choice.confirm.performClick();
+      await(() -> !a.busy && a.battle.optString("phase").equals("action"));
+      fullBleedCapture(a, "battle");
+      a.battleTurn(MainActivity.obj("leave", true));
+      await(() -> !a.busy && a.battle.optString("phase").equals("over"));
+      a.visibleDialog.dismiss();
+    }
+  }
+
+  @Test
+  public void idleMotionAndStoryTypingStopWithScene() throws Exception {
+    try (ActivityController<MainActivity> c = start()) {
+      MainActivity a = c.get();
+      a.motionEnabled = true;
+      a.titleScreen();
+      TitleView title = (TitleView) a.root.getChildAt(0);
+      assertNotNull("첫 화면 반복 모션", title.motion.clock);
+      title.motion.millis = 0;
+      float initial = title.motion.pulse(3400, 0);
+      title.motion.millis = 1700;
+      assertTrue("레이어별 숨쉬기 변위", title.motion.pulse(3400, 0) > initial);
+      a.show("home");
+      assertNull("사라진 장면 모션 중지", title.motion.clock);
+      LobbyView lobby = (LobbyView) a.root.getChildAt(0);
+      assertNotNull("로비 반복 모션", lobby.motion.clock);
+      boolean[] ended = {false};
+      a.talk(
+          new JSONArray()
+              .put(MainActivity.obj("who", "N", "say", "안녕 🐦 수비대"))
+              .put(MainActivity.obj("who", "N", "say", "두 번째 이야기")),
+          "이야기",
+          () -> ended[0] = true);
+      assertNull("로비 종료 시 모션 중지", lobby.motion.clock);
+      StoryView story = (StoryView) a.root.getChildAt(0);
+      assertTrue(story.typing);
+      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(60));
+      assertTrue(story.say.length() > 0 && story.say.length() < story.fullText.length());
+      story.next.performClick();
+      assertFalse("첫 터치는 현재 줄 완성", story.typing);
+      assertEquals("안녕 🐦 수비대", story.say.getText().toString());
+      assertEquals(0, story.index);
+      story.next.performClick();
+      assertEquals("다음 터치는 다음 대사", 1, story.index);
+      assertTrue(story.typing);
+      a.show("home");
+      assertFalse("화면 종료 시 타이핑 중지", story.typing);
+      assertFalse(ended[0]);
     }
   }
 

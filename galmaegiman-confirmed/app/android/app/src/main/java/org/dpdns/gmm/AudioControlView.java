@@ -8,7 +8,7 @@ import android.widget.*;
 final class AudioControlView extends LinearLayout {
   final MainActivity host;
   final String key, label;
-  final TextView heading;
+  final TextView heading, value;
   final SeekBar slider;
   final Button mute;
   Runnable onChange = () -> {};
@@ -18,21 +18,27 @@ final class AudioControlView extends LinearLayout {
     this.host = host;
     this.key = key;
     this.label = label;
-    setOrientation(VERTICAL);
-    setPadding(host.dp(8), host.dp(4), host.dp(8), host.dp(6));
-    heading = host.text("", 17);
-    heading.setTypeface(host.font);
-    addView(heading);
-    LinearLayout row = new LinearLayout(host);
-    row.setGravity(Gravity.CENTER_VERTICAL);
-    addView(row);
+    setOrientation(HORIZONTAL);
+    setGravity(Gravity.CENTER_VERTICAL);
+    setBackground(new GamePaperDrawable(host));
+    setPadding(host.dp(8), host.dp(4), host.dp(8), host.dp(7));
+    heading = host.text(label, 16);
+    heading.setTypeface(host.prose);
+    heading.setPadding(host.dp(4), 0, host.dp(4), 0);
+    addView(heading, new LayoutParams(host.dp(98), host.dp(48)));
+    heading.setGravity(Gravity.CENTER_VERTICAL);
     slider = new SeekBar(host);
     slider.setMax(100);
     slider.setProgress(host.sound.volume(key));
     slider.setContentDescription(label + " 볼륨");
     slider.setProgressTintList(ColorStateList.valueOf(0xffa8672e));
     slider.setThumbTintList(ColorStateList.valueOf(0xffc27c3d));
-    row.addView(slider, new LinearLayout.LayoutParams(0, host.dp(48), 1));
+    addView(slider, new LayoutParams(0, host.dp(48), 1));
+    value = host.text("", 16);
+    value.setTypeface(host.prose);
+    value.setGravity(Gravity.CENTER);
+    value.setPadding(0, 0, 0, 0);
+    addView(value, new LayoutParams(host.dp(30), host.dp(48)));
     mute =
         host.button(
             "",
@@ -43,7 +49,11 @@ final class AudioControlView extends LinearLayout {
               refresh();
               onChange.run();
             });
-    row.addView(mute, new LinearLayout.LayoutParams(host.dp(86), host.dp(48)));
+    mute.setTag("prose");
+    mute.setMinHeight(host.dp(48));
+    mute.setMinimumHeight(host.dp(48));
+    mute.setPadding(host.dp(9), host.dp(8), host.dp(9), host.dp(11));
+    addView(mute, new LayoutParams(host.dp(48), host.dp(48)));
     slider.setOnSeekBarChangeListener(
         new SeekBar.OnSeekBarChangeListener() {
           public void onProgressChanged(SeekBar v, int value, boolean user) {
@@ -67,9 +77,13 @@ final class AudioControlView extends LinearLayout {
 
   void refresh() {
     boolean muted = host.sound.muted(key);
-    heading.setText(label + "  " + host.sound.volume(key) + (muted ? " · 음소거" : ""));
+    value.setText(String.valueOf(host.sound.volume(key)));
     slider.setAlpha(muted ? .6f : 1);
-    mute.setText(muted ? "해제" : "음소거");
+    SpeakerDrawable icon = new SpeakerDrawable(muted);
+    icon.setBounds(0, 0, host.dp(26), host.dp(26));
+    mute.setCompoundDrawables(icon, null, null, null);
+    mute.setText("");
+    mute.setSelected(muted);
     mute.setContentDescription(label + (muted ? " 음소거 해제" : " 음소거"));
     mute.setBackground(
         new GameButtonDrawable(
@@ -79,9 +93,12 @@ final class AudioControlView extends LinearLayout {
   static LinearLayout pair(MainActivity host) {
     LinearLayout content = new LinearLayout(host);
     content.setOrientation(VERTICAL);
-    content.setPadding(host.dp(12), host.dp(4), host.dp(12), host.dp(4));
-    content.addView(new AudioControlView(host, "배경음악", "music"));
-    content.addView(new AudioControlView(host, "효과음", "effects"));
+    for (String key : new String[] {"music", "effects"}) {
+      AudioControlView row = new AudioControlView(host, key.equals("music") ? "배경음악" : "효과음", key);
+      LayoutParams lp = new LayoutParams(-1, -2);
+      lp.topMargin = host.dp(6);
+      content.addView(row, lp);
+    }
     return content;
   }
 }

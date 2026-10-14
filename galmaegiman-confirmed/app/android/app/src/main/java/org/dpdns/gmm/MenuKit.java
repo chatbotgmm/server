@@ -53,8 +53,8 @@ final class MenuKit {
   LinearLayout paper() {
     LinearLayout v = column();
     v.setPadding(h.dp(10), h.dp(8), h.dp(10), h.dp(8));
-    v.setBackground(h.material(0xfffffaf0));
-    v.setElevation(h.dp(3));
+    v.setBackground(new GamePaperDrawable(h));
+    v.setElevation(h.dp(1));
     return v;
   }
 
@@ -124,11 +124,17 @@ final class MenuKit {
 
   void tabs(LinearLayout parent, String[] names, int active, IntConsumer select) {
     LinearLayout line = row();
+    line.setGravity(Gravity.CENTER);
     for (int i = 0; i < names.length; i++) {
       int index = i;
       Button b = action(null, names[i], () -> select.accept(index));
       if (i == active) b.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
-      h.cell(line, b);
+      b.setTextSize(15);
+      LinearLayout.LayoutParams slot =
+          new LinearLayout.LayoutParams(h.dp(names.length > 3 ? 82 : 124), h.dp(48));
+      slot.setMargins(h.dp(4), h.dp(4), h.dp(4), h.dp(4));
+      b.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(7));
+      line.addView(b, slot);
     }
     parent.addView(line);
   }
@@ -193,6 +199,33 @@ final class MenuKit {
           public void afterTextChanged(android.text.Editable s) {}
         });
     return e;
+  }
+
+  void compactQuantity(LinearLayout parent, int max, IntConsumer change) {
+    quantity(parent, max, change);
+    LinearLayout row = (LinearLayout) parent.getChildAt(parent.getChildCount() - 1);
+    for (int i = 0; i < row.getChildCount(); i++) {
+      View v = row.getChildAt(i);
+      LinearLayout.LayoutParams lp =
+          new LinearLayout.LayoutParams(
+              v instanceof EditText ? h.dp(36) : 0, h.dp(48), v instanceof EditText ? 0 : 1);
+      lp.setMargins(h.dp(2), 0, h.dp(2), 0);
+      v.setLayoutParams(lp);
+      if (v instanceof Button) {
+        Button b = (Button) v;
+        b.setMinWidth(0);
+        b.setMinimumWidth(0);
+        b.setMinHeight(h.dp(48));
+        b.setMinimumHeight(h.dp(48));
+        b.setTextSize(14);
+        b.setPadding(h.dp(3), 0, h.dp(3), h.dp(3));
+      }
+      if (v instanceof EditText) {
+        v.setBackgroundTintList(null);
+        v.setBackground(new GamePaperDrawable(h));
+        v.setPadding(0, 0, 0, 0);
+      }
+    }
   }
 
   void quantity(LinearLayout parent, int max, IntConsumer change) {

@@ -5,11 +5,12 @@ import android.view.*;
 import android.widget.*;
 
 /** 기존 첫 화면의 원본 이미지와 1961×802 배치를 네이티브로 유지한다. */
-final class TitleView extends FrameLayout {
+final class TitleView extends FrameLayout implements FullBleed {
   final MainActivity host;
   final Button enter, settings;
   final boolean loggedIn;
   final DragParallax parallax;
+  final SceneMotion motion;
   float scale, extraX, extraY;
   final Paint paint = new Paint(3);
   static final String[] NAMES = {"guardian", "lobster", "octopus", "gull", "logo", "sub"};
@@ -25,6 +26,7 @@ final class TitleView extends FrameLayout {
   TitleView(MainActivity host, boolean loggedIn) {
     super(host);
     this.host = host;
+    motion = new SceneMotion(this, host);
     parallax = new DragParallax(this, host.dp(18));
     this.loggedIn = loggedIn;
     LobbyView.warm(host);
@@ -70,13 +72,21 @@ final class TitleView extends FrameLayout {
   }
 
   @Override
+  protected void onAttachedToWindow() {
+    super.onAttachedToWindow();
+    motion.start();
+  }
+
+  @Override
   protected void onDetachedFromWindow() {
+    motion.close();
     parallax.close();
     super.onDetachedFromWindow();
   }
 
   RectF box(float[] a) {
-    float x = a[0] * scale + a[4] * extraX / 2, y = a[1] * scale + a[5] * extraY;
+    float x = host.root.getPaddingLeft() + a[0] * scale + a[4] * extraX / 2,
+        y = host.root.getPaddingTop() + a[1] * scale + a[5] * extraY;
     return new RectF(x, y, x + a[2] * scale, y + a[3] * scale);
   }
 
@@ -88,17 +98,22 @@ final class TitleView extends FrameLayout {
   }
 
   RectF gearBox() {
-    float size = Math.min(host.dp(64), getHeight() * .14f);
+    RectF safe = host.safeBounds(getWidth(), getHeight());
+    float size = Math.min(host.dp(64), safe.height() * .14f);
     return new RectF(
-        getWidth() - size - host.dp(10), host.dp(8), getWidth() - host.dp(10), host.dp(8) + size);
+        safe.right - size - host.dp(10),
+        safe.top + host.dp(8),
+        safe.right - host.dp(10),
+        safe.top + host.dp(8) + size);
   }
 
   @Override
   protected void onMeasure(int ws, int hs) {
     int w = MeasureSpec.getSize(ws), h = MeasureSpec.getSize(hs);
-    scale = Math.min(w / 1961f, h / 802f);
-    extraX = w - 1961 * scale;
-    extraY = h - 802 * scale;
+    RectF safe = host.safeBounds(w, h);
+    scale = Math.min(safe.width() / 1961f, safe.height() / 802f);
+    extraX = safe.width() - 1961 * scale;
+    extraY = safe.height() - 802 * scale;
     setMeasuredDimension(w, h);
     enter.measure(
         MeasureSpec.makeMeasureSpec((int) mainBox().width(), MeasureSpec.EXACTLY),
@@ -149,6 +164,14 @@ final class TitleView extends FrameLayout {
     float[] depths = {.9f, 1.15f, 1.4f, 1.2f, 0, 0};
     for (int i = 0; i < NAMES.length; i++) {
       RectF r = box(BOXES[i]);
+      if (i < 4) {
+        float pulse = motion.pulse(i == 2 ? 2800 : 3400, new float[] {0, 900, 1700, 2300}[i]);
+        float width = r.width(), height = r.height();
+        r.left -= width * .005f * pulse;
+        r.right += width * .005f * pulse;
+        r.top += height * .01f * pulse;
+        r.offset(0, -height * .012f * pulse);
+      }
       r.offset(parallax.x * depths[i], parallax.y * depths[i]);
       draw(c, "t2_" + NAMES[i] + ".webp", r);
     }

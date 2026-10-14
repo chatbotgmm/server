@@ -67,7 +67,11 @@ final class NativeAugmentView extends LinearLayout {
     if (!valid) selected = "";
     setOrientation(VERTICAL);
     setBackgroundColor(0xff2b180b);
-    setPadding(h.dp(large ? 44 : 20), h.dp(8), h.dp(large ? 44 : 20), h.dp(10));
+    setPadding(
+        h.dp(large ? 44 : 20) + h.root.getPaddingLeft(),
+        h.dp(8) + h.root.getPaddingTop(),
+        h.dp(large ? 44 : 20) + h.root.getPaddingRight(),
+        h.dp(10) + h.root.getPaddingBottom());
     title = h.text("◆ 전투 증강체 ◆", large ? 28 : 22);
     title.setGravity(Gravity.CENTER);
     title.setTextColor(0xfffff0c9);
