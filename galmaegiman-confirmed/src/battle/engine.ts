@@ -17,7 +17,39 @@ interface SideState {fighters:Fighter[];active:number;comboUsed:boolean;augs:str
 // 교체: '인사 발령' 증강체가 있으면 턴을 안 쓰므로 then(바로 쓸 기술)을 함께 보냄(없으면 AI가 고름)
 // 아이템: 그 턴 행동을 쓰고, 기술보다 먼저 쓰임. target = 다시 일으킬 갈매미 순서(다시 출근 깃털)
 export type Action={kind:'skill';skillId:string}|{kind:'switch';to:number;then?:string}|{kind:'item';item:string;target?:number};
-export interface Battle {R:Rules;rng:number;turn:number;phase:'choose'|'action'|'over';winner:0|1|null;sides:[SideState,SideState];log:string[]}
+// 화면 연출은 표시 이름 대신 진영·편성 칸·기록 번호로 대상을 찾는다. 같은 이름/종류도 서로 다른 대상이다.
+export interface BattleFighterRef {side:0|1;slot:number;key:string;id:string}
+export interface BattleEvent {
+  id:number;turn:number;kind:'skill'|'damage'|'heal'|'switch'|'faint'|'revive'|'item'|'augment'|'status';
+  actor?:BattleFighterRef;target?:BattleFighterRef;skillId?:string;skillName?:string;attr?:Attr;power?:number;reason?:string;
+  amount?:number;hpBefore?:number;hpAfter?:number;maxHp?:number;crit?:boolean;multiplier?:number;hit?:number;
+  status?:Partial<Record<Status,number>>;extraAttr?:Attr|null;
+  text:string;logIndex:number;
+}
+export interface Battle {R:Rules;rng:number;turn:number;phase:'choose'|'action'|'over';winner:0|1|null;sides:[SideState,SideState];log:string[];events:BattleEvent[];eventSeq:number}
+export const BATTLE_EVENT_LIMIT=200;
+const fighterRef=(b:Battle,f:Fighter):BattleFighterRef=>({side:f.side,slot:b.sides[f.side].fighters.indexOf(f),key:f.rec.uid,id:f.rec.id});
+type EventData=Omit<BattleEvent,'id'|'turn'|'text'|'logIndex'>&{turn?:number};
+function event(b:Battle,data:EventData,logIndex=b.log.length-1):BattleEvent{
+  // 저장된 이전 버전 대결도 이어 할 수 있게 없던 스트림은 첫 변경 시 만든다.
+  b.events??=[];b.eventSeq??=b.events.at(-1)?.id??0;
+  const e:BattleEvent={...data,id:++b.eventSeq,turn:data.turn??b.turn,logIndex,text:b.log[logIndex]??''};
+  b.events.push(e);if(b.events.length>BATTLE_EVENT_LIMIT)b.events.splice(0,b.events.length-BATTLE_EVENT_LIMIT);
+  return e;
+}
+function linkEvent(b:Battle,e:BattleEvent,logIndex=b.log.length-1){e.logIndex=logIndex;e.text=b.log[logIndex]??'';}
+const skillEvent=(skill?:Skill)=>skill?{skillId:skill.id,skillName:skill.name,attr:skill.attr,power:skill.power??0}:{};
+function statusEvent(b:Battle,target:Fighter,reason:string,actor?:Fighter){
+  const e=event(b,{kind:'status',...(actor?{actor:fighterRef(b,actor)}:{}),target:fighterRef(b,target),reason,
+    status:{...target.status},attr:target.attr,extraAttr:target.extraAttr??null});
+  if(reason==='expire')e.text='';
+}
+function healed(b:Battle,actor:Fighter,target:Fighter,before:number,reason:string,skill?:Skill,revive=false){
+  if(target.hp===before&&!revive)return;
+  const e=event(b,{kind:revive?'revive':'heal',actor:fighterRef(b,actor),target:fighterRef(b,target),reason,...skillEvent(skill),
+    amount:target.hp-before,hpBefore:before,hpAfter:target.hp,maxHp:target.maxHp});
+  if(!revive)e.text=`${target.name}의 체력이 ${e.amount} 회복됐어요.`;
+}
 
 // 같은 시드 → 같은 난수(mulberry32)
 function rand(b:Battle){let t=(b.rng=(b.rng+0x6d2b79f5)|0);t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;}
@@ -42,7 +74,7 @@ export function createBattle(R:Rules,teamA:UnitRecord[],teamB:UnitRecord[],seed:
   const comboFor=(t:UnitRecord[],r:UnitRecord)=>{const k=R.unitDef(r.id)?.syn;if(!k||new Set(t.filter(x=>R.unitDef(x.id)?.syn===k).map(x=>x.id)).size<2)return undefined;   // 같은 종류 2마리는 1마리로 셈
     return R.comboSkill(k,R.unitDef(r.id)!.attr);};
   const side=(t:UnitRecord[],i:0|1):SideState=>({fighters:t.map(r=>makeFighter(R,r,i,comboFor(t,r))),active:0,comboUsed:false,augs:[],offers:null,rerolled:[],offerSeen:[],needSwitch:false,reviveUsed:false,goFirst:false,neutral:0,itemsUsed:0});
-  const b:Battle={R,rng:seed|0,turn:1,phase:'choose',winner:null,sides:[side(teamA,0),side(teamB,1)],log:[]};
+  const b:Battle={R,rng:seed|0,turn:1,phase:'choose',winner:null,sides:[side(teamA,0),side(teamB,1)],log:[],events:[],eventSeq:0};
   // 거울(mirror) 빌런: 상대 팀에 가장 많은 속성을 그대로 비춤(같으면 상대 선두 속성)
   for(const i of [0,1] as const)for(const f of b.sides[i].fighters)if(R.unitDef(f.rec.id)?.mirror){
     const foes=b.sides[i===0?1:0].fighters,cnt=new Map<Attr,number>();for(const x of foes)cnt.set(x.attr,(cnt.get(x.attr)??0)+1);
@@ -89,7 +121,8 @@ export function choose(b:Battle,side:0|1,pick:{augment?:string;switchTo?:number}
   if(s.needSwitch){
     const to=pick.switchTo;
     if(to===undefined||!s.fighters[to]||!alive(s.fighters[to]))throw new Error('나갈 갈매미를 골라야 함');
-    s.active=to;s.needSwitch=false;b.log.push(`${josa(s.fighters[to].name,'이가')} 나왔어요!`);
+    const out=s.fighters[s.active];s.active=to;s.needSwitch=false;b.log.push(`${josa(s.fighters[to].name,'이가')} 나왔어요!`);
+    event(b,{kind:'switch',actor:fighterRef(b,out),target:fighterRef(b,s.fighters[to]),reason:'faint'});
   }
   if(b.sides.every(x=>!x.offers&&!x.needSwitch))b.phase='action';
 }
@@ -98,17 +131,18 @@ export const pending=(b:Battle,side:0|1)=>({augments:b.sides[side].offers,needSw
 function applyAugment(b:Battle,side:0|1,id:string){
   const me=activeOf(b,side),foe=activeOf(b,foeSide(side)),s=b.sides[side];
   const R=b.R,a=R.battleAug.get(id)!,p=a.p;b.log.push(`[${side===0?'내 팀':'상대'}] 증강체 「${a.name}」!`);
+  event(b,{kind:'augment',actor:fighterRef(b,me),skillId:id,skillName:a.name});
   if(id==='neutral'){b.sides[0].neutral=b.sides[1].neutral=p.turns??3;}
   // 상대에게 강한 속성 2개 중, 상대 속성 공격을 덜 아프게 받는 쪽(같으면 속성 목록 순서)
   const cands=attrKeys.filter(x=>R.data.chart[x].strong.includes(foe.attr));
   const beats=cands.sort((x,y)=>R.typeMult(foe.attr,x)-R.typeMult(foe.attr,y))[0];
-  if(id==='camo'&&beats){me.attr=beats;b.log.push(`${me.name}의 속성이 ${R.attrName(beats)}(으)로 바뀌었어요.`);}
-  if(id==='dual'&&beats)me.extraAttr=beats;
+  if(id==='camo'&&beats){me.attr=beats;b.log.push(`${me.name}의 속성이 ${R.attrName(beats)}(으)로 바뀌었어요.`);statusEvent(b,me,'camo',me);}
+  if(id==='dual'&&beats){me.extraAttr=beats;statusEvent(b,me,'dual',me);}
   if(id==='first')s.goFirst=true;
   if(id==='bulwark')me.guards.push({pct:p.pct??40,turns:p.turns??2});
-  if(id==='firstaid')for(const f of s.fighters)if(alive(f))f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*(p.pct??25)/100));
+  if(id==='firstaid')for(const f of s.fighters)if(alive(f)){const before=f.hp;f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*(p.pct??25)/100));healed(b,me,f,before,'firstaid');}
   if(id==='strip'){foe.mods=foe.mods.filter(m=>m.pct<0);foe.guards=[];foe.mods.push({stat:'atk',pct:-(p.pct??20),turns:p.turns??2});}
-  if(id==='rustle'&&!foe.immune){foe.status.sleep=1;b.log.push(`바스락… ${josa(foe.name,'이가')} 멈췄어요!`);}
+  if(id==='rustle'&&!foe.immune){foe.status.sleep=1;b.log.push(`바스락… ${josa(foe.name,'이가')} 멈췄어요!`);statusEvent(b,foe,'rustle',me);}
 }
 
 // ── 능력치 계산 ──
@@ -176,11 +210,12 @@ function damage(b:Battle,att:Fighter,def:Fighter,move:Skill){
   return {amount:Math.max(1,Math.round(d)),mult,crit,attr:a};
 }
 
-function hurt(b:Battle,f:Fighter,amount:number){
-  let hp=f.hp-amount;
+function hurt(b:Battle,f:Fighter,amount:number,details:Partial<EventData>={}){
+  const before=f.hp;let hp=f.hp-amount;
   if(hp<=0&&f.endure>0)hp=1;
   if(hp<=0&&f.passive.lastStand&&!f.lastStandUsed){f.lastStandUsed=true;hp=1;b.log.push(`${josa(f.name,'이가')} 불굴의 의지로 버텼어요!`);}
   f.hp=Math.max(0,hp);
+  return event(b,{...details,kind:'damage',target:fighterRef(b,f),amount:before-f.hp,hpBefore:before,hpAfter:f.hp,maxHp:f.maxHp});
 }
 
 function applyStatus(b:Battle,src:Fighter,target:Fighter,status:Status,chance:number,turns:number){
@@ -188,10 +223,10 @@ function applyStatus(b:Battle,src:Fighter,target:Fighter,status:Status,chance:nu
   if(status==='rage'&&!target.peanut){b.log.push(`${josa(target.name,'은는')} 땅콩이 없어서 폭주하지 않아요.`);return;}
   let c=chance+(src.passive.statusPlus??0);
   if(target.passive.statusResist)c*=1-target.passive.statusResist/100;
-  if(rand(b)*100<c){target.statusUntil[status]=b.turn+turns+1;target.status[status]=turns+(target.actedTurn===b.turn?1:0);b.log.push(`${josa(target.name,'이가')} ${statusName[status]} 상태가 됐어요!`);}
+  if(rand(b)*100<c){target.statusUntil[status]=b.turn+turns+1;target.status[status]=turns+(target.actedTurn===b.turn?1:0);b.log.push(`${josa(target.name,'이가')} ${statusName[status]} 상태가 됐어요!`);statusEvent(b,target,'skill',src);}
 }
 
-function applyEffects(b:Battle,user:Fighter,target:Fighter,effects:Effect[]){
+function applyEffects(b:Battle,user:Fighter,target:Fighter,effects:Effect[],skill?:Skill){
   const team=b.sides[user.side].fighters,extra=user.passive.durationPlus??0,healBlocked=user.healUntil>=b.turn;
   if(healBlocked&&effects.some(e=>e.kind==='heal'))b.log.push('회복 효과는 이미 적용되었습니다. 공격은 계속됩니다.');
   for(const e of effects){
@@ -208,17 +243,19 @@ function applyEffects(b:Battle,user:Fighter,target:Fighter,effects:Effect[]){
       if(healBlocked)continue;
       user.healUntil=b.turn+1;
       const list=e.target==='self'?[user]:team.filter(f=>alive(f)&&f!==user);
-      for(const f of list){f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*e.pct/100));if(e.target==='self')delete f.status.burn;}
+      for(const f of list){const before=f.hp;f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*e.pct/100));healed(b,user,f,before,'skill',skill);if(e.target==='self'&&f.status.burn){delete f.status.burn;statusEvent(b,f,'heal',user);}}
     }
     else if(e.kind==='guard'&&!user.guards.some(g=>g.pct>=e.pct))user.guards.push({pct:e.pct,turns:e.turns});
     else if(e.kind==='endure'&&!user.endure)user.endure=e.turns;
     else if(e.kind==='protect')user.protect=true;
     else if(e.kind==='regen'){const list=e.target==='self'?[user]:team.filter(alive);for(const f of list)if(!f.regens.some(g=>g.pct>=e.pct))f.regens.push({pct:e.pct,turns:e.turns});}
-    else if(e.kind==='cleanse'){for(const f of team){f.status={};f.immune=e.immuneTurns;}}
+    else if(e.kind==='cleanse'){for(const f of team){const changed=Object.keys(f.status).length>0;f.status={};f.immune=e.immuneTurns;if(changed)statusEvent(b,f,'cleanse',user);}}
     else if(e.kind==='revive'){
       const s=b.sides[user.side];const down=team.find(f=>f.hp<=0);
       if(!down||s.reviveUsed){b.log.push('일으켜 세울 갈매미가 없어요.');continue;}
-      s.reviveUsed=true;down.hp=Math.round(down.maxHp*e.pct/100);down.status={};b.log.push(`"앙~" ${josa(down.name,'이가')} 다시 일어났어요!`);
+      const before=down.hp;s.reviveUsed=true;down.hp=Math.round(down.maxHp*e.pct/100);down.status={};b.log.push(`"앙~" ${josa(down.name,'이가')} 다시 일어났어요!`);
+      healed(b,user,down,before,'skill',skill,true);
+      statusEvent(b,down,'revive',user);
     }
     else if(e.kind==='strip'){target.mods=target.mods.filter(m=>m.pct<0);target.guards=[];}
     // 재사용 대기·공격 뒤 휴식은 사용하지 않음.
@@ -228,24 +265,27 @@ function applyEffects(b:Battle,user:Fighter,target:Fighter,effects:Effect[]){
 
 function useSkill(b:Battle,user:Fighter,target:Fighter,skill:Skill){
   b.log.push(`${user.name}의 ${skill.name}!`);
+  const cast=event(b,{kind:'skill',actor:fighterRef(b,user),...(skill.power?{target:fighterRef(b,target)}:{}),...skillEvent(skill)});
   if(!skill.power)user.lastUtility[skill.id]=b.turn;
   if(skill.power){
-    if(target.protect){b.log.push(`${josa(target.name,'이가')} 모두 막아 냈어요!`);applyEffects(b,user,target,skill.effects.filter(e=>e.kind!=='status'&&e.kind!=='strip'));return;}
+    if(target.protect){b.log.push(`${josa(target.name,'이가')} 모두 막아 냈어요!`);event(b,{kind:'damage',actor:fighterRef(b,user),target:fighterRef(b,target),...skillEvent(skill),reason:'protect',amount:0,hpBefore:target.hp,hpAfter:target.hp,maxHp:target.maxHp});applyEffects(b,user,target,skill.effects.filter(e=>e.kind!=='status'&&e.kind!=='strip'),skill);return;}
     const hits=skill.hits??1;let total=0,last={mult:1,crit:false,attr:user.attr as Attr};
-    for(let i=0;i<hits&&target.hp>0;i++){const r=damage(b,user,target,skill);hurt(b,target,r.amount);total+=r.amount;last=r;}
+    const hitEvents:BattleEvent[]=[];
+    for(let i=0;i<hits&&target.hp>0;i++){const r=damage(b,user,target,skill);hitEvents.push(hurt(b,target,r.amount,{actor:fighterRef(b,user),...skillEvent(skill),attr:r.attr,crit:!!r.crit,multiplier:r.mult,reason:'skill',hit:i+1}));total+=r.amount;last=r;}
     user.attacked=true;
     target.hitBy[last.attr]=(target.hitBy[last.attr]??0)+1;
     b.log.push(`${josa(target.name,'이가')} ${total} 피해를 입었어요.${last.crit?' 급소!':''}${last.mult>1?' 효과가 굉장해요!':last.mult<1?' 효과가 별로예요…':''}`);
-    if(user.passive.lifesteal)user.hp=Math.min(user.maxHp,user.hp+Math.round(total*user.passive.lifesteal/100));
+    for(const e of hitEvents)linkEvent(b,e);cast.attr=last.attr;
+    if(user.passive.lifesteal){const before=user.hp;user.hp=Math.min(user.maxHp,user.hp+Math.round(total*user.passive.lifesteal/100));healed(b,user,user,before,'lifesteal',skill);}
     const ug=(s:0|1,id:string)=>b.sides[s].augs.includes(id)?(b.R.battleAug.get(id)!.p.pct??0):0;
-    if(ug(user.side,'drain')&&user.hp>0&&total>0){const h=Math.round(total*ug(user.side,'drain')/100);user.hp=Math.min(user.maxHp,user.hp+h);b.log.push(`${josa(user.name,'이가')} 체력을 ${h} 되찾았어요.`);}
-    if(ug(target.side,'thorns')&&total>0){const r=Math.max(1,Math.round(total*ug(target.side,'thorns')/100));hurt(b,user,r);b.log.push(`가시 깃털! ${josa(user.name,'이가')} ${r} 피해를 돌려받았어요.`);}
-    if(target.passive.reflect&&target.hp>0){const r=Math.round(total*target.passive.reflect/100);hurt(b,user,r);b.log.push(`반사! ${josa(user.name,'이가')} ${r} 피해를 돌려받았어요.`);}
+    if(ug(user.side,'drain')&&user.hp>0&&total>0){const before=user.hp,h=Math.round(total*ug(user.side,'drain')/100);user.hp=Math.min(user.maxHp,user.hp+h);b.log.push(`${josa(user.name,'이가')} 체력을 ${h} 되찾았어요.`);healed(b,user,user,before,'drain',skill);}
+    if(ug(target.side,'thorns')&&total>0){const r=Math.max(1,Math.round(total*ug(target.side,'thorns')/100)),e=hurt(b,user,r,{actor:fighterRef(b,target),reason:'thorns'});b.log.push(`가시 깃털! ${josa(user.name,'이가')} ${r} 피해를 돌려받았어요.`);linkEvent(b,e);}
+    if(target.passive.reflect&&target.hp>0){const r=Math.round(total*target.passive.reflect/100),e=hurt(b,user,r,{actor:fighterRef(b,target),reason:'reflect'});b.log.push(`반사! ${josa(user.name,'이가')} ${r} 피해를 돌려받았어요.`);linkEvent(b,e);}
     if(last.mult<1&&b.sides[target.side].augs.includes('counter')&&target.hp>0){
-      const r=damage(b,target,user,{id:'counter',name:'역습',power:b.R.battleAug.get('counter')!.p.power??40,cd:0,effects:[],desc:''});hurt(b,user,r.amount);b.log.push(`역습! ${josa(user.name,'이가')} ${r.amount} 피해를 입었어요.`);
+      const r=damage(b,target,user,{id:'counter',name:'역습',power:b.R.battleAug.get('counter')!.p.power??40,cd:0,effects:[],desc:''}),e=hurt(b,user,r.amount,{actor:fighterRef(b,target),reason:'counter',skillId:'counter',skillName:'역습',attr:r.attr,crit:!!r.crit,multiplier:r.mult});b.log.push(`역습! ${josa(user.name,'이가')} ${r.amount} 피해를 입었어요.`);linkEvent(b,e);
     }
   }
-  applyEffects(b,user,target,skill.effects);
+  applyEffects(b,user,target,skill.effects,skill);
 }
 
 function doSwitch(b:Battle,side:0|1,to:number){
@@ -253,8 +293,9 @@ function doSwitch(b:Battle,side:0|1,to:number){
   if(!inn||!alive(inn)||to===s.active)throw new Error('교체할 수 없음');
   if(out.status.bind)throw new Error('묶여서 교체할 수 없음');
   if(out.lockAtk&&alive(out))throw new Error('뒤로 걷는 법을 몰라서 교체할 수 없음');
-  if(out.passive.handoff)inn.hp=Math.min(inn.maxHp,inn.hp+Math.round(inn.maxHp*out.passive.handoff/100));
+  if(out.passive.handoff){const before=inn.hp;inn.hp=Math.min(inn.maxHp,inn.hp+Math.round(inn.maxHp*out.passive.handoff/100));healed(b,out,inn,before,'handoff');}
   s.active=to;b.log.push(`${josa(out.name,'은는')} 들어가고 ${josa(inn.name,'이가')} 나왔어요!`);
+  event(b,{kind:'switch',actor:fighterRef(b,out),target:fighterRef(b,inn),reason:'action'});
 }
 
 // 아이템을 지금 쓸 수 있는지(못 쓰면 이유). 개수는 엔진 밖(계정)에서 따로 셈
@@ -273,9 +314,11 @@ function useItem(b:Battle,side:0|1,item:string,target?:number){
   const it=b.R.data.items[item],s=b.sides[side],f=activeOf(b,side),who=side===0?'내 팀':'상대';
   s.itemsUsed++;
   b.log.push(`[${who}] 아이템 「${it.name}」!`);
-  if(it.revive){const t=target===undefined?s.fighters.findIndex(x=>!alive(x)):target,d=s.fighters[t];d.hp=Math.round(d.maxHp*it.revive/100);d.status={};b.log.push(`"앙~" ${josa(d.name,'이가')} 다시 일어났어요!`);}
-  if(it.heal){const before=f.hp;f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*it.heal/100));b.log.push(`${f.name}의 체력이 ${f.hp-before} 회복됐어요.`);}
-  if(it.cleanse){f.status={};b.log.push(`${josa(f.name,'이가')} 정신을 차렸어요! 상태 이상이 풀렸어요.`);}
+  const d=it.revive?s.fighters[target===undefined?s.fighters.findIndex(x=>!alive(x)):target]:f;
+  event(b,{kind:'item',actor:fighterRef(b,f),target:fighterRef(b,d),skillId:item,skillName:it.name});
+  if(it.revive){const before=d.hp;d.hp=Math.round(d.maxHp*it.revive/100);d.status={};b.log.push(`"앙~" ${josa(d.name,'이가')} 다시 일어났어요!`);healed(b,f,d,before,item,undefined,true);statusEvent(b,d,'revive',f);}
+  if(it.heal){const before=f.hp;f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*it.heal/100));b.log.push(`${f.name}의 체력이 ${f.hp-before} 회복됐어요.`);healed(b,f,f,before,item);}
+  if(it.cleanse){f.status={};b.log.push(`${josa(f.name,'이가')} 정신을 차렸어요! 상태 이상이 풀렸어요.`);statusEvent(b,f,'cleanse',f);}
 }
 
 // 합동기: 팀당 1번, 같은 시너지 동료가 하나 이상 살아 있어야
@@ -353,15 +396,17 @@ function endTurn(b:Battle){
   for(const s of b.sides){
     const f=s.fighters[s.active];
     if(alive(f)){
-      if(f.status.burn){const d=Math.max(1,Math.round(f.maxHp*b.R.data.status.burnDamage/100));hurt(b,f,d);b.log.push(`${josa(f.name,'이가')} 화상으로 ${d} 피해를 입었어요.`);}
+      if(f.status.burn){const d=Math.max(1,Math.round(f.maxHp*b.R.data.status.burnDamage/100)),e=hurt(b,f,d,{reason:'burn'});b.log.push(`${josa(f.name,'이가')} 화상으로 ${d} 피해를 입었어요.`);linkEvent(b,e);}
       let heal=0;for(const r of f.regens)heal+=r.pct;if(f.passive.regen)heal+=f.passive.regen;
       if(s.augs.includes('lunch'))heal+=b.R.battleAug.get('lunch')!.p.pct??0;
-      if(heal&&alive(f))f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*heal/100));
+      if(heal&&alive(f)){const before=f.hp;f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*heal/100));healed(b,f,f,before,'regen');}
     }
     for(const x of s.fighters){
+      const statusBefore=JSON.stringify(x.status);
       for(const k of Object.keys(x.cds))if(x.cds[k]>0)x.cds[k]--;
       x.mods=x.mods.filter(m=>--m.turns>0);x.guards=x.guards.filter(g=>--g.turns>0);x.regens=x.regens.filter(r=>--r.turns>0);
       for(const k of Object.keys(x.status) as Status[]){if(--x.status[k]!<=0)delete x.status[k];}
+      if(JSON.stringify(x.status)!==statusBefore)statusEvent(b,x,'expire');
       if(x.endure>0)x.endure--;if(x.immune>0)x.immune--;x.protect=false;
     }
     if(s.neutral>0)s.neutral--;
@@ -371,7 +416,7 @@ function endTurn(b:Battle){
   let fainted=false;
   for(const side of [0,1] as const){
     const s=b.sides[side],f=s.fighters[s.active];
-    if(!alive(f)){fainted=true;b.log.push(`${josa(f.name,'이가')} 전투불가가 됐어요!`);
+    if(!alive(f)){fainted=true;b.log.push(`${josa(f.name,'이가')} 전투불가가 됐어요!`);event(b,{kind:'faint',target:fighterRef(b,f),hpBefore:f.hp,hpAfter:f.hp,maxHp:f.maxHp,turn:b.turn-1});
       if(s.fighters.some(alive))s.needSwitch=true;}
   }
   const lost=([0,1] as const).filter(side=>!b.sides[side].fighters.some(alive));

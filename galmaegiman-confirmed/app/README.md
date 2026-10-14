@@ -53,3 +53,5 @@ node app/publish-native.mjs app/android/app/build/outputs/apk/release/app-releas
 배포 빌드에는 `GMM_ANDROID_KEYSTORE`, `GMM_ANDROID_STORE_PASSWORD`, `GMM_ANDROID_KEY_ALIAS`, `GMM_ANDROID_KEY_PASSWORD`를 외부에서 제공한다. 설정이 없으면 release APK는 미서명 상태이며 공개 스크립트가 거절한다. 개선판 키는 EC2 `/var/lib/gmm-signing/native-revised/`에 접근권한을 제한해 보관한다. Git·명령 로그에 키나 암호를 넣지 않는다. 기존 66 APK와의 패키지 전환에만 공개 명령의 `--new-package`를 사용하며 이후 같은 패키지는 동일 서명을 요구한다.
 
 2.0.4-native(67) 변경과 캡처 검증 범위는 [검토 기록](../docs/reviews/NATIVE-MATERIAL-ANIMATION.md)을 참고한다. 알림은 FCM 원격 푸시 대신 Android 기기 예약을 사용한다.
+
+2.0.6-native(69)는 서버의 진영·편성 칸·기록 키를 가진 이벤트로 전투를 재생한다. 동일 이름·반사·회복·교체 표시와 응답 순서 검증은 [검토 기록](../docs/reviews/BATTLE-DISPLAY-ACCURACY.md)을 참고한다.

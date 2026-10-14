@@ -1492,6 +1492,81 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(await db.ownedCharacter.count({where:{characterId:'R1'}})).toBe(1);
     }finally{await app.close();}
   });
+  it('네이티브 동일 이름 전투의 표시 이벤트는 개체와 실제 HP·교체 상태를 식별하고 재요청에 중복되지 않는다',async()=>{
+    await fixtures(['D1']);
+    const app=await buildApp(db,game,{secret:'native-display-events-test'.repeat(3),baseUrl:async()=>'https://example.com'});
+    try{
+      const code=(await send('웹 로그인')).text!.match(/\b\d{6}\b/)![0];
+      const login=(await app.inject({method:'POST',url:'/my/api/login',payload:{code},headers:{'x-gmm':'1','x-gmm-app':'1'}})).json();
+      const headers={'x-gmm':'1','x-gmm-s':login.token};
+      const post=async(path:string,payload:object)=>{const r=await app.inject({method:'POST',url:`/my/api/native/${path}`,headers,payload});expect(r.statusCode,r.body).toBe(200);return r.json();};
+      let b=await post('battle/start',{mode:'practice',roster:['D1','D1'],enemyRoster:['D1','D1'],level:30});
+      expect(b.displayEventVersion).toBe(1);expect(b.displayEventSeq).toBe(0);expect(b.displayEvents).toEqual([]);expect(b.displayLogStart).toBe(0);
+      expect(b.teams[0].fighters[0].name).toBe(b.teams[1].fighters[0].name);
+      let seq=0;const health=new Map<string,number>();const active=[0,0];const observed:any[]=[];
+      for(const [side,team] of b.teams.entries())for(const [slot,f] of team.fighters.entries())health.set(`${side}:${slot}`,f.hp);
+      const validate=(snapshot:any)=>{
+        expect(snapshot.displayEventSeq).toBeGreaterThanOrEqual(seq);
+        const fresh=snapshot.displayEvents.filter((e:any)=>e.id>seq);
+        for(const e of fresh){
+          expect(e.id).toBe(seq+1);seq=e.id;observed.push(e);
+          for(const ref of [e.actor,e.target].filter(Boolean)){
+            expect([0,1]).toContain(ref.side);const f=snapshot.teams[ref.side].fighters[ref.slot];
+            expect(ref).toMatchObject({key:f.key,id:f.id});
+          }
+          if(e.target&&e.hpAfter!==undefined){
+            const key=`${e.target.side}:${e.target.slot}`;
+            expect(e.hpBefore).toBe(health.get(key));
+            expect(e.hpAfter).toBeGreaterThanOrEqual(0);expect(e.hpAfter).toBeLessThanOrEqual(e.maxHp);
+            expect(e.amount).toBe(Math.abs(e.hpAfter-e.hpBefore));health.set(key,e.hpAfter);
+          }
+          if(e.kind==='switch')active[e.target.side]=e.target.slot;
+        }
+        expect(seq).toBe(snapshot.displayEventSeq);
+        for(const [side,team] of snapshot.teams.entries()){
+          expect(team.active).toBe(active[side]);
+          for(const [slot,f] of team.fighters.entries())expect(f.hp).toBe(health.get(`${side}:${slot}`));
+        }
+      };
+      let switched=false;
+      for(let i=0;i<14&&b.phase!=='over';i++){
+        let event:object;
+        if(b.phase==='choose')event={choose:{augment:b.teams[0].offers.find((x:any)=>x.id!=='rustle')?.id??b.teams[0].offers[0].id,...(b.teams[0].needSwitch?{switchTo:b.teams[0].fighters.findIndex((f:any)=>f.hp>0)}:{})}};
+        else if(!switched&&b.teams[0].legal.some((a:any)=>a.kind==='switch'&&a.to===1)){event={action:{kind:'switch',to:1}};switched=true;}
+        else event={action:b.teams[0].legal.find((a:any)=>a.kind==='skill'&&a.skillId.startsWith('basic'))??b.teams[0].legal.find((a:any)=>a.kind==='skill')};
+        const command={session:b.session,revision:b.revision,...event};b=await post('battle/turn',command);validate(b);
+        const duplicate=await post('battle/turn',command);
+        expect(duplicate.displayEventSeq).toBe(b.displayEventSeq);expect(duplicate.displayEvents).toEqual(b.displayEvents);expect(duplicate.revision).toBe(b.revision);
+        if(observed.some(e=>e.kind==='damage'&&e.target.side===0)&&observed.some(e=>e.kind==='damage'&&e.target.side===1)&&switched)break;
+      }
+      expect(observed.some(e=>e.kind==='switch'&&e.target.side===0&&e.target.slot===1)).toBe(true);
+      expect(observed.filter(e=>e.kind==='damage').map(e=>e.target.side)).toEqual(expect.arrayContaining([0,1]));
+      const bad=await app.inject({method:'POST',url:'/my/api/native/battle/turn',headers,payload:{session:b.session,revision:b.revision,action:{kind:'skill',skillId:'forged'}}});
+      if(b.phase!=='over')expect(bad.statusCode).toBe(400);
+      const current=(await app.inject({method:'GET',url:'/my/api/native/battle/current',headers})).json();
+      if(b.phase!=='over'){expect(current.displayEventSeq).toBe(b.displayEventSeq);expect(current.displayEvents).toEqual(b.displayEvents);}
+    }finally{await app.close();}
+  });
+
+  it('아이템 저장 실패 시 임시 HP 변경과 표시 이벤트도 원래 전투에 남지 않는다',async()=>{
+    const p=await fixtures(['D1']);const key=`o${(await game.webStoryUnits(p.id))[0].oid}`;
+    await game.webSaveStory(p.id,{units:{[key]:{level:30,xp:0,stage:0,evoAugs:[]}},team:[key],cleared:[],hp:{[key]:{f:.25,at:Date.now()}}});
+    const app=await buildApp(db,game,{secret:'native-display-rollback-test'.repeat(3),baseUrl:async()=>'https://example.com'});
+    try{
+      const code=(await send('웹 로그인')).text!.match(/\b\d{6}\b/)![0];
+      const login=(await app.inject({method:'POST',url:'/my/api/login',payload:{code},headers:{'x-gmm':'1','x-gmm-app':'1'}})).json();
+      const headers={'x-gmm':'1','x-gmm-s':login.token};
+      const post=async(path:string,payload:object)=>app.inject({method:'POST',url:`/my/api/native/${path}`,headers,payload});
+      let b=(await post('battle/start',{mode:'story',stage:'P-1'})).json();
+      b=(await post('battle/turn',{session:b.session,revision:b.revision,choose:{augment:b.teams[0].offers.find((x:any)=>x.id!=='rustle')?.id??b.teams[0].offers[0].id}})).json();
+      const failed=await post('battle/turn',{session:b.session,revision:b.revision,action:{kind:'item',item:'potion'}});
+      expect(failed.statusCode).toBe(400);
+      const current=(await app.inject({method:'GET',url:'/my/api/native/battle/current',headers})).json();
+      expect(current.revision).toBe(b.revision);expect(current.displayEventSeq).toBe(b.displayEventSeq);expect(current.displayEvents).toEqual(b.displayEvents);
+      expect(current.log).toEqual(b.log);expect(current.teams).toEqual(b.teams);
+    }finally{await app.close();}
+  });
+
   it('네이티브 전투는 소유권·행동을 검사하고 같은 리비전의 중복 요청을 한 번만 처리한다',async()=>{
     await fixtures(['D1']);
     const app=await buildApp(db,game,{secret:'native-test-secret'.repeat(3),baseUrl:async()=>'https://example.com'});

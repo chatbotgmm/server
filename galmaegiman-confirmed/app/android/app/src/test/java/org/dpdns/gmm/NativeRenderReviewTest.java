@@ -536,6 +536,100 @@ public class NativeRenderReviewTest {
     }
   }
 
+  void capturePlaybackFrame(MainActivity a, BattleView view, String name, int width, int height)
+      throws Exception {
+    String effect = view.playback.effect;
+    long sequence = view.playback.cursor.seen();
+    // Skia 자원 준비 중 다음 이벤트로 넘어가지 않도록 현재 프레임만 고정한다.
+    view.playback.animator.cancel();
+    view.removeCallbacks(view.playback.advance);
+    capture(a, name, width, height);
+    assertEquals("캡처 중 같은 효과 유지", effect, view.playback.effect);
+    assertEquals("캡처 중 같은 이벤트 유지", sequence, view.playback.cursor.seen());
+    view.post(view.playback.advance);
+  }
+
+  @Test
+  public void identicalNamesUseServerTargetsDuringActualBattle() throws Exception {
+    try (ActivityController<MainActivity> c = start()) {
+      MainActivity a = c.get();
+      a.practiceRoster = new java.util.ArrayList<>(java.util.Arrays.asList("D1", "D1"));
+      a.practiceEnemy = new java.util.ArrayList<>(java.util.Arrays.asList("D1", "D1"));
+      a.startFight("practice", "P-1");
+      await(() -> !a.busy && a.battle != null);
+      assertEquals(
+          a.list(a.list(a.battle, "teams").optJSONObject(0), "fighters")
+              .optJSONObject(0)
+              .optString("name"),
+          a.list(a.list(a.battle, "teams").optJSONObject(1), "fighters")
+              .optJSONObject(0)
+              .optString("name"));
+      boolean[] shown = {false, false};
+      capture(a, "phone-mirror-before", 915, 412);
+      for (int turn = 0;
+          turn < 12 && !a.battle.optString("phase").equals("over") && (!shown[0] || !shown[1]);
+          turn++) {
+        if (a.battle.optString("phase").equals("choose")) {
+          JSONObject team = a.list(a.battle, "teams").optJSONObject(0);
+          JSONArray offers = a.list(team, "offers");
+          JSONObject pick = MainActivity.obj("augment", offers.optJSONObject(0).optString("id"));
+          if (team.optBoolean("needSwitch")) {
+            JSONArray fighters = a.list(team, "fighters");
+            for (int slot = 0; slot < fighters.length(); slot++)
+              if (fighters.optJSONObject(slot).optInt("hp") > 0) {
+                pick.put("switchTo", slot);
+                break;
+              }
+          }
+          a.battleTurn(MainActivity.obj("choose", pick));
+        } else {
+          JSONArray legal = a.list(a.list(a.battle, "teams").optJSONObject(0), "legal");
+          JSONObject action = null;
+          for (int i = 0; i < legal.length(); i++)
+            if (legal.optJSONObject(i).optString("kind").equals("skill")) {
+              action = legal.optJSONObject(i);
+              break;
+            }
+          assertNotNull(action);
+          a.battleTurn(MainActivity.obj("action", action));
+        }
+        while (a.busy) {
+          await(
+              () -> {
+                if (!a.busy) return true;
+                BattleView current = (BattleView) a.root.getChildAt(0);
+                return current.playback.playing
+                    && current.playback.effect.equals("hit")
+                    && !shown[current.playback.side];
+              });
+          if (!a.busy) break;
+          BattleView current = (BattleView) a.root.getChildAt(0);
+          int side = current.playback.side;
+          long sequence = current.playback.cursor.seen();
+          JSONObject event = null;
+          JSONArray events = a.list(current.playback.pending, "displayEvents");
+          for (int i = 0; i < events.length(); i++)
+            if (events.optJSONObject(i).optLong("id") == sequence) event = events.optJSONObject(i);
+          assertNotNull(event);
+          assertEquals("damage", event.optString("kind"));
+          assertEquals("서버 지정 피해 진영", side, event.optJSONObject("target").optInt("side"));
+          assertEquals("피해 진영의 표시 HP", event.optInt("hpAfter"), current.active(side).optInt("hp"));
+          capturePlaybackFrame(
+              a, current, side == 0 ? "phone-mirror-hit-own" : "phone-mirror-hit-foe", 915, 412);
+          shown[side] = true;
+        }
+      }
+      assertTrue("동일 이름 내 편 피격", shown[0]);
+      assertTrue("동일 이름 상대 피격", shown[1]);
+      capture(a, "phone-mirror-after", 915, 412);
+      if (!a.battle.optString("phase").equals("over")) {
+        a.battleTurn(MainActivity.obj("leave", true));
+        await(() -> !a.busy);
+      }
+      if (a.visibleDialog != null) a.visibleDialog.dismiss();
+    }
+  }
+
   @Test
   public void titleDialogueAndBattlePlayback() throws Exception {
     try (ActivityController<MainActivity> c = start()) {
@@ -637,14 +731,14 @@ public class NativeRenderReviewTest {
       assertTrue(a.busy);
       assertEquals("재생이 끝날 때까지 서버 상태 교체 보류", revision, a.battle.optInt("revision"));
       await(() -> animationView.playback.effect.equals("combo"));
-      capture(a, "tablet-combo-animation", 1280, 720);
+      capturePlaybackFrame(a, animationView, "tablet-combo-animation", 1280, 720);
       await(
           () ->
               animationView.playback.effect.equals("attack")
                   || animationView.playback.effect.equals("hit"));
       Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(150));
       assertTrue("중간 프레임 진행", animationView.playback.progress > 0);
-      capture(a, "tablet-battle-animation", 1280, 720);
+      capturePlaybackFrame(a, animationView, "tablet-battle-animation", 1280, 720);
       await(() -> !a.busy && a.battle.optInt("revision") > revision);
       assertNotSame("연출 후 최종 상태로 교체", animationView, a.root.getChildAt(0));
       a.battleTurn(MainActivity.obj("leave", true));

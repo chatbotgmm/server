@@ -976,6 +976,8 @@ public class MainActivity extends AppCompatActivity {
 
   void battleTurn(JSONObject event) {
     if (battle == null) return;
+    final String requestedSession = battle.optString("session");
+    final int requestedEpoch = epoch;
     try {
       event.put("session", battle.optString("session"));
       event.put("revision", battle.optInt("revision"));
@@ -985,8 +987,21 @@ public class MainActivity extends AppCompatActivity {
         "native/battle/turn",
         event,
         (r, e) -> {
+          if (isFinishing()
+              || isDestroyed()
+              || epoch != requestedEpoch
+              || !screen.equals("battle")
+              || battle == null
+              || !requestedSession.equals(battle.optString("session"))
+              || !requestedSession.equals(r.optString("session"))) return;
           Runnable finishTurn =
               () -> {
+                if (isFinishing()
+                    || isDestroyed()
+                    || epoch != requestedEpoch
+                    || !screen.equals("battle")
+                    || battle == null
+                    || !requestedSession.equals(battle.optString("session"))) return;
                 battle = r;
                 battleScreen();
                 if (r.optString("phase").equals("over")) {
