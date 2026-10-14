@@ -2,7 +2,6 @@ package org.dpdns.gmm;
 
 import android.content.*;
 import android.net.Uri;
-import android.os.Build;
 import android.view.*;
 import android.widget.*;
 import java.util.*;
@@ -64,8 +63,8 @@ final class NativeExtras {
             attend.setEnabled(!a.optBoolean("today"));
             panel.addView(attend);
           }
-          cols[1].addView(h.text("오늘의 미션", 22));
-          cols[1].addView(k.note("달성하면 보상이 바로 들어와요 · 한국 시간 밤 12시 초기화"));
+          cols[1].addView(k.section("오늘의 미션"));
+          cols[1].addView(k.notice("달성하면 보상이 바로 들어와요 · 한국 시간 밤 12시 초기화"));
           JSONArray missions = h.list(r, "missions");
           for (int i = 0; i < missions.length(); i++) {
             JSONObject mission = missions.optJSONObject(i);
@@ -167,7 +166,7 @@ final class NativeExtras {
   }
 
   void practiceTeam(LinearLayout parent, boolean enemy) {
-    parent.addView(h.text(enemy ? "연습 상대" : "우리 수비대", 22));
+    parent.addView(k.section(enemy ? "연습 상대" : "우리 수비대"));
     ArrayList<String> ids = enemy ? h.practiceEnemy : h.practiceRoster;
     ArrayList<View> cards = new ArrayList<>();
     JSONArray all = h.list(h.state, "practiceUnits");
@@ -178,7 +177,7 @@ final class NativeExtras {
           cards.add(k.tile(u, u.optString("image"), u.optString("attr"), () -> picker(enemy)));
       }
     k.tiles(parent, cards, 3);
-    if (ids.isEmpty()) parent.addView(k.note("선택하지 않으면 이야기 상대와 연습해요."));
+    if (ids.isEmpty()) parent.addView(k.notice("선택하지 않으면 이야기 상대와 연습해요."));
     parent.addView(k.action("m-units", enemy ? "상대 갈매미 선택" : "우리 갈매미 선택", () -> picker(enemy)));
   }
 
@@ -269,42 +268,7 @@ final class NativeExtras {
   }
 
   void settings() {
-    h.base("설정", "settings");
-    LinearLayout[] cols = k.split(.5f);
-    LinearLayout audio = k.paper();
-    cols[0].addView(audio);
-    m.intro(audio, "u-settings", "소리 설정", "");
-    slider(audio, "배경음악", h.sound.volume("music"), 0, 100, v -> h.sound.volume("music", v));
-    slider(audio, "효과음", h.sound.volume("effects"), 0, 100, v -> h.sound.volume("effects", v));
-    LinearLayout alerts = k.paper();
-    cols[1].addView(alerts);
-    m.intro(alerts, "u-gift", "알림", "탐험 귀환과 뽑기권 지급을 알려 드려요.");
-    Switch toggle = new Switch(h);
-    toggle.setText("알림 받기");
-    toggle.setTextColor(MainActivity.INK);
-    toggle.setChecked(h.getSharedPreferences("native_account", 0).getBoolean("alerts", false));
-    toggle.setOnCheckedChangeListener(
-        (v, on) -> {
-          h.getSharedPreferences("native_account", 0).edit().putBoolean("alerts", on).apply();
-          if (on
-              && Build.VERSION.SDK_INT >= 33
-              && h.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
-                  != android.content.pm.PackageManager.PERMISSION_GRANTED)
-            h.requestPermissions(new String[] {android.Manifest.permission.POST_NOTIFICATIONS}, 11);
-          NativeAlerts.schedule(h, on ? h.me() : new JSONObject());
-        });
-    alerts.addView(toggle);
-    cols[1].addView(k.action("m-account", "계정 관리", this::account));
-    cols[1].addView(
-        k.action(
-            "u-gift",
-            "쿠폰 입력",
-            () ->
-                h.input(
-                    "쿠폰 코드",
-                    android.text.InputType.TYPE_CLASS_TEXT,
-                    code -> h.mutate("coupon", MainActivity.obj("code", code), "settings"))));
-    cols[1].addView(k.action("u-story", "첫 출근 안내", this::tutorial));
+    NativeSettingsSheet.show(h);
   }
 
   void account() {

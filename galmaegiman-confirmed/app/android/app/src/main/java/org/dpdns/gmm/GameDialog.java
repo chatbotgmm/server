@@ -17,6 +17,11 @@ final class GameDialog extends AlertDialog.Builder {
   @Override
   public AlertDialog show() {
     AlertDialog dialog = super.show();
+    host.visibleDialog = dialog;
+    dialog.setOnDismissListener(
+        d -> {
+          if (host.visibleDialog == dialog) host.visibleDialog = null;
+        });
     Window window = dialog.getWindow();
     if (window != null) {
       window.setBackgroundDrawable(new FrameDrawable(host, "dialog.webp"));
@@ -32,7 +37,17 @@ final class GameDialog extends AlertDialog.Builder {
       if (b == null) continue;
       b.setTypeface(host.font);
       b.setTextColor(MainActivity.INK);
-      b.setBackground(host.material(MainActivity.CREAM));
+      b.setAllCaps(false);
+      b.setTextSize(16);
+      b.setBackgroundTintList(null);
+      b.setStateListAnimator(null);
+      b.setPadding(host.dp(18), host.dp(6), host.dp(18), host.dp(9));
+      b.setBackground(
+          new GameButtonDrawable(
+              host,
+              id == AlertDialog.BUTTON_POSITIVE
+                  ? GameButtonDrawable.PRIMARY
+                  : GameButtonDrawable.PAPER));
       b.setMinHeight(host.dp(48));
       LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-2, host.dp(48));
       p.setMargins(host.dp(4), host.dp(4), host.dp(4), host.dp(4));
@@ -57,8 +72,12 @@ final class GameDialog extends AlertDialog.Builder {
     if (v instanceof TextView) {
       TextView t = (TextView) v;
       t.setTextColor(MainActivity.INK);
-      t.setTypeface(v instanceof Button ? host.font : host.prose);
+      t.setTypeface(v instanceof Button || t.getTypeface() == host.font ? host.font : host.prose);
     }
+    if (v instanceof CheckedTextView)
+      ((CheckedTextView) v).setCheckMarkTintList(ColorStateList.valueOf(0xffa8672e));
+    if (v instanceof CompoundButton)
+      ((CompoundButton) v).setButtonTintList(ColorStateList.valueOf(0xffa8672e));
     if (v instanceof EditText) v.setBackgroundTintList(ColorStateList.valueOf(0xffc27c3d));
     if (v instanceof ViewGroup) {
       ViewGroup group = (ViewGroup) v;

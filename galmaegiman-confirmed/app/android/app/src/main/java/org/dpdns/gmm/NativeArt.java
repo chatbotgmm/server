@@ -67,6 +67,10 @@ final class NativeArt {
 
   private final Map<String, java.util.List<Runnable>> waiters = new HashMap<>();
 
+  boolean idle() {
+    return loading.isEmpty();
+  }
+
   Bitmap peek(String path) {
     return bitmaps.get(path);
   }

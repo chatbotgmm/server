@@ -10,6 +10,7 @@ final class NativeSound {
   private MediaPlayer music;
   private ToneGenerator tones;
   String current = "";
+  private String requested = "";
 
   NativeSound(Context c) {
     context = c;
@@ -20,22 +21,54 @@ final class NativeSound {
     return prefs.getInt(key, key.equals("music") ? 70 : 80);
   }
 
+  boolean muted(String key) {
+    return prefs.getBoolean(key + "_muted", false);
+  }
+
+  int audibleVolume(String key) {
+    return masterMuted() || muted(key) ? 0 : volume(key);
+  }
+
+  boolean masterMuted() {
+    return prefs.getBoolean("master_muted", false);
+  }
+
+  void masterMuted(boolean muted) {
+    prefs.edit().putBoolean("master_muted", muted).apply();
+    apply("music");
+    apply("effects");
+  }
+
+  void muted(String key, boolean value) {
+    prefs.edit().putBoolean(key + "_muted", value).apply();
+    apply(key);
+  }
+
   void volume(String key, int value) {
-    prefs.edit().putInt(key, value).apply();
+    prefs.edit().putInt(key, Math.max(0, Math.min(100, value))).apply();
+    apply(key);
+  }
+
+  private void apply(String key) {
     if (key.equals("effects")) {
       if (tones != null) tones.release();
       tones = null;
+    } else if (key.equals("music")) {
+      if (music != null) {
+        float v = audibleVolume(key) / 100f;
+        music.setVolume(v, v);
+      } else if (!requested.isEmpty() && audibleVolume(key) > 0) play(requested);
     }
-    if (key.equals("music") && music != null) music.setVolume(value / 100f, value / 100f);
   }
 
   void play(String name) {
-    if (volume("music") <= 0) {
-      stop();
+    requested = name;
+    if (audibleVolume("music") <= 0) {
+      stopPlayer();
       return;
     }
     if (name.equals(current) && music != null) return;
-    stop();
+    stopPlayer();
     current = name;
     try {
       android.content.res.AssetFileDescriptor f =
@@ -49,7 +82,7 @@ final class NativeSound {
       music.setDataSource(f.getFileDescriptor(), f.getStartOffset(), f.getLength());
       f.close();
       music.setLooping(true);
-      float v = volume("music") / 100f;
+      float v = audibleVolume("music") / 100f;
       music.setVolume(v, v);
       MediaPlayer preparing = music;
       preparing.setOnPreparedListener(
@@ -63,14 +96,15 @@ final class NativeSound {
           });
       preparing.prepareAsync();
     } catch (Exception ignored) {
-      stop();
+      stopPlayer();
     }
   }
 
   void click() {
-    if (volume("effects") <= 0) return;
+    if (audibleVolume("effects") <= 0) return;
     try {
-      if (tones == null) tones = new ToneGenerator(AudioManager.STREAM_MUSIC, volume("effects"));
+      if (tones == null)
+        tones = new ToneGenerator(AudioManager.STREAM_MUSIC, audibleVolume("effects"));
       tones.startTone(ToneGenerator.TONE_PROP_BEEP, 35);
     } catch (RuntimeException ignored) {
       tones = null;
@@ -78,6 +112,11 @@ final class NativeSound {
   }
 
   void stop() {
+    requested = "";
+    stopPlayer();
+  }
+
+  private void stopPlayer() {
     if (music != null) {
       music.release();
       music = null;

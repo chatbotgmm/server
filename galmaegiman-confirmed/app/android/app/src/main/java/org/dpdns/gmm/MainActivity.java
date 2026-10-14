@@ -29,9 +29,10 @@ public class MainActivity extends AppCompatActivity {
   boolean expeditionDirty;
   String storyScene = "harbor", storyFoe = "", lobbyRoom;
   JSONObject state = new JSONObject(), battle;
-  String screen = "home";
+  String screen = "home", pendingAugment = "";
   int chapter = 0, epoch = 0;
   boolean busy = false;
+  android.app.AlertDialog visibleDialog;
   ArrayList<String> selected = new ArrayList<>();
   String selectionMode = "story", mixIds = "";
   String currentKey = "";
@@ -76,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
     immersive();
     if (!exchange(getIntent())) {
       if (api.token().isEmpty()) titleScreen();
-      else load("title");
+      else load(notificationTarget(getIntent()));
     }
   }
 
@@ -84,7 +85,8 @@ public class MainActivity extends AppCompatActivity {
   protected void onNewIntent(Intent i) {
     super.onNewIntent(i);
     setIntent(i);
-    exchange(i);
+    if (!exchange(i) && i.hasExtra("destination") && !api.token().isEmpty())
+      load(notificationTarget(i));
   }
 
   @Override
@@ -209,7 +211,25 @@ public class MainActivity extends AppCompatActivity {
         path,
         data,
         (r, e) -> {
-          showResult(r.opt("result"), () -> load(target));
+          Object result = r.opt("result");
+          int operationEpoch = epoch;
+          busy = true;
+          api.call(
+              "native/state",
+              null,
+              (fresh, error) -> {
+                busy = false;
+                if (isFinishing() || epoch != operationEpoch) return;
+                if (error != null) {
+                  // 처리는 이미 성공했으므로 결과를 알리고, 확인 뒤 다시 상태를 가져온다.
+                  showResult(result, () -> load(target));
+                  return;
+                }
+                state = fresh;
+                NativeAlerts.schedule(this, me());
+                show(target);
+                showResult(result, () -> show(target));
+              });
         });
   }
 
@@ -297,7 +317,7 @@ public class MainActivity extends AppCompatActivity {
     b.setMinHeight(dp(52));
     b.setMinimumHeight(dp(52));
     b.setPadding(dp(14), dp(8), dp(14), dp(8));
-    b.setBackground(material(Color.rgb(239, 212, 173)));
+    b.setBackground(new GameButtonDrawable(this, GameButtonDrawable.PRIMARY));
     b.setBackgroundTintList(null);
     b.setStateListAnimator(null);
     b.setOnClickListener(
@@ -407,7 +427,7 @@ public class MainActivity extends AppCompatActivity {
     c.setOrientation(LinearLayout.HORIZONTAL);
     c.setGravity(Gravity.CENTER_VERTICAL);
     c.setPadding(dp(6), dp(4), dp(8), dp(4));
-    c.setBackground(material(Color.rgb(242, 224, 193)));
+    c.setBackground(new GameButtonDrawable(this, GameButtonDrawable.PAPER));
     ImageView img = new ImageView(this);
     img.setScaleType(ImageView.ScaleType.FIT_CENTER);
     c.addView(img, new LinearLayout.LayoutParams(dp(96), dp(110)));
@@ -549,7 +569,7 @@ public class MainActivity extends AppCompatActivity {
             }),
         new LinearLayout.LayoutParams(dp(48), dp(48)));
     Button kakao = button("카카오로 로그인", this::kakao);
-    kakao.setBackground(material(0xfffee500));
+    kakao.setBackground(new GameButtonDrawable(this, 0xfffee500));
     if (!linking) form.addView(kakao, new LinearLayout.LayoutParams(-1, dp(48)));
     TextView guidance =
         text(
@@ -652,7 +672,7 @@ public class MainActivity extends AppCompatActivity {
       if (linking)
         request(
             "kakao/link-start",
-            obj("challenge", challenge),
+            obj("challenge", challenge, "app", "3"),
             (r, e) -> {
               JSONObject result = r.optJSONObject("result");
               if (result == null) {
@@ -668,7 +688,7 @@ public class MainActivity extends AppCompatActivity {
         startActivity(
             new Intent(
                 Intent.ACTION_VIEW,
-                Uri.parse(BuildConfig.SERVER_URL + "/my/kakao?app=2&c=" + challenge)));
+                Uri.parse(BuildConfig.SERVER_URL + "/my/kakao?app=3&c=" + challenge)));
     } catch (Exception e) {
       message("카카오 로그인을 열지 못했어요.");
     }
@@ -676,7 +696,7 @@ public class MainActivity extends AppCompatActivity {
 
   boolean exchange(Intent intent) {
     Uri u = intent.getData();
-    if (u == null || !"gmmnative".equals(u.getScheme()) || !"auth".equals(u.getHost()))
+    if (u == null || !"gmmrevised".equals(u.getScheme()) || !"auth".equals(u.getHost()))
       return false;
     String authError = u.getQueryParameter("error");
     if (authError != null) {
@@ -907,6 +927,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void startFight(String mode, String stage) {
+    pendingAugment = "";
     JSONObject p = obj("mode", mode);
     if (mode.equals("practice")) {
       try {
@@ -950,55 +971,47 @@ public class MainActivity extends AppCompatActivity {
         "native/battle/turn",
         event,
         (r, e) -> {
-          battle = r;
-          battleScreen();
-          if (r.optString("phase").equals("over")) {
-            JSONObject result = r.optJSONObject("result");
-            String s = r.optInt("winner", 1) == 0 ? "승리!" : "수비대가 물러났어요";
-            if (result != null) {
-              if (result.has("xp") && !battle.optString("mode").equals("practice"))
-                s += "\n경험치 +" + result.optInt("xp");
-              if (result.has("point"))
-                s +=
-                    "\n"
-                        + result.optString("tier")
-                        + " · "
-                        + result.optInt("point")
-                        + "점 ("
-                        + (result.optInt("change") >= 0 ? "+" : "")
-                        + result.optInt("change")
-                        + ")";
-              JSONArray ups = list(result, "ups");
-              for (int i = 0; i < ups.length(); i++) s += "\n" + ups.optString(i);
-            }
-            new GameDialog(this)
-                .setMessage(s)
-                .setCancelable(false)
-                .setPositiveButton(
-                    "계속",
-                    (d, w) -> {
-                      JSONArray lines = result == null ? new JSONArray() : list(result, "dialog");
-                      JSONArray clear =
-                          result == null ? new JSONArray() : list(result, "chapterClear");
-                      for (int i = 0; i < clear.length(); i++) lines.put(clear.opt(i));
-                      if (result != null) {
-                        storyScene = result.optString("scene", "harbor");
-                        storyFoe = result.optString("foe", storyFoe);
-                      }
-                      talk(
-                          lines,
-                          "전투 결과",
-                          () -> {
-                            String mode = battle.optString("mode");
-                            battle = null;
-                            load(
-                                mode.equals("normal") || mode.equals("rank")
-                                    ? "pvp"
-                                    : mode.equals("practice") ? "home" : "story");
-                          });
-                    })
-                .show();
-          }
+          Runnable finishTurn =
+              () -> {
+                battle = r;
+                battleScreen();
+                if (r.optString("phase").equals("over")) {
+                  JSONObject result = r.optJSONObject("result");
+                  new GameDialog(this)
+                      .setView(BattleRewardsView.create(this, r))
+                      .setCancelable(false)
+                      .setPositiveButton(
+                          "계속",
+                          (d, w) -> {
+                            JSONArray lines =
+                                result == null ? new JSONArray() : list(result, "dialog");
+                            JSONArray clear =
+                                result == null ? new JSONArray() : list(result, "chapterClear");
+                            for (int i = 0; i < clear.length(); i++) lines.put(clear.opt(i));
+                            if (result != null) {
+                              storyScene = result.optString("scene", "harbor");
+                              storyFoe = result.optString("foe", storyFoe);
+                            }
+                            talk(
+                                lines,
+                                "전투 결과",
+                                () -> {
+                                  String mode = battle.optString("mode");
+                                  battle = null;
+                                  load(
+                                      mode.equals("normal") || mode.equals("rank")
+                                          ? "pvp"
+                                          : mode.equals("practice") ? "home" : "story");
+                                });
+                          })
+                      .show();
+                }
+              };
+          BattleView scene = null;
+          for (int i = 0; i < root.getChildCount(); i++)
+            if (root.getChildAt(i) instanceof BattleView) scene = (BattleView) root.getChildAt(i);
+          if (scene != null) scene.playTo(r, finishTurn);
+          else finishTurn.run();
         });
   }
 
@@ -1047,6 +1060,23 @@ public class MainActivity extends AppCompatActivity {
   @Override
   public void onBackPressed() {
     back();
+  }
+
+  String notificationTarget(Intent intent) {
+    String target = intent.getStringExtra("destination");
+    return "draw".equals(target) || "expedition".equals(target) ? target : "title";
+  }
+
+  @Override
+  public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
+    super.onRequestPermissionsResult(requestCode, permissions, results);
+    if (requestCode == 11) {
+      boolean granted =
+          results.length > 0 && results[0] == android.content.pm.PackageManager.PERMISSION_GRANTED;
+      getSharedPreferences("native_account", 0).edit().putBoolean("alerts", granted).apply();
+      NativeAlerts.schedule(this, granted ? me() : new JSONObject());
+      if (!granted) message("알림이 꺼졌어요. 기기 설정에서 알림을 허용하면 다시 켤 수 있어요.");
+    }
   }
 
   @Override

@@ -10,23 +10,36 @@ import org.json.*;
 /** Android Canvas 장면과 네이티브 조작 버튼. 메뉴 뒤 큰 패널은 사용하지 않는다. */
 final class BattleView extends FrameLayout {
   final MainActivity host;
+  final DragParallax parallax;
   final JSONObject battle;
   final LinearLayout controls;
   final ScrollView menu, logBox;
   String pane = "menu";
   boolean tablet;
+  final Scene scene;
+  final TextView log;
+  final BattlePlayback playback;
+  NativeAugmentView augmentView;
   int arenaWidth, arenaHeight, logHeight, panelLeft, panelWidth;
 
   BattleView(MainActivity a, JSONObject b) {
     super(a);
     host = a;
-    battle = b;
-    addView(new Scene(), new LayoutParams(-1, -1));
+    parallax = new DragParallax(this, a.dp(12));
+    try {
+      battle = new JSONObject(b.toString());
+    } catch (JSONException e) {
+      throw new IllegalArgumentException(e);
+    }
+    scene = new Scene();
+    addView(scene, new LayoutParams(-1, -1));
     logBox = new ScrollView(a);
     logBox.setBackground(new FrameDrawable(host, "log.webp"));
-    TextView log = a.text("", 17);
+    logBox.setPadding(a.dp(8), a.dp(10), a.dp(8), a.dp(10));
+    logBox.setClipToPadding(true);
+    log = a.text("", 17);
     log.setTypeface(a.prose);
-    log.setPadding(a.dp(18), a.dp(8), a.dp(18), a.dp(8));
+    log.setPadding(a.dp(10), 0, a.dp(10), 0);
     ArrayList<String> lines = new ArrayList<>();
     JSONArray ls = a.list(b, "log");
     for (int i = Math.max(0, ls.length() - 8); i < ls.length(); i++) lines.add(ls.optString(i));
@@ -38,7 +51,46 @@ final class BattleView extends FrameLayout {
     menu = new ScrollView(a);
     menu.addView(controls);
     addView(menu);
+    playback = new BattlePlayback(this);
     render();
+  }
+
+  void playTo(JSONObject next, Runnable complete) {
+    if (augmentView != null && !next.optString("phase").equals("choose")) {
+      augmentView.setVisibility(GONE);
+      logBox.setVisibility(VISIBLE);
+      menu.setVisibility(VISIBLE);
+    }
+    playback.start(next, complete);
+  }
+
+  @Override
+  protected void onDetachedFromWindow() {
+    parallax.close();
+    playback.cancel();
+    super.onDetachedFromWindow();
+  }
+
+  @Override
+  public boolean onInterceptTouchEvent(MotionEvent e) {
+    return parallax.intercept(
+            e,
+            new RectF(getWidth() * .1f, getHeight() * .30f, getWidth() * .60f, getHeight() * .65f),
+            battle.optString("phase").equals("action")
+                && !host.busy
+                && (augmentView == null || augmentView.getVisibility() != VISIBLE))
+        || super.onInterceptTouchEvent(e);
+  }
+
+  @Override
+  public boolean onTouchEvent(MotionEvent e) {
+    return parallax.touch(e) || super.onTouchEvent(e);
+  }
+
+  @Override
+  public boolean performClick() {
+    super.performClick();
+    return true;
   }
 
   JSONObject side(int i) {
@@ -73,6 +125,10 @@ final class BattleView extends FrameLayout {
     menu.measure(
         MeasureSpec.makeMeasureSpec(panelWidth, MeasureSpec.EXACTLY),
         MeasureSpec.makeMeasureSpec(Math.max(1, h - logHeight - 3 * m), MeasureSpec.EXACTLY));
+    if (augmentView != null)
+      augmentView.measure(
+          MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY),
+          MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY));
     setMeasuredDimension(w, h);
   }
 
@@ -82,6 +138,7 @@ final class BattleView extends FrameLayout {
     getChildAt(0).layout(0, 0, arenaWidth, arenaHeight);
     logBox.layout(panelLeft, m, arenaWidth - m, m + logHeight);
     menu.layout(panelLeft, logHeight + 2 * m, arenaWidth - m, arenaHeight - m);
+    if (augmentView != null) augmentView.layout(0, 0, arenaWidth, arenaHeight);
     if (changed) logBox.post(() -> logBox.fullScroll(FOCUS_DOWN));
   }
 
@@ -149,7 +206,10 @@ final class BattleView extends FrameLayout {
                   }
                 });
         b.setTypeface(host.headline);
-        b.setTextSize(ix == 3 ? 22 : 27);
+        b.setTextSize(
+            ix == 3
+                ? Math.max(22, Math.min(34, height * .17f))
+                : Math.max(27, Math.min(38, height * .20f)));
         b.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
         b.setPadding(host.dp(2), 0, host.dp(2), Math.round(height * .12f));
         b.setBackground(new CommandArt(ix));
@@ -164,12 +224,18 @@ final class BattleView extends FrameLayout {
     heading("기술 선택");
     JSONArray skills = host.list(active(0), "skills");
     LinearLayout row = null;
-    for (int i = 0; i < skills.length(); i++) {
-      if (i % 2 == 0) {
+    int normalCount = 0;
+    ArrayList<JSONObject> orderedSkills = new ArrayList<>();
+    for (int i = 0; i < skills.length(); i++) orderedSkills.add(skills.optJSONObject(i));
+    orderedSkills.sort(
+        java.util.Comparator.comparing(sk -> !sk.optString("id").startsWith("combo-")));
+    for (JSONObject sk : orderedSkills) {
+      boolean combo = sk.optString("id").startsWith("combo-");
+      if (combo || normalCount % 2 == 0) {
         row = new LinearLayout(host);
         controls.addView(row);
       }
-      JSONObject sk = skills.optJSONObject(i);
+      if (!combo) normalCount++;
       String why = sk.isNull("reason") ? "" : sk.optString("reason");
       JSONObject preview = sk.optJSONObject("preview");
       double multiplier = preview == null ? 1 : preview.optDouble("multiplier", 1);
@@ -185,13 +251,9 @@ final class BattleView extends FrameLayout {
                   + sk.optInt("power")
                   + (multiplier > 1 ? " · ▲ 유리" : multiplier < 1 ? " · ▼ 불리" : "")
               : "보조 기술";
+      String skillName = (combo ? "합동기 · " : "") + sk.optString("name");
       String caption =
-          sk.optString("name")
-              + "\n"
-              + meta
-              + "\n"
-              + sk.optString("desc")
-              + (why.isEmpty() ? "" : "\n" + why);
+          skillName + "\n" + meta + "\n" + sk.optString("desc") + (why.isEmpty() ? "" : "\n" + why);
       Button button =
           host.button(
               caption,
@@ -208,25 +270,43 @@ final class BattleView extends FrameLayout {
       button.setTypeface(host.prose);
       button.setTextSize(14);
       android.text.SpannableString label = new android.text.SpannableString(caption);
-      int nameEnd = sk.optString("name").length();
+      int nameEnd = skillName.length();
       label.setSpan(
-          new android.text.style.StyleSpan(Typeface.BOLD),
+          new android.text.style.MetricAffectingSpan() {
+            @Override
+            public void updateDrawState(android.text.TextPaint p) {
+              p.setTypeface(host.font);
+            }
+
+            @Override
+            public void updateMeasureState(android.text.TextPaint p) {
+              p.setTypeface(host.font);
+            }
+          },
           0,
           nameEnd,
           android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
       label.setSpan(
-          new android.text.style.AbsoluteSizeSpan(17, true),
+          new android.text.style.AbsoluteSizeSpan(tablet ? 20 : 18, true),
           0,
           nameEnd,
           android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
       button.setText(label);
+      if (combo) {
+        button.setCompoundDrawablesWithIntrinsicBounds(new ComboEmblem(host), null, null, null);
+        button.setCompoundDrawablePadding(host.dp(8));
+        button.setContentDescription("합동기 · " + sk.optString("name") + " · 팀당 한 번 · " + why);
+      }
       button.setGravity(Gravity.START | Gravity.TOP);
       button.setMaxLines(6);
       button.setEllipsize(android.text.TextUtils.TruncateAt.END);
       button.setPadding(host.dp(8), host.dp(8), host.dp(8), host.dp(8));
       button.setBackground(
-          host.material(
-              sk.optInt("power") > 0 ? Color.rgb(246, 183, 147) : Color.rgb(163, 212, 195)));
+          new GameButtonDrawable(
+              host,
+              combo
+                  ? 0xffedcc79
+                  : sk.optInt("power") > 0 ? Color.rgb(246, 183, 147) : Color.rgb(163, 212, 195)));
       button.setOnLongClickListener(
           v -> {
             host.message(
@@ -240,6 +320,7 @@ final class BattleView extends FrameLayout {
       LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, host.dp(102), 1);
       lp.setMargins(host.dp(3), host.dp(3), host.dp(3), host.dp(3));
       row.addView(button, lp);
+      if (combo) row = null;
     }
     JSONArray legal = host.list(side(0), "legal");
     for (int i = 0; i < legal.length(); i++) {
@@ -292,45 +373,11 @@ final class BattleView extends FrameLayout {
   }
 
   void choose() {
-    JSONArray offers = host.list(side(0), "offers");
-    controls.addView(host.text(offers.length() > 0 ? "증강체 선택" : "다음 갈매미 선택", 22));
-    if (offers.length() == 0) {
-      switches(true, null);
-      return;
-    }
-    for (int i = 0; i < offers.length(); i++) {
-      int ix = i;
-      JSONObject aug = offers.optJSONObject(i);
-      LinearLayout row = new LinearLayout(host);
-      row.setGravity(Gravity.CENTER_VERTICAL);
-      row.setBackground(host.material(0xfffffaf0));
-      controls.addView(row);
-      row.addView(
-          new MenuKit(host)
-              .image("/duel/icons/" + aug.optString("icon", "u-gift") + ".png", 34, 34));
-      Button pick =
-          host.button(
-              aug.optString("name") + "\n" + aug.optString("desc"),
-              () -> {
-                if (side(0).optBoolean("needSwitch")) {
-                  controls.removeAllViews();
-                  controls.addView(host.text("다음 갈매미 선택", 22));
-                  switches(true, aug.optString("id"));
-                } else
-                  host.battleTurn(
-                      MainActivity.obj("choose", MainActivity.obj("augment", aug.optString("id"))));
-              });
-      pick.setTextSize(15);
-      pick.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
-      lp.setMargins(host.dp(3), host.dp(3), host.dp(3), host.dp(3));
-      row.addView(pick, lp);
-      if (!aug.optBoolean("rerolled")) {
-        Button reroll = host.button("↻", () -> host.battleTurn(MainActivity.obj("reroll", ix)));
-        reroll.setContentDescription("다른 증강체 보기");
-        reroll.setPadding(0, 0, 0, 0);
-        row.addView(reroll, new LinearLayout.LayoutParams(host.dp(48), host.dp(52)));
-      }
+    logBox.setVisibility(GONE);
+    menu.setVisibility(GONE);
+    if (augmentView == null) {
+      augmentView = new NativeAugmentView(this);
+      addView(augmentView);
     }
   }
 
@@ -422,15 +469,27 @@ final class BattleView extends FrameLayout {
       float w = getWidth(), h = getHeight();
       Bitmap bg = host.art.asset("battle.webp");
       if (bg != null) {
-        float scale = Math.max(w / bg.getWidth(), h / bg.getHeight()),
+        float scale = Math.max(w / bg.getWidth(), h / bg.getHeight()) * 1.035f,
             bw = bg.getWidth() * scale,
             bh = bg.getHeight() * scale;
-        bitmap(c, bg, null, new RectF((w - bw) / 2, (h - bh) / 2, (w + bw) / 2, (h + bh) / 2));
+        RectF r = new RectF((w - bw) / 2, (h - bh) / 2, (w + bw) / 2, (h + bh) / 2);
+        r.offset(parallax.x * .2f, parallax.y * .2f);
+        bitmap(c, bg, null, r);
       } else c.drawColor(0xff89d3dc);
       float world = w * .645f;
       JSONObject a = active(0), b = active(1);
-      fighter(c, a, new RectF(world * .015f, h * .36f, world * .48f, h * .96f));
-      fighter(c, b, new RectF(world * .51f, h * .2f, world * .95f, h * .66f));
+      c.save();
+      c.translate(parallax.x, parallax.y);
+      playback.fighter(c, a, new RectF(world * .015f, h * .36f, world * .48f, h * .96f), 0);
+      c.restore();
+      c.save();
+      c.translate(parallax.x * .6f, parallax.y * .6f);
+      playback.fighter(c, b, new RectF(world * .51f, h * .2f, world * .95f, h * .66f), 1);
+      c.restore();
+      c.save();
+      c.translate(parallax.x * .8f, parallax.y * .8f);
+      playback.drawEffects(c, world, h);
+      c.restore();
       status(c, b, new RectF(w * .055f, h * .04f, w * .335f, h * .29f), false);
       status(c, a, new RectF(w * .30f, h * .69f, w * .575f, h * .965f), true);
       p.setColor(MainActivity.CREAM);
@@ -455,7 +514,21 @@ final class BattleView extends FrameLayout {
               area.right - area.width() * .1f,
               area.bottom),
           p);
+      boolean flash =
+          playback.playing
+              && playback.effect.equals("hit")
+              && f == active(playback.side)
+              && playback.progress < .65f;
+      if (flash) {
+        float light = 100 * (float) Math.sin(playback.progress * Math.PI / .65f);
+        p.setColorFilter(
+            new ColorMatrixColorFilter(
+                new float[] {
+                  1, 0, 0, 0, light, 0, 1, 0, 0, light, 0, 0, 1, 0, light, 0, 0, 0, 1, 0
+                }));
+      }
       fit(c, b, path, area);
+      p.setColorFilter(null);
     }
 
     void status(Canvas c, JSONObject f, RectF r, boolean own) {

@@ -9,6 +9,7 @@ final class TitleView extends FrameLayout {
   final MainActivity host;
   final Button enter, settings;
   final boolean loggedIn;
+  final DragParallax parallax;
   float scale, extraX, extraY;
   final Paint paint = new Paint(3);
   static final String[] NAMES = {"guardian", "lobster", "octopus", "gull", "logo", "sub"};
@@ -24,6 +25,7 @@ final class TitleView extends FrameLayout {
   TitleView(MainActivity host, boolean loggedIn) {
     super(host);
     this.host = host;
+    parallax = new DragParallax(this, host.dp(18));
     this.loggedIn = loggedIn;
     LobbyView.warm(host);
     setWillNotDraw(false);
@@ -40,24 +42,37 @@ final class TitleView extends FrameLayout {
     enter.setMinHeight(0);
     enter.setMinimumHeight(0);
     addView(enter);
-    settings =
-        host.button(
-            "설정",
-            () ->
-                new GameDialog(host)
-                    .setTitle("소리 설정")
-                    .setMultiChoiceItems(
-                        new String[] {"배경음악", "효과음"},
-                        new boolean[] {
-                          host.sound.volume("music") > 0, host.sound.volume("effects") > 0
-                        },
-                        (d, i, on) -> host.sound.volume(i == 0 ? "music" : "effects", on ? 70 : 0))
-                    .setPositiveButton("닫기", null)
-                    .show());
+    settings = host.button("설정", () -> NativeSettingsSheet.show(host));
     settings.setBackground(null);
     settings.setTextColor(Color.TRANSPARENT);
     settings.setPadding(0, 0, 0, 0);
     addView(settings);
+  }
+
+  @Override
+  public boolean onInterceptTouchEvent(MotionEvent e) {
+    return parallax.intercept(
+            e,
+            new RectF(getWidth() * .12f, getHeight() * .2f, getWidth() * .88f, getHeight() * .75f),
+            true)
+        || super.onInterceptTouchEvent(e);
+  }
+
+  @Override
+  public boolean onTouchEvent(MotionEvent e) {
+    return parallax.touch(e) || super.onTouchEvent(e);
+  }
+
+  @Override
+  public boolean performClick() {
+    super.performClick();
+    return true;
+  }
+
+  @Override
+  protected void onDetachedFromWindow() {
+    parallax.close();
+    super.onDetachedFromWindow();
   }
 
   RectF box(float[] a) {
@@ -115,20 +130,28 @@ final class TitleView extends FrameLayout {
     super.onDraw(c);
     Bitmap bg = host.art.asset("t2_bg.webp");
     if (bg != null) {
-      float s = Math.max(getWidth() / (float) bg.getWidth(), getHeight() / (float) bg.getHeight()),
+      float
+          s =
+              Math.max(getWidth() / (float) bg.getWidth(), getHeight() / (float) bg.getHeight())
+                  * 1.035f,
           w = bg.getWidth() * s,
           h = bg.getHeight() * s;
       c.drawBitmap(
           bg,
           null,
           new RectF(
-              (getWidth() - w) / 2,
-              (getHeight() - h) / 2,
-              (getWidth() + w) / 2,
-              (getHeight() + h) / 2),
+              (getWidth() - w) / 2 + parallax.x * .25f,
+              (getHeight() - h) / 2 + parallax.y * .25f,
+              (getWidth() + w) / 2 + parallax.x * .25f,
+              (getHeight() + h) / 2 + parallax.y * .25f),
           paint);
     }
-    for (int i = 0; i < NAMES.length; i++) draw(c, "t2_" + NAMES[i] + ".webp", box(BOXES[i]));
+    float[] depths = {.9f, 1.15f, 1.4f, 1.2f, 0, 0};
+    for (int i = 0; i < NAMES.length; i++) {
+      RectF r = box(BOXES[i]);
+      r.offset(parallax.x * depths[i], parallax.y * depths[i]);
+      draw(c, "t2_" + NAMES[i] + ".webp", r);
+    }
     draw(c, loggedIn ? "t2_start.webp" : "t2_login.webp", mainBox());
     RectF g = gearBox();
     draw(c, "title_settings_button_base.webp", g);

@@ -145,6 +145,40 @@ public class NativeScreensTest {
   }
 
   @Test
+  public void ticketClaimRefreshesBeforeClosingPopup() throws Exception {
+    assertTrue("검토 서버에서만 실행", BuildConfig.SERVER_URL.contains("10.0.2.2"));
+    try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
+      enterHome(scenario);
+      scenario.onActivity(a -> a.load("draw"));
+      waitFor(scenario, a -> !a.busy && button(a.root, "뽑기권 받기") != null);
+      AtomicReference<Integer> before = new AtomicReference<>();
+      scenario.onActivity(
+          a -> {
+            before.set(a.me().optInt("credits"));
+            assertTrue("지급 가능 테스트 계정이 필요해요", button(a.root, "뽑기권 받기").isEnabled());
+            button(a.root, "뽑기권 받기").performClick();
+          });
+      waitFor(
+          scenario,
+          a ->
+              !a.busy
+                  && a.visibleDialog != null
+                  && a.visibleDialog.isShowing()
+                  && a.me().optInt("credits") > before.get()
+                  && button(a.root, "뽑기권 받기") != null
+                  && !button(a.root, "뽑기권 받기").isEnabled());
+      shot(scenario, "draw-ticket-refreshed");
+      AtomicReference<android.app.AlertDialog> popup = new AtomicReference<>();
+      scenario.onActivity(a -> popup.set(a.visibleDialog));
+      dialogShot(scenario, popup, "popup-ticket-reward");
+      scenario.onActivity(
+          a -> a.visibleDialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick());
+      waitFor(scenario, a -> a.visibleDialog == null);
+      scenario.onActivity(a -> assertTrue(a.me().optInt("credits") > before.get()));
+    }
+  }
+
+  @Test
   public void lobbyAndPopups() throws Exception {
     try (ActivityScenario<MainActivity> s = ActivityScenario.launch(MainActivity.class)) {
       enterHome(s);

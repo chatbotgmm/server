@@ -1043,6 +1043,7 @@ img{-webkit-user-drag:none;-webkit-touch-callout:none}
   .steam .mini span{font-size:14px;color:var(--ink);display:flex;gap:6px;align-items:center;justify-content:flex-start}
   .steam .mini .xp{width:100%;height:8px;margin:2px 0}
   .steam .mini small,.steam .mini .learn{justify-self:start;margin-top:1px}
+  .steam .mini .learn,.steam .mini .xpinfo{grid-column:2;max-width:100%;white-space:normal}
   .steam .mini small{font-size:12.5px;color:var(--edge);font-weight:700}
   .steam .combo{font-size:13.5px;margin:2px 0;text-align:center;color:var(--ink)}
   .steam .teambar .ghost{padding:9px;font-size:15px;border:2px solid var(--edge);box-shadow:0 3px 0 rgba(60,35,15,.45)}
@@ -1826,6 +1827,8 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
   #arena .box::before{background:none;border-style:solid;--status-edge:clamp(22px,3vw,38px);border-width:calc(var(--status-edge) * 100 / 280) var(--status-edge) calc(var(--status-edge) * 230 / 280);border-image:url(/duel/intro/b5_status_frame.svg) 100 280 230 280 fill / calc(var(--status-edge) * 100 / 280) var(--status-edge) calc(var(--status-edge) * 230 / 280) stretch}
   #arena .box.foe{left:8%;top:3.7%;width:46%}
   #arena .box.me{left:46%;right:auto;bottom:5.5%;width:44%}
+  /* 큰 글꼴·긴 증강체 목록도 상대 그림 영역까지 상태창을 밀어 올리지 않게 한다. */
+  #arena .box.me{max-height:28%;overflow:auto;scrollbar-width:thin}
   #arena .box .nm span{font-size:clamp(13px,3.5vh,24px)}
   #arena .box .nm em{font-size:clamp(12px,3.3vh,22px)}
   #arena .box .hpr{margin:1vh 0 .8vh}

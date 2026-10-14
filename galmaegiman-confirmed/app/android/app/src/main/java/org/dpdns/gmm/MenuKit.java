@@ -35,6 +35,21 @@ final class MenuKit {
     return v;
   }
 
+  TextView notice(String s) {
+    TextView v = note(s);
+    v.setBackground(h.material(0xfffffaf0));
+    v.setPadding(h.dp(10), h.dp(7), h.dp(10), h.dp(7));
+    return v;
+  }
+
+  TextView section(String s) {
+    TextView v = notice(s);
+    v.setTypeface(h.font);
+    v.setTextSize(20);
+    v.setTextColor(MainActivity.INK);
+    return v;
+  }
+
   LinearLayout paper() {
     LinearLayout v = column();
     v.setPadding(h.dp(10), h.dp(8), h.dp(10), h.dp(8));
@@ -54,6 +69,7 @@ final class MenuKit {
   Button action(String icon, String name, Runnable click) {
     Button b = h.button(name, click);
     b.setTextSize(16);
+    b.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PAPER));
     if (icon != null) {
       String path = "/duel/icons/" + icon + ".png";
       Runnable ready =
@@ -111,7 +127,7 @@ final class MenuKit {
     for (int i = 0; i < names.length; i++) {
       int index = i;
       Button b = action(null, names[i], () -> select.accept(index));
-      if (i == active) b.setBackground(h.material(0xffdd9a58));
+      if (i == active) b.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
       h.cell(line, b);
     }
     parent.addView(line);
@@ -190,6 +206,8 @@ final class MenuKit {
     input.setSingleLine(true);
     input.setGravity(Gravity.CENTER);
     input.setTextColor(MainActivity.INK);
+    input.setTypeface(h.font);
+    input.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xffa8672e));
     input.setText("1");
     int[] amount = {1};
     Runnable paint =

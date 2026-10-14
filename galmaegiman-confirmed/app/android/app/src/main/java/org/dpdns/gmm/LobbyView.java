@@ -9,6 +9,7 @@ import org.json.*;
 /** 웹 로비의 원본 방 레이어·하단 다섯 메뉴·큰 플레이 버튼을 그대로 사용한다. */
 final class LobbyView extends FrameLayout {
   final MainActivity host;
+  final DragParallax parallax;
   final Paint p = new Paint(3);
   final ArrayList<Button> buttons = new ArrayList<>();
   final String room;
@@ -48,6 +49,7 @@ final class LobbyView extends FrameLayout {
   LobbyView(MainActivity host) {
     super(host);
     this.host = host;
+    parallax = new DragParallax(this, host.dp(18));
     room = room(host);
     for (String layer : new String[] {"base.jpg", "plat.webp", "char.webp"})
       image("bg/" + room + layer);
@@ -96,9 +98,40 @@ final class LobbyView extends FrameLayout {
     Button b = host.button(name, click);
     b.setTextColor(Color.TRANSPARENT);
     b.setBackground(null);
+    b.setOnTouchListener(
+        (v, e) -> {
+          postInvalidateOnAnimation();
+          return false;
+        });
     b.setPadding(0, 0, 0, 0);
     buttons.add(b);
     addView(b);
+  }
+
+  @Override
+  public boolean onInterceptTouchEvent(MotionEvent e) {
+    return parallax.intercept(
+            e,
+            new RectF(getWidth() * .16f, getHeight() * .2f, getWidth() * .85f, getHeight() * .75f),
+            true)
+        || super.onInterceptTouchEvent(e);
+  }
+
+  @Override
+  public boolean onTouchEvent(MotionEvent e) {
+    return parallax.touch(e) || super.onTouchEvent(e);
+  }
+
+  @Override
+  public boolean performClick() {
+    super.performClick();
+    return true;
+  }
+
+  @Override
+  protected void onDetachedFromWindow() {
+    parallax.close();
+    super.onDetachedFromWindow();
   }
 
   void positions(int w, int h) {
@@ -189,15 +222,14 @@ final class LobbyView extends FrameLayout {
   }
 
   void panel(Canvas c, RectF r, int color) {
-    p.setColor(0xffc27c3d);
-    c.drawRoundRect(
-        r.left, r.top + host.dp(4), r.right, r.bottom + host.dp(4), host.dp(14), host.dp(14), p);
-    p.setColor(0xffe2a764);
-    c.drawRoundRect(r, host.dp(14), host.dp(14), p);
+    panel(c, r, color, host.dp(5));
+  }
+
+  void panel(Canvas c, RectF r, int color, float depth) {
+    GameButtonDrawable.drawSurface(c, r, 0xffe2a764, host.dp(14), host.dp(2), depth, p);
     RectF inside = new RectF(r);
     inside.inset(host.dp(5), host.dp(5));
-    p.setColor(color);
-    c.drawRoundRect(inside, host.dp(10), host.dp(10), p);
+    GameButtonDrawable.drawSurface(c, inside, color, host.dp(10), host.dp(1), 0, p);
   }
 
   void label(Canvas c, String text, float x, float y, float size, boolean outline) {
@@ -228,13 +260,19 @@ final class LobbyView extends FrameLayout {
     for (String layer : new String[] {"base.jpg", "plat.webp", "char.webp"}) {
       Bitmap bg = image("bg/" + room + layer);
       if (bg == null) continue;
+      float depth = layer.equals("base.jpg") ? .25f : layer.equals("plat.webp") ? .55f : 1f;
       float s = Math.max(w / (float) bg.getWidth(), h / (float) bg.getHeight());
+      if (layer.equals("base.jpg")) s *= 1.035f;
       float bw = bg.getWidth() * s, bh = bg.getHeight() * s;
-      c.drawBitmap(bg, null, new RectF((w - bw) / 2, (h - bh) / 2, (w + bw) / 2, (h + bh) / 2), p);
+      RectF r = new RectF((w - bw) / 2, (h - bh) / 2, (w + bw) / 2, (h + bh) / 2);
+      r.offset(parallax.x * depth, parallax.y * depth);
+      c.drawBitmap(bg, null, r, p);
     }
     for (int i = 0; i < 5; i++) {
-      RectF r = boxes[i];
-      panel(c, r, COLORS[i]);
+      RectF r = new RectF(boxes[i]);
+      boolean pressed = buttons.get(i).isPressed();
+      if (pressed) r.offset(0, host.dp(2));
+      panel(c, r, COLORS[i], pressed ? host.dp(3) : host.dp(5));
       float size = Math.min(host.dp(36), r.width() * .28f);
       fit(
           c,

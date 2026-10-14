@@ -757,7 +757,7 @@ ${!total&&!players.length?'<p class="note">예: <a href="/search?q=전설">전�
   });
   app.get('/app/native',async(_req,reply)=>{
     const file=resolve(options.root,'public/app/native.json'),meta=existsSync(file)?JSON.parse(readFileSync(file,'utf8')) as {versionName:string;size:number;date:string}:null;
-    return send(reply,page('네이티브 앱 받기','/app/native',`<h1>갈매미맨 수비대 · 네이티브 앱</h1><p class="lead">로그인부터 스토리·전투·뽑기·조합·탐험까지 Android 앱에서 플레이해요.</p>${meta?`<p>${esc(meta.versionName)} · ${(meta.size/1048576).toFixed(1)}MB · ${esc(meta.date)}</p><a class="btn lg" href="/app/galmaegiman-native.apk" download>⬇ 네이티브 APK 받기</a>`:'<p>다운로드를 준비하고 있어요.</p>'}<p>별도 설치하는 시험판이에요. 기존 앱을 지우지 않아도 돼요. 같은 계정으로 로그인하면 갈매미와 스토리 진행을 이어서 사용해요.</p><ol><li>APK를 받은 뒤 파일을 열어요.</li><li>브라우저의 앱 설치를 허용하고 설치해요.</li><li>카톡에서 「웹 로그인」을 보내 받은 코드 또는 카카오로 로그인해요.</li></ol>`));
+    return send(reply,page('네이티브 앱 받기','/app/native',`<h1>갈매미맨 수비대 · 개선판</h1><p class="lead">로그인부터 스토리·전투·뽑기·조합·탐험까지 Android 앱에서 플레이해요.</p>${meta?`<p>${esc(meta.versionName)} · ${(meta.size/1048576).toFixed(1)}MB · ${esc(meta.date)}</p><a class="btn lg" href="/app/galmaegiman-native.apk" download>⬇ 개선판 APK 받기</a>`:'<p>다운로드를 준비하고 있어요.</p>'}<p>이전 네이티브 앱과 함께 설치되는 개선판이에요. 기존 앱을 지우지 않아도 돼요. 설치 후 앱 목록에서 「갈매미맨 수비대 개선판」을 열어 주세요. 같은 계정으로 로그인하면 갈매미와 스토리 진행을 이어서 사용해요.</p><ol><li>APK를 받은 뒤 파일을 열어요.</li><li>브라우저의 앱 설치를 허용하고 설치해요.</li><li>카톡에서 「웹 로그인」을 보내 받은 코드 또는 카카오로 로그인해요.</li></ol>`));
   });
   app.get('/robots.txt',limit,async(_req,reply)=>reply.type('text/plain; charset=utf-8').header('Cache-Control','public, max-age=3600')
     .send(`User-agent: *\nAllow: /\nDisallow: /api/\n${site?`Sitemap: ${site}/sitemap.xml\n`:''}`));

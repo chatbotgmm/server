@@ -32,8 +32,7 @@ final class NativeEconomy {
           JSONObject event = r.optJSONObject("event");
           if (event != null) banner.addView(k.note(event.optString("label")));
           LinearLayout actions = k.row();
-          Button claim =
-              k.action("u-ticket", "뽑기권 받기", () -> h.mutate("claim", MainActivity.obj(), "draw"));
+          Button claim = k.action("u-ticket", "뽑기권 받기", this::claimTickets);
           claim.setEnabled(r.optLong("wait") <= 0);
           h.cell(actions, claim);
           if (m.lastDraw != null)
@@ -86,6 +85,7 @@ final class NativeEconomy {
                   amount[0] = n;
                   go.setText(n + "회 뽑기 · 뽑기권 " + cost * n);
                 });
+            go.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
             go.setEnabled(limit > 0);
             if (limit <= 0) go.setText("뽑기권 부족");
             card.addView(go);
@@ -101,6 +101,55 @@ final class NativeEconomy {
             h.body.addView(status);
           }
         });
+  }
+
+  void claimTickets() {
+    h.request(
+        "claim",
+        MainActivity.obj(),
+        (r, e) -> {
+          Object result = r.opt("result");
+          // 서버 확정 수량을 먼저 가져와 결과 창 아래의 상단 재화도 즉시 갱신한다.
+          int operationEpoch = h.epoch;
+          h.busy = true;
+          h.api.call(
+              "native/state",
+              null,
+              (fresh, error) -> {
+                h.busy = false;
+                if (h.isFinishing() || h.epoch != operationEpoch) return;
+                if (error == null) {
+                  h.state = fresh;
+                  NativeAlerts.schedule(h, h.me());
+                  draw();
+                }
+                showTicketReward(result, error != null);
+              });
+        });
+  }
+
+  void showTicketReward(Object result, boolean refreshOnClose) {
+    LinearLayout reward = k.column();
+    reward.setPadding(h.dp(20), h.dp(16), h.dp(20), h.dp(8));
+    LinearLayout head = k.row();
+    head.addView(k.image("/duel/icons/u-ticket.png", 52, 52));
+    head.addView(
+        h.text(
+            result != null && String.valueOf(result).contains("뽑기권 +") ? "뽑기권을 받았어요!" : "뽑기권 안내",
+            22));
+    reward.addView(head);
+    TextView details =
+        k.note(result == null ? "지급이 완료됐어요." : String.valueOf(result).replace("🎟", "").trim());
+    details.setTextSize(17);
+    reward.addView(details);
+    new GameDialog(h)
+        .setView(reward)
+        .setPositiveButton(
+            "확인",
+            (d, w) -> {
+              if (refreshOnClose) h.load("draw");
+            })
+        .show();
   }
 
   void intro(LinearLayout parent, String icon, String title, String note) {
@@ -259,7 +308,7 @@ final class NativeEconomy {
         () -> {
           cols[0].removeAllViews();
           cols[1].removeAllViews();
-          cols[0].addView(k.note("재료를 눌러 넣기 · 보호·탐험 중인 갈매미는 제외해요."));
+          cols[0].addView(k.notice("재료를 눌러 넣기 · 보호·탐험 중인 갈매미는 제외해요."));
           ArrayList<View> choices = new ArrayList<>();
           for (int i = 0; i < pool.length(); i++) {
             JSONObject u = pool.optJSONObject(i);
@@ -281,7 +330,7 @@ final class NativeEconomy {
             choices.add(tile);
           }
           k.tiles(cols[0], choices, 2);
-          cols[1].addView(h.text("섞기 · " + m.mixDraft.size() + " / 6마리", 22));
+          cols[1].addView(k.section("섞기 · " + m.mixDraft.size() + " / 6마리"));
           ArrayList<View> slots = new ArrayList<>();
           for (int i = 0; i < 6; i++) {
             int index = i;
@@ -306,7 +355,7 @@ final class NativeEconomy {
                     }));
           }
           k.tiles(cols[1], slots, 3);
-          cols[1].addView(k.note("2~6마리로 섞어요. 맞지 않는 조합은 재료가 그대로 남아요."));
+          cols[1].addView(k.notice("2~6마리로 섞어요. 맞지 않는 조합은 재료가 그대로 남아요."));
           LinearLayout actions = k.row();
           h.cell(
               actions,
@@ -385,7 +434,7 @@ final class NativeEconomy {
           LinearLayout shelf = k.column();
           shelf.setPadding(h.dp(10), h.dp(10), h.dp(10), h.dp(10));
           shelf.setBackground(h.material(0xff8a5a2b));
-          h.body.addView(k.note("대결 아이템은 종류마다 " + maxStack + "개까지 · 갈매미 교환·팔기는 카톡 상점"));
+          h.body.addView(k.notice("대결 아이템은 종류마다 " + maxStack + "개까지 · 갈매미 교환·팔기는 카톡 상점"));
           h.body.addView(shelf);
           ArrayList<View> goods = new ArrayList<>();
           JSONObject tickets = prices.optJSONObject("tickets"),
@@ -525,9 +574,9 @@ final class NativeEconomy {
       for (int i = 0; i < ids.length(); i++) {
         String id = ids.optString(i);
         JSONObject u = find(id);
-        team.add(k.tile(u, "/thumbs/" + id + ".jpg", "탐험 중", null));
+        team.add(k.tile(u, "/thumbs/" + id + ".jpg", left > 0 ? "탐험 중" : "귀환 완료", null));
       }
-      k.tiles(panel, team, Math.min(5, Math.max(1, ids.length())));
+
       if (left > 0)
         panel.addView(
             k.action(
@@ -554,6 +603,7 @@ final class NativeEconomy {
                 "u-gift",
                 "탐험 보상 받기",
                 () -> h.mutate("expedition/claim", MainActivity.obj(), "expedition")));
+      k.tiles(panel, team, Math.min(5, Math.max(1, ids.length())));
       int ep = h.epoch;
       h.api.ui.postDelayed(
           () -> {
@@ -574,7 +624,7 @@ final class NativeEconomy {
         () -> {
           cols[0].removeAllViews();
           cols[1].removeAllViews();
-          cols[0].addView(k.note("보호된 갈매미도 탐험에 함께할 수 있어요."));
+          cols[0].addView(k.notice("보호된 갈매미도 탐험에 함께할 수 있어요."));
           JSONArray units = h.list(h.me(), "units");
           ArrayList<View> choices = new ArrayList<>();
           for (int i = 0; i < units.length(); i++) {
@@ -599,7 +649,7 @@ final class NativeEconomy {
                     }));
           }
           k.tiles(cols[0], choices, 3);
-          cols[1].addView(h.text("탐험대 " + h.expeditionDraft.size() + " / 10", 22));
+          cols[1].addView(k.section("탐험대 " + h.expeditionDraft.size() + " / 10"));
           ArrayList<View> selected = new ArrayList<>();
           for (int i = 0; i < h.expeditionDraft.size(); i++) {
             int index = i;

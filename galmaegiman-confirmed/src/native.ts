@@ -13,7 +13,7 @@ import {addXp,battleXp,xpToNext,innateLearned,statsOf,slotSkills,learnOffers,lea
 import type {PvpEvent} from './battle/replay.js';
 
 interface Save {units:Record<string,Partial<UnitRecord>>;team:string[];cleared:string[];hp:Record<string,{f:number;at:number}>}
-interface Fight {id:string;player:string;b:Battle;keys:string[];mode:string;stage?:string;revision:number;exp:number;events:PvpEvent[];match?:string;result?:unknown;done:boolean}
+interface Fight {id:string;player:string;b:Battle;keys:string[];mode:string;stage?:string;revision:number;exp:number;events:PvpEvent[];match?:string;result?:unknown;done:boolean;chooseDeadline?:number;timer?:ReturnType<typeof setTimeout>}
 const action=z.union([z.object({kind:z.literal('skill'),skillId:z.string().max(40)}).strict(),z.object({kind:z.literal('switch'),to:z.number().int().min(0).max(2)}).strict(),z.object({kind:z.literal('item'),item:z.string().max(30),target:z.number().int().min(0).max(2).optional()}).strict()]);
 const turn=z.object({session:z.string().max(40),revision:z.number().int().min(0),action:action.optional(),choose:z.object({augment:z.string().max(30).optional(),switchTo:z.number().int().min(0).max(2).optional()}).strict().optional(),reroll:z.number().int().min(0).max(2).optional(),leave:z.boolean().optional()}).strict().refine(b=>[b.action,b.choose,b.reroll,b.leave].filter(x=>x!==undefined).length===1);
 export function registerNative(app:FastifyInstance,game:GameService,root:string,auth:(r:FastifyRequest)=>string|null,guard:(r:FastifyRequest,p:FastifyReply)=>boolean){
@@ -54,8 +54,29 @@ export function registerNative(app:FastifyInstance,game:GameService,root:string,
     keep(s,b.key,r);await game.webSaveStory(id,s);return {ok:true};
   });
   route('POST','heal',async(id,body)=>{requireIdle(id);const b=z.object({key:z.string().regex(/^o\d+$/),item:z.string().max(30)}).strict().parse(body),s=await read(id),o=await mine(id);rec(b.key,s,o);const it=R.data.items[b.item];if(!it?.heal)throw new GameError('회복 아이템을 골라 주세요.');const f=hp(s,b.key);if(f>=1)throw new GameError('체력이 가득해요.');s.hp[b.key]={f:Math.min(1,f+it.heal/100),at:Date.now()};await game.webNativeCommit(id,{id:b.item,name:it.name},s);return {ok:true};});
-  function snapshot(f:Fight){const b=f.b;return {session:f.id,revision:f.revision,mode:f.mode,phase:b.phase,turn:b.turn,winner:b.winner,result:f.result,log:b.log.slice(-50),teams:b.sides.map((s,side)=>({active:s.active,augments:s.augs.map(id=>R.battleAug.get(id)),needSwitch:s.needSwitch,offers:s.offers?.map((id,i)=>({...R.battleAug.get(id),icon:existsSync(`${root}/public/battle/icons/${id}.png`)?id:'u-gift',rerolled:s.rerolled[i]}))??[],fighters:s.fighters.map(x=>({key:x.rec.uid,id:x.rec.id,name:x.name,level:x.rec.level,stage:x.rec.stage,image:image(x.rec.id,side===0?'back':'front',x.rec.stage),hp:x.hp,maxHp:x.maxHp,attr:R.attrName(x.attr),attrCode:x.attr,extraAttr:x.extraAttr?R.attrName(x.extraAttr):null,status:x.status,skills:x.skills.map(sk=>({...sk,preview:skillPreview(b,side as 0|1,sk),reason:skillProblem(b,side as 0|1,sk)}))})),legal:b.phase==='action'?legalActions(b,side as 0|1):[],itemsUsed:s.itemsUsed})),items:Object.entries(R.data.items).map(([id,it])=>({id,...it,reason:itemProblem(b,0,id)}))};}
-  route('POST','battle/start',async(id,body)=>{const v=z.object({mode:z.enum(['story','practice','normal','rank']),stage:z.string().max(12).optional(),roster:z.array(z.string()).min(1).max(3).optional(),enemyRoster:z.array(z.string()).min(1).max(3).optional(),level:z.number().int().min(1).max(60).optional(),promotion:z.number().int().min(0).max(3).optional()}).strict().refine(v=>v.mode==='practice'||[v.roster,v.enemyRoster,v.level,v.promotion].every(x=>x===undefined)).parse(body);const now=Date.now();for(const [k,f] of fights)if(f.exp<now)fights.delete(k);if([...fights.values()].some(f=>f.player===id&&!f.done))throw new GameError('진행 중인 전투로 돌아가 주세요.');if(fights.size>=20000)throw new GameError('잠시 후 다시 시도해 주세요.');
+  // 다시 뽑기·재접속으로 제한 시간을 늘리지 않는다. 사용자별 직렬 처리 안에서만 실행한다.
+  function expireChoice(f:Fight){
+    if(f.done||!f.chooseDeadline||Date.now()<f.chooseDeadline||f.b.phase!=='choose')return;
+    const offers=f.b.sides[0].offers;if(!offers?.length)return;
+    const next:Battle={...f.b,sides:structuredClone(f.b.sides),log:[...f.b.log]};
+    const live=next.sides[0].fighters.map((x,i)=>x.hp>0?i:-1).filter(i=>i>=0);
+    const pick={augment:offers[randomInt(offers.length)],...(next.sides[0].needSwitch?{switchTo:live[randomInt(live.length)]}:{})};
+    next.log.push('선택 시간 30초가 지나 증강체를 무작위로 골랐어요.');
+    choose(next,0,pick);if(next.phase==='choose')aiChoose(next,1);
+    f.b=next;f.events.push({c:pick});f.revision++;syncChoice(f);
+  }
+  function syncChoice(f:Fight){
+    if(f.done||f.b.phase!=='choose'||!f.b.sides[0].offers?.length){
+      if(f.timer)clearTimeout(f.timer);f.timer=undefined;f.chooseDeadline=undefined;return;
+    }
+    if(f.chooseDeadline)return;
+    f.chooseDeadline=Date.now()+30_000;
+    f.timer=setTimeout(()=>{void serial(f.player,async()=>expireChoice(f)).catch(error=>app.log.error({errorCode:error instanceof Error?error.name:'Unknown'},'augment timeout'));},30_000);
+    f.timer.unref();
+  }
+  app.addHook('onClose',async()=>{for(const f of fights.values())if(f.timer)clearTimeout(f.timer);});
+  function snapshot(f:Fight){const b=f.b;return {session:f.id,revision:f.revision,serverNow:Date.now(),chooseDeadline:f.chooseDeadline,mode:f.mode,stage:f.stage,hint:stages.find(st=>st.id===f.stage)?.hint??'',phase:b.phase,turn:b.turn,winner:b.winner,result:f.result,log:b.log.slice(-50),teams:b.sides.map((s,side)=>({active:s.active,augments:s.augs.map(id=>R.battleAug.get(id)),needSwitch:s.needSwitch,offers:s.offers?.map((id,i)=>({...R.battleAug.get(id),icon:existsSync(`${root}/public/battle/icons/${id}.png`)?id:'u-gift',rerolled:s.rerolled[i]}))??[],fighters:s.fighters.map(x=>({key:x.rec.uid,id:x.rec.id,name:x.name,level:x.rec.level,stage:x.rec.stage,image:image(x.rec.id,side===0?'back':'front',x.rec.stage),hp:x.hp,maxHp:x.maxHp,attr:R.attrName(x.attr),attrCode:x.attr,extraAttr:x.extraAttr?R.attrName(x.extraAttr):null,status:x.status,skills:x.skills.map(sk=>({...sk,preview:skillPreview(b,side as 0|1,sk),reason:skillProblem(b,side as 0|1,sk)}))})),legal:b.phase==='action'?legalActions(b,side as 0|1):[],itemsUsed:s.itemsUsed})),items:Object.entries(R.data.items).map(([id,it])=>({id,...it,reason:itemProblem(b,0,id)}))};}
+  route('POST','battle/start',async(id,body)=>{const v=z.object({mode:z.enum(['story','practice','normal','rank']),stage:z.string().max(12).optional(),roster:z.array(z.string()).min(1).max(3).optional(),enemyRoster:z.array(z.string()).min(1).max(3).optional(),level:z.number().int().min(1).max(60).optional(),promotion:z.number().int().min(0).max(3).optional()}).strict().refine(v=>v.mode==='practice'||[v.roster,v.enemyRoster,v.level,v.promotion].every(x=>x===undefined)).parse(body);const now=Date.now();for(const [k,f] of fights)if(f.exp<now){if(f.timer)clearTimeout(f.timer);fights.delete(k);}if([...fights.values()].some(f=>f.player===id&&!f.done))throw new GameError('진행 중인 전투로 돌아가 주세요.');if(fights.size>=20000)throw new GameError('잠시 후 다시 시도해 주세요.');
     const s=await read(id),o=await mine(id);let team=s.team.filter(k=>o.has(k)).map(k=>rec(k,s,o)),foe:UnitRecord[],seed=randomInt(2**31-1),match:string|undefined;
     if(v.mode==='normal'||v.mode==='rank'){const m=await game.webPvpMatch(id,v.mode);team=m.mine;foe=m.foe;seed=m.seed;match=m.match;}
     else{
@@ -63,10 +84,10 @@ export function registerNative(app:FastifyInstance,game:GameService,root:string,
       if(v.mode==='practice')team=practice(v.roster??['D1','D2','D3'],'practice');
       if(!team.length)throw new GameError('먼저 수비대를 편성해 주세요.');const st=stages.find(st=>st.id===(v.stage??'P-1'));if(!st||v.mode==='story'&&!unlocked(s,st.id,team))throw new GameError('앞 전투와 승진 조건을 확인해 주세요.');if(v.mode==='story'&&s.team.some(k=>Math.round(statsOf(R,rec(k,s,o)).hp*hp(s,k))<=0))throw new GameError('체력이 0인 갈매미를 회복해 주세요.');foe=st.enemy.map((e,i)=>({uid:`foe${i}`,id:e.id,name:R.villains.get(e.id)!.name!,tier:'LIMITED',level:e.level,xp:0,stage:(e.stage??st.chapter.needStage??0) as Stage,evoAugs:[]}));if(v.mode==='practice'&&v.enemyRoster)foe=practice(v.enemyRoster,'practice-foe');}
     const b=createBattle(R,team,foe,seed);if(v.mode==='story')b.sides[0].fighters.forEach((f,i)=>f.hp=Math.max(1,Math.round(f.maxHp*hp(s,s.team[i]))));
-    const f:Fight={id:randomBytes(16).toString('base64url'),player:id,b,keys:s.team,mode:v.mode,stage:v.stage??'P-1',revision:0,exp:now+2*3600000,events:[],match,done:false};fights.set(f.id,f);return {...snapshot(f),inventory:await game.webItems(id)};
+    const f:Fight={id:randomBytes(16).toString('base64url'),player:id,b,keys:s.team,mode:v.mode,stage:v.stage??'P-1',revision:0,exp:now+2*3600000,events:[],match,done:false};fights.set(f.id,f);syncChoice(f);return {...snapshot(f),inventory:await game.webItems(id)};
   });
-  route('GET','battle/current',async id=>{const f=[...fights.values()].find(f=>f.player===id&&!f.done&&f.exp>Date.now());return f?snapshot(f):{session:null};});
-  route('POST','battle/turn',async(id,body)=>{const v=turn.parse(body),f=fights.get(v.session);if(!f||f.player!==id||f.exp<Date.now())throw new GameError('전투가 만료됐어요. 다시 시작해 주세요.');if(v.revision!==f.revision)return snapshot(f);if(f.done)return snapshot(f);
+  route('GET','battle/current',async id=>{const f=[...fights.values()].find(f=>f.player===id&&!f.done&&f.exp>Date.now());if(f)expireChoice(f);return f?snapshot(f):{session:null};});
+  route('POST','battle/turn',async(id,body)=>{const v=turn.parse(body),f=fights.get(v.session);if(!f||f.player!==id||f.exp<Date.now())throw new GameError('전투가 만료됐어요. 다시 시작해 주세요.');expireChoice(f);if(v.revision!==f.revision)return snapshot(f);if(f.done)return snapshot(f);
     const b=f.b;
     // 실패 시 턴/RNG/아이템이 일부만 바뀌지 않도록 복사에서 먼저 검증한다.
     const next:Battle={...b,sides:structuredClone(b.sides),log:[...b.log]};let event:PvpEvent|undefined;
@@ -80,13 +101,13 @@ export function registerNative(app:FastifyInstance,game:GameService,root:string,
     const events=event?[...f.events,event]:f.events;
     let committed=false;
     if(next.phase==='over'){
-      if(f.mode==='story'){const s=await read(id),o=await mine(id),won=next.winner===0,st=stages.find(st=>st.id===f.stage)!;const xp=v.leave?0:battleXp(R,st.enemy.reduce((n,e)=>n+e.level,0)/st.enemy.length,won);const ups:string[]=[];
-        next.sides[0].fighters.forEach((fighter,i)=>{const key=f.keys[i];if(!o.has(key))return;const r=rec(key,s,o),before=r.level;addXp(R,r,xp);keep(s,key,r);s.hp[key]={f:r.level>before?1:fighter.hp/fighter.maxHp,at:Date.now()};if(r.level>before)ups.push(`${r.name} Lv${before} → ${r.level} · 체력 회복`);});if(won&&!s.cleared.includes(st.id))s.cleared.push(st.id);await game.webNativeCommit(id,item,s);committed=true;f.result={won,xp,ups,scene:st.scene??"harbor",foe:st.enemy[0].id,dialog:won?st.after:st.lose??[],chapterClear:won&&st.id===st.chapter.stages.at(-1)!.id?st.chapter.clear??[]:[]};
+      if(f.mode==='story'){const s=await read(id),o=await mine(id),won=next.winner===0,st=stages.find(st=>st.id===f.stage)!;const xp=v.leave?0:battleXp(R,st.enemy.reduce((n,e)=>n+e.level,0)/st.enemy.length,won);const ups:string[]=[];const growth:unknown[]=[];
+        next.sides[0].fighters.forEach((fighter,i)=>{const key=f.keys[i];if(!o.has(key))return;const r=rec(key,s,o),before=r.level;addXp(R,r,xp);keep(s,key,r);s.hp[key]={f:r.level>before?1:fighter.hp/fighter.maxHp,at:Date.now()};if(r.level>before)ups.push(`${r.name} Lv${before} → ${r.level} · 체력 회복`);growth.push({key,name:r.name,fromLevel:before,level:r.level,xp:r.xp,xpNext:xpToNext(R,r.level),gained:xp,hp:Math.round(statsOf(R,r).hp*s.hp[key].f),maxHp:statsOf(R,r).hp,image:image(r.id,'front',r.stage)});});if(won&&!s.cleared.includes(st.id))s.cleared.push(st.id);await game.webNativeCommit(id,item,s);committed=true;f.result={won,xp,ups,growth,scene:st.scene??"harbor",foe:st.enemy[0].id,dialog:won?st.after:st.lose??[],chapterClear:won&&st.id===st.chapter.stages.at(-1)!.id?st.chapter.clear??[]:[]};
       }else if(f.match&&!v.leave)f.result=await game.webPvpResult(id,R,f.match,events);
       else f.result={won:next.winner===0,xp:0};f.done=true;
     }
     if(item&&!committed)await game.webNativeCommit(id,item);
-    f.b=next;f.revision++;f.events=events;f.exp=Date.now()+2*3600000;
+    f.b=next;f.revision++;f.events=events;f.exp=Date.now()+2*3600000;syncChoice(f);
     return {...snapshot(f),inventory:await game.webItems(id)};
   });
   return {hasActiveStory:(id:string)=>[...fights.values()].some(f=>f.player===id&&f.mode==='story'&&!f.done&&f.exp>Date.now())};

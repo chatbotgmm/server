@@ -17,6 +17,7 @@ final class NativeMenus {
   String query = "", grade = "all", recipeQuery = "", recipeId = "";
   boolean craftOnly, teamChart;
   JSONObject lastDraw;
+  int pendingFetches;
   ArrayList<String> teamDraft, mixDraft = new ArrayList<>();
   String teamMode = "", unitReturn = "story";
 
@@ -41,10 +42,12 @@ final class NativeMenus {
 
   void fetch(String endpoint, Consumer<JSONObject> next) {
     int epoch = h.epoch;
+    pendingFetches++;
     h.api.call(
         endpoint,
         null,
         (r, e) -> {
+          pendingFetches--;
           if (h.isFinishing() || h.epoch != epoch) return;
           if (e != null) {
             if (h.api.token().isEmpty()) h.login();
@@ -69,13 +72,30 @@ final class NativeMenus {
 
   void modes() {
     h.base("게임 모드", "modes");
+    LinearLayout head = (LinearLayout) h.page.getChildAt(0);
+    head.removeAllViews();
+    h.title.setGravity(Gravity.CENTER);
+    head.addView(h.title, new LinearLayout.LayoutParams(-1, h.dp(40)));
     LinearLayout[] cols = k.split(.49f);
     LinearLayout campaign = k.paper(), pvp = k.paper();
+    for (LinearLayout board : new LinearLayout[] {campaign, pvp}) {
+      board.setBackground(new GamePanelDrawable(h));
+      board.setPadding(h.dp(14), h.dp(18), h.dp(14), h.dp(18));
+      board.setMinimumHeight(
+          Math.max(h.dp(220), h.getResources().getDisplayMetrics().heightPixels - h.dp(126)));
+    }
     cols[0].addView(campaign);
     cols[1].addView(pvp);
+    LinearLayout back = k.row();
+    back.setGravity(Gravity.CENTER);
+    back.addView(
+        k.painted("btn-back", "돌아가기", h::back), new LinearLayout.LayoutParams(h.dp(104), h.dp(48)));
+    k.footer(back);
     intro(campaign, "mode-camp", "캠페인", "이야기를 따라 항구를 지키고 갈매미를 성장시켜요.");
-    campaign.addView(k.action("u-story", "스토리 · 챕터 선택", () -> h.load("story")));
-    Button adventure = k.action("mode-adv", "모험 · 상위 갈매미 포획", () -> {});
+    Button story = k.action("u-story", "스토리", () -> h.load("story"));
+    story.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
+    campaign.addView(story);
+    Button adventure = k.action("mode-adv", "모험 준비 중", () -> {});
     adventure.setEnabled(false);
     campaign.addView(adventure);
     campaign.addView(k.note("준비 중 · 다음 업데이트"));
@@ -104,18 +124,25 @@ final class NativeMenus {
             "mode-rank",
             "랭크게임",
             () -> h.confirm("중간에 나가면 패배로 처리돼요. 시작할까요?", () -> h.startFight("rank", null))));
-    pvp.addView(k.action("focus", "연습 · 자유 대결", h::practice));
     LinearLayout links = k.row();
-    h.cell(links, k.action("mode-rank", "순위표", () -> h.load("pvp")));
+    h.cell(links, k.action(null, "순위표", () -> h.load("pvp")));
+    h.cell(links, k.action(null, "연습", h::practice));
     h.cell(
         links,
         k.action(
-            "mode-normal",
+            null,
             "전투 편성",
             () -> {
               h.selectionMode = "pvp";
               h.load("team");
             }));
+    for (int i = 0; i < links.getChildCount(); i++) {
+      Button link = (Button) links.getChildAt(i);
+      link.setTextSize(14);
+      link.setMinHeight(h.dp(48));
+      link.setMinimumHeight(h.dp(48));
+      link.setPadding(h.dp(4), 0, h.dp(4), h.dp(3));
+    }
     pvp.addView(links);
   }
 
@@ -211,7 +238,7 @@ final class NativeMenus {
         row.addView(card, lp);
       }
     } else {
-      content.addView(k.note(chapter.optString("intro")));
+      content.addView(k.notice(chapter.optString("intro")));
       JSONArray ss = h.list(chapter, "stages");
       ArrayList<View> cards = new ArrayList<>();
       for (int i = 0; i < ss.length(); i++) {
@@ -291,6 +318,8 @@ final class NativeMenus {
       JSONObject u = source.optJSONObject(i);
       if (!pvp || u.optBoolean("top")) candidates.add(u);
     }
+    TextView[] draftStatus = {null};
+    Button[] draftSave = {null};
     Runnable[] render = new Runnable[1];
     render[0] =
         () -> {
@@ -306,17 +335,25 @@ final class NativeMenus {
               });
           if (teamChart) chart(left, teamDraft, pvp);
           else {
-            left.addView(k.note("선봉이 먼저 나가요 · 단상을 누르면 빠져요"));
+            left.addView(k.notice("선봉 → 두 번째 → 세 번째 · 누르면 제외"));
             LinearLayout podium = k.row();
             podium.setGravity(Gravity.BOTTOM);
             left.addView(podium);
-            for (int slot : new int[] {1, 0, 2}) {
+            for (int slot : new int[] {0, 1, 2}) {
               String id = slot < teamDraft.size() ? teamDraft.get(slot) : "";
               JSONObject found = null;
               for (JSONObject u : candidates)
                 if (id.equals(u.optString(pvp ? "id" : "key"))) found = u;
               JSONObject u = found;
               LinearLayout step = k.paper();
+              step.setTag("lineup-slot-" + slot);
+              step.setBackground(new GamePanelDrawable(h));
+              boolean compact = h.getResources().getConfiguration().screenHeightDp < 600;
+              step.setPadding(
+                  h.dp(compact ? 8 : 10),
+                  h.dp(compact ? 6 : 12),
+                  h.dp(compact ? 8 : 10),
+                  h.dp(compact ? 6 : 12));
               if (u == null) {
                 step.addView(h.text("＋", 36));
                 step.addView(k.note("비어 있음"));
@@ -324,9 +361,14 @@ final class NativeMenus {
                 step.addView(
                     k.image(
                         pvp ? "/thumbs/" + u.optString("id") + ".jpg" : u.optString("image"),
-                        84,
-                        slot == 0 ? 110 : 88));
-                step.addView(h.text(u.optString("name"), 14));
+                        compact ? 44 : 84,
+                        compact ? 44 : 96));
+                TextView who = h.text(u.optString("name"), compact ? 12 : 14);
+                who.setMaxLines(2);
+                step.addView(who);
+                String attr = u.optString("attrName", u.optString("attr"));
+                if (!compact)
+                  step.addView(k.chip(attr, u.optString("attrCode", u.optString("attr"))));
               }
               TextView role = h.text((slot + 1) + " · " + (slot == 0 ? "선봉" : slot + 1 + "번"), 14);
               role.setBackground(h.material(slot == 0 ? 0xffffe08a : 0xffe9c98f));
@@ -341,7 +383,7 @@ final class NativeMenus {
               h.cell(podium, step);
             }
           }
-          right.addView(k.note("눌러서 넣기 · 다시 누르면 빼기 · 최대 3마리"));
+          right.addView(k.notice("눌러서 넣기 · 다시 누르면 빼기 · 최대 3마리"));
           ArrayList<View> choices = new ArrayList<>();
           for (JSONObject u : candidates) {
             String id = u.optString(pvp ? "id" : "key");
@@ -372,11 +414,15 @@ final class NativeMenus {
             choices.add(tile);
           }
           k.tiles(right, choices, Math.max(2, h.cols()));
+          if (draftStatus[0] != null)
+            draftStatus[0].setText("출전 " + teamDraft.size() + " / 3 · 선봉은 첫 번째 갈매미");
+          if (draftSave[0] != null) draftSave[0].setEnabled(!teamDraft.isEmpty());
         };
     render[0].run();
     LinearLayout footer = k.paper();
     LinearLayout line = k.row();
-    TextView status = k.note("편성을 바꾼 뒤 저장해 주세요.");
+    TextView status = k.note("출전 " + teamDraft.size() + " / 3 · 선봉은 첫 번째 갈매미");
+    draftStatus[0] = status;
     line.addView(status, new LinearLayout.LayoutParams(0, -2, 1));
     Button save =
         k.painted(
@@ -395,7 +441,9 @@ final class NativeMenus {
                     h.load("team");
                   });
             });
-    line.addView(save, new LinearLayout.LayoutParams(h.dp(180), h.dp(48)));
+    draftSave[0] = save;
+    save.setEnabled(!teamDraft.isEmpty());
+    line.addView(save, new LinearLayout.LayoutParams(h.dp(156), h.dp(48)));
     footer.addView(line);
     k.footer(footer);
   }
@@ -412,6 +460,8 @@ final class NativeMenus {
         if (unit.equals(own.optJSONObject(i).optString("id")))
           mine.add(own.optJSONObject(i).optString("attr"));
     }
+    parent.addView(k.notice("공격 속성 → 방어 속성 · 유리 ×1.5 / 불리 ×0.67 / 그 외 ×1"));
+    ArrayList<View> entries = new ArrayList<>();
     Iterator<String> keys = chart.keys();
     HashSet<String> beats = new HashSet<>(), danger = new HashSet<>();
     while (keys.hasNext()) {
@@ -435,23 +485,29 @@ final class NativeMenus {
           }
       }
       LinearLayout row = k.paper();
-      row.addView(h.text((mine.contains(attr) ? "★ " : "") + attrName(attrs, attr), 17));
-      row.addView(
+      LinearLayout head = k.row();
+      head.addView(k.chip(attrName(attrs, attr), attr));
+      if (mine.contains(attr)) head.addView(h.text("  우리 팀", 14));
+      row.addView(head);
+      TextView good =
           k.note(
-              "▲ 강함"
-                  + " "
-                  + android.text.TextUtils.join(" · ", strong)
-                  + "\n▼ 조심 "
-                  + android.text.TextUtils.join(" · ", weak)));
-      parent.addView(row);
+              "유리 ×1.5  " + (strong.isEmpty() ? "없음" : android.text.TextUtils.join(" · ", strong)));
+      good.setTextColor(0xff276646);
+      row.addView(good);
+      TextView bad =
+          k.note("불리 ×0.67  " + (weak.isEmpty() ? "없음" : android.text.TextUtils.join(" · ", weak)));
+      bad.setTextColor(0xff9b3c31);
+      row.addView(bad);
+      entries.add(row);
     }
+    k.tiles(parent, entries, h.screen.equals("types") ? 2 : 1);
     if (!mine.isEmpty()) {
       danger.removeAll(beats);
       ArrayList<String> b = new ArrayList<>(), d = new ArrayList<>();
       for (String a : beats) b.add(attrName(attrs, a));
       for (String a : danger) d.add(attrName(attrs, a));
       parent.addView(
-          k.note(
+          k.notice(
               "우리 팀 ▲ "
                   + android.text.TextUtils.join(" · ", b)
                   + "\n조심 ▼ "

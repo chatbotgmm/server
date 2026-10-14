@@ -65,7 +65,7 @@ final class NativeLibrary {
                 });
             cards.add(card);
           }
-          list.addView(k.note("발견 " + h.me().optInt("dex") + " / " + h.me().optInt("dexTotal")));
+          list.addView(k.notice("발견 " + h.me().optInt("dex") + " / " + h.me().optInt("dexTotal")));
           k.tiles(list, cards, h.getResources().getConfiguration().screenWidthDp >= 1100 ? 7 : 5);
           if (cards.isEmpty()) list.addView(k.note("찾는 갈매미가 없어요. 이름·등급·속성을 바꿔 찾아보세요."));
         };
@@ -289,7 +289,7 @@ final class NativeLibrary {
                         .setNegativeButton("나중에", null)
                         .show();
               }));
-    cols[1].addView(h.text("기술 · " + h.list(u, "skills").length() + " / 4칸", 22));
+    cols[1].addView(k.section("기술 · " + h.list(u, "skills").length() + " / 4칸"));
     LinearLayout actions = k.row();
     for (String kind : new String[] {"promo", "learn"}) {
       JSONArray offers = h.list(u, kind);
@@ -380,7 +380,9 @@ final class NativeLibrary {
       cards.add(card);
     }
     k.tiles(h.body, cards, h.cols());
-    h.body.addView(k.action("u-shop", "아이템 구매", () -> h.load("shop")));
+    h.body.addView(
+        k.action("u-shop", "아이템 구매", () -> h.load("shop")),
+        new LinearLayout.LayoutParams(-1, h.dp(52)));
   }
 
   void heal(String id) {

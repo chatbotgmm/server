@@ -1,4 +1,4 @@
-import {beforeAll,beforeEach,afterAll,describe,it,expect} from 'vitest';
+import {beforeAll,beforeEach,afterAll,describe,it,expect,vi} from 'vitest';
 import {PrismaClient} from '@prisma/client';
 import {GameService} from '../src/game.js';
 import {loadContent,topTiers} from '../src/content.js';
@@ -1134,7 +1134,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await app.inject({method:'GET',url:'/my'})).body).toContain('id="inst"');
     }finally{await app.close();}
   });
-  it('네이티브 카카오: 처음 연결은 코드 확인, 계정 연결은 현재 로그인 계정을 유지',async()=>{
+  it.each(['2','3'])('네이티브 카카오 앱 %s: 처음 연결은 코드 확인, 계정 연결은 현재 로그인 계정을 유지',async(appVersion)=>{
     let kakaoId=9090;
     const fakeFetch=(async(url:string|URL)=>new Response(JSON.stringify(String(url).includes('/oauth/token')?{access_token:'t'}:{id:kakaoId}),{status:200})) as typeof fetch;
     const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com',kakaoLogin:{restKey:'0123456789abcdef0123456789abcdef'},fetch:fakeFetch});
@@ -1146,20 +1146,20 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const state=new URL(String(start.headers.location)).searchParams.get('state')!;
       const cookie=(start.headers['set-cookie'] as string[]).map(c=>c.split(';')[0]).join('; ');
       const cb=await app.inject({method:'GET',url:`/my/kakao/callback?code=x&state=${state}`,headers:{cookie}});
-      expect(cb.headers.location).toMatch(/^gmmnative:\/\/auth\?code=/);
+      expect(new URL(String(cb.headers.location)).protocol).toBe(appVersion==='3'?'gmmrevised:':'gmmnative:');
       return new URL(String(cb.headers.location)).searchParams.get('code')!;
     };
     try{
-      const one=await oauth(`/my/kakao?app=2&c=${challenge}`),pending=(await exchange(one)).json();
+      const one=await oauth(`/my/kakao?app=${appVersion}&c=${challenge}`),pending=(await exchange(one)).json();
       expect(pending.needsLink).toBe(true);expect(pending.token).toBeUndefined();expect((await exchange(one)).statusCode).toBe(400);
       const loginCode=(await send('웹 로그인')).text!.match(/\b\d{6}\b/)![0];
       const login=await app.inject({method:'POST',url:'/my/api/login',headers,payload:{code:loginCode,linkCode:pending.linkCode}});
       expect(login.statusCode).toBe(200);const token=login.json().token;const player=await me();
       expect(await game.webKakaoPlayer('9090')).toBe(player.id);
       expect((await app.inject({method:'POST',url:'/my/api/login',headers,payload:{code:loginCode,linkCode:pending.linkCode}})).statusCode).toBe(400);
-      expect((await app.inject({method:'POST',url:'/my/api/kakao/link-start',headers,payload:{challenge}})).statusCode).toBe(401);
+      expect((await app.inject({method:'POST',url:'/my/api/kakao/link-start',headers,payload:{challenge,app:appVersion}})).statusCode).toBe(401);
       kakaoId=9091;
-      const startLink=await app.inject({method:'POST',url:'/my/api/kakao/link-start',headers:{...headers,'x-gmm-s':token},payload:{challenge}});
+      const startLink=await app.inject({method:'POST',url:'/my/api/kakao/link-start',headers:{...headers,'x-gmm-s':token},payload:{challenge,app:appVersion}});
       expect(startLink.statusCode).toBe(200);const url=startLink.json().result.url;
       const linked=await exchange(await oauth(url));expect(linked.statusCode).toBe(200);
       expect(linked.json().token.split('.')[0]).toBe(player.id);expect(await game.webKakaoPlayer('9091')).toBe(player.id);
@@ -1521,6 +1521,30 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const before=await game.webStory((await me()).id);
       await post('battle/turn',{session:start.session,revision:1,leave:true});expect(await game.webStory((await me()).id)).toEqual(before);
     }finally{await app.close();}
+  });
+  it('증강체 제한 시간은 재추첨으로 늘지 않고 30초 뒤 현재 선택지에서 한 번만 무작위 확정한다',async()=>{
+    await fixtures(['D1']);
+    const app=await buildApp(db,game,{secret:'augment-deadline-test'.repeat(3),baseUrl:async()=>'https://example.com'});
+    let clock:ReturnType<typeof vi.spyOn>|undefined;
+    try{
+      const code=(await send('웹 로그인')).text!.match(/\b\d{6}\b/)![0];
+      const login=await app.inject({method:'POST',url:'/my/api/login',headers:{'x-gmm':'1','x-gmm-app':'1'},payload:{code}});
+      const headers={'x-gmm':'1','x-gmm-s':login.json().token};
+      const post=async(payload:object)=>(await app.inject({method:'POST',url:'/my/api/native/battle/turn',headers,payload})).json();
+      const start=(await app.inject({method:'POST',url:'/my/api/native/battle/start',headers,payload:{mode:'practice'}})).json();
+      expect(start.chooseDeadline-start.serverNow).toBeLessThanOrEqual(30000);
+      expect(start.chooseDeadline-start.serverNow).toBeGreaterThan(29000);
+      const reroll=await post({session:start.session,revision:start.revision,reroll:0});
+      expect(reroll.chooseDeadline).toBe(start.chooseDeadline);
+      clock=vi.spyOn(Date,'now').mockReturnValue(start.chooseDeadline+1);
+      const current=(await app.inject({method:'GET',url:'/my/api/native/battle/current',headers})).json();
+      expect(current.phase).toBe('action');expect(current.chooseDeadline).toBeUndefined();
+      expect(current.revision).toBe(reroll.revision+1);
+      const chosen=current.teams[0].augments.at(-1).id;
+      expect(reroll.teams[0].offers.map((x:{id:string})=>x.id)).toContain(chosen);
+      const duplicate=await post({session:start.session,revision:reroll.revision,choose:{augment:reroll.teams[0].offers[0].id}});
+      expect(duplicate.revision).toBe(current.revision);expect(duplicate.teams[0].augments).toEqual(current.teams[0].augments);
+    }finally{clock?.mockRestore();await app.close();}
   });
   it('진행 중인 전투에서는 로비 회복·성장·편성 변경을 막고 치료약을 보존한다',async()=>{
     const p=await fixtures(['D1']);const key=`o${(await game.webStoryUnits(p.id))[0].oid}`;

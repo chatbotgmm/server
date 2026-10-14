@@ -43,6 +43,7 @@ final class NativeApi {
             conn =
                 (HttpURLConnection)
                     new URL(BuildConfig.SERVER_URL + "/my/api/" + path).openConnection();
+            conn.setUseCaches(false);
             conn.setConnectTimeout(15000);
             conn.setReadTimeout(20000);
             conn.setRequestProperty("x-gmm", "1");
