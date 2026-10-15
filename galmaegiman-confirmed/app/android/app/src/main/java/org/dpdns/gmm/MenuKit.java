@@ -1,5 +1,6 @@
 package org.dpdns.gmm;
 
+import android.app.AlertDialog;
 import android.graphics.*;
 import android.graphics.drawable.*;
 import android.view.*;
@@ -44,11 +45,7 @@ final class MenuKit {
 
   TextView section(String s) {
     TextView v = notice(s);
-    GradientDrawable heading = new GradientDrawable();
-    heading.setColor(JournalTheme.WHITE);
-    heading.setCornerRadius(h.dp(6));
-    heading.setStroke(h.dp(1), JournalTheme.LINE);
-    v.setBackground(heading);
+    v.setBackground(new GamePaperDrawable(h, JournalTheme.BRASS));
     v.setTypeface(h.font);
     v.setTextSize(h.uiText(20));
     v.setTextColor(MainActivity.INK);
@@ -92,16 +89,46 @@ final class MenuKit {
     return b;
   }
 
+  /** 실행은 청록 황동판, 이동·수량·취소는 종이판으로 구분한다. */
+  Button primary(String icon, String name, Runnable click) {
+    return emphasize(action(icon, name, click));
+  }
+
+  Button emphasize(Button button) {
+    button.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
+    button.setTextColor(JournalTheme.controlText(GameButtonDrawable.PRIMARY));
+    return button;
+  }
+
   Button painted(String icon, String name, Runnable click) {
     if ("btn-back".equals(icon)) return action(null, "‹ 뒤로", click);
     return action(icon, name, click);
   }
 
+  /** 대화상자 본문 전용. 기본 페이지에는 viewport 또는 고정 레이아웃을 사용한다. */
   ScrollView scroll(View v) {
     ScrollView s = new ScrollView(h);
     s.setFillViewport(false);
     s.addView(v);
     return s;
+  }
+
+  /** 긴 목록·설정은 기본 페이지를 움직이지 않고 별도 창에서 다룬다. */
+  AlertDialog openSheet(String title, Supplier<View> contents) {
+    return JournalViewport.openSheet(h, title, contents.get());
+  }
+
+  JournalViewport viewport(String title, LinearLayout contents) {
+    return new JournalViewport(h, title, contents);
+  }
+
+  JournalViewport previewList(
+      LinearLayout parent, String title, java.util.List<View> rows, int maxPreviewRows) {
+    LinearLayout list = column();
+    for (View row : rows) list.addView(row);
+    JournalViewport viewport = new JournalViewport(h, title, list, maxPreviewRows);
+    parent.addView(viewport, new LinearLayout.LayoutParams(-1, -2));
+    return viewport;
   }
 
   LinearLayout[] split(float leftWeight) {
@@ -113,8 +140,9 @@ final class MenuKit {
     LinearLayout.LayoutParams a = new LinearLayout.LayoutParams(0, -1, leftWeight),
         b = new LinearLayout.LayoutParams(0, -1, 1 - leftWeight);
     a.rightMargin = h.dp(8);
-    line.addView(scroll(left), a);
-    line.addView(scroll(right), b);
+    String title = h.title == null ? "목록" : h.title.getText().toString();
+    line.addView(viewport(title, left), a);
+    line.addView(viewport(title, right), b);
     h.body = right;
     return new LinearLayout[] {left, right};
   }
@@ -315,6 +343,8 @@ final class MenuKit {
     bar.setMax(Math.max(1, max));
     bar.setProgress(Math.max(0, value));
     bar.setProgressTintList(android.content.res.ColorStateList.valueOf(color));
+    bar.setProgressBackgroundTintList(
+        android.content.res.ColorStateList.valueOf(JournalTheme.LINE));
     parent.addView(bar, new LinearLayout.LayoutParams(-1, h.dp(12)));
   }
 

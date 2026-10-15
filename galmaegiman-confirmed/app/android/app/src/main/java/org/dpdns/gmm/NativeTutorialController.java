@@ -303,6 +303,13 @@ final class NativeTutorialController {
         if (save != null && save.isEnabled())
           spotlight("team-save", save, "③ 전투 편성", "편성 저장을 눌러요. 1마리만 있어도 스토리에 출전할 수 있어요!", null);
         else if (h.list(h.state, "team").length() > 0) advance(4);
+        else if (findTag(h.root, "team-candidate-picker") != null)
+          spotlight(
+              "team-picker",
+              findTag(h.root, "team-candidate-picker"),
+              "③ 전투 편성",
+              "갈매미 선택을 열어 출전할 갈매미를 골라요. 닫은 뒤 편성을 저장해요.",
+              null);
         else
           spotlight(
               "team-unit",
@@ -544,6 +551,16 @@ final class NativeTutorialController {
   }
 
   View find(String key, String text) {
+    // 목록 선택은 별도 창에 있어도 실제 원본 버튼을 찾는다. 모달에는 중복 안내막을 올리지 않는다.
+    if (h.visibleDialog != null
+        && h.visibleDialog.isShowing()
+        && h.visibleDialog.getWindow() != null) {
+      View dialog = h.visibleDialog.getWindow().getDecorView();
+      View tagged = findTag(dialog, "tutorial:" + key);
+      if (tagged != null) return tagged;
+      View named = findText(dialog, text);
+      if (named != null) return named;
+    }
     View tagged = findTag(h.root, "tutorial:" + key);
     return tagged != null ? tagged : findText(h.root, text);
   }

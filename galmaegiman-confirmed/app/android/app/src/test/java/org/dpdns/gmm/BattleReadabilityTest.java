@@ -16,6 +16,7 @@ import org.robolectric.annotation.*;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35, qualifiers = "w915dp-h412dp-land-mdpi")
 @LooperMode(LooperMode.Mode.PAUSED)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class BattleReadabilityTest {
   @Before
   public void isolatedAccount() {
@@ -154,21 +155,18 @@ public class BattleReadabilityTest {
   }
 
   @Test
-  public void fourSkillsAndComboRemainReadableInsideZflipSafeArea() {
+  public void fourSkillsAndComboRemainReadableInsideZflipSafeArea() throws Exception {
     for (boolean inset : new boolean[] {false, true}) {
       try (ActivityController<MainActivity> c =
           Robolectric.buildActivity(MainActivity.class).setup().visible()) {
         BattleView v = mount(c.get(), inset ? 1006 : 915, inset ? 411 : 412, inset);
         assertEquals(View.GONE, v.logBox.getVisibility());
-        assertEquals(5, cards(v.controls).size());
-        for (SkillCardView card : cards(v.controls)) {
-          int y = card.getTop();
-          View p = (View) card.getParent();
-          while (p != v.menu) {
-            y += p.getTop() - p.getScrollY();
-            p = (View) p.getParent();
-          }
-          assertTrue("긴 효과는 명령 패널 스크롤로 접근 가능", y + card.getHeight() <= v.controls.getHeight());
+        View surface = NativeNoScrollReviewTest.skillSurface(c.get(), v);
+        assertEquals(5, cards(surface).size());
+        NativeNoScrollReviewTest.assertFixedMain(c.get());
+        for (SkillCardView card : cards(surface)) {
+          if (surface == v.controls)
+            NativeNoScrollReviewTest.assertFullyVisible(card, c.get().root);
           assertTrue("제목에 카드 전폭 배정", card.title.getWidth() >= card.getWidth() - 20);
           assertNotNull(card.title.getLayout());
           for (int line = 0; line < card.title.getLineCount(); line++)
@@ -180,7 +178,9 @@ public class BattleReadabilityTest {
             int effectBottom = card.effect.getBottom() + ((View) card.effect.getParent()).getTop();
             assertTrue("효과 설명 카드 아래 잘림", effectBottom <= card.getHeight());
           }
-          assertEquals("효과는 최대 2줄 요약", 2, card.effect.getMaxLines());
+          if (surface == v.controls)
+            assertEquals("기본 화면 효과는 최대 2줄 요약", 2, card.effect.getMaxLines());
+          else assertNull("긴 효과는 모달에서 말줄임 없이 유지", card.effect.getEllipsize());
           assertTrue(
               "전체 설명은 접근성에 유지",
               card.use.getContentDescription().toString().contains(card.skill.optString("desc")));
@@ -190,13 +190,14 @@ public class BattleReadabilityTest {
   }
 
   @Test
-  public void disabledUtilityShowsShortReasonAndRetainsCompleteAccessibleDescription() {
+  public void disabledUtilityShowsShortReasonAndRetainsCompleteAccessibleDescription()
+      throws Exception {
     try (ActivityController<MainActivity> c =
         Robolectric.buildActivity(MainActivity.class).setup().visible()) {
       MainActivity a = c.get();
       BattleView v = mount(a, 915, 412, false);
       SkillCardView blocked =
-          cards(v.controls).stream()
+          cards(NativeNoScrollReviewTest.skillSurface(a, v)).stream()
               .filter(x -> x.skill.optString("id").equals("role-DEFENSE"))
               .findFirst()
               .orElseThrow();
@@ -207,7 +208,8 @@ public class BattleReadabilityTest {
       assertTrue(
           blocked.use.getContentDescription().toString().contains("같은 보조 기술을 연속해서 사용할 수 없어요."));
       assertFalse(blocked.use.performLongClick());
-      assertNull(a.visibleDialog);
+      if (v.skillSheetNeeded) assertNotNull("긴 선택은 전체 기술 모달에 유지", a.visibleDialog);
+      else assertNull(a.visibleDialog);
     }
   }
 
@@ -319,21 +321,37 @@ public class BattleReadabilityTest {
     try (ActivityController<MainActivity> c =
         Robolectric.buildActivity(MainActivity.class).setup().visible()) {
       BattleView v = mount(c.get(), 915, 412, false);
+      // 조합 가치 검사는 기술 선택과 별개다. fixture의 예약된 기술 모달이
+      // 다음 프레임에 실제 성장 상세 모달을 덮지 않도록 전투 메뉴로 돌아간다.
+      v.pane = "menu";
+      v.render();
+      org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper())
+          .idleFor(java.time.Duration.ofMillis(32));
       LinearLayout details = new LinearLayout(c.get());
       c.get()
           .menus
           .library
           .unitDetails(details, MainActivity.obj("recipeValue", 16, "recipeBonusPct", 10));
-      TextView recipe = details.findViewWithTag("unit-recipe-value");
-      assertNotNull(recipe);
-      View extras = details.findViewWithTag("unit-extra-details");
-      assertEquals(View.GONE, extras.getVisibility());
+      assertNull("기본 화면에 긴 조합 가치 설명을 미리 펼치지 않는다", details.findViewWithTag("unit-recipe-value"));
+      assertNull(details.findViewWithTag("unit-extra-details"));
       details.findViewWithTag("unit-details-toggle").performClick();
-      assertEquals(View.VISIBLE, extras.getVisibility());
+      NativeDialogLayoutReviewTest geometry = new NativeDialogLayoutReviewTest();
+      View decor = geometry.layoutDialog(c.get());
+      assertNotNull("원래 상세 내용은 실제 모달에서 접근", decor.findViewWithTag("unit-extra-details"));
+      TextView recipe = decor.findViewWithTag("unit-recipe-value");
+      assertNotNull(recipe);
       assertTrue(recipe.getText().toString().contains("흔함 16마리"));
+      assertTrue(recipe.getText().toString().contains("공격기 위력 +10%"));
+      c.get().visibleDialog.dismiss();
+      org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper())
+          .idleFor(java.time.Duration.ofMillis(32));
       LinearLayout legacy = new LinearLayout(c.get());
       c.get().menus.library.unitDetails(legacy, new JSONObject());
-      assertNull(legacy.findViewWithTag("unit-recipe-value"));
+      legacy.findViewWithTag("unit-details-toggle").performClick();
+      View legacyDecor = geometry.layoutDialog(c.get());
+      assertNotNull(legacyDecor.findViewWithTag("unit-extra-details"));
+      assertNull("서버 값이 없으면 임의의 조합 보너스를 만들지 않는다", legacyDecor.findViewWithTag("unit-recipe-value"));
+      c.get().visibleDialog.dismiss();
       JSONObject sk = skill("sub-SEA", "해일 격돌", null);
       sk.put("bonus", MainActivity.obj("when", "slowed", "pct", 30));
       sk.optJSONObject("preview").put("power", 40).put("bonusActive", false);

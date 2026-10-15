@@ -25,6 +25,7 @@ final class BattleView extends FrameLayout implements FullBleed {
   NativeAugmentView augmentView;
   int arenaWidth, arenaHeight, logHeight, panelLeft, panelWidth;
   int safeLeft, safeTop, uiWidth, uiHeight;
+  boolean skillSheetNeeded, skillSheetRequested;
 
   BattleView(MainActivity a, JSONObject b) {
     super(a);
@@ -37,11 +38,13 @@ final class BattleView extends FrameLayout implements FullBleed {
     }
     scene = new Scene();
     addView(scene, new LayoutParams(-1, -1));
-    logBox = new ScrollView(a);
+    logBox = new FixedViewport(a);
     logBox.setBackground(new FieldLogPaper());
     logBox.setPadding(a.dp(10), a.dp(34), a.dp(10), a.dp(8));
     logBox.setClipToPadding(true);
-    log = a.text("", 17);
+    log = new RecentLogView(a);
+    log.setTextSize(17);
+    log.setTextColor(JournalTheme.INK);
     log.setTypeface(a.prose);
     log.setTextLocale(Locale.KOREAN);
     log.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
@@ -57,10 +60,12 @@ final class BattleView extends FrameLayout implements FullBleed {
         NativeBattleLog.format(
             a, lines, a.list(b, "displayEvents"), b.optInt("displayLogStart") + ls.length() - 1));
     logBox.addView(log);
+    logBox.setContentDescription("최근 전투 기록 · 터치하여 전체 기록 보기");
+    logBox.setOnClickListener(v -> NativeBattleSheets.history(this));
     addView(logBox);
     controls = new LinearLayout(a);
     controls.setOrientation(LinearLayout.VERTICAL);
-    menu = new ScrollView(a);
+    menu = new FixedViewport(a);
     menu.addView(controls);
     addView(menu);
     tools = new LinearLayout(a);
@@ -232,7 +237,123 @@ final class BattleView extends FrameLayout implements FullBleed {
           Math.round(area.bottom));
     }
     if (augmentView != null) augmentView.layout(0, 0, arenaWidth, arenaHeight);
-    if (changed) logBox.post(() -> logBox.fullScroll(FOCUS_DOWN));
+  }
+
+  /** 기본 명령판과 최근 기록은 고정한다. 긴 목록의 스크롤은 선택 모달 안에만 둔다. */
+  static final class FixedViewport extends ScrollView {
+    float downX, downY;
+    boolean moved;
+
+    FixedViewport(MainActivity h) {
+      super(h);
+      setFillViewport(true);
+      setVerticalScrollBarEnabled(false);
+      setHorizontalScrollBarEnabled(false);
+      setOverScrollMode(OVER_SCROLL_NEVER);
+    }
+
+    @Override
+    protected void measureChild(View child, int parentWidthSpec, int parentHeightSpec) {
+      measureChildWithMargins(child, parentWidthSpec, 0, parentHeightSpec, 0);
+    }
+
+    @Override
+    protected void measureChildWithMargins(
+        View child, int parentWidthSpec, int widthUsed, int parentHeightSpec, int heightUsed) {
+      MarginLayoutParams lp = (MarginLayoutParams) child.getLayoutParams();
+      int width = getPaddingLeft() + getPaddingRight() + lp.leftMargin + lp.rightMargin + widthUsed;
+      int height =
+          getPaddingTop() + getPaddingBottom() + lp.topMargin + lp.bottomMargin + heightUsed;
+      child.measure(
+          getChildMeasureSpec(parentWidthSpec, width, lp.width),
+          MeasureSpec.makeMeasureSpec(
+              Math.max(0, MeasureSpec.getSize(parentHeightSpec) - height), MeasureSpec.EXACTLY));
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent event) {
+      return false;
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+      if (!isClickable()) return false;
+      if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+        downX = event.getX();
+        downY = event.getY();
+        moved = false;
+      } else if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
+        int slop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
+        moved |= Math.abs(event.getX() - downX) > slop || Math.abs(event.getY() - downY) > slop;
+      } else if (event.getActionMasked() == MotionEvent.ACTION_UP && !moved) performClick();
+      return true;
+    }
+
+    @Override
+    public boolean performClick() {
+      return super.performClick();
+    }
+
+    @Override
+    public void scrollTo(int x, int y) {
+      super.scrollTo(0, 0);
+    }
+
+    @Override
+    public boolean fullScroll(int direction) {
+      return false;
+    }
+
+    @Override
+    public boolean canScrollVertically(int direction) {
+      return false;
+    }
+  }
+
+  /** 공간이 모자라면 이전 줄보다 최신 확정 기록을 우선하고 전체 기록은 별도로 연다. */
+  final class RecentLogView extends androidx.appcompat.widget.AppCompatTextView {
+    CharSequence full = "";
+    boolean rendering;
+
+    RecentLogView(MainActivity h) {
+      super(h);
+      setEllipsize(android.text.TextUtils.TruncateAt.END);
+    }
+
+    @Override
+    public void setText(CharSequence text, BufferType type) {
+      if (!rendering) full = text == null ? "" : text;
+      super.setText(text, type);
+    }
+
+    @Override
+    protected void onMeasure(int widthSpec, int heightSpec) {
+      CharSequence source = full == null ? "" : full;
+      int width =
+          Math.max(1, MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight());
+      int height =
+          Math.max(1, MeasureSpec.getSize(heightSpec) - getPaddingTop() - getPaddingBottom());
+      android.text.StaticLayout layout =
+          android.text.StaticLayout.Builder.obtain(source, 0, source.length(), getPaint(), width)
+              .setIncludePad(getIncludeFontPadding())
+              .setLineSpacing(getLineSpacingExtra(), getLineSpacingMultiplier())
+              .build();
+      int previous = source.toString().lastIndexOf('\n');
+      CharSequence visible =
+          layout.getHeight() > height && previous >= 0
+              ? source.subSequence(previous + 1, source.length())
+              : source;
+      rendering = true;
+      if (!android.text.TextUtils.equals(getText(), visible))
+        super.setText(visible, BufferType.SPANNABLE);
+      int lines = Math.max(1, height / Math.max(1, getLineHeight()));
+      if (getMaxLines() != lines) setMaxLines(lines);
+      CharSequence description = source + " · 전체 기록은 현장 기록을 눌러 확인";
+      if (!android.text.TextUtils.equals(getContentDescription(), description))
+        setContentDescription(description);
+      rendering = false;
+      super.onMeasure(widthSpec, heightSpec);
+    }
   }
 
   void add(Button b) {
@@ -265,7 +386,11 @@ final class BattleView extends FrameLayout implements FullBleed {
 
   void render() {
     controls.removeAllViews();
-    controls.setPadding(0, 0, 0, pane.equals("menu") ? 0 : host.dp(8));
+    controls.setPadding(0, 0, 0, 0);
+    if (!pane.equals("skills")) {
+      skillSheetNeeded = false;
+      skillSheetRequested = false;
+    }
     requestLayout();
     String phase = battle.optString("phase");
     tools.setVisibility(phase.equals("choose") || phase.equals("over") ? GONE : VISIBLE);
@@ -300,10 +425,10 @@ final class BattleView extends FrameLayout implements FullBleed {
         skills();
         return;
       case "switch":
-        switches(false, null);
+        choiceLauncher("교체", () -> NativeBattleSheets.switches(this, false, null));
         return;
       case "items":
-        items();
+        choiceLauncher("아이템", () -> NativeBattleSheets.items(this));
         return;
     }
     int height = commandHeight();
@@ -325,8 +450,10 @@ final class BattleView extends FrameLayout implements FullBleed {
                 names[ix],
                 () -> {
                   if (ix == 3) confirmLeave();
+                  else if (ix == 1) NativeBattleSheets.items(this);
+                  else if (ix == 2) NativeBattleSheets.switches(this, false, null);
                   else {
-                    pane = ix == 0 ? "skills" : ix == 1 ? "items" : "switch";
+                    pane = "skills";
                     render();
                   }
                 });
@@ -388,7 +515,7 @@ final class BattleView extends FrameLayout implements FullBleed {
       paint.setTextSize(host.dp(tablet ? 18 : 16));
       paint.setColor(JournalTheme.INK);
       canvas.drawText(
-          "현장 기록 · " + battle.optInt("turn") + "턴",
+          "현장 기록 · " + battle.optInt("turn") + "턴  ›",
           box.left + host.dp(16),
           box.top + host.dp(23),
           paint);
@@ -441,33 +568,69 @@ final class BattleView extends FrameLayout implements FullBleed {
   void skills() {
     heading("기술 선택");
     JSONArray skills = host.list(active(0), "skills");
-    LinearLayout row = null;
     ArrayList<JSONObject> normals = new ArrayList<>();
+    ArrayList<JSONObject> combos = new ArrayList<>();
     for (int i = 0; i < skills.length(); i++) {
       JSONObject sk = skills.optJSONObject(i);
       if (sk.optString("id").startsWith("combo-")) {
-        SkillCardView card = new SkillCardView(this, sk, tablet);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.setMargins(host.dp(3), host.dp(3), host.dp(3), host.dp(3));
-        controls.addView(card, lp);
+        combos.add(sk);
       } else normals.add(sk);
     }
-    int columns =
-        host.getResources().getConfiguration().fontScale >= 1.15f
-                && panelWidth / host.getResources().getDisplayMetrics().density < 360
-            ? 1
-            : 2;
-    for (int i = 0; i < normals.size(); i++) {
-      if (i % columns == 0) {
-        row = new LinearLayout(host);
-        controls.addView(row);
+    if (panelWidth <= 0 || uiHeight <= 0) return;
+    int available = uiHeight - host.dp(16), required = host.dp(48);
+    int width = Math.max(1, panelWidth / 2 - host.dp(6));
+    ArrayList<LinearLayout> rows = new ArrayList<>();
+    ArrayList<Integer> rowHeights = new ArrayList<>();
+    ArrayList<SkillCardView> joint = new ArrayList<>();
+    boolean readable = normals.size() <= 4;
+    for (int i = 0; i < normals.size(); i += 2) {
+      LinearLayout row = new LinearLayout(host);
+      int rowHeight = 0;
+      for (int j = i; j < Math.min(i + 2, normals.size()); j++) {
+        SkillCardView card = new SkillCardView(this, normals.get(j), tablet, true, null);
+        rowHeight = Math.max(rowHeight, card.naturalHeight(width));
+        readable &= card.summaryFits(width);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1);
+        lp.setMargins(host.dp(3), host.dp(3), host.dp(3), host.dp(3));
+        row.addView(card, lp);
       }
-      SkillCardView card = new SkillCardView(this, normals.get(i), tablet);
-      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
-      lp.setMargins(host.dp(3), host.dp(3), host.dp(3), host.dp(3));
-      row.addView(card, lp);
+      if (row.getChildCount() == 1)
+        row.addView(new View(host), new LinearLayout.LayoutParams(0, 1, 1));
+      required += rowHeight + host.dp(6);
+      rows.add(row);
+      rowHeights.add(rowHeight + host.dp(6));
+    }
+    for (JSONObject combo : combos) {
+      SkillCardView card = new SkillCardView(this, combo, tablet, true, null);
+      int cardWidth = panelWidth - host.dp(6);
+      required += card.naturalHeight(cardWidth) + host.dp(6);
+      readable &= card.summaryFits(cardWidth);
+      joint.add(card);
     }
     JSONArray legal = host.list(side(0), "legal");
+    for (int i = 0; i < legal.length(); i++)
+      if (legal.optJSONObject(i).optString("skillId").equals("struggle")) required += host.dp(54);
+    skillSheetNeeded = !readable || required > available;
+    if (skillSheetNeeded) {
+      choiceLauncher("기술 선택", () -> NativeBattleSheets.skills(this));
+      if (!skillSheetRequested) {
+        skillSheetRequested = true;
+        post(
+            () -> {
+              if (isAttachedToWindow() && pane.equals("skills") && !playback.playing)
+                NativeBattleSheets.skills(this);
+            });
+      }
+      return;
+    }
+    for (int i = 0; i < rows.size(); i++)
+      controls.addView(rows.get(i), new LinearLayout.LayoutParams(-1, rowHeights.get(i), 1));
+    for (SkillCardView card : joint) {
+      LinearLayout.LayoutParams lp =
+          new LinearLayout.LayoutParams(-1, card.naturalHeight(panelWidth - host.dp(6)));
+      lp.setMargins(host.dp(3), host.dp(3), host.dp(3), host.dp(3));
+      controls.addView(card, lp);
+    }
     for (int i = 0; i < legal.length(); i++) {
       JSONObject a = legal.optJSONObject(i);
       if (a.optString("skillId").equals("struggle"))
@@ -475,57 +638,25 @@ final class BattleView extends FrameLayout implements FullBleed {
     }
   }
 
+  void choiceLauncher(String title, Runnable open) {
+    controls.removeAllViews();
+    heading(title);
+    TextView hint =
+        NativeBattleSheets.prose(
+            host,
+            title.equals("기술 선택")
+                ? "넓은 기술 카드에서 이름과 효과를 확인해요."
+                : title.equals("아이템") ? "사용할 아이템을 고르세요." : "다음에 출전할 갈매미를 고르세요.",
+            16);
+    controls.addView(hint);
+    Button button = host.button(title.equals("기술 선택") ? "기술 카드 선택" : title + " 목록", open);
+    button.setBackground(new GameButtonDrawable(host, JournalTheme.PRIMARY));
+    button.setTextColor(JournalTheme.controlText(JournalTheme.PRIMARY));
+    controls.addView(button, new LinearLayout.LayoutParams(-1, host.dp(56)));
+  }
+
   void switches(boolean required, String aug) {
-    if (!required) heading("교체");
-    JSONArray fs = host.list(side(0), "fighters"), legal = host.list(side(0), "legal");
-    for (int i = 0; i < fs.length(); i++) {
-      int to = i;
-      JSONObject f = fs.optJSONObject(i);
-      if (i == side(0).optInt("active")) continue;
-      boolean can = required;
-      for (int j = 0; j < legal.length(); j++) {
-        JSONObject x = legal.optJSONObject(j);
-        if (x.optString("kind").equals("switch") && x.optInt("to") == i) can = true;
-      }
-      final boolean allow = can && f.optInt("hp") > 0;
-      add(
-          host.button(
-              f.optString("name")
-                  + " · "
-                  + f.optString("attr")
-                  + "\n체력 "
-                  + f.optInt("hp")
-                  + " / "
-                  + f.optInt("maxHp")
-                  + (f.optInt("hp") <= 0
-                      ? " · 전투불가"
-                      : "\n"
-                          + NativeBattleSheets.matchupLabel(f)
-                          + " · 공격 "
-                          + NativeBattleSheets.effectiveness(host, f, active(1))
-                          + " · 방어 "
-                          + NativeBattleSheets.defense(host, active(1), f)),
-              () -> {
-                if (!allow) {
-                  host.message(
-                      f.optInt("hp") <= 0
-                          ? "전투불가 상태예요. 부활 아이템을 사용해 주세요."
-                          : "묶임 또는 기술 효과로 지금은 교체할 수 없어요.");
-                  return;
-                }
-                if (required) {
-                  JSONObject pick = MainActivity.obj("switchTo", to);
-                  if (aug != null)
-                    try {
-                      pick.put("augment", aug);
-                    } catch (JSONException ignored) {
-                    }
-                  host.battleTurn(MainActivity.obj("choose", pick));
-                } else
-                  host.battleTurn(
-                      MainActivity.obj("action", MainActivity.obj("kind", "switch", "to", to)));
-              }));
-    }
+    NativeBattleSheets.switches(this, required, aug);
   }
 
   void choose() {
@@ -538,73 +669,7 @@ final class BattleView extends FrameLayout implements FullBleed {
   }
 
   void items() {
-    heading("아이템");
-    if (!battle.optString("mode").equals("story")) {
-      controls.addView(host.text("스토리에서 사용할 수 있어요.", 18));
-      return;
-    }
-    int limit = battle.optInt("itemLimit", 0);
-    TextView info =
-        host.text(
-            (limit > 0
-                    ? "이번 전투에 " + Math.max(0, limit - side(0).optInt("itemsUsed")) + "개 더 사용 가능 · "
-                    : "")
-                + "사용하면 이번 턴 행동이 끝나요.",
-            14);
-    info.setTypeface(host.prose);
-    controls.addView(info);
-    JSONArray its = host.list(battle, "items"), inv = host.list(battle, "inventory");
-    if (inv.length() == 0) inv = host.list(host.state, "items");
-    for (int i = 0; i < its.length(); i++) {
-      JSONObject it = its.optJSONObject(i);
-      int count = 0;
-      for (int j = 0; j < inv.length(); j++)
-        if (inv.optJSONObject(j).optString("id").equals(it.optString("id")))
-          count = inv.optJSONObject(j).optInt("count");
-      int have = count;
-      String why = it.isNull("reason") ? "" : it.optString("reason");
-      add(
-          host.button(
-              it.optString("name")
-                  + " ×"
-                  + have
-                  + "\n"
-                  + NativeBattleSheets.itemEffect(it)
-                  + (have <= 0 ? "\n가진 게 없어요." : why.isEmpty() ? "" : "\n" + why),
-              () -> {
-                if (have <= 0) {
-                  host.message("아이템이 없어요.");
-                  return;
-                }
-                if (!why.isEmpty()) {
-                  host.message(why);
-                  return;
-                }
-                JSONObject action = MainActivity.obj("kind", "item", "item", it.optString("id"));
-                if (it.optInt("revive") > 0) {
-                  JSONArray fs = host.list(side(0), "fighters");
-                  ArrayList<Integer> ids = new ArrayList<>();
-                  ArrayList<String> names = new ArrayList<>();
-                  for (int j = 0; j < fs.length(); j++)
-                    if (fs.optJSONObject(j).optInt("hp") <= 0) {
-                      ids.add(j);
-                      names.add(fs.optJSONObject(j).optString("name"));
-                    }
-                  new GameDialog(host)
-                      .setTitle("회복할 갈매미")
-                      .setItems(
-                          names.toArray(new String[0]),
-                          (d, w) -> {
-                            try {
-                              action.put("target", ids.get(w));
-                            } catch (JSONException ignored) {
-                            }
-                            host.battleTurn(MainActivity.obj("action", action));
-                          })
-                      .show();
-                } else host.battleTurn(MainActivity.obj("action", action));
-              }));
-    }
+    NativeBattleSheets.items(this);
   }
 
   final class Scene extends View {

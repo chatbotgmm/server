@@ -3,10 +3,11 @@ package org.dpdns.gmm;
 import android.graphics.*;
 import android.graphics.drawable.Drawable;
 
-/** 현장 기록부에 다는 두 동료의 황동 연결 문장. */
+/** C 합동기의 청록 표지에 쓰는 두 줄 파도와 황동 항해 인장. */
 final class ComboEmblem extends Drawable {
   final MainActivity h;
   final Paint p = new Paint(3);
+  final Path wave = new Path();
 
   ComboEmblem(MainActivity h) {
     this.h = h;
@@ -26,19 +27,37 @@ final class ComboEmblem extends Drawable {
   @Override
   public void draw(Canvas c) {
     Rect b = getBounds();
-    float x = b.exactCenterX(), y = b.exactCenterY(), r = b.width() * .27f;
+    float x = b.exactCenterX(), y = b.exactCenterY(), r = b.width() * .40f;
     p.setStyle(Paint.Style.FILL);
-    p.setColor(JournalTheme.LEATHER);
-    c.drawRoundRect(new RectF(b), h.dp(7), h.dp(7), p);
+    p.setColor(JournalTheme.TEAL);
+    c.drawCircle(x, y, r, p);
     p.setStyle(Paint.Style.STROKE);
-    p.setStrokeWidth(h.dp(2));
-    p.setColor(JournalTheme.BRASS);
-    c.drawCircle(x - r * .48f, y, r, p);
-    c.drawCircle(x + r * .48f, y, r, p);
     p.setStrokeWidth(h.dp(1));
+    p.setColor(JournalTheme.BRASS);
+    c.drawCircle(x, y, r, p);
+    p.setStrokeWidth(h.dp(1.6f));
+    p.setStrokeCap(Paint.Cap.ROUND);
     p.setColor(JournalTheme.PAPER);
-    c.drawLine(x - r * 1.1f, y - r * .7f, x - r * .7f, y - r * 1.1f, p);
-    c.drawLine(x + r * .7f, y + r * 1.1f, x + r * 1.1f, y + r * .7f, p);
+    for (int line = 0; line < 2; line++) {
+      float level = y + (line == 0 ? -.15f : .25f) * r;
+      wave.reset();
+      wave.moveTo(x - r * .67f, level);
+      wave.cubicTo(
+          x - r * .25f,
+          level + r * .28f,
+          x - r * .18f,
+          level - r * .52f,
+          x + r * .13f,
+          level - r * .24f);
+      wave.cubicTo(
+          x + r * .30f,
+          level + r * .04f,
+          x + r * .46f,
+          level + r * .17f,
+          x + r * .67f,
+          level - r * .06f);
+      c.drawPath(wave, p);
+    }
     p.setStyle(Paint.Style.FILL);
   }
 

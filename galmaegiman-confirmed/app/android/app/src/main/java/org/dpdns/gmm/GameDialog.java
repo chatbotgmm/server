@@ -189,7 +189,9 @@ final class GameDialog extends AlertDialog.Builder {
       TextView t = (TextView) v;
       if (t instanceof Button && t.getBackground() instanceof GameButtonDrawable)
         t.setTextColor(JournalTheme.controlText(((GameButtonDrawable) t.getBackground()).color));
-      else t.setTextColor(MainActivity.INK);
+      else if ((t.getCurrentTextColor() & 0x00ffffff) == 0)
+        // 플랫폼 기본 검정만 바꾼다. 속성·상태·보상 안내의 의미색은 보존한다.
+        t.setTextColor(MainActivity.INK);
       t.setTypeface(
           "prose".equals(t.getTag())
               ? host.prose

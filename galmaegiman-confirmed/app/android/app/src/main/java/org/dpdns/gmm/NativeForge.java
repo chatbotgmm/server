@@ -123,17 +123,17 @@ final class NativeForge extends FrameLayout {
     int imageSize = Math.max(72, Math.min(200, (int) (available * (flow == null ? .42f : .30f))));
     LayoutParams box =
         new LayoutParams(
-            Math.min(h.dp(520), (int) ((getWidth() > 0 ? getWidth() : h.root.getWidth()) * .8f)),
+            Math.min(h.dp(760), (int) ((getWidth() > 0 ? getWidth() : h.root.getWidth()) * .9f)),
             -1,
             Gravity.CENTER);
     addView(page, box);
-    LinearLayout content = k.column();
-    content.setGravity(Gravity.CENTER);
+    LinearLayout content = k.row();
+    content.setTag("forge-result-stage");
+    content.setGravity(Gravity.CENTER_VERTICAL);
     content.setPadding(0, h.dp(6), 0, h.dp(6));
-    ScrollView resultScroll = k.scroll(content);
-    resultScroll.setTag("forge-result-scroll");
-    resultScroll.setFillViewport(true);
-    page.addView(resultScroll, new LinearLayout.LayoutParams(-1, 0, 1));
+    FrameLayout stage = new FrameLayout(h);
+    stage.addView(content, new FrameLayout.LayoutParams(-1, -2, Gravity.CENTER));
+    page.addView(stage, new LinearLayout.LayoutParams(-1, 0, 1));
     if (result != null && !fail) {
       LinearLayout card = k.column();
       resultCard = card;
@@ -161,10 +161,7 @@ final class NativeForge extends FrameLayout {
         grade.setTextColor(NativeReveal.tierInk(result.optString("tier")));
         card.addView(grade);
       }
-      int nameWidth = (int) Math.ceil(name.getPaint().measureText(result.optString("name")));
-      int cardWidth =
-          Math.min(box.width - h.dp(28), Math.max(h.dp(imageSize + 20), nameWidth + h.dp(36)));
-      content.addView(card, new LinearLayout.LayoutParams(cardWidth, -2));
+      content.addView(card, new LinearLayout.LayoutParams(0, -2, .55f));
       if (playEffect && motion()) {
         card.setScaleX(.4f);
         card.setScaleY(.4f);
@@ -180,17 +177,39 @@ final class NativeForge extends FrameLayout {
       if (playEffect)
         h.sound.effect(NativeReveal.rank(result.optString("tier")) >= 6 ? "drawlegend" : "levelup");
     }
-    TextView message =
-        k.note(text == null || text.isEmpty() ? (fail ? "조합이 맞지 않아 재료는 그대로예요." : "조합 완료!") : text);
-    message.setTextColor(JournalTheme.PAPER);
+    LinearLayout words = k.paper();
+    TextView outcome = h.text(fail ? "조합 확인" : "조합 완료!", 24);
+    outcome.setTypeface(h.headline);
+    words.addView(outcome);
+    String resultText =
+        text == null || text.isEmpty() ? (fail ? "조합이 맞지 않아 재료는 그대로예요." : "새로운 갈매미를 얻었어요.") : text;
+    TextView message = k.note(resultText);
+    message.setMaxLines(3);
+    message.setEllipsize(android.text.TextUtils.TruncateAt.END);
     message.setTag("forge-result-message");
     message.setGravity(Gravity.CENTER);
     message.setPadding(0, h.dp(8), 0, h.dp(8));
-    content.addView(message, new LinearLayout.LayoutParams(-1, -2));
+    words.addView(message, new LinearLayout.LayoutParams(-1, -2));
+    words.addView(
+        k.action(
+            null,
+            "결과 내용",
+            () ->
+                k.openSheet(
+                    "조합 결과",
+                    () -> {
+                      LinearLayout details = k.column();
+                      details.addView(k.note(resultText));
+                      return details;
+                    })));
+    LinearLayout.LayoutParams wordsSlot =
+        new LinearLayout.LayoutParams(0, -2, result != null && !fail ? .45f : 1);
+    wordsSlot.leftMargin = result != null && !fail ? h.dp(12) : 0;
+    content.addView(words, wordsSlot);
     if (flow != null && result != null && !fail) {
       page.addView(flow.actions(result), new LinearLayout.LayoutParams(-1, h.dp(48)));
     }
-    Button ok = k.action(null, "확인", this::finish);
+    Button ok = k.primary(null, "확인", this::finish);
     ok.setTag("forge-result-confirm");
     LinearLayout.LayoutParams footer = new LinearLayout.LayoutParams(h.dp(180), h.dp(48));
     footer.gravity = Gravity.CENTER_HORIZONTAL;

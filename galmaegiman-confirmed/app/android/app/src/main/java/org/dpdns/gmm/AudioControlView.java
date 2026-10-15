@@ -32,7 +32,7 @@ final class AudioControlView extends LinearLayout {
     slider.setProgress(host.sound.volume(key));
     slider.setContentDescription(label + " 볼륨");
     slider.setProgressTintList(ColorStateList.valueOf(JournalTheme.TEAL));
-    slider.setProgressBackgroundTintList(ColorStateList.valueOf(0xffd9cdb7));
+    slider.setProgressBackgroundTintList(ColorStateList.valueOf(JournalTheme.LINE));
     slider.setThumbTintList(ColorStateList.valueOf(JournalTheme.BRASS));
     addView(slider, new LayoutParams(0, host.dp(48), 1));
     value = host.text("", 16);
@@ -86,9 +86,8 @@ final class AudioControlView extends LinearLayout {
     mute.setText("");
     mute.setSelected(muted);
     mute.setContentDescription(label + (muted ? " 음소거 해제" : " 음소거"));
-    mute.setBackground(
-        new GameButtonDrawable(
-            host, muted ? GameButtonDrawable.PRIMARY : GameButtonDrawable.PAPER));
+    // 음소거는 실행 CTA가 아닌 선택 토글이므로 밝은 청록 종이 상태를 쓴다.
+    mute.setBackground(new GameButtonDrawable(host, GameButtonDrawable.PAPER));
   }
 
   static LinearLayout pair(MainActivity host) {

@@ -11,6 +11,7 @@ final class NativeLibrary {
   final MainActivity h;
   final MenuKit k;
   JSONObject catalogData, catalogState;
+  String selectedCollectionId = "", selectedItemId = "";
 
   NativeLibrary(NativeMenus menus) {
     m = menus;
@@ -27,91 +28,206 @@ final class NativeLibrary {
   void reset() {
     catalogData = null;
     catalogState = null;
+    selectedCollectionId = "";
+    selectedItemId = "";
   }
 
+  /** 수비대의 기본 화면은 선택한 한 마리와 바로 실행할 행동을 한 장에 둔다. */
   void collection() {
     h.base("수비대", "collection");
     m.defenderTabs(h.body, 0);
-    LinearLayout filters = k.column(), list = k.column();
-    h.body.addView(filters);
-    h.body.addView(list);
+    JSONArray source = h.list(h.me(), "units");
+    ArrayList<JSONObject> all = new ArrayList<>();
+    JSONObject selected = null;
+    for (int i = 0; i < source.length(); i++) {
+      JSONObject u = source.optJSONObject(i);
+      all.add(u);
+      if (u.optString("id").equals(selectedCollectionId)) selected = u;
+    }
+    if (selected == null) {
+      for (JSONObject u : all)
+        if (u.optInt("have") > 0) {
+          selected = u;
+          break;
+        }
+    }
+    if (selected == null && !all.isEmpty()) selected = all.get(0);
+    if (selected == null) {
+      h.body.addView(k.notice("아직 기록된 갈매미가 없어요. 뽑기로 첫 동료를 만나 보세요."));
+      h.body.addView(k.primary("u-draw", "갈매미 뽑기", () -> h.load("draw")));
+      return;
+    }
+    JSONObject u = selected;
+    selectedCollectionId = u.optString("id");
+    Button picker =
+        k.action(null, u.optString("name") + "  ·  갈매미 고르기  ›", () -> collectionPicker(all));
+    picker.setTag("collection-picker");
+    fixedAction(picker);
+    h.body.addView(picker, new LinearLayout.LayoutParams(-1, h.dp(48)));
+    LinearLayout[] cols = fixedColumns(h.body, .38f);
+    LinearLayout portrait = k.paper();
+    portrait.setTag("collection-card-" + u.optString("id"));
+    portrait.setGravity(Gravity.CENTER_HORIZONTAL);
+    portrait.addView(
+        k.image(u.optString("image", "/thumbs/" + u.optString("id") + ".jpg"), 1, 1),
+        new LinearLayout.LayoutParams(-1, 0, 1));
+    TextView count = line("보유 " + u.optInt("have") + "마리", 17, true);
+    count.setGravity(Gravity.CENTER);
+    portrait.addView(count);
+    portrait.setOnClickListener(v -> detail(all, all.indexOf(u)));
+    portrait.setOnLongClickListener(
+        v -> {
+          hold(all, all.indexOf(u));
+          return true;
+        });
+    cols[0].addView(portrait, new LinearLayout.LayoutParams(-1, -1));
+    LinearLayout info = k.paper();
+    info.setPadding(h.dp(10), h.dp(4), h.dp(10), h.dp(4));
+    cols[1].addView(info, new LinearLayout.LayoutParams(-1, -1));
+    info.addView(line(u.optString("tierName") + " · " + u.optString("attrName"), 18, true));
+    info.addView(
+        line(
+            "탐험 "
+                + u.optInt("away")
+                + " · 보호 "
+                + u.optInt("locked")
+                + (u.optBoolean("known", u.optInt("have") > 0) ? " · 발견" : " · 미발견"),
+            14,
+            false));
+    View space = new View(h);
+    info.addView(space, new LinearLayout.LayoutParams(-1, 0, 1));
+    LinearLayout top = k.row(), bottom = k.row();
+    Button grow = k.primary("learn", "성장", () -> openOwnedGrowth(u));
+    grow.setTag("collection-growth");
+    grow.setEnabled(!individuals(u).isEmpty());
+    actionCell(top, grow);
+    Button team =
+        k.action(
+            "mode-normal",
+            "전투 편성",
+            () -> {
+              h.selectionMode = NativeTutorialController.get(h).needsStoryTeam() ? "story" : "pvp";
+              m.teamDraft = null;
+              h.team();
+            });
+    team.setTag("collection-team");
+    actionCell(top, team);
+    Button craft = k.action("u-emblem", "조합", () -> openRecipe(u));
+    craft.setTag("collection-craft");
+    craft.setEnabled(
+        u.optBoolean("known", u.optInt("have") > 0) || !u.optString("tier").equals("HIDDEN"));
+    actionCell(bottom, craft);
+    Button record = k.action(null, "기록·관리", () -> detail(all, all.indexOf(u)));
+    record.setTag("collection-record");
+    actionCell(bottom, record);
+    info.addView(top, new LinearLayout.LayoutParams(-1, h.dp(50)));
+    info.addView(bottom, new LinearLayout.LayoutParams(-1, h.dp(48)));
+  }
+
+  TextView line(String text, float size, boolean headline) {
+    TextView label = h.text(text, size);
+    label.setTypeface(headline ? h.headline : h.prose);
+    label.setSingleLine(true);
+    label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    label.setPadding(h.dp(4), h.dp(2), h.dp(4), h.dp(2));
+    label.setIncludeFontPadding(false);
+    label.setContentDescription(text);
+    return label;
+  }
+
+  void fixedAction(Button button) {
+    button.setMinHeight(h.dp(48));
+    button.setMinimumHeight(h.dp(48));
+    button.setPadding(h.dp(8), h.dp(3), h.dp(8), h.dp(5));
+    button.setSingleLine(true);
+    button.setEllipsize(android.text.TextUtils.TruncateAt.END);
+  }
+
+  void actionCell(LinearLayout row, Button button) {
+    fixedAction(button);
+    LinearLayout.LayoutParams box = new LinearLayout.LayoutParams(0, h.dp(48), 1);
+    box.setMargins(h.dp(2), 0, h.dp(2), 0);
+    row.addView(button, box);
+  }
+
+  LinearLayout[] fixedColumns(LinearLayout parent, float leftWeight) {
+    LinearLayout row = k.row();
+    row.setGravity(Gravity.TOP);
+    LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(-1, 0, 1);
+    slot.topMargin = h.dp(4);
+    parent.addView(row, slot);
+    LinearLayout left = k.column(), right = k.column();
+    LinearLayout.LayoutParams a = new LinearLayout.LayoutParams(0, -1, leftWeight);
+    a.rightMargin = h.dp(6);
+    row.addView(left, a);
+    row.addView(right, new LinearLayout.LayoutParams(0, -1, 1 - leftWeight));
+    return new LinearLayout[] {left, right};
+  }
+
+  ArrayList<JSONObject> filteredCollection(ArrayList<JSONObject> all) {
+    ArrayList<JSONObject> visible = new ArrayList<>();
+    for (JSONObject u : all) {
+      boolean grade =
+          m.grade.equals("all")
+              || m.grade.equals("top") && u.optBoolean("top")
+              || m.grade.equals("low")
+                  && !u.optBoolean("top")
+                  && !u.optString("tier").equals("LEGEND")
+                  && !u.optString("tier").equals("HIDDEN")
+              || m.grade.equals(u.optString("tier"));
+      if (grade
+          && (u.optString("name") + u.optString("tierName") + u.optString("attrName"))
+              .toLowerCase(Locale.KOREA)
+              .contains(m.query.toLowerCase(Locale.KOREA))) visible.add(u);
+    }
+    return visible;
+  }
+
+  void collectionPicker(ArrayList<JSONObject> all) {
+    LinearLayout content = k.column(), list = k.column(), tabs = k.column();
+    android.app.AlertDialog[] popup = {null};
     Runnable[] paint = new Runnable[1];
     paint[0] =
         () -> {
           list.removeAllViews();
-          JSONArray all = h.list(h.me(), "units");
-          ArrayList<JSONObject> visible = new ArrayList<>();
-          for (int i = 0; i < all.length(); i++) {
-            JSONObject u = all.optJSONObject(i);
-            boolean grade =
-                m.grade.equals("all")
-                    || m.grade.equals("top") && u.optBoolean("top")
-                    || m.grade.equals("low")
-                        && !u.optBoolean("top")
-                        && !u.optString("tier").equals("LEGEND")
-                        && !u.optString("tier").equals("HIDDEN")
-                    || m.grade.equals(u.optString("tier"));
-            if (grade
-                && (u.optString("name") + u.optString("tierName") + u.optString("attrName"))
-                    .toLowerCase(Locale.KOREA)
-                    .contains(m.query.toLowerCase(Locale.KOREA))) visible.add(u);
-          }
-          ArrayList<View> cards = new ArrayList<>();
-          for (int i = 0; i < visible.size(); i++) {
-            int index = i;
-            JSONObject u = visible.get(i);
-            LinearLayout card = k.paper();
-            card.setTag("collection-card-" + u.optString("id"));
-            card.setGravity(Gravity.CENTER_HORIZONTAL);
-            FrameLayout portrait = new FrameLayout(h);
-            ImageView art =
-                k.image(u.optString("image", "/thumbs/" + u.optString("id") + ".jpg"), 142, 142);
-            portrait.addView(art, new FrameLayout.LayoutParams(-1, -1));
-            TextView have =
-                h.text(
-                    u.optInt("have") > 0
-                        ? "×" + u.optInt("have")
-                        : u.optBoolean("known") ? "발견" : "미발견",
-                    13);
-            have.setBackground(new GamePaperDrawable(h));
-            have.setPadding(h.dp(4), 0, h.dp(4), 0);
-            portrait.addView(
-                have, new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.RIGHT));
-            card.addView(
-                portrait, new LinearLayout.LayoutParams(-1, h.dp(h.compact() ? 128 : 142)));
-            TextView name = h.text(u.optString("name"), 14);
-            name.setTypeface(h.headline);
-            name.setGravity(Gravity.CENTER);
-            name.setTextLocale(Locale.KOREA);
-            name.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
-            if (android.os.Build.VERSION.SDK_INT >= 33)
-              name.setLineBreakWordStyle(
-                  android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
-            card.addView(name);
-            String attr = u.optString("attrName");
-            TextView grade = k.note(u.optString("tierName") + (attr.isEmpty() ? "" : " · " + attr));
-            grade.setTextSize(13);
-            grade.setGravity(Gravity.CENTER);
-            card.addView(grade);
-            if (u.optInt("away") > 0) {
-              TextView away = k.note("탐험 중 " + u.optInt("away"));
-              away.setTextSize(13);
-              card.addView(away);
-            }
-            card.setOnClickListener(v -> detail(visible, index));
-            card.setOnLongClickListener(
+          ArrayList<JSONObject> visible = filteredCollection(all);
+          for (JSONObject u : visible) {
+            LinearLayout row = k.paper(), name = k.column(), face = k.row();
+            row.setTag("collection-choice-" + u.optString("id"));
+            row.setMinimumHeight(h.dp(64));
+            row.setSelected(u.optString("id").equals(selectedCollectionId));
+            face.addView(
+                k.image(u.optString("image", "/thumbs/" + u.optString("id") + ".jpg"), 48, 48));
+            name.addView(line(u.optString("name"), 16, true));
+            name.addView(
+                line(
+                    u.optString("tierName")
+                        + " · "
+                        + u.optString("attrName")
+                        + " · 보유 "
+                        + u.optInt("have"),
+                    13,
+                    false));
+            face.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+            face.addView(line("›", 22, true));
+            row.addView(face);
+            row.setOnClickListener(
                 v -> {
-                  hold(visible, index);
+                  selectedCollectionId = u.optString("id");
+                  popup[0].dismiss();
+                  collection();
+                });
+            row.setOnLongClickListener(
+                v -> {
+                  hold(visible, visible.indexOf(u));
                   return true;
                 });
-            cards.add(card);
+            list.addView(row);
           }
-          int usable = h.getResources().getConfiguration().screenWidthDp - 32;
-          k.tiles(list, cards, Math.max(3, usable / 170));
-          if (cards.isEmpty()) list.addView(k.note("찾는 갈매미가 없어요. 이름·등급·속성을 바꿔 찾아보세요."));
+          if (visible.isEmpty()) list.addView(k.note("찾는 갈매미가 없어요. 이름·등급·속성을 바꿔 찾아보세요."));
         };
     k.search(
-        filters,
+        content,
         "이름·등급·속성으로 찾기",
         m.query,
         value -> {
@@ -119,97 +235,141 @@ final class NativeLibrary {
           paint[0].run();
         });
     String[] values = {"all", "top", "LEGEND", "HIDDEN", "low"};
-    k.tabs(
-        filters,
-        new String[] {"전체", "최상위", "전설", "히든", "그 밖"},
-        Arrays.asList(values).indexOf(m.grade),
-        i -> {
-          m.grade = values[i];
-          collection();
-        });
-    ((LinearLayout) filters.getChildAt(filters.getChildCount() - 1)).setGravity(Gravity.LEFT);
+    Runnable[] paintTabs = new Runnable[1];
+    paintTabs[0] =
+        () -> {
+          tabs.removeAllViews();
+          k.tabs(
+              tabs,
+              new String[] {"전체", "최상위", "전설", "히든", "그 밖"},
+              Arrays.asList(values).indexOf(m.grade),
+              i -> {
+                m.grade = values[i];
+                paintTabs[0].run();
+                paint[0].run();
+              });
+        };
+    paintTabs[0].run();
+    content.addView(tabs);
+    content.addView(list);
     paint[0].run();
+    popup[0] = k.openSheet("갈매미 고르기", () -> content);
+  }
+
+  ArrayList<JSONObject> individuals(JSONObject u) {
+    ArrayList<JSONObject> found = new ArrayList<>();
+    JSONArray roster = h.list(h.state, "units");
+    for (int i = 0; i < roster.length(); i++)
+      if (u.optString("id").equals(roster.optJSONObject(i).optString("id")))
+        found.add(roster.optJSONObject(i));
+    return found;
+  }
+
+  void openOwnedGrowth(JSONObject u) {
+    ArrayList<JSONObject> owned = individuals(u);
+    if (owned.isEmpty()) return;
+    m.unitReturn = "collection";
+    if (owned.size() == 1) {
+      h.unitDetail(owned.get(0).optString("key"));
+      return;
+    }
+    String[] names = new String[owned.size()];
+    for (int i = 0; i < names.length; i++)
+      names[i] =
+          "#"
+              + (i + 1)
+              + " · Lv"
+              + owned.get(i).optInt("level")
+              + " · "
+              + NativeGrowthGuidance.badge(owned.get(i));
+    new GameDialog(h)
+        .setTitle("키울 갈매미 선택")
+        .setItems(names, (d, at) -> h.unitDetail(owned.get(at).optString("key")))
+        .setNegativeButton("닫기", null)
+        .show();
+  }
+
+  void openRecipe(JSONObject u) {
+    m.recipeQuery = u.optString("name");
+    m.recipeId = u.optString("id");
+    m.craftOnly = false;
+    h.craft();
   }
 
   void detail(ArrayList<JSONObject> units, int at) {
     if (units.isEmpty()) return;
     JSONObject u = units.get(at);
-    h.base(u.optString("name"), "collectionDetail");
-    LinearLayout[] cols = k.split(.38f);
-    cols[0].addView(
-        k.image(u.optString("image", "/thumbs/" + u.optString("id") + ".jpg"), 230, 230));
-    cols[0].addView(
-        k.note(u.optBoolean("known", u.optInt("have") > 0) ? "도감에 기록된 갈매미" : "아직 만나지 못했어요"));
-    LinearLayout info = k.paper();
-    cols[1].addView(info);
-    info.addView(h.text(u.optString("tierName") + " · " + u.optString("attrName"), 17));
-    TextView unitName = h.text(u.optString("name"), 24);
-    unitName.setTypeface(h.headline);
-    info.addView(unitName);
-    if (!u.optString("quote").isEmpty()) info.addView(k.note("「" + u.optString("quote") + "」"));
-    info.addView(k.note(u.optString("tagline")));
-    info.addView(k.note(u.optString("intro")));
-    info.addView(
+    LinearLayout info = k.column();
+    LinearLayout identity = k.row(), labels = k.column();
+    identity.addView(
+        k.image(u.optString("image", "/thumbs/" + u.optString("id") + ".jpg"), 112, 112));
+    labels.addView(heading(u.optString("name"), 24));
+    labels.addView(k.note(u.optString("tierName") + " · " + u.optString("attrName")));
+    labels.addView(
         k.note(
-            "보유"
-                + " "
+            "보유 "
                 + u.optInt("have")
                 + "마리 · 탐험 "
                 + u.optInt("away")
                 + " · 보호 "
                 + u.optInt("locked")));
-    info.addView(k.action(null, "갈매미 메뉴", () -> hold(units, at)));
-    ArrayList<JSONObject> individuals = new ArrayList<>();
-    JSONArray roster = h.list(h.state, "units");
-    for (int i = 0; i < roster.length(); i++)
-      if (u.optString("id").equals(roster.optJSONObject(i).optString("id")))
-        individuals.add(roster.optJSONObject(i));
-    if (!individuals.isEmpty())
+    identity.addView(labels, new LinearLayout.LayoutParams(0, -2, 1));
+    info.addView(identity);
+    info.addView(
+        k.note(u.optBoolean("known", u.optInt("have") > 0) ? "도감에 기록된 갈매미" : "아직 만나지 못했어요"));
+    if (!u.optString("quote").isEmpty()) info.addView(k.note("「" + u.optString("quote") + "」"));
+    info.addView(k.note(u.optString("tagline")));
+    info.addView(k.note(u.optString("intro")));
+    android.app.AlertDialog[] popup = {null};
+    LinearLayout browse = k.row();
+    actionCell(
+        browse,
+        k.action(
+            null,
+            "‹ 이전",
+            () -> {
+              popup[0].dismiss();
+              detail(units, (at - 1 + units.size()) % units.size());
+            }));
+    actionCell(
+        browse,
+        k.action(
+            null,
+            "다음 ›",
+            () -> {
+              popup[0].dismiss();
+              detail(units, (at + 1) % units.size());
+            }));
+    info.addView(browse, new LinearLayout.LayoutParams(-1, h.dp(52)));
+    info.addView(
+        k.action(
+            null,
+            "갈매미 관리",
+            () -> {
+              popup[0].dismiss();
+              hold(units, at);
+            }));
+    if (!individuals(u).isEmpty())
       info.addView(
           k.action(
               "learn",
               "기술·승진 확인",
               () -> {
-                m.unitReturn = "collection";
-                if (individuals.size() == 1) {
-                  h.unitDetail(individuals.get(0).optString("key"));
-                  return;
-                }
-                String[] names = new String[individuals.size()];
-                for (int i = 0; i < names.length; i++)
-                  names[i] =
-                      "#"
-                          + (i + 1)
-                          + " · Lv"
-                          + individuals.get(i).optInt("level")
-                          + " · "
-                          + NativeGrowthGuidance.badge(individuals.get(i));
-                new GameDialog(h)
-                    .setTitle("키울 갈매미 선택")
-                    .setItems(
-                        names,
-                        (d, atUnit) -> h.unitDetail(individuals.get(atUnit).optString("key")))
-                    .setNegativeButton("닫기", null)
-                    .show();
+                popup[0].dismiss();
+                openOwnedGrowth(u);
               }));
-    JSONObject catalogEntry = catalogState == h.state ? catalogEntry(u.optString("id")) : null;
-    if (catalogEntry != null) acquisition(info, catalogEntry);
+    JSONObject entry = catalogState == h.state ? catalogEntry(u.optString("id")) : null;
+    if (entry != null) acquisition(info, entry);
     else
       m.fetch(
           "native/catalog",
           data -> {
             catalogData = data;
             catalogState = h.state;
-            JSONObject entry = catalogEntry(u.optString("id"));
-            if (entry != null) acquisition(info, entry);
+            JSONObject fresh = catalogEntry(u.optString("id"));
+            if (fresh != null) acquisition(info, fresh);
           });
-    LinearLayout footer = k.row();
-    h.cell(
-        footer,
-        k.action(null, "‹ 이전", () -> detail(units, (at - 1 + units.size()) % units.size())));
-    h.cell(footer, k.action(null, "목록으로", this::collection));
-    h.cell(footer, k.action(null, "다음 ›", () -> detail(units, (at + 1) % units.size())));
-    k.footer(footer);
+    popup[0] = k.openSheet(u.optString("name") + " · 기록", () -> info);
   }
 
   JSONObject catalogEntry(String id) {
@@ -460,69 +620,103 @@ final class NativeLibrary {
     h.currentKey = key;
     JSONObject u = h.unit(key);
     h.base(u.optString("name") + " · 기술과 승진", "unit");
-    LinearLayout[] cols = k.split(.32f);
-    boolean compact = h.compact();
+    LinearLayout[] cols = fixedColumns(h.body, .32f);
     LinearLayout who = k.paper();
     who.setTag("unit-summary");
-    cols[0].addView(who);
-    LinearLayout identity = compact ? k.row() : k.column();
-    identity.setGravity(Gravity.TOP);
-    identity.addView(k.image(u.optString("image"), compact ? 104 : 190, compact ? 114 : 204));
-    LinearLayout labels = k.column();
-    identity.addView(labels, new LinearLayout.LayoutParams(compact ? 0 : -1, -2, compact ? 1 : 0));
-    who.addView(identity);
-    TextView name = h.text(u.optString("name"), compact ? 18 : 26);
-    name.setTypeface(h.headline);
-    name.setTextLocale(Locale.KOREA);
-    name.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
-    if (android.os.Build.VERSION.SDK_INT >= 33)
-      name.setLineBreakWordStyle(
-          android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
-    labels.addView(name);
-    TextView meta =
-        k.note(
-            "Lv"
-                + u.optInt("level")
-                + " · "
-                + u.optString("attr")
-                + " · 승진 "
-                + u.optInt("stage")
-                + "단계");
-    meta.setTextSize(compact ? 13 : 15);
-    labels.addView(meta);
+    who.setPadding(h.dp(8), h.dp(6), h.dp(8), h.dp(6));
+    cols[0].addView(who, new LinearLayout.LayoutParams(-1, -1));
+    who.addView(k.image(u.optString("image"), 1, 1), new LinearLayout.LayoutParams(-1, 0, 1));
     String role = u.optString("role");
     String roleName =
         role.equals("ATTACK")
             ? "공격"
             : role.equals("DEFENSE") ? "수비" : role.equals("UTILITY") ? "유틸" : role;
-    JSONObject synergyDefs = h.state.optJSONObject("synergies");
-    JSONObject syn = synergyDefs == null ? null : synergyDefs.optJSONObject(u.optString("synergy"));
-    TextView roleLabel = k.note(roleName + (syn == null ? "" : " · " + syn.optString("name")));
-    roleLabel.setTextSize(compact ? 13 : 15);
-    labels.addView(roleLabel);
+    who.addView(
+        line(
+            "Lv"
+                + u.optInt("level")
+                + " · "
+                + u.optString("attr")
+                + " · "
+                + roleName
+                + " · 승진 "
+                + u.optInt("stage"),
+            13,
+            false));
     unitMeter(who, "체력", u.optInt("hp"), u.optInt("maxHp"), 0xff51c98b);
     unitMeter(who, "경험치", u.optInt("xp"), u.optInt("xpNext"), 0xffe9a630);
-    unitDetails(cols[0], u);
-
-    // 행동을 능력치·표창보다 먼저 배치해 스크롤 없이 다음 성장 단계를 찾게 한다.
-    cols[1].addView(growthActions(key, u));
-    cols[1].addView(k.section("기술 · " + h.list(u, "skills").length() + " / 4칸"));
-    if (h.list(u, "learn").length() == 0 && h.list(u, "promo").length() == 0) {
-      int next = u.optInt("nextLearnLevel");
-      cols[1].addView(
-          k.note(next > 0 ? "다음 배울 기회 · Lv" + next : "승진하면 전용 기술이 열려요. 배운 기술은 교체할 수 있어요."));
-    }
-    ArrayList<View> cards = new ArrayList<>();
+    unitDetails(who, u);
+    cols[1].addView(growthActions(key, u), new LinearLayout.LayoutParams(-1, -2));
+    LinearLayout skillHeader = k.row();
+    skillHeader.setTag("unit-skill-header");
+    skillHeader.setBackground(new GamePaperDrawable(h));
+    skillHeader.setPadding(h.dp(6), h.dp(2), h.dp(6), h.dp(2));
+    skillHeader.addView(line("기술 · " + h.list(u, "skills").length() + " / 4칸", 14, true));
+    int next = u.optInt("nextLearnLevel");
+    TextView hint = line(next > 0 ? "다음 새 기술 Lv" + next : "배운 기술은 교체할 수 있어요", 12, false);
+    hint.setGravity(Gravity.RIGHT);
+    skillHeader.addView(hint, new LinearLayout.LayoutParams(0, -2, 1));
+    cols[1].addView(skillHeader);
+    LinearLayout grid = k.column();
+    cols[1].addView(grid, new LinearLayout.LayoutParams(-1, 0, 1));
     JSONArray skills = h.list(u, "skills");
-    for (int i = 0; i < skills.length(); i++)
-      cards.add(skill(skills.optJSONObject(i), skillKind(skills.optJSONObject(i)), null));
-    while (cards.size() < 4) {
-      LinearLayout blank = k.paper();
-      blank.addView(heading("＋ 빈칸", 22));
-      blank.addView(k.note("레벨업·승진으로 기술을 배워 채워요."));
-      cards.add(blank);
+    for (int rowIndex = 0; rowIndex < 2; rowIndex++) {
+      LinearLayout row = k.row();
+      row.setGravity(Gravity.FILL);
+      grid.addView(row, new LinearLayout.LayoutParams(-1, 0, 1));
+      for (int column = 0; column < 2; column++) {
+        int index = rowIndex * 2 + column;
+        View card;
+        if (index < skills.length()) card = fixedSkill(skills.optJSONObject(index));
+        else {
+          LinearLayout empty = k.paper();
+          empty.setGravity(Gravity.CENTER_VERTICAL);
+          empty.addView(line("＋ 빈칸", 17, true));
+          empty.addView(line("레벨업·승진으로 배워요", 12, false));
+          card = empty;
+        }
+        card.setTag("unit-skill-" + index);
+        LinearLayout.LayoutParams box = new LinearLayout.LayoutParams(0, -1, 1);
+        box.setMargins(h.dp(2), h.dp(2), h.dp(2), h.dp(2));
+        row.addView(card, box);
+      }
     }
-    k.tiles(cols[1], cards, 2);
+  }
+
+  LinearLayout fixedSkill(JSONObject skill) {
+    LinearLayout card = k.paper();
+    card.setGravity(Gravity.CENTER_VERTICAL);
+    card.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(4));
+    card.setMinimumHeight(h.dp(48));
+    card.addView(skillLine(skill.optString("name"), 17, true));
+    String category =
+        skill.optString("cat").equals("phys")
+            ? "물리"
+            : skill.optString("cat").equals("mag") ? "마법" : "공격";
+    String meta =
+        skill.optInt("power") > 0
+            ? category
+                + " · 위력 "
+                + skill.optInt("power")
+                + (skill.optInt("hits") > 1 ? " ×" + skill.optInt("hits") : "")
+            : "보조 기술";
+    String attr = skill.optString("attr");
+    if (!attr.isEmpty()) {
+      JSONObject attributes = h.state.optJSONObject("attributes");
+      meta += " · " + m.attrName(attributes == null ? new JSONObject() : attributes, attr);
+    }
+    card.addView(skillLine(meta, 13, false));
+    String effect = SkillCardView.effect(skill);
+    if (!effect.isEmpty() && !effect.equals("추가 효과 없음")) card.addView(skillLine(effect, 12, false));
+    card.setContentDescription(skill.optString("name") + " · " + meta + " · " + effect);
+    return card;
+  }
+
+  TextView skillLine(String text, float size, boolean headline) {
+    TextView label = line(text, size, headline);
+    // 세 줄의 기본 글꼴 높이는 유지한다. 작은 가로 화면에서 행마다 중복된 여백만 없앤다.
+    label.setPadding(h.dp(4), 0, h.dp(4), 0);
+    return label;
   }
 
   void unitMeter(LinearLayout parent, String label, int value, int max, int color) {
@@ -537,68 +731,66 @@ final class NativeLibrary {
   LinearLayout growthActions(String key, JSONObject unit) {
     LinearLayout panel = k.paper();
     panel.setTag("unit-growth-actions");
-    TextView title = h.text("성장·회복", h.compact() ? 18 : 22);
-    title.setTypeface(h.headline);
-    panel.addView(title);
-    TextView summary = k.note(NativeGrowthGuidance.actionSummary(unit));
+    panel.setPadding(h.dp(6), h.dp(4), h.dp(6), h.dp(4));
+    TextView summary = line(NativeGrowthGuidance.actionSummary(unit), 13, false);
     summary.setTag("unit-growth-status");
-    summary.setTextSize(h.compact() ? 13 : 15);
     summary.setTextColor(MainActivity.INK);
     panel.addView(summary);
     LinearLayout actions = k.row();
     boolean primary = true;
     if (h.list(unit, "evolve").length() > 0) {
-      Button promote = k.action(null, "승진하기", () -> promotion(key));
+      Button promote = k.action(null, "승진", () -> promotion(key));
       promote.setTag("unit-promote");
-      promote.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
-      h.cell(actions, promote);
+      k.emphasize(promote);
+      actionCell(actions, promote);
       primary = false;
     }
     for (String kind : new String[] {"promo", "learn"}) {
       if (h.list(unit, kind).length() == 0) continue;
-      String label =
-          kind.equals("promo") ? "전용 기술" : "새 기술 " + Math.max(1, unit.optInt("learnLeft", 1)) + "개";
+      String label = kind.equals("promo") ? "전용기" : "새 기술";
       Button learn = k.action(null, label, () -> skillChoice(key, kind));
       learn.setTag("unit-" + kind);
-      if (primary) learn.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
+      if (primary) k.emphasize(learn);
       primary = false;
-      h.cell(actions, learn);
+      actionCell(actions, learn);
     }
     boolean needsHealing = unit.optInt("hp") < unit.optInt("maxHp");
     Button heal =
         k.action(
-            null,
-            needsHealing ? "회복하기" : "체력 가득",
-            () -> healSheet(null, key, () -> h.load("unit")));
+            null, needsHealing ? "회복" : "체력 가득", () -> healSheet(null, key, () -> h.load("unit")));
     heal.setTag("unit-heal");
     heal.setEnabled(needsHealing);
-    if (primary && needsHealing)
-      heal.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
-    h.cell(actions, heal);
-    for (int i = 0; i < actions.getChildCount(); i++) {
-      Button action = (Button) actions.getChildAt(i);
-      action.setTextSize(h.compact() ? 14 : 16);
-      action.setPadding(h.dp(6), h.dp(5), h.dp(6), h.dp(7));
-      action.getLayoutParams().height = h.dp(56);
-    }
-    panel.addView(actions);
-    TextView condition = k.note(m.growth.promotionNeed(unit));
-    condition.setTextSize(h.compact() ? 12 : 14);
-    panel.addView(condition);
+    if (primary && needsHealing) k.emphasize(heal);
+    actionCell(actions, heal);
+    panel.addView(actions, new LinearLayout.LayoutParams(-1, h.dp(52)));
+    panel.setContentDescription(
+        NativeGrowthGuidance.actionSummary(unit) + " · " + m.growth.promotionNeed(unit));
     return panel;
   }
 
   void unitDetails(LinearLayout parent, JSONObject unit) {
-    LinearLayout details = k.paper();
+    Button open =
+        k.action(
+            null, "능력치·표창  ›", () -> k.openSheet("능력치·기술·직무 표창", () -> unitDetailsContent(unit)));
+    open.setTag("unit-details-toggle");
+    fixedAction(open);
+    parent.addView(open, new LinearLayout.LayoutParams(-1, h.dp(48)));
+  }
+
+  LinearLayout unitDetailsContent(JSONObject unit) {
+    LinearLayout details = k.column();
     details.setTag("unit-extra-details");
-    details.setVisibility(View.GONE);
+    details.addView(k.notice(m.growth.promotionNeed(unit)));
     String recipeValue = recipeValueNote(unit);
     if (!recipeValue.isEmpty()) {
       TextView value = k.note(recipeValue);
       value.setTag("unit-recipe-value");
-      value.setTextSize(h.compact() ? 12 : 14);
       details.addView(value);
     }
+    JSONObject synergyDefs = h.state.optJSONObject("synergies");
+    JSONObject synergy =
+        synergyDefs == null ? null : synergyDefs.optJSONObject(unit.optString("synergy"));
+    if (synergy != null) details.addView(k.notice("시너지 · " + synergy.optString("name")));
     JSONObject stats = unit.optJSONObject("stats");
     if (stats != null) {
       details.addView(k.section("능력치"));
@@ -606,13 +798,10 @@ final class NativeLibrary {
           names = {"물리 공격", "물리 방어", "마법 공격", "마법 방어", "속도"};
       for (int i = 0; i < ids.length; i++) {
         LinearLayout row = k.row();
-        TextView label = k.note(names[i]);
-        label.setTextSize(h.compact() ? 12 : 14);
-        row.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
+        row.addView(k.note(names[i]), new LinearLayout.LayoutParams(0, -2, 1));
         TextView value = k.note(String.valueOf(stats.optInt(ids[i])));
         value.setTypeface(h.prose, android.graphics.Typeface.BOLD);
-        value.setSingleLine(true);
-        row.addView(value, new LinearLayout.LayoutParams(-2, -2));
+        row.addView(value);
         details.addView(row);
       }
     }
@@ -626,18 +815,13 @@ final class NativeLibrary {
           k.note(award == null ? id : award.optString("name") + "\n" + award.optString("desc")));
     }
     if (awards.length() == 0) details.addView(k.note("승진할 때 직무 표창을 골라요."));
-    Button toggle = k.action(null, "능력치 · 직무 표창 보기 ▾", () -> {});
-    toggle.setTag("unit-details-toggle");
-    toggle.setTextSize(h.compact() ? 13 : 15);
-    toggle.setOnClickListener(
-        v -> {
-          h.sound.click();
-          boolean show = details.getVisibility() != View.VISIBLE;
-          details.setVisibility(show ? View.VISIBLE : View.GONE);
-          toggle.setText(show ? "능력치 · 직무 표창 접기 ▴" : "능력치 · 직무 표창 보기 ▾");
-        });
-    parent.addView(toggle);
-    parent.addView(details);
+    details.addView(k.section("기술 기록"));
+    JSONArray skills = h.list(unit, "skills");
+    for (int i = 0; i < skills.length(); i++) {
+      JSONObject learned = skills.optJSONObject(i);
+      details.addView(skill(learned, skillKind(learned), null, true));
+    }
+    return details;
   }
 
   static String recipeValueNote(JSONObject value) {
@@ -732,7 +916,7 @@ final class NativeLibrary {
               else commitLearning(key, kind, picked[0].optString("id"), null);
             });
     go[0].setTag("skill-choice-confirm");
-    go[0].setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
+    k.emphasize(go[0]);
     go[0].setMinHeight(h.dp(48));
     go[0].setMinimumHeight(h.dp(48));
     go[0].setEnabled(false);
@@ -958,36 +1142,88 @@ final class NativeLibrary {
   void items() {
     h.base("수비대", "items");
     m.defenderTabs(h.body, 2);
-    LinearLayout guidance = k.paper();
-    guidance.addView(k.note("치료약은 전투 밖에서도 사용할 수 있어요. 다른 아이템은 스토리 대결 중에 사용해요."));
-    h.body.addView(guidance);
     JSONObject defs = h.state.optJSONObject("itemDefs");
-    JSONArray owned = h.list(h.state, "items");
-    if (defs == null) return;
-    ArrayList<View> cards = new ArrayList<>();
-    Iterator<String> ids = defs.keys();
-    while (ids.hasNext()) {
-      String id = ids.next();
-      JSONObject def = defs.optJSONObject(id);
-      int count = 0;
-      for (int i = 0; i < owned.length(); i++)
-        if (id.equals(owned.optJSONObject(i).optString("id")))
-          count = owned.optJSONObject(i).optInt("count");
-      LinearLayout card = k.paper();
-      card.addView(k.image("/duel/icons/" + id + ".png", 48, 48));
-      card.addView(heading(def.optString("name") + " · " + count + "개", 19));
-      card.addView(k.note(def.optString("desc")));
-      if (def.optInt("heal") > 0) {
-        Button use = k.action("potion", "쓰기 · 갈매미 고르기", () -> heal(id));
-        use.setEnabled(count > 0);
-        card.addView(use);
-      } else card.addView(k.note("스토리 대결 중에 사용할 수 있어요."));
-      cards.add(card);
+    if (defs == null) {
+      h.body.addView(k.notice("아이템 정보를 확인할 수 없어요."));
+      return;
     }
-    k.tiles(h.body, cards, h.cols());
-    h.body.addView(
-        k.action("u-shop", "아이템 구매", () -> h.load("shop")),
-        new LinearLayout.LayoutParams(-1, h.dp(52)));
+    ArrayList<String> ids = new ArrayList<>();
+    Iterator<String> iterator = defs.keys();
+    while (iterator.hasNext()) ids.add(iterator.next());
+    if (ids.isEmpty()) {
+      h.body.addView(k.notice("사용할 아이템이 없어요."));
+      return;
+    }
+    if (!ids.contains(selectedItemId)) {
+      selectedItemId = ids.get(0);
+      for (String id : ids)
+        if (itemCount(id) > 0) {
+          selectedItemId = id;
+          break;
+        }
+    }
+    String id = selectedItemId;
+    JSONObject def = defs.optJSONObject(id);
+    Button picker =
+        k.action(null, def.optString("name") + "  ·  아이템 고르기  ›", () -> itemPicker(ids, defs));
+    picker.setTag("items-picker");
+    fixedAction(picker);
+    h.body.addView(picker, new LinearLayout.LayoutParams(-1, h.dp(48)));
+    LinearLayout[] cols = fixedColumns(h.body, .30f);
+    LinearLayout portrait = k.paper();
+    portrait.setGravity(Gravity.CENTER_HORIZONTAL);
+    portrait.addView(
+        k.image("/duel/icons/" + id + ".png", 1, 1), new LinearLayout.LayoutParams(-1, 0, 1));
+    TextView have = line("보유 " + itemCount(id) + "개", 19, true);
+    have.setTag("items-count");
+    have.setGravity(Gravity.CENTER);
+    portrait.addView(have);
+    cols[0].addView(portrait, new LinearLayout.LayoutParams(-1, -1));
+    LinearLayout info = k.paper();
+    cols[1].addView(info, new LinearLayout.LayoutParams(-1, -1));
+    info.addView(line(def.optString("name"), 21, true));
+    TextView desc = k.note(def.optString("desc"));
+    desc.setMaxLines(2);
+    desc.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    info.addView(desc);
+    info.addView(new View(h), new LinearLayout.LayoutParams(-1, 0, 1));
+    LinearLayout actions = k.row();
+    if (def.optInt("heal") > 0) {
+      Button use = k.primary("potion", "회복할 갈매미", () -> heal(id));
+      use.setTag("items-use");
+      use.setEnabled(itemCount(id) > 0);
+      actionCell(actions, use);
+    } else {
+      Button story = k.action("u-story", "스토리", () -> h.load("story"));
+      story.setTag("items-story");
+      actionCell(actions, story);
+    }
+    Button buy = k.action("u-shop", "아이템 구매", () -> h.load("shop"));
+    buy.setTag("items-shop");
+    actionCell(actions, buy);
+    info.addView(actions, new LinearLayout.LayoutParams(-1, h.dp(52)));
+  }
+
+  void itemPicker(ArrayList<String> ids, JSONObject defs) {
+    LinearLayout list = k.column();
+    android.app.AlertDialog[] popup = {null};
+    for (String id : ids) {
+      JSONObject def = defs.optJSONObject(id);
+      Button choose =
+          k.action(
+              id,
+              def.optString("name") + " · " + itemCount(id) + "개",
+              () -> {
+                selectedItemId = id;
+                popup[0].dismiss();
+                items();
+              });
+      choose.setTag("items-choice-" + id);
+      choose.setSelected(id.equals(selectedItemId));
+      list.addView(choose, new LinearLayout.LayoutParams(-1, h.dp(56)));
+      list.addView(k.note(def.optString("desc")));
+    }
+    popup[0] = k.openSheet("아이템 고르기", () -> list);
   }
 
   void heal(String id) {
@@ -1148,7 +1384,7 @@ final class NativeLibrary {
                         });
                   });
           use.setTag("heal-confirm");
-          use.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
+          k.emphasize(use);
           use.setEnabled(item[0] != null && target[0] != null);
           h.cell(footer, use);
         };

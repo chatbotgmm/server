@@ -60,11 +60,11 @@ final class NativeAcquisitionFlow {
     addAction(row, "상세", "acquisition-detail", () -> fresh(() -> detail(item)));
     if (battleSpecies(item)) {
       Button grow = addAction(row, "육성", "acquisition-grow", () -> choose(item, this::grow));
-      grow.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
+      k.emphasize(grow);
       addAction(row, "전투 편성", "acquisition-team", () -> choose(item, this::team));
     } else {
       Button craft = addAction(row, "조합식", "acquisition-craft", () -> recipes(item));
-      craft.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
+      k.emphasize(craft);
     }
     return row;
   }

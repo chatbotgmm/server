@@ -7,6 +7,7 @@ import android.graphics.drawable.Drawable;
 final class GameSettingsDrawable extends Drawable {
   final MainActivity h;
   final Paint p = new Paint(3);
+  private final RectF bounds = new RectF();
   private int alpha = 255;
   private ColorFilter filter;
 
@@ -16,18 +17,15 @@ final class GameSettingsDrawable extends Drawable {
 
   @Override
   public void draw(Canvas c) {
+    bounds.set(getBounds());
     int save = c.save();
     if (alpha != 255 || filter != null) {
       p.setAlpha(alpha);
       p.setColorFilter(filter);
-      c.saveLayer(new RectF(getBounds()), p);
+      c.saveLayer(bounds, p);
     }
     JournalTheme.drawPanel(
-        c,
-        new RectF(getBounds()),
-        h.getResources().getDisplayMetrics().density,
-        JournalTheme.PAPER,
-        true);
+        c, bounds, h.getResources().getDisplayMetrics().density, JournalTheme.PAPER, true);
     c.restoreToCount(save);
   }
 

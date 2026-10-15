@@ -213,23 +213,18 @@ final class NativeReveal extends FrameLayout {
       selectedLabel.setEllipsize(android.text.TextUtils.TruncateAt.END);
       page.addView(selectedLabel);
     }
-    HorizontalScrollView scroll = new HorizontalScrollView(h);
-    scroll.setFillViewport(true);
-    scroll.setHorizontalScrollBarEnabled(false);
-    LinearLayout row = k.row();
-    row.setGravity(Gravity.CENTER);
-    row.setPadding(h.dp(6), h.dp(6), h.dp(6), h.dp(6));
-    scroll.addView(row, new HorizontalScrollView.LayoutParams(-2, -2, Gravity.CENTER));
-    ScrollView cardScroll = k.scroll(scroll);
-    cardScroll.setTag("acquisition-cards-scroll");
-    cardScroll.setFillViewport(true);
-    page.addView(cardScroll, new LinearLayout.LayoutParams(-1, 0, 1));
+    RevealStrip scroll = new RevealStrip();
+    LinearLayout row = scroll.cardsRow;
+    scroll.setTag("acquisition-cards-scroll");
+    page.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
     int available =
         getHeight() > 0
             ? (int) (getHeight() / h.getResources().getDisplayMetrics().density)
             : h.contentHeightDp();
-    int height = Math.max(116, available - (flow == null ? 104 : 168)),
-        width = Math.max(84, Math.min(units.length() == 1 ? 220 : 168, (int) (height * 3 / 4.15f)));
+    int labelHeight = flow != null && units.length() > 1 ? selectedLabel.getLineHeight() : 0;
+    int height = Math.max(96, available - (flow == null ? 88 : 136) - labelHeight),
+        width =
+            Math.max(112, Math.min(units.length() == 1 ? 220 : 168, (int) (height * 3 / 4.15f)));
     final LinearLayout footer = k.column();
     final ArrayList<RevealCard> shown = new ArrayList<>();
     Runnable[] paint = new Runnable[1];
@@ -254,17 +249,32 @@ final class NativeReveal extends FrameLayout {
                       + (j == flow.selected ? " · 선택됨" : " · 눌러 선택"));
             }
           }
-          Button ok = k.action(null, "확인", this::finish);
+          LinearLayout finish = k.row();
+          Button all =
+              k.action(
+                  "u-draw",
+                  "결과 목록 · " + units.length(),
+                  () ->
+                      resultPicker(
+                          index -> {
+                            if (flow != null) flow.selected = index;
+                            paint[0].run();
+                            if (index < row.getChildCount())
+                              scroll.smoothScrollTo(row.getChildAt(index).getLeft(), 0);
+                          }));
+          all.setTag("acquisition-result-picker");
+          h.cell(finish, all);
+          Button ok = k.primary(null, "확인", this::finish);
           ok.setTag("acquisition-confirm");
-          LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(h.dp(180), h.dp(48));
-          lp.gravity = Gravity.CENTER_HORIZONTAL;
+          h.cell(finish, ok);
+          LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
           lp.topMargin = h.dp(8);
-          footer.addView(ok, lp);
+          footer.addView(finish, lp);
         };
     for (int i = 0; i < units.length(); i++) {
       JSONObject unit = units.optJSONObject(i);
       if (unit == null) continue;
-      RevealCard card = new RevealCard(unit, width);
+      RevealCard card = new RevealCard(unit, width, h.dp(height));
       shown.add(card);
       final int index = i;
       if (flow != null) {
@@ -318,6 +328,48 @@ final class NativeReveal extends FrameLayout {
     }
   }
 
+  void resultPicker(java.util.function.IntConsumer select) {
+    android.app.AlertDialog[] dialog = {null};
+    dialog[0] =
+        k.openSheet(
+            "획득 결과 · " + units.length(),
+            () -> {
+              LinearLayout list = k.column();
+              for (int i = 0; i < units.length(); i++) {
+                JSONObject unit = units.optJSONObject(i);
+                if (unit == null) continue;
+                int index = i;
+                LinearLayout row = k.paper(), line = k.row(), words = k.column();
+                line.addView(
+                    k.image(
+                        "/thumbs/" + unit.optString("img", unit.optString("id")) + ".jpg", 64, 64));
+                TextView name = h.text(unit.optString("name"), 18);
+                name.setTypeface(h.headline);
+                words.addView(name);
+                TextView grade =
+                    k.note(
+                        unit.optString("tierName")
+                            + (unit.optInt("n") > 1 ? " · ×" + unit.optInt("n") : "")
+                            + (unit.optBoolean("first") ? " · NEW" : ""));
+                grade.setTextColor(tierInk(unit.optString("tier")));
+                words.addView(grade);
+                line.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
+                row.addView(line);
+                Button choose =
+                    k.action(
+                        null,
+                        "이 갈매미 선택",
+                        () -> {
+                          select.accept(index);
+                          dialog[0].dismiss();
+                        });
+                row.addView(choose);
+                list.addView(row);
+              }
+              return list;
+            });
+  }
+
   void finish() {
     if (leaving) return;
     leaving = true;
@@ -342,12 +394,57 @@ final class NativeReveal extends FrameLayout {
     super.onDetachedFromWindow();
   }
 
+  /** 하단 행동과 큰 글자가 먼저 차지한 뒤의 실제 카드 영역에 초상만 맞춘다. */
+  final class RevealStrip extends HorizontalScrollView {
+    final LinearLayout cardsRow = k.row();
+
+    RevealStrip() {
+      super(h);
+      setFillViewport(true);
+      setHorizontalScrollBarEnabled(false);
+      cardsRow.setGravity(Gravity.CENTER);
+      cardsRow.setPadding(h.dp(6), h.dp(6), h.dp(6), h.dp(6));
+      addView(cardsRow, new HorizontalScrollView.LayoutParams(-2, -2, Gravity.CENTER));
+    }
+
+    @Override
+    protected void onMeasure(int widthSpec, int heightSpec) {
+      super.onMeasure(widthSpec, heightSpec);
+      if (MeasureSpec.getMode(heightSpec) == MeasureSpec.UNSPECIFIED) return;
+      int room =
+          getMeasuredHeight()
+              - getPaddingTop()
+              - getPaddingBottom()
+              - cardsRow.getPaddingTop()
+              - cardsRow.getPaddingBottom();
+      if (room <= 0) return;
+      for (int i = 0; i < cardsRow.getChildCount(); i++) {
+        View child = cardsRow.getChildAt(i);
+        if (!(child instanceof RevealCard)) continue;
+        LinearLayout.LayoutParams slot = (LinearLayout.LayoutParams) child.getLayoutParams();
+        int budget = Math.max(0, room - slot.topMargin - slot.bottomMargin);
+        slot.height = ((RevealCard) child).fitToHeight(budget);
+        child.forceLayout();
+      }
+      // 동일 사양의 측정 캐시를 재사용하지 않도록 실제 앞면 높이로 한 번 더 정렬한다.
+      cardsRow.forceLayout();
+      super.onMeasure(widthSpec, heightSpec);
+    }
+  }
+
   final class RevealCard extends FrameLayout {
     final View front, back;
     final int preferredHeight;
+    final int cardWidth, portraitHeight;
 
     RevealCard(JSONObject unit, int width) {
+      this(unit, width, Integer.MAX_VALUE);
+    }
+
+    RevealCard(JSONObject unit, int width, int heightBudget) {
       super(h);
+      cardWidth = h.dp(width);
+      portraitHeight = h.dp(width - 16);
       int color = tier(unit.optString("tier"));
       LinearLayout face = k.column();
       face.setGravity(Gravity.CENTER);
@@ -376,7 +473,9 @@ final class NativeReveal extends FrameLayout {
         photo.addView(count, box);
       }
       face.addView(photo, new LinearLayout.LayoutParams(-1, h.dp(width - 16)));
-      TextView name = h.text(unit.optString("name"), width < 110 ? 12 : 14);
+      TextView name = h.text(unit.optString("name"), 14);
+      name.setMaxLines(2);
+      name.setEllipsize(android.text.TextUtils.TruncateAt.END);
       name.setTypeface(h.headline);
       name.setGravity(Gravity.CENTER);
       name.setTextLocale(java.util.Locale.KOREA);
@@ -390,12 +489,22 @@ final class NativeReveal extends FrameLayout {
       grade.setTextColor(tierInk(unit.optString("tier")));
       grade.setGravity(Gravity.CENTER);
       face.addView(grade);
-      // 뒤집기용 MATCH_PARENT 뒷면이 ScrollView의 남는 높이까지 카드를 늘리지 않게 한다.
-      // 원문 이름·등급·배지를 포함한 앞면을 실제 글꼴로 먼저 측정한다.
+      // 이름·등급은 같은 글자 크기로 측정하고, 카드가 남는 높이를 넘으면 초상만 비율 유지해 줄인다.
+      // 전체 원문·수량·NEW 표시는 별도 결과 목록에서 확인할 수 있다.
       face.measure(
           MeasureSpec.makeMeasureSpec(h.dp(width), MeasureSpec.EXACTLY),
           MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-      preferredHeight = Math.max(h.dp(width * 4.15f / 3), face.getMeasuredHeight());
+      if (face.getMeasuredHeight() > heightBudget) {
+        ViewGroup.LayoutParams imageSlot = photo.getLayoutParams();
+        imageSlot.height =
+            Math.max(h.dp(32), imageSlot.height - (face.getMeasuredHeight() - heightBudget));
+        photo.setLayoutParams(imageSlot);
+        face.measure(
+            MeasureSpec.makeMeasureSpec(h.dp(width), MeasureSpec.EXACTLY),
+            MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+      }
+      preferredHeight =
+          Math.max(Math.min(h.dp(width * 4.15f / 3), heightBudget), face.getMeasuredHeight());
       front = face;
       back =
           new View(h) {
@@ -427,6 +536,26 @@ final class NativeReveal extends FrameLayout {
       addView(back, new LayoutParams(-1, -1));
       if (rank(unit.optString("tier")) >= 6) setElevation(h.dp(6));
       flip(0);
+    }
+
+    int fitToHeight(int budget) {
+      LinearLayout face = (LinearLayout) front;
+      View photo = face.getChildAt(0);
+      ViewGroup.LayoutParams imageSlot = photo.getLayoutParams();
+      imageSlot.height = portraitHeight;
+      photo.forceLayout();
+      face.forceLayout();
+      face.measure(
+          MeasureSpec.makeMeasureSpec(cardWidth, MeasureSpec.EXACTLY),
+          MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+      int textAndPadding = face.getMeasuredHeight() - portraitHeight;
+      imageSlot.height = Math.max(0, Math.min(portraitHeight, budget - textAndPadding));
+      photo.forceLayout();
+      face.forceLayout();
+      face.measure(
+          MeasureSpec.makeMeasureSpec(cardWidth, MeasureSpec.EXACTLY),
+          MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+      return Math.max(face.getMeasuredHeight(), Math.min(preferredHeight, budget));
     }
 
     void fitBadge(TextView label) {

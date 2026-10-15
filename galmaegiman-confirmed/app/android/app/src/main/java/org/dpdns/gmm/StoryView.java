@@ -3,6 +3,8 @@ package org.dpdns.gmm;
 import android.graphics.*;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.StaticLayout;
+import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.view.*;
@@ -20,7 +22,12 @@ final class StoryView extends FrameLayout implements FullBleed {
   int index = 0;
   final LinearLayout bubble, words;
   final TextView who, say, count, badge;
-  final ScrollView textScroll;
+  final FrameLayout textArea;
+  android.app.AlertDialog dialogueModal;
+  boolean longDialogue;
+  int lastTextWidth, lastTextHeight;
+  float lastTextSize;
+  String lastMeasuredText = "";
   final Button next, skip;
   final Scene canvas;
   final SceneMotion motion;
@@ -56,8 +63,44 @@ final class StoryView extends FrameLayout implements FullBleed {
       finishTyping();
       return;
     }
+    if (longDialogue) {
+      readDialogue();
+      return;
+    }
+    advanceLine();
+  }
+
+  void advanceLine() {
     if (++index >= lines.length()) finish();
     else update();
+  }
+
+  void readDialogue() {
+    if (dialogueModal != null && dialogueModal.isShowing()) return;
+    TextView full = host.text("", 18);
+    full.setText(highlight(fullText));
+    full.setTypeface(host.prose);
+    full.setTag("story-full-dialogue");
+    final android.app.AlertDialog opened =
+        new GameDialog(host)
+            .setTitle(who.getText().length() == 0 ? "이야기" : who.getText())
+            .setView(full)
+            .setNegativeButton("닫기", null)
+            .setPositiveButton(
+                "다음",
+                (dialog, which) -> {
+                  clearDialogue((android.app.AlertDialog) dialog);
+                  dialog.dismiss();
+                  advanceLine();
+                })
+            .show();
+    dialogueModal = opened;
+    opened.setOnDismissListener(dialog -> clearDialogue(opened));
+  }
+
+  void clearDialogue(android.app.AlertDialog dialog) {
+    if (host.visibleDialog == dialog) host.visibleDialog = null;
+    if (dialogueModal == dialog) dialogueModal = null;
   }
 
   void finishTyping() {
@@ -117,6 +160,7 @@ final class StoryView extends FrameLayout implements FullBleed {
 
   @Override
   protected void onDetachedFromWindow() {
+    if (dialogueModal != null) dialogueModal.dismiss();
     host.api.ui.removeCallbacks(typeTick);
     typing = false;
     removeCallbacks(fadeTitle);
@@ -181,9 +225,10 @@ final class StoryView extends FrameLayout implements FullBleed {
     say = a.text("", 18);
     say.setTypeface(a.prose);
     say.setLineSpacing(a.dp(2), 1.15f);
-    textScroll = new ScrollView(a);
-    textScroll.addView(say);
-    words.addView(textScroll, new LinearLayout.LayoutParams(-1, 0, 1));
+    textArea = new FrameLayout(a);
+    say.setEllipsize(TextUtils.TruncateAt.END);
+    textArea.addView(say, new FrameLayout.LayoutParams(-1, -1));
+    words.addView(textArea, new LinearLayout.LayoutParams(-1, 0, 1));
     LinearLayout controls = new LinearLayout(a);
     controls.setOrientation(LinearLayout.VERTICAL);
     controls.setGravity(Gravity.CENTER);
@@ -266,12 +311,12 @@ final class StoryView extends FrameLayout implements FullBleed {
     who.setVisibility(name.isEmpty() ? GONE : VISIBLE);
     host.api.ui.removeCallbacks(typeTick);
     fullText = l.optString("say");
+    say.setContentDescription(fullText);
     shown = 0;
     typing = host.motionEnabled && !fullText.isEmpty();
     say.setText(typing ? "" : highlight(fullText));
     if (typing && isAttachedToWindow()) host.api.ui.postDelayed(typeTick, 28);
     count.setText((index + 1) + " / " + lines.length());
-    textScroll.scrollTo(0, 0);
     requestLayout();
     canvas.invalidate();
   }
@@ -297,10 +342,7 @@ final class StoryView extends FrameLayout implements FullBleed {
         MeasureSpec.makeMeasureSpec(fullH, MeasureSpec.EXACTLY));
     int bh =
         Math.min(
-            (int) (h * .43f),
-            Math.max(
-                host.dp(h / density < 600 ? 132 : 168),
-                (int) (h * .28f)));
+            (int) (h * .43f), Math.max(host.dp(h / density < 600 ? 132 : 168), (int) (h * .28f)));
     bubble.measure(
         MeasureSpec.makeMeasureSpec(Math.min(host.dp(1160), (int) (w * .89f)), MeasureSpec.EXACTLY),
         MeasureSpec.makeMeasureSpec(bh, MeasureSpec.EXACTLY));
@@ -342,6 +384,37 @@ final class StoryView extends FrameLayout implements FullBleed {
         ox + host.dp(20) + badge.getMeasuredWidth(),
         oy + host.dp(10) + badge.getMeasuredHeight());
     skip.layout(ox + w - host.dp(134), oy + host.dp(8), ox + w - host.dp(10), oy + host.dp(56));
+    fitDialogue();
+  }
+
+  /** 기본 장면은 고정된 문장 미리보기, 넘치는 대사만 읽기 모달에서 이어 본다. */
+  void fitDialogue() {
+    int width = say.getWidth() - say.getPaddingLeft() - say.getPaddingRight();
+    int height = say.getHeight() - say.getPaddingTop() - say.getPaddingBottom();
+    if (width <= 0 || height <= 0) return;
+    if (lastTextWidth == width
+        && lastTextHeight == height
+        && lastTextSize == say.getTextSize()
+        && lastMeasuredText.equals(fullText)) return;
+    lastTextWidth = width;
+    lastTextHeight = height;
+    lastTextSize = say.getTextSize();
+    lastMeasuredText = fullText;
+    CharSequence measured = highlight(fullText);
+    StaticLayout layout =
+        StaticLayout.Builder.obtain(measured, 0, measured.length(), say.getPaint(), width)
+            .setLineSpacing(say.getLineSpacingExtra(), say.getLineSpacingMultiplier())
+            .setIncludePad(say.getIncludeFontPadding())
+            .build();
+    int visibleLines = 0;
+    for (int line = 0; line < layout.getLineCount(); line++) {
+      if (layout.getLineBottom(line) > height) break;
+      visibleLines++;
+    }
+    say.setMaxLines(Math.max(1, visibleLines));
+    longDialogue = layout.getLineCount() > visibleLines;
+    next.setText(longDialogue ? "전문 보기" : "다음");
+    next.setContentDescription(longDialogue ? "전체 대사를 읽은 뒤 다음으로" : "다음 대사");
   }
 
   static ColorMatrix hue(float angle) {
@@ -474,8 +547,7 @@ final class StoryView extends FrameLayout implements FullBleed {
       JSONArray team = host.list(host.state, "team");
       String leadId = team.length() == 0 ? "" : host.unit(team.optString(0)).optString("id");
       boolean narration = speaker.equals("N") || speaker.equals("TIP");
-      float floor =
-          (bubble.getTop() > 0 ? bubble.getTop() - safe.top : h * .70f) - host.dp(14);
+      float floor = (bubble.getTop() > 0 ? bubble.getTop() - safe.top : h * .70f) - host.dp(14);
       fit(
           c,
           leadImage,

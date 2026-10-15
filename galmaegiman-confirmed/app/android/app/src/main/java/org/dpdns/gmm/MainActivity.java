@@ -28,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
   FrameLayout root;
   LinearLayout page, body;
   TextView title;
-  ScrollView loginScroll;
+  View loginScroll;
   ArrayList<String> expeditionDraft;
   boolean expeditionDirty;
   String storyScene = "harbor", storyFoe = "", lobbyRoom;
@@ -499,7 +499,7 @@ public class MainActivity extends AppCompatActivity {
     root.addView(page, new FrameLayout.LayoutParams(-1, -1));
     LinearLayout head = new LinearLayout(this);
     head.setGravity(Gravity.CENTER_VERTICAL);
-    head.setBackgroundColor(Color.TRANSPARENT);
+    head.setBackground(new GamePaperDrawable(this));
     head.setPadding(dp(8), dp(3), dp(8), dp(5));
     Button back =
         NativeTutorialController.anchor(
@@ -509,11 +509,10 @@ public class MainActivity extends AppCompatActivity {
     title.setTypeface(headline);
     title.setSingleLine(true);
     title.setEllipsize(android.text.TextUtils.TruncateAt.END);
-    title.setTextColor(mapPage ? JournalTheme.INK : JournalTheme.WHITE);
-    if (!mapPage) title.setShadowLayer(dp(2), 0, dp(1), 0xcc263b3c);
+    title.setTextColor(JournalTheme.INK);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
     MenuKit kit = new MenuKit(this);
-    for (String kind : new String[] {"snack", "peanut", "credits"}) {
+    for (String kind : mapPage ? new String[0] : new String[] {"snack", "peanut", "credits"}) {
       String icon =
           kind.equals("snack") ? "u-snack" : kind.equals("peanut") ? "u-peanut" : "u-ticket";
       Button money =
@@ -532,14 +531,11 @@ public class MainActivity extends AppCompatActivity {
       head.addView(money, new LinearLayout.LayoutParams(dp(compact() ? 90 : 102), dp(48)));
     }
     page.addView(head);
-    ScrollView scroll = new ScrollView(this);
-    scroll.setFillViewport(true);
     body = new LinearLayout(this);
     body.setOrientation(LinearLayout.VERTICAL);
     body.setPadding(dp(6), dp(6), dp(6), dp(6));
     body.setBackgroundColor(Color.TRANSPARENT);
-    scroll.addView(body);
-    page.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+    page.addView(new JournalViewport(this, name, body), new LinearLayout.LayoutParams(-1, 0, 1));
     screenShown();
   }
 
@@ -695,9 +691,11 @@ public class MainActivity extends AppCompatActivity {
     View shade = new GameShade(this);
     shade.setBackgroundColor(0x082b251d);
     root.addView(shade, new FrameLayout.LayoutParams(-1, -1));
-    ScrollView scroll = new ScrollView(this);
+    LinearLayout form = new LinearLayout(this);
+    form.setOrientation(LinearLayout.VERTICAL);
+    form.setPadding(dp(20), dp(10), dp(20), dp(10));
+    JournalViewport scroll = new JournalViewport(this, "로그인", form);
     loginScroll = scroll;
-    scroll.setFillViewport(false);
     scroll.setBackground(new FrameDrawable(this, "dialog.webp"));
     FrameLayout.LayoutParams bounds =
         new FrameLayout.LayoutParams(
@@ -707,16 +705,12 @@ public class MainActivity extends AppCompatActivity {
     bounds.leftMargin = dp(24);
     root.addView(scroll, bounds);
     root.post(this::resizeLogin);
-    LinearLayout form = new LinearLayout(this);
-    form.setOrientation(LinearLayout.VERTICAL);
-    form.setPadding(dp(24), dp(16), dp(24), dp(16));
-    scroll.addView(form);
     LinearLayout head = new LinearLayout(this);
     head.setGravity(Gravity.CENTER_VERTICAL);
     form.addView(head);
     boolean linking =
         !getSharedPreferences("native_account", 0).getString("linkCode", "").isEmpty();
-    title = text(linking ? "카카오 계정 처음 연결" : "수비대 인사 기록부", linking ? 18 : 24);
+    title = text(linking ? "카카오 계정 처음 연결" : "수비대 인사 기록부", linking ? 18 : 22);
     title.setTypeface(headline);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
     Button close =
@@ -731,13 +725,11 @@ public class MainActivity extends AppCompatActivity {
     Button kakao = button("카카오로 로그인", this::kakao);
     kakao.setBackground(new GameButtonDrawable(this, 0xfffee500));
     if (!linking) form.addView(kakao, new LinearLayout.LayoutParams(-1, dp(48)));
-    TextView guidance =
-        text(
-            (linking ? "처음 한 번만 기존 계정을 확인하면 카카오가 연결돼요." : "또는 카톡 코드로 로그인")
-                + "\n1. 갈매미맨 채널에 ‘웹 로그인’을 보내요.\n2. 받은 6자리 코드를 입력해요. (10분 안에, 한 번만)",
-            16);
+    TextView guidance = text(linking ? "기존 계정의 코드로 처음 한 번 연결해요." : "또는 카톡으로 받은 6자리 코드", 14);
     guidance.setTypeface(prose);
-    form.addView(guidance);
+    LinearLayout codeForm = new LinearLayout(this);
+    codeForm.setOrientation(LinearLayout.VERTICAL);
+    codeForm.addView(guidance);
     EditText code = new EditText(this);
     code.setHint("000000");
     code.setTextColor(INK);
@@ -750,17 +742,14 @@ public class MainActivity extends AppCompatActivity {
     code.setBackground(new GamePaperDrawable(this));
     code.setFilters(new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(6)});
     code.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
-    form.addView(code, new LinearLayout.LayoutParams(-1, dp(52)));
-    TextView error = text("", 15);
-    error.setVisibility(View.GONE);
-    error.setTextColor(0xffa83f31);
-    form.addView(error);
+    codeForm.addView(code, new LinearLayout.LayoutParams(-1, dp(52)));
+    final android.app.AlertDialog[] codeDialog = {null};
     Runnable enter =
         () -> {
           String value = code.getText().toString().trim();
           if (!value.matches("[0-9]{6}")) {
-            error.setText("6자리 숫자를 입력해 주세요.");
-            error.setVisibility(View.VISIBLE);
+            code.setError("6자리 숫자를 입력해 주세요.");
+            code.requestFocus();
             return;
           }
           ((android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE))
@@ -773,6 +762,7 @@ public class MainActivity extends AppCompatActivity {
                   "linkCode",
                   getSharedPreferences("native_account", 0).getString("linkCode", "")),
               (r, e) -> {
+                if (codeDialog[0] != null) codeDialog[0].dismiss();
                 getSharedPreferences("native_account", 0).edit().remove("linkCode").apply();
                 api.token(r.optString("token"));
                 load("title");
@@ -786,8 +776,60 @@ public class MainActivity extends AppCompatActivity {
           }
           return false;
         });
-    form.addView(button("로그인", enter), new LinearLayout.LayoutParams(-1, dp(48)));
-    form.addView(text("로그인은 이 기기에서 30일 동안 유지돼요.", 14));
+    LinearLayout codeActions = new LinearLayout(this);
+    codeActions.setGravity(Gravity.CENTER_VERTICAL);
+    Button cancelCode =
+        new MenuKit(this)
+            .action(
+                null,
+                "취소",
+                () -> {
+                  if (codeDialog[0] != null) codeDialog[0].dismiss();
+                });
+    codeActions.addView(cancelCode, new LinearLayout.LayoutParams(0, dp(48), 1));
+    codeActions.addView(button("로그인", enter), new LinearLayout.LayoutParams(0, dp(48), 1));
+    Button codeEntry =
+        button(
+            linking ? "기존 계정 확인" : "코드로 로그인",
+            () -> {
+              if (codeDialog[0] != null && codeDialog[0].isShowing()) return;
+              if (codeForm.getParent() instanceof ViewGroup)
+                ((ViewGroup) codeForm.getParent()).removeView(codeForm);
+              if (codeActions.getParent() instanceof ViewGroup)
+                ((ViewGroup) codeActions.getParent()).removeView(codeActions);
+              android.app.AlertDialog opened =
+                  new GameDialog(this)
+                      .setTitle(linking ? "기존 계정 확인" : "코드로 로그인")
+                      .setView(codeForm)
+                      .setFooter(codeActions)
+                      .show();
+              codeDialog[0] = opened;
+              opened.setOnDismissListener(
+                  dialog -> {
+                    if (visibleDialog == opened) visibleDialog = null;
+                    if (codeDialog[0] == opened) codeDialog[0] = null;
+                  });
+            });
+    codeEntry.setTag("login-code-open");
+    code.setTag("login-code-input");
+    form.addView(codeEntry, new LinearLayout.LayoutParams(-1, dp(48)));
+    form.addView(text("카톡 채널에서 받은 코드로 기존 수비대를 이어가요.", 14));
+    Button help =
+        new MenuKit(this)
+            .action(
+                null,
+                "코드 받는 법",
+                () ->
+                    new GameDialog(this)
+                        .setTitle("로그인 안내")
+                        .setMessage(
+                            "1. 카톡 갈매미맨 채널에 ‘웹 로그인’을 보내요.\n"
+                                + "2. 받은 6자리 코드를 입력해요. (10분 안에, 한 번만)\n\n"
+                                + "처음 카카오 계정을 연결할 때도 기존 계정의 코드를 사용해요.\n"
+                                + "로그인은 이 기기에서 30일 동안 유지돼요.")
+                        .setPositiveButton("확인", null)
+                        .show());
+    form.addView(help, new LinearLayout.LayoutParams(-1, dp(48)));
   }
 
   void resizeLogin() {

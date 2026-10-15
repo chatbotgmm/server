@@ -12,7 +12,6 @@ import android.widget.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import org.json.*;
@@ -492,10 +491,7 @@ public class JournalNativeReviewTest {
               "보유/필요 수량은 서버 값 유지",
               visibleText.contains(material.getInt("usable") + " / " + material.getInt("need")));
         }
-        ScrollView details = (ScrollView) host.body.getParent();
-        details.setSmoothScrollingEnabled(false);
-        details.fullScroll(View.FOCUS_DOWN);
-        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
+        NativeNoScrollReviewTest.assertFixedMain(host);
         review.capture(host, "journal-c-" + size[0] + "-craft-bottom", size[0], size[1]);
         Button craft = (Button) host.menus.economy.craftActions.getChildAt(1);
         geometry.fixedButton(host, host.root, craft);
@@ -520,8 +516,14 @@ public class JournalNativeReviewTest {
         battle.pane = "skills";
         battle.render();
         review.viewport(host, size[0], size[1]);
-        List<SkillCardView> skills = skillGeometry.cards(battle.controls);
+        View skillSurface = NativeNoScrollReviewTest.skillSurface(host, battle);
+        List<SkillCardView> skills = skillGeometry.cards(skillSurface);
         assertEquals("턴제 네 기술과 합동기 보존", 5, skills.size());
+        List<SkillCardView> combos = new ArrayList<>();
+        for (SkillCardView card : skills)
+          if (card.skill.optString("id").startsWith("combo-")) combos.add(card);
+        assertEquals("서버 합동기 한 개 유지", 1, combos.size());
+        assertSame("일반 기술 네 개 다음에 합동기를 배치", combos.get(0), skills.get(4));
         assertEquals(
             "합동기는 원본 서버 기술",
             snapshot
@@ -533,16 +535,16 @@ public class JournalNativeReviewTest {
                 .getJSONArray("skills")
                 .getJSONObject(4)
                 .getString("name"),
-            skills.get(0).skill.getString("name"));
+            combos.get(0).skill.getString("name"));
         for (boolean bottom : new boolean[] {false, true}) {
-          battle.menu.setSmoothScrollingEnabled(false);
-          battle.menu.fullScroll(bottom ? View.FOCUS_DOWN : View.FOCUS_UP);
-          Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
-          review.capture(
-              host,
-              "journal-c-" + size[0] + "-battle-skills-" + (bottom ? "bottom" : "top"),
-              size[0],
-              size[1]);
+          String name = "journal-c-" + size[0] + "-battle-skills-" + (bottom ? "bottom" : "top");
+          if (skillSurface == battle.controls) {
+            NativeNoScrollReviewTest.assertFixedMain(host);
+            review.capture(host, name, size[0], size[1]);
+          } else {
+            NativeNoScrollReviewTest.scrollModal(host, bottom);
+            geometry.capture(host, size, name);
+          }
         }
         for (SkillCardView card : skills) {
           assertTrue("기술 사용 터치 높이 유지", card.use.getHeight() >= host.dp(48));
@@ -550,6 +552,7 @@ public class JournalNativeReviewTest {
           geometry.readable(card.power);
         }
         review.checkSafeButtons(host.root, host);
+        if (host.visibleDialog != null) host.visibleDialog.dismiss();
         assertEquals("화면 검토에서 전투 상태를 소모·변경하지 않음", before, snapshot.toString());
         audit(
             "journal-c-" + size[0] + "-game-functions",

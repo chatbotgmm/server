@@ -75,8 +75,9 @@ public class JournalThemeTest {
         assertEquals(saves, canvas.getSaveCount());
         int center = bitmap.getPixel(size[0] / 2, size[1] / 2);
         assertEquals("종이 면은 사진 뒤를 비추지 않음", 255, Color.alpha(center));
-        assertTrue("밝은 기록지 면 확보", luminance(center) >= luminance(JournalTheme.PAPER));
+        assertTrue("밝은 기록지 면 확보", luminance(center) >= .72);
         assertTrue("종이 위 본문 대비 확보", contrast(JournalTheme.INK, center) >= 4.5);
+        assertTrue("보조 설명도 종이 재질 위에서 읽을 수 있음", contrast(JournalTheme.MUTED, center) >= 4.5);
         assertTrue("목재 프레임도 실제로 표시", colorCount(bitmap, JournalTheme.WOOD) > 0);
         bitmap.recycle();
       }
@@ -105,7 +106,7 @@ public class JournalThemeTest {
   }
 
   @Test
-  public void skillAttributeStripeAndComboBrassKeepTheirMeaningOnTheSamePaper() {
+  public void skillAttributeAndComboBrassKeepTheirMeaningOnReadableSurfaces() {
     MainActivity host = Robolectric.buildActivity(MainActivity.class).get();
     int attribute = 0xff8fdcf5;
     for (boolean combo : new boolean[] {false, true}) {
@@ -114,8 +115,12 @@ public class JournalThemeTest {
       drawable.setBounds(0, 0, 240, 140);
       drawable.setState(new int[] {android.R.attr.state_enabled});
       drawable.draw(new Canvas(bitmap));
+      int center = bitmap.getPixel(120, 70);
+      assertEquals("합동기·일반 기술의 정보 면은 모두 불투명", 255, Color.alpha(center));
       assertTrue(
-          "속성과 관계없이 밝은 종이 면", luminance(bitmap.getPixel(120, 70)) >= luminance(JournalTheme.PAPER));
+          combo ? "청록 합동기는 흰 글자가 읽히는 대비" : "일반 기술은 밝은 종이 위 잉크 대비",
+          contrast(combo ? JournalTheme.WHITE : JournalTheme.INK, center) >= 4.5);
+      if (!combo) assertTrue("일반 기술의 속성은 종이 전체를 물들이지 않음", luminance(center) >= .72);
       assertEquals(combo ? JournalTheme.BRASS : attribute, bitmap.getPixel(120, 6));
       bitmap.recycle();
     }
@@ -182,7 +187,8 @@ public class JournalThemeTest {
         new int[][] {
           {R.color.journal_paper, JournalTheme.PAPER, 0xfff5efdc},
           {R.color.journal_ink, JournalTheme.INK, 0xff292d2a},
-          {R.color.journal_muted_ink, JournalTheme.MUTED, 0xff626c67},
+          // 실제 종이 섬유 위에서도 작은 보조 설명 대비 4.5를 확보한 C 보조 잉크.
+          {R.color.journal_muted_ink, JournalTheme.MUTED, 0xff58635d},
           {R.color.journal_wood, JournalTheme.WOOD, 0xff34261f},
           {R.color.journal_brass, JournalTheme.BRASS, 0xffb68b45},
           {R.color.journal_primary, JournalTheme.PRIMARY, 0xff245b61},
@@ -222,11 +228,18 @@ public class JournalThemeTest {
           if (!bounds.contains(x + .5f, y + .5f))
             assertEquals("프레임 장식은 다른 UI나 안전 영역으로 번지지 않음", 0, Color.alpha(pixel));
         }
-      int row = Math.round(90 * density), reference = first.getPixel(Math.round(80 * density), row);
-      assertEquals(255, Color.alpha(reference));
-      for (int x = Math.round(80 * density); x < Math.round(280 * density); x++)
-        assertEquals("본문 중앙에는 지도선·거친 무늬가 들어가지 않음", reference, first.getPixel(x, row));
-      assertTrue("양피지 중앙 본문 대비 유지", contrast(JournalTheme.INK, reference) > 10);
+      // 종이 섬유는 밝기가 조금 달라도 정상이다. 동일 픽셀을 강요하면 단색 면만 통과하므로
+      // 실제 읽기 영역의 불투명도·명도 변화·본문 대비를 검사한다.
+      int row = Math.round(90 * density);
+      double darkest = 1, lightest = 0;
+      for (int x = Math.round(80 * density); x < Math.round(280 * density); x++) {
+        int pixel = first.getPixel(x, row);
+        assertEquals("본문은 사진을 비추지 않는 불투명 기록지", 255, Color.alpha(pixel));
+        darkest = Math.min(darkest, luminance(pixel));
+        lightest = Math.max(lightest, luminance(pixel));
+        assertTrue("종이 섬유 위에서도 양피지 중앙 본문 대비 유지", contrast(JournalTheme.INK, pixel) > 10);
+      }
+      assertTrue("본문 중앙에는 읽기를 방해하는 거친 무늬가 없음", lightest - darkest <= .10);
       // 위쪽 안쪽 지도선과 바깥 목재의 사이에 밝은 종이·황동이 모두 남는다.
       assertTrue("황동선 바깥에는 목재 받침도 구별되어야 함", colorCount(first, JournalTheme.WOOD) > 0);
       first.recycle();

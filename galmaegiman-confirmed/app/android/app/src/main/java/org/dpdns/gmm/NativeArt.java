@@ -41,6 +41,37 @@ final class NativeArt {
       knownBounds = new org.json.JSONObject(bytes.toString("UTF-8"));
     } catch (Exception ignored) {
     }
+    prepareJournalMaterial();
+  }
+
+  /** 작은 공통 종이도 기존 이미지 작업자에서 준비하고, 준비 후 현재 화면만 한 번 다시 그린다. */
+  private void prepareJournalMaterial() {
+    String pending = "journal-paper";
+    loading.add(pending);
+    images.execute(
+        () -> {
+          try {
+            if (!closed) JournalMaterial.prepare(context);
+          } finally {
+            api.ui.post(
+                () -> {
+                  loading.remove(pending);
+                  if (!closed
+                      && context instanceof android.app.Activity
+                      && !((android.app.Activity) context).isDestroyed()
+                      && !((android.app.Activity) context).isFinishing())
+                    invalidateMaterial(((android.app.Activity) context).getWindow().getDecorView());
+                });
+          }
+        });
+  }
+
+  private static void invalidateMaterial(android.view.View view) {
+    view.invalidate();
+    if (view instanceof android.view.ViewGroup) {
+      android.view.ViewGroup group = (android.view.ViewGroup) view;
+      for (int i = 0; i < group.getChildCount(); i++) invalidateMaterial(group.getChildAt(i));
+    }
   }
 
   Bitmap asset(String path) {
@@ -347,11 +378,13 @@ final class NativeArt {
 
   void into(ImageView view, String path) {
     view.setTag(path);
+    // 화면의 의미 태그와 비동기 이미지 요청 식별자는 서로 덮어쓰지 않는다.
+    view.setTag(R.id.native_art_request, path);
     Bitmap b =
         get(
             path,
             () -> {
-              if (path.equals(view.getTag())) {
+              if (path.equals(view.getTag(R.id.native_art_request))) {
                 Bitmap loaded = bitmaps.get(path);
                 if (loaded != null) view.setImageBitmap(loaded);
               }

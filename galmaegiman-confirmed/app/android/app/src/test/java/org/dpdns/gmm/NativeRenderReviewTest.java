@@ -111,6 +111,44 @@ public class NativeRenderReviewTest {
     return checked;
   }
 
+  /** 출석 보상 숫자는 활성 일차의 두꺼운 프레임 안쪽에서도 온전히 읽혀야 한다. */
+  int checkDailyRewardInk(View view) {
+    int checked = 0;
+    CharSequence description = view.getContentDescription();
+    if (view instanceof ViewGroup
+        && description != null
+        && description.toString().matches("\\d+일 .* · 뽑기권 \\d+장")) {
+      ViewGroup card = (ViewGroup) view;
+      for (int i = 0; i < card.getChildCount(); i++) {
+        View child = card.getChildAt(i);
+        if (!(child instanceof TextView)) continue;
+        TextView reward = (TextView) child;
+        if (!reward.getText().toString().matches("\\d+")) continue;
+        assertNotNull("출석 보상 숫자의 실제 글꼴 배치", reward.getLayout());
+        float left =
+            reward.getLeft()
+                + reward.getCompoundPaddingLeft()
+                + reward.getLayout().getLineLeft(0)
+                - reward.getScrollX();
+        float right =
+            reward.getLeft()
+                + reward.getCompoundPaddingLeft()
+                + reward.getLayout().getLineRight(0)
+                - reward.getScrollX();
+        float edge = 6 * view.getResources().getDisplayMetrics().density;
+        assertTrue(description + " 숫자가 왼쪽 프레임을 침범: " + left, left >= edge - 1);
+        assertTrue(description + " 숫자가 오른쪽 프레임을 침범: " + right, right <= card.getWidth() - edge + 1);
+        checked++;
+      }
+    }
+    if (view instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) view;
+      for (int i = 0; i < group.getChildCount(); i++)
+        checked += checkDailyRewardInk(group.getChildAt(i));
+    }
+    return checked;
+  }
+
   void checkBattleGeometry(BattleView v, String name, int w, int h) throws Exception {
     Bitmap mask = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
     float world = w * .645f;
@@ -415,10 +453,38 @@ public class NativeRenderReviewTest {
           Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(300));
           Thread.sleep(120);
           Shadows.shadowOf(Looper.getMainLooper()).idle();
-          if (screen.equals("settings")) {
+          if (a.visibleDialog != null) {
             popup(a, prefix + screen);
             a.visibleDialog.dismiss();
-          } else capture(a, prefix + screen, size[0], size[1]);
+          } else {
+            capture(a, prefix + screen, size[0], size[1]);
+            if (screen.equals("daily")) {
+              Button rewards = null;
+              NativeDialogLayoutReviewTest geometry = new NativeDialogLayoutReviewTest();
+              for (View view : geometry.descendants(a.root))
+                if (view instanceof Button
+                    && ((Button) view).getText().toString().equals("출석표 · 보상 안내"))
+                  rewards = (Button) view;
+              assertNotNull("기본 출석 화면에서 전체 보상표에 접근", rewards);
+              NativeNoScrollReviewTest.assertFullyVisible(rewards, a.root);
+              rewards.performClick();
+              View decor = geometry.layoutDialog(a);
+              int count = 0;
+              for (View view : geometry.descendants(decor))
+                if (view instanceof TextView
+                    && ((TextView) view).getText().toString().matches("\\d+일째 · 뽑기권 \\d+장"))
+                  count++;
+              assertEquals("모달에서도 매주 일곱 보상의 숫자와 단위를 모두 유지", 7, count);
+              geometry.capture(a, size, prefix + "daily-rewards-modal-top");
+              NativeNoScrollReviewTest.scrollModal(a, true);
+              geometry.capture(a, size, prefix + "daily-rewards-modal-bottom");
+              a.visibleDialog.dismiss();
+            }
+            if (screen.equals("craft") || screen.equals("mix")) {
+              ViewGroup header = (ViewGroup) a.page.getChildAt(0);
+              assertEquals("조합 머릿말은 뒤로·제목만 표시하고 재화 세 개는 생략", 2, header.getChildCount());
+            }
+          }
         }
       }
     }

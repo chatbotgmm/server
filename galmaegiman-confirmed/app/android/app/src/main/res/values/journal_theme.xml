@@ -3,7 +3,7 @@
 <resources>
     <color name="journal_paper">#F5EFDC</color>
     <color name="journal_ink">#292D2A</color>
-    <color name="journal_muted_ink">#626C67</color>
+    <color name="journal_muted_ink">#58635D</color>
     <color name="journal_wood">#34261F</color>
     <color name="journal_brass">#B68B45</color>
     <color name="journal_primary">#245B61</color>

@@ -8,6 +8,227 @@ import org.json.*;
 
 /** 전투 기록·상대 능력치·기술·증강체를 현장 기록부의 정보면으로 제공한다. */
 final class NativeBattleSheets {
+  static void option(MainActivity h, LinearLayout body, Button button) {
+    button.setBackground(new GameButtonDrawable(h, JournalTheme.PAPER));
+    button.setTextColor(JournalTheme.controlText(JournalTheme.PAPER));
+    button.setMinHeight(h.dp(48));
+    button.setMinimumHeight(h.dp(48));
+    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+    lp.setMargins(0, h.dp(3), 0, h.dp(3));
+    body.addView(button, lp);
+  }
+
+  /** 보통은 기본 2×2 카드로 선택한다. 큰 글꼴·긴 서버 데이터만 넓은 선택지를 사용한다. */
+  static void skills(BattleView v) {
+    MainActivity h = v.host;
+    LinearLayout body = column(h);
+    body.setTag("battle-skills-modal");
+    AlertDialog[] dialog = {null};
+    Runnable close =
+        () -> {
+          if (dialog[0] != null) dialog[0].dismiss();
+        };
+    JSONArray skills = h.list(v.active(0), "skills");
+    int columns = h.getResources().getConfiguration().fontScale >= 1.15f ? 1 : 2;
+    LinearLayout row = null;
+    int normal = 0;
+    ArrayList<JSONObject> combos = new ArrayList<>();
+    for (int i = 0; i < skills.length(); i++) {
+      JSONObject skill = skills.optJSONObject(i);
+      if (skill == null) continue;
+      if (skill.optString("id").startsWith("combo-")) {
+        combos.add(skill);
+        continue;
+      }
+      if (normal++ % columns == 0) {
+        row = new LinearLayout(h);
+        body.addView(row);
+      }
+      SkillCardView card = new SkillCardView(v, skill, false, false, close);
+      card.showCompleteEffect();
+      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
+      lp.setMargins(h.dp(3), h.dp(3), h.dp(3), h.dp(3));
+      row.addView(card, lp);
+    }
+    for (JSONObject skill : combos) {
+      SkillCardView card = new SkillCardView(v, skill, false, false, close);
+      card.showCompleteEffect();
+      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+      lp.setMargins(h.dp(3), h.dp(3), h.dp(3), h.dp(3));
+      body.addView(card, lp);
+    }
+    JSONArray legal = h.list(v.side(0), "legal");
+    for (int i = 0; i < legal.length(); i++) {
+      JSONObject action = legal.optJSONObject(i);
+      if (action.optString("skillId").equals("struggle"))
+        option(
+            h,
+            body,
+            h.button(
+                "몸통 박치기 · 위력 30",
+                () -> {
+                  close.run();
+                  h.battleTurn(MainActivity.obj("action", action));
+                }));
+    }
+    dialog[0] =
+        new GameDialog(h)
+            .setMaxWidthDp(760)
+            .setTitle("기술 선택")
+            .setScrollBody(body)
+            .setNegativeButton("돌아가기", null)
+            .show();
+  }
+
+  static void switches(BattleView v, boolean required, String augment) {
+    MainActivity h = v.host;
+    LinearLayout body = column(h);
+    body.setTag("battle-switch-modal");
+    AlertDialog[] dialog = {null};
+    JSONArray fighters = h.list(v.side(0), "fighters"), legal = h.list(v.side(0), "legal");
+    for (int i = 0; i < fighters.length(); i++) {
+      int to = i;
+      JSONObject fighter = fighters.optJSONObject(i);
+      if (i == v.side(0).optInt("active")) continue;
+      boolean can = required;
+      for (int j = 0; j < legal.length(); j++) {
+        JSONObject action = legal.optJSONObject(j);
+        if (action.optString("kind").equals("switch") && action.optInt("to") == i) can = true;
+      }
+      boolean allowed = can && fighter.optInt("hp") > 0;
+      option(
+          h,
+          body,
+          h.button(
+              fighter.optString("name")
+                  + " · "
+                  + fighter.optString("attr")
+                  + "\n체력 "
+                  + fighter.optInt("hp")
+                  + " / "
+                  + fighter.optInt("maxHp")
+                  + (fighter.optInt("hp") <= 0
+                      ? " · 전투불가"
+                      : "\n"
+                          + matchupLabel(fighter)
+                          + " · 공격 "
+                          + effectiveness(h, fighter, v.active(1))
+                          + " · 방어 "
+                          + defense(h, v.active(1), fighter)),
+              () -> {
+                if (!allowed) {
+                  h.message(
+                      fighter.optInt("hp") <= 0
+                          ? "전투불가 상태예요. 부활 아이템을 사용해 주세요."
+                          : "묶임 또는 기술 효과로 지금은 교체할 수 없어요.");
+                  return;
+                }
+                if (dialog[0] != null) dialog[0].dismiss();
+                if (required) {
+                  JSONObject pick = MainActivity.obj("switchTo", to);
+                  if (augment != null)
+                    try {
+                      pick.put("augment", augment);
+                    } catch (JSONException ignored) {
+                    }
+                  h.battleTurn(MainActivity.obj("choose", pick));
+                } else
+                  h.battleTurn(
+                      MainActivity.obj("action", MainActivity.obj("kind", "switch", "to", to)));
+              }));
+    }
+    if (body.getChildCount() == 0) body.addView(prose(h, "교체할 갈매미가 없어요.", 17));
+    GameDialog builder =
+        new GameDialog(h).setMaxWidthDp(680).setTitle("교체할 갈매미").setScrollBody(body);
+    if (!required) builder.setNegativeButton("돌아가기", null);
+    else builder.setCancelable(false);
+    dialog[0] = builder.show();
+  }
+
+  static void items(BattleView v) {
+    MainActivity h = v.host;
+    LinearLayout body = column(h);
+    body.setTag("battle-items-modal");
+    AlertDialog[] dialog = {null};
+    if (!v.battle.optString("mode").equals("story")) body.addView(prose(h, "스토리에서 사용할 수 있어요.", 18));
+    else {
+      int limit = v.battle.optInt("itemLimit", 0);
+      body.addView(
+          prose(
+              h,
+              (limit > 0
+                      ? "이번 전투에 "
+                          + Math.max(0, limit - v.side(0).optInt("itemsUsed"))
+                          + "개 더 사용 가능 · "
+                      : "")
+                  + "사용하면 이번 턴 행동이 끝나요.",
+              14));
+      JSONArray items = h.list(v.battle, "items"), inventory = h.list(v.battle, "inventory");
+      if (inventory.length() == 0) inventory = h.list(h.state, "items");
+      for (int i = 0; i < items.length(); i++) {
+        JSONObject item = items.optJSONObject(i);
+        int count = 0;
+        for (int j = 0; j < inventory.length(); j++)
+          if (inventory.optJSONObject(j).optString("id").equals(item.optString("id")))
+            count = inventory.optJSONObject(j).optInt("count");
+        int have = count;
+        String why = item.isNull("reason") ? "" : item.optString("reason");
+        option(
+            h,
+            body,
+            h.button(
+                item.optString("name")
+                    + " ×"
+                    + have
+                    + "\n"
+                    + itemEffect(item)
+                    + (have <= 0 ? "\n가진 게 없어요." : why.isEmpty() ? "" : "\n" + why),
+                () -> {
+                  if (have <= 0) {
+                    h.message("아이템이 없어요.");
+                    return;
+                  }
+                  if (!why.isEmpty()) {
+                    h.message(why);
+                    return;
+                  }
+                  if (dialog[0] != null) dialog[0].dismiss();
+                  JSONObject action =
+                      MainActivity.obj("kind", "item", "item", item.optString("id"));
+                  if (item.optInt("revive") > 0) {
+                    JSONArray fighters = h.list(v.side(0), "fighters");
+                    ArrayList<Integer> ids = new ArrayList<>();
+                    ArrayList<String> names = new ArrayList<>();
+                    for (int j = 0; j < fighters.length(); j++)
+                      if (fighters.optJSONObject(j).optInt("hp") <= 0) {
+                        ids.add(j);
+                        names.add(fighters.optJSONObject(j).optString("name"));
+                      }
+                    new GameDialog(h)
+                        .setTitle("회복할 갈매미")
+                        .setItems(
+                            names.toArray(new String[0]),
+                            (d, which) -> {
+                              try {
+                                action.put("target", ids.get(which));
+                              } catch (JSONException ignored) {
+                              }
+                              h.battleTurn(MainActivity.obj("action", action));
+                            })
+                        .show();
+                  } else h.battleTurn(MainActivity.obj("action", action));
+                }));
+      }
+    }
+    dialog[0] =
+        new GameDialog(h)
+            .setMaxWidthDp(680)
+            .setTitle("아이템")
+            .setScrollBody(body)
+            .setNegativeButton("돌아가기", null)
+            .show();
+  }
+
   static LinearLayout column(MainActivity h) {
     LinearLayout col = new LinearLayout(h);
     col.setOrientation(LinearLayout.VERTICAL);
@@ -69,8 +290,8 @@ final class NativeBattleSheets {
     for (int i = 0; i < lines.length(); i++) {
       TextView line = prose(h, "", 17);
       line.setText(NativeBattleLog.historyLine(h, lines.optString(i), events, start + i));
-      // 한 줄마다 가죽 프레임을 반복하지 않고 기록지 안의 옅은 줄무늬로 구분한다.
-      line.setBackgroundColor(i % 2 == 0 ? 0xffeee2c9 : android.graphics.Color.TRANSPARENT);
+      // 본문은 밝게 유지하고 기록지의 옅은 잉크 줄로만 읽는 행을 구분한다.
+      line.setBackgroundColor(i % 2 == 0 ? 0x128e6b40 : android.graphics.Color.TRANSPARENT);
       col.addView(line);
     }
     show(v, "전투 기록 · " + v.battle.optInt("turn") + "턴", col);

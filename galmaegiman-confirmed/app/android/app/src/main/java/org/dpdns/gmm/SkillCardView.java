@@ -11,8 +11,14 @@ final class SkillCardView extends FrameLayout {
   final Button use;
   final TextView effect;
   final JSONObject skill;
+  final LinearLayout content;
 
   SkillCardView(BattleView view, JSONObject sk, boolean large) {
+    this(view, sk, large, false, null);
+  }
+
+  SkillCardView(
+      BattleView view, JSONObject sk, boolean large, boolean compact, Runnable beforeUse) {
     super(view.host);
     MainActivity h = view.host;
     skill = sk;
@@ -23,14 +29,18 @@ final class SkillCardView extends FrameLayout {
     use =
         h.button(
             "",
-            () ->
-                h.battleTurn(
-                    MainActivity.obj(
-                        "action",
-                        MainActivity.obj("kind", "skill", "skillId", sk.optString("id")))));
+            () -> {
+              if (beforeUse != null) beforeUse.run();
+              h.battleTurn(
+                  MainActivity.obj(
+                      "action", MainActivity.obj("kind", "skill", "skillId", sk.optString("id"))));
+            });
     JSONObject preview = sk.optJSONObject("preview");
     int tint =
-        combo ? 0xffc59326 : MenuKit.attrColor(preview == null ? "" : preview.optString("attr"));
+        combo
+            ? JournalTheme.BRASS
+            : MenuKit.attrColor(preview == null ? "" : preview.optString("attr"));
+    boolean primary = combo && reason.isEmpty();
     use.setBackground(new GameSkillDrawable(h, tint, combo));
     use.setEnabled(reason.isEmpty());
     use.setContentDescription(
@@ -42,26 +52,43 @@ final class SkillCardView extends FrameLayout {
             + (reason.isEmpty() ? "" : " · 사용 불가: " + reason));
     addView(use, new LayoutParams(-1, -1));
 
-    LinearLayout content = new LinearLayout(h);
+    content = new LinearLayout(h);
     content.setOrientation(LinearLayout.VERTICAL);
-    content.setPadding(h.dp(9), h.dp(7), h.dp(8), h.dp(6));
-    title = label(h, name, large ? 25 : 20, true);
+    content.setPadding(h.dp(8), h.dp(compact ? 5 : 7), h.dp(8), h.dp(compact ? 5 : 6));
+    title = label(h, name, large ? 24 : 19, true);
+    title.setTextColor(primary ? JournalTheme.WHITE : JournalTheme.INK);
     if (combo) {
       title.setCompoundDrawables(new ComboEmblem(h), null, null, null);
       title.setCompoundDrawablePadding(h.dp(6));
+    } else {
+      GameSkillDrawable.Seal seal = new GameSkillDrawable.Seal(h, tint, large ? 38 : 28);
+      title.setCompoundDrawables(seal, null, null, null);
+      title.setCompoundDrawablePadding(h.dp(5));
+      String path = "/duel/icons/" + icon(sk) + ".png";
+      Runnable ready =
+          () -> {
+            android.graphics.Bitmap image = h.art.peek(path);
+            if (image != null) {
+              seal.image(image);
+              title.invalidate();
+            }
+          };
+      if (h.art.get(path, ready) != null) ready.run();
     }
     title.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
     title.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
     // 이름과 효과는 카드 전체 폭으로 줄바꿈해 전부 보여 준다.
     content.addView(title, new LinearLayout.LayoutParams(-1, -2));
     power = label(h, powerMeta(sk), large ? 18 : 15, true);
-    power.setText(powerLabel(sk));
+    power.setTextColor(primary ? JournalTheme.PAPER : JournalTheme.INK);
+    power.setText(powerLabel(sk, primary));
     content.addView(power);
     String brief = conciseEffect(sk);
     if (combo) brief = "전투당 1회" + (brief.isEmpty() ? "" : " · " + brief);
     if (!reason.isEmpty()) brief += (brief.isEmpty() ? "" : " · ") + shortReason(reason);
     effect = label(h, brief, large ? 17 : 14, false);
-    effect.setTextColor(reason.isEmpty() ? JournalTheme.TEAL : NativeBattleLog.DAMAGE);
+    effect.setTextColor(
+        reason.isEmpty() ? primary ? 0xffd9e8df : JournalTheme.TEAL : NativeBattleLog.DAMAGE);
     effect.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
     effect.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
     effect.setMaxLines(2);
@@ -69,11 +96,66 @@ final class SkillCardView extends FrameLayout {
     if (effect.getText().length() == 0) effect.setVisibility(GONE);
     // 전투는 현재 위력과 핵심 효과만 빠르게 읽는다. 전체 설명은 접근성과 육성 화면에 남긴다.
     content.addView(effect, new LinearLayout.LayoutParams(-1, -2));
-    addView(content, new LayoutParams(-1, -2));
-    setMinimumHeight(h.dp(large ? 124 : 108));
+    addView(content, new LayoutParams(-1, -2, compact ? Gravity.CENTER_VERTICAL : Gravity.TOP));
+    setMinimumHeight(h.dp(combo ? large ? 100 : 84 : large ? 124 : compact ? 100 : 108));
   }
 
   final TextView title, power;
+
+  /** 고정 명령판에 넣기 전에 실제 글꼴·줄바꿈으로 필요한 높이를 계산한다. */
+  int naturalHeight(int width) {
+    content.measure(
+        MeasureSpec.makeMeasureSpec(Math.max(1, width), MeasureSpec.EXACTLY),
+        MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+    return Math.max(getMinimumHeight(), content.getMeasuredHeight());
+  }
+
+  boolean summaryFits(int width) {
+    if (effect.getVisibility() == GONE || effect.getText().length() == 0) return true;
+    int textWidth = Math.max(1, width - content.getPaddingLeft() - content.getPaddingRight());
+    return StaticLayout.Builder.obtain(
+                effect.getText(), 0, effect.length(), effect.getPaint(), textWidth)
+            .setIncludePad(effect.getIncludeFontPadding())
+            .setBreakStrategy(effect.getBreakStrategy())
+            .setHyphenationFrequency(effect.getHyphenationFrequency())
+            .build()
+            .getLineCount()
+        <= 2;
+  }
+
+  /** 긴 글꼴·예외 데이터는 선택 모달 안에서 생략 없이 읽는다. */
+  void showCompleteEffect() {
+    effect.setMaxLines(Integer.MAX_VALUE);
+    effect.setEllipsize(null);
+  }
+
+  /** 실제 효과/속성에 맞는 기존 도구 기호. 별도 기술 수치나 규칙을 만들지 않는다. */
+  static String icon(JSONObject sk) {
+    String original = sk.optString("icon");
+    int query = original.indexOf('?');
+    if (query >= 0) original = original.substring(0, query);
+    original = original.toLowerCase(java.util.Locale.ROOT);
+    if (!original.isEmpty() && JournalIcons.supports(original))
+      return original
+          .substring(original.lastIndexOf('/') + 1)
+          .replaceFirst("\\.(png|webp|jpg)$", "");
+    JSONArray effects = sk.optJSONArray("effects");
+    if (effects != null)
+      for (int i = 0; i < effects.length(); i++) {
+        JSONObject effect = effects.optJSONObject(i);
+        if (effect == null) continue;
+        String kind = effect.optString("kind");
+        if (kind.equals("guard") || kind.equals("protect") || kind.equals("endure"))
+          return "shield";
+        if (kind.equals("heal") || kind.equals("regen") || kind.equals("revive")) return "heal";
+        if (kind.equals("cleanse")) return "clear";
+      }
+    if (sk.optBoolean("priority")) return "feather";
+    JSONObject preview = sk.optJSONObject("preview");
+    String attr = preview == null ? "" : preview.optString("attr");
+    String symbol = "attr-" + attr.toLowerCase(java.util.Locale.ROOT);
+    return JournalIcons.supports(symbol) ? symbol : currentPower(sk) > 0 ? "swords" : "compass";
+  }
 
   static TextView label(MainActivity h, String text, int size, boolean headline) {
     TextView label = h.text(text, size);
@@ -117,13 +199,20 @@ final class SkillCardView extends FrameLayout {
   }
 
   static CharSequence powerLabel(JSONObject sk) {
+    return powerLabel(sk, false);
+  }
+
+  static CharSequence powerLabel(JSONObject sk, boolean primary) {
     SpannableStringBuilder text = new SpannableStringBuilder(powerMeta(sk));
     if (bonusActive(sk)) {
       int start = text.toString().indexOf("위력 ");
       int end = text.toString().indexOf(" ▲");
       if (end < 0) end = text.toString().indexOf(" ▼");
       NativeBattleLog.strong(
-          text, Math.max(0, start), end < 0 ? text.length() : end, NativeBattleLog.HEAL);
+          text,
+          Math.max(0, start),
+          end < 0 ? text.length() : end,
+          primary ? 0xffcceacb : NativeBattleLog.HEAL);
     }
     int from = Math.max(text.toString().lastIndexOf('▲'), text.toString().lastIndexOf('▼'));
     JSONObject preview = sk.optJSONObject("preview");
@@ -135,8 +224,10 @@ final class SkillCardView extends FrameLayout {
           from,
           text.length(),
           multiplier > 1
-              ? NativeBattleLog.HEAL
-              : multiplier < 1 ? NativeBattleLog.DAMAGE : JournalTheme.MUTED);
+              ? primary ? 0xffcceacb : NativeBattleLog.HEAL
+              : multiplier < 1
+                  ? primary ? 0xffffcbbd : NativeBattleLog.DAMAGE
+                  : JournalTheme.MUTED);
     return text;
   }
 

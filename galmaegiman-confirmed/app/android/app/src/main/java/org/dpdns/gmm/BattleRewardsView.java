@@ -27,6 +27,7 @@ final class BattleRewardsView {
         fled = result.optBoolean("left", result.optBoolean("fled", battle.optBoolean("fled")));
     TextView title = h.text(fled ? "전투에서 물러났어요" : won ? "승리!" : "다시 준비해요", 28);
     title.setTypeface(h.headline);
+    title.setTextColor(JournalTheme.TEAL);
     title.setGravity(Gravity.CENTER);
     body.addView(title);
     TextView summary =
@@ -54,6 +55,8 @@ final class BattleRewardsView {
                   + ")",
               20);
       rank.setGravity(Gravity.CENTER);
+      rank.setTextColor(
+          result.optInt("change") >= 0 ? NativeBattleLog.HEAL : NativeBattleLog.DAMAGE);
       body.addView(rank);
     }
     body.addView(debrief(h, k, NativeBattleDebrief.from(battle), openTeam));
@@ -97,6 +100,8 @@ final class BattleRewardsView {
           String key = u.optString("key");
           Button button =
               k.action(evolve ? "u-emblem" : "learn", label.trim(), () -> openGrowth.accept(key));
+          button.setBackground(new GameButtonDrawable(h, JournalTheme.PRIMARY));
+          button.setTextColor(JournalTheme.controlText(JournalTheme.PRIMARY));
           button.setTag("reward-growth-" + key);
           row.addView(button, new LinearLayout.LayoutParams(-1, h.dp(48)));
         }

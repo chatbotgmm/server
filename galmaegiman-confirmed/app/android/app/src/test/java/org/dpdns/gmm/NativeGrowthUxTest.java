@@ -16,6 +16,7 @@ import org.robolectric.annotation.*;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35, qualifiers = "w915dp-h412dp-land-mdpi")
 @LooperMode(LooperMode.Mode.PAUSED)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class NativeGrowthUxTest {
   @Before
   public void isolate() {
@@ -137,7 +138,7 @@ public class NativeGrowthUxTest {
         }
         assertFullyVisible(tag(host.root, "unit-hp"));
         assertFullyVisible(tag(host.root, "unit-xp"));
-        assertEquals(View.GONE, tag(host.root, "unit-extra-details").getVisibility());
+        assertNull("기본 페이지에 긴 상세 목록을 숨겨 쌓아두지 않는다", tag(host.root, "unit-extra-details"));
         LinearLayout actions = (LinearLayout) tag(host.root, "unit-promote").getParent();
         int primary = 0;
         for (int i = 0; i < actions.getChildCount(); i++) {
@@ -151,21 +152,36 @@ public class NativeGrowthUxTest {
   }
 
   @Test
-  public void statsAndAwardsCanBeExpandedWithoutHidingGrowthActions() {
+  public void statsAndAwardsCanBeExpandedWithoutHidingGrowthActions() throws Exception {
+    NativeDialogLayoutReviewTest geometry = new NativeDialogLayoutReviewTest();
     try (ActivityController<MainActivity> controller = start()) {
       MainActivity host = controller.get();
       host.state =
           MainActivity.obj(
               "units", new JSONArray().put(unit("o1")), "team", new JSONArray().put("o1"));
       host.menus.library.unit("o1");
-      View details = tag(host.root, "unit-extra-details");
-      assertEquals(View.GONE, details.getVisibility());
-      tag(host.root, "unit-details-toggle").performClick();
-      assertEquals(View.VISIBLE, details.getVisibility());
       measure(host.root, 915, 412);
+      assertNull("상세 목록은 기본 페이지가 아닌 별도 모달", tag(host.root, "unit-extra-details"));
       assertFullyVisible(tag(host.root, "unit-promote"));
       tag(host.root, "unit-details-toggle").performClick();
-      assertEquals(View.GONE, details.getVisibility());
+      View decor = geometry.layoutDialog(host);
+      View details = tag(decor, "unit-extra-details");
+      assertNotNull("능력치·표창·기술 기록을 실제 모달에서 접근", details);
+      StringBuilder text = new StringBuilder();
+      for (View view : geometry.descendants(details))
+        if (view instanceof TextView) text.append(((TextView) view).getText()).append('\n');
+      assertTrue("원래 능력치 유지", text.toString().contains("물리 공격"));
+      assertTrue("원래 서버 능력치 값 유지", text.toString().contains("70"));
+      assertTrue("직무 표창 안내 유지", text.toString().contains("직무 표창"));
+      assertTrue("기술 기록 유지", text.toString().contains("기술 기록"));
+      assertFullyVisible(tag(host.root, "unit-promote"));
+      host.visibleDialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick();
+      org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper())
+          .idleFor(java.time.Duration.ofMillis(32));
+      assertNull("닫으면 모달 참조 정리", host.visibleDialog);
+      assertNull("닫아도 상세 목록을 기본 페이지로 옮기지 않는다", tag(host.root, "unit-extra-details"));
+      assertFullyVisible(tag(host.root, "unit-promote"));
+      NativeNoScrollReviewTest.assertFixedMain(host);
     }
   }
 

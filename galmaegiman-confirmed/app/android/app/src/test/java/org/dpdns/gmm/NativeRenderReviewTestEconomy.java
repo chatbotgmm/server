@@ -182,9 +182,10 @@ public class NativeRenderReviewTestEconomy {
       // Dialog의 OnDismissListener는 메인 큐에서 전달되므로 실제 종료 뒤 참조 정리도 확인한다.
       Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
       assertNull("닫기 콜백 이후 선택기 참조 정리", a.visibleDialog);
-      Button remove = a.root.findViewWithTag("mix-remove-" + id);
-      assertTrue(remove.isEnabled());
-      assertNotNull("추가와 제거가 각각 표시", a.root.findViewWithTag("mix-add-" + id));
+      View remove = a.root.findViewWithTag("mix-material-" + id);
+      assertNotNull("선택한 재료는 고정 슬롯에서 직접 뺄 수 있음", remove);
+      assertTrue(remove.getContentDescription().toString().contains("재료에서 빼기"));
+      assertTrue(remove.isClickable());
       review.capture(a, "economy-mix-picked", 915, 412);
       remove.performClick();
       assertTrue(a.menus.mixDraft.isEmpty());

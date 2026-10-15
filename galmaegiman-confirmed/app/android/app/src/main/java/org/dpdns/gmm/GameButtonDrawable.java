@@ -11,7 +11,7 @@ final class GameButtonDrawable extends Drawable {
   final Paint p = new Paint(3);
   final Paint opacity = new Paint();
   final GamePressState state = new GamePressState();
-  private final RectF bounds = new RectF();
+  private final RectF bounds = new RectF(), layerBounds = new RectF();
   private boolean selected;
 
   GameButtonDrawable(MainActivity h, int c) {
@@ -47,7 +47,8 @@ final class GameButtonDrawable extends Drawable {
       save = state.begin(c, getBounds(), host.getResources().getDisplayMetrics().density);
     else {
       opacity.setAlpha(state.alpha);
-      save = c.saveLayer(new RectF(getBounds()), opacity);
+      layerBounds.set(getBounds());
+      save = c.saveLayer(layerBounds, opacity);
     }
     int fill = !state.enabled ? JournalTheme.DISABLED : selected ? JournalTheme.SELECTED : color;
     drawSurface(

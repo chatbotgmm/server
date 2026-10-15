@@ -258,8 +258,17 @@ public class NativeTeamDragTest {
       assertEquals("story", host.screen);
       assertNull("끌기 때문에 상세/순서 창을 열지 않음", host.visibleDialog);
       ViewGroup lead = host.root.findViewWithTag("story-team-unit-same-species-3");
-      View body = ((ViewGroup) lead.getChildAt(0)).getChildAt(0);
+      View body = null;
+      for (View child : new NativeDialogLayoutReviewTest().descendants(lead))
+        if (child instanceof TextView && ((TextView) child).getText().toString().equals("갈매미 3"))
+          body = child;
+      assertNotNull("구조 인덱스와 무관하게 실제 부착된 갈매미 이름 본문을 누른다", body);
+      NativeNoScrollReviewTest.assertFullyVisible(body, host.root);
       Rect point = box(host, body);
+      Rect handle = box(host, lead.findViewWithTag(NativeTeamReorder.HANDLE_TAG));
+      assertFalse(
+          "본문 터치는 순서 손잡이 밖에서 실행",
+          handle.contains((int) point.exactCenterX(), (int) point.exactCenterY()));
       touch(host, MotionEvent.ACTION_DOWN, point.exactCenterX(), point.exactCenterY());
       touch(host, MotionEvent.ACTION_UP, point.exactCenterX(), point.exactCenterY());
       layout(host);

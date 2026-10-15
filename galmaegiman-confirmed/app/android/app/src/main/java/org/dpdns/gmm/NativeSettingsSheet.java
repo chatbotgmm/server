@@ -14,7 +14,7 @@ final class NativeSettingsSheet {
     b.setTypeface(h.prose);
     b.setTag("prose");
     b.setTextSize(h.uiText(16));
-    b.setTextColor(JournalTheme.INK);
+    b.setTextColor(JournalTheme.controlText());
     b.setPadding(h.dp(10), h.dp(4), h.dp(10), h.dp(7));
     return b;
   }
@@ -147,23 +147,25 @@ final class NativeSettingsSheet {
       code.setSingleLine(true);
       code.setTypeface(h.prose);
       code.setTextColor(MainActivity.INK);
-      code.setBackground(h.material(JournalTheme.PAPER));
+      code.setBackgroundTintList(null);
+      code.setBackground(new GamePaperDrawable(h));
       code.setHintTextColor(JournalTheme.MUTED);
       code.setPadding(h.dp(8), 0, h.dp(8), 0);
       coupon.addView(code, new LinearLayout.LayoutParams(0, h.dp(48), 1));
       coupon.addView(
-          action(
-              h,
-              "받기",
-              () -> {
-                String value = code.getText().toString().trim();
-                if (value.isEmpty()) {
-                  code.setError("쿠폰 코드를 적어 주세요");
-                  return;
-                }
-                box[0].dismiss();
-                h.mutate("coupon", MainActivity.obj("code", value), "home");
-              }),
+          k.emphasize(
+              action(
+                  h,
+                  "받기",
+                  () -> {
+                    String value = code.getText().toString().trim();
+                    if (value.isEmpty()) {
+                      code.setError("쿠폰 코드를 적어 주세요");
+                      return;
+                    }
+                    box[0].dismiss();
+                    h.mutate("coupon", MainActivity.obj("code", value), "home");
+                  })),
           new LinearLayout.LayoutParams(h.dp(72), h.dp(48)));
       addRow(h, right, coupon);
       LinearLayout tutorial = paperRow(h);
@@ -189,7 +191,8 @@ final class NativeSettingsSheet {
       confirm.setTypeface(h.prose);
       confirm.setTextColor(JournalTheme.INK);
       confirm.setHintTextColor(JournalTheme.MUTED);
-      confirm.setBackground(h.material(JournalTheme.PAPER));
+      confirm.setBackgroundTintList(null);
+      confirm.setBackground(new GamePaperDrawable(h));
       confirm.setPadding(h.dp(10), 0, h.dp(10), 0);
       danger.addView(confirm, new LinearLayout.LayoutParams(-1, h.dp(48)));
       Button delete =

@@ -255,7 +255,8 @@ public class NativeAcquisitionFlowTest {
         NativeAcquisitionFlow flow = new NativeAcquisitionFlow(h, "draw", Set.of());
         h.base("뽑기 결과", "drawResult");
         JSONObject acquired = result().put("name", "태초의 갈매미맨").put("tierName", "제한");
-        java.util.concurrent.atomic.AtomicInteger finished = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.concurrent.atomic.AtomicInteger finished =
+            new java.util.concurrent.atomic.AtomicInteger();
         h.root.addView(
             new NativeReveal(
                 h,
@@ -275,9 +276,18 @@ public class NativeAcquisitionFlowTest {
                                 "흔함",
                                 "img",
                                 "C1"))
-                        .put(MainActivity.obj(
-                            "id", "I3", "name", "꺼지지 않는 그림자",
-                            "tier", "IMMORTAL", "tierName", "불멸", "img", "I3"))),
+                        .put(
+                            MainActivity.obj(
+                                "id",
+                                "I3",
+                                "name",
+                                "꺼지지 않는 그림자",
+                                "tier",
+                                "IMMORTAL",
+                                "tierName",
+                                "불멸",
+                                "img",
+                                "I3"))),
                 finished::incrementAndGet,
                 true,
                 flow),
@@ -293,17 +303,55 @@ public class NativeAcquisitionFlowTest {
           ImageView image = card.findViewWithTag("/thumbs/" + id + ".jpg");
           assertNotNull("원본 수집 카드 경로 유지: " + id, image);
           assertEquals(ImageView.ScaleType.FIT_CENTER, image.getScaleType());
-          assertEquals("수집 카드 그림을 정방형으로 유지: " + id, image.getWidth(), image.getHeight());
+          assertNotNull("원본 카드 이미지를 실제로 불러옴: " + id, image.getDrawable());
+          int originalWidth = image.getDrawable().getIntrinsicWidth();
+          int originalHeight = image.getDrawable().getIntrinsicHeight();
+          assertTrue(originalWidth > 0 && originalHeight > 0);
+          android.graphics.RectF drawn =
+              new android.graphics.RectF(0, 0, originalWidth, originalHeight);
+          image.getImageMatrix().mapRect(drawn);
+          drawn.offset(image.getPaddingLeft(), image.getPaddingTop());
+          assertEquals(
+              "높이가 낮아도 실제 그림의 원본 비율 유지: " + id,
+              originalWidth / (double) originalHeight,
+              drawn.width() / (double) drawn.height(),
+              .01);
+          assertTrue(
+              "실제 원본 그림을 자르지 않음: " + id + " " + drawn,
+              drawn.left >= -.5f
+                  && drawn.top >= -.5f
+                  && drawn.right <= image.getWidth() + .5f
+                  && drawn.bottom <= image.getHeight() + .5f);
         }
-        ScrollView cards = h.root.findViewWithTag("acquisition-cards-scroll");
-        assertNotNull("작은 화면의 카드 본문은 세로 스크롤 가능", cards);
-        cards.fullScroll(View.FOCUS_DOWN);
+        HorizontalScrollView cards = h.root.findViewWithTag("acquisition-cards-scroll");
+        assertNotNull("전체 카드 목록은 의도한 가로 스트립으로 유지", cards);
+        assertFalse("결과 기본 화면은 세로 스크롤하지 않는다", cards.canScrollVertically(1));
+        NativeReveal.RevealCard last = h.root.findViewWithTag("acquisition-card-I3");
+        last.requestRectangleOnScreen(
+            new android.graphics.Rect(0, 0, last.getWidth(), last.getHeight()), true);
         Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
-        review.capture(h, name + "-bottom", size[0], size[1]);
+        review.capture(h, name + "-end", size[0], size[1]);
         assertAcquisitionActionsVisible(h, size[0], size[1]);
-        assertCardTextFits(((NativeReveal.RevealCard)
-            h.root.findViewWithTag("acquisition-card-I3")).front);
-        h.root.findViewWithTag("acquisition-card-C1").performClick();
+        NativeNoScrollReviewTest.assertFullyVisible(last, h.root);
+        assertCardTextFits(last.front);
+        // 긴 결과 목록에서도 같은 인덱스 선택 callback을 실제 모달을 통해 실행한다.
+        Button picker = h.root.findViewWithTag("acquisition-result-picker");
+        assertActionVisible(h, "acquisition-result-picker", size[0], size[1]);
+        picker.performClick();
+        NativeDialogLayoutReviewTest geometry = new NativeDialogLayoutReviewTest();
+        View decor = geometry.layoutDialog(h);
+        List<Button> choices = new ArrayList<>();
+        for (View view : geometry.descendants(decor))
+          if (view instanceof Button && ((Button) view).getText().toString().equals("이 갈매미 선택"))
+            choices.add((Button) view);
+        assertEquals("획득 결과 세 개를 모달에서도 빠짐없이 유지", 3, choices.size());
+        NativeNoScrollReviewTest.scrollModal(h, true);
+        geometry.capture(h, size, name + "-results-modal-bottom");
+        android.app.AlertDialog opened = h.visibleDialog;
+        choices.get(1).performClick();
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
+        assertEquals("모달이 원래 선택 인덱스를 전달", 1, flow.selected);
+        assertFalse("선택하면 결과 모달 종료", opened.isShowing());
         assertNotNull(h.root.findViewWithTag("acquisition-craft"));
         assertNull(h.root.findViewWithTag("acquisition-grow"));
         review.capture(h, name + "-collection-grade", size[0], size[1]);
@@ -311,7 +359,7 @@ public class NativeAcquisitionFlowTest {
         assertActionVisible(h, "acquisition-craft", size[0], size[1]);
         Button confirm = h.root.findViewWithTag("acquisition-confirm");
         assertActionVisible(h, "acquisition-confirm", size[0], size[1]);
-        assertTrue("본문을 스크롤한 뒤에도 확인 버튼을 누를 수 있음", confirm.performClick());
+        assertTrue("가로 카드·전체 목록 선택 뒤에도 확인 버튼을 누를 수 있음", confirm.performClick());
         confirm.performClick();
         assertEquals("결과를 닫는 동작은 중복 실행하지 않음", 1, finished.get());
       }
@@ -319,9 +367,10 @@ public class NativeAcquisitionFlowTest {
   }
 
   void assertAcquisitionActionsVisible(MainActivity host, int width, int height) {
-    for (String tag : new String[] {
-        "acquisition-detail", "acquisition-grow", "acquisition-team", "acquisition-confirm"})
-      assertActionVisible(host, tag, width, height);
+    for (String tag :
+        new String[] {
+          "acquisition-detail", "acquisition-grow", "acquisition-team", "acquisition-confirm"
+        }) assertActionVisible(host, tag, width, height);
   }
 
   void assertActionVisible(MainActivity host, String tag, int width, int height) {
@@ -332,12 +381,14 @@ public class NativeAcquisitionFlowTest {
     android.graphics.Rect bounds = new android.graphics.Rect();
     action.getDrawingRect(bounds);
     host.root.offsetDescendantRectToMyCoords(action, bounds);
-    assertTrue("본문 스크롤과 별개로 CTA 전체 표시: " + tag + " " + bounds,
+    assertTrue(
+        "본문 스크롤과 별개로 CTA 전체 표시: " + tag + " " + bounds,
         new android.graphics.Rect(0, 0, width, height).contains(bounds));
     assertNotNull("행동 라벨 배치: " + tag, action.getLayout());
     for (int i = 0; i < action.getLineCount(); i++)
       assertEquals("행동 라벨 말줄임 금지: " + tag, 0, action.getLayout().getEllipsisCount(i));
-    assertTrue("행동 라벨 세로 잘림 금지: " + tag,
+    assertTrue(
+        "행동 라벨 세로 잘림 금지: " + tag,
         action.getHeight() - action.getCompoundPaddingTop() - action.getCompoundPaddingBottom()
             >= action.getLayout().getHeight());
   }
@@ -348,9 +399,10 @@ public class NativeAcquisitionFlowTest {
       TextView text = (TextView) view;
       assertNotNull("원본 이름과 등급 배치: " + text.getText(), text.getLayout());
       for (int i = 0; i < text.getLineCount(); i++)
-        assertEquals("원본 이름과 등급 말줄임 금지: " + text.getText(),
-            0, text.getLayout().getEllipsisCount(i));
-      assertTrue("긴 원본 이름의 자연 높이 확보: " + text.getText(),
+        assertEquals(
+            "원본 이름과 등급 말줄임 금지: " + text.getText(), 0, text.getLayout().getEllipsisCount(i));
+      assertTrue(
+          "긴 원본 이름의 자연 높이 확보: " + text.getText(),
           text.getHeight() - text.getCompoundPaddingTop() - text.getCompoundPaddingBottom()
               >= text.getLayout().getHeight());
     }
