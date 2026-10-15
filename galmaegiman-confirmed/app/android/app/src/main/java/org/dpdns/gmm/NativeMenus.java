@@ -289,6 +289,15 @@ final class NativeMenus {
                 if (screenEpoch == h.epoch) refreshStory(stages, scroll);
               });
         });
+    if (storyCards.size() > 1) {
+      TextView dragHint = k.note("↕ 끌어서 선봉 변경 · 바로 저장");
+      dragHint.setTag("story-order-drag-hint");
+      dragHint.setTextSize(h.uiText(12));
+      dragHint.setTextColor(JournalTheme.INK);
+      dragHint.setBackground(new GamePaperDrawable(h));
+      dragHint.setPadding(h.dp(6), h.dp(2), h.dp(6), h.dp(2));
+      team.addView(dragHint, 0);
+    }
     if (!storyTeam.isEmpty()) team.addView(growth.combos(storyTeam));
     if (keys.length() == 0) team.addView(k.note("먼저 수비대를 정해 주세요."));
     LinearLayout storyHeader = (LinearLayout) h.page.getChildAt(0);
@@ -910,24 +919,56 @@ final class NativeMenus {
               LinearLayout step = k.column();
               step.setTag("lineup-slot-" + slot);
               step.setBackground(new GamePanelDrawable(h));
-              step.setPadding(h.dp(8), h.dp(8), h.dp(8), h.dp(12));
+              boolean compactPvp = pvp && h.compact();
+              step.setPadding(
+                  h.dp(8), h.dp(compactPvp ? 4 : 8), h.dp(8), h.dp(compactPvp ? 4 : 12));
               step.setGravity(Gravity.CENTER_HORIZONTAL);
+              // 작은 PvP 화면은 상단 수비대 탭이 한 줄 더 있으므로 초상과 48dp 손잡이를 나란히 둔다.
+              LinearLayout crest = compactPvp ? k.row() : null;
+              if (crest != null) {
+                crest.setGravity(Gravity.CENTER);
+                step.addView(crest);
+              }
               TextView order =
-                  h.text(slot == 0 ? "1 · 선봉" : (slot + 1) + "번", h.compact() ? 12 : 16);
+                  h.text(
+                      (id.isEmpty() ? "" : "↔ ") + (slot == 0 ? "선봉" : (slot + 1) + "번"),
+                      h.compact() ? 12 : 16);
               order.setPadding(0, 0, 0, 0);
               order.setGravity(Gravity.CENTER);
-              step.addView(order);
+              if (unit != null) {
+                order.setTag(NativeTeamReorder.HANDLE_TAG);
+                order.setTextColor(JournalTheme.PRIMARY);
+                order.setContentDescription(
+                    unit.optString("name") + " 출전 순서. 좌우로 끌어 변경, 누르면 순서 메뉴");
+                order.setFocusable(true);
+                order.setClickable(true);
+              }
+              if (crest != null)
+                crest.addView(order, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+              else step.addView(order, new LinearLayout.LayoutParams(-1, h.dp(48)));
               if (unit == null) {
                 TextView empty = h.text("비어 있음", h.compact() ? 13 : 17);
                 empty.setGravity(Gravity.CENTER);
-                step.addView(
-                    empty, new LinearLayout.LayoutParams(-1, h.dp(h.compact() ? 72 : 148)));
+                if (crest != null)
+                  crest.addView(empty, 0, new LinearLayout.LayoutParams(0, h.dp(48), 1));
+                else
+                  step.addView(
+                      empty, new LinearLayout.LayoutParams(-1, h.dp(h.compact() ? 72 : 148)));
               } else {
-                step.addView(
+                int portraitWidth = compactPvp ? 48 : h.compact() ? 86 : 144;
+                int portraitHeight = compactPvp ? 48 : h.compact() ? 80 : 144;
+                FrameLayout portrait = new FrameLayout(h);
+                portrait.setTag("lineup-portrait");
+                portrait.addView(
                     k.image(
                         pvp ? "/thumbs/" + unit.optString("id") + ".jpg" : unit.optString("image"),
-                        h.compact() ? 86 : 144,
-                        h.compact() ? 80 : 144));
+                        portraitWidth,
+                        portraitHeight),
+                    new FrameLayout.LayoutParams(-1, -1));
+                LinearLayout.LayoutParams portraitSlot =
+                    new LinearLayout.LayoutParams(h.dp(portraitWidth), h.dp(portraitHeight));
+                if (crest != null) crest.addView(portrait, 0, portraitSlot);
+                else step.addView(portrait, portraitSlot);
                 TextView name = h.text(unit.optString("name"), h.compact() ? 13 : 17);
                 name.setTypeface(h.headline);
                 name.setPadding(0, 0, 0, 0);
@@ -947,7 +988,7 @@ final class NativeMenus {
                             + unit.optString("attrName", unit.optString("attr")));
                 caption.setGravity(Gravity.CENTER);
                 caption.setTextSize(h.uiText(h.compact() ? 12 : 14));
-                caption.setPadding(0, h.dp(3), 0, h.dp(2));
+                caption.setPadding(0, h.dp(compactPvp ? 0 : 3), 0, h.dp(compactPvp ? 0 : 2));
                 step.addView(caption);
                 if (!pvp) {
                   ProgressBar health =
@@ -978,7 +1019,7 @@ final class NativeMenus {
               step.setContentDescription(
                   (slot == 0 ? "선봉 " : (slot + 1) + "번 ")
                       + (unit == null ? "빈칸" : unit.optString("name"))
-                      + ". 누르면 제외, 끌거나 길게 눌러 순서 변경");
+                      + (unit == null ? "" : ". 카드를 누르면 제외, 좌우로 끌어 순서 변경. 위 손잡이를 누르면 순서 메뉴"));
               h.cell(podium, step);
             }
             NativeTeamPodiumReorder.bind(
@@ -999,10 +1040,14 @@ final class NativeMenus {
             combos.setMaxLines(h.compact() ? 2 : 4);
             combos.setEllipsize(android.text.TextUtils.TruncateAt.END);
             podiumContent.addView(combos);
+            TextView hint = k.note("↔ 끌어서 선봉 변경 · 저장으로 확정");
+            hint.setTag("team-order-drag-hint");
+            hint.setTextSize(h.uiText(h.compact() ? 12 : 14));
+            podiumContent.addView(hint, 0);
             if (!h.compact()) {
-              TextView hint = k.note("선봉부터 차례로 출전해요. 단상을 끌거나 길게 눌러 순서를 바꾸세요.");
-              podiumContent.addView(hint);
-              startPodiumQuotes(hint, picked);
+              TextView quote = k.note("");
+              podiumContent.addView(quote);
+              startPodiumQuotes(quote, picked);
             }
             preview.addView(k.scroll(podiumContent), new FrameLayout.LayoutParams(-1, -1));
           }

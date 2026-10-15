@@ -706,193 +706,26 @@ public class NativeRenderReviewTest {
     }
   }
 
-  @Test
-  public void titleDialogueAndBattlePlayback() throws Exception {
-    try (ActivityController<MainActivity> c = start()) {
-      MainActivity a = c.get();
-      String token = a.api.token();
-      JSONObject state = a.state;
-      for (int[] size : new int[][] {{915, 412}, {1280, 720}}) {
-        String prefix = size[0] == 915 ? "phone-" : "tablet-";
-        RuntimeEnvironment.setQualifiers("w" + size[0] + "dp-h" + size[1] + "dp-land-mdpi");
-        viewport(a, size[0], size[1]);
-        a.api.token("");
-        a.state = new JSONObject();
-        a.titleScreen();
-        capture(a, prefix + "title-out", size[0], size[1]);
-        a.login();
-        capture(a, prefix + "login", size[0], size[1]);
-        a.api.token(token);
-        a.state = state;
-        a.titleScreen();
-        capture(a, prefix + "title-in", size[0], size[1]);
-        ((TitleView) a.root.getChildAt(0)).settings.performClick();
-        popup(a, prefix + "sound-popup");
-        a.visibleDialog.dismiss();
-        a.storyScene = "deep";
-        a.talk(
-            new JSONArray()
-                .put(
-                    MainActivity.obj(
-                        "who", "N", "say", "쭈매미 천 마리가 한꺼번에 출근 도장을 찍어요. 도장대가 조금 찌그러졌어요."))
-                .put(MainActivity.obj("who", "V1", "say", "항구를 지켜라!")),
-            "이야기",
-            () -> a.show("story"));
-        StoryView dialogue = (StoryView) a.root.getChildAt(0);
-        a.art.scene(dialogue.leadImage, () -> {});
-        a.art.scene(dialogue.foeImage, () -> {});
-        await(dialogue::portraitsReady);
-        capture(a, prefix + "dialogue", size[0], size[1]);
-      }
-      RuntimeEnvironment.setQualifiers("w915dp-h412dp-land-mdpi");
-      a.practiceRoster = new java.util.ArrayList<>(java.util.Arrays.asList("D1", "T1", "E1"));
-      a.startFight("practice", "1-6");
-      await(() -> !a.busy && a.battle != null);
-      capture(a, "phone-battle-choose", 915, 412);
-      NativeAugmentView choice = ((BattleView) a.root.getChildAt(0)).augmentView;
-      assertNotNull("전체 화면 증강체 선택판", choice);
-      assertTrue("서버 선택 마감 시각", a.battle.optLong("chooseDeadline") > a.battle.optLong("serverNow"));
-      assertTrue("카운트다운 표시", choice.title.getText().toString().contains("초"));
-      assertEquals(3, choice.picks.size());
-      assertFalse("고르기 전 확인 잠금", choice.confirm.isEnabled());
-      int chooseRevision = a.battle.optInt("revision");
-      choice.rerolls.get(0).performClick();
-      await(() -> !a.busy && a.battle.optInt("revision") > chooseRevision);
-      choice = ((BattleView) a.root.getChildAt(0)).augmentView;
-      assertFalse("각 칸 다시 뽑기는 한 번", choice.rerolls.get(0).isEnabled());
-      int pickedRevision = a.battle.optInt("revision");
-      choice.picks.get(1).performClick();
-      assertTrue(choice.confirm.isEnabled());
-      assertEquals("카드를 누르는 것만으로 확정하지 않음", pickedRevision, a.battle.optInt("revision"));
-      capture(a, "phone-battle-augment-selected", 915, 412);
-      RuntimeEnvironment.setQualifiers("w1280dp-h720dp-land-mdpi");
-      viewport(a, 1280, 720);
-      a.battleScreen();
-      capture(a, "tablet-battle-augment-selected", 1280, 720);
-      choice = ((BattleView) a.root.getChildAt(0)).augmentView;
-      assertTrue("선택을 화면 재배치 후에도 유지", choice.confirm.isEnabled());
-      choice.confirm.performClick();
-      RuntimeEnvironment.setQualifiers("w915dp-h412dp-land-mdpi");
-      await(() -> !a.busy && a.battle.optString("phase").equals("action"));
-      capture(a, "phone-battle-menu", 915, 412);
-      BattleView view = (BattleView) a.root.getChildAt(0);
-      int logLeft = view.logBox.getLeft(), logTop = view.logBox.getTop();
-      a.motionEnabled = true;
-      drag(view, 370, 190);
-      assertTrue("전투 캐릭터 드래그", view.parallax.x > 0);
-      assertEquals(logLeft, view.logBox.getLeft());
-      assertEquals(logTop, view.logBox.getTop());
-      capture(a, "phone-battle-parallax", 915, 412);
-      release(view);
-      assertEquals(0, view.parallax.x, .01f);
-      view.pane = "skills";
-      view.render();
-      capture(a, "phone-battle-skills", 915, 412);
-      RuntimeEnvironment.setQualifiers("w1280dp-h720dp-land-mdpi");
-      viewport(a, 1280, 720);
-      a.battleScreen();
-      capture(a, "tablet-battle-menu", 1280, 720);
-      view = (BattleView) a.root.getChildAt(0);
-      view.pane = "skills";
-      view.render();
-      capture(a, "tablet-battle-skills", 1280, 720);
-      JSONArray legal = a.list(a.list(a.battle, "teams").optJSONObject(0), "legal");
-      JSONObject action = null;
-      for (int i = 0; i < legal.length(); i++)
-        if (legal.optJSONObject(i).optString("skillId").startsWith("combo-")) {
-          action = legal.optJSONObject(i);
-          break;
-        }
-      assertNotNull("사용 가능한 공격 기술", action);
-      int revision = a.battle.optInt("revision");
-      a.battleTurn(MainActivity.obj("action", action));
-      final BattleView animationView = view;
-      await(() -> animationView.playback.playing);
-      assertTrue(a.busy);
-      assertEquals("재생이 끝날 때까지 서버 상태 교체 보류", revision, a.battle.optInt("revision"));
-      try {
-        await(() -> animationView.playback.effect.equals("combo"));
-      } catch (AssertionError missing) {
-        JSONArray events = a.list(animationView.battle, "displayEvents");
-        StringBuilder trace = new StringBuilder();
-        for (int i = 0; i < events.length(); i++) {
-          JSONObject event = events.optJSONObject(i);
-          trace
-              .append(event.optString("kind"))
-              .append(":")
-              .append(event.optString("skillId"))
-              .append(" actor=")
-              .append(event.optJSONObject("actor"))
-              .append("; ");
-        }
-        throw new AssertionError(
-            "합동기 재생 확인: " + trace + " log=" + a.list(animationView.battle, "log"), missing);
-      }
-      capturePlaybackFrame(a, animationView, "tablet-combo-animation", 1280, 720);
-      await(
-          () ->
-              animationView.playback.effect.equals("attack")
-                  || animationView.playback.effect.equals("hit"));
-      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(150));
-      assertTrue("중간 프레임 진행", animationView.playback.progress > 0);
-      capturePlaybackFrame(a, animationView, "tablet-battle-animation", 1280, 720);
-      await(() -> !a.busy && a.battle.optInt("revision") > revision);
-      assertNotSame("연출 후 최종 상태로 교체", animationView, a.root.getChildAt(0));
-      a.battleTurn(MainActivity.obj("leave", true));
-      await(() -> !a.busy && a.battle.optString("phase").equals("over"));
-      popup(a, "battle-result-popup");
-      a.visibleDialog.dismiss();
-      JSONObject growth =
-          MainActivity.obj(
-              "name",
-              "태초의 갈매미맨",
-              "image",
-              a.unit(a.list(a.state, "team").optString(0)).optString("image"),
-              "fromLevel",
-              11,
-              "level",
-              12,
-              "xp",
-              18,
-              "xpNext",
-              100,
-              "hp",
-              192,
-              "maxHp",
-              192,
-              "gained",
-              88);
-      new GameDialog(a)
-          .setView(
-              BattleRewardsView.create(
-                  a,
-                  MainActivity.obj(
-                      "winner",
-                      0,
-                      "mode",
-                      "story",
-                      "result",
-                      MainActivity.obj("xp", 88, "growth", new JSONArray().put(growth)))))
-          .setPositiveButton("계속", null)
-          .show();
-      popup(a, "battle-growth-reward");
-      a.visibleDialog.dismiss();
-      a.selectionMode = "pvp";
-      a.menus.teamDraft = null;
-      a.show("team");
-      capture(a, "tablet-pvp-lineup", 1280, 720);
-      RuntimeEnvironment.setQualifiers("w915dp-h412dp-land-mdpi");
-      a.show("team");
-      capture(a, "phone-pvp-lineup", 915, 412);
-      for (int slot = 0; slot < 3; slot++) {
-        View card = a.root.findViewWithTag("lineup-slot-" + slot);
-        android.graphics.Rect visible = new android.graphics.Rect();
-        assertTrue(card.getGlobalVisibleRect(visible));
-        assertEquals("휴대폰 출전 카드 전체 표시", card.getHeight(), visible.height());
-      }
-      boolean[] closed = {false};
-      JSONObject live = a.battle;
-      a.api.call(
+  /** 검토 실패로 연출이 멈춰도 서버 최신 revision으로 연습 전투를 정리한다. */
+  void clearReviewFight(MainActivity host) throws Exception {
+    for (int attempt = 0; attempt < 3; attempt++) {
+      JSONObject[] current = {null};
+      String[] error = {null};
+      boolean[] done = {false};
+      host.api.call(
+          "native/battle/current",
+          null,
+          (value, failure) -> {
+            current[0] = value;
+            error[0] = failure;
+            done[0] = true;
+          });
+      await(() -> done[0]);
+      assertNull("격리 검토 전투 조회", error[0]);
+      if (current[0] == null || current[0].isNull("session")) return;
+      JSONObject live = current[0];
+      done[0] = false;
+      host.api.call(
           "native/battle/turn",
           MainActivity.obj(
               "session",
@@ -901,9 +734,222 @@ public class NativeRenderReviewTest {
               live.optInt("revision"),
               "leave",
               true),
-          (response, error) -> closed[0] = true);
-      await(() -> closed[0]);
-      a.battle = null;
+          (value, failure) -> {
+            current[0] = value;
+            error[0] = failure;
+            done[0] = true;
+          });
+      await(() -> done[0]);
+      assertNull("격리 검토 전투 정리", error[0]);
+      if (current[0] != null && "over".equals(current[0].optString("phase"))) return;
+    }
+    fail("검토 전투를 정리하지 못했어요.");
+  }
+
+  @Test
+  public void titleDialogueAndBattlePlayback() throws Exception {
+    try (ActivityController<MainActivity> c = start()) {
+      MainActivity a = c.get();
+      clearReviewFight(a);
+      try {
+        String token = a.api.token();
+        JSONObject state = a.state;
+        for (int[] size : new int[][] {{915, 412}, {1280, 720}}) {
+          String prefix = size[0] == 915 ? "phone-" : "tablet-";
+          RuntimeEnvironment.setQualifiers("w" + size[0] + "dp-h" + size[1] + "dp-land-mdpi");
+          viewport(a, size[0], size[1]);
+          a.api.token("");
+          a.state = new JSONObject();
+          a.titleScreen();
+          capture(a, prefix + "title-out", size[0], size[1]);
+          a.login();
+          capture(a, prefix + "login", size[0], size[1]);
+          a.api.token(token);
+          a.state = state;
+          a.titleScreen();
+          capture(a, prefix + "title-in", size[0], size[1]);
+          ((TitleView) a.root.getChildAt(0)).settings.performClick();
+          popup(a, prefix + "sound-popup");
+          a.visibleDialog.dismiss();
+          a.storyScene = "deep";
+          a.talk(
+              new JSONArray()
+                  .put(
+                      MainActivity.obj(
+                          "who", "N", "say", "쭈매미 천 마리가 한꺼번에 출근 도장을 찍어요. 도장대가 조금 찌그러졌어요."))
+                  .put(MainActivity.obj("who", "V1", "say", "항구를 지켜라!")),
+              "이야기",
+              () -> a.show("story"));
+          StoryView dialogue = (StoryView) a.root.getChildAt(0);
+          a.art.scene(dialogue.leadImage, () -> {});
+          a.art.scene(dialogue.foeImage, () -> {});
+          await(dialogue::portraitsReady);
+          capture(a, prefix + "dialogue", size[0], size[1]);
+        }
+        RuntimeEnvironment.setQualifiers("w915dp-h412dp-land-mdpi");
+        a.practiceRoster = new java.util.ArrayList<>(java.util.Arrays.asList("D1", "T1", "E1"));
+        a.startFight("practice", "1-6");
+        await(() -> !a.busy && a.battle != null);
+        capture(a, "phone-battle-choose", 915, 412);
+        NativeAugmentView choice = ((BattleView) a.root.getChildAt(0)).augmentView;
+        assertNotNull("전체 화면 증강체 선택판", choice);
+        assertTrue(
+            "서버 선택 마감 시각", a.battle.optLong("chooseDeadline") > a.battle.optLong("serverNow"));
+        assertTrue("카운트다운 표시", choice.title.getText().toString().contains("초"));
+        assertEquals(3, choice.picks.size());
+        assertFalse("고르기 전 확인 잠금", choice.confirm.isEnabled());
+        int chooseRevision = a.battle.optInt("revision");
+        choice.rerolls.get(0).performClick();
+        await(() -> !a.busy && a.battle.optInt("revision") > chooseRevision);
+        choice = ((BattleView) a.root.getChildAt(0)).augmentView;
+        assertFalse("각 칸 다시 뽑기는 한 번", choice.rerolls.get(0).isEnabled());
+        int pickedRevision = a.battle.optInt("revision");
+        choice.picks.get(1).performClick();
+        assertTrue(choice.confirm.isEnabled());
+        assertEquals("카드를 누르는 것만으로 확정하지 않음", pickedRevision, a.battle.optInt("revision"));
+        capture(a, "phone-battle-augment-selected", 915, 412);
+        RuntimeEnvironment.setQualifiers("w1280dp-h720dp-land-mdpi");
+        viewport(a, 1280, 720);
+        a.battleScreen();
+        capture(a, "tablet-battle-augment-selected", 1280, 720);
+        choice = ((BattleView) a.root.getChildAt(0)).augmentView;
+        assertTrue("선택을 화면 재배치 후에도 유지", choice.confirm.isEnabled());
+        choice.confirm.performClick();
+        RuntimeEnvironment.setQualifiers("w915dp-h412dp-land-mdpi");
+        await(() -> !a.busy && a.battle.optString("phase").equals("action"));
+        capture(a, "phone-battle-menu", 915, 412);
+        BattleView view = (BattleView) a.root.getChildAt(0);
+        int logLeft = view.logBox.getLeft(), logTop = view.logBox.getTop();
+        a.motionEnabled = true;
+        drag(view, 370, 190);
+        assertTrue("전투 캐릭터 드래그", view.parallax.x > 0);
+        assertEquals(logLeft, view.logBox.getLeft());
+        assertEquals(logTop, view.logBox.getTop());
+        capture(a, "phone-battle-parallax", 915, 412);
+        release(view);
+        assertEquals(0, view.parallax.x, .01f);
+        view.pane = "skills";
+        view.render();
+        capture(a, "phone-battle-skills", 915, 412);
+        RuntimeEnvironment.setQualifiers("w1280dp-h720dp-land-mdpi");
+        viewport(a, 1280, 720);
+        a.battleScreen();
+        capture(a, "tablet-battle-menu", 1280, 720);
+        view = (BattleView) a.root.getChildAt(0);
+        view.pane = "skills";
+        view.render();
+        capture(a, "tablet-battle-skills", 1280, 720);
+        JSONArray legal = a.list(a.list(a.battle, "teams").optJSONObject(0), "legal");
+        JSONObject action = null;
+        for (int i = 0; i < legal.length(); i++)
+          if (legal.optJSONObject(i).optString("skillId").startsWith("combo-")) {
+            action = legal.optJSONObject(i);
+            break;
+          }
+        assertNotNull("사용 가능한 공격 기술", action);
+        int revision = a.battle.optInt("revision");
+        a.battleTurn(MainActivity.obj("action", action));
+        final BattleView animationView = view;
+        await(() -> animationView.playback.playing);
+        assertTrue(a.busy);
+        assertEquals("재생이 끝날 때까지 서버 상태 교체 보류", revision, a.battle.optInt("revision"));
+        try {
+          await(() -> animationView.playback.effect.equals("combo"));
+        } catch (AssertionError missing) {
+          JSONArray events = a.list(animationView.battle, "displayEvents");
+          StringBuilder trace = new StringBuilder();
+          for (int i = 0; i < events.length(); i++) {
+            JSONObject event = events.optJSONObject(i);
+            trace
+                .append(event.optString("kind"))
+                .append(":")
+                .append(event.optString("skillId"))
+                .append(" actor=")
+                .append(event.optJSONObject("actor"))
+                .append("; ");
+          }
+          throw new AssertionError(
+              "합동기 재생 확인: " + trace + " log=" + a.list(animationView.battle, "log"), missing);
+        }
+        capturePlaybackFrame(a, animationView, "tablet-combo-animation", 1280, 720);
+        await(
+            () ->
+                animationView.playback.effect.equals("attack")
+                    || animationView.playback.effect.equals("hit"));
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(150));
+        assertTrue("중간 프레임 진행", animationView.playback.progress > 0);
+        capturePlaybackFrame(a, animationView, "tablet-battle-animation", 1280, 720);
+        await(() -> !a.busy && a.battle.optInt("revision") > revision);
+        assertNotSame("연출 후 최종 상태로 교체", animationView, a.root.getChildAt(0));
+        a.battleTurn(MainActivity.obj("leave", true));
+        await(() -> !a.busy && a.battle.optString("phase").equals("over"));
+        popup(a, "battle-result-popup");
+        a.visibleDialog.dismiss();
+        JSONObject growth =
+            MainActivity.obj(
+                "name",
+                "태초의 갈매미맨",
+                "image",
+                a.unit(a.list(a.state, "team").optString(0)).optString("image"),
+                "fromLevel",
+                11,
+                "level",
+                12,
+                "xp",
+                18,
+                "xpNext",
+                100,
+                "hp",
+                192,
+                "maxHp",
+                192,
+                "gained",
+                88);
+        new GameDialog(a)
+            .setView(
+                BattleRewardsView.create(
+                    a,
+                    MainActivity.obj(
+                        "winner",
+                        0,
+                        "mode",
+                        "story",
+                        "result",
+                        MainActivity.obj("xp", 88, "growth", new JSONArray().put(growth)))))
+            .setPositiveButton("계속", null)
+            .show();
+        popup(a, "battle-growth-reward");
+        a.visibleDialog.dismiss();
+        a.selectionMode = "pvp";
+        a.menus.teamDraft = null;
+        a.show("team");
+        capture(a, "tablet-pvp-lineup", 1280, 720);
+        RuntimeEnvironment.setQualifiers("w915dp-h412dp-land-mdpi");
+        a.show("team");
+        capture(a, "phone-pvp-lineup", 915, 412);
+        for (int slot = 0; slot < 3; slot++) {
+          View card = a.root.findViewWithTag("lineup-slot-" + slot);
+          android.graphics.Rect visible = new android.graphics.Rect();
+          assertTrue(card.getGlobalVisibleRect(visible));
+          assertEquals("휴대폰 출전 카드 전체 표시", card.getHeight(), visible.height());
+        }
+        boolean[] closed = {false};
+        JSONObject live = a.battle;
+        a.api.call(
+            "native/battle/turn",
+            MainActivity.obj(
+                "session",
+                live.optString("session"),
+                "revision",
+                live.optInt("revision"),
+                "leave",
+                true),
+            (response, error) -> closed[0] = true);
+        await(() -> closed[0]);
+        a.battle = null;
+      } finally {
+        clearReviewFight(a);
+      }
     }
   }
 }

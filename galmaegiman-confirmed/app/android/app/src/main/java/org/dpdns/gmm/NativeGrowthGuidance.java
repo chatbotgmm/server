@@ -97,13 +97,22 @@ final class NativeGrowthGuidance {
     info.addView(growth);
     meter(info, u.optInt("xp"), u.optInt("xpNext"), 0xffe9a630, 3);
     row.addView(info, new LinearLayout.LayoutParams(0, -2, 1));
+    TextView handle = h.text("↕", compact ? 18 : 21);
+    handle.setTag(NativeTeamReorder.HANDLE_TAG);
+    handle.setGravity(Gravity.CENTER);
+    handle.setPadding(0, 0, 0, 0);
+    handle.setTextColor(JournalTheme.PRIMARY);
+    handle.setContentDescription(u.optString("name") + " 출전 순서. 위아래로 끌어 변경, 누르면 순서 메뉴");
+    handle.setFocusable(true);
+    handle.setClickable(true);
+    row.addView(handle, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
     card.addView(row);
     card.setContentDescription(
         (order == 0 ? "선봉 " : order + 1 + "번 ")
             + u.optString("name")
             + " "
             + badge(u)
-            + ". 길게 눌러 순서를 바꿀 수 있어요.");
+            + ". 누르면 성장 보기. 오른쪽 손잡이를 위아래로 끌어 순서 변경");
     card.setOnClickListener(v -> open.run());
     card.setOnLongClickListener(
         v -> {
