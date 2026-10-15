@@ -12,11 +12,19 @@ final class NativeEconomy {
   final MainActivity h;
   final MenuKit k;
   LinearLayout craftActions;
+  Set<String> drawBefore;
+  NativeAcquisitionFlow drawFlow, acquisitionFlow;
 
   NativeEconomy(NativeMenus menus) {
     m = menus;
     h = m.h;
     k = m.k;
+  }
+
+  void resetAcquisition() {
+    drawBefore = null;
+    drawFlow = null;
+    acquisitionFlow = null;
   }
 
   void draw() {
@@ -97,7 +105,7 @@ final class NativeEconomy {
                                 + cost * amount[0]
                                 + "장을 사용할까요?",
                             () ->
-                                h.mutate(
+                                performDraw(
                                     "draw",
                                     MainActivity.obj(
                                         "kind", g.optString("kind"), "times", amount[0]),
@@ -196,10 +204,33 @@ final class NativeEconomy {
 
   void reveal(JSONObject result, Runnable next, boolean again) {
     m.lastDraw = result;
+    if (!again || drawFlow == null) {
+      drawFlow = new NativeAcquisitionFlow(h, "draw", again ? null : drawBefore);
+      drawBefore = null;
+    }
+    acquisitionFlow = drawFlow;
+    drawFlow.reopen = () -> reveal(result, next, true);
     h.base("뽑기 결과", "drawResult");
     h.root.addView(
-        new NativeReveal(h, result, next, again),
+        new NativeReveal(h, result, next, again, drawFlow),
         new android.widget.FrameLayout.LayoutParams(-1, -1));
+  }
+
+  void performDraw(String endpoint, JSONObject body, String target) {
+    if (h.busy) return;
+    drawBefore = NativeAcquisitionFlow.keys(h.state);
+    h.mutate(endpoint, body, target);
+  }
+
+  void resumeAcquisition() {
+    if (acquisitionFlow != null
+        && acquisitionFlow.reopen != null
+        && acquisitionFlow.account.equals(h.api.token())) acquisitionFlow.reopen.run();
+    else h.load("draw");
+  }
+
+  String acquisitionOrigin() {
+    return acquisitionFlow == null ? "draw" : acquisitionFlow.origin;
   }
 
   void craft(boolean mix) {
@@ -255,7 +286,10 @@ final class NativeEconomy {
           for (JSONObject r : visible) {
             LinearLayout item = k.row();
             item.setBackground(
-                h.material(m.recipeId.equals(r.optString("id")) ? 0xfffbe8d3 : 0xfffffaf0));
+                m.recipeId.equals(r.optString("id"))
+                    ? new GamePanelDrawable(h)
+                    : new GamePaperDrawable(h));
+            item.setPadding(h.dp(8), h.dp(8), h.dp(8), h.dp(12));
             item.addView(k.image("/thumbs/" + r.optString("img") + ".jpg", 56, 56));
             item.addView(
                 h.text(
@@ -367,13 +401,20 @@ final class NativeEconomy {
   LinearLayout materialSlot(JSONObject unit, boolean result) {
     LinearLayout slot = k.paper();
     slot.setGravity(Gravity.CENTER_HORIZONTAL);
-    slot.setLayoutParams(new LinearLayout.LayoutParams(h.dp(compact() ? 86 : 112), -2));
     slot.addView(
         k.image(
             "/thumbs/" + unit.optString("img") + ".jpg", compact() ? 54 : 74, compact() ? 54 : 74));
     TextView name = h.text(unit.optString("name"), compact() ? 12 : 15);
-    name.setMaxLines(2);
+    name.setPadding(0, h.dp(4), 0, h.dp(4));
+    name.setSingleLine(true);
     name.setGravity(Gravity.CENTER);
+    int nameWidth = (int) Math.ceil(name.getPaint().measureText(unit.optString("name")));
+    slot.setLayoutParams(
+        new LinearLayout.LayoutParams(
+            Math.max(
+                h.dp(compact() ? 86 : 112),
+                nameWidth + slot.getPaddingLeft() + slot.getPaddingRight() + h.dp(2)),
+            -2));
     slot.addView(name);
     TextView count =
         k.note(
@@ -427,7 +468,7 @@ final class NativeEconomy {
             TextView count = k.note("남은 " + left + " · 선택 " + picked);
             count.setGravity(Gravity.CENTER);
             tile.addView(count);
-            if (picked > 0) tile.setBackground(new GamePaperDrawable(h, 0xffa8672e));
+            if (picked > 0) tile.setBackground(new GamePanelDrawable(h));
             LinearLayout actions = k.row();
             Button remove =
                 k.action(
@@ -566,6 +607,9 @@ final class NativeEconomy {
   }
 
   void performCraft(String endpoint, JSONObject body, JSONObject result, JSONArray materials) {
+    if (h.busy) return;
+    Set<String> before = NativeAcquisitionFlow.keys(h.state);
+    String origin = endpoint.equals("mix") ? "mix" : "craft";
     h.request(
         endpoint,
         body,
@@ -578,22 +622,56 @@ final class NativeEconomy {
                   ? ((JSONObject) value).optString("text")
                   : String.valueOf(value);
           m.mixDraft.clear();
-          NativeForge overlay =
-              new NativeForge(h, materials, result, fail, text, () -> h.load("craft"));
-          h.root.addView(overlay, new android.widget.FrameLayout.LayoutParams(-1, -1));
-          m.fetch(
-              "me",
-              me -> {
-                String resultId =
-                    result == null
-                        ? (value instanceof JSONObject ? ((JSONObject) value).optString("id") : "")
-                        : result.optString("id");
-                JSONArray owned = h.list(me, "units");
+          NativeAcquisitionFlow flow = new NativeAcquisitionFlow(h, origin, before);
+          String resultId =
+              result == null
+                  ? (value instanceof JSONObject ? ((JSONObject) value).optString("id") : "")
+                  : result.optString("id");
+          JSONObject card =
+              result == null && !resultId.isEmpty()
+                  ? MainActivity.obj("id", resultId, "name", "조합한 갈매미", "img", resultId)
+                  : result;
+          NativeForge overlay = forgeResult(materials, card, fail, text, flow, true);
+          h.request(
+              "native/state",
+              null,
+              (fresh, error) -> {
+                h.state = fresh;
+                h.stateUpdated();
+                JSONArray owned = h.list(h.me(), "units");
                 for (int i = 0; i < owned.length(); i++)
                   if (resultId.equals(owned.optJSONObject(i).optString("id")))
                     overlay.updateResult(owned.optJSONObject(i));
               });
         });
+  }
+
+  NativeForge forgeResult(
+      JSONArray materials,
+      JSONObject result,
+      boolean fail,
+      String text,
+      NativeAcquisitionFlow flow,
+      boolean animate) {
+    acquisitionFlow = flow;
+    h.base("조합 결과", "craftResult");
+    NativeForge overlay =
+        new NativeForge(
+            h, materials, ownedResult(result), fail, text, () -> h.load(flow.origin), flow);
+    flow.reopen = () -> forgeResult(materials, overlay.result, fail, text, flow, false);
+    h.root.addView(overlay, new android.widget.FrameLayout.LayoutParams(-1, -1));
+    if (!animate) overlay.showResult(false);
+    return overlay;
+  }
+
+  JSONObject ownedResult(JSONObject result) {
+    if (result == null) return null;
+    JSONArray owned = h.list(h.me(), "units");
+    for (int i = 0; i < owned.length(); i++) {
+      JSONObject unit = owned.optJSONObject(i);
+      if (unit != null && result.optString("id").equals(unit.optString("id"))) return unit;
+    }
+    return result;
   }
 
   void shop() {
@@ -606,7 +684,7 @@ final class NativeEconomy {
           int maxStack = rules == null ? 5 : rules.optInt("maxStack", 5);
           LinearLayout shelf = k.column();
           shelf.setPadding(h.dp(10), h.dp(10), h.dp(10), h.dp(10));
-          shelf.setBackground(h.material(0xff8a5a2b));
+          shelf.setBackground(new GamePanelDrawable(h));
           h.body.addView(k.notice("대결 아이템은 종류마다 " + maxStack + "개까지 · 갈매미 교환·팔기는 카톡 상점"));
           h.body.addView(shelf);
           ArrayList<View> goods = new ArrayList<>();
@@ -649,14 +727,15 @@ final class NativeEconomy {
             goods.add(
                 ware(
                     d.optString("id"),
-                    d.optString("name") + " · 가진 " + count + "개",
+                    d.optString("name"),
                     d.optString("desc"),
                     price,
                     limit,
                     "새우gang",
                     "items/buy",
                     MainActivity.obj("id", d.optString("id")),
-                    count >= maxStack ? "보유 한도" : "새우gang 부족"));
+                    count >= maxStack ? "보유 한도" : "새우gang 부족",
+                    "보유 " + count + "개"));
           }
           k.tiles(shelf, goods, h.getResources().getConfiguration().screenWidthDp >= 1100 ? 5 : 3);
         });
@@ -672,12 +751,38 @@ final class NativeEconomy {
       String endpoint,
       JSONObject params,
       String blocked) {
+    return ware(icon, title, desc, price, limit, currency, endpoint, params, blocked, "");
+  }
+
+  LinearLayout ware(
+      String icon,
+      String title,
+      String desc,
+      int price,
+      int limit,
+      String currency,
+      String endpoint,
+      JSONObject params,
+      String blocked,
+      String holding) {
     LinearLayout card = k.paper();
     LinearLayout nameLine = k.row();
     nameLine.addView(
         k.image("/duel/icons/" + icon + ".png", compact() ? 36 : 56, compact() ? 36 : 56));
-    nameLine.addView(h.text(title, compact() ? 16 : 18), new LinearLayout.LayoutParams(0, -2, 1));
+    TextView name = h.text(title, compact() ? 16 : 18);
+    name.setTextLocale(Locale.KOREA);
+    name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
+    if (android.os.Build.VERSION.SDK_INT >= 33)
+      name.setLineBreakWordStyle(
+          android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
+    nameLine.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
     card.addView(nameLine);
+    if (!holding.isEmpty()) {
+      TextView stock = k.note(holding);
+      stock.setTag("shop-stock-" + icon);
+      stock.setSingleLine(true);
+      card.addView(stock);
+    }
     card.addView(k.note(desc));
     int[] amount = {1};
     Button buy =
@@ -810,7 +915,7 @@ final class NativeEconomy {
             card.addView(name);
             card.addView(k.note(synergyLabel(u.optString("synergy")) + " · 남은 " + left));
             if (picked > 0) {
-              card.setBackground(new GamePaperDrawable(h, 0xffa8672e));
+              card.setBackground(new GamePanelDrawable(h));
               card.addView(h.text("✓ 선택 " + picked + "마리", 13));
             }
             LinearLayout addRemove = k.row();

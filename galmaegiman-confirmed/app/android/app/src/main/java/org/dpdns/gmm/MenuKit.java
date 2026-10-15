@@ -31,13 +31,13 @@ final class MenuKit {
   TextView note(String s) {
     TextView v = h.text(s, 14);
     v.setTypeface(h.prose);
-    v.setTextColor(0xff7d5f40);
+    v.setTextColor(JournalTheme.MUTED);
     return v;
   }
 
   TextView notice(String s) {
     TextView v = note(s);
-    v.setBackground(h.material(0xfffffaf0));
+    v.setBackground(new GamePaperDrawable(h));
     v.setPadding(h.dp(10), h.dp(7), h.dp(10), h.dp(7));
     return v;
   }
@@ -68,6 +68,7 @@ final class MenuKit {
 
   Button action(String icon, String name, Runnable click) {
     Button b = h.button(name, click);
+    b.setTextColor(JournalTheme.controlText());
     b.setTextSize(h.uiText(16));
     b.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PAPER));
     if (icon != null) {
@@ -87,11 +88,8 @@ final class MenuKit {
   }
 
   Button painted(String icon, String name, Runnable click) {
-    Button b = h.button(name, click);
-    b.setTextColor(Color.TRANSPARENT);
-    b.setCompoundDrawables(null, null, null, null);
-    b.setBackground(new Picture(h, "/duel/icons/" + icon + ".png"));
-    return b;
+    if ("btn-back".equals(icon)) return action(null, "‹ 뒤로", click);
+    return action(icon, name, click);
   }
 
   ScrollView scroll(View v) {
@@ -128,7 +126,7 @@ final class MenuKit {
     for (int i = 0; i < names.length; i++) {
       int index = i;
       Button b = action(null, names[i], () -> select.accept(index));
-      if (i == active) b.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
+      b.setSelected(i == active);
       b.setTextSize(h.uiText(15));
       LinearLayout.LayoutParams slot =
           new LinearLayout.LayoutParams(h.dp(names.length > 3 ? 82 : 124), h.dp(48));
@@ -156,9 +154,7 @@ final class MenuKit {
     LinearLayout v = paper();
     v.setGravity(Gravity.CENTER_HORIZONTAL);
     if (u.has("tier")) {
-      GradientDrawable frame = h.material(0xfffffaf0);
-      frame.setStroke(h.dp(2), NativeReveal.tier(u.optString("tier")));
-      v.setBackground(frame);
+      v.setBackground(new GamePaperDrawable(h, NativeReveal.tier(u.optString("tier"))));
     }
     v.addView(image(path, 100, 100));
     TextView title = h.text(u.optString("name"), 15);
@@ -187,7 +183,8 @@ final class MenuKit {
     e.setHint(placeholder);
     e.setText(initial);
     e.setPadding(h.dp(12), h.dp(5), h.dp(12), h.dp(5));
-    e.setBackground(h.material(0xfffffaf0));
+    e.setHintTextColor(JournalTheme.MUTED);
+    e.setBackground(new GamePaperDrawable(h));
     parent.addView(e, new LinearLayout.LayoutParams(-1, h.dp(48)));
     e.addTextChangedListener(
         new android.text.TextWatcher() {
@@ -241,7 +238,8 @@ final class MenuKit {
     input.setGravity(Gravity.CENTER);
     input.setTextColor(MainActivity.INK);
     input.setTypeface(h.font);
-    input.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xffa8672e));
+    input.setBackgroundTintList(null);
+    input.setBackground(new GamePaperDrawable(h));
     input.setText("1");
     int[] amount = {1};
     Runnable paint =

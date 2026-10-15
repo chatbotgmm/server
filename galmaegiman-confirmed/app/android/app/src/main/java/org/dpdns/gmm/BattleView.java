@@ -38,11 +38,16 @@ final class BattleView extends FrameLayout implements FullBleed {
     scene = new Scene();
     addView(scene, new LayoutParams(-1, -1));
     logBox = new ScrollView(a);
-    logBox.setBackground(new FrameDrawable(host, "log.webp"));
-    logBox.setPadding(a.dp(8), a.dp(10), a.dp(8), a.dp(10));
+    logBox.setBackground(new GamePaperDrawable(host));
+    logBox.setPadding(a.dp(12), a.dp(12), a.dp(12), a.dp(12));
     logBox.setClipToPadding(true);
     log = a.text("", 17);
     log.setTypeface(a.prose);
+    log.setTextLocale(Locale.KOREAN);
+    log.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
+    log.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
+    if (android.os.Build.VERSION.SDK_INT >= 33)
+      log.setLineBreakWordStyle(android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
     log.setPadding(a.dp(10), 0, a.dp(10), 0);
     ArrayList<String> lines = new ArrayList<>();
     JSONArray ls = a.list(b, "log");
@@ -161,7 +166,7 @@ final class BattleView extends FrameLayout implements FullBleed {
     tablet = (float) uiWidth / uiHeight < 1.85f;
     panelLeft = Math.round(uiWidth * .655f);
     panelWidth = uiWidth - panelLeft - m;
-    int buttonH = Math.max(host.dp(82), Math.round((panelWidth - host.dp(8)) / 2f * 488 / 574));
+    int buttonH = commandHeight();
     logHeight =
         pane.equals("menu") ? Math.max(host.dp(54), uiHeight - 2 * buttonH - host.dp(32)) : 0;
     logBox.setVisibility(
@@ -233,7 +238,7 @@ final class BattleView extends FrameLayout implements FullBleed {
 
   void heading(String s) {
     LinearLayout row = new LinearLayout(host);
-    row.setBackground(host.material(0xfffffaf0));
+    row.setBackground(new GamePaperDrawable(host));
     row.addView(
         host.button(
             "‹",
@@ -251,6 +256,7 @@ final class BattleView extends FrameLayout implements FullBleed {
 
   void render() {
     controls.removeAllViews();
+    controls.setPadding(0, 0, 0, pane.equals("menu") ? 0 : host.dp(8));
     requestLayout();
     String phase = battle.optString("phase");
     tools.setVisibility(phase.equals("choose") || phase.equals("over") ? GONE : VISIBLE);
@@ -291,7 +297,7 @@ final class BattleView extends FrameLayout implements FullBleed {
         items();
         return;
     }
-    int height = Math.max(host.dp(82), Math.round((uiWidth * .345f - host.dp(16)) / 2 * 488 / 574));
+    int height = commandHeight();
     for (int row = 0; row < 2; row++) {
       LinearLayout line = new LinearLayout(host);
       controls.addView(line);
@@ -316,17 +322,115 @@ final class BattleView extends FrameLayout implements FullBleed {
                   }
                 });
         b.setTypeface(host.headline);
-        b.setTextSize(
-            ix == 3
-                ? Math.max(22, Math.min(34, height * .17f))
-                : Math.max(27, Math.min(38, height * .20f)));
+        b.setTextSize(tablet ? (ix == 3 ? 27 : 30) : (ix == 3 ? 22 : 24));
+        float labelWidth = Math.max(host.dp(60), (panelWidth - host.dp(8)) / 2f - host.dp(16));
+        float measuredLabel = b.getPaint().measureText(names[ix]);
+        if (measuredLabel > labelWidth)
+          b.setTextSize(
+              b.getTextSize()
+                  / host.getResources().getDisplayMetrics().scaledDensity
+                  * labelWidth
+                  / measuredLabel);
+        b.setSingleLine(true);
         b.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        b.setPadding(host.dp(2), 0, host.dp(2), Math.round(height * .12f));
-        b.setBackground(new CommandArt(ix));
+        b.setPadding(
+            host.dp(6), host.dp(8), host.dp(6), Math.max(host.dp(12), Math.round(height * .13f)));
+        b.setBackground(
+            new CommandSurface(
+                ix,
+                Math.min(
+                    54,
+                    Math.max(
+                        34,
+                        Math.round(
+                            height / host.getResources().getDisplayMetrics().density * .36f)))));
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, height, 1);
         p.setMargins(host.dp(2), host.dp(2), host.dp(2), host.dp(2));
         line.addView(b, p);
       }
+    }
+  }
+
+  int commandHeight() {
+    int width = panelWidth > 0 ? panelWidth : Math.round(uiWidth * .345f) - host.dp(8);
+    // 태블릿에서 버튼만 커지지 않게 하고 여유 높이는 전투 기록에 준다.
+    return Math.max(
+        host.dp(82), Math.min(host.dp(152), Math.round((width - host.dp(8)) / 2f * .82f)));
+  }
+
+  /** 그림을 배경에 그려 Button의 텍스트 측정·레이아웃과 분리한다. */
+  final class CommandSurface extends Drawable {
+    final int index, size;
+    final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    final GamePressState state = new GamePressState();
+    Bitmap icon;
+
+    CommandSurface(int index, int size) {
+      this.index = index;
+      this.size = size;
+      String path =
+          "/duel/icons/"
+              + new String[] {"mode-pvp", "u-bag", "freeswitch", "feather"}[index]
+              + ".png";
+      icon =
+          host.art.get(
+              path,
+              () -> {
+                icon = host.art.peek(path);
+                invalidateSelf();
+              });
+    }
+
+    @Override
+    public boolean isStateful() {
+      return true;
+    }
+
+    @Override
+    protected boolean onStateChange(int[] states) {
+      boolean changed = state.update(states);
+      if (changed) invalidateSelf();
+      return changed;
+    }
+
+    @Override
+    public void draw(Canvas canvas) {
+      Rect bounds = getBounds();
+      int save = state.begin(canvas, bounds, host.getResources().getDisplayMetrics().density);
+      RectF surface = new RectF(bounds);
+      surface.bottom -= host.dp(3);
+      GameButtonDrawable.drawSurface(
+          canvas,
+          surface,
+          index == 0 ? GameButtonDrawable.PRIMARY : GameButtonDrawable.PAPER,
+          host.dp(16),
+          host.dp(2),
+          host.dp(state.pressed ? 1 : 3),
+          paint);
+      if (icon != null) {
+        float edge =
+            Math.min(host.dp(size), Math.min(bounds.width() * .42f, bounds.height() * .4f));
+        float left = bounds.exactCenterX() - edge / 2, top = bounds.top + bounds.height() * .11f;
+        canvas.drawBitmap(icon, null, new RectF(left, top, left + edge, top + edge), paint);
+      }
+      state.finish(canvas, save);
+    }
+
+    @Override
+    public void setAlpha(int value) {
+      state.alpha = value;
+      invalidateSelf();
+    }
+
+    @Override
+    public void setColorFilter(ColorFilter value) {
+      paint.setColorFilter(value);
+      invalidateSelf();
+    }
+
+    @Override
+    public int getOpacity() {
+      return PixelFormat.TRANSLUCENT;
     }
   }
 
@@ -613,17 +717,11 @@ final class BattleView extends FrameLayout implements FullBleed {
     }
 
     void status(Canvas c, JSONObject f, RectF r, boolean own) {
-      Bitmap frame = host.art.asset("status.webp");
-      if (frame != null) {
-        p.setAlpha(255);
-        FrameDrawable.drawFrame(c, host, "status.webp", r, p);
-      } else {
-        p.setColor(MainActivity.CREAM);
-        c.drawRoundRect(r, 12, 12, p);
-      }
-      float x = r.left + Math.max(host.dp(30), r.width() * .075f),
+      JournalTheme.drawPanel(
+          c, r, host.getResources().getDisplayMetrics().density, JournalTheme.PAPER, true);
+      float x = r.left + host.dp(14),
           top = r.top + Math.max(host.dp(25), r.height() * .24f),
-          right = r.right - r.width() * .08f,
+          right = r.right - host.dp(14),
           size = Math.min(host.dp(tablet ? 25 : 20), r.height() * .17f);
       p.setTypeface(host.headline);
       p.setTextSize(size);
@@ -640,11 +738,11 @@ final class BattleView extends FrameLayout implements FullBleed {
       c.drawText("Lv" + f.optInt("level"), right, top, p);
       p.setTextAlign(Paint.Align.LEFT);
       float barY = top + r.height() * .1f, bh = Math.max(5, r.height() * .08f);
-      p.setColor(0xffd9c7a6);
+      p.setColor(0xffd9d3bf);
       c.drawRoundRect(new RectF(x, barY, right, barY + bh), bh / 2, bh / 2, p);
       float frac =
           Math.max(0, Math.min(1, (float) f.optInt("hp") / Math.max(1, f.optInt("maxHp"))));
-      p.setColor(frac > .5f ? 0xff53c984 : frac > .2f ? 0xffe9ba4f : 0xffe47565);
+      p.setColor(frac > .5f ? 0xff4b947e : frac > .2f ? 0xffc49a59 : 0xffb54a3d);
       c.drawRoundRect(new RectF(x, barY, x + (right - x) * frac, barY + bh), bh / 2, bh / 2, p);
       p.setTextSize(size * .78f);
       String attribute =
@@ -719,66 +817,6 @@ final class BattleView extends FrameLayout implements FullBleed {
           label = label.substring(0, label.length() - 2) + "…";
         c.drawText(label, x, r.bottom - r.height() * .10f, p);
       }
-    }
-  }
-
-  final class CommandArt extends Drawable {
-    int i;
-    Paint p = new Paint(3);
-    final GamePressState state = new GamePressState();
-
-    @Override
-    public boolean isStateful() {
-      return true;
-    }
-
-    @Override
-    protected boolean onStateChange(int[] states) {
-      boolean changed = state.update(states);
-      if (changed) invalidateSelf();
-      return changed;
-    }
-
-    CommandArt(int index) {
-      i = index;
-    }
-
-    public void draw(Canvas c) {
-      Bitmap b = host.art.asset("commands.webp");
-      if (b == null) return;
-      Rect r = getBounds();
-      int save = state.begin(c, r, host.getResources().getDisplayMetrics().density);
-      int x = i % 2 == 0 ? 42 : 638, y = i < 2 ? 74 : 639;
-      float h = r.height(), top = h * 324 / 488f, bottom = h * 156 / 488f;
-      band(c, b, new Rect(x, y, x + 574, y + 324), new RectF(r.left, r.top, r.right, r.top + top));
-      band(
-          c,
-          b,
-          new Rect(x, y + 324, x + 574, y + 388),
-          new RectF(r.left, r.top + top, r.right, r.bottom - bottom));
-      band(
-          c,
-          b,
-          new Rect(x, y + 388, x + 574, y + 544),
-          new RectF(r.left, r.bottom - bottom, r.right, r.bottom));
-      state.finish(c, save);
-    }
-
-    void band(Canvas c, Bitmap b, Rect src, RectF dst) {
-      c.drawBitmap(b, src, dst, p);
-    }
-
-    public void setAlpha(int a) {
-      state.alpha = a;
-      invalidateSelf();
-    }
-
-    public void setColorFilter(ColorFilter f) {
-      p.setColorFilter(f);
-    }
-
-    public int getOpacity() {
-      return PixelFormat.TRANSLUCENT;
     }
   }
 }

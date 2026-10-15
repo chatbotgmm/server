@@ -43,9 +43,7 @@ public class MainActivity extends AppCompatActivity {
   ArrayList<String> practiceRoster = new ArrayList<>(Arrays.asList("D1", "D2", "D3")),
       practiceEnemy = new ArrayList<>();
   int practiceLevel = 15, practicePromotion = 0;
-  static final int INK = Color.rgb(59, 38, 20),
-      BLUE = Color.rgb(44, 88, 113),
-      CREAM = Color.rgb(255, 250, 240);
+  static final int INK = JournalTheme.INK, BLUE = JournalTheme.TEAL, CREAM = JournalTheme.PAPER;
 
   @Override
   public void onCreate(Bundle saved) {
@@ -54,8 +52,7 @@ public class MainActivity extends AppCompatActivity {
     sound = new NativeSound(this);
     art = new NativeArt(this, api);
     font = Typeface.createFromAsset(getAssets(), "native/Jua-Regular.ttf");
-    headline = Typeface.createFromAsset(getAssets(), "native/BlackHanSans-Regular.ttf");
-    font = headline;
+    headline = font;
     try {
       prose = Typeface.createFromAsset(getAssets(), "native/GowunDodum-Regular.ttf");
     } catch (Exception ignored) {
@@ -425,7 +422,7 @@ public class MainActivity extends AppCompatActivity {
     GradientDrawable d =
         new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[] {color, color});
     d.setCornerRadius(dp(14));
-    d.setStroke(dp(2), Color.rgb(194, 124, 61));
+    d.setStroke(dp(2), JournalTheme.BRASS);
     return d;
   }
 
@@ -433,7 +430,7 @@ public class MainActivity extends AppCompatActivity {
     Button b = new Button(this);
     b.setText(s);
     b.setAllCaps(false);
-    b.setTextColor(INK);
+    b.setTextColor(JournalTheme.controlText());
     b.setTextSize(uiText(18));
     b.setTypeface(font);
     b.setMinHeight(dp(52));
@@ -617,6 +614,11 @@ public class MainActivity extends AppCompatActivity {
       case "draw":
         draw();
         break;
+      case "acquisition":
+      case "craftResult":
+      case "drawResult":
+        menus.economy.resumeAcquisition();
+        break;
       case "craft":
         craft();
         break;
@@ -676,7 +678,7 @@ public class MainActivity extends AppCompatActivity {
     background.settings.setVisibility(View.GONE);
     root.addView(background, new FrameLayout.LayoutParams(-1, -1));
     View shade = new GameShade(this);
-    shade.setBackgroundColor(0x663c2717);
+    shade.setBackgroundColor(0x082b251d);
     root.addView(shade, new FrameLayout.LayoutParams(-1, -1));
     ScrollView scroll = new ScrollView(this);
     loginScroll = scroll;
@@ -686,19 +688,20 @@ public class MainActivity extends AppCompatActivity {
         new FrameLayout.LayoutParams(
             Math.min(dp(420), (int) (getResources().getDisplayMetrics().widthPixels * .7f)),
             (int) (getResources().getDisplayMetrics().heightPixels * .88f),
-            Gravity.CENTER);
+            Gravity.CENTER_VERTICAL | Gravity.LEFT);
+    bounds.leftMargin = dp(24);
     root.addView(scroll, bounds);
     root.post(this::resizeLogin);
     LinearLayout form = new LinearLayout(this);
     form.setOrientation(LinearLayout.VERTICAL);
-    form.setPadding(dp(28), dp(16), dp(28), dp(16));
+    form.setPadding(dp(24), dp(16), dp(24), dp(16));
     scroll.addView(form);
     LinearLayout head = new LinearLayout(this);
     head.setGravity(Gravity.CENTER_VERTICAL);
     form.addView(head);
     boolean linking =
         !getSharedPreferences("native_account", 0).getString("linkCode", "").isEmpty();
-    title = text(linking ? "카카오 계정 처음 연결" : "로그인", linking ? 18 : 24);
+    title = text(linking ? "카카오 계정 처음 연결" : "수비대 인사 기록부", linking ? 18 : 24);
     title.setTypeface(headline);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
     head.addView(
@@ -728,6 +731,7 @@ public class MainActivity extends AppCompatActivity {
     code.setGravity(Gravity.CENTER);
     code.setInputType(InputType.TYPE_CLASS_NUMBER);
     code.setSingleLine(true);
+    code.setBackground(new GamePaperDrawable(this));
     code.setFilters(new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(6)});
     code.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
     form.addView(code, new LinearLayout.LayoutParams(-1, dp(52)));
@@ -1201,6 +1205,29 @@ public class MainActivity extends AppCompatActivity {
               currentKey = key;
               menus.unitReturn = story ? "stages" : "collection";
               finishBattle(ended, () -> load("unit"));
+            },
+            () -> {
+              sheet[0].dismiss();
+              finishBattle(
+                  ended,
+                  () -> {
+                    if (practice) {
+                      practice();
+                      return;
+                    }
+                    selectionMode = story ? "story" : "pvp";
+                    menus.teamMode = selectionMode;
+                    menus.teamReturn = story ? "stages" : "modes";
+                    menus.teamSavedIds = new ArrayList<>();
+                    JSONArray roster = list(story ? state : me(), story ? "team" : "battleTeam");
+                    for (int i = 0; i < roster.length(); i++)
+                      menus.teamSavedIds.add(roster.optString(i));
+                    menus.teamDraft = new ArrayList<>(menus.teamSavedIds);
+                    menus.teamQuery = "";
+                    menus.teamAttr = "all";
+                    menus.teamSelectedOnly = false;
+                    load("team");
+                  });
             }));
     builder.setCancelable(false);
     String primary = story ? (won ? "스토리로" : "재도전") : "한 판 더";
@@ -1312,6 +1339,7 @@ public class MainActivity extends AppCompatActivity {
       if (menus.unitReturn.equals("team")) team();
       else if (menus.unitReturn.equals("stages")) stages();
       else if (menus.unitReturn.equals("collection")) collection();
+      else if (menus.unitReturn.equals("acquisition")) menus.economy.resumeAcquisition();
       else chapters();
     } else if (screen.equals("collectionDetail")) collection();
     else if (screen.equals("team")) {
@@ -1319,6 +1347,7 @@ public class MainActivity extends AppCompatActivity {
     } else if (screen.equals("dialog")) load("story");
     else if (screen.equals("mix")) craft();
     else if (screen.equals("drawResult")) load("draw");
+    else if (screen.equals("craftResult")) load(menus.economy.acquisitionOrigin());
     else if (screen.equals("story") || screen.equals("pvp") || screen.equals("practice"))
       load("modes");
     else load("home");

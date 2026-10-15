@@ -24,7 +24,7 @@ final class GameDialog extends AlertDialog.Builder {
         });
     Window window = dialog.getWindow();
     if (window != null) {
-      window.setBackgroundDrawable(new GamePaperDrawable(host, 0xffc27c3d));
+      window.setBackgroundDrawable(new GamePanelDrawable(host));
       window.setDimAmount(.4f);
       window.setLayout(Math.min(host.dp(560), (int) (host.root.getWidth() * .9f)), -2);
       style(window.getDecorView());
@@ -36,7 +36,7 @@ final class GameDialog extends AlertDialog.Builder {
       Button b = dialog.getButton(id);
       if (b == null) continue;
       b.setTypeface(host.font);
-      b.setTextColor(MainActivity.INK);
+      b.setTextColor(JournalTheme.controlText());
       b.setAllCaps(false);
       b.setTextSize(16);
       b.setBackgroundTintList(null);
@@ -75,14 +75,17 @@ final class GameDialog extends AlertDialog.Builder {
       t.setTypeface(
           "prose".equals(t.getTag())
               ? host.prose
-              : v instanceof Button || t.getTypeface() == host.font ? host.font : host.prose);
+              : t.getTypeface() == host.headline
+                  ? host.headline
+                  : v instanceof Button || t.getTypeface() == host.font ? host.font : host.prose);
     }
     if (v instanceof CheckedTextView)
-      ((CheckedTextView) v).setCheckMarkTintList(ColorStateList.valueOf(0xffa8672e));
+      ((CheckedTextView) v).setCheckMarkTintList(ColorStateList.valueOf(JournalTheme.TEAL));
     if (v instanceof CompoundButton)
-      ((CompoundButton) v).setButtonTintList(ColorStateList.valueOf(0xffa8672e));
+      ((CompoundButton) v).setButtonTintList(ColorStateList.valueOf(JournalTheme.TEAL));
     if (v instanceof EditText) {
       v.setBackgroundTintList(null);
+      ((EditText) v).setHintTextColor(JournalTheme.MUTED);
       v.setBackground(new GamePaperDrawable(host));
     }
     if (v instanceof ViewGroup) {

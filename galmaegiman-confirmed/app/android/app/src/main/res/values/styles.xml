@@ -10,9 +10,11 @@
     </style>
 
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar">
-        <item name="colorAccent">#dd9a58</item>
-        <item name="colorControlActivated">#a8672e</item>
-        <item name="android:colorAccent">#dd9a58</item>
+        <item name="colorAccent">#28535b</item>
+        <item name="colorControlActivated">#28535b</item>
+        <item name="android:colorAccent">#28535b</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>

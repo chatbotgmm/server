@@ -61,9 +61,7 @@ final class NativeExtras {
               LinearLayout card = k.column();
               card.setGravity(Gravity.CENTER_HORIZONTAL);
               card.setPadding(h.dp(2), h.dp(5), h.dp(2), h.dp(5));
-              card.setBackground(
-                  new GameButtonDrawable(
-                      h, active ? GameButtonDrawable.PRIMARY : GameButtonDrawable.PAPER));
+              card.setBackground(active ? new GamePanelDrawable(h) : new GamePaperDrawable(h));
               if (day > current) card.setAlpha(.62f);
               TextView dayLabel = k.note(day + "일");
               dayLabel.setTextSize(12);
@@ -76,7 +74,8 @@ final class NativeExtras {
               card.addView(reward);
               TextView status = k.note(got ? active ? "✓ 받음" : "받음" : active ? "오늘" : "잠김");
               status.setTextSize(11);
-              status.setTextColor(got ? 0xff397953 : active ? 0xff9b5521 : 0xff8b7860);
+              status.setTextColor(
+                  got ? 0xff397953 : active ? JournalTheme.INK : JournalTheme.MUTED);
               card.addView(status);
               card.setContentDescription(
                   day + "일 " + status.getText() + " · 뽑기권 " + rewards.optInt(i) + "장");
@@ -226,7 +225,7 @@ final class NativeExtras {
           for (int i = 0; i < top.length(); i++) {
             JSONObject u = top.optJSONObject(i);
             LinearLayout row = k.row();
-            if (u.optBoolean("me")) row.setBackground(h.material(0xfffbe8d3));
+            if (u.optBoolean("me")) row.setBackground(new GamePanelDrawable(h));
             for (String value :
                 new String[] {
                   u.optInt("rank") + "위",
@@ -298,7 +297,7 @@ final class NativeExtras {
                       }
                       paint[0].run();
                     });
-            if (draft.contains(id)) tile.setBackground(h.material(0xfffbe8d3));
+            if (draft.contains(id)) tile.setBackground(new GamePanelDrawable(h));
             cards.add(tile);
           }
           k.tiles(contents, cards, 3);

@@ -31,6 +31,15 @@ export function nativeFighterEffects(R:Rules,f:Fighter):NativeFighterEffect[]{
   if(f.extraAttr)effects.push({id:'extraAttr',label:'이중 속성',valueText:R.attrName(f.extraAttr),remainingTurns:null,kind:'buff',attrCode:f.extraAttr});
   return effects;
 }
+// 실제 승진과 같은 단계·표창을 복사본에 적용한다. 저장·체력·난수 진행은 건드리지 않는다.
+export function nativeEvolutionChoices(R:Rules,r:UnitRecord){
+  if(r.stage>=3)return [];
+  const beforeStats=statsOf(R,r),beforeSkills=slotSkills(R,r),beforePromo=promoSkills(R,r);
+  return stableEvoChoices(R,r).map(a=>{
+    const next:UnitRecord={...structuredClone(r),stage:(r.stage+1) as Stage,evoAugs:[...r.evoAugs,a.id]};
+    return {...a,preview:{fromStage:r.stage,toStage:next.stage,beforeStats:{...beforeStats},afterStats:statsOf(R,next),beforeSkills:structuredClone(beforeSkills),afterSkills:structuredClone(slotSkills(R,next)),beforePromo:structuredClone(beforePromo),afterPromo:structuredClone(promoSkills(R,next)),restoresHp:true,cost:0}};
+  });
+}
 interface Fight {id:string;player:string;b:Battle;keys:string[];mode:string;stage?:string;revision:number;exp:number;events:PvpEvent[];match?:string;matchInfo?:{mode:string;level:number;mineName:string;foeName:string;foeTier:string|null;bot:boolean;pointBefore:number;pointAfterStart:number};result?:unknown;done:boolean;chooseDeadline?:number;timer?:ReturnType<typeof setTimeout>}
 const action=z.union([z.object({kind:z.literal('skill'),skillId:z.string().max(40)}).strict(),z.object({kind:z.literal('switch'),to:z.number().int().min(0).max(2)}).strict(),z.object({kind:z.literal('item'),item:z.string().max(30),target:z.number().int().min(0).max(2).optional()}).strict()]);
 const turn=z.object({session:z.string().max(40),revision:z.number().int().min(0),action:action.optional(),choose:z.object({augment:z.string().max(30).optional(),switchTo:z.number().int().min(0).max(2).optional()}).strict().optional(),reroll:z.number().int().min(0).max(2).optional(),leave:z.boolean().optional()}).strict().refine(b=>[b.action,b.choose,b.reroll,b.leave].filter(x=>x!==undefined).length===1);
@@ -89,7 +98,7 @@ export function registerNative(app:FastifyInstance,game:GameService,root:string,
     canLearn:learnOffers(R,r).length>0,canPromote:promoSkills(R,r).length>0,canEvolve:canEvolve(R,r,parts(s)),
     promotionNeed:{level:r.stage<3?(R.data.growth.evolveLevel as number[])[r.stage]:null,clearedParts:parts(s),needParts:r.stage<3?r.stage+1:null,stage:r.stage},
   });
-  const detail=(key:string,s:Save,owned:Map<string,string>)=>{const r=rec(key,s,owned);return {...r,...growthInfo(r,s),key,stats:statsOf(R,r),role:R.unitDef(r.id)!.role,attrCode:R.unitDef(r.id)!.attr,synergy:content.map.get(r.id)?.synergy??null,image:image(r.id,'front',r.stage),hp:Math.round(statsOf(R,r).hp*hp(s,key)),maxHp:statsOf(R,r).hp,xpNext:xpToNext(R,r.level),attr:R.attrName(R.unitDef(r.id)!.attr),skills:slotSkills(R,r),learn:learnOffers(R,r),promo:promoSkills(R,r),evolve:canEvolve(R,r,parts(s))?stableEvoChoices(R,r):[]};};
+  const detail=(key:string,s:Save,owned:Map<string,string>)=>{const r=rec(key,s,owned);return {...r,...growthInfo(r,s),key,stats:statsOf(R,r),role:R.unitDef(r.id)!.role,attrCode:R.unitDef(r.id)!.attr,synergy:content.map.get(r.id)?.synergy??null,image:image(r.id,'front',r.stage),hp:Math.round(statsOf(R,r).hp*hp(s,key)),maxHp:statsOf(R,r).hp,xpNext:xpToNext(R,r.level),attr:R.attrName(R.unitDef(r.id)!.attr),skills:slotSkills(R,r),learn:learnOffers(R,r),promo:promoSkills(R,r),evolve:canEvolve(R,r,parts(s))?nativeEvolutionChoices(R,r):[]};};
   const sources=Object.fromEntries(content.characters.map(c=>[c.id,game.sourceText(c.id)]));
   route('GET','catalog',async id=>{
     const [me,craft,collected]=await Promise.all([game.webMe(id),game.webCraftInfo(id),game.webCollectionIds(id)]);
@@ -188,7 +197,7 @@ export function registerNative(app:FastifyInstance,game:GameService,root:string,
     let committed=false;
     if(next.phase==='over'){
       if(f.mode==='story'){const s=await read(id),o=await mine(id),won=next.winner===0,st=stages.find(st=>st.id===f.stage)!;const first=won&&!s.cleared.includes(st.id);if(first)s.cleared.push(st.id);const xp=v.leave?0:battleXp(R,st.enemy.reduce((n,e)=>n+e.level,0)/st.enemy.length,won);const ups:string[]=[];const growth:unknown[]=[];
-        next.sides[0].fighters.forEach((fighter,i)=>{const key=f.keys[i];if(!o.has(key))return;const r=rec(key,s,o),before=r.level;addXp(R,r,xp);keep(s,key,r);s.hp[key]={f:r.level>before?1:fighter.hp/fighter.maxHp,at:Date.now()};if(r.level>before)ups.push(`${r.name} Lv${before} → ${r.level} · 체력 회복`);growth.push({key,...growthInfo(r,s),name:r.name,stage:r.stage,learn:learnOffers(R,r),promo:promoSkills(R,r),evolve:canEvolve(R,r,parts(s))?stableEvoChoices(R,r):[],fromLevel:before,level:r.level,xp:r.xp,xpNext:xpToNext(R,r.level),gained:xp,hp:Math.round(statsOf(R,r).hp*s.hp[key].f),maxHp:statsOf(R,r).hp,image:image(r.id,'front',r.stage)});});await game.webNativeCommit(id,item,s);committed=true;f.result={won,left:!!v.leave,xp,ups,growth,scene:st.scene??"harbor",foe:st.enemy[0].id,dialog:won?st.after:st.lose??[],chapterClear:won&&first&&st.id===st.chapter.stages.at(-1)!.id?st.chapter.clear??[]:[]};
+        next.sides[0].fighters.forEach((fighter,i)=>{const key=f.keys[i];if(!o.has(key))return;const r=rec(key,s,o),before=r.level;addXp(R,r,xp);keep(s,key,r);s.hp[key]={f:r.level>before?1:fighter.hp/fighter.maxHp,at:Date.now()};if(r.level>before)ups.push(`${r.name} Lv${before} → ${r.level} · 체력 회복`);growth.push({key,...growthInfo(r,s),name:r.name,stage:r.stage,learn:learnOffers(R,r),promo:promoSkills(R,r),evolve:canEvolve(R,r,parts(s))?nativeEvolutionChoices(R,r):[],fromLevel:before,level:r.level,xp:r.xp,xpNext:xpToNext(R,r.level),gained:xp,hp:Math.round(statsOf(R,r).hp*s.hp[key].f),maxHp:statsOf(R,r).hp,image:image(r.id,'front',r.stage)});});await game.webNativeCommit(id,item,s);committed=true;f.result={won,left:!!v.leave,xp,ups,growth,scene:st.scene??"harbor",foe:st.enemy[0].id,dialog:won?st.after:st.lose??[],chapterClear:won&&first&&st.id===st.chapter.stages.at(-1)!.id?st.chapter.clear??[]:[]};
       }else if(f.match&&!v.leave)f.result=await game.webPvpResult(id,R,f.match,events);
       else if(f.match&&v.leave){const d=await game.webPvp(id);f.result={won:false,left:true,mode:f.mode,xp:0,change:f.mode==='rank'?(f.matchInfo?.pointAfterStart??d.me.point)-(f.matchInfo?.pointBefore??d.me.point):0,...d.me};}
       else f.result={won:next.winner===0,left:!!v.leave,xp:0};f.done=true;

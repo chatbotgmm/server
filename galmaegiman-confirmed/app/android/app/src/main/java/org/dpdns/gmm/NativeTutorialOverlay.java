@@ -49,9 +49,9 @@ final class NativeTutorialOverlay extends FrameLayout implements FullBleed {
     setElevation(h.dp(20));
     setContentDescription(title + " · " + message);
     MenuKit k = new MenuKit(h);
-    progress = h.text("①  ②  ③  ④  ⑤  ·  " + Math.min(5, step) + " / 5", 15);
-    progress.setTextColor(Color.WHITE);
-    progress.setShadowLayer(h.dp(2), 0, h.dp(1), 0xff3b2614);
+    progress = h.text("수비대 안내 · " + Math.min(5, step) + " / 5", 15);
+    progress.setTextColor(JournalTheme.INK);
+    progress.setBackground(new GamePaperDrawable(h));
     progress.setGravity(Gravity.CENTER);
     addView(progress);
     skip = h.button(hint ? "닫기" : "건너뛰기", skipped);
@@ -174,7 +174,7 @@ final class NativeTutorialOverlay extends FrameLayout implements FullBleed {
         canvas.drawRect(hole.right, hole.top, getWidth(), hole.bottom, paint);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(h.dp(3));
-        paint.setColor(0xffffd45b);
+        paint.setColor(JournalTheme.BRASS);
         canvas.drawRoundRect(hole, h.dp(16), h.dp(16), paint);
         paint.setStyle(Paint.Style.FILL);
       }

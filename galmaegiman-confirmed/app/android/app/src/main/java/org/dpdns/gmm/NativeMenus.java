@@ -51,6 +51,8 @@ final class NativeMenus {
     stageFocusId = "";
     mixDraft.clear();
     library.reset();
+    economy.resetAcquisition();
+    unitReturn = "story";
     teamScrollX = 0;
     extras.guide = 0;
   }
@@ -74,7 +76,7 @@ final class NativeMenus {
   void intro(LinearLayout parent, String icon, String name, String note) {
     LinearLayout row = k.row();
     if (parent.getBackground() == null) {
-      row.setBackground(h.material(0xfffffaf0));
+      row.setBackground(new GamePaperDrawable(h));
       row.setPadding(h.dp(6), h.dp(4), h.dp(6), h.dp(4));
     }
     row.addView(k.image("/duel/icons/" + icon + ".png", 40, 40));
@@ -95,10 +97,10 @@ final class NativeMenus {
     h.base("게임 모드", "modes");
     LinearLayout head = (LinearLayout) h.page.getChildAt(0);
     head.removeAllViews();
-    head.setBackground(null);
+    head.setBackground(new GamePaperDrawable(h));
     head.setPadding(0, 0, 0, 0);
-    h.title.setTextColor(android.graphics.Color.WHITE);
-    h.title.setShadowLayer(h.dp(2), 0, h.dp(1), 0xff5a3418);
+    h.title.setTextColor(JournalTheme.INK);
+    h.title.setShadowLayer(0, 0, 0, Color.TRANSPARENT);
     h.title.setGravity(Gravity.CENTER);
     head.addView(h.title, new LinearLayout.LayoutParams(-1, h.dp(40)));
     LinearLayout[] cols = k.split(.49f);
@@ -113,7 +115,7 @@ final class NativeMenus {
     LinearLayout back = k.row();
     back.setGravity(Gravity.CENTER);
     back.addView(
-        k.painted("btn-back", "돌아가기", h::back), new LinearLayout.LayoutParams(h.dp(104), h.dp(48)));
+        k.action(null, "돌아가기", h::back), new LinearLayout.LayoutParams(h.dp(104), h.dp(48)));
     k.footer(back);
     intro(campaign, "mode-camp", "캠페인", "이야기를 따라 항구를 지키고 갈매미를 성장시켜요.");
     Button story = k.action("u-story", "스토리", () -> h.load("story"));
@@ -333,22 +335,17 @@ final class NativeMenus {
         ImageView backdrop = k.image("/duel/bg/" + scene + ".jpg", 1, 1);
         backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
         card.addView(backdrop, new FrameLayout.LayoutParams(-1, -1));
-        View fade = new View(h);
-        fade.setBackground(
-            new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[] {0x00000000, 0x00000000, 0xe0181716}));
-        card.addView(fade, new FrameLayout.LayoutParams(-1, -1));
         LinearLayout info = k.column();
+        info.setBackground(new GamePaperDrawable(h));
         info.setPadding(h.dp(14), h.dp(12), h.dp(14), h.dp(12));
         TextView name = heading(c.optString("title"), 19);
-        name.setTextColor(Color.WHITE);
+        name.setTextColor(JournalTheme.INK);
         info.addView(name);
         TextView progress = k.note(cleared + " / " + ss.length() + " 완료");
-        progress.setTextColor(0xffeadac4);
+        progress.setTextColor(JournalTheme.MUTED);
         info.addView(progress);
         TextView note = k.note(c.optString("intro"));
-        note.setTextColor(0xfff4eadc);
+        note.setTextColor(JournalTheme.INK);
         note.setMaxLines(2);
         note.setEllipsize(android.text.TextUtils.TruncateAt.END);
         info.addView(note);
@@ -357,11 +354,11 @@ final class NativeMenus {
           TextView need = k.note("잠김 · " + chapterLock.optString("reason"));
           need.setMaxLines(2);
           need.setEllipsize(android.text.TextUtils.TruncateAt.END);
-          need.setTextColor(0xffffd299);
+          need.setTextColor(0xff8b4d13);
           info.addView(need);
         } else if (c.optInt("needStage") > 0) {
           TextView need = k.note("✓ 팀 전원 " + c.optInt("needStage") + "단계 승진");
-          need.setTextColor(0xffa0e1aa);
+          need.setTextColor(0xff276646);
           info.addView(need);
         }
         Button enter =
@@ -415,7 +412,7 @@ final class NativeMenus {
         line.addView(k.image(portraits == null ? "" : portraits.optString(id), 60, 60));
         line.addView(
             heading(
-                (st.optBoolean("cleared") ? "✓ " : st.optBoolean("open") ? "" : "🔒 ")
+                (st.optBoolean("cleared") ? "완료 · " : st.optBoolean("open") ? "" : "잠김 · ")
                     + st.optString("title"),
                 17),
             new LinearLayout.LayoutParams(0, -2, 1));
@@ -699,7 +696,7 @@ final class NativeMenus {
           public void run() {
             if (!label.isAttachedToWindow() || epoch != h.epoch) return;
             label.setText(quotes.get(index++ % quotes.size()));
-            label.setTextColor(0xff6a492e);
+            label.setTextColor(JournalTheme.MUTED);
             label.setMaxLines(2);
             label.setEllipsize(android.text.TextUtils.TruncateAt.END);
             timer.postDelayed(this, 3600);
@@ -801,6 +798,7 @@ final class NativeMenus {
                     || source.equals("story")
                     || source.equals("modes")
                     || source.equals("collection")
+                    || source.equals("acquisition")
                     || source.equals("pvp")
                 ? source
                 : pvp ? "collection" : "story";
@@ -912,7 +910,7 @@ final class NativeMenus {
               LinearLayout step = k.column();
               step.setTag("lineup-slot-" + slot);
               step.setBackground(new GamePanelDrawable(h));
-              step.setPadding(h.dp(5), h.dp(4), h.dp(5), h.dp(4));
+              step.setPadding(h.dp(8), h.dp(8), h.dp(8), h.dp(12));
               step.setGravity(Gravity.CENTER_HORIZONTAL);
               TextView order =
                   h.text(slot == 0 ? "1 · 선봉" : (slot + 1) + "번", h.compact() ? 12 : 16);
@@ -934,8 +932,13 @@ final class NativeMenus {
                 name.setTypeface(h.headline);
                 name.setPadding(0, 0, 0, 0);
                 name.setGravity(Gravity.CENTER);
-                name.setSingleLine(true);
-                name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                name.setSingleLine(false);
+                name.setMaxLines(2);
+                name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
+                name.setTextLocale(Locale.KOREA);
+                if (android.os.Build.VERSION.SDK_INT >= 33)
+                  name.setLineBreakWordStyle(
+                      android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
                 step.addView(name);
                 step.setOnLongClickListener(
                     v -> {
@@ -1006,7 +1009,7 @@ final class NativeMenus {
             if (!pvp && unit.optString("id").equals("D1"))
               NativeTutorialController.anchor(tile, "team-unit");
             tile.setSelected(order >= 0);
-            tile.setPadding(h.dp(6), h.dp(4), h.dp(6), h.dp(4));
+            tile.setPadding(h.dp(8), h.dp(8), h.dp(8), h.dp(12));
             View image = tile.getChildAt(0);
             tile.removeView(image);
             FrameLayout portrait = new FrameLayout(h);
@@ -1014,19 +1017,25 @@ final class NativeMenus {
             if (order >= 0) {
               TextView position = h.text(order == 0 ? "✓ 선봉" : "✓ " + (order + 1) + "번", 12);
               position.setPadding(h.dp(3), 0, h.dp(3), 0);
-              position.setBackground(h.material(order == 0 ? 0xffffda71 : 0xfff1dcb2));
+              position.setBackground(new GamePaperDrawable(h, JournalTheme.TEAL));
+              position.setTextColor(JournalTheme.INK);
               portrait.addView(
                   position,
                   new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
-              tile.setBackground(h.material(0xfffbe8d3));
+              tile.setBackground(new GamePanelDrawable(h));
             }
             tile.addView(
                 portrait, 0, new LinearLayout.LayoutParams(-1, h.dp(h.compact() ? 64 : 110)));
             TextView name = (TextView) tile.getChildAt(1);
             name.setTextSize(h.uiText(h.compact() ? 13 : 15));
             name.setPadding(0, h.dp(2), 0, h.dp(2));
-            name.setSingleLine(true);
-            name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            name.setSingleLine(false);
+            name.setMaxLines(2);
+            name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
+            name.setTextLocale(Locale.KOREA);
+            if (android.os.Build.VERSION.SDK_INT >= 33)
+              name.setLineBreakWordStyle(
+                  android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
             TextView metadata = (TextView) tile.getChildAt(2);
             metadata.setText(
                 unit.optString("attrName", unit.optString("attr")) + " · " + metadata.getText());

@@ -3,17 +3,18 @@ package org.dpdns.gmm;
 import android.graphics.*;
 import android.graphics.drawable.Drawable;
 
-/** GAMEUI의 나무 테두리·그라데이션·바닥 그림자와 눌림 상태. */
+/** 도감 가죽 표지에 밝은 종이·황동 면과 눌림·선택 상태를 함께 표시한다. */
 final class GameButtonDrawable extends Drawable {
-  static final int PAPER = 0xfffffaf0, PRIMARY = 0xffdd9a58;
+  static final int PAPER = JournalTheme.PAPER, PRIMARY = JournalTheme.PRIMARY;
   final MainActivity host;
   final int color;
   final Paint p = new Paint(3);
   final GamePressState state = new GamePressState();
+  private boolean selected;
 
   GameButtonDrawable(MainActivity h, int c) {
     host = h;
-    color = c;
+    color = c == 0xfffffaf0 ? PAPER : c == 0xffdd9a58 ? PRIMARY : c;
   }
 
   @Override
@@ -23,7 +24,12 @@ final class GameButtonDrawable extends Drawable {
 
   @Override
   protected boolean onStateChange(int[] states) {
-    boolean changed = state.update(states);
+    boolean nextSelected = false;
+    for (int value : states)
+      if (value == android.R.attr.state_selected || value == android.R.attr.state_checked)
+        nextSelected = true;
+    boolean changed = state.update(states) | (nextSelected != selected);
+    selected = nextSelected;
     if (changed) invalidateSelf();
     return changed;
   }
@@ -34,54 +40,39 @@ final class GameButtonDrawable extends Drawable {
     r.bottom -= host.dp(3);
     int save = state.begin(c, getBounds(), host.getResources().getDisplayMetrics().density);
     drawSurface(c, r, color, host.dp(16), host.dp(2), state.pressed ? host.dp(1) : host.dp(3), p);
+    if (selected) {
+      r.inset(host.dp(6), host.dp(6));
+      p.setStyle(Paint.Style.STROKE);
+      p.setStrokeWidth(host.dp(2));
+      p.setColor(JournalTheme.TEAL);
+      c.drawRoundRect(r, host.dp(4), host.dp(4), p);
+      p.setStyle(Paint.Style.FILL);
+    }
     state.finish(c, save);
   }
 
   static void drawSurface(
       Canvas c, RectF r, int color, float radius, float border, float depth, Paint p) {
-    int edge = color == 0xfffee500 ? 0xffa89600 : color == PRIMARY ? 0xff7a4e2a : 0xffa8672e;
-    p.setStyle(Paint.Style.FILL);
-    p.setShader(null);
-    p.setColor(edge);
-    RectF shadow = new RectF(r);
-    shadow.offset(0, depth);
-    c.drawRoundRect(shadow, radius, radius, p);
-    int top = color == PRIMARY ? 0xfff0bd85 : color == PAPER ? PAPER : lighten(color, .20f);
-    p.setShader(new LinearGradient(0, r.top, 0, r.bottom, top, color, Shader.TileMode.CLAMP));
-    c.drawRoundRect(r, radius, radius, p);
-    p.setShader(null);
-    p.setStyle(Paint.Style.STROKE);
-    p.setStrokeWidth(border);
-    p.setColor(edge);
-    RectF rim = new RectF(r);
-    rim.inset(border / 2, border / 2);
-    c.drawRoundRect(rim, radius, radius, p);
-    if (color != PAPER) {
-      rim.inset(border, border);
-      p.setStrokeWidth(Math.max(1, border / 2));
-      p.setColor(0x80fff8de);
-      c.drawRoundRect(rim, Math.max(1, radius - border), Math.max(1, radius - border), p);
-    }
-    p.setStyle(Paint.Style.FILL);
-    p.setAlpha(255);
+    int fill = color == 0xfffffaf0 ? PAPER : color == 0xffdd9a58 ? PRIMARY : color;
+    JournalTheme.drawButton(c, r, fill, radius, depth, p);
   }
 
-  static int lighten(int c, float a) {
+  static int lighten(int color, float fraction) {
     return Color.rgb(
-        (int) (Color.red(c) + (255 - Color.red(c)) * a),
-        (int) (Color.green(c) + (255 - Color.green(c)) * a),
-        (int) (Color.blue(c) + (255 - Color.blue(c)) * a));
+        (int) (Color.red(color) + (255 - Color.red(color)) * fraction),
+        (int) (Color.green(color) + (255 - Color.green(color)) * fraction),
+        (int) (Color.blue(color) + (255 - Color.blue(color)) * fraction));
   }
 
   @Override
-  public void setAlpha(int a) {
-    state.alpha = a;
+  public void setAlpha(int value) {
+    state.alpha = value;
     invalidateSelf();
   }
 
   @Override
-  public void setColorFilter(ColorFilter f) {
-    p.setColorFilter(f);
+  public void setColorFilter(ColorFilter value) {
+    p.setColorFilter(value);
     invalidateSelf();
   }
 

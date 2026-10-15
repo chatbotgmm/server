@@ -6,7 +6,7 @@ import android.widget.*;
 import java.util.*;
 import org.json.*;
 
-/** 웹 전투의 기록·상대 능력치·기술·증강체 안내를 네이티브 종이 시트로 제공한다. */
+/** 전투 기록·상대 능력치·기술·증강체를 현장 기록부의 정보면으로 제공한다. */
 final class NativeBattleSheets {
   static LinearLayout column(MainActivity h) {
     LinearLayout col = new LinearLayout(h);
@@ -18,6 +18,17 @@ final class NativeBattleSheets {
   static TextView prose(MainActivity h, String text, int size) {
     TextView t = h.text(text, size);
     t.setTypeface(h.prose);
+    t.setTextLocale(Locale.KOREAN);
+    t.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
+    t.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
+    if (android.os.Build.VERSION.SDK_INT >= 33)
+      t.setLineBreakWordStyle(android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
+    return t;
+  }
+
+  static TextView heading(MainActivity h, String text, int size) {
+    TextView t = h.text(text, size);
+    t.setTypeface(h.headline);
     return t;
   }
 
@@ -34,15 +45,25 @@ final class NativeBattleSheets {
 
   static AlertDialog show(BattleView v, String title, LinearLayout content) {
     MainActivity h = v.host;
-    ScrollView scroll = new ScrollView(h);
-    scroll.addView(content);
-    int maxHeight =
+    final int maxHeight =
         Math.max(
             h.dp(120),
             (int) h.safeBounds(h.root.getWidth(), h.root.getHeight()).height() - h.dp(150));
-    scroll.setLayoutParams(new ViewGroup.LayoutParams(-1, maxHeight));
+    ScrollView scroll =
+        new ScrollView(h) {
+          @Override
+          protected void onMeasure(int widthSpec, int heightSpec) {
+            int offered =
+                MeasureSpec.getMode(heightSpec) == MeasureSpec.UNSPECIFIED
+                    ? maxHeight
+                    : Math.min(maxHeight, MeasureSpec.getSize(heightSpec));
+            super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(offered, MeasureSpec.AT_MOST));
+          }
+        };
+    scroll.setFillViewport(false);
+    scroll.addView(content);
     FrameLayout wrap = new FrameLayout(h);
-    wrap.addView(scroll, new FrameLayout.LayoutParams(-1, maxHeight));
+    wrap.addView(scroll, new FrameLayout.LayoutParams(-1, -2));
     AlertDialog dialog =
         new GameDialog(h).setTitle(title).setView(wrap).setPositiveButton("닫기", null).show();
     if (dialog.getWindow() != null)
@@ -89,7 +110,8 @@ final class NativeBattleSheets {
     for (int i = 0; i < lines.length(); i++) {
       TextView line = prose(h, "", 17);
       line.setText(NativeBattleLog.historyLine(h, lines.optString(i), events, start + i));
-      line.setBackground(i % 2 == 0 ? new GamePaperDrawable(h) : null);
+      // 한 줄마다 가죽 프레임을 반복하지 않고 기록지 안의 옅은 줄무늬로 구분한다.
+      line.setBackgroundColor(i % 2 == 0 ? 0xffeee2c9 : android.graphics.Color.TRANSPARENT);
       col.addView(line);
     }
     show(v, "전투 기록 · " + v.battle.optInt("turn") + "턴", col);
@@ -151,13 +173,13 @@ final class NativeBattleSheets {
       for (int i = 0; i < ids.length; i++)
         col.addView(prose(h, names[i] + " " + Math.round(stats.optDouble(ids[i])), 16));
     }
-    col.addView(h.text("기술", 20));
+    col.addView(heading(h, "기술", 20));
     JSONArray skills = h.list(f, "skills");
     for (int i = 0; i < skills.length(); i++) {
       JSONObject sk = skills.optJSONObject(i);
       LinearLayout card = column(h);
       card.setBackground(new GamePaperDrawable(h));
-      card.addView(h.text(sk.optString("name"), 18));
+      card.addView(heading(h, sk.optString("name"), 18));
       card.addView(prose(h, SkillCardView.meta(sk) + "\n" + sk.optString("desc"), 15));
       col.addView(card);
     }
@@ -185,18 +207,22 @@ final class NativeBattleSheets {
     MainActivity h = v.host;
     JSONArray augs = h.list(v.side(side), "augments");
     if (augs.length() == 0) return;
-    col.addView(h.text("증강체", 20));
+    col.addView(heading(h, "증강체", 20));
     for (int i = 0; i < augs.length(); i++) {
       JSONObject aug = augs.optJSONObject(i);
+      LinearLayout card = column(h);
+      card.setBackground(new GamePaperDrawable(h));
       TextView name =
-          h.text(
+          heading(
+              h,
               aug.optString("name")
                   + " · "
                   + NativeAugmentView.kindName(NativeAugmentView.kind(aug.optString("id"))),
               18);
       semanticColor(name, NativeAugmentView.color(NativeAugmentView.kind(aug.optString("id"))));
-      col.addView(name);
-      col.addView(prose(h, aug.optString("desc"), 16));
+      card.addView(name);
+      card.addView(prose(h, aug.optString("desc"), 16));
+      col.addView(card, new LinearLayout.LayoutParams(-1, -2));
     }
   }
 
@@ -204,7 +230,7 @@ final class NativeBattleSheets {
     MainActivity h = v.host;
     LinearLayout col = column(h);
     for (int side = 0; side < 2; side++) {
-      col.addView(h.text(side == 0 ? "우리 팀" : "상대 팀", 20));
+      col.addView(heading(h, side == 0 ? "우리 팀" : "상대 팀", 20));
       if (h.list(v.side(side), "augments").length() == 0)
         col.addView(prose(h, "장착한 증강체가 없어요.", 16));
       else appendAugments(v, col, side);

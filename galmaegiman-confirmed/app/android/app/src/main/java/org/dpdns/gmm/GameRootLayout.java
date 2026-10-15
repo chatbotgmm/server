@@ -9,7 +9,7 @@ final class GameRootLayout extends FrameLayout {
   GameRootLayout(Context c) {
     super(c);
     setClipToPadding(false);
-    setBackgroundColor(0xff1f180f);
+    setBackgroundColor(JournalTheme.LEATHER);
   }
 
   @Override

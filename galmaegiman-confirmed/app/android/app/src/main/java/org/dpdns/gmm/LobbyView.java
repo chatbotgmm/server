@@ -6,7 +6,7 @@ import android.widget.*;
 import java.util.*;
 import org.json.*;
 
-/** 웹 로비의 원본 방 레이어·하단 다섯 메뉴·큰 플레이 버튼을 그대로 사용한다. */
+/** 항구 본부의 모험 도감 UI. 원본 캐릭터와 보상·조언·패럴랙스 동작은 유지한다. */
 final class LobbyView extends FrameLayout implements FullBleed {
   final MainActivity host;
   final DragParallax parallax;
@@ -34,20 +34,10 @@ final class LobbyView extends FrameLayout implements FullBleed {
           postDelayed(this, 1000);
         }
       };
-  static final Map<String, float[]> ROOM_GULL = new HashMap<>();
-
-  static {
-    ROOM_GULL.put("attic", new float[] {1633, 195, 2420, 758});
-    ROOM_GULL.put("cabin", new float[] {1348, 208, 2111, 719});
-    ROOM_GULL.put("cafe", new float[] {1609, 310, 2269, 765});
-    ROOM_GULL.put("greenhouse", new float[] {1343, 241, 2128, 781});
-  }
-
   final Map<String, Bitmap> visibleArt = new HashMap<>();
   static final String[] NAMES = {"탐험", "뽑기", "수비대", "조합", "상점"};
   static final String[] IDS = {"expedition", "draw", "collection", "craft", "shop"};
   static final String[] ICONS = {"mode-camp", "u-draw", "mode-normal", "u-emblem", "u-shop"};
-  static final int[] COLORS = {0xffa9d3a4, 0xfff29aa6, 0xffb9a2dc, 0xff9fcbe6, 0xfff5a98f};
   final RectF[] boxes = new RectF[12];
 
   static String room(MainActivity host) {
@@ -62,8 +52,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
       host.art.scene("/duel/bg/" + room(host) + layer, () -> {});
     for (String icon :
         new String[] {
-          "btn-play",
-          "btn-attend",
+          "u-story",
           "u-profile",
           "u-snack",
           "u-peanut",
@@ -129,8 +118,16 @@ final class LobbyView extends FrameLayout implements FullBleed {
                           host.battleScreen();
                         } else host.load("home");
                       }));
-      LayoutParams lp = new LayoutParams(-2, host.dp(48), Gravity.TOP | Gravity.CENTER_HORIZONTAL);
-      lp.topMargin = host.dp(68);
+      LayoutParams lp =
+          new LayoutParams(
+              Math.min(
+                  host.dp(350),
+                  Math.round(host.getResources().getDisplayMetrics().widthPixels * .37f)),
+              host.dp(48),
+              Gravity.TOP | Gravity.LEFT);
+      lp.leftMargin = host.dp(12);
+      lp.topMargin = host.dp(72);
+      resume.setTag("lobby-resume");
       addView(resume, lp);
     }
   }
@@ -211,9 +208,13 @@ final class LobbyView extends FrameLayout implements FullBleed {
               h - margin - bh,
               margin + i * (menuW + gap) + menuW,
               h - margin);
-    boxes[5] =
-        new RectF(w - margin - playW, h - margin - playW * 180 / 535, w - margin, h - margin);
-    boxes[6] = new RectF(margin, h * .42f, margin + bh * 1.4f, h * .42f + bh * 1.45f);
+    boxes[5] = new RectF(w - margin - playW, h - margin - bh, w - margin, h - margin);
+    boxes[6] =
+        new RectF(
+            margin,
+            h - margin - bh - host.dp(62),
+            margin + Math.min(host.dp(154), w * .20f),
+            h - margin - bh - host.dp(12));
     boxes[7] = new RectF(margin, host.dp(10), Math.min(w * .33f, host.dp(265)), host.dp(62));
     boxes[8] = new RectF(w - margin - host.dp(52), host.dp(8), w - margin, host.dp(60));
     float curW = Math.min(host.dp(116), w * .11f);
@@ -321,130 +322,262 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   void panel(Canvas c, RectF r, int color) {
-    panel(c, r, color, host.dp(5));
+    JournalTheme.drawPanel(c, r, host.getResources().getDisplayMetrics().density, color, true);
   }
 
-  void panel(Canvas c, RectF r, int color, float depth) {
-    GameButtonDrawable.drawSurface(c, r, 0xffe2a764, host.dp(14), host.dp(2), depth, p);
-    RectF inside = new RectF(r);
-    inside.inset(host.dp(5), host.dp(5));
-    GameButtonDrawable.drawSurface(c, inside, color, host.dp(10), host.dp(1), 0, p);
-  }
-
-  void label(Canvas c, String text, float x, float y, float size, boolean outline) {
-    p.setTypeface(outline ? host.headline : host.font);
+  void label(Canvas c, String text, float x, float y, float size, boolean heading) {
+    p.setShader(null);
+    p.setStyle(Paint.Style.FILL);
+    p.setAlpha(255);
+    p.setTypeface(heading ? host.headline : host.prose);
     p.setTextSize(size);
     p.setTextAlign(Paint.Align.CENTER);
-    if (outline) {
-      p.setStyle(Paint.Style.STROKE);
-      p.setStrokeWidth(host.dp(3));
-      p.setColor(0xff5a3418);
-      c.drawText(text, x, y, p);
-      p.setStyle(Paint.Style.FILL);
-    }
-    p.setColor(outline ? Color.WHITE : MainActivity.INK);
+    p.setColor(JournalTheme.INK);
     c.drawText(text, x, y, p);
+  }
+
+  String fitted(String text, float width, float size, boolean heading) {
+    p.setTypeface(heading ? host.headline : host.prose);
+    p.setTextSize(size);
+    if (p.measureText(text) <= width) return text;
+    String value = text;
+    while (value.length() > 1 && p.measureText(value + "…") > width)
+      value = value.substring(0, value.length() - 1);
+    return value + "…";
+  }
+
+  void command(Canvas c, int index, String name, String icon, boolean primary) {
+    RectF r = new RectF(boxes[index]);
+    boolean pressed = buttons.get(index).isPressed();
+    if (pressed) r.offset(0, host.dp(2));
+    JournalTheme.drawButton(
+        c,
+        r,
+        primary ? GameButtonDrawable.PRIMARY : JournalTheme.PAPER,
+        host.dp(13),
+        pressed ? host.dp(1) : host.dp(4),
+        p);
+    float size = Math.min(host.dp(32), r.height() * .48f);
+    if (icon != null)
+      fit(
+          c,
+          image("icons/" + icon + ".png"),
+          new RectF(
+              r.left + host.dp(11),
+              r.centerY() - size / 2,
+              r.left + host.dp(11) + size,
+              r.centerY() + size / 2));
+    float left = r.left + (icon == null ? host.dp(10) : host.dp(16) + size);
+    float textSize = Math.min(host.dp(primary ? 24 : 19), r.width() * (primary ? .16f : .17f));
+    label(
+        c,
+        fitted(name, r.right - left - host.dp(10), textSize, true),
+        (left + r.right - host.dp(8)) / 2,
+        r.centerY() + textSize * .32f,
+        textSize,
+        true);
+  }
+
+  RectF backgroundBox(Bitmap bg) {
+    float s = Math.max(getWidth() / (float) bg.getWidth(), getHeight() / (float) bg.getHeight());
+    s *= 1.035f;
+    float width = bg.getWidth() * s, height = bg.getHeight() * s;
+    return new RectF(
+        (getWidth() - width) / 2,
+        (getHeight() - height) / 2,
+        (getWidth() + width) / 2,
+        (getHeight() + height) / 2);
+  }
+
+  RectF heroBox() {
+    RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
+    Bitmap bg = host.art.asset("journal/headquarters.png");
+    RectF backdrop =
+        bg == null ? new RectF(0, 0, getMeasuredWidth(), getMeasuredHeight()) : backgroundBox(bg);
+    float center = backdrop.left + backdrop.width() * .72f,
+        foot = backdrop.top + backdrop.height() * .76f;
+    float width = Math.min(safe.width() * .40f, host.dp(500)),
+        height = Math.min(safe.height() * .61f, host.dp(420));
+    center =
+        Math.min(safe.right - host.dp(14) - width / 2, Math.max(safe.left + width / 2, center));
+    // 발은 배경 속 받침대에 놓는다. 하단 메뉴 기준으로 올리면 짧은 화면에서 공중에 뜬다.
+    return new RectF(
+        center - width / 2,
+        Math.max(safe.top + host.dp(82), foot - height),
+        center + width / 2,
+        foot);
+  }
+
+  void character(Canvas c) {
+    String path = "bg/" + room + "char.webp";
+    Bitmap bitmap = image(path);
+    if (bitmap == null) return;
+    Rect source = host.art.alpha(bitmap, "/duel/" + path);
+    RectF area = heroBox();
+    float pulse = motion.pulse(3600, 0);
+    float scale = Math.min(area.width() / source.width(), area.height() / source.height());
+    float width = source.width() * scale * (1 + .004f * pulse),
+        height = source.height() * scale * (1 - .004f * pulse);
+    RectF target =
+        new RectF(
+            area.centerX() - width / 2,
+            area.bottom - height,
+            area.centerX() + width / 2,
+            area.bottom);
+    target.offset(parallax.x, parallax.y - getHeight() * .005f * pulse);
+    p.setShader(null);
+    p.setAlpha(255);
+    c.drawBitmap(bitmap, source, target, p);
+  }
+
+  void loosePaper(Canvas c) {
+    // 배경 소품만 중간 깊이로 움직이고 기록 카드와 모든 누르는 요소는 고정한다.
+    float width = host.dp(116), height = host.dp(46);
+    RectF safe = host.safeBounds(getWidth(), getHeight());
+    RectF page =
+        new RectF(
+            safe.left + safe.width() * .16f,
+            safe.bottom - host.dp(116),
+            safe.left + safe.width() * .16f + width,
+            safe.bottom - host.dp(116) + height);
+    c.save();
+    c.translate(parallax.x * .55f, parallax.y * .55f);
+    c.rotate(-7, page.centerX(), page.centerY());
+    p.setShader(null);
+    p.setStyle(Paint.Style.FILL);
+    p.setColor(0xfff3e8d3);
+    c.drawRoundRect(page, host.dp(3), host.dp(3), p);
+    p.setStyle(Paint.Style.STROKE);
+    p.setStrokeWidth(host.dp(1));
+    p.setColor(0xffbca783);
+    c.drawRoundRect(page, host.dp(3), host.dp(3), p);
+    p.setStyle(Paint.Style.FILL);
+    c.restore();
+  }
+
+  void ledger(Canvas c) {
+    JSONArray team = host.list(host.state, "team");
+    JSONObject lead = team.length() == 0 ? null : host.unit(team.optString(0));
+    RectF safe = host.safeBounds(getWidth(), getHeight());
+    float top = boxes[7].bottom + host.dp(host.state.optBoolean("activeBattle") ? 76 : 18),
+        bottom = Math.min(top + host.dp(186), boxes[6].top - host.dp(14));
+    if (bottom - top < host.dp(112)) return;
+    RectF r =
+        new RectF(
+            safe.left + host.dp(12),
+            top,
+            safe.left + Math.min(host.dp(410), safe.width() * .37f),
+            bottom);
+    panel(c, r, JournalTheme.PAPER);
+    float left = r.left + host.dp(18), right = r.right - host.dp(18);
+    label(c, "오늘의 근무 기록", r.centerX(), r.top + host.dp(27), host.dp(12), false);
+    String name =
+        lead == null
+            ? "첫 수비대를 편성해요"
+            : lead.optString("name", "갈매미") + " · Lv" + lead.optInt("level", 1);
+    label(
+        c,
+        fitted(name, right - left, host.dp(17), true),
+        r.centerX(),
+        r.top + host.dp(54),
+        host.dp(17),
+        true);
+    String growth = "수비대에서 동료를 골라요";
+    if (lead != null) {
+      if (host.list(lead, "evolve").length() > 0) growth = "승진할 수 있어요";
+      else if (host.list(lead, "learn").length() > 0 || host.list(lead, "promo").length() > 0)
+        growth = "새 기술을 배울 수 있어요";
+      else
+        growth =
+            "경험치 "
+                + String.format(
+                    Locale.KOREA, "%,d / %,d", lead.optInt("xp"), lead.optInt("xpNext"));
+    }
+    label(
+        c,
+        fitted(growth, right - left, host.dp(13), false),
+        r.centerX(),
+        r.top + host.dp(78),
+        host.dp(13),
+        false);
+    RectF track = new RectF(left, r.top + host.dp(90), right, r.top + host.dp(98));
+    p.setColor(0xffd9cdae);
+    c.drawRoundRect(track, host.dp(4), host.dp(4), p);
+    float progress =
+        lead == null || lead.optInt("xpNext") <= 0
+            ? 0
+            : Math.max(0, Math.min(1, lead.optInt("xp") / (float) lead.optInt("xpNext")));
+    if (progress > 0) {
+      p.setColor(JournalTheme.TEAL);
+      c.drawRoundRect(
+          new RectF(track.left, track.top, track.left + track.width() * progress, track.bottom),
+          host.dp(4),
+          host.dp(4),
+          p);
+    }
+    if (r.height() > host.dp(142))
+      label(c, "한 마리씩, 차근차근.", r.centerX(), r.bottom - host.dp(21), host.dp(13), false);
   }
 
   @Override
   protected void onDraw(Canvas c) {
-    int w = getWidth(), h = getHeight();
-    Bitmap fallback = host.art.asset("harbor.jpg");
-    if (fallback != null) {
-      float scale = Math.max(w / (float) fallback.getWidth(), h / (float) fallback.getHeight());
-      float bw = fallback.getWidth() * scale, bh = fallback.getHeight() * scale;
-      c.drawBitmap(
-          fallback, null, new RectF((w - bw) / 2, (h - bh) / 2, (w + bw) / 2, (h + bh) / 2), p);
-    }
-    for (String layer : new String[] {"base.jpg", "plat.webp", "char.webp"}) {
-      Bitmap bg = image("bg/" + room + layer);
-      if (bg == null) continue;
-      float depth = layer.equals("base.jpg") ? .25f : layer.equals("plat.webp") ? .55f : 1f;
-      float s = Math.max(w / (float) bg.getWidth(), h / (float) bg.getHeight());
-      if (layer.equals("base.jpg")) s *= 1.035f;
-      float bw = bg.getWidth() * s, bh = bg.getHeight() * s;
-      RectF r = new RectF((w - bw) / 2, (h - bh) / 2, (w + bw) / 2, (h + bh) / 2);
-      r.offset(parallax.x * depth, parallax.y * depth);
-      c.save();
-      if (layer.equals("char.webp")) {
-        float pulse = motion.pulse(3600, 0);
-        c.translate(0, -getHeight() * .005f * pulse);
-        c.scale(1 + .004f * pulse, 1 - .004f * pulse, getWidth() * .62f, getHeight() * .8f);
-      }
-      c.drawBitmap(bg, null, r, p);
-      c.restore();
-    }
-    for (int i = 0; i < 5; i++) {
-      RectF r = new RectF(boxes[i]);
-      boolean pressed = buttons.get(i).isPressed();
-      if (pressed) r.offset(0, host.dp(2));
-      panel(c, r, COLORS[i], pressed ? host.dp(3) : host.dp(5));
-      float size = Math.min(host.dp(36), r.width() * .28f);
-      fit(
-          c,
-          image("icons/" + ICONS[i] + ".png"),
-          new RectF(
-              r.left + host.dp(9),
-              r.centerY() - size / 2,
-              r.left + host.dp(9) + size,
-              r.centerY() + size / 2));
-      label(
-          c,
-          NAMES[i],
-          r.left + r.width() * .63f,
-          r.centerY() + host.dp(6),
-          Math.min(host.dp(22), r.width() * .18f),
-          true);
-    }
-    fit(c, image("icons/btn-play.png"), boxes[5]);
-    fit(c, image("icons/btn-attend.png"), boxes[6]);
+    super.onDraw(c);
+    Bitmap background = host.art.asset("journal/headquarters.png");
+    if (background != null) {
+      RectF target = backgroundBox(background);
+      target.offset(parallax.x * .25f, parallax.y * .25f);
+      p.setShader(null);
+      p.setAlpha(255);
+      c.drawBitmap(background, null, target, p);
+    } else c.drawColor(JournalTheme.LEATHER);
+    loosePaper(c);
+    character(c);
+    ledger(c);
+    for (int i = 0; i < 5; i++) command(c, i, NAMES[i], ICONS[i], false);
+    command(c, 5, "플레이", "u-story", true);
+    command(c, 6, "출석·미션", null, false);
+    command(c, 8, "설정", null, false);
     RectF profile = boxes[7];
-    panel(c, profile, 0xfffffaf0);
+    panel(c, profile, JournalTheme.PAPER);
     fit(
         c,
         image("icons/u-profile.png"),
         new RectF(
-            profile.left + host.dp(5),
-            profile.top + host.dp(7),
+            profile.left + host.dp(9),
+            profile.top + host.dp(10),
             profile.left + host.dp(39),
-            profile.bottom - host.dp(7)));
+            profile.bottom - host.dp(10)));
     String nick = host.me().optString("nickname", "수비조장");
-    float nickWidth = profile.width() - host.dp(58);
-    p.setTypeface(host.font);
-    p.setTextSize(host.dp(17));
-    while (nick.length() > 1 && p.measureText(nick) > nickWidth)
-      nick = nick.substring(0, nick.length() - 1);
     float cx = (profile.left + host.dp(43) + profile.right - host.dp(7)) / 2;
-    label(c, nick, cx, profile.top + host.dp(24), host.dp(17), false);
-    p.setTypeface(host.prose);
-    p.setTextSize(host.dp(11));
-    p.setTextAlign(Paint.Align.CENTER);
-    p.setColor(MainActivity.INK);
-    c.drawText(profileSummary(), cx, profile.bottom - host.dp(9), p);
-    fit(c, host.art.asset("title_settings_button_base.webp"), boxes[8]);
-    fit(c, host.art.asset("title_settings_gear.webp"), boxes[8]);
+    label(
+        c,
+        fitted(nick, profile.width() - host.dp(58), host.dp(17), true),
+        cx,
+        profile.top + host.dp(24),
+        host.dp(17),
+        true);
+    label(c, profileSummary(), cx, profile.bottom - host.dp(9), host.dp(11), false);
     String[] keys = {"snack", "peanut", "credits"}, icons = {"u-snack", "u-peanut", "u-ticket"};
     for (int i = 0; i < 3; i++) {
       RectF r = boxes[9 + i];
-      panel(c, r, 0xfffffaf0);
+      panel(c, r, JournalTheme.PAPER);
       fit(
           c,
           image("icons/" + icons[i] + ".png"),
           new RectF(
-              r.left + host.dp(5),
-              r.top + host.dp(11),
-              r.left + host.dp(25),
-              r.bottom - host.dp(11)));
+              r.left + host.dp(9),
+              r.top + host.dp(12),
+              r.left + host.dp(29),
+              r.bottom - host.dp(12)));
       String amount = String.format(Locale.KOREA, "%,d", host.me().optInt(keys[i]));
       label(
           c,
           amount,
-          r.left + r.width() * .61f,
+          r.left + r.width() * .64f,
           r.centerY() + host.dp(5),
           Math.min(host.dp(15), r.width() / Math.max(5, amount.length())),
-          false);
+          true);
     }
-    // 버튼 위 꼬리표는 실제 진행을 보고, 아직 열려 있는 첫 스테이지를 표시한다.
     String next = "모든 이야기 완료";
     JSONArray chapters = host.list(host.state, "chapters");
     outer:
@@ -459,14 +592,16 @@ final class LobbyView extends FrameLayout implements FullBleed {
       }
     }
     RectF play = boxes[5];
-    RectF tag = new RectF(play.left, play.top - host.dp(42), play.right, play.top - host.dp(5));
-    panel(c, tag, 0xfffffaf0);
-    p.setTypeface(host.font);
-    p.setTextSize(host.dp(13));
-    while (next.length() > 1 && p.measureText(next) > tag.width() - host.dp(18))
-      next = next.substring(0, next.length() - 1);
-    label(c, "다음 이야기", tag.centerX(), tag.top + host.dp(13), host.dp(10), false);
-    label(c, next, tag.centerX(), tag.bottom - host.dp(8), host.dp(13), false);
+    RectF tag = new RectF(play.left, play.top - host.dp(52), play.right, play.top - host.dp(7));
+    panel(c, tag, JournalTheme.PAPER);
+    label(c, "다음 이야기", tag.centerX(), tag.top + host.dp(16), host.dp(9), false);
+    label(
+        c,
+        fitted(next, tag.width() - host.dp(26), host.dp(12), true),
+        tag.centerX(),
+        tag.bottom - host.dp(10),
+        host.dp(12),
+        true);
     for (int i = 0; i < badges.length; i++) if (badges[i]) dot(c, boxes[i]);
   }
 
@@ -571,11 +706,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   RectF gullBox() {
-    float[] bounds = ROOM_GULL.get(room);
-    float scale = Math.max(getMeasuredWidth() / 2640f, getMeasuredHeight() / 1080f);
-    float x = (getMeasuredWidth() - 2640 * scale) / 2, y = (getMeasuredHeight() - 1080 * scale) / 2;
-    return new RectF(
-        x + bounds[0] * scale, y + bounds[1] * scale, x + bounds[2] * scale, y + bounds[3] * scale);
+    return heroBox();
   }
 
   String[] gullTips() {

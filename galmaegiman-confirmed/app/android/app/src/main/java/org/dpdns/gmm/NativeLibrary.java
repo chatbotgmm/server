@@ -707,13 +707,10 @@ final class NativeLibrary {
           skill(
               old,
               "잊을 기술",
-              () ->
-                  h.confirm(
-                      "「" + old.optString("name") + "」을 잊고 「" + next.optString("name") + "」을 배울까요?",
-                      () -> {
-                        popup[0].dismiss();
-                        commitLearning(key, kind, next.optString("id"), old.optString("id"));
-                      })));
+              () -> {
+                popup[0].dismiss();
+                compareReplacement(key, kind, old, next);
+              }));
     }
     k.tiles(content, choices, 2);
     popup[0] =
@@ -722,6 +719,29 @@ final class NativeLibrary {
             .setView(k.scroll(content))
             .setNegativeButton("다시 고르기", (d, which) -> skillChoice(key, kind))
             .show();
+  }
+
+  LinearLayout comparisonScroll(View content) {
+    LinearLayout container = k.column();
+    ScrollView scroll = k.scroll(content);
+    scroll.setTag("growth-comparison-scroll");
+    int available = Math.max(144, h.contentHeightDp() - 180);
+    container.addView(
+        scroll,
+        new LinearLayout.LayoutParams(-1, h.dp(Math.min(h.compact() ? 210 : 420, available))));
+    return container;
+  }
+
+  void compareReplacement(String key, String kind, JSONObject old, JSONObject next) {
+    LinearLayout content = new NativeGrowthComparison(h, k).skills(old, next);
+    new GameDialog(h)
+        .setTitle("기술 교체 비교")
+        .setView(comparisonScroll(content))
+        .setNegativeButton("다시 선택", (d, which) -> forgetChoice(key, kind, next))
+        .setPositiveButton(
+            "교체 확정",
+            (d, which) -> commitLearning(key, kind, next.optString("id"), old.optString("id")))
+        .show();
   }
 
   void commitLearning(String key, String kind, String skill, String replace) {
@@ -756,7 +776,7 @@ final class NativeLibrary {
     JSONArray evolve = h.list(unit, "evolve");
     if (evolve.length() == 0) return;
     LinearLayout options = k.column();
-    options.addView(k.notice("직무 표창을 하나 골라요. 선택한 표창은 바꿀 수 없어요."));
+    options.addView(k.notice("직무 표창을 하나 골라요. 능력치와 전용 기술을 비교한 뒤 확정할 수 있어요."));
     options.addView(k.note("재화 소모 없음 · 승진하면 체력이 가득 회복돼요."));
     android.app.AlertDialog[] popup = {null};
     for (int i = 0; i < evolve.length(); i++) {
@@ -764,20 +784,66 @@ final class NativeLibrary {
       LinearLayout card = k.paper();
       card.addView(heading(choice.optString("name"), 19));
       card.addView(k.note(choice.optString("desc")));
-      card.addView(
+      Button preview =
           k.action(
-              "u-gift",
-              "이 표창으로 승진",
-              () ->
-                  h.confirm(
-                      "「" + choice.optString("name") + "」을 받고 승진할까요?\n재화 소모 없음 · 체력 가득 회복",
-                      () -> {
+              "learn",
+              "승진 미리 보기",
+              () -> {
+                popup[0].dismiss();
+                comparePromotion(key, choice);
+              });
+      preview.setTag("promotion-preview-" + choice.optString("id"));
+      card.addView(preview);
+      options.addView(card);
+    }
+    popup[0] =
+        new GameDialog(h)
+            .setTitle((unit.optInt("stage") + 1) + "단계 승진 · 직무 표창")
+            .setView(comparisonScroll(options))
+            .setNegativeButton("나중에", null)
+            .show();
+  }
+
+  void comparePromotion(String key, JSONObject choice) {
+    if (!NativeGrowthComparison.hasPreview(choice)) {
+      // 전후 능력치를 앱에서 추정하지 않는다. 서버가 준 현재 선택지를 다시 확인한다.
+      m.fetch(
+          "native/state",
+          updated -> {
+            h.state = updated;
+            h.stateUpdated();
+            JSONArray choices = h.list(h.unit(key), "evolve");
+            for (int i = 0; i < choices.length(); i++) {
+              JSONObject fresh = choices.optJSONObject(i);
+              if (fresh.optString("id").equals(choice.optString("id"))
+                  && NativeGrowthComparison.hasPreview(fresh)) {
+                comparePromotion(key, fresh);
+                return;
+              }
+            }
+            h.message("승진 정보를 새로 확인했어요. 다시 표창을 골라 주세요.");
+            unit(key);
+          });
+      return;
+    }
+    LinearLayout content = new NativeGrowthComparison(h, k).promotion(h.unit(key), choice);
+    new GameDialog(h)
+        .setTitle("승진 전후 비교")
+        .setView(comparisonScroll(content))
+        .setNegativeButton("다시 선택", (d, which) -> promotion(key))
+        .setPositiveButton(
+            "승진 확정",
+            (d, which) ->
+                h.confirm(
+                    "「"
+                        + choice.optString("name")
+                        + "」을 받고 승진할까요?\n직무 표창은 바꿀 수 없어요.\n재화 소모 없음 · 체력 가득 회복",
+                    () ->
                         h.request(
                             "native/growth",
                             MainActivity.obj(
                                 "key", key, "kind", "evolve", "augment", choice.optString("id")),
                             (r, e) -> {
-                              popup[0].dismiss();
                               h.sound.effect("levelup");
                               m.fetch(
                                   "native/state",
@@ -787,16 +853,8 @@ final class NativeLibrary {
                                     unit(key);
                                     promotionSuccess(key, choice.optString("name"));
                                   });
-                            });
-                      })));
-      options.addView(card);
-    }
-    popup[0] =
-        new GameDialog(h)
-            .setTitle((unit.optInt("stage") + 1) + "단계 승진 · 직무 표창")
-            .setView(k.scroll(options))
-            .setNegativeButton("나중에", null)
-            .show();
+                            })))
+        .show();
   }
 
   void promotionSuccess(String key, String award) {

@@ -47,7 +47,7 @@ final class NativeOperationUi {
           paper.setPadding(host.dp(18), host.dp(14), host.dp(18), host.dp(14));
           paper.setBackground(new GamePaperDrawable(host));
           ProgressBar spinner = new ProgressBar(host);
-          spinner.setIndeterminateTintList(ColorStateList.valueOf(0xffa8672e));
+          spinner.setIndeterminateTintList(ColorStateList.valueOf(JournalTheme.TEAL));
           paper.addView(spinner, new LinearLayout.LayoutParams(host.dp(28), host.dp(28)));
           TextView status = host.text(label, 17);
           status.setTypeface(host.prose);

@@ -52,6 +52,10 @@ final class SkillCardView extends FrameLayout {
     content.setOrientation(LinearLayout.VERTICAL);
     content.setPadding(h.dp(9), h.dp(7), h.dp(8), h.dp(6));
     title = label(h, name, large ? 25 : 19, true);
+    if (combo) {
+      title.setCompoundDrawables(new ComboEmblem(h), null, null, null);
+      title.setCompoundDrawablePadding(h.dp(6));
+    }
     title.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
     title.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
     // 제목은 상세 버튼과 폭을 나누지 않는다. 긴 이름도 줄바꿈해 전부 보여 준다.
@@ -62,10 +66,10 @@ final class SkillCardView extends FrameLayout {
             combo ? "합동기 · 전투당 한 번" : shortKind(kind) + " · " + categoryMeta(sk),
             large ? 16 : 12,
             false);
-    category.setTextColor(0xff634a35);
+    category.setTextColor(JournalTheme.MUTED);
     if (!combo) content.addView(category);
     power = label(h, powerMeta(sk), large ? 16 : 13, false);
-    power.setTextColor(0xff634a35);
+    power.setTextColor(JournalTheme.MUTED);
     if (!combo) content.addView(power);
     LinearLayout bottom = new LinearLayout(h);
     bottom.setGravity(Gravity.CENTER_VERTICAL);
@@ -76,7 +80,7 @@ final class SkillCardView extends FrameLayout {
                 + (reason.isEmpty() ? "" : "\n" + shortReason(reason)),
             large ? 16 : 13,
             false);
-    effect.setTextColor(reason.isEmpty() ? 0xff634a35 : 0xffad4839);
+    effect.setTextColor(reason.isEmpty() ? JournalTheme.MUTED : NativeBattleLog.DAMAGE);
     effect.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
     effect.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
     // 핵심 수치와 기간은 생략하지 않는다. 큰 글자나 긴 효과는 카드가 늘어나며 패널을 스크롤한다.
@@ -110,8 +114,10 @@ final class SkillCardView extends FrameLayout {
     TextView label = h.text(text, size);
     label.setTextSize(size);
     label.setTypeface(headline ? h.headline : h.prose);
+    label.setTextColor(JournalTheme.INK);
     label.setPadding(0, 0, 0, 0);
-    label.setIncludeFontPadding(false);
+    // Jua의 일부 한글은 hhea ascent를 넘어가므로 제목 위쪽 획의 여유를 보존한다.
+    label.setIncludeFontPadding(true);
     label.setTextLocale(java.util.Locale.KOREAN);
     if (android.os.Build.VERSION.SDK_INT >= 33)
       label.setLineBreakWordStyle(

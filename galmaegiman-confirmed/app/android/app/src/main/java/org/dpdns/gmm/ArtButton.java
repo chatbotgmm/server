@@ -3,7 +3,7 @@ package org.dpdns.gmm;
 import android.graphics.*;
 import android.graphics.drawable.Drawable;
 
-/** 원본 버튼·문구를 분리된 이미지 그대로 합성한다. */
+/** 이전 버튼 호출도 같은 도감 재질과 실제 글꼴을 사용한다. */
 final class ArtButton extends Drawable {
   final MainActivity host;
   final String kind;
@@ -19,16 +19,21 @@ final class ArtButton extends Drawable {
   public void draw(Canvas c) {
     int save = state.begin(c, getBounds(), host.getResources().getDisplayMetrics().density);
     RectF r = new RectF(getBounds());
-    Bitmap base = host.art.asset("b3_button_" + kind + ".webp"),
-        label = host.art.asset("b3_label_" + kind + ".webp");
-    if (base != null) c.drawBitmap(base, null, r, p);
-    if (label != null) {
-      float w = r.width() * (kind.equals("next") ? .34f : .56f),
-          h = w * label.getHeight() / label.getWidth(),
-          x = r.left + r.width() * (kind.equals("next") ? .455f : .5f),
-          y = r.centerY();
-      c.drawBitmap(label, null, new RectF(x - w / 2, y - h / 2, x + w / 2, y + h / 2), p);
-    }
+    GameButtonDrawable surface =
+        new GameButtonDrawable(
+            host, kind.equals("next") ? GameButtonDrawable.PRIMARY : GameButtonDrawable.PAPER);
+    surface.setBounds(getBounds());
+    surface.draw(c);
+    p.setColor(JournalTheme.INK);
+    p.setTypeface(host.font);
+    p.setTextSize(Math.min(host.dp(18), r.height() * .38f));
+    p.setTextAlign(Paint.Align.CENTER);
+    Paint.FontMetrics metrics = p.getFontMetrics();
+    c.drawText(
+        kind.equals("next") ? "다음" : "건너뛰기",
+        r.centerX(),
+        r.centerY() - (metrics.ascent + metrics.descent) / 2,
+        p);
     state.finish(c, save);
   }
 

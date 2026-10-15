@@ -42,6 +42,8 @@ final class NativeArt {
   }
 
   Bitmap asset(String path) {
+    String themed = JournalAssets.sceneAsset(path);
+    if (themed != null) path = themed;
     String k = "asset:" + path;
     Bitmap b = bitmaps.get(k);
     if (b != null) return b;
@@ -164,6 +166,13 @@ final class NativeArt {
   }
 
   private Bitmap bundled(String path) {
+    if (JournalAssets.oldPlatform(path)) return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
+    String themed = JournalAssets.sceneAsset(path);
+    if (themed != null) return asset(themed);
+    if (path.startsWith("/duel/icons/")) {
+      Bitmap icon = JournalIcons.create(context, path);
+      if (icon != null) return icon;
+    }
     String local = path.substring(1);
     // 목록 카드에는 같은 원본으로 만든 기존 480px 미리보기를 사용한다.
     if (path.startsWith("/images/"))

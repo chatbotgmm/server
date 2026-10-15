@@ -2,7 +2,6 @@ package org.dpdns.gmm;
 
 import android.animation.*;
 import android.graphics.*;
-import android.graphics.drawable.GradientDrawable;
 import android.view.*;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.OvershootInterpolator;
@@ -19,6 +18,7 @@ final class NativeForge extends FrameLayout {
   final boolean fail;
   final Runnable next;
   final MenuKit k;
+  final NativeAcquisitionFlow flow;
   final ValueAnimator animation;
   boolean complete, detached, leaving;
   Ring ring;
@@ -26,6 +26,17 @@ final class NativeForge extends FrameLayout {
 
   NativeForge(
       MainActivity h, JSONArray mats, JSONObject result, boolean fail, String text, Runnable next) {
+    this(h, mats, result, fail, text, next, null);
+  }
+
+  NativeForge(
+      MainActivity h,
+      JSONArray mats,
+      JSONObject result,
+      boolean fail,
+      String text,
+      Runnable next,
+      NativeAcquisitionFlow flow) {
     super(h);
     this.h = h;
     materials = mats;
@@ -33,8 +44,9 @@ final class NativeForge extends FrameLayout {
     this.fail = fail;
     this.text = text;
     this.next = next;
+    this.flow = flow;
     k = new MenuKit(h);
-    setBackgroundColor(0xff1b0f05);
+    setBackgroundColor(JournalTheme.TEAL);
     setClickable(true);
     ring = new Ring();
     addView(ring, new LayoutParams(-1, -1));
@@ -76,7 +88,9 @@ final class NativeForge extends FrameLayout {
   }
 
   int color() {
-    return fail || result == null ? 0xffc98443 : NativeReveal.tier(result.optString("tier"));
+    return fail || result == null
+        ? JournalTheme.BRASS
+        : NativeReveal.tier(result.optString("tier"));
   }
 
   void updateResult(JSONObject unit) {
@@ -100,28 +114,32 @@ final class NativeForge extends FrameLayout {
     ring.progress = 1;
     addView(ring, new LayoutParams(-1, -1));
     LinearLayout page = k.column();
-    page.setGravity(Gravity.CENTER);
+    page.setGravity(Gravity.CENTER_HORIZONTAL);
     page.setPadding(h.dp(14), h.dp(10), h.dp(14), h.dp(10));
     int available =
         getHeight() > 0
             ? (int) (getHeight() / h.getResources().getDisplayMetrics().density)
-            : h.getResources().getConfiguration().screenHeightDp;
-    int imageSize = Math.max(72, Math.min(200, (int) (available * .42f)));
+            : h.contentHeightDp();
+    int imageSize = Math.max(72, Math.min(200, (int) (available * (flow == null ? .42f : .30f))));
     LayoutParams box =
         new LayoutParams(
             Math.min(h.dp(520), (int) ((getWidth() > 0 ? getWidth() : h.root.getWidth()) * .8f)),
-            -2,
+            -1,
             Gravity.CENTER);
     addView(page, box);
+    LinearLayout content = k.column();
+    content.setGravity(Gravity.CENTER);
+    content.setPadding(0, h.dp(6), 0, h.dp(6));
+    ScrollView resultScroll = k.scroll(content);
+    resultScroll.setTag("forge-result-scroll");
+    resultScroll.setFillViewport(true);
+    page.addView(resultScroll, new LinearLayout.LayoutParams(-1, 0, 1));
     if (result != null && !fail) {
       LinearLayout card = k.column();
       resultCard = card;
       card.setGravity(Gravity.CENTER);
       card.setPadding(h.dp(10), h.dp(10), h.dp(10), h.dp(10));
-      GradientDrawable border = h.material(0xfffffaf0);
-      border.setCornerRadius(h.dp(18));
-      border.setStroke(h.dp(4), color());
-      card.setBackground(border);
+      card.setBackground(new GamePaperDrawable(h, color()));
       card.setElevation(h.dp(5));
       card.addView(
           k.image(
@@ -129,15 +147,24 @@ final class NativeForge extends FrameLayout {
               imageSize,
               imageSize));
       TextView name = h.text(result.optString("name"), 20);
+      name.setTag("forge-result-name");
       name.setTypeface(h.headline);
       name.setGravity(Gravity.CENTER);
+      name.setTextLocale(java.util.Locale.KOREA);
+      name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
+      if (android.os.Build.VERSION.SDK_INT >= 33)
+        name.setLineBreakWordStyle(
+            android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
       card.addView(name);
       if (!result.optString("tierName").isEmpty()) {
         TextView grade = k.note(result.optString("tierName"));
         grade.setTextColor(color());
         card.addView(grade);
       }
-      page.addView(card, new LinearLayout.LayoutParams(-2, -2));
+      int nameWidth = (int) Math.ceil(name.getPaint().measureText(result.optString("name")));
+      int cardWidth =
+          Math.min(box.width - h.dp(28), Math.max(h.dp(imageSize + 20), nameWidth + h.dp(36)));
+      content.addView(card, new LinearLayout.LayoutParams(cardWidth, -2));
       if (playEffect && motion()) {
         card.setScaleX(.4f);
         card.setScaleY(.4f);
@@ -155,17 +182,19 @@ final class NativeForge extends FrameLayout {
     }
     TextView message =
         k.note(text == null || text.isEmpty() ? (fail ? "조합이 맞지 않아 재료는 그대로예요." : "조합 완료!") : text);
-    message.setTextColor(0xfffff7e6);
+    message.setTextColor(JournalTheme.PAPER);
+    message.setTag("forge-result-message");
     message.setGravity(Gravity.CENTER);
     message.setPadding(0, h.dp(8), 0, h.dp(8));
-    int maxMessage = Math.max(48, available - imageSize - 142);
-    ScrollView messageScroll = k.scroll(message);
-    page.addView(
-        messageScroll,
-        new LinearLayout.LayoutParams(-1, Math.min(h.dp(maxMessage), h.dp(fail ? 120 : 64))));
+    content.addView(message, new LinearLayout.LayoutParams(-1, -2));
+    if (flow != null && result != null && !fail) {
+      page.addView(flow.actions(result), new LinearLayout.LayoutParams(-1, h.dp(48)));
+    }
     Button ok = k.action(null, "확인", this::finish);
+    ok.setTag("forge-result-confirm");
     LinearLayout.LayoutParams footer = new LinearLayout.LayoutParams(h.dp(180), h.dp(48));
     footer.gravity = Gravity.CENTER_HORIZONTAL;
+    footer.topMargin = h.dp(6);
     page.addView(ok, footer);
     setOnClickListener(null);
   }
@@ -207,19 +236,8 @@ final class NativeForge extends FrameLayout {
 
     @Override
     protected void onDraw(Canvas c) {
-      float x = getWidth() / 2f,
-          y = getHeight() / 2f,
-          dimension = Math.min(getHeight(), h.dp(540)),
-          colorRadius = Math.max(1, Math.max(getHeight(), getWidth()) * .6f);
-      int tint = color();
-      int center =
-          Color.rgb(
-              (int) (Color.red(tint) * .3 + 42 * .7),
-              (int) (Color.green(tint) * .3 + 23 * .7),
-              (int) (Color.blue(tint) * .3 + 8 * .7));
-      p.setShader(new RadialGradient(x, y, colorRadius, center, 0xff1b0f05, Shader.TileMode.CLAMP));
-      c.drawRect(0, 0, getWidth(), getHeight(), p);
-      p.setShader(null);
+      float x = getWidth() / 2f, y = getHeight() / 2f, dimension = Math.min(getHeight(), h.dp(540));
+      NativeResultBackdrop.draw(h, c, getWidth(), getHeight(), p);
       float ms = progress * (fail ? 1300 : 1500);
       float ringSize = Math.min(dimension * .56f, h.dp(300)), startRadius = ringSize / 2.6f;
       float move =
@@ -229,7 +247,7 @@ final class NativeForge extends FrameLayout {
       float radius =
           fail ? startRadius + (ringSize / 1.4f - startRadius) * move : startRadius * (1 - move);
       float size = Math.min(dimension * .15f, h.dp(84)) * (fail ? 1 - move * .4f : 1 - move * .8f);
-      float opacity = ms < 1000 ? 1 : Math.max(0, 1 - (ms - 1000) / (fail ? 400 : 300));
+      float opacity = ms < 1000 ? 1 : Math.max(0, 1 - (ms - 1000) / 300);
       for (int i = 0; i < materials.length() && opacity > 0; i++) {
         JSONObject material = materials.optJSONObject(i);
         String id =
@@ -252,7 +270,7 @@ final class NativeForge extends FrameLayout {
         c.drawBitmap(bitmap, null, card, p);
         c.restore();
         p.setShader(null);
-        p.setColor(0xfffff3c4);
+        p.setColor(JournalTheme.BRASS);
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(h.dp(3));
         c.drawRoundRect(card, h.dp(10), h.dp(10), p);
@@ -282,7 +300,9 @@ final class NativeForge extends FrameLayout {
                 y,
                 glowRadius,
                 new int[] {
-                  fail ? 0xffd9c7a8 : Color.WHITE, tint & 0x00ffffff | 0xa0000000, Color.TRANSPARENT
+                  JournalTheme.PAPER,
+                  JournalTheme.BRASS & 0x00ffffff | 0x88000000,
+                  Color.TRANSPARENT
                 },
                 new float[] {0, .28f, 1},
                 Shader.TileMode.CLAMP));
@@ -292,7 +312,7 @@ final class NativeForge extends FrameLayout {
         p.setAlpha(255);
       }
       if (!complete) {
-        p.setColor(0xfffff7e6);
+        p.setColor(JournalTheme.PAPER);
         p.setTypeface(h.prose);
         p.setTextSize(h.dp(14));
         p.setTextAlign(Paint.Align.CENTER);

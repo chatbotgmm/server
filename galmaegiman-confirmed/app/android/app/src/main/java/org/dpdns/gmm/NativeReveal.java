@@ -2,7 +2,6 @@ package org.dpdns.gmm;
 
 import android.animation.*;
 import android.graphics.*;
-import android.graphics.drawable.GradientDrawable;
 import android.view.*;
 import android.view.animation.LinearInterpolator;
 import android.widget.*;
@@ -18,16 +17,23 @@ final class NativeReveal extends FrameLayout {
   final MenuKit k;
   final List<Animator> animations = new ArrayList<>();
   final JSONArray units;
+  final NativeAcquisitionFlow flow;
   final int topColor, topRank;
   final Glow glow;
   boolean opening, detached, revealed, leaving;
   ValueAnimator animation;
 
   NativeReveal(MainActivity h, JSONObject result, Runnable next, boolean again) {
+    this(h, result, next, again, null);
+  }
+
+  NativeReveal(
+      MainActivity h, JSONObject result, Runnable next, boolean again, NativeAcquisitionFlow flow) {
     super(h);
     this.h = h;
     this.result = result;
     this.next = next;
+    this.flow = flow;
     k = new MenuKit(h);
     units = h.list(result, "items");
     String best = "COMMON";
@@ -37,7 +43,7 @@ final class NativeReveal extends FrameLayout {
     }
     topColor = tier(best);
     topRank = rank(best);
-    setBackgroundColor(0xff1b0f05);
+    setBackgroundColor(JournalTheme.TEAL);
     setClickable(true);
     glow = new Glow();
     if (again) cards(false);
@@ -186,8 +192,16 @@ final class NativeReveal extends FrameLayout {
     if (playEffect) h.sound.effect(topRank >= 6 ? "drawlegend" : topRank >= 4 ? "drawrare" : "aug");
     LinearLayout page = k.column();
     page.setGravity(Gravity.CENTER);
-    page.setPadding(h.dp(16), h.dp(16), h.dp(16), h.dp(16));
+    page.setPadding(h.dp(12), h.dp(10), h.dp(12), h.dp(10));
     addView(page, new LayoutParams(-1, -1));
+    final TextView selectedLabel = k.note("");
+    if (flow != null && units.length() > 1) {
+      selectedLabel.setTextColor(JournalTheme.PAPER);
+      selectedLabel.setGravity(Gravity.CENTER);
+      selectedLabel.setSingleLine(true);
+      selectedLabel.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      page.addView(selectedLabel);
+    }
     HorizontalScrollView scroll = new HorizontalScrollView(h);
     scroll.setFillViewport(true);
     scroll.setHorizontalScrollBarEnabled(false);
@@ -199,14 +213,56 @@ final class NativeReveal extends FrameLayout {
     int available =
         getHeight() > 0
             ? (int) (getHeight() / h.getResources().getDisplayMetrics().density)
-            : h.getResources().getConfiguration().screenHeightDp;
-    int height = Math.max(116, available - 104),
+            : h.contentHeightDp();
+    int height = Math.max(116, available - (flow == null ? 104 : 168)),
         width = Math.max(84, Math.min(units.length() == 1 ? 220 : 168, (int) (height * 3 / 4.15f)));
     int cardHeight = (int) (width * 4.15f / 3);
+    final LinearLayout footer = k.column();
+    final ArrayList<RevealCard> shown = new ArrayList<>();
+    Runnable[] paint = new Runnable[1];
+    paint[0] =
+        () -> {
+          footer.removeAllViews();
+          if (flow != null && units.length() > 0) {
+            flow.selected = Math.max(0, Math.min(flow.selected, units.length() - 1));
+            footer.addView(flow.actions(units.optJSONObject(flow.selected)));
+            selectedLabel.setText(
+                "선택 · " + units.optJSONObject(flow.selected).optString("name") + " · 카드를 눌러 변경");
+            for (int j = 0; j < shown.size(); j++) {
+              RevealCard selectedCard = shown.get(j);
+              selectedCard.setSelected(j == flow.selected);
+              selectedCard.front.setBackground(
+                  j == flow.selected
+                      ? new GamePanelDrawable(h)
+                      : new GamePaperDrawable(h, tier(units.optJSONObject(j).optString("tier"))));
+              selectedCard.setElevation(h.dp(j == flow.selected ? 8 : 2));
+              selectedCard.setContentDescription(
+                  units.optJSONObject(j).optString("name")
+                      + (j == flow.selected ? " · 선택됨" : " · 눌러 선택"));
+            }
+          }
+          Button ok = k.action(null, "확인", this::finish);
+          ok.setTag("acquisition-confirm");
+          LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(h.dp(180), h.dp(48));
+          lp.gravity = Gravity.CENTER_HORIZONTAL;
+          lp.topMargin = h.dp(8);
+          footer.addView(ok, lp);
+        };
     for (int i = 0; i < units.length(); i++) {
       JSONObject unit = units.optJSONObject(i);
       if (unit == null) continue;
       RevealCard card = new RevealCard(unit, width);
+      shown.add(card);
+      final int index = i;
+      if (flow != null) {
+        card.setTag("acquisition-card-" + unit.optString("id"));
+        card.setOnClickListener(
+            v -> {
+              if (h.busy || card.front.getVisibility() != VISIBLE) return;
+              flow.selected = index;
+              paint[0].run();
+            });
+      }
       LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(h.dp(width), h.dp(cardHeight));
       lp.setMargins(h.dp(5), h.dp(6), h.dp(5), h.dp(6));
       row.addView(card, lp);
@@ -219,11 +275,11 @@ final class NativeReveal extends FrameLayout {
         animate(flip);
       } else card.flip(1);
     }
-    Button ok = k.action(null, "확인", this::finish);
-    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(h.dp(180), h.dp(48));
-    lp.gravity = Gravity.CENTER_HORIZONTAL;
-    lp.topMargin = h.dp(12);
-    page.addView(ok, lp);
+    page.addView(
+        footer,
+        new LinearLayout.LayoutParams(
+            Math.min(h.dp(600), h.getResources().getDisplayMetrics().widthPixels - h.dp(24)), -2));
+    paint[0].run();
     if (motion()) {
       ValueAnimator rays = ValueAnimator.ofFloat(0, 360);
       rays.setDuration(14000);
@@ -280,11 +336,8 @@ final class NativeReveal extends FrameLayout {
       int color = tier(unit.optString("tier"));
       LinearLayout face = k.column();
       face.setGravity(Gravity.CENTER);
-      face.setPadding(h.dp(5), h.dp(5), h.dp(5), h.dp(5));
-      GradientDrawable frame = h.material(0xfffffaf0);
-      frame.setCornerRadius(h.dp(14));
-      frame.setStroke(h.dp(3), color);
-      face.setBackground(frame);
+      face.setPadding(h.dp(8), h.dp(8), h.dp(8), h.dp(8));
+      face.setBackground(new GamePaperDrawable(h, color));
       FrameLayout photo = new FrameLayout(h);
       photo.addView(
           k.image("/thumbs/" + unit.optString("img") + ".jpg", width - 16, width - 16),
@@ -292,7 +345,7 @@ final class NativeReveal extends FrameLayout {
       if (unit.optBoolean("first")) {
         TextView badge = h.text("NEW", 11);
         badge.setGravity(Gravity.CENTER);
-        badge.setBackground(h.material(0xffd9a400));
+        badge.setBackground(new GamePaperDrawable(h, JournalTheme.BRASS));
         LayoutParams box = new LayoutParams(h.dp(36), h.dp(20), Gravity.TOP | Gravity.LEFT);
         box.setMargins(h.dp(4), h.dp(4), 0, 0);
         photo.addView(badge, box);
@@ -300,7 +353,7 @@ final class NativeReveal extends FrameLayout {
       if (unit.optInt("n") > 1) {
         TextView count = h.text("×" + unit.optInt("n"), 11);
         count.setGravity(Gravity.CENTER);
-        count.setBackground(h.material(0xffdd9a58));
+        count.setBackground(new GamePaperDrawable(h));
         LayoutParams box = new LayoutParams(h.dp(36), h.dp(20), Gravity.TOP | Gravity.RIGHT);
         box.setMargins(0, h.dp(4), h.dp(4), 0);
         photo.addView(count, box);
@@ -324,17 +377,22 @@ final class NativeReveal extends FrameLayout {
             @Override
             protected void onDraw(Canvas c) {
               RectF bounds = new RectF(0, 0, getWidth(), getHeight());
-              GameButtonDrawable.drawSurface(c, bounds, 0xffd9b98a, h.dp(14), h.dp(3), 0, p);
+              GameButtonDrawable.drawSurface(c, bounds, JournalTheme.TEAL, h.dp(14), h.dp(3), 0, p);
               float w = getWidth() * .38f, x = getWidth() / 2f, y = getHeight() / 2f;
-              p.setShader(
-                  new RadialGradient(
-                      x - w * .2f, y - w * .25f, w, 0xffffffef, 0xfff3e2bf, Shader.TileMode.CLAMP));
-              c.drawOval(new RectF(x - w / 2, y - w * .635f, x + w / 2, y + w * .635f), p);
-              p.setShader(null);
-              p.setColor(color);
+              p.setColor(JournalTheme.BRASS);
               p.setStyle(Paint.Style.STROKE);
-              p.setStrokeWidth(h.dp(3));
-              c.drawRoundRect(bounds, h.dp(14), h.dp(14), p);
+              p.setStrokeWidth(h.dp(2));
+              c.drawCircle(x, y, w * .6f, p);
+              p.setColor(JournalTheme.PAPER);
+              c.drawLine(x, y - w * .36f, x, y + w * .36f, p);
+              c.drawLine(x - w * .22f, y - w * .1f, x + w * .22f, y - w * .1f, p);
+              c.drawArc(
+                  new RectF(x - w * .38f, y - w * .16f, x + w * .38f, y + w * .36f),
+                  0,
+                  180,
+                  false,
+                  p);
+              c.drawCircle(x, y - w * .36f, w * .1f, p);
               p.setStyle(Paint.Style.FILL);
             }
           };
@@ -366,19 +424,12 @@ final class NativeReveal extends FrameLayout {
       float x = getWidth() / 2f,
           y = getHeight() * .45f,
           radius = Math.max(1, Math.max(getWidth(), getHeight()) * .55f);
-      int center =
-          Color.rgb(
-              (int) (Color.red(topColor) * .35 + 42 * .65),
-              (int) (Color.green(topColor) * .35 + 23 * .65),
-              (int) (Color.blue(topColor) * .35 + 8 * .65));
-      p.setShader(new RadialGradient(x, y, radius, center, 0xff1b0f05, Shader.TileMode.CLAMP));
-      c.drawRect(0, 0, getWidth(), getHeight(), p);
-      p.setShader(null);
+      NativeResultBackdrop.draw(h, c, getWidth(), getHeight(), p);
       if (revealed && topRank >= 6) {
         c.save();
         c.rotate(rotation, x, y);
-        p.setColor(topColor);
-        p.setAlpha(46);
+        p.setColor(JournalTheme.BRASS);
+        p.setAlpha(30);
         for (int angle = 0; angle < 360; angle += 22) {
           Path ray = new Path();
           ray.moveTo(x, y);
@@ -400,7 +451,11 @@ final class NativeReveal extends FrameLayout {
                 x,
                 y,
                 radius * (1.6f - flash * 1.2f),
-                new int[] {Color.WHITE, topColor & 0x00ffffff | 0x99000000, Color.TRANSPARENT},
+                new int[] {
+                  JournalTheme.PAPER,
+                  JournalTheme.BRASS & 0x00ffffff | 0x77000000,
+                  Color.TRANSPARENT
+                },
                 new float[] {0, .4f, 1},
                 Shader.TileMode.CLAMP));
         p.setAlpha((int) (flash * 255));
@@ -448,19 +503,19 @@ final class NativeReveal extends FrameLayout {
               x - w * .18f,
               y - height * .2f,
               w,
-              new int[] {0xffffffef, 0xfff3e2bf, 0xffd9b98a},
+              new int[] {JournalTheme.PAPER, 0xffe4d6b5, JournalTheme.BRASS},
               null,
               Shader.TileMode.CLAMP));
       RectF egg = new RectF(x - w / 2, y - height / 2, x + w / 2, y + height / 2);
       c.drawOval(egg, p);
       p.setShader(null);
-      p.setColor(0xff7a4e2a);
+      p.setColor(JournalTheme.LEATHER);
       p.setStyle(Paint.Style.STROKE);
       p.setStrokeWidth(h.dp(4));
       c.drawOval(egg, p);
       p.setStyle(Paint.Style.FILL);
       c.restore();
-      p.setColor(0xfffff7e6);
+      p.setColor(JournalTheme.PAPER);
       p.setAlpha(opening ? 255 : (int) (170 + Math.cos(idle * Math.PI * 2) * 70));
       p.setTypeface(h.prose);
       p.setTextSize(h.dp(15));

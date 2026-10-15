@@ -154,7 +154,7 @@ final class StoryView extends FrameLayout implements FullBleed {
     addView(canvas);
     badge = a.text(caption, 16);
     badge.setVisibility(caption.isEmpty() ? GONE : VISIBLE);
-    badge.setBackground(a.material(MainActivity.CREAM));
+    badge.setBackground(new GamePaperDrawable(a));
     badge.setPadding(a.dp(16), a.dp(8), a.dp(16), a.dp(8));
     addView(badge);
     bubble = new LinearLayout(a);
@@ -185,12 +185,10 @@ final class StoryView extends FrameLayout implements FullBleed {
     setOnClickListener(v -> advance());
     bubble.setOnClickListener(v -> advance());
     say.setOnClickListener(v -> advance());
-    next.setTextColor(Color.TRANSPARENT);
-    next.setBackground(new ArtButton(a, "next"));
+    next.setBackground(new GameButtonDrawable(a, GameButtonDrawable.PRIMARY));
     controls.addView(next, new LinearLayout.LayoutParams(a.dp(130), a.dp(48)));
     skip = a.button("건너뛰기", this::finish);
-    skip.setTextColor(Color.TRANSPARENT);
-    skip.setBackground(new ArtButton(a, "skip"));
+    skip.setBackground(new GameButtonDrawable(a, GameButtonDrawable.PAPER));
     addView(skip);
     update();
     if (a.motionEnabled && !caption.isEmpty()) {
@@ -245,12 +243,8 @@ final class StoryView extends FrameLayout implements FullBleed {
       }
     }
     who.setText(name);
-    int color =
-        speaker.equals("TIP")
-            ? 0xffdff0d6
-            : speaker.equals("ME") ? 0xffdcebf4 : speaker.startsWith("V") ? 0xfff8dfd7 : 0xffdff0e3;
-    who.setTextColor(speaker.equals("TIP") ? 0xff2c4a22 : MainActivity.INK);
-    who.setBackground(host.material(color));
+    who.setTextColor(speaker.startsWith("V") ? 0xff9b4739 : JournalTheme.TEAL);
+    who.setBackground(new GamePaperDrawable(host));
     who.setVisibility(name.isEmpty() ? GONE : VISIBLE);
     host.api.ui.removeCallbacks(typeTick);
     fullText = l.optString("say");

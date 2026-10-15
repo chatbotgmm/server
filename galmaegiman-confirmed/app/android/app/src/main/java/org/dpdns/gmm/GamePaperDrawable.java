@@ -3,14 +3,16 @@ package org.dpdns.gmm;
 import android.graphics.*;
 import android.graphics.drawable.Drawable;
 
-/** 웹 GAMEUI의 크림 카드·연한 테두리·짧은 바닥 그림자. */
+/** 작은 기록 카드는 밝은 종이와 얇은 봉제 가죽으로 구분한다. */
 final class GamePaperDrawable extends Drawable {
   final MainActivity h;
   final Paint p = new Paint(3);
   final int edge;
+  private int alpha = 255;
+  private ColorFilter filter;
 
   GamePaperDrawable(MainActivity h) {
-    this(h, 0xffd9b98a);
+    this(h, JournalTheme.LEATHER);
   }
 
   GamePaperDrawable(MainActivity h, int edge) {
@@ -18,35 +20,32 @@ final class GamePaperDrawable extends Drawable {
     this.edge = edge;
   }
 
+  @Override
   public void draw(Canvas c) {
-    RectF r = new RectF(getBounds());
-    r.inset(h.dp(1), h.dp(1));
-    r.bottom -= h.dp(3);
-    p.setStyle(Paint.Style.FILL);
-    p.setColor(0x447a4e2a);
-    RectF shadow = new RectF(r);
-    shadow.offset(0, h.dp(3));
-    c.drawRoundRect(shadow, h.dp(16), h.dp(16), p);
-    p.setColor(0xfffffaf0);
-    c.drawRoundRect(r, h.dp(16), h.dp(16), p);
-    p.setColor(edge);
-    p.setStyle(Paint.Style.STROKE);
-    p.setStrokeWidth(h.dp(2));
-    c.drawRoundRect(r, h.dp(16), h.dp(16), p);
-    p.setStyle(Paint.Style.FILL);
-    p.setAlpha(255);
+    int save = c.save();
+    if (alpha != 255 || filter != null) {
+      p.setAlpha(alpha);
+      p.setColorFilter(filter);
+      c.saveLayer(new RectF(getBounds()), p);
+    }
+    JournalTheme.drawPaper(
+        c, new RectF(getBounds()), h.getResources().getDisplayMetrics().density, edge);
+    c.restoreToCount(save);
   }
 
-  public void setAlpha(int a) {
-    p.setAlpha(a);
+  @Override
+  public void setAlpha(int value) {
+    alpha = value;
     invalidateSelf();
   }
 
-  public void setColorFilter(ColorFilter f) {
-    p.setColorFilter(f);
+  @Override
+  public void setColorFilter(ColorFilter value) {
+    filter = value;
     invalidateSelf();
   }
 
+  @Override
   public int getOpacity() {
     return PixelFormat.TRANSLUCENT;
   }

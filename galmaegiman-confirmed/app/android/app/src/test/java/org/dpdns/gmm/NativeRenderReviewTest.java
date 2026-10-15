@@ -139,6 +139,19 @@ public class NativeRenderReviewTest {
     a.root.layout(0, 0, w, h);
   }
 
+  void preparePreDraw(View view, Runnable measureAndLayout) {
+    // 실제 ViewRootImpl은 layout 다음 pre-draw를 보낸다. 직접 Canvas 캡처에서도
+    // TextView의 단일 행 scrollX와 최종 글자 배치를 같은 순서로 보정한다.
+    boolean cancelled = view.getViewTreeObserver().dispatchOnPreDraw();
+    if (cancelled || view.isLayoutRequested()) {
+      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
+      force(view);
+      measureAndLayout.run();
+      // 재측정은 한 번만 허용하며, 마지막 레이아웃의 pre-draw를 반드시 거친다.
+      view.getViewTreeObserver().dispatchOnPreDraw();
+    }
+  }
+
   void capture(MainActivity a, String name, int w, int h) throws Exception {
     Files.createDirectories(Path.of(System.getProperty("gmm.nativeReviewOutput")));
     force(a.root);
@@ -156,6 +169,14 @@ public class NativeRenderReviewTest {
         View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
         View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY));
     a.root.layout(0, 0, w, h);
+    preparePreDraw(
+        a.root,
+        () -> {
+          a.root.measure(
+              View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
+              View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY));
+          a.root.layout(0, 0, w, h);
+        });
     image.eraseColor(android.graphics.Color.TRANSPARENT);
     a.root.draw(new Canvas(image));
     if (name.endsWith("battle-menu"))
@@ -196,6 +217,15 @@ public class NativeRenderReviewTest {
         View.MeasureSpec.makeMeasureSpec(
             Math.min(a.root.getHeight() - 16, 520), View.MeasureSpec.AT_MOST));
     v.layout(0, 0, width, v.getMeasuredHeight());
+    preparePreDraw(
+        v,
+        () -> {
+          v.measure(
+              View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+              View.MeasureSpec.makeMeasureSpec(
+                  Math.min(a.root.getHeight() - 16, 520), View.MeasureSpec.AT_MOST));
+          v.layout(0, 0, width, v.getMeasuredHeight());
+        });
     Bitmap image = Bitmap.createBitmap(width, v.getHeight(), Bitmap.Config.ARGB_8888);
     v.draw(new Canvas(image));
     checkButtons(v, v, width, v.getHeight());
@@ -211,7 +241,10 @@ public class NativeRenderReviewTest {
   ActivityController<MainActivity> start() throws Exception {
     String tokenFile = System.getProperty("gmm.nativeReviewTokenFile", "");
     assumeTrue(!tokenFile.isEmpty() && Files.isRegularFile(Path.of(tokenFile)));
-    assertEquals("격리 검토 서버만 허용", "http://127.0.0.1:3999", BuildConfig.SERVER_URL);
+    assertTrue(
+        "격리 검토 서버만 허용",
+        java.util.Set.of("http://127.0.0.1:3999", "http://127.0.0.1:4002")
+            .contains(BuildConfig.SERVER_URL));
     var app = RuntimeEnvironment.getApplication();
     app.getSharedPreferences("native_account", 0)
         .edit()

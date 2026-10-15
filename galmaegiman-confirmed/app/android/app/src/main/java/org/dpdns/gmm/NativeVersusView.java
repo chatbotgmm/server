@@ -15,13 +15,19 @@ final class NativeVersusView {
     body.setPadding(h.dp(12), h.dp(8), h.dp(12), h.dp(8));
     String mode = battle.optString("mode");
     TextView title = h.text(mode.equals("rank") ? "랭크게임" : "일반게임", 24);
+    title.setTypeface(h.headline);
     title.setGravity(Gravity.CENTER);
     body.addView(title);
     LinearLayout teams = k.row();
     teams.setGravity(Gravity.TOP);
     JSONArray sides = h.list(battle, "teams");
     for (int side = 0; side < 2; side++) {
-      if (side == 1) teams.addView(h.text("VS", 28));
+      if (side == 1) {
+        TextView versus = h.text("VS", 25);
+        versus.setTypeface(h.headline);
+        versus.setTextColor(JournalTheme.TEAL);
+        teams.addView(versus);
+      }
       LinearLayout team = k.paper();
       TextView name =
           h.text(
@@ -30,6 +36,7 @@ final class NativeVersusView {
                   : match.optString("foeName", "상대 수비대"),
               18);
       name.setGravity(Gravity.CENTER);
+      name.setTypeface(h.headline);
       team.addView(name);
       if (side == 1 && (!match.optString("foeTier").isEmpty() || match.optBoolean("bot"))) {
         TextView hint =
@@ -65,7 +72,7 @@ final class NativeVersusView {
     body.addView(hint);
     AlertDialog dialog =
         new GameDialog(h)
-            .setView(body)
+            .setView(k.scroll(body))
             .setCancelable(false)
             .setPositiveButton("대전 시작", null)
             .show();

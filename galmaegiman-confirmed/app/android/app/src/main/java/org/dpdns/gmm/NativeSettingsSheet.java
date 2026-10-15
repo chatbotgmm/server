@@ -2,17 +2,19 @@ package org.dpdns.gmm;
 
 import android.app.AlertDialog;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.os.Build;
 import android.view.*;
 import android.widget.*;
 
-/** 웹 설정의 종이 모달·3줄 소리·계정/쿠폰/튜토리얼/탈퇴. 계정과 알림은 위험 행동보다 먼저 배치한다. */
+/** 모험 도감의 설정 기록장. 볼륨·개별 음소거·계정 기능과 안전한 탈퇴 확인을 유지한다. */
 final class NativeSettingsSheet {
   static Button action(MainActivity h, String label, Runnable run) {
     Button b = new MenuKit(h).action(null, label, run);
     b.setTypeface(h.prose);
     b.setTag("prose");
-    b.setTextSize(16);
+    b.setTextSize(h.uiText(16));
+    b.setTextColor(JournalTheme.INK);
     b.setPadding(h.dp(10), h.dp(4), h.dp(10), h.dp(7));
     return b;
   }
@@ -34,7 +36,7 @@ final class NativeSettingsSheet {
     MenuKit k = new MenuKit(h);
     AlertDialog[] box = new AlertDialog[1];
     LinearLayout content = k.column();
-    content.setPadding(h.dp(16), h.dp(12), h.dp(16), h.dp(12));
+    content.setPadding(h.dp(20), h.dp(16), h.dp(20), h.dp(14));
     LinearLayout title = k.row();
     title.addView(k.image("/duel/icons/u-settings.png", 24, 24));
     TextView heading = h.text("설정", 20);
@@ -66,7 +68,7 @@ final class NativeSettingsSheet {
       columns.addView(scroll, lp);
     }
     LinearLayout master = paperRow(h);
-    TextView label = h.text("소리", 17);
+    TextView label = h.text("전체 소리", 17);
     label.setTypeface(h.prose);
     master.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
     Button all = action(h, h.sound.masterMuted() ? "꺼짐" : "켜짐", () -> {});
@@ -88,8 +90,14 @@ final class NativeSettingsSheet {
           h.sound.masterMuted(!h.sound.masterMuted());
           sync.run();
         });
-    for (int i = 0; i < audio.getChildCount(); i++)
-      ((AudioControlView) audio.getChildAt(i)).onChange = sync;
+    for (int i = 0; i < audio.getChildCount(); i++) {
+      AudioControlView row = (AudioControlView) audio.getChildAt(i);
+      row.onChange = sync;
+      row.heading.setTextColor(JournalTheme.INK);
+      row.value.setTextColor(JournalTheme.MUTED);
+      row.slider.setProgressTintList(ColorStateList.valueOf(JournalTheme.TEAL));
+      row.slider.setThumbTintList(ColorStateList.valueOf(JournalTheme.BRASS));
+    }
     sync.run();
     if (!h.api.token().isEmpty()) {
       LinearLayout account = paperRow(h);
@@ -116,7 +124,8 @@ final class NativeSettingsSheet {
       code.setSingleLine(true);
       code.setTypeface(h.prose);
       code.setTextColor(MainActivity.INK);
-      code.setBackground(h.material(0xfffffaf0));
+      code.setBackground(h.material(JournalTheme.PAPER));
+      code.setHintTextColor(JournalTheme.MUTED);
       code.setPadding(h.dp(8), 0, h.dp(8), 0);
       coupon.addView(code, new LinearLayout.LayoutParams(0, h.dp(48), 1));
       coupon.addView(
@@ -155,7 +164,10 @@ final class NativeSettingsSheet {
       confirm.setSingleLine(true);
       confirm.setHint("확인을 위해 ‘탈퇴’라고 적어 주세요");
       confirm.setTypeface(h.prose);
-      confirm.setTextColor(MainActivity.INK);
+      confirm.setTextColor(JournalTheme.INK);
+      confirm.setHintTextColor(JournalTheme.MUTED);
+      confirm.setBackground(h.material(JournalTheme.PAPER));
+      confirm.setPadding(h.dp(10), 0, h.dp(10), 0);
       danger.addView(confirm, new LinearLayout.LayoutParams(-1, h.dp(48)));
       Button delete =
           action(
@@ -172,6 +184,8 @@ final class NativeSettingsSheet {
                                 box[0].dismiss();
                                 h.menus.extras.logout();
                               })));
+      delete.setBackground(new GameButtonDrawable(h, 0xfff7ddd6));
+      delete.setTextColor(0xff8a3c32);
       delete.setEnabled(false);
       danger.addView(delete);
       confirm.addTextChangedListener(
@@ -187,7 +201,7 @@ final class NativeSettingsSheet {
       Button expand =
           action(
               h,
-              "▶ 계정 삭제(탈퇴)",
+              "계정 삭제 ▾",
               () -> {
                 danger.setVisibility(
                     danger.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
@@ -199,6 +213,12 @@ final class NativeSettingsSheet {
       alerts.setText("탐험·뽑기권 알림");
       alerts.setTypeface(h.prose);
       alerts.setTextColor(MainActivity.INK);
+      alerts.setBackground(new GamePaperDrawable(h));
+      alerts.setPadding(h.dp(12), h.dp(5), h.dp(12), h.dp(8));
+      int[][] toggleStates = new int[][] {{android.R.attr.state_checked}, {}};
+      alerts.setThumbTintList(
+          new ColorStateList(toggleStates, new int[] {JournalTheme.TEAL, 0xff9b8c73}));
+      alerts.setTrackTintList(new ColorStateList(toggleStates, new int[] {0xffadc5bd, 0xffd8cfbb}));
       alerts.setMinHeight(h.dp(48));
       alerts.setMinimumHeight(h.dp(48));
       alerts.setChecked(h.getSharedPreferences("native_account", 0).getBoolean("alerts", false));

@@ -3,7 +3,7 @@ package org.dpdns.gmm;
 import android.graphics.*;
 import android.graphics.drawable.Drawable;
 
-/** 두 동료의 힘이 합쳐지는 합동기 전용 문장. */
+/** 현장 기록부에 다는 두 동료의 황동 연결 문장. */
 final class ComboEmblem extends Drawable {
   final MainActivity h;
   final Paint p = new Paint(3);
@@ -26,25 +26,20 @@ final class ComboEmblem extends Drawable {
   @Override
   public void draw(Canvas c) {
     Rect b = getBounds();
-    float x = b.exactCenterX(), y = b.exactCenterY(), r = b.width() * .30f;
-    p.setColor(0xff9b642c);
-    c.drawCircle(x - r * .42f, y, r, p);
-    c.drawCircle(x + r * .42f, y, r, p);
-    p.setColor(0xffffed9c);
-    c.drawCircle(x - r * .42f, y - r * .1f, r * .8f, p);
-    p.setColor(0xffe6ae45);
-    c.drawCircle(x + r * .42f, y - r * .1f, r * .8f, p);
-    Path star = new Path();
-    for (int i = 0; i < 10; i++) {
-      double a = i * Math.PI / 5 - Math.PI / 2;
-      float rr = r * (i % 2 == 0 ? .9f : .4f);
-      float sx = x + (float) Math.cos(a) * rr, sy = y + (float) Math.sin(a) * rr;
-      if (i == 0) star.moveTo(sx, sy);
-      else star.lineTo(sx, sy);
-    }
-    star.close();
-    p.setColor(0xfffffaf0);
-    c.drawPath(star, p);
+    float x = b.exactCenterX(), y = b.exactCenterY(), r = b.width() * .27f;
+    p.setStyle(Paint.Style.FILL);
+    p.setColor(JournalTheme.LEATHER);
+    c.drawRoundRect(new RectF(b), h.dp(7), h.dp(7), p);
+    p.setStyle(Paint.Style.STROKE);
+    p.setStrokeWidth(h.dp(2));
+    p.setColor(JournalTheme.BRASS);
+    c.drawCircle(x - r * .48f, y, r, p);
+    c.drawCircle(x + r * .48f, y, r, p);
+    p.setStrokeWidth(h.dp(1));
+    p.setColor(JournalTheme.PAPER);
+    c.drawLine(x - r * 1.1f, y - r * .7f, x - r * .7f, y - r * 1.1f, p);
+    c.drawLine(x + r * .7f, y + r * 1.1f, x + r * 1.1f, y + r * .7f, p);
+    p.setStyle(Paint.Style.FILL);
   }
 
   @Override
