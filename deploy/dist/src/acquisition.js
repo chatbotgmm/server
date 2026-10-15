@@ -1,0 +1,50 @@
+import { rarityNames, tierOrder } from './content.js';
+import { mask } from './presentation.js';
+export const emblems = { COMMON: '🥚', UNCOMMON: '🔹', SPECIAL: '✦', RARE: '◆', LEGEND: '★', HIDDEN: '❔', LIMITED: '⛓', TRANSCEND: '✴', ETERNAL: '♾', IMMORTAL: '🗿', NEUTRAL: '🔘' };
+const high = new Set(['LEGEND', 'HIDDEN', 'LIMITED', 'TRANSCEND', 'ETERNAL', 'IMMORTAL']);
+export const speech = (c) => `💬 ${c.name}: "${c.quote}"`;
+// 도감 상세 이야기: 문장마다 줄을 나누고 대사는 따로(긴 문단은 카톡에서 읽기 어려움)
+export const story = (c) => `📖 이야기\n${c.introduction.split(/(?<=[.!?…])\s+/u).map(l => l.trim()).filter(Boolean).join('\n')}\n\n💬 「${c.quote}」`;
+// 높은 등급은 갈매미 카운트로 뜸을 들입니다. 불멸 등 stage가 있으면 그것을 씁니다.
+export function prelude(c, first) {
+    if (c.stage)
+        return `${c.stage}\n\n`;
+    if (high.has(c.rarity))
+        return '……하늘이 어두워진다.\n갈매미 한 마리…\n갈매미 두 마리…\n갈매미 세 마리…\n갈매미 네 마리…\n(정적)\n갈매미 다섯 마리.\n\n';
+    if (c.rarity === 'RARE' && first)
+        return '……공기가 무거워진다.\n\n';
+    return '';
+}
+export function acquisitionText(content, c, kind, receipt, known) {
+    const e = emblems[c.rarity], grade = rarityNames[c.rarity];
+    const snack = receipt.snacks ? ` · 🍤 +${receipt.snacks}` : '';
+    // 획득 결과(뽑기·조합·교환·탐험)에는 한 줄 소개와 대사를 넣지 않습니다. 도감에서 봅니다.
+    let text;
+    if (receipt.first) {
+        const head = kind === 'COMBINATION' ? `🧩 조합 성공! 새 ${grade} 발견!` : kind === 'EXPEDITION' ? `🧭 탐험에서 새 ${grade} 발견!` : `${e}${e} 새 ${grade} 발견! ${e}${e}`;
+        text = `${prelude(c, true)}${head}\n【${c.name}】\n📖 ${grade} 도감 ${receipt.tierKnown}/${receipt.tierTotal}${snack}`;
+    }
+    else {
+        const head = kind === 'COMBINATION' ? `🧩 ${c.name} 조합 완료` : `${e} ${c.name}`;
+        text = `${high.has(c.rarity) ? prelude(c, false) : ''}${head} (${receipt.count}번째 만남)${receipt.snacks ? `\n🍤 새우gang +${receipt.snacks}` : ''}`;
+    }
+    if (receipt.achievement)
+        text += `\n\n${achievementText(receipt.achievement)}`;
+    return mask(content, text, known);
+}
+// 그림 카드용: 연출(카드 위 말풍선), 카드 제목·설명, 카드 아래에 붙일 보상 줄
+export function acquisitionCard(content, c, kind, receipt, known) {
+    const grade = rarityNames[c.rarity];
+    const head = kind === 'COMBINATION' ? '🧩 조합 성공! ' : kind === 'EXCHANGE' ? '🍤 교환 완료! ' : kind === 'EXPEDITION' ? '🧭 탐험에서 합류! ' : kind === 'PEANUT' ? '🥜 땅콩떼기! ' : '';
+    const description = receipt.first ? `${head}🆕 새 ${grade} 발견!\n📖 ${grade} 도감 ${receipt.tierKnown}/${receipt.tierTotal}` : `${head}${grade} · ${receipt.count}번째 만남`;
+    const drama = (receipt.first || high.has(c.rarity) ? prelude(c, receipt.first) : '').trim();
+    const extra = [...(receipt.snacks ? [`🍤 새우gang +${receipt.snacks}`] : []), ...(receipt.achievement ? [achievementText(receipt.achievement)] : [])];
+    const m = (t) => mask(content, t, known);
+    return { drama: m(drama), title: m(`${emblems[c.rarity]} ${c.name}`), description: m(description), extra: extra.map(m) };
+}
+export const achievementText = (a) => `🏆 ${rarityNames[a.tier]} 도감 완성!\n칭호 「${a.title}」 획득 · 🎟 +${a.tickets}`;
+export function rewardGuide(content) {
+    const r = content.economy.rewards;
+    return '🎁 획득 보상 (새우gang)\n\n' + tierOrder.filter(t => t !== 'COMMON').map(t => `${rarityNames[t]} · 첫 발견 ${r[t].first} / 중복 ${r[t].duplicate}`).join('\n') +
+        `\n\n흔함은 보상이 없어요.\n새우gang은 상점에서 써요: 흔함 ${content.economy.exchange.snackCost} · 안흔함 ${content.economy.exchange.uncommonCost} · 뽑기권 ${content.economy.shop.tickets.amount}장 ${content.economy.shop.tickets.snacks}.\n\n등급 도감을 모두 채우면 칭호와 뽑기권을 받습니다. (칭호)`;
+}
