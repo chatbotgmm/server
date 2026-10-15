@@ -13,3 +13,6 @@ art/gpt/
 
 # 안드로이드 앱 파일은 apk 브랜치에(저장소 크기 때문에). 서버는 update.sh가 여기로 꺼냄
 public/app/
+
+# 디자인 검토 이미지는 별도 artifact 브랜치에서 공개한다.
+public/design-review/
