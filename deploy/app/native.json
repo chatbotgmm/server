@@ -1,0 +1,13 @@
+{
+  "versionCode": 77,
+  "versionName": "2.2.3-native",
+  "size": 85162071,
+  "date": "2026-10-16",
+  "test": true,
+  "native": true,
+  "applicationId": "org.dpdns.gmm.native.revised",
+  "separateInstall": true,
+  "certificateSha256": "097fb35527efeb6ab86b5d52908a634ad8cf0e556b24f5f2de918b91a4754897",
+  "sha256": "894c27b4c39ef9c9a283713e5c94fa14c5c620b1751fb67e1a34a5f95b8d3a69",
+  "sourceCommit": "3c9db6970b2c61073b226ba7018d07085fdff7a5"
+}
