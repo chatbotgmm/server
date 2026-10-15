@@ -1,10 +1,15 @@
 """Assemble the read-only review site from native Skia exports. No image retouching."""
 from pathlib import Path
+import argparse
 import json
+import os
 import shutil
+import subprocess
+from concurrent.futures import ThreadPoolExecutor
 
 ROOT = Path(__file__).resolve().parents[3]
-ART = Path('/workspace/review-artifacts/pr-2/final-vision')
+ORIGINAL = Path('/workspace/review-artifacts/pr-2/final-vision')
+ART = Path(os.environ.get('GMM_GALLERY_OUTPUT', str(ORIGINAL)))
 DEST = ROOT / 'public/design-review'
 SCENES = [
  ('title','시작','여정','title-out','항구 접수대와 원본 수호자, 또렷한 첫 행동'),
@@ -42,8 +47,27 @@ ACTUAL = [
 ]
 SPECIAL={'acquisition':'ux72-acquisition-915.webp','reward':'ux72-reward-915-expanded.webp','promotion':'growth-915-font130-promotion-comparison-top.webp'}
 
-def build():
+def export_captures(before, after):
+    jobs=[]
+    for version, directory in [('before',before),('after',after)]:
+        output=ART/version;output.mkdir(parents=True,exist_ok=True)
+        for scene,_ in ACTUAL:
+            name=SPECIAL.get(scene,f'phone-{scene}.webp')
+            source=Path(directory)/name.replace('.webp','.png')
+            if not source.is_file():raise FileNotFoundError(source)
+            jobs.append((source,output/name))
+    def export(job):
+        source,destination=job
+        # Format export only: preserve the captured viewport and its original pixel geometry.
+        subprocess.run(['ffmpeg','-v','error','-y','-i',str(source),'-frames:v','1','-c:v','libwebp','-quality','91','-compression_level','5',str(destination)],check=True)
+    with ThreadPoolExecutor(max_workers=3) as pool:list(pool.map(export,jobs))
+
+def build(before=None, after=None):
     ART.mkdir(parents=True,exist_ok=True)
+    if ART!=ORIGINAL:
+        for folder in ['images','thumbs']:
+            shutil.copytree(ORIGINAL/folder,ART/folder,dirs_exist_ok=True)
+    if before and after:export_captures(before,after)
     hot={}
     for item in json.loads((Path(__file__).parent/'hotspots.json').read_text()):
         hot[item['scene']]=item['hotspots']
@@ -67,7 +91,22 @@ def build():
             assert 0<=h['x']<1280 and 0<=h['y']<524
             assert h['x']+h['w']<=1280 and h['y']+h['h']<=524,(item['id'],h)
     manifest=dict(title='수비조장의 모험 도감',date='2026-10-15',concepts=concepts,actual=actual,
-        note='최종 시안은 설계 제안입니다. 현재 구현 화면과 구분해 표시하며 계정·재화는 변경하지 않습니다.')
+        note='최종 시안은 설계 제안입니다. 실제 네이티브 적용 화면은 별도 전후 비교로 표시하며 계정·재화는 변경하지 않습니다.')
+    research=json.loads((Path(__file__).parent/'references.json').read_text())
+    sources={x['id']:x for x in research['sources']}
+    manifest['references']=[]
+    focuses={
+      'pokemon-tcg-pocket':('수집물의 존재감','원본 카드와 캐릭터를 키우고 획득 후 조합·성장으로 이어지게 했어요.'),
+      'seven-knights-rebirth':('성장과 편성','고정 출전 자리와 후보를 구분하고 능력치·기술을 같은 순서로 비교해요.'),
+      'honkai-star-rail':('전투 정보 위계','기술의 위력·최종 상성·효과와 현재 행동의 확정 기록을 구분해요.'),
+      'cookierun-kingdom':('살아 있는 캐릭터와 세계','배경의 공간과 큰 원본 갈매미를 살리고 기본 탐색과 주요 행동을 고정해요.')}
+    for game in research['recommendedCoreGames']:
+        rank=game['verifiedRankEvidence'][0];focus,applied=focuses[game['id']]
+        manifest['references'].append(dict(name=game['name'],focus=focus,applied=applied,
+            rank=f"{rank['market']} · {rank['platforms']} · {rank['metric']} {rank['rank']}위",
+            period=rank['period'],source=sources[rank['source']]['url'],official=sources[game['officialSources'][0]]['url']))
+    manifest['comparison']={'before':'시안 스타일 반영 전','after':'시안 스타일 반영 후',
+        'description':'승인한 시안의 재질·주요 버튼·캐릭터 비중·정보 위계를 실제 네이티브 화면에 반영한 전후 비교입니다.'}
     (ART/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2))
     for name in ['index.html','app.js','style.css']:
         shutil.copyfile(Path(__file__).parent/name,ART/name)
@@ -80,4 +119,7 @@ def build():
     for name in ['images','thumbs','before','after','assets']:
         shutil.copytree(ART/name,DEST/name,dirs_exist_ok=True)
     print(json.dumps(dict(concepts=len(concepts),actual=len(actual),hotspots=sum(len(x['hotspots']) for x in concepts),public=str(DEST)),ensure_ascii=False))
-if __name__=='__main__':build()
+if __name__=='__main__':
+    parser=argparse.ArgumentParser();parser.add_argument('--before-dir');parser.add_argument('--after-dir');args=parser.parse_args()
+    if bool(args.before_dir)!=bool(args.after_dir):parser.error('before-dir와 after-dir를 함께 지정하세요.')
+    build(args.before_dir,args.after_dir)

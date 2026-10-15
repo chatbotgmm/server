@@ -39,7 +39,7 @@ final class AudioControlView extends LinearLayout {
     value.setTypeface(host.prose);
     value.setGravity(Gravity.CENTER);
     value.setPadding(0, 0, 0, 0);
-    addView(value, new LayoutParams(host.dp(30), host.dp(48)));
+    addView(value, new LayoutParams(host.dp(44), host.dp(48)));
     mute =
         host.button(
             "",

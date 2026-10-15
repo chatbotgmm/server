@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import android.os.Looper;
 import android.view.*;
+import android.widget.*;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -242,46 +243,120 @@ public class NativeAcquisitionFlowTest {
 
   @Test
   public void acquiredCardsAndActionsCaptureAtPhoneAndTabletSizes() throws Exception {
-    for (int[] size : new int[][] {{915, 412}, {1280, 720}}) {
+    NativeRenderReviewTest review = new NativeRenderReviewTest();
+    review.scheduledFramesUseThePausedLooperClock();
+    for (int[] size : new int[][] {{915, 412}, {1280, 720}, {780, 360}}) {
       RuntimeEnvironment.setQualifiers("w" + size[0] + "dp-h" + size[1] + "dp-land-mdpi");
+      RuntimeEnvironment.setFontScale(size[0] == 780 ? 1.3f : 1);
       try (var controller = fixtures.start()) {
         MainActivity h = controller.get();
         api(h, state(fighter("o20", 5)));
-        NativeRenderReviewTest review = new NativeRenderReviewTest();
         review.viewport(h, size[0], size[1]);
         NativeAcquisitionFlow flow = new NativeAcquisitionFlow(h, "draw", Set.of());
         h.base("뽑기 결과", "drawResult");
+        JSONObject acquired = result().put("name", "태초의 갈매미맨").put("tierName", "제한");
+        java.util.concurrent.atomic.AtomicInteger finished = new java.util.concurrent.atomic.AtomicInteger();
         h.root.addView(
             new NativeReveal(
                 h,
                 MainActivity.obj(
                     "items",
                     new JSONArray()
-                        .put(result())
+                        .put(acquired)
                         .put(
                             MainActivity.obj(
                                 "id",
                                 "C1",
                                 "name",
-                                "기본 갈매미",
+                                "기본 갈매미맨",
                                 "tier",
                                 "COMMON",
                                 "tierName",
                                 "흔함",
                                 "img",
-                                "C1"))),
-                () -> {},
+                                "C1"))
+                        .put(MainActivity.obj(
+                            "id", "I3", "name", "꺼지지 않는 그림자",
+                            "tier", "IMMORTAL", "tierName", "불멸", "img", "I3"))),
+                finished::incrementAndGet,
                 true,
                 flow),
             new android.widget.FrameLayout.LayoutParams(-1, -1));
         Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
-        review.capture(h, "ux72-acquisition-" + size[0], size[0], size[1]);
-        assertNotNull(h.root.findViewWithTag("acquisition-grow"));
-        assertNotNull(h.root.findViewWithTag("acquisition-team"));
+        String name = "ux72-acquisition-" + size[0] + (size[0] == 780 ? "-font130" : "");
+        review.capture(h, name, size[0], size[1]);
+        assertAcquisitionActionsVisible(h, size[0], size[1]);
+        for (String id : new String[] {"D1", "C1", "I3"}) {
+          NativeReveal.RevealCard card = h.root.findViewWithTag("acquisition-card-" + id);
+          assertNotNull("원본 획득 카드 유지: " + id, card);
+          assertCardTextFits(card.front);
+          ImageView image = card.findViewWithTag("/thumbs/" + id + ".jpg");
+          assertNotNull("원본 수집 카드 경로 유지: " + id, image);
+          assertEquals(ImageView.ScaleType.FIT_CENTER, image.getScaleType());
+          assertEquals("수집 카드 그림을 정방형으로 유지: " + id, image.getWidth(), image.getHeight());
+        }
+        ScrollView cards = h.root.findViewWithTag("acquisition-cards-scroll");
+        assertNotNull("작은 화면의 카드 본문은 세로 스크롤 가능", cards);
+        cards.fullScroll(View.FOCUS_DOWN);
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
+        review.capture(h, name + "-bottom", size[0], size[1]);
+        assertAcquisitionActionsVisible(h, size[0], size[1]);
+        assertCardTextFits(((NativeReveal.RevealCard)
+            h.root.findViewWithTag("acquisition-card-I3")).front);
         h.root.findViewWithTag("acquisition-card-C1").performClick();
         assertNotNull(h.root.findViewWithTag("acquisition-craft"));
         assertNull(h.root.findViewWithTag("acquisition-grow"));
+        review.capture(h, name + "-collection-grade", size[0], size[1]);
+        assertActionVisible(h, "acquisition-detail", size[0], size[1]);
+        assertActionVisible(h, "acquisition-craft", size[0], size[1]);
+        Button confirm = h.root.findViewWithTag("acquisition-confirm");
+        assertActionVisible(h, "acquisition-confirm", size[0], size[1]);
+        assertTrue("본문을 스크롤한 뒤에도 확인 버튼을 누를 수 있음", confirm.performClick());
+        confirm.performClick();
+        assertEquals("결과를 닫는 동작은 중복 실행하지 않음", 1, finished.get());
       }
+    }
+  }
+
+  void assertAcquisitionActionsVisible(MainActivity host, int width, int height) {
+    for (String tag : new String[] {
+        "acquisition-detail", "acquisition-grow", "acquisition-team", "acquisition-confirm"})
+      assertActionVisible(host, tag, width, height);
+  }
+
+  void assertActionVisible(MainActivity host, String tag, int width, int height) {
+    Button action = host.root.findViewWithTag(tag);
+    assertNotNull("획득 후 행동을 유지: " + tag, action);
+    assertTrue("획득 후 행동이 표시됨: " + tag, action.isShown());
+    assertTrue("획득 후 행동 터치 높이: " + tag, action.getHeight() >= host.dp(48));
+    android.graphics.Rect bounds = new android.graphics.Rect();
+    action.getDrawingRect(bounds);
+    host.root.offsetDescendantRectToMyCoords(action, bounds);
+    assertTrue("본문 스크롤과 별개로 CTA 전체 표시: " + tag + " " + bounds,
+        new android.graphics.Rect(0, 0, width, height).contains(bounds));
+    assertNotNull("행동 라벨 배치: " + tag, action.getLayout());
+    for (int i = 0; i < action.getLineCount(); i++)
+      assertEquals("행동 라벨 말줄임 금지: " + tag, 0, action.getLayout().getEllipsisCount(i));
+    assertTrue("행동 라벨 세로 잘림 금지: " + tag,
+        action.getHeight() - action.getCompoundPaddingTop() - action.getCompoundPaddingBottom()
+            >= action.getLayout().getHeight());
+  }
+
+  void assertCardTextFits(View view) {
+    if (view.getVisibility() != View.VISIBLE) return;
+    if (view instanceof TextView) {
+      TextView text = (TextView) view;
+      assertNotNull("원본 이름과 등급 배치: " + text.getText(), text.getLayout());
+      for (int i = 0; i < text.getLineCount(); i++)
+        assertEquals("원본 이름과 등급 말줄임 금지: " + text.getText(),
+            0, text.getLayout().getEllipsisCount(i));
+      assertTrue("긴 원본 이름의 자연 높이 확보: " + text.getText(),
+          text.getHeight() - text.getCompoundPaddingTop() - text.getCompoundPaddingBottom()
+              >= text.getLayout().getHeight());
+    }
+    if (view instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) view;
+      for (int i = 0; i < group.getChildCount(); i++) assertCardTextFits(group.getChildAt(i));
     }
   }
 }

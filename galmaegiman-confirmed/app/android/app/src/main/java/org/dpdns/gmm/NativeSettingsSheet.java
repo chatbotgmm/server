@@ -67,6 +67,14 @@ final class NativeSettingsSheet {
       lp.setMargins(h.dp(5), 0, h.dp(5), 0);
       columns.addView(scroll, lp);
     }
+    TextView soundHeading = h.text("소리", 20);
+    soundHeading.setTypeface(h.headline);
+    soundHeading.setPadding(h.dp(4), 0, 0, h.dp(6));
+    left.addView(soundHeading);
+    TextView accountHeading = h.text("계정·알림", 20);
+    accountHeading.setTypeface(h.headline);
+    accountHeading.setPadding(h.dp(4), 0, 0, h.dp(6));
+    right.addView(accountHeading);
     LinearLayout master = paperRow(h);
     TextView label = h.text("전체 소리", 17);
     label.setTypeface(h.prose);
@@ -76,6 +84,9 @@ final class NativeSettingsSheet {
     addRow(h, left, master);
     LinearLayout audio = AudioControlView.pair(h);
     left.addView(audio);
+    TextView restore = k.note("각 슬라이더 오른쪽에서 음소거해요. 다시 켜면 이전 볼륨으로 돌아와요.");
+    restore.setPadding(h.dp(4), h.dp(8), h.dp(4), 0);
+    left.addView(restore);
     Runnable sync =
         () -> {
           all.setText(h.sound.masterMuted() ? "꺼짐" : "켜짐");
@@ -83,7 +94,7 @@ final class NativeSettingsSheet {
               new GameButtonDrawable(
                   h,
                   h.sound.masterMuted() ? GameButtonDrawable.PAPER : GameButtonDrawable.PRIMARY));
-          audio.setAlpha(h.sound.masterMuted() ? .5f : 1);
+          audio.setAlpha(1);
         };
     all.setOnClickListener(
         v -> {

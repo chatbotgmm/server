@@ -27,20 +27,22 @@ final class TitleView extends FrameLayout implements FullBleed {
 
     LinearLayout notes = new LinearLayout(host);
     notes.setOrientation(LinearLayout.VERTICAL);
-    TextView office = text("갈매미 섬 항구 수비대", 15, false, JournalTheme.MUTED);
+    TextView office = text("갈매미 섬 항구 수비대", 16, false, JournalTheme.MUTED);
     notes.addView(office);
-    notes.addView(text("인사 기록부", 13, false, JournalTheme.MUTED));
     View rule = new View(host);
     rule.setBackgroundColor(0xffd9c8a8);
     LinearLayout.LayoutParams ruleSlot = new LinearLayout.LayoutParams(-1, host.dp(1));
     ruleSlot.setMargins(host.dp(7), host.dp(12), host.dp(7), host.dp(17));
     notes.addView(rule, ruleSlot);
-    notes.addView(text("갈매미맨 수비대", 28, true, JournalTheme.INK));
-    notes.addView(text("수비조장의 모험 도감", 17, false, JournalTheme.TEAL));
-    TextView greeting = text("오늘도 출근 도장부터 찍어요.", 15, false, JournalTheme.MUTED);
+    notes.addView(text("갈매미맨 수비대", 32, true, JournalTheme.INK));
+    notes.addView(text("수비조장의 모험 도감", 18, false, JournalTheme.TEAL));
+    TextView greeting = text("돌처럼 듬직한 동료들과,", 17, false, JournalTheme.INK);
     greeting.setPadding(host.dp(8), host.dp(12), host.dp(8), host.dp(4));
     notes.addView(greeting);
-    notes.addView(text("모으고, 발령하고, 한 마리씩 성장해요.", 15, false, JournalTheme.INK));
+    notes.addView(text("한 마리씩 쌓아 가는 우리 섬의 이야기.", 17, false, JournalTheme.INK));
+    TextView loop = text("수집  ·  조합  ·  턴제 전략", 15, true, JournalTheme.TEAL);
+    loop.setPadding(host.dp(8), host.dp(14), host.dp(8), host.dp(5));
+    notes.addView(loop);
     journal = new ScrollView(host);
     journal.setFillViewport(false);
     journal.setClipToPadding(true);
@@ -55,7 +57,7 @@ final class TitleView extends FrameLayout implements FullBleed {
               if (loggedIn) host.load("home");
               else host.login();
             });
-    enter.setTextColor(JournalTheme.INK);
+    enter.setTextColor(Color.WHITE);
     enter.setBackground(new GameButtonDrawable(host, GameButtonDrawable.PRIMARY));
     enter.setTextSize(host.uiText(20));
     enter.setTag("title-enter");
@@ -146,12 +148,14 @@ final class TitleView extends FrameLayout implements FullBleed {
 
   RectF panelBox(int w, int h) {
     RectF safe = host.safeBounds(w, h);
-    float margin = host.dp(14);
+    float margin = Math.max(host.dp(14), safe.height() * .055f);
+    float height = Math.min(safe.height() - margin * 2, host.dp(520));
+    float top = safe.top + (safe.height() - height) / 2;
     return new RectF(
-        safe.left + margin,
-        safe.top + margin,
-        safe.left + safe.width() * .49f,
-        safe.bottom - margin);
+        safe.left + Math.max(host.dp(14), safe.width() * .025f),
+        top,
+        safe.left + safe.width() * .445f,
+        top + height);
   }
 
   RectF mainBox() {
@@ -173,7 +177,7 @@ final class TitleView extends FrameLayout implements FullBleed {
 
   RectF accountBox() {
     RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
-    float width = Math.min(host.dp(300), safe.width() * .36f);
+    float width = Math.min(host.dp(520), safe.width() * .40f);
     return new RectF(
         safe.right - host.dp(18) - width,
         safe.bottom - host.dp(18) - host.dp(48),

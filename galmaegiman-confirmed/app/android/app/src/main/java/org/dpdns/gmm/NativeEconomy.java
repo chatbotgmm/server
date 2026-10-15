@@ -14,6 +14,9 @@ final class NativeEconomy {
   LinearLayout craftActions;
   Set<String> drawBefore;
   NativeAcquisitionFlow drawFlow, acquisitionFlow;
+  String shopFocus = "";
+  final LinkedHashMap<String, Button> shopActions = new LinkedHashMap<>();
+  final LinkedHashMap<String, LinearLayout> shopCards = new LinkedHashMap<>();
 
   NativeEconomy(NativeMenus menus) {
     m = menus;
@@ -25,6 +28,9 @@ final class NativeEconomy {
     drawBefore = null;
     drawFlow = null;
     acquisitionFlow = null;
+    shopFocus = "";
+    shopActions.clear();
+    shopCards.clear();
   }
 
   void draw() {
@@ -48,7 +54,7 @@ final class NativeEconomy {
                 k.action("u-draw", "지난 결과", () -> reveal(m.lastDraw, () -> h.load("draw"), true)),
                 new LinearLayout.LayoutParams(h.dp(112), h.dp(48)));
           Button claim = k.action("u-ticket", "뽑기권 받기", this::claimTickets);
-          claim.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
+          claim.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PAPER));
           long ready = android.os.SystemClock.elapsedRealtime() + Math.max(0, r.optLong("wait"));
           tick(
               banner,
@@ -75,22 +81,31 @@ final class NativeEconomy {
             int limit = r.optBoolean("unlimited") ? 50 : Math.min(50, r.optInt("credits") / cost);
             LinearLayout card = k.paper();
             card.setTag("draw-card-" + g.optString("kind"));
-            LinearLayout line = k.row();
+            LinearLayout line = compact() ? k.row() : k.column();
+            line.setGravity(Gravity.CENTER);
             card.addView(line);
-            line.addView(k.image("/thumbs/" + g.optString("img") + ".jpg", 48, 48));
+            int artwork = compact() ? 88 : 132;
+            line.addView(k.image("/thumbs/" + g.optString("img") + ".jpg", artwork, artwork));
             LinearLayout info = k.column();
-            line.addView(info, new LinearLayout.LayoutParams(0, -2, 1));
-            TextView name = h.text(g.optString("label") + " 뽑기", compact() ? 18 : 21);
-            name.setPadding(h.dp(4), 0, h.dp(4), 0);
+            line.addView(
+                info, new LinearLayout.LayoutParams(compact() ? 0 : -1, -2, compact() ? 1 : 0));
+            TextView name = h.text(g.optString("label") + " 뽑기", compact() ? 20 : 24);
+            name.setTypeface(h.headline);
+            name.setPadding(h.dp(6), h.dp(4), h.dp(6), h.dp(3));
+            if (!compact()) name.setGravity(Gravity.CENTER);
             info.addView(name);
-            TextView unitCost = k.note("1회당 뽑기권 " + cost + "장");
-            unitCost.setPadding(h.dp(4), 0, h.dp(4), 0);
+            TextView unitCost = k.note("1회 · " + cost + "장");
+            unitCost.setContentDescription("1회에 뽑기권 " + cost + "장");
+            unitCost.setPadding(h.dp(6), 0, h.dp(6), h.dp(4));
+            if (!compact()) unitCost.setGravity(Gravity.CENTER);
             info.addView(unitCost);
             int[] amount = {1};
             TextView total = h.text("", compact() ? 15 : 17);
             total.setTag("draw-total-" + g.optString("kind"));
+            total.setTypeface(h.headline);
             total.setPadding(h.dp(4), h.dp(4), h.dp(4), h.dp(4));
-            total.setSingleLine(true);
+            total.setSingleLine(false);
+            total.setMaxLines(2);
             total.setGravity(Gravity.CENTER);
             Button go =
                 k.action(
@@ -123,21 +138,26 @@ final class NativeEconomy {
             card.getChildAt(card.getChildCount() - 1)
                 .setTag("draw-quantity-" + g.optString("kind"));
             card.addView(total);
-            go.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
+            go.setBackground(
+                new GameButtonDrawable(
+                    h,
+                    g.optString("kind").equals("HIGH")
+                        ? GameButtonDrawable.PRIMARY
+                        : GameButtonDrawable.PAPER));
             go.setEnabled(limit > 0);
             if (limit <= 0) {
               go.setText("뽑기권 부족");
               total.setText("필요 " + cost + "장 · 보유 " + r.optInt("credits") + "장");
             }
-            go.setTextSize(h.uiText(16));
-            card.addView(go, new LinearLayout.LayoutParams(-1, h.dp(48)));
+            go.setTextSize(h.uiText(18));
+            card.addView(go, new LinearLayout.LayoutParams(-1, h.dp(56)));
             JSONObject pity = r.optJSONObject("pity");
             String hint =
                 g.optString("kind").equals("HIGH") && pity != null
                     ? pity.optString("tierName") + " 보장까지 " + pity.optInt("left") + "회"
                     : "흔함·안흔함 포함";
             TextView note = k.note(hint);
-            note.setTextSize(h.uiText(13));
+            note.setTextSize(h.uiText(14));
             note.setGravity(Gravity.CENTER);
             card.addView(note);
             Button odds = k.action(null, "확률·보장 보기", () -> gachaGuide(g, r));
@@ -290,7 +310,11 @@ final class NativeEconomy {
                     ? new GamePanelDrawable(h)
                     : new GamePaperDrawable(h));
             item.setPadding(h.dp(8), h.dp(8), h.dp(8), h.dp(12));
-            item.addView(k.image("/thumbs/" + r.optString("img") + ".jpg", 56, 56));
+            item.addView(
+                k.image(
+                    "/thumbs/" + r.optString("img") + ".jpg",
+                    compact() ? 64 : 80,
+                    compact() ? 64 : 80));
             item.addView(
                 h.text(
                     r.optString("name")
@@ -334,7 +358,9 @@ final class NativeEconomy {
     parent.removeAllViews();
     LinearLayout panel = k.paper();
     parent.addView(panel);
-    panel.addView(h.text(r.optString("name"), 22));
+    TextView resultName = h.text(r.optString("name"), 24);
+    resultName.setTypeface(h.headline);
+    panel.addView(resultName);
     panel.addView(k.note(r.optString("tierName") + (r.optBoolean("isNew") ? " · 처음 발견" : "")));
     JSONArray mats = h.list(r, "materials");
     HorizontalScrollView strip = new HorizontalScrollView(h);
@@ -395,7 +421,8 @@ final class NativeEconomy {
     make.setEnabled(r.optBoolean("ready"));
     if (!r.optBoolean("ready")) make.setText("재료 부족");
     make.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
-    craftActions.addView(make, new LinearLayout.LayoutParams(h.dp(220), h.dp(48)));
+    make.setTextSize(h.uiText(18));
+    craftActions.addView(make, new LinearLayout.LayoutParams(h.dp(220), h.dp(56)));
   }
 
   LinearLayout materialSlot(JSONObject unit, boolean result) {
@@ -403,7 +430,9 @@ final class NativeEconomy {
     slot.setGravity(Gravity.CENTER_HORIZONTAL);
     slot.addView(
         k.image(
-            "/thumbs/" + unit.optString("img") + ".jpg", compact() ? 54 : 74, compact() ? 54 : 74));
+            "/thumbs/" + unit.optString("img") + ".jpg",
+            compact() ? 76 : 108,
+            compact() ? 76 : 108));
     TextView name = h.text(unit.optString("name"), compact() ? 12 : 15);
     name.setPadding(0, h.dp(4), 0, h.dp(4));
     name.setSingleLine(true);
@@ -412,7 +441,7 @@ final class NativeEconomy {
     slot.setLayoutParams(
         new LinearLayout.LayoutParams(
             Math.max(
-                h.dp(compact() ? 86 : 112),
+                h.dp(compact() ? 98 : 136),
                 nameWidth + slot.getPaddingLeft() + slot.getPaddingRight() + h.dp(2)),
             -2));
     slot.addView(name);
@@ -688,6 +717,8 @@ final class NativeEconomy {
           h.body.addView(k.notice("대결 아이템은 종류마다 " + maxStack + "개까지 · 갈매미 교환·팔기는 카톡 상점"));
           h.body.addView(shelf);
           ArrayList<View> goods = new ArrayList<>();
+          shopActions.clear();
+          shopCards.clear();
           JSONObject tickets = prices.optJSONObject("tickets"),
               peanut = prices.optJSONObject("peanutTickets");
           if (tickets != null)
@@ -737,7 +768,8 @@ final class NativeEconomy {
                     count >= maxStack ? "보유 한도" : "새우gang 부족",
                     "보유 " + count + "개"));
           }
-          k.tiles(shelf, goods, h.getResources().getConfiguration().screenWidthDp >= 1100 ? 5 : 3);
+          k.tiles(shelf, goods, 3);
+          focusShopOffer();
         });
   }
 
@@ -765,17 +797,28 @@ final class NativeEconomy {
       JSONObject params,
       String blocked,
       String holding) {
+    String offerKey = endpoint + ":" + params.optString("id", params.optString("item"));
     LinearLayout card = k.paper();
+    card.setTag("shop-offer-" + offerKey);
     LinearLayout nameLine = k.row();
     nameLine.addView(
-        k.image("/duel/icons/" + icon + ".png", compact() ? 36 : 56, compact() ? 36 : 56));
-    TextView name = h.text(title, compact() ? 16 : 18);
+        k.image("/duel/icons/" + icon + ".png", compact() ? 64 : 88, compact() ? 64 : 88));
+    TextView name = h.text(title, compact() ? 18 : 22);
+    name.setTypeface(h.headline);
     name.setTextLocale(Locale.KOREA);
     name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
     if (android.os.Build.VERSION.SDK_INT >= 33)
       name.setLineBreakWordStyle(
           android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
-    nameLine.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+    LinearLayout offer = k.column();
+    offer.addView(name);
+    TextView totalPrice = k.note(currency + " " + price + "개");
+    totalPrice.setTag("shop-total-" + icon);
+    totalPrice.setTextSize(h.uiText(16));
+    totalPrice.setTextColor(MainActivity.INK);
+    totalPrice.setPadding(h.dp(8), h.dp(3), h.dp(8), h.dp(4));
+    offer.addView(totalPrice);
+    nameLine.addView(offer, new LinearLayout.LayoutParams(0, -2, 1));
     card.addView(nameLine);
     if (!holding.isEmpty()) {
       TextView stock = k.note(holding);
@@ -788,7 +831,7 @@ final class NativeEconomy {
     Button buy =
         k.action(
             icon,
-            currency + " " + price,
+            "구매하기",
             () ->
                 h.confirm(
                     title
@@ -812,14 +855,50 @@ final class NativeEconomy {
         false,
         n -> {
           amount[0] = n;
-          buy.setText(currency + " " + price * n);
+          totalPrice.setText(currency + " " + price * n + "개");
+          buy.setText(n > 1 ? n + "개 구매" : "구매하기");
         });
     quantityLimit(card, limit);
     buy.setEnabled(limit > 0);
     if (limit <= 0) buy.setText(blocked);
-    buy.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
-    card.addView(buy);
+    buy.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PAPER));
+    buy.setTextSize(h.uiText(18));
+    card.addView(buy, new LinearLayout.LayoutParams(-1, h.dp(56)));
+    shopActions.put(offerKey, buy);
+    shopCards.put(offerKey, card);
+    card.setOnClickListener(
+        v -> {
+          if (h.busy) return;
+          shopFocus = offerKey;
+          focusShopOffer();
+        });
     return card;
+  }
+
+  // 구매는 기존 확인창으로 처리하고, 선택한 보급품 하나만 강조한다.
+  void focusShopOffer() {
+    if (!shopActions.containsKey(shopFocus) || !shopActions.get(shopFocus).isEnabled()) {
+      shopFocus = "";
+      for (Map.Entry<String, Button> entry : shopActions.entrySet())
+        if (entry.getValue().isEnabled()) {
+          shopFocus = entry.getKey();
+          break;
+        }
+    }
+    for (Map.Entry<String, Button> entry : shopActions.entrySet()) {
+      boolean selected = entry.getKey().equals(shopFocus);
+      entry
+          .getValue()
+          .setBackground(
+              new GameButtonDrawable(
+                  h, selected ? GameButtonDrawable.PRIMARY : GameButtonDrawable.PAPER));
+      LinearLayout card = shopCards.get(entry.getKey());
+      card.setSelected(selected);
+      card.setBackground(selected ? new GamePanelDrawable(h) : new GamePaperDrawable(h));
+      // 부모의 선택 표시는 구매 확정 버튼의 주요 행동색을 바꾸지 않는다.
+      entry.getValue().setDuplicateParentStateEnabled(false);
+      entry.getValue().setSelected(false);
+    }
   }
 
   long time(String date) {
@@ -909,7 +988,7 @@ final class NativeEconomy {
             LinearLayout card = k.paper();
             card.setGravity(Gravity.CENTER_HORIZONTAL);
             card.addView(
-                k.image("/thumbs/" + id + ".jpg", compact() ? 58 : 90, compact() ? 58 : 90));
+                k.image("/thumbs/" + id + ".jpg", compact() ? 72 : 112, compact() ? 72 : 112));
             TextView name = h.text(u.optString("name"), compact() ? 13 : 16);
             name.setGravity(Gravity.CENTER);
             card.addView(name);

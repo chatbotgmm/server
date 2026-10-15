@@ -13,6 +13,10 @@ with sync_playwright() as p:
  page.on('pageerror',lambda e: errors.append(str(e)))
  page.goto(os.environ.get('GMM_REVIEW_BASE','http://127.0.0.1:8009/design-review/')+'#concept/home')
  page.wait_for_selector('#hotspots button')
+ assert page.locator('#references .reference-card').count()==4
+ for link in page.locator('#references a').all():
+  assert link.get_attribute('href').startswith('https://')
+ assert page.locator('#conceptImage').get_attribute('src').endswith('?v=20261015-ux74')
  page.evaluate('document.querySelectorAll("#grid img").forEach(i=>i.loading="eager")')
  page.wait_for_function('Array.from(document.querySelectorAll("#grid img")).every(i=>i.complete&&i.naturalWidth>0)')
  page.screenshot(path=str(out/'desktop-home.png'),full_page=True)
@@ -59,6 +63,6 @@ with sync_playwright() as p:
   page.wait_for_function('Array.from(document.querySelectorAll("#grid img")).every(i=>i.complete&&i.naturalWidth>0)')
   page.screenshot(path=str(out/f'viewport-{width}-{height}.png'),full_page=True)
  assert not errors,errors
- (out/'verification.json').write_text(json.dumps({'conceptScreens':22,'actualPairs':33,'hotspotsTested':len(tested),'pageErrors':errors,'hotspots':tested},ensure_ascii=False,indent=2))
+ (out/'verification.json').write_text(json.dumps({'conceptScreens':22,'actualPairs':33,'rankedGameReferences':4,'viewports':[[1440,1080],[412,915],[915,412],[1280,720]],'hotspotsTested':len(tested),'pageErrors':errors,'hotspots':tested},ensure_ascii=False,indent=2))
  browser.close()
  print(json.dumps({'conceptScreens':22,'actualPairs':33,'hotspotsTested':len(tested),'pageErrors':errors}))

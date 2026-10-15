@@ -61,35 +61,39 @@ final class NativeLibrary {
             int index = i;
             JSONObject u = visible.get(i);
             LinearLayout card = k.paper();
+            card.setTag("collection-card-" + u.optString("id"));
             card.setGravity(Gravity.CENTER_HORIZONTAL);
             FrameLayout portrait = new FrameLayout(h);
             ImageView art =
-                k.image(u.optString("image", "/thumbs/" + u.optString("id") + ".jpg"), 100, 100);
+                k.image(u.optString("image", "/thumbs/" + u.optString("id") + ".jpg"), 142, 142);
             portrait.addView(art, new FrameLayout.LayoutParams(-1, -1));
             TextView have =
                 h.text(
                     u.optInt("have") > 0
                         ? "×" + u.optInt("have")
                         : u.optBoolean("known") ? "발견" : "미발견",
-                    12);
+                    13);
             have.setBackground(new GamePaperDrawable(h));
             have.setPadding(h.dp(4), 0, h.dp(4), 0);
             portrait.addView(
                 have, new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.RIGHT));
-            card.addView(portrait, new LinearLayout.LayoutParams(-1, h.dp(96)));
-            TextView name = h.text(u.optString("name"), 12);
+            card.addView(portrait, new LinearLayout.LayoutParams(-1, h.dp(h.compact() ? 128 : 142)));
+            TextView name = h.text(u.optString("name"), 14);
             name.setTypeface(h.headline);
             name.setGravity(Gravity.CENTER);
-            name.setMaxLines(1);
-            name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            name.setTextLocale(Locale.KOREA);
+            name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
+            if (android.os.Build.VERSION.SDK_INT >= 33)
+              name.setLineBreakWordStyle(android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
             card.addView(name);
-            TextView grade = k.note(u.optString("tierName") + " · " + u.optString("attrName"));
-            grade.setTextSize(11);
+            String attr = u.optString("attrName");
+            TextView grade = k.note(u.optString("tierName") + (attr.isEmpty() ? "" : " · " + attr));
+            grade.setTextSize(13);
             grade.setGravity(Gravity.CENTER);
             card.addView(grade);
             if (u.optInt("away") > 0) {
               TextView away = k.note("탐험 중 " + u.optInt("away"));
-              away.setTextSize(11);
+              away.setTextSize(13);
               card.addView(away);
             }
             card.setOnClickListener(v -> detail(visible, index));
@@ -101,7 +105,7 @@ final class NativeLibrary {
             cards.add(card);
           }
           int usable = h.getResources().getConfiguration().screenWidthDp - 32;
-          k.tiles(list, cards, Math.max(3, usable / 125));
+          k.tiles(list, cards, Math.max(3, usable / 170));
           if (cards.isEmpty()) list.addView(k.note("찾는 갈매미가 없어요. 이름·등급·속성을 바꿔 찾아보세요."));
         };
     k.search(
@@ -448,14 +452,16 @@ final class NativeLibrary {
     cols[0].addView(who);
     LinearLayout identity = compact ? k.row() : k.column();
     identity.setGravity(Gravity.TOP);
-    identity.addView(k.image(u.optString("image"), compact ? 72 : 160, compact ? 72 : 172));
+    identity.addView(k.image(u.optString("image"), compact ? 104 : 190, compact ? 114 : 204));
     LinearLayout labels = k.column();
     identity.addView(labels, new LinearLayout.LayoutParams(compact ? 0 : -1, -2, compact ? 1 : 0));
     who.addView(identity);
-    TextView name = h.text(u.optString("name"), compact ? 16 : 24);
+    TextView name = h.text(u.optString("name"), compact ? 18 : 26);
     name.setTypeface(h.headline);
-    name.setMaxLines(2);
-    name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    name.setTextLocale(Locale.KOREA);
+    name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
+    if (android.os.Build.VERSION.SDK_INT >= 33)
+      name.setLineBreakWordStyle(android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
     labels.addView(name);
     TextView meta =
         k.note(
@@ -466,7 +472,7 @@ final class NativeLibrary {
                 + " · 승진 "
                 + u.optInt("stage")
                 + "단계");
-    meta.setTextSize(compact ? 12 : 14);
+    meta.setTextSize(compact ? 13 : 15);
     labels.addView(meta);
     String role = u.optString("role");
     String roleName =
@@ -476,7 +482,7 @@ final class NativeLibrary {
     JSONObject synergyDefs = h.state.optJSONObject("synergies");
     JSONObject syn = synergyDefs == null ? null : synergyDefs.optJSONObject(u.optString("synergy"));
     TextView roleLabel = k.note(roleName + (syn == null ? "" : " · " + syn.optString("name")));
-    roleLabel.setTextSize(compact ? 12 : 14);
+    roleLabel.setTextSize(compact ? 13 : 15);
     labels.addView(roleLabel);
     unitMeter(who, "체력", u.optInt("hp"), u.optInt("maxHp"), 0xff51c98b);
     unitMeter(who, "경험치", u.optInt("xp"), u.optInt("xpNext"), 0xffe9a630);
@@ -515,7 +521,7 @@ final class NativeLibrary {
   LinearLayout growthActions(String key, JSONObject unit) {
     LinearLayout panel = k.paper();
     panel.setTag("unit-growth-actions");
-    TextView title = h.text("성장·회복", h.compact() ? 16 : 20);
+    TextView title = h.text("성장·회복", h.compact() ? 18 : 22);
     title.setTypeface(h.headline);
     panel.addView(title);
     TextView summary = k.note(NativeGrowthGuidance.actionSummary(unit));
@@ -557,6 +563,7 @@ final class NativeLibrary {
       Button action = (Button) actions.getChildAt(i);
       action.setTextSize(h.compact() ? 14 : 16);
       action.setPadding(h.dp(6), h.dp(5), h.dp(6), h.dp(7));
+      action.getLayoutParams().height = h.dp(56);
     }
     panel.addView(actions);
     TextView condition = k.note(m.growth.promotionNeed(unit));

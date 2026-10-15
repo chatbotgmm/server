@@ -10,6 +10,7 @@ final class GameSkillDrawable extends Drawable {
   final boolean combo;
   final Paint p = new Paint(3);
   final GamePressState state = new GamePressState();
+  private final Paint opacity = new Paint();
   private final Path clip = new Path();
 
   GameSkillDrawable(MainActivity h, int accent, boolean combo) {
@@ -32,14 +33,21 @@ final class GameSkillDrawable extends Drawable {
 
   @Override
   public void draw(Canvas canvas) {
-    int save = state.begin(canvas, getBounds(), h.getResources().getDisplayMetrics().density);
+    int save;
+    if (state.enabled)
+      save = state.begin(canvas, getBounds(), h.getResources().getDisplayMetrics().density);
+    else {
+      opacity.setAlpha(state.alpha);
+      save = canvas.saveLayer(new RectF(getBounds()), opacity);
+    }
     if (p.getColorFilter() != null) canvas.saveLayer(new RectF(getBounds()), p);
     RectF box = new RectF(getBounds());
     JournalTheme.drawPaper(
         canvas,
         box,
         h.getResources().getDisplayMetrics().density,
-        combo ? JournalTheme.BRASS : accent);
+        combo ? JournalTheme.BRASS : accent,
+        state.enabled ? JournalTheme.PAPER : JournalTheme.DISABLED);
     box.inset(h.dp(5), h.dp(5));
     box.bottom -= h.dp(1);
     int strip = canvas.save();

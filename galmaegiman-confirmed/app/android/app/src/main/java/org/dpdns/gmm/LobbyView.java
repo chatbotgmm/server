@@ -16,6 +16,11 @@ final class LobbyView extends FrameLayout implements FullBleed {
   final String room;
   final Button gull;
   final TextView tip;
+  final LinearLayout growthCard;
+  final ScrollView growthInfo;
+  final TextView growthName, growthMeta, growthXp, growthNeed, growthSummary;
+  final ProgressBar growthProgress;
+  final Button growthAction;
   final Runnable hideTip = this::hideGullTip;
   final boolean[] badges = new boolean[12];
   long claimReadyMono = -1;
@@ -96,6 +101,56 @@ final class LobbyView extends FrameLayout implements FullBleed {
     buttons.get(6).setTag("lobby-daily");
     buttons.get(7).setTag("lobby-profile");
     buttons.get(8).setTag("lobby-settings");
+    growthCard = new LinearLayout(host);
+    growthCard.setOrientation(LinearLayout.VERTICAL);
+    growthCard.setPadding(host.dp(12), host.dp(9), host.dp(12), host.dp(10));
+    growthCard.setBackground(new GamePaperDrawable(host));
+    growthCard.setTag("lobby-growth-card");
+    LinearLayout details = new LinearLayout(host);
+    details.setOrientation(LinearLayout.VERTICAL);
+    TextView growthHeading = host.text("오늘의 근무 기록", 13);
+    growthHeading.setTextColor(JournalTheme.MUTED);
+    details.addView(growthHeading);
+    growthName = host.text("", 19);
+    growthName.setTypeface(host.headline);
+    growthName.setMaxLines(2);
+    details.addView(growthName);
+    growthMeta = host.text("", 13);
+    growthMeta.setTextColor(JournalTheme.MUTED);
+    details.addView(growthMeta);
+    growthXp = host.text("", 14);
+    details.addView(growthXp);
+    growthProgress = new ProgressBar(host, null, android.R.attr.progressBarStyleHorizontal);
+    growthProgress.setProgressTintList(android.content.res.ColorStateList.valueOf(JournalTheme.TEAL));
+    growthProgress.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(0xffddd2ba));
+    LinearLayout.LayoutParams meterSlot = new LinearLayout.LayoutParams(-1, host.dp(6));
+    meterSlot.setMargins(host.dp(8), host.dp(3), host.dp(8), host.dp(3));
+    details.addView(growthProgress, meterSlot);
+    growthNeed = host.text("", 12);
+    growthNeed.setTextColor(JournalTheme.MUTED);
+    details.addView(growthNeed);
+    growthInfo = new ScrollView(host);
+    growthInfo.setFillViewport(false);
+    growthInfo.addView(details);
+    growthCard.addView(growthInfo, new LinearLayout.LayoutParams(-1, 0, 1));
+    LinearLayout growthControls = new LinearLayout(host);
+    growthControls.setGravity(Gravity.CENTER_VERTICAL);
+    growthSummary = host.text("", 14);
+    growthSummary.setTextColor(JournalTheme.TEAL);
+    growthSummary.setMaxLines(2);
+    growthSummary.setIncludeFontPadding(false);
+    growthSummary.setPadding(host.dp(6), 0, host.dp(6), 0);
+    growthSummary.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    growthControls.addView(growthSummary, new LinearLayout.LayoutParams(0, -2, 1));
+    growthAction = host.button("성장", this::openGrowth);
+    growthAction.setTag("lobby-growth");
+    growthAction.setTextSize(host.uiText(16));
+    growthAction.setPadding(host.dp(8), host.dp(3), host.dp(8), host.dp(6));
+    growthAction.setBackground(new GameButtonDrawable(host, GameButtonDrawable.PAPER));
+    growthControls.addView(growthAction, new LinearLayout.LayoutParams(host.dp(88), host.dp(48)));
+    growthCard.addView(growthControls, new LinearLayout.LayoutParams(-1, host.dp(48)));
+    addView(growthCard);
+    refreshGrowth();
     tip = host.text("", host.getResources().getConfiguration().screenHeightDp < 600 ? 13 : 15);
     tip.setTypeface(host.prose);
     tip.setTextColor(MainActivity.INK);
@@ -148,9 +203,15 @@ final class LobbyView extends FrameLayout implements FullBleed {
 
   @Override
   public boolean onInterceptTouchEvent(MotionEvent e) {
+    RectF safe = host.safeBounds(getWidth(), getHeight());
+    RectF card = growthBox();
     return parallax.intercept(
             e,
-            new RectF(getWidth() * .16f, getHeight() * .2f, getWidth() * .85f, getHeight() * .75f),
+            new RectF(
+                Math.max(card.right + host.dp(8), safe.left + safe.width() * .35f),
+                safe.top + safe.height() * .20f,
+                safe.left + safe.width() * .88f,
+                safe.top + safe.height() * .75f),
             true)
         || super.onInterceptTouchEvent(e);
   }
@@ -199,7 +260,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   void positions(int w, int h) {
     float margin = host.dp(12), gap = host.dp(6);
     float bh = Math.min(host.dp(70), Math.max(host.dp(48), h * .12f));
-    float playW = Math.min(w * .21f, bh * 1.3f * 535 / 180);
+    float playW = Math.min(w * .25f, host.dp(320));
     float menuW = (w - margin * 3 - playW - gap * 4) / 5;
     for (int i = 0; i < 5; i++)
       boxes[i] =
@@ -213,10 +274,10 @@ final class LobbyView extends FrameLayout implements FullBleed {
         new RectF(
             margin,
             h - margin - bh - host.dp(62),
-            margin + Math.min(host.dp(154), w * .20f),
+            margin + Math.min(host.dp(420), w * .34f),
             h - margin - bh - host.dp(12));
     boxes[7] = new RectF(margin, host.dp(10), Math.min(w * .33f, host.dp(265)), host.dp(62));
-    boxes[8] = new RectF(w - margin - host.dp(52), host.dp(8), w - margin, host.dp(60));
+    boxes[8] = new RectF(w - margin - host.dp(64), host.dp(8), w - margin, host.dp(60));
     float curW = Math.min(host.dp(116), w * .11f);
     float right = boxes[8].left - gap;
     for (int i = 0; i < 3; i++) {
@@ -236,6 +297,13 @@ final class LobbyView extends FrameLayout implements FullBleed {
     RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
     positions(Math.round(safe.width()), Math.round(safe.height()));
     for (RectF box : boxes) box.offset(safe.left, safe.top);
+    RectF growth = growthBox();
+    growthInfo.setVisibility(growth.height() >= host.dp(140) ? View.VISIBLE : View.GONE);
+    growthCard.setVisibility(growth.height() >= host.dp(64) ? View.VISIBLE : View.GONE);
+    refreshGrowth();
+    growthCard.measure(
+        MeasureSpec.makeMeasureSpec(Math.max(1, (int) growth.width()), MeasureSpec.EXACTLY),
+        MeasureSpec.makeMeasureSpec(Math.max(1, (int) growth.height()), MeasureSpec.EXACTLY));
     RectF gullRect = gullBox();
     gullRect.intersect(safe);
     gull.measure(
@@ -266,6 +334,8 @@ final class LobbyView extends FrameLayout implements FullBleed {
     RectF safe = host.safeBounds(getWidth(), getHeight()), area = gullBox();
     area.intersect(safe);
     gull.layout((int) area.left, (int) area.top, (int) area.right, (int) area.bottom);
+    RectF growth = growthBox();
+    growthCard.layout((int) growth.left, (int) growth.top, (int) growth.right, (int) growth.bottom);
     if (tip.getVisibility() == View.VISIBLE) {
       int width = tip.getMeasuredWidth(), height = tip.getMeasuredHeight();
       int x = (int) Math.max(safe.left + host.dp(8), area.left - width - host.dp(10));
@@ -326,13 +396,17 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   void label(Canvas c, String text, float x, float y, float size, boolean heading) {
+    label(c, text, x, y, size, heading, JournalTheme.INK);
+  }
+
+  void label(Canvas c, String text, float x, float y, float size, boolean heading, int color) {
     p.setShader(null);
     p.setStyle(Paint.Style.FILL);
     p.setAlpha(255);
     p.setTypeface(heading ? host.headline : host.prose);
     p.setTextSize(size);
     p.setTextAlign(Paint.Align.CENTER);
-    p.setColor(JournalTheme.INK);
+    p.setColor(color);
     c.drawText(text, x, y, p);
   }
 
@@ -368,14 +442,16 @@ final class LobbyView extends FrameLayout implements FullBleed {
               r.left + host.dp(11) + size,
               r.centerY() + size / 2));
     float left = r.left + (icon == null ? host.dp(10) : host.dp(16) + size);
-    float textSize = Math.min(host.dp(primary ? 24 : 19), r.width() * (primary ? .16f : .17f));
+    float textSize =
+        index == 8 ? host.dp(14) : Math.min(host.dp(primary ? 24 : 19), r.width() * (primary ? .16f : .17f));
     label(
         c,
         fitted(name, r.right - left - host.dp(10), textSize, true),
         (left + r.right - host.dp(8)) / 2,
         r.centerY() + textSize * .32f,
         textSize,
-        true);
+        true,
+        primary ? Color.WHITE : JournalTheme.INK);
   }
 
   RectF backgroundBox(Bitmap bg) {
@@ -455,68 +531,66 @@ final class LobbyView extends FrameLayout implements FullBleed {
     c.restore();
   }
 
-  void ledger(Canvas c) {
+  String growthKey() {
     JSONArray team = host.list(host.state, "team");
-    JSONObject lead = team.length() == 0 ? null : host.unit(team.optString(0));
-    RectF safe = host.safeBounds(getWidth(), getHeight());
-    float top = boxes[7].bottom + host.dp(host.state.optBoolean("activeBattle") ? 76 : 18),
-        bottom = Math.min(top + host.dp(186), boxes[6].top - host.dp(14));
-    if (bottom - top < host.dp(112)) return;
-    RectF r =
-        new RectF(
-            safe.left + host.dp(12),
-            top,
-            safe.left + Math.min(host.dp(410), safe.width() * .37f),
-            bottom);
-    panel(c, r, JournalTheme.PAPER);
-    float left = r.left + host.dp(18), right = r.right - host.dp(18);
-    label(c, "오늘의 근무 기록", r.centerX(), r.top + host.dp(27), host.dp(12), false);
-    String name =
-        lead == null
-            ? "첫 수비대를 편성해요"
-            : lead.optString("name", "갈매미") + " · Lv" + lead.optInt("level", 1);
-    label(
-        c,
-        fitted(name, right - left, host.dp(17), true),
-        r.centerX(),
-        r.top + host.dp(54),
-        host.dp(17),
-        true);
-    String growth = "수비대에서 동료를 골라요";
-    if (lead != null) {
-      if (host.list(lead, "evolve").length() > 0) growth = "승진할 수 있어요";
-      else if (host.list(lead, "learn").length() > 0 || host.list(lead, "promo").length() > 0)
-        growth = "새 기술을 배울 수 있어요";
-      else
-        growth =
-            "경험치 "
-                + String.format(
-                    Locale.KOREA, "%,d / %,d", lead.optInt("xp"), lead.optInt("xpNext"));
+    for (String action : new String[] {"evolve", "promo", "learn"})
+      for (int i = 0; i < team.length(); i++) {
+        String key = team.optString(i);
+        if (host.list(host.unit(key), action).length() > 0) return key;
+      }
+    return team.optString(0, "");
+  }
+
+  void openGrowth() {
+    String key = growthKey();
+    if (key.isEmpty()) host.load("collection");
+    else {
+      host.currentKey = key;
+      host.menus.unitReturn = "home";
+      host.load("unit");
     }
-    label(
-        c,
-        fitted(growth, right - left, host.dp(13), false),
-        r.centerX(),
-        r.top + host.dp(78),
-        host.dp(13),
-        false);
-    RectF track = new RectF(left, r.top + host.dp(90), right, r.top + host.dp(98));
-    p.setColor(0xffd9cdae);
-    c.drawRoundRect(track, host.dp(4), host.dp(4), p);
-    float progress =
-        lead == null || lead.optInt("xpNext") <= 0
-            ? 0
-            : Math.max(0, Math.min(1, lead.optInt("xp") / (float) lead.optInt("xpNext")));
-    if (progress > 0) {
-      p.setColor(JournalTheme.TEAL);
-      c.drawRoundRect(
-          new RectF(track.left, track.top, track.left + track.width() * progress, track.bottom),
-          host.dp(4),
-          host.dp(4),
-          p);
+  }
+
+  RectF growthBox() {
+    RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
+    float top = boxes[7].bottom + host.dp(host.state.optBoolean("activeBattle") ? 72 : 14);
+    float bottom = Math.min(top + host.dp(232), boxes[6].top - host.dp(10));
+    return new RectF(
+        safe.left + host.dp(12), top,
+        safe.left + host.dp(12) + Math.min(host.dp(420), safe.width() * .34f),
+        Math.max(top, bottom));
+  }
+
+  void setText(TextView view, String value) {
+    if (!view.getText().toString().equals(value)) view.setText(value);
+  }
+
+  void refreshGrowth() {
+    String key = growthKey();
+    JSONObject unit = key.isEmpty() ? null : host.unit(key);
+    if (unit == null) {
+      setText(growthName, "첫 수비대를 편성해요");
+      setText(growthMeta, "보유한 동료 중 3마리를 골라요");
+      setText(growthXp, "함께 전투하며 경험치를 쌓아요");
+      setText(growthNeed, "수비대에서 동료를 확인해요");
+      setText(growthSummary, "첫 동료부터 차근차근");
+      growthProgress.setProgress(0);
+      setText(growthAction, "수비대");
+    } else {
+      setText(growthName, unit.optString("name"));
+      String role = unit.optString("role");
+      role = role.equals("ATTACK") ? "공격" : role.equals("DEFENSE") ? "수비" : role.equals("UTILITY") ? "유틸" : role;
+      setText(growthMeta, "Lv" + unit.optInt("level", 1) + " · " + unit.optString("attr") + " · " + role);
+      int xp = unit.optInt("xp"), next = unit.optInt("xpNext");
+      setText(growthXp, next > 0 ? "경험치 " + String.format(Locale.KOREA, "%,d / %,d", xp, next) : "최고 레벨 · 성장 완료");
+      growthProgress.setMax(Math.max(1, next));
+      growthProgress.setProgress(next <= 0 ? 1 : Math.min(xp, next));
+      setText(growthNeed, new NativeGrowthGuidance(host, new MenuKit(host)).promotionNeed(unit));
+      String summary = NativeGrowthGuidance.actionSummary(unit);
+      setText(growthSummary, growthInfo.getVisibility() == View.GONE ? unit.optString("name") + " · " + summary : summary);
+      setText(growthAction, host.list(unit, "evolve").length() > 0 ? "승진" : host.list(unit, "promo").length() > 0 || host.list(unit, "learn").length() > 0 ? "기술" : "성장");
     }
-    if (r.height() > host.dp(142))
-      label(c, "한 마리씩, 차근차근.", r.centerX(), r.bottom - host.dp(21), host.dp(13), false);
+    growthAction.setContentDescription(growthName.getText() + " · " + growthSummary.getText() + " · 상세 열기");
   }
 
   @Override
@@ -532,10 +606,9 @@ final class LobbyView extends FrameLayout implements FullBleed {
     } else c.drawColor(JournalTheme.LEATHER);
     loosePaper(c);
     character(c);
-    ledger(c);
     for (int i = 0; i < 5; i++) command(c, i, NAMES[i], ICONS[i], false);
     command(c, 5, "플레이", "u-story", true);
-    command(c, 6, "출석·미션", null, false);
+    command(c, 6, badges[6] ? "출석·미션 · 보상 받기" : "출석·미션", "u-attend", false);
     command(c, 8, "설정", null, false);
     RectF profile = boxes[7];
     panel(c, profile, JournalTheme.PAPER);
@@ -660,6 +733,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   void updateBadges() {
+    refreshGrowth();
     long now = System.currentTimeMillis();
     long claimAt = parseTime(host.me().optString("claimReadyAt"));
     badges[1] =

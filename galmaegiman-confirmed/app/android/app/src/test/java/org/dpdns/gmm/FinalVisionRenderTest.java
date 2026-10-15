@@ -19,7 +19,9 @@ import org.robolectric.annotation.*;
 public class FinalVisionRenderTest {
   @Test
   public void exportTwentyTwoDistinctScreens() throws Exception {
-    org.junit.Assume.assumeTrue(!System.getProperty("gmm.nativeReviewTokenFile", "").isEmpty());
+    org.junit.Assume.assumeTrue(
+        "1".equals(System.getenv("GMM_RENDER_FINAL_VISION"))
+            && !System.getProperty("gmm.nativeReviewTokenFile", "").isEmpty());
     Path out = Path.of(System.getProperty("gmm.nativeReviewOutput")).resolveSibling("final-vision");
     Files.createDirectories(out.resolve("images"));
     Files.createDirectories(out.resolve("thumbs"));

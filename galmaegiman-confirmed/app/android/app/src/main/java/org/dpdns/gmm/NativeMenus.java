@@ -822,7 +822,7 @@ final class NativeMenus {
     View tabs = pvp ? h.body.getChildAt(0) : null;
     if (tabs != null) h.body.removeView(tabs);
     if (tabs != null) h.page.addView(tabs, h.page.getChildCount() - 1);
-    LinearLayout[] cols = k.split(h.compact() ? .42f : .44f);
+    LinearLayout[] cols = k.split(h.compact() ? .52f : .56f);
     LinearLayout left = cols[0], right = cols[1];
     for (LinearLayout col : cols) {
       ScrollView old = (ScrollView) col.getParent();
@@ -926,9 +926,9 @@ final class NativeMenus {
                 step.addView(
                     k.image(
                         pvp ? "/thumbs/" + unit.optString("id") + ".jpg" : unit.optString("image"),
-                        h.compact() ? 62 : 120,
-                        h.compact() ? 56 : 132));
-                TextView name = h.text(unit.optString("name"), h.compact() ? 12 : 16);
+                        h.compact() ? 86 : 144,
+                        h.compact() ? 80 : 144));
+                TextView name = h.text(unit.optString("name"), h.compact() ? 13 : 17);
                 name.setTypeface(h.headline);
                 name.setPadding(0, 0, 0, 0);
                 name.setGravity(Gravity.CENTER);
@@ -940,6 +940,27 @@ final class NativeMenus {
                   name.setLineBreakWordStyle(
                       android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
                 step.addView(name);
+                TextView caption =
+                    k.note(
+                        (pvp ? "" : "Lv" + unit.optInt("level") + " · ")
+                            + unit.optString("attrName", unit.optString("attr")));
+                caption.setGravity(Gravity.CENTER);
+                caption.setTextSize(h.uiText(h.compact() ? 12 : 14));
+                caption.setPadding(0, h.dp(3), 0, h.dp(2));
+                step.addView(caption);
+                if (!pvp) {
+                  ProgressBar health =
+                      new ProgressBar(h, null, android.R.attr.progressBarStyleHorizontal);
+                  health.setMax(Math.max(1, unit.optInt("maxHp", 1)));
+                  health.setProgress(Math.max(0, unit.optInt("hp")));
+                  health.setProgressTintList(
+                      android.content.res.ColorStateList.valueOf(0xff356954));
+                  health.setProgressBackgroundTintList(
+                      android.content.res.ColorStateList.valueOf(0xffd8cebb));
+                  health.setContentDescription(
+                      "체력 " + unit.optInt("hp") + " / " + unit.optInt("maxHp"));
+                  step.addView(health, new LinearLayout.LayoutParams(-1, h.dp(6)));
+                }
                 step.setOnLongClickListener(
                     v -> {
                       reorderDraft(id, render[0]);
@@ -982,7 +1003,7 @@ final class NativeMenus {
               podiumContent.addView(hint);
               startPodiumQuotes(hint, picked);
             }
-            preview.addView(podiumContent, new FrameLayout.LayoutParams(-1, -1));
+            preview.addView(k.scroll(podiumContent), new FrameLayout.LayoutParams(-1, -1));
           }
           candidateGrid.removeAllViews();
           ArrayList<View> choices = new ArrayList<>();
@@ -1060,7 +1081,7 @@ final class NativeMenus {
           }
           if (choices.isEmpty())
             candidateGrid.addView(k.notice("조건에 맞는 갈매미가 없어요. 검색어와 필터를 바꿔 보세요."));
-          else k.tiles(candidateGrid, choices, h.compact() ? 2 : h.cols());
+          else k.tiles(candidateGrid, choices, h.compact() ? 2 : Math.min(3, h.cols()));
           attrFilter.setText(
               teamAttr.equals("all")
                   ? "모든 속성 ▾"

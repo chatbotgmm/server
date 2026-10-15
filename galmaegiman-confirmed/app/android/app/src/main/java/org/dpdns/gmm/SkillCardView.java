@@ -51,7 +51,7 @@ final class SkillCardView extends FrameLayout {
     LinearLayout content = new LinearLayout(h);
     content.setOrientation(LinearLayout.VERTICAL);
     content.setPadding(h.dp(9), h.dp(7), h.dp(8), h.dp(6));
-    title = label(h, name, large ? 25 : 19, true);
+    title = label(h, name, large ? 25 : 20, true);
     if (combo) {
       title.setCompoundDrawables(new ComboEmblem(h), null, null, null);
       title.setCompoundDrawablePadding(h.dp(6));
@@ -64,12 +64,12 @@ final class SkillCardView extends FrameLayout {
         label(
             h,
             combo ? "합동기 · 전투당 한 번" : shortKind(kind) + " · " + categoryMeta(sk),
-            large ? 16 : 12,
+            large ? 17 : 14,
             false);
     category.setTextColor(JournalTheme.MUTED);
     if (!combo) content.addView(category);
-    power = label(h, powerMeta(sk), large ? 16 : 13, false);
-    power.setTextColor(JournalTheme.MUTED);
+    power = label(h, powerMeta(sk), large ? 18 : 15, true);
+    power.setText(powerLabel(sk));
     if (!combo) content.addView(power);
     LinearLayout bottom = new LinearLayout(h);
     bottom.setGravity(Gravity.CENTER_VERTICAL);
@@ -78,9 +78,9 @@ final class SkillCardView extends FrameLayout {
             h,
             (combo ? "전투당 한 번" : conciseEffect(sk))
                 + (reason.isEmpty() ? "" : "\n" + shortReason(reason)),
-            large ? 16 : 13,
+            large ? 17 : 14,
             false);
-    effect.setTextColor(reason.isEmpty() ? JournalTheme.MUTED : NativeBattleLog.DAMAGE);
+    effect.setTextColor(reason.isEmpty() ? JournalTheme.TEAL : NativeBattleLog.DAMAGE);
     effect.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
     effect.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
     // 핵심 수치와 기간은 생략하지 않는다. 큰 글자나 긴 효과는 카드가 늘어나며 패널을 스크롤한다.
@@ -94,7 +94,7 @@ final class SkillCardView extends FrameLayout {
       bottom.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1));
     }
     detail = h.button("상세", () -> NativeBattleSheets.skill(view, sk));
-    detail.setTextSize(large ? 16 : 13);
+    detail.setTextSize(large ? 16 : 14);
     detail.setPadding(0, 0, 0, h.dp(2));
     detail.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PAPER));
     detail.setMinHeight(h.dp(48));
@@ -133,20 +133,37 @@ final class SkillCardView extends FrameLayout {
     if (sk.optInt("power") <= 0) return "보조 기술";
     JSONObject p = sk.optJSONObject("preview");
     if (p == null) return "공격 기술";
-    return p.optString("attrName")
-        + " · "
-        + (p.optString("category").equals("mag") ? "✦ 마법" : "⚔ 물리");
+    return p.optString("attrName") + " · " + (p.optString("category").equals("mag") ? "마법" : "물리");
   }
 
   static String powerMeta(JSONObject sk) {
     if (sk.optInt("power") <= 0) return "보조 효과";
     JSONObject p = sk.optJSONObject("preview");
     double multiplier = p == null ? 1 : p.optDouble("multiplier", 1);
+    if (!Double.isFinite(multiplier) || multiplier <= 0) multiplier = 1;
     return "위력 "
         + sk.optInt("power")
         + (sk.optInt("hits", 1) > 1 ? "×" + sk.optInt("hits") : "")
-        + " · "
-        + (multiplier > 1 ? "▲유리" : multiplier < 1 ? "▼불리" : "상성 보통");
+        + " · ×"
+        + java.math.BigDecimal.valueOf(multiplier).stripTrailingZeros().toPlainString()
+        + (multiplier > 1 ? " ▲유리" : multiplier < 1 ? " ▼불리" : " 보통");
+  }
+
+  static CharSequence powerLabel(JSONObject sk) {
+    SpannableStringBuilder text = new SpannableStringBuilder(powerMeta(sk));
+    int from = text.toString().lastIndexOf('×');
+    JSONObject preview = sk.optJSONObject("preview");
+    double multiplier = preview == null ? 1 : preview.optDouble("multiplier", 1);
+    if (!Double.isFinite(multiplier) || multiplier <= 0) multiplier = 1;
+    if (from >= 0)
+      NativeBattleLog.strong(
+          text,
+          from,
+          text.length(),
+          multiplier > 1
+              ? NativeBattleLog.HEAL
+              : multiplier < 1 ? NativeBattleLog.DAMAGE : JournalTheme.MUTED);
+    return text;
   }
 
   static String conciseEffect(JSONObject sk) {

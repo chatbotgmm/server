@@ -38,8 +38,8 @@ final class BattleView extends FrameLayout implements FullBleed {
     scene = new Scene();
     addView(scene, new LayoutParams(-1, -1));
     logBox = new ScrollView(a);
-    logBox.setBackground(new GamePaperDrawable(host));
-    logBox.setPadding(a.dp(12), a.dp(12), a.dp(12), a.dp(12));
+    logBox.setBackground(new FieldLogPaper());
+    logBox.setPadding(a.dp(10), a.dp(34), a.dp(10), a.dp(8));
     logBox.setClipToPadding(true);
     log = a.text("", 17);
     log.setTypeface(a.prose);
@@ -49,6 +49,7 @@ final class BattleView extends FrameLayout implements FullBleed {
     if (android.os.Build.VERSION.SDK_INT >= 33)
       log.setLineBreakWordStyle(android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
     log.setPadding(a.dp(10), 0, a.dp(10), 0);
+    log.setLineSpacing(a.dp(3), 1.08f);
     ArrayList<String> lines = new ArrayList<>();
     JSONArray ls = a.list(b, "log");
     for (int i = Math.max(0, ls.length() - 8); i < ls.length(); i++) lines.add(ls.optString(i));
@@ -134,9 +135,11 @@ final class BattleView extends FrameLayout implements FullBleed {
   }
 
   RectF statusArea(int side) {
+    float ownHeight = Math.min(uiHeight * .29f, host.dp(160));
+    float foeHeight = Math.min(uiHeight * .28f, host.dp(160));
     return side == 0
-        ? new RectF(uiWidth * .30f, uiHeight * .64f, uiWidth * .575f, uiHeight * .97f)
-        : new RectF(uiWidth * .055f, uiHeight * .04f, uiWidth * .335f, uiHeight * .34f);
+        ? new RectF(uiWidth * .30f, uiHeight * .97f - ownHeight, uiWidth * .635f, uiHeight * .97f)
+        : new RectF(uiWidth * .025f, uiHeight * .04f, uiWidth * .335f, uiHeight * .04f + foeHeight);
   }
 
   JSONObject side(int i) {
@@ -168,10 +171,12 @@ final class BattleView extends FrameLayout implements FullBleed {
     panelWidth = uiWidth - panelLeft - m;
     int buttonH = commandHeight();
     logHeight =
-        pane.equals("menu") ? Math.max(host.dp(54), uiHeight - 2 * buttonH - host.dp(32)) : 0;
+        pane.equals("menu")
+            ? Math.max(minimumLogHeight(), uiHeight - 2 * buttonH - host.dp(32))
+            : 0;
     logBox.setVisibility(
         battle.optString("phase").equals("choose") || logHeight == 0 ? GONE : VISIBLE);
-    ((TextView) logBox.getChildAt(0)).setTextSize(tablet ? 22 : 17);
+    log.setTextSize(tablet ? 23 : 17);
     if (resized) render();
     getChildAt(0)
         .measure(
@@ -231,6 +236,8 @@ final class BattleView extends FrameLayout implements FullBleed {
   }
 
   void add(Button b) {
+    b.setBackground(new GameButtonDrawable(host, GameButtonDrawable.PAPER));
+    b.setTextColor(JournalTheme.controlText(GameButtonDrawable.PAPER));
     LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
     p.setMargins(host.dp(3), host.dp(3), host.dp(3), host.dp(3));
     controls.addView(b, p);
@@ -239,14 +246,16 @@ final class BattleView extends FrameLayout implements FullBleed {
   void heading(String s) {
     LinearLayout row = new LinearLayout(host);
     row.setBackground(new GamePaperDrawable(host));
-    row.addView(
+    Button back =
         host.button(
             "‹",
             () -> {
               pane = "menu";
               render();
-            }),
-        new LinearLayout.LayoutParams(host.dp(52), host.dp(48)));
+            });
+    back.setBackground(new GameButtonDrawable(host, GameButtonDrawable.PAPER));
+    back.setTextColor(JournalTheme.controlText(GameButtonDrawable.PAPER));
+    row.addView(back, new LinearLayout.LayoutParams(host.dp(52), host.dp(48)));
     row.setGravity(Gravity.CENTER_VERTICAL);
     TextView title = host.text(s, 20);
     title.setTypeface(host.headline);
@@ -322,7 +331,7 @@ final class BattleView extends FrameLayout implements FullBleed {
                   }
                 });
         b.setTypeface(host.headline);
-        b.setTextSize(tablet ? (ix == 3 ? 27 : 30) : (ix == 3 ? 22 : 24));
+        b.setTextSize(tablet ? (ix == 3 ? 30 : 33) : (ix == 3 ? 23 : 27));
         float labelWidth = Math.max(host.dp(60), (panelWidth - host.dp(8)) / 2f - host.dp(16));
         float measuredLabel = b.getPaint().measureText(names[ix]);
         if (measuredLabel > labelWidth)
@@ -332,18 +341,15 @@ final class BattleView extends FrameLayout implements FullBleed {
                   * labelWidth
                   / measuredLabel);
         b.setSingleLine(true);
-        b.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        b.setPadding(
-            host.dp(6), host.dp(8), host.dp(6), Math.max(host.dp(12), Math.round(height * .13f)));
+        b.setHorizontallyScrolling(false);
+        b.setGravity(Gravity.CENTER);
+        b.setPadding(host.dp(8), host.dp(8), host.dp(8), host.dp(10));
         b.setBackground(
-            new CommandSurface(
-                ix,
-                Math.min(
-                    54,
-                    Math.max(
-                        34,
-                        Math.round(
-                            height / host.getResources().getDisplayMetrics().density * .36f)))));
+            new GameButtonDrawable(
+                host, ix == 0 ? GameButtonDrawable.PRIMARY : GameButtonDrawable.PAPER));
+        b.setTextColor(
+            JournalTheme.controlText(
+                ix == 0 ? GameButtonDrawable.PRIMARY : GameButtonDrawable.PAPER));
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, height, 1);
         p.setMargins(host.dp(2), host.dp(2), host.dp(2), host.dp(2));
         line.addView(b, p);
@@ -354,71 +360,52 @@ final class BattleView extends FrameLayout implements FullBleed {
   int commandHeight() {
     int width = panelWidth > 0 ? panelWidth : Math.round(uiWidth * .345f) - host.dp(8);
     // 태블릿에서 버튼만 커지지 않게 하고 여유 높이는 전투 기록에 준다.
+    int available =
+        uiHeight > 0
+            ? Math.max(host.dp(72), (uiHeight - minimumLogHeight() - host.dp(32)) / 2)
+            : host.dp(152);
     return Math.max(
-        host.dp(82), Math.min(host.dp(152), Math.round((width - host.dp(8)) / 2f * .82f)));
+        host.dp(72),
+        Math.min(available, Math.min(host.dp(152), Math.round((width - host.dp(8)) / 2f * .82f))));
   }
 
-  /** 그림을 배경에 그려 Button의 텍스트 측정·레이아웃과 분리한다. */
-  final class CommandSurface extends Drawable {
-    final int index, size;
-    final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-    final GamePressState state = new GamePressState();
-    Bitmap icon;
+  int minimumLogHeight() {
+    return host.dp(host.getResources().getConfiguration().fontScale >= 1.15f ? 132 : 104);
+  }
 
-    CommandSurface(int index, int size) {
-      this.index = index;
-      this.size = size;
-      String path =
-          "/duel/icons/"
-              + new String[] {"mode-pvp", "u-bag", "freeswitch", "feather"}[index]
-              + ".png";
-      icon =
-          host.art.get(
-              path,
-              () -> {
-                icon = host.art.peek(path);
-                invalidateSelf();
-              });
-    }
-
-    @Override
-    public boolean isStateful() {
-      return true;
-    }
-
-    @Override
-    protected boolean onStateChange(int[] states) {
-      boolean changed = state.update(states);
-      if (changed) invalidateSelf();
-      return changed;
-    }
+  /** 확정된 전투 기록을 먼저 읽도록 제목과 턴을 스크롤 바깥에 고정한다. */
+  final class FieldLogPaper extends Drawable {
+    final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    int alpha = 255;
 
     @Override
     public void draw(Canvas canvas) {
-      Rect bounds = getBounds();
-      int save = state.begin(canvas, bounds, host.getResources().getDisplayMetrics().density);
-      RectF surface = new RectF(bounds);
-      surface.bottom -= host.dp(3);
-      GameButtonDrawable.drawSurface(
-          canvas,
-          surface,
-          index == 0 ? GameButtonDrawable.PRIMARY : GameButtonDrawable.PAPER,
-          host.dp(16),
-          host.dp(2),
-          host.dp(state.pressed ? 1 : 3),
+      RectF box = new RectF(getBounds());
+      int save = canvas.saveLayerAlpha(box, alpha);
+      JournalTheme.drawPanel(
+          canvas, box, host.getResources().getDisplayMetrics().density, JournalTheme.PAPER, false);
+      paint.setTypeface(host.headline);
+      paint.setTextSize(host.dp(tablet ? 18 : 16));
+      paint.setColor(JournalTheme.INK);
+      canvas.drawText(
+          "현장 기록 · " + battle.optInt("turn") + "턴",
+          box.left + host.dp(16),
+          box.top + host.dp(23),
           paint);
-      if (icon != null) {
-        float edge =
-            Math.min(host.dp(size), Math.min(bounds.width() * .42f, bounds.height() * .4f));
-        float left = bounds.exactCenterX() - edge / 2, top = bounds.top + bounds.height() * .11f;
-        canvas.drawBitmap(icon, null, new RectF(left, top, left + edge, top + edge), paint);
-      }
-      state.finish(canvas, save);
+      paint.setColor(0xffd8c8ab);
+      paint.setStrokeWidth(host.dp(1));
+      canvas.drawLine(
+          box.left + host.dp(15),
+          box.top + host.dp(29),
+          box.right - host.dp(15),
+          box.top + host.dp(29),
+          paint);
+      canvas.restoreToCount(save);
     }
 
     @Override
     public void setAlpha(int value) {
-      state.alpha = value;
+      alpha = value;
       invalidateSelf();
     }
 
@@ -767,10 +754,10 @@ final class BattleView extends FrameLayout implements FullBleed {
       JSONObject u = host.unit(f.optString("key"));
       p.setTextSize(size * .64f);
       JSONArray team = host.list(side(own ? 0 : 1), "fighters");
-      float dotsY = r.bottom - r.height() * .32f;
+      float dotsY = r.bottom - r.height() * .10f - size * .20f;
       for (int i = 0; i < team.length(); i++) {
         p.setColor(team.optJSONObject(i).optInt("hp") > 0 ? 0xff51c98b : 0xffb6ae9d);
-        c.drawCircle(x + i * host.dp(10), dotsY, host.dp(3.5f), p);
+        c.drawCircle(right - i * host.dp(10), dotsY, host.dp(3.5f), p);
       }
       p.setTextSize(size * .7f);
       JSONArray current = BattleEffects.current(f);
@@ -813,7 +800,8 @@ final class BattleView extends FrameLayout implements FullBleed {
         for (int i = 0; i < augs.length(); i++)
           if (augs.optJSONObject(i) != null) names.add(augs.optJSONObject(i).optString("name"));
         String label = android.text.TextUtils.join(" · ", names);
-        while (p.measureText(label) > right - x && label.length() > 2)
+        float footerWidth = right - x - host.dp(team.length() * 10 + 6);
+        while (p.measureText(label) > footerWidth && label.length() > 2)
           label = label.substring(0, label.length() - 2) + "…";
         c.drawText(label, x, r.bottom - r.height() * .10f, p);
       }

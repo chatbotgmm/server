@@ -427,7 +427,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   Button button(String s, Runnable action) {
-    Button b = new Button(this);
+    Button b = new JournalButton(this);
     b.setText(s);
     b.setAllCaps(false);
     b.setTextColor(JournalTheme.controlText());
@@ -485,7 +485,7 @@ public class MainActivity extends AppCompatActivity {
     root.addView(page, new FrameLayout.LayoutParams(-1, -1));
     LinearLayout head = new LinearLayout(this);
     head.setGravity(Gravity.CENTER_VERTICAL);
-    head.setBackground(new GameButtonDrawable(this, GameButtonDrawable.PAPER));
+    head.setBackgroundColor(Color.TRANSPARENT);
     head.setPadding(dp(8), dp(3), dp(8), dp(5));
     Button back =
         NativeTutorialController.anchor(
@@ -495,7 +495,8 @@ public class MainActivity extends AppCompatActivity {
     title.setTypeface(headline);
     title.setSingleLine(true);
     title.setEllipsize(android.text.TextUtils.TruncateAt.END);
-    title.setTextColor(INK);
+    title.setTextColor(JournalTheme.WHITE);
+    title.setShadowLayer(dp(2), 0, dp(1), 0xcc263b3c);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
     MenuKit kit = new MenuKit(this);
     for (String kind : new String[] {"snack", "peanut", "credits"}) {
@@ -704,14 +705,15 @@ public class MainActivity extends AppCompatActivity {
     title = text(linking ? "카카오 계정 처음 연결" : "수비대 인사 기록부", linking ? 18 : 24);
     title.setTypeface(headline);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
-    head.addView(
+    Button close =
         button(
             "×",
             () -> {
               getSharedPreferences("native_account", 0).edit().remove("linkCode").apply();
               titleScreen();
-            }),
-        new LinearLayout.LayoutParams(dp(48), dp(48)));
+            });
+    close.setBackground(new GameButtonDrawable(this, GameButtonDrawable.PAPER));
+    head.addView(close, new LinearLayout.LayoutParams(dp(48), dp(48)));
     Button kakao = button("카카오로 로그인", this::kakao);
     kakao.setBackground(new GameButtonDrawable(this, 0xfffee500));
     if (!linking) form.addView(kakao, new LinearLayout.LayoutParams(-1, dp(48)));
@@ -1340,6 +1342,7 @@ public class MainActivity extends AppCompatActivity {
       else if (menus.unitReturn.equals("stages")) stages();
       else if (menus.unitReturn.equals("collection")) collection();
       else if (menus.unitReturn.equals("acquisition")) menus.economy.resumeAcquisition();
+      else if (menus.unitReturn.equals("home")) load("home");
       else chapters();
     } else if (screen.equals("collectionDetail")) collection();
     else if (screen.equals("team")) {

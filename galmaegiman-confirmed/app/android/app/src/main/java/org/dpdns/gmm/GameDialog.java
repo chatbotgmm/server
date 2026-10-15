@@ -36,7 +36,11 @@ final class GameDialog extends AlertDialog.Builder {
       Button b = dialog.getButton(id);
       if (b == null) continue;
       b.setTypeface(host.font);
-      b.setTextColor(JournalTheme.controlText());
+      b.setTextColor(
+          JournalTheme.controlText(
+              id == AlertDialog.BUTTON_POSITIVE
+                  ? GameButtonDrawable.PRIMARY
+                  : GameButtonDrawable.PAPER));
       b.setAllCaps(false);
       b.setTextSize(16);
       b.setBackgroundTintList(null);
@@ -71,7 +75,9 @@ final class GameDialog extends AlertDialog.Builder {
   private void style(View v) {
     if (v instanceof TextView) {
       TextView t = (TextView) v;
-      t.setTextColor(MainActivity.INK);
+      if (t instanceof Button && t.getBackground() instanceof GameButtonDrawable)
+        t.setTextColor(JournalTheme.controlText(((GameButtonDrawable) t.getBackground()).color));
+      else t.setTextColor(MainActivity.INK);
       t.setTypeface(
           "prose".equals(t.getTag())
               ? host.prose

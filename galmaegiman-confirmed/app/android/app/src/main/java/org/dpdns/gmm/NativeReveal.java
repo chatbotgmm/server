@@ -108,6 +108,17 @@ final class NativeReveal extends FrameLayout {
     }
   }
 
+  // 원본 등급색은 카드 테두리에 유지하고, 작은 등급 글자는 종이 위 대비를 확보한다.
+  static int tierInk(String name) {
+    int original = tier(name);
+    for (int step = 0; step <= 10; step++) {
+      int ink = androidx.core.graphics.ColorUtils.blendARGB(original, JournalTheme.INK, step / 10f);
+      if (androidx.core.graphics.ColorUtils.calculateContrast(ink, JournalTheme.PAPER) >= 4.5)
+        return ink;
+    }
+    return JournalTheme.INK;
+  }
+
   boolean motion() {
     return NativeMotion.enabled(h, h.motionEnabled);
   }
@@ -208,15 +219,17 @@ final class NativeReveal extends FrameLayout {
     LinearLayout row = k.row();
     row.setGravity(Gravity.CENTER);
     row.setPadding(h.dp(6), h.dp(6), h.dp(6), h.dp(6));
-    scroll.addView(row, new HorizontalScrollView.LayoutParams(-2, -1));
-    page.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+    scroll.addView(row, new HorizontalScrollView.LayoutParams(-2, -2, Gravity.CENTER));
+    ScrollView cardScroll = k.scroll(scroll);
+    cardScroll.setTag("acquisition-cards-scroll");
+    cardScroll.setFillViewport(true);
+    page.addView(cardScroll, new LinearLayout.LayoutParams(-1, 0, 1));
     int available =
         getHeight() > 0
             ? (int) (getHeight() / h.getResources().getDisplayMetrics().density)
             : h.contentHeightDp();
     int height = Math.max(116, available - (flow == null ? 104 : 168)),
         width = Math.max(84, Math.min(units.length() == 1 ? 220 : 168, (int) (height * 3 / 4.15f)));
-    int cardHeight = (int) (width * 4.15f / 3);
     final LinearLayout footer = k.column();
     final ArrayList<RevealCard> shown = new ArrayList<>();
     Runnable[] paint = new Runnable[1];
@@ -263,7 +276,8 @@ final class NativeReveal extends FrameLayout {
               paint[0].run();
             });
       }
-      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(h.dp(width), h.dp(cardHeight));
+      LinearLayout.LayoutParams lp =
+          new LinearLayout.LayoutParams(h.dp(width), card.preferredHeight);
       lp.setMargins(h.dp(5), h.dp(6), h.dp(5), h.dp(6));
       row.addView(card, lp);
       if (playEffect && motion()) {
@@ -330,6 +344,7 @@ final class NativeReveal extends FrameLayout {
 
   final class RevealCard extends FrameLayout {
     final View front, back;
+    final int preferredHeight;
 
     RevealCard(JSONObject unit, int width) {
       super(h);
@@ -345,16 +360,18 @@ final class NativeReveal extends FrameLayout {
       if (unit.optBoolean("first")) {
         TextView badge = h.text("NEW", 11);
         badge.setGravity(Gravity.CENTER);
+        fitBadge(badge);
         badge.setBackground(new GamePaperDrawable(h, JournalTheme.BRASS));
-        LayoutParams box = new LayoutParams(h.dp(36), h.dp(20), Gravity.TOP | Gravity.LEFT);
+        LayoutParams box = new LayoutParams(-2, -2, Gravity.TOP | Gravity.LEFT);
         box.setMargins(h.dp(4), h.dp(4), 0, 0);
         photo.addView(badge, box);
       }
       if (unit.optInt("n") > 1) {
         TextView count = h.text("×" + unit.optInt("n"), 11);
         count.setGravity(Gravity.CENTER);
+        fitBadge(count);
         count.setBackground(new GamePaperDrawable(h));
-        LayoutParams box = new LayoutParams(h.dp(36), h.dp(20), Gravity.TOP | Gravity.RIGHT);
+        LayoutParams box = new LayoutParams(-2, -2, Gravity.TOP | Gravity.RIGHT);
         box.setMargins(0, h.dp(4), h.dp(4), 0);
         photo.addView(count, box);
       }
@@ -362,13 +379,23 @@ final class NativeReveal extends FrameLayout {
       TextView name = h.text(unit.optString("name"), width < 110 ? 12 : 14);
       name.setTypeface(h.headline);
       name.setGravity(Gravity.CENTER);
-      name.setMaxLines(2);
+      name.setTextLocale(java.util.Locale.KOREA);
+      name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
+      if (android.os.Build.VERSION.SDK_INT >= 33)
+        name.setLineBreakWordStyle(
+            android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
       face.addView(name, new LinearLayout.LayoutParams(-1, -2));
       TextView grade = k.note(unit.optString("tierName"));
-      grade.setTextSize(12);
-      grade.setTextColor(color);
+      grade.setTextSize(13);
+      grade.setTextColor(tierInk(unit.optString("tier")));
       grade.setGravity(Gravity.CENTER);
       face.addView(grade);
+      // 뒤집기용 MATCH_PARENT 뒷면이 ScrollView의 남는 높이까지 카드를 늘리지 않게 한다.
+      // 원문 이름·등급·배지를 포함한 앞면을 실제 글꼴로 먼저 측정한다.
+      face.measure(
+          MeasureSpec.makeMeasureSpec(h.dp(width), MeasureSpec.EXACTLY),
+          MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+      preferredHeight = Math.max(h.dp(width * 4.15f / 3), face.getMeasuredHeight());
       front = face;
       back =
           new View(h) {
@@ -400,6 +427,17 @@ final class NativeReveal extends FrameLayout {
       addView(back, new LayoutParams(-1, -1));
       if (rank(unit.optString("tier")) >= 6) setElevation(h.dp(6));
       flip(0);
+    }
+
+    void fitBadge(TextView label) {
+      label.setPadding(0, 0, 0, 0);
+      label.setSingleLine(true);
+      label.setMinWidth(
+          Math.max(
+              h.dp(36),
+              (int) Math.ceil(label.getPaint().measureText(label.getText().toString()))
+                  + h.dp(12)));
+      label.setMinHeight(Math.max(h.dp(20), label.getLineHeight() + h.dp(10)));
     }
 
     void flip(float progress) {

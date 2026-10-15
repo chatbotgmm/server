@@ -275,8 +275,22 @@ public class NativeRenderReviewTestTheme73 {
     assertEquals("명령 이름 말줄임 금지: " + name, 0, button.getLayout().getEllipsisCount(0));
     int available =
         button.getHeight() - button.getCompoundPaddingTop() - button.getCompoundPaddingBottom();
-    assertTrue("아이콘·패딩 뒤에도 명령 글자 높이 확보: " + name, available >= button.getLayout().getHeight());
-    assertEquals("명령 이름의 실제 잉크색 유지", JournalTheme.INK, button.getCurrentTextColor());
+    assertTrue("패딩 뒤에도 명령 글자 높이 확보: " + name, available >= button.getLayout().getHeight());
+    int foreground =
+        !button.isEnabled()
+            ? JournalTheme.MUTED
+            : name.equals("공격") ? JournalTheme.WHITE : JournalTheme.INK;
+    assertEquals("공격은 밝은 글자, 다른 명령은 잉크색으로 구분: " + name,
+        foreground, button.getCurrentTextColor());
+    assertNotNull("명령 역할에 맞는 배경 필요: " + name, button.getBackground());
+    Bitmap background =
+        Bitmap.createBitmap(button.getWidth(), button.getHeight(), Bitmap.Config.ARGB_8888);
+    button.getBackground().draw(new Canvas(background));
+    double contrast =
+        commandContrast(foreground, background.getPixel(button.getWidth() / 2, button.getHeight() / 2));
+    background.recycle();
+    assertTrue("실제 명령 배경과 라벨의 명도 대비: " + name + " ratio=" + contrast,
+        contrast >= (button.isEnabled() ? 4.5 : 3));
     Rect bounds = new Rect();
     button.getDrawingRect(bounds);
     host.root.offsetDescendantRectToMyCoords(button, bounds);
@@ -289,17 +303,33 @@ public class NativeRenderReviewTestTheme73 {
             + button.getScrollX(),
         new Rect(0, 0, bitmap.getWidth(), bitmap.getHeight()).contains(bounds));
     int ink = 0;
-    // 아이콘은 자체 판화색 #393b34를 쓴다. 하단의 본문색 #302b25는 실제 라벨에서만 나온다.
+    int labelTop = bounds.top + button.getBaseline() - button.getLayout().getLineBaseline(0);
+    int labelBottom = labelTop + button.getLayout().getHeight();
     // 전체 실제 캡처를 표본으로 쓴다. Native TextView를 분리해 두 번 draw하면 글리프 캐시로
     // 단독 Canvas에서만 텍스트가 생략될 수 있어 실제 화면과 다른 결과를 만들기 때문이다.
-    for (int y = bounds.top + button.getHeight() / 2; y < bounds.bottom - 8; y++)
+    // 중앙의 실제 텍스트 행만 검사해 장식·밝은 가장자리를 라벨로 오인하지 않는다.
+    for (int y = Math.max(bounds.top + 8, labelTop);
+        y < Math.min(bounds.bottom - 8, labelBottom); y++)
       for (int x = bounds.left + 8; x < bounds.right - 8; x++)
-        if (bitmap.getPixel(x, y) == JournalTheme.INK) ink++;
-    assertTrue("아이콘 아래 명령 이름이 실제 화면에 그려짐: " + name + " pixels=" + ink, ink > 4);
+        if (bitmap.getPixel(x, y) == foreground) ink++;
+    assertTrue("명령 이름이 역할별 색으로 실제 화면에 그려짐: " + name + " pixels=" + ink, ink > 4);
+  }
+
+  double commandContrast(int foreground, int background) {
+    double light = commandLuminance(foreground), dark = commandLuminance(background);
+    return (Math.max(light, dark) + .05) / (Math.min(light, dark) + .05);
+  }
+
+  double commandLuminance(int color) {
+    double[] channels = {Color.red(color) / 255., Color.green(color) / 255., Color.blue(color) / 255.};
+    for (int i = 0; i < channels.length; i++)
+      channels[i] = channels[i] <= .04045 ? channels[i] / 12.92
+          : Math.pow((channels[i] + .055) / 1.055, 2.4);
+    return .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2];
   }
 
   @Test
-  public void commandLabelsActuallyRenderBelowIconsAcrossPhoneZflipAndTablet() throws Exception {
+  public void commandLabelsActuallyRenderWithPrimaryAndSecondaryRolesAcrossPhoneZflipAndTablet() throws Exception {
     for (int[] size : new int[][] {{780, 360}, {915, 412}, {1006, 411}, {1280, 720}}) {
       RuntimeEnvironment.setQualifiers("w" + size[0] + "dp-h" + size[1] + "dp-land-mdpi");
       RuntimeEnvironment.setFontScale(1);

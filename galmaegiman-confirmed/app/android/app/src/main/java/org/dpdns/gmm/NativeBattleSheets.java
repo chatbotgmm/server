@@ -80,15 +80,24 @@ final class NativeBattleSheets {
   static void skill(BattleView v, JSONObject sk) {
     MainActivity h = v.host;
     LinearLayout col = column(h);
-    col.addView(prose(h, SkillCardView.kind(sk) + " · " + SkillCardView.meta(sk), 16));
-    col.addView(prose(h, sk.optString("desc"), 18));
+    col.addView(prose(h, SkillCardView.kind(sk) + " · " + SkillCardView.categoryMeta(sk), 17));
+    TextView impact = heading(h, "", 21);
+    impact.setText(SkillCardView.powerLabel(sk));
+    col.addView(impact);
+    col.addView(heading(h, "효과", 18));
+    String effect = SkillCardView.effect(sk);
+    if (effect.isEmpty() || effect.equals("추가 효과 없음")) effect = "표시된 속성으로 공격해요.";
+    TextView description = prose(h, effect, 18);
+    description.setText(NativeBattleLog.historyLine(h, effect, null, -1));
+    col.addView(description);
     String reuse =
         sk.optString("id").startsWith("combo-")
             ? "전투당 1회"
             : sk.optInt("power") > 0 ? "연속 사용 가능" : "효과가 적용 중일 때는 사용이 제한돼요.";
-    col.addView(prose(h, "재사용 · " + reuse, 16));
+    col.addView(heading(h, "사용 조건", 18));
+    col.addView(prose(h, reuse, 17));
     String why = SkillCardView.reason(v, sk);
-    TextView state = prose(h, why.isEmpty() ? "지금 사용할 수 있어요." : "사용 불가 · " + why, 16);
+    TextView state = prose(h, why.isEmpty() ? "지금 사용할 수 있어요." : "사용 불가 · " + why, 17);
     semanticColor(state, why.isEmpty() ? 0xff397953 : 0xffad4839);
     col.addView(state);
     if (sk.optString("id").startsWith("combo-"))
@@ -162,12 +171,16 @@ final class NativeBattleSheets {
       col.addView(
           prose(
               h,
-              (foeSpeed > ownSpeed ? "상대가 더 빨라요." : foeSpeed < ownSpeed ? "내가 더 빨라요." : "속도가 같아요.")
-                  + " · 내 속도 "
-                  + ownSpeed,
+              "기본 속도 · 내 "
+                  + ownSpeed
+                  + " / 상대 "
+                  + foeSpeed
+                  + (foeSpeed == ownSpeed ? " · 속도가 같아요." : ""),
               16));
+      col.addView(prose(h, "행동 순서는 속도 효과와 우선권에 따라 달라져요.", 15));
     }
     if (stats != null) {
+      col.addView(heading(h, "기본 능력치", 18));
       String[] ids = {"patk", "pdef", "matk", "mdef", "spd"},
           names = {"물리 공격", "물리 방어", "마법 공격", "마법 방어", "속도"};
       for (int i = 0; i < ids.length; i++)

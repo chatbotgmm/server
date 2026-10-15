@@ -44,6 +44,11 @@ final class MenuKit {
 
   TextView section(String s) {
     TextView v = notice(s);
+    GradientDrawable heading = new GradientDrawable();
+    heading.setColor(JournalTheme.WHITE);
+    heading.setCornerRadius(h.dp(6));
+    heading.setStroke(h.dp(1), JournalTheme.LINE);
+    v.setBackground(heading);
     v.setTypeface(h.font);
     v.setTextSize(h.uiText(20));
     v.setTextColor(MainActivity.INK);
@@ -54,7 +59,7 @@ final class MenuKit {
     LinearLayout v = column();
     v.setPadding(h.dp(10), h.dp(h.compact() ? 6 : 8), h.dp(10), h.dp(h.compact() ? 6 : 8));
     v.setBackground(new GamePaperDrawable(h));
-    v.setElevation(h.dp(1));
+    v.setElevation(0);
     return v;
   }
 

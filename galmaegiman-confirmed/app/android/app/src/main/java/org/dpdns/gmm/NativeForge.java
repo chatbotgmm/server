@@ -158,7 +158,7 @@ final class NativeForge extends FrameLayout {
       card.addView(name);
       if (!result.optString("tierName").isEmpty()) {
         TextView grade = k.note(result.optString("tierName"));
-        grade.setTextColor(color());
+        grade.setTextColor(NativeReveal.tierInk(result.optString("tier")));
         card.addView(grade);
       }
       int nameWidth = (int) Math.ceil(name.getPaint().measureText(result.optString("name")));

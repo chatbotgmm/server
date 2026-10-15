@@ -152,23 +152,32 @@ final class StoryView extends FrameLayout implements FullBleed {
     if (portraits != null) foeImage = portraits.optString(foe);
     canvas = new Scene();
     addView(canvas);
-    badge = a.text(caption, 16);
+    badge = a.text(caption, 20);
+    badge.setTypeface(a.headline);
+    badge.setTextColor(Color.WHITE);
+    badge.setShadowLayer(a.dp(2), 0, a.dp(1), 0xff302b25);
+    badge.setSingleLine(true);
+    badge.setEllipsize(android.text.TextUtils.TruncateAt.END);
     badge.setVisibility(caption.isEmpty() ? GONE : VISIBLE);
-    badge.setBackground(new GamePaperDrawable(a));
+    badge.setBackground(null);
     badge.setPadding(a.dp(16), a.dp(8), a.dp(16), a.dp(8));
     addView(badge);
     bubble = new LinearLayout(a);
     bubble.setGravity(Gravity.CENTER_VERTICAL);
-    bubble.setBackground(new FrameDrawable(a, "dialog.webp"));
-    bubble.setPadding(a.dp(28), a.dp(16), a.dp(26), a.dp(16));
+    bubble.setBackground(new GamePaperDrawable(a));
+    bubble.setPadding(a.dp(20), a.dp(18), a.dp(18), a.dp(12));
     addView(bubble);
     words = new LinearLayout(a);
     words.setOrientation(LinearLayout.VERTICAL);
     bubble.addView(words, new LinearLayout.LayoutParams(0, -1, 1));
-    who = a.text("", 16);
+    who = a.text("", 17);
     who.setTypeface(a.headline);
-    who.setPadding(a.dp(7), a.dp(2), a.dp(7), a.dp(3));
-    words.addView(who, new LinearLayout.LayoutParams(-2, -2));
+    who.setGravity(Gravity.CENTER_VERTICAL);
+    who.setPadding(a.dp(14), a.dp(5), a.dp(14), a.dp(6));
+    who.setSingleLine(true);
+    who.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    who.setTag("story-speaker");
+    addView(who);
     say = a.text("", 18);
     say.setTypeface(a.prose);
     say.setLineSpacing(a.dp(2), 1.15f);
@@ -176,17 +185,21 @@ final class StoryView extends FrameLayout implements FullBleed {
     textScroll.addView(say);
     words.addView(textScroll, new LinearLayout.LayoutParams(-1, 0, 1));
     LinearLayout controls = new LinearLayout(a);
-    controls.setGravity(Gravity.CENTER_VERTICAL);
+    controls.setOrientation(LinearLayout.VERTICAL);
+    controls.setGravity(Gravity.CENTER);
     bubble.addView(controls, new LinearLayout.LayoutParams(-2, -1));
     count = a.text("", 13);
     count.setPadding(a.dp(8), 0, a.dp(8), 0);
-    controls.addView(count);
+    count.setGravity(Gravity.CENTER);
+    count.setTextColor(JournalTheme.MUTED);
     next = a.button("다음", this::advance);
     setOnClickListener(v -> advance());
     bubble.setOnClickListener(v -> advance());
     say.setOnClickListener(v -> advance());
     next.setBackground(new GameButtonDrawable(a, GameButtonDrawable.PRIMARY));
+    next.setTextColor(Color.WHITE);
     controls.addView(next, new LinearLayout.LayoutParams(a.dp(130), a.dp(48)));
+    controls.addView(count);
     skip = a.button("건너뛰기", this::finish);
     skip.setBackground(new GameButtonDrawable(a, GameButtonDrawable.PAPER));
     addView(skip);
@@ -201,7 +214,7 @@ final class StoryView extends FrameLayout implements FullBleed {
       if (chapter != null) sub = chapter.optString("title");
       TextView subtitle = a.text(sub, 16);
       subtitle.setTypeface(a.prose);
-      subtitle.setTextColor(0xffffd572);
+      subtitle.setTextColor(JournalTheme.BRASS);
       subtitle.setGravity(Gravity.CENTER);
       titleCard.addView(subtitle);
       TextView heading = a.text(caption, 28);
@@ -243,8 +256,13 @@ final class StoryView extends FrameLayout implements FullBleed {
       }
     }
     who.setText(name);
-    who.setTextColor(speaker.startsWith("V") ? 0xff9b4739 : JournalTheme.TEAL);
-    who.setBackground(new GamePaperDrawable(host));
+    who.setTextColor(Color.WHITE);
+    android.graphics.drawable.GradientDrawable nameplate =
+        new android.graphics.drawable.GradientDrawable();
+    nameplate.setColor(speaker.startsWith("V") ? 0xff8c4b40 : JournalTheme.TEAL);
+    nameplate.setCornerRadius(host.dp(7));
+    nameplate.setStroke(host.dp(1), JournalTheme.BRASS);
+    who.setBackground(nameplate);
     who.setVisibility(name.isEmpty() ? GONE : VISIBLE);
     host.api.ui.removeCallbacks(typeTick);
     fullText = l.optString("say");
@@ -254,6 +272,7 @@ final class StoryView extends FrameLayout implements FullBleed {
     if (typing && isAttachedToWindow()) host.api.ui.postDelayed(typeTick, 28);
     count.setText((index + 1) + " / " + lines.length());
     textScroll.scrollTo(0, 0);
+    requestLayout();
     canvas.invalidate();
   }
 
@@ -268,10 +287,10 @@ final class StoryView extends FrameLayout implements FullBleed {
     RectF safe = host.safeBounds(fullW, fullH);
     int w = Math.round(safe.width()), h = Math.round(safe.height());
     float density = getResources().getDisplayMetrics().density;
-    say.setTextSize(Math.max(17, Math.min(24, h / density * .039f)));
+    say.setTextSize(host.uiText(h / density >= 600 ? 23 : 19));
     int actionH = Math.max(host.dp(48), Math.min(host.dp(64), (int) (h * .095f)));
     next.setLayoutParams(new LinearLayout.LayoutParams((int) (actionH * 2.7f), actionH));
-    count.setTextSize(h / density >= 600 ? 17 : 13);
+    count.setTextSize(h / density >= 600 ? 17 : 14);
     setMeasuredDimension(fullW, fullH);
     canvas.measure(
         MeasureSpec.makeMeasureSpec(fullW, MeasureSpec.EXACTLY),
@@ -280,11 +299,14 @@ final class StoryView extends FrameLayout implements FullBleed {
         Math.min(
             (int) (h * .43f),
             Math.max(
-                host.dp(h / density < 600 ? 136 : 160),
-                (int) (h * (h / density < 600 ? .34f : .28f))));
+                host.dp(h / density < 600 ? 132 : 168),
+                (int) (h * .28f)));
     bubble.measure(
-        MeasureSpec.makeMeasureSpec((int) (w * .68f), MeasureSpec.EXACTLY),
+        MeasureSpec.makeMeasureSpec(Math.min(host.dp(1160), (int) (w * .89f)), MeasureSpec.EXACTLY),
         MeasureSpec.makeMeasureSpec(bh, MeasureSpec.EXACTLY));
+    who.measure(
+        MeasureSpec.makeMeasureSpec(Math.min(host.dp(380), (int) (w * .48f)), MeasureSpec.AT_MOST),
+        MeasureSpec.makeMeasureSpec(host.dp(52), MeasureSpec.AT_MOST));
     badge.measure(
         MeasureSpec.makeMeasureSpec((int) (w * .45f), MeasureSpec.AT_MOST),
         MeasureSpec.makeMeasureSpec(host.dp(48), MeasureSpec.AT_MOST));
@@ -304,11 +326,16 @@ final class StoryView extends FrameLayout implements FullBleed {
         h = Math.round(safe.height()),
         ox = Math.round(safe.left),
         oy = Math.round(safe.top),
-        x = ox + (int) (w * .16f),
+        x = ox + (w - bubble.getMeasuredWidth()) / 2,
         bottom = oy + h - host.dp(12);
     canvas.layout(0, 0, getWidth(), getHeight());
     if (titleCard != null) titleCard.layout(0, 0, getWidth(), getHeight());
     bubble.layout(x, bottom - bubble.getMeasuredHeight(), x + bubble.getMeasuredWidth(), bottom);
+    who.layout(
+        x + host.dp(22),
+        bubble.getTop() - who.getMeasuredHeight() / 2,
+        x + host.dp(22) + who.getMeasuredWidth(),
+        bubble.getTop() + who.getMeasuredHeight() / 2);
     badge.layout(
         ox + host.dp(20),
         oy + host.dp(10),
@@ -447,11 +474,13 @@ final class StoryView extends FrameLayout implements FullBleed {
       JSONArray team = host.list(host.state, "team");
       String leadId = team.length() == 0 ? "" : host.unit(team.optString(0)).optString("id");
       boolean narration = speaker.equals("N") || speaker.equals("TIP");
+      float floor =
+          (bubble.getTop() > 0 ? bubble.getTop() - safe.top : h * .70f) - host.dp(14);
       fit(
           c,
           leadImage,
           leadId,
-          new RectF(w * .09f, h * .31f, w * .43f, h * .83f),
+          new RectF(w * .09f, h * .19f, w * .42f, floor),
           !narration && !speaker.equals("ME"),
           motion.pulse(2800, 0));
       JSONObject foeActor = actor(foe);
@@ -460,7 +489,7 @@ final class StoryView extends FrameLayout implements FullBleed {
           c,
           foeImage,
           foe,
-          new RectF(w * .50f, h * (boss ? .086f : .276f), w * .9f, h * .916f),
+          new RectF(w * .59f, h * (boss ? .11f : .18f), w * .92f, floor),
           !narration && speaker.equals("ME"),
           motion.pulse(3300, 0));
       c.restore();

@@ -21,6 +21,7 @@ import org.robolectric.*;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.*;
 import org.robolectric.shadows.ShadowChoreographer;
+import org.robolectric.shadows.ShadowDisplayManager;
 
 /** 실제 앱 View와 원본 글꼴·이미지를 Android native Skia로 렌더한다. 웹 모형을 사용하지 않는다. */
 @RunWith(RobolectricTestRunner.class)
@@ -132,6 +133,12 @@ public class NativeRenderReviewTest {
   }
 
   void viewport(MainActivity a, int w, int h) {
+    // API 대기 중 Window가 다시 배치돼도 실제 표시 영역을 같은 크기로 유지한다.
+    // root만 강제 측정하면 태블릿의 비동기 화면이 기본 폰 크기로 구성될 수 있다.
+    ShadowDisplayManager.changeDisplay(
+        Display.DEFAULT_DISPLAY, "w" + w + "dp-h" + h + "dp-land-mdpi");
+    a.getWindow().setLayout(w, h);
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
     force(a.root);
     a.root.measure(
         View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
