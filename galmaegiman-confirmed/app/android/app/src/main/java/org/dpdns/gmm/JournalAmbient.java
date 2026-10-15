@@ -26,10 +26,19 @@ final class JournalAmbient {
         Consumer<Bitmap> ready);
   }
 
+  private interface SceneLoader {
+    void load(
+        LocalTimeTheme.Phase phase,
+        int width,
+        int height,
+        BooleanSupplier wanted,
+        Consumer<JournalScenePack> ready);
+  }
+
   final View owner;
   final MainActivity host;
   final SceneMotion motion;
-  private final Loader loader;
+  private final SceneLoader loader;
   private final Paint bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
   private final Paint light = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final Paint shadow = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -41,6 +50,7 @@ final class JournalAmbient {
       new RadialGradient(
           454, 210, 116, new int[] {0xffffd18a, Color.TRANSPARENT}, null, Shader.TileMode.CLAMP);
   Bitmap current, incoming;
+  JournalScenePack currentScene, incomingScene;
   LocalTimeTheme.Phase currentPhase, incomingPhase, requestedPhase;
   volatile int generation;
   private boolean attached, loading;
@@ -49,14 +59,24 @@ final class JournalAmbient {
   private double fadeStarted;
 
   JournalAmbient(View owner, MainActivity host, SceneMotion motion) {
-    this(owner, host, motion, host.art::journalScene);
+    this.owner = owner;
+    this.host = host;
+    this.motion = motion;
+    loader = host.art::journalScenePack;
   }
 
   JournalAmbient(View owner, MainActivity host, SceneMotion motion, Loader loader) {
     this.owner = owner;
     this.host = host;
     this.motion = motion;
-    this.loader = loader;
+    this.loader =
+        (phase, width, height, wanted, ready) ->
+            loader.load(
+                phase,
+                width,
+                height,
+                wanted,
+                bitmap -> ready.accept(JournalScenePack.flat(bitmap, phase)));
   }
 
   void attach() {
@@ -73,6 +93,7 @@ final class JournalAmbient {
     if (host.journalTime != null) host.journalTime.removeListener(timeChanged);
     // Canvas/드라이버가 참조할 수 있으므로 수동 recycle 대신 소유 참조만 해제한다.
     current = incoming = null;
+    currentScene = incomingScene = null;
     currentPhase = incomingPhase = requestedPhase = null;
   }
 
@@ -107,6 +128,7 @@ final class JournalAmbient {
     final int request = ++generation;
     // 연속 시간대 변경 중 이전 전환 대상은 더 이상 보관하지 않는다.
     incoming = null;
+    incomingScene = null;
     incomingPhase = null;
     if (current != null
         && currentPhase == phase
@@ -122,21 +144,23 @@ final class JournalAmbient {
         width,
         height,
         () -> generation == request,
-        bitmap -> {
+        scene -> {
           if (!attached || generation != request) return;
           loading = false;
-          if (bitmap == null) return; // 오프라인/자산 오류여도 UI·기존 배경을 계속 쓴다.
+          if (scene == null) return; // 오프라인/자산 오류여도 UI·기존 배경을 계속 쓴다.
           if (current == null
               || currentPhase == phase
               || !host.motionResumed
               || !SceneMotion.enabled(host)
               || motion.clock == null) {
-            current = bitmap;
+            currentScene = scene;
+            current = scene.backdrop;
             currentPhase = phase;
             currentWidth = width;
             currentHeight = height;
           } else {
-            incoming = bitmap;
+            incomingScene = scene;
+            incoming = scene.backdrop;
             incomingPhase = phase;
             incomingWidth = width;
             incomingHeight = height;
@@ -157,10 +181,12 @@ final class JournalAmbient {
   void finishTransition() {
     if (incoming == null) return;
     current = incoming;
+    currentScene = incomingScene;
     currentPhase = incomingPhase;
     currentWidth = incomingWidth;
     currentHeight = incomingHeight;
     incoming = null;
+    incomingScene = null;
     incomingPhase = null;
     owner.invalidate();
   }
@@ -195,7 +221,8 @@ final class JournalAmbient {
             && motion.clock != null
             && owner.isShown()
             && owner.getWindowVisibility() == View.VISIBLE;
-    water.draw(canvas, current, incoming, progress, target, phase, motion.millis / 1000d, moving);
+    water.drawScenes(
+        canvas, currentScene, incomingScene, progress, target, motion.millis / 1000d, moving);
     if (incoming != null && progress >= 1) finishTransition();
     drawEnvironment(canvas, target, phase, motion.millis / 1000d, SceneMotion.enabled(host));
   }

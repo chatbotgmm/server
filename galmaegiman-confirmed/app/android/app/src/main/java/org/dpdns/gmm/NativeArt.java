@@ -25,6 +25,8 @@ final class NativeArt {
         }
       };
   private final Set<String> loading = Collections.synchronizedSet(new HashSet<>());
+  private volatile JournalScenePack.Material journalMaterial;
+  private volatile boolean closed;
 
   NativeArt(Context c, NativeApi a) {
     context = c;
@@ -62,8 +64,12 @@ final class NativeArt {
       java.util.concurrent.Executors.newFixedThreadPool(2);
 
   void close() {
+    closed = true;
     scenes.shutdownNow();
     images.shutdownNow();
+    synchronized (this) {
+      journalMaterial = null;
+    }
     clear();
   }
 
@@ -104,22 +110,71 @@ final class NativeArt {
       int height,
       java.util.function.BooleanSupplier wanted,
       java.util.function.Consumer<Bitmap> ready) {
+    journalScenePack(
+        phase, width, height, wanted, scene -> ready.accept(scene == null ? null : scene.backdrop));
+  }
+
+  /** 한 시간대의 원본·고정물·공유 수면을 함께 준비한 뒤 원자적으로 UI에 전달한다. */
+  void journalScenePack(
+      LocalTimeTheme.Phase phase,
+      int width,
+      int height,
+      java.util.function.BooleanSupplier wanted,
+      java.util.function.Consumer<JournalScenePack> ready) {
+    if (closed) return;
     String pending = "journal:" + java.util.UUID.randomUUID();
     loading.add(pending);
     scenes.execute(
         () -> {
-          Bitmap result = null;
+          JournalScenePack result = null;
           try {
-            if (wanted.getAsBoolean()) result = decodeJournalScene(phase, width, height);
+            if (wanted.getAsBoolean() && !closed) {
+              Bitmap backdrop = decodeJournalScene(phase, width, height);
+              if (backdrop != null && wanted.getAsBoolean() && !closed) {
+                JournalScenePack.Material material = journalMaterial();
+                if (wanted.getAsBoolean() && !closed)
+                  result = JournalScenePack.create(backdrop, material, phase);
+              }
+            }
           } finally {
-            Bitmap completed = result;
+            JournalScenePack completed = result;
             api.ui.post(
                 () -> {
                   loading.remove(pending);
-                  if (wanted.getAsBoolean()) ready.accept(completed);
+                  if (wanted.getAsBoolean() && !closed) ready.accept(completed);
                 });
           }
         });
+  }
+
+  private synchronized JournalScenePack.Material journalMaterial() {
+    if (journalMaterial != null) return journalMaterial;
+    if (closed) return null;
+    String path = "native/journal/ocean-surface.webp";
+    BitmapFactory.Options options = new BitmapFactory.Options();
+    options.inJustDecodeBounds = true;
+    try (InputStream in = context.getAssets().open(path)) {
+      BitmapFactory.decodeStream(in, null, options);
+    } catch (IOException ignored) {
+      return null;
+    }
+    int originalWidth = options.outWidth, originalHeight = options.outHeight;
+    if (originalWidth <= 0 || originalHeight <= 0) return null;
+    options.inJustDecodeBounds = false;
+    options.inSampleSize = 1;
+    while (originalWidth / options.inSampleSize > 1152
+        || originalHeight / options.inSampleSize > 512) options.inSampleSize *= 2;
+    options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+    try (InputStream in = context.getAssets().open(path)) {
+      Bitmap bitmap = BitmapFactory.decodeStream(in, null, options);
+      if (bitmap == null || closed) return null;
+      JournalScenePack.Material material = JournalScenePack.Material.create(bitmap);
+      if (closed) return null;
+      journalMaterial = material;
+      return journalMaterial;
+    } catch (IOException ignored) {
+      return null;
+    }
   }
 
   private Bitmap decodeJournalScene(LocalTimeTheme.Phase phase, int width, int height) {

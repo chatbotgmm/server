@@ -5,7 +5,6 @@ import static org.junit.Assert.*;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Region;
 import org.junit.Test;
@@ -63,15 +62,7 @@ public class JournalWaterTest {
   }
 
   Region waterRegion() {
-    Path path = new Path();
-    for (float[] polygon : JournalWater.POLYGONS) {
-      path.moveTo(polygon[0], polygon[1]);
-      for (int i = 2; i < polygon.length; i += 2) path.lineTo(polygon[i], polygon[i + 1]);
-      path.close();
-    }
-    Region region = new Region();
-    region.setPath(path, new Region(0, 0, width, height));
-    return region;
+    return JournalSeaMask.region(width, height, LocalTimeTheme.Phase.DAY);
   }
 
   @Test
@@ -129,7 +120,9 @@ public class JournalWaterTest {
     JournalWater.Mesh mesh = new JournalWater.Mesh();
     float[] coordinates = mesh.vertices;
     int[] active = mesh.active;
-    assertTrue("전체 배경 대신 수면 안의 작은 꼭짓점 집합만 갱신", mesh.activeCount > 20 && mesh.activeCount < 200);
+    assertTrue(
+        "전체 배경 대신 수면 안의 작은 꼭짓점 집합만 갱신",
+        mesh.activeCount > 20 && mesh.activeCount < mesh.base.length / 8);
     for (int frame = 0; frame < 100; frame++) {
       mesh.update(frame / 30d, true);
       assertSame(coordinates, mesh.vertices);
@@ -150,24 +143,64 @@ public class JournalWaterTest {
 
   @Test
   public void maskIncludesRearWaterAndKeepsForegroundAndHarborStructuresExcluded() {
-    for (float[] point : new float[][] {{1098, 427}, {1260, 470}, {720, 460}})
-      assertTrue(JournalWater.contains(point[0], point[1]));
-    for (float[] point :
-        new float[][] {
-          {1040, 435},
-          {700, 400},
-          {1225, 410},
-          {1200, 650},
-          {1060, 505},
-          {1000, 200},
-          // 네 시간대 원본 확대 검수에서 확인한 작은 배·부표·계류선·교량 테두리.
-          {818, 368},
-          {830, 369},
-          {998, 368},
-          {1073, 369},
-          {957, 362},
-          {992, 418},
-          {1008, 425}
-        }) assertFalse("등대·다리·배·지도·부두·하늘 제외", JournalWater.contains(point[0], point[1]));
+    for (LocalTimeTheme.Phase phase : LocalTimeTheme.Phase.values()) {
+      for (float[] point :
+          new float[][] {
+            {710, 465},
+            {715, 490},
+            {805, 491},
+            {810, 359},
+            {900, 360},
+            {998, 365},
+            {1073, 367},
+            {1005, 571}
+          })
+        assertTrue("원본 검수에서 실제 수면으로 확인한 좌표", JournalSeaMask.contains(point[0], point[1], phase));
+      for (float[] point :
+          new float[][] {
+            {755, 398},
+            {629, 399},
+            {684, 366},
+            {760, 366},
+            {855, 390},
+            {959, 391},
+            {761, 430},
+            {659, 370},
+            {818, 370},
+            {829, 367},
+            {894, 372},
+            {922, 377},
+            {985, 418},
+            {1008, 425},
+            {999, 384},
+            {1038, 420},
+            {1019, 420},
+            {1070, 386},
+            {1115, 386},
+            {1159, 380},
+            {1190, 394},
+            {1068, 414},
+            {1084, 413},
+            {1097, 414},
+            {1096, 424},
+            {997, 458},
+            {681, 430},
+            {679, 468},
+            {884, 475},
+            {743, 484},
+            {778, 475},
+            {774, 490},
+            {1065, 536},
+            {1185, 526},
+            {1015, 550},
+            {1128, 547},
+            {1410, 486},
+            {1382, 511},
+            {1400, 423},
+            {1510, 453}
+          }) assertFalse("원본 다리·배·부표·밧줄·목주 보존", JournalSeaMask.contains(point[0], point[1], phase));
+    }
+    assertFalse(
+        "밤 등대의 유리 주변 고정 발광 보존", JournalSeaMask.contains(1030, 387, LocalTimeTheme.Phase.NIGHT));
   }
 }

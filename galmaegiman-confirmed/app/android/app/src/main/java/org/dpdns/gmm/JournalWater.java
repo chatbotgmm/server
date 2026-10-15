@@ -12,24 +12,8 @@ final class JournalWater {
   static final int WIDTH = JournalAmbient.SOURCE_WIDTH, HEIGHT = JournalAmbient.SOURCE_HEIGHT;
   static final int COLUMNS = 36, ROWS = 52;
   // 네 시간대 원본을 함께 확인한 공통 수면. 다리·배·탑·부두·밧줄은 폴리곤 사이에 남긴다.
-  static final float[][] POLYGONS = {
-    {
-      710, 451, 824, 443, 838, 443, 824, 459, 822, 478, 809, 481, 799, 475, 781, 477, 767, 482, 746,
-      480, 719, 473
-    },
-    {
-      935, 442, 1007, 435, 1010, 456, 1024, 468, 1063, 468, 1070, 445, 1132, 443, 1187, 439, 1246,
-      442, 1302, 446, 1374, 449, 1375, 479, 1367, 518, 1358, 529, 1240, 529, 1227, 522, 1226, 485,
-      1209, 478, 1161, 478, 1149, 487, 1147, 516, 1126, 522, 1115, 518, 1113, 487, 1100, 477, 1038,
-      478, 1024, 487, 1023, 516, 1007, 524, 994, 525, 992, 504, 974, 491, 938, 489
-    },
-    // 등대 오른쪽 넓은 뒤쪽 수면. 정박한 배와 우측 부두보다 아래로 경계를 잡는다.
-    {
-      1062, 404, 1081, 405, 1088, 401, 1095, 408, 1127, 408, 1140, 414, 1183, 420, 1205, 422,
-      1215, 427, 1255, 426, 1272, 428, 1304, 427, 1322, 427, 1340, 424, 1371, 426, 1374, 438,
-      1372, 451, 1302, 449, 1246, 445, 1187, 442, 1132, 446, 1070, 448, 1064, 459, 1059, 459
-    }
-  };
+  static final float[][] POLYGONS = JournalSeaMask.WATER_POLYGONS;
+  private final JournalSeaLayers separated = new JournalSeaLayers();
 
   private static final int[] CREST_COLORS = {0xffffebca, 0xffe6fcff, 0xffffd7a8, 0xffb7def2};
   private static final int[] DEPTH_COLORS = {0xff536f76, 0xff236b7f, 0xff70576a, 0xff09283e};
@@ -41,23 +25,26 @@ final class JournalWater {
   final Mesh mesh = new Mesh();
 
   JournalWater() {
-    Path outline = new Path();
-    outline.setFillType(Path.FillType.WINDING);
-    for (float[] polygon : POLYGONS) {
-      outline.moveTo(polygon[0], polygon[1]);
-      for (int i = 2; i < polygon.length; i += 2) outline.lineTo(polygon[i], polygon[i + 1]);
-      outline.close();
-    }
     // 정수 source 픽셀 경계로 한 번 정규화한다. 비스듬한 clip의 반투명 가장자리가
     // 수면 밖 구조물 픽셀에 섞이지 않으며 hardware Canvas에서도 Path로 자를 수 있다.
-    Region pixels = new Region();
-    pixels.setPath(outline, new Region(0, 0, WIDTH, HEIGHT));
+    Region pixels = JournalSeaMask.region(WIDTH, HEIGHT);
     pixels.getBoundaryPath(mask);
     bright.setStyle(Paint.Style.STROKE);
     bright.setStrokeCap(Paint.Cap.ROUND);
     bright.setStrokeJoin(Paint.Join.ROUND);
     dark.setStyle(Paint.Style.STROKE);
     dark.setStrokeCap(Paint.Cap.ROUND);
+  }
+
+  void drawScenes(
+      Canvas canvas,
+      JournalScenePack current,
+      JournalScenePack incoming,
+      float transition,
+      RectF bounds,
+      double seconds,
+      boolean moving) {
+    separated.draw(canvas, current, incoming, transition, bounds, seconds, moving);
   }
 
   /** 이미 그린 배경의 물만 같은 원본으로 다시 그려 실제 질감이 흐르게 한다. */
@@ -191,15 +178,7 @@ final class JournalWater {
   }
 
   static boolean contains(float x, float y) {
-    for (float[] polygon : POLYGONS) {
-      boolean inside = false;
-      for (int i = 0, j = polygon.length - 2; i < polygon.length; j = i, i += 2) {
-        float xi = polygon[i], yi = polygon[i + 1], xj = polygon[j], yj = polygon[j + 1];
-        if ((yi > y) != (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
-      }
-      if (inside) return true;
-    }
-    return false;
+    return JournalSeaMask.contains(x, y);
   }
 
   private static float distanceToEdge(float x, float y) {

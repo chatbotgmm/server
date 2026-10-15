@@ -92,7 +92,7 @@ public class HarborImmersionReviewTest {
         host.home();
         LobbyView lobby = (LobbyView) host.root.getChildAt(0);
         Object originalState = host.state;
-        for (int hour : new int[] {12, 22}) {
+        for (int hour : new int[] {7, 12, 18, 22}) {
           host.motionEnabled = false;
           lobby.getViewTreeObserver().dispatchOnPreDraw();
           journal.setHour(host, clock, hour);
@@ -124,7 +124,7 @@ public class HarborImmersionReviewTest {
           }
           assertEquals("파도와 무관하게 버튼·성장 정보 위치 고정", ui, journal.fixedUi(host));
           assertEquals("파도와 무관하게 양피지·글자 픽셀 고정", pixels, fixedControlPixels(host));
-          if (size[0] == 915) {
+          if (size[0] == 915 && (hour == 12 || hour == 22)) {
             for (int frame = 0; frame < 90; frame++) {
               lobby.motion.millis = frame * 1000d / 15;
               host.root.draw(new Canvas(image));
