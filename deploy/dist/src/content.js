@@ -1,0 +1,138 @@
+import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { parse } from 'yaml';
+import { z } from 'zod';
+// NEUTRAL(특수함): 뽑기·조합으로 나오지 않고 '땅콩떼기'로만 얻는 등급. 히든 조합 재료로 쓸 예정
+export const tierOrder = ['COMMON', 'UNCOMMON', 'SPECIAL', 'RARE', 'LEGEND', 'HIDDEN', 'LIMITED', 'TRANSCEND', 'ETERNAL', 'IMMORTAL', 'NEUTRAL'];
+export const rarityNames = { COMMON: '흔함', UNCOMMON: '안흔함', SPECIAL: '특별', RARE: '희귀', LEGEND: '전설', HIDDEN: '히든', LIMITED: '제한', TRANSCEND: '초월', ETERNAL: '영원', IMMORTAL: '불멸', NEUTRAL: '특수함' };
+// 조합 재료는 결과보다 낮은 단계여야 합니다. 전설=히든, 최상위 4분류는 서로 동급입니다.
+export const tiers = { COMMON: 1, UNCOMMON: 2, SPECIAL: 3, RARE: 4, LEGEND: 5, HIDDEN: 5, LIMITED: 6, TRANSCEND: 6, ETERNAL: 6, IMMORTAL: 6, NEUTRAL: 2 };
+export const topTiers = new Set(['LIMITED', 'TRANSCEND', 'ETERNAL', 'IMMORTAL']);
+export const synergyKeys = ['BASIC', 'GOLD', 'DARK', 'SEA', 'BLOSSOM', 'COSMOS', 'OUTFIT'];
+const expected = { COMMON: 9, UNCOMMON: 16, SPECIAL: 19, RARE: 23, LEGEND: 23, HIDDEN: 21, LIMITED: 8, TRANSCEND: 8, ETERNAL: 8, IMMORTAL: 9, NEUTRAL: 1 };
+export const UNIT_COUNT = Object.values(expected).reduce((a, b) => a + b, 0);
+export const EDITION = 'galmaemi-118-v1';
+const id = z.string().regex(/^[CUSRLHDTEIN]\d{1,2}$/);
+const text = z.string().trim().min(1);
+const unitSchema = z.object({
+    id, name: text.max(30), tier: z.enum(tierOrder), quote: text.max(60), tagline: text.max(60), introduction: text.max(400), reason: text.max(400),
+    recipe: z.array(z.tuple([id, z.number().int().min(1).max(5)])).max(6),
+    synergy: z.enum(synergyKeys).optional(), stage: text.max(300).optional(), hint: text.max(80).optional(), noGacha: z.literal(true).optional() // 뽑기에서 안 나옴(상점·탐험으로 얻기)
+}).strict();
+const unitsSchema = z.object({ edition: z.literal(EDITION), source: text, units: z.array(unitSchema) }).strict();
+const percentPair = z.tuple([z.number().min(0).max(100), z.number().min(0).max(100)]);
+const weights = z.partialRecord(z.enum(tierOrder), z.number().int().min(1).max(100));
+// pity: 이 횟수 동안 해당 등급(이상)이 안 나오면 마지막 회차에 확정
+const gacha = z.object({ label: text, cost: z.number().int().min(1).max(100), weights, pity: z.object({ tier: z.enum(tierOrder), count: z.number().int().min(2).max(1000) }).strict().optional() }).strict();
+const achievement = z.object({ tickets: z.number().int().min(0).max(1000), title: z.string().trim().min(1).max(30) }).strict();
+const reward = z.object({ first: z.number().int().min(0).max(100000), duplicate: z.number().int().min(0).max(100000) }).strict();
+const economySchema = z.object({
+    version: z.literal('ECONOMY_V1'),
+    tickets: z.object({ welcome: z.number().int().min(0).max(1000), claim: z.number().int().min(1).max(1000), cooldownHours: z.number().positive().max(168) }).strict(),
+    gachas: z.object({ LOW: gacha, MID: gacha, HIGH: gacha }).strict(),
+    exchange: z.object({ snackCost: z.number().int().min(1).max(100000), uncommonCost: z.number().int().min(1).max(100000) }).strict(),
+    sell: z.partialRecord(z.enum(tierOrder), z.number().int().min(0).max(100000)),
+    invite: z.object({ tickets: z.number().int().min(0).max(1000), max: z.number().int().min(0).max(1000), days: z.number().int().min(1).max(365) }).strict(),
+    tutorial: z.object({ tickets: z.number().int().min(0).max(1000) }).strict(),
+    events: z.array(z.object({ label: text, from: z.string().datetime({ offset: true }), to: z.string().datetime({ offset: true }), claimBonus: z.number().int().min(0).max(1000).default(0), snackMultiplier: z.number().min(1).max(10).default(1) }).strict()).max(20),
+    homepage: z.string().url().optional(), // 공식 홈페이지 주소(카톡 안내용)
+    kakaoChannel: z.string().url().optional(), // 카카오톡 채널 주소(웹 '카톡에서 플레이' 버튼). 비우면 버튼 숨김
+    // 쿠폰: 카톡 '쿠폰 코드'로 1인 1회. pieces = 홈페이지에 숨기는 조각(합치면 code). to 없으면 기한 없음
+    coupons: z.array(z.object({ id: z.string().regex(/^[A-Z0-9_]{2,30}$/), label: text, code: z.string().min(2).max(30), tickets: z.number().int().min(1).max(10000),
+        pieces: z.array(z.string().min(1).max(20)).max(5).default([]), from: z.string().datetime({ offset: true }).optional(), to: z.string().datetime({ offset: true }).optional() }).strict()).max(20).default([]),
+    peanutShop: z.object({ tickets: z.number().int().min(1).max(1000), special: z.number().int().min(1).max(100),
+        badges: z.array(z.object({ id: z.string().regex(/^[A-Z0-9_]{2,20}$/), emoji: z.string().min(1).max(8), label: text, cost: z.number().int().min(1).max(100) }).strict()).max(30) }).strict(),
+    shop: z.object({ tickets: z.object({ snacks: z.number().int().min(1).max(1000000), amount: z.number().int().min(1).max(1000) }).strict(), expeditionSkip: z.object({ snacks: z.number().int().min(1).max(1000000) }).strict() }).strict(),
+    expedition: z.object({
+        minutes: z.number().int().min(1).max(1440), snackPerUnit: z.number().int().min(0).max(10000), maxParty: z.number().int().min(1).max(30),
+        levels: z.tuple([z.number().int().min(1), z.number().int().min(1)]),
+        effects: z.object({
+            BASIC: z.object({ label: text, concept: text, snackPercent: percentPair }).strict(),
+            GOLD: z.object({ label: text, concept: text, doublePercent: percentPair }).strict(),
+            DARK: z.object({ label: text, concept: text, minutes: z.tuple([z.number().int().min(1), z.number().int().min(1)]) }).strict(),
+            SEA: z.object({ label: text, concept: text, commonPercent: percentPair }).strict(),
+            BLOSSOM: z.object({ label: text, concept: text, uncommonPercent: percentPair }).strict(),
+            COSMOS: z.object({ label: text, concept: text, ticketPercent: percentPair }).strict(),
+            OUTFIT: z.object({ label: text, concept: text, snackPerUnit: z.tuple([z.number().int().min(0), z.number().int().min(0)]) }).strict()
+        }).strict(),
+        countBonusPercent: z.record(z.string().regex(/^\d+$/), z.number().min(0).max(100))
+    }).strict(),
+    rewards: z.object(Object.fromEntries(tierOrder.map(t => [t, reward]))).strict(),
+    achievements: z.object(Object.fromEntries(tierOrder.map(t => [t, achievement]))).strict(),
+    missions: z.array(z.object({ key: z.enum(['DRAW', 'CRAFT', 'CRAFT_RARE', 'CRAFT_LEGEND', 'CRAFT_TOP', 'EXPEDITION']), label: text, goal: z.number().int().min(1).max(1000), tickets: z.number().int().min(0).max(1000) }).strict()).max(10),
+    // PvP: 양쪽 모두 같은 레벨(승진·배운 기술 없이 기본 기술). 랭크는 이기면 +win, 지면 -lose(0 밑으로는 안 내려감), 점수 구간마다 티어
+    pvp: z.object({ level: z.number().int().min(1).max(100), win: z.number().int().min(1).max(200), lose: z.number().int().min(0).max(200),
+        tiers: z.array(z.object({ name: z.string().min(1).max(20), min: z.number().int().min(0) }).strict()).min(1) }).strict()
+        .default({ level: 30, win: 20, lose: 15, tiers: [{ name: '브론즈', min: 0 }, { name: '실버', min: 1100 }, { name: '골드', min: 1250 }, { name: '플래티넘', min: 1400 }, { name: '다이아', min: 1600 }, { name: '갈매미 마스터', min: 1850 }] }),
+    // 게임 출석체크: 하루 한 번. 연속 n일째 보상 = days[(n-1)%7] + weekStep×min(지난 주 수, weekCap) → 날이 갈수록, 주가 갈수록 커짐(하루 빠지면 1일째부터)
+    attendance: z.object({ days: z.array(z.number().int().min(0).max(1000)).length(7), weekStep: z.number().int().min(0).max(100), weekCap: z.number().int().min(0).max(52) }).strict().default({ days: [8, 10, 12, 14, 16, 18, 40], weekStep: 2, weekCap: 5 }),
+}).strict();
+export function loadEconomy(root = process.cwd()) {
+    const economy = economySchema.parse(parse(readFileSync(`${root}/data/economy.yaml`, 'utf8')));
+    for (const [key, g] of Object.entries(economy.gachas))
+        if (Object.values(g.weights).reduce((a, b) => a + b, 0) !== 100)
+            throw new Error(`${key} 뽑기 확률 합계는 100이어야 합니다.`);
+    for (const [key, g] of Object.entries(economy.gachas))
+        if (g.pity && !g.weights[g.pity.tier])
+            throw new Error(`${key} 천장 등급은 그 뽑기에서 나오는 등급이어야 합니다.`);
+    const r = economy.rewards;
+    if (r.COMMON.first !== 0 || r.COMMON.duplicate !== 0)
+        throw new Error('흔함 획득에는 보상을 지급하지 않습니다.');
+    for (const t of tierOrder)
+        if (r[t].first < r[t].duplicate)
+            throw new Error('첫 도감 보상은 중복 보상 이상이어야 합니다.');
+    for (const [low, high] of [['COMMON', 'UNCOMMON'], ['UNCOMMON', 'SPECIAL'], ['SPECIAL', 'RARE'], ['RARE', 'LEGEND'], ['RARE', 'HIDDEN'], ['LEGEND', 'LIMITED'], ['HIDDEN', 'LIMITED'], ['LIMITED', 'TRANSCEND'], ['TRANSCEND', 'ETERNAL'], ['ETERNAL', 'IMMORTAL']])
+        if (r[high].first < r[low].first || r[high].duplicate < r[low].duplicate)
+            throw new Error(`상위 등급 보상이 하위보다 작습니다: ${high}`);
+    return economy;
+}
+export function loadContent(root = process.cwd()) {
+    const raw = readFileSync(`${root}/data/units.json`, 'utf8');
+    const input = unitsSchema.parse(JSON.parse(raw));
+    const characters = input.units.map((u, position) => ({
+        id: u.id, name: u.name, rarity: u.tier, position, quote: u.quote, tagline: u.tagline, imageUrl: `/images/${u.id}.png`,
+        introduction: u.introduction, reason: u.reason, ...(u.synergy ? { synergy: u.synergy } : {}), ...(u.stage ? { stage: u.stage } : {}), ...(u.hint ? { hint: u.hint } : {}), ...(u.noGacha ? { noGacha: true } : {})
+    }));
+    const map = new Map(characters.map(c => [c.id, c]));
+    if (characters.length !== UNIT_COUNT)
+        throw new Error(`유닛 수 오류: ${characters.length}/${UNIT_COUNT}`);
+    if (map.size !== UNIT_COUNT)
+        throw new Error('중복 유닛 ID');
+    if (new Set(characters.map(c => c.name)).size !== UNIT_COUNT)
+        throw new Error('중복 유닛 이름');
+    for (const t of tierOrder)
+        if (characters.filter(c => c.rarity === t).length !== expected[t])
+            throw new Error(`등급 수량 오류 ${t}`);
+    for (const c of characters)
+        if (topTiers.has(c.rarity) !== Boolean(c.synergy))
+            throw new Error(`시너지는 최상위 유닛에만 있습니다: ${c.id}`);
+    const recipes = [];
+    const bundles = new Set();
+    for (const u of input.units) {
+        if (u.tier === 'COMMON' || u.tier === 'NEUTRAL') {
+            if (u.recipe.length)
+                throw new Error(`흔함·특수함은 조합식이 없습니다: ${u.id}`);
+            continue;
+        }
+        if (!u.recipe.length)
+            throw new Error(`조합식 누락: ${u.id}`);
+        const materials = u.recipe.flatMap(([m, q]) => Array.from({ length: q }, () => m));
+        if (materials.length < 2)
+            throw new Error(`재료는 2마리 이상: ${u.id}`);
+        for (const m of materials) {
+            const c = map.get(m);
+            if (!c || tiers[c.rarity] >= tiers[u.tier])
+                throw new Error(`순환/상위 재료 오류: ${u.id} ← ${m}`);
+        }
+        const key = [...materials].sort().join('+');
+        if (bundles.has(key))
+            throw new Error(`같은 재료 묶음 중복: ${u.id}`);
+        bundles.add(key);
+        recipes.push({ resultId: u.id, materials, story: u.reason, hidden: u.tier === 'HIDDEN' });
+    }
+    const hiddenIds = characters.filter(c => c.rarity === 'HIDDEN').map(c => c.id);
+    // DB 잠금 해시는 구조(ID·등급·조합식)만 봅니다. 이름·소개·문구 수정은 seed가 반영합니다.
+    const structure = JSON.stringify(input.units.map(u => [u.id, u.tier, u.recipe]));
+    return { edition: input.edition, characters, map, recipes, hiddenIds, economy: loadEconomy(root),
+        hash: createHash('sha256').update(structure).digest('hex') };
+}
