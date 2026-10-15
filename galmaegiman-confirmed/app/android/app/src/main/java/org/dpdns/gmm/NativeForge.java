@@ -151,7 +151,7 @@ final class NativeForge extends FrameLayout {
       name.setTypeface(h.headline);
       name.setGravity(Gravity.CENTER);
       name.setTextLocale(java.util.Locale.KOREA);
-      name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
+      name.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
       if (android.os.Build.VERSION.SDK_INT >= 33)
         name.setLineBreakWordStyle(
             android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);

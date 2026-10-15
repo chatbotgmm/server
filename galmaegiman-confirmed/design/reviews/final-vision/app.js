@@ -44,7 +44,7 @@ function render(){
  $('conceptControls').hidden=!isConcept;$('actualControls').hidden=isConcept;$('conceptStage').hidden=!isConcept;$('comparisonStage').hidden=isConcept;
  $('hint').textContent=isConcept?'화면 속 버튼을 누르면 다른 시안으로 이동합니다.':'슬라이더를 움직이거나 나란히 보기를 선택하세요.';
  $('selectionDetails').querySelector('strong').textContent=isConcept?'최종 디자인 제안':'최종 시안 스타일을 반영한 실제 구현';
- $('selectionDetails').querySelector('p').textContent=isConcept?'캐릭터와 카드 원본은 유지했습니다. 시안의 계정·진행도·보유 재화는 화면별 예시입니다. 버튼으로 화면을 이동하며 전체 흐름을 확인하세요.':'실제 네이티브 화면 캡처입니다. 재질·버튼 위계·캐릭터 비중·정보 순서를 다듬은 전후를 비교합니다. 공개 다운로드 APK와는 별도 검토 단계입니다.';
+ $('selectionDetails').querySelector('p').textContent=isConcept?'캐릭터와 카드 원본은 유지했습니다. 시안의 계정·진행도·보유 재화는 화면별 예시입니다. 버튼으로 화면을 이동하며 전체 흐름을 확인하세요.':'실제 네이티브 화면 캡처입니다. 재질·버튼 위계·캐릭터 비중·정보 순서를 다듬은 전후를 비교합니다. 최종 시안은 추가 설계 방향이며 실제 구현과 구분해 표시합니다.';
  if(isConcept){
   const image=$('conceptImage');image.alt=s.title+' 최종 디자인 시안';loadImage(image,s.image);
   const spots=$('hotspots');spots.replaceChildren();spots.classList.toggle('visible',$('showHotspots').checked);

@@ -934,7 +934,8 @@ final class NativeMenus {
                 name.setGravity(Gravity.CENTER);
                 name.setSingleLine(false);
                 name.setMaxLines(2);
-                name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
+                name.setBreakStrategy(
+                    android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
                 name.setTextLocale(Locale.KOREA);
                 if (android.os.Build.VERSION.SDK_INT >= 33)
                   name.setLineBreakWordStyle(
@@ -1052,7 +1053,7 @@ final class NativeMenus {
             name.setPadding(0, h.dp(2), 0, h.dp(2));
             name.setSingleLine(false);
             name.setMaxLines(2);
-            name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
+            name.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
             name.setTextLocale(Locale.KOREA);
             if (android.os.Build.VERSION.SDK_INT >= 33)
               name.setLineBreakWordStyle(

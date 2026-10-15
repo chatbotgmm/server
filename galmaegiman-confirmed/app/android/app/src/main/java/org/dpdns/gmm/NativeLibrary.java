@@ -77,14 +77,16 @@ final class NativeLibrary {
             have.setPadding(h.dp(4), 0, h.dp(4), 0);
             portrait.addView(
                 have, new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.RIGHT));
-            card.addView(portrait, new LinearLayout.LayoutParams(-1, h.dp(h.compact() ? 128 : 142)));
+            card.addView(
+                portrait, new LinearLayout.LayoutParams(-1, h.dp(h.compact() ? 128 : 142)));
             TextView name = h.text(u.optString("name"), 14);
             name.setTypeface(h.headline);
             name.setGravity(Gravity.CENTER);
             name.setTextLocale(Locale.KOREA);
-            name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
+            name.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
             if (android.os.Build.VERSION.SDK_INT >= 33)
-              name.setLineBreakWordStyle(android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
+              name.setLineBreakWordStyle(
+                  android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
             card.addView(name);
             String attr = u.optString("attrName");
             TextView grade = k.note(u.optString("tierName") + (attr.isEmpty() ? "" : " · " + attr));
@@ -459,9 +461,10 @@ final class NativeLibrary {
     TextView name = h.text(u.optString("name"), compact ? 18 : 26);
     name.setTypeface(h.headline);
     name.setTextLocale(Locale.KOREA);
-    name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
+    name.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
     if (android.os.Build.VERSION.SDK_INT >= 33)
-      name.setLineBreakWordStyle(android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
+      name.setLineBreakWordStyle(
+          android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
     labels.addView(name);
     TextView meta =
         k.note(

@@ -806,7 +806,7 @@ final class NativeEconomy {
     TextView name = h.text(title, compact() ? 18 : 22);
     name.setTypeface(h.headline);
     name.setTextLocale(Locale.KOREA);
-    name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
+    name.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
     if (android.os.Build.VERSION.SDK_INT >= 33)
       name.setLineBreakWordStyle(
           android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
