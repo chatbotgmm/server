@@ -45,36 +45,14 @@ final class NativeBattleSheets {
 
   static AlertDialog show(BattleView v, String title, LinearLayout content) {
     MainActivity h = v.host;
-    final int maxHeight =
-        Math.max(
-            h.dp(120),
-            (int) h.safeBounds(h.root.getWidth(), h.root.getHeight()).height() - h.dp(150));
-    ScrollView scroll =
-        new ScrollView(h) {
-          @Override
-          protected void onMeasure(int widthSpec, int heightSpec) {
-            int offered =
-                MeasureSpec.getMode(heightSpec) == MeasureSpec.UNSPECIFIED
-                    ? maxHeight
-                    : Math.min(maxHeight, MeasureSpec.getSize(heightSpec));
-            super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(offered, MeasureSpec.AT_MOST));
-          }
-        };
-    scroll.setFillViewport(false);
-    scroll.addView(content);
-    FrameLayout wrap = new FrameLayout(h);
-    wrap.addView(scroll, new FrameLayout.LayoutParams(-1, -2));
-    AlertDialog dialog =
-        new GameDialog(h).setTitle(title).setView(wrap).setPositiveButton("닫기", null).show();
-    if (dialog.getWindow() != null)
-      dialog
-          .getWindow()
-          .setLayout(
-              Math.min(
-                  h.dp(760),
-                  (int) (h.safeBounds(h.root.getWidth(), h.root.getHeight()).width() * .94f)),
-              -2);
-    return dialog;
+    content.setTag("battle-sheet-body");
+    // 제목과 닫기는 고정하고 실제 본문만 공통 가용 높이 안에서 스크롤한다.
+    return new GameDialog(h)
+        .setMaxWidthDp(760)
+        .setTitle(title)
+        .setScrollBody(content)
+        .setPositiveButton("닫기", null)
+        .show();
   }
 
   static void skill(BattleView v, JSONObject sk) {

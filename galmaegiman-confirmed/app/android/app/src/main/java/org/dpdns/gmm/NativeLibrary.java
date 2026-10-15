@@ -358,18 +358,22 @@ final class NativeLibrary {
     dialog[0] =
         new GameDialog(h)
             .setTitle(u.optString("name"))
-            .setView(k.scroll(options))
+            .setScrollBody(options)
             .setNegativeButton("닫기", null)
             .show();
   }
 
   LinearLayout skill(JSONObject sk, String tag, Runnable click) {
+    return skill(sk, tag, click, false);
+  }
+
+  LinearLayout skill(JSONObject sk, String tag, Runnable click, boolean fullText) {
     boolean compact = h.compact();
     LinearLayout card = k.paper();
     card.setPadding(h.dp(8), h.dp(6), h.dp(8), h.dp(6));
     LinearLayout heading = k.row();
     TextView kind = k.note(tag);
-    kind.setTextSize(compact ? 10 : 12);
+    kind.setTextSize(fullText ? 12 : compact ? 10 : 12);
     heading.addView(kind, new LinearLayout.LayoutParams(0, -2, 1));
     String attr = sk.optString("attr");
     if (!attr.isEmpty()) {
@@ -381,14 +385,21 @@ final class NativeLibrary {
                       : h.state.optJSONObject("attributes"),
                   attr),
               attr);
-      chip.setTextSize(compact ? 10 : 12);
+      chip.setTextSize(fullText ? 12 : compact ? 10 : 12);
       heading.addView(chip);
     }
     card.addView(heading);
-    TextView title = h.text(sk.optString("name"), compact ? 16 : 20);
+    TextView title = h.text(sk.optString("name"), fullText ? 18 : compact ? 16 : 20);
     title.setTypeface(h.headline);
-    title.setMaxLines(2);
-    title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    if (!fullText) {
+      title.setMaxLines(2);
+      title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    }
+    title.setTextLocale(Locale.KOREA);
+    title.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
+    if (android.os.Build.VERSION.SDK_INT >= 33)
+      title.setLineBreakWordStyle(
+          android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
     card.addView(title);
     String category =
         sk.optString("cat").equals("phys")
@@ -408,14 +419,16 @@ final class NativeLibrary {
             + " · "
             + reuse;
     TextView numbers = k.note(meta);
-    numbers.setTextSize(compact ? 12 : 14);
+    numbers.setTextSize(fullText ? 14 : compact ? 12 : 14);
     card.addView(numbers);
     String effect = SkillCardView.effect(sk);
     if (!effect.equals("추가 효과 없음")) {
       TextView description = k.note(effect);
-      description.setTextSize(compact ? 12 : 14);
-      description.setMaxLines(compact ? 2 : 3);
-      description.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      description.setTextSize(fullText ? 14 : compact ? 12 : 14);
+      if (!fullText) {
+        description.setMaxLines(compact ? 2 : 3);
+        description.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      }
       card.addView(description);
     }
     card.setMinimumHeight(h.dp(compact ? 92 : 120));
@@ -624,7 +637,6 @@ final class NativeLibrary {
     JSONObject unit = h.unit(key);
     JSONArray offers = h.list(unit, kind);
     if (offers.length() == 0) return;
-    LinearLayout content = k.column();
     String guidance =
         kind.equals("promo")
             ? "승진 전용 기술 · 학습 기회를 사용하지 않아요."
@@ -633,10 +645,10 @@ final class NativeLibrary {
                 + " 새 기술 · 이번 기회에 "
                 + unit.optInt("learnLeft", 1)
                 + "개 더 배울 수 있어요.";
-    content.addView(k.notice(guidance));
     LinearLayout choiceList = k.column();
-    content.addView(
-        k.scroll(choiceList), new LinearLayout.LayoutParams(-1, h.dp(h.compact() ? 180 : 300)));
+    choiceList.setPadding(h.dp(4), h.dp(6), h.dp(4), h.dp(6));
+    ScrollView choices = k.scroll(choiceList);
+    choices.setTag("skill-choice-scroll");
     JSONObject[] picked = {null};
     Button[] go = {null};
     android.app.AlertDialog[] popup = {null};
@@ -644,7 +656,6 @@ final class NativeLibrary {
     paint[0] =
         () -> {
           choiceList.removeAllViews();
-          ArrayList<View> cards = new ArrayList<>();
           for (int i = 0; i < offers.length(); i++) {
             JSONObject sk = offers.optJSONObject(i);
             LinearLayout card =
@@ -654,35 +665,44 @@ final class NativeLibrary {
                     () -> {
                       picked[0] = sk;
                       paint[0].run();
-                    });
+                    },
+                    true);
+            card.setTag("skill-choice-" + sk.optString("id"));
+            card.setSelected(picked[0] == sk);
             if (picked[0] == sk) card.setBackground(new GamePanelDrawable(h));
-            cards.add(card);
+            LinearLayout.LayoutParams box = new LinearLayout.LayoutParams(-1, -2);
+            box.bottomMargin = h.dp(8);
+            choiceList.addView(card, box);
           }
-          k.tiles(choiceList, cards, 2);
           if (go[0] != null) {
             go[0].setEnabled(picked[0] != null);
             go[0].setText(
                 picked[0] == null
                     ? "기술 선택"
-                    : h.list(unit, "skills").length() >= 4 ? "다음 · 잊을 기술 선택" : "배우기");
+                    : h.list(unit, "skills").length() >= 4 ? "교체할 기술 선택" : "배우기");
           }
         };
     paint[0].run();
     LinearLayout footer = k.row();
+    footer.setTag("skill-choice-footer");
+    Button finish;
     if (kind.equals("learn"))
-      h.cell(
-          footer,
+      finish =
           k.action(
               null,
-              "이번 기회 마치기",
+              "학습 종료",
               () ->
                   h.confirm(
                       "이번 학습 기회의 남은 선택은 다시 받을 수 없어요. 마칠까요?",
                       () -> {
                         popup[0].dismiss();
                         commitLearning(key, kind, null, null);
-                      })));
-    else h.cell(footer, k.action(null, "나중에", () -> popup[0].dismiss()));
+                      }));
+    else finish = k.action(null, "나중에", () -> popup[0].dismiss());
+    finish.setTag("skill-choice-finish");
+    finish.setMinHeight(h.dp(48));
+    finish.setMinimumHeight(h.dp(48));
+    h.cell(footer, finish);
     go[0] =
         k.action(
             "learn",
@@ -693,14 +713,30 @@ final class NativeLibrary {
               if (h.list(unit, "skills").length() >= 4) forgetChoice(key, kind, picked[0]);
               else commitLearning(key, kind, picked[0].optString("id"), null);
             });
+    go[0].setTag("skill-choice-confirm");
+    go[0].setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
+    go[0].setMinHeight(h.dp(48));
+    go[0].setMinimumHeight(h.dp(48));
     go[0].setEnabled(false);
     h.cell(footer, go[0]);
-    content.addView(footer);
+    LinearLayout header = k.row();
+    header.addView(k.notice(guidance), new LinearLayout.LayoutParams(0, -2, 1));
+    Button close = k.action(null, "×", () -> popup[0].dismiss());
+    close.setTag("skill-choice-close");
+    close.setContentDescription("학습 기회를 유지하고 닫기");
+    close.setTextSize(24);
+    close.setPadding(0, 0, 0, h.dp(3));
+    close.setMinHeight(h.dp(48));
+    close.setMinimumHeight(h.dp(48));
+    LinearLayout.LayoutParams closeBox = new LinearLayout.LayoutParams(h.dp(48), h.dp(48));
+    closeBox.leftMargin = h.dp(6);
+    header.addView(close, closeBox);
     popup[0] =
         new GameDialog(h)
             .setTitle(kind.equals("promo") ? "전용 기술 배우기" : "새 기술 배우기")
-            .setView(content)
-            .setNegativeButton("닫기", null)
+            .setFixedHeader(header)
+            .setScrollBody(choices)
+            .setFooter(footer)
             .show();
   }
 
@@ -708,45 +744,46 @@ final class NativeLibrary {
     LinearLayout content = k.column();
     content.addView(
         k.notice("「" + next.optString("name") + "」 대신 잊을 기술을 골라 주세요. 기본기·전용 기술도 바꿀 수 있어요."));
-    ArrayList<View> choices = new ArrayList<>();
     android.app.AlertDialog[] popup = {null};
     JSONArray mine = h.list(h.unit(key), "skills");
     for (int i = 0; i < mine.length(); i++) {
       JSONObject old = mine.optJSONObject(i);
-      choices.add(
+      LinearLayout card =
           skill(
               old,
               "잊을 기술",
               () -> {
                 popup[0].dismiss();
                 compareReplacement(key, kind, old, next);
-              }));
+              },
+              true);
+      card.setTag("skill-forget-" + old.optString("id"));
+      LinearLayout.LayoutParams box = new LinearLayout.LayoutParams(-1, -2);
+      box.bottomMargin = h.dp(8);
+      content.addView(card, box);
     }
-    k.tiles(content, choices, 2);
+    content.setPadding(h.dp(4), h.dp(6), h.dp(4), h.dp(6));
+    ScrollView choices = k.scroll(content);
+    choices.setTag("skill-forget-scroll");
     popup[0] =
         new GameDialog(h)
             .setTitle("잊을 기술 선택")
-            .setView(k.scroll(content))
+            .setScrollBody(choices)
             .setNegativeButton("다시 고르기", (d, which) -> skillChoice(key, kind))
             .show();
   }
 
-  LinearLayout comparisonScroll(View content) {
-    LinearLayout container = k.column();
+  ScrollView comparisonScroll(View content) {
     ScrollView scroll = k.scroll(content);
     scroll.setTag("growth-comparison-scroll");
-    int available = Math.max(144, h.contentHeightDp() - 180);
-    container.addView(
-        scroll,
-        new LinearLayout.LayoutParams(-1, h.dp(Math.min(h.compact() ? 210 : 420, available))));
-    return container;
+    return scroll;
   }
 
   void compareReplacement(String key, String kind, JSONObject old, JSONObject next) {
     LinearLayout content = new NativeGrowthComparison(h, k).skills(old, next);
     new GameDialog(h)
         .setTitle("기술 교체 비교")
-        .setView(comparisonScroll(content))
+        .setScrollBody(comparisonScroll(content))
         .setNegativeButton("다시 선택", (d, which) -> forgetChoice(key, kind, next))
         .setPositiveButton(
             "교체 확정",
@@ -809,7 +846,7 @@ final class NativeLibrary {
     popup[0] =
         new GameDialog(h)
             .setTitle((unit.optInt("stage") + 1) + "단계 승진 · 직무 표창")
-            .setView(comparisonScroll(options))
+            .setScrollBody(comparisonScroll(options))
             .setNegativeButton("나중에", null)
             .show();
   }
@@ -839,7 +876,7 @@ final class NativeLibrary {
     LinearLayout content = new NativeGrowthComparison(h, k).promotion(h.unit(key), choice);
     new GameDialog(h)
         .setTitle("승진 전후 비교")
-        .setView(comparisonScroll(content))
+        .setScrollBody(comparisonScroll(content))
         .setNegativeButton("다시 선택", (d, which) -> promotion(key))
         .setPositiveButton(
             "승진 확정",
@@ -891,7 +928,7 @@ final class NativeLibrary {
     }
     boolean available = h.list(u, "promo").length() > 0;
     new GameDialog(h)
-        .setView(content)
+        .setScrollBody(content)
         .setPositiveButton(
             available ? "전용 기술 배우기" : "확인",
             (d, which) -> {
@@ -961,18 +998,16 @@ final class NativeLibrary {
       return;
     }
     LinearLayout body = k.column();
+    LinearLayout footer = k.row();
+    footer.setTag("heal-footer");
     android.app.AlertDialog[] popup = {null};
     String[] item = {initial}, target = {preferredKey};
     Runnable[] paint = new Runnable[1];
     paint[0] =
         () -> {
           body.removeAllViews();
+          footer.removeAllViews();
           JSONObject defs = h.state.optJSONObject("itemDefs");
-          body.addView(
-              k.notice(
-                  "시간이 지나도 체력이 회복돼요. 0 → 가득 "
-                      + h.state.optInt("storyHpFullMinutes", 60)
-                      + "분 · 레벨업·승진 시 가득 회복"));
           ArrayList<String> healers = new ArrayList<>();
           if (defs != null) {
             Iterator<String> keys = defs.keys();
@@ -1023,8 +1058,7 @@ final class NativeLibrary {
                       paint[0].run();
                     });
             choose.setEnabled(itemCount(id) > 0);
-            if (id.equals(item[0]))
-              choose.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
+            choose.setSelected(id.equals(item[0]));
             cols[0].addView(choose);
           }
           if (item[0] == null)
@@ -1065,16 +1099,16 @@ final class NativeLibrary {
                 });
             cols[1].addView(choice);
           }
-          LinearLayout footer = k.row();
-          h.cell(
-              footer,
+          Button close =
               k.action(
                   null,
                   "닫기",
                   () -> {
                     popup[0].dismiss();
                     returnTo.run();
-                  }));
+                  });
+          close.setTag("heal-close");
+          h.cell(footer, close);
           Button use =
               k.action(
                   "potion",
@@ -1095,12 +1129,25 @@ final class NativeLibrary {
                               });
                         });
                   });
+          use.setTag("heal-confirm");
+          use.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PRIMARY));
           use.setEnabled(item[0] != null && target[0] != null);
           h.cell(footer, use);
-          body.addView(footer);
         };
     paint[0].run();
-    popup[0] = new GameDialog(h).setTitle("치료약 쓰기").setView(k.scroll(body)).show();
+    ScrollView choices = k.scroll(body);
+    choices.setTag("heal-body-scroll");
+    popup[0] =
+        new GameDialog(h)
+            .setTitle("치료약 쓰기")
+            .setFixedHeader(
+                k.notice(
+                    "시간이 지나도 체력이 회복돼요. 0 → 가득 "
+                        + h.state.optInt("storyHpFullMinutes", 60)
+                        + "분 · 레벨업·승진 시 가득 회복"))
+            .setScrollBody(choices)
+            .setFooter(footer)
+            .show();
   }
 
   int itemCount(String id) {

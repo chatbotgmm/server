@@ -196,6 +196,7 @@ final class NativeEconomy {
 
   void showTicketReward(Object result, boolean refreshOnClose) {
     LinearLayout reward = k.column();
+    reward.setTag("ticket-reward-body");
     reward.setPadding(h.dp(20), h.dp(16), h.dp(20), h.dp(8));
     LinearLayout head = k.row();
     head.addView(k.image("/duel/icons/u-ticket.png", 52, 52));
@@ -209,7 +210,7 @@ final class NativeEconomy {
     details.setTextSize(17);
     reward.addView(details);
     new GameDialog(h)
-        .setView(reward)
+        .setScrollBody(reward)
         .setPositiveButton(
             "확인",
             (d, w) -> {
@@ -1262,6 +1263,7 @@ final class NativeEconomy {
 
   void materialGuide(JSONObject material) {
     LinearLayout panel = k.paper();
+    panel.setTag("material-guide-body");
     panel.addView(h.text(material.optString("name"), 22));
     panel.addView(
         k.note("사용 가능 " + material.optInt("usable") + " · 필요 " + material.optInt("need")));
@@ -1276,7 +1278,7 @@ final class NativeEconomy {
                 + material.optInt("away")
                 + "마리는 재료로 쓰지 않아요."));
     GameDialog dialog = new GameDialog(h);
-    dialog.setView(panel).setPositiveButton("닫기", (d, w) -> {});
+    dialog.setScrollBody(panel).setPositiveButton("닫기", (d, w) -> {});
     if (where.contains("뽑기")) dialog.setNeutralButton("뽑기", (d, w) -> h.load("draw"));
     if (where.contains("조합"))
       dialog.setNegativeButton(

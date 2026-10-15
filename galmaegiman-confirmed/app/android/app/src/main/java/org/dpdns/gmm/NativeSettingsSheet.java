@@ -36,36 +36,31 @@ final class NativeSettingsSheet {
     MenuKit k = new MenuKit(h);
     AlertDialog[] box = new AlertDialog[1];
     LinearLayout content = k.column();
-    content.setPadding(h.dp(20), h.dp(16), h.dp(20), h.dp(14));
+    content.setPadding(h.dp(16), h.dp(2), h.dp(16), h.dp(12));
+    content.setTag("settings-dialog-body");
     LinearLayout title = k.row();
+    title.setTag("settings-dialog-header");
+    title.setPadding(h.dp(20), h.dp(12), h.dp(20), h.dp(8));
     title.addView(k.image("/duel/icons/u-settings.png", 24, 24));
     TextView heading = h.text("설정", 20);
     heading.setTypeface(h.headline);
     title.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
     Button close = action(h, "×", () -> box[0].dismiss());
     close.setTextSize(24);
+    close.setTag("settings-dialog-close");
+    close.setContentDescription("설정 닫기");
     title.addView(close, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
-    addRow(h, content, title);
     LinearLayout columns = k.row();
     columns.setGravity(Gravity.TOP);
-    content.addView(columns);
+    columns.setTag("settings-dialog-columns");
+    content.addView(columns, new LinearLayout.LayoutParams(-1, -2));
     LinearLayout left = k.column(), right = k.column();
-    int available =
-        Math.round(
-            (h.root.getHeight() - h.root.getPaddingTop() - h.root.getPaddingBottom())
-                / h.getResources().getDisplayMetrics().density);
-    int height =
-        Math.max(
-            132,
-            Math.min(
-                available - 94,
-                h.getResources().getConfiguration().screenHeightDp < 600 ? 244 : 300));
+    // 두 열의 실제 내용 높이를 공통 본문 스크롤이 측정한다.
+    // 창 높이에서 상수를 빼거나 최소 높이를 강제하지 않아 키보드·큰 글자에도 닫기가 남는다.
     for (LinearLayout column : new LinearLayout[] {left, right}) {
-      ScrollView scroll = new ScrollView(h);
-      scroll.addView(column);
-      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, h.dp(height), 1);
+      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
       lp.setMargins(h.dp(5), 0, h.dp(5), 0);
-      columns.addView(scroll, lp);
+      columns.addView(column, lp);
     }
     TextView soundHeading = h.text("소리", 20);
     soundHeading.setTypeface(h.headline);
@@ -90,10 +85,9 @@ final class NativeSettingsSheet {
     Runnable sync =
         () -> {
           all.setText(h.sound.masterMuted() ? "꺼짐" : "켜짐");
-          all.setBackground(
-              new GameButtonDrawable(
-                  h,
-                  h.sound.masterMuted() ? GameButtonDrawable.PAPER : GameButtonDrawable.PRIMARY));
+          int fill = h.sound.masterMuted() ? GameButtonDrawable.PAPER : GameButtonDrawable.PRIMARY;
+          all.setBackground(new GameButtonDrawable(h, fill));
+          all.setTextColor(JournalTheme.controlText(fill));
           audio.setAlpha(1);
         };
     all.setOnClickListener(
@@ -248,14 +242,9 @@ final class NativeSettingsSheet {
       alertsSlot.bottomMargin = h.dp(6);
       right.addView(alerts, 1, alertsSlot);
     } else right.addView(k.note("로그인하면 계정·쿠폰·튜토리얼을 이용할 수 있어요."));
-    box[0] = new GameDialog(h).setView(content).show();
-    box[0].getWindow().setBackgroundDrawable(new GameSettingsDrawable(h));
-    box[0]
-        .getWindow()
-        .setLayout(
-            Math.min(
-                h.dp(1120),
-                (int) (h.safeBounds(h.root.getWidth(), h.root.getHeight()).width() * .94f)),
-            -2);
+    box[0] =
+        new GameDialog(h).setMaxWidthDp(1120).setFixedHeader(title).setScrollBody(content).show();
+    if (box[0].getWindow() != null)
+      box[0].getWindow().setBackgroundDrawable(new GameSettingsDrawable(h));
   }
 }

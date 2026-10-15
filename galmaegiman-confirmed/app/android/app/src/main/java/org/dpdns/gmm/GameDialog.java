@@ -1,22 +1,121 @@
 package org.dpdns.gmm;
 
 import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.res.ColorStateList;
+import android.graphics.Rect;
 import android.view.*;
 import android.widget.*;
 
 /** 선택·입력 동작은 Android 기본 컴포넌트로 유지하고 게임의 종이 프레임을 적용한다. */
 final class GameDialog extends AlertDialog.Builder {
   private final MainActivity host;
+  private GameDialogContent content;
+  private AlertDialog showing;
+  private boolean hasTitle;
+  private int actions;
+  private int maxWidthDp = 560;
 
   GameDialog(MainActivity host) {
     super(new ContextThemeWrapper(host, android.R.style.Theme_Material_Light_Dialog_Alert));
     this.host = host;
   }
 
+  private GameDialogContent content() {
+    if (content == null) {
+      content = new GameDialogContent(host, this::bodyBudget);
+      super.setView(content);
+    }
+    return content;
+  }
+
+  GameDialog setScrollBody(View body) {
+    content().body(body);
+    return this;
+  }
+
+  GameDialog setFixedHeader(View header) {
+    if (header.getTag() == null) header.setTag("game-dialog-header");
+    content().header(header);
+    return this;
+  }
+
+  GameDialog setFooter(View footer) {
+    if (footer.getTag() == null) footer.setTag("game-dialog-footer");
+    content().footer(footer);
+    return this;
+  }
+
+  GameDialog setMaxWidthDp(int width) {
+    maxWidthDp = width;
+    return this;
+  }
+
+  @Override
+  public GameDialog setView(View view) {
+    return setScrollBody(view);
+  }
+
+  @Override
+  public GameDialog setTitle(CharSequence title) {
+    hasTitle = title != null && title.length() > 0;
+    super.setTitle(title);
+    return this;
+  }
+
+  @Override
+  public GameDialog setPositiveButton(CharSequence text, DialogInterface.OnClickListener listener) {
+    actions |= 1;
+    super.setPositiveButton(text, listener);
+    return this;
+  }
+
+  @Override
+  public GameDialog setNegativeButton(CharSequence text, DialogInterface.OnClickListener listener) {
+    actions |= 2;
+    super.setNegativeButton(text, listener);
+    return this;
+  }
+
+  @Override
+  public GameDialog setNeutralButton(CharSequence text, DialogInterface.OnClickListener listener) {
+    actions |= 4;
+    super.setNeutralButton(text, listener);
+    return this;
+  }
+
+  private int panelHeight(String name, int fallback) {
+    if (showing == null || showing.getWindow() == null) return fallback;
+    int id = host.getResources().getIdentifier(name, "id", "android");
+    View panel = id == 0 ? null : showing.getWindow().getDecorView().findViewById(id);
+    return panel != null && panel.getVisibility() != View.GONE && panel.getMeasuredHeight() > 0
+        ? Math.max(fallback, panel.getMeasuredHeight())
+        : fallback;
+  }
+
+  private int bodyBudget() {
+    int height = (int) host.safeBounds(host.root.getWidth(), host.root.getHeight()).height();
+    Rect visible = new Rect();
+    host.root.getWindowVisibleDisplayFrame(visible);
+    if (visible.height() > 0) height = Math.min(height, visible.height());
+    int title =
+        hasTitle
+            ? panelHeight(
+                "topPanel",
+                host.dp(32)
+                    + (int)
+                        Math.ceil(host.dp(26) * host.getResources().getConfiguration().fontScale))
+            : 0;
+    int buttons = actions == 0 ? 0 : panelHeight("buttonPanel", host.dp(64));
+    return Math.max(0, height - host.dp(16) - title - buttons);
+  }
+
   @Override
   public AlertDialog show() {
-    AlertDialog dialog = super.show();
+    AlertDialog dialog = super.create();
+    showing = dialog;
+    if (content != null) dialog.setView(content, 0, 0, 0, 0);
+    dialog.show();
     host.visibleDialog = dialog;
     dialog.setOnDismissListener(
         d -> {
@@ -26,9 +125,22 @@ final class GameDialog extends AlertDialog.Builder {
     if (window != null) {
       window.setBackgroundDrawable(new GamePanelDrawable(host));
       window.setDimAmount(.4f);
-      window.setLayout(Math.min(host.dp(560), (int) (host.root.getWidth() * .9f)), -2);
+      window.setLayout(
+          Math.min(
+              host.dp(maxWidthDp),
+              (int) host.safeBounds(host.root.getWidth(), host.root.getHeight()).width()
+                  - host.dp(24)),
+          -2);
+      window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
       style(window.getDecorView());
+      int titleId = host.getResources().getIdentifier("alertTitle", "id", "android");
+      TextView title = titleId == 0 ? null : window.getDecorView().findViewById(titleId);
+      if (title != null) {
+        title.setTypeface(host.headline);
+        title.setTextSize(20);
+      }
     }
+    if (content != null) content.requestLayout();
     for (int id :
         new int[] {
           AlertDialog.BUTTON_POSITIVE, AlertDialog.BUTTON_NEGATIVE, AlertDialog.BUTTON_NEUTRAL
