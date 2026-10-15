@@ -6,9 +6,9 @@ import android.view.*;
 import android.widget.*;
 import org.json.*;
 
-/** 기술은 즉시 사용하고, 별도 상세 버튼으로 전체 효과와 사용 불가 사유를 읽는다. */
+/** 기술명·현재 위력·핵심 효과를 읽고 바로 사용하는 간결한 전투 카드. */
 final class SkillCardView extends FrameLayout {
-  final Button use, detail;
+  final Button use;
   final TextView effect;
   final JSONObject skill;
 
@@ -18,7 +18,6 @@ final class SkillCardView extends FrameLayout {
     skill = sk;
     boolean combo = sk.optString("id").startsWith("combo-");
     String reason = reason(view, sk);
-    String kind = kind(sk);
     String name = sk.optString("name");
     String meta = meta(sk);
     use =
@@ -41,11 +40,6 @@ final class SkillCardView extends FrameLayout {
             + " · "
             + sk.optString("desc")
             + (reason.isEmpty() ? "" : " · 사용 불가: " + reason));
-    use.setOnLongClickListener(
-        v -> {
-          NativeBattleSheets.skill(view, sk);
-          return true;
-        });
     addView(use, new LayoutParams(-1, -1));
 
     LinearLayout content = new LinearLayout(h);
@@ -58,57 +52,28 @@ final class SkillCardView extends FrameLayout {
     }
     title.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
     title.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
-    // 제목은 상세 버튼과 폭을 나누지 않는다. 긴 이름도 줄바꿈해 전부 보여 준다.
+    // 이름과 효과는 카드 전체 폭으로 줄바꿈해 전부 보여 준다.
     content.addView(title, new LinearLayout.LayoutParams(-1, -2));
-    category =
-        label(
-            h,
-            combo ? "합동기 · 전투당 한 번" : shortKind(kind) + " · " + categoryMeta(sk),
-            large ? 17 : 14,
-            false);
-    category.setTextColor(JournalTheme.MUTED);
-    if (!combo) content.addView(category);
     power = label(h, powerMeta(sk), large ? 18 : 15, true);
     power.setText(powerLabel(sk));
-    if (!combo) content.addView(power);
-    LinearLayout bottom = new LinearLayout(h);
-    bottom.setGravity(Gravity.CENTER_VERTICAL);
-    effect =
-        label(
-            h,
-            (combo ? "전투당 한 번" : conciseEffect(sk))
-                + (reason.isEmpty() ? "" : "\n" + shortReason(reason)),
-            large ? 17 : 14,
-            false);
+    content.addView(power);
+    String brief = conciseEffect(sk);
+    if (combo) brief = "전투당 1회" + (brief.isEmpty() ? "" : " · " + brief);
+    if (!reason.isEmpty()) brief += (brief.isEmpty() ? "" : " · ") + shortReason(reason);
+    effect = label(h, brief, large ? 17 : 14, false);
     effect.setTextColor(reason.isEmpty() ? JournalTheme.TEAL : NativeBattleLog.DAMAGE);
     effect.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
     effect.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
-    // 핵심 수치와 기간은 생략하지 않는다. 큰 글자나 긴 효과는 카드가 늘어나며 패널을 스크롤한다.
-    if (combo) {
-      // 합동기는 제목 전폭을 유지하고 사용 횟수·상세만 같은 줄에 모아 첫 기술 두 개를 가리지 않는다.
-      bottom.addView(effect, new LinearLayout.LayoutParams(0, -2, 1));
-    } else {
-      content.addView(effect, new LinearLayout.LayoutParams(-1, -2));
-      // 상세 조작은 본문 아래 독립된 줄에 둔다. 본문 폭을 48dp 줄여 수치·어절을 끊지 않는다.
-      Space spacer = new Space(h);
-      bottom.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1));
-    }
-    detail = h.button("상세", () -> NativeBattleSheets.skill(view, sk));
-    detail.setTextSize(large ? 16 : 14);
-    detail.setPadding(0, 0, 0, h.dp(2));
-    detail.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PAPER));
-    detail.setMinHeight(h.dp(48));
-    detail.setMinimumHeight(h.dp(48));
-    detail.setContentDescription(name + " 전체 효과와 사용 조건 보기");
-    LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(h.dp(48), h.dp(48));
-    dp.leftMargin = h.dp(4);
-    bottom.addView(detail, dp);
-    content.addView(bottom, new LinearLayout.LayoutParams(-1, -2));
+    effect.setMaxLines(2);
+    effect.setEllipsize(TextUtils.TruncateAt.END);
+    if (effect.getText().length() == 0) effect.setVisibility(GONE);
+    // 전투는 현재 위력과 핵심 효과만 빠르게 읽는다. 전체 설명은 접근성과 육성 화면에 남긴다.
+    content.addView(effect, new LinearLayout.LayoutParams(-1, -2));
     addView(content, new LayoutParams(-1, -2));
-    setMinimumHeight(h.dp(combo ? (large ? 88 : 78) : (large ? 154 : 120)));
+    setMinimumHeight(h.dp(large ? 124 : 108));
   }
 
-  final TextView title, category, power;
+  final TextView title, power;
 
   static TextView label(MainActivity h, String text, int size, boolean headline) {
     TextView label = h.text(text, size);
@@ -130,28 +95,37 @@ final class SkillCardView extends FrameLayout {
   }
 
   static String categoryMeta(JSONObject sk) {
-    if (sk.optInt("power") <= 0) return "보조 기술";
+    if (currentPower(sk) <= 0) return "보조 기술";
     JSONObject p = sk.optJSONObject("preview");
     if (p == null) return "공격 기술";
     return p.optString("attrName") + " · " + (p.optString("category").equals("mag") ? "마법" : "물리");
   }
 
   static String powerMeta(JSONObject sk) {
-    if (sk.optInt("power") <= 0) return "보조 효과";
+    int power = currentPower(sk);
     JSONObject p = sk.optJSONObject("preview");
+    String attr = p == null ? "" : p.optString("attrName");
+    String prefix = attr.isEmpty() ? "" : attr + " · ";
+    if (power <= 0) return prefix + "보조";
     double multiplier = p == null ? 1 : p.optDouble("multiplier", 1);
     if (!Double.isFinite(multiplier) || multiplier <= 0) multiplier = 1;
-    return "위력 "
-        + sk.optInt("power")
+    return prefix
+        + "위력 "
+        + power
         + (sk.optInt("hits", 1) > 1 ? "×" + sk.optInt("hits") : "")
-        + " · ×"
-        + java.math.BigDecimal.valueOf(multiplier).stripTrailingZeros().toPlainString()
-        + (multiplier > 1 ? " ▲유리" : multiplier < 1 ? " ▼불리" : " 보통");
+        + (multiplier > 1 ? " ▲유리" : multiplier < 1 ? " ▼불리" : "");
   }
 
   static CharSequence powerLabel(JSONObject sk) {
     SpannableStringBuilder text = new SpannableStringBuilder(powerMeta(sk));
-    int from = text.toString().lastIndexOf('×');
+    if (bonusActive(sk)) {
+      int start = text.toString().indexOf("위력 ");
+      int end = text.toString().indexOf(" ▲");
+      if (end < 0) end = text.toString().indexOf(" ▼");
+      NativeBattleLog.strong(
+          text, Math.max(0, start), end < 0 ? text.length() : end, NativeBattleLog.HEAL);
+    }
+    int from = Math.max(text.toString().lastIndexOf('▲'), text.toString().lastIndexOf('▼'));
     JSONObject preview = sk.optJSONObject("preview");
     double multiplier = preview == null ? 1 : preview.optDouble("multiplier", 1);
     if (!Double.isFinite(multiplier) || multiplier <= 0) multiplier = 1;
@@ -167,13 +141,93 @@ final class SkillCardView extends FrameLayout {
   }
 
   static String conciseEffect(JSONObject sk) {
+    if (sk.has("summary")) return sk.optString("summary");
+    java.util.ArrayList<String> parts = new java.util.ArrayList<>();
+    JSONArray effects = sk.optJSONArray("effects");
+    if (effects != null)
+      for (int i = 0; i < effects.length(); i++) {
+        JSONObject e = effects.optJSONObject(i);
+        if (e == null) continue;
+        if (e.optString("kind").equals("lockSelf")) parts.add("이후 교체 불가");
+        else if (e.optString("kind").equals("recharge")) parts.add("다음 턴 휴식");
+        else if (e.optString("kind").equals("buff")
+            && e.optString("target").equals("self")
+            && e.optInt("pct") < 0) parts.add(shortEffect(e));
+      }
+    JSONObject bonus = sk.optJSONObject("bonus");
+    if (bonus != null) {
+      String when =
+          switch (bonus.optString("when")) {
+            case "burned" -> "화상 적";
+            case "slowed" -> "느려진 적";
+            case "bound" -> "속박 적";
+            case "lowHp" -> "체력 50%↓ 때";
+            case "finisher" -> "체력 40%↓ 적";
+            case "opening" -> "체력 90%↑ 적";
+            case "slower" -> "느릴 때";
+            case "weakened" -> "방어 약화 적";
+            default -> "조건 충족 시";
+          };
+      parts.add(when + " +" + bonus.optInt("pct") + "%");
+    }
+    if (sk.optInt("pierce") > 0) parts.add("방어 " + sk.optInt("pierce") + "% 관통");
+    if (sk.optInt("drain") > 0) parts.add("피해 " + sk.optInt("drain") + "% 흡수");
+    if (sk.optBoolean("crit")) parts.add("확정 급소");
+    if (sk.optBoolean("priority")) parts.add("먼저 공격");
+    if (effects != null)
+      for (int i = 0; i < effects.length(); i++) {
+        JSONObject e = effects.optJSONObject(i);
+        if (e == null) continue;
+        String summary = shortEffect(e);
+        if (!summary.isEmpty() && !parts.contains(summary)) parts.add(summary);
+      }
+    if (!parts.isEmpty()) return TextUtils.join(" · ", parts.subList(0, Math.min(2, parts.size())));
     return effect(sk)
         .replace("맞은 상대의", "상대")
         .replace("우리 팀의", "우리 팀")
         .replace("체력을 회복해요.", "체력 회복")
         .replace("방어를 낮추고", "방어 감소 ·")
         .replace(" 동안 ", " ")
-        .replace("추가 효과 없음", "연속 사용 가능");
+        .replace("추가 효과 없음", "");
+  }
+
+  static String shortEffect(JSONObject effect) {
+    String duration = effect.optInt("turns") > 0 ? " · " + effect.optInt("turns") + "턴" : "";
+    return switch (effect.optString("kind")) {
+      case "buff" ->
+          (effect.optString("stat").equals("spd")
+                  ? "속도"
+                  : effect.optString("stat").equals("def") ? "방어" : "공격")
+              + " "
+              + (effect.optInt("pct") > 0 ? "+" : "")
+              + effect.optInt("pct")
+              + "%"
+              + duration;
+      case "status" ->
+          (switch (effect.optString("status")) {
+                case "burn" -> "화상";
+                case "freeze" -> "빙결";
+                case "sleep" -> "수면";
+                case "bind" -> "속박";
+                default -> "상태 이상";
+              })
+              + " "
+              + effect.optInt("chance", 100)
+              + "%"
+              + duration;
+      case "heal" ->
+          (effect.optString("target").equals("bench") ? "대기 아군 " : "체력 ")
+              + effect.optInt("pct")
+              + "% 회복";
+      case "guard" -> "받는 피해 -" + effect.optInt("pct") + "%" + duration;
+      case "strip" -> "상대 강화 해제";
+      case "protect" -> "이번 턴 공격 방어";
+      case "cleanse" -> "상태 이상 해제";
+      case "regen" -> "매턴 체력 " + effect.optInt("pct") + "% 회복" + duration;
+      case "endure" -> "체력 1로 버팀" + duration;
+      case "revive" -> "아군 체력 " + effect.optInt("pct") + "%로 부활";
+      default -> "";
+    };
   }
 
   static String kind(JSONObject sk) {
@@ -188,21 +242,53 @@ final class SkillCardView extends FrameLayout {
   }
 
   static String meta(JSONObject sk) {
-    if (sk.optInt("power") <= 0) return "보조 기술";
+    int current = currentPower(sk);
+    if (current <= 0) return "보조 기술";
     JSONObject p = sk.optJSONObject("preview");
     String attr = p == null ? "" : p.optString("attrName");
     String cat = p == null ? "" : p.optString("category").equals("mag") ? "마법" : "물리";
     double mult = p == null ? 1 : p.optDouble("multiplier", 1);
-    String power =
-        "위력" + sk.optInt("power") + (sk.optInt("hits", 1) > 1 ? "×" + sk.optInt("hits") : "");
+    String power = "위력" + current + (sk.optInt("hits", 1) > 1 ? "×" + sk.optInt("hits") : "");
     return (attr.isEmpty() ? "" : attr + "·" + cat + "·")
         + power
-        + (mult > 1 ? " ▲유리" : mult < 1 ? " ▼불리" : "");
+        + " · ×"
+        + java.math.BigDecimal.valueOf(Double.isFinite(mult) && mult > 0 ? mult : 1)
+            .stripTrailingZeros()
+            .toPlainString()
+        + (mult > 1 ? " ▲유리" : mult < 1 ? " ▼불리" : "")
+        + (bonusActive(sk) ? " · 조건 발동" : "");
+  }
+
+  static int currentPower(JSONObject sk) {
+    JSONObject preview = sk.optJSONObject("preview");
+    double value = preview == null ? Double.NaN : preview.optDouble("power", Double.NaN);
+    return Double.isFinite(value) && value > 0 && value <= Integer.MAX_VALUE
+        ? (int) Math.round(value)
+        : sk.optInt("power");
+  }
+
+  static boolean bonusActive(JSONObject sk) {
+    JSONObject preview = sk.optJSONObject("preview");
+    return currentPower(sk) > 0 && preview != null && preview.optBoolean("bonusActive");
+  }
+
+  static boolean hasExtraEffect(JSONObject sk) {
+    JSONArray effects = sk.optJSONArray("effects");
+    return (effects != null && effects.length() > 0)
+        || sk.optJSONObject("bonus") != null
+        || sk.optDouble("pierce") > 0
+        || sk.optDouble("drain") > 0
+        || sk.optBoolean("crit")
+        || sk.optBoolean("priority");
   }
 
   static String effect(JSONObject sk) {
-    if (sk.optString("id").startsWith("sub-")) return "";
-    String description = sk.optString("desc").replaceFirst("^위력 \\d+(으로 \\d+번)?(, )?", "").trim();
+    if (sk.optString("id").startsWith("sub-") && !hasExtraEffect(sk)) return "";
+    String description =
+        sk.optString("desc")
+            .replaceFirst("(^|,\\s*)위력 \\d+((으로|로) \\d+번)?(,\\s*)?", "$1")
+            .replaceFirst(",\\s*$", "")
+            .trim();
     if (description.startsWith("·")) description = description.substring(1).trim();
     return description.isEmpty() ? "추가 효과 없음" : description;
   }
@@ -217,8 +303,10 @@ final class SkillCardView extends FrameLayout {
   }
 
   static String shortReason(String reason) {
-    return reason.contains("합동기를 이미 사용")
-        ? "이번 전투에 사용함"
-        : reason.contains("이미 적용") ? "이미 적용됨" : reason.contains("합동기") ? "사용 조건 확인" : reason;
+    return reason.contains("이미 적용")
+        ? "이미 적용됨"
+        : reason.contains("합동기를 이미 사용")
+            ? "이번 전투에 사용함"
+            : reason.contains("합동기") ? "동료 조건 필요" : reason;
   }
 }

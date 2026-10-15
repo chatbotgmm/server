@@ -241,15 +241,15 @@ public class NativeUx71ReviewTest {
         assertEquals(4, skills.size());
         for (SkillCardView card : skills) {
           fullTextFits(card.title);
-          fullTextFits(card.effect);
+          fullTextFits(card.power);
+          assertEquals("효과는 두 줄 이내로 요약", 2, card.effect.getMaxLines());
           if (size[0] == 915) {
-            for (TextView text :
-                new TextView[] {card.title, card.category, card.power, card.effect})
+            for (TextView text : new TextView[] {card.title, card.power})
               if (text.getParent() != null) koreanWordsStayTogether(text);
           }
-          assertTrue(
-              "제목이 상세 버튼과 폭을 나누지 않음", card.title.getWidth() >= card.getWidth() - host.dp(24));
-          assertTrue("상세 조작 48dp 유지", card.detail.getHeight() >= host.dp(48));
+          assertTrue("제목에 카드 전폭 배정", card.title.getWidth() >= card.getWidth() - host.dp(24));
+          assertTrue("기술 사용 조작 48dp 유지", card.use.getHeight() >= host.dp(48));
+          assertFalse("별도 상세 롱프레스 없음", card.use.isLongClickable());
         }
         view.menu.fullScroll(View.FOCUS_DOWN);
         review.capture(host, "ux71-" + size[0] + "-font130-skills-bottom", size[0], size[1]);

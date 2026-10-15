@@ -20,6 +20,7 @@ public class MainActivity extends AppCompatActivity {
   NativeApi api;
   NativeArt art;
   NativeSound sound;
+  JournalTimeController journalTime;
   NativeMenus menus;
   NativeOperationUi operations;
   Button actionButton;
@@ -34,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
   JSONObject state = new JSONObject(), battle;
   String screen = "home", pendingAugment = "";
   int chapter = 0, epoch = 0;
-  boolean busy = false, motionEnabled = true;
+  boolean busy = false, motionEnabled = true, motionResumed = false;
   android.app.AlertDialog visibleDialog;
   ArrayList<String> selected = new ArrayList<>();
   String selectionMode = "story", mixIds = "";
@@ -48,6 +49,8 @@ public class MainActivity extends AppCompatActivity {
   @Override
   public void onCreate(Bundle saved) {
     super.onCreate(saved);
+    motionEnabled = !getSharedPreferences("native_display", 0).getBoolean("reduce_motion", false);
+    journalTime = new JournalTimeController(this);
     api = new NativeApi(this);
     sound = new NativeSound(this);
     art = new NativeArt(this, api);
@@ -162,6 +165,13 @@ public class MainActivity extends AppCompatActivity {
   void stateUpdated() {
     NativeAlerts.schedule(this, me());
     if (guide != null) guide.onStateUpdated();
+  }
+
+  void reducedMotion(boolean reduced) {
+    getSharedPreferences("native_display", 0).edit().putBoolean("reduce_motion", reduced).apply();
+    motionEnabled = !reduced;
+    if (journalTime != null) journalTime.motionPreferenceChanged();
+    if (root != null) root.invalidate();
   }
 
   static JSONObject obj(Object... xs) {
@@ -462,20 +472,24 @@ public class MainActivity extends AppCompatActivity {
     screen = id;
     sound.play("title");
     root.removeAllViews();
-    GameBackdrop bg = new GameBackdrop(this);
-    bg.blurred(true);
-    bg.setScaleType(ImageView.ScaleType.CENTER_CROP);
-    bg.setImageBitmap(art.asset("harbor.jpg"));
-    String menuBg =
-        id.equals("draw") || id.equals("drawResult")
-            ? "greenhouse"
-            : id.equals("shop")
-                ? "cafe"
-                : id.equals("expedition") || id.equals("modes") || id.equals("pvp")
-                    ? "cabin"
-                    : "attic";
-    art.into(bg, "/duel/bg/" + menuBg + ".jpg");
-    root.addView(bg, new FrameLayout.LayoutParams(-1, -1));
+    boolean mapPage = id.equals("craft") || id.equals("mix");
+    if (mapPage) root.addView(new JournalMapBackdrop(this), new FrameLayout.LayoutParams(-1, -1));
+    else {
+      GameBackdrop bg = new GameBackdrop(this);
+      bg.blurred(true);
+      bg.setScaleType(ImageView.ScaleType.CENTER_CROP);
+      bg.setImageBitmap(art.asset("harbor.jpg"));
+      String menuBg =
+          id.equals("draw") || id.equals("drawResult")
+              ? "greenhouse"
+              : id.equals("shop")
+                  ? "cafe"
+                  : id.equals("expedition") || id.equals("modes") || id.equals("pvp")
+                      ? "cabin"
+                      : "attic";
+      art.into(bg, "/duel/bg/" + menuBg + ".jpg");
+      root.addView(bg, new FrameLayout.LayoutParams(-1, -1));
+    }
     View shade = new GameShade(this);
     shade.setBackgroundColor(0x08000000);
     root.addView(shade, new FrameLayout.LayoutParams(-1, -1));
@@ -495,8 +509,8 @@ public class MainActivity extends AppCompatActivity {
     title.setTypeface(headline);
     title.setSingleLine(true);
     title.setEllipsize(android.text.TextUtils.TruncateAt.END);
-    title.setTextColor(JournalTheme.WHITE);
-    title.setShadowLayer(dp(2), 0, dp(1), 0xcc263b3c);
+    title.setTextColor(mapPage ? JournalTheme.INK : JournalTheme.WHITE);
+    if (!mapPage) title.setShadowLayer(dp(2), 0, dp(1), 0xcc263b3c);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
     MenuKit kit = new MenuKit(this);
     for (String kind : new String[] {"snack", "peanut", "credits"}) {
@@ -1374,6 +1388,20 @@ public class MainActivity extends AppCompatActivity {
   }
 
   @Override
+  protected void onResume() {
+    super.onResume();
+    motionResumed = true;
+    journalTime.resume();
+  }
+
+  @Override
+  protected void onPause() {
+    motionResumed = false;
+    journalTime.pause();
+    super.onPause();
+  }
+
+  @Override
   protected void onStop() {
     super.onStop();
     sound.stop();
@@ -1390,6 +1418,8 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onDestroy() {
     super.onDestroy();
+    motionResumed = false;
+    if (journalTime != null) journalTime.close();
     if (operations != null) operations.close();
     if (guide != null) guide.close();
     art.close();

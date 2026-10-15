@@ -2,6 +2,8 @@
 // (브라우저는 서버가 검사한 데이터를 받아 core.ts의 rulesFrom만 씀 → 묶음 크기를 줄임)
 import { z } from 'zod';
 import { attrKeys, roleKeys, statusKeys, battleAugIds, rulesFrom } from './core.js';
+import { loadContent, type Content } from '../content.js';
+import { commonRecipeValues } from './recipe-value.js';
 export * from './core.js';
 
 // ── YAML 모양 검사 ──
@@ -20,8 +22,11 @@ const effectIn=z.union([
   z.object({lockSelf:z.number().min(0).max(200)}).strict(),
   z.object({protect:z.literal(true)}).strict(),
 ]);
+const skillCondition=z.enum(['burned','slowed','bound','lowHp','finisher','opening','slower','weakened']);
 const skillIn=z.object({name:z.string().min(1).max(30),cd:z.number().int().min(0).max(10),power:z.number().int().min(1).max(400).optional(),
   hits:z.number().int().min(2).max(5).optional(),priority:z.boolean().optional(),crit:z.boolean().optional(),attr:attr.optional(),cat:catAuto.optional(),
+  pierce:z.number().min(0).max(70).optional(),drain:z.number().min(0).max(50).optional(),
+  bonus:z.object({when:skillCondition,pct:z.number().int().min(1).max(100)}).strict().optional(),
   effects:z.array(effectIn).max(5).optional(),desc:z.string().max(120).optional()}).strict();
 const passiveIn=z.object({pierce:z.number(),execute:z.number(),critPlus:z.number(),opener:z.number(),lifesteal:z.number(),reflect:z.number(),cut:z.number(),regen:z.number(),
   lastStand:z.boolean(),statusResist:z.number(),statusPlus:z.number(),durationPlus:z.number().int(),sigCd:z.number().int(),handoff:z.number(),hpPct:z.number(),atkPct:z.number(),defPct:z.number(),spdPct:z.number()}).partial();
@@ -37,6 +42,10 @@ export const battleSchema=z.object({
   chart:z.record(attr,z.object({strong:z.tuple([attr,attr]),why:z.tuple([z.string(),z.string()])}).strict()),
   roles:z.record(role,z.object({name:z.string(),hp:z.number().positive(),atk:z.number().positive(),def:z.number().positive(),spd:z.number().positive(),skill:skillIn}).strict()),
   tiers:tierNums,
+  recipePower:z.object({baseline:z.number().int().positive(),perCommonPct:z.number().min(0).max(5),capPct:z.number().min(0).max(50)}).strict().optional(),
+  // 서버가 조합식에서 계산해 브라우저에도 함께 보내는 값. YAML에 수동으로 적지 않아요.
+  recipeValues:z.record(z.string().regex(/^[DTEI]\d+$/),z.number().int().positive()).optional(),
+  elemental:z.record(attr,z.object({basic:skillIn,sub:skillIn,attack:skillIn}).strict()).optional(),
   units:z.record(z.string().regex(/^[DTEI]\d+$/),z.object({attr,sub:attr.optional(),role,stats:statsIn,skill:skillIn}).strict()),
   synergies:z.record(z.string().regex(/^[A-Z]+$/),z.object({name:z.string().min(1).max(20),members:z.array(z.string().regex(/^[DTEI]\d+$/)).min(2),skill:skillIn}).strict()),
   learn:z.object({levels:z.array(z.number().int().min(2).max(200)).min(1).max(10),slots:z.number().int().min(1).max(4),offers:z.number().int().min(1).max(30),perChance:z.number().int().min(1).max(4).default(1),
@@ -57,4 +66,9 @@ export const battleSchema=z.object({
 }).strict();
 export type BattleData=z.infer<typeof battleSchema>;
 
-export const buildRules=(input:unknown)=>rulesFrom(battleSchema.parse(input));
+export function buildRules(input:unknown,content?:Pick<Content,'characters'|'recipes'>){
+  const data=battleSchema.parse(input);
+  // 조합식 변경이 즉시 반영되도록 저장 수치 대신 검증된 원재료 그래프에서 재계산해요.
+  if(data.recipePower)data.recipeValues=commonRecipeValues(content??loadContent(),Object.keys(data.units));
+  return rulesFrom(data);
+}

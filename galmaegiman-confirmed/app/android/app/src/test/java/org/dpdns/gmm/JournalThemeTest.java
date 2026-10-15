@@ -47,6 +47,19 @@ public class JournalThemeTest {
     return count;
   }
 
+  int nearColorCount(Bitmap bitmap, int color) {
+    int count = 0;
+    for (int y = 0; y < bitmap.getHeight(); y++)
+      for (int x = 0; x < bitmap.getWidth(); x++) {
+        int pixel = bitmap.getPixel(x, y);
+        if (Color.alpha(pixel) == 255
+            && Math.abs(Color.red(pixel) - Color.red(color)) < 28
+            && Math.abs(Color.green(pixel) - Color.green(color)) < 28
+            && Math.abs(Color.blue(pixel) - Color.blue(color)) < 28) count++;
+      }
+    return count;
+  }
+
   @Test
   public void statusDialogAndLogFramesRenderWithoutBitmapAssetsAtDifferentAspectRatios() {
     MainActivity host = Robolectric.buildActivity(MainActivity.class).get();
@@ -64,7 +77,7 @@ public class JournalThemeTest {
         assertEquals("종이 면은 사진 뒤를 비추지 않음", 255, Color.alpha(center));
         assertTrue("밝은 기록지 면 확보", luminance(center) >= luminance(JournalTheme.PAPER));
         assertTrue("종이 위 본문 대비 확보", contrast(JournalTheme.INK, center) >= 4.5);
-        assertTrue("가죽 프레임도 실제로 표시", colorCount(bitmap, JournalTheme.LEATHER) > 0);
+        assertTrue("목재 프레임도 실제로 표시", colorCount(bitmap, JournalTheme.WOOD) > 0);
         bitmap.recycle();
       }
     }
@@ -153,12 +166,71 @@ public class JournalThemeTest {
           {JournalTheme.MUTED, JournalTheme.PAPER},
           {JournalTheme.TEAL, JournalTheme.PAPER},
           {JournalTheme.WHITE, JournalTheme.PRIMARY},
-          {JournalTheme.WHITE, 0xff3f7079},
+          {JournalTheme.WHITE, JournalTheme.PRIMARY_HIGHLIGHT},
           {JournalTheme.MUTED, JournalTheme.DISABLED},
           {JournalTheme.TEAL, JournalTheme.SELECTED}
         }) {
       double a = luminance(pair[0]), b = luminance(pair[1]);
       assertTrue("본문 대비 4.5 이상", (Math.max(a, b) + .05) / (Math.min(a, b) + .05) >= 4.5);
+    }
+  }
+
+  @Test
+  public void canvasAndAndroidResourceTokensMatchApprovedCaptainJournalPalette() {
+    MainActivity host = Robolectric.buildActivity(MainActivity.class).get();
+    for (int[] entry :
+        new int[][] {
+          {R.color.journal_paper, JournalTheme.PAPER, 0xfff5efdc},
+          {R.color.journal_ink, JournalTheme.INK, 0xff292d2a},
+          {R.color.journal_muted_ink, JournalTheme.MUTED, 0xff626c67},
+          {R.color.journal_wood, JournalTheme.WOOD, 0xff34261f},
+          {R.color.journal_brass, JournalTheme.BRASS, 0xffb68b45},
+          {R.color.journal_primary, JournalTheme.PRIMARY, 0xff245b61},
+          {R.color.journal_primary_text, JournalTheme.WHITE, 0xffffffff},
+          {R.color.journal_positive_info, JournalTheme.POSITIVE_INFO, 0xff3e7865},
+          {R.color.journal_negative_info, JournalTheme.NEGATIVE_INFO, 0xffa44136}
+        }) {
+      assertEquals("승인 색상은 Canvas에도 동일 적용", entry[2], entry[1]);
+      assertEquals("View 리소스와 Canvas 토큰을 함께 유지", entry[1], host.getColor(entry[0]));
+    }
+    assertEquals(48, host.getResources().getDimension(R.dimen.journal_touch_target_min), .001);
+  }
+
+  @Test
+  public void agedPaperHasStableEdgeDetailAndQuietOpaqueReadingAreaInsideItsOwnBounds() {
+    for (float density : new float[] {1, 2.25f}) {
+      int width = Math.round(360 * density), height = Math.round(180 * density);
+      RectF bounds = new RectF(12 * density, 10 * density, 348 * density, 170 * density);
+      Bitmap first = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+      Bitmap second = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+      for (Bitmap bitmap : new Bitmap[] {first, second}) {
+        Canvas canvas = new Canvas(bitmap);
+        int saves = canvas.getSaveCount();
+        JournalTheme.drawPanel(canvas, bounds, density, JournalTheme.PAPER, true);
+        assertEquals("장식 그리기는 상위 Canvas 클립을 보존", saves, canvas.getSaveCount());
+      }
+      assertTrue("종이 섬유·지도 장식은 프레임마다 바뀌지 않음", first.sameAs(second));
+      assertTrue("이중 프레임에 황동선이 실제 존재", nearColorCount(first, JournalTheme.BRASS) > 50);
+      int topSeamPixel = (int) Math.floor(bounds.top + 3.1f * density);
+      assertEquals(
+          "황동선의 핵심은 픽셀 경계에 분산되지 않음 · density=" + density,
+          JournalTheme.BRASS,
+          first.getPixel(width / 2, topSeamPixel));
+      for (int y = 0; y < height; y++)
+        for (int x = 0; x < width; x++) {
+          int pixel = first.getPixel(x, y);
+          if (!bounds.contains(x + .5f, y + .5f))
+            assertEquals("프레임 장식은 다른 UI나 안전 영역으로 번지지 않음", 0, Color.alpha(pixel));
+        }
+      int row = Math.round(90 * density), reference = first.getPixel(Math.round(80 * density), row);
+      assertEquals(255, Color.alpha(reference));
+      for (int x = Math.round(80 * density); x < Math.round(280 * density); x++)
+        assertEquals("본문 중앙에는 지도선·거친 무늬가 들어가지 않음", reference, first.getPixel(x, row));
+      assertTrue("양피지 중앙 본문 대비 유지", contrast(JournalTheme.INK, reference) > 10);
+      // 위쪽 안쪽 지도선과 바깥 목재의 사이에 밝은 종이·황동이 모두 남는다.
+      assertTrue("황동선 바깥에는 목재 받침도 구별되어야 함", colorCount(first, JournalTheme.WOOD) > 0);
+      first.recycle();
+      second.recycle();
     }
   }
 }

@@ -11,14 +11,17 @@ final class LobbyView extends FrameLayout implements FullBleed {
   final MainActivity host;
   final DragParallax parallax;
   final SceneMotion motion;
+  final JournalAmbient ambient;
+  final Runnable motionChanged;
   final Paint p = new Paint(3);
+  final Paint.FontMetrics canvasMetrics = new Paint.FontMetrics();
   final ArrayList<Button> buttons = new ArrayList<>();
   final String room;
   final Button gull;
   final TextView tip;
   final LinearLayout growthCard;
   final ScrollView growthInfo;
-  final TextView growthName, growthMeta, growthXp, growthNeed, growthSummary;
+  final TextView growthName, growthMeta, growthXp, growthNeed, growthSummary, growthCompactXp;
   final ProgressBar growthProgress;
   final Button growthAction;
   final Runnable hideTip = this::hideGullTip;
@@ -40,6 +43,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
         }
       };
   final Map<String, Bitmap> visibleArt = new HashMap<>();
+  final Map<String, Rect> visibleBounds = new HashMap<>();
   static final String[] NAMES = {"탐험", "뽑기", "수비대", "조합", "상점"};
   static final String[] IDS = {"expedition", "draw", "collection", "craft", "shop"};
   static final String[] ICONS = {"mode-camp", "u-draw", "mode-normal", "u-emblem", "u-shop"};
@@ -53,8 +57,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   static void warm(MainActivity host) {
-    for (String layer : new String[] {"base.jpg", "plat.webp", "char.webp"})
-      host.art.scene("/duel/bg/" + room(host) + layer, () -> {});
+    host.art.scene("/duel/bg/" + room(host) + "char.webp", () -> {});
     for (String icon :
         new String[] {
           "u-story",
@@ -74,10 +77,14 @@ final class LobbyView extends FrameLayout implements FullBleed {
     super(host);
     this.host = host;
     motion = new SceneMotion(this, host);
+    ambient = new JournalAmbient(this, host, motion);
     parallax = new DragParallax(this, host.dp(18));
+    motionChanged =
+        () -> {
+          if (!SceneMotion.enabled(host)) parallax.close();
+        };
     room = room(host);
-    for (String layer : new String[] {"base.jpg", "plat.webp", "char.webp"})
-      image("bg/" + room + layer);
+    image("bg/" + room + "char.webp");
     setWillNotDraw(false);
     gull = host.button("갈매미 조언", this::showGullTip);
     gull.setTextColor(Color.TRANSPARENT);
@@ -121,8 +128,10 @@ final class LobbyView extends FrameLayout implements FullBleed {
     growthXp = host.text("", 14);
     details.addView(growthXp);
     growthProgress = new ProgressBar(host, null, android.R.attr.progressBarStyleHorizontal);
-    growthProgress.setProgressTintList(android.content.res.ColorStateList.valueOf(JournalTheme.TEAL));
-    growthProgress.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(0xffddd2ba));
+    growthProgress.setProgressTintList(
+        android.content.res.ColorStateList.valueOf(JournalTheme.TEAL));
+    growthProgress.setProgressBackgroundTintList(
+        android.content.res.ColorStateList.valueOf(0xffddd2ba));
     LinearLayout.LayoutParams meterSlot = new LinearLayout.LayoutParams(-1, host.dp(6));
     meterSlot.setMargins(host.dp(8), host.dp(3), host.dp(8), host.dp(3));
     details.addView(growthProgress, meterSlot);
@@ -149,6 +158,14 @@ final class LobbyView extends FrameLayout implements FullBleed {
     growthAction.setBackground(new GameButtonDrawable(host, GameButtonDrawable.PAPER));
     growthControls.addView(growthAction, new LinearLayout.LayoutParams(host.dp(88), host.dp(48)));
     growthCard.addView(growthControls, new LinearLayout.LayoutParams(-1, host.dp(48)));
+    growthCompactXp = host.text("", 12);
+    growthCompactXp.setTag("lobby-growth-core");
+    growthCompactXp.setIncludeFontPadding(false);
+    growthCompactXp.setSingleLine(true);
+    growthCompactXp.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    growthCompactXp.setTextColor(JournalTheme.INK);
+    growthCompactXp.setPadding(host.dp(6), host.dp(4), host.dp(6), 0);
+    growthCard.addView(growthCompactXp, new LinearLayout.LayoutParams(-1, -2));
     addView(growthCard);
     refreshGrowth();
     tip = host.text("", host.getResources().getConfiguration().screenHeightDp < 600 ? 13 : 15);
@@ -231,6 +248,8 @@ final class LobbyView extends FrameLayout implements FullBleed {
   protected void onAttachedToWindow() {
     super.onAttachedToWindow();
     motion.start();
+    ambient.attach();
+    if (host.journalTime != null) host.journalTime.addListener(motionChanged);
     live = true;
     liveEpoch = host.epoch;
     refreshBadges.run();
@@ -247,6 +266,8 @@ final class LobbyView extends FrameLayout implements FullBleed {
 
   @Override
   protected void onDetachedFromWindow() {
+    ambient.detach();
+    if (host.journalTime != null) host.journalTime.removeListener(motionChanged);
     live = false;
     dailyLoading = false;
     removeCallbacks(refreshBadges);
@@ -255,6 +276,12 @@ final class LobbyView extends FrameLayout implements FullBleed {
     motion.close();
     parallax.close();
     super.onDetachedFromWindow();
+  }
+
+  @Override
+  protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
+    super.onSizeChanged(width, height, oldWidth, oldHeight);
+    ambient.resize(width, height);
   }
 
   void positions(int w, int h) {
@@ -297,8 +324,32 @@ final class LobbyView extends FrameLayout implements FullBleed {
     RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
     positions(Math.round(safe.width()), Math.round(safe.height()));
     for (RectF box : boxes) box.offset(safe.left, safe.top);
+    growthCompactXp.setTextSize(host.uiText(12));
+    growthCompactXp.setPadding(host.dp(6), host.dp(4), host.dp(6), 0);
+    RectF availableGrowth = growthAvailableBox();
+    boolean detailedGrowth = availableGrowth.height() >= host.dp(140);
+    growthInfo.setVisibility(detailedGrowth ? View.VISIBLE : View.GONE);
+    growthCompactXp.setVisibility(detailedGrowth ? View.GONE : View.VISIBLE);
     RectF growth = growthBox();
-    growthInfo.setVisibility(growth.height() >= host.dp(140) ? View.VISIBLE : View.GONE);
+    if (detailedGrowth) {
+      growthCard.setPadding(host.dp(12), host.dp(9), host.dp(12), host.dp(10));
+    } else {
+      int rowHeight = growthCompactXp.getLineHeight() + host.dp(4);
+      int room = Math.max(0, Math.round(growth.height()) - host.dp(48));
+      if (rowHeight > room) {
+        growthCompactXp.setPadding(host.dp(6), 0, host.dp(6), 0);
+        float pixels =
+            growthCompactXp.getTextSize()
+                * Math.max(1, room - 1)
+                / Math.max(1, growthCompactXp.getLineHeight());
+        growthCompactXp.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, pixels);
+        rowHeight = room;
+      }
+      int padding = Math.max(0, room - rowHeight);
+      int top = Math.min(host.dp(9), padding / 2);
+      growthCard.setPadding(host.dp(12), top, host.dp(12), padding - top);
+      growthCompactXp.getLayoutParams().height = rowHeight;
+    }
     growthCard.setVisibility(growth.height() >= host.dp(64) ? View.VISIBLE : View.GONE);
     refreshGrowth();
     growthCard.measure(
@@ -366,17 +417,23 @@ final class LobbyView extends FrameLayout implements FullBleed {
             "/duel/" + path,
             () -> {
               Bitmap loaded = host.art.peek("/duel/" + path);
-              if (loaded != null) visibleArt.put(path, loaded);
+              if (loaded != null) holdImage(path, loaded);
               invalidate();
             });
-    if (ready != null) visibleArt.put(path, ready);
+    if (ready != null) holdImage(path, ready);
     return ready;
   }
 
+  void holdImage(String path, Bitmap bitmap) {
+    visibleArt.put(path, bitmap);
+    if (path.startsWith("bg/") && path.endsWith("char.webp"))
+      visibleBounds.put(path, host.art.alpha(bitmap, "/duel/" + path));
+  }
+
   boolean ready() {
-    for (String layer : new String[] {"base.jpg", "plat.webp", "char.webp"})
-      if (!visibleArt.containsKey("bg/" + room + layer)) return false;
-    return true;
+    return ambient.ready()
+        && visibleArt.containsKey("bg/" + room + "char.webp")
+        && visibleBounds.containsKey("bg/" + room + "char.webp");
   }
 
   void fit(Canvas c, Bitmap image, RectF r) {
@@ -420,6 +477,23 @@ final class LobbyView extends FrameLayout implements FullBleed {
     return value + "…";
   }
 
+  float canvasTextSize(float basePixels, float maxHeight, boolean heading) {
+    android.util.DisplayMetrics metrics = host.getResources().getDisplayMetrics();
+    float size = basePixels * metrics.scaledDensity / metrics.density;
+    p.setTypeface(heading ? host.headline : host.prose);
+    p.setTextSize(size);
+    p.getFontMetrics(canvasMetrics);
+    float height = canvasMetrics.descent - canvasMetrics.ascent;
+    return height > maxHeight ? size * maxHeight / height : size;
+  }
+
+  float centeredBaseline(float centerY, float size, boolean heading) {
+    p.setTypeface(heading ? host.headline : host.prose);
+    p.setTextSize(size);
+    p.getFontMetrics(canvasMetrics);
+    return centerY - (canvasMetrics.ascent + canvasMetrics.descent) / 2;
+  }
+
   void command(Canvas c, int index, String name, String icon, boolean primary) {
     RectF r = new RectF(boxes[index]);
     boolean pressed = buttons.get(index).isPressed();
@@ -443,40 +517,45 @@ final class LobbyView extends FrameLayout implements FullBleed {
               r.centerY() + size / 2));
     float left = r.left + (icon == null ? host.dp(10) : host.dp(16) + size);
     float textSize =
-        index == 8 ? host.dp(14) : Math.min(host.dp(primary ? 24 : 19), r.width() * (primary ? .16f : .17f));
+        canvasTextSize(
+            index == 8
+                ? host.dp(14)
+                : Math.min(host.dp(primary ? 24 : 19), r.width() * (primary ? .16f : .17f)),
+            r.height() - host.dp(16),
+            true);
+    // 짧은 핵심 메뉴명은 고정 폭 안에서 전체를 유지하고, 긴 보상 안내만 말줄임한다.
+    float textWidth = r.right - left - host.dp(10);
+    p.setTypeface(host.headline);
+    p.setTextSize(textSize);
+    float measured = p.measureText(name);
+    if (index != 6 && measured > textWidth) textSize *= textWidth / measured;
     label(
         c,
-        fitted(name, r.right - left - host.dp(10), textSize, true),
+        fitted(name, textWidth, textSize, true),
         (left + r.right - host.dp(8)) / 2,
-        r.centerY() + textSize * .32f,
+        centeredBaseline(r.centerY(), textSize, true),
         textSize,
         true,
         primary ? Color.WHITE : JournalTheme.INK);
   }
 
   RectF backgroundBox(Bitmap bg) {
-    float s = Math.max(getWidth() / (float) bg.getWidth(), getHeight() / (float) bg.getHeight());
-    s *= 1.035f;
-    float width = bg.getWidth() * s, height = bg.getHeight() * s;
-    return new RectF(
-        (getWidth() - width) / 2,
-        (getHeight() - height) / 2,
-        (getWidth() + width) / 2,
-        (getHeight() + height) / 2);
+    RectF box = new RectF();
+    JournalAmbient.coverBounds(box, getWidth(), getHeight());
+    return box;
   }
 
   RectF heroBox() {
     RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
-    Bitmap bg = host.art.asset("journal/headquarters.png");
-    RectF backdrop =
-        bg == null ? new RectF(0, 0, getMeasuredWidth(), getMeasuredHeight()) : backgroundBox(bg);
-    float center = backdrop.left + backdrop.width() * .72f,
-        foot = backdrop.top + backdrop.height() * .76f;
+    Bitmap bg = ambient.current;
+    RectF backdrop = backgroundBox(bg);
+    float center = backdrop.left + backdrop.width() * JournalAmbient.HERO_X,
+        foot = backdrop.top + backdrop.height() * JournalAmbient.HERO_FOOT;
     float width = Math.min(safe.width() * .40f, host.dp(500)),
         height = Math.min(safe.height() * .61f, host.dp(420));
     center =
         Math.min(safe.right - host.dp(14) - width / 2, Math.max(safe.left + width / 2, center));
-    // 발은 배경 속 받침대에 놓는다. 하단 메뉴 기준으로 올리면 짧은 화면에서 공중에 뜬다.
+    // 발은 지도 테이블에 놓는다. 하단 메뉴 기준으로 올리면 짧은 화면에서 공중에 뜬다.
     return new RectF(
         center - width / 2,
         Math.max(safe.top + host.dp(82), foot - height),
@@ -486,10 +565,11 @@ final class LobbyView extends FrameLayout implements FullBleed {
 
   void character(Canvas c) {
     String path = "bg/" + room + "char.webp";
-    Bitmap bitmap = image(path);
-    if (bitmap == null) return;
-    Rect source = host.art.alpha(bitmap, "/duel/" + path);
+    Bitmap bitmap = visibleArt.get(path);
+    Rect source = visibleBounds.get(path);
+    if (bitmap == null || source == null) return;
     RectF area = heroBox();
+    ambient.ground(c, area, parallax.x, parallax.y);
     float pulse = motion.pulse(3600, 0);
     float scale = Math.min(area.width() / source.width(), area.height() / source.height());
     float width = source.width() * scale * (1 + .004f * pulse),
@@ -552,11 +632,22 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   RectF growthBox() {
+    RectF box = growthAvailableBox();
+    if (box.height() < host.dp(140)) {
+      float content =
+          host.dp(48 + 9 + 10) + growthCompactXp.getLineHeight() + growthCompactXp.getPaddingTop();
+      box.bottom = box.top + Math.min(box.height(), content);
+    }
+    return box;
+  }
+
+  RectF growthAvailableBox() {
     RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
     float top = boxes[7].bottom + host.dp(host.state.optBoolean("activeBattle") ? 72 : 14);
     float bottom = Math.min(top + host.dp(232), boxes[6].top - host.dp(10));
     return new RectF(
-        safe.left + host.dp(12), top,
+        safe.left + host.dp(12),
+        top,
         safe.left + host.dp(12) + Math.min(host.dp(420), safe.width() * .34f),
         Math.max(top, bottom));
   }
@@ -574,36 +665,62 @@ final class LobbyView extends FrameLayout implements FullBleed {
       setText(growthXp, "함께 전투하며 경험치를 쌓아요");
       setText(growthNeed, "수비대에서 동료를 확인해요");
       setText(growthSummary, "첫 동료부터 차근차근");
+      setText(growthCompactXp, "동료 3마리를 편성해요");
       growthProgress.setProgress(0);
       setText(growthAction, "수비대");
     } else {
       setText(growthName, unit.optString("name"));
       String role = unit.optString("role");
-      role = role.equals("ATTACK") ? "공격" : role.equals("DEFENSE") ? "수비" : role.equals("UTILITY") ? "유틸" : role;
-      setText(growthMeta, "Lv" + unit.optInt("level", 1) + " · " + unit.optString("attr") + " · " + role);
+      role =
+          role.equals("ATTACK")
+              ? "공격"
+              : role.equals("DEFENSE") ? "수비" : role.equals("UTILITY") ? "유틸" : role;
+      setText(
+          growthMeta,
+          "Lv" + unit.optInt("level", 1) + " · " + unit.optString("attr") + " · " + role);
       int xp = unit.optInt("xp"), next = unit.optInt("xpNext");
-      setText(growthXp, next > 0 ? "경험치 " + String.format(Locale.KOREA, "%,d / %,d", xp, next) : "최고 레벨 · 성장 완료");
+      setText(
+          growthXp,
+          next > 0 ? "경험치 " + String.format(Locale.KOREA, "%,d / %,d", xp, next) : "최고 레벨 · 성장 완료");
+      setText(
+          growthCompactXp,
+          "Lv"
+              + unit.optInt("level", 1)
+              + " · "
+              + (next > 0 ? "경험치 " + String.format(Locale.KOREA, "%,d / %,d", xp, next) : "최고 레벨"));
       growthProgress.setMax(Math.max(1, next));
       growthProgress.setProgress(next <= 0 ? 1 : Math.min(xp, next));
       setText(growthNeed, new NativeGrowthGuidance(host, new MenuKit(host)).promotionNeed(unit));
       String summary = NativeGrowthGuidance.actionSummary(unit);
-      setText(growthSummary, growthInfo.getVisibility() == View.GONE ? unit.optString("name") + " · " + summary : summary);
-      setText(growthAction, host.list(unit, "evolve").length() > 0 ? "승진" : host.list(unit, "promo").length() > 0 || host.list(unit, "learn").length() > 0 ? "기술" : "성장");
+      setText(
+          growthSummary,
+          growthInfo.getVisibility() == View.GONE ? unit.optString("name") : summary);
+      setText(
+          growthAction,
+          host.list(unit, "evolve").length() > 0
+              ? "승진"
+              : host.list(unit, "promo").length() > 0 || host.list(unit, "learn").length() > 0
+                  ? "기술"
+                  : "성장");
     }
-    growthAction.setContentDescription(growthName.getText() + " · " + growthSummary.getText() + " · 상세 열기");
+    growthAction.setContentDescription(
+        growthName.getText()
+            + " · "
+            + growthMeta.getText()
+            + " · "
+            + growthXp.getText()
+            + " · "
+            + growthNeed.getText()
+            + " · "
+            + (unit == null ? growthSummary.getText() : NativeGrowthGuidance.actionSummary(unit))
+            + " · 상세 열기");
+    growthCompactXp.setContentDescription(growthCompactXp.getText());
   }
 
   @Override
   protected void onDraw(Canvas c) {
     super.onDraw(c);
-    Bitmap background = host.art.asset("journal/headquarters.png");
-    if (background != null) {
-      RectF target = backgroundBox(background);
-      target.offset(parallax.x * .25f, parallax.y * .25f);
-      p.setShader(null);
-      p.setAlpha(255);
-      c.drawBitmap(background, null, target, p);
-    } else c.drawColor(JournalTheme.LEATHER);
+    ambient.draw(c, parallax.x, parallax.y);
     loosePaper(c);
     character(c);
     for (int i = 0; i < 5; i++) command(c, i, NAMES[i], ICONS[i], false);
@@ -622,14 +739,24 @@ final class LobbyView extends FrameLayout implements FullBleed {
             profile.bottom - host.dp(10)));
     String nick = host.me().optString("nickname", "수비조장");
     float cx = (profile.left + host.dp(43) + profile.right - host.dp(7)) / 2;
+    float nickSize = canvasTextSize(host.dp(17), host.dp(22), true);
     label(
         c,
-        fitted(nick, profile.width() - host.dp(58), host.dp(17), true),
+        fitted(nick, profile.width() - host.dp(58), nickSize, true),
         cx,
         profile.top + host.dp(24),
-        host.dp(17),
+        nickSize,
         true);
-    label(c, profileSummary(), cx, profile.bottom - host.dp(9), host.dp(11), false);
+    String summary = profileSummary();
+    float summarySize = canvasTextSize(host.dp(11), host.dp(17), false);
+    label(
+        c,
+        fitted(summary, profile.width() - host.dp(58), summarySize, false),
+        cx,
+        profile.bottom - host.dp(9),
+        summarySize,
+        false);
+    buttons.get(7).setContentDescription("내 정보 · " + nick + " · " + summary);
     String[] keys = {"snack", "peanut", "credits"}, icons = {"u-snack", "u-peanut", "u-ticket"};
     for (int i = 0; i < 3; i++) {
       RectF r = boxes[9 + i];
@@ -643,12 +770,22 @@ final class LobbyView extends FrameLayout implements FullBleed {
               r.left + host.dp(29),
               r.bottom - host.dp(12)));
       String amount = String.format(Locale.KOREA, "%,d", host.me().optInt(keys[i]));
+      float amountSize =
+          canvasTextSize(
+              Math.min(host.dp(15), r.width() / Math.max(5, amount.length())),
+              r.height() - host.dp(16),
+              true);
+      float amountWidth = r.width() * .56f - host.dp(8);
+      p.setTypeface(host.headline);
+      p.setTextSize(amountSize);
+      float amountMeasured = p.measureText(amount);
+      if (amountMeasured > amountWidth) amountSize *= amountWidth / amountMeasured;
       label(
           c,
           amount,
           r.left + r.width() * .64f,
-          r.centerY() + host.dp(5),
-          Math.min(host.dp(15), r.width() / Math.max(5, amount.length())),
+          centeredBaseline(r.centerY(), amountSize, true),
+          amountSize,
           true);
     }
     String next = "모든 이야기 완료";
@@ -667,14 +804,18 @@ final class LobbyView extends FrameLayout implements FullBleed {
     RectF play = boxes[5];
     RectF tag = new RectF(play.left, play.top - host.dp(52), play.right, play.top - host.dp(7));
     panel(c, tag, JournalTheme.PAPER);
-    label(c, "다음 이야기", tag.centerX(), tag.top + host.dp(16), host.dp(9), false);
+    float storyHeadingSize = canvasTextSize(host.dp(9), host.dp(15), false);
+    float storySize = canvasTextSize(host.dp(12), host.dp(19), true);
+    label(c, "다음 이야기", tag.centerX(), tag.top + host.dp(16), storyHeadingSize, false);
     label(
         c,
-        fitted(next, tag.width() - host.dp(26), host.dp(12), true),
+        fitted(next, tag.width() - host.dp(26), storySize, true),
         tag.centerX(),
         tag.bottom - host.dp(10),
-        host.dp(12),
+        storySize,
         true);
+    String playDescription = badges[5] ? "플레이 · 배울 기술 또는 승진이 있어요" : "플레이";
+    buttons.get(5).setContentDescription(playDescription + " · 다음 이야기 " + next);
     for (int i = 0; i < badges.length; i++) if (badges[i]) dot(c, boxes[i]);
   }
 

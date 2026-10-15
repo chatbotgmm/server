@@ -63,7 +63,7 @@ function makeFighter(R:Rules,rec:UnitRecord,side:0|1,combo?:Skill):Fighter{
   const s=statsOf(R,rec),passive=passiveOf(R,rec);
   return {side,rec,name:rec.name,scale:levelScale(R,rec),attr:def.attr,role:def.role,peanut:rec.name.includes('갈매미맨'),passive,
     // 기술 4칸(v0.15.8: 기본기·고유기도 바꿀 수 있음) + 합동기. 쓸 기술이 하나도 없을 때만 「몸통 박치기」(legalActions)
-    skills:[...slotSkills(R,rec),...(combo?[combo]:[])],
+    skills:[...slotSkills(R,rec),...(combo?[R.unitPower(rec.id,combo)]:[])],
     maxHp:s.hp,hp:s.hp,base:{patk:s.patk,pdef:s.pdef,matk:s.matk,mdef:s.mdef,spd:s.spd},cds:{},mods:[],status:{},guards:[],regens:[],
     endure:0,protect:false,recharge:false,immune:0,lockAtk:0,lastStandUsed:false,attacked:false,actedTurn:0,lastUtility:{},healUntil:0,statusUntil:{},hitBy:{}};
 }
@@ -179,10 +179,30 @@ function multiplier(b:Battle,att:Fighter,def:Fighter,a:Attr){
   return m;
 }
 
+// 조건부 위력은 시전 직전 한 번 확정한다. 다단 공격 중 체력이 바뀌어도 다시 판정하지 않는다.
+function skillPower(b:Battle,att:Fighter,def:Fighter,move:Skill){
+  const basePower=move.power??0;
+  let bonusActive=false;
+  if(basePower&&move.bonus){
+    switch(move.bonus.when){
+      case 'burned':bonusActive=(def.status.burn??0)>0;break;
+      case 'slowed':bonusActive=(def.status.bind??0)>0||def.mods.some(m=>m.stat==='spd'&&m.pct<0&&m.turns>0);break;
+      case 'bound':bonusActive=(def.status.bind??0)>0;break;
+      case 'lowHp':bonusActive=att.hp<=att.maxHp*0.5;break;
+      case 'finisher':bonusActive=def.hp<=def.maxHp*0.4;break;
+      case 'opening':bonusActive=def.hp>=def.maxHp*0.9;break;
+      case 'slower':bonusActive=statOf(b,att,'spd')<statOf(b,def,'spd');break;
+      case 'weakened':bonusActive=def.mods.some(m=>m.stat==='def'&&m.pct<0&&m.turns>0);break;
+    }
+  }
+  const bonusPct=bonusActive?move.bonus!.pct:0;
+  return {basePower,power:Math.round(basePower*(1+bonusPct/100)),bonusActive,bonusPct};
+}
+
 // 화면의 유불리·공격 종류도 실제 피해 계산과 같은 규칙으로 보여 준다. 난수·전투 상태를 바꾸지 않는다.
 export function skillPreview(b:Battle,side:0|1,move:Skill){
   const att=activeOf(b,side),def=activeOf(b,(1-side) as 0|1),attr=attackAttr(b.R,att,move,def);
-  return {attr,attrName:b.R.attrName(attr),multiplier:move.power?multiplier(b,att,def,attr):1,
+  return {attr,attrName:b.R.attrName(attr),multiplier:move.power?multiplier(b,att,def,attr):1,...skillPower(b,att,def,move),
     category:move.cat==='mag'||((move.cat??'auto')==='auto'&&att.base.matk>att.base.patk)?'mag':'phys'};
 }
 
@@ -192,6 +212,7 @@ function damage(b:Battle,att:Fighter,def:Fighter,move:Skill){
   const mag=move.cat==='mag'||((move.cat??'auto')==='auto'&&att.base.matk>att.base.patk);
   let atk=statOf(b,att,mag?'matk':'patk'),dv=statOf(b,def,mag?'mdef':'pdef');
   if(att.passive.pierce)dv*=1-att.passive.pierce/100;
+  if(move.pierce)dv*=1-move.pierce/100;
   const aug=(s:0|1,id:string)=>b.sides[s].augs.includes(id)?(R.battleAug.get(id)!.p.pct??0):0;
   if(aug(att.side,'pierce'))dv*=1-aug(att.side,'pierce')/100;
   const crit=move.crit||rand(b)<(M.critChance+(att.passive.critPlus??0)+aug(att.side,'sharp'))/100;
@@ -264,18 +285,24 @@ function applyEffects(b:Battle,user:Fighter,target:Fighter,effects:Effect[],skil
 }
 
 function useSkill(b:Battle,user:Fighter,target:Fighter,skill:Skill){
-  b.log.push(`${user.name}의 ${skill.name}!`);
+  const power=skillPower(b,user,target,skill);
+  if(power.bonusActive)skill={...skill,power:power.power};
+  b.log.push(`${user.name}의 ${skill.name}!${power.bonusActive?` 조건 강화 · 위력 ${power.basePower} → ${power.power}`:''}`);
   const cast=event(b,{kind:'skill',actor:fighterRef(b,user),...(skill.power?{target:fighterRef(b,target)}:{}),...skillEvent(skill)});
   if(!skill.power)user.lastUtility[skill.id]=b.turn;
   if(skill.power){
-    if(target.protect){b.log.push(`${josa(target.name,'이가')} 모두 막아 냈어요!`);event(b,{kind:'damage',actor:fighterRef(b,user),target:fighterRef(b,target),...skillEvent(skill),reason:'protect',amount:0,hpBefore:target.hp,hpAfter:target.hp,maxHp:target.maxHp});applyEffects(b,user,target,skill.effects.filter(e=>e.kind!=='status'&&e.kind!=='strip'),skill);return;}
-    const hits=skill.hits??1;let total=0,last={mult:1,crit:false,attr:user.attr as Attr};
+    if(target.protect){b.log.push(`${josa(target.name,'이가')} 모두 막아 냈어요!`);event(b,{kind:'damage',actor:fighterRef(b,user),target:fighterRef(b,target),...skillEvent(skill),reason:'protect',amount:0,hpBefore:target.hp,hpAfter:target.hp,maxHp:target.maxHp});applyEffects(b,user,target,skill.effects.filter(e=>e.kind!=='status'&&e.kind!=='strip'&&!(e.kind==='buff'&&e.target==='foe')),skill);return;}
+    const hits=skill.hits??1;let total=0,actualTotal=0,last={mult:1,crit:false,attr:user.attr as Attr};
     const hitEvents:BattleEvent[]=[];
-    for(let i=0;i<hits&&target.hp>0;i++){const r=damage(b,user,target,skill);hitEvents.push(hurt(b,target,r.amount,{actor:fighterRef(b,user),...skillEvent(skill),attr:r.attr,crit:!!r.crit,multiplier:r.mult,reason:'skill',hit:i+1}));total+=r.amount;last=r;}
+    for(let i=0;i<hits&&target.hp>0;i++){
+      const r=damage(b,user,target,skill),e=hurt(b,target,r.amount,{actor:fighterRef(b,user),...skillEvent(skill),attr:r.attr,crit:!!r.crit,multiplier:r.mult,reason:'skill',hit:i+1});
+      hitEvents.push(e);total+=r.amount;actualTotal+=e.amount??0;last=r;
+    }
     user.attacked=true;
     target.hitBy[last.attr]=(target.hitBy[last.attr]??0)+1;
     b.log.push(`${josa(target.name,'이가')} ${total} 피해를 입었어요.${last.crit?' 급소!':''}${last.mult>1?' 효과가 굉장해요!':last.mult<1?' 효과가 별로예요…':''}`);
     for(const e of hitEvents)linkEvent(b,e);cast.attr=last.attr;
+    if(skill.drain&&user.hp>0&&actualTotal>0){const before=user.hp;user.hp=Math.min(user.maxHp,user.hp+Math.round(actualTotal*skill.drain/100));healed(b,user,user,before,'lifesteal',skill);}
     if(user.passive.lifesteal){const before=user.hp;user.hp=Math.min(user.maxHp,user.hp+Math.round(total*user.passive.lifesteal/100));healed(b,user,user,before,'lifesteal',skill);}
     const ug=(s:0|1,id:string)=>b.sides[s].augs.includes(id)?(b.R.battleAug.get(id)!.p.pct??0):0;
     if(ug(user.side,'drain')&&user.hp>0&&total>0){const before=user.hp,h=Math.round(total*ug(user.side,'drain')/100);user.hp=Math.min(user.maxHp,user.hp+h);b.log.push(`${josa(user.name,'이가')} 체력을 ${h} 되찾았어요.`);healed(b,user,user,before,'drain',skill);}
@@ -431,8 +458,15 @@ export function pickAi(b:Battle,side:0|1):Action{
   let best:Action=legal[0]??{kind:'skill',skillId:f.skills[0].id},score=-1;
   for(const a of legal){
     const sk=skillOf(f,a.skillId)!;let v=0;
-    if(sk.power){const at=attackAttr(b.R,f,sk,foe);v=sk.power*(sk.hits??1)*b.R.typeMult(at,foe.attr)*(at===f.attr?b.R.data.multipliers.sameAttr:1);}
-    if(sk.effects.some(e=>e.kind==='heal'))v=f.hp<f.maxHp*0.45?200:5;
+    if(sk.power){const preview=skillPreview(b,side,sk);v=preview.power*(sk.hits??1)*preview.multiplier*(preview.attr===f.attr?b.R.data.multipliers.sameAttr:1);}
+    if(sk.effects.some(e=>e.kind==='heal')){
+      let healing=0;
+      if(f.healUntil<b.turn)for(const e of sk.effects)if(e.kind==='heal'){
+        const targets=e.target==='self'?[f]:b.sides[side].fighters.filter(x=>x!==f);
+        for(const target of targets)if(alive(target)&&(target.hp<target.maxHp||(e.target==='self'&&(target.status.burn??0)>0)))healing=Math.max(healing,target.hp<target.maxHp*0.45?200:5);
+      }
+      v=Math.max(v,healing);
+    }
     else if(sk.effects.some(e=>e.kind==='revive'))v=b.sides[side].fighters.some(x=>x.hp<=0)&&!b.sides[side].reviveUsed?250:0;
     else if(!sk.power){
       const already=sk.effects.some(e=>(e.kind==='buff'&&(e.target==='foe'?foe:f).mods.some(m=>m.stat===e.stat&&Math.sign(m.pct)===Math.sign(e.pct)))||(e.kind==='guard'&&f.guards.length>0)||(e.kind==='endure'&&f.endure>0)||(e.kind==='status'&&foe.status[e.status]));

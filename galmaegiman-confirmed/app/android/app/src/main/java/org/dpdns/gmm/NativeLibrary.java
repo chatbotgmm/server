@@ -422,7 +422,7 @@ final class NativeLibrary {
     numbers.setTextSize(fullText ? 14 : compact ? 12 : 14);
     card.addView(numbers);
     String effect = SkillCardView.effect(sk);
-    if (!effect.equals("추가 효과 없음")) {
+    if (!effect.isEmpty() && !effect.equals("추가 효과 없음")) {
       TextView description = k.note(effect);
       description.setTextSize(fullText ? 14 : compact ? 12 : 14);
       if (!fullText) {
@@ -592,6 +592,13 @@ final class NativeLibrary {
     LinearLayout details = k.paper();
     details.setTag("unit-extra-details");
     details.setVisibility(View.GONE);
+    String recipeValue = recipeValueNote(unit);
+    if (!recipeValue.isEmpty()) {
+      TextView value = k.note(recipeValue);
+      value.setTag("unit-recipe-value");
+      value.setTextSize(h.compact() ? 12 : 14);
+      details.addView(value);
+    }
     JSONObject stats = unit.optJSONObject("stats");
     if (stats != null) {
       details.addView(k.section("능력치"));
@@ -631,6 +638,17 @@ final class NativeLibrary {
         });
     parent.addView(toggle);
     parent.addView(details);
+  }
+
+  static String recipeValueNote(JSONObject value) {
+    if (value.optInt("recipeValue") <= 0 || value.isNull("recipeBonusPct")) return "";
+    return "조합 가치 · 흔함 "
+        + value.optInt("recipeValue")
+        + "마리\n공격기 위력 +"
+        + java.math.BigDecimal.valueOf(value.optDouble("recipeBonusPct", 0))
+            .stripTrailingZeros()
+            .toPlainString()
+        + "%";
   }
 
   void skillChoice(String key, String kind) {

@@ -2,6 +2,7 @@
 // 브라우저 묶음에도 들어가므로 검사 라이브러리(zod)를 쓰지 않음. 검사는 rules.ts(buildRules)에서.
 // 기술 설명은 적지 않으면 숫자로 자동으로 만듦 → 숫자만 고쳐도 설명이 맞음
 import type { BattleData } from './rules.js';
+import { recipePowerBonus } from './recipe-value.js';
 export const attrKeys=['STONE','GOLD','FIRE','ICE','BLOSSOM','SEA','SHADOW','STAR','THREAD','GRAVITY'] as const;
 export type Attr=typeof attrKeys[number];
 export const roleKeys=['ATTACK','DEFENSE','UTILITY'] as const;
@@ -30,7 +31,8 @@ export type Effect=
 // cat: 물리(물리공격↔물리방어)·마법(마법공격↔마법방어)·자동(쓰는 유닛의 더 높은 공격)
 export type Cat='phys'|'mag'|'auto';
 export const catName:Record<Cat,string>={phys:'물리',mag:'마법',auto:'자동'};
-export interface Skill {id:string;name:string;attr?:Attr;power?:number;cat?:Cat;hits?:number;priority?:boolean;crit?:boolean;cd:number;effects:Effect[];desc:string}
+export type SkillCondition='burned'|'slowed'|'bound'|'lowHp'|'finisher'|'opening'|'slower'|'weakened';
+export interface Skill {id:string;name:string;attr?:Attr;power?:number;cat?:Cat;hits?:number;priority?:boolean;crit?:boolean;cd:number;effects:Effect[];desc:string;pierce?:number;drain?:number;bonus?:{when:SkillCondition;pct:number};basePower?:number;recipeValue?:number;recipeBonusPct?:number;summary?:string}
 export interface UnitStats {hp:number;patk:number;pdef:number;matk:number;mdef:number;spd:number}
 export interface UnitDef {id:string;attr:Attr;sub?:Attr;syn?:string;basic?:string;basicCat?:Cat;stats?:UnitStats;mirror?:boolean;role:Role;signature:Skill;name?:string;power?:number;hpMult?:number;boss?:boolean}
 export interface Passive {hpPct?:number;atkPct?:number;defPct?:number;spdPct?:number;pierce?:number;execute?:number;critPlus?:number;opener?:number;
@@ -65,8 +67,46 @@ export function skillDesc(s:Omit<Skill,'desc'|'id'>,attrName:(a:Attr)=>string){
   if(s.priority)parts.push('무조건 먼저');
   if(s.power)parts.push(`위력 ${s.power}${s.hits?`으로 ${s.hits}번`:''}`);
   if(s.crit)parts.push('반드시 급소');
+  if(s.pierce)parts.push(`상대 방어 ${s.pierce}% 무시`);
+  if(s.drain)parts.push(`실제로 준 피해의 ${s.drain}%만큼 자신 체력 회복`);
+  if(s.bonus){
+    const condition:Record<SkillCondition,string>={burned:'화상 상태인 상대에게',slowed:'속도가 감소한 상대에게',bound:'묶인 상대에게',lowHp:'자신 체력이 50% 이하일 때',finisher:'상대 체력이 40% 이하일 때',opening:'상대 체력이 90% 이상일 때',slower:'자신이 상대보다 느릴 때',weakened:'방어가 감소한 상대에게'};
+    parts.push(`${condition[s.bonus.when]} 위력 +${s.bonus.pct}%`);
+  }
   for(const e of s.effects)parts.push(effectText(e,attrName));
   return parts.join(', ')||'효과 없음';
+}
+
+// 전투 카드에는 선택에 필요한 핵심만, 전체 효과는 desc에 유지해요.
+export function skillSummary(s:Omit<Skill,'id'|'desc'>):string{
+  const parts:{text:string;rank:number}[]=[];
+  const add=(text:string,rank=3)=>parts.push({text,rank});
+  if(s.priority)add('선제 공격',2);
+  if(s.crit)add('반드시 급소',2);
+  if(s.pierce)add(`방어 ${s.pierce}% 관통`,2);
+  if(s.drain)add(`피해 ${s.drain}% 흡수`,2);
+  if(s.bonus){
+    const label:Record<SkillCondition,string>={burned:'화상 적',slowed:'감속된 적',bound:'묶인 적',lowHp:'내 체력 50%↓',finisher:'체력 40%↓ 적',opening:'체력 90%↑ 적',slower:'느릴 때',weakened:'방어 약화 적'};
+    add(`${label[s.bonus.when]} +${s.bonus.pct}%`,1);
+  }
+  for(const e of s.effects){
+    const duration='turns' in e?` · ${e.turns}턴`:'';
+    switch(e.kind){
+      case 'buff':add(`${e.target==='team'?'아군 ':e.target==='self'?'내 ':''}${statName[e.stat]} ${fmt(e.pct)}${duration}`,e.target==='self'&&e.pct<0?0:3);break;
+      case 'status':add(`${statusName[e.status]} ${e.chance}%${duration}`);break;
+      case 'heal':add(`${e.target==='bench'?'대기 아군':'내 체력'} ${e.pct}% 회복`);break;
+      case 'guard':add(`받는 피해 -${e.pct}%${duration}`);break;
+      case 'endure':add(`${e.turns}턴 쓰러짐 방지`);break;
+      case 'protect':add('이번 턴 피해 무효');break;
+      case 'regen':add(`${e.target==='team'?'아군':'자신'} 매턴 ${e.pct}% 회복${duration}`);break;
+      case 'cleanse':add(`상태 해제${e.immuneTurns?` · ${e.immuneTurns}턴 면역`:''}`);break;
+      case 'revive':add(`아군 부활 · 체력 ${e.pct}%`);break;
+      case 'strip':add('상대 강화 제거');break;
+      case 'lockSelf':add(`공격 +${e.atkPct}% · 교체 불가`,0);break;
+      case 'recharge':break; // 구형 데이터 호환: 현재 엔진은 휴식하지 않아요.
+    }
+  }
+  return [...new Set(parts.sort((a,b)=>a.rank-b.rank).map(p=>p.text))].slice(0,2).join(' · ');
 }
 
 function toEffect(e:EffectIn):Effect{
@@ -135,10 +175,11 @@ export function rulesFrom(d:BattleData){
   const typeMult=(atk:Attr,def:Attr)=>d.chart[atk].strong.includes(def)?d.multipliers.strong:d.chart[def].strong.includes(atk)?d.multipliers.weak:1;
   const toCat=(c?:string):Cat|undefined=>c==='물리'?'phys':c==='마법'?'mag':c==='자동'?'auto':undefined;
   const mkSkill=(id:string,s:SkillIn,a:Attr):Skill=>{
+    if(!s.power&&(s.pierce||s.drain||s.bonus))throw new Error(`기술 「${s.name}」: 관통·흡혈·조건 강화에는 공격 위력이 필요해요`);
     if(s.power&&!s.cat)throw new Error(`기술 「${s.name}」: 공격 기술은 cat(물리·마법·자동)을 정해야 해요`);
     const base={name:s.name.replaceAll('{속성}',attrName(a)),cd:0,effects:(s.effects??[]).map(toEffect).filter(e=>e.kind!=='recharge'),
-      ...(s.power?{power:s.power,attr:s.attr??a,cat:toCat(s.cat)}:{}),...(s.hits?{hits:s.hits}:{}),...(s.priority?{priority:true}:{}),...(s.crit?{crit:true}:{})};
-    return {id,...base,desc:s.desc??skillDesc(base,attrName)};
+      ...(s.power?{power:s.power,attr:s.attr??a,cat:toCat(s.cat)}:{}),...(s.pierce?{pierce:s.pierce}:{}),...(s.drain?{drain:s.drain}:{}),...(s.bonus?{bonus:{...s.bonus}}:{}),...(s.hits?{hits:s.hits}:{}),...(s.priority?{priority:true}:{}),...(s.crit?{crit:true}:{})};
+    return {id,...base,desc:s.desc??skillDesc(base,attrName),summary:skillSummary(base)};
   };
   const basicSkill=(a:Attr,cat?:Cat):Skill=>({id:`basic-${a}`,name:d.attributes[a].basic,attr:a,power:d.basicPower,cat:cat??toCat(d.attributes[a].basicCat),cd:0,effects:[],desc:`위력 ${d.basicPower}`});
   const roleSkill=(r:Role,a:Attr):Skill=>mkSkill(`role-${r}`,d.roles[r].skill,a);
@@ -149,9 +190,32 @@ export function rulesFrom(d:BattleData){
   // 스토리 빌런: 공격·방어는 역할 기본값 × power, 체력은 × hp(없으면 power). 졸병 1 미만, 보스는 hp를 크게
   const villains=new Map<string,UnitDef>(Object.entries(d.villains).map(([id,v])=>[id,{id,name:v.name,basic:v.basic,basicCat:toCat(v.basicCat),mirror:v.mirror,attr:v.attr,sub:v.sub,role:v.role,power:v.power,hpMult:v.hp??v.power,boss:v.boss??false,signature:mkSkill('sig',v.skill,v.attr)}]));
   const unitDef=(id:string)=>units.get(id)??villains.get(id);
+  if(d.elemental)for(const a of attrKeys)if(!d.elemental[a])throw new Error(`속성 기술 누락: ${a}`);
+  if(d.recipePower)for(const id of units.keys())if(!Number.isSafeInteger(d.recipeValues?.[id])||(d.recipeValues?.[id]??0)<=0)throw new Error(`조합 가치 누락: ${id}`);
+  const recipeValue=(id:string)=>units.has(id)?d.recipeValues?.[id]:undefined;
+  const recipeBonus=(id:string)=>{const n=recipeValue(id);return n!==undefined&&d.recipePower?recipePowerBonus(n,d.recipePower):0;};
+  const unitPower=(id:string,skill:Skill):Skill=>{
+    const value=recipeValue(id);if(value===undefined||!skill.power)return skill;
+    const base=skill.basePower??skill.power,bonus=recipeBonus(id),power=Math.max(1,Math.round(base*(1+bonus/100)));
+    // 위력은 한 번만 보정하며, 설명과 전투 이벤트도 같은 수치를 사용해요.
+    return {...skill,power,basePower:base,recipeValue:value,recipeBonusPct:bonus,desc:skill.desc.replace(new RegExp(`위력 ${skill.power}(?=으로|,| ·|$)`),`위력 ${power}`)};
+  };
+  const elementalSkill=(kind:'basic'|'sub'|'attack',a:Attr):Skill|undefined=>{
+    const skill=d.elemental?.[a]?.[kind];return skill?mkSkill(kind==='attack'?'role-ATTACK':`${kind}-${a}`,skill,a):undefined;
+  };
   // 시너지 합동기(같은 시너지 2마리+, 팀당 1번)·레벨업으로 배우는 기술. 속성을 안 적은 기술은 쓰는 유닛의 속성
   const comboSkill=(k:string,a:Attr):Skill|undefined=>d.synergies[k]?mkSkill(`combo-${k}`,d.synergies[k].skill,a):undefined;
-  const learnSkill=(id:string,a:Attr):Skill|undefined=>{const s=d.learn.skills[id];if(!s)return undefined;const {level,roles,...sk}=s;void level;void roles;return mkSkill(`learn-${id}`,sk,a);};
+  const learnSkill=(id:string,a:Attr):Skill|undefined=>{
+    const s=d.learn.skills[id];if(!s)return undefined;const {level,roles,...sk}=s;void level;void roles;
+    const trait=!s.attr&&s.power?d.elemental?.[a]?.basic:undefined;
+    if(!trait)return mkSkill(`learn-${id}`,sk,a);
+    // 기본기를 잊어도 자기 속성으로 쓰는 공용 공격에는 그 속성의 전투 특성이 남아요.
+    // 특정 속성이 정해진 학습기·보조 기술에는 다른 속성 특성을 섞지 않아요.
+    const effects=[...(sk.effects??[]),...(trait.effects??[])].filter((effect,index,list)=>list.findIndex(other=>JSON.stringify(other)===JSON.stringify(effect))===index);
+    const split=!!trait.hits&&!sk.hits;
+    return mkSkill(`learn-${id}`,{...sk,effects,...(trait.pierce?{pierce:Math.max(sk.pierce??0,trait.pierce)}:{}),...(trait.drain?{drain:Math.max(sk.drain??0,trait.drain)}:{}),
+      ...(!(sk.bonus)&&trait.bonus?{bonus:trait.bonus}:{}),...(split?{power:Math.round(sk.power!*.55),hits:2}:{})},a);
+  };
   const learnables=Object.entries(d.learn.skills).map(([id,s])=>({id,level:s.level,roles:s.roles}));
   const battleAugments:BattleAugment[]=battleAugIds.map(id=>{
     const raw=d.battleAugments[id] as {name:string;desc?:string}&Record<string,unknown>;
@@ -165,7 +229,7 @@ export function rulesFrom(d:BattleData){
     const text=(Object.entries(passive) as [keyof Passive,number|boolean][]).map(([k,v])=>passiveText[k](Number(v))).join(', ');
     return {id,name,roles,passive:passive as Passive,desc:desc??text};
   });
-  return {data:d,attrName,typeMult,basicSkill,roleSkill,subSkill,comboSkill,learnSkill,learnables,units,villains,unitDef,battleAugments,battleAug:new Map(battleAugments.map(a=>[a.id,a])),
+  return {data:d,attrName,typeMult,basicSkill,roleSkill,subSkill,elementalSkill,unitPower,recipeValue,recipeBonus,comboSkill,learnSkill,learnables,units,villains,unitDef,battleAugments,battleAug:new Map(battleAugments.map(a=>[a.id,a])),
     evoAugments,evoAug:new Map(evoAugments.map(a=>[a.id,a]))};
 }
 export type Rules=ReturnType<typeof rulesFrom>;

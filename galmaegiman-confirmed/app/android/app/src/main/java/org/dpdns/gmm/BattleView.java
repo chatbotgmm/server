@@ -609,9 +609,29 @@ final class BattleView extends FrameLayout implements FullBleed {
 
   final class Scene extends View {
     Paint p = new Paint(3);
+    final JournalBattleLight ambientLight = new JournalBattleLight();
+    final Runnable timeChanged = this::invalidate;
 
     Scene() {
       super(host);
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+      super.onAttachedToWindow();
+      host.journalTime.addListener(timeChanged);
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+      host.journalTime.removeListener(timeChanged);
+      super.onDetachedFromWindow();
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+      super.onSizeChanged(w, h, oldw, oldh);
+      ambientLight.resize(w, h);
     }
 
     void bitmap(Canvas c, Bitmap b, Rect src, RectF to) {
@@ -652,6 +672,7 @@ final class BattleView extends FrameLayout implements FullBleed {
         r.offset(parallax.x * .2f, parallax.y * .2f);
         bitmap(c, bg, null, r);
       } else BattleBackground.fallback(c, p, w, h);
+      ambientLight.draw(c, battle.optString("scene", "harbor"), host.journalTime.phase());
       c.save();
       c.translate(safeLeft, safeTop);
       w = uiWidth;
@@ -709,7 +730,10 @@ final class BattleView extends FrameLayout implements FullBleed {
       float x = r.left + host.dp(14),
           top = r.top + Math.max(host.dp(25), r.height() * .24f),
           right = r.right - host.dp(14),
-          size = Math.min(host.dp(tablet ? 25 : 20), r.height() * .17f);
+          size =
+              Math.min(
+                  (tablet ? 25 : 20) * getResources().getDisplayMetrics().scaledDensity,
+                  r.height() * .17f);
       p.setTypeface(host.headline);
       p.setTextSize(size);
       p.setColor(MainActivity.INK);

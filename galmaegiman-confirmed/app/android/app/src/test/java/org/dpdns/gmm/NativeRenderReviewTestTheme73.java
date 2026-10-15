@@ -229,12 +229,8 @@ public class NativeRenderReviewTestTheme73 {
         host.battleScreen();
         review.viewport(host, size[0], size[1]);
         BattleView battle = (BattleView) host.root.getChildAt(0);
-        for (String kind : new String[] {"skill", "fighter", "history", "augments"}) {
+        for (String kind : new String[] {"fighter", "history", "augments"}) {
           switch (kind) {
-            case "skill":
-              NativeBattleSheets.skill(
-                  battle, host.list(battle.active(0), "skills").optJSONObject(1));
-              break;
             case "fighter":
               NativeBattleSheets.fighter(battle, 0);
               break;
@@ -280,16 +276,17 @@ public class NativeRenderReviewTestTheme73 {
         !button.isEnabled()
             ? JournalTheme.MUTED
             : name.equals("공격") ? JournalTheme.WHITE : JournalTheme.INK;
-    assertEquals("공격은 밝은 글자, 다른 명령은 잉크색으로 구분: " + name,
-        foreground, button.getCurrentTextColor());
+    assertEquals("공격은 밝은 글자, 다른 명령은 잉크색으로 구분: " + name, foreground, button.getCurrentTextColor());
     assertNotNull("명령 역할에 맞는 배경 필요: " + name, button.getBackground());
     Bitmap background =
         Bitmap.createBitmap(button.getWidth(), button.getHeight(), Bitmap.Config.ARGB_8888);
     button.getBackground().draw(new Canvas(background));
     double contrast =
-        commandContrast(foreground, background.getPixel(button.getWidth() / 2, button.getHeight() / 2));
+        commandContrast(
+            foreground, background.getPixel(button.getWidth() / 2, button.getHeight() / 2));
     background.recycle();
-    assertTrue("실제 명령 배경과 라벨의 명도 대비: " + name + " ratio=" + contrast,
+    assertTrue(
+        "실제 명령 배경과 라벨의 명도 대비: " + name + " ratio=" + contrast,
         contrast >= (button.isEnabled() ? 4.5 : 3));
     Rect bounds = new Rect();
     button.getDrawingRect(bounds);
@@ -309,7 +306,8 @@ public class NativeRenderReviewTestTheme73 {
     // 단독 Canvas에서만 텍스트가 생략될 수 있어 실제 화면과 다른 결과를 만들기 때문이다.
     // 중앙의 실제 텍스트 행만 검사해 장식·밝은 가장자리를 라벨로 오인하지 않는다.
     for (int y = Math.max(bounds.top + 8, labelTop);
-        y < Math.min(bounds.bottom - 8, labelBottom); y++)
+        y < Math.min(bounds.bottom - 8, labelBottom);
+        y++)
       for (int x = bounds.left + 8; x < bounds.right - 8; x++)
         if (bitmap.getPixel(x, y) == foreground) ink++;
     assertTrue("명령 이름이 역할별 색으로 실제 화면에 그려짐: " + name + " pixels=" + ink, ink > 4);
@@ -321,15 +319,18 @@ public class NativeRenderReviewTestTheme73 {
   }
 
   double commandLuminance(int color) {
-    double[] channels = {Color.red(color) / 255., Color.green(color) / 255., Color.blue(color) / 255.};
+    double[] channels = {
+      Color.red(color) / 255., Color.green(color) / 255., Color.blue(color) / 255.
+    };
     for (int i = 0; i < channels.length; i++)
-      channels[i] = channels[i] <= .04045 ? channels[i] / 12.92
-          : Math.pow((channels[i] + .055) / 1.055, 2.4);
+      channels[i] =
+          channels[i] <= .04045 ? channels[i] / 12.92 : Math.pow((channels[i] + .055) / 1.055, 2.4);
     return .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2];
   }
 
   @Test
-  public void commandLabelsActuallyRenderWithPrimaryAndSecondaryRolesAcrossPhoneZflipAndTablet() throws Exception {
+  public void commandLabelsActuallyRenderWithPrimaryAndSecondaryRolesAcrossPhoneZflipAndTablet()
+      throws Exception {
     for (int[] size : new int[][] {{780, 360}, {915, 412}, {1006, 411}, {1280, 720}}) {
       RuntimeEnvironment.setQualifiers("w" + size[0] + "dp-h" + size[1] + "dp-land-mdpi");
       RuntimeEnvironment.setFontScale(1);

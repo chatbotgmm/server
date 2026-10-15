@@ -3,7 +3,7 @@ package org.dpdns.gmm;
 import android.graphics.*;
 import android.graphics.drawable.Drawable;
 
-/** 도감 가죽 표지에 밝은 종이·황동 면과 눌림·선택 상태를 함께 표시한다. */
+/** 모험일지의 종이·황동 면과 눌림·선택 상태를 함께 표시한다. */
 final class GameButtonDrawable extends Drawable {
   static final int PAPER = JournalTheme.PAPER, PRIMARY = JournalTheme.PRIMARY;
   final MainActivity host;
@@ -11,6 +11,7 @@ final class GameButtonDrawable extends Drawable {
   final Paint p = new Paint(3);
   final Paint opacity = new Paint();
   final GamePressState state = new GamePressState();
+  private final RectF bounds = new RectF();
   private boolean selected;
 
   GameButtonDrawable(MainActivity h, int c) {
@@ -38,7 +39,8 @@ final class GameButtonDrawable extends Drawable {
 
   @Override
   public void draw(Canvas c) {
-    RectF r = new RectF(getBounds());
+    RectF r = bounds;
+    r.set(getBounds());
     r.bottom -= host.dp(3);
     int save;
     if (state.enabled)

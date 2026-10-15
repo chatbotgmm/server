@@ -81,6 +81,82 @@ final class NativeArt {
     return get(path, ready, true);
   }
 
+  /** 첫 화면 원본 캐릭터도 그리기 밖에서 디코딩·알파 범위를 준비한다. */
+  void localAsset(String path, java.util.function.Consumer<Bitmap> ready) {
+    String pending = "local:" + java.util.UUID.randomUUID();
+    loading.add(pending);
+    images.execute(
+        () -> {
+          Bitmap bitmap = asset(path);
+          if (bitmap != null) alpha(bitmap, "native/" + path);
+          api.ui.post(
+              () -> {
+                loading.remove(pending);
+                ready.accept(bitmap);
+              });
+        });
+  }
+
+  /** 시간대 배경은 전역 LRU에 넣지 않는다. 표시 화면이 현재/전환 대상 두 장만 소유한다. */
+  void journalScene(
+      LocalTimeTheme.Phase phase,
+      int width,
+      int height,
+      java.util.function.BooleanSupplier wanted,
+      java.util.function.Consumer<Bitmap> ready) {
+    String pending = "journal:" + java.util.UUID.randomUUID();
+    loading.add(pending);
+    scenes.execute(
+        () -> {
+          Bitmap result = null;
+          try {
+            if (wanted.getAsBoolean()) result = decodeJournalScene(phase, width, height);
+          } finally {
+            Bitmap completed = result;
+            api.ui.post(
+                () -> {
+                  loading.remove(pending);
+                  if (wanted.getAsBoolean()) ready.accept(completed);
+                });
+          }
+        });
+  }
+
+  private Bitmap decodeJournalScene(LocalTimeTheme.Phase phase, int width, int height) {
+    String path = "native/journal/c-home-" + phase.name().toLowerCase(Locale.ROOT) + ".webp";
+    BitmapFactory.Options dimensions = new BitmapFactory.Options();
+    dimensions.inJustDecodeBounds = true;
+    try (InputStream in = context.getAssets().open(path)) {
+      BitmapFactory.decodeStream(in, null, dimensions);
+    } catch (IOException ignored) {
+      return null;
+    }
+    if (dimensions.outWidth <= 0 || dimensions.outHeight <= 0) return null;
+    // cover와 작은 패럴랙스 여백에 필요한 픽셀만 유지한다. 큰 화면에서도 원본 이상 확대 저장하지 않는다.
+    float scale =
+        Math.min(
+            1,
+            Math.max(width * 1.035f / dimensions.outWidth, height * 1.035f / dimensions.outHeight));
+    int targetWidth = Math.max(1, Math.round(dimensions.outWidth * scale));
+    int targetHeight = Math.max(1, Math.round(dimensions.outHeight * scale));
+    BitmapFactory.Options options = new BitmapFactory.Options();
+    options.inSampleSize = 1;
+    while (dimensions.outWidth / (options.inSampleSize * 2) >= targetWidth
+        && dimensions.outHeight / (options.inSampleSize * 2) >= targetHeight)
+      options.inSampleSize *= 2;
+    options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+    try (InputStream in = context.getAssets().open(path)) {
+      Bitmap decoded = BitmapFactory.decodeStream(in, null, options);
+      if (decoded == null) return null;
+      Bitmap fitted = Bitmap.createScaledBitmap(decoded, targetWidth, targetHeight, true);
+      if (fitted != decoded) decoded.recycle(); // 아직 UI에 전달하지 않은 작업 스레드 소유 원본이다.
+      fitted.setDensity(Bitmap.DENSITY_NONE);
+      return fitted;
+    } catch (IOException ignored) {
+      return null;
+    }
+  }
+
   Bitmap get(String path, Runnable ready) {
     return get(path, ready, false);
   }
@@ -134,7 +210,9 @@ final class NativeArt {
                   if (decoded != null && temp.renameTo(cached)) trimDisk();
                 }
                 if (decoded != null) {
-                  if (path.startsWith("/duel/sprites/")) alpha(decoded, path);
+                  if (path.startsWith("/duel/sprites/")
+                      || (path.startsWith("/duel/bg/") && path.endsWith("char.webp")))
+                    alpha(decoded, path);
                   bitmaps.put(path, decoded);
                 }
               } catch (Exception ignored) {

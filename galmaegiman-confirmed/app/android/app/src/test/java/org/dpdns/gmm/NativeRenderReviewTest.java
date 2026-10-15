@@ -298,6 +298,7 @@ public class NativeRenderReviewTest {
   public void parallaxKeepsControlsFixedAndMuteRestoresVolume() throws Exception {
     try (ActivityController<MainActivity> c = start()) {
       MainActivity a = c.get();
+      a.motionEnabled = true;
       a.titleScreen();
       capture(a, "phone-title-parallax-before", 915, 412);
       TitleView title = (TitleView) a.root.getChildAt(0);
@@ -776,6 +777,7 @@ public class NativeRenderReviewTest {
       capture(a, "phone-battle-menu", 915, 412);
       BattleView view = (BattleView) a.root.getChildAt(0);
       int logLeft = view.logBox.getLeft(), logTop = view.logBox.getTop();
+      a.motionEnabled = true;
       drag(view, 370, 190);
       assertTrue("전투 캐릭터 드래그", view.parallax.x > 0);
       assertEquals(logLeft, view.logBox.getLeft());

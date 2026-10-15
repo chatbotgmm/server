@@ -98,7 +98,7 @@ export function registerNative(app:FastifyInstance,game:GameService,root:string,
     canLearn:learnOffers(R,r).length>0,canPromote:promoSkills(R,r).length>0,canEvolve:canEvolve(R,r,parts(s)),
     promotionNeed:{level:r.stage<3?(R.data.growth.evolveLevel as number[])[r.stage]:null,clearedParts:parts(s),needParts:r.stage<3?r.stage+1:null,stage:r.stage},
   });
-  const detail=(key:string,s:Save,owned:Map<string,string>)=>{const r=rec(key,s,owned);return {...r,...growthInfo(r,s),key,stats:statsOf(R,r),role:R.unitDef(r.id)!.role,attrCode:R.unitDef(r.id)!.attr,synergy:content.map.get(r.id)?.synergy??null,image:image(r.id,'front',r.stage),hp:Math.round(statsOf(R,r).hp*hp(s,key)),maxHp:statsOf(R,r).hp,xpNext:xpToNext(R,r.level),attr:R.attrName(R.unitDef(r.id)!.attr),skills:slotSkills(R,r),learn:learnOffers(R,r),promo:promoSkills(R,r),evolve:canEvolve(R,r,parts(s))?nativeEvolutionChoices(R,r):[]};};
+  const detail=(key:string,s:Save,owned:Map<string,string>)=>{const r=rec(key,s,owned);return {...r,...growthInfo(r,s),key,recipeValue:R.recipeValue(r.id),recipeBonusPct:R.recipeBonus(r.id),stats:statsOf(R,r),role:R.unitDef(r.id)!.role,attrCode:R.unitDef(r.id)!.attr,synergy:content.map.get(r.id)?.synergy??null,image:image(r.id,'front',r.stage),hp:Math.round(statsOf(R,r).hp*hp(s,key)),maxHp:statsOf(R,r).hp,xpNext:xpToNext(R,r.level),attr:R.attrName(R.unitDef(r.id)!.attr),skills:slotSkills(R,r),learn:learnOffers(R,r),promo:promoSkills(R,r),evolve:canEvolve(R,r,parts(s))?nativeEvolutionChoices(R,r):[]};};
   const sources=Object.fromEntries(content.characters.map(c=>[c.id,game.sourceText(c.id)]));
   route('GET','catalog',async id=>{
     const [me,craft,collected]=await Promise.all([game.webMe(id),game.webCraftInfo(id),game.webCollectionIds(id)]);

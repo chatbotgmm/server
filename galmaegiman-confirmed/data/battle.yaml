@@ -51,6 +51,67 @@ basicPower: 50
 # 보조 속성 기술(유닛마다 units·villains의 sub로 속성을 정함). 이름은 attributes의 sub. 같은 속성 보너스(×1.2)는 없음
 subSkill: { power: 60, cd: 2 }
 
+
+# 조합 원재료를 흔함 마릿수로 재귀 환산해 공격 기술 위력을 보정해요.
+# 흔함 30마리까지 기본 위력, 이후 1마리마다 +0.5%, 최대 +25%.
+recipePower: { baseline: 30, perCommonPct: 0.5, capPct: 25 }
+
+# 플레이어 전용 속성 기술. 기본기 → 보조 속성기 → 공격 역할기가 같은 전술을 공유해요.
+# 고유기·빌런은 유지하고, 자기 속성 공용 학습기는 속성 기본기의 특성을 이어받아요.
+# 고정 속성 학습기는 그 속성 전문 기술로 유지해요. 설명은 실제 효과에서 자동으로 만들어요.
+# cat 자동: 물리·마법 공격 중 높은 쪽 사용. 모든 기술은 다음 턴에도 바로 쓸 수 있어요.
+elemental:
+  STONE:
+    # 단단한 상대의 방어를 깎은 다음 약화된 틈을 격파해요.
+    basic:  { name: 암반 균열, attr: STONE, cat: 자동, cd: 0, power: 48, effects: [ { buff: def, pct: -10, turns: 2, to: foe } ] }
+    sub:    { name: 단층 격파, attr: STONE, cat: 자동, cd: 0, power: 60, bonus: { when: weakened, pct: 25 } }
+    attack: { name: 대지 붕격, attr: STONE, cat: 자동, cd: 0, power: 78, bonus: { when: weakened, pct: 30 } }
+  GOLD:
+    # 방어가 높은 적은 관통으로, 빈틈이 있는 적은 확정 급소로 공략해요.
+    basic:  { name: 금빛 관통, attr: GOLD, cat: 자동, cd: 0, power: 36, pierce: 25 }
+    sub:    { name: 금강 일섬, attr: GOLD, cat: 자동, cd: 0, power: 64, crit: true }
+    attack: { name: 황금 절단, attr: GOLD, cat: 자동, cd: 0, power: 76, pierce: 40 }
+  FIRE:
+    # 잔불로 화상을 준비한 뒤, 이미 타오르는 적에게 폭발적인 피해를 줘요.
+    basic:  { name: 잔화 낙인, attr: FIRE, cat: 자동, cd: 0, power: 32, effects: [ { status: burn, chance: 40, turns: 3 } ] }
+    sub:    { name: 홍련 분쇄, attr: FIRE, cat: 자동, cd: 0, power: 60, bonus: { when: burned, pct: 40 } }
+    attack: { name: 업화 폭쇄, attr: FIRE, cat: 자동, cd: 0, power: 80, bonus: { when: burned, pct: 45 } }
+  ICE:
+    # 속도를 떨어뜨려 선공을 돕고, 느려진 적에게 냉기 일격을 이어 가요.
+    basic:  { name: 서리 파편, attr: ICE, cat: 자동, cd: 0, power: 38, effects: [ { buff: spd, pct: -15, turns: 2, to: foe } ] }
+    sub:    { name: 한빙 파쇄, attr: ICE, cat: 자동, cd: 0, power: 52, bonus: { when: slowed, pct: 25 }, effects: [ { status: freeze, chance: 20, turns: 1 } ] }
+    attack: { name: 절빙 참격, attr: ICE, cat: 자동, cd: 0, power: 72, bonus: { when: slowed, pct: 30 } }
+  BLOSSOM:
+    # 실제 입힌 피해 일부를 회복해 버티고, 체력이 낮을 때 반격을 노려요.
+    basic:  { name: 생명 수확, attr: BLOSSOM, cat: 자동, cd: 0, power: 35, drain: 20 }
+    sub:    { name: 봄의 갈망, attr: BLOSSOM, cat: 자동, cd: 0, power: 58, drain: 30, bonus: { when: lowHp, pct: 25 } }
+    attack: { name: 만개 역습, attr: BLOSSOM, cat: 자동, cd: 0, power: 72, drain: 20, bonus: { when: lowHp, pct: 30 } }
+  SEA:
+    # 전열에서 공격하면서 대기 아군을 돌보고, 상대의 강화는 파도로 지워요.
+    basic:  { name: 파도 전령, attr: SEA, cat: 자동, cd: 0, power: 42, effects: [ { heal: 4, to: bench } ] }
+    sub:    { name: 격랑 소거, attr: SEA, cat: 자동, cd: 0, power: 60, effects: [ { strip: true } ] }
+    attack: { name: 만조의 맹세, attr: SEA, cat: 자동, cd: 0, power: 76, effects: [ { heal: 6, to: bench } ] }
+  SHADOW:
+    # 쓰러뜨릴 수 있는 적을 골라 약해진 전열을 빠르게 정리해요.
+    basic:  { name: 그림자 단검, attr: SHADOW, cat: 자동, cd: 0, power: 38, bonus: { when: finisher, pct: 35 } }
+    sub:    { name: 심연 추격, attr: SHADOW, cat: 자동, cd: 0, power: 52, bonus: { when: finisher, pct: 60 } }
+    attack: { name: 황혼 처형, attr: SHADOW, cat: 자동, cd: 0, power: 70, bonus: { when: finisher, pct: 45 } }
+  STAR:
+    # 여러 번 따로 타격하고, 상대 체력이 90% 이상일 때 포격이 더 강해져요.
+    basic:  { name: 별무리 연타, attr: STAR, cat: 자동, cd: 0, power: 22, hits: 2 }
+    sub:    { name: 유성 포격, attr: STAR, cat: 자동, cd: 0, power: 28, hits: 3 }
+    attack: { name: 성운 일제사격, attr: STAR, cat: 자동, cd: 0, power: 32, hits: 3, bonus: { when: opening, pct: 15 } }
+  THREAD:
+    # 먼저 실로 묶어 교체를 막고, 속박된 적에게 추격 기술을 집중해요.
+    basic:  { name: 봉쇄의 실, attr: THREAD, cat: 자동, cd: 0, power: 28, effects: [ { status: bind, chance: 60, turns: 2 } ] }
+    sub:    { name: 운명 추격, attr: THREAD, cat: 자동, cd: 0, power: 54, bonus: { when: bound, pct: 35 } }
+    attack: { name: 단죄의 봉합, attr: THREAD, cat: 자동, cd: 0, power: 72, bonus: { when: bound, pct: 40 } }
+  GRAVITY:
+    # 상대보다 느린 자신의 무게를 힘으로 바꿔 빠른 적을 받아쳐요.
+    basic:  { name: 중량 진격, attr: GRAVITY, cat: 자동, cd: 0, power: 46, bonus: { when: slower, pct: 20 } }
+    sub:    { name: 질량 붕괴, attr: GRAVITY, cat: 자동, cd: 0, power: 70, bonus: { when: slower, pct: 30 } }
+    attack: { name: 중력의 심판, attr: GRAVITY, cat: 자동, cd: 0, power: 86, bonus: { when: slower, pct: 30 } }
+
 # 상성: 왼쪽 속성이 오른쪽 두 속성에 강함. 모든 속성이 강점 2·약점 2가 되도록 검사해요
 chart:
   SEA:     { strong: [FIRE, STONE],     why: [물이 불을 꺼요, 파도가 바위를 깎아요] }
@@ -192,11 +253,11 @@ learn:                # v0.15.8: 기술 4칸 모두 바꿀 수 있음(기본기�
     steal:    { name: 파훼의 파동, cat: 마법,   level: 30, cd: 3, power: 50, roles: [UTILITY], effects: [ { strip: true } ] }
     rest:     { name: 생명의 순환,   level: 30, cd: 5, roles: [UTILITY, DEFENSE], effects: [ { regen: 8, turns: 3, to: team } ] }
     ambush:   { name: 심연 기습, cat: 물리,     level: 30, attr: SHADOW, cd: 3, power: 60, priority: true }
-    rush:     { name: 폭진 돌파, cat: 물리,     level: 40, cd: 3, power: 130, roles: [ATTACK], effects: [ { recharge: true } ] }
+    rush:     { name: 폭진 돌파, cat: 물리,     level: 40, cd: 0, power: 100, roles: [ATTACK], bonus: { when: opening, pct: 30 } }
     meteor:   { name: 성광 포격, cat: 마법,     level: 40, attr: STAR, cd: 3, power: 80 }
     armor:    { name: 수호의 결계,   level: 40, cd: 4, roles: [DEFENSE], effects: [ { buff: def, pct: 30, turns: 3, to: team } ] }
     quake:    { name: 단층 분쇄, cat: 물리,     level: 40, attr: STONE, cd: 3, power: 75, effects: [ { buff: spd, pct: -20, turns: 2, to: foe } ] }
-    finisher: { name: 천지 붕격, cat: 물리,     level: 50, cd: 4, power: 160, roles: [ATTACK], effects: [ { recharge: true } ] }
+    finisher: { name: 천지 붕격, cat: 물리,     level: 50, cd: 0, power: 100, roles: [ATTACK], bonus: { when: finisher, pct: 60 } }
     flag:     { name: 전장의 맹세,   level: 50, cd: 5, effects: [ { buff: atk, pct: 20, turns: 3, to: team }, { buff: def, pct: 20, turns: 3, to: team } ] }
     comeback: { name: 불멸의 귀환,   level: 50, cd: 6, roles: [UTILITY, DEFENSE], effects: [ { revive: 40 } ] }
     blizzard: { name: 빙하 파쇄, cat: 마법,     level: 50, attr: ICE, cd: 4, power: 90, effects: [ { status: freeze, chance: 30, turns: 1 } ] }

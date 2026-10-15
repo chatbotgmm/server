@@ -3,7 +3,7 @@
 // 스토리 진행(레벨·경험치·배운 기술·승진·깬 스테이지): 「내 갈매미」에 로그인돼 있으면 계정에, 아니면 이 브라우저에 저장
 // 로그인돼 있으면 「내 갈매미」 전투 편성을 스토리 팀으로 쓸 수 있고, 스토리 대결에서 가진 아이템을 쓸 수 있음
 import { rulesFrom } from '../../src/battle/core.ts';
-import { createBattle, choose, rerollAugment, act, pending, legalActions, pickAi, aiChoose, skillProblem, activeOf, itemProblem } from '../../src/battle/engine.ts';
+import { createBattle, choose, rerollAugment, act, pending, legalActions, pickAi, aiChoose, skillProblem, skillPreview, activeOf, itemProblem } from '../../src/battle/engine.ts';
 import { bgm, sfx, isMuted, toggleMute, getVol, setVol, isChMuted, setChMute } from './sound.js';
 import { addXp, battleXp, canEvolve, evoChoices, innateLearned, learnChances, learnLeft, learnOffers, learnPromo, learnSkill, promoSkills, slotSkills, statsOf, xpToNext } from '../../src/battle/growth.ts';
 
@@ -110,7 +110,7 @@ function villainArt(id) {
 const catOf = (k, st) => k.cat === 'mag' ? '마법' : k.cat === 'phys' ? '물리' : st && st.matk > st.patk ? '마법' : '물리';
 const catTag = (k, st) => k.power ? `<i class="cat ${catOf(k, st) === '마법' ? 'mag' : 'phys'}">${catOf(k, st)}</i>` : '';
 // 기술 설명에서 이미 따로 보여 준 「위력」·「속성 공격」 부분은 빼고
-const restDesc = k => k.id.startsWith('sub-') ? '' : k.desc.replace(/^위력 \d+(으로 \d+번)?(, )?/, '');
+const restDesc = k => k.id.startsWith('sub-') && !k.effects?.length && !k.bonus && !k.pierce && !k.drain && !k.crit && !k.priority ? '' : k.desc.replace(/위력 \d+(으로 \d+번)?(, )?/, '');
 // 능력치 표: 체력·물리공격·물리방어·마법공격·마법방어·속도(주 공격은 강조)
 function statGrid(st) {
   const main = st.matk > st.patk ? 'matk' : 'patk';
@@ -959,6 +959,7 @@ function skillSheet(key, open = null) {   // open: 'promo'면 승진 전용 기�
     modal.innerHTML = `<div class="sheet skv">
       <aside class="skl"><div class="who-head"><img src="${sprite(id, 'front', rec.stage)}" class="st-${rec.stage}" alt=""><div><b>${esc(u.name)} ${rec.stage ? `<em class="stars">${STARS[rec.stage]}</em>` : ''}</b><small>Lv${rec.level} · ${rec.stage ? `${rec.stage}단계 승진` : '원형'} · ${esc(R.attrName(def.attr))} · ${ROLE[def.role]}${synName(id) ? ` · ${esc(synName(id))}` : ''}</small></div></div>
         ${statGrid(st)}
+        ${R.recipeValue(id) !== undefined ? `<p class="sub">조합 가치 · 흔함 ${R.recipeValue(id)}마리 · 공격기 위력 +${R.recipeBonus(id)}%</p>` : ''}
         <div class="promo"><b>승진</b> <small>${rec.stage >= 3 ? '최고 단계' : `다음: ${promoNeed(rec)}`}</small>${rec.evoAugs.length ? `<div class="evo">${rec.evoAugs.map(a => { const e = R.evoAug.get(a); return `<span title="${esc(e.desc)}">🎖️ ${esc(e.name)}</span>`; }).join('')}</div>` : ''}
         ${canEvolve(R, rec, partsCleared()) ? `<button class="big wide" id="promo">⬆ ${rec.stage + 1}단계 승진하기</button>` : ''}</div></aside>
       <main class="skr"><div class="skh"><h2>기술 <small>${mine.length}/${R.data.learn.slots}칸 · 모두 바꿀 수 있어요</small></h2><div class="skbtn">${promoBtn}${learnBtn}</div></div>
@@ -1325,12 +1326,12 @@ function actionPanel(pane = 'menu') {
     // 기술 4칸(무엇을 넣었든)을 2×2로. 모두 재사용 대기면 몸통 박치기 버튼. 지금 상대에게 유리/불리를 같이 보여 줌
     const combo = f.skills.find(k => k.id.startsWith('combo-')), ready = combo && can({ kind: 'skill', skillId: combo.id });
     panel.innerHTML = `<div class="bhead">${back}<b>⚔️ 기술 고르기</b></div>${combo ? `<button class="combo-btn" data-k="${combo.id}" title="${esc(combo.desc)}" ${ready ? '' : 'disabled'}><small>🤝 합동기 · ${esc(R.data.synergies[combo.id.slice(6)].name)} · 대결당 1번</small><b>${esc(combo.name)}</b><span>${esc(combo.desc)}${ready ? '' : b.sides[0].comboUsed ? ' (이미 씀)' : ' (같은 시너지 동료가 있어야 해요)'}</span></button>` : ''}<div class="skills">${f.skills.filter(k => !k.id.startsWith('combo-')).map(k => {
-      const at = k.attr ?? f.attr, m = k.power ? R.typeMult(at, foe.attr) : 1, wait = skillProblem(b, 0, k);
+      const preview = skillPreview(b, 0, k), at = preview.attr, m = preview.multiplier, wait = skillProblem(b, 0, k);
       const kind = k.id.startsWith('sub-') ? '보조 속성' : k.id.startsWith('learn-') ? '일반 기술' : k.id === 'sig' ? '전용 기술' : k.id.startsWith('role-') ? '역할기' : '기본기';
       return `<button class="sk" data-k="${k.id}" style="--c:${COLOR[at]}" ${can({ kind: 'skill', skillId: k.id }) ? '' : 'disabled'}>
-        <span class="kd">${kind}${wait ? ' · 적용 중' : ''}</span><b>${esc(k.name)}</b>
-        <span class="ln">${k.power ? `${chip(at)}${catTag(k, f.base)}<small>위력 ${k.power}${k.hits > 1 ? `×${k.hits}` : ''}</small>${m > 1 ? '<em class="good">▲유리</em>' : m < 1 ? '<em class="bad">▼불리</em>' : ''}` : '<small>보조 기술</small>'}</span>
-        ${restDesc(k) ? `<p>${esc(restDesc(k))}</p>` : ''}</button>`;
+        <span class="kd">${preview.attrName}${preview.bonusActive ? ' · 발동' : ''}${wait ? ' · 적용 중' : ''}</span><b>${esc(k.name)}</b>
+        <span class="ln">${k.power ? `<small>위력 ${preview.power}${k.hits > 1 ? `×${k.hits}` : ''}</small>${m > 1 ? '<em class="good">▲유리</em>' : m < 1 ? '<em class="bad">▼불리</em>' : ''}` : '<small>보조 기술</small>'}</span>
+        ${(k.summary ?? restDesc(k)) ? `<p>${esc(k.summary ?? restDesc(k))}</p>` : ''}</button>`;
     }).join('')}</div>${can({ kind: 'skill', skillId: 'struggle' }) ? '<button class="sk struggle" data-k="struggle" style="margin-top:6px;width:100%"><span class="kd">쓸 기술이 없을 때</span><b>몸통 박치기</b><span class="ln"><small>위력 30</small></span></button>' : ''}`;
     panel.querySelectorAll('[data-k]').forEach(x => x.onclick = () => turn({ kind: 'skill', skillId: x.dataset.k }));
   } else if (pane === 'swap') {

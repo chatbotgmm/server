@@ -3,11 +3,12 @@ package org.dpdns.gmm;
 import android.graphics.*;
 import android.graphics.drawable.Drawable;
 
-/** 작은 기록 카드는 밝은 종이와 얇은 봉제 가죽으로 구분한다. */
+/** 작은 기록 카드는 밝은 양피지와 얇은 지도 잉크선으로 구분한다. */
 final class GamePaperDrawable extends Drawable {
   final MainActivity h;
   final Paint p = new Paint(3);
   final int edge;
+  private final RectF bounds = new RectF();
   private int alpha = 255;
   private ColorFilter filter;
 
@@ -22,14 +23,14 @@ final class GamePaperDrawable extends Drawable {
 
   @Override
   public void draw(Canvas c) {
+    bounds.set(getBounds());
     int save = c.save();
     if (alpha != 255 || filter != null) {
       p.setAlpha(alpha);
       p.setColorFilter(filter);
-      c.saveLayer(new RectF(getBounds()), p);
+      c.saveLayer(bounds, p);
     }
-    JournalTheme.drawPaper(
-        c, new RectF(getBounds()), h.getResources().getDisplayMetrics().density, edge);
+    JournalTheme.drawPaper(c, bounds, h.getResources().getDisplayMetrics().density, edge);
     c.restoreToCount(save);
   }
 

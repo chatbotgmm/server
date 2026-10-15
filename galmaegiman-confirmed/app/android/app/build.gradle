@@ -22,8 +22,8 @@ android {
         applicationId "org.dpdns.gmm.native.revised"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 73
-        versionName "2.1.1-native"
+        versionCode 74
+        versionName "2.2.0-native"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -39,6 +39,7 @@ android {
     testOptions {
         unitTests.includeAndroidResources = true
         unitTests.all {
+            testLogging { exceptionFormat = 'full' }
             if (project.hasProperty('nativeReviewTokenFile')) {
                 dependsOn 'prepareNativeReviewSdk'
                 systemProperty 'robolectric.offline', 'true'
@@ -50,6 +51,7 @@ android {
             systemProperty 'maven.repo.local', new File(System.getProperty('java.io.tmpdir'), 'gmm-robolectric-cache').absolutePath
             systemProperty 'gmm.nativeReviewTokenFile', project.findProperty('nativeReviewTokenFile') ?: ''
             systemProperty 'gmm.nativeReviewOutput', project.findProperty('nativeReviewOutput') ?: new File(buildDir, 'native-review').absolutePath
+            systemProperty 'gmm.elementalFixtureDir', project.findProperty('elementalReviewFixtureDir') ?: ''
             ['http.proxyHost', 'http.proxyPort', 'https.proxyHost', 'https.proxyPort', 'http.nonProxyHosts'].each { key ->
                 if (System.getProperty(key)) systemProperty key, System.getProperty(key)
             }
@@ -115,9 +117,13 @@ try {
 }
 
 // 선택적으로 실행하는 네이티브 화면 검토용 Android SDK. 기본 APK에는 포함하지 않는다.
-configurations { nativeReviewSdk }
-dependencies { nativeReviewSdk 'org.robolectric:android-all-instrumented:15-robolectric-13954326-i7' }
+configurations { nativeReviewSdk; nativeReviewLegacySdk }
+dependencies {
+    nativeReviewSdk 'org.robolectric:android-all-instrumented:15-robolectric-13954326-i7'
+    nativeReviewLegacySdk 'org.robolectric:android-all-instrumented:7.0.0_r1-robolectric-r1-i7'
+}
 tasks.register('prepareNativeReviewSdk', Copy) {
     from configurations.nativeReviewSdk
+    from configurations.nativeReviewLegacySdk
     into layout.buildDirectory.dir('native-review-sdk')
 }

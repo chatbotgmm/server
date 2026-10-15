@@ -39,7 +39,7 @@ describe('수비대 대결 데이터', ()=>{
     for(let seed=1;seed<200;seed++){const b=createBattle(R,[rec('D6'),rec('T3'),rec('I4')],[rec('D4'),rec('E2'),rec('T7')],seed);expect(b.sides[0].offers).not.toContain('firstaid');expect(b.sides[1].offers).not.toContain('firstaid');}
     expect(R.battleAugments.length).toBeGreaterThanOrEqual(24);
     const run=(aug:string|null)=>{const b=createBattle(R,[rec('D6',30)],[rec('D4',30)],5);b.sides[0].offers=null;b.sides[1].offers=null;b.phase='action';if(aug)b.sides[0].augs.push(aug);
-      const f=activeOf(b,1);f.hp=f.maxHp;act(b,[{kind:'skill',skillId:activeOf(b,0).skills[0].id},{kind:'skill',skillId:activeOf(b,1).skills[0].id}]);return {foe:f.maxHp-f.hp,me:activeOf(b,0)};};
+      const f=activeOf(b,1);f.hp=f.maxHp=10000;act(b,[{kind:'skill',skillId:activeOf(b,0).skills[0].id},{kind:'skill',skillId:activeOf(b,1).skills[0].id}]);return {foe:f.maxHp-f.hp,me:activeOf(b,0)};};
     expect(run('overtime').foe).toBeGreaterThan(run(null).foe);
     const lunch=run('lunch').me,plain=run(null).me;expect(lunch.hp).toBeGreaterThan(plain.hp);
   });
@@ -248,12 +248,12 @@ describe('합동기·기술 배우기',()=>{
 
 describe('타고나는 기술·승진 전용 기술(v0.16.2)',()=>{
   const mk=(id:string,i:number,level=30):UnitRecord=>({uid:`u${i}`,id,name:id,tier:'LIMITED',level,xp:0,stage:0,evoAugs:[]});
-  it('똥폭탄 + 무작위 1~2개, 같은 씨앗이면 같고 개체마다 다를 수 있음, 1단계 승진하면 고유기를 배울 수 있음',()=>{
+  it('속성 기본기 + 무작위 1~2개, 같은 씨앗이면 같고 개체마다 다를 수 있음, 1단계 승진하면 고유기를 배울 수 있음',()=>{
     const a=innateLearned(R,'E7','o1'),again=innateLearned(R,'E7','o1');
     expect(a).toEqual(again);expect(a.slice(0,2)).toEqual(['@','basic']);expect(a.length).toBeGreaterThanOrEqual(3);expect(a.length).toBeLessThanOrEqual(4);
     const sets=new Set(Array.from({length:12},(_,i)=>innateLearned(R,'E7',`o${i}`).join()));expect(sets.size).toBeGreaterThan(1);
     const r={...mk('E7',0,5),learned:a};
-    expect(slotSkills(R,r)[0].name).toBe('똥폭탄');expect(promoSkills(R,r)).toEqual([]);   // 승진 전엔 전용 기술 없음
+    expect(slotSkills(R,r)[0].name).toBe('봉쇄의 실');expect(promoSkills(R,r)).toEqual([]);   // 승진 전엔 전용 기술 없음
     r.stage=1;expect(promoSkills(R,r).map(k=>k.id)).toEqual(['sig']);
     learnPromo(R,r,'sig');expect(slotKeys(R,r)).toContain('sig');expect(promoSkills(R,r)).toEqual([]);expect(r.learnUsed??0).toBe(0);   // 배울 기회는 안 씀
     const b=createBattle(R,[r],[mk('D1',1)],1);expect(b.sides[0].fighters[0].skills.map(k=>k.id)).toContain('sig');
@@ -265,11 +265,11 @@ describe('타고나는 기술·승진 전용 기술(v0.16.2)',()=>{
 });
 
 describe('빌런 기본기 이름',()=>{
-  it('쭈매미는 먹물 뿌리기, 랍매미는 집게 꼬집기, 갈매미·끼룩단은 똥폭탄',()=>{
+  it('플레이어는 속성 기본기, 쭈매미·랍매미·끼룩단은 기존 기본기',()=>{
     const mk=(id:string,i:number):UnitRecord=>({uid:`u${i}`,id,name:id,tier:'LIMITED',level:10,xp:0,stage:0,evoAugs:[]});
     const b=createBattle(R,[mk('D1',0),mk('V12',1)],[mk('V1',2),mk('V7',3)],1);
     const basic=(s:0|1,i:number)=>b.sides[s].fighters[i].skills.find(k=>k.id.startsWith('basic-'))!.name;
-    expect([basic(0,0),basic(0,1),basic(1,0),basic(1,1)]).toEqual(['똥폭탄','똥폭탄','먹물 뿌리기','집게 꼬집기']);
+    expect([basic(0,0),basic(0,1),basic(1,0),basic(1,1)]).toEqual(['암반 균열','똥폭탄','먹물 뿌리기','집게 꼬집기']);
   });
 });
 

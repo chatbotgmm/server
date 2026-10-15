@@ -20,6 +20,10 @@ final class DragParallax {
   }
 
   boolean intercept(MotionEvent e, RectF region, boolean enabled) {
+    if (!motionAllowed()) {
+      close();
+      return false;
+    }
     if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
       candidate = enabled && region.contains(e.getX(), e.getY());
       dragging = false;
@@ -37,6 +41,10 @@ final class DragParallax {
   }
 
   boolean touch(MotionEvent e) {
+    if (!motionAllowed()) {
+      close();
+      return false;
+    }
     if (!candidate) return false;
     switch (e.getActionMasked()) {
       case MotionEvent.ACTION_MOVE:
@@ -64,12 +72,22 @@ final class DragParallax {
   }
 
   void release() {
+    if (!motionAllowed()) {
+      close();
+      owner.invalidate();
+      return;
+    }
     if (returning != null) returning.cancel();
     final float fromX = x, fromY = y;
     returning = ValueAnimator.ofFloat(1, 0);
     returning.setDuration(260);
     returning.addUpdateListener(
         a -> {
+          if (!motionAllowed()) {
+            close();
+            owner.invalidate();
+            return;
+          }
           float fraction = (float) a.getAnimatedValue();
           x = fromX * fraction;
           y = fromY * fraction;
@@ -77,6 +95,12 @@ final class DragParallax {
         });
     returning.start();
     dragging = false;
+  }
+
+  private boolean motionAllowed() {
+    if (!(owner.getContext() instanceof MainActivity)) return true;
+    MainActivity host = (MainActivity) owner.getContext();
+    return SceneMotion.enabled(host) && host.motionResumed;
   }
 
   void close() {

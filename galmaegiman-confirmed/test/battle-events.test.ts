@@ -133,7 +133,7 @@ describe('전투 표시 이벤트',()=>{
     }
   });
 
-  it('이벤트 추가 전 고정 시드 7개의 기존 로그·난수·전투 상태 결과가 그대로다',()=>{
+  it('속성 연계·조합 위력 적용 후 고정 시드 7개의 로그·난수·전투 상태를 보존한다',()=>{
     const baseline=[];
     for(const seed of [1,2,3,7,17,42,99]){
       const mk=(id:string,i:number)=>({...rec(id,`u${i}`),tier:content.map.get(id)!.rarity as UnitRecord['tier']});
@@ -141,6 +141,6 @@ describe('전투 표시 이벤트',()=>{
       for(let i=0;i<400&&b.phase!=='over';i++)if(b.phase==='choose'){aiChoose(b,0);aiChoose(b,1);}else act(b,[pickAi(b,0),pickAi(b,1)]);
       baseline.push({rng:b.rng,turn:b.turn,phase:b.phase,winner:b.winner,sides:b.sides,log:b.log});
     }
-    expect(createHash('sha256').update(JSON.stringify(baseline)).digest('hex')).toBe('922a6c56d94ac0c4114a131efee5c08451c6515f0d626e44a7ec74090b4e3496');
+    expect(createHash('sha256').update(JSON.stringify(baseline)).digest('hex')).toBe('5599e2f51741f8273bbc5cfe866cc0efb407cfc33132f695bf225ab1c618a7ca');
   });
 });

@@ -11,9 +11,13 @@ final class TitleView extends FrameLayout implements FullBleed {
   final boolean loggedIn, loginBackdrop;
   final DragParallax parallax;
   final SceneMotion motion;
+  final JournalAmbient ambient;
+  final Runnable motionChanged;
   final ScrollView journal;
   final TextView caption;
   final Paint paint = new Paint(3);
+  Bitmap guardianArt;
+  Rect guardianSource;
 
   TitleView(MainActivity host, boolean loggedIn) {
     super(host);
@@ -21,7 +25,20 @@ final class TitleView extends FrameLayout implements FullBleed {
     this.loggedIn = loggedIn;
     loginBackdrop = host.screen.equals("login");
     motion = new SceneMotion(this, host);
+    ambient = new JournalAmbient(this, host, motion);
     parallax = new DragParallax(this, host.dp(18));
+    motionChanged =
+        () -> {
+          if (!SceneMotion.enabled(host)) parallax.close();
+        };
+    host.art.localAsset(
+        "t2_guardian.webp",
+        bitmap -> {
+          guardianArt = bitmap;
+          guardianSource =
+              bitmap == null ? null : host.art.alpha(bitmap, "native/t2_guardian.webp");
+          invalidate();
+        });
     LobbyView.warm(host);
     setWillNotDraw(false);
 
@@ -137,13 +154,23 @@ final class TitleView extends FrameLayout implements FullBleed {
   protected void onAttachedToWindow() {
     super.onAttachedToWindow();
     motion.start();
+    ambient.attach();
+    if (host.journalTime != null) host.journalTime.addListener(motionChanged);
   }
 
   @Override
   protected void onDetachedFromWindow() {
+    ambient.detach();
+    if (host.journalTime != null) host.journalTime.removeListener(motionChanged);
     motion.close();
     parallax.close();
     super.onDetachedFromWindow();
+  }
+
+  @Override
+  protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
+    super.onSizeChanged(width, height, oldWidth, oldHeight);
+    ambient.resize(width, height);
   }
 
   RectF panelBox(int w, int h) {
@@ -229,12 +256,12 @@ final class TitleView extends FrameLayout implements FullBleed {
   }
 
   void sprite(Canvas c, String name, RectF bounds, float depth, int period, int phase) {
-    Bitmap bitmap = host.art.asset(name);
-    if (bitmap == null) return;
+    Bitmap bitmap = guardianArt;
+    if (bitmap == null || guardianSource == null) return;
     float pulse = motion.pulse(period, phase);
     RectF target = new RectF(bounds);
     target.offset(parallax.x * depth, parallax.y * depth - target.height() * .012f * pulse);
-    Rect source = host.art.alpha(bitmap, "native/" + name);
+    Rect source = guardianSource;
     float fit = Math.min(target.width() / source.width(), target.height() / source.height());
     float width = source.width() * fit * (1 + .005f * pulse),
         height = source.height() * fit * (1 - .005f * pulse);
@@ -253,26 +280,17 @@ final class TitleView extends FrameLayout implements FullBleed {
   }
 
   RectF backgroundBox(Bitmap background) {
-    float scale =
-        Math.max(
-                getWidth() / (float) background.getWidth(),
-                getHeight() / (float) background.getHeight())
-            * 1.035f;
-    float width = background.getWidth() * scale, height = background.getHeight() * scale;
-    return new RectF(
-        (getWidth() - width) / 2,
-        (getHeight() - height) / 2,
-        (getWidth() + width) / 2,
-        (getHeight() + height) / 2);
+    RectF box = new RectF();
+    JournalAmbient.coverBounds(box, getWidth(), getHeight());
+    return box;
   }
 
   RectF guardianBox(Bitmap background) {
     RectF safe = host.safeBounds(getWidth(), getHeight());
-    RectF backdrop =
-        background == null ? new RectF(0, 0, getWidth(), getHeight()) : backgroundBox(background);
-    // 이미지 속 원형 받침대 좌표를 cover 확대·크롭한 화면 좌표로 옮긴다.
-    float center = backdrop.left + backdrop.width() * .72f,
-        foot = backdrop.top + backdrop.height() * .76f;
+    RectF backdrop = backgroundBox(background);
+    // 네 배경에 공통인 지도 테이블 지면을 cover 확대·크롭한 화면 좌표로 옮긴다.
+    float center = backdrop.left + backdrop.width() * JournalAmbient.HERO_X,
+        foot = backdrop.top + backdrop.height() * JournalAmbient.HERO_FOOT;
     float margin = host.dp(14);
     center = Math.max(safe.left + margin, Math.min(safe.right - margin, center));
     float width =
@@ -286,15 +304,10 @@ final class TitleView extends FrameLayout implements FullBleed {
   @Override
   protected void onDraw(Canvas c) {
     super.onDraw(c);
-    Bitmap bg = host.art.asset("journal/headquarters.png");
-    if (bg != null) {
-      RectF background = backgroundBox(bg);
-      background.offset(parallax.x * .25f, parallax.y * .25f);
-      paint.setShader(null);
-      paint.setAlpha(255);
-      c.drawBitmap(bg, null, background, paint);
-    }
-    sprite(c, "t2_guardian.webp", guardianBox(bg), .9f, 3400, 0);
+    ambient.draw(c, parallax.x, parallax.y);
+    RectF guardian = guardianBox(ambient.current);
+    ambient.ground(c, guardian, parallax.x * .9f, parallax.y * .9f);
+    sprite(c, "t2_guardian.webp", guardian, .9f, 3400, 0);
     if (!loginBackdrop)
       JournalTheme.drawPanel(
           c,

@@ -62,7 +62,7 @@ final class NativeSettingsSheet {
       lp.setMargins(h.dp(5), 0, h.dp(5), 0);
       columns.addView(column, lp);
     }
-    TextView soundHeading = h.text("소리", 20);
+    TextView soundHeading = h.text("소리·화면", 20);
     soundHeading.setTypeface(h.headline);
     soundHeading.setPadding(h.dp(4), 0, 0, h.dp(6));
     left.addView(soundHeading);
@@ -82,6 +82,24 @@ final class NativeSettingsSheet {
     TextView restore = k.note("각 슬라이더 오른쪽에서 음소거해요. 다시 켜면 이전 볼륨으로 돌아와요.");
     restore.setPadding(h.dp(4), h.dp(8), h.dp(4), 0);
     left.addView(restore);
+    Switch reducedMotion = new Switch(h);
+    reducedMotion.setText("움직임 줄이기");
+    reducedMotion.setTag("settings-reduced-motion");
+    reducedMotion.setTypeface(h.prose);
+    reducedMotion.setTextSize(16);
+    reducedMotion.setTextColor(JournalTheme.INK);
+    reducedMotion.setBackground(new GamePaperDrawable(h));
+    reducedMotion.setPadding(h.dp(12), h.dp(5), h.dp(12), h.dp(8));
+    reducedMotion.setMinHeight(h.dp(48));
+    reducedMotion.setMinimumHeight(h.dp(48));
+    int[][] motionStates = {{android.R.attr.state_checked}, {}};
+    reducedMotion.setThumbTintList(
+        new ColorStateList(motionStates, new int[] {JournalTheme.TEAL, JournalTheme.MUTED}));
+    reducedMotion.setTrackTintList(
+        new ColorStateList(motionStates, new int[] {0xffadc5bd, 0xffd8cfbb}));
+    reducedMotion.setChecked(!h.motionEnabled);
+    reducedMotion.setOnCheckedChangeListener((button, reduced) -> h.reducedMotion(reduced));
+    addRow(h, left, reducedMotion);
     Runnable sync =
         () -> {
           all.setText(h.sound.masterMuted() ? "꺼짐" : "켜짐");
