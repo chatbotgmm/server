@@ -1,11 +1,13 @@
 package org.dpdns.gmm;
 
 import android.graphics.*;
+import android.util.TypedValue;
 import android.view.*;
 import android.widget.*;
 
-/** 항구 수비조장의 가죽 기록장. 원본 캐릭터의 숨쉬기·중앙 드래그와 고정 UI를 유지한다. */
+/** G 항구의 수호자. 전투 원본과 현지 시간·단일 장면 시계, 고정 UI를 함께 쓴다. */
 final class TitleView extends FrameLayout implements FullBleed {
+  static final String GUARDIAN_PATH = "/duel/sprites/D1_s0_front.webp";
   final MainActivity host;
   final Button enter, settings, account;
   final boolean loggedIn, loginBackdrop;
@@ -13,9 +15,12 @@ final class TitleView extends FrameLayout implements FullBleed {
   final SceneMotion motion;
   final JournalAmbient ambient;
   final Runnable motionChanged;
+  // 이전 검토 도구와의 호환 필드. 큰 설명판은 표시하지 않는다.
   final ScrollView journal;
-  final TextView caption;
+  final TextView caption, titleFirst, titleSecond;
   final Paint paint = new Paint(3);
+  final TitleHarborArt harbor = new TitleHarborArt();
+  final RectF captionRect = new RectF(), firstRect = new RectF(), secondRect = new RectF();
   Bitmap guardianArt;
   Rect guardianSource;
 
@@ -31,42 +36,29 @@ final class TitleView extends FrameLayout implements FullBleed {
         () -> {
           if (!SceneMotion.enabled(host)) parallax.close();
         };
-    host.art.localAsset(
-        "t2_guardian.webp",
-        bitmap -> {
-          guardianArt = bitmap;
-          guardianSource =
-              bitmap == null ? null : host.art.alpha(bitmap, "native/t2_guardian.webp");
-          invalidate();
-        });
+    // NativeArt가 APK 원본과 알파 범위를 작업 스레드에서 준비한다.
+    guardianArt = host.art.get(GUARDIAN_PATH, this::guardianReady);
+    if (guardianArt != null) guardianSource = host.art.alpha(guardianArt, GUARDIAN_PATH);
     LobbyView.warm(host);
     setWillNotDraw(false);
 
-    LinearLayout notes = new LinearLayout(host);
-    notes.setOrientation(LinearLayout.VERTICAL);
-    TextView office = text("갈매미 섬 항구 수비대", 16, false, JournalTheme.MUTED);
-    notes.addView(office);
-    View rule = new View(host);
-    rule.setBackgroundColor(0xffd9c8a8);
-    LinearLayout.LayoutParams ruleSlot = new LinearLayout.LayoutParams(-1, host.dp(1));
-    ruleSlot.setMargins(host.dp(7), host.dp(12), host.dp(7), host.dp(17));
-    notes.addView(rule, ruleSlot);
-    notes.addView(text("갈매미맨 수비대", 32, true, JournalTheme.INK));
-    notes.addView(text("수비조장의 모험 도감", 18, false, JournalTheme.TEAL));
-    TextView greeting = text("돌처럼 듬직한 동료들과,", 17, false, JournalTheme.INK);
-    greeting.setPadding(host.dp(8), host.dp(12), host.dp(8), host.dp(4));
-    notes.addView(greeting);
-    notes.addView(text("한 마리씩 쌓아 가는 우리 섬의 이야기.", 17, false, JournalTheme.INK));
-    TextView loop = text("수집  ·  조합  ·  턴제 전략", 15, true, JournalTheme.TEAL);
-    loop.setPadding(host.dp(8), host.dp(14), host.dp(8), host.dp(5));
-    notes.addView(loop);
     journal = new ScrollView(host);
-    journal.setFillViewport(false);
-    journal.setClipToPadding(true);
-    journal.addView(notes);
     journal.setTag("title-journal");
+    journal.setVisibility(View.GONE);
+    journal.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
     addView(journal);
-
+    caption = text("작은 날개로, 우리 섬을 지켜요.", 17, false, 0xffead7ab);
+    caption.setMaxLines(2);
+    caption.setTag("title-caption");
+    addView(caption);
+    titleFirst = text("갈매미맨", 46, true, 0xfffff4db);
+    titleFirst.setTag("title-name-first");
+    titleFirst.setSingleLine(true);
+    addView(titleFirst);
+    titleSecond = text("수비대", 62, true, 0xffedcf8c);
+    titleSecond.setTag("title-name-second");
+    titleSecond.setSingleLine(true);
+    addView(titleSecond);
     enter =
         host.button(
             loggedIn ? "게임 시작" : "로그인",
@@ -74,16 +66,17 @@ final class TitleView extends FrameLayout implements FullBleed {
               if (loggedIn) host.load("home");
               else host.login();
             });
-    enter.setTextColor(Color.WHITE);
-    enter.setBackground(new GameButtonDrawable(host, GameButtonDrawable.PRIMARY));
-    enter.setTextSize(host.uiText(20));
+    enter.setBackground(new TitleHarborDrawable(host, true));
+    enter.setTextColor(TitleHarborDrawable.TEXT);
+    enter.setTextSize(host.uiText(22));
+    enter.setPadding(host.dp(34), host.dp(4), host.dp(14), host.dp(8));
     enter.setTag("title-enter");
     addView(enter);
     settings = host.button("설정", () -> NativeSettingsSheet.show(host));
-    settings.setTextColor(JournalTheme.INK);
+    settings.setBackground(new TitleHarborDrawable(host, false));
+    settings.setTextColor(TitleHarborDrawable.TEXT);
     settings.setTextSize(host.uiText(14));
-    settings.setPadding(host.dp(6), host.dp(4), host.dp(6), host.dp(7));
-    settings.setBackground(new GameButtonDrawable(host, GameButtonDrawable.PAPER));
+    settings.setPadding(host.dp(4), host.dp(4), host.dp(4), host.dp(6));
     settings.setTag("title-settings");
     addView(settings);
     account =
@@ -97,51 +90,66 @@ final class TitleView extends FrameLayout implements FullBleed {
     if (account != null) {
       account.setTag("title-account");
       account.setContentDescription("계정 정보 " + host.me().optString("nickname", "내 계정"));
+      account.setBackground(new TitleHarborDrawable(host, false));
+      account.setTextColor(TitleHarborDrawable.TEXT);
       account.setTextSize(host.uiText(15));
+      account.setMinHeight(host.dp(48));
+      account.setMinimumHeight(host.dp(48));
       account.setSingleLine(true);
       account.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      account.setPadding(host.dp(12), host.dp(4), host.dp(12), host.dp(6));
       addView(account);
     }
-    caption = text("갈매미는 늘 조금씩 허술해요.", 14, false, JournalTheme.INK);
-    caption.setGravity(Gravity.CENTER);
-    caption.setMaxLines(2);
-    caption.setBackground(new GamePaperDrawable(host));
-    caption.setPadding(host.dp(12), host.dp(7), host.dp(12), host.dp(9));
-    caption.setTag("title-caption");
-    if (loggedIn) caption.setVisibility(View.GONE);
-    addView(caption);
     if (loginBackdrop) {
-      journal.setVisibility(View.GONE);
       caption.setVisibility(View.GONE);
+      titleFirst.setVisibility(View.GONE);
+      titleSecond.setVisibility(View.GONE);
+      enter.setVisibility(View.GONE);
+      settings.setVisibility(View.GONE);
+      if (account != null) account.setVisibility(View.GONE);
     }
+  }
+
+  void guardianReady() {
+    guardianArt = host.art.peek(GUARDIAN_PATH);
+    guardianSource = guardianArt == null ? null : host.art.alpha(guardianArt, GUARDIAN_PATH);
+    invalidate();
   }
 
   TextView text(String value, int size, boolean heading, int color) {
-    TextView text = host.text(value, size);
-    text.setTypeface(heading ? host.headline : host.prose);
-    text.setTextColor(color);
+    TextView view = host.text(value, size);
+    view.setTypeface(heading ? host.headline : host.prose);
+    view.setTextColor(color);
+    view.setIncludeFontPadding(false);
+    view.setPadding(0, 0, 0, 0);
+    view.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
     if (android.os.Build.VERSION.SDK_INT >= 33)
-      text.setLineBreakWordStyle(
+      view.setLineBreakWordStyle(
           android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
-    return text;
+    return view;
   }
 
   @Override
-  public boolean onInterceptTouchEvent(MotionEvent e) {
-    // 기록장 본문은 큰 글자에서 스크롤하고, 중앙의 빈 공간에서만 시차 드래그를 시작한다.
+  public boolean onInterceptTouchEvent(MotionEvent event) {
     RectF safe = host.safeBounds(getWidth(), getHeight());
     RectF region =
-        new RectF(
-            panelBox(getWidth(), getHeight()).right - host.dp(12),
-            safe.top + safe.height() * .18f,
-            safe.right - host.dp(30),
-            safe.top + safe.height() * .76f);
-    return parallax.intercept(e, region, true) || super.onInterceptTouchEvent(e);
+        loginBackdrop
+            ? new RectF(
+                safe.left + safe.width() * .50f,
+                safe.top + safe.height() * .18f,
+                safe.right - host.dp(24),
+                safe.top + safe.height() * .86f)
+            : new RectF(
+                safe.left + safe.width() * .08f,
+                safe.top + safe.height() * .18f,
+                column(getWidth(), getHeight()).left - host.dp(6),
+                safe.top + safe.height() * .86f);
+    return parallax.intercept(event, region, true) || super.onInterceptTouchEvent(event);
   }
 
   @Override
-  public boolean onTouchEvent(MotionEvent e) {
-    return parallax.touch(e) || super.onTouchEvent(e);
+  public boolean onTouchEvent(MotionEvent event) {
+    return parallax.touch(event) || super.onTouchEvent(event);
   }
 
   @Override
@@ -168,115 +176,133 @@ final class TitleView extends FrameLayout implements FullBleed {
   }
 
   @Override
-  protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
-    super.onSizeChanged(width, height, oldWidth, oldHeight);
-    ambient.resize(width, height);
+  protected void onSizeChanged(int w, int h, int oldW, int oldH) {
+    super.onSizeChanged(w, h, oldW, oldH);
+    ambient.resize(w, h);
+  }
+
+  RectF column(int w, int h) {
+    RectF safe = host.safeBounds(w, h);
+    return new RectF(
+        safe.left + safe.width() * .615f,
+        safe.top,
+        safe.right - Math.max(host.dp(14), safe.width() * .07f),
+        safe.bottom);
   }
 
   RectF panelBox(int w, int h) {
-    RectF safe = host.safeBounds(w, h);
-    float margin = Math.max(host.dp(14), safe.height() * .055f);
-    float height = Math.min(safe.height() - margin * 2, host.dp(520));
-    float top = safe.top + (safe.height() - height) / 2;
-    return new RectF(
-        safe.left + Math.max(host.dp(14), safe.width() * .025f),
-        top,
-        safe.left + safe.width() * .445f,
-        top + height);
+    return column(w, h);
   }
 
   RectF mainBox() {
-    RectF panel = panelBox(getMeasuredWidth(), getMeasuredHeight());
-    panel.inset(host.dp(18), host.dp(18));
-    panel.top = panel.bottom - host.dp(56);
-    return panel;
+    RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
+    RectF box = column(getMeasuredWidth(), getMeasuredHeight());
+    box.bottom = safe.bottom - Math.max(host.dp(14), safe.height() * .085f);
+    box.top = box.bottom - Math.max(host.dp(56), Math.min(host.dp(84), safe.height() * .14f));
+    return box;
   }
 
   RectF gearBox() {
-    RectF safe = host.safeBounds(getWidth(), getHeight());
-    float size = host.dp(56);
+    RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
     return new RectF(
-        safe.right - size - host.dp(12),
-        safe.top + host.dp(10),
+        safe.right - host.dp(68),
+        safe.top + host.dp(12),
         safe.right - host.dp(12),
-        safe.top + host.dp(10) + size);
+        safe.top + host.dp(68));
   }
 
   RectF accountBox() {
-    RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
-    float width = Math.min(host.dp(520), safe.width() * .40f);
+    RectF box = column(getMeasuredWidth(), getMeasuredHeight()), gear = gearBox();
     return new RectF(
-        safe.right - host.dp(18) - width,
-        safe.bottom - host.dp(18) - host.dp(48),
-        safe.right - host.dp(18),
-        safe.bottom - host.dp(18));
+        box.left, gear.top + host.dp(4), gear.left - host.dp(8), gear.top + host.dp(52));
   }
 
   RectF captionBox() {
-    RectF r = accountBox();
-    if (host.getResources().getConfiguration().fontScale >= 1.15f) r.top = r.bottom - host.dp(64);
-    return r;
+    return new RectF(captionRect);
   }
 
-  void measure(View view, RectF r) {
+  void measure(View view, RectF box) {
     view.measure(
-        MeasureSpec.makeMeasureSpec(Math.max(1, Math.round(r.width())), MeasureSpec.EXACTLY),
-        MeasureSpec.makeMeasureSpec(Math.max(1, Math.round(r.height())), MeasureSpec.EXACTLY));
+        MeasureSpec.makeMeasureSpec(Math.max(1, Math.round(box.width())), MeasureSpec.EXACTLY),
+        MeasureSpec.makeMeasureSpec(Math.max(1, Math.round(box.height())), MeasureSpec.EXACTLY));
+  }
+
+  float fontHeight(float size) {
+    paint.setTypeface(host.headline);
+    paint.setTextSize(size);
+    Paint.FontMetrics metrics = paint.getFontMetrics();
+    return metrics.descent - metrics.ascent;
+  }
+
+  float textWidth(String value, float size) {
+    paint.setTypeface(host.headline);
+    paint.setTextSize(size);
+    return paint.measureText(value);
   }
 
   @Override
-  protected void onMeasure(int ws, int hs) {
-    int w = MeasureSpec.getSize(ws), h = MeasureSpec.getSize(hs);
-    setMeasuredDimension(w, h);
-    RectF panel = panelBox(w, h), main = mainBox();
-    RectF body = new RectF(panel);
-    body.inset(host.dp(18), host.dp(20));
-    body.bottom = main.top - host.dp(10);
-    measure(journal, body);
+  protected void onMeasure(int widthSpec, int heightSpec) {
+    int width = MeasureSpec.getSize(widthSpec), height = MeasureSpec.getSize(heightSpec);
+    setMeasuredDimension(width, height);
+    RectF safe = host.safeBounds(width, height), body = column(width, height), main = mainBox();
+    float captionLeft = body.left + Math.min(host.dp(24), safe.width() * .025f);
+    caption.measure(
+        MeasureSpec.makeMeasureSpec(
+            Math.max(1, Math.round(body.right - captionLeft)), MeasureSpec.AT_MOST),
+        MeasureSpec.makeMeasureSpec(Math.round(safe.height() * .20f), MeasureSpec.AT_MOST));
+    float top = Math.max(gearBox().bottom + host.dp(8), safe.top + safe.height() * .21f);
+    captionRect.set(captionLeft, top, body.right, top + caption.getMeasuredHeight());
+    measure(caption, captionRect);
+    top = captionRect.bottom + host.dp(10);
+    float available = Math.max(host.dp(48), main.top - host.dp(18) - top);
+    float fontScale = host.getResources().getConfiguration().fontScale;
+    float firstSize = safe.width() * .054f * fontScale,
+        secondSize = safe.width() * .072f * fontScale;
+    float gap = host.dp(3);
+    float fit =
+        Math.min(
+            1,
+            Math.min(
+                body.width() / textWidth("갈매미맨", firstSize),
+                Math.min(
+                    body.width() / textWidth("수비대", secondSize),
+                    (available - gap - host.dp(4))
+                        / (fontHeight(firstSize) + fontHeight(secondSize)))));
+    firstSize *= fit;
+    secondSize *= fit;
+    titleFirst.setTextSize(TypedValue.COMPLEX_UNIT_PX, firstSize);
+    titleSecond.setTextSize(TypedValue.COMPLEX_UNIT_PX, secondSize);
+    firstRect.set(
+        body.left, top, body.right, top + (float) Math.ceil(fontHeight(firstSize)) + host.dp(2));
+    secondRect.set(
+        body.left,
+        firstRect.bottom + gap,
+        body.right,
+        firstRect.bottom + gap + (float) Math.ceil(fontHeight(secondSize)) + host.dp(2));
+    measure(titleFirst, firstRect);
+    measure(titleSecond, secondRect);
     measure(enter, main);
     measure(settings, gearBox());
     if (account != null) measure(account, accountBox());
-    measure(caption, captionBox());
+    journal.measure(
+        MeasureSpec.makeMeasureSpec(0, MeasureSpec.EXACTLY),
+        MeasureSpec.makeMeasureSpec(0, MeasureSpec.EXACTLY));
   }
 
-  void place(View view, RectF r) {
-    view.layout(Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom));
+  void place(View view, RectF box) {
+    view.layout(
+        Math.round(box.left), Math.round(box.top), Math.round(box.right), Math.round(box.bottom));
   }
 
   @Override
   protected void onLayout(boolean changed, int l, int t, int r, int b) {
-    RectF body = panelBox(getWidth(), getHeight());
-    body.inset(host.dp(18), host.dp(20));
-    body.bottom = mainBox().top - host.dp(10);
-    place(journal, body);
+    journal.layout(0, 0, 0, 0);
+    place(caption, captionRect);
+    place(titleFirst, firstRect);
+    place(titleSecond, secondRect);
     place(enter, mainBox());
     place(settings, gearBox());
     if (account != null) place(account, accountBox());
-    place(caption, captionBox());
-  }
-
-  void sprite(Canvas c, String name, RectF bounds, float depth, int period, int phase) {
-    Bitmap bitmap = guardianArt;
-    if (bitmap == null || guardianSource == null) return;
-    float pulse = motion.pulse(period, phase);
-    RectF target = new RectF(bounds);
-    target.offset(parallax.x * depth, parallax.y * depth - target.height() * .012f * pulse);
-    Rect source = guardianSource;
-    float fit = Math.min(target.width() / source.width(), target.height() / source.height());
-    float width = source.width() * fit * (1 + .005f * pulse),
-        height = source.height() * fit * (1 - .005f * pulse);
-    paint.setShader(null);
-    paint.setColor(Color.WHITE);
-    paint.setAlpha(255);
-    c.drawBitmap(
-        bitmap,
-        source,
-        new RectF(
-            target.centerX() - width / 2,
-            target.bottom - height,
-            target.centerX() + width / 2,
-            target.bottom),
-        paint);
   }
 
   RectF backgroundBox(Bitmap background) {
@@ -287,33 +313,53 @@ final class TitleView extends FrameLayout implements FullBleed {
 
   RectF guardianBox(Bitmap background) {
     RectF safe = host.safeBounds(getWidth(), getHeight());
-    RectF backdrop = backgroundBox(background);
-    // 네 배경에 공통인 지도 테이블 지면을 cover 확대·크롭한 화면 좌표로 옮긴다.
-    float center = backdrop.left + backdrop.width() * JournalAmbient.HERO_X,
-        foot = backdrop.top + backdrop.height() * JournalAmbient.HERO_FOOT;
-    float margin = host.dp(14);
-    center = Math.max(safe.left + margin, Math.min(safe.right - margin, center));
-    float width =
+    if (loginBackdrop) {
+      RectF backdrop = backgroundBox(background);
+      float foot = backdrop.top + backdrop.height() * JournalAmbient.HERO_FOOT;
+      return new RectF(
+          safe.left + safe.width() * .51f,
+          safe.top + safe.height() * .14f,
+          safe.right - host.dp(16),
+          Math.min(safe.bottom - host.dp(12), foot));
+    }
+    return new RectF(
+        safe.left + safe.width() * .039f,
+        safe.top + safe.height() * .12f,
+        safe.left + safe.width() * .58f,
+        safe.top + safe.height() * .875f);
+  }
+
+  RectF guardianDrawBox(RectF bounds, float depth, float pulse) {
+    if (guardianSource == null) return new RectF();
+    float fit =
         Math.min(
-            Math.min(safe.width() * .44f, host.dp(550)),
-            2 * Math.min(center - safe.left - margin, safe.right - margin - center));
-    float top = Math.max(safe.top + safe.height() * .17f, foot - host.dp(440));
-    return new RectF(center - width / 2, top, center + width / 2, foot);
+            bounds.width() / guardianSource.width(), bounds.height() / guardianSource.height());
+    float width = guardianSource.width() * fit * (1 + .003f * pulse);
+    float height = guardianSource.height() * fit * (1 + .004f * pulse);
+    float x = bounds.centerX() + parallax.x * depth, foot = bounds.bottom + parallax.y * depth;
+    return new RectF(x - width / 2, foot - height, x + width / 2, foot);
+  }
+
+  void sprite(Canvas canvas, String ignored, RectF bounds, float depth, int period, int phase) {
+    if (guardianArt == null || guardianSource == null) return;
+    paint.setShader(null);
+    paint.setColor(Color.WHITE);
+    paint.setAlpha(255);
+    paint.setColorFilter(null);
+    canvas.drawBitmap(
+        guardianArt,
+        guardianSource,
+        guardianDrawBox(bounds, depth, motion.pulse(period, phase)),
+        paint);
   }
 
   @Override
-  protected void onDraw(Canvas c) {
-    super.onDraw(c);
-    ambient.draw(c, parallax.x, parallax.y);
+  protected void onDraw(Canvas canvas) {
+    super.onDraw(canvas);
+    ambient.draw(canvas, parallax.x, parallax.y);
+    harbor.shade(canvas, getWidth(), getHeight());
     RectF guardian = guardianBox(ambient.current);
-    ambient.ground(c, guardian, parallax.x * .9f, parallax.y * .9f);
-    sprite(c, "t2_guardian.webp", guardian, .9f, 3400, 0);
-    if (!loginBackdrop)
-      JournalTheme.drawPanel(
-          c,
-          panelBox(getWidth(), getHeight()),
-          host.getResources().getDisplayMetrics().density,
-          JournalTheme.PAPER,
-          true);
+    if (guardianSource != null) harbor.ground(canvas, guardianDrawBox(guardian, .9f, 0));
+    sprite(canvas, GUARDIAN_PATH, guardian, .9f, 3400, 0);
   }
 }

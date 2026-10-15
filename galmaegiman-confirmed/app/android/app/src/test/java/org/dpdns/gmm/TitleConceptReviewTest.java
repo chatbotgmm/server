@@ -23,12 +23,14 @@ import org.robolectric.annotation.*;
 @LooperMode(LooperMode.Mode.PAUSED)
 public class TitleConceptReviewTest {
   @Test
-  public void renderFourDistinctDirectionsOnPhoneAndTablet() throws Exception {
+  public void renderSevenDistinctDirectionsOnPhoneAndTablet() throws Exception {
     java.nio.file.Path folder =
         java.nio.file.Path.of(System.getProperty("gmm.nativeReviewOutput"))
             .resolve("title-concepts");
     Files.createDirectories(folder);
-    String[] keys = {"a-hero", "b-departure", "c-collection", "d-boss"};
+    String[] keys = {
+      "a-hero", "b-departure", "c-collection", "d-boss", "e-chart", "f-chronicle", "g-moonlight"
+    };
     for (int concept = 0; concept < keys.length; concept++) {
       TitleConceptScene scene = new TitleConceptScene(RuntimeEnvironment.getApplication(), concept);
       for (int[] size : new int[][] {{915, 412}, {1280, 720}}) {
@@ -44,6 +46,17 @@ public class TitleConceptReviewTest {
         Bitmap image = Bitmap.createBitmap(size[0], size[1], Bitmap.Config.ARGB_8888);
         scene.draw(new Canvas(image));
         assertTrue("잘리거나 넘친 글자: " + scene.overflow, scene.overflow.isEmpty());
+        float scale = size[0] / scene.W;
+        for (RectF artwork : scene.protectedArtwork) {
+          RectF pixels =
+              new RectF(
+                  artwork.left * scale,
+                  artwork.top * scale,
+                  artwork.right * scale,
+                  artwork.bottom * scale);
+          assertFalse(
+              "새 구도의 주요 캐릭터와 시작 버튼 겹침: " + keys[concept], RectF.intersects(pixels, scene.enterBox));
+        }
         try (OutputStream output =
             Files.newOutputStream(folder.resolve(keys[concept] + "-" + size[0] + ".png"))) {
           assertTrue(image.compress(Bitmap.CompressFormat.PNG, 100, output));
@@ -55,7 +68,7 @@ public class TitleConceptReviewTest {
   }
 }
 
-/** 큰 설명판 대신 캐릭터·타이틀·시작 행동을 주연으로 세운 네 방향의 정지 프레임. */
+/** 큰 설명판 대신 캐릭터·타이틀·시작 행동을 주연으로 세운 일곱 방향의 정지 프레임. */
 final class TitleConceptScene extends FrameLayout {
   static final int PAPER = 0xfff5efdc,
       INK = 0xff292d2a,
@@ -68,6 +81,7 @@ final class TitleConceptScene extends FrameLayout {
   final Map<String, Bitmap> art = new HashMap<>();
   final Map<String, Rect> alpha = new HashMap<>();
   final List<String> overflow = new ArrayList<>();
+  final List<RectF> protectedArtwork = new ArrayList<>();
   final Button enter, settings;
   final RectF enterBox = new RectF(), settingsBox = new RectF();
   float W = 1000, H = 450;
@@ -82,9 +96,6 @@ final class TitleConceptScene extends FrameLayout {
     // 디코딩과 투명 여백 계산은 onDraw 밖에서만 한다. 검토 화면은 네트워크에 접근하지 않는다.
     String[] paths = {
       "native/t2_logo.webp",
-      "native/t2_guardian.webp",
-      "native/t2_gull.webp",
-      "native/t2_lobster.webp",
       "native/journal/c-home-morning.webp",
       "native/journal/c-home-evening.webp",
       "native/journal/c-home-night.webp",
@@ -92,6 +103,11 @@ final class TitleConceptScene extends FrameLayout {
       "game-art/thumbs/D1.jpg",
       "game-art/thumbs/T6.jpg",
       "game-art/thumbs/I9.jpg",
+      "game-art/thumbs/L2.jpg",
+      "game-art/thumbs/H6.jpg",
+      "game-art/duel/sprites/D1_s0_front.webp",
+      "game-art/duel/sprites/T6_s0_front.webp",
+      "game-art/duel/sprites/I9_s0_front.webp",
       "game-art/duel/sprites/V6_front.webp",
       "game-art/duel/sprites/D1_s0_back.webp"
     };
@@ -171,7 +187,10 @@ final class TitleConceptScene extends FrameLayout {
     if (concept == 0) enterBox.set(70, H - buttonH - 39, 440, H - 39);
     else if (concept == 1) enterBox.set(48, H - buttonH - 32, 339, H - 32);
     else if (concept == 2) enterBox.set(573, H - buttonH - 45, 891, H - 45);
-    else enterBox.set(360, H - buttonH - 28, 660, H - 28);
+    else if (concept == 3) enterBox.set(360, H - buttonH - 28, 660, H - 28);
+    else if (concept == 4) enterBox.set(582, H - buttonH - 34, 929, H - 34);
+    else if (concept == 5) enterBox.set(342, H - buttonH - 25, 658, H - 25);
+    else enterBox.set(617, H - buttonH - 48, 928, H - 48);
     enterBox.left *= s;
     enterBox.right *= s;
     enterBox.top *= s;
@@ -204,12 +223,16 @@ final class TitleConceptScene extends FrameLayout {
   protected void onDraw(Canvas c) {
     super.onDraw(c);
     overflow.clear();
+    protectedArtwork.clear();
     c.save();
     c.scale(getWidth() / W, getWidth() / W);
     if (concept == 0) hero(c);
     else if (concept == 1) departure(c);
     else if (concept == 2) collection(c);
-    else boss(c);
+    else if (concept == 3) boss(c);
+    else if (concept == 4) chart(c);
+    else if (concept == 5) chronicle(c);
+    else moonlight(c);
     c.restore();
   }
 
@@ -308,6 +331,13 @@ final class TitleConceptScene extends FrameLayout {
     text(c, value, x, y, size, fill, true);
   }
 
+  void centerText(
+      Canvas c, String value, float center, float y, float size, int color, boolean display) {
+    p.setTypeface(display ? heading : prose);
+    p.setTextSize(size);
+    text(c, value, center - p.measureText(value) / 2, y, size, color, display);
+  }
+
   void shadow(Canvas c, float x, float y, float w) {
     reset(0x7034261f);
     p.setShader(
@@ -321,6 +351,64 @@ final class TitleConceptScene extends FrameLayout {
     c.save();
     c.scale(1, .23f, x, y);
     c.drawCircle(x, y, w, p);
+    c.restore();
+    p.setShader(null);
+  }
+
+  /** 원본 발 위치를 기준으로 넓고 약한 환경 그림자와 얇은 접촉 그림자를 분리한다. */
+  void groundedBattleSprite(Canvas c, String name, RectF box, boolean onPaper) {
+    Rect source = alpha.get(name);
+    float scale = Math.min(box.width() / source.width(), box.height() / source.height());
+    float width = source.width() * scale, height = source.height() * scale;
+    RectF target =
+        new RectF(
+            box.centerX() - width / 2, box.bottom - height, box.centerX() + width / 2, box.bottom);
+    boolean primordial = name.contains("D1_s0_front");
+    boolean waterShoes = name.contains("I9_s0_front");
+    float center = primordial ? .46f : .50f;
+    // D1의 발과 오른쪽 청백색 이펙트는 원본의 일부이며 자르거나 다시 그리지 않는다.
+    ellipseShadow(
+        c,
+        target.left + width * center,
+        target.bottom + 1,
+        width * .28f,
+        height * .036f,
+        onPaper ? 0x213e3323 : 0x35362d21);
+    if (waterShoes) {
+      ellipseShadow(
+          c,
+          target.centerX(),
+          target.bottom,
+          width * .36f,
+          height * .015f,
+          onPaper ? 0x313e3323 : 0x5930271e);
+    } else {
+      float leftFoot = primordial ? .335f : .39f;
+      float rightFoot = primordial ? .585f : .64f;
+      ellipseShadow(
+          c,
+          target.left + width * leftFoot,
+          target.bottom - height * .022f,
+          width * .105f,
+          height * .015f,
+          onPaper ? 0x403e3323 : 0x7830271e);
+      ellipseShadow(
+          c,
+          target.left + width * rightFoot,
+          target.bottom,
+          width * .095f,
+          height * .015f,
+          onPaper ? 0x403e3323 : 0x7830271e);
+    }
+    sprite(c, name, box);
+  }
+
+  void ellipseShadow(Canvas c, float x, float y, float rx, float ry, int color) {
+    reset(Color.WHITE);
+    p.setShader(new RadialGradient(x, y, rx, color, color & 0x00ffffff, Shader.TileMode.CLAMP));
+    c.save();
+    c.scale(1, ry / rx, x, y);
+    c.drawCircle(x, y, rx, p);
     c.restore();
     p.setShader(null);
   }
@@ -372,9 +460,12 @@ final class TitleConceptScene extends FrameLayout {
     cover(c, "native/journal/c-home-morning.webp", new RectF(0, 0, W, H));
     gradient(c, new RectF(0, 0, W, H), 0x48432316, 0x001e2b2d, false);
     gradient(c, new RectF(0, H * .60f, W, H), 0x00302417, 0x9b312418, true);
-    glow(c, 754, H * .45f, H * .62f, 0x9dfff1a2);
-    shadow(c, 756, H * .83f, 201);
-    sprite(c, "native/t2_guardian.webp", new RectF(526, H * .11f, 970, H * .84f));
+    glow(c, 754, H * .45f, H * .47f, 0x2bffe7b6);
+    groundedBattleSprite(
+        c,
+        "game-art/duel/sprites/D1_s0_front.webp",
+        new RectF(536, H * .12f, 970, H * .84f),
+        false);
     sprite(c, "native/t2_logo.webp", new RectF(49, H * .095f, 606, H * .45f));
     outlineText(c, "작은 동료, 커다란 모험.", 80, H * .57f, 25, PAPER, 0xff483728);
     particles(c, 42, 24, 40, H * .14f, 920, H * .82f, 0xb8fff2bb);
@@ -402,11 +493,21 @@ final class TitleConceptScene extends FrameLayout {
     text(c, "갈매미맨", 63, H * .295f, 51, PAPER, true);
     text(c, "수비대", 91, H * .447f, 65, 0xffffd982, true);
     text(c, "나만의 동료와, 출항.", 75, H * .565f, 19, PAPER, false);
-    glow(c, 654, H * .46f, H * .5f, 0x60fff0ad);
-    shadow(c, 670, H * .85f, 252);
-    sprite(c, "native/t2_guardian.webp", new RectF(440, H * .10f, 854, H * .82f));
-    sprite(c, "native/t2_gull.webp", new RectF(318, H * .43f, 548, H * .86f));
-    sprite(c, "native/t2_lobster.webp", new RectF(756, H * .47f, 966, H * .85f));
+    groundedBattleSprite(
+        c,
+        "game-art/duel/sprites/D1_s0_front.webp",
+        new RectF(440, H * .12f, 854, H * .82f),
+        false);
+    groundedBattleSprite(
+        c,
+        "game-art/duel/sprites/T6_s0_front.webp",
+        new RectF(323, H * .39f, 547, H * .86f),
+        false);
+    groundedBattleSprite(
+        c,
+        "game-art/duel/sprites/I9_s0_front.webp",
+        new RectF(765, H * .43f, 965, H * .855f),
+        false);
     particles(c, 54, 16, 363, H * .2f, 928, H * .74f, 0xa6fff6cc);
     line(c, 372, H - 29, 940, H - 29, 0x75edd5a1, 1);
     text(c, "함께라서 더 강한 모험", 537, H - 48, 20, PAPER, false);
@@ -458,9 +559,11 @@ final class TitleConceptScene extends FrameLayout {
         "game-art/thumbs/D1.jpg",
         new RectF(272 - mainCard / 2, H * .55f, 272 + mainCard / 2, H * .55f + mainCard),
         0);
-    glow(c, 739, H * .44f, H * .37f, 0x8affedb8);
-    shadow(c, 735, H * .735f, 155);
-    sprite(c, "native/t2_guardian.webp", new RectF(560, H * .146f, 912, H * .735f));
+    groundedBattleSprite(
+        c,
+        "game-art/duel/sprites/D1_s0_front.webp",
+        new RectF(564, H * .15f, 908, H * .735f),
+        true);
     particles(c, 8, 16, 550, H * .12f, 902, H * .73f, 0x99b68b45);
   }
 
@@ -505,6 +608,134 @@ final class TitleConceptScene extends FrameLayout {
     compass(c, 933, H * .25f, 32, 0x99cab47d);
   }
 
+  /** E: 왼쪽의 수호자와 오른쪽의 펼친 항로가 이어지는 비대칭 출항 지도. */
+  void chart(Canvas c) {
+    cover(c, "native/journal/c-home-morning.webp", new RectF(0, 0, W, H));
+    gradient(c, new RectF(0, 0, 610, H), 0x1e39301f, 0x0039301f, false);
+    Path map = new Path();
+    map.moveTo(548, -8);
+    map.lineTo(W, -8);
+    map.lineTo(W, H + 8);
+    map.lineTo(485, H + 8);
+    map.lineTo(510, H * .77f);
+    map.lineTo(479, H * .54f);
+    map.lineTo(525, H * .28f);
+    map.close();
+    reset(0xffe5d4ae);
+    c.drawPath(map, p);
+    c.save();
+    c.clipPath(map);
+    gradient(c, new RectF(479, 0, W, H), 0xfff8efd7, 0xffe4d7b5, false);
+    for (int i = 0; i < 8; i++) {
+      float y = H * (.08f + i * .13f);
+      line(c, 482, y, W, y - 16, 0x1e8a8368, .8f);
+    }
+    for (int i = 0; i < 7; i++) {
+      float x = 507 + i * 79;
+      line(c, x, 0, x - 36, H, 0x168a8368, .8f);
+    }
+    // 항로는 장식이며 스테이지명이나 임의 게임 수치를 넣지 않는다.
+    Path coast = new Path();
+    coast.moveTo(1003, H * .42f);
+    coast.cubicTo(928, H * .47f, 960, H * .60f, 884, H * .61f);
+    coast.cubicTo(830, H * .60f, 857, H * .74f, 776, H * .73f);
+    coast.lineTo(1003, H * .88f);
+    coast.close();
+    reset(0x1e5a8674);
+    c.drawPath(coast, p);
+    reset(0x60587d70);
+    p.setStyle(Paint.Style.STROKE);
+    p.setStrokeWidth(1.4f);
+    c.drawPath(coast, p);
+    p.setStyle(Paint.Style.FILL);
+    compass(c, 865, H * .555f, 43, 0x9b9c773d);
+    Path route = new Path();
+    route.moveTo(563, H * .72f);
+    route.cubicTo(621, H * .58f, 691, H * .73f, 758, H * .58f);
+    reset(0xff3f7473);
+    p.setStyle(Paint.Style.STROKE);
+    p.setStrokeWidth(2.5f);
+    p.setPathEffect(new DashPathEffect(new float[] {5, 6}, 0));
+    c.drawPath(route, p);
+    p.setPathEffect(null);
+    p.setStyle(Paint.Style.FILL);
+    c.drawCircle(563, H * .72f, 4, p);
+    compass(c, 759, H * .58f, 11, 0xff956f36);
+    c.restore();
+    text(c, "지도를 펼치고, 출항.", 581, H * .16f, 19, 0xff6d6c58, false);
+    text(c, "갈매미맨", 579, H * .305f, 52, INK, true);
+    text(c, "수비대", 579, H * .45f, 65, TEAL, true);
+    RectF hero = new RectF(36, H * .10f, 493, H * .865f);
+    protectedArtwork.add(hero);
+    groundedBattleSprite(c, "game-art/duel/sprites/D1_s0_front.webp", hero, false);
+    particles(c, 341, 17, 57, H * .19f, 439, H * .79f, 0x78f9e3b1);
+  }
+
+  /** F: units.json의 실제 조합식 L2 + H6 → D1을 원본 카드와 잉크 연결로 보여준다. */
+  void chronicle(Canvas c) {
+    cover(c, "native/journal/c-home-evening.webp", new RectF(0, 0, W, H));
+    rect(c, new RectF(0, 0, W, H), 0xa32e2c23, 0);
+    gradient(c, new RectF(0, H * .55f, W, H), 0x0034261f, 0xc832271f, true);
+    line(c, 55, 24, 846, 24, 0x72d1b883, 1);
+    compass(c, 500, H * .505f, H * .278f, 0x538caaa1);
+    glow(c, 500, H * .49f, H * .31f, 0x35f3d39b);
+    centerText(c, "갈매미맨 수비대", 500, H * .14f, 44, PAPER, true);
+    centerText(c, "두 동료가 만나, 하나의 수호자로.", 500, H * .223f, 18, 0xffdfd0ae, false);
+    float size = Math.min(180, H * .32f);
+    RectF left = new RectF(199 - size / 2, H * .35f, 199 + size / 2, H * .35f + size);
+    RectF right = new RectF(801 - size / 2, H * .35f, 801 + size / 2, H * .35f + size);
+    recipeInk(c, left.right + 12, left.centerY(), 330, H * .515f);
+    recipeInk(c, right.left - 12, right.centerY(), 670, H * .515f);
+    card(c, "game-art/thumbs/L2.jpg", left, -6);
+    card(c, "game-art/thumbs/H6.jpg", right, 6);
+    centerText(c, "쌍패성왕", 199, left.bottom + 30, 20, PAPER, true);
+    centerText(c, "거울떼갈매미", 801, right.bottom + 30, 20, PAPER, true);
+    RectF hero = new RectF(335, H * .265f, 665, H * .72f);
+    protectedArtwork.add(hero);
+    groundedBattleSprite(c, "game-art/duel/sprites/D1_s0_front.webp", hero, false);
+    centerText(c, "태초의 갈매미맨", 500, H * .77f, 19, 0xffe6d4a1, true);
+    particles(c, 479, 22, 324, H * .29f, 677, H * .71f, 0x96e3ca8c);
+  }
+
+  void recipeInk(Canvas c, float x, float y, float toX, float toY) {
+    Path link = new Path();
+    float direction = toX > x ? 1 : -1;
+    link.moveTo(x, y);
+    link.cubicTo(x + direction * 37, y - 19, toX - direction * 29, toY + 12, toX, toY);
+    reset(0xffead097);
+    p.setStyle(Paint.Style.STROKE);
+    p.setStrokeWidth(2.8f);
+    p.setPathEffect(new DashPathEffect(new float[] {7, 4}, 0));
+    c.drawPath(link, p);
+    p.setPathEffect(null);
+    p.setStyle(Paint.Style.FILL);
+    Path arrow = new Path();
+    arrow.moveTo(toX, toY);
+    arrow.lineTo(toX - direction * 14, toY - 7);
+    arrow.lineTo(toX - direction * 13, toY + 8);
+    arrow.close();
+    c.drawPath(arrow, p);
+  }
+
+  /** G: 어둠 속 큰 전투 원본과 오른쪽의 제목을 달빛·황동 등불로 분리한다. */
+  void moonlight(Canvas c) {
+    cover(c, "native/journal/c-home-night.webp", new RectF(0, 0, W, H));
+    gradient(c, new RectF(0, 0, W, H), 0x11132135, 0xdd10202c, false);
+    gradient(c, new RectF(0, H * .64f, W, H), 0x00101e2c, 0xc9101b25, true);
+    glow(c, 139, H * .37f, H * .29f, 0x57e5ab54);
+    glow(c, 437, H * .32f, H * .37f, 0x246bacc3);
+    compass(c, 882, H * .24f, 23, 0x9bb89b64);
+    text(c, "달빛 아래, 수비대의 약속", 640, H * .235f, 17, 0xffe5c68a, false);
+    text(c, "갈매미맨", 615, H * .37f, 54, PAPER, true);
+    text(c, "수비대", 615, H * .535f, 72, 0xffedcf8c, true);
+    text(c, "오늘도 우리 섬을 지켜요.", 620, H * .65f, 18, 0xffd7e3de, false);
+    line(c, 620, H * .695f, 923, H * .695f, 0x798ba097, 1);
+    RectF hero = new RectF(39, H * .12f, 580, H * .875f);
+    protectedArtwork.add(hero);
+    groundedBattleSprite(c, "game-art/duel/sprites/D1_s0_front.webp", hero, false);
+    particles(c, 947, 21, 66, H * .16f, 568, H * .78f, 0x88cae1dd);
+  }
+
   static final class StartPlate extends Drawable {
     final Paint paint = new Paint(3);
     final int style;
@@ -528,6 +759,16 @@ final class TitleConceptScene extends FrameLayout {
           style == 0 ? 0xffda9b44 : style == 1 ? 0xff2f7380 : style == 2 ? 0xff37616b : 0xffb96537;
       int lower =
           style == 0 ? 0xff9e592b : style == 1 ? 0xff153e49 : style == 2 ? 0xff163f4b : 0xff753e28;
+      if (style == 4) {
+        upper = 0xff336b6b;
+        lower = 0xff194446;
+      } else if (style == 5) {
+        upper = 0xff8c5141;
+        lower = 0xff55362c;
+      } else if (style == 6) {
+        upper = 0xffb38743;
+        lower = 0xff735326;
+      }
       paint.setShader(
           new LinearGradient(0, r.top, 0, r.bottom, upper, lower, Shader.TileMode.CLAMP));
       c.drawRoundRect(r, 9, 9, paint);

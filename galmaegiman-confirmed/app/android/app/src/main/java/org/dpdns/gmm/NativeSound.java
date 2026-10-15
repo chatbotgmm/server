@@ -14,8 +14,9 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** 웹 원본 음악·효과음을 로컬에서 재생한다. 볼륨 값은 음소거와 별도로 보관한다. */
+/** 항구의 자연 환경음과 전투·이야기 음악을 APK에서 재생한다. 볼륨은 음소거와 별도로 보관한다. */
 final class NativeSound {
+  static final String HARBOR_ASSET = "native/harbor-ambience.ogg";
   private final Context context;
   private final SharedPreferences prefs;
   private final AudioManager manager;
@@ -134,7 +135,8 @@ final class NativeSound {
         for (int id : streams.keySet()) effects.setVolume(id, v, v);
       }
     } else if (key.equals("music")) {
-      if (music != null) {
+      if (audibleVolume(key) == 0) stopPlayer();
+      else if (music != null) {
         float value = gain(key);
         if (value > 0 && (stopped || interrupted || !requestFocus())) value = 0;
         music.setVolume(value, value);
@@ -233,27 +235,42 @@ final class NativeSound {
     stopPlayer();
     current = name;
     try {
-      android.content.res.AssetFileDescriptor f =
-          context.getAssets().openFd("native/" + name + ".wav");
       music = new MediaPlayer();
       music.setAudioAttributes(attributes(true));
-      music.setDataSource(f.getFileDescriptor(), f.getStartOffset(), f.getLength());
-      f.close();
+      try (android.content.res.AssetFileDescriptor f = context.getAssets().openFd(assetFor(name))) {
+        music.setDataSource(f.getFileDescriptor(), f.getStartOffset(), f.getLength());
+      }
       music.setLooping(true);
       music.setVolume(gain("music"), gain("music"));
       music.setOnPreparedListener(
           p -> {
-            if (music == p && !stopped && !interrupted && !closed) {
+            if (music == p
+                && name.equals(requested)
+                && audibleVolume("music") > 0
+                && !stopped
+                && !interrupted
+                && !closed) {
               try {
+                p.setVolume(gain("music"), gain("music"));
                 p.start();
               } catch (IllegalStateException ignored) {
               }
             }
           });
+      music.setOnErrorListener(
+          (p, what, extra) -> {
+            if (music == p) stopPlayer();
+            return true;
+          });
       music.prepareAsync();
     } catch (Exception ignored) {
       stopPlayer();
     }
+  }
+
+  /** 화면 이름은 유지하되 항구에서는 선율 대신 파도·물·갈매기 녹음을 반복한다. */
+  static String assetFor(String name) {
+    return name.equals("title") ? HARBOR_ASSET : "native/" + name + ".wav";
   }
 
   void click() {

@@ -4,7 +4,6 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
@@ -33,11 +32,10 @@ final class JournalAmbient {
   private final Loader loader;
   private final Paint bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
   private final Paint light = new Paint(Paint.ANTI_ALIAS_FLAG);
-  private final Paint reflection = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final Paint shadow = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final RectF target = new RectF();
   private final RectF grounding = new RectF();
-  private final Path water = new Path();
+  final JournalWater water = new JournalWater();
   private final Runnable timeChanged = this::refresh;
   private final RadialGradient lantern =
       new RadialGradient(
@@ -59,24 +57,6 @@ final class JournalAmbient {
     this.host = host;
     this.motion = motion;
     this.loader = loader;
-    reflection.setStrokeWidth(1.3f);
-    reflection.setStrokeCap(Paint.Cap.ROUND);
-    reflection.setColor(Color.WHITE);
-    // 실제 물 부분만 클립한다. 교량·성곽·말뚝·지도에는 반사광이 올라가지 않는다.
-    polygon(
-        710, 451, 824, 443, 838, 443, 824, 459, 822, 478, 809, 481, 799, 475, 781, 477, 767, 482,
-        746, 480, 719, 473);
-    polygon(
-        935, 442, 1007, 435, 1010, 456, 1024, 468, 1063, 468, 1070, 445, 1132, 443, 1187, 439, 1246,
-        442, 1302, 446, 1374, 449, 1375, 479, 1367, 518, 1358, 529, 1240, 529, 1227, 522, 1226, 485,
-        1209, 478, 1161, 478, 1149, 487, 1147, 516, 1126, 522, 1115, 518, 1113, 487, 1100, 477,
-        1038, 478, 1024, 487, 1023, 516, 1007, 524, 994, 525, 992, 504, 974, 491, 938, 489);
-  }
-
-  private void polygon(float... points) {
-    water.moveTo(points[0], points[1]);
-    for (int i = 2; i < points.length; i += 2) water.lineTo(points[i], points[i + 1]);
-    water.close();
   }
 
   void attach() {
@@ -198,17 +178,25 @@ final class JournalAmbient {
     target.offset(parallaxX * .25f, parallaxY * .25f);
     bitmapPaint.setAlpha(255);
     canvas.drawBitmap(current, null, target, bitmapPaint);
+    float progress = 0;
     if (incoming != null) {
-      float progress =
+      progress =
           SceneMotion.enabled(host) && host.motionResumed
               ? (float) Math.max(0, Math.min(1, (motion.millis - fadeStarted) / TRANSITION_MILLIS))
               : 1;
       bitmapPaint.setAlpha(Math.round(255 * progress));
       canvas.drawBitmap(incoming, null, target, bitmapPaint);
       bitmapPaint.setAlpha(255);
-      if (progress >= 1) finishTransition();
     }
     LocalTimeTheme.Phase phase = incomingPhase == null ? currentPhase : incomingPhase;
+    boolean moving =
+        SceneMotion.enabled(host)
+            && host.motionResumed
+            && motion.clock != null
+            && owner.isShown()
+            && owner.getWindowVisibility() == View.VISIBLE;
+    water.draw(canvas, current, incoming, progress, target, phase, motion.millis / 1000d, moving);
+    if (incoming != null && progress >= 1) finishTransition();
     drawEnvironment(canvas, target, phase, motion.millis / 1000d, SceneMotion.enabled(host));
   }
 
@@ -218,17 +206,6 @@ final class JournalAmbient {
     canvas.translate(bounds.left, bounds.top);
     canvas.scale(bounds.width() / SOURCE_WIDTH, bounds.height() / SOURCE_HEIGHT);
     double time = moving ? seconds : 0;
-    canvas.save();
-    canvas.clipPath(water);
-    for (int i = 0; i < 26; i++) {
-      float x = 630 + (i * 137 % 770), y = 449 + (i * 31 % 94);
-      double wave = time * .55 + i * 2.3;
-      float drift = moving ? (float) Math.sin(wave) * 5 : 0;
-      reflection.setAlpha(
-          (phase == LocalTimeTheme.Phase.NIGHT ? 5 : 9) + (int) (5 * (1 + Math.sin(wave))));
-      canvas.drawLine(x - 9 + drift, y, x + 9 + drift, y, reflection);
-    }
-    canvas.restore();
     if (phase == LocalTimeTheme.Phase.EVENING || phase == LocalTimeTheme.Phase.NIGHT) {
       light.setShader(lantern);
       light.setAlpha(

@@ -93,7 +93,13 @@ public class NativeRenderReviewTest {
         assertTrue(
             label + " 세로 잘림: " + y + "/" + height, y >= -1 && y + v.getHeight() <= height + 1);
       assertTrue(
-          label + " 터치 높이 " + v.getHeight() + " / shown=" + v.isShown(),
+          label
+              + " 터치 높이 "
+              + v.getHeight()
+              + " / 설명="
+              + v.getContentDescription()
+              + " / shown="
+              + v.isShown(),
           !v.isShown() || v.getHeight() >= 48);
       checked++;
     }
@@ -161,6 +167,8 @@ public class NativeRenderReviewTest {
 
   void capture(MainActivity a, String name, int w, int h) throws Exception {
     Files.createDirectories(Path.of(System.getProperty("gmm.nativeReviewOutput")));
+    // 해상도 전환 뒤 실제 Window/Display까지 맞춰 자동 배치가 다른 크기로 덮지 않게 한다.
+    viewport(a, w, h);
     force(a.root);
     a.root.measure(
         View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
