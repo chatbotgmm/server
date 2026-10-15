@@ -396,7 +396,7 @@ final class NativeLibrary {
       title.setEllipsize(android.text.TextUtils.TruncateAt.END);
     }
     title.setTextLocale(Locale.KOREA);
-    title.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
+    title.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
     if (android.os.Build.VERSION.SDK_INT >= 33)
       title.setLineBreakWordStyle(
           android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
