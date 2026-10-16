@@ -51,6 +51,15 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
     if(!body)return reply.code(404).send({error:'not found'});
     return reply.type(type).header('Cache-Control',`public, max-age=${maxAge}`).send(body);
   };
+  // 웹 게임 양피지 재질: 파일명을 제한하고 네이티브 자원과 분리합니다.
+  app.get<{Params:{file:string}}>('/parchment/:file',async(req,reply)=>{
+    const types:Record<string,string>={
+      'parchment.css':'text/css; charset=utf-8',
+      'panel.webp':'image/webp','button.webp':'image/webp','texture.webp':'image/webp',
+    };
+    if(!Object.hasOwn(types,req.params.file))return reply.code(404).send({error:'not found'});
+    return sendFile(reply,types[req.params.file],resolve(options.root??process.cwd(),'public/parchment',req.params.file));
+  });
   app.get('/play',async(_req,reply)=>sendFile(reply,'text/html; charset=utf-8',resolve(playDir,'index.html')));
   app.get('/play/game.js',async(_req,reply)=>sendFile(reply,'text/javascript; charset=utf-8',resolve(playDir,'game.js')));
   // 2.5D(Three.js 포함) 묶음 파일은 빌드 때 만들어짐(scripts/build-play.mjs)
