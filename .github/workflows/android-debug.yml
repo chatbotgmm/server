@@ -1,4 +1,4 @@
-name: Android Debug APK
+name: Android Parchment Preview
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
       source_ref:
         description: "Source branch, tag, or commit SHA"
         required: true
-        default: "codex/web-parchment"
+        default: "manual/native79-parchment"
         type: string
 
 permissions:
@@ -41,17 +41,38 @@ jobs:
         run: |
           echo "Built source commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Generate parchment preview
+        shell: bash
+        run: python3 apply-native-parchment.py
+
+      - name: Test theme and material
+        working-directory: galmaegiman-confirmed/app/android
+        shell: bash
+        run: |
+          bash ./gradlew :app:testDebugUnitTest --tests org.dpdns.gmm.JournalThemeTest --tests org.dpdns.gmm.JournalMaterialTest --no-daemon --max-workers=2 --stacktrace "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
+
       - name: Build debug APK
         working-directory: galmaegiman-confirmed/app/android
         shell: bash
         run: |
           bash ./gradlew :app:assembleDebug --no-daemon --max-workers=2 --stacktrace "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
 
-      - name: Upload debug APK
+      - name: Upload parchment preview APK
         uses: actions/upload-artifact@v7
         with:
-          name: android-debug-${{ github.run_number }}
+          name: native79-parchment-preview-${{ github.run_number }}
           path: galmaegiman-confirmed/app/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 3
           compression-level: 0
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: parchment-test-reports-${{ github.run_number }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/reports/tests/testDebugUnitTest/
+            galmaegiman-confirmed/app/android/app/build/test-results/testDebugUnitTest/
+          if-no-files-found: ignore
+          retention-days: 3
