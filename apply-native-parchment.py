@@ -238,3 +238,24 @@ pending.append((test_path, replace_once(text, old, new, "Parchment readiness")))
 for path, text in pending:
     path.write_text(text, encoding="utf-8")
 print("Secondary text darkened; contrast thresholds preserved; readiness check added.")
+text = HELPER.read_text(encoding="utf-8")
+text = replace_once(
+    text,
+    "    drawable.draw(canvas);",
+    """    state.base.setColor(JournalTheme.PAPER);
+    canvas.drawRoundRect(bounds, 3 * scale, 3 * scale, state.base);
+    drawable.setAlpha(64);
+    drawable.draw(canvas);
+    drawable.setAlpha(255);""",
+    "Quiet parchment surface",
+)
+text = replace_once(
+    text,
+    "    NinePatchDrawable button;",
+    """    NinePatchDrawable button;
+    final android.graphics.Paint base =
+        new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);""",
+    "Parchment base paint",
+)
+HELPER.write_text(text, encoding="utf-8")
+print("Quiet paper base added; parchment texture blended; test thresholds unchanged.")
