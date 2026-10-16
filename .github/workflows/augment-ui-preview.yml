@@ -1,4 +1,4 @@
-name: Augment UI preview
+name: Realtime ranked preview
 
 on:
   push:
@@ -16,11 +16,35 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: galmaegiman-confirmed/package-lock.json
+
+      - name: Extract reviewed realtime source bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'ed2801a456eca48fb85e8a99f695780ba7453b8205c0d8d458998cf0241ad95d  realtime-ranked-bundle.zip' | sha256sum --check --strict
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          root = Path.cwd().resolve()
+          with ZipFile('realtime-ranked-bundle.zip') as archive:
+              entries = archive.infolist()
+              for entry in entries:
+                  path = Path(entry.filename)
+                  if path.is_absolute() or '..' in path.parts:
+                      raise SystemExit('Unsafe archive path')
+                  destination = root / path
+                  if not destination.resolve().is_relative_to(root):
+                      raise SystemExit('Archive escaped checkout')
+                  if not entry.is_dir() and destination.exists():
+                      raise SystemExit('Refusing to overwrite: ' + str(path))
+              archive.extractall(root)
+          PY
 
       - name: Generate source in disposable checkout
         shell: bash
@@ -32,14 +56,16 @@ jobs:
             python3 apply-native-parchment.py
             python3 apply-augment-layout.py
             python3 apply-augment-switch-fix.py --apply
+            python3 apply-realtime-ranked.py
+            python3 apply-realtime-ranked.py --apply
           } 2>&1 | tee review-logs/generation-server.log
           git diff --binary > review-logs/generated-source.patch
           tar -czf review-logs/generated-source.tar.gz \
-            galmaegiman-confirmed/app/android/app/src \
-            galmaegiman-confirmed/public/duel/index.html \
-            galmaegiman-confirmed/public/duel/duel.js \
-            galmaegiman-confirmed/src/battle/engine.ts \
-            galmaegiman-confirmed/test/battle-events.test.ts
+            galmaegiman-confirmed/src \
+            galmaegiman-confirmed/test \
+            galmaegiman-confirmed/prisma \
+            galmaegiman-confirmed/public/duel \
+            galmaegiman-confirmed/app/android/app/src
 
       - name: Install dependencies and generate Prisma client
         working-directory: galmaegiman-confirmed
@@ -57,6 +83,17 @@ jobs:
           npm run data:check 2>&1 | tee ../review-logs/data-check.log
           npm test -- test/battle-events.test.ts -t '강제 교체 증강체 회귀' \
             2>&1 | tee ../review-logs/forced-switch.log
+
+      - name: Validate schema and realtime pure tests
+        working-directory: galmaegiman-confirmed
+        shell: bash
+        run: |
+          set -euo pipefail
+          DATABASE_URL=file:/tmp/realtime-schema-validation.db npx --no-install prisma validate \
+            2>&1 | tee ../review-logs/prisma-validate.log
+          npm test -- test/realtime-adapter.test.ts test/ranked-rating.test.ts \
+            test/realtime-ranked-client.test.ts test/ranked-human-only.test.ts \
+            2>&1 | tee ../review-logs/realtime-pure-tests.log
 
       - name: Build server and web
         working-directory: galmaegiman-confirmed
@@ -207,7 +244,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: augment-server-evidence
+          name: realtime-ranked-server-evidence
           path: review-logs/
           retention-days: 7
 
@@ -218,6 +255,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
@@ -229,6 +267,29 @@ jobs:
           test -d "$ANDROID_HOME/platforms/android-36"
           test -d "$ANDROID_HOME/build-tools/35.0.0"
 
+      - name: Extract reviewed realtime source bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'ed2801a456eca48fb85e8a99f695780ba7453b8205c0d8d458998cf0241ad95d  realtime-ranked-bundle.zip' | sha256sum --check --strict
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          root = Path.cwd().resolve()
+          with ZipFile('realtime-ranked-bundle.zip') as archive:
+              entries = archive.infolist()
+              for entry in entries:
+                  path = Path(entry.filename)
+                  if path.is_absolute() or '..' in path.parts:
+                      raise SystemExit('Unsafe archive path')
+                  destination = root / path
+                  if not destination.resolve().is_relative_to(root):
+                      raise SystemExit('Archive escaped checkout')
+                  if not entry.is_dir() and destination.exists():
+                      raise SystemExit('Refusing to overwrite: ' + str(path))
+              archive.extractall(root)
+          PY
+
       - name: Generate preview source
         shell: bash
         run: |
@@ -239,6 +300,8 @@ jobs:
             python3 apply-native-parchment.py
             python3 apply-augment-layout.py
             python3 apply-augment-switch-fix.py --apply
+            python3 apply-realtime-ranked.py
+            python3 apply-realtime-ranked.py --apply
           } 2>&1 | tee review-logs/generation-native.log
 
       - name: Run unit tests and build APKs
@@ -257,7 +320,7 @@ jobs:
       - name: Save UI preview APK
         uses: actions/upload-artifact@v7
         with:
-          name: augment-native-ui-preview
+          name: realtime-ranked-native-preview
           path: galmaegiman-confirmed/app/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
@@ -267,7 +330,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: augment-native-evidence
+          name: realtime-ranked-native-evidence
           path: |
             galmaegiman-confirmed/app/android/app/build/reports/tests/
             galmaegiman-confirmed/app/android/app/build/test-results/
@@ -277,5 +340,6 @@ jobs:
       - name: Record preview limits
         if: always()
         run: |
-          echo 'UI preview uses the existing server. No deployment occurred.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Realtime preview requires the matching upgraded backend. No deployment or production migration occurred.' >> "$GITHUB_STEP_SUMMARY"
           echo 'Instrumentation was compiled, not executed. Device visual validation remains required.' >> "$GITHUB_STEP_SUMMARY"
+
