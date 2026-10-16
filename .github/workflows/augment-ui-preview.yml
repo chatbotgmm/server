@@ -58,19 +58,150 @@ jobs:
           npm test -- test/battle-events.test.ts -t '강제 교체 증강체 회귀' \
             2>&1 | tee ../review-logs/forced-switch.log
 
-      - name: Run full tests using isolated temporary database
-        working-directory: galmaegiman-confirmed
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm run test:db 2>&1 | tee ../review-logs/full-tests.log
-
       - name: Build server and web
         working-directory: galmaegiman-confirmed
         shell: bash
         run: |
           set -euo pipefail
           npm run build 2>&1 | tee ../review-logs/server-build.log
+
+      - name: Capture old and new seven-seed review evidence
+        working-directory: galmaegiman-confirmed
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > scripts/review-augment-switch.mjs <<'AUGMENT_REVIEW_JS'
+          import { createHash } from 'node:crypto';
+          import { readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'node:fs';
+          import { loadBattleRules } from '../src/battle/load.ts';
+          import { loadContent } from '../src/content.ts';
+          import * as current from '../src/battle/engine.ts';
+          
+          const output = new URL('../../review-logs/', import.meta.url);
+          const oldModule = new URL('../src/battle/engine.pre-switch-review.ts', import.meta.url);
+          const backup = new URL('../src/battle/engine.ts.augment-switch.bak', import.meta.url);
+          const expectedLegacy = '5599e2f51741f8273bbc5cfe866cc0efb407cfc33132f695bf225ab1c618a7ca';
+          const seeds = [1, 2, 3, 7, 17, 42, 99];
+          const R = loadBattleRules();
+          const content = loadContent();
+          const clone = value => JSON.parse(JSON.stringify(value));
+          const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+          const state = b => ({
+            rng: b.rng, turn: b.turn, phase: b.phase,
+            winner: b.winner, sides: b.sides, log: b.log
+          });
+          
+          function run(engine, capture) {
+            const final = [];
+            const traces = [];
+            for (const seed of seeds) {
+              const mk = (id, i) => ({
+                uid: 'u' + i, id,
+                name: content.map.get(id).name,
+                tier: content.map.get(id).rarity,
+                level: 30, xp: 0, stage: 0, evoAugs: []
+              });
+              const b = engine.createBattle(
+                R, ['D6', 'T3', 'I4'].map(mk),
+                ['D4', 'E2', 'T7'].map(mk), seed
+              );
+              const entries = [];
+              const record = (step, kind, side, operation) => {
+                const before = capture ? clone(state(b)) : undefined;
+                const seq = b.eventSeq;
+                operation();
+                if (capture) entries.push({
+                  step, kind, side, before, after: clone(state(b)),
+                  events: clone(b.events.filter(e => e.id > seq))
+                });
+              };
+              for (let step = 0; step < 400 && b.phase !== 'over'; step++) {
+                if (b.phase === 'choose') {
+                  record(step, 'choose', 0, () => engine.aiChoose(b, 0));
+                  record(step, 'choose', 1, () => engine.aiChoose(b, 1));
+                } else {
+                  record(step, 'act', null, () => engine.act(b, [
+                    engine.pickAi(b, 0), engine.pickAi(b, 1)
+                  ]));
+                }
+              }
+              final.push(clone(state(b)));
+              if (capture) traces.push({ seed, entries });
+            }
+            return { final, traces, digest: hash(final) };
+          }
+          
+          function save(name, value) {
+            writeFileSync(new URL(name, output), JSON.stringify(value, null, 2) + '\n');
+          }
+          
+          mkdirSync(output, { recursive: true });
+          writeFileSync(oldModule, readFileSync(backup), { flag: 'wx' });
+          try {
+            const legacy = await import(oldModule.href);
+            const before = run(legacy, true);
+            const after = run(current, true);
+            const repeat = run(current, false);
+            save('augment-switch-before.json', before);
+            save('augment-switch-after.json', after);
+            const comparison = {
+              expectedLegacy,
+              legacyDigest: before.digest,
+              currentDigest: after.digest,
+              repeatDigest: repeat.digest,
+              legacyReproduced: before.digest === expectedLegacy,
+              currentDeterministic: after.digest === repeat.digest,
+              goldenExpectationChanged: false,
+              seeds: seeds.map((seed, i) => {
+                const oldEntries = before.traces[i].entries;
+                const newEntries = after.traces[i].entries;
+                let firstDifference = null;
+                for (let j = 0; j < Math.max(oldEntries.length, newEntries.length); j++) {
+                  if (JSON.stringify(oldEntries[j]) !== JSON.stringify(newEntries[j])) {
+                    firstDifference = {
+                      entry: j,
+                      legacyStep: oldEntries[j]?.step ?? null,
+                      currentStep: newEntries[j]?.step ?? null,
+                      legacyKind: oldEntries[j]?.kind ?? null,
+                      currentKind: newEntries[j]?.kind ?? null,
+                      legacySide: oldEntries[j]?.side ?? null,
+                      currentSide: newEntries[j]?.side ?? null
+                    };
+                    break;
+                  }
+                }
+                return {
+                  seed, firstDifference,
+                  legacyFinal: {
+                    turn: before.final[i].turn, winner: before.final[i].winner,
+                    rng: before.final[i].rng, digest: hash(before.final[i])
+                  },
+                  currentFinal: {
+                    turn: after.final[i].turn, winner: after.final[i].winner,
+                    rng: after.final[i].rng, digest: hash(after.final[i])
+                  }
+                };
+              })
+            };
+            save('augment-switch-comparison.json', comparison);
+            console.log(JSON.stringify(comparison, null, 2));
+            if (!comparison.legacyReproduced)
+              throw new Error('Legacy fixture did not reproduce. Do not update the golden hash.');
+            if (!comparison.currentDeterministic)
+              throw new Error('Current simulation was not deterministic. Do not update the golden hash.');
+            console.log('Review evidence saved. Existing golden expectation remains unchanged.');
+          } finally {
+            unlinkSync(oldModule);
+          }
+          AUGMENT_REVIEW_JS
+          node --import tsx scripts/review-augment-switch.mjs 2>&1 | tee ../review-logs/augment-switch-review.log
+
+      - name: Run full tests using isolated temporary database
+        working-directory: galmaegiman-confirmed
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run test:db 2>&1 | tee ../review-logs/full-tests.log
 
       - name: Save source and test evidence
         if: always()
