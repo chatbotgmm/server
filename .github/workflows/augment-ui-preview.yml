@@ -1,4 +1,4 @@
-name: Realtime ranked preview
+name: Realtime ranked v2 preview
 
 on:
   push:
@@ -27,7 +27,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo 'ed2801a456eca48fb85e8a99f695780ba7453b8205c0d8d458998cf0241ad95d  realtime-ranked-bundle.zip' | sha256sum --check --strict
+          echo '0302540448c738bdbe7066c6380ab9d9c55bffa6c2a22ffd62802fe25de679e8  realtime-ranked-bundle.zip' | sha256sum --check --strict
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
@@ -67,6 +67,8 @@ jobs:
             galmaegiman-confirmed/public/duel \
             galmaegiman-confirmed/app/android/app/src
 
+      - name: Validate reset helper on isolated temporary SQLite only
+        run: python3 -m unittest discover -s galmaegiman-confirmed/scripts/manual/ranked-reset -p "test_*.py" -v
       - name: Install dependencies and generate Prisma client
         working-directory: galmaegiman-confirmed
         shell: bash
@@ -271,7 +273,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo 'ed2801a456eca48fb85e8a99f695780ba7453b8205c0d8d458998cf0241ad95d  realtime-ranked-bundle.zip' | sha256sum --check --strict
+          echo '0302540448c738bdbe7066c6380ab9d9c55bffa6c2a22ffd62802fe25de679e8  realtime-ranked-bundle.zip' | sha256sum --check --strict
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
