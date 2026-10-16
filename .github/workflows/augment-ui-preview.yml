@@ -1,0 +1,150 @@
+name: Augment UI preview
+
+on:
+  push:
+    branches: ["manual/augment-ui-v1"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  server:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: galmaegiman-confirmed/package-lock.json
+
+      - name: Generate source in disposable checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p review-logs
+          {
+            git rev-parse HEAD
+            python3 apply-native-parchment.py
+            python3 apply-augment-layout.py
+            python3 apply-augment-switch-fix.py --apply
+          } 2>&1 | tee review-logs/generation-server.log
+          git diff --binary > review-logs/generated-source.patch
+          tar -czf review-logs/generated-source.tar.gz \
+            galmaegiman-confirmed/app/android/app/src \
+            galmaegiman-confirmed/public/duel/index.html \
+            galmaegiman-confirmed/public/duel/duel.js \
+            galmaegiman-confirmed/src/battle/engine.ts \
+            galmaegiman-confirmed/test/battle-events.test.ts
+
+      - name: Install dependencies and generate Prisma client
+        working-directory: galmaegiman-confirmed
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci 2>&1 | tee ../review-logs/npm-ci.log
+          npm run db:generate 2>&1 | tee ../review-logs/prisma-generate.log
+
+      - name: Check data and forced-switch tests
+        working-directory: galmaegiman-confirmed
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run data:check 2>&1 | tee ../review-logs/data-check.log
+          npm test -- test/battle-events.test.ts -t '강제 교체 증강체 회귀' \
+            2>&1 | tee ../review-logs/forced-switch.log
+
+      - name: Run full tests using isolated temporary database
+        working-directory: galmaegiman-confirmed
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run test:db 2>&1 | tee ../review-logs/full-tests.log
+
+      - name: Build server and web
+        working-directory: galmaegiman-confirmed
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build 2>&1 | tee ../review-logs/server-build.log
+
+      - name: Save source and test evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: augment-server-evidence
+          path: review-logs/
+          retention-days: 7
+
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Verify Android SDK
+        shell: bash
+        run: |
+          test -d "$ANDROID_HOME/platforms/android-36"
+          test -d "$ANDROID_HOME/build-tools/35.0.0"
+
+      - name: Generate preview source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p review-logs
+          {
+            git rev-parse HEAD
+            python3 apply-native-parchment.py
+            python3 apply-augment-layout.py
+            python3 apply-augment-switch-fix.py --apply
+          } 2>&1 | tee review-logs/generation-native.log
+
+      - name: Run unit tests and build APKs
+        working-directory: galmaegiman-confirmed/app/android
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash ./gradlew \
+            :app:testDebugUnitTest \
+            :app:assembleDebug \
+            :app:assembleDebugAndroidTest \
+            --no-daemon --max-workers=2 --stacktrace \
+            "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8" \
+            2>&1 | tee ../../../review-logs/native-build.log
+
+      - name: Save UI preview APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: augment-native-ui-preview
+          path: galmaegiman-confirmed/app/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+      - name: Save native test evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: augment-native-evidence
+          path: |
+            galmaegiman-confirmed/app/android/app/build/reports/tests/
+            galmaegiman-confirmed/app/android/app/build/test-results/
+            review-logs/
+          retention-days: 7
+
+      - name: Record preview limits
+        if: always()
+        run: |
+          echo 'UI preview uses the existing server. No deployment occurred.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Instrumentation was compiled, not executed. Device visual validation remains required.' >> "$GITHUB_STEP_SUMMARY"
