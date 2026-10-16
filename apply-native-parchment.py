@@ -206,3 +206,35 @@ theme_path.write_text(theme, encoding="utf-8")
 art_path.write_text(art, encoding="utf-8")
 print("Parchment preview generated: 2 resources, 1 helper, 2 source patches.")
 print("Version, signing, application ID and non-PAPER states unchanged.")
+
+changes = [
+    (
+        JAVA / "JournalTheme.java",
+        "0xff58635d",
+        "0xff46504a",
+    ),
+    (
+        APP / "src/main/res/values/journal_theme.xml",
+        "#58635D",
+        "#46504A",
+    ),
+    (
+        APP / "src/test/java/org/dpdns/gmm/JournalThemeTest.java",
+        "0xff58635d",
+        "0xff46504a",
+    ),
+]
+pending = []
+for path, old, new in changes:
+    text = path.read_text(encoding="utf-8")
+    pending.append((path, replace_once(text, old, new, str(path))))
+
+test_path = APP / "src/test/java/org/dpdns/gmm/JournalMaterialTest.java"
+text = test_path.read_text(encoding="utf-8")
+old = "      assertTrue(JournalMaterial.ready());"
+new = old + '\n      assertTrue("Parchment resources must load", JournalParchment.ready());'
+pending.append((test_path, replace_once(text, old, new, "Parchment readiness")))
+
+for path, text in pending:
+    path.write_text(text, encoding="utf-8")
+print("Secondary text darkened; contrast thresholds preserved; readiness check added.")
