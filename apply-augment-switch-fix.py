@@ -88,7 +88,14 @@ try:
             sys.exit('Test helpers/imports differ; no changes made.')
     if not original[tests].rstrip().endswith('});'):
         sys.exit('Test ending differs; no changes made.')
-    changed = {engine: original[engine].replace(old, new, 1), tests: original[tests].rstrip() + extra}
+    old_golden = "expect(createHash('sha256').update(JSON.stringify(baseline)).digest('hex')).toBe('5599e2f51741f8273bbc5cfe866cc0efb407cfc33132f695bf225ab1c618a7ca');"
+    new_golden = "expect(createHash('sha256').update(JSON.stringify(baseline)).digest('hex')).toBe('43e30d9998efd680df1600a3e77977b0199a3fc45b2a5c866a999286303ff170');"
+    if original[tests].count(old_golden) != 1:
+        sys.exit('Golden fixture differs from reviewed source; no changes made.')
+    # Reviewed run 38914818609: switch/augment order and living-target effects.
+    # Seed 7 survives one extra hit because bulwark protects the incoming fighter.
+    reviewed_tests = original[tests].replace(old_golden, new_golden, 1)
+    changed = {engine: original[engine].replace(old, new, 1), tests: reviewed_tests.rstrip() + extra}
     backups = {f: f.with_name(f.name + '.augment-switch.bak') for f in changed}
     if a.apply and any(f.exists() for f in backups.values()):
         sys.exit('Backup already exists; review it first. No changes made.')
