@@ -27,7 +27,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo '80af88a54e1482ec5c2907e52ef34b92592819fa8570344cbb3cc2abb85845ef  realtime-ranked-bundle.zip' | sha256sum --check --strict
+          echo '07b6a7edd1e591826e438b19fadbd35c1a63ee9338ef75e71f6e2a9fe5c384d0  realtime-ranked-bundle.zip' | sha256sum --check --strict
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
@@ -273,7 +273,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo '80af88a54e1482ec5c2907e52ef34b92592819fa8570344cbb3cc2abb85845ef  realtime-ranked-bundle.zip' | sha256sum --check --strict
+          echo '07b6a7edd1e591826e438b19fadbd35c1a63ee9338ef75e71f6e2a9fe5c384d0  realtime-ranked-bundle.zip' | sha256sum --check --strict
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
