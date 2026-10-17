@@ -1,4 +1,4 @@
-name: Realtime ranked v2 preview
+name: Realtime ranked v2.1 preview
 
 on:
   push:
@@ -27,7 +27,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo '0302540448c738bdbe7066c6380ab9d9c55bffa6c2a22ffd62802fe25de679e8  realtime-ranked-bundle.zip' | sha256sum --check --strict
+          echo '80af88a54e1482ec5c2907e52ef34b92592819fa8570344cbb3cc2abb85845ef  realtime-ranked-bundle.zip' | sha256sum --check --strict
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
@@ -273,7 +273,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo '0302540448c738bdbe7066c6380ab9d9c55bffa6c2a22ffd62802fe25de679e8  realtime-ranked-bundle.zip' | sha256sum --check --strict
+          echo '80af88a54e1482ec5c2907e52ef34b92592819fa8570344cbb3cc2abb85845ef  realtime-ranked-bundle.zip' | sha256sum --check --strict
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
