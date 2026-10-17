@@ -1,4 +1,4 @@
-name: Casual AI and match acceptance v3.1 preview
+name: Casual AI and match acceptance v3.2 preview
 
 on:
   push:
@@ -50,7 +50,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo '12aac8c28eb88af445eae56ebf049e3fdb01407a4e67f6f6760ff083c49f7521  casual-ai-fallback-patch.zip' | sha256sum --check --strict
+          echo '7d7f9ab428fa592e722b75391d51af8a2ffbf766dbd2320fa123c150444dbaae  casual-ai-fallback-patch.zip' | sha256sum --check --strict
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
@@ -321,7 +321,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo '12aac8c28eb88af445eae56ebf049e3fdb01407a4e67f6f6760ff083c49f7521  casual-ai-fallback-patch.zip' | sha256sum --check --strict
+          echo '7d7f9ab428fa592e722b75391d51af8a2ffbf766dbd2320fa123c150444dbaae  casual-ai-fallback-patch.zip' | sha256sum --check --strict
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
