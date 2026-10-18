@@ -1,4 +1,4 @@
-name: Casual AI and match acceptance v3.2 preview
+name: Queue UI cleanup v3.3 preview
 
 on:
   push:
@@ -69,6 +69,29 @@ jobs:
               archive.extractall(root)
           PY
 
+      - name: Extract reviewed queue UI cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '9e786fc749d3a6f4ae1071883ef4520f34647942291915b528d37c2f41263f93  queue-ui-cleanup-patch.zip' | sha256sum --check --strict
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          root = Path.cwd().resolve()
+          with ZipFile('queue-ui-cleanup-patch.zip') as archive:
+              entries = archive.infolist()
+              for entry in entries:
+                  path = Path(entry.filename)
+                  if path.is_absolute() or '..' in path.parts:
+                      raise SystemExit('Unsafe archive path')
+                  destination = root / path
+                  if not destination.resolve().is_relative_to(root):
+                      raise SystemExit('Archive escaped checkout')
+                  if not entry.is_dir() and destination.exists():
+                      raise SystemExit('Refusing to overwrite: ' + str(path))
+              archive.extractall(root)
+          PY
+
       - name: Generate source in disposable checkout
         shell: bash
         run: |
@@ -83,6 +106,8 @@ jobs:
             python3 apply-realtime-ranked.py --apply
             python3 apply-casual-ai.py
             python3 apply-casual-ai.py --apply
+            python3 apply-queue-ui-cleanup.py
+            python3 apply-queue-ui-cleanup.py --apply
           } 2>&1 | tee review-logs/generation-server.log
           git diff --binary > review-logs/generated-source.patch
           tar -czf review-logs/generated-source.tar.gz \
@@ -271,7 +296,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: casual-ai-server-evidence
+          name: queue-ui-server-evidence
           path: review-logs/
           retention-days: 7
 
@@ -340,6 +365,29 @@ jobs:
               archive.extractall(root)
           PY
 
+      - name: Extract reviewed queue UI cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '9e786fc749d3a6f4ae1071883ef4520f34647942291915b528d37c2f41263f93  queue-ui-cleanup-patch.zip' | sha256sum --check --strict
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          root = Path.cwd().resolve()
+          with ZipFile('queue-ui-cleanup-patch.zip') as archive:
+              entries = archive.infolist()
+              for entry in entries:
+                  path = Path(entry.filename)
+                  if path.is_absolute() or '..' in path.parts:
+                      raise SystemExit('Unsafe archive path')
+                  destination = root / path
+                  if not destination.resolve().is_relative_to(root):
+                      raise SystemExit('Archive escaped checkout')
+                  if not entry.is_dir() and destination.exists():
+                      raise SystemExit('Refusing to overwrite: ' + str(path))
+              archive.extractall(root)
+          PY
+
       - name: Generate preview source
         shell: bash
         run: |
@@ -354,6 +402,8 @@ jobs:
             python3 apply-realtime-ranked.py --apply
             python3 apply-casual-ai.py
             python3 apply-casual-ai.py --apply
+            python3 apply-queue-ui-cleanup.py
+            python3 apply-queue-ui-cleanup.py --apply
           } 2>&1 | tee review-logs/generation-native.log
 
       - name: Run unit tests and build APKs
@@ -372,7 +422,7 @@ jobs:
       - name: Save UI preview APK
         uses: actions/upload-artifact@v7
         with:
-          name: casual-ai-native-preview
+          name: queue-ui-native-preview
           path: galmaegiman-confirmed/app/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
@@ -382,7 +432,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: casual-ai-native-evidence
+          name: queue-ui-native-evidence
           path: |
             galmaegiman-confirmed/app/android/app/build/reports/tests/
             galmaegiman-confirmed/app/android/app/build/test-results/
