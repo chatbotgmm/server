@@ -1,4 +1,4 @@
-name: Queue UI cleanup v3.3 preview
+name: Queue UI cleanup v3.4 preview
 
 on:
   push:
@@ -73,7 +73,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo '9e786fc749d3a6f4ae1071883ef4520f34647942291915b528d37c2f41263f93  queue-ui-cleanup-patch.zip' | sha256sum --check --strict
+          echo '654ecd007f6defcc0fbb021a3cab2aafd8454c9b5bbf44f388b6785cf5e5ace6  queue-ui-cleanup-patch.zip' | sha256sum --check --strict
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
@@ -369,7 +369,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo '9e786fc749d3a6f4ae1071883ef4520f34647942291915b528d37c2f41263f93  queue-ui-cleanup-patch.zip' | sha256sum --check --strict
+          echo '654ecd007f6defcc0fbb021a3cab2aafd8454c9b5bbf44f388b6785cf5e5ace6  queue-ui-cleanup-patch.zip' | sha256sum --check --strict
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
