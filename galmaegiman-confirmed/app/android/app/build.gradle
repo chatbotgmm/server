@@ -1,14 +1,29 @@
 apply plugin: 'com.android.application'
 
+// 원본 이미지 파일을 복제·편집하지 않고 APK 생성 시에만 함께 묶는다.
+def bundledArt = layout.buildDirectory.dir('generated/game-art')
+tasks.register('bundleGameArt', Sync) {
+    into bundledArt
+    from('../../../public/battle') {
+        include 'sprites/*.webp', 'sprites/*.png', 'bg/*.jpg', 'bg/*.webp', 'icons/*.png'
+        into 'game-art/duel'
+    }
+    from('../../../public/thumbs') {
+        include '*.jpg'
+        into 'game-art/thumbs'
+    }
+}
+
 android {
     namespace = "org.dpdns.gmm"
+    sourceSets.main.assets.srcDir(bundledArt)
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "org.dpdns.gmm"
+        applicationId "org.dpdns.gmm.native.revised"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 61
-        versionName "1.0.60"
+        versionCode 78
+        versionName "2.2.4-native"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,33 +31,81 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+        coreLibraryDesugaringEnabled true
+    }
+    testOptions {
+        unitTests.includeAndroidResources = true
+        unitTests.all {
+            testLogging { exceptionFormat = 'full' }
+            if (project.hasProperty('nativeReviewTokenFile')) {
+                dependsOn 'prepareNativeReviewSdk'
+                systemProperty 'robolectric.offline', 'true'
+                systemProperty 'robolectric.dependency.dir', new File(buildDir, 'native-review-sdk').absolutePath
+            } else {
+                exclude '**/NativeRenderReviewTest*'
+            }
+            systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'
+            systemProperty 'maven.repo.local', new File(System.getProperty('java.io.tmpdir'), 'gmm-robolectric-cache').absolutePath
+            systemProperty 'gmm.nativeReviewTokenFile', project.findProperty('nativeReviewTokenFile') ?: ''
+            systemProperty 'gmm.nativeReviewOutput', project.findProperty('nativeReviewOutput') ?: new File(buildDir, 'native-review').absolutePath
+            systemProperty 'gmm.elementalFixtureDir', project.findProperty('elementalReviewFixtureDir') ?: ''
+            ['http.proxyHost', 'http.proxyPort', 'https.proxyHost', 'https.proxyPort', 'http.nonProxyHosts'].each { key ->
+                if (System.getProperty(key)) systemProperty key, System.getProperty(key)
+            }
+            maxHeapSize = '2g'
+        }
+    }
+    buildFeatures { buildConfig true }
+    defaultConfig {
+        buildConfigField "String", "SERVER_URL", "\"https://gmm.dpdns.org\""
+    }
+    // 기존 앱과 업데이트 서명을 이어가기 위한 외부 키. 키·암호는 저장소에 넣지 않는다.
+    def nativeKeystore = System.getenv('GMM_ANDROID_KEYSTORE')
+    if (nativeKeystore) {
+        ['GMM_ANDROID_STORE_PASSWORD', 'GMM_ANDROID_KEY_ALIAS', 'GMM_ANDROID_KEY_PASSWORD'].each { name ->
+            if (!System.getenv(name)) throw new GradleException("${name} 설정이 필요해요.")
+        }
+        signingConfigs {
+            nativeRelease {
+                storeFile file(nativeKeystore)
+                storePassword System.getenv('GMM_ANDROID_STORE_PASSWORD')
+                keyAlias System.getenv('GMM_ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('GMM_ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
     buildTypes {
+        debug {
+            buildConfigField "String", "SERVER_URL", "\"${project.findProperty('nativeServer') ?: 'https://gmm.dpdns.org'}\""
+        }
         release {
+            if (nativeKeystore) signingConfig signingConfigs.nativeRelease
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
 }
 
-repositories {
-    flatDir{
-        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
-    }
-}
+tasks.named('preBuild').configure { dependsOn('bundleGameArt') }
 
 dependencies {
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.5"
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
-    implementation project(':capacitor-android')
+
     testImplementation "junit:junit:$junitVersion"
+    testImplementation 'org.robolectric:robolectric:4.16.1'
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
-    implementation project(':capacitor-cordova-android-plugins')
+
 }
 
-apply from: 'capacitor.build.gradle'
+
 
 try {
     def servicesJSON = file('google-services.json')
@@ -51,4 +114,16 @@ try {
     }
 } catch(Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}
+
+// 선택적으로 실행하는 네이티브 화면 검토용 Android SDK. 기본 APK에는 포함하지 않는다.
+configurations { nativeReviewSdk; nativeReviewLegacySdk }
+dependencies {
+    nativeReviewSdk 'org.robolectric:android-all-instrumented:15-robolectric-13954326-i7'
+    nativeReviewLegacySdk 'org.robolectric:android-all-instrumented:7.0.0_r1-robolectric-r1-i7'
+}
+tasks.register('prepareNativeReviewSdk', Copy) {
+    from configurations.nativeReviewSdk
+    from configurations.nativeReviewLegacySdk
+    into layout.buildDirectory.dir('native-review-sdk')
 }

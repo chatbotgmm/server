@@ -1,4 +1,16 @@
-# 안드로이드 앱 「갈매미맨 수비대」 만들기 (Capacitor)
+# 안드로이드 앱 「갈매미맨 수비대」 만들기
+
+## 현재 네이티브 개선판 (2026-10-15)
+
+현재 앱은 Android View/Canvas 기반이며 앱 ID는 `org.dpdns.gmm.native.revised`입니다. 72판 `2.1.0-native`는 모험 도감 테마, 로컬 배경·글꼴, 성장·편성·전투 정보 개선을 포함합니다. 71판과 동일한 릴리스 인증서를 사용해 기존 개선판에 업데이트할 수 있습니다.
+
+`app/android`에서 `assembleRelease lintRelease`로 서명된 APK를 만듭니다. 서명은 `GMM_ANDROID_KEYSTORE`, `GMM_ANDROID_STORE_PASSWORD`, `GMM_ANDROID_KEY_ALIAS`, `GMM_ANDROID_KEY_PASSWORD`를 외부 환경에서 제공합니다. 키와 암호는 Git 및 배포 artifact에 넣지 않습니다. release의 API 주소는 `https://gmm.dpdns.org`이며 검토용 서버·토큰은 unit test에만 사용합니다.
+
+APK와 `native.json`은 별도 릴리스 artifact로 전달해 EC2의 `public/app/`에 게시합니다. [다운로드 페이지](https://gmm.dpdns.org/app/native)와 공개 APK의 버전·서명·SHA-256을 확인합니다. 서버 변경이 있을 때는 정확한 소스 커밋과 빌드한 `dist`를 함께 반영하며, DB 스키마·의존성이 바뀌지 않았다면 DB apply나 재설치를 실행하지 않습니다. 디자인 갤러리와 기존 저장 데이터는 보존합니다.
+
+이하 내용은 이전 Capacitor 앱의 기록입니다. 현재 네이티브 APK 빌드에는 `npm run sync`나 `npx cap` 절차를 사용하지 않습니다.
+
+## 이전 Capacitor 앱
 
 - **메인 = 「갈매미맨 수비대」**(수비대 대결: 스토리 1~3부·자유 대결). 앱을 켜면 게임 첫 화면이 나와요(이름은 `public/duel/duel.js`의 `GAME` 한 곳만 고치면 돼요).
 - 게임 첫 화면 아래 **뽑기 · 조합 · 내 갈매미 · 탐험대 · 상점 · 계정**은 카톡 챗봇 기능을 화면으로 만든 「내 갈매미」(my.html)로 들어가요.

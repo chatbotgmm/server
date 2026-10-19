@@ -1,0 +1,313 @@
+/* C 「선장의 모험일지」 — 웹게임 전용 재질.
+ * /duel은 명시적인 루트 클래스, /my는 기존 게임 모드에만 적용한다.
+ * 기존 박스의 border-width / padding / 크기를 바꾸지 않고 9분할 그림을 그린다.
+ * Android .9.png의 검은 마커를 제외한 원본을 웹용 WebP로 사용한다.
+ */
+:is(html.journal-web-duel, html.game) {
+  --bg: #f5efdc;
+  --panel: #f5efdc;
+  --card: #f5efdc;
+  --ink: #292d2a;
+  --text: #292d2a;
+  --dim: #58635d;
+  --muted: #58635d;
+  --line: #b99a65;
+  --edge: #755c3b;
+  --wood: #b68b45;
+  --wood-d: #896b38;
+  --wood-dd: #34261f;
+  --accent: #245b61;
+  --accent-hi: #32717a;
+  --accent-d: #183f43;
+  --accent-soft: #e3eeea;
+  --on-accent: #ffffff;
+  --journal-ink: #292d2a;
+  --journal-muted: #58635d;
+  --journal-teal: #245b61;
+  --journal-panel: url(/parchment/panel.webp);
+  --journal-button: url(/parchment/button.webp);
+  --journal-texture: url(/parchment/texture.webp);
+  color-scheme: light;
+}
+
+/* 모서리는 고정하고 가운데만 늘린다. 투명한 종이 끝 뒤에 예전
+ * 크림색 사각형이 남지 않도록 기존 background와 box-shadow를 걷어낸다. */
+html.journal-web-duel :where(
+  .card:not(.por), .teambar, .mini, .mcard, .att, .msn,
+  .pmenu, .gdlg-box, .skpop .pbox, .finfo-sheet .fi-k,
+  .lprof, .h8stage, .home8 .cur .pill, .lname, .lnoteam,
+  .cont .in, .chead .in, .skc, .opt, .setrow, .stats > div
+),
+html.game :where(
+  .card:not(.danger), .cr2 > section, .btleft, .btright,
+  .rc, .gc, .ware, .shelf-head, .ud-box, .gdlg-box, .unit-menu-box,
+  header.gbar, .money > div, .gbar .cur > span, .u, .du, .slot, .crslot, .crp
+) {
+  background: transparent !important;
+  border-color: transparent !important;
+  border-image: var(--journal-panel) 64 80 64 80 fill / 13px 17px / 0 stretch !important;
+  box-shadow: none !important;
+  color: var(--journal-ink);
+}
+
+/* 작은 버튼은 그림 테두리의 폭만 줄인다. 터치 영역과 글자 패딩은 유지. */
+html.journal-web-duel :where(
+  .ghost, .stage, .mbtn, .mback:not(.img), .seg,
+  .seg button, .sw button, .gdlg-no, .pmenu button, .pm-a,
+  .lcur > .cur:not(:has(.pill)), .h8bot .h8b,
+  .box.foe .finfo, header .back, .set .xbtn, .today .xbtn,
+  .skv .pclose, .flee, .mlink
+),
+html.game :where(
+  .btn.ghost:not(.imgsave), .btn.price, .gback:not(.img), .tabs button,
+  .filters button, .crtabs button, .crchip, .cri, .btseg button,
+  .unit-menu-box button, .ud-x, .ud-nav, .gdlg-no
+) {
+  background: transparent !important;
+  border-color: transparent !important;
+  border-image: var(--journal-button) 64 80 64 80 fill / 10px 13px / 0 stretch !important;
+  box-shadow: none !important;
+  color: var(--journal-ink) !important;
+  text-shadow: none;
+}
+
+/* 전체 화면의 대지와 입력칸은 작은 종이 결을 반복해 넓은 면의 확대를 피한다. */
+html.journal-web-duel .sheet:not(.pick.full),
+html.game .card.danger {
+  background: #f5efdc var(--journal-texture) repeat !important;
+  background-size: 192px 192px !important;
+  color: var(--journal-ink);
+}
+html.journal-web-duel :is(input:not([type="range"]), select),
+html.game :is(input:not([type="range"]), select, .search) {
+  background: #f7f1df var(--journal-texture) repeat !important;
+  background-size: 192px 192px !important;
+  color: var(--journal-ink) !important;
+  border-color: #a58b60;
+}
+:is(html.journal-web-duel, html.game) input::placeholder {
+  color: #657168;
+  opacity: 1;
+}
+html.journal-web-duel .sheet :is(.sub, .skrow small, .stats small),
+html.game :is(.note, .empty, .crtabs small, .cri small, .crslot small:not(.tg), .u small, .ware small) {
+  color: var(--journal-muted);
+}
+
+/* 실행 버튼은 청록을 유지한다. 종이 그림의 크림색 fill이 주요 행동을
+ * 덮지 않게 일반 버튼 규칙보다 뒤에서 재질·경계·문자색을 함께 지정한다. */
+html.journal-web-duel :is(
+  .big:not(:where(#sDel, .att-d)), .mbtn.main, .gdlg-ok:not(.danger),
+  .sw button.big
+),
+html.game :is(
+  .btn:not(:where(.ghost, .kakao, .price, .imgsave, #del)),
+  .gdlg-ok:not(.danger)
+) {
+  border-image: none !important;
+  background: linear-gradient(#32717af5, #245b61f5), var(--journal-texture) repeat !important;
+  background-size: auto, 192px 192px !important;
+  border-color: #183f43 !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 1px 0 #ffffff2b, 0 3px 0 #183f43 !important;
+  text-shadow: none !important;
+}
+html.journal-web-duel .mbtn.main :is(small, b),
+html.game .btn:not(.ghost):not(.kakao):not(.price) small {
+  color: inherit;
+}
+
+/* 선택은 작은 청록색 면과 안쪽 선으로 표현한다. 등급/속성의 본래
+ * 의미색은 카드 그림·속성 칩·등급표시에 남긴다. */
+html.journal-web-duel :is(
+  .card.on:not(.por), .opt.on, .seg button.on, .skc.on, .ptr.me
+),
+html.game :is(
+  .tabs button.on, .filters button.on, .crtabs button.on, .crchip.on,
+  .cri.on, .crp.on, .u.on, .btseg button.on, .trow.mine, .slot.full
+) {
+  border-image: none !important;
+  background: linear-gradient(#e3eeeadb, #e3eeeadb), var(--journal-texture) repeat !important;
+  background-size: auto, 192px 192px !important;
+  border-color: var(--journal-teal) !important;
+  color: #204d52 !important;
+  box-shadow: inset 0 0 0 1px var(--journal-teal) !important;
+  outline: 2px solid var(--journal-teal);
+  outline-offset: -3px;
+}
+html.game :is(.crtabs button.on, .cri.on) small { color: #365c59; }
+html.game .crp .ord { background: var(--journal-teal); }
+html.journal-web-duel .card .n { background: var(--journal-teal); color: #fff; }
+
+/* 로비의 실제 글자는 유지하고 이전 파스텔용 흰 글자와 외곽선만 걷어낸다. */
+html.journal-web-duel .h8bot .h8b span {
+  color: var(--journal-ink);
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+html.journal-web-duel :is(.h8stage small, .lprof small, .pm-head small) {
+  color: var(--journal-muted);
+}
+html.journal-web-duel :is(.cont .in, .chead .in) :is(h2, b, p) {
+  color: var(--journal-ink);
+  text-shadow: none;
+}
+html.journal-web-duel :is(.cont, .chead) .pn {
+  color: var(--journal-muted);
+}
+/* 출석의 일곱째 칸도 .big을 쓰지만 실행 버튼이 아니다. */
+html.journal-web-duel .att-d.big {
+  color: var(--journal-muted) !important;
+  text-shadow: none;
+}
+html.journal-web-duel .att-d.big:not(.today):not(.got):not(.today-got) {
+  background: #f5efdc var(--journal-texture) repeat !important;
+  background-size: 192px 192px !important;
+  color: var(--journal-muted) !important;
+  box-shadow: none !important;
+}
+html.journal-web-duel .att-d.lock,
+html.journal-web-duel .att-d.lock .as {
+  color: var(--journal-muted);
+}
+/* 등급 테두리와 카드 원본은 남기고 수집 결과의 정보 면만 같은 종이로. */
+html.game :is(.pd-card, .rv-front, .fg-res) {
+  background: #f5efdc var(--journal-texture) repeat;
+  background-size: 192px 192px;
+}
+html.journal-web-duel :is(.pmenu, .lbub)::after,
+html.journal-web-duel .pmenu::before {
+  background-color: #f5efdc;
+  border-color: #b99a65;
+}
+
+/* 전투의 예전 산호 프레임은 요소별 ::before에 들어 있다.
+ * 기존 pseudo layer만 교체하여 상태창의 좌표·패딩·체력바는 보존한다. */
+html.journal-web-duel #arena .box::before,
+html.journal-web-duel #app:has(#arena) #msg::before,
+html.journal-web-duel .scene .dbox::before {
+  background: transparent !important;
+  border-image: var(--journal-panel) 64 80 64 80 fill / 13px 17px / 0 stretch !important;
+  border-color: transparent !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+}
+html.journal-web-duel #app:has(#arena) .cmdbg {
+  background: transparent !important;
+  border-color: transparent !important;
+  border-image: var(--journal-panel) 64 80 64 80 fill / 21px 25px / 0 stretch !important;
+  box-shadow: none !important;
+}
+html.journal-web-duel #app:has(#arena) #panel .sk {
+  background: transparent !important;
+  border-image: var(--journal-button) 64 80 64 80 fill / 10px 13px / 0 stretch !important;
+  border-color: transparent !important;
+  border-top-color: var(--c, #b68b45) !important;
+  color: var(--journal-ink);
+  box-shadow: none !important;
+}
+html.journal-web-duel #app:has(#arena) #panel .sk::after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: 3px;
+  left: 13px;
+  right: 13px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--c, #b68b45);
+  opacity: 1;
+  pointer-events: none;
+}
+html.journal-web-duel #app:has(#arena) #panel .sk :is(.kd, .ln small, p) {
+  color: var(--journal-muted);
+}
+/* 명령판 위 제목이 전장 그림에 바로 겹치지 않도록 종이 면을 받친다. */
+html.journal-web-duel #app:has(#arena) #panel .bhead {
+  background: transparent !important;
+  border-image: var(--journal-button) 64 80 64 80 fill / 8px 11px / 0 stretch !important;
+  color: var(--journal-ink);
+}
+html.journal-web-duel #app:has(#arena) #panel .bhead > small {
+  color: var(--journal-muted);
+}
+html.journal-web-duel #app:has(#arena) #panel .combo-btn {
+  background: linear-gradient(#32717af5, #245b61f5), var(--journal-texture) repeat !important;
+  background-size: auto, 192px 192px !important;
+  border-image: none !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 0 0 2px #183f43 !important;
+  border-radius: 10px !important;
+}
+html.journal-web-duel #app:has(#arena) #panel .combo-btn::before { display: none; }
+html.journal-web-duel #app:has(#arena) #panel .combo-btn :is(b, small, span) {
+  color: inherit !important;
+}
+html.journal-web-duel #arena .box :is(.nm em:not(.ko), .hpn),
+html.journal-web-duel #arena .box > .augs,
+html.journal-web-duel #arena .aug-chip,
+html.journal-web-duel #msg .lp {
+  color: var(--journal-muted);
+}
+
+/* 비활성은 바깥 풍경이 비쳐 흐려지지 않도록 불투명한 종이로 남긴다.
+ * 기능 버튼에만 한정하여 보스/기절·캐릭터 연출의 필터는 건드리지 않는다. */
+html.journal-web-duel :is(.big, .ghost, .mbtn, .stage, .sw button, .gdlg-ok):disabled,
+html.journal-web-duel #app:has(#arena) #panel :is(.sk, .combo-btn):disabled,
+html.game :is(.btn:not(:where(.kakao, .imgsave)), .crp, .crchip, .unit-menu-box button):disabled {
+  border-image: none !important;
+  background: #eee9da var(--journal-texture) repeat !important;
+  background-size: 192px 192px !important;
+  border-color: #baae94 !important;
+  color: #58635d !important;
+  box-shadow: inset 0 0 0 1px #baae94 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  cursor: default;
+}
+html.journal-web-duel #app:has(#arena) #panel .combo-btn:disabled :is(b, small, span) {
+  color: inherit !important;
+}
+
+/* 짧은 누름 피드백, 키보드 포커스. 전경/전장 그림에는 효과를 추가하지 않는다. */
+:is(html.journal-web-duel, html.game) :is(button, a):focus-visible {
+  outline: 3px solid #245b61 !important;
+  outline-offset: 2px !important;
+}
+html.journal-web-duel :is(.big, .ghost, .mbtn, .mback, .h8b, .gdlg-no, .gdlg-ok):active:not(:disabled),
+html.game :is(.btn, .gback, .crtabs button, .crchip, .cri):active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+/* 브랜드·계정 삭제·재료 부족·등급의 의미색을 종이 효과와 분리한다. */
+html.game .btn.kakao {
+  background: #fee500 !important;
+  border-image: none !important;
+  color: #191600 !important;
+}
+:is(html.journal-web-duel, html.game) .gdlg-ok.danger:not(:disabled),
+html.journal-web-duel #sDel:not(:disabled),
+html.game #del:not(:disabled) {
+  background: #b63c2d !important;
+  border-image: none !important;
+  border-color: #78271e !important;
+  color: #ffffff !important;
+}
+html.game .card.danger {
+  border-image: none !important;
+  border-color: var(--bad, #b63c2d) !important;
+}
+html.game .crslot.short {
+  outline: 2px solid #b54535;
+  outline-offset: -3px;
+}
+html.game .crslot.short small { color: #9b3729; }
+html.game .crslot.res {
+  outline: 2px dashed #8b7042;
+  outline-offset: -4px;
+}
+html.game .du,
+html.game .u:not(.on) {
+  outline: 1px solid var(--tc, #b99a65);
+  outline-offset: -3px;
+}

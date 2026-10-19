@@ -14,12 +14,14 @@ import { registerWeb } from './web.js';
 import { battleRoster } from './battle/prototype.js';
 import { registerDuel } from './duel.js';
 import { registerMy, type KakaoLogin } from './my.js';
+import { registerDesignReview } from './design-review.js';
 export const VERSION='0.16.2';
 export interface AppOptions {secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string;kakaoLogin?:KakaoLogin;fetch?:typeof fetch;reviewCode?:string}
 export async function buildApp(db:PrismaClient,game:GameService,options:AppOptions){
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
   const app=Fastify({logger:options.log??false,bodyLimit:32_768,trustProxy:false});
   await app.register(rateLimit,{global:false});
+  registerDesignReview(app,{root:options.root??process.cwd()});
   app.get('/health',async()=>({ok:true,mode:'KAKAO_CHANNEL',edition:'GALMAEMI_118',version:VERSION}));
   app.get('/ready',async(_req,reply)=>{
     try{await db.$queryRaw`SELECT 1`;return {ready:true};}catch{return reply.code(503).send({ready:false});}
@@ -49,6 +51,15 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
     if(!body)return reply.code(404).send({error:'not found'});
     return reply.type(type).header('Cache-Control',`public, max-age=${maxAge}`).send(body);
   };
+  // 웹 게임 양피지 재질: 파일명을 제한하고 네이티브 자원과 분리합니다.
+  app.get<{Params:{file:string}}>('/parchment/:file',async(req,reply)=>{
+    const types:Record<string,string>={
+      'parchment.css':'text/css; charset=utf-8',
+      'panel.webp':'image/webp','button.webp':'image/webp','texture.webp':'image/webp',
+    };
+    if(!Object.hasOwn(types,req.params.file))return reply.code(404).send({error:'not found'});
+    return sendFile(reply,types[req.params.file],resolve(options.root??process.cwd(),'public/parchment',req.params.file));
+  });
   app.get('/play',async(_req,reply)=>sendFile(reply,'text/html; charset=utf-8',resolve(playDir,'index.html')));
   app.get('/play/game.js',async(_req,reply)=>sendFile(reply,'text/javascript; charset=utf-8',resolve(playDir,'game.js')));
   // 2.5D(Three.js 포함) 묶음 파일은 빌드 때 만들어짐(scripts/build-play.mjs)

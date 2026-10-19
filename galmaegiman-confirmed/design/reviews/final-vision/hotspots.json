@@ -1,0 +1,1290 @@
+[
+  {
+    "scene": "team",
+    "hotspots": [
+      {
+        "x": 28,
+        "y": 19,
+        "w": 102,
+        "h": 56,
+        "target": "home",
+        "label": "돌아가기"
+      },
+      {
+        "x": 540,
+        "y": 442,
+        "w": 228,
+        "h": 56,
+        "target": "chapters",
+        "label": "전투 편성 저장"
+      },
+      {
+        "x": 50,
+        "y": 146,
+        "w": 224,
+        "h": 214,
+        "target": "growth",
+        "label": "태초의 갈매미맨 육성 확인"
+      },
+      {
+        "x": 292,
+        "y": 146,
+        "w": 224,
+        "h": 214,
+        "target": "growth",
+        "label": "만상의 수호자 육성 확인"
+      },
+      {
+        "x": 534,
+        "y": 146,
+        "w": 224,
+        "h": 214,
+        "target": "growth",
+        "label": "시원화 갈매미맨 육성 확인"
+      },
+      {
+        "x": 50,
+        "y": 384,
+        "w": 718,
+        "h": 56,
+        "target": "combo",
+        "label": "원형 수호진 합동기 보기"
+      },
+      {
+        "x": 832,
+        "y": 447,
+        "w": 396,
+        "h": 54,
+        "target": "types",
+        "label": "다음 상대와 상성 확인"
+      },
+      {
+        "x": 832,
+        "y": 250,
+        "w": 194,
+        "h": 85,
+        "target": "growth",
+        "label": "원금 갈매미맨 확인"
+      },
+      {
+        "x": 1034,
+        "y": 250,
+        "w": 194,
+        "h": 85,
+        "target": "growth",
+        "label": "첫밤의 갈매미맨 확인"
+      },
+      {
+        "x": 832,
+        "y": 347,
+        "w": 194,
+        "h": 85,
+        "target": "growth",
+        "label": "갈크탑 확인"
+      },
+      {
+        "x": 1034,
+        "y": 347,
+        "w": 194,
+        "h": 85,
+        "target": "growth",
+        "label": "원해 갈매미맨 확인"
+      }
+    ]
+  },
+  {
+    "scene": "battle",
+    "hotspots": [
+      {
+        "x": 846,
+        "y": 220,
+        "w": 197,
+        "h": 134,
+        "target": "skills",
+        "label": "공격 기술 선택"
+      },
+      {
+        "x": 1055,
+        "y": 220,
+        "w": 197,
+        "h": 134,
+        "target": "items",
+        "label": "전투 아이템"
+      },
+      {
+        "x": 846,
+        "y": 368,
+        "w": 197,
+        "h": 134,
+        "target": "team",
+        "label": "출전 갈매미 교체"
+      },
+      {
+        "x": 1055,
+        "y": 368,
+        "w": 197,
+        "h": 134,
+        "target": "home",
+        "label": "도망가기",
+        "action": "confirm-leave"
+      },
+      {
+        "x": 386,
+        "y": 20,
+        "w": 104,
+        "h": 56,
+        "target": "battle",
+        "label": "전투 기록",
+        "action": "history"
+      },
+      {
+        "x": 502,
+        "y": 20,
+        "w": 120,
+        "h": 56,
+        "target": "augment",
+        "label": "증강체 확인"
+      },
+      {
+        "x": 634,
+        "y": 20,
+        "w": 158,
+        "h": 56,
+        "target": "battle",
+        "label": "상대 정보",
+        "action": "foe-info"
+      },
+      {
+        "x": 358,
+        "y": 367,
+        "w": 449,
+        "h": 137,
+        "target": "battle",
+        "label": "내 현재 효과",
+        "action": "own-effects"
+      }
+    ]
+  },
+  {
+    "scene": "skills",
+    "hotspots": [
+      {
+        "x": 1111,
+        "y": 35,
+        "w": 119,
+        "h": 56,
+        "target": "battle",
+        "label": "전투로 돌아가기"
+      },
+      {
+        "x": 539,
+        "y": 112,
+        "w": 337,
+        "h": 151,
+        "target": "battle",
+        "label": "똥폭탄 사용 · 얼음 위력50 상성1.5"
+      },
+      {
+        "x": 891,
+        "y": 112,
+        "w": 337,
+        "h": 151,
+        "target": "battle",
+        "label": "사방 방패 사용 · 돌 위력55 피해감소45%3턴"
+      },
+      {
+        "x": 539,
+        "y": 277,
+        "w": 337,
+        "h": 151,
+        "target": "battle",
+        "label": "버티기 자세 사용 · 방어40%2턴"
+      },
+      {
+        "x": 891,
+        "y": 277,
+        "w": 337,
+        "h": 151,
+        "target": "battle",
+        "label": "금빛 일격 사용 · 황금 위력60"
+      },
+      {
+        "x": 539,
+        "y": 442,
+        "w": 484,
+        "h": 56,
+        "target": "combo",
+        "label": "합동기 원형 수호진 확인"
+      }
+    ]
+  },
+  {
+    "scene": "augment",
+    "hotspots": [
+      {
+        "x": 28,
+        "y": 151,
+        "w": 394,
+        "h": 198,
+        "target": "augment",
+        "label": "이중 속성 선택",
+        "action": "select-augment",
+        "augment": "dual"
+      },
+      {
+        "x": 443,
+        "y": 151,
+        "w": 394,
+        "h": 198,
+        "target": "augment",
+        "label": "철벽 선택",
+        "action": "select-augment",
+        "augment": "bulwark"
+      },
+      {
+        "x": 858,
+        "y": 151,
+        "w": 394,
+        "h": 198,
+        "target": "augment",
+        "label": "인사 발령 선택",
+        "action": "select-augment",
+        "augment": "freeswitch"
+      },
+      {
+        "x": 50,
+        "y": 360,
+        "w": 350,
+        "h": 56,
+        "target": "augment",
+        "label": "첫 번째 선택지 다시 뽑기",
+        "action": "reroll",
+        "slot": 0
+      },
+      {
+        "x": 465,
+        "y": 360,
+        "w": 350,
+        "h": 56,
+        "target": "augment",
+        "label": "두 번째 선택지 다시 뽑기",
+        "action": "reroll",
+        "slot": 1
+      },
+      {
+        "x": 880,
+        "y": 360,
+        "w": 350,
+        "h": 56,
+        "target": "augment",
+        "label": "세 번째 선택지 다시 뽑기",
+        "action": "reroll",
+        "slot": 2
+      },
+      {
+        "x": 476,
+        "y": 442,
+        "w": 776,
+        "h": 64,
+        "target": "battle",
+        "label": "선택한 증강체 확정"
+      }
+    ]
+  },
+  {
+    "scene": "reward",
+    "hotspots": [
+      {
+        "x": 28,
+        "y": 19,
+        "w": 102,
+        "h": 56,
+        "target": "battle",
+        "label": "전투 결과 닫기"
+      },
+      {
+        "x": 50,
+        "y": 442,
+        "w": 223,
+        "h": 56,
+        "target": "growth",
+        "label": "획득 경험치와 성장 확인"
+      },
+      {
+        "x": 291,
+        "y": 442,
+        "w": 463,
+        "h": 56,
+        "target": "chapters",
+        "label": "스토리로 돌아가기"
+      },
+      {
+        "x": 820,
+        "y": 442,
+        "w": 410,
+        "h": 56,
+        "target": "team",
+        "label": "다음 전투 편성 확인"
+      }
+    ]
+  },
+  {
+    "scene": "recruit",
+    "hotspots": [
+      {
+        "x": 28,
+        "y": 19,
+        "w": 102,
+        "h": 45,
+        "target": "home",
+        "label": "뒤로"
+      },
+      {
+        "x": 50,
+        "y": 413,
+        "w": 234,
+        "h": 60,
+        "target": "recruit",
+        "label": "뽑기권 30장 받기",
+        "action": "claim-ticket"
+      },
+      {
+        "x": 350,
+        "y": 413,
+        "w": 248,
+        "h": 60,
+        "target": "recruit",
+        "label": "하급 5회 뽑기",
+        "action": "draw",
+        "kind": "LOW",
+        "times": 5
+      },
+      {
+        "x": 658,
+        "y": 413,
+        "w": 248,
+        "h": 60,
+        "target": "recruit",
+        "label": "중급 5회 뽑기",
+        "action": "draw",
+        "kind": "MID",
+        "times": 5
+      },
+      {
+        "x": 966,
+        "y": 413,
+        "w": 248,
+        "h": 60,
+        "target": "recruit-result",
+        "label": "고급 5회 뽑기",
+        "action": "draw",
+        "kind": "HIGH",
+        "times": 5
+      },
+      {
+        "x": 50,
+        "y": 315,
+        "w": 48,
+        "h": 43,
+        "target": "recruit",
+        "label": "뽑기 횟수 줄이기",
+        "action": "quantity",
+        "delta": -1
+      },
+      {
+        "x": 162,
+        "y": 315,
+        "w": 48,
+        "h": 43,
+        "target": "recruit",
+        "label": "뽑기 횟수 늘리기",
+        "action": "quantity",
+        "delta": 1
+      },
+      {
+        "x": 220,
+        "y": 315,
+        "w": 64,
+        "h": 43,
+        "target": "recruit",
+        "label": "최대 횟수",
+        "action": "quantity",
+        "value": "max"
+      }
+    ]
+  },
+  {
+    "scene": "recruit-result",
+    "hotspots": [
+      {
+        "x": 28,
+        "y": 19,
+        "w": 102,
+        "h": 45,
+        "target": "home",
+        "label": "뒤로"
+      },
+      {
+        "x": 748,
+        "y": 437,
+        "w": 218,
+        "h": 60,
+        "target": "collection",
+        "label": "획득한 갈매미 상세 보기"
+      },
+      {
+        "x": 983,
+        "y": 437,
+        "w": 246,
+        "h": 60,
+        "target": "craft",
+        "label": "조합하러 가기"
+      }
+    ]
+  },
+  {
+    "scene": "collection",
+    "hotspots": [
+      {
+        "x": 28,
+        "y": 19,
+        "w": 102,
+        "h": 45,
+        "target": "home",
+        "label": "뒤로"
+      },
+      {
+        "x": 192,
+        "y": 111,
+        "w": 136,
+        "h": 36,
+        "target": "team",
+        "label": "전투 편성"
+      },
+      {
+        "x": 882,
+        "y": 413,
+        "w": 346,
+        "h": 60,
+        "target": "growth",
+        "label": "선택한 갈매미 육성"
+      },
+      {
+        "x": 46,
+        "y": 207,
+        "w": 242,
+        "h": 122,
+        "target": "growth",
+        "label": "태초의 갈매미맨 상세·육성"
+      },
+      {
+        "x": 338,
+        "y": 111,
+        "w": 112,
+        "h": 36,
+        "target": "items",
+        "label": "아이템"
+      }
+    ]
+  },
+  {
+    "scene": "craft",
+    "hotspots": [
+      {
+        "x": 28,
+        "y": 19,
+        "w": 102,
+        "h": 45,
+        "target": "home",
+        "label": "뒤로"
+      },
+      {
+        "x": 956,
+        "y": 413,
+        "w": 272,
+        "h": 60,
+        "target": "growth",
+        "label": "태초의 갈매미맨 조합 후 육성",
+        "action": "craft"
+      },
+      {
+        "x": 48,
+        "y": 252,
+        "w": 220,
+        "h": 64,
+        "target": "craft",
+        "label": "태초의 갈매미맨 조합식",
+        "action": "select-recipe"
+      },
+      {
+        "x": 48,
+        "y": 326,
+        "w": 220,
+        "h": 64,
+        "target": "craft",
+        "label": "만상의 수호자 조합식",
+        "action": "select-recipe"
+      },
+      {
+        "x": 48,
+        "y": 400,
+        "w": 220,
+        "h": 64,
+        "target": "craft",
+        "label": "원해 갈매미맨 조합식",
+        "action": "select-recipe"
+      },
+      {
+        "x": 444,
+        "y": 413,
+        "w": 58,
+        "h": 43,
+        "target": "craft",
+        "label": "조합 횟수 줄이기",
+        "action": "quantity",
+        "delta": -1
+      },
+      {
+        "x": 580,
+        "y": 413,
+        "w": 58,
+        "h": 43,
+        "target": "craft",
+        "label": "조합 횟수 늘리기",
+        "action": "quantity",
+        "delta": 1
+      }
+    ]
+  },
+  {
+    "scene": "expedition",
+    "hotspots": [
+      {
+        "x": 28,
+        "y": 19,
+        "w": 102,
+        "h": 45,
+        "target": "home",
+        "label": "뒤로"
+      },
+      {
+        "x": 970,
+        "y": 352,
+        "w": 258,
+        "h": 50,
+        "target": "expedition",
+        "label": "탐험대 편성 저장",
+        "action": "save-expedition"
+      },
+      {
+        "x": 970,
+        "y": 413,
+        "w": 258,
+        "h": 60,
+        "target": "expedition",
+        "label": "탐험 출발",
+        "action": "start-expedition"
+      },
+      {
+        "x": 47,
+        "y": 184,
+        "w": 212,
+        "h": 78,
+        "target": "expedition",
+        "label": "불퇴의 수호자 추가",
+        "action": "select-expedition"
+      },
+      {
+        "x": 47,
+        "y": 275,
+        "w": 212,
+        "h": 78,
+        "target": "expedition",
+        "label": "앙 갈매미맨이야 추가",
+        "action": "select-expedition"
+      },
+      {
+        "x": 47,
+        "y": 366,
+        "w": 212,
+        "h": 78,
+        "target": "expedition",
+        "label": "시원화 갈매미맨 추가",
+        "action": "select-expedition"
+      }
+    ]
+  },
+  {
+    "scene": "shop",
+    "hotspots": [
+      {
+        "x": 28,
+        "y": 19,
+        "w": 102,
+        "h": 45,
+        "target": "home",
+        "label": "뒤로"
+      },
+      {
+        "x": 52,
+        "y": 245,
+        "w": 246,
+        "h": 56,
+        "target": "shop",
+        "label": "새우gang을 뽑기권으로 교환",
+        "action": "exchange-ticket"
+      },
+      {
+        "x": 988,
+        "y": 413,
+        "w": 240,
+        "h": 60,
+        "target": "shop",
+        "label": "큰 치료약 구매",
+        "action": "purchase"
+      },
+      {
+        "x": 364,
+        "y": 157,
+        "w": 268,
+        "h": 133,
+        "target": "shop",
+        "label": "치료약 선택",
+        "action": "select-item"
+      },
+      {
+        "x": 654,
+        "y": 157,
+        "w": 268,
+        "h": 133,
+        "target": "shop",
+        "label": "큰 치료약 선택",
+        "action": "select-item"
+      },
+      {
+        "x": 364,
+        "y": 310,
+        "w": 268,
+        "h": 133,
+        "target": "shop",
+        "label": "정신 차리기 물 선택",
+        "action": "select-item"
+      },
+      {
+        "x": 654,
+        "y": 310,
+        "w": 268,
+        "h": 133,
+        "target": "shop",
+        "label": "다시 출근 깃털 선택",
+        "action": "select-item"
+      },
+      {
+        "x": 988,
+        "y": 322,
+        "w": 62,
+        "h": 56,
+        "target": "shop",
+        "label": "구매 수량 줄이기",
+        "action": "quantity",
+        "delta": -1
+      },
+      {
+        "x": 1134,
+        "y": 322,
+        "w": 92,
+        "h": 56,
+        "target": "shop",
+        "label": "구매 수량 늘리기",
+        "action": "quantity",
+        "delta": 1
+      }
+    ]
+  },
+  {
+    "scene": "title",
+    "hotspots": [
+      {
+        "x": 70,
+        "y": 373,
+        "w": 470,
+        "h": 63,
+        "target": "login",
+        "label": "로그인"
+      },
+      {
+        "x": 1160,
+        "y": 22,
+        "w": 92,
+        "h": 43,
+        "target": "settings",
+        "label": "설정"
+      }
+    ]
+  },
+  {
+    "scene": "login",
+    "hotspots": [
+      {
+        "x": 520,
+        "y": 49,
+        "w": 42,
+        "h": 40,
+        "target": "title",
+        "label": "로그인 닫기"
+      },
+      {
+        "x": 73,
+        "y": 112,
+        "w": 482,
+        "h": 53,
+        "target": "home",
+        "label": "카카오로 로그인 — 시안 체험"
+      },
+      {
+        "x": 73,
+        "y": 348,
+        "w": 482,
+        "h": 56,
+        "target": "home",
+        "label": "코드로 로그인 — 시안 체험"
+      }
+    ]
+  },
+  {
+    "scene": "home",
+    "hotspots": [
+      {
+        "x": 29,
+        "y": 20,
+        "w": 313,
+        "h": 66,
+        "target": "settings",
+        "label": "내 정보"
+      },
+      {
+        "x": 748,
+        "y": 21,
+        "w": 70,
+        "h": 43,
+        "target": "settings",
+        "label": "설정"
+      },
+      {
+        "x": 838,
+        "y": 20,
+        "w": 122,
+        "h": 43,
+        "target": "shop",
+        "label": "새우gang 상점"
+      },
+      {
+        "x": 970,
+        "y": 20,
+        "w": 122,
+        "h": 43,
+        "target": "shop",
+        "label": "땅콩 상점"
+      },
+      {
+        "x": 1102,
+        "y": 20,
+        "w": 122,
+        "h": 43,
+        "target": "recruit",
+        "label": "뽑기권"
+      },
+      {
+        "x": 29,
+        "y": 112,
+        "w": 403,
+        "h": 259,
+        "target": "growth",
+        "label": "태초의 갈매미맨 성장"
+      },
+      {
+        "x": 311,
+        "y": 295,
+        "w": 96,
+        "h": 42,
+        "target": "growth",
+        "label": "성장"
+      },
+      {
+        "x": 29,
+        "y": 387,
+        "w": 403,
+        "h": 37,
+        "target": "missions",
+        "label": "출석·미션"
+      },
+      {
+        "x": 739,
+        "y": 103,
+        "w": 441,
+        "h": 284,
+        "target": "growth",
+        "label": "갈매미 성장"
+      },
+      {
+        "x": 930,
+        "y": 391,
+        "w": 321,
+        "h": 45,
+        "target": "chapters",
+        "label": "다음 이야기"
+      },
+      {
+        "x": 29,
+        "y": 448,
+        "w": 168,
+        "h": 56,
+        "target": "expedition",
+        "label": "탐험"
+      },
+      {
+        "x": 208,
+        "y": 448,
+        "w": 168,
+        "h": 56,
+        "target": "recruit",
+        "label": "뽑기"
+      },
+      {
+        "x": 387,
+        "y": 448,
+        "w": 168,
+        "h": 56,
+        "target": "collection",
+        "label": "수비대"
+      },
+      {
+        "x": 566,
+        "y": 448,
+        "w": 168,
+        "h": 56,
+        "target": "craft",
+        "label": "조합"
+      },
+      {
+        "x": 745,
+        "y": 448,
+        "w": 168,
+        "h": 56,
+        "target": "shop",
+        "label": "상점"
+      },
+      {
+        "x": 930,
+        "y": 448,
+        "w": 321,
+        "h": 56,
+        "target": "chapters",
+        "label": "플레이"
+      }
+    ]
+  },
+  {
+    "scene": "chapters",
+    "hotspots": [
+      {
+        "x": 28,
+        "y": 19,
+        "w": 102,
+        "h": 45,
+        "target": "home",
+        "label": "뒤로"
+      },
+      {
+        "x": 48,
+        "y": 168,
+        "w": 222,
+        "h": 63,
+        "target": "dialogue",
+        "label": "프롤로그 다시 보기"
+      },
+      {
+        "x": 337,
+        "y": 176,
+        "w": 66,
+        "h": 82,
+        "target": "dialogue",
+        "label": "항구의 먹물 다시 보기"
+      },
+      {
+        "x": 487,
+        "y": 176,
+        "w": 66,
+        "h": 82,
+        "target": "dialogue",
+        "label": "이력서 폭탄 다시 보기"
+      },
+      {
+        "x": 637,
+        "y": 176,
+        "w": 66,
+        "h": 82,
+        "target": "dialogue",
+        "label": "출근 도장대 사수 다시 보기"
+      },
+      {
+        "x": 787,
+        "y": 176,
+        "w": 66,
+        "h": 82,
+        "target": "dialogue",
+        "label": "해저 2층 입구"
+      },
+      {
+        "x": 1010,
+        "y": 430,
+        "w": 214,
+        "h": 49,
+        "target": "team",
+        "label": "편성 후 출전"
+      }
+    ]
+  },
+  {
+    "scene": "dialogue",
+    "hotspots": [
+      {
+        "x": 28,
+        "y": 19,
+        "w": 102,
+        "h": 43,
+        "target": "chapters",
+        "label": "이전"
+      },
+      {
+        "x": 1124,
+        "y": 21,
+        "w": 128,
+        "h": 43,
+        "target": "battle",
+        "label": "대화 건너뛰고 전투"
+      },
+      {
+        "x": 1009,
+        "y": 408,
+        "w": 151,
+        "h": 58,
+        "target": "battle",
+        "label": "다음"
+      },
+      {
+        "x": 126,
+        "y": 383,
+        "w": 783,
+        "h": 90,
+        "target": "battle",
+        "label": "대화 이어보기"
+      }
+    ]
+  },
+  {
+    "scene": "growth",
+    "hotspots": [
+      {
+        "x": 28,
+        "y": 19,
+        "w": 102,
+        "h": 45,
+        "target": "collection",
+        "label": "뒤로"
+      },
+      {
+        "x": 414,
+        "y": 108,
+        "w": 126,
+        "h": 36,
+        "target": "skills",
+        "label": "기술"
+      },
+      {
+        "x": 420,
+        "y": 440,
+        "w": 269,
+        "h": 41,
+        "target": "skills",
+        "label": "기술 살펴보기"
+      },
+      {
+        "x": 893,
+        "y": 440,
+        "w": 334,
+        "h": 41,
+        "target": "growth",
+        "label": "표창 고르기",
+        "action": "promotion"
+      }
+    ]
+  },
+  {
+    "scene": "combo",
+    "hotspots": [
+      {
+        "x": 28,
+        "y": 19,
+        "w": 102,
+        "h": 45,
+        "target": "skills",
+        "label": "뒤로"
+      },
+      {
+        "x": 850,
+        "y": 430,
+        "w": 376,
+        "h": 47,
+        "target": "battle",
+        "label": "합동기 사용"
+      }
+    ]
+  },
+  {
+    "scene": "types",
+    "hotspots": [
+      {
+        "x": 28,
+        "y": 19,
+        "w": 102,
+        "h": 45,
+        "target": "home",
+        "label": "뒤로"
+      },
+      {
+        "x": 1023,
+        "y": 437,
+        "w": 201,
+        "h": 42,
+        "target": "team",
+        "label": "편성으로"
+      },
+      {
+        "x": 50,
+        "y": 144,
+        "w": 119,
+        "h": 53,
+        "target": "types",
+        "label": "돌 상성",
+        "action": "type",
+        "type": "STONE"
+      },
+      {
+        "x": 179,
+        "y": 144,
+        "w": 119,
+        "h": 53,
+        "target": "types",
+        "label": "황금 상성",
+        "action": "type",
+        "type": "GOLD"
+      },
+      {
+        "x": 50,
+        "y": 207,
+        "w": 119,
+        "h": 53,
+        "target": "types",
+        "label": "불 상성",
+        "action": "type",
+        "type": "FIRE"
+      },
+      {
+        "x": 179,
+        "y": 207,
+        "w": 119,
+        "h": 53,
+        "target": "types",
+        "label": "얼음 상성",
+        "action": "type",
+        "type": "ICE"
+      },
+      {
+        "x": 50,
+        "y": 270,
+        "w": 119,
+        "h": 53,
+        "target": "types",
+        "label": "꽃 상성",
+        "action": "type",
+        "type": "BLOSSOM"
+      },
+      {
+        "x": 179,
+        "y": 270,
+        "w": 119,
+        "h": 53,
+        "target": "types",
+        "label": "바다 상성",
+        "action": "type",
+        "type": "SEA"
+      },
+      {
+        "x": 50,
+        "y": 333,
+        "w": 119,
+        "h": 53,
+        "target": "types",
+        "label": "그림자 상성",
+        "action": "type",
+        "type": "SHADOW"
+      },
+      {
+        "x": 179,
+        "y": 333,
+        "w": 119,
+        "h": 53,
+        "target": "types",
+        "label": "별 상성",
+        "action": "type",
+        "type": "STAR"
+      },
+      {
+        "x": 50,
+        "y": 396,
+        "w": 119,
+        "h": 53,
+        "target": "types",
+        "label": "실 상성",
+        "action": "type",
+        "type": "THREAD"
+      },
+      {
+        "x": 179,
+        "y": 396,
+        "w": 119,
+        "h": 53,
+        "target": "types",
+        "label": "중력 상성",
+        "action": "type",
+        "type": "GRAVITY"
+      }
+    ]
+  },
+  {
+    "scene": "missions",
+    "hotspots": [
+      {
+        "x": 28,
+        "y": 19,
+        "w": 102,
+        "h": 45,
+        "target": "home",
+        "label": "뒤로"
+      },
+      {
+        "x": 52,
+        "y": 436,
+        "w": 415,
+        "h": 43,
+        "target": "missions",
+        "label": "출석하기",
+        "action": "demo"
+      }
+    ]
+  },
+  {
+    "scene": "settings",
+    "hotspots": [
+      {
+        "x": 28,
+        "y": 19,
+        "w": 102,
+        "h": 45,
+        "target": "home",
+        "label": "뒤로"
+      },
+      {
+        "x": 49,
+        "y": 179,
+        "w": 201,
+        "h": 36,
+        "target": "settings",
+        "label": "알림",
+        "action": "demo"
+      },
+      {
+        "x": 49,
+        "y": 245,
+        "w": 201,
+        "h": 36,
+        "target": "actual:account",
+        "label": "계정"
+      },
+      {
+        "x": 49,
+        "y": 311,
+        "w": 201,
+        "h": 36,
+        "target": "actual:tutorial",
+        "label": "도움말"
+      },
+      {
+        "x": 1129,
+        "y": 178,
+        "w": 94,
+        "h": 43,
+        "target": "settings",
+        "label": "배경음악 음소거",
+        "action": "demo"
+      },
+      {
+        "x": 1129,
+        "y": 255,
+        "w": 94,
+        "h": 43,
+        "target": "settings",
+        "label": "효과음 음소거 해제",
+        "action": "demo"
+      },
+      {
+        "x": 1050,
+        "y": 381,
+        "w": 172,
+        "h": 27,
+        "target": "settings",
+        "label": "패럴랙스",
+        "action": "demo"
+      },
+      {
+        "x": 1050,
+        "y": 444,
+        "w": 172,
+        "h": 40,
+        "target": "home",
+        "label": "저장"
+      }
+    ]
+  },
+  {
+    "scene": "items",
+    "hotspots": [
+      {
+        "x": 28,
+        "y": 19,
+        "w": 102,
+        "h": 45,
+        "target": "collection",
+        "label": "뒤로"
+      },
+      {
+        "x": 624,
+        "y": 438,
+        "w": 234,
+        "h": 45,
+        "target": "shop",
+        "label": "보급품 사기"
+      },
+      {
+        "x": 890,
+        "y": 438,
+        "w": 333,
+        "h": 45,
+        "target": "items",
+        "label": "치료약 사용",
+        "action": "demo"
+      }
+    ]
+  }
+]

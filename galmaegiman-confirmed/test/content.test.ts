@@ -32,7 +32,8 @@ describe('145종 콘텐츠',()=>{
   it('경제 수치: 뽑기 비용 2/3/5, 교환 150, 뽑기권 200/30/1시간',()=>{
     const e=content.economy;
     expect([e.gachas.LOW.cost,e.gachas.MID.cost,e.gachas.HIGH.cost]).toEqual([2,3,5]);
-    expect(e.gachas.HIGH.weights).toEqual({SPECIAL:79,RARE:20,LEGEND:1});
+    expect(e.gachas.MID.weights).toEqual({COMMON:20,UNCOMMON:50,SPECIAL:30});
+    expect(e.gachas.HIGH.weights).toEqual({COMMON:10,UNCOMMON:15,SPECIAL:54,RARE:20,LEGEND:1});
     expect(e.exchange.snackCost).toBe(150);
     expect(e.tickets).toEqual({welcome:200,claim:30,cooldownHours:1});
     expect(e.rewards.COMMON).toEqual({first:0,duplicate:0});

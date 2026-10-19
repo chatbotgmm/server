@@ -86,7 +86,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
   // 탭: 주소 #draw·#craft·#units·#party… 로 바로 열 수 있음(홈페이지 메뉴에서 씀)
   const TABS = ['draw', 'craft', 'units', 'party', 'battle', 'items', 'shop', 'account'];
   const fromHash = () => { const h = location.hash.slice(1); return TABS.includes(h) ? h : null; };
-  let me, tab = fromHash() ?? 'draw', filter = 'all';
+  let me, tab = fromHash() ?? 'draw', filter = 'all', unitQuery = '', partyAdd = null;
   addEventListener('hashchange', () => { const h = fromHash(); if (h && h !== tab && me) { tab = h; if (tab === 'craft') craftData = null; if (tab === 'draw') drawData = null; draw(); } });
   // 웹 게임 첫 화면의 「로그인」으로 왔으면(next=duel) 로그인 뒤 게임으로 돌려보냄(카카오 로그인으로 다녀와도 기억)
   if (!APP && new URLSearchParams(location.search).get('next') === 'duel') try { sessionStorage.setItem('gmm-next', 'duel'); } catch { /* 무시 */ }
@@ -120,15 +120,48 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
   function units(el) {
     const groups = [['all', '전체'], ['top', '최상위'], ['LEGEND', '전설'], ['HIDDEN', '히든'], ['low', '그 밖']];
     const pass = u => filter === 'all' || (filter === 'top' ? u.top : filter === 'low' ? !u.top && !['LEGEND', 'HIDDEN'].includes(u.tier) : u.tier === filter);
-    const list = me.units.filter(pass);
-    el.innerHTML = `<div class="filters">${groups.map(([k, t]) => `<button data-f="${k}" class="${filter === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+    const list = me.units.filter(u => pass(u) && `${u.name} ${u.tierName} ${u.attrName || ''}`.toLocaleLowerCase().includes(unitQuery.toLocaleLowerCase()));
+    el.innerHTML = `<label class="unit-search">🔍 <input id="unitQuery" type="search" value="${esc(unitQuery)}" placeholder="이름·등급·속성으로 찾기" aria-label="갈매미 검색"></label><div class="filters">${groups.map(([k, t]) => `<button data-f="${k}" class="${filter === k ? 'on' : ''}">${t}</button>`).join('')}</div>
       ${list.length ? `<div class="grid">${list.map((u, i) => `<div class="u" data-ui="${i}" style="--tc:${TIER_COLOR[u.tier] ?? '#888'}"><img loading="lazy" src="${thumb(u.id)}" alt=""><span class="n">×${u.have}</span>${u.away ? `<span class="away">탐험 ${u.away}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}${u.attrName ? ` <span class="achip" style="--ac:${ACOLOR[u.attr] ?? '#c9b48a'}">${esc(u.attrName)}</span>` : ''}</small></div>`).join('')}</div>`
-        : '<p class="empty">이 등급의 갈매미가 아직 없어요.</p>'}
+        : `<p class="empty" role="status">${unitQuery ? '찾는 갈매미가 없어요. 다른 이름이나 등급으로 찾아보세요.' : '이 등급의 갈매미가 아직 없어요.'}</p>`}
       ${me.kakaoLogin && !GAMEUI ? `<div class="card row" style="justify-content:space-between;margin-top:14px"><span class="note">${me.kakao ? '✅ 카카오 계정 연결됨 (카카오로 로그인 가능)' : '카카오 계정을 연결하면 다음부터 코드 없이 로그인해요.'}</span>
         ${me.kakao ? '<button class="btn ghost" id="unlink" style="padding:6px 12px;font-size:.85rem">연결 해제</button>' : '<a class="btn kakao" href="/my/kakao" style="padding:8px 14px;font-size:.9rem">카카오 연결</a>'}</div>` : ''}`;
     el.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { filter = b.dataset.f; draw(); });
-    if (GAMEUI) el.querySelectorAll('[data-ui]').forEach(c => { c.tabIndex = 0; c.onclick = () => unitDetail(list, +c.dataset.ui); });
+    el.querySelector('#unitQuery').oninput = e => { unitQuery = e.target.value; units(el); const input = el.querySelector('#unitQuery'); input.focus(); };
+    el.querySelectorAll('[data-ui]').forEach(c => {
+      c.tabIndex = 0; c.setAttribute('role', 'button'); c.setAttribute('aria-label', `${list[+c.dataset.ui].name} 상세 보기. 길게 누르면 메뉴`);
+      bindCardMenu(c, () => unitDetail(list, +c.dataset.ui), () => unitMenu(list, +c.dataset.ui));
+    });
     el.querySelector('#unlink')?.addEventListener('click', () => run('kakao/unlink', {}, '카카오 계정 연결을 끊을까요? 그다음엔 카톡 코드로 로그인해요.'));
+  }
+
+  // 움직여 스크롤하면 취소하고, 길게 눌렀을 때 뒤따르는 클릭은 소비한다.
+  function bindCardMenu(card, tap, hold) {
+    let timer, point, held = false;
+    const cancel = () => { clearTimeout(timer); point = null; };
+    card.onpointerdown = e => { if (e.button !== 0) return; cancel(); held = false; point = [e.clientX, e.clientY]; timer = setTimeout(() => { held = true; point = null; hold(); }, 550); };
+    card.onpointermove = e => { if (point && Math.hypot(e.clientX - point[0], e.clientY - point[1]) > 10) cancel(); };
+    card.onpointerup = card.onpointercancel = card.onpointerleave = cancel;
+    card.onclick = e => { if (held) { held = false; e.preventDefault(); return; } tap(); };
+    card.oncontextmenu = e => { e.preventDefault(); cancel(); held = true; hold(); };
+    card.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tap(); } else if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) { e.preventDefault(); hold(); } };
+  }
+  function unitMenu(list, at) {
+    document.querySelector('.unit-menu')?.remove();
+    const u = list[at], ov = document.createElement('div'), before = document.activeElement;
+    ov.className = 'unit-menu';
+    ov.innerHTML = `<div class="unit-menu-box" role="dialog" aria-modal="true" aria-label="${esc(u.name)} 메뉴"><h2>${esc(u.name)}</h2><button data-act="detail">자세히 보기</button><button data-act="craft">조합하기</button><button data-act="party" ${u.top && u.have > u.away && !me.trip ? '' : 'disabled'}>탐험 편성에 넣기</button><button data-act="protect" ${u.have > u.away ? '' : 'disabled'}>${u.locked ? '보호 해제' : '보호하기'}</button><button data-act="close">닫기</button></div>`;
+    const close = () => { ov.remove(); document.removeEventListener('keydown', key); before?.focus(); };
+    const key = e => { if (e.key === 'Escape') close(); if (e.key === 'Tab') { const buttons = [...ov.querySelectorAll('button:not(:disabled)')], i = buttons.indexOf(document.activeElement); e.preventDefault(); buttons[(i + (e.shiftKey ? -1 : 1) + buttons.length) % buttons.length].focus(); } };
+    document.addEventListener('keydown', key); document.body.append(ov); ov.querySelector('button').focus();
+    ov.onclick = e => { if (e.target === ov) close(); };
+    ov.querySelectorAll('[data-act]').forEach(button => button.onclick = async () => {
+      const action = button.dataset.act; close();
+      if (action === 'detail') return unitDetail(list, at);
+      if (action === 'craft') { tab = 'craft'; craftView = 'all'; craftOnly = false; craftSel = u.id; craftQ = u.name; craftData = null; location.hash = tab; draw(); }
+      if (action === 'party') { partyAdd = u.id; tab = 'party'; location.hash = tab; draw(); }
+      if (action === 'protect') await run('units/protect', { id: u.id, locked: !u.locked }, `${u.name}의 탐험 중이 아닌 갈매미를 모두 ${u.locked ? '보호 해제' : '조합·팔기에서 보호'}할까요?`);
+    });
   }
 
   // 전투 편성: 최상위 3마리(순서 = 출전 순서)
@@ -165,7 +198,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
           ${view === 'chart' ? typeTable() : `<div class="podium">${[1, 0, 2].map(i => { const u = tops.find(x => x.id === pick[i]); return `<div class="pd pd${i + 1} ${u ? 'full' : ''}" ${u ? `data-rm="${u.id}"` : ''} style="--tc:${u ? TIER_COLOR[u.tier] ?? '#888' : '#c9b08a'}">
             ${u && (u.quote || u.tagline) ? `<div class="pd-bub">${esc(u.quote || u.tagline)}</div>` : ''}<div class="pd-card">${u ? `<img src="${thumb(u.id)}" alt=""><b>${esc(u.name)}</b>` : '<span>＋</span><small>비어 있음</small>'}</div><div class="pd-step"><em>${i + 1}</em>${ROLE[i]}</div></div>`; }).join('')}</div>`}</section>
         <section class="btright"><div class="btlist-h"><b>최상위 갈매미 ${tops.length}마리</b><small>눌러서 넣기 · 다시 누르면 빼기</small></div>${grid()}</section>
-        <footer class="btbar"><span class="savest ${saving ? 'busy' : same() ? 'clean' : 'dirty'}" role="status">${stateText()}</span>${saveBtn()}</footer></div>`
+        <footer class="btbar"><span class="savest ${saving ? 'busy' : same() ? 'clean' : 'dirty'}" role="status" aria-live="polite">${stateText()}</span>${saveBtn()}</footer></div>`
       : `<div class="card"><p class="note" style="margin-top:0">수비대 대결에 나갈 <b>최상위 갈매미 1~3마리</b>를 골라요(PvP는 3마리). 처음 고른 갈매미가 먼저 나가요.</p>
         <div class="slots">${[0, 1, 2].map(i => { const u = tops.find(x => x.id === pick[i]); return u ? `<div class="slot full"><img src="${thumb(u.id)}" alt=""><span>${i + 1}. ${esc(u.name)}</span></div>` : `<div class="slot">${i + 1}번 자리<br>비어 있음</div>`; }).join('')}</div>
         <p class="note savest">${stateText()}</p>${saveBtn()}</div>${grid()}`;
@@ -173,9 +206,9 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
       el.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { if (saving) return; pick.splice(pick.indexOf(b.dataset.rm), 1); render(); });
       el.querySelectorAll('[data-id]').forEach(b => b.onclick = () => {
         if (saving) return;
-        const id = b.dataset.id, i = pick.indexOf(id), y = el.querySelector('.btright')?.scrollTop;
+        const id = b.dataset.id, i = pick.indexOf(id), grid = el.querySelector('.btgrid'), x = grid?.scrollLeft ?? 0;
         if (i >= 0) pick.splice(i, 1); else if (pick.length < 3) pick.push(id); else { toast('3마리까지예요. 먼저 하나를 빼 주세요.'); return; }
-        render(); const r = el.querySelector('.btright'); if (r && y) r.scrollTop = y;   // 목록 위치 그대로
+        render(); const r = el.querySelector('.btgrid'); if (r) r.scrollLeft = x;
       });
       el.querySelector('#save').onclick = async () => {
         if (saving || same()) return;
@@ -313,12 +346,13 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
   let craftSel = null, craftOnly = true;
   function craftGame(el) {
     const { recipes, pool } = craftData, ready = recipes.filter(r => r.ready);
-    if (!recipes.some(r => r.id === craftSel)) craftSel = (ready[0] ?? recipes[0])?.id ?? null;
-    const r = recipes.find(x => x.id === craftSel);
+    const visibleRecipes = recipes.filter(x => (!craftOnly || x.ready) && (!craftQ || x.name.includes(craftQ) || x.materials.some(m => m.name.includes(craftQ))));
+    if (!visibleRecipes.some(r => r.id === craftSel)) craftSel = (visibleRecipes.find(r => r.ready) ?? visibleRecipes[0])?.id ?? null;
+    const r = visibleRecipes.find(x => x.id === craftSel);
     const tabs = `<div class="crtabs"><button data-v="recipes" class="${craftView !== 'mix' ? 'on' : ''}">📜 조합식 <small>${ready.length}개 가능</small></button><button data-v="mix" class="${craftView === 'mix' ? 'on' : ''}">🔮 재료로 섞기</button></div>`;
     let body;
     if (craftView !== 'mix') {
-      const list = recipes.filter(x => (!craftOnly || x.ready) && (!craftQ || x.name.includes(craftQ) || x.materials.some(m => m.name.includes(craftQ))));
+      const list = visibleRecipes;
       const slots = r ? `<div class="crmats">${r.materials.map((m, i) => `${i ? '<span class="op">+</span>' : ''}<div class="crslot ${m.usable < m.need ? 'short' : ''}"><img src="${cimg(m.img)}" alt=""><b>${esc(m.name)}</b><small>${m.usable}/${m.need}${m.locked ? ` · 보호 ${m.locked}` : ''}${m.away ? ` · 탐험 ${m.away}` : ''}</small></div>`).join('')}<span class="op">→</span><div class="crslot res"><img src="${cimg(r.img)}" alt=""><b>${esc(r.name)}</b><small class="tg" style="--tc:${TIER_COLOR[r.tier] ?? '#8a7a6a'}">${esc(r.tierName)}</small></div></div>` : '';
       body = `<div class="cr2"><section class="crl"><div class="crsearch"><input id="cq" placeholder="이름·재료로 찾기" value="${esc(craftQ)}"><button class="crchip ${craftOnly ? 'on' : ''}" id="conly">만들 수 있는 것만</button></div>
         <div class="crlist">${list.map(x => `<button class="cri ${x.id === craftSel ? 'on' : ''}" data-r="${x.id}"><img loading="lazy" src="${cimg(x.img)}" alt=""><span><b>${esc(x.name)}</b><small>${esc(x.tierName)}${x.isNew ? ' · 🆕 처음' : ''}</small></span><em class="${x.ready ? 'ok' : 'no'}">${x.ready ? `${x.max}개 가능` : '재료 부족'}</em></button>`).join('') || `<p class="empty">${craftOnly ? '지금 만들 수 있는 게 없어요. 「만들 수 있는 것만」을 끄면 전체 조합식이 보여요.' : '찾는 조합식이 없어요.'}</p>`}</div></section>
@@ -436,6 +470,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     }
     let draft = [...me.party];
     const tops = me.units.filter(u => u.top && u.have - u.away > 0), max = me.prices.maxParty;
+    if (partyAdd) { const u = tops.find(u => u.id === partyAdd); if (u && draft.length < max && draft.filter(id => id === u.id).length < u.have - u.away) draft.push(u.id); else toast('탐험대 자리와 남은 갈매미를 확인해 주세요.'); partyAdd = null; }
     const render = () => {
       const cnt = id => draft.filter(x => x === id).length;
       const syn = {}; for (const id of draft) { const s = me.units.find(u => u.id === id)?.synergy; if (s) syn[s] = (syn[s] ?? 0) + 1; }
@@ -443,13 +478,14 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
       el.innerHTML = `<div class="card"><b style="font-weight:400">🧭 탐험대 ${draft.length}/${max}</b>
         <p class="note">${draft.length ? [...new Set(draft)].map(id => `${esc(name(id))}${cnt(id) > 1 ? ` ×${cnt(id)}` : ''}`).join(', ') : '아래에서 ＋로 넣어요. 같은 시너지끼리 보내면 보너스!'}</p>
         ${Object.keys(syn).length ? `<p class="note">시너지: ${Object.entries(syn).map(([k, n]) => `${k} ${n}마리`).join(' · ')}</p>` : ''}
-        <div class="row"><button class="btn ghost" id="clear" ${draft.length ? '' : 'disabled'}>비우기</button><button class="btn ghost" id="save" ${changed ? '' : 'disabled'}>편성 저장</button>
+        <div class="row">${!draft.length && me.previousParty?.length ? '<button class="btn ghost" id="restoreParty">최근 탐험대 불러오기</button>' : ''}<button class="btn ghost" id="clear" ${draft.length ? '' : 'disabled'}>비우기</button><button class="btn ghost" id="save" ${changed ? '' : 'disabled'}>편성 저장</button>
         <button class="btn" id="go" ${draft.length && !changed ? '' : 'disabled'}>🚀 출발</button></div>${changed ? '<p class="note">출발하려면 먼저 편성 저장을 눌러요.</p>' : ''}</div>
         ${tops.length ? `<div class="grid">${tops.map(u => { const n = cnt(u.id), free = u.have - u.away; return `<div class="u ${n ? 'on' : ''}"><img loading="lazy" src="${thumb(u.id)}" alt="">${n ? `<span class="ord">${n}</span>` : ''}<b>${esc(u.name)}</b><small>남은 ${free - n}마리</small>
             <div class="row" style="justify-content:center;margin-top:4px"><button class="btn ghost" data-m="${u.id}" style="padding:2px 10px" ${n ? '' : 'disabled'}>－</button><button class="btn ghost" data-p="${u.id}" style="padding:2px 10px" ${n < free && draft.length < max ? '' : 'disabled'}>＋</button></div></div>`; }).join('')}</div>`
           : '<p class="empty">보낼 수 있는 최상위 갈매미가 없어요.</p>'}`;
       el.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { draft.push(b.dataset.p); render(); });
       el.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { draft.splice(draft.lastIndexOf(b.dataset.m), 1); render(); });
+      el.querySelector('#restoreParty')?.addEventListener('click', () => run('party', { ids: me.previousParty }));
       el.querySelector('#clear').onclick = () => { draft = []; render(); };
       el.querySelector('#save').onclick = () => run('party', { ids: draft });
       el.querySelector('#go').onclick = () => run('expedition/start', {}, `탐험대 ${draft.length}마리를 출발시킬까요? 돌아올 때까지 다른 데 못 써요.`);
@@ -460,8 +496,12 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
   // 아이템: 가진 대결 아이템
   function items(el) {
     const mine = id => me.items.find(i => i.id === id)?.count ?? 0;
-    el.innerHTML = `<div class="card"><b style="font-weight:400">${gI('u-bag', '🎒')} 대결 아이템</b><p class="note">수비대 대결 스토리에서 「🎒 아이템」으로 써요. 쓰면 그 턴 행동을 쓰고, 대결 한 번에 ${me.itemRules.perBattle}개까지예요.</p></div>
-      ${me.itemDefs.map(d => `<div class="card row" style="justify-content:space-between"><div><b style="font-weight:400">${esc(d.name)}</b> <span class="tag">${mine(d.id)}개</span><p class="note" style="margin:2px 0 0">${esc(d.desc)}</p></div></div>`).join('')}`;
+    el.innerHTML = `<div class="card"><b style="font-weight:400">${gI('u-bag', '🎒')} 아이템</b><p class="note">치료약은 전투 밖에서도 쓸 수 있어요. 일반·랭크 대전은 체력이 유지되지 않아요. 스토리 대결 중에는 한 번에 ${me.itemRules.perBattle}개까지예요.</p></div>
+      <div class="item-shelf">${me.itemDefs.map(d => `<article class="card"><div class="item-name"><b>${esc(d.name)}</b> <span class="tag">${mine(d.id)}개</span></div><p class="note">${esc(d.desc)}</p>${d.heal ? `<button class="btn" data-field="${d.id}" ${mine(d.id) ? '' : 'disabled'}>쓰기 · 갈매미 고르기</button>` : '<small>스토리 대결 중에 사용할 수 있어요</small>'}</article>`).join('')}</div>`;
+    el.querySelectorAll('[data-field]').forEach(b => b.onclick = () => {
+      if (EMBED) parent.postMessage({ gmm: 'field-item', id: b.dataset.field }, '*');
+      else { let k = ''; try { k = sessionStorage.getItem('gmm-k') || ''; } catch { /* 무시 */ } location.href = APP ? `index.html?fieldItem=${encodeURIComponent(b.dataset.field)}` : `/duel?fieldItem=${encodeURIComponent(b.dataset.field)}${k ? `&k=${encodeURIComponent(k)}` : ''}`; }
+    });
   }
 
   // 상점: 카톡 상점과 같은 물건 + 대결 아이템. 수량을 적어서 사요(가격 합계를 바로 보여 줌)

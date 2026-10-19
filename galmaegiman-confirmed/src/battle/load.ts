@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 import { ZodError } from 'zod';
+import { loadContent } from '../content.js';
 import { buildRules, type Rules } from './rules.js';
 
 // 잘못 고쳤을 때 "어디가 왜" 틀렸는지 한국어로
@@ -19,5 +20,5 @@ export function loadBattleRules(root=process.cwd()):Rules{
   const file=`${root}/data/battle.yaml`;
   let raw:unknown;
   try{raw=parse(readFileSync(file,'utf8'));}catch(e){throw new Error(`data/battle.yaml을 읽지 못했어요(들여쓰기·콜론·괄호 확인):\n  - ${(e as Error).message}`);}
-  try{return buildRules(raw);}catch(e){throw new Error(`data/battle.yaml 오류:\n${explain(e)}`);}
+  try{return buildRules(raw,raw&&typeof raw==='object'&&'recipePower' in raw?loadContent(root):undefined);}catch(e){throw new Error(`data/battle.yaml 오류:\n${explain(e)}`);}
 }

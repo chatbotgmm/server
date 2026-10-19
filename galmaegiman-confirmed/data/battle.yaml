@@ -24,10 +24,10 @@
 #   { cleanse: 2 }                                아군 상태 이상을 풀고 2턴 동안 막음
 #   { revive: 50 }                                쓰러진 아군 하나를 체력 50%로 (전투당 1번)
 #   { strip: true }                               상대 강화 모두 지우기
-#   { recharge: true }                            쓴 다음 턴은 쉼
+#   { recharge: true }                            구형 자료 호환용(휴식 적용 안 함)
 #   { lockSelf: 25 }                              이후 교체 불가, 대신 공격 +25%
 #   { protect: true }                             이번 턴 공격 모두 막기
-# 기술 옵션: power 위력, hits 타수, priority: true 무조건 먼저, crit: true 반드시 급소, cd 재사용 대기(턴), attr 공격 속성
+# 기술 옵션: power 위력, hits 타수, priority: true 무조건 먼저, crit: true 반드시 급소, cd 구형 재사용 대기 값(현재 엔진은 0으로 정규화), attr 공격 속성
 
 version: BATTLE_V1
 
@@ -50,6 +50,67 @@ attributes:
 basicPower: 50
 # 보조 속성 기술(유닛마다 units·villains의 sub로 속성을 정함). 이름은 attributes의 sub. 같은 속성 보너스(×1.2)는 없음
 subSkill: { power: 60, cd: 2 }
+
+
+# 조합 원재료를 흔함 마릿수로 재귀 환산해 공격 기술 위력을 보정해요.
+# 흔함 30마리까지 기본 위력, 이후 1마리마다 +0.5%, 최대 +25%.
+recipePower: { baseline: 30, perCommonPct: 0.5, capPct: 25 }
+
+# 플레이어 전용 속성 기술. 기본기 → 보조 속성기 → 공격 역할기가 같은 전술을 공유해요.
+# 고유기·빌런은 유지하고, 자기 속성 공용 학습기는 속성 기본기의 특성을 이어받아요.
+# 고정 속성 학습기는 그 속성 전문 기술로 유지해요. 설명은 실제 효과에서 자동으로 만들어요.
+# cat 자동: 물리·마법 공격 중 높은 쪽 사용. 모든 기술은 다음 턴에도 바로 쓸 수 있어요.
+elemental:
+  STONE:
+    # 단단한 상대의 방어를 깎은 다음 약화된 틈을 격파해요.
+    basic:  { name: 암반 균열, attr: STONE, cat: 자동, cd: 0, power: 48, effects: [ { buff: def, pct: -10, turns: 2, to: foe } ] }
+    sub:    { name: 단층 격파, attr: STONE, cat: 자동, cd: 0, power: 60, bonus: { when: weakened, pct: 25 } }
+    attack: { name: 대지 붕격, attr: STONE, cat: 자동, cd: 0, power: 78, bonus: { when: weakened, pct: 30 } }
+  GOLD:
+    # 방어가 높은 적은 관통으로, 빈틈이 있는 적은 확정 급소로 공략해요.
+    basic:  { name: 금빛 관통, attr: GOLD, cat: 자동, cd: 0, power: 36, pierce: 25 }
+    sub:    { name: 금강 일섬, attr: GOLD, cat: 자동, cd: 0, power: 64, crit: true }
+    attack: { name: 황금 절단, attr: GOLD, cat: 자동, cd: 0, power: 76, pierce: 40 }
+  FIRE:
+    # 잔불로 화상을 준비한 뒤, 이미 타오르는 적에게 폭발적인 피해를 줘요.
+    basic:  { name: 잔화 낙인, attr: FIRE, cat: 자동, cd: 0, power: 32, effects: [ { status: burn, chance: 40, turns: 3 } ] }
+    sub:    { name: 홍련 분쇄, attr: FIRE, cat: 자동, cd: 0, power: 60, bonus: { when: burned, pct: 40 } }
+    attack: { name: 업화 폭쇄, attr: FIRE, cat: 자동, cd: 0, power: 80, bonus: { when: burned, pct: 45 } }
+  ICE:
+    # 속도를 떨어뜨려 선공을 돕고, 느려진 적에게 냉기 일격을 이어 가요.
+    basic:  { name: 서리 파편, attr: ICE, cat: 자동, cd: 0, power: 38, effects: [ { buff: spd, pct: -15, turns: 2, to: foe } ] }
+    sub:    { name: 한빙 파쇄, attr: ICE, cat: 자동, cd: 0, power: 52, bonus: { when: slowed, pct: 25 }, effects: [ { status: freeze, chance: 20, turns: 1 } ] }
+    attack: { name: 절빙 참격, attr: ICE, cat: 자동, cd: 0, power: 72, bonus: { when: slowed, pct: 30 } }
+  BLOSSOM:
+    # 실제 입힌 피해 일부를 회복해 버티고, 체력이 낮을 때 반격을 노려요.
+    basic:  { name: 생명 수확, attr: BLOSSOM, cat: 자동, cd: 0, power: 35, drain: 20 }
+    sub:    { name: 봄의 갈망, attr: BLOSSOM, cat: 자동, cd: 0, power: 58, drain: 30, bonus: { when: lowHp, pct: 25 } }
+    attack: { name: 만개 역습, attr: BLOSSOM, cat: 자동, cd: 0, power: 72, drain: 20, bonus: { when: lowHp, pct: 30 } }
+  SEA:
+    # 전열에서 공격하면서 대기 아군을 돌보고, 상대의 강화는 파도로 지워요.
+    basic:  { name: 파도 전령, attr: SEA, cat: 자동, cd: 0, power: 42, effects: [ { heal: 4, to: bench } ] }
+    sub:    { name: 격랑 소거, attr: SEA, cat: 자동, cd: 0, power: 60, effects: [ { strip: true } ] }
+    attack: { name: 만조의 맹세, attr: SEA, cat: 자동, cd: 0, power: 76, effects: [ { heal: 6, to: bench } ] }
+  SHADOW:
+    # 쓰러뜨릴 수 있는 적을 골라 약해진 전열을 빠르게 정리해요.
+    basic:  { name: 그림자 단검, attr: SHADOW, cat: 자동, cd: 0, power: 38, bonus: { when: finisher, pct: 35 } }
+    sub:    { name: 심연 추격, attr: SHADOW, cat: 자동, cd: 0, power: 52, bonus: { when: finisher, pct: 60 } }
+    attack: { name: 황혼 처형, attr: SHADOW, cat: 자동, cd: 0, power: 70, bonus: { when: finisher, pct: 45 } }
+  STAR:
+    # 여러 번 따로 타격하고, 상대 체력이 90% 이상일 때 포격이 더 강해져요.
+    basic:  { name: 별무리 연타, attr: STAR, cat: 자동, cd: 0, power: 22, hits: 2 }
+    sub:    { name: 유성 포격, attr: STAR, cat: 자동, cd: 0, power: 28, hits: 3 }
+    attack: { name: 성운 일제사격, attr: STAR, cat: 자동, cd: 0, power: 32, hits: 3, bonus: { when: opening, pct: 15 } }
+  THREAD:
+    # 먼저 실로 묶어 교체를 막고, 속박된 적에게 추격 기술을 집중해요.
+    basic:  { name: 봉쇄의 실, attr: THREAD, cat: 자동, cd: 0, power: 28, effects: [ { status: bind, chance: 60, turns: 2 } ] }
+    sub:    { name: 운명 추격, attr: THREAD, cat: 자동, cd: 0, power: 54, bonus: { when: bound, pct: 35 } }
+    attack: { name: 단죄의 봉합, attr: THREAD, cat: 자동, cd: 0, power: 72, bonus: { when: bound, pct: 40 } }
+  GRAVITY:
+    # 상대보다 느린 자신의 무게를 힘으로 바꿔 빠른 적을 받아쳐요.
+    basic:  { name: 중량 진격, attr: GRAVITY, cat: 자동, cd: 0, power: 46, bonus: { when: slower, pct: 20 } }
+    sub:    { name: 질량 붕괴, attr: GRAVITY, cat: 자동, cd: 0, power: 70, bonus: { when: slower, pct: 30 } }
+    attack: { name: 중력의 심판, attr: GRAVITY, cat: 자동, cd: 0, power: 86, bonus: { when: slower, pct: 30 } }
 
 # 상성: 왼쪽 속성이 오른쪽 두 속성에 강함. 모든 속성이 강점 2·약점 2가 되도록 검사해요
 chart:
@@ -145,7 +206,7 @@ villains:
   V3:  { name: 빨판 쭈매미, basic: 먹물 뿌리기, basicCat: 마법,   attr: SEA, sub: STONE,    role: DEFENSE, power: 0.9,  skill: { name: 출근 도장대 붙잡기, cat: 물리, cd: 3, power: 45, effects: [ { status: bind, chance: 100, turns: 2 } ] } }
   V4:  { name: 쭈매미 알 무더기, basic: 먹물 뿌리기, basicCat: 마법, attr: SEA, sub: SHADOW, role: DEFENSE, power: 0.8,  hp: 1.3, skill: { name: 부화 대기, cd: 4, effects: [ { regen: 10, turns: 3, to: self }, { guard: 30, turns: 2 } ] } }
   V5:  { name: 여덟발 대장, basic: 먹물 뿌리기, basicCat: 마법,   attr: SEA, sub: SHADOW,    role: ATTACK,  power: 1.0,  hp: 1.5, boss: true, skill: { name: 이력서 여덟 장, cat: 물리, cd: 3, power: 28, hits: 4 } }
-  V6:  { name: 쭈라켄, basic: 먹물 뿌리기, basicCat: 마법,       attr: SEA, sub: GRAVITY,    role: DEFENSE, power: 1.0,  hp: 2.4, boss: true, skill: { name: 자리는 하나 지원자는 천 마리, cat: 물리, cd: 3, power: 70, hits: 2, effects: [ { buff: atk, pct: 15, turns: 3, to: self } ] } }
+  V6:  { name: 쭈라켄, basic: 먹물 뿌리기, basicCat: 마법,       attr: SEA, sub: GRAVITY,    role: DEFENSE, power: 1.0,  hp: 2.4, boss: true, skill: { name: 자리는 하나 지원자는 천 마리, cat: 물리, cd: 3, power: 48, hits: 2, effects: [ { buff: atk, pct: 15, turns: 3, to: self } ] } }
   # 랍매미(2부 「인수합병 소용돌이」용, 아직 스토리에 안 나옴). 기본기는 집게 꼬집기
   V7:  { name: 집게 랍매미,   basic: 집게 꼬집기, basicCat: 물리, attr: THREAD, sub: SEA,     role: ATTACK,  power: 0.95, skill: { name: 끈 자르기, cat: 물리, cd: 3, power: 60, effects: [ { strip: true } ] } }
   V8:  { name: 껍데기 랍매미, basic: 집게 꼬집기, basicCat: 물리, attr: STONE,  sub: SEA,     role: DEFENSE, power: 1.0,  hp: 1.3, skill: { name: 허물 벗기, cd: 4, effects: [ { heal: 30, to: self }, { buff: def, pct: 30, turns: 2, to: self } ] } }
@@ -173,32 +234,39 @@ learn:                # v0.15.8: 기술 4칸 모두 바꿀 수 있음(기본기�
   offers: 20           # 후보 최대 수(그 레벨에 새로 열린 기술 전부가 보통 이보다 적음)
   perChance: 2
   skills:
-    quick:    { name: 재빠른 쪼기, cat: 물리,   level: 10, cd: 1, power: 40, priority: true }
-    peck:     { name: 연속 쪼기, cat: 물리,     level: 10, cd: 2, power: 22, hits: 3 }
-    sand:     { name: 모래 끼얹기,   level: 10, cd: 2, effects: [ { buff: spd, pct: -30, turns: 3, to: foe } ] }
-    growl:    { name: 끼룩 위협,     level: 10, cd: 2, effects: [ { buff: atk, pct: -20, turns: 3, to: foe } ] }
-    preen:    { name: 깃털 고르기,   level: 10, cd: 3, roles: [DEFENSE, UTILITY], effects: [ { heal: 25, to: self } ] }
-    snack:    { name: 새우gang 미끼,   level: 10, cd: 4, roles: [UTILITY], effects: [ { status: sleep, chance: 60, turns: 1 } ] }
-    flame:    { name: 불꽃 부리, cat: 마법,     level: 20, attr: FIRE,   cd: 2, power: 55, effects: [ { status: burn, chance: 30, turns: 3 } ] }
-    frost:    { name: 얼음 숨결, cat: 마법,     level: 20, attr: ICE,    cd: 2, power: 55, effects: [ { status: freeze, chance: 20, turns: 1 } ] }
-    wrap:     { name: 실 감기, cat: 물리,       level: 20, attr: THREAD, cd: 3, power: 40, effects: [ { status: bind, chance: 100, turns: 2 } ] }
-    brace:    { name: 철벽 자세,     level: 20, cd: 4, roles: [DEFENSE], effects: [ { guard: 50, turns: 2 } ] }
-    pump:     { name: 기합 넣기,     level: 20, cd: 3, roles: [ATTACK], effects: [ { buff: atk, pct: 30, turns: 3, to: self } ] }
-    cheer:    { name: 출근 응원가,   level: 20, cd: 4, roles: [UTILITY], effects: [ { buff: atk, pct: 15, turns: 3, to: team } ] }
-    pierce:   { name: 급소 찌르기, cat: 물리,   level: 30, cd: 3, power: 70, crit: true, roles: [ATTACK, UTILITY] }
-    grit:     { name: 악으로 버티기, level: 30, cd: 5, roles: [DEFENSE, ATTACK], effects: [ { endure: 2 } ] }
-    block:    { name: 날개로 막기,   level: 30, cd: 3, effects: [ { protect: true } ] }
-    steal:    { name: 기세 빼앗기, cat: 마법,   level: 30, cd: 3, power: 50, roles: [UTILITY], effects: [ { strip: true } ] }
-    rest:     { name: 휴식 시간,     level: 30, cd: 5, roles: [UTILITY, DEFENSE], effects: [ { regen: 8, turns: 3, to: team } ] }
-    ambush:   { name: 그림자 기습, cat: 물리,   level: 30, attr: SHADOW, cd: 3, power: 60, priority: true }
-    rush:     { name: 전력 돌진, cat: 물리,     level: 40, cd: 3, power: 130, roles: [ATTACK], effects: [ { recharge: true } ] }
-    meteor:   { name: 별똥 낙하, cat: 마법,     level: 40, attr: STAR, cd: 3, power: 80 }
-    armor:    { name: 돌 갑옷,       level: 40, cd: 4, roles: [DEFENSE], effects: [ { buff: def, pct: 30, turns: 3, to: team } ] }
-    quake:    { name: 땅 울리기, cat: 물리,     level: 40, attr: STONE, cd: 3, power: 75, effects: [ { buff: spd, pct: -20, turns: 2, to: foe } ] }
-    finisher: { name: 필살 갈매기 낙하, cat: 물리, level: 50, cd: 4, power: 160, roles: [ATTACK], effects: [ { recharge: true } ] }
-    flag:     { name: 만선 깃발,     level: 50, cd: 5, effects: [ { buff: atk, pct: 20, turns: 3, to: team }, { buff: def, pct: 20, turns: 3, to: team } ] }
-    comeback: { name: 다시 출근,     level: 50, cd: 6, roles: [UTILITY, DEFENSE], effects: [ { revive: 40 } ] }
-    blizzard: { name: 눈보라, cat: 마법,        level: 50, attr: ICE, cd: 4, power: 90, effects: [ { status: freeze, chance: 30, turns: 1 } ] }
+    # 기존 키·레벨·역할·수치·순서는 유지해 저장 기술과 선천 기술의 씨앗 결과를 보존해요.
+    quick:    { name: 일섬 돌파, cat: 물리,     level: 10, cd: 1, power: 40, priority: true }
+    peck:     { name: 쇄도하는 깃날, cat: 물리, level: 10, cd: 2, power: 22, hits: 3 }
+    sand:     { name: 모래 장막,     level: 10, cd: 2, effects: [ { buff: spd, pct: -30, turns: 3, to: foe } ] }
+    growl:    { name: 위압의 포효,   level: 10, cd: 2, effects: [ { buff: atk, pct: -20, turns: 3, to: foe } ] }
+    preen:    { name: 전열 재정비,   level: 10, cd: 3, roles: [DEFENSE, UTILITY], effects: [ { heal: 25, to: self } ] }
+    snack:    { name: 몽환의 미끼,   level: 10, cd: 4, roles: [UTILITY], effects: [ { status: sleep, chance: 60, turns: 1 } ] }
+    flame:    { name: 홍련 쇄도, cat: 마법,     level: 20, attr: FIRE,   cd: 2, power: 55, effects: [ { status: burn, chance: 30, turns: 3 } ] }
+    frost:    { name: 서리 파동, cat: 마법,     level: 20, attr: ICE,    cd: 2, power: 55, effects: [ { status: freeze, chance: 20, turns: 1 } ] }
+    wrap:     { name: 운명 재봉, cat: 물리,     level: 20, attr: THREAD, cd: 3, power: 40, effects: [ { status: bind, chance: 100, turns: 2 } ] }
+    brace:    { name: 철옹의 자세,   level: 20, cd: 4, roles: [DEFENSE], effects: [ { guard: 50, turns: 2 } ] }
+    pump:     { name: 투지 점화,     level: 20, cd: 3, roles: [ATTACK], effects: [ { buff: atk, pct: 30, turns: 3, to: self } ] }
+    cheer:    { name: 결의의 함성,   level: 20, cd: 4, roles: [UTILITY], effects: [ { buff: atk, pct: 15, turns: 3, to: team } ] }
+    pierce:   { name: 급소 격파, cat: 물리,     level: 30, cd: 3, power: 70, crit: true, roles: [ATTACK, UTILITY] }
+    grit:     { name: 불굴의 결의,   level: 30, cd: 5, roles: [DEFENSE, ATTACK], effects: [ { endure: 2 } ] }
+    block:    { name: 절대 방호,     level: 30, cd: 3, effects: [ { protect: true } ] }
+    steal:    { name: 파훼의 파동, cat: 마법,   level: 30, cd: 3, power: 50, roles: [UTILITY], effects: [ { strip: true } ] }
+    rest:     { name: 생명의 순환,   level: 30, cd: 5, roles: [UTILITY, DEFENSE], effects: [ { regen: 8, turns: 3, to: team } ] }
+    ambush:   { name: 심연 기습, cat: 물리,     level: 30, attr: SHADOW, cd: 3, power: 60, priority: true }
+    rush:     { name: 폭진 돌파, cat: 물리,     level: 40, cd: 0, power: 100, roles: [ATTACK], bonus: { when: opening, pct: 30 } }
+    meteor:   { name: 성광 포격, cat: 마법,     level: 40, attr: STAR, cd: 3, power: 80 }
+    armor:    { name: 수호의 결계,   level: 40, cd: 4, roles: [DEFENSE], effects: [ { buff: def, pct: 30, turns: 3, to: team } ] }
+    quake:    { name: 단층 분쇄, cat: 물리,     level: 40, attr: STONE, cd: 3, power: 75, effects: [ { buff: spd, pct: -20, turns: 2, to: foe } ] }
+    finisher: { name: 천지 붕격, cat: 물리,     level: 50, cd: 0, power: 100, roles: [ATTACK], bonus: { when: finisher, pct: 60 } }
+    flag:     { name: 전장의 맹세,   level: 50, cd: 5, effects: [ { buff: atk, pct: 20, turns: 3, to: team }, { buff: def, pct: 20, turns: 3, to: team } ] }
+    comeback: { name: 불멸의 귀환,   level: 50, cd: 6, roles: [UTILITY, DEFENSE], effects: [ { revive: 40 } ] }
+    blizzard: { name: 빙하 파쇄, cat: 마법,     level: 50, attr: ICE, cd: 4, power: 90, effects: [ { status: freeze, chance: 30, turns: 1 } ] }
+    # 학습 공격이 없던 네 속성을 보완해요. 회복·행동 봉쇄를 더하지 않고 기존 효과만 써요.
+    # 다단 위력은 1타 기준(매 타격마다 피해·급소를 따로 판정). cd는 현재 엔진에서 0으로 정규화해요.
+    petal:    { name: 낙화 난무, cat: 물리,     level: 20, attr: BLOSSOM, cd: 0, power: 24, hits: 3 }
+    tide:     { name: 해일 격돌, cat: 물리,     level: 20, attr: SEA, cd: 0, power: 55, effects: [ { buff: def, pct: -15, turns: 2, to: foe } ] }
+    judgment: { name: 금익의 심판, cat: 물리,   level: 30, attr: GOLD, cd: 0, power: 60, crit: true }
+    gravity:  { name: 만유 붕괴, cat: 마법,     level: 50, attr: GRAVITY, cd: 0, power: 90, effects: [ { buff: spd, pct: -25, turns: 2, to: foe } ] }
 
 # 대결 아이템: 웹 「내 갈매미 → 상점」에서 새우gang으로 사요. 대결 중 쓰면 그 턴 행동을 써요(스토리 계정 저장 이후 대결에서 사용)
 #   heal: 지금 나와 있는 갈매미 체력 % 회복 / cleanse: 지금 나와 있는 갈매미 상태 이상 풀기 / revive: 쓰러진 아군 하나를 체력 %로

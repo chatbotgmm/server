@@ -12,7 +12,7 @@ self.addEventListener('fetch', e => {
   // API·로그인은 캐시하지 않음
   if (u.origin === location.origin && (u.pathname.startsWith('/my/api') || u.pathname.startsWith('/my/kakao') || u.pathname.startsWith('/api/'))) return;
   // 그림·글꼴: 캐시에 있으면 그것, 없으면 받아서 저장
-  if (/\.(png|jpg|webp|woff2?)$/.test(u.pathname) || u.host === 'fonts.gstatic.com') {
+  if (/\.(png|jpg|webp|svg|woff2?)$/.test(u.pathname) || u.host === 'fonts.gstatic.com') {
     e.respondWith(caches.match(r).then(hit => hit || fetch(r).then(res => { if (res.ok || res.type === 'opaque') { const copy = res.clone(); caches.open(CACHE).then(c => c.put(r, copy)); } return res; })));
   }
 });
