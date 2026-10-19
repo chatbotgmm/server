@@ -155,6 +155,9 @@ final class RecruitmentProbabilityView extends LinearLayout {
       JSONObject label = gacha == null ? MainActivity.obj("kind", kind) : gacha;
       TextView title = compactText(NativeEconomy.recruitmentLabel(label), 14);
       title.setTypeface(host.headline);
+      // The headline font has Korean ink above its ascent: keep its native top/bottom metrics.
+      title.setIncludeFontPadding(true);
+      title.setTag("recruitment-title-" + kind);
       title.setGravity(Gravity.CENTER);
       section.addView(title);
       if (gacha == null) {

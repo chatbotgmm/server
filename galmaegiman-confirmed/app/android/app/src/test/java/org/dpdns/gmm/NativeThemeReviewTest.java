@@ -163,6 +163,26 @@ public class NativeThemeReviewTest {
     return AppSkin.background("training");
   }
 
+  void probabilityHeadlineInk(MainActivity host, View root, TextView title) {
+    assertNotNull("A real native headline is required", title);
+    assertNotNull("Headline text must be laid out", title.getLayout());
+    assertEquals("Recruitment headline stays on one line", 1, title.getLineCount());
+    Rect ink = new Rect();
+    String label = title.getText().toString();
+    title.getPaint().getTextBounds(label, 0, label.length(), ink);
+    int inkTop = title.getBaseline() + ink.top;
+    int inkBottom = title.getBaseline() + ink.bottom;
+    assertTrue("Korean headline ink is not clipped above its native TextView: " + label,
+        inkTop >= title.getCompoundPaddingTop());
+    assertTrue("Korean headline ink is not clipped below its native TextView: " + label,
+        inkBottom <= title.getHeight() - title.getCompoundPaddingBottom());
+    Rect titleBounds = geometry.bounds(title, root);
+    Rect panelBounds = geometry.bounds(root.findViewWithTag("settings-reading-panel"), root);
+    assertTrue("Headline ink clears the brass frame by the 12dp reading inset: " + label,
+        titleBounds.top + inkTop >= panelBounds.top + host.dp(12));
+    assertEquals("Headline view is fully visible", titleBounds, geometry.visibleIntersection(title, root));
+  }
+
   JSONObject inspect(MainActivity host, View root, String page, ReviewApi api) throws Exception {
     int bounds = 0, actions = 0, text = 0;
     List<View> buttons = new ArrayList<>();
@@ -219,6 +239,7 @@ public class NativeThemeReviewTest {
         String kind = offer.getString("kind");
         View section = root.findViewWithTag("recruitment-probability-" + kind);
         assertNotNull("Loaded section for every server tier: " + kind, section);
+        probabilityHeadlineInk(host, root, section.findViewWithTag("recruitment-title-" + kind));
         assertEquals("All three tiers are fully visible together: " + kind,
             geometry.bounds(section, root), geometry.visibleIntersection(section, root));
         JSONArray weights = offer.getJSONArray("weights");
@@ -253,7 +274,8 @@ public class NativeThemeReviewTest {
         "sceneAsset", scene(page), "sceneWidth", scene.getWidth(), "sceneHeight", scene.getHeight(),
         "apiWrites", api.writes, "apiReads", api.reads, "homeDrawReads", api.homeDrawReads, "totalDrawReads", api.drawReads,
         "probabilityReads", api.drawReads - api.homeDrawReads,
-        "verifiedProbabilityRates", page.equals("settings-probability") ? 10 : 0, "actualNativeViews", true,
+        "verifiedProbabilityRates", page.equals("settings-probability") ? 10 : 0,
+        "verifiedHeadlineInkBounds", page.equals("settings-probability") ? 3 : 0, "actualNativeViews", true,
         "rootKind", page.startsWith("settings-") ? "dialog" : page.equals("profile") ? "popup" : "page");
   }
 
