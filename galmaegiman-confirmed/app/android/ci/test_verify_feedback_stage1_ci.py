@@ -106,8 +106,8 @@ def mode_metric(profile_id="short-915x374-mdpi", state="ready"):
     return {"profile": profile_id, "state": state, "screenWidthPx": w, "screenHeightPx": h,
             "densityDpi": dpi, "fontScale": font, "safeInsetsPx": edges(insets), "safeBoundsPx": edges(safe),
             "actualNativeViews": True, "apiWrites": 0, "actions": actions, "texts": texts, "containers": containers,
-            "scrollContainers": 0, "decorativeFrameChecks": 8, "actionOverlapChecks": 28,
-            "loadedPortraits": 6, "realBundledImages": True, "pendingFetches": 1 if state == "loading" else 0,
+            "scrollContainers": 0, "decorativeFrameChecks": 5, "actionOverlapChecks": 10,
+            "loadedPortraits": 0 if state == "empty" else 3, "realBundledImages": True, "pendingFetches": 1 if state == "loading" else 0,
             "densityInterpretation": verifier.density_interpretation(profile_id), "findings": []}
 
 
@@ -455,13 +455,13 @@ class StageOneValidatorTests(unittest.TestCase):
 
     def test_positive_modes_geometry_passes(self):
         result = verifier.verify_modes_metric(self.mode, "short-915x374-mdpi", "ready")
-        self.assertEqual(result, dict(actions=8, texts=9, decorative_frame_checks=8))
+        self.assertEqual(result, dict(actions=5, texts=6, decorative_frame_checks=5))
 
     def test_all_thirty_two_modes_profiles_validate(self):
         self.build_modes_evidence()
         report = self.modes_fixture_verify()
         self.assertEqual(report["screenshots"], 32)
-        self.assertEqual(report["actions"], 256)
+        self.assertEqual(report["actions"], 160)
 
     def test_complete_synthetic_evidence_counts_both_modules(self):
         self.build_modes_evidence(); self.build_shop_evidence()
@@ -472,24 +472,24 @@ class StageOneValidatorTests(unittest.TestCase):
         self.assertEqual(report["actual_device_review"], "not_run")
 
     def test_modes_clipped_bottom_button_fails(self):
-        self.mode["actions"]["modes-pvp-team"]["visibleBoundsPx"]["bottom"] -= 1
+        self.mode["actions"]["modes-practice"]["visibleBoundsPx"]["bottom"] -= 1
         self.assert_mode_fails()
 
     def test_modes_zero_size_button_fails(self):
-        box = self.mode["actions"]["modes-pvp-team"]["boundsPx"]
+        box = self.mode["actions"]["modes-practice"]["boundsPx"]
         box["bottom"] = box["top"]
         self.assert_mode_fails()
 
     def test_modes_missing_action_fails(self):
-        del self.mode["actions"]["modes-pvp-team"]
+        del self.mode["actions"]["modes-practice"]
         self.assert_mode_fails()
 
     def test_modes_overlap_fails(self):
-        self.mode["actions"]["modes-pvp-team"] = copy.deepcopy(self.mode["actions"]["modes-normal"])
+        self.mode["actions"]["modes-practice"] = copy.deepcopy(self.mode["actions"]["modes-normal"])
         self.assert_mode_fails()
 
     def test_modes_missing_summary_fails(self):
-        del self.mode["containers"]["modes-story-summary"]
+        del self.mode["containers"]["modes-pvp-summary"]
         self.assert_mode_fails()
 
     def test_modes_wrong_insets_fail(self):
@@ -509,11 +509,11 @@ class StageOneValidatorTests(unittest.TestCase):
         self.assert_mode_fails()
 
     def test_modes_missing_bundled_portraits_fails(self):
-        self.mode["loadedPortraits"] = 5
+        self.mode["loadedPortraits"] = 2
         self.assert_mode_fails()
 
     def test_modes_subminimum_touch_fails(self):
-        action = self.mode["actions"]["modes-pvp-team"]
+        action = self.mode["actions"]["modes-practice"]
         action["boundsPx"]["bottom"] -= 1
         action["visibleBoundsPx"] = copy.deepcopy(action["boundsPx"])
         self.assert_mode_fails()
@@ -640,3 +640,4 @@ _add_exact_required_method_negative_tests()
 
 if __name__ == "__main__":
     unittest.main()
+

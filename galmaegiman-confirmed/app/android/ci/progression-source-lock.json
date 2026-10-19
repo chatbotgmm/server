@@ -34,13 +34,13 @@
     },
     {
       "path": "galmaegiman-confirmed/src/game.ts",
-      "sha256": "c2a79421c044521b9b74450788d557cdb9fc2ea6c7ed6c423e407065ceefd232",
-      "bytes": 207104
+      "sha256": "52c90e3c1acb460c3e5e5cc1344ea0f3d19e78d5783c9fc1c893a713c8f30a7e",
+      "bytes": 207224
     },
     {
       "path": "galmaegiman-confirmed/src/native.ts",
-      "sha256": "12f140dc17b215634f26480281404713fd63cf84ba6db09191ef6b97ae7a77f0",
-      "bytes": 34303
+      "sha256": "156977e40b2a30b6d3ac5e307f8bbcd45bd37785d3d0d3e6aa87bd65bb44715f",
+      "bytes": 34338
     },
     {
       "path": "galmaegiman-confirmed/src/progression.ts",

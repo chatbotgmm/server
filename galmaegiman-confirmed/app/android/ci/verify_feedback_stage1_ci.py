@@ -275,9 +275,10 @@ def verify_shop(root):
 
 
 MODE_STATES = ("ready", "loading", "error", "empty")
-MODE_ACTIONS = ("modes-story-team", "modes-story", "modes-adventure", "modes-normal",
-                "modes-ranked", "modes-standings", "modes-practice", "modes-pvp-team")
-MODE_CONTAINERS = ("modes-story-summary", "modes-pvp-summary")
+# These 32 legacy captures now inspect the PvP subpage. The story branch and
+# disabled adventure action are independently required by the category contract.
+MODE_ACTIONS = ("modes-normal", "modes-ranked", "modes-standings", "modes-practice", "modes-battle-records")
+MODE_CONTAINERS = ("modes-pvp-summary",)
 MODE_PROFILES = {
     "short-915x374-mdpi": (915, 374, 160, 1.0, [0, 0, 0, 0]),
     "short-780x319-mdpi": (780, 319, 160, 1.0, [0, 0, 0, 0]),
@@ -327,7 +328,7 @@ def verify_modes_metric(metric, profile_id, state):
     check(type(metric.get("apiWrites")) is int and metric["apiWrites"] == 0, "Modes capture wrote to API")
     check(type(metric.get("scrollContainers")) is int and metric["scrollContainers"] == 0, "Modes requires scrolling")
     check(metric.get("realBundledImages") is True and integer(metric.get("loadedPortraits"))
-          and (state == "empty" or metric["loadedPortraits"] >= 6), "Missing real modes portraits")
+          and (metric["loadedPortraits"] == (0 if state == "empty" else 3)), "Missing real modes portraits")
     check(type(metric.get("pendingFetches")) is int and metric["pendingFetches"] == (1 if state == "loading" else 0),
           "Modes asynchronous rank state mismatch")
     check(metric.get("findings") == [], "Native modes measurements contain findings")
@@ -346,12 +347,11 @@ def verify_modes_metric(metric, profile_id, state):
               and bounds[2] - bounds[0] >= minimum and bounds[3] - bounds[1] >= minimum,
               "Modes control smaller than 48dp: " + key)
         check(type(action.get("enabled")) is bool, "Missing modes enabled state")
-    check(actions["modes-adventure"]["enabled"] is False, "Unavailable adventure action became enabled")
-    # The eight required destinations are siblings, never nested click targets.
+    # All five PvP destinations remain siblings, never nested click targets.
     for i, key in enumerate(MODE_ACTIONS):
         for other in MODE_ACTIONS[i + 1:]:
             check(not overlap(actions[key]["boundsPx"], actions[other]["boundsPx"]), "Modes actions overlap")
-    check(integer(metric.get("actionOverlapChecks"), 28), "Modes independent action checks did not execute")
+    check(integer(metric.get("actionOverlapChecks"), 10), "Modes independent action checks did not execute")
     framed = 0
     for key, text in texts.items():
         box, visible, ink = rect(text["boundsPx"]), rect(text["visibleBoundsPx"]), rect(text["glyphBoundsPx"])
@@ -475,3 +475,4 @@ def main(argv=None):
 
 if __name__ == "__main__":
     sys.exit(main())
+

@@ -144,6 +144,28 @@ PROGRESSION_SOURCE_LOCK = HERE / "progression-source-lock.json"
 PROGRESSION_PATHS = frozenset(['galmaegiman-confirmed/docs/PROGRESSION.md', 'galmaegiman-confirmed/prisma/manual/20261019_progression_additive.sql', 'galmaegiman-confirmed/prisma/schema.prisma', 'galmaegiman-confirmed/src/battle/engine.ts', 'galmaegiman-confirmed/src/battle/growth.ts', 'galmaegiman-confirmed/src/battle/realtime-adapter.ts', 'galmaegiman-confirmed/src/game.ts', 'galmaegiman-confirmed/src/native.ts', 'galmaegiman-confirmed/src/progression.ts', 'galmaegiman-confirmed/src/pvp/realtime-native-view.ts', 'galmaegiman-confirmed/src/pvp/service.ts', 'galmaegiman-confirmed/src/server.ts', 'galmaegiman-confirmed/test/progression-migration.test.ts', 'galmaegiman-confirmed/test/progression.integration.test.ts'])
 
 
+MATRIX_TEST_PATH = "galmaegiman-confirmed/test/native-type-matrix.test.ts"
+MATRIX_TEST_SHA256 = "2080ce099a136f81a01dd1131a8add09bf3528e66395640ab44983ac7480d7e6"
+
+def verify_matrix_test(root):
+    source = root / MATRIX_TEST_PATH
+    check(source.is_file() and not source.is_symlink() and source.resolve().is_relative_to(root.resolve()), "Missing or redirected canonical matrix backend test")
+    data = source.read_bytes()
+    check(len(data) == 2372 and sha256(data) == MATRIX_TEST_SHA256, "Canonical matrix backend test changed")
+    return MATRIX_TEST_SHA256
+
+
+RECEIPT_TEST_PATH = "galmaegiman-confirmed/test/recruitment-owned-receipts.integration.test.ts"
+RECEIPT_TEST_SHA256 = "72fa07d762db915b709e344895adf43eaa2f11fa01d5ea6b7d8195a57fb4785d"
+
+def verify_receipt_test(root):
+    source = root / RECEIPT_TEST_PATH
+    check(source.is_file() and not source.is_symlink() and source.resolve().is_relative_to(root.resolve()), "Missing or redirected owned-receipt backend test")
+    data = source.read_bytes()
+    check(len(data) == 8395 and sha256(data) == RECEIPT_TEST_SHA256, "Owned-receipt backend test changed")
+    return RECEIPT_TEST_SHA256
+
+
 def verify_source_scope(root, changed, registration_lock, progression_lock=None):
     approved = json.loads(PROGRESSION_SOURCE_LOCK.read_text()) if progression_lock is None else progression_lock
     check(approved.get("schema") == "authorized-progression-source/v1"
@@ -166,10 +188,14 @@ def verify_source_scope(root, changed, registration_lock, progression_lock=None)
         data = source.read_bytes()
         check(len(data) == item["bytes"] and sha256(data) == item["sha256"],
               "Approved progression source hash changed: " + path)
+    if MATRIX_TEST_PATH in changed:
+        verify_matrix_test(root)
+    if RECEIPT_TEST_PATH in changed:
+        verify_receipt_test(root)
     allowed_prefixes = ("galmaegiman-confirmed/app/android/", registration_lock["source_prefix"] + "/")
     forbidden = [path for path in changed if path
                  and path != ".github/workflows/home-assembly-check.yml"
-                 and path not in indexed and not path.startswith(allowed_prefixes)]
+                 and path not in indexed and path not in (MATRIX_TEST_PATH, RECEIPT_TEST_PATH) and not path.startswith(allowed_prefixes)]
     check(not forbidden, "Changes outside Android/registration/locked progression scope: " + ", ".join(forbidden))
     return {"approved_progression_files": len(indexed),
             "progression_source_commit": approved["approved_commit"],
@@ -322,3 +348,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+

@@ -81,7 +81,10 @@ public class NativeEffectsPresentationTest {
     second.drawRect(0, 0, 40, 40, paint);
     state.finish(second, save);
     assertEquals(255, Color.alpha(enabled.getPixel(20, 20)));
-    assertTrue(Color.alpha(disabled.getPixel(20, 20)) < 150);
+    assertEquals("비활성 아이콘은 원래 불투명도를 유지", 255, Color.alpha(disabled.getPixel(20, 20)));
+    assertTrue("색을 완전히 회색으로 지우지 않음",
+        Color.red(disabled.getPixel(20, 20)) > Color.green(disabled.getPixel(20, 20)));
+    assertTrue("밝기를 조금 낮춤", Color.red(disabled.getPixel(20, 20)) < 255);
     assertTrue(Color.green(disabled.getPixel(20, 20)) > 0);
     state.update(new int[] {android.R.attr.state_enabled, android.R.attr.state_pressed});
     int before = first.getSaveCount();

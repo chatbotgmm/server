@@ -27,6 +27,18 @@ final class NativeReveal extends FrameLayout {
   boolean opening, detached, revealed, leaving;
   static final int RESULT_PAGE_SIZE = 3;
   int resultPage;
+  Runnable repaintResults;
+  RevealStrip resultStrip;
+  final java.util.Map<String, JSONObject> reassessmentCandidates = new java.util.LinkedHashMap<>();
+  NativeProgression reassessment;
+  boolean reassessmentLoading, reassessmentLoaded, resultSyncing;
+  String reassessmentNotice = "";
+  long reassessmentNextAt, reassessmentServerNow;
+  JSONObject pendingReassessment;
+  int pendingReassessmentIndex;
+  String pendingReassessmentKey;
+  TextView reassessmentStatus;
+
   NativeUnitDossier dossier;
   android.app.AlertDialog resultPickerDialog;
   ValueAnimator animation;
@@ -60,6 +72,11 @@ final class NativeReveal extends FrameLayout {
     this.result = result;
     this.next = next;
     this.flow = flow;
+    if (flow != null && flow.account.equals(h.api.token())) {
+      pendingReassessment = flow.pendingReassessment;
+      pendingReassessmentIndex = flow.pendingReassessmentIndex;
+      pendingReassessmentKey = flow.pendingReassessmentKey;
+    }
     ownerEpoch = h.epoch;
     ownerAccount = h.api.token();
     k = new MenuKit(h);
@@ -157,7 +174,8 @@ final class NativeReveal extends FrameLayout {
         && !h.isFinishing()
         && !h.isDestroyed()
         && ownerEpoch == h.epoch
-        && ownerAccount.equals(h.api.token());
+        && ownerAccount.equals(h.api.token())
+        && (flow == null || flow.account.equals(ownerAccount));
   }
 
   boolean active() {
@@ -199,6 +217,15 @@ final class NativeReveal extends FrameLayout {
       stopAnimations();
       if (envelope != null) envelope.cancel();
       return;
+    }
+    // A result may have been reopened before the original POST completed.
+    // Adopt its account-bound receipt once; failed reads remain explicit retries.
+    if (revealed && flow != null && flow.pendingReassessment != null
+        && pendingReassessment != flow.pendingReassessment) {
+      pendingReassessment = flow.pendingReassessment;
+      pendingReassessmentIndex = flow.pendingReassessmentIndex;
+      pendingReassessmentKey = flow.pendingReassessmentKey;
+      syncReassessment();
     }
     for (Animator animator : new ArrayList<>(animations)) {
       if (!active()) {
@@ -277,9 +304,17 @@ final class NativeReveal extends FrameLayout {
       page.addView(selectedLabel);
     }
     RevealStrip scroll = new RevealStrip();
+    resultStrip = scroll;
     LinearLayout row = scroll.cardsRow;
     scroll.setTag("acquisition-cards-scroll");
     page.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+    reassessmentStatus = h.text("", 12);
+    reassessmentStatus.setTag("acquisition-reassessment-status");
+    reassessmentStatus.setTextColor(JournalTheme.PAPER);
+    reassessmentStatus.setGravity(Gravity.CENTER);
+    reassessmentStatus.setPadding(0, 0, 0, 0);
+    reassessmentStatus.setVisibility(GONE);
+    page.addView(reassessmentStatus, new LinearLayout.LayoutParams(-1, -2));
     final LinearLayout footer = k.column();
     final boolean[] firstPaint = {true};
     final ArrayList<RevealCard> shown = new ArrayList<>();
@@ -288,7 +323,7 @@ final class NativeReveal extends FrameLayout {
       footer.removeAllViews();
       if (flow != null && units.length() > 0) {
         flow.selected = Math.max(0, Math.min(flow.selected, units.length() - 1));
-        selectedLabel.setText("모집 결과 " + units.length() + "종");
+        selectedLabel.setText("모집 결과 " + speciesCount() + "종");
         for (int j = 0; j < shown.size(); j++) {
           int serverIndex = resultPage * RESULT_PAGE_SIZE + j;
           RevealCard card = shown.get(j);
@@ -302,10 +337,8 @@ final class NativeReveal extends FrameLayout {
       LinearLayout finish = k.row();
       if (units.length() > RESULT_PAGE_SIZE) {
         Button previous = k.action(null, "‹", () -> {
-          if (h.busy || !current() || dossier != null || resultPage <= 0) return;
-          resultPage--;
-          if (flow != null) flow.selected = resultPage * RESULT_PAGE_SIZE;
-          paint[0].run();
+          if (!canTurnResults() || resultPage <= 0) return;
+          scroll.turn(-1);
         });
         previous.setTag("acquisition-previous-page");
         previous.setContentDescription("이전 모집 결과 페이지");
@@ -315,15 +348,26 @@ final class NativeReveal extends FrameLayout {
             (resultPage + 1) + "/" + ((units.length() + RESULT_PAGE_SIZE - 1) / RESULT_PAGE_SIZE));
         finish.addView(pageNumber, new LinearLayout.LayoutParams(h.dp(52), h.dp(48)));
         Button nextPage = k.action(null, "›", () -> {
-          if (h.busy || !current() || dossier != null || (resultPage + 1) * RESULT_PAGE_SIZE >= units.length()) return;
-          resultPage++;
-          if (flow != null) flow.selected = resultPage * RESULT_PAGE_SIZE;
-          paint[0].run();
+          if (!canTurnResults() || (resultPage + 1) * RESULT_PAGE_SIZE >= units.length()) return;
+          scroll.turn(1);
         });
         nextPage.setTag("acquisition-next-page");
         nextPage.setContentDescription("다음 모집 결과 페이지");
         nextPage.setEnabled((resultPage + 1) * RESULT_PAGE_SIZE < units.length());
         finish.addView(nextPage, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+      }
+      if ((!reassessmentNotice.isEmpty() && hasReceiptIdentity()) || !savedReassessmentKey().isEmpty() || pendingReassessment != null
+          || (hasReceiptIdentity() && reassessmentNextAt > reassessmentServerNow)) {
+        Button retry = k.action(null, "↻", () -> {
+          if (pendingReassessment != null) syncReassessment();
+          else if (!savedReassessmentKey().isEmpty()) {
+            String key = savedReassessmentKey();
+            for (int i = 0; i < units.length(); i++) if (receiptKeys(units.optJSONObject(i)).contains(key)) { openReassessment(i, key); break; }
+          } else { reassessmentLoaded = false; loadReassessment(); }
+        });
+        retry.setTag("acquisition-reassessment-refresh"); retry.setContentDescription("재심사 서버 상태 다시 확인");
+        retry.setPadding(0, 0, 0, 0); retry.setEnabled(!reassessmentLoading && !resultSyncing);
+        finish.addView(retry, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
       }
       Button all = k.action(null, "목록 · " + units.length(), () -> resultPicker(index -> {
         if (flow != null) flow.selected = index;
@@ -331,7 +375,7 @@ final class NativeReveal extends FrameLayout {
         paint[0].run();
       }));
       all.setTag("acquisition-result-picker");
-      all.setContentDescription("전체 결과 목록 · " + units.length() + "종");
+      all.setContentDescription("전체 결과 목록 · " + speciesCount() + "종");
       h.cell(finish, all);
       if (flow != null && units.length() > 0) {
         LinearLayout actions = NativeUnitDossier.actions(h, flow,
@@ -359,9 +403,10 @@ final class NativeReveal extends FrameLayout {
         RevealCard card = new RevealCard(unit, 240);
         shown.add(card);
         int index = i;
+        bindReassessment(card, unit, index);
         card.setTag("acquisition-card-" + unit.optString("id"));
         card.setOnClickListener(v -> {
-          if (h.busy || !current() || dossier != null || card.front.getVisibility() != VISIBLE) return;
+          if (!canTurnResults() || scroll.suppressClick || card.front.getVisibility() != VISIBLE) return;
           if (flow != null) flow.selected = index;
           selection[0].run();
           openDossier(unit, card);
@@ -378,11 +423,14 @@ final class NativeReveal extends FrameLayout {
         } else card.flip(1);
       }
       firstPaint[0] = false;
+      updateReassessmentStatus();
       selection[0].run();
     };
+    repaintResults = paint[0];
     page.addView(footer, new LinearLayout.LayoutParams(-1, -2));
     if (flow != null) resultPage = Math.max(0, flow.selected) / RESULT_PAGE_SIZE;
     paint[0].run();
+    if (isAttachedToWindow()) loadReassessment();
     if (motion()) {
       ValueAnimator rays = ValueAnimator.ofFloat(0, 360);
       rays.setDuration(14000);
@@ -407,12 +455,248 @@ final class NativeReveal extends FrameLayout {
     }
   }
 
+  boolean canTurnResults() {
+    return current() && !leaving && !h.busy && dossier == null && reassessment == null
+        && !resultSyncing && !pickerShowing();
+  }
+
+  List<String> receiptKeys(JSONObject item) {
+    ArrayList<String> keys = new ArrayList<>();
+    if (item == null) return keys;
+    JSONArray supplied = item.optJSONArray("ownedKeys");
+    if (supplied == null || supplied.length() != Math.max(1, item.optInt("n", 1))) return keys;
+    for (int i = 0; i < supplied.length(); i++) {
+      String key = supplied.optString(i);
+      if (!key.matches("o[1-9]\\d*") || keys.contains(key)) return new ArrayList<>();
+      int appearances = 0;
+      for (int n = 0; n < units.length(); n++) {
+        JSONObject other = units.optJSONObject(n);
+        JSONArray otherKeys = other == null ? null : other.optJSONArray("ownedKeys");
+        for (int j = 0; otherKeys != null && j < otherKeys.length(); j++) if (key.equals(otherKeys.optString(j))) appearances++;
+      }
+      if (appearances != 1) return new ArrayList<>();
+      keys.add(key);
+    }
+    return keys;
+  }
+
+  boolean hasReceiptIdentity() {
+    for (int i = 0; i < units.length(); i++) {
+      JSONObject item = units.optJSONObject(i);
+      if (item != null && rank(item.optString("tier")) >= 4 && !receiptKeys(item).isEmpty()) return true;
+    }
+    return false;
+  }
+
+  boolean needsReassessment() {
+    if (flow == null || !flow.origin.equals("draw")) return false;
+    for (int i = 0; i < units.length(); i++) {
+      JSONObject item = units.optJSONObject(i);
+      if (item != null && rank(item.optString("tier")) >= 4) return true;
+    }
+    return false;
+  }
+
+  String savedReassessmentKey() {
+    try {
+      NativeProgression screen = new NativeProgression(h);
+      String owner = NativeProgression.accountKey(ownerAccount.split("\\.")[0]);
+      JSONObject pending = new JSONObject(screen.prefs.getString(owner, "{}"));
+      if (!"native/progression/reassess".equals(pending.optString("path"))) return "";
+      String key = NativeProgression.object(pending, "body").optString("key");
+      for (int i = 0; i < units.length(); i++) if (receiptKeys(units.optJSONObject(i)).contains(key)) return key;
+    } catch (JSONException ignored) { }
+    return "";
+  }
+
+  void updateReassessmentStatus() {
+    if (reassessmentStatus == null) return;
+    String message = reassessmentNotice;
+    if (message.isEmpty() && !savedReassessmentKey().isEmpty()) message = "재심사 처리 확인이 남아 있어요. 같은 요청 결과를 확인해 주세요.";
+    if (message.isEmpty() && needsReassessment() && !hasReceiptIdentity())
+      message = "재심사 잠김 · 서버가 획득 개체 번호를 보내지 않았어요.";
+    if (message.isEmpty() && reassessmentLoading) message = "재심사 가능 개체 확인 중…";
+    if (message.isEmpty() && reassessmentNextAt > reassessmentServerNow)
+      message = "재심사 대기 · " + NativeProgression.duration(reassessmentNextAt - reassessmentServerNow);
+    reassessmentStatus.setText(message);
+    reassessmentStatus.setVisibility(message.isEmpty() ? GONE : VISIBLE);
+  }
+
+  void loadReassessment() {
+    if (!current() || !revealed || !needsReassessment() || reassessmentLoading || resultSyncing) return;
+    if (!hasReceiptIdentity()) { updateReassessmentStatus(); return; }
+    if (reassessmentLoaded && reassessmentNotice.isEmpty()) return;
+    reassessmentLoading = true; reassessmentNotice = "";
+    updateReassessmentStatus();
+    h.api.call("native/progression", null, (data, error) -> {
+      if (ownerEpoch == h.epoch && error != null && h.api.token().isEmpty()) { h.login(); return; }
+      if (!current()) return;
+      reassessmentLoading = false; reassessmentCandidates.clear();
+      if (error != null || !NativeProgression.validSnapshot(data)) {
+        reassessmentLoaded = false;
+        reassessmentNotice = "재심사 서버 지원을 확인하지 못했어요. 다시 확인해 주세요.";
+      } else {
+        reassessmentLoaded = true;
+        JSONObject section = NativeProgression.object(data, "reassessment");
+        reassessmentNextAt = section.optLong("nextAvailableAt"); reassessmentServerNow = data.optLong("serverNow");
+        JSONArray candidates = section.optJSONArray("candidates");
+        for (int i = 0; candidates != null && i < candidates.length(); i++) {
+          JSONObject candidate = candidates.optJSONObject(i);
+          if (candidate != null && candidate.optBoolean("eligible", true) && !candidate.optBoolean("locked")
+              && candidate.optString("key").matches("o[1-9]\\d*"))
+            reassessmentCandidates.put(candidate.optString("key"), candidate);
+        }
+      }
+      if (repaintResults != null) repaintResults.run();
+    });
+  }
+
+  List<JSONObject> eligibleInstances(JSONObject unit) {
+    ArrayList<JSONObject> found = new ArrayList<>();
+    if (unit == null || rank(unit.optString("tier")) < 4) return found;
+    for (String key : receiptKeys(unit)) {
+      JSONObject candidate = reassessmentCandidates.get(key);
+      if (candidate != null && unit.optString("id").equals(candidate.optString("id"))
+          && unit.optString("tier").equals(candidate.optString("rarity"))) found.add(candidate);
+    }
+    return found;
+  }
+
+  void bindReassessment(RevealCard card, JSONObject unit, int index) {
+    List<JSONObject> candidates = eligibleInstances(unit);
+    if (candidates.isEmpty()) return;
+    Button button = k.action(null, "↻", () -> chooseReassessment(unit, index));
+    button.setTag("acquisition-reassess-card-" + index);
+    button.setTextSize(26); button.setPadding(0, 0, 0, h.dp(2));
+    android.graphics.drawable.StateListDrawable circle = new android.graphics.drawable.StateListDrawable();
+    android.graphics.drawable.GradientDrawable pressed = new android.graphics.drawable.GradientDrawable();
+    pressed.setShape(android.graphics.drawable.GradientDrawable.OVAL); pressed.setColor(JournalTheme.TEAL);
+    pressed.setStroke(h.dp(2), JournalTheme.BRASS);
+    android.graphics.drawable.GradientDrawable normal = new android.graphics.drawable.GradientDrawable();
+    normal.setShape(android.graphics.drawable.GradientDrawable.OVAL); normal.setColor(JournalTheme.PAPER);
+    normal.setStroke(h.dp(2), JournalTheme.BRASS);
+    circle.addState(new int[] {android.R.attr.state_pressed}, pressed);
+    circle.addState(new int[] {}, normal);
+    button.setBackground(circle);
+    button.setContentDescription(unit.optString("name") + " · 이번 획득 개체 재심사"
+        + (reassessmentNextAt > reassessmentServerNow ? " · 대기 시간 남음" : ""));
+    button.setEnabled(!resultSyncing && reassessmentNextAt <= reassessmentServerNow);
+    LayoutParams slot = new LayoutParams(h.dp(48), h.dp(48), Gravity.TOP | Gravity.RIGHT);
+    slot.setMargins(0, h.dp(4), h.dp(4), 0);
+    card.photo.addView(button, slot);
+    if (card.countBadge != null) {
+      LayoutParams count = (LayoutParams) card.countBadge.getLayoutParams();
+      count.topMargin = h.dp(56);
+      card.countBadge.setLayoutParams(count);
+    }
+  }
+
+  void chooseReassessment(JSONObject unit, int index) {
+    if (!canTurnResults() || (resultStrip != null && resultStrip.suppressClick)) return;
+    List<JSONObject> candidates = eligibleInstances(unit);
+    if (candidates.isEmpty() || reassessmentNextAt > reassessmentServerNow) return;
+    if (flow != null) flow.selected = index;
+    if (candidates.size() == 1) { openReassessment(index, candidates.get(0).optString("key")); return; }
+    String[] labels = new String[candidates.size()];
+    for (int i = 0; i < labels.length; i++) labels[i] = candidates.get(i).optString("name") + " · 개체 " + candidates.get(i).optString("key");
+    resultPickerDialog = new GameDialog(h).setTitle("이번에 얻은 재심사 대상 선택")
+        .setItems(labels, (dialog, which) -> {
+          resultPickerDialog = null;
+          if (canTurnResults()) openReassessment(index, candidates.get(which).optString("key"));
+        }).setNegativeButton("취소", null).show();
+  }
+
+  int speciesCount() {
+    java.util.HashSet<String> ids = new java.util.HashSet<>();
+    for (int i = 0; i < units.length(); i++) {
+      JSONObject item = units.optJSONObject(i);
+      if (item != null && !item.optString("id").isEmpty()) ids.add(item.optString("id"));
+    }
+    return ids.size();
+  }
+
+  void openReassessment(int index, String key) {
+    if (!canTurnResults() || !receiptKeys(units.optJSONObject(index)).contains(key)) return;
+    reassessment = NativeProgression.openReassessment(h, key, (sourceKey, receipt) -> {
+      if (flow == null || !flow.account.equals(ownerAccount)) return;
+      int actualIndex = -1;
+      for (int i = 0; i < units.length(); i++) if (receiptKeys(units.optJSONObject(i)).contains(sourceKey)) actualIndex = i;
+      if (actualIndex < 0) return;
+      flow.pendingReassessment = receipt; flow.pendingReassessmentIndex = actualIndex; flow.pendingReassessmentKey = sourceKey;
+      if (!current()) return;
+      pendingReassessment = receipt; pendingReassessmentIndex = actualIndex; pendingReassessmentKey = sourceKey;
+      syncReassessment();
+    }, () -> {
+      reassessment = null;
+      if (current() && pendingReassessment == null) { reassessmentLoaded = false; loadReassessment(); }
+    });
+  }
+
+  void syncReassessment() {
+    if (!current() || pendingReassessment == null || resultSyncing) return;
+    resultSyncing = true;
+    h.api.call("native/state", null, (fresh, error) -> {
+      if (ownerEpoch == h.epoch && error != null && h.api.token().isEmpty()) { h.login(); return; }
+      if (!current()) return;
+      resultSyncing = false;
+      if (error != null || fresh == null || fresh.optJSONObject("me") == null) {
+        reassessmentNotice = "재심사는 처리됐지만 새 보유 상태를 확인하지 못했어요. 다시 확인해 주세요.";
+        if (reassessment != null) reassessment.dismiss();
+        if (repaintResults != null) repaintResults.run();
+        return;
+      }
+      JSONObject old = units.optJSONObject(pendingReassessmentIndex), receipt = pendingReassessment;
+      List<String> remaining = receiptKeys(old);
+      if (!remaining.remove(pendingReassessmentKey) || !old.optString("tier").equals(receipt.optString("rarity"))) {
+        reassessmentNotice = "새 결과의 개체 정보를 확인해야 해요. 모집을 다시 실행하지 말고 진행을 확인해 주세요.";
+        if (reassessment != null) reassessment.dismiss();
+        if (repaintResults != null) repaintResults.run();
+        return;
+      }
+      try {
+        JSONObject replacement = MainActivity.obj("id", receipt.optString("id"), "img", receipt.optString("id"),
+            "name", receipt.optString("name"), "tier", receipt.optString("rarity"), "tierName", old.optString("tierName"),
+            "n", 1, "first", false, "ownedKeys", new JSONArray().put(receipt.optString("key")));
+        JSONArray catalog = h.list(fresh.optJSONObject("me"), "units");
+        for (int i = 0; i < catalog.length(); i++) {
+          JSONObject entry = catalog.optJSONObject(i);
+          if (entry != null && replacement.optString("id").equals(entry.optString("id"))) {
+            replacement.put("name", entry.optString("name", replacement.optString("name")));
+            replacement.put("tierName", entry.optString("tierName", replacement.optString("tierName")));
+            break;
+          }
+        }
+        ArrayList<JSONObject> updated = new ArrayList<>();
+        for (int i = 0; i < units.length(); i++) {
+          if (i != pendingReassessmentIndex) updated.add(units.optJSONObject(i));
+          else {
+            updated.add(replacement);
+            if (!remaining.isEmpty()) updated.add(new JSONObject(old.toString())
+                .put("n", remaining.size()).put("ownedKeys", new JSONArray(remaining)));
+          }
+        }
+        while (units.length() > 0) units.remove(units.length() - 1);
+        for (JSONObject item : updated) units.put(item);
+        h.state = fresh; h.stateUpdated();
+        // 사용자가 보고 있는 현재 페이지/선택 인덱스는 변환 후에도 유지한다.
+        pendingReassessment = null; reassessmentNotice = ""; reassessmentLoaded = false;
+        if (flow != null) flow.pendingReassessment = null;
+        if (reassessment != null) reassessment.dismiss();
+        if (repaintResults != null) repaintResults.run();
+        loadReassessment();
+      } catch (JSONException exception) {
+        reassessmentNotice = "새 결과 표시를 확인하지 못했어요. 진행을 다시 확인해 주세요.";
+        if (repaintResults != null) repaintResults.run();
+      }
+    });
+  }
+
   boolean pickerShowing() {
     return resultPickerDialog != null && resultPickerDialog.isShowing();
   }
 
   void openDossier(JSONObject unit, View returnFocus) {
-    if (!current() || leaving || dossier != null || pickerShowing()) return;
+    if (!canTurnResults() || pickerShowing()) return;
     for (int i = 0; i < getChildCount(); i++)
       getChildAt(i).setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
     dossier = new NativeUnitDossier(h, unit, flow, this::current, () -> {
@@ -474,7 +758,7 @@ final class NativeReveal extends FrameLayout {
   }
 
   void finish() {
-    if (leaving || dossier != null || pickerShowing() || !revealed
+    if (leaving || dossier != null || reassessment != null || resultSyncing || pickerShowing() || !revealed
         || !current() || (attachedOnce && !active())) return;
     leaving = true;
     stopAnimations();
@@ -522,6 +806,7 @@ final class NativeReveal extends FrameLayout {
             false,
             animationSetting);
     refreshMotion();
+    if (revealed) { if (pendingReassessment != null) syncReassessment(); else loadReassessment(); }
   }
 
   @Override
@@ -535,6 +820,7 @@ final class NativeReveal extends FrameLayout {
     detached = true;
     if (resultPickerDialog != null) resultPickerDialog.dismiss();
     if (dossier != null) dossier.dismiss();
+    if (reassessment != null) reassessment.dismiss();
     stopAnimations();
     if (envelope != null) envelope.cancel();
     if (observing) {
@@ -551,6 +837,9 @@ final class NativeReveal extends FrameLayout {
   /** 하단 행동과 큰 글자가 먼저 차지한 뒤의 실제 카드 영역에 초상만 맞춘다. */
   final class RevealStrip extends HorizontalScrollView {
     final LinearLayout cardsRow = k.row();
+    float downX, downY, dragX;
+    boolean dragging, suppressClick, transitioning, verticalGesture;
+    final int touchSlop = ViewConfiguration.get(h).getScaledTouchSlop();
 
     RevealStrip() {
       super(h);
@@ -559,6 +848,84 @@ final class NativeReveal extends FrameLayout {
       cardsRow.setGravity(Gravity.CENTER);
       cardsRow.setPadding(h.dp(3), h.dp(3), h.dp(3), h.dp(3));
       addView(cardsRow, new HorizontalScrollView.LayoutParams(-2, -2, Gravity.CENTER));
+    }
+
+    @Override public boolean onInterceptTouchEvent(MotionEvent event) {
+      if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+        downX = event.getX(); downY = event.getY(); dragX = 0;
+        dragging = false; verticalGesture = false;
+        if (!transitioning) suppressClick = false;
+        return transitioning;
+      }
+      if (event.getActionMasked() == MotionEvent.ACTION_MOVE && !transitioning && canTurnResults()) {
+        float dx = event.getX() - downX, dy = event.getY() - downY;
+        if (Math.abs(dx) > touchSlop && Math.abs(dx) > Math.abs(dy) * 1.25f) {
+          dragging = true; suppressClick = true;
+          getParent().requestDisallowInterceptTouchEvent(true);
+          return true;
+        }
+        if (Math.abs(dy) > touchSlop) {
+          verticalGesture = true; suppressClick = true;
+          return true;
+        }
+      }
+      return dragging || transitioning || verticalGesture;
+    }
+
+    @Override public boolean onTouchEvent(MotionEvent event) {
+      if (transitioning) return true;
+      if (!canTurnResults()) return false;
+      switch (event.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN:
+          downX = event.getX(); downY = event.getY(); dragX = 0; return true;
+        case MotionEvent.ACTION_MOVE:
+          if (verticalGesture) return true;
+          dragX = event.getX() - downX;
+          if (Math.abs(dragX) > touchSlop) { dragging = true; suppressClick = true; }
+          boolean edge = dragX > 0 ? resultPage == 0 : (resultPage + 1) * RESULT_PAGE_SIZE >= units.length();
+          cardsRow.setTranslationX(dragX * (edge ? .22f : 1f));
+          return true;
+        case MotionEvent.ACTION_UP:
+          if (!verticalGesture && dragging && Math.abs(dragX) >= Math.max(h.dp(48), getWidth() * .12f)) turn(dragX < 0 ? 1 : -1);
+          else settle();
+          dragging = false; return true;
+        case MotionEvent.ACTION_CANCEL:
+          dragging = false; settle(); return true;
+        default: return true;
+      }
+    }
+
+    void settle() {
+      if (motion()) cardsRow.animate().translationX(0).setDuration(140).start();
+      else cardsRow.setTranslationX(0);
+      postDelayed(() -> suppressClick = false, 200);
+    }
+
+    void turn(int direction) {
+      if (!canTurnResults() || transitioning) { settle(); return; }
+      int destination = resultPage + direction;
+      if (destination < 0 || destination * RESULT_PAGE_SIZE >= units.length()) { settle(); return; }
+      suppressClick = dragging || motion();
+      Runnable change = () -> {
+        if (!current()) return;
+        resultPage = destination;
+        if (flow != null) flow.selected = resultPage * RESULT_PAGE_SIZE;
+        repaintResults.run();
+        if (motion()) {
+          cardsRow.setTranslationX(direction * getWidth() * .30f);
+          cardsRow.animate().translationX(0).setDuration(160).withEndAction(() -> {
+            transitioning = false; suppressClick = false;
+          }).start();
+        } else { cardsRow.setTranslationX(0); transitioning = false; postDelayed(() -> suppressClick = false, 200); }
+      };
+      transitioning = true;
+      if (motion()) cardsRow.animate().translationX(-direction * getWidth()).setDuration(140).withEndAction(change).start();
+      else change.run();
+    }
+
+    @Override protected void onDetachedFromWindow() {
+      cardsRow.animate().cancel();
+      super.onDetachedFromWindow();
     }
 
     @Override
@@ -594,6 +961,8 @@ final class NativeReveal extends FrameLayout {
   final class RevealCard extends FrameLayout {
     final View front, back;
     final int preferredHeight;
+    final FrameLayout photo;
+    TextView countBadge;
     int cardWidth, portraitHeight;
 
     RevealCard(JSONObject unit, int width) {
@@ -607,7 +976,7 @@ final class NativeReveal extends FrameLayout {
       LinearLayout face = k.column();
       face.setGravity(Gravity.CENTER);
       // 원본에 종이·프레임·이름·등급이 모두 있으므로 외부 크림 판과 중복 문자를 두지 않는다.
-      FrameLayout photo = new FrameLayout(h);
+      photo = new FrameLayout(h);
       View art = RegistrationCardView.art(h, unit, RegistrationCardView.FULL);
       art.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
       photo.addView(art, new LayoutParams(-1, -1));
@@ -622,6 +991,7 @@ final class NativeReveal extends FrameLayout {
       }
       if (unit.optInt("n") > 1) {
         TextView count = h.text("×" + unit.optInt("n"), 12);
+        countBadge = count;
         count.setGravity(Gravity.CENTER);
         fitBadge(count);
         count.setBackground(new GamePaperDrawable(h));
@@ -752,4 +1122,5 @@ final class NativeReveal extends FrameLayout {
   }
 
 }
+
 

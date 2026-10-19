@@ -1,0 +1,32 @@
+{
+  "schema": "recruitment-tray-assets/v1",
+  "files": [
+    {
+      "path": "recruitment/tray-low-v1.png",
+      "bytes": 436673,
+      "sha256": "3dae2db0095afee8c3dc8aba8aa80e80d6402ce9090d4c94b531035b6f002dba",
+      "dimensions": [
+        768,
+        512
+      ]
+    },
+    {
+      "path": "recruitment/tray-mid-v1.png",
+      "bytes": 414682,
+      "sha256": "cf5a0f50139de454a598da5fa4d23e6431c83d8a49c51577a23a1144fb60114a",
+      "dimensions": [
+        768,
+        512
+      ]
+    },
+    {
+      "path": "recruitment/tray-high-v1.png",
+      "bytes": 431524,
+      "sha256": "60600efd09dee5f044775ec1a1b6696a722fe6991c7873c8fd54aaeb149eacd1",
+      "dimensions": [
+        768,
+        512
+      ]
+    }
+  ]
+}

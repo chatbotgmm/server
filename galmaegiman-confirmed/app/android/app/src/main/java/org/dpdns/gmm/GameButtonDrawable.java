@@ -52,20 +52,10 @@ final class GameButtonDrawable extends Drawable {
       layerBounds.set(getBounds());
       c.saveLayer(layerBounds, opacity);
     }
-    int save;
-    if (state.enabled) save = state.begin(c, getBounds(), host.getResources().getDisplayMetrics().density);
-    else {
-      opacity.setAlpha(state.alpha); opacity.setColorFilter(null);
-      layerBounds.set(getBounds()); save = c.saveLayer(layerBounds, opacity);
-    }
-    if (!state.enabled) {
-      // 비활성 글자는 MUTED다. 그림 배경이 비치지 않는 기존 읽기 면을 유지한다.
-      drawSurface(c, r, JournalTheme.DISABLED, host.dp(16), host.dp(2), 0, p);
-    } else {
-      // Every actionable native button rests on parchment. Navy is transient feedback only.
-      ThemeArt.of(host).surface(c,
-          state.pressed ? ThemeArt.Surface.NAVY : ThemeArt.Surface.PAPER, r);
-    }
+    int save = state.begin(c, getBounds(), host.getResources().getDisplayMetrics().density);
+    // 비활성도 같은 양피지 그림·프레임을 사용한다. 상태 필터만 약하게 적용한다.
+    ThemeArt.of(host).surface(c,
+        state.enabled && state.pressed ? ThemeArt.Surface.NAVY : ThemeArt.Surface.PAPER, r);
     boolean focused = false;
     for (int value : getState()) if (value == android.R.attr.state_focused) focused = true;
     if ((selected || focused) && state.enabled) {

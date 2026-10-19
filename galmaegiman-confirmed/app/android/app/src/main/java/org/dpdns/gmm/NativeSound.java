@@ -1,6 +1,9 @@
 package org.dpdns.gmm;
 
 import android.content.Context;
+import android.content.BroadcastReceiver;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.media.*;
 import android.os.Build;
@@ -31,7 +34,19 @@ final class NativeSound {
   private MediaPlayer music;
   private ModernFocus focus;
   private final AudioManager.OnAudioFocusChangeListener focusListener = this::focusChanged;
-  private boolean focused, interrupted, ducked, stopped, closed;
+  private boolean focused, focusRegistered, interrupted, ducked, stopped, closed;
+  // isMusicActive is a local-stream hint, not a guarantee about remote/cast playback.
+  // Once detected, leave BGM off for this foreground session, including gaps between tracks.
+  private boolean externalMusic, paused, noisy, permanentFocusLoss;
+  private final BroadcastReceiver noisyReceiver = new BroadcastReceiver() {
+    @Override public void onReceive(Context c, Intent intent) {
+      if (!AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(intent.getAction())) return;
+      noisy = true;
+      stopPlayer();
+      stopEffects();
+      abandonFocus();
+    }
+  };
   String current = "";
   private String requested = "";
 
@@ -39,6 +54,10 @@ final class NativeSound {
     context = c;
     prefs = c.getSharedPreferences("native_audio", 0);
     manager = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
+    IntentFilter filter = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+    if (Build.VERSION.SDK_INT >= 33)
+      context.registerReceiver(noisyReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+    else context.registerReceiver(noisyReceiver, filter);
     AudioAttributes attributes = attributes(false);
     effects = new SoundPool.Builder().setMaxStreams(8).setAudioAttributes(attributes).build();
     effects.setOnLoadCompleteListener(
@@ -146,9 +165,18 @@ final class NativeSound {
     if (audibleVolume("music") == 0 && audibleVolume("effects") == 0) abandonFocus();
   }
 
+  private boolean quietForSystem() {
+    return paused || noisy || (manager != null && manager.getMode() != AudioManager.MODE_NORMAL);
+  }
+
+  private boolean preserveExternalMusic() {
+    if (!focused && manager != null && manager.isMusicActive()) externalMusic = true;
+    return externalMusic;
+  }
+
   @SuppressWarnings("deprecation")
   private boolean requestFocus() {
-    if (closed || interrupted) return false;
+    if (closed || interrupted || quietForSystem() || preserveExternalMusic()) return false;
     if (focused || manager == null) return true;
     int result;
     if (Build.VERSION.SDK_INT >= 26) {
@@ -160,11 +188,13 @@ final class NativeSound {
           manager.requestAudioFocus(
               focusListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
     focused = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+    focusRegistered = focused;
     return focused;
   }
 
   private void focusChanged(int change) {
-    if (closed) return;
+    if (closed || paused || noisy) return;
+    permanentFocusLoss = change == AudioManager.AUDIOFOCUS_LOSS;
     if (change == AudioManager.AUDIOFOCUS_GAIN) {
       focused = true;
       interrupted = false;
@@ -192,12 +222,13 @@ final class NativeSound {
 
   @SuppressWarnings("deprecation")
   private void abandonFocus() {
-    if (manager != null) {
+    if (focusRegistered && manager != null) {
       if (Build.VERSION.SDK_INT >= 26) {
         if (focus != null) focus.abandon(manager);
       } else manager.abandonAudioFocus(focusListener);
     }
     focused = false;
+    focusRegistered = false;
   }
 
   /** Android 7에서 API 26 클래스를 직접 해석하지 않도록 현대 포커스 구현을 분리한다. */
@@ -225,6 +256,7 @@ final class NativeSound {
   void play(String name) {
     if (closed) return;
     requested = name;
+    if (quietForSystem()) return;
     stopped = false;
     if (name.isEmpty() || audibleVolume("music") <= 0) {
       stopPlayer();
@@ -249,7 +281,8 @@ final class NativeSound {
                 && audibleVolume("music") > 0
                 && !stopped
                 && !interrupted
-                && !closed) {
+                && !closed
+                && !quietForSystem()) {
               try {
                 p.setVolume(gain("music"), gain("music"));
                 p.start();
@@ -279,7 +312,12 @@ final class NativeSound {
 
   /** tap/hit/crit/big/weak/faint/heal/aug/combo/win/lose/levelup 및 뽑기·조합 별칭. */
   void effect(String effect) {
-    if (closed || stopped || audibleVolume("effects") <= 0 || !requestFocus()) return;
+    if (closed || quietForSystem() || audibleVolume("effects") <= 0) return;
+    // A permanent media takeover silences BGM, but local effects may mix without focus.
+    // Transient interruptions (including calls) must still silence every game sound.
+    if ((stopped || interrupted) && !(permanentFocusLoss && preserveExternalMusic())) return;
+    // Short user-triggered effects mix at the configured level; never take focus from music.
+    if (!preserveExternalMusic() && !requestFocus()) return;
     String name = GameEffectPcm.canonical(effect);
     Integer sample = samples.get(name);
     if (sample == null || !ready.contains(sample)) {
@@ -304,7 +342,26 @@ final class NativeSound {
     streams.clear();
   }
 
+  void pause() {
+    paused = true;
+    stopPlayer();
+    stopEffects();
+    abandonFocus();
+  }
+
+  void resume() {
+    if (closed || !paused) return;
+    paused = false;
+    noisy = false;
+    externalMusic = false;
+    permanentFocusLoss = false;
+    interrupted = false;
+    ducked = false;
+    if (!requested.isEmpty()) play(requested);
+  }
+
   void stop() {
+    permanentFocusLoss = false;
     stopped = true;
     requested = "";
     interrupted = false;
@@ -328,6 +385,8 @@ final class NativeSound {
     closed = true;
     loader.shutdownNow();
     effects.release();
+    context.unregisterReceiver(noisyReceiver);
     main.removeCallbacksAndMessages(null);
   }
 }
+

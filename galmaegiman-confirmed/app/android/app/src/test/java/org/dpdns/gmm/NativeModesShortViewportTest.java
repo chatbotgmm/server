@@ -33,11 +33,10 @@ import org.robolectric.shadows.ShadowDisplayManager;
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @LooperMode(LooperMode.Mode.PAUSED)
 public class NativeModesShortViewportTest {
-  static final String BASELINE = "8b55b4bde86c4ea8e1a9f4efb643d905564ffe89";
+  static final String BASELINE = "680cc3565aafddcd262541faed44b6a333dde912";
   static final String[] STATES = {"ready", "loading", "error", "empty"};
-  static final String[] ACTIONS = {"modes-story-team", "modes-story", "modes-adventure",
-      "modes-normal", "modes-ranked", "modes-standings", "modes-practice", "modes-pvp-team"};
-  static final String[] SUMMARIES = {"modes-story-summary", "modes-pvp-summary"};
+  static final String[] ACTIONS = {"modes-normal", "modes-ranked", "modes-standings", "modes-practice", "modes-battle-records"};
+  static final String[] SUMMARIES = {"modes-pvp-summary"};
   static final class Profile {
     final String name;
     final int width, height, dpi, left, top, right, bottom;
@@ -209,7 +208,7 @@ public class NativeModesShortViewportTest {
   }
   void show(MainActivity host, Profile p) throws Exception {
     layout(host, p);
-    host.menus.modes();
+    host.menus.pvpModes();
     layout(host, p);
     Bitmap first = Bitmap.createBitmap(p.width, p.height, Bitmap.Config.ARGB_8888);
     try { host.root.draw(new Canvas(first)); } finally { first.recycle(); }
@@ -339,8 +338,6 @@ public class NativeModesShortViewportTest {
       View v = action(host, name);
       check(v instanceof Button, "Required production Button missing: " + name, problems);
     }
-    View adventure = action(host, "modes-adventure");
-    check(adventure != null && !adventure.isEnabled(), "Adventure must remain visible and disabled", problems);
     for (String name : SUMMARIES) {
       View v = host.root.findViewWithTag(name);
       check(v != null, "Required inline summary missing: " + name, problems);
@@ -483,7 +480,7 @@ public class NativeModesShortViewportTest {
     check(texts.has("modes-rank-status"), "Missing rank status Layout", problems);
     for (String tag : ACTIONS) check(texts.has(tag), "Missing measured action label: " + tag, problems);
     check(frameChecks > 0, "Decorative frame checks did not run", problems);
-    check(state.equals("empty") || portraits >= 6, "Real team portraits are missing", problems);
+    check(state.equals("empty") || portraits >= 3, "Real team portraits are missing", problems);
     String rankText = texts.has("modes-rank-status") ? texts.getJSONObject("modes-rank-status").getString("text") : "";
     check(state.equals("loading") ? rankText.contains("불러오는")
         : state.equals("error") ? rankError(rankText) : rankText.contains("승리 +"),
@@ -534,7 +531,7 @@ public class NativeModesShortViewportTest {
       profiles.put(p.json());
       for (String state : STATES) captures.put(MainActivity.obj("filename", p.name + "-" + state + ".png", "profile", p.name, "state", state));
     }
-    return MainActivity.obj("schemaVersion", 1, "suite", "feedback-stage1-modes", "baseline", BASELINE,
+    return MainActivity.obj("schemaVersion", 2, "suite", "feedback-stage1-modes", "screen", "modesPvp", "baseline", BASELINE,
         "reference", MainActivity.obj("filename", "1000004520.jpg", "widthPx", 2048, "heightPx", 838,
             "densityDpi", "unknown", "outerGutterInterpretation", "73/26/26/26 px is a fixture hypothesis, not measured OS insets"),
         "profiles", profiles, "states", new JSONArray(Arrays.asList(STATES)), "captures", captures,
@@ -598,11 +595,8 @@ public class NativeModesShortViewportTest {
       RouteHost host = controller.get(); NativeMenusThemeReviewTest.FixtureApi api = prepare(host, "ready");
       show(host, PROFILES[1]); host.recordRoutes = true;
       String original = host.state.toString();
-      action(host, "modes-story").performClick(); assertEquals("story", host.routes.get(host.routes.size() - 1));
-      action(host, "modes-story-team").performClick(); assertEquals("team", host.routes.get(host.routes.size() - 1));
-      assertEquals("story", host.selectionMode); assertEquals("modes", host.menus.teamReturn); assertNull(host.menus.teamDraft);
-      action(host, "modes-pvp-team").performClick(); assertEquals("team", host.routes.get(host.routes.size() - 1));
-      assertEquals("pvp", host.selectionMode); assertEquals("modes", host.menus.teamReturn); assertNull(host.menus.teamDraft);
+      action(host).performClick(); assertEquals("team", host.routes.get(host.routes.size() - 1));
+      assertEquals("pvp", host.selectionMode); assertEquals("modesPvp", host.menus.teamReturn); assertNull(host.menus.teamDraft);
       action(host, "modes-standings").performClick(); assertEquals("pvp", host.routes.get(host.routes.size() - 1));
       action(host, "modes-practice").performClick(); assertEquals("practice", host.routes.get(host.routes.size() - 1));
       action(host, "modes-normal").performClick(); assertEquals("fight:normal", host.routes.get(host.routes.size() - 1));
@@ -623,7 +617,6 @@ public class NativeModesShortViewportTest {
       assertFalse("Approval dismisses the actual confirmation window", accepted.isShowing());
       assertEquals("Approval starts exactly one match", count + 1, host.routes.size());
       assertEquals("fight:rank", host.routes.get(host.routes.size() - 1));
-      assertFalse(action(host, "modes-adventure").isEnabled());
       assertEquals(original, host.state.toString()); assertTrue(api.writes.isEmpty());
     }
   }
@@ -638,15 +631,15 @@ public class NativeModesShortViewportTest {
       api.pendingRank.done(NativeThemeReviewTest.rank(), null); layout(host, PROFILES[1]);
       assertTrue(rank.getText().toString().contains("골드")); assertEquals(0, host.menus.pendingFetches);
       assertSame(page, host.page); assertEquals(epoch, host.epoch);
-      host.menus.modes(); NativeApi.Result old = api.pendingRank;
-      host.menus.modes(); NativeApi.Result current = api.pendingRank;
+      host.menus.pvpModes(); NativeApi.Result old = api.pendingRank;
+      host.menus.pvpModes(); NativeApi.Result current = api.pendingRank;
       TextView newestRank = host.root.findViewWithTag("modes-rank-status"); String pending = newestRank.getText().toString();
       old.done(NativeThemeReviewTest.rank(), null);
       assertEquals("Earlier modes instance must not repaint the newer modes instance", pending, newestRank.getText().toString());
       assertEquals(1, host.menus.pendingFetches);
       current.done(null, "오프라인 순위 실패 fixture");
       assertTrue(rankError(newestRank.getText().toString())); assertEquals(0, host.menus.pendingFetches);
-      host.menus.modes(); NativeApi.Result stale = api.pendingRank;
+      host.menus.pvpModes(); NativeApi.Result stale = api.pendingRank;
       TextView abandonedRank = host.root.findViewWithTag("modes-rank-status"); String abandoned = abandonedRank.getText().toString();
       host.menus.library.items(); View newerPage = host.page; int newerEpoch = host.epoch;
       stale.done(NativeThemeReviewTest.rank(), null);
@@ -666,7 +659,7 @@ public class NativeModesShortViewportTest {
       assertNotNull(api.pendingWrite); assertTrue(host.busy);
       int epoch = host.epoch; View page = host.page; String before = host.state.toString();
       for (String name : ACTIONS) action(host, name).performClick();
-      assertEquals(epoch, host.epoch); assertSame(page, host.page); assertEquals("modes", host.screen);
+      assertEquals(epoch, host.epoch); assertSame(page, host.page); assertEquals("modesPvp", host.screen);
       api.pendingRank.done(NativeThemeReviewTest.rank(), null);
       assertTrue("Rank completion cannot release an unrelated write", host.busy);
       assertEquals(epoch, host.epoch); assertSame(page, host.page); assertEquals(0, completed[0]);
@@ -693,12 +686,11 @@ public class NativeModesShortViewportTest {
         layout(host, transitions[i]);
         for (String name : ACTIONS) assertSame("Reflow must reuse " + name, controls.get(name), action(host, name));
         assertSame(rank, host.root.findViewWithTag("modes-rank-status"));
-        assertSame(page, host.page); assertEquals("modes", host.screen); assertEquals(epoch, host.epoch);
+        assertSame(page, host.page); assertEquals("modesPvp", host.screen); assertEquals(epoch, host.epoch);
         assertEquals(reads, api.reads.size()); assertEquals(1, host.menus.pendingFetches); assertSame(pending, api.pendingRank);
         assertEquals(state, host.state.toString()); assertFalse(host.busy); assertTrue(api.writes.isEmpty());
-        LinearLayout footer = (LinearLayout) action(host, "modes-story-team").getParent();
-        assertEquals("Actual available height must switch layout without reloading",
-            i % 2 == 0 ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL, footer.getOrientation());
+        NativeMenus.ModeRankPanel panel = (NativeMenus.ModeRankPanel) host.root.findViewWithTag("modes-rank-frame");
+        assertEquals("Actual available height must switch layout without reloading", i % 2 != 0, panel.compact);
       }
       pending.done(NativeThemeReviewTest.rank(), null); layout(host, inset);
       assertTrue(((TextView) rank).getText().toString().contains("골드"));
@@ -706,3 +698,4 @@ public class NativeModesShortViewportTest {
     }
   }
 }
+

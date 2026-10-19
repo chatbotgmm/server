@@ -56,9 +56,22 @@ jobs:
       - name: Build backend and packaged web assets
         run: npm run build
       - name: Test all backend suites with isolated seeded SQLite
-        run: npm run test:db
+        run: |
+          set -o pipefail
+          npm run test:db 2>&1 | tee backend-test.log
+          python3 app/android/ci/verify_backend_revision_ci.py backend-test.log
+      - name: Save full isolated backend test log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-backend-tests-${{ github.sha }}
+          path: galmaegiman-confirmed/backend-test.log
+          if-no-files-found: error
+          retention-days: 1
 
   native-home:
+    outputs:
+      apk_built: ${{ steps.assemble.outcome }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     defaults:
@@ -120,6 +133,12 @@ jobs:
         id: feedback_stage1_checks
         run: python3 -m unittest discover -s ci -p test_verify_feedback_stage1_ci.py -v
 
+      - name: Test visual approval invalidation and recruitment revision contracts
+        id: revision_checks
+        run: |
+          python3 -m unittest discover -s ci -p test_verify_visual_approval.py -v
+          python3 -m unittest discover -s ci -p test_verify_recruitment_revision_ci.py -v
+
       - name: Test final feedback evidence validation
         id: feedback_final_checks
         run: python3 -m unittest discover -s ci -p test_verify_feedback_final_ci.py -v
@@ -150,7 +169,23 @@ jobs:
           --require-suite org.dpdns.gmm.NativeGameFlowTest
           --require-suite org.dpdns.gmm.JournalActivityLifecycleTest
           --require-suite org.dpdns.gmm.ReleaseHomeLayoutTest
-          --require-suite org.dpdns.gmm.ReleaseHomeMotionTest
+          --require-unskipped-suite org.dpdns.gmm.ReleaseHomeMotionTest
+          --require-unskipped-suite org.dpdns.gmm.NativeRecruitmentCounterReviewTest
+          --require-unskipped-suite org.dpdns.gmm.CurrencyDisplayReviewTest
+          --require-unskipped-suite org.dpdns.gmm.NativeTeamCharacterPanelTest
+          --require-unskipped-suite org.dpdns.gmm.NativeFullscreenReviewTest
+          --require-unskipped-suite org.dpdns.gmm.NativeTeamInsertionPreviewTest
+          --require-unskipped-suite org.dpdns.gmm.StorySelectionCardTest
+          --require-unskipped-suite org.dpdns.gmm.NativeRealtimeIdentityRevisionTest
+          --require-unskipped-suite org.dpdns.gmm.BattleUtilitiesChartRevisionTest
+          --require-unskipped-suite org.dpdns.gmm.BattleReplayStabilityTest
+          --require-unskipped-suite org.dpdns.gmm.BattleReplayStoreTest
+          --require-unskipped-suite org.dpdns.gmm.NativeBattleReplayReviewTest
+          --require-unskipped-suite org.dpdns.gmm.NativeResultReassessmentSwipeTest
+          --require-unskipped-suite org.dpdns.gmm.NativeExternalMusicTest
+          --require-unskipped-suite org.dpdns.gmm.NativeTutorialModeRoutesTest
+          --require-unskipped-suite org.dpdns.gmm.NativeModeCategoryNavigationTest
+          --require-unskipped-suite org.dpdns.gmm.JournalThemeTest
           --require-suite org.dpdns.gmm.NativeBackNavigationTest
           --require-unskipped-suite org.dpdns.gmm.NativeRegistrationReviewTest
           --require-unskipped-suite org.dpdns.gmm.NativeThemeReviewTest
@@ -183,24 +218,24 @@ jobs:
         with:
           name: home-assembly-all-native-tests-${{ github.sha }}
           path: |
-            galmaegiman-confirmed/app/android/app/build/reports/tests/
-            galmaegiman-confirmed/app/android/app/build/test-results/
+            galmaegiman-confirmed/app/android/app/build/reports/tests/**/*.html
+            galmaegiman-confirmed/app/android/app/build/test-results/**/*.xml
             galmaegiman-confirmed/app/android/app/build/registration-ci/
             galmaegiman-confirmed/app/android/app/build/theme-ci/
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 1
 
       # All new phase-two View/capture tests run ONCE in the full suite above.
-      # Keep all native-review output now, including partial output on a failed suite.
+      # Keep all native-review JSON measurements; unique revision PNG groups are uploaded below.
       # In particular, do not add phase-two --tests invocations to the reruns below.
-      - name: Save full-suite native render evidence before any targeted rerun
+      - name: Save full-suite native measurements before any targeted rerun
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: home-assembly-phase2-full-suite-captures-${{ github.sha }}
-          path: galmaegiman-confirmed/app/android/app/build/native-review/
+          name: home-assembly-phase2-full-suite-measurements-${{ github.sha }}
+          path: galmaegiman-confirmed/app/android/app/build/native-review/**/*.json
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 1
       - name: Verify phase-two menus captures and non-skipped full-suite tests
         if: ${{ !cancelled() }}
         id: phase2_menus
@@ -269,7 +304,7 @@ jobs:
           name: home-assembly-phase2-validation-${{ github.sha }}
           path: galmaegiman-confirmed/app/android/app/build/phase2-ci/
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 1
 
       # NativeHomeTipLayoutTest runs only in the full suite. Preserve its root-level
       # evidence and exact JUnit report before any targeted task replaces reports.
@@ -282,18 +317,17 @@ jobs:
           --captures app/build/native-review
           --test-results app/build/test-results/testDebugUnitTest
           --output app/build/home-tip-ci/validation.json
-      - name: Save native home-tip images, measurements, tests and gate report
+      - name: Save native home-tip measurements, tests and gate report
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-home-tip-evidence-${{ github.sha }}
           path: |
-            galmaegiman-confirmed/app/android/app/build/native-review/home-advice*.png
             galmaegiman-confirmed/app/android/app/build/native-review/home-advice*.json
             galmaegiman-confirmed/app/android/app/build/test-results/testDebugUnitTest/TEST-org.dpdns.gmm.NativeHomeTipLayoutTest.xml
             galmaegiman-confirmed/app/android/app/build/home-tip-ci/
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 1
 
       # Stage-one regressions run once in the full native suite. Validate and
       # preserve their exact JUnit/PNG/geometry evidence before targeted reruns.
@@ -306,20 +340,20 @@ jobs:
           --test-results app/build/test-results/testDebugUnitTest
           --full-suite-report app/build/registration-ci/full-suite.json
           --output app/build/feedback-stage1-ci/validation.json
-      - name: Save stage-one device regression images, measurements and exact tests
+      - name: Save stage-one device regression measurements and exact tests
         if: always()
         id: feedback_stage1_evidence
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-feedback-stage1-evidence-${{ github.sha }}
           path: |
-            galmaegiman-confirmed/app/android/app/build/native-review/feedback-stage1-modes/
-            galmaegiman-confirmed/app/android/app/build/native-review/feedback-stage1-shop/
+            galmaegiman-confirmed/app/android/app/build/native-review/feedback-stage1-modes/**/*.json
+            galmaegiman-confirmed/app/android/app/build/native-review/feedback-stage1-shop/**/*.json
             galmaegiman-confirmed/app/android/app/build/test-results/testDebugUnitTest/TEST-org.dpdns.gmm.NativeModesShortViewportTest.xml
             galmaegiman-confirmed/app/android/app/build/test-results/testDebugUnitTest/TEST-org.dpdns.gmm.NativeShopCardBoundsTest.xml
             galmaegiman-confirmed/app/android/app/build/feedback-stage1-ci/
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 1
 
       - name: Verify final feedback captures and every new unskipped method
         if: ${{ !cancelled() }}
@@ -330,23 +364,189 @@ jobs:
           --test-results app/build/test-results/testDebugUnitTest
           --full-suite-report app/build/registration-ci/full-suite.json
           --output app/build/feedback-final-ci/validation.json
-      - name: Save final feedback native images and exact full-suite tests
+      - name: Save final feedback measurements and exact full-suite tests
         if: always()
         id: feedback_final_evidence
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-feedback-final-evidence-${{ github.sha }}
           path: |
-            galmaegiman-confirmed/app/android/app/build/native-review/feedback-home-party/
-            galmaegiman-confirmed/app/android/app/build/native-review/feedback-commerce/
-            galmaegiman-confirmed/app/android/app/build/native-review/feedback-attendance/
-            galmaegiman-confirmed/app/android/app/build/native-review/result-dossier/
-            galmaegiman-confirmed/app/android/app/build/native-review/feature-progression/
-            galmaegiman-confirmed/app/android/app/build/test-results/testDebugUnitTest/
+            galmaegiman-confirmed/app/android/app/build/native-review/feedback-home-party/**/*.json
+            galmaegiman-confirmed/app/android/app/build/native-review/feedback-commerce/**/*.json
+            galmaegiman-confirmed/app/android/app/build/native-review/feedback-attendance/**/*.json
+            galmaegiman-confirmed/app/android/app/build/native-review/result-dossier/**/*.json
+            galmaegiman-confirmed/app/android/app/build/native-review/feature-progression/**/*.json
+            galmaegiman-confirmed/app/android/app/build/test-results/testDebugUnitTest/*.xml
             galmaegiman-confirmed/app/android/app/build/registration-ci/full-suite.json
             galmaegiman-confirmed/app/android/app/build/feedback-final-ci/
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 1
+
+      - name: Verify recruitment counters, artwork button states and real home motion
+        if: ${{ !cancelled() }}
+        id: revision_gate
+        run: >
+          python3 ci/verify_recruitment_revision_ci.py
+          --repo "${{ github.workspace }}"
+          --native-review app/build/native-review
+          --test-results app/build/test-results/testDebugUnitTest
+          --full-suite-report app/build/registration-ci/full-suite.json
+          --output app/build/recruitment-revision-ci/evidence.json
+      - name: Require visual approval bound to the unchanged source and assets
+        if: ${{ !cancelled() && steps.revision_gate.outcome == 'success' }}
+        id: visual_approval
+        run: >
+          python3 ci/verify_visual_approval.py
+          --repo "${{ github.workspace }}"
+          --output app/build/recruitment-revision-ci/visual-approval.json
+      - name: Measure unique review artifact input bytes
+        if: always()
+        run: >
+          python3 ci/report_artifact_storage.py
+          --root app/build/native-review
+          --approved "${{ steps.visual_approval.outputs.approved }}"
+          --output app/build/recruitment-revision-ci/artifact-storage.json
+      - name: Save recruitment counter native captures for visual review
+        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        id: revision_counter_evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-recruitment-counter-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/native-review/recruitment-counter/*.png
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save home drag and timed water native frames for visual review
+        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        id: revision_motion_evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-home-motion-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/native-review/home-drag-center-*.png
+            galmaegiman-confirmed/app/android/app/build/native-review/home-water-phone-*.png
+            galmaegiman-confirmed/app/android/app/build/native-review/home-disabled-play-image.png
+            galmaegiman-confirmed/app/android/app/build/native-review/home-currency-max-font130.png
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save shared button artwork state native captures for visual review
+        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        id: revision_state_evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-button-artwork-states-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/native-review/theme-state/button-*-normal-pressed-cancelled-selected-disabled.png
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save distinct currency display native captures for visual review
+        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        id: revision_currency_evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-currency-display-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/native-review/currency-display/*.png
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save solid team panels and inline pager native captures for visual review
+        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        id: revision_team_evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-team-character-panels-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/native-review/team-character-panels/*.png
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save full-bleed native scenes and inset evidence for visual review
+        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        id: revision_fullscreen_evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-fullscreen-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/native-review/fullscreen/*.png
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save live team insertion preview and cancel native frames
+        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        id: revision_insertion_evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-team-insertion-preview-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/native-review/team-insertion-preview/*.png
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save whole story-card native touch and safe-area evidence
+        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        id: revision_story_evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-story-cards-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/native-review/story-cards/*.png
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save two-category modes and story navigation native evidence
+        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        id: revision_modes_evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-mode-navigation-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/native-review/feedback-mode-navigation/*.png
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save realtime-identity-revision native evidence
+        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        id: revision_realtime_identity_evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-realtime-identity-revision-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/native-review/realtime-identity-revision/*.png
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save battle-ui-revision native evidence
+        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        id: revision_battle_utilities_evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-battle-ui-revision-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/native-review/battle-ui-revision/*.png
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save account-local read-only replay native evidence
+        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        id: revision_replay_evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-battle-replay-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/native-review/battle-replay/*.png
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save acquisition reassessment and physical swipe native evidence
+        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        id: revision_reassessment_evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-result-reassessment-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/native-review/result-reassessment/*.png
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save visual review candidate fingerprint and approval result
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-visual-approval-${{ github.sha }}
+          path: galmaegiman-confirmed/app/android/app/build/recruitment-revision-ci/
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Targeted home lobby capture at phone, inset phone and tablet sizes
         if: ${{ !cancelled() }}
@@ -367,34 +567,24 @@ jobs:
             --output app/build/registration-ci/home-tests.json
           python3 ci/verify_registration_ci.py captures home app/build/home-assembly-review/r1 \
             --output app/build/registration-ci/home-captures.json
-      - name: Save home screenshots and geometry findings
+      - name: Save home geometry findings
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-home-screenshots-${{ github.sha }}
-          path: galmaegiman-confirmed/app/android/app/build/home-assembly-review/r1/
+          path: galmaegiman-confirmed/app/android/app/build/home-assembly-review/r1/**/*.json
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 1
       - name: Save targeted home-test reports
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-home-test-reports-${{ github.sha }}
           path: |
-            galmaegiman-confirmed/app/android/app/build/reports/tests/
-            galmaegiman-confirmed/app/android/app/build/test-results/
+            galmaegiman-confirmed/app/android/app/build/reports/tests/**/*.html
+            galmaegiman-confirmed/app/android/app/build/test-results/**/*.xml
           if-no-files-found: warn
-          retention-days: 14
-      - name: Save full-suite screen captures
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: home-assembly-all-screen-review-${{ github.sha }}
-          path: galmaegiman-confirmed/app/android/app/build/native-review/r1/
-          if-no-files-found: warn
-          retention-days: 14
-
-      # Keep home JUnit artifacts above: this rerun replaces Gradle's report files.
+          retention-days: 1
       - name: Native registration recruit, collection, team and result captures
         if: ${{ !cancelled() }}
         id: registration
@@ -414,24 +604,24 @@ jobs:
             --output app/build/registration-ci/registration-tests.json
           python3 ci/verify_registration_ci.py captures registration app/build/registration-review/registration \
             --output app/build/registration-ci/registration-captures.json
-      - name: Save registration screenshots and findings
+      - name: Save registration geometry findings
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-registration-screenshots-${{ github.sha }}
-          path: galmaegiman-confirmed/app/android/app/build/registration-review/registration/
+          path: galmaegiman-confirmed/app/android/app/build/registration-review/registration/**/*.json
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 1
       - name: Save targeted registration-test reports
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-registration-test-reports-${{ github.sha }}
           path: |
-            galmaegiman-confirmed/app/android/app/build/reports/tests/
-            galmaegiman-confirmed/app/android/app/build/test-results/
+            galmaegiman-confirmed/app/android/app/build/reports/tests/**/*.html
+            galmaegiman-confirmed/app/android/app/build/test-results/**/*.xml
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 1
 
       # Registration JUnit reports above are retained before this targeted rerun.
       - name: Native shared-theme settings, profile and representative page captures
@@ -457,24 +647,24 @@ jobs:
             --output app/build/theme-ci/theme-captures.json
           python3 ci/verify_theme_ci.py coverage app/build/theme-ci/theme-captures.json \
             --output app/build/theme-ci/coverage-report.json
-      - name: Save theme screenshots, findings and measured checks
+      - name: Save theme findings and measured checks
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-theme-screenshots-${{ github.sha }}
-          path: galmaegiman-confirmed/app/android/app/build/theme-review/theme/
+          path: galmaegiman-confirmed/app/android/app/build/theme-review/theme/**/*.json
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 1
       - name: Save targeted theme-test reports
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-theme-test-reports-${{ github.sha }}
           path: |
-            galmaegiman-confirmed/app/android/app/build/reports/tests/
-            galmaegiman-confirmed/app/android/app/build/test-results/
+            galmaegiman-confirmed/app/android/app/build/reports/tests/**/*.html
+            galmaegiman-confirmed/app/android/app/build/test-results/**/*.xml
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 1
 
       # Build again without the test-only loopback override. APKs retain the existing
       # server URL, package IDs and debug signing behavior from app/build.gradle.
@@ -494,7 +684,11 @@ jobs:
           && steps.feedback_stage1_checks.outcome == 'success' && steps.feedback_stage1_gate.outcome == 'success'
           && steps.feedback_stage1_evidence.outcome == 'success'
           && steps.feedback_final_checks.outcome == 'success' && steps.feedback_final_gate.outcome == 'success'
-          && steps.feedback_final_evidence.outcome == 'success' }}
+          && steps.feedback_final_evidence.outcome == 'success'
+          && steps.revision_checks.outcome == 'success' && steps.revision_gate.outcome == 'success'
+          && (steps.revision_counter_evidence.outcome == 'success' || (steps.visual_approval.outputs.approved == 'true' && steps.revision_counter_evidence.outcome == 'skipped')) && (steps.revision_motion_evidence.outcome == 'success' || (steps.visual_approval.outputs.approved == 'true' && steps.revision_motion_evidence.outcome == 'skipped'))
+          && (steps.revision_realtime_identity_evidence.outcome == 'success' || (steps.visual_approval.outputs.approved == 'true' && steps.revision_realtime_identity_evidence.outcome == 'skipped')) && (steps.revision_battle_utilities_evidence.outcome == 'success' || (steps.visual_approval.outputs.approved == 'true' && steps.revision_battle_utilities_evidence.outcome == 'skipped')) && (steps.revision_replay_evidence.outcome == 'success' || (steps.visual_approval.outputs.approved == 'true' && steps.revision_replay_evidence.outcome == 'skipped')) && (steps.revision_reassessment_evidence.outcome == 'success' || (steps.visual_approval.outputs.approved == 'true' && steps.revision_reassessment_evidence.outcome == 'skipped')) && (steps.revision_modes_evidence.outcome == 'success' || (steps.visual_approval.outputs.approved == 'true' && steps.revision_modes_evidence.outcome == 'skipped')) && (steps.revision_story_evidence.outcome == 'success' || (steps.visual_approval.outputs.approved == 'true' && steps.revision_story_evidence.outcome == 'skipped')) && (steps.revision_insertion_evidence.outcome == 'success' || (steps.visual_approval.outputs.approved == 'true' && steps.revision_insertion_evidence.outcome == 'skipped')) && (steps.revision_fullscreen_evidence.outcome == 'success' || (steps.visual_approval.outputs.approved == 'true' && steps.revision_fullscreen_evidence.outcome == 'skipped')) && (steps.revision_team_evidence.outcome == 'success' || (steps.visual_approval.outputs.approved == 'true' && steps.revision_team_evidence.outcome == 'skipped')) && (steps.revision_currency_evidence.outcome == 'success' || (steps.visual_approval.outputs.approved == 'true' && steps.revision_currency_evidence.outcome == 'skipped'))
+          && (steps.revision_state_evidence.outcome == 'success' || (steps.visual_approval.outputs.approved == 'true' && steps.revision_state_evidence.outcome == 'skipped')) && steps.visual_approval.outputs.approved == 'true' }}
         id: assemble
         run: >
           bash ./gradlew :app:assembleDebug :app:assemblePreview
@@ -523,7 +717,7 @@ jobs:
           name: home-assembly-theme-validation-${{ github.sha }}
           path: galmaegiman-confirmed/app/android/app/build/theme-ci/
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 1
       - name: Save registration validation reports
         if: always()
         uses: actions/upload-artifact@v7
@@ -531,16 +725,40 @@ jobs:
           name: home-assembly-registration-validation-${{ github.sha }}
           path: galmaegiman-confirmed/app/android/app/build/registration-ci/
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 1
       - name: Record APK identities and checksums
         if: ${{ !cancelled() && steps.assemble.outcome == 'success' }}
         run: |
+          mkdir -p app/build/apk-identities
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt2"
           for f in app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/preview/app-preview.apk; do
-            "$AAPT" dump badging "$f" | grep -E '^package|application-label:' | tee -a "$GITHUB_STEP_SUMMARY"
-            sha256sum "$f" | tee -a "$GITHUB_STEP_SUMMARY"
+            "$AAPT" dump badging "$f" | grep -E '^package|application-label:' | tee -a "$GITHUB_STEP_SUMMARY" app/build/apk-identities/checksums.txt
+            sha256sum "$f" | tee -a "$GITHUB_STEP_SUMMARY" app/build/apk-identities/checksums.txt
           done
           echo 'APKs are inspection builds, not releases. Preview installs separately; APK availability does not mean all tests passed.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Save final APK identities and hashes
+        if: ${{ !cancelled() && steps.assemble.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-apk-identities-${{ github.sha }}
+          path: galmaegiman-confirmed/app/android/app/build/apk-identities/
+          if-no-files-found: error
+          retention-days: 1
+      - name: Measure final metadata and APK storage inputs
+        if: always()
+        run: >
+          python3 ci/report_artifact_storage.py
+          --root app/build/native-review
+          --approved "${{ steps.visual_approval.outputs.approved }}"
+          --output app/build/artifact-storage/final.json
+      - name: Save final artifact storage measurements
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-artifact-storage-${{ github.sha }}
+          path: galmaegiman-confirmed/app/android/app/build/artifact-storage/final.json
+          if-no-files-found: error
+          retention-days: 1
       - name: Save debug APK if built
         if: ${{ always() && steps.assemble.outcome == 'success' && steps.apk_assets.outcome == 'success' && steps.theme_apk.outcome == 'success' }}
         uses: actions/upload-artifact@v7
@@ -548,7 +766,7 @@ jobs:
           name: home-assembly-debug-apk-${{ github.sha }}
           path: galmaegiman-confirmed/app/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 1
           compression-level: 0
       - name: Save preview APK if built
         if: ${{ always() && steps.assemble.outcome == 'success' && steps.apk_assets.outcome == 'success' && steps.theme_apk.outcome == 'success' }}
@@ -557,12 +775,12 @@ jobs:
           name: home-assembly-preview-apk-${{ github.sha }}
           path: galmaegiman-confirmed/app/android/app/build/outputs/apk/preview/app-preview.apk
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 1
           compression-level: 0
 
   preview-release:
     needs: [native-home, backend]
-    if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/manual/home-assembly-20261019' }}
+    if: ${{ success() && needs.native-home.outputs.apk_built == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/manual/home-assembly-20261019' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -612,4 +830,5 @@ jobs:
               --title "홈 미리보기 $short" --notes-file notes.md --prerelease --latest=false
           fi
           gh release view "$tag" --repo "$REPO" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"
+
 

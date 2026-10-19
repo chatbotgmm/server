@@ -71,7 +71,7 @@ def home(root):
             check(m["profile"]["insetsPx"] == dict(zip(("left","top","right","bottom"),insets)), "Wrong HOME safe insets")
             safe=[insets[0],insets[1],p["widthPx"]-insets[2],p["heightPx"]-insets[3]]
             art=m["artworks"]
-            check(type(art) is list and len(art)==(0 if scene=="home" else 6),"Missing whole sprites")
+            check(type(art) is list and len(art)==(0 if scene=="home" else 3 if scene=="modes" else 6),"Missing whole sprites")
             missing=0
             for a in art:
                 outer=rect(a["viewPx"])
@@ -234,3 +234,4 @@ def main(argv=None):
         emit({"status":"failed","error":str(error)},args.output);print(str(error),file=sys.stderr);return 1
     emit(result,args.output);return 0
 if __name__=="__main__":sys.exit(main())
+

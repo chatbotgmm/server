@@ -1,0 +1,115 @@
+{
+  "source": "data/battle.yaml",
+  "sourceCommit": "680cc3565aafddcd262541faed44b6a333dde912",
+  "sourceSha256": "a0fd9c655604180e39cbc654184d65d64a593657d03cb44c7f282c64d80aea09",
+  "chart": {
+    "SEA": {
+      "strong": [
+        "FIRE",
+        "STONE"
+      ],
+      "why": [
+        "물이 불을 꺼요",
+        "파도가 바위를 깎아요"
+      ]
+    },
+    "FIRE": {
+      "strong": [
+        "ICE",
+        "BLOSSOM"
+      ],
+      "why": [
+        "불이 얼음을 녹여요",
+        "불이 꽃을 태워요"
+      ]
+    },
+    "ICE": {
+      "strong": [
+        "SEA",
+        "GOLD"
+      ],
+      "why": [
+        "얼음이 바다를 얼려요",
+        "금도 얼면 냉동금고행"
+      ]
+    },
+    "BLOSSOM": {
+      "strong": [
+        "STONE",
+        "SHADOW"
+      ],
+      "why": [
+        "뿌리가 바위를 쪼개요",
+        "꽃이 피면 그늘이 밝아져요"
+      ]
+    },
+    "STONE": {
+      "strong": [
+        "ICE",
+        "GRAVITY"
+      ],
+      "why": [
+        "얼음은 돌에 부딪혀 깨져요",
+        "원래 무거운 돌은 끄떡없어요"
+      ]
+    },
+    "GOLD": {
+      "strong": [
+        "THREAD",
+        "GRAVITY"
+      ],
+      "why": [
+        "금 장식 앞에서 옷이 초라해져요",
+        "금 저울 위에선 무게가 다 들통나요"
+      ]
+    },
+    "THREAD": {
+      "strong": [
+        "BLOSSOM",
+        "STAR"
+      ],
+      "why": [
+        "옷으로 꽃가루를 막아요",
+        "별자리를 바느질로 꿰매요"
+      ]
+    },
+    "SHADOW": {
+      "strong": [
+        "STAR",
+        "GOLD"
+      ],
+      "why": [
+        "어둠이 별빛을 삼켜요",
+        "그늘에선 금이 반짝이지 못해요"
+      ]
+    },
+    "STAR": {
+      "strong": [
+        "SEA",
+        "SHADOW"
+      ],
+      "why": [
+        "달이 바닷물을 끌어당겨요",
+        "별빛이 밤을 밝혀요"
+      ]
+    },
+    "GRAVITY": {
+      "strong": [
+        "THREAD",
+        "FIRE"
+      ],
+      "why": [
+        "실을 끌어당겨 풀어 버려요",
+        "불씨를 꾹 눌러 꺼요"
+      ]
+    }
+  },
+  "multipliers": {
+    "strong": 1.5,
+    "weak": 0.67,
+    "sameAttr": 1.2,
+    "crit": 1.5,
+    "critChance": 6.25,
+    "maxGuard": 60
+  }
+}

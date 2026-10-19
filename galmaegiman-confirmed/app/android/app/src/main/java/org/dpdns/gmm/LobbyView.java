@@ -14,6 +14,8 @@ final class LobbyView extends FrameLayout implements FullBleed {
   final JournalAmbient ambient;
   final Runnable motionChanged;
   final Paint p = new Paint(3);
+  private final GamePressState disabledControlTone = new GamePressState();
+  private final Rect disabledControlBounds = new Rect();
   final Path mapRoute = new Path();
   final RectF dockFrame = new RectF();
   final RectF heroFrame = new RectF(), heroPose = new RectF(), heroContact = new RectF();
@@ -190,8 +192,34 @@ final class LobbyView extends FrameLayout implements FullBleed {
 
   @Override
   public boolean onInterceptTouchEvent(MotionEvent e) {
-    // Only the character region responds to dragging; menu touches stay fixed.
-    return parallax.intercept(e, heroBox(), true) || super.onInterceptTouchEvent(e);
+    // Lock eligibility at DOWN. A drag that starts on a menu must never become
+    // a scene gesture when the finger leaves that button.
+    return parallax.intercept(e, sceneDragBox(), sceneDragStart(e.getX(), e.getY()))
+        || super.onInterceptTouchEvent(e);
+  }
+
+  RectF sceneDragBox() {
+    RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
+    // Use measured controls, not screen percentages: reserve the complete header
+    // and bottom navigation strips, including the blank gaps between controls.
+    if (boxes[7] == null || boxes[0] == null) return new RectF();
+    safe.top = Math.max(safe.top, Math.max(boxes[7].bottom, boxes[8].bottom));
+    safe.bottom = Math.min(safe.bottom, boxes[0].top);
+    return safe;
+  }
+
+  boolean sceneDragStart(float x, float y) {
+    if (!sceneDragBox().contains(x, y)) return false;
+    for (int i = getChildCount() - 1; i >= 0; i--) {
+      View child = getChildAt(i);
+      // The guide still supports tap-for-advice and drag-for-weighted-pose.
+      // Every other interactive child, including resume and the tip, keeps input.
+      if (child == gull || child.getVisibility() != View.VISIBLE
+          || (!child.isClickable() && !child.isLongClickable())) continue;
+      if (x >= child.getLeft() && x < child.getRight()
+          && y >= child.getTop() && y < child.getBottom()) return false;
+    }
+    return true;
   }
 
   @Override
@@ -266,7 +294,15 @@ final class LobbyView extends FrameLayout implements FullBleed {
       boxes[stack[i]] = new RectF(stackLeft, y, w - margin, y + stackH);
     }
     boxes[8] = new RectF(w - margin - hit, margin, w - margin, margin + header);
-    float currencyLeft = w * .49f, currencyRight = boxes[8].left - gap;
+    float currencyRight = boxes[8].left - gap;
+    float amountSize = currencyTextSize();
+    p.setTypeface(host.headline); p.setTextSize(amountSize);
+    float currencyWidth = host.dp(90);
+    for (String key : new String[] {"snack", "peanut", "credits"})
+      currencyWidth = Math.max(currencyWidth,
+          (float) Math.ceil(p.measureText(String.format(Locale.KOREA, "%,d", host.me().optInt(key)))) + host.dp(40));
+    // 큰 잔액은 글씨를 줄이는 대신 왼쪽 빈 공간을 사용한다.
+    float currencyLeft = Math.min(w * .49f, currencyRight - currencyWidth * 3 - gap * 2);
     float curW = (currencyRight - currencyLeft - gap * 2) / 3;
     for (int i = 0; i < 3; i++) {
       float x = currencyLeft + i * (curW + gap);
@@ -444,6 +480,10 @@ final class LobbyView extends FrameLayout implements FullBleed {
     return value + "…";
   }
 
+  float currencyTextSize() {
+    return canvasTextSize(host.dp(14), host.dp(30), true);
+  }
+
   float canvasTextSize(float basePixels, float maxHeight, boolean heading) {
     android.util.DisplayMetrics metrics = host.getResources().getDisplayMetrics();
     float size = basePixels * metrics.scaledDensity / metrics.density;
@@ -467,11 +507,20 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   void controlSurface(Canvas canvas, int index, RectF bounds) {
-    if (!buttons.get(index).isEnabled())
-      JournalTheme.drawPanel(canvas, bounds, host.getResources().getDisplayMetrics().density,
-          JournalTheme.DISABLED, true);
-    else homeArt.surface(canvas,
-        controlPressed(index) ? "ui/button-primary.png" : "ui/button-secondary.png", bounds);
+    if (buttons.get(index).isEnabled()) {
+      homeArt.surface(canvas,
+          controlPressed(index) ? "ui/button-primary.png" : "ui/button-secondary.png", bounds);
+      return;
+    }
+    // HomeArt.surface has no state filter. Apply the shared disabled tone exactly
+    // once around the original ornate surface, preserving its texture and alpha.
+    disabledControlTone.enabled = false;
+    disabledControlTone.pressed = false;
+    bounds.roundOut(disabledControlBounds);
+    int save = disabledControlTone.begin(canvas, disabledControlBounds,
+        host.getResources().getDisplayMetrics().density);
+    homeArt.surface(canvas, "ui/button-secondary.png", bounds);
+    disabledControlTone.finish(canvas, save);
   }
 
   int controlInk(int index) {
@@ -747,18 +796,18 @@ final class LobbyView extends FrameLayout implements FullBleed {
     String[] currencyNames = {"새우gang", "땅콩", "지원서"};
     for (int i = 0; i < 3; i++) {
       RectF r = boxes[9 + i];
-      controlSurface(c, 9 + i, r);
+      Button currency = buttons.get(9 + i);
+      CurrencyDisplay.draw(c, r, host.getResources().getDisplayMetrics().density,
+          currency.isEnabled(), currency.isPressed(), currency.isFocused());
       RectF iconBox = new RectF(r.left + host.dp(7), r.centerY() - host.dp(10),
           r.left + host.dp(27), r.centerY() + host.dp(10));
       if (currencyIcons[i] != null) homeArt.icon(c, "icons/" + currencyIcons[i] + ".png", iconBox);
       else fit(c, image("icons/u-ticket.png"), iconBox);
       String amount = String.format(Locale.KOREA, "%,d", host.me().optInt(keys[i]));
-      float amountSize = host.dp(14), width = Math.max(1, r.width() - host.dp(38));
-      p.setTypeface(host.headline); p.setTextSize(amountSize);
-      if (p.measureText(amount) > width) amountSize *= width / p.measureText(amount);
+      float amountSize = currencyTextSize();
       label(c, amount, (r.left + host.dp(29) + r.right - host.dp(7)) / 2,
           centeredBaseline(r.centerY(), amountSize, true), amountSize, true,
-          controlInk(9 + i));
+          CurrencyDisplay.ink(currency.isEnabled()));
       buttons.get(9 + i).setContentDescription(currencyNames[i] + " " + amount + " · 상점");
     }
     for (int i = 0; i < badges.length; i++) if (badges[i]) dot(c, boxes[i]);
@@ -930,3 +979,4 @@ final class LobbyView extends FrameLayout implements FullBleed {
     return super.dispatchTouchEvent(event);
   }
 }
+

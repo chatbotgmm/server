@@ -6,7 +6,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 
-/** Low-amplitude water refraction for the approved release home artwork only. */
+/** Restrained, visible water refraction for the approved release home artwork only. */
 final class HomeWater {
   static final int WIDTH = 1870, HEIGHT = 841, COLUMNS = 72, ROWS = 36;
   // Source-pixel water interiors, checked against bg-home.png. Margins deliberately
@@ -50,6 +50,9 @@ final class HomeWater {
 
   void draw(Canvas canvas, Bitmap bitmap, RectF bounds, double seconds, boolean moving) {
     if (!moving || bitmap == null) return;
+    // Source motion of 4–6px becomes roughly 2–3px on a landscape phone.
+    // The old subpixel output disappeared after downscaling under menu artwork.
+    // Keep the original mask and edge taper: architecture and shore never move.
     update(seconds);
     int saved = canvas.save();
     canvas.translate(bounds.left, bounds.top);
@@ -65,10 +68,10 @@ final class HomeWater {
       float x = base[coordinate], y = base[coordinate + 1];
       float depth = Math.max(0, Math.min(1, (y - 325) / 245f));
       float weight = weights[point] * (.35f + depth * .65f);
-      vertices[coordinate] = x + (float) (Math.sin(y * .075 - seconds * .9)
-          + .3 * Math.sin(x * .04 + seconds * .57)) * 1.8f * weight;
-      vertices[coordinate + 1] = y + (float) (Math.sin(x * .047 - seconds * 1.08)
-          + .25 * Math.sin(y * .05 + seconds * .7)) * 2.3f * weight;
+      vertices[coordinate] = x + (float) (Math.sin(y * .075 - seconds * 1.25)
+          + .3 * Math.sin(x * .04 + seconds * .77)) * 4.2f * weight;
+      vertices[coordinate + 1] = y + (float) (Math.sin(x * .047 - seconds * 1.45)
+          + .25 * Math.sin(y * .05 + seconds * .95)) * 5.2f * weight;
     }
   }
 
@@ -97,3 +100,4 @@ final class HomeWater {
     return distance;
   }
 }
+

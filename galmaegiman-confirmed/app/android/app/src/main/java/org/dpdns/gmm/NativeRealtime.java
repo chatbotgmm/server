@@ -504,10 +504,13 @@ final class NativeRealtime {
       if (changed || !"realtimePrepare".equals(h.screen)) showPreparation(r);
       return;
     }
+    // Record every accepted viewer-projected snapshot before animation coalescing.
+    // Display may skip an intermediate frame; the read-only archive must not.
+    JSONObject next = decorate(r);
+    NativeBattleReplay.observe(h, next);
     if (playing) { pendingPlayback = copy(r); return; }
     if (!changed && isBattle(h.battle) && "battle".equals(h.screen)) return;
     if (h.visibleDialog != null) { h.visibleDialog.dismiss(); h.visibleDialog = null; }
-    JSONObject next = decorate(r);
     BattleView view = currentView();
     final int g = generation; final String a = owner;
     Runnable done = () -> {
@@ -561,9 +564,11 @@ final class NativeRealtime {
     Button accept = phaseButton("수락", "realtime-match-accept", () -> acceptMatch(r, true), true);
     Button decline = phaseButton("거절", "realtime-match-decline", () -> acceptMatch(r, false), false);
     phaseActions.add(accept); phaseActions.add(decline);
-    LinearLayout.LayoutParams acceptSlot = new LinearLayout.LayoutParams(0, h.dp(48), 2);
+    actions.setGravity(Gravity.CENTER);
+    PhaseButtonStyle.apply(h, accept, true); PhaseButtonStyle.apply(h, decline, false);
+    LinearLayout.LayoutParams acceptSlot = new LinearLayout.LayoutParams(h.dp(160), h.dp(48));
     acceptSlot.rightMargin = h.dp(8); actions.addView(accept, acceptSlot);
-    actions.addView(decline, new LinearLayout.LayoutParams(0, h.dp(48), 1));
+    actions.addView(decline, new LinearLayout.LayoutParams(h.dp(112), h.dp(48)));
     LinearLayout.LayoutParams actionSlot = new LinearLayout.LayoutParams(-1, -2);
     actionSlot.topMargin = h.dp(6); panel.addView(actions, actionSlot);
     attachClock(); updatePhaseInputs();
@@ -691,7 +696,7 @@ final class NativeRealtime {
   PartyCharacterView preparationCard(JSONObject candidate, String tag, String slot,
       boolean selected, Runnable action) {
     JSONObject identity;
-    try { identity = new JSONObject(candidate.toString()); }
+    try { identity = PreparationIdentity.artwork(candidate); }
     catch (org.json.JSONException invalid) { throw new IllegalArgumentException(invalid); }
     if (!identity.has("tierName")) {
       try { identity.put("tierName", candidate.optString("rarity")); }
@@ -880,3 +885,4 @@ final class NativeRealtime {
         }).show();
   }
 }
+

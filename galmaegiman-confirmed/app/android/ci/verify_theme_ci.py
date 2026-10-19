@@ -15,7 +15,23 @@ CONTRACT = HERE / "theme-review-contract.json"
 INVENTORY = HERE / "theme-coverage-inventory.json"
 
 
-def verify_payload(read, paths, lock):
+MATRIX_ASSET_PATH = "galmaegiman-confirmed/app/android/app/src/main/assets/battle-type-baseline.json"
+MATRIX_ASSET_SHA256 = "8352ced6a5dd3f2d78ff2a34fa3c8c668132d188ec1b85b99818f86dce4d8aad"
+
+def verify_matrix_asset(data):
+    check(len(data) == 2267 and sha256(data) == MATRIX_ASSET_SHA256, "Canonical matrix asset changed")
+    return MATRIX_ASSET_SHA256
+
+
+def verify_payload(read, paths, lock, recruitment=None):
+    # The original 25-entry theme inventory remains byte-for-byte frozen. Only
+    # three separately hash-locked tray assets extend its exact payload.
+    if recruitment is not None:
+        from verify_recruitment_revision_ci import verify_trays
+        tray_report = verify_trays(read, recruitment)
+        tray_paths = {entry["path"] for entry in recruitment}
+        check(tray_paths <= set(paths), "Missing recruitment tray payload")
+        paths = [path for path in paths if path not in tray_paths]
     expected = {entry["path"]: entry for entry in lock["files"]}
     check(set(paths) == set(expected), "Theme payload mismatch: missing=%s extra=%s" %
           (sorted(set(expected) - set(paths)), sorted(set(paths) - set(expected))))
@@ -30,12 +46,20 @@ def verify_payload(read, paths, lock):
     counts = {role: sum(entry["role"] == role for entry in expected.values())
               for role in ("background", "ui", "protected_home_art")}
     check(counts == {"background": 8, "ui": 6, "protected_home_art": 11}, "Theme asset inventory changed")
-    return {"status": "passed", "files": len(expected), "runtime_bytes": total, "roles": counts}
+    report = {"status": "passed", "files": len(expected), "runtime_bytes": total, "roles": counts}
+    if recruitment is not None:
+        report["recruitment_trays"] = tray_report
+    return report
 
 
-def allowed_asset_changes(changed, lock):
+def allowed_asset_changes(changed, lock, recruitment=None):
     allowed = {lock["source_prefix"] + "/" + entry["path"]
                for entry in lock["files"] if not entry["baseline"]}
+    if recruitment is not None:
+        from verify_recruitment_revision_ci import TRAYS
+        check(len(recruitment) == 3 and {entry["path"] for entry in recruitment} == TRAYS, "Unexpected tray allowlist")
+        allowed.update(lock["source_prefix"] + "/" + path for path in TRAYS)
+    allowed.add(MATRIX_ASSET_PATH)
     # No implicit permission for new sprites, registration edits, fonts or audio.
     sensitive_suffixes = {".png", ".webp", ".jpg", ".jpeg", ".gif", ".svg", ".ktx", ".ktx2",
                           ".ttf", ".otf", ".woff", ".woff2", ".mp3", ".ogg", ".wav"}
@@ -49,12 +73,15 @@ def verify_source(args):
     repo = Path(args.repo).resolve()
     source = repo / lock["source_prefix"]
     paths = [path.relative_to(source).as_posix() for path in source.rglob("*") if path.is_file()]
-    report = verify_payload(lambda path: (source / path).read_bytes(), paths, lock)
+    from verify_recruitment_revision_ci import tray_lock
+    recruitment = tray_lock()
+    report = verify_payload(lambda path: (source / path).read_bytes(), paths, lock, recruitment)
     baseline = lock["app_baseline_commit"]
     subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", baseline, "HEAD"], check=True)
     changed = subprocess.check_output(["git", "-C", str(repo), "diff", "--name-only", "--no-renames",
                                        "-z", baseline, "HEAD"]).decode().split("\0")
-    allowed_asset_changes(changed, lock)
+    allowed_asset_changes(changed, lock, recruitment)
+    report["canonical_matrix_sha256"] = verify_matrix_asset((repo / MATRIX_ASSET_PATH).read_bytes())
     report.update({"app_baseline_commit": baseline, "protected_native_home_files": 11,
                    "unapproved_asset_changes": [], "added_files": lock["added_file_count"]})
     emit(report, args.output)
@@ -62,6 +89,8 @@ def verify_source(args):
 
 def verify_apk(args):
     lock = json.loads(LOCK.read_text())
+    from verify_recruitment_revision_ci import tray_lock
+    recruitment = tray_lock()
     reports = []
     for filename in args.apks:
         path = Path(filename)
@@ -70,7 +99,8 @@ def verify_apk(args):
             check(len(names) == len(set(names)), "Duplicate APK ZIP entry")
             prefix = lock["apk_prefix"] + "/"
             paths = [name[len(prefix):] for name in names if name.startswith(prefix)]
-            report = verify_payload(lambda relative: archive.read(prefix + relative), paths, lock)
+            report = verify_payload(lambda relative: archive.read(prefix + relative), paths, lock, recruitment)
+            report["canonical_matrix_sha256"] = verify_matrix_asset(archive.read("assets/battle-type-baseline.json"))
         report.update({"apk": str(path), "apk_bytes": path.stat().st_size,
                        "apk_sha256": sha256(path.read_bytes())})
         reports.append(report)
@@ -174,3 +204,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+

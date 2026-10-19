@@ -194,8 +194,8 @@ final class NativeAugmentView extends LinearLayout {
     cp.bottomMargin = h.dp(6);
     addView(cards, cp);
     confirm = h.button("증강체 선택", this::submit);
-    confirm.setBackground(new GameButtonDrawable(h, JournalTheme.PRIMARY));
-    confirm.setTextColor(JournalTheme.controlText(JournalTheme.PRIMARY));
+    PhaseButtonStyle.apply(h, confirm, true);
+    confirm.setTag("augment-confirm");
     confirm.setTextSize(large ? 18 : 16);
     confirm.setMinHeight(h.dp(48));
     confirm.setMinimumHeight(h.dp(48));
@@ -203,7 +203,8 @@ final class NativeAugmentView extends LinearLayout {
     footer = k.row();
     LayoutParams foot = new LayoutParams(-1, h.dp(48));
     addView(footer, foot);
-    footer.addView(confirm, new LayoutParams(0, -1, 2));
+    footer.setGravity(Gravity.CENTER);
+    footer.addView(confirm, new LayoutParams(h.dp(large ? 360 : 300), -1));
     if (offers.length() == 0) showSwitch();
     else showOffers();
   }
@@ -419,6 +420,8 @@ final class NativeAugmentView extends LinearLayout {
                 h.battleTurnFrom(battleView.battle, MainActivity.obj("reroll", ix));
               });
       // 종이 버튼 표면을 유지해 누를 수 있는 버튼으로 보이게 하고, 재추첨 뒤에는 비활성 표면으로 구분한다.
+      PhaseButtonStyle.apply(h, reroll, false);
+      reroll.setTag("augment-reroll-" + ix);
       reroll.setTextSize(large ? 15 : 14);
       reroll.setPadding(h.dp(4), 0, h.dp(4), h.dp(2));
       reroll.setMinHeight(h.dp(48));
@@ -427,7 +430,8 @@ final class NativeAugmentView extends LinearLayout {
       LayoutParams rp = new LayoutParams(-1, h.dp(48));
       rp.topMargin = h.dp(4);
       LinearLayout actions = k.row();
-      actions.addView(reroll, new LayoutParams(0, -1, 2));
+      actions.setGravity(Gravity.CENTER);
+      actions.addView(reroll, new LayoutParams(h.dp(136), -1));
 
       column.addView(actions, rp);
       rerolls.add(reroll);
@@ -453,8 +457,8 @@ final class NativeAugmentView extends LinearLayout {
         selected.isEmpty()
             ? "증강체 선택"
             : battleView.side(0).optBoolean("needSwitch")
-                ? name + " · 다음 출전 선택"
-                : name + " · 선택 확정");
+                ? name + " · 다음"
+                : name + " · 확정");
     confirm.setContentDescription(name.isEmpty() ? "증강체 선택" : name + " 선택 확정");
   }
 
@@ -513,7 +517,7 @@ final class NativeAugmentView extends LinearLayout {
             switchTo = to;
             for (View p : picks)
               ((View) p.getTag()).setBackground(new CardFrame(0xff927017, p == card));
-            confirm.setText(f.optString("name") + " · 출전 확정");
+            confirm.setText("출전 확정");
             confirm.setContentDescription(f.optString("name") + " · 출전 확정");
             confirm.setEnabled(true);
           });
@@ -522,7 +526,10 @@ final class NativeAugmentView extends LinearLayout {
     confirm.setText("출전 선택");
     if (offers.length() > 0) {
       Button back = k.action(null, "증강체", this::showOffers);
-      footer.addView(back, 0, new LayoutParams(0, -1, 1));
+      PhaseButtonStyle.apply(h, back, false);
+      LayoutParams backSize = new LayoutParams(h.dp(112), -1);
+      backSize.rightMargin = h.dp(8);
+      footer.addView(back, 0, backSize);
       back.setTag("augment-back");
     }
   }
@@ -598,13 +605,21 @@ final class NativeAugmentView extends LinearLayout {
       p.setAlpha(alpha);
       p.setColorFilter(filter);
       if (alpha != 255 || filter != null) c.saveLayer(r, p);
-      ThemeArt.of(h).surface(c, ThemeArt.Surface.NAV, r);
+      r.inset(h.dp(2), h.dp(2));
+      p.setStyle(Paint.Style.FILL);
+      p.setColor(0xff163846);
+      c.drawRoundRect(r, h.dp(16), h.dp(16), p);
+      p.setStyle(Paint.Style.STROKE);
+      p.setStrokeWidth(h.dp(selected ? 3 : 1));
+      p.setColor(selected ? JournalTheme.SELECTED_EDGE : tint);
+      c.drawRoundRect(r, h.dp(16), h.dp(16), p);
+      p.setStyle(Paint.Style.FILL);
       p.setAlpha(255);
       p.setColorFilter(null);
       r.inset(h.dp(7), h.dp(7));
       p.setStyle(Paint.Style.FILL);
       p.setColor(tint);
-      c.drawRect(r.left, r.top, r.right, r.top + h.dp(2), p);
+      c.drawRoundRect(r.centerX() - h.dp(28), r.top, r.centerX() + h.dp(28), r.top + h.dp(3), h.dp(2), h.dp(2), p);
       if (selected) {
         r.set(getBounds());
         r.inset(h.dp(4), h.dp(4));
@@ -612,7 +627,7 @@ final class NativeAugmentView extends LinearLayout {
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(h.dp(2));
         p.setColor(JournalTheme.SELECTED_EDGE);
-        c.drawRoundRect(r, h.dp(4), h.dp(4), p);
+        c.drawRoundRect(r, h.dp(12), h.dp(12), p);
         p.setStyle(Paint.Style.FILL);
       }
       c.restoreToCount(saved);
@@ -633,4 +648,5 @@ final class NativeAugmentView extends LinearLayout {
     }
   }
 }
+
 

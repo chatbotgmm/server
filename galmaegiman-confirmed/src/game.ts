@@ -424,7 +424,7 @@ export class GameService {
       choices:[...this.drawChoices(p),choice('뽑기권 받기','뽑기권받기'),...menu.slice(2,6)]};
   }
   // out: 웹 화면용으로 뽑은 결과(유닛·처음 발견)를 받아 감
-  private async draw(tx:Tx,p:Player,kind:GachaKind,times:number,now:Date,out?:{c:Character;first:boolean}[]):Promise<GameReply>{
+  private async draw(tx:Tx,p:Player,kind:GachaKind,times:number,now:Date,out?:{c:Character;first:boolean;key:string}[]):Promise<GameReply>{
     const g=this.content.economy.gachas[kind];
     const cost=g.cost*times;
     const admin=unlimited(p);
@@ -451,7 +451,7 @@ export class GameService {
       }
       const owned=await this.grant(tx,p,c.id,'GACHA',now);
       if(kind==='HIGH')await tx.ownedCharacter.update({where:{id:owned.id},data:{obtainedVia:'GACHA_HIGH'}});
-      results.push({c,receipt:owned.receipt});out?.push({c,first:Boolean(owned.receipt.first)});
+      results.push({c,receipt:owned.receipt});out?.push({c,first:Boolean(owned.receipt.first),key:`o${owned.id}`});
     }
     if(pity)await tx.player.update({where:{id:p.id},data:{highPity:counter}});
     const pityLine=pity?(pityHit?`🎯 천장! ${rarityNames[pity.tier]} 확정`:`🎯 ${rarityNames[pity.tier]} 보장까지 ${pity.count-counter}회`):'';
@@ -1369,15 +1369,15 @@ export class GameService {
     if(kind!=='LOW'&&kind!=='MID'&&kind!=='HIGH')throw new GameError('없는 뽑기예요.');
     if(!Number.isSafeInteger(times)||times<1||times>50)throw new GameError('뽑기는 한 번에 1~50회예요.');
     return this.webRun(playerId,async(tx,p,now)=>{
-      const out:{c:Character;first:boolean}[]=[];
+      const out:{c:Character;first:boolean;key:string}[]=[];
       const r=await this.draw(tx,p,kind,times,now,out);
       if(!out.length)throw new GameError(this.replyText(r));   // 뽑기권 부족 안내
       const known=await this.known(tx,p);
       // 같은 유닛은 묶고 높은 등급부터
-      const by=new Map<string,{c:Character;n:number;first:boolean}>();
-      for(const x of out){const e=by.get(x.c.id)??{c:x.c,n:0,first:false};e.n++;e.first||=x.first;by.set(x.c.id,e);}
+      const by=new Map<string,{c:Character;n:number;first:boolean;ownedKeys:string[]}>();
+      for(const x of out){const e=by.get(x.c.id)??{c:x.c,n:0,first:false,ownedKeys:[]};e.n++;e.first||=x.first;e.ownedKeys.push(x.key);by.set(x.c.id,e);}
       const items=[...by.values()].sort((a,b)=>tiers[b.c.rarity]-tiers[a.c.rarity]||Number(b.first)-Number(a.first)||a.c.position-b.c.position)
-        .map(x=>({id:x.c.id,name:this.name(x.c.id,known),tier:x.c.rarity,tierName:rarityNames[x.c.rarity],img:this.cardImage(x.c.id,known),n:x.n,first:x.first}));
+        .map(x=>({id:x.c.id,name:this.name(x.c.id,known),tier:x.c.rarity,tierName:rarityNames[x.c.rarity],img:this.cardImage(x.c.id,known),n:x.n,first:x.first,ownedKeys:x.ownedKeys}));
       return {items,summary:(times>1?r.cards?.outro:undefined)??this.replyText(r)};
     });
   }
@@ -2334,4 +2334,5 @@ export class GameService {
     return {text:helpText(this.content.economy),cards:{intro:'🏝 이 섬의 항구는 돌이 지킨다.\n그들을 갈매미라 부른다. 갈매미는 존재한다.',items:this.helpCards(),outro:`이렇게도 써요\n${helpExamples}`},choices:menu};
   }
 }
+
 

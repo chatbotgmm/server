@@ -260,7 +260,7 @@ class PhaseTwoCheckerTests(unittest.TestCase):
         directory = Path(__file__).resolve().parent
         contracts = directory / "phase2-contracts"
         if not contracts.exists(): contracts = directory / "contracts"
-        for name, count in (("menus", 84), ("realtime", 124), ("economy", 50), ("extras", 28)):
+        for name, count in (("menus", 92), ("realtime", 124), ("economy", 50), ("extras", 28)):
             contract = json.loads((contracts / (name + ".json")).read_text())
             names = [screen["stem"] + "-" + variant["suffix"] for screen in contract["screens"] for variant in contract["variants"]]
             self.assertEqual(len(names), count)
@@ -277,7 +277,7 @@ class MenuWindowGeometryTests(unittest.TestCase):
         self.contract = json.loads(contract_path.read_text())
         self.screen = next(x for x in self.contract["screens"] if x["stem"] == "growth-details")
         self.variant = next(x for x in self.contract["variants"] if x["suffix"] == "1006x411")
-        self.measured = {"actualNativeViews": True, "actions": 5, "boundsChecks": 2,
+        self.measured = {"screenRoute": "unit", "modeCategoryCount": 0, "actualNativeViews": True, "actions": 5, "boundsChecks": 2,
             "dialogBoundsChecks": 2, "measuredWidth": 900, "measuredHeight": 359,
             "safeWidth": 960, "safeHeight": 391, "textLabels": 36, "inlineChoices": 0,
             "shortenedReadOnlySummaries": [], "fixtureReads": [], "fixtureWrites": 0,
@@ -311,11 +311,12 @@ class MenuWindowGeometryTests(unittest.TestCase):
         del self.measured["measuredHeight"]
         with self.assertRaises(ValueError): self.verify()
     def test_original_fixture_invariants_remain_required(self): self.reject("syntheticItemFixture", True)
-    def test_exact_84_names_and_eight_tests_unchanged(self):
+    def test_exact_92_names_and_eight_tests_preserved(self):
         names = {s["stem"] + "-" + v["suffix"] for s in self.contract["screens"] for v in self.contract["variants"]}
-        self.assertEqual(len(names), 84)
+        self.assertEqual(len(names), 92)
         self.assertEqual(self.contract["test_suites"][0]["minimum_tests"], 8)
 
 
 if __name__ == "__main__":
     unittest.main()
+

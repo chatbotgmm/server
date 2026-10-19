@@ -165,7 +165,8 @@ public class NativeHomePartyFeedbackTest {
   void show(MainActivity h, Profile p, String scene) throws Exception {
     layout(h, p);
     if (scene.equals("home")) h.home();
-    else if (scene.equals("modes")) h.menus.modes();
+    // 기존 modes 캡처 파일은 이제 실제 대전 하위 화면의 편성을 검증한다.
+    else if (scene.equals("modes")) h.menus.pvpModes();
     else if (scene.equals("realtime")) showRealtime(h);
     else {
       if (scene.equals("missing-sprite")) {
@@ -316,7 +317,7 @@ public class NativeHomePartyFeedbackTest {
       }
     }
     check(registration == 0, "Registration card remains in approved party/home scope", findings);
-    int expected = scene.equals("home") ? 0 : 6;
+    int expected = scene.equals("home") ? 0 : scene.equals("modes") ? 3 : 6;
     check(sprites.size() == expected, "Expected " + expected + " actual production sprites on " + scene + ", found " + sprites.size(), findings);
     check(missing == (scene.equals("missing-sprite") ? 2 : 0), "Incorrect missing-identity coverage", findings);
     for (int i = 0; i < sprites.size(); i++) for (int j = i + 1; j < sprites.size(); j++)
@@ -613,3 +614,4 @@ public class NativeHomePartyFeedbackTest {
     }
   }
 }
+

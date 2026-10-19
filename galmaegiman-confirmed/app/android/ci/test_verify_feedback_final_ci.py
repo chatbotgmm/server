@@ -52,7 +52,7 @@ def home_fixture(root):
             profile["insetsPx"]=dict(zip(("left","top","right","bottom"),p.get("insetsPx",[0,0,0,0])))
             art=[]
             if scene!="home":
-                for i in range(6):
+                for i in range(3 if scene=="modes" else 6):
                     a=dict(id="D"+str(i+1),status="",viewPx=[100+i*100,50,180+i*100,150],visiblePx=[100+i*100,50,180+i*100,150],
                            targetPx=[0,0,80,100],bitmapWidth=80,bitmapHeight=100,expectedSource=f"game-art/duel/sprites/D{i+1}_s0_front.webp")
                     if scene=="missing-sprite" and i<2:
@@ -221,7 +221,7 @@ class Contracts(unittest.TestCase):
         self.assertNotIn("secrets.",backend);self.assertNotIn("deploy",backend)
         for required in ("node-version: '22'","npm ci","npx prisma generate","npm run test:db","npm run build","DATABASE_URL: file:./ci.db"):
             self.assertIn(required,backend)
-        self.assertLess(backend.index("run: npm run build"),backend.index("run: npm run test:db"),
+        self.assertLess(backend.index("run: npm run build"),backend.index("npm run test:db 2>&1 | tee backend-test.log"),
                         "Static asset routes require generated bundles before full DB tests")
         release=workflow[workflow.index("  preview-release:"):]
         self.assertIn("needs: [native-home, backend]",release)
@@ -317,3 +317,4 @@ def add_mutations():
 
 add_mutations()
 if __name__=="__main__":unittest.main()
+

@@ -14,6 +14,9 @@ final class NativeAcquisitionFlow {
   final String account;
   final Set<String> before;
   Runnable reopen;
+  JSONObject pendingReassessment;
+  int pendingReassessmentIndex;
+  String pendingReassessmentKey;
   int selected;
 
   NativeAcquisitionFlow(MainActivity h, String origin, Set<String> before) {
@@ -231,3 +234,4 @@ final class NativeAcquisitionFlow {
     dialog.show();
   }
 }
+

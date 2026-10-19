@@ -27,7 +27,7 @@ import org.robolectric.annotation.*;
 public class NativeMenusThemeReviewTest {
   static final int[][] SIZES = {{915, 412, 100}, {1006, 411, 100}, {1280, 720, 100}, {915, 412, 130}};
   static final String[] PAGES = {
-    "modes", "modes-loading", "modes-error", "modes-empty", "story", "story-empty",
+    "modes", "modes-story", "modes-pvp", "modes-loading", "modes-error", "modes-empty", "story", "story-empty",
     "stages", "stages-locked", "stages-empty", "growth", "growth-ready", "growth-details",
     "skills", "skills-selected", "skills-replacement", "promotion", "promotion-comparison",
     "items", "items-selected", "items-empty", "healing"
@@ -185,7 +185,9 @@ public class NativeMenusThemeReviewTest {
 
   View show(MainActivity host, String page, int[] size) throws Exception {
     layout(host, size);
-    if (page.startsWith("modes")) host.menus.modes();
+    if (page.equals("modes")) host.menus.modes();
+    else if (page.equals("modes-story")) host.menus.storyModes();
+    else if (page.startsWith("modes")) host.menus.pvpModes();
     else if (page.startsWith("story")) host.menus.story(false);
     else if (page.startsWith("stages")) {
       if (page.equals("stages-locked")) host.menus.selectedStageId = "P-4";
@@ -282,7 +284,7 @@ public class NativeMenusThemeReviewTest {
         actions++;
       }
       String tag = String.valueOf(view.getTag());
-      if (tag.startsWith("items-choice-") || tag.startsWith("story-stage-choice-") || tag.startsWith("story-enter-chapter-")) inlineChoices++;
+      if (tag.startsWith("items-choice-") || tag.startsWith("story-stage-choice-") || tag.startsWith("story-chapter-")) inlineChoices++;
     }
     for (int i = 0; i < fixed.size(); i++) for (int j = i + 1; j < fixed.size(); j++) {
       View a = fixed.get(i), b = fixed.get(j);
@@ -302,16 +304,25 @@ public class NativeMenusThemeReviewTest {
       assertTrue(host.root.findViewWithTag("story-stage-choice-" + host.menus.selectedStageId).isSelected());
       assertNotNull(host.root.findViewWithTag("story-stage-start"));
     }
-    if (page.startsWith("modes")) {
-      assertNotNull(host.root.findViewWithTag("modes-story-summary"));
-      assertNotNull(host.root.findViewWithTag("modes-pvp-summary"));
+    if (page.equals("modes")) {
+      assertEquals(2, ((ViewGroup) host.root.findViewWithTag("modes-panes")).getChildCount());
+      assertNotNull(host.root.findViewWithTag("modes-pvp-category"));
+      assertNull(host.root.findViewWithTag("modes-normal"));
+    } else if (page.equals("modes-story")) {
       assertFalse(host.root.findViewWithTag("modes-adventure").isEnabled());
+      assertNull(host.root.findViewWithTag("modes-normal"));
+    } else if (page.startsWith("modes")) {
+      assertNotNull(host.root.findViewWithTag("modes-pvp-summary"));
+      assertNotNull(host.root.findViewWithTag("modes-ranked"));
+      assertNull(host.root.findViewWithTag("modes-adventure"));
     }
     if (page.equals("growth-ready")) assertFalse(host.root.findViewWithTag("unit-heal").isEnabled());
     assertEquals(0, api.writes.size()); assertTrue(actions > 0); assertTrue(text > 0);
     assertTrue("Every capture records actual safe-container or fixed-control bounds assertions", bounds > 0);
     assertNotNull(host.root.findViewWithTag("theme-scene-background"));
-    return MainActivity.obj("actualNativeViews", true, "actions", actions, "boundsChecks", bounds,
+    return MainActivity.obj("actualNativeViews", true, "screenRoute", host.screen,
+        "modeCategoryCount", page.equals("modes") || page.equals("modes-story") ? 2 : 0,
+        "actions", actions, "boundsChecks", bounds,
         "dialogBoundsChecks", dialogBounds, "measuredWidth", root.getWidth(), "measuredHeight", root.getHeight(),
         "safeWidth", safeWidth, "safeHeight", safeHeight,
         "textLabels", text, "inlineChoices", inlineChoices, "shortenedReadOnlySummaries", summaries,
@@ -462,9 +473,8 @@ public class NativeMenusThemeReviewTest {
       String rawUnitName = host.unit("o1").optString("name");
       host.chapter = 0;
 
-      host.menus.modes(); layout(host, SIZES[0]);
-      assertTrue(flow.labels(host.root.findViewWithTag("modes-story-summary"))
-          .contains("다음 · 부둣가를 지키는 방범대"));
+      LinearLayout summary = host.menus.addModeTeamSummary(new LinearLayout(host), false);
+      assertTrue(flow.labels(summary).contains("다음 · 부둣가를 지키는 방범대"));
       host.menus.story(false); layout(host, SIZES[0]);
       String chapterLabels = flow.labels(host.root.findViewWithTag("story-chapter-0"));
       assertTrue(chapterLabels.contains("검수용 방범대 이야기"));
@@ -496,7 +506,7 @@ public class NativeMenusThemeReviewTest {
 
       // Names and generic text never go through the authored-story presentation helper.
       JSONObject namedUnit = new JSONObject(host.unit("o1").toString()).put("name", "원문 수비대");
-      assertTrue(flow.labels(host.menus.storyRosterUnit(namedUnit, 0, () -> {}, () -> {}))
+      assertTrue(flow.labels(host.menus.storyRosterUnit(namedUnit, 0, () -> {}, false))
           .contains("원문 수비대"));
       assertEquals("사용자 수비대", host.text(host.me().getString("nickname"), 14).getText().toString());
       host.root.findViewWithTag("story-stage-start").performClick();
@@ -553,7 +563,7 @@ public class NativeMenusThemeReviewTest {
   @Test public void staleRankCallbackCannotRepaintANewerPage() throws Exception {
     try (ActivityController<MainActivity> controller = flow.start()) {
       MainActivity host = controller.get(); FixtureApi api = prepare(host, "modes-loading");
-      host.menus.modes(); assertNotNull(api.pendingRank);
+      host.menus.pvpModes(); assertNotNull(api.pendingRank);
       host.menus.library.items(); String screen = host.screen;
       api.pendingRank.done(NativeThemeReviewTest.rank(), null);
       assertEquals(screen, host.screen); assertEquals("items", screen);
@@ -561,3 +571,4 @@ public class NativeMenusThemeReviewTest {
     }
   }
 }
+

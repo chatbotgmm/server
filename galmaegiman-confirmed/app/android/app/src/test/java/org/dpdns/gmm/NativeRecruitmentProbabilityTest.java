@@ -134,6 +134,12 @@ public class NativeRecruitmentProbabilityTest {
     return null;
   }
 
+  private void reopen(View view) {
+    view.setVisibility(View.GONE);
+    view.setVisibility(View.VISIBLE);
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
+  }
+
   @Test public void settingsLoadsOnlyWhenProbabilityTabIsOpenedAndShowsEveryTier() {
     try (var controller = fixture.start()) {
       MainActivity host = controller.get();
@@ -151,6 +157,8 @@ public class NativeRecruitmentProbabilityTest {
       for (String kind : RecruitmentProbabilityView.KINDS)
         assertNotNull(dialog.findViewWithTag("recruitment-probability-" + kind));
       String labels = fixture.labels(dialog);
+      assertNull(dialog.findViewWithTag("recruitment-probability-refresh"));
+      assertNull(button(dialog, "새로고침"));
       assertTrue(labels.contains("0.005%"));
       assertTrue(labels.contains("1.005%"));
       assertTrue(labels.contains("2.005%"));
@@ -171,9 +179,10 @@ public class NativeRecruitmentProbabilityTest {
       assertTrue(fixture.labels(view).contains("불러오는 중"));
       assertFalse(fixture.labels(view).contains("0%"));
       api.pending.get(0).done(null, "연결하지 못했어요.");
-      assertTrue(fixture.labels(view).contains("다시 시도"));
+      assertTrue(fixture.labels(view).contains("다시 열어"));
       assertFalse(fixture.labels(view).contains("0%"));
-      button(view, "다시 시도").performClick();
+      assertNull(button(view, "다시 시도"));
+      reopen(view);
       assertEquals(2, api.calls.size());
       api.response.getJSONArray("gachas").getJSONObject(0).getJSONArray("weights")
           .getJSONObject(0).remove("w");
@@ -202,7 +211,8 @@ public class NativeRecruitmentProbabilityTest {
       api.pending.get(1).done(api.response, null);
       assertNull(view.findViewWithTag("recruitment-rate-LOW-COMMON"));
       assertTrue(fixture.labels(view).contains("계정이 변경"));
-      button(view, "새로고침").performClick();
+      assertNull(button(view, "새로고침"));
+      reopen(view);
       NativeApi.Result detached = api.pending.get(2);
       host.root.removeView(view);
       detached.done(api.response, null);
@@ -308,3 +318,4 @@ public class NativeRecruitmentProbabilityTest {
     assertEquals("0.005%", RecruitmentProbabilityView.percent(MainActivity.obj("w", 0.005)));
   }
 }
+

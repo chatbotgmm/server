@@ -26,6 +26,9 @@ final class NativeProgression {
   LinearLayout contents, overlay;
   OnBackPressedCallback back;
   Button refreshButton;
+  java.util.function.BiConsumer<String, JSONObject> conversionReceipt;
+  Runnable onDismiss;
+  boolean dismissed, receiptDelivered;
   final java.util.Map<String, Integer> pages = new java.util.HashMap<>();
 
   NativeProgression(MainActivity host) {
@@ -37,6 +40,15 @@ final class NativeProgression {
     if (key == null || key.isEmpty()) return;
     NativeProgression screen = new NativeProgression(host);
     screen.tab = "reassessment"; screen.selectedKey = key; screen.openOverlay();
+  }
+
+  static NativeProgression openReassessment(MainActivity host, String key,
+      java.util.function.BiConsumer<String, JSONObject> converted, Runnable closed) {
+    NativeProgression screen = new NativeProgression(host);
+    screen.tab = "reassessment"; screen.selectedKey = key;
+    screen.conversionReceipt = converted; screen.onDismiss = closed;
+    screen.openOverlay();
+    return screen;
   }
 
   void open() {
@@ -91,9 +103,12 @@ final class NativeProgression {
   }
 
   void dismiss() {
+    if (dismissed) return;
+    dismissed = true;
     clock.invalidate();
     if (back != null) back.remove();
     if (overlay != null) h.root.removeView(overlay);
+    if (onDismiss != null) onDismiss.run();
   }
 
   boolean current() {
@@ -279,7 +294,7 @@ final class NativeProgression {
     }
     if (candidates.isEmpty()) { summary("서버에서 확인된 대상 개체가 없어요.", 2); return; }
     JSONObject unit = candidates.get(page(candidates.size())); String key = unit.optString("key");
-    boolean eligible = !reincarnation || (unit.optBoolean("eligible") && !unit.optBoolean("locked"));
+    boolean eligible = !unit.optBoolean("locked") && (reincarnation ? unit.optBoolean("eligible") : unit.optBoolean("eligible", true));
     String status = reincarnation ? "일반 등급 · 다음 환생 +" + (unit.optInt("reincarnation") + 1) : "고급 모집 · 같은 등급 재심사";
     if (!eligible) status = unit.optString("reason", "지금은 대상이 아니에요.");
     if (cooldown) status = "같은 등급 · 재심사 대기 " + duration(clock.remaining(section.optLong("nextAvailableAt"), SystemClock.elapsedRealtime()));
@@ -322,7 +337,10 @@ final class NativeProgression {
     render();
     h.api.call(path, body, (data, error) -> {
       IN_FLIGHT.remove(id);
-      boolean success = error == null && data != null && data.optBoolean("ok");
+      boolean conversionProof = !path.equals("native/progression/reassess") || (data != null
+          && data.optString("key").matches("o[1-9]\\d*") && !data.optString("key").equals(body.optString("key"))
+          && data.optString("id").matches("[A-Za-z][0-9]{1,3}") && !data.optString("rarity").isEmpty());
+      boolean success = error == null && data != null && data.optBoolean("ok") && conversionProof;
       boolean rejected = error != null && data != null && data.has("retryable")
           && !data.optBoolean("retryable", true) && !data.optBoolean("ok", true)
           && !h.api.token().isEmpty();
@@ -332,6 +350,14 @@ final class NativeProgression {
           JSONObject saved = new JSONObject(prefs.getString(requestOwner, "{}"));
           if (id.equals(saved.optString("requestId"))) prefs.edit().remove(requestOwner).commit();
         } catch (JSONException ignored) { }
+      }
+      // 성공 영수증은 화면 수명과 독립적으로 원래 계정의 획득 흐름에 보존한다.
+      // 다른 개체에서 미확인 요청을 재조회하더라도 선택한 카드 key로 바꿔치기하지 않는다.
+      if (success && conversionReceipt != null && path.equals("native/progression/reassess")
+          && !receiptDelivered && data.optString("key").matches("o[1-9]\\d*")
+          && !data.optString("id").isEmpty()) {
+        receiptDelivered = true;
+        conversionReceipt.accept(body.optString("key"), data);
       }
       if (epoch == h.epoch && h.api.token().isEmpty()) { h.login(); return; }
       if (!current()) return;
@@ -365,3 +391,4 @@ final class NativeProgression {
     } catch (java.security.NoSuchAlgorithmException e) { throw new IllegalStateException(e); }
   }
 }
+

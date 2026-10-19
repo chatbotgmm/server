@@ -105,7 +105,11 @@ public class JournalThemeTest {
     assertTrue("Selected ink contrast", contrast(JournalTheme.INK, selected.getPixel(120, 32)) >= 4.5);
     assertTrue("Pressed white contrast", contrast(JournalTheme.WHITE, pressed.getPixel(120, 32)) >= 4.5);
     assertEquals("비활성도 사진 배경에 묻히지 않는 읽기 면 유지", 255, Color.alpha(disabled.getPixel(120, 32)));
-    assertEquals(JournalTheme.DISABLED, disabled.getPixel(120, 32));
+    assertTrue("비활성 양피지에서도 실제 라벨 대비 유지",
+        contrast(JournalTheme.MUTED, disabled.getPixel(120, 32)) >= 4.5);
+    for (int y = 0; y < normal.getHeight(); y++) for (int x = 0; x < normal.getWidth(); x++)
+      assertEquals("비활성도 원래 프레임 윤곽 유지",
+          Color.alpha(normal.getPixel(x, y)), Color.alpha(disabled.getPixel(x, y)));
     assertFalse("비활성 면과 정상 면을 구별", normal.sameAs(disabled));
     assertFalse("눌린 프레임은 실제 위치가 달라짐", normal.sameAs(pressed));
     normal.recycle();
@@ -166,8 +170,10 @@ public class JournalThemeTest {
     assertEquals("Selection alone does not retain the pressed palette", JournalTheme.INK, button.getCurrentTextColor());
     button.setEnabled(false);
     assertEquals(JournalTheme.MUTED, button.getCurrentTextColor());
-    assertTrue("Disabled control text remains readable",
-        contrast(button.getCurrentTextColor(), JournalTheme.DISABLED) >= 4.5);
+    Bitmap disabledSurface = button(host, new int[0]);
+    assertTrue("Disabled control text remains readable on the rendered parchment",
+        contrast(button.getCurrentTextColor(), disabledSurface.getPixel(120, 32)) >= 4.5);
+    disabledSurface.recycle();
     button.setSelected(false);
     button.setEnabled(true);
     assertEquals(JournalTheme.INK, button.getCurrentTextColor());

@@ -257,6 +257,7 @@ public class MainActivity extends AppCompatActivity {
       menus.requestLeaveTeam(() -> load(target));
       return;
     }
+    if (target.equals("battleRecords")) { NativeBattleReplay.records(this); return; }
     if (!state.has("me") && target.equals("title")) titleScreen();
     else if (!state.has("me")) {
       base("방범대 연결", "loading");
@@ -482,7 +483,7 @@ public class MainActivity extends AppCompatActivity {
     sound.play("title");
     root.removeAllViews();
     boolean mapPage = id.equals("craft") || id.equals("mix");
-    View scene = new View(this);
+    View scene = new GameSceneBackground(this);
     scene.setTag("theme-scene-background");
     scene.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     scene.setBackground(ThemeArt.of(this).background(AppSkin.backgroundForScreen(id)));
@@ -537,8 +538,7 @@ public class MainActivity extends AppCompatActivity {
       money.setContentDescription(
           (kind.equals("snack") ? "새우 " : kind.equals("peanut") ? "땅콩 " : "지원서 ")
               + String.format(java.util.Locale.KOREA, "%,d", me().optInt(kind)));
-      money.setBackground(ThemeArt.of(this).drawable(ThemeArt.Surface.NAVY));
-      money.setTextColor(Color.WHITE);
+      CurrencyDisplay.bind(this, money, kind);
       money.setPadding(dp(6), 0, dp(8), 0);
       // The full live balance and its 26dp icon must fit at the current font scale.
       // Reserve only the measured amount, leaving the weighted title its own space.
@@ -615,6 +615,12 @@ public class MainActivity extends AppCompatActivity {
     switch (s) {
       case "modes":
         menus.modes();
+        break;
+      case "modesStory":
+        menus.storyModes();
+        break;
+      case "modesPvp":
+        menus.pvpModes();
         break;
       case "account":
         menus.extras.account();
@@ -1197,6 +1203,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void battleScreen() {
+    NativeBattleReplay.observe(this, battle);
     epoch++;
     screen = "battle";
     sound.play(battleMusic());
@@ -1213,6 +1220,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void battleTurnFrom(JSONObject shown, JSONObject event) {
+    if (shown != null && shown.optBoolean("replayReadOnly")) return;
     if (NativeRealtime.isBattle(shown)) realtime.submit(shown, event);
     else battleTurn(event);
   }
@@ -1238,6 +1246,7 @@ public class MainActivity extends AppCompatActivity {
               || battle == null
               || !requestedSession.equals(battle.optString("session"))
               || !requestedSession.equals(r.optString("session"))) return;
+          NativeBattleReplay.observe(this, r);
           Runnable finishTurn =
               () -> {
                 if (isFinishing()
@@ -1397,6 +1406,8 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void back() {
+    if (screen.equals("battleReplay")) { NativeBattleReplay.records(this); return; }
+    if (screen.equals("battleRecords")) { load("modesPvp"); return; }
     for (int i=0;i<root.getChildCount();i++)
       if(root.getChildAt(i) instanceof BattleView && ((BattleView)root.getChildAt(i)).backInPane()) return;
     if (realtime != null && realtime.back()) return;
@@ -1445,8 +1456,9 @@ public class MainActivity extends AppCompatActivity {
     else if (screen.equals("mix")) craft();
     else if (screen.equals("drawResult")) load("draw");
     else if (screen.equals("craftResult")) load(menus.economy.acquisitionOrigin());
-    else if (screen.equals("story") || screen.equals("pvp") || screen.equals("practice"))
-      load("modes");
+    else if (screen.equals("story")) load("modesStory");
+    else if (screen.equals("pvp") || screen.equals("practice")) load("modesPvp");
+    else if (screen.equals("modesStory") || screen.equals("modesPvp")) load("modes");
     else load("home");
   }
 
@@ -1470,6 +1482,7 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onResume() {
     super.onResume();
+    if (sound != null) sound.resume();
     if (realtime != null) realtime.resume();
     motionResumed = true;
     journalTime.resume();
@@ -1477,6 +1490,8 @@ public class MainActivity extends AppCompatActivity {
 
   @Override
   protected void onPause() {
+    NativeBattleReplay.pause(this);
+    if (sound != null) sound.pause();
     if (realtime != null) realtime.pause();
     motionResumed = false;
     journalTime.pause();
@@ -1511,3 +1526,4 @@ public class MainActivity extends AppCompatActivity {
     sound.close();
   }
 }
+

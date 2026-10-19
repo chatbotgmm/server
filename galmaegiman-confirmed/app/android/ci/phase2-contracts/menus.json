@@ -5,7 +5,7 @@
   "source_contract": "phase2-menus/validation/render-contract.json",
   "source_contract_sha256": "10715d0b49999e21ba80a69a50a207e7b677286b1bcd42bee68876ac50976876",
   "output_subdirectory": "phase2-menus",
-  "expected_capture_count": 84,
+  "expected_capture_count": 92,
   "test_suites": [
     {
       "name": "org.dpdns.gmm.NativeMenusThemeReviewTest",
@@ -71,9 +71,47 @@
         "actualNativeViews": true,
         "fixtureWrites": 0,
         "syntheticItemFixture": false,
-        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4",
+        "screenRoute": "modes",
+        "modeCategoryCount": 2
       },
       "minimum_integers": {}
+    },
+    {
+      "stem": "modes-pvp",
+      "audit_id": "modes",
+      "expected_fields": {
+        "dialog": false,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4",
+        "screenRoute": "modesPvp",
+        "modeCategoryCount": 0
+      },
+      "minimum_integers": {
+        "actions": 5,
+        "boundsChecks": 1,
+        "textLabels": 5
+      }
+    },
+    {
+      "stem": "modes-story",
+      "audit_id": "modes",
+      "expected_fields": {
+        "dialog": false,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4",
+        "screenRoute": "modesStory",
+        "modeCategoryCount": 2
+      },
+      "minimum_integers": {
+        "actions": 2,
+        "boundsChecks": 1,
+        "textLabels": 2
+      }
     },
     {
       "stem": "modes-loading",
@@ -83,7 +121,9 @@
         "actualNativeViews": true,
         "fixtureWrites": 0,
         "syntheticItemFixture": false,
-        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4",
+        "screenRoute": "modesPvp",
+        "modeCategoryCount": 0
       },
       "minimum_integers": {}
     },
@@ -95,7 +135,9 @@
         "actualNativeViews": true,
         "fixtureWrites": 0,
         "syntheticItemFixture": false,
-        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4",
+        "screenRoute": "modesPvp",
+        "modeCategoryCount": 0
       },
       "minimum_integers": {}
     },
@@ -107,7 +149,9 @@
         "actualNativeViews": true,
         "fixtureWrites": 0,
         "syntheticItemFixture": false,
-        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4",
+        "screenRoute": "modesPvp",
+        "modeCategoryCount": 0
       },
       "minimum_integers": {}
     },
@@ -343,7 +387,8 @@
     ],
     "nonnegative_integer_fields": [
       "inlineChoices",
-      "dialogBoundsChecks"
+      "dialogBoundsChecks",
+      "modeCategoryCount"
     ],
     "array_fields": [
       "fixtureReads",
@@ -368,7 +413,9 @@
       "dialog",
       "itemDefinitionSource",
       "syntheticItemFixture",
-      "visualReview"
+      "visualReview",
+      "screenRoute",
+      "modeCategoryCount"
     ],
     "window_geometry": {
       "dialog_bounds_checks": 2,
@@ -377,7 +424,7 @@
     }
   },
   "runtime_contract_revision": {
-    "source_commit": "3a21523",
-    "reason": "growth-details captures the actual native dialog; require measured container geometry for every menu case."
+    "source_commit": "680cc3565aafddcd262541faed44b6a333dde912",
+    "reason": "User-requested two-category mode navigation: preserve all 84 prior cases and add eight story-category/PvP captures; bind actual route and category count. Existing native window, ink and touch criteria unchanged."
   }
 }

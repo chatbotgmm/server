@@ -261,6 +261,20 @@ public class NativeEconomyThemeReviewTest {
     return measured;
   }
 
+  Rect trayAlphaBounds(Bitmap bitmap) {
+    int width = bitmap.getWidth(), height = bitmap.getHeight();
+    int[] pixels = new int[width * height];
+    bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
+    Rect bounds = new Rect(width, height, 0, 0);
+    for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
+      if ((pixels[y * width + x] >>> 24) <= 8) continue;
+      bounds.left = Math.min(bounds.left, x); bounds.top = Math.min(bounds.top, y);
+      bounds.right = Math.max(bounds.right, x + 1); bounds.bottom = Math.max(bounds.bottom, y + 1);
+    }
+    assertFalse("Tray has actual visible ink", bounds.isEmpty());
+    return bounds;
+  }
+
   JSONObject audit(MainActivity host, String page, NativeEconomyThemeFixture.Api api) {
     assertNull("Core selection stays inline", host.visibleDialog);
     int controls = 0, labels = 0, truncations = 0, overlapChecks = 0;
@@ -323,25 +337,33 @@ public class NativeEconomyThemeReviewTest {
       assertNotNull(host.root.findViewWithTag("shop-purchase-rail"));
     }
     if (page.startsWith("recruit")) {
-      int seals = 0, submits = 0;
+      int trays = 0, submits = 0;
+      Set<String> paths = new HashSet<>();
       for (View view : geometry.descendants(host.root)) {
         if ("draw-submit".equals(view.getTag())) submits++;
-        if (!(view instanceof NativeEconomy.RecruitmentSeal)) continue;
-        NativeEconomy.RecruitmentSeal seal = (NativeEconomy.RecruitmentSeal) view;
-        assertNotNull("Original envelope atlas loaded", seal.atlas);
-        assertFalse(seal.atlas.isRecycled());
-        assertEquals(1774, seal.atlas.getWidth()); assertEquals(887, seal.atlas.getHeight());
-        assertTrue("Envelope is a station illustration, not a tiny icon", seal.target.width() >= host.dp(120));
-        assertTrue("Envelope art stays inside its native view", new RectF(0, 0, seal.getWidth(), seal.getHeight()).contains(seal.target));
-        seals++;
+        if (!(view instanceof NativeEconomy.RecruitmentTray)) continue;
+        NativeEconomy.RecruitmentTray tray = (NativeEconomy.RecruitmentTray) view;
+        assertNotNull("Distinct bundled application tray loaded", tray.bitmap);
+        assertFalse(tray.bitmap.isRecycled());
+        assertEquals(768, tray.bitmap.getWidth()); assertEquals(512, tray.bitmap.getHeight());
+        assertTrue("Tray is a station illustration, not a tiny icon", tray.target.width() >= host.dp(120));
+        assertTrue("Tray stays inside its native view", new RectF(0, 0, tray.getWidth(), tray.getHeight()).contains(tray.target));
+        Rect ink = trayAlphaBounds(tray.bitmap);
+        assertEquals("Transparent canvas margin is excluded from drawing", ink, tray.source);
+        float inkBottom = tray.target.top + (ink.bottom - tray.source.top) * tray.target.height() / tray.source.height();
+        assertEquals("Visible wood, not transparent padding, rests on the counter", tray.getHeight(), inkBottom, .01f);
+        assertTrue("Selection stays attached to visible wood", tray.target.contains(tray.selectionBounds));
+        assertEquals(tray.target.bottom, tray.selectionBounds.bottom, .01f);
+        paths.add(tray.path); trays++;
       }
-      assertEquals(3, seals); assertEquals("One actual spend action", 1, submits);
-      inkInsideFrame(host, "draw-credits-label", "draw-claim-rail", 12, 12);
-      inkInsideFrame(host, "draw-claim-status", "draw-claim-rail", 12, 12);
-      inkInsideFrame(host, "draw-pity", "draw-purchase-rail", 12, 10);
-      inkInsideFrame(host, "draw-total", "draw-purchase-rail", 12, 10);
+      assertEquals(3, trays); assertEquals("Each tier has its own artwork", 3, paths.size());
+      assertEquals("One actual spend action", 1, submits);
+      assertNull("Obsolete top claim banner is removed", host.root.findViewWithTag("draw-claim-rail"));
+      assertNull("No decorative panel behind the compact bottom actions", host.root.findViewWithTag("draw-purchase-rail").getBackground());
+      assertTrue("Claim lives in the same bottom row as quantity and submit",
+          contains(host.root.findViewWithTag("draw-purchase-rail"), host.root.findViewWithTag("draw-claim")));
       assertNotNull(host.root.findViewWithTag("draw-pity"));
-      assertTrue(host.root.findViewWithTag(page.equals("recruit-high") ? "draw-card-HIGH" : "draw-card-LOW").isSelected());
+      assertTrue(host.root.findViewWithTag(page.equals("recruit-high") ? "draw-card-HIGH" : page.equals("recruit-mid") ? "draw-card-MID" : "draw-card-LOW").isSelected());
     }
     String sceneAsset = page.startsWith("recruit") ? AppSkin.background("reception")
         : page.startsWith("shop") ? AppSkin.background("market") : "backgrounds/bg-navigation-workshop-v1.png";
@@ -639,3 +661,4 @@ public class NativeEconomyThemeReviewTest {
     assertNull(host.visibleDialog);
   }
 }
+

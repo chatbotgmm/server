@@ -21,7 +21,9 @@ final class NativeTutorialController {
         "expedition",
         new String[] {"탐험", "갈매미를 탐험에 보내면 시간이 지난 뒤 보상을 가지고 돌아와요. 탐험 중인 갈매미도 전투에 참여할 수 있어요."});
     HINTS.put("shop", new String[] {"상점", "새우gang으로 지원서와 아이템을 살 수 있어요."});
-    HINTS.put("modes", new String[] {"모드", "왼쪽은 스토리, 오른쪽은 다른 수비조장과 겨루는 PvP예요. PvP는 3마리 편성이 필요해요."});
+    HINTS.put("modes", new String[] {"모드", "스토리나 대전을 먼저 골라요. 각 화면에서 세부 모드를 선택할 수 있어요."});
+    HINTS.put("modesStory", new String[] {"스토리", "스토리모드에서 챕터를 골라요. 모험은 아직 준비 중이에요."});
+    HINTS.put("modesPvp", new String[] {"대전", "일반 게임·랭크게임·연습 중에서 골라요. 실시간 대전에는 3마리 편성이 필요해요."});
     HINTS.put("story", new String[] {"스토리", "챕터를 고르면 스테이지가 나와요. 깬 스테이지도 다시 도전해 레벨을 올릴 수 있어요."});
   }
 
@@ -339,7 +341,9 @@ final class NativeTutorialController {
       if (screen.equals("home"))
         spotlight("play", find("play", "플레이"), "④ 첫 전투", "플레이를 눌러요.", null);
       else if (screen.equals("modes"))
-        spotlight("story", find("story", "스토리"), "④ 첫 전투", "스토리에서 챕터를 골라요.", null);
+        spotlight("story", find("story", "스토리"), "④ 첫 전투", "스토리를 눌러 세부 모드를 골라요.", null);
+      else if (screen.equals("modesStory"))
+        spotlight("story-mode", find("story", "스토리모드"), "④ 첫 전투", "스토리모드를 눌러 챕터를 골라요.", null);
       else if (screen.equals("story"))
         spotlight("chapter", find("chapter", "프롤로그"), "④ 첫 전투", "프롤로그 챕터를 눌러요.", null);
       else if (screen.equals("stages"))
@@ -612,3 +616,4 @@ final class NativeTutorialController {
     return null;
   }
 }
+

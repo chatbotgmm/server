@@ -10,6 +10,8 @@ import org.json.JSONObject;
 
 /** Party/dispatch artwork uses the approved whole character sprite, never a registration crop. */
 final class PartyCharacterView extends LinearLayout {
+  // 흰 깃털과 어두운 의상 모두 배경 풍경과 분리되는 불투명한 중간 명도.
+  static final int PORTRAIT_BACKPLATE = 0xff87999b;
   final Artwork picture;
   final TextView name;
 
@@ -119,6 +121,7 @@ final class PartyCharacterView extends LinearLayout {
     Artwork(MainActivity h, JSONObject unit) {
       super(h);
       host = h; id = unit.optString("id"); path = spritePath(unit); identity = description(unit);
+      setBackgroundColor(PORTRAIT_BACKPLATE);
       status = path.isEmpty() ? "이미지 없음" : "이미지 준비 중";
       setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
       updateAccessibility();
@@ -173,7 +176,7 @@ final class PartyCharacterView extends LinearLayout {
       super.onDraw(canvas);
       if (bitmap != null && !bitmap.isRecycled()) { canvas.drawBitmap(bitmap, null, target, paint); return; }
       // An explicit, identity-preserving placeholder is safer than using another character.
-      paint.setColor(0xccf3e9d3);
+      paint.setColor(PORTRAIT_BACKPLATE);
       canvas.drawRoundRect(0, 0, getWidth(), getHeight(), host.dp(4), host.dp(4), paint);
       paint.setColor(JournalTheme.MUTED); paint.setTypeface(host.prose);
       paint.setTextSize(host.dp(12)); paint.setTextAlign(Paint.Align.CENTER);
@@ -182,3 +185,4 @@ final class PartyCharacterView extends LinearLayout {
     }
   }
 }
+

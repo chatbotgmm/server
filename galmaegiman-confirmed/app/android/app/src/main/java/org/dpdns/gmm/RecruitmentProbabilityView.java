@@ -2,7 +2,6 @@ package org.dpdns.gmm;
 
 import android.view.View;
 import android.view.Gravity;
-import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import java.math.BigDecimal;
@@ -15,7 +14,6 @@ final class RecruitmentProbabilityView extends LinearLayout {
   private final MainActivity host;
   private final MenuKit kit;
   private final LinearLayout details;
-  private final Button refresh;
   private final TextView summary;
   private boolean connected, visible, loading;
   private int generation;
@@ -38,11 +36,6 @@ final class RecruitmentProbabilityView extends LinearLayout {
     summary = compactText("현재 서버 정보를 확인해요.", 12);
     summary.setTag("recruitment-probability-summary");
     footer.addView(summary, new LinearLayout.LayoutParams(0, -2, 1));
-    refresh = kit.action(null, "새로고침", this::load);
-    refresh.setTag("recruitment-probability-refresh");
-    refresh.setSingleLine(true);
-    refresh.setPadding(host.dp(8), 0, host.dp(8), 0);
-    footer.addView(refresh, new LinearLayout.LayoutParams(host.dp(116), host.dp(48)));
     addView(footer, new LinearLayout.LayoutParams(-1, host.dp(48)));
     showStatus("모집 확률을 확인하려면 이 항목을 열어 주세요.");
   }
@@ -89,8 +82,6 @@ final class RecruitmentProbabilityView extends LinearLayout {
     else {
       generation++;
       loading = false;
-      refresh.setEnabled(true);
-      refresh.setText("새로고침");
       showStatus("현재 모집 확률을 다시 확인할 준비가 됐어요.");
     }
   }
@@ -110,23 +101,18 @@ final class RecruitmentProbabilityView extends LinearLayout {
     int epoch = host.epoch;
     NativeApi api = host.api;
     String account = api.token();
-    refresh.setEnabled(false);
-    refresh.setText("확인 중");
     showStatus("서버에서 현재 모집 확률을 불러오는 중이에요.");
     api.call("draw", null, (draw, error) -> {
       if (request != generation || !connected || !visible) return;
       loading = false;
-      refresh.setEnabled(true);
-      refresh.setText("새로고침");
       if (host.isFinishing() || host.isDestroyed() || host.epoch != epoch
           || host.api != api || !account.equals(api.token())) {
         showStatus("화면이나 계정이 변경됐어요. 설정을 다시 열어 확인해 주세요.");
         return;
       }
       if (error != null || draw == null) {
-        showStatus("모집 확률을 불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요."
+        showStatus("모집 확률을 불러오지 못했어요. 인터넷 연결을 확인한 뒤 이 항목을 닫았다 다시 열어 주세요."
             + (error == null || error.isEmpty() ? "" : "\n" + RecruitmentText.display(error)));
-        refresh.setText("다시 시도");
         return;
       }
       render(draw);
@@ -161,7 +147,7 @@ final class RecruitmentProbabilityView extends LinearLayout {
       title.setGravity(Gravity.CENTER);
       section.addView(title);
       if (gacha == null) {
-        section.addView(compactText("현재 확률 정보를 받지 못했어요. 새로고침해 주세요.", 13));
+        section.addView(compactText("현재 확률 정보를 받지 못했어요. 이 항목을 다시 열어 주세요.", 13));
       } else {
         Object cost = gacha.opt("cost");
         TextView costLabel = compactText(cost instanceof Number
@@ -223,17 +209,18 @@ final class RecruitmentProbabilityView extends LinearLayout {
   }
 
   static String pityText(JSONObject draw) {
-    if (!draw.has("pity")) return "현재 보장 정보를 받지 못했어요. 새로고침해 주세요.";
+    if (!draw.has("pity")) return "현재 보장 정보를 받지 못했어요. 이 항목을 다시 열어 주세요.";
     JSONObject pity = draw.optJSONObject("pity");
     if (pity == null) return draw.isNull("pity")
         ? "현재 서버 설정에는 고급 모집 보장이 없어요."
-        : "현재 보장 정보를 확인할 수 없어요. 새로고침해 주세요.";
+        : "현재 보장 정보를 확인할 수 없어요. 이 항목을 다시 열어 주세요.";
     Object left = pity.opt("left");
     if (!(left instanceof Number) || !Double.isFinite(((Number) left).doubleValue())
         || ((Number) left).doubleValue() < 0
         || pity.optString("tierName").isEmpty())
-      return "현재 보장 횟수를 확인할 수 없어요. 새로고침해 주세요.";
+      return "현재 보장 횟수를 확인할 수 없어요. 이 항목을 다시 열어 주세요.";
     return RecruitmentText.display(pity.optString("tierName")) + " 보장까지 "
         + number((Number) left) + "회 · 고급 모집에만 누적돼요.";
   }
 }
+

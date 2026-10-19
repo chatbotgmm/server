@@ -152,16 +152,11 @@ final class ThemeArt {
       int outer = canvas.save();
       layer.setAlpha(255); layer.setColorFilter(filter);
       if (filter != null) canvas.saveLayer(rect, layer);
-      int saved;
-      if (press.enabled) saved = press.begin(canvas, getBounds(), d);
-      else {
-        layer.setAlpha(press.alpha); layer.setColorFilter(null);
-        saved = canvas.saveLayer(rect, layer);
-      }
+      int saved = press.begin(canvas, getBounds(), d);
       Surface visible = type == Surface.TAB
-          ? (press.pressed ? Surface.NAVY : Surface.PAPER) : type;
-      if (press.enabled) art.surface(canvas, visible, rect);
-      else JournalTheme.drawPanel(canvas, rect, d, JournalTheme.DISABLED, true);
+          ? (press.enabled && press.pressed ? Surface.NAVY : Surface.PAPER) : type;
+      // 비활성 상태에서도 원본 표면을 유지하고 공통 상태 필터만 적용한다.
+      art.surface(canvas, visible, rect);
       if (press.enabled && (selected || focused)) {
         rect.inset(3 * d, 3 * d);
         detail.setStyle(Paint.Style.STROKE); detail.setStrokeWidth(2 * d);
