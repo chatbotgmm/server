@@ -1,0 +1,118 @@
+name: GMM reconstruction r1 - manual source validation and DEBUG build
+'on':
+  push:
+    branches:
+    - manual/rebuild-r1-20261019
+    paths:
+    - gmm-rebuild-r1.zip
+    - .github/workflows/gmm-rebuild-manual.yml
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - uses: actions/setup-java@v6
+      with:
+        distribution: temurin
+        java-version: '17'
+    - name: Verify Android SDK
+      shell: bash
+      run: 'test -d "$ANDROID_HOME/platforms/android-36"
+
+        test -d "$ANDROID_HOME/build-tools/35.0.0"
+
+        '
+    - name: Extract reviewed realtime source bundle
+      shell: bash
+      run: "set -euo pipefail\necho '07b6a7edd1e591826e438b19fadbd35c1a63ee9338ef75e71f6e2a9fe5c384d0  realtime-ranked-bundle.zip'\
+        \ | sha256sum --check --strict\npython3 - <<'PY'\nfrom pathlib import Path\nfrom zipfile import ZipFile\n\
+        root = Path.cwd().resolve()\nwith ZipFile('realtime-ranked-bundle.zip') as archive:\n    entries = archive.infolist()\n\
+        \    for entry in entries:\n        path = Path(entry.filename)\n        if path.is_absolute() or '..' in\
+        \ path.parts:\n            raise SystemExit('Unsafe archive path')\n        destination = root / path\n\
+        \        if not destination.resolve().is_relative_to(root):\n            raise SystemExit('Archive escaped\
+        \ checkout')\n        if not entry.is_dir() and destination.exists():\n            raise SystemExit('Refusing\
+        \ to overwrite: ' + str(path))\n    archive.extractall(root)\nPY\n"
+    - name: Extract reviewed casual AI and acceptance patch
+      shell: bash
+      run: "set -euo pipefail\necho '7d7f9ab428fa592e722b75391d51af8a2ffbf766dbd2320fa123c150444dbaae  casual-ai-fallback-patch.zip'\
+        \ | sha256sum --check --strict\npython3 - <<'PY'\nfrom pathlib import Path\nfrom zipfile import ZipFile\n\
+        root = Path.cwd().resolve()\nwith ZipFile('casual-ai-fallback-patch.zip') as archive:\n    entries = archive.infolist()\n\
+        \    for entry in entries:\n        path = Path(entry.filename)\n        if path.is_absolute() or '..' in\
+        \ path.parts:\n            raise SystemExit('Unsafe archive path')\n        destination = root / path\n\
+        \        if not destination.resolve().is_relative_to(root):\n            raise SystemExit('Archive escaped\
+        \ checkout')\n        if not entry.is_dir() and destination.exists():\n            raise SystemExit('Refusing\
+        \ to overwrite: ' + str(path))\n    archive.extractall(root)\nPY\n"
+    - name: Extract reviewed queue UI cleanup
+      shell: bash
+      run: "set -euo pipefail\necho '654ecd007f6defcc0fbb021a3cab2aafd8454c9b5bbf44f388b6785cf5e5ace6  queue-ui-cleanup-patch.zip'\
+        \ | sha256sum --check --strict\npython3 - <<'PY'\nfrom pathlib import Path\nfrom zipfile import ZipFile\n\
+        root = Path.cwd().resolve()\nwith ZipFile('queue-ui-cleanup-patch.zip') as archive:\n    entries = archive.infolist()\n\
+        \    for entry in entries:\n        path = Path(entry.filename)\n        if path.is_absolute() or '..' in\
+        \ path.parts:\n            raise SystemExit('Unsafe archive path')\n        destination = root / path\n\
+        \        if not destination.resolve().is_relative_to(root):\n            raise SystemExit('Archive escaped\
+        \ checkout')\n        if not entry.is_dir() and destination.exists():\n            raise SystemExit('Refusing\
+        \ to overwrite: ' + str(path))\n    archive.extractall(root)\nPY\n"
+    - name: Generate preview source
+      shell: bash
+      run: "set -euo pipefail\nmkdir -p review-logs\n{\n  git rev-parse HEAD\n  python3 apply-native-parchment.py\n\
+        \  python3 apply-augment-layout.py\n  python3 apply-augment-switch-fix.py --apply\n  python3 apply-realtime-ranked.py\n\
+        \  python3 apply-realtime-ranked.py --apply\n  python3 apply-casual-ai.py\n  python3 apply-casual-ai.py\
+        \ --apply\n  python3 apply-queue-ui-cleanup.py\n  python3 apply-queue-ui-cleanup.py --apply\n} 2>&1 | tee\
+        \ review-logs/generation-native.log\n"
+    - name: Validate and apply reconstructed source patch
+      shell: bash
+      run: "set -euo pipefail\necho '7793feb5cacdc53d4e257cf6f1081c1e39fc2c4a5ecf0517c30a77672f72833e  gmm-rebuild-r1.zip'\
+        \ | sha256sum --check --strict\npython3 - <<'EXTRACT'\nfrom pathlib import Path\nfrom zipfile import ZipFile\n\
+        import stat\nroot=Path('gmm-rebuild-r1').resolve()\nif root.exists(): raise SystemExit('Extraction directory\
+        \ already exists')\nwith ZipFile('gmm-rebuild-r1.zip') as z:\n    for e in z.infolist():\n        p=Path(e.filename)\n\
+        \        if p.is_absolute() or '..' in p.parts or stat.S_ISLNK(e.external_attr >> 16):\n            raise\
+        \ SystemExit('Unsafe patch ZIP entry')\n        if not (root/p).resolve().is_relative_to(root): raise SystemExit('Unsafe\
+        \ patch ZIP path')\n    z.extractall(root)\nEXTRACT\npython3 gmm-rebuild-r1/apply_rebuild.py --project galmaegiman-confirmed\n\
+        python3 gmm-rebuild-r1/apply_rebuild.py --project galmaegiman-confirmed --apply\n"
+    - name: Run unit tests and build APKs
+      working-directory: galmaegiman-confirmed/app/android
+      shell: bash
+      run: "set -euo pipefail\nbash ./gradlew \\\n  :app:testDebugUnitTest \\\n  :app:assembleDebug \\\n  :app:assembleDebugAndroidTest\
+        \ \\\n  --no-daemon --max-workers=2 --stacktrace \\\n  \"-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8\"\
+        \ \\\n  2>&1 | tee ../../../review-logs/native-build.log\n"
+    - name: Save reconstructed DEBUG preview APK
+      uses: actions/upload-artifact@v7
+      with:
+        name: gmm-rebuild-r1-debug-preview
+        path: galmaegiman-confirmed/app/android/app/build/outputs/apk/debug/app-debug.apk
+        if-no-files-found: error
+        retention-days: 7
+        compression-level: 0
+    - name: Save native test evidence
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: gmm-rebuild-r1-native-evidence
+        path: 'galmaegiman-confirmed/app/android/app/build/reports/tests/
+
+          galmaegiman-confirmed/app/android/app/build/test-results/
+
+          review-logs/
+
+          '
+        retention-days: 7
+    - name: Record preview limits
+      if: always()
+      run: echo 'Reconstructed source preview; not original v81. Debug signing does NOT establish update compatibility
+        with installed release v80. Do not uninstall your current app to install it. No server/DB deployment. Device
+        QA remains required.' >> "$GITHUB_STEP_SUMMARY"
+    - name: Preserve applied patch and manifests
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: gmm-rebuild-r1-source-patch
+        path: gmm-rebuild-r1/
+        if-no-files-found: warn
+        retention-days: 14
