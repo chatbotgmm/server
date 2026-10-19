@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- 정식 앱과 홈 화면에서 구분되는 이름 -->
+    <string name="app_name">갈매미맨 미리보기</string>
+    <string name="title_activity_main">갈매미맨 미리보기</string>
+</resources>

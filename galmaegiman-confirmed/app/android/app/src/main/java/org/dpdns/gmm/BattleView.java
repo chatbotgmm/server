@@ -109,6 +109,9 @@ final class BattleView extends FrameLayout implements FullBleed {
     inputTimer = a.text("", 18);
     inputTimer.setTextColor(0xfffff8e8);
     inputTimer.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+    // 28dp 칸 안에서 18sp 숫자가 위아래로 잘리지 않도록 기본 안쪽 여백을 뺀다.
+    inputTimer.setPadding(0, 0, 0, 0);
+    inputTimer.setIncludeFontPadding(false);
     inputTimer.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     addView(inputTimer);
     playback = new BattlePlayback(this);
@@ -704,6 +707,8 @@ final class BattleView extends FrameLayout implements FullBleed {
     if(inventory.length()==0 && !NativeRealtime.isBattle(battle)) inventory=host.list(host.state,"items");
     for(int row=0;row<2;row++) {
       LinearLayout line=new LinearLayout(host);
+      // 설명 줄 수가 다른 버튼을 글자 기준선으로 맞추면 아래로 밀려 잘린다(기본 메뉴와 같은 처리).
+      line.setBaselineAligned(false);
       for(int col=0;col<2;col++) {
         int index=itemPage*4+row*2+col;
         if(index>=items.length()) break;
@@ -712,12 +717,21 @@ final class BattleView extends FrameLayout implements FullBleed {
         String why=item.isNull("reason")?"":item.optString("reason");
         Button button=host.button(item.optString("name")+" ×"+count+"\n"+NativeBattleSheets.itemEffect(item)
             +(count<=0?" · 없음":why.isEmpty()?"":" · "+why),()->{selectedItem=item;pane="itemTarget";render();});
-        button.setTextSize(14); button.setEnabled(count>0 && why.isEmpty()); button.setBackground(new BattleSkin(host,"button-item"));button.setTextColor(0xfffff8e8);
-        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,Math.max(host.dp(48),(uiHeight-host.dp(180))/2),1);lp.setMargins(host.dp(3),host.dp(3),host.dp(3),host.dp(3));line.addView(button,lp);
+        button.setTextSize(tablet?16:14); button.setEnabled(count>0 && why.isEmpty()); button.setBackground(new BattleSkin(host,"button-item"));button.setTextColor(0xfffff8e8);
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,itemRowHeight(items.length()>4),1);lp.setMargins(host.dp(3),host.dp(3),host.dp(3),host.dp(3));line.addView(button,lp);
       }
       controls.addView(line);
     }
-    if(items.length()>4) add(host.button("다음 목록",()->{itemPage=(itemPage+1)%((items.length()+3)/4);render();}));
+    int pages=(items.length()+3)/4;
+    if(pages>1) add(host.button("다음 목록 · "+(itemPage+1)+"/"+pages,()->{itemPage=(itemPage+1)%pages;render();}));
+  }
+
+  /** 제목 줄과 쪽 넘김 버튼을 뺀 패널 높이를 두 줄로 나눈다. 폰 124dp·태블릿 160dp를 넘기지 않아 버튼 그림이 세로로 늘어나지 않는다. */
+  int itemRowHeight(boolean paged) {
+    int menuHeight=uiHeight-host.dp(60);
+    int free=menuHeight-host.dp(48)-(paged?host.dp(54):0)-host.dp(12);
+    int row=free/2-host.dp(6);
+    return Math.max(host.dp(48),Math.min(row,host.dp(tablet?160:124)));
   }
 
   void itemTargets() {

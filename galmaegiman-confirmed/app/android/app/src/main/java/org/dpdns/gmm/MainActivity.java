@@ -731,7 +731,7 @@ public class MainActivity extends AppCompatActivity {
     head.addView(close, new LinearLayout.LayoutParams(dp(48), dp(48)));
     Button kakao = button("카카오로 로그인", this::kakao);
     kakao.setBackground(new GameButtonDrawable(this, 0xfffee500));
-    if (!linking) form.addView(kakao, new LinearLayout.LayoutParams(-1, dp(48)));
+    if (!linking && BuildConfig.KAKAO_LOGIN) form.addView(kakao, new LinearLayout.LayoutParams(-1, dp(48)));
     TextView guidance = text(linking ? "기존 계정의 코드로 처음 한 번 연결해요." : "또는 카톡으로 받은 6자리 코드", 14);
     guidance.setTypeface(prose);
     LinearLayout codeForm = new LinearLayout(this);
@@ -861,6 +861,10 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void beginKakao(boolean linking) {
+    if (!BuildConfig.KAKAO_LOGIN) {
+      message("미리보기판은 카카오 로그인을 쓰지 않아요. 카톡으로 받은 6자리 코드로 로그인해 주세요.");
+      return;
+    }
     try {
       byte[] bytes = new byte[32];
       new SecureRandom().nextBytes(bytes);

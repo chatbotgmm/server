@@ -689,13 +689,14 @@ final class LobbyView extends FrameLayout implements FullBleed {
   void loosePaper(Canvas c) {
     // 배경 소품만 중간 깊이로 움직이고 기록 카드와 모든 누르는 요소는 고정한다.
     float width = host.dp(116), height = host.dp(46);
-    RectF safe = host.safeBounds(getWidth(), getHeight());
-    RectF page =
-        new RectF(
-            safe.left + safe.width() * .16f,
-            safe.bottom - host.dp(116),
-            safe.left + safe.width() * .16f + width,
-            safe.bottom - host.dp(116) + height);
+    // 출석·미션 버튼 아래에 깔려 겹쳐 보이지 않도록 버튼 오른쪽 빈 바닥에 둔다(회전·움직임 여유 14dp).
+    RectF daily = boxes[6];
+    if (daily == null || daily.isEmpty()) return;
+    float left = daily.right + host.dp(14);
+    RectF page = new RectF(left, daily.centerY() - height / 2, left + width, daily.centerY() + height / 2);
+    RectF dock = boxes[0];
+    if (dock != null && page.bottom + host.dp(6) > dock.top) page.offset(0, dock.top - host.dp(6) - page.bottom);
+    if (page.right > getWidth() * .5f) return;
     c.save();
     c.translate(parallax.x * .55f, parallax.y * .55f);
     c.rotate(-7, page.centerX(), page.centerY());

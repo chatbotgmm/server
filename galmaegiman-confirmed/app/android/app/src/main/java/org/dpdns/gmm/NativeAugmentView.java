@@ -18,6 +18,7 @@ final class NativeAugmentView extends LinearLayout {
   final boolean large;
   final LinearLayout cards, footer;
   final Button confirm;
+  static final int CARD_MAX_DP = 360;
   final ArrayList<View> picks = new ArrayList<>();
   final ArrayList<Button> rerolls = new ArrayList<>();
   final ArrayList<TextView> names = new ArrayList<>();
@@ -170,7 +171,10 @@ final class NativeAugmentView extends LinearLayout {
     // Long guidance omitted on the selection screen.
     cards = k.row();
     cards.setGravity(Gravity.TOP);
-    LayoutParams cp = new LayoutParams(-1, 0, 1);
+    // 큰 화면에서 카드가 세로로 끝없이 늘어나 글자만 작게 떠 보이지 않도록 높이를 제한한다.
+    // 큰 화면은 제목·카드·확정 버튼을 한 묶음으로 세로 가운데에 모아 버튼이 카드와 멀리 떨어지지 않게 한다.
+    if (large) setGravity(Gravity.CENTER_VERTICAL);
+    LayoutParams cp = large ? new LayoutParams(-1, h.dp(CARD_MAX_DP)) : new LayoutParams(-1, 0, 1);
     cp.topMargin = h.dp(8);
     cp.bottomMargin = h.dp(6);
     addView(cards, cp);
@@ -394,10 +398,9 @@ final class NativeAugmentView extends LinearLayout {
                 }
                 h.battleTurnFrom(battleView.battle, MainActivity.obj("reroll", ix));
               });
-      reroll.setTextSize(large ? 14 : 13);
-      reroll.setBackgroundColor(Color.TRANSPARENT);
-      reroll.setTextColor(JournalTheme.TEAL);
-      reroll.setPadding(h.dp(4), 0, h.dp(4), 0);
+      // 종이 버튼 표면을 유지해 누를 수 있는 버튼으로 보이게 하고, 재추첨 뒤에는 비활성 표면으로 구분한다.
+      reroll.setTextSize(large ? 15 : 14);
+      reroll.setPadding(h.dp(4), 0, h.dp(4), h.dp(2));
       reroll.setMinHeight(h.dp(48));
       reroll.setMinimumHeight(h.dp(48));
       reroll.setEnabled(!aug.optBoolean("rerolled"));

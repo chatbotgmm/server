@@ -29,8 +29,9 @@ final class AppSkin {
       c.translate(b.left, b.top);
       paint.setAlpha(alpha);
       paint.setStyle(Paint.Style.FILL);
-      paint.setColor((stone & 0x00ffffff) | 0xe6000000);
-      paint.setAlpha(Math.round(230 * alpha / 255f));
+      // 불투명하게 칠한다. 반투명이면 아래 화면(전투 상태창·명령 패널·로비 글자)이 비쳐 보인다.
+      paint.setColor(stone);
+      paint.setAlpha(alpha);
       c.drawRect(0, 0, w, h, paint);
       // Keep decoration at the perimeter, away from candidate text and controls.
       paint.setColor(JournalTheme.PRIMARY);

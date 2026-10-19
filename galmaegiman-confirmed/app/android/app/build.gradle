@@ -24,6 +24,9 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 78
         versionName "2.2.4-native"
+        // 카카오 로그인 복귀 주소. 미리보기판은 다른 주소를 써서 설치된 정식 앱의 로그인 복귀를 가로채지 않는다.
+        manifestPlaceholders = [authScheme: "gmmrevised"]
+        buildConfigField "boolean", "KAKAO_LOGIN", "true"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -80,6 +83,15 @@ android {
     buildTypes {
         debug {
             buildConfigField "String", "SERVER_URL", "\"${project.findProperty('nativeServer') ?: 'https://gmm.dpdns.org'}\""
+        }
+        // 기존 정식 앱(80판 등)을 지우지 않고 옆에 따로 설치해 보는 검수용. 패키지 이름이 달라 업데이트 설치가 아니다.
+        preview {
+            initWith debug
+            applicationIdSuffix ".r1preview"
+            versionNameSuffix "-r1preview"
+            matchingFallbacks = ['debug']
+            manifestPlaceholders = [authScheme: "gmmr1preview"]
+            buildConfigField "boolean", "KAKAO_LOGIN", "false"
         }
         release {
             if (nativeKeystore) signingConfig signingConfigs.nativeRelease

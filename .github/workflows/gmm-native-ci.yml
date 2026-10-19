@@ -1,0 +1,107 @@
+# 갈매미맨 반복 빌드: 저장소에 풀어 둔 소스를 그대로 검사·빌드한다(ZIP 적용 단계 없음).
+# 결과물: 미리보기 APK(기존 앱 옆에 따로 설치), 디버그 APK, 단위 테스트 보고서, 화면 캡처(PNG + findings.json).
+# 운영 서버·DB 배포, 릴리스 서명은 하지 않는다.
+name: GMM native CI
+
+on:
+  push:
+    branches:
+      - claude/new-session-fma5lb
+      - manual/rebuild-r1-20261019
+    paths:
+      - galmaegiman-confirmed/**
+      - .github/workflows/gmm-native-ci.yml
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gmm-native-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  server:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: galmaegiman-confirmed
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: galmaegiman-confirmed/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Prisma client
+        run: npm run db:generate
+      - name: TypeScript
+        run: npx --no-install tsc --noEmit
+      - name: Focused server tests
+        run: >
+          npx --no-install vitest run
+          test/casual-balance.test.ts test/casual-growth.integration.test.ts
+          test/realtime-ranked-client.test.ts test/realtime-ranked-wait-copy.test.ts
+          --maxWorkers=1
+      - name: Disposable-DB regression
+        run: node scripts/verify/run-casual-regression.mjs
+
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: galmaegiman-confirmed/app/android
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Unit tests, screen captures, debug and preview APKs
+        run: >
+          bash ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assemblePreview
+          --no-daemon --max-workers=2 --stacktrace
+          "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
+      - name: APK identity
+        if: success()
+        run: |
+          AAPT=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)aapt2
+          for f in app/build/outputs/apk/preview/app-preview.apk app/build/outputs/apk/debug/app-debug.apk; do
+            "$AAPT" dump badging "$f" | grep -E "^package|application-label:" | tee -a "$GITHUB_STEP_SUMMARY"
+            sha256sum "$f" | tee -a "$GITHUB_STEP_SUMMARY"
+          done
+          echo 'preview APK = 기존 앱과 다른 패키지(.r1preview)로 따로 설치됨. 업데이트 설치가 아님. 디버그 서명은 실행마다 다를 수 있음.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Save preview APK
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gmm-preview-apk
+          path: galmaegiman-confirmed/app/android/app/build/outputs/apk/preview/app-preview.apk
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+      - name: Save screen captures
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gmm-screen-review
+          path: galmaegiman-confirmed/app/android/app/build/native-review/r1/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Save test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gmm-native-test-reports
+          path: |
+            galmaegiman-confirmed/app/android/app/build/reports/tests/
+            galmaegiman-confirmed/app/android/app/build/test-results/
+          retention-days: 7
