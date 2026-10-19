@@ -973,7 +973,8 @@ public class MainActivity extends AppCompatActivity {
     sound.play("title");
     loginScroll = null;
     root.removeAllViews();
-    root.addView(new LobbyView(this), new FrameLayout.LayoutParams(-1, -1));
+    // 10-19 galmaemiman-runtime-v1 홈(항구 광장). 이전 로비(LobbyView)는 코드에 남겨 비교·되돌리기용으로 둔다.
+    root.addView(new HarborHomeView(this), new FrameLayout.LayoutParams(-1, -1));
     screenShown();
   }
 

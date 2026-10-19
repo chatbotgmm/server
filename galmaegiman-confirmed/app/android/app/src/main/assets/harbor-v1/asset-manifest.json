@@ -1,0 +1,1647 @@
+{
+  "version": "1.0",
+  "status": "development-assets-not-integrated",
+  "charactersIncluded": false,
+  "assets": [
+    {
+      "file": "assets/backgrounds/bg-home.png",
+      "sizePx": [
+        1870,
+        841
+      ],
+      "mode": "RGB",
+      "sha256": "adce04f6958598d4b6c1382909f7012d0ad880eb5f32aecf671e4ba8796900ea",
+      "hasTrueTransparency": false,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "background",
+      "fit": "cover",
+      "z": 0
+    },
+    {
+      "file": "assets/backgrounds/bg-collection.png",
+      "sizePx": [
+        1870,
+        841
+      ],
+      "mode": "RGB",
+      "sha256": "790429e3853f5bb8a76280f6403e29c744b6dc48920215bd5986aef053f16fee",
+      "hasTrueTransparency": false,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "background",
+      "fit": "cover",
+      "z": 0
+    },
+    {
+      "file": "assets/backgrounds/bg-team.png",
+      "sizePx": [
+        1870,
+        841
+      ],
+      "mode": "RGB",
+      "sha256": "f4248c5200a51fd47e56a604ecb46a28d6d44cd8ffbd40bc5b0f6df57202c090",
+      "hasTrueTransparency": false,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "background",
+      "fit": "cover",
+      "z": 0
+    },
+    {
+      "file": "assets/backgrounds/bg-augments.png",
+      "sizePx": [
+        1870,
+        841
+      ],
+      "mode": "RGB",
+      "sha256": "2e68774067bda86fee5bab928743f3f4fbab627275fbc68397231a3ff3b1fcfb",
+      "hasTrueTransparency": false,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "background",
+      "fit": "cover",
+      "z": 0
+    },
+    {
+      "file": "assets/shared/bg-harbor.png",
+      "sizePx": [
+        1672,
+        941
+      ],
+      "mode": "RGB",
+      "sha256": "e645d4dd88323728c7ae7670435db9848464d7c651110d29b9a4e9057dded44c",
+      "hasTrueTransparency": false,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/bg-harbor.png",
+        "purposeKo": "전투 왼쪽 무대의 항구 배경. 배우·지면그림자·HP는 별도 레이어.",
+        "sourceSizePx": [
+          1672,
+          941
+        ],
+        "assetDensity": 2,
+        "zOrder": 0,
+        "anchor": "safeRect.stage center",
+        "resize": "cover inside stage clip",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "e645d4dd88323728c7ae7670435db9848464d7c651110d29b9a4e9057dded44c"
+      }
+    },
+    {
+      "file": "assets/shared/button-attack.png",
+      "sizePx": [
+        722,
+        254
+      ],
+      "mode": "RGBA",
+      "sha256": "360d05f214331b748f4b66c112b543e4c0a45f0050b24267ae3e3d00f51a6c21",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/button-attack.png",
+        "purposeKo": "ROOT 공격 버튼. ATTACK 속성/종류 대응 표면 후보; 실제 매핑은 데이터 기준.",
+        "sourceSizePx": [
+          722,
+          254
+        ],
+        "assetDensity": 3,
+        "zOrder": 60,
+        "anchor": "command grid cell",
+        "resize": "generic-nine-slice",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "360d05f214331b748f4b66c112b543e4c0a45f0050b24267ae3e3d00f51a6c21",
+        "nineSlice": {
+          "type": "generic-uncompiled",
+          "sourceInsetsLTRB": [
+            64,
+            48,
+            64,
+            48
+          ]
+        },
+        "contentInsetsLogical": [
+          12,
+          12,
+          12,
+          12
+        ]
+      }
+    },
+    {
+      "file": "assets/shared/button-item.png",
+      "sizePx": [
+        721,
+        254
+      ],
+      "mode": "RGBA",
+      "sha256": "efb98a3b2e8940457a09319ab35488d8bd1c94c12d3c0dbc5cab6115fb458fc2",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/button-item.png",
+        "purposeKo": "ROOT 아이템 버튼 및 합동기 보조 행동 표면. 실제 활성 상태는 런타임.",
+        "sourceSizePx": [
+          721,
+          254
+        ],
+        "assetDensity": 3,
+        "zOrder": 60,
+        "anchor": "command grid cell",
+        "resize": "generic-nine-slice",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "efb98a3b2e8940457a09319ab35488d8bd1c94c12d3c0dbc5cab6115fb458fc2",
+        "nineSlice": {
+          "type": "generic-uncompiled",
+          "sourceInsetsLTRB": [
+            64,
+            48,
+            64,
+            48
+          ]
+        },
+        "contentInsetsLogical": [
+          12,
+          12,
+          12,
+          12
+        ]
+      }
+    },
+    {
+      "file": "assets/shared/button-surrender.png",
+      "sizePx": [
+        721,
+        250
+      ],
+      "mode": "RGBA",
+      "sha256": "25b2f5defb6decc79f8ec87d2fdffcc4f898f3e95a5d60b1ed332ba664ed252f",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/button-surrender.png",
+        "purposeKo": "ROOT 항복/도망 및 보조 뒤로 버튼의 밝은 표면. 레이블·의미는 각각 분리.",
+        "sourceSizePx": [
+          721,
+          250
+        ],
+        "assetDensity": 3,
+        "zOrder": 60,
+        "anchor": "command grid cell",
+        "resize": "generic-nine-slice",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "25b2f5defb6decc79f8ec87d2fdffcc4f898f3e95a5d60b1ed332ba664ed252f",
+        "nineSlice": {
+          "type": "generic-uncompiled",
+          "sourceInsetsLTRB": [
+            64,
+            48,
+            64,
+            48
+          ]
+        },
+        "contentInsetsLogical": [
+          12,
+          12,
+          12,
+          12
+        ]
+      }
+    },
+    {
+      "file": "assets/shared/button-switch.png",
+      "sizePx": [
+        721,
+        250
+      ],
+      "mode": "RGBA",
+      "sha256": "11d400907965666672c3209a4566163606f9204c2345694d376bd8fa7765ea2c",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/button-switch.png",
+        "purposeKo": "ROOT 교체 버튼 표면. 후보 선택이 확정 제출을 대신하지 않음.",
+        "sourceSizePx": [
+          721,
+          250
+        ],
+        "assetDensity": 3,
+        "zOrder": 60,
+        "anchor": "command grid cell",
+        "resize": "generic-nine-slice",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "11d400907965666672c3209a4566163606f9204c2345694d376bd8fa7765ea2c",
+        "nineSlice": {
+          "type": "generic-uncompiled",
+          "sourceInsetsLTRB": [
+            64,
+            48,
+            64,
+            48
+          ]
+        },
+        "contentInsetsLogical": [
+          12,
+          12,
+          12,
+          12
+        ]
+      }
+    },
+    {
+      "file": "assets/shared/decor-corner-bl.png",
+      "sizePx": [
+        537,
+        454
+      ],
+      "mode": "RGBA",
+      "sha256": "a7ba39099c251a97ea2a5c12e8970d0d9736073cd0205db686c99a5677b81c0c",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/decor-corner-bl.png",
+        "purposeKo": "가장자리 장식; 조작과 무관",
+        "sourceSizePx": [
+          537,
+          454
+        ],
+        "assetDensity": 2,
+        "zOrder": 55,
+        "anchor": "panel corner or reserved ornament area",
+        "resize": "contain uniform",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "a7ba39099c251a97ea2a5c12e8970d0d9736073cd0205db686c99a5677b81c0c"
+      }
+    },
+    {
+      "file": "assets/shared/decor-corner-br.png",
+      "sizePx": [
+        536,
+        454
+      ],
+      "mode": "RGBA",
+      "sha256": "0899c49a51b8a0ed8033426ea3efc8709a6b36a769b9ef2e237279d4cfc02f0e",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/decor-corner-br.png",
+        "purposeKo": "가장자리 장식; 조작과 무관",
+        "sourceSizePx": [
+          536,
+          454
+        ],
+        "assetDensity": 2,
+        "zOrder": 55,
+        "anchor": "panel corner or reserved ornament area",
+        "resize": "contain uniform",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "0899c49a51b8a0ed8033426ea3efc8709a6b36a769b9ef2e237279d4cfc02f0e"
+      }
+    },
+    {
+      "file": "assets/shared/decor-corner-tl.png",
+      "sizePx": [
+        529,
+        447
+      ],
+      "mode": "RGBA",
+      "sha256": "bcfac4934de9c27793db38354e839d3759e4cff198e0f43fc3c7816170754515",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/decor-corner-tl.png",
+        "purposeKo": "가장자리 장식; 조작과 무관",
+        "sourceSizePx": [
+          529,
+          447
+        ],
+        "assetDensity": 2,
+        "zOrder": 55,
+        "anchor": "panel corner or reserved ornament area",
+        "resize": "contain uniform",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "bcfac4934de9c27793db38354e839d3759e4cff198e0f43fc3c7816170754515"
+      }
+    },
+    {
+      "file": "assets/shared/decor-corner-tr.png",
+      "sizePx": [
+        529,
+        448
+      ],
+      "mode": "RGBA",
+      "sha256": "dd4648ba5067d1b70c0ac7241803bdaa36b827c45bb0fe44323e13bf56b4a594",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/decor-corner-tr.png",
+        "purposeKo": "가장자리 장식; 조작과 무관",
+        "sourceSizePx": [
+          529,
+          448
+        ],
+        "assetDensity": 2,
+        "zOrder": 55,
+        "anchor": "panel corner or reserved ornament area",
+        "resize": "contain uniform",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "dd4648ba5067d1b70c0ac7241803bdaa36b827c45bb0fe44323e13bf56b4a594"
+      }
+    },
+    {
+      "file": "assets/shared/decor-shell.png",
+      "sizePx": [
+        293,
+        283
+      ],
+      "mode": "RGBA",
+      "sha256": "b306ac3efd24b800efa1e9264e4fd0ac0404b9b08ae8b3b82d8fa4a396a1870e",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/decor-shell.png",
+        "purposeKo": "조개 장식. 명령 영역 하단 중앙 예약 여백. 조작부 아래 가용 높이40dp 미만이면 숨김.",
+        "sourceSizePx": [
+          293,
+          283
+        ],
+        "assetDensity": 2,
+        "zOrder": 55,
+        "anchor": "panel corner or reserved ornament area",
+        "resize": "contain uniform",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "b306ac3efd24b800efa1e9264e4fd0ac0404b9b08ae8b3b82d8fa4a396a1870e"
+      }
+    },
+    {
+      "file": "assets/shared/decor-wheel.png",
+      "sizePx": [
+        435,
+        435
+      ],
+      "mode": "RGBA",
+      "sha256": "4f046628f9412e1b5545919aff297c45965c6ae5edb3f95a2081bcc24c35ab00",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/decor-wheel.png",
+        "purposeKo": "항구 테마 휠 장식. 명령 영역 하단 오른쪽 예약 여백. 조작부 아래 가용 높이40dp 미만이면 숨김.",
+        "sourceSizePx": [
+          435,
+          435
+        ],
+        "assetDensity": 2,
+        "zOrder": 55,
+        "anchor": "panel corner or reserved ornament area",
+        "resize": "contain uniform",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "4f046628f9412e1b5545919aff297c45965c6ae5edb3f95a2081bcc24c35ab00"
+      }
+    },
+    {
+      "file": "assets/shared/icon-attack.png",
+      "sizePx": [
+        290,
+        266
+      ],
+      "mode": "RGBA",
+      "sha256": "dae19c7760f1090b6c5dc09f5354ed1dd7d5f4b1e8a0a2a9df7cb4a714a2e40b",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/icon-attack.png",
+        "purposeKo": "공격 메뉴 진입 아이콘.",
+        "sourceSizePx": [
+          290,
+          266
+        ],
+        "assetDensity": 2,
+        "zOrder": 70,
+        "anchor": "button content slot center",
+        "resize": "contain uniform",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "dae19c7760f1090b6c5dc09f5354ed1dd7d5f4b1e8a0a2a9df7cb4a714a2e40b"
+      }
+    },
+    {
+      "file": "assets/shared/icon-back.png",
+      "sizePx": [
+        292,
+        260
+      ],
+      "mode": "RGBA",
+      "sha256": "4f72eec3c323937e25da12bfbd36eb3e6dc1e34fc9b86ebc8cb95b88956e7280",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/icon-back.png",
+        "purposeKo": "패널 안 이전 단계로 돌아가기. 전투 종료나 항복 아이콘이 아님.",
+        "sourceSizePx": [
+          292,
+          260
+        ],
+        "assetDensity": 2,
+        "zOrder": 70,
+        "anchor": "button content slot center",
+        "resize": "contain uniform",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "4f72eec3c323937e25da12bfbd36eb3e6dc1e34fc9b86ebc8cb95b88956e7280"
+      }
+    },
+    {
+      "file": "assets/shared/icon-combo.png",
+      "sizePx": [
+        324,
+        301
+      ],
+      "mode": "RGBA",
+      "sha256": "0a05680df82d64ba04e563b2a0b7b28805818364746337230afb7b92bab35a10",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/icon-combo.png",
+        "purposeKo": "합동기 버튼 아이콘. 실제 사용 조건은 서버/게임 데이터.",
+        "sourceSizePx": [
+          324,
+          301
+        ],
+        "assetDensity": 2,
+        "zOrder": 70,
+        "anchor": "button content slot center",
+        "resize": "contain uniform",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "0a05680df82d64ba04e563b2a0b7b28805818364746337230afb7b92bab35a10"
+      }
+    },
+    {
+      "file": "assets/shared/icon-goldenstrike.png",
+      "sizePx": [
+        332,
+        324
+      ],
+      "mode": "RGBA",
+      "sha256": "5a9725d2f1808f7afc7f1336ebb36b4cbc7ed0bdc279f926f57c395766955ce2",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/icon-goldenstrike.png",
+        "purposeKo": "타격 계열 기술 아이콘 후보. 실제 기술 의미와 연결.",
+        "sourceSizePx": [
+          332,
+          324
+        ],
+        "assetDensity": 2,
+        "zOrder": 70,
+        "anchor": "button content slot center",
+        "resize": "contain uniform",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "5a9725d2f1808f7afc7f1336ebb36b4cbc7ed0bdc279f926f57c395766955ce2"
+      }
+    },
+    {
+      "file": "assets/shared/icon-item.png",
+      "sizePx": [
+        274,
+        271
+      ],
+      "mode": "RGBA",
+      "sha256": "eec8140e83d089faa30775585d686672adf113f029bfc13d7106b820359e1c25",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/icon-item.png",
+        "purposeKo": "아이템 메뉴 진입 아이콘.",
+        "sourceSizePx": [
+          274,
+          271
+        ],
+        "assetDensity": 2,
+        "zOrder": 70,
+        "anchor": "button content slot center",
+        "resize": "contain uniform",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "eec8140e83d089faa30775585d686672adf113f029bfc13d7106b820359e1c25"
+      }
+    },
+    {
+      "file": "assets/shared/icon-shield.png",
+      "sizePx": [
+        332,
+        328
+      ],
+      "mode": "RGBA",
+      "sha256": "d9cf5cd4ad36aa823aa6d1290db025eb437620c2f03d7e69290a92ad496ba24e",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/icon-shield.png",
+        "purposeKo": "방어 계열 기술 아이콘 후보. 실제 기술 의미와 연결.",
+        "sourceSizePx": [
+          332,
+          328
+        ],
+        "assetDensity": 2,
+        "zOrder": 70,
+        "anchor": "button content slot center",
+        "resize": "contain uniform",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "d9cf5cd4ad36aa823aa6d1290db025eb437620c2f03d7e69290a92ad496ba24e"
+      }
+    },
+    {
+      "file": "assets/shared/icon-stance.png",
+      "sizePx": [
+        354,
+        328
+      ],
+      "mode": "RGBA",
+      "sha256": "5daa8af8e7c333657cdef5c19c33a7be21f228d7934f9fbbbb769c3669a1caf7",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/icon-stance.png",
+        "purposeKo": "자세/이동 계열 기술 아이콘 후보. 실제 기술 의미와 연결.",
+        "sourceSizePx": [
+          354,
+          328
+        ],
+        "assetDensity": 2,
+        "zOrder": 70,
+        "anchor": "button content slot center",
+        "resize": "contain uniform",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "5daa8af8e7c333657cdef5c19c33a7be21f228d7934f9fbbbb769c3669a1caf7"
+      }
+    },
+    {
+      "file": "assets/shared/icon-stonecrack.png",
+      "sizePx": [
+        307,
+        327
+      ],
+      "mode": "RGBA",
+      "sha256": "a383a2e0cedd8b4830f33e12af40372d83f318193c6511a078fd23664170cee7",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/icon-stonecrack.png",
+        "purposeKo": "기술 카드 아이콘 후보. 기존 기술 ID와 의미 검증 후 연결; 임의 기술 추가 금지.",
+        "sourceSizePx": [
+          307,
+          327
+        ],
+        "assetDensity": 2,
+        "zOrder": 70,
+        "anchor": "button content slot center",
+        "resize": "contain uniform",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "a383a2e0cedd8b4830f33e12af40372d83f318193c6511a078fd23664170cee7"
+      }
+    },
+    {
+      "file": "assets/shared/icon-surrender.png",
+      "sizePx": [
+        278,
+        302
+      ],
+      "mode": "RGBA",
+      "sha256": "bad165fcd6166ef6145dc9867d2883039e34f6b67a630a4fd9eacf57d9d4b967",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/icon-surrender.png",
+        "purposeKo": "항복/도망 의미 아이콘. 버튼 텍스트로 실제 모드 의미 구분.",
+        "sourceSizePx": [
+          278,
+          302
+        ],
+        "assetDensity": 2,
+        "zOrder": 70,
+        "anchor": "button content slot center",
+        "resize": "contain uniform",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "bad165fcd6166ef6145dc9867d2883039e34f6b67a630a4fd9eacf57d9d4b967"
+      }
+    },
+    {
+      "file": "assets/shared/icon-switch.png",
+      "sizePx": [
+        266,
+        228
+      ],
+      "mode": "RGBA",
+      "sha256": "57ea8f410b8a3ce9b291bf504b00e39ce5b328359e89df53d7afac98d0bb1c25",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/icon-switch.png",
+        "purposeKo": "교체 메뉴 진입 아이콘.",
+        "sourceSizePx": [
+          266,
+          228
+        ],
+        "assetDensity": 2,
+        "zOrder": 70,
+        "anchor": "button content slot center",
+        "resize": "contain uniform",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "57ea8f410b8a3ce9b291bf504b00e39ce5b328359e89df53d7afac98d0bb1c25"
+      }
+    },
+    {
+      "file": "assets/shared/panel-command.png",
+      "sizePx": [
+        1010,
+        1383
+      ],
+      "mode": "RGBA",
+      "sha256": "0c729083d93dd15bcc6b1a17eaef468dc89d48ffc64966916b1f88460f268a12",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/panel-command.png",
+        "purposeKo": "오른쪽 명령 영역 공통 바탕. 모든 메뉴 상태에서 같은 위치 유지.",
+        "sourceSizePx": [
+          1010,
+          1383
+        ],
+        "assetDensity": 4,
+        "zOrder": 50,
+        "anchor": "safeRect x=65.5%, top",
+        "resize": "generic-nine-slice",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "0c729083d93dd15bcc6b1a17eaef468dc89d48ffc64966916b1f88460f268a12",
+        "nineSlice": {
+          "type": "generic-uncompiled",
+          "sourceInsetsLTRB": [
+            80,
+            80,
+            80,
+            80
+          ]
+        },
+        "contentInsetsLogical": [
+          12,
+          12,
+          12,
+          12
+        ]
+      }
+    },
+    {
+      "file": "assets/shared/panel-hp.png",
+      "sizePx": [
+        721,
+        248
+      ],
+      "mode": "RGBA",
+      "sha256": "18248af2535151c48d0c25f171997311e9f084ee01c50fb762ac39e60bbf9d09",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "reused",
+      "originalManifest": {
+        "file": "assets/panel-hp.png",
+        "purposeKo": "상대/내 체력 명패. 이름·수치·체력바·상태를 런타임에 덧그림.",
+        "sourceSizePx": [
+          721,
+          248
+        ],
+        "assetDensity": 3,
+        "zOrder": 40,
+        "anchor": "enemy stage top-left / ally stage bottom-right",
+        "resize": "generic-nine-slice",
+        "hitTest": false,
+        "runtimeText": false,
+        "sha256": "18248af2535151c48d0c25f171997311e9f084ee01c50fb762ac39e60bbf9d09",
+        "nineSlice": {
+          "type": "generic-uncompiled",
+          "sourceInsetsLTRB": [
+            64,
+            48,
+            64,
+            48
+          ]
+        },
+        "contentInsetsLogical": [
+          12,
+          12,
+          12,
+          12
+        ]
+      }
+    },
+    {
+      "file": "assets/ui/button-primary.png",
+      "sizePx": [
+        630,
+        282
+      ],
+      "mode": "RGBA",
+      "sha256": "c7a74565dbad1d52a556c07be520250743603b3d97a06ab12598891ebc5df6c2",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "ui",
+      "source": "source/ui-atlas.png",
+      "sourceCropLTRB": [
+        0,
+        0,
+        627,
+        314
+      ],
+      "alphaTrimSourceLTRB": [
+        0,
+        33,
+        618,
+        303
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [
+        "left"
+      ],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3,
+      "nineSlice": {
+        "status": "candidate-needs-target-size-visual-QA",
+        "type": "generic-uncompiled",
+        "sourceInsetsLTRB": [
+          80,
+          72,
+          80,
+          72
+        ],
+        "noteKo": "아이콘/모서리 문양의 변형 여부를 확인. 세로 카드와 가로 버튼을 같은 규격으로 강제 확대하지 않음."
+      }
+    },
+    {
+      "file": "assets/ui/button-secondary.png",
+      "sizePx": [
+        598,
+        267
+      ],
+      "mode": "RGBA",
+      "sha256": "ed079d7b868084d9bd9e6e08c770c5aad105ce8c6f7b92f11fbb5f9298f7d2b9",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "ui",
+      "source": "source/ui-atlas.png",
+      "sourceCropLTRB": [
+        627,
+        0,
+        1254,
+        314
+      ],
+      "alphaTrimSourceLTRB": [
+        639,
+        51,
+        1225,
+        306
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3,
+      "nineSlice": {
+        "status": "candidate-needs-target-size-visual-QA",
+        "type": "generic-uncompiled",
+        "sourceInsetsLTRB": [
+          80,
+          72,
+          80,
+          72
+        ],
+        "noteKo": "아이콘/모서리 문양의 변형 여부를 확인. 세로 카드와 가로 버튼을 같은 규격으로 강제 확대하지 않음."
+      }
+    },
+    {
+      "file": "assets/ui/portrait-frame.png",
+      "sizePx": [
+        575,
+        634
+      ],
+      "mode": "RGBA",
+      "sha256": "91c6ff39904a8d5c71e75d39a8aa87450ccdfd9f523e35b5b01624d1c039c9a2",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "ui",
+      "source": "source/ui-atlas.png",
+      "sourceCropLTRB": [
+        0,
+        314,
+        627,
+        978
+      ],
+      "alphaTrimSourceLTRB": [
+        64,
+        341,
+        627,
+        963
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [
+        "right"
+      ],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3,
+      "nineSlice": {
+        "status": "candidate-needs-target-size-visual-QA",
+        "type": "generic-uncompiled",
+        "sourceInsetsLTRB": [
+          80,
+          72,
+          80,
+          72
+        ],
+        "noteKo": "아이콘/모서리 문양의 변형 여부를 확인. 세로 카드와 가로 버튼을 같은 규격으로 강제 확대하지 않음."
+      }
+    },
+    {
+      "file": "assets/ui/augment-card.png",
+      "sizePx": [
+        603,
+        671
+      ],
+      "mode": "RGBA",
+      "sha256": "03e4d287baed5dd50bb7a6fe618e79352ae239c3ad3ceebaabe06ab60142b813",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "ui",
+      "source": "source/ui-atlas.png",
+      "sourceCropLTRB": [
+        627,
+        314,
+        1254,
+        978
+      ],
+      "alphaTrimSourceLTRB": [
+        628,
+        316,
+        1219,
+        975
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3,
+      "nineSlice": {
+        "status": "candidate-needs-target-size-visual-QA",
+        "type": "generic-uncompiled",
+        "sourceInsetsLTRB": [
+          80,
+          72,
+          80,
+          72
+        ],
+        "noteKo": "아이콘/모서리 문양의 변형 여부를 확인. 세로 카드와 가로 버튼을 같은 규격으로 강제 확대하지 않음."
+      }
+    },
+    {
+      "file": "assets/ui/title-strip.png",
+      "sizePx": [
+        583,
+        256
+      ],
+      "mode": "RGBA",
+      "sha256": "a552c094a8a5bbfc71b8901b29e3e590b0bc45d8641e05480ed08daf8f7bdb94",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "ui",
+      "source": "source/ui-atlas.png",
+      "sourceCropLTRB": [
+        0,
+        978,
+        627,
+        1254
+      ],
+      "alphaTrimSourceLTRB": [
+        43,
+        994,
+        614,
+        1238
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3,
+      "nineSlice": {
+        "status": "candidate-needs-target-size-visual-QA",
+        "type": "generic-uncompiled",
+        "sourceInsetsLTRB": [
+          80,
+          72,
+          80,
+          72
+        ],
+        "noteKo": "아이콘/모서리 문양의 변형 여부를 확인. 세로 카드와 가로 버튼을 같은 규격으로 강제 확대하지 않음."
+      }
+    },
+    {
+      "file": "assets/ui/tab.png",
+      "sizePx": [
+        562,
+        274
+      ],
+      "mode": "RGBA",
+      "sha256": "3ed18cbd53d7c6168cb9f1f82ce295e00d107c7220d93c918f99f9f34da3a634",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "ui",
+      "source": "source/ui-atlas.png",
+      "sourceCropLTRB": [
+        627,
+        978,
+        1254,
+        1254
+      ],
+      "alphaTrimSourceLTRB": [
+        657,
+        992,
+        1207,
+        1254
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [
+        "bottom"
+      ],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3,
+      "nineSlice": {
+        "status": "candidate-needs-target-size-visual-QA",
+        "type": "generic-uncompiled",
+        "sourceInsetsLTRB": [
+          80,
+          72,
+          80,
+          72
+        ],
+        "noteKo": "아이콘/모서리 문양의 변형 여부를 확인. 세로 카드와 가로 버튼을 같은 규격으로 강제 확대하지 않음."
+      }
+    },
+    {
+      "file": "assets/icons/harbor.png",
+      "sizePx": [
+        375,
+        383
+      ],
+      "mode": "RGBA",
+      "sha256": "a20212fd201c2b2bce09630c271d34755c3e55135f2ce2a8cc20846a3c0caa73",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "icons",
+      "source": "source/icons-atlas.png",
+      "sourceCropLTRB": [
+        0,
+        0,
+        382,
+        390
+      ],
+      "alphaTrimSourceLTRB": [
+        19,
+        19,
+        382,
+        390
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [
+        "right",
+        "bottom"
+      ],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3
+    },
+    {
+      "file": "assets/icons/explore.png",
+      "sizePx": [
+        376,
+        382
+      ],
+      "mode": "RGBA",
+      "sha256": "83f61c6d72fc86df7f2cbcdc9ea649dc9527055639142fcfeaba081739229fc1",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "icons",
+      "source": "source/icons-atlas.png",
+      "sourceCropLTRB": [
+        382,
+        0,
+        746,
+        390
+      ],
+      "alphaTrimSourceLTRB": [
+        382,
+        15,
+        746,
+        385
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [
+        "left",
+        "right"
+      ],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3
+    },
+    {
+      "file": "assets/icons/draw.png",
+      "sizePx": [
+        329,
+        388
+      ],
+      "mode": "RGBA",
+      "sha256": "074aa1c15b1d74a24b434a823db653294fc810955361ba5e7108f2f38622fdc7",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "icons",
+      "source": "source/icons-atlas.png",
+      "sourceCropLTRB": [
+        746,
+        0,
+        1070,
+        390
+      ],
+      "alphaTrimSourceLTRB": [
+        747,
+        13,
+        1064,
+        389
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3
+    },
+    {
+      "file": "assets/icons/team.png",
+      "sizePx": [
+        357,
+        385
+      ],
+      "mode": "RGBA",
+      "sha256": "3fd0b52dfa05618bdaabc6335af2fb30d4e24c93d7fa50fa109749ad2851f35f",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "icons",
+      "source": "source/icons-atlas.png",
+      "sourceCropLTRB": [
+        1070,
+        0,
+        1448,
+        390
+      ],
+      "alphaTrimSourceLTRB": [
+        1077,
+        17,
+        1422,
+        390
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [
+        "bottom"
+      ],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3
+    },
+    {
+      "file": "assets/icons/combine.png",
+      "sizePx": [
+        402,
+        342
+      ],
+      "mode": "RGBA",
+      "sha256": "412d3775fe6af4e6fe7e6e66b7eb19ecbbcf553b1938439c67780c0450187cc3",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "icons",
+      "source": "source/icons-atlas.png",
+      "sourceCropLTRB": [
+        0,
+        390,
+        390,
+        720
+      ],
+      "alphaTrimSourceLTRB": [
+        0,
+        390,
+        390,
+        720
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [
+        "left",
+        "top",
+        "right",
+        "bottom"
+      ],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3
+    },
+    {
+      "file": "assets/icons/shop.png",
+      "sizePx": [
+        363,
+        340
+      ],
+      "mode": "RGBA",
+      "sha256": "f4d7621d1f8558da0bba6106ce5792420f772eec96e78f143149c0b71ced8a1a",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "icons",
+      "source": "source/icons-atlas.png",
+      "sourceCropLTRB": [
+        390,
+        390,
+        746,
+        720
+      ],
+      "alphaTrimSourceLTRB": [
+        390,
+        391,
+        741,
+        719
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [
+        "left"
+      ],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3
+    },
+    {
+      "file": "assets/icons/daily.png",
+      "sizePx": [
+        325,
+        336
+      ],
+      "mode": "RGBA",
+      "sha256": "5b7a470a368f42c06d7fd2b587f0aaaa16af357529e35d705150a56a04b19f73",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "icons",
+      "source": "source/icons-atlas.png",
+      "sourceCropLTRB": [
+        746,
+        390,
+        1070,
+        720
+      ],
+      "alphaTrimSourceLTRB": [
+        757,
+        396,
+        1070,
+        720
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [
+        "right",
+        "bottom"
+      ],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3
+    },
+    {
+      "file": "assets/icons/settings.png",
+      "sizePx": [
+        357,
+        342
+      ],
+      "mode": "RGBA",
+      "sha256": "27467acb4d84e1e90ebf1b320860c21f997d65b47129c0b665509487986219ce",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "icons",
+      "source": "source/icons-atlas.png",
+      "sourceCropLTRB": [
+        1070,
+        390,
+        1448,
+        720
+      ],
+      "alphaTrimSourceLTRB": [
+        1071,
+        390,
+        1416,
+        720
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [
+        "top",
+        "bottom"
+      ],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3
+    },
+    {
+      "file": "assets/icons/peanut.png",
+      "sizePx": [
+        394,
+        378
+      ],
+      "mode": "RGBA",
+      "sha256": "868f41bad9278acf54b1c51674a5fc92730bbd0110ea3b3e9dcb8d3865158547",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "icons",
+      "source": "source/icons-atlas.png",
+      "sourceCropLTRB": [
+        0,
+        720,
+        382,
+        1086
+      ],
+      "alphaTrimSourceLTRB": [
+        0,
+        720,
+        382,
+        1086
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [
+        "left",
+        "top",
+        "right",
+        "bottom"
+      ],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3
+    },
+    {
+      "file": "assets/icons/shrimp-snack.png",
+      "sizePx": [
+        353,
+        349
+      ],
+      "mode": "RGBA",
+      "sha256": "3ebb44354ba85338e53ae31b24990812f5e2088ba3b4d4613697616ede5502b0",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "icons",
+      "source": "source/icons-atlas.png",
+      "sourceCropLTRB": [
+        382,
+        720,
+        724,
+        1086
+      ],
+      "alphaTrimSourceLTRB": [
+        383,
+        726,
+        724,
+        1063
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [
+        "right"
+      ],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3
+    },
+    {
+      "file": "assets/icons/augment-dual.png",
+      "sizePx": [
+        350,
+        344
+      ],
+      "mode": "RGBA",
+      "sha256": "4255bbd542c1e0e884e9d73d62b8774bc5d2ddf64efa1b9707de2e483c21d045",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "icons",
+      "source": "source/icons-atlas.png",
+      "sourceCropLTRB": [
+        724,
+        720,
+        1062,
+        1086
+      ],
+      "alphaTrimSourceLTRB": [
+        724,
+        720,
+        1062,
+        1052
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [
+        "left",
+        "top",
+        "right"
+      ],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3
+    },
+    {
+      "file": "assets/icons/augment-swap.png",
+      "sizePx": [
+        369,
+        378
+      ],
+      "mode": "RGBA",
+      "sha256": "0bfab65bb47e20ea820b1bdf766d56229c49df978c124dca6f931b6b156bb7a8",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "icons",
+      "source": "source/icons-atlas.png",
+      "sourceCropLTRB": [
+        1062,
+        720,
+        1448,
+        1086
+      ],
+      "alphaTrimSourceLTRB": [
+        1063,
+        720,
+        1420,
+        1086
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [
+        "top",
+        "bottom"
+      ],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3
+    },
+    {
+      "file": "assets/decor/flag.png",
+      "sizePx": [
+        1301,
+        1213
+      ],
+      "mode": "RGBA",
+      "sha256": "e9ecc9c8487034969b9d662e9f19c3a822e930b66a9b81546cf0977bddf12975",
+      "hasTrueTransparency": true,
+      "runtimeText": false,
+      "hitTest": false,
+      "kind": "decor",
+      "source": "source/flag-original.png",
+      "sourceCropLTRB": [
+        0,
+        0,
+        1295,
+        1214
+      ],
+      "alphaTrimSourceLTRB": [
+        0,
+        13,
+        1289,
+        1214
+      ],
+      "transparentPaddingPx": 6,
+      "sourceCropEdgesWithNonzeroAlpha": [
+        "left",
+        "bottom"
+      ],
+      "finalAlphaTouchesEdges": false,
+      "fit": "contain",
+      "density": 3
+    }
+  ],
+  "sourceAtlases": [
+    {
+      "file": "source/ui-atlas.png",
+      "sizePx": [
+        1254,
+        1254
+      ],
+      "sha256": "c05d91672535c2abbb7af2772f2bb3d8892a68a6a6ee7ac63853a2950cb59522"
+    },
+    {
+      "file": "source/icons-atlas.png",
+      "sizePx": [
+        1448,
+        1086
+      ],
+      "sha256": "c5be1b2dfdfed145b47122d08c8f650cf3b3723057898f10e83b1a6f2019bb77"
+    },
+    {
+      "file": "source/flag-original.png",
+      "sizePx": [
+        1295,
+        1214
+      ],
+      "sha256": "37f766d7ea9019b28cbf80a8f75b7dc34e4d0bf4b1612ae9e837a032fac7c1eb"
+    }
+  ],
+  "qaWarnings": [
+    {
+      "file": "assets/ui/button-primary.png",
+      "issue": "Source crop contains nonzero alpha on boundary; may truncate glow or include neighboring speckle. Final PNG has 6px clean border.",
+      "edges": [
+        "left"
+      ]
+    },
+    {
+      "file": "assets/ui/portrait-frame.png",
+      "issue": "Source crop contains nonzero alpha on boundary; may truncate glow or include neighboring speckle. Final PNG has 6px clean border.",
+      "edges": [
+        "right"
+      ]
+    },
+    {
+      "file": "assets/ui/tab.png",
+      "issue": "Source crop contains nonzero alpha on boundary; may truncate glow or include neighboring speckle. Final PNG has 6px clean border.",
+      "edges": [
+        "bottom"
+      ]
+    },
+    {
+      "file": "assets/icons/harbor.png",
+      "issue": "Source crop contains nonzero alpha on boundary; may truncate glow or include neighboring speckle. Final PNG has 6px clean border.",
+      "edges": [
+        "right",
+        "bottom"
+      ]
+    },
+    {
+      "file": "assets/icons/explore.png",
+      "issue": "Source crop contains nonzero alpha on boundary; may truncate glow or include neighboring speckle. Final PNG has 6px clean border.",
+      "edges": [
+        "left",
+        "right"
+      ]
+    },
+    {
+      "file": "assets/icons/team.png",
+      "issue": "Source crop contains nonzero alpha on boundary; may truncate glow or include neighboring speckle. Final PNG has 6px clean border.",
+      "edges": [
+        "bottom"
+      ]
+    },
+    {
+      "file": "assets/icons/combine.png",
+      "issue": "Source crop contains nonzero alpha on boundary; may truncate glow or include neighboring speckle. Final PNG has 6px clean border.",
+      "edges": [
+        "left",
+        "top",
+        "right",
+        "bottom"
+      ]
+    },
+    {
+      "file": "assets/icons/shop.png",
+      "issue": "Source crop contains nonzero alpha on boundary; may truncate glow or include neighboring speckle. Final PNG has 6px clean border.",
+      "edges": [
+        "left"
+      ]
+    },
+    {
+      "file": "assets/icons/daily.png",
+      "issue": "Source crop contains nonzero alpha on boundary; may truncate glow or include neighboring speckle. Final PNG has 6px clean border.",
+      "edges": [
+        "right",
+        "bottom"
+      ]
+    },
+    {
+      "file": "assets/icons/settings.png",
+      "issue": "Source crop contains nonzero alpha on boundary; may truncate glow or include neighboring speckle. Final PNG has 6px clean border.",
+      "edges": [
+        "top",
+        "bottom"
+      ]
+    },
+    {
+      "file": "assets/icons/peanut.png",
+      "issue": "Source crop contains nonzero alpha on boundary; may truncate glow or include neighboring speckle. Final PNG has 6px clean border.",
+      "edges": [
+        "left",
+        "top",
+        "right",
+        "bottom"
+      ]
+    },
+    {
+      "file": "assets/icons/shrimp-snack.png",
+      "issue": "Source crop contains nonzero alpha on boundary; may truncate glow or include neighboring speckle. Final PNG has 6px clean border.",
+      "edges": [
+        "right"
+      ]
+    },
+    {
+      "file": "assets/icons/augment-dual.png",
+      "issue": "Source crop contains nonzero alpha on boundary; may truncate glow or include neighboring speckle. Final PNG has 6px clean border.",
+      "edges": [
+        "left",
+        "top",
+        "right"
+      ]
+    },
+    {
+      "file": "assets/icons/augment-swap.png",
+      "issue": "Source crop contains nonzero alpha on boundary; may truncate glow or include neighboring speckle. Final PNG has 6px clean border.",
+      "edges": [
+        "top",
+        "bottom"
+      ]
+    },
+    {
+      "file": "assets/decor/flag.png",
+      "issue": "Source crop contains nonzero alpha on boundary; may truncate glow or include neighboring speckle. Final PNG has 6px clean border.",
+      "edges": [
+        "left",
+        "bottom"
+      ]
+    }
+  ]
+}

@@ -420,7 +420,8 @@ public class NativeRenderReviewTest {
         viewport(a, size[0], size[1]);
         a.lobbyRoom = "cafe";
         a.home();
-        await(() -> ((LobbyView) a.root.getChildAt(0)).ready());
+        // 10-19부터 홈은 HarborHomeView(항구 광장). 이전 LobbyView일 때만 준비 완료를 기다린다.
+        await(() -> !(a.root.getChildAt(0) instanceof LobbyView) || ((LobbyView) a.root.getChildAt(0)).ready());
         capture(a, prefix + "home", size[0], size[1]);
         for (String screen :
             new String[] {
