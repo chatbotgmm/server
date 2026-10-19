@@ -193,7 +193,8 @@ final class NativeProgression {
     wordSlot.leftMargin = h.dp(20); card.addView(words, wordSlot);
     TextView title = h.text(headline, 22); title.setTextSize(22); title.setTypeface(h.headline);
     title.setTag("progression-headline"); title.setTextColor(JournalTheme.INK);
-    title.setPadding(0, 0, 0, h.dp(3)); title.setIncludeFontPadding(false);
+    // Reserve real ink space for the headline font's negative bearings.
+    title.setPadding(h.dp(2), h.dp(2), h.dp(2), h.dp(3)); title.setIncludeFontPadding(false);
     title.setSingleLine(false); title.setMaxLines(1); title.setHorizontallyScrolling(false); title.setEllipsize(null);
     words.addView(title, new LinearLayout.LayoutParams(-1, -2));
     TextView subtitle = h.text(detail, 16); subtitle.setTextSize(16); subtitle.setTypeface(h.prose);

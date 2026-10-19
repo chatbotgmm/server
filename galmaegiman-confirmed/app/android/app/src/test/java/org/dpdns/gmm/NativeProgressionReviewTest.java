@@ -79,6 +79,8 @@ public class NativeProgressionReviewTest {
             assertTrue(name + " opaque reading surface", card.getBackground() instanceof GamePaperDrawable);
             TextView headline = f.h.root.findViewWithTag("progression-headline");
             assertNotNull(headline);
+            assertTrue(name + " headline ink inset", headline.getPaddingLeft() >= f.h.dp(2)
+                && headline.getPaddingTop() >= f.h.dp(2) && headline.getPaddingRight() >= f.h.dp(2));
             assertEquals(android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 22, f.h.getResources().getDisplayMetrics()), headline.getTextSize(), .1f);
             assertEquals(android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 16, f.h.getResources().getDisplayMetrics()), summary.getTextSize(), .1f);
             ImageView illustration = f.h.root.findViewWithTag("progression-feature-art");
@@ -158,7 +160,10 @@ public class NativeProgressionReviewTest {
     assertEquals("native text incomplete", view.length(), end);
     assertTrue("native text height", layout.getHeight() <= contentHeight);
     assertFalse("nonempty native glyphs " + view.getText(), worldGlyphs.isEmpty());
-    assertTrue("native glyph ink " + view.getText(), visible.contains(worldGlyphs));
+    assertTrue("native glyph ink " + view.getText() + " viewport=" + host.root.getWidth() + "x" + host.root.getHeight()
+        + " density=" + host.getResources().getDisplayMetrics().densityDpi
+        + " font=" + host.getResources().getConfiguration().fontScale
+        + " visible=" + visible + " glyphs=" + worldGlyphs + " baseline=" + view.getBaseline(), visible.contains(worldGlyphs));
     int inkPixels = 0;
     if ("progression-summary".equals(view.getTag()) || "progression-headline".equals(view.getTag()) || "progression-page-label".equals(view.getTag())) {
       for (int y = Math.max(0, worldGlyphs.top); y < Math.min(capturedPixels.getHeight(), worldGlyphs.bottom); y++)
