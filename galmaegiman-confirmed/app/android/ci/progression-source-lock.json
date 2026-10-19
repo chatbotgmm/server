@@ -4,8 +4,8 @@
   "files": [
     {
       "path": "galmaegiman-confirmed/docs/PROGRESSION.md",
-      "sha256": "5cf2a08b2bbe2e511b3941c4428acf40c82aa77b358304ca869e1be73f24fb9d",
-      "bytes": 6969
+      "sha256": "fec1c391dc2c0e1fb50b66b1b77ea6a725099e98a0ecdfc85453d77c3321405d",
+      "bytes": 7059
     },
     {
       "path": "galmaegiman-confirmed/prisma/manual/20261019_progression_additive.sql",

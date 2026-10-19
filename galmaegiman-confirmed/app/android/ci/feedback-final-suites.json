@@ -13,7 +13,8 @@
     "recipePagesAndFiltersClearOnlyTheSelection",
     "all33CandidatesCapacityAndDuplicateIndicesAreLocal",
     "failedOrPendingSaveCannotDepartAndSuccessStillNeedsConfirmation",
-    "shortCraftFocusShowsSafeIdentityWithoutChangingRecipeOrOpeningDialog"
+    "shortCraftFocusShowsSafeIdentityWithoutChangingRecipeOrOpeningDialog",
+    "registrationReadinessRejectsPendingAndAllowsOnlyExplicitFallback"
   ],
   "org.dpdns.gmm.NativeAttendanceFeedbackTest": [
     "captureAttendanceAndEveryMissionAtShortLargeFontAndDensityProfiles",

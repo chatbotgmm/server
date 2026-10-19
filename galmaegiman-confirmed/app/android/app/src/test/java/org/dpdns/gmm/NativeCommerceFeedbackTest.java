@@ -62,8 +62,63 @@ public class NativeCommerceFeedbackTest {
 
   void ready(MainActivity h, NativeShopCardBoundsTest.Profile p) throws Exception {
     frames.ready(h, p);
-    RegistrationArtTest.await(() -> h.art.idle() && h.registrationArt().idle() && h.menus.pendingFetches == 0);
-    frames.layout(h, p);
+    int[] settledFrames = {0};
+    RegistrationArtTest.await(() -> {
+      // pending is removed before the decoder posts its UI callback; idle alone
+      // cannot prove that a visible card has received its bitmap. Layout can also
+      // request another size bucket, so inspect the actual Views after pre-draw.
+      frames.layout(h, p);
+      boolean delivered = h.art.idle() && h.registrationArt().idle() && h.menus.pendingFetches == 0
+          && visibleRegistrationPicturesReady(h.root);
+      settledFrames[0] = delivered ? settledFrames[0] + 1 : 0;
+      // await advances the native main looper by a frame before every check.
+      return settledFrames[0] >= 2;
+    });
+  }
+
+  boolean registrationPictureReady(RegistrationCardView.Artwork art, boolean expectedMissing) {
+    if (!art.visibleIdentity) return !art.loadAttempted && art.bitmap == null;
+    if (expectedMissing && "이미지 없음".equals(art.status)) return art.loadAttempted && art.bitmap == null;
+    return art.loadAttempted && art.bitmap != null && !art.bitmap.isRecycled()
+        && art.status.isEmpty() && art.target.width() > 0 && art.target.height() > 0;
+  }
+
+  boolean visibleRegistrationPicturesReady(View root) {
+    for (View view : frames.descendants(root)) {
+      if (!view.isShown() || !(view instanceof RegistrationCardView.Artwork)) continue;
+      // These ready-scenario fixtures contain packaged known cards or explicit
+      // server masks. A missing known bitmap is not an approved fallback here.
+      if (!registrationPictureReady((RegistrationCardView.Artwork) view, false)) return false;
+    }
+    return true;
+  }
+
+  @Test public void registrationReadinessRejectsPendingAndAllowsOnlyExplicitFallback() {
+    try (var controller = flow.start()) {
+      MainActivity h = controller.get();
+      RegistrationCardView.Artwork known = new RegistrationCardView.Artwork(h,
+          MainActivity.obj("id", "C1", "known", true), RegistrationCardView.FULL);
+      assertFalse(registrationPictureReady(known, false));
+      known.loadAttempted = true;
+      Bitmap bitmap = Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888);
+      try {
+        known.bitmap = bitmap; known.target.set(0, 0, 2, 2);
+        assertFalse("A bitmap from an older bucket does not settle a new request", registrationPictureReady(known, false));
+        known.status = "";
+        assertTrue(registrationPictureReady(known, false));
+        known.target.setEmpty();
+        assertFalse("The native frame must position the delivered image", registrationPictureReady(known, false));
+      } finally { bitmap.recycle(); }
+      known.bitmap = null; known.status = "이미지 없음";
+      assertFalse("Unexpected known-card fallback fails ready-scene proof", registrationPictureReady(known, false));
+      assertTrue("Explicit missing-art scenarios may retain their fallback", registrationPictureReady(known, true));
+      known.status = "이미지 준비 중";
+      assertFalse("Even an expected missing asset must finish its callback", registrationPictureReady(known, true));
+      RegistrationCardView.Artwork masked = new RegistrationCardView.Artwork(h,
+          MainActivity.obj("id", "C1", "known", false), RegistrationCardView.FULL);
+      assertTrue(registrationPictureReady(masked, false));
+      assertFalse(masked.loadAttempted); assertNull(masked.bitmap);
+    }
   }
 
   void capture(MainActivity h, NativeShopCardBoundsTest.Profile p, String name) throws Exception {
@@ -77,6 +132,8 @@ public class NativeCommerceFeedbackTest {
   }
 
   JSONObject audit(MainActivity h, String state, NativeEconomyThemeFixture.Api api) throws Exception {
+    assertTrue("Ready captures cannot contain pending or missing known registration artwork",
+        visibleRegistrationPicturesReady(h.root));
     int targets = 0, text = 0, art = 0;
     List<View> interactive = new ArrayList<>();
     for (View view : frames.descendants(h.root)) {

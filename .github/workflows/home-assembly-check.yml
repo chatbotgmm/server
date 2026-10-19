@@ -139,7 +139,7 @@ jobs:
         id: full_gate
         run: >
           python3 ci/verify_registration_ci.py junit app/build/test-results/testDebugUnitTest
-          --minimum-tests 400 --previous-skipped 16
+          --minimum-tests 401 --previous-skipped 16
           --require-suite org.dpdns.gmm.NativeAcquisitionFlowTest
           --require-suite org.dpdns.gmm.NativeOperationUiTest
           --require-suite org.dpdns.gmm.NativeNoScrollReviewTest

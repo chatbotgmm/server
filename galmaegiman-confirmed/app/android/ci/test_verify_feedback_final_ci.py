@@ -145,10 +145,10 @@ class Contracts(unittest.TestCase):
             root=ET.Element("testsuite",name=name)
             for method in methods:ET.SubElement(root,"testcase",name=method,classname=name)
             ET.ElementTree(root).write(results/("TEST-"+name+".xml"))
-        stats={"totals":dict(tests=400,passed=384,skipped=16)}
+        stats={"totals":dict(tests=401,passed=385,skipped=16)}
         with patch.object(v,"stage1_junit",return_value=stats):
             self.assertEqual(stats,v.junit(results,{}))
-            for key,bad in (("tests",399),("passed",383),("skipped",17)):
+            for key,bad in (("tests",400),("passed",384),("skipped",17)):
                 with self.subTest(key=key):
                     broken=copy.deepcopy(stats);broken["totals"][key]=bad
                     with patch.object(v,"stage1_junit",return_value=broken),self.assertRaises(Exception):v.junit(results,{})
@@ -170,7 +170,26 @@ class Contracts(unittest.TestCase):
         method="shortCraftFocusShowsSafeIdentityWithoutChangingRecipeOrOpeningDialog"
         self.assertIn(method,v.SUITES[name])
         path=results/("TEST-"+name+".xml");original=path.read_bytes()
-        with patch.object(v,"stage1_junit",return_value={"totals":dict(tests=400,passed=384,skipped=16)}):
+        with patch.object(v,"stage1_junit",return_value={"totals":dict(tests=401,passed=385,skipped=16)}):
+            for mode in ("missing","skipped","failure"):
+                path.write_bytes(original);tree=ET.parse(path);root=tree.getroot()
+                case=next(c for c in root.findall("testcase") if c.get("name")==method)
+                if mode=="missing":root.remove(case)
+                else:ET.SubElement(case,mode)
+                tree.write(path)
+                with self.subTest(mode=mode),self.assertRaises(Exception):v.junit(results,{})
+
+    def test_registration_ready_method_is_required_unskipped(self):
+        results=self.root/"xml";results.mkdir()
+        for name,methods in v.SUITES.items():
+            root=ET.Element("testsuite",name=name)
+            for method in methods:ET.SubElement(root,"testcase",name=method,classname=name)
+            ET.ElementTree(root).write(results/("TEST-"+name+".xml"))
+        name="org.dpdns.gmm.NativeCommerceFeedbackTest"
+        method="registrationReadinessRejectsPendingAndAllowsOnlyExplicitFallback"
+        self.assertIn(method,v.SUITES[name])
+        path=results/("TEST-"+name+".xml");original=path.read_bytes()
+        with patch.object(v,"stage1_junit",return_value={"totals":dict(tests=401,passed=385,skipped=16)}):
             for mode in ("missing","skipped","failure"):
                 path.write_bytes(original);tree=ET.parse(path);root=tree.getroot()
                 case=next(c for c in root.findall("testcase") if c.get("name")==method)
@@ -192,7 +211,7 @@ class Contracts(unittest.TestCase):
         self.assertLess(gate,evidence);self.assertLess(evidence,rerun);self.assertLess(rerun,assembly)
         for step in ("feedback_final_checks","feedback_final_gate","feedback_final_evidence"):
             self.assertIn("steps."+step+".outcome == 'success'",workflow[assembly:workflow.index("id: assemble",assembly)])
-        self.assertIn("--minimum-tests 400 --previous-skipped 16",workflow)
+        self.assertIn("--minimum-tests 401 --previous-skipped 16",workflow)
         for suite in v.SUITES:self.assertIn("--require-unskipped-suite "+suite,workflow)
         self.assertIn("if-no-files-found: error",workflow[evidence:rerun])
     def test_backend_and_release_keep_permission_boundary(self):

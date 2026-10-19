@@ -34,7 +34,7 @@
 ## 적용 및 검증
 `prisma/manual/20261019_progression_additive.sql`은 수동 검토용 추가 SQL이다. 운영에 실행하지 않았다. 운영 적용은 백업·동일 스키마 확인·별도 승인 후 한 번만 해야 한다. 코드 배포 전에 스키마 적용/Prisma client 재생성이 필요하다.
 
-격리 CI: Node22+, `npm ci`, `npx prisma generate`, `npm run test:db`, `npm run build`. `test:db`는 새 `/tmp/galmaegiman-tests-*` SQLite를 만들고 seed 후 모든 테스트를 실행한다. 운영 연결정보가 필요 없다. 신규 `test/progression.integration.test.ts`는 별도의 임시 SQLite를 만들고 지운다.
+격리 CI: Node22+, `npm ci`, `npx prisma generate`, `npm run build`, `npm run test:db`. 웹 정적 번들이 필요한 통합검사가 있으므로 build를 먼저 실행한다. `test:db`는 새 `/tmp/galmaegiman-tests-*` SQLite를 만들고 seed 후 모든 테스트를 실행한다. 운영 연결정보가 필요 없다. 신규 `test/progression.integration.test.ts`는 별도의 임시 SQLite를 만들고 지운다.
 
 ### 운영 호환성 / 되돌리기
 서버 기동은 `assertProgressionSchema`로 새 열·테이블을 읽기 검사하고 누락 시 listen 전에 중단한다. 따라서 미적용 DB에 기능만 노출되는 상태를 허용하지 않으며, 자동 마이그레이션은 없다. 신규 코드와 이전 DB를 섞어 서비스하면 안 된다.
