@@ -179,6 +179,13 @@ public class ReleaseHomeLayoutTest {
           Rect growth = box(l, l.growthCard);
           for (Button button : l.buttons)
             assertFalse("Growth card must not cover a menu", Rect.intersects(growth, box(l, button)));
+          assertTrue("Profile is a compact portrait/name chip", l.boxes[7].width() <= h.dp(220));
+          containedTouch(h, l, l.gull, safe);
+          RectF hero = l.heroBox();
+          assertTrue("Guide stands on foreground paving", hero.bottom >= safe.top + safe.height() * .72f);
+          assertTrue("Guide keeps a sensible tablet scale", hero.height() <= safe.height() * .56f);
+          assertTrue("Growth sits beside the guide, leaving the feet visible",
+              growth.left >= hero.right + h.dp(24));
           View resumeButton = l.findViewWithTag("lobby-resume");
           if (resume) {
             containedTouch(h, l, resumeButton, safe);
@@ -186,6 +193,25 @@ public class ReleaseHomeLayoutTest {
               assertFalse("Resume must not cover a menu", Rect.intersects(box(l, resumeButton), box(l, button)));
             assertFalse("Resume and growth stay separate", Rect.intersects(box(l, resumeButton), growth));
           } else assertNull(resumeButton);
+          for (float pulse : new float[] {-1, 0, 1})
+            for (float dragX : new float[] {-h.dp(18), 0, h.dp(18)})
+              for (float dragY : new float[] {-h.dp(18), 0, h.dp(18)}) {
+                RectF drawn = l.heroDrawBox(pulse, dragX, dragY);
+                RectF shadow = l.heroShadowBox(drawn);
+                assertTrue("Animated guide stays in the mobile safe area", safe.contains(drawn));
+                assertTrue("Separate contact shadow stays safe", safe.contains(shadow));
+                assertFalse("Growth never masks the guide or shadow", RectF.intersects(drawn, new RectF(growth))
+                    || RectF.intersects(shadow, new RectF(growth)));
+                assertTrue("Contact shadow meets the feet", shadow.top < drawn.bottom && shadow.bottom > drawn.bottom);
+                assertEquals("Breathing never lifts the feet", l.heroDrawBox(0, dragX, dragY).bottom,
+                    drawn.bottom, .001f);
+                for (Button button : l.buttons) {
+                  assertFalse("Guide stays clear of every menu", RectF.intersects(drawn, new RectF(box(l, button))));
+                  assertFalse("Shadow stays clear of every menu", RectF.intersects(shadow, new RectF(box(l, button))));
+                }
+                if (resumeButton != null)
+                  assertFalse("Guide stays clear of battle resume", RectF.intersects(drawn, new RectF(box(l, resumeButton))));
+              }
         }
       }
     }

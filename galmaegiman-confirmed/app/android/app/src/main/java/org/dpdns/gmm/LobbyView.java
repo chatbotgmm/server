@@ -323,7 +323,14 @@ final class LobbyView extends FrameLayout implements FullBleed {
       float x = currencyLeft + i * (curW + gap);
       boxes[9 + i] = new RectF(x, margin, x + curW, margin + header);
     }
-    boxes[7] = new RectF(margin, margin, currencyLeft - host.dp(16), margin + header);
+    // A profile chip needs only the portrait and name. Rank/details remain in the
+    // existing profile popup and accessibility description, not a scene-wide bar.
+    p.setTypeface(host.headline);
+    p.setTextSize(canvasTextSize(host.dp(16), host.dp(24), true));
+    float profileWidth = Math.max(host.dp(148),
+        p.measureText(host.me().optString("nickname", "수비조장")) + host.dp(64));
+    profileWidth = Math.min(Math.min(host.dp(220), currencyLeft - margin - gap), profileWidth);
+    boxes[7] = new RectF(margin, margin, margin + profileWidth, margin + header);
   }
 
   @Override
@@ -632,34 +639,55 @@ final class LobbyView extends FrameLayout implements FullBleed {
   RectF heroBox() {
     RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
     boolean tablet = safe.width() / safe.height() < 1.85f;
-    float left = safe.left + host.dp(tablet ? 40 : 24);
-    float right = safe.left + safe.width() * .647f;
+    // Reserve a foreground stage beside the growth card, not a strip above it.
+    // The paving/contact point stays visible above the bottom navigation.
+    float left = safe.left + host.dp(tablet ? 40 : 24) + host.dp(18);
+    float right = growthAvailableBox().left - host.dp(24 + 18);
     float top = safe.top + Math.max(host.dp(host.state.optBoolean("activeBattle") ? 132 : 90), safe.height() * .18f);
-    float bottom = growthAvailableBox().top - host.dp(6);
-    return new RectF(left, top, right, Math.max(top + host.dp(48), bottom));
+    float bottom = boxes[13].top - host.dp(20);
+    float maxHeight = Math.max(1, Math.min(bottom - top - host.dp(6), safe.height() * .56f));
+    float maxWidth = Math.max(1, right - left);
+    Rect source = homeArt.heroBounds();
+    float aspect = source == null ? 1 : source.width() / (float) source.height();
+    // Leave room for the small breathing scale as well as the bounded drag.
+    float height = Math.min(maxHeight, maxWidth / aspect) / 1.004f;
+    float width = height * aspect, center = (left + right) / 2;
+    return new RectF(center - width / 2, bottom - height, center + width / 2, bottom);
+  }
+
+  RectF heroDrawBox(float pulse, float dragX, float dragY) {
+    RectF area = heroBox();
+    float width = area.width() * (1 + .004f * pulse);
+    float height = area.height() * (1 - .004f * pulse);
+    RectF target = new RectF(area.centerX() - width / 2, area.bottom - height,
+        area.centerX() + width / 2, area.bottom);
+    // Breathing changes the pose around the feet; it must not lift the guide.
+    target.offset(Math.max(-host.dp(18), Math.min(host.dp(18), dragX)),
+        Math.max(-host.dp(6), Math.min(host.dp(6), dragY)));
+    return target;
+  }
+
+  RectF heroShadowBox(RectF target) {
+    float center = target.centerX() - target.width() * .055f;
+    float radius = target.width() * .23f;
+    float height = Math.max(host.dp(8), target.height() * .035f);
+    return new RectF(center - radius, target.bottom - height * .85f,
+        center + radius, target.bottom + height * .15f);
   }
 
   void character(Canvas c) {
     Bitmap bitmap = homeArt.hero();
     Rect source = homeArt.heroBounds();
     if (bitmap == null || source == null) return;
-    RectF area = heroBox();
+    RectF target = heroDrawBox(motion.pulse(3600, 0), parallax.x, parallax.y);
+    RectF shadow = heroShadowBox(target);
     p.setShader(null);
-    p.setColor(0x300f2430);
-    c.drawOval(new RectF(area.centerX() - area.height() * .24f,
-        area.bottom - host.dp(9), area.centerX() + area.height() * .24f,
-        area.bottom + host.dp(4)), p);
-    float pulse = motion.pulse(3600, 0);
-    float scale = Math.min(area.width() / source.width(), area.height() / source.height());
-    float width = source.width() * scale * (1 + .004f * pulse),
-        height = source.height() * scale * (1 - .004f * pulse);
-    RectF target =
-        new RectF(
-            area.centerX() - width / 2,
-            area.bottom - height,
-            area.centerX() + width / 2,
-            area.bottom);
-    target.offset(parallax.x, parallax.y - getHeight() * .005f * pulse);
+    p.setStyle(Paint.Style.FILL);
+    p.setColor(0x180f2430);
+    c.drawOval(shadow, p);
+    shadow.inset(shadow.width() * .15f, shadow.height() * .18f);
+    p.setColor(0x240f2430);
+    c.drawOval(shadow, p);
     p.setShader(null);
     p.setAlpha(255);
     c.drawBitmap(bitmap, source, target, p);
@@ -756,8 +784,9 @@ final class LobbyView extends FrameLayout implements FullBleed {
     // The 48dp action remains intact; growing text must never silently hide XP.
     float height = Math.max(host.dp(72),
         host.dp(48 + 9 + 10) + growthCompactXp.getLineHeight() + growthCompactXp.getPaddingTop());
-    return new RectF(safe.left + host.dp(24), bottom - height,
-        safe.left + safe.width() * .647f, bottom);
+    float right = boxes[5].left - host.dp(24);
+    float width = Math.min(host.dp(300), Math.max(host.dp(232), safe.width() * .24f));
+    return new RectF(right - width, bottom - height, right, bottom);
   }
 
   void setText(TextView view, String value) {
@@ -844,12 +873,9 @@ final class LobbyView extends FrameLayout implements FullBleed {
         profile.top + host.dp(8), profile.left + host.dp(42), profile.bottom - host.dp(8)));
     String nick = host.me().optString("nickname", "수비조장"), summary = profileSummary();
     float cx = (profile.left + host.dp(47) + profile.right - host.dp(12)) / 2;
-    float nickSize = canvasTextSize(host.dp(16), host.dp(20), true);
+    float nickSize = canvasTextSize(host.dp(16), profile.height() - host.dp(16), true);
     label(c, fitted(nick, profile.width() - host.dp(65), nickSize, true), cx,
-        profile.top + host.dp(22), nickSize, true, Color.WHITE);
-    float summarySize = canvasTextSize(host.dp(11), host.dp(14), false);
-    label(c, fitted(summary, profile.width() - host.dp(65), summarySize, false), cx,
-        profile.bottom - host.dp(10), summarySize, false, 0xffffdf9a);
+        centeredBaseline(profile.centerY(), nickSize, true), nickSize, true, Color.WHITE);
     buttons.get(7).setContentDescription("내 정보 · " + nick + " · " + summary);
     String[] keys = {"snack", "peanut", "credits"};
     String[] currencyIcons = {"shrimp-snack", "peanut", null};
