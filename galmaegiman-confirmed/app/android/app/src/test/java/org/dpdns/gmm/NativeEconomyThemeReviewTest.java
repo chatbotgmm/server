@@ -516,7 +516,14 @@ public class NativeEconomyThemeReviewTest {
               assertTrue("Actual craft arrow pixels stay legible: " + direction, ink >= 12);
             } finally { pixels.recycle(); }
           }
-          if (!host.menus.economy.compact()) {
+          assertEquals("Only the initial page keeps the initial recipe selected", pageIndex == 0,
+              !host.menus.recipeId.isEmpty());
+          if (pageIndex > 0) {
+            assertNotNull("Paging clears the workbench until a recipe is selected",
+                host.root.findViewWithTag("craft-selection-empty"));
+            assertEquals(0, host.menus.economy.craftActions.getChildCount());
+            assertNull(host.root.findViewWithTag("craft-availability"));
+          } else if (!host.menus.economy.compact()) {
             TextView availability = host.root.findViewWithTag("craft-availability");
             assertNotNull(availability);
             assertEquals(JournalTheme.NAVY, availability.getCurrentTextColor());
@@ -708,5 +715,6 @@ public class NativeEconomyThemeReviewTest {
     assertNull(host.visibleDialog);
   }
 }
+
 
 

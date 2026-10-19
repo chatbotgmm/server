@@ -475,7 +475,8 @@ public class NativeNoScrollReviewTest {
           if (tag instanceof String && tag.toString().startsWith("craft-recipe-")
               && !tag.equals("craft-recipe-list")) recipeIds.add(tag.toString().substring("craft-recipe-".length()));
         }
-        Button next = named(host.root.findViewWithTag("craft-recipe-pages"), "›");
+        Button next = host.root.findViewWithTag("craft-recipe-pages-next");
+        assertNotNull(next);
         if (!next.isEnabled()) break;
         next.performClick();
       }
@@ -643,3 +644,4 @@ public class NativeNoScrollReviewTest {
     }
   }
 }
+

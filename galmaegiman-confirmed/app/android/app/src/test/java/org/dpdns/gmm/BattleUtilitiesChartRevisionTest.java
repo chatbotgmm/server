@@ -29,9 +29,32 @@ public class BattleUtilitiesChartRevisionTest {
     // AppCompat autosize on API24 can invalidate TextView's Layout in onLayout.
     // Mirror the normal ViewRoot pre-draw/relayout before inspecting text.
     review.preparePreDraw(v,pass);
+    // The helper can run the Window's differently sized traversal while idling.
+    // Returning to this test viewport recreates BattleView's controls; API24
+    // AppCompat autosize then clears their Layout and requests another traversal.
+    // Settle those normal synchronous requests without pumping a competing window
+    // resize between passes. Never inspect a stale/null text layout or skip fit checks.
+    for(int remaining=0;remaining<8 && pendingTextLayout(v);remaining++) {
+      pass.run();
+      v.getViewTreeObserver().dispatchOnPreDraw();
+    }
+    assertFalse("Text layouts must settle before geometry inspection",pendingTextLayout(v));
+  }
+  boolean pendingTextLayout(View view) {
+    if(view.getVisibility()!=View.VISIBLE)return false;
+    if(view instanceof TextView && view.getWidth()>0) {
+      TextView text=(TextView)view;
+      if(text.getText().length()>0 && (text.getLayout()==null || text.isLayoutRequested()))return true;
+    }
+    if(view instanceof ViewGroup) {
+      ViewGroup group=(ViewGroup)view;
+      for(int i=0;i<group.getChildCount();i++)if(pendingTextLayout(group.getChildAt(i)))return true;
+    }
+    return false;
   }
   BattleView mount(MainActivity h,int w,int height) throws Exception {
     h.api.close();h.motionEnabled=false;h.guide.enabled=false;
+    new NativeRenderReviewTest().viewport(h,w,height);
     BattleView v=fixture.mount(h,w,height,true);
     v.battle.put("mode","story").put("turn",2);
     v.active(0).put("image","/duel/sprites/D1_s0_front.webp");

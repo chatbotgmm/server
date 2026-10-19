@@ -264,7 +264,9 @@ public class NativeCommerceFeedbackTest {
       MainActivity h = controller.get(); NativeEconomyThemeFixture.Api api = prepare(h);
       String source = api.data.craft.toString(); h.menus.economy.craft(false);
       assertFalse(h.menus.recipeId.isEmpty());
-      controls.button(h.root.findViewWithTag("craft-recipe-pages"), "›").performClick();
+      Button next = h.root.findViewWithTag("craft-recipe-pages-next");
+      assertNotNull(next); assertTrue(next.isEnabled());
+      next.performClick();
       assertEquals("", h.menus.recipeId); assertNotNull(h.root.findViewWithTag("craft-selection-empty"));
       assertEquals(0, h.menus.economy.craftActions.getChildCount());
       for (View v : frames.descendants(h.root.findViewWithTag("craft-recipe-list")))
@@ -393,3 +395,4 @@ public class NativeCommerceFeedbackTest {
     }
   }
 }
+
