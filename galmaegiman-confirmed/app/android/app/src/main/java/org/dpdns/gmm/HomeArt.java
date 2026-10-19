@@ -24,10 +24,17 @@ final class HomeArt {
         "icons/team.png", "icons/combine.png", "icons/shop.png", "icons/daily.png",
         "icons/settings.png", "icons/peanut.png", "icons/shrimp-snack.png",
         "characters/home-guide-map.png"}) {
-      Bitmap b = host.art.asset("release-v1/" + file);
+      // Keep the existing menu key/geometry, but show the same application as recruitment.
+      boolean recruitment = file.equals("icons/draw.png");
+      String path = recruitment ? "registration-v1/resources/application-envelope-atlas.png"
+          : "release-v1/" + file;
+      Bitmap b = host.art.asset(path);
+      if (recruitment && b != null && (b.getWidth() != ApplicationEnvelopeView.ATLAS_WIDTH
+          || b.getHeight() != ApplicationEnvelopeView.ATLAS_HEIGHT)) continue;
       if (b != null) {
         images.put(file, b);
-        bounds.put(file, host.art.alpha(b, "release-v1/" + file));
+        bounds.put(file, recruitment ? NativeEconomy.RecruitmentSeal.envelopeInk(b)
+            : host.art.alpha(b, path));
       }
     }
   }

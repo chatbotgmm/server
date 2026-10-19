@@ -12,6 +12,7 @@ import android.os.Looper;
 import android.text.Html;
 import android.text.Layout;
 import android.view.Display;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.TextView;
@@ -153,10 +154,45 @@ public class NativeHomeTipLayoutTest {
     return ink;
   }
 
-  /** Render the native text Layout without the TextView clip, then compare actual drawn ink. */
-  Rect nativeInk(TextView text) {
+  /** Persist both native rasters before an assertion, so a failed oracle is inspectable. */
+  void saveInkFailure(TextView text, Bitmap reference, Bitmap actual, int paintBefore,
+      int alphaDifferences, int missingAlphaSamples, int extraAlphaSamples, Rect expected, Rect drawn) {
+    String output = System.getProperty("gmm.nativeReviewOutput");
+    if (output == null || output.isBlank()) return;
+    try {
+      Path directory = Path.of(output, "home-tip-ink-diagnostics");
+      Files.createDirectories(directory);
+      String name = "ink-" + text.getWidth() + "x" + text.getHeight() + "-"
+          + Integer.toHexString(text.getText().toString().hashCode());
+      for (int i = 0; i < 2; i++) {
+        try (OutputStream stream = Files.newOutputStream(directory.resolve(name
+            + (i == 0 ? "-reference.png" : "-actual.png")))) {
+          (i == 0 ? reference : actual).compress(Bitmap.CompressFormat.PNG, 100, stream);
+        }
+      }
+      JSONObject details = MainActivity.obj("text", text.getText().toString(),
+          "width", text.getWidth(), "height", text.getHeight(), "fontPixels", text.getTextSize(),
+          "paintColorBeforeDraw", Integer.toHexString(paintBefore),
+          "paintColorAfterDraw", Integer.toHexString(text.getPaint().getColor()),
+          "currentTextColor", Integer.toHexString(text.getCurrentTextColor()),
+          "alphaDifferences", alphaDifferences, "missingAlphaSamples", missingAlphaSamples,
+          "extraAlphaSamples", extraAlphaSamples, "referenceInk", rect(new RectF(expected)),
+          "actualInk", rect(new RectF(drawn)), "guard", 32,
+          "textOriginX", text.getCompoundPaddingLeft(),
+          "textOriginY", text.getBaseline() - text.getLayout().getLineBaseline(0),
+          "gravity", text.getGravity(), "layoutHeight", text.getLayout().getHeight());
+      Files.write(directory.resolve(name + ".json"), details.toString(2).getBytes(StandardCharsets.UTF_8));
+    } catch (Exception error) { throw new AssertionError("Cannot retain native ink failure evidence", error); }
+  }
+
+  /** Compare identical paint state, keeping the Layout reference outside the TextView clip. */
+  Rect nativeInk(TextView text) { return nativeInk(text, true); }
+
+  Rect nativeInk(TextView text, boolean retainFailure) {
     Layout layout = text.getLayout();
     assertNotNull(layout);
+    assertEquals("Advice must not scroll horizontally", 0, text.getScrollX());
+    assertEquals("Advice must not scroll vertically", 0, text.getScrollY());
     int guard = 32;
     int width = text.getWidth() + guard * 2;
     int height = Math.max(text.getHeight(), layout.getHeight()
@@ -164,27 +200,51 @@ public class NativeHomeTipLayoutTest {
     Bitmap unclipped = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
     Bitmap actual = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
     try {
-      Canvas full = new Canvas(unclipped);
-      full.translate(guard + text.getCompoundPaddingLeft(), guard + text.getCompoundPaddingTop());
-      layout.draw(full);
+      int paintBefore = text.getPaint().getColor();
       Drawable background = text.getBackground();
       text.setBackground(null);
       try {
         Canvas visible = new Canvas(actual);
         visible.translate(guard, guard);
+        // TextView.onDraw initializes the shared TextPaint's current color and drawable state.
+        // Drawing Layout first compares an uninitialized paint against a different native raster.
         text.draw(visible);
       } finally { text.setBackground(background); }
+      assertSame("Drawing must not replace the measured native Layout", layout, text.getLayout());
+      Canvas full = new Canvas(unclipped);
+      // getBaseline includes the actual extended padding and vertical-gravity offset. Do not
+      // assume TOP gravity or change the production view's positioning to suit the oracle.
+      full.translate(guard + text.getCompoundPaddingLeft(),
+          guard + text.getBaseline() - layout.getLineBaseline(0));
+      layout.draw(full);
       Ink allInk = ink(unclipped), drawnInk = ink(actual);
-      assertTrue("Native Korean glyphs really rendered", allInk.pixels > 40);
-      assertEquals("Native TextView does not clip any rendered glyph pixels", allInk.pixels, drawnInk.pixels);
-      assertEquals("Rendered ink matches the unbounded native Layout", allInk.bounds, drawnInk.bounds);
+      int[] referencePixels = new int[width * height], actualPixels = new int[width * height];
+      unclipped.getPixels(referencePixels, 0, width, 0, 0, width, height);
+      actual.getPixels(actualPixels, 0, width, 0, 0, width, height);
+      int alphaDifferences = 0, missingAlphaSamples = 0, extraAlphaSamples = 0;
+      for (int i = 0; i < referencePixels.length; i++) {
+        int expected = Color.alpha(referencePixels[i]), drawn = Color.alpha(actualPixels[i]);
+        if (expected != drawn) alphaDifferences++;
+        if (expected > drawn) missingAlphaSamples++;
+        if (drawn > expected) extraAlphaSamples++;
+      }
       Rect result = new Rect(allInk.bounds);
       result.offset(-guard, -guard);
-      assertTrue("Every native glyph stays within its reading inset: " + result,
-          result.left >= text.getCompoundPaddingLeft()
-              && result.right <= text.getWidth() - text.getCompoundPaddingRight()
-              && result.top >= text.getCompoundPaddingTop()
-              && result.bottom <= text.getHeight() - text.getCompoundPaddingBottom());
+      boolean inReadingInset = result.left >= text.getCompoundPaddingLeft()
+          && result.right <= text.getWidth() - text.getCompoundPaddingRight()
+          && result.top >= text.getCompoundPaddingTop()
+          && result.bottom <= text.getHeight() - text.getCompoundPaddingBottom();
+      if (retainFailure && (alphaDifferences != 0 || !inReadingInset || allInk.pixels <= 40))
+        saveInkFailure(text, unclipped, actual, paintBefore, alphaDifferences,
+            missingAlphaSamples, extraAlphaSamples, allInk.bounds, drawnInk.bounds);
+      assertTrue("Native Korean glyphs really rendered", allInk.pixels > 40);
+      // Exact per-coordinate alpha equality, including samples below the bounds threshold:
+      // no count-only cancellation, antialias tolerance, or extra ink can conceal lost pixels.
+      assertEquals("Native TextView retains every alpha sample of the unbounded Layout",
+          0, alphaDifferences);
+      assertEquals("Native TextView does not clip any rendered glyph pixels", allInk.pixels, drawnInk.pixels);
+      assertEquals("Rendered ink matches the unbounded native Layout", allInk.bounds, drawnInk.bounds);
+      assertTrue("Every native glyph stays within its reading inset: " + result, inReadingInset);
       return result;
     } finally { unclipped.recycle(); actual.recycle(); }
   }
@@ -424,6 +484,25 @@ public class NativeHomeTipLayoutTest {
   @Test public void constrainedAlternativeIsMeasuredBoundedAndNeverCoversTheHero() {
     try (ActivityController<HomeHost> controller = start(false)) {
       HomeHost h = controller.get();
+      // A stale shared paint must be initialized by TextView before the reference is drawn.
+      TextView oracle = h.text("네이티브 글자는 잘림 없이 보여야 해요.\n두 번째 줄도 끝까지 읽어요.", 17);
+      oracle.setPadding(12, 8, 12, 8);
+      oracle.measure(View.MeasureSpec.makeMeasureSpec(260, View.MeasureSpec.EXACTLY),
+          View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+      oracle.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+      oracle.layout(0, 0, oracle.getMeasuredWidth(), oracle.getMeasuredHeight() + 32);
+      oracle.getPaint().setColor(Color.TRANSPARENT); // Deliberately different from currentTextColor.
+      nativeInk(oracle);
+      assertEquals(oracle.getCurrentTextColor(), oracle.getPaint().getColor());
+      // Negative control: retain the same full Layout but visibly clip its native raster.
+      oracle.layout(0, 0, oracle.getWidth(), oracle.getCompoundPaddingTop()
+          + oracle.getCompoundPaddingBottom() + 1);
+      AssertionError clipping = null;
+      try { nativeInk(oracle, false); } catch (AssertionError expected) { clipping = expected; }
+      assertNotNull("The strict oracle must reject a genuinely clipped TextView", clipping);
+      assertTrue("The negative control must fail pixel equality, not an unrelated precondition",
+          clipping.getMessage().contains("retains every alpha sample"));
+
       TextView tip = h.text("끼룩! 조언을 눌러서 다음 항로를 보자.", 17);
       tip.setPadding(12, 8, 12, 8);
       tip.setMinHeight(h.dp(48));

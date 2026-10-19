@@ -152,6 +152,11 @@ final class GameDialog extends AlertDialog.Builder {
         }) {
       Button b = dialog.getButton(id);
       if (b == null) continue;
+      // These equally sized framed actions align by their boxes, not text baselines.
+      // A bottom-aligned platform ButtonBarLayout includes vertical margins in
+      // baseline descent and otherwise lifts a 48dp button into its top padding.
+      if (b.getParent() instanceof LinearLayout)
+        ((LinearLayout) b.getParent()).setBaselineAligned(false);
       b.setTypeface(host.font);
       b.setTextColor(
           JournalTheme.controlText(

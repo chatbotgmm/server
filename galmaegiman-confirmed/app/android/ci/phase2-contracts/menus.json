@@ -203,7 +203,7 @@
       "stem": "growth-details",
       "audit_id": "unit-details",
       "expected_fields": {
-        "dialog": false,
+        "dialog": true,
         "actualNativeViews": true,
         "fixtureWrites": 0,
         "syntheticItemFixture": false,
@@ -335,16 +335,49 @@
     "positive_integer_fields": [
       "actions",
       "boundsChecks",
-      "textLabels"
+      "textLabels",
+      "measuredWidth",
+      "measuredHeight",
+      "safeWidth",
+      "safeHeight"
     ],
     "nonnegative_integer_fields": [
-      "inlineChoices"
+      "inlineChoices",
+      "dialogBoundsChecks"
     ],
     "array_fields": [
       "fixtureReads",
       "shortenedReadOnlySummaries"
     ],
     "duration_fields": [],
-    "read_only_summary_field": "shortenedReadOnlySummaries"
+    "read_only_summary_field": "shortenedReadOnlySummaries",
+    "exact_fields": [
+      "actualNativeViews",
+      "actions",
+      "boundsChecks",
+      "dialogBoundsChecks",
+      "measuredWidth",
+      "measuredHeight",
+      "safeWidth",
+      "safeHeight",
+      "textLabels",
+      "inlineChoices",
+      "shortenedReadOnlySummaries",
+      "fixtureReads",
+      "fixtureWrites",
+      "dialog",
+      "itemDefinitionSource",
+      "syntheticItemFixture",
+      "visualReview"
+    ],
+    "window_geometry": {
+      "dialog_bounds_checks": 2,
+      "dialog_vertical_margin_pixels": 16,
+      "density_scope": "All four fixed menu configurations are mdpi; matches host.dp(16)."
+    }
+  },
+  "runtime_contract_revision": {
+    "source_commit": "3a21523",
+    "reason": "growth-details captures the actual native dialog; require measured container geometry for every menu case."
   }
 }

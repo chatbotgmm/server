@@ -268,5 +268,54 @@ class PhaseTwoCheckerTests(unittest.TestCase):
             self.assertEqual(contract["expected_capture_count"], count)
 
 
+
+class MenuWindowGeometryTests(unittest.TestCase):
+    def setUp(self):
+        directory = Path(__file__).resolve().parent
+        contract_path = directory / "phase2-contracts/menus.json"
+        if not contract_path.exists(): contract_path = directory / "menus.json"
+        self.contract = json.loads(contract_path.read_text())
+        self.screen = next(x for x in self.contract["screens"] if x["stem"] == "growth-details")
+        self.variant = next(x for x in self.contract["variants"] if x["suffix"] == "1006x411")
+        self.measured = {"actualNativeViews": True, "actions": 5, "boundsChecks": 2,
+            "dialogBoundsChecks": 2, "measuredWidth": 900, "measuredHeight": 359,
+            "safeWidth": 960, "safeHeight": 391, "textLabels": 36, "inlineChoices": 0,
+            "shortenedReadOnlySummaries": [], "fixtureReads": [], "fixtureWrites": 0,
+            "dialog": True, "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4",
+            "syntheticItemFixture": False, "visualReview": "pending PNG inspection"}
+
+    def verify(self):
+        verifier.measurement_check(self.measured, self.screen, self.contract, {}, self.variant)
+
+    def reject(self, key, value):
+        self.measured[key] = value
+        with self.assertRaises(ValueError): self.verify()
+
+    def test_actual_growth_details_dialog_measurements_pass(self): self.verify()
+    def test_ordinary_page_keeps_its_own_root_contract(self):
+        self.screen = next(x for x in self.contract["screens"] if x["stem"] == "growth")
+        self.measured.update(dialog=False, dialogBoundsChecks=0, boundsChecks=5, measuredWidth=1006, measuredHeight=411)
+        self.verify()
+    def test_growth_details_cannot_be_relabelled_page(self): self.reject("dialog", False)
+    def test_dialog_width_cannot_exceed_safe_viewport(self): self.reject("measuredWidth", 961)
+    def test_dialog_height_must_keep_sixteen_pixel_margin(self): self.reject("measuredHeight", 376)
+    def test_missing_dialog_assertion_count_fails(self): self.reject("dialogBoundsChecks", 1)
+    def test_invented_extra_dialog_assertions_fail(self): self.reject("dialogBoundsChecks", 3)
+    def test_dialog_assertions_must_be_included_in_bounds_total(self): self.reject("boundsChecks", 1)
+    def test_safe_width_must_match_actual_insets(self): self.reject("safeWidth", 1006)
+    def test_safe_height_must_match_actual_insets(self): self.reject("safeHeight", 411)
+    def test_zero_measured_window_fails(self): self.reject("measuredWidth", 0)
+    def test_boolean_geometry_is_not_a_measurement(self): self.reject("dialogBoundsChecks", True)
+    def test_unknown_metric_is_not_arbitrarily_allowed(self): self.reject("uncheckedGeometry", True)
+    def test_missing_new_measurement_fails(self):
+        del self.measured["measuredHeight"]
+        with self.assertRaises(ValueError): self.verify()
+    def test_original_fixture_invariants_remain_required(self): self.reject("syntheticItemFixture", True)
+    def test_exact_84_names_and_eight_tests_unchanged(self):
+        names = {s["stem"] + "-" + v["suffix"] for s in self.contract["screens"] for v in self.contract["variants"]}
+        self.assertEqual(len(names), 84)
+        self.assertEqual(self.contract["test_suites"][0]["minimum_tests"], 8)
+
+
 if __name__ == "__main__":
     unittest.main()

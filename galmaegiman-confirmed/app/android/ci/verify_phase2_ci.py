@@ -45,9 +45,11 @@ def check_suites(directory, contract):
     return results, errors
 
 
-def measurement_check(measured, screen, contract, asset_lock):
+def measurement_check(measured, screen, contract, asset_lock, variant=None):
     rules = contract["measurements"]
     check(isinstance(measured, dict), "Missing actual measurement object")
+    if "exact_fields" in rules:
+        check(set(measured) == set(rules["exact_fields"]), "Unexpected or missing measurement fields")
     for field in rules.get("true_fields", []):
         check(measured.get(field) is True, "Missing true field: " + field)
     for field in rules.get("zero_integer_fields", []):
@@ -63,6 +65,25 @@ def measurement_check(measured, screen, contract, asset_lock):
               "Unexpected fixture field: " + field)
     for field, minimum in screen.get("minimum_integers", {}).items():
         check(integer_at_least(measured.get(field), minimum), "Insufficient measured checks: " + field)
+    geometry = rules.get("window_geometry")
+    if geometry:
+        check(isinstance(variant, dict), "Missing viewport contract for window geometry")
+        insets = variant["safe_insets"]
+        expected_safe = (variant["width"] - insets[0] - insets[2],
+                         variant["height"] - insets[1] - insets[3])
+        check((measured["safeWidth"], measured["safeHeight"]) == expected_safe,
+              "Measured safe viewport does not match size/insets")
+        if measured["dialog"]:
+            check(measured["dialogBoundsChecks"] == geometry["dialog_bounds_checks"],
+                  "Missing actual dialog-bound assertions")
+            check(measured["measuredWidth"] <= measured["safeWidth"], "Dialog wider than safe viewport")
+            check(measured["measuredHeight"] <= measured["safeHeight"] - geometry["dialog_vertical_margin_pixels"],
+                  "Dialog violates required safe-height margin")
+        else:
+            check(measured["dialogBoundsChecks"] == 0, "Page incorrectly reports dialog checks")
+            check((measured["measuredWidth"], measured["measuredHeight"]) == (variant["width"], variant["height"]),
+                  "Measured page root does not match viewport")
+        check(measured["boundsChecks"] >= measured["dialogBoundsChecks"], "Dialog checks not included in bounds total")
     asset_field = rules.get("scene_asset_field")
     if asset_field:
         assets = {entry["path"]: entry for entry in asset_lock["files"]}
@@ -106,7 +127,7 @@ def verify_module(contract, directory, junit_directory, asset_lock):
             check(png_dimensions(data) == (variant["width"], variant["height"]), "Wrong PNG dimensions")
             check(name in findings and findings[name] == [], "Missing/nonempty findings")
             measured = metrics.get(name)
-            measurement_check(measured, screen, contract, asset_lock)
+            measurement_check(measured, screen, contract, asset_lock, variant)
             digest = sha256(data)
             duplicates[digest].append(name + ".png")
             for field in contract["measurements"].get("duration_fields", []):
