@@ -205,7 +205,8 @@ public class NativeHomeTipLayoutTest {
   }
 
   JSONArray rect(RectF value) {
-    return new JSONArray().put(value.left).put(value.top).put(value.right).put(value.bottom);
+    return new JSONArray().put((Object) value.left).put((Object) value.top)
+        .put((Object) value.right).put((Object) value.bottom);
   }
 
   JSONObject fitConstraints(HomeHost h, LobbyView l, float scale) throws Exception {
