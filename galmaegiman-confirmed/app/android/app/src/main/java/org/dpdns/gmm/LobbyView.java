@@ -60,7 +60,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   static void warm(MainActivity host) {
-    host.art.scene("/duel/bg/" + room(host) + "char.webp", () -> {});
+    host.art.asset("release-v1/characters/home-guide-map.png");
     for (String icon :
         new String[] {
           "u-story",
@@ -90,7 +90,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
           if (!SceneMotion.enabled(host)) parallax.close();
         };
     room = room(host);
-    image("bg/" + room + "char.webp");
+    // Representative guide is bundled locally; no room-dependent network image.
     setWillNotDraw(false);
     gull = host.button("갈매미 조언", this::showGullTip);
     gull.setTextColor(Color.TRANSPARENT);
@@ -461,8 +461,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   boolean ready() {
-    return homeArt.ready() && visibleArt.containsKey("bg/" + room + "char.webp")
-        && visibleBounds.containsKey("bg/" + room + "char.webp");
+    return homeArt.ready() && homeArt.hero() != null && homeArt.heroBounds() != null;
   }
 
   void fit(Canvas c, Bitmap image, RectF r) {
@@ -641,9 +640,8 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   void character(Canvas c) {
-    String path = "bg/" + room + "char.webp";
-    Bitmap bitmap = visibleArt.get(path);
-    Rect source = visibleBounds.get(path);
+    Bitmap bitmap = homeArt.hero();
+    Rect source = homeArt.heroBounds();
     if (bitmap == null || source == null) return;
     RectF area = heroBox();
     p.setShader(null);

@@ -147,6 +147,9 @@ public class ReleaseHomeLayoutTest {
           HomeHost h = controller.get();
           layout(h, p[0], p[1], p[2], p[3], p[4], p[5]);
           LobbyView l = lobby(h);
+          assertTrue("All home artwork including local map-reading guide loads", l.homeArt.ready());
+          assertNotNull(l.homeArt.hero());
+          assertNotNull(l.homeArt.heroBounds());
           assertEquals("All original and added commands remain accessible", 15, l.buttons.size());
           RectF safe = h.safeBounds(l.getWidth(), l.getHeight());
           for (Button button : l.buttons) containedTouch(h, l, button, safe);

@@ -16,7 +16,8 @@ final class HomeArt {
     for (String file : new String[] {"backgrounds/bg-home.png", "ui/button-primary.png",
         "ui/button-secondary.png", "icons/harbor.png", "icons/explore.png", "icons/draw.png",
         "icons/team.png", "icons/combine.png", "icons/shop.png", "icons/daily.png",
-        "icons/settings.png", "icons/peanut.png", "icons/shrimp-snack.png"}) {
+        "icons/settings.png", "icons/peanut.png", "icons/shrimp-snack.png",
+        "characters/home-guide-map.png"}) {
       Bitmap b = host.art.asset("release-v1/" + file);
       if (b != null) {
         images.put(file, b);
@@ -25,7 +26,10 @@ final class HomeArt {
     }
   }
 
-  boolean ready() { return images.size() == 13; }
+  boolean ready() { return images.size() == 14; }
+
+  Bitmap hero() { return images.get("characters/home-guide-map.png"); }
+  Rect heroBounds() { return bounds.get("characters/home-guide-map.png"); }
 
   void background(Canvas canvas, int width, int height) {
     Bitmap b = images.get("backgrounds/bg-home.png");
