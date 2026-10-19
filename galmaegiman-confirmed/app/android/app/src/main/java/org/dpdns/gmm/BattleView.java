@@ -525,23 +525,39 @@ final class BattleView extends FrameLayout implements FullBleed {
                   }
                 });
         b.setTypeface(host.headline);
-        b.setTextSize(18);
-        b.setMaxLines(2);
-        b.setGravity(Gravity.CENTER);
-        b.setPadding(host.dp(8), host.dp(8), host.dp(8), host.dp(10));
+        // 기존 판·07 확정 시안처럼 이름을 크게 쓰고, 아이콘과 이름을 한 묶음으로 버튼 가운데에 둔다.
+        b.setTextSize(tablet ? (ix == 3 ? 30 : 33) : (ix == 3 ? 23 : 27));
+        float labelWidth = Math.max(host.dp(60), (panelWidth - host.dp(8)) / 2f - host.dp(20));
+        float measuredLabel = b.getPaint().measureText(names[ix]);
+        if (measuredLabel > labelWidth)
+          b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, b.getTextSize() * labelWidth / measuredLabel);
+        b.setSingleLine(true);
+        b.setHorizontallyScrolling(false);
+        b.setIncludeFontPadding(false);
         String[] surfaces = {"attack", "item", "switch", "surrender"};
         String name = surfaces[ix];
         b.setBackground(new BattleSkin(host, "button-" + name));
         b.setTextColor(ix == 3 ? JournalTheme.INK : 0xfffff8e8);
+        Paint.FontMetrics metrics = b.getPaint().getFontMetrics();
+        float textHeight = metrics.descent - metrics.ascent;
+        int iconHeight = 0, gap = host.dp(4);
         Bitmap image = BattleSkin.bitmap(host, "icon-" + name);
         if (image != null && uiHeight >= host.dp(320) && host.getResources().getConfiguration().fontScale < 1.5f) {
           android.graphics.drawable.BitmapDrawable icon = new android.graphics.drawable.BitmapDrawable(getResources(),image);
-          int bound=host.dp(tablet ? 64 : 56);
-          float scale=Math.min((float)bound/image.getWidth(),(float)bound/image.getHeight());
-          icon.setBounds(0,0,Math.round(image.getWidth()*scale),Math.round(image.getHeight()*scale));
-          b.setCompoundDrawables(null,icon,null,null);
-          b.setCompoundDrawablePadding(host.dp(6));
+          int bound=Math.min(host.dp(tablet ? 64 : 56), Math.round(height - textHeight - gap - host.dp(16)));
+          if (bound >= host.dp(28)) {
+            float scale=Math.min((float)bound/image.getWidth(),(float)bound/image.getHeight());
+            icon.setBounds(0,0,Math.round(image.getWidth()*scale),Math.round(image.getHeight()*scale));
+            iconHeight = icon.getBounds().height();
+            b.setCompoundDrawables(null,icon,null,null);
+            b.setCompoundDrawablePadding(gap);
+          }
         }
+        // drawableTop은 위 안쪽 여백에 붙으므로, 아이콘+간격+이름 묶음 높이로 위 여백을 계산해 세로 가운데에 맞춘다.
+        int block = Math.round(iconHeight + (iconHeight > 0 ? gap : 0) + textHeight);
+        int top = Math.max(host.dp(6), (height - block) / 2);
+        b.setGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
+        b.setPadding(host.dp(8), top, host.dp(8), 0);
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, height, 1);
         p.setMargins(host.dp(3), host.dp(3), host.dp(3), host.dp(3));
         line.addView(b, p);
@@ -654,15 +670,6 @@ final class BattleView extends FrameLayout implements FullBleed {
     for(Button button:new Button[]{combo,back}) {
       button.setTextSize(16); button.setBackground(new BattleSkin(host,button==combo?"button-item":"button-surrender"));
       button.setTextColor(button==combo?0xfffff8e8:JournalTheme.INK);
-      // 확정 시안처럼 합동기는 날개, 뒤로가기는 되돌림 아이콘을 글자 왼쪽에 둔다.
-      Bitmap mark=BattleSkin.bitmap(host,button==combo?"icon-combo":"icon-back");
-      if(mark!=null) {
-        android.graphics.drawable.BitmapDrawable d=new android.graphics.drawable.BitmapDrawable(getResources(),mark);
-        int bound=host.dp(26);float k=Math.min((float)bound/mark.getWidth(),(float)bound/mark.getHeight());
-        d.setBounds(0,0,Math.round(mark.getWidth()*k),Math.round(mark.getHeight()*k));
-        button.setCompoundDrawables(d,null,null,null);button.setCompoundDrawablePadding(host.dp(4));
-        button.setPadding(host.dp(10),0,host.dp(8),0);
-      }
       LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,host.dp(52),1);
       lp.setMargins(host.dp(3),host.dp(6),host.dp(3),0);footer.addView(button,lp);
     }
