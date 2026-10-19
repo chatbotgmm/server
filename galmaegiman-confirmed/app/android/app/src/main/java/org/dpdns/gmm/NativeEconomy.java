@@ -71,7 +71,10 @@ final class NativeEconomy {
       if (m.lastDraw != null)
         banner.addView(k.action(null, "지난 결과", () -> reveal(m.lastDraw, () -> h.load("draw"), true)),
             new LinearLayout.LayoutParams(h.dp(100), h.dp(48)));
-      counter.addView(banner, new LinearLayout.LayoutParams(-1, h.dp(60)));
+      // Round the fixed action and both insets separately, as Android measures them.
+      // At 2.25 density dp(60) is one pixel shorter than dp(48) + 2 * dp(6).
+      counter.addView(banner, new LinearLayout.LayoutParams(-1,
+          h.dp(48) + banner.getPaddingTop() + banner.getPaddingBottom()));
 
       LinearLayout stations = k.row();
       stations.setTag("recruitment-stations");
@@ -927,6 +930,9 @@ final class NativeEconomy {
                     "보유 " + count + " / " + maxStack, 1, "개"));
           }
           LinearLayout panel = economyBody("market-counter");
+          // Give the short safe-area shelf four more dp without changing the
+          // calibrated card frame inset, text sizes, purchase controls or artwork.
+          panel.setPadding(panel.getPaddingLeft(), h.dp(4), panel.getPaddingRight(), h.dp(4));
           int perPage = 3;
           Runnable[] paint = new Runnable[1];
           paint[0] =
@@ -1582,7 +1588,9 @@ final class NativeEconomy {
 
   LinearLayout crewTile(JSONObject unit, String detail) {
     LinearLayout tile = k.column();
-    tile.setPadding(h.dp(2), h.dp(2), h.dp(2), h.dp(2));
+    // Keep the one-line name and the full 48dp target; return two vertical dp
+    // to the contained sprite at short high-density/font-scaled viewports.
+    tile.setPadding(h.dp(2), h.dp(1), h.dp(2), h.dp(1));
     tile.setGravity(Gravity.CENTER);
     tile.setBackground(PartyCharacterView.selection(h, false));
     tile.setContentDescription(unit.optString("name") + " · " + detail);

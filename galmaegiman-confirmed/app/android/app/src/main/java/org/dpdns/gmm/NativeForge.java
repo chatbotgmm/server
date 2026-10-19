@@ -177,7 +177,6 @@ final class NativeForge extends FrameLayout {
     TextView outcome = h.text(fail ? "조합 확인" : "조합 완료!", 24);
     outcome.setTypeface(h.headline);
     words.addView(outcome);
-    if (result != null && !fail) words.addView(k.note("카드를 누르면 대원 기록"));
     String resultText =
         text == null || text.isEmpty() ? (fail ? "조합이 맞지 않아 재료는 그대로예요." : "새로운 갈매미를 얻었어요.") : RecruitmentText.display(text);
     TextView message = k.note(resultText);

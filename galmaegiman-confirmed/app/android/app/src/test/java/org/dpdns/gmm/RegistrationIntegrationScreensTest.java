@@ -342,8 +342,20 @@ public class RegistrationIntegrationScreensTest {
       int[] updates = {0};
       host.menus.teamPicker(false, candidates, () -> updates[0]++);
       View dialog = geometry.layoutDialog(host);
-      View first = dialog.findViewWithTag("lineup-candidate-o1");
-      assertNotNull(first);
+      // D1 keeps the existing tutorial anchor, which replaces its ordinary candidate tag.
+      View first = dialog.findViewWithTag("tutorial:team-unit");
+      assertNotNull("D1 story candidate retains its tutorial anchor", first);
+      assertSame("Tutorial resolves the same selectable tile", first, host.guide.findTag(dialog, "tutorial:team-unit"));
+      assertEquals("o1", candidates.get(0).getString("key"));
+      assertEquals("D1", candidates.get(0).getString("id"));
+      int anchoredSprites = 0;
+      for (View view : geometry.descendants(first))
+        if (view instanceof PartyCharacterView.Artwork) {
+          character(host, view, "D1");
+          anchoredSprites++;
+        }
+      assertEquals("Anchor belongs to exactly the expected whole-sprite candidate", 1, anchoredSprites);
+      assertTrue("Initially selected instance remains selected", first.isSelected());
       int cards = 0;
       for (View view : geometry.descendants(dialog))
         if (view instanceof PartyCharacterView.Artwork) {

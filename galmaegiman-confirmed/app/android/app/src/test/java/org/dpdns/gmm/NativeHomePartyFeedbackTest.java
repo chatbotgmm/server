@@ -554,8 +554,25 @@ public class NativeHomePartyFeedbackTest {
       for (int i = 0; i < lobby.buttons.size(); i++) assertEquals("Drag cannot move a menu", controls.get(i), bounds(lobby.buttons.get(i), h.root));
       event(lobby, MotionEvent.ACTION_CANCEL, x + h.dp(120), y + h.dp(60));
       assertNotNull("Cancel starts damped return", lobby.parallax.returning);
-      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(HomeGullDrag.RETURN_MILLIS + 200));
+      // PAUSED Choreographer delivers vsync when the clock advances. A single large jump
+      // can deliver only the animator's first frame at that new time; advance actual frames.
+      float releasedX = Math.abs(lobby.parallax.x), previousX = releasedX;
+      float previousY = Math.abs(lobby.parallax.y);
+      boolean intermediateDecay = false;
+      for (long elapsed = 0; elapsed < HomeGullDrag.RETURN_MILLIS + 200; elapsed += 16) {
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(16));
+        float currentX = Math.abs(lobby.parallax.x), currentY = Math.abs(lobby.parallax.y);
+        assertTrue("Damped return never grows or overshoots", currentX <= previousX + .001f);
+        assertTrue("Vertical compression decays without overshoot", currentY <= previousY + .001f);
+        intermediateDecay |= currentX > .001f && currentX < releasedX - .001f;
+        previousX = currentX; previousY = currentY;
+      }
+      assertTrue("Actual animation frames include a partial damped return", intermediateDecay);
       assertEquals(0, lobby.parallax.x, .001f); assertEquals(0, lobby.parallax.y, .001f);
+      Bitmap settled = render(h.root); settled.recycle();
+      assertEquals("Feet remain planted after the return frames", original.bottom, lobby.heroPose.bottom, .01f);
+      for (int i = 0; i < lobby.buttons.size(); i++)
+        assertEquals("Return frames cannot move a menu", controls.get(i), bounds(lobby.buttons.get(i), h.root));
       assertNull(lobby.parallax.returning); assertEquals("home", h.screen); assertTrue(api.writes.isEmpty());
       write("home-grounded-drag.json", MainActivity.obj("feetY", original.bottom, "controlsChecked", controls.size(),
           "actualTouchDispatch", true, "cancelledReturnSettled", true, "apiWrites", api.writes.size()));

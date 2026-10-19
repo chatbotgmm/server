@@ -288,7 +288,7 @@ final class NativeReveal extends FrameLayout {
       footer.removeAllViews();
       if (flow != null && units.length() > 0) {
         flow.selected = Math.max(0, Math.min(flow.selected, units.length() - 1));
-        selectedLabel.setText("모집 결과 " + units.length() + "종 · 카드를 누르면 대원 기록");
+        selectedLabel.setText("모집 결과 " + units.length() + "종");
         for (int j = 0; j < shown.size(); j++) {
           int serverIndex = resultPage * RESULT_PAGE_SIZE + j;
           RevealCard card = shown.get(j);

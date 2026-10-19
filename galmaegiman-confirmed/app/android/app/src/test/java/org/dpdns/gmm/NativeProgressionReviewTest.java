@@ -74,11 +74,22 @@ public class NativeProgressionReviewTest {
             } finally { image.recycle(); }
             TextView summary = f.h.root.findViewWithTag("progression-summary");
             assertNotNull(name + " actual server summary", summary);
-            assertTrue(name + " opaque reading surface", summary.getBackground() instanceof GamePaperDrawable);
+            View card = f.h.root.findViewWithTag("progression-feature-card");
+            assertNotNull(name + " meaningful central card", card);
+            assertTrue(name + " opaque reading surface", card.getBackground() instanceof GamePaperDrawable);
+            TextView headline = f.h.root.findViewWithTag("progression-headline");
+            assertNotNull(headline);
+            assertEquals(android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 22, f.h.getResources().getDisplayMetrics()), headline.getTextSize(), .1f);
+            assertEquals(android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 16, f.h.getResources().getDisplayMetrics()), summary.getTextSize(), .1f);
+            ImageView illustration = f.h.root.findViewWithTag("progression-feature-art");
+            assertNotNull(illustration); assertNotNull(illustration.getDrawable());
+            assertEquals(f.h.dp(64), illustration.getWidth()); assertEquals(f.h.dp(64), illustration.getHeight());
+            assertEquals("Canonical art stays inside its card", frames.bounds(illustration, f.h.root), frames.visible(illustration, f.h.root));
             assertEquals(name + " readable ink", JournalTheme.INK, summary.getCurrentTextColor());
             if (tab.equals("pass")) {
-              assertTrue(summary.getText().toString().contains("100점"));
-              assertTrue(summary.getText().toString().contains("지원서 3장"));
+              assertTrue(headline.getText().toString().contains("100점"));
+              assertTrue(summary.getText().toString().contains("100점 달성 보상"));
+              assertTrue(headline.getText().toString().contains("지원서 3장"));
               TextView page = f.h.root.findViewWithTag("progression-page-label");
               assertNotNull(page); assertEquals("1 / 5", page.getText().toString());
               assertTrue(page.getBackground() instanceof GamePaperDrawable);
@@ -149,7 +160,7 @@ public class NativeProgressionReviewTest {
     assertFalse("nonempty native glyphs " + view.getText(), worldGlyphs.isEmpty());
     assertTrue("native glyph ink " + view.getText(), visible.contains(worldGlyphs));
     int inkPixels = 0;
-    if ("progression-summary".equals(view.getTag()) || "progression-page-label".equals(view.getTag())) {
+    if ("progression-summary".equals(view.getTag()) || "progression-headline".equals(view.getTag()) || "progression-page-label".equals(view.getTag())) {
       for (int y = Math.max(0, worldGlyphs.top); y < Math.min(capturedPixels.getHeight(), worldGlyphs.bottom); y++)
         for (int x = Math.max(0, worldGlyphs.left); x < Math.min(capturedPixels.getWidth(), worldGlyphs.right); x++) {
           int color = capturedPixels.getPixel(x, y);

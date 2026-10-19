@@ -169,6 +169,41 @@ final class NativeProgression {
     contents.addView(view, new LinearLayout.LayoutParams(-1, 0, 1));
   }
 
+  void featureCard(String headline, String detail, String iconName, JSONObject unit) {
+    LinearLayout card = k.row(); card.setTag("progression-feature-card");
+    card.setBaselineAligned(false); card.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    card.setBackground(new GamePaperDrawable(h));
+    card.setPadding(h.dp(20), h.dp(6), h.dp(20), h.dp(6));
+    android.graphics.Bitmap image = null;
+    String species = unit == null ? "" : unit.optString("id");
+    // Display identity is the actual species, never combatDefinitionId/inheritedFrom.
+    if (species.matches("[A-Za-z][0-9]{1,3}")) {
+      try (java.io.InputStream input = h.getAssets().open("game-art/thumbs/" + species + ".jpg")) {
+        image = android.graphics.BitmapFactory.decodeStream(input);
+      } catch (java.io.IOException ignored) { }
+    }
+    boolean canonicalPortrait = image != null;
+    if (image == null) image = JournalIcons.create(h, iconName);
+    ImageView picture = new ImageView(h); picture.setTag("progression-feature-art");
+    picture.setScaleType(ImageView.ScaleType.FIT_CENTER); picture.setImageBitmap(image);
+    picture.setContentDescription(canonicalPortrait ? species + " 정본 모습" : "보상 아이콘");
+    card.addView(picture, new LinearLayout.LayoutParams(h.dp(64), h.dp(64)));
+    LinearLayout words = k.column(); words.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    LinearLayout.LayoutParams wordSlot = new LinearLayout.LayoutParams(0, -2, 1);
+    wordSlot.leftMargin = h.dp(20); card.addView(words, wordSlot);
+    TextView title = h.text(headline, 22); title.setTextSize(22); title.setTypeface(h.headline);
+    title.setTag("progression-headline"); title.setTextColor(JournalTheme.INK);
+    title.setPadding(0, 0, 0, h.dp(3)); title.setIncludeFontPadding(false);
+    title.setSingleLine(false); title.setMaxLines(1); title.setHorizontallyScrolling(false); title.setEllipsize(null);
+    words.addView(title, new LinearLayout.LayoutParams(-1, -2));
+    TextView subtitle = h.text(detail, 16); subtitle.setTextSize(16); subtitle.setTypeface(h.prose);
+    subtitle.setTag("progression-summary"); subtitle.setTextColor(JournalTheme.INK);
+    subtitle.setPadding(0, 0, 0, 0); subtitle.setIncludeFontPadding(false);
+    subtitle.setSingleLine(false); subtitle.setMaxLines(2); subtitle.setHorizontallyScrolling(false); subtitle.setEllipsize(null);
+    words.addView(subtitle, new LinearLayout.LayoutParams(-1, -2));
+    contents.addView(card, new LinearLayout.LayoutParams(-1, 0, 1));
+  }
+
   int page(int count) { return Math.max(0, Math.min(pages.getOrDefault(tab, 0), Math.max(0, count - 1))); }
 
   void pagination(int count) {
@@ -212,8 +247,9 @@ final class NativeProgression {
     JSONObject reward = rewards.optJSONObject(page(rewards.length()));
     if (reward == null) return;
     String id = reward.optString("id");
-    summary("플레이 패스 · " + pass.optInt("points") + "점\n"
-        + reward.optInt("points") + "점 보상 · 지원서 " + reward.optInt("credits") + "장", 3);
+    featureCard("지원서 " + reward.optInt("credits") + "장 · " + pass.optInt("points") + "점",
+        reward.optInt("points") + "점 달성 보상\n" + (reward.optBoolean("claimed") ? "수령 완료" : reward.optBoolean("claimable") ? "수령 가능" : "점수 부족"),
+        "u-ticket", null);
     String label = reward.optBoolean("claimed") ? "수령 완료" : reward.optBoolean("claimable") ? "단계 보상 받기" : "점수 부족";
     action("progression-pass-" + id, label, !blocked() && !id.isEmpty() && reward.optBoolean("claimable")
         && !reward.optBoolean("claimed"), () -> submit("pass/claim", h.obj("milestoneId", id)));
@@ -225,8 +261,9 @@ final class NativeProgression {
     long activeFor = clock.remaining(r.optLong("expiresAt"), SystemClock.elapsedRealtime());
     long deadline = r.optLong("nextClaimAt"); boolean ready = clock.ready(deadline);
     String active = r.optBoolean("available") && activeFor > 0 ? "사용 가능 · 남은 " + duration(activeFor) : "보유 추가 횟수 없음";
-    summary("증강 다시뽑기 +1 · 5시간마다 받기 · 30분 유효\n" + active + "\n"
-        + (ready ? "지금 받을 수 있어요." : "다음 수령까지 " + duration(clock.remaining(deadline, SystemClock.elapsedRealtime())) + " · 이후 새로 확인"), 4);
+    featureCard("증강 다시뽑기 +1", active + " · 30분 유효\n"
+        + (ready ? "5시간마다 · 지금 수령 가능" : "다음 수령까지 " + duration(clock.remaining(deadline, SystemClock.elapsedRealtime()))),
+        "reverse", null);
     action("progression-reroll-claim", "+1 받기", !blocked() && ready, () -> submit("reroll/claim", new JSONObject()));
   }
 
@@ -242,11 +279,10 @@ final class NativeProgression {
     if (candidates.isEmpty()) { summary("서버에서 확인된 대상 개체가 없어요.", 2); return; }
     JSONObject unit = candidates.get(page(candidates.size())); String key = unit.optString("key");
     boolean eligible = !reincarnation || (unit.optBoolean("eligible") && !unit.optBoolean("locked"));
-    String detail = unit.optString("name") + " · " + unit.optString("rarity") + " · 개체 " + key
-        + (reincarnation ? "\n일반 등급 · 다음 환생 +" + (unit.optInt("reincarnation") + 1) : "\n고급 모집 · 같은 등급으로 재심사");
-    if (!eligible) detail += "\n" + unit.optString("reason", "지금은 대상이 아니에요.");
-    if (cooldown) detail += "\n재심사 대기 " + duration(clock.remaining(section.optLong("nextAvailableAt"), SystemClock.elapsedRealtime()));
-    summary(detail, 4);
+    String status = reincarnation ? "일반 등급 · 다음 환생 +" + (unit.optInt("reincarnation") + 1) : "고급 모집 · 같은 등급 재심사";
+    if (!eligible) status = unit.optString("reason", "지금은 대상이 아니에요.");
+    if (cooldown) status = "같은 등급 · 재심사 대기 " + duration(clock.remaining(section.optLong("nextAvailableAt"), SystemClock.elapsedRealtime()));
+    featureCard(unit.optString("name"), unit.optString("rarity") + " · 개체 " + key + "\n" + status, "u-profile", unit);
     action("progression-" + kind + "-" + key, reincarnation ? "이 개체 환생 확인" : "이 개체 재심사 확인",
         !blocked() && eligible && !cooldown, () -> confirm(kind, unit));
     pagination(candidates.size());
