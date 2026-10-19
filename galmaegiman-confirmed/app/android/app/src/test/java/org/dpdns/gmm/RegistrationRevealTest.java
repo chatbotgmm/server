@@ -142,7 +142,7 @@ public class RegistrationRevealTest {
       assertNotNull(text(reveal, "NEW"));
       assertNotNull(text(reveal, "×3"));
       assertNotNull(text(reveal, "×6"));
-      assertNotNull(text(reveal, "불멸"));
+      assertNull("Tier is already printed on the FULL card", text(reveal, "불멸"));
       assertEquals(0, reveal.animations.size());
       reveal.finish();
       reveal.finish();
@@ -232,7 +232,7 @@ public class RegistrationRevealTest {
   }
 
   @Test
-  public void realFullCardsNamesBadgesAndInlineActionsFitPhoneTabletAndLargeFont() throws Exception {
+  public void largeFullCardsAvoidDuplicateIdentityAndKeepBadgesAndInlineActionsAtEveryViewport() throws Exception {
     for (float scale : new float[] {1, 1.3f}) {
       RuntimeEnvironment.setFontScale(scale);
       for (int[] size : new int[][] {{915, 412}, {1006, 411}, {1280, 720}}) {
@@ -258,11 +258,11 @@ public class RegistrationRevealTest {
             assertTrue(target.right <= image.getWidth() + .5f);
             assertTrue(target.bottom <= image.getHeight() + .5f);
             LinearLayout face = (LinearLayout) card.front;
-            assertTrue("이름은 그림 영역 아래에 실제 문자로 배치", face.getChildAt(0).getBottom()
-                <= face.getChildAt(1).getTop());
-            assertTrue(((TextView) face.getChildAt(1)).getTextSize() >= 14 * host.getResources().getDisplayMetrics().scaledDensity);
+            assertEquals("No name/tier rows outside the printed full card", 1, face.getChildCount());
+            assertNull("No second cream card wrapper", face.getBackground());
+            assertTrue("Card uses the recovered name/tier space", target.height() >= host.dp(180));
           }
-          assertNotNull(text(reveal, "꺼지지 않는 그림자"));
+          assertNull("Printed name is not repeated outside the image", text(reveal, "꺼지지 않는 그림자"));
           assertNotNull(text(reveal, "NEW"));
           assertNotNull(text(reveal, "×3"));
           assertNotNull(text(reveal, "×6"));
@@ -316,18 +316,36 @@ public class RegistrationRevealTest {
         JSONObject payload = MainActivity.obj("items", items);
         String untouched = payload.toString();
         NativeReveal reveal = attach(host, payload, () -> {}, true, null);
-        List<NativeReveal.RevealCard> shown = cards(reveal);
-        assertEquals(itemCount, shown.size());
-        int quantity = 0;
-        for (int i = 0; i < itemCount; i++) {
-          JSONObject expected = items.getJSONObject(i);
-          assertEquals(expected.getString("id"), acquisition.registrationArtwork(shown.get(i)).id);
-          assertNotNull(text(shown.get(i), expected.getString("name")));
-          assertEquals(expected.getBoolean("first"), text(shown.get(i), "NEW") != null);
-          if (expected.getInt("n") > 1)
-            assertNotNull(text(shown.get(i), "×" + expected.getInt("n")));
-          quantity += expected.getInt("n");
+        int quantity = 0, visited = 0;
+        List<RegistrationCardView.Artwork> oldArt = new ArrayList<>();
+        for (int page = 0; page < (itemCount + 2) / 3; page++) {
+          List<NativeReveal.RevealCard> shown = cards(reveal);
+          assertEquals(Math.min(3, itemCount - page * 3), shown.size());
+          for (int i = 0; i < shown.size(); i++) {
+            JSONObject expected = items.getJSONObject(page * 3 + i);
+            RegistrationCardView.Artwork art = acquisition.registrationArtwork(shown.get(i));
+            assertEquals(expected.getString("id"), art.id);
+            assertNull("Identity is printed only once", text(shown.get(i), expected.getString("name")));
+            assertTrue(shown.get(i).getContentDescription().toString().contains(expected.getString("name")));
+            assertEquals(expected.getBoolean("first"), text(shown.get(i), "NEW") != null);
+            if (expected.getInt("n") > 1)
+              assertNotNull(text(shown.get(i), "×" + expected.getInt("n")));
+            quantity += expected.getInt("n");
+            visited++;
+            oldArt.add(art);
+          }
+          if ((page + 1) * 3 < itemCount) {
+            reveal.findViewWithTag("acquisition-next-page").performClick();
+            review.viewport(host, host.root.getWidth(), host.root.getHeight());
+            for (RegistrationCardView.Artwork detached : oldArt) {
+              assertFalse("Previous page is detached", detached.isAttachedToWindow());
+              assertNull("Detached page does not retain 768px full bitmaps", detached.bitmap);
+            }
+          }
+          assertTrue("The global image cache stays bounded", host.registrationArt().cachedBytes()
+              <= RegistrationArt.MAX_CACHE_BYTES);
         }
+        assertEquals(itemCount, visited);
         assertEquals(drawCount, quantity);
         assertEquals(untouched, payload.toString());
         assertEquals(0, api.calls);

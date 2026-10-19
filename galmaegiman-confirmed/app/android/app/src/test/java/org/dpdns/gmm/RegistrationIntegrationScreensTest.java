@@ -130,7 +130,7 @@ public class RegistrationIntegrationScreensTest {
   }
 
   @Test
-  public void collectionKeepsEightInlineChoicesAndFullDetailWithinEachViewport() throws Exception {
+  public void collectionShowsThreeOrFourLargeFullCardsWithoutDuplicateIdentityWithinEachViewport() throws Exception {
     for (float scale : new float[] {1, 1.3f}) {
       RuntimeEnvironment.setFontScale(scale);
       for (int[] size : new int[][] {{915, 412}, {1006, 411}, {1280, 720}}) {
@@ -141,28 +141,30 @@ public class RegistrationIntegrationScreensTest {
           host.collection();
           layout(host, size[0], size[1]);
           ViewGroup grid = host.root.findViewWithTag("collection-inline-grid");
-          assertEquals(2, grid.getChildCount());
+          assertEquals(1, grid.getChildCount());
           int cards = 0;
           for (View view : geometry.descendants(grid))
             if (view instanceof RegistrationCardView.Artwork) {
-              artwork(view, RegistrationCardView.COMPACT);
+              artwork(view, RegistrationCardView.FULL);
               NativeNoScrollReviewTest.assertFullyVisible(view, host.root);
               cards++;
             }
-          assertEquals(8, cards);
+          assertEquals(host.menus.library.collectionPageSize(), cards);
           RegistrationCardView.Artwork selectedArt = artwork(
-              host.root.findViewWithTag("collection-selected-registration"), RegistrationCardView.FULL);
+              host.root.findViewWithTag("collection-registration-" + host.menus.library.selectedCollectionId), RegistrationCardView.FULL);
           NativeNoScrollReviewTest.assertFullyVisible(selectedArt, host.root);
           android.graphics.RectF display = new android.graphics.RectF();
           RegistrationCardView.contain(display, selectedArt.getWidth(), selectedArt.getHeight(), 768, 1024);
-          assertTrue("선택 등록증은 최소 108dp 너비", display.width() >= host.dp(108));
-          assertTrue("선택 등록증은 최소 144dp 높이", display.height() >= host.dp(144));
+          assertTrue("선택 등록증은 최소 135dp 너비", display.width() >= host.dp(135));
+          assertTrue("선택 등록증은 최소 180dp 높이", display.height() >= host.dp(180));
           for (String tag : new String[] {"collection-growth", "collection-team", "collection-craft", "collection-record"})
             NativeNoScrollReviewTest.assertFullyVisible(host.root.findViewWithTag(tag), host.root);
+          if (host.menus.library.collectionPageSize() == 3)
+            host.root.findViewWithTag("collection-next-page").performClick();
           View choice = host.root.findViewWithTag("collection-registration-C4");
           ((View) choice.getParent()).performClick();
           assertEquals("C4", host.menus.library.selectedCollectionId);
-          assertEquals("C4", artwork(host.root.findViewWithTag("collection-selected-registration"),
+          assertEquals("C4", artwork(host.root.findViewWithTag("collection-registration-C4"),
               RegistrationCardView.FULL).id);
           host.root.findViewWithTag("collection-record").performClick();
           assertNotNull(host.visibleDialog);
@@ -172,6 +174,48 @@ public class RegistrationIntegrationScreensTest {
           assertTrue("선택·기록 열기는 서버 쓰기 없음", api.writes.isEmpty());
         }
       }
+    }
+  }
+
+  @Test
+  public void oldServerRecruitmentSourceStillRoutesToDrawAfterVisibleTerminologyChanges() {
+    assertTrue(NativeLibrary.recruitmentSource("하급 뽑기에서 얻을 수 있어요"));
+    assertTrue(NativeLibrary.recruitmentSource("하급 모집에서 얻을 수 있어요"));
+    assertFalse(NativeLibrary.recruitmentSource("갈매미 조합"));
+  }
+
+  @Test
+  public void collectionOwnedAndSearchFiltersKeepEveryMatchingIdAcrossInlinePages() throws Exception {
+    try (ActivityController<MainActivity> controller = flow.start()) {
+      MainActivity host = controller.get();
+      FixtureApi api = prepare(host);
+      host.list(host.me(), "units").getJSONObject(1).put("have", 0);
+      host.collection();
+      layout(host, 915, 412);
+      button(host.root, "전체").performClick();
+      Set<String> seen = new HashSet<>();
+      do {
+        ViewGroup grid = host.root.findViewWithTag("collection-inline-grid");
+        for (View view : geometry.descendants(grid))
+          if (view instanceof RegistrationCardView.Artwork)
+            seen.add(((RegistrationCardView.Artwork) view).id);
+        Button next = host.root.findViewWithTag("collection-next-page");
+        if (!next.isEnabled()) break;
+        next.performClick();
+      } while (true);
+      assertEquals(9, seen.size());
+      assertFalse("Unowned species stays outside the owned filter", seen.contains("C2"));
+      EditText search = null;
+      for (View view : geometry.descendants(host.root)) if (view instanceof EditText) search = (EditText) view;
+      assertNotNull(search);
+      search.setText("아주 긴 이름");
+      ViewGroup filtered = host.root.findViewWithTag("collection-inline-grid");
+      List<String> matches = new ArrayList<>();
+      for (View view : geometry.descendants(filtered))
+        if (view instanceof RegistrationCardView.Artwork) matches.add(((RegistrationCardView.Artwork) view).id);
+      assertEquals(List.of("C4"), matches);
+      assertEquals("Search returns to its first matching page", 0, host.menus.library.collectionPage);
+      assertTrue(api.writes.isEmpty());
     }
   }
 
@@ -187,7 +231,7 @@ public class RegistrationIntegrationScreensTest {
         for (int i = 0; i < 3; i++) {
           View slot = host.root.findViewWithTag("lineup-slot-" + i);
           RegistrationCardView.Artwork art = artwork(slot.findViewWithTag("lineup-portrait"),
-              RegistrationCardView.COMPACT);
+              RegistrationCardView.FULL);
           assertEquals("C" + (i + 1), art.id);
           NativeNoScrollReviewTest.assertFullyVisible(art, host.root);
           View handle = slot.findViewWithTag(NativeTeamReorder.HANDLE_TAG);
@@ -198,12 +242,13 @@ public class RegistrationIntegrationScreensTest {
         int count = 0;
         for (View view : geometry.descendants(grid))
           if (view instanceof RegistrationCardView.Artwork) {
-            artwork(view, RegistrationCardView.COMPACT);
+            artwork(view, RegistrationCardView.FULL);
             NativeNoScrollReviewTest.assertFullyVisible(view, host.root);
             count++;
           }
-        assertEquals(6, count);
+        assertEquals(3, count);
         String fourth = pvp ? "C4" : "o4";
+        host.root.findViewWithTag("team-candidates-next").performClick();
         View replacement = host.root.findViewWithTag("team-candidate-registration-" + fourth);
         ((View) replacement.getParent()).performClick();
         assertEquals(fourth, host.menus.teamDraft.get(0));
@@ -219,7 +264,7 @@ public class RegistrationIntegrationScreensTest {
   }
 
   @Test
-  public void largeFontTeamsKeepSixPicturesAndReadableInlineActions() {
+  public void largeFontTeamsKeepThreeFullCandidatesAndReadableInlineActions() {
     RuntimeEnvironment.setFontScale(1.3f);
     for (String mode : new String[] {"story", "pvp"}) {
       try (ActivityController<MainActivity> controller = flow.start()) {
@@ -252,12 +297,12 @@ public class RegistrationIntegrationScreensTest {
         int count = 0;
         for (View view : geometry.descendants(grid))
           if (view instanceof RegistrationCardView.Artwork) {
-            artwork(view, RegistrationCardView.COMPACT);
+            artwork(view, RegistrationCardView.FULL);
             NativeNoScrollReviewTest.assertFullyVisible(view, host.root);
-            assertTrue("큰 글자에서도 후보 그림에 40dp 이상 배정", view.getHeight() >= host.dp(40));
+            assertTrue("큰 글자에서도 전체 후보 카드에 160dp 이상 배정", view.getHeight() >= host.dp(160));
             count++;
           }
-        assertEquals(6, count);
+        assertEquals(3, count);
         assertTrue(api.writes.isEmpty());
       }
     }
@@ -313,12 +358,12 @@ public class RegistrationIntegrationScreensTest {
         Button submit = host.root.findViewWithTag("draw-submit-" + kind);
         TextView total = host.root.findViewWithTag("draw-total-" + kind);
         View quantity = host.root.findViewWithTag("draw-quantity-" + kind);
-        assertEquals("지원서 받기", submit.getText().toString());
+        assertEquals("모집하기", submit.getText().toString());
         assertSame(card, submit.getParent());
         assertSame(card, total.getParent());
         button(quantity, "＋").performClick();
         assertTrue(total.getText().toString().startsWith("2회 · 총 "));
-        assertEquals("지원서 받기", submit.getText().toString());
+        assertEquals("모집하기", submit.getText().toString());
         assertTrue(submit.getContentDescription().toString().contains("2회"));
         assertTrue(quantity.getBottom() <= total.getTop());
         assertTrue(total.getBottom() <= submit.getTop());
@@ -337,7 +382,7 @@ public class RegistrationIntegrationScreensTest {
       // 그 sync barrier 뒤의 확인 Handler를 실행하지 못하므로 실제 창 배치를 진행한다.
       Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(32));
       TextView prompt = confirmation.findViewById(android.R.id.message);
-      assertTrue(prompt.getText().toString().contains("고급 2회"));
+      assertTrue(prompt.getText().toString().contains("고급 모집 2회"));
       assertTrue(prompt.getText().toString().contains("10장"));
       assertTrue("확정 전에는 추첨 요청 없음", api.writes.isEmpty());
       assertFalse("확인 전에 다른 요청으로 잠기지 않음", host.busy);

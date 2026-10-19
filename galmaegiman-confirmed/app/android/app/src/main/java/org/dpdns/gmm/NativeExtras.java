@@ -15,6 +15,7 @@ final class NativeExtras {
   final MainActivity h;
   final MenuKit k;
   int guide;
+  PopupWindow profilePopup;
 
   NativeExtras(NativeMenus m) {
     this.m = m;
@@ -67,10 +68,10 @@ final class NativeExtras {
             panel.setTag("daily-attendance-summary");
             panel.addView(heading(a.optInt("week") + "주째 · " + current + "일째", 18));
             int reward = today ? rewards.optInt(Math.max(0, current - 1)) : a.optInt("next");
-            panel.addView(heading((today ? "오늘 받은 " : "오늘 받을 ") + "뽑기권 " + reward + "장", 17));
+            panel.addView(heading((today ? "오늘 받은 " : "오늘 받을 ") + "지원서 " + reward + "장", 17));
             String next =
                 current < rewards.length()
-                    ? "내일 뽑기권 " + rewards.optInt(current) + "장"
+                    ? "내일 지원서 " + rewards.optInt(current) + "장"
                     : "다음은 새 주의 1일째 보상이에요.";
             panel.addView(k.note(next));
             if (a.optInt("streak") > 0) panel.addView(k.note(a.optInt("streak") + "일 연속 출석 중"));
@@ -136,7 +137,7 @@ final class NativeExtras {
             LinearLayout row = k.row();
             row.addView(
                 k.image("/duel/icons/" + (day == 7 ? "u-gift" : "u-ticket") + ".png", 28, 28));
-            TextView reward = heading(day + "일째 · 뽑기권 " + rewards.optInt(i) + "장", 17);
+            TextView reward = heading(day + "일째 · 지원서 " + rewards.optInt(i) + "장", 17);
             row.addView(reward, new LinearLayout.LayoutParams(0, -2, 1));
             TextView status = k.note(got ? "✓ 받음" : day == current ? "오늘" : "다음 보상");
             if (got) status.setTextColor(0xff397953);
@@ -155,7 +156,7 @@ final class NativeExtras {
     card.setPadding(h.dp(8), h.dp(7), h.dp(8), h.dp(7));
     card.setBackground(new GamePaperDrawable(h));
     LinearLayout heading = k.row();
-    TextView label = h.text(mission.optString("label"), 15);
+    TextView label = h.text(RecruitmentText.display(mission.optString("label")), 15);
     label.setTypeface(h.headline);
     label.setPadding(0, 0, h.dp(8), 0);
     heading.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
@@ -165,7 +166,7 @@ final class NativeExtras {
     reward.setTag("native-mission-reward");
     reward.setPadding(h.dp(4), 0, 0, 0);
     reward.setSingleLine(true);
-    reward.setContentDescription("뽑기권 " + reward.getText());
+    reward.setContentDescription("지원서 " + reward.getText());
     heading.addView(reward, new LinearLayout.LayoutParams(-2, -2));
     card.addView(heading);
     int goal = Math.max(1, mission.optInt("goal"));
@@ -497,17 +498,28 @@ final class NativeExtras {
   }
 
   void profile(View anchor) {
+    if (profilePopup != null) profilePopup.dismiss();
     LinearLayout panel = k.paper();
-    panel.setPadding(h.dp(12), h.dp(10), h.dp(12), h.dp(10));
+    panel.setTag("profile-popup");
+    panel.setPadding(h.dp(12), h.dp(10), h.dp(12), h.dp(12));
     panel.setBackground(new GamePanelDrawable(h));
-    panel.addView(heading(h.me().optString("nickname", "수비조장"), 20));
+    TextView name = heading(h.me().optString("nickname", "수비조장"), 20);
+    name.setTag("profile-name");
+    name.setTextColor(JournalTheme.WHITE);
+    name.setPadding(h.dp(16), h.dp(10), h.dp(16), h.dp(10));
+    name.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
+    panel.addView(name, new LinearLayout.LayoutParams(-1, -2));
     TextView rank = k.note("랭크를 불러오고 있어요…");
+    rank.setTag("profile-rank");
+    rank.setPadding(h.dp(6), h.dp(8), h.dp(6), h.dp(8));
     panel.addView(rank);
     int width =
         Math.min(
-            h.dp(292),
+            h.dp(324),
             (int) h.safeBounds(h.root.getWidth(), h.root.getHeight()).width() - h.dp(16));
     PopupWindow popup = new PopupWindow(panel, width, -2, true);
+    profilePopup = popup;
+    popup.setOnDismissListener(() -> { if (profilePopup == popup) profilePopup = null; });
     popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
     popup.setOutsideTouchable(true);
     popup.setElevation(h.dp(8));
@@ -519,13 +531,14 @@ final class NativeExtras {
         }) {
       Button button =
           k.action(
-              entry[0],
+              null,
               entry[1],
               () -> {
                 popup.dismiss();
                 if (entry[2].equals("settings")) settings();
                 else h.load(entry[2]);
               });
+      button.setTag("profile-action-" + entry[2]);
       button.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
       LinearLayout.LayoutParams row = new LinearLayout.LayoutParams(-1, h.dp(48));
       row.topMargin = h.dp(5);
@@ -563,7 +576,7 @@ final class NativeExtras {
                 + h.me().optInt("dex")
                 + " / "
                 + h.me().optInt("dexTotal")
-                + " · 뽑기권 "
+                + " · 지원서 "
                 + h.me().optInt("credits")
                 + " · 새우gang "
                 + h.me().optInt("snack")));

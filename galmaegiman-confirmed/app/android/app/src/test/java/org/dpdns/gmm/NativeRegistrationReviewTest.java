@@ -162,7 +162,7 @@ public class NativeRegistrationReviewTest {
     if (!page.equals("recruit")) {
       List<RegistrationCardView.Artwork> cards = artworks(host.root);
       assertEquals("Actual registration artwork count on " + page,
-          page.equals("result") ? 3 : 9, cards.size());
+          page.equals("result") ? 3 : page.equals("collection") ? host.menus.library.collectionPageSize() : 6, cards.size());
       for (RegistrationCardView.Artwork card : cards) {
         assertTrue("Registration image requires positive layout space before decode: "
                 + card.id + " tag=" + card.getTag() + " view=" + card.getWidth() + "x" + card.getHeight(),
@@ -236,6 +236,10 @@ public class NativeRegistrationReviewTest {
     for (RegistrationCardView.Artwork card : cards) {
       visible(host, card);
       assertNotNull("Ready bitmap", card.bitmap);
+      assertEquals("Primary cards always include the original printed identity", RegistrationCardView.FULL, card.mode);
+      float minimum = page.equals("collection") ? 180 : page.equals("result") ? 180 : 144;
+      assertTrue("Large complete card instead of tiny portrait: " + card.getTag() + " " + card.target,
+          card.target.height() >= host.dp(minimum));
       assertFalse("Nonempty contain target", card.target.isEmpty());
       assertTrue("Entire approved card/window remains inside its view: " + card.id
               + " tag=" + card.getTag() + " view=" + card.getWidth() + "x" + card.getHeight()
@@ -275,7 +279,7 @@ public class NativeRegistrationReviewTest {
         assertTrue(quantity.getBottom() <= total.getTop());
         assertTrue(total.getBottom() <= tag(host, "draw-submit-" + kind).getTop());
         assertTrue(((TextView) total).getText().toString().startsWith("1회 · 총 "));
-        assertEquals("지원서 받기", ((TextView) tag(host, "draw-submit-" + kind)).getText().toString());
+        assertEquals("모집하기", ((TextView) tag(host, "draw-submit-" + kind)).getText().toString());
         assertTrue(tag(host, "draw-submit-" + kind).getContentDescription().toString().contains("1회"));
         actions++;
       }
@@ -285,7 +289,7 @@ public class NativeRegistrationReviewTest {
         actions++;
       }
       assertEquals(RegistrationCardView.FULL,
-          ((RegistrationCardView.Artwork) tag(host, "collection-selected-registration")).mode);
+          ((RegistrationCardView.Artwork) tag(host, "collection-registration-" + host.menus.library.selectedCollectionId)).mode);
       assertEquals("D1", host.menus.library.selectedCollectionId);
     } else if (page.startsWith("team-")) {
       action(host, "tutorial:team-save");
@@ -316,8 +320,11 @@ public class NativeRegistrationReviewTest {
       }
       String labels = flow.labels(host.root);
       for (String id : new String[] {"D8", "E7", "L14"}) {
-        assertTrue("Real server fixture name is visible", labels.contains(species(id).getString("name")));
-        assertTrue("Real tier text is visible", labels.contains(species(id).getString("tierName")));
+        View card = tag(host, "acquisition-card-" + id);
+        assertTrue("Server identity remains available to accessibility",
+            card.getContentDescription().toString().contains(species(id).getString("name")));
+        assertTrue("Server tier remains available to accessibility",
+            card.getContentDescription().toString().contains(species(id).getString("tierName")));
       }
       assertTrue(labels.contains("NEW"));
       assertTrue(labels.contains("×3"));
@@ -333,6 +340,26 @@ public class NativeRegistrationReviewTest {
         "checkedActions", actions, "overlapChecks", overlapChecks,
         "loadedRegistrationImages", cards.size(), "registrationBounds", bounds,
         "apiWrites", api.writes.size(), "realBundledImages", true);
+  }
+
+  @Test public void enlargedCardsKeepSafeInsetsAndActionsAtLargeFontOnWidePhoneAndTablet() throws Exception {
+    RuntimeEnvironment.setFontScale(1.3f);
+    for (int[] size : new int[][] {{1006, 411}, {1280, 720}}) {
+      RuntimeEnvironment.setQualifiers("w" + size[0] + "dp-h" + size[1] + "dp-land-mdpi");
+      RuntimeEnvironment.setFontScale(1.3f);
+      for (String page : new String[] {"collection", "team-story", "team-pvp", "result"}) {
+        try (ActivityController<MainActivity> controller = flow.start()) {
+          MainActivity host = controller.get();
+          FakeApi api = prepare(host);
+          layout(host, size[0], size[1]);
+          show(host, page);
+          layout(host, size[0], size[1]);
+          awaitRealArt(host, page, size[0], size[1]);
+          layout(host, size[0], size[1]);
+          check(host, page, api);
+        }
+      }
+    }
   }
 
   /** Always written, including failures before the checked metrics are available. */

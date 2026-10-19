@@ -48,7 +48,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
       };
   final Map<String, Bitmap> visibleArt = new HashMap<>();
   final Map<String, Rect> visibleBounds = new HashMap<>();
-  static final String[] NAMES = {"탐험", "뽑기", "방범대", "조합", "상점"};
+  static final String[] NAMES = {"탐험", "모집", "방범대", "조합", "상점"};
   static final String[] IDS = {"expedition", "draw", "collection", "craft", "shop"};
   static final String[] ICONS = {"mode-camp", "u-draw", "mode-normal", "u-emblem", "u-shop"};
   final RectF[] boxes = new RectF[14];
@@ -109,7 +109,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
     add("설정", () -> host.load("settings"));
     add("새우gang · 상점", () -> host.load("shop"));
     add("땅콩 · 상점", () -> host.load("shop"));
-    add("뽑기권 · 상점", () -> host.load("shop"));
+    add("지원서 · 상점", () -> host.load("shop"));
     for (int i = 0; i < 5; i++) buttons.get(i).setTag("lobby-" + IDS[i]);
     buttons.get(5).setTag("lobby-play");
     buttons.get(6).setTag("lobby-daily");
@@ -899,7 +899,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
     buttons.get(7).setContentDescription("내 정보 · " + nick + " · " + summary);
     String[] keys = {"snack", "peanut", "credits"};
     String[] currencyIcons = {"shrimp-snack", "peanut", null};
-    String[] currencyNames = {"새우gang", "땅콩", "뽑기권"};
+    String[] currencyNames = {"새우gang", "땅콩", "지원서"};
     for (int i = 0; i < 3; i++) {
       RectF r = boxes[9 + i];
       homeArt.surface(c, "ui/button-primary.png", r);
@@ -991,7 +991,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
     }
     badges[5] = growth;
     buttons.get(0).setContentDescription(badges[0] ? "탐험 · 귀환 보상을 받을 수 있어요" : "탐험");
-    buttons.get(1).setContentDescription(badges[1] ? "뽑기 · 뽑기권을 받을 수 있어요" : "뽑기");
+    buttons.get(1).setContentDescription(badges[1] ? "모집 · 지원서를 받을 수 있어요" : "모집");
     buttons.get(5).setContentDescription(growth ? "플레이 · 배울 기술 또는 승진이 있어요" : "플레이");
     invalidate();
   }

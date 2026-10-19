@@ -8,7 +8,9 @@ final class JournalTheme {
   static final int PAPER = 0xfff3e9d3, INK = 0xff20343a, WOOD = 0xff153f50;
   static final int LEATHER = WOOD, BRASS = 0xffbc9555, TEAL = 0xff153f50;
   static final int MUTED = 0xff465860, WHITE = 0xffffffff, LINE = 0xffc9c4b5;
-  static final int SELECTED = 0xffdce8e6, DISABLED = 0xffd7d5cd;
+  static final int NAVY = 0xff10344c, STONE = 0xffeae7de;
+  static final int FOCUS = 0xff8edaff, SELECTED_EDGE = 0xff75cfff;
+  static final int SELECTED = 0xffe0edf3, DISABLED = 0xffd7d5cd;
   static final int PRIMARY = TEAL, PRIMARY_HIGHLIGHT = 0xff235469;
   static final int POSITIVE_INFO = 0xff326b71, NEGATIVE_INFO = 0xffa84336;
   private static final ThreadLocal<Paint> BRUSH = new ThreadLocal<Paint>() {
@@ -18,7 +20,13 @@ final class JournalTheme {
     Paint p = BRUSH.get(); p.reset(); p.setAntiAlias(true); return p;
   }
   private static final ColorStateList CONTROL_TEXT = colors(INK);
-  private static final ColorStateList PRIMARY_TEXT = colors(WHITE);
+  private static final ColorStateList PRIMARY_TEXT = new ColorStateList(
+      new int[][] {{-android.R.attr.state_enabled}, {}}, new int[] {0xffd3d7d9, WHITE});
+  private static final ColorStateList TAB_TEXT = new ColorStateList(
+      new int[][] {{-android.R.attr.state_enabled}, {android.R.attr.state_selected},
+          {android.R.attr.state_checked}, {}}, new int[] {MUTED, WHITE, WHITE, INK});
+  static ColorStateList tabText() { return TAB_TEXT; }
+  static ColorStateList navyText() { return PRIMARY_TEXT; }
 
   private static ColorStateList colors(int normal) {
     return new ColorStateList(new int[][] {
@@ -64,8 +72,8 @@ final class JournalTheme {
   }
   static void drawPaper(Canvas c, RectF b, float d, int edge) { drawPaper(c, b, d, edge, PAPER); }
   static void drawPaper(Canvas c, RectF b, float d, int edge, int fill) {
-    surface(c, b, d, fill, fill == SELECTED ? BRASS : LINE,
-        fill == SELECTED ? 2 : .7f, 0, brush());
+    int border = fill == SELECTED ? SELECTED_EDGE : edge == LEATHER ? LINE : edge;
+    surface(c, b, d, fill, border, fill == SELECTED ? 1.8f : .7f, 0, brush());
   }
   static void drawButton(Canvas c, RectF b, int fill, float radius, float depth, Paint paint) {
     Paint p = brush();

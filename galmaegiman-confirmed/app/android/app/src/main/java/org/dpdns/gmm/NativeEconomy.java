@@ -6,7 +6,7 @@ import android.widget.*;
 import java.util.*;
 import org.json.*;
 
-/** 기존 뽑기·조합·매점·탐험 화면의 그림과 수량·선택 동작. */
+/** 기존 모집·조합·매점·탐험 화면의 그림과 수량·선택 동작. */
 final class NativeEconomy {
   final NativeMenus m;
   final MainActivity h;
@@ -34,7 +34,7 @@ final class NativeEconomy {
   }
 
   void draw() {
-    h.base("뽑기", "draw");
+    h.base("모집", "draw");
     AppSkin.apply(h, "reception");
     m.fetch(
         "draw",
@@ -45,7 +45,7 @@ final class NativeEconomy {
                   || (compact() && h.getResources().getConfiguration().fontScale > 1.15f);
           LinearLayout banner = k.paper(), line = k.row(), words = k.column();
           TextView credits =
-              h.text("뽑기권 " + (r.optBoolean("unlimited") ? "무제한" : r.optInt("credits") + "장"), 18);
+              h.text("지원서 " + (r.optBoolean("unlimited") ? "무제한" : r.optInt("credits") + "장"), 18);
           TextView wait = k.note("");
           if (shortDraw) {
             banner.setPadding(h.dp(10), h.dp(4), h.dp(10), h.dp(4));
@@ -58,7 +58,8 @@ final class NativeEconomy {
             words.addView(wait);
           }
           line.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
-          Button claim = k.primary("u-ticket", "받기", this::claimTickets);
+          Button claim = k.primary("u-ticket", "지원서 받기", this::claimTickets);
+          claim.setTag("draw-claim");
           long ready = android.os.SystemClock.elapsedRealtime() + Math.max(0, r.optLong("wait"));
           tick(
               banner,
@@ -68,23 +69,28 @@ final class NativeEconomy {
                 wait.setText(
                     left > 0 ? "다음 지급 " + duration(left) : "지금 " + r.optInt("claim") + "장 받기");
               });
-          line.addView(claim, new LinearLayout.LayoutParams(h.dp(96), h.dp(48)));
+          line.addView(claim, new LinearLayout.LayoutParams(h.dp(124), h.dp(48)));
           line.addView(
-              k.action(null, "확률·보장", () -> drawGuide(r)),
+              k.action(null, "지급·보장", () -> drawGuide(r)),
               new LinearLayout.LayoutParams(h.dp(104), h.dp(48)));
           if (m.lastDraw != null)
             line.addView(
                 k.action(null, "지난 결과", () -> reveal(m.lastDraw, () -> h.load("draw"), true)),
                 new LinearLayout.LayoutParams(h.dp(100), h.dp(48)));
           banner.addView(line);
-          // 10-18 앱 배치 설계(뽑기 · 새 동료 맞이): 왼쪽 모집소 그림, 오른쪽에 뽑기권과 등급별 모집 카드.
-          LinearLayout[] cols = k.fixedSplit(.30f);
-          cols[0].addView(k.place("recruitment", .55f), new LinearLayout.LayoutParams(-1, 0, 1));
-          cols[1].addView(banner);
+          // 세 모집 창구를 실제 카운터 위에 배치하고 항구 배경이 보이는 여백을 남긴다.
+          h.page.removeViewAt(h.page.getChildCount() - 1);
+          LinearLayout counter = k.column();
+          counter.setTag("recruitment-counter");
+          counter.setPadding(h.dp(compact() ? 10 : 36), h.dp(6), h.dp(compact() ? 10 : 36), h.dp(8));
+          h.page.addView(counter, new LinearLayout.LayoutParams(-1, 0, 1));
+          h.body = counter;
+          counter.addView(banner, new LinearLayout.LayoutParams(-1, -2));
           LinearLayout cards = k.row();
-          cards.setGravity(Gravity.TOP);
+          cards.setTag("recruitment-stations");
+          cards.setGravity(Gravity.BOTTOM);
           cards.setBaselineAligned(false);
-          cols[1].addView(cards, new LinearLayout.LayoutParams(-1, 0, 1));
+          counter.addView(cards, new LinearLayout.LayoutParams(-1, 0, 1));
           JSONArray gachas = h.list(r, "gachas");
           for (int i = 0; i < gachas.length(); i++) {
             JSONObject g = gachas.optJSONObject(i);
@@ -92,11 +98,8 @@ final class NativeEconomy {
             int limit = r.optBoolean("unlimited") ? 50 : Math.min(50, r.optInt("credits") / cost);
             LinearLayout card = k.paper(), heading = k.row(), label = k.column();
             card.setTag("draw-card-" + g.optString("kind"));
-            heading.addView(
-                k.image(
-                    "/thumbs/" + g.optString("img") + ".jpg",
-                    shortDraw ? 24 : compact() ? 48 : 88,
-                    shortDraw ? 24 : compact() ? 48 : 88));
+            int sealSize = shortDraw ? 36 : compact() ? 56 : 88;
+            heading.addView(new RecruitmentSeal(h), new LinearLayout.LayoutParams(h.dp(sealSize), h.dp(sealSize)));
             TextView name = h.text(recruitmentLabel(g), 18);
             name.setTypeface(h.headline);
             if (shortDraw) {
@@ -110,11 +113,10 @@ final class NativeEconomy {
               heading.addView(costLabel);
             } else {
               label.addView(name);
-              label.addView(k.note("1회 · " + cost + "장  ›"));
+              label.addView(k.note("1회 · 지원서 " + cost + "장"));
               heading.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
             }
-            heading.setContentDescription(recruitmentLabel(g) + " · 확률과 보장 보기");
-            heading.setOnClickListener(v -> gachaGuide(g, r));
+            heading.setContentDescription(recruitmentLabel(g) + " · 1회당 지원서 " + cost + "장");
             card.addView(heading);
             int[] amount = {1};
             TextView total = k.note("");
@@ -124,13 +126,13 @@ final class NativeEconomy {
             Button go =
                 k.primary(
                     "u-ticket",
-                    "지원서 받기",
+                    "모집하기",
                     () ->
                         h.confirm(
-                            g.optString("label")
+                            recruitmentLabel(g)
                                 + " "
                                 + amount[0]
-                                + "회 · 뽑기권 "
+                                + "회 · 지원서 "
                                 + cost * amount[0]
                                 + "장을 사용할까요?",
                             () ->
@@ -148,9 +150,9 @@ final class NativeEconomy {
                 n -> {
                   amount[0] = n;
                   total.setText(n + "회 · 총 " + cost * n + "장");
-                  go.setText("지원서 받기");
-                  go.setContentDescription(recruitmentLabel(g) + " · 지원서 받기 · " + n
-                      + "회 · 뽑기권 " + cost * n + "장");
+                  go.setText("모집하기");
+                  go.setContentDescription(recruitmentLabel(g) + " · 모집하기 · " + n
+                      + "회 · 지원서 " + cost * n + "장");
                 });
             quantityLimit(card, limit);
             card.getChildAt(card.getChildCount() - 1)
@@ -158,8 +160,8 @@ final class NativeEconomy {
             card.addView(total);
             go.setEnabled(limit > 0);
             if (limit <= 0) {
-              go.setText("뽑기권 부족");
-              go.setContentDescription(recruitmentLabel(g) + " · 뽑기권 부족");
+              go.setText("지원서 부족");
+              go.setContentDescription(recruitmentLabel(g) + " · 지원서 부족");
               total.setText("필요 " + cost + "장 · 보유 " + r.optInt("credits") + "장");
             }
             card.addView(go, new LinearLayout.LayoutParams(-1, h.dp(48)));
@@ -173,10 +175,40 @@ final class NativeEconomy {
             if (!shortDraw) card.addView(hint);
             // 카드는 내용 높이만 쓴다(태블릿에서 아래로 빈 종이가 늘어나지 않게).
             LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, -2, 1);
-            slot.setMargins(h.dp(3), h.dp(4), h.dp(3), 0);
+            slot.setMargins(h.dp(compact() ? 5 : 14), h.dp(4), h.dp(compact() ? 5 : 14), 0);
             cards.addView(card, slot);
           }
         });
+  }
+
+  /** Reuses the production envelope atlas without animation, requests or new artwork. */
+  static final class RecruitmentSeal extends View {
+    final MainActivity host;
+    final int epoch;
+    final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    final RectF target = new RectF();
+    Bitmap atlas;
+
+    RecruitmentSeal(MainActivity host) {
+      super(host);
+      this.host = host;
+      epoch = host.epoch;
+      setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+      host.registrationArt().requestEnvelope(image -> {
+        if (host.isFinishing() || host.isDestroyed() || host.epoch != epoch) return;
+        atlas = image;
+        invalidate();
+      });
+    }
+
+    @Override protected void onDraw(Canvas canvas) {
+      super.onDraw(canvas);
+      if (atlas == null || atlas.isRecycled()) return;
+      float side = Math.min(getWidth(), getHeight());
+      target.set((getWidth() - side) / 2, (getHeight() - side) / 2,
+          (getWidth() + side) / 2, (getHeight() + side) / 2);
+      canvas.drawBitmap(atlas, ApplicationEnvelopeView.sourceRect(0), target, paint);
+    }
   }
 
   void claimTickets() {
@@ -205,6 +237,7 @@ final class NativeEconomy {
   }
 
   void showTicketReward(Object result, boolean refreshOnClose) {
+    String message = result == null ? "지급이 완료됐어요." : RecruitmentText.display(String.valueOf(result)).replace("🎟", "").trim();
     LinearLayout reward = k.column();
     reward.setTag("ticket-reward-body");
     reward.setPadding(h.dp(20), h.dp(16), h.dp(20), h.dp(8));
@@ -212,11 +245,11 @@ final class NativeEconomy {
     head.addView(k.image("/duel/icons/u-ticket.png", 52, 52));
     head.addView(
         h.text(
-            result != null && String.valueOf(result).contains("뽑기권 +") ? "뽑기권을 받았어요!" : "뽑기권 안내",
+            message.contains("지원서 +") ? "지원서를 받았어요!" : "지원서 안내",
             22));
     reward.addView(head);
     TextView details =
-        k.note(result == null ? "지급이 완료됐어요." : String.valueOf(result).replace("🎟", "").trim());
+        k.note(message);
     details.setTextSize(17);
     reward.addView(details);
     new GameDialog(h)
@@ -787,8 +820,8 @@ final class NativeEconomy {
             offers.add(
                 shopOffer(
                     "u-ticket",
-                    "뽑기권 " + tickets.optInt("amount") + "장",
-                    "새우gang으로 뽑기권을 사요.",
+                    "지원서 " + tickets.optInt("amount") + "장",
+                    "새우gang으로 지원서를 사요.",
                     tickets.optInt("snack"),
                     Math.min(50, r.optInt("snack") / Math.max(1, tickets.optInt("snack"))),
                     "새우gang",
@@ -800,8 +833,8 @@ final class NativeEconomy {
             offers.add(
                 shopOffer(
                     "u-peanut",
-                    "뽑기권 " + peanut.optInt("amount") + "장",
-                    "땅콩으로 뽑기권을 바꿔요.",
+                    "지원서 " + peanut.optInt("amount") + "장",
+                    "땅콩으로 지원서를 바꿔요.",
                     1,
                     Math.min(50, r.optInt("peanut")),
                     "땅콩",
@@ -1696,7 +1729,7 @@ final class NativeEconomy {
     JSONObject sources = h.state.optJSONObject("sources");
     String source = sources == null ? "" : sources.optString(id);
     if (source.isEmpty()) source = find(id).optString("source");
-    return source;
+    return RecruitmentText.display(source);
   }
 
   void materialGuide(JSONObject material) {
@@ -1707,6 +1740,7 @@ final class NativeEconomy {
         k.note("사용 가능 " + material.optInt("usable") + " · 필요 " + material.optInt("need")));
     String where = material.optString("source");
     if (where.isEmpty()) where = source(material.optString("id"));
+    where = RecruitmentText.display(where);
     panel.addView(k.note(where.isEmpty() ? "도감에서 얻는 곳을 확인해 주세요." : "얻는 곳 · " + where));
     panel.addView(
         k.note(
@@ -1717,7 +1751,7 @@ final class NativeEconomy {
                 + "마리는 재료로 쓰지 않아요."));
     GameDialog dialog = new GameDialog(h);
     dialog.setScrollBody(panel).setPositiveButton("닫기", (d, w) -> {});
-    if (where.contains("뽑기")) dialog.setNeutralButton("뽑기", (d, w) -> h.load("draw"));
+    if (where.contains("모집")) dialog.setNeutralButton("모집", (d, w) -> h.load("draw"));
     if (where.contains("조합"))
       dialog.setNegativeButton(
           "조합식",
@@ -1735,50 +1769,21 @@ final class NativeEconomy {
       case "LOW": return "하급 모집";
       case "MID": return "중급 모집";
       case "HIGH": return "고급 모집";
-      default: return gacha.optString("label") + " 모집";
+      default: return RecruitmentText.display(gacha.optString("label")) + " 모집";
     }
-  }
-
-  void gachaGuide(JSONObject gacha, JSONObject draw) {
-    LinearLayout panel = k.paper();
-    panel.addView(h.text(recruitmentLabel(gacha) + " 확률", 22));
-    panel.addView(k.note("1회당 뽑기권 " + gacha.optInt("cost") + "장 · 낮은 등급도 나올 수 있어요."));
-    JSONArray weights = h.list(gacha, "weights");
-    for (int i = 0; i < weights.length(); i++) {
-      JSONObject weight = weights.optJSONObject(i);
-      LinearLayout row = k.row();
-      row.addView(k.note(weight.optString("tierName")), new LinearLayout.LayoutParams(0, -2, 1));
-      TextView percent = h.text(String.format(Locale.KOREA, "%.1f%%", weight.optDouble("w")), 17);
-      percent.setSingleLine(true);
-      percent.setPadding(h.dp(8), h.dp(5), h.dp(8), h.dp(5));
-      row.addView(percent, new LinearLayout.LayoutParams(-2, -2));
-      panel.addView(row);
-    }
-    JSONObject pity = draw.optJSONObject("pity");
-    if (gacha.optString("kind").equals("HIGH") && pity != null)
-      panel.addView(
-          k.note(
-              pity.optString("tierName") + " 보장까지 " + pity.optInt("left") + "회 · 고급 모집에만 누적돼요."));
-    else panel.addView(k.note("이 모집은 보장 횟수를 누적하지 않아요."));
-    new GameDialog(h).setView(k.scroll(panel)).setPositiveButton("확인", (d, w) -> {}).show();
   }
 
   void drawGuide(JSONObject draw) {
     LinearLayout panel = k.paper();
-    panel.addView(h.text("확률·획득 보상", 22));
+    panel.addView(h.text("지원서 지급·보장", 22));
     panel.addView(
         k.note(
-            "뽑기권은 " + draw.optDouble("cooldownHours") + "시간마다 " + draw.optInt("claim") + "장 받아요."));
+            "지원서는 " + draw.optDouble("cooldownHours") + "시간마다 " + draw.optInt("claim") + "장 받아요."));
     JSONObject event = draw.optJSONObject("event");
-    if (event != null) panel.addView(k.note(event.optString("label")));
+    if (event != null) panel.addView(k.note(RecruitmentText.display(event.optString("label"))));
     panel.addView(k.note("중급·고급 모집에서도 흔함·안흔함이 나와요. 보장은 고급 모집에만 적용돼요."));
-    JSONArray offered = h.list(draw, "gachas");
-    for (int i = 0; i < offered.length(); i++) {
-      JSONObject gacha = offered.optJSONObject(i);
-      panel.addView(
-          k.action(null, recruitmentLabel(gacha) + " 확률 보기", () -> gachaGuide(gacha, draw)),
-          new LinearLayout.LayoutParams(-1, h.dp(48)));
-    }
+    panel.addView(k.note("등급별 상세 확률은 설정 > 모집 확률에서 한 번에 확인할 수 있어요."));
+    panel.addView(k.note(RecruitmentProbabilityView.pityText(draw)));
     JSONObject rewards = economy().optJSONObject("rewards");
     JSONArray gachas = h.list(draw, "gachas");
     LinkedHashMap<String, String> tiers = new LinkedHashMap<>();
@@ -1790,7 +1795,7 @@ final class NativeEconomy {
       }
     }
     if (rewards != null) {
-      panel.addView(k.note("획득 시 자동 지급되는 새우gang · 뽑기권 환급이 아니에요."));
+      panel.addView(k.note("획득 시 자동 지급되는 새우gang · 지원서 환급이 아니에요."));
       for (Map.Entry<String, String> tier : tiers.entrySet()) {
         JSONObject reward = rewards.optJSONObject(tier.getKey());
         if (reward != null)
@@ -1846,7 +1851,7 @@ final class NativeEconomy {
     ArrayList<String> extra = new ArrayList<>();
     if (plan.commonPercent > 0) extra.add("흔함 1마리 " + plan.commonPercent + "%");
     if (plan.uncommonPercent > 0) extra.add("안흔함 1마리 " + plan.uncommonPercent + "%");
-    if (plan.ticketPercent > 0) extra.add("뽑기권 1장 " + plan.ticketPercent + "%");
+    if (plan.ticketPercent > 0) extra.add("지원서 1장 " + plan.ticketPercent + "%");
     if (!extra.isEmpty()) parent.addView(k.note("추가 보상 · " + String.join(" · ", extra)));
     if (!plan.active.isEmpty()) parent.addView(k.note("적용 중 · " + String.join(" · ", plan.active)));
   }
@@ -1916,7 +1921,7 @@ final class NativeEconomy {
                             : key.equals("BLOSSOM")
                                 ? "안흔함 1마리 " + v[0] + "/" + v[1] + "%"
                                 : key.equals("COSMOS")
-                                    ? "뽑기권 1장 " + v[0] + "/" + v[1] + "%"
+                                    ? "지원서 1장 " + v[0] + "/" + v[1] + "%"
                                     : "마리당 새우gang +" + v[0] + "/+" + v[1];
         panel.addView(k.note(synergyLabel(key) + " · " + effect));
       }

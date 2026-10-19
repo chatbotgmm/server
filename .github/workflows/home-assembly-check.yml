@@ -1,4 +1,4 @@
-# Isolated home/registration verification plus authorized preview prerelease publication.
+# Isolated home/registration/shared-theme verification plus authorized preview prerelease publication.
 # No server deployment or signing secrets; only the gated release job can write contents.
 name: Home assembly check
 
@@ -55,6 +55,15 @@ jobs:
           --repo "${{ github.workspace }}"
           --output app/build/registration-ci/source-verification.json
 
+      - name: Test shared-theme validation checks
+        run: python3 -m unittest discover -s ci -p test_verify_theme_ci.py -v
+      - name: Verify shared-theme assets and preserve all other sprites
+        id: theme_source
+        run: >
+          python3 ci/verify_theme_ci.py source
+          --repo "${{ github.workspace }}"
+          --output app/build/theme-ci/source-verification.json
+
       # The project excludes NativeRenderReviewTest unless a review token is supplied.
       # Do not supply that token: R1 uses local fixtures and bundled artwork instead.
       # Loopback prevents missing art/API fallbacks from reaching the production service.
@@ -70,7 +79,7 @@ jobs:
         id: full_gate
         run: >
           python3 ci/verify_registration_ci.py junit app/build/test-results/testDebugUnitTest
-          --minimum-tests 260 --previous-skipped 16
+          --minimum-tests 290 --previous-skipped 16
           --require-suite org.dpdns.gmm.NativeAcquisitionFlowTest
           --require-suite org.dpdns.gmm.NativeOperationUiTest
           --require-suite org.dpdns.gmm.NativeNoScrollReviewTest
@@ -84,6 +93,9 @@ jobs:
           --require-suite org.dpdns.gmm.ReleaseHomeMotionTest
           --require-suite org.dpdns.gmm.NativeBackNavigationTest
           --require-unskipped-suite org.dpdns.gmm.NativeRegistrationReviewTest
+          --require-unskipped-suite org.dpdns.gmm.NativeThemeReviewTest
+          --require-unskipped-suite org.dpdns.gmm.NativeThemeStateTest
+          --require-unskipped-suite org.dpdns.gmm.NativeRecruitmentProbabilityTest
           --output app/build/registration-ci/full-suite.json
       # Upload before the targeted rerun overwrites testDebugUnitTest reports.
       - name: Save full native unit-test reports
@@ -95,6 +107,7 @@ jobs:
             galmaegiman-confirmed/app/android/app/build/reports/tests/
             galmaegiman-confirmed/app/android/app/build/test-results/
             galmaegiman-confirmed/app/android/app/build/registration-ci/
+            galmaegiman-confirmed/app/android/app/build/theme-ci/
           if-no-files-found: warn
           retention-days: 14
 
@@ -183,14 +196,58 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      # Registration JUnit reports above are retained before this targeted rerun.
+      - name: Native shared-theme settings, profile and representative page captures
+        if: ${{ !cancelled() }}
+        id: theme
+        run: >
+          bash ./gradlew :app:testDebugUnitTest
+          --tests org.dpdns.gmm.NativeThemeReviewTest
+          --tests org.dpdns.gmm.NativeThemeStateTest
+          -PnativeServer=http://127.0.0.1:9
+          -PnativeReviewOutput=${{ github.workspace }}/galmaegiman-confirmed/app/android/app/build/theme-review
+          --no-daemon --max-workers=2 --stacktrace
+          "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
+      - name: Verify 32 actual theme captures, measured geometry and coverage limits
+        if: ${{ !cancelled() && steps.theme.outcome == 'success' }}
+        id: theme_gate
+        run: |
+          python3 ci/verify_registration_ci.py junit app/build/test-results/testDebugUnitTest \
+            --require-unskipped-suite org.dpdns.gmm.NativeThemeReviewTest \
+            --require-unskipped-suite org.dpdns.gmm.NativeThemeStateTest \
+            --output app/build/theme-ci/theme-tests.json
+          python3 ci/verify_theme_ci.py captures app/build/theme-review/theme \
+            --output app/build/theme-ci/theme-captures.json
+          python3 ci/verify_theme_ci.py coverage app/build/theme-ci/theme-captures.json \
+            --output app/build/theme-ci/coverage-report.json
+      - name: Save theme screenshots, findings and measured checks
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-theme-screenshots-${{ github.sha }}
+          path: galmaegiman-confirmed/app/android/app/build/theme-review/theme/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Save targeted theme-test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-theme-test-reports-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/reports/tests/
+            galmaegiman-confirmed/app/android/app/build/test-results/
+          if-no-files-found: warn
+          retention-days: 14
+
       # Build again without the test-only loopback override. APKs retain the existing
       # server URL, package IDs and debug signing behavior from app/build.gradle.
       - name: Assemble debug and separately installable preview APKs
         if: >-
-          ${{ !cancelled() && steps.source.outcome == 'success'
+          ${{ !cancelled() && steps.source.outcome == 'success' && steps.theme_source.outcome == 'success'
           && steps.unit.outcome == 'success' && steps.full_gate.outcome == 'success'
           && steps.home.outcome == 'success' && steps.home_gate.outcome == 'success'
-          && steps.registration.outcome == 'success' && steps.registration_gate.outcome == 'success' }}
+          && steps.registration.outcome == 'success' && steps.registration_gate.outcome == 'success'
+          && steps.theme.outcome == 'success' && steps.theme_gate.outcome == 'success' }}
         id: assemble
         run: >
           bash ./gradlew :app:assembleDebug :app:assemblePreview
@@ -204,6 +261,22 @@ jobs:
           app/build/outputs/apk/debug/app-debug.apk
           app/build/outputs/apk/preview/app-preview.apk
           --output app/build/registration-ci/apk-verification.json
+      - name: Verify both APK theme backgrounds, UI resources and protected home art
+        if: ${{ !cancelled() && steps.assemble.outcome == 'success' }}
+        id: theme_apk
+        run: >
+          python3 ci/verify_theme_ci.py apk
+          app/build/outputs/apk/debug/app-debug.apk
+          app/build/outputs/apk/preview/app-preview.apk
+          --output app/build/theme-ci/apk-verification.json
+      - name: Save shared-theme validation and coverage reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-theme-validation-${{ github.sha }}
+          path: galmaegiman-confirmed/app/android/app/build/theme-ci/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Save registration validation reports
         if: always()
         uses: actions/upload-artifact@v7
@@ -222,7 +295,7 @@ jobs:
           done
           echo 'APKs are inspection builds, not releases. Preview installs separately; APK availability does not mean all tests passed.' >> "$GITHUB_STEP_SUMMARY"
       - name: Save debug APK if built
-        if: ${{ always() && steps.assemble.outcome == 'success' && steps.apk_assets.outcome == 'success' }}
+        if: ${{ always() && steps.assemble.outcome == 'success' && steps.apk_assets.outcome == 'success' && steps.theme_apk.outcome == 'success' }}
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-debug-apk-${{ github.sha }}
@@ -231,7 +304,7 @@ jobs:
           retention-days: 14
           compression-level: 0
       - name: Save preview APK if built
-        if: ${{ always() && steps.assemble.outcome == 'success' && steps.apk_assets.outcome == 'success' }}
+        if: ${{ always() && steps.assemble.outcome == 'success' && steps.apk_assets.outcome == 'success' && steps.theme_apk.outcome == 'success' }}
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-preview-apk-${{ github.sha }}
@@ -272,6 +345,7 @@ jobs:
           - 기본 네이티브 단위 테스트 전체, 홈 및 등록증 네이티브 캡처, debug/preview APK 빌드와 145장 등록증·봉투·메타데이터 해시 검사가 통과한 결과입니다.
           - 홈 캡처: 915×412, 1006×411(안전 영역), 1280×720. PNG 및 검사 보고서는 같은 Actions 실행의 아티팩트에 보관됩니다.
           - 등록증 캡처: 모집·도감·스토리 편성·PvP 편성·결과를 세 화면 크기와 915×412 큰 글자 1.3배로 확인합니다. 직접 시각검수·실기기 검수 완료를 뜻하지 않습니다.
+          - 공통 테마 추가검사: 설정 4탭·프로필·모드·상점·탐험 32개 네이티브 캡처/실측과 상태 테스트, 배경7개·UI6개·기존 홈인물/아이콘11개 SHA 검사를 통과했습니다. 대표 화면 검사이며 전앱 모든 페이지/상태 검수 완료를 뜻하지 않습니다.
           - 패키지 \`org.dpdns.gmm.native.revised.r1preview\`로 기존 정식 앱 옆에 따로 설치됩니다. 정식 앱 업데이트가 아닙니다.
           - 디버그 서명은 실행마다 달라질 수 있습니다. 설치 충돌 시 미리보기 앱만 제거한 뒤 설치하세요. 미리보기 앱의 로컬 데이터는 삭제됩니다.
           - APK는 기존 운영 서버 주소를 사용합니다. 이 작업은 서버·DB에 배포하지 않습니다.

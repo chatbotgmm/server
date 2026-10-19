@@ -13,6 +13,7 @@ final class GamePanelDrawable extends Drawable {
 
   GamePanelDrawable(MainActivity h) {
     host = h;
+    ThemeArt.of(h).image(ThemeArt.file(ThemeArt.Surface.PANEL));
   }
 
   @Override
@@ -24,8 +25,7 @@ final class GamePanelDrawable extends Drawable {
       p.setColorFilter(filter);
       c.saveLayer(bounds, p);
     }
-    JournalTheme.drawPanel(
-        c, bounds, host.getResources().getDisplayMetrics().density, JournalTheme.PAPER, true);
+    ThemeArt.of(host).surface(c, ThemeArt.Surface.PANEL, bounds);
     c.restoreToCount(save);
   }
 

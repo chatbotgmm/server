@@ -58,7 +58,7 @@ public class RegistrationCardViewTest {
     });
   }
 
-  @Test public void actualNameTierNewCountAndAccessibilityStayRealTextAtBothFontScales() throws Exception {
+  @Test public void fullCardAvoidsDuplicateVisibleIdentityButKeepsBadgesAndAccessibilityAtBothFontScales() throws Exception {
     for (float scale : new float[] {1f, 1.3f}) {
       RuntimeEnvironment.setFontScale(scale);
       try (ActivityController<MainActivity> controller = flow.start()) {
@@ -77,10 +77,10 @@ public class RegistrationCardViewTest {
         String text = new NativeGameFlowTest().labels(card);
         assertTrue("NEW is an accessible runtime TextView", text.contains("NEW"));
         assertTrue("Count is a runtime TextView", text.contains("×3"));
-        assertTrue(card.name.getTop() >= card.getChildAt(0).getBottom());
-        assertTrue(card.grade.getTop() >= card.name.getBottom());
-        NativeNoScrollReviewTest.assertFullyVisible(card.name, host.root);
-        NativeNoScrollReviewTest.assertFullyVisible(card.grade, host.root);
+        assertEquals("FULL already contains the printed name", View.GONE, card.name.getVisibility());
+        assertEquals("FULL already contains the printed tier", View.GONE, card.grade.getVisibility());
+        assertEquals("The image gets all card height", card.getHeight(), card.picture.getHeight());
+        NativeNoScrollReviewTest.assertFullyVisible(card.picture, host.root);
         assertEquals("Canonical ID wins over misleading image URL", "C1", card.picture.id);
         int bucket = RegistrationArt.widthBucket(RegistrationCardView.FULL,
             card.picture.getWidth(), card.picture.getHeight());
@@ -88,6 +88,17 @@ public class RegistrationCardViewTest {
         try { RegistrationArtTest.samePixels("C1, never C2 from image URL", reference, card.picture.bitmap); }
         finally { reference.recycle(); }
       }
+    }
+  }
+
+  @Test public void legacyCompactWindowKeepsItsOnlyVisibleNameAndTier() {
+    try (ActivityController<MainActivity> controller = flow.start()) {
+      MainActivity host = controller.get();
+      RegistrationCardView card = new RegistrationCardView(host, unit("C1"), RegistrationCardView.COMPACT);
+      attach(host, card, 220, 260);
+      assertEquals(View.VISIBLE, card.name.getVisibility());
+      assertEquals(View.VISIBLE, card.grade.getVisibility());
+      assertEquals("서버가 보낸 실제 대원 이름", card.name.getText().toString());
     }
   }
 
@@ -167,6 +178,8 @@ public class RegistrationCardViewTest {
       assertNull("Missing canonical ID is not another bird", card.picture.bitmap);
       assertEquals("서버가 보낸 실제 대원 이름", card.name.getText().toString());
       assertEquals("서버 등급", card.grade.getText().toString());
+      assertEquals("Failed art needs a readable identity fallback", View.VISIBLE, card.name.getVisibility());
+      assertEquals(View.VISIBLE, card.grade.getVisibility());
       assertTrue(card.picture.getContentDescription().toString().contains("이미지를 불러오지 못했어요"));
       assertTrue("Wrapper announces failed art while picture is not separately focusable",
           card.getContentDescription().toString().contains("이미지를 불러오지 못했어요"));

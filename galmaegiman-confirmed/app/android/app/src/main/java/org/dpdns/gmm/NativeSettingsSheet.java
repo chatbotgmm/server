@@ -22,91 +22,86 @@ final class NativeSettingsSheet {
 
   static LinearLayout paperRow(MainActivity h) {
     LinearLayout row = new MenuKit(h).row();
-    row.setBackground(new GamePaperDrawable(h));
-    row.setPadding(h.dp(10), h.dp(4), h.dp(10), h.dp(7));
+    row.setBackground(new SettingRowDrawable(h));
+    row.setPadding(h.dp(6), 0, h.dp(6), 0);
     return row;
   }
 
   static void addRow(MainActivity h, LinearLayout parent, View row) {
     LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-    lp.bottomMargin = h.dp(6);
+    lp.bottomMargin = h.dp(4);
     parent.addView(row, lp);
   }
 
   static void show(MainActivity h) {
     MenuKit k = new MenuKit(h);
     AlertDialog[] box = new AlertDialog[1];
-    LinearLayout content = k.column();
-    content.setPadding(h.dp(16), h.dp(2), h.dp(16), h.dp(12));
+    LinearLayout content = k.row();
+    content.setGravity(Gravity.TOP);
+    content.setPadding(h.dp(8), h.dp(10), h.dp(h.compact() ? 42 : 84), h.dp(24));
     content.setTag("settings-dialog-body");
-    content.setBackgroundColor(0xfff3e9d3);
     LinearLayout title = k.row();
     title.setTag("settings-dialog-header");
-    title.setPadding(h.dp(20), h.dp(12), h.dp(20), h.dp(8));
-    title.addView(k.image("/duel/icons/u-settings.png", 24, 24));
-    TextView heading = h.text("정보 · 설정", 20);
+    title.setPadding(h.dp(8), h.dp(8), h.dp(8), 0);
+    TextView heading = h.text("설정", 22);
     heading.setTypeface(h.headline);
-    title.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
+    heading.setGravity(Gravity.CENTER_VERTICAL);
+    heading.setPadding(h.dp(18), 0, h.dp(18), 0);
+    heading.setTextColor(JournalTheme.WHITE);
+    heading.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
+    title.addView(heading, new LinearLayout.LayoutParams(h.dp(220), h.dp(48)));
+    title.addView(new View(h), new LinearLayout.LayoutParams(0, 1, 1));
     Button close = action(h, "×", () -> box[0].dismiss());
     close.setTextSize(24);
     close.setTag("settings-dialog-close");
     close.setContentDescription("설정 닫기");
     title.addView(close, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
-    // 10-18 앱 배치 설계(정보 · 설정): 왼쪽 남색 분류(소리·연출 / 알림 / 계정), 오른쪽에는 고른 분류만 보인다.
-    LinearLayout columns = k.row();
-    columns.setGravity(Gravity.TOP);
-    columns.setTag("settings-dialog-columns");
-    content.addView(columns, new LinearLayout.LayoutParams(-1, -2));
     LinearLayout nav = k.column();
     nav.setTag("settings-dialog-nav");
-    nav.setPadding(h.dp(8), h.dp(8), h.dp(8), h.dp(8));
-    android.graphics.drawable.GradientDrawable navy = new android.graphics.drawable.GradientDrawable();
-    navy.setColor(JournalTheme.PRIMARY);
-    navy.setCornerRadius(h.dp(10));
-    nav.setBackground(navy);
-    LinearLayout.LayoutParams navSlot = new LinearLayout.LayoutParams(h.dp(h.compact() ? 132 : 176), -1);
+    nav.setPadding(h.dp(8), h.dp(6), h.dp(8), h.dp(6));
+    nav.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAV));
+    LinearLayout.LayoutParams navSlot = new LinearLayout.LayoutParams(h.dp(h.compact() ? 142 : 170), h.dp(218));
     navSlot.rightMargin = h.dp(10);
-    columns.addView(nav, navSlot);
-    LinearLayout panel = k.infoPanel();
-    columns.addView(panel, new LinearLayout.LayoutParams(0, -2, 1));
+    content.addView(nav, navSlot);
+    FrameLayout panel = new FrameLayout(h);
+    panel.setTag("settings-reading-panel");
+    panel.setPadding(h.dp(14), h.dp(10), h.dp(14), h.dp(10));
+    panel.setBackground(new GamePanelDrawable(h));
+    content.addView(panel, new LinearLayout.LayoutParams(0, h.dp(218), 1));
     LinearLayout left = k.column(), alertsCol = k.column(), right = k.column();
-    String[] names = {"소리·연출", "알림", "계정"};
-    LinearLayout[] pages = {left, alertsCol, right};
-    Button[] tabs = new Button[3];
-    Runnable[] pick = new Runnable[3];
-    for (int i = 0; i < 3; i++) {
+    LinearLayout probability = RecruitmentProbabilityView.content(h);
+    String[] names = {"소리", "알림", "계정", "모집 확률"};
+    LinearLayout[] pages = {left, alertsCol, right, probability};
+    View[] containers = new View[pages.length];
+    Button[] tabs = new Button[pages.length];
+    Runnable[] pick = new Runnable[pages.length];
+    for (int i = 0; i < pages.length; i++) {
       int index = i;
-      panel.addView(pages[i], new LinearLayout.LayoutParams(-1, -2));
-      Button tab = h.button(names[i], () -> pick[index].run());
-      tab.setBackgroundColor(Color.TRANSPARENT);
-      tab.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-      tab.setTextSize(17);
-      tab.setPadding(h.dp(10), 0, h.dp(6), 0);
+      pages[i].setTag("settings-page-" + i);
+      // 긴 계정 설명만 자기 판 안에서 스크롤한다. 소리·알림과 왼쪽 탭은 고정이다.
+      View container = i >= 2 ? k.scroll(pages[i]) : pages[i];
+      containers[i] = container;
+      container.setVisibility(View.GONE);
+      panel.addView(container, new FrameLayout.LayoutParams(-1, -1));
+      Button tab = action(h, names[i], () -> pick[index].run());
+      tab.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.TAB));
+      tab.setTextColor(JournalTheme.tabText());
+      tab.setGravity(Gravity.CENTER);
+      tab.setTextSize(16);
+      tab.setPadding(h.dp(8), 0, h.dp(8), 0);
       tab.setTag("settings-tab-" + i);
-      nav.addView(tab, new LinearLayout.LayoutParams(-1, h.dp(52)));
+      tab.setContentDescription(names[i] + " 설정");
+      LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(-1, h.dp(48));
+      if (i > 0) slot.topMargin = h.dp(3);
+      nav.addView(tab, slot);
       tabs[i] = tab;
-      pick[i] =
-          () -> {
-            for (int j = 0; j < 3; j++) {
-              pages[j].setVisibility(j == index ? View.VISIBLE : View.GONE);
-              tabs[j].setTextColor(j == index ? Color.WHITE : 0xb3ffffff);
-              tabs[j].setTypeface(h.headline, j == index ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
-              tabs[j].setSelected(j == index);
-            }
-          };
+      pick[i] = () -> {
+        for (int j = 0; j < pages.length; j++) {
+          containers[j].setVisibility(j == index ? View.VISIBLE : View.GONE);
+          tabs[j].setSelected(j == index);
+        }
+      };
     }
-    TextView soundHeading = h.text("소리·연출", 20);
-    soundHeading.setTypeface(h.headline);
-    soundHeading.setPadding(h.dp(4), 0, 0, h.dp(6));
-    left.addView(soundHeading);
-    TextView alertHeading = h.text("알림", 20);
-    alertHeading.setTypeface(h.headline);
-    alertHeading.setPadding(h.dp(4), 0, 0, h.dp(6));
-    alertsCol.addView(alertHeading);
-    TextView accountHeading = h.text("계정", 20);
-    accountHeading.setTypeface(h.headline);
-    accountHeading.setPadding(h.dp(4), 0, 0, h.dp(6));
-    right.addView(accountHeading);
     LinearLayout master = paperRow(h);
     TextView label = h.text("전체 소리", 17);
     label.setTypeface(h.prose);
@@ -116,12 +111,14 @@ final class NativeSettingsSheet {
     addRow(h, left, master);
     LinearLayout audio = AudioControlView.pair(h);
     left.addView(audio);
-    TextView restore = k.note("각 슬라이더 오른쪽에서 음소거해요. 다시 켜면 이전 볼륨으로 돌아와요.");
-    restore.setPadding(h.dp(4), h.dp(8), h.dp(4), 0);
+    TextView restore = k.note("음소거를 풀면 이전 볼륨으로 돌아와요.");
+    restore.setPadding(h.dp(4), h.dp(5), h.dp(4), 0);
     left.addView(restore);
     Runnable sync =
         () -> {
           all.setText(h.sound.masterMuted() ? "꺼짐" : "켜짐");
+          all.setContentDescription("전체 소리 " + (h.sound.masterMuted() ? "켜기" : "끄기"));
+          all.setSelected(!h.sound.masterMuted());
           int fill = h.sound.masterMuted() ? GameButtonDrawable.PAPER : GameButtonDrawable.PRIMARY;
           all.setBackground(new GameButtonDrawable(h, fill));
           all.setTextColor(JournalTheme.controlText(fill));
@@ -138,7 +135,7 @@ final class NativeSettingsSheet {
       row.heading.setTextColor(JournalTheme.INK);
       row.value.setTextColor(JournalTheme.MUTED);
       row.slider.setProgressTintList(ColorStateList.valueOf(JournalTheme.TEAL));
-      row.slider.setThumbTintList(ColorStateList.valueOf(JournalTheme.BRASS));
+      row.slider.setThumbTintList(null);
     }
     sync.run();
     if (!h.api.token().isEmpty()) {
@@ -256,15 +253,15 @@ final class NativeSettingsSheet {
       addRow(h, right, expand);
       right.addView(danger);
       Switch alerts = new Switch(h);
-      alerts.setText("탐험·뽑기권 알림");
+      alerts.setText("탐험·지원서 알림");
       alerts.setTypeface(h.prose);
       alerts.setTextColor(MainActivity.INK);
-      alerts.setBackground(new GamePaperDrawable(h));
+      alerts.setBackground(new SettingRowDrawable(h));
       alerts.setPadding(h.dp(12), h.dp(5), h.dp(12), h.dp(8));
       int[][] toggleStates = new int[][] {{android.R.attr.state_checked}, {}};
       alerts.setThumbTintList(
-          new ColorStateList(toggleStates, new int[] {JournalTheme.TEAL, 0xff9b8c73}));
-      alerts.setTrackTintList(new ColorStateList(toggleStates, new int[] {0xffb8ced7, 0xffd8cfbb}));
+          new ColorStateList(toggleStates, new int[] {JournalTheme.BRASS, 0xff9b9a94}));
+      alerts.setTrackTintList(new ColorStateList(toggleStates, new int[] {JournalTheme.NAVY, 0xffc9c5ba}));
       alerts.setMinHeight(h.dp(48));
       alerts.setMinimumHeight(h.dp(48));
       alerts.setChecked(h.getSharedPreferences("native_account", 0).getBoolean("alerts", false));
@@ -282,14 +279,14 @@ final class NativeSettingsSheet {
       LinearLayout.LayoutParams alertsSlot = new LinearLayout.LayoutParams(-1, -2);
       alertsSlot.bottomMargin = h.dp(6);
       alertsCol.addView(alerts, alertsSlot);
-      alertsCol.addView(k.note("탐험 귀환과 뽑기권 충전을 알려 줘요. 정확한 시각이 아니라 몇 분 늦을 수 있어요."));
+      alertsCol.addView(k.note("탐험 귀환과 지원서 충전을 알려 줘요. 정확한 시각이 아니라 몇 분 늦을 수 있어요."));
     } else {
       right.addView(k.note("로그인하면 계정·쿠폰·튜토리얼을 이용할 수 있어요."));
-      alertsCol.addView(k.note("로그인하면 탐험·뽑기권 알림을 켤 수 있어요."));
+      alertsCol.addView(k.note("로그인하면 탐험·지원서 알림을 켤 수 있어요."));
     }
     pick[0].run();
     box[0] =
-        new GameDialog(h).setMaxWidthDp(1120).setFixedHeader(title).setScrollBody(content).show();
+        new GameDialog(h).setMaxWidthDp(1120).setFixedHeader(title).setFixedBody(content, 300).show();
     if (box[0].getWindow() != null)
       box[0].getWindow().setBackgroundDrawable(new GameSettingsDrawable(h));
   }

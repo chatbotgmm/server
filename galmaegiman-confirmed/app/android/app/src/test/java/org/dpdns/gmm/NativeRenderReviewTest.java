@@ -117,7 +117,7 @@ public class NativeRenderReviewTest {
     CharSequence description = view.getContentDescription();
     if (view instanceof ViewGroup
         && description != null
-        && description.toString().matches("\\d+일 .* · 뽑기권 \\d+장")) {
+        && description.toString().matches("\\d+일 .* · 지원서 \\d+장")) {
       ViewGroup card = (ViewGroup) view;
       for (int i = 0; i < card.getChildCount(); i++) {
         View child = card.getChildAt(i);
@@ -472,7 +472,7 @@ public class NativeRenderReviewTest {
               int count = 0;
               for (View view : geometry.descendants(decor))
                 if (view instanceof TextView
-                    && ((TextView) view).getText().toString().matches("\\d+일째 · 뽑기권 \\d+장"))
+                    && ((TextView) view).getText().toString().matches("\\d+일째 · 지원서 \\d+장"))
                   count++;
               assertEquals("모달에서도 매주 일곱 보상의 숫자와 단위를 모두 유지", 7, count);
               geometry.capture(a, size, prefix + "daily-rewards-modal-top");

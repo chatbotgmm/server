@@ -20,8 +20,8 @@ final class AudioControlView extends LinearLayout {
     this.label = label;
     setOrientation(HORIZONTAL);
     setGravity(Gravity.CENTER_VERTICAL);
-    setBackground(new GamePaperDrawable(host));
-    setPadding(host.dp(8), host.dp(4), host.dp(8), host.dp(7));
+    setBackground(new SettingRowDrawable(host));
+    setPadding(host.dp(4), 0, host.dp(4), 0);
     heading = host.text(label, 16);
     heading.setTypeface(host.prose);
     heading.setPadding(host.dp(4), 0, host.dp(4), 0);
@@ -33,7 +33,11 @@ final class AudioControlView extends LinearLayout {
     slider.setContentDescription(label + " 볼륨");
     slider.setProgressTintList(ColorStateList.valueOf(JournalTheme.TEAL));
     slider.setProgressBackgroundTintList(ColorStateList.valueOf(JournalTheme.LINE));
-    slider.setThumbTintList(ColorStateList.valueOf(JournalTheme.BRASS));
+    slider.setThumbTintList(null);
+    slider.setThumb(new BrassSliderThumb(host));
+    slider.setSplitTrack(false);
+    slider.setMinHeight(host.dp(48));
+    slider.setMinimumHeight(host.dp(48));
     addView(slider, new LayoutParams(0, host.dp(48), 1));
     value = host.text("", 16);
     value.setTypeface(host.prose);
@@ -86,7 +90,7 @@ final class AudioControlView extends LinearLayout {
     mute.setText("");
     mute.setSelected(muted);
     mute.setContentDescription(label + (muted ? " 음소거 해제" : " 음소거"));
-    // 음소거는 실행 CTA가 아닌 선택 토글이므로 밝은 청록 종이 상태를 쓴다.
+    // 음소거는 실행 CTA가 아닌 선택 토글이며 상태를 별도 저장한다.
     mute.setBackground(new GameButtonDrawable(host, GameButtonDrawable.PAPER));
   }
 
@@ -96,7 +100,7 @@ final class AudioControlView extends LinearLayout {
     for (String key : new String[] {"music", "effects"}) {
       AudioControlView row = new AudioControlView(host, key.equals("music") ? "배경음악" : "효과음", key);
       LayoutParams lp = new LayoutParams(-1, -2);
-      lp.topMargin = host.dp(6);
+      lp.topMargin = host.dp(4);
       content.addView(row, lp);
     }
     return content;

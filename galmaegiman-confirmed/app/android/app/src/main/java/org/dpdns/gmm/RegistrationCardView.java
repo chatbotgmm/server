@@ -6,7 +6,7 @@ import android.widget.*;
 import java.lang.ref.WeakReference;
 import org.json.JSONObject;
 
-/** 큰 등록증과 작은 대원 카드를 같은 그림·실제 문자·접근성 규칙으로 만든다. */
+/** FULL은 원본 인쇄를 그대로 크게 보여 주고, 동적 상태와 접근성만 별도로 둔다. */
 final class RegistrationCardView extends LinearLayout {
   static final int FULL = 0, COMPACT = 1;
   final Artwork picture;
@@ -29,14 +29,25 @@ final class RegistrationCardView extends LinearLayout {
     name.setEllipsize(android.text.TextUtils.TruncateAt.END);
     name.setGravity(Gravity.CENTER);
     name.setContentDescription(unit.optString("name"));
+    name.setVisibility(mode == FULL ? GONE : VISIBLE);
+    name.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
     addView(name, new LinearLayout.LayoutParams(-1, -2));
     grade = h.text(unit.optString("tierName"), 13);
     grade.setTypeface(h.prose);
     grade.setTextColor(NativeReveal.tierInk(unit.optString("tier")));
     grade.setGravity(Gravity.CENTER);
+    grade.setVisibility(mode == FULL ? GONE : VISIBLE);
+    grade.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
     addView(grade, new LinearLayout.LayoutParams(-1, -2));
     // 그림은 중복 낭독하지 않되 실패·미발견 상태는 접근성의 대표 카드로 전달한다.
-    picture.statusChanged = () -> setContentDescription(description(unit) + picture.statusDescription());
+    setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
+    picture.statusChanged = () -> {
+      // 이름·등급은 FULL에 이미 인쇄되어 있다. 원본 로딩 실패 때만 읽을 수 있는 대체 문자를 둔다.
+      boolean fallback = mode == COMPACT || "이미지 없음".equals(picture.status);
+      name.setVisibility(fallback ? VISIBLE : GONE);
+      grade.setVisibility(fallback ? VISIBLE : GONE);
+      setContentDescription(description(unit) + picture.statusDescription());
+    };
     picture.updateAccessibility();
   }
 
@@ -49,6 +60,28 @@ final class RegistrationCardView extends LinearLayout {
     FrameLayout.LayoutParams slot = new FrameLayout.LayoutParams(-2, -2, gravity);
     slot.setMargins(h.dp(4), h.dp(4), h.dp(4), h.dp(4));
     photo.addView(badge, slot);
+  }
+
+  /** 원본 등록증 위에 두 번째 종이 테두리를 덧씌우지 않는다. 선택 상태만 얇게 강조한다. */
+  static android.graphics.drawable.Drawable selection(MainActivity h, boolean selected) {
+    android.graphics.drawable.GradientDrawable outline = new android.graphics.drawable.GradientDrawable();
+    outline.setColor(android.graphics.Color.TRANSPARENT);
+    outline.setCornerRadius(h.dp(5));
+    outline.setStroke(h.dp(selected ? 2 : 0), JournalTheme.BRASS);
+    return outline;
+  }
+
+  static TextView stateLabel(MainActivity h, String text) {
+    TextView label = h.text(text, 13);
+    label.setTypeface(h.prose);
+    label.setGravity(Gravity.CENTER);
+    label.setSingleLine(true);
+    label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    label.setIncludeFontPadding(false);
+    label.setPadding(h.dp(4), h.dp(3), h.dp(4), h.dp(3));
+    label.setTextColor(JournalTheme.PAPER);
+    label.setBackgroundColor(JournalTheme.PRIMARY);
+    return label;
   }
 
   static View art(MainActivity h, JSONObject unit, int mode) {
@@ -82,7 +115,7 @@ final class RegistrationCardView extends LinearLayout {
     destination.set((width - w) / 2, (height - h) / 2, (width + w) / 2, (height + h) / 2);
   }
 
-  /** 카드 소스의 문자 대신 실제 텍스트를 함께 쓰는 호출자를 위한 그림 전용 영역. */
+  /** 승인된 전체 등록증 또는 명시적으로 요청한 기존 초상 창. */
   static final class Artwork extends View {
     final MainActivity host;
     final int mode;
@@ -174,7 +207,7 @@ final class RegistrationCardView extends LinearLayout {
         canvas.drawBitmap(bitmap, null, target, paint);
         return;
       }
-      // 실패를 다른 인물 그림으로 감추지 않는다. 핵심 이름/등급은 바깥 실제 문자에 남는다.
+      // 실패를 다른 인물 그림으로 감추지 않는다. 정체와 실패 이유는 접근성에도 남긴다.
       paint.setColor(JournalTheme.SELECTED);
       canvas.drawColor(JournalTheme.SELECTED);
       paint.setColor(JournalTheme.MUTED);

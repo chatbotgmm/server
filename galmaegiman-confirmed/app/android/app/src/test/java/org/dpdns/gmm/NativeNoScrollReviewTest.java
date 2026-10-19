@@ -296,7 +296,7 @@ public class NativeNoScrollReviewTest {
     } else if (page.equals("collection")) {
       for (String tag :
           new String[] {
-            "collection-picker",
+            "collection-inline-grid",
             "collection-growth",
             "collection-team",
             "collection-craft",
@@ -305,7 +305,7 @@ public class NativeNoScrollReviewTest {
     } else if (page.equals("unit")) {
       for (String tag : new String[] {"unit-summary", "unit-hp", "unit-xp", "unit-growth-actions"})
         requiredTag(host, tag);
-    } else if (page.equals("team")) requiredTag(host, "team-candidate-picker");
+    } else if (page.equals("team")) requiredTag(host, "team-inline-candidates");
     else if (page.equals("types")) {
       View chart = null;
       for (View view : descendants(host.root))
@@ -322,8 +322,8 @@ public class NativeNoScrollReviewTest {
       requiredTag(host, "daily-attendance-summary");
       View summary = host.root.findViewWithTag("daily-attendance-summary");
       assertTrue(
-          "오늘 보상은 숫자와 뽑기권 단위를 함께 확인",
-          new NativeGameFlowTest().labels(summary).matches("(?s).*뽑기권 [0-9,]+장.*"));
+          "오늘 보상은 숫자와 지원서 단위를 함께 확인",
+          new NativeGameFlowTest().labels(summary).matches("(?s).*지원서 [0-9,]+장.*"));
     } else if (page.equals("practice")) {
       for (String tag :
           new String[] {
@@ -404,7 +404,7 @@ public class NativeNoScrollReviewTest {
   }
 
   @Test
-  public void longCollectionAndRecipePickersKeepEveryServerChoiceAndReturnTheExactId()
+  public void collectionPagesAndRecipePickerKeepEveryServerChoiceAndReturnTheExactId()
       throws Exception {
     try (ActivityController<MainActivity> controller = review.start()) {
       MainActivity host = controller.get();
@@ -413,26 +413,26 @@ public class NativeNoScrollReviewTest {
       host.menus.query = "";
       page(host, "collection");
       review.capture(host, "picker-collection-main", 915, 412);
-      requiredTag(host, "collection-picker");
-      host.root.findViewWithTag("collection-picker").performClick();
-      View decor = geometry.layoutDialog(host);
+      requiredTag(host, "collection-inline-grid");
       JSONArray all = host.list(host.me(), "units");
-      int entries = 0;
-      for (View view : descendants(decor))
-        if (view.getTag() instanceof String
-            && view.getTag().toString().startsWith("collection-choice-")) entries++;
-      assertEquals("기본 화면에서 접은 전체 서버 갈매미 목록 접근", all.length(), entries);
+      Set<String> visited = new HashSet<>();
+      while (true) {
+        for (View view : descendants(host.root.findViewWithTag("collection-inline-grid")))
+          if (view instanceof RegistrationCardView.Artwork)
+            visited.add(((RegistrationCardView.Artwork) view).id);
+        Button next = host.root.findViewWithTag("collection-next-page");
+        if (!next.isEnabled()) break;
+        next.performClick();
+      }
+      assertEquals("페이지를 넘겨 모든 서버 대원에 접근", all.length(), visited.size());
       JSONObject last = all.getJSONObject(all.length() - 1);
-      View choice = decor.findViewWithTag("collection-choice-" + last.getString("id"));
-      assertNotNull(choice);
-      scrollModal(host, true);
-      geometry.capture(host, new int[] {915, 412}, "picker-collection-bottom");
-      choice.performClick();
+      View art = host.root.findViewWithTag("collection-registration-" + last.getString("id"));
+      assertNotNull(art);
+      ((View) art.getParent()).performClick();
       Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
-      assertEquals(
-          "원래 선택 callback의 정확한 id 유지",
-          last.getString("id"),
+      assertEquals("원래 선택 callback의 정확한 id 유지", last.getString("id"),
           host.menus.library.selectedCollectionId);
+      assertNull("기본 도감 페이징은 추가 모달을 열지 않음", host.visibleDialog);
       review.capture(host, "picker-collection-selected", 915, 412);
       assertFixedMain(host);
 
@@ -442,7 +442,7 @@ public class NativeNoScrollReviewTest {
       review.capture(host, "picker-craft-main", 915, 412);
       JSONArray recipes = api.responses.get("craft").getJSONArray("recipes");
       host.root.findViewWithTag("craft-recipe-picker").performClick();
-      decor = geometry.layoutDialog(host);
+      View decor = geometry.layoutDialog(host);
       JSONObject recipe = recipes.getJSONObject(recipes.length() - 1);
       View target = null;
       int recipeCount = 0;

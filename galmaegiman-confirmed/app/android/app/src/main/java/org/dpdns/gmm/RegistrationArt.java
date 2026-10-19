@@ -18,7 +18,7 @@ final class RegistrationArt {
   static final String ROOT = "native/registration-v1/";
   static final int MAX_CACHE_BYTES = 16 * 1024 * 1024;
   static final int MAX_QUEUED = 96;
-  static final int FULL_MAX_WIDTH = 384, COMPACT_MAX_WIDTH = 256;
+  static final int FULL_MAX_WIDTH = 768, COMPACT_MAX_WIDTH = 256;
   private final Context context;
   private final Handler ui = new Handler(Looper.getMainLooper());
   private final ThreadPoolExecutor worker =
@@ -42,7 +42,7 @@ final class RegistrationArt {
   static int widthBucket(int mode, int width, int height) {
     float ratio = mode == RegistrationCardView.FULL ? 3f / 4f : 978f / 779f;
     int wanted = Math.max(1, Math.round(Math.min(Math.max(1, width), Math.max(1, height) * ratio)));
-    int[] buckets = mode == RegistrationCardView.FULL ? new int[] {96, 192, 384}
+    int[] buckets = mode == RegistrationCardView.FULL ? new int[] {96, 192, 384, 768}
         : new int[] {64, 128, 256};
     for (int bucket : buckets) if (wanted <= bucket) return bucket;
     return buckets[buckets.length - 1];

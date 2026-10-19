@@ -98,10 +98,7 @@ final class MenuKit {
   LinearLayout infoPanel() {
     LinearLayout v = column();
     v.setPadding(h.dp(12), h.dp(10), h.dp(12), h.dp(10));
-    android.graphics.drawable.GradientDrawable shape = new android.graphics.drawable.GradientDrawable();
-    shape.setCornerRadius(h.dp(10));
-    shape.setColor(0xfffff8e8);
-    v.setBackground(shape);
+    v.setBackground(new GamePaperDrawable(h));
     return v;
   }
 
@@ -119,6 +116,15 @@ final class MenuKit {
     b.setTextSize(h.uiText(16));
     b.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PAPER));
     if (icon != null) {
+      String themed = themeIcon(icon);
+      Bitmap nativeIcon = themed == null ? null : ThemeArt.of(h).image("icons/" + themed + ".png");
+      if (nativeIcon != null) {
+        BitmapDrawable drawable = new BitmapDrawable(h.getResources(), nativeIcon);
+        drawable.setBounds(0, 0, h.dp(26), h.dp(26));
+        b.setCompoundDrawablePadding(h.dp(6));
+        b.setCompoundDrawables(drawable, null, null, null);
+        return b;
+      }
       String path = "/duel/icons/" + icon + ".png";
       Runnable ready =
           () -> {
@@ -134,7 +140,20 @@ final class MenuKit {
     return b;
   }
 
-  /** 실행은 청록 황동판, 이동·수량·취소는 종이판으로 구분한다. */
+  private static String themeIcon(String icon) {
+    switch (icon) {
+      case "u-settings": return "settings";
+      case "u-snack": return "shrimp-snack";
+      case "u-peanut": return "peanut";
+      case "m-units": return "team";
+      case "mode-camp": return "explore";
+      case "u-combine": return "combine";
+      case "u-gift": return "daily";
+      default: return null;
+    }
+  }
+
+  /** 실행은 남색 황동판, 이동·수량·취소는 종이판으로 구분한다. */
   Button primary(String icon, String name, Runnable click) {
     return emphasize(action(icon, name, click));
   }
@@ -229,6 +248,8 @@ final class MenuKit {
     for (int i = 0; i < names.length; i++) {
       int index = i;
       Button b = action(null, names[i], () -> select.accept(index));
+      b.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.TAB));
+      b.setTextColor(JournalTheme.tabText());
       b.setSelected(i == active);
       b.setTextSize(h.uiText(15));
       LinearLayout.LayoutParams slot =

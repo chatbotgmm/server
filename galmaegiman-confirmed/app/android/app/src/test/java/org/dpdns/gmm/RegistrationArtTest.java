@@ -206,19 +206,22 @@ public class RegistrationArtTest {
   @Test public void dimensionsAreCappedAnd145FullCardsCannotGrowCachePast16MiB() throws Exception {
     assertEquals(16 * 1024 * 1024, RegistrationArt.MAX_CACHE_BYTES);
     for (int[] size : new int[][] {{1, 1}, {64, 64}, {96, 128}, {256, 256}, {4000, 4000}}) {
-      assertTrue(RegistrationArt.widthBucket(RegistrationCardView.FULL, size[0], size[1]) <= 384);
+      assertTrue(RegistrationArt.widthBucket(RegistrationCardView.FULL, size[0], size[1]) <= 768);
       assertTrue(RegistrationArt.widthBucket(RegistrationCardView.COMPACT, size[0], size[1]) <= 256);
     }
+    assertEquals("High-density full cards use the original 768px width", 768,
+        RegistrationArt.widthBucket(RegistrationCardView.FULL, 600, 800));
+    assertEquals(384, RegistrationArt.widthBucket(RegistrationCardView.FULL, 240, 320));
     Bitmap retained = request(art, "C1", RegistrationCardView.FULL, 4000, 4000);
     assertNotNull(retained);
-    assertEquals(384, retained.getWidth());
-    assertEquals(512, retained.getHeight());
+    assertEquals(768, retained.getWidth());
+    assertEquals(1024, retained.getHeight());
     long decodedBytes = 0;
     for (String id : canonicalIds()) {
       Bitmap full = request(art, id, RegistrationCardView.FULL, 4000, 4000);
       assertNotNull(id + " decoded", full);
-      assertEquals(id, 384, full.getWidth());
-      assertEquals(id, 512, full.getHeight());
+      assertEquals(id, 768, full.getWidth());
+      assertEquals(id, 1024, full.getHeight());
       decodedBytes += full.getAllocationByteCount();
       assertTrue("Bounded cache after " + id, art.cachedBytes() <= 16 * 1024 * 1024);
     }

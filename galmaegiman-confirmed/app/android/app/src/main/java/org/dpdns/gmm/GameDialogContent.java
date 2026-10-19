@@ -10,6 +10,8 @@ final class GameDialogContent extends ViewGroup {
   final IntSupplier heightBudget;
   View header, footer;
   ScrollView scroll;
+  View fixedBody;
+  int fixedHeightDp;
 
   GameDialogContent(MainActivity host, IntSupplier heightBudget) {
     super(host);
@@ -34,7 +36,17 @@ final class GameDialogContent extends ViewGroup {
     requestLayout();
   }
 
+  void fixedBody(View view, int heightDp) {
+    if (scroll != null) { removeView(scroll); scroll = null; }
+    if (fixedBody != null) removeView(fixedBody);
+    fixedBody = view;
+    fixedHeightDp = heightDp;
+    if (view != null) addView(view);
+    requestLayout();
+  }
+
   void body(View view) {
+    if (fixedBody != null) { removeView(fixedBody); fixedBody = null; }
     if (scroll != null) removeView(scroll);
     if (view instanceof ScrollView) scroll = (ScrollView) view;
     else {
@@ -69,7 +81,11 @@ final class GameDialogContent extends ViewGroup {
     int padding = getPaddingTop() + getPaddingBottom();
     int bodyBudget = Math.max(0, budget - padding - headerHeight - footerHeight);
     int bodyHeight = 0;
-    if (scroll != null) {
+    if (fixedBody != null) {
+      bodyHeight = Math.min(bodyBudget, host.dp(fixedHeightDp));
+      fixedBody.measure(MeasureSpec.makeMeasureSpec(innerWidth, MeasureSpec.EXACTLY),
+          MeasureSpec.makeMeasureSpec(bodyHeight, MeasureSpec.EXACTLY));
+    } else if (scroll != null) {
       scroll.measure(
           MeasureSpec.makeMeasureSpec(innerWidth, MeasureSpec.EXACTLY),
           MeasureSpec.makeMeasureSpec(bodyBudget, MeasureSpec.AT_MOST));
@@ -87,7 +103,10 @@ final class GameDialogContent extends ViewGroup {
       header.layout(left, y, right, y + header.getMeasuredHeight());
       y += header.getMeasuredHeight();
     }
-    if (scroll != null) {
+    if (fixedBody != null) {
+      fixedBody.layout(left, y, right, y + fixedBody.getMeasuredHeight());
+      y += fixedBody.getMeasuredHeight();
+    } else if (scroll != null) {
       scroll.layout(left, y, right, y + scroll.getMeasuredHeight());
       y += scroll.getMeasuredHeight();
     }

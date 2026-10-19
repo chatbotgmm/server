@@ -140,7 +140,7 @@ public class NativeRenderReviewTestEconomy {
           String before = total.getText().toString();
           button(quantity, "＋").performClick();
           assertNotEquals("수량 조정에 총 비용 동시 갱신", before, total.getText().toString());
-          assertEquals("지원서 받기", submit.getText().toString());
+          assertEquals("모집하기", submit.getText().toString());
           assertTrue("수량은 접근성 설명에도 유지", submit.getContentDescription().toString().contains("2회"));
           assertTrue("총 비용은 접근성 설명에도 유지", submit.getContentDescription().toString().contains("뽑기권"));
         }
@@ -148,7 +148,7 @@ public class NativeRenderReviewTestEconomy {
         high.performClick();
         assertNotNull("재화 사용 확인 유지", a.visibleDialog);
         TextView confirmation = a.visibleDialog.findViewById(android.R.id.message);
-        assertTrue(confirmation.getText().toString().contains("고급 2회"));
+        assertTrue(confirmation.getText().toString().contains("고급 모집 2회"));
         assertTrue(confirmation.getText().toString().contains("10장"));
         a.visibleDialog.dismiss();
         review.viewport(a, size[0], size[1]);

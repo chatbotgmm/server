@@ -397,9 +397,23 @@ public class NativeDialogLayoutReviewTest {
         JSONArray weights = new JSONArray();
         for (String tier : new String[] {"흔함", "안흔함", "특별", "희귀", "전설", "신화"})
           weights.put(MainActivity.obj("tierName", tier, "w", 1.0));
-        h.menus.economy.gachaGuide(
-            MainActivity.obj("label", "고급", "kind", "HIGH", "cost", 5, "weights", weights),
-            MainActivity.obj("pity", MainActivity.obj("tierName", "전설", "left", 99)));
+        JSONArray offers = new JSONArray();
+        for (String kind : new String[] {"LOW", "MID", "HIGH"})
+          offers.put(MainActivity.obj("kind", kind, "cost", 5, "weights", weights));
+        JSONObject draw = MainActivity.obj("gachas", offers,
+            "pity", MainActivity.obj("tierName", "전설", "left", 99));
+        h.api.close();
+        h.api = new NativeApi(h) {
+          @Override String token() { return "local-probability-layout-fixture"; }
+          @Override void call(String path, JSONObject body, Result done) {
+            assertEquals("draw", path);
+            assertNull("설정의 확률 조회는 GET만 사용", body);
+            done.done(draw, null);
+          }
+        };
+        NativeSettingsSheet.show(h);
+        h.visibleDialog.getWindow().getDecorView().findViewWithTag("settings-tab-3").performClick();
+        frame();
         capture(h, size, "dialog75-" + size[0] + "-probability-top");
         for (View view : descendants(h.visibleDialog.getWindow().getDecorView()))
           if (view instanceof ScrollView) scrollBottom(h, (ScrollView) view);

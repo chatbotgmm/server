@@ -34,6 +34,11 @@ final class GameDialog extends AlertDialog.Builder {
     return this;
   }
 
+  GameDialog setFixedBody(View body, int heightDp) {
+    content().fixedBody(body, heightDp);
+    return this;
+  }
+
   GameDialog setFixedHeader(View header) {
     if (header.getTag() == null) header.setTag("game-dialog-header");
     content().header(header);

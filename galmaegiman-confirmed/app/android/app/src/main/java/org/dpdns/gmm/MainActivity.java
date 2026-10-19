@@ -19,6 +19,7 @@ import org.json.*;
 public class MainActivity extends AppCompatActivity {
   NativeApi api;
   NativeArt art;
+  ThemeArt themeArt;
   NativeSound sound;
   JournalTimeController journalTime;
   NativeMenus menus;
@@ -281,7 +282,7 @@ public class MainActivity extends AppCompatActivity {
               message(e);
             } else
               new GameDialog(this)
-                  .setMessage(e)
+                  .setMessage(RecruitmentText.display(e))
                   .setNegativeButton("닫기", null)
                   .setPositiveButton("다시 연결", (dialog, which) -> load(target))
                   .show();
@@ -387,27 +388,27 @@ public class MainActivity extends AppCompatActivity {
         Iterator<String> k = r.keys();
         while (k.hasNext()) {
           String x = k.next();
-          if (x.equals("tickets")) lines.add("뽑기권 +" + r.optInt(x));
+          if (x.equals("tickets")) lines.add("지원서 +" + r.optInt(x));
           if (x.equals("streak")) lines.add("연속 출석 " + r.optInt(x) + "일");
         }
         t = android.text.TextUtils.join("\n", lines);
       }
       if (t.isEmpty()) t = "완료됐어요.";
-      new GameDialog(this).setMessage(t).setPositiveButton("확인", (d, w) -> next.run()).show();
+      new GameDialog(this).setMessage(RecruitmentText.display(t)).setPositiveButton("확인", (d, w) -> next.run()).show();
     } else
       new GameDialog(this)
-          .setMessage(String.valueOf(result))
+          .setMessage(RecruitmentText.display(String.valueOf(result)))
           .setPositiveButton("확인", (d, w) -> next.run())
           .show();
   }
 
   void message(String s) {
-    new GameDialog(this).setMessage(s).setPositiveButton("확인", null).show();
+    new GameDialog(this).setMessage(RecruitmentText.display(s)).setPositiveButton("확인", null).show();
   }
 
   void confirm(String s, Runnable yes) {
     new GameDialog(this)
-        .setMessage(s)
+        .setMessage(RecruitmentText.display(s))
         .setNegativeButton("취소", null)
         .setPositiveButton("확인", (d, w) -> yes.run())
         .show();
@@ -448,7 +449,7 @@ public class MainActivity extends AppCompatActivity {
     Button b = new JournalButton(this);
     b.setText(s);
     b.setAllCaps(false);
-    b.setTextColor(JournalTheme.controlText());
+    b.setTextColor(JournalTheme.controlText(GameButtonDrawable.PRIMARY));
     b.setTextSize(uiText(18));
     b.setTypeface(font);
     b.setMinHeight(dp(52));
@@ -481,23 +482,11 @@ public class MainActivity extends AppCompatActivity {
     sound.play("title");
     root.removeAllViews();
     boolean mapPage = id.equals("craft") || id.equals("mix");
-    if (mapPage) root.addView(new JournalMapBackdrop(this), new FrameLayout.LayoutParams(-1, -1));
-    else {
-      GameBackdrop bg = new GameBackdrop(this);
-      bg.blurred(true);
-      bg.setScaleType(ImageView.ScaleType.CENTER_CROP);
-      bg.setImageBitmap(art.asset("harbor.jpg"));
-      String menuBg =
-          id.equals("draw") || id.equals("drawResult")
-              ? "greenhouse"
-              : id.equals("shop")
-                  ? "cafe"
-                  : id.equals("expedition") || id.equals("modes") || id.equals("pvp")
-                      ? "cabin"
-                      : "attic";
-      art.into(bg, "/duel/bg/" + menuBg + ".jpg");
-      root.addView(bg, new FrameLayout.LayoutParams(-1, -1));
-    }
+    View scene = new View(this);
+    scene.setTag("theme-scene-background");
+    scene.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    scene.setBackground(ThemeArt.of(this).background(AppSkin.backgroundForScreen(id)));
+    root.addView(scene, new FrameLayout.LayoutParams(-1, -1));
     View shade = new GameShade(this);
     shade.setBackgroundColor(0x08000000);
     root.addView(shade, new FrameLayout.LayoutParams(-1, -1));
@@ -508,14 +497,12 @@ public class MainActivity extends AppCompatActivity {
     // 10-18 앱 배치 설계: 남색 머리줄에 「‹ 제목」, 오른쪽에 재화(맥락) 표시.
     LinearLayout head = new LinearLayout(this);
     head.setGravity(Gravity.CENTER_VERTICAL);
-    android.graphics.drawable.GradientDrawable bar = new android.graphics.drawable.GradientDrawable();
-    bar.setColor(JournalTheme.PRIMARY);
-    bar.setCornerRadius(dp(10));
-    head.setBackground(bar);
+    head.setTag("theme-page-header");
+    head.setBackgroundColor(Color.TRANSPARENT);
     head.setPadding(dp(4), dp(2), dp(8), dp(2));
     Button back = NativeTutorialController.anchor(button("‹", this::back), "back");
     JournalButton.keepLabelDuringOperation(back);
-    back.setBackgroundColor(Color.TRANSPARENT);
+    back.setBackground(ThemeArt.of(this).drawable(ThemeArt.Surface.NAVY));
     back.setTextColor(Color.WHITE);
     back.setTextSize(26);
     back.setPadding(0, 0, 0, dp(3));
@@ -527,6 +514,8 @@ public class MainActivity extends AppCompatActivity {
     title.setEllipsize(android.text.TextUtils.TruncateAt.END);
     title.setTextColor(Color.WHITE);
     title.setGravity(Gravity.CENTER_VERTICAL);
+    title.setBackground(ThemeArt.of(this).drawable(ThemeArt.Surface.HEADER));
+    title.setPadding(dp(16), 0, dp(16), 0);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
     MenuKit kit = new MenuKit(this);
     for (String kind : mapPage ? new String[0] : new String[] {"snack", "peanut", "credits"}) {
@@ -542,13 +531,9 @@ public class MainActivity extends AppCompatActivity {
       money.setTypeface(prose);
       money.setSingleLine(true);
       money.setContentDescription(
-          (kind.equals("snack") ? "새우 " : kind.equals("peanut") ? "땅콩 " : "뽑기권 ")
+          (kind.equals("snack") ? "새우 " : kind.equals("peanut") ? "땅콩 " : "지원서 ")
               + String.format(java.util.Locale.KOREA, "%,d", me().optInt(kind)));
-      android.graphics.drawable.GradientDrawable pill = new android.graphics.drawable.GradientDrawable();
-      pill.setColor(0x26ffffff);
-      pill.setCornerRadius(dp(18));
-      // 누르면 상점으로 가는 버튼이라 터치 높이는 48dp, 보이는 알약만 위아래 4dp 들인다.
-      money.setBackground(new android.graphics.drawable.InsetDrawable(pill, 0, dp(4), 0, dp(4)));
+      money.setBackground(ThemeArt.of(this).drawable(ThemeArt.Surface.NAVY));
       money.setTextColor(Color.WHITE);
       money.setPadding(dp(6), 0, dp(8), 0);
       LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(dp(compact() ? 90 : 102), dp(48));
@@ -1077,7 +1062,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   String waitText(long ms) {
-    if (ms <= 0) return "뽑기권 지급 가능";
+    if (ms <= 0) return "지원서 지급 가능";
     long minutes = (ms + 59999) / 60000;
     return "다음 지급 " + (minutes / 60) + "시간 " + (minutes % 60) + "분 뒤";
   }
@@ -1111,9 +1096,9 @@ public class MainActivity extends AppCompatActivity {
         skip = p.optJSONObject("skip");
     return "간식 "
         + (t == null ? 0 : t.optInt("snack"))
-        + "개 → 뽑기권 "
+        + "개 → 지원서 "
         + (t == null ? 0 : t.optInt("amount"))
-        + "장\n땅콩 1개 → 뽑기권 "
+        + "장\n땅콩 1개 → 지원서 "
         + (q == null ? 0 : q.optInt("amount"))
         + "장\n귀환권: 간식 "
         + (skip == null ? 0 : skip.optInt("snack"))

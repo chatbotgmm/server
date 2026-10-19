@@ -13,10 +13,13 @@ final class GameButtonDrawable extends Drawable {
   final GamePressState state = new GamePressState();
   private final RectF bounds = new RectF(), layerBounds = new RectF();
   private boolean selected;
+  private ColorFilter filter;
 
   GameButtonDrawable(MainActivity h, int c) {
     host = h;
     color = c == 0xfffffaf0 ? PAPER : c == 0xffdd9a58 || c == 0xffe0c296 ? PRIMARY : c;
+    if (color == PRIMARY || color == PAPER || color == JournalTheme.SELECTED)
+      ThemeArt.of(h).image(ThemeArt.file(color == PRIMARY ? ThemeArt.Surface.NAVY : ThemeArt.Surface.PAPER));
   }
 
   @Override
@@ -42,26 +45,33 @@ final class GameButtonDrawable extends Drawable {
     RectF r = bounds;
     r.set(getBounds());
     r.bottom -= host.dp(3);
-    int save;
-    if (state.enabled)
-      save = state.begin(c, getBounds(), host.getResources().getDisplayMetrics().density);
-    else {
-      opacity.setAlpha(state.alpha);
+    int outer = c.save();
+    if (filter != null) {
+      opacity.setAlpha(255);
+      opacity.setColorFilter(filter);
       layerBounds.set(getBounds());
-      save = c.saveLayer(layerBounds, opacity);
+      c.saveLayer(layerBounds, opacity);
     }
-    int fill = !state.enabled ? JournalTheme.DISABLED : selected ? JournalTheme.SELECTED : color;
-    drawSurface(
-        c, r, fill, host.dp(16), host.dp(2), state.pressed || !state.enabled ? 0 : host.dp(2), p);
-    if (selected && state.enabled) {
-      r.inset(host.dp(2.5f), host.dp(2.5f));
+    int save = state.begin(c, getBounds(), host.getResources().getDisplayMetrics().density);
+    if (color == PAPER || color == PRIMARY || color == JournalTheme.SELECTED) {
+      ThemeArt.of(host).surface(c,
+          color == PRIMARY ? ThemeArt.Surface.NAVY : ThemeArt.Surface.PAPER, r);
+    } else {
+      // 위험·보상 의미색은 원래 색을 보존한다. 전투 Canvas 정적 경로도 그대로 둔다.
+      drawSurface(c, r, color, host.dp(16), host.dp(2), state.pressed ? 0 : host.dp(2), p);
+    }
+    boolean focused = false;
+    for (int value : getState()) if (value == android.R.attr.state_focused) focused = true;
+    if ((selected || focused) && state.enabled) {
+      r.inset(host.dp(3), host.dp(3));
       p.setStyle(Paint.Style.STROKE);
       p.setStrokeWidth(host.dp(1.8f));
-      p.setColor(JournalTheme.TEAL);
-      c.drawRoundRect(r, host.dp(4), host.dp(4), p);
+      p.setColor(focused ? JournalTheme.FOCUS : JournalTheme.SELECTED_EDGE);
+      c.drawRoundRect(r, host.dp(3), host.dp(3), p);
       p.setStyle(Paint.Style.FILL);
     }
     state.finish(c, save);
+    c.restoreToCount(outer);
   }
 
   static void drawSurface(
@@ -86,7 +96,7 @@ final class GameButtonDrawable extends Drawable {
 
   @Override
   public void setColorFilter(ColorFilter value) {
-    p.setColorFilter(value);
+    filter = value;
     invalidateSelf();
   }
 
