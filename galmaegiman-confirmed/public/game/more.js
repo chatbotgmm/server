@@ -76,7 +76,7 @@
           const req = S.api('draw', { kind: x.kind, times: get() });
           await Promise.all([req.catch(() => {}), env.played]);   // 마지막 장면은 서버 결과가 올 때까지 유지
           const r = (await req).result;
-          $('[data-detail]', view).innerHTML = `<h2>모집 결과</h2><div class="got">${r.items.map(it => `<div class="got-card${it.first ? ' first' : ''}"><img src="${S.card(it.id, it.img)}" alt="${esc(it.name)} 입사 등록증" width="120" height="160"><b>${esc(it.name)}</b><small>${esc(it.tierName)}${it.n > 1 ? ` ×${fmt(it.n)}` : ''}${it.first ? ' · 새 대원' : ''}</small></div>`).join('')}</div><div class="srv">${lines(r.summary)}</div>
+          $('[data-detail]', view).innerHTML = `<h2>모집 결과</h2><div class="got">${r.items.map(it => `<div class="got-card${it.first ? ' first' : ''}"><img src="${S.card(it.id, it.img)}" alt="${esc(it.name)} 입사 등록증" width="120" height="160"><b class="${S.card(it.id, it.img).startsWith('/site/reg/') ? 'sr' : ''}">${esc(it.name)}</b><small>${esc(it.tierName)}${it.n > 1 ? ` ×${fmt(it.n)}` : ''}${it.first ? ' · 새 대원' : ''}</small></div>`).join('')}</div><div class="srv">${lines(r.summary)}</div>
             <button class="btn ghost" type="button" data-again>${esc(x.label)} 모집으로 돌아가기</button>`;
           $('[data-again]', view).onclick = detail;
           S.catalog = null; await refreshMe(); info = await S.api('draw').catch(() => info);

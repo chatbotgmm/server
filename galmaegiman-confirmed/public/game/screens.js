@@ -38,7 +38,7 @@
   // 공통 대원 카드(입사 등록증 자리). 최종 카드 디자인이 정해지면 이 함수와 CSS .reg-card만 바꾼다(145종 그림은 기존 그대로 씀)
   // card: {i, id, name, image, sub, selected}
   const regCard = c => `<button type="button" class="card unit reg-card" data-card="registration" role="option" data-i="${c.i}" data-id="${esc(c.id)}" aria-selected="${!!c.selected}">
-    <span class="reg-photo"><img src="${esc(c.image)}" alt="" width="96" height="96" loading="lazy"></span><b class="reg-name">${esc(c.name)}</b><small class="reg-sub">${esc(c.sub || '')}</small></button>`;
+    <span class="reg-photo"><img src="${esc(c.image)}" alt="" width="96" height="96" loading="lazy"></span><b class="reg-name${String(c.image).startsWith('/site/reg/') ? ' sr' : ''}">${esc(c.name)}</b><small class="reg-sub">${esc(c.sub || '')}</small></button>`;
   S.regCard = regCard;
   const hpPct = u => (u.maxHp ? Math.max(0, Math.min(100, Math.round(u.hp / u.maxHp * 100))) : 0);
 

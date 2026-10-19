@@ -36,7 +36,7 @@ const check = (game) => (() => {
     if (window.__game && (b.bottom > innerHeight + 1 || b.top < -1)) r.push(scroller ? { kind: '패널 안 스크롤(정보)', detail: name(e), info: true } : { kind: '화면 밖(세로)', detail: name(e) });
   }
   for (const e of document.querySelectorAll('h1,h2,h3,b,.btn,.pill,label,.dock a span,.who b,.ccard span,.growth b,.reg-card,.cbtn,.slot,.a-card')) {   // 카드·버튼 자체가 내용보다 작으면(overflow hidden) 잘림으로 본다
-    if (!vis(e)) continue;
+    if (!vis(e) || e.classList.contains('sr')) continue;   // 화면 읽기용(일부러 1px)
     const s = getComputedStyle(e);
     if (s.webkitLineClamp && s.webkitLineClamp !== 'none') continue;   // 줄 수 제한은 의도(2줄)
     if (e.scrollWidth > e.clientWidth + 2 && s.overflow !== 'visible') r.push({ kind: '글자 잘림(가로)', detail: name(e) });

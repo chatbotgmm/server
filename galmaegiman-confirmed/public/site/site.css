@@ -18,6 +18,7 @@ h1,h2,h3{font-family:var(--title);font-weight:400;line-height:1.3;margin:0 0 .5e
 img{max-width:100%;height:auto}
 .wrap{width:min(var(--wrap),100% - 32px);margin:0 auto}
 .muted{color:var(--muted)}.small{font-size:.9rem}.mono{font-family:ui-monospace,Menlo,monospace;font-size:.85rem;word-break:break-all}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .skip{position:absolute;left:-999px;top:8px;z-index:50;background:var(--navy);color:#fff;padding:12px 16px;border-radius:8px}
 .skip:focus{left:8px}
 :focus-visible{outline:3px solid var(--navy-2);outline-offset:2px}
@@ -129,7 +130,7 @@ img{max-width:100%;height:auto}
 .char-detail q{display:block;font-family:var(--title);font-size:19px;margin:8px 0;color:var(--navy-d)}
 .ccard{display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:8px;border-radius:10px;border:1px solid var(--stone-3);background:var(--paper);cursor:pointer;font:inherit;color:inherit;text-align:center;min-height:48px}
 .ccard img{width:100%;aspect-ratio:3/4;object-fit:contain;border-radius:6px;display:block}
-.ccard span{font:16px/1.25 var(--title);overflow-wrap:anywhere;min-height:2.5em;display:flex;align-items:center;justify-content:center}
+.ccard span:not(.sr){font:16px/1.25 var(--title);overflow-wrap:anywhere;min-height:2.5em;display:flex;align-items:center;justify-content:center}
 .ccard:hover{border-color:var(--brass)}
 .ccard[aria-selected="true"]{border-color:var(--navy);box-shadow:inset 0 0 0 2px var(--navy)}
 .ccard[aria-selected="true"]::after{content:"✓ 선택";font:13px var(--title);color:var(--navy)}
