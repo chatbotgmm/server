@@ -49,7 +49,16 @@ android {
     testOptions {
         unitTests.includeAndroidResources = true
         unitTests.all {
-            testLogging { exceptionFormat = 'full' }
+            // Emit each result immediately so an interrupted runner still identifies
+            // the last started/completed method without requiring final JUnit XML.
+            testLogging {
+                events 'started', 'passed', 'skipped', 'failed'
+                exceptionFormat = 'full'
+            }
+            // Render suites retain large native bitmap caches. Recycle the single
+            // test worker between bounded class batches; do not skip or shard tests.
+            maxParallelForks = 1
+            forkEvery = 10
             if (project.hasProperty('nativeReviewTokenFile')) {
                 dependsOn 'prepareNativeReviewSdk'
                 systemProperty 'robolectric.offline', 'true'
@@ -135,13 +144,16 @@ try {
 }
 
 // 선택적으로 실행하는 네이티브 화면 검토용 Android SDK. 기본 APK에는 포함하지 않는다.
-configurations { nativeReviewSdk; nativeReviewLegacySdk }
+configurations { nativeReviewSdk; nativeReviewLegacySdk; nativeReviewOreoSdk }
 dependencies {
     nativeReviewSdk 'org.robolectric:android-all-instrumented:15-robolectric-13954326-i7'
     nativeReviewLegacySdk 'org.robolectric:android-all-instrumented:7.0.0_r1-robolectric-r1-i7'
+    nativeReviewOreoSdk 'org.robolectric:android-all-instrumented:8.0.0_r4-robolectric-r1-i7'
 }
 tasks.register('prepareNativeReviewSdk', Copy) {
     from configurations.nativeReviewSdk
     from configurations.nativeReviewLegacySdk
+    from configurations.nativeReviewOreoSdk
     into layout.buildDirectory.dir('native-review-sdk')
 }
+

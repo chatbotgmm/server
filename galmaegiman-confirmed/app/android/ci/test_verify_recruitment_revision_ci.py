@@ -6,9 +6,27 @@ from unittest.mock import patch
 import xml.etree.ElementTree as ET
 from verify_theme_ci import allowed_asset_changes
 from verify_recruitment_revision_ci import (TRAYS, TRAY_INK, SUITES, PROFILES, STATES, tray_lock,
-    verify_trays, verify_counter, verify_motion, verify_currency, verify_team, TEAM_PROFILES, fullscreen_profiles, verify_fullscreen, verify_insertion, story_card_profiles, verify_story_cards, MODE_PROFILES, verify_mode_navigation, verify_realtime_identity, verify_battle_utilities, verify_replay, verify_reassessment, reassessment_profiles, verify_dossier_diagnostics, junit)
+    verify_trays, verify_counter, verify_motion, verify_currency, verify_team, TEAM_PROFILES, fullscreen_profiles, verify_fullscreen, verify_insertion, story_card_profiles, verify_story_cards, MODE_PROFILES, verify_mode_navigation, verify_realtime_identity, verify_battle_utilities, verify_replay, verify_reassessment, reassessment_profiles, verify_dossier_diagnostics, verify_totals, junit)
 
 class RevisionContractTest(unittest.TestCase):
+    def test_full_suite_minima_reject_previous_count_or_added_skips(self):
+        good=dict(status='passed',totals=dict(tests=501,passed=485,skipped=16))
+        verify_totals(good)
+        for field,value in [('tests',500),('passed',484),('skipped',17)]:
+            data=json.loads(json.dumps(good));data['totals'][field]=value
+            with self.subTest(field=field), self.assertRaises(ValueError):verify_totals(data)
+        good['status']='failed'
+        with self.assertRaises(ValueError):verify_totals(good)
+    def test_sdk26_native_bounds_method_is_required_and_unskipped(self):
+        method='itemMenuAutosizeHasNativeTextBoundsOnSdk26'
+        self.assertIn(method,SUITES['BattleUtilitiesChartRevisionTest'])
+        self.junit_fixture()
+        p=self.root/'TEST-org.dpdns.gmm.BattleUtilitiesChartRevisionTest.xml';tree=ET.parse(p)
+        case=next(c for c in tree.getroot().findall('testcase') if c.get('name')==method)
+        ET.SubElement(case,'skipped');tree.write(p)
+        with self.assertRaises(ValueError):junit(self.root)
+        tree.getroot().remove(case);tree.write(p)
+        with self.assertRaises(ValueError):junit(self.root)
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
         self.root=Path(self.tmp.name)

@@ -19,7 +19,7 @@ SUITES = {
  'BattleReplayStoreTest': ['eleventhCompletionPrunesOldest', 'duplicateCompletionDoesNotReorderOrReward', 'accountSwitchNeverLeaksRecords', 'restartRetainsDraftAndCompletedTimeline', 'failedPartialAndResultOnlyAreNotCompleted', 'regressionRejectedAndMissingBeginningDisclosed', 'capturesAreImmutableAndRemovePrivateSubmissionData', 'replaySnapshotCannotBeRecaptured', 'deterministicTimelineAndDefensiveCopies', 'stopDisposeAndNoEconomicApiDependencies'],
  'NativeBattleReplayReviewTest': ['captureReadOnlyTimelineAndDisposeAcrossProfiles', 'changingAccountClearsVisibleReplay', 'realTimerAdvancesPausesAndStopsOnBack', 'recordsLoadPreservesDirtyTeamExitGuard', 'serialWritesKeepCapturedAccountAcrossRapidSwitches', 'malformedEffectEntriesCannotCrashDefensiveRenderer'],
  'NativeRealtimeIdentityRevisionTest': ['backendOwnedAndRankThumbnailIdentitiesResolveWithoutMutatingKeys', 'invalidAndHiddenIdentitiesNeverBorrowAnotherCharacter', 'selectedAndCandidateArtDecodeForSeparateOwnedCopies', 'ownedReplacementSendsInstanceKeyAndLocksUntilServerReply', 'readyAndExpiredOwnedPreparationRemainLocked', 'compactAcceptanceNeverAutoSubmitsAndRetainsDeadlineGuard', 'captureBackendIdentityAndCompactControls','replayObservationPrecedesAnimationCoalescingAndUnchangedReturns','replayKeepsEveryAcceptedSnapshotWhileDisplayCoalesces'],
- 'BattleUtilitiesChartRevisionTest': ['utilitiesStayInCommandPanelAtSmallInsetAndFont130', 'itemButtonsShowOnlyNameAndQuantityWithDisabledSemantics', 'statusNamesExcludeEffectNumbers', 'matrixUsesCanonicalAttackDefenseOrientationAndServerOverride', 'typeDialogRetainsCloseAndTurnLease', 'captureSmallInsetFont130AndTypeMatrix','itemMenuAutosizeIsSafeOnSdk24'],
+ 'BattleUtilitiesChartRevisionTest': ['utilitiesStayInCommandPanelAtSmallInsetAndFont130', 'itemButtonsShowOnlyNameAndQuantityWithDisabledSemantics', 'statusNamesExcludeEffectNumbers', 'matrixUsesCanonicalAttackDefenseOrientationAndServerOverride', 'typeDialogRetainsCloseAndTurnLease', 'captureSmallInsetFont130AndTypeMatrix','itemMenuAutosizeIsSafeOnSdk24','itemMenuAutosizeHasNativeTextBoundsOnSdk26'],
  'NativeExternalMusicTest': ['externalMusicLaunchAndClicksNeverRequestFocusOrStartBgm','noExternalMusicUsesNormalFocusAndLocalBgm','pauseResumeRechecksExternalMusicAndRejectsBackgroundPlayback','externalMusicVolumeAndMuteNeverChangeStoredPreferencesOrTakeFocus','callModeAndHeadphoneDisconnectSilenceGameUntilSafeResume','focusLossAndStaleGainCannotRestartWhilePaused','permanentMediaTakeoverAllowsFocusFreeEffectsButTransientAndCallsStaySilent'],
  'NativeTutorialModeRoutesTest': ['firstBattleGuideFollowsCategoryThenStoryModeWithoutBacktracking'],
  'NativeModeCategoryNavigationTest': ['captureModeCategoriesAcrossShortSafeAreas','storyCategoryKeepsExistingStoryAndNaturalBackRoutes','pvpSubroutesReturnToTheirCategoryWithoutChangingParty','missingPvpPartyStillRequiresConfirmationAndReturnsToPvp','repeatedAndBusyCategoryClicksKeepCurrentPageAndEpoch'],
@@ -398,6 +398,9 @@ def verify_reassessment(root):
 def verify_dossier_diagnostics(root):
     return [verify_png(root/'result-dossier'/f'780x360-dpi160-font{font}-results.png',780,360,minimum_bytes=1000) for font in (100,130)]
 
+def verify_totals(full):
+    check(full.get('status')=='passed' and full['totals']['tests']>=501 and full['totals']['passed']>=485 and full['totals']['skipped']<=16, 'Existing 401/385/16 baseline plus one hundred new tests required')
+
 def main():
     p=argparse.ArgumentParser()
     p.add_argument('--repo',type=Path,required=True)
@@ -411,7 +414,7 @@ def main():
     verify_receipt_test(args.repo)
     suites=junit(args.test_results)
     full=read(args.full_suite_report)
-    check(full.get('status')=='passed' and full['totals']['tests']>=500 and full['totals']['passed']>=484 and full['totals']['skipped']<=16, 'Existing 401/385/16 baseline plus ninety-nine new tests required')
+    verify_totals(full)
     images=verify_reassessment(args.native_review)+verify_replay(args.native_review)+verify_realtime_identity(args.native_review)+verify_battle_utilities(args.native_review)+verify_counter(args.native_review)+verify_motion(args.native_review)+verify_currency(args.native_review)+verify_team(args.native_review)+verify_fullscreen(args.native_review)+verify_insertion(args.native_review)+verify_story_cards(args.native_review)+verify_mode_navigation(args.native_review)
     for i in range(4): images.append(verify_png(args.native_review/'theme-state'/f'button-{i}-normal-pressed-cancelled-selected-disabled.png',1100,56,minimum_bytes=1000))
     evidence={'source_commit':git(args.repo,'rev-parse','HEAD').decode().strip(),

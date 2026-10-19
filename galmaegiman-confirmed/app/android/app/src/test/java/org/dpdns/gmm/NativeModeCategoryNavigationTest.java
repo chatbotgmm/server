@@ -125,7 +125,11 @@ public class NativeModeCategoryNavigationTest {
         Rect box = bounds(button, host.root), glyph = glyphBounds(button, host.root);
         int motif = button.getBackground() instanceof NativeMenus.ModeCardDrawable
             ? ((NativeMenus.ModeCardDrawable) button.getBackground()).motif : -1;
-        check(motif == (i == 0 ? 0 : route.equals("modes") ? 1 : 2), "화면 의미와 장식 불일치", findings);
+        // 승인된 장면 카드 계약: 루트 스토리=0(선실/책), 대전=1(해협/방패),
+        // 하위 스토리모드=3(항구/책), 준비 중 모험=2(하늘/지도).
+        int[] expectedMotifs = route.equals("modes") ? new int[] {0, 1} : new int[] {3, 2};
+        check(motif == expectedMotifs[i], "화면 의미와 장식 불일치: expected="
+            + expectedMotifs[i] + ", actual=" + motif, findings);
         float d = host.getResources().getDisplayMetrics().density;
         RectF card = new RectF(box); card.inset(2 * d, 2 * d);
         float size = Math.min(66 * d, Math.min(card.width() * .24f, card.height() * .32f));
@@ -253,3 +257,4 @@ public class NativeModeCategoryNavigationTest {
     }
   }
 }
+

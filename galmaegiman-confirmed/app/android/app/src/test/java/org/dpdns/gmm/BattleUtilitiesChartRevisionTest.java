@@ -26,31 +26,33 @@ public class BattleUtilitiesChartRevisionTest {
     NativeRenderReviewTest review=new NativeRenderReviewTest();
     Runnable pass=()->{review.force(v);fixture.measure(v,w,h);};
     pass.run();
-    // AppCompat autosize on API24 can invalidate TextView's Layout in onLayout.
-    // Mirror the normal ViewRoot pre-draw/relayout before inspecting text.
+    // API24 LEGACY is an API/interaction fixture, not a font renderer:
+    // Robolectric4.16.1 ShadowPaint measures character counts and its API23-27
+    // ShadowStaticLayout line-break implementation is a stub. No SDK24 pixel claim.
+    if(android.os.Build.VERSION.SDK_INT<26)return;
     review.preparePreDraw(v,pass);
-    // The helper can run the Window's differently sized traversal while idling.
-    // Returning to this test viewport recreates BattleView's controls; API24
-    // AppCompat autosize then clears their Layout and requests another traversal.
-    // Settle those normal synchronous requests without pumping a competing window
-    // resize between passes. Never inspect a stale/null text layout or skip fit checks.
-    for(int remaining=0;remaining<8 && pendingTextLayout(v);remaining++) {
-      pass.run();
-      v.getViewTreeObserver().dispatchOnPreDraw();
-    }
-    assertFalse("Text layouts must settle before geometry inspection",pendingTextLayout(v));
+    // The real AppCompat autosizer may invalidate text during onLayout. Complete
+    // its one requested traversal after the helper; never replace strict fit checks.
+    pass.run();v.getViewTreeObserver().dispatchOnPreDraw();
   }
-  boolean pendingTextLayout(View view) {
-    if(view.getVisibility()!=View.VISIBLE)return false;
-    if(view instanceof TextView && view.getWidth()>0) {
-      TextView text=(TextView)view;
-      if(text.getText().length()>0 && (text.getLayout()==null || text.isLayoutRequested()))return true;
-    }
-    if(view instanceof ViewGroup) {
-      ViewGroup group=(ViewGroup)view;
-      for(int i=0;i<group.getChildCount();i++)if(pendingTextLayout(group.getChildAt(i)))return true;
-    }
-    return false;
+  void itemButtonBounds(Button b,View root) {
+    float density=b.getResources().getDisplayMetrics().density;
+    assertTrue("48dp item touch width",b.getWidth()>=48*density);
+    assertTrue("48dp item touch height",b.getHeight()>=48*density);
+    android.graphics.Rect bounds=new android.graphics.Rect(0,0,b.getWidth(),b.getHeight());
+    ((ViewGroup)root).offsetDescendantRectToMyCoords(b,bounds);
+    assertTrue("Button stays inside command controls: "+bounds,
+        bounds.left>=0 && bounds.top>=0 && bounds.right<=root.getWidth() && bounds.bottom<=root.getHeight());
+  }
+  void compatAutoSizeConfigured(Button button) {
+    assertEquals(androidx.core.widget.TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM,
+        androidx.core.widget.TextViewCompat.getAutoSizeTextType(button));
+    // Verify the actual AppCompat helper is configured, not only a framework
+    // getter. API26's AppCompat path is the same fallback used by API24.
+    Object textHelper=org.robolectric.util.ReflectionHelpers.getField(button,"mTextHelper");
+    Object sizing=org.robolectric.util.ReflectionHelpers.getField(textHelper,"mAutoSizeTextHelper");
+    int type=org.robolectric.util.ReflectionHelpers.getField(sizing,"mAutoSizeTextType");
+    assertEquals(androidx.core.widget.TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM,type);
   }
   BattleView mount(MainActivity h,int w,int height) throws Exception {
     h.api.close();h.motionEnabled=false;h.guide.enabled=false;
@@ -117,22 +119,43 @@ public class BattleUtilitiesChartRevisionTest {
       assertEquals(16,v.battle.getJSONArray("inventory").getJSONObject(0).getInt("count"));
     }
   }
+  /** SDK24 proves API linkage and interactions; glyph bounds are checked with native SDK26/35. */
   @Test @Config(sdk=24) @GraphicsMode(GraphicsMode.Mode.LEGACY)
   public void itemMenuAutosizeIsSafeOnSdk24() throws Exception {
     RuntimeEnvironment.setFontScale(1.3f);
     try(var c=Robolectric.buildActivity(MainActivity.class).setup().visible()) {
       MainActivity h=c.get();BattleView v=mount(h,640,360);
       assertEquals(4,buttons(v.controls).size());
+      for(Button command:buttons(v.controls))itemButtonBounds(command,v.controls);
       v.pane="items";v.render();measure(h.root,640,360);
       ArrayList<Button> all=buttons(v.controls);assertEquals(5,all.size());
       for(int i=1;i<all.size();i++) {
-        Button b=all.get(i);readable(b);
-        assertEquals(androidx.core.widget.TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM,
-            androidx.core.widget.TextViewCompat.getAutoSizeTextType(b));
+        Button b=all.get(i);itemButtonBounds(b,v.controls);compatAutoSizeConfigured(b);
         assertTrue(b.getText().toString().contains("×"));
         assertFalse(b.getText().toString().contains("%"));
         assertFalse(b.getText().toString().contains("대상 없음"));
         assertEquals(i<=2,b.isEnabled());
+      }
+      assertTrue(all.get(3).getContentDescription().toString().contains("대상 없음"));
+      all.get(1).performClick();assertEquals("itemTarget",v.pane);
+      assertEquals(16,v.battle.getJSONArray("inventory").getJSONObject(0).getInt("count"));
+    }
+  }
+  @Test @Config(sdk=26) @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  public void itemMenuAutosizeHasNativeTextBoundsOnSdk26() throws Exception {
+    RuntimeEnvironment.setFontScale(1.3f);
+    try(var c=Robolectric.buildActivity(MainActivity.class).setup().visible()) {
+      MainActivity h=c.get();BattleView v=mount(h,640,360);
+      assertEquals(4,buttons(v.controls).size());
+      for(Button command:buttons(v.controls)){itemButtonBounds(command,v.controls);readable(command);}
+      v.pane="items";v.render();measure(h.root,640,360);
+      ArrayList<Button> all=buttons(v.controls);assertEquals(5,all.size());
+      for(int i=1;i<all.size();i++) {
+        Button b=all.get(i);itemButtonBounds(b,v.controls);compatAutoSizeConfigured(b);readable(b);
+        assertEquals("Entire name and quantity are laid out",b.getText().length(),
+            b.getLayout().getLineEnd(b.getLayout().getLineCount()-1));
+        assertTrue(b.getText().toString().contains("×"));assertFalse(b.getText().toString().contains("%"));
+        assertFalse(b.getText().toString().contains("대상 없음"));assertEquals(i<=2,b.isEnabled());
       }
       assertTrue(all.get(3).getContentDescription().toString().contains("대상 없음"));
       all.get(1).performClick();assertEquals("itemTarget",v.pane);
