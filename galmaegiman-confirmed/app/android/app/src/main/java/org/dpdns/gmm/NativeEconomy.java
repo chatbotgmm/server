@@ -452,16 +452,22 @@ final class NativeEconomy {
       recipePage = Math.max(0, Math.min(recipePage, pages - 1));
       LinearLayout list = k.column();
       list.setTag("craft-recipe-list");
+      LinearLayout picker = k.row();
+      picker.setBaselineAligned(false);
+      cols[0].addView(picker, new LinearLayout.LayoutParams(-1, 0, 1));
+      picker.addView(list, new LinearLayout.LayoutParams(0, -1, 1));
+      LinearLayout row = null;
       for (int i = recipePage * perPage; i < Math.min(filtered.size(), (recipePage + 1) * perPage); i++) {
         JSONObject recipe = filtered.get(i);
-        LinearLayout item = k.row();
-        item.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
-        item.setPadding(h.dp(5), h.dp(2), h.dp(5), h.dp(2));
-        item.addView(k.image("/thumbs/" + recipe.optString("img") + ".jpg", compact() ? 36 : 52, compact() ? 36 : 52));
-        item.addView(choiceCopy(recipe.optString("name"),
-            recipe.optBoolean("ready") ? recipe.optInt("max") + "개 가능" : "재료 부족"),
-            new LinearLayout.LayoutParams(0, -2, 1));
+        if ((i - recipePage * perPage) % 2 == 0) {
+          row = k.row();
+          row.setBaselineAligned(false);
+          list.addView(row, new LinearLayout.LayoutParams(-1, 0, 1));
+        }
+        LinearLayout item = fullEconomyTile(recipe,
+            recipe.optBoolean("ready") ? recipe.optInt("max") + "개 가능" : "재료 부족");
         item.setSelected(recipe.optString("id").equals(m.recipeId));
+        item.setBackground(RegistrationCardView.selection(h, item.isSelected()));
         item.setTag("craft-recipe-" + recipe.optString("id"));
         item.setContentDescription(recipe.optString("name") + " 조합식 선택");
         item.setOnClickListener(v -> {
@@ -469,13 +475,12 @@ final class NativeEconomy {
           m.recipeId = recipe.optString("id");
           paint[0].run();
         });
-        LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(-1, h.dp(compact() ? 56 : 76));
-        slot.bottomMargin = h.dp(3);
-        list.addView(item, slot);
+        LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, -1, 1);
+        slot.setMargins(h.dp(2), h.dp(2), h.dp(2), h.dp(2));
+        row.addView(item, slot);
       }
       if (filtered.isEmpty()) list.addView(caption("조건에 맞는 조합식이 없어요."));
-      cols[0].addView(list, new LinearLayout.LayoutParams(-1, 0, 1));
-      pageControls(cols[0], recipePage, pages, page -> { recipePage = page; paint[0].run(); }, "craft-recipe-pages");
+      crewPageControls(picker, recipePage, pages, page -> { recipePage = page; paint[0].run(); }, "craft-recipe-pages");
       if (current == null) {
         cols[1].removeAllViews();
         cols[1].addView(caption("아직 조합식이 없어요."));
@@ -493,20 +498,21 @@ final class NativeEconomy {
     parent.addView(panel, new LinearLayout.LayoutParams(-1, -1));
     LinearLayout heading = k.row();
     heading.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
-    TextView resultName = h.text(r.optString("name"), 20);
+    TextView resultName = h.text("조합식 정보", 20);
     resultName.setTypeface(h.headline);
     heading.addView(resultName, new LinearLayout.LayoutParams(0, -2, 1));
-    heading.addView(k.note(r.optString("tierName") + (r.optBoolean("isNew") ? " · 처음" : "")));
+    heading.addView(k.note(r.optBoolean("isNew") ? "처음" : "재료 → 결과"));
     panel.addView(heading);
     JSONArray mats = h.list(r, "materials");
     boolean fixedChain = mats.length() <= 2;
     LinearLayout flow = k.row();
     flow.setGravity(Gravity.CENTER_VERTICAL);
+    flow.setBaselineAligned(false);
     if (fixedChain) panel.addView(flow, new LinearLayout.LayoutParams(-1, 0, 1));
     else {
       HorizontalScrollView strip = new HorizontalScrollView(h);
       strip.setHorizontalScrollBarEnabled(true);
-      strip.addView(flow);
+      strip.addView(flow, new android.widget.FrameLayout.LayoutParams(-2, -1));
       panel.addView(strip, new LinearLayout.LayoutParams(-1, 0, 1));
     }
     ArrayList<TextView> counts = new ArrayList<>();
@@ -514,7 +520,7 @@ final class NativeEconomy {
       JSONObject material = mats.optJSONObject(j);
       if (j > 0) flow.addView(h.text("＋", 18));
       LinearLayout slot = materialSlot(material, false, fixedChain);
-      counts.add((TextView) slot.getChildAt(2));
+      counts.add(slot.findViewWithTag("craft-material-count-" + material.optString("id")));
       flow.addView(slot);
     }
     flow.addView(h.text("→", 22));
@@ -582,44 +588,48 @@ final class NativeEconomy {
     return materialSlot(unit, result, false);
   }
 
-  LinearLayout materialSlot(JSONObject unit, boolean result, boolean bounded) {
-    LinearLayout slot = k.paper();
-    if (compact()) slot.setPadding(h.dp(4), h.dp(2), h.dp(4), h.dp(2));
-    slot.setGravity(Gravity.CENTER_HORIZONTAL);
-    ImageView art =
-        k.image(
-            "/thumbs/" + unit.optString("img") + ".jpg",
-            compact() ? 48 : 100,
-            compact() ? 48 : 100);
-    art.setTag(result ? "craft-result-image" : "craft-material-image-" + unit.optString("id"));
-    slot.addView(art);
-    TextView name = h.text(unit.optString("name"), compact() ? 14 : 16);
-    name.setPadding(0, compact() ? 0 : h.dp(4), 0, compact() ? 0 : h.dp(4));
-    name.setSingleLine(!bounded);
-    if (bounded) {
-      name.setMaxLines(2);
-      namePreview(name, unit.optString("name"));
+  /** Original FULL identity once, with only the changing quantity/state below it. */
+  RegistrationCardView fullEconomyCard(JSONObject unit) {
+    RegistrationCardView card = new RegistrationCardView(h, unit, RegistrationCardView.FULL);
+    // A server-masked picture contains no printed identity. Keep only its exact public labels.
+    if (!RegistrationCardView.canShow(unit)) {
+      card.name.setVisibility(View.VISIBLE);
+      card.grade.setVisibility(View.VISIBLE);
     }
-    name.setGravity(Gravity.CENTER);
-    int nameWidth = (int) Math.ceil(name.getPaint().measureText(unit.optString("name")));
-    slot.setLayoutParams(
-        new LinearLayout.LayoutParams(
-            Math.max(
-                h.dp(compact() ? 104 : 144),
-                nameWidth + slot.getPaddingLeft() + slot.getPaddingRight() + h.dp(2)),
-            -2));
-    if (bounded) slot.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1));
-    slot.addView(name);
-    TextView count =
-        k.note(
-            result
-                ? unit.optString("tierName")
-                : unit.optInt("usable") + " / " + unit.optInt("need"));
+    return card;
+  }
+
+  LinearLayout fullEconomyTile(JSONObject unit, String detail) {
+    LinearLayout tile = k.column();
+    tile.setGravity(Gravity.CENTER);
+    tile.setPadding(h.dp(2), 0, h.dp(2), 0);
+    RegistrationCardView card = fullEconomyCard(unit);
+    card.setTag("economy-full-card");
+    tile.addView(card, new LinearLayout.LayoutParams(-1, 0, 1));
+    TextView state = RegistrationCardView.stateLabel(h, detail);
+    state.setTag("economy-card-state");
+    state.setSingleLine(false);
+    state.setEllipsize(null);
+    state.setPadding(h.dp(2), 0, h.dp(2), 0);
+    state.setBackgroundColor(JournalTheme.PAPER);
+    state.setTextColor(MainActivity.INK);
+    tile.addView(state, new LinearLayout.LayoutParams(-1, -2));
+    tile.setMinimumHeight(h.dp(48));
+    return tile;
+  }
+
+  LinearLayout materialSlot(JSONObject unit, boolean result, boolean bounded) {
+    LinearLayout slot = fullEconomyTile(unit,
+        result ? "결과" : unit.optInt("usable") + " / " + unit.optInt("need"));
+    RegistrationCardView art = (RegistrationCardView) slot.getChildAt(0);
+    art.setTag(result ? "craft-result-image" : "craft-material-image-" + unit.optString("id"));
+    slot.setLayoutParams(new LinearLayout.LayoutParams(h.dp(compact() ? 116 : 160), -1));
+    if (bounded) slot.setLayoutParams(new LinearLayout.LayoutParams(0, -1, 1));
+    TextView count = (TextView) slot.getChildAt(1);
     count.setTextSize(h.uiText(14));
     if (compact()) count.setPadding(0, 0, 0, 0);
     count.setTag(result ? "craft-result-tier" : "craft-material-count-" + unit.optString("id"));
     count.setGravity(Gravity.CENTER);
-    slot.addView(count);
     if (result && bounded) {
       slot.setContentDescription(unit.optString("name") + " · " + unit.optString("tierName"));
       slot.setOnClickListener(
@@ -653,16 +663,21 @@ final class NativeEconomy {
       mixPage = Math.max(0, Math.min(mixPage, pages - 1));
       LinearLayout choices = k.column();
       choices.setTag("mix-inline-materials");
+      LinearLayout picker = k.row();
+      picker.setBaselineAligned(false);
+      cols[0].addView(picker, new LinearLayout.LayoutParams(-1, 0, 1));
+      picker.addView(choices, new LinearLayout.LayoutParams(0, -1, 1));
+      LinearLayout row = null;
       for (int i = mixPage * perPage; i < Math.min(available.size(), (mixPage + 1) * perPage); i++) {
         JSONObject unit = available.get(i);
         String id = unit.optString("id");
         int left = unit.optInt("usable") - Collections.frequency(m.mixDraft, id);
-        LinearLayout item = k.row();
-        item.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
-        item.setPadding(h.dp(5), h.dp(2), h.dp(5), h.dp(2));
-        item.addView(k.image("/thumbs/" + unit.optString("img") + ".jpg", compact() ? 36 : 52, compact() ? 36 : 52));
-        item.addView(choiceCopy(unit.optString("name"), "남은 " + left + "마리"),
-            new LinearLayout.LayoutParams(0, -2, 1));
+        if ((i - mixPage * perPage) % 2 == 0) {
+          row = k.row();
+          row.setBaselineAligned(false);
+          choices.addView(row, new LinearLayout.LayoutParams(-1, 0, 1));
+        }
+        LinearLayout item = fullEconomyTile(unit, "남은 " + left);
         item.setTag("mix-picker-material-" + id);
         item.setEnabled(left > 0 && m.mixDraft.size() < 6);
         item.setAlpha(item.isEnabled() ? 1 : .6f);
@@ -672,20 +687,19 @@ final class NativeEconomy {
           m.mixDraft.add(id);
           paint[0].run();
         });
-        LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(-1, h.dp(compact() ? 56 : 76));
-        slot.bottomMargin = h.dp(3);
-        choices.addView(item, slot);
+        LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, -1, 1);
+        slot.setMargins(h.dp(2), h.dp(2), h.dp(2), h.dp(2));
+        row.addView(item, slot);
       }
       if (available.isEmpty()) choices.addView(caption("사용할 수 있는 재료가 없어요."));
-      cols[0].addView(choices, new LinearLayout.LayoutParams(-1, 0, 1));
-      pageControls(cols[0], mixPage, pages, page -> { mixPage = page; paint[0].run(); }, "mix-material-pages");
+      crewPageControls(picker, mixPage, pages, page -> { mixPage = page; paint[0].run(); }, "mix-material-pages");
       cols[1].addView(caption("선택한 재료 · " + m.mixDraft.size() + " / 6 · 누르면 빼기"));
       FrameLayout workbench = new FrameLayout(h);
       workbench.setTag("mix-workbench");
       LinearLayout slots = k.row();
       slots.setGravity(Gravity.CENTER_VERTICAL);
       slots.setBaselineAligned(false);
-      workbench.addView(slots, new FrameLayout.LayoutParams(-1, -2, Gravity.CENTER));
+      workbench.addView(slots, new FrameLayout.LayoutParams(-1, -1, Gravity.CENTER));
       cols[1].addView(workbench, new LinearLayout.LayoutParams(-1, 0, 1));
       for (int i = 0; i < 6; i++) {
         int index = i;
@@ -693,7 +707,7 @@ final class NativeEconomy {
         slot.setPadding(h.dp(3), h.dp(5), h.dp(3), h.dp(5));
         slot.setGravity(Gravity.CENTER);
         slot.setMinimumHeight(h.dp(compact() ? 92 : 156));
-        LinearLayout.LayoutParams box = new LinearLayout.LayoutParams(0, -2, 1);
+        LinearLayout.LayoutParams box = new LinearLayout.LayoutParams(0, -1, 1);
         box.setMargins(h.dp(2), 0, h.dp(2), 0);
         slots.addView(slot, box);
         if (i >= m.mixDraft.size()) {
@@ -710,13 +724,11 @@ final class NativeEconomy {
           for (int j = 0; j < pool.length(); j++)
             if (id.equals(pool.optJSONObject(j).optString("id"))) unit = pool.optJSONObject(j);
           slot.setTag("mix-material-" + id);
-          slot.addView(k.image("/thumbs/" + unit.optString("img") + ".jpg", compact() ? 40 : 76, compact() ? 40 : 76));
-          TextView name = h.text(unit.optString("name"), compact() ? 12 : 14);
-          name.setGravity(Gravity.CENTER);
-          name.setMaxLines(2);
-          namePreview(name, unit.optString("name"));
-          name.setPadding(0, 0, 0, 0);
-          slot.addView(name);
+          slot.setPadding(0, 0, 0, 0);
+          slot.setBackgroundColor(Color.TRANSPARENT);
+          RegistrationCardView card = fullEconomyCard(unit);
+          card.setTag("economy-full-card");
+          slot.addView(card, new LinearLayout.LayoutParams(-1, -1));
           slot.setContentDescription(unit.optString("name") + " 재료에서 빼기");
           slot.setOnClickListener(v -> {
             if (h.busy) return;

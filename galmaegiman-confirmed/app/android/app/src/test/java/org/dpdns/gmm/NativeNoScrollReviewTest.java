@@ -247,6 +247,27 @@ public class NativeNoScrollReviewTest {
     assertFullyVisible(view, host.root);
   }
 
+  void readyCraftFullCards(MainActivity host, int width, int height) throws Exception {
+    review.viewport(host, width, height);
+    Bitmap kickoff = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+    try { host.root.draw(new Canvas(kickoff)); } finally { kickoff.recycle(); }
+    RegistrationArtTest.await(() -> host.registrationArt().idle());
+    review.viewport(host, width, height);
+  }
+
+  void assertCraftArtOrServerMask(RegistrationCardView card) {
+    assertEquals(RegistrationCardView.FULL, card.picture.mode);
+    if (card.picture.visibleIdentity) {
+      assertNotNull("서버가 공개한 원본 등록증 로딩 완료", card.picture.bitmap);
+      assertFalse(card.picture.bitmap.isRecycled());
+    } else {
+      assertFalse("서버가 가린 그림은 등록증 요청도 하지 않음", card.picture.loadAttempted);
+      assertNull(card.picture.bitmap);
+      assertEquals(View.VISIBLE, card.name.getVisibility());
+      assertEquals(View.VISIBLE, card.grade.getVisibility());
+    }
+  }
+
   void criticalActions(MainActivity host, String page) {
     if (page.equals("modes")) {
       for (String name : new String[] {"스토리", "일반 게임", "랭크게임", "연습"}) {
@@ -276,14 +297,15 @@ public class NativeNoScrollReviewTest {
             ((TextView) view).getText().toString().matches("[0-9,]+ / [0-9,]+"));
         String id = view.getTag().toString().substring("craft-material-count-".length());
         requiredTag(host, "craft-material-image-" + id);
-        ImageView image = host.root.findViewWithTag("craft-material-image-" + id);
-        assertNotNull("의미 태그로 원본 이미지 요청이 무효화되지 않음: " + id, image.getDrawable());
+        RegistrationCardView image = host.root.findViewWithTag("craft-material-image-" + id);
+        assertEquals(id, image.picture.id);
+        assertCraftArtOrServerMask(image);
         materials++;
       }
       assertTrue("재료 그림과 수량을 모달 뒤에 숨기지 않음", materials > 0);
       requiredTag(host, "craft-result-image");
-      ImageView result = host.root.findViewWithTag("craft-result-image");
-      assertNotNull("현재/전환 이미지 로딩을 기다린 후 실제 결과 이미지 표시", result.getDrawable());
+      RegistrationCardView result = host.root.findViewWithTag("craft-result-image");
+      assertCraftArtOrServerMask(result);
     } else if (page.equals("mix")) {
       for (int i = 0; i < 6; i++) {
         View slot = host.root.findViewWithTag("mix-empty-slot-" + i);
@@ -366,6 +388,7 @@ public class NativeNoScrollReviewTest {
           String failure = "";
           try {
             page(host, page);
+            if (page.equals("craft")) readyCraftFullCards(host, size[0], size[1]);
             review.capture(host, "fixed-" + size[0] + "-" + page, size[0], size[1]);
             buttons = assertFixedMain(host);
             if (host.visibleDialog != null)
@@ -441,6 +464,7 @@ public class NativeNoScrollReviewTest {
       host.menus.recipeQuery = "";
       host.menus.craftOnly = false;
       page(host, "craft");
+      readyCraftFullCards(host, 915, 412);
       review.capture(host, "picker-craft-main", 915, 412);
       JSONArray recipes = api.responses.get("craft").getJSONArray("recipes");
       Set<String> recipeIds = new HashSet<>();
@@ -463,6 +487,7 @@ public class NativeNoScrollReviewTest {
       Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
       assertEquals("원래 조합 선택 callback의 정확한 id 유지", recipe.getString("id"), host.menus.recipeId);
       assertNull("조합식 선택은 별도 모달 없이 완료", host.visibleDialog);
+      readyCraftFullCards(host, 915, 412);
       review.capture(host, "picker-craft-selected", 915, 412);
       assertFixedMain(host);
     }

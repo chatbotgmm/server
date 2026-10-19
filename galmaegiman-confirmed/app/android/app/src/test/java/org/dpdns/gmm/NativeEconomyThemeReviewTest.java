@@ -204,6 +204,69 @@ public class NativeEconomyThemeReviewTest {
     return dimensions;
   }
 
+  JSONArray economyFullCards(MainActivity host, String page, NativeEconomyThemeFixture.Api api) {
+    JSONArray measured = new JSONArray();
+    if (!page.equals("craft") && !page.startsWith("mix") && !page.equals("forge")) return measured;
+    View foreground = page.equals("forge") ? host.root.getChildAt(host.root.getChildCount() - 1) : host.root;
+    List<String> selectedMix = new ArrayList<>();
+    for (View view : geometry.descendants(foreground)) {
+      if (!(view instanceof RegistrationCardView) || !view.isShown()) continue;
+      RegistrationCardView card = (RegistrationCardView) view;
+      RegistrationCardView.Artwork art = card.picture;
+      String tag = String.valueOf(card.getTag());
+      View parent = (View) card.getParent();
+      String parentTag = String.valueOf(parent.getTag()), id;
+      if (tag.equals("forge-result-card")) id = ((NativeForge) foreground).result.optString("id");
+      else if (tag.equals("craft-result-image")) id = host.menus.recipeId;
+      else if (tag.startsWith("craft-material-image-")) id = tag.substring("craft-material-image-".length());
+      else if (parentTag.startsWith("craft-recipe-")) id = parentTag.substring("craft-recipe-".length());
+      else if (parentTag.startsWith("mix-picker-material-")) id = parentTag.substring("mix-picker-material-".length());
+      else if (parentTag.startsWith("mix-material-")) {
+        id = parentTag.substring("mix-material-".length()); selectedMix.add(id);
+      } else throw new AssertionError("Unclassified FULL economy card: " + tag + "/" + parentTag);
+      JSONObject canonical = api.data.units.get(id);
+      assertNotNull("Identity comes from the canonical visible server fixture: " + id, canonical);
+      assertEquals(id, art.id);
+      assertEquals(RegistrationCardView.FULL, art.mode);
+      assertNotNull("Canonical FULL bitmap loaded before proof: " + id, art.bitmap);
+      assertFalse(art.bitmap.isRecycled());
+      assertEquals(View.GONE, card.name.getVisibility());
+      assertEquals(View.GONE, card.grade.getVisibility());
+      assertTrue(card.getContentDescription().toString().contains(canonical.optString("name")));
+      assertTrue(new RectF(0, 0, art.getWidth(), art.getHeight()).contains(art.target));
+      assertEquals(art.getWidth() / 2f, art.target.centerX(), .01f);
+      assertEquals(art.getHeight() / 2f, art.target.centerY(), .01f);
+      assertEquals(art.bitmap.getWidth() / (float) art.bitmap.getHeight(),
+          art.target.width() / art.target.height(), .001f);
+      int minimum = page.equals("forge") ? (host.contentHeightDp() < 390 ? 180 : 220)
+          : (host.contentHeightDp() < 390 ? 100 : 120);
+      assertTrue("Readable FULL economy art: " + tag + "/" + parentTag + " target=" + art.target + " minimum=" + minimum,
+          art.target.height() >= host.dp(minimum));
+      assertEquals(geometry.bounds(art, host.root), geometry.visibleIntersection(art, host.root));
+      // Inspect only this tile, not the neighboring outcome/quantity controls.
+      View identitySurface = page.equals("forge") ? card : parent;
+      for (View child : geometry.descendants(identitySurface)) if (child.isShown() && child instanceof TextView) {
+        String visible = ((TextView) child).getText().toString();
+        assertNotEquals("Printed name is not duplicated outside the original art", canonical.optString("name"), visible);
+        if (!canonical.optString("tierName").isEmpty())
+          assertNotEquals("Printed tier is not duplicated outside the original art", canonical.optString("tierName"), visible);
+      }
+      measured.put(MainActivity.obj("tag", tag, "parentTag", parentTag, "id", id, "mode", "FULL",
+          "artWidth", art.target.width(), "artHeight", art.target.height(), "minimumArtHeightDp", minimum));
+    }
+    assertTrue("This state contains actual FULL cards", measured.length() > 0);
+    if (page.startsWith("mix")) assertEquals("All six slots preserve ordered duplicate material identity",
+        host.menus.mixDraft, selectedMix);
+    if (page.equals("forge")) {
+      assertEquals(1, measured.length());
+      assertNull("Legacy duplicate result title removed", foreground.findViewWithTag("forge-result-name"));
+      RegistrationCardView card = foreground.findViewWithTag("forge-result-card");
+      assertNull("No second paper frame around the original registration art", card.getBackground());
+    }
+    assertTrue(host.registrationArt().cachedBytes() <= 16 * 1024 * 1024);
+    return measured;
+  }
+
   JSONObject audit(MainActivity host, String page, NativeEconomyThemeFixture.Api api) {
     assertNull("Core selection stays inline", host.visibleDialog);
     int controls = 0, labels = 0, truncations = 0, overlapChecks = 0;
@@ -292,9 +355,10 @@ public class NativeEconomyThemeReviewTest {
     assertNotNull("Actual bundled scene", scene);
     assertTrue("Full-resolution background", scene.getWidth() >= 1800 && scene.getHeight() >= 800);
     JSONArray fullCards = expeditionCards(host, page);
+    JSONArray workbenchCards = economyFullCards(host, page, api);
     return MainActivity.obj("actualNativeViews", true, "controls", controls, "labels", labels, "namePreviewTruncations", truncations,
         "independentOverlapChecks", overlapChecks, "apiWrites", api.writes, "apiReads", api.calls.size(),
-        "expeditionFullCards", fullCards,
+        "expeditionFullCards", fullCards, "workbenchFullCards", workbenchCards,
         "sceneAsset", sceneAsset, "sceneWidth", scene.getWidth(), "sceneHeight", scene.getHeight(),
         "rootKind", page.equals("forge") ? "overlay" : "page", "sourceCommit", api.data.source.optString("sourceCommit"));
   }
@@ -376,49 +440,155 @@ public class NativeEconomyThemeReviewTest {
   }
 
   @Test public void inlineRecipeAndMaterialPagesKeepEveryServerChoiceWithoutMutations() throws Exception {
-    try (var controller = flow.start()) {
-      MainActivity host = controller.get();
-      NativeEconomyThemeFixture.Api api = new NativeEconomyThemeFixture().prepare(host);
-      host.menus.recipeQuery = "";
-      host.menus.craftOnly = false;
-      host.menus.economy.craft(false);
-      RegistrationArtTest.await(() -> host.menus.pendingFetches == 0);
-      JSONArray recipes = api.responses.get("craft").getJSONArray("recipes");
-      Set<String> expected = new HashSet<>(), seen = new HashSet<>();
-      for (int i = 0; i < recipes.length(); i++) expected.add(recipes.getJSONObject(i).getString("id"));
-      while (true) {
-        View list = host.root.findViewWithTag("craft-recipe-list");
-        for (View view : geometry.descendants(list)) {
-          if (!(view.getTag() instanceof String) || !view.getTag().toString().startsWith("craft-recipe-")) continue;
-          String id = view.getTag().toString().substring("craft-recipe-".length());
-          seen.add(id);
+    for (int[] size : SIZES) {
+      RuntimeEnvironment.setQualifiers("w" + size[0] + "dp-h" + size[1] + "dp-land-mdpi");
+      RuntimeEnvironment.setFontScale(size[2] / 100f);
+      try (var controller = flow.start()) {
+        MainActivity host = controller.get();
+        NativeEconomyThemeFixture.Api api = new NativeEconomyThemeFixture().prepare(host);
+        host.menus.recipeQuery = ""; host.menus.craftOnly = false;
+        host.menus.economy.craft(false);
+        RegistrationArtTest.await(() -> host.menus.pendingFetches == 0);
+        JSONArray recipes = api.responses.get("craft").getJSONArray("recipes");
+        List<String> expected = new ArrayList<>(), seen = new ArrayList<>();
+        for (int i = 0; i < recipes.length(); i++) expected.add(recipes.getJSONObject(i).getString("id"));
+        int perPage = host.contentHeightDp() >= 520 ? 4 : 2, pageIndex = 0;
+        while (true) {
+          ready(host, size); economyFullCards(host, "craft", api);
+          List<String> pageIds = new ArrayList<>();
+          for (View view : geometry.descendants(host.root.findViewWithTag("craft-recipe-list"))) {
+            String tag = String.valueOf(view.getTag());
+            if (tag.startsWith("craft-recipe-") && !tag.equals("craft-recipe-list"))
+              pageIds.add(tag.substring("craft-recipe-".length()));
+          }
+          assertEquals(expected.subList(pageIndex * perPage, Math.min(expected.size(), (pageIndex + 1) * perPage)), pageIds);
+          seen.addAll(pageIds);
+          Button next = actions.button(host.root.findViewWithTag("craft-recipe-pages"), "›");
+          if (!next.isEnabled()) break;
+          next.performClick(); pageIndex++;
         }
-        Button next = actions.button(host.root.findViewWithTag("craft-recipe-pages"), "›");
-        if (!next.isEnabled()) break;
-        next.performClick();
-      }
-      seen.remove("list");
-      assertEquals("Only server-visible recipes, including every returned choice", expected, seen);
-      assertNull(host.visibleDialog);
-      host.menus.economy.craft(true);
-      RegistrationArtTest.await(() -> host.menus.pendingFetches == 0);
-      JSONArray pool = api.responses.get("craft").getJSONArray("pool");
-      expected.clear(); seen.clear();
-      for (int i = 0; i < pool.length(); i++) if (pool.getJSONObject(i).optInt("usable") > 0)
-        expected.add(pool.getJSONObject(i).getString("id"));
-      while (true) {
-        for (View view : geometry.descendants(host.root.findViewWithTag("mix-inline-materials"))) {
-          if (view.getTag() instanceof String && view.getTag().toString().startsWith("mix-picker-material-"))
-            seen.add(view.getTag().toString().substring("mix-picker-material-".length()));
+        assertEquals("Every server-visible recipe, in original order and original page size", expected, seen);
+        assertNull(host.visibleDialog);
+        host.menus.economy.craft(true);
+        RegistrationArtTest.await(() -> host.menus.pendingFetches == 0);
+        JSONArray pool = api.responses.get("craft").getJSONArray("pool");
+        expected.clear(); seen.clear(); pageIndex = 0;
+        for (int i = 0; i < pool.length(); i++) if (pool.getJSONObject(i).optInt("usable") > 0)
+          expected.add(pool.getJSONObject(i).getString("id"));
+        while (true) {
+          ready(host, size); economyFullCards(host, "mix", api);
+          List<String> pageIds = new ArrayList<>();
+          for (View view : geometry.descendants(host.root.findViewWithTag("mix-inline-materials"))) {
+            String tag = String.valueOf(view.getTag());
+            if (tag.startsWith("mix-picker-material-")) pageIds.add(tag.substring("mix-picker-material-".length()));
+          }
+          assertEquals(expected.subList(pageIndex * perPage, Math.min(expected.size(), (pageIndex + 1) * perPage)), pageIds);
+          seen.addAll(pageIds);
+          Button next = actions.button(host.root.findViewWithTag("mix-material-pages"), "›");
+          if (!next.isEnabled()) break;
+          next.performClick(); pageIndex++;
         }
-        Button next = actions.button(host.root.findViewWithTag("mix-material-pages"), "›");
-        if (!next.isEnabled()) break;
-        next.performClick();
+        assertEquals("Every usable material keeps its server order and page size", expected, seen);
+        assertNull(host.visibleDialog);
+        mixSlotsKeepDuplicateIndicesAndOwnership(host, api, size);
+        maskedCardsKeepServerIdentityWithoutRevealingArt(host, api, size);
+        if (size == SIZES[0]) expeditionPagesKeepIdentityAndDuplicateIndices(host, api);
+        assertEquals("All display, paging and draft actions remain read-only", 0, api.writes);
       }
-      assertEquals(expected, seen);
-      assertNull(host.visibleDialog);
-      expeditionPagesKeepIdentityAndDuplicateIndices(host, api);
     }
+  }
+
+  void mixSlotsKeepDuplicateIndicesAndOwnership(MainActivity host, NativeEconomyThemeFixture.Api api, int[] size) throws Exception {
+    // Behavior-only selection state. Canonical names/art and actual server usable counts are unchanged.
+    NativeEconomy economy = host.menus.economy;
+    JSONArray pool = api.data.craft.getJSONArray("pool");
+    JSONObject first = pool.getJSONObject(0), second = pool.getJSONObject(1);
+    String a = first.getString("id"), b = second.getString("id");
+    economy.mixPage = 0;
+    host.menus.mixDraft = new ArrayList<>(Arrays.asList(a, b, a));
+    economy.craft(true); ready(host, size);
+    List<View> selected = new ArrayList<>();
+    for (View view : geometry.descendants(host.root.findViewWithTag("mix-workbench")))
+      if (String.valueOf(view.getTag()).startsWith("mix-material-")) selected.add(view);
+    assertEquals(3, selected.size());
+    for (int i = 3; i < 6; i++) assertNotNull(host.root.findViewWithTag("mix-empty-slot-" + i));
+    host.busy = true; selected.get(2).performClick();
+    assertEquals(Arrays.asList(a, b, a), host.menus.mixDraft);
+    host.root.findViewWithTag("mix-picker-material-" + a).performClick();
+    assertEquals(Arrays.asList(a, b, a), host.menus.mixDraft);
+    host.busy = false; selected.get(2).performClick();
+    assertEquals("Remove the third slot, not the first matching identity", Arrays.asList(a, b), host.menus.mixDraft);
+    ready(host, size);
+    int usable = first.getInt("usable");
+    host.menus.mixDraft.clear();
+    for (int i = 0; i < Math.min(6, usable); i++) host.menus.mixDraft.add(a);
+    economy.craft(true); ready(host, size);
+    List<String> before = new ArrayList<>(host.menus.mixDraft);
+    View exhausted = host.root.findViewWithTag("mix-picker-material-" + a);
+    assertFalse("Usable count or six-slot cap disables excess additions", exhausted.isEnabled());
+    exhausted.performClick(); assertEquals(before, host.menus.mixDraft);
+    assertEquals("Canonical server usable inventory is never changed optimistically", usable, first.getInt("usable"));
+    assertEquals("Original six visible slots", 6, ((ViewGroup) host.root.findViewWithTag("mix-workbench")).getChildCount() == 1
+        ? ((ViewGroup) ((ViewGroup) host.root.findViewWithTag("mix-workbench")).getChildAt(0)).getChildCount() : -1);
+    economyFullCards(host, "mix-selected", api);
+    assertEquals(0, api.writes); assertNull(host.visibleDialog);
+    // Separate behavior-only server response: inventory exhausts before the six-slot cap.
+    try {
+      first.put("usable", 2);
+      host.menus.mixDraft.clear(); host.menus.mixDraft.add(a); host.menus.mixDraft.add(a);
+      economy.craft(true); ready(host, size);
+      View noneLeft = host.root.findViewWithTag("mix-picker-material-" + a);
+      assertFalse(noneLeft.isEnabled());
+      assertEquals("남은 0", ((TextView) noneLeft.findViewWithTag("economy-card-state")).getText().toString());
+      noneLeft.performClick();
+      assertEquals(Arrays.asList(a, a), host.menus.mixDraft);
+      assertEquals(2, first.getInt("usable"));
+    } finally { first.put("usable", usable); }
+    host.menus.mixDraft.clear();
+  }
+
+  void assertMaskedCard(RegistrationCardView card, JSONObject serverUnit) {
+    assertNotNull(card);
+    assertEquals(serverUnit.optString("id"), card.picture.id);
+    assertFalse(card.picture.visibleIdentity);
+    assertFalse("Masked IDs must never request bundled FULL pixels", card.picture.loadAttempted);
+    assertNull(card.picture.bitmap);
+    assertEquals(View.VISIBLE, card.name.getVisibility());
+    assertEquals(View.VISIBLE, card.grade.getVisibility());
+    assertEquals(serverUnit.optString("name"), card.name.getText().toString());
+    assertEquals(serverUnit.optString("tierName"), card.grade.getText().toString());
+    assertTrue(card.getContentDescription().toString().contains(serverUnit.optString("name")));
+    readable(card.name); readable(card.grade);
+  }
+
+  void maskedCardsKeepServerIdentityWithoutRevealingArt(MainActivity host, NativeEconomyThemeFixture.Api api, int[] size) throws Exception {
+    // Legitimate server mask values from GameService.face; never used for normal proof captures.
+    JSONObject recipe = api.data.craft.getJSONArray("recipes").getJSONObject(0);
+    JSONObject material = recipe.getJSONArray("materials").getJSONObject(0);
+    String recipeImg = recipe.getString("img"), materialImg = material.getString("img");
+    recipe.put("img", "q-UNCOMMON"); material.put("img", "unknown");
+    host.menus.recipeId = recipe.getString("id"); host.menus.economy.recipePage = 0;
+    host.menus.economy.craft(false); ready(host, size);
+    RegistrationCardView choice = (RegistrationCardView) ((ViewGroup) host.root.findViewWithTag("craft-recipe-" + recipe.getString("id"))).getChildAt(0);
+    assertMaskedCard(choice, recipe);
+    assertMaskedCard(host.root.findViewWithTag("craft-result-image"), recipe);
+    assertMaskedCard(host.root.findViewWithTag("craft-material-image-" + material.getString("id")), material);
+    int[] confirmed = {0};
+    host.base("조합 결과", "craftResult");
+    NativeForge overlay = new NativeForge(host, recipe.getJSONArray("materials"), recipe, false,
+        "마스킹 상태 검증", () -> confirmed[0]++);
+    host.root.addView(overlay, new android.widget.FrameLayout.LayoutParams(-1, -1));
+    overlay.showResult(false); ready(host, size);
+    assertMaskedCard(overlay.findViewWithTag("forge-result-card"), recipe);
+    recipe.put("img", recipeImg); material.put("img", materialImg);
+    overlay.updateResult(recipe); ready(host, size);
+    economyFullCards(host, "forge", api);
+    Button confirm = overlay.findViewWithTag("forge-result-confirm");
+    confirm.performClick(); confirm.performClick();
+    assertEquals("Existing one-shot result completion remains guarded", 1, confirmed[0]);
+    host.root.removeView(overlay);
+    assertTrue(overlay.detached);
+    assertEquals(0, api.writes);
   }
 
   void expeditionPagesKeepIdentityAndDuplicateIndices(MainActivity host, NativeEconomyThemeFixture.Api api) throws Exception {

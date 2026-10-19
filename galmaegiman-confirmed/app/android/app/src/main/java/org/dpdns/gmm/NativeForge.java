@@ -116,11 +116,6 @@ final class NativeForge extends FrameLayout {
     LinearLayout page = k.column();
     page.setGravity(Gravity.CENTER_HORIZONTAL);
     page.setPadding(h.dp(14), h.dp(10), h.dp(14), h.dp(10));
-    int available =
-        getHeight() > 0
-            ? (int) (getHeight() / h.getResources().getDisplayMetrics().density)
-            : h.contentHeightDp();
-    int imageSize = Math.max(72, Math.min(200, (int) (available * (flow == null ? .42f : .30f))));
     LayoutParams box =
         new LayoutParams(
             Math.min(h.dp(760), (int) ((getWidth() > 0 ? getWidth() : h.root.getWidth()) * .9f)),
@@ -132,36 +127,21 @@ final class NativeForge extends FrameLayout {
     content.setGravity(Gravity.CENTER_VERTICAL);
     content.setPadding(0, h.dp(6), 0, h.dp(6));
     FrameLayout stage = new FrameLayout(h);
-    stage.addView(content, new FrameLayout.LayoutParams(-1, -2, Gravity.CENTER));
+    // Successful art uses the height left after the existing action/footer rows.
+    // Keep the failure message centered at its original wrap-content height.
+    stage.addView(
+        content,
+        new FrameLayout.LayoutParams(-1, result != null && !fail ? -1 : -2, Gravity.CENTER));
     page.addView(stage, new LinearLayout.LayoutParams(-1, 0, 1));
     if (result != null && !fail) {
-      LinearLayout card = k.column();
-      resultCard = card;
-      card.setGravity(Gravity.CENTER);
-      card.setPadding(h.dp(10), h.dp(10), h.dp(10), h.dp(10));
-      card.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
-      card.setElevation(h.dp(5));
-      card.addView(
-          k.image(
-              "/thumbs/" + result.optString("img", result.optString("id")) + ".jpg",
-              imageSize,
-              imageSize));
-      TextView name = h.text(result.optString("name"), 20);
-      name.setTag("forge-result-name");
-      name.setTypeface(h.headline);
-      name.setGravity(Gravity.CENTER);
-      name.setTextLocale(java.util.Locale.KOREA);
-      name.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
-      if (android.os.Build.VERSION.SDK_INT >= 33)
-        name.setLineBreakWordStyle(
-            android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
-      card.addView(name);
-      if (!result.optString("tierName").isEmpty()) {
-        TextView grade = k.note(result.optString("tierName"));
-        grade.setTextColor(NativeReveal.tierInk(result.optString("tier")));
-        card.addView(grade);
+      RegistrationCardView card = new RegistrationCardView(h, result, RegistrationCardView.FULL);
+      if (!RegistrationCardView.canShow(result)) {
+        card.name.setVisibility(View.VISIBLE);
+        card.grade.setVisibility(View.VISIBLE);
       }
-      content.addView(card, new LinearLayout.LayoutParams(0, -2, .55f));
+      resultCard = card;
+      card.setTag("forge-result-card");
+      content.addView(card, new LinearLayout.LayoutParams(0, -1, .55f));
       if (playEffect && motion()) {
         card.setScaleX(.4f);
         card.setScaleY(.4f);
