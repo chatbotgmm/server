@@ -76,13 +76,13 @@
     $('#nick').textContent = me?.nickname || S.who?.nickname || '이름 없는 대장';
     $('#face').innerHTML = lead ? `<img src="${thumb(lead.id)}" alt="" width="44" height="44">` : '';
     const vals = { snack: me?.snack, peanut: me?.peanut, credits: me?.credits ?? S.who?.credits };
-    $('#money').innerHTML = MONEY.map(([k, label, icon, unit]) => `<a class="pill" href="${k === 'credits' ? '/my#draw' : '/my/classic#shop'}" title="${label}"><img src="/site/a/${icon}.webp" alt="" width="26" height="26"><span class="sr">${label}</span><b>${fmt(vals[k])}${vals[k] != null && unit ? `<small>${unit}</small>` : ''}</b></a>`).join('')
+    $('#money').innerHTML = MONEY.map(([k, label, icon, unit]) => `<a class="pill" href="${k === 'credits' ? '#draw' : '#shop'}" title="${label}"><img src="/site/a/${icon}.webp" alt="" width="26" height="26"><span class="sr">${label}</span><b>${fmt(vals[k])}${vals[k] != null && unit ? `<small>${unit}</small>` : ''}</b></a>`).join('')
       + `<span class="sync" ${S.loading.size ? '' : 'hidden'} role="status" aria-label="정보 새로 받는 중"></span>`;
   }
   const busy = (k, on) => { on ? S.loading.add(k) : S.loading.delete(k); app.setAttribute('aria-busy', String(!!S.loading.size)); const s = $('.sync'); if (s) s.hidden = !S.loading.size; };
 
   // ── 하단 6메뉴: 기존 목적지 유지. 웹 게임에 아직 없는 화면은 기존 웹 화면으로 ──
-  const DOCK = [['home', '항구', 'harbor', '#home'], ['explore', '탐험', 'explore', '/my/classic#party'], ['draw', '뽑기', 'draw', '/my#draw'], ['team', '방범대', 'team', '#dex'], ['combine', '조합', 'combine', '/my#craft'], ['shop', '상점', 'shop', '/my/classic#shop']];
+  const DOCK = [['home', '항구', 'harbor', '#home'], ['explore', '탐험', 'explore', '#explore'], ['draw', '뽑기', 'draw', '#draw'], ['team', '방범대', 'team', '#dex'], ['combine', '조합', 'combine', '#craft'], ['shop', '상점', 'shop', '#shop']];
   function dock(active) {
     $('#dock').innerHTML = DOCK.map(([k, label, icon, href]) => `<a href="${href}" class="${active === k ? 'on' : ''}" ${active === k ? 'aria-current="page"' : ''}${href.startsWith('#') ? '' : ' data-out'}><img src="/site/a/${icon}.webp" alt="" width="34" height="34"><span>${label}</span></a>`).join('');
   }
@@ -94,7 +94,7 @@
     $('#sheet-title').textContent = title; $('.sheet-body', w).innerHTML = html; w.hidden = false;
     $('.close', w).focus(); if (after) after($('.sheet-body', w));
   }
-  function closeSheet() { $('#sheet').hidden = true; if (sheetBack && sheetBack.focus) sheetBack.focus(); if (location.hash === '#account') history.replaceState(null, '', '#home'); }
+  function closeSheet() { $('#sheet').hidden = true; if (sheetBack && sheetBack.focus) sheetBack.focus(); }
   $('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet' || e.target.closest('.close')) closeSheet(); });
   $('#sheet').addEventListener('keydown', e => {
     if (e.key === 'Escape') closeSheet();
@@ -102,19 +102,6 @@
     const f = $$('a[href],button:not([disabled]),input', $('#sheet')), a = f[0], z = f[f.length - 1];
     if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
   });
-  function account() {
-    const me = S.state?.me;
-    sheet('프로필 · 계정', `<div class="acct"><p class="big">${esc(me?.nickname || S.who?.nickname || '이름 없는 대장')}</p>
-      ${me ? `<p class="muted">도감 ${fmt(me.dex)} / ${fmt(me.dexTotal)} · 카카오 ${me.kakao ? '연결됨' : '연결 안 됨'}</p>` : ''}
-      <a class="btn ghost wide" href="/my/classic#account">계정 관리(카카오 연결·탈퇴)</a>
-      <a class="btn ghost wide" href="/">공개 홈페이지</a>
-      <button class="btn ghost wide" type="button" data-logout>로그아웃</button><p class="err" role="alert"></p></div>`, body => {
-      $('[data-logout]', body).onclick = async e => {
-        const b = e.currentTarget; b.disabled = true; b.textContent = '로그아웃 중…';
-        try { await api('logout', {}); location.replace('/'); } catch (x) { $('.err', body).textContent = x.message; b.disabled = false; b.textContent = '로그아웃'; }
-      };
-    });
-  }
   function settings() {
     let calm = false; try { calm = localStorage.getItem('gmm-calm') === '1'; } catch { /* 기본값 */ }
     sheet('설정', `<div class="acct"><label class="switch"><input type="checkbox" data-calm ${calm ? 'checked' : ''}><span>움직임 줄이기</span></label>
@@ -123,20 +110,8 @@
     });
   }
   try { if (localStorage.getItem('gmm-calm') === '1') document.documentElement.classList.add('calm'); } catch { /* 기본값 */ }
-  $('#profile').onclick = account;
+  $('#profile').onclick = () => { location.hash = '#account'; };   // 계정 화면은 more.js
   $('#settings').onclick = settings;
-
-  // ── 출석·미션: 서버의 오늘 미션(읽기)과 출석. 결과는 서버 응답 뒤에만 ──
-  async function daily() {
-    sheet('출석 · 미션', '<div class="state" role="status"><span class="spin"></span>오늘 미션을 받는 중…</div>');
-    const body = $('#sheet .sheet-body');
-    try {
-      const d = await api('daily');
-      const ms = d.missions || [];
-      body.innerHTML = `<ul class="missions">${ms.map(m => `<li class="${m.done ? 'done' : ''}"><b>${esc(m.label)}</b><span>${fmt(m.value)} / ${fmt(m.goal)}</span><em>${m.done ? '완료' : `지원서 ${fmt(m.tickets)}장`}</em></li>`).join('')}</ul>
-        <p class="muted small">미션 보상은 서버 기준으로 지급돼요.</p>`;
-    } catch (x) { if (x.status !== 401) body.innerHTML = `<p class="err" role="alert">${esc(x.message)}</p><button class="btn ghost" type="button" data-retry>다시 시도</button>`; const r = $('[data-retry]', body); if (r) r.onclick = daily; }
-  }
 
   // ── 항구 홈 ──
   function home() {
@@ -157,7 +132,7 @@
         <a class="btn ghost lg" href="#team">전투 편성</a>
         <button class="btn ghost lg" type="button" data-daily>출석 · 미션</button>
       </div></section>`;
-    $('[data-daily]', view).onclick = daily;
+    $('[data-daily]', view).onclick = () => S.daily();   // 출석·미션 시트는 more.js
     if (lead) standee($('.stand', view), sprite(lead.image), `${lead.name} 대표 대원`);
   }
 
@@ -169,7 +144,7 @@
 
   // ── 화면 이동(해시) ──
   // 화면 등록: 도감·편성·플레이는 screens.js, 매칭·전투는 battle.js가 S.routes에 더한다. 증강체는 전투 안의 단계
-  S.routes = { home, account: () => { home(); account(); }, augment: () => { location.replace('#battle'); } };
+  S.routes = { home, augment: () => { location.replace('#battle'); } };
   const route = () => { const [name] = location.hash.slice(1).split('?'); return S.routes[name] ? name : 'home'; };
   const params = () => new URLSearchParams(location.hash.split('?')[1] || '');
   function render() { S.routes[route()](params()); }

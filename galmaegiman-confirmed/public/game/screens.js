@@ -174,6 +174,7 @@
       submit: async next => { const r = await S.api('battle-team', { ids: next }); S.state.me.battleTeam = r.battleTeam || next; S.toast('대전 편성을 저장했어요.'); } });
   }
   S.teamBoard = teamBoard;
+  Object.assign(S, { pager, onResize });   // more.js(모집·조합·탐험·상점)도 같은 페이지 그리드를 쓴다
 
   // ── 플레이: 기존 모드(스토리·연습·일반전·랭크전) ──
   function play() {

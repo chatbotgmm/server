@@ -15,10 +15,10 @@ mkdirSync(out, { recursive: true });
 const B = 'http://127.0.0.1:3999';
 const VIEWS = [['pc', 1440, 900], ['tab', 1024, 768], ['land', 915, 412], ['port', 390, 844], ['small', 360, 640]].filter(([n]) => !process.env.VIEWS || process.env.VIEWS.split(',').includes(n));   // VIEWS=pc,port 처럼 일부만
 const PUBLIC = [['home', '/'], ['about', '/about'], ['characters', '/characters'], ['notices', '/notices'], ['download', '/download'], ['login', '/login?next=/game&from=/about']];
-const GAME = [['g-home', '#home'], ['g-dex', '#dex'], ['g-team', '#team'], ['g-play', '#play']];
+const GAME = [['g-home', '#home'], ['g-dex', '#dex'], ['g-team', '#team'], ['g-team-pvp', '#team?mode=pvp'], ['g-play', '#play'], ['g-draw', '#draw'], ['g-craft', '#craft'], ['g-explore', '#explore'], ['g-shop', '#shop'], ['g-account', '#account']];
 // 전투 단계: 화면마다 새 스토리 전투(P-1)를 시작해 증강체 → 명령(기본·공격·아이템·교체·도망 확인) → 상성표를 찍고 물러난다
 const BATTLE = [['g-root', null], ['g-attack', '[data-p="attack"]'], ['g-item', '[data-p="item"]'], ['g-switch', '[data-p="switch"]'], ['g-leave', '[data-p="leave"]']];
-const findings = [];
+const findings = [], infos = [];   // infos: 실패가 아닌 참고(패널 안 스크롤로 닿는 버튼 등)
 
 const check = (game) => (() => {
   const r = [], vis = e => { const s = getComputedStyle(e), b = e.getBoundingClientRect(); return s.visibility !== 'hidden' && s.display !== 'none' && b.width > 0 && b.height > 0 && !e.closest('[hidden]'); };
@@ -26,12 +26,14 @@ const check = (game) => (() => {
   const de = document.documentElement;
   if (de.scrollWidth > innerWidth + 1) r.push({ kind: '가로 넘침', detail: `${de.scrollWidth} > ${innerWidth}` });
   if (window.__game && de.scrollHeight > innerHeight + 1) r.push({ kind: '세로 넘침(게임)', detail: `${de.scrollHeight} > ${innerHeight}` });
-  const hits = [...document.querySelectorAll('a[href],button,input,select,[role=option],[role=button]')].filter(e => vis(e) && !e.classList.contains('skip'));
+  const hits = [...document.querySelectorAll('a[href],button,input,select,[role=option],[role=button]')].filter(e => vis(e) && !e.classList.contains('skip') && !(e.closest('details:not([open])') && !e.closest('summary')));   // 접힌 내용은 보이지 않음
   for (const e of hits) {
     const b = e.getBoundingClientRect();
     if ((b.width < 47.5 || b.height < 47.5) && !e.closest('.prose,.foot-links.sub,p,li>span,.lead,.plain,.muted')) r.push({ kind: '터치 48 미만', detail: `${name(e)} ${Math.round(b.width)}×${Math.round(b.height)}` });
     if (b.right > innerWidth + 1 || b.left < -1) r.push({ kind: '화면 밖(가로)', detail: name(e) });
-    if (window.__game && (b.bottom > innerHeight + 1 || b.top < -1)) r.push({ kind: '화면 밖(세로)', detail: name(e) });
+    // 스스로 스크롤되는 패널 안(목록·상세)에 있으면 스크롤로 닿을 수 있다 → 실패가 아니라 정보로만 남긴다
+    const scroller = (() => { for (let x = e.parentElement; x && x !== document.body; x = x.parentElement) { const o = getComputedStyle(x).overflowY; if ((o === 'auto' || o === 'scroll') && x.scrollHeight > x.clientHeight + 1) return x; } return null; })();
+    if (window.__game && (b.bottom > innerHeight + 1 || b.top < -1)) r.push(scroller ? { kind: '패널 안 스크롤(정보)', detail: name(e), info: true } : { kind: '화면 밖(세로)', detail: name(e) });
   }
   for (const e of document.querySelectorAll('h1,h2,h3,b,.btn,.pill,label,.dock a span,.who b,.ccard span,.growth b,.reg-card,.cbtn,.slot,.a-card')) {   // 카드·버튼 자체가 내용보다 작으면(overflow hidden) 잘림으로 본다
     if (!vis(e)) continue;
@@ -70,8 +72,8 @@ for (const [vn, w, h] of VIEWS) {
     await p.evaluate(g => { window.__game = g; }, game);
     await p.evaluate(async () => { await document.fonts.ready; });
     await p.waitForTimeout(500);
-    const r = await p.evaluate(check(game));
-    for (const x of r) findings.push({ view: vn, screen: n, ...x });
+    const all = await p.evaluate(check(game)), r = all.filter(x => !x.info);
+    for (const x of all) (x.info ? infos : findings).push({ view: vn, screen: n, ...x });
     await p.screenshot({ path: `${out}/${n}-${vn}.png`, fullPage: !game });
     console.log(vn, n, r.length ? r.map(x => `${x.kind}:${x.detail}`).join(' | ') : '문제 없음');
   };
@@ -85,6 +87,12 @@ for (const [vn, w, h] of VIEWS) {
       if (only && !only.has(n)) continue;
       await p.goto(`${B}/game${hash}`).catch(() => p.goto(`${B}/game${hash}`)); await ready();
       await p.waitForTimeout(900); await shot(n, true);
+    }
+    if (!only || only.has('g-extra')) {   // 출석·미션 시트, 하급 모집 1회 결과(시험 DB의 지원서만 씀), 직접 섞기 탭
+      await p.goto(`${B}/game#home`); await ready(); await p.click('[data-daily]'); await p.waitForSelector('.week', { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(400); await shot('g-daily', true); await p.keyboard.press('Escape');
+      await p.goto(`${B}/game#draw`); await p.waitForSelector('[data-go]'); await p.click('.kind[data-k="LOW"]'); await p.click('[data-go]'); await p.waitForSelector('.got', { timeout: 10000 }).catch(() => {}); await p.waitForTimeout(500); await shot('g-draw-result', true);
+      await p.goto(`${B}/game#craft`); await p.waitForSelector('[data-t="mix"]'); await p.click('[data-t="mix"]'); await p.waitForSelector('.craft-grid [data-i]', { timeout: 8000 }).catch(() => {}); await p.click('.craft-grid [data-i="0"]').catch(() => {}); await p.waitForTimeout(400); await shot('g-craft-mix', true);
+      await p.click('[data-t="recipes"]').catch(() => {}); await p.waitForTimeout(600);
     }
     if (!only || only.has('g-match')) {   // 랭크전(AI 대체 없음) 탐색 화면을 찍고 바로 취소
       await p.goto(`${B}/game#match?mode=rank`); await ready(); await p.waitForSelector('[data-cancel]:not([disabled])', { timeout: 10000 }).catch(() => {});
@@ -121,4 +129,5 @@ for (const [vn, w, h] of VIEWS) {
 }
 await b.close();
 writeFileSync(`${out}/findings.json`, JSON.stringify(findings, null, 1));
-console.log('검사 결과', findings.length, '건 →', `${out}/findings.json`);
+writeFileSync(`${out}/infos.json`, JSON.stringify(infos, null, 1));
+console.log('검사 결과', findings.length, '건 →', `${out}/findings.json`, `(참고 ${infos.length}건: infos.json)`);
