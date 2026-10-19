@@ -28,6 +28,19 @@
   }
   const refreshMe = () => S.loadState().catch(() => {});
 
+  // 지원서 봉투 애니메이션: art/gpt/registration-v1/component/application-animation.json의 정수 소스 사각형·시간 그대로(아틀라스 1774×887, 4×2)
+  // 끝 장면은 「서버 결과가 올 때까지 유지」. 결과 대원·글자는 따로 그린다. 움직임 줄이기면 끝 장면만 보여 준다
+  const ENV = [[0, 0, 443, 443, 130], [443, 0, 444, 443, 120], [887, 0, 443, 443, 110], [1330, 0, 444, 443, 110], [0, 443, 443, 444, 120], [443, 443, 444, 444, 130], [887, 443, 443, 444, 140], [1330, 443, 444, 444, 140]];
+  function envelope(host) {
+    host.innerHTML = '<div class="envelope-wrap"><div class="envelope" role="img" aria-label="지원서 봉투를 여는 중"></div><p class="m-time" role="status">지원서 읽는 중…</p></div>';
+    const el = $('.envelope', host), W = 240;
+    const show = ([x, y, w, h]) => { const k = W / w; el.style.width = `${W}px`; el.style.height = `${Math.round(h * k)}px`; el.style.backgroundSize = `${1774 * k}px ${887 * k}px`; el.style.backgroundPosition = `${-x * k}px ${-y * k}px`; };
+    const calm = document.documentElement.classList.contains('calm') || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (calm) { show(ENV[ENV.length - 1]); return { played: Promise.resolve() }; }
+    const played = new Promise(done => { let i = 0; const step = () => { show(ENV[i]); if (i === ENV.length - 1) return done(); setTimeout(() => { i++; step(); }, ENV[i][4]); }; step(); });
+    return { played };
+  }
+
   // ── 뽑기: 하급·중급·고급 모집. 무작위임을 분명히, 확률·천장은 서버 값 ──
   let drawPick = 'LOW';
   async function draw() {
@@ -58,13 +71,16 @@
       const get = qtyBind(view, max, n => { $('[data-why]', view).textContent = `지원서 ${fmt(n * x.cost)}장을 써요.`; });
       $('[data-why]', view).textContent = `지원서 ${fmt(get() * x.cost)}장을 써요.`;
       $('[data-go]', view).onclick = e => run(e.currentTarget, '지원서 읽는 중…', async () => {
+        const before = $('[data-detail]', view).innerHTML, env = envelope($('[data-detail]', view));
         try {
-          const r = (await S.api('draw', { kind: x.kind, times: get() })).result;
-          $('[data-detail]', view).innerHTML = `<h2>모집 결과</h2><div class="got">${r.items.map(it => `<div class="got-card${it.first ? ' first' : ''}"><img src="/thumbs/${encodeURIComponent(it.img)}.jpg" alt="" width="84" height="84"><b>${esc(it.name)}</b><small>${esc(it.tierName)}${it.n > 1 ? ` ×${fmt(it.n)}` : ''}${it.first ? ' · 새 대원' : ''}</small></div>`).join('')}</div><div class="srv">${lines(r.summary)}</div>
+          const req = S.api('draw', { kind: x.kind, times: get() });
+          await Promise.all([req.catch(() => {}), env.played]);   // 마지막 장면은 서버 결과가 올 때까지 유지
+          const r = (await req).result;
+          $('[data-detail]', view).innerHTML = `<h2>모집 결과</h2><div class="got">${r.items.map(it => `<div class="got-card${it.first ? ' first' : ''}"><img src="${S.card(it.id, it.img)}" alt="${esc(it.name)} 입사 등록증" width="120" height="160"><b>${esc(it.name)}</b><small>${esc(it.tierName)}${it.n > 1 ? ` ×${fmt(it.n)}` : ''}${it.first ? ' · 새 대원' : ''}</small></div>`).join('')}</div><div class="srv">${lines(r.summary)}</div>
             <button class="btn ghost" type="button" data-again>${esc(x.label)} 모집으로 돌아가기</button>`;
           $('[data-again]', view).onclick = detail;
           S.catalog = null; await refreshMe(); info = await S.api('draw').catch(() => info);
-        } catch (y) { $('[data-why]', view).textContent = y.message; }
+        } catch (y) { $('[data-detail]', view).innerHTML = before; $('[data-why]', view).textContent = y.message; }   // 실패하면 결과 없이 원래 화면으로
       });
     };
     $('.kinds', view).onclick = e => { const b = e.target.closest('[data-k]'); if (!b) return; drawPick = b.dataset.k; $$('.kind', view).forEach(k => k.setAttribute('aria-checked', String(k === b))); detail(); };
@@ -93,7 +109,7 @@
     if (craftTab === 'recipes') {
       const detail = r => {
         craftSel = r.id;
-        $('[data-detail]', view).innerHTML = `<div class="d-head"><img src="/thumbs/${encodeURIComponent(r.img)}.jpg" alt="" width="96" height="96"><div><h2>${esc(r.name)}</h2><p class="sub">${esc(r.tierName)}${r.isNew ? ' · 처음 만드는 대원' : ''}</p></div></div>
+        $('[data-detail]', view).innerHTML = `<div class="d-head"><img class="${S.card(r.id, r.img).startsWith('/site/reg/') ? 'reg' : ''}" src="${S.card(r.id, r.img)}" alt="" width="96" height="128"><div><h2>${esc(r.name)}</h2><p class="sub">${esc(r.tierName)}${r.isNew ? ' · 처음 만드는 대원' : ''}</p></div></div>
           <ul class="mats">${r.materials.map(m => `<li class="${m.usable >= m.need ? 'ok' : 'short'}"><img src="/thumbs/${encodeURIComponent(m.img)}.jpg" alt="" width="40" height="40"><b>${esc(m.name)}</b><span>${fmt(m.usable)} / ${fmt(m.need)}${m.locked ? ` · 보호 ${fmt(m.locked)}` : ''}${m.away ? ` · 탐험 ${fmt(m.away)}` : ''}</span><em>${m.usable >= m.need ? '충분' : '부족'}</em></li>`).join('')}</ul>
           <p class="sub">보호·탐험 중인 대원은 재료로 쓰지 않아요.</p>`;
         $('[data-qslot]', view).innerHTML = r.ready ? qty(Math.max(1, Math.min(50, r.max))) : '';
@@ -111,7 +127,7 @@
         $$('.craft-grid [data-i]', view).forEach(b => b.setAttribute('aria-selected', String(b.dataset.id === r.id)));
       };
       const p = S.pager(view, { grid: '.craft-grid', list: () => info.recipes, selected: () => info.recipes.find(r => r.id === craftSel),
-        item: (r, i, on) => S.regCard({ i, id: r.id, name: r.name, image: `/thumbs/${encodeURIComponent(r.img)}.jpg`, sub: r.ready ? `가능 · 최대 ${r.max}` : r.tierName, selected: on }), onPick: r => detail(r) });
+        item: (r, i, on) => S.regCard({ i, id: r.id, name: r.name, image: S.card(r.id, r.img), sub: r.ready ? `가능 · 최대 ${r.max}` : r.tierName, selected: on }), onPick: r => detail(r) });
       p.draw(); const first = info.recipes.find(r => r.id === craftSel) || info.recipes[0]; if (first) { p.show(first); detail(first); } else $('[data-detail]', view).innerHTML = '<p class="muted">아직 열린 조합식이 없어요.</p>';
       S.onResize(() => p.draw());
     } else {
@@ -123,7 +139,7 @@
         $('.mixed', view).onclick = e => { const b = e.target.closest('[data-rm]'); if (b) { mix.splice(Number(b.dataset.rm), 1); drawMix(); p.draw(); } };
       };
       const p = S.pager(view, { grid: '.craft-grid', list: () => info.pool, selected: () => null,
-        item: (u, i) => { const used = mix.filter(x => x === u.id).length; return S.regCard({ i, id: u.id, name: u.name, image: `/thumbs/${encodeURIComponent(u.img)}.jpg`, sub: `쓸 수 있음 ${u.usable - used}`, selected: used > 0 }); },
+        item: (u, i) => { const used = mix.filter(x => x === u.id).length; return S.regCard({ i, id: u.id, name: u.name, image: S.card(u.id, u.img), sub: `쓸 수 있음 ${u.usable - used}`, selected: used > 0 }); },
         onPick: u => { if (mix.length >= 6) { why.textContent = '재료는 6마리까지예요.'; return; } if (mix.filter(x => x === u.id).length >= u.usable) { why.textContent = '쓸 수 있는 수를 넘었어요.'; return; } mix.push(u.id); drawMix(); p.draw(); } });
       go.onclick = e => run(e.currentTarget, '섞는 중…', async () => {
         try { const r = (await S.api('mix', { ids: mix })).result; $('[data-detail]', view).insertAdjacentHTML('afterbegin', `<div class="srv ${r.made ? 'done' : ''}">${lines(r.text)}</div>`); if (r.made) { S.catalog = null; await refreshMe(); setTimeout(craft, 2200); } }
@@ -166,7 +182,7 @@
       $('[data-go]', view).disabled = !pick.length; $('[data-why]', view).textContent = pick.length ? '' : '대원을 1마리 이상 골라요.';
     };
     const p = S.pager(view, { grid: '.ex-grid', list: () => cands, selected: () => null,
-      item: (u, i) => S.regCard({ i, id: u.id, name: u.name, image: S.thumb(u.id), sub: pick.includes(u.id) ? '탐험대' : esc(u.attrName || u.tierName), selected: pick.includes(u.id) }),
+      item: (u, i) => S.regCard({ i, id: u.id, name: u.name, image: S.card(u.id), sub: pick.includes(u.id) ? '탐험대' : esc(u.attrName || u.tierName), selected: pick.includes(u.id) }),
       onPick: u => { const k = pick.indexOf(u.id); if (k >= 0) pick.splice(k, 1); else if (pick.length < max) pick.push(u.id); else { $('[data-why]', view).textContent = `탐험대는 ${max}마리까지예요.`; return; } drawTeam(); p.draw(); } });
     $('[data-team]', view).onclick = e => { const b = e.target.closest('[data-rm]'); if (b) { pick.splice(Number(b.dataset.rm), 1); drawTeam(); p.draw(); } };
     $('[data-go]', view).onclick = e => run(e.currentTarget, '출발 준비 중…', async () => {

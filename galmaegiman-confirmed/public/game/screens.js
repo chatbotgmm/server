@@ -68,7 +68,7 @@
     const detail = u => {
       dexState.sel = u.id;
       const owned = S.state?.units.find(x => x.id === u.id), add = $('[data-add]', view), why = $('[data-why]', view);
-      $('.dex-detail', view).innerHTML = `<div class="d-head"><img src="${esc(u.image)}" alt="" width="132" height="132"><div><h2>${esc(u.name)}</h2><p class="sub">${esc(unitSub(u)) || '&nbsp;'}</p>
+      $('.dex-detail', view).innerHTML = `<div class="d-head"><img class="${S.card(u.id, u.image).startsWith('/site/reg/') ? 'reg' : ''}" src="${esc(S.card(u.id, u.image))}" alt="" width="132" height="176"><div><h2>${esc(u.name)}</h2><p class="sub">${esc(unitSub(u)) || '&nbsp;'}</p>
         <p class="sub">${u.known ? `보유 ${fmt(u.have)}${u.away ? ` · 탐험 중 ${fmt(u.away)}` : ''}` : '아직 만나지 못했어요'}</p></div></div>
         <div class="d-body">${u.quote ? `<q>${esc(u.quote)}</q>` : ''}${u.tagline ? `<p>${esc(u.tagline)}</p>` : ''}${u.intro ? `<p class="muted">${esc(u.intro)}</p>` : ''}${u.hint ? `<p><b>단서</b> ${esc(u.hint)}</p>` : ''}
         ${u.source ? `<p><b>만나는 방법</b> ${esc(u.source)}</p>` : ''}
@@ -80,7 +80,7 @@
     };
     const p = pager(view, {
       grid: '.dex-grid', list, selected: () => all.find(u => u.id === dexState.sel),
-      item: (u, i, on) => regCard({ i, id: u.id, name: u.name, image: u.image, sub: u.known ? u.attrName || u.tierName : '미발견', selected: on }),
+      item: (u, i, on) => regCard({ i, id: u.id, name: u.name, image: S.card(u.id, u.image), sub: u.known ? u.attrName || u.tierName : '미발견', selected: on }),
       onPick: u => detail(u),
     });
     $('.filters', view).onclick = e => { const b = e.target.closest('[data-f]'); if (!b) return; dexState.f = b.dataset.f; dexState.v = ''; $$('.filters [data-f]', view).forEach(x => x.setAttribute('aria-selected', String(x === b))); drawChips(); p.draw(); };
@@ -131,7 +131,7 @@
     drawSlots(); drawFocus(); drawCta();
     const p = pager(view, {
       grid: '.team-grid', list: () => units, selected: () => byKey(focus),
-      item: (u, i, on) => { const at = slots.indexOf(u.key); return regCard({ i, id: u.id, name: u.name, image: S.thumb(u.id), sub: at >= 0 ? `슬롯 ${at + 1}` : [u.attr, u.level ? `Lv ${u.level}` : ''].filter(Boolean).join(' · '), selected: on }); },
+      item: (u, i, on) => { const at = slots.indexOf(u.key); return regCard({ i, id: u.id, name: u.name, image: S.card(u.id), sub: at >= 0 ? `슬롯 ${at + 1}` : [u.attr, u.level ? `Lv ${u.level}` : ''].filter(Boolean).join(' · '), selected: on }); },
       onPick: u => {
         // 후보를 고르면 선택한 슬롯만 바뀐다(이미 다른 슬롯에 있으면 서로 자리 바꿈). 서버 제출은 따로
         const at = slots.indexOf(u.key);

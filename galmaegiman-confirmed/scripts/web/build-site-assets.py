@@ -24,6 +24,9 @@ for f in sorted(glob.glob(os.path.join(A, 'battle-v1/*.png'))):
     n = os.path.basename(f)[:-4]
     webp(f, 'b-' + n, 82 if n.startswith('bg-') else 90)
 
+# 입사 등록증 지원서 봉투 아틀라스(art/gpt/registration-v1). 셀 좌표를 바꾸지 않게 크기는 그대로, 알파 유지
+webp(os.path.join(ROOT, 'art/gpt/registration-v1/resources/application-envelope-atlas.png'), 'envelope-atlas', 90)
+
 chars = set(chr(c) for c in range(0x20, 0x7f))
 chars |= set('·…“”‘’「」『』《》〈〉→←↑↓×○●◆◇■□★☆♥※—–•‹›«»ⓘ✓✔％％∼～、。')
 for c in range(0xAC00, 0xD7A4):

@@ -90,7 +90,7 @@ for (const [vn, w, h] of VIEWS) {
     }
     if (!only || only.has('g-extra')) {   // 출석·미션 시트, 하급 모집 1회 결과(시험 DB의 지원서만 씀), 직접 섞기 탭
       await p.goto(`${B}/game#home`); await ready(); await p.click('[data-daily]'); await p.waitForSelector('.week', { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(400); await shot('g-daily', true); await p.keyboard.press('Escape');
-      await p.goto(`${B}/game#draw`); await p.waitForSelector('[data-go]'); await p.click('.kind[data-k="LOW"]'); await p.click('[data-go]'); await p.waitForSelector('.got', { timeout: 10000 }).catch(() => {}); await p.waitForTimeout(500); await shot('g-draw-result', true);
+      await p.goto(`${B}/game#draw`); await p.waitForSelector('[data-go]'); await p.click('.kind[data-k="LOW"]'); await p.click('[data-go]'); await p.waitForTimeout(350); await p.screenshot({ path: `${out}/g-draw-envelope-${vn}.png` }); /* 봉투 애니메이션 중간 */ await p.waitForSelector('.got', { timeout: 10000 }).catch(() => {}); await p.waitForTimeout(500); await shot('g-draw-result', true);
       await p.goto(`${B}/game#craft`); await p.waitForSelector('[data-t="mix"]'); await p.click('[data-t="mix"]'); await p.waitForSelector('.craft-grid [data-i]', { timeout: 8000 }).catch(() => {}); await p.click('.craft-grid [data-i="0"]').catch(() => {}); await p.waitForTimeout(400); await shot('g-craft-mix', true);
       await p.click('[data-t="recipes"]').catch(() => {}); await p.waitForTimeout(600);
     }

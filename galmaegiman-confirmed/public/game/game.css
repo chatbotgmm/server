@@ -305,9 +305,12 @@ table.chart{width:100%;border-collapse:collapse;margin-top:8px}
 table.odds{border-collapse:collapse;margin:8px 0;min-width:220px}
 .odds th,.odds td{padding:6px 12px;border-bottom:1px solid var(--stone-2);text-align:left}
 .odds thead th{font:15px var(--title);color:var(--muted)}.odds tbody th{font-weight:400;font-family:var(--title)}.odds td{font-variant-numeric:tabular-nums;text-align:right}
-.got{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin:8px 0}
+.got{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin:8px 0}
 .got-card{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px;border-radius:10px;border:1px solid var(--stone-3);background:#fff;text-align:center}
-.got-card img{width:84px;height:84px;object-fit:contain;border-radius:8px}.got-card b{font:16px/1.2 var(--title);font-weight:400}.got-card small{font-size:13px;color:var(--muted)}
+.got-card img{width:100%;max-width:150px;aspect-ratio:3/4;height:auto;object-fit:contain;border-radius:6px}
+.envelope-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:240px}
+.envelope{background:url(/site/a/envelope-atlas.webp) no-repeat}
+.d-head img.reg{height:176px;width:132px;background:none}.got-card b{font:16px/1.2 var(--title);font-weight:400}.got-card small{font-size:13px;color:var(--muted)}
 .got-card.first{border-color:var(--brass);box-shadow:inset 0 0 0 2px var(--brass-l)}
 .srv{font-size:15px;color:var(--ink)}.srv p{margin:2px 0}
 .srv.done{padding:8px 12px;border-radius:10px;background:#e7f1ea;border:1px solid #b7d3c0;margin-bottom:8px}

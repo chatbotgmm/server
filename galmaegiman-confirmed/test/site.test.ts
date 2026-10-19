@@ -39,6 +39,8 @@ describe('공개 홈페이지(src/site.ts)',()=>{
     expect(await get('/game')).toContain('id="view"');
     const r=await app.inject({method:'GET',url:'/account'});expect(r.statusCode).toBe(302);expect(r.headers.location).toBe('/game#account');
     expect((await app.inject({method:'GET',url:'/site/site.css'})).headers['content-type']).toContain('text/css');
+    expect((await app.inject({method:'GET',url:'/site/reg/cards/C1.webp'})).headers['content-type']).toBe('image/webp');   // 입사 등록증(art/gpt/registration-v1)
+    await get('/site/reg/cards/Z99.webp',404);await get('/site/reg/cards/manifest.json',404);
     await get('/site/../../.env',404);await get('/game/%2e%2e/%2e%2e/package.json',404);await get('/site/a/x.exe',404);
   });
 });

@@ -182,6 +182,14 @@ ${opt.kakao&&k!=='link'?'<a class="btn kakao wide" href="/my/kakao" data-kakao-s
   app.get('/game',limit,async(_req,reply)=>send(reply,gameFile(),'no-cache'));
   app.get('/account',limit,async(_req,reply)=>reply.redirect('/game#account'));
 
+  // ── 입사 등록증 카드(art/gpt/registration-v1, 145종 완성 WebP). 기존 /images·/thumbs와 같이 명단에 있는 ID만.
+  // 미발견·히든·최상위를 가리는 것은 지금처럼 화면이 한다(서버가 실제 그림을 준 대원에게만 카드를 붙임)
+  app.get<{Params:{file:string}}>('/site/reg/cards/:file',limit,async(req,reply)=>{
+    const id=/^([A-Z]\d{1,2})\.webp$/.exec(req.params.file)?.[1];
+    if(!id||!content.map.has(id))return reply.code(404).send({error:'not found'});
+    try{return reply.type('image/webp').header('Cache-Control','public, max-age=86400').send(readFileSync(resolve(opt.root,'art/gpt/registration-v1/resources/cards',`${id}.webp`)));}
+    catch{return reply.code(404).send({error:'image missing'});}
+  });
   // ── 정적 파일: public/site, public/game 아래 정해진 확장자만 ──
   const types:Record<string,string>={css:'text/css; charset=utf-8',js:'text/javascript; charset=utf-8',webp:'image/webp',png:'image/png',woff2:'font/woff2',txt:'text/plain; charset=utf-8',svg:'image/svg+xml'};
   for(const dir of ['site','game'])app.get<{Params:{'*':string}}>(`/${dir}/*`,limit,async(req,reply)=>{

@@ -32,6 +32,8 @@
   const toast = (t, kind = '') => { const e = $('#toast'); e.textContent = t; e.className = `toast ${kind}`; e.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { e.hidden = true; }, 2800); };
   const sprite = url => (url && S.key ? `${url}${url.includes('?') ? '&' : '?'}k=${encodeURIComponent(S.key)}` : '');
   const thumb = id => `/thumbs/${encodeURIComponent(id)}.jpg`;
+  // 입사 등록증 카드(art/gpt/registration-v1): 서버가 실제 그림을 준 대원(shown이 그 ID)에게만. 미발견·가린 그림(q-…, unknown)은 서버 그림 그대로
+  const card = (id, shown = id) => { const k = String(shown).replace(/^\/thumbs\//, '').replace(/\.jpg$/, ''); return k === id ? `/site/reg/cards/${encodeURIComponent(id)}.webp` : `/thumbs/${encodeURIComponent(k)}.jpg`; };
   const STAGE = ['원형', '1차 승진', '2차 승진', '3차 승진'];
   const ROLE = { ATTACK: '공격', DEFENSE: '수비', UTILITY: '지원' };
 
@@ -148,7 +150,7 @@
   const route = () => { const [name] = location.hash.slice(1).split('?'); return S.routes[name] ? name : 'home'; };
   const params = () => new URLSearchParams(location.hash.split('?')[1] || '');
   function render() { S.routes[route()](params()); }
-  S.render = render; S.api = api; S.sprite = sprite; S.standee = standee; S.sheet = sheet; S.title = title; S.toast = toast; S.busy = busy; S.header = header; S.STAGE = STAGE; S.ROLE = ROLE; S.esc = esc; S.fmt = fmt; S.thumb = thumb;
+  S.render = render; S.card = card; S.api = api; S.sprite = sprite; S.standee = standee; S.sheet = sheet; S.title = title; S.toast = toast; S.busy = busy; S.header = header; S.STAGE = STAGE; S.ROLE = ROLE; S.esc = esc; S.fmt = fmt; S.thumb = thumb;
   addEventListener('hashchange', () => { if (!$('#sheet').hidden) $('#sheet').hidden = true; render(); view.focus({ preventScroll: true }); });
 
   async function loadState() {
