@@ -17,6 +17,7 @@ import org.json.JSONArray;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.*;
 
 /** 실제 챕터 카드의 입력·잠금·원본 그림·짧은 안전영역 증거. 서버 쓰기 없음. */
@@ -157,3 +158,4 @@ public class StorySelectionCardTest {
     }
   }
 }
+

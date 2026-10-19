@@ -595,8 +595,22 @@ public class NativeModesShortViewportTest {
       RouteHost host = controller.get(); NativeMenusThemeReviewTest.FixtureApi api = prepare(host, "ready");
       show(host, PROFILES[1]); host.recordRoutes = true;
       String original = host.state.toString();
-      action(host).performClick(); assertEquals("team", host.routes.get(host.routes.size() - 1));
-      assertEquals("pvp", host.selectionMode); assertEquals("modesPvp", host.menus.teamReturn); assertNull(host.menus.teamDraft);
+      // 중복 편성 버튼은 제거되었다. 실제 남아 있는 편성 부족 안내 경로를 검증한다.
+      assertNull(action(host, "modes-pvp-team"));
+      JSONArray savedTeam = host.me().getJSONArray("battleTeam");
+      host.me().put("battleTeam", new JSONArray());
+      int beforeTeam = host.routes.size();
+      action(host, "modes-normal").performClick();
+      assertEquals(beforeTeam, host.routes.size());
+      android.app.AlertDialog teamPrompt = host.visibleDialog;
+      assertNotNull(teamPrompt); assertTrue(teamPrompt.isShowing());
+      teamPrompt.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick();
+      RegistrationArtTest.await(() -> !teamPrompt.isShowing() && host.routes.size() == beforeTeam + 1);
+      assertEquals("team", host.routes.get(host.routes.size() - 1));
+      assertEquals("pvp", host.selectionMode); assertNull(host.menus.teamDraft);
+      host.me().put("battleTeam", savedTeam);
+      action(host, "modes-battle-records").performClick();
+      assertEquals("battleRecords", host.routes.get(host.routes.size() - 1));
       action(host, "modes-standings").performClick(); assertEquals("pvp", host.routes.get(host.routes.size() - 1));
       action(host, "modes-practice").performClick(); assertEquals("practice", host.routes.get(host.routes.size() - 1));
       action(host, "modes-normal").performClick(); assertEquals("fight:normal", host.routes.get(host.routes.size() - 1));
@@ -698,4 +712,5 @@ public class NativeModesShortViewportTest {
     }
   }
 }
+
 
