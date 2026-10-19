@@ -427,6 +427,9 @@ final class BattleView extends FrameLayout implements FullBleed {
 
   void render() {
     controls.removeAllViews();
+    // 설계(LAYOUT-AND-STATES 2절): 태블릿은 명령·기술 묶음을 패널 세로 가운데에 두어 아래 절반이 비지 않게 한다.
+    controls.setGravity(tablet ? Gravity.CENTER_VERTICAL : Gravity.TOP);
+    controls.setMinimumHeight(tablet ? Math.max(0, uiHeight - host.dp(60)) : 0);
     controls.setEnabled(!expiredInput || pane.equals("leave"));
     controls.setPadding(0, 0, 0, 0);
     if (!pane.equals("skills")) {
@@ -651,6 +654,15 @@ final class BattleView extends FrameLayout implements FullBleed {
     for(Button button:new Button[]{combo,back}) {
       button.setTextSize(16); button.setBackground(new BattleSkin(host,button==combo?"button-item":"button-surrender"));
       button.setTextColor(button==combo?0xfffff8e8:JournalTheme.INK);
+      // 확정 시안처럼 합동기는 날개, 뒤로가기는 되돌림 아이콘을 글자 왼쪽에 둔다.
+      Bitmap mark=BattleSkin.bitmap(host,button==combo?"icon-combo":"icon-back");
+      if(mark!=null) {
+        android.graphics.drawable.BitmapDrawable d=new android.graphics.drawable.BitmapDrawable(getResources(),mark);
+        int bound=host.dp(26);float k=Math.min((float)bound/mark.getWidth(),(float)bound/mark.getHeight());
+        d.setBounds(0,0,Math.round(mark.getWidth()*k),Math.round(mark.getHeight()*k));
+        button.setCompoundDrawables(d,null,null,null);button.setCompoundDrawablePadding(host.dp(4));
+        button.setPadding(host.dp(10),0,host.dp(8),0);
+      }
       LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,host.dp(52),1);
       lp.setMargins(host.dp(3),host.dp(6),host.dp(3),0);footer.addView(button,lp);
     }
@@ -878,10 +890,13 @@ final class BattleView extends FrameLayout implements FullBleed {
       status(c, a, statusArea(0), true);
       c.restore();
       panelSkin.surface(c,new RectF(world,0,w,h));
-      float decorationTop=host.dp(44)+2*(commandHeight()+host.dp(6))+host.dp(16);
-      if(pane.equals("menu") && h-decorationTop>=host.dp(56)) {
-        float size=Math.min(host.dp(64),h-decorationTop-host.dp(8));
-        BattleSkin.contain(c,BattleSkin.bitmap(host,"decor-shell"),new RectF(world+(w-world)*.25f,decorationTop,world+(w-world)*.65f,decorationTop+size),p);
+      // 설계(LAYOUT-AND-STATES 7절): 조개는 패널 하단 중앙, 휠은 하단 오른쪽. 마지막 버튼 아래 16dp를 빼고 40dp 이상 남을 때만.
+      float gridHeight=2*(commandHeight()+host.dp(6)), menuTop=host.dp(44), menuHeight=uiHeight-host.dp(60);
+      float gridBottom=tablet?menuTop+(menuHeight+gridHeight)/2:menuTop+gridHeight;
+      float size=Math.min(host.dp(64),h-gridBottom-host.dp(16)-host.dp(12));
+      if(pane.equals("menu") && size>=host.dp(40)) {
+        float cx=world+(w-world)*.45f;
+        BattleSkin.contain(c,BattleSkin.bitmap(host,"decor-shell"),new RectF(cx-size/2,h-size-host.dp(12),cx+size/2,h-host.dp(12)),p);
         BattleSkin.contain(c,BattleSkin.bitmap(host,"decor-wheel"),new RectF(w-size-host.dp(12),h-size-host.dp(12),w-host.dp(12),h-host.dp(12)),p);
       }
       c.restore();

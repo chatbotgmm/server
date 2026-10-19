@@ -79,4 +79,12 @@ echo "sdk.dir=/안드로이드/SDK/경로" > local.properties   # 저장소에 �
    - 서버 규칙을 바꾸는 일이라 앱 설치만으로는 적용되지 않는다. 운영 반영은 별도 승인 후.
 5. 웹을 같은 흐름으로 통일.
 
+## 7. 받은 디자인 자료와 저장소의 대조(2026-10-19)
+- 08 ZIP(개발용 전투 에셋): 08-09 통합 목록 63개의 해시가 모두 일치한다.
+  - PNG 23장과 `asset-manifest.json`은 앱의 `assets/battle-v1/`(PNG, `manifest.json`)와 바이트 단위로 같다.
+- 09a·09b·09c ZIP(미리보기·원본 atlas): 위 63개 목록 안에 포함되며 해시가 일치한다.
+- 07 ZIP(고품질 시안 `battle-root-final.png`, `battle-attack-final.png`): 07 목록 11개의 해시가 모두 일치한다.
+- 디자인 가이드 PDF: 이전에 받은 파일과 SHA-256이 같다.
+- 결정이 필요한 점: 에셋 문서(README.ko.md)는 「미리보기와 같은 Noto Sans CJK를 앱에도 쓰라」고 한다. 그런데 앱은 assets/native의 Jua·고운돋움·Black Han Sans를 쓴다. Noto 글꼴 파일(05·06 백업)은 아직 받지 못했다. 바꿀지는 사용자 결정이 필요하다.
+
 운영 서버·DB·점수 초기화·배포는 별도 승인 전에는 하지 않는다.

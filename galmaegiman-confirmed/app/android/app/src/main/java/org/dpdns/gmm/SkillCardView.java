@@ -79,6 +79,8 @@ final class SkillCardView extends FrameLayout {
     effect.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
     effect.setMaxLines(2);
     effect.setEllipsize(TextUtils.TruncateAt.END);
+    // 카드 표면의 황동 테두리(약 7dp) 위에 효과 글자가 겹치지 않도록 좌우를 더 들인다.
+    effect.setPadding(h.dp(6), 0, h.dp(6), 0);
     if (effect.getText().length() == 0) effect.setVisibility(GONE);
     // 효과는 두 줄로 유지하며 전체 효과 문장은 버튼 접근성 설명에 남긴다.
     content.addView(effect, new LinearLayout.LayoutParams(-1, -2));
