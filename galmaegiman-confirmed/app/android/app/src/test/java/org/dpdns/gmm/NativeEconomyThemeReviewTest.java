@@ -159,7 +159,7 @@ public class NativeEconomyThemeReviewTest {
       if (member) selected++; else candidates++;
       JSONObject unit = economy.find(id);
       LinearLayout tile = (LinearLayout) view;
-      assertEquals("Whole character plus live status", 2, tile.getChildCount());
+      assertEquals("Whole character plus canonical live name", 2, tile.getChildCount());
       assertTrue(tile.getChildAt(0) instanceof PartyCharacterView.Artwork);
       PartyCharacterView.Artwork art = (PartyCharacterView.Artwork) tile.getChildAt(0);
       assertEquals(id, art.id);
@@ -179,7 +179,10 @@ public class NativeEconomyThemeReviewTest {
       assertTrue(geometry.bounds(art, host.root).bottom <= geometry.bounds(status, host.root).top);
       assertEquals(geometry.bounds(status, host.root), geometry.visibleIntersection(status, host.root));
       int left = unit.optInt("have") - unit.optInt("away") - (candidate ? Collections.frequency(host.expeditionDraft, id) : 0);
-      assertEquals(candidate ? "남은 " + left : (index + 1) + (page.equals("trip") ? "" : " ×"), status.getText().toString());
+      assertEquals(unit.optString("name"), status.getText().toString());
+      assertEquals(unit.optString("name"), status.getContentDescription().toString());
+      assertEquals("economy-name-preview", status.getTag());
+      assertTrue(tile.getContentDescription().toString().contains(candidate ? "남은 " + left : (index + 1) + "번"));
       if (candidate && host.expeditionDraft.size() >= economy.partyMax()) {
         assertFalse(tile.isEnabled());
         assertTrue(tile.getContentDescription().toString().contains("정원 " + economy.partyMax()));
@@ -613,7 +616,9 @@ public class NativeEconomyThemeReviewTest {
     ready(host, SIZES[0]);
     View exhausted = host.root.findViewWithTag("expedition-add-D1");
     assertNotNull(exhausted); assertFalse(exhausted.isEnabled());
-    assertEquals("남은 0", ((TextView) exhausted.findViewWithTag("expedition-crew-status")).getText().toString());
+    assertTrue(exhausted.getContentDescription().toString().contains("남은 0"));
+    assertEquals(economy.find("D1").optString("name"),
+        ((TextView) exhausted.findViewWithTag("economy-name-preview")).getText().toString());
     host.busy = true;
     host.root.findViewWithTag("expedition-member-0").performClick();
     assertEquals(Arrays.asList("D1", "D2", "D1", "D3", "D4"), host.expeditionDraft);

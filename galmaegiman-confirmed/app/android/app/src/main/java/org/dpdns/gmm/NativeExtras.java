@@ -91,8 +91,17 @@ final class NativeExtras {
 
   void daily() {
     h.base("출석 · 미션", "daily");
-    Button progression = k.action(null, "성장 · 플레이 패스", () -> new NativeProgression(h).open());
+    Button progression = k.action(null, "성장 · 패스", () -> new NativeProgression(h).open());
     progression.setTag("daily-progression");
+    progression.setContentDescription("성장 · 플레이 패스 열기");
+    progression.setTextSize(16);
+    progression.setSingleLine(false);
+    progression.setMaxLines(1);
+    progression.setHorizontallyScrolling(false);
+    progression.setEllipsize(null);
+    progression.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(4));
+    progression.setMinHeight(h.dp(48));
+    progression.setMinimumHeight(h.dp(48));
     // Header rail keeps the attendance ledger and mission viewport unchanged.
     LinearLayout header = (LinearLayout) h.page.findViewWithTag("theme-page-header");
     if (header != null) header.addView(progression, new LinearLayout.LayoutParams(h.dp(164), h.dp(48)));

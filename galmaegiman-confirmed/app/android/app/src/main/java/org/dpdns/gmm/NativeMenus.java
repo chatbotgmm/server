@@ -326,7 +326,8 @@ final class NativeMenus {
       name.setLayoutParams(new LinearLayout.LayoutParams(compact ? 0 : -1, -2, compact ? 1 : 0));
     }
     LinearLayout.LayoutParams slot = (LinearLayout.LayoutParams) summary.getLayoutParams();
-    slot.topMargin = slot.bottomMargin = h.dp(compact ? 2 : 6);
+    // Keep a 2dp rounding reserve at the shortest 130% font viewport.
+    slot.topMargin = slot.bottomMargin = h.dp(compact ? 1 : 6);
     summary.setLayoutParams(slot);
   }
 

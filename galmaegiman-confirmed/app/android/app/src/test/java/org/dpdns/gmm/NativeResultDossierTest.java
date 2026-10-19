@@ -355,7 +355,12 @@ public class NativeResultDossierTest {
           assertEquals(item("R13").getString("intro"), intro.getText().toString());
           assertEquals(Integer.MAX_VALUE, intro.getMaxLines());
           assertNull(intro.getEllipsize());
-          assertNull("인쇄 이름을 별도 표시하지 않음", revealFixture.text(dossier, item("R13").getString("name")));
+          TextView duplicateName = revealFixture.text(dossier, item("R13").getString("name"));
+          assertTrue("인쇄 이름을 별도 표시하지 않음", duplicateName == null || !duplicateName.isShown());
+          for (View view : captures.geometry.descendants(dossier))
+            if (view instanceof TextView && view.isShown())
+              assertNotEquals("No visible text duplicates the printed identity",
+                  item("R13").getString("name"), ((TextView) view).getText().toString());
           dossier.findViewWithTag("acquisition-dossier-back").performClick();
           assertSame(tapped, reveal.findViewWithTag("acquisition-card-R13"));
           assertEquals(0, reveal.resultPage); assertEquals(0, reveal.flow.selected);

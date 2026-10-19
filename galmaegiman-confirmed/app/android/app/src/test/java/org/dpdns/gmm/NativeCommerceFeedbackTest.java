@@ -115,6 +115,16 @@ public class NativeCommerceFeedbackTest {
         String tag = String.valueOf(v.getTag());
         if (tag.startsWith("expedition-member-")) filled++;
         if (tag.startsWith("expedition-empty-")) empty++;
+        if (tag.startsWith("expedition-member-") || tag.startsWith("expedition-add-")) {
+          String id = tag.startsWith("expedition-member-")
+              ? h.expeditionDraft.get(Integer.parseInt(tag.substring("expedition-member-".length())))
+              : tag.substring("expedition-add-".length());
+          TextView name = v.findViewWithTag("economy-name-preview");
+          assertNotNull("Small character sprites have a visible native name", name);
+          assertEquals(h.menus.economy.find(id).optString("name"), name.getText().toString());
+          assertEquals(name.getText().toString(), name.getContentDescription().toString());
+          assertEquals(1, name.getMaxLines());
+        }
         if (state.equals("expedition-ten") && tag.startsWith("expedition-add-")) {
           assertFalse(v.isEnabled()); assertTrue(v.getContentDescription().toString().contains("정원 10명"));
         }
@@ -216,7 +226,12 @@ public class NativeCommerceFeedbackTest {
       while (true) {
         for (View view : frames.descendants(h.root.findViewWithTag("expedition-candidates"))) {
           String tag = String.valueOf(view.getTag());
-          if (tag.startsWith("expedition-add-")) seen.add(tag.substring("expedition-add-".length()));
+          if (tag.startsWith("expedition-add-")) {
+            String id = tag.substring("expedition-add-".length()); seen.add(id);
+            TextView name = view.findViewWithTag("economy-name-preview");
+            assertEquals(h.menus.economy.find(id).optString("name"), name.getText().toString());
+            assertEquals(name.getText().toString(), name.getContentDescription().toString());
+          }
         }
         Button next = controls.button(h.root.findViewWithTag("expedition-candidate-pages"), "›");
         if (!next.isEnabled()) break; next.performClick();
@@ -229,8 +244,44 @@ public class NativeCommerceFeedbackTest {
       candidate.performClick(); assertEquals(10, h.expeditionDraft.size());
       h.root.findViewWithTag("expedition-member-2").performClick();
       assertEquals(Arrays.asList("D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "E1"), h.expeditionDraft);
+      assertTrue(((TextView) h.root.findViewWithTag("expedition-selection-summary")).getText().toString()
+          .contains(h.menus.economy.find("D1").optString("name")));
       assertTrue(h.root.findViewWithTag("expedition-add-D3").isEnabled());
       assertEquals(0, api.writes); assertNull(h.visibleDialog);
+    }
+  }
+
+  @Test public void shortCraftFocusShowsSafeIdentityWithoutChangingRecipeOrOpeningDialog() throws Exception {
+    NativeShopCardBoundsTest.Profile p = new NativeShopCardBoundsTest.Profile("780x319", 780, 319, 160, 130, true);
+    RuntimeEnvironment.setQualifiers(p.qualifiers()); RuntimeEnvironment.setFontScale(1.3f);
+    ShadowDisplayManager.changeDisplay(Display.DEFAULT_DISPLAY, p.qualifiers());
+    try (var controller = flow.start()) {
+      MainActivity h = controller.get(); NativeEconomyThemeFixture.Api api = prepare(h);
+      h.menus.economy.craft(false); ready(h, p);
+      JSONObject recipe = api.data.craft.getJSONArray("recipes").getJSONObject(0);
+      JSONObject material = recipe.getJSONArray("materials").getJSONObject(0);
+      String selected = h.menus.recipeId, original = api.data.craft.toString();
+      View materialCard = h.root.findViewWithTag("craft-material-image-" + material.getString("id"));
+      ((View) materialCard.getParent()).performClick(); ready(h, p);
+      TextView heading = h.root.findViewWithTag("craft-selected-heading");
+      assertEquals(material.getString("name") + " · 보유 " + material.getInt("usable") + " · 필요 " + material.getInt("need"),
+          heading.getText().toString());
+      economy.readable(heading); assertEquals(frames.bounds(heading, h.root), frames.visible(heading, h.root));
+      assertEquals(selected, h.menus.recipeId); assertNull(h.visibleDialog);
+      assertEquals(original, api.data.craft.toString()); assertEquals(0, api.writes);
+      ((View) h.root.findViewWithTag("craft-result-image").getParent()).performClick(); ready(h, p);
+      assertEquals(recipe.getString("name") + " · 결과", heading.getText().toString());
+      economy.readable(heading); assertNull(h.visibleDialog);
+      String image = recipe.getString("img");
+      try {
+        recipe.put("img", "unknown"); h.menus.economy.craft(false); ready(h, p);
+        RegistrationCardView masked = h.root.findViewWithTag("craft-result-image");
+        ((View) masked.getParent()).performClick(); ready(h, p);
+        TextView safe = h.root.findViewWithTag("craft-selected-heading");
+        assertEquals("미발견 · 결과", safe.getText().toString());
+        assertFalse(masked.picture.loadAttempted); assertNull(masked.picture.bitmap);
+        assertEquals(selected, h.menus.recipeId); assertNull(h.visibleDialog); assertEquals(0, api.writes);
+      } finally { recipe.put("img", image); }
     }
   }
   static final class PendingApi extends NativeApi {
@@ -278,6 +329,8 @@ public class NativeCommerceFeedbackTest {
       assertEquals("Showing confirmation never starts automatically", 2, api.writes.size());
       assertNotNull(h.visibleDialog);
       h.visibleDialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+      // AlertDialog dispatches the confirmed callback after the next ViewRoot frame.
+      Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(32));
       assertEquals(List.of("party", "party", "expedition/start"), api.writes);
       assertEquals(0, api.bodies.get(2).length());
     }

@@ -476,7 +476,9 @@ public class NativeHomeTipLayoutTest {
       l.dispatchTouchEvent(down); down.recycle();
       assertEquals("Existing outside-tap dismissal remains", View.GONE, l.tip.getVisibility());
       String[] targets = {"expedition", "draw", "collection", "craft", "shop", "modes",
-          "daily", null, "settings", "shop", "shop", "shop", null, "home"};
+          "daily", null, "settings", "shop", "shop", "shop", null};
+      assertEquals("Every remaining HOME control is represented", targets.length, l.buttons.size());
+      assertNull("Retired harbor route is absent", l.findViewWithTag("lobby-harbor"));
       for (int i = 0; i < targets.length; i++) if (targets[i] != null) {
         h.requested = "";
         l.buttons.get(i).performClick();

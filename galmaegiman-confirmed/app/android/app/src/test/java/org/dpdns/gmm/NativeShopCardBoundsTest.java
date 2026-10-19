@@ -110,9 +110,33 @@ public class NativeShopCardBoundsTest {
   }
 
   Rect bounds(View view, ViewGroup root) {
-    Rect out = new Rect(0, 0, view.getWidth(), view.getHeight());
+    // getDrawingRect includes this View's own scroll. The ancestor conversion
+    // subtracts it once, giving its stationary box, not its scrolled text origin.
+    // Glyph geometry separately subtracts text.getScrollX/Y exactly once below.
+    Rect out = new Rect();
+    view.getDrawingRect(out);
     root.offsetDescendantRectToMyCoords(view, out);
     return out;
+  }
+
+  @Test public void viewBoxIgnoresOwnScrollButRetainsAncestorScrollAndClipping() {
+    try (var controller = flow.start()) {
+      MainActivity host = controller.get();
+      FrameLayout root = new FrameLayout(host), viewport = new FrameLayout(host);
+      TextView label = host.text("5,000", 14);
+      root.addView(viewport); viewport.addView(label);
+      root.layout(0, 0, 300, 200); viewport.layout(20, 30, 120, 130);
+      label.layout(15, 10, 95, 50); label.scrollTo(523000, 7);
+      assertEquals(new Rect(35, 40, 115, 80), bounds(label, root));
+      assertEquals(bounds(label, root), visible(label, root));
+      viewport.scrollTo(10, 5);
+      assertEquals(new Rect(25, 35, 105, 75), bounds(label, root));
+      assertEquals(bounds(label, root), visible(label, root));
+      label.layout(80, 80, 160, 120);
+      assertEquals(new Rect(90, 105, 170, 145), bounds(label, root));
+      assertEquals(new Rect(90, 105, 120, 130), visible(label, root));
+      assertNotEquals("Real ancestor clipping still fails full visibility", bounds(label, root), visible(label, root));
+    }
   }
 
   Rect visible(View view, ViewGroup root) {
@@ -268,7 +292,10 @@ public class NativeShopCardBoundsTest {
       assertTrue("Drawn product image retains at least 24dp height", imageBounds.height() + .01f >= host.dp(24));
       assertTrue("Drawn image has positive width", imageBounds.width() > 0);
       assertTrue("Drawn image stays inside its View", new RectF(iconBounds).contains(imageBounds));
-      assertTrue("Icon does not overlap the name", iconBounds.bottom <= bounds(card.getChildAt(1), host.root).top);
+      Rect nameBounds = bounds(card.getChildAt(1), host.root);
+      assertTrue("Icon precedes the name vertically or in the compact horizontal header",
+          iconBounds.bottom <= nameBounds.top || iconBounds.right <= nameBounds.left);
+      assertFalse("The complete icon and name Views do not overlap", Rect.intersects(iconBounds, nameBounds));
       assertTrue(card.getBackground() instanceof ThemeArt.SurfaceDrawable);
       assertEquals(ThemeArt.Surface.PAPER, ((ThemeArt.SurfaceDrawable) card.getBackground()).type);
       cards.put(MainActivity.obj("tag", card.getTag(), "rect", rect(outer), "visibleRect", rect(shown),

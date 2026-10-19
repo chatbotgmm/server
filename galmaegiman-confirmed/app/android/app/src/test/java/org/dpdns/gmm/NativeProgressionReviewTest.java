@@ -72,13 +72,34 @@ public class NativeProgressionReviewTest {
                 assertTrue(image.compress(Bitmap.CompressFormat.PNG, 100, out));
               }
             } finally { image.recycle(); }
+            TextView summary = f.h.root.findViewWithTag("progression-summary");
+            assertNotNull(name + " actual server summary", summary);
+            assertTrue(name + " opaque reading surface", summary.getBackground() instanceof GamePaperDrawable);
+            assertEquals(name + " readable ink", JournalTheme.INK, summary.getCurrentTextColor());
+            if (tab.equals("pass")) {
+              assertTrue(summary.getText().toString().contains("100점"));
+              assertTrue(summary.getText().toString().contains("지원서 3장"));
+              TextView page = f.h.root.findViewWithTag("progression-page-label");
+              assertNotNull(page); assertEquals("1 / 5", page.getText().toString());
+              assertTrue(page.getBackground() instanceof GamePaperDrawable);
+            }
+            Bitmap capturedPixels = BitmapFactory.decodeFile(output().resolve(name + ".png").toString());
+            assertNotNull(capturedPixels);
             int targets = 0;
             for (View view : frames.descendants(f.h.root)) {
               if (!view.isShown()) continue;
-              assertFalse(name + " scroll", view.canScrollVertically(1) || view.canScrollVertically(-1));
-              assertFalse(name + " horizontal scroll", view.canScrollHorizontally(1) || view.canScrollHorizontally(-1));
+              String identity = view.getClass().getSimpleName() + ":" + view.getTag();
+              if (view instanceof TextView) {
+                // TextView's internal layout range is not a scroll container. Verify actual offsets
+                // and every line/glyph below instead of treating that range as hidden content.
+                assertEquals(name + " text scroll X " + identity, 0, view.getScrollX());
+                assertEquals(name + " text scroll Y " + identity, 0, view.getScrollY());
+              } else {
+                assertFalse(name + " vertical scroll " + identity, view.canScrollVertically(1) || view.canScrollVertically(-1));
+                assertFalse(name + " horizontal scroll " + identity, view.canScrollHorizontally(1) || view.canScrollHorizontally(-1));
+              }
               assertFalse(name + " no ScrollView", view instanceof ScrollView || view instanceof HorizontalScrollView);
-              if (view instanceof TextView && ((TextView) view).length() > 0) texts.put(textMetric((TextView) view, f.h));
+              if (view instanceof TextView && ((TextView) view).length() > 0) texts.put(textMetric((TextView) view, f.h, capturedPixels));
               if (view.isClickable()) {
                 targets++;
                 Rect bounds = frames.bounds(view, f.h.root);
@@ -91,6 +112,7 @@ public class NativeProgressionReviewTest {
                     "minTouchTargetPx", f.h.dp(48)));
               }
             }
+            capturedPixels.recycle();
             result.put("targets", targets); geometry.put(name, result); findings.put(name, new JSONArray());
           }
         } finally { f.cleanup(); }
@@ -101,7 +123,7 @@ public class NativeProgressionReviewTest {
     assertEquals(20, geometry.length());
   }
 
-  JSONObject textMetric(TextView view, MainActivity host) throws Exception {
+  JSONObject textMetric(TextView view, MainActivity host, Bitmap capturedPixels) throws Exception {
     android.text.Layout layout = view.getLayout(); assertNotNull(layout);
     int count = layout.getLineCount(), ellipsis = 0;
     Rect glyphs = new Rect();
@@ -110,8 +132,10 @@ public class NativeProgressionReviewTest {
       int from = layout.getLineStart(line), to = layout.getLineEnd(line);
       String text = layout.getText().subSequence(from, to).toString().replace("\n", "");
       Rect ink = new Rect(); view.getPaint().getTextBounds(text, 0, text.length(), ink);
-      ink.offset(view.getCompoundPaddingLeft() + Math.round(layout.getLineLeft(line)),
-          view.getTotalPaddingTop() + layout.getLineBaseline(line));
+      int availableWidth = view.getWidth() - view.getCompoundPaddingLeft() - view.getCompoundPaddingRight();
+      assertTrue("native line width " + view.getText(), layout.getLineMax(line) <= availableWidth + 1);
+      int baseline = view.getBaseline() + layout.getLineBaseline(line) - layout.getLineBaseline(0);
+      ink.offset(view.getCompoundPaddingLeft() + Math.round(layout.getLineLeft(line)), baseline);
       if (!ink.isEmpty()) glyphs.union(ink);
     }
     Rect bounds = frames.bounds(view, host.root), visible = frames.visible(view, host.root);
@@ -122,11 +146,21 @@ public class NativeProgressionReviewTest {
     assertEquals("native text ellipsized " + view.getText(), 0, ellipsis);
     assertEquals("native text incomplete", view.length(), end);
     assertTrue("native text height", layout.getHeight() <= contentHeight);
+    assertFalse("nonempty native glyphs " + view.getText(), worldGlyphs.isEmpty());
     assertTrue("native glyph ink " + view.getText(), visible.contains(worldGlyphs));
+    int inkPixels = 0;
+    if ("progression-summary".equals(view.getTag()) || "progression-page-label".equals(view.getTag())) {
+      for (int y = Math.max(0, worldGlyphs.top); y < Math.min(capturedPixels.getHeight(), worldGlyphs.bottom); y++)
+        for (int x = Math.max(0, worldGlyphs.left); x < Math.min(capturedPixels.getWidth(), worldGlyphs.right); x++) {
+          int color = capturedPixels.getPixel(x, y);
+          if (Color.alpha(color) > 200 && Color.red(color) < 100 && Color.green(color) < 130 && Color.blue(color) < 130) inkPixels++;
+        }
+      assertTrue("actual PNG contains painted summary/page ink " + view.getText(), inkPixels > 8);
+    }
     return MainActivity.obj("text", view.getText().toString(), "boundsPx", frames.rect(bounds),
         "visibleBoundsPx", frames.rect(visible), "glyphBoundsPx", frames.rect(worldGlyphs),
         "ellipsisCount", ellipsis, "textLength", view.length(), "laidOutTextEnd", end,
-        "layoutHeightPx", layout.getHeight(), "contentHeightPx", contentHeight);
+        "layoutHeightPx", layout.getHeight(), "contentHeightPx", contentHeight, "summaryInkPixels", inkPixels);
   }
 
   @Test public void candidatePaginationKeepsExactKeyAndTabPage() throws Exception {

@@ -2,6 +2,8 @@ package org.dpdns.gmm;
 
 import static org.junit.Assert.*;
 import android.app.AlertDialog;
+import android.os.Looper;
+import java.time.Duration;
 import android.view.View;
 import org.json.*;
 import org.junit.*;
@@ -52,6 +54,7 @@ public class NativeInheritedSkillProtectionTest {
     dialogView("skill-forget-basic").performClick();
     assertTrue(fixture.api.bodies.isEmpty());
     fixture.h.visibleDialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
     assertEquals(1, fixture.api.bodies.size()); assertEquals("native/growth", fixture.api.paths.get(0));
     JSONObject sent = fixture.api.bodies.get(0);
     assertEquals("o1", sent.optString("key")); assertEquals("learn", sent.optString("kind"));

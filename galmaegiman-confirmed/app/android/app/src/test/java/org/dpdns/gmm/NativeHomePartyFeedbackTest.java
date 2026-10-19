@@ -540,8 +540,12 @@ public class NativeHomePartyFeedbackTest {
       for (Button b : lobby.buttons) controls.add(bounds(b, h.root));
       float x = original.centerX(), y = original.centerY();
       event(lobby, MotionEvent.ACTION_DOWN, x, y);
+      // The first beyond-slop MOVE cancels the child Button as ViewGroup intercepts.
+      // Continue the real pointer stream so the following MOVE reaches the parent drag handler.
+      event(lobby, MotionEvent.ACTION_MOVE, x + h.dp(60), y + h.dp(30));
       event(lobby, MotionEvent.ACTION_MOVE, x + h.dp(120), y + h.dp(60));
       assertTrue("Actual touch dispatch moves the weighted pose", Math.abs(lobby.parallax.x) > 0);
+      assertNotEquals("Dragging must not activate the guide tap", View.VISIBLE, lobby.tip.getVisibility());
       assertTrue(Math.abs(lobby.parallax.x) <= h.dp(4));
       assertTrue(Math.abs(lobby.parallax.y) <= h.dp(1.2f));
       Bitmap moved = render(h.root);

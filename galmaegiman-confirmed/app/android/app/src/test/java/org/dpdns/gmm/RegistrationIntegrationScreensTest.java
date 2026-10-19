@@ -103,6 +103,27 @@ public class RegistrationIntegrationScreensTest {
     return api;
   }
 
+  FixtureApi prepareParty(MainActivity host) throws Exception {
+    FixtureApi api = prepare(host);
+    JSONArray instances = host.state.getJSONArray("units"), species = host.me().getJSONArray("units");
+    for (int i = 0; i < instances.length(); i++) {
+      String id = i < 8 ? "D" + (i + 1) : "E" + (i - 7);
+      instances.getJSONObject(i).put("id", id); species.getJSONObject(i).put("id", id);
+    }
+    host.me().put("battleTeam", new JSONArray().put("D1").put("D2").put("D3"));
+    return api;
+  }
+
+  PartyCharacterView.Artwork character(MainActivity host, View view, String id) throws Exception {
+    assertTrue("Party uses whole character art, not registration crops", view instanceof PartyCharacterView.Artwork);
+    PartyCharacterView.Artwork art = (PartyCharacterView.Artwork) view;
+    assertEquals(id, art.id);
+    new NativeRegistrationReviewTest().assertPartyArt(host, art);
+    assertEquals("Expected approved sprite path", "/duel/sprites/" + id + "_s0_front.webp", art.path);
+    assertNotNull("A disclosed top33 fixture must load its own whole sprite", art.bitmap);
+    return art;
+  }
+
   void layout(MainActivity host, int width, int height) {
     review.viewport(host, width, height);
     review.preparePreDraw(host.root, () -> {
@@ -224,15 +245,13 @@ public class RegistrationIntegrationScreensTest {
     for (boolean pvp : new boolean[] {false, true}) {
       try (ActivityController<MainActivity> controller = flow.start()) {
         MainActivity host = controller.get();
-        FixtureApi api = prepare(host);
+        FixtureApi api = prepareParty(host);
         host.selectionMode = pvp ? "pvp" : "story";
         host.team();
         layout(host, 915, 412);
         for (int i = 0; i < 3; i++) {
           View slot = host.root.findViewWithTag("lineup-slot-" + i);
-          RegistrationCardView.Artwork art = artwork(slot.findViewWithTag("lineup-portrait"),
-              RegistrationCardView.FULL);
-          assertEquals("C" + (i + 1), art.id);
+          PartyCharacterView.Artwork art = character(host, slot.findViewWithTag("lineup-portrait"), "D" + (i + 1));
           NativeNoScrollReviewTest.assertFullyVisible(art, host.root);
           View handle = slot.findViewWithTag(NativeTeamReorder.HANDLE_TAG);
           assertNotNull("기존 드래그 핸들 유지", handle);
@@ -241,15 +260,15 @@ public class RegistrationIntegrationScreensTest {
         ViewGroup grid = host.root.findViewWithTag("team-inline-candidates");
         int count = 0;
         for (View view : geometry.descendants(grid))
-          if (view instanceof RegistrationCardView.Artwork) {
-            artwork(view, RegistrationCardView.FULL);
+          if (view instanceof PartyCharacterView.Artwork) {
+            character(host, view, "D" + (count + 1));
             NativeNoScrollReviewTest.assertFullyVisible(view, host.root);
             count++;
           }
         assertEquals(3, count);
-        String fourth = pvp ? "C4" : "o4";
+        String fourth = pvp ? "D4" : "o4";
         host.root.findViewWithTag("team-candidates-next").performClick();
-        View replacement = host.root.findViewWithTag("team-candidate-registration-" + fourth);
+        View replacement = host.root.findViewWithTag("team-candidate-character-" + fourth);
         ((View) replacement.getParent()).performClick();
         assertEquals(fourth, host.menus.teamDraft.get(0));
         assertTrue("후보 선택은 저장 전 초안만 변경", api.writes.isEmpty());
@@ -264,12 +283,12 @@ public class RegistrationIntegrationScreensTest {
   }
 
   @Test
-  public void largeFontTeamsKeepThreeFullCandidatesAndReadableInlineActions() {
+  public void largeFontTeamsKeepThreeFullCandidatesAndReadableInlineActions() throws Exception {
     RuntimeEnvironment.setFontScale(1.3f);
     for (String mode : new String[] {"story", "pvp"}) {
       try (ActivityController<MainActivity> controller = flow.start()) {
         MainActivity host = controller.get();
-        FixtureApi api = prepare(host);
+        FixtureApi api = prepareParty(host);
         host.selectionMode = mode;
         layout(host, 915, 412);
         host.team();
@@ -296,10 +315,12 @@ public class RegistrationIntegrationScreensTest {
         ViewGroup grid = host.root.findViewWithTag("team-inline-candidates");
         int count = 0;
         for (View view : geometry.descendants(grid))
-          if (view instanceof RegistrationCardView.Artwork) {
-            artwork(view, RegistrationCardView.FULL);
+          if (view instanceof PartyCharacterView.Artwork) {
+            character(host, view, "D" + (count + 1));
             NativeNoScrollReviewTest.assertFullyVisible(view, host.root);
-            assertTrue("큰 글자에서도 전체 후보 카드에 160dp 이상 배정", view.getHeight() >= host.dp(160));
+            View tile = (View) view.getParent();
+            assertTrue("Large-font candidate remains a 48dp touch target", tile.getHeight() >= host.dp(48));
+            NativeNoScrollReviewTest.assertFullyVisible(tile, host.root);
             count++;
           }
         assertEquals(3, count);
@@ -309,10 +330,10 @@ public class RegistrationIntegrationScreensTest {
   }
 
   @Test
-  public void compatibilityTeamPickerKeepsSelectionBusyGuardAndUpdateCallbacks() {
+  public void compatibilityTeamPickerKeepsSelectionBusyGuardAndUpdateCallbacks() throws Exception {
     try (ActivityController<MainActivity> controller = flow.start()) {
       MainActivity host = controller.get();
-      FixtureApi api = prepare(host);
+      FixtureApi api = prepareParty(host);
       host.selectionMode = "story";
       host.team();
       ArrayList<JSONObject> candidates = new ArrayList<>();
@@ -320,13 +341,13 @@ public class RegistrationIntegrationScreensTest {
       for (int i = 0; i < roster.length(); i++) candidates.add(roster.optJSONObject(i));
       int[] updates = {0};
       host.menus.teamPicker(false, candidates, () -> updates[0]++);
-      View dialog = host.visibleDialog.getWindow().getDecorView();
+      View dialog = geometry.layoutDialog(host);
       View first = dialog.findViewWithTag("lineup-candidate-o1");
       assertNotNull(first);
       int cards = 0;
       for (View view : geometry.descendants(dialog))
-        if (view instanceof RegistrationCardView.Artwork) {
-          artwork(view, RegistrationCardView.COMPACT);
+        if (view instanceof PartyCharacterView.Artwork) {
+          character(host, view, candidates.get(cards).getString("id"));
           cards++;
         }
       assertEquals(10, cards);

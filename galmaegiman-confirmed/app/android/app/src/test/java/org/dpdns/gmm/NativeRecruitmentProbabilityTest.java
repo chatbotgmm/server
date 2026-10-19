@@ -286,14 +286,16 @@ public class NativeRecruitmentProbabilityTest {
       FakeApi api = prepare(host);
       host.menus.economy.draw();
       assertNull(button(host.root, "확률·보장"));
-      button(host.root, "지급·보장").performClick();
-      String labels = fixture.labels(host.visibleDialog.getWindow().getDecorView());
-      assertTrue(labels.contains("설정 > 모집 확률"));
+      assertNull(button(host.root, "지급·보장"));
+      assertNull("Recruitment keeps its concise live status inline", host.visibleDialog);
+      String labels = fixture.labels(host.root);
       assertTrue(labels.contains("보장까지 17회"));
       assertFalse(labels.contains("%"));
-      assertNull(button(host.visibleDialog.getWindow().getDecorView(), "고급 모집 확률 보기"));
+      assertNotNull(host.root.findViewWithTag("draw-pity"));
+      assertNotNull(host.root.findViewWithTag("draw-claim-status"));
+      assertNull(button(host.root, "고급 모집 확률 보기"));
       assertEquals(List.of("GET draw"), api.calls);
-      host.visibleDialog.dismiss();
+      assertTrue(api.writes.isEmpty());
     }
   }
 

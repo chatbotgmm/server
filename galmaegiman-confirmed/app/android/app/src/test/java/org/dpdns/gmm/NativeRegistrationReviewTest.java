@@ -287,6 +287,28 @@ public class NativeRegistrationReviewTest {
       assertEquals("Action text cannot be ellipsized: " + tag, 0, label.getLayout().getEllipsisCount(line));
   }
 
+  void actualCounterContrast(MainActivity host, TextView counter) {
+    // Render the real translucent paper over its real scene/ancestors. Hide only glyph ink,
+    // preserving the background, geometry, state and all surrounding production surfaces.
+    android.content.res.ColorStateList colors = counter.getTextColors();
+    int foreground = counter.getCurrentTextColor();
+    Bitmap frame = Bitmap.createBitmap(host.root.getWidth(), host.root.getHeight(), Bitmap.Config.ARGB_8888);
+    try {
+      counter.setTextColor(Color.TRANSPARENT);
+      host.root.draw(new Canvas(frame));
+      Rect area = geometry.bounds(counter, host.root);
+      area.left += counter.getCompoundPaddingLeft(); area.right -= counter.getCompoundPaddingRight();
+      area.top += counter.getCompoundPaddingTop(); area.bottom -= counter.getCompoundPaddingBottom();
+      assertFalse("Measured counter reading surface exists", area.isEmpty());
+      for (int y = area.top; y < area.bottom; y++) for (int x = area.left; x < area.right; x++) {
+        int background = frame.getPixel(x, y);
+        assertEquals("Actual counter composition is opaque", 255, Color.alpha(background));
+        assertTrue("Counter contrast over its actual composed scene is at least 4.5:1",
+            androidx.core.graphics.ColorUtils.calculateContrast(foreground, background) >= 4.5);
+      }
+    } finally { counter.setTextColor(colors); frame.recycle(); }
+  }
+
   JSONObject check(MainActivity host, String page, FakeApi api) throws Exception {
     JSONArray bounds = new JSONArray(), characterBounds = new JSONArray();
     List<RegistrationCardView.Artwork> cards = artworks(host.root);
@@ -364,9 +386,7 @@ public class NativeRegistrationReviewTest {
       visible(host, pageNumber);
       assertFalse("Page count stays visible even when previous/next is disabled", pageNumber.getText().toString().isEmpty());
       assertTrue("Page count has its own solid reading surface", pageNumber.getBackground() instanceof android.graphics.drawable.ColorDrawable);
-      int background = ((android.graphics.drawable.ColorDrawable) pageNumber.getBackground()).getColor();
-      assertTrue("Counter text contrast at least 4.5:1", androidx.core.graphics.ColorUtils.calculateContrast(
-          pageNumber.getCurrentTextColor(), background) >= 4.5);
+      actualCounterContrast(host, pageNumber);
     }
     if (page.equals("recruit")) {
       for (String kind : new String[] {"LOW", "MID", "HIGH"}) {

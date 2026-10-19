@@ -2,6 +2,8 @@ package org.dpdns.gmm;
 
 import static org.junit.Assert.*;
 import android.app.AlertDialog;
+import android.os.Looper;
+import java.time.Duration;
 import android.view.View;
 import android.widget.Button;
 import java.util.*;
@@ -129,9 +131,13 @@ public class NativeProgressionTest {
     screen.open(); tab("reincarnation"); button("progression-reincarnation-owned-1").performClick();
     assertTrue(api.bodies.isEmpty());
     AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog(); assertNotNull(dialog);
-    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).performClick(); assertTrue(api.bodies.isEmpty());
+    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).performClick();
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
+    assertTrue(api.bodies.isEmpty());
     button("progression-reincarnation-owned-1").performClick();
     ShadowAlertDialog.getLatestAlertDialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
+    assertEquals("Only the confirmed conversion is sent", 1, api.bodies.size());
     assertEquals("native/progression/reincarnate", api.paths.get(0));
     assertEquals("owned-1", api.bodies.get(0).optString("key")); assertFalse(api.bodies.get(0).has("id"));
   }

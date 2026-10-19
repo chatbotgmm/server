@@ -15,8 +15,11 @@ final class NativeEconomy {
   Set<String> drawBefore;
   NativeAcquisitionFlow drawFlow, acquisitionFlow;
   String shopFocus = "";
+  String crewSelectionNote = "";
   int recipePage, mixPage, crewPage, selectedCrewPage;
   Runnable recipeRepaint;
+  TextView recipeIdentity;
+  View recipeHint;
   final LinkedHashMap<String, Button> shopActions = new LinkedHashMap<>();
   final LinkedHashMap<String, LinearLayout> shopCards = new LinkedHashMap<>();
 
@@ -420,6 +423,7 @@ final class NativeEconomy {
     craftActions.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
     craftActions.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(4));
     k.footer(craftActions);
+    ((LinearLayout.LayoutParams) craftActions.getLayoutParams()).topMargin = 0;
     m.fetch("craft", r -> {
       if (mix) mix(cols, r);
       else recipes(cols, r);
@@ -506,8 +510,10 @@ final class NativeEconomy {
     TextView resultName = h.text("선택한 조합", 16);
     resultName.setTag("craft-selected-heading");
     resultName.setTypeface(h.headline);
+    recipeIdentity = resultName;
     heading.addView(resultName, new LinearLayout.LayoutParams(0, -2, 1));
-    heading.addView(k.note("재료 ＋ 재료 → 결과"));
+    recipeHint = k.note("재료 ＋ 재료 → 결과");
+    heading.addView(recipeHint);
     panel.addView(heading);
     JSONArray mats = h.list(r, "materials");
     boolean fixedChain = mats.length() <= 2;
@@ -559,6 +565,8 @@ final class NativeEconomy {
         Math.min(50, r.optInt("max")),
         n -> {
           times[0] = n;
+          recipeIdentity.setText("선택한 조합");
+          recipeHint.setVisibility(View.VISIBLE);
           make.setText(n > 1 ? n + "개 만들기" : "만들기");
           for (int i = 0; i < counts.size(); i++) {
             JSONObject material = mats.optJSONObject(i);
@@ -658,6 +666,18 @@ final class NativeEconomy {
       slot.setContentDescription(unit.optString("name") + " 재료 · 얻는 곳 보기");
       slot.setOnClickListener(v -> materialGuide(unit));
     }
+    if (h.contentHeightDp() < 390 && recipeIdentity != null) {
+      boolean known = RegistrationCardView.canShow(unit);
+      slot.setContentDescription((known ? unit.optString("name") : "미발견")
+          + (result ? " 결과 · 눌러 이름 보기" : " 재료 · 눌러 이름·수량 보기")
+          + (!result && known ? ", 길게 눌러 얻는 곳 보기" : ""));
+      slot.setOnClickListener(v -> {
+        recipeHint.setVisibility(View.GONE);
+        recipeIdentity.setText((RegistrationCardView.canShow(unit) ? unit.optString("name") : "미발견")
+            + " · " + count.getText());
+      });
+      if (!result && known) slot.setOnLongClickListener(v -> { materialGuide(unit); return true; });
+    }
     return slot;
   }
 
@@ -755,6 +775,8 @@ final class NativeEconomy {
       Button clear = k.action(null, "비우기", () -> { m.mixDraft.clear(); paint[0].run(); });
       clear.setEnabled(!m.mixDraft.isEmpty());
       h.cell(actions, clear);
+      ((LinearLayout.LayoutParams) clear.getLayoutParams()).topMargin = 0;
+      ((LinearLayout.LayoutParams) clear.getLayoutParams()).bottomMargin = 0;
       Button make = k.primary("u-emblem", m.mixDraft.size() >= 2 ? m.mixDraft.size() + "마리 섞기" : "2마리 이상 선택", () -> {
         JSONArray materials = new JSONArray();
         for (String id : m.mixDraft)
@@ -766,6 +788,8 @@ final class NativeEconomy {
       make.setEnabled(m.mixDraft.size() >= 2);
       make.setTag("mix-submit");
       h.cell(actions, make);
+      ((LinearLayout.LayoutParams) make.getLayoutParams()).topMargin = 0;
+      ((LinearLayout.LayoutParams) make.getLayoutParams()).bottomMargin = 0;
       craftActions.removeAllViews();
       craftActions.addView(actions, new LinearLayout.LayoutParams(-1, -2));
     };
@@ -1033,14 +1057,16 @@ final class NativeEconomy {
   /** Shop-only space budget; the shared art, fonts and purchase rail remain unchanged. */
   static final class ShopCardLayout extends LinearLayout {
     ImageView icon;
-    int preferredIconHeight;
-    final int minimumIconHeight;
+    int preferredIconHeight, preferredIconWidth;
+    final int minimumIconHeight, headerGap;
+    boolean compactHeader;
 
     ShopCardLayout(MainActivity host) {
       super(host);
       setOrientation(VERTICAL);
       setGravity(Gravity.CENTER);
       minimumIconHeight = host.dp(24);
+      headerGap = host.dp(6);
       // PAPER's fixed 5×3 art bands are at most 80/3dp horizontally and 72/3dp
       // vertically (ThemeArt.surface). Keep content beyond those bands plus 1dp.
       setPadding(host.dp(28), host.dp(25), host.dp(28), host.dp(25));
@@ -1049,6 +1075,7 @@ final class NativeEconomy {
     void setIcon(ImageView view, int preferredHeight) {
       icon = view;
       preferredIconHeight = preferredHeight;
+      preferredIconWidth = view.getLayoutParams().width;
       addView(view);
     }
 
@@ -1060,15 +1087,56 @@ final class NativeEconomy {
       // Measure real font-scaled text without a vertical cap before assigning the
       // remaining height to the illustration. Never shrink or clip cost/status text.
       LinearLayout.LayoutParams art = (LinearLayout.LayoutParams) icon.getLayoutParams();
+      art.width = preferredIconWidth;
       art.height = 0;
       super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
       int textAndFrameHeight = getMeasuredHeight();
-      int available = MeasureSpec.getMode(heightSpec) == MeasureSpec.UNSPECIFIED
-          ? preferredIconHeight : Math.max(0, MeasureSpec.getSize(heightSpec) - textAndFrameHeight);
-      // Do not make a too-small viewport appear to pass by hiding the product art.
-      // Native frame/text tests must reject a budget that cannot fit this minimum.
+      boolean bounded = MeasureSpec.getMode(heightSpec) != MeasureSpec.UNSPECIFIED;
+      int available = bounded ? Math.max(0, MeasureSpec.getSize(heightSpec) - textAndFrameHeight)
+          : preferredIconHeight;
+      compactHeader = bounded && available < minimumIconHeight && getChildCount() == 4;
+      if (compactHeader) {
+        // Short safe-area viewports put the real product icon beside its name.
+        // Prices, ownership, original font sizes and the ornamental inset stay intact.
+        int width = getMeasuredWidth(), contentWidth = width - getPaddingLeft() - getPaddingRight();
+        android.graphics.drawable.Drawable drawable = icon.getDrawable();
+        float aspect = drawable != null && drawable.getIntrinsicHeight() > 0
+            ? drawable.getIntrinsicWidth() / (float) drawable.getIntrinsicHeight() : 1;
+        int iconWidth = Math.max(1, (int) Math.ceil(minimumIconHeight * aspect));
+        icon.measure(MeasureSpec.makeMeasureSpec(iconWidth, MeasureSpec.EXACTLY),
+            MeasureSpec.makeMeasureSpec(minimumIconHeight, MeasureSpec.EXACTLY));
+        View name = getChildAt(1), price = getChildAt(2), status = getChildAt(3);
+        name.measure(MeasureSpec.makeMeasureSpec(Math.max(0, contentWidth - iconWidth - headerGap), MeasureSpec.EXACTLY),
+            MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+        for (View label : new View[] {price, status})
+          label.measure(MeasureSpec.makeMeasureSpec(contentWidth, MeasureSpec.EXACTLY),
+              MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+        // Fill the same shelf budget as sibling cards; never hide an over-budget row.
+        // The native glyph/line tests still reject a viewport too small for this layout.
+        setMeasuredDimension(width, MeasureSpec.getSize(heightSpec));
+        return;
+      }
       art.height = Math.min(preferredIconHeight, Math.max(minimumIconHeight, available));
       super.onMeasure(widthSpec, heightSpec);
+    }
+
+    @Override protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+      if (!compactHeader) {
+        super.onLayout(changed, left, top, right, bottom);
+        return;
+      }
+      View name = getChildAt(1), price = getChildAt(2), status = getChildAt(3);
+      int x = getPaddingLeft(), end = getWidth() - getPaddingRight();
+      int headerHeight = Math.max(Math.max(icon.getMeasuredHeight(), name.getMeasuredHeight()),
+          getHeight() - getPaddingTop() - getPaddingBottom() - price.getMeasuredHeight() - status.getMeasuredHeight());
+      int y = getPaddingTop(), iconY = y + (headerHeight - icon.getMeasuredHeight()) / 2;
+      icon.layout(x, iconY, x + icon.getMeasuredWidth(), iconY + icon.getMeasuredHeight());
+      int nameY = y + (headerHeight - name.getMeasuredHeight()) / 2;
+      name.layout(x + icon.getMeasuredWidth() + headerGap, nameY, end, nameY + name.getMeasuredHeight());
+      y += headerHeight;
+      price.layout(x, y, end, y + price.getMeasuredHeight());
+      y += price.getMeasuredHeight();
+      status.layout(x, y, end, y + status.getMeasuredHeight());
     }
   }
 
@@ -1327,6 +1395,7 @@ final class NativeEconomy {
 
   void expedition() {
     boolean returning = h.screen.equals("expedition") && h.expeditionDraft != null;
+    crewSelectionNote = "";
     h.base("탐험대 편성", "expedition");
     economyScene("routes");
     JSONObject trip = h.me().optJSONObject("trip");
@@ -1412,11 +1481,12 @@ final class NativeEconomy {
     ((LinearLayout.LayoutParams) footer.getLayoutParams()).topMargin = 0;
     summary.addView(k.action(null, "보상·시너지", () -> expeditionDetails(h.expeditionDraft)),
         new LinearLayout.LayoutParams(h.dp(124), h.dp(48)));
-    Button clear = k.action(null, "비우기", () -> { h.expeditionDraft.clear(); paint[0].run(); });
+    Button clear = k.action(null, "비우기", () -> { h.expeditionDraft.clear(); crewSelectionNote = ""; paint[0].run(); });
     summary.addView(clear, new LinearLayout.LayoutParams(h.dp(80), h.dp(48)));
     JSONArray previous = h.list(h.me(), "previousParty");
     if (previous.length() > 0) summary.addView(k.action(null, "최근 편성", () -> {
       h.expeditionDraft.clear();
+      crewSelectionNote = "";
       for (int i = 0; i < previous.length() && h.expeditionDraft.size() < max; i++) {
         String id = previous.optString(i);
         JSONObject unit = find(id);
@@ -1437,7 +1507,9 @@ final class NativeEconomy {
       compactExpeditionEstimate(notes, h.expeditionDraft);
       selected.removeAllViews();
       candidates.removeAllViews();
-      selected.addView(crewCaption("선택 대원 · 누르면 빼기"));
+      TextView selectedHeading = crewCaption(crewSelectionNote.isEmpty() ? "선택 대원 · 누르면 빼기" : crewSelectionNote);
+      selectedHeading.setTag("expedition-selection-summary");
+      selected.addView(selectedHeading);
       TextView candidateHeading = crewCaption(h.expeditionDraft.size() >= max ? "정원 " + max + "명 · 먼저 빼기" : "후보 · 누르면 넣기");
       candidateHeading.setTag("expedition-candidate-heading");
       candidates.addView(candidateHeading);
@@ -1489,6 +1561,7 @@ final class NativeEconomy {
           if (editable) tile.setOnClickListener(v -> {
             if (h.busy) return;
             h.expeditionDraft.remove(index);
+            crewSelectionNote = unit.optString("name") + " · 제외했어요";
             repaint.run();
           });
         }
@@ -1512,14 +1585,22 @@ final class NativeEconomy {
     tile.setPadding(h.dp(2), h.dp(2), h.dp(2), h.dp(2));
     tile.setGravity(Gravity.CENTER);
     tile.setBackground(PartyCharacterView.selection(h, false));
+    tile.setContentDescription(unit.optString("name") + " · " + detail);
     View portrait = PartyCharacterView.art(h, unit);
     portrait.setTag("expedition-character-art");
     portrait.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     tile.addView(portrait, new LinearLayout.LayoutParams(-1, 0, 1));
-    TextView status = PartyCharacterView.stateLabel(h, detail);
+    // Keep the same single caption row: canonical names make small sprites identifiable.
+    // Ordered slot/remove and remaining-copy information stays on the tile's accessible label.
+    TextView status = PartyCharacterView.stateLabel(h, unit.optString("name"));
     status.setTextSize(h.uiText(12));
     status.setPadding(h.dp(2), 0, h.dp(2), 0);
-    status.setTag("expedition-crew-status");
+    status.setSingleLine(false);
+    status.setMaxLines(1);
+    status.setHorizontallyScrolling(false);
+    status.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    status.setTag("economy-name-preview");
+    status.setContentDescription(unit.optString("name"));
     tile.addView(status, new LinearLayout.LayoutParams(-1, -2));
     tile.setMinimumHeight(h.dp(48));
     return tile;
@@ -1537,7 +1618,9 @@ final class NativeEconomy {
     TextView count = h.text((page + 1) + "/" + Math.max(1, pages), 12);
     count.setPadding(0, 0, 0, 0);
     count.setGravity(Gravity.CENTER);
-    count.setSingleLine(true);
+    count.setSingleLine(false);
+    count.setMaxLines(1);
+    count.setHorizontallyScrolling(false);
     count.setBackground(new GamePaperDrawable(h));
     if (!tag.startsWith("expedition-")) pager.addView(count, new LinearLayout.LayoutParams(h.dp(48), h.dp(24)));
     else pager.setContentDescription("후보 " + (page + 1) + " / " + Math.max(1, pages) + "쪽");
@@ -1591,6 +1674,7 @@ final class NativeEconomy {
         tile.setOnClickListener(v -> {
           if (h.busy || !can) return;
           h.expeditionDraft.add(id);
+          crewSelectionNote = unit.optString("name") + " · 남은 " + (left - 1);
           repaint.run();
         });
         LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, -1, 1);

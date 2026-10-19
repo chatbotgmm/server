@@ -48,11 +48,12 @@ final class NativeProgression {
         {"reincarnation", "환생"}, {"reassessment", "재심사"}};
     for (String[] option : options) {
       Button b = k.action(null, option[1], () -> { tab = option[0]; selectedKey = ""; receipt = null; notice = ""; render(); });
+      fixedButton(b);
       b.setTag("progression-tab-" + option[0]);
       tabs.addView(b, new LinearLayout.LayoutParams(0, h.dp(48), 1));
     }
     refreshButton = k.action(null, "↻", this::refresh);
-    refreshButton.setTag("progression-refresh"); refreshButton.setContentDescription("서버 진행 새로 확인");
+    fixedButton(refreshButton); refreshButton.setTag("progression-refresh"); refreshButton.setContentDescription("서버 진행 새로 확인");
     tabs.addView(refreshButton, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
     // Fixed viewport: one server candidate per page, never a scrolling main panel.
     h.page.removeViewAt(h.page.getChildCount() - 1);
@@ -70,9 +71,9 @@ final class NativeProgression {
     overlay = k.column(); overlay.setTag("progression-reassessment-overlay");
     overlay.setBackground(new GamePaperDrawable(h)); overlay.setPadding(h.dp(16), h.dp(8), h.dp(16), h.dp(8));
     Button close = k.action(null, "‹ 결과로", this::dismiss);
-    close.setTag("progression-close");
+    fixedButton(close); close.setTag("progression-close");
     LinearLayout rail = k.row(); rail.addView(close, new LinearLayout.LayoutParams(0, h.dp(48), 1));
-    refreshButton = k.action(null, "새로 확인", this::refresh); refreshButton.setTag("progression-refresh");
+    refreshButton = k.action(null, "새로 확인", this::refresh); fixedButton(refreshButton); refreshButton.setTag("progression-refresh");
     rail.addView(refreshButton, new LinearLayout.LayoutParams(h.dp(120), h.dp(48)));
     overlay.addView(rail, new LinearLayout.LayoutParams(-1, h.dp(48)));
     contents = k.column(); contents.setTag("progression-content");
@@ -157,8 +158,13 @@ final class NativeProgression {
   }
 
   void summary(String text, int lines) {
-    TextView view = k.note(text); view.setMaxLines(lines); view.setMinimumHeight(h.dp(48));
-    view.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    TextView view = k.note(text); view.setSingleLine(false); view.setHorizontallyScrolling(false); view.setMaxLines(lines); view.setMinimumHeight(h.dp(48));
+    view.setEllipsize(null);
+    view.setTag("progression-summary");
+    view.setTextColor(JournalTheme.INK);
+    view.setBackground(new GamePaperDrawable(h));
+    view.setPadding(h.dp(12), h.dp(6), h.dp(12), h.dp(6));
+    view.setGravity(android.view.Gravity.CENTER_VERTICAL);
     view.setContentDescription(text); view.setOnClickListener(v -> h.message(text));
     contents.addView(view, new LinearLayout.LayoutParams(-1, 0, 1));
   }
@@ -170,18 +176,32 @@ final class NativeProgression {
     int index = page(count);
     LinearLayout row = k.row(); row.setTag("progression-pagination");
     Button previous = k.action(null, "‹", () -> { pages.put(tab, index - 1); render(); });
-    previous.setTag("progression-previous"); previous.setContentDescription("이전 개체 또는 보상"); previous.setEnabled(index > 0);
+    fixedButton(previous); previous.setTag("progression-previous"); previous.setContentDescription("이전 개체 또는 보상"); previous.setEnabled(index > 0);
     row.addView(previous, new LinearLayout.LayoutParams(h.dp(64), h.dp(48)));
     TextView label = k.note((index + 1) + " / " + count); label.setGravity(android.view.Gravity.CENTER);
+    label.setTag("progression-page-label");
+    label.setBackground(new GamePaperDrawable(h)); label.setTextColor(JournalTheme.INK);
+    label.setSingleLine(false); label.setMaxLines(1); label.setHorizontallyScrolling(false);
     row.addView(label, new LinearLayout.LayoutParams(0, h.dp(48), 1));
     Button next = k.action(null, "›", () -> { pages.put(tab, index + 1); render(); });
-    next.setTag("progression-next"); next.setContentDescription("다음 개체 또는 보상"); next.setEnabled(index + 1 < count);
+    fixedButton(next); next.setTag("progression-next"); next.setContentDescription("다음 개체 또는 보상"); next.setEnabled(index + 1 < count);
     row.addView(next, new LinearLayout.LayoutParams(h.dp(64), h.dp(48)));
     contents.addView(row, new LinearLayout.LayoutParams(-1, h.dp(48)));
   }
 
+  void fixedButton(Button button) {
+    button.setTextSize(16);
+    button.setSingleLine(false);
+    button.setMaxLines(1);
+    button.setHorizontallyScrolling(false);
+    button.setEllipsize(null);
+    button.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(4));
+    button.setMinHeight(h.dp(48));
+    button.setMinimumHeight(h.dp(48));
+  }
+
   void action(String tag, String label, boolean enabled, Runnable run) {
-    Button button = k.action(null, label, run); button.setTag(tag); button.setEnabled(enabled);
+    Button button = k.action(null, label, run); fixedButton(button); button.setTag(tag); button.setEnabled(enabled);
     contents.addView(button, new LinearLayout.LayoutParams(-1, h.dp(48)));
   }
 

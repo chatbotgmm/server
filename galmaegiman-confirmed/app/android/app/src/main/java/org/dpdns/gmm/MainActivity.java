@@ -510,7 +510,9 @@ public class MainActivity extends AppCompatActivity {
     head.addView(back, new LinearLayout.LayoutParams(dp(48), dp(48)));
     title = text(name, 22);
     title.setTypeface(headline);
-    title.setSingleLine(true);
+    title.setSingleLine(false);
+    title.setMaxLines(1);
+    title.setHorizontallyScrolling(false);
     title.setEllipsize(android.text.TextUtils.TruncateAt.END);
     title.setTextColor(Color.WHITE);
     title.setGravity(Gravity.CENTER_VERTICAL);
@@ -529,14 +531,20 @@ public class MainActivity extends AppCompatActivity {
       JournalButton.keepLabelDuringOperation(money);
       money.setTextSize(14);
       money.setTypeface(prose);
-      money.setSingleLine(true);
+      money.setSingleLine(false);
+      money.setMaxLines(1);
+      money.setHorizontallyScrolling(false);
       money.setContentDescription(
           (kind.equals("snack") ? "새우 " : kind.equals("peanut") ? "땅콩 " : "지원서 ")
               + String.format(java.util.Locale.KOREA, "%,d", me().optInt(kind)));
       money.setBackground(ThemeArt.of(this).drawable(ThemeArt.Surface.NAVY));
       money.setTextColor(Color.WHITE);
       money.setPadding(dp(6), 0, dp(8), 0);
-      LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(dp(compact() ? 90 : 102), dp(48));
+      // The full live balance and its 26dp icon must fit at the current font scale.
+      // Reserve only the measured amount, leaving the weighted title its own space.
+      int moneyWidth = Math.max(dp(compact() ? 90 : 102),
+          (int) Math.ceil(money.getPaint().measureText(money.getText().toString())) + dp(26 + 6 + 6 + 8 + 2));
+      LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(moneyWidth, dp(48));
       slot.leftMargin = dp(4);
       head.addView(money, slot);
     }
