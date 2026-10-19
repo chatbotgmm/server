@@ -79,6 +79,10 @@ jobs:
       - name: Test preparation full-card evidence validation
         run: python3 -m unittest discover -s ci -p test_verify_preparation_cards.py -v
 
+      - name: Test stage-one device regression evidence validation
+        id: feedback_stage1_checks
+        run: python3 -m unittest discover -s ci -p test_verify_feedback_stage1_ci.py -v
+
       # The project excludes NativeRenderReviewTest unless a review token is supplied.
       # Do not supply that token: R1 uses local fixtures and bundled artwork instead.
       # Loopback prevents missing art/API fallbacks from reaching the production service.
@@ -94,7 +98,7 @@ jobs:
         id: full_gate
         run: >
           python3 ci/verify_registration_ci.py junit app/build/test-results/testDebugUnitTest
-          --minimum-tests 290 --previous-skipped 16
+          --minimum-tests 350 --previous-skipped 16
           --require-suite org.dpdns.gmm.NativeAcquisitionFlowTest
           --require-suite org.dpdns.gmm.NativeOperationUiTest
           --require-suite org.dpdns.gmm.NativeNoScrollReviewTest
@@ -121,6 +125,8 @@ jobs:
           --require-unskipped-suite org.dpdns.gmm.NativeExtrasThemeReviewTest
           --require-unskipped-suite org.dpdns.gmm.NativeExtrasThemeStateTest
           --require-unskipped-suite org.dpdns.gmm.NativeHomeTipLayoutTest
+          --require-unskipped-suite org.dpdns.gmm.NativeModesShortViewportTest
+          --require-unskipped-suite org.dpdns.gmm.NativeShopCardBoundsTest
           --output app/build/registration-ci/full-suite.json
       # Upload before the targeted rerun overwrites testDebugUnitTest reports.
       - name: Save full native unit-test reports
@@ -239,6 +245,32 @@ jobs:
             galmaegiman-confirmed/app/android/app/build/test-results/testDebugUnitTest/TEST-org.dpdns.gmm.NativeHomeTipLayoutTest.xml
             galmaegiman-confirmed/app/android/app/build/home-tip-ci/
           if-no-files-found: warn
+          retention-days: 14
+
+      # Stage-one regressions run once in the full native suite. Validate and
+      # preserve their exact JUnit/PNG/geometry evidence before targeted reruns.
+      - name: Verify stage-one short-screen controls and ornamental shop text bounds
+        if: ${{ !cancelled() }}
+        id: feedback_stage1_gate
+        run: >
+          python3 ci/verify_feedback_stage1_ci.py
+          --native-review app/build/native-review
+          --test-results app/build/test-results/testDebugUnitTest
+          --full-suite-report app/build/registration-ci/full-suite.json
+          --output app/build/feedback-stage1-ci/validation.json
+      - name: Save stage-one device regression images, measurements and exact tests
+        if: always()
+        id: feedback_stage1_evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-feedback-stage1-evidence-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/native-review/feedback-stage1-modes/
+            galmaegiman-confirmed/app/android/app/build/native-review/feedback-stage1-shop/
+            galmaegiman-confirmed/app/android/app/build/test-results/testDebugUnitTest/TEST-org.dpdns.gmm.NativeModesShortViewportTest.xml
+            galmaegiman-confirmed/app/android/app/build/test-results/testDebugUnitTest/TEST-org.dpdns.gmm.NativeShopCardBoundsTest.xml
+            galmaegiman-confirmed/app/android/app/build/feedback-stage1-ci/
+          if-no-files-found: error
           retention-days: 14
 
       - name: Targeted home lobby capture at phone, inset phone and tablet sizes
@@ -383,7 +415,9 @@ jobs:
           && steps.phase2_economy.outcome == 'success'
           && steps.phase2_extras.outcome == 'success'
           && steps.phase2_assets.outcome == 'success' && steps.phase2_coverage.outcome == 'success' && steps.phase2_ready.outcome == 'success'
-          && steps.home_tip_gate.outcome == 'success' && steps.preparation_cards.outcome == 'success' }}
+          && steps.home_tip_gate.outcome == 'success' && steps.preparation_cards.outcome == 'success'
+          && steps.feedback_stage1_checks.outcome == 'success' && steps.feedback_stage1_gate.outcome == 'success'
+          && steps.feedback_stage1_evidence.outcome == 'success' }}
         id: assemble
         run: >
           bash ./gradlew :app:assembleDebug :app:assemblePreview

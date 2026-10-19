@@ -926,7 +926,7 @@ final class NativeEconomy {
                         at < offers.size()
                             ? shopCard(offers.get(at), offers.get(at) == selected, paint[0])
                             : new View(h);
-                    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
+                    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1);
                     lp.setMargins(h.dp(compact() ? 8 : 26), h.dp(4), h.dp(compact() ? 8 : 26), h.dp(4));
                     line.addView(cell, lp);
                   }
@@ -967,36 +967,39 @@ final class NativeEconomy {
 
   /** 상품 카드: 아이콘·이름·가격·보유. 누르면 선택만 바꾸고 구매는 아래 막대에서 한다. */
   View shopCard(JSONObject o, boolean selected, Runnable repaint) {
-    LinearLayout card = k.column();
-    card.setGravity(Gravity.CENTER);
-    card.setPadding(h.dp(6), h.dp(6), h.dp(6), h.dp(6));
+    ShopCardLayout card = new ShopCardLayout(h);
     card.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
     card.setSelected(selected);
     card.setClickable(true);
     card.setTag("shop-card-" + o.optString("key"));
     int artSize = h.contentHeightDp() < 390 ? 56 : compact() ? 80 : 104;
-    card.addView(k.image("/duel/icons/" + o.optString("icon") + ".png", artSize, artSize));
+    card.setIcon(k.image("/duel/icons/" + o.optString("icon") + ".png", artSize, artSize), h.dp(artSize));
     TextView name = h.text(o.optString("title"), compact() ? 14 : 18);
     name.setTypeface(h.headline);
     name.setGravity(Gravity.CENTER);
     name.setMaxLines(2);
+    name.setPadding(0, 0, 0, 0);
+    name.setTag("shop-card-name");
     card.addView(name);
     TextView price = k.note(o.optString("currency") + " " + o.optInt("price") + "개");
     price.setGravity(Gravity.CENTER);
     price.setTextSize(h.uiText(compact() ? 13 : 16));
     price.setPadding(0, 0, 0, 0);
     price.setSingleLine(true);
+    price.setTag("shop-card-price");
     card.addView(price);
     String state = o.optInt("limit") <= 0 ? o.optString("blocked") : o.optString("holding");
-    if (!state.isEmpty()) {
-      TextView extra = k.note(state);
-      extra.setGravity(Gravity.CENTER);
-      extra.setTextSize(h.uiText(compact() ? 12 : 14));
-      extra.setPadding(0, 0, 0, 0);
-      extra.setSingleLine(true);
-      if (o.optInt("limit") <= 0) extra.setTextColor(JournalTheme.NEGATIVE_INFO);
-      card.addView(extra);
-    }
+    // Reserve the same native status row even when this offer has no status copy.
+    // Together with MATCH_PARENT row children this aligns both frames and text baselines.
+    TextView extra = k.note(state);
+    extra.setGravity(Gravity.CENTER);
+    extra.setTextSize(h.uiText(compact() ? 12 : 14));
+    extra.setPadding(0, 0, 0, 0);
+    extra.setSingleLine(true);
+    extra.setTag("shop-card-state");
+    if (o.optInt("limit") <= 0) extra.setTextColor(JournalTheme.NEGATIVE_INFO);
+    if (state.isEmpty()) extra.setVisibility(View.INVISIBLE);
+    card.addView(extra);
     card.setContentDescription(
         o.optString("title") + " · " + o.optString("currency") + " " + o.optInt("price") + "개"
             + (state.isEmpty() ? "" : " · " + state) + (selected ? " · 선택됨" : ""));
@@ -1007,6 +1010,48 @@ final class NativeEconomy {
           repaint.run();
         });
     return card;
+  }
+
+  /** Shop-only space budget; the shared art, fonts and purchase rail remain unchanged. */
+  static final class ShopCardLayout extends LinearLayout {
+    ImageView icon;
+    int preferredIconHeight;
+    final int minimumIconHeight;
+
+    ShopCardLayout(MainActivity host) {
+      super(host);
+      setOrientation(VERTICAL);
+      setGravity(Gravity.CENTER);
+      minimumIconHeight = host.dp(24);
+      // PAPER's fixed 5×3 art bands are at most 80/3dp horizontally and 72/3dp
+      // vertically (ThemeArt.surface). Keep content beyond those bands plus 1dp.
+      setPadding(host.dp(28), host.dp(25), host.dp(28), host.dp(25));
+    }
+
+    void setIcon(ImageView view, int preferredHeight) {
+      icon = view;
+      preferredIconHeight = preferredHeight;
+      addView(view);
+    }
+
+    @Override protected void onMeasure(int widthSpec, int heightSpec) {
+      if (icon == null) {
+        super.onMeasure(widthSpec, heightSpec);
+        return;
+      }
+      // Measure real font-scaled text without a vertical cap before assigning the
+      // remaining height to the illustration. Never shrink or clip cost/status text.
+      LinearLayout.LayoutParams art = (LinearLayout.LayoutParams) icon.getLayoutParams();
+      art.height = 0;
+      super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+      int textAndFrameHeight = getMeasuredHeight();
+      int available = MeasureSpec.getMode(heightSpec) == MeasureSpec.UNSPECIFIED
+          ? preferredIconHeight : Math.max(0, MeasureSpec.getSize(heightSpec) - textAndFrameHeight);
+      // Do not make a too-small viewport appear to pass by hiding the product art.
+      // Native frame/text tests must reject a budget that cannot fit this minimum.
+      art.height = Math.min(preferredIconHeight, Math.max(minimumIconHeight, available));
+      super.onMeasure(widthSpec, heightSpec);
+    }
   }
 
   /** 선택 상품 설명 한 줄 + 수량 + 남색 「선택 상품 구매」. 구매 전 기존 확인창을 그대로 쓴다. */

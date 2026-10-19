@@ -121,9 +121,20 @@ final class NativeMenus {
   void modes() {
     h.base("게임 모드", "modes");
     AppSkin.apply(h, "training");
-    LinearLayout[] cols = k.fixedSplit(.48f);
-    LinearLayout campaign = cols[0], pvp = cols[1];
+    // Use the measured, inset-reduced body height, not a guessed device density or screenshot size.
+    h.page.removeViewAt(h.page.getChildCount() - 1);
+    ModesLayout panes = new ModesLayout();
+    panes.setTag("modes-panes");
+    h.page.addView(panes, new LinearLayout.LayoutParams(-1, 0, 1));
+    LinearLayout campaign = k.column(), pvp = k.column();
+    LinearLayout.LayoutParams campaignSlot = new LinearLayout.LayoutParams(0, -1, .48f);
+    campaignSlot.rightMargin = h.dp(8);
+    panes.addView(campaign, campaignSlot);
+    panes.addView(pvp, new LinearLayout.LayoutParams(0, -1, .52f));
+    h.body = pvp;
     TextView campaignTitle = navyLabel("스토리", 22, true);
+    campaignTitle.setTag("modes-story-heading");
+    campaignTitle.setPadding(h.dp(16), h.dp(6), h.dp(16), h.dp(6));
     campaignTitle.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
     campaign.addView(campaignTitle);
     Button story = k.primary("u-story", "스토리", () -> h.load("story"));
@@ -131,18 +142,28 @@ final class NativeMenus {
     NativeTutorialController.anchor(story, "story");
     menuAction(campaign, story);
     campaign.addView(new View(h), new LinearLayout.LayoutParams(-1, 0, 1));
-    addModeTeamSummary(campaign, false);
-    menuAction(campaign, k.action("m-units", "스토리 편성", () -> {
+    LinearLayout storySummary = addModeTeamSummary(campaign, false);
+    LinearLayout storyLinks = k.column();
+    Button storyTeam = k.action("m-units", "스토리 편성", () -> {
       h.selectionMode = "story"; teamDraft = null; teamReturn = "modes"; h.load("team");
-    }));
+    });
+    storyTeam.setTag("modes-story-team");
+    menuAction(storyLinks, storyTeam);
     Button adventure = k.action("mode-adv", "모험 준비 중", () -> {});
     adventure.setTag("modes-adventure");
     adventure.setEnabled(false);
-    menuAction(campaign, adventure);
+    menuAction(storyLinks, adventure);
+    campaign.addView(storyLinks);
 
     TextView pvpTitle = navyLabel("대전", 22, true);
-    pvpTitle.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
-    pvp.addView(pvpTitle);
+    pvpTitle.setTag("modes-pvp-heading");
+    pvpTitle.setPadding(0, 0, 0, 0);
+    LinearLayout pvpHeading = k.row();
+    pvpHeading.setTag("modes-pvp-heading-frame");
+    pvpHeading.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
+    pvpHeading.setPadding(h.dp(16), h.dp(6), h.dp(16), h.dp(6));
+    pvpHeading.addView(pvpTitle);
+    pvp.addView(pvpHeading);
     LinearLayout start = k.row();
     Button normal = k.action("mode-normal", "일반 게임", () -> startPvp("normal"));
     normal.setTag("modes-normal");
@@ -150,14 +171,10 @@ final class NativeMenus {
     ranked.setTag("modes-ranked");
     library.actionCell(start, normal); library.actionCell(start, ranked);
     pvp.addView(start, new LinearLayout.LayoutParams(-1, h.dp(52)));
-    TextView rank = navyLabel("랭크 불러오는 중…", 14, false);
-    rank.setTag("modes-rank-status");
-    rank.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAV));
-    rank.setGravity(Gravity.CENTER_VERTICAL);
-    rank.setMinHeight(h.dp(52));
+    ModeRankPanel rank = new ModeRankPanel();
     pvp.addView(rank, new LinearLayout.LayoutParams(-1, -2));
     pvp.addView(new View(h), new LinearLayout.LayoutParams(-1, 0, 1));
-    addModeTeamSummary(pvp, true);
+    LinearLayout pvpSummary = addModeTeamSummary(pvp, true);
     LinearLayout links = k.row();
     Button standings = k.action(null, "순위", () -> h.load("pvp"));
     standings.setTag("modes-standings");
@@ -169,20 +186,142 @@ final class NativeMenus {
     edit.setTag("modes-pvp-team");
     library.actionCell(links, standings); library.actionCell(links, practice); library.actionCell(links, edit);
     pvp.addView(links, new LinearLayout.LayoutParams(-1, h.dp(52)));
+    panes.reflow = compact -> {
+      // Reuse every view/listener. An inset change must not reload the page, reset a party,
+      // issue another rank read, or invalidate the response epoch.
+      ((LinearLayout.LayoutParams) story.getLayoutParams()).topMargin = compact ? 0 : h.dp(4);
+      storyLinks.setOrientation(compact ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+      for (int i = 0; i < storyLinks.getChildCount(); i++) {
+        LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(
+            compact ? 0 : -1, h.dp(48), compact ? 1 : 0);
+        slot.topMargin = compact ? 0 : h.dp(4);
+        if (compact) { slot.leftMargin = h.dp(2); slot.rightMargin = h.dp(2); }
+        storyLinks.getChildAt(i).setLayoutParams(slot);
+      }
+      ((ViewGroup) rank.getParent()).removeView(rank);
+      rank.setCompact(compact);
+      if (compact) {
+        LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, -2, 1);
+        slot.leftMargin = h.dp(12);
+        pvpHeading.addView(rank, slot);
+      } else {
+        pvp.addView(rank, 2, new LinearLayout.LayoutParams(-1, -2));
+      }
+      start.getLayoutParams().height = h.dp(compact ? 48 : 52);
+      links.getLayoutParams().height = h.dp(compact ? 48 : 52);
+      setModeTeamCompact(storySummary, compact);
+      setModeTeamCompact(pvpSummary, compact);
+    };
     final int screenEpoch = h.epoch;
     pendingFetches++;
     h.api.call("pvp/rank", null, (result, error) -> {
       pendingFetches--;
       if (h.isFinishing() || h.epoch != screenEpoch) return;
-      if (error != null) { rank.setText("순위 정보를 불러오지 못했어요. 순위에서 다시 확인해 주세요."); return; }
-      JSONObject me = result.optJSONObject("me");
-      String summary = me == null ? "아직 랭크 기록이 없어요."
-          : me.optString("tier") + " · " + me.optInt("point") + "점"
-              + (me.optInt("rank") > 0 ? " · " + me.optInt("rank") + "위" : "")
-              + " · " + me.optInt("wins") + "승 " + me.optInt("losses") + "패";
-      rank.setText(summary + "\n승리 +" + result.optInt("win") + " / 패배 −" + result.optInt("lose") + "점"
-          + (result.optBoolean("team", h.list(h.me(), "battleTeam").length() == 3) ? "" : " · 편성 3마리 필요"));
+      rank.update(result, error);
     });
+  }
+
+  /** Read-only rank details may shorten; errors and a missing party remain complete and visible. */
+  final class ModeRankPanel extends LinearLayout {
+    final TextView status, required;
+    String summary = "랭크 불러오는 중…";
+    boolean compact, failed, needsTeam;
+
+    ModeRankPanel() {
+      super(NativeMenus.this.h);
+      setOrientation(VERTICAL);
+      setGravity(Gravity.CENTER_VERTICAL);
+      setTag("modes-rank-frame");
+      status = navyLabel(summary, 14, false);
+      status.setTag("modes-rank-status");
+      required = navyLabel("편성 3마리 필요", 14, false);
+      required.setTag("modes-rank-required-team");
+      for (TextView label : new TextView[] {status, required}) {
+        label.setIncludeFontPadding(false);
+        label.setPadding(0, 0, 0, 0);
+        addView(label, new LinearLayout.LayoutParams(-1, -2));
+      }
+      setCompact(false);
+    }
+
+    void setCompact(boolean value) {
+      compact = value;
+      setBackground(compact ? null : ThemeArt.of(h).drawable(ThemeArt.Surface.NAV));
+      setPadding(compact ? 0 : h.dp(24), compact ? 0 : h.dp(8),
+          compact ? 0 : h.dp(24), compact ? 0 : h.dp(8));
+      setMinimumHeight(compact ? 0 : h.dp(52));
+      renderStatus();
+    }
+
+    void update(JSONObject result, String error) {
+      failed = error != null;
+      needsTeam = !failed && !result.optBoolean("team", h.list(h.me(), "battleTeam").length() == 3);
+      if (failed) summary = "순위 정보를 불러오지 못했어요. 순위에서 다시 확인해 주세요.";
+      else {
+        JSONObject me = result.optJSONObject("me");
+        summary = me == null ? "아직 랭크 기록이 없어요."
+            : me.optString("tier") + " · " + me.optInt("point") + "점"
+                + (me.optInt("rank") > 0 ? " · " + me.optInt("rank") + "위" : "")
+                + " · " + me.optInt("wins") + "승 " + me.optInt("losses") + "패";
+        summary += "\n승리 +" + result.optInt("win") + " / 패배 −" + result.optInt("lose") + "점";
+      }
+      renderStatus();
+    }
+
+    void renderStatus() {
+      String full = summary + (needsTeam ? " · 편성 3마리 필요" : "");
+      status.setSingleLine(compact && !failed);
+      status.setEllipsize(compact && !failed ? android.text.TextUtils.TruncateAt.END : null);
+      status.setText(compact && failed ? "순위 조회 실패\n순위에서 다시 확인" : compact ? summary : full);
+      status.setContentDescription(full);
+      required.setVisibility(compact && needsTeam ? View.VISIBLE : View.GONE);
+    }
+  }
+
+  /** Reflow on the actual available height, including later cutout/system-bar inset changes. */
+  final class ModesLayout extends LinearLayout {
+    Consumer<Boolean> reflow;
+    Boolean compactLayout;
+
+    ModesLayout() { super(NativeMenus.this.h); setOrientation(HORIZONTAL); setGravity(Gravity.TOP); }
+
+    @Override protected void onMeasure(int widthSpec, int heightSpec) {
+      if (reflow != null && MeasureSpec.getMode(heightSpec) != MeasureSpec.UNSPECIFIED) {
+        float fontScale = Math.max(1f, getResources().getConfiguration().fontScale);
+        boolean compact = MeasureSpec.getSize(heightSpec) < h.dp(340) * fontScale;
+        if (compactLayout == null || compactLayout != compact) {
+          compactLayout = compact;
+          reflow.accept(compact);
+        }
+      }
+      super.onMeasure(widthSpec, heightSpec);
+    }
+  }
+
+  void setModeTeamCompact(LinearLayout summary, boolean compact) {
+    // Keep the original artwork and 44dp portraits; only their relationship to the names changes.
+    summary.setPadding(h.dp(compact ? 24 : 12), h.dp(compact ? 6 : 8),
+        h.dp(compact ? 24 : 12), h.dp(compact ? 6 : 8));
+    TextView title = (TextView) summary.getChildAt(0);
+    // Jua has glyphs above its ascent; keep its font padding instead of clipping those strokes.
+    title.setIncludeFontPadding(true);
+    title.setPadding(h.dp(4), compact ? 0 : h.dp(2), h.dp(4), compact ? 0 : h.dp(2));
+    LinearLayout roster = (LinearLayout) summary.getChildAt(1);
+    for (int i = 0; i < roster.getChildCount(); i++) {
+      if (!(roster.getChildAt(i) instanceof LinearLayout)) continue; // Empty-party notice.
+      LinearLayout member = (LinearLayout) roster.getChildAt(i);
+      member.setOrientation(compact ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+      member.setGravity(compact ? Gravity.CENTER_VERTICAL : Gravity.CENTER_HORIZONTAL);
+      TextView name = (TextView) member.getChildAt(1);
+      name.setIncludeFontPadding(!compact);
+      name.setGravity(compact ? Gravity.START | Gravity.CENTER_VERTICAL : Gravity.CENTER);
+      name.setPadding(h.dp(4), compact ? 0 : h.dp(2), h.dp(4), compact ? 0 : h.dp(2));
+      name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      name.setLayoutParams(new LinearLayout.LayoutParams(compact ? 0 : -1, -2, compact ? 1 : 0));
+    }
+    LinearLayout.LayoutParams slot = (LinearLayout.LayoutParams) summary.getLayoutParams();
+    slot.topMargin = slot.bottomMargin = h.dp(compact ? 2 : 6);
+    summary.setLayoutParams(slot);
   }
 
   void modeTeamSheet(boolean pvp) {
@@ -195,7 +334,7 @@ final class NativeMenus {
         });
   }
 
-  void addModeTeamSummary(LinearLayout parent, boolean pvp) {
+  LinearLayout addModeTeamSummary(LinearLayout parent, boolean pvp) {
     LinearLayout summary = navyPanel();
     summary.setTag(pvp ? "modes-pvp-summary" : "modes-story-summary");
     summary.setGravity(Gravity.CENTER_VERTICAL);
@@ -225,6 +364,7 @@ final class NativeMenus {
       member.setGravity(Gravity.CENTER_HORIZONTAL);
       member.addView(k.image(pvp ? "/thumbs/" + key + ".jpg" : unit.optString("image"), 44, 44));
       TextView name = navyLabel((i == 0 ? "선봉 · " : "") + unit.optString("name"), 13, false);
+      name.setContentDescription(name.getText());
       name.setGravity(Gravity.CENTER); name.setMaxLines(2);
       member.addView(name);
       line.addView(member, new LinearLayout.LayoutParams(0, -2, 1));
@@ -234,6 +374,7 @@ final class NativeMenus {
     LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(-1, -2);
     slot.setMargins(0, h.dp(6), 0, h.dp(6));
     parent.addView(summary, slot);
+    return summary;
   }
 
   JSONObject ownedSpecies(String id) {
