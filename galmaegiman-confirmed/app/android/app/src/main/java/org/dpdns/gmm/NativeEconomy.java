@@ -266,7 +266,8 @@ final class NativeEconomy {
     LinearLayout tabs = k.column();
     k.tabs(tabs, new String[] {"조합식", "재료로 섞기"}, mix ? 1 : 0, i -> craft(i == 1));
     h.page.addView(tabs, h.page.getChildCount() - 1);
-    LinearLayout[] cols = k.split(.25f);
+    // 10-18 앱 배치 설계(조합 · 석공방): 왼쪽 작업실 그림, 오른쪽 재료 → 결과와 조합하기.
+    LinearLayout[] cols = k.fixedSplit(.30f);
     craftActions = k.row();
     k.footer(craftActions);
     m.fetch(
@@ -283,6 +284,7 @@ final class NativeEconomy {
     paint[0] =
         () -> {
           cols[0].removeAllViews();
+          cols[0].addView(k.place("headquarters", .5f), new LinearLayout.LayoutParams(-1, 0, 1));
           JSONObject current = null;
           for (int i = 0; i < recipes.length(); i++) {
             JSONObject recipe = recipes.optJSONObject(i);
@@ -295,7 +297,6 @@ final class NativeEconomy {
           Button select = k.action(null, "조합식 선택  ›", () -> recipePicker(recipes, paint[0]));
           select.setTag("craft-recipe-picker");
           cols[0].addView(select, new LinearLayout.LayoutParams(-1, h.dp(48)));
-          cols[0].addView(k.note(recipes.length() + "개 조합식 · 이름·재료 검색"));
           cols[0].addView(
               k.action(
                   null,
@@ -549,10 +550,11 @@ final class NativeEconomy {
         () -> {
           cols[0].removeAllViews();
           cols[1].removeAllViews();
+          cols[0].addView(k.place("headquarters", .5f), new LinearLayout.LayoutParams(-1, 0, 1));
           Button choose = k.action(null, "재료 선택  ›", () -> mixMaterialPicker(pool, paint[0]));
           choose.setEnabled(m.mixDraft.size() < 6);
           cols[0].addView(choose, new LinearLayout.LayoutParams(-1, h.dp(48)));
-          cols[0].addView(k.note("2~6마리로 섞어요.\n맞지 않는 조합은 재료가 남아요."));
+          cols[0].addView(k.note("2~6마리 · 안 맞으면 재료가 남아요"));
           cols[0].addView(
               k.action(
                   null,
