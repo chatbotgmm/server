@@ -68,7 +68,7 @@ jobs:
         \ review-logs/generation-native.log\n"
     - name: Validate and apply reconstructed source patch
       shell: bash
-      run: "set -euo pipefail\necho '20fe3401d9c563344f7be97e42108f38de8ddf35d6b2d7722fae72871e5185d1  gmm-rebuild-r1.zip'\
+      run: "set -euo pipefail\necho '56db42812042a942940fb1ceed7171348e38a152f0f04490b8fd2ff54c180c21  gmm-rebuild-r1.zip'\
         \ | sha256sum --check --strict\npython3 - <<'EXTRACT'\nfrom pathlib import Path\nfrom zipfile import ZipFile\n\
         import stat\nroot=Path('gmm-rebuild-r1').resolve()\nif root.exists(): raise SystemExit('Extraction directory\
         \ already exists')\nwith ZipFile('gmm-rebuild-r1.zip') as z:\n    for e in z.infolist():\n        p=Path(e.filename)\n\
@@ -168,7 +168,7 @@ jobs:
         \ review-logs/generation-native.log\n"
     - name: Validate and apply reconstructed source patch
       shell: bash
-      run: "set -euo pipefail\necho '20fe3401d9c563344f7be97e42108f38de8ddf35d6b2d7722fae72871e5185d1  gmm-rebuild-r1.zip'\
+      run: "set -euo pipefail\necho '56db42812042a942940fb1ceed7171348e38a152f0f04490b8fd2ff54c180c21  gmm-rebuild-r1.zip'\
         \ | sha256sum --check --strict\npython3 - <<'EXTRACT'\nfrom pathlib import Path\nfrom zipfile import ZipFile\n\
         import stat\nroot=Path('gmm-rebuild-r1').resolve()\nif root.exists(): raise SystemExit('Extraction directory\
         \ already exists')\nwith ZipFile('gmm-rebuild-r1.zip') as z:\n    for e in z.infolist():\n        p=Path(e.filename)\n\
