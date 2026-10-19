@@ -162,11 +162,14 @@ public class NativeThemeStateTest {
             && ((EditText) view).getHint().toString().contains("탈퇴")) confirm = (EditText) view;
       assertNotNull(confirm); confirm.setText("아니오"); assertFalse(delete.isEnabled());
       confirm.setText("탈퇴"); assertTrue(delete.isEnabled()); confirm.setText(""); assertFalse(delete.isEnabled());
+      // EditText/버튼 상태 변경의 다음 ViewRoot traversal을 먼저 완료한다.
+      // 이 fixture는 Choreographer를 16ms 프레임 시계로 멈췄으므로 idle()만으로는 sync barrier를 지나지 못한다.
+      fixture.geometry.frame();
       android.app.AlertDialog settings = h.visibleDialog;
       root.findViewWithTag("settings-dialog-close").performClick();
       assertFalse("닫기 후 실제 창은 즉시 사라짐", settings.isShowing());
-      // Dialog.dismiss()는 OnDismissListener를 Handler에 보낸다. PAUSED looper도 실제 콜백을 처리한다.
-      Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+      // 실제 dismiss Handler와 배경 창의 다음 프레임도 기존 32ms fixture 시계로 처리한다.
+      fixture.geometry.frame();
       assertNull("dismiss 콜백 후 현재 창 참조도 해제", h.visibleDialog);
       assertEquals("home", h.screen); assertEquals(0, api.writes);
       View anchor = h.root.findViewWithTag("lobby-profile"); anchor.performClick();

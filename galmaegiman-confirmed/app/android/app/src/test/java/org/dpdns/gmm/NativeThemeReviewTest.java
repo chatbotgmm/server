@@ -64,7 +64,7 @@ public class NativeThemeReviewTest {
 
   static final class ReviewApi extends NativeApi {
     final JSONObject me;
-    int writes, reads, drawReads;
+    int writes, reads, drawReads, homeDrawReads;
     ReviewApi(MainActivity host, JSONObject me) { super(host); this.me = me; }
     @Override String token() { return "offline-native-theme-review"; }
     @Override void call(String path, JSONObject body, Result done) {
@@ -118,11 +118,16 @@ public class NativeThemeReviewTest {
 
   View show(MainActivity host, String page, int w, int h) throws Exception {
     host.home(); layout(host, w, h);
+    // Lobby attachment reads draw once for its claim badge. Measure this page from that settled baseline.
+    ReviewApi api = (ReviewApi) host.api;
+    api.homeDrawReads = api.drawReads;
     if (page.startsWith("settings-")) {
       NativeSettingsSheet.show(host);
       int tab = page.equals("settings-sound") ? 0 : page.equals("settings-alerts") ? 1
           : page.equals("settings-account") ? 2 : 3;
       View decor = geometry.layoutDialog(host);
+      assertEquals("Opening Settings on the sound tab never fetches hidden probabilities",
+          api.homeDrawReads, api.drawReads);
       decor.findViewWithTag("settings-tab-" + tab).performClick();
       Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
       RegistrationArtTest.await(host.art::idle);
@@ -206,7 +211,7 @@ public class NativeThemeReviewTest {
       assertEquals(MainActivity.INK, description.getCurrentTextColor());
     }
     if (page.equals("settings-probability")) {
-      assertEquals("The opened probability tab performs exactly one read", 1, api.drawReads);
+      assertEquals("The opened probability tab performs exactly one read", 1, api.drawReads - api.homeDrawReads);
       JSONArray offers = NativeRecruitmentProbabilityTest.serverEconomyFixture().getJSONArray("gachas");
       int verifiedRates = 0;
       for (int i = 0; i < offers.length(); i++) {
@@ -239,14 +244,15 @@ public class NativeThemeReviewTest {
       }
       assertTrue(flow.labels(root).contains("보장까지 100회"));
       assertNull(root.findViewWithTag("recruitment-probability-status"));
-    } else assertEquals("Closed probability tab never requests rates", 0, api.drawReads);
+    } else assertEquals("Closed probability tab never requests rates", 0, api.drawReads - api.homeDrawReads);
     Bitmap scene = ThemeArt.of(host).image(scene(page));
     assertNotNull("정확한 실제 번들 배경 존재", scene);
     assertTrue("낮은 해상도 대체 그림 금지", scene.getWidth() >= 1800 && scene.getHeight() >= 800);
     assertTrue(bounds > 0); assertTrue(actions > 0); assertTrue(text > 0); assertEquals(0, api.writes);
     return MainActivity.obj("checkedBounds", bounds, "actions", actions, "text", text,
         "sceneAsset", scene(page), "sceneWidth", scene.getWidth(), "sceneHeight", scene.getHeight(),
-        "apiWrites", api.writes, "apiReads", api.reads, "probabilityReads", api.drawReads,
+        "apiWrites", api.writes, "apiReads", api.reads, "homeDrawReads", api.homeDrawReads, "totalDrawReads", api.drawReads,
+        "probabilityReads", api.drawReads - api.homeDrawReads,
         "verifiedProbabilityRates", page.equals("settings-probability") ? 10 : 0, "actualNativeViews", true,
         "rootKind", page.startsWith("settings-") ? "dialog" : page.equals("profile") ? "popup" : "page");
   }
