@@ -212,7 +212,7 @@ public class TitleGTest {
   }
 
   @Test
-  public void breathingKeepsFeetFixedAndReducedMotionResetsDrag() throws Exception {
+  public void breathingKeepsFeetFixedAndPlatformMotionResetsDrag() throws Exception {
     try (ActivityController<MainActivity> controller = fixtures.start()) {
       MainActivity host = controller.get();
       api(host);
@@ -233,10 +233,21 @@ public class TitleGTest {
       Rect after = new Rect();
       title.enter.getHitRect(after);
       assertEquals(fixed, after);
-      host.reducedMotion(true);
-      assertEquals(0, title.parallax.x, 0);
-      assertEquals(0, title.parallax.y, 0);
-      assertNull(title.motion.clock);
+      float previousScale = android.provider.Settings.Global.getFloat(
+          host.getContentResolver(), android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f);
+      try {
+        android.provider.Settings.Global.putFloat(host.getContentResolver(),
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 0f);
+        host.journalTime.motionPreferenceChanged();
+        assertFalse("Platform animation-off remains authoritative", SceneMotion.enabled(host));
+        assertEquals(0, title.parallax.x, 0);
+        assertEquals(0, title.parallax.y, 0);
+        assertNull(title.motion.clock);
+      } finally {
+        android.provider.Settings.Global.putFloat(host.getContentResolver(),
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, previousScale);
+        host.journalTime.motionPreferenceChanged();
+      }
     }
   }
 
