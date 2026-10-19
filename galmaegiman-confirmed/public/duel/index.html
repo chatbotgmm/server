@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" class="journal-web-duel">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -907,7 +907,7 @@ html,body,*{-webkit-tap-highlight-color:transparent}
 .modes .lbg{position:absolute;inset:-20px;background:inherit;filter:blur(6px) saturate(.9) brightness(1.04);z-index:0}
 .modes>*:not(.lbg):not(.amb){position:relative;z-index:1}
 .mtitle{margin:0;text-align:center;font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:26px;color:#fffaf0;text-shadow:0 2px 0 var(--edge),0 0 8px rgba(60,35,15,.5)}
-.mrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;max-width:1080px;width:100%;margin:0 auto;min-height:0}
+.mrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:minmax(0,1fr);gap:18px;max-width:1080px;width:100%;margin:0 auto;min-height:0}
 .modes .mrow{align-self:center;max-height:100%}   /* 카드는 내용만큼(큰 화면에서 아래가 비지 않게), 위아래 가운데 */
 body:has(.modes) #mute{display:none}
 .mcard{background:rgba(255,250,240,.96);border:3px solid var(--edge);border-radius:20px;box-shadow:0 6px 0 rgba(90,52,22,.45);padding:14px 16px;display:flex;flex-direction:column;gap:9px;min-height:0;overflow:auto}
@@ -1043,6 +1043,7 @@ img{-webkit-user-drag:none;-webkit-touch-callout:none}
   .steam .mini span{font-size:14px;color:var(--ink);display:flex;gap:6px;align-items:center;justify-content:flex-start}
   .steam .mini .xp{width:100%;height:8px;margin:2px 0}
   .steam .mini small,.steam .mini .learn{justify-self:start;margin-top:1px}
+  .steam .mini .learn,.steam .mini .xpinfo{grid-column:2;max-width:100%;white-space:normal}
   .steam .mini small{font-size:12.5px;color:var(--edge);font-weight:700}
   .steam .combo{font-size:13.5px;margin:2px 0;text-align:center;color:var(--ink)}
   .steam .teambar .ghost{padding:9px;font-size:15px;border:2px solid var(--edge);box-shadow:0 3px 0 rgba(60,35,15,.45)}
@@ -1140,6 +1141,21 @@ img{-webkit-user-drag:none;-webkit-touch-callout:none}
 .mbtn>i .ico{width:1.9em;height:1.9em}
 
 @media (orientation:landscape) and (max-height:430px){ .mback.img img{height:32px} .modes .mrow{max-height:calc(100% - 4px)} .mhead>i .ico{width:1.8em;height:1.8em} .mbtn>i .ico{width:1.6em;height:1.6em} }
+@media (orientation:landscape) and (max-height:430px){
+  .mcard.pvp .mhead small{display:none}
+  .mcard.pvp .mbtn{padding-block:4px;min-height:38px}
+  .mcard.pvp .mbtn,.mcard.pvp .mlinks{flex-shrink:0}
+  .mcard.pvp .mbtn>i .ico{width:1.1em;height:1.1em}
+  #mFree small{display:none}
+}
+@media (orientation:landscape) and (max-height:380px){
+  .mcard.pvp{gap:4px;padding-block:6px}
+  .mcard.pvp .mhead{padding-bottom:3px}
+  .mcard.pvp .mhead>i .ico{width:1.3em;height:1.3em}
+  .mcard.pvp .mrank{padding:2px 8px;gap:0 8px;line-height:1.2}
+  .mcard.pvp .mlink{padding-block:2px}
+  #mNormal small{display:none}
+}
 
 /* 설정 톱니 그림(둥근 나무 버튼 통째로) */
 .mute.img,.tset.img{background:none !important;border:0 !important;box-shadow:none !important;padding:0 !important;width:52px !important;height:auto !important;filter:drop-shadow(0 3px 0 rgba(90,52,24,.35))}
@@ -1648,7 +1664,7 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
 .bmenu.img .bm:active:not(:disabled){transform:translateY(3px);filter:drop-shadow(0 1px 0 rgba(90,52,22,.35)) brightness(.97)}
 .bmenu.img .bm:disabled{opacity:.5;filter:grayscale(.5)}
 /* 스토리 대화창: 그림 틀, 다음·건너뛰기 그림 버튼 */
-.scene .dbox{background:none !important;box-shadow:none !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;border-style:solid !important;border-color:transparent !important;border-width:12px 26px 22px 26px !important;border-image:url(/duel/intro/b2_dialog_panel.webp) 24 147 60 147 fill / 12px 26px 22px 26px stretch !important;border-radius:0 !important;color:#3b2614}
+.scene .dbox{background:none !important;box-shadow:none !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;border-style:solid !important;border-color:transparent !important;--dialog-edge:clamp(22px,6vh,40px);border-width:var(--dialog-edge) !important;border-image:url(/duel/intro/b2_dialog_panel.webp) 90 fill / var(--dialog-edge) stretch !important;border-radius:0 !important;color:#3b2614}
 .scene .dbox .tk{display:flex;align-items:center;justify-content:flex-end;gap:10px}
 .scene .dbox #pg{font-size:13px;font-weight:700;color:#7a5a3a}
 .dnext{padding:0;border:0;background:none;height:40px;aspect-ratio:440/151;cursor:pointer}
@@ -1786,23 +1802,33 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
 #arena .box>.augs .ico{width:1em;height:1em}
 @media (orientation:landscape){
   #app:has(#arena){grid-template-columns:minmax(0,64.5fr) minmax(0,35.5fr);grid-template-rows:auto minmax(0,1fr)}
-  #app:has(#arena) .cmdbg{z-index:0;margin:-2vh -1vw -2vh -3vw;border-width:12vh 4vw 10vh 6vw;border-image:url(/duel/intro/b2_command_panel.webp) 120 90 80 150 fill / 12vh 4vw 10vh 6vw stretch}
-  #app:has(#arena) #msg{grid-row:1 !important;align-self:center;margin:9.5vh calc(5.5% + var(--sr)) 2vh 8% !important;padding:2vh max(1.8vw,10vh) 2vh 1.8vw !important;min-height:11vh !important;font-size:clamp(12px,3vh,20px);line-height:1.4}
-  #app:has(#arena) #msg::before{background:#fff2de;border:clamp(2px,.5vh,4px) solid #dba456;border-radius:999px;box-shadow:inset 0 0 0 2px #ffe4ac,0 2px 0 #9e683a}
+  #app:has(#arena) .cmdbg{z-index:0;margin:-2vh -1vw -2vh -3vw;border-width:14vh 4vw 10vh 6vw;border-image:url(/duel/intro/b4_command_panel.webp) 240 140 180 240 fill / 14vh 4vw 10vh 6vw stretch}
+  #app:has(#arena) #msg{grid-row:1 !important;align-self:center;margin:11.5vh calc(5.5% + var(--sr)) 2vh 8% !important;padding:2vh max(1.8vw,10vh) 2vh 1.8vw !important;min-height:11vh !important;font-size:clamp(12px,3vh,20px);line-height:1.4}
+  #app:has(#arena) #msg::before{background:none;border:solid transparent;--log-edge:clamp(16px,2vw,28px);border-width:calc(var(--log-edge) * 100 / 180) var(--log-edge);border-image:url(/duel/intro/b5_log_frame.svg) 100 180 fill / calc(var(--log-edge) * 100 / 180) var(--log-edge) stretch;border-radius:0;box-shadow:none}
   #app:has(#arena) #msg .lp{display:none}
   #app:has(#arena) #msg .lc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   #app:has(#arena) #msg .tg{padding:0;background:none;color:inherit;font-size:inherit;font-weight:700;vertical-align:0;margin-right:.35em}
   #app:has(#arena) #msg .tg::before{content:"["}#app:has(#arena) #msg .tg::after{content:"]"}
   #app:has(#arena) #panel,#app:has(#arena) #panel:has(.bmenu.img){grid-row:2 !important;min-height:0;padding:1vh calc(4% + var(--sr)) calc(8.5vh + env(safe-area-inset-bottom,0px)) 5.5% !important;gap:5px;overflow:auto}
   #app:has(#arena) #panel:has(.bmenu.img){overflow:hidden}
-  #app:has(#arena) .bmenu.img{flex:1;min-height:0;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:.5vh .25vw;align-content:stretch;justify-content:stretch}
-  #app:has(#arena) .bmenu.img .bm{width:min(100%,calc((50cqh - .25vh) * 1.2));height:min(calc(50cqh - .25vh),calc((50cqw - .125vw) / 1.2));aspect-ratio:1.2;max-height:100%}
-  #app:has(#arena) .bmenu.img .bm .lb{height:14cqh !important;top:70% !important}
-  #app:has(#arena) .bmenu.img .bm small{top:86%;font-size:clamp(10px,7.5cqh,18px);font-weight:400;color:#7d5f40}
+  #app:has(#arena) .bmenu.img{flex:1;min-height:0;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,auto);gap:.5vh .25vw;align-content:center;justify-content:stretch}
+  #app:has(#arena) .bmenu.img .bm{width:min(100%,calc((50cqh - .25vh) * 574 / 488));height:min(calc(50cqh - .25vh),calc((50cqw - .125vw) * 488 / 574));aspect-ratio:574/488;max-height:100%;container-type:size}
+  #app:has(#arena) .bmenu.img .bart{position:absolute;inset:0;display:block;overflow:hidden;pointer-events:none}
+  #app:has(#arena) .bmenu.img .bart>span{position:absolute;left:0;right:0;overflow:hidden}
+  #app:has(#arena) .bmenu.img .arttop{top:0;height:calc(324 * 100cqw / 574)}
+  #app:has(#arena) .bmenu.img .artbottom{bottom:0;height:calc(156 * 100cqw / 574)}
+  #app:has(#arena) .bmenu.img .artmid{top:calc(324 * 100cqw / 574);bottom:calc(156 * 100cqw / 574)}
+  #app:has(#arena) .bmenu.img .bart img{inset:auto;left:calc(-1 * var(--ax) * 100cqw / 574);top:calc(-1 * var(--ay) * 100cqw / 574);width:calc(1254 * 100cqw / 574);height:auto;max-width:none;object-fit:fill}
+  #app:has(#arena) .bmenu.img .artbottom img{top:calc(-1 * (var(--ay) + 388) * 100cqw / 574)}
+  #app:has(#arena) .bmenu.img .artmid img{top:var(--my);height:1959.375%}
+  #app:has(#arena) .bmenu.img .bt{position:absolute;left:6%;right:6%;top:76%;transform:translateY(-50%);font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:clamp(16px,20cqh,30px);line-height:1;color:#3b2614;text-align:center;white-space:nowrap}
+  #arena.bg2 .plat{display:block;background:radial-gradient(ellipse,#6d482136 0%,#6d482116 45%,transparent 72%) !important;filter:blur(2px);pointer-events:none}
   #arena .box{font-size:clamp(11px,2.7vh,18px);padding:3vh 2.1vw 2.4vh !important}
-  #arena .box::before{background:none;border-style:solid;border-width:2.2vh 3vw 4vh;border-image:url(/duel/intro/b2_status_panel.webp) 32 110 74 110 fill / 2.2vh 3vw 4vh stretch}
+  #arena .box::before{background:none;border-style:solid;--status-edge:clamp(22px,3vw,38px);border-width:calc(var(--status-edge) * 100 / 280) var(--status-edge) calc(var(--status-edge) * 230 / 280);border-image:url(/duel/intro/b5_status_frame.svg) 100 280 230 280 fill / calc(var(--status-edge) * 100 / 280) var(--status-edge) calc(var(--status-edge) * 230 / 280) stretch}
   #arena .box.foe{left:8%;top:3.7%;width:46%}
   #arena .box.me{left:46%;right:auto;bottom:5.5%;width:44%}
+  /* 큰 글꼴·긴 증강체 목록도 상대 그림 영역까지 상태창을 밀어 올리지 않게 한다. */
+  #arena .box.me{max-height:28%;overflow:auto;scrollbar-width:thin}
   #arena .box .nm span{font-size:clamp(13px,3.5vh,24px)}
   #arena .box .nm em{font-size:clamp(12px,3.3vh,22px)}
   #arena .box .hpr{margin:1vh 0 .8vh}
@@ -1815,6 +1841,7 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
   #arena .box .dots{margin:.7vh 0;gap:.5vh}
   #arena .box .dots i{width:2.1vh;height:2.1vh;min-width:7px;min-height:7px}
   #arena .box.foe .finfo{left:calc(100% + 1.6vw);right:auto;top:1.2vh;transform:none;padding:.9vh 1.2vw;font-size:clamp(12px,3vh,20px);font-weight:400;border-color:#d6b080;background:#fff4df;color:#7d5f40}
+  #arena .box.foe .finfo:disabled{opacity:1;color:#9a8977;border-color:#dcc4a0;background:#fff4df}
   body:has(#arena) .mute{top:3.5vh !important;right:calc(1.5vw + var(--sr)) !important;width:clamp(38px,11vh,72px) !important}
   #app:has(#arena) #panel .bhead{flex:none;min-height:0;margin:0}
   #app:has(#arena) #panel .bhead>small{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1828,6 +1855,15 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
     #app:has(#arena) #panel .sk .kd{font-size:9px}
     #app:has(#arena) #panel .combo-btn{flex:none}
   }
+}
+/* 큰 가로 화면은 버튼 위의 여백을 전투 기록으로 채운다. 기술 선택은 기존 공간을 유지한다. */
+@media (orientation:landscape) and (min-width:1000px) and (min-height:600px){
+  #app:has(#arena):has(#panel .bmenu.img){grid-template-rows:minmax(0,1fr) auto}
+  #app:has(#arena) #panel:has(.bmenu.img){height:calc((35.5vw * .905 - .25vw) * 488 / 574 + 10vh);max-height:65vh}
+  #app:has(#arena):has(#panel .bmenu.img) #msg{align-self:stretch;display:flex;flex-direction:column;justify-content:safe center;gap:1em;min-height:0 !important;padding-right:1.8vw !important;font-size:clamp(20px,3.2vh,28px);overflow:hidden}
+  #app:has(#arena):has(#panel .bmenu.img) #msg .loglines{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:safe center;gap:1em;overflow:auto}
+  #app:has(#arena):has(#panel .bmenu.img) #msg .lp{display:block;flex:none;margin:0;font-size:.8em;line-height:1.5;color:#947455}
+  #app:has(#arena):has(#panel .bmenu.img) #msg .lc{display:block;flex:none;overflow:visible}
 }
 /* 기술 창(v0.15.9): 한 화면, 세로 넘김 없음. 배우기는 팝업 */
 #modal.full .sheet.skv{position:relative;display:grid;grid-template-columns:minmax(220px,30%) 1fr;gap:14px 20px;width:100%;max-width:none;height:100vh;height:100dvh;max-height:none;border-radius:0;border-top:0;overflow:hidden;
@@ -1878,7 +1914,227 @@ header.pkh .pkmine{margin-left:auto;margin-right:64px;flex:none;padding:6px 12px
 /* 편성 카드(v0.16.2): 개체 번호·타고난 기술 */
 .card b .no{font-style:normal;font-size:.75em;color:#a3541b;margin-left:2px}
 .card .sks{font-size:10.5px;line-height:1.3;color:var(--dim);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* 증강체는 공격/유틸/수비 색과 이름을 함께 표시한다. */
+.attack{--aug-color:#b94339;--aug-soft:#ffe4df}.utility{--aug-color:#927017;--aug-soft:#fff1b7}.defense{--aug-color:#326eaa;--aug-soft:#dceeff}
+.sheet.pick.full .augc .aug{border-color:var(--aug-color);background:linear-gradient(170deg,#fffaf0,var(--aug-soft))}
+.sheet.pick.full .augc .aug .tx small{background:var(--aug-color)}
+.sheet.pick.full .augc .aug .ic{box-shadow:0 0 0 3px var(--aug-color),0 0 0 6px #fffaf0,0 3px 6px #3c230f55}
+.sheet.pick.full .augc .aug.on{border-color:var(--aug-color);outline:3px solid var(--aug-color);outline-offset:3px}
+#arena .box>.augs{gap:4px}
+.aug-chip{display:inline-flex;align-items:center;gap:3px;min-height:28px;padding:2px 6px;border:1px solid var(--aug-color);border-radius:999px;background:var(--aug-soft);color:var(--aug-color);font:inherit;font-size:.8em;cursor:pointer;max-width:100%}
+.aug-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aug-chip:focus-visible{outline:3px solid var(--aug-color);outline-offset:2px}
+#arena .aug-chip{background:none;border-color:transparent;border-radius:0;color:#7d5f40;font-size:inherit;padding:0;gap:4px}
+.augment-info{position:fixed;z-index:1200;box-sizing:border-box;width:min(310px,calc(100vw - 16px));max-height:calc(100dvh - 16px);overflow:auto;padding:14px 36px 12px 14px;border:2px solid var(--aug-color);border-radius:14px;background:#fffaf0;color:#493323;box-shadow:0 5px 24px #26180855;font-family:Jua,sans-serif}
+.augment-info small,.augment-info b{display:block}.augment-info small{color:var(--aug-color)}.augment-info p{margin:8px 0 0;line-height:1.5}
+.aug-tip-close{position:absolute;right:3px;top:3px;min-width:32px;min-height:32px;border:0;border-radius:8px;background:var(--aug-soft);color:var(--aug-color);cursor:pointer}
+img.art-fallback{object-fit:contain !important;background:#eee4ce}
+/* 기술은 재질·명암으로 카드 경계를 구분하고 설명 대비를 확보 */
+#app:has(#arena) #panel .sk{background:linear-gradient(145deg,#fff7df,#efd1a7) !important;color:#3b281f;border:2px solid #a96b3f !important;border-top:7px solid var(--c,#b47e50) !important;box-shadow:inset 0 1px #fff9ee,0 3px 0 #815133 !important;border-radius:14px !important}
+#app:has(#arena) #panel .sk .kd,#app:has(#arena) #panel .sk .ln small,#app:has(#arena) #panel .sk p{color:#564234}#app:has(#arena) #panel .sk b{font-size:clamp(15px,1.75vw,23px)}
+#app:has(#arena) #panel .sk:disabled{opacity:.72;filter:saturate(.55)}#app:has(#arena) #panel .sk:active{transform:translateY(2px);box-shadow:inset 0 1px #fff9ee}
+#app:has(#arena) #panel .sk::before{display:none} #app:has(#arena) #panel .sk::after{display:none}
+/* 대화 내용과 조작은 나란히 배치하고 프레임 두께가 본문 높이를 부풀리지 않게 한다. */
+@media (orientation:landscape){
+ .scene .dbox{border:0 !important;border-image:none !important;isolation:isolate;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:clamp(10px,1.4vw,18px);padding:clamp(16px,3vh,24px) clamp(24px,3.5vw,44px) !important}
+ .scene .dbox::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;border:var(--dialog-edge) solid transparent;border-image:url(/duel/intro/b2_dialog_panel.webp) 90 fill / var(--dialog-edge) stretch}
+ .scene .dbox .who{grid-column:1;grid-row:1;margin:0 0 6px;justify-self:start}
+ .scene .dbox .say{grid-column:1;grid-row:2;padding-right:0;align-self:center;font-size:clamp(14px,3.4vh,24px);line-height:1.55}
+ .scene .dbox.narr .say{font-size:clamp(14px,3.4vh,24px)}
+ .scene .dbox .tk{position:static;grid-column:2;grid-row:1 / span 2;align-self:center;margin:0;gap:clamp(8px,1.2vw,16px)}
+ .scene .dbox #pg{margin-right:0}
+}
+.xpinfo{color:#355b8b;font-variant-numeric:tabular-nums}
+
+/* augment-no-scroll-v1 */
+#modal.full:has(.sheet.pick.full) {
+  overflow: hidden;
+  background: #eee1c3 !important;
+}
+#modal.full .sheet.pick.full,
+#modal.full .sheet.pick.full:not(.both),
+#modal.full .sheet.pick.full:not(.both):not(:has(.tipline)) {
+  zoom: 1;
+  box-sizing: border-box;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto minmax(0, 1fr) 48px;
+  grid-auto-rows: 0;
+  align-content: stretch;
+  align-items: stretch;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  gap: 8px 12px;
+  overflow: hidden;
+  padding: max(8px, env(safe-area-inset-top, 0px))
+    calc(16px + var(--sr, 0px))
+    max(8px, env(safe-area-inset-bottom, 0px))
+    calc(16px + var(--sl, 0px));
+  border: 3px solid #a88a51;
+  color: #302b22;
+  background: radial-gradient(ellipse at top, #fffaf0, #eee1c3);
+  box-shadow: inset 0 0 0 3px #fff8e7;
+}
+#modal.full .sheet.pick.full > h2 {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  margin: 0;
+  font-size: clamp(19px, 2.3vw, 24px);
+  line-height: 1.2;
+  color: #302b22;
+  text-shadow: none;
+}
+#modal.full .sheet.pick.full h2::before,
+#modal.full .sheet.pick.full h2::after { content: none; }
+#modal.full .sheet.pick.full > .sub,
+#modal.full .sheet.pick.full > .steps:not(:has(#backAug)),
+#modal.full .sheet.pick.full > .vs,
+#modal.full .sheet.pick.full > .tipline { display: none; }
+#modal.full .sheet.pick.full > .augc {
+  grid-column: auto;
+  grid-row: 2;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 48px;
+  min-width: 0;
+  min-height: 0;
+  gap: 4px;
+}
+#modal.full .sheet.pick.full .augc .aug {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: start;
+  justify-content: stretch;
+  min-height: 0;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  gap: 7px;
+  padding: 12px;
+  margin: 0;
+  color: #302b22;
+  border: 2px solid var(--aug-color);
+  border-radius: 12px;
+  background: linear-gradient(155deg, #fffdf4, #f2e5c6);
+  box-shadow: inset 0 0 0 3px #fffaf0, 0 3px 0 #b5a17a;
+  transform: none;
+}
+#modal.full .sheet.pick.full .augc .aug .ic,
+#modal.full .sheet.pick.full .augc .aug .ic .ico {
+  width: 24px;
+  height: 24px;
+  font-size: 20px;
+  padding: 0;
+}
+#modal.full .sheet.pick.full .augc .aug .tx {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+}
+#modal.full .sheet.pick.full .augc .aug .tx b {
+  font-size: clamp(17px, 2vw, 23px);
+  flex-wrap: wrap;
+  justify-content: center;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+#modal.full .sheet.pick.full .augc .aug .tx b em { display: none; }
+#modal.full .sheet.pick.full .augc .aug .tx small {
+  font-size: 12px;
+  line-height: 1.3;
+  padding: 1px 7px;
+}
+#modal.full .sheet.pick.full .augc .aug .tx span {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  -webkit-box-orient: initial;
+  max-height: none;
+  overflow: visible;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  margin: auto 0;
+  color: #494235;
+  font-size: 15px;
+  line-height: 1.4;
+}
+#modal.full .sheet.pick.full .augc .aug.on {
+  transform: none;
+  outline: 2px solid #386c69;
+  outline-offset: 1px;
+  background: linear-gradient(155deg, #fffdf4, #e6eedb);
+}
+#modal.full .sheet.pick.full .augc .aug.on::after { content: none; }
+#modal.full .sheet.pick.full .augc .aug .ck { display: none; }
+#modal.full .sheet.pick.full .augc .aug.on .tx b::before {
+  content: "✓";
+  color: #386c69;
+}
+#modal.full .sheet.pick.full .aug-actions {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  min-height: 0;
+  gap: 4px;
+}
+#modal.full .sheet.pick.full .aug-actions button {
+  box-sizing: border-box;
+  height: 48px;
+  min-height: 48px;
+  min-width: 0;
+  padding: 4px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: #386c69;
+  font-size: 13px;
+  box-shadow: none;
+}
+#modal.full .sheet.pick.full #ok {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  position: static;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 720px;
+  height: 48px;
+  min-height: 48px;
+  margin: 0 auto;
+  padding: 4px 12px;
+  font-size: 15px;
+  white-space: normal;
+  line-height: 1.2;
+}
+@media (orientation: portrait) {
+  #modal.full .sheet.pick.full,
+  #modal.full .sheet.pick.full:not(.both),
+  #modal.full .sheet.pick.full:not(.both):not(:has(.tipline)) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto repeat(3, minmax(0, 1fr)) 48px;
+    gap: 6px;
+  }
+  #modal.full .sheet.pick.full > .augc {
+    grid-column: 1;
+    grid-row: auto;
+    grid-template-columns: minmax(0, 1fr) 76px;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  #modal.full .sheet.pick.full .aug-actions {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(2, minmax(48px, 1fr));
+  }
+  #modal.full .sheet.pick.full .aug-actions button { align-self: center; }
+  #modal.full .sheet.pick.full #ok { grid-row: 5; }
+}
+
 </style>
+<script src="/image-state.js"></script>
+<link rel="stylesheet" href="/parchment/parchment.css?v=20261016-1">
 </head>
 <body>
 <div id="app"><div class="ttl9 ld9" role="status" aria-live="polite"><div class="i9st">

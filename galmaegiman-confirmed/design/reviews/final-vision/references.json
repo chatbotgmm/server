@@ -1,0 +1,241 @@
+{
+  "researchDate": "2026-10-15",
+  "purpose": "최종 시안의 항구 수비대 모험 도감 테마를 유지하면서, 순위권 수집·전략 모바일 게임의 정보 위계와 획득·성장·편성·전투 동선을 참고한다.",
+  "scope": {
+    "currentLiveRankingVerified": false,
+    "rankingInterpretation": "아래 순위는 각 출처가 명시한 과거 집계 기간 또는 특정 업데이트 직후의 스냅샷이다. 2026-10-15 현재 순위로 표현하지 않는다. 국가·스토어·집계 기간·절대 매출과 성장 순위를 서로 합치지 않는다.",
+    "analyticsLimit": "Sensor Tower 자료의 매출·다운로드는 App Store와 Google Play 중심의 추정치이며 제3자 Android 마켓·PC·콘솔 전체 실적과 같지 않다.",
+    "imageUse": "공식 제품 페이지·스토어 스크린샷 링크·이미지 검색의 화면 설명을 열람했다. 참고 이미지 파일을 다운로드·복제하거나 게임 자산으로 반입하지 않았다.",
+    "visualEvidenceLimit": "웹 도구의 공식 이미지 열기는 이미지 URL과 표시 메타데이터를 제공했다. 이미지 검색은 화면 설명을 제공했다. 해당 자료로 경쟁 게임의 정확한 좌표·폰트·모바일 터치 크기를 실측했다고 주장하지 않는다.",
+    "productionCodeChanged": false,
+    "productionPublished": false
+  },
+  "recommendedCoreGames": [
+    {
+      "priority": 1,
+      "id": "pokemon-tcg-pocket",
+      "name": "Pokémon TCG Pocket",
+      "fit": "수집한 대상을 크게 감상하고, 수집·편성과 짧은 턴제 전투를 연결하는 경험이 가장 가깝다. 갈매미의 레벨 성장이나 조합 규칙을 그대로 가져올 근거는 아니다.",
+      "verifiedRankEvidence": [
+        {
+          "source": "sensor-japan-h1-2025",
+          "period": "2025-01-01~2025-06-30",
+          "market": "일본",
+          "platforms": "App Store + Google Play",
+          "metric": "모바일 게임 매출",
+          "rank": 1,
+          "publication": "2025-07"
+        },
+        {
+          "source": "sensor-japan-h1-2025",
+          "period": "2025-01-01~2025-06-30",
+          "market": "일본",
+          "platforms": "App Store + Google Play",
+          "metric": "모바일 게임 다운로드",
+          "rank": 1,
+          "publication": "2025-07"
+        }
+      ],
+      "officialSources": ["pocket-official-battle", "pocket-official-collect", "pocket-google-play", "pocket-apple-editorial"],
+      "verifiedProductFacts": [
+        "공식 전투 가이드는 카드의 HP와 기술을 설명하고, 카드 수집 후 덱을 구성해 전투하는 흐름을 제공한다.",
+        "20장 덱과 간소화된 에너지 운용을 통해 모바일에서 짧은 대전을 지향한다.",
+        "공식 스토어는 카드 개봉·바인더 전시·대전을 각각 핵심 경험으로 소개한다."
+      ],
+      "gmmApplicationProposals": [
+        "뽑기·조합 결과에서 원본 갈매미 카드를 화면의 주인공으로 놓고 이름·속성·신규 여부를 가까이 둔다.",
+        "결과 화면의 다음 행동을 성장 확인·편성하기로 연결하고, 여러 개체 획득은 넘기면서 확인할 수 있게 한다.",
+        "수집 카드의 원본 프레임과 그림을 보존하고 공통 외부 정보 칸·버튼만 새 도감 테마로 묶는다."
+      ],
+      "proposalIsInference": true
+    },
+    {
+      "priority": 2,
+      "id": "seven-knights-rebirth",
+      "name": "세븐나이츠 리버스",
+      "fit": "수집형 턴제 RPG라는 장르 적합성이 높고, 획득한 개체를 육성한 뒤 진형과 기술 순서로 전략을 구성하는 부분이 가깝다.",
+      "verifiedRankEvidence": [
+        {
+          "source": "sensor-korea-h1-2025",
+          "period": "2025-01-01~2025-06-30",
+          "market": "한국",
+          "platforms": "App Store + Google Play",
+          "metric": "모바일 게임 매출",
+          "rank": 4,
+          "publication": "2025년 상반기 결산"
+        },
+        {
+          "source": "sensor-korea-h1-2025",
+          "period": "2025-01-01~2025-06-30",
+          "market": "한국",
+          "platforms": "App Store + Google Play",
+          "metric": "모바일 게임 다운로드",
+          "rank": 3,
+          "publication": "2025년 상반기 결산"
+        },
+        {
+          "source": "sensor-seven-global-2025",
+          "period": "2025-09-18 글로벌 출시 후 5주간; 정확한 종료일은 본문에 명시되지 않음",
+          "market": "세계",
+          "platforms": "App Store + Google Play",
+          "metric": "모바일 RPG 다운로드",
+          "rank": 1,
+          "publication": "2025-11",
+          "categoryRestriction": "전체 모바일 게임 다운로드 1위로 확대 해석하지 않는다."
+        }
+      ],
+      "officialSources": ["seven-official", "seven-google-play"],
+      "verifiedProductFacts": [
+        "넷마블의 공식 스토어 설명은 턴제 전투, 팀 진형과 기술 순서 설정, 영웅 수집을 핵심으로 제시한다.",
+        "공식 사이트에는 2026-10-01 업데이트가 명시되어 있어 제품 페이지 열람 시점과 순위 자료의 집계 시점을 구분할 수 있다."
+      ],
+      "gmmApplicationProposals": [
+        "성장 화면에서 현재 기술과 교체 후보를 같은 정보 순서로 비교한다: 속성·종류·위력·효과.",
+        "승진의 능력치 증가와 새로 열리는 기술을 결정 전에 나란히 보여주고, 승진 후 학습 단계로 자연스럽게 연결한다.",
+        "전투 편성의 고정 3칸과 후보 목록을 시각적으로 나누며, 비어 있는 자리와 선택한 개체를 즉시 구분한다."
+      ],
+      "proposalIsInference": true
+    },
+    {
+      "priority": 3,
+      "id": "honkai-star-rail",
+      "name": "붕괴: 스타레일",
+      "fit": "약점·효과·현재 행동을 바탕으로 판단하는 턴제 전투의 정보 위계를 참고하기 좋다.",
+      "verifiedRankEvidence": [
+        {
+          "source": "sensor-world-july-2025",
+          "period": "2025-07-01~2025-07-31",
+          "market": "세계",
+          "platforms": "App Store + Google Play",
+          "metric": "모바일 게임 매출",
+          "rank": 8,
+          "publication": "2025-07 월간 집계 보고서"
+        }
+      ],
+      "officialSources": ["hsr-google-play", "hsr-official"],
+      "verifiedProductFacts": [
+        "공식 모바일 스토어는 턴제 전투·팀 구성·약점 격파·지속 피해를 전략 요소로 명시한다.",
+        "공식 모바일 스토어의 표기 업데이트 날짜는 2026-09-16이다. 순위 근거는 별도의 2025-07 자료다."
+      ],
+      "screenEvidence": {
+        "source": "hsr-battle-screen-press",
+        "observedFromWebImageDescription": [
+          "전투 화면에서 적 HP·속성 정보, 행동 순서, 아군 HP, 실행 행동 영역을 나누어 보여준다."
+        ],
+        "limitation": "검색에 노출된 매체 캡처에는 PC 키보드 Q/E 표시가 있다. 정보 위계만 참고하고 모바일 터치 크기·버튼 좌표·PC 조작 표기는 가져오지 않는다."
+      },
+      "gmmApplicationProposals": [
+        "현재 선택 기술의 대상·속성 상성·위력·핵심 효과를 한 시선 안에서 확인할 수 있게 한다.",
+        "상태이상과 증강체는 현재 효과와 남은 턴을 함께 표시하며, 전투 기록에서도 같은 의미 색을 사용한다.",
+        "행동 버튼의 누름·선택·비활성 상태와 피격·회복 피드백을 분명히 하고, 기록의 중요 수치와 연출을 연결한다."
+      ],
+      "proposalIsInference": true
+    },
+    {
+      "priority": 4,
+      "id": "cookierun-kingdom",
+      "name": "쿠키런: 킹덤",
+      "fit": "귀여운 고유 캐릭터, 수집·육성·팀 구성, 지속되는 세계관이라는 측면에서 보조 기준으로 적합하다. 전투 방식은 갈매미의 수동 턴제와 구분한다.",
+      "verifiedRankEvidence": [
+        {
+          "source": "devsisters-2026q1",
+          "period": "2026-05-11 발표 기준 직전 주의 제2막 업데이트 직후; 정확한 순위 도달일 미표기",
+          "market": "한국",
+          "platforms": "Apple App Store",
+          "metric": "게임 매출 스냅샷",
+          "rank": 4,
+          "publication": "2026-05-11",
+          "categoryRestriction": "분기 평균 순위나 Google Play 순위로 표현하지 않는다."
+        },
+        {
+          "source": "devsisters-2025q1",
+          "period": "2025-01 4주년 업데이트 이후; 정확한 순위 도달일 미표기",
+          "market": "한국",
+          "platforms": "Apple App Store",
+          "metric": "게임 매출 스냅샷",
+          "rank": 2,
+          "publication": "2025-05-08"
+        }
+      ],
+      "officialSources": ["cookie-google-play", "cookie-official-about", "cookie-official"],
+      "verifiedProductFacts": [
+        "공식 스토어는 캐릭터·이야기·왕국·팀 조합을 각각 주요 경험으로 소개한다.",
+        "공식 스토어의 표기 업데이트 날짜는 2026-09-23이다."
+      ],
+      "gmmApplicationProposals": [
+        "캐릭터를 가리는 장식보다 원본 갈매미 그림과 카드의 존재감을 먼저 확보한다.",
+        "항구 본부·채용 기록실·보급소 같은 장면별 정체성을 유지하면서 버튼 외곽·재질·의미 색을 공통 규칙으로 묶는다.",
+        "홈에서는 다음 스토리와 출전 행동이 가장 먼저 보이게 하고, 출석·보상·설정은 보조 동선으로 정리한다."
+      ],
+      "proposalIsInference": true
+    }
+  ],
+  "additionalCandidates": [
+    {
+      "id": "trickcal-revive",
+      "name": "트릭컬 리바이브",
+      "status": "귀여운 캐릭터와 큰 조작 요소의 보조 참고; 핵심 4종에는 포함하지 않음",
+      "rankEvidence": {
+        "source": "trickcal-2026oct-news",
+        "publication": "2026-10-01",
+        "period": "3주년 업데이트 시점의 특정 순위 스냅샷",
+        "market": "한국",
+        "platforms": "Google Play",
+        "metric": "매출",
+        "rank": 4,
+        "confidence": "보도 검색 결과에서 퍼블리셔 발표 인용을 확인. 본문 전체 텍스트 추출은 제한적이어서 독립적인 당일 차트 검증으로 취급하지 않음."
+      },
+      "selectionReason": "핵심 수동 턴제 조작의 참고 우선순위는 Pokémon TCG Pocket·스타레일·세븐나이츠에 두고, 같은 보조 미술·로비 역할의 4번째 기준은 공식 IR과 제품 설명을 충분히 확인한 쿠키런으로 정했다."
+    },
+    {
+      "id": "afk-journey",
+      "name": "AFK Journey",
+      "status": "삽화형 세계와 편성 가독성의 보조 참고",
+      "rankEvidence": {
+        "source": "sensor-afk-august-2024",
+        "publication": "2024-09-05",
+        "period": "2024-08",
+        "market": "세계",
+        "platforms": "App Store + Google Play",
+        "metric": "매출 성장",
+        "rank": 2,
+        "additionalMetric": "다운로드 성장 6위",
+        "categoryRestriction": "절대 매출 2위·절대 다운로드 6위·현재 순위로 표현하지 않는다."
+      },
+      "officialSources": ["afk-google-play"],
+      "verifiedProductFacts": [
+        "공식 스토어가 삽화 동화책 세계, 진형·지형·진영 조합, 자동 전투와 AFK 자원 수집을 설명한다."
+      ],
+      "selectionReason": "도감 테마의 삽화 분위기에는 참고할 수 있으나 자동 전투·방치 성장의 중심 구조가 갈매미의 수동 턴제와 달라 핵심 4종에는 포함하지 않았다."
+    }
+  ],
+  "sharedImplementationPrinciples": [
+    {"area":"화면 정보 위계","proposal":"캐릭터·현재 목표·가장 중요한 행동을 먼저 읽히게 하고, 부가 수치와 반복 설명은 상세 영역에 둔다.","sourceGames":["pokemon-tcg-pocket","cookierun-kingdom"],"type":"자료를 바탕으로 한 자체 설계 제안"},
+    {"area":"획득·성장·편성","proposal":"같은 개체 키를 보존하여 결과 카드→성장 비교→3칸 편성으로 연결한다.","sourceGames":["pokemon-tcg-pocket","seven-knights-rebirth"],"type":"자료를 바탕으로 한 자체 설계 제안"},
+    {"area":"전투 판단","proposal":"상성·대상·기술 효과·남은 턴을 선택 위치 가까이 두고, 실행 후 기록·피격·보상에서 결과를 연결한다.","sourceGames":["honkai-star-rail","seven-knights-rebirth"],"type":"자료를 바탕으로 한 자체 설계 제안"},
+    {"area":"재질·버튼","proposal":"새 도감의 황동·청록·크림·잉크 재질을 유지하며, 눌림 깊이·테두리·밝기·아이콘으로 조작 상태를 구분한다. 경쟁작의 버튼 이미지·로고·캐릭터·화면을 복제하지 않는다.","sourceGames":["cookierun-kingdom","pokemon-tcg-pocket"],"type":"프로젝트 최종 시안과 조사 결과를 결합한 자체 설계 제안"}
+  ],
+  "sources": [
+    {"id":"sensor-japan-h1-2025","kind":"분석사 1차 보고서","publisher":"Sensor Tower","title":"2025年上半期の日本のモバイルゲームは収益・DL数ともポケポケがトップ独占","publication":"2025-07","url":"https://sensortower.com/ja/blog/state-of-mobile-games-2025h1-JP","checked":"2026-10-15"},
+    {"id":"sensor-korea-h1-2025","kind":"분석사 1차 보고서","publisher":"Sensor Tower","title":"2025년 상반기 국내 모바일 게임 결산","publication":"2025년 상반기 결산","url":"https://sensortower.com/ko/blog/1H2025-mobile-games-recap-in-Korea","checked":"2026-10-15"},
+    {"id":"sensor-seven-global-2025","kind":"분석사 1차 보고서","publisher":"Sensor Tower","title":"세븐나이츠 리버스 전 세계 RPG 다운로드 1위","publication":"2025-11","url":"https://sensortower.com/ko/blog/Seven-Knights-ReBIRTH-ranks-No-1-in-global-RPG-downloads","checked":"2026-10-15"},
+    {"id":"sensor-world-july-2025","kind":"분석사 1차 보고서","publisher":"Sensor Tower","title":"Top 10 Worldwide Mobile Games By Revenue and Downloads in July 2025","publication":"2025-07 집계 보고서","url":"https://sensortower.com/blog/top-10-worldwide-mobile-games-by-revenue-and-downloads-in-july-2025","checked":"2026-10-15"},
+    {"id":"devsisters-2026q1","kind":"개발사 공식 실적 발표","publisher":"Devsisters","title":"2026년 1분기 매출 585억 원 기록","publication":"2026-05-11","url":"https://www.devsisters.com/stories/news/2026-1q","checked":"2026-10-15"},
+    {"id":"devsisters-2025q1","kind":"개발사 공식 실적 발표","publisher":"Devsisters","title":"2025년 1분기 매출 891억 원·영업이익 94억 원","publication":"2025-05-08","url":"https://www.devsisters.com/stories/news/2025-1q","checked":"2026-10-15"},
+    {"id":"sensor-afk-august-2024","kind":"분석사 1차 보고서","publisher":"Sensor Tower","title":"AFK Journey's homecoming: Asia release sparks tenfold growth in monthly revenue","publication":"2024-09-05","url":"https://sensortower.com/blog/august-2024-mobile-gaming-recap","checked":"2026-10-15"},
+    {"id":"pocket-official-battle","kind":"공식 플레이 가이드","publisher":"The Pokémon Company","title":"Pokémon TCG Pocket battle guide","url":"https://www.pokemontcgpocket.com/tc/howtoplay/battle/","checked":"2026-10-15","note":"영문 /en/howtoplay/battle/는 열리지 않아 같은 공식 사이트의 번체 가이드를 확인함."},
+    {"id":"pocket-official-collect","kind":"공식 플레이 가이드","publisher":"The Pokémon Company","title":"Pokémon TCG Pocket collection guide","url":"https://www.pokemontcgpocket.com/tc/howtoplay/card/","checked":"2026-10-15"},
+    {"id":"pocket-google-play","kind":"공식 모바일 스토어와 스크린샷 목록","publisher":"The Pokémon Company","title":"Pokémon TCG Pocket","url":"https://play.google.com/store/apps/details?id=jp.pokemon.pokemontcgp&hl=en","checked":"2026-10-15"},
+    {"id":"pocket-apple-editorial","kind":"공식 스토어 편집 기사","publisher":"Apple","title":"Collect and Compete in Pokémon TCG Pocket","url":"https://apps.apple.com/us/story/id1764210956","checked":"2026-10-15"},
+    {"id":"seven-google-play","kind":"공식 모바일 스토어와 스크린샷 목록","publisher":"Netmarble","title":"Seven Knights Re:BIRTH","url":"https://play.google.com/store/apps/details?id=com.netmarble.tskgb&hl=en","checked":"2026-10-15"},
+    {"id":"seven-official","kind":"공식 게임 사이트","publisher":"Netmarble","title":"Seven Knights Re:BIRTH","url":"https://sena.netmarble.com/en","checked":"2026-10-15","note":"열람 시 2026-10-01 협업 이벤트 페이지로 리디렉션됨. 이벤트 날짜와 순위 집계 기간은 별개임."},
+    {"id":"hsr-google-play","kind":"공식 모바일 스토어와 스크린샷 목록","publisher":"COGNOSPHERE / HoYoverse","title":"Honkai: Star Rail","url":"https://play.google.com/store/apps/details?id=com.HoYoverse.hkrpgoversea&hl=en","checked":"2026-10-15","storeUpdateDate":"2026-09-16"},
+    {"id":"hsr-official","kind":"공식 게임 사이트","publisher":"HoYoverse","title":"Honkai: Star Rail","url":"https://hsr.hoyoverse.com/en-us/","checked":"2026-10-15","note":"일부 공식 업데이트 상세 페이지는 JS 렌더링 때문에 본문 추출이 제한되어 핵심 기능 근거는 공식 Google Play 설명을 사용함."},
+    {"id":"hsr-battle-screen-press","kind":"이미지 검색에 노출된 매체 전투 캡처 설명","publisher":"Sportskeeda","title":"Honkai Star Rail turn-based battle interface","url":"https://www.sportskeeda.com/esports/5-reasons-honkai-star-rail-best-mobile-game-2023","checked":"2026-10-15","evidenceDate":"2023-11","note":"공식 1차 자료가 아닌 보조 시각 자료. PC 조작 표시를 모바일 규격 근거로 사용하지 않음. 이미지 다운로드·복제하지 않음."},
+    {"id":"cookie-google-play","kind":"공식 모바일 스토어와 스크린샷 목록","publisher":"Devsisters","title":"CookieRun: Kingdom","url":"https://play.google.com/store/apps/details?id=com.devsisters.ck&hl=en","checked":"2026-10-15","storeUpdateDate":"2026-09-23"},
+    {"id":"cookie-official-about","kind":"공식 게임 소개","publisher":"Devsisters","title":"CookieRun Kingdom About","url":"https://hub.cookierun-kingdom.com/about","checked":"2026-10-15"},
+    {"id":"cookie-official","kind":"공식 게임 사이트","publisher":"Devsisters","title":"CookieRun Kingdom","url":"https://www.cookierun-kingdom.com/","checked":"2026-10-15"},
+    {"id":"trickcal-2026oct-news","kind":"퍼블리셔 발표를 인용한 보도; 검색 결과 확인","publisher":"전자신문","title":"3주년 맞은 트릭컬 리바이브, 구글 매출 4위","publication":"2026-10-01","url":"https://www.etnews.com/20261001000170","checked":"2026-10-15","note":"당일 실시간 차트 독립 검증 자료가 아니므로 보조 후보 근거로만 사용함."},
+    {"id":"afk-google-play","kind":"공식 모바일 스토어","publisher":"Farlight Games","title":"AFK Journey","url":"https://play.google.com/store/apps/details?id=com.farlightgames.igame.gp&hl=en","checked":"2026-10-15","storeUpdateDate":"2026-09-24"}
+  ]
+}

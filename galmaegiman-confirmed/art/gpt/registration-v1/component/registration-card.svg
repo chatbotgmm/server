@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1086" height="1448" viewBox="0 0 1086 1448" role="img" aria-labelledby="{{PREFIX}}-title {{PREFIX}}-desc">
+<title id="{{PREFIX}}-title">{{TITLE}}</title><desc id="{{PREFIX}}-desc">{{DESCRIPTION}}</desc>
+<defs>
+<style>{{FONT_FACE}}text{font-family:'Registration Serif','Noto Serif CJK KR',serif;font-weight:700}</style>
+<clipPath id="{{PREFIX}}-portrait-clip"><rect x="{{WINDOW_X}}" y="{{WINDOW_Y}}" width="{{WINDOW_W}}" height="{{WINDOW_H}}"/></clipPath>
+<filter id="{{PREFIX}}-harbor" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="{{BG_BLUR}}"/><feColorMatrix type="saturate" values="{{BG_SATURATION}}"/></filter>
+<filter id="{{PREFIX}}-shadow" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="{{SHADOW_BLUR}}"/></filter>
+<linearGradient id="{{PREFIX}}-warm-light" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f5e3bc" stop-opacity=".14"/><stop offset=".65" stop-color="#eee4ce" stop-opacity=".07"/><stop offset="1" stop-color="#4a4a3d" stop-opacity=".21"/></linearGradient>
+</defs>
+<g id="{{PREFIX}}-background-texture" clip-path="url(#{{PREFIX}}-portrait-clip)">
+<rect x="{{WINDOW_X}}" y="{{WINDOW_Y}}" width="{{WINDOW_W}}" height="{{WINDOW_H}}" fill="#d7d0b8"/>
+<image href="{{BACKGROUND_URL}}" x="{{WINDOW_X}}" y="{{WINDOW_Y}}" width="{{WINDOW_W}}" height="{{WINDOW_H}}" preserveAspectRatio="xMidYMid slice" opacity="{{BG_OPACITY}}" filter="url(#{{PREFIX}}-harbor)"/>
+<rect x="{{WINDOW_X}}" y="{{WINDOW_Y}}" width="{{WINDOW_W}}" height="{{WINDOW_H}}" fill="url(#{{PREFIX}}-warm-light)"/>
+</g>
+<g id="{{PREFIX}}-ground-shadow" visibility="{{SHADOW_VISIBILITY}}"><ellipse cx="{{SHADOW_CX}}" cy="{{SHADOW_CY}}" rx="{{SHADOW_RX}}" ry="{{SHADOW_RY}}" fill="#222a25" opacity="{{SHADOW_OPACITY}}" filter="url(#{{PREFIX}}-shadow)"/></g>
+<g id="{{PREFIX}}-character-portrait">{{PORTRAIT_NODE}}</g>
+<g id="{{PREFIX}}-frame-overlay"><image href="{{FRAME_URL}}" width="1086" height="1448"/></g>
+<g id="{{PREFIX}}-runtime-text" text-anchor="middle">{{TEXT_NODES}}</g>
+</svg>

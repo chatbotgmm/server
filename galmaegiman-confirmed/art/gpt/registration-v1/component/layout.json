@@ -1,0 +1,19 @@
+{
+  "schema": "registration-card-layout/v1",
+  "viewBox": [0, 0, 1086, 1448],
+  "portraitWindow": {"x": 54, "y": 286, "width": 978, "height": 779},
+  "minimumSafeArea": {"x": 90, "y": 335, "width": 906, "height": 690},
+  "footPivot": {"x": 543, "y": 1023},
+  "header": {"x": 543, "y": 163, "fontSize": 111, "maxWidth": 720},
+  "subtitle": {"x": 543, "y": 231, "fontSize": 43, "maxWidth": 620},
+  "rank": {"x": 543, "y": 1145, "fontSize": 46, "maxWidth": 220},
+  "name": {"x": 543, "y": 1278, "fontSize": 88, "twoLineSize": 67, "minFontSize": 62, "lineHeight": 83, "maxWidth": 820, "top": 1187, "bottom": 1326},
+  "id": {"x": 543, "y": 1401, "fontSize": 35, "maxWidth": 100},
+  "headerText": "입사 등록증",
+  "subtitleText": "갈매미맨 방범대",
+  "colors": {"ink": "#091b31", "cream": "#f5e4c2", "brown": "#77512b"},
+  "background": {"blur": 4.5, "saturation": 0.52, "opacity": 0.62},
+  "shadow": {"cx": 543, "cy": 1010, "rx": 240, "ry": 23, "opacity": 0.26, "blur": 9},
+  "layers": ["background-texture", "ground-shadow", "character-portrait", "frame-overlay", "runtime-text"],
+  "rules": ["Never crop opaque subject pixels", "Never bake text into PNG assets", "Names and ranks come only from the 145-character manifest", "No square card art fallback", "Missing transparent portraits are blocked, not synthesized"]
+}

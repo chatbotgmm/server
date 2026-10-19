@@ -1,0 +1,1311 @@
+{
+  "seed": 2,
+  "turns": 8,
+  "eventCount": 49,
+  "firstEvent": 1,
+  "ownStrong": 7,
+  "ownWeak": 0,
+  "foeStrong": 7,
+  "augments": [
+    "이중 속성",
+    "인사 발령",
+    "송곳 부리"
+  ],
+  "frame": [
+    {
+      "augs": [
+        "dual"
+      ],
+      "f": [
+        {
+          "name": "태초의 갈매미맨",
+          "hp": 125,
+          "maxHp": 202,
+          "extraAttr": "ICE"
+        },
+        {
+          "name": "만상의 수호자",
+          "hp": 226,
+          "maxHp": 226
+        },
+        {
+          "name": "시원화 갈매미맨",
+          "hp": 174,
+          "maxHp": 174
+        }
+      ]
+    },
+    {
+      "augs": [
+        "peanut"
+      ],
+      "f": [
+        {
+          "name": "쭈라켄",
+          "hp": 403,
+          "maxHp": 455
+        }
+      ]
+    }
+  ],
+  "growth": [
+    {
+      "id": "D1",
+      "name": "태초의 갈매미맨",
+      "beforeHp": 202,
+      "level": 19,
+      "xp": 253,
+      "xpNext": 1656,
+      "maxHp": 206
+    },
+    {
+      "id": "T1",
+      "name": "만상의 수호자",
+      "beforeHp": 226,
+      "level": 18,
+      "xp": 178,
+      "xpNext": 1527,
+      "maxHp": 232
+    },
+    {
+      "id": "D5",
+      "name": "시원화 갈매미맨",
+      "beforeHp": 174,
+      "level": 18,
+      "xp": 178,
+      "xpNext": 1527,
+      "maxHp": 178
+    }
+  ],
+  "events": [
+    {
+      "kind": "augment",
+      "actor": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "skillId": "dual",
+      "skillName": "이중 속성",
+      "id": 1,
+      "turn": 1,
+      "logIndex": 1,
+      "text": "[내 팀] 증강체 「이중 속성」!"
+    },
+    {
+      "kind": "status",
+      "actor": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "target": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "reason": "dual",
+      "status": {},
+      "attr": "STONE",
+      "extraAttr": "ICE",
+      "id": 2,
+      "turn": 1,
+      "logIndex": 1,
+      "text": "[내 팀] 증강체 「이중 속성」!"
+    },
+    {
+      "kind": "augment",
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "peanut",
+      "skillName": "땅콩 기세",
+      "id": 3,
+      "turn": 1,
+      "logIndex": 2,
+      "text": "[상대] 증강체 「땅콩 기세」!"
+    },
+    {
+      "kind": "skill",
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "target": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "id": 4,
+      "turn": 1,
+      "logIndex": 3,
+      "text": "쭈라켄의 자리는 하나 지원자는 천 마리!"
+    },
+    {
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "crit": false,
+      "multiplier": 1.5,
+      "reason": "skill",
+      "hit": 1,
+      "kind": "damage",
+      "target": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "amount": 38,
+      "hpBefore": 202,
+      "hpAfter": 164,
+      "maxHp": 202,
+      "id": 5,
+      "turn": 1,
+      "logIndex": 4,
+      "text": "태초의 갈매미맨이 77 피해를 입었어요. 효과가 굉장해요!"
+    },
+    {
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "crit": false,
+      "multiplier": 1.5,
+      "reason": "skill",
+      "hit": 2,
+      "kind": "damage",
+      "target": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "amount": 39,
+      "hpBefore": 164,
+      "hpAfter": 125,
+      "maxHp": 202,
+      "id": 6,
+      "turn": 1,
+      "logIndex": 4,
+      "text": "태초의 갈매미맨이 77 피해를 입었어요. 효과가 굉장해요!"
+    },
+    {
+      "kind": "skill",
+      "actor": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "basic-STONE",
+      "skillName": "똥폭탄",
+      "attr": "ICE",
+      "power": 50,
+      "id": 7,
+      "turn": 1,
+      "logIndex": 5,
+      "text": "태초의 갈매미맨의 똥폭탄!"
+    },
+    {
+      "actor": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "skillId": "basic-STONE",
+      "skillName": "똥폭탄",
+      "attr": "ICE",
+      "power": 50,
+      "crit": false,
+      "multiplier": 1.5,
+      "reason": "skill",
+      "hit": 1,
+      "kind": "damage",
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "amount": 52,
+      "hpBefore": 455,
+      "hpAfter": 403,
+      "maxHp": 455,
+      "id": 8,
+      "turn": 1,
+      "logIndex": 6,
+      "text": "쭈라켄이 52 피해를 입었어요. 효과가 굉장해요!"
+    },
+    {
+      "kind": "skill",
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "target": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "id": 9,
+      "turn": 2,
+      "logIndex": 7,
+      "text": "쭈라켄의 자리는 하나 지원자는 천 마리!"
+    },
+    {
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "crit": false,
+      "multiplier": 1.5,
+      "reason": "skill",
+      "hit": 1,
+      "kind": "damage",
+      "target": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "amount": 44,
+      "hpBefore": 125,
+      "hpAfter": 81,
+      "maxHp": 202,
+      "id": 10,
+      "turn": 2,
+      "logIndex": 8,
+      "text": "태초의 갈매미맨이 87 피해를 입었어요. 효과가 굉장해요!"
+    },
+    {
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "crit": false,
+      "multiplier": 1.5,
+      "reason": "skill",
+      "hit": 2,
+      "kind": "damage",
+      "target": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "amount": 43,
+      "hpBefore": 81,
+      "hpAfter": 38,
+      "maxHp": 202,
+      "id": 11,
+      "turn": 2,
+      "logIndex": 8,
+      "text": "태초의 갈매미맨이 87 피해를 입었어요. 효과가 굉장해요!"
+    },
+    {
+      "kind": "skill",
+      "actor": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "basic-STONE",
+      "skillName": "똥폭탄",
+      "attr": "ICE",
+      "power": 50,
+      "id": 12,
+      "turn": 2,
+      "logIndex": 9,
+      "text": "태초의 갈매미맨의 똥폭탄!"
+    },
+    {
+      "actor": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "skillId": "basic-STONE",
+      "skillName": "똥폭탄",
+      "attr": "ICE",
+      "power": 50,
+      "crit": false,
+      "multiplier": 1.5,
+      "reason": "skill",
+      "hit": 1,
+      "kind": "damage",
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "amount": 48,
+      "hpBefore": 403,
+      "hpAfter": 355,
+      "maxHp": 455,
+      "id": 13,
+      "turn": 2,
+      "logIndex": 10,
+      "text": "쭈라켄이 48 피해를 입었어요. 효과가 굉장해요!"
+    },
+    {
+      "kind": "skill",
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "target": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "id": 14,
+      "turn": 3,
+      "logIndex": 11,
+      "text": "쭈라켄의 자리는 하나 지원자는 천 마리!"
+    },
+    {
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "crit": true,
+      "multiplier": 1.5,
+      "reason": "skill",
+      "hit": 1,
+      "kind": "damage",
+      "target": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "amount": 38,
+      "hpBefore": 38,
+      "hpAfter": 0,
+      "maxHp": 202,
+      "id": 15,
+      "turn": 3,
+      "logIndex": 12,
+      "text": "태초의 갈매미맨이 71 피해를 입었어요. 급소! 효과가 굉장해요!"
+    },
+    {
+      "kind": "faint",
+      "target": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "hpBefore": 0,
+      "hpAfter": 0,
+      "maxHp": 202,
+      "turn": 3,
+      "id": 16,
+      "logIndex": 13,
+      "text": "태초의 갈매미맨이 전투불가가 됐어요!"
+    },
+    {
+      "kind": "augment",
+      "actor": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "skillId": "freeswitch",
+      "skillName": "인사 발령",
+      "id": 17,
+      "turn": 4,
+      "logIndex": 15,
+      "text": "[내 팀] 증강체 「인사 발령」!"
+    },
+    {
+      "kind": "switch",
+      "actor": {
+        "side": 0,
+        "slot": 0,
+        "key": "D1",
+        "id": "D1"
+      },
+      "target": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "reason": "faint",
+      "id": 18,
+      "turn": 4,
+      "logIndex": 16,
+      "text": "시원화 갈매미맨이 나왔어요!"
+    },
+    {
+      "kind": "augment",
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "dual",
+      "skillName": "이중 속성",
+      "id": 19,
+      "turn": 4,
+      "logIndex": 17,
+      "text": "[상대] 증강체 「이중 속성」!"
+    },
+    {
+      "kind": "status",
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "reason": "dual",
+      "status": {},
+      "attr": "SEA",
+      "extraAttr": "STONE",
+      "id": 20,
+      "turn": 4,
+      "logIndex": 17,
+      "text": "[상대] 증강체 「이중 속성」!"
+    },
+    {
+      "kind": "skill",
+      "actor": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sig",
+      "skillName": "한겨울 개화",
+      "attr": "ICE",
+      "power": 55,
+      "id": 21,
+      "turn": 4,
+      "logIndex": 18,
+      "text": "시원화 갈매미맨의 한겨울 개화!"
+    },
+    {
+      "actor": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "skillId": "sig",
+      "skillName": "한겨울 개화",
+      "attr": "ICE",
+      "power": 55,
+      "crit": false,
+      "multiplier": 1.5,
+      "reason": "skill",
+      "hit": 1,
+      "kind": "damage",
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "amount": 75,
+      "hpBefore": 355,
+      "hpAfter": 280,
+      "maxHp": 455,
+      "id": 22,
+      "turn": 4,
+      "logIndex": 19,
+      "text": "쭈라켄이 75 피해를 입었어요. 효과가 굉장해요!"
+    },
+    {
+      "kind": "skill",
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "target": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "id": 23,
+      "turn": 4,
+      "logIndex": 20,
+      "text": "쭈라켄의 자리는 하나 지원자는 천 마리!"
+    },
+    {
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "crit": false,
+      "multiplier": 0.67,
+      "reason": "skill",
+      "hit": 1,
+      "kind": "damage",
+      "target": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "amount": 28,
+      "hpBefore": 174,
+      "hpAfter": 146,
+      "maxHp": 174,
+      "id": 24,
+      "turn": 4,
+      "logIndex": 21,
+      "text": "시원화 갈매미맨이 56 피해를 입었어요. 효과가 별로예요…"
+    },
+    {
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "crit": false,
+      "multiplier": 0.67,
+      "reason": "skill",
+      "hit": 2,
+      "kind": "damage",
+      "target": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "amount": 28,
+      "hpBefore": 146,
+      "hpAfter": 118,
+      "maxHp": 174,
+      "id": 25,
+      "turn": 4,
+      "logIndex": 21,
+      "text": "시원화 갈매미맨이 56 피해를 입었어요. 효과가 별로예요…"
+    },
+    {
+      "kind": "skill",
+      "actor": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sig",
+      "skillName": "한겨울 개화",
+      "attr": "ICE",
+      "power": 55,
+      "id": 26,
+      "turn": 5,
+      "logIndex": 22,
+      "text": "시원화 갈매미맨의 한겨울 개화!"
+    },
+    {
+      "actor": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "skillId": "sig",
+      "skillName": "한겨울 개화",
+      "attr": "ICE",
+      "power": 55,
+      "crit": false,
+      "multiplier": 1.5,
+      "reason": "skill",
+      "hit": 1,
+      "kind": "damage",
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "amount": 80,
+      "hpBefore": 280,
+      "hpAfter": 200,
+      "maxHp": 455,
+      "id": 27,
+      "turn": 5,
+      "logIndex": 23,
+      "text": "쭈라켄이 80 피해를 입었어요. 효과가 굉장해요!"
+    },
+    {
+      "kind": "status",
+      "actor": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "reason": "skill",
+      "status": {
+        "freeze": 1
+      },
+      "attr": "SEA",
+      "extraAttr": "STONE",
+      "id": 28,
+      "turn": 5,
+      "logIndex": 24,
+      "text": "쭈라켄이 빙결 상태가 됐어요!"
+    },
+    {
+      "kind": "status",
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "reason": "expire",
+      "status": {},
+      "attr": "SEA",
+      "extraAttr": "STONE",
+      "id": 29,
+      "turn": 5,
+      "logIndex": 25,
+      "text": ""
+    },
+    {
+      "kind": "skill",
+      "actor": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sig",
+      "skillName": "한겨울 개화",
+      "attr": "ICE",
+      "power": 55,
+      "id": 30,
+      "turn": 6,
+      "logIndex": 26,
+      "text": "시원화 갈매미맨의 한겨울 개화!"
+    },
+    {
+      "actor": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "skillId": "sig",
+      "skillName": "한겨울 개화",
+      "attr": "ICE",
+      "power": 55,
+      "crit": false,
+      "multiplier": 1.5,
+      "reason": "skill",
+      "hit": 1,
+      "kind": "damage",
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "amount": 78,
+      "hpBefore": 200,
+      "hpAfter": 122,
+      "maxHp": 455,
+      "id": 31,
+      "turn": 6,
+      "logIndex": 27,
+      "text": "쭈라켄이 78 피해를 입었어요. 효과가 굉장해요!"
+    },
+    {
+      "kind": "skill",
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "target": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "id": 32,
+      "turn": 6,
+      "logIndex": 28,
+      "text": "쭈라켄의 자리는 하나 지원자는 천 마리!"
+    },
+    {
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "crit": false,
+      "multiplier": 0.67,
+      "reason": "skill",
+      "hit": 1,
+      "kind": "damage",
+      "target": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "amount": 32,
+      "hpBefore": 118,
+      "hpAfter": 86,
+      "maxHp": 174,
+      "id": 33,
+      "turn": 6,
+      "logIndex": 29,
+      "text": "시원화 갈매미맨이 67 피해를 입었어요. 효과가 별로예요…"
+    },
+    {
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "crit": false,
+      "multiplier": 0.67,
+      "reason": "skill",
+      "hit": 2,
+      "kind": "damage",
+      "target": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "amount": 35,
+      "hpBefore": 86,
+      "hpAfter": 51,
+      "maxHp": 174,
+      "id": 34,
+      "turn": 6,
+      "logIndex": 29,
+      "text": "시원화 갈매미맨이 67 피해를 입었어요. 효과가 별로예요…"
+    },
+    {
+      "kind": "skill",
+      "actor": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sig",
+      "skillName": "한겨울 개화",
+      "attr": "ICE",
+      "power": 55,
+      "id": 35,
+      "turn": 7,
+      "logIndex": 30,
+      "text": "시원화 갈매미맨의 한겨울 개화!"
+    },
+    {
+      "actor": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "skillId": "sig",
+      "skillName": "한겨울 개화",
+      "attr": "ICE",
+      "power": 55,
+      "crit": false,
+      "multiplier": 1.5,
+      "reason": "skill",
+      "hit": 1,
+      "kind": "damage",
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "amount": 75,
+      "hpBefore": 122,
+      "hpAfter": 47,
+      "maxHp": 455,
+      "id": 36,
+      "turn": 7,
+      "logIndex": 31,
+      "text": "쭈라켄이 75 피해를 입었어요. 효과가 굉장해요!"
+    },
+    {
+      "kind": "skill",
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "target": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "id": 37,
+      "turn": 7,
+      "logIndex": 32,
+      "text": "쭈라켄의 자리는 하나 지원자는 천 마리!"
+    },
+    {
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "crit": false,
+      "multiplier": 0.67,
+      "reason": "skill",
+      "hit": 1,
+      "kind": "damage",
+      "target": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "amount": 30,
+      "hpBefore": 51,
+      "hpAfter": 21,
+      "maxHp": 174,
+      "id": 38,
+      "turn": 7,
+      "logIndex": 33,
+      "text": "시원화 갈매미맨이 59 피해를 입었어요. 효과가 별로예요…"
+    },
+    {
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "crit": false,
+      "multiplier": 0.67,
+      "reason": "skill",
+      "hit": 2,
+      "kind": "damage",
+      "target": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "amount": 21,
+      "hpBefore": 21,
+      "hpAfter": 0,
+      "maxHp": 174,
+      "id": 39,
+      "turn": 7,
+      "logIndex": 33,
+      "text": "시원화 갈매미맨이 59 피해를 입었어요. 효과가 별로예요…"
+    },
+    {
+      "kind": "faint",
+      "target": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "hpBefore": 0,
+      "hpAfter": 0,
+      "maxHp": 174,
+      "turn": 7,
+      "id": 40,
+      "logIndex": 34,
+      "text": "시원화 갈매미맨이 전투불가가 됐어요!"
+    },
+    {
+      "kind": "augment",
+      "actor": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "skillId": "pierce",
+      "skillName": "송곳 부리",
+      "id": 41,
+      "turn": 8,
+      "logIndex": 36,
+      "text": "[내 팀] 증강체 「송곳 부리」!"
+    },
+    {
+      "kind": "switch",
+      "actor": {
+        "side": 0,
+        "slot": 2,
+        "key": "D5",
+        "id": "D5"
+      },
+      "target": {
+        "side": 0,
+        "slot": 1,
+        "key": "T1",
+        "id": "T1"
+      },
+      "reason": "faint",
+      "id": 42,
+      "turn": 8,
+      "logIndex": 37,
+      "text": "만상의 수호자가 나왔어요!"
+    },
+    {
+      "kind": "augment",
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "first",
+      "skillName": "출근 도장",
+      "id": 43,
+      "turn": 8,
+      "logIndex": 38,
+      "text": "[상대] 증강체 「출근 도장」!"
+    },
+    {
+      "kind": "skill",
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "target": {
+        "side": 0,
+        "slot": 1,
+        "key": "T1",
+        "id": "T1"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "id": 44,
+      "turn": 8,
+      "logIndex": 39,
+      "text": "쭈라켄의 자리는 하나 지원자는 천 마리!"
+    },
+    {
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "crit": false,
+      "multiplier": 1.5,
+      "reason": "skill",
+      "hit": 1,
+      "kind": "damage",
+      "target": {
+        "side": 0,
+        "slot": 1,
+        "key": "T1",
+        "id": "T1"
+      },
+      "amount": 55,
+      "hpBefore": 226,
+      "hpAfter": 171,
+      "maxHp": 226,
+      "id": 45,
+      "turn": 8,
+      "logIndex": 40,
+      "text": "만상의 수호자가 107 피해를 입었어요. 효과가 굉장해요!"
+    },
+    {
+      "actor": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sig",
+      "skillName": "자리는 하나 지원자는 천 마리",
+      "attr": "SEA",
+      "power": 48,
+      "crit": false,
+      "multiplier": 1.5,
+      "reason": "skill",
+      "hit": 2,
+      "kind": "damage",
+      "target": {
+        "side": 0,
+        "slot": 1,
+        "key": "T1",
+        "id": "T1"
+      },
+      "amount": 52,
+      "hpBefore": 171,
+      "hpAfter": 119,
+      "maxHp": 226,
+      "id": 46,
+      "turn": 8,
+      "logIndex": 40,
+      "text": "만상의 수호자가 107 피해를 입었어요. 효과가 굉장해요!"
+    },
+    {
+      "kind": "skill",
+      "actor": {
+        "side": 0,
+        "slot": 1,
+        "key": "T1",
+        "id": "T1"
+      },
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "skillId": "sub-STAR",
+      "skillName": "별빛 화살",
+      "attr": "STAR",
+      "power": 60,
+      "id": 47,
+      "turn": 8,
+      "logIndex": 41,
+      "text": "만상의 수호자의 별빛 화살!"
+    },
+    {
+      "actor": {
+        "side": 0,
+        "slot": 1,
+        "key": "T1",
+        "id": "T1"
+      },
+      "skillId": "sub-STAR",
+      "skillName": "별빛 화살",
+      "attr": "STAR",
+      "power": 60,
+      "crit": false,
+      "multiplier": 1.5,
+      "reason": "skill",
+      "hit": 1,
+      "kind": "damage",
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "amount": 47,
+      "hpBefore": 47,
+      "hpAfter": 0,
+      "maxHp": 455,
+      "id": 48,
+      "turn": 8,
+      "logIndex": 42,
+      "text": "쭈라켄이 84 피해를 입었어요. 효과가 굉장해요!"
+    },
+    {
+      "kind": "faint",
+      "target": {
+        "side": 1,
+        "slot": 0,
+        "key": "V6",
+        "id": "V6"
+      },
+      "hpBefore": 0,
+      "hpAfter": 0,
+      "maxHp": 455,
+      "turn": 8,
+      "id": 49,
+      "logIndex": 43,
+      "text": "쭈라켄이 전투불가가 됐어요!"
+    }
+  ],
+  "demoContext": {
+    "mine": [
+      "D1",
+      "T1",
+      "D5"
+    ],
+    "legacyEquippedSlots": [
+      "basic",
+      "sig",
+      "role",
+      "sub"
+    ],
+    "experienceReward": 780,
+    "experienceBasis": "Lv13 상대 평균 × winXp60",
+    "startingXp": {
+      "D1": 1000,
+      "T1": 800,
+      "D5": 800
+    },
+    "note": "실제 엔진이 지원하는 기존 보유 개체의 장착 기술 상태를 시안 데이터로 사용; 신규 개체의 전용기 획득 조건 안내가 아님"
+  }
+}

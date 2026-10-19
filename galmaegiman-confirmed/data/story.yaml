@@ -28,7 +28,7 @@ chapters:
           - { who: N, say: "그때 부서진 보관소 쪽에서 바스락, 새우gang 봉지 소리가 들려요." }
           - { who: V12, say: "끼룩! 이 땅콩 부스러기, 주인 없지? 그럼 내 거!" }
           - { who: ME, say: "그건 보관소 거예요. 돌려주세요!" }
-        hint: "기술 3개 중 하나를 골라요. 상대 속성에 강한 공격은 1.5배예요. 시작할 때 고르는 증강체로 상성을 뒤집을 수도 있어요."
+        hint: "상대 속성을 보고 기술을 골라요. 상대 속성에 강한 공격은 1.5배예요. 시작할 때 고르는 증강체로 상성을 뒤집을 수도 있어요."
         enemy:
           - { id: V12, level: 4 }
         after:
@@ -112,6 +112,83 @@ chapters:
           - { who: N, say: "알 무더기가 데굴데굴 굴러 길을 비켜 줘요." }
           - { who: N, say: "동굴 안쪽에서 굵은 목소리가 울려요. 「이력서는 여덟 장씩 내라고 했지!」" }
 
+      - id: 1A-1
+        title: 1부 순찰 1
+        scene: deep
+        before:
+          - who: N
+            say: 1부 순찰 1. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 10
+            stage: 0
+          - id: V2
+            level: 10
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: 1A-2
+        title: 1부 순찰 2
+        scene: deep
+        before:
+          - who: N
+            say: 1부 순찰 2. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 10
+            stage: 0
+          - id: V2
+            level: 10
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: 1A-3
+        title: 1부 순찰 3
+        scene: deep
+        before:
+          - who: N
+            say: 1부 순찰 3. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 11
+            stage: 0
+          - id: V2
+            level: 11
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: 1A-4
+        title: 1부 순찰 4
+        scene: deep
+        before:
+          - who: N
+            say: 1부 순찰 4. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 11
+            stage: 0
+          - id: V2
+            level: 11
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+
       - id: 1-5
         title: "여덟발 대장"
         scene: deep
@@ -154,6 +231,278 @@ chapters:
       - { who: 마을 회관 방송, say: "수비조장님, 첫 실적 축하드립니다. 1단계 승진 심사가 열렸습니다." }
       - { who: N, say: "쭈매미 장부 마지막 장에 이렇게 적혀 있어요. 「남은 땅콩은 해협 쪽으로 떠내려갔음.」" }
       - { who: N, say: "1부 끝. 2부 「인수합병 소용돌이」로 이어져요." }
+
+  - id: B
+    title: 해협 순찰 · 첫 승진 준비
+    needStage: 0
+    intro: 이전 보스를 반복하는 대신 새 순찰 임무로 다음 승진을 준비해요.
+    stages:
+      - id: B-1
+        title: 순찰 구역 1
+        scene: harbor
+        before:
+          - who: N
+            say: 순찰 구역 1. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 14
+            stage: 0
+          - id: V2
+            level: 14
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: B-2
+        title: 순찰 구역 2
+        scene: harbor
+        before:
+          - who: N
+            say: 순찰 구역 2. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 14
+            stage: 0
+          - id: V2
+            level: 14
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: B-3
+        title: 순찰 구역 3
+        scene: harbor
+        before:
+          - who: N
+            say: 순찰 구역 3. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 15
+            stage: 0
+          - id: V2
+            level: 15
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: B-4
+        title: 순찰 구역 4
+        scene: harbor
+        before:
+          - who: N
+            say: 순찰 구역 4. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 15
+            stage: 0
+          - id: V2
+            level: 15
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: B-5
+        title: 순찰 구역 5
+        scene: harbor
+        before:
+          - who: N
+            say: 순찰 구역 5. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 16
+            stage: 0
+          - id: V2
+            level: 16
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: B-6
+        title: 순찰 구역 6
+        scene: harbor
+        before:
+          - who: N
+            say: 순찰 구역 6. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 16
+            stage: 0
+          - id: V2
+            level: 16
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: B-7
+        title: 순찰 구역 7
+        scene: harbor
+        before:
+          - who: N
+            say: 순찰 구역 7. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 17
+            stage: 0
+          - id: V2
+            level: 17
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: B-8
+        title: 순찰 구역 8
+        scene: harbor
+        before:
+          - who: N
+            say: 순찰 구역 8. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 17
+            stage: 0
+          - id: V2
+            level: 17
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: B-9
+        title: 순찰 구역 9
+        scene: harbor
+        before:
+          - who: N
+            say: 순찰 구역 9. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 18
+            stage: 0
+          - id: V2
+            level: 18
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: B-10
+        title: 순찰 구역 10
+        scene: harbor
+        before:
+          - who: N
+            say: 순찰 구역 10. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 18
+            stage: 0
+          - id: V2
+            level: 18
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: B-11
+        title: 순찰 구역 11
+        scene: harbor
+        before:
+          - who: N
+            say: 순찰 구역 11. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 19
+            stage: 0
+          - id: V2
+            level: 19
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: B-12
+        title: 순찰 구역 12
+        scene: harbor
+        before:
+          - who: N
+            say: 순찰 구역 12. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 19
+            stage: 0
+          - id: V2
+            level: 19
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: B-13
+        title: 순찰 구역 13
+        scene: harbor
+        before:
+          - who: N
+            say: 순찰 구역 13. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 20
+            stage: 0
+          - id: V2
+            level: 20
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: B-14
+        title: 순찰 구역 14
+        scene: harbor
+        before:
+          - who: N
+            say: 순찰 구역 14. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V1
+            level: 20
+            stage: 0
+          - id: V2
+            level: 20
+            stage: 0
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
 
   - id: "2"
     title: "2부 · 인수합병 소용돌이"
@@ -206,7 +555,7 @@ chapters:
           - { who: V8, say: "껍데기를 몇 번 벗었는지 알아? 아홉 번이야. 이 가게도 껍데기만 남기고 우리 거로 만들 거야." }
           - { who: ME, say: "가게는 껍데기가 아니에요. 단골이 있어요." }
           - { who: V8, say: "단골도 인수하면 되지!" }
-        hint: "껍데기 랍매미는 허물을 벗으며 체력을 회복하고 방어를 올려요. 「기세 빼앗기」처럼 강화를 지우는 기술이 잘 통해요."
+        hint: "껍데기 랍매미는 허물을 벗으며 체력을 회복하고 방어를 올려요. 「파훼의 파동」처럼 강화를 지우는 기술이 잘 통해요."
         enemy:
           - { id: V8, level: 24 }
           - { id: V9, level: 24 }
@@ -233,6 +582,121 @@ chapters:
           - { who: N, say: "빨래를 되찾았지만, 커다란 앞치마 열두 장은 이미 배에 실려 갔어요." }
           - { who: N, say: "언덕 아래, 빨래 돛을 단 배 한 척이 해협으로 미끄러져 가요. 뱃머리에 커다란 집게가 서 있어요." }
 
+      - id: 2A-1
+        title: 2부 순찰 1
+        scene: strait
+        before:
+          - who: N
+            say: 2부 순찰 1. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 25
+            stage: 1
+          - id: V8
+            level: 25
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: 2A-2
+        title: 2부 순찰 2
+        scene: strait
+        before:
+          - who: N
+            say: 2부 순찰 2. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 25
+            stage: 1
+          - id: V8
+            level: 25
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: 2A-3
+        title: 2부 순찰 3
+        scene: strait
+        before:
+          - who: N
+            say: 2부 순찰 3. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 26
+            stage: 1
+          - id: V8
+            level: 26
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: 2A-4
+        title: 2부 순찰 4
+        scene: strait
+        before:
+          - who: N
+            say: 2부 순찰 4. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 26
+            stage: 1
+          - id: V8
+            level: 26
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: 2A-5
+        title: 2부 순찰 5
+        scene: strait
+        before:
+          - who: N
+            say: 2부 순찰 5. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 27
+            stage: 1
+          - id: V8
+            level: 27
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: 2A-6
+        title: 2부 순찰 6
+        scene: strait
+        before:
+          - who: N
+            say: 2부 순찰 6. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 27
+            stage: 1
+          - id: V8
+            level: 27
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+
       - id: 2-5
         title: "대집게 선장"
         scene: strait
@@ -242,7 +706,7 @@ chapters:
           - { who: V10, say: "이제 「랍매미 해운」이야. 인수했거든." }
           - { who: V10, say: "해협의 땅콩을 먹은 뒤로 깨달았지. 바다는 넓고, 내 집게는 더 넓다!" }
           - { who: D2, say: "조심해. 저 녀석은 빠르게 들이받고 빠지는 타입이야. 먼저 때리는 기술이 있으면 써." }
-        hint: "대집게 선장은 돌격하면서 속도가 올라요. 「재빠른 쪼기」처럼 무조건 먼저 쓰는 기술이 쓸모 있어요."
+        hint: "대집게 선장은 돌격하면서 속도가 올라요. 「일섬 돌파」처럼 무조건 먼저 쓰는 기술이 쓸모 있어요."
         enemy:
           - { id: V10, level: 26 }
           - { id: V8, level: 25 }
@@ -275,6 +739,392 @@ chapters:
       - { who: N, say: "랍매미 장부의 마지막 줄. 「가장 큰 땅콩 덩어리 — 끼룩단이 먼저 가져감.」" }
       - { who: D2, say: "끼룩단은 원래 새우gang 도둑이었어. 그런데 깃털이 까매진 건… 나도 처음 봐." }
       - { who: N, say: "2부 끝. 3부 「검은 깃털」로 이어져요." }
+
+  - id: C
+    title: 섬 순찰 · 두 번째 승진 준비
+    needStage: 1
+    intro: 이전 보스를 반복하는 대신 새 순찰 임무로 다음 승진을 준비해요.
+    stages:
+      - id: C-1
+        title: 순찰 구역 1
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 1. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 29
+            stage: 1
+          - id: V8
+            level: 29
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-2
+        title: 순찰 구역 2
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 2. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 29
+            stage: 1
+          - id: V8
+            level: 29
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-3
+        title: 순찰 구역 3
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 3. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 30
+            stage: 1
+          - id: V8
+            level: 30
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-4
+        title: 순찰 구역 4
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 4. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 30
+            stage: 1
+          - id: V8
+            level: 30
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-5
+        title: 순찰 구역 5
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 5. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 31
+            stage: 1
+          - id: V8
+            level: 31
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-6
+        title: 순찰 구역 6
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 6. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 31
+            stage: 1
+          - id: V8
+            level: 31
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-7
+        title: 순찰 구역 7
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 7. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 32
+            stage: 1
+          - id: V8
+            level: 32
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-8
+        title: 순찰 구역 8
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 8. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 32
+            stage: 1
+          - id: V8
+            level: 32
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-9
+        title: 순찰 구역 9
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 9. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 33
+            stage: 1
+          - id: V8
+            level: 33
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-10
+        title: 순찰 구역 10
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 10. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 33
+            stage: 1
+          - id: V8
+            level: 33
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-11
+        title: 순찰 구역 11
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 11. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 34
+            stage: 1
+          - id: V8
+            level: 34
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-12
+        title: 순찰 구역 12
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 12. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 34
+            stage: 1
+          - id: V8
+            level: 34
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-13
+        title: 순찰 구역 13
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 13. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 35
+            stage: 1
+          - id: V8
+            level: 35
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-14
+        title: 순찰 구역 14
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 14. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 35
+            stage: 1
+          - id: V8
+            level: 35
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-15
+        title: 순찰 구역 15
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 15. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 35
+            stage: 1
+          - id: V8
+            level: 35
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-16
+        title: 순찰 구역 16
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 16. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 35
+            stage: 1
+          - id: V8
+            level: 35
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-17
+        title: 순찰 구역 17
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 17. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 35
+            stage: 1
+          - id: V8
+            level: 35
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-18
+        title: 순찰 구역 18
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 18. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 35
+            stage: 1
+          - id: V8
+            level: 35
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-19
+        title: 순찰 구역 19
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 19. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 35
+            stage: 1
+          - id: V8
+            level: 35
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: C-20
+        title: 순찰 구역 20
+        scene: strait
+        before:
+          - who: N
+            say: 순찰 구역 20. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V7
+            level: 35
+            stage: 1
+          - id: V8
+            level: 35
+            stage: 1
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
 
   - id: "3"
     title: "3부 · 검은 깃털"
@@ -349,6 +1199,140 @@ chapters:
         after:
           - { who: V16, say: "깃털이… 끝부터 하얘지고 있어…" }
           - { who: N, say: "광장 안쪽에서 날갯짓 한 번에 바람이 몰아쳐요. 덩치 큰 까만 갈매기가 금메달을 흔들어요." }
+
+      - id: 3A-1
+        title: 3부 순찰 1
+        scene: nest
+        before:
+          - who: N
+            say: 3부 순찰 1. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V13
+            level: 41
+            stage: 2
+          - id: V14
+            level: 41
+            stage: 2
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: 3A-2
+        title: 3부 순찰 2
+        scene: nest
+        before:
+          - who: N
+            say: 3부 순찰 2. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V13
+            level: 41
+            stage: 2
+          - id: V14
+            level: 41
+            stage: 2
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: 3A-3
+        title: 3부 순찰 3
+        scene: nest
+        before:
+          - who: N
+            say: 3부 순찰 3. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V13
+            level: 42
+            stage: 2
+          - id: V14
+            level: 42
+            stage: 2
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: 3A-4
+        title: 3부 순찰 4
+        scene: nest
+        before:
+          - who: N
+            say: 3부 순찰 4. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V13
+            level: 42
+            stage: 2
+          - id: V14
+            level: 42
+            stage: 2
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: 3A-5
+        title: 3부 순찰 5
+        scene: nest
+        before:
+          - who: N
+            say: 3부 순찰 5. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V13
+            level: 43
+            stage: 2
+          - id: V14
+            level: 43
+            stage: 2
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: 3A-6
+        title: 3부 순찰 6
+        scene: nest
+        before:
+          - who: N
+            say: 3부 순찰 6. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V13
+            level: 43
+            stage: 2
+          - id: V14
+            level: 43
+            stage: 2
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
+      - id: 3A-7
+        title: 3부 순찰 7
+        scene: nest
+        before:
+          - who: N
+            say: 3부 순찰 7. 수비대의 순찰 임무가 도착했어요.
+          - who: ME
+            say: 보스와 만나기 전에 실전을 더 익혀 둘게요.
+        enemy:
+          - id: V13
+            level: 44
+            stage: 2
+          - id: V14
+            level: 44
+            stage: 2
+        after:
+          - who: N
+            say: 순찰 구역이 안전해졌어요. 수비대가 실전 경험을 쌓았어요.
+        hint: 경험치와 다음 레벨은 편성에서 확인해요. 레벨이 오르면 체력이 모두 회복돼요.
 
       - id: 3-5
         title: "끼룩단 행동대장"

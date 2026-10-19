@@ -56,6 +56,8 @@ const num=(n:number)=>n.toLocaleString('ko-KR');
 const report=(below:string,nextLine:string)=>`${below?`${below}\n\n${RULE}\n`:''}${nextLine}`;
 const statusOf=(c:Count|undefined):Count=>c??{total:0,usable:0,locked:0,away:0};
 
+export const LEGACY_RANK_UNAVAILABLE="랭크는 실제 유저끼리만 대전해요. 최신 앱의 실시간 유저 랭크전에서 다시 시작해 주세요.";
+
 export class GameService {
   private tail:Promise<unknown>=Promise.resolve();
   private pending=0;
@@ -1109,6 +1111,18 @@ export class GameService {
   // 계정 삭제(탈퇴): 이 사람의 모든 게임 데이터를 한 거래로 지움. 다음에 카톡에 말을 걸면 새 계정으로 시작
   async webDeleteAccount(playerId:string){
     return this.webRun(playerId,async(tx,p)=>{
+      await tx.appMeta.upsert({where:{key:'realtime-pvp-write-lock'},create:{key:'realtime-pvp-write-lock',value:'1'},update:{value:'1'}});
+      const active=await tx.realtimeActivity.findUnique({where:{playerId:p.id}});
+      if(active&&(active.kind==='ROOM'||active.expiresAt.getTime()>Date.now()))throw new GameError('매칭을 취소하거나 진행 중인 대전을 마친 뒤 탈퇴해 주세요.');
+      await tx.rankedProfile.deleteMany({where:{playerId:p.id}});
+      await tx.casualHumanRating.deleteMany({where:{playerId:p.id}});
+      await tx.realtimeAttempt.deleteMany({where:{playerId:p.id}});
+      await tx.realtimeRequest.deleteMany({where:{playerId:p.id}});
+      await tx.realtimeLineup.deleteMany({where:{playerId:p.id}});
+      await tx.realtimeItemEscrow.deleteMany({where:{playerId:p.id}});
+      await tx.realtimeActivity.deleteMany({where:{playerId:p.id}});
+      const rooms=await tx.realtimeRoom.findMany({where:{OR:[{player0Id:p.id},{player1Id:p.id}]},select:{id:true,player0Id:true,namesJson:true}});
+      for(const room of rooms){const names=JSON.parse(room.namesJson) as string[];names[room.player0Id===p.id?0:1]='탈퇴한 사용자';await tx.realtimeRoom.update({where:{id:room.id},data:{namesJson:JSON.stringify(names)}});}
       const where={playerId:p.id};
       const mine=(await tx.comment.findMany({where,select:{id:true}})).map(c=>c.id);
       await tx.commentLike.deleteMany({where:{OR:[{commentId:{in:mine}},{voter:`p:${p.id}`}]}});
@@ -1133,19 +1147,20 @@ export class GameService {
   async webMe(playerId:string){
     const p=await this.db.player.findUnique({where:{id:playerId}});
     if(!p)return null;
-    const [owned,dex,trip,kakao]=await Promise.all([
-      this.db.ownedCharacter.groupBy({by:['characterId','status'],where:{playerId,status:{in:['AVAILABLE','EXPEDITION']}},_count:{_all:true}}),
+    const [owned,dex,trip,kakao,previous]=await Promise.all([
+      this.db.ownedCharacter.groupBy({by:['characterId','status','locked'],where:{playerId,status:{in:['AVAILABLE','EXPEDITION']}},_count:{_all:true}}),
       this.db.collectionEntry.count({where:{playerId}}),
       this.db.expedition.findFirst({where:{playerId,claimedAt:null}}),
       this.db.kakaoLink.count({where:{playerId}}),
+      this.db.expedition.findFirst({where:{playerId,claimedAt:{not:null}},orderBy:{startedAt:"desc"},select:{unitIds:true}}),
     ]);
-    const by=new Map<string,{have:number;away:number}>();
-    for(const r of owned){const e=by.get(r.characterId)??{have:0,away:0};e.have+=r._count._all;if(r.status==='EXPEDITION')e.away+=r._count._all;by.set(r.characterId,e);}
+    const by=new Map<string,{have:number;away:number;locked:number}>();
+    for(const r of owned){const e=by.get(r.characterId)??{have:0,away:0,locked:0};e.have+=r._count._all;if(r.status==='EXPEDITION')e.away+=r._count._all;else if(r.locked)e.locked+=r._count._all;by.set(r.characterId,e);}
     const units=[...by].map(([id,e])=>{const c=this.content.map.get(id)!;return {id,name:c.name,tier:c.rarity,tierName:rarityNames[c.rarity],top:topTiers.has(c.rarity),synergy:c.synergy??null,quote:c.quote,tagline:c.tagline,intro:c.introduction,...e};})   // 한마디·소개: 게임 안 갈매미 상세 화면용(가진 갈매미만)
       .sort((a,b)=>tiers[b.tier]-tiers[a.tier]||this.content.map.get(a.id)!.position-this.content.map.get(b.id)!.position);
     const ids=(s:string)=>s?s.split(',').filter(id=>this.content.map.has(id)):[];
     return {nickname:p.nickname,snack:p.snack,peanut:p.peanut,credits:p.credits,kakao:kakao>0,claimReadyAt:new Date((p.lastClaimAt?.getTime()??0)+this.content.economy.tickets.cooldownHours*3_600_000).toISOString(),dex,dexTotal:this.content.characters.length,units,
-      battleTeam:ids(p.battleTeam),party:ids(p.partyDraft),
+      battleTeam:ids(p.battleTeam),party:ids(p.partyDraft),previousParty:previous?(previous.unitIds as string[]).filter(id=>this.content.map.has(id)):[],
       trip:trip?{startedAt:trip.startedAt.toISOString(),endsAt:trip.endsAt.toISOString(),units:(trip.unitIds as string[]).map(id=>this.content.map.get(id)?.name??id),ids:trip.unitIds as string[]}:null};
   }
   // 웹 요청도 카톡 요청과 같은 줄에 세워(동시에 처리되지 않게) 한 거래로 실행
@@ -1167,6 +1182,16 @@ export class GameService {
     return this.confirm(tx,p,token,now);
   }
   private replyText=(r:GameReply)=>(r.text??'').trim();
+  async webProtect(playerId:string,id:string,locked:boolean){
+    if(!this.content.map.has(id))throw new GameError('없는 갈매미예요.');
+    return this.webRun(playerId,async(tx,p)=>{
+      const changed=await tx.ownedCharacter.updateMany({where:{playerId:p.id,characterId:id,status:'AVAILABLE',locked:!locked},data:{locked}});
+      if(!changed.count)throw new GameError('보호 상태를 바꿀 갈매미가 없어요. 탐험·보유 상태를 확인해 주세요.');
+      await tx.player.update({where:{id:p.id},data:{revision:{increment:1}}});
+      await this.audit(tx,p,'LOCK',{characterId:id,count:changed.count,locked});
+      return `${changed.count}마리 ${locked?'보호했어요':'보호를 해제했어요'}`;
+    });
+  }
   // 탐험 편성(카톡 「탐험」과 같은 편성): 최상위 유닛 종류 id 목록(같은 유닛 여러 번 가능)
   async webSetParty(playerId:string,ids:string[]){
     if(!Array.isArray(ids)||ids.some(id=>typeof id!=='string'||!this.topIds.includes(id)))throw new GameError('탐험은 최상위 갈매미만 보낼 수 있어요.');
@@ -1203,7 +1228,8 @@ export class GameService {
     return this.webRun(playerId,async(tx,p)=>{
       const cost=item.price*count;
       const have=(await tx.playerItem.findUnique({where:{playerId_itemId:{playerId:p.id,itemId:item.id}}}))?.count??0;
-      if(have+count>maxStack)throw new GameError(`${item.name}은(는) ${maxStack}개까지 가질 수 있어요. 지금 ${have}개.`);
+      const held=await tx.realtimeItemEscrow.count({where:{playerId:p.id,itemId:item.id,state:'HELD'}});
+      if(have+held+count>maxStack)throw new GameError(`${item.name}은(는) 예약한 수량을 포함해 ${maxStack}개까지 가질 수 있어요. 지금 ${have}개, 전투 예약 ${held}개.`);
       const paid=await tx.player.updateMany({where:{id:p.id,snack:{gte:cost}},data:{snack:{decrement:cost}}});
       if(paid.count!==1)throw new GameError(`🍤 새우gang이 부족해요. ${cost}개 필요, 지금 ${p.snack}개.`);
       await tx.playerItem.upsert({where:{playerId_itemId:{playerId:p.id,itemId:item.id}},create:{playerId:p.id,itemId:item.id,count},update:{count:{increment:count}}});
@@ -1279,7 +1305,12 @@ export class GameService {
       me:{point:p.rankPoint,tier:this.pvpTier(p.rankPoint),wins:p.rankWins,losses:p.rankLosses,rank},
       top:top.map((r,i)=>({rank:i+1,name:r.nickname??`갈매미 #${r.id.slice(0,4)}`,point:r.rankPoint,tier:this.pvpTier(r.rankPoint),wins:r.rankWins,losses:r.rankLosses,me:r.id===p.id}))};
   }
+  assertLegacyPvpAllowed(mode:string):void{
+    // Human-owned saved teams are still AI controlled in this legacy path.
+    if(mode==='rank')throw new GameError(LEGACY_RANK_UNAVAILABLE);
+  }
   async webPvpMatch(playerId:string,mode:string){
+    this.assertLegacyPvpAllowed(mode);
     if(mode!=='normal'&&mode!=='rank')throw new GameError('없는 대전 방식이에요.');
     const now=this.clock().getTime();
     for(const [k,v] of this.pvpMatches)if(v.exp<now)this.pvpMatches.delete(k);
@@ -1312,6 +1343,7 @@ export class GameService {
   async webPvpResult(playerId:string,R:Rules,match:string,events:PvpEvent[]){
     const m=this.pvpMatches.get(match);
     if(!m||m.player!==playerId||m.exp<this.clock().getTime())throw new GameError('대전 정보가 없어요. 다시 시작해 주세요.');
+    this.assertLegacyPvpAllowed(m.mode);
     if(m.done)throw new GameError('이미 결과를 받은 대전이에요.');
     let winner:0|1|null;
     try{winner=replay(createBattle(R,m.mine,m.foe,m.seed),events);}catch{throw new GameError('대전 기록이 맞지 않아요.');}
@@ -1323,7 +1355,7 @@ export class GameService {
       await this.audit(tx,p,'PVP_END',{mode:m.mode,won});
       const after=await tx.player.findUniqueOrThrow({where:{id:p.id}});
       return {won,mode:m.mode,change:m.mode==='rank'?(won?pv.win:-m.lost):0,point:after.rankPoint,tier:this.pvpTier(after.rankPoint),wins:after.rankWins,losses:after.rankLosses};
-    });
+    }).catch(e=>{m.done=false;throw e;});
   }
   async webDraw(playerId:string,kind:string,times:number){
     if(kind!=='LOW'&&kind!=='MID'&&kind!=='HIGH')throw new GameError('없는 뽑기예요.');
@@ -1388,20 +1420,25 @@ export class GameService {
       const head=lesson.length?`${lesson[0]}\n\n`:'';
       if(!recipe)return {made:false,text:`${head}🔮 …아무 일도 일어나지 않았다.\n${ids.map(id=>this.name(id,known)).join(' + ')}\n(이 조합으로는 아무것도 안 나와요. 재료는 그대로예요)`};
       const chosen=await this.chooseMaterials(tx,p,recipe,known);
-      return {made:true,text:head+this.replyText(await this.craft(tx,p,recipe,chosen,1,now,known))};
+      return {made:true,id:recipe.resultId,text:head+this.replyText(await this.craft(tx,p,recipe,chosen,1,now,known))};
     });
   }
 
   // 대결 중 아이템 쓰기: 가진 개수에서 1개 빼기(0개면 거절)
-  async webUseItem(playerId:string,item:{id:string;name:string}){
-    return this.webRun(playerId,async(tx,p)=>{
+  private async consumeItem(tx:Tx,p:Player,item:{id:string;name:string}){
       const used=await tx.playerItem.updateMany({where:{playerId:p.id,itemId:item.id,count:{gte:1}},data:{count:{decrement:1}}});
       if(used.count!==1)throw new GameError(`${item.name}이(가) 없어요. 「내 갈매미」 상점에서 살 수 있어요.`);
       await this.audit(tx,p,'ITEM_USE',{item:item.id});
       return (await tx.playerItem.findUniqueOrThrow({where:{playerId_itemId:{playerId:p.id,itemId:item.id}}})).count;
-    });
+  }
+  async webUseItem(playerId:string,item:{id:string;name:string}){
+    return this.webRun(playerId,(tx,p)=>this.consumeItem(tx,p,item));
   }
   // 스토리 진행(JSON, 모양 검사는 my.ts에서)
+  // 로그인한 네이티브 도감: 현재 보유가 0이어도 한 번 발견한 기록을 유지한다.
+  async webCollectionIds(playerId:string){
+    return (await this.db.collectionEntry.findMany({where:{playerId},select:{characterId:true}})).map(row=>row.characterId);
+  }
   async webStory(playerId:string):Promise<unknown>{
     const row=await this.db.storySave.findUnique({where:{playerId}});
     if(!row)return null;
@@ -1412,8 +1449,7 @@ export class GameService {
     const rows=await this.db.ownedCharacter.findMany({where:{playerId,status:{in:['AVAILABLE','EXPEDITION']},characterId:{in:this.topIds}},select:{id:true,characterId:true,locked:true},orderBy:{id:'asc'}});
     return rows.map(r=>({oid:r.id,id:r.characterId,locked:r.locked}));
   }
-  async webSaveStory(playerId:string,data:unknown){
-    return this.webRun(playerId,async(tx,p)=>{
+  private async saveStory(tx:Tx,p:Player,data:unknown){
       if(data===null){await tx.storySave.deleteMany({where:{playerId:p.id}});return true;}
       // 개체 열쇠(o번호)는 지금 가진 최상위 갈매미만 남김. 편성에 있거나 키운 개체는 보호(조합·판매 재료로 안 쓰이게)
       const d=data as {units:Record<string,{level:number;xp:number;learned?:string[];stage?:number}>;team:string[];hp?:Record<string,unknown>};
@@ -1427,6 +1463,16 @@ export class GameService {
       if(protect.length)await tx.ownedCharacter.updateMany({where:{playerId:p.id,id:{in:protect},locked:false},data:{locked:true}});
       const text=JSON.stringify(d);
       await tx.storySave.upsert({where:{playerId:p.id},create:{playerId:p.id,data:text},update:{data:text}});
+      return true;
+  }
+  async webSaveStory(playerId:string,data:unknown){
+    return this.webRun(playerId,(tx,p)=>this.saveStory(tx,p,data));
+  }
+  // 네이티브 회복·전투 보상: 아이템 차감과 저장을 같은 거래로 확정한다.
+  async webNativeCommit(playerId:string,item?:{id:string;name:string},data?:unknown){
+    return this.webRun(playerId,async(tx,p)=>{
+      if(item)await this.consumeItem(tx,p,item);
+      if(data!==undefined)await this.saveStory(tx,p,data);
       return true;
     });
   }
@@ -1813,7 +1859,7 @@ export class GameService {
     await tx.ownedCharacter.updateMany({where:{expeditionId:active.id,playerId:p.id,status:'EXPEDITION'},data:{status:'AVAILABLE',expeditionId:null}});
     const account=await tx.player.findUniqueOrThrow({where:{id:p.id},select:{snack:true,credits:true}});
     const snacks=Math.max(0,Math.min(rolled.snacks,2_000_000_000-account.snack));
-    await tx.player.update({where:{id:p.id},data:{snack:{increment:snacks},credits:{increment:rolled.tickets},revision:{increment:1}}});
+    await tx.player.update({where:{id:p.id},data:{snack:{increment:snacks},credits:{increment:rolled.tickets},revision:{increment:1},...(!p.partyDraft?{partyDraft:(active.unitIds as string[]).join(',')}:{})}});
     const known=await this.known(tx,p);
     const lines=[`🍤 새우gang +${snacks}${rolled.doubled?' (황금 시너지 2배!)':''}`];
     let imageId:string|undefined;
@@ -1950,7 +1996,8 @@ export class GameService {
       const expedition=await tx.expedition.create({data:{playerId:p.id,unitIds:json(unitIds),plan:json(plan),startedAt:now,endsAt:ends}});
       const moved=await tx.ownedCharacter.updateMany({where:{id:{in:ids},playerId:p.id,status:'AVAILABLE'},data:{status:'EXPEDITION',expeditionId:expedition.id}});
       if(moved.count!==ids.length)throw new GameError('탐험 출발이 겹쳤어요. 다시 해 주세요.');
-      await tx.player.update({where:{id:p.id},data:{partyDraft:''}});
+      // 실제 출발한 편성을 보존한다. 보상 수령 후 같은 중복 수량으로 다시 보낼 수 있다.
+      await tx.player.update({where:{id:p.id},data:{partyDraft:unitIds.join(',')}});
       result={text:`🧭 탐험대 출발! (${ids.length}마리)\n⏱ ${duration(plan.minutes*60000)} 뒤 돌아와요.\n돌아오면 '탐험 보상 받기'를 눌러 주세요. 🍤 예상 ${expectedSnacks(plan)}개`,
         cards:{intro:`🧭 탐험대 출발! ⏱ ${duration(plan.minutes*60000)} 뒤 귀환 · 🍤 예상 ${expectedSnacks(plan)}개`,items:this.partyCards(unitIds),outro:"돌아오면 '탐험 보상 받기'를 눌러 주세요."},choices:[choice('탐험'),...menu]};
       await this.audit(tx,p,'EXPEDITION_SEND',{token,expeditionId:expedition.id,ownedIds:ids,unitIds,minutes:plan.minutes});

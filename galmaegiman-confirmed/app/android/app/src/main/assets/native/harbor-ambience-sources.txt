@@ -1,0 +1,65 @@
+갈매미맨 수비대 — 항구 환경음 / Harbor ambience
+파일: harbor-ambience.ogg
+수집·편집일: 2026-10-15
+
+이 파일은 실제 현장 녹음만 편집·혼합한 54초 순환 환경음입니다.
+합성 파도, 합성 갈매기, 음악, 음성 내레이션을 추가하지 않았습니다.
+게임에 포함된 오디오는 CC0 1.0 Universal 소스만 사용했습니다.
+CC0: https://creativecommons.org/publicdomain/zero/1.0/
+CC0 허용 범위: 상업적 이용, 편집, 혼합, 앱에 포함한 재배포.
+
+1. 바다 파도
+   제목: Ambiance_Ocean_Ribeira_Grande_Loop_Stereo_02
+   녹음: Nox_Sound
+   원출처: https://freesound.org/people/Nox_Sound/sounds/829629/
+   라이선스: CC0 1.0 Universal (원출처 페이지에서 직접 확인)
+   현장: Ribeira Grande, São Miguel; Sony PCM D100.
+   사용한 배포 파일: sea/waves-calm.mp3
+
+2. 가까운 물결
+   제목: water medium gentle lake waves splash on shore close.flac
+   녹음: kyles
+   원출처: https://freesound.org/people/kyles/sounds/451630/
+   라이선스: CC0 1.0 Universal (원출처 페이지에서 직접 확인)
+   사용한 배포 파일: sea/waves-medium.mp3
+   주의: 이 층의 원녹음은 호숫가의 잔물결입니다. 바다 녹음으로 오인해
+   표기하지 않으며, 항구 가까운 물 표면의 보조 질감으로 낮게 혼합했습니다.
+
+3. 갈매기
+   제목: Solo Seagull Sound Effects — Seagull Ambient 1, 2, 3
+   편집·제공: Rango Mango
+   원출처: https://opengameart.org/content/solo-seagull-sound-effects
+   라이선스: CC0 1.0 Universal (원출처 페이지에서 직접 확인)
+   원출처는 영상 제공자의 상업 사용·공유 허락을 명시합니다.
+   사용한 배포 파일: animals/gull-2.mp3, gull-3.mp3, gull-4.mp3
+   별도 출처가 불명확한 animals/gull-1.mp3는 사용하지 않았습니다.
+
+정식 공개 배포본
+   프로젝트: bob6664569/open-water
+   저장소: https://github.com/bob6664569/open-water
+   고정 커밋: 285b6ce32057c70191a7fe16c31d979fa383ac64
+   개별 소스 목록:
+   https://github.com/bob6664569/open-water/blob/285b6ce32057c70191a7fe16c31d979fa383ac64/site/assets/audio/LICENSES.md
+   해당 배포본은 Freesound 고품질 미리보기에서 절단·순환·필터·정규화를
+   거친 파생 녹음임을 명시합니다. 실제 다운로드는 위 커밋에 고정했고
+   source-download-manifest.json에 다운로드 URL과 SHA-256을 기록했습니다.
+
+이 게임에서 추가한 편집
+   - MP3를 44.1 kHz stereo 부동소수 PCM으로 디코딩.
+   - 파도 2초, 잔물결 1.2초/0.8초 equal-power 순환 겹침.
+   - 파도 10 kHz, 물결 8 kHz, 갈매기 5.2 kHz 저역통과 필터.
+   - 가까운 잔물결은 주 파도보다 RMS 7 dB 낮게 혼합.
+   - 갈매기는 3.2, 17.4, 34.6, 47.8초에 좌우로 낮게 배치.
+   - EBU R128 2-pass -21 LUFS 목표, -5.5 dBTP 상한.
+   - OGG Vorbis quality 4, 44.1 kHz stereo로 압축.
+   - 반복 경계의 불연속, 유한한 PCM, 음량, 길이와 디코딩을 자동 확인.
+
+재현
+   원본 배포 파일 5개와 prepare_harbor_ambience.py를 같은 폴더에 두고:
+   python3 prepare_harbor_ambience.py
+   필요 도구: Python 3, NumPy, SciPy, ffmpeg(libvorbis), ffprobe.
+   OGG 컨테이너 식별자는 재인코딩마다 달라질 수 있습니다.
+
+청취·성능 검수 범위
+   자동 음량·경계 검사는 수행했습니다. 실기기 스피커/이어폰으로
+   자연스러운 반복, 갈매기 크기, 조작 효과음과의 균형을 확인해야 합니다.

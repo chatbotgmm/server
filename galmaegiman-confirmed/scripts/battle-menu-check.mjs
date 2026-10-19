@@ -11,7 +11,7 @@ await c.route('https://fonts.googleapis.com/**',r=>r.fulfill({contentType:'text/
 await c.route('https://fonts.gstatic.com/**',r=>{const [k,f]=r.request().url().split('fonts.gstatic.com/')[1].split('/');r.fulfill({contentType:'font/woff2',headers:{'access-control-allow-origin':'*'},body:readFileSync(pk[k]+'/files/'+f)});});
 const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
 await p.goto('http://localhost:3999/my?next=duel&g=1');await p.fill('#code','135790');await p.click('#go');await p.waitForURL(/\/duel\?k=/);await p.waitForSelector('.t2');
-await p.click('#tgo');await p.waitForSelector('.home8');await p.waitForTimeout(800);await p.click('#go',{force:true});await p.waitForSelector('.modes');await p.click('#mList');await p.waitForSelector('.schap');
+await p.click('#tgo');await p.waitForSelector('.home8');await p.waitForTimeout(800);await p.click('#go',{force:true});await p.waitForSelector('.modes');await p.click('#mStory');await p.waitForSelector('.schap');
 await p.click('.pcard[data-p="1"]');await p.waitForSelector('.stage');await p.click('.stage:not([disabled])');
 for(let i=0;i<40&&!(await p.$('.aug'));i++){await p.click('.dbox').catch(()=>{});await p.waitForTimeout(200);}
 await p.click('.aug');await p.click('#ok');await p.waitForSelector('.bmenu');await p.waitForTimeout(2500);

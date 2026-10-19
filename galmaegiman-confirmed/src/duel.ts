@@ -50,9 +50,9 @@ export function registerDuel(app:FastifyInstance,content:Content,opt:{root:strin
   });
   // 시작·로딩 화면 그림·글꼴(public/duel/intro): 로그인 전·데이터 받기 전에도 보여야 해서 열쇠 없이
   app.get<{Params:{file:string}}>('/duel/intro/:file',async(req,reply)=>{
-    const m=/^[a-z0-9_-]+\.(webp|jpg|woff2)$/.exec(req.params.file);
+    const m=/^[a-z0-9_-]+\.(webp|jpg|woff2|svg)$/.exec(req.params.file);
     if(!m)return reply.code(404).send({error:'not found'});
-    return file(reply,{webp:'image/webp',jpg:'image/jpeg',woff2:'font/woff2'}[m[1]]!,resolve(opt.root,'public/duel/intro',req.params.file));
+    return file(reply,{webp:'image/webp',jpg:'image/jpeg',woff2:'font/woff2',svg:'image/svg+xml'}[m[1]]!,resolve(opt.root,'public/duel/intro',req.params.file));
   });
   // 아이콘은 비밀이 아니라 열쇠 없이(아이템·증강체 그림)
   app.get<{Params:{file:string}}>('/duel/icons/:file',async(req,reply)=>{

@@ -16,7 +16,7 @@ html = html.replace(/<!--install-->[\s\S]*?<!--\/install-->\n?/, '')   // 웹의
   .replace('<script src="/my/my.js"></script>', '<script src="app.js"></script>\n<script src="my.js"></script>');
 if (!html.includes('src="app.js"') || html.includes('id="inst"')) throw new Error('index.html 에서 my.js 줄 또는 앱 설치 칸 표시(<!--install-->)를 못 찾았어요');
 // 화면 안 그림 경로(/gull.png 등)는 앱 안 파일로
-html = html.replaceAll('href="/favicon.png"', 'href="favicon.png"').replaceAll('href="/icon-192.png"', 'href="icon-192.png"');
+html = html.replaceAll('href="/favicon.png"', 'href="favicon.png"').replaceAll('href="/icon-192.png"', 'href="icon-192.png"').replace('src="/image-state.js"', 'src="image-state.js"');
 // 「내 갈매미」도 전체 화면: 노치만큼 안쪽으로
 writeFileSync(resolve(out, 'my.html'), html.replace('</style>', 'body{padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}\n</style>'));
 
@@ -28,7 +28,8 @@ game = game.replace(/<script>if\('serviceWorker'[^<]*<\/script>\n?/, '').replace
 // 앱: 전체 화면(바 숨김)·노치 자리까지 그림. viewport-fit=cover 는 그대로 둬서 env(safe-area-inset-*)로 노치를 피함
 if (!game.includes('src="duel.js"')) throw new Error('duel index.html 에서 duel.js 줄을 못 찾았어요');
 // 첫 화면·불러오는 중 그림·글꼴(v0.13.0): 로그인 전·인터넷 없어도 보이게 앱 안에(intro/)
-game = game.replaceAll('/duel/intro/', 'intro/');
+game = game.replaceAll('/duel/intro/', 'intro/').replace('src="/image-state.js"', 'src="image-state.js"');
+copyFileSync(resolve(root, 'public/image-state.js'), resolve(out, 'image-state.js'));
 mkdirSync(resolve(out, 'intro'), { recursive: true });
 for (const f of readdirSync(resolve(root, 'public/duel/intro'))) copyFileSync(resolve(root, 'public/duel/intro', f), resolve(out, 'intro', f));
 writeFileSync(resolve(out, 'index.html'), game);

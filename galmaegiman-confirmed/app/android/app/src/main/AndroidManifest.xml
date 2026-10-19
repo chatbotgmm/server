@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -15,7 +15,7 @@
             android:name=".MainActivity"
             android:label="@string/title_activity_main"
             android:screenOrientation="sensorLandscape"
-            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:theme="@style/AppTheme.NoActionBar"
             android:launchMode="singleTask"
             android:exported="true">
 
@@ -24,16 +24,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- 카카오 로그인에서 앱으로 돌아오는 주소: gmmapp://auth?code=… -->
+            <!-- 카카오 로그인에서 앱으로 돌아오는 주소: gmmrevised://auth?code=… -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="gmmapp" android:host="auth" />
+                <data android:scheme="${authScheme}" android:host="auth" />
             </intent-filter>
 
         </activity>
 
+        <receiver android:name=".NativeAlerts" android:exported="false">
+          <intent-filter>
+              <action android:name="android.intent.action.BOOT_COMPLETED" />
+              <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+          </intent-filter>
+        </receiver>
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -51,6 +57,7 @@
     <!-- 탐험 귀환·뽑기권 알림(안드로이드 13부터 허락 필요) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- 정확한 시각 알람은 쓰지 않음(탐험 알림은 몇 분 늦어도 됨, 구글 플레이 권한 심사 피함) -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
 </manifest>

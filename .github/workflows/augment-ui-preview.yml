@@ -1,0 +1,347 @@
+name: Realtime ranked v2.1 preview
+
+on:
+  push:
+    branches: ["manual/augment-ui-v1"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  server:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: galmaegiman-confirmed/package-lock.json
+
+      - name: Extract reviewed realtime source bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '07b6a7edd1e591826e438b19fadbd35c1a63ee9338ef75e71f6e2a9fe5c384d0  realtime-ranked-bundle.zip' | sha256sum --check --strict
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          root = Path.cwd().resolve()
+          with ZipFile('realtime-ranked-bundle.zip') as archive:
+              entries = archive.infolist()
+              for entry in entries:
+                  path = Path(entry.filename)
+                  if path.is_absolute() or '..' in path.parts:
+                      raise SystemExit('Unsafe archive path')
+                  destination = root / path
+                  if not destination.resolve().is_relative_to(root):
+                      raise SystemExit('Archive escaped checkout')
+                  if not entry.is_dir() and destination.exists():
+                      raise SystemExit('Refusing to overwrite: ' + str(path))
+              archive.extractall(root)
+          PY
+
+      - name: Generate source in disposable checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p review-logs
+          {
+            git rev-parse HEAD
+            python3 apply-native-parchment.py
+            python3 apply-augment-layout.py
+            python3 apply-augment-switch-fix.py --apply
+            python3 apply-realtime-ranked.py
+            python3 apply-realtime-ranked.py --apply
+          } 2>&1 | tee review-logs/generation-server.log
+          git diff --binary > review-logs/generated-source.patch
+          tar -czf review-logs/generated-source.tar.gz \
+            galmaegiman-confirmed/src \
+            galmaegiman-confirmed/test \
+            galmaegiman-confirmed/prisma \
+            galmaegiman-confirmed/public/duel \
+            galmaegiman-confirmed/app/android/app/src
+
+      - name: Validate reset helper on isolated temporary SQLite only
+        run: python3 -m unittest discover -s galmaegiman-confirmed/scripts/manual/ranked-reset -p "test_*.py" -v
+      - name: Install dependencies and generate Prisma client
+        working-directory: galmaegiman-confirmed
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci 2>&1 | tee ../review-logs/npm-ci.log
+          npm run db:generate 2>&1 | tee ../review-logs/prisma-generate.log
+
+      - name: Check data and forced-switch tests
+        working-directory: galmaegiman-confirmed
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run data:check 2>&1 | tee ../review-logs/data-check.log
+          npm test -- test/battle-events.test.ts -t '강제 교체 증강체 회귀' \
+            2>&1 | tee ../review-logs/forced-switch.log
+
+      - name: Validate schema and realtime pure tests
+        working-directory: galmaegiman-confirmed
+        shell: bash
+        run: |
+          set -euo pipefail
+          DATABASE_URL=file:/tmp/realtime-schema-validation.db npx --no-install prisma validate \
+            2>&1 | tee ../review-logs/prisma-validate.log
+          npm test -- test/realtime-adapter.test.ts test/ranked-rating.test.ts \
+            test/realtime-ranked-client.test.ts test/ranked-human-only.test.ts \
+            2>&1 | tee ../review-logs/realtime-pure-tests.log
+
+      - name: Build server and web
+        working-directory: galmaegiman-confirmed
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build 2>&1 | tee ../review-logs/server-build.log
+
+      - name: Capture old and new seven-seed review evidence
+        working-directory: galmaegiman-confirmed
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > scripts/review-augment-switch.mjs <<'AUGMENT_REVIEW_JS'
+          import { createHash } from 'node:crypto';
+          import { readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'node:fs';
+          import { loadBattleRules } from '../src/battle/load.ts';
+          import { loadContent } from '../src/content.ts';
+          import * as current from '../src/battle/engine.ts';
+          
+          const output = new URL('../../review-logs/', import.meta.url);
+          const oldModule = new URL('../src/battle/engine.pre-switch-review.ts', import.meta.url);
+          const backup = new URL('../src/battle/engine.ts.augment-switch.bak', import.meta.url);
+          const expectedLegacy = '5599e2f51741f8273bbc5cfe866cc0efb407cfc33132f695bf225ab1c618a7ca';
+          const seeds = [1, 2, 3, 7, 17, 42, 99];
+          const R = loadBattleRules();
+          const content = loadContent();
+          const clone = value => JSON.parse(JSON.stringify(value));
+          const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+          const state = b => ({
+            rng: b.rng, turn: b.turn, phase: b.phase,
+            winner: b.winner, sides: b.sides, log: b.log
+          });
+          
+          function run(engine, capture) {
+            const final = [];
+            const traces = [];
+            for (const seed of seeds) {
+              const mk = (id, i) => ({
+                uid: 'u' + i, id,
+                name: content.map.get(id).name,
+                tier: content.map.get(id).rarity,
+                level: 30, xp: 0, stage: 0, evoAugs: []
+              });
+              const b = engine.createBattle(
+                R, ['D6', 'T3', 'I4'].map(mk),
+                ['D4', 'E2', 'T7'].map(mk), seed
+              );
+              const entries = [];
+              const record = (step, kind, side, operation) => {
+                const before = capture ? clone(state(b)) : undefined;
+                const seq = b.eventSeq;
+                operation();
+                if (capture) entries.push({
+                  step, kind, side, before, after: clone(state(b)),
+                  events: clone(b.events.filter(e => e.id > seq))
+                });
+              };
+              for (let step = 0; step < 400 && b.phase !== 'over'; step++) {
+                if (b.phase === 'choose') {
+                  record(step, 'choose', 0, () => engine.aiChoose(b, 0));
+                  record(step, 'choose', 1, () => engine.aiChoose(b, 1));
+                } else {
+                  record(step, 'act', null, () => engine.act(b, [
+                    engine.pickAi(b, 0), engine.pickAi(b, 1)
+                  ]));
+                }
+              }
+              final.push(clone(state(b)));
+              if (capture) traces.push({ seed, entries });
+            }
+            return { final, traces, digest: hash(final) };
+          }
+          
+          function save(name, value) {
+            writeFileSync(new URL(name, output), JSON.stringify(value, null, 2) + '\n');
+          }
+          
+          mkdirSync(output, { recursive: true });
+          writeFileSync(oldModule, readFileSync(backup), { flag: 'wx' });
+          try {
+            const legacy = await import(oldModule.href);
+            const before = run(legacy, true);
+            const after = run(current, true);
+            const repeat = run(current, false);
+            save('augment-switch-before.json', before);
+            save('augment-switch-after.json', after);
+            const comparison = {
+              expectedLegacy,
+              legacyDigest: before.digest,
+              currentDigest: after.digest,
+              repeatDigest: repeat.digest,
+              legacyReproduced: before.digest === expectedLegacy,
+              currentDeterministic: after.digest === repeat.digest,
+              goldenExpectationChanged: false,
+              seeds: seeds.map((seed, i) => {
+                const oldEntries = before.traces[i].entries;
+                const newEntries = after.traces[i].entries;
+                let firstDifference = null;
+                for (let j = 0; j < Math.max(oldEntries.length, newEntries.length); j++) {
+                  if (JSON.stringify(oldEntries[j]) !== JSON.stringify(newEntries[j])) {
+                    firstDifference = {
+                      entry: j,
+                      legacyStep: oldEntries[j]?.step ?? null,
+                      currentStep: newEntries[j]?.step ?? null,
+                      legacyKind: oldEntries[j]?.kind ?? null,
+                      currentKind: newEntries[j]?.kind ?? null,
+                      legacySide: oldEntries[j]?.side ?? null,
+                      currentSide: newEntries[j]?.side ?? null
+                    };
+                    break;
+                  }
+                }
+                return {
+                  seed, firstDifference,
+                  legacyFinal: {
+                    turn: before.final[i].turn, winner: before.final[i].winner,
+                    rng: before.final[i].rng, digest: hash(before.final[i])
+                  },
+                  currentFinal: {
+                    turn: after.final[i].turn, winner: after.final[i].winner,
+                    rng: after.final[i].rng, digest: hash(after.final[i])
+                  }
+                };
+              })
+            };
+            save('augment-switch-comparison.json', comparison);
+            console.log(JSON.stringify(comparison, null, 2));
+            if (!comparison.legacyReproduced)
+              throw new Error('Legacy fixture did not reproduce. Do not update the golden hash.');
+            if (!comparison.currentDeterministic)
+              throw new Error('Current simulation was not deterministic. Do not update the golden hash.');
+            console.log('Review evidence saved. Existing golden expectation remains unchanged.');
+          } finally {
+            unlinkSync(oldModule);
+          }
+          AUGMENT_REVIEW_JS
+          node --import tsx scripts/review-augment-switch.mjs 2>&1 | tee ../review-logs/augment-switch-review.log
+
+      - name: Run full tests using isolated temporary database
+        working-directory: galmaegiman-confirmed
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run test:db 2>&1 | tee ../review-logs/full-tests.log
+
+      - name: Save source and test evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: realtime-ranked-server-evidence
+          path: review-logs/
+          retention-days: 7
+
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Verify Android SDK
+        shell: bash
+        run: |
+          test -d "$ANDROID_HOME/platforms/android-36"
+          test -d "$ANDROID_HOME/build-tools/35.0.0"
+
+      - name: Extract reviewed realtime source bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '07b6a7edd1e591826e438b19fadbd35c1a63ee9338ef75e71f6e2a9fe5c384d0  realtime-ranked-bundle.zip' | sha256sum --check --strict
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          root = Path.cwd().resolve()
+          with ZipFile('realtime-ranked-bundle.zip') as archive:
+              entries = archive.infolist()
+              for entry in entries:
+                  path = Path(entry.filename)
+                  if path.is_absolute() or '..' in path.parts:
+                      raise SystemExit('Unsafe archive path')
+                  destination = root / path
+                  if not destination.resolve().is_relative_to(root):
+                      raise SystemExit('Archive escaped checkout')
+                  if not entry.is_dir() and destination.exists():
+                      raise SystemExit('Refusing to overwrite: ' + str(path))
+              archive.extractall(root)
+          PY
+
+      - name: Generate preview source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p review-logs
+          {
+            git rev-parse HEAD
+            python3 apply-native-parchment.py
+            python3 apply-augment-layout.py
+            python3 apply-augment-switch-fix.py --apply
+            python3 apply-realtime-ranked.py
+            python3 apply-realtime-ranked.py --apply
+          } 2>&1 | tee review-logs/generation-native.log
+
+      - name: Run unit tests and build APKs
+        working-directory: galmaegiman-confirmed/app/android
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash ./gradlew \
+            :app:testDebugUnitTest \
+            :app:assembleDebug \
+            :app:assembleDebugAndroidTest \
+            --no-daemon --max-workers=2 --stacktrace \
+            "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8" \
+            2>&1 | tee ../../../review-logs/native-build.log
+
+      - name: Save UI preview APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: realtime-ranked-native-preview
+          path: galmaegiman-confirmed/app/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+      - name: Save native test evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: realtime-ranked-native-evidence
+          path: |
+            galmaegiman-confirmed/app/android/app/build/reports/tests/
+            galmaegiman-confirmed/app/android/app/build/test-results/
+            review-logs/
+          retention-days: 7
+
+      - name: Record preview limits
+        if: always()
+        run: |
+          echo 'Realtime preview requires the matching upgraded backend. No deployment or production migration occurred.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Instrumentation was compiled, not executed. Device visual validation remains required.' >> "$GITHUB_STEP_SUMMARY"
+

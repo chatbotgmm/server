@@ -66,15 +66,23 @@ export function slotKeys(r:Rules,rec:UnitRecord):string[]{
   return [...new Set(list)].filter(k=>k==='basic'||k==='sig'||k==='role'||(k==='sub'?hasSub:!!r.data.learn.skills[k])).slice(0,r.data.learn.slots);
 }
 export function slotSkills(r:Rules,rec:UnitRecord):Skill[]{
-  const def=r.unitDef(rec.id)!;
-  return slotKeys(r,rec).map(k=>k==='basic'?{...r.basicSkill(def.attr,def.basicCat),...(def.basic?{name:def.basic}:{})}:k==='sig'?def.signature
-    :k==='role'?r.roleSkill(def.role,def.attr):k==='sub'?r.subSkill(def.sub!):r.learnSkill(k,def.attr)!);
+  const def=r.unitDef(rec.id)!,playable=r.units.has(rec.id);
+  return slotKeys(r,rec).map(k=>{
+    const skill=k==='basic'?(playable?r.elementalSkill('basic',def.attr):undefined)??{...r.basicSkill(def.attr,def.basicCat),...(def.basic?{name:def.basic}:{})}
+      :k==='sig'?def.signature:k==='role'?(playable&&def.role==='ATTACK'?r.elementalSkill('attack',def.attr):undefined)??r.roleSkill(def.role,def.attr)
+      :k==='sub'?(playable?r.elementalSkill('sub',def.sub!):undefined)??r.subSkill(def.sub!):r.learnSkill(k,def.attr)!;
+    return r.unitPower(rec.id,skill);
+  });
 }
 const keyOfSkill=(id:string)=>id.startsWith('basic-')?'basic':id==='sig'?'sig':id.startsWith('role-')?'role':id.startsWith('sub-')?'sub':id.replace(/^learn-/,'');
 
 // 씨앗으로 정해지는 난수(같은 씨앗이면 늘 같은 순서)
 function seeded(seed:string):()=>number{let h=2166136261;for(const ch of seed)h=Math.imul(h^ch.charCodeAt(0),16777619);let t=h>>>0;
   return ()=>{t=(t+0x6d2b79f5)|0;let x=Math.imul(t^(t>>>15),t|1);x^=x+Math.imul(x^(x>>>7),x|61);return((x^(x>>>14))>>>0)/4294967296;};}
+// 저장된 개체 번호·승진 단계에서 후보를 재현한다. 재접속으로 다시 뽑을 수 없다.
+export function stableEvoChoices(r:Rules,rec:UnitRecord){
+  return evoChoices(r,rec,seeded(`evolve:${rec.uid}:${rec.id}:${rec.stage}:${rec.evoAugs.join(',')}`));
+}
 // ── 타고나는 기술(v0.16.2): 똥폭탄(기본기) + 무작위 1~2개. 후보 = 역할기·보조 속성 기술·그 역할의 첫 배울 레벨 기술.
 //    seed(개체 번호 등)로 정해서 다시 계산해도 같고, 같은 종류라도 개체마다 다름. 나머지 칸은 비어 있다가 레벨업·승진으로 채움
 export function innateLearned(r:Rules,unitId:string,seed:string):string[]{
@@ -87,7 +95,7 @@ export function innateLearned(r:Rules,unitId:string,seed:string):string[]{
 export const PROMO_KEYS=['sig'] as const;
 export function promoSkills(r:Rules,rec:UnitRecord):Skill[]{
   const have=new Set(slotKeys(r,rec)),def=r.unitDef(rec.id)!;
-  return PROMO_KEYS.filter((k,i)=>(rec.stage??0)>i&&!have.has(k)).map(()=>def.signature);
+  return PROMO_KEYS.filter((k,i)=>(rec.stage??0)>i&&!have.has(k)).map(()=>r.unitPower(rec.id,def.signature));
 }
 export function learnPromo(r:Rules,rec:UnitRecord,key:string,replace?:string){
   if(!promoSkills(r,rec).some(k=>k.id===key))throw new Error('지금 배울 수 있는 전용 기술이 아니에요');
@@ -107,7 +115,7 @@ export const learnLeft=(r:Rules,rec:UnitRecord)=>learnChances(r,rec)>0?Math.max(
 export function learnOffers(r:Rules,rec:UnitRecord):Skill[]{
   if(learnChances(r,rec)<=0)return [];
   const def=r.unitDef(rec.id)!,tier=r.data.learn.levels[rec.learnUsed??0],have=new Set(slotKeys(r,rec));
-  return r.learnables.filter(s=>s.level===tier&&(!s.roles||s.roles.includes(def.role))&&!have.has(s.id)).slice(0,r.data.learn.offers).map(s=>r.learnSkill(s.id,def.attr)!);
+  return r.learnables.filter(s=>s.level===tier&&(!s.roles||s.roles.includes(def.role))&&!have.has(s.id)).slice(0,r.data.learn.offers).map(s=>r.unitPower(rec.id,r.learnSkill(s.id,def.attr)!));
 }
 // id: 배울 기술(null이면 이번 기회 끝내기), replace: 칸이 찼을 때 잊을 기술(4칸 중 아무거나, 기술 id)
 export function learnSkill(r:Rules,rec:UnitRecord,id:string|null,replace?:string){

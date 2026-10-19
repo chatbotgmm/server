@@ -230,3 +230,150 @@ model PlayerItem {
 
   @@id([playerId, itemId])
 }
+
+// schema.prisma 끝에 추가. 기존 Player와 기존 랭크 점수는 변경하지 않습니다.
+// SQLite + Prisma 6.16.2. 이 모델들은 Player FK 없이 앱 계층에서 존재를 검증합니다.
+model RankedProfile {
+  playerId          String   @id
+  tierIndex         Int      @default(0)
+  lp                Int      @default(0)
+  promotionActive   Boolean  @default(false)
+  promotionWins     Int      @default(0)
+  promotionLosses   Int      @default(0)
+  rankedMmr         Float    @default(1000)
+  casualPriorOffset Float    @default(0)
+  games             Int      @default(0)
+  wins              Int      @default(0)
+  losses            Int      @default(0)
+  draws             Int      @default(0)
+  version           Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([tierIndex, lp])
+}
+
+model CasualHumanRating {
+  playerId String   @id
+  mmr      Float    @default(1000)
+  games    Int      @default(0)
+  wins     Int      @default(0)
+  losses   Int      @default(0)
+  draws    Int      @default(0)
+  version  Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+model RankedMatch {
+  roomId           String    @id
+  player0Id        String
+  player1Id        String
+  participant0Kind String
+  participant1Kind String
+  state            String    @default("ACTIVE")
+  winner           Int?
+  reason           String?
+  configJson       String
+  createdAt        DateTime  @default(now())
+  finishedAt       DateTime?
+  version          Int       @default(0)
+
+  @@index([state, createdAt])
+  @@index([player0Id, createdAt])
+  @@index([player1Id, createdAt])
+}
+
+model RankedSettlement {
+  roomId      String   @id
+  receiptJson String
+  createdAt   DateTime @default(now())
+}
+
+model CasualHumanSettlement {
+  roomId      String   @id
+  player0Id   String
+  player1Id   String
+  winner      Int?
+  receiptJson String
+  createdAt   DateTime @default(now())
+
+  @@index([player0Id, createdAt])
+  @@index([player1Id, createdAt])
+}
+
+
+// Durable realtime transport state. Historical Player rank fields are untouched.
+model RealtimeAttempt {
+  id String @id
+  playerId String
+  mode String
+  state String @default("ISSUED")
+  issuedAt DateTime
+  joinNotAfter DateTime
+  queuedAt DateTime?
+  leaseUntil DateTime?
+  rosterJson String?
+  playerName String?
+  rating Int @default(1000)
+  tierIndex Int @default(0)
+  roomId String?
+  @@index([mode, state, queuedAt])
+  @@index([playerId, state])
+}
+
+model RealtimeActivity {
+  playerId String @id
+  kind String
+  targetId String
+  expiresAt DateTime
+}
+
+model RealtimeRoom {
+  id String @id
+  mode String
+  player0Id String
+  player1Id String
+  namesJson String
+  state String @default("ACTIVE")
+  stateJson String
+  resultJson String?
+  revision Int @default(0)
+  deadline DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([state, deadline])
+  @@index([player0Id, state])
+  @@index([player1Id, state])
+}
+
+model RealtimeRequest {
+  id String @id
+  roomId String
+  playerId String
+  requestId String
+  fingerprint String
+  createdAt DateTime @default(now())
+  @@unique([roomId, playerId, requestId])
+}
+
+// Last lineup actually finalized for realtime PvP; edits alone never overwrite this.
+model RealtimeLineup {
+  playerId String @id
+  teamJson String
+  updatedAt DateTime @updatedAt
+}
+
+
+// Early inventory debit with durable exactly-once consume/refund tracking.
+model RealtimeItemEscrow {
+  roomId String
+  phaseId String
+  side Int
+  playerId String
+  itemId String
+  state String @default("HELD")
+  createdAt DateTime @default(now())
+  @@id([roomId, phaseId, side])
+  @@index([playerId, itemId, state])
+  @@index([roomId, state])
+}

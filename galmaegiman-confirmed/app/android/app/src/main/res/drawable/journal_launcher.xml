@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape android:shape="rectangle">
+        <solid android:color="#28535b" />
+        <corners android:radius="22dp" />
+        <stroke android:width="3dp" android:color="#c49a59" />
+    </shape></item>
+    <!-- 기존 갈매미 원본은 그대로 두고 배경과 테두리만 도감 재질로 구성한다. -->
+    <item android:drawable="@mipmap/ic_launcher_foreground" />
+</layer-list>

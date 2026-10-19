@@ -1,0 +1,143 @@
+{
+  "schema": "application-envelope-animation/v1",
+  "status": "candidate-review",
+  "image": "../resources/application-envelope-atlas.png",
+  "atlas": {
+    "width": 1774,
+    "height": 887,
+    "columns": 4,
+    "rows": 2
+  },
+  "frames": [
+    {
+      "index": 0,
+      "sourceRect": {
+        "x": 0,
+        "y": 0,
+        "width": 443,
+        "height": 443
+      },
+      "durationMs": 130,
+      "footPivot": {
+        "x": 0.5,
+        "y": 0.89
+      }
+    },
+    {
+      "index": 1,
+      "sourceRect": {
+        "x": 443,
+        "y": 0,
+        "width": 444,
+        "height": 443
+      },
+      "durationMs": 120,
+      "footPivot": {
+        "x": 0.5,
+        "y": 0.89
+      }
+    },
+    {
+      "index": 2,
+      "sourceRect": {
+        "x": 887,
+        "y": 0,
+        "width": 443,
+        "height": 443
+      },
+      "durationMs": 110,
+      "footPivot": {
+        "x": 0.5,
+        "y": 0.89
+      }
+    },
+    {
+      "index": 3,
+      "sourceRect": {
+        "x": 1330,
+        "y": 0,
+        "width": 444,
+        "height": 443
+      },
+      "durationMs": 110,
+      "footPivot": {
+        "x": 0.5,
+        "y": 0.89
+      }
+    },
+    {
+      "index": 4,
+      "sourceRect": {
+        "x": 0,
+        "y": 443,
+        "width": 443,
+        "height": 444
+      },
+      "durationMs": 120,
+      "footPivot": {
+        "x": 0.5,
+        "y": 0.89
+      }
+    },
+    {
+      "index": 5,
+      "sourceRect": {
+        "x": 443,
+        "y": 443,
+        "width": 444,
+        "height": 444
+      },
+      "durationMs": 130,
+      "footPivot": {
+        "x": 0.5,
+        "y": 0.89
+      }
+    },
+    {
+      "index": 6,
+      "sourceRect": {
+        "x": 887,
+        "y": 443,
+        "width": 443,
+        "height": 444
+      },
+      "durationMs": 140,
+      "footPivot": {
+        "x": 0.5,
+        "y": 0.89
+      }
+    },
+    {
+      "index": 7,
+      "sourceRect": {
+        "x": 1330,
+        "y": 443,
+        "width": 444,
+        "height": 444
+      },
+      "durationMs": 140,
+      "footPivot": {
+        "x": 0.5,
+        "y": 0.89
+      }
+    }
+  ],
+  "completion": {
+    "atLastFrame": "hold_until_authoritative_result",
+    "resultPayload": "explicit caller-provided canonical roster record; never sample or invent a result",
+    "networkIntegration": "not implemented"
+  },
+  "layers": [
+    "separate-css-shadow",
+    "envelope-sprite",
+    "optional-vector-seal",
+    "revealed-character",
+    "runtime-text"
+  ],
+  "rules": [
+    "Use integer source rectangles, not assumed equal integer cells",
+    "Atlas is only envelope art; do not bake character or result text into it",
+    "Replay affects only the local demo",
+    "In-app result delivery and duplicate-payment handling are outside this preview"
+  ]
+}

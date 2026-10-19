@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 항구의 돌·남색·황동. Canvas의 JournalTheme 토큰과 함께 검증한다. -->
+<resources>
+    <color name="journal_paper">#F3E9D3</color>
+    <color name="journal_ink">#20343A</color>
+    <color name="journal_muted_ink">#465860</color>
+    <color name="journal_wood">#153F50</color>
+    <color name="journal_brass">#BC9555</color>
+    <color name="journal_primary">#153F50</color>
+    <color name="journal_primary_text">#FFFFFF</color>
+    <color name="journal_positive_info">#326B71</color>
+    <color name="journal_negative_info">#A84336</color>
+    <dimen name="journal_touch_target_min">48dp</dimen>
+    <dimen name="journal_panel_radius">6dp</dimen>
+    <dimen name="journal_border">1dp</dimen>
+    <dimen name="journal_title_text">20sp</dimen>
+    <dimen name="journal_body_text">14sp</dimen>
+    <dimen name="journal_caption_text">12sp</dimen>
+</resources>
