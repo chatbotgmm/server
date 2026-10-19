@@ -1,0 +1,1023 @@
+{
+  "schema": "registration-runtime-roster/v1",
+  "canonicalCharacterCount": 145,
+  "baselineCommit": "a9023073fd2dc1e34de7994ae1b7d8f215c7c08b",
+  "source": "Existing canonical game roster; no character identity or tier changes.",
+  "characters": [
+    {
+      "id": "C1",
+      "name": "기본 갈매미맨",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "originalUrl": "/images/C1.png"
+    },
+    {
+      "id": "C2",
+      "name": "황금 갈매미맨",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "originalUrl": "/images/C2.png"
+    },
+    {
+      "id": "C3",
+      "name": "암흑 갈매미맨",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "originalUrl": "/images/C3.png"
+    },
+    {
+      "id": "C4",
+      "name": "바다 갈매미맨",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "originalUrl": "/images/C4.png"
+    },
+    {
+      "id": "C5",
+      "name": "벚꽃 갈매미맨",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "originalUrl": "/images/C5.png"
+    },
+    {
+      "id": "C6",
+      "name": "우주 갈매미맨",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "originalUrl": "/images/C6.png"
+    },
+    {
+      "id": "U1",
+      "name": "금갑",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "originalUrl": "/images/U1.png"
+    },
+    {
+      "id": "U2",
+      "name": "야경",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "originalUrl": "/images/U2.png"
+    },
+    {
+      "id": "U3",
+      "name": "방파제",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "originalUrl": "/images/U3.png"
+    },
+    {
+      "id": "U4",
+      "name": "꽃갑",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "originalUrl": "/images/U4.png"
+    },
+    {
+      "id": "U5",
+      "name": "운석",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "originalUrl": "/images/U5.png"
+    },
+    {
+      "id": "U6",
+      "name": "금조개",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "originalUrl": "/images/U6.png"
+    },
+    {
+      "id": "U7",
+      "name": "심해",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "originalUrl": "/images/U7.png"
+    },
+    {
+      "id": "U8",
+      "name": "꽃물결",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "originalUrl": "/images/U8.png"
+    },
+    {
+      "id": "U9",
+      "name": "금성",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "originalUrl": "/images/U9.png"
+    },
+    {
+      "id": "U10",
+      "name": "블랙홀",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "originalUrl": "/images/U10.png"
+    },
+    {
+      "id": "U11",
+      "name": "별꽃",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "originalUrl": "/images/U11.png"
+    },
+    {
+      "id": "S1",
+      "name": "쌍패수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S1.png"
+    },
+    {
+      "id": "S2",
+      "name": "꽃띠수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S2.png"
+    },
+    {
+      "id": "S3",
+      "name": "해저보행자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S3.png"
+    },
+    {
+      "id": "S4",
+      "name": "중력수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S4.png"
+    },
+    {
+      "id": "S5",
+      "name": "황금별수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S5.png"
+    },
+    {
+      "id": "S6",
+      "name": "밤먹는 수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S6.png"
+    },
+    {
+      "id": "S7",
+      "name": "서리꽃수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S7.png"
+    },
+    {
+      "id": "S8",
+      "name": "유성대장장이",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S8.png"
+    },
+    {
+      "id": "S9",
+      "name": "물거울수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S9.png"
+    },
+    {
+      "id": "S10",
+      "name": "꽃등수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S10.png"
+    },
+    {
+      "id": "S11",
+      "name": "별길지기",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S11.png"
+    },
+    {
+      "id": "S12",
+      "name": "흑진주수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S12.png"
+    },
+    {
+      "id": "S13",
+      "name": "태양꽃수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S13.png"
+    },
+    {
+      "id": "S14",
+      "name": "진공수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S14.png"
+    },
+    {
+      "id": "S15",
+      "name": "풍랑수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S15.png"
+    },
+    {
+      "id": "R1",
+      "name": "황금쌍패성기사",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R1.png"
+    },
+    {
+      "id": "R2",
+      "name": "은하매듭직조자",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R2.png"
+    },
+    {
+      "id": "R3",
+      "name": "심해중력군주",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R3.png"
+    },
+    {
+      "id": "R4",
+      "name": "일식수호자",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R4.png"
+    },
+    {
+      "id": "R5",
+      "name": "빙해수호자",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R5.png"
+    },
+    {
+      "id": "R6",
+      "name": "항성용광로",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R6.png"
+    },
+    {
+      "id": "R7",
+      "name": "흑경수호자",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R7.png"
+    },
+    {
+      "id": "R8",
+      "name": "잠꽃지기",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R8.png"
+    },
+    {
+      "id": "R9",
+      "name": "궤도항해사",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R9.png"
+    },
+    {
+      "id": "R10",
+      "name": "진주심장수호자",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R10.png"
+    },
+    {
+      "id": "R11",
+      "name": "사계꽃군주",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R11.png"
+    },
+    {
+      "id": "R12",
+      "name": "공허흡입자",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R12.png"
+    },
+    {
+      "id": "R13",
+      "name": "해일성채",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R13.png"
+    },
+    {
+      "id": "R14",
+      "name": "유성충각수",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R14.png"
+    },
+    {
+      "id": "R15",
+      "name": "별빛분광자",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R15.png"
+    },
+    {
+      "id": "R16",
+      "name": "밤벚꽃군주",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R16.png"
+    },
+    {
+      "id": "R17",
+      "name": "조석시계지기",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R17.png"
+    },
+    {
+      "id": "R18",
+      "name": "천체금고주",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R18.png"
+    },
+    {
+      "id": "R19",
+      "name": "강철실재봉장",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R19.png"
+    },
+    {
+      "id": "R20",
+      "name": "공허쌍문지기",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R20.png"
+    },
+    {
+      "id": "L1",
+      "name": "만조의 갈매미맨",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L1.png"
+    },
+    {
+      "id": "L2",
+      "name": "쌍패성왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L2.png"
+    },
+    {
+      "id": "L3",
+      "name": "별누비거신",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L3.png"
+    },
+    {
+      "id": "L4",
+      "name": "얼매미",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L4.png"
+    },
+    {
+      "id": "L5",
+      "name": "태양꽃화로왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L5.png"
+    },
+    {
+      "id": "L6",
+      "name": "일식거울왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L6.png"
+    },
+    {
+      "id": "L7",
+      "name": "잠든벚꽃대왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L7.png"
+    },
+    {
+      "id": "L8",
+      "name": "은하등대거신",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L8.png"
+    },
+    {
+      "id": "L9",
+      "name": "흑진주용왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L9.png"
+    },
+    {
+      "id": "L10",
+      "name": "천년봄수호자",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L10.png"
+    },
+    {
+      "id": "L11",
+      "name": "공복의 블랙홀",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L11.png"
+    },
+    {
+      "id": "L12",
+      "name": "황금방파제왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L12.png"
+    },
+    {
+      "id": "L13",
+      "name": "갈매미사우루스",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L13.png"
+    },
+    {
+      "id": "L14",
+      "name": "무지개날개왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L14.png"
+    },
+    {
+      "id": "L15",
+      "name": "야광진주벚꽃왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L15.png"
+    },
+    {
+      "id": "L16",
+      "name": "느개미",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L16.png"
+    },
+    {
+      "id": "L17",
+      "name": "갈노스",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L17.png"
+    },
+    {
+      "id": "L18",
+      "name": "불개미",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L18.png"
+    },
+    {
+      "id": "L19",
+      "name": "빤스갈매미",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L19.png"
+    },
+    {
+      "id": "L20",
+      "name": "갈매미질라",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L20.png"
+    },
+    {
+      "id": "H1",
+      "name": "브라자 갈매미맨",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H1.png"
+    },
+    {
+      "id": "H2",
+      "name": "뒤집힌바다",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H2.png"
+    },
+    {
+      "id": "H3",
+      "name": "낮잠일식",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H3.png"
+    },
+    {
+      "id": "H4",
+      "name": "냉동금고",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H4.png"
+    },
+    {
+      "id": "H5",
+      "name": "숯꽃갈매미",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H5.png"
+    },
+    {
+      "id": "H6",
+      "name": "거울떼갈매미",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H6.png"
+    },
+    {
+      "id": "H7",
+      "name": "이불밖은우주",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H7.png"
+    },
+    {
+      "id": "H8",
+      "name": "길먹는갈매미",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H8.png"
+    },
+    {
+      "id": "H9",
+      "name": "진주알사장",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H9.png"
+    },
+    {
+      "id": "H10",
+      "name": "봄반품센터장",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H10.png"
+    },
+    {
+      "id": "H11",
+      "name": "소매블랙홀",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H11.png"
+    },
+    {
+      "id": "H12",
+      "name": "정시해일",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H12.png"
+    },
+    {
+      "id": "H13",
+      "name": "보물등딱지",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H13.png"
+    },
+    {
+      "id": "D1",
+      "name": "태초의 갈매미맨",
+      "tier": "LIMITED",
+      "tier_ko": "제한",
+      "originalUrl": "/images/D1.png"
+    },
+    {
+      "id": "D2",
+      "name": "원금 갈매미맨",
+      "tier": "LIMITED",
+      "tier_ko": "제한",
+      "originalUrl": "/images/D2.png"
+    },
+    {
+      "id": "D3",
+      "name": "첫밤의 갈매미맨",
+      "tier": "LIMITED",
+      "tier_ko": "제한",
+      "originalUrl": "/images/D3.png"
+    },
+    {
+      "id": "D4",
+      "name": "원해 갈매미맨",
+      "tier": "LIMITED",
+      "tier_ko": "제한",
+      "originalUrl": "/images/D4.png"
+    },
+    {
+      "id": "D5",
+      "name": "시원화 갈매미맨",
+      "tier": "LIMITED",
+      "tier_ko": "제한",
+      "originalUrl": "/images/D5.png"
+    },
+    {
+      "id": "D6",
+      "name": "첫별의 갈매미맨",
+      "tier": "LIMITED",
+      "tier_ko": "제한",
+      "originalUrl": "/images/D6.png"
+    },
+    {
+      "id": "D7",
+      "name": "갈크탑",
+      "tier": "LIMITED",
+      "tier_ko": "제한",
+      "originalUrl": "/images/D7.png"
+    },
+    {
+      "id": "D8",
+      "name": "갈리번",
+      "tier": "LIMITED",
+      "tier_ko": "제한",
+      "originalUrl": "/images/D8.png"
+    },
+    {
+      "id": "T1",
+      "name": "만상의 수호자",
+      "tier": "TRANSCEND",
+      "tier_ko": "초월",
+      "originalUrl": "/images/T1.png"
+    },
+    {
+      "id": "T2",
+      "name": "금율 갈매미맨",
+      "tier": "TRANSCEND",
+      "tier_ko": "초월",
+      "originalUrl": "/images/T2.png"
+    },
+    {
+      "id": "T3",
+      "name": "영야 갈매미맨",
+      "tier": "TRANSCEND",
+      "tier_ko": "초월",
+      "originalUrl": "/images/T3.png"
+    },
+    {
+      "id": "T4",
+      "name": "대양 갈매미맨",
+      "tier": "TRANSCEND",
+      "tier_ko": "초월",
+      "originalUrl": "/images/T4.png"
+    },
+    {
+      "id": "T5",
+      "name": "만개 갈매미맨",
+      "tier": "TRANSCEND",
+      "tier_ko": "초월",
+      "originalUrl": "/images/T5.png"
+    },
+    {
+      "id": "T6",
+      "name": "천체 갈매미맨",
+      "tier": "TRANSCEND",
+      "tier_ko": "초월",
+      "originalUrl": "/images/T6.png"
+    },
+    {
+      "id": "T7",
+      "name": "갈깁스",
+      "tier": "TRANSCEND",
+      "tier_ko": "초월",
+      "originalUrl": "/images/T7.png"
+    },
+    {
+      "id": "T8",
+      "name": "갈쫄쫄이",
+      "tier": "TRANSCEND",
+      "tier_ko": "초월",
+      "originalUrl": "/images/T8.png"
+    },
+    {
+      "id": "E1",
+      "name": "불퇴의 수호자",
+      "tier": "ETERNAL",
+      "tier_ko": "영원",
+      "originalUrl": "/images/E1.png"
+    },
+    {
+      "id": "E2",
+      "name": "황금향 갈매미맨",
+      "tier": "ETERNAL",
+      "tier_ko": "영원",
+      "originalUrl": "/images/E2.png"
+    },
+    {
+      "id": "E3",
+      "name": "끝없는 밤",
+      "tier": "ETERNAL",
+      "tier_ko": "영원",
+      "originalUrl": "/images/E3.png"
+    },
+    {
+      "id": "E4",
+      "name": "돌아오는 바다",
+      "tier": "ETERNAL",
+      "tier_ko": "영원",
+      "originalUrl": "/images/E4.png"
+    },
+    {
+      "id": "E5",
+      "name": "지지 않는 벚꽃",
+      "tier": "ETERNAL",
+      "tier_ko": "영원",
+      "originalUrl": "/images/E5.png"
+    },
+    {
+      "id": "E6",
+      "name": "별의 기록자",
+      "tier": "ETERNAL",
+      "tier_ko": "영원",
+      "originalUrl": "/images/E6.png"
+    },
+    {
+      "id": "E7",
+      "name": "갈발",
+      "tier": "ETERNAL",
+      "tier_ko": "영원",
+      "originalUrl": "/images/E7.png"
+    },
+    {
+      "id": "E8",
+      "name": "갈내복",
+      "tier": "ETERNAL",
+      "tier_ko": "영원",
+      "originalUrl": "/images/E8.png"
+    },
+    {
+      "id": "I1",
+      "name": "앙~ 갈매미맨이야",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "originalUrl": "/images/I1.png"
+    },
+    {
+      "id": "I2",
+      "name": "녹슬지 않는 황금",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "originalUrl": "/images/I2.png"
+    },
+    {
+      "id": "I3",
+      "name": "꺼지지 않는 그림자",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "originalUrl": "/images/I3.png"
+    },
+    {
+      "id": "I4",
+      "name": "마르지 않는 바다",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "originalUrl": "/images/I4.png"
+    },
+    {
+      "id": "I5",
+      "name": "다시 피는 벚꽃",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "originalUrl": "/images/I5.png"
+    },
+    {
+      "id": "I6",
+      "name": "돌아오는 별",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "originalUrl": "/images/I6.png"
+    },
+    {
+      "id": "I7",
+      "name": "갈터벨트",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "originalUrl": "/images/I7.png"
+    },
+    {
+      "id": "I8",
+      "name": "갈압스타킹",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "originalUrl": "/images/I8.png"
+    },
+    {
+      "id": "I9",
+      "name": "갈슬리퍼",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "originalUrl": "/images/I9.png"
+    },
+    {
+      "id": "C7",
+      "name": "거인 갈매미맨",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "originalUrl": "/images/C7.png"
+    },
+    {
+      "id": "C8",
+      "name": "소인 갈매미맨",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "originalUrl": "/images/C8.png"
+    },
+    {
+      "id": "C9",
+      "name": "갈매미걸",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "originalUrl": "/images/C9.png"
+    },
+    {
+      "id": "U12",
+      "name": "해일걸음",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "originalUrl": "/images/U12.png"
+    },
+    {
+      "id": "U13",
+      "name": "별먼지",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "originalUrl": "/images/U13.png"
+    },
+    {
+      "id": "U14",
+      "name": "꽃리본",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "originalUrl": "/images/U14.png"
+    },
+    {
+      "id": "U15",
+      "name": "키차이",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "originalUrl": "/images/U15.png"
+    },
+    {
+      "id": "U16",
+      "name": "갈매미 커플",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "originalUrl": "/images/U16.png"
+    },
+    {
+      "id": "S16",
+      "name": "인간방파제",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S16.png"
+    },
+    {
+      "id": "S17",
+      "name": "주머니우주",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S17.png"
+    },
+    {
+      "id": "S18",
+      "name": "꽃가마수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S18.png"
+    },
+    {
+      "id": "S19",
+      "name": "어깨무등수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "originalUrl": "/images/S19.png"
+    },
+    {
+      "id": "R21",
+      "name": "걸어다니는 산맥",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R21.png"
+    },
+    {
+      "id": "R22",
+      "name": "티끌군단장",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R22.png"
+    },
+    {
+      "id": "R23",
+      "name": "항구결혼식장",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "originalUrl": "/images/R23.png"
+    },
+    {
+      "id": "L21",
+      "name": "땅을 딛는 자",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L21.png"
+    },
+    {
+      "id": "L22",
+      "name": "먼지 속의 왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L22.png"
+    },
+    {
+      "id": "L23",
+      "name": "갈매미 대가족",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "originalUrl": "/images/L23.png"
+    },
+    {
+      "id": "H14",
+      "name": "거인의 소꿉친구",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H14.png"
+    },
+    {
+      "id": "H15",
+      "name": "신랑신부 바꿔치기",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H15.png"
+    },
+    {
+      "id": "N1",
+      "name": "중성 갈매미",
+      "tier": "NEUTRAL",
+      "tier_ko": "특수함",
+      "originalUrl": "/images/N1.png"
+    },
+    {
+      "id": "H16",
+      "name": "주례 갈매미",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H16.png"
+    },
+    {
+      "id": "H17",
+      "name": "무념무상",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H17.png"
+    },
+    {
+      "id": "H18",
+      "name": "땅콩 보관소",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H18.png"
+    },
+    {
+      "id": "H19",
+      "name": "인사팀장 갈매미",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H19.png"
+    },
+    {
+      "id": "H20",
+      "name": "바스락상회 사장",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H20.png"
+    },
+    {
+      "id": "H21",
+      "name": "회의 중 갈매미",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "originalUrl": "/images/H21.png"
+    }
+  ]
+}

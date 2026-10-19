@@ -1,0 +1,3649 @@
+{
+  "schema": "registration-card-game-assets/v1",
+  "characterCount": 145,
+  "canonicalCharacterCount": 145,
+  "masterViewBox": [
+    0,
+    0,
+    1086,
+    1448
+  ],
+  "runtimeResolution": [
+    768,
+    1024
+  ],
+  "format": "WebP",
+  "quality": 88,
+  "allOriginalPixelsUnmodified": true,
+  "viewportAuditComplete": true,
+  "scope": "full-canonical-export",
+  "items": [
+    {
+      "id": "C1",
+      "name": "기본 갈매미맨",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "path": "resources/cards/C1.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 149740,
+      "sha256": "d51603e684c2e865307327bf6b3aad972a5b2eb1a073ef47131f36bda2fff7c7",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/C1.png",
+        "sha256": "3dd36e02da25a56b9ca997e67dad02dc998532efd89e34ec5796f25f774c408f",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Preserves the exact face, stone crest, both wings, feet and in-scene dialogue.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "C2",
+      "name": "황금 갈매미맨",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "path": "resources/cards/C2.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 162666,
+      "sha256": "63dff9f103232b4d2f3ad34d3216ad1cd8326694e8f1495e17113621d6dd262e",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/C2.png",
+        "sha256": "679b3ecdfdf574b63516c6903a0ff5cf45d6ea29665e1e54795684faec484b4d",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "C3",
+      "name": "암흑 갈매미맨",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "path": "resources/cards/C3.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 151930,
+      "sha256": "c34009506ea6305dbbbd67644dfdc00fd9853a21bb0891347d90e36172ed67e3",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/C3.png",
+        "sha256": "834f1deb022b2326595dc0c6aaeae1c28bf0bf854ef61c6618895e6643266d9b",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "C4",
+      "name": "바다 갈매미맨",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "path": "resources/cards/C4.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 169382,
+      "sha256": "fbdd74ee74fba46d8f9a0311ab6d71c46b264d1593f1413e6d2f3a3b481dcc5f",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/C4.png",
+        "sha256": "7166de3a986623a5ef671ef685bbd893e9a25b71b4100e008df8770006348459",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "C5",
+      "name": "벚꽃 갈매미맨",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "path": "resources/cards/C5.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 165150,
+      "sha256": "d7ad00a3d8379a511467e3df8af513c922ac9f4259086a1e11374abaaf3f97b9",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/C5.png",
+        "sha256": "c75c667ddf107d471a1b5103b8f23acbb14717e873adbbd74cbc5787420a63a4",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "C6",
+      "name": "우주 갈매미맨",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "path": "resources/cards/C6.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 156996,
+      "sha256": "c4da7b852b1cb840df6052dbca097a422bfbc8f06660995689de4cb0e8beeb45",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/C6.png",
+        "sha256": "ffafe3d8dc9353a205bcc800f2c76f014e9a85b2512bb33239de3bf8c210911e",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "U1",
+      "name": "금갑",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "path": "resources/cards/U1.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 185592,
+      "sha256": "689ce1ddf24eea0a7bd1a9a6ae3eee7363cad24bb60b233816bc3abae46617a8",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/U1.png",
+        "sha256": "5a9970589af75f88eb1f184ce32689695a155314f1ec89bfd0c0341bdaa9e18c",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "U2",
+      "name": "야경",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "path": "resources/cards/U2.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 155778,
+      "sha256": "272d034cf9cc424fb07f2f7548cfcf1e59f322b66f28c94dd4e94d9bad40be6a",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/U2.png",
+        "sha256": "370425015d3ead0c691501a150fb53187d51fdbcca39b8f9c33e406f9c61a4e9",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "U3",
+      "name": "방파제",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "path": "resources/cards/U3.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 181432,
+      "sha256": "3d6dcfd98eefcda3f05ffb208a4d923703b14d67718f3219ca8d254d6e93ab14",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/U3.png",
+        "sha256": "b434538207f4d9f57b7be50605f5a8062e0bd2191e1791565c5df023f8d54904",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "U4",
+      "name": "꽃갑",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "path": "resources/cards/U4.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 169988,
+      "sha256": "c4ace6db025075449f0621a7fb571eb2497ada9c9c98c8646b71140f2e653728",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/U4.png",
+        "sha256": "561e1cdcbb89297b52d63ab4b9b3d4bf7df9eff29c83c653ca2de0abf10ac03d",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "U5",
+      "name": "운석",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "path": "resources/cards/U5.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 174496,
+      "sha256": "cde32c79b513e08ef06e89381097bdbb9d86d148750bc6adba314c69950743b3",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/U5.png",
+        "sha256": "0d123eab23287eb440d19e225ddd7d02a7375f629aa705b7a79a1a86f5da7bc9",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "U6",
+      "name": "금조개",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "path": "resources/cards/U6.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 168666,
+      "sha256": "9ab4f97be734757655fe6b8d53d3b6236201ec99622bb7892297707d3d6d9eef",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/U6.png",
+        "sha256": "49b2d0408c8378b53b030ea20cec8994cd8ab8961f4a88371230aeec94526db3",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "U7",
+      "name": "심해",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "path": "resources/cards/U7.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 164004,
+      "sha256": "80fb8eaee2955caa5d467a4a304fd7310350739931ecc733668ddc13af8efee6",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/U7.png",
+        "sha256": "030fe1d09188ce1d12f6af8f7d4c10c0ba2e0391ce8c84f099d7049da34deacf",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "U8",
+      "name": "꽃물결",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "path": "resources/cards/U8.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 165074,
+      "sha256": "0a92c9bdb33cd48f3ba0c5a4806b9e65cafe2a3e3108edee8d58ea4d946abcd2",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/U8.png",
+        "sha256": "2dad97f589911950f30b37e4b9b7fbbea596a851043e9ae50e701024a71b183c",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "U9",
+      "name": "금성",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "path": "resources/cards/U9.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 160892,
+      "sha256": "2c5336615741740eb50a2555166ab2f5ebecbfe9c8026e20d9ec48442c967743",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/U9.png",
+        "sha256": "732671866846e11d7f780ae42194fca6cbdbfd817d178e3a7512d6b98e3adcc4",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "U10",
+      "name": "블랙홀",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "path": "resources/cards/U10.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 172804,
+      "sha256": "1f818de3c7f3e96643c03622ff886a0903b3d99d70cdb9f675846285922bcb5f",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/U10.png",
+        "sha256": "572f9834ed27ececfa40642ccefb0c082dff64ba61dc3d25f79f38d2c015c467",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "U11",
+      "name": "별꽃",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "path": "resources/cards/U11.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 182506,
+      "sha256": "104d5827a46ec9a19f0b72b56bdc9150b4bb2d5329f2db78ee2d9b980dfee4e4",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/U11.png",
+        "sha256": "1eaf8e31b1df21622319963a0742f199faf2a52899d8212a5cbd936eed06756f",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "S1",
+      "name": "쌍패수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S1.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 192628,
+      "sha256": "fafa497f48b801c51f61dc3a657c540e3c4e57a9ea047c378964577d9346b5f2",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S1.png",
+        "sha256": "e5511a095b992752bb4d24e79216f38ad7655dce28c9d9922bea71d76b1acbfc",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "S2",
+      "name": "꽃띠수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S2.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 196042,
+      "sha256": "bf4bf563f7c3e9fd8f7fb92d6b7d88a4d74743b410cdcab39d51bc941372d3e7",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S2.png",
+        "sha256": "5803ed45c421faa2fac994b082b9c75f7193d77586e434ddf79daa6fc18f375e",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "S3",
+      "name": "해저보행자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S3.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 176330,
+      "sha256": "fb9a601c36594e8af9c4e71ba64dde7bc59aaa7eaf261855ace2ac6d2cad0354",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S3.png",
+        "sha256": "e65d858021ce2c636a8a9960e0c68aab15eb292fb4947b44af566d6d45c9d2eb",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "S4",
+      "name": "중력수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S4.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 182406,
+      "sha256": "a956c24de311d4481ab2bebecadc0d536a88736d8044e662a7302c3b170bee87",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S4.png",
+        "sha256": "696acee304cf67d76ae0f41795704d9a0ceabb6570d11a7fc17a0468565cd0af",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "S5",
+      "name": "황금별수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S5.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 181678,
+      "sha256": "702fd515e571d63fba4cec2f9fc4fa4a4192ad27627e9e3a67888d57f2f199b5",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S5.png",
+        "sha256": "d16c3461b2ae4af251ae781ce7423e0668291358b59de9bd5440fee5a29f2e54",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "S6",
+      "name": "밤먹는 수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S6.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 171474,
+      "sha256": "eb6b9401d3fd85399dd5a4e088dafa5d5ea41c861e47ef312701bbc77a34887e",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S6.png",
+        "sha256": "984a34328a5f9ae493d8fb74e71bb6010b4de7e96576fd61771a4b558415a0e3",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "S7",
+      "name": "서리꽃수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S7.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 192970,
+      "sha256": "43f0e6b326e61e3895b286b52669f5511528390607ddd597b4f4933b326c58ba",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S7.png",
+        "sha256": "5eb45c88f7c54124db3288f52d6c708c3d0daeba3981c1b75a45a3decbfd05a7",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "S8",
+      "name": "유성대장장이",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S8.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 206248,
+      "sha256": "568b4ccc58b82c874ac9aad8859c9855ece7950d835243725188129f8eb227d5",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S8.png",
+        "sha256": "daae9c77472d02328b6e5398fffe1bcaa36c471ad8f1d1d72c0a11239f1e9c1e",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "S9",
+      "name": "물거울수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S9.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 161240,
+      "sha256": "87cf6694050e8aed6a2426bea646078dd1293c7e113a1c0ccd4db9d83c2672b0",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S9.png",
+        "sha256": "c697916739e5528849bcce2e1863f9615bfc37fa9ac6095ae47d1d20da90c488",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "S10",
+      "name": "꽃등수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S10.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 174338,
+      "sha256": "e0c686b7a2a2b01c474d1d3d0a0bd1bd0a970eb37f87801e0d54361ee9408acd",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S10.png",
+        "sha256": "7ed288f513018584c0cf8428a093b7f262d8928f75cc44208141b5de6d38d169",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "S11",
+      "name": "별길지기",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S11.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 161784,
+      "sha256": "5ce20bce2378c1a6b7ff9bb3f7c89df1d7a4429cd7b76d1d50dcfff0e8d3ef65",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S11.png",
+        "sha256": "be842d5a7bb95024f9a0e36048bd46c653f345bd435ffcd33572647cb90bc06f",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "S12",
+      "name": "흑진주수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S12.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 189576,
+      "sha256": "b8aa135ca26c1a0d9019273b633b53eb47222a95ea599cb745b0aaba74b28e9b",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S12.png",
+        "sha256": "f3d7d5566be2926094b3878978ca1efc13ed756ae004de6fac3d6bf945f88270",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "S13",
+      "name": "태양꽃수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S13.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 171342,
+      "sha256": "03c2d6bb4f91a0b3cf733911f3f40c5b68ac1340d5ae7aa1854c6fdafe8c41c7",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S13.png",
+        "sha256": "9ccec712ecc37257d3a8ab638c27f8a56e0fc06e239f862271714590cf4f1dfa",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "S14",
+      "name": "진공수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S14.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 171542,
+      "sha256": "465ff2753255709c7dd46e4dfc454d9b7cf4c49f1dc3b69cffdb984ad99b4f8b",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S14.png",
+        "sha256": "d671258da8678ec2b7224d6c2489d045e4f1304cfb539da3d7024212420ddf9b",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "S15",
+      "name": "풍랑수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S15.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 199908,
+      "sha256": "697e83dbb3e4f4257107a280149fd8e966bb13691805f89f67e0954e5543b9c2",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S15.png",
+        "sha256": "c1277315a69116b6f63170433eb77f117c9bfe558bc70214b850ea7f45a6126b",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R1",
+      "name": "황금쌍패성기사",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R1.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 188314,
+      "sha256": "5e4bd770c92cac638037fc5fb96872389516f6dd453d9d0022c5675c25a43abb",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R1.png",
+        "sha256": "8b02fc89b62d6bbcc3cbf667d73cb6eb2b45d327831f1d9e12df625260d2160e",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R2",
+      "name": "은하매듭직조자",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R2.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 208268,
+      "sha256": "4f573269076524b72b1be3de041f222807f9b8bd7af93e5872d587ba4c5fbb02",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R2.png",
+        "sha256": "a33908184cf6095dd00a8a3df124828ec876fcb5a44d127527cf0180a998c817",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R3",
+      "name": "심해중력군주",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R3.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 194730,
+      "sha256": "800e704a7d6bd8b191e16a2d6033afd35934de70b99ba74b4c9d5d0cc1734f3f",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R3.png",
+        "sha256": "b898c55ecae18c2d6685f7cc01b6b8959e169349cdc3e72422abfb585428dc28",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R4",
+      "name": "일식수호자",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R4.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 170464,
+      "sha256": "84cdb3adfc4c49723558ad061de7b87cc31b0b8ab88975e4b144dc37639e72fe",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R4.png",
+        "sha256": "d100312746cda9b97a061850e3d4130dc5133ad561a34fd0dad8b2a98c4eded2",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R5",
+      "name": "빙해수호자",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R5.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 183216,
+      "sha256": "a729db876ce7838ba1737f23a338c2505bddb5a2088541c6463cc1232a4c59c4",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R5.png",
+        "sha256": "4ff25786b4aa11b5dd0d7f61285a268067299f1c82454228c2f5b47428535b72",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R6",
+      "name": "항성용광로",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R6.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 204170,
+      "sha256": "9bcffa9271e19d9187cad071719c231e486b8d4472e4d8d90b9d77490761895a",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R6.png",
+        "sha256": "80e82ca507adf73464e4ba66ab15f6147c91f6711bf6812b2284333ce3514f31",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R7",
+      "name": "흑경수호자",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R7.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 167910,
+      "sha256": "6c0b47e974152676d11fca6fac1588edc303ad3502d78197d139bd67561c0727",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R7.png",
+        "sha256": "05f2beeb035a24606221acb6d2856e88e1df3650d8a5c42e4935247810eed98a",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R8",
+      "name": "잠꽃지기",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R8.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 182474,
+      "sha256": "0f083a5bb5b441acb8da1c1c78008a6e94ae22310d1ddb67a5b6a62c8bda93f6",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R8.png",
+        "sha256": "5f9a3e60f703d091475473fc751bcd762113d1a888ae95939cdf4b9342b68019",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R9",
+      "name": "궤도항해사",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R9.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 195004,
+      "sha256": "3998375c53aa6cb500a8a4ada148a3ea7bab8966b19c3356a0d0bbe87b5f79dc",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R9.png",
+        "sha256": "03a5f1f97556b681be7444dc4ee367df6e628f2210678eb03678e1ebb56399b1",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R10",
+      "name": "진주심장수호자",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R10.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 186608,
+      "sha256": "29388a8b3a32632185eb54c22a6ddda2f504fa0e2418253124f7f944dca4e609",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R10.png",
+        "sha256": "3680038826087ed1584d9081e5b999854b966758e1da52698f38e6e6c700730a",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R11",
+      "name": "사계꽃군주",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R11.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 209226,
+      "sha256": "77e54111623f8ac8e4309644280cce96f7625e1848abb65a29c9a4bdfc39d8ec",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R11.png",
+        "sha256": "6f103231d80b88f3496e7e2e8f8940f1cdfd509d919d67149841b9267f825a2b",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R12",
+      "name": "공허흡입자",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R12.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 191134,
+      "sha256": "8d72d9b2a7727c646c3ca2631df3294689fc5f2018f8a375b514293d84c403f2",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R12.png",
+        "sha256": "795a8a8a0c5bf08e65f739673b5cde4e76de6b3abd1881532c14f02c86ae3a83",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R13",
+      "name": "해일성채",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R13.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 190902,
+      "sha256": "98eed5ce5ab3bd69ea36879048d1b8d9db6af71d7099d7ffd355dbca259c1e95",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R13.png",
+        "sha256": "0e0add3137e6bacec3acc3ba28f82feeaa2bf7607af11237c23368de7e243442",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R14",
+      "name": "유성충각수",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R14.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 190442,
+      "sha256": "a1ddf05b8347ea8e16674fd4d4f8837c904851e5963d6b9a8a88f72a0b2c0a79",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R14.png",
+        "sha256": "bef022bca657de814e4051fa381bd6b11c29d300f386c1c31661db8551ee05a7",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R15",
+      "name": "별빛분광자",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R15.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 169478,
+      "sha256": "56d646327a28b7d9d7a754ba12ef8d246363febf7ea80b8f0fcaefdfea57258b",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R15.png",
+        "sha256": "be323d99d11977cd81ba785e555fd3df23684fb32d97ccb611045beaff6189e9",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R16",
+      "name": "밤벚꽃군주",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R16.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 177208,
+      "sha256": "f63cae0358276ebf67bfbd2906a1b1187cd532b4e43d6fca90701bc6db691ce9",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R16.png",
+        "sha256": "a5159e9f3e4d1204864b23f1825570a7726e7e994cee6128ce955546dba3f16a",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R17",
+      "name": "조석시계지기",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R17.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 172544,
+      "sha256": "8b38807b95442342146d5127a1a61f83bb7dcd49a552523909e36a3a42a9d24d",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R17.png",
+        "sha256": "1af927f55f509c1467005d5422add3a84661c5dfb65b63887bb9b28053076869",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R18",
+      "name": "천체금고주",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R18.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 189588,
+      "sha256": "d87b944b31c9a3e9ebe069704dc08358bec35451bdb40faf9b95004e1b90eea3",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R18.png",
+        "sha256": "b992283465a6a609be3b1a9317dcc828fe14b90947da62080388c17d9496e6e0",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R19",
+      "name": "강철실재봉장",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R19.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 188458,
+      "sha256": "48e45aad97e85523727288c503432dac4099f81d5eadb466fcff9ccf0a8469f7",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R19.png",
+        "sha256": "7f9eac07b1c41476a5d84c247c63e1071e86c286a8eb91fe9e94108805b6da62",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R20",
+      "name": "공허쌍문지기",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R20.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 180528,
+      "sha256": "77065626721fad6411370e9c24b4b9357fe37a9031d77eb70e0ab99b564e9188",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R20.png",
+        "sha256": "4b15cb2206d0d105a3d1feaf6cc9b5d08f5cafac47420782a9fbd19c4bd6988d",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L1",
+      "name": "만조의 갈매미맨",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L1.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 199458,
+      "sha256": "1d62f1297a497f4ad1e1736ccf2ba57f8f5e54a0cedf6cd02333e53b35416705",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L1.png",
+        "sha256": "8991f80b767442e294b46efd3ef402b111a1d7b5ac7b20c30eff81c2e77e62ea",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L2",
+      "name": "쌍패성왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L2.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 186430,
+      "sha256": "619e8cb134176aa679f9e4e0a850fd4cc965b9718f80191cbd55c911eb33c874",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L2.png",
+        "sha256": "8e0f8864a7a880788912f12e7bc26baffea6f326985ad646aefa418501ee61d2",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L3",
+      "name": "별누비거신",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L3.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 194148,
+      "sha256": "118ab51376aeec98814677e0f937da91317fdec11603f02aa07cc237bce8b0b8",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L3.png",
+        "sha256": "a3b7af7025ad0f5b9eb2b4741feef3b35d3fa3a4af89dbbd0a310d65528c90f3",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L4",
+      "name": "얼매미",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L4.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 189404,
+      "sha256": "4206c4c8c294d78973f0876276f73933fffea8aaeda9645610ee0e55d5b1ce2e",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L4.png",
+        "sha256": "fbcc0de823013e35c96630cfe5a46c3446d48f95771052a6863e08b2cf3b0a21",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 64,
+          "width": 748,
+          "height": 632
+        },
+        "review": "reviewed",
+        "reason": "Taller viewport preserves the high ice-wing tip and full feet.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L5",
+      "name": "태양꽃화로왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L5.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 193694,
+      "sha256": "f08148ca8537d28e65e5be5828ef249401349a745970ec86c8426289e1f75796",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L5.png",
+        "sha256": "1ce9a2c49c435794287c7bff6e073ed271704c12c10d0bd8b860d2fdc1a9587e",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L6",
+      "name": "일식거울왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L6.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 175708,
+      "sha256": "e7ff47e8897902176f144c426ac230a063025b9a0760c2052f069a622d7b9aea",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L6.png",
+        "sha256": "a926a54b1b21efe8fdd21e92d93160276b780ff3dd1b254e28bbe62245da64a6",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L7",
+      "name": "잠든벚꽃대왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L7.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 189620,
+      "sha256": "dddcd8f27f72742e3df0fb055523ea218d9b1800a94dcae1e9632b6ee2d44b67",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L7.png",
+        "sha256": "f24deb69652e6ed793d31b08373181d1effa485b39dddcbb1ae269b2eaf1d3fa",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L8",
+      "name": "은하등대거신",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L8.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 205984,
+      "sha256": "83dcdd27297dd30b913d13d31f0ba66b8022637aa382186f38451300bcd28574",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L8.png",
+        "sha256": "bad454ef407d37f8d7bf61631a2cd71c4222a85aa245e6edd54c0ef633f85332",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 50,
+          "width": 748,
+          "height": 646
+        },
+        "review": "reviewed",
+        "reason": "Taller viewport preserves the bird, held map, wings, feet and more of the tall celestial architecture behind it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L9",
+      "name": "흑진주용왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L9.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 192622,
+      "sha256": "7ee94b714cbd280859b39699740ffc76703b0757eac8c6b588d98aa0b7f536f9",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L9.png",
+        "sha256": "67fd68ef7904d974c87ee7cc05e82a26169c3c2e6a1314e7001959eb595a6252",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L10",
+      "name": "천년봄수호자",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L10.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 202934,
+      "sha256": "99bf38302e21f33cccfd5799a33e5ccfeeea2c52ab5a5d2eea0a3a7cc7213ee3",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L10.png",
+        "sha256": "78a72aefa810b6694b4b63764629a5641406a5a2c0d1a33eb6994694a12ce45e",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L11",
+      "name": "공복의 블랙홀",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L11.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 206596,
+      "sha256": "849a421fb6ab323949752e8b9d0af3da49c7a690f6e52bdeba872cbf3b38bbf1",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L11.png",
+        "sha256": "110495c95a7efdb413623eb450c3761283b1c492db09f237c98e0ad420ff3dbc",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L12",
+      "name": "황금방파제왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L12.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 207550,
+      "sha256": "acdc54dc3e150b787c102aad5ed80cc02764142090284c10d983dffc74efd308",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L12.png",
+        "sha256": "063025173c2fe24b5d2eac65754691452dee4df70b2a15223c7389fa3457d05a",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L13",
+      "name": "갈매미사우루스",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L13.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 192048,
+      "sha256": "573231d098543ea6bbb1709a55565cd607d9195b48728f1d61a6f775423aa864",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L13.png",
+        "sha256": "47452e0822bc2cce5cf867c8ba5961e0b76b9023319eb4a6b2f636a1fe9016f5",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L14",
+      "name": "무지개날개왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L14.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 188914,
+      "sha256": "45526ec4d5d70e591f306fd54ad01fe48eb3c1f40ea3d87b87add6eda229f068",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L14.png",
+        "sha256": "cea85f9d9fd117d3d660255a34d70a4c66bc7cd5c3154e74043d551f8ea4a1cc",
+        "mode": "full-original-fallback",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 800
+        },
+        "review": "needsattention",
+        "reason": "Wide rainbow wings meet both original side-frame edges; full original prevents additional wing truncation.",
+        "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention."
+      }
+    },
+    {
+      "id": "L15",
+      "name": "야광진주벚꽃왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L15.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 191080,
+      "sha256": "d6b982c1a2269f36f03ba2b5a188e7c245a18fe05122d01f12ad02ef8acd6310",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L15.png",
+        "sha256": "2af05f94feca30ad56eb378172a3ca758a8a4157ad1d5853be58fe15fb506dea",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L16",
+      "name": "느개미",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L16.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 180854,
+      "sha256": "8705a9dd09adbc310f1a62cb8ac88ecd5c50a5ff0423a7b0a3b3b35864de50ff",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L16.png",
+        "sha256": "d9163221007a4c9db8bfecc85ab20dfd60b6347daf0613e01834d865bd00af63",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L17",
+      "name": "갈노스",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L17.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 195028,
+      "sha256": "4a47f885d10756106b524616e8c2ddd39ea61dcf4a3867c8144c744d8b88dd23",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L17.png",
+        "sha256": "2b1ea46f301e090757df1ab60cc29afcfb83bf2282f2ab77a7cc23372ccbbde8",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L18",
+      "name": "불개미",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L18.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 188874,
+      "sha256": "9993b6f05091888258eda2fe5db240ad5b522406edcd4b5df7f4fe3983de3135",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L18.png",
+        "sha256": "7870fa90c951b9a8a7e739a001c68f21ba311b8b7e55d49d035601652ba1368f",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L19",
+      "name": "빤스갈매미",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L19.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 170364,
+      "sha256": "e82c55ac73b02594412bc6fba4d5a4784a9e69c8879fe8b15d05a9d23556219e",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L19.png",
+        "sha256": "96012fec30275140ffff4256f7e557164e64ccfa13e76a14a467a4a414457633",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L20",
+      "name": "갈매미질라",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L20.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 184514,
+      "sha256": "3935c2bda85f45f2f7a1cd0bfe3738b942d6e6c80ceaf3e34780d3701ad02b89",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L20.png",
+        "sha256": "1c61a160b45355de77a0bc905a08e4c31f1dd70f46936f23ed91fa56ef2f772b",
+        "mode": "full-original-fallback",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 800
+        },
+        "review": "needsattention",
+        "reason": "Large rear stone/water appendages extend close to the top and right original edges. Full scene avoids deciding which connected details may be discarded.",
+        "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention."
+      }
+    },
+    {
+      "id": "H1",
+      "name": "브라자 갈매미맨",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H1.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 165418,
+      "sha256": "c1fb7514f1b9f532a1298967341a52cab683674849a74fb76064a26b3df7af2a",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H1.png",
+        "sha256": "249436403399c70b96b1c76c4fa4a89e06cf37a9e96f26f473e1679993c595e9",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "H2",
+      "name": "뒤집힌바다",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H2.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 189998,
+      "sha256": "d56d7523536d361291f417a7c2aac32a99bade66bcc4c54529bda4a3a29dcb91",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H2.png",
+        "sha256": "baefb03069a7666817661efa4c214a5583a715d3d9d73f643b56762f4990fac6",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "H3",
+      "name": "낮잠일식",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H3.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 174744,
+      "sha256": "c706049886f93edad2e622981139b92ff6d84faf0438f30b055898239118a8f5",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H3.png",
+        "sha256": "eb5beb4be32ddf5bbc128c79e62d82bc4d60d7f754181c19075f2ea24d0325f7",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "H4",
+      "name": "냉동금고",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H4.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 179586,
+      "sha256": "cf58ef9dee7dd0379978d070a41bc282446928b93b555c3ea7b09793420d3140",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H4.png",
+        "sha256": "947f1f0c0dd607d6f37c12d13473a2f70a1bd6f2e3aab55cd623567ab3ba33a8",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "H5",
+      "name": "숯꽃갈매미",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H5.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 191984,
+      "sha256": "c8b4be29425d1d293ba12a810c55cd1071c0f60d8f3dc79aaee7eff9fcd67c4b",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H5.png",
+        "sha256": "00b5a23a598878de1a3b96b29a991f0fad6073ae52780c1e08d77567453ca587",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "H6",
+      "name": "거울떼갈매미",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H6.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 186654,
+      "sha256": "889c09638002e0f1c6ce0ca07d0ec6629d24644340eaf9121a8d9111a8c6aa1c",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H6.png",
+        "sha256": "268db01faa4c94f09ece145a6a42e76031717e4cad27ba6a216416ac57659631",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "H7",
+      "name": "이불밖은우주",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H7.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 198906,
+      "sha256": "05b8570f92f56f5f4d3a64b91d518f7921a27a568eef920df51b751c6ce1cecf",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H7.png",
+        "sha256": "f391ca6f6bbd2e951933de4ab717e917d2f5140d89e1898db003cad720b904b0",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "H8",
+      "name": "길먹는갈매미",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H8.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 200854,
+      "sha256": "8a618f4c70ccb419571f5b10d998ff312909792a195296e976edd247925d8df7",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H8.png",
+        "sha256": "72809734263a18a791536c073f94d2b154bff0c1094df7a561980c6f691016c2",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 64,
+          "width": 748,
+          "height": 632
+        },
+        "review": "reviewed",
+        "reason": "Taller viewport preserves the upper floating crystal prop, beam and complete bird silhouette.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "H9",
+      "name": "진주알사장",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H9.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 182338,
+      "sha256": "442627cb87405c9fcbb6eb4339036984e6f352b92e9f630608a18727f877b158",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H9.png",
+        "sha256": "7ca17a89c8257436a1aa233935e5b9e7f201760446209a8f311dc3edf84c7e73",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "H10",
+      "name": "봄반품센터장",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H10.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 181896,
+      "sha256": "c17200a0ef4f7dcbd284d3360fcd9c3f9e6d84214aaea9e21b0419ce4a26ed50",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H10.png",
+        "sha256": "c1573851d5bc0f1c814048a31d43b29bc1b74d3f29d06cbdd687ef5954b7f0ec",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "H11",
+      "name": "소매블랙홀",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H11.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 196748,
+      "sha256": "8e1750d37dc110cc3bc2bc61eaf2f620a92a0f24e3afb5835896fa2d040c598c",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H11.png",
+        "sha256": "8fdd1621c01557f2d34768947ed839fe0299d94b7162e22becd649545eb266ea",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "H12",
+      "name": "정시해일",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H12.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 205970,
+      "sha256": "a619ab535de602a2b2771a1008f9f04cc1751184646ceeca0dfc168c5f8c57de",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H12.png",
+        "sha256": "1e66b3bcb8ce8a5072cb9cff544e0f5feff83a32cb7e3bce6929945585402df8",
+        "mode": "full-original-fallback",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 800
+        },
+        "review": "needsattention",
+        "reason": "Wide water-wing feather tips reach and overlap the original right edge; full scene avoids truncating those signature appendages.",
+        "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention."
+      }
+    },
+    {
+      "id": "H13",
+      "name": "보물등딱지",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H13.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 189790,
+      "sha256": "9a93f43fdc2bb2295b89302a3fbfae84b482cf8530822bcdcffcccf3aa9793ab",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H13.png",
+        "sha256": "bb25862558a31219ae0689af423196caf605d4790ef15c534b073d6d5247e4ac",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "D1",
+      "name": "태초의 갈매미맨",
+      "tier": "LIMITED",
+      "tier_ko": "제한",
+      "path": "resources/cards/D1.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 194238,
+      "sha256": "cade26f0860ee2c3b3e8c25c36df02cebe9ddee6b0c4b82aa5272fb442e4441a",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/D1.png",
+        "sha256": "cca2f7251c01d0fe090a751d24ea724a631a598899ad776ccf09eb117371f524",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 29,
+          "y": 90,
+          "width": 742,
+          "height": 607
+        },
+        "sourceClipPath": "M29 90H771V638L716 697H84L29 638Z",
+        "review": "reviewed",
+        "reason": "Both gold wing-shields, central bird and background birds retained; lower polygon removes old corner accents.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "D2",
+      "name": "원금 갈매미맨",
+      "tier": "LIMITED",
+      "tier_ko": "제한",
+      "path": "resources/cards/D2.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 198442,
+      "sha256": "5851975937126525dbf87786f8693c8f585a1fa05d5668e547dde6cb30f4a4a0",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/D2.png",
+        "sha256": "781b8d9babc37710053481cfe6cb88fccb87667973b51a6d8e749bba0baecf08",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "D3",
+      "name": "첫밤의 갈매미맨",
+      "tier": "LIMITED",
+      "tier_ko": "제한",
+      "path": "resources/cards/D3.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 171808,
+      "sha256": "655fe279d21a54314cf3f33dc3ccb24f7fdf7534b5f1a2f1b2a84a6b0c2a22f4",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/D3.png",
+        "sha256": "2046705d1d014896eaaf7b50800d541f3db8812d8d47087b8d8e5cf034ad5163",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "D4",
+      "name": "원해 갈매미맨",
+      "tier": "LIMITED",
+      "tier_ko": "제한",
+      "path": "resources/cards/D4.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 211406,
+      "sha256": "7e70adc4a791318d81cc0e03ed3f4c25daf2a7414ec3627ccd9c9e199f41ebce",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/D4.png",
+        "sha256": "e4fda9b71ff534db805372c95388767635e0aa57aec6f3a32bd7ef18b2fa5c00",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 32,
+          "width": 748,
+          "height": 664
+        },
+        "review": "reviewed",
+        "reason": "Taller viewport preserves the distinctive overhead whirlpool; some baked top-frame decoration remains.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "D5",
+      "name": "시원화 갈매미맨",
+      "tier": "LIMITED",
+      "tier_ko": "제한",
+      "path": "resources/cards/D5.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 187762,
+      "sha256": "37a892ee28e71af55c0f5b2e8a4d8581ef26d1d7c82b10fc5cad31430bde53b5",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/D5.png",
+        "sha256": "b73b924b05711e9498d7e1e52d4a54311864c4d5fdc05f3c28bcea262d3e697d",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "D6",
+      "name": "첫별의 갈매미맨",
+      "tier": "LIMITED",
+      "tier_ko": "제한",
+      "path": "resources/cards/D6.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 195792,
+      "sha256": "03d5aee114d557ddfbf69d45fc7c5efa06fc9cd30d41abba98f1143d7af4dc9a",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/D6.png",
+        "sha256": "90b8df481969921fffe01c4c82c292b88a0e6be2f05f04625c4e2f2ea9ec0d3c",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "D7",
+      "name": "갈크탑",
+      "tier": "LIMITED",
+      "tier_ko": "제한",
+      "path": "resources/cards/D7.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 165240,
+      "sha256": "bc6700c89c2a40916a4c35300b92ac0b43959f6fb55d85267466ba7550a7d626",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/D7.png",
+        "sha256": "cb77f3f61b9ee718faa446c09b42f0bd44bbb6b5cb024e8671b89f8d772962e2",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "D8",
+      "name": "갈리번",
+      "tier": "LIMITED",
+      "tier_ko": "제한",
+      "path": "resources/cards/D8.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 190856,
+      "sha256": "cad793c5f5e4ee4ea3761cddfc3f99785541f2d83bda8d9d1c0a58d0bd66f6d3",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/D8.png",
+        "sha256": "1865821114bd71cf50dd1c7911a3c9cc3203248aea125bfa56c81a842a86ebc8",
+        "mode": "full-original-fallback",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 800
+        },
+        "review": "needsattention",
+        "reason": "Ribbons, bow, gift and wide wings meet original frame; no tighter automatic crop is approved.",
+        "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention."
+      }
+    },
+    {
+      "id": "T1",
+      "name": "만상의 수호자",
+      "tier": "TRANSCEND",
+      "tier_ko": "초월",
+      "path": "resources/cards/T1.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 205502,
+      "sha256": "a0b710267a7481084a3c316adb1d2b31a73bffae3b5bbbf25d5b1e3793241390",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/T1.png",
+        "sha256": "6e09cd3d274c97c09d77a1784f2225aa1a882bc1ac51eb539a4f5575b941ebc5",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "T2",
+      "name": "금율 갈매미맨",
+      "tier": "TRANSCEND",
+      "tier_ko": "초월",
+      "path": "resources/cards/T2.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 184636,
+      "sha256": "c33df9c1e1f1288dc80080cfa7099d35ce02356c8232e311774f047cf24b251e",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/T2.png",
+        "sha256": "1dd0146a29e73103b3651656764950622ca44249eb83333a445e4fdf2b371c9a",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "T3",
+      "name": "영야 갈매미맨",
+      "tier": "TRANSCEND",
+      "tier_ko": "초월",
+      "path": "resources/cards/T3.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 185034,
+      "sha256": "db8988fcfe79e01fea2f91d1d8582c2bc24eb9f668c4de67472a029df71a0ec9",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/T3.png",
+        "sha256": "36c1cc390d5cb7083ea5d01c2fd1bf365ac0e891b3f4058cfbb53b3b49097fe3",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "T4",
+      "name": "대양 갈매미맨",
+      "tier": "TRANSCEND",
+      "tier_ko": "초월",
+      "path": "resources/cards/T4.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 212094,
+      "sha256": "fa92fef7c4dcfe4e97de01f4e8d7ba0898af61573cff96883f7c2d06188dc180",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/T4.png",
+        "sha256": "218b1d237bde26331a463159457b2c27ab39a642c968074b59eee5bb27df3a95",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 40,
+          "width": 748,
+          "height": 656
+        },
+        "review": "reviewed",
+        "reason": "Taller viewport preserves the overhead water rings; some baked top-frame decoration remains.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "T5",
+      "name": "만개 갈매미맨",
+      "tier": "TRANSCEND",
+      "tier_ko": "초월",
+      "path": "resources/cards/T5.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 191998,
+      "sha256": "8e3c71bac6bc29c787fa112bcfdf6398250bb67ee870ffa316cd9a07658610c3",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/T5.png",
+        "sha256": "ff438ce612042ed4f057e1f5765b5a8e8968242e62885638bc3ee4804259c4af",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "T6",
+      "name": "천체 갈매미맨",
+      "tier": "TRANSCEND",
+      "tier_ko": "초월",
+      "path": "resources/cards/T6.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 193918,
+      "sha256": "cf0f6e045f3d2cb328418a9820f71818752a0c9d1081cfb0976695478b63f3af",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/T6.png",
+        "sha256": "b81c260660bb36b6e8864e29b7923df7183619308b64e521642663b753353478",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "T7",
+      "name": "갈깁스",
+      "tier": "TRANSCEND",
+      "tier_ko": "초월",
+      "path": "resources/cards/T7.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 169590,
+      "sha256": "98bc2e753601ea453b8999379a6c930ef58b7aa4fa0386dcf42c551f4e194ff4",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/T7.png",
+        "sha256": "531eeca357abc9f84ea6d78d84b568b411f37ca456f9ae45f8707452d44a24cb",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "T8",
+      "name": "갈쫄쫄이",
+      "tier": "TRANSCEND",
+      "tier_ko": "초월",
+      "path": "resources/cards/T8.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 193458,
+      "sha256": "2ac4d3296b5127834bbc70e0461d33773a99bf42a50d9bf44cf676a6aca87c63",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/T8.png",
+        "sha256": "31cf3e480284ea082a5899ac5445aa7f6ad26d4e070488d2ef0c58b19733c3c2",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "E1",
+      "name": "불퇴의 수호자",
+      "tier": "ETERNAL",
+      "tier_ko": "영원",
+      "path": "resources/cards/E1.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 186532,
+      "sha256": "f98244fe401b8d01d3271b1a6de9814a664d72e5e8d83d28337be3d3bc942a1e",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/E1.png",
+        "sha256": "1654c6db9b63339ff6e7cbb82211b7685866d63c6c79d0f46b96e5b8065c9bcf",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "E2",
+      "name": "황금향 갈매미맨",
+      "tier": "ETERNAL",
+      "tier_ko": "영원",
+      "path": "resources/cards/E2.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 199590,
+      "sha256": "7a990ffb0fda027806f6b2ccbe52357612598b187e4ca25a8e3a37a22d3fd387",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/E2.png",
+        "sha256": "0645734965461d7deb0262be734b219c1f3a8111d2c9bde3c9347f06931ed7f7",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "E3",
+      "name": "끝없는 밤",
+      "tier": "ETERNAL",
+      "tier_ko": "영원",
+      "path": "resources/cards/E3.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 197234,
+      "sha256": "27664164723da36d80cb2839b784e77e3368e15f2fc14a19885700511ba67982",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/E3.png",
+        "sha256": "7989c252cf5431cf094caf6f57b3a21e91ddca2e2edfc016a48ab37f2336d9fb",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "E4",
+      "name": "돌아오는 바다",
+      "tier": "ETERNAL",
+      "tier_ko": "영원",
+      "path": "resources/cards/E4.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 204128,
+      "sha256": "f3de734aa7554b756d22145485d0262c11c6fb491ea107d14fae8c5f5f20ff2d",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/E4.png",
+        "sha256": "38c625005128edba2fb41fd3da963f9a14ca5c52aea914bc9b902fda9400d257",
+        "mode": "full-original-fallback",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 800
+        },
+        "review": "needsattention",
+        "reason": "Left wing closely meets and is overlapped by ornate old side-frame elements; keep original until frame-overlap review.",
+        "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention."
+      }
+    },
+    {
+      "id": "E5",
+      "name": "지지 않는 벚꽃",
+      "tier": "ETERNAL",
+      "tier_ko": "영원",
+      "path": "resources/cards/E5.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 195612,
+      "sha256": "0b45b16e8db034a3c1b67e27bd03e363eff99883098230d781b8394a67e2d85c",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/E5.png",
+        "sha256": "e06b24785d2ce2139b2c449217041f9a25543a19301cf920106a24707a7d9bf4",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "E6",
+      "name": "별의 기록자",
+      "tier": "ETERNAL",
+      "tier_ko": "영원",
+      "path": "resources/cards/E6.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 195028,
+      "sha256": "9497541507c8ba4578e420100a1aaaf1a5dd538b9c8f261d235bbc01a83fa322",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/E6.png",
+        "sha256": "a51970d09dc6fcd0c4c5166387acd3132ae44f61ac48ec0f19b2429a2b73eb51",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "E7",
+      "name": "갈발",
+      "tier": "ETERNAL",
+      "tier_ko": "영원",
+      "path": "resources/cards/E7.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 182722,
+      "sha256": "2a7ff9db06b0c25820a044fa0db77297d7157321f430f4cbb8556e0874b68221",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/E7.png",
+        "sha256": "22e37ea1d2e10ad583d11cd14c015e62a45c030a38de489b94906bc620cd5e5b",
+        "mode": "full-original-fallback",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 800
+        },
+        "review": "needsattention",
+        "reason": "Floating feather hairpiece begins near the decorated top frame; full scene preserves the separate signature prop.",
+        "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention."
+      }
+    },
+    {
+      "id": "E8",
+      "name": "갈내복",
+      "tier": "ETERNAL",
+      "tier_ko": "영원",
+      "path": "resources/cards/E8.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 189290,
+      "sha256": "8cd7d1d71973df3347f4900d58b1d6be769ab5d952619c8f0cec691d1d78cd06",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/E8.png",
+        "sha256": "39dfb681e5868bb3aa7fb7467955ee22b847a8cd0722191acda7de59ba90e186",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "I1",
+      "name": "앙~ 갈매미맨이야",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "path": "resources/cards/I1.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 204190,
+      "sha256": "0099d6434c8dcb0aeef005be776ed33d3dfc8a10f4b903c3fb8c6ec09ae9f4d0",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/I1.png",
+        "sha256": "76cee2329e4b757fa69682ab1c79ef77f1f3052f08526164979970ed3d024aab",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 32,
+          "y": 80,
+          "width": 736,
+          "height": 616
+        },
+        "review": "reviewed",
+        "reason": "Tall viewport preserves the upper original dialogue, waving hand, armour and feet; small baked top ornament remains.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "I2",
+      "name": "녹슬지 않는 황금",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "path": "resources/cards/I2.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 200406,
+      "sha256": "dc3dceb32415f8a8f69ef9de41beb0426c4d64418d005d0e9f3625efb0592845",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/I2.png",
+        "sha256": "b1092761f802a4e8a8cc3e33cbe249e577a80f6f5ad82f420f76c92f0d02dd46",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 32,
+          "y": 112,
+          "width": 736,
+          "height": 584
+        },
+        "review": "reviewed",
+        "reason": "Viewport below the central old crest preserves the inspected bird, wings, equipment and feet; small ornate side fragments may remain.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "I3",
+      "name": "꺼지지 않는 그림자",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "path": "resources/cards/I3.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 180384,
+      "sha256": "c7aa7dc27fd96e1378ee21289fb3e1b10a9bfb0bd3b3afbe64949d8c8ce16b24",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/I3.png",
+        "sha256": "66214a858fe7504a70154160c3db7d1e7e0d314929011af2d105a2c71638067c",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 32,
+          "y": 112,
+          "width": 736,
+          "height": 584
+        },
+        "review": "reviewed",
+        "reason": "Viewport below the central old crest preserves the inspected bird, wings, equipment and feet; small ornate side fragments may remain.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "I4",
+      "name": "마르지 않는 바다",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "path": "resources/cards/I4.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 210978,
+      "sha256": "7c968d7ca1ac3881ea8ce10c8edeba147e02edda2aa5da3781bc250c9f33f0e9",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/I4.png",
+        "sha256": "30490727ac84fca453a548ba7d17d9872b1efb0ef81f7c4801506299ce349d3f",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 32,
+          "y": 112,
+          "width": 736,
+          "height": 584
+        },
+        "review": "reviewed",
+        "reason": "Viewport below the central old crest preserves the inspected bird, wings, equipment and feet; small ornate side fragments may remain.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "I5",
+      "name": "다시 피는 벚꽃",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "path": "resources/cards/I5.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 193200,
+      "sha256": "46d034b3cbd532fc1d1d7219fd83d861623897b7e9517ca903a39985d0a6a836",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/I5.png",
+        "sha256": "5040f4206f1cd73dc6a18babbd8d508f86b549116b9a464fc1988c38de4b0b4f",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 32,
+          "y": 112,
+          "width": 736,
+          "height": 584
+        },
+        "review": "reviewed",
+        "reason": "Viewport below the central old crest preserves the inspected bird, wings, equipment and feet; small ornate side fragments may remain.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "I6",
+      "name": "돌아오는 별",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "path": "resources/cards/I6.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 201974,
+      "sha256": "ab45b406dcd3c00d043044776ab3c9f29cca4478fe53d9e57e93106d409d71c6",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/I6.png",
+        "sha256": "2945a880a998b028a51d40a6222bc9732e2c435095afd43690483a0c3a744655",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 32,
+          "y": 112,
+          "width": 736,
+          "height": 584
+        },
+        "review": "reviewed",
+        "reason": "Viewport below the central old crest preserves the inspected bird, wings, equipment and feet; small ornate side fragments may remain.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "I7",
+      "name": "갈터벨트",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "path": "resources/cards/I7.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 175368,
+      "sha256": "0b8b6ea573797196c7206ab650b370972006fbf68be9b00a11fbeb52e2f3612b",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/I7.png",
+        "sha256": "3af89a36ffbd12ba3a0373cf5ad0a2ac8682325e730269c174953fb78dbf5025",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 32,
+          "y": 112,
+          "width": 736,
+          "height": 584
+        },
+        "review": "reviewed",
+        "reason": "Viewport below the central old crest preserves the inspected bird, wings, equipment and feet; small ornate side fragments may remain.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "I8",
+      "name": "갈압스타킹",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "path": "resources/cards/I8.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 185854,
+      "sha256": "49acaeaabde2abc07fec7c7aecceaf0c0da5d49760a5f883a0502dedb64cb67e",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/I8.png",
+        "sha256": "6813ca3ef95b27686f30839f407f56ff200e3bc26924e5fb38b4421fdd6fa1de",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 32,
+          "y": 112,
+          "width": 736,
+          "height": 584
+        },
+        "review": "reviewed",
+        "reason": "Viewport below the central old crest preserves the inspected bird, wings, equipment and feet; small ornate side fragments may remain.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "I9",
+      "name": "갈슬리퍼",
+      "tier": "IMMORTAL",
+      "tier_ko": "불멸",
+      "path": "resources/cards/I9.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 209594,
+      "sha256": "83a363b5219e1064e08a06ec68218b055a3979cd531f901f940ed8a434c63d23",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/I9.png",
+        "sha256": "085b9ecbab21909eade909c1eba9a9afafef43c96e405e38d2ff4f04e1c48169",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 32,
+          "y": 112,
+          "width": 736,
+          "height": 584
+        },
+        "review": "reviewed",
+        "reason": "Viewport below the central old crest preserves the inspected bird, wings, equipment and feet; small ornate side fragments may remain.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "C7",
+      "name": "거인 갈매미맨",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "path": "resources/cards/C7.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 168944,
+      "sha256": "5e95b94ed0fd4e6cd6be3a636453d7d94960c89ab1ec33b3581ce4a50f2c1dde",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/C7.png",
+        "sha256": "7f95c1c513227298d0c0df5e0a39db74ec9bcc88a446e5fadbe179accc9b391f",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 27,
+          "width": 748,
+          "height": 671
+        },
+        "sourceClipPath": "M100 27H700L774 101V674L750 698H50L26 674V101Z",
+        "review": "reviewed",
+        "reason": "Taller giant, crushed truck and upper dialogue retained; polygon only removes decorative corner areas.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "C8",
+      "name": "소인 갈매미맨",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "path": "resources/cards/C8.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 162184,
+      "sha256": "38ecbee038b76e1e7554e6a23c4481ffb9cf7a50121b9bb6d9e468290df3c735",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/C8.png",
+        "sha256": "01eb9c7df39bf4bedb3fef799ede5848bf82bb7c39e76e79a6edede31d2e8123",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Tiny bird, large shrimp snack, held food and crumbs retained at their original relative scale.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "C9",
+      "name": "갈매미걸",
+      "tier": "COMMON",
+      "tier_ko": "흔함",
+      "path": "resources/cards/C9.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 173324,
+      "sha256": "75309e2ee372ea81e212b4652043026e0e4c039cbd77a99e3fcde1c820b992b0",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/C9.png",
+        "sha256": "6feb5d4959bd0c21a99bf0cfdd5168dd76f03c67213baf3a67dc53e7a09d812e",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "U12",
+      "name": "해일걸음",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "path": "resources/cards/U12.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 166062,
+      "sha256": "da1758676f4d1cf538506c07a62224f4bb6b3d6feb213ba7a66651528e761c2c",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/U12.png",
+        "sha256": "628e0224503feedf717152105a359fbd584b1ab12524cd18c8714a8d13d1a60c",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 64,
+          "width": 748,
+          "height": 632
+        },
+        "review": "reviewed",
+        "reason": "Taller viewport preserves the crest tip at y94, both raised feet, wings and complete original dialogue.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "U13",
+      "name": "별먼지",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "path": "resources/cards/U13.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 200140,
+      "sha256": "a1c512a0d0877f2debc0f9833580922b496f181d3d12365653932f8f58610a56",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/U13.png",
+        "sha256": "5c72e84f1cc7fce6872b835241345913abf4325959f536b8868eaf09ba6ac98f",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Tiny central star-like character retained within the original large cosmic scene; no inferred enlargement or invented anatomy.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "U14",
+      "name": "꽃리본",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "path": "resources/cards/U14.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 164412,
+      "sha256": "325b089abb2204f73861c1243b45b7b2480ec7cb728c238897c60f9153e08be0",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/U14.png",
+        "sha256": "521c5ab456bb89ba6c0a10fd730e52e477b4ef31bd3ed4178ada791249c475dc",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "U15",
+      "name": "키차이",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "path": "resources/cards/U15.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 155958,
+      "sha256": "efd9fe412ed73deb8f0039076e63b5f46a9353a7b78b0596cb3f1da3f18b4a72",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/U15.png",
+        "sha256": "9d5fa3b27a79ed19c0e125cbbfd3bfbad0b9f31bf1261c59df0c478e382582bf",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Both the small left companion and tall right bird retained.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "U16",
+      "name": "갈매미 커플",
+      "tier": "UNCOMMON",
+      "tier_ko": "안흔함",
+      "path": "resources/cards/U16.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 171642,
+      "sha256": "54bb558e921d0f28657d9c5cb3387b96c9813529831d1145180c33ebfaf0ee83",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/U16.png",
+        "sha256": "f120e4e1f1983eb4626dc710300877cb9a870de40ff3c676466a7028987d6504",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Both members of the couple retained.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "S16",
+      "name": "인간방파제",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S16.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 193240,
+      "sha256": "254829baa5e70d42f5473a5d98c95dc40f29e2036171a221770c14e06fdd8179",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S16.png",
+        "sha256": "7d9b2f2542978a0d324d7f60158c76edd71122c5831b0ea1cf869b0bbd470676",
+        "mode": "full-original-fallback",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 800
+        },
+        "review": "needsattention",
+        "reason": "Right wing is already occluded by the original right frame; preserve whole scene and dock bystanders.",
+        "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention."
+      }
+    },
+    {
+      "id": "S17",
+      "name": "주머니우주",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S17.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 171068,
+      "sha256": "198e553c4f247b0b65c8be47bb43b9a164faa8b164d9d0cab41a9e558e71c58b",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S17.png",
+        "sha256": "f17f406a2a70b9164d2943fea70032c82c741e99728ee31e2e93cefff20c3b6e",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "S18",
+      "name": "꽃가마수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S18.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 189840,
+      "sha256": "f4e7375998af7470ebea25ff3d6721a520bad8c37410a7136d50ec2aa655fb4f",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S18.png",
+        "sha256": "79ab6bfa7221f95c3414f945ebde1cc7aa48e6d5bf73ad9f889b3ef6d2a57c54",
+        "mode": "full-original-fallback",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 800
+        },
+        "review": "needsattention",
+        "reason": "Carriage crest rises above the default viewport and the right-hand attendant meets the original side edge. Full scene preserves the complete visible group and carriage.",
+        "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention."
+      }
+    },
+    {
+      "id": "S19",
+      "name": "어깨무등수호자",
+      "tier": "SPECIAL",
+      "tier_ko": "특별",
+      "path": "resources/cards/S19.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 173150,
+      "sha256": "c2e6fa9e26f09f5af99d3f52ea1576696f713646abdf679ce09962ba04a69080",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/S19.png",
+        "sha256": "d3780abeb04c74c3728b698d9e736cd0d3743a1fba75c291611d4563de02929a",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 48,
+          "width": 748,
+          "height": 648
+        },
+        "review": "reviewed",
+        "reason": "Taller viewport preserves the small upper bird, its high right wing and the bearer feet through y687; both figures kept.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R21",
+      "name": "걸어다니는 산맥",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R21.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 181400,
+      "sha256": "56cd2ff5c440ad72df2811e640b241b6362d0efed0bdc8c64e2c44a231e4a673",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R21.png",
+        "sha256": "f228dc9bab5501d3065df146c96428448ce79c8442cdd95d828e8d02bbe2438e",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 48,
+          "width": 748,
+          "height": 648
+        },
+        "review": "reviewed",
+        "reason": "Taller viewport preserves the upper mountain-wing tip beginning near y60.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "R22",
+      "name": "티끌군단장",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R22.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 170632,
+      "sha256": "fb3b5b15d560c2d16170708350ba6b20a3bf6a466399c0394f1151c4306f3d69",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R22.png",
+        "sha256": "aedee4fd4b54452bd5bb5b16fee8eed5a210d50f86bc9260a5865828216ed212",
+        "mode": "full-original-fallback",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 800
+        },
+        "review": "needsattention",
+        "reason": "Multiple members of the queue reach the original right edge; preserve the whole group.",
+        "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention."
+      }
+    },
+    {
+      "id": "R23",
+      "name": "항구결혼식장",
+      "tier": "RARE",
+      "tier_ko": "희귀",
+      "path": "resources/cards/R23.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 183528,
+      "sha256": "a9d8552420bb13ce975d6db710cc4b78939b9bbc358dcfcb159fae192eb5725a",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/R23.png",
+        "sha256": "ad5fb5d4e6e3877118423085be4fb1804c49f2dd9131ce07e221ac87b7cef711",
+        "mode": "full-original-fallback",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 800
+        },
+        "review": "needsattention",
+        "reason": "Left wing and right wedding guest reach opposite original edges; full scene preserves the group.",
+        "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention."
+      }
+    },
+    {
+      "id": "L21",
+      "name": "땅을 딛는 자",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L21.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 180310,
+      "sha256": "4a81aa89af3a704210f3865d1b0e635c8157b6441fd6292477307c770ed30adc",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L21.png",
+        "sha256": "70b971dfbee7e10925589041d812936bbded670132352dc3c8d8e39204ca2313",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 52,
+          "width": 748,
+          "height": 644
+        },
+        "review": "reviewed",
+        "reason": "Taller viewport preserves the giant crest tip beginning near y66, feet and full island context.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L22",
+      "name": "먼지 속의 왕",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L22.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 162926,
+      "sha256": "56058b8dbc25b838a2173afcb1f81c7b0f79f9efb6c54527f027737f144240f9",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L22.png",
+        "sha256": "b427f9af0e3f5ec48ca62910fda2fdbabe4bcfb78d7d1f675fe2df9417b4a04d",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "L23",
+      "name": "갈매미 대가족",
+      "tier": "LEGEND",
+      "tier_ko": "전설",
+      "path": "resources/cards/L23.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 189962,
+      "sha256": "fb730b23eb20d4d2605cb5e2b2be5f235b9631e3257331aebf57df02e37f388e",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/L23.png",
+        "sha256": "3cb4c26f04a31c43894306a92d8835d0a8561493be5c518ac180a3aabfe197ae",
+        "mode": "full-original-fallback",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 800
+        },
+        "review": "needsattention",
+        "reason": "Large family scene includes birds at both side edges and upper background; preserve the entire group.",
+        "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention."
+      }
+    },
+    {
+      "id": "H14",
+      "name": "거인의 소꿉친구",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H14.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 192158,
+      "sha256": "3f07150dd0a7e40fb08da48e79dc6f5ffefdc6dee118a480f493a40cd92c9275",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H14.png",
+        "sha256": "c5d09766384f537ffd373f71a2e5c1bfe790dad694137c9e6623782ee9fa0ecd",
+        "mode": "full-original-fallback",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 800
+        },
+        "review": "needsattention",
+        "reason": "Giant rear wing reaches the top original frame and tiny companion is far below; preserve both figures.",
+        "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention."
+      }
+    },
+    {
+      "id": "H15",
+      "name": "신랑신부 바꿔치기",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H15.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 172386,
+      "sha256": "94f8a77f98666f04ebd7c3fb960f7fd67dea60206df762638e3790fdf4818085",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H15.png",
+        "sha256": "e023844544297f8c986174304a106adafd2e11ee8cb81d86357df23460a7bcb4",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Wedding pair and visible foreground context retained without reconstructing hidden bodies.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "N1",
+      "name": "중성 갈매미",
+      "tier": "NEUTRAL",
+      "tier_ko": "특수함",
+      "path": "resources/cards/N1.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 160710,
+      "sha256": "ffdf1c2fe7e9deb275fec1867ce3a62a76ea345282ced1e0f1dcacf81811cc84",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/N1.png",
+        "sha256": "11ab4fc55f2e3ffc4a37bfac5e7ad0713be9feb063894f32940977f603f30a24",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 27,
+          "y": 97,
+          "width": 746,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Original neutral bird, stone wings and feet retained.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "H16",
+      "name": "주례 갈매미",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H16.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 196054,
+      "sha256": "39b006fa1d6637ade8eebdc9109e1fc48b04459d736864f9e381993c53ad528c",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H16.png",
+        "sha256": "83411783ba891d73f89561ab80be2f28ed013eea0da2252645fba1acf666de06",
+        "mode": "full-original-fallback",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 800
+        },
+        "review": "needsattention",
+        "reason": "Wedding guests reach both edges and lower foreground; no automatic cleanup crop is approved.",
+        "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention."
+      }
+    },
+    {
+      "id": "H17",
+      "name": "무념무상",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H17.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 194006,
+      "sha256": "d32d67f1370919a16fdba1ae019d7dbc2aa9f5bcee16c1477bddc13de8cced8a",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H17.png",
+        "sha256": "30643dca7b6bb7a8119594f83c1dd062602b005ce8fc9b3bd6f7571b5689aed5",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "H18",
+      "name": "땅콩 보관소",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H18.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 196574,
+      "sha256": "da4e7cb71805b6e93ff9904d9e529703446766d55efe57a56cadf7aa1ea0b718",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H18.png",
+        "sha256": "19921f8727e95669640adc24dabf41e7b8750276bc57539b7a684b388d190cdf",
+        "mode": "full-original-fallback",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 800
+        },
+        "review": "needsattention",
+        "reason": "Side birds and guard equipment meet original side edges; preserve all visible group pixels.",
+        "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention."
+      }
+    },
+    {
+      "id": "H19",
+      "name": "인사팀장 갈매미",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H19.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 164074,
+      "sha256": "6d75fe9a7063be15b2f68e3eedf9b22dfcebb7d18ba4fa3498aacbe0d58f3827",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H19.png",
+        "sha256": "6e48b3ad6a4afd2eba702198dedd1813acc84dce03cc4cdef7822e232e1011ab",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "H20",
+      "name": "바스락상회 사장",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H20.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 178076,
+      "sha256": "ceee04733cfc17c8b4b2fdd6ca1319805c04afcaf2f0adb8c9df28c37717262d",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H20.png",
+        "sha256": "855ded57ca2e36e180ce0e99c61a7234ffa7fcad5fb066e557da67aaf7e853a6",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 26,
+          "y": 96,
+          "width": 748,
+          "height": 600
+        },
+        "review": "reviewed",
+        "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    },
+    {
+      "id": "H21",
+      "name": "회의 중 갈매미",
+      "tier": "HIDDEN",
+      "tier_ko": "히든",
+      "path": "resources/cards/H21.webp",
+      "width": 768,
+      "height": 1024,
+      "bytes": 162472,
+      "sha256": "f6dd6b12daad16ba33a0b90e6ab67352607e486f7a202f25313cbb7fd3f13a77",
+      "source": {
+        "path": "galmaegiman-confirmed/public/images/H21.png",
+        "sha256": "287a56f3c5d91c1f8dcf8a590d9fb0972f3be5b2f2c77cfc63cc0d077f42d9b6",
+        "mode": "source-scene",
+        "sourceViewport": {
+          "x": 28,
+          "y": 105,
+          "width": 744,
+          "height": 593
+        },
+        "review": "reviewed",
+        "reason": "All four birds, table and peanut retained; occluded anatomy stays occluded.",
+        "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork."
+      }
+    }
+  ]
+}
