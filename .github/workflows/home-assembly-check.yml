@@ -146,6 +146,19 @@ jobs:
       # The project excludes NativeRenderReviewTest unless a review token is supplied.
       # Do not supply that token: R1 uses local fixtures and bundled artwork instead.
       # Loopback prevents missing art/API fallbacks from reaching the production service.
+      # Fail early on the SDK24/26 compatibility and native chart-pixel regressions.
+      # Use a separate capture root; the successful preflight never substitutes
+      # for the mandatory full suite below. Existing always() report upload
+      # retains this run's JUnit if the preflight fails and the full suite skips.
+      - name: Battle SDK and native chart preflight
+        id: battle_preflight
+        run: >
+          bash ./gradlew :app:testDebugUnitTest
+          --tests org.dpdns.gmm.BattleUtilitiesChartRevisionTest
+          -PnativeServer=http://127.0.0.1:9
+          "-PnativeReviewOutput=$PWD/app/build/native-review-preflight"
+          --no-daemon --max-workers=2 --stacktrace
+          "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
       - name: All native unit tests with local fixtures
         id: unit
         run: >
@@ -832,5 +845,6 @@ jobs:
               --title "홈 미리보기 $short" --notes-file notes.md --prerelease --latest=false
           fi
           gh release view "$tag" --repo "$REPO" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"
+
 
 

@@ -44,6 +44,27 @@ public class BattleUtilitiesChartRevisionTest {
     assertTrue("Button stays inside command controls: "+bounds,
         bounds.left>=0 && bounds.top>=0 && bounds.right<=root.getWidth() && bounds.bottom<=root.getHeight());
   }
+  void rootMeasureContract(MainActivity h) {
+    class FullScene extends View implements FullBleed {
+      int measureCalls;
+      FullScene(){super(h);}
+      @Override protected void onMeasure(int ws,int hs){measureCalls++;super.onMeasure(ws,hs);}
+    }
+    GameRootLayout root=new GameRootLayout(h);root.setPadding(36,10,8,10);
+    FullScene scene=new FullScene();root.addView(scene,new FrameLayout.LayoutParams(-1,-1));
+    View ordinary=new View(h);FrameLayout.LayoutParams content=new FrameLayout.LayoutParams(-1,-1);
+    content.setMargins(3,4,5,6);root.addView(ordinary,content);
+    fixture.measure(root,640,360);
+    assertEquals("FullBleed is measured once, not padded then full",1,scene.measureCalls);
+    assertEquals(640,scene.getMeasuredWidth());assertEquals(360,scene.getMeasuredHeight());
+    assertEquals(0,scene.getLeft());assertEquals(0,scene.getTop());
+    assertEquals(640,scene.getRight());assertEquals(360,scene.getBottom());
+    assertEquals("Ordinary content keeps padding and margins",588,ordinary.getMeasuredWidth());
+    assertEquals(330,ordinary.getMeasuredHeight());assertEquals(39,ordinary.getLeft());
+    assertEquals(14,ordinary.getTop());assertEquals(627,ordinary.getRight());assertEquals(344,ordinary.getBottom());
+    assertEquals(36,root.getPaddingLeft());assertEquals(10,root.getPaddingTop());
+    assertEquals(8,root.getPaddingRight());assertEquals(10,root.getPaddingBottom());
+  }
   void compatAutoSizeConfigured(Button button) {
     assertEquals(androidx.core.widget.TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM,
         androidx.core.widget.TextViewCompat.getAutoSizeTextType(button));
@@ -145,11 +166,19 @@ public class BattleUtilitiesChartRevisionTest {
   public void itemMenuAutosizeHasNativeTextBoundsOnSdk26() throws Exception {
     RuntimeEnvironment.setFontScale(1.3f);
     try(var c=Robolectric.buildActivity(MainActivity.class).setup().visible()) {
-      MainActivity h=c.get();BattleView v=mount(h,640,360);
+      MainActivity h=c.get();rootMeasureContract(h);BattleView v=mount(h,640,360);
       assertEquals(4,buttons(v.controls).size());
       for(Button command:buttons(v.controls)){itemButtonBounds(command,v.controls);readable(command);}
-      v.pane="items";v.render();measure(h.root,640,360);
+      v.pane="items";v.render();
+      ArrayList<Button> original=buttons(v.controls);
+      measure(h.root,640,360);
       ArrayList<Button> all=buttons(v.controls);assertEquals(5,all.size());
+      assertEquals(original.size(),all.size());
+      for(int i=0;i<all.size();i++)
+        assertSame("A stable viewport must not recreate item controls during measure",original.get(i),all.get(i));
+      measure(h.root,640,360);
+      for(int i=0;i<all.size();i++)
+        assertSame("AppCompat relayout must reuse the same item control",all.get(i),buttons(v.controls).get(i));
       for(int i=1;i<all.size();i++) {
         Button b=all.get(i);itemButtonBounds(b,v.controls);compatAutoSizeConfigured(b);readable(b);
         assertEquals("Entire name and quantity are laid out",b.getText().length(),
@@ -197,6 +226,42 @@ public class BattleUtilitiesChartRevisionTest {
       assertNotNull(close);close.performClick();assertEquals(before,v.battle.toString());
     }
   }
+  void matrixInk(View decor) {
+    Bitmap pixels=Bitmap.createBitmap(decor.getWidth(),decor.getHeight(),Bitmap.Config.ARGB_8888);
+    decor.draw(new Canvas(pixels));
+    try {
+      View viewport=decor.findViewWithTag("game-dialog-body-scroll");assertNotNull(viewport);
+      android.graphics.Rect clip=new android.graphics.Rect(0,0,viewport.getWidth(),viewport.getHeight());
+      ((ViewGroup)decor).offsetDescendantRectToMyCoords(viewport,clip);
+      ArrayList<String> tags=new ArrayList<>();
+      for(String attack:BattleTypeInfo.TYPES) {
+        tags.add("matrix-attack:"+attack);tags.add("matrix-defense:"+attack);
+        for(String defense:BattleTypeInfo.TYPES)tags.add("matchup:"+attack+":"+defense);
+      }
+      assertEquals(120,tags.size());
+      for(String tag:tags) {
+        TextView text=decor.findViewWithTag(tag);assertNotNull(tag,text);
+        assertEquals("No virtual horizontal scroll: "+tag,0,text.getScrollX());
+        android.text.Layout layout=text.getLayout();assertNotNull("Rendered layout: "+tag,layout);
+        assertTrue("Text height: "+tag,layout.getHeight()<=text.getHeight()-text.getCompoundPaddingTop()-text.getCompoundPaddingBottom());
+        for(int line=0;line<layout.getLineCount();line++) {
+          assertEquals("No ellipsis: "+tag,0,layout.getEllipsisCount(line));
+          assertTrue("Text width: "+tag,layout.getLineWidth(line)<=text.getWidth()-text.getCompoundPaddingLeft()-text.getCompoundPaddingRight()+1);
+        }
+        assertEquals("All characters laid out: "+tag,text.length(),layout.getLineEnd(layout.getLineCount()-1));
+        android.graphics.Rect box=new android.graphics.Rect(0,0,text.getWidth(),text.getHeight());
+        ((ViewGroup)decor).offsetDescendantRectToMyCoords(text,box);
+        assertTrue("All 100 values and 20 headers visible without scrolling: "+tag+" "+box+" within "+clip,clip.contains(box));
+        int ink=0;
+        // Ignore borders: only actual dark glyph pixels in the cell interior count.
+        for(int y=box.top+3;y<box.bottom-3;y++)for(int x=box.left+3;x<box.right-3;x++) {
+          int color=pixels.getPixel(x,y);
+          if(android.graphics.Color.red(color)<180 && android.graphics.Color.green(color)<180 && android.graphics.Color.blue(color)<180)ink++;
+        }
+        assertTrue("Actual glyph ink, not just strings/background: "+tag+" pixels="+ink,ink>=8);
+      }
+    } finally { pixels.recycle(); }
+  }
   Path output() throws Exception {Path p=Path.of(System.getProperty("gmm.nativeReviewOutput","build/native-review"),"battle-ui-revision");Files.createDirectories(p);return p;}
   void capture(View view,int w,int h,String name) throws Exception {
     Bitmap image=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);view.draw(new Canvas(image));
@@ -218,6 +283,7 @@ public class BattleUtilitiesChartRevisionTest {
         }
         BattleTypeInfo.showFighter(v,0);assertNotNull(h.visibleDialog);
         View decor=h.visibleDialog.getWindow().getDecorView();measure(decor,size[0]-24,size[1]-16);
+        matrixInk(decor);
         capture(decor,size[0]-24,size[1]-16,"battle-types-"+size[0]+"-font130");
         assertNotNull(decor.findViewWithTag("battle-type-matrix"));h.visibleDialog.dismiss();
       }

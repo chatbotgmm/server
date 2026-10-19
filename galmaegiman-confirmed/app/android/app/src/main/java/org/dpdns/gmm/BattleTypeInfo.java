@@ -87,11 +87,11 @@ final class BattleTypeInfo {
       chart=baseline==null?null:baseline.optJSONObject("chart");
       multipliers=baseline==null?null:baseline.optJSONObject("multipliers");
     }
-    body.addView(NativeBattleSheets.prose(h,
-        (bundled?"앱 기본 상성":"서버 기본 상성")+" · 행 ↓ 공격 · 열 → 방어\n강조: "+name(h,attr)+(defense?" 방어 열":" 공격 행"),14));
     if(chart==null || multipliers==null)
       body.addView(NativeBattleSheets.prose(h,"상성 데이터를 아직 받지 못했어요.",16));
     else body.addView(matrix(h,chart,multipliers,attr,defense));
+    body.addView(NativeBattleSheets.prose(h,
+        (bundled?"앱 기본 상성":"서버 기본 상성")+" · 행 ↓ 공격 · 열 → 방어\n강조: "+name(h,attr)+(defense?" 방어 열":" 공격 행"),14));
     body.addView(NativeBattleSheets.prose(h,bundled
         ?"앱 기본 데이터 · 서버의 현재 적용 배율은 아래 미리보기에서 확인해요."
         :"서버 기본 상성 · 증강체 적용 전",14));
@@ -107,7 +107,7 @@ final class BattleTypeInfo {
           +" · "+currentMultiplier(preview.optDouble("multiplier",Double.NaN),defense);
     else current+="\n현재 적용 상성을 확인할 수 없어요.";
     body.addView(NativeBattleSheets.heading(h,current,16));
-    showDialog(v,name(h,attr)+" 속성 상성",body);
+    showDialog(v,name(h,attr)+" 속성 상성 · "+(bundled?"앱 기본":"서버 기본"),body);
   }
 
   /** Timer observes the same server lease; closing or changing panels never creates a new lease. */
@@ -191,29 +191,30 @@ final class BattleTypeInfo {
     android.widget.HorizontalScrollView scroll=new android.widget.HorizontalScrollView(h);
     scroll.setTag("battle-type-matrix");scroll.setFillViewport(true);
     scroll.setHorizontalScrollBarEnabled(true);
-    // Keep numeric cells readable at 130% font scale. Short screens scroll instead of shrinking text.
-    int cell=h.dp(44*Math.max(1,h.getResources().getConfiguration().fontScale));
-    int rowHeight=h.dp(28*Math.max(1,h.getResources().getConfiguration().fontScale));
-    int labelWidth=h.dp(78*Math.max(1,h.getResources().getConfiguration().fontScale));
+    // Put all ten rows before explanatory prose. 36 + 10*22 = 256dp fits
+    // the 640x360 inset landscape body; retain horizontal scrolling on smaller widths.
+    int rowHeight=h.dp(22);
+    int labelWidth=h.dp(68);
     LinearLayout table=new LinearLayout(h);table.setOrientation(LinearLayout.VERTICAL);
+    table.setMinimumWidth(h.dp(568));
     scroll.addView(table,new android.widget.FrameLayout.LayoutParams(-1,-2));
     LinearLayout head=new LinearLayout(h);head.setBaselineAligned(false);
-    android.widget.TextView axes=cell(h,"공격↓ / 방어→",false);axes.setTextSize(12);
-    head.addView(axes,new LinearLayout.LayoutParams(labelWidth,h.dp(50)));
+    android.widget.TextView axes=cell(h,"공격↓\n방어→",false);axes.setTextSize(11);axes.setSingleLine(false);axes.setMaxLines(2);
+    head.addView(axes,new LinearLayout.LayoutParams(labelWidth,h.dp(36)));
     for(String type:TYPES) {
       LinearLayout title=new LinearLayout(h);title.setOrientation(LinearLayout.VERTICAL);title.setGravity(Gravity.CENTER);
       title.setBackgroundColor(defense && type.equals(selected)?0xffd2e9e1:0xffeee0c1);
       ImageView emblem=icon(h,type);emblem.setPadding(0,0,0,0);
-      title.addView(emblem,new LinearLayout.LayoutParams(h.dp(24),h.dp(24)));
-      android.widget.TextView name=cell(h,name(h,type),false);name.setTextSize(12);
+      title.addView(emblem,new LinearLayout.LayoutParams(h.dp(16),h.dp(16)));
+      android.widget.TextView name=cell(h,name(h,type),false);name.setTextSize(11);name.setTag("matrix-defense:"+type);
       title.addView(name,new LinearLayout.LayoutParams(-1,-2));
-      head.addView(title,new LinearLayout.LayoutParams(cell,h.dp(50)));
+      head.addView(title,new LinearLayout.LayoutParams(0,h.dp(36),1));
     }
     table.addView(head);
     for(String attack:TYPES) {
       LinearLayout row=new LinearLayout(h);row.setBaselineAligned(false);
       boolean selectedRow=!defense && attack.equals(selected);
-      android.widget.TextView label=cell(h,name(h,attack),selectedRow);label.setTextSize(14);
+      android.widget.TextView label=cell(h,name(h,attack),selectedRow);label.setTextSize(12);label.setTag("matrix-attack:"+attack);
       row.addView(label,new LinearLayout.LayoutParams(labelWidth,rowHeight));
       for(String target:TYPES) {
         double value=baseMultiplier(chart,multipliers,attack,target);
@@ -223,7 +224,7 @@ final class BattleTypeInfo {
         valueView.setTag("matchup:"+attack+":"+target);
         valueView.setContentDescription(name(h,attack)+" 공격 → "+name(h,target)+" 방어 "+number);
         valueView.setTextColor(!Double.isFinite(value)?JournalTheme.INK:value>1?0xff8c3426:value<1?0xff235b7c:JournalTheme.INK);
-        row.addView(valueView,new LinearLayout.LayoutParams(cell,rowHeight));
+        row.addView(valueView,new LinearLayout.LayoutParams(0,rowHeight,1));
       }
       table.addView(row);
     }
@@ -231,8 +232,8 @@ final class BattleTypeInfo {
   }
 
   private static android.widget.TextView cell(MainActivity h,String text,boolean selected) {
-    android.widget.TextView cell=h.text(text,16);cell.setPadding(h.dp(2),0,h.dp(2),0);
-    cell.setGravity(Gravity.CENTER);cell.setSingleLine(true);cell.setIncludeFontPadding(false);
+    android.widget.TextView cell=h.text(text,13);cell.setPadding(h.dp(2),0,h.dp(2),0);
+    cell.setGravity(Gravity.CENTER);cell.setSingleLine(true);cell.setHorizontallyScrolling(false);cell.setIncludeFontPadding(false);
     android.graphics.drawable.GradientDrawable bg=new android.graphics.drawable.GradientDrawable();
     bg.setColor(selected?0xffd2e9e1:0xfffff7e5);bg.setStroke(h.dp(1),selected?0xff508d80:0xffe2d4b5);
     cell.setBackground(bg);return cell;
