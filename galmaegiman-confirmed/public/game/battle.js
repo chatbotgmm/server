@@ -312,10 +312,17 @@
       title.textContent = '전투 결과';
       body.innerHTML = `<div class="result"><h2>${draw0 ? '무승부' : won ? '승리' : '패배'}</h2><div class="info">
         ${r.left ? '<p>전투에서 물러났어요.</p>' : ''}${r.xp ? `<p>경험치 +${fmt(r.xp)}</p>` : ''}${(r.ups || []).map(u => `<p>${esc(u)}</p>`).join('')}
+        ${(r.growth || []).filter(g => g.learn?.length || g.promo?.length || g.evolve?.length).map(g => `<p class="grow-note">✨ ${esc(g.name)}: ${g.evolve?.length ? '승진할 수 있어요' : '새 기술을 배울 수 있어요'} <a href="#team?u=${encodeURIComponent(g.key)}" data-done>성장하기</a></p>`).join('')}
+        ${r.dialog?.length || r.chapterClear?.length ? '<button class="btn ghost sm" type="button" data-after>이야기 보기</button>' : ''}
         ${r.rank ? `<p>${esc(r.rank.tier?.name || r.rank.tier || '')} · LP ${r.rank.lpDelta >= 0 ? '+' : ''}${fmt(r.rank.lpDelta)}</p>` : ''}
         ${r.reason && !['BATTLE'].includes(r.reason) ? `<p class="muted">${esc({ SURRENDER: '항복으로 끝났어요.', TIMEOUT: '시간 초과로 끝났어요.', DOUBLE_TIMEOUT: '양쪽 모두 시간 초과로 끝났어요.', SERVER_ABORT: '서버 사정으로 중단됐어요.' }[r.reason] || r.reason)}</p>` : ''}
         </div><div class="row"><a class="btn primary lg" href="#home" data-done>항구로</a><a class="btn ghost lg" href="#play" data-done>플레이</a></div></div>`;
       $$('[data-done]', body).forEach(a => a.addEventListener('click', () => { S.battle = null; }));
+      // 스토리: 승리 뒤 이야기(after)와 장 클리어 이야기. 처음 결과를 볼 때 한 번 자동으로 열고, 버튼으로 다시 볼 수 있음
+      const story = [...(r.dialog || []), ...(r.chapterClear || [])], ab = $('[data-after]', body);
+      if (ab) ab.onclick = () => S.dialog(story, '이야기');
+      if (story.length && !S.battle.afterShown) { S.battle.afterShown = true; setTimeout(() => S.dialog(story, '이야기'), 300); }
+      if (S.battle.kind === 'native' && s.mode === 'story') $('.row', body).insertAdjacentHTML('beforeend', '<a class="btn ghost lg" href="#story" data-done>스토리</a>'), $$('[data-done]', body).forEach(a => a.addEventListener('click', () => { S.battle = null; }));
       return;
     }
     if (!act) {

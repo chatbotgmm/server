@@ -350,6 +350,30 @@ table.odds{border-collapse:collapse;margin:8px 0;min-width:220px}
 .week small{font-size:12px;color:var(--muted)}.week b{font:18px var(--title);font-weight:400}.week span{font-size:12px;color:var(--muted)}
 .week li.got{background:#e7f1ea;border-color:#b7d3c0}.week li.now{border-color:var(--navy);box-shadow:inset 0 0 0 2px var(--brass)}
 
+.f-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.chtabs{display:flex;gap:6px;overflow-x:auto;flex:none;padding-bottom:2px;min-width:0;max-width:100%}
+.split>.pane{min-width:0}
+.sheet .list{grid-template-columns:1fr!important}
+.chtabs button{flex:none;min-height:48px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--paper);font:16px var(--title);color:var(--navy-d);cursor:pointer;white-space:nowrap}
+.chtabs button[aria-selected="true"]{background:var(--navy);color:#fff;border-color:var(--brass-l)}
+.stages{display:grid;gap:6px;overflow:auto;min-height:0;flex:1 1 auto;align-content:start}
+.stage-row{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:52px;padding:6px 14px;border-radius:10px;border:1px solid var(--stone-3);background:#fff;cursor:pointer;text-align:left}
+.stage-row b{font:18px var(--title);font-weight:400;color:var(--navy-d)}.stage-row small{flex:none;color:var(--muted);font-size:14px}
+.stage-row.done small{color:var(--ok)}.stage-row[aria-disabled="true"]{background:var(--stone-2);opacity:.75}
+.stage-row[aria-selected="true"]{border-color:var(--navy);box-shadow:inset 0 0 0 2px var(--brass);background:#eef2f4}
+.boss{display:inline-block;padding:1px 8px;border-radius:6px;background:#7d2620;color:#fff;font:15px var(--title);font-weight:400}
+.foes{list-style:none;margin:8px 0;padding:0;display:grid;gap:6px}
+.foes li{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:10px;background:#fff;border:1px solid var(--stone-3)}
+.foes img{width:56px;height:56px;object-fit:contain}.foes span{display:flex;flex-direction:column}.foes b{font:18px var(--title);font-weight:400}.foes small{color:var(--muted);font-size:14px}
+.hint-box{margin:8px 0;padding:10px 12px;border-radius:10px;background:#eef2f4;border:1px solid #c9d4dc;font-size:15px}
+.locked{margin-top:8px;padding:10px 12px;border-radius:10px;background:var(--stone-2);border:1px solid var(--stone-3)}.locked ul{margin:4px 0 0;padding-left:1.2em}
+.talk{display:flex;gap:14px;align-items:flex-start;min-height:120px}
+.talk img{width:96px;height:96px;object-fit:contain;flex:none;border-radius:10px;background:var(--stone-2)}
+.talk b{font:19px var(--title);font-weight:400;color:var(--navy-2)}.talk p{margin:4px 0 0;font-size:18px;line-height:1.6}
+.talk.narr p{font-style:italic;color:var(--muted)}
+.talk-nav{justify-content:flex-end;align-items:center;margin-top:12px}.talk-nav .muted{margin-right:auto}
+.grow-note{margin:4px 0;font-size:15px}
+
 /* 태블릿 */
 @media (max-width:1199px){
   :root{--gap:16px;--dock:80px}
@@ -460,6 +484,9 @@ table.odds{border-collapse:collapse;margin:8px 0;min-width:220px}
   .cta-row .btn.lg{min-height:52px;font-size:19px;flex:1}
   .goods{gap:6px}.good{min-height:48px;padding:4px 10px}.good b{font-size:16px}
   .account.split,.draw.split{grid-template-rows:auto minmax(0,1fr)}
+  .story.split{grid-template-rows:minmax(0,1.1fr) minmax(0,1fr)}
+  .chtabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible}.chtabs button{padding:0 4px;font-size:15px}
+  .talk img{width:72px;height:72px}.talk p{font-size:16px}
   .draw .claim{margin-top:6px}
 }
 @media (prefers-reduced-motion:reduce){*{animation-duration:0s!important;transition:none!important}}
@@ -474,3 +501,12 @@ table.odds{border-collapse:collapse;margin:8px 0;min-width:220px}
   .team .cands h3{display:none}.team-grid{--rows:1;--min-h:96px}
   .team .cta{padding:6px}.team .cta .why{font-size:13px;margin-top:2px}
 }
+/* 아주 좁은 세로(≤380px): 머리줄이 넘치지 않게 제목·재화를 줄인다(재화 숫자는 그대로 다 보임) */
+@media (max-width:380px) and (orientation:portrait){
+  .bar{gap:4px;padding-left:calc(6px + var(--safe-l));padding-right:calc(6px + var(--safe-r))}
+  .back{min-width:0;flex:0 1 auto;padding:0 2px}.back span{width:22px}.back b{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .money{gap:3px;min-width:0;flex:none}.pill{padding:2px 4px;min-width:48px}.pill b{font-size:13px}
+  .icon-btn{width:48px;height:48px;flex:none}
+  .dex{grid-template-rows:minmax(0,1.3fr) minmax(110px,1fr) auto}
+}
+
