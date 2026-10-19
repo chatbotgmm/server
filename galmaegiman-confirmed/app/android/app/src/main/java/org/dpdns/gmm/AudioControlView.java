@@ -31,8 +31,9 @@ final class AudioControlView extends LinearLayout {
     slider.setMax(100);
     slider.setProgress(host.sound.volume(key));
     slider.setContentDescription(label + " 볼륨");
-    slider.setProgressTintList(ColorStateList.valueOf(JournalTheme.TEAL));
-    slider.setProgressBackgroundTintList(ColorStateList.valueOf(JournalTheme.LINE));
+    slider.setProgressTintList(null);
+    slider.setProgressBackgroundTintList(null);
+    slider.setProgressDrawable(new BrassSliderTrack(host));
     slider.setThumbTintList(null);
     slider.setThumb(new BrassSliderThumb(host));
     slider.setSplitTrack(false);

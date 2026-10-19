@@ -64,7 +64,7 @@ public class NativeThemeReviewTest {
 
   static final class ReviewApi extends NativeApi {
     final JSONObject me;
-    int writes, reads;
+    int writes, reads, drawReads;
     ReviewApi(MainActivity host, JSONObject me) { super(host); this.me = me; }
     @Override String token() { return "offline-native-theme-review"; }
     @Override void call(String path, JSONObject body, Result done) {
@@ -72,7 +72,10 @@ public class NativeThemeReviewTest {
       reads++;
       if (path.equals("pvp/rank")) done.done(rank(), null);
       else if (path.equals("daily")) done.done(daily(), null);
-      else if (path.equals("draw")) done.done(NativeRecruitmentProbabilityTest.serverEconomyFixture(), null);
+      else if (path.equals("draw")) {
+        drawReads++;
+        done.done(NativeRecruitmentProbabilityTest.serverEconomyFixture(), null);
+      }
       else if (path.equals("me")) done.done(me, null);
       else throw new AssertionError("예상하지 않은 API 읽기: " + path);
     }
@@ -196,13 +199,55 @@ public class NativeThemeReviewTest {
       for (View v : geometry.descendants(root)) if (v instanceof Button && v.isShown())
         assertFalse("핵심 선택을 전체 보기 뒤로 숨기지 않음", ((Button) v).getText().toString().contains("전체 보기"));
     }
+    if (page.equals("shop")) {
+      TextView description = host.root.findViewWithTag("shop-selected-description");
+      assertNotNull(description);
+      assertNotNull("Selected product copy has a dedicated reading surface", description.getBackground());
+      assertEquals(MainActivity.INK, description.getCurrentTextColor());
+    }
+    if (page.equals("settings-probability")) {
+      assertEquals("The opened probability tab performs exactly one read", 1, api.drawReads);
+      JSONArray offers = NativeRecruitmentProbabilityTest.serverEconomyFixture().getJSONArray("gachas");
+      int verifiedRates = 0;
+      for (int i = 0; i < offers.length(); i++) {
+        JSONObject offer = offers.getJSONObject(i);
+        String kind = offer.getString("kind");
+        View section = root.findViewWithTag("recruitment-probability-" + kind);
+        assertNotNull("Loaded section for every server tier: " + kind, section);
+        assertEquals("All three tiers are fully visible together: " + kind,
+            geometry.bounds(section, root), geometry.visibleIntersection(section, root));
+        JSONArray weights = offer.getJSONArray("weights");
+        for (int j = 0; j < weights.length(); j++) {
+          JSONObject weight = weights.getJSONObject(j);
+          TextView rate = section.findViewWithTag("recruitment-rate-" + kind + "-" + weight.getString("tier"));
+          assertNotNull("A loading-only capture cannot pass", rate);
+          assertEquals("Exact economy.yaml rate", weight.getInt("w") + "%", rate.getText().toString());
+          assertEquals("Every current rate is visible without scrolling",
+              geometry.bounds(rate, root), geometry.visibleIntersection(rate, root));
+          verifiedRates++;
+        }
+      }
+      assertEquals(10, verifiedRates);
+      View table = root.findViewWithTag("recruitment-probability-columns");
+      assertNotNull(table);
+      View summary = root.findViewWithTag("recruitment-probability-footer");
+      assertEquals("Pity and refresh remain visible",
+          geometry.bounds(summary, root), geometry.visibleIntersection(summary, root));
+      for (View ancestor = table; ancestor != root && ancestor != null;) {
+        assertFalse("Probability table requires no vertical scrolling", ancestor.canScrollVertically(1));
+        ancestor = ancestor.getParent() instanceof View ? (View) ancestor.getParent() : null;
+      }
+      assertTrue(flow.labels(root).contains("보장까지 100회"));
+      assertNull(root.findViewWithTag("recruitment-probability-status"));
+    } else assertEquals("Closed probability tab never requests rates", 0, api.drawReads);
     Bitmap scene = ThemeArt.of(host).image(scene(page));
     assertNotNull("정확한 실제 번들 배경 존재", scene);
     assertTrue("낮은 해상도 대체 그림 금지", scene.getWidth() >= 1800 && scene.getHeight() >= 800);
     assertTrue(bounds > 0); assertTrue(actions > 0); assertTrue(text > 0); assertEquals(0, api.writes);
     return MainActivity.obj("checkedBounds", bounds, "actions", actions, "text", text,
         "sceneAsset", scene(page), "sceneWidth", scene.getWidth(), "sceneHeight", scene.getHeight(),
-        "apiWrites", api.writes, "apiReads", api.reads, "actualNativeViews", true,
+        "apiWrites", api.writes, "apiReads", api.reads, "probabilityReads", api.drawReads,
+        "verifiedProbabilityRates", page.equals("settings-probability") ? 10 : 0, "actualNativeViews", true,
         "rootKind", page.startsWith("settings-") ? "dialog" : page.equals("profile") ? "popup" : "page");
   }
 

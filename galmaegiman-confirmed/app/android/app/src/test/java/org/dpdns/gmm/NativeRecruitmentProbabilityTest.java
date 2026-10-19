@@ -21,10 +21,13 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.LooperMode;
+import org.robolectric.annotation.GraphicsMode;
 
 /** Current rates, terminology and lifecycle, with a recording API and no real account writes. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35, qualifiers = "w915dp-h412dp-land-mdpi")
+// Robolectric 4.16.1 marks application windows visible only in native graphics mode.
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @LooperMode(LooperMode.Mode.PAUSED)
 public class NativeRecruitmentProbabilityTest {
   final NativeGameFlowTest fixture = new NativeGameFlowTest();

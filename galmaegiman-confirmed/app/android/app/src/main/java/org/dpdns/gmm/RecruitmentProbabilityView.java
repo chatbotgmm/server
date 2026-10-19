@@ -1,6 +1,7 @@
 package org.dpdns.gmm;
 
 import android.view.View;
+import android.view.Gravity;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -15,6 +16,7 @@ final class RecruitmentProbabilityView extends LinearLayout {
   private final MenuKit kit;
   private final LinearLayout details;
   private final Button refresh;
+  private final TextView summary;
   private boolean connected, visible, loading;
   private int generation;
   private final Runnable reconcileVisibility = this::syncVisibility;
@@ -29,15 +31,19 @@ final class RecruitmentProbabilityView extends LinearLayout {
     kit = new MenuKit(host);
     setOrientation(VERTICAL);
     setTag("recruitment-probability-content");
-    TextView heading = host.text("모집 확률", 20);
-    heading.setTypeface(host.headline);
-    addView(heading);
-    addView(kit.note("하급·중급·고급 모집의 현재 서버 확률을 함께 확인해요."));
     details = kit.column();
     addView(details, new LinearLayout.LayoutParams(-1, -2));
+    LinearLayout footer = kit.row();
+    footer.setTag("recruitment-probability-footer");
+    summary = compactText("현재 서버 정보를 확인해요.", 12);
+    summary.setTag("recruitment-probability-summary");
+    footer.addView(summary, new LinearLayout.LayoutParams(0, -2, 1));
     refresh = kit.action(null, "새로고침", this::load);
     refresh.setTag("recruitment-probability-refresh");
-    addView(refresh, new LinearLayout.LayoutParams(-1, host.dp(48)));
+    refresh.setSingleLine(true);
+    refresh.setPadding(host.dp(8), 0, host.dp(8), 0);
+    footer.addView(refresh, new LinearLayout.LayoutParams(host.dp(116), host.dp(48)));
+    addView(footer, new LinearLayout.LayoutParams(-1, host.dp(48)));
     showStatus("모집 확률을 확인하려면 이 항목을 열어 주세요.");
   }
 
@@ -91,6 +97,7 @@ final class RecruitmentProbabilityView extends LinearLayout {
 
   private void showStatus(String message) {
     details.removeAllViews();
+    summary.setText("현재 확률·보장 정보 확인 필요");
     TextView status = kit.note(message);
     status.setTag("recruitment-probability-status");
     details.addView(status);
@@ -104,7 +111,7 @@ final class RecruitmentProbabilityView extends LinearLayout {
     NativeApi api = host.api;
     String account = api.token();
     refresh.setEnabled(false);
-    refresh.setText("불러오는 중…");
+    refresh.setText("확인 중");
     showStatus("서버에서 현재 모집 확률을 불러오는 중이에요.");
     api.call("draw", null, (draw, error) -> {
       if (request != generation || !connected || !visible) return;
@@ -126,53 +133,68 @@ final class RecruitmentProbabilityView extends LinearLayout {
     });
   }
 
+  private TextView compactText(String text, float size) {
+    TextView label = host.text(text, size);
+    label.setPadding(host.dp(2), 0, host.dp(2), 0);
+    label.setIncludeFontPadding(false);
+    return label;
+  }
+
   private void render(JSONObject draw) {
     details.removeAllViews();
-    JSONObject event = draw.optJSONObject("event");
-    if (event != null && !event.optString("label").isEmpty())
-      details.addView(kit.note(RecruitmentText.display(event.optString("label"))));
+    LinearLayout columns = kit.row();
+    columns.setTag("recruitment-probability-columns");
+    columns.setGravity(Gravity.TOP);
+    columns.setBaselineAligned(false);
     JSONArray offered = draw.optJSONArray("gachas");
     for (String kind : KINDS) {
       JSONObject gacha = find(offered, kind);
-      LinearLayout section = kit.paper();
+      LinearLayout section = kit.column();
       section.setTag("recruitment-probability-" + kind);
+      section.setPadding(host.dp(4), 0, host.dp(4), 0);
       JSONObject label = gacha == null ? MainActivity.obj("kind", kind) : gacha;
-      TextView title = host.text(NativeEconomy.recruitmentLabel(label), 18);
+      TextView title = compactText(NativeEconomy.recruitmentLabel(label), 14);
       title.setTypeface(host.headline);
+      title.setGravity(Gravity.CENTER);
       section.addView(title);
       if (gacha == null) {
-        section.addView(kit.note("이 모집의 현재 확률 정보를 받지 못했어요. 새로고침해 주세요."));
+        section.addView(compactText("현재 확률 정보를 받지 못했어요. 새로고침해 주세요.", 13));
       } else {
         Object cost = gacha.opt("cost");
-        section.addView(kit.note(cost instanceof Number
-            ? "1회 · 지원서 " + number((Number) cost) + "장" : "현재 비용 정보 확인 필요"));
+        TextView costLabel = compactText(cost instanceof Number
+            ? "1회 · 지원서 " + number((Number) cost) + "장" : "현재 비용 확인 필요", 12);
+        costLabel.setTag("recruitment-cost-" + kind);
+        costLabel.setGravity(Gravity.CENTER);
+        section.addView(costLabel);
         JSONArray weights = gacha.optJSONArray("weights");
         if (weights == null || weights.length() == 0)
-          section.addView(kit.note("현재 등급별 확률 정보를 받지 못했어요. 새로고침해 주세요."));
+          section.addView(compactText("현재 등급별 확률 정보를 받지 못했어요.", 13));
         else for (int i = 0; i < weights.length(); i++) {
           JSONObject weight = weights.optJSONObject(i);
           if (weight == null) {
-            section.addView(kit.note("일부 확률 정보를 확인할 수 없어요."));
+            section.addView(compactText("일부 확률 확인 필요", 13));
             continue;
           }
           LinearLayout row = kit.row();
           String tier = RecruitmentText.display(weight.optString("tierName", weight.optString("tier")));
-          row.addView(kit.note(tier.isEmpty() ? "등급 정보 확인 필요" : tier),
+          row.addView(compactText(tier.isEmpty() ? "등급 확인 필요" : tier, 13),
               new LinearLayout.LayoutParams(0, -2, 1));
-          TextView rate = host.text(percent(weight), 17);
+          TextView rate = compactText(percent(weight), 14);
           rate.setTag("recruitment-rate-" + kind + "-" + weight.optString("tier"));
           row.addView(rate);
           section.addView(row);
         }
       }
-      section.addView(kit.note(kind.equals("HIGH") ? pityText(draw)
-          : "이 모집은 보장 횟수를 누적하지 않아요."));
-      LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(-1, -2);
-      slot.bottomMargin = host.dp(8);
-      details.addView(section, slot);
+      columns.addView(section, new LinearLayout.LayoutParams(0, -2, 1));
     }
-    details.addView(kit.note("서버에서 방금 확인한 등급별 확률이에요. 실제 모집 시점의 서버 설정이 적용돼요."
-        + "\n보장은 고급 모집에만 적용되며, 확률·비용·보장 횟수는 앱에서 변경하지 않아요."));
+    details.addView(columns);
+    JSONObject event = draw.optJSONObject("event");
+    if (event != null && !event.optString("label").isEmpty())
+      details.addView(compactText(RecruitmentText.display(event.optString("label")), 12));
+    String guarantee = pityText(draw).replace(" · 고급 모집에만 누적돼요.", " · 고급만 누적");
+    summary.setText("서버 현재값 · " + guarantee);
+    summary.setContentDescription("서버에서 방금 확인한 현재 확률과 비용. " + pityText(draw)
+        + " 하급·중급 모집은 보장 횟수를 누적하지 않아요. 실제 모집 시점의 서버 설정이 적용돼요.");
   }
 
   static JSONObject find(JSONArray gachas, String kind) {

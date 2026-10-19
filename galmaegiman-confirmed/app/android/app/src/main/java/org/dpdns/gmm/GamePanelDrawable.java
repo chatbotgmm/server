@@ -7,6 +7,8 @@ import android.graphics.drawable.Drawable;
 final class GamePanelDrawable extends Drawable {
   final MainActivity host;
   final Paint p = new Paint(3);
+  final Paint quiet = new Paint(Paint.ANTI_ALIAS_FLAG);
+  private final RectF reading = new RectF();
   private final RectF bounds = new RectF();
   private int alpha = 255;
   private ColorFilter filter;
@@ -26,6 +28,12 @@ final class GamePanelDrawable extends Drawable {
       c.saveLayer(bounds, p);
     }
     ThemeArt.of(host).surface(c, ThemeArt.Surface.PANEL, bounds);
+    // 테두리 원본은 유지하고 글자 뒤 구김만 낮춘다. 전체 배경 그림을 덮지 않는다.
+    reading.set(bounds); reading.inset(host.dp(12), host.dp(12));
+    if (!reading.isEmpty()) {
+      quiet.setColor(0xdff3e9d3);
+      c.drawRoundRect(reading, host.dp(3), host.dp(3), quiet);
+    }
     c.restoreToCount(save);
   }
 

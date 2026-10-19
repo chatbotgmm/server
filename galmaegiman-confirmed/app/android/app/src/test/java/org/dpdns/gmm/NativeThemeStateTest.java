@@ -68,9 +68,48 @@ public class NativeThemeStateTest {
     }
   }
 
+  @Test public void nativeAudioRailsRemainVisibleAtZeroHalfAndFullVolume() throws Exception {
+    try (ActivityController<MainActivity> controller = fixture.flow.start()) {
+      MainActivity h = controller.get(); fixture.prepare(h);
+      AudioControlView row = new AudioControlView(h, "배경음악", "music");
+      row.setBackground(new GamePanelDrawable(h));
+      java.nio.file.Path folder = java.nio.file.Path.of(
+          System.getProperty("gmm.nativeReviewOutput", "build/native-review"), "theme-state");
+      java.nio.file.Files.createDirectories(folder);
+      Bitmap previous = null;
+      for (int volume : new int[] {0, 50, 100}) {
+        h.sound.volume("music", volume); row.slider.setProgress(volume); row.refresh();
+        row.measure(View.MeasureSpec.makeMeasureSpec(640, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(64, View.MeasureSpec.EXACTLY));
+        row.layout(0, 0, 640, 64);
+        assertEquals("원래 SeekBar 진행 값", volume, row.slider.getProgress());
+        assertEquals("네이티브 progress가 Drawable level을 전달", volume * 100, row.slider.getProgressDrawable().getLevel());
+        assertTrue(row.slider.getHeight() >= h.dp(48));
+        assertTrue(row.slider.getContentDescription().toString().contains("볼륨"));
+        Bitmap image = Bitmap.createBitmap(640, 64, Bitmap.Config.ARGB_8888);
+        row.draw(new Canvas(image));
+        int railPixels = 0;
+        for (int y = 0; y < image.getHeight(); y++) for (int x = row.slider.getLeft(); x < row.slider.getRight(); x++) {
+          int pixel = image.getPixel(x, y);
+          if (pixel == 0xff637a85 || pixel == JournalTheme.NAVY) railPixels++;
+        }
+        assertTrue("0에서도 실제 남색 rail이 연속으로 보임: " + volume, railPixels >= row.slider.getWidth());
+        if (previous != null) { assertFalse("단계별 실제 픽셀 변화", same(previous, image)); previous.recycle(); }
+        try (java.io.OutputStream out = java.nio.file.Files.newOutputStream(folder.resolve("audio-track-" + volume + ".png"))) {
+          assertTrue(image.compress(Bitmap.CompressFormat.PNG, 100, out));
+        }
+        previous = image;
+      }
+      if (previous != null) previous.recycle();
+    }
+  }
+
   @Test public void settingsBackgroundAlphaFilterAndAsyncCallbackArePreserved() throws Exception {
     try (ActivityController<MainActivity> controller = fixture.flow.start()) {
       MainActivity h = controller.get(); fixture.prepare(h);
+      RegistrationArtTest.await(h.art::idle);
+      h.art.clear(); // cold-load: cache hits legitimately finish before a Drawable has its external callback.
+      assertNull(h.art.peek("asset:release-v1/backgrounds/bg-settings-harbor-office-v1.png"));
       GameSettingsDrawable drawable = new GameSettingsDrawable(h);
       final int[] invalidations = {0};
       drawable.setCallback(new Drawable.Callback() {
@@ -78,9 +117,12 @@ public class NativeThemeStateTest {
         public void scheduleDrawable(Drawable who, Runnable what, long when) {}
         public void unscheduleDrawable(Drawable who, Runnable what) {}
       });
-      RegistrationArtTest.await(h.art::idle);
+      RegistrationArtTest.await(() -> h.art.idle() && invalidations[0] > 0);
       assertTrue("최초 비동기 배경 준비가 바깥 Drawable에 전달됨", invalidations[0] > 0);
       Bitmap normal = draw(drawable);
+      // Warm-cache construction requires no async repaint; its first draw must already contain the same scene.
+      Bitmap warm = draw(new GameSettingsDrawable(h));
+      assertTrue("warm cache의 첫 프레임은 cold 완료 프레임과 같음", same(normal, warm)); warm.recycle();
       drawable.setColorFilter(new PorterDuffColorFilter(0xff663399, PorterDuff.Mode.SRC_ATOP));
       Bitmap filtered = draw(drawable); assertFalse(same(normal, filtered));
       drawable.setColorFilter(null); Bitmap restored = draw(drawable); assertTrue(same(normal, restored));
@@ -120,7 +162,12 @@ public class NativeThemeStateTest {
             && ((EditText) view).getHint().toString().contains("탈퇴")) confirm = (EditText) view;
       assertNotNull(confirm); confirm.setText("아니오"); assertFalse(delete.isEnabled());
       confirm.setText("탈퇴"); assertTrue(delete.isEnabled()); confirm.setText(""); assertFalse(delete.isEnabled());
-      root.findViewWithTag("settings-dialog-close").performClick(); assertNull(h.visibleDialog);
+      android.app.AlertDialog settings = h.visibleDialog;
+      root.findViewWithTag("settings-dialog-close").performClick();
+      assertFalse("닫기 후 실제 창은 즉시 사라짐", settings.isShowing());
+      // Dialog.dismiss()는 OnDismissListener를 Handler에 보낸다. PAUSED looper도 실제 콜백을 처리한다.
+      Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+      assertNull("dismiss 콜백 후 현재 창 참조도 해제", h.visibleDialog);
       assertEquals("home", h.screen); assertEquals(0, api.writes);
       View anchor = h.root.findViewWithTag("lobby-profile"); anchor.performClick();
       PopupWindow first = h.menus.extras.profilePopup; assertNotNull(first);

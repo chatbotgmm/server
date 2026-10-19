@@ -96,6 +96,11 @@ final class NativeSettingsSheet {
       nav.addView(tab, slot);
       tabs[i] = tab;
       pick[i] = () -> {
+        // 확률 세 등급을 한 판에 보여 주되 다른 탭의 고정 배치는 유지한다.
+        boolean rates = index == 3;
+        panel.getLayoutParams().height = h.dp(rates ? 234 : 218);
+        panel.setPadding(h.dp(14), h.dp(rates ? 5 : 10), h.dp(14), h.dp(rates ? 5 : 10));
+        panel.requestLayout();
         for (int j = 0; j < pages.length; j++) {
           containers[j].setVisibility(j == index ? View.VISIBLE : View.GONE);
           tabs[j].setSelected(j == index);
@@ -134,7 +139,7 @@ final class NativeSettingsSheet {
       row.onChange = sync;
       row.heading.setTextColor(JournalTheme.INK);
       row.value.setTextColor(JournalTheme.MUTED);
-      row.slider.setProgressTintList(ColorStateList.valueOf(JournalTheme.TEAL));
+      row.slider.setProgressTintList(null);
       row.slider.setThumbTintList(null);
     }
     sync.run();

@@ -981,6 +981,9 @@ final class NativeEconomy {
     String title = o.optString("title"), currency = o.optString("currency");
     int price = o.optInt("price"), limit = o.optInt("limit");
     TextView about = k.note(title + " · " + o.optString("desc"));
+    about.setTag("shop-selected-description");
+    about.setTextColor(MainActivity.INK);
+    about.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
     about.setMaxLines(2);
     about.setEllipsize(android.text.TextUtils.TruncateAt.END);
     bar.addView(about);
