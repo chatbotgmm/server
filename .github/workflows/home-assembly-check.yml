@@ -76,6 +76,9 @@ jobs:
       - name: Test home-tip capture validation checks
         run: python3 -m unittest discover -s ci -p test_verify_home_tip_ci.py -v
 
+      - name: Test preparation full-card evidence validation
+        run: python3 -m unittest discover -s ci -p test_verify_preparation_cards.py -v
+
       # The project excludes NativeRenderReviewTest unless a review token is supplied.
       # Do not supply that token: R1 uses local fixtures and bundled artwork instead.
       # Loopback prevents missing art/API fallbacks from reaching the production service.
@@ -162,6 +165,15 @@ jobs:
           --native-review app/build/native-review
           --junit app/build/test-results/testDebugUnitTest
           --output app/build/phase2-ci/realtime.json
+      - name: Verify full registration cards and complete status in 28 preparation captures
+        if: ${{ !cancelled() }}
+        id: preparation_cards
+        run: >
+          python3 ci/verify_preparation_cards.py
+          --directory app/build/native-review/realtime-theme
+          --contract ci/preparation-card-contract.json
+          --realtime-report app/build/phase2-ci/realtime.json
+          --output app/build/phase2-ci/preparation-cards.json
       - name: Verify phase-two economy captures and non-skipped full-suite tests
         if: ${{ !cancelled() }}
         id: phase2_economy
@@ -371,7 +383,7 @@ jobs:
           && steps.phase2_economy.outcome == 'success'
           && steps.phase2_extras.outcome == 'success'
           && steps.phase2_assets.outcome == 'success' && steps.phase2_coverage.outcome == 'success' && steps.phase2_ready.outcome == 'success'
-          && steps.home_tip_gate.outcome == 'success' }}
+          && steps.home_tip_gate.outcome == 'success' && steps.preparation_cards.outcome == 'success' }}
         id: assemble
         run: >
           bash ./gradlew :app:assembleDebug :app:assemblePreview

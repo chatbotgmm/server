@@ -59,7 +59,7 @@ public class NativeRealtimeThemeReviewTest {
           Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(16));
           advancedMillis += 16;
         } else Shadows.shadowOf(Looper.getMainLooper()).idle();
-        if (h.art.idle()) {
+        if (assetsReady(h)) {
           Shadows.shadowOf(Looper.getMainLooper()).idle();
           return (System.nanoTime() - started) / 1000000L;
         }
@@ -71,11 +71,28 @@ public class NativeRealtimeThemeReviewTest {
     } finally { assetWaitMillis += (System.nanoTime() - started) / 1000000L; }
   }
 
+  boolean assetsReady(MainActivity h) {
+    if (!h.art.idle()) return false;
+    if (!"realtimePrepare".equals(h.screen)) return true;
+    if (!h.registrationArt().idle()) return false;
+    for (View view : geometry.descendants(h.root)) {
+      if (!(view instanceof RegistrationCardView.Artwork) || !view.isShown()) continue;
+      RegistrationCardView.Artwork art = (RegistrationCardView.Artwork) view;
+      assertTrue("Visible preparation identity must be server-disclosed: " + art.id, art.visibleIdentity);
+      assertFalse("Missing bundled preparation registration: " + art.id, "이미지 없음".equals(art.status));
+      if (art.bitmap == null || !art.status.isEmpty()) return false;
+    }
+    return true;
+  }
+
   String pendingAssets(MainActivity h) throws Exception {
     java.lang.reflect.Field field = NativeArt.class.getDeclaredField("loading");
     field.setAccessible(true);
     Set<?> pending = (Set<?>) field.get(h.art);
-    synchronized (pending) { return pending.toString(); }
+    synchronized (pending) {
+      return pending.toString() + ("realtimePrepare".equals(h.screen)
+          ? "; registration=" + h.registrationArt().pendingCount() : "");
+    }
   }
 
   void assertBundledAssets(MainActivity h, String screen) throws IOException {
@@ -210,6 +227,77 @@ public class NativeRealtimeThemeReviewTest {
     return AppSkin.background(screen.startsWith("augment") ? "workshop" : "training");
   }
 
+  JSONObject inspectPreparationStatus(MainActivity h, View root) throws Exception {
+    TextView status = root.findViewWithTag("realtime-prepare-status"); assertNotNull(status);
+    geometry.readable(status);
+    assertEquals(geometry.bounds(status, root), geometry.visibleIntersection(status, root));
+    android.text.Layout text = status.getLayout(); assertNotNull(text);
+    int width = status.getWidth() - status.getCompoundPaddingLeft() - status.getCompoundPaddingRight();
+    int height = status.getHeight() - status.getCompoundPaddingTop() - status.getCompoundPaddingBottom();
+    assertTrue("Complete status uses at most two lines", text.getLineCount() >= 1 && text.getLineCount() <= 2);
+    assertTrue("Status text height fits its fixed header", text.getHeight() <= height);
+    assertEquals("The whole status is laid out", status.length(), text.getLineEnd(text.getLineCount() - 1));
+    JSONArray lines = new JSONArray();
+    for (int i = 0; i < text.getLineCount(); i++) {
+      assertEquals("Status cannot be ellipsized", 0, text.getEllipsisCount(i));
+      assertTrue("Status starts inside its content width", text.getLineLeft(i) >= -.01f);
+      assertTrue("Status ends inside its content width", text.getLineRight(i) <= width + .01f);
+      lines.put(MainActivity.obj("left", text.getLineLeft(i), "right", text.getLineRight(i)));
+    }
+    if (h.realtime.isAiRoom(h.realtime.latest)) assertEquals(NativeRealtime.AI_NOTICE, status.getText().toString());
+    return MainActivity.obj("text", status.getText().toString(), "lines", lines,
+        "contentWidth", width, "contentHeight", height, "layoutHeight", text.getHeight(),
+        "textLength", status.length(), "laidOutTextEnd", text.getLineEnd(text.getLineCount() - 1));
+  }
+
+  JSONArray inspectPreparationCards(MainActivity h, View root) throws Exception {
+    JSONObject preparation = h.realtime.latest.getJSONObject("preparation");
+    JSONArray selected = preparation.getJSONArray("selectedIds"), available = preparation.getJSONArray("available");
+    Map<String, String> expected = new LinkedHashMap<>();
+    for (int i = 0; i < selected.length(); i++) expected.put("realtime-prepare-slot-" + i, selected.getString(i));
+    for (int i = h.realtime.preparationPage * NativeRealtime.PREPARATION_PAGE_SIZE;
+        i < Math.min(available.length(), (h.realtime.preparationPage + 1) * NativeRealtime.PREPARATION_PAGE_SIZE); i++)
+      expected.put("realtime-prepare-candidate-" + i, available.getJSONObject(i).getString("id"));
+    JSONArray cards = new JSONArray();
+    for (View view : geometry.descendants(root)) {
+      if (!(view instanceof RegistrationCardView) || !view.isShown()) continue;
+      RegistrationCardView card = (RegistrationCardView) view;
+      RegistrationCardView.Artwork art = card.picture;
+      String tag = String.valueOf(card.getTag()), id = expected.remove(tag);
+      assertNotNull("Only server-authoritative slots/candidates are rendered: " + tag, id);
+      assertEquals(id, art.id); assertEquals(RegistrationCardView.FULL, art.mode);
+      assertTrue(art.isAttachedToWindow() && art.isShown());
+      assertNotNull("Actual full registration bitmap: " + id, art.bitmap);
+      assertFalse(art.bitmap.isRecycled()); assertEquals("", art.status);
+      assertTrue("Full card cannot be reduced to a thumbnail: " + id + " " + art.target,
+          art.target.width() >= h.dp(h.contentHeightDp() >= 600 ? 180 : 128)
+              && art.target.height() >= h.dp(h.contentHeightDp() >= 600 ? 240 : 170));
+      assertTrue(new RectF(0, 0, art.getWidth(), art.getHeight()).contains(art.target));
+      assertEquals("Whole registration aspect ratio", 3f / 4f, art.target.width() / art.target.height(), .001f);
+      assertEquals(geometry.bounds(art, root), geometry.visibleIntersection(art, root));
+      assertEquals("Printed name must not be repeated", View.GONE, card.name.getVisibility());
+      assertEquals("Printed tier must not be repeated", View.GONE, card.grade.getVisibility());
+      int bucket = RegistrationArt.widthBucket(art.mode, art.getWidth(), art.getHeight());
+      Bitmap reference = RegistrationArtTest.expected(h, id, RegistrationCardView.FULL, bucket);
+      try { RegistrationArtTest.samePixels("Preparation FULL " + tag + "/" + id, reference, art.bitmap); }
+      finally { reference.recycle(); }
+      TextView state = card.findViewWithTag(tag + "-state");
+      JSONObject candidate = NativeRealtime.preparationCandidate(available, id);
+      assertTrue(state.getText().toString().contains("Lv" + candidate.getInt("level")));
+      android.view.accessibility.AccessibilityNodeInfo node = card.createAccessibilityNodeInfo();
+      assertTrue(node.getContentDescription().toString().contains(candidate.getString("name")));
+      assertTrue(node.getContentDescription().toString().contains(state.getText()));
+      assertEquals(card.isEnabled(), node.isEnabled());
+      cards.put(MainActivity.obj("tag", tag, "id", id, "mode", "FULL", "pixelIdentityVerified", true,
+          "containedWidth", art.target.width(), "containedHeight", art.target.height(),
+          "bitmapWidth", art.bitmap.getWidth(), "bitmapHeight", art.bitmap.getHeight(),
+          "enabled", card.isEnabled(), "dynamicState", state.getText().toString()));
+    }
+    assertTrue("Missing server preparation cards: " + expected, expected.isEmpty());
+    assertEquals("Empty state or three slots plus three current candidates", available.length() == 0 ? 0 : 6, cards.length());
+    return cards;
+  }
+
   JSONObject inspect(MainActivity h, View target, String screen, NativeRealtimeTest.FakeApi api) throws Exception {
     assertTrue("Capture target must be attached: " + screen, target.isAttachedToWindow());
     assertTrue("Capture target must be shown: " + screen, target.isShown());
@@ -268,10 +356,13 @@ public class NativeRealtimeThemeReviewTest {
       assertTrue(jua.read() >= 0); assertTrue(prose.read() >= 0);
     }
     assertTrue(texts > 0);
-    return MainActivity.obj("actualNativeViews", true, "sceneAsset", scene(screen), "sceneWidth", background.getWidth(),
+    JSONObject result = MainActivity.obj("actualNativeViews", true, "sceneAsset", scene(screen), "sceneWidth", background.getWidth(),
         "sceneHeight", background.getHeight(), "checkedBounds", checkedBounds, "actions", actions, "text", texts,
         "apiWrites", 0, "apiReads", api.requests.size(),
         "rootKind", h.visibleDialog != null ? "dialog" : screen.startsWith("augment") ? "overlay" : "page");
+    if (screen.startsWith("prepare-")) result.put("preparationCards", inspectPreparationCards(h, target))
+        .put("preparationStatus", inspectPreparationStatus(h, target));
+    return result;
   }
 
   JSONObject geometryNode(View view, View target) throws JSONException {

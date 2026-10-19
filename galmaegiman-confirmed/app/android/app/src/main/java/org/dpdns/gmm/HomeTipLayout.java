@@ -24,22 +24,37 @@ final class HomeTipLayout {
   static Result measure(TextView text, RectF safe, RectF hero, List<RectF> exclusions,
       int gap, int preferredWidth, int maximumWidth, int minimumWidth) {
     CharSequence copy = text.getText();
-    Result result = fit(text, safe, hero, exclusions, gap, preferredWidth, maximumWidth, minimumWidth);
+    Result result = fit(text, safe, hero, exclusions, gap, gap, preferredWidth, maximumWidth, minimumWidth);
     // Before paging, try the same readable font with a measured 4dp rather than 8dp vertical inset.
     // This recovers complete advice on particularly short phones with a battle-resume row.
     int compactInset = Math.max(1, gap / 2);
     if ((result.paged || result.bounds.isEmpty()) && text.getPaddingTop() > compactInset) {
       text.setText(copy);
       text.setPadding(text.getPaddingLeft(), compactInset, text.getPaddingRight(), compactInset);
-      result = fit(text, safe, hero, exclusions, gap, preferredWidth, maximumWidth, minimumWidth);
+      result = fit(text, safe, hero, exclusions, gap, gap, preferredWidth, maximumWidth, minimumWidth);
+    }
+    if (result.paged || result.bounds.isEmpty()) {
+      // The short-phone/resume case has enough physical room for full-size type, but not
+      // always the preferred 8dp clearance. Try a measured 2dp separation from every
+      // exclusion while retaining the original 8dp screen-edge inset and 4dp text inset.
+      int closeGap = Math.max(1, Math.round(gap / 4f));
+      text.setText(copy);
+      result = fit(text, safe, hero, exclusions, closeGap, gap,
+          preferredWidth, maximumWidth, minimumWidth);
+      if (result.paged || result.bounds.isEmpty()) {
+        // If complete copy still cannot fit, keep the roomier separation for tap pages.
+        text.setText(copy);
+        result = fit(text, safe, hero, exclusions, gap, gap,
+            preferredWidth, maximumWidth, minimumWidth);
+      }
     }
     return result;
   }
 
   private static Result fit(TextView text, RectF safe, RectF hero, List<RectF> exclusions,
-      int gap, int preferredWidth, int maximumWidth, int minimumWidth) {
+      int gap, int edgeInset, int preferredWidth, int maximumWidth, int minimumWidth) {
     // Whole text is measured first. AT_MOST height must not masquerade as a successful fit.
-    ArrayList<Rect> spaces = freeSpaces(safe, exclusions, gap);
+    ArrayList<Rect> spaces = freeSpaces(safe, exclusions, gap, edgeInset);
     Rect best = null, fallback = null;
     double bestScore = Double.MAX_VALUE, fallbackScore = Double.MAX_VALUE;
     int minimumHeight = Math.max(text.getMinHeight(), text.getCompoundPaddingTop()
@@ -117,9 +132,13 @@ final class HomeTipLayout {
 
   /** Overlapping maximal empty rectangles retain room across staggered headers and actions. */
   static ArrayList<Rect> freeSpaces(RectF safe, List<RectF> exclusions, int gap) {
+    return freeSpaces(safe, exclusions, gap, gap);
+  }
+
+  static ArrayList<Rect> freeSpaces(RectF safe, List<RectF> exclusions, int gap, int edgeInset) {
     ArrayList<Rect> spaces = new ArrayList<>();
-    Rect inside = new Rect((int) Math.ceil(safe.left + gap), (int) Math.ceil(safe.top + gap),
-        (int) Math.floor(safe.right - gap), (int) Math.floor(safe.bottom - gap));
+    Rect inside = new Rect((int) Math.ceil(safe.left + edgeInset), (int) Math.ceil(safe.top + edgeInset),
+        (int) Math.floor(safe.right - edgeInset), (int) Math.floor(safe.bottom - edgeInset));
     if (!inside.isEmpty()) spaces.add(inside);
     for (RectF excluded : exclusions) {
       Rect blocked = new Rect((int) Math.floor(excluded.left - gap),

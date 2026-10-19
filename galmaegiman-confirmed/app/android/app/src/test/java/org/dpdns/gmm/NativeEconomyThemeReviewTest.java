@@ -108,17 +108,93 @@ public class NativeEconomyThemeReviewTest {
     TextView text = host.root.findViewWithTag(textTag);
     View frame = host.root.findViewWithTag(frameTag);
     assertNotNull(text); assertNotNull(frame);
+    inkInsideFrame(host, text, frame, top, bottom);
+  }
+
+  void inkInsideFrame(MainActivity host, TextView text, View frame, int top, int bottom) {
     Rect own = geometry.bounds(text, host.root), outer = geometry.bounds(frame, host.root);
     for (int line = 0; line < text.getLineCount(); line++) {
       int start = text.getLayout().getLineStart(line), end = text.getLayout().getLineEnd(line);
       String content = text.getText().subSequence(start, end).toString().stripTrailing();
       Rect ink = new Rect(); text.getPaint().getTextBounds(content, 0, content.length(), ink);
       int baseline = own.top + text.getBaseline() + text.getLayout().getLineBaseline(line) - text.getLayout().getLineBaseline(0);
-      assertTrue("Real ink clears the top brass frame: " + textTag,
+      assertTrue("Real ink clears the top brass frame: " + text.getText(),
           baseline + ink.top >= outer.top + host.dp(top));
-      assertTrue("Real ink clears the bottom brass frame: " + textTag,
+      assertTrue("Real ink clears the bottom brass frame: " + text.getText(),
           baseline + ink.bottom <= outer.bottom - host.dp(bottom));
     }
+  }
+
+  JSONArray expeditionCards(MainActivity host, String page) {
+    JSONArray dimensions = new JSONArray();
+    if (!page.equals("explore") && !page.equals("trip")) return dimensions;
+    NativeEconomy economy = host.menus.economy;
+    for (String tag : new String[] {"expedition-selected-pages", "expedition-candidate-pages"}) {
+      View pager = host.root.findViewWithTag(tag);
+      if (page.equals("trip") && tag.equals("expedition-candidate-pages")) continue;
+      assertNotNull(pager);
+      assertTrue("48 + 24 + 48dp side pager fits residual native height: " + tag + " height=" + pager.getHeight(),
+          pager.getHeight() >= host.dp(120));
+      assertEquals(geometry.bounds(pager, host.root), geometry.visibleIntersection(pager, host.root));
+    }
+    if (page.equals("explore")) {
+      View frame = host.root.findViewWithTag("expedition-summary");
+      View copy = host.root.findViewWithTag("expedition-summary-copy");
+      assertNotNull(frame); assertNotNull(copy);
+      int labels = 0;
+      for (View child : geometry.descendants(copy)) if (child instanceof TextView) {
+        inkInsideFrame(host, (TextView) child, frame, 12, 12);
+        labels++;
+      }
+      assertEquals("Count and exact estimate both clear the brass frame", 2, labels);
+    }
+    int perPage = economy.compact() ? 2 : 3, selected = 0, candidates = 0;
+    for (View view : geometry.descendants(host.root)) {
+      String tag = view.getTag() instanceof String ? view.getTag().toString() : "";
+      boolean member = tag.startsWith("expedition-member-"), candidate = tag.startsWith("expedition-add-");
+      if (!view.isShown() || (!member && !candidate)) continue;
+      String id;
+      if (member) {
+        int index = Integer.parseInt(tag.substring("expedition-member-".length()));
+        assertTrue(index >= economy.selectedCrewPage * perPage && index < (economy.selectedCrewPage + 1) * perPage);
+        id = page.equals("trip") ? host.list(host.me().optJSONObject("trip"), "ids").optString(index)
+            : host.expeditionDraft.get(index);
+        selected++;
+      } else { id = tag.substring("expedition-add-".length()); candidates++; }
+      JSONObject unit = economy.find(id);
+      LinearLayout tile = (LinearLayout) view;
+      assertEquals("Only full art and dynamic state, with no duplicate printed identity", 2, tile.getChildCount());
+      assertTrue(tile.getChildAt(0) instanceof RegistrationCardView);
+      RegistrationCardView card = (RegistrationCardView) tile.getChildAt(0);
+      RegistrationCardView.Artwork art = card.picture;
+      assertEquals(id, art.id);
+      assertEquals(RegistrationCardView.FULL, art.mode);
+      assertNotNull("Canonical FULL asset loaded: " + id, art.bitmap);
+      assertFalse(art.bitmap.isRecycled());
+      assertEquals(View.GONE, card.name.getVisibility());
+      assertEquals(View.GONE, card.grade.getVisibility());
+      assertTrue(view.getContentDescription().toString().contains(unit.optString("name")));
+      assertTrue(Float.isFinite(art.target.width()) && Float.isFinite(art.target.height()));
+      assertTrue(new RectF(0, 0, art.getWidth(), art.getHeight()).contains(art.target));
+      assertEquals(art.getWidth() / 2f, art.target.centerX(), .01f);
+      assertEquals(art.getHeight() / 2f, art.target.centerY(), .01f);
+      assertEquals(art.bitmap.getWidth() / (float) art.bitmap.getHeight(), art.target.width() / art.target.height(), .001f);
+      int minimumArtHeight = host.contentHeightDp() < 390 ? 100 : 120;
+      assertTrue("Large FULL card after moving the pager beside it: " + tag + " target=" + art.target,
+          art.target.height() >= host.dp(minimumArtHeight));
+      assertEquals(geometry.bounds(art, host.root), geometry.visibleIntersection(art, host.root));
+      TextView status = (TextView) tile.getChildAt(1);
+      int left = unit.optInt("have") - unit.optInt("away") - (candidate ? Collections.frequency(host.expeditionDraft, id) : 0);
+      assertEquals(candidate ? "남은 " + left : page.equals("trip") ? "탐험 중" : "빼기 ×", status.getText().toString());
+      readable(status);
+      assertFalse(status.getText().toString().equals(unit.optString("name")));
+      dimensions.put(MainActivity.obj("tag", tag, "id", id, "mode", "FULL", "artWidth", art.target.width(),
+          "artHeight", art.target.height(), "minimumArtHeightDp", minimumArtHeight, "status", status.getText().toString()));
+    }
+    assertTrue("Existing page size is preserved", selected > 0 && selected <= perPage && candidates <= perPage);
+    if (page.equals("explore")) assertTrue(candidates > 0);
+    assertTrue("Existing shared card cache stays bounded", host.registrationArt().cachedBytes() <= 16 * 1024 * 1024);
+    return dimensions;
   }
 
   JSONObject audit(MainActivity host, String page, NativeEconomyThemeFixture.Api api) {
@@ -208,8 +284,10 @@ public class NativeEconomyThemeReviewTest {
     Bitmap scene = ThemeArt.of(host).image(sceneAsset);
     assertNotNull("Actual bundled scene", scene);
     assertTrue("Full-resolution background", scene.getWidth() >= 1800 && scene.getHeight() >= 800);
+    JSONArray fullCards = expeditionCards(host, page);
     return MainActivity.obj("actualNativeViews", true, "controls", controls, "labels", labels, "namePreviewTruncations", truncations,
         "independentOverlapChecks", overlapChecks, "apiWrites", api.writes, "apiReads", api.calls.size(),
+        "expeditionFullCards", fullCards,
         "sceneAsset", sceneAsset, "sceneWidth", scene.getWidth(), "sceneHeight", scene.getHeight(),
         "rootKind", page.equals("forge") ? "overlay" : "page", "sourceCommit", api.data.source.optString("sourceCommit"));
   }
@@ -332,6 +410,59 @@ public class NativeEconomyThemeReviewTest {
       }
       assertEquals(expected, seen);
       assertNull(host.visibleDialog);
+      expeditionPagesKeepIdentityAndDuplicateIndices(host, api);
     }
+  }
+
+  void expeditionPagesKeepIdentityAndDuplicateIndices(MainActivity host, NativeEconomyThemeFixture.Api api) throws Exception {
+    host.me().remove("trip");
+    NativeEconomy economy = host.menus.economy;
+    economy.expedition();
+    List<String> expected = new ArrayList<>(), seen = new ArrayList<>();
+    JSONArray owned = host.list(host.me(), "units");
+    for (int i = 0; i < owned.length(); i++) {
+      JSONObject unit = owned.optJSONObject(i);
+      if (unit.optBoolean("top") && unit.optInt("have") - unit.optInt("away") > 0) expected.add(unit.optString("id"));
+    }
+    while (true) {
+      ready(host, SIZES[0]);
+      expeditionCards(host, "explore");
+      int visible = 0;
+      for (View view : geometry.descendants(host.root.findViewWithTag("expedition-candidates"))) {
+        String tag = view.getTag() instanceof String ? view.getTag().toString() : "";
+        if (tag.startsWith("expedition-add-")) { seen.add(tag.substring("expedition-add-".length())); visible++; }
+      }
+      assertEquals(Math.min(2, expected.size() - economy.crewPage * 2), visible);
+      Button next = actions.button(host.root.findViewWithTag("expedition-candidate-pages"), "›");
+      if (!next.isEnabled()) break;
+      next.performClick();
+    }
+    assertEquals("Side paging preserves every eligible server ID and its order", expected, seen);
+    // Separate behavior fixture: duplicate selected copies retain global slot identity.
+    host.expeditionDraft = new ArrayList<>(Arrays.asList("D1", "D2", "D1", "D3", "D4"));
+    economy.selectedCrewPage = economy.crewPage = 0;
+    economy.expedition();
+    ready(host, SIZES[0]);
+    View exhausted = host.root.findViewWithTag("expedition-add-D1");
+    assertNotNull(exhausted); assertFalse(exhausted.isEnabled());
+    assertEquals("남은 0", ((TextView) exhausted.findViewWithTag("expedition-crew-status")).getText().toString());
+    host.busy = true;
+    host.root.findViewWithTag("expedition-member-0").performClick();
+    assertEquals(Arrays.asList("D1", "D2", "D1", "D3", "D4"), host.expeditionDraft);
+    host.busy = false;
+    actions.button(host.root.findViewWithTag("expedition-selected-pages"), "›").performClick();
+    ready(host, SIZES[0]);
+    host.root.findViewWithTag("expedition-member-2").performClick();
+    assertEquals("Remove exactly the second-page duplicate, not the first matching ID",
+        Arrays.asList("D1", "D2", "D3", "D4"), host.expeditionDraft);
+    ready(host, SIZES[0]);
+    host.root.findViewWithTag("expedition-member-3").performClick();
+    ready(host, SIZES[0]);
+    host.root.findViewWithTag("expedition-member-2").performClick();
+    ready(host, SIZES[0]);
+    assertEquals(Arrays.asList("D1", "D2"), host.expeditionDraft);
+    assertEquals("Deleting the last page clamps to the remaining page", 0, economy.selectedCrewPage);
+    assertEquals("Presentation paging and draft selection never submit automatically", 0, api.writes);
+    assertNull(host.visibleDialog);
   }
 }

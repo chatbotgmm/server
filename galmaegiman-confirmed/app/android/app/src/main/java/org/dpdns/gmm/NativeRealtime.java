@@ -29,10 +29,10 @@ final class NativeRealtime {
   TextView queueText, queueElapsed, queueMode, queuePolicyView, clock;
   long queueObservedAt, queueWaitReceivedAt, queueWaitBase = -1;
   Button cancelButton;
-  final ArrayList<Button> phaseActions = new ArrayList<>();
+  final ArrayList<View> phaseActions = new ArrayList<>();
   int preparationSlot, preparationPage;
   String preparationPhase = "";
-  static final int PREPARATION_PAGE_SIZE = 4;
+  static final int PREPARATION_PAGE_SIZE = 3;
   boolean queueStopped, queueConfirmed, queueRetryPending;
   int queueRetryCount, waitingCopyIndex;
   Runnable queueRetry;
@@ -597,33 +597,45 @@ final class NativeRealtime {
     TextView heading = lightText(mode.equals("rank") ? "랭크 · 팀 편성" : "일반 · 팀 편성", 21);
     heading.setTypeface(h.headline); heading.setGravity(Gravity.CENTER_VERTICAL);
     heading.setPadding(h.dp(16), 0, h.dp(8), 0);
-    head.addView(heading, new LinearLayout.LayoutParams(0, -1, 1));
+    head.addView(heading, new LinearLayout.LayoutParams(h.dp(250), -1));
+    TextView status = lightText(isAiRoom(r) ? AI_NOTICE : preparation.optBoolean("opponentReady")
+        ? "상대 준비 완료" : "상대가 팀을 고르고 있어요.", 14);
+    status.setTag("realtime-prepare-status"); status.setMaxLines(2); status.setEllipsize(null);
+    status.setIncludeFontPadding(false); status.setPadding(h.dp(8), 0, h.dp(8), 0);
+    head.addView(status, new LinearLayout.LayoutParams(0, -1, 1));
     head.addView(inlineClock(), new LinearLayout.LayoutParams(h.dp(200), -1));
     h.page.addView(head, new LinearLayout.LayoutParams(-1, h.dp(48)));
-    TextView status = h.text(isAiRoom(r) ? AI_NOTICE : preparation.optBoolean("opponentReady")
-        ? "상대 준비 완료" : "상대가 팀을 고르고 있어요.", 14);
-    status.setBackground(new GamePaperDrawable(h)); status.setTag("realtime-prepare-status");
-    LinearLayout.LayoutParams statusSlot = new LinearLayout.LayoutParams(-1, -2);
-    statusSlot.topMargin = h.dp(4); statusSlot.bottomMargin = h.dp(6); h.page.addView(status, statusSlot);
-    LinearLayout body = kit.row(); body.setGravity(Gravity.TOP); body.setTag("realtime-prepare-fixed");
-    h.page.addView(body, new LinearLayout.LayoutParams(-1, 0, 1)); h.body = body;
-    LinearLayout order = kit.column(); order.setPadding(h.dp(10), h.dp(8), h.dp(10), h.dp(8));
-    order.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAV));
-    LinearLayout.LayoutParams left = new LinearLayout.LayoutParams(0, -1, .40f);
-    left.rightMargin = h.dp(10); body.addView(order, left);
-    TextView orderTitle = lightText("출전 순서", 17); orderTitle.setTypeface(h.headline); order.addView(orderTitle);
+    LinearLayout body = kit.row(); body.setGravity(Gravity.TOP); body.setBaselineAligned(false);
+    body.setTag("realtime-prepare-fixed");
+    LinearLayout.LayoutParams bodySize = new LinearLayout.LayoutParams(-1, 0, 1);
+    bodySize.topMargin = h.dp(6); h.page.addView(body, bodySize); h.body = body;
+    LinearLayout order = kit.column();
+    LinearLayout.LayoutParams left = new LinearLayout.LayoutParams(0, -1, .50f);
+    left.rightMargin = h.dp(12); body.addView(order, left);
+    TextView orderTitle = lightText("출전 순서", 17); orderTitle.setTypeface(h.headline);
+    orderTitle.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
+    order.addView(orderTitle, new LinearLayout.LayoutParams(-1, h.dp(48)));
+    LinearLayout podium = kit.row(); podium.setGravity(Gravity.TOP); podium.setBaselineAligned(false);
+    podium.setTag("realtime-prepare-podium");
+    order.addView(podium, new LinearLayout.LayoutParams(-1, 0, 1));
     for (int i = 0; i < selected.length(); i++) {
       final int slot = i;
       JSONObject candidate = preparationCandidate(available, selected.optString(i));
-      String label = (i == 0 ? "선봉" : (i + 1) + "번") + " · " + candidate.optString("name", selected.optString(i));
-      Button button = phaseButton(label, "realtime-prepare-slot-" + i, () -> choosePreparationSlot(r, slot), false);
-      button.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.TAB)); button.setTextColor(JournalTheme.tabText());
-      button.setSelected(i == preparationSlot); button.setMaxLines(2); button.setEllipsize(null);
-      LinearLayout.LayoutParams slotSize = new LinearLayout.LayoutParams(-1, 0, 1);
-      slotSize.topMargin = h.dp(4); order.addView(button, slotSize); phaseActions.add(button);
+      String orderLabel = i == 0 ? "선봉" : (i + 1) + "번";
+      View card;
+      if (candidate.length() == 0) {
+        TextView unavailable = lightText(orderLabel + " · 정보 확인 중", 14);
+        unavailable.setTag("realtime-prepare-slot-" + i); card = unavailable;
+      } else {
+        card = preparationCard(candidate, "realtime-prepare-slot-" + i, orderLabel,
+            i == preparationSlot, () -> choosePreparationSlot(r, slot));
+        phaseActions.add(card);
+      }
+      LinearLayout.LayoutParams slotSize = new LinearLayout.LayoutParams(0, -1, 1);
+      slotSize.setMargins(h.dp(3), h.dp(4), h.dp(3), 0); podium.addView(card, slotSize);
     }
-    LinearLayout choices = kit.column(); body.addView(choices, new LinearLayout.LayoutParams(0, -1, .60f));
-    LinearLayout pager = kit.row();
+    LinearLayout choices = kit.column(); body.addView(choices, new LinearLayout.LayoutParams(0, -1, .50f));
+    LinearLayout pager = kit.row(); pager.setBaselineAligned(false);
     TextView candidateTitle = lightText("후보 · " + (preparationSlot == 0 ? "선봉" : (preparationSlot + 1) + "번"), 17);
     candidateTitle.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
     pager.addView(candidateTitle, new LinearLayout.LayoutParams(0, -1, 1));
@@ -644,22 +656,19 @@ final class NativeRealtime {
     if (available.length() == 0) {
       TextView empty = h.text("출전 가능한 갈매미가 없어요.", 16); empty.setGravity(Gravity.CENTER);
       empty.setBackground(new GamePaperDrawable(h)); choices.addView(empty, new LinearLayout.LayoutParams(-1, 0, 1));
-    } else for (int row = 0; row < 2; row++) {
-      LinearLayout line = kit.row();
-      LinearLayout.LayoutParams lineSize = new LinearLayout.LayoutParams(-1, 0, 1);
-      lineSize.topMargin = h.dp(6); choices.addView(line, lineSize);
-      for (int column = 0; column < 2; column++) {
-        int index = preparationPage * PREPARATION_PAGE_SIZE + row * 2 + column;
+    } else {
+      LinearLayout line = kit.row(); line.setGravity(Gravity.TOP); line.setBaselineAligned(false);
+      line.setTag("realtime-prepare-candidates");
+      choices.addView(line, new LinearLayout.LayoutParams(-1, 0, 1));
+      for (int column = 0; column < PREPARATION_PAGE_SIZE; column++) {
+        int index = preparationPage * PREPARATION_PAGE_SIZE + column;
         LinearLayout.LayoutParams cell = new LinearLayout.LayoutParams(0, -1, 1);
-        if (column == 0) cell.rightMargin = h.dp(6);
+        cell.setMargins(h.dp(3), h.dp(4), h.dp(3), 0);
         if (index >= available.length()) { line.addView(new View(h), cell); continue; }
         JSONObject candidate = available.optJSONObject(index);
         String id = candidate.optString("id");
-        String meta = candidate.optString("rarity");
-        if (candidate.has("level")) meta += (meta.isEmpty() ? "" : " · ") + "Lv" + candidate.optInt("level");
-        Button pick = phaseButton(candidate.optString("name", id) + (meta.isEmpty() ? "" : "\n" + meta),
-            "realtime-prepare-candidate-" + index, () -> choosePreparationCandidate(r, id), false);
-        pick.setMaxLines(4); pick.setEllipsize(null); pick.setSelected(id.equals(selected.optString(preparationSlot)));
+        View pick = preparationCard(candidate, "realtime-prepare-candidate-" + index, "",
+            id.equals(selected.optString(preparationSlot)), () -> choosePreparationCandidate(r, id));
         line.addView(pick, cell); phaseActions.add(pick);
       }
     }
@@ -677,6 +686,37 @@ final class NativeRealtime {
     LinearLayout.LayoutParams footerSize = new LinearLayout.LayoutParams(-1, h.dp(48));
     footerSize.topMargin = h.dp(8); h.page.addView(footer, footerSize);
     attachClock(); updatePhaseInputs();
+  }
+  /** Whole approved registration print; only live slot/level state sits beside it. */
+  RegistrationCardView preparationCard(JSONObject candidate, String tag, String slot,
+      boolean selected, Runnable action) {
+    JSONObject identity;
+    try { identity = new JSONObject(candidate.toString()); }
+    catch (org.json.JSONException invalid) { throw new IllegalArgumentException(invalid); }
+    if (!identity.has("tierName")) {
+      try { identity.put("tierName", candidate.optString("rarity")); }
+      catch (org.json.JSONException invalid) { throw new IllegalArgumentException(invalid); }
+    }
+    RegistrationCardView card = new RegistrationCardView(h, identity, RegistrationCardView.FULL);
+    card.setTag(tag); card.setPadding(h.dp(3), h.dp(3), h.dp(3), h.dp(3));
+    card.setBackground(RegistrationCardView.selection(h, selected)); card.setSelected(selected);
+    card.setFocusable(true); card.setMinimumWidth(h.dp(48)); card.setMinimumHeight(h.dp(48));
+    card.setOnClickListener(view -> action.run());
+    card.picture.setTag(tag + "-registration");
+    String runtime = slot + (candidate.has("level") ? (slot.isEmpty() ? "" : " · ") + "Lv" + candidate.optInt("level") : "");
+    TextView state = RegistrationCardView.stateLabel(h, runtime);
+    state.setTag(tag + "-state"); state.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    card.addView(state, new LinearLayout.LayoutParams(-1, -2));
+    // Keep the component's real loading/missing identity announcement and add
+    // dynamic state exactly once; printed identity is not duplicated visually.
+    card.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+      @Override public void onInitializeAccessibilityNodeInfo(View host, android.view.accessibility.AccessibilityNodeInfo info) {
+        super.onInitializeAccessibilityNodeInfo(host, info);
+        info.setClassName(Button.class.getName());
+        info.setContentDescription((runtime.isEmpty() ? "" : runtime + " · ") + host.getContentDescription());
+      }
+    });
+    return card;
   }
   static JSONObject preparationCandidate(JSONArray candidates, String id) {
     for (int i = 0; i < candidates.length(); i++) {
@@ -696,7 +736,7 @@ final class NativeRealtime {
         : latest.optJSONObject("preparation");
     boolean open = !writing && phaseDeadlineOpen() && latest.optJSONObject("result") == null
         && state != null && !state.optBoolean("accepted") && !state.optBoolean("ready");
-    for (Button button : phaseActions)
+    for (View button : phaseActions)
       button.setEnabled(open && (!"realtime-prepare-confirm".equals(button.getTag())
           || h.list(state, "selectedIds").length() == 3));
   }

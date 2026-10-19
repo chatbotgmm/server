@@ -1260,6 +1260,9 @@ final class NativeEconomy {
     summary.setTag("expedition-summary");
     summary.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
     LinearLayout notes = k.column();
+    notes.setTag("expedition-summary-copy");
+    // Reserve a quiet reading inset inside the brass frame, without padding the 48dp actions.
+    notes.setPadding(h.dp(12), h.dp(12), h.dp(12), h.dp(12));
     if (h.contentHeightDp() < 390) { notes.setOrientation(LinearLayout.HORIZONTAL); notes.setGravity(Gravity.CENTER_VERTICAL); }
     summary.addView(notes, new LinearLayout.LayoutParams(0, -2, 1));
     chart.addView(summary, new LinearLayout.LayoutParams(-1, -2));
@@ -1336,6 +1339,7 @@ final class NativeEconomy {
     paint[0] = () -> {
       notes.removeAllViews();
       TextView heading = h.text("탐험대 " + h.expeditionDraft.size() + " / " + max, 18);
+      heading.setTag("expedition-summary-count");
       heading.setTypeface(h.headline);
       heading.setPadding(h.dp(8), 0, h.dp(4), 0);
       notes.addView(heading);
@@ -1369,9 +1373,12 @@ final class NativeEconomy {
     int pages = Math.max(1, (ids.size() + perPage - 1) / perPage);
     selectedCrewPage = Math.max(0, Math.min(selectedCrewPage, pages - 1));
     LinearLayout members = k.row();
+    LinearLayout line = k.row();
+    line.setBaselineAligned(false);
+    content.addView(line, new LinearLayout.LayoutParams(-1, 0, 1));
     members.setGravity(Gravity.CENTER_VERTICAL);
     members.setBaselineAligned(false);
-    content.addView(members, new LinearLayout.LayoutParams(-1, 0, 1));
+    line.addView(members, new LinearLayout.LayoutParams(0, -1, 1));
     for (int i = selectedCrewPage * perPage; i < Math.min(ids.size(), (selectedCrewPage + 1) * perPage); i++) {
       int index = i;
       String id = ids.get(i);
@@ -1384,11 +1391,11 @@ final class NativeEconomy {
         h.expeditionDraft.remove(index);
         repaint.run();
       });
-      LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, -2, 1);
+      LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, -1, 1);
       slot.setMargins(h.dp(3), 0, h.dp(3), 0);
       members.addView(item, slot);
     }
-    pageControls(content, selectedCrewPage, pages, page -> {
+    crewPageControls(line, selectedCrewPage, pages, page -> {
       selectedCrewPage = page;
       if (repaint != null) repaint.run();
       else { parent.removeView(content); partyStrip(parent, ids, false, null); }
@@ -1396,28 +1403,42 @@ final class NativeEconomy {
   }
 
   LinearLayout crewTile(JSONObject unit, String detail) {
-    LinearLayout tile = k.paper();
-    tile.setPadding(h.dp(4), h.dp(4), h.dp(4), h.dp(4));
+    LinearLayout tile = k.column();
+    tile.setPadding(h.dp(2), h.dp(2), h.dp(2), h.dp(2));
     tile.setGravity(Gravity.CENTER);
-    if (compact()) tile.setOrientation(LinearLayout.HORIZONTAL);
-    int art = compact() ? 44 : 112;
-    tile.addView(k.image("/thumbs/" + unit.optString("id") + ".jpg", art, art));
-    LinearLayout copy = k.column();
-    copy.setGravity(Gravity.CENTER);
-    TextView name = h.text(unit.optString("name"), compact() ? 13 : 16);
-    name.setPadding(h.dp(3), 0, h.dp(3), 0);
-    name.setMaxLines(2);
-    namePreview(name, unit.optString("name"));
-    name.setGravity(Gravity.CENTER);
-    copy.addView(name);
-    TextView summary = k.note(detail);
-    summary.setPadding(h.dp(3), 0, h.dp(3), 0);
-    summary.setTextSize(h.uiText(compact() ? 12 : 14));
-    summary.setGravity(Gravity.CENTER);
-    copy.addView(summary);
-    tile.addView(copy, new LinearLayout.LayoutParams(compact() ? 0 : -1, -2, compact() ? 1 : 0));
-    tile.setMinimumHeight(h.dp(96));
+    RegistrationCardView card = new RegistrationCardView(h, unit, RegistrationCardView.FULL);
+    card.setTag("expedition-full-card");
+    tile.addView(card, new LinearLayout.LayoutParams(-1, 0, 1));
+    // Identity and tier are already printed on the original FULL asset. Only live state is separate.
+    TextView status = RegistrationCardView.stateLabel(h, detail);
+    status.setTag("expedition-crew-status");
+    tile.addView(status, new LinearLayout.LayoutParams(-1, -2));
+    tile.setMinimumHeight(h.dp(48));
     return tile;
+  }
+
+  /** The same bounded pages, beside rather than below the full cards on short landscape screens. */
+  void crewPageControls(LinearLayout parent, int page, int pages, java.util.function.IntConsumer turn, String tag) {
+    LinearLayout pager = k.column();
+    pager.setGravity(Gravity.CENTER);
+    pager.setTag(tag);
+    Button prev = k.action(null, "‹", () -> turn.accept(page - 1));
+    prev.setEnabled(page > 0);
+    prev.setContentDescription("이전 쪽");
+    pager.addView(prev, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+    TextView count = h.text((page + 1) + "/" + Math.max(1, pages), 12);
+    count.setPadding(0, 0, 0, 0);
+    count.setGravity(Gravity.CENTER);
+    count.setSingleLine(true);
+    count.setBackground(new GamePaperDrawable(h));
+    pager.addView(count, new LinearLayout.LayoutParams(h.dp(48), h.dp(24)));
+    Button next = k.action(null, "›", () -> turn.accept(page + 1));
+    next.setEnabled(page + 1 < pages);
+    next.setContentDescription("다음 쪽");
+    pager.addView(next, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+    LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(h.dp(48), -1);
+    slot.leftMargin = h.dp(4);
+    parent.addView(pager, slot);
   }
 
   /** Every eligible candidate is reachable on the same screen, with bounded pagination. */
@@ -1433,10 +1454,13 @@ final class NativeEconomy {
     int pages = Math.max(1, (available.size() + perPage - 1) / perPage);
     crewPage = Math.max(0, Math.min(crewPage, pages - 1));
     LinearLayout candidates = k.row();
+    LinearLayout line = k.row();
+    line.setBaselineAligned(false);
+    parent.addView(line, new LinearLayout.LayoutParams(-1, 0, 1));
     candidates.setTag("expedition-candidates");
     candidates.setGravity(Gravity.CENTER_VERTICAL);
     candidates.setBaselineAligned(false);
-    parent.addView(candidates, new LinearLayout.LayoutParams(-1, 0, 1));
+    line.addView(candidates, new LinearLayout.LayoutParams(0, -1, 1));
     for (int i = crewPage * perPage; i < Math.min(available.size(), (crewPage + 1) * perPage); i++) {
       JSONObject unit = available.get(i);
       String id = unit.optString("id");
@@ -1452,12 +1476,12 @@ final class NativeEconomy {
         h.expeditionDraft.add(id);
         repaint.run();
       });
-      LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, -2, 1);
+      LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, -1, 1);
       slot.setMargins(h.dp(3), 0, h.dp(3), 0);
       candidates.addView(tile, slot);
     }
     if (available.isEmpty()) candidates.addView(caption("보낼 수 있는 최상위 갈매미가 없어요."));
-    pageControls(parent, crewPage, pages, page -> { crewPage = page; repaint.run(); }, "expedition-candidate-pages");
+    crewPageControls(line, crewPage, pages, page -> { crewPage = page; repaint.run(); }, "expedition-candidate-pages");
   }
 
   void compactExpeditionEstimate(LinearLayout parent, List<String> ids) {

@@ -6,7 +6,6 @@ import android.app.AlertDialog;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Rect;
-import android.os.Looper;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -94,8 +93,11 @@ public class GameDialogActionLayoutTest {
         strictActions(h, dialog, decor, count);
         int action = count == 1 ? AlertDialog.BUTTON_POSITIVE
             : count == 2 ? AlertDialog.BUTTON_NEGATIVE : AlertDialog.BUTTON_NEUTRAL;
-        dialog.getButton(action).performClick();
-        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertTrue("The actual platform action accepts the click", dialog.getButton(action).performClick());
+        // AlertController dispatches its listener/dismiss via Handler messages.
+        // A pending ViewRoot traversal barrier needs its next PAUSED frame;
+        // same-time idle() does not deliver those ordinary queued messages.
+        geometry.frame();
         assertEquals(1, clicked[count - 1]);
         assertEquals(1, clicked[0] + clicked[1] + clicked[2]);
         assertFalse(dialog.isShowing());

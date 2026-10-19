@@ -21,7 +21,9 @@ public class NativeRealtimeThemeStateTest {
   final NativeGameFlowTest flow = new NativeGameFlowTest();
   final NativeRealtimeTest transport = new NativeRealtimeTest();
 
-  @Before public void isolate() { transport.isolate(); }
+  @Before public void isolate() {
+    transport.isolate(); new NativeRenderReviewTest().scheduledFramesUseThePausedLooperClock();
+  }
 
   NativeRealtimeTest.FakeApi install(MainActivity h) {
     NativeRealtimeTest.FakeApi api = transport.install(h);
@@ -70,10 +72,31 @@ public class NativeRealtimeThemeStateTest {
     }
   }
 
+  RegistrationCardView loadedPreparationCard(MainActivity h, String tag, String id) throws Exception {
+    View view = h.root.findViewWithTag(tag); assertTrue(view instanceof RegistrationCardView);
+    RegistrationCardView card = (RegistrationCardView) view;
+    assertEquals(id, card.picture.id); assertEquals(RegistrationCardView.FULL, card.picture.mode);
+    assertNotNull(card.picture.bitmap); assertFalse(card.picture.bitmap.isRecycled());
+    assertEquals("", card.picture.status);
+    assertEquals(View.GONE, card.name.getVisibility()); assertEquals(View.GONE, card.grade.getVisibility());
+    int bucket = RegistrationArt.widthBucket(card.picture.mode, card.picture.getWidth(), card.picture.getHeight());
+    android.graphics.Bitmap reference = RegistrationArtTest.expected(h, id, RegistrationCardView.FULL, bucket);
+    try { RegistrationArtTest.samePixels("Preparation action " + tag, reference, card.picture.bitmap); }
+    finally { reference.recycle(); }
+    android.view.accessibility.AccessibilityNodeInfo node = card.createAccessibilityNodeInfo();
+    assertTrue(node.getContentDescription().toString().contains("Lv30"));
+    assertEquals(Button.class.getName(), node.getClassName().toString());
+    return card;
+  }
+
   @Test public void inlinePreparationSwapsOnlyServerCandidatesWithoutOptimisticSave() throws Exception {
     try (var activity = flow.start()) {
       MainActivity h = activity.get(); NativeRealtimeTest.FakeApi api = install(h);
-      JSONObject r = envelope("prepare"); show(h, r);
+      NativeRealtimeThemeReviewTest visual = new NativeRealtimeThemeReviewTest();
+      JSONObject r = envelope("prepare"); r.put("preparation", visual.preparation()); show(h, r);
+      visual.awaitAssets(h);
+      loadedPreparationCard(h, "realtime-prepare-slot-0", "D1");
+      loadedPreparationCard(h, "realtime-prepare-candidate-0", "D1");
       h.root.findViewWithTag("realtime-prepare-slot-1").performClick();
       assertNull("Core choice stays on the same page", h.visibleDialog);
       assertEquals(1, h.realtime.preparationSlot);
@@ -81,12 +104,18 @@ public class NativeRealtimeThemeStateTest {
       JSONObject command = api.last("pvp/room/command").body;
       assertEquals("room-theme:prepare", command.getString("phaseId"));
       JSONObject prepare = command.getJSONObject("command").getJSONObject("prepare");
-      assertEquals("[\"B\",\"A\",\"C\"]", prepare.getJSONArray("team").toString());
+      assertEquals("[\"D2\",\"D1\",\"D3\"]", prepare.getJSONArray("team").toString());
       assertFalse(prepare.getBoolean("ready"));
-      assertEquals("[\"A\",\"B\",\"C\"]", h.realtime.latest.getJSONObject("preparation").getJSONArray("selectedIds").toString());
+      assertEquals("[\"D1\",\"D2\",\"D3\"]", h.realtime.latest.getJSONObject("preparation").getJSONArray("selectedIds").toString());
       assertFalse(h.realtime.latest.getJSONObject("preparation").getBoolean("ready"));
-      h.realtime.choosePreparationCandidate(r, "C");
+      for (View action : h.realtime.phaseActions) assertFalse("All card and button actions lock during writes", action.isEnabled());
+      h.realtime.choosePreparationCandidate(r, "D3");
       assertEquals("Duplicate click cannot overwrite the in-flight selection", 1, api.count("pvp/room/command"));
+      JSONObject authoritative = new JSONObject(r.toString()); authoritative.put("revision", 5);
+      authoritative.getJSONObject("preparation").put("selectedIds", new JSONArray(prepare.getJSONArray("team").toString()));
+      api.last("pvp/room/command").ok(authoritative); flow.measure(h.root); visual.awaitAssets(h);
+      assertTrue(loadedPreparationCard(h, "realtime-prepare-slot-0", "D2").isEnabled());
+      assertTrue(loadedPreparationCard(h, "realtime-prepare-slot-1", "D1").isSelected());
     }
   }
 
@@ -96,7 +125,7 @@ public class NativeRealtimeThemeStateTest {
       long server = h.realtime.serverAtReceive, elapsed = h.realtime.receivedElapsed;
       h.root.findViewWithTag("realtime-prepare-next").performClick();
       assertEquals(1, h.realtime.preparationPage);
-      assertNotNull(h.root.findViewWithTag("realtime-prepare-candidate-4"));
+      assertNotNull(h.root.findViewWithTag("realtime-prepare-candidate-3"));
       assertNull(h.root.findViewWithTag("realtime-prepare-candidate-0"));
       h.root.findViewWithTag("realtime-prepare-previous").performClick();
       assertEquals(0, h.realtime.preparationPage);
@@ -120,7 +149,7 @@ public class NativeRealtimeThemeStateTest {
     try (var activity = flow.start()) {
       MainActivity h = activity.get(); NativeRealtimeTest.FakeApi api = install(h);
       JSONObject r = envelope("prepare"); r.put("deadline", r.getLong("serverNow") - 1); show(h, r);
-      for (Button b : h.realtime.phaseActions) assertFalse(b.isEnabled());
+      for (View b : h.realtime.phaseActions) assertFalse(b.isEnabled());
       h.realtime.prepareCommand(r, new JSONArray().put("C").put("B").put("A"), true);
       h.realtime.choosePreparationCandidate(r, "D");
       assertEquals(0, api.count("pvp/room/command"));
@@ -144,10 +173,10 @@ public class NativeRealtimeThemeStateTest {
       MainActivity h = activity.get(); install(h);
       JSONObject accept = envelope("accept"); accept.getJSONObject("acceptance").put("accepted", true); show(h, accept);
       assertEquals("상대 수락 대기", h.realtime.clock.getText().toString());
-      for (Button b : h.realtime.phaseActions) assertFalse(b.isEnabled());
+      for (View b : h.realtime.phaseActions) assertFalse(b.isEnabled());
       JSONObject prep = envelope("prepare"); prep.put("revision", 5); prep.getJSONObject("preparation").put("ready", true); show(h, prep);
       assertEquals("상대 준비 대기", h.realtime.clock.getText().toString());
-      for (Button b : h.realtime.phaseActions) assertFalse(b.isEnabled());
+      for (View b : h.realtime.phaseActions) assertFalse(b.isEnabled());
     }
   }
 

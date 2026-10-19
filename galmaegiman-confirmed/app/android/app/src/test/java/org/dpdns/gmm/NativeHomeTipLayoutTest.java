@@ -15,6 +15,7 @@ import android.view.Display;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.core.view.ViewCompat;
 import java.io.OutputStream;
@@ -273,13 +274,16 @@ public class NativeHomeTipLayoutTest {
     RectF safe = h.safeBounds(l.getWidth(), l.getHeight());
     JSONArray spaces = new JSONArray();
     TextView probe = h.text("", 13);
+    probe.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+        ViewGroup.LayoutParams.WRAP_CONTENT));
     probe.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, l.tip.getTextSize());
     probe.setTypeface(h.prose);
     probe.setMinHeight(h.dp(48));
     probe.setPadding(l.tip.getPaddingLeft(), l.tip.getPaddingTop(),
         l.tip.getPaddingRight(), l.tip.getPaddingBottom());
     probe.setText(l.tipCopy);
-    for (Rect slot : HomeTipLayout.freeSpaces(safe, l.tipExclusions(safe), h.dp(8))) {
+    for (int clearance : new int[] {h.dp(8), h.dp(2)})
+      for (Rect slot : HomeTipLayout.freeSpaces(safe, l.tipExclusions(safe), clearance, h.dp(8))) {
       JSONArray measurements = new JSONArray();
       for (int requested : new int[] {h.dp(300), h.dp(420)}) {
         int width = Math.min(requested, slot.width());
@@ -289,7 +293,8 @@ public class NativeHomeTipLayoutTest {
         measurements.put(MainActivity.obj("width", width, "fullNativeTextHeight", probe.getMeasuredHeight(),
             "availableHeight", slot.height(), "lines", probe.getLineCount()));
       }
-      spaces.put(MainActivity.obj("bounds", rect(new RectF(slot)), "measurements", measurements));
+      spaces.put(MainActivity.obj("bounds", rect(new RectF(slot)), "clearancePixels", clearance,
+          "screenEdgeInsetPixels", h.dp(8), "measurements", measurements));
     }
     JSONObject constraints = MainActivity.obj("width", l.getWidth(), "height", l.getHeight(),
         "fontScale", scale, "fontPixels", l.tip.getTextSize(), "safe", rect(safe),
@@ -322,6 +327,10 @@ public class NativeHomeTipLayoutTest {
     assertTrue("A manually tappable advice bubble retains a 48dp hit area",
         tip.isClickable() && bubble.width() >= h.dp(48) && bubble.height() >= h.dp(48));
     assertTrue("Bubble stays inside real window insets", safe.contains(new RectF(bubble)));
+    RectF readingSafe = new RectF(safe);
+    readingSafe.inset(h.dp(8), h.dp(8));
+    assertTrue("Compact control clearance preserves the 8dp screen-edge inset",
+        readingSafe.contains(new RectF(bubble)));
     Rect glyphs = nativeInk(tip);
     glyphs.offset(bubble.left, bubble.top);
     Rect paper = nativeBubble(tip);
@@ -335,6 +344,7 @@ public class NativeHomeTipLayoutTest {
     View resume = l.findViewWithTag("lobby-resume");
     if (resume != null) exclusions.add(new RectF(bounds(resume, l)));
     JSONArray excluded = new JSONArray();
+    float minimumClearance = Float.POSITIVE_INFINITY;
     for (RectF obstacle : exclusions) {
       assertFalse("Bubble covers hero/header/growth/menu: " + obstacle,
           RectF.intersects(new RectF(bubble), obstacle));
@@ -342,6 +352,11 @@ public class NativeHomeTipLayoutTest {
           RectF.intersects(new RectF(paper), obstacle));
       assertFalse("Actual glyph pixels cover an exclusion: " + obstacle,
           RectF.intersects(new RectF(glyphs), obstacle));
+      float clearance = Math.max(Math.max(bubble.left - obstacle.right, obstacle.left - bubble.right),
+          Math.max(bubble.top - obstacle.bottom, obstacle.top - bubble.bottom));
+      minimumClearance = Math.min(minimumClearance, clearance);
+      assertTrue("Even compact placement keeps at least 2dp clear of every exclusion",
+          clearance >= h.dp(2));
       excluded.put(rect(obstacle));
     }
     assertNull("Advice never opens a modal", h.visibleDialog);
@@ -352,6 +367,7 @@ public class NativeHomeTipLayoutTest {
         "nativeInk", rect(new RectF(glyphs)), "safe", rect(safe), "exclusions", excluded,
         "fontPixels", tip.getTextSize(), "lines", tip.getLineCount(),
         "verticalPaddingPixels", tip.getPaddingTop(), "minimumTouchPixels", h.dp(48),
+        "minimumMeasuredClearancePixels", minimumClearance, "screenEdgeInsetPixels", h.dp(8),
         "clippedInkPixels", 0);
   }
 
@@ -486,6 +502,8 @@ public class NativeHomeTipLayoutTest {
       HomeHost h = controller.get();
       // A stale shared paint must be initialized by TextView before the reference is drawn.
       TextView oracle = h.text("네이티브 글자는 잘림 없이 보여야 해요.\n두 번째 줄도 끝까지 읽어요.", 17);
+      oracle.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+          ViewGroup.LayoutParams.WRAP_CONTENT));
       oracle.setPadding(12, 8, 12, 8);
       oracle.measure(View.MeasureSpec.makeMeasureSpec(260, View.MeasureSpec.EXACTLY),
           View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
@@ -504,6 +522,8 @@ public class NativeHomeTipLayoutTest {
           clipping.getMessage().contains("retains every alpha sample"));
 
       TextView tip = h.text("끼룩! 조언을 눌러서 다음 항로를 보자.", 17);
+      tip.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+          ViewGroup.LayoutParams.WRAP_CONTENT));
       tip.setPadding(12, 8, 12, 8);
       tip.setMinHeight(h.dp(48));
       float size = tip.getTextSize();
@@ -529,6 +549,37 @@ public class NativeHomeTipLayoutTest {
       assertTrue("No right-side space: use the measured free region above the hero",
           alternate.bounds.bottom <= rightHero.top - 8);
       assertTipPage(tip, alternate, narrow, rightHero, size);
+
+      // Reproduce the observed short-phone shortage without assuming a font's line height.
+      // The full copy fits only after reducing control clearance, never the text size.
+      String compactCopy = "전투를 시작하면 증강체 3개 중 하나를 골라. 마음에 안 들면 칸마다 한 번씩 다시 뽑을 수 있어.";
+      tip.setText(compactCopy);
+      tip.setPadding(12, 4, 12, 4);
+      tip.measure(View.MeasureSpec.makeMeasureSpec(300, View.MeasureSpec.EXACTLY),
+          View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+      int completeHeight = tip.getMeasuredHeight();
+      RectF compactSafe = new RectF(0, 0, 500, 320), compactHero = new RectF(0, 0, 120, 320);
+      RectF upper = new RectF(0, 0, 500, 90);
+      RectF lower = new RectF(0, 90 + completeHeight + 4, 500, 320);
+      List<RectF> compactExclusions = Arrays.asList(compactHero, upper, lower);
+      for (Rect space : HomeTipLayout.freeSpaces(compactSafe, compactExclusions, 8))
+        assertTrue("Preferred clearance genuinely leaves too little measured height",
+            space.height() < completeHeight);
+      tip.setPadding(12, 8, 12, 8);
+      HomeTipLayout.Result compact = HomeTipLayout.measure(tip, compactSafe, compactHero,
+          compactExclusions, 8, 300, 300, 120);
+      assertFalse("Compact clearance fits the entire original advice without pages", compact.paged);
+      assertEquals(compactCopy, tip.getText().toString());
+      assertEquals(compactCopy.length(), compact.consumed);
+      assertTrue("Original 8px screen-edge inset remains",
+          new RectF(8, 8, 492, 312).contains(new RectF(compact.bounds)));
+      for (RectF obstacle : compactExclusions) {
+        RectF separated = new RectF(obstacle);
+        separated.inset(-2, -2);
+        assertFalse("Compact placement still clears every control/hero by 2px",
+            RectF.intersects(new RectF(compact.bounds), separated));
+      }
+      assertTipPage(tip, compact, compactSafe, compactHero, size);
 
       String longCopy = "긴 조언은 글씨 크기를 유지하고 빈 공간 안에서 읽어요. ".repeat(24);
       RectF safe = new RectF(0, 0, 320, 180), hero = new RectF(0, 0, 110, 180);
