@@ -191,7 +191,7 @@
     view.innerHTML = `<section class="battle">
       <div class="stage" aria-label="전투 무대">
         <div class="hp foe-hp"></div><div class="actor-slot foe" data-standee></div>
-        <div class="actor-slot mine" data-standee></div><div class="hp my-hp"></div>
+        <div class="actor-slot mine" data-standee></div><div class="hp my-hp"></div><div class="fx" aria-hidden="true"></div><p class="banner" hidden></p>
         ${s.matchInfo ? `<p class="vs">${esc(MODE[s.mode] || '')} · ${esc(s.matchInfo.foeName || '')}${s.matchInfo.bot ? ' <b class="ai">AI 상대</b>' : ''}</p>` : `<p class="vs">${esc(MODE[s.mode] || '')}</p>`}
       </div>
       <div class="cmd"><div class="cmd-head"><b data-pane-title></b><span class="timer" data-timer hidden></span></div><div class="cmd-body"></div>
@@ -200,8 +200,99 @@
     hpPanel($('.my-hp', view), active(me(s)), true);
     S.standee($('.actor-slot.foe', view), S.sprite(active(foe(s)).image), `상대 ${active(foe(s)).name}`);
     S.standee($('.actor-slot.mine', view), S.sprite(active(me(s)).image), `내 ${active(me(s)).name}`);
-    pane(s);
+    $('.actor-slot.foe', view).classList.toggle('down', active(foe(s)).hp <= 0); $('.actor-slot.mine', view).classList.toggle('down', active(me(s)).hp <= 0);   // 쓰러진 대원은 무대에서 빠진 모습
+    // 전투가 끝난 턴은 연출을 다 보여 준 뒤에 결과를 띄운다(입력이 필요 없는 때라 잠가도 됨)
+    const key = s.session || b.roomId, holdResult = s.phase === 'over' && b.seenKey === key && (s.displayEvents || []).some(e => e && e.id > (b.seen || 0));
+    if (holdResult) { $('[data-pane-title]', view).textContent = '전투 중'; $('.cmd-body', view).innerHTML = '<div class="waiting" role="status"><span class="spin"></span>마지막 장면을 보여 주는 중…</div>'; }
+    else pane(s);
     countdown($('[data-timer]', view), deadline(), refetchAfterExpiry);
+    const stageNow = $('.stage', view);
+    replay(s).finally(() => { if (holdResult && document.body.contains(stageNow)) pane(s); });
+  }
+
+  // ── 전투 연출: 서버가 보낸 displayEvents 중 아직 안 본 것만 무대에서 재생한다(서버 규칙·결과는 바꾸지 않음) ──
+  // 명령 패널은 이미 새 상태로 그려져 있어 입력을 잠그지 않는다. 화면을 다시 그리면 재생을 멈추고 최종 상태를 보여 준다.
+  // 처음 들어온 전투(재접속 포함)는 지난 기록을 다시 재생하지 않는다. 움직임 줄이기면 재생하지 않는다.
+  const GLYPH = { STONE: '🪨', GOLD: '🪙', FIRE: '🔥', ICE: '❄️', BLOSSOM: '🌸', SEA: '💧', SHADOW: '🌑', STAR: '⭐', THREAD: '🧵', GRAVITY: '🌀' };
+  const TINT = { STONE: '#c9b48a', GOLD: '#f2c94c', FIRE: '#ff7a3d', ICE: '#8fdcf5', BLOSSOM: '#ff9ccf', SEA: '#4fb3ff', SHADOW: '#8a6bd1', STAR: '#ffe36e', THREAD: '#e8a0ff', GRAVITY: '#9aa7ff' };
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  let playToken = 0;
+  async function replay(s) {
+    const b = S.battle, token = ++playToken, evs = (s.displayEvents || []).filter(e => e && typeof e.id === 'number');
+    const last = evs.length ? evs[evs.length - 1].id : (s.displayEventSeq || 0);
+    const key = s.session || b.roomId;
+    if (b.seenKey !== key) { b.seenKey = key; b.seen = last; return; }   // 처음 보는 전투: 지난 기록은 재생하지 않음
+    const fresh = evs.filter(e => e.id > (b.seen || 0)); b.seen = Math.max(b.seen || 0, last);
+    const calm = document.documentElement.classList.contains('calm') || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!fresh.length || calm) return;
+    const stage = $('.stage', view), fx = $('.fx', view), slotEl = side => $(side === 0 ? '.actor-slot.mine' : '.actor-slot.foe', view), hpEl = side => $(side === 0 ? '.my-hp' : '.foe-hp', view);
+    const team = side => s.teams[side];
+    // 시작 모습: 교체가 있으면 교체 전 대원, 체력은 이번에 처음 바뀌기 전 값
+    const shownSlot = [0, 1].map(side => { const sw = fresh.find(e => e.kind === 'switch' && e.actor?.side === side); return sw ? sw.actor.slot : team(side).active; });
+    const hp = [0, 1].map(side => team(side).fighters.map((f, slot) => { const e = fresh.find(x => x.target?.side === side && x.target?.slot === slot && typeof x.hpBefore === 'number'); return e ? e.hpBefore : f.hp; }));
+    const paint = side => { const f = team(side).fighters[shownSlot[side]]; if (f) hpPanel(hpEl(side), { ...f, hp: hp[side][shownSlot[side]] }, side === 0); };
+    const show = side => { const f = team(side).fighters[shownSlot[side]]; if (f) S.standee(slotEl(side), S.sprite(f.image), `${side === 0 ? '내' : '상대'} ${f.name}`); };
+    for (const side of [0, 1]) { slotEl(side).classList.toggle('down', hp[side][shownSlot[side]] <= 0); if (shownSlot[side] !== team(side).active) show(side); paint(side); }
+    const center = side => { const a = stage.getBoundingClientRect(), r = slotEl(side).getBoundingClientRect(); return [r.left - a.left + r.width / 2, r.top - a.top + r.height * 0.5]; };
+    const banner = $('.banner', view), log = $('.log', view);
+    const say = t => { if (t && log) log.textContent = t; };
+    const pop = (side, text, cls) => { const [x, y] = center(side), d = document.createElement('div'); d.className = `dmg ${cls || ''}`; d.textContent = text; d.style.left = `${x}px`; d.style.top = `${y - 30}px`; fx.append(d);
+      d.animate([{ transform: 'translate(-50%,0)', opacity: 1 }, { transform: 'translate(-50%,-44px)', opacity: 0 }], { duration: 950, easing: 'ease-out' }).onfinish = () => d.remove(); };
+    const burst = (side, color, n = 12, dist = 70) => { const [x, y] = center(side); for (let i = 0; i < n; i++) { const p = document.createElement('div'), ang = Math.random() * Math.PI * 2, r = dist * (0.5 + Math.random() * 0.6); p.className = 'pt'; p.style.cssText = `left:${x}px;top:${y}px;background:${color};box-shadow:0 0 8px ${color}`; fx.append(p);
+      p.animate([{ transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }, { transform: `translate(calc(-50% + ${Math.cos(ang) * r}px),calc(-50% + ${Math.sin(ang) * r}px)) scale(.3)`, opacity: 0 }], { duration: 550 + Math.random() * 250, easing: 'cubic-bezier(.2,.7,.3,1)' }).onfinish = () => p.remove(); } };
+    const shoot = (from, attr, hits) => new Promise(res => { const [x0, y0] = center(from), [x1, y1] = center(1 - from), n = Math.min(4, Math.max(1, hits || 1) + 1);
+      for (let i = 0; i < n; i++) { const p = document.createElement('div'); p.className = 'shot'; p.textContent = GLYPH[attr] || '✨'; p.style.left = `${x0}px`; p.style.top = `${y0}px`; fx.append(p);
+        const arc = (i - (n - 1) / 2) * 24, mx = (x1 - x0) / 2 + arc, my = (y1 - y0) / 2 - 40 - Math.abs(arc);
+        p.animate([{ transform: 'translate(-50%,-50%) scale(.5)', opacity: 0 }, { opacity: 1, offset: .1 }, { transform: `translate(calc(-50% + ${mx}px),calc(-50% + ${my}px)) scale(1.1)`, offset: .5 }, { transform: `translate(calc(-50% + ${x1 - x0}px),calc(-50% + ${y1 - y0}px)) scale(1.3)`, opacity: 1 }],
+          { duration: 420, delay: i * 70, easing: 'ease-in' }).onfinish = () => { p.remove(); if (i === n - 1) res(); }; } });
+    const live = () => token === playToken && document.body.contains(stage);
+    stage.classList.add('playing');
+    for (const e of fresh) {
+      if (!live()) return;
+      const t = e.target?.side, a = e.actor?.side;
+      if (e.kind === 'skill' && a !== undefined) {
+        say(e.text);
+        const dx = a === 0 ? 26 : -26, dy = a === 0 ? -16 : 12;
+        slotEl(a).animate([{ transform: 'translateX(-50%)' }, { transform: `translate(calc(-50% + ${dx}px),${dy}px)` }, { transform: 'translateX(-50%)' }], { duration: 320, easing: 'ease-out' });
+        if (e.power && t !== undefined && t !== a) await shoot(a, e.attr, e.hit); else { burst(a, TINT[e.attr] || '#fff', 10, 50); await wait(450); }
+      } else if (e.kind === 'damage' && t !== undefined) {
+        say(e.text);
+        if (e.target.slot === shownSlot[t]) {
+          hp[t][e.target.slot] = e.hpAfter ?? hp[t][e.target.slot]; paint(t);
+          if (e.reason === 'protect' || !e.amount) { burst(t, '#ffffff', 10, 60); pop(t, '막음', 'calm'); }
+          else {
+            const big = (e.multiplier || 1) > 1;
+            slotEl(t).animate([{ transform: 'translateX(-50%)', filter: 'brightness(1)' }, { transform: 'translateX(calc(-50% - 8px))', filter: 'brightness(2)' }, { transform: 'translateX(calc(-50% + 7px))' }, { transform: 'translateX(-50%)', filter: 'brightness(1)' }], { duration: 380 });
+            burst(t, TINT[e.attr] || '#fff', big ? 22 : 12, big ? 110 : 75);
+            pop(t, `${e.crit ? '급소! ' : ''}${fmt(e.amount)}`, big ? 'big' : (e.multiplier || 1) < 1 ? 'weak' : '');
+            if (big) stage.animate([{ transform: 'translate(0,0)' }, { transform: 'translate(4px,-3px)' }, { transform: 'translate(-4px,3px)' }, { transform: 'translate(0,0)' }], { duration: 260 });
+          }
+        }
+        await wait(560);
+      } else if ((e.kind === 'heal' || e.kind === 'revive') && t !== undefined) {
+        say(e.text); hp[t][e.target.slot] = e.hpAfter ?? hp[t][e.target.slot];
+        if (e.target.slot === shownSlot[t]) { paint(t); burst(t, '#7ce3a0', 14, 60); pop(t, `+${fmt(e.amount || 0)}`, 'heal'); }
+        await wait(520);
+      } else if (e.kind === 'faint' && t !== undefined) {
+        say(e.text);
+        if (e.target.slot === shownSlot[t]) { burst(t, '#ffffff', 18, 90); slotEl(t).animate([{ opacity: 1, filter: 'brightness(1)' }, { opacity: 1, filter: 'brightness(0) invert(1)', offset: .25 }, { opacity: 0, filter: 'brightness(0) invert(1) blur(3px)' }], { duration: 900, fill: 'forwards' }); }
+        await wait(950);
+      } else if (e.kind === 'switch' && t !== undefined) {
+        say(e.text); slotEl(t).getAnimations().forEach(x => x.cancel());
+        shownSlot[t] = e.target.slot; slotEl(t).classList.remove('down'); show(t); paint(t);
+        slotEl(t).animate([{ opacity: 0, transform: 'translateX(-50%) scale(.85)' }, { opacity: 1, transform: 'translateX(-50%) scale(1)' }], { duration: 380, easing: 'ease-out' });
+        await wait(520);
+      } else if ((e.kind === 'item' || e.kind === 'augment' || e.kind === 'status') && e.text) {
+        say(e.text); banner.textContent = e.text; banner.hidden = false;
+        banner.animate([{ opacity: 0, transform: 'translate(-50%,8px)' }, { opacity: 1, transform: 'translate(-50%,0)' }], { duration: 220 });
+        await wait(e.kind === 'status' ? 650 : 900); banner.hidden = true;
+      }
+    }
+    if (!live()) return;
+    stage.classList.remove('playing');
+    // 마지막은 서버가 준 최종 상태 그대로
+    for (const side of [0, 1]) { if (shownSlot[side] !== team(side).active) { shownSlot[side] = team(side).active; show(side); } slotEl(side).getAnimations().forEach(x => x.cancel()); slotEl(side).classList.toggle('down', active(team(side)).hp <= 0); hpPanel(hpEl(side), active(team(side)), side === 0); }
+    say((s.log || []).slice(-2).join(' '));
   }
   function hpPanel(el, f, mine) {
     const pct = f.maxHp ? Math.max(0, Math.round(f.hp / f.maxHp * 100)) : 0, st = Object.keys(f.status || {}).filter(k => f.status[k]);

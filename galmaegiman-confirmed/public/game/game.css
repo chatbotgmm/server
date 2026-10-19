@@ -230,6 +230,13 @@ button{font:inherit;color:inherit}
 .actor-slot .shadow{position:absolute;bottom:-8px;left:50%;width:var(--foot-w,40%);height:22px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(19,30,40,.34),rgba(19,30,40,0));z-index:1}
 .actor-slot.foe{left:73%;bottom:47%;width:30%;height:36%;transform:translateX(-50%)}
 .actor-slot.mine{left:27%;bottom:10%;width:40%;height:50%;transform:translateX(-50%)}
+.actor-slot.down{opacity:0}
+.fx{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden}
+.fx .pt{position:absolute;width:9px;height:9px;border-radius:50%}
+.fx .shot{position:absolute;font-size:30px;line-height:1;filter:drop-shadow(0 0 6px rgba(255,255,255,.8))}
+.fx .dmg{position:absolute;font:32px/1 var(--title);color:#fff;text-shadow:0 2px 0 #3b1a10,0 0 8px rgba(0,0,0,.6);white-space:nowrap}
+.fx .dmg.big{color:#ffe36e;font-size:38px}.fx .dmg.weak{color:#d6dde4;font-size:26px}.fx .dmg.heal{color:#9ff0b8}.fx .dmg.calm{font-size:24px}
+.banner{position:absolute;left:50%;top:42%;transform:translateX(-50%);z-index:6;margin:0;max-width:86%;padding:10px 18px;border-radius:12px;background:rgba(19,37,56,.88);color:#fff;font:18px/1.35 var(--title);text-align:center;pointer-events:none}
 .vs{position:absolute;right:16px;top:12px;margin:0;padding:4px 12px;border-radius:8px;background:rgba(19,37,56,.75);color:#fff;font-size:15px;z-index:4}
 .cmd{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:0;border-width:0 0 0 1px;min-height:0}
 .cmd-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px}
