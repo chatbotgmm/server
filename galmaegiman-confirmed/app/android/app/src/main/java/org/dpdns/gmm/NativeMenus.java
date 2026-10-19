@@ -973,21 +973,23 @@ final class NativeMenus {
     }
     h.base(pvp ? "수비대" : "스토리 수비대 편성", "team");
     AppSkin.apply(h, "training");
-    if (pvp && h.contentHeightDp() >= 360) {
+    float teamFontScale = h.getResources().getConfiguration().fontScale;
+    // 큰 글자·낮은 가로 화면에서는 탭 한 행을 머리줄에 합쳐 6개 후보의 그림 높이를 지킨다.
+    boolean inlineTeamNavigation = h.compact() && teamFontScale > 1.15f;
+    if (pvp && h.contentHeightDp() >= 360 && !inlineTeamNavigation) {
       defenderTabs(h.body, 1);
       View tabs = h.body.getChildAt(0);
       h.body.removeView(tabs);
       h.page.addView(tabs, h.page.getChildCount() - 1);
     } else if (pvp) {
       LinearLayout header = (LinearLayout) h.page.getChildAt(0);
-      header.addView(
-          k.action(null, "갈매미", () -> requestLeaveTeam(h::collection)),
-          2,
-          new LinearLayout.LayoutParams(h.dp(76), h.dp(48)));
-      header.addView(
-          k.action(null, "아이템", () -> requestLeaveTeam(h::inventory)),
-          3,
-          new LinearLayout.LayoutParams(h.dp(76), h.dp(48)));
+      int navigationWidth = h.dp(Math.max(76, Math.round(76 * teamFontScale)));
+      Button collection = k.action(null, "갈매미", () -> requestLeaveTeam(h::collection));
+      collection.setTag("team-open-collection");
+      header.addView(collection, 2, new LinearLayout.LayoutParams(navigationWidth, h.dp(48)));
+      Button items = k.action(null, "아이템", () -> requestLeaveTeam(h::inventory));
+      items.setTag("team-open-items");
+      header.addView(items, 3, new LinearLayout.LayoutParams(navigationWidth, h.dp(48)));
     }
     LinearLayout[] cols = k.fixedSplit(.46f);
     LinearLayout podium = k.row(), summary = cols[1];
@@ -1151,6 +1153,8 @@ final class NativeMenus {
                   + candidate.optString("name"));
               candidateName.setTextColor(JournalTheme.INK);
               candidateName.setTextSize(14);
+              candidateName.setPadding(h.dp(2), 0, h.dp(2), 0);
+              candidateName.setIncludeFontPadding(false);
               candidateName.setSingleLine(true);
               candidateName.setContentDescription(candidate.optString("name"));
               candidateName.setEllipsize(android.text.TextUtils.TruncateAt.END);
@@ -1160,6 +1164,8 @@ final class NativeMenus {
                   : "Lv" + candidate.optInt("level") + " · ")
                   + candidate.optString("attrName", candidate.optString("attr")));
               meta.setSingleLine(true);
+              meta.setPadding(h.dp(2), 0, h.dp(2), 0);
+              meta.setIncludeFontPadding(false);
               meta.setGravity(Gravity.CENTER);
               tile.addView(meta);
               tile.setSelected(teamDraft.contains(key));

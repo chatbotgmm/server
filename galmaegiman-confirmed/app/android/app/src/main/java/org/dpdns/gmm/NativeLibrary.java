@@ -154,20 +154,22 @@ final class NativeLibrary {
     LinearLayout info = k.paper();
     info.setPadding(h.dp(10), h.dp(4), h.dp(10), h.dp(4));
     cols[1].addView(info, new LinearLayout.LayoutParams(-1, -1));
-    info.addView(line(u.optString("name"), 20, true));
-    info.addView(line(u.optString("tierName") + " · " + u.optString("attrName") + " · 보유 " + u.optInt("have"), 14, false));
-    info.addView(
-        line(
-            "탐험 "
-                + u.optInt("away")
-                + " · 보호 "
-                + u.optInt("locked")
-                + (u.optBoolean("known", u.optInt("have") > 0) ? " · 발견" : " · 미발견"),
-            14,
-            false));
+    // 선택 기록은 그림 옆에서 읽는다. 메타 세 행이 FULL 등록증의 높이를 빼앗지 않게 한다.
+    LinearLayout identity = k.row(), labels = k.column();
+    info.addView(identity, new LinearLayout.LayoutParams(-1, 0, 1));
     View selectedPortrait = RegistrationCardView.art(h, u, RegistrationCardView.FULL);
     selectedPortrait.setTag("collection-selected-registration");
-    info.addView(selectedPortrait, new LinearLayout.LayoutParams(-1, 0, 1));
+    identity.addView(selectedPortrait, new LinearLayout.LayoutParams(0, -1, .42f));
+    identity.addView(labels, new LinearLayout.LayoutParams(0, -2, .58f));
+    TextView selectedName = line(u.optString("name"), 20, true);
+    selectedName.setSingleLine(false);
+    selectedName.setMaxLines(2);
+    selectedName.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_BALANCED);
+    labels.addView(selectedName);
+    labels.addView(line(u.optString("tierName") + " · " + u.optString("attrName"), 14, false));
+    labels.addView(line("보유 " + u.optInt("have") + " · 탐험 " + u.optInt("away"), 14, false));
+    labels.addView(line("보호 " + u.optInt("locked")
+        + (u.optBoolean("known", u.optInt("have") > 0) ? " · 발견" : " · 미발견"), 14, false));
     LinearLayout top = k.row(), bottom = k.row();
     Button grow = k.primary("learn", "성장", () -> openOwnedGrowth(u));
     grow.setTag("collection-growth");

@@ -150,7 +150,13 @@ public class RegistrationIntegrationScreensTest {
               cards++;
             }
           assertEquals(8, cards);
-          artwork(host.root.findViewWithTag("collection-selected-registration"), RegistrationCardView.FULL);
+          RegistrationCardView.Artwork selectedArt = artwork(
+              host.root.findViewWithTag("collection-selected-registration"), RegistrationCardView.FULL);
+          NativeNoScrollReviewTest.assertFullyVisible(selectedArt, host.root);
+          android.graphics.RectF display = new android.graphics.RectF();
+          RegistrationCardView.contain(display, selectedArt.getWidth(), selectedArt.getHeight(), 768, 1024);
+          assertTrue("선택 등록증은 최소 108dp 너비", display.width() >= host.dp(108));
+          assertTrue("선택 등록증은 최소 144dp 높이", display.height() >= host.dp(144));
           for (String tag : new String[] {"collection-growth", "collection-team", "collection-craft", "collection-record"})
             NativeNoScrollReviewTest.assertFullyVisible(host.root.findViewWithTag(tag), host.root);
           View choice = host.root.findViewWithTag("collection-registration-C4");
@@ -209,6 +215,41 @@ public class RegistrationIntegrationScreensTest {
         assertEquals(List.of(pvp ? "battle-team" : "native/team"), api.writes);
         assertEquals(fourth, api.submitted.get(0).getJSONArray(pvp ? "ids" : "keys").getString(0));
       }
+    }
+  }
+
+  @Test
+  public void largeFontPvpKeepsSixPicturesAndNavigationInTheFixedScreen() {
+    RuntimeEnvironment.setFontScale(1.3f);
+    try (ActivityController<MainActivity> controller = flow.start()) {
+      MainActivity host = controller.get();
+      FixtureApi api = prepare(host);
+      host.selectionMode = "pvp";
+      layout(host, 915, 412);
+      host.team();
+      layout(host, 915, 412);
+      for (String tag : new String[] {"team-open-collection", "team-open-items", "tutorial:team-save"}) {
+        Button action = host.root.findViewWithTag(tag);
+        assertNotNull(action);
+        NativeNoScrollReviewTest.assertFullyVisible(action, host.root);
+        assertTrue(action.getHeight() >= host.dp(48));
+        assertNotNull(action.getLayout());
+        assertTrue(action.getHeight() - action.getCompoundPaddingTop() - action.getCompoundPaddingBottom()
+            >= action.getLayout().getHeight());
+        for (int line = 0; line < action.getLineCount(); line++)
+          assertEquals(0, action.getLayout().getEllipsisCount(line));
+      }
+      ViewGroup grid = host.root.findViewWithTag("team-inline-candidates");
+      int count = 0;
+      for (View view : geometry.descendants(grid))
+        if (view instanceof RegistrationCardView.Artwork) {
+          artwork(view, RegistrationCardView.COMPACT);
+          NativeNoScrollReviewTest.assertFullyVisible(view, host.root);
+          assertTrue("큰 글자에서도 후보 그림에 40dp 이상 배정", view.getHeight() >= host.dp(40));
+          count++;
+        }
+      assertEquals(6, count);
+      assertTrue(api.writes.isEmpty());
     }
   }
 
@@ -283,7 +324,10 @@ public class RegistrationIntegrationScreensTest {
       TextView prompt = host.visibleDialog.findViewById(android.R.id.message);
       assertTrue(prompt.getText().toString().contains("고급 2회"));
       assertTrue(prompt.getText().toString().contains("10장"));
+      assertTrue("확정 전에는 추첨 요청 없음", api.writes.isEmpty());
       host.visibleDialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick();
+      // AlertDialog 기본 버튼은 Handler로 확인 콜백을 보낸다. PAUSED looper에서 전달을 완료한다.
+      Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
       assertEquals(List.of("draw"), api.writes);
       assertEquals("HIGH", api.submitted.get(0).getString("kind"));
       assertEquals(2, api.submitted.get(0).getInt("times"));

@@ -101,8 +101,14 @@ public class RegistrationRevealTest {
     host.base("모집 결과", "drawResult");
     NativeReveal reveal = new NativeReveal(host, result, done, again, flow);
     host.root.addView(reveal, new FrameLayout.LayoutParams(-1, -1));
-    fixture.measure(host.root);
+    // 직접 레이아웃은 attachment를 만들지 않는다. PAUSED looper의 실제 Window
+    // traversal까지 처리해 production의 attached/resumed 게이트를 그대로 시험한다.
+    int width = host.getResources().getDisplayMetrics().widthPixels;
+    int height = host.getResources().getDisplayMetrics().heightPixels;
+    review.viewport(host, width, height);
     reveal.getViewTreeObserver().dispatchOnPreDraw();
+    assertTrue("결과 화면이 실제 Window에 붙어 있음", reveal.isAttachedToWindow());
+    assertTrue("결과 화면은 resumed/visible/current 조건을 모두 만족", reveal.active());
     return reveal;
   }
 

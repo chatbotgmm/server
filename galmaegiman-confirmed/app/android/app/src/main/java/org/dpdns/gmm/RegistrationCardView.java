@@ -76,7 +76,9 @@ final class RegistrationCardView extends LinearLayout {
       return;
     }
     float scale = Math.min(width / (float) imageWidth, height / (float) imageHeight);
-    float w = imageWidth * scale, h = imageHeight * scale;
+    // float 나눗셈/곱셈 왕복으로 제한 변이 한 ULP 커질 수 있다.
+    // 예: 64×51을 9×7에 맞추면 높이 7.0000005가 되어 top이 음수가 된다.
+    float w = Math.min(width, imageWidth * scale), h = Math.min(height, imageHeight * scale);
     destination.set((width - w) / 2, (height - h) / 2, (width + w) / 2, (height + h) / 2);
   }
 

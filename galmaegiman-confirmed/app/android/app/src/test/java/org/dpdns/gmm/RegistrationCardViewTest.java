@@ -106,6 +106,18 @@ public class RegistrationCardViewTest {
       assertEquals(area[1] / 2f, compact.centerY(), .001f);
       assertTrue(new RectF(0, 0, area[0], area[1]).contains(compact));
     }
+    // Native CI exposed floating-point multiplication rounding a bounded height above its view.
+    // Keep strict containment: these cases must be fixed by production geometry, not test tolerance.
+    for (int[] edge : new int[][] {{9, 7, 64, 51}, {19, 15, 128, 103}, {147, 7, 64, 51}}) {
+      RectF target = new RectF();
+      RegistrationCardView.contain(target, edge[0], edge[1], edge[2], edge[3]);
+      assertFalse(target.isEmpty());
+      assertTrue("Float-rounded contain cannot extend beyond view: " + Arrays.toString(edge) + " " + target,
+          new RectF(0, 0, edge[0], edge[1]).contains(target));
+      assertEquals(edge[0] / 2f, target.centerX(), .001f);
+      assertEquals(edge[1] / 2f, target.centerY(), .001f);
+      assertEquals(edge[2] / (float) edge[3], target.width() / target.height(), .0001f);
+    }
     RectF empty = new RectF(1, 1, 2, 2);
     RegistrationCardView.contain(empty, 0, 100, 768, 1024);
     assertTrue(empty.isEmpty());

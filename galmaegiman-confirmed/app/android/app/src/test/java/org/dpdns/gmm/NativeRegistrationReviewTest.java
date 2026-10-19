@@ -163,6 +163,13 @@ public class NativeRegistrationReviewTest {
       List<RegistrationCardView.Artwork> cards = artworks(host.root);
       assertEquals("Actual registration artwork count on " + page,
           page.equals("result") ? 3 : 9, cards.size());
+      for (RegistrationCardView.Artwork card : cards) {
+        assertTrue("Registration image requires positive layout space before decode: "
+                + card.id + " tag=" + card.getTag() + " view=" + card.getWidth() + "x" + card.getHeight(),
+            card.getWidth() > 0 && card.getHeight() > 0);
+        assertTrue("Registration image must remain attached while waiting: " + card.id,
+            card.isAttachedToWindow());
+      }
       RegistrationArtTest.await(() -> {
         for (RegistrationCardView.Artwork card : cards)
           if (card.bitmap == null || card.status.length() != 0) return false;
@@ -230,7 +237,10 @@ public class NativeRegistrationReviewTest {
       visible(host, card);
       assertNotNull("Ready bitmap", card.bitmap);
       assertFalse("Nonempty contain target", card.target.isEmpty());
-      assertTrue("Entire approved card/window remains inside its view",
+      assertTrue("Entire approved card/window remains inside its view: " + card.id
+              + " tag=" + card.getTag() + " view=" + card.getWidth() + "x" + card.getHeight()
+              + " bitmap=" + card.bitmap.getWidth() + "x" + card.bitmap.getHeight()
+              + " target=" + card.target,
           new RectF(0, 0, card.getWidth(), card.getHeight()).contains(card.target));
       assertEquals("Contain is centered horizontally", card.getWidth() / 2f, card.target.centerX(), .01f);
       assertEquals("Contain is centered vertically", card.getHeight() / 2f, card.target.centerY(), .01f);
@@ -318,6 +328,35 @@ public class NativeRegistrationReviewTest {
         "apiWrites", api.writes.size(), "realBundledImages", true);
   }
 
+  /** Always written, including failures before the checked metrics are available. */
+  JSONObject diagnosticState(MainActivity host) {
+    JSONArray cards = new JSONArray();
+    for (View view : geometry.descendants(host.root)) {
+      if (!(view instanceof RegistrationCardView.Artwork)) continue;
+      RegistrationCardView.Artwork card = (RegistrationCardView.Artwork) view;
+      Rect bounds = geometry.bounds(card, host.root);
+      View parent = card.getParent() instanceof View ? (View) card.getParent() : null;
+      cards.put(MainActivity.obj("id", card.id, "tag", String.valueOf(card.getTag()),
+          "mode", card.mode, "width", card.getWidth(), "height", card.getHeight(),
+          "left", bounds.left, "top", bounds.top, "right", bounds.right, "bottom", bounds.bottom,
+          "shown", card.isShown(), "attached", card.isAttachedToWindow(),
+          "loadAttempted", card.loadAttempted, "status", card.status,
+          "visibleIdentity", card.visibleIdentity,
+          "bitmapWidth", card.bitmap == null ? 0 : card.bitmap.getWidth(),
+          "bitmapHeight", card.bitmap == null ? 0 : card.bitmap.getHeight(),
+          "targetLeft", card.target.left, "targetTop", card.target.top,
+          "targetRight", card.target.right, "targetBottom", card.target.bottom,
+          "parentTag", parent == null ? "" : String.valueOf(parent.getTag()),
+          "parentWidth", parent == null ? 0 : parent.getWidth(),
+          "parentHeight", parent == null ? 0 : parent.getHeight()));
+    }
+    return MainActivity.obj("epoch", host.epoch, "busy", host.busy,
+        "pendingFetches", host.menus.pendingFetches, "nativeArtIdle", host.art.idle(),
+        "registrationPending", host.registrationArt().pendingCount(),
+        "registrationCacheBytes", host.registrationArt().cachedBytes(),
+        "registrationClosed", host.registrationArt().closed(), "artworks", cards);
+  }
+
   void writeScreenshot(MainActivity host, Path target, int width, int height) throws Exception {
     Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
     try {
@@ -335,7 +374,7 @@ public class NativeRegistrationReviewTest {
   @Test public void renderTwentyRealAssetScreensWithSafeAreaActionsAndOverlapEvidence() throws Exception {
     Path output = Path.of(System.getProperty("gmm.nativeReviewOutput", "build/reports/native-review"), "registration");
     Files.createDirectories(output);
-    JSONObject findings = new JSONObject(), metrics = new JSONObject();
+    JSONObject findings = new JSONObject(), metrics = new JSONObject(), diagnostics = new JSONObject();
     List<String> failures = new ArrayList<>();
     int exported = 0;
     int[][] variants = {{915, 412, 100}, {1006, 411, 100}, {1280, 720, 100}, {915, 412, 130}};
@@ -365,6 +404,7 @@ public class NativeRegistrationReviewTest {
             } catch (AssertionError | Exception error) {
               errors.put(error.toString());
             }
+            diagnostics.put(stem, diagnosticState(host));
             // Preserve the actual failed screen for diagnosis, but never mark it as a passing capture.
             try {
               writeScreenshot(host, output.resolve(stem + ".png"), width, height);
@@ -375,11 +415,13 @@ public class NativeRegistrationReviewTest {
           if (errors.length() > 0) failures.add(stem + ": " + errors);
           Files.write(output.resolve("findings.json"), findings.toString(2).getBytes(StandardCharsets.UTF_8));
           Files.write(output.resolve("metrics.json"), metrics.toString(2).getBytes(StandardCharsets.UTF_8));
+          Files.write(output.resolve("diagnostics.json"), diagnostics.toString(2).getBytes(StandardCharsets.UTF_8));
         }
       }
     } finally {
       Files.write(output.resolve("findings.json"), findings.toString(2).getBytes(StandardCharsets.UTF_8));
       Files.write(output.resolve("metrics.json"), metrics.toString(2).getBytes(StandardCharsets.UTF_8));
+      Files.write(output.resolve("diagnostics.json"), diagnostics.toString(2).getBytes(StandardCharsets.UTF_8));
       RuntimeEnvironment.setFontScale(1);
     }
     assertEquals("All screenshot cases are recorded", 20, findings.length());

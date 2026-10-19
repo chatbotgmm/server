@@ -80,10 +80,12 @@ public class ApplicationEnvelopeTest {
     host.root.removeAllViews();
     ApplicationEnvelopeView view = new ApplicationEnvelopeView(host);
     host.root.addView(view, new FrameLayout.LayoutParams(-1, -1));
-    fixture.measure(host.root);
+    // PAUSED Choreographer에서는 수동 measure/layout만으로 Window에 붙지 않는다.
+    // 기존 실제 화면 검수와 같은 ViewRoot traversal을 처리한 뒤 수명주기를 검증한다.
+    review.viewport(host, 915, 412);
     view.getViewTreeObserver().dispatchOnPreDraw();
-    assertTrue(view.isAttachedToWindow());
-    assertTrue(view.active());
+    assertTrue("실제 Window attachment 후에만 봉투 수명주기를 검증", view.isAttachedToWindow());
+    assertTrue("붙은 화면은 resumed/visible/current 조건을 모두 만족", view.active());
     return view;
   }
 
