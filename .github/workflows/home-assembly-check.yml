@@ -1,0 +1,195 @@
+# Isolated home-assembly verification plus authorized preview prerelease publication.
+# No server deployment or signing secrets; only the gated release job can write contents.
+name: Home assembly check
+
+on:
+  push:
+    branches:
+      - manual/home-assembly-20261019
+    paths:
+      - galmaegiman-confirmed/app/**
+      - galmaegiman-confirmed/public/battle/**
+      - galmaegiman-confirmed/public/thumbs/**
+      - .github/workflows/home-assembly-check.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: home-assembly-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-home:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: galmaegiman-confirmed/app/android
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: |
+            galmaegiman-confirmed/app/android/**/*.gradle
+            galmaegiman-confirmed/app/android/gradle/wrapper/gradle-wrapper.properties
+      - uses: android-actions/setup-android@v3
+      - name: Install project Android SDK
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+
+      # The project excludes NativeRenderReviewTest unless a review token is supplied.
+      # Do not supply that token: R1 uses local fixtures and bundled artwork instead.
+      # Loopback prevents missing art/API fallbacks from reaching the production service.
+      - name: All native unit tests with local fixtures
+        id: unit
+        run: >
+          bash ./gradlew :app:testDebugUnitTest
+          -PnativeServer=http://127.0.0.1:9
+          --no-daemon --max-workers=2 --stacktrace
+          "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
+      # Upload before the targeted rerun overwrites testDebugUnitTest reports.
+      - name: Save full native unit-test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-all-native-tests-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/reports/tests/
+            galmaegiman-confirmed/app/android/app/build/test-results/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Targeted home lobby capture at phone, inset phone and tablet sizes
+        if: ${{ !cancelled() }}
+        id: home
+        run: >
+          bash ./gradlew :app:testDebugUnitTest
+          --tests org.dpdns.gmm.R1ScreenReviewTest.homeLobby
+          -PnativeServer=http://127.0.0.1:9
+          -PnativeReviewOutput=${{ github.workspace }}/galmaegiman-confirmed/app/android/app/build/home-assembly-review
+          --no-daemon --max-workers=2 --stacktrace
+          "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
+      - name: Verify requested home screenshots exist
+        if: ${{ !cancelled() && steps.home.outcome == 'success' }}
+        run: |
+          for size in 915x412 1006x411 1280x720; do
+            test -s "app/build/home-assembly-review/r1/home-$size.png"
+          done
+          test -s app/build/home-assembly-review/r1/findings.json
+      - name: Save home screenshots and geometry findings
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-home-screenshots-${{ github.sha }}
+          path: galmaegiman-confirmed/app/android/app/build/home-assembly-review/r1/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Save targeted home-test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-home-test-reports-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/reports/tests/
+            galmaegiman-confirmed/app/android/app/build/test-results/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Save full-suite screen captures
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-all-screen-review-${{ github.sha }}
+          path: galmaegiman-confirmed/app/android/app/build/native-review/r1/
+          if-no-files-found: warn
+          retention-days: 14
+
+      # Build again without the test-only loopback override. APKs retain the existing
+      # server URL, package IDs and debug signing behavior from app/build.gradle.
+      - name: Assemble debug and separately installable preview APKs
+        if: ${{ !cancelled() }}
+        id: assemble
+        run: >
+          bash ./gradlew :app:assembleDebug :app:assemblePreview
+          --no-daemon --max-workers=2 --stacktrace
+          "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
+      - name: Record APK identities and checksums
+        if: ${{ !cancelled() && steps.assemble.outcome == 'success' }}
+        run: |
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt2"
+          for f in app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/preview/app-preview.apk; do
+            "$AAPT" dump badging "$f" | grep -E '^package|application-label:' | tee -a "$GITHUB_STEP_SUMMARY"
+            sha256sum "$f" | tee -a "$GITHUB_STEP_SUMMARY"
+          done
+          echo 'APKs are inspection builds, not releases. Preview installs separately; APK availability does not mean all tests passed.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Save debug APK if built
+        if: ${{ always() && steps.assemble.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-debug-apk-${{ github.sha }}
+          path: galmaegiman-confirmed/app/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+      - name: Save preview APK if built
+        if: ${{ always() && steps.assemble.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-preview-apk-${{ github.sha }}
+          path: galmaegiman-confirmed/app/android/app/build/outputs/apk/preview/app-preview.apk
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  preview-release:
+    needs: native-home
+    if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/manual/home-assembly-20261019' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified preview APK
+        uses: actions/download-artifact@v7
+        with:
+          name: home-assembly-preview-apk-${{ github.sha }}
+          path: apk
+      - name: Publish home preview prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          short="${SHA:0:7}"
+          tag="home-preview-$short"
+          file="galmaegiman-home-preview-$short.apk"
+          mv apk/app-preview.apk "$file"
+          sum=$(sha256sum "$file" | cut -d' ' -f1)
+          cat > notes.md <<EOF_NOTES
+          갈매미맨 홈 조립 미리보기 · 커밋 \`$SHA\` · 브랜치 \`$BRANCH\`
+
+          - 기본 네이티브 단위 테스트 전체와 별도 홈 캡처 테스트, debug/preview APK 빌드가 모두 통과한 결과입니다.
+          - 홈 캡처: 915×412, 1006×411(안전 영역), 1280×720. PNG 및 검사 보고서는 같은 Actions 실행의 아티팩트에 보관됩니다.
+          - 패키지 \`org.dpdns.gmm.native.revised.r1preview\`로 기존 정식 앱 옆에 따로 설치됩니다. 정식 앱 업데이트가 아닙니다.
+          - 디버그 서명은 실행마다 달라질 수 있습니다. 설치 충돌 시 미리보기 앱만 제거한 뒤 설치하세요. 미리보기 앱의 로컬 데이터는 삭제됩니다.
+          - APK는 기존 운영 서버 주소를 사용합니다. 이 작업은 서버·DB에 배포하지 않습니다.
+          - 실기기 검수 전 시험판입니다. 정식/최신 릴리스를 대체하지 않습니다.
+          - SHA-256: \`$sum\`
+          EOF_NOTES
+          if gh release view "$tag" --repo "$REPO" >/dev/null 2>&1; then
+            target=$(gh release view "$tag" --repo "$REPO" --json targetCommitish --jq .targetCommitish)
+            test "$target" = "$SHA" || { echo 'Existing release tag targets a different commit; refusing to overwrite.' >&2; exit 1; }
+            gh release edit "$tag" --repo "$REPO" --prerelease --latest=false \
+              --title "홈 미리보기 $short" --notes-file notes.md
+            gh release upload "$tag" "$file" --repo "$REPO" --clobber
+          else
+            gh release create "$tag" "$file" --repo "$REPO" --target "$SHA" \
+              --title "홈 미리보기 $short" --notes-file notes.md --prerelease --latest=false
+          fi
+          gh release view "$tag" --repo "$REPO" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"
