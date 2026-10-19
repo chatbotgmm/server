@@ -38,9 +38,11 @@ jobs:
           cache-dependency-path: |
             galmaegiman-confirmed/app/android/**/*.gradle
             galmaegiman-confirmed/app/android/gradle/wrapper/gradle-wrapper.properties
-      - uses: android-actions/setup-android@v3
-      - name: Install project Android SDK
-        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - name: Verify runner-provided stable Android SDK
+        run: |
+          test -s "$ANDROID_HOME/platforms/android-36/android.jar"
+          test -x "$ANDROID_HOME/build-tools/35.0.0/aapt2"
+          echo "Using preinstalled SDK 36 and build-tools 35.0.0"
 
       # The project excludes NativeRenderReviewTest unless a review token is supplied.
       # Do not supply that token: R1 uses local fixtures and bundled artwork instead.
