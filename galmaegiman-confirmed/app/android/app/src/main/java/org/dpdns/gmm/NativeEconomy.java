@@ -1404,13 +1404,18 @@ final class NativeEconomy {
 
   LinearLayout crewTile(JSONObject unit, String detail) {
     LinearLayout tile = k.column();
-    tile.setPadding(h.dp(2), h.dp(2), h.dp(2), h.dp(2));
+    boolean shortViewport = h.contentHeightDp() < 390;
+    // On short screens, give decorative vertical gaps back to the FULL artwork.
+    // Keep the state font, horizontal reading inset and the whole-tile touch target.
+    int verticalInset = shortViewport ? 0 : h.dp(2);
+    tile.setPadding(h.dp(2), verticalInset, h.dp(2), verticalInset);
     tile.setGravity(Gravity.CENTER);
     RegistrationCardView card = new RegistrationCardView(h, unit, RegistrationCardView.FULL);
     card.setTag("expedition-full-card");
     tile.addView(card, new LinearLayout.LayoutParams(-1, 0, 1));
     // Identity and tier are already printed on the original FULL asset. Only live state is separate.
     TextView status = RegistrationCardView.stateLabel(h, detail);
+    if (shortViewport) status.setPadding(h.dp(4), 0, h.dp(4), 0);
     status.setTag("expedition-crew-status");
     tile.addView(status, new LinearLayout.LayoutParams(-1, -2));
     tile.setMinimumHeight(h.dp(48));

@@ -184,12 +184,19 @@ public class NativeEconomyThemeReviewTest {
           art.target.height() >= host.dp(minimumArtHeight));
       assertEquals(geometry.bounds(art, host.root), geometry.visibleIntersection(art, host.root));
       TextView status = (TextView) tile.getChildAt(1);
+      assertEquals("State text keeps the shared label's original font size",
+          RegistrationCardView.stateLabel(host, "").getTextSize(), status.getTextSize(), .01f);
+      assertTrue("The full tile remains a 48dp touch target", tile.getHeight() >= host.dp(48));
+      Rect cardBounds = geometry.bounds(card, host.root), statusBounds = geometry.bounds(status, host.root);
+      assertTrue("State glyphs have a separate row below FULL art", cardBounds.bottom <= statusBounds.top);
+      assertEquals(statusBounds, geometry.visibleIntersection(status, host.root));
       int left = unit.optInt("have") - unit.optInt("away") - (candidate ? Collections.frequency(host.expeditionDraft, id) : 0);
       assertEquals(candidate ? "남은 " + left : page.equals("trip") ? "탐험 중" : "빼기 ×", status.getText().toString());
       readable(status);
       assertFalse(status.getText().toString().equals(unit.optString("name")));
       dimensions.put(MainActivity.obj("tag", tag, "id", id, "mode", "FULL", "artWidth", art.target.width(),
-          "artHeight", art.target.height(), "minimumArtHeightDp", minimumArtHeight, "status", status.getText().toString()));
+          "artHeight", art.target.height(), "minimumArtHeightDp", minimumArtHeight, "status", status.getText().toString(),
+          "stateTextSizePx", status.getTextSize(), "stateHeightPx", status.getHeight(), "tileHeightPx", tile.getHeight()));
     }
     assertTrue("Existing page size is preserved", selected > 0 && selected <= perPage && candidates <= perPage);
     if (page.equals("explore")) assertTrue(candidates > 0);

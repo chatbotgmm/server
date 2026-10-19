@@ -48,9 +48,19 @@ public class NativeRealtimeThemeStateTest {
         "acceptance", MainActivity.obj("accepted", false, "opponentAccepted", false));
   }
 
+  void layoutVisible(MainActivity h) {
+    flow.measure(h.root);
+    // With Choreographer on the PAUSED clock, manual measure alone cannot attach
+    // the window or release its traversal barrier. Advance the same real frame
+    // used by the native review fixture before observing visible UI state.
+    new NativeDialogLayoutReviewTest().frame();
+    flow.measure(h.root);
+    assertTrue("Fixture root is attached and shown", h.root.isAttachedToWindow() && h.root.isShown());
+  }
+
   void show(MainActivity h, JSONObject envelope) {
     h.realtime.acceptRoom(envelope);
-    flow.measure(h.root);
+    layoutVisible(h);
     h.realtime.tick.run();
     flow.measure(h.root);
   }
@@ -230,7 +240,7 @@ public class NativeRealtimeThemeStateTest {
   }
 
   NativeAugmentView mountAugment(MainActivity h, JSONObject battle) {
-    h.battle = battle; h.battleScreen(); flow.measure(h.root);
+    h.battle = battle; h.battleScreen(); layoutVisible(h);
     NativeAugmentView choice = ((BattleView) h.root.getChildAt(0)).augmentView;
     assertNotNull(choice);
     assertTrue("Choice is mounted in the actual visible window", choice.isAttachedToWindow() && choice.isShown());
@@ -311,9 +321,10 @@ public class NativeRealtimeThemeStateTest {
       show(h, r); assertNotNull(h.visibleDialog); android.app.AlertDialog dialog = h.visibleDialog;
       assertTrue(flow.labels(dialog.getWindow().getDecorView()).contains("24 LP"));
       h.realtime.terminal(r); assertSame(dialog, h.visibleDialog);
-      dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick();
-      // AlertDialog dispatches its listener through a Handler, even after performClick.
-      Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+      assertTrue(dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick());
+      // AlertDialog's queued listener/dismiss also needs the next PAUSED frame
+      // when a ViewRoot traversal barrier is pending; same-time idle is not enough.
+      new NativeDialogLayoutReviewTest().frame();
       assertEquals("", h.realtime.room); assertEquals("room-theme", h.realtime.dismissed);
       assertNull(h.realtime.latest); assertNull(h.battle);
     }
