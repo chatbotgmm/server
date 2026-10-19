@@ -94,7 +94,7 @@
     const render = () => {
       const n = per(), pages = Math.max(1, Math.ceil(list.length / n));
       page = Math.min(page, pages - 1);
-      grid.innerHTML = list.slice(page * n, page * n + n).map((c, k) => { const i = page * n + k; return `<button type="button" class="ccard" role="option" data-i="${i}" aria-selected="${i === sel}"><img src="/thumbs/${encodeURIComponent(c.id)}.jpg" alt="" width="160" height="160" loading="lazy"><span>${esc(c.n)}</span></button>`; }).join('');
+      grid.innerHTML = list.slice(page * n, page * n + n).map((c, k) => { const i = page * n + k; return `<button type="button" class="ccard reg-card" data-card="registration" role="option" data-i="${i}" aria-selected="${i === sel}"><img src="/thumbs/${encodeURIComponent(c.id)}.jpg" alt="" width="160" height="160" loading="lazy"><span>${esc(c.n)}</span></button>`; }).join('');
       label.textContent = `${page + 1} / ${pages}`;
       $('[data-prev]', chars).disabled = page === 0; $('[data-next]', chars).disabled = page >= pages - 1;
     };

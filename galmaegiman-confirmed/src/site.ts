@@ -178,7 +178,7 @@ ${opt.kakao&&k!=='link'?'<a class="btn kakao wide" href="/my/kakao" data-kakao-s
   });
 
   // ── 웹 게임: 화면은 public/game. 로그인 판단은 화면이 /my/api/who로(세션 쿠키가 Path=/my라 여기서는 모름) ──
-  const gameFile=()=>readFileSync(resolve(opt.root,'public/game/index.html'),'utf8').replace(/\{\{(css|js)\}\}/g,(_m,k:string)=>stamp(k==='css'?'game/game.css':'game/game.js'));
+  const gameFile=()=>readFileSync(resolve(opt.root,'public/game/index.html'),'utf8').replace(/\{\{([a-z]+\.(?:css|js))\}\}/g,(_m,f:string)=>stamp(`game/${f}`));
   app.get('/game',limit,async(_req,reply)=>send(reply,gameFile(),'no-cache'));
   app.get('/account',limit,async(_req,reply)=>reply.redirect('/game#account'));
 

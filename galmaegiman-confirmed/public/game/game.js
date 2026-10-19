@@ -140,7 +140,7 @@
 
   // ── 항구 홈 ──
   function home() {
-    title('', 'home');
+    title('', 'home'); app.dataset.place = ''; app.dataset.screen = 'home';
     const st = S.state, lead = st && (st.units.find(u => u.key === st.team[0]) || st.units[0]);
     view.innerHTML = `<section class="home">
       <div class="scene" aria-label="항구 광장">
@@ -153,7 +153,7 @@
         </aside>
       </div>
       <div class="acts">
-        ${st?.activeBattle ? '<a class="btn primary xl" href="#battle">진행 중 전투로</a>' : '<a class="btn primary xl" href="#play">플레이</a>'}
+        ${st?.activeBattle || S.battle ? '<a class="btn primary xl" href="#battle">진행 중 전투로</a>' : '<a class="btn primary xl" href="#play">플레이</a>'}
         <a class="btn ghost lg" href="#team">전투 편성</a>
         <button class="btn ghost lg" type="button" data-daily>출석 · 미션</button>
       </div></section>`;
@@ -161,22 +161,18 @@
     if (lead) standee($('.stand', view), sprite(lead.image), `${lead.name} 대표 대원`);
   }
 
-  // ── 아직 이 단계에서 만들지 않은 화면 ──
-  function soon(name) {
-    title(name, '');
-    view.innerHTML = `<section class="soon"><h1>${esc(name)}</h1><p class="muted">웹 게임에서 이 화면을 준비하고 있어요.</p><a class="btn ghost" href="#home">항구로</a></section>`;
-  }
-
   function title(t, active) {
     $('#back').hidden = !t; $('#profile').hidden = !!t; $('#title').textContent = t;
+    app.dataset.screen = t ? 'inner' : 'home';
     dock(active);
   }
 
   // ── 화면 이동(해시) ──
-  const ROUTES = { home, account: () => { home(); account(); }, play: () => soon('플레이'), team: () => soon('전투 편성'), dex: () => soon('방범대 도감'), match: () => soon('매칭'), augment: () => soon('증강체'), battle: () => soon('전투') };
-  const route = () => { const [name] = location.hash.slice(1).split('?'); return ROUTES[name] ? name : 'home'; };
+  // 화면 등록: 도감·편성·플레이는 screens.js, 매칭·전투는 battle.js가 S.routes에 더한다. 증강체는 전투 안의 단계
+  S.routes = { home, account: () => { home(); account(); }, augment: () => { location.replace('#battle'); } };
+  const route = () => { const [name] = location.hash.slice(1).split('?'); return S.routes[name] ? name : 'home'; };
   const params = () => new URLSearchParams(location.hash.split('?')[1] || '');
-  function render() { ROUTES[route()](params()); }
+  function render() { S.routes[route()](params()); }
   S.render = render; S.api = api; S.sprite = sprite; S.standee = standee; S.sheet = sheet; S.title = title; S.toast = toast; S.busy = busy; S.header = header; S.STAGE = STAGE; S.ROLE = ROLE; S.esc = esc; S.fmt = fmt; S.thumb = thumb;
   addEventListener('hashchange', () => { if (!$('#sheet').hidden) $('#sheet').hidden = true; render(); view.focus({ preventScroll: true }); });
 
@@ -193,5 +189,5 @@
     header(); render();
   }
   S.loadState = loadState;
-  boot();
+  addEventListener('DOMContentLoaded', boot);   // defer로 읽는 screens.js·battle.js가 화면을 등록한 뒤 시작
 })();

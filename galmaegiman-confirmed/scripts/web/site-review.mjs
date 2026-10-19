@@ -13,9 +13,11 @@ const out = process.argv[2]; if (!out) { console.error('결과 폴더를 주세�
 const only = process.argv[3] ? new Set(process.argv[3].split(',')) : null;
 mkdirSync(out, { recursive: true });
 const B = 'http://127.0.0.1:3999';
-const VIEWS = [['pc', 1440, 900], ['tab', 1024, 768], ['land', 915, 412], ['port', 390, 844], ['small', 360, 640]];
+const VIEWS = [['pc', 1440, 900], ['tab', 1024, 768], ['land', 915, 412], ['port', 390, 844], ['small', 360, 640]].filter(([n]) => !process.env.VIEWS || process.env.VIEWS.split(',').includes(n));   // VIEWS=pc,port 처럼 일부만
 const PUBLIC = [['home', '/'], ['about', '/about'], ['characters', '/characters'], ['notices', '/notices'], ['download', '/download'], ['login', '/login?next=/game&from=/about']];
-const GAME = [['g-home', '#home'], ['g-dex', '#dex'], ['g-team', '#team'], ['g-play', '#play'], ['g-match', '#match'], ['g-augment', '#augment'], ['g-battle', '#battle']];
+const GAME = [['g-home', '#home'], ['g-dex', '#dex'], ['g-team', '#team'], ['g-play', '#play']];
+// 전투 단계: 화면마다 새 스토리 전투(P-1)를 시작해 증강체 → 명령(기본·공격·아이템·교체·도망 확인) → 상성표를 찍고 물러난다
+const BATTLE = [['g-root', null], ['g-attack', '[data-p="attack"]'], ['g-item', '[data-p="item"]'], ['g-switch', '[data-p="switch"]'], ['g-leave', '[data-p="leave"]']];
 const findings = [];
 
 const check = (game) => (() => {
@@ -31,7 +33,7 @@ const check = (game) => (() => {
     if (b.right > innerWidth + 1 || b.left < -1) r.push({ kind: '화면 밖(가로)', detail: name(e) });
     if (window.__game && (b.bottom > innerHeight + 1 || b.top < -1)) r.push({ kind: '화면 밖(세로)', detail: name(e) });
   }
-  for (const e of document.querySelectorAll('h1,h2,h3,b,.btn,.pill,label,.dock a span,.who b,.ccard span,.growth b')) {
+  for (const e of document.querySelectorAll('h1,h2,h3,b,.btn,.pill,label,.dock a span,.who b,.ccard span,.growth b,.reg-card,.cbtn,.slot,.a-card')) {   // 카드·버튼 자체가 내용보다 작으면(overflow hidden) 잘림으로 본다
     if (!vis(e)) continue;
     const s = getComputedStyle(e);
     if (s.webkitLineClamp && s.webkitLineClamp !== 'none') continue;   // 줄 수 제한은 의도(2줄)
@@ -62,7 +64,8 @@ let auth = null;
 }
 for (const [vn, w, h] of VIEWS) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, serviceWorkers: 'block', locale: 'ko-KR' });
-  const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error' && !/status of 401/.test(m.text())) errs.push(m.text()); });   // 로그인 전 공개 페이지의 /my/api/who 401은 정상
+  const p = await ctx.newPage(); p.setDefaultTimeout(6000); const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error' && !/status of 4\d\d/.test(m.text())) errs.push(m.text()); });
+  p.on('response', r => { if (r.status() >= 400 && r.status() !== 401) errs.push(`${r.status()} ${new URL(r.url()).pathname}`); });   // 401은 로그인 전 공개 페이지의 정상 응답   // 로그인 전 공개 페이지의 /my/api/who 401은 정상
   const shot = async (n, game) => {
     await p.evaluate(g => { window.__game = g; }, game);
     await p.evaluate(async () => { await document.fonts.ready; });
@@ -76,10 +79,41 @@ for (const [vn, w, h] of VIEWS) {
   if (!only || [...only].some(x => x.startsWith('g-') || x === 'menu')) {
     if (!only || only.has('menu')) if (w < 961) { await p.goto(B + '/'); await p.click('.menu-btn'); await p.waitForTimeout(200); await p.evaluate(() => { window.__game = false; }); await p.screenshot({ path: `${out}/menu-${vn}.png` }); await p.keyboard.press('Escape'); }
     await ctx.addCookies(auth.cookies);
+    const ready = () => p.waitForFunction(() => window.GMM && window.GMM.state && !window.GMM.loading.size, null, { timeout: 15000 }).catch(() => {});
+    const api = (path, body) => p.evaluate(async ([path, body]) => { const r = await fetch('/my/api/' + path, { method: body ? 'POST' : 'GET', headers: { 'x-gmm': '1', 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }); return r.json(); }, [path, body]);
     for (const [n, hash] of GAME) {
       if (only && !only.has(n)) continue;
-      await p.goto(`${B}/game${hash}`).catch(() => p.goto(`${B}/game${hash}`)); await p.waitForFunction(() => window.GMM && window.GMM.state && !window.GMM.loading.size, null, { timeout: 15000 }).catch(() => {});
+      await p.goto(`${B}/game${hash}`).catch(() => p.goto(`${B}/game${hash}`)); await ready();
       await p.waitForTimeout(900); await shot(n, true);
+    }
+    if (!only || only.has('g-match')) {   // 랭크전(AI 대체 없음) 탐색 화면을 찍고 바로 취소
+      await p.goto(`${B}/game#match?mode=rank`); await ready(); await p.waitForSelector('[data-cancel]:not([disabled])', { timeout: 10000 }).catch(() => {});
+      await p.waitForTimeout(1600); await shot('g-match', true);
+      await p.click('[data-cancel]').catch(() => {}); await p.waitForTimeout(1500);
+    }
+    if (!only || only.has('g-battle')) {
+      await p.goto(`${B}/game#home`); await ready();
+      const cur = await api('native/battle/current'); if (cur.session) await api('native/battle/turn', { session: cur.session, revision: cur.revision, leave: true });
+      // 시험 계정만: 앞선 검수 전투로 스토리 체력이 0이 되면 시작이 거절되므로 큰 치료약으로 회복(게임 규칙 그대로 API 사용)
+      const st0 = await api('native/state');
+      for (const k of st0.team || []) { const u = st0.units.find(x => x.key === k); if (u && u.hp < u.maxHp * 0.5) { await api('native/heal', { key: k, item: 'big' }); } }
+      const start = await api('native/battle/start', { mode: 'story', stage: 'P-1' });
+      if (start.error) findings.push({ view: vn, screen: 'g-battle', kind: '전투 시작 실패', detail: start.error });
+      else {
+        await p.goto(`${B}/game#battle`); await p.waitForSelector('.augment,.battle', { timeout: 10000 }).catch(() => {}); await p.waitForTimeout(900); await shot('g-augment', true);
+        await p.click('.a-card').catch(() => {}); await p.waitForTimeout(200); await shot('g-augment-picked', true);
+        await p.click('[data-ok]').catch(() => {}); await p.waitForSelector('.battle .cmd', { timeout: 10000 }).catch(() => {}); await p.waitForTimeout(900);
+        for (const [bn, sel] of BATTLE) {
+          if (sel) { await p.click(sel).catch(() => {}); await p.waitForTimeout(300); }
+          await shot(bn, true);
+          if (sel) { await p.click('[data-back]').catch(() => {}); await p.waitForTimeout(200); }
+        }
+        await p.click('.my-hp [data-chart]').catch(() => {}); await p.waitForTimeout(300); await shot('g-chart', true); await p.keyboard.press('Escape');
+        await p.click('[data-p="attack"]').catch(() => {}); await p.waitForTimeout(200);
+        await p.click('[data-skill]:not([disabled])').catch(() => {}); await p.waitForTimeout(1200); await shot('g-after-turn', true);
+        const c2 = await api('native/battle/current'); if (c2.session) await api('native/battle/turn', { session: c2.session, revision: c2.revision, leave: true });
+        await p.goto(`${B}/game#battle`); await p.waitForTimeout(1200); await shot('g-result', true);
+      }
     }
   }
   if (errs.length) findings.push({ view: vn, screen: '*', kind: '스크립트 오류', detail: [...new Set(errs)].join(' / ').slice(0, 400) });

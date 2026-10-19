@@ -20,7 +20,7 @@ node --input-type=module <<'JS'
 import {PrismaClient} from '@prisma/client';
 const db=new PrismaClient();
 const p=await db.player.findFirst({where:{identity:'review:store'}});
-await db.player.update({where:{id:p.id},data:{credits:400,snack:30000,peanut:40,nickname:'검토대장',gameTutorial:9,tutorial:4}});
+await db.player.update({where:{id:p.id},data:{credits:400,snack:30000,peanut:40,nickname:'검토대장',gameTutorial:9,tutorial:4,battleTeam:'D1,T1,E1'}});   // battleTeam: 웹 대전 편성 검수용
 if(!await db.ownedCharacter.count({where:{playerId:p.id,obtainedVia:'review-seed'}}))
   for(const characterId of ['D1','T1','E1','I1','D2','D7','E2','T2','I2','E8','T7','D5'])
     await db.ownedCharacter.create({data:{playerId:p.id,characterId,obtainedVia:'review-seed'}});
