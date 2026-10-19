@@ -372,31 +372,21 @@ public class JournalNativeReviewTest {
       lobby.getViewTreeObserver().dispatchOnPreDraw();
       assertNotNull(lobby.motion.clock);
       NativeSettingsSheet.show(host);
-      Switch reduced =
-          host.visibleDialog.getWindow().getDecorView().findViewWithTag("settings-reduced-motion");
-      assertNotNull("실제 설정에서 움직임 줄이기 제공", reduced);
-      assertFalse(reduced.isChecked());
-      reduced.performClick();
-      assertFalse(host.motionEnabled);
-      assertNull("움직임 줄이기 설정은 정적 표시", lobby.motion.clock);
-      staticSceneRejectsDrag(lobby);
-      assertTrue(
-          "움직임 설정은 기기에 저장",
-          host.getSharedPreferences("native_display", 0).getBoolean("reduce_motion", false));
-      setHour(host, clock, 18);
-      review.await(() -> lobby.ambient.currentPhase == LocalTimeTheme.Phase.EVENING);
-      assertNull("감소 모션의 시간대 변경은 크로스페이드 없이 즉시 표시", lobby.ambient.incoming);
-      review.popup(host, "journal-c-settings-reduced-motion");
-      reduced.performClick();
-      assertTrue(host.motionEnabled);
-      assertFalse(host.getSharedPreferences("native_display", 0).getBoolean("reduce_motion", true));
+      assertNull("Retired motion switch is absent",
+          host.visibleDialog.getWindow().getDecorView().findViewWithTag("settings-reduced-motion"));
+      review.popup(host, "journal-c-settings-platform-motion");
       host.visibleDialog.dismiss();
       Settings.Global.putFloat(
           host.getContentResolver(), Settings.Global.ANIMATOR_DURATION_SCALE, 0);
       Shadows.shadowOf(Looper.getMainLooper()).idle();
       lobby.getViewTreeObserver().dispatchOnPreDraw();
-      assertNull("시스템 애니메이션 비활성은 정적 표시", lobby.motion.clock);
+      assertNull("System animation-off stops repeated motion", lobby.motion.clock);
       staticSceneRejectsDrag(lobby);
+      assertTrue("No retired app preference is reintroduced",
+          !host.getSharedPreferences("native_display", 0).contains("reduce_motion"));
+      setHour(host, clock, 18);
+      review.await(() -> lobby.ambient.currentPhase == LocalTimeTheme.Phase.EVENING);
+      assertNull("System-off transitions are immediate", lobby.ambient.incoming);
       assertSame(state, host.state);
       assertEquals("현지 시간·복귀·움직임 설정에서 추가 API 없음", reads, api.calls);
       review.capture(host, "journal-c-offline-resume-static", 915, 412);

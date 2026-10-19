@@ -150,7 +150,7 @@ public class ReleaseHomeLayoutTest {
           assertTrue("All home artwork including local map-reading guide loads", l.homeArt.ready());
           assertNotNull(l.homeArt.hero());
           assertNotNull(l.homeArt.heroBounds());
-          assertEquals("All original and added commands remain accessible", 15, l.buttons.size());
+          assertEquals("Only duplicate information is removed; every route remains accessible", 14, l.buttons.size());
           RectF safe = h.safeBounds(l.getWidth(), l.getHeight());
           for (Button button : l.buttons) containedTouch(h, l, button, safe);
           for (int i = 0; i < l.buttons.size(); i++)
@@ -196,14 +196,19 @@ public class ReleaseHomeLayoutTest {
           for (float pulse : new float[] {-1, 0, 1})
             for (float dragX : new float[] {-h.dp(18), 0, h.dp(18)})
               for (float dragY : new float[] {-h.dp(18), 0, h.dp(18)}) {
-                RectF drawn = l.heroDrawBox(pulse, dragX, dragY);
-                RectF shadow = l.heroShadowBox(drawn);
+                RectF pose = l.heroDrawBox(pulse, dragX, dragY);
+                // character() shears around the foot line, so include the displaced
+                // upper corners in collision bounds rather than testing only its bitmap box.
+                float lean = HomeGullDrag.bounded(dragX, h.dp(4));
+                RectF drawn = new RectF(pose.left + Math.min(0, lean), pose.top,
+                    pose.right + Math.max(0, lean), pose.bottom);
+                RectF shadow = l.heroShadowBox(l.heroBox());
                 assertTrue("Animated guide stays in the mobile safe area", safe.contains(drawn));
                 assertTrue("Separate contact shadow stays safe", safe.contains(shadow));
                 assertFalse("Growth never masks the guide or shadow", RectF.intersects(drawn, new RectF(growth))
                     || RectF.intersects(shadow, new RectF(growth)));
                 assertTrue("Contact shadow meets the feet", shadow.top < drawn.bottom && shadow.bottom > drawn.bottom);
-                assertEquals("Breathing never lifts the feet", l.heroDrawBox(0, dragX, dragY).bottom,
+                assertEquals("Breathing and drag never lift the feet", l.heroBox().bottom,
                     drawn.bottom, .001f);
                 for (Button button : l.buttons) {
                   assertFalse("Guide stays clear of every menu", RectF.intersects(drawn, new RectF(box(l, button))));
@@ -234,7 +239,10 @@ public class ReleaseHomeLayoutTest {
       h.requested = "";
       l.buttons.get(13).performClick();
       assertEquals("home", h.requested);
-      assertSame(l.buttons.get(14), l.findViewWithTag("lobby-information"));
+      assertEquals(14, l.buttons.size());
+      assertNull(l.findViewWithTag("lobby-information"));
+      assertSame(l.buttons.get(7), l.findViewWithTag("lobby-profile"));
+      assertSame(l.buttons.get(8), l.findViewWithTag("lobby-settings"));
     }
   }
 
@@ -273,12 +281,12 @@ public class ReleaseHomeLayoutTest {
     }
   }
 
-  @Test public void profileAndInformationKeepProfilePopupAndResumeUsesCurrentBattleEndpoint() {
+  @Test public void profileKeepsProfilePopupAndResumeUsesCurrentBattleEndpoint() {
     try (ActivityController<HomeHost> controller = start(true)) {
       HomeHost h = controller.get();
       layout(h, 915, 412, 0, 0, 0, 0);
       FixtureApi api = (FixtureApi) h.api;
-      for (String tag : new String[] {"lobby-profile", "lobby-information"}) {
+      for (String tag : new String[] {"lobby-profile"}) {
         api.paths.clear();
         lobby(h).findViewWithTag(tag).performClick();
         assertTrue("Profile popup reads the existing rank endpoint", api.paths.contains("pvp/rank"));

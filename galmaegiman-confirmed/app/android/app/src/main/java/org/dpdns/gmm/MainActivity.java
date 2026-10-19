@@ -51,7 +51,9 @@ public class MainActivity extends AppCompatActivity {
   @Override
   public void onCreate(Bundle saved) {
     super.onCreate(saved);
-    motionEnabled = !getSharedPreferences("native_display", 0).getBoolean("reduce_motion", false);
+    // The retired app toggle must not leave upgraded installs permanently static.
+    NativeMotion.migrateLegacyPreference(this);
+    motionEnabled = true;
     journalTime = new JournalTimeController(this);
     api = new NativeApi(this);
     realtime = new NativeRealtime(this);
@@ -169,13 +171,6 @@ public class MainActivity extends AppCompatActivity {
     if (realtime != null) realtime.recover();
     NativeAlerts.schedule(this, me());
     if (guide != null) guide.onStateUpdated();
-  }
-
-  void reducedMotion(boolean reduced) {
-    getSharedPreferences("native_display", 0).edit().putBoolean("reduce_motion", reduced).apply();
-    motionEnabled = !reduced;
-    if (journalTime != null) journalTime.motionPreferenceChanged();
-    if (root != null) root.invalidate();
   }
 
   static JSONObject obj(Object... xs) {
@@ -513,6 +508,7 @@ public class MainActivity extends AppCompatActivity {
     head.setBackground(bar);
     head.setPadding(dp(4), dp(2), dp(8), dp(2));
     Button back = NativeTutorialController.anchor(button("‹", this::back), "back");
+    JournalButton.keepLabelDuringOperation(back);
     back.setBackgroundColor(Color.TRANSPARENT);
     back.setTextColor(Color.WHITE);
     back.setTextSize(26);
@@ -535,6 +531,7 @@ public class MainActivity extends AppCompatActivity {
               icon,
               String.format(java.util.Locale.KOREA, "%,d", me().optInt(kind)),
               () -> load("shop"));
+      JournalButton.keepLabelDuringOperation(money);
       money.setTextSize(14);
       money.setTypeface(prose);
       money.setSingleLine(true);

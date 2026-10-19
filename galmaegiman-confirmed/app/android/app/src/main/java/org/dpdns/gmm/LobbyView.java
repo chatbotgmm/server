@@ -9,13 +9,14 @@ import org.json.*;
 /** 항구 본부의 모험 도감 UI. 원본 캐릭터와 보상·조언·패럴랙스 동작은 유지한다. */
 final class LobbyView extends FrameLayout implements FullBleed {
   final MainActivity host;
-  final DragParallax parallax;
+  final HomeGullDrag parallax;
   final SceneMotion motion;
   final JournalAmbient ambient;
   final Runnable motionChanged;
   final Paint p = new Paint(3);
   final Path mapRoute = new Path();
   final RectF dockFrame = new RectF();
+  final RectF heroFrame = new RectF(), heroPose = new RectF(), heroContact = new RectF();
   final Paint.FontMetrics canvasMetrics = new Paint.FontMetrics();
   final ArrayList<Button> buttons = new ArrayList<>();
   final String room;
@@ -28,7 +29,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   final ProgressBar growthProgress;
   final Button growthAction;
   final Runnable hideTip = this::hideGullTip;
-  final boolean[] badges = new boolean[15];
+  final boolean[] badges = new boolean[14];
   long claimReadyMono = -1;
   int liveEpoch, tipAt = -1;
   String dailyDay = "";
@@ -50,7 +51,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   static final String[] NAMES = {"탐험", "뽑기", "방범대", "조합", "상점"};
   static final String[] IDS = {"expedition", "draw", "collection", "craft", "shop"};
   static final String[] ICONS = {"mode-camp", "u-draw", "mode-normal", "u-emblem", "u-shop"};
-  final RectF[] boxes = new RectF[15];
+  final RectF[] boxes = new RectF[14];
 
   static String room(MainActivity host) {
     if (host.lobbyRoom == null)
@@ -84,10 +85,10 @@ final class LobbyView extends FrameLayout implements FullBleed {
     homeArt = new HomeArt(host);
     motion = new SceneMotion(this, host);
     ambient = new JournalAmbient(this, host, motion);
-    parallax = new DragParallax(this, host.dp(18));
+    parallax = new HomeGullDrag(this, host.dp(4), host.dp(1.2f));
     motionChanged =
         () -> {
-          if (!SceneMotion.enabled(host)) parallax.close();
+          if (!SceneMotion.enabled(host) || !host.motionResumed) parallax.close();
         };
     room = room(host);
     // Representative guide is bundled locally; no room-dependent network image.
@@ -116,11 +117,9 @@ final class LobbyView extends FrameLayout implements FullBleed {
     buttons.get(8).setTag("lobby-settings");
     add("전투 편성", this::openTeam);
     add("항구", () -> host.load("home"));
-    add("정보", () -> host.menus.extras.profile(buttons.get(14)));
     buttons.get(12).setTag("lobby-team");
     buttons.get(13).setTag("lobby-harbor");
     buttons.get(13).setSelected(true);
-    buttons.get(14).setTag("lobby-information");
     growthCard = new LinearLayout(host);
     growthCard.setOrientation(LinearLayout.VERTICAL);
     growthCard.setPadding(host.dp(12), host.dp(9), host.dp(12), host.dp(10));
@@ -316,8 +315,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
       boxes[stack[i]] = new RectF(stackLeft, y, w - margin, y + stackH);
     }
     boxes[8] = new RectF(w - margin - hit, margin, w - margin, margin + header);
-    boxes[14] = new RectF(boxes[8].left - gap - hit, margin, boxes[8].left - gap, margin + header);
-    float currencyLeft = w * .49f, currencyRight = boxes[14].left - gap;
+    float currencyLeft = w * .49f, currencyRight = boxes[8].left - gap;
     float curW = (currencyRight - currencyLeft - gap * 2) / 3;
     for (int i = 0; i < 3; i++) {
       float x = currencyLeft + i * (curW + gap);
@@ -412,6 +410,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   @Override
   protected void onLayout(boolean changed, int l, int t, int r, int b) {
     super.onLayout(changed, l, t, r, b);
+    heroFrame.set(heroBox());
     RectF safe = host.safeBounds(getWidth(), getHeight()), area = gullBox();
     area.intersect(safe);
     gull.layout((int) area.left, (int) area.top, (int) area.right, (int) area.bottom);
@@ -534,7 +533,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
     RectF r = new RectF(boxes[index]);
     if (buttons.get(index).isPressed()) r.offset(0, host.dp(1));
     homeArt.surface(c, primary ? "ui/button-primary.png" : "ui/button-secondary.png", r);
-    boolean small = index == 8 || index == 14;
+    boolean small = index == 8;
     float size = Math.min(host.dp(small ? 25 : 36), r.height() * .55f);
     float inset = host.dp(small ? 10 : 14);
     if (icon != null) homeArt.icon(c, "icons/" + icon + ".png",
@@ -656,22 +655,32 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   RectF heroDrawBox(float pulse, float dragX, float dragY) {
-    RectF area = heroBox();
-    float width = area.width() * (1 + .004f * pulse);
-    float height = area.height() * (1 - .004f * pulse);
-    RectF target = new RectF(area.centerX() - width / 2, area.bottom - height,
-        area.centerX() + width / 2, area.bottom);
-    // Breathing changes the pose around the feet; it must not lift the guide.
-    target.offset(Math.max(-host.dp(18), Math.min(host.dp(18), dragX)),
-        Math.max(-host.dp(6), Math.min(host.dp(6), dragY)));
+    RectF target = new RectF();
+    heroDrawBox(heroBox(), target, pulse, dragY);
     return target;
   }
 
+  private void heroDrawBox(RectF area, RectF target, float pulse, float dragY) {
+    float width = area.width() * (1 + .004f * pulse);
+    float height = area.height() * (1 - .004f * pulse);
+    target.set(area.centerX() - width / 2, area.bottom - height,
+        area.centerX() + width / 2, area.bottom);
+    // The feet never translate. Vertical drag only adds a tiny planted compression.
+    float compression = Math.max(-host.dp(1.2f), Math.min(host.dp(1.2f), dragY));
+    target.top += compression;
+  }
+
   RectF heroShadowBox(RectF target) {
+    RectF shadow = new RectF();
+    heroShadowBox(target, shadow);
+    return shadow;
+  }
+
+  private void heroShadowBox(RectF target, RectF shadow) {
     float center = target.centerX() - target.width() * .055f;
     float radius = target.width() * .23f;
     float height = Math.max(host.dp(8), target.height() * .035f);
-    return new RectF(center - radius, target.bottom - height * .85f,
+    shadow.set(center - radius, target.bottom - height * .85f,
         center + radius, target.bottom + height * .15f);
   }
 
@@ -679,8 +688,10 @@ final class LobbyView extends FrameLayout implements FullBleed {
     Bitmap bitmap = homeArt.hero();
     Rect source = homeArt.heroBounds();
     if (bitmap == null || source == null) return;
-    RectF target = heroDrawBox(motion.pulse(3600, 0), parallax.x, parallax.y);
-    RectF shadow = heroShadowBox(target);
+    if (heroFrame.isEmpty()) return;
+    heroDrawBox(heroFrame, heroPose, motion.pulse(3600, 0), parallax.y);
+    heroShadowBox(heroFrame, heroContact);
+    RectF target = heroPose, shadow = heroContact;
     p.setShader(null);
     p.setStyle(Paint.Style.FILL);
     p.setColor(0x180f2430);
@@ -690,7 +701,14 @@ final class LobbyView extends FrameLayout implements FullBleed {
     c.drawOval(shadow, p);
     p.setShader(null);
     p.setAlpha(255);
+    int pose = c.save();
+    // Shear about the contact line: upper body leans at most 4dp, feet stay planted.
+    float lean = Math.max(-host.dp(4), Math.min(host.dp(4), parallax.x));
+    c.translate(target.centerX(), target.bottom);
+    c.skew(-lean / Math.max(1, target.height()), 0);
+    c.translate(-target.centerX(), -target.bottom);
     c.drawBitmap(bitmap, source, target, p);
+    c.restoreToCount(pose);
   }
 
   void loosePaper(Canvas c) {
@@ -857,7 +875,10 @@ final class LobbyView extends FrameLayout implements FullBleed {
   @Override
   protected void onDraw(Canvas c) {
     super.onDraw(c);
-    homeArt.background(c, getWidth(), getHeight());
+    boolean moving = SceneMotion.enabled(host) && host.motionResumed && motion.clock != null
+        && isShown() && getWindowVisibility() == View.VISIBLE;
+    if (!moving) parallax.close();
+    homeArt.background(c, getWidth(), getHeight(), motion.millis / 1000d, moving);
     character(c);
     String[] icons = {"explore", "draw", "team", "combine", "shop"};
     for (int i = 0; i < 5; i++) command(c, i, NAMES[i], icons[i], false);
@@ -866,7 +887,6 @@ final class LobbyView extends FrameLayout implements FullBleed {
     command(c, 12, "전투 편성", "team", false);
     command(c, 6, "출석·미션", "daily", false);
     command(c, 8, "설정", "settings", false);
-    command(c, 14, "정보", null, false);
     RectF profile = boxes[7];
     homeArt.surface(c, "ui/button-primary.png", profile);
     fit(c, image("icons/u-profile.png"), new RectF(profile.left + host.dp(10),
