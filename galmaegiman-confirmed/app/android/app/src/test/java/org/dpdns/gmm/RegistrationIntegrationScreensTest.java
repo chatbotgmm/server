@@ -219,37 +219,47 @@ public class RegistrationIntegrationScreensTest {
   }
 
   @Test
-  public void largeFontPvpKeepsSixPicturesAndNavigationInTheFixedScreen() {
+  public void largeFontTeamsKeepSixPicturesAndReadableInlineActions() {
     RuntimeEnvironment.setFontScale(1.3f);
-    try (ActivityController<MainActivity> controller = flow.start()) {
-      MainActivity host = controller.get();
-      FixtureApi api = prepare(host);
-      host.selectionMode = "pvp";
-      layout(host, 915, 412);
-      host.team();
-      layout(host, 915, 412);
-      for (String tag : new String[] {"team-open-collection", "team-open-items", "tutorial:team-save"}) {
-        Button action = host.root.findViewWithTag(tag);
-        assertNotNull(action);
-        NativeNoScrollReviewTest.assertFullyVisible(action, host.root);
-        assertTrue(action.getHeight() >= host.dp(48));
-        assertNotNull(action.getLayout());
-        assertTrue(action.getHeight() - action.getCompoundPaddingTop() - action.getCompoundPaddingBottom()
-            >= action.getLayout().getHeight());
-        for (int line = 0; line < action.getLineCount(); line++)
-          assertEquals(0, action.getLayout().getEllipsisCount(line));
-      }
-      ViewGroup grid = host.root.findViewWithTag("team-inline-candidates");
-      int count = 0;
-      for (View view : geometry.descendants(grid))
-        if (view instanceof RegistrationCardView.Artwork) {
-          artwork(view, RegistrationCardView.COMPACT);
-          NativeNoScrollReviewTest.assertFullyVisible(view, host.root);
-          assertTrue("큰 글자에서도 후보 그림에 40dp 이상 배정", view.getHeight() >= host.dp(40));
-          count++;
+    for (String mode : new String[] {"story", "pvp"}) {
+      try (ActivityController<MainActivity> controller = flow.start()) {
+        MainActivity host = controller.get();
+        FixtureApi api = prepare(host);
+        host.selectionMode = mode;
+        layout(host, 915, 412);
+        host.team();
+        layout(host, 915, 412);
+        List<String> tags = new ArrayList<>(List.of("team-remove", "tutorial:team-save"));
+        if (mode.equals("pvp")) tags.addAll(List.of("team-open-collection", "team-open-items"));
+        for (String tag : tags) {
+          Button action = host.root.findViewWithTag(tag);
+          assertNotNull(action);
+          NativeNoScrollReviewTest.assertFullyVisible(action, host.root);
+          assertTrue(action.getHeight() >= host.dp(48));
+          assertNotNull(action.getLayout());
+          assertTrue(action.getHeight() - action.getCompoundPaddingTop() - action.getCompoundPaddingBottom()
+              >= action.getLayout().getHeight());
+          for (int line = 0; line < action.getLineCount(); line++)
+            assertEquals(0, action.getLayout().getEllipsisCount(line));
         }
-      assertEquals(6, count);
-      assertTrue(api.writes.isEmpty());
+        Button remove = host.root.findViewWithTag("team-remove");
+        assertEquals("비우기", remove.getText().toString());
+        assertEquals("큰 글자에서도 비우기 세 글자는 한 줄", 1, remove.getLineCount());
+        assertTrue("실제 한 줄 글자 폭이 버튼 안쪽에 맞음",
+            Math.ceil(remove.getLayout().getLineWidth(0))
+                <= remove.getWidth() - remove.getCompoundPaddingLeft() - remove.getCompoundPaddingRight());
+        ViewGroup grid = host.root.findViewWithTag("team-inline-candidates");
+        int count = 0;
+        for (View view : geometry.descendants(grid))
+          if (view instanceof RegistrationCardView.Artwork) {
+            artwork(view, RegistrationCardView.COMPACT);
+            NativeNoScrollReviewTest.assertFullyVisible(view, host.root);
+            assertTrue("큰 글자에서도 후보 그림에 40dp 이상 배정", view.getHeight() >= host.dp(40));
+            count++;
+          }
+        assertEquals(6, count);
+        assertTrue(api.writes.isEmpty());
+      }
     }
   }
 
@@ -321,16 +331,31 @@ public class RegistrationIntegrationScreensTest {
           host.guide.findTag(host.root, "tutorial:draw-go"));
       Button high = host.root.findViewWithTag("draw-submit-HIGH");
       high.performClick();
-      TextView prompt = host.visibleDialog.findViewById(android.R.id.message);
+      android.app.AlertDialog confirmation = host.visibleDialog;
+      assertNotNull(confirmation);
+      // 새 Dialog의 ViewRoot traversal은 16ms 뒤 프레임에 예약된다. idle()만으로는
+      // 그 sync barrier 뒤의 확인 Handler를 실행하지 못하므로 실제 창 배치를 진행한다.
+      Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(32));
+      TextView prompt = confirmation.findViewById(android.R.id.message);
       assertTrue(prompt.getText().toString().contains("고급 2회"));
       assertTrue(prompt.getText().toString().contains("10장"));
       assertTrue("확정 전에는 추첨 요청 없음", api.writes.isEmpty());
-      host.visibleDialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick();
-      // AlertDialog 기본 버튼은 Handler로 확인 콜백을 보낸다. PAUSED looper에서 전달을 완료한다.
-      Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+      assertFalse("확인 전에 다른 요청으로 잠기지 않음", host.busy);
+      assertSame("실제 요청은 준비한 기록 API로 전달", api, host.api);
+      Button approve = confirmation.getButton(android.content.DialogInterface.BUTTON_POSITIVE);
+      assertTrue("확인 버튼은 실제 창에 붙어 있음", approve.isAttachedToWindow());
+      assertTrue(approve.isShown());
+      assertTrue(approve.isEnabled());
+      assertTrue(approve.getWidth() > 0 && approve.getHeight() >= host.dp(48));
+      assertTrue("실제 확인 버튼 클릭 처리", approve.performClick());
+      // 클릭 뒤 새 배치와 Handler 전달도 두 프레임 안에서 완료한다. API는 동기 기록한다.
+      Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(32));
+      assertFalse("확인 콜백 뒤 원래 확인창은 닫힘", confirmation.isShowing());
       assertEquals(List.of("draw"), api.writes);
       assertEquals("HIGH", api.submitted.get(0).getString("kind"));
       assertEquals(2, api.submitted.get(0).getInt("times"));
+      assertTrue("서버 결과를 임의 완료하지 않고 응답 대기", host.busy);
+      assertNull("확정 응답 전 획득 결과 없음", host.menus.lastDraw);
     }
   }
 

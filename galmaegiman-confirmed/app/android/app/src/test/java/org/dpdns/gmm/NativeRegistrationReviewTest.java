@@ -289,7 +289,14 @@ public class NativeRegistrationReviewTest {
       assertEquals("D1", host.menus.library.selectedCollectionId);
     } else if (page.startsWith("team-")) {
       action(host, "tutorial:team-save");
-      actions++;
+      action(host, "team-remove");
+      TextView remove = (TextView) tag(host, "team-remove");
+      assertEquals("비우기", remove.getText().toString());
+      assertEquals("Clear action must stay on one readable line", 1, remove.getLineCount());
+      assertTrue("Clear label fits inside its actual compound padding",
+          Math.ceil(remove.getLayout().getLineWidth(0))
+              <= remove.getWidth() - remove.getCompoundPaddingLeft() - remove.getCompoundPaddingRight());
+      actions += 2;
       boolean pvp = page.equals("team-pvp");
       assertEquals(pvp ? Arrays.asList("D1", "D2", "D3") : Arrays.asList("o1", "o2", "o3"), host.menus.teamDraft);
       for (int i = 0; i < 3; i++) {

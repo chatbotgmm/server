@@ -1059,6 +1059,7 @@ final class NativeMenus {
               TextView name = heading(unit.optString("name"), h.compact() ? 15 : 19);
               name.setGravity(Gravity.CENTER);
               name.setMaxLines(2);
+              name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_BALANCED);
               name.setPadding(h.dp(2), 0, h.dp(2), 0);
               card.addView(name);
               TextView meta =
@@ -1126,8 +1127,14 @@ final class NativeMenus {
             if (activeSlot[0] < teamDraft.size()) teamDraft.remove(activeSlot[0]);
             render[0].run();
           });
+          remove.setTag("team-remove");
+          remove.setSingleLine(true);
           remove.setEnabled(activeSlot[0] < teamDraft.size());
-          paging.addView(remove, new LinearLayout.LayoutParams(h.dp(72), h.dp(48)));
+          // 큰 글자에서도 세 글자 전체와 버튼 안쪽 여백을 실제 폭으로 확보한다.
+          int removeWidth = Math.max(h.dp(72),
+              (int) Math.ceil(remove.getPaint().measureText(remove.getText().toString()))
+                  + remove.getCompoundPaddingLeft() + remove.getCompoundPaddingRight() + h.dp(4));
+          paging.addView(remove, new LinearLayout.LayoutParams(removeWidth, h.dp(48)));
           summary.addView(paging);
           LinearLayout grid = k.column();
           grid.setTag("team-inline-candidates");
