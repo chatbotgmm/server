@@ -44,7 +44,11 @@ echo "sdk.dir=/안드로이드/SDK/경로" > local.properties   # 저장소에 �
 ## 4. 80판 위에 올리는 업데이트 APK의 조건(아직 만들지 않음)
 - 패키지: `org.dpdns.gmm.native.revised`.
 - 서명: 기존 정식 키. 저장소 `apk` 브랜치 `native.json`에 남은 마지막 기록(78판)의 인증서 SHA-256은 `097fb35527efeb6ab86b5d52908a634ad8cf0e556b24f5f2de918b91a4754897`. 80판도 같은 키인지는 기기에서 확인해야 한다.
-- versionCode: 설치된 80판보다 커야 한다. 지금 소스는 78이다. **79·80판 기록은 저장소에 없다.** 기기의 실제 값을 먼저 확인한다.
+- versionCode: 설치된 앱보다 커야 한다. 지금 소스는 78이다. **79·80판 기록은 저장소에 없다.**
+  - 2026-10-19에 확인한 사실: 78판 공식 기록(`apk` 브랜치)과 그 뒤의 소스(`manual/native79-parchment`, `manual/augment-ui-v1`, r1) 모두 `versionCode 78 / versionName 2.2.4-native`이다.
+  - 사용자 기기의 설치 앱도 `2.2.4-native`로 보고됐다. 그래서 버전 이름만으로는 어느 소스에서 빌드됐는지 구별할 수 없다.
+  - 업데이트 빌드는 79 이상으로 올리고, 기기의 versionCode를 확인한 뒤 정한다.
+- 미리보기판 버전 이름에는 커밋 앞 7자리가 붙는다(예: `2.2.4-native-r1preview-d1b631a`). 앱 설정의 「Android …」 표시로 출처를 확인할 수 있다.
 - 키·암호는 저장소나 채팅에 넣지 않는다. `GMM_ANDROID_KEYSTORE`, `GMM_ANDROID_STORE_PASSWORD`, `GMM_ANDROID_KEY_ALIAS`, `GMM_ANDROID_KEY_PASSWORD`를 GitHub Secrets로 받아 release 빌드하는 워크플로를 따로 만든다(승인 후).
 
 ## 5. 화면 검수(서버 없이)

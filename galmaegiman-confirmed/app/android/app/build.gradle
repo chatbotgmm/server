@@ -88,7 +88,8 @@ android {
         preview {
             initWith debug
             applicationIdSuffix ".r1preview"
-            versionNameSuffix "-r1preview"
+            // 설치된 미리보기가 어느 커밋에서 나왔는지 앱 설정의 「Android 버전」에서 바로 보이게 한다.
+            versionNameSuffix "-r1preview-" + (System.getenv('GITHUB_SHA')?.take(7) ?: 'local')
             matchingFallbacks = ['debug']
             manifestPlaceholders = [authScheme: "gmmr1preview"]
             buildConfigField "boolean", "KAKAO_LOGIN", "false"
