@@ -54,8 +54,7 @@ final class JournalTheme {
     p.setStyle(Paint.Style.FILL);
   }
   static void drawPanel(Canvas c, RectF b, float d, int fill, boolean clipped) {
-    // Preserve the loaded paper silhouette; the quiet center wash is handled by its renderer.
-    if (fill == PAPER && JournalParchment.drawPanel(c, b, d)) return;
+    // 10-18 앱 배치 설계: 정보 판은 찢긴 양피지 대신 둥근 크림 면 + 얇은 테두리로 통일한다.
     Paint p = brush();
     surface(c, b, d, fill, fill == SELECTED ? BRASS : LINE, fill == SELECTED ? 2 : 1, 1, p);
     if (clipped && b.width() > 80 * d) {
@@ -72,13 +71,7 @@ final class JournalTheme {
     Paint p = brush();
     p.setColorFilter(paint.getColorFilter());
     float d = Math.max(.5f, radius / 16f);
-    if (fill == PAPER) {
-      int save = c.save();
-      if (paint.getAlpha() != 255 || paint.getColorFilter() != null) c.saveLayer(b, paint);
-      boolean drawn = JournalParchment.drawButton(c, b, d);
-      c.restoreToCount(save);
-      if (drawn) return;
-    }
+    // 10-18 앱 배치 설계: 보조 버튼도 찢긴 양피지 대신 둥근 크림 면 + 얇은 테두리(주 버튼은 남색).
     surface(c, b, d, fill, fill == PRIMARY || fill == SELECTED ? BRASS : LINE,
         fill == SELECTED ? 2 : 1, Math.min(1.5f, depth / d), p);
   }

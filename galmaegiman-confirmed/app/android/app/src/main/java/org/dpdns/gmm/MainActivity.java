@@ -504,19 +504,27 @@ public class MainActivity extends AppCompatActivity {
     page.setOrientation(LinearLayout.VERTICAL);
     page.setPadding(dp(compact() ? 12 : 16), dp(6), dp(compact() ? 12 : 16), dp(6));
     root.addView(page, new FrameLayout.LayoutParams(-1, -1));
+    // 10-18 앱 배치 설계: 남색 머리줄에 「‹ 제목」, 오른쪽에 재화(맥락) 표시.
     LinearLayout head = new LinearLayout(this);
     head.setGravity(Gravity.CENTER_VERTICAL);
-    head.setBackground(new GamePaperDrawable(this));
-    head.setPadding(dp(8), dp(3), dp(8), dp(5));
-    Button back =
-        NativeTutorialController.anchor(
-            new MenuKit(this).painted("btn-back", "‹ 뒤로", this::back), "back");
-    head.addView(back, new LinearLayout.LayoutParams(dp(100), dp(48)));
-    title = text(name, 24);
+    android.graphics.drawable.GradientDrawable bar = new android.graphics.drawable.GradientDrawable();
+    bar.setColor(JournalTheme.PRIMARY);
+    bar.setCornerRadius(dp(10));
+    head.setBackground(bar);
+    head.setPadding(dp(4), dp(2), dp(8), dp(2));
+    Button back = NativeTutorialController.anchor(button("‹", this::back), "back");
+    back.setBackgroundColor(Color.TRANSPARENT);
+    back.setTextColor(Color.WHITE);
+    back.setTextSize(26);
+    back.setPadding(0, 0, 0, dp(3));
+    back.setContentDescription("뒤로");
+    head.addView(back, new LinearLayout.LayoutParams(dp(48), dp(48)));
+    title = text(name, 22);
     title.setTypeface(headline);
     title.setSingleLine(true);
     title.setEllipsize(android.text.TextUtils.TruncateAt.END);
-    title.setTextColor(JournalTheme.INK);
+    title.setTextColor(Color.WHITE);
+    title.setGravity(Gravity.CENTER_VERTICAL);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
     MenuKit kit = new MenuKit(this);
     for (String kind : mapPage ? new String[0] : new String[] {"snack", "peanut", "credits"}) {
@@ -533,9 +541,16 @@ public class MainActivity extends AppCompatActivity {
       money.setContentDescription(
           (kind.equals("snack") ? "새우 " : kind.equals("peanut") ? "땅콩 " : "뽑기권 ")
               + String.format(java.util.Locale.KOREA, "%,d", me().optInt(kind)));
-      money.setBackground(new GamePaperDrawable(this));
-      money.setPadding(dp(5), 0, dp(5), 0);
-      head.addView(money, new LinearLayout.LayoutParams(dp(compact() ? 90 : 102), dp(48)));
+      android.graphics.drawable.GradientDrawable pill = new android.graphics.drawable.GradientDrawable();
+      pill.setColor(0x26ffffff);
+      pill.setCornerRadius(dp(18));
+      // 누르면 상점으로 가는 버튼이라 터치 높이는 48dp, 보이는 알약만 위아래 4dp 들인다.
+      money.setBackground(new android.graphics.drawable.InsetDrawable(pill, 0, dp(4), 0, dp(4)));
+      money.setTextColor(Color.WHITE);
+      money.setPadding(dp(6), 0, dp(8), 0);
+      LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(dp(compact() ? 90 : 102), dp(48));
+      slot.leftMargin = dp(4);
+      head.addView(money, slot);
     }
     page.addView(head);
     body = new LinearLayout(this);

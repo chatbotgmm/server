@@ -60,6 +60,51 @@ final class MenuKit {
     return v;
   }
 
+  /** 10-18 앱 배치 설계의 왼쪽 장소 그림(시장·항해실·모집소 등). 둥근 모서리로 잘라 채운다. */
+  View place(String scene) {
+    return place(scene, .5f);
+  }
+
+  /** focusX: 넓은 장소 그림을 좁은 칸에 채울 때 보여 줄 가로 위치(0=왼쪽, 1=오른쪽). */
+  View place(String scene, float focusX) {
+    ImageView v =
+        new ImageView(h) {
+          @Override
+          protected void onSizeChanged(int w, int ht, int ow, int oh) {
+            super.onSizeChanged(w, ht, ow, oh);
+            android.graphics.drawable.Drawable d = getDrawable();
+            if (d == null || w == 0 || ht == 0) return;
+            float bw = d.getIntrinsicWidth(), bh = d.getIntrinsicHeight();
+            float scale = Math.max(w / bw, ht / bh);
+            android.graphics.Matrix m = new android.graphics.Matrix();
+            m.setScale(scale, scale);
+            m.postTranslate((w - bw * scale) * focusX, (ht - bh * scale) / 2f);
+            setImageMatrix(m);
+          }
+        };
+    v.setScaleType(ImageView.ScaleType.MATRIX);
+    v.setImageBitmap(h.art.asset("journal/" + scene + ".png"));
+    v.setClipToOutline(true);
+    android.graphics.drawable.GradientDrawable shape = new android.graphics.drawable.GradientDrawable();
+    shape.setCornerRadius(h.dp(10));
+    shape.setColor(JournalTheme.LINE);
+    v.setBackground(shape);
+    v.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    v.setTag("place-" + scene);
+    return v;
+  }
+
+  /** 오른쪽 크림 정보 판(설계도의 「선택한 …」 영역). */
+  LinearLayout infoPanel() {
+    LinearLayout v = column();
+    v.setPadding(h.dp(12), h.dp(10), h.dp(12), h.dp(10));
+    android.graphics.drawable.GradientDrawable shape = new android.graphics.drawable.GradientDrawable();
+    shape.setCornerRadius(h.dp(10));
+    shape.setColor(0xfffff8e8);
+    v.setBackground(shape);
+    return v;
+  }
+
   ImageView image(String path, int width, int height) {
     ImageView v = new ImageView(h);
     v.setScaleType(ImageView.ScaleType.FIT_CENTER);
