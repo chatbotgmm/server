@@ -78,6 +78,9 @@ final class NativeExtras {
     line.addView(previous, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
     TextView number = heading((index + 1) + " / " + Math.max(1, count), 14);
     number.setGravity(Gravity.CENTER); number.setPadding(0, 0, 0, 0);
+    number.setTag(tag + "-number");
+    number.setTextColor(JournalTheme.INK);
+    number.setBackground(new GamePaperDrawable(h));
     line.addView(number, new LinearLayout.LayoutParams(0, h.dp(48), 1));
     Button next = k.action(null, "›", () -> change.accept(index + 1));
     next.setTag(tag + "-next"); next.setContentDescription("다음 페이지");
@@ -135,7 +138,9 @@ final class NativeExtras {
         }
         pageBar(board, "daily-missions", page[0], count, value -> { page[0] = value; paint[0].run(); });
         TextView reset = k.note("달성 시 자동 지급 · 한국 시간 밤 12시 초기화");
-        reset.setTextSize(12); board.addView(reset);
+        reset.setTextSize(12); reset.setTag("daily-reset-note");
+        reset.setTextColor(JournalTheme.INK); reset.setBackground(new GamePaperDrawable(h));
+        board.addView(reset);
       };
       paint[0].run();
     });

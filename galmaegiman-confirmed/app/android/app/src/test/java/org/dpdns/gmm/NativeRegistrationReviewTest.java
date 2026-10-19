@@ -205,7 +205,8 @@ public class NativeRegistrationReviewTest {
           try {
             seal.draw(new Canvas(rendered));
             assertFalse("The production envelope was actually drawn", seal.target.isEmpty());
-            assertTrue(new RectF(0, 0, seal.getWidth(), seal.getHeight()).contains(seal.target));
+            assertTrue("Envelope contain target " + seal.target + " inside " + seal.getWidth() + "x" + seal.getHeight(),
+                new RectF(0, 0, seal.getWidth(), seal.getHeight()).contains(seal.target));
             Set<Integer> colors = new HashSet<>();
             for (int y = 0; y < rendered.getHeight(); y++)
               for (int x = 0; x < rendered.getWidth(); x++) {
@@ -316,8 +317,9 @@ public class NativeRegistrationReviewTest {
       View quantity = tag(host, "draw-quantity"), total = tag(host, "draw-total"), submit = tag(host, "draw-submit");
       visible(host, quantity); visible(host, total); visible(host, tag(host, "draw-pity"));
       assertSame(quantity.getParent(), total.getParent()); assertSame(total.getParent(), submit.getParent());
-      assertTrue(quantity.getRight() <= total.getLeft()); assertTrue(total.getRight() <= submit.getLeft());
-      assertTrue(((TextView) total).getText().toString().contains("1회\n총 지원서 "));
+      assertTrue("Quantity precedes total in the shared rail", quantity.getRight() <= total.getLeft());
+      assertTrue("Total precedes spend action in the shared rail", total.getRight() <= submit.getLeft());
+      assertTrue("Initial total reports one recruitment and its exact cost", ((TextView) total).getText().toString().contains("1회 · 총 지원서 "));
       assertEquals("모집하기", ((TextView) submit).getText().toString());
       assertTrue(submit.getContentDescription().toString().contains("1회"));
       int spendActions = 0;

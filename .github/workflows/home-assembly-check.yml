@@ -73,6 +73,9 @@ jobs:
           --repo "${{ github.workspace }}"
           --output app/build/phase2-ci/assets.json
 
+      - name: Test home-tip capture validation checks
+        run: python3 -m unittest discover -s ci -p test_verify_home_tip_ci.py -v
+
       # The project excludes NativeRenderReviewTest unless a review token is supplied.
       # Do not supply that token: R1 uses local fixtures and bundled artwork instead.
       # Loopback prevents missing art/API fallbacks from reaching the production service.
@@ -114,6 +117,7 @@ jobs:
           --require-unskipped-suite org.dpdns.gmm.NativeEconomyThemeContractTest
           --require-unskipped-suite org.dpdns.gmm.NativeExtrasThemeReviewTest
           --require-unskipped-suite org.dpdns.gmm.NativeExtrasThemeStateTest
+          --require-unskipped-suite org.dpdns.gmm.NativeHomeTipLayoutTest
           --output app/build/registration-ci/full-suite.json
       # Upload before the targeted rerun overwrites testDebugUnitTest reports.
       - name: Save full native unit-test reports
@@ -198,6 +202,30 @@ jobs:
         with:
           name: home-assembly-phase2-validation-${{ github.sha }}
           path: galmaegiman-confirmed/app/android/app/build/phase2-ci/
+          if-no-files-found: warn
+          retention-days: 14
+
+      # NativeHomeTipLayoutTest runs only in the full suite. Preserve its root-level
+      # evidence and exact JUnit report before any targeted task replaces reports.
+      - name: Verify 20 native home-tip captures and all 160 tip measurements
+        if: ${{ !cancelled() }}
+        id: home_tip_gate
+        run: >
+          python3 ci/verify_home_tip_ci.py
+          --contract ci/home-tip-capture-contract.json
+          --captures app/build/native-review
+          --test-results app/build/test-results/testDebugUnitTest
+          --output app/build/home-tip-ci/validation.json
+      - name: Save native home-tip images, measurements, tests and gate report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-home-tip-evidence-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/native-review/home-advice*.png
+            galmaegiman-confirmed/app/android/app/build/native-review/home-advice*.json
+            galmaegiman-confirmed/app/android/app/build/test-results/testDebugUnitTest/TEST-org.dpdns.gmm.NativeHomeTipLayoutTest.xml
+            galmaegiman-confirmed/app/android/app/build/home-tip-ci/
           if-no-files-found: warn
           retention-days: 14
 
@@ -342,7 +370,8 @@ jobs:
           && steps.phase2_realtime.outcome == 'success'
           && steps.phase2_economy.outcome == 'success'
           && steps.phase2_extras.outcome == 'success'
-          && steps.phase2_assets.outcome == 'success' && steps.phase2_coverage.outcome == 'success' && steps.phase2_ready.outcome == 'success' }}
+          && steps.phase2_assets.outcome == 'success' && steps.phase2_coverage.outcome == 'success' && steps.phase2_ready.outcome == 'success'
+          && steps.home_tip_gate.outcome == 'success' }}
         id: assemble
         run: >
           bash ./gradlew :app:assembleDebug :app:assemblePreview
@@ -442,6 +471,7 @@ jobs:
           - 등록증 캡처: 모집·도감·스토리 편성·PvP 편성·결과를 세 화면 크기와 915×412 큰 글자 1.3배로 확인합니다. 직접 시각검수·실기기 검수 완료를 뜻하지 않습니다.
           - 공통 테마 추가검사: 설정 4탭·프로필·모드·상점·탐험 32개 네이티브 캡처/실측과 상태 테스트, 배경8개·UI6개·기존 홈인물/아이콘11개 SHA 검사를 통과했습니다. 대표 화면 검사이며 전앱 모든 페이지/상태 검수 완료를 뜻하지 않습니다.
           - 2차 화면은 전체 suite에서 한 번 생성한 실제 View 캡처와 상태 테스트를 검증했습니다. 모듈별 수량·시간·미검증 상태는 같은 실행의 phase2-validation 보고서에 있으며 전앱 모든 상태 완료를 뜻하지 않습니다.
+          - 홈 안내 말풍선: 전체 suite에서 한 번 생성한 20개 네이티브 PNG와 160개 안내 실측을 추가 검증했습니다. 글자 잘림·캐릭터/버튼 겹침·일반 안내 스크롤/분할을 검사하며 직접 PNG 검수나 실제 기기 적합성 승인을 뜻하지 않습니다.
           - 패키지 \`org.dpdns.gmm.native.revised.r1preview\`로 기존 정식 앱 옆에 따로 설치됩니다. 정식 앱 업데이트가 아닙니다.
           - 디버그 서명은 실행마다 달라질 수 있습니다. 설치 충돌 시 미리보기 앱만 제거한 뒤 설치하세요. 미리보기 앱의 로컬 데이터는 삭제됩니다.
           - APK는 기존 운영 서버 주소를 사용합니다. 이 작업은 서버·DB에 배포하지 않습니다.

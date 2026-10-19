@@ -41,13 +41,19 @@ final class NativeEconomy {
     m.fetch("draw", r -> {
       LinearLayout counter = economyBody("recruitment-counter");
       LinearLayout banner = k.row(), words = k.column();
+      banner.setTag("draw-claim-rail");
       banner.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
-      banner.setPadding(h.dp(8), 0, h.dp(8), 0);
+      banner.setPadding(h.dp(12), h.dp(6), h.dp(12), h.dp(6));
+      words.setOrientation(LinearLayout.HORIZONTAL);
+      words.setGravity(Gravity.CENTER_VERTICAL);
       TextView credits = h.text("지원서 " + (r.optBoolean("unlimited") ? "무제한" : r.optInt("credits") + "장"), 15);
       TextView wait = h.text("", 13);
+      credits.setTag("draw-credits-label");
+      wait.setTag("draw-claim-status");
       credits.setPadding(h.dp(6), 0, h.dp(6), 0);
       wait.setPadding(h.dp(6), 0, h.dp(6), 0);
-      words.addView(credits); words.addView(wait);
+      words.addView(credits);
+      words.addView(wait, new LinearLayout.LayoutParams(0, -2, 1));
       banner.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
       Button claim = k.primary("u-ticket", "지원서 받기", this::claimTickets);
       claim.setTag("draw-claim");
@@ -64,7 +70,7 @@ final class NativeEconomy {
       if (m.lastDraw != null)
         banner.addView(k.action(null, "지난 결과", () -> reveal(m.lastDraw, () -> h.load("draw"), true)),
             new LinearLayout.LayoutParams(h.dp(100), h.dp(48)));
-      counter.addView(banner, new LinearLayout.LayoutParams(-1, h.dp(48)));
+      counter.addView(banner, new LinearLayout.LayoutParams(-1, h.dp(60)));
 
       LinearLayout stations = k.row();
       stations.setTag("recruitment-stations");
@@ -74,7 +80,7 @@ final class NativeEconomy {
       LinearLayout rail = k.column();
       rail.setTag("draw-purchase-rail");
       rail.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
-      rail.setPadding(h.dp(8), h.dp(3), h.dp(8), h.dp(4));
+      rail.setPadding(h.dp(12), h.dp(12), h.dp(12), h.dp(10));
       counter.addView(rail, new LinearLayout.LayoutParams(-1, -2));
       JSONArray offered = h.list(r, "gachas");
       JSONObject[] selected = {RecruitmentProbabilityView.find(offered, "LOW")};
@@ -114,7 +120,7 @@ final class NativeEconomy {
         NativeTutorialController.anchorPreservingTag(go, "draw-go");
         k.compactQuantity(quantity, limit, n -> {
           amount[0] = n;
-          total.setText(recruitmentLabel(g) + " " + n + "회\n총 지원서 " + cost * n + "장");
+          total.setText(n + "회 · 총 지원서 " + cost * n + "장");
           go.setContentDescription(recruitmentLabel(g) + " · 모집하기 · " + n + "회 · 지원서 " + cost * n + "장");
         });
         quantityLimit(quantity, limit);
@@ -138,7 +144,7 @@ final class NativeEconomy {
         LinearLayout station = k.column();
         station.setTag("draw-card-" + kind);
         station.setGravity(Gravity.CENTER);
-        station.setPadding(h.dp(8), h.dp(5), h.dp(8), h.dp(5));
+        station.setPadding(h.dp(8), 0, h.dp(8), 0);
         TextView name = h.text(recruitmentLabel(g), 18);
         name.setTypeface(h.headline);
         name.setGravity(Gravity.CENTER);
@@ -205,7 +211,8 @@ final class NativeEconomy {
       super.onDraw(canvas);
       if (atlas == null || atlas.isRecycled()) return;
       float scale = Math.min(getWidth() / (float) source.width(), getHeight() / (float) source.height());
-      float width = source.width() * scale, height = source.height() * scale;
+      float width = Math.min(getWidth(), source.width() * scale);
+      float height = Math.min(getHeight(), source.height() * scale);
       target.set((getWidth() - width) / 2, (getHeight() - height) / 2,
           (getWidth() + width) / 2, (getHeight() + height) / 2);
       canvas.drawBitmap(atlas, source, target, paint);
@@ -913,26 +920,34 @@ final class NativeEconomy {
                   }
                   grid.addView(line, new LinearLayout.LayoutParams(-1, -2));
                 }
-                panel.addView(grid, new LinearLayout.LayoutParams(-1, 0, 1));
+                LinearLayout shelf = k.row();
+                shelf.setBaselineAligned(false);
+                shelf.addView(grid, new LinearLayout.LayoutParams(0, -1, 1));
                 if (pages > 1) {
-                  LinearLayout pager = k.row();
+                  LinearLayout pager = k.column();
+                  pager.setTag("shop-inline-pages");
                   pager.setGravity(Gravity.CENTER);
-                  for (int p = 0; p < pages; p++) {
-                    int target = p;
-                    Button dot =
-                        k.action(
-                            null,
-                            (p + 1) + "",
-                            () -> {
-                              shopFocus = offers.get(target * perPage).optString("key");
-                              paint[0].run();
-                            });
-                    dot.setSelected(p == page);
-                    dot.setContentDescription("상품 " + (p + 1) + "쪽");
-                    pager.addView(dot, new LinearLayout.LayoutParams(h.dp(56), h.dp(48)));
-                  }
-                  panel.addView(pager);
+                  Button previous = k.action(null, "‹", () -> {
+                    shopFocus = offers.get((page - 1) * perPage).optString("key");
+                    paint[0].run();
+                  });
+                  previous.setEnabled(page > 0);
+                  previous.setContentDescription("이전 상품 쪽");
+                  pager.addView(previous, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+                  TextView count = caption((page + 1) + "/" + pages);
+                  count.setGravity(Gravity.CENTER);
+                  count.setPadding(0, h.dp(4), 0, h.dp(4));
+                  pager.addView(count, new LinearLayout.LayoutParams(-1, -2));
+                  Button next = k.action(null, "›", () -> {
+                    shopFocus = offers.get((page + 1) * perPage).optString("key");
+                    paint[0].run();
+                  });
+                  next.setEnabled(page + 1 < pages);
+                  next.setContentDescription("다음 상품 쪽");
+                  pager.addView(next, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+                  shelf.addView(pager, new LinearLayout.LayoutParams(h.dp(52), -1));
                 }
+                panel.addView(shelf, new LinearLayout.LayoutParams(-1, 0, 1));
                 panel.addView(shopBuyBar(selected));
               };          paint[0].run();
         });
@@ -1384,19 +1399,23 @@ final class NativeEconomy {
     LinearLayout tile = k.paper();
     tile.setPadding(h.dp(4), h.dp(4), h.dp(4), h.dp(4));
     tile.setGravity(Gravity.CENTER);
+    if (compact()) tile.setOrientation(LinearLayout.HORIZONTAL);
     int art = compact() ? 44 : 112;
     tile.addView(k.image("/thumbs/" + unit.optString("id") + ".jpg", art, art));
+    LinearLayout copy = k.column();
+    copy.setGravity(Gravity.CENTER);
     TextView name = h.text(unit.optString("name"), compact() ? 13 : 16);
-    name.setPadding(0, 0, 0, 0);
+    name.setPadding(h.dp(3), 0, h.dp(3), 0);
     name.setMaxLines(2);
     namePreview(name, unit.optString("name"));
     name.setGravity(Gravity.CENTER);
-    tile.addView(name);
+    copy.addView(name);
     TextView summary = k.note(detail);
-    summary.setPadding(0, 0, 0, 0);
+    summary.setPadding(h.dp(3), 0, h.dp(3), 0);
     summary.setTextSize(h.uiText(compact() ? 12 : 14));
     summary.setGravity(Gravity.CENTER);
-    tile.addView(summary);
+    copy.addView(summary);
+    tile.addView(copy, new LinearLayout.LayoutParams(compact() ? 0 : -1, -2, compact() ? 1 : 0));
     tile.setMinimumHeight(h.dp(96));
     return tile;
   }

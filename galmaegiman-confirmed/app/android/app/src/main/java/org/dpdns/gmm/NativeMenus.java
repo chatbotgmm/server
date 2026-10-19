@@ -154,7 +154,8 @@ final class NativeMenus {
     rank.setTag("modes-rank-status");
     rank.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAV));
     rank.setGravity(Gravity.CENTER_VERTICAL);
-    pvp.addView(rank, new LinearLayout.LayoutParams(-1, h.dp(52)));
+    rank.setMinHeight(h.dp(52));
+    pvp.addView(rank, new LinearLayout.LayoutParams(-1, -2));
     pvp.addView(new View(h), new LinearLayout.LayoutParams(-1, 0, 1));
     addModeTeamSummary(pvp, true);
     LinearLayout links = k.row();
@@ -498,8 +499,9 @@ final class NativeMenus {
     handle.setTag(NativeTeamReorder.HANDLE_TAG);
     handle.setFocusable(true);
     handle.setClickable(true);
+    handle.setMinHeight(h.dp(48));
     handle.setContentDescription(unit.optString("name") + " 출전 순서. 위아래로 끌어 변경, 누르면 순서 메뉴");
-    card.addView(handle, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+    card.addView(handle, new LinearLayout.LayoutParams(h.dp(48), -2));
     card.setContentDescription(
         (order == 0 ? "선봉 " : (order + 1) + "번 ")
             + unit.optString("name")

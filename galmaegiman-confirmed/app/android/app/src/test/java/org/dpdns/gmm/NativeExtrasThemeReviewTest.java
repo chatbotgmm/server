@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Looper;
@@ -126,12 +127,17 @@ public class NativeExtrasThemeReviewTest {
   }
 
   JSONObject inspect(MainActivity host, View root, String page, FixtureApi api) throws Exception {
-    int bounds=0,actions=0,text=0,art=0; ArrayList<View> touch=new ArrayList<>();
+    int bounds=0,actions=0,text=0,art=0,contrastLabels=0; ArrayList<View> touch=new ArrayList<>();
     for (View view:geometry.descendants(root)) {
       if (!view.isShown()) continue;
       boolean scroll=geometry.hasScrollingAncestor(view,root);
       if (view instanceof TextView && ((TextView)view).length()>0) {
         geometry.readable((TextView)view); text++;
+        String tag=String.valueOf(view.getTag());
+        if(tag.equals("daily-reset-note") || tag.equals("daily-missions-number")
+            || tag.equals("rank-table-number") || tag.equals("practice-choices-number")) {
+          readableOnArtwork((TextView)view); contrastLabels++;
+        }
         if (!scroll) { assertEquals("Visible text bounds",geometry.bounds(view,root),geometry.visibleIntersection(view,root)); bounds++; }
       }
       if (view instanceof Button || view instanceof SeekBar || view instanceof RegistrationCardView
@@ -170,13 +176,41 @@ public class NativeExtrasThemeReviewTest {
       assertEquals(page.equals("attendance-ready"),attend.isEnabled());
       assertNotNull(host.root.findViewWithTag("daily-missions-next"));
     }
+    int expectedContrast=page.startsWith("attendance")?2:page.startsWith("rank")||page.equals("practice-picker")?1:0;
+    assertEquals("Every caption over scene art has explicit readable ink and backing",expectedContrast,contrastLabels);
     assertTrue(bounds>0 && actions>0 && text>0); assertEquals(0,api.writes);
     Bitmap scene=ThemeArt.of(host).image(scene(page)); assertNotNull(scene);
     assertTrue(scene.getWidth()>=1800 && scene.getHeight()>=800);
     return MainActivity.obj("checkedBounds",bounds,"actions",actions,"text",text,"checkedArt",art,
-        "sceneAsset",scene(page),"sceneWidth",scene.getWidth(),"sceneHeight",scene.getHeight(),
+        "contrastLabels",contrastLabels,"sceneAsset",scene(page),"sceneWidth",scene.getWidth(),"sceneHeight",scene.getHeight(),
         "apiWrites",api.writes,"apiReads",api.reads,"actualNativeViews",true,
         "rootKind",root==host.root?"page":"dialog");
+  }
+
+  void readableOnArtwork(TextView label) {
+    assertNotNull("Scene caption has its own reading surface: "+label.getTag(),label.getBackground());
+    assertEquals("Explicit dark caption ink",JournalTheme.INK,label.getCurrentTextColor());
+    assertEquals("Caption itself is opaque",1f,label.getAlpha(),0f);
+    Rect ink=new Rect(); String value=label.getText().toString();
+    label.getPaint().getTextBounds(value,0,value.length(),ink);
+    assertTrue("Caption ink clears top padding: "+value,label.getBaseline()+ink.top>=label.getCompoundPaddingTop());
+    assertTrue("Caption ink clears bottom padding: "+value,label.getBaseline()+ink.bottom<=label.getHeight()-label.getCompoundPaddingBottom());
+    Bitmap surface=Bitmap.createBitmap(label.getWidth(),label.getHeight(),Bitmap.Config.ARGB_8888);
+    try {
+      label.getBackground().draw(new Canvas(surface));
+      for(int x:new int[]{label.getWidth()/4,label.getWidth()/2,label.getWidth()*3/4}) {
+        int paper=surface.getPixel(x,label.getHeight()/2);
+        assertEquals("Artwork cannot show through caption reading area",255,Color.alpha(paper));
+        double light=luminance(paper),dark=luminance(label.getCurrentTextColor());
+        assertTrue("Caption contrast at least 4.5:1 against actual drawn surface",(Math.max(light,dark)+.05)/(Math.min(light,dark)+.05)>=4.5);
+      }
+    } finally { surface.recycle(); }
+  }
+
+  double luminance(int color) {
+    double[] channel={Color.red(color)/255d,Color.green(color)/255d,Color.blue(color)/255d};
+    for(int i=0;i<channel.length;i++) channel[i]=channel[i]<=.04045?channel[i]/12.92:Math.pow((channel[i]+.055)/1.055,2.4);
+    return channel[0]*.2126+channel[1]*.7152+channel[2]*.0722;
   }
 
   boolean isAncestor(View parent,View child) {

@@ -365,7 +365,7 @@ public class RegistrationIntegrationScreensTest {
         assertSame(quantity.getParent(), submit.getParent());
         assertSame(quantity.getParent(), total.getParent());
         button(quantity, "＋").performClick();
-        assertTrue(total.getText().toString().contains("2회\n총 지원서 "));
+        assertTrue(total.getText().toString().contains("2회 · 총 지원서 "));
         assertEquals("모집하기", submit.getText().toString());
         assertTrue(submit.getContentDescription().toString().contains("2회"));
         assertTrue(quantity.getRight() <= total.getLeft());

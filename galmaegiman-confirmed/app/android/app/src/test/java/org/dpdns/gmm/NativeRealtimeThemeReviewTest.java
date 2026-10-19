@@ -37,7 +37,7 @@ public class NativeRealtimeThemeReviewTest {
   final NativeRealtimeThemeStateTest fixture = new NativeRealtimeThemeStateTest();
   final NativeRenderReviewTest review = new NativeRenderReviewTest();
   final NativeDialogLayoutReviewTest geometry = new NativeDialogLayoutReviewTest();
-  final JSONObject findings = new JSONObject(), metrics = new JSONObject();
+  final JSONObject findings = new JSONObject(), metrics = new JSONObject(), layoutDiagnostics = new JSONObject();
   static final long ASSET_TIMEOUT_MS = 10000, ASSET_WAIT_BUDGET_MS = 120000;
   long assetWaitMillis;
 
@@ -46,20 +46,52 @@ public class NativeRealtimeThemeReviewTest {
   }
   @After public void resetScale() { RuntimeEnvironment.setFontScale(1); }
 
-  long awaitAssets(MainActivity h) throws InterruptedException {
-    long started = System.nanoTime();
+  long awaitAssets(MainActivity h) throws Exception {
+    long started = System.nanoTime(), advancedMillis = 0;
     try {
       while (true) {
-        // Drain only callbacks that are due now. Asset decoding must not consume
-        // simulated battle-deadline seconds or add a fixed sleep to every fixture.
-        Shadows.shadowOf(Looper.getMainLooper()).idle();
-        if (h.art.idle()) return (System.nanoTime() - started) / 1000000L;
+        // A ViewRoot traversal sync barrier can hold NativeArt's ordinary Handler
+        // callbacks until the next Choreographer frame. idle() alone cannot release it.
+        // Pace virtual frames by wall waiting time: a tight decoder poll must never
+        // burn through the server's 30-second input phase.
         long elapsed = (System.nanoTime() - started) / 1000000L;
-        assertTrue("Bundled asset wait exceeded 10 seconds", elapsed < ASSET_TIMEOUT_MS);
-        assertTrue("Combined asset-wait budget exceeded two minutes", assetWaitMillis + elapsed < ASSET_WAIT_BUDGET_MS);
+        if (advancedMillis <= elapsed) {
+          Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(16));
+          advancedMillis += 16;
+        } else Shadows.shadowOf(Looper.getMainLooper()).idle();
+        if (h.art.idle()) {
+          Shadows.shadowOf(Looper.getMainLooper()).idle();
+          return (System.nanoTime() - started) / 1000000L;
+        }
+        assertTrue("Bundled asset wait exceeded 10 seconds; pending=" + pendingAssets(h), elapsed < ASSET_TIMEOUT_MS);
+        assertTrue("Combined asset-wait budget exceeded two minutes; pending=" + pendingAssets(h),
+            assetWaitMillis + elapsed < ASSET_WAIT_BUDGET_MS);
         Thread.sleep(2);
       }
     } finally { assetWaitMillis += (System.nanoTime() - started) / 1000000L; }
+  }
+
+  String pendingAssets(MainActivity h) throws Exception {
+    java.lang.reflect.Field field = NativeArt.class.getDeclaredField("loading");
+    field.setAccessible(true);
+    Set<?> pending = (Set<?>) field.get(h.art);
+    synchronized (pending) { return pending.toString(); }
+  }
+
+  void assertBundledAssets(MainActivity h, String screen) throws IOException {
+    List<String> paths = new ArrayList<>();
+    paths.add("native/release-v1/" + scene(screen));
+    if (screen.startsWith("augment"))
+      for (int i = 1; i <= 3; i++) paths.add("game-art/duel/sprites/D" + i + "_s0_front.webp");
+    for (String path : paths) {
+      BitmapFactory.Options dimensions = new BitmapFactory.Options();
+      dimensions.inJustDecodeBounds = true;
+      try (InputStream input = h.getAssets().open(path)) {
+        BitmapFactory.decodeStream(input, null, dimensions);
+      }
+      assertTrue("Bundled fixture image must decode: " + path,
+          dimensions.outWidth > 0 && dimensions.outHeight > 0);
+    }
   }
 
   void layout(MainActivity h, int width, int height) {
@@ -154,6 +186,7 @@ public class NativeRealtimeThemeReviewTest {
       h.battle = b; h.battleScreen();
       NativeAugmentView choice = ((BattleView) h.root.getChildAt(0)).augmentView;
       assertNotNull(choice);
+      assertTrue("Augment fixture must be attached", choice.isAttachedToWindow());
       if (screen.equals("augment-selected") || screen.equals("augment-next-fighter")) choice.picks.get(0).performClick();
       if (screen.equals("augment-next-fighter")) { choice.confirm.performClick(); choice.picks.get(1).performClick(); }
       if (screen.equals("augment-switch-only")) choice.picks.get(0).performClick();
@@ -178,6 +211,8 @@ public class NativeRealtimeThemeReviewTest {
   }
 
   JSONObject inspect(MainActivity h, View target, String screen, NativeRealtimeTest.FakeApi api) throws Exception {
+    assertTrue("Capture target must be attached: " + screen, target.isAttachedToWindow());
+    assertTrue("Capture target must be shown: " + screen, target.isShown());
     int texts = 0, actions = 0, checkedBounds = 0;
     List<View> controls = new ArrayList<>();
     for (View view : geometry.descendants(target)) {
@@ -190,7 +225,7 @@ public class NativeRealtimeThemeReviewTest {
       if (view.isClickable() && view.getWidth() > 0) {
         assertTrue("48dp action width: " + view.getTag(), view.getWidth() >= h.dp(48));
         assertTrue("48dp action height: " + view.getTag(), view.getHeight() >= h.dp(48));
-        assertEquals("Action clipped: " + view.getTag(), geometry.bounds(view, target), geometry.visibleIntersection(view, target));
+        assertEquals("Action clipped: " + view.getClass().getSimpleName() + "/" + view.getTag(), geometry.bounds(view, target), geometry.visibleIntersection(view, target));
         controls.add(view); checkedBounds++; actions++;
       }
     }
@@ -239,6 +274,41 @@ public class NativeRealtimeThemeReviewTest {
         "rootKind", h.visibleDialog != null ? "dialog" : screen.startsWith("augment") ? "overlay" : "page");
   }
 
+  JSONObject geometryNode(View view, View target) throws JSONException {
+    JSONObject node = MainActivity.obj("class", view.getClass().getName(), "id", view.getId(),
+        "tag", String.valueOf(view.getTag()), "text", view instanceof TextView ? ((TextView) view).getText().toString() : "",
+        "bounds", geometry.bounds(view, target).toShortString(),
+        "visible", geometry.visibleIntersection(view, target).toShortString(),
+        "scrollX", view.getScrollX(), "scrollY", view.getScrollY(),
+        "measuredWidth", view.getMeasuredWidth(), "measuredHeight", view.getMeasuredHeight(),
+        "padding", new JSONArray().put(view.getPaddingLeft()).put(view.getPaddingTop())
+            .put(view.getPaddingRight()).put(view.getPaddingBottom()),
+        "layoutRequested", view.isLayoutRequested(), "shown", view.isShown(), "attached", view.isAttachedToWindow());
+    if (view instanceof ViewGroup) node.put("clipChildren", ((ViewGroup) view).getClipChildren())
+        .put("clipToPadding", ((ViewGroup) view).getClipToPadding());
+    ViewGroup.LayoutParams params = view.getLayoutParams();
+    if (params instanceof ViewGroup.MarginLayoutParams) {
+      ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) params;
+      node.put("margins", new JSONArray().put(margins.leftMargin).put(margins.topMargin)
+          .put(margins.rightMargin).put(margins.bottomMargin));
+    }
+    return node;
+  }
+
+  JSONArray actionGeometry(View target) throws JSONException {
+    JSONArray actions = new JSONArray();
+    for (View view : geometry.descendants(target)) {
+      if (!view.isShown() || !view.isClickable() || view.getWidth() <= 0) continue;
+      JSONObject action = geometryNode(view, target); JSONArray ancestors = new JSONArray();
+      for (ViewParent node = view.getParent(); node instanceof View; node = node.getParent()) {
+        ancestors.put(geometryNode((View) node, target));
+        if (node == target) break;
+      }
+      actions.put(action.put("ancestors", ancestors));
+    }
+    return actions;
+  }
+
   static boolean isAncestor(View parent, View child) {
     for (ViewParent node = child.getParent(); node instanceof View; node = node.getParent()) if (node == parent) return true;
     return false;
@@ -274,16 +344,32 @@ public class NativeRealtimeThemeReviewTest {
         MainActivity h = controller.get(); NativeRealtimeTest.FakeApi api = fixture.install(h);
         View target = null;
         try {
+          assertBundledAssets(h, screen);
           target = show(h, screen, size[0], size[1]);
+          // Mount the new tree and release its first frame's traversal barrier before
+          // waiting for the real asynchronous asset completions.
+          layout(h, size[0], size[1]);
           long waited = awaitAssets(h);
           layout(h, size[0], size[1]);
           if (h.visibleDialog != null) target = geometry.layoutDialog(h);
+          JSONObject drawing = null;
+          if (h.visibleDialog != null) {
+            drawing = MainActivity.obj("beforeDraw", actionGeometry(target));
+            layoutDiagnostics.put(name, drawing);
+          }
           capture(h, target, name, size[0], size[1]);
+          if (drawing != null) drawing.put("afterDraw", actionGeometry(target));
           metrics.put(name, inspect(h, target, screen, api)
               .put("assetWaitMillis", waited).put("renderMillis", (System.nanoTime() - started) / 1000000L));
         } catch (Throwable failure) {
           problems.put(failure.toString()); failures.add(name + ": " + failure);
-          if (target != null) capture(h, target, name, size[0], size[1]);
+          if (target != null) {
+            // Failure evidence must still contain the real mounted tree, not an
+            // unmeasured root with only its solid fallback background.
+            layout(h, size[0], size[1]);
+            if (h.visibleDialog != null) target = geometry.layoutDialog(h);
+            capture(h, target, name, size[0], size[1]);
+          }
         } finally {
           h.realtime.pause();
           if (h.visibleDialog != null) h.visibleDialog.dismiss();
@@ -291,6 +377,7 @@ public class NativeRealtimeThemeReviewTest {
       } catch (Throwable failure) { problems.put(failure.toString()); failures.add(name + ": " + failure); }
       Files.write(output().resolve("findings.json"), findings.toString(2).getBytes(StandardCharsets.UTF_8));
       Files.write(output().resolve("metrics.json"), metrics.toString(2).getBytes(StandardCharsets.UTF_8));
+      Files.write(output().resolve("layout-diagnostics.json"), layoutDiagnostics.toString(2).getBytes(StandardCharsets.UTF_8));
     }
     assertEquals(SCREENS.length * SIZES.length, findings.length());
     assertTrue(String.join("\n", failures), failures.isEmpty());

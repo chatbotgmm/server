@@ -23,6 +23,10 @@ final class LobbyView extends FrameLayout implements FullBleed {
   final HomeArt homeArt;
   final Button gull;
   final TextView tip;
+  final Rect tipFrame = new Rect();
+  boolean tipPaged;
+  CharSequence tipCopy = "";
+  int tipPageStart, tipNextPageStart;
   final LinearLayout growthCard;
   final LinearLayout growthInfo;
   final TextView growthName, growthMeta, growthXp, growthNeed, growthSummary, growthCompactXp;
@@ -182,11 +186,15 @@ final class LobbyView extends FrameLayout implements FullBleed {
     refreshGrowth();
     tip = host.text("", host.getResources().getConfiguration().screenHeightDp < 600 ? 13 : 15);
     tip.setTypeface(host.prose);
+    tip.setHorizontallyScrolling(false);
+    tip.setGravity(Gravity.TOP | Gravity.START);
+    tip.setMinHeight(host.dp(48));
     tip.setTextColor(MainActivity.INK);
     tip.setPadding(host.dp(12), host.dp(8), host.dp(12), host.dp(8));
     tip.setBackground(new GamePaperDrawable(host, 0xffb8823f));
     tip.setVisibility(View.GONE);
     tip.setTag("lobby-gull-tip");
+    tip.setOnClickListener(v -> advanceGullTip());
     addView(tip);
     if (host.state.optBoolean("activeBattle")) {
       Button resume =
@@ -390,12 +398,6 @@ final class LobbyView extends FrameLayout implements FullBleed {
             Math.max(host.dp(48), (int) gullRect.width()), MeasureSpec.EXACTLY),
         MeasureSpec.makeMeasureSpec(
             Math.max(host.dp(48), (int) gullRect.height()), MeasureSpec.EXACTLY));
-    if (tip.getVisibility() == View.VISIBLE)
-      tip.measure(
-          MeasureSpec.makeMeasureSpec(
-              Math.round(Math.min(host.dp(300), safe.width() * .42f)), MeasureSpec.EXACTLY),
-          MeasureSpec.makeMeasureSpec(
-              Math.max(host.dp(48), (int) safe.height() - host.dp(140)), MeasureSpec.AT_MOST));
     for (int i = 0; i < buttons.size(); i++) {
       RectF r = boxes[i];
       buttons
@@ -405,6 +407,47 @@ final class LobbyView extends FrameLayout implements FullBleed {
               MeasureSpec.makeMeasureSpec(
                   Math.max(host.dp(48), (int) r.height()), MeasureSpec.EXACTLY));
     }
+    if (tip.getVisibility() == View.VISIBLE) measureGullTip(safe);
+  }
+
+  /** The complete planted animation envelope is protected, not just the tap target. */
+  RectF tipHeroExclusion() {
+    RectF hero = heroBox();
+    float side = hero.width() * .002f + host.dp(4);
+    RectF occupied = new RectF(hero.left - side,
+        hero.top - hero.height() * .004f - host.dp(1.2f), hero.right + side, hero.bottom);
+    occupied.union(heroShadowBox(hero));
+    return occupied;
+  }
+
+  RectF resumeBox(RectF safe) {
+    int x = Math.round(safe.left + host.dp(24));
+    int y = Math.round(boxes[7].bottom + host.dp(8));
+    return new RectF(x, y, x + Math.round(safe.width() * .58f), y + host.dp(48));
+  }
+
+  ArrayList<RectF> tipExclusions(RectF safe) {
+    ArrayList<RectF> occupied = new ArrayList<>();
+    occupied.add(tipHeroExclusion());
+    for (int i = 0; i < buttons.size(); i++) {
+      RectF box = boxes[i];
+      occupied.add(new RectF((int) box.left, (int) box.top, (int) box.right,
+          (int) box.top + buttons.get(i).getMeasuredHeight()));
+    }
+    if (growthCard.getVisibility() == View.VISIBLE) occupied.add(growthBox());
+    if (findViewWithTag("lobby-resume") != null) occupied.add(resumeBox(safe));
+    return occupied;
+  }
+
+  void measureGullTip(RectF safe) {
+    tip.setPadding(host.dp(12), host.dp(8), host.dp(12), host.dp(8));
+    tip.setText(tipCopy.subSequence(tipPageStart, tipCopy.length()));
+    HomeTipLayout.Result placement = HomeTipLayout.measure(tip, safe, tipHeroExclusion(),
+        tipExclusions(safe), host.dp(8), host.dp(300), host.dp(420), host.dp(120));
+    tipFrame.set(placement.bounds);
+    tipPaged = placement.paged;
+    tipNextPageStart = tipPageStart + placement.consumed;
+    if (tipFrame.isEmpty()) tip.setVisibility(View.GONE);
   }
 
   @Override
@@ -416,24 +459,14 @@ final class LobbyView extends FrameLayout implements FullBleed {
     gull.layout((int) area.left, (int) area.top, (int) area.right, (int) area.bottom);
     View resume = findViewWithTag("lobby-resume");
     if (resume != null) {
-      int x = Math.round(safe.left + host.dp(24));
-      int y = Math.round(boxes[7].bottom + host.dp(8));
-      int width = Math.round(safe.width() * .58f);
-      resume.layout(x, y, x + width, y + host.dp(48));
+      RectF resumeArea = resumeBox(safe);
+      resume.layout((int) resumeArea.left, (int) resumeArea.top,
+          (int) resumeArea.right, (int) resumeArea.bottom);
     }
     RectF growth = growthBox();
     growthCard.layout((int) growth.left, (int) growth.top, (int) growth.right, (int) growth.bottom);
-    if (tip.getVisibility() == View.VISIBLE) {
-      int width = tip.getMeasuredWidth(), height = tip.getMeasuredHeight();
-      int x = (int) Math.max(safe.left + host.dp(8), area.left - width - host.dp(10));
-      x = Math.min(x, (int) safe.right - width - host.dp(8));
-      int y =
-          (int)
-              Math.max(
-                  safe.top + host.dp(56),
-                  Math.min(safe.bottom - height - host.dp(90), area.top + area.height() * .12f));
-      tip.layout(x, y, x + width, y + height);
-    }
+    if (tip.getVisibility() == View.VISIBLE)
+      tip.layout(tipFrame.left, tipFrame.top, tipFrame.right, tipFrame.bottom);
     for (int i = 0; i < buttons.size(); i++) {
       RectF box = boxes[i];
       Button button = buttons.get(i);
@@ -1048,18 +1081,37 @@ final class LobbyView extends FrameLayout implements FullBleed {
         tipAt < 0
             ? random.nextInt(tips.length)
             : (tipAt + 1 + random.nextInt(tips.length - 1)) % tips.length;
-    tip.setText(android.text.Html.fromHtml(tips[tipAt], android.text.Html.FROM_HTML_MODE_LEGACY));
+    tipCopy = android.text.Html.fromHtml(tips[tipAt], android.text.Html.FROM_HTML_MODE_LEGACY);
+    tipPageStart = 0;
+    tipNextPageStart = 0; // A new tip cannot inherit a page offset before the next traversal.
+    tipPaged = false;
+    tip.setText(tipCopy);
     tip.setVisibility(View.VISIBLE);
-    tip.setContentDescription("갈매미 조언 " + tip.getText());
+    tip.scrollTo(0, 0);
+    tip.setContentDescription("갈매미 조언 " + tipCopy + " · 눌러서 다음 조언");
     removeCallbacks(hideTip);
     postDelayed(hideTip, 6000);
     requestLayout();
     invalidate();
   }
 
+  void advanceGullTip() {
+    if (tipNextPageStart < 0) return; // The requested page has not been measured yet.
+    if (tipNextPageStart > tipPageStart && tipNextPageStart < tipCopy.length()) {
+      tipPageStart = tipNextPageStart;
+      tipNextPageStart = -1; // Repeated taps before layout cannot skip unread pages.
+      removeCallbacks(hideTip);
+      postDelayed(hideTip, 6000);
+      requestLayout();
+      invalidate();
+    } else showGullTip();
+  }
+
   @Override
   public boolean dispatchTouchEvent(MotionEvent event) {
-    if (event.getActionMasked() == MotionEvent.ACTION_DOWN && tip.getVisibility() == View.VISIBLE) {
+    boolean readingTip = tipFrame.contains((int) event.getX(), (int) event.getY());
+    if (event.getActionMasked() == MotionEvent.ACTION_DOWN
+        && tip.getVisibility() == View.VISIBLE && !readingTip) {
       tip.setVisibility(View.GONE);
       removeCallbacks(hideTip);
     }

@@ -15,6 +15,7 @@ import org.robolectric.annotation.*;
 /** Offline behavior contracts for the real phase-two views. No live account or API writes. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35, qualifiers = "w915dp-h412dp-land-mdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @LooperMode(LooperMode.Mode.PAUSED)
 public class NativeRealtimeThemeStateTest {
   final NativeGameFlowTest flow = new NativeGameFlowTest();
@@ -202,7 +203,10 @@ public class NativeRealtimeThemeStateTest {
   NativeAugmentView mountAugment(MainActivity h, JSONObject battle) {
     h.battle = battle; h.battleScreen(); flow.measure(h.root);
     NativeAugmentView choice = ((BattleView) h.root.getChildAt(0)).augmentView;
-    assertNotNull(choice); return choice;
+    assertNotNull(choice);
+    assertTrue("Choice is mounted in the actual visible window", choice.isAttachedToWindow() && choice.isShown());
+    assertTrue(choice.getWidth() > 0 && choice.getHeight() > 0);
+    return choice;
   }
 
   @Test public void largeIconsAndCompleteEffectsStayOnChoicePage() throws Exception {
@@ -242,7 +246,10 @@ public class NativeRealtimeThemeStateTest {
   @Test public void realtimeAugmentLocksWhileSendingSubmittedOrStale() throws Exception {
     try (var activity = flow.start()) {
       MainActivity h = activity.get(); install(h); JSONObject battle = syntheticAugmentBattle();
-      battle.put("realtime", true).put("session", "room-theme").put("phaseId", "room-theme:choose");
+      battle.put("realtime", true).put("session", "room-theme").put("phaseId", "room-theme:choose")
+          // acceptRoom/decorate supplies this on the actual server battle snapshot.
+          // latest alone is not enough: BattleView correctly gates its own snapshot.
+          .put("canSubmit", true).put("mySubmitted", false);
       h.realtime.latest = envelope("choose");
       NativeAugmentView choice = mountAugment(h, battle); assertTrue(choice.canChoose());
       h.realtime.writing = true; assertFalse(choice.canChoose());

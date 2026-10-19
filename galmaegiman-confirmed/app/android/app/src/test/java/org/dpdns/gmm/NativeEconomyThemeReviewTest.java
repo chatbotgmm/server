@@ -74,7 +74,8 @@ public class NativeEconomyThemeReviewTest {
 
   int readable(TextView text) {
     assertNotNull("Native text layout: " + text.getText(), text.getLayout());
-    assertTrue("Native text height: " + text.getText(), text.getHeight()
+    assertTrue("Native text height: " + text.getText() + " view=" + text.getHeight() + " layout=" + text.getLayout().getHeight()
+        + " padding=" + text.getCompoundPaddingTop() + "," + text.getCompoundPaddingBottom(), text.getHeight()
         - text.getCompoundPaddingTop() - text.getCompoundPaddingBottom() >= text.getLayout().getHeight());
     int available = text.getWidth() - text.getCompoundPaddingLeft() - text.getCompoundPaddingRight();
     boolean preview = "economy-name-preview".equals(text.getTag());
@@ -101,6 +102,23 @@ public class NativeEconomyThemeReviewTest {
       }
     }
     return truncations;
+  }
+
+  void inkInsideFrame(MainActivity host, String textTag, String frameTag, int top, int bottom) {
+    TextView text = host.root.findViewWithTag(textTag);
+    View frame = host.root.findViewWithTag(frameTag);
+    assertNotNull(text); assertNotNull(frame);
+    Rect own = geometry.bounds(text, host.root), outer = geometry.bounds(frame, host.root);
+    for (int line = 0; line < text.getLineCount(); line++) {
+      int start = text.getLayout().getLineStart(line), end = text.getLayout().getLineEnd(line);
+      String content = text.getText().subSequence(start, end).toString().stripTrailing();
+      Rect ink = new Rect(); text.getPaint().getTextBounds(content, 0, content.length(), ink);
+      int baseline = own.top + text.getBaseline() + text.getLayout().getLineBaseline(line) - text.getLayout().getLineBaseline(0);
+      assertTrue("Real ink clears the top brass frame: " + textTag,
+          baseline + ink.top >= outer.top + host.dp(top));
+      assertTrue("Real ink clears the bottom brass frame: " + textTag,
+          baseline + ink.bottom <= outer.bottom - host.dp(bottom));
+    }
   }
 
   JSONObject audit(MainActivity host, String page, NativeEconomyThemeFixture.Api api) {
@@ -178,6 +196,10 @@ public class NativeEconomyThemeReviewTest {
         seals++;
       }
       assertEquals(3, seals); assertEquals("One actual spend action", 1, submits);
+      inkInsideFrame(host, "draw-credits-label", "draw-claim-rail", 12, 12);
+      inkInsideFrame(host, "draw-claim-status", "draw-claim-rail", 12, 12);
+      inkInsideFrame(host, "draw-pity", "draw-purchase-rail", 12, 10);
+      inkInsideFrame(host, "draw-total", "draw-purchase-rail", 12, 10);
       assertNotNull(host.root.findViewWithTag("draw-pity"));
       assertTrue(host.root.findViewWithTag(page.equals("recruit-high") ? "draw-card-HIGH" : "draw-card-LOW").isSelected());
     }

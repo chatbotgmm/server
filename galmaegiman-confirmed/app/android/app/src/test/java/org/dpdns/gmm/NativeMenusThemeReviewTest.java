@@ -123,7 +123,7 @@ public class NativeMenusThemeReviewTest {
     final ArrayList<String> reads = new ArrayList<>(), writes = new ArrayList<>();
     String rankState = "ready";
     Result pendingRank, pendingWrite;
-    boolean deferHealingWrite;
+    boolean deferHealingWrite, allowTutorialAdvance;
     FixtureApi(MainActivity host, JSONObject value) { super(host); state = value; }
     @Override String token() { return "offline-phase2-menus-review"; }
     @Override void call(String path, JSONObject body, Result done) {
@@ -132,6 +132,15 @@ public class NativeMenusThemeReviewTest {
         if (deferHealingWrite && path.equals("native/heal")) {
           assertEquals("o1", body.optString("key")); assertEquals("potion", body.optString("item"));
           pendingWrite = done; return;
+        }
+        if (allowTutorialAdvance && path.equals("tutorial")) {
+          assertEquals("Only the established-team step3-to4 transition is modeled", 1, body.length());
+          assertEquals(4, body.optInt("step"));
+          assertEquals(3, state.optJSONObject("tutorial").optInt("step"));
+          try { state.put("tutorial", MainActivity.obj("step", 4)); }
+          catch (JSONException error) { throw new AssertionError(error); }
+          done.done(new JSONObject(), null);
+          return;
         }
         throw new AssertionError("Display/preview cannot spend or save: " + path);
       }
@@ -227,6 +236,19 @@ public class NativeMenusThemeReviewTest {
 
   JSONObject inspect(MainActivity host, View root, String page, FixtureApi api) throws Exception {
     int actions = 0, bounds = 0, text = 0, inlineChoices = 0;
+    int dialogBounds = 0;
+    int safeWidth = host.root.getWidth() - host.root.getPaddingLeft() - host.root.getPaddingRight();
+    int safeHeight = host.root.getHeight() - host.root.getPaddingTop() - host.root.getPaddingBottom();
+    if (root != host.root) {
+      // These are actual container-bound assertions, even when every action is in a scroll body.
+      assertTrue("Dialog measured width stays inside the safe viewport",
+          root.getWidth() > 0 && root.getWidth() <= safeWidth);
+      dialogBounds++;
+      assertTrue("Dialog measured height leaves its required safe-area margin",
+          root.getHeight() > 0 && root.getHeight() <= safeHeight - host.dp(16));
+      dialogBounds++;
+      bounds += dialogBounds;
+    }
     JSONArray summaries = new JSONArray();
     ArrayList<View> fixed = new ArrayList<>();
     for (View view : geometry.descendants(root)) {
@@ -283,8 +305,11 @@ public class NativeMenusThemeReviewTest {
     }
     if (page.equals("growth-ready")) assertFalse(host.root.findViewWithTag("unit-heal").isEnabled());
     assertEquals(0, api.writes.size()); assertTrue(actions > 0); assertTrue(text > 0);
+    assertTrue("Every capture records actual safe-container or fixed-control bounds assertions", bounds > 0);
     assertNotNull(host.root.findViewWithTag("theme-scene-background"));
     return MainActivity.obj("actualNativeViews", true, "actions", actions, "boundsChecks", bounds,
+        "dialogBoundsChecks", dialogBounds, "measuredWidth", root.getWidth(), "measuredHeight", root.getHeight(),
+        "safeWidth", safeWidth, "safeHeight", safeHeight,
         "textLabels", text, "inlineChoices", inlineChoices, "shortenedReadOnlySummaries", summaries,
         "fixtureReads", new JSONArray(api.reads), "fixtureWrites", api.writes.size(),
         "dialog", root != host.root, "itemDefinitionSource", "battle.yaml:273–277@9d8d7b4",
@@ -368,6 +393,9 @@ public class NativeMenusThemeReviewTest {
         show(host, "items", size);
         // Enable the actual condition only after building the page, avoiding unrelated guide ticks.
         host.state.put("tutorial", MainActivity.obj("step", tutorial ? 3 : 9));
+        api.allowTutorialAdvance = tutorial;
+        if (tutorial) host.state.getJSONArray("chapters").getJSONObject(0).getJSONArray("stages")
+            .getJSONObject(0).put("cleared", false);
         NativeTutorialController guide = NativeTutorialController.get(host);
         guide.enabled = true; guide.progress.step = tutorial ? 3 : 9;
         assertEquals(tutorial, guide.needsStoryTeam());
@@ -376,9 +404,16 @@ public class NativeMenusThemeReviewTest {
         button.performClick();
         assertEquals(tutorial ? "story" : "pvp", host.selectionMode);
         assertEquals(tutorial ? "story" : "pvp", host.menus.teamMode);
-        assertEquals("team", host.screen); assertTrue(api.writes.isEmpty());
+        assertEquals("team", host.screen);
         assertEquals(tutorial ? "스토리 방범대 편성" : "방범대", host.title.getText().toString());
-        guide.close();
+        // Let the original controller advance an already-filled tutorial team, using only the fake API.
+        guide.update(); Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals(tutorial ? Collections.singletonList("tutorial") : Collections.emptyList(), api.writes);
+        assertEquals(tutorial ? 4 : 9, guide.progress.step);
+        assertEquals(tutorial ? 4 : 9, host.state.getJSONObject("tutorial").getInt("step"));
+        guide.enabled = false; guide.close();
+        // close() removes recurring ticks; discard already-posted one-shot update callbacks too.
+        api.ui.removeCallbacksAndMessages(null);
       }
     }
   }
@@ -490,7 +525,7 @@ public class NativeMenusThemeReviewTest {
         guide.update();
         assertEquals("stage", guide.overlayKey); assertNotNull(guide.overlay);
         assertEquals("story-stage-start", start.getTag()); assertTrue(api.writes.isEmpty());
-        guide.close();
+        guide.enabled = false; guide.close(); api.ui.removeCallbacksAndMessages(null);
       }
     }
   }

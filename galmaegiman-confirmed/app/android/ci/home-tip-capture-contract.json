@@ -1,0 +1,357 @@
+{
+  "version": 2,
+  "testClass": "org.dpdns.gmm.NativeHomeTipLayoutTest",
+  "junitFile": "TEST-org.dpdns.gmm.NativeHomeTipLayoutTest.xml",
+  "testMethods": [
+    "everyTipKeepsNativeInkAndPaperClearAtPhoneInsetsTabletAndLargeFont",
+    "manualCharacterTipsStillCycleAndButtonsKeepTheirRoutes",
+    "constrainedAlternativeIsMeasuredBoundedAndNeverCoversTheHero"
+  ],
+  "testCount": 3,
+  "tipChecks": 160,
+  "screenshotCount": 20,
+  "summary": "home-advice-fixtures.json",
+  "failureDiagnostics": "home-advice-fit-failure-*.json",
+  "fixtures": [
+    {
+      "png": "home-advice-915x412-font100.png",
+      "metrics": "home-advice-915x412-font100-metrics.json",
+      "width": 915,
+      "height": 412,
+      "qualifiers": "w915dp-h412dp-land-mdpi",
+      "fontScale": 1.0,
+      "resume": false,
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-915x412-font100-resume.png",
+      "metrics": "home-advice-915x412-font100-resume-metrics.json",
+      "width": 915,
+      "height": 412,
+      "qualifiers": "w915dp-h412dp-land-mdpi",
+      "fontScale": 1.0,
+      "resume": true,
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-915x412-font130.png",
+      "metrics": "home-advice-915x412-font130-metrics.json",
+      "width": 915,
+      "height": 412,
+      "qualifiers": "w915dp-h412dp-land-mdpi",
+      "fontScale": 1.3,
+      "resume": false,
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-915x412-font130-resume.png",
+      "metrics": "home-advice-915x412-font130-resume-metrics.json",
+      "width": 915,
+      "height": 412,
+      "qualifiers": "w915dp-h412dp-land-mdpi",
+      "fontScale": 1.3,
+      "resume": true,
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-1006x411-font100.png",
+      "metrics": "home-advice-1006x411-font100-metrics.json",
+      "width": 1006,
+      "height": 411,
+      "qualifiers": "w1006dp-h411dp-land-mdpi",
+      "fontScale": 1.0,
+      "resume": false,
+      "insets": [
+        32,
+        8,
+        24,
+        16
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-1006x411-font100-resume.png",
+      "metrics": "home-advice-1006x411-font100-resume-metrics.json",
+      "width": 1006,
+      "height": 411,
+      "qualifiers": "w1006dp-h411dp-land-mdpi",
+      "fontScale": 1.0,
+      "resume": true,
+      "insets": [
+        32,
+        8,
+        24,
+        16
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-1006x411-font130.png",
+      "metrics": "home-advice-1006x411-font130-metrics.json",
+      "width": 1006,
+      "height": 411,
+      "qualifiers": "w1006dp-h411dp-land-mdpi",
+      "fontScale": 1.3,
+      "resume": false,
+      "insets": [
+        32,
+        8,
+        24,
+        16
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-1006x411-font130-resume.png",
+      "metrics": "home-advice-1006x411-font130-resume-metrics.json",
+      "width": 1006,
+      "height": 411,
+      "qualifiers": "w1006dp-h411dp-land-mdpi",
+      "fontScale": 1.3,
+      "resume": true,
+      "insets": [
+        32,
+        8,
+        24,
+        16
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-1280x720-font100.png",
+      "metrics": "home-advice-1280x720-font100-metrics.json",
+      "width": 1280,
+      "height": 720,
+      "qualifiers": "w1280dp-h720dp-land-mdpi",
+      "fontScale": 1.0,
+      "resume": false,
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-1280x720-font100-resume.png",
+      "metrics": "home-advice-1280x720-font100-resume-metrics.json",
+      "width": 1280,
+      "height": 720,
+      "qualifiers": "w1280dp-h720dp-land-mdpi",
+      "fontScale": 1.0,
+      "resume": true,
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-1280x720-font130.png",
+      "metrics": "home-advice-1280x720-font130-metrics.json",
+      "width": 1280,
+      "height": 720,
+      "qualifiers": "w1280dp-h720dp-land-mdpi",
+      "fontScale": 1.3,
+      "resume": false,
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-1280x720-font130-resume.png",
+      "metrics": "home-advice-1280x720-font130-resume-metrics.json",
+      "width": 1280,
+      "height": 720,
+      "qualifiers": "w1280dp-h720dp-land-mdpi",
+      "fontScale": 1.3,
+      "resume": true,
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-915x374-font100.png",
+      "metrics": "home-advice-915x374-font100-metrics.json",
+      "width": 915,
+      "height": 374,
+      "qualifiers": "w915dp-h374dp-land-mdpi",
+      "fontScale": 1.0,
+      "resume": false,
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-915x374-font100-resume.png",
+      "metrics": "home-advice-915x374-font100-resume-metrics.json",
+      "width": 915,
+      "height": 374,
+      "qualifiers": "w915dp-h374dp-land-mdpi",
+      "fontScale": 1.0,
+      "resume": true,
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-915x374-font130.png",
+      "metrics": "home-advice-915x374-font130-metrics.json",
+      "width": 915,
+      "height": 374,
+      "qualifiers": "w915dp-h374dp-land-mdpi",
+      "fontScale": 1.3,
+      "resume": false,
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-915x374-font130-resume.png",
+      "metrics": "home-advice-915x374-font130-resume-metrics.json",
+      "width": 915,
+      "height": 374,
+      "qualifiers": "w915dp-h374dp-land-mdpi",
+      "fontScale": 1.3,
+      "resume": true,
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-2048x838-font100.png",
+      "metrics": "home-advice-2048x838-font100-metrics.json",
+      "width": 2048,
+      "height": 838,
+      "qualifiers": "w1024dp-h419dp-land-xhdpi",
+      "fontScale": 1.0,
+      "resume": false,
+      "insets": [
+        32,
+        0,
+        32,
+        0
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-2048x838-font100-resume.png",
+      "metrics": "home-advice-2048x838-font100-resume-metrics.json",
+      "width": 2048,
+      "height": 838,
+      "qualifiers": "w1024dp-h419dp-land-xhdpi",
+      "fontScale": 1.0,
+      "resume": true,
+      "insets": [
+        32,
+        0,
+        32,
+        0
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-2048x838-font130.png",
+      "metrics": "home-advice-2048x838-font130-metrics.json",
+      "width": 2048,
+      "height": 838,
+      "qualifiers": "w1024dp-h419dp-land-xhdpi",
+      "fontScale": 1.3,
+      "resume": false,
+      "insets": [
+        32,
+        0,
+        32,
+        0
+      ],
+      "tipIndex": 6
+    },
+    {
+      "png": "home-advice-2048x838-font130-resume.png",
+      "metrics": "home-advice-2048x838-font130-resume-metrics.json",
+      "width": 2048,
+      "height": 838,
+      "qualifiers": "w1024dp-h419dp-land-xhdpi",
+      "fontScale": 1.3,
+      "resume": true,
+      "insets": [
+        32,
+        0,
+        32,
+        0
+      ],
+      "tipIndex": 6
+    }
+  ],
+  "requiredMetrics": [
+    "bubble",
+    "nativePaper",
+    "nativeInk",
+    "safe",
+    "exclusions",
+    "fontPixels",
+    "lines",
+    "verticalPaddingPixels",
+    "minimumTouchPixels",
+    "clippedInkPixels"
+  ],
+  "expectedFindings": {
+    "clippedInkPixels": 0,
+    "overlapPixels": 0,
+    "pagedTips": 0,
+    "scrollableTips": 0
+  },
+  "runPolicy": "Run once as part of the existing complete testDebugUnitTest suite with -PnativeReviewOutput pointing to the retained native screenshot directory. Do not run a duplicate targeted pass.",
+  "densityNote": "2048x838 uses synthetic xhdpi to cover the reference screenshot aspect at phone-like text scale; the source screenshot actual DPI is unknown."
+}
