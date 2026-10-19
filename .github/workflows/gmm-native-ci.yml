@@ -1,6 +1,8 @@
 # 갈매미맨 반복 빌드: 저장소에 풀어 둔 소스를 그대로 검사·빌드한다(ZIP 적용 단계 없음).
 # 결과물: 미리보기 APK(기존 앱 옆에 따로 설치), 디버그 APK, 단위 테스트 보고서, 화면 캡처(PNG + findings.json).
 # 운영 서버·DB 배포, 릴리스 서명은 하지 않는다.
+# 미리보기 APK는 GitHub Releases(비공개 저장소: 권한 있는 계정만)에도 올려 휴대폰에서 ZIP 없이 바로 받게 한다.
+# 항상 최신: https://github.com/chatbotgmm/server/releases/latest
 name: GMM native CI
 
 on:
@@ -105,3 +107,45 @@ jobs:
             galmaegiman-confirmed/app/android/app/build/reports/tests/
             galmaegiman-confirmed/app/android/app/build/test-results/
           retention-days: 7
+
+  release:
+    needs: [server, native]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: gmm-preview-apk
+          path: apk
+      - name: Publish preview APK as a release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          short="${SHA:0:7}"
+          tag="r1-preview-$short"
+          file="galmaegiman-preview-$short.apk"
+          mv apk/app-preview.apk "$file"
+          sum=$(sha256sum "$file" | cut -d' ' -f1)
+          cat > notes.md <<EOF
+          갈매미맨 **미리보기판** · 커밋 \`$short\` (브랜치 \`$BRANCH\`)
+
+          - 패키지 \`org.dpdns.gmm.native.revised.r1preview\` · 앱 이름 「갈매미맨 미리보기」 · 버전 \`2.2.4-native-r1preview-$short\`
+          - 기존 정식 앱 옆에 **따로 설치**된다(업데이트 설치 아님). 기존 앱은 지우지 않는다.
+          - 디버그 서명은 빌드마다 다를 수 있다. 설치 중 「충돌」이 나면 **미리보기 앱만** 지우고 다시 설치한다.
+          - 운영 서버·실제 계정에 접속한다. 운영 서버에는 r1 서버 변경이 배포되지 않았다.
+          - 실기기 검수 전 시험판이다.
+          - SHA-256 \`$sum\`
+          EOF
+          sed -i 's/^          //' notes.md
+          if gh release view "$tag" --repo "$REPO" >/dev/null 2>&1; then
+            gh release upload "$tag" "$file" --repo "$REPO" --clobber
+          else
+            gh release create "$tag" "$file" --repo "$REPO" --target "$SHA" \
+              --title "미리보기 $short" --notes-file notes.md --latest
+          fi

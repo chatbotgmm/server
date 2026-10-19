@@ -16,6 +16,7 @@
 - 안드로이드: 단위 테스트(화면 캡처 포함), `assembleDebug`, `assemblePreview`.
 - 결과물(아티팩트):
   - `gmm-preview-apk`: 기존 앱 옆에 설치하는 미리보기판.
+  - 같은 APK를 GitHub Releases에도 올린다(태그 `r1-preview-<커밋7자리>`). 휴대폰에서는 ZIP 없이 https://github.com/chatbotgmm/server/releases/latest 에서 바로 받는다. 비공개 저장소라 권한 있는 계정으로 로그인해야 한다.
   - `gmm-screen-review`: 캡처 PNG와 `findings.json`.
   - `gmm-native-test-reports`: 테스트 보고서.
 
