@@ -9,7 +9,8 @@ import android.widget.*;
 import androidx.core.view.ViewCompat;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
 import org.json.*;
@@ -288,8 +289,8 @@ public class NativeRealtimeThemeReviewTest {
           if (h.visibleDialog != null) h.visibleDialog.dismiss();
         }
       } catch (Throwable failure) { problems.put(failure.toString()); failures.add(name + ": " + failure); }
-      Files.writeString(output().resolve("findings.json"), findings.toString(2), StandardCharsets.UTF_8);
-      Files.writeString(output().resolve("metrics.json"), metrics.toString(2), StandardCharsets.UTF_8);
+      Files.write(output().resolve("findings.json"), findings.toString(2).getBytes(StandardCharsets.UTF_8));
+      Files.write(output().resolve("metrics.json"), metrics.toString(2).getBytes(StandardCharsets.UTF_8));
     }
     assertEquals(SCREENS.length * SIZES.length, findings.length());
     assertTrue(String.join("\n", failures), failures.isEmpty());
