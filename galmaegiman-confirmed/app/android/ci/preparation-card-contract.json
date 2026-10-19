@@ -1,6 +1,6 @@
 {
-  "schema": "native-realtime-preparation-full-card-review-contract/v1",
-  "status": "frozen_awaiting_android_execution",
+  "schema": "native-realtime-preparation-character-review-contract/v2",
+  "status": "awaiting_android_execution",
   "extends": "../review-contract.json",
   "expected_total_capture_count": 124,
   "expected_preparation_capture_count": 28,
@@ -38,14 +38,19 @@
     "preparationCards": {
       "tag": "authoritative slot/candidate tag",
       "id": "server-disclosed catalog ID",
-      "mode": "FULL",
-      "pixelIdentityVerified": true,
-      "containedWidth": ">=128px compact, >=180px tablet at mdpi",
-      "containedHeight": ">=170px compact, >=240px tablet at mdpi",
-      "bitmapWidth": ">=192",
-      "bitmapHeight": ">=256",
+      "mode": "CHARACTER",
+      "pixelIdentityVerified": "true for approved exact APK sprite; false for L14 missing identity",
+      "containedWidth": "positive and exact source aspect for approved sprite; zero for L14",
+      "containedHeight": ">=24dp approved sprite; zero for L14",
+      "bitmapWidth": "positive exact source pixels; zero for L14",
+      "bitmapHeight": "positive exact source pixels; zero for L14",
       "enabled": "false for ready/expired; true otherwise",
-      "dynamicState": "slot and/or Lv30 only"
+      "dynamicState": "slot and/or Lv30 only",
+      "spritePath": "/duel/sprites/ID_s0_front.webp for approved; empty for L14",
+      "nameMatchesServer": true,
+      "registrationViews": 0,
+      "targetContained": true,
+      "missingIdentityPreserved": "true for L14, with imageStatus 이미지 없음"
     }
   },
   "card_identity": {

@@ -152,6 +152,41 @@ public class NativeRegistrationReviewTest {
     return cards;
   }
 
+  List<PartyCharacterView.Artwork> partyArtworks(View root) {
+    List<PartyCharacterView.Artwork> result = new ArrayList<>();
+    for (View view : geometry.descendants(root))
+      if (view instanceof PartyCharacterView.Artwork && view.isShown()) result.add((PartyCharacterView.Artwork) view);
+    return result;
+  }
+
+  void assertPartyArt(MainActivity host, PartyCharacterView.Artwork art) throws Exception {
+    assertTrue("Sprite remains attached", art.isAttachedToWindow());
+    assertTrue("Sprite has layout space", art.getWidth() > 0 && art.getHeight() > 0);
+    if (art.path.isEmpty()) {
+      assertNull("Unavailable identity never substitutes another sprite", art.bitmap);
+      assertEquals("이미지 없음", art.status);
+      assertTrue(art.target.isEmpty());
+      return;
+    }
+    assertTrue("Only approved top33 identity", art.id.matches("(?:D[1-8]|E[1-8]|I[1-9]|T[1-8])"));
+    assertEquals("/duel/sprites/" + art.id + "_s0_front.webp", art.path);
+    RegistrationArtTest.await(() -> art.bitmap != null && art.status.isEmpty());
+    assertFalse(art.bitmap.isRecycled());
+    Bitmap reference;
+    try (java.io.InputStream source = host.getAssets().open("game-art" + art.path)) {
+      reference = BitmapFactory.decodeStream(source);
+    }
+    assertNotNull("Approved source independently decodes", reference);
+    try { RegistrationArtTest.samePixels("Whole sprite " + art.id, reference, art.bitmap); }
+    finally { reference.recycle(); }
+    assertFalse(art.target.isEmpty());
+    assertTrue("Entire sprite contained", new RectF(0, 0, art.getWidth(), art.getHeight()).contains(art.target));
+    assertTrue("Readable character height", art.target.height() >= host.dp(24));
+    assertEquals(art.getWidth() / 2f, art.target.centerX(), .01f);
+    assertEquals(art.getHeight() / 2f, art.target.centerY(), .01f);
+    assertEquals(art.bitmap.getWidth() / (float) art.bitmap.getHeight(), art.target.width() / art.target.height(), .0001f);
+  }
+
   void awaitRealArt(MainActivity host, String page, int width, int height) throws Exception {
     // Drawing once starts the normal asynchronous scene pipeline; no test drawable is inserted.
     Bitmap kickoff = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
@@ -159,7 +194,12 @@ public class NativeRegistrationReviewTest {
     RegistrationArtTest.await(() -> !host.busy && host.menus.pendingFetches == 0 && host.art.idle()
         && host.registrationArt().idle());
     layout(host, width, height);
-    if (!page.equals("recruit")) {
+    if (page.startsWith("team-")) {
+      assertTrue("Party must not show registration frames", artworks(host.root).isEmpty());
+      List<PartyCharacterView.Artwork> sprites = partyArtworks(host.root);
+      assertEquals("Three server slots and three current candidates", 6, sprites.size());
+      for (PartyCharacterView.Artwork sprite : sprites) assertPartyArt(host, sprite);
+    } else if (!page.equals("recruit")) {
       List<RegistrationCardView.Artwork> cards = artworks(host.root);
       assertEquals("Actual registration artwork count on " + page,
           page.equals("result") ? 3 : page.equals("collection") ? host.menus.library.collectionPageSize() : 6, cards.size());
@@ -248,7 +288,7 @@ public class NativeRegistrationReviewTest {
   }
 
   JSONObject check(MainActivity host, String page, FakeApi api) throws Exception {
-    JSONArray bounds = new JSONArray();
+    JSONArray bounds = new JSONArray(), characterBounds = new JSONArray();
     List<RegistrationCardView.Artwork> cards = artworks(host.root);
     int overlapChecks = 0;
     View interactionSurface = host.root;
@@ -294,6 +334,29 @@ public class NativeRegistrationReviewTest {
             Rect.intersects(geometry.bounds(cards.get(i), host.root), geometry.bounds(cards.get(j), host.root)));
         overlapChecks++;
       }
+    List<PartyCharacterView.Artwork> sprites = partyArtworks(host.root);
+    if (page.startsWith("team-")) {
+      assertEquals(6, sprites.size()); assertTrue(cards.isEmpty());
+      for (PartyCharacterView.Artwork sprite : sprites) {
+        assertPartyArt(host, sprite); visible(host, sprite);
+        Rect own = geometry.bounds(sprite, host.root);
+        characterBounds.put(MainActivity.obj("id", sprite.id, "mode", "CHARACTER", "spritePath", sprite.path,
+            "left", own.left, "top", own.top, "right", own.right, "bottom", own.bottom,
+            "bitmapWidth", sprite.bitmap == null ? 0 : sprite.bitmap.getWidth(),
+            "bitmapHeight", sprite.bitmap == null ? 0 : sprite.bitmap.getHeight(),
+            "targetLeft", sprite.target.left, "targetTop", sprite.target.top,
+            "targetRight", sprite.target.right, "targetBottom", sprite.target.bottom,
+            "pixelIdentityVerified", sprite.bitmap != null, "imageStatus", sprite.status));
+        for (View action : activeViews) if (action instanceof Button && action.isShown()) {
+          assertFalse("Sprite cannot cover an action", Rect.intersects(own, geometry.bounds(action, host.root)));
+          overlapChecks++;
+        }
+      }
+      for (int i = 0; i < sprites.size(); i++) for (int j = i + 1; j < sprites.size(); j++) {
+        assertFalse("Party sprites cannot overlap", Rect.intersects(geometry.bounds(sprites.get(i), host.root), geometry.bounds(sprites.get(j), host.root)));
+        overlapChecks++;
+      }
+    }
     int actions = 0;
     if (page.equals("collection") || page.startsWith("team-")) {
       TextView pageNumber = (TextView) tag(host,
@@ -362,17 +425,19 @@ public class NativeRegistrationReviewTest {
           assertTrue(state.getText().toString().contains("100/100"));
           assertTrue(state.getContentDescription().toString().contains("체력"));
         }
-        assertEquals("D" + (i + 1), ((RegistrationCardView.Artwork) slot.findViewWithTag("lineup-portrait")).id);
+        assertEquals("D" + (i + 1), ((PartyCharacterView.Artwork) slot.findViewWithTag("lineup-portrait")).id);
         actions++;
       }
     } else {
-      for (String name : new String[] {"acquisition-detail", "acquisition-grow", "acquisition-team", "acquisition-result-picker", "acquisition-confirm"}) {
+      for (String name : new String[] {"acquisition-grow", "acquisition-team", "acquisition-result-picker", "acquisition-confirm"}) {
         action(host, name);
         actions++;
       }
+      assertNull("Separate detail button removed", host.root.findViewWithTag("acquisition-detail"));
       String labels = flow.labels(host.root);
       for (String id : new String[] {"D8", "E7", "L14"}) {
         View card = tag(host, "acquisition-card-" + id);
+        assertTrue("Card itself opens the dossier", card.isClickable());
         assertTrue("Server identity remains available to accessibility",
             card.getContentDescription().toString().contains(species(id).getString("name")));
         assertTrue("Server tier remains available to accessibility",
@@ -390,7 +455,7 @@ public class NativeRegistrationReviewTest {
         "insets", new JSONArray(Arrays.asList(host.root.getPaddingLeft(), host.root.getPaddingTop(),
             host.root.getPaddingRight(), host.root.getPaddingBottom())),
         "checkedActions", actions, "overlapChecks", overlapChecks,
-        "loadedRegistrationImages", cards.size(), "registrationBounds", bounds,
+        "characterBounds", characterBounds, "loadedCharacterImages", sprites.size(), "loadedRegistrationImages", cards.size(), "registrationBounds", bounds,
         "apiWrites", api.writes.size(), "realBundledImages", true);
   }
 

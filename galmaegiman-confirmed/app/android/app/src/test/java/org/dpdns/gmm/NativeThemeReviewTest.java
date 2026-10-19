@@ -190,7 +190,22 @@ public class NativeThemeReviewTest {
       if (!view.isShown()) continue;
       boolean scrolling = geometry.hasScrollingAncestor(view, root);
       if (view instanceof TextView && ((TextView) view).length() > 0) {
-        geometry.readable((TextView) view); text++;
+        TextView label = (TextView) view;
+        if (page.equals("modes") && "modes-rank-status".equals(label.getTag()) && host.compact()) {
+          assertFalse("Only the readonly rank summary may abbreviate", label instanceof Button || label.isClickable());
+          assertNotNull(label.getLayout());
+          assertTrue(label.getHeight() - label.getCompoundPaddingTop() - label.getCompoundPaddingBottom() >= label.getLayout().getHeight());
+          assertNotNull("Full rank summary remains accessible", label.getContentDescription());
+          assertEquals(label.getText().toString(), label.getContentDescription().toString());
+          assertTrue(label.getContentDescription().toString().contains("1250"));
+          assertTrue(label.getContentDescription().toString().contains("24"));
+          assertEquals(geometry.bounds(label, root), geometry.visibleIntersection(label, root));
+          View rankRoute = host.root.findViewWithTag("modes-ranked");
+          assertNotNull("Rank action retained beside the summary", rankRoute);
+          assertTrue(rankRoute instanceof Button);
+          geometry.fixedButton(host, root, (Button) rankRoute);
+        } else geometry.readable(label);
+        text++;
       }
       if (view instanceof Button || view instanceof SeekBar || view instanceof Switch) {
         assertTrue("터치 영역 48dp: " + view.getTag(), view.getHeight() >= host.dp(48));

@@ -129,78 +129,69 @@ public class NativeEconomyThemeReviewTest {
     JSONArray dimensions = new JSONArray();
     if (!page.equals("explore") && !page.equals("trip")) return dimensions;
     NativeEconomy economy = host.menus.economy;
-    for (String tag : new String[] {"expedition-selected-pages", "expedition-candidate-pages"}) {
-      View pager = host.root.findViewWithTag(tag);
-      if (page.equals("trip") && tag.equals("expedition-candidate-pages")) continue;
-      assertNotNull(pager);
-      assertTrue("48 + 24 + 48dp side pager fits residual native height: " + tag + " height=" + pager.getHeight(),
-          pager.getHeight() >= host.dp(120));
-      assertEquals(geometry.bounds(pager, host.root), geometry.visibleIntersection(pager, host.root));
-    }
+    assertNull("Every selected slot is visible; no selected-member paging", host.root.findViewWithTag("expedition-selected-pages"));
     if (page.equals("explore")) {
+      View pager = host.root.findViewWithTag("expedition-candidate-pages");
+      assertNotNull(pager);
+      assertTrue("Two 48dp candidate page actions fit", pager.getHeight() >= host.dp(96));
+      assertEquals(geometry.bounds(pager, host.root), geometry.visibleIntersection(pager, host.root));
       View frame = host.root.findViewWithTag("expedition-summary");
       View copy = host.root.findViewWithTag("expedition-summary-copy");
-      assertNotNull(frame); assertNotNull(copy);
       int labels = 0;
       for (View child : geometry.descendants(copy)) if (child instanceof TextView) {
-        inkInsideFrame(host, (TextView) child, frame, 12, 12);
-        labels++;
+        inkInsideFrame(host, (TextView) child, frame, 6, 6); labels++;
       }
-      assertEquals("Count and exact estimate both clear the brass frame", 2, labels);
+      assertEquals("Count and exact live estimate remain readable", 2, labels);
     }
-    int perPage = economy.compact() ? 2 : 3, selected = 0, candidates = 0;
+    int selected = 0, candidates = 0, empty = 0;
+    List<String> ids = new ArrayList<>();
+    if (page.equals("trip")) {
+      JSONArray party = host.list(host.me().optJSONObject("trip"), "ids");
+      for (int i = 0; i < party.length(); i++) ids.add(party.optString(i));
+    } else ids.addAll(host.expeditionDraft);
     for (View view : geometry.descendants(host.root)) {
-      String tag = view.getTag() instanceof String ? view.getTag().toString() : "";
+      String tag = String.valueOf(view.getTag());
+      if (view.isShown() && tag.startsWith("expedition-empty-")) empty++;
       boolean member = tag.startsWith("expedition-member-"), candidate = tag.startsWith("expedition-add-");
       if (!view.isShown() || (!member && !candidate)) continue;
-      String id;
-      if (member) {
-        int index = Integer.parseInt(tag.substring("expedition-member-".length()));
-        assertTrue(index >= economy.selectedCrewPage * perPage && index < (economy.selectedCrewPage + 1) * perPage);
-        id = page.equals("trip") ? host.list(host.me().optJSONObject("trip"), "ids").optString(index)
-            : host.expeditionDraft.get(index);
-        selected++;
-      } else { id = tag.substring("expedition-add-".length()); candidates++; }
+      int index = member ? Integer.parseInt(tag.substring("expedition-member-".length())) : -1;
+      String id = member ? ids.get(index) : tag.substring("expedition-add-".length());
+      if (member) selected++; else candidates++;
       JSONObject unit = economy.find(id);
       LinearLayout tile = (LinearLayout) view;
-      assertEquals("Only full art and dynamic state, with no duplicate printed identity", 2, tile.getChildCount());
-      assertTrue(tile.getChildAt(0) instanceof RegistrationCardView);
-      RegistrationCardView card = (RegistrationCardView) tile.getChildAt(0);
-      RegistrationCardView.Artwork art = card.picture;
+      assertEquals("Whole character plus live status", 2, tile.getChildCount());
+      assertTrue(tile.getChildAt(0) instanceof PartyCharacterView.Artwork);
+      PartyCharacterView.Artwork art = (PartyCharacterView.Artwork) tile.getChildAt(0);
       assertEquals(id, art.id);
-      assertEquals(RegistrationCardView.FULL, art.mode);
-      assertNotNull("Canonical FULL asset loaded: " + id, art.bitmap);
+      assertEquals("/duel/sprites/" + id + "_s0_front.webp", art.path);
+      assertNotNull("Approved canonical character sprite loaded: " + id, art.bitmap);
       assertFalse(art.bitmap.isRecycled());
-      assertEquals(View.GONE, card.name.getVisibility());
-      assertEquals(View.GONE, card.grade.getVisibility());
       assertTrue(view.getContentDescription().toString().contains(unit.optString("name")));
-      assertTrue(Float.isFinite(art.target.width()) && Float.isFinite(art.target.height()));
       assertTrue(new RectF(0, 0, art.getWidth(), art.getHeight()).contains(art.target));
       assertEquals(art.getWidth() / 2f, art.target.centerX(), .01f);
       assertEquals(art.getHeight() / 2f, art.target.centerY(), .01f);
       assertEquals(art.bitmap.getWidth() / (float) art.bitmap.getHeight(), art.target.width() / art.target.height(), .001f);
-      int minimumArtHeight = host.contentHeightDp() < 390 ? 100 : 120;
-      assertTrue("Large FULL card after moving the pager beside it: " + tag + " target=" + art.target,
-          art.target.height() >= host.dp(minimumArtHeight));
+      assertTrue("Character remains useful at short height", art.target.height() >= host.dp(24));
       assertEquals(geometry.bounds(art, host.root), geometry.visibleIntersection(art, host.root));
+      assertTrue("48dp tile width", tile.getWidth() >= host.dp(48));
+      assertTrue("48dp tile height", tile.getHeight() >= host.dp(48));
       TextView status = (TextView) tile.getChildAt(1);
-      assertEquals("State text keeps the shared label's original font size",
-          RegistrationCardView.stateLabel(host, "").getTextSize(), status.getTextSize(), .01f);
-      assertTrue("The full tile remains a 48dp touch target", tile.getHeight() >= host.dp(48));
-      Rect cardBounds = geometry.bounds(card, host.root), statusBounds = geometry.bounds(status, host.root);
-      assertTrue("State glyphs have a separate row below FULL art", cardBounds.bottom <= statusBounds.top);
-      assertEquals(statusBounds, geometry.visibleIntersection(status, host.root));
+      assertTrue(geometry.bounds(art, host.root).bottom <= geometry.bounds(status, host.root).top);
+      assertEquals(geometry.bounds(status, host.root), geometry.visibleIntersection(status, host.root));
       int left = unit.optInt("have") - unit.optInt("away") - (candidate ? Collections.frequency(host.expeditionDraft, id) : 0);
-      assertEquals(candidate ? "남은 " + left : page.equals("trip") ? "탐험 중" : "빼기 ×", status.getText().toString());
+      assertEquals(candidate ? "남은 " + left : (index + 1) + (page.equals("trip") ? "" : " ×"), status.getText().toString());
+      if (candidate && host.expeditionDraft.size() >= economy.partyMax()) {
+        assertFalse(tile.isEnabled());
+        assertTrue(tile.getContentDescription().toString().contains("정원 " + economy.partyMax()));
+      }
       readable(status);
-      assertFalse(status.getText().toString().equals(unit.optString("name")));
-      dimensions.put(MainActivity.obj("tag", tag, "id", id, "mode", "FULL", "artWidth", art.target.width(),
-          "artHeight", art.target.height(), "minimumArtHeightDp", minimumArtHeight, "status", status.getText().toString(),
-          "stateTextSizePx", status.getTextSize(), "stateHeightPx", status.getHeight(), "tileHeightPx", tile.getHeight()));
+      dimensions.put(MainActivity.obj("tag", tag, "id", id, "mode", "CHARACTER", "path", art.path,
+          "artWidth", art.target.width(), "artHeight", art.target.height(), "status", status.getText().toString()));
     }
-    assertTrue("Existing page size is preserved", selected > 0 && selected <= perPage && candidates <= perPage);
+    assertEquals("Every selected duplicate has its own visible slot", ids.size(), selected);
+    assertEquals("All ten slot positions stay visible", economy.partyMax(), selected + empty);
+    assertTrue("Candidate page is bounded at eight", candidates <= 8);
     if (page.equals("explore")) assertTrue(candidates > 0);
-    assertTrue("Existing shared card cache stays bounded", host.registrationArt().cachedBytes() <= 16 * 1024 * 1024);
     return dimensions;
   }
 
@@ -609,7 +600,7 @@ public class NativeEconomyThemeReviewTest {
         String tag = view.getTag() instanceof String ? view.getTag().toString() : "";
         if (tag.startsWith("expedition-add-")) { seen.add(tag.substring("expedition-add-".length())); visible++; }
       }
-      assertEquals(Math.min(2, expected.size() - economy.crewPage * 2), visible);
+      assertEquals(Math.min(8, expected.size() - economy.crewPage * 8), visible);
       Button next = actions.button(host.root.findViewWithTag("expedition-candidate-pages"), "›");
       if (!next.isEnabled()) break;
       next.performClick();
@@ -627,10 +618,10 @@ public class NativeEconomyThemeReviewTest {
     host.root.findViewWithTag("expedition-member-0").performClick();
     assertEquals(Arrays.asList("D1", "D2", "D1", "D3", "D4"), host.expeditionDraft);
     host.busy = false;
-    actions.button(host.root.findViewWithTag("expedition-selected-pages"), "›").performClick();
+    assertNull(host.root.findViewWithTag("expedition-selected-pages"));
     ready(host, SIZES[0]);
     host.root.findViewWithTag("expedition-member-2").performClick();
-    assertEquals("Remove exactly the second-page duplicate, not the first matching ID",
+    assertEquals("Remove exactly the visible third-slot duplicate, not the first matching ID",
         Arrays.asList("D1", "D2", "D3", "D4"), host.expeditionDraft);
     ready(host, SIZES[0]);
     host.root.findViewWithTag("expedition-member-3").performClick();
@@ -638,7 +629,7 @@ public class NativeEconomyThemeReviewTest {
     host.root.findViewWithTag("expedition-member-2").performClick();
     ready(host, SIZES[0]);
     assertEquals(Arrays.asList("D1", "D2"), host.expeditionDraft);
-    assertEquals("Deleting the last page clamps to the remaining page", 0, economy.selectedCrewPage);
+    assertEquals("Selected slots never require paging", 0, economy.selectedCrewPage);
     assertEquals("Presentation paging and draft selection never submit automatically", 0, api.writes);
     assertNull(host.visibleDialog);
   }

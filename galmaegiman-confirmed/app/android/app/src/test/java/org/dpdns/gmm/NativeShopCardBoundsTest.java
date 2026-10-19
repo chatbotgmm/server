@@ -160,7 +160,7 @@ public class NativeShopCardBoundsTest {
     JSONObject me = host.me(), prices = me.optJSONObject("prices");
     if (key.equals("shop:tickets")) {
       JSONObject price = prices.optJSONObject("tickets");
-      return new String[] {"지원서 " + price.optInt("amount") + "장", "새우gang " + price.optInt("snack") + "개", ""};
+      return new String[] {"지원서 " + price.optInt("amount") + "장", "새우gang " + price.optInt("snack") + "개", "보유 " + me.optInt("credits") + "장"};
     }
     if (key.equals("shop:peanutTickets")) {
       return new String[] {"지원서 " + prices.optJSONObject("peanutTickets").optInt("amount") + "장", "땅콩 1개", "땅콩 부족"};
@@ -370,6 +370,8 @@ public class NativeShopCardBoundsTest {
       assertTrue(prompt.contains("지원서 10장 2개"));
       assertTrue(prompt.contains("새우gang 2000개"));
       contract.confirm(host);
+      // AlertDialog posts its click callback behind the next ViewRoot frame.
+      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
       assertEquals(List.of("GET me", "POST shop"), api.requests);
       assertEquals(1, api.writes.size());
       assertEquals(2, api.writes.get(0).length());

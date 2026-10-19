@@ -19,22 +19,16 @@ final class JournalTheme {
   private static Paint brush() {
     Paint p = BRUSH.get(); p.reset(); p.setAntiAlias(true); return p;
   }
-  private static final ColorStateList CONTROL_TEXT = colors(INK);
-  private static final ColorStateList PRIMARY_TEXT = colors(WHITE);
-  private static final ColorStateList TAB_TEXT = new ColorStateList(
-      new int[][] {{-android.R.attr.state_enabled}, {android.R.attr.state_selected},
-          {android.R.attr.state_checked}, {}}, new int[] {MUTED, WHITE, WHITE, INK});
-  static ColorStateList tabText() { return TAB_TEXT; }
-  static ColorStateList navyText() { return PRIMARY_TEXT; }
-
-  private static ColorStateList colors(int normal) {
-    return new ColorStateList(new int[][] {
-      {-android.R.attr.state_enabled}, {android.R.attr.state_selected},
-      {android.R.attr.state_checked}, {android.R.attr.state_activated}, {}},
-      new int[] {MUTED, TEAL, TEAL, TEAL, normal});
-  }
+  // Persistent selection is an outline/tint, never a latched pressed surface.
+  private static final ColorStateList CONTROL_TEXT = new ColorStateList(
+      new int[][] {{-android.R.attr.state_enabled}, {android.R.attr.state_pressed},
+          {android.R.attr.state_hovered}, {}}, new int[] {MUTED, WHITE, WHITE, INK});
+  private static final ColorStateList NAVY_TEXT = new ColorStateList(
+      new int[][] {{-android.R.attr.state_enabled}, {}}, new int[] {MUTED, WHITE});
+  static ColorStateList tabText() { return CONTROL_TEXT; }
+  static ColorStateList navyText() { return NAVY_TEXT; }
   static ColorStateList controlText() { return CONTROL_TEXT; }
-  static ColorStateList controlText(int fill) { return fill == PRIMARY ? PRIMARY_TEXT : CONTROL_TEXT; }
+  static ColorStateList controlText(int fill) { return CONTROL_TEXT; }
 
   private static void surface(Canvas c, RectF b, float density, int fill, int edge,
       float stroke, float depth, Paint p) {

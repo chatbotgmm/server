@@ -18,8 +18,8 @@ final class GameButtonDrawable extends Drawable {
   GameButtonDrawable(MainActivity h, int c) {
     host = h;
     color = c == 0xfffffaf0 ? PAPER : c == 0xffdd9a58 || c == 0xffe0c296 ? PRIMARY : c;
-    if (color == PRIMARY || color == PAPER || color == JournalTheme.SELECTED)
-      ThemeArt.of(h).image(ThemeArt.file(color == PRIMARY ? ThemeArt.Surface.NAVY : ThemeArt.Surface.PAPER));
+    ThemeArt.of(h).image(ThemeArt.file(ThemeArt.Surface.PAPER));
+    ThemeArt.of(h).image(ThemeArt.file(ThemeArt.Surface.NAVY));
   }
 
   @Override
@@ -34,7 +34,7 @@ final class GameButtonDrawable extends Drawable {
       if (value == android.R.attr.state_selected
           || value == android.R.attr.state_checked
           || value == android.R.attr.state_activated) nextSelected = true;
-    boolean changed = state.update(states) | (nextSelected != selected);
+    boolean changed = state.update(states, true) | (nextSelected != selected);
     selected = nextSelected;
     if (changed) invalidateSelf();
     return changed;
@@ -61,12 +61,10 @@ final class GameButtonDrawable extends Drawable {
     if (!state.enabled) {
       // 비활성 글자는 MUTED다. 그림 배경이 비치지 않는 기존 읽기 면을 유지한다.
       drawSurface(c, r, JournalTheme.DISABLED, host.dp(16), host.dp(2), 0, p);
-    } else if (color == PAPER || color == PRIMARY || color == JournalTheme.SELECTED || selected) {
-      ThemeArt.of(host).surface(c,
-          color == PRIMARY && !selected ? ThemeArt.Surface.NAVY : ThemeArt.Surface.PAPER, r);
     } else {
-      // 위험·보상 의미색은 원래 색을 보존한다. 전투 Canvas 정적 경로도 그대로 둔다.
-      drawSurface(c, r, color, host.dp(16), host.dp(2), state.pressed ? 0 : host.dp(2), p);
+      // Every actionable native button rests on parchment. Navy is transient feedback only.
+      ThemeArt.of(host).surface(c,
+          state.pressed ? ThemeArt.Surface.NAVY : ThemeArt.Surface.PAPER, r);
     }
     boolean focused = false;
     for (int value : getState()) if (value == android.R.attr.state_focused) focused = true;
@@ -74,9 +72,13 @@ final class GameButtonDrawable extends Drawable {
       r.inset(host.dp(3), host.dp(3));
       p.setStyle(Paint.Style.STROKE);
       p.setStrokeWidth(host.dp(1.8f));
-      p.setColor(focused && color == PRIMARY && !selected ? JournalTheme.FOCUS : JournalTheme.TEAL);
+      p.setColor(focused ? JournalTheme.FOCUS : JournalTheme.BRASS);
       c.drawRoundRect(r, host.dp(3), host.dp(3), p);
       p.setStyle(Paint.Style.FILL);
+      if (selected && !state.pressed) {
+        p.setColor(0x14628c90);
+        c.drawRoundRect(r, host.dp(3), host.dp(3), p);
+      }
     }
     state.finish(c, save);
     c.restoreToCount(outer);

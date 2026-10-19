@@ -82,17 +82,14 @@ public class NativeRealtimeThemeStateTest {
     }
   }
 
-  RegistrationCardView loadedPreparationCard(MainActivity h, String tag, String id) throws Exception {
-    View view = h.root.findViewWithTag(tag); assertTrue(view instanceof RegistrationCardView);
-    RegistrationCardView card = (RegistrationCardView) view;
-    assertEquals(id, card.picture.id); assertEquals(RegistrationCardView.FULL, card.picture.mode);
-    assertNotNull(card.picture.bitmap); assertFalse(card.picture.bitmap.isRecycled());
-    assertEquals("", card.picture.status);
-    assertEquals(View.GONE, card.name.getVisibility()); assertEquals(View.GONE, card.grade.getVisibility());
-    int bucket = RegistrationArt.widthBucket(card.picture.mode, card.picture.getWidth(), card.picture.getHeight());
-    android.graphics.Bitmap reference = RegistrationArtTest.expected(h, id, RegistrationCardView.FULL, bucket);
-    try { RegistrationArtTest.samePixels("Preparation action " + tag, reference, card.picture.bitmap); }
-    finally { reference.recycle(); }
+  PartyCharacterView loadedPreparationCard(MainActivity h, String tag, String id) throws Exception {
+    View view = h.root.findViewWithTag(tag); assertTrue(view instanceof PartyCharacterView);
+    PartyCharacterView card = (PartyCharacterView) view;
+    assertEquals(id, card.picture.id);
+    new NativeRegistrationReviewTest().assertPartyArt(h, card.picture);
+    JSONObject candidate = NativeRealtime.preparationCandidate(h.realtime.latest.getJSONObject("preparation").getJSONArray("available"), id);
+    assertEquals(candidate.getString("name"), card.name.getText().toString());
+    assertEquals(View.VISIBLE, card.name.getVisibility());
     android.view.accessibility.AccessibilityNodeInfo node = card.createAccessibilityNodeInfo();
     assertTrue(node.getContentDescription().toString().contains("Lv30"));
     assertEquals(Button.class.getName(), node.getClassName().toString());

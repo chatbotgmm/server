@@ -97,10 +97,11 @@ public class NativeAcquisitionFlowTest {
     @Override
     void call(String path, JSONObject body, Result done) {
       requests.add((body == null ? "GET " : "POST ") + path);
-      assertEquals("native/state", path);
+      assertTrue("결과 확인에는 상태·도감 읽기만 사용", path.equals("native/state") || path.equals("native/catalog"));
       assertNull("획득 이동에서는 소비 요청을 재실행하지 않음", body);
       if (deferred) pending = done;
-      else done.done(state, null);
+      else done.done(path.equals("native/catalog")
+          ? MainActivity.obj("units", state.optJSONObject("me").optJSONArray("units")) : state, null);
     }
   }
 
@@ -356,8 +357,14 @@ public class NativeAcquisitionFlowTest {
         assertNotNull(h.root.findViewWithTag("acquisition-craft"));
         assertNull(h.root.findViewWithTag("acquisition-grow"));
         review.capture(h, name + "-collection-grade", size[0], size[1]);
-        assertActionVisible(h, "acquisition-detail", size[0], size[1]);
+        assertNull("별도 상세 버튼을 두지 않음", h.root.findViewWithTag("acquisition-detail"));
         assertActionVisible(h, "acquisition-craft", size[0], size[1]);
+        h.root.findViewWithTag("acquisition-card-C1").performClick();
+        review.capture(h, name + "-direct-card-record", size[0], size[1]);
+        assertNotNull(h.root.findViewWithTag("acquisition-dossier"));
+        h.root.findViewWithTag("acquisition-dossier-back").performClick();
+        assertNull(h.root.findViewWithTag("acquisition-dossier"));
+        assertEquals(1, flow.selected);
         Button confirm = h.root.findViewWithTag("acquisition-confirm");
         assertActionVisible(h, "acquisition-confirm", size[0], size[1]);
         assertTrue("가로 카드·전체 목록 선택 뒤에도 확인 버튼을 누를 수 있음", confirm.performClick());
@@ -370,7 +377,7 @@ public class NativeAcquisitionFlowTest {
   void assertAcquisitionActionsVisible(MainActivity host, int width, int height) {
     for (String tag :
         new String[] {
-          "acquisition-detail", "acquisition-grow", "acquisition-team", "acquisition-confirm"
+          "acquisition-grow", "acquisition-team", "acquisition-confirm"
         }) assertActionVisible(host, tag, width, height);
   }
 
@@ -425,3 +432,4 @@ public class NativeAcquisitionFlowTest {
     }
   }
 }
+

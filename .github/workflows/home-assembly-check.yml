@@ -8,6 +8,14 @@ on:
       - manual/home-assembly-20261019
     paths:
       - galmaegiman-confirmed/app/**
+      - galmaegiman-confirmed/src/**
+      - galmaegiman-confirmed/test/**
+      - galmaegiman-confirmed/prisma/**
+      - galmaegiman-confirmed/data/**
+      - galmaegiman-confirmed/scripts/**
+      - galmaegiman-confirmed/package*.json
+      - galmaegiman-confirmed/tsconfig.json
+      - galmaegiman-confirmed/vitest.config.ts
       - galmaegiman-confirmed/public/battle/**
       - galmaegiman-confirmed/public/thumbs/**
       - galmaegiman-confirmed/art/gpt/registration-v1/**
@@ -21,6 +29,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: galmaegiman-confirmed
+    env:
+      DATABASE_URL: file:./ci.db
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: galmaegiman-confirmed/package-lock.json
+      - name: Install locked backend dependencies
+        run: npm ci
+      - name: Generate Prisma client
+        run: npx prisma generate
+      - name: Test all backend suites with isolated seeded SQLite
+        run: npm run test:db
+      - name: Build backend and packaged web assets
+        run: npm run build
+
   native-home:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -83,6 +120,10 @@ jobs:
         id: feedback_stage1_checks
         run: python3 -m unittest discover -s ci -p test_verify_feedback_stage1_ci.py -v
 
+      - name: Test final feedback evidence validation
+        id: feedback_final_checks
+        run: python3 -m unittest discover -s ci -p test_verify_feedback_final_ci.py -v
+
       # The project excludes NativeRenderReviewTest unless a review token is supplied.
       # Do not supply that token: R1 uses local fixtures and bundled artwork instead.
       # Loopback prevents missing art/API fallbacks from reaching the production service.
@@ -98,7 +139,7 @@ jobs:
         id: full_gate
         run: >
           python3 ci/verify_registration_ci.py junit app/build/test-results/testDebugUnitTest
-          --minimum-tests 350 --previous-skipped 16
+          --minimum-tests 398 --previous-skipped 16
           --require-suite org.dpdns.gmm.NativeAcquisitionFlowTest
           --require-suite org.dpdns.gmm.NativeOperationUiTest
           --require-suite org.dpdns.gmm.NativeNoScrollReviewTest
@@ -127,6 +168,13 @@ jobs:
           --require-unskipped-suite org.dpdns.gmm.NativeHomeTipLayoutTest
           --require-unskipped-suite org.dpdns.gmm.NativeModesShortViewportTest
           --require-unskipped-suite org.dpdns.gmm.NativeShopCardBoundsTest
+          --require-unskipped-suite org.dpdns.gmm.NativeHomePartyFeedbackTest
+          --require-unskipped-suite org.dpdns.gmm.NativeCommerceFeedbackTest
+          --require-unskipped-suite org.dpdns.gmm.NativeAttendanceFeedbackTest
+          --require-unskipped-suite org.dpdns.gmm.NativeResultDossierTest
+          --require-unskipped-suite org.dpdns.gmm.NativeProgressionTest
+          --require-unskipped-suite org.dpdns.gmm.NativeProgressionReviewTest
+          --require-unskipped-suite org.dpdns.gmm.NativeInheritedSkillProtectionTest
           --output app/build/registration-ci/full-suite.json
       # Upload before the targeted rerun overwrites testDebugUnitTest reports.
       - name: Save full native unit-test reports
@@ -270,6 +318,33 @@ jobs:
             galmaegiman-confirmed/app/android/app/build/test-results/testDebugUnitTest/TEST-org.dpdns.gmm.NativeModesShortViewportTest.xml
             galmaegiman-confirmed/app/android/app/build/test-results/testDebugUnitTest/TEST-org.dpdns.gmm.NativeShopCardBoundsTest.xml
             galmaegiman-confirmed/app/android/app/build/feedback-stage1-ci/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Verify final feedback captures and every new unskipped method
+        if: ${{ !cancelled() }}
+        id: feedback_final_gate
+        run: >
+          python3 ci/verify_feedback_final_ci.py
+          --native-review app/build/native-review
+          --test-results app/build/test-results/testDebugUnitTest
+          --full-suite-report app/build/registration-ci/full-suite.json
+          --output app/build/feedback-final-ci/validation.json
+      - name: Save final feedback native images and exact full-suite tests
+        if: always()
+        id: feedback_final_evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-feedback-final-evidence-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/native-review/feedback-home-party/
+            galmaegiman-confirmed/app/android/app/build/native-review/feedback-commerce/
+            galmaegiman-confirmed/app/android/app/build/native-review/feedback-attendance/
+            galmaegiman-confirmed/app/android/app/build/native-review/result-dossier/
+            galmaegiman-confirmed/app/android/app/build/native-review/feature-progression/
+            galmaegiman-confirmed/app/android/app/build/test-results/testDebugUnitTest/
+            galmaegiman-confirmed/app/android/app/build/registration-ci/full-suite.json
+            galmaegiman-confirmed/app/android/app/build/feedback-final-ci/
           if-no-files-found: error
           retention-days: 14
 
@@ -417,7 +492,9 @@ jobs:
           && steps.phase2_assets.outcome == 'success' && steps.phase2_coverage.outcome == 'success' && steps.phase2_ready.outcome == 'success'
           && steps.home_tip_gate.outcome == 'success' && steps.preparation_cards.outcome == 'success'
           && steps.feedback_stage1_checks.outcome == 'success' && steps.feedback_stage1_gate.outcome == 'success'
-          && steps.feedback_stage1_evidence.outcome == 'success' }}
+          && steps.feedback_stage1_evidence.outcome == 'success'
+          && steps.feedback_final_checks.outcome == 'success' && steps.feedback_final_gate.outcome == 'success'
+          && steps.feedback_final_evidence.outcome == 'success' }}
         id: assemble
         run: >
           bash ./gradlew :app:assembleDebug :app:assemblePreview
@@ -484,7 +561,7 @@ jobs:
           compression-level: 0
 
   preview-release:
-    needs: native-home
+    needs: [native-home, backend]
     if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/manual/home-assembly-20261019' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -535,3 +612,4 @@ jobs:
               --title "홈 미리보기 $short" --notes-file notes.md --prerelease --latest=false
           fi
           gh release view "$tag" --repo "$REPO" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"
+

@@ -28,8 +28,12 @@ class PreparationGateTests(unittest.TestCase):
                     offset,values=(3,('D8','L14','E7')) if stem=='prepare-page2' else (0,('D1','D2','D3'))
                     ids.update({f'realtime-prepare-candidate-{offset+i}':identifier for i,identifier in enumerate(values)})
                     w,h=(180,240) if variant=='1280x720' else (129,172)
-                    cards=[{'tag':tag,'id':identifier,'mode':'FULL','pixelIdentityVerified':True,'containedWidth':w,'containedHeight':h,
-                            'bitmapWidth':192,'bitmapHeight':256,'enabled':stem not in ('prepare-ready','prepare-expired'),'dynamicState':'Lv30'} for tag,identifier in ids.items()]
+                    cards=[{'tag':tag,'id':identifier,'mode':'CHARACTER','pixelIdentityVerified':True,'containedWidth':w,'containedHeight':h,
+                            'bitmapWidth':192,'bitmapHeight':256,'enabled':stem not in ('prepare-ready','prepare-expired'),'dynamicState':'Lv30','nameMatchesServer':True,'registrationViews':0,'spritePath':'/duel/sprites/'+identifier+'_s0_front.webp','targetContained':True} for tag,identifier in ids.items()]
+                for card in cards:
+                    if card['id']=='L14':
+                        card.update(spritePath='',imageStatus='이미지 없음',missingIdentityPreserved=True,
+                                    pixelIdentityVerified=False,containedWidth=0,containedHeight=0,bitmapWidth=0,bitmapHeight=0)
                 self.metrics[name]={'actualNativeViews':True,'apiWrites':0,'preparationStatus':status,'preparationCards':cards}
                 self.findings[name]=[]
                 # Deliberately not a PNG: CRC/decoder proof belongs to the mandatory original gate.
@@ -51,6 +55,14 @@ class PreparationGateTests(unittest.TestCase):
     def verify_base(self):verifier.verify_base_report(self.root,self.contract,self.base,list(self.metrics))
     def test_28_complete_cases_and_144_full_cards_pass(self):
         result=self.verify();self.assertEqual(result['actual_prepare_captures'],28);self.assertEqual(result['verified_full_cards'],144);self.verify_base()
+    def test_character_target_must_be_contained(self):self.card()['targetContained']=False;self.reject()
+    def test_character_name_must_match_server(self):self.card()['nameMatchesServer']=False;self.reject()
+    def test_registration_frame_must_be_absent(self):self.card()['registrationViews']=1;self.reject()
+    def test_exact_sprite_path_required(self):self.card()['spritePath']='/duel/sprites/D2_s0_front.webp';self.reject()
+    def test_missing_identity_cannot_substitute_pixels(self):
+        self.metrics['prepare-page2-915x412']['preparationCards'][4]['bitmapWidth']=192;self.reject()
+    def test_missing_identity_fallback_required(self):
+        self.metrics['prepare-page2-915x412']['preparationCards'][4]['missingIdentityPreserved']=False;self.reject()
     def test_missing_status_rejects_prepatch_evidence(self):del self.metrics[self.name]['preparationStatus'];self.reject()
     def test_missing_capture_metric_fails(self):del self.metrics[self.name];self.reject()
     def test_extra_prepare_case_fails(self):self.metrics['prepare-invented']=copy.deepcopy(self.metrics[self.name]);self.reject()
@@ -59,10 +71,10 @@ class PreparationGateTests(unittest.TestCase):
     def test_duplicate_card_tag_fails(self):self.metrics[self.name]['preparationCards'][1]['tag']=self.card()['tag'];self.reject()
     def test_cropped_card_mode_fails(self):self.card()['mode']='THUMB';self.reject()
     def test_unverified_pixels_fail(self):self.card()['pixelIdentityVerified']=False;self.reject()
-    def test_too_small_card_fails(self):self.card()['containedWidth']=127;self.reject()
-    def test_wrong_three_by_four_aspect_fails(self):self.card()['containedWidth']=150;self.reject()
+    def test_too_small_card_fails(self):self.card()['containedHeight']=23;self.reject()
+    def test_wrong_source_aspect_fails(self):self.card()['containedWidth']=150;self.reject()
     def test_nan_card_size_fails(self):self.card()['containedWidth']=float('nan');self.reject()
-    def test_too_small_source_bitmap_fails(self):self.card()['bitmapWidth']=128;self.reject()
+    def test_missing_source_bitmap_fails(self):self.card()['bitmapWidth']=0;self.reject()
     def test_ready_phase_must_lock_cards(self):self.metrics['prepare-ready-915x412']['preparationCards'][0]['enabled']=True;self.reject()
     def test_missing_live_level_fails(self):self.card()['dynamicState']='D1';self.reject()
     def test_empty_case_cannot_invent_cards(self):self.metrics['prepare-empty-915x412']['preparationCards']=[copy.deepcopy(self.card())];self.reject()

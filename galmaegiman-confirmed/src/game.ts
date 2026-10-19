@@ -16,6 +16,8 @@ import { createBattle } from './battle/engine.js';
 import { replay, type PvpEvent } from './battle/replay.js';
 import { planExpedition, rollExpedition, expectedSnacks, type ExpeditionPlan, type Roll } from './expedition.js';
 
+import {awardPlayPoints,progressionState,progressionReceipt,claimMilestone,claimReroll,consumeReroll,transformOwned,requireProgressionIdle} from './progression.js';
+
 type Count={total:number;usable:number;locked:number;away:number};
 type Stock=Map<string,Count>;
 type Tx=Prisma.TransactionClient;
@@ -305,6 +307,7 @@ export class GameService {
   // 오늘(한국 시간)의 미션 진행을 올리고, 새로 달성한 미션 보상을 지급합니다.
   // 조합은 결과 등급에 따라 희귀·전설/히든·최상위 칸도 함께 올립니다.
   private async progress(tx:Tx,p:Player,kind:'DRAW'|'CRAFT'|'EXPEDITION',amount:number,now:Date,crafted?:Tier):Promise<string[]>{
+    await awardPlayPoints(tx,p,amount*(kind==='CRAFT'?3:1),now);
     const day=DateTime.fromJSDate(now).setZone('Asia/Seoul').toISODate()!;
     const add:Record<string,number>={[GameService.missionField[kind]]:amount};
     if(kind==='CRAFT'&&crafted){
@@ -447,6 +450,7 @@ export class GameService {
         if(tiers[c.rarity]>=tiers[pity.tier])counter=0;
       }
       const owned=await this.grant(tx,p,c.id,'GACHA',now);
+      if(kind==='HIGH')await tx.ownedCharacter.update({where:{id:owned.id},data:{obtainedVia:'GACHA_HIGH'}});
       results.push({c,receipt:owned.receipt});out?.push({c,first:Boolean(owned.receipt.first)});
     }
     if(pity)await tx.player.update({where:{id:p.id},data:{highPity:counter}});
@@ -514,11 +518,15 @@ export class GameService {
   private async craft(tx:Tx,p:Player,recipe:Recipe,ids:number[],times:number,now:Date,known:Set<string>,token?:string):Promise<GameReply>{
     const selected=await this.chooseMaterials(tx,p,recipe,known,times);
     if(ids.length!==selected.length||ids.some((id,i)=>id!==selected[i]))throw new GameError('재료 상태가 바뀌었어요. 다시 해 주세요.');
+    const inherited=await tx.ownedCharacter.findMany({where:{id:{in:ids},playerId:p.id,reincarnation:{gt:0}}});
+    if(inherited.length)await requireProgressionIdle(tx,p.id,now);
+    const lineageByOutput=Array.from({length:times},(_,i)=>inherited.filter(u=>ids.slice(i*recipe.materials.length,(i+1)*recipe.materials.length).includes(u.id)));
+    if(lineageByOutput.some(us=>us.length>1))throw new GameError('한 조합에는 환생 계보를 한 마리만 넣을 수 있어요. 계승 능력을 보호하기 위해 취소했어요.');
     const update=await tx.ownedCharacter.updateMany({where:{id:{in:ids},playerId:p.id,status:'AVAILABLE',locked:false},data:{status:'CONSUMED',consumedAt:now}});
     if(update.count!==ids.length)throw new GameError('재료가 겹쳤어요. 다시 해 주세요.');
     const c=this.content.map.get(recipe.resultId)!;
     const receipts:Receipt[]=[];
-    for(let i=0;i<times;i++)receipts.push((await this.grant(tx,p,recipe.resultId,'COMBINATION',now)).receipt);
+    for(let i=0;i<times;i++){const result=await this.grant(tx,p,recipe.resultId,'COMBINATION',now);const parent=lineageByOutput[i][0];if(parent)await tx.ownedCharacter.update({where:{id:result.id},data:{reincarnation:parent.reincarnation,inheritedFrom:parent.inheritedFrom,statBonusPct:parent.statBonusPct}});receipts.push(result.receipt);}
     const after=new Set([...known,...(c.rarity==='HIDDEN'?[c.id]:[])]);
     const first=receipts.find(r=>r.first);
     const discovered=c.rarity==='HIDDEN'&&first?'🔓 숨은 조합을 발견했어요!\n\n':'';
@@ -1127,7 +1135,7 @@ export class GameService {
       const mine=(await tx.comment.findMany({where,select:{id:true}})).map(c=>c.id);
       await tx.commentLike.deleteMany({where:{OR:[{commentId:{in:mine}},{voter:`p:${p.id}`}]}});
       await tx.comment.deleteMany({where});
-      for(const m of [tx.ownedCharacter,tx.collectionEntry,tx.expedition,tx.pendingAction,tx.auditEvent,tx.achievement,tx.dailyProgress,tx.adminSnapshot,tx.webLogin,tx.kakaoLink,tx.storySave,tx.chatAppUser,tx.playerItem] as unknown as {deleteMany:(a:{where:{playerId:string}})=>Promise<unknown>}[])
+      for(const m of [tx.progressionReceipt,tx.progressionMilestone,tx.progressionState,tx.ownedCharacter,tx.collectionEntry,tx.expedition,tx.pendingAction,tx.auditEvent,tx.achievement,tx.dailyProgress,tx.adminSnapshot,tx.webLogin,tx.kakaoLink,tx.storySave,tx.chatAppUser,tx.playerItem] as unknown as {deleteMany:(a:{where:{playerId:string}})=>Promise<unknown>}[])
         await m.deleteMany({where});
       await tx.player.delete({where:{id:p.id}});
       return true;
@@ -1446,15 +1454,15 @@ export class GameService {
   }
   // 스토리용 내 최상위 갈매미(v0.16.2, 개체별): 한 마리마다 번호(oid). 조합·판매로 없어진 것은 빠짐
   async webStoryUnits(playerId:string){
-    const rows=await this.db.ownedCharacter.findMany({where:{playerId,status:{in:['AVAILABLE','EXPEDITION']},characterId:{in:this.topIds}},select:{id:true,characterId:true,locked:true},orderBy:{id:'asc'}});
-    return rows.map(r=>({oid:r.id,id:r.characterId,locked:r.locked}));
+    const rows=await this.db.ownedCharacter.findMany({where:{playerId,status:{in:['AVAILABLE','EXPEDITION']},OR:[{characterId:{in:this.topIds}},{reincarnation:{gt:0},inheritedFrom:{not:null}}]},select:{id:true,characterId:true,locked:true,reincarnation:true,inheritedFrom:true,statBonusPct:true},orderBy:{id:'asc'}});
+    return rows.map(r=>({oid:r.id,id:topTiers.has(this.content.map.get(r.characterId)!.rarity)?r.characterId:(r.inheritedFrom??r.characterId),inheritedFrom:r.inheritedFrom,ownedCharacterId:r.characterId,name:this.content.map.get(r.characterId)!.name,locked:r.locked,reincarnation:r.reincarnation,statBonusPct:r.statBonusPct}));
   }
   private async saveStory(tx:Tx,p:Player,data:unknown){
       if(data===null){await tx.storySave.deleteMany({where:{playerId:p.id}});return true;}
       // 개체 열쇠(o번호)는 지금 가진 최상위 갈매미만 남김. 편성에 있거나 키운 개체는 보호(조합·판매 재료로 안 쓰이게)
       const d=data as {units:Record<string,{level:number;xp:number;learned?:string[];stage?:number}>;team:string[];hp?:Record<string,unknown>};
       const okeys=new Set([...Object.keys(d.units),...d.team,...Object.keys(d.hp??{})].filter(k=>/^o\d+$/.test(k)));
-      const mine=new Set((await tx.ownedCharacter.findMany({where:{playerId:p.id,id:{in:[...okeys].map(k=>+k.slice(1))},status:{in:['AVAILABLE','EXPEDITION']},characterId:{in:this.topIds}},select:{id:true}})).map(r=>`o${r.id}`));
+      const mine=new Set((await tx.ownedCharacter.findMany({where:{playerId:p.id,id:{in:[...okeys].map(k=>+k.slice(1))},status:{in:['AVAILABLE','EXPEDITION']},OR:[{characterId:{in:this.topIds}},{reincarnation:{gt:0},inheritedFrom:{not:null}}]},select:{id:true}})).map(r=>`o${r.id}`));
       const keep=(k:string)=>!/^o\d+$/.test(k)||mine.has(k);
       d.units=Object.fromEntries(Object.entries(d.units).filter(([k])=>keep(k)));d.team=d.team.filter(keep);
       if(d.hp)d.hp=Object.fromEntries(Object.entries(d.hp).filter(([k])=>keep(k)));
@@ -1469,12 +1477,26 @@ export class GameService {
     return this.webRun(playerId,(tx,p)=>this.saveStory(tx,p,data));
   }
   // 네이티브 회복·전투 보상: 아이템 차감과 저장을 같은 거래로 확정한다.
-  async webNativeCommit(playerId:string,item?:{id:string;name:string},data?:unknown){
-    return this.webRun(playerId,async(tx,p)=>{
+  async webNativeCommit(playerId:string,item?:{id:string;name:string},data?:unknown,award?:{session:string;points:number}){
+    return this.webRun(playerId,async(tx,p,now)=>{
+      if(award&&!(p.isAdmin&&p.adminMode)){return progressionReceipt(tx,p,`battle:${award.session}`,'battleReward',{},async()=>{
+        if(item)await this.consumeItem(tx,p,item);if(data!==undefined)await this.saveStory(tx,p,data);
+        await awardPlayPoints(tx,p,award.points,now);return true;});}
       if(item)await this.consumeItem(tx,p,item);
       if(data!==undefined)await this.saveStory(tx,p,data);
       return true;
     });
+  }
+  async webProgression(playerId:string){return this.webRun(playerId,(tx,p,now)=>progressionState(tx,p,this.content,now));}
+  async webProgressionAction(playerId:string,requestId:string,action:'pass'|'reroll'|'reassess'|'reincarnate',value?:string,before?:()=>void){
+    return this.webRun(playerId,(tx,p,now)=>progressionReceipt(tx,p,requestId,action,{value:value??null},async()=>{
+      if(action==='pass')return claimMilestone(tx,p,value!);
+      if(action==='reroll')return claimReroll(tx,p,now);
+      before?.();return transformOwned(tx,p,this.content,value!,action,now);
+    }));
+  }
+  async webConsumeBonusReroll(playerId:string,requestId:string){
+    return this.webRun(playerId,(tx,p,now)=>progressionReceipt(tx,p,requestId,'consumeReroll',{},async()=>{await consumeReroll(tx,p,now);return {ok:true};}));
   }
   // 게임 튜토리얼(v0.15.0): 처음 물을 때 새 유저(스토리 저장·가진 갈매미 없음)면 1단계, 아니면 9(끝)로 정함
   async webTutorial(playerId:string){
@@ -1931,6 +1953,7 @@ export class GameService {
       const c=this.content.map.get(payload.characterId??'');
       if(!c||!this.peanutable(c))throw new GameError('땅콩을 뗄 수 없는 갈매미예요.');
       const unit=await tx.ownedCharacter.findFirst({where:{playerId:p.id,characterId:c.id,status:'AVAILABLE',locked:false},orderBy:{id:'asc'}});
+      if(unit?.reincarnation)throw new GameError('환생 계보는 땅콩떼기로 소모할 수 없어요. 조합으로 이어 키워 주세요.');
       if(!unit)throw new GameError(`${c.name}이(가) 없어요.\n(보호 중이거나 탐험 중인 갈매미는 안 돼요)`);
       await tx.ownedCharacter.update({where:{id:unit.id},data:{status:'CONSUMED',consumedAt:now}});
       await tx.player.update({where:{id:p.id},data:{peanut:{increment:1}}});
@@ -1943,6 +1966,7 @@ export class GameService {
     }else if(action.kind==='SELL'){
       const ids=payload.ids??[];
       const units=await tx.ownedCharacter.findMany({where:{id:{in:ids},playerId:p.id,status:'AVAILABLE',locked:false}});
+      if(units.some(u=>u.reincarnation>0))throw new GameError('환생 계보는 판매할 수 없어요. 조합으로 이어 키워 주세요.');
       if(units.length!==ids.length)throw new GameError('팔 갈매미 상태가 바뀌었어요. 다시 해 주세요.');
       const stock=await this.stock(tx,p);
       for(const [id,n] of materialCounts(units.map(u=>u.characterId)))if(n>this.sellable(this.content.map.get(id)!,stock))throw new GameError('1마리는 남겨야 해요. 다시 해 주세요.');
@@ -2310,3 +2334,4 @@ export class GameService {
     return {text:helpText(this.content.economy),cards:{intro:'🏝 이 섬의 항구는 돌이 지킨다.\n그들을 갈매미라 부른다. 갈매미는 존재한다.',items:this.helpCards(),outro:`이렇게도 써요\n${helpExamples}`},choices:menu};
   }
 }
+

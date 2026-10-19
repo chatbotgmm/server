@@ -353,6 +353,24 @@ public class NativeModesShortViewportTest {
     for (View v : all) {
       if (v instanceof ScrollView || v instanceof HorizontalScrollView
           || v.getClass().getSimpleName().contains("NestedScrollView")) scrolls++;
+      if (v instanceof PartyCharacterView.Artwork && v.getVisibility() == View.VISIBLE) {
+        PartyCharacterView.Artwork picture = (PartyCharacterView.Artwork) v;
+        boolean decoded = picture.bitmap != null && !picture.bitmap.isRecycled()
+            && picture.bitmap.getWidth() >= 64;
+        realImages &= decoded;
+        check(decoded, "Unloaded production character: " + key(v, all), problems);
+        check(picture.path.equals("/duel/sprites/" + picture.id + "_s0_front.webp"),
+            "Character identity/source changed: " + key(v, all), problems);
+        Rect imageBox = bounds(v, host.root), imageVisible = visibleIntersection(v, host);
+        check(positive(imageBox) && imageBox.equals(imageVisible),
+            "Production character View clipped: " + key(v, all), problems);
+        check(!picture.target.isEmpty() && new RectF(0, 0, v.getWidth(), v.getHeight()).contains(picture.target),
+            "Whole character art clipped: " + key(v, all), problems);
+        if (decoded) check(Math.abs(picture.target.width() / picture.target.height()
+            - picture.bitmap.getWidth() / (float) picture.bitmap.getHeight()) < .01f,
+            "Character art aspect ratio changed: " + key(v, all), problems);
+        portraits++;
+      }
       if (v instanceof ImageView && v.getVisibility() == View.VISIBLE) {
         ImageView picture = (ImageView) v;
         boolean decoded = picture.getDrawable() instanceof BitmapDrawable
@@ -591,9 +609,13 @@ public class NativeModesShortViewportTest {
       int count = host.routes.size(); action(host, "modes-ranked").performClick();
       assertEquals(count, host.routes.size()); assertNotNull(host.visibleDialog);
       host.visibleDialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE).performClick();
+      Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(32));
+      assertNull(host.visibleDialog);
       assertEquals("Cancelling ranked confirmation cannot enter a match", count, host.routes.size());
       action(host, "modes-ranked").performClick();
       host.visibleDialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick();
+      Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(32));
+      assertNull(host.visibleDialog);
       assertEquals("fight:rank", host.routes.get(host.routes.size() - 1));
       assertFalse(action(host, "modes-adventure").isEnabled());
       assertEquals(original, host.state.toString()); assertTrue(api.writes.isEmpty());

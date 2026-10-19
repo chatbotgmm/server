@@ -107,10 +107,10 @@ def verify_junit(results, full_report):
     return {"totals": totals, "stage1_suites": {name: suites[name] for name in SUITES}}
 
 
-def verify_png(path, width, height):
+def verify_png(path, width, height, minimum_bytes=10000):
     data = path.read_bytes()
     check(png_dimensions(data) == (width, height), "Wrong PNG dimensions: " + path.name)
-    check(len(data) > 10000, "Missing substantive native scene: " + path.name)
+    check(len(data) > minimum_bytes, "Missing substantive native scene: " + path.name)
     # Android Bitmap.compress emits non-interlaced 8-bit RGB/RGBA. Require all
     # declared scanlines, not merely a plausible IHDR and a nonempty deflate stream.
     bit_depth, color_type, compression, filtering, interlace = struct.unpack_from(">BBBBB", data, 24)
@@ -202,8 +202,6 @@ def verify_shop_metric(metric, profile, state):
         check(inside(icon, image), "Actual shop illustration is clipped by its ImageView")
         texts = card.get("texts")
         wanted = {"shop-card-name", "shop-card-price", "shop-card-state"}
-        if card["tag"] == "shop-card-shop:tickets":
-            wanted.remove("shop-card-state")
         check(isinstance(texts, list) and len(texts) == len(wanted)
               and {text.get("tag") for text in texts} == wanted, "Missing exact card text measurements")
         measured_ink = []
@@ -235,7 +233,7 @@ def verify_shop_metric(metric, profile, state):
     tags = {c.get("tag") for c in controls}
     required = expected_tags | {"JournalButton:‹", "JournalButton:›", "JournalButton:−",
                                 "JournalButton:＋", "JournalButton:최대", "EditText:1"}
-    buy = "JournalButton:땅콩 부족" if state == "blocked-selected" else "JournalButton:선택 상품 구매"
+    buy = "JournalButton:땅콩 부족" if state == "blocked-selected" else ("JournalButton:지원서 10장 구매 · 새우gang 1000개" if state == "first-page" else "JournalButton:1개 구매 · 새우gang 150개")
     check(required | {buy} <= tags, "Missing required shop navigation/quantity/purchase controls")
     indexed_controls = {c["tag"]: c for c in controls}
     check(indexed_controls[buy].get("enabled") is (state != "blocked-selected"), "Wrong shop purchase availability")

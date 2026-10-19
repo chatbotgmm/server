@@ -172,11 +172,21 @@ public class NativeExtrasThemeReviewTest {
     }
     assertNotNull("Production scene view is retained",host.root.findViewWithTag("theme-scene-background"));
     if (page.startsWith("attendance")) {
-      Button attend=host.root.findViewWithTag("daily-attend"); assertNotNull(attend);
+      View attend=host.root.findViewWithTag("daily-attend"); assertNotNull(attend);
       assertEquals(page.equals("attendance-ready"),attend.isEnabled());
-      assertNotNull(host.root.findViewWithTag("daily-missions-next"));
+      assertEquals("Completed attendance is a status label, not a disabled action",
+          page.equals("attendance-ready"), attend instanceof Button);
+      assertNotNull(host.root.findViewWithTag("daily-week-grid"));
+      for (int day=1;day<=7;day++) {
+        View cell=host.root.findViewWithTag("daily-day-"+day); assertNotNull(cell);
+        assertEquals(geometry.bounds(cell,root),geometry.visibleIntersection(cell,root)); bounds++;
+      }
+      NativeExtras.DailyMissionBoard board=host.root.findViewWithTag("daily-mission-pages");
+      assertEquals(board.pageCount>1,host.root.findViewWithTag("daily-missions-next")!=null);
     }
-    int expectedContrast=page.startsWith("attendance")?2:page.startsWith("rank")||page.equals("practice-picker")?1:0;
+    int expectedContrast=page.startsWith("attendance")
+        ? (host.root.findViewWithTag("daily-missions-number")==null?1:2)
+        :page.startsWith("rank")||page.equals("practice-picker")?1:0;
     assertEquals("Every caption over scene art has explicit readable ink and backing",expectedContrast,contrastLabels);
     assertTrue(bounds>0 && actions>0 && text>0); assertEquals(0,api.writes);
     Bitmap scene=ThemeArt.of(host).image(scene(page)); assertNotNull(scene);

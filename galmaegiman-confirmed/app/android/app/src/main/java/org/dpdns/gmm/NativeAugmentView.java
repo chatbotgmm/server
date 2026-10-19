@@ -25,6 +25,7 @@ final class NativeAugmentView extends LinearLayout {
   final TextView title, compare, hint, timerRule;
   final long deadline, clockOffset;
   boolean refreshing;
+  final long bonusReceivedAt = android.os.SystemClock.elapsedRealtime();
   final Runnable tick =
       new Runnable() {
         public void run() {
@@ -41,8 +42,11 @@ final class NativeAugmentView extends LinearLayout {
                           ? h.realtime.writing ? "선택 전송 중" : "상대 선택 대기"
                           : ((remaining + 999) / 1000) + "초"));
           for (View pick : picks) pick.setEnabled(localInput);
-          for (int i = 0; i < rerolls.size(); i++)
-            rerolls.get(i).setEnabled(localInput && !offers.optJSONObject(i).optBoolean("rerolled"));
+          for (int i = 0; i < rerolls.size(); i++) {
+            JSONObject offer = offers.optJSONObject(i);
+            rerolls.get(i).setEnabled(localInput && canReroll(offer));
+            rerolls.get(i).setText(rerollLabel(offer));
+          }
           confirm.setEnabled(localInput && (switching ? switchTo >= 0 : !selected.isEmpty()));
           if (remaining <= 0) {
             confirm.setEnabled(false);
@@ -405,9 +409,9 @@ final class NativeAugmentView extends LinearLayout {
       Button reroll =
           k.action(
               null,
-              aug.optBoolean("rerolled") ? "재추첨 완료" : "다시 뽑기",
+              rerollLabel(aug),
               () -> {
-                if (!canChoose()) return;
+                if (!canChoose() || !canReroll(aug)) return;
                 if (id.equals(selected)) {
                   selected = "";
                   h.pendingAugment = "";
@@ -419,7 +423,7 @@ final class NativeAugmentView extends LinearLayout {
       reroll.setPadding(h.dp(4), 0, h.dp(4), h.dp(2));
       reroll.setMinHeight(h.dp(48));
       reroll.setMinimumHeight(h.dp(48));
-      reroll.setEnabled(!aug.optBoolean("rerolled"));
+      reroll.setEnabled(canChoose() && canReroll(aug));
       LayoutParams rp = new LayoutParams(-1, h.dp(48));
       rp.topMargin = h.dp(4);
       LinearLayout actions = k.row();
@@ -532,6 +536,24 @@ final class NativeAugmentView extends LinearLayout {
                 : "30초 안에 확정하지 않으면 선택지 중 무작위로 결정돼요.");
   }
 
+  static boolean bonusRerollAvailable(JSONObject battle, long estimatedServerNow) {
+    JSONObject bonus = battle.optJSONObject("bonusReroll");
+    return "choose".equals(battle.optString("phase")) && battle.optLong("serverNow") > 0
+        && bonus != null && bonus.optBoolean("available")
+        && bonus.optLong("expiresAt") > estimatedServerNow;
+  }
+
+  boolean canReroll(JSONObject offer) {
+    if (offer == null) return false;
+    long now = battleView.battle.optLong("serverNow")
+        + Math.max(0, android.os.SystemClock.elapsedRealtime() - bonusReceivedAt);
+    return !offer.optBoolean("rerolled") || bonusRerollAvailable(battleView.battle, now);
+  }
+
+  String rerollLabel(JSONObject offer) {
+    return !offer.optBoolean("rerolled") ? "다시 뽑기" : canReroll(offer) ? "추가 +1 사용" : "재추첨 완료";
+  }
+
   boolean canChoose() {
     if (h.busy || (deadline > 0 && System.currentTimeMillis() + clockOffset >= deadline)) return false;
     if (!NativeRealtime.isBattle(battleView.battle)) return true;
@@ -611,3 +633,4 @@ final class NativeAugmentView extends LinearLayout {
     }
   }
 }
+

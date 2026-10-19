@@ -90,136 +90,263 @@ final class NativeExtras {
   }
 
   void daily() {
-    h.base("출석체크", "daily");
-    LinearLayout[] cols = fixedSplit(.44f);
+    h.base("출석 · 미션", "daily");
+    Button progression = k.action(null, "성장 · 플레이 패스", () -> new NativeProgression(h).open());
+    progression.setTag("daily-progression");
+    // Header rail keeps the attendance ledger and mission viewport unchanged.
+    LinearLayout header = (LinearLayout) h.page.findViewWithTag("theme-page-header");
+    if (header != null) header.addView(progression, new LinearLayout.LayoutParams(h.dp(164), h.dp(48)));
+    LinearLayout[] cols = fixedSplit(.40f);
     m.fetch("daily", r -> {
       JSONObject attendance = r.optJSONObject("attend");
-      if (attendance != null) {
-        boolean today = attendance.optBoolean("today");
-        int current = attendance.optInt("dayInWeek", 1);
-        JSONArray rewards = h.list(attendance, "rewards");
-        LinearLayout ledger = k.paper();
-        ledger.setTag("daily-attendance-summary");
-        LinearLayout hero = k.row();
-        hero.addView(sceneIcon("daily", h.compact() ? 76 : 112));
-        LinearLayout detail = k.column();
-        detail.addView(heading(attendance.optInt("week") + "주째 · " + current + "일째", 18));
-        int reward = today ? rewards.optInt(Math.max(0, current - 1)) : attendance.optInt("next");
-        detail.addView(heading("지원서 " + reward + "장", 20));
-        detail.addView(k.note(today ? "오늘 받은 출석 보상" : "오늘 받을 출석 보상"));
-        hero.addView(detail, new LinearLayout.LayoutParams(0, -2, 1));
-        ledger.addView(hero);
-        if (attendance.optInt("streak") > 0)
-          ledger.addView(k.note(attendance.optInt("streak") + "일 연속 출석 중"));
-        cols[0].addView(ledger);
-        Button attend = k.primary(null, today ? "출석 완료" : "지원서 " + reward + "장 받기",
-            () -> h.mutate("attend", MainActivity.obj(), "daily"));
-        attend.setTag("daily-attend");
-        NativeTutorialController.anchorPreservingTag(attend, "attend"); attend.setEnabled(!today);
-        fixedAction(cols[0], attend);
-        fixedAction(cols[0], k.action(null, "출석표 · 보상 안내", () -> attendanceSheet(attendance)));
-      }
-      JSONArray missions = h.list(r, "missions");
-      int done = 0;
-      for (int i = 0; i < missions.length(); i++) if (missions.optJSONObject(i).optBoolean("done")) done++;
-      cols[1].addView(plaque("오늘의 미션 · " + done + "/" + missions.length(), 18));
-      LinearLayout board = k.column();
-      board.setTag("daily-mission-pages");
-      cols[1].addView(board, new LinearLayout.LayoutParams(-1, -2));
-      int perPage = h.compact() ? (h.getResources().getConfiguration().fontScale > 1.15f ? 1 : 2) : 3;
-      int count = Math.max(1, (missions.length() + perPage - 1) / perPage);
-      int[] page = {0}; Runnable[] paint = new Runnable[1];
-      paint[0] = () -> {
-        board.removeAllViews();
-        if (missions.length() == 0) board.addView(k.notice("오늘의 미션이 없어요."));
-        for (int i = page[0] * perPage; i < Math.min(missions.length(), (page[0] + 1) * perPage); i++) {
-          LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(-1, -2);
-          slot.topMargin = h.dp(5); board.addView(missionCard(missions.optJSONObject(i)), slot);
-        }
-        pageBar(board, "daily-missions", page[0], count, value -> { page[0] = value; paint[0].run(); });
-        TextView reset = k.note("달성 시 자동 지급 · 한국 시간 밤 12시 초기화");
-        reset.setTextSize(12); reset.setTag("daily-reset-note");
-        reset.setTextColor(JournalTheme.INK); reset.setBackground(new GamePaperDrawable(h));
-        board.addView(reset);
-      };
-      paint[0].run();
+      if (attendance != null)
+        cols[0].addView(attendanceLedger(attendance), new LinearLayout.LayoutParams(-1, -2));
+      DailyMissionBoard missions = new DailyMissionBoard(h.list(r, "missions"));
+      cols[1].addView(missions, new LinearLayout.LayoutParams(-1, -1));
     });
   }
 
-  void attendanceSheet(JSONObject attendance) {
-    k.openSheet(
-        "출석표 · 보상 안내",
-        () -> {
-          LinearLayout contents = k.column();
-          contents.addView(k.note("출석은 날마다·주마다 보상이 커져요. 하루 빠지면 1일째부터 시작해요."));
-          contents.addView(k.note("한국 시간 밤 12시에 초기화해요."));
-          JSONArray rewards = h.list(attendance, "rewards");
-          int current = attendance.optInt("dayInWeek", 1);
-          boolean today = attendance.optBoolean("today");
-          for (int i = 0; i < rewards.length(); i++) {
-            int day = i + 1;
-            boolean got = day < current || day == current && today;
-            LinearLayout card = k.paper();
-            if (day == current) card.setBackground(new GamePanelDrawable(h));
-            LinearLayout row = k.row();
-            row.addView(
-                k.image("/duel/icons/" + (day == 7 ? "u-gift" : "u-ticket") + ".png", 28, 28));
-            TextView reward = heading(day + "일째 · 지원서 " + rewards.optInt(i) + "장", 17);
-            row.addView(reward, new LinearLayout.LayoutParams(0, -2, 1));
-            TextView status = k.note(got ? "✓ 받음" : day == current ? "오늘" : "다음 보상");
-            if (got) status.setTextColor(JournalTheme.POSITIVE_INFO);
-            row.addView(status);
-            card.addView(row);
-            contents.addView(card);
-          }
-          return contents;
-        });
+  /** 서버가 내려 준 이번 주 7칸을 그대로 보여 준다. 보상/주차를 클라이언트에서 계산하지 않는다. */
+  LinearLayout attendanceLedger(JSONObject attendance) {
+    boolean today = attendance.optBoolean("today");
+    int current = attendance.optInt("dayInWeek", 1);
+    JSONArray rewards = h.list(attendance, "rewards");
+    int reward = today ? rewards.optInt(Math.max(0, current - 1)) : attendance.optInt("next");
+    LinearLayout ledger = k.column();
+    ledger.setTag("daily-attendance-summary");
+    ledger.setPadding(h.dp(6), h.dp(6), h.dp(6), h.dp(6));
+    ledger.setBackground(new GamePaperDrawable(h));
+
+    LinearLayout summary = k.row();
+    summary.addView(sceneIcon("daily", 28));
+    TextView week = dailyText(attendance.optInt("week") + "주째 · " + current + "일째", 14, true);
+    week.setTag("daily-week");
+    week.setPadding(h.dp(4), 0, h.dp(4), 0);
+    summary.addView(week, new LinearLayout.LayoutParams(0, -2, 1));
+    TextView streak = dailyText(attendance.optInt("streak") + "일 연속", 11, false);
+    streak.setTag("daily-streak");
+    streak.setTextColor(JournalTheme.MUTED);
+    summary.addView(streak);
+    ledger.addView(summary, new LinearLayout.LayoutParams(-1, -2));
+
+    LinearLayout grid = k.column();
+    grid.setTag("daily-week-grid");
+    for (int start = 0; start < rewards.length(); start += 4) {
+      LinearLayout row = k.row();
+      row.setBaselineAligned(false);
+      for (int i = start; i < Math.min(start + 4, rewards.length()); i++) {
+        int day = i + 1;
+        boolean got = day < current || day == current && today;
+        LinearLayout cell = k.column();
+        cell.setTag("daily-day-" + day);
+        cell.setGravity(Gravity.CENTER);
+        cell.setPadding(h.dp(3), h.dp(2), h.dp(3), h.dp(2));
+        cell.setSelected(day == current);
+        android.graphics.drawable.GradientDrawable surface = new android.graphics.drawable.GradientDrawable();
+        surface.setCornerRadius(h.dp(5));
+        surface.setColor(day == current ? JournalTheme.NAVY : got ? JournalTheme.STONE : 0xfffff8e8);
+        surface.setStroke(h.dp(day == current ? 2 : 1), day == current ? JournalTheme.BRASS : JournalTheme.LINE);
+        cell.setBackground(surface);
+        int ink = day == current ? JournalTheme.WHITE : JournalTheme.INK;
+        LinearLayout dayHeading = k.row();
+        TextView dayLabel = dailyText(String.valueOf(day), 12, true);
+        dayLabel.setContentDescription(day + "일째");
+        dayLabel.setTag("daily-day-label-" + day); dayLabel.setTextColor(ink);
+        dayHeading.addView(dayLabel);
+        String status = day == current ? today ? "오늘 ✓" : "오늘" : got ? "✓ 받음" : "예정";
+        TextView state = dailyText(status, 10, false);
+        state.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+        state.setPadding(h.dp(2), 0, 0, 0);
+        state.setTag("daily-day-state-" + day); state.setTextColor(ink);
+        dayHeading.addView(state, new LinearLayout.LayoutParams(0, -2, 1));
+        cell.addView(dayHeading, new LinearLayout.LayoutParams(-1, -2));
+        LinearLayout amount = k.row(); amount.setGravity(Gravity.CENTER);
+        ImageView icon = k.image("/duel/icons/" + (day == 7 ? "u-gift" : "u-ticket") + ".png", 16, 16);
+        icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        amount.addView(icon);
+        TextView tickets = dailyText(rewards.optInt(i) + "장", 14, true);
+        tickets.setPadding(h.dp(2), 0, 0, 0); tickets.setTextColor(ink);
+        tickets.setTag("daily-day-reward-" + day); amount.addView(tickets);
+        cell.addView(amount);
+        cell.setContentDescription(day + "일째, 지원서 " + rewards.optInt(i) + "장, "
+            + (day == current ? "오늘, " : "") + (got ? "받음" : day == current ? "받을 수 있음" : "예정"));
+        cell.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+        // 마지막 주간 보상은 2칸 너비로 강조한다. 세로 높이나 보상량은 바꾸지 않는다.
+        LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, -2, day == 7 ? 2 : 1);
+        if (i > start) slot.leftMargin = h.dp(4);
+        row.addView(cell, slot);
+      }
+      LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(-1, -2);
+      slot.topMargin = h.dp(4); grid.addView(row, slot);
+    }
+    ledger.addView(grid);
+
+    View claim;
+    if (today) {
+      TextView received = dailyText("✓ 오늘 지원서 " + reward + "장 받음", 14, true);
+      received.setTextColor(JournalTheme.POSITIVE_INFO);
+      received.setGravity(Gravity.CENTER);
+      received.setEnabled(false);
+      received.setMinimumHeight(h.dp(30));
+        claim = received;
+    } else {
+      Button attend = k.primary(null, "지원서 " + reward + "장 받기",
+          () -> h.mutate("attend", MainActivity.obj(), "daily"));
+      attend.setTextSize(h.uiText(14));
+      attend.setPadding(h.dp(8), 0, h.dp(8), 0);
+      claim = attend;
+    }
+    claim.setTag("daily-attend");
+    NativeTutorialController.anchorPreservingTag(claim, "attend");
+    LinearLayout.LayoutParams claimSlot = new LinearLayout.LayoutParams(-1, today ? -2 : h.dp(48));
+    claimSlot.topMargin = h.dp(4); ledger.addView(claim, claimSlot);
+    TextView rule = dailyText("주마다 보상 증가 · 결석 시 1일째", 10, false);
+    rule.setTag("daily-attendance-rule"); rule.setTextColor(JournalTheme.MUTED);
+    rule.setGravity(Gravity.CENTER); rule.setPadding(0, h.dp(3), 0, 0); ledger.addView(rule);
+    return ledger;
   }
 
-  /** 보상은 숫자와 단위를 한 덩어리로 측정해 큰 글자에서도 세로로 갈라지지 않는다. */
+  TextView dailyText(String value, float size, boolean strong) {
+    TextView text = h.text(value, size);
+    text.setPadding(0, 0, 0, 0);
+    text.setTypeface(strong ? h.headline : h.prose);
+    return text;
+  }
+
+  /** 완성/진행/지급 중을 서버 상태 그대로 표시한다. 카드는 수령 버튼이 아니다. */
   LinearLayout missionCard(JSONObject mission) {
     LinearLayout card = k.column();
-    card.setTag("daily-mission-" + mission.optString("id", mission.optString("label")));
-    card.setPadding(h.dp(8), h.dp(7), h.dp(8), h.dp(7));
+    String key = mission.optString("key", mission.optString("id", mission.optString("label")));
+    card.setTag("daily-mission-" + key);
+    card.setPadding(h.dp(6), h.dp(5), h.dp(6), h.dp(5));
     card.setBackground(new GamePaperDrawable(h));
-    LinearLayout heading = k.row();
-    TextView label = h.text(RecruitmentText.display(mission.optString("label")), 15);
-    label.setTypeface(h.headline);
-    label.setPadding(0, 0, h.dp(8), 0);
-    heading.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
-    heading.addView(k.image("/duel/icons/u-ticket.png", 22, 22));
-    TextView reward = h.text(String.format(Locale.KOREA, "%,d장", mission.optInt("tickets")), 15);
-    reward.setTypeface(h.prose, android.graphics.Typeface.BOLD);
-    reward.setTag("native-mission-reward");
-    reward.setPadding(h.dp(4), 0, 0, 0);
-    reward.setSingleLine(true);
-    reward.setContentDescription("지원서 " + reward.getText());
-    heading.addView(reward, new LinearLayout.LayoutParams(-2, -2));
-    card.addView(heading);
+    TextView label = dailyText(RecruitmentText.display(mission.optString("label")), 14, true);
+    label.setTag("daily-mission-label-" + key);
+    card.addView(label, new LinearLayout.LayoutParams(-1, -2));
     int goal = Math.max(1, mission.optInt("goal"));
     int value = Math.min(goal, Math.max(0, mission.optInt("value")));
     LinearLayout detail = k.row();
-    TextView progress = k.note("진행 " + value + "/" + goal);
-    progress.setPadding(0, h.dp(3), h.dp(6), h.dp(3));
-    progress.setSingleLine(true);
-    progress.setTextSize(12);
-    detail.addView(progress, new LinearLayout.LayoutParams(0, -2, 1));
-    TextView status =
-        k.note(mission.optBoolean("done") ? "✓ 지급 완료" : value >= goal ? "지급 중" : "진행 중");
-    status.setPadding(0, h.dp(3), 0, h.dp(3));
-    status.setSingleLine(true);
-    status.setTextSize(12);
-    if (mission.optBoolean("done")) status.setTextColor(JournalTheme.POSITIVE_INFO);
-    detail.addView(status, new LinearLayout.LayoutParams(-2, -2));
-    card.addView(detail);
+    detail.setPadding(0, h.dp(3), 0, h.dp(2));
+    TextView progress = dailyText(value + "/" + goal, 11, false);
+    progress.setTag("daily-mission-progress-" + key);
+    progress.setContentDescription("진행 " + value + "/" + goal);
+    progress.setPadding(0, 0, h.dp(4), 0); detail.addView(progress);
+    TextView status = dailyText(mission.optBoolean("done") ? "✓ 지급 완료" : value >= goal ? "지급 중" : "진행 중", 11, false);
+    status.setTag("daily-mission-state-" + key);
+    status.setTextColor(mission.optBoolean("done") ? JournalTheme.POSITIVE_INFO : JournalTheme.MUTED);
+    detail.addView(status, new LinearLayout.LayoutParams(0, -2, 1));
+    ImageView ticket = k.image("/duel/icons/u-ticket.png", 14, 14);
+    ticket.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO); detail.addView(ticket);
+    TextView reward = dailyText(String.format(Locale.KOREA, "%,d장", mission.optInt("tickets")), 12, true);
+    reward.setTag("native-mission-reward"); reward.setPadding(h.dp(2), 0, 0, 0);
+    reward.setSingleLine(true); reward.setContentDescription("지원서 " + reward.getText());
+    detail.addView(reward); card.addView(detail);
     ProgressBar bar = new ProgressBar(h, null, android.R.attr.progressBarStyleHorizontal);
-    bar.setMax(goal);
-    bar.setProgress(value);
-    bar.setProgressTintList(
-        android.content.res.ColorStateList.valueOf(
-            mission.optBoolean("done") ? JournalTheme.TEAL : JournalTheme.BRASS));
-    card.addView(bar, new LinearLayout.LayoutParams(-1, h.dp(7)));
+    bar.setTag("daily-mission-bar-" + key); bar.setMax(goal); bar.setProgress(value);
+    bar.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    bar.setProgressTintList(android.content.res.ColorStateList.valueOf(
+        mission.optBoolean("done") ? JournalTheme.TEAL : JournalTheme.BRASS));
+    card.addView(bar, new LinearLayout.LayoutParams(-1, h.dp(3)));
     return card;
+  }
+
+  /** 두 열의 미션을 실제 측정 높이로 배치한다. 모두 들어가면 페이지 조작은 아예 만들지 않는다. */
+  final class DailyMissionBoard extends LinearLayout {
+    final ArrayList<LinearLayout> cards = new ArrayList<>();
+    final TextView title, reset;
+    final LinearLayout rows, navigation;
+    int page, perPage = 6, pageCount = 1, previousWidth = -1, previousHeight = -1;
+    boolean dirty = true;
+
+    DailyMissionBoard(JSONArray missions) {
+      super(NativeExtras.this.h); setOrientation(VERTICAL); setTag("daily-mission-pages");
+      setPadding(h.dp(6), h.dp(5), h.dp(6), h.dp(5));
+      setBackground(new GamePaperDrawable(h));
+      int done = 0;
+      for (int i = 0; i < missions.length(); i++) {
+        JSONObject mission = missions.optJSONObject(i);
+        if (mission == null) continue;
+        if (mission.optBoolean("done")) done++;
+        cards.add(missionCard(mission));
+      }
+      title = dailyText("오늘의 미션 · " + done + "/" + cards.size(), 16, true);
+      title.setTag("daily-mission-heading"); title.setPadding(h.dp(2), 0, h.dp(2), h.dp(5));
+      addView(title, new LayoutParams(-1, -2));
+      rows = k.column(); rows.setTag("daily-mission-grid");
+      addView(rows, new LayoutParams(-1, 0, 1));
+      navigation = k.row(); navigation.setGravity(Gravity.CENTER);
+      navigation.setTag("daily-missions-navigation"); addView(navigation, new LayoutParams(-1, -2));
+      reset = dailyText("달성 시 자동 지급 · 한국 시간 밤 12시 초기화", 11, false);
+      reset.setTag("daily-reset-note"); reset.setTextColor(JournalTheme.INK);
+      reset.setBackground(new GamePaperDrawable(h));
+      reset.setPadding(h.dp(2), h.dp(4), h.dp(2), 0);
+      addView(reset, new LayoutParams(-1, -2));
+    }
+
+    @Override protected void onMeasure(int widthSpec, int heightSpec) {
+      int width = MeasureSpec.getSize(widthSpec), height = MeasureSpec.getSize(heightSpec);
+      if (dirty || width != previousWidth || height != previousHeight) {
+        int inside = Math.max(1, width - getPaddingLeft() - getPaddingRight());
+        int exact = MeasureSpec.makeMeasureSpec(inside, MeasureSpec.EXACTLY);
+        int free = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED);
+        title.measure(exact, free); reset.measure(exact, free);
+        int cellWidth = Math.max(1, (inside - h.dp(6)) / 2), tallest = 0;
+        for (LinearLayout card : cards) {
+          card.measure(MeasureSpec.makeMeasureSpec(cellWidth, MeasureSpec.EXACTLY), free);
+          tallest = Math.max(tallest, card.getMeasuredHeight());
+        }
+        int available = Math.max(0, height - getPaddingTop() - getPaddingBottom()
+            - title.getMeasuredHeight() - reset.getMeasuredHeight());
+        int rowHeight = tallest + h.dp(5), allRows = (cards.size() + 1) / 2;
+        int fittingRows = allRows * rowHeight <= available ? allRows
+            : Math.max(1, (available - h.dp(48)) / Math.max(1, rowHeight));
+        int newPerPage = Math.max(2, fittingRows * 2);
+        int first = page * perPage;
+        perPage = newPerPage; pageCount = Math.max(1, (cards.size() + perPage - 1) / perPage);
+        page = Math.min(pageCount - 1, first / perPage);
+        paint(tallest);
+        previousWidth = width; previousHeight = height; dirty = false;
+      }
+      super.onMeasure(widthSpec, heightSpec);
+    }
+
+    void change(int next) {
+      if (next < 0 || next >= pageCount || next == page || h.busy) return;
+      page = next; dirty = true; requestLayout();
+    }
+
+    void paint(int height) {
+      rows.removeAllViews(); navigation.removeAllViews();
+      for (LinearLayout card : cards)
+        if (card.getParent() instanceof ViewGroup) ((ViewGroup) card.getParent()).removeView(card);
+      if (cards.isEmpty()) rows.addView(k.notice("오늘의 미션이 없어요."));
+      for (int start = page * perPage; start < Math.min(cards.size(), (page + 1) * perPage); start += 2) {
+        LinearLayout row = k.row(); row.setBaselineAligned(false);
+        for (int i = start; i < Math.min(start + 2, cards.size()); i++) {
+          LayoutParams slot = new LayoutParams(0, height, 1);
+          if (i > start) slot.leftMargin = h.dp(6);
+          row.addView(cards.get(i), slot);
+        }
+        if (row.getChildCount() == 1) row.addView(new View(h), new LayoutParams(0, height, 1));
+        LayoutParams slot = new LayoutParams(-1, height); slot.bottomMargin = h.dp(5);
+        rows.addView(row, slot);
+      }
+      navigation.setVisibility(pageCount > 1 ? VISIBLE : GONE);
+      if (pageCount > 1) {
+        Button previous = k.action(null, "‹", () -> change(page - 1));
+        previous.setTag("daily-missions-previous"); previous.setContentDescription("이전 미션");
+        previous.setPadding(0, 0, 0, 0); previous.setEnabled(page > 0);
+        navigation.addView(previous, new LayoutParams(h.dp(48), h.dp(48)));
+        TextView number = dailyText((page + 1) + " / " + pageCount, 12, false);
+        number.setTag("daily-missions-number"); number.setGravity(Gravity.CENTER);
+        number.setTextColor(JournalTheme.INK); number.setBackground(new GamePaperDrawable(h));
+        navigation.addView(number, new LayoutParams(h.dp(56), h.dp(48)));
+        Button next = k.action(null, "›", () -> change(page + 1));
+        next.setTag("daily-missions-next"); next.setContentDescription("다음 미션");
+        next.setPadding(0, 0, 0, 0); next.setEnabled(page + 1 < pageCount);
+        navigation.addView(next, new LayoutParams(h.dp(48), h.dp(48)));
+      }
+    }
   }
 
   void pvp() {
@@ -532,8 +659,7 @@ final class NativeExtras {
     for (String[] entry :
         new String[][] {
           {"m-account", "계정 관리", "account"},
-          {"mode-rank", "랭크 순위", "pvp"},
-          {"u-settings", "설정", "settings"}
+          {"mode-rank", "랭크 순위", "pvp"}
         }) {
       Button button =
           k.action(
@@ -541,8 +667,7 @@ final class NativeExtras {
               entry[1],
               () -> {
                 popup.dismiss();
-                if (entry[2].equals("settings")) settings();
-                else h.load(entry[2]);
+                h.load(entry[2]);
               });
       button.setTag("profile-action-" + entry[2]);
       button.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);

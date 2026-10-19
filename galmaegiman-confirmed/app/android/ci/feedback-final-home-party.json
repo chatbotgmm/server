@@ -1,0 +1,30 @@
+{
+  "suite": "feedback-home-party",
+  "testClass": "org.dpdns.gmm.NativeHomePartyFeedbackTest",
+  "outputDirectory": "${gmm.nativeReviewOutput:-build/native-review}/feedback-home-party",
+  "profiles": [
+    {"name": "phone-915x412", "widthPx": 915, "heightPx": 412, "densityDpi": 160, "fontScale": 1},
+    {"name": "short-780x319", "widthPx": 780, "heightPx": 319, "densityDpi": 160, "fontScale": 1},
+    {"name": "short-highdensity-2048x838", "widthPx": 2048, "heightPx": 838, "densityDpi": 420, "fontScale": 1, "insetsPx": [73, 26, 26, 26]},
+    {"name": "short-font130-915x374", "widthPx": 915, "heightPx": 374, "densityDpi": 160, "fontScale": 1.3}
+  ],
+  "scenes": ["home", "party-story", "party-pvp", "modes", "realtime", "missing-sprite"],
+  "requiredScreenCaptureCount": 24,
+  "screenFilename": "{profile}-{scene}.png",
+  "requiredButtonCaptureCount": 18,
+  "buttonFilename": "button-{paper|primary|tab}-{default|pressed|released|cancelled|selected|disabled}.png",
+  "extraCapture": "home-grounded-drag.png",
+  "files": {
+    "manifest.json": "schemaVersion=1, suite, baseline, profiles, captures, renderer, insetMethod, identitySource, requiredCaptureCount=24",
+    "findings.json": "object keyed by all 24 screen filenames; each value must be an empty array",
+    "metrics.json": "object keyed by all 24 screen filenames; profile, scene, artworks[], controls[], liveLabels[], registrationViews=0, apiWrites=0",
+    "button-states.json": "paper/primary/tab: default, pressed, released, cancelled, selected, disabled tone fractions",
+    "home-navigation.json": "route tag -> route, cancelDispatches=0, releaseDispatches=1",
+    "party-save-behavior.json": "story/pvp path, exact payload, writes=1, saved=true",
+    "realtime-locks.json": "writes, pendingLock=true, readyLock=true, stalePhaseBlocked=true, deadlineBlocked=true",
+    "home-grounded-drag.json": "feetY, controlsChecked=13, actualTouchDispatch=true, cancelledReturnSettled=true, apiWrites=0"
+  },
+  "artworkMetrics": ["id", "status", "viewPx", "visiblePx", "targetPx", "bitmapWidth", "bitmapHeight", "expectedSource"],
+  "rendering": "Production Android Views using native Robolectric graphics with pinned synthetic WindowInsetsCompat; not physical-device evidence",
+  "localExecution": "Not run: Android SDK unavailable. Java17 syntax and source-scope checks passed."
+}

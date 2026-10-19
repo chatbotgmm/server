@@ -102,10 +102,10 @@ export function consumedItemSides(before:Battle,after:Battle):Array<0|1>{
   }
   return used;
 }
-export function rerollCommand(b:Battle,side:Side,index:number):Battle{
+export function rerollCommand(b:Battle,side:Side,index:number,bonus=false):Battle{
   if(!Number.isInteger(index)||index<0)fail();
   const next=clone(b);
-  try{rerollAugment(next,side,index);}catch{fail();}
+  try{rerollAugment(next,side,index,bonus);}catch{fail();}
   return next;
 }
 export function resolvePhase(b:Battle,commands:[Command|null,Command|null],automatic:[boolean,boolean]):Battle{
@@ -126,3 +126,4 @@ export function resolvePhase(b:Battle,commands:[Command|null,Command|null],autom
   else act(next,actions as [Action,Action],{prevalidated:true});
   return next;
 }
+

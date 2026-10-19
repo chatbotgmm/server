@@ -1067,14 +1067,27 @@ final class NativeLibrary {
             .show();
   }
 
+  static boolean protectedReplacement(JSONObject unit, String skillId) {
+    if (unit == null || skillId == null) return false;
+    JSONArray protectedIds = unit.optJSONArray("protectedSkillIds");
+    if (protectedIds == null) return false;
+    for (int i = 0; i < protectedIds.length(); i++)
+      if (skillId.equals(protectedIds.optString(i))) return true;
+    return false;
+  }
+
   void forgetChoice(String key, String kind, JSONObject next) {
     LinearLayout content = k.column();
     content.addView(
-        k.notice("「" + next.optString("name") + "」 대신 잊을 기술을 골라 주세요. 기본기·전용 기술도 바꿀 수 있어요."));
+        k.notice("「" + next.optString("name") + "」 대신 잊을 기술을 골라 주세요."));
     android.app.AlertDialog[] popup = {null};
-    JSONArray mine = h.list(h.unit(key), "skills");
+    JSONObject unit = h.unit(key);
+    JSONArray mine = h.list(unit, "skills");
+    int available = 0;
     for (int i = 0; i < mine.length(); i++) {
       JSONObject old = mine.optJSONObject(i);
+      if (old == null || protectedReplacement(unit, old.optString("id"))) continue;
+      available++;
       LinearLayout card =
           skill(
               old,
@@ -1089,6 +1102,7 @@ final class NativeLibrary {
       box.bottomMargin = h.dp(8);
       content.addView(card, box);
     }
+    if (available == 0) content.addView(k.note("교체 가능한 기술이 없어요. 학습 기회는 유지돼요."));
     content.setPadding(h.dp(4), h.dp(6), h.dp(4), h.dp(6));
     ScrollView choices = k.scroll(content);
     choices.setTag("skill-forget-scroll");
@@ -1107,6 +1121,7 @@ final class NativeLibrary {
   }
 
   void compareReplacement(String key, String kind, JSONObject old, JSONObject next) {
+    if (protectedReplacement(h.unit(key), old.optString("id"))) return;
     LinearLayout content = new NativeGrowthComparison(h, k).skills(old, next);
     new GameDialog(h)
         .setTitle("기술 교체 비교")
@@ -1119,6 +1134,10 @@ final class NativeLibrary {
   }
 
   void commitLearning(String key, String kind, String skill, String replace) {
+    if (replace != null && protectedReplacement(h.unit(key), replace)) {
+      h.message("계승 고유기는 교체할 수 없어요. 학습 기회는 사용하지 않았어요.");
+      return;
+    }
     JSONObject body =
         MainActivity.obj(
             "key", key, "kind", kind, "skill", skill == null ? JSONObject.NULL : skill);
@@ -1584,3 +1603,4 @@ final class NativeLibrary {
     return 0;
   }
 }
+

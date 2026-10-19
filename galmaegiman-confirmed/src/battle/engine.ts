@@ -100,10 +100,10 @@ function offerAugments(b:Battle){
 }
 
 // 증강체 다시 뽑기: 제안 칸마다 제안이 나올 때마다 한 번씩. 이번에 이미 보인 것·가진 것은 다시 안 나옴
-export function rerollAugment(b:Battle,side:0|1,i:number){
+export function rerollAugment(b:Battle,side:0|1,i:number,bonus=false){
   const s=b.sides[side];
   if(b.phase!=='choose'||!s.offers||!s.offers[i])throw new Error('다시 뽑을 증강체가 없음');
-  if(s.rerolled[i])throw new Error('이 칸은 이미 다시 뽑았음');
+  if(s.rerolled[i]&&!bonus)throw new Error('이 칸은 이미 다시 뽑았음');
   const pool=b.R.battleAugments.map(a=>a.id).filter(id=>!s.augs.includes(id)&&!s.offers!.includes(id)&&!s.offerSeen.includes(id)&&!(id==='firstaid'&&s.fighters.every(f=>f.hp>=f.maxHp)));
   if(!pool.length)throw new Error('다른 증강체가 없음');
   const id=pool[Math.floor(rand(b)*pool.length)];
@@ -516,3 +516,4 @@ export function aiChoose(b:Battle,side:0|1){
     s.fighters.forEach((f,i)=>{if(!alive(f))return;const v=b.R.typeMult(f.attr,foe.attr)/b.R.typeMult(foe.attr,f.attr);if(v>bv){bv=v;bi=i;}});p.switchTo=bi;}
   choose(b,side,p);
 }
+

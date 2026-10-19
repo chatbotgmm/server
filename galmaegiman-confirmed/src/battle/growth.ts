@@ -4,7 +4,7 @@ import type { EvoAugment, Passive, Rules, Skill, TopTier } from './core.js';
 export type Stage=0|1|2|3;
 export const stageName=['원형','1단계','2단계','3단계'] as const;
 // 저장되는 유닛 한 마리의 상태(스카우트하면 이 상태 그대로 복사)
-export interface UnitRecord {uid:string;id:string;name:string;tier:TopTier;level:number;xp:number;stage:Stage;evoAugs:string[];learned?:string[];learnUsed?:number;learnPick?:number}
+export interface UnitRecord {uid:string;id:string;name:string;tier:TopTier;level:number;xp:number;stage:Stage;evoAugs:string[];learned?:string[];learnUsed?:number;learnPick?:number;reincarnation?:number;statBonusPct?:number;ownedCharacterId?:string;inheritedFrom?:string}
 
 // 다음 레벨까지 경험치 = xpBase × 레벨^xpExp (기본 20 × 레벨^1.5)
 export const xpToNext=(r:Rules,level:number)=>Math.round(r.data.growth.xpBase*level**r.data.growth.xpExp);
@@ -45,13 +45,13 @@ export const levelScale=(r:Rules,rec:{level:number;stage:Stage})=>(1+r.data.grow
 //   속도 = 값 × (레벨 1당 +1%) × (진화 1·2·3단계 +6·12.5·20%) × 직무 표창 → 레벨 차이로 순서가 크게 뒤집히진 않음
 export function statsOf(r:Rules,rec:UnitRecord){
   const def=r.unitDef(rec.id);if(!def)throw new Error(`전투 유닛이 아님: ${rec.id}`);
-  const role=r.data.roles[def.role],t=r.data.tiers[rec.tier],scale=levelScale(r,rec),p=passiveOf(r,rec);
+  const role=r.data.roles[def.role],t=(rec.reincarnation??0)>0&&rec.ownedCharacterId!==rec.id?1:r.data.tiers[rec.tier],scale=levelScale(r,rec),p=passiveOf(r,rec);
   const lv=1+r.data.growth.levelGrowth/100*(rec.level-1),st=r.data.growth.stageMult[rec.stage];
   const pw=def.power??1,hm=def.hpMult??pw;
-  const b=def.stats??{hp:role.hp*hm/pw,patk:role.atk,pdef:role.def,matk:role.atk,mdef:role.def,spd:role.spd};
-  const f=(v:number,pct=0,m=def.stats?1:pw)=>Math.round(v*t*m*scale*(1+pct/100));
+  const b=((rec.reincarnation??0)>0&&rec.ownedCharacterId!==rec.id?{hp:role.hp,patk:role.atk,pdef:role.def,matk:role.atk,mdef:role.def,spd:role.spd}:def.stats)??{hp:role.hp*hm/pw,patk:role.atk,pdef:role.def,matk:role.atk,mdef:role.def,spd:role.spd};
+  const f=(v:number,pct=0,m=def.stats?1:pw)=>Math.round(v*t*m*scale*(1+pct/100)*(1+((rec.reincarnation??0)>0?(rec.statBonusPct??0):0)/100));
   return {hp:f(b.hp,p.hpPct),patk:f(b.patk,p.atkPct),pdef:f(b.pdef,p.defPct),matk:f(b.matk,p.atkPct),mdef:f(b.mdef,p.defPct),
-    spd:Math.round(b.spd*(1+(lv-1)*0.25)*(1+(st-1)*0.5)*(1+(p.spdPct??0)/100))};
+    spd:Math.round(b.spd*(1+(lv-1)*0.25)*(1+(st-1)*0.5)*(1+(p.spdPct??0)/100)*(1+((rec.reincarnation??0)>0?(rec.statBonusPct??0):0)/100))};
 }
 
 // ── 기술 칸(v0.15.8): 4칸 모두 바꿀 수 있음 — 처음엔 기본기·고유기·역할기·보조 속성 기술 ──
@@ -63,15 +63,16 @@ export function slotKeys(r:Rules,rec:UnitRecord):string[]{
   let list:string[];
   if(raw[0]==='@')list=raw.slice(1);
   else{const old=raw.includes('role')||raw.includes('sub')?raw:[...raw,'role','sub'];list=[...FIXED_OLD,...old];}
+  if(rec.inheritedFrom)list=['sig',...list];
   return [...new Set(list)].filter(k=>k==='basic'||k==='sig'||k==='role'||(k==='sub'?hasSub:!!r.data.learn.skills[k])).slice(0,r.data.learn.slots);
 }
 export function slotSkills(r:Rules,rec:UnitRecord):Skill[]{
   const def=r.unitDef(rec.id)!,playable=r.units.has(rec.id);
   return slotKeys(r,rec).map(k=>{
     const skill=k==='basic'?(playable?r.elementalSkill('basic',def.attr):undefined)??{...r.basicSkill(def.attr,def.basicCat),...(def.basic?{name:def.basic}:{})}
-      :k==='sig'?def.signature:k==='role'?(playable&&def.role==='ATTACK'?r.elementalSkill('attack',def.attr):undefined)??r.roleSkill(def.role,def.attr)
+      :k==='sig'?(rec.inheritedFrom?r.unitDef(rec.inheritedFrom)?.signature??def.signature:def.signature):k==='role'?(playable&&def.role==='ATTACK'?r.elementalSkill('attack',def.attr):undefined)??r.roleSkill(def.role,def.attr)
       :k==='sub'?(playable?r.elementalSkill('sub',def.sub!):undefined)??r.subSkill(def.sub!):r.learnSkill(k,def.attr)!;
-    return r.unitPower(rec.id,skill);
+    return r.unitPower(k==='sig'&&rec.inheritedFrom?rec.inheritedFrom:rec.id,skill);
   });
 }
 const keyOfSkill=(id:string)=>id.startsWith('basic-')?'basic':id==='sig'?'sig':id.startsWith('role-')?'role':id.startsWith('sub-')?'sub':id.replace(/^learn-/,'');
@@ -95,13 +96,14 @@ export function innateLearned(r:Rules,unitId:string,seed:string):string[]{
 export const PROMO_KEYS=['sig'] as const;
 export function promoSkills(r:Rules,rec:UnitRecord):Skill[]{
   const have=new Set(slotKeys(r,rec)),def=r.unitDef(rec.id)!;
-  return PROMO_KEYS.filter((k,i)=>(rec.stage??0)>i&&!have.has(k)).map(()=>r.unitPower(rec.id,def.signature));
+  return PROMO_KEYS.filter((k,i)=>(rec.stage??0)>i&&!have.has(k)).map(()=>r.unitPower(rec.inheritedFrom??rec.id,rec.inheritedFrom?r.unitDef(rec.inheritedFrom)?.signature??def.signature:def.signature));
 }
 export function learnPromo(r:Rules,rec:UnitRecord,key:string,replace?:string){
   if(!promoSkills(r,rec).some(k=>k.id===key))throw new Error('지금 배울 수 있는 전용 기술이 아니에요');
   let list=slotKeys(r,rec);
   if(list.length>=r.data.learn.slots){
     const old=replace?keyOfSkill(replace):'';
+    if(rec.inheritedFrom&&old==='sig')throw new Error('계승 고유기는 잊을 수 없어요. 다른 기술을 골라 주세요.');
     if(!old||!list.includes(old))throw new Error('칸이 꽉 찼어요. 잊을 기술을 골라 주세요');
     list=list.filter(x=>x!==old);
   }
@@ -127,6 +129,7 @@ export function learnSkill(r:Rules,rec:UnitRecord,id:string|null,replace?:string
   let list=slotKeys(r,rec);
   if(list.length>=r.data.learn.slots){
     const old=replace?keyOfSkill(replace):'';
+    if(rec.inheritedFrom&&old==='sig')throw new Error('계승 고유기는 잊을 수 없어요. 다른 기술을 골라 주세요.');
     if(!old||!list.includes(old))throw new Error('칸이 꽉 찼어요. 잊을 기술을 골라 주세요');
     list=list.filter(x=>x!==old);
   }
@@ -135,3 +138,4 @@ export function learnSkill(r:Rules,rec:UnitRecord,id:string|null,replace?:string
   if(rec.learnPick>=(r.data.learn.perChance??1)||!learnOffers(r,rec).length)done();
   return rec;
 }
+

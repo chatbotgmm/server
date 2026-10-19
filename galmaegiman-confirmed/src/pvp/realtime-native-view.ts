@@ -96,6 +96,7 @@ function image(R: Rules, root: string, id: string, side: 'front' | 'back', stage
     if (!existsSync(`${root}/public/battle/sprites/${id}_front.webp`) && v?.look) return image(R, root, v.look, side, stage, seen);
     return `/duel/sprites/${id}_front.webp`;
   }
+  if(!R.units.has(id)&&!R.villains.has(id))return `/thumbs/${id}.jpg`;
   const actualStage = existsSync(`${root}/public/battle/sprites/${id}_s${stage}_${side}.webp`) ? stage : 0;
   return `/duel/sprites/${id}_s${actualStage}_${side}.webp`;
 }
@@ -193,11 +194,11 @@ export function mapRealtimeNativeBattle(input: RealtimeNativeInput & {assetRoot:
             legalActions(b, side).some(a => a.kind === 'skill' && a.skillId === STRUGGLE.id) &&
             !skills.some(sk => sk.id === STRUGGLE.id)) skills.push({...STRUGGLE, attr: f.attr});
         return {
-          key: f.rec.uid, id: f.rec.id, name: f.name, level: f.rec.level, stage: f.rec.stage,
+          key: f.rec.uid, id: f.rec.ownedCharacterId??f.rec.id, combatDefinitionId:f.rec.id, name: f.name, level: f.rec.level, stage: f.rec.stage,
           role: f.role, base: {...f.base}, tint: R.data.villains[f.rec.id]?.tint ?? null,
           realTintArt: !!R.data.villains[f.rec.id]?.tint && existsSync(`${root}/public/battle/sprites/V17_front.webp`),
           bodyScale: f.rec.stage && existsSync(`${root}/public/battle/sprites/${f.rec.id}_s${f.rec.stage}_front.webp`) ? 1 : bodyScale[f.rec.id] ?? 1,
-          matchup: matchup(b, side, slot), image: image(R, root, f.rec.id, own ? 'back' : 'front', f.rec.stage),
+          matchup: matchup(b, side, slot), image: image(R, root, f.rec.ownedCharacterId??f.rec.id, own ? 'back' : 'front', f.rec.stage),
           hp: f.hp, maxHp: f.maxHp, attr: R.attrName(f.attr), attrCode: f.attr,
           extraAttr: f.extraAttr ? R.attrName(f.extraAttr) : null,
           status: {...f.status}, effects: fighterEffects(R, f),
@@ -234,4 +235,5 @@ export function mapRealtimeNativeBattle(input: RealtimeNativeInput & {assetRoot:
   };
 }
 export type RealtimeNativeBattle = ReturnType<typeof mapRealtimeNativeBattle>;
+
 

@@ -69,13 +69,25 @@ def verify(directory,contract):
                 require(type(card) is dict,f'Missing card measurement: {name}')
                 tag=card.get('tag');identifier=expected.pop(tag,None)
                 require(identifier is not None and card.get('id')==identifier,f'Wrong authoritative identity: {name}/{tag}')
-                require(card.get('mode')=='FULL' and card.get('pixelIdentityVerified') is True,f'Not whole real registration: {name}/{tag}')
+                require(card.get('mode')=='CHARACTER' and card.get('nameMatchesServer') is True
+                        and card.get('registrationViews')==0,f'Not exact live character identity: {name}/{tag}')
                 width,height=card.get('containedWidth'),card.get('containedHeight')
-                minimum=(180,240) if variant=='1280x720' else (128,170)
                 require(finite(width) and finite(height),f'Missing contain measurements: {name}/{tag}')
-                require(width>=minimum[0] and height>=minimum[1] and abs(width/height-.75)<.001,f'Too small or cropped card: {name}/{tag}')
-                require(type(card.get('bitmapWidth')) is int and card['bitmapWidth']>=192
-                        and type(card.get('bitmapHeight')) is int and card['bitmapHeight']>=256,f'Missing source bitmap: {name}/{tag}')
+                if identifier=='L14':
+                    require(card.get('spritePath')=='' and card.get('imageStatus')=='이미지 없음'
+                            and card.get('missingIdentityPreserved') is True and card.get('pixelIdentityVerified') is False
+                            and width==height==0 and card.get('bitmapWidth')==card.get('bitmapHeight')==0,
+                            f'Unsupported identity was substituted or unmasked: {name}/{tag}')
+                else:
+                    require(card.get('spritePath')=='/duel/sprites/'+identifier+'_s0_front.webp'
+                            and card.get('pixelIdentityVerified') is True and card.get('targetContained') is True,
+                            f'Not whole exact approved sprite: {name}/{tag}')
+                    require(type(card.get('bitmapWidth')) is int and card['bitmapWidth']>0
+                            and type(card.get('bitmapHeight')) is int and card['bitmapHeight']>0,
+                            f'Missing source bitmap: {name}/{tag}')
+                    require(width>0 and height>=24
+                            and abs(width/height-card['bitmapWidth']/card['bitmapHeight'])<.001,
+                            f'Too small or cropped character: {name}/{tag}')
                 require(card.get('enabled') is (stem not in ('prepare-ready','prepare-expired')),f'Wrong phase lock: {name}/{tag}')
                 require(type(card.get('dynamicState')) is str and 'Lv30' in card['dynamicState'],f'Missing live level: {name}/{tag}')
                 card_count+=1

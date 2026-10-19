@@ -23,6 +23,10 @@ final class NativeForge extends FrameLayout {
   boolean complete, detached, leaving;
   Ring ring;
   View resultCard;
+  NativeUnitDossier dossier;
+  final int ownerEpoch;
+  final String ownerAccount;
+  boolean finishDelivered;
 
   NativeForge(
       MainActivity h, JSONArray mats, JSONObject result, boolean fail, String text, Runnable next) {
@@ -45,6 +49,8 @@ final class NativeForge extends FrameLayout {
     this.text = text;
     this.next = next;
     this.flow = flow;
+    ownerEpoch = h.epoch;
+    ownerAccount = h.api.token();
     k = new MenuKit(h);
     setBackground(ThemeArt.of(h).background("backgrounds/bg-navigation-workshop-v1.png"));
     setClickable(true);
@@ -62,12 +68,12 @@ final class NativeForge extends FrameLayout {
         new AnimatorListenerAdapter() {
           @Override
           public void onAnimationEnd(Animator a) {
-            if (isAttachedToWindow() && !detached && !complete) showResult(true);
+            if (isAttachedToWindow() && current() && !complete && !leaving) showResult(true);
           }
         });
     setOnClickListener(
         v -> {
-          if (!complete) {
+          if (current() && !complete && !leaving) {
             complete = true;
             animation.cancel();
             complete = false;
@@ -76,11 +82,16 @@ final class NativeForge extends FrameLayout {
         });
     post(
         () -> {
-          if (detached) return;
+          if (!current() || leaving || complete) return;
           h.sound.effect(fail ? "forgefail" : "forge");
           if (motion()) animation.start();
           else showResult(false);
         });
+  }
+
+  boolean current() {
+    return !detached && !h.isFinishing() && !h.isDestroyed()
+        && ownerEpoch == h.epoch && ownerAccount.equals(h.api.token());
   }
 
   boolean motion() {
@@ -94,7 +105,10 @@ final class NativeForge extends FrameLayout {
   }
 
   void updateResult(JSONObject unit) {
-    if (detached) return;
+    if (!current() || leaving) return;
+    // 갱신 응답도 현재 결과의 종 ID와 같아야 한다.
+    if (unit == null || (result != null && !result.optString("id").equals(unit.optString("id")))) return;
+    if (dossier != null) dossier.dismiss();
     result = unit;
     if (complete) {
       complete = false;
@@ -107,7 +121,7 @@ final class NativeForge extends FrameLayout {
   }
 
   void showResult(boolean playEffect) {
-    if (complete || detached) return;
+    if (complete || !current() || leaving) return;
     complete = true;
     if (resultCard != null) resultCard.animate().cancel();
     removeAllViews();
@@ -141,6 +155,8 @@ final class NativeForge extends FrameLayout {
       }
       resultCard = card;
       card.setTag("forge-result-card");
+      card.setOnClickListener(v -> openDossier());
+      card.setContentDescription(RegistrationCardView.description(result) + " · 눌러 대원 기록 보기");
       content.addView(card, new LinearLayout.LayoutParams(0, -1, .55f));
       if (playEffect && motion()) {
         card.setScaleX(.4f);
@@ -161,6 +177,7 @@ final class NativeForge extends FrameLayout {
     TextView outcome = h.text(fail ? "조합 확인" : "조합 완료!", 24);
     outcome.setTypeface(h.headline);
     words.addView(outcome);
+    if (result != null && !fail) words.addView(k.note("카드를 누르면 대원 기록"));
     String resultText =
         text == null || text.isEmpty() ? (fail ? "조합이 맞지 않아 재료는 그대로예요." : "새로운 갈매미를 얻었어요.") : RecruitmentText.display(text);
     TextView message = k.note(resultText);
@@ -186,20 +203,45 @@ final class NativeForge extends FrameLayout {
         new LinearLayout.LayoutParams(0, -2, result != null && !fail ? .45f : 1);
     wordsSlot.leftMargin = result != null && !fail ? h.dp(12) : 0;
     content.addView(words, wordsSlot);
+    LinearLayout actions = k.row();
     if (flow != null && result != null && !fail) {
-      page.addView(flow.actions(result), new LinearLayout.LayoutParams(-1, h.dp(48)));
+      actions.addView(NativeUnitDossier.actions(h, flow, result,
+          () -> current() && !leaving && dossier == null && !h.busy),
+          new LinearLayout.LayoutParams(0, h.dp(48), 1));
     }
     Button ok = k.primary(null, "확인", this::finish);
     ok.setTag("forge-result-confirm");
-    LinearLayout.LayoutParams footer = new LinearLayout.LayoutParams(h.dp(180), h.dp(48));
-    footer.gravity = Gravity.CENTER_HORIZONTAL;
+    actions.addView(ok, new LinearLayout.LayoutParams(h.dp(160), h.dp(48)));
+    actions.setGravity(Gravity.CENTER);
+    LinearLayout.LayoutParams footer = new LinearLayout.LayoutParams(-1, h.dp(48));
     footer.topMargin = h.dp(6);
-    page.addView(ok, footer);
+    page.addView(actions, footer);
     setOnClickListener(null);
   }
 
+  void openDossier() {
+    if (!current() || leaving || !complete || fail || result == null || dossier != null || h.busy) return;
+    for (int i = 0; i < getChildCount(); i++)
+      getChildAt(i).setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+    dossier = new NativeUnitDossier(h, result, flow, this::current, () -> {
+      NativeUnitDossier shown = dossier;
+      dossier = null;
+      if (shown != null) removeView(shown);
+      for (int i = 0; i < getChildCount(); i++)
+        getChildAt(i).setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+      if (current() && resultCard != null) resultCard.requestFocus();
+    });
+    addView(dossier, new LayoutParams(-1, -1));
+  }
+
+  void deliverFinish() {
+    if (!current() || finishDelivered) return;
+    finishDelivered = true;
+    next.run();
+  }
+
   void finish() {
-    if (leaving) return;
+    if (leaving || !current() || !complete || dossier != null) return;
     leaving = true;
     if (motion())
       animate()
@@ -207,15 +249,16 @@ final class NativeForge extends FrameLayout {
           .setDuration(200)
           .withEndAction(
               () -> {
-                if (!detached) next.run();
+                deliverFinish();
               })
           .start();
-    else next.run();
+    else deliverFinish();
   }
 
   @Override
   protected void onDetachedFromWindow() {
     detached = true;
+    if (dossier != null) dossier.dismiss();
     animation.cancel();
     animate().cancel();
     if (resultCard != null) resultCard.animate().cancel();
@@ -322,3 +365,4 @@ final class NativeForge extends FrameLayout {
     }
   }
 }
+

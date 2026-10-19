@@ -225,6 +225,10 @@ public class NativeMenusThemeReviewTest {
       try { RegistrationArtTest.samePixels(page + "/" + card.id, expected, card.bitmap); }
       finally { expected.recycle(); }
     }
+    for (PartyCharacterView.Artwork sprite : registration.partyArtworks(host.root)) {
+      registration.assertPartyArt(host, sprite);
+      registration.visible(host, sprite);
+    }
     return host.visibleDialog != null && host.visibleDialog.isShowing() ? geometry.layoutDialog(host) : host.root;
   }
 

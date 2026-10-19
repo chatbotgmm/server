@@ -35,7 +35,7 @@ public class NativeExtrasThemeStateTest {
           labels.add(((TextView)v).getText().toString());
         Button claim=h.root.findViewWithTag("daily-attend"); assertTrue(claim.isShown()&&claim.isEnabled());
         assertEquals(fixture.geometry.bounds(claim,h.root),fixture.geometry.visibleIntersection(claim,h.root));
-        Button next=h.root.findViewWithTag("daily-missions-next"); if(!next.isEnabled()) break;
+        Button next=h.root.findViewWithTag("daily-missions-next"); if(next==null||!next.isEnabled()) break;
         next.performClick(); fixture.registration.layout(h,915,412);
       }
       for(int i=0;i<missions.length();i++) assertTrue("Every server mission remains reachable",

@@ -76,10 +76,12 @@ public class NativeRealtimeThemeReviewTest {
     if (!"realtimePrepare".equals(h.screen)) return true;
     if (!h.registrationArt().idle()) return false;
     for (View view : geometry.descendants(h.root)) {
-      if (!(view instanceof RegistrationCardView.Artwork) || !view.isShown()) continue;
-      RegistrationCardView.Artwork art = (RegistrationCardView.Artwork) view;
-      assertTrue("Visible preparation identity must be server-disclosed: " + art.id, art.visibleIdentity);
-      assertFalse("Missing bundled preparation registration: " + art.id, "이미지 없음".equals(art.status));
+      if (!(view instanceof PartyCharacterView.Artwork) || !view.isShown()) continue;
+      PartyCharacterView.Artwork art = (PartyCharacterView.Artwork) view;
+      if (art.path.isEmpty()) {
+        assertNull(art.bitmap); assertEquals("이미지 없음", art.status); continue;
+      }
+      assertFalse("Missing bundled preparation sprite: " + art.id, "이미지 없음".equals(art.status));
       if (art.bitmap == null || !art.status.isEmpty()) return false;
     }
     return true;
@@ -260,27 +262,20 @@ public class NativeRealtimeThemeReviewTest {
       expected.put("realtime-prepare-candidate-" + i, available.getJSONObject(i).getString("id"));
     JSONArray cards = new JSONArray();
     for (View view : geometry.descendants(root)) {
-      if (!(view instanceof RegistrationCardView) || !view.isShown()) continue;
-      RegistrationCardView card = (RegistrationCardView) view;
-      RegistrationCardView.Artwork art = card.picture;
+      assertFalse("Preparation cannot use a registration frame", view instanceof RegistrationCardView);
+      if (!(view instanceof PartyCharacterView) || !view.isShown()) continue;
+      PartyCharacterView card = (PartyCharacterView) view;
+      PartyCharacterView.Artwork art = card.picture;
       String tag = String.valueOf(card.getTag()), id = expected.remove(tag);
       assertNotNull("Only server-authoritative slots/candidates are rendered: " + tag, id);
-      assertEquals(id, art.id); assertEquals(RegistrationCardView.FULL, art.mode);
-      assertTrue(art.isAttachedToWindow() && art.isShown());
-      assertNotNull("Actual full registration bitmap: " + id, art.bitmap);
-      assertFalse(art.bitmap.isRecycled()); assertEquals("", art.status);
-      assertTrue("Full card cannot be reduced to a thumbnail: " + id + " " + art.target,
-          art.target.width() >= h.dp(h.contentHeightDp() >= 600 ? 180 : 128)
-              && art.target.height() >= h.dp(h.contentHeightDp() >= 600 ? 240 : 170));
-      assertTrue(new RectF(0, 0, art.getWidth(), art.getHeight()).contains(art.target));
-      assertEquals("Whole registration aspect ratio", 3f / 4f, art.target.width() / art.target.height(), .001f);
+      assertEquals(id, art.id);
+      new NativeRegistrationReviewTest().assertPartyArt(h, art);
       assertEquals(geometry.bounds(art, root), geometry.visibleIntersection(art, root));
-      assertEquals("Printed name must not be repeated", View.GONE, card.name.getVisibility());
-      assertEquals("Printed tier must not be repeated", View.GONE, card.grade.getVisibility());
-      int bucket = RegistrationArt.widthBucket(art.mode, art.getWidth(), art.getHeight());
-      Bitmap reference = RegistrationArtTest.expected(h, id, RegistrationCardView.FULL, bucket);
-      try { RegistrationArtTest.samePixels("Preparation FULL " + tag + "/" + id, reference, art.bitmap); }
-      finally { reference.recycle(); }
+      JSONObject canonical = NativeRealtime.preparationCandidate(available, id);
+      assertEquals("Visible name comes from the server", canonical.getString("name"), card.name.getText().toString());
+      geometry.readable(card.name);
+      assertEquals(geometry.bounds(card.name, root), geometry.visibleIntersection(card.name, root));
+      assertEquals("Masking is never bypassed", PartyCharacterView.spritePath(canonical), art.path);
       TextView state = card.findViewWithTag(tag + "-state");
       JSONObject candidate = NativeRealtime.preparationCandidate(available, id);
       assertTrue(state.getText().toString().contains("Lv" + candidate.getInt("level")));
@@ -288,9 +283,13 @@ public class NativeRealtimeThemeReviewTest {
       assertTrue(node.getContentDescription().toString().contains(candidate.getString("name")));
       assertTrue(node.getContentDescription().toString().contains(state.getText()));
       assertEquals(card.isEnabled(), node.isEnabled());
-      cards.put(MainActivity.obj("tag", tag, "id", id, "mode", "FULL", "pixelIdentityVerified", true,
+      cards.put(MainActivity.obj("tag", tag, "id", id, "mode", "CHARACTER",
+          "spritePath", art.path, "imageStatus", art.status,
+          "pixelIdentityVerified", art.bitmap != null, "missingIdentityPreserved", art.path.isEmpty(),
+          "nameMatchesServer", true, "registrationViews", 0, "targetContained", true,
           "containedWidth", art.target.width(), "containedHeight", art.target.height(),
-          "bitmapWidth", art.bitmap.getWidth(), "bitmapHeight", art.bitmap.getHeight(),
+          "bitmapWidth", art.bitmap == null ? 0 : art.bitmap.getWidth(),
+          "bitmapHeight", art.bitmap == null ? 0 : art.bitmap.getHeight(),
           "enabled", card.isEnabled(), "dynamicState", state.getText().toString()));
     }
     assertTrue("Missing server preparation cards: " + expected, expected.isEmpty());

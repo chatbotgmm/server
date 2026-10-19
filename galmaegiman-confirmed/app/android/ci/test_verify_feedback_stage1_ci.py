@@ -32,8 +32,7 @@ def shop_metric(profile=(915, 374, 160, 1.0, [0, 0, 0, 0]), state="first-page"):
         reading = [left + dx, top + dy, bounds[2] - dx, bounds[3] - dy]
         texts = []
         text_tags = ["shop-card-name", "shop-card-price"]
-        if tag != "shop-card-shop:tickets":
-            text_tags.append("shop-card-state")
+        text_tags.append("shop-card-state")
         for j, key in enumerate(text_tags):
             y = reading[1] + scale(44 + j * 18)
             box = [reading[0] + scale(2), y, reading[2] - scale(2), y + scale(12)]
@@ -49,7 +48,7 @@ def shop_metric(profile=(915, 374, 160, 1.0, [0, 0, 0, 0]), state="first-page"):
     controls = []
     names = list(tags) + ["JournalButton:‹", "JournalButton:›", "JournalButton:−", "JournalButton:＋",
                           "JournalButton:최대", "EditText:1", "JournalButton:땅콩 부족" if state == "blocked-selected"
-                          else "JournalButton:선택 상품 구매", "header-1", "header-2", "header-3"]
+                          else ("JournalButton:지원서 10장 구매 · 새우gang 1000개" if state == "first-page" else "JournalButton:1개 구매 · 새우gang 150개"), "header-1", "header-2", "header-3"]
     for i in range(13):
         x = safe[0] + (i % 6) * scale(48)
         y = safe[1] if i < 6 else safe[3] - scale(48)
@@ -217,7 +216,7 @@ class StageOneValidatorTests(unittest.TestCase):
 
     def test_actual_shop_geometry_passes(self):
         result = verifier.verify_shop_metric(self.shop, self.profile, "first-page")
-        self.assertEqual(result, dict(cards=3, texts=8, controls=13))
+        self.assertEqual(result, dict(cards=3, texts=9, controls=13))
 
     def test_shop_has_seventeen_profiles_and_fifty_one_cases(self):
         profiles = verifier.shop_profiles()
@@ -363,7 +362,7 @@ class StageOneValidatorTests(unittest.TestCase):
         report = self.shop_fixture_verify()
         self.assertEqual(report["screenshots"], 51)
         self.assertEqual(report["cards"], 153)
-        self.assertEqual(report["texts"], 425)
+        self.assertEqual(report["texts"], 459)
         self.assertEqual(report["controls"], 663)
 
     def test_shop_missing_capture_case_fails(self):
@@ -396,7 +395,7 @@ class StageOneValidatorTests(unittest.TestCase):
         self.assert_shop_fails()
 
     def test_shop_wrong_purchase_availability_fails(self):
-        next(c for c in self.shop["controls"] if c["tag"] == "JournalButton:선택 상품 구매")["enabled"] = False
+        next(c for c in self.shop["controls"] if c["tag"] == "JournalButton:지원서 10장 구매 · 새우gang 1000개")["enabled"] = False
         self.assert_shop_fails()
 
     def test_shop_wrong_pager_availability_fails(self):

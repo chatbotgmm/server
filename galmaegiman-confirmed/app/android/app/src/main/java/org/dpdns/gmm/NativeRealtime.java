@@ -687,8 +687,8 @@ final class NativeRealtime {
     footerSize.topMargin = h.dp(8); h.page.addView(footer, footerSize);
     attachClock(); updatePhaseInputs();
   }
-  /** Whole approved registration print; only live slot/level state sits beside it. */
-  RegistrationCardView preparationCard(JSONObject candidate, String tag, String slot,
+  /** Character-only approved top33 artwork, with live identity and preparation state below. */
+  PartyCharacterView preparationCard(JSONObject candidate, String tag, String slot,
       boolean selected, Runnable action) {
     JSONObject identity;
     try { identity = new JSONObject(candidate.toString()); }
@@ -697,23 +697,26 @@ final class NativeRealtime {
       try { identity.put("tierName", candidate.optString("rarity")); }
       catch (org.json.JSONException invalid) { throw new IllegalArgumentException(invalid); }
     }
-    RegistrationCardView card = new RegistrationCardView(h, identity, RegistrationCardView.FULL);
+    PartyCharacterView card = new PartyCharacterView(h, identity);
     card.setTag(tag); card.setPadding(h.dp(3), h.dp(3), h.dp(3), h.dp(3));
-    card.setBackground(RegistrationCardView.selection(h, selected)); card.setSelected(selected);
+    card.setBackground(PartyCharacterView.selection(h, selected)); card.setSelected(selected);
     card.setFocusable(true); card.setMinimumWidth(h.dp(48)); card.setMinimumHeight(h.dp(48));
     card.setOnClickListener(view -> action.run());
-    card.picture.setTag(tag + "-registration");
+    card.picture.setTag(tag + "-character");
     String runtime = slot + (candidate.has("level") ? (slot.isEmpty() ? "" : " · ") + "Lv" + candidate.optInt("level") : "");
-    TextView state = RegistrationCardView.stateLabel(h, runtime);
+    if (candidate.has("hp") && candidate.has("maxHp"))
+      runtime += (runtime.isEmpty() ? "" : " · ") + candidate.optInt("hp") + "/" + candidate.optInt("maxHp");
+    final String liveRuntime = runtime;
+    TextView state = PartyCharacterView.liveLabel(h, runtime);
     state.setTag(tag + "-state"); state.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     card.addView(state, new LinearLayout.LayoutParams(-1, -2));
     // Keep the component's real loading/missing identity announcement and add
-    // dynamic state exactly once; printed identity is not duplicated visually.
+    // dynamic state exactly once; the visible name always comes from live identity.
     card.setAccessibilityDelegate(new View.AccessibilityDelegate() {
       @Override public void onInitializeAccessibilityNodeInfo(View host, android.view.accessibility.AccessibilityNodeInfo info) {
         super.onInitializeAccessibilityNodeInfo(host, info);
         info.setClassName(Button.class.getName());
-        info.setContentDescription((runtime.isEmpty() ? "" : runtime + " · ") + host.getContentDescription());
+        info.setContentDescription((liveRuntime.isEmpty() ? "" : liveRuntime + " · ") + host.getContentDescription());
       }
     });
     return card;

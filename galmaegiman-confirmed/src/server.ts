@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
 import { loadContent } from './content.js';
 import { GameService } from './game.js';
+import {assertProgressionSchema} from './progression.js';
 import { buildApp } from './app.js';
 const env=z.object({
   DATABASE_URL:z.string().startsWith('file:'),
@@ -14,6 +15,7 @@ const env=z.object({
   REVIEW_CODE:z.preprocess(v=>v===''?undefined:v,z.string().regex(/^\d{6}$/).optional())
 }).parse(process.env);
 const db=new PrismaClient();
+try{await assertProgressionSchema(db);}catch(e){await db.$disconnect();throw e;}
 const content=loadContent();
 const edition=await db.appMeta.findUnique({where:{key:'edition'}});
 const hash=await db.appMeta.findUnique({where:{key:'contentHash'}});
@@ -33,3 +35,4 @@ let closing=false;
 const close=async()=>{if(closing)return;closing=true;await app.close();await db.$disconnect();};
 process.on('SIGTERM',()=>void close());process.on('SIGINT',()=>void close());
 await app.listen({host:env.HOST,port:env.PORT});
+

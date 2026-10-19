@@ -130,7 +130,9 @@ final class ThemeArt {
     SurfaceDrawable(ThemeArt art, Surface type) {
       this.art = art; this.type = type;
       art.image(file(type));
-      if (type == Surface.TAB) art.image(file(Surface.NAVY));
+      if (type == Surface.TAB) {
+        art.image(file(Surface.PAPER)); art.image(file(Surface.NAVY));
+      }
     }
     @Override public boolean isStateful() { return true; }
     @Override protected boolean onStateChange(int[] states) {
@@ -140,7 +142,7 @@ final class ThemeArt {
             || state == android.R.attr.state_activated) select = true;
         if (state == android.R.attr.state_focused) focus = true;
       }
-      boolean changed = press.update(states) | (select != selected) | (focus != focused);
+      boolean changed = press.update(states, type == Surface.TAB) | (select != selected) | (focus != focused);
       selected = select; focused = focus;
       if (changed) invalidateSelf();
       return changed;
@@ -156,16 +158,17 @@ final class ThemeArt {
         layer.setAlpha(press.alpha); layer.setColorFilter(null);
         saved = canvas.saveLayer(rect, layer);
       }
-      Surface visible = type == Surface.TAB && selected ? Surface.NAVY : type;
+      Surface visible = type == Surface.TAB
+          ? (press.pressed ? Surface.NAVY : Surface.PAPER) : type;
       if (press.enabled) art.surface(canvas, visible, rect);
       else JournalTheme.drawPanel(canvas, rect, d, JournalTheme.DISABLED, true);
       if (press.enabled && (selected || focused)) {
         rect.inset(3 * d, 3 * d);
         detail.setStyle(Paint.Style.STROKE); detail.setStrokeWidth(2 * d);
-        detail.setColor(focused ? JournalTheme.FOCUS : JournalTheme.SELECTED_EDGE);
+        detail.setColor(focused ? JournalTheme.FOCUS : JournalTheme.BRASS);
         canvas.drawRoundRect(rect, 3 * d, 3 * d, detail);
         detail.setStyle(Paint.Style.FILL);
-        if (type != Surface.NAVY && type != Surface.HEADER && type != Surface.NAV && type != Surface.TAB) {
+        if (type != Surface.NAVY && type != Surface.HEADER && type != Surface.NAV && !press.pressed) {
           detail.setColor(0x196dc9ff); canvas.drawRoundRect(rect, 3 * d, 3 * d, detail);
         }
       }

@@ -120,6 +120,8 @@ final class NativeMenus {
 
   void modes() {
     h.base("게임 모드", "modes");
+    // 모드 머리줄의 실제 Jua 획과 금색 테두리 사이 여백을 확보한다.
+    h.title.setPadding(h.dp(24), h.dp(4), h.dp(24), 0);
     AppSkin.apply(h, "training");
     // Use the measured, inset-reduced body height, not a guessed device density or screenshot size.
     h.page.removeViewAt(h.page.getChildCount() - 1);
@@ -134,7 +136,7 @@ final class NativeMenus {
     h.body = pvp;
     TextView campaignTitle = navyLabel("스토리", 22, true);
     campaignTitle.setTag("modes-story-heading");
-    campaignTitle.setPadding(h.dp(16), h.dp(6), h.dp(16), h.dp(6));
+    campaignTitle.setPadding(h.dp(24), h.dp(10), h.dp(24), h.dp(8));
     campaignTitle.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
     campaign.addView(campaignTitle);
     Button story = k.primary("u-story", "스토리", () -> h.load("story"));
@@ -160,8 +162,9 @@ final class NativeMenus {
     pvpTitle.setPadding(0, 0, 0, 0);
     LinearLayout pvpHeading = k.row();
     pvpHeading.setTag("modes-pvp-heading-frame");
+    pvpHeading.setBaselineAligned(false);
     pvpHeading.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
-    pvpHeading.setPadding(h.dp(16), h.dp(6), h.dp(16), h.dp(6));
+    pvpHeading.setPadding(h.dp(24), h.dp(10), h.dp(24), h.dp(8));
     pvpHeading.addView(pvpTitle);
     pvp.addView(pvpHeading);
     LinearLayout start = k.row();
@@ -270,7 +273,10 @@ final class NativeMenus {
 
     void renderStatus() {
       String full = summary + (needsTeam ? " · 편성 3마리 필요" : "");
+      // singleLine은 무한 가로 스크롤 폭도 활성화하므로 실제 측정 폭에 맞춘다.
       status.setSingleLine(compact && !failed);
+      status.setHorizontallyScrolling(false);
+      status.setMaxLines(compact && !failed ? 1 : Integer.MAX_VALUE);
       status.setEllipsize(compact && !failed ? android.text.TextUtils.TruncateAt.END : null);
       status.setText(compact && failed ? "순위 조회 실패\n순위에서 다시 확인" : compact ? summary : full);
       status.setContentDescription(full);
@@ -352,7 +358,7 @@ final class NativeMenus {
       if (next != null) caption = "다음 · " + storyDescription(next.optString("title"));
     }
     TextView title = navyLabel(caption, 15, true);
-    title.setSingleLine(true); title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    title.setSingleLine(true); title.setHorizontallyScrolling(false); title.setEllipsize(android.text.TextUtils.TruncateAt.END);
     title.setContentDescription(caption);
     summary.addView(title);
     LinearLayout line = k.row();
@@ -362,8 +368,12 @@ final class NativeMenus {
       JSONObject unit = pvp ? ownedSpecies(key) : h.unit(key);
       LinearLayout member = k.column();
       member.setGravity(Gravity.CENTER_HORIZONTAL);
-      member.addView(k.image(pvp ? "/thumbs/" + key + ".jpg" : unit.optString("image"), 44, 44));
-      TextView name = navyLabel((i == 0 ? "선봉 · " : "") + unit.optString("name"), 13, false);
+      PartyCharacterView.Artwork portrait = PartyCharacterView.art(h, unit);
+      portrait.setTag("modes-party-character-" + (pvp ? "pvp-" : "story-") + key);
+      portrait.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+      member.addView(portrait, new LinearLayout.LayoutParams(h.dp(44), h.dp(44)));
+      String live = unit.has("level") ? " · Lv" + unit.optInt("level") : "";
+      TextView name = navyLabel((i == 0 ? "선봉 · " : "") + unit.optString("name") + live, 13, false);
       name.setContentDescription(name.getText());
       name.setGravity(Gravity.CENTER); name.setMaxLines(2);
       member.addView(name);
@@ -1140,7 +1150,7 @@ final class NativeMenus {
     h.base(pvp ? "방범대" : "스토리 방범대 편성", "team");
     AppSkin.apply(h, "training");
     float teamFontScale = h.getResources().getConfiguration().fontScale;
-    // 휴대폰에서는 탭을 머리줄에 합쳐 전체 등록증의 세로 공간을 확보한다.
+    // 휴대폰에서는 탭을 머리줄에 합쳐 캐릭터 그림의 세로 공간을 확보한다.
     boolean inlineTeamNavigation = h.compact();
     if (pvp && h.contentHeightDp() >= 360 && !inlineTeamNavigation) {
       defenderTabs(h.body, 1);
@@ -1193,16 +1203,17 @@ final class NativeMenus {
             LinearLayout card = k.column();
             card.setTag("lineup-slot-" + slot);
             card.setGravity(Gravity.CENTER_HORIZONTAL);
-            card.setBackground(RegistrationCardView.selection(h, slot == activeSlot[0]));
+            card.setBackground(PartyCharacterView.selection(h, slot == activeSlot[0]));
             card.setSelected(slot == activeSlot[0]);
             card.setPadding(h.dp(3), h.dp(3), h.dp(3), h.dp(3));
-            TextView order = RegistrationCardView.stateLabel(h,
+            TextView order = PartyCharacterView.stateLabel(h,
                 (slot == activeSlot[0] ? "✓ " : "") + (slot == 0 ? "선봉" : (slot + 1) + "번") + " ↔");
-            order.setTextSize(15);
+            order.setTextSize(h.uiText(15));
             card.addView(order, new LinearLayout.LayoutParams(-1, h.dp(48)));
             if (unit == null) {
               TextView empty = k.note("비어 있음");
-              empty.setTextColor(JournalTheme.PAPER);
+              empty.setTextColor(JournalTheme.INK);
+              empty.setBackgroundColor(0xccf3e9d3);
               empty.setGravity(Gravity.CENTER);
               card.addView(empty, new LinearLayout.LayoutParams(-1, 0, 1));
               card.setOnClickListener(v -> { activeSlot[0] = Math.min(chosenSlot, teamDraft.size()); render[0].run(); });
@@ -1213,13 +1224,18 @@ final class NativeMenus {
               order.setContentDescription(unit.optString("name") + " 출전 순서. 좌우로 끌어 변경");
               order.setFocusable(true);
               order.setClickable(true);
-              View image = RegistrationCardView.art(h, unit, RegistrationCardView.FULL);
+              View image = PartyCharacterView.art(h, unit);
               image.setTag("lineup-portrait");
               image.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
               card.addView(image, new LinearLayout.LayoutParams(-1, 0, 1));
+              TextView name = PartyCharacterView.stateLabel(h, unit.optString("name"));
+              name.setTypeface(h.headline);
+              name.setSingleLine(false); name.setMaxLines(2);
+              name.setTag("lineup-name");
+              card.addView(name);
               String state = pvp ? "보유 " + unit.optInt("have") : "Lv" + unit.optInt("level");
-              // 레벨과 체력을 한 행에 두어 큰 글자/짧은 화면에서도 원본 등록증 높이를 지킨다.
-              TextView runtime = RegistrationCardView.stateLabel(h, state
+              // 이름·레벨·체력은 그림에 인쇄하지 않고 실제 저장 상태로 표시한다.
+              TextView runtime = PartyCharacterView.liveLabel(h, state
                   + (pvp ? "" : " · " + unit.optInt("hp") + "/" + unit.optInt("maxHp")));
               runtime.setTag("lineup-runtime-state");
               runtime.setContentDescription(state
@@ -1227,8 +1243,22 @@ final class NativeMenus {
               card.addView(runtime);
               card.setOnClickListener(v -> { activeSlot[0] = chosenSlot; render[0].run(); });
               card.setOnLongClickListener(v -> { reorderDraft(id, render[0]); return true; });
+              if (!pvp) card.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+                @Override public void onInitializeAccessibilityNodeInfo(View host, android.view.accessibility.AccessibilityNodeInfo info) {
+                  super.onInitializeAccessibilityNodeInfo(host, info);
+                  info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
+                      android.R.id.edit, "대원 상세 · 성장"));
+                }
+                @Override public boolean performAccessibilityAction(View host, int action, android.os.Bundle args) {
+                  if (action == android.R.id.edit) {
+                    if (!h.busy) { unitReturn = "team"; h.unitDetail(id); }
+                    return true;
+                  }
+                  return super.performAccessibilityAction(host, action, args);
+                }
+              });
               card.setContentDescription((slot == 0 ? "선봉 " : (slot + 1) + "번 ")
-                  + RegistrationCardView.description(unit) + " · " + state
+                  + PartyCharacterView.description(unit) + " · " + state
                   + (pvp ? "" : " · 체력 " + unit.optInt("hp") + "/" + unit.optInt("maxHp"))
                   + ". 누르면 이 자리의 교체 후보 선택, 좌우로 끌어 순서 변경");
               slots.add(card);
@@ -1256,7 +1286,7 @@ final class NativeMenus {
           previous.setTag("team-candidates-previous");
           previous.setEnabled(candidatePage[0] > 0);
           paging.addView(previous, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
-          TextView pageLabel = RegistrationCardView.stateLabel(h, (activeSlot[0] + 1) + "번 교체 · "
+          TextView pageLabel = PartyCharacterView.stateLabel(h, (activeSlot[0] + 1) + "번 교체 · "
               + (candidatePage[0] + 1) + " / " + pageCount);
           pageLabel.setTextSize(h.uiText(14));
           pageLabel.setTag("team-candidate-page");
@@ -1299,17 +1329,23 @@ final class NativeMenus {
             if (index >= candidates.size()) { tile.setVisibility(View.INVISIBLE); continue; }
             JSONObject candidate = candidates.get(index);
             String key = candidate.optString(pvp ? "id" : "key");
-            View portrait = RegistrationCardView.art(h, candidate, RegistrationCardView.FULL);
-            portrait.setTag("team-candidate-registration-" + key);
+            View portrait = PartyCharacterView.art(h, candidate);
+            portrait.setTag("team-candidate-character-" + key);
             portrait.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
             tile.addView(portrait, new LinearLayout.LayoutParams(-1, 0, 1));
+            TextView candidateName = PartyCharacterView.stateLabel(h, candidate.optString("name"));
+            candidateName.setTypeface(h.headline);
+            candidateName.setSingleLine(false); candidateName.setMaxLines(2);
+            candidateName.setTag("team-candidate-name");
+            tile.addView(candidateName);
             boolean isSelected = teamDraft.contains(key);
             String state = (isSelected ? "✓ " : "")
-                + (pvp ? "보유 " + candidate.optInt("have") : "Lv" + candidate.optInt("level"));
-            tile.addView(RegistrationCardView.stateLabel(h, state));
+                + (pvp ? "보유 " + candidate.optInt("have") : "Lv" + candidate.optInt("level")
+                    + " · " + candidate.optInt("hp") + "/" + candidate.optInt("maxHp"));
+            tile.addView(PartyCharacterView.liveLabel(h, state));
             tile.setSelected(isSelected);
-            tile.setBackground(RegistrationCardView.selection(h, isSelected));
-            tile.setContentDescription(RegistrationCardView.description(candidate) + " · " + state
+            tile.setBackground(PartyCharacterView.selection(h, isSelected));
+            tile.setContentDescription(PartyCharacterView.description(candidate) + " · " + state
                 + " · " + (activeSlot[0] + 1) + "번에 배치");
             tile.setOnClickListener(v -> {
               if (h.busy) return;
@@ -1433,7 +1469,7 @@ final class NativeMenus {
                   if (unit.has("tier"))
                     tile.setBackground(new GamePaperDrawable(h, NativeReveal.tier(unit.optString("tier"))));
                   tile.addView(
-                      RegistrationCardView.art(h, unit, RegistrationCardView.COMPACT),
+                      PartyCharacterView.art(h, unit),
                       new LinearLayout.LayoutParams(-1, h.dp(100)));
                   TextView name = heading(unit.optString("name"), 15);
                   name.setGravity(Gravity.CENTER);
@@ -1462,7 +1498,7 @@ final class NativeMenus {
                       });
                   tile.setTag("lineup-candidate-" + id);
                   tile.setSelected(order >= 0);
-                  if (order >= 0) tile.setBackground(new GamePaperDrawable(h, JournalTheme.TEAL));
+                  tile.setBackground(PartyCharacterView.selection(h, order >= 0));
                   if (!pvp && unit.optString("id").equals("D1"))
                     NativeTutorialController.anchor(tile, "team-unit");
                   if (!pvp)

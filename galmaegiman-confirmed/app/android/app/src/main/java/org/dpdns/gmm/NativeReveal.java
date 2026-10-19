@@ -27,6 +27,8 @@ final class NativeReveal extends FrameLayout {
   boolean opening, detached, revealed, leaving;
   static final int RESULT_PAGE_SIZE = 3;
   int resultPage;
+  NativeUnitDossier dossier;
+  android.app.AlertDialog resultPickerDialog;
   ValueAnimator animation;
   ApplicationEnvelopeView envelope;
   Button openButton;
@@ -190,7 +192,10 @@ final class NativeReveal extends FrameLayout {
 
   void refreshMotion() {
     if (h == null) return;
+    if (resultPickerDialog != null && !resultPickerDialog.isShowing()) resultPickerDialog = null;
     if (!current()) {
+      if (resultPickerDialog != null) resultPickerDialog.dismiss();
+      if (dossier != null) dossier.dismiss();
       stopAnimations();
       if (envelope != null) envelope.cancel();
       return;
@@ -283,8 +288,7 @@ final class NativeReveal extends FrameLayout {
       footer.removeAllViews();
       if (flow != null && units.length() > 0) {
         flow.selected = Math.max(0, Math.min(flow.selected, units.length() - 1));
-        footer.addView(flow.actions(units.optJSONObject(flow.selected)));
-        selectedLabel.setText("선택 " + (flow.selected + 1) + " / " + units.length() + " · 카드를 눌러 변경");
+        selectedLabel.setText("모집 결과 " + units.length() + "종 · 카드를 누르면 대원 기록");
         for (int j = 0; j < shown.size(); j++) {
           int serverIndex = resultPage * RESULT_PAGE_SIZE + j;
           RevealCard card = shown.get(j);
@@ -292,13 +296,13 @@ final class NativeReveal extends FrameLayout {
           card.setSelected(selected);
           card.setForeground(RegistrationCardView.selection(h, selected));
           card.setContentDescription(RegistrationCardView.description(units.optJSONObject(serverIndex))
-              + (selected ? " · 선택됨" : " · 눌러 선택"));
+              + (selected ? " · 선택됨" : "") + " · 눌러 대원 기록 보기");
         }
       }
       LinearLayout finish = k.row();
       if (units.length() > RESULT_PAGE_SIZE) {
         Button previous = k.action(null, "‹", () -> {
-          if (h.busy || resultPage <= 0) return;
+          if (h.busy || !current() || dossier != null || resultPage <= 0) return;
           resultPage--;
           if (flow != null) flow.selected = resultPage * RESULT_PAGE_SIZE;
           paint[0].run();
@@ -311,7 +315,7 @@ final class NativeReveal extends FrameLayout {
             (resultPage + 1) + "/" + ((units.length() + RESULT_PAGE_SIZE - 1) / RESULT_PAGE_SIZE));
         finish.addView(pageNumber, new LinearLayout.LayoutParams(h.dp(52), h.dp(48)));
         Button nextPage = k.action(null, "›", () -> {
-          if (h.busy || (resultPage + 1) * RESULT_PAGE_SIZE >= units.length()) return;
+          if (h.busy || !current() || dossier != null || (resultPage + 1) * RESULT_PAGE_SIZE >= units.length()) return;
           resultPage++;
           if (flow != null) flow.selected = resultPage * RESULT_PAGE_SIZE;
           paint[0].run();
@@ -321,13 +325,20 @@ final class NativeReveal extends FrameLayout {
         nextPage.setEnabled((resultPage + 1) * RESULT_PAGE_SIZE < units.length());
         finish.addView(nextPage, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
       }
-      Button all = k.action(null, "결과 목록 · " + units.length(), () -> resultPicker(index -> {
+      Button all = k.action(null, "목록 · " + units.length(), () -> resultPicker(index -> {
         if (flow != null) flow.selected = index;
         resultPage = index / RESULT_PAGE_SIZE;
         paint[0].run();
       }));
       all.setTag("acquisition-result-picker");
+      all.setContentDescription("전체 결과 목록 · " + units.length() + "종");
       h.cell(finish, all);
+      if (flow != null && units.length() > 0) {
+        LinearLayout actions = NativeUnitDossier.actions(h, flow,
+            units.optJSONObject(flow.selected), () -> current() && !h.busy && dossier == null);
+        finish.addView(actions, new LinearLayout.LayoutParams(0, h.dp(48),
+            NativeAcquisitionFlow.battleSpecies(units.optJSONObject(flow.selected)) ? 2 : 1));
+      }
       Button ok = k.primary(null, "확인", this::finish);
       ok.setTag("acquisition-confirm");
       h.cell(finish, ok);
@@ -349,10 +360,11 @@ final class NativeReveal extends FrameLayout {
         shown.add(card);
         int index = i;
         card.setTag("acquisition-card-" + unit.optString("id"));
-        if (flow != null) card.setOnClickListener(v -> {
-          if (h.busy || card.front.getVisibility() != VISIBLE) return;
-          flow.selected = index;
+        card.setOnClickListener(v -> {
+          if (h.busy || !current() || dossier != null || card.front.getVisibility() != VISIBLE) return;
+          if (flow != null) flow.selected = index;
           selection[0].run();
+          openDossier(unit, card);
         });
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(h.dp(240), card.preferredHeight);
         lp.setMargins(h.dp(6), h.dp(3), h.dp(6), h.dp(3));
@@ -395,7 +407,28 @@ final class NativeReveal extends FrameLayout {
     }
   }
 
+  boolean pickerShowing() {
+    return resultPickerDialog != null && resultPickerDialog.isShowing();
+  }
+
+  void openDossier(JSONObject unit, View returnFocus) {
+    if (!current() || leaving || dossier != null || pickerShowing()) return;
+    for (int i = 0; i < getChildCount(); i++)
+      getChildAt(i).setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+    dossier = new NativeUnitDossier(h, unit, flow, this::current, () -> {
+      NativeUnitDossier shown = dossier;
+      dossier = null;
+      if (shown != null) removeView(shown);
+      for (int i = 0; i < getChildCount(); i++)
+        getChildAt(i).setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+      if (current() && returnFocus != null) returnFocus.requestFocus();
+    });
+    addView(dossier, new LayoutParams(-1, -1));
+  }
+
   void resultPicker(java.util.function.IntConsumer select) {
+    if (!current() || leaving || dossier != null || h.busy
+        || pickerShowing()) return;
     android.app.AlertDialog[] dialog = {null};
     dialog[0] =
         k.openSheet(
@@ -427,6 +460,7 @@ final class NativeReveal extends FrameLayout {
                         null,
                         "이 갈매미 선택",
                         () -> {
+                          if (!current() || leaving || dossier != null) return;
                           select.accept(index);
                           dialog[0].dismiss();
                         });
@@ -435,10 +469,13 @@ final class NativeReveal extends FrameLayout {
               }
               return list;
             });
+    // openSheet의 기존 dismiss 정리(guard·모달 크기 복구)를 덮어쓰지 않는다.
+    resultPickerDialog = dialog[0];
   }
 
   void finish() {
-    if (leaving || !revealed || !current() || (attachedOnce && !active())) return;
+    if (leaving || dossier != null || pickerShowing() || !revealed
+        || !current() || (attachedOnce && !active())) return;
     leaving = true;
     stopAnimations();
     if (!motion()) {
@@ -496,6 +533,8 @@ final class NativeReveal extends FrameLayout {
   @Override
   protected void onDetachedFromWindow() {
     detached = true;
+    if (resultPickerDialog != null) resultPickerDialog.dismiss();
+    if (dossier != null) dossier.dismiss();
     stopAnimations();
     if (envelope != null) envelope.cancel();
     if (observing) {
@@ -713,3 +752,4 @@ final class NativeReveal extends FrameLayout {
   }
 
 }
+
