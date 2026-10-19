@@ -3,6 +3,21 @@
 // 즐겨찾기는 서버에 칸이 없어 이 기기(localStorage)에만 저장 — 화면에도 그렇게 적음
 (() => {
   'use strict';
+  // 공개 홈페이지 로그인(/login)에서 카카오로 넘어온 경우(10분 안): 서버가 /my로 돌려보내므로 원래 목적지로 이어 보냄
+  try {
+    const ret = JSON.parse(sessionStorage.getItem('gmm-login-return') || 'null');
+    if (ret && location.pathname === '/my' && Date.now() - ret.at < 600e3) {
+      sessionStorage.removeItem('gmm-login-return');
+      const next = ret.next === '/account' ? '/account' : '/game', from = /^\/(?!\/)[A-Za-z0-9/_-]*$/.test(ret.from) ? ret.from : '/';
+      const k = new URLSearchParams(location.search).get('kakao');
+      if (k === 'cancel') {
+        const was = JSON.parse(sessionStorage.getItem('gmm-from') || 'null');
+        sessionStorage.setItem('gmm-restore', JSON.stringify({ path: from, y: was && was.path === from ? was.y : 0, at: Date.now() }));
+        location.replace(from); return;
+      }
+      location.replace(k === null || k === 'linked' ? next : `/login?next=${next}&from=${encodeURIComponent(from)}&kakao=${encodeURIComponent(k)}`); return;
+    }
+  } catch { /* 저장 안 되는 브라우저: 그대로 /my */ }
   const $ = s => document.querySelector(s), main = $('#main');
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const icon = (n, extra = '') => `<svg class="ico" ${extra} aria-hidden="true"><use href="#i-${n}"/></svg>`;

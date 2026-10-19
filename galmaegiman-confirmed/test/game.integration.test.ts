@@ -655,7 +655,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com'});
     try{
       const get=async(url:string)=>{const r=await app.inject({method:'GET',url});expect(r.statusCode).toBe(200);expect(r.headers['content-type']).toContain('text/html');return r.body;};
-      expect(await get('/')).toContain('갈매미는 <span class="hl">존재</span>한다');
+      expect(await get('/')).toContain('href="/game" data-start');   // 메인은 공개 홈페이지(src/site.ts), 예전 소개 화면은 /web/landing
       expect(await get('/dex?view=s&sort=name')).toContain('<link rel="canonical" href="https://gmm.dpdns.org/dex">');
       expect(await get('/rank?k=top')).toContain('<link rel="canonical" href="https://gmm.dpdns.org/rank?k=top">');
       expect(await get('/search?q=금갑')).toContain('<meta name="robots" content="noindex">');
@@ -1284,13 +1284,13 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const d1=await get('/dex/D1');expect(d1).toContain('조합 계보도');noHidden(d1);expect(d1).not.toContain('og:image" content="https://gmm.dpdns.org/images/D1.png');
       // 도감 작은 그림·가나다순, 홈 구성
       const small=await get('/dex?view=s&sort=name');expect(small).toContain('class="tiles"');noHidden(small);
-      const homeHtml=await get('/');expect(homeHtml).toContain('href="https://pf.kakao.com/_GIAaX"');expect(homeHtml).toContain('오늘의 갈매미');expect(homeHtml).toContain('TOP 3');expect(homeHtml).toContain('최근 발견된 히든');expect(homeHtml).toContain('class="tabbar"');
-      expect(homeHtml).toContain('href="/event"');
-      // v0.16.0: 메인(/)은 「내 갈매미」 대시보드 + 로그인 전 소개 화면. 검색엔진용 정보는 그대로, /my는 색인 제외
-      expect(homeHtml).toContain('<script src="/my/dash.js"></script>');expect(homeHtml).toContain('id="login"');expect(homeHtml).toContain('<title>갈매미맨</title>');
+      // 공개 홈페이지(/): 소개·게임 시작·이벤트·공지, 검색엔진용 정보. 예전 메인의 소개 화면(오늘의 갈매미·랭킹·히든)은 /web/landing(로그인 전 /my)에 그대로
+      const homeHtml=await get('/');expect(homeHtml).toContain('href="https://pf.kakao.com/_GIAaX"');expect(homeHtml).toContain('href="/event"');
+      expect(homeHtml).toContain('<title>갈매미맨</title>');
       expect(homeHtml).toContain('"@type":"WebSite"');expect(homeHtml).toContain('<link rel="canonical" href="https://gmm.dpdns.org/">');expect(homeHtml).not.toContain('noindex');
       expect(homeHtml).toContain('class="foot"');expect(homeHtml).not.toContain('/web/img/char-');
-      expect(await get('/web/landing')).toContain('갈매미는 <span class="hl">존재</span>한다');
+      const landingHtml=await get('/web/landing');expect(landingHtml).toContain('갈매미는 <span class="hl">존재</span>한다');
+      expect(landingHtml).toContain('오늘의 갈매미');expect(landingHtml).toContain('TOP 3');expect(landingHtml).toContain('최근 발견된 히든');expect(landingHtml).toContain('id="login"');
       expect(await get('/web/foot')).toContain('href="/privacy"');
       expect(await get('/my')).toContain('<meta name="robots" content="noindex">');
       const ev=await get('/event');
@@ -1404,7 +1404,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(view.text).toContain('수다왕');expect(view.text).toContain('👍 1');expect(view.text).not.toContain('브라자');
       // 웹: 도감·수다방·홈에 보이고, 히든 이름은 ???
       const dex=await page('/dex/C1');expect(dex).toContain('너무 귀여워요');expect(dex).not.toContain('브라자');
-      expect(await page('/talk')).toContain('수다왕');expect(await page('/')).toContain('최근 한마디');
+      expect(await page('/talk')).toContain('수다왕');expect(await page('/web/landing')).toContain('최근 한마디');
       expect((await like(cm.id,'198.51.100.1')).json()).toEqual({likes:2,already:false});
       expect((await like(cm.id,'198.51.100.1')).json()).toEqual({likes:2,already:true});
       expect((await like(cm.id,'198.51.100.2')).json()).toEqual({likes:3,already:false});

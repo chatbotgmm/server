@@ -11,6 +11,7 @@ import { GameService } from './game.js';
 import { parseKakao, kakaoResponse, imageIdPattern } from './kakao.js';
 import { GameError } from './types.js';
 import { registerWeb } from './web.js';
+import { registerSite } from './site.js';
 import { battleRoster } from './battle/prototype.js';
 import { registerDuel } from './duel.js';
 import { registerMy, type KakaoLogin } from './my.js';
@@ -94,6 +95,8 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
     unitComments:id=>game.unitComments(id),recentComments:n=>game.recentComments(n),topComments:n=>game.topComments(n),like:(id,v)=>game.webLike(id,v),
     ranking:kind=>game.publicRanking(kind),seenCounts:()=>game.seenCounts(),hiddenFirsts:()=>game.hiddenFirsts(),
     searchPlayers:q=>game.searchPlayers(q),profile:n=>game.webProfile(n),source:id=>game.sourceText(id)}});
+  // 공개 홈페이지(/, 소개·캐릭터·공지·다운로드·로그인 진입)와 웹 게임(/play)
+  registerSite(app,game.content,{root:options.root??process.cwd(),version:VERSION,kakao:!!options.kakaoLogin});
   // 한 사람당 1분에 40번까지(카톡 버튼 연타·자동 입력 방지). 메모리에만 두고 1분 지난 기록은 버립니다
   const hits=new Map<string,number[]>();
   const perUser=(id:string,now=Date.now())=>{

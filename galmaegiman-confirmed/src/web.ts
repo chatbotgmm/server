@@ -480,16 +480,7 @@ ${c?`<a class="levent panel" href="/event"><b>🎉 ${esc(c.label)} 이벤트</b>
   // 공용 아래쪽(로그인 전·후 모두): 공개 페이지 바로 가기 + 정보
   const dashFoot=()=>`<footer class="foot"><nav aria-label="둘러보기"><a href="/dex">📚 도감</a><a href="/recipes">📜 조합법</a><a href="/hidden">❔ 히든 단서</a><a href="/rank">🏆 랭킹</a><a href="/talk">💬 수다방</a><a href="/world">🗺 세계관</a><a href="/event">🎁 이벤트</a><a href="/search">🔍 검색</a></nav>
 <p>갈매미맨 · 카카오톡 채널 챗봇 게임 · v${esc(options.version)}<br><a href="/privacy">개인정보처리방침</a> · <a href="/odds">뽑기 확률</a> · <a href="/account/delete">계정 삭제</a></p></footer>`;
-  const dashShell=()=>readFileSync(resolve(options.root,'public/web/index.html'),'utf8');
-  app.get('/',limit,async(_req,reply)=>{
-    const {today}=todayUnit();
-    const desc=`오늘의 갈매미: ${today.name} · 돌로 된 갈매미들이 항구 수비대에 출근하는 섬`;
-    const head=`<title>${SITE_NAME}</title><meta name="description" content="${esc(desc)}"><meta property="og:type" content="website"><meta property="og:site_name" content="${SITE_NAME}"><meta property="og:title" content="${SITE_NAME}"><meta property="og:description" content="${esc(desc)}"><meta property="og:image" content="${site}${img('images',today.id)}">`;
-    const html=dashShell().replace('<title>내 갈매미맨</title>',head).replace('<meta name="robots" content="noindex">\n','')
-      .replace('<main id="main"><div class="state"><div class="spin"></div>불러오는 중…</div></main>',`<main id="main" data-landing="1">${await landing()}</main>`)
-      .replace('<!--foot-->',dashFoot());
-    return reply.type('text/html; charset=utf-8').header('Cache-Control','no-cache').send(html.replace('</head>',`${headFor('/')}</head>`));
-  });
+  // 메인(/)은 공개 홈페이지(src/site.ts)로 옮겼다. 예전 메인의 소개 화면은 /web/landing(로그인 전 /my)에서 그대로 쓴다.
   // /my(로그인 전)·로그인이 풀린 화면이 같은 소개 화면을 받아 감
   app.get('/web/landing',limit,async(_req,reply)=>reply.type('text/html; charset=utf-8').header('Cache-Control','no-cache').send(await landing()));
   app.get('/web/foot',limit,async(_req,reply)=>reply.type('text/html; charset=utf-8').header('Cache-Control','public, max-age=300').send(dashFoot()));
