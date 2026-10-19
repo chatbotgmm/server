@@ -303,6 +303,21 @@ public class R1ScreenReviewTest {
   }
 
   @Test
+  public void titleAndLogin() throws Exception {
+    eachSize(
+        (a, w, h, inset, size) -> {
+          review.viewport(a, w, h);
+          a.motionEnabled = false;
+          androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(a.root, null);
+          a.root.setPadding(inset ? 36 : 0, inset ? 10 : 0, inset ? 8 : 0, inset ? 10 : 0);
+          a.titleScreen();
+          shot(a, "title-" + size, w, h);
+          a.login();
+          shot(a, "login-" + size, w, h);
+        });
+  }
+
+  @Test
   public void homeLobby() throws Exception {
     eachSize(
         (a, w, h, inset, size) -> {

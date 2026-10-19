@@ -24,9 +24,9 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 78
         versionName "2.2.4-native"
-        // 카카오 로그인 복귀 주소. 미리보기판은 다른 주소를 써서 설치된 정식 앱의 로그인 복귀를 가로채지 않는다.
+        // 카카오 로그인 복귀 주소(서버가 gmmrevised://auth로 돌려보낸다). 미리보기판도 같은 주소를 써서 카카오 로그인이 된다.
+        // 정식 앱과 함께 설치돼 있으면 로그인 복귀 때 Android가 어느 앱으로 열지 묻는다 → 로그인을 시작한 앱을 고른다.
         manifestPlaceholders = [authScheme: "gmmrevised"]
-        buildConfigField "boolean", "KAKAO_LOGIN", "true"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -91,8 +91,6 @@ android {
             // 설치된 미리보기가 어느 커밋에서 나왔는지 앱 설정의 「Android 버전」에서 바로 보이게 한다.
             versionNameSuffix "-r1preview-" + (System.getenv('GITHUB_SHA')?.take(7) ?: 'local')
             matchingFallbacks = ['debug']
-            manifestPlaceholders = [authScheme: "gmmr1preview"]
-            buildConfigField "boolean", "KAKAO_LOGIN", "false"
         }
         release {
             if (nativeKeystore) signingConfig signingConfigs.nativeRelease

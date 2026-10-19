@@ -731,7 +731,7 @@ public class MainActivity extends AppCompatActivity {
     head.addView(close, new LinearLayout.LayoutParams(dp(48), dp(48)));
     Button kakao = button("카카오로 로그인", this::kakao);
     kakao.setBackground(new GameButtonDrawable(this, 0xfffee500));
-    if (!linking && BuildConfig.KAKAO_LOGIN) form.addView(kakao, new LinearLayout.LayoutParams(-1, dp(48)));
+    if (!linking) form.addView(kakao, new LinearLayout.LayoutParams(-1, dp(48)));
     TextView guidance = text(linking ? "기존 계정의 코드로 처음 한 번 연결해요." : "또는 카톡으로 받은 6자리 코드", 14);
     guidance.setTypeface(prose);
     LinearLayout codeForm = new LinearLayout(this);
@@ -846,6 +846,13 @@ public class MainActivity extends AppCompatActivity {
         Math.min(
             dp(420),
             (int) ((root.getHeight() - root.getPaddingTop() - root.getPaddingBottom()) * .9f));
+    // 내용보다 크게 고정하면 버튼 아래가 빈 종이로 남는다. 내용 높이까지만 쓰고 넘치면 기존처럼 스크롤한다.
+    if (p.width > 0) {
+      loginScroll.measure(
+          View.MeasureSpec.makeMeasureSpec(p.width, View.MeasureSpec.EXACTLY),
+          View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+      if (loginScroll.getMeasuredHeight() > 0) height = Math.min(height, loginScroll.getMeasuredHeight());
+    }
     if (p.height != height) {
       p.height = Math.max(dp(80), height);
       loginScroll.setLayoutParams(p);
@@ -861,10 +868,6 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void beginKakao(boolean linking) {
-    if (!BuildConfig.KAKAO_LOGIN) {
-      message("미리보기판은 카카오 로그인을 쓰지 않아요. 카톡으로 받은 6자리 코드로 로그인해 주세요.");
-      return;
-    }
     try {
       byte[] bytes = new byte[32];
       new SecureRandom().nextBytes(bytes);
