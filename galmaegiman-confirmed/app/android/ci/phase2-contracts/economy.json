@@ -1,0 +1,186 @@
+{
+  "schema": "phase-two-review-contract/v1",
+  "id": "economy",
+  "status": "source_complete_native_execution_pending",
+  "source_contract": "phase2-economy/review-contract.json",
+  "source_contract_sha256": "49e2e2a658e5d2381762b7c791cd881f4c88d9ffc310e29f557de4fa7087d92a",
+  "output_subdirectory": "economy-theme",
+  "expected_capture_count": 50,
+  "test_suites": [
+    {
+      "name": "org.dpdns.gmm.NativeEconomyThemeReviewTest",
+      "minimum_tests": 2
+    },
+    {
+      "name": "org.dpdns.gmm.NativeEconomyThemeContractTest",
+      "minimum_tests": 5
+    },
+    {
+      "name": "org.dpdns.gmm.NativeRecruitmentProbabilityTest",
+      "minimum_tests": 8
+    }
+  ],
+  "variants": [
+    {
+      "suffix": "915x412",
+      "width": 915,
+      "height": 412,
+      "font_scale": 1
+    },
+    {
+      "suffix": "1006x411",
+      "width": 1006,
+      "height": 411,
+      "font_scale": 1
+    },
+    {
+      "suffix": "1280x720",
+      "width": 1280,
+      "height": 720,
+      "font_scale": 1
+    },
+    {
+      "suffix": "915x412-font130",
+      "width": 915,
+      "height": 412,
+      "font_scale": 1.3
+    },
+    {
+      "suffix": "780x360-font130",
+      "width": 780,
+      "height": 360,
+      "font_scale": 1.3
+    }
+  ],
+  "screens": [
+    {
+      "stem": "recruit",
+      "audit_id": "draw",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-recruitment-counter-v1.png",
+        "sourceCommit": "9d8d7b445b8d7957c9b0ebf549e775be5ab2ee3e"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "recruit-high",
+      "audit_id": "draw",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-recruitment-counter-v1.png",
+        "sourceCommit": "9d8d7b445b8d7957c9b0ebf549e775be5ab2ee3e"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "shop",
+      "audit_id": "shop",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-market-canopy-v1.png",
+        "sourceCommit": "9d8d7b445b8d7957c9b0ebf549e775be5ab2ee3e"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "shop-items",
+      "audit_id": "shop",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-market-canopy-v1.png",
+        "sourceCommit": "9d8d7b445b8d7957c9b0ebf549e775be5ab2ee3e"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "craft",
+      "audit_id": "craft",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-navigation-workshop-v1.png",
+        "sourceCommit": "9d8d7b445b8d7957c9b0ebf549e775be5ab2ee3e"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "mix",
+      "audit_id": "mix",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-navigation-workshop-v1.png",
+        "sourceCommit": "9d8d7b445b8d7957c9b0ebf549e775be5ab2ee3e"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "mix-selected",
+      "audit_id": "mix",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-navigation-workshop-v1.png",
+        "sourceCommit": "9d8d7b445b8d7957c9b0ebf549e775be5ab2ee3e"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "explore",
+      "audit_id": "expedition",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-navigation-workshop-v1.png",
+        "sourceCommit": "9d8d7b445b8d7957c9b0ebf549e775be5ab2ee3e"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "trip",
+      "audit_id": "expedition",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-navigation-workshop-v1.png",
+        "sourceCommit": "9d8d7b445b8d7957c9b0ebf549e775be5ab2ee3e"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "forge",
+      "audit_id": "craftResult",
+      "expected_fields": {
+        "rootKind": "overlay",
+        "sceneAsset": "backgrounds/bg-navigation-workshop-v1.png",
+        "sourceCommit": "9d8d7b445b8d7957c9b0ebf549e775be5ab2ee3e"
+      },
+      "minimum_integers": {}
+    }
+  ],
+  "metrics_file": "geometry.json",
+  "findings_file": "findings.json",
+  "measurements": {
+    "true_fields": [
+      "actualNativeViews"
+    ],
+    "zero_integer_fields": [
+      "apiWrites"
+    ],
+    "positive_integer_fields": [
+      "controls",
+      "labels",
+      "sceneWidth",
+      "sceneHeight"
+    ],
+    "nonnegative_integer_fields": [
+      "namePreviewTruncations",
+      "independentOverlapChecks",
+      "apiReads"
+    ],
+    "array_fields": [],
+    "duration_fields": [],
+    "scene_asset_field": "sceneAsset",
+    "scene_width_field": "sceneWidth",
+    "scene_height_field": "sceneHeight",
+    "report_counter_fields": [
+      "namePreviewTruncations"
+    ]
+  }
+}

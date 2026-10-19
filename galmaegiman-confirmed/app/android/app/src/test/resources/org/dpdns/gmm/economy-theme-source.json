@@ -1,0 +1,471 @@
+{
+  "sourceCommit": "9d8d7b445b8d7957c9b0ebf549e775be5ab2ee3e",
+  "sourceBlobs": {
+    "economy.yaml": "edccf62f8ff937cb43898ac97c803ae251559e54",
+    "battle.yaml": "adf073849b998288873be2d7ef2c31acd7f4a0ea",
+    "units.json.sha256": "76470df7b9b99d15f2ef89b1e600592ea3d8cf27b19b27e5ca0ce2a05c3fa744"
+  },
+  "economy": {
+    "tickets": {
+      "welcome": 200,
+      "claim": 30,
+      "cooldownHours": 1
+    },
+    "gachas": {
+      "LOW": {
+        "label": "하급",
+        "cost": 2,
+        "weights": {
+          "COMMON": 70,
+          "UNCOMMON": 30
+        }
+      },
+      "MID": {
+        "label": "중급",
+        "cost": 3,
+        "weights": {
+          "COMMON": 20,
+          "UNCOMMON": 50,
+          "SPECIAL": 30
+        }
+      },
+      "HIGH": {
+        "label": "고급",
+        "cost": 5,
+        "weights": {
+          "COMMON": 10,
+          "UNCOMMON": 15,
+          "SPECIAL": 54,
+          "RARE": 20,
+          "LEGEND": 1
+        },
+        "pity": {
+          "tier": "LEGEND",
+          "count": 100
+        }
+      }
+    },
+    "shop": {
+      "tickets": {
+        "snacks": 1000,
+        "amount": 10
+      },
+      "expeditionSkip": {
+        "snacks": 100
+      }
+    },
+    "peanutShop": {
+      "tickets": 20,
+      "special": 3,
+      "badges": [
+        {
+          "id": "PEANUT",
+          "emoji": "🥜",
+          "label": "땅콩 배지",
+          "cost": 1
+        },
+        {
+          "id": "SHELL",
+          "emoji": "🐚",
+          "label": "조개 배지",
+          "cost": 2
+        },
+        {
+          "id": "WAVE",
+          "emoji": "🌊",
+          "label": "파도 배지",
+          "cost": 2
+        },
+        {
+          "id": "BLOSSOM",
+          "emoji": "🌸",
+          "label": "벚꽃 배지",
+          "cost": 2
+        },
+        {
+          "id": "STAR",
+          "emoji": "⭐",
+          "label": "별 배지",
+          "cost": 3
+        },
+        {
+          "id": "CROWN",
+          "emoji": "👑",
+          "label": "왕관 배지",
+          "cost": 5
+        }
+      ]
+    },
+    "expedition": {
+      "minutes": 60,
+      "snackPerUnit": 10,
+      "maxParty": 10,
+      "levels": [
+        2,
+        4
+      ],
+      "effects": {
+        "BASIC": {
+          "label": "기본",
+          "concept": "수호",
+          "snackPercent": [
+            15,
+            30
+          ]
+        },
+        "GOLD": {
+          "label": "황금",
+          "concept": "금고",
+          "doublePercent": [
+            15,
+            30
+          ]
+        },
+        "DARK": {
+          "label": "암흑",
+          "concept": "밤",
+          "minutes": [
+            50,
+            40
+          ]
+        },
+        "SEA": {
+          "label": "바다",
+          "concept": "심해",
+          "commonPercent": [
+            10,
+            20
+          ]
+        },
+        "BLOSSOM": {
+          "label": "벚꽃",
+          "concept": "개화",
+          "uncommonPercent": [
+            5,
+            10
+          ]
+        },
+        "COSMOS": {
+          "label": "우주",
+          "concept": "별",
+          "ticketPercent": [
+            15,
+            30
+          ]
+        },
+        "OUTFIT": {
+          "label": "갈 의복",
+          "concept": "튼튼한 빤스",
+          "snackPerUnit": [
+            2,
+            4
+          ]
+        }
+      },
+      "countBonusPercent": {
+        "2": 5,
+        "3": 10,
+        "4": 15,
+        "5": 25
+      }
+    },
+    "rewards": {
+      "COMMON": {
+        "first": 0,
+        "duplicate": 0
+      },
+      "UNCOMMON": {
+        "first": 50,
+        "duplicate": 10
+      },
+      "SPECIAL": {
+        "first": 100,
+        "duplicate": 20
+      },
+      "RARE": {
+        "first": 200,
+        "duplicate": 40
+      },
+      "LEGEND": {
+        "first": 400,
+        "duplicate": 80
+      },
+      "HIDDEN": {
+        "first": 400,
+        "duplicate": 80
+      },
+      "LIMITED": {
+        "first": 800,
+        "duplicate": 160
+      },
+      "TRANSCEND": {
+        "first": 1000,
+        "duplicate": 200
+      },
+      "ETERNAL": {
+        "first": 1200,
+        "duplicate": 240
+      },
+      "IMMORTAL": {
+        "first": 1400,
+        "duplicate": 280
+      },
+      "NEUTRAL": {
+        "first": 50,
+        "duplicate": 10
+      }
+    }
+  },
+  "items": {
+    "potion": {
+      "name": "치료약",
+      "price": 60,
+      "heal": 35,
+      "desc": "지금 나와 있는 갈매미의 체력을 35% 회복해요"
+    },
+    "big": {
+      "name": "큰 치료약",
+      "price": 150,
+      "heal": 75,
+      "desc": "지금 나와 있는 갈매미의 체력을 75% 회복해요"
+    },
+    "clear": {
+      "name": "정신 차리기 물",
+      "price": 80,
+      "cleanse": true,
+      "desc": "지금 나와 있는 갈매미의 상태 이상(화상·빙결·잠·묶임·폭주)을 풀어요"
+    },
+    "feather": {
+      "name": "다시 출근 깃털",
+      "price": 300,
+      "revive": 50,
+      "desc": "쓰러진 아군 하나를 체력 50%로 다시 일으켜요"
+    }
+  },
+  "itemRules": {
+    "perBattle": 3,
+    "maxStack": 20
+  },
+  "units": [
+    {
+      "id": "C1",
+      "name": "기본 갈매미맨",
+      "tier": "COMMON",
+      "recipe": []
+    },
+    {
+      "id": "C2",
+      "name": "황금 갈매미맨",
+      "tier": "COMMON",
+      "recipe": []
+    },
+    {
+      "id": "C3",
+      "name": "암흑 갈매미맨",
+      "tier": "COMMON",
+      "recipe": []
+    },
+    {
+      "id": "C4",
+      "name": "바다 갈매미맨",
+      "tier": "COMMON",
+      "recipe": []
+    },
+    {
+      "id": "C5",
+      "name": "벚꽃 갈매미맨",
+      "tier": "COMMON",
+      "recipe": []
+    },
+    {
+      "id": "C6",
+      "name": "우주 갈매미맨",
+      "tier": "COMMON",
+      "recipe": []
+    },
+    {
+      "id": "U1",
+      "name": "금갑",
+      "tier": "UNCOMMON",
+      "recipe": [
+        [
+          "C1",
+          2
+        ],
+        [
+          "C2",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "U2",
+      "name": "야경",
+      "tier": "UNCOMMON",
+      "recipe": [
+        [
+          "C1",
+          1
+        ],
+        [
+          "C3",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "U3",
+      "name": "방파제",
+      "tier": "UNCOMMON",
+      "recipe": [
+        [
+          "C1",
+          1
+        ],
+        [
+          "C4",
+          2
+        ]
+      ]
+    },
+    {
+      "id": "U4",
+      "name": "꽃갑",
+      "tier": "UNCOMMON",
+      "recipe": [
+        [
+          "C1",
+          1
+        ],
+        [
+          "C5",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "U5",
+      "name": "운석",
+      "tier": "UNCOMMON",
+      "recipe": [
+        [
+          "C1",
+          1
+        ],
+        [
+          "C6",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "U6",
+      "name": "금조개",
+      "tier": "UNCOMMON",
+      "recipe": [
+        [
+          "C2",
+          1
+        ],
+        [
+          "C4",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "U7",
+      "name": "심해",
+      "tier": "UNCOMMON",
+      "recipe": [
+        [
+          "C3",
+          1
+        ],
+        [
+          "C4",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "U8",
+      "name": "꽃물결",
+      "tier": "UNCOMMON",
+      "recipe": [
+        [
+          "C4",
+          1
+        ],
+        [
+          "C5",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "D1",
+      "name": "태초의 갈매미맨",
+      "tier": "LIMITED",
+      "recipe": [
+        [
+          "L2",
+          1
+        ],
+        [
+          "H6",
+          1
+        ]
+      ],
+      "synergy": "BASIC"
+    },
+    {
+      "id": "D2",
+      "name": "원금 갈매미맨",
+      "tier": "LIMITED",
+      "recipe": [
+        [
+          "L17",
+          1
+        ],
+        [
+          "H4",
+          1
+        ]
+      ],
+      "synergy": "GOLD"
+    },
+    {
+      "id": "D3",
+      "name": "첫밤의 갈매미맨",
+      "tier": "LIMITED",
+      "recipe": [
+        [
+          "L6",
+          1
+        ],
+        [
+          "H3",
+          1
+        ]
+      ],
+      "synergy": "DARK"
+    },
+    {
+      "id": "D4",
+      "name": "원해 갈매미맨",
+      "tier": "LIMITED",
+      "recipe": [
+        [
+          "L1",
+          1
+        ],
+        [
+          "H2",
+          1
+        ]
+      ],
+      "synergy": "SEA"
+    }
+  ]
+}

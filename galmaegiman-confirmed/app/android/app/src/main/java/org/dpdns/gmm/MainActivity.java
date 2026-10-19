@@ -259,7 +259,7 @@ public class MainActivity extends AppCompatActivity {
     }
     if (!state.has("me") && target.equals("title")) titleScreen();
     else if (!state.has("me")) {
-      base("수비대 연결", "loading");
+      base("방범대 연결", "loading");
       body.addView(text("계정과 진행을 불러오고 있어요.", 22));
       addButton("다시 연결", () -> load(target));
     }
@@ -679,7 +679,7 @@ public class MainActivity extends AppCompatActivity {
     sound.play("title");
     root.removeAllViews();
     root.addView(new TitleView(this, !api.token().isEmpty()), new FrameLayout.LayoutParams(-1, -1));
-    title = text("갈매미맨 수비대", 24);
+    title = text("갈매미맨 방범대", 24);
     screenShown();
   }
 
@@ -720,7 +720,7 @@ public class MainActivity extends AppCompatActivity {
     form.addView(head);
     boolean linking =
         !getSharedPreferences("native_account", 0).getString("linkCode", "").isEmpty();
-    title = text(linking ? "카카오 계정 처음 연결" : "수비대 인사 기록부", linking ? 18 : 22);
+    title = text(linking ? "카카오 계정 처음 연결" : "방범대 인사 기록부", linking ? 18 : 22);
     title.setTypeface(headline);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
     Button close =
@@ -823,7 +823,7 @@ public class MainActivity extends AppCompatActivity {
     codeEntry.setTag("login-code-open");
     code.setTag("login-code-input");
     form.addView(codeEntry, new LinearLayout.LayoutParams(-1, dp(48)));
-    form.addView(text("카톡 채널에서 받은 코드로 기존 수비대를 이어가요.", 14));
+    form.addView(text("카톡 채널에서 받은 코드로 기존 방범대를 이어가요.", 14));
     Button help =
         new MenuKit(this)
             .action(

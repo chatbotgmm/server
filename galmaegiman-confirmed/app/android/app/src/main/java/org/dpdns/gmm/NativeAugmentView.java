@@ -30,13 +30,20 @@ final class NativeAugmentView extends LinearLayout {
         public void run() {
           if (!isAttachedToWindow() || deadline <= 0) return;
           long remaining = Math.max(0, deadline - (System.currentTimeMillis() + clockOffset));
+          boolean localInput = canChoose();
           title.setText(
               (switching
                       ? "② 다음 출전"
                       : battleView.side(0).optBoolean("needSwitch") ? "① 증강체" : "전투 증강체")
                   + " · "
-                  + ((remaining + 999) / 1000)
-                  + "초");
+                  + (remaining <= 0 ? "결과 확인 중"
+                      : NativeRealtime.isBattle(battleView.battle) && !localInput
+                          ? h.realtime.writing ? "선택 전송 중" : "상대 선택 대기"
+                          : ((remaining + 999) / 1000) + "초"));
+          for (View pick : picks) pick.setEnabled(localInput);
+          for (int i = 0; i < rerolls.size(); i++)
+            rerolls.get(i).setEnabled(localInput && !offers.optJSONObject(i).optBoolean("rerolled"));
+          confirm.setEnabled(localInput && (switching ? switchTo >= 0 : !selected.isEmpty()));
           if (remaining <= 0) {
             confirm.setEnabled(false);
             confirm.setText("결과 확인 중");
@@ -44,7 +51,7 @@ final class NativeAugmentView extends LinearLayout {
             for (Button reroll : rerolls) reroll.setEnabled(false);
           }
           boolean urgent = remaining <= 10000;
-          title.setTextColor(urgent ? NativeBattleLog.DAMAGE : JournalTheme.INK);
+          title.setTextColor(urgent ? 0xffffd2bc : JournalTheme.WHITE);
           timerRule.setTextColor(urgent ? NativeBattleLog.DAMAGE : JournalTheme.MUTED);
           timerRule.setTypeface(h.prose, urgent ? Typeface.BOLD : Typeface.NORMAL);
           if (remaining <= 0 && NativeRealtime.isBattle(battleView.battle)) {
@@ -96,7 +103,10 @@ final class NativeAugmentView extends LinearLayout {
       valid |= offers.optJSONObject(i).optString("id").equals(selected);
     if (!valid) selected = "";
     setOrientation(VERTICAL);
-    setBackground(new AppSkin.Place("training"));
+    setTag("theme-augment-desk");
+    // This view covers the battle while choosing. The decoded scene is opaque,
+    // and ThemeArt paints navy until it is ready, so no secret battle UI leaks through.
+    setBackground(ThemeArt.of(h).background(AppSkin.background("workshop")));
     setPadding(
         h.dp(large ? 44 : 20) + h.root.getPaddingLeft(),
         h.dp(8) + h.root.getPaddingTop(),
@@ -104,11 +114,12 @@ final class NativeAugmentView extends LinearLayout {
         h.dp(10) + h.root.getPaddingBottom());
     title = h.text("증강체 선택", large ? 24 : 19);
     title.setTextSize(large ? 24 : 19);
-    title.setPadding(0, 0, 0, h.dp(3));
+    title.setPadding(h.dp(16), h.dp(7), h.dp(16), h.dp(7));
     title.setIncludeFontPadding(false);
     title.setTypeface(h.headline);
     title.setGravity(Gravity.CENTER);
-    title.setTextColor(JournalTheme.INK);
+    title.setTextColor(JournalTheme.WHITE);
+    title.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
     addView(title, new LayoutParams(-1, -2));
     timerRule = h.text("30초 안에 확정하지 않으면 선택지 중 무작위로 결정돼요.", large ? 17 : 14);
     timerRule.setTypeface(h.prose);
@@ -329,8 +340,9 @@ final class NativeAugmentView extends LinearLayout {
               "/duel/icons/"
                   + (JournalIcons.supports(id) ? id : aug.optString("icon", "u-gift"))
                   + ".png",
-              large ? 56 : 40,
-              large ? 56 : 40);
+              large ? 76 : 56,
+              large ? 76 : 56);
+      icon.setTag("augment-icon-" + id);
       android.graphics.drawable.GradientDrawable ring =
           new android.graphics.drawable.GradientDrawable();
       ring.setShape(android.graphics.drawable.GradientDrawable.OVAL);
@@ -347,6 +359,7 @@ final class NativeAugmentView extends LinearLayout {
       name.setMaxLines(2);
       name.setEllipsize(android.text.TextUtils.TruncateAt.END);
       name.setTypeface(h.headline);
+      name.setTextColor(JournalTheme.WHITE);
       name.setGravity(Gravity.CENTER);
       name.setPadding(h.dp(3), 0, 0, 0);
       name.setIncludeFontPadding(true);
@@ -364,7 +377,7 @@ final class NativeAugmentView extends LinearLayout {
       content.addView(badge, new LayoutParams(-2, -2));
       TextView desc = k.note(coreEffect(aug));
       desc.setTextSize(large ? 19 : 16);
-      desc.setPadding(0, h.dp(3), 0, 0);
+      desc.setPadding(h.dp(8), h.dp(6), h.dp(8), h.dp(6));
       desc.setIncludeFontPadding(false);
       desc.setTextColor(JournalTheme.MUTED);
       desc.setGravity(Gravity.CENTER);
@@ -374,7 +387,10 @@ final class NativeAugmentView extends LinearLayout {
       desc.setEllipsize(null);
       desc.setGravity(Gravity.CENTER);
       desc.setTag("augment-core-effect");
-      content.addView(desc, new LayoutParams(-1, 0, 1));
+      desc.setBackground(new GamePaperDrawable(h));
+      LayoutParams effectSlot = new LayoutParams(-1, 0, 1);
+      effectSlot.topMargin = h.dp(5);
+      content.addView(desc, effectSlot);
       content.setContentDescription(
           aug.optString("name") + " · " + kindName(type) + " · " + aug.optString("desc"));
       content.setOnClickListener(
@@ -464,6 +480,7 @@ final class NativeAugmentView extends LinearLayout {
               large ? 100 : 56));
       TextView name = h.text(f.optString("name"), large ? 25 : 19);
       name.setTypeface(h.headline);
+      name.setTextColor(JournalTheme.WHITE);
       identity.addView(name, new LayoutParams(0, -2, 1));
       card.addView(identity, new LayoutParams(-1, -2));
       TextView match =
@@ -474,9 +491,14 @@ final class NativeAugmentView extends LinearLayout {
                   + " · 방어 "
                   + NativeBattleSheets.defense(h, battleView.active(1), f));
       match.setTextSize(large ? 17 : 13);
+      match.setTextColor(JournalTheme.PAPER);
       card.addView(match);
+      LinearLayout vitality = k.column();
+      vitality.setPadding(h.dp(8), h.dp(6), h.dp(8), h.dp(8));
+      vitality.setBackground(new GamePaperDrawable(h));
+      card.addView(vitality, new LayoutParams(-1, -2));
       k.progress(
-          card,
+          vitality,
           "체력 " + f.optInt("hp") + " / " + f.optInt("maxHp"),
           f.optInt("hp"),
           f.optInt("maxHp"),
@@ -511,8 +533,13 @@ final class NativeAugmentView extends LinearLayout {
   }
 
   boolean canChoose() {
-    return !h.busy && (deadline <= 0
-        || System.currentTimeMillis() + clockOffset < deadline);
+    if (h.busy || (deadline > 0 && System.currentTimeMillis() + clockOffset >= deadline)) return false;
+    if (!NativeRealtime.isBattle(battleView.battle)) return true;
+    NativeRealtime realtime = h.realtime;
+    return realtime != null && !realtime.writing && !realtime.playing
+        && realtime.latest != null && realtime.latest.optBoolean("canSubmit")
+        && !realtime.latest.optBoolean("mySubmitted")
+        && battleView.battle.optString("phaseId").equals(realtime.latest.optString("phaseId"));
   }
 
   void submit() {
@@ -534,17 +561,24 @@ final class NativeAugmentView extends LinearLayout {
     final int tint;
     final boolean selected;
     final Paint p = new Paint(3);
+    int alpha = 255;
+    ColorFilter filter;
 
     CardFrame(int tint, boolean selected) {
       this.tint = tint;
       this.selected = selected;
+      ThemeArt.of(h).image(ThemeArt.file(ThemeArt.Surface.NAV));
     }
 
     public void draw(Canvas c) {
       RectF r = new RectF(getBounds());
-      float density = h.getResources().getDisplayMetrics().density;
-      JournalTheme.drawPanel(
-          c, r, density, selected ? JournalTheme.SELECTED : JournalTheme.PAPER, true);
+      int saved = c.save();
+      p.setAlpha(alpha);
+      p.setColorFilter(filter);
+      if (alpha != 255 || filter != null) c.saveLayer(r, p);
+      ThemeArt.of(h).surface(c, ThemeArt.Surface.NAV, r);
+      p.setAlpha(255);
+      p.setColorFilter(null);
       r.inset(h.dp(7), h.dp(7));
       p.setStyle(Paint.Style.FILL);
       p.setColor(tint);
@@ -555,18 +589,21 @@ final class NativeAugmentView extends LinearLayout {
         r.bottom -= h.dp(4);
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(h.dp(2));
-        p.setColor(JournalTheme.BRASS);
+        p.setColor(JournalTheme.SELECTED_EDGE);
         c.drawRoundRect(r, h.dp(4), h.dp(4), p);
         p.setStyle(Paint.Style.FILL);
       }
+      c.restoreToCount(saved);
     }
 
     public void setAlpha(int a) {
-      p.setAlpha(a);
+      alpha = Math.max(0, Math.min(255, a));
+      invalidateSelf();
     }
 
     public void setColorFilter(ColorFilter f) {
-      p.setColorFilter(f);
+      filter = f;
+      invalidateSelf();
     }
 
     public int getOpacity() {

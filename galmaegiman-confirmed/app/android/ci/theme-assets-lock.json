@@ -3,11 +3,11 @@
   "app_baseline_commit": "9d8d7b445b8d7957c9b0ebf549e775be5ab2ee3e",
   "source_prefix": "galmaegiman-confirmed/app/android/app/src/main/assets/native/release-v1",
   "apk_prefix": "assets/native/release-v1",
-  "background_count": 7,
+  "background_count": 8,
   "ui_count": 6,
   "protected_home_art_count": 11,
-  "added_file_count": 10,
-  "runtime_bytes": 25887725,
+  "added_file_count": 11,
+  "runtime_bytes": 28859181,
   "files": [
     {
       "path": "backgrounds/bg-augments.png",
@@ -53,6 +53,18 @@
       "dimensions": [
         1867,
         842
+      ],
+      "baseline": false,
+      "role": "background"
+    },
+    {
+      "path": "backgrounds/bg-navigation-workshop-v1.png",
+      "bytes": 2971456,
+      "sha256": "2e68774067bda86fee5bab928743f3f4fbab627275fbc68397231a3ff3b1fcfb",
+      "git_blob_sha": "2f737ab084523a2f3d30b8529a23ae0683923582",
+      "dimensions": [
+        1870,
+        841
       ],
       "baseline": false,
       "role": "background"

@@ -75,7 +75,7 @@
     {
       "stem": "explore",
       "audit_id": "expedition",
-      "scene_asset": "backgrounds/bg-augments.png",
+      "scene_asset": "backgrounds/bg-navigation-workshop-v1.png",
       "root_kind": "page"
     }
   ]

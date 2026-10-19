@@ -4,6 +4,7 @@ import android.content.SharedPreferences;
 import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.TextView;
@@ -28,6 +29,10 @@ final class NativeRealtime {
   TextView queueText, queueElapsed, queueMode, queuePolicyView, clock;
   long queueObservedAt, queueWaitReceivedAt, queueWaitBase = -1;
   Button cancelButton;
+  final ArrayList<Button> phaseActions = new ArrayList<>();
+  int preparationSlot, preparationPage;
+  String preparationPhase = "";
+  static final int PREPARATION_PAGE_SIZE = 4;
   boolean queueStopped, queueConfirmed, queueRetryPending;
   int queueRetryCount, waitingCopyIndex;
   Runnable queueRetry;
@@ -61,7 +66,17 @@ final class NativeRealtime {
           if (ownInput && deadline > 0 && now >= deadline) battleView.blockExpiredInput();
         } else {
           clock.setVisibility(View.VISIBLE);
-          clock.setText((isAiRoom(latest) ? AI_NOTICE + "\n" : "") + remaining + state);
+          JSONObject acceptance = latest.optJSONObject("acceptance");
+          JSONObject preparation = latest.optJSONObject("preparation");
+          boolean accepting = "accept".equals(latest.optString("phase"));
+          boolean selecting = "prepare".equals(latest.optString("phase"));
+          boolean input = accepting ? acceptance != null && !acceptance.optBoolean("accepted")
+              : selecting && preparation != null && !preparation.optBoolean("ready");
+          clock.setText(latest.optJSONObject("result") != null ? "결과 확인 중"
+              : writing ? "선택 전송 중"
+              : input && deadline > 0 ? now >= deadline ? "결과 확인 중" : remaining.replace(" · ", "")
+              : accepting ? "상대 수락 대기" : selecting ? "상대 준비 대기" : state);
+          updatePhaseInputs();
         }
       }
       h.api.ui.postDelayed(this, 250);
@@ -267,45 +282,67 @@ final class NativeRealtime {
   static String queueTimeLabel(long seconds) {
     return String.format(java.util.Locale.KOREA, "대기 시간 %02d:%02d", seconds / 60, seconds % 60);
   }
+  /** A bounded navy desk leaves the real harbor scene visible around every side. */
+  LinearLayout focusedPanel(String heading, String screen, String tag) {
+    h.base(heading, screen);
+    AppSkin.apply(h, "training");
+    h.page.removeAllViews(); h.page.setGravity(Gravity.CENTER);
+    phaseActions.clear(); clock = null;
+    FrameLayout stage = new FrameLayout(h);
+    h.page.addView(stage, new LinearLayout.LayoutParams(-1, -1));
+    int width = h.root.getWidth() > 0 ? h.root.getWidth() - h.root.getPaddingLeft() - h.root.getPaddingRight()
+        : h.dp(h.getResources().getConfiguration().screenWidthDp);
+    int height = h.root.getHeight() > 0 ? h.root.getHeight() - h.root.getPaddingTop() - h.root.getPaddingBottom()
+        : h.dp(h.getResources().getConfiguration().screenHeightDp);
+    LinearLayout panel = new LinearLayout(h);
+    panel.setOrientation(LinearLayout.VERTICAL); panel.setGravity(Gravity.CENTER);
+    panel.setPadding(h.dp(20), h.dp(14), h.dp(20), h.dp(14));
+    panel.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAV)); panel.setTag(tag);
+    stage.addView(panel, new FrameLayout.LayoutParams(Math.min(h.dp(620), Math.max(h.dp(280), width - h.dp(96))),
+        Math.min(h.dp(360), Math.max(h.dp(240), height - h.dp(40))), Gravity.CENTER));
+    h.body = panel;
+    return panel;
+  }
+  TextView lightText(String text, int size) {
+    TextView label = h.text(text, size); label.setTextColor(JournalTheme.PAPER);
+    label.setGravity(Gravity.CENTER); return label;
+  }
+  Button phaseButton(String text, String tag, Runnable action, boolean primary) {
+    MenuKit kit = new MenuKit(h);
+    Button button = primary ? kit.primary(null, text, action) : kit.action(null, text, action);
+    button.setTag(tag); button.setTextSize(h.uiText(16));
+    button.setMinHeight(h.dp(48)); button.setMinimumHeight(h.dp(48));
+    button.setPadding(h.dp(10), h.dp(3), h.dp(10), h.dp(3));
+    return button;
+  }
+  TextView inlineClock() {
+    TextView result = lightText("", 16);
+    result.setTag("realtime-phase-clock"); result.setTypeface(h.headline);
+    result.setPadding(h.dp(8), h.dp(3), h.dp(8), h.dp(3));
+    return result;
+  }
   void showQueue(String message) {
     if (!"realtimeQueue".equals(h.screen) || queueMode == null || queueElapsed == null
         || queueText == null || queuePolicyView == null || cancelButton == null) {
       h.busy = false;
       if (queueObservedAt == 0) queueObservedAt = SystemClock.elapsedRealtime();
-      h.base("대전 찾기", "realtimeQueue");
-      // Replace the menu viewport, not the battle/augment view. No scrolling container.
-      h.page.removeAllViews(); h.page.setGravity(Gravity.CENTER);
-      LinearLayout panel = new LinearLayout(h);
-      panel.setTag("realtime-queue-paper");
-      panel.setOrientation(LinearLayout.VERTICAL); panel.setGravity(Gravity.CENTER);
-      panel.setPadding(h.dp(18), h.dp(10), h.dp(18), h.dp(10));
-      panel.setBackground(new GamePaperDrawable(h));
-      h.page.addView(panel, new LinearLayout.LayoutParams(-1, -1));
-      h.body = panel;
-      queueMode = h.text("", 23); queueMode.setGravity(Gravity.CENTER);
-      queueMode.setTypeface(h.headline); queueMode.setTextColor(JournalTheme.INK);
+      LinearLayout panel = focusedPanel("대전 찾기", "realtimeQueue", "realtime-queue-paper");
+      queueMode = lightText("", 24); queueMode.setTypeface(h.headline);
       panel.addView(queueMode, new LinearLayout.LayoutParams(-1, -2));
-      queueElapsed = h.text(queueTimeLabel(0), 18); queueElapsed.setGravity(Gravity.CENTER);
+      queueElapsed = lightText(queueTimeLabel(0), 17);
       panel.addView(queueElapsed, new LinearLayout.LayoutParams(-1, -2));
-      View separator = new View(h); separator.setBackgroundColor(JournalTheme.TEAL);
-      LinearLayout.LayoutParams rule = new LinearLayout.LayoutParams(h.dp(56), h.dp(3));
+      View separator = new View(h); separator.setBackgroundColor(JournalTheme.BRASS);
+      LinearLayout.LayoutParams rule = new LinearLayout.LayoutParams(h.dp(56), h.dp(2));
       rule.topMargin = h.dp(8); rule.bottomMargin = h.dp(8); panel.addView(separator, rule);
-      queueText = h.text(message, 18); queueText.setGravity(Gravity.CENTER);
-      queueText.setMaxLines(3); queueText.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      queueText = lightText(message, 19);
+      queueText.setMaxLines(4); queueText.setEllipsize(null);
       queueText.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
       panel.addView(queueText, new LinearLayout.LayoutParams(-1, 0, 1));
-      queuePolicyView = h.text("⌁  갈매기 결투장  ⌁", 14); queuePolicyView.setGravity(Gravity.CENTER);
-      queuePolicyView.setTextColor(JournalTheme.TEAL);
+      queuePolicyView = lightText("갈매기 결투장", 14);
       panel.addView(queuePolicyView, new LinearLayout.LayoutParams(-1, -2));
-      LinearLayout actions = new LinearLayout(h); actions.setGravity(Gravity.CENTER);
-      LinearLayout.LayoutParams actionRow = new LinearLayout.LayoutParams(h.dp(260), h.dp(48));
-      actionRow.topMargin = h.dp(8); panel.addView(actions, actionRow);
-      cancelButton = h.button("매칭 취소", this::cancel);
-      cancelButton.setTag("realtime-queue-cancel");
-      cancelButton.setBackground(new GameButtonDrawable(h, JournalTheme.TEAL));
-      cancelButton.setTextColor(JournalTheme.controlText(JournalTheme.TEAL));
-      actions.addView(cancelButton, new LinearLayout.LayoutParams(0, -1, 1));
-
+      cancelButton = phaseButton("매칭 취소", "realtime-queue-cancel", this::cancel, false);
+      LinearLayout.LayoutParams action = new LinearLayout.LayoutParams(h.dp(260), h.dp(48));
+      action.topMargin = h.dp(8); panel.addView(cancelButton, action);
     }
     queueMode.setText(mode.equals("rank") ? "랭크 · 대전 찾기" : "일반 · 대전 찾기");
     queueElapsed.setVisibility(queueConfirmed && !queueStopped && queueWaitBase >= 0 ? View.VISIBLE : View.GONE);
@@ -450,8 +487,12 @@ final class NativeRealtime {
     receivedElapsed = SystemClock.elapsedRealtime();
     if (r.optJSONObject("result") != null && r.optJSONObject("battle") == null) {
       if (changed || !"realtimePrepare".equals(h.screen)) {
-        h.battle = null; h.busy = false; h.base("대전 결과", "realtimePrepare");
-        h.body.addView(h.text("대전 결과를 확인하고 있어요.", 18)); attachClock();
+        h.battle = null; h.busy = false;
+        LinearLayout panel = focusedPanel("대전 결과", "realtimePrepare", "realtime-result-stage");
+        TextView resultHeading = lightText("대전 결과", 26); resultHeading.setTypeface(h.headline);
+        panel.addView(resultHeading);
+        panel.addView(lightText("대전 결과를 확인하고 있어요.", 18), new LinearLayout.LayoutParams(-1, 0, 1));
+        panel.addView(inlineClock()); attachClock();
       }
       terminal(r); return;
     }
@@ -507,31 +548,28 @@ final class NativeRealtime {
     JSONObject a = r.optJSONObject("acceptance");
     if (a == null) { h.message("매칭 수락 정보를 확인하지 못했어요."); return; }
     if (h.visibleDialog != null) { h.visibleDialog.dismiss(); h.visibleDialog = null; }
-    h.battle = null; h.busy = false; h.base("대전 상대를 찾았어요", "realtimeAccept");
-    h.page.removeAllViews(); h.page.setGravity(Gravity.CENTER);
-    LinearLayout panel = new LinearLayout(h); panel.setOrientation(LinearLayout.VERTICAL);
-    panel.setGravity(Gravity.CENTER); panel.setPadding(h.dp(20), h.dp(12), h.dp(20), h.dp(12));
-    panel.setBackground(new GamePaperDrawable(h)); panel.setTag("realtime-match-acceptance");
-    h.page.addView(panel, new LinearLayout.LayoutParams(-1, -1)); h.body = panel;
-    TextView heading = h.text("대전 상대를 찾았어요", 26); heading.setGravity(Gravity.CENTER); panel.addView(heading);
-    TextView modeLabel = h.text(mode.equals("rank") ? "랭크 · 실제 유저 대전" : isAiRoom(r) ? AI_NOTICE : "일반 · 실제 유저 대전", 15);
-    modeLabel.setGravity(Gravity.CENTER); panel.addView(modeLabel);
-    TextView status = h.text(a.optBoolean("accepted") ? "수락 완료 · 상대를 기다려요" : "10초 안에 수락해 주세요", 20);
-    status.setGravity(Gravity.CENTER); panel.addView(status, new LinearLayout.LayoutParams(-1, 0, 1));
-    TextView rule = h.text("둘 다 수락하면 팀 편성으로 넘어가요. 수락 전에는 승패·점수가 바뀌지 않아요.", 13);
-    rule.setGravity(Gravity.CENTER); panel.addView(rule);
+    h.battle = null; h.busy = false;
+    LinearLayout panel = focusedPanel("대전 상대를 찾았어요", "realtimeAccept", "realtime-match-acceptance");
+    TextView heading = lightText("대전 상대를 찾았어요", 25); heading.setTypeface(h.headline); panel.addView(heading);
+    TextView modeLabel = lightText(mode.equals("rank") ? "랭크 · 실제 유저 대전" : isAiRoom(r) ? AI_NOTICE : "일반 · 실제 유저 대전", 15);
+    panel.addView(modeLabel);
+    TextView status = lightText(a.optBoolean("accepted") ? "수락 완료" : "대전 수락", 23);
+    status.setTypeface(h.headline); panel.addView(status, new LinearLayout.LayoutParams(-1, 0, 1));
+    panel.addView(inlineClock());
+    TextView rule = lightText("수락 전에는 승패·점수가 바뀌지 않아요.", 13); panel.addView(rule);
     LinearLayout actions = new LinearLayout(h);
-    Button accept = h.button("수락", () -> acceptMatch(r, true));
-    accept.setTag("realtime-match-accept"); accept.setBackground(new GameButtonDrawable(h, JournalTheme.TEAL));
-    accept.setTextColor(JournalTheme.controlText(JournalTheme.TEAL)); accept.setEnabled(!a.optBoolean("accepted"));
-    Button decline = h.button("거절", () -> acceptMatch(r, false));
-    decline.setTag("realtime-match-decline"); decline.setEnabled(!a.optBoolean("accepted"));
-    actions.addView(accept, new LinearLayout.LayoutParams(0, h.dp(52), 2));
-    actions.addView(decline, new LinearLayout.LayoutParams(0, h.dp(52), 1));
-    panel.addView(actions, new LinearLayout.LayoutParams(-1, -2)); attachClock();
+    Button accept = phaseButton("수락", "realtime-match-accept", () -> acceptMatch(r, true), true);
+    Button decline = phaseButton("거절", "realtime-match-decline", () -> acceptMatch(r, false), false);
+    phaseActions.add(accept); phaseActions.add(decline);
+    LinearLayout.LayoutParams acceptSlot = new LinearLayout.LayoutParams(0, h.dp(48), 2);
+    acceptSlot.rightMargin = h.dp(8); actions.addView(accept, acceptSlot);
+    actions.addView(decline, new LinearLayout.LayoutParams(0, h.dp(48), 1));
+    LinearLayout.LayoutParams actionSlot = new LinearLayout.LayoutParams(-1, -2);
+    actionSlot.topMargin = h.dp(6); panel.addView(actions, actionSlot);
+    attachClock(); updatePhaseInputs();
   }
   void acceptMatch(JSONObject shown, boolean accepted) {
-    if (writing || latest == null || !room.equals(shown.optString("roomId"))
+    if (writing || latest == null || !phaseDeadlineOpen() || !room.equals(shown.optString("roomId"))
         || !"accept".equals(latest.optString("phase"))
         || !shown.optString("phaseId").equals(latest.optString("phaseId"))
         || latest.optJSONObject("acceptance") == null
@@ -544,35 +582,127 @@ final class NativeRealtime {
     if (h.visibleDialog != null) { h.visibleDialog.dismiss(); h.visibleDialog = null; }
     h.battle = null; h.busy = false;
     h.base(mode.equals("rank") ? "랭크 대전 · 팀 편성" : "일반 대전 · 팀 편성", "realtimePrepare");
-    if (isAiRoom(r)) h.body.addView(h.text(AI_NOTICE, 14));
-    h.body.addView(h.text("30초 안에 출전 순서를 골라 주세요. 둘 다 준비되면 바로 시작해요.", 16));
-    h.body.addView(h.text("시간이 끝나면 마지막으로 저장된 편성으로 시작해요.", 14));
+    AppSkin.apply(h, "training"); h.page.removeAllViews(); phaseActions.clear();
+    MenuKit kit = new MenuKit(h);
     JSONArray selected = h.list(preparation, "selectedIds"), available = h.list(preparation, "available");
+    if (!preparationPhase.equals(r.optString("phaseId"))) {
+      preparationPhase = r.optString("phaseId"); preparationSlot = preparationPage = 0;
+    }
+    preparationSlot = Math.max(0, Math.min(preparationSlot, Math.max(0, selected.length() - 1)));
+    int pageCount = Math.max(1, (available.length() + PREPARATION_PAGE_SIZE - 1) / PREPARATION_PAGE_SIZE);
+    preparationPage = Math.max(0, Math.min(preparationPage, pageCount - 1));
     boolean ready = preparation.optBoolean("ready");
-    LinearLayout row = new LinearLayout(h);
+    LinearLayout head = kit.row(); head.setTag("realtime-prepare-header");
+    head.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
+    TextView heading = lightText(mode.equals("rank") ? "랭크 · 팀 편성" : "일반 · 팀 편성", 21);
+    heading.setTypeface(h.headline); heading.setGravity(Gravity.CENTER_VERTICAL);
+    heading.setPadding(h.dp(16), 0, h.dp(8), 0);
+    head.addView(heading, new LinearLayout.LayoutParams(0, -1, 1));
+    head.addView(inlineClock(), new LinearLayout.LayoutParams(h.dp(200), -1));
+    h.page.addView(head, new LinearLayout.LayoutParams(-1, h.dp(48)));
+    TextView status = h.text(isAiRoom(r) ? AI_NOTICE : preparation.optBoolean("opponentReady")
+        ? "상대 준비 완료" : "상대가 팀을 고르고 있어요.", 14);
+    status.setBackground(new GamePaperDrawable(h)); status.setTag("realtime-prepare-status");
+    LinearLayout.LayoutParams statusSlot = new LinearLayout.LayoutParams(-1, -2);
+    statusSlot.topMargin = h.dp(4); statusSlot.bottomMargin = h.dp(6); h.page.addView(status, statusSlot);
+    LinearLayout body = kit.row(); body.setGravity(Gravity.TOP); body.setTag("realtime-prepare-fixed");
+    h.page.addView(body, new LinearLayout.LayoutParams(-1, 0, 1)); h.body = body;
+    LinearLayout order = kit.column(); order.setPadding(h.dp(10), h.dp(8), h.dp(10), h.dp(8));
+    order.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAV));
+    LinearLayout.LayoutParams left = new LinearLayout.LayoutParams(0, -1, .40f);
+    left.rightMargin = h.dp(10); body.addView(order, left);
+    TextView orderTitle = lightText("출전 순서", 17); orderTitle.setTypeface(h.headline); order.addView(orderTitle);
     for (int i = 0; i < selected.length(); i++) {
       final int slot = i;
-      String id = selected.optString(i), name = id;
-      for (int j = 0; j < available.length(); j++) {
-        JSONObject candidate = available.optJSONObject(j);
-        if (id.equals(candidate.optString("id"))) name = candidate.optString("name", id) + " · Lv" + candidate.optInt("level", 30);
-      }
-      Button button = h.button((i == 0 ? "선봉" : (i + 1) + "번") + "\n" + name,
-          () -> choosePreparationSlot(r, slot));
-      button.setEnabled(!ready);
-      row.addView(button, new LinearLayout.LayoutParams(0, h.dp(80), 1));
+      JSONObject candidate = preparationCandidate(available, selected.optString(i));
+      String label = (i == 0 ? "선봉" : (i + 1) + "번") + " · " + candidate.optString("name", selected.optString(i));
+      Button button = phaseButton(label, "realtime-prepare-slot-" + i, () -> choosePreparationSlot(r, slot), false);
+      button.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.TAB)); button.setTextColor(JournalTheme.tabText());
+      button.setSelected(i == preparationSlot); button.setMaxLines(2); button.setEllipsize(null);
+      LinearLayout.LayoutParams slotSize = new LinearLayout.LayoutParams(-1, 0, 1);
+      slotSize.topMargin = h.dp(4); order.addView(button, slotSize); phaseActions.add(button);
     }
-    h.body.addView(row);
-    h.body.addView(h.text(preparation.optBoolean("opponentReady") ? "상대 준비 완료" : "상대가 팀을 고르고 있어요.", 16));
-    Button confirm = h.button(ready ? "준비 완료 · 상대를 기다려요" : "이 편성으로 준비 완료",
-        () -> prepareCommand(r, selected, true));
-    confirm.setEnabled(!ready && selected.length() == 3);
-    h.body.addView(confirm);
-    h.body.addView(h.button("대전 나가기", () -> back()));
-    attachClock();
+    LinearLayout choices = kit.column(); body.addView(choices, new LinearLayout.LayoutParams(0, -1, .60f));
+    LinearLayout pager = kit.row();
+    TextView candidateTitle = lightText("후보 · " + (preparationSlot == 0 ? "선봉" : (preparationSlot + 1) + "번"), 17);
+    candidateTitle.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
+    pager.addView(candidateTitle, new LinearLayout.LayoutParams(0, -1, 1));
+    TextView pageNumber = h.text((preparationPage + 1) + " / " + pageCount, 13);
+    pageNumber.setGravity(Gravity.CENTER); pageNumber.setBackground(new GamePaperDrawable(h));
+    pager.addView(pageNumber, new LinearLayout.LayoutParams(h.dp(62), -1));
+    Button previous = phaseButton("‹", "realtime-prepare-previous", () -> {
+      if (preparationPage > 0) { preparationPage--; showPreparation(latest); }
+    }, false);
+    previous.setContentDescription("이전 후보"); previous.setEnabled(preparationPage > 0);
+    pager.addView(previous, new LinearLayout.LayoutParams(h.dp(48), -1));
+    Button next = phaseButton("›", "realtime-prepare-next", () -> {
+      if (preparationPage + 1 < pageCount) { preparationPage++; showPreparation(latest); }
+    }, false);
+    next.setContentDescription("다음 후보"); next.setEnabled(preparationPage + 1 < pageCount);
+    pager.addView(next, new LinearLayout.LayoutParams(h.dp(48), -1));
+    choices.addView(pager, new LinearLayout.LayoutParams(-1, h.dp(48)));
+    if (available.length() == 0) {
+      TextView empty = h.text("출전 가능한 갈매미가 없어요.", 16); empty.setGravity(Gravity.CENTER);
+      empty.setBackground(new GamePaperDrawable(h)); choices.addView(empty, new LinearLayout.LayoutParams(-1, 0, 1));
+    } else for (int row = 0; row < 2; row++) {
+      LinearLayout line = kit.row();
+      LinearLayout.LayoutParams lineSize = new LinearLayout.LayoutParams(-1, 0, 1);
+      lineSize.topMargin = h.dp(6); choices.addView(line, lineSize);
+      for (int column = 0; column < 2; column++) {
+        int index = preparationPage * PREPARATION_PAGE_SIZE + row * 2 + column;
+        LinearLayout.LayoutParams cell = new LinearLayout.LayoutParams(0, -1, 1);
+        if (column == 0) cell.rightMargin = h.dp(6);
+        if (index >= available.length()) { line.addView(new View(h), cell); continue; }
+        JSONObject candidate = available.optJSONObject(index);
+        String id = candidate.optString("id");
+        String meta = candidate.optString("rarity");
+        if (candidate.has("level")) meta += (meta.isEmpty() ? "" : " · ") + "Lv" + candidate.optInt("level");
+        Button pick = phaseButton(candidate.optString("name", id) + (meta.isEmpty() ? "" : "\n" + meta),
+            "realtime-prepare-candidate-" + index, () -> choosePreparationCandidate(r, id), false);
+        pick.setMaxLines(4); pick.setEllipsize(null); pick.setSelected(id.equals(selected.optString(preparationSlot)));
+        line.addView(pick, cell); phaseActions.add(pick);
+      }
+    }
+    LinearLayout footer = kit.row();
+    Button confirm = phaseButton(ready ? "준비 완료 · 상대 대기" : "이 편성으로 준비 완료", "realtime-prepare-confirm",
+        () -> {
+          if (!currentPreparation(r)) { refresh(); return; }
+          prepareCommand(latest, h.list(latest.optJSONObject("preparation"), "selectedIds"), true);
+        }, true);
+    phaseActions.add(confirm);
+    LinearLayout.LayoutParams confirmSize = new LinearLayout.LayoutParams(0, -1, 1);
+    confirmSize.rightMargin = h.dp(10); footer.addView(confirm, confirmSize);
+    footer.addView(phaseButton("대전 나가기", "realtime-prepare-leave", () -> back(), false),
+        new LinearLayout.LayoutParams(h.dp(160), -1));
+    LinearLayout.LayoutParams footerSize = new LinearLayout.LayoutParams(-1, h.dp(48));
+    footerSize.topMargin = h.dp(8); h.page.addView(footer, footerSize);
+    attachClock(); updatePhaseInputs();
+  }
+  static JSONObject preparationCandidate(JSONArray candidates, String id) {
+    for (int i = 0; i < candidates.length(); i++) {
+      JSONObject candidate = candidates.optJSONObject(i);
+      if (candidate != null && id.equals(candidate.optString("id"))) return candidate;
+    }
+    return new JSONObject();
+  }
+  boolean phaseDeadlineOpen() {
+    if (latest == null) return false;
+    long deadline = latest.optLong("deadline", 0);
+    return deadline <= 0 || serverAtReceive + SystemClock.elapsedRealtime() - receivedElapsed < deadline;
+  }
+  void updatePhaseInputs() {
+    if (latest == null) return;
+    JSONObject state = "accept".equals(latest.optString("phase")) ? latest.optJSONObject("acceptance")
+        : latest.optJSONObject("preparation");
+    boolean open = !writing && phaseDeadlineOpen() && latest.optJSONObject("result") == null
+        && state != null && !state.optBoolean("accepted") && !state.optBoolean("ready");
+    for (Button button : phaseActions)
+      button.setEnabled(open && (!"realtime-prepare-confirm".equals(button.getTag())
+          || h.list(state, "selectedIds").length() == 3));
   }
   boolean currentPreparation(JSONObject shown) {
-    return latest != null && !writing && room.equals(shown.optString("roomId"))
+    return latest != null && !writing && phaseDeadlineOpen() && room.equals(shown.optString("roomId"))
+        && latest.optJSONObject("result") == null
         && "prepare".equals(latest.optString("phase"))
         && shown.optString("phaseId").equals(latest.optString("phaseId"))
         && latest.optJSONObject("preparation") != null
@@ -580,21 +710,20 @@ final class NativeRealtime {
   }
   void choosePreparationSlot(JSONObject shown, int slot) {
     if (!currentPreparation(shown)) { refresh(); return; }
-    JSONObject p = shown.optJSONObject("preparation");
-    JSONArray selected = h.list(p, "selectedIds"), candidates = h.list(p, "available");
-    ArrayList<String> ids = new ArrayList<>(), names = new ArrayList<>();
-    for (int i = 0; i < candidates.length(); i++) {
-      JSONObject candidate = candidates.optJSONObject(i); String id = candidate.optString("id");
-      ids.add(id); names.add(candidate.optString("name") + " · " + candidate.optString("rarity"));
-    }
-    new GameDialog(h).setTitle("출전 갈매미 선택 · 다른 자리에 있으면 순서 교환")
-        .setItems(names.toArray(new String[0]), (d, which) -> {
-          JSONArray team = new JSONArray();
-          String chosen = ids.get(which), old = selected.optString(slot);
-          for (int i = 0; i < selected.length(); i++)
-            team.put(i == slot ? chosen : selected.optString(i).equals(chosen) ? old : selected.optString(i));
-          prepareCommand(shown, team, false);
-        }).setNegativeButton("돌아가기", null).show();
+    if (slot < 0 || slot >= h.list(latest.optJSONObject("preparation"), "selectedIds").length()) return;
+    preparationSlot = slot;
+    showPreparation(latest);
+  }
+  void choosePreparationCandidate(JSONObject shown, String chosen) {
+    if (!currentPreparation(shown)) { refresh(); return; }
+    JSONObject state = latest.optJSONObject("preparation");
+    JSONArray selected = h.list(state, "selectedIds"), candidates = h.list(state, "available");
+    if (!chosen.equals(preparationCandidate(candidates, chosen).optString("id"))
+        || preparationSlot >= selected.length()) return;
+    JSONArray team = new JSONArray(); String old = selected.optString(preparationSlot);
+    for (int i = 0; i < selected.length(); i++)
+      team.put(i == preparationSlot ? chosen : selected.optString(i).equals(chosen) ? old : selected.optString(i));
+    prepareCommand(latest, team, false);
   }
   void prepareCommand(JSONObject shown, JSONArray team, boolean ready) {
     if (!currentPreparation(shown)) { refresh(); return; }
@@ -603,12 +732,12 @@ final class NativeRealtime {
   void attachClock() {
     BattleView battleView = currentView();
     if (battleView != null) { clock = battleView.inputTimer; return; }
-    clock = h.text("", 13); clock.setGravity(Gravity.CENTER);
-    clock.setTextColor(JournalTheme.INK); clock.setBackgroundColor(0xeefbf0d7);
-    clock.setPadding(h.dp(8), h.dp(2), h.dp(8), h.dp(2));
+    View inline = h.root.findViewWithTag("realtime-phase-clock");
+    if (inline instanceof TextView) { clock = (TextView) inline; return; }
+    clock = inlineClock();
+    clock.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
     FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.RIGHT);
-    lp.topMargin = h.dp(4); lp.rightMargin = h.dp(8);
-    h.root.addView(clock, lp);
+    lp.topMargin = h.dp(4); lp.rightMargin = h.dp(8); h.root.addView(clock, lp);
   }
   void submit(JSONObject shown, JSONObject event) {
     if (!isBattle(shown) || latest == null || writing || playing) return;
@@ -655,12 +784,12 @@ final class NativeRealtime {
     try {
       for (String key : new String[] {"action", "choose", "reroll", "prepare", "accept"}) if (event.has(key)) command.put(key, event.get(key));
     } catch (Exception e) { h.message("선택 내용을 확인해 주세요."); return; }
-    writing = true; final int g = generation; final String a = owner;
+    writing = true; updatePhaseInputs(); final int g = generation; final String a = owner;
     h.api.call("pvp/room/command", MainActivity.obj("roomId", room, "phaseId", phaseId,
         "requestId", id(), "command", command), (r, e) -> {
       if (!valid(g, a)) return;
       writing = false;
-      if (e != null) { h.message(e + " 현재 대전 상태를 확인할게요."); refresh(); return; }
+      if (e != null) { updatePhaseInputs(); h.message(e + " 현재 대전 상태를 확인할게요."); refresh(); return; }
       acceptRoom(r); schedule();
     });
   }
@@ -690,7 +819,17 @@ final class NativeRealtime {
                 + "승 " + after.optInt("promotionLosses") + "패" : "")
             + ("PROMOTED".equals(rank.optString("promotionChange")) ? "\n승급했어요!"
                 : "FAILED".equals(rank.optString("promotionChange")) ? "\n승급전에 실패했어요." : "");
-    new GameDialog(h).setTitle(label).setMessage((isAiRoom(r) ? AI_NOTICE + "\n" : "") + detail).setCancelable(false)
+    LinearLayout resultCard = new MenuKit(h).column();
+    resultCard.setTag("realtime-result-card");
+    resultCard.setPadding(h.dp(14), h.dp(12), h.dp(14), h.dp(12));
+    resultCard.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAV));
+    TextView modeLabel = lightText(isAiRoom(r) ? AI_NOTICE : mode.equals("rank") ? "랭크 대전" : "일반 대전", 15);
+    resultCard.addView(modeLabel);
+    TextView resultDetail = h.text(detail, 18); resultDetail.setGravity(Gravity.CENTER);
+    resultDetail.setBackground(new GamePaperDrawable(h));
+    resultDetail.setPadding(h.dp(14), h.dp(12), h.dp(14), h.dp(12));
+    resultCard.addView(resultDetail, new LinearLayout.LayoutParams(-1, -2));
+    new GameDialog(h).setTitle(label).setView(resultCard).setCancelable(false)
         .setPositiveButton("모드 선택", (d, w) -> {
           dismissed = room; room = ""; latest = null; shownResult = ""; generation++;
           reading = writing = playing = false; pendingPlayback = null; h.battle = null;

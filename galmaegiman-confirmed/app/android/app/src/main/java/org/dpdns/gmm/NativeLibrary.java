@@ -12,7 +12,7 @@ final class NativeLibrary {
   final MenuKit k;
   JSONObject catalogData, catalogState;
   String selectedCollectionId = "", selectedItemId = "";
-  int collectionPage;
+  int collectionPage, itemPage;
 
   int collectionPageSize() { return h.compact() ? 3 : 4; }
   boolean collectionOwned;
@@ -35,6 +35,7 @@ final class NativeLibrary {
     selectedCollectionId = "";
     selectedItemId = "";
     collectionPage = 0;
+    itemPage = 0;
     collectionOwned = false;
   }
 
@@ -717,10 +718,12 @@ final class NativeLibrary {
   void unit(String key) {
     h.currentKey = key;
     JSONObject u = h.unit(key);
-    h.base(u.optString("name") + " · 기술과 승진", "unit");
+    h.base("성장 · 기술과 승진", "unit");
+    h.title.setContentDescription(u.optString("name") + " · 기술과 승진");
     AppSkin.apply(h, "archive");
+    k.fixedBody();
     LinearLayout[] cols = fixedColumns(h.body, .32f);
-    LinearLayout who = k.paper();
+    LinearLayout who = k.column();
     who.setTag("unit-summary");
     who.setPadding(h.dp(8), h.dp(6), h.dp(8), h.dp(6));
     cols[0].addView(who, new LinearLayout.LayoutParams(-1, -1));
@@ -732,31 +735,34 @@ final class NativeLibrary {
         role.equals("ATTACK")
             ? "공격"
             : role.equals("DEFENSE") ? "수비" : role.equals("UTILITY") ? "유틸" : role;
-    who.addView(
+    LinearLayout status = m.navyPanel();
+    status.setPadding(h.dp(6), h.dp(2), h.dp(6), h.dp(2));
+    status.addView(
         line(
             "Lv"
                 + u.optInt("level")
-                + " · "
-                + u.optString("attr")
                 + " · "
                 + roleName
                 + " · 승진 "
                 + u.optInt("stage"),
             13,
             false));
-    unitMeter(who, "체력", u.optInt("hp"), u.optInt("maxHp"), 0xff51c98b);
-    unitMeter(who, "경험치", u.optInt("xp"), u.optInt("xpNext"), 0xffe9a630);
-    unitDetails(who, u);
+    unitMeter(status, "체력", u.optInt("hp"), u.optInt("maxHp"), 0xff51c98b);
+    unitMeter(status, "경험치", u.optInt("xp"), u.optInt("xpNext"), 0xffe9a630);
+    unitDetails(status, u);
+    navyLabels(status);
+    who.addView(status);
     cols[1].addView(growthActions(key, u), new LinearLayout.LayoutParams(-1, -2));
     LinearLayout skillHeader = k.row();
     skillHeader.setTag("unit-skill-header");
-    skillHeader.setBackground(new GamePaperDrawable(h));
+    skillHeader.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
     skillHeader.setPadding(h.dp(6), h.dp(2), h.dp(6), h.dp(2));
     skillHeader.addView(line("기술 · " + h.list(u, "skills").length() + " / 4칸", 14, true));
     int next = u.optInt("nextLearnLevel");
     TextView hint = line(next > 0 ? "다음 새 기술 Lv" + next : "배운 기술은 교체할 수 있어요", 12, false);
     hint.setGravity(Gravity.RIGHT);
     skillHeader.addView(hint, new LinearLayout.LayoutParams(0, -2, 1));
+    navyLabels(skillHeader);
     cols[1].addView(skillHeader);
     LinearLayout grid = k.column();
     cols[1].addView(grid, new LinearLayout.LayoutParams(-1, 0, 1));
@@ -789,7 +795,11 @@ final class NativeLibrary {
     card.setGravity(Gravity.CENTER_VERTICAL);
     card.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(4));
     card.setMinimumHeight(h.dp(48));
-    card.addView(skillLine(skill.optString("name"), 17, true));
+    TextView name = skillLine(skill.optString("name"), 17, true);
+    name.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
+    name.setTextColor(JournalTheme.WHITE);
+    name.setPadding(h.dp(8), h.dp(3), h.dp(8), h.dp(3));
+    card.addView(name);
     String category =
         skill.optString("cat").equals("phys")
             ? "물리"
@@ -813,6 +823,15 @@ final class NativeLibrary {
     return card;
   }
 
+  void navyLabels(View view) {
+    if (view instanceof TextView && !(view instanceof Button) && view.getBackground() == null)
+      ((TextView) view).setTextColor(JournalTheme.WHITE);
+    if (view instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) view;
+      for (int i = 0; i < group.getChildCount(); i++) navyLabels(group.getChildAt(i));
+    }
+  }
+
   TextView skillLine(String text, float size, boolean headline) {
     TextView label = line(text, size, headline);
     // 세 줄의 기본 글꼴 높이는 유지한다. 작은 가로 화면에서 행마다 중복된 여백만 없앤다.
@@ -830,17 +849,17 @@ final class NativeLibrary {
   }
 
   LinearLayout growthActions(String key, JSONObject unit) {
-    LinearLayout panel = k.paper();
+    LinearLayout panel = m.navyPanel();
     panel.setTag("unit-growth-actions");
     panel.setPadding(h.dp(6), h.dp(4), h.dp(6), h.dp(4));
     TextView summary = line(NativeGrowthGuidance.actionSummary(unit), 13, false);
     summary.setTag("unit-growth-status");
-    summary.setTextColor(MainActivity.INK);
+    summary.setTextColor(JournalTheme.WHITE);
     panel.addView(summary);
     LinearLayout actions = k.row();
     boolean primary = true;
     if (h.list(unit, "evolve").length() > 0) {
-      Button promote = k.action(null, "승진", () -> promotion(key));
+      Button promote = k.action("learn", "승진", () -> promotion(key));
       promote.setTag("unit-promote");
       k.emphasize(promote);
       actionCell(actions, promote);
@@ -912,8 +931,8 @@ final class NativeLibrary {
     for (int i = 0; i < awards.length(); i++) {
       String id = awards.optString(i);
       JSONObject award = definitions == null ? null : definitions.optJSONObject(id);
-      details.addView(
-          k.note(award == null ? id : award.optString("name") + "\n" + award.optString("desc")));
+      if (award != null && !award.optString("name").isEmpty())
+        details.addView(k.note(award.optString("name") + "\n" + award.optString("desc")));
     }
     if (awards.length() == 0) details.addView(k.note("승진할 때 직무 표창을 골라요."));
     details.addView(k.section("기술 기록"));
@@ -972,7 +991,12 @@ final class NativeLibrary {
                     true);
             card.setTag("skill-choice-" + sk.optString("id"));
             card.setSelected(picked[0] == sk);
-            if (picked[0] == sk) card.setBackground(new GamePanelDrawable(h));
+            if (picked[0] == sk) {
+              card.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAV));
+              navyLabels(card);
+              LinearLayout heading = (LinearLayout) card.getChildAt(0);
+              ((TextView) heading.getChildAt(0)).setText("✓ 선택 · " + (kind.equals("promo") ? "승진 전용" : "새 기술"));
+            }
             LinearLayout.LayoutParams box = new LinearLayout.LayoutParams(-1, -2);
             box.bottomMargin = h.dp(8);
             choiceList.addView(card, box);
@@ -1131,9 +1155,10 @@ final class NativeLibrary {
     android.app.AlertDialog[] popup = {null};
     for (int i = 0; i < evolve.length(); i++) {
       JSONObject choice = evolve.optJSONObject(i);
-      LinearLayout card = k.paper();
+      LinearLayout card = m.navyPanel();
       card.addView(heading(choice.optString("name"), 19));
       card.addView(k.note(choice.optString("desc")));
+      navyLabels(card);
       Button preview =
           k.action(
               "learn",
@@ -1241,68 +1266,110 @@ final class NativeLibrary {
   }
 
   void items() {
-    h.base("수비대", "items");
+    h.base("아이템", "items");
     AppSkin.apply(h, "archive");
-    m.defenderTabs(h.body, 2);
+    k.fixedBody();
+    if (h.compact()) {
+      LinearLayout header = (LinearLayout) h.page.getChildAt(0);
+      Button collection = k.action(null, "도감", h::collection);
+      collection.setTag("items-collection"); fixedAction(collection);
+      Button team = k.action(null, "편성", () -> {
+        h.selectionMode = NativeTutorialController.get(h).needsStoryTeam() ? "story" : "pvp";
+        m.teamDraft = null; h.team();
+      });
+      team.setTag("items-team");
+      NativeTutorialController.anchorPreservingTag(team, "team");
+      fixedAction(team);
+      int width = h.dp(Math.max(76, Math.round(76 * h.getResources().getConfiguration().fontScale)));
+      header.addView(collection, 2, new LinearLayout.LayoutParams(width, h.dp(48)));
+      header.addView(team, 3, new LinearLayout.LayoutParams(width, h.dp(48)));
+    } else m.defenderTabs(h.body, 2);
     JSONObject defs = h.state.optJSONObject("itemDefs");
-    if (defs == null) {
-      h.body.addView(k.notice("아이템 정보를 확인할 수 없어요."));
-      return;
-    }
+    if (defs == null) { h.body.addView(k.notice("아이템 정보를 확인할 수 없어요.")); return; }
     ArrayList<String> ids = new ArrayList<>();
     Iterator<String> iterator = defs.keys();
-    while (iterator.hasNext()) ids.add(iterator.next());
-    if (ids.isEmpty()) {
-      h.body.addView(k.notice("사용할 아이템이 없어요."));
-      return;
+    while (iterator.hasNext()) {
+      String id = iterator.next();
+      if (defs.optJSONObject(id) != null) ids.add(id);
     }
+    Collections.sort(ids);
+    if (ids.isEmpty()) { h.body.addView(k.notice("사용할 아이템이 없어요.")); return; }
     if (!ids.contains(selectedItemId)) {
       selectedItemId = ids.get(0);
-      for (String id : ids)
-        if (itemCount(id) > 0) {
-          selectedItemId = id;
-          break;
-        }
+      for (String id : ids) if (itemCount(id) > 0) { selectedItemId = id; break; }
+      itemPage = ids.indexOf(selectedItemId) / 4;
     }
-    String id = selectedItemId;
-    JSONObject def = defs.optJSONObject(id);
-    Button picker =
-        k.action(null, def.optString("name") + "  ·  아이템 고르기  ›", () -> itemPicker(ids, defs));
-    picker.setTag("items-picker");
-    fixedAction(picker);
-    h.body.addView(picker, new LinearLayout.LayoutParams(-1, h.dp(48)));
-    LinearLayout[] cols = fixedColumns(h.body, .30f);
-    LinearLayout portrait = k.paper();
-    portrait.setGravity(Gravity.CENTER_HORIZONTAL);
-    portrait.addView(
-        k.image("/duel/icons/" + id + ".png", 1, 1), new LinearLayout.LayoutParams(-1, 0, 1));
-    TextView have = line("보유 " + itemCount(id) + "개", 19, true);
-    have.setTag("items-count");
-    have.setGravity(Gravity.CENTER);
-    portrait.addView(have);
-    cols[0].addView(portrait, new LinearLayout.LayoutParams(-1, -1));
-    LinearLayout info = k.paper();
-    cols[1].addView(info, new LinearLayout.LayoutParams(-1, -1));
-    info.addView(line(def.optString("name"), 21, true));
-    TextView desc = k.note(def.optString("desc"));
-    desc.setMaxLines(2);
-    desc.setEllipsize(android.text.TextUtils.TruncateAt.END);
-    info.addView(desc);
-    info.addView(new View(h), new LinearLayout.LayoutParams(-1, 0, 1));
+    int pages = Math.max(1, (ids.size() + 3) / 4);
+    itemPage = Math.max(0, Math.min(itemPage, pages - 1));
+    LinearLayout[] cols = fixedColumns(h.body, .46f);
+    LinearLayout pager = k.row();
+    Button previous = k.action(null, "‹", () -> { itemPage--; items(); });
+    previous.setTag("items-previous-page"); previous.setContentDescription("이전 아이템 페이지");
+    previous.setEnabled(itemPage > 0); fixedAction(previous);
+    pager.addView(previous, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+    TextView page = m.navyLabel("아이템 " + (itemPage + 1) + " / " + pages, 17, true);
+    page.setGravity(Gravity.CENTER);
+    page.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
+    pager.addView(page, new LinearLayout.LayoutParams(0, h.dp(48), 1));
+    Button next = k.action(null, "›", () -> { itemPage++; items(); });
+    next.setTag("items-next-page"); next.setContentDescription("다음 아이템 페이지");
+    next.setEnabled(itemPage + 1 < pages); fixedAction(next);
+    pager.addView(next, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+    cols[0].addView(pager);
+    LinearLayout grid = k.column(); grid.setTag("items-inline-grid");
+    cols[0].addView(grid, new LinearLayout.LayoutParams(-1, 0, 1));
+    for (int rowIndex = 0; rowIndex < 2; rowIndex++) {
+      LinearLayout row = k.row(); row.setGravity(Gravity.FILL);
+      grid.addView(row, new LinearLayout.LayoutParams(-1, 0, 1));
+      for (int column = 0; column < 2; column++) {
+        int at = itemPage * 4 + rowIndex * 2 + column;
+        LinearLayout tile = m.navyPanel(); tile.setGravity(Gravity.CENTER);
+        tile.setPadding(h.dp(6), h.dp(4), h.dp(6), h.dp(4));
+        LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, -1, 1);
+        slot.setMargins(h.dp(3), h.dp(4), h.dp(3), h.dp(4)); row.addView(tile, slot);
+        if (at >= ids.size()) { tile.setVisibility(View.INVISIBLE); continue; }
+        String id = ids.get(at); JSONObject def = defs.optJSONObject(id);
+        boolean selected = id.equals(selectedItemId);
+        tile.setTag("items-choice-" + id); tile.setSelected(selected); tile.setMinimumHeight(h.dp(48));
+        ImageView icon = k.image("/duel/icons/" + id + ".png", 48, 48);
+        tile.addView(icon);
+        TextView name = m.navyLabel(RecruitmentText.display(def.optString("name")), 14, true);
+        name.setGravity(Gravity.CENTER); name.setMaxLines(2); tile.addView(name);
+        TextView have = m.navyLabel((selected ? "✓ 선택 · " : "") + itemCount(id) + "개", 13, false);
+        have.setGravity(Gravity.CENTER); tile.addView(have);
+        tile.setContentDescription(name.getText() + " · 보유 " + itemCount(id) + "개" + (selected ? " · 선택됨" : " · 선택"));
+        tile.setFocusable(true);
+        tile.setOnClickListener(v -> {
+          if (h.busy) return;
+          selectedItemId = id; items();
+        });
+      }
+    }
+    String id = selectedItemId; JSONObject def = defs.optJSONObject(id);
+    // Keep the upper location visible instead of filling the whole pane with cream.
+    cols[1].addView(new View(h), new LinearLayout.LayoutParams(-1, 0, .18f));
+    LinearLayout info = k.paper(); info.setTag("items-selected-info");
+    cols[1].addView(info, new LinearLayout.LayoutParams(-1, 0, .82f));
+    LinearLayout identity = k.row();
+    identity.addView(k.image("/duel/icons/" + id + ".png", 56, 56));
+    LinearLayout words = k.column();
+    words.addView(heading(RecruitmentText.display(def.optString("name")), 21));
+    TextView have = k.note("보유 " + itemCount(id) + "개"); have.setTag("items-count"); words.addView(have);
+    identity.addView(words, new LinearLayout.LayoutParams(0, -2, 1)); info.addView(identity);
+    TextView desc = k.note(RecruitmentText.display(def.optString("desc")));
+    desc.setTag("items-description"); desc.setTextColor(JournalTheme.INK);
+    ScrollView reading = k.scroll(desc); reading.setTag("items-description-scroll");
+    info.addView(reading, new LinearLayout.LayoutParams(-1, 0, 1));
     LinearLayout actions = k.row();
     if (def.optInt("heal") > 0) {
-      Button use = k.primary("potion", "회복할 갈매미", () -> heal(id));
-      use.setTag("items-use");
-      use.setEnabled(itemCount(id) > 0);
-      actionCell(actions, use);
+      Button use = k.primary("potion", "회복", () -> heal(id));
+      use.setTag("items-use"); use.setEnabled(itemCount(id) > 0); actionCell(actions, use);
     } else {
       Button story = k.action("u-story", "스토리", () -> h.load("story"));
-      story.setTag("items-story");
-      actionCell(actions, story);
+      story.setTag("items-story"); actionCell(actions, story);
     }
-    Button buy = k.action("u-shop", "아이템 구매", () -> h.load("shop"));
-    buy.setTag("items-shop");
-    actionCell(actions, buy);
+    Button buy = k.action("u-shop", "구매", () -> h.load("shop"));
+    buy.setTag("items-shop"); actionCell(actions, buy);
     info.addView(actions, new LinearLayout.LayoutParams(-1, h.dp(52)));
   }
 
@@ -1345,7 +1412,7 @@ final class NativeLibrary {
       if (!saved.optString(i).equals(preferredKey)) team.put(saved.optString(i));
     if (team.length() == 0) {
       h.confirm(
-          "먼저 스토리 수비대를 정할까요?",
+          "먼저 스토리 방범대를 정할까요?",
           () -> {
             h.selectionMode = "story";
             m.teamDraft = null;
@@ -1445,7 +1512,10 @@ final class NativeLibrary {
             m.growth.meter(choice, u.optInt("hp"), u.optInt("maxHp"), 0xff51c98b, 5);
             choice.setEnabled(!full);
             choice.setAlpha(full ? .6f : 1);
-            if (key.equals(target[0])) choice.setBackground(new GamePanelDrawable(h));
+            if (key.equals(target[0])) {
+              choice.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAV));
+              navyLabels(choice);
+            }
             choice.setOnClickListener(
                 v -> {
                   if (!full) {

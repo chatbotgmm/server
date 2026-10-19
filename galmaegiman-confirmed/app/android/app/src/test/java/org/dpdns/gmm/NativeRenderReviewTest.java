@@ -649,7 +649,8 @@ public class NativeRenderReviewTest {
           story.say.length() > 0 && story.say.length() < story.fullText.length());
       story.next.performClick();
       assertFalse("첫 터치는 현재 줄 완성", story.typing);
-      assertEquals(firstLine, story.say.getText().toString());
+      assertEquals(firstLine.replace("수비대", "방범대"), story.say.getText().toString());
+      assertEquals("서버 원문 대사는 변경하지 않음", firstLine, story.lines.getJSONObject(0).getString("say"));
       assertEquals(0, story.index);
       story.next.performClick();
       assertEquals("다음 터치는 다음 대사", 1, story.index);

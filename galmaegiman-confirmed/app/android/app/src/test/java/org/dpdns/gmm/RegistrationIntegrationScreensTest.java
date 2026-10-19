@@ -355,26 +355,29 @@ public class RegistrationIntegrationScreensTest {
       layout(host, 915, 412);
       for (String kind : new String[] {"LOW", "MID", "HIGH"}) {
         View card = host.root.findViewWithTag("draw-card-" + kind);
-        Button submit = host.root.findViewWithTag("draw-submit-" + kind);
-        TextView total = host.root.findViewWithTag("draw-total-" + kind);
-        View quantity = host.root.findViewWithTag("draw-quantity-" + kind);
+        card.performClick();
+        layout(host, 915, 412);
+        assertTrue(card.isSelected());
+        Button submit = host.root.findViewWithTag("draw-submit");
+        TextView total = host.root.findViewWithTag("draw-total");
+        View quantity = host.root.findViewWithTag("draw-quantity");
         assertEquals("모집하기", submit.getText().toString());
-        assertSame(card, submit.getParent());
-        assertSame(card, total.getParent());
+        assertSame(quantity.getParent(), submit.getParent());
+        assertSame(quantity.getParent(), total.getParent());
         button(quantity, "＋").performClick();
-        assertTrue(total.getText().toString().startsWith("2회 · 총 "));
+        assertTrue(total.getText().toString().contains("2회\n총 지원서 "));
         assertEquals("모집하기", submit.getText().toString());
         assertTrue(submit.getContentDescription().toString().contains("2회"));
-        assertTrue(quantity.getBottom() <= total.getTop());
-        assertTrue(total.getBottom() <= submit.getTop());
+        assertTrue(quantity.getRight() <= total.getLeft());
+        assertTrue(total.getRight() <= submit.getLeft());
         NativeNoScrollReviewTest.assertFullyVisible(submit, host.root);
       }
-      Button low = host.root.findViewWithTag("draw-submit-LOW");
+      Button low = host.root.findViewWithTag("draw-submit");
       assertSame(low, host.guide.findTag(host.root, "tutorial:draw-go"));
       low.setText("문구가 달라져도 같은 버튼");
       assertSame("안내는 표시 문구 검색에 의존하지 않음", low,
           host.guide.findTag(host.root, "tutorial:draw-go"));
-      Button high = host.root.findViewWithTag("draw-submit-HIGH");
+      Button high = host.root.findViewWithTag("draw-submit");
       high.performClick();
       android.app.AlertDialog confirmation = host.visibleDialog;
       assertNotNull(confirmation);

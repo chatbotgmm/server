@@ -1,0 +1,350 @@
+{
+  "schema": "phase-two-review-contract/v1",
+  "id": "menus",
+  "status": "source_complete_native_execution_pending",
+  "source_contract": "phase2-menus/validation/render-contract.json",
+  "source_contract_sha256": "10715d0b49999e21ba80a69a50a207e7b677286b1bcd42bee68876ac50976876",
+  "output_subdirectory": "phase2-menus",
+  "expected_capture_count": 84,
+  "test_suites": [
+    {
+      "name": "org.dpdns.gmm.NativeMenusThemeReviewTest",
+      "minimum_tests": 8
+    }
+  ],
+  "variants": [
+    {
+      "suffix": "915x412",
+      "width": 915,
+      "height": 412,
+      "font_scale": 1.0,
+      "safe_insets": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "suffix": "1006x411",
+      "width": 1006,
+      "height": 411,
+      "font_scale": 1.0,
+      "safe_insets": [
+        36,
+        10,
+        10,
+        10
+      ]
+    },
+    {
+      "suffix": "1280x720",
+      "width": 1280,
+      "height": 720,
+      "font_scale": 1.0,
+      "safe_insets": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "suffix": "915x412-font130",
+      "width": 915,
+      "height": 412,
+      "font_scale": 1.3,
+      "safe_insets": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "screens": [
+    {
+      "stem": "modes",
+      "audit_id": "modes",
+      "expected_fields": {
+        "dialog": false,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "modes-loading",
+      "audit_id": "modes",
+      "expected_fields": {
+        "dialog": false,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "modes-error",
+      "audit_id": "modes",
+      "expected_fields": {
+        "dialog": false,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "modes-empty",
+      "audit_id": "modes",
+      "expected_fields": {
+        "dialog": false,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "story",
+      "audit_id": "story",
+      "expected_fields": {
+        "dialog": false,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "story-empty",
+      "audit_id": "story",
+      "expected_fields": {
+        "dialog": false,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "stages",
+      "audit_id": "stages",
+      "expected_fields": {
+        "dialog": false,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {
+        "inlineChoices": 5
+      }
+    },
+    {
+      "stem": "stages-locked",
+      "audit_id": "stages",
+      "expected_fields": {
+        "dialog": false,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {
+        "inlineChoices": 5
+      }
+    },
+    {
+      "stem": "stages-empty",
+      "audit_id": "stages",
+      "expected_fields": {
+        "dialog": false,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "growth",
+      "audit_id": "unit",
+      "expected_fields": {
+        "dialog": false,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "growth-ready",
+      "audit_id": "unit",
+      "expected_fields": {
+        "dialog": false,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "growth-details",
+      "audit_id": "unit-details",
+      "expected_fields": {
+        "dialog": false,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "skills",
+      "audit_id": "skill-choice",
+      "expected_fields": {
+        "dialog": true,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "skills-selected",
+      "audit_id": "skill-choice",
+      "expected_fields": {
+        "dialog": true,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "skills-replacement",
+      "audit_id": "skill-compare",
+      "expected_fields": {
+        "dialog": true,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "promotion",
+      "audit_id": "promotion-select",
+      "expected_fields": {
+        "dialog": true,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "promotion-comparison",
+      "audit_id": "promotion-compare",
+      "expected_fields": {
+        "dialog": true,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "items",
+      "audit_id": "items",
+      "expected_fields": {
+        "dialog": false,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {
+        "inlineChoices": 1
+      }
+    },
+    {
+      "stem": "items-selected",
+      "audit_id": "items",
+      "expected_fields": {
+        "dialog": false,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {
+        "inlineChoices": 1
+      }
+    },
+    {
+      "stem": "items-empty",
+      "audit_id": "items",
+      "expected_fields": {
+        "dialog": false,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "healing",
+      "audit_id": "healing",
+      "expected_fields": {
+        "dialog": true,
+        "actualNativeViews": true,
+        "fixtureWrites": 0,
+        "syntheticItemFixture": false,
+        "itemDefinitionSource": "battle.yaml:273–277@9d8d7b4"
+      },
+      "minimum_integers": {}
+    }
+  ],
+  "source_test_sha256_at_snapshot": "a6a416d8bb04cfe6f898b3d759f8a03dfc94d43a84fe359400916c2119d22b3b",
+  "measurements": {
+    "true_fields": [
+      "actualNativeViews"
+    ],
+    "zero_integer_fields": [
+      "fixtureWrites"
+    ],
+    "positive_integer_fields": [
+      "actions",
+      "boundsChecks",
+      "textLabels"
+    ],
+    "nonnegative_integer_fields": [
+      "inlineChoices"
+    ],
+    "array_fields": [
+      "fixtureReads",
+      "shortenedReadOnlySummaries"
+    ],
+    "duration_fields": [],
+    "read_only_summary_field": "shortenedReadOnlySummaries"
+  }
+}

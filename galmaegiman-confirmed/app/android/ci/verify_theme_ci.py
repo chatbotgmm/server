@@ -29,7 +29,7 @@ def verify_payload(read, paths, lock):
     check(total == lock["runtime_bytes"], "Theme total byte count changed")
     counts = {role: sum(entry["role"] == role for entry in expected.values())
               for role in ("background", "ui", "protected_home_art")}
-    check(counts == {"background": 7, "ui": 6, "protected_home_art": 11}, "Theme asset inventory changed")
+    check(counts == {"background": 8, "ui": 6, "protected_home_art": 11}, "Theme asset inventory changed")
     return {"status": "passed", "files": len(expected), "runtime_bytes": total, "roles": counts}
 
 

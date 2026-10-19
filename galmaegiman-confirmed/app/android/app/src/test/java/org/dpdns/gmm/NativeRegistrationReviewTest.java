@@ -306,17 +306,24 @@ public class NativeRegistrationReviewTest {
     }
     if (page.equals("recruit")) {
       for (String kind : new String[] {"LOW", "MID", "HIGH"}) {
-        action(host, "draw-submit-" + kind);
-        View quantity = tag(host, "draw-quantity-" + kind), total = tag(host, "draw-total-" + kind);
-        visible(host, quantity);
-        visible(host, total);
-        assertTrue(quantity.getBottom() <= total.getTop());
-        assertTrue(total.getBottom() <= tag(host, "draw-submit-" + kind).getTop());
-        assertTrue(((TextView) total).getText().toString().startsWith("1회 · 총 "));
-        assertEquals("모집하기", ((TextView) tag(host, "draw-submit-" + kind)).getText().toString());
-        assertTrue(tag(host, "draw-submit-" + kind).getContentDescription().toString().contains("1회"));
+        View station = tag(host, "draw-card-" + kind);
+        visible(host, station);
+        assertTrue("Every tier is an inline native selection", station.isClickable());
+        assertTrue("Large station touch target", station.getWidth() >= host.dp(48) && station.getHeight() >= host.dp(48));
         actions++;
       }
+      action(host, "draw-submit");
+      View quantity = tag(host, "draw-quantity"), total = tag(host, "draw-total"), submit = tag(host, "draw-submit");
+      visible(host, quantity); visible(host, total); visible(host, tag(host, "draw-pity"));
+      assertSame(quantity.getParent(), total.getParent()); assertSame(total.getParent(), submit.getParent());
+      assertTrue(quantity.getRight() <= total.getLeft()); assertTrue(total.getRight() <= submit.getLeft());
+      assertTrue(((TextView) total).getText().toString().contains("1회\n총 지원서 "));
+      assertEquals("모집하기", ((TextView) submit).getText().toString());
+      assertTrue(submit.getContentDescription().toString().contains("1회"));
+      int spendActions = 0;
+      for (View view : geometry.descendants(host.root)) if ("draw-submit".equals(view.getTag())) spendActions++;
+      assertEquals("Exactly one spend action for the selected tier", 1, spendActions);
+      actions++;
     } else if (page.equals("collection")) {
       for (String name : new String[] {"collection-growth", "collection-team", "collection-craft", "collection-record"}) {
         action(host, name);

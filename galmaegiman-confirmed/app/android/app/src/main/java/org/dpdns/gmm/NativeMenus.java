@@ -95,69 +95,93 @@ final class NativeMenus {
     return title;
   }
 
+  /** These panels sit directly over the location art; core choices never enter an overflow sheet. */
+  LinearLayout navyPanel() {
+    LinearLayout panel = k.column();
+    panel.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAV));
+    panel.setPadding(h.dp(12), h.dp(8), h.dp(12), h.dp(8));
+    return panel;
+  }
+
+  TextView navyLabel(String text, int size, boolean headline) {
+    TextView label = h.text(text, size);
+    label.setTypeface(headline ? h.headline : h.prose);
+    label.setTextColor(JournalTheme.WHITE);
+    label.setPadding(h.dp(4), h.dp(2), h.dp(4), h.dp(2));
+    return label;
+  }
+
+  void menuAction(LinearLayout parent, Button action) {
+    library.fixedAction(action);
+    LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(-1, h.dp(48));
+    slot.topMargin = h.dp(4);
+    parent.addView(action, slot);
+  }
+
   void modes() {
     h.base("게임 모드", "modes");
     AppSkin.apply(h, "training");
-    LinearLayout[] cols = k.split(.49f);
+    LinearLayout[] cols = k.fixedSplit(.48f);
     LinearLayout campaign = cols[0], pvp = cols[1];
-    campaign.addView(k.section("캠페인"));
+    TextView campaignTitle = navyLabel("스토리", 22, true);
+    campaignTitle.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
+    campaign.addView(campaignTitle);
     Button story = k.primary("u-story", "스토리", () -> h.load("story"));
+    story.setTag("modes-story");
     NativeTutorialController.anchor(story, "story");
-    campaign.addView(story);
-    campaign.addView(k.action("m-units", "다음 이야기 · 편성", () -> modeTeamSheet(false)));
+    menuAction(campaign, story);
+    campaign.addView(new View(h), new LinearLayout.LayoutParams(-1, 0, 1));
+    addModeTeamSummary(campaign, false);
+    menuAction(campaign, k.action("m-units", "스토리 편성", () -> {
+      h.selectionMode = "story"; teamDraft = null; teamReturn = "modes"; h.load("team");
+    }));
     Button adventure = k.action("mode-adv", "모험 준비 중", () -> {});
+    adventure.setTag("modes-adventure");
     adventure.setEnabled(false);
-    campaign.addView(adventure);
-    campaign.addView(k.notice("완료한 전투에 다시 도전해 경험치를 모을 수 있어요."));
-    pvp.addView(k.section("PvP"));
-    TextView rank = k.notice("랭크 불러오는 중…"), rules = k.notice("");
+    menuAction(campaign, adventure);
+
+    TextView pvpTitle = navyLabel("대전", 22, true);
+    pvpTitle.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
+    pvp.addView(pvpTitle);
     LinearLayout start = k.row();
-    h.cell(start, k.action("mode-normal", "일반 게임", () -> startPvp("normal")));
-    h.cell(start, k.primary("mode-rank", "랭크게임", () -> startPvp("rank")));
-    pvp.addView(start);
+    Button normal = k.action("mode-normal", "일반 게임", () -> startPvp("normal"));
+    normal.setTag("modes-normal");
+    Button ranked = k.primary("mode-rank", "랭크게임", () -> startPvp("rank"));
+    ranked.setTag("modes-ranked");
+    library.actionCell(start, normal); library.actionCell(start, ranked);
+    pvp.addView(start, new LinearLayout.LayoutParams(-1, h.dp(52)));
+    TextView rank = navyLabel("랭크 불러오는 중…", 14, false);
+    rank.setTag("modes-rank-status");
+    rank.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAV));
+    rank.setGravity(Gravity.CENTER_VERTICAL);
+    pvp.addView(rank, new LinearLayout.LayoutParams(-1, h.dp(52)));
+    pvp.addView(new View(h), new LinearLayout.LayoutParams(-1, 0, 1));
+    addModeTeamSummary(pvp, true);
     LinearLayout links = k.row();
-    h.cell(links, k.action(null, "순위표", () -> h.load("pvp")));
-    h.cell(links, k.action(null, "연습", h::practice));
-    h.cell(
-        links,
-        k.action(
-            null,
-            "전투 편성",
-            () -> {
-              h.selectionMode = "pvp";
-              h.load("team");
-            }));
-    pvp.addView(links);
-    pvp.addView(rank);
-    pvp.addView(rules);
-    pvp.addView(k.action("m-units", "현재 편성 확인", () -> modeTeamSheet(true)));
-    fetch(
-        "pvp/rank",
-        result -> {
-          JSONObject me = result.optJSONObject("me");
-          if (me != null)
-            rank.setText(
-                me.optString("tier")
-                    + " · "
-                    + me.optInt("point")
-                    + "점"
-                    + (me.optInt("rank") > 0 ? " · " + me.optInt("rank") + "위" : "")
-                    + "\n"
-                    + me.optInt("wins")
-                    + "승 "
-                    + me.optInt("losses")
-                    + "패 · Lv"
-                    + result.optInt("level"));
-          rules.setText(
-              "승리 +"
-                  + result.optInt("win")
-                  + " / 패배 −"
-                  + result.optInt("lose")
-                  + "점"
-                  + (result.optBoolean("team", h.list(h.me(), "battleTeam").length() == 3)
-                      ? ""
-                      : " · 전투 편성 3마리 필요"));
-        });
+    Button standings = k.action(null, "순위", () -> h.load("pvp"));
+    standings.setTag("modes-standings");
+    Button practice = k.action(null, "연습", h::practice);
+    practice.setTag("modes-practice");
+    Button edit = k.action("m-units", "편성", () -> {
+      h.selectionMode = "pvp"; teamDraft = null; teamReturn = "modes"; h.load("team");
+    });
+    edit.setTag("modes-pvp-team");
+    library.actionCell(links, standings); library.actionCell(links, practice); library.actionCell(links, edit);
+    pvp.addView(links, new LinearLayout.LayoutParams(-1, h.dp(52)));
+    final int screenEpoch = h.epoch;
+    pendingFetches++;
+    h.api.call("pvp/rank", null, (result, error) -> {
+      pendingFetches--;
+      if (h.isFinishing() || h.epoch != screenEpoch) return;
+      if (error != null) { rank.setText("순위 정보를 불러오지 못했어요. 순위에서 다시 확인해 주세요."); return; }
+      JSONObject me = result.optJSONObject("me");
+      String summary = me == null ? "아직 랭크 기록이 없어요."
+          : me.optString("tier") + " · " + me.optInt("point") + "점"
+              + (me.optInt("rank") > 0 ? " · " + me.optInt("rank") + "위" : "")
+              + " · " + me.optInt("wins") + "승 " + me.optInt("losses") + "패";
+      rank.setText(summary + "\n승리 +" + result.optInt("win") + " / 패배 −" + result.optInt("lose") + "점"
+          + (result.optBoolean("team", h.list(h.me(), "battleTeam").length() == 3) ? "" : " · 편성 3마리 필요"));
+    });
   }
 
   void modeTeamSheet(boolean pvp) {
@@ -171,8 +195,10 @@ final class NativeMenus {
   }
 
   void addModeTeamSummary(LinearLayout parent, boolean pvp) {
-    LinearLayout summary = k.paper();
-    summary.addView(heading(pvp ? "현재 전투 편성" : "다음 이야기", 18));
+    LinearLayout summary = navyPanel();
+    summary.setTag(pvp ? "modes-pvp-summary" : "modes-story-summary");
+    summary.setGravity(Gravity.CENTER_VERTICAL);
+    String caption = pvp ? "현재 전투 편성" : "스토리 방범대";
     if (!pvp) {
       JSONObject next = null;
       JSONArray chapters = h.list(h.state, "chapters");
@@ -180,14 +206,15 @@ final class NativeMenus {
         JSONArray stages = h.list(chapters.optJSONObject(c), "stages");
         for (int i = 0; i < stages.length(); i++) {
           JSONObject stage = stages.optJSONObject(i);
-          if (stage.optBoolean("open") && !stage.optBoolean("cleared")) {
-            next = stage;
-            break;
-          }
+          if (stage.optBoolean("open") && !stage.optBoolean("cleared")) { next = stage; break; }
         }
       }
-      summary.addView(k.note(next == null ? "완료한 이야기에 다시 도전할 수 있어요." : next.optString("title")));
+      if (next != null) caption = "다음 · " + storyDescription(next.optString("title"));
     }
+    TextView title = navyLabel(caption, 15, true);
+    title.setSingleLine(true); title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    title.setContentDescription(caption);
+    summary.addView(title);
     LinearLayout line = k.row();
     JSONArray selected = h.list(pvp ? h.me() : h.state, pvp ? "battleTeam" : "team");
     for (int i = 0; i < selected.length(); i++) {
@@ -195,16 +222,17 @@ final class NativeMenus {
       JSONObject unit = pvp ? ownedSpecies(key) : h.unit(key);
       LinearLayout member = k.column();
       member.setGravity(Gravity.CENTER_HORIZONTAL);
-      member.addView(k.image(pvp ? "/thumbs/" + key + ".jpg" : unit.optString("image"), 76, 76));
-      TextView name = k.note((i == 0 ? "선봉 · " : "") + unit.optString("name"));
-      name.setGravity(Gravity.CENTER);
-      name.setMaxLines(2);
+      member.addView(k.image(pvp ? "/thumbs/" + key + ".jpg" : unit.optString("image"), 44, 44));
+      TextView name = navyLabel((i == 0 ? "선봉 · " : "") + unit.optString("name"), 13, false);
+      name.setGravity(Gravity.CENTER); name.setMaxLines(2);
       member.addView(name);
-      h.cell(line, member);
+      line.addView(member, new LinearLayout.LayoutParams(0, -2, 1));
     }
-    if (selected.length() == 0) line.addView(k.note("아직 편성한 갈매미가 없어요."));
+    if (selected.length() == 0) line.addView(navyLabel("아직 편성한 갈매미가 없어요.", 14, false));
     summary.addView(line);
-    parent.addView(summary);
+    LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(-1, -2);
+    slot.setMargins(0, h.dp(6), 0, h.dp(6));
+    parent.addView(summary, slot);
   }
 
   JSONObject ownedSpecies(String id) {
@@ -232,13 +260,19 @@ final class NativeMenus {
     else h.startFight(mode, null);
   }
 
+  /** Display only authored chapter/stage/intro/lock copy; never pass unit or player names here. */
+  private String storyDescription(String authoredDescription) {
+    return RecruitmentText.display(authoredDescription).replace("수비대", "방범대");
+  }
+
   void story(boolean stages) {
     JSONArray chapters = h.list(h.state, "chapters");
     JSONObject chapter = chapters.optJSONObject(h.chapter);
     h.base(
-        stages && chapter != null ? chapter.optString("title") : "스토리 · 챕터 선택",
+        stages && chapter != null ? storyDescription(chapter.optString("title")) : "스토리 · 챕터 선택",
         stages ? "stages" : "story");
-    LinearLayout[] cols = k.split(.36f);
+    AppSkin.apply(h, "training");
+    LinearLayout[] cols = k.fixedSplit(.32f);
     LinearLayout team = cols[0], content = cols[1];
     JSONArray keys = h.list(h.state, "team");
     ArrayList<JSONObject> storyTeam = new ArrayList<>();
@@ -258,7 +292,7 @@ final class NativeMenus {
               },
               () -> reorderStory(key, stages));
       LinearLayout.LayoutParams unitSlot = new LinearLayout.LayoutParams(-1, -2);
-      unitSlot.bottomMargin = h.dp(2);
+      unitSlot.bottomMargin = h.dp(6);
       team.addView(tile, unitSlot);
       storyCards.add(tile);
       storyKeys.add(key);
@@ -278,17 +312,21 @@ final class NativeMenus {
                 if (screenEpoch == h.epoch) refreshStory(stages, scroll);
               });
         });
-    if (storyCards.size() > 1 && h.contentHeightDp() >= 360) {
+    if (storyCards.size() > 1 && h.contentHeightDp() >= 500) {
       TextView dragHint = k.note("↕ 끌어서 선봉 변경 · 바로 저장");
       dragHint.setTag("story-order-drag-hint");
       dragHint.setTextSize(h.uiText(12));
-      dragHint.setTextColor(JournalTheme.INK);
-      dragHint.setBackground(new GamePaperDrawable(h));
+      dragHint.setTextColor(JournalTheme.WHITE);
+      dragHint.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAV));
       dragHint.setPadding(h.dp(6), h.dp(2), h.dp(6), h.dp(2));
       team.addView(dragHint, 0);
     }
 
-    if (keys.length() == 0) team.addView(k.note("먼저 수비대를 정해 주세요."));
+    if (keys.length() == 0) {
+      TextView empty = navyLabel("먼저 방범대를 정해 주세요.", 16, false);
+      empty.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAV));
+      team.addView(empty);
+    }
     LinearLayout storyHeader = (LinearLayout) h.page.getChildAt(0);
     Button editTeam =
         k.action(
@@ -305,93 +343,59 @@ final class NativeMenus {
             "potion",
             "치료약",
             () -> library.healSheet(null, () -> h.load(stages ? "stages" : "story")));
+    editTeam.setTag("story-edit-team");
+    healing.setTag("story-heal");
+    library.fixedAction(editTeam); library.fixedAction(healing);
     editTeam.setPadding(h.dp(6), 0, h.dp(6), h.dp(3));
     healing.setPadding(h.dp(6), 0, h.dp(6), h.dp(3));
-    LinearLayout.LayoutParams teamAction = new LinearLayout.LayoutParams(h.dp(88), h.dp(48));
+    float storyFontScale = h.getResources().getConfiguration().fontScale;
+    LinearLayout.LayoutParams teamAction = new LinearLayout.LayoutParams(h.dp(Math.round(88 * storyFontScale)), h.dp(48));
     teamAction.leftMargin = h.dp(4);
-    LinearLayout.LayoutParams healAction = new LinearLayout.LayoutParams(h.dp(104), h.dp(48));
+    LinearLayout.LayoutParams healAction = new LinearLayout.LayoutParams(h.dp(Math.round(104 * storyFontScale)), h.dp(48));
     healAction.leftMargin = h.dp(4);
     storyHeader.addView(editTeam, 2, teamAction);
     storyHeader.addView(healing, 3, healAction);
     if (!stages || chapter == null) {
       HorizontalScrollView scroll = new HorizontalScrollView(h);
+      scroll.setTag("story-chapters-inline");
+      scroll.setHorizontalScrollBarEnabled(false);
       LinearLayout row = k.row();
-      scroll.addView(row);
-      content.addView(scroll);
+      scroll.addView(row, new HorizontalScrollView.LayoutParams(-2, -1));
+      content.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
       for (int i = 0; i < chapters.length(); i++) {
         int index = i;
         JSONObject c = chapters.optJSONObject(i);
         JSONArray ss = h.list(c, "stages");
-        int cleared = 0, opened = 0;
-        for (int j = 0; j < ss.length(); j++) {
-          if (ss.optJSONObject(j).optBoolean("cleared")) cleared++;
-          if (ss.optJSONObject(j).optBoolean("open")) opened++;
-        }
-        FrameLayout card = new FrameLayout(h);
-        String scene =
-            ss.length() > 0 ? ss.optJSONObject(0).optString("scene", "harbor") : "harbor";
+        int cleared = 0;
+        for (int j = 0; j < ss.length(); j++) if (ss.optJSONObject(j).optBoolean("cleared")) cleared++;
+        LinearLayout card = k.column();
+        card.setTag("story-chapter-" + index);
+        String scene = ss.length() > 0 ? ss.optJSONObject(0).optString("scene", "harbor") : "harbor";
         ImageView backdrop = k.image("/duel/bg/" + scene + ".jpg", 1, 1);
         backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        card.addView(backdrop, new FrameLayout.LayoutParams(-1, -1));
-        LinearLayout info = k.column();
-        info.setBackground(new GamePaperDrawable(h));
-        info.setPadding(h.dp(14), h.dp(12), h.dp(14), h.dp(12));
-        TextView name = heading(c.optString("title"), 19);
-        name.setTextColor(JournalTheme.INK);
+        card.addView(backdrop, new LinearLayout.LayoutParams(-1, 0, 1));
+        LinearLayout info = navyPanel();
+        TextView name = navyLabel(storyDescription(c.optString("title")), 19, true);
+        name.setMaxLines(2);
         info.addView(name);
-        TextView progress = k.note(cleared + " / " + ss.length() + " 완료");
-        progress.setTextColor(JournalTheme.MUTED);
-        info.addView(progress);
-        JSONObject chapterLock = c.optJSONObject("lock");
-        if (chapterLock != null && !chapterLock.optBoolean("open")) {
-          TextView need = k.note("잠김 · 소개에서 조건 확인");
-          need.setTextColor(0xff8b4d13);
-          info.addView(need);
-        } else if (c.optInt("needStage") > 0) {
-          TextView need = k.note("팀 전원 " + c.optInt("needStage") + "단계 승진");
-          need.setTextColor(0xff276646);
-          info.addView(need);
+        info.addView(navyLabel(cleared + " / " + ss.length() + " 완료", 14, false));
+        JSONObject lock = c.optJSONObject("lock");
+        String need = lock != null && !lock.optBoolean("open") ? storyDescription(lock.optString("reason", "앞 이야기를 완료해 주세요."))
+            : c.optInt("needStage") > 0 ? "팀 전원 " + c.optInt("needStage") + "단계 승진" : "";
+        if (!need.isEmpty()) {
+          TextView requirement = navyLabel(need, 12, false);
+          requirement.setMaxLines(2); info.addView(requirement);
         }
-        Button enter =
-            k.action(
-                null,
-                "선택 ›",
-                () -> {
-                  h.chapter = index;
-                  h.stages();
-                });
+        Button enter = k.primary("u-story", "전투 선택", () -> { h.chapter = index; h.stages(); });
+        enter.setTag("story-enter-chapter-" + index);
         if (index == 0) NativeTutorialController.anchor(enter, "chapter");
-        LinearLayout chapterActions = k.row();
-        h.cell(chapterActions, enter);
-        h.cell(chapterActions, k.action(null, "소개", () -> storyGuide(c)));
-        info.addView(chapterActions);
-        card.addView(info, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
-        card.setBackground(new GamePaperDrawable(h));
-        card.setClipToOutline(true);
-        card.setOutlineProvider(
-            new ViewOutlineProvider() {
-              public void getOutline(View view, Outline outline) {
-                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), h.dp(16));
-              }
-            });
-        int availableHeight = h.contentHeightDp() - 88;
-        LinearLayout.LayoutParams lp =
-            new LinearLayout.LayoutParams(h.dp(260), h.dp(Math.max(144, availableHeight)));
-        lp.setMargins(h.dp(4), 0, h.dp(4), 0);
-        row.addView(card, lp);
+        menuAction(info, enter);
+        card.addView(info);
+        card.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAV));
+        LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(h.dp(h.compact() ? 260 : 320), -1);
+        slot.setMargins(h.dp(4), h.dp(4), h.dp(4), h.dp(4)); row.addView(card, slot);
       }
-      LinearLayout guide = k.paper();
-      guide.addView(heading("성장 안내", 20));
-      guide.addView(k.note("완료한 전투에 다시 도전해요."));
-      JSONObject shownChapter = chapter == null ? new JSONObject() : chapter;
-      LinearLayout guideActions = k.row();
-      h.cell(guideActions, k.action(null, "성장", () -> storyGuide(shownChapter)));
-      h.cell(guideActions, k.action(null, "합동기", () -> storyCombos(storyTeam)));
-      guide.addView(guideActions);
-      guide.addView(k.action(null, "스토리 처음부터", this::resetStory));
-      LinearLayout.LayoutParams guideSlot = new LinearLayout.LayoutParams(h.dp(240), -1);
-      guideSlot.setMargins(h.dp(4), 0, h.dp(4), 0);
-      row.addView(guide, guideSlot);
+      if (chapters.length() == 0) content.addView(k.notice("아직 공개된 이야기가 없어요."));
     } else {
       JSONArray stagesInChapter = h.list(chapter, "stages");
       int chosen = -1;
@@ -402,35 +406,42 @@ final class NativeMenus {
         chosen = 0;
         for (int i = 0; i < stagesInChapter.length(); i++) {
           JSONObject stage = stagesInChapter.optJSONObject(i);
-          if (stage.optBoolean("open") && !stage.optBoolean("cleared")) {
-            chosen = i;
-            break;
-          }
+          if (stage.optBoolean("open") && !stage.optBoolean("cleared")) { chosen = i; break; }
         }
       }
       stageFocusId = "";
-      final int at = chosen;
       JSONObject selected = stagesInChapter.optJSONObject(chosen);
-      if (selected != null) {
-        selectedStageId = selected.optString("id");
-        content.addView(stageCard(selected));
-      } else content.addView(k.notice("아직 공개된 전투가 없어요."));
-      LinearLayout navigation = k.row();
-      Button previous = k.action(null, "‹ 이전", () -> selectStoryStage(stagesInChapter, at - 1));
-      previous.setEnabled(at > 0);
-      h.cell(navigation, previous);
-      h.cell(navigation, k.action("u-story", "전투 선택", () -> storyStagePicker(stagesInChapter)));
-      Button next = k.action(null, "다음 ›", () -> selectStoryStage(stagesInChapter, at + 1));
-      next.setEnabled(at + 1 < stagesInChapter.length());
-      h.cell(navigation, next);
-      content.addView(navigation);
-      if (chapter.optInt("needStage") > 0)
-        content.addView(k.note("팀 전원 " + chapter.optInt("needStage") + "단계 승진 필요"));
-      LinearLayout guideActions = k.row();
-      h.cell(guideActions, k.action(null, "부 소개 · 성장", () -> storyGuide(chapter)));
-      h.cell(guideActions, k.action(null, "합동기", () -> storyCombos(storyTeam)));
-      content.addView(guideActions);
+      if (selected != null) selectedStageId = selected.optString("id");
+      HorizontalScrollView choices = new HorizontalScrollView(h);
+      choices.setTag("story-stages-inline"); choices.setHorizontalScrollBarEnabled(false);
+      LinearLayout tabs = k.row();
+      choices.addView(tabs);
+      for (int i = 0; i < stagesInChapter.length(); i++) {
+        final int index = i;
+        JSONObject stage = stagesInChapter.optJSONObject(i);
+        Button pick = k.action(null, (i + 1) + " · "
+            + (stage.optBoolean("cleared") ? "완료" : stage.optBoolean("open") ? "진행" : "잠김"),
+            () -> selectStoryStage(stagesInChapter, index));
+        pick.setContentDescription(storyDescription(stage.optString("title")) + " · " + pick.getText());
+        library.fixedAction(pick);
+        pick.setTag("story-stage-choice-" + stage.optString("id"));
+        pick.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.TAB));
+        pick.setTextColor(JournalTheme.tabText());
+        pick.setSelected(stage.optString("id").equals(selectedStageId));
+        LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(h.dp(190), h.dp(48));
+        slot.setMargins(h.dp(2), 0, h.dp(2), 0); tabs.addView(pick, slot);
+        if (pick.isSelected()) choices.post(() -> choices.scrollTo(Math.max(0, pick.getLeft() - h.dp(12)), 0));
+      }
+      content.addView(choices, new LinearLayout.LayoutParams(-1, h.dp(52)));
+      if (selected != null) content.addView(stageCard(selected), new LinearLayout.LayoutParams(-1, 0, 1));
+      else content.addView(k.notice("아직 공개된 전투가 없어요."));
     }
+    LinearLayout tools = k.row();
+    JSONObject shownChapter = chapter == null ? new JSONObject() : chapter;
+    library.actionCell(tools, k.action(null, "부 소개", () -> storyGuide(shownChapter)));
+    library.actionCell(tools, k.action(null, "합동기", () -> storyCombos(storyTeam)));
+    if (stages) library.actionCell(tools, k.action("u-story", "챕터", () -> h.load("story")));
+    content.addView(tools, new LinearLayout.LayoutParams(-1, h.dp(52)));
     startStoryRefresh(stages);
   }
 
@@ -438,10 +449,11 @@ final class NativeMenus {
   LinearLayout storyRosterUnit(JSONObject unit, int order, Runnable open, Runnable reorder) {
     LinearLayout card = k.row(), info = k.column();
     card.setTag("story-team-unit-" + unit.optString("key"));
-    card.setBackground(new GamePaperDrawable(h));
-    card.setPadding(h.dp(6), h.dp(2), h.dp(6), h.dp(2));
+    card.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAV));
+    card.setPadding(h.dp(8), h.dp(6), h.dp(8), h.dp(6));
     card.addView(k.image(unit.optString("image"), 44, 48));
     TextView name = heading(unit.optString("name"), h.compact() ? 15 : 19);
+    name.setTextColor(JournalTheme.WHITE);
     name.setSingleLine(true);
     name.setPadding(h.dp(2), 0, h.dp(2), 0);
     name.setEllipsize(android.text.TextUtils.TruncateAt.END);
@@ -457,6 +469,8 @@ final class NativeMenus {
                 + unit.optInt("hp")
                 + "/"
                 + unit.optInt("maxHp"));
+    health.setTextColor(JournalTheme.WHITE);
+    health.setTextSize(h.uiText(12));
     health.setPadding(h.dp(2), 0, h.dp(2), 0);
     info.addView(health);
     String growth =
@@ -473,13 +487,14 @@ final class NativeMenus {
                 + unit.optInt("xpNext")
                 + (growth.isEmpty() ? "" : " · " + growth));
     experience.setPadding(h.dp(2), 0, h.dp(2), 0);
-    experience.setTextColor(growth.isEmpty() ? JournalTheme.MUTED : JournalTheme.TEAL);
+    experience.setTextSize(h.uiText(12));
+    experience.setTextColor(growth.isEmpty() ? JournalTheme.PAPER : JournalTheme.FOCUS);
     info.addView(experience);
     card.addView(info, new LinearLayout.LayoutParams(0, -2, 1));
     TextView handle = h.text((order == 0 ? "선봉" : (order + 1) + "번") + "\n↕", 14);
     handle.setGravity(Gravity.CENTER);
     handle.setPadding(0, 0, 0, 0);
-    handle.setTextColor(JournalTheme.TEAL);
+    handle.setTextColor(JournalTheme.WHITE);
     handle.setTag(NativeTeamReorder.HANDLE_TAG);
     handle.setFocusable(true);
     handle.setClickable(true);
@@ -523,7 +538,7 @@ final class NativeMenus {
                 k.action(
                     null,
                     (stage.optBoolean("cleared") ? "✓ " : stage.optBoolean("open") ? "" : "잠김 · ")
-                        + stage.optString("title"),
+                        + storyDescription(stage.optString("title")),
                     () -> selectStoryStage(stages, index));
             select.setSelected(stage.optString("id").equals(selectedStageId));
             choices.addView(select, new LinearLayout.LayoutParams(-1, h.dp(48)));
@@ -534,7 +549,7 @@ final class NativeMenus {
 
   void storyCombos(Collection<JSONObject> members) {
     k.openSheet(
-        "우리 수비대 합동기",
+        "우리 방범대 합동기",
         () -> {
           LinearLayout content = k.column();
           content.addView(growth.combos(members));
@@ -547,12 +562,12 @@ final class NativeMenus {
         "부 소개 · 성장 안내",
         () -> {
           LinearLayout guide = k.column();
-          guide.addView(heading(chapter.optString("title"), 22));
+          guide.addView(heading(storyDescription(chapter.optString("title")), 22));
           if (!chapter.optString("intro").isEmpty())
-            guide.addView(k.note(chapter.optString("intro")));
+            guide.addView(k.note(storyDescription(chapter.optString("intro"))));
           JSONObject lock = chapter.optJSONObject("lock");
           if (lock != null && !lock.optBoolean("open"))
-            guide.addView(k.notice(lock.optString("reason")));
+            guide.addView(k.notice(storyDescription(lock.optString("reason"))));
           if (chapter.optInt("needStage") > 0)
             guide.addView(k.note("팀 전원 " + chapter.optInt("needStage") + "단계 승진 필요"));
           guide.addView(k.note("진 전투에서도 경험치를 받아요. 완료한 전투는 다시 도전해 레벨을 올릴 수 있어요."));
@@ -567,29 +582,35 @@ final class NativeMenus {
     JSONObject foe = foes.optJSONObject(0);
     String id = foe == null ? "" : foe.optString("id");
     JSONObject portraits = h.state.optJSONObject("portraits");
-    LinearLayout card = k.paper(), line = k.row();
+    LinearLayout card = k.column(), line = k.row();
     card.setTag("story-stage-" + stage.optString("id"));
+    ImageView scene = k.image("/duel/bg/" + stage.optString("scene", "harbor") + ".jpg", 1, 1);
+    scene.setScaleType(ImageView.ScaleType.CENTER_CROP);
+    card.addView(scene, new LinearLayout.LayoutParams(-1, 0, 1));
+    LinearLayout info = navyPanel();
     line.addView(k.image(portraits == null ? "" : portraits.optString(id), 60, 60));
     line.addView(
-        heading(
+        navyLabel(
             (stage.optBoolean("cleared") ? "완료 · " : stage.optBoolean("open") ? "" : "잠김 · ")
-                + stage.optString("title"),
-            20),
+                + storyDescription(stage.optString("title")),
+            20, true),
         new LinearLayout.LayoutParams(0, -2, 1));
-    card.addView(line);
+    info.addView(line);
     ArrayList<String> opponents = new ArrayList<>();
     JSONObject names = h.state.optJSONObject("names");
     for (int j = 0; j < foes.length(); j++) {
       JSONObject enemy = foes.optJSONObject(j);
-      opponents.add(
-          (names == null
-                  ? enemy.optString("id")
-                  : names.optString(enemy.optString("id"), enemy.optString("id")))
+      String enemyName = enemy.optString("name");
+      if (enemyName.isEmpty() && names != null) enemyName = names.optString(enemy.optString("id"));
+      if (enemyName.isEmpty()) continue; // Undisclosed identity is not replaced with an internal ID.
+      opponents.add(enemyName
               + " Lv"
               + enemy.optInt("level")
               + (enemy.optBoolean("boss") ? " · 보스" : ""));
     }
-    card.addView(k.note(android.text.TextUtils.join(" · ", opponents)));
+    TextView enemyText = navyLabel(android.text.TextUtils.join(" · ", opponents), 13, false);
+    enemyText.setMaxLines(2);
+    info.addView(enemyText);
     Button start =
         k.action(
             "u-story",
@@ -605,12 +626,14 @@ final class NativeMenus {
               h.storyFoe = id;
               h.talk(
                   withTip(h.list(stage, "before"), stage.optString("hint")),
-                  stage.optString("title"),
+                  storyDescription(stage.optString("title")),
                   () -> h.startFight("story", stage.optString("id")));
             });
     if (stage.optBoolean("open")) k.emphasize(start);
-    if (stage.optString("id").equals("P-1")) NativeTutorialController.anchor(start, "stage");
-    card.addView(start);
+    if (stage.optString("id").equals("P-1")) NativeTutorialController.anchorPreservingTag(start, "stage");
+    start.setTag("story-stage-start");
+    menuAction(info, start);
+    card.addView(info);
     return card;
   }
 
@@ -619,7 +642,7 @@ final class NativeMenus {
     LinearLayout content = k.column();
     content.setPadding(h.dp(12), h.dp(8), h.dp(12), h.dp(8));
     content.addView(
-        k.note(lock == null ? "앞 전투의 완료 여부와 현재 수비대를 다시 확인해 주세요." : lock.optString("reason")));
+        k.note(lock == null ? "앞 전투의 완료 여부와 현재 방범대를 다시 확인해 주세요." : storyDescription(lock.optString("reason"))));
     JSONArray requirements = h.list(lock == null ? new JSONObject() : lock, "requirements");
     for (int i = 0; i < requirements.length(); i++) {
       JSONObject requirement = requirements.optJSONObject(i);
@@ -633,7 +656,7 @@ final class NativeMenus {
           String caption =
               action.equals("stage")
                   ? "필요한 전투로"
-                  : action.equals("growth") ? requirement.optString("name") + " 성장" : "수비대 편성";
+                  : action.equals("growth") ? requirement.optString("name") + " 성장" : "방범대 편성";
           content.addView(k.action(null, caption, () -> navigateRequirement(requirement)));
         }
         JSONArray conditions = h.list(requirement, "conditions");
@@ -650,7 +673,7 @@ final class NativeMenus {
       }
     }
     new GameDialog(h)
-        .setTitle(stage.optString("title") + " · 잠금 조건")
+        .setTitle(storyDescription(stage.optString("title")) + " · 잠금 조건")
         .setView(k.scroll(content))
         .setNegativeButton("닫기", null)
         .show();
@@ -971,7 +994,7 @@ final class NativeMenus {
       teamSavedIds = new ArrayList<>();
       for (int i = 0; i < saved.length(); i++) teamSavedIds.add(saved.optString(i));
     }
-    h.base(pvp ? "수비대" : "스토리 수비대 편성", "team");
+    h.base(pvp ? "방범대" : "스토리 방범대 편성", "team");
     AppSkin.apply(h, "training");
     float teamFontScale = h.getResources().getConfiguration().fontScale;
     // 휴대폰에서는 탭을 머리줄에 합쳐 전체 등록증의 세로 공간을 확보한다.

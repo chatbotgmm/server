@@ -1,0 +1,141 @@
+{
+  "schema": "phase-two-review-contract/v1",
+  "id": "extras",
+  "status": "source_complete_native_execution_pending",
+  "source_contract": "phase2-extras/review-contract.json",
+  "source_contract_sha256": "e857358a4bad69906e114b80ba1d81ed94cb3003db62a714008f70a382047473",
+  "output_subdirectory": "extras-theme",
+  "expected_capture_count": 28,
+  "test_suites": [
+    {
+      "name": "org.dpdns.gmm.NativeExtrasThemeReviewTest",
+      "minimum_tests": 1
+    },
+    {
+      "name": "org.dpdns.gmm.NativeExtrasThemeStateTest",
+      "minimum_tests": 4
+    }
+  ],
+  "variants": [
+    {
+      "suffix": "915x412",
+      "width": 915,
+      "height": 412,
+      "font_scale": 1.0
+    },
+    {
+      "suffix": "1006x411",
+      "width": 1006,
+      "height": 411,
+      "font_scale": 1.0
+    },
+    {
+      "suffix": "1280x720",
+      "width": 1280,
+      "height": 720,
+      "font_scale": 1.0
+    },
+    {
+      "suffix": "915x412-font130",
+      "width": 915,
+      "height": 412,
+      "font_scale": 1.3
+    }
+  ],
+  "screens": [
+    {
+      "stem": "attendance-ready",
+      "audit_id": "daily",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-collection.png",
+        "checkedArt": 0
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "attendance-complete",
+      "audit_id": "daily",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-collection.png",
+        "checkedArt": 0
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "rank-populated",
+      "audit_id": "rank-all",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png",
+        "checkedArt": 0
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "rank-empty",
+      "audit_id": "rank-all",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png",
+        "checkedArt": 0
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "practice-default",
+      "audit_id": "practice",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png",
+        "checkedArt": 3
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "practice-picker",
+      "audit_id": "practice-picker",
+      "expected_fields": {
+        "rootKind": "dialog",
+        "sceneAsset": "backgrounds/bg-team.png",
+        "checkedArt": 3
+      },
+      "minimum_integers": {}
+    },
+    {
+      "stem": "account-help",
+      "audit_id": "login-help",
+      "expected_fields": {
+        "rootKind": "dialog",
+        "sceneAsset": "backgrounds/bg-settings-harbor-office-v1.png",
+        "checkedArt": 0
+      },
+      "minimum_integers": {}
+    }
+  ],
+  "measurements": {
+    "true_fields": [
+      "actualNativeViews"
+    ],
+    "zero_integer_fields": [
+      "apiWrites"
+    ],
+    "positive_integer_fields": [
+      "checkedBounds",
+      "actions",
+      "text",
+      "sceneWidth",
+      "sceneHeight"
+    ],
+    "nonnegative_integer_fields": [
+      "apiReads",
+      "checkedArt"
+    ],
+    "array_fields": [],
+    "duration_fields": [],
+    "scene_asset_field": "sceneAsset",
+    "scene_width_field": "sceneWidth",
+    "scene_height_field": "sceneHeight"
+  }
+}

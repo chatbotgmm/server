@@ -46,7 +46,7 @@ final class NativeForge extends FrameLayout {
     this.next = next;
     this.flow = flow;
     k = new MenuKit(h);
-    setBackgroundColor(JournalTheme.TEAL);
+    setBackground(ThemeArt.of(h).background("backgrounds/bg-navigation-workshop-v1.png"));
     setClickable(true);
     ring = new Ring();
     addView(ring, new LayoutParams(-1, -1));
@@ -139,7 +139,7 @@ final class NativeForge extends FrameLayout {
       resultCard = card;
       card.setGravity(Gravity.CENTER);
       card.setPadding(h.dp(10), h.dp(10), h.dp(10), h.dp(10));
-      card.setBackground(new GamePaperDrawable(h, color()));
+      card.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
       card.setElevation(h.dp(5));
       card.addView(
           k.image(
@@ -182,7 +182,7 @@ final class NativeForge extends FrameLayout {
     outcome.setTypeface(h.headline);
     words.addView(outcome);
     String resultText =
-        text == null || text.isEmpty() ? (fail ? "조합이 맞지 않아 재료는 그대로예요." : "새로운 갈매미를 얻었어요.") : text;
+        text == null || text.isEmpty() ? (fail ? "조합이 맞지 않아 재료는 그대로예요." : "새로운 갈매미를 얻었어요.") : RecruitmentText.display(text);
     TextView message = k.note(resultText);
     message.setMaxLines(3);
     message.setEllipsize(android.text.TextUtils.TruncateAt.END);
@@ -256,7 +256,9 @@ final class NativeForge extends FrameLayout {
     @Override
     protected void onDraw(Canvas c) {
       float x = getWidth() / 2f, y = getHeight() / 2f, dimension = Math.min(getHeight(), h.dp(540));
-      NativeResultBackdrop.draw(h, c, getWidth(), getHeight(), p);
+      // The production workshop stays visible behind the existing material/result animation.
+      p.setColor(0x260c2335);
+      c.drawRect(0, 0, getWidth(), getHeight(), p);
       float ms = progress * (fail ? 1300 : 1500);
       float ringSize = Math.min(dimension * .56f, h.dp(300)), startRadius = ringSize / 2.6f;
       float move =

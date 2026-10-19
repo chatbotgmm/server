@@ -64,6 +64,15 @@ jobs:
           --repo "${{ github.workspace }}"
           --output app/build/theme-ci/source-verification.json
 
+      - name: Test phase-two validation checks
+        run: python3 -m unittest discover -s ci -p test_verify_phase2_ci.py -v
+      - name: Verify workshop alias and unchanged phase-one asset lock entries
+        id: phase2_assets
+        run: >
+          python3 ci/verify_phase2_ci.py assets
+          --repo "${{ github.workspace }}"
+          --output app/build/phase2-ci/assets.json
+
       # The project excludes NativeRenderReviewTest unless a review token is supplied.
       # Do not supply that token: R1 uses local fixtures and bundled artwork instead.
       # Loopback prevents missing art/API fallbacks from reaching the production service.
@@ -96,6 +105,15 @@ jobs:
           --require-unskipped-suite org.dpdns.gmm.NativeThemeReviewTest
           --require-unskipped-suite org.dpdns.gmm.NativeThemeStateTest
           --require-unskipped-suite org.dpdns.gmm.NativeRecruitmentProbabilityTest
+          --require-suite org.dpdns.gmm.NativeRealtimeTest
+          --require-suite org.dpdns.gmm.R1ScreenReviewTest
+          --require-unskipped-suite org.dpdns.gmm.NativeMenusThemeReviewTest
+          --require-unskipped-suite org.dpdns.gmm.NativeRealtimeThemeReviewTest
+          --require-unskipped-suite org.dpdns.gmm.NativeRealtimeThemeStateTest
+          --require-unskipped-suite org.dpdns.gmm.NativeEconomyThemeReviewTest
+          --require-unskipped-suite org.dpdns.gmm.NativeEconomyThemeContractTest
+          --require-unskipped-suite org.dpdns.gmm.NativeExtrasThemeReviewTest
+          --require-unskipped-suite org.dpdns.gmm.NativeExtrasThemeStateTest
           --output app/build/registration-ci/full-suite.json
       # Upload before the targeted rerun overwrites testDebugUnitTest reports.
       - name: Save full native unit-test reports
@@ -108,6 +126,78 @@ jobs:
             galmaegiman-confirmed/app/android/app/build/test-results/
             galmaegiman-confirmed/app/android/app/build/registration-ci/
             galmaegiman-confirmed/app/android/app/build/theme-ci/
+          if-no-files-found: warn
+          retention-days: 14
+
+      # All new phase-two View/capture tests run ONCE in the full suite above.
+      # Keep all native-review output now, including partial output on a failed suite.
+      # In particular, do not add phase-two --tests invocations to the reruns below.
+      - name: Save full-suite native render evidence before any targeted rerun
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-phase2-full-suite-captures-${{ github.sha }}
+          path: galmaegiman-confirmed/app/android/app/build/native-review/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Verify phase-two menus captures and non-skipped full-suite tests
+        if: ${{ !cancelled() }}
+        id: phase2_menus
+        run: >
+          python3 ci/verify_phase2_ci.py module
+          --contract ci/phase2-contracts/menus.json
+          --native-review app/build/native-review
+          --junit app/build/test-results/testDebugUnitTest
+          --output app/build/phase2-ci/menus.json
+      - name: Verify phase-two realtime captures and non-skipped full-suite tests
+        if: ${{ !cancelled() }}
+        id: phase2_realtime
+        run: >
+          python3 ci/verify_phase2_ci.py module
+          --contract ci/phase2-contracts/realtime.json
+          --native-review app/build/native-review
+          --junit app/build/test-results/testDebugUnitTest
+          --output app/build/phase2-ci/realtime.json
+      - name: Verify phase-two economy captures and non-skipped full-suite tests
+        if: ${{ !cancelled() }}
+        id: phase2_economy
+        run: >
+          python3 ci/verify_phase2_ci.py module
+          --contract ci/phase2-contracts/economy.json
+          --native-review app/build/native-review
+          --junit app/build/test-results/testDebugUnitTest
+          --output app/build/phase2-ci/economy.json
+      - name: Verify phase-two extras captures and non-skipped full-suite tests
+        if: ${{ !cancelled() }}
+        id: phase2_extras
+        run: >
+          python3 ci/verify_phase2_ci.py module
+          --contract ci/phase2-contracts/extras.json
+          --native-review app/build/native-review
+          --junit app/build/test-results/testDebugUnitTest
+          --output app/build/phase2-ci/extras.json
+      - name: Report phase-two captured cases and pending all-state coverage
+        if: ${{ !cancelled() }}
+        id: phase2_coverage
+        run: >
+          python3 ci/verify_phase2_ci.py coverage
+          --registry ci/phase2-registry.json
+          --inventory ci/theme-coverage-inventory.json
+          --reports app/build/phase2-ci
+          --output app/build/phase2-ci/coverage-report.json
+      - name: Verify all requested phase-two section contracts are ready
+        if: ${{ !cancelled() }}
+        id: phase2_ready
+        run: >
+          python3 ci/verify_phase2_ci.py readiness
+          --registry ci/phase2-registry.json
+          --output app/build/phase2-ci/readiness.json
+      - name: Save phase-two validation, timing and coverage reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-phase2-validation-${{ github.sha }}
+          path: galmaegiman-confirmed/app/android/app/build/phase2-ci/
           if-no-files-found: warn
           retention-days: 14
 
@@ -247,7 +337,12 @@ jobs:
           && steps.unit.outcome == 'success' && steps.full_gate.outcome == 'success'
           && steps.home.outcome == 'success' && steps.home_gate.outcome == 'success'
           && steps.registration.outcome == 'success' && steps.registration_gate.outcome == 'success'
-          && steps.theme.outcome == 'success' && steps.theme_gate.outcome == 'success' }}
+          && steps.theme.outcome == 'success' && steps.theme_gate.outcome == 'success'
+          && steps.phase2_menus.outcome == 'success'
+          && steps.phase2_realtime.outcome == 'success'
+          && steps.phase2_economy.outcome == 'success'
+          && steps.phase2_extras.outcome == 'success'
+          && steps.phase2_assets.outcome == 'success' && steps.phase2_coverage.outcome == 'success' && steps.phase2_ready.outcome == 'success' }}
         id: assemble
         run: >
           bash ./gradlew :app:assembleDebug :app:assemblePreview
@@ -345,7 +440,8 @@ jobs:
           - 기본 네이티브 단위 테스트 전체, 홈 및 등록증 네이티브 캡처, debug/preview APK 빌드와 145장 등록증·봉투·메타데이터 해시 검사가 통과한 결과입니다.
           - 홈 캡처: 915×412, 1006×411(안전 영역), 1280×720. PNG 및 검사 보고서는 같은 Actions 실행의 아티팩트에 보관됩니다.
           - 등록증 캡처: 모집·도감·스토리 편성·PvP 편성·결과를 세 화면 크기와 915×412 큰 글자 1.3배로 확인합니다. 직접 시각검수·실기기 검수 완료를 뜻하지 않습니다.
-          - 공통 테마 추가검사: 설정 4탭·프로필·모드·상점·탐험 32개 네이티브 캡처/실측과 상태 테스트, 배경7개·UI6개·기존 홈인물/아이콘11개 SHA 검사를 통과했습니다. 대표 화면 검사이며 전앱 모든 페이지/상태 검수 완료를 뜻하지 않습니다.
+          - 공통 테마 추가검사: 설정 4탭·프로필·모드·상점·탐험 32개 네이티브 캡처/실측과 상태 테스트, 배경8개·UI6개·기존 홈인물/아이콘11개 SHA 검사를 통과했습니다. 대표 화면 검사이며 전앱 모든 페이지/상태 검수 완료를 뜻하지 않습니다.
+          - 2차 화면은 전체 suite에서 한 번 생성한 실제 View 캡처와 상태 테스트를 검증했습니다. 모듈별 수량·시간·미검증 상태는 같은 실행의 phase2-validation 보고서에 있으며 전앱 모든 상태 완료를 뜻하지 않습니다.
           - 패키지 \`org.dpdns.gmm.native.revised.r1preview\`로 기존 정식 앱 옆에 따로 설치됩니다. 정식 앱 업데이트가 아닙니다.
           - 디버그 서명은 실행마다 달라질 수 있습니다. 설치 충돌 시 미리보기 앱만 제거한 뒤 설치하세요. 미리보기 앱의 로컬 데이터는 삭제됩니다.
           - APK는 기존 운영 서버 주소를 사용합니다. 이 작업은 서버·DB에 배포하지 않습니다.

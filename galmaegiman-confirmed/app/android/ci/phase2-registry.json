@@ -1,0 +1,32 @@
+{
+  "schema": "phase-two-ci-registry/v1",
+  "baseline_commit": "2d96f223d7d0990aecb58daead507707951a2a6a",
+  "required_modules": [
+    "menus",
+    "realtime",
+    "economy",
+    "extras"
+  ],
+  "modules": [
+    {
+      "id": "menus",
+      "contract": "phase2-contracts/menus.json"
+    },
+    {
+      "id": "realtime",
+      "contract": "phase2-contracts/realtime.json"
+    },
+    {
+      "id": "economy",
+      "contract": "phase2-contracts/economy.json"
+    },
+    {
+      "id": "extras",
+      "contract": "phase2-contracts/extras.json"
+    }
+  ],
+  "pending_modules": {},
+  "all_sections_ready": true,
+  "all_app_states_complete": false,
+  "readiness_scope": "All four source contracts integrated; actual native success requires separate full-suite and capture gates."
+}

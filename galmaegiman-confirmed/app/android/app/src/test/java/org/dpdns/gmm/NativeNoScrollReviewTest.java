@@ -256,10 +256,12 @@ public class NativeNoScrollReviewTest {
       }
     } else if (page.equals("draw")) {
       for (String kind : new String[] {"LOW", "MID", "HIGH"}) {
-        requiredTag(host, "draw-quantity-" + kind);
-        requiredTag(host, "draw-total-" + kind);
-        requiredTag(host, "draw-submit-" + kind);
+        requiredTag(host, "draw-card-" + kind);
       }
+      requiredTag(host, "draw-quantity");
+      requiredTag(host, "draw-total");
+      requiredTag(host, "draw-submit");
+      requiredTag(host, "draw-pity");
     } else if (page.equals("craft")) {
       requiredTag(host, "craft-recipe-picker");
       assertFullyVisible(host.menus.economy.craftActions, host.root);
@@ -441,24 +443,26 @@ public class NativeNoScrollReviewTest {
       page(host, "craft");
       review.capture(host, "picker-craft-main", 915, 412);
       JSONArray recipes = api.responses.get("craft").getJSONArray("recipes");
-      host.root.findViewWithTag("craft-recipe-picker").performClick();
-      View decor = geometry.layoutDialog(host);
-      JSONObject recipe = recipes.getJSONObject(recipes.length() - 1);
-      View target = null;
-      int recipeCount = 0;
-      for (View view : descendants(decor)) {
-        CharSequence label = view.getContentDescription();
-        if (label == null || !label.toString().endsWith(" 조합식 선택")) continue;
-        recipeCount++;
-        if (label.toString().equals(recipe.getString("name") + " 조합식 선택")) target = view;
+      Set<String> recipeIds = new HashSet<>();
+      while (true) {
+        View choices = host.root.findViewWithTag("craft-recipe-list");
+        for (View view : descendants(choices)) {
+          Object tag = view.getTag();
+          if (tag instanceof String && tag.toString().startsWith("craft-recipe-")
+              && !tag.equals("craft-recipe-list")) recipeIds.add(tag.toString().substring("craft-recipe-".length()));
+        }
+        Button next = named(host.root.findViewWithTag("craft-recipe-pages"), "›");
+        if (!next.isEnabled()) break;
+        next.performClick();
       }
-      assertEquals("전체 조합식을 모달로 옮겨도 누락 없음", recipes.length(), recipeCount);
+      assertEquals("서버가 공개한 모든 조합식을 같은 화면의 페이지로 확인", recipes.length(), recipeIds.size());
+      JSONObject recipe = recipes.getJSONObject(recipes.length() - 1);
+      View target = host.root.findViewWithTag("craft-recipe-" + recipe.getString("id"));
       assertNotNull(target);
-      scrollModal(host, true);
-      geometry.capture(host, new int[] {915, 412}, "picker-craft-bottom");
       target.performClick();
       Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
       assertEquals("원래 조합 선택 callback의 정확한 id 유지", recipe.getString("id"), host.menus.recipeId);
+      assertNull("조합식 선택은 별도 모달 없이 완료", host.visibleDialog);
       review.capture(host, "picker-craft-selected", 915, 412);
       assertFixedMain(host);
     }
@@ -559,7 +563,8 @@ public class NativeNoScrollReviewTest {
       story.next.performClick();
       decor = geometry.layoutDialog(host);
       TextView full = decor.findViewWithTag("story-full-dialogue");
-      assertEquals("기본 화면에서 요약한 전문은 원문 전체 유지", first, full.getText().toString());
+      assertEquals("기본 화면에서 요약한 전문의 표시 용어만 정리", first.replace("수비대", "방범대"), full.getText().toString());
+      assertEquals("서버 대사 원문은 변경하지 않음", first, story.lines.optJSONObject(0).optString("say"));
       host.visibleDialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE).performClick();
       Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
       assertNull("닫기 후 Activity 모달 참조 정리", host.visibleDialog);

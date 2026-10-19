@@ -159,7 +159,7 @@ public class NativeThemeReviewTest {
     if (page.startsWith("settings-")) return "backgrounds/bg-settings-harbor-office-v1.png";
     if (page.equals("profile")) return "backgrounds/bg-home.png";
     if (page.equals("shop")) return AppSkin.background("market");
-    if (page.equals("explore")) return AppSkin.background("routes");
+    if (page.equals("explore")) return "backgrounds/bg-navigation-workshop-v1.png";
     return AppSkin.background("training");
   }
 

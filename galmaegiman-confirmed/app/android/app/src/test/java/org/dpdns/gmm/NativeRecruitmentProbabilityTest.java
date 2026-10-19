@@ -237,14 +237,15 @@ public class NativeRecruitmentProbabilityTest {
           claim.getPaint().measureText(claim.getText().toString())
               <= claim.getWidth() - claim.getCompoundPaddingLeft() - claim.getCompoundPaddingRight());
       for (String kind : RecruitmentProbabilityView.KINDS) {
-        Button go = host.root.findViewWithTag("draw-submit-" + kind);
+        host.root.findViewWithTag("draw-card-" + kind).performClick();
+        Button go = host.root.findViewWithTag("draw-submit");
         assertEquals("모집하기", go.getText().toString());
       }
-      View quantity = host.root.findViewWithTag("draw-quantity-HIGH");
+      View quantity = host.root.findViewWithTag("draw-quantity");
       button(quantity, "＋").performClick();
-      TextView total = host.root.findViewWithTag("draw-total-HIGH");
+      TextView total = host.root.findViewWithTag("draw-total");
       assertTrue(total.getText().toString().contains("10장"));
-      Button go = host.root.findViewWithTag("draw-submit-HIGH");
+      Button go = host.root.findViewWithTag("draw-submit");
       go.performClick();
       assertTrue(api.writes.isEmpty());
       assertNotNull(host.visibleDialog);

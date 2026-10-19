@@ -39,7 +39,7 @@ class ThemeCheckerTests(unittest.TestCase):
     def test_only_explicit_added_asset_paths_allowed(self):
         paths = [self.lock["source_prefix"] + "/" + entry["path"]
                  for entry in self.lock["files"] if not entry["baseline"]]
-        self.assertEqual(len(paths), 10)
+        self.assertEqual(len(paths), 11)
         verifier.allowed_asset_changes(paths, self.lock)
 
     def test_existing_home_character_cannot_change(self):
@@ -62,7 +62,7 @@ class ThemeCheckerTests(unittest.TestCase):
         verifier.allowed_asset_changes(["galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/AppSkin.java"], self.lock)
 
     def payload(self):
-        roles = ["background"] * 7 + ["ui"] * 6 + ["protected_home_art"] * 11
+        roles = ["background"] * 8 + ["ui"] * 6 + ["protected_home_art"] * 11
         data, entries = {}, []
         for index, role in enumerate(roles):
             name = str(index) + ".png"
@@ -74,7 +74,7 @@ class ThemeCheckerTests(unittest.TestCase):
 
     def test_exact_payload_passes(self):
         data, lock = self.payload()
-        self.assertEqual(verifier.verify_payload(data.__getitem__, list(data), lock)["files"], 24)
+        self.assertEqual(verifier.verify_payload(data.__getitem__, list(data), lock)["files"], 25)
 
     def test_missing_asset_fails(self):
         data, lock = self.payload(); del data["0.png"]
