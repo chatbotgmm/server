@@ -178,9 +178,9 @@ class StageOneValidatorTests(unittest.TestCase):
         with self.assertRaises((ValueError, KeyError, TypeError)):
             verifier.verify_shop_metric(self.shop, self.profile, "first-page")
 
-    def test_full_suite_334_passes_16_skips_plus_seven_new_passes(self):
+    def test_full_suite_334_passes_16_skips_plus_eight_required_passes(self):
         result = verifier.verify_junit(self.junit, self.full)
-        self.assertEqual(result["totals"], dict(tests=357, passed=341, skipped=16, errors=0, failures=0))
+        self.assertEqual(result["totals"], dict(tests=358, passed=342, skipped=16, errors=0, failures=0))
 
     def test_stage_one_child_skip_cannot_hide_behind_zero_suite_counter(self):
         self.mutate_junit(lambda root: ET.SubElement(root.find("testcase"), "skipped"))
@@ -615,8 +615,27 @@ class StageOneValidatorTests(unittest.TestCase):
 
     def test_native_methods_are_required_exactly(self):
         self.assertEqual(len(verifier.SUITES["org.dpdns.gmm.NativeModesShortViewportTest"]), 5)
-        self.assertEqual(len(verifier.SUITES["org.dpdns.gmm.NativeShopCardBoundsTest"]), 2)
-        self.assertEqual(sum(map(len, verifier.SUITES.values())), 7)
+        self.assertEqual(len(verifier.SUITES["org.dpdns.gmm.NativeShopCardBoundsTest"]), 3)
+        self.assertEqual(sum(map(len, verifier.SUITES.values())), 8)
+
+
+def _add_exact_required_method_negative_tests():
+    for suite,methods in verifier.SUITES.items():
+        for method in methods:
+            for mutation in ("missing","skipped","failed"):
+                def test(self,suite=suite,method=method,mutation=mutation):
+                    path=self.junit/("TEST-"+suite+".xml");tree=ET.parse(path);root=tree.getroot()
+                    case=next(c for c in root.findall("testcase") if c.get("name")==method)
+                    if mutation=="missing":
+                        root.remove(case);root.set("tests",str(len(root.findall("testcase"))))
+                    elif mutation=="skipped":
+                        ET.SubElement(case,"skipped");root.set("skipped","1")
+                    else:
+                        ET.SubElement(case,"failure");root.set("failures","1")
+                    tree.write(path)
+                    with self.assertRaises(ValueError):verifier.verify_junit(self.junit,self.full)
+                setattr(StageOneValidatorTests,"test_required_"+method+"_"+mutation,test)
+_add_exact_required_method_negative_tests()
 
 
 if __name__ == "__main__":

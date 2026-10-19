@@ -12,7 +12,8 @@
     "shortLandscapeDensityAndLargeFontScreens",
     "recipePagesAndFiltersClearOnlyTheSelection",
     "all33CandidatesCapacityAndDuplicateIndicesAreLocal",
-    "failedOrPendingSaveCannotDepartAndSuccessStillNeedsConfirmation"
+    "failedOrPendingSaveCannotDepartAndSuccessStillNeedsConfirmation",
+    "shortCraftFocusShowsSafeIdentityWithoutChangingRecipeOrOpeningDialog"
   ],
   "org.dpdns.gmm.NativeAttendanceFeedbackTest": [
     "captureAttendanceAndEveryMissionAtShortLargeFontAndDensityProfiles",

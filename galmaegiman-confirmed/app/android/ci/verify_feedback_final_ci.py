@@ -21,7 +21,7 @@ COMMERCE = ("recruit","craft","masked-craft","mix-six","expedition-empty","exped
 
 def junit(directory, report):
     result = stage1_junit(directory, report)
-    check(len(SUITES) == 7 and sum(map(len, SUITES.values())) == 41, "Required final suites changed")
+    check(len(SUITES) == 7 and sum(map(len, SUITES.values())) == 42, "Required final suites changed")
     for name, methods in SUITES.items():
         root = ET.parse(Path(directory) / ("TEST-" + name + ".xml")).getroot()
         cases = root.findall("testcase")
@@ -29,7 +29,7 @@ def junit(directory, report):
         check(sorted(c.get("name") for c in cases) == sorted(methods), "Missing/duplicate final test method: " + name)
         check(all(c.get("classname") == name and not any(c.find(k) is not None for k in ("failure","error","skipped")) for c in cases),
               "Final feedback test failed/skipped: " + name)
-    check(result["totals"]["tests"] >= 398 and result["totals"]["passed"] >= 382
+    check(result["totals"]["tests"] >= 400 and result["totals"]["passed"] >= 384
           and result["totals"]["skipped"] <= 16, "Original/new executed test floor decreased")
     return result
 

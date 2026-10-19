@@ -25,6 +25,7 @@ SUITES = {
     "org.dpdns.gmm.NativeShopCardBoundsTest": [
         "renderShopCardsAtShortAspectAndLargeFont",
         "selectionPagingAndQuantityPreserveShopContract",
+        "viewBoxIgnoresOwnScrollButRetainsAncestorScrollAndClipping",
     ],
 }
 
