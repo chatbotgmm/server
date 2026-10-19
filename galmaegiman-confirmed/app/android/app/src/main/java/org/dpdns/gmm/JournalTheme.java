@@ -20,8 +20,7 @@ final class JournalTheme {
     Paint p = BRUSH.get(); p.reset(); p.setAntiAlias(true); return p;
   }
   private static final ColorStateList CONTROL_TEXT = colors(INK);
-  private static final ColorStateList PRIMARY_TEXT = new ColorStateList(
-      new int[][] {{-android.R.attr.state_enabled}, {}}, new int[] {0xffd3d7d9, WHITE});
+  private static final ColorStateList PRIMARY_TEXT = colors(WHITE);
   private static final ColorStateList TAB_TEXT = new ColorStateList(
       new int[][] {{-android.R.attr.state_enabled}, {android.R.attr.state_selected},
           {android.R.attr.state_checked}, {}}, new int[] {MUTED, WHITE, WHITE, INK});

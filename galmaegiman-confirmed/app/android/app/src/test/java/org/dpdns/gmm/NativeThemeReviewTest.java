@@ -41,8 +41,25 @@ public class NativeThemeReviewTest {
   @After public void resetScale() { RuntimeEnvironment.setFontScale(1); }
 
   static JSONObject rank() {
-    return MainActivity.obj("me", MainActivity.obj("tier", "실버", "point", 1250,
-        "wins", 12, "losses", 8, "rank", 24), "level", 12, "win", 30, "lose", 20, "team", true);
+    return MainActivity.obj("me", MainActivity.obj("tier", "골드", "point", 1250,
+        "wins", 12, "losses", 8, "rank", 24), "level", 30, "win", 20, "lose", 15, "team", true);
+  }
+
+  /** webDaily() 스키마 + economy.yaml@9d8d7b4. 진행 값만 오프라인 첫날 상태다. */
+  static JSONObject daily() {
+    JSONArray missions = new JSONArray();
+    String[][] definitions = {{"DRAW", "뽑기 5회", "5", "20"},
+        {"CRAFT", "조합 3회", "3", "20"}, {"CRAFT_RARE", "희귀 조합하기", "1", "30"},
+        {"CRAFT_LEGEND", "전설 또는 히든 조합하기", "1", "50"},
+        {"CRAFT_TOP", "최상위 유닛 조합하기", "1", "100"},
+        {"EXPEDITION", "탐험 다녀오기 1회", "1", "10"}};
+    for (String[] definition : definitions) missions.put(MainActivity.obj(
+        "key", definition[0], "label", definition[1], "goal", Integer.parseInt(definition[2]),
+        "tickets", Integer.parseInt(definition[3]), "value", 0, "done", false));
+    JSONArray rewards = new JSONArray();
+    for (int amount : new int[] {8, 10, 12, 14, 16, 18, 40}) rewards.put(amount);
+    return MainActivity.obj("day", "2026-10-19", "missions", missions, "attend", MainActivity.obj(
+        "today", false, "streak", 0, "week", 1, "dayInWeek", 1, "rewards", rewards, "next", 8));
   }
 
   static final class ReviewApi extends NativeApi {
@@ -54,6 +71,7 @@ public class NativeThemeReviewTest {
       if (body != null) { writes++; throw new AssertionError("표시 검토에서 API 쓰기 금지: " + path); }
       reads++;
       if (path.equals("pvp/rank")) done.done(rank(), null);
+      else if (path.equals("daily")) done.done(daily(), null);
       else if (path.equals("draw")) done.done(NativeRecruitmentProbabilityTest.serverEconomyFixture(), null);
       else if (path.equals("me")) done.done(me, null);
       else throw new AssertionError("예상하지 않은 API 읽기: " + path);

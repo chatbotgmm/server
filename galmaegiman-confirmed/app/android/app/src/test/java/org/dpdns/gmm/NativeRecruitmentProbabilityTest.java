@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import org.json.JSONArray;
@@ -91,6 +92,8 @@ public class NativeRecruitmentProbabilityTest {
     host.motionEnabled = false;
     host.state = MainActivity.obj("me", MainActivity.obj("credits", 30), "units", new JSONArray());
     host.base("모집 검토", "draw");
+    new NativeRenderReviewTest().viewport(host, 915, 412);
+    assertTrue("Test host must be attached to its real window", host.root.isAttachedToWindow());
     return api;
   }
 
@@ -98,8 +101,21 @@ public class NativeRecruitmentProbabilityTest {
     LinearLayout view = RecruitmentProbabilityView.content(host);
     host.root.addView(view);
     fixture.measure(host.root);
-    Shadows.shadowOf(Looper.getMainLooper()).idle();
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
+    assertTrue("Probability content must be attached", view.isAttachedToWindow());
+    assertTrue("Probability content must be shown", view.isShown());
+    assertEquals("Probability window must be visible", View.VISIBLE, view.getWindowVisibility());
     return view;
+  }
+
+  View dialogFrame(MainActivity host) {
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
+    View decor = host.visibleDialog.getWindow().getDecorView();
+    int width = host.visibleDialog.getWindow().getAttributes().width;
+    decor.measure(View.MeasureSpec.makeMeasureSpec(width > 0 ? width : 891, View.MeasureSpec.EXACTLY),
+        View.MeasureSpec.makeMeasureSpec(396, View.MeasureSpec.AT_MOST));
+    decor.layout(0, 0, decor.getMeasuredWidth(), decor.getMeasuredHeight());
+    return decor;
   }
 
   Button button(View view, String text) {
@@ -121,12 +137,13 @@ public class NativeRecruitmentProbabilityTest {
       FakeApi api = prepare(host);
       NativeSettingsSheet.show(host);
       assertTrue("Unopened settings tabs never fetch rates", api.calls.isEmpty());
-      View dialog = host.visibleDialog.getWindow().getDecorView();
+      View dialog = dialogFrame(host);
       View tab = dialog.findViewWithTag("settings-tab-3");
       assertNotNull(tab);
       assertEquals("모집 확률", ((TextView) tab).getText().toString());
       tab.performClick();
-      Shadows.shadowOf(Looper.getMainLooper()).idle();
+      dialogFrame(host);
+      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
       assertEquals(List.of("GET draw"), api.calls);
       for (String kind : RecruitmentProbabilityView.KINDS)
         assertNotNull(dialog.findViewWithTag("recruitment-probability-" + kind));
@@ -176,6 +193,7 @@ public class NativeRecruitmentProbabilityTest {
       first.done(api.response, null);
       assertNull(view.findViewWithTag("recruitment-rate-LOW-COMMON"));
       view.setVisibility(View.VISIBLE);
+      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
       assertEquals(2, api.calls.size());
       api.session = "other-account";
       api.pending.get(1).done(api.response, null);
@@ -212,6 +230,9 @@ public class NativeRecruitmentProbabilityTest {
       fixture.measure(host.root);
       Button claim = host.root.findViewWithTag("draw-claim");
       assertEquals("지원서 받기", claim.getText().toString());
+      assertTrue("Claim wording fits beside its icon without wrapping",
+          claim.getPaint().measureText(claim.getText().toString())
+              <= claim.getWidth() - claim.getCompoundPaddingLeft() - claim.getCompoundPaddingRight());
       for (String kind : RecruitmentProbabilityView.KINDS) {
         Button go = host.root.findViewWithTag("draw-submit-" + kind);
         assertEquals("모집하기", go.getText().toString());
@@ -228,6 +249,7 @@ public class NativeRecruitmentProbabilityTest {
       assertTrue(confirmation.contains("고급 모집 2회 · 지원서 10장"));
       assertFalse(confirmation.contains("%"));
       host.visibleDialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+      Shadows.shadowOf(Looper.getMainLooper()).idle();
       assertEquals(1, api.writes.size());
       JSONObject body = api.writes.get(0);
       assertEquals(2, body.length());

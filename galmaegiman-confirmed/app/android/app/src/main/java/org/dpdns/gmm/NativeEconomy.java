@@ -60,6 +60,7 @@ final class NativeEconomy {
           line.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
           Button claim = k.primary("u-ticket", "지원서 받기", this::claimTickets);
           claim.setTag("draw-claim");
+          claim.setSingleLine(true);
           long ready = android.os.SystemClock.elapsedRealtime() + Math.max(0, r.optLong("wait"));
           tick(
               banner,
@@ -69,7 +70,7 @@ final class NativeEconomy {
                 wait.setText(
                     left > 0 ? "다음 지급 " + duration(left) : "지금 " + r.optInt("claim") + "장 받기");
               });
-          line.addView(claim, new LinearLayout.LayoutParams(h.dp(124), h.dp(48)));
+          line.addView(claim, new LinearLayout.LayoutParams(h.dp(184), h.dp(48)));
           line.addView(
               k.action(null, "지급·보장", () -> drawGuide(r)),
               new LinearLayout.LayoutParams(h.dp(104), h.dp(48)));

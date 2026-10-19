@@ -185,13 +185,37 @@ public class NativeRegistrationReviewTest {
         finally { reference.recycle(); }
       }
     } else {
-      int realImages = 0;
+      List<NativeEconomy.RecruitmentSeal> seals = new ArrayList<>();
       for (View view : geometry.descendants(host.root))
-        if (view instanceof ImageView && view.isShown()) {
-          assertNotNull("Recruitment uses loaded bundled pictures", ((ImageView) view).getDrawable());
-          realImages++;
+        if (view instanceof NativeEconomy.RecruitmentSeal && view.isShown())
+          seals.add((NativeEconomy.RecruitmentSeal) view);
+      assertEquals("Three real recruitment envelopes remain on the three stations", 3, seals.size());
+      byte[] source = RegistrationArtTest.asset(host, "resources/application-envelope-atlas.png");
+      Bitmap reference = BitmapFactory.decodeByteArray(source, 0, source.length);
+      assertNotNull("Published envelope atlas decodes independently", reference);
+      try {
+        for (NativeEconomy.RecruitmentSeal seal : seals) {
+          visible(host, seal);
+          assertNotNull("The production Canvas seal has loaded its real atlas", seal.atlas);
+          assertFalse(seal.atlas.isRecycled());
+          assertEquals(1774, seal.atlas.getWidth());
+          assertEquals(887, seal.atlas.getHeight());
+          RegistrationArtTest.samePixels("Canonical recruitment envelope atlas", reference, seal.atlas);
+          Bitmap rendered = Bitmap.createBitmap(seal.getWidth(), seal.getHeight(), Bitmap.Config.ARGB_8888);
+          try {
+            seal.draw(new Canvas(rendered));
+            assertFalse("The production envelope was actually drawn", seal.target.isEmpty());
+            assertTrue(new RectF(0, 0, seal.getWidth(), seal.getHeight()).contains(seal.target));
+            Set<Integer> colors = new HashSet<>();
+            for (int y = 0; y < rendered.getHeight(); y++)
+              for (int x = 0; x < rendered.getWidth(); x++) {
+                int pixel = rendered.getPixel(x, y);
+                if (Color.alpha(pixel) > 0) colors.add(pixel);
+              }
+            assertTrue("The seal is real artwork, not a blank or flat placeholder", colors.size() > 16);
+          } finally { rendered.recycle(); }
         }
-      assertTrue("Recruitment's three real offer pictures remain visible", realImages >= 3);
+      } finally { reference.recycle(); }
     }
   }
 
@@ -270,6 +294,16 @@ public class NativeRegistrationReviewTest {
         overlapChecks++;
       }
     int actions = 0;
+    if (page.equals("collection") || page.startsWith("team-")) {
+      TextView pageNumber = (TextView) tag(host,
+          page.equals("collection") ? "collection-page-number" : "team-candidate-page");
+      visible(host, pageNumber);
+      assertFalse("Page count stays visible even when previous/next is disabled", pageNumber.getText().toString().isEmpty());
+      assertTrue("Page count has its own solid reading surface", pageNumber.getBackground() instanceof android.graphics.drawable.ColorDrawable);
+      int background = ((android.graphics.drawable.ColorDrawable) pageNumber.getBackground()).getColor();
+      assertTrue("Counter text contrast at least 4.5:1", androidx.core.graphics.ColorUtils.calculateContrast(
+          pageNumber.getCurrentTextColor(), background) >= 4.5);
+    }
     if (page.equals("recruit")) {
       for (String kind : new String[] {"LOW", "MID", "HIGH"}) {
         action(host, "draw-submit-" + kind);
@@ -310,6 +344,15 @@ public class NativeRegistrationReviewTest {
         visible(host, grip);
         assertTrue(grip.getWidth() >= host.dp(48) && grip.getHeight() >= host.dp(48));
         assertTrue("Drag action remains accessible", grip.isFocusable());
+        TextView state = slot.findViewWithTag("lineup-runtime-state");
+        assertNotNull(state);
+        visible(host, state);
+        assertEquals("Dynamic state remains readable without ellipsis", 0, state.getLayout().getEllipsisCount(0));
+        if (!pvp) {
+          assertTrue(state.getText().toString().contains("Lv12"));
+          assertTrue(state.getText().toString().contains("100/100"));
+          assertTrue(state.getContentDescription().toString().contains("체력"));
+        }
         assertEquals("D" + (i + 1), ((RegistrationCardView.Artwork) slot.findViewWithTag("lineup-portrait")).id);
         actions++;
       }

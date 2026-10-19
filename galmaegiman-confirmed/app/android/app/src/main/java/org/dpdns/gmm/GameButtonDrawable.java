@@ -52,10 +52,18 @@ final class GameButtonDrawable extends Drawable {
       layerBounds.set(getBounds());
       c.saveLayer(layerBounds, opacity);
     }
-    int save = state.begin(c, getBounds(), host.getResources().getDisplayMetrics().density);
-    if (color == PAPER || color == PRIMARY || color == JournalTheme.SELECTED) {
+    int save;
+    if (state.enabled) save = state.begin(c, getBounds(), host.getResources().getDisplayMetrics().density);
+    else {
+      opacity.setAlpha(state.alpha); opacity.setColorFilter(null);
+      layerBounds.set(getBounds()); save = c.saveLayer(layerBounds, opacity);
+    }
+    if (!state.enabled) {
+      // 비활성 글자는 MUTED다. 그림 배경이 비치지 않는 기존 읽기 면을 유지한다.
+      drawSurface(c, r, JournalTheme.DISABLED, host.dp(16), host.dp(2), 0, p);
+    } else if (color == PAPER || color == PRIMARY || color == JournalTheme.SELECTED || selected) {
       ThemeArt.of(host).surface(c,
-          color == PRIMARY ? ThemeArt.Surface.NAVY : ThemeArt.Surface.PAPER, r);
+          color == PRIMARY && !selected ? ThemeArt.Surface.NAVY : ThemeArt.Surface.PAPER, r);
     } else {
       // 위험·보상 의미색은 원래 색을 보존한다. 전투 Canvas 정적 경로도 그대로 둔다.
       drawSurface(c, r, color, host.dp(16), host.dp(2), state.pressed ? 0 : host.dp(2), p);
@@ -66,7 +74,7 @@ final class GameButtonDrawable extends Drawable {
       r.inset(host.dp(3), host.dp(3));
       p.setStyle(Paint.Style.STROKE);
       p.setStrokeWidth(host.dp(1.8f));
-      p.setColor(focused ? JournalTheme.FOCUS : JournalTheme.SELECTED_EDGE);
+      p.setColor(focused && color == PRIMARY && !selected ? JournalTheme.FOCUS : JournalTheme.TEAL);
       c.drawRoundRect(r, host.dp(3), host.dp(3), p);
       p.setStyle(Paint.Style.FILL);
     }

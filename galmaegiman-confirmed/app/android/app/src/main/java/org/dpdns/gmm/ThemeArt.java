@@ -24,6 +24,8 @@ final class ThemeArt {
   }
 
   Bitmap image(String file) {
+    // Activity 생성 전 프레임·위젯도 그릴 수 있다. 아직 없는 저장소를 실패로 캐시하지 않는다.
+    if (host.art == null) return null;
     // 배경은 NativeArt의 제한된 LRU만 소유한다. 두 번째 무제한 보관소를 만들지 않는다.
     if (file.startsWith("backgrounds/")) return host.art.asset("release-v1/" + file);
     if (!images.containsKey(file)) {
@@ -92,8 +94,15 @@ final class ThemeArt {
       final RectF destination = new RectF();
       int alpha = 255;
       Bitmap bitmap;
-      { host.art.localOpaqueAsset("release-v1/" + file, ready -> { bitmap = ready; invalidateSelf(); }); }
+      boolean requested;
+      void request() {
+        if (requested || host.art == null) return;
+        requested = true;
+        host.art.localOpaqueAsset("release-v1/" + file, ready -> { bitmap = ready; invalidateSelf(); });
+      }
+      { request(); }
       @Override public void draw(Canvas canvas) {
+        request();
         Rect b = getBounds();
         if (bitmap == null) { brush.setColor(JournalTheme.NAVY); brush.setAlpha(alpha); canvas.drawRect(b, brush); return; }
         float scale = Math.max(b.width() / (float) bitmap.getWidth(), b.height() / (float) bitmap.getHeight());
@@ -141,9 +150,15 @@ final class ThemeArt {
       int outer = canvas.save();
       layer.setAlpha(255); layer.setColorFilter(filter);
       if (filter != null) canvas.saveLayer(rect, layer);
-      int saved = press.begin(canvas, getBounds(), d);
+      int saved;
+      if (press.enabled) saved = press.begin(canvas, getBounds(), d);
+      else {
+        layer.setAlpha(press.alpha); layer.setColorFilter(null);
+        saved = canvas.saveLayer(rect, layer);
+      }
       Surface visible = type == Surface.TAB && selected ? Surface.NAVY : type;
-      art.surface(canvas, visible, rect);
+      if (press.enabled) art.surface(canvas, visible, rect);
+      else JournalTheme.drawPanel(canvas, rect, d, JournalTheme.DISABLED, true);
       if (press.enabled && (selected || focused)) {
         rect.inset(3 * d, 3 * d);
         detail.setStyle(Paint.Style.STROKE); detail.setStrokeWidth(2 * d);

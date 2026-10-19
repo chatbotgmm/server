@@ -17,6 +17,7 @@ final class RecruitmentProbabilityView extends LinearLayout {
   private final Button refresh;
   private boolean connected, visible, loading;
   private int generation;
+  private final Runnable reconcileVisibility = this::syncVisibility;
 
   static LinearLayout content(MainActivity host) {
     return new RecruitmentProbabilityView(host);
@@ -44,9 +45,12 @@ final class RecruitmentProbabilityView extends LinearLayout {
     super.onAttachedToWindow();
     connected = true;
     syncVisibility();
+    // Parent/window attachment can finish after this child callback. Recheck on the UI queue.
+    post(reconcileVisibility);
   }
 
   @Override protected void onDetachedFromWindow() {
+    removeCallbacks(reconcileVisibility);
     connected = false;
     visible = false;
     loading = false;
@@ -57,12 +61,18 @@ final class RecruitmentProbabilityView extends LinearLayout {
   @Override protected void onVisibilityChanged(View changedView, int visibility) {
     super.onVisibilityChanged(changedView, visibility);
     // Android may call this from the superclass constructor, before fields are initialized.
-    if (details != null) syncVisibility();
+    if (details != null) {
+      syncVisibility();
+      if (connected) { removeCallbacks(reconcileVisibility); post(reconcileVisibility); }
+    }
   }
 
   @Override protected void onWindowVisibilityChanged(int visibility) {
     super.onWindowVisibilityChanged(visibility);
-    if (details != null) syncVisibility();
+    if (details != null) {
+      syncVisibility();
+      if (connected) { removeCallbacks(reconcileVisibility); post(reconcileVisibility); }
+    }
   }
 
   private void syncVisibility() {
@@ -74,6 +84,7 @@ final class RecruitmentProbabilityView extends LinearLayout {
       generation++;
       loading = false;
       refresh.setEnabled(true);
+      refresh.setText("새로고침");
       showStatus("현재 모집 확률을 다시 확인할 준비가 됐어요.");
     }
   }

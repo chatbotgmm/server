@@ -52,7 +52,9 @@ public class NativeThemeStateTest {
         drawable.setState(new int[] {android.R.attr.state_enabled, android.R.attr.state_selected}); Bitmap selected = draw(drawable);
         assertFalse("실제 선택 상태 픽셀이 다름", same(normal, selected));
         drawable.setState(new int[] {}); Bitmap disabled = draw(drawable);
-        assertTrue("비활성 alpha 감소", alpha(disabled) < alpha(normal) * .6);
+        assertFalse("비활성 표면은 정상 표면과 구분됨", same(normal, disabled));
+        assertEquals("비활성 글자 뒤 읽기 면은 불투명", 255, Color.alpha(disabled.getPixel(110, 28)));
+        assertEquals("기존 비활성 대비 토큰 유지", JournalTheme.DISABLED, disabled.getPixel(110, 28));
         drawable.setState(new int[] {android.R.attr.state_enabled}); drawable.setAlpha(128);
         Bitmap faded = draw(drawable); assertTrue(alpha(faded) < alpha(normal) * .6);
         drawable.setAlpha(0); Bitmap clear = draw(drawable); assertEquals(0, alpha(clear));

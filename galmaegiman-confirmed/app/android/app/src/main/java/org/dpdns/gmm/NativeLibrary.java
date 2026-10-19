@@ -100,7 +100,8 @@ final class NativeLibrary {
     previous.setContentDescription("이전 도감 페이지");
     previous.setTag("collection-previous-page");
     controls.addView(previous, new LinearLayout.LayoutParams(h.dp(48), -1));
-    TextView page = k.note("");
+    TextView page = RegistrationCardView.stateLabel(h, "");
+    page.setTag("collection-page-number");
     page.setGravity(Gravity.CENTER);
     controls.addView(page, new LinearLayout.LayoutParams(h.dp(52), -1));
     Button next = k.action(null, "›", () -> {});
@@ -129,6 +130,8 @@ final class NativeLibrary {
         return;
       }
       LinearLayout strip = k.row();
+      strip.setGravity(Gravity.TOP);
+      strip.setBaselineAligned(false);
       grid.addView(strip, new LinearLayout.LayoutParams(-1, -1));
       for (int col = 0; col < pageSize; col++) {
         int index = collectionPage * pageSize + col;

@@ -995,6 +995,7 @@ final class NativeMenus {
     LinearLayout podium = k.row(), summary = cols[1];
     podium.setTag("team-podium");
     podium.setGravity(Gravity.TOP);
+    podium.setBaselineAligned(false);
     cols[0].addView(podium, new LinearLayout.LayoutParams(-1, -1));
     ArrayList<JSONObject> candidates = new ArrayList<>();
     JSONArray source = h.list(pvp ? h.me() : h.state, "units");
@@ -1004,6 +1005,8 @@ final class NativeMenus {
     }
     TextView status = k.note("");
     status.setTag("team-draft-status");
+    status.setPadding(h.dp(4), 0, h.dp(4), 0);
+    status.setIncludeFontPadding(false);
     Button[] save = {null};
     final int[] activeSlot = {0}, candidatePage = {0};
     Runnable[] render = new Runnable[1];
@@ -1049,10 +1052,13 @@ final class NativeMenus {
               image.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
               card.addView(image, new LinearLayout.LayoutParams(-1, 0, 1));
               String state = pvp ? "보유 " + unit.optInt("have") : "Lv" + unit.optInt("level");
-              card.addView(RegistrationCardView.stateLabel(h, state));
-              if (!pvp)
-                card.addView(RegistrationCardView.stateLabel(h,
-                    "체력 " + unit.optInt("hp") + "/" + unit.optInt("maxHp")));
+              // 레벨과 체력을 한 행에 두어 큰 글자/짧은 화면에서도 원본 등록증 높이를 지킨다.
+              TextView runtime = RegistrationCardView.stateLabel(h, state
+                  + (pvp ? "" : " · " + unit.optInt("hp") + "/" + unit.optInt("maxHp")));
+              runtime.setTag("lineup-runtime-state");
+              runtime.setContentDescription(state
+                  + (pvp ? "" : " · 체력 " + unit.optInt("hp") + "/" + unit.optInt("maxHp")));
+              card.addView(runtime);
               card.setOnClickListener(v -> { activeSlot[0] = chosenSlot; render[0].run(); });
               card.setOnLongClickListener(v -> { reorderDraft(id, render[0]); return true; });
               card.setContentDescription((slot == 0 ? "선봉 " : (slot + 1) + "번 ")
@@ -1084,8 +1090,10 @@ final class NativeMenus {
           previous.setTag("team-candidates-previous");
           previous.setEnabled(candidatePage[0] > 0);
           paging.addView(previous, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
-          TextView pageLabel = k.note((activeSlot[0] + 1) + "번 교체 · "
+          TextView pageLabel = RegistrationCardView.stateLabel(h, (activeSlot[0] + 1) + "번 교체 · "
               + (candidatePage[0] + 1) + " / " + pageCount);
+          pageLabel.setTextSize(h.uiText(14));
+          pageLabel.setTag("team-candidate-page");
           pageLabel.setGravity(Gravity.CENTER);
           paging.addView(pageLabel, new LinearLayout.LayoutParams(0, h.dp(48), 1));
           Button next = k.action(null, "›", () -> { candidatePage[0]++; render[0].run(); });
@@ -1110,6 +1118,9 @@ final class NativeMenus {
           grid.setTag("team-inline-candidates");
           summary.addView(grid, new LinearLayout.LayoutParams(-1, 0, 1));
           LinearLayout strip = k.row();
+          // CENTER_VERTICAL + 비대칭 위 여백은 MATCH_PARENT 후보를 1px 아래로 밀 수 있다.
+          strip.setGravity(Gravity.TOP);
+          strip.setBaselineAligned(false);
           grid.addView(strip, new LinearLayout.LayoutParams(-1, -1));
           for (int column = 0; column < 3; column++) {
             int index = candidatePage[0] * 3 + column;
@@ -1157,6 +1168,8 @@ final class NativeMenus {
     TextView drag = k.note("자리 → 후보 선택 · ↔ 순서 변경");
     drag.setTextColor(JournalTheme.INK);
     drag.setTag("team-order-drag-hint");
+    drag.setPadding(h.dp(4), 0, h.dp(4), 0);
+    drag.setIncludeFontPadding(false);
     LinearLayout footer = k.paper(), line = k.row(), footerStatus = k.column();
     footerStatus.addView(status);
     footerStatus.addView(drag);
