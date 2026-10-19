@@ -395,6 +395,9 @@ def verify_reassessment(root):
         images.append(verify_png(d/(name+'.png'),w,h,minimum_bytes=1000))
     return images
 
+def verify_dossier_diagnostics(root):
+    return [verify_png(root/'result-dossier'/f'780x360-dpi160-font{font}-results.png',780,360,minimum_bytes=1000) for font in (100,130)]
+
 def main():
     p=argparse.ArgumentParser()
     p.add_argument('--repo',type=Path,required=True)
@@ -412,7 +415,7 @@ def main():
     images=verify_reassessment(args.native_review)+verify_replay(args.native_review)+verify_realtime_identity(args.native_review)+verify_battle_utilities(args.native_review)+verify_counter(args.native_review)+verify_motion(args.native_review)+verify_currency(args.native_review)+verify_team(args.native_review)+verify_fullscreen(args.native_review)+verify_insertion(args.native_review)+verify_story_cards(args.native_review)+verify_mode_navigation(args.native_review)
     for i in range(4): images.append(verify_png(args.native_review/'theme-state'/f'button-{i}-normal-pressed-cancelled-selected-disabled.png',1100,56,minimum_bytes=1000))
     evidence={'source_commit':git(args.repo,'rev-parse','HEAD').decode().strip(),
-              'source_tree_sha256':fingerprint(args.repo,'HEAD'),'captures':images,'required_methods':suites,'totals':full['totals'],
+              'source_tree_sha256':fingerprint(args.repo,'HEAD'),'captures':images,'diagnostic_captures':verify_dossier_diagnostics(args.native_review),'required_methods':suites,'totals':full['totals'],
               'sidecar_sha256': {name:sha256((args.native_review/name).read_bytes()) for name in
                  ('result-reassessment/observations.json','battle-replay/manifest.json','battle-replay/metrics.json','battle-replay/findings.json','realtime-identity-revision/metrics.json','battle-ui-revision/observations.json','recruitment-counter/geometry.json','recruitment-counter/findings.json','recruitment-counter/claim-state.json','home-water-motion.json','currency-display/geometry.json','currency-display/findings.json','team-character-panels/manifest.json','team-character-panels/metrics.json','team-character-panels/findings.json','team-character-panels/inline-reorder.json','fullscreen/metrics.json','team-insertion-preview/party.json','team-insertion-preview/story-list.json','team-insertion-preview/story-order.json','story-cards/metrics.json','story-cards/findings.json','feedback-mode-navigation/manifest.json','feedback-mode-navigation/metrics.json','feedback-mode-navigation/findings.json')}}
     evidence['evidence_sha256']=sha256(json.dumps(evidence,sort_keys=True,separators=(',',':')).encode())

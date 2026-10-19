@@ -452,15 +452,27 @@ public class NativeHomePartyFeedbackTest {
         Button b = lobby.buttons.get(indices[i]); Rect r = bounds(b, h.root); int count = h.routes.size();
         Bitmap scene = render(h.root); Bitmap normal = Bitmap.createBitmap(scene, r.left, r.top, r.width(), r.height()); scene.recycle();
         try {
-          assertTrue("HOME default contains parchment", tones(normal).optDouble("paperFraction") > .15);
+          boolean currency = indices[i] >= 9 && indices[i] <= 11;
+          RectF face = lobby.boxes[indices[i]];
+          int sampleX = Math.round(face.centerX()) - b.getLeft();
+          int sampleY = Math.round(face.top + h.dp(11)) - b.getTop();
+          if (currency) {
+            assertEquals("Currency keeps its distinct inset navy surface", CurrencyDisplay.NAVY,
+                normal.getPixel(sampleX, sampleY));
+            assertTrue("Currency is not a parchment menu", tones(normal).optDouble("navyFraction") > .55);
+          } else assertTrue("HOME menu default contains parchment", tones(normal).optDouble("paperFraction") > .15);
           down(b); assertTrue(b.isPressed()); scene = render(h.root);
           Bitmap pressed = Bitmap.createBitmap(scene, r.left, r.top, r.width(), r.height()); scene.recycle();
           try {
-            assertTrue("HOME press makes its real Canvas surface navy", tones(pressed).optDouble("navyFraction") > tones(normal).optDouble("navyFraction") + .15);
+            if (currency) {
+              assertEquals("Currency press uses its own lighter navy", CurrencyDisplay.PRESSED,
+                  pressed.getPixel(sampleX, sampleY));
+              assertFalse("Currency has visible press feedback", samePixels(normal, pressed));
+            } else assertTrue("HOME press makes its real Canvas surface navy", tones(pressed).optDouble("navyFraction") > tones(normal).optDouble("navyFraction") + .15);
           } finally { pressed.recycle(); }
           cancel(b); assertFalse(b.isPressed()); assertEquals(count, h.routes.size());
           scene = render(h.root); Bitmap cancelled = Bitmap.createBitmap(scene, r.left, r.top, r.width(), r.height()); scene.recycle();
-          try { assertTrue("HOME cancel restores exact paper pixels", samePixels(normal, cancelled)); } finally { cancelled.recycle(); }
+          try { assertTrue("HOME cancel restores exact original surface pixels", samePixels(normal, cancelled)); } finally { cancelled.recycle(); }
           down(b); up(b); Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(100));
           assertEquals(routes[i], h.routes.get(h.routes.size() - 1)); assertEquals(count + 1, h.routes.size()); assertFalse(b.isPressed());
           evidence.put(indices[i] + ":" + String.valueOf(b.getTag()), MainActivity.obj("route", routes[i], "cancelDispatches", 0, "releaseDispatches", 1));
@@ -614,4 +626,5 @@ public class NativeHomePartyFeedbackTest {
     }
   }
 }
+
 

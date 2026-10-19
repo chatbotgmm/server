@@ -537,6 +537,8 @@ jobs:
           name: home-assembly-result-reassessment-${{ github.sha }}
           path: |
             galmaegiman-confirmed/app/android/app/build/native-review/result-reassessment/*.png
+            galmaegiman-confirmed/app/android/app/build/native-review/result-dossier/780x360-dpi160-font100-results.png
+            galmaegiman-confirmed/app/android/app/build/native-review/result-dossier/780x360-dpi160-font130-results.png
           if-no-files-found: error
           retention-days: 1
       - name: Save visual review candidate fingerprint and approval result

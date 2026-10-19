@@ -323,6 +323,20 @@ public class NativeResultDossierTest {
           capture(host, name + "-results", size[0], size[1], size[2]);
           assertEquals(size[2], host.getResources().getDisplayMetrics().densityDpi);
           assertEquals(fontScale, host.getResources().getConfiguration().fontScale, .01f);
+          TextView reassessmentStatus = reveal.findViewWithTag("acquisition-reassessment-status");
+          assertNotNull(reassessmentStatus);
+          assertSame("잠김 안내는 카드 높이를 소비하는 별도 하단 행이 아니다",
+              reveal.findViewWithTag("acquisition-result-heading"), reassessmentStatus.getParent());
+          if (reassessmentStatus.isShown()) {
+            fullyVisible(reassessmentStatus, host);
+            assertNotNull(reassessmentStatus.getLayout());
+            for (int line = 0; line < reassessmentStatus.getLineCount(); line++) {
+              assertEquals(0, reassessmentStatus.getLayout().getEllipsisCount(line));
+              assertTrue("재심사 잠김 설명은 잘리지 않는다 · " + name,
+                  reassessmentStatus.getLayout().getLineWidth(line) <= reassessmentStatus.getWidth()
+                      - reassessmentStatus.getCompoundPaddingLeft() - reassessmentStatus.getCompoundPaddingRight() + 1);
+            }
+          }
           HorizontalScrollView strip = reveal.findViewWithTag("acquisition-cards-scroll");
           assertFalse(strip.canScrollHorizontally(1)); assertFalse(strip.canScrollVertically(1));
           for (NativeReveal.RevealCard card : revealFixture.cards(reveal)) {
@@ -330,7 +344,9 @@ public class NativeResultDossierTest {
             RegistrationCardView.Artwork art = acquisition.registrationArtwork(card);
             assertNotNull(art.bitmap);
             assertEquals(.75f, art.target.width() / art.target.height(), .01f);
-            assertTrue("회수한 버튼 높이만큼 카드 확대", art.target.height() >= host.dp(215));
+            assertTrue("회수한 버튼 높이만큼 카드 확대 · " + name + " · 실제 "
+                + art.target.height() / host.getResources().getDisplayMetrics().density + "dp",
+                art.target.height() >= host.dp(215));
           }
           for (String tag : new String[] {"acquisition-previous-page", "acquisition-next-page",
               "acquisition-result-picker", "acquisition-craft", "acquisition-confirm"})
@@ -379,3 +395,4 @@ public class NativeResultDossierTest {
       }
   }
 }
+

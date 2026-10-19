@@ -22,7 +22,14 @@ public class BattleUtilitiesChartRevisionTest {
   final BattleReadabilityTest fixture=new BattleReadabilityTest();
   @Before public void isolate(){fixture.isolatedAccount();}
   @After public void reset(){RuntimeEnvironment.setFontScale(1);}
-  void measure(View v,int w,int h){fixture.measure(v,w,h);}
+  void measure(View v,int w,int h){
+    NativeRenderReviewTest review=new NativeRenderReviewTest();
+    Runnable pass=()->{review.force(v);fixture.measure(v,w,h);};
+    pass.run();
+    // AppCompat autosize on API24 can invalidate TextView's Layout in onLayout.
+    // Mirror the normal ViewRoot pre-draw/relayout before inspecting text.
+    review.preparePreDraw(v,pass);
+  }
   BattleView mount(MainActivity h,int w,int height) throws Exception {
     h.api.close();h.motionEnabled=false;h.guide.enabled=false;
     BattleView v=fixture.mount(h,w,height,true);
@@ -46,8 +53,8 @@ public class BattleUtilitiesChartRevisionTest {
   }
   void readable(Button b) {
     assertTrue("48dp touch height",b.getHeight()>=b.getContext().getResources().getDisplayMetrics().density*48);
-    android.text.Layout text=b.getLayout();assertNotNull(text);
-    assertTrue("no vertical text clipping: "+b.getText(),text.getHeight()<=b.getHeight()-b.getCompoundPaddingTop()-b.getCompoundPaddingBottom());
+    android.text.Layout text=b.getLayout();assertNotNull("Laid-out text after pre-draw: "+b.getText(),text);
+    assertTrue("no vertical text clipping: "+b.getText()+" layout="+text.getHeight()+" box="+b.getHeight()+" compoundTop="+b.getCompoundPaddingTop()+" compoundBottom="+b.getCompoundPaddingBottom(),text.getHeight()<=b.getHeight()-b.getCompoundPaddingTop()-b.getCompoundPaddingBottom());
     for(int i=0;i<text.getLineCount();i++) {
       assertEquals(0,text.getEllipsisCount(i));
       assertTrue("no horizontal text clipping: "+b.getText(),text.getLineWidth(i)<=b.getWidth()-b.getCompoundPaddingLeft()-b.getCompoundPaddingRight()+1);
@@ -60,7 +67,11 @@ public class BattleUtilitiesChartRevisionTest {
       assertTrue(v.tools.getLeft()>=v.safeLeft+v.panelLeft);
       assertTrue(v.tools.getBottom()<=v.menu.getTop());
       assertTrue(v.tools.getRight()<=v.inputTimer.getLeft());
-      for(Button b:buttons(v.tools)){assertTrue(b.getWidth()>=h.dp(48));readable(b);}
+      for(Button b:buttons(v.tools)){
+        assertTrue(b.getWidth()>=h.dp(48));readable(b);
+        assertEquals("Utility text cannot scroll into a virtual wide line",0,b.getScrollX());
+        assertTrue(b.getLeft()>=0);assertTrue(b.getRight()<=v.tools.getWidth());
+      }
       assertEquals(4,buttons(v.controls).size());
       for(Button b:buttons(v.controls))readable(b);
       v.pane="skills";v.render();measure(h.root,640,360);

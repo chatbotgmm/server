@@ -6,7 +6,7 @@ from unittest.mock import patch
 import xml.etree.ElementTree as ET
 from verify_theme_ci import allowed_asset_changes
 from verify_recruitment_revision_ci import (TRAYS, TRAY_INK, SUITES, PROFILES, STATES, tray_lock,
-    verify_trays, verify_counter, verify_motion, verify_currency, verify_team, TEAM_PROFILES, fullscreen_profiles, verify_fullscreen, verify_insertion, story_card_profiles, verify_story_cards, MODE_PROFILES, verify_mode_navigation, verify_realtime_identity, verify_battle_utilities, verify_replay, verify_reassessment, reassessment_profiles, junit)
+    verify_trays, verify_counter, verify_motion, verify_currency, verify_team, TEAM_PROFILES, fullscreen_profiles, verify_fullscreen, verify_insertion, story_card_profiles, verify_story_cards, MODE_PROFILES, verify_mode_navigation, verify_realtime_identity, verify_battle_utilities, verify_replay, verify_reassessment, reassessment_profiles, verify_dossier_diagnostics, junit)
 
 class RevisionContractTest(unittest.TestCase):
     def setUp(self):
@@ -312,6 +312,10 @@ class RevisionContractTest(unittest.TestCase):
     def test_reassessment_rejects_small_target(self,mock):
         data=self.reassessment_fixture();data['915x412-dpi160-font100-eligible']['refreshTargets'][0]['widthDp']=47;self.write('result-reassessment/observations.json',data)
         with self.assertRaises(ValueError):verify_reassessment(self.root)
+    @patch('verify_recruitment_revision_ci.verify_png',return_value={})
+    def test_two_dossier_diagnostics_are_separate_from_24_reassessment_cases(self,mock):
+        self.assertEqual(len(verify_dossier_diagnostics(self.root)),2)
+        self.assertEqual({call.args[0].name for call in mock.call_args_list},{'780x360-dpi160-font100-results.png','780x360-dpi160-font130-results.png'})
     def test_exact_required_new_methods_pass(self):
         self.junit_fixture(); junit(self.root)
     def test_skipped_new_method_rejected(self):

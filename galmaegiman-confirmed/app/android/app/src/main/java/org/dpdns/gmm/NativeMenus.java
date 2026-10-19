@@ -132,7 +132,7 @@ final class NativeMenus {
 
   void storyModes() {
     ModesLayout choices = modePage("스토리", "modesStory");
-    Button story = modeCard("스토리모드", 0, () -> h.load("story"));
+    Button story = modeCard("스토리모드", 3, () -> h.load("story"));
     story.setTag("modes-story");
     NativeTutorialController.anchorPreservingTag(story, "story");
     Button adventure = modeCard("모험\n준비 중", 2, () -> {});
@@ -181,7 +181,7 @@ final class NativeMenus {
     return button;
   }
 
-  /** 책등·책갈피, 방패·깃발, 접힌 지도만으로 구분하며 장식 액자를 반복하지 않는다. */
+  /** 기존 장면 그림 위에 책·방패·지도 표식을 얹어 각 갈래를 구분한다. */
   final class ModeCardDrawable extends android.graphics.drawable.Drawable {
     final int motif;
     final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -205,6 +205,30 @@ final class NativeMenus {
       paint.setStyle(Paint.Style.FILL);
       paint.setColor(!enabled ? JournalTheme.STONE : pressed ? JournalTheme.PRIMARY_HIGHLIGHT : JournalTheme.NAVY);
       canvas.drawRoundRect(card, 12 * d, 12 * d, paint);
+      String scene = motif == 0 ? "cabin" : motif == 1 ? "strait" : motif == 2 ? "sky" : "harbor";
+      Bitmap art = h.art.get("/duel/bg/" + scene + ".jpg", this::invalidateSelf);
+      int pictureSave = canvas.save();
+      Path clip = new Path(); clip.addRoundRect(card, 12 * d, 12 * d, Path.Direction.CW);
+      canvas.clipPath(clip);
+      if (art != null) {
+        float scale = Math.max(card.width() / art.getWidth(), card.height() / art.getHeight());
+        float width = art.getWidth() * scale, height = art.getHeight() * scale;
+        RectF destination = new RectF(card.centerX() - width / 2, card.centerY() - height / 2,
+            card.centerX() + width / 2, card.centerY() + height / 2);
+        paint.setFilterBitmap(true);
+        if (!enabled) {
+          ColorMatrix grayscale = new ColorMatrix(); grayscale.setSaturation(0);
+          paint.setColorFilter(new ColorMatrixColorFilter(grayscale));
+        }
+        canvas.drawBitmap(art, null, destination, paint);
+        paint.setColorFilter(null);
+      }
+      // 그림의 색을 남기되 흰 제목과 황동 표식 뒤는 충분히 어둡게 유지한다.
+      paint.setShader(new LinearGradient(0, card.top, 0, card.bottom,
+          new int[] {0x40101f2b, 0xb8101f2b, 0xe8101f2b}, new float[] {0, .52f, 1}, Shader.TileMode.CLAMP));
+      canvas.drawRect(card, paint); paint.setShader(null);
+      if (pressed) { paint.setColor(0x304fb6c2); canvas.drawRect(card, paint); }
+      canvas.restoreToCount(pictureSave);
       paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth((focused ? 3 : 1.5f) * d);
       paint.setColor(focused ? JournalTheme.FOCUS : enabled ? JournalTheme.BRASS : JournalTheme.LINE);
       canvas.drawRoundRect(card, 12 * d, 12 * d, paint);
@@ -214,7 +238,7 @@ final class NativeMenus {
       int save = canvas.save(); canvas.translate(x - size / 2, y - size / 2); canvas.scale(size / 64, size / 64);
       paint.setColor(enabled ? JournalTheme.BRASS : JournalTheme.MUTED);
       paint.setStrokeWidth(2); paint.setStrokeJoin(Paint.Join.ROUND); paint.setStrokeCap(Paint.Cap.ROUND);
-      if (motif == 0) {
+      if (motif == 0 || motif == 3) {
         canvas.drawRoundRect(new RectF(9, 6, 55, 59), 3, 3, paint);
         canvas.drawLine(20, 7, 20, 58, paint);
         Path bookmark = new Path(); bookmark.moveTo(38, 7); bookmark.lineTo(38, 29);
@@ -236,6 +260,34 @@ final class NativeMenus {
     @Override public void setAlpha(int alpha) { paint.setAlpha(alpha); invalidateSelf(); }
     @Override public void setColorFilter(ColorFilter filter) { paint.setColorFilter(filter); invalidateSelf(); }
     @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
+  }
+
+  /** 글꼴에 없는 꺾쇠 문자 대신 버튼 중앙에 선으로 그린다. */
+  void pagerChevron(Button button, boolean forward) {
+    pagerChevron(button, forward, JournalTheme.NAVY);
+  }
+
+  void pagerChevron(Button button, boolean forward, int enabledColor) {
+    button.setText("");
+    android.graphics.drawable.Drawable arrow = new android.graphics.drawable.Drawable() {
+      final Paint ink = new Paint(Paint.ANTI_ALIAS_FLAG);
+      @Override public void draw(Canvas canvas) {
+        Rect bounds = getBounds();
+        float x = bounds.exactCenterX(), y = bounds.exactCenterY();
+        float dx = h.dp(4) * (forward ? 1 : -1), dy = h.dp(7);
+        ink.setStyle(Paint.Style.STROKE); ink.setStrokeWidth(h.dp(3));
+        ink.setStrokeCap(Paint.Cap.ROUND); ink.setStrokeJoin(Paint.Join.ROUND);
+        ink.setColor(button.isEnabled() ? enabledColor : JournalTheme.MUTED);
+        Path path = new Path(); path.moveTo(x - dx, y - dy);
+        path.lineTo(x + dx, y); path.lineTo(x - dx, y + dy);
+        canvas.drawPath(path, ink);
+      }
+      @Override public void setAlpha(int alpha) { ink.setAlpha(alpha); }
+      @Override public void setColorFilter(ColorFilter filter) { ink.setColorFilter(filter); }
+      @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
+    };
+    button.setBackground(new android.graphics.drawable.LayerDrawable(
+        new android.graphics.drawable.Drawable[] {button.getBackground(), arrow}));
   }
 
   android.graphics.drawable.Drawable modeInfoBackground() {
@@ -382,9 +434,14 @@ final class NativeMenus {
     title.setIncludeFontPadding(true);
     title.setPadding(h.dp(4), compact ? 0 : h.dp(2), h.dp(4), compact ? 0 : h.dp(2));
     LinearLayout roster = (LinearLayout) summary.getChildAt(1);
+    // 좁은 대전 요약은 3개의 세로 행으로 펼친다. 3열 각각에서 그림 44dp를
+    // 다시 빼면 큰 글자의 이름 폭이 46px까지 줄어 줄바꿈/생략 획이 넘친다.
+    // 행마다 전체 폭을 쓰되 그림·글꼴 크기와 View/listener는 그대로 유지한다.
+    roster.setOrientation(compact ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL);
     for (int i = 0; i < roster.getChildCount(); i++) {
       if (!(roster.getChildAt(i) instanceof LinearLayout)) continue; // Empty-party notice.
       LinearLayout member = (LinearLayout) roster.getChildAt(i);
+      member.setLayoutParams(new LinearLayout.LayoutParams(compact ? -1 : 0, -2, compact ? 0 : 1));
       member.setOrientation(compact ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
       member.setGravity(compact ? Gravity.CENTER_VERTICAL : Gravity.CENTER_HORIZONTAL);
       TextView name = (TextView) member.getChildAt(1);
@@ -1367,6 +1424,7 @@ final class NativeMenus {
           int pageCount = Math.max(1, (candidates.size() + 2) / 3);
           candidatePage[0] = Math.max(0, Math.min(candidatePage[0], pageCount - 1));
           Button previous = k.action(null, "‹", () -> { candidatePage[0]--; render[0].run(); });
+          pagerChevron(previous, false);
           previous.setContentDescription("이전 후보 페이지");
           previous.setTag("team-candidates-previous");
           previous.setEnabled(candidatePage[0] > 0);
@@ -1381,6 +1439,7 @@ final class NativeMenus {
           int pageWidth = Math.max(h.dp(48), (int) Math.ceil(pageLabel.getPaint().measureText(pageLabel.getText().toString())) + h.dp(8));
           paging.addView(pageLabel, new LinearLayout.LayoutParams(pageWidth, h.dp(48)));
           Button next = k.action(null, "›", () -> { candidatePage[0]++; render[0].run(); });
+          pagerChevron(next, true);
           next.setContentDescription("다음 후보 페이지");
           next.setTag("team-candidates-next");
           next.setEnabled(candidatePage[0] < pageCount - 1);
@@ -1822,4 +1881,5 @@ final class NativeMenus {
     return a == null ? id : a.optString("name", id);
   }
 }
+
 

@@ -161,6 +161,22 @@ public class NativeRecruitmentCounterReviewTest {
       Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(1001));
       assertTrue("Elapsed cooldown enables the existing claim without fetching", claim.isEnabled());
       assertEquals(List.of("draw"), api.calls); assertEquals(0, api.writes);
+      // Exact containment even when float ratio multiplication rounds above an integer edge.
+      Bitmap surface = Bitmap.createBitmap(300, 128, Bitmap.Config.ARGB_8888);
+      try {
+        for (String kind : new String[] {"LOW", "MID", "HIGH"}) {
+          NativeEconomy.RecruitmentTray tray = new NativeEconomy.RecruitmentTray(host, kind);
+          assertNotNull(tray.bitmap);
+          for (int height : new int[] {90, 92, 95, 103, 108, 116, 121}) {
+            tray.layout(0, 0, 300, height);
+            tray.draw(new Canvas(surface));
+            assertTrue(kind + " exact containment at " + height + ": " + tray.target,
+                new android.graphics.RectF(0, 0, 300, height).contains(tray.target));
+            assertEquals(height, tray.target.bottom, 0f);
+            assertTrue(tray.target.contains(tray.selectionBounds));
+          }
+        }
+      } finally { surface.recycle(); }
     }
   }
   @Test public void claimRequestStaysLockedAcrossTicksAndRefreshesCooldown() throws Exception {
@@ -267,3 +283,4 @@ public class NativeRecruitmentCounterReviewTest {
   }
 
 }
+

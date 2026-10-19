@@ -45,9 +45,10 @@ public class NativeThemeStateTest {
       int before = normal.getPixel(x, y), after = disabled.getPixel(x, y);
       assertEquals("비활성도 모서리·프레임의 알파 윤곽 유지: " + x + "," + y,
           Color.alpha(before), Color.alpha(after));
-      if (Color.alpha(after) == 255) { colors.add(after); artworkPixels++; }
+      // Packaged parchment is predominantly alpha 252–253, not 255.
+      if (Color.alpha(after) >= 250) { colors.add(after); artworkPixels++; }
     }
-    assertTrue("원본의 불투명 읽기 면 유지", artworkPixels > normal.getWidth() * normal.getHeight() / 2);
+    assertTrue("원본의 거의 불투명한 읽기 면 유지", artworkPixels > normal.getWidth() * normal.getHeight() / 2);
     assertTrue("평면 회색 대체가 아닌 양피지 질감·테두리 색상 유지", colors.size() > 32);
   }
 
@@ -82,10 +83,19 @@ public class NativeThemeStateTest {
         assertFalse("실제 선택 상태 픽셀이 다름", same(normal, selected));
         drawable.setState(new int[] {}); Bitmap disabled = draw(drawable);
         assertFalse("비활성 표면은 정상 표면과 구분됨", same(normal, disabled));
-        assertEquals("비활성 글자 뒤 읽기 면은 불투명", 255, Color.alpha(disabled.getPixel(110, 28)));
+        // Preserve the approved PNG's own alpha rather than adding an opaque backing.
+        assertEquals("비활성 읽기 면은 원본 알파 그대로", Color.alpha(normal.getPixel(110, 28)),
+            Color.alpha(disabled.getPixel(110, 28)));
+        assertTrue("원본 읽기 면의 높은 알파 유지", Color.alpha(disabled.getPixel(110, 28)) >= 250);
         assertArtworkPreserved(normal, disabled);
         assertTrue("원본 그림 위 비활성 라벨 대비 4.5 이상",
             new JournalThemeTest().contrast(JournalTheme.MUTED, disabled.getPixel(110, 28)) >= 4.5);
+        // Check real composited contrast at both luminance extremes, not only raw RGB.
+        for (int backdrop : new int[] {Color.BLACK, Color.WHITE}) {
+          int face = androidx.core.graphics.ColorUtils.compositeColors(disabled.getPixel(110, 28), backdrop);
+          assertTrue("투명도가 있는 원본도 합성 후 라벨 대비 4.5 이상",
+              new JournalThemeTest().contrast(JournalTheme.MUTED, face) >= 4.5);
+        }
         drawable.setState(new int[] {android.R.attr.state_pressed, android.R.attr.state_selected});
         Bitmap disabledPressed = draw(drawable);
         assertTrue("비활성은 누름·선택 효과를 표시하지 않음", same(disabled, disabledPressed));
@@ -114,10 +124,15 @@ public class NativeThemeStateTest {
     }
   }
 
+  long touchDownTime;
   void touch(Button button, int action) {
-    android.view.MotionEvent event = android.view.MotionEvent.obtain(0, 10, action, 110, 28, 0);
+    long now = android.os.SystemClock.uptimeMillis();
+    if (action == MotionEvent.ACTION_DOWN) touchDownTime = now;
+    android.view.MotionEvent event = android.view.MotionEvent.obtain(touchDownTime, now, action, 110, 28, 0);
     try { button.dispatchTouchEvent(event); } finally { event.recycle(); }
-    org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    // Run the real ViewRoot traversal and posted PerformClick through the paused
+    // 16 ms Choreographer clock. idle() alone leaves sync-barrier messages blocked.
+    fixture.geometry.frame();
   }
 
   @Test public void sharedButtonCancelAndDisableNeverActivateAndReenableRestoresInput() throws Exception {
@@ -260,3 +275,4 @@ public class NativeThemeStateTest {
     }
   }
 }
+

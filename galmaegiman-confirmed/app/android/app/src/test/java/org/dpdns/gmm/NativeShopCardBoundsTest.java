@@ -246,6 +246,25 @@ public class NativeShopCardBoundsTest {
   }
 
   JSONObject audit(MainActivity host, Profile p, String state, NativeEconomyThemeFixture.Api api) throws Exception {
+    for (String direction : new String[] {"previous", "next"}) {
+      View target = host.root.findViewWithTag("shop-page-" + direction);
+      assertTrue("Pager keeps its native Button role", target instanceof Button);
+      Button arrow = (Button) target;
+      assertTrue("Pager retains a 48dp touch target", arrow.getWidth() >= host.dp(48) && arrow.getHeight() >= host.dp(48));
+      assertEquals(direction.equals("previous") ? "이전 상품 쪽" : "다음 상품 쪽", arrow.getContentDescription());
+      assertEquals("Arrow does not depend on a font glyph", "", arrow.getText().toString());
+      Bitmap pixels = Bitmap.createBitmap(arrow.getWidth(), arrow.getHeight(), Bitmap.Config.ARGB_8888);
+      try {
+        arrow.draw(new Canvas(pixels));
+        int expected = arrow.isEnabled() ? JournalTheme.NAVY : JournalTheme.MUTED;
+        int ink = 0;
+        for (int y = pixels.getHeight() / 2 - host.dp(9); y <= pixels.getHeight() / 2 + host.dp(9); y++)
+          for (int x = pixels.getWidth() / 2 - host.dp(7); x <= pixels.getWidth() / 2 + host.dp(7); x++)
+            if (pixels.getPixel(x, y) == expected) ink++;
+        assertTrue("Real center chevron remains readable in " + state + "/" + direction, ink >= 12);
+      } finally { pixels.recycle(); }
+    }
+
     verifyFrameAsset(host);
     assertEquals(p.w, host.root.getWidth()); assertEquals(p.h, host.root.getHeight());
     assertEquals(p.dpi, host.getResources().getDisplayMetrics().densityDpi);
@@ -346,7 +365,7 @@ public class NativeShopCardBoundsTest {
               host.root.findViewWithTag("shop-card-shop:peanutTickets").performClick();
               assertFalse(host.menus.economy.shopActions.get("shop:peanutTickets").isEnabled());
             } else {
-              controls.button(host.root.findViewWithTag("shop-inline-pages"), "›").performClick();
+              host.root.findViewWithTag("shop-page-next").performClick();
             }
             ready(host, p);
             capture(host, p, name);
@@ -382,9 +401,9 @@ public class NativeShopCardBoundsTest {
       assertTrue(host.root.findViewWithTag("shop-card-shop:peanutTickets").isSelected());
       assertFalse(host.menus.economy.shopActions.get("shop:peanutTickets").isEnabled());
       assertTrue(api.writes.isEmpty()); assertNull(host.visibleDialog);
-      controls.button(host.root.findViewWithTag("shop-inline-pages"), "›").performClick();
+      host.root.findViewWithTag("shop-page-next").performClick();
       assertNotNull(host.root.findViewWithTag("shop-card-items/buy:big"));
-      controls.button(host.root.findViewWithTag("shop-inline-pages"), "‹").performClick();
+      host.root.findViewWithTag("shop-page-previous").performClick();
       host.root.findViewWithTag("shop-card-shop:tickets").performClick();
       View rail = host.root.findViewWithTag("shop-purchase-rail");
       controls.button(rail, "＋").performClick();
@@ -408,3 +427,4 @@ public class NativeShopCardBoundsTest {
     }
   }
 }
+

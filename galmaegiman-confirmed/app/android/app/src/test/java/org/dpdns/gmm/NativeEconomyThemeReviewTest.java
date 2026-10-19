@@ -337,6 +337,27 @@ public class NativeEconomyThemeReviewTest {
       assertNotNull(host.root.findViewWithTag("shop-purchase-rail"));
     }
     if (page.startsWith("recruit")) {
+      int chosenTitles = 0;
+      for (String kind : new String[] {"LOW", "MID", "HIGH"}) {
+        View title = host.root.findViewWithTag("draw-station-title-" + kind);
+        View station = host.root.findViewWithTag("draw-card-" + kind);
+        assertEquals("Title drawing state follows the actual tier choice", station.isSelected(), title.isSelected());
+        Bitmap titlePixels = Bitmap.createBitmap(title.getWidth(), title.getHeight(), Bitmap.Config.ARGB_8888);
+        try {
+          title.getBackground().setBounds(0, 0, title.getWidth(), title.getHeight());
+          title.getBackground().draw(new Canvas(titlePixels));
+          int fill = titlePixels.getPixel(title.getWidth() / 2, title.getHeight() / 2);
+          int edge = titlePixels.getPixel(1, title.getHeight() / 2);
+          if (title.isSelected()) {
+            chosenTitles++;
+            assertEquals("Chosen tier has the distinct pale-gold reading surface", 0xFFF8E4AA, fill);
+            assertEquals("Only chosen tier has the navy selection outline", 0xFF294F60, edge);
+          } else {
+            assertNotEquals("Unselected tier retains parchment artwork", 0xFFF8E4AA, fill);
+          }
+        } finally { titlePixels.recycle(); }
+      }
+      assertEquals("Exactly one visually selected title", 1, chosenTitles);
       int trays = 0, submits = 0;
       Set<String> paths = new HashSet<>();
       for (View view : geometry.descendants(host.root)) {
@@ -479,7 +500,33 @@ public class NativeEconomyThemeReviewTest {
           }
           assertEquals(expected.subList(pageIndex * perPage, Math.min(expected.size(), (pageIndex + 1) * perPage)), pageIds);
           seen.addAll(pageIds);
-          Button next = actions.button(host.root.findViewWithTag("craft-recipe-pages"), "›");
+          for (String direction : new String[] {"previous", "next"}) {
+            Button arrow = host.root.findViewWithTag("craft-recipe-pages-" + direction);
+            assertNotNull(arrow);
+            assertEquals(direction.equals("previous") ? "이전 쪽" : "다음 쪽", arrow.getContentDescription());
+            assertEquals("Arrow does not depend on a font glyph", "", arrow.getText().toString());
+            assertTrue(arrow.getWidth() >= host.dp(48) && arrow.getHeight() >= host.dp(48));
+            Bitmap pixels = Bitmap.createBitmap(arrow.getWidth(), arrow.getHeight(), Bitmap.Config.ARGB_8888);
+            try {
+              arrow.draw(new Canvas(pixels));
+              int ink = 0, expectedInk = arrow.isEnabled() ? JournalTheme.NAVY : JournalTheme.MUTED;
+              for (int y = pixels.getHeight() / 2 - host.dp(9); y <= pixels.getHeight() / 2 + host.dp(9); y++)
+                for (int x = pixels.getWidth() / 2 - host.dp(7); x <= pixels.getWidth() / 2 + host.dp(7); x++)
+                  if (pixels.getPixel(x, y) == expectedInk) ink++;
+              assertTrue("Actual craft arrow pixels stay legible: " + direction, ink >= 12);
+            } finally { pixels.recycle(); }
+          }
+          if (!host.menus.economy.compact()) {
+            TextView availability = host.root.findViewWithTag("craft-availability");
+            assertNotNull(availability);
+            assertEquals(JournalTheme.NAVY, availability.getCurrentTextColor());
+            assertTrue(availability.getBackground() instanceof android.graphics.drawable.ColorDrawable);
+            assertEquals("Opaque cream separates recipe conditions from workshop floor", JournalTheme.PAPER,
+                ((android.graphics.drawable.ColorDrawable) availability.getBackground()).getColor());
+            readable(availability);
+            assertEquals(geometry.bounds(availability, host.root), geometry.visibleIntersection(availability, host.root));
+          }
+          Button next = host.root.findViewWithTag("craft-recipe-pages-next");
           if (!next.isEnabled()) break;
           next.performClick(); pageIndex++;
         }
@@ -661,4 +708,5 @@ public class NativeEconomyThemeReviewTest {
     assertNull(host.visibleDialog);
   }
 }
+
 

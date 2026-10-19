@@ -59,7 +59,7 @@ public class RegistrationIntegrationScreensTest {
     JSONArray offers = new JSONArray();
     String[] kinds = {"LOW", "MID", "HIGH"}, labels = {"하급", "중급", "고급"};
     for (int i = 0; i < kinds.length; i++)
-      offers.put(MainActivity.obj("kind", kinds[i], "label", labels[i], "cost", i == 2 ? 5 : i + 1,
+      offers.put(MainActivity.obj("kind", kinds[i], "label", labels[i], "cost", i == 2 ? 5 : i + 2,
           "img", "C1", "weights", new JSONArray().put(
               MainActivity.obj("tier", "COMMON", "tierName", "흔함", "w", 100))));
     return MainActivity.obj("credits", 100, "claim", 5, "wait", 1000, "gachas", offers,
@@ -398,7 +398,9 @@ public class RegistrationIntegrationScreensTest {
         assertSame(quantity.getParent(), submit.getParent());
         assertSame(quantity.getParent(), total.getParent());
         button(quantity, "＋").performClick();
-        assertTrue(total.getText().toString().contains("2회 · 총 지원서 "));
+        int cost = kind.equals("HIGH") ? 5 : kind.equals("MID") ? 3 : 2;
+        assertEquals("Exact actual cost remains visible in the compact total", "총 지원서\n" + cost * 2 + "장", total.getText().toString());
+        assertTrue(submit.getContentDescription().toString().contains("지원서 " + cost * 2 + "장"));
         assertEquals("모집하기", submit.getText().toString());
         assertTrue(submit.getContentDescription().toString().contains("2회"));
         assertTrue(quantity.getRight() <= total.getLeft());
@@ -460,3 +462,4 @@ public class RegistrationIntegrationScreensTest {
     }
   }
 }
+

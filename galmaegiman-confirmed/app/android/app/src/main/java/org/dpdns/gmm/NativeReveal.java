@@ -296,25 +296,33 @@ final class NativeReveal extends FrameLayout {
     page.setGravity(Gravity.CENTER);
     page.setPadding(h.dp(12), h.dp(10), h.dp(12), h.dp(10));
     addView(page, new LayoutParams(-1, -1));
+    LinearLayout heading = k.row();
+    heading.setTag("acquisition-result-heading");
+    heading.setBaselineAligned(false);
+    heading.setGravity(Gravity.CENTER);
     final TextView selectedLabel = k.note("");
     if (flow != null && units.length() > 1) {
       selectedLabel.setTextColor(JournalTheme.PAPER);
       selectedLabel.setGravity(Gravity.CENTER);
       selectedLabel.setSingleLine(true);
-      page.addView(selectedLabel);
+      LinearLayout.LayoutParams labelSlot = new LinearLayout.LayoutParams(-2, -2);
+      labelSlot.rightMargin = h.dp(12);
+      heading.addView(selectedLabel, labelSlot);
     }
+    reassessmentStatus = h.text("", 12);
+    reassessmentStatus.setTag("acquisition-reassessment-status");
+    reassessmentStatus.setTextColor(JournalTheme.PAPER);
+    reassessmentStatus.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
+    reassessmentStatus.setPadding(0, 0, 0, 0);
+    reassessmentStatus.setVisibility(GONE);
+    // 상태를 별도 하단 행으로 쌓지 않는다. 짧은 화면에서도 큰 등록증 높이를 보존한다.
+    heading.addView(reassessmentStatus, new LinearLayout.LayoutParams(0, -2, 1));
+    page.addView(heading, new LinearLayout.LayoutParams(-1, -2));
     RevealStrip scroll = new RevealStrip();
     resultStrip = scroll;
     LinearLayout row = scroll.cardsRow;
     scroll.setTag("acquisition-cards-scroll");
     page.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-    reassessmentStatus = h.text("", 12);
-    reassessmentStatus.setTag("acquisition-reassessment-status");
-    reassessmentStatus.setTextColor(JournalTheme.PAPER);
-    reassessmentStatus.setGravity(Gravity.CENTER);
-    reassessmentStatus.setPadding(0, 0, 0, 0);
-    reassessmentStatus.setVisibility(GONE);
-    page.addView(reassessmentStatus, new LinearLayout.LayoutParams(-1, -2));
     final LinearLayout footer = k.column();
     final boolean[] firstPaint = {true};
     final ArrayList<RevealCard> shown = new ArrayList<>();
@@ -818,9 +826,25 @@ final class NativeReveal extends FrameLayout {
   @Override
   protected void onDetachedFromWindow() {
     detached = true;
-    if (resultPickerDialog != null) resultPickerDialog.dismiss();
-    if (dossier != null) dossier.dismiss();
-    if (reassessment != null) reassessment.dismiss();
+    // 부모가 children 배열을 순회하며 detach하는 동안 자식/형제 overlay를 제거하면
+    // 배열이 바뀐다. 소유권은 즉시 무효화하고 View 제거만 다음 main-loop로 미룬다.
+    Handler main = new Handler(Looper.getMainLooper());
+    if (resultPickerDialog != null) {
+      android.app.AlertDialog closing = resultPickerDialog;
+      main.post(closing::dismiss);
+    }
+    if (dossier != null) {
+      NativeUnitDossier closing = dossier;
+      closing.back.remove();
+      main.post(closing::dismiss);
+    }
+    if (reassessment != null) {
+      NativeProgression closing = reassessment;
+      closing.clock.invalidate();
+      if (closing.back != null) closing.back.remove();
+      if (closing.overlay != null) closing.overlay.setVisibility(GONE);
+      main.post(closing::dismiss);
+    }
     stopAnimations();
     if (envelope != null) envelope.cancel();
     if (observing) {
@@ -1122,5 +1146,6 @@ final class NativeReveal extends FrameLayout {
   }
 
 }
+
 
 

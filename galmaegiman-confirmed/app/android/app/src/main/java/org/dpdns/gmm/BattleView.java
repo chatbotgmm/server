@@ -87,6 +87,7 @@ final class BattleView extends FrameLayout implements FullBleed {
     for (Button tool : new Button[] {foeInfo, history, augmentInfo}) {
       tool.setTextSize(12);
       tool.setSingleLine(true);
+      tool.setHorizontallyScrolling(false);
       tool.setAllCaps(false);
       tool.setTextColor(0xfffff8e8);
       tool.setPadding(0, 0, 0, 0);
@@ -546,7 +547,10 @@ final class BattleView extends FrameLayout implements FullBleed {
         b.setTypeface(host.headline);
         // 기존 판·07 확정 시안처럼 이름을 크게 쓰고, 아이콘과 이름을 한 묶음으로 버튼 가운데에 둔다.
         b.setTextSize(tablet ? (ix == 3 ? 30 : 33) : (ix == 3 ? 23 : 27));
-        float labelWidth = Math.max(host.dp(60), (panelWidth - host.dp(8)) / 2f - host.dp(20));
+        // Two weighted cells share panelWidth after four 3dp margins. Respect the
+        // real inner width, including 8dp padding per side and rounding slack;
+        // a 60dp floor can exceed the whole text area on small inset screens.
+        float labelWidth = Math.max(1, (panelWidth - host.dp(12)) / 2f - host.dp(18));
         float measuredLabel = b.getPaint().measureText(names[ix]);
         if (measuredLabel > labelWidth)
           b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, b.getTextSize() * labelWidth / measuredLabel);

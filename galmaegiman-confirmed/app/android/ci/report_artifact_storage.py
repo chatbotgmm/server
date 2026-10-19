@@ -4,10 +4,11 @@ import argparse
 import json
 from pathlib import Path
 GROUPS = {
+ 'result-reassessment':['result-reassessment/*.png','result-dossier/780x360-dpi160-font100-results.png','result-dossier/780x360-dpi160-font130-results.png'],
  'recruitment-counter':['recruitment-counter/*.png'],
  'home-motion':['home-drag-center-*.png','home-water-phone-*.png','home-disabled-play-image.png','home-currency-max-font130.png'],
  'button-artwork-states':['theme-state/button-*-normal-pressed-cancelled-selected-disabled.png'],
- **{name:[name+'/*.png'] for name in ('currency-display','team-character-panels','fullscreen','team-insertion-preview','story-cards','feedback-mode-navigation','realtime-identity-revision','battle-ui-revision','battle-replay','result-reassessment')},
+ **{name:[name+'/*.png'] for name in ('currency-display','team-character-panels','fullscreen','team-insertion-preview','story-cards','feedback-mode-navigation','realtime-identity-revision','battle-ui-revision','battle-replay')},
 }
 def report(root,approved=False):
     seen=set();groups={}
@@ -15,6 +16,7 @@ def report(root,approved=False):
         files=sorted({p for pattern in patterns for p in root.glob(pattern) if p.is_file()})
         if any(p in seen for p in files):raise ValueError('Duplicate PNG upload group')
         seen.update(files);groups[name]={'files':len(files),'bytes':sum(p.stat().st_size for p in files)}
+    diagnostic={p for p in seen if p.parent.name=='result-dossier'}
     all_png=list(root.rglob('*.png'));json_files=list(root.rglob('*.json'))
     build=root.parent
     apks=sorted((build/'outputs/apk').glob('*/*.apk'))
@@ -24,7 +26,8 @@ def report(root,approved=False):
                 unique_metadata_input_bytes=sum(p.stat().st_size for p in metadata),
                 approved_source=approved,retention_days=1,groups=groups,
                 generated_native_png_files=len(all_png),generated_native_png_bytes=sum(p.stat().st_size for p in all_png),
-                unique_review_png_files=len(seen),unique_review_png_bytes=sum(p.stat().st_size for p in seen),
+                diagnostic_png_files=len(diagnostic),diagnostic_png_bytes=sum(p.stat().st_size for p in diagnostic),
+                revision_png_files=len(seen-diagnostic),unique_review_png_files=len(seen),unique_review_png_bytes=sum(p.stat().st_size for p in seen),
                 uploaded_review_png_bytes=0 if approved else sum(p.stat().st_size for p in seen),
                 native_measurement_json_bytes=sum(p.stat().st_size for p in json_files),
                 note='Actual uncompressed artifact input bytes. ZIP overhead/compression and later targeted reports/APKs are not included; every native capture remains generated and checked locally.')

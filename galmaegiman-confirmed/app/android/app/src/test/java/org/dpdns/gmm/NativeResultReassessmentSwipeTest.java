@@ -71,6 +71,23 @@ public class NativeResultReassessmentSwipeTest {
     return MainActivity.obj("items", items);
   }
 
+  JSONObject payloadWithCopies(int count) throws Exception {
+    JSONObject result = payload();
+    JSONArray keys = new JSONArray();
+    for (int i = 0; i < count; i++) keys.put("o" + (2 + i));
+    result.getJSONArray("items").getJSONObject(0).put("n", count).put("ownedKeys", keys);
+    // R13의 두 번째 개체 o3를 별도 R14에도 배정하지 않는다.
+    result.getJSONArray("items").getJSONObject(1).put("ownedKeys", new JSONArray().put("o30"));
+    Set<String> seen = new HashSet<>();
+    JSONArray items = result.getJSONArray("items");
+    for (int i = 0; i < items.length(); i++) {
+      JSONArray owned = items.getJSONObject(i).optJSONArray("ownedKeys");
+      for (int j = 0; owned != null && j < owned.length(); j++)
+        assertTrue("실제 지급 영수증 fixture의 개체 키는 결과 전체에서 고유하다", seen.add(owned.getString(j)));
+    }
+    return result;
+  }
+
   JSONObject candidate(String key, String id) throws Exception {
     JSONObject unit = item(id);
     // 실제 progression 응답에는 eligible/locked가 생략된다. 후보 목록 자체가 서버의 허가다.
@@ -180,6 +197,9 @@ public class NativeResultReassessmentSwipeTest {
 
     @Override public void close() {
       controller.pause().stop().destroy();
+      // 실제 Window detach를 먼저 끝내고 지연된 overlay 제거까지 확인한다.
+      Shadows.shadowOf(Looper.getMainLooper()).idle();
+      assertNull(h.root.findViewWithTag("progression-reassessment-overlay"));
       while (!api.writes.isEmpty())
         api.reply(MainActivity.obj("ok", false, "retryable", false), "검수 요청 종료");
       api.close();
@@ -313,6 +333,15 @@ public class NativeResultReassessmentSwipeTest {
         assertTrue(s.api.bodies.isEmpty());
       }
     }
+    try (Session s = new Session()) {
+      JSONObject result = payload();
+      result.getJSONArray("items").getJSONObject(1).put("ownedKeys", new JSONArray().put("o2"));
+      s.api.progression = progression(candidate("o2", "R13"));
+      s.attach(result);
+      assertNull("다른 종의 카드와 공유한 개체 키는 실행하지 않는다", icon(s.reveal, 0));
+      assertNull(icon(s.reveal, 1));
+      assertTrue(s.api.bodies.isEmpty());
+    }
   }
 
   @Test public void serverCooldownCannotBeBypassedByWaitingOnClientClock() throws Exception {
@@ -399,9 +428,10 @@ public class NativeResultReassessmentSwipeTest {
     try (Session s = new Session()) {
       s.api.progression = progression(candidate("o1", "R13"), candidate("o2", "R13"),
           candidate("o3", "R13"), candidate("o99", "R13"));
-      JSONObject result = payload(); result.getJSONArray("items").getJSONObject(0).put("n", 2)
-          .put("ownedKeys", new JSONArray().put("o2").put("o3"));
-      s.attach(result); icon(s.reveal, 0).performClick(); frame();
+      JSONObject result = payloadWithCopies(2);
+      s.attach(result);
+      View refresh = icon(s.reveal, 0); assertNotNull("고유한 이번 획득 개체 둘의 재심사 선택", refresh);
+      refresh.performClick(); frame();
       AlertDialog chooser = ShadowAlertDialog.getLatestAlertDialog(); assertNotNull(chooser);
       assertNotNull(chooser.getListView()); assertEquals(2, chooser.getListView().getAdapter().getCount());
       assertNull(s.h.root.findViewWithTag("progression-reassessment-overlay"));
@@ -446,8 +476,7 @@ public class NativeResultReassessmentSwipeTest {
   @Test public void convertingOneOfAggregatedCopiesPreservesEveryUnconvertedCopy() throws Exception {
     try (Session s = new Session()) {
       s.api.progression = progression(candidate("o1", "R13"), candidate("o2", "R13"));
-      JSONObject result = payload(); result.getJSONArray("items").getJSONObject(0).put("n", 3).put("first", true)
-          .put("ownedKeys", new JSONArray().put("o2").put("o3").put("o4"));
+      JSONObject result = payloadWithCopies(3); result.getJSONArray("items").getJSONObject(0).put("first", true);
       s.attach(result); openReassessment(s, 0, "o2"); confirm(s, "o2", true);
       s.api.progression = progression(); s.api.reply(receipt("o20", "R14"), null); frame();
       View close = s.h.root.findViewWithTag("progression-close"); if (close != null) close.performClick();
@@ -662,8 +691,7 @@ public class NativeResultReassessmentSwipeTest {
             + Math.round(size[1] * 160f / size[2]) + "dp-land-" + size[2] + "dpi");
         RuntimeEnvironment.setFontScale(font);
         try (Session s = new Session()) {
-          JSONObject result = payload(); result.getJSONArray("items").getJSONObject(0).put("n", 3).put("first", true)
-          .put("ownedKeys", new JSONArray().put("o2").put("o3").put("o4"));
+          JSONObject result = payloadWithCopies(3); result.getJSONArray("items").getJSONObject(0).put("first", true);
           s.reveal = new NativeReveal(s.h, result, s.finished::incrementAndGet, true, s.flow);
           s.h.root.addView(s.reveal, new FrameLayout.LayoutParams(-1, -1));
           String name = size[0] + "x" + size[1] + "-dpi" + size[2] + "-font" + Math.round(font * 100);
@@ -713,3 +741,4 @@ public class NativeResultReassessmentSwipeTest {
     assertEquals("모든 밀도·글꼴의 정지/드래그/다음 페이지 캡처 관측", 24, screenshotObservations.length());
   }
 }
+

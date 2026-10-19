@@ -169,7 +169,14 @@ final class NativeEconomy {
         name.setTypeface(h.headline);
         name.setGravity(Gravity.CENTER);
         name.setPadding(h.dp(12), h.dp(4), h.dp(12), h.dp(4));
-        name.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.TAB));
+        android.graphics.drawable.GradientDrawable chosenTitle = new android.graphics.drawable.GradientDrawable();
+        chosenTitle.setColor(0xFFF8E4AA);
+        chosenTitle.setCornerRadius(h.dp(5));
+        chosenTitle.setStroke(h.dp(3), 0xFF294F60);
+        android.graphics.drawable.StateListDrawable titleStates = new android.graphics.drawable.StateListDrawable();
+        titleStates.addState(new int[] {android.R.attr.state_selected}, chosenTitle);
+        titleStates.addState(new int[] {}, ThemeArt.of(h).drawable(ThemeArt.Surface.TAB));
+        name.setBackground(titleStates);
         name.setTextColor(JournalTheme.tabText());
         name.setTag("draw-station-title-" + kind);
         station.addView(name, new LinearLayout.LayoutParams(-1, -2));
@@ -261,7 +268,10 @@ final class NativeEconomy {
       super.onDraw(canvas);
       if (bitmap == null || bitmap.isRecycled()) return;
       float scale = Math.min(getWidth() / (float) source.width(), getHeight() / (float) source.height());
-      float width = source.width() * scale, height = source.height() * scale;
+      // Float multiplication can overshoot the limiting edge by one ULP.
+      // Clamp geometry itself; strict visible bounds remain unchanged.
+      float width = Math.min(getWidth(), source.width() * scale);
+      float height = Math.min(getHeight(), source.height() * scale);
       target.set((getWidth() - width) / 2, getHeight() - height, (getWidth() + width) / 2, getHeight());
       selectionBounds.set(target.left + width * .06f, target.bottom - height * .12f,
           target.right - width * .06f, target.bottom);
@@ -661,6 +671,9 @@ final class NativeEconomy {
             r.optBoolean("ready")
                 ? "최대 " + r.optInt("max") + "개 · 재료를 눌러 얻는 곳 보기"
                 : "재료 부족 · 붉은 재료를 눌러 얻는 곳 보기");
+    availability.setTag("craft-availability");
+    availability.setTextColor(JournalTheme.NAVY);
+    availability.setBackgroundColor(JournalTheme.PAPER);
     if (!compact()) panel.addView(availability);
     heading.setContentDescription(r.optString("name") + " 조합 정보 보기");
     int[] times = {1};
@@ -1103,6 +1116,8 @@ final class NativeEconomy {
                     shopFocus = offers.get((page - 1) * perPage).optString("key");
                     paint[0].run();
                   });
+                  m.pagerChevron(previous, false, JournalTheme.NAVY);
+                  previous.setTag("shop-page-previous");
                   previous.setEnabled(page > 0);
                   previous.setContentDescription("이전 상품 쪽");
                   pager.addView(previous, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
@@ -1114,6 +1129,8 @@ final class NativeEconomy {
                     shopFocus = offers.get((page + 1) * perPage).optString("key");
                     paint[0].run();
                   });
+                  m.pagerChevron(next, true, JournalTheme.NAVY);
+                  next.setTag("shop-page-next");
                   next.setEnabled(page + 1 < pages);
                   next.setContentDescription("다음 상품 쪽");
                   pager.addView(next, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
@@ -1738,6 +1755,10 @@ final class NativeEconomy {
     Button prev = k.action(null, "‹", () -> turn.accept(page - 1));
     prev.setEnabled(page > 0);
     prev.setContentDescription("이전 쪽");
+    if (tag.equals("craft-recipe-pages")) {
+      prev.setTag(tag + "-previous");
+      m.pagerChevron(prev, false);
+    }
     pager.addView(prev, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
     TextView count = h.text((page + 1) + "/" + Math.max(1, pages), 12);
     count.setPadding(0, 0, 0, 0);
@@ -1751,6 +1772,10 @@ final class NativeEconomy {
     Button next = k.action(null, "›", () -> turn.accept(page + 1));
     next.setEnabled(page + 1 < pages);
     next.setContentDescription("다음 쪽");
+    if (tag.equals("craft-recipe-pages")) {
+      next.setTag(tag + "-next");
+      m.pagerChevron(next, true);
+    }
     pager.addView(next, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
     LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(h.dp(48), -1);
     slot.leftMargin = h.dp(4);
@@ -2155,5 +2180,6 @@ final class NativeEconomy {
     return MainActivity.obj("id", id, "name", id);
   }
 }
+
 
 

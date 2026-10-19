@@ -499,10 +499,17 @@ public class ReleaseHomeMotionTest {
     return bitmap;
   }
 
+  private long touchDownTime;
   private boolean dispatch(LobbyView lobby, int action, float x, float y) {
     long now = android.os.SystemClock.uptimeMillis();
-    MotionEvent event = MotionEvent.obtain(now, now, action, x, y, 0);
-    try { return lobby.dispatchTouchEvent(event); } finally { event.recycle(); }
+    if (action == MotionEvent.ACTION_DOWN) touchDownTime = now;
+    MotionEvent event = MotionEvent.obtain(touchDownTime, now, action, x, y, 0);
+    boolean handled;
+    try { handled = lobby.dispatchTouchEvent(event); } finally { event.recycle(); }
+    // View posts PerformClick after UP. Advance actual vsync frames so ViewRoot
+    // sync barriers clear; keep DOWN/MOVE/CANCEL synchronous for drag assertions.
+    if (action == MotionEvent.ACTION_UP) advanceFrames(100);
+    return handled;
   }
 
   private MotionEvent secondPointer(RectF area) {
@@ -534,4 +541,5 @@ public class ReleaseHomeMotionTest {
     } finally { down.recycle(); move.recycle(); }
   }
 }
+
 
