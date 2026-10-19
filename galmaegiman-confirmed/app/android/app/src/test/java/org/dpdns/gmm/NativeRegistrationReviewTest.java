@@ -71,7 +71,7 @@ public class NativeRegistrationReviewTest {
     JSONArray offers = new JSONArray();
     String[] kinds = {"LOW", "MID", "HIGH"}, labels = {"하급", "중급", "고급"};
     for (int i = 0; i < kinds.length; i++) offers.put(MainActivity.obj(
-        "kind", kinds[i], "label", labels[i], "cost", i == 2 ? 5 : i + 1,
+        "kind", kinds[i], "label", labels[i], "cost", i == 2 ? 5 : i + 2,
         "img", "C1", "weights", new JSONArray().put(MainActivity.obj(
             "tier", "COMMON", "tierName", "흔함", "w", 100))));
     return MainActivity.obj("credits", 100, "claim", 5, "wait", 3600000, "gachas", offers,
@@ -225,38 +225,53 @@ public class NativeRegistrationReviewTest {
         finally { reference.recycle(); }
       }
     } else {
-      List<NativeEconomy.RecruitmentSeal> seals = new ArrayList<>();
+      List<NativeEconomy.RecruitmentTray> trays = new ArrayList<>();
       for (View view : geometry.descendants(host.root))
-        if (view instanceof NativeEconomy.RecruitmentSeal && view.isShown())
-          seals.add((NativeEconomy.RecruitmentSeal) view);
-      assertEquals("Three real recruitment envelopes remain on the three stations", 3, seals.size());
-      byte[] source = RegistrationArtTest.asset(host, "resources/application-envelope-atlas.png");
-      Bitmap reference = BitmapFactory.decodeByteArray(source, 0, source.length);
-      assertNotNull("Published envelope atlas decodes independently", reference);
-      try {
-        for (NativeEconomy.RecruitmentSeal seal : seals) {
-          visible(host, seal);
-          assertNotNull("The production Canvas seal has loaded its real atlas", seal.atlas);
-          assertFalse(seal.atlas.isRecycled());
-          assertEquals(1774, seal.atlas.getWidth());
-          assertEquals(887, seal.atlas.getHeight());
-          RegistrationArtTest.samePixels("Canonical recruitment envelope atlas", reference, seal.atlas);
-          Bitmap rendered = Bitmap.createBitmap(seal.getWidth(), seal.getHeight(), Bitmap.Config.ARGB_8888);
+        if (view instanceof NativeEconomy.RecruitmentTray && view.isShown())
+          trays.add((NativeEconomy.RecruitmentTray) view);
+      assertEquals("Three distinct recruitment trays remain on the reception counter", 3, trays.size());
+      Set<String> paths = new HashSet<>();
+      for (NativeEconomy.RecruitmentTray tray : trays) {
+        visible(host, tray);
+        assertTrue("Each tier has its own published artwork", paths.add(tray.path));
+        Bitmap reference;
+        try (java.io.InputStream stream = host.getAssets().open("native/release-v1/" + tray.path)) {
+          reference = BitmapFactory.decodeStream(stream);
+        }
+        assertNotNull("Published tray decodes independently", reference);
+        try {
+          assertNotNull("The production tray has loaded its real artwork", tray.bitmap);
+          assertFalse(tray.bitmap.isRecycled());
+          assertEquals(768, tray.bitmap.getWidth());
+          assertEquals(512, tray.bitmap.getHeight());
+          RegistrationArtTest.samePixels("Canonical recruitment tray " + tray.path, reference, tray.bitmap);
+          int left = reference.getWidth(), top = reference.getHeight(), right = -1, bottom = -1;
+          for (int y = 0; y < reference.getHeight(); y++) for (int x = 0; x < reference.getWidth(); x++) {
+            if (Color.alpha(reference.getPixel(x, y)) <= 8) continue;
+            left = Math.min(left, x); top = Math.min(top, y);
+            right = Math.max(right, x); bottom = Math.max(bottom, y);
+          }
+          assertTrue("Published tray has visible artwork", right >= left);
+          assertEquals("Crop follows actual ink, not the transparent canvas", new Rect(left, top, right + 1, bottom + 1), tray.source);
+          Bitmap rendered = Bitmap.createBitmap(tray.getWidth(), tray.getHeight(), Bitmap.Config.ARGB_8888);
           try {
-            seal.draw(new Canvas(rendered));
-            assertFalse("The production envelope was actually drawn", seal.target.isEmpty());
-            assertTrue("Envelope contain target " + seal.target + " inside " + seal.getWidth() + "x" + seal.getHeight(),
-                new RectF(0, 0, seal.getWidth(), seal.getHeight()).contains(seal.target));
+            tray.draw(new Canvas(rendered));
+            assertFalse("The production tray was actually drawn", tray.target.isEmpty());
+            assertTrue("Tray contain target " + tray.target + " inside " + tray.getWidth() + "x" + tray.getHeight(),
+                new RectF(0, 0, tray.getWidth(), tray.getHeight()).contains(tray.target));
+            assertEquals("Visible wood bottom aligns with the counter baseline", tray.getHeight(), tray.target.bottom, .5f);
             Set<Integer> colors = new HashSet<>();
             for (int y = 0; y < rendered.getHeight(); y++)
               for (int x = 0; x < rendered.getWidth(); x++) {
                 int pixel = rendered.getPixel(x, y);
                 if (Color.alpha(pixel) > 0) colors.add(pixel);
               }
-            assertTrue("The seal is real artwork, not a blank or flat placeholder", colors.size() > 16);
+            assertTrue("The tray is real artwork, not a blank or flat placeholder", colors.size() > 16);
           } finally { rendered.recycle(); }
-        }
-      } finally { reference.recycle(); }
+        } finally { reference.recycle(); }
+      }
+      assertEquals(new HashSet<>(Arrays.asList("recruitment/tray-low-v1.png", "recruitment/tray-mid-v1.png",
+          "recruitment/tray-high-v1.png")), paths);
     }
   }
 
@@ -402,7 +417,8 @@ public class NativeRegistrationReviewTest {
       assertSame(quantity.getParent(), total.getParent()); assertSame(total.getParent(), submit.getParent());
       assertTrue("Quantity precedes total in the shared rail", quantity.getRight() <= total.getLeft());
       assertTrue("Total precedes spend action in the shared rail", total.getRight() <= submit.getLeft());
-      assertTrue("Initial total reports one recruitment and its exact cost", ((TextView) total).getText().toString().contains("1회 · 총 지원서 "));
+      assertEquals("Initial compact total reports the actual low-tier one-draw cost", "총 지원서\n2장", ((TextView) total).getText().toString());
+      assertTrue("Accessible spend action includes the actual total", submit.getContentDescription().toString().contains("지원서 2장"));
       assertEquals("모집하기", ((TextView) submit).getText().toString());
       assertTrue(submit.getContentDescription().toString().contains("1회"));
       int spendActions = 0;
@@ -601,3 +617,4 @@ public class NativeRegistrationReviewTest {
     assertEquals("Every screenshot has successful bounds/overlap/action evidence", 20, metrics.length());
   }
 }
+

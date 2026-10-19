@@ -281,6 +281,55 @@ final class NativeEconomy {
     }
   }
 
+  // Compatibility: home icon still uses the canonical first atlas frame, never the tray crop.
+  static final class RecruitmentSeal extends View {
+    final MainActivity host;
+    final int epoch;
+    final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    final RectF target = new RectF();
+    Rect source = ApplicationEnvelopeView.sourceRect(0);
+    Bitmap atlas;
+
+    RecruitmentSeal(MainActivity host) {
+      super(host);
+      this.host = host;
+      epoch = host.epoch;
+      setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+      host.registrationArt().requestEnvelope(image -> {
+        if (host.isFinishing() || host.isDestroyed() || host.epoch != epoch) return;
+        atlas = image;
+        if (image != null && !image.isRecycled()) source = envelopeInk(image);
+        invalidate();
+      });
+    }
+
+    // Atlas cells reserve animation travel space. Trim only their transparent margin at display time.
+    static Rect envelopeInk(Bitmap atlas) {
+      Rect frame = ApplicationEnvelopeView.sourceRect(0);
+      int[] pixels = new int[frame.width() * frame.height()];
+      atlas.getPixels(pixels, 0, frame.width(), frame.left, frame.top, frame.width(), frame.height());
+      int left = frame.width(), top = frame.height(), right = -1, bottom = -1;
+      for (int y = 0; y < frame.height(); y++) for (int x = 0; x < frame.width(); x++) {
+        if ((pixels[y * frame.width() + x] >>> 24) <= 8) continue;
+        left = Math.min(left, x); top = Math.min(top, y);
+        right = Math.max(right, x); bottom = Math.max(bottom, y);
+      }
+      return right < left ? frame : new Rect(frame.left + left, frame.top + top,
+          frame.left + right + 1, frame.top + bottom + 1);
+    }
+
+    @Override protected void onDraw(Canvas canvas) {
+      super.onDraw(canvas);
+      if (atlas == null || atlas.isRecycled()) return;
+      float scale = Math.min(getWidth() / (float) source.width(), getHeight() / (float) source.height());
+      float width = Math.min(getWidth(), source.width() * scale);
+      float height = Math.min(getHeight(), source.height() * scale);
+      target.set((getWidth() - width) / 2, (getHeight() - height) / 2,
+          (getWidth() + width) / 2, (getHeight() + height) / 2);
+      canvas.drawBitmap(atlas, source, target, paint);
+    }
+  }
+
   void claimTickets() {
     h.request(
         "claim",
@@ -2106,4 +2155,5 @@ final class NativeEconomy {
     return MainActivity.obj("id", id, "name", id);
   }
 }
+
 
