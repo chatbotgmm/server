@@ -68,7 +68,7 @@ final class NativeBattleSheets {
                 "몸통 박치기 · 위력 30",
                 () -> {
                   close.run();
-                  h.battleTurn(MainActivity.obj("action", action));
+                  h.battleTurnFrom(v.battle, MainActivity.obj("action", action));
                 }));
     }
     dialog[0] =
@@ -131,9 +131,9 @@ final class NativeBattleSheets {
                       pick.put("augment", augment);
                     } catch (JSONException ignored) {
                     }
-                  h.battleTurn(MainActivity.obj("choose", pick));
+                  h.battleTurnFrom(v.battle, MainActivity.obj("choose", pick));
                 } else
-                  h.battleTurn(
+                  h.battleTurnFrom(v.battle, 
                       MainActivity.obj("action", MainActivity.obj("kind", "switch", "to", to)));
               }));
     }
@@ -150,7 +150,7 @@ final class NativeBattleSheets {
     LinearLayout body = column(h);
     body.setTag("battle-items-modal");
     AlertDialog[] dialog = {null};
-    if (!v.battle.optString("mode").equals("story")) body.addView(prose(h, "스토리에서 사용할 수 있어요.", 18));
+    if (!v.battle.optString("mode").equals("story") && !NativeRealtime.isBattle(v.battle)) body.addView(prose(h, "스토리에서 사용할 수 있어요.", 18));
     else {
       int limit = v.battle.optInt("itemLimit", 0);
       body.addView(
@@ -164,7 +164,7 @@ final class NativeBattleSheets {
                   + "사용하면 이번 턴 행동이 끝나요.",
               14));
       JSONArray items = h.list(v.battle, "items"), inventory = h.list(v.battle, "inventory");
-      if (inventory.length() == 0) inventory = h.list(h.state, "items");
+      if (inventory.length() == 0 && !NativeRealtime.isBattle(v.battle)) inventory = h.list(h.state, "items");
       for (int i = 0; i < items.length(); i++) {
         JSONObject item = items.optJSONObject(i);
         int count = 0;
@@ -213,10 +213,10 @@ final class NativeBattleSheets {
                                 action.put("target", ids.get(which));
                               } catch (JSONException ignored) {
                               }
-                              h.battleTurn(MainActivity.obj("action", action));
+                              h.battleTurnFrom(v.battle, MainActivity.obj("action", action));
                             })
                         .show();
-                  } else h.battleTurn(MainActivity.obj("action", action));
+                  } else h.battleTurnFrom(v.battle, MainActivity.obj("action", action));
                 }));
       }
     }

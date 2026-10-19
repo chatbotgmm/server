@@ -32,6 +32,8 @@ public class MainActivity extends AppCompatActivity {
   ArrayList<String> expeditionDraft;
   boolean expeditionDirty;
   String storyScene = "harbor", storyFoe = "", lobbyRoom;
+  // realtime-native-v1
+  NativeRealtime realtime;
   JSONObject state = new JSONObject(), battle;
   String screen = "home", pendingAugment = "";
   int chapter = 0, epoch = 0;
@@ -52,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     motionEnabled = !getSharedPreferences("native_display", 0).getBoolean("reduce_motion", false);
     journalTime = new JournalTimeController(this);
     api = new NativeApi(this);
+    realtime = new NativeRealtime(this);
     sound = new NativeSound(this);
     art = new NativeArt(this, api);
     font = Typeface.createFromAsset(getAssets(), "native/Jua-Regular.ttf");
@@ -163,6 +166,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void stateUpdated() {
+    if (realtime != null) realtime.recover();
     NativeAlerts.schedule(this, me());
     if (guide != null) guide.onStateUpdated();
   }
@@ -311,6 +315,9 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void refreshProgress(String current) {
+    if (NativeRealtime.isBattle(battle) || current.equals("realtimeQueue") || current.equals("realtimePrepare") || current.equals("realtimeAccept")) {
+      realtime.refresh(); return;
+    }
     if (!current.equals("battle")) {
       load(current);
       return;
@@ -1141,6 +1148,10 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void startFight(String mode, String stage) {
+    if (mode.equals("normal") || mode.equals("rank")) {
+      realtime.begin(mode);
+      return;
+    }
     pendingAugment = "";
     JSONObject p = obj("mode", mode);
     if (mode.equals("practice")) {
@@ -1183,7 +1194,13 @@ public class MainActivity extends AppCompatActivity {
         });
   }
 
+  void battleTurnFrom(JSONObject shown, JSONObject event) {
+    if (NativeRealtime.isBattle(shown)) realtime.submit(shown, event);
+    else battleTurn(event);
+  }
+
   void battleTurn(JSONObject event) {
+    if (NativeRealtime.isBattle(battle)) { realtime.submit(battle, event); return; }
     if (battle == null) return;
     final String requestedSession = battle.optString("session");
     final int requestedEpoch = epoch;
@@ -1362,6 +1379,9 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void back() {
+    for (int i=0;i<root.getChildCount();i++)
+      if(root.getChildAt(i) instanceof BattleView && ((BattleView)root.getChildAt(i)).backInPane()) return;
+    if (realtime != null && realtime.back()) return;
     if (busy) return;
     if (screen.equals("expedition") && expeditionDirty && expeditionDraft != null) {
       request(
@@ -1432,12 +1452,14 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onResume() {
     super.onResume();
+    if (realtime != null) realtime.resume();
     motionResumed = true;
     journalTime.resume();
   }
 
   @Override
   protected void onPause() {
+    if (realtime != null) realtime.pause();
     motionResumed = false;
     journalTime.pause();
     super.onPause();
@@ -1459,6 +1481,7 @@ public class MainActivity extends AppCompatActivity {
 
   @Override
   protected void onDestroy() {
+    if (realtime != null) realtime.close();
     super.onDestroy();
     motionResumed = false;
     if (journalTime != null) journalTime.close();

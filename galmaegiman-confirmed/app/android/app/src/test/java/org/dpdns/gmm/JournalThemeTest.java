@@ -78,7 +78,9 @@ public class JournalThemeTest {
         assertTrue("밝은 기록지 면 확보", luminance(center) >= .72);
         assertTrue("종이 위 본문 대비 확보", contrast(JournalTheme.INK, center) >= 4.5);
         assertTrue("보조 설명도 종이 재질 위에서 읽을 수 있음", contrast(JournalTheme.MUTED, center) >= 4.5);
-        assertTrue("목재 프레임도 실제로 표시", colorCount(bitmap, JournalTheme.WOOD) > 0);
+        if (!JournalParchment.ready())
+          assertTrue("리소스 미준비 시 조용한 경계선 fallback 유지",
+              nearColorCount(bitmap, JournalTheme.LINE) > 20);
         bitmap.recycle();
       }
     }
@@ -156,6 +158,8 @@ public class JournalThemeTest {
     assertEquals(JournalTheme.TEAL, button.getCurrentTextColor());
     button.setEnabled(false);
     assertEquals(JournalTheme.MUTED, button.getCurrentTextColor());
+    assertTrue("Disabled control text remains readable",
+        contrast(button.getCurrentTextColor(), JournalTheme.DISABLED) >= 4.5);
     button.setSelected(false);
     button.setEnabled(true);
     assertEquals(JournalTheme.WHITE, button.getCurrentTextColor());
@@ -181,20 +185,20 @@ public class JournalThemeTest {
   }
 
   @Test
-  public void canvasAndAndroidResourceTokensMatchApprovedCaptainJournalPalette() {
+  public void canvasAndAndroidResourceTokensMatchApprovedHarborPalette() {
     MainActivity host = Robolectric.buildActivity(MainActivity.class).get();
     for (int[] entry :
         new int[][] {
-          {R.color.journal_paper, JournalTheme.PAPER, 0xfff5efdc},
-          {R.color.journal_ink, JournalTheme.INK, 0xff292d2a},
-          // 실제 종이 섬유 위에서도 작은 보조 설명 대비 4.5를 확보한 C 보조 잉크.
-          {R.color.journal_muted_ink, JournalTheme.MUTED, 0xff58635d},
-          {R.color.journal_wood, JournalTheme.WOOD, 0xff34261f},
-          {R.color.journal_brass, JournalTheme.BRASS, 0xffb68b45},
-          {R.color.journal_primary, JournalTheme.PRIMARY, 0xff245b61},
+          {R.color.journal_paper, JournalTheme.PAPER, 0xfff3e9d3},
+          {R.color.journal_ink, JournalTheme.INK, 0xff20343a},
+          // Supporting ink also exceeds 4.5:1 on the disabled surface.
+          {R.color.journal_muted_ink, JournalTheme.MUTED, 0xff465860},
+          {R.color.journal_wood, JournalTheme.WOOD, 0xff153f50},
+          {R.color.journal_brass, JournalTheme.BRASS, 0xffbc9555},
+          {R.color.journal_primary, JournalTheme.PRIMARY, 0xff153f50},
           {R.color.journal_primary_text, JournalTheme.WHITE, 0xffffffff},
-          {R.color.journal_positive_info, JournalTheme.POSITIVE_INFO, 0xff3e7865},
-          {R.color.journal_negative_info, JournalTheme.NEGATIVE_INFO, 0xffa44136}
+          {R.color.journal_positive_info, JournalTheme.POSITIVE_INFO, 0xff326b71},
+          {R.color.journal_negative_info, JournalTheme.NEGATIVE_INFO, 0xffa84336}
         }) {
       assertEquals("승인 색상은 Canvas에도 동일 적용", entry[2], entry[1]);
       assertEquals("View 리소스와 Canvas 토큰을 함께 유지", entry[1], host.getColor(entry[0]));
@@ -216,12 +220,15 @@ public class JournalThemeTest {
         assertEquals("장식 그리기는 상위 Canvas 클립을 보존", saves, canvas.getSaveCount());
       }
       assertTrue("종이 섬유·지도 장식은 프레임마다 바뀌지 않음", first.sameAs(second));
-      assertTrue("이중 프레임에 황동선이 실제 존재", nearColorCount(first, JournalTheme.BRASS) > 50);
-      int topSeamPixel = (int) Math.floor(bounds.top + 3.1f * density);
-      assertEquals(
-          "황동선의 핵심은 픽셀 경계에 분산되지 않음 · density=" + density,
-          JournalTheme.BRASS,
-          first.getPixel(width / 2, topSeamPixel));
+      if (!JournalParchment.ready()) {
+        assertTrue("기존 fallback의 황동선 유지",
+            nearColorCount(first, JournalTheme.BRASS) > 50);
+        int topSeamPixel = (int) Math.floor(bounds.top + 2f * density);
+        assertEquals(
+            "fallback 황동선 픽셀 정렬 · density=" + density,
+            JournalTheme.BRASS,
+            first.getPixel((int) (bounds.left + 20 * density), topSeamPixel));
+      }
       for (int y = 0; y < height; y++)
         for (int x = 0; x < width; x++) {
           int pixel = first.getPixel(x, y);
@@ -240,8 +247,9 @@ public class JournalThemeTest {
         assertTrue("종이 섬유 위에서도 양피지 중앙 본문 대비 유지", contrast(JournalTheme.INK, pixel) > 10);
       }
       assertTrue("본문 중앙에는 읽기를 방해하는 거친 무늬가 없음", lightest - darkest <= .10);
-      // 위쪽 안쪽 지도선과 바깥 목재의 사이에 밝은 종이·황동이 모두 남는다.
-      assertTrue("황동선 바깥에는 목재 받침도 구별되어야 함", colorCount(first, JournalTheme.WOOD) > 0);
+      if (!JournalParchment.ready())
+        assertTrue("fallback도 얇은 정보 면 경계선을 유지",
+            nearColorCount(first, JournalTheme.LINE) > 20);
       first.recycle();
       second.recycle();
     }

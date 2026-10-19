@@ -154,15 +154,37 @@ suite('네이티브 게임 기능 복원 API (격리 DB)',()=>{
     }finally{await app.close();}
   });
 
-  it('네이티브 랭크 소개와 나가기 보상은 선반영된 패배 점수를 중복 차감하지 않는다',async()=>{
+  it('네이티브 AI 랭크를 차단하고 기존 세션을 추가 정산 없이 해제한다',async()=>{
     try{
-      for(const id of ['D1','T1','E1'])await own(id);await game.webSetBattleTeam(playerId,['D1','T1','E1']);
-      await db.player.update({where:{id:playerId},data:{rankPoint:1200,nickname:'내 수비대'}});
-      const enemy=await db.player.create({data:{identity:'native-parity-opponent',nickname:'상대 수비대',battleTeam:'D1,T1,E1',rankPoint:1200}});
-      const b=await post('battle/start',{mode:'rank'});expect(b.matchInfo).toMatchObject({mineName:'내 수비대',foeName:enemy.nickname,bot:false,pointBefore:1200,pointAfterStart:1200-content.economy.pvp.lose});
-      const command={session:b.session,revision:b.revision,leave:true};const result=await post('battle/turn',command);
-      expect(result.result).toMatchObject({left:true,won:false,mode:'rank',point:1200-content.economy.pvp.lose,change:-content.economy.pvp.lose,losses:1});
-      await post('battle/turn',command);expect((await game.webPvp(playerId)).me).toMatchObject({point:1200-content.economy.pvp.lose,losses:1});
+      for(const id of ['D1','T1','E1'])await own(id);
+      await game.webSetBattleTeam(playerId,['D1','T1','E1']);
+      await db.player.update({where:{id:playerId},data:{rankPoint:1200}});
+      const stats=async()=>{const p=await db.player.findUniqueOrThrow({where:{id:playerId}});return [p.rankPoint,p.rankWins,p.rankLosses];};
+      const raw=(path:string,payload:object)=>app.inject({method:'POST',url:`/my/api/native/${path}`,headers,payload});
+      const before=await stats();
+      expect((await raw('battle/start',{mode:'rank'})).statusCode).toBe(400);
+      expect(await stats()).toEqual(before);
+      await db.player.create({data:{identity:'native-parity-opponent',nickname:'상대 수비대',battleTeam:'D1,T1,E1',rankPoint:1200}});
+      const rejected=await raw('battle/start',{mode:'rank'});
+      expect(rejected.statusCode).toBe(400);expect(rejected.json().error).toContain('실시간 유저 랭크전');
+      expect(await stats()).toEqual(before);
+      // Test-only bypass simulates an already pre-debited legacy session.
+      const oldSession=async()=>{
+        const guard=vi.spyOn(game,'assertLegacyPvpAllowed').mockImplementation(()=>{});
+        try{return await post('battle/start',{mode:'rank'});}finally{guard.mockRestore();}
+      };
+      await oldSession();const debited=await stats();
+      expect(debited[0]).toBe(before[0]-content.economy.pvp.lose);
+      const current=await get('battle/current');
+      expect(current.session).toBeNull();expect(current.notice).toContain('실시간 유저 랭크전');
+      expect(await stats()).toEqual(debited);
+      const old=await oldSession(),secondDebit=await stats();
+      const stopped=await raw('battle/turn',{session:old.session,revision:old.revision,leave:true});
+      expect(stopped.statusCode).toBe(400);expect(stopped.json().error).toContain('실시간 유저 랭크전');
+      expect((await get('battle/current')).session).toBeNull();expect(await stats()).toEqual(secondDebit);
+      const normal=await post('battle/start',{mode:'normal'});
+      await post('battle/turn',{session:normal.session,revision:normal.revision,leave:true});
+      expect(await stats()).toEqual(secondDebit);
     }finally{await app.close();}
   });
 });

@@ -46,7 +46,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
       };
   final Map<String, Bitmap> visibleArt = new HashMap<>();
   final Map<String, Rect> visibleBounds = new HashMap<>();
-  static final String[] NAMES = {"탐험", "뽑기", "수비대", "조합", "상점"};
+  static final String[] NAMES = {"탐험", "뽑기", "방범대", "조합", "상점"};
   static final String[] IDS = {"expedition", "draw", "collection", "craft", "shop"};
   static final String[] ICONS = {"mode-camp", "u-draw", "mode-normal", "u-emblem", "u-shop"};
   final RectF[] boxes = new RectF[12];

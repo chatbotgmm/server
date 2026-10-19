@@ -8,7 +8,8 @@ import android.widget.*;
 import java.util.*;
 import org.json.*;
 
-/** 웹의 전체 화면 증강체 선택판: 비교·안내·3장·개별 재추첨·선택 확인을 유지한다. */
+/** Fixed native equipment desk: direct effects, selection and authoritative deadline. */
+// augment-no-scroll-v1
 final class NativeAugmentView extends LinearLayout {
   final BattleView battleView;
   final MainActivity h;
@@ -22,8 +23,6 @@ final class NativeAugmentView extends LinearLayout {
   final ArrayList<TextView> names = new ArrayList<>();
   final TextView title, compare, hint, timerRule;
   final long deadline, clockOffset;
-  AlertDialog effectDialog;
-  TextView effectTimer;
   boolean refreshing;
   final Runnable tick =
       new Runnable() {
@@ -37,13 +36,20 @@ final class NativeAugmentView extends LinearLayout {
                   + " · "
                   + ((remaining + 999) / 1000)
                   + "초");
+          if (remaining <= 0) {
+            confirm.setEnabled(false);
+            confirm.setText("결과 확인 중");
+            for (View pick : picks) pick.setEnabled(false);
+            for (Button reroll : rerolls) reroll.setEnabled(false);
+          }
           boolean urgent = remaining <= 10000;
           title.setTextColor(urgent ? NativeBattleLog.DAMAGE : JournalTheme.INK);
           timerRule.setTextColor(urgent ? NativeBattleLog.DAMAGE : JournalTheme.MUTED);
           timerRule.setTypeface(h.prose, urgent ? Typeface.BOLD : Typeface.NORMAL);
-          if (effectTimer != null) {
-            effectTimer.setText(((remaining + 999) / 1000) + "초 후 자동 선택");
-            effectTimer.setTextColor(urgent ? NativeBattleLog.DAMAGE : JournalTheme.MUTED);
+          if (remaining <= 0 && NativeRealtime.isBattle(battleView.battle)) {
+            h.realtime.refresh();
+            postDelayed(this, 1000);
+            return;
           }
           if (remaining <= 0 && !h.busy && !refreshing) {
             refreshing = true;
@@ -89,13 +95,16 @@ final class NativeAugmentView extends LinearLayout {
       valid |= offers.optJSONObject(i).optString("id").equals(selected);
     if (!valid) selected = "";
     setOrientation(VERTICAL);
-    setBackground(new GamePaperDrawable(h, JournalTheme.TEAL));
+    setBackground(new AppSkin.Place("training"));
     setPadding(
         h.dp(large ? 44 : 20) + h.root.getPaddingLeft(),
         h.dp(8) + h.root.getPaddingTop(),
         h.dp(large ? 44 : 20) + h.root.getPaddingRight(),
         h.dp(10) + h.root.getPaddingBottom());
-    title = h.text("◆ 전투 증강체 ◆", large ? 28 : 22);
+    title = h.text("증강체 선택", large ? 24 : 19);
+    title.setTextSize(large ? 24 : 19);
+    title.setPadding(0, 0, 0, h.dp(3));
+    title.setIncludeFontPadding(false);
     title.setTypeface(h.headline);
     title.setGravity(Gravity.CENTER);
     title.setTextColor(JournalTheme.INK);
@@ -105,7 +114,7 @@ final class NativeAugmentView extends LinearLayout {
     timerRule.setTextColor(JournalTheme.MUTED);
     timerRule.setGravity(Gravity.CENTER);
     timerRule.setPadding(0, 0, 0, h.dp(3));
-    addView(timerRule, new LayoutParams(-1, -2));
+    // Keep deadline logic without a visible explanation panel.
     LinearLayout versus = k.row();
     versus.setBackground(new GamePaperDrawable(h));
     for (int side = 0; side < 3; side++) {
@@ -142,7 +151,7 @@ final class NativeAugmentView extends LinearLayout {
     }
     compare.setText(comparison);
     versus.addView(compare, 1, new LayoutParams(0, -1, 1.4f));
-    addView(versus, new LayoutParams(-1, h.dp(large ? 46 : 38)));
+    // Matchup panel omitted on the selection screen.
     String help = view.battle.optInt("turn") == 1 ? view.battle.optString("hint") : "";
     hint = k.notice(help);
     hint.setTextColor(JournalTheme.TEAL);
@@ -158,7 +167,7 @@ final class NativeAugmentView extends LinearLayout {
                 .setMessage(help)
                 .setPositiveButton("닫기", null)
                 .show());
-    if (!help.isEmpty()) addView(hint, new LayoutParams(-1, -2));
+    // Long guidance omitted on the selection screen.
     cards = k.row();
     cards.setGravity(Gravity.TOP);
     LayoutParams cp = new LayoutParams(-1, 0, 1);
@@ -168,11 +177,12 @@ final class NativeAugmentView extends LinearLayout {
     confirm = h.button("증강체 선택", this::submit);
     confirm.setBackground(new GameButtonDrawable(h, JournalTheme.PRIMARY));
     confirm.setTextColor(JournalTheme.controlText(JournalTheme.PRIMARY));
-    confirm.setTextSize(large ? 22 : 18);
+    confirm.setTextSize(large ? 18 : 16);
+    confirm.setMinHeight(h.dp(48));
+    confirm.setMinimumHeight(h.dp(48));
+    confirm.setPadding(h.dp(8), h.dp(3), h.dp(8), h.dp(3));
     footer = k.row();
-    LayoutParams foot = new LayoutParams(-1, h.dp(large ? 56 : 48));
-    foot.leftMargin = h.dp(large ? 140 : 100);
-    foot.rightMargin = foot.leftMargin;
+    LayoutParams foot = new LayoutParams(-1, h.dp(48));
     addView(footer, foot);
     footer.addView(confirm, new LayoutParams(0, -1, 2));
     if (offers.length() == 0) showSwitch();
@@ -188,51 +198,51 @@ final class NativeAugmentView extends LinearLayout {
   @Override
   protected void onDetachedFromWindow() {
     removeCallbacks(tick);
-    if (effectDialog != null) effectDialog.dismiss();
     super.onDetachedFromWindow();
   }
 
-  boolean cramped() {
-    float density = h.getResources().getDisplayMetrics().density;
-    float height = h.root.getHeight() / density;
-    if (height <= 0) height = h.getResources().getConfiguration().screenHeightDp;
-    return !large && (height < 400 || h.getResources().getConfiguration().fontScale >= 1.15f);
-  }
-
-  void explain(JSONObject augment) {
-    if (effectDialog != null) effectDialog.dismiss();
-    LinearLayout body = k.column();
-    body.setPadding(h.dp(12), h.dp(6), h.dp(12), h.dp(6));
-    TextView desc = NativeBattleSheets.prose(h, augment.optString("desc"), 18);
-    body.addView(desc);
-    LinearLayout header = k.column();
-    header.setPadding(h.dp(12), h.dp(4), h.dp(12), h.dp(4));
-    TextView kind = h.text(kindName(kind(augment.optString("id"))), 15);
-    kind.setTextColor(color(kind(augment.optString("id"))));
-    header.addView(kind);
-    if (deadline > 0) {
-      effectTimer = NativeBattleSheets.prose(h, "", 15);
-      long remaining = Math.max(0, deadline - (System.currentTimeMillis() + clockOffset));
-      effectTimer.setText(((remaining + 999) / 1000) + "초 후 자동 선택");
-      header.addView(effectTimer);
+  static String coreEffect(JSONObject augment) {
+    String template;
+    switch (augment.optString("id")) {
+      case "reverse": template = "이번 전투: 내 공격 상성\n강함 ↔ 약함"; break;
+      case "weakguard": template = "받는 강한 상성 피해\n→ 보통 피해"; break;
+      case "focus": template = "강한 상성 공격 배율\n×{value}"; break;
+      case "neutral": template = "{turns}턴 동안\n양쪽 모든 상성 ×1.0"; break;
+      case "camo": template = "내 선두 속성 변경\n→ 상대에게 강한 속성"; break;
+      case "dual": template = "기본기·역할 공격에\n상대 약점 속성 추가"; break;
+      case "counter": template = "약한 상성 공격을 맞고 생존 시\n위력 {power} 반격"; break;
+      case "learn": template = "동일 속성 피격마다\n해당 피해 -{step}% · 최대 -{max}%"; break;
+      case "first": template = "다음 기술에\n선공 우선권"; break;
+      case "bulwark": template = "내 선두 받는 피해\n-{pct}% · {turns}턴"; break;
+      case "firstaid": template = "쓰러지지 않은 아군 모두\n체력 {pct}% 회복"; break;
+      case "freeswitch": template = "이번 전투:\n교체 시 턴 소모 없음"; break;
+      case "lastone": template = "아군이 하나만 남으면\n공격·방어·속도 +{pct}%"; break;
+      case "strip": template = "상대 선두 강화 능력치·보호막 제거\n공격 -{pct}% · {turns}턴"; break;
+      case "rustle": template = "상대 선두 수면 1턴\n상태 이상 면역 제외"; break;
+      case "peanut": template = "아군 갈매미맨 공격 +{atk}%\n대신 받는 피해 +{taken}%"; break;
+      case "sharp": template = "아군 급소 확률\n+{pct}%"; break;
+      case "swift": template = "아군 속도\n+{pct}%"; break;
+      case "thick": template = "아군 물리·마법 방어\n+{pct}%"; break;
+      case "overtime": template = "아군 물리·마법 공격\n+{pct}%"; break;
+      case "drain": template = "내가 준 피해의\n{pct}%만큼 체력 회복"; break;
+      case "thorns": template = "나를 때린 상대에게\n받은 피해의 {pct}% 반사"; break;
+      case "pierce": template = "내 공격 시\n상대 방어 {pct}% 무시"; break;
+      case "lunch": template = "매 턴 종료 시\n내 선두 체력 {pct}% 회복"; break;
+      default: return augment.optString("desc");
     }
-    AlertDialog shown =
-        new GameDialog(h)
-            .setMaxWidthDp(680)
-            .setTitle(augment.optString("name"))
-            .setFixedHeader(header)
-            .setScrollBody(body)
-            .setNegativeButton("돌아가기", null)
-            .show();
-    effectDialog = shown;
-    shown.setOnDismissListener(
-        d -> {
-          if (h.visibleDialog == shown) h.visibleDialog = null;
-          if (effectDialog == shown) {
-            effectDialog = null;
-            effectTimer = null;
-          }
-        });
+    JSONObject parameters = augment.optJSONObject("p");
+    java.util.regex.Matcher fields =
+        java.util.regex.Pattern.compile("\\{([a-z]+)\\}").matcher(template);
+    StringBuffer result = new StringBuffer();
+    while (fields.find()) {
+      String key = fields.group(1);
+      if (parameters == null || !parameters.has(key) || parameters.isNull(key))
+        return augment.optString("desc");
+      fields.appendReplacement(result,
+          java.util.regex.Matcher.quoteReplacement(parameters.optString(key)));
+    }
+    fields.appendTail(result);
+    return result.toString();
   }
 
   String mult(JSONObject from, JSONObject to) {
@@ -283,9 +293,8 @@ final class NativeAugmentView extends LinearLayout {
     column.addView(surface, new LayoutParams(-1, 0, 1));
     LinearLayout content = k.column();
     content.setGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
-    content.setPadding(
-        h.dp(large ? 12 : 9), h.dp(large ? 20 : 5), h.dp(large ? 12 : 9), h.dp(large ? 20 : 5));
-    surface.addView(content, new FrameLayout.LayoutParams(-1, -2));
+    content.setPadding(h.dp(10), h.dp(8), h.dp(10), h.dp(8));
+    surface.addView(content, new FrameLayout.LayoutParams(-1, -1));
     picks.add(content);
     content.setTag(surface);
     return content;
@@ -301,7 +310,7 @@ final class NativeAugmentView extends LinearLayout {
     rerolls.clear();
     names.clear();
     title.setText(
-        battleView.side(0).optBoolean("needSwitch") ? "① 증강체 선택 → ② 다음 출전" : "◆ 전투 증강체 ◆");
+        battleView.side(0).optBoolean("needSwitch") ? "① 증강체 · ② 다음 출전" : "증강체 선택");
     boolean disadvantaged =
         mult(battleView.active(0), battleView.active(1)).contains("불리")
             || mult(battleView.active(1), battleView.active(0)).contains("유리");
@@ -316,8 +325,8 @@ final class NativeAugmentView extends LinearLayout {
               "/duel/icons/"
                   + (JournalIcons.supports(id) ? id : aug.optString("icon", "u-gift"))
                   + ".png",
-              large ? 56 : 24,
-              large ? 56 : 24);
+              large ? 56 : 40,
+              large ? 56 : 40);
       android.graphics.drawable.GradientDrawable ring =
           new android.graphics.drawable.GradientDrawable();
       ring.setShape(android.graphics.drawable.GradientDrawable.OVAL);
@@ -329,7 +338,10 @@ final class NativeAugmentView extends LinearLayout {
       LinearLayout heading = k.row();
       heading.setGravity(Gravity.CENTER_VERTICAL);
       heading.addView(icon);
-      TextView name = h.text(aug.optString("name"), large ? 27 : 20);
+      TextView name = h.text(aug.optString("name"), large ? 23 : 18);
+      name.setTextSize(large ? 23 : 18);
+      name.setMaxLines(2);
+      name.setEllipsize(android.text.TextUtils.TruncateAt.END);
       name.setTypeface(h.headline);
       name.setGravity(Gravity.CENTER);
       name.setPadding(h.dp(3), 0, 0, 0);
@@ -346,24 +358,24 @@ final class NativeAugmentView extends LinearLayout {
       badge.setBackground(new GamePaperDrawable(h));
       badge.setPadding(h.dp(10), h.dp(2), h.dp(10), h.dp(2));
       content.addView(badge, new LayoutParams(-2, -2));
-      TextView desc = k.note(aug.optString("desc"));
+      TextView desc = k.note(coreEffect(aug));
       desc.setTextSize(large ? 19 : 16);
       desc.setPadding(0, h.dp(3), 0, 0);
       desc.setIncludeFontPadding(false);
       desc.setTextColor(JournalTheme.MUTED);
       desc.setGravity(Gravity.CENTER);
-      desc.setMaxLines(large ? 3 : 2);
-      desc.setEllipsize(android.text.TextUtils.TruncateAt.END);
-      if (!cramped()) content.addView(desc);
-      Button details = k.action(null, "효과", () -> explain(aug));
-      details.setTextSize(large ? 16 : 14);
-      details.setContentDescription(aug.optString("name") + " · 전체 효과 보기");
-      content.addView(details, new LayoutParams(-1, h.dp(48)));
+      desc.setTextSize(large ? 18 : 15);
+      desc.setTextColor(JournalTheme.INK);
+      desc.setMaxLines(Integer.MAX_VALUE);
+      desc.setEllipsize(null);
+      desc.setGravity(Gravity.CENTER);
+      desc.setTag("augment-core-effect");
+      content.addView(desc, new LayoutParams(-1, 0, 1));
       content.setContentDescription(
           aug.optString("name") + " · " + kindName(type) + " · " + aug.optString("desc"));
       content.setOnClickListener(
           v -> {
-            if (h.busy) return;
+            if (!canChoose()) return;
             h.sound.click();
             selected = id;
             h.pendingAugment = id;
@@ -375,19 +387,26 @@ final class NativeAugmentView extends LinearLayout {
               null,
               aug.optBoolean("rerolled") ? "재추첨 완료" : "다시 뽑기",
               () -> {
+                if (!canChoose()) return;
                 if (id.equals(selected)) {
                   selected = "";
                   h.pendingAugment = "";
                 }
-                h.battleTurn(MainActivity.obj("reroll", ix));
+                h.battleTurnFrom(battleView.battle, MainActivity.obj("reroll", ix));
               });
-      reroll.setTextSize(large ? 16 : 13);
+      reroll.setTextSize(large ? 14 : 13);
+      reroll.setBackgroundColor(Color.TRANSPARENT);
+      reroll.setTextColor(JournalTheme.TEAL);
+      reroll.setPadding(h.dp(4), 0, h.dp(4), 0);
       reroll.setMinHeight(h.dp(48));
       reroll.setMinimumHeight(h.dp(48));
       reroll.setEnabled(!aug.optBoolean("rerolled"));
       LayoutParams rp = new LayoutParams(-1, h.dp(48));
       rp.topMargin = h.dp(4);
-      column.addView(reroll, rp);
+      LinearLayout actions = k.row();
+      actions.addView(reroll, new LayoutParams(0, -1, 2));
+
+      column.addView(actions, rp);
       rerolls.add(reroll);
     }
     updateSelection();
@@ -402,7 +421,7 @@ final class NativeAugmentView extends LinearLayout {
       picks.get(i).setSelected(on);
       names.get(i).setText((on ? "✓ " : "") + aug.optString("name"));
     }
-    confirm.setEnabled(!selected.isEmpty());
+    confirm.setEnabled(!selected.isEmpty() && canChoose());
     String name = "";
     for (int i = 0; i < offers.length(); i++)
       if (offers.optJSONObject(i).optString("id").equals(selected))
@@ -410,7 +429,9 @@ final class NativeAugmentView extends LinearLayout {
     confirm.setText(
         selected.isEmpty()
             ? "증강체 선택"
-            : battleView.side(0).optBoolean("needSwitch") ? "출전 선택" : "선택 확정");
+            : battleView.side(0).optBoolean("needSwitch")
+                ? name + " · 다음 출전 선택"
+                : name + " · 선택 확정");
     confirm.setContentDescription(name.isEmpty() ? "증강체 선택" : name + " 선택 확정");
   }
 
@@ -456,19 +477,19 @@ final class NativeAugmentView extends LinearLayout {
           "체력 " + f.optInt("hp") + " / " + f.optInt("maxHp"),
           f.optInt("hp"),
           f.optInt("maxHp"),
-          0xff51c98b);
+          JournalTheme.PRIMARY);
       card.setOnClickListener(
           v -> {
-            if (h.busy) return;
+            if (!canChoose()) return;
             switchTo = to;
             for (View p : picks)
               ((View) p.getTag()).setBackground(new CardFrame(0xff927017, p == card));
-            confirm.setText("출전 확정");
+            confirm.setText(f.optString("name") + " · 출전 확정");
             confirm.setContentDescription(f.optString("name") + " · 출전 확정");
             confirm.setEnabled(true);
           });
     }
-    confirm.setEnabled(switchTo >= 0);
+    confirm.setEnabled(switchTo >= 0 && canChoose());
     confirm.setText("출전 선택");
     if (offers.length() > 0) {
       Button back = k.action(null, "증강체", this::showOffers);
@@ -486,7 +507,13 @@ final class NativeAugmentView extends LinearLayout {
                 : "30초 안에 확정하지 않으면 선택지 중 무작위로 결정돼요.");
   }
 
+  boolean canChoose() {
+    return !h.busy && (deadline <= 0
+        || System.currentTimeMillis() + clockOffset < deadline);
+  }
+
   void submit() {
+    if (!canChoose() || (switching ? switchTo < 0 : selected.isEmpty())) return;
     if (!switching && battleView.side(0).optBoolean("needSwitch")) {
       showSwitch();
       return;
@@ -497,7 +524,7 @@ final class NativeAugmentView extends LinearLayout {
       if (switching) choice.put("switchTo", switchTo);
     } catch (JSONException ignored) {
     }
-    h.battleTurn(MainActivity.obj("choose", choice));
+    h.battleTurnFrom(battleView.battle, MainActivity.obj("choose", choice));
   }
 
   final class CardFrame extends Drawable {
@@ -525,7 +552,7 @@ final class NativeAugmentView extends LinearLayout {
         r.bottom -= h.dp(4);
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(h.dp(2));
-        p.setColor(JournalTheme.TEAL);
+        p.setColor(JournalTheme.BRASS);
         c.drawRoundRect(r, h.dp(4), h.dp(4), p);
         p.setStyle(Paint.Style.FILL);
       }

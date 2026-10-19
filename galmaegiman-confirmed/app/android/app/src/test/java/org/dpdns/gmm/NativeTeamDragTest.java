@@ -279,7 +279,7 @@ public class NativeTeamDragTest {
   }
 
   @Test
-  public void gripTapOffersAccessibleOrderMenuAndCardTapAloneRemovesMember() {
+  public void gripTapOffersAccessibleOrderMenuAndCardTapSelectsInlineReplacement() {
     try (ActivityController<MainActivity> controller = flow.start()) {
       MainActivity host = controller.get();
       StoredApi api = prepare(host, false);
@@ -303,7 +303,34 @@ public class NativeTeamDragTest {
       point = box(host, last.findViewWithTag("lineup-portrait"));
       touch(host, MotionEvent.ACTION_DOWN, point.exactCenterX(), point.exactCenterY());
       touch(host, MotionEvent.ACTION_UP, point.exactCenterX(), point.exactCenterY());
-      assertEquals(List.of("same-species-3", "same-species-1"), host.menus.teamDraft);
+      List<String> reordered = List.of("same-species-3", "same-species-1", "same-species-2");
+      assertEquals("Card tap selects a slot without removing anyone", reordered, host.menus.teamDraft);
+      assertTrue(api.submitted.isEmpty());
+      layout(host);
+      View selectedSlot = host.root.findViewWithTag("lineup-slot-2");
+      assertTrue("Selected slot is exposed to accessibility", selectedSlot.isSelected());
+      ViewGroup grid = host.root.findViewWithTag("team-inline-candidates");
+      assertNotNull("Replacement candidates are on the same screen", grid);
+      assertFalse("Old order dialog is closed", dialog.isShowing());
+      View firstCandidate = ((ViewGroup) grid.getChildAt(0)).getChildAt(0);
+      NativeNoScrollReviewTest.assertFullyVisible(firstCandidate, host.root);
+      assertTrue(firstCandidate.getContentDescription().toString().contains("3번에 배치"));
+      firstCandidate.performClick();
+      assertEquals("Selecting an existing member swaps slots without duplicates",
+          List.of("same-species-3", "same-species-2", "same-species-1"), host.menus.teamDraft);
+      assertEquals(3, new HashSet<>(host.menus.teamDraft).size());
+      assertTrue("Inline replacement stays a draft until save", api.submitted.isEmpty());
+      layout(host);
+      Button remove = null;
+      for (View child : new NativeDialogLayoutReviewTest().descendants(host.root))
+        if (child instanceof Button && ((Button) child).getText().toString().equals("비우기"))
+          remove = (Button) child;
+      assertNotNull("Removal is an explicit action", remove);
+      NativeNoScrollReviewTest.assertFullyVisible(remove, host.root);
+      remove.performClick();
+      assertEquals(List.of("same-species-3", "same-species-2"), host.menus.teamDraft);
+      assertEquals("Confirmed team remains untouched", List.of("same-species-1", "same-species-2", "same-species-3"),
+          host.menus.teamSavedIds);
       assertTrue(api.submitted.isEmpty());
     }
   }

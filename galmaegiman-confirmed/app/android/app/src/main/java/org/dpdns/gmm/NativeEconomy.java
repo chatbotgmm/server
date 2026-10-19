@@ -35,6 +35,7 @@ final class NativeEconomy {
 
   void draw() {
     h.base("뽑기", "draw");
+    AppSkin.apply(h, "reception");
     m.fetch(
         "draw",
         r -> {
@@ -231,6 +232,7 @@ final class NativeEconomy {
     acquisitionFlow = drawFlow;
     drawFlow.reopen = () -> reveal(result, next, true);
     h.base("뽑기 결과", "drawResult");
+    AppSkin.apply(h, "reception");
     h.root.addView(
         new NativeReveal(h, result, next, again, drawFlow),
         new android.widget.FrameLayout.LayoutParams(-1, -1));
@@ -255,6 +257,7 @@ final class NativeEconomy {
 
   void craft(boolean mix) {
     h.base("조합", mix ? "mix" : "craft");
+    AppSkin.apply(h, "workshop");
     LinearLayout tabs = k.column();
     k.tabs(tabs, new String[] {"조합식", "재료로 섞기"}, mix ? 1 : 0, i -> craft(i == 1));
     h.page.addView(tabs, h.page.getChildCount() - 1);
@@ -736,6 +739,7 @@ final class NativeEconomy {
       boolean animate) {
     acquisitionFlow = flow;
     h.base("조합 결과", "craftResult");
+    AppSkin.apply(h, "workshop");
     NativeForge overlay =
         new NativeForge(
             h, materials, ownedResult(result), fail, text, () -> h.load(flow.origin), flow);
@@ -757,6 +761,7 @@ final class NativeEconomy {
 
   void shop() {
     h.base("상점", "shop");
+    AppSkin.apply(h, "market");
     m.fetch(
         "me",
         r -> {
@@ -1101,6 +1106,7 @@ final class NativeEconomy {
   void expedition() {
     boolean returning = h.screen.equals("expedition") && h.expeditionDraft != null;
     h.base("탐험대 편성", "expedition");
+    AppSkin.apply(h, "routes");
     JSONObject trip = h.me().optJSONObject("trip");
     if (trip != null) {
       h.expeditionDirty = false;

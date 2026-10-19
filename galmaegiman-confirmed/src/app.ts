@@ -80,7 +80,7 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
   app.get('/battle/battle.js',async(_req,reply)=>sendFile(reply,'text/javascript; charset=utf-8',resolve(battleDir,'battle.js')));
   app.get('/battle/roster.json',async(_req,reply)=>reply.type('application/json; charset=utf-8').header('Cache-Control','public, max-age=300').send(roster));
   registerDuel(app,game.content,{root:options.root??process.cwd(),secret:options.secret});
-  registerMy(app,game,{root:options.root??process.cwd(),secret:options.secret,baseUrl:options.baseUrl,kakao:options.kakaoLogin,fetch:options.fetch,reviewCode:options.reviewCode});
+  registerMy(app,game,{db,root:options.root??process.cwd(),secret:options.secret,baseUrl:options.baseUrl,kakao:options.kakaoLogin,fetch:options.fetch,reviewCode:options.reviewCode});
   // 그림 파일 수정 시각을 주소 뒤에 붙여, 그림을 바꾸면 카카오가 새로 받아 가게 합니다
   const stamps=new Map<string,string>();
   const stamp=(path:string)=>{

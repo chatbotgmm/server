@@ -141,6 +141,35 @@ describe('전투 표시 이벤트',()=>{
       for(let i=0;i<400&&b.phase!=='over';i++)if(b.phase==='choose'){aiChoose(b,0);aiChoose(b,1);}else act(b,[pickAi(b,0),pickAi(b,1)]);
       baseline.push({rng:b.rng,turn:b.turn,phase:b.phase,winner:b.winner,sides:b.sides,log:b.log});
     }
-    expect(createHash('sha256').update(JSON.stringify(baseline)).digest('hex')).toBe('5599e2f51741f8273bbc5cfe866cc0efb407cfc33132f695bf225ab1c618a7ca');
+    expect(createHash('sha256').update(JSON.stringify(baseline)).digest('hex')).toBe('43e30d9998efd680df1600a3e77977b0199a3fc45b2a5c866a999286303ff170');
+  });
+});
+
+describe('강제 교체 증강체 회귀',()=>{
+  it.each(['camo','dual','bulwark'])('%s를 새 선두에게 적용한다',(id)=>{
+    const b=ready([rec('D1','out'),rec('D1','in')]);
+    const s=b.sides[0],out=s.fighters[0],incoming=s.fighters[1];
+    out.hp=0;out.attr='GOLD';incoming.attr='STONE';activeOf(b,1).attr='FIRE';
+    b.phase='choose';s.needSwitch=true;s.offers=[id];
+    const skillsBefore=JSON.stringify(incoming.skills),seq=b.eventSeq;
+    choose(b,0,{augment:id,switchTo:1});
+    const emitted=b.events.filter(e=>e.id>seq);
+    expect(s.active).toBe(1);expect(s.needSwitch).toBe(false);expect(b.phase).toBe('action');
+    expect(s.augs).toContain(id);expect(s.offers).toBeNull();
+    expect(emitted[0]).toMatchObject({kind:'switch',target:{slot:1,key:'in'}});
+    expect(emitted[1]).toMatchObject({kind:'augment',actor:{slot:1,key:'in'}});
+    expect(out.attr).toBe('GOLD');expect(out.extraAttr).toBeUndefined();expect(out.guards).toEqual([]);
+    if(id==='camo')expect(R.typeMult(incoming.attr,'FIRE')).toBe(R.data.multipliers.strong);
+    if(id==='dual')expect(R.typeMult(incoming.extraAttr!,'FIRE')).toBe(R.data.multipliers.strong);
+    if(id==='bulwark')expect(incoming.guards).toEqual([{pct:R.battleAug.get(id)!.p.pct,turns:R.battleAug.get(id)!.p.turns}]);
+    expect(JSON.stringify(incoming.skills)).toBe(skillsBefore);
+  });
+  it('잘못된 선택은 일부 상태도 바꾸지 않는다',()=>{
+    const b=ready([rec('D1','out'),rec('D1','in')]);
+    b.phase='choose';b.sides[0].needSwitch=true;b.sides[0].offers=['camo'];activeOf(b,0).hp=0;
+    const before=JSON.stringify(b);
+    for(const pick of [{augment:'camo'},{augment:'camo',switchTo:0},{augment:'camo',switchTo:99},{augment:'reverse',switchTo:1}]){
+      expect(()=>choose(b,0,pick)).toThrow();expect(JSON.stringify(b)).toBe(before);
+    }
   });
 });

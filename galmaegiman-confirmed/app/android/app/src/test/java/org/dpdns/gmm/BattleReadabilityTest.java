@@ -46,7 +46,7 @@ public class BattleReadabilityTest {
         "reason",
         reason == null ? JSONObject.NULL : reason,
         "preview",
-        MainActivity.obj("attrName", "바다", "attr", "WATER", "category", "mag", "multiplier", 1.5));
+        MainActivity.obj("attrName", "바다", "attr", "SEA", "category", "mag", "multiplier", 1.5));
   }
 
   JSONObject battle() {
@@ -74,7 +74,7 @@ public class BattleReadabilityTest {
             "attr",
             "바다",
             "attrCode",
-            "WATER",
+            "SEA",
             "role",
             "DEFENSE",
             "status",
@@ -122,6 +122,7 @@ public class BattleReadabilityTest {
     a.root.removeAllViews();
     BattleView v = new BattleView(a, battle());
     a.root.addView(v, new FrameLayout.LayoutParams(-1, -1));
+    a.battle=v.battle; a.screen="battle";
     v.pane = "skills";
     v.render();
     measure(a.root, w, h);
@@ -162,12 +163,21 @@ public class BattleReadabilityTest {
         BattleView v = mount(c.get(), inset ? 1006 : 915, inset ? 411 : 412, inset);
         assertEquals(View.GONE, v.logBox.getVisibility());
         View surface = NativeNoScrollReviewTest.skillSurface(c.get(), v);
-        assertEquals(5, cards(surface).size());
+        assertSame("기본 기술은 자동 모달 없이 같은 면",v.controls,surface);
+        assertEquals(4, cards(surface).size());
+        Button combo=findButton(v.controls,"합동기"), back=findButton(v.controls,"뒤로가기");
+        assertNotNull(combo);assertNotNull(back);
+        NativeNoScrollReviewTest.assertFullyVisible(combo,c.get().root);
+        NativeNoScrollReviewTest.assertFullyVisible(back,c.get().root);
+        assertTrue(combo.getHeight()>=48);assertTrue(back.getHeight()>=48);
+        assertNull(c.get().visibleDialog);
         NativeNoScrollReviewTest.assertFixedMain(c.get());
         for (SkillCardView card : cards(surface)) {
           if (surface == v.controls)
             NativeNoScrollReviewTest.assertFullyVisible(card, c.get().root);
-          assertTrue("제목에 카드 전폭 배정", card.title.getWidth() >= card.getWidth() - 20);
+          View icon=((ViewGroup)card.title.getParent()).getChildAt(0);
+          assertTrue("속성 터치는 48dp",icon.getWidth()>=48 && icon.getHeight()>=48);
+          assertTrue("아이콘 외 제목 영역 확보",card.title.getWidth()>=card.getWidth()-68);
           assertNotNull(card.title.getLayout());
           for (int line = 0; line < card.title.getLineCount(); line++)
             assertEquals("기술 이름 생략", 0, card.title.getLayout().getEllipsisCount(line));
@@ -224,7 +234,7 @@ public class BattleReadabilityTest {
   }
 
   @Test
-  public void currentConditionalPowerAndCompleteEffectRemainVisibleWithoutDetailControls()
+  public void conditionalEffectRemainsVisibleWhilePowerFormulaIsHidden()
       throws Exception {
     try (ActivityController<MainActivity> c =
         Robolectric.buildActivity(MainActivity.class).setup().visible()) {
@@ -247,7 +257,9 @@ public class BattleReadabilityTest {
           View.MeasureSpec.makeMeasureSpec(230, View.MeasureSpec.EXACTLY),
           View.MeasureSpec.makeMeasureSpec(600, View.MeasureSpec.AT_MOST));
       card.layout(0, 0, card.getMeasuredWidth(), card.getMeasuredHeight());
-      assertTrue(card.power.getText().toString().contains("위력 57×2"));
+      assertEquals(View.GONE,card.power.getVisibility());
+      assertFalse(labels(card).contains("위력 57"));
+      assertFalse(labels(card).contains("×2"));
       assertTrue(SkillCardView.meta(sk).contains("위력57×2"));
       assertTrue(card.use.getContentDescription().toString().contains("조건 발동"));
       assertFalse(card.effect.getText().toString().contains("조건 발동"));
@@ -375,10 +387,91 @@ public class BattleReadabilityTest {
       assertEquals("방어 25% 관통", card.effect.getText().toString());
       assertEquals(2, card.effect.getMaxLines());
       assertFalse(card.power.getText().toString().contains("×1.5"));
-      assertTrue(card.power.getText().toString().contains("바다"));
-      assertTrue(card.use.getContentDescription().toString().contains("×1.5"));
+      assertEquals(View.GONE,card.power.getVisibility());
+      assertFalse(labels(card).contains("위력"));
+      assertFalse(labels(card).contains("×1.5"));
+      measure(card,230,124);
+      assertNotNull(card.effect.getLayout());
+      for(int line=0;line<card.effect.getLineCount();line++)
+        assertEquals("짧은 서버 요약 생략 금지",0,card.effect.getLayout().getEllipsisCount(line));
+      assertTrue(card.effect.getBottom()+card.content.getTop()<=card.getHeight());
+      assertTrue(card.use.getHeight()>=48);
+      ImageView icon=(ImageView)((ViewGroup)card.title.getParent()).getChildAt(0);
+      assertTrue(icon.getContentDescription().toString().contains("바다"));
+      assertEquals(48,icon.getMeasuredHeight());
       sk.put("summary", "");
       assertEquals(View.GONE, new SkillCardView(v, sk, false).effect.getVisibility());
+    }
+  }
+
+  Button findButton(View root,String text) {
+    if(root instanceof Button && ((Button)root).getText().toString().equals(text)) return (Button)root;
+    if(root instanceof ViewGroup) for(int i=0;i<((ViewGroup)root).getChildCount();i++) {
+      Button found=findButton(((ViewGroup)root).getChildAt(i),text); if(found!=null)return found;
+    }
+    return null;
+  }
+
+  @Test public void rootAttackComboAndBackStayInsideCommandPane() throws Exception {
+    try(ActivityController<MainActivity> c=Robolectric.buildActivity(MainActivity.class).setup().visible()) {
+      BattleView v=mount(c.get(),915,412,false);v.pane="menu";v.render();measure(c.get().root,915,412);
+      for(String text:new String[]{"공격","아이템","교체","도망가기"}) {
+        Button b=findButton(v.controls,text);assertNotNull(b);assertTrue(b.getWidth()>=48 && b.getHeight()>=48);
+        NativeNoScrollReviewTest.assertFullyVisible(b,c.get().root);
+        LinearLayout row=(LinearLayout)b.getParent();
+        assertFalse("아이콘 높이가 달라도 행 기준선으로 버튼을 밀지 않음",row.isBaselineAligned());
+        LinearLayout.LayoutParams lp=(LinearLayout.LayoutParams)b.getLayoutParams();
+        assertTrue("하단 여백까지 행 안에 포함",b.getBottom()+lp.bottomMargin<=row.getHeight());
+      }
+      findButton(v.controls,"공격").performClick();measure(c.get().root,915,412);
+      assertEquals("skills",v.pane);assertEquals(4,cards(v.controls).size());assertNull(c.get().visibleDialog);
+      findButton(v.controls,"합동기").performClick();measure(c.get().root,915,412);
+      assertEquals("combo",v.pane);assertEquals(1,cards(v.controls).size());assertNull(c.get().visibleDialog);
+      assertTrue(v.backInPane());assertEquals("menu",v.pane);
+    }
+  }
+
+  @Test public void timerUsesSameLeaseAndWaitingCanOpenSurrenderConfirmation() throws Exception {
+    try(ActivityController<MainActivity> c=Robolectric.buildActivity(MainActivity.class).setup().visible()) {
+      MainActivity h=c.get();BattleView v=mount(h,915,412,false);NativeRealtime n=h.realtime;
+      v.battle.put("realtime",true).put("phaseId","turn-1").put("canSubmit",true);
+      n.latest=MainActivity.obj("roomId",v.battle.optString("session"),"phaseId","turn-1","canSubmit",true,"deadline",6000);
+      n.serverAtReceive=1000;n.receivedElapsed=android.os.SystemClock.elapsedRealtime();n.resumed=true;n.closed=false;
+      n.attachClock();n.tick.run();assertSame(v.inputTimer,n.clock);
+      assertEquals(View.VISIBLE,n.clock.getVisibility());assertEquals("5",n.clock.getText().toString());
+      v.pane="menu";v.render();v.pane="skills";v.render();
+      assertEquals(6000,n.latest.optLong("deadline"));
+      n.latest.put("mySubmitted",true).put("canSubmit",false);n.tick.run();
+      assertEquals(View.GONE,n.clock.getVisibility());
+      v.battle.put("canSubmit",false);v.pane="menu";v.render();findButton(v.controls,"나가기").performClick();
+      assertEquals("leave",v.pane);assertNotNull(findButton(v.controls,"확인 · 나가기"));
+      assertTrue(findButton(v.controls,"확인 · 나가기").isEnabled());assertNull(h.visibleDialog);
+      n.resumed=false;h.api.ui.removeCallbacks(n.tick);
+    }
+  }
+
+  @Test public void typeModalUsesDefenseOrAttackAndDismissesOnAuthoritativePhaseChange() throws Exception {
+    try(ActivityController<MainActivity> c=Robolectric.buildActivity(MainActivity.class).setup().visible()) {
+      MainActivity h=c.get();BattleView v=mount(h,915,412,false);NativeRealtime n=h.realtime;
+      v.battle.put("realtime",true).put("phaseId","p1").put("canSubmit",true);
+      v.active(0).put("matchup",MainActivity.obj("defense",MainActivity.obj("attr","FIRE","multiplier",0)));
+      n.latest=MainActivity.obj("roomId",v.battle.optString("session"),"phaseId","p1","canSubmit",true,"deadline",6000);
+      n.serverAtReceive=1000;n.receivedElapsed=android.os.SystemClock.elapsedRealtime();
+      BattleTypeInfo.showFighter(v,0);
+      assertNotNull(h.visibleDialog);
+      String defense=labels(h.visibleDialog.getWindow().getDecorView());
+      assertTrue(defense.contains("방어할 때"));assertTrue(defense.contains("무효 · ×0"));
+      assertTrue(defense.contains("5"));
+      h.visibleDialog.dismiss();
+      BattleTypeInfo.show(v,skill("basic","기본 공격",null));
+      assertNotNull(h.visibleDialog);
+      assertTrue(labels(h.visibleDialog.getWindow().getDecorView()).contains("기술로 공격할 때"));
+      android.app.AlertDialog shown=h.visibleDialog;
+      n.latest.put("phaseId","p2");
+      Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(251));
+      assertFalse(shown.isShowing());assertNull(h.visibleDialog);
+      n.latest.put("phaseId","p1");BattleTypeInfo.showFighter(v,0);shown=h.visibleDialog;
+      h.root.removeView(v);assertFalse(shown.isShowing());assertNull(h.visibleDialog);
     }
   }
 

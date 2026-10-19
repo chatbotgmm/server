@@ -6,7 +6,7 @@ import android.view.*;
 import android.widget.*;
 import org.json.*;
 
-/** 기술명·현재 위력·핵심 효과를 읽고 바로 사용하는 간결한 전투 카드. */
+/** 기술명과 핵심 효과만 표시하고 속성 아이콘에서 상성을 확인하는 전투 카드. */
 final class SkillCardView extends FrameLayout {
   final Button use;
   final TextView effect;
@@ -25,23 +25,17 @@ final class SkillCardView extends FrameLayout {
     boolean combo = sk.optString("id").startsWith("combo-");
     String reason = reason(view, sk);
     String name = sk.optString("name");
-    String meta = meta(sk);
+    String meta = categoryMeta(sk);
     use =
         h.button(
             "",
             () -> {
               if (beforeUse != null) beforeUse.run();
-              h.battleTurn(
+              h.battleTurnFrom(view.battle, 
                   MainActivity.obj(
                       "action", MainActivity.obj("kind", "skill", "skillId", sk.optString("id"))));
             });
-    JSONObject preview = sk.optJSONObject("preview");
-    int tint =
-        combo
-            ? JournalTheme.BRASS
-            : MenuKit.attrColor(preview == null ? "" : preview.optString("attr"));
-    boolean primary = combo && reason.isEmpty();
-    use.setBackground(new GameSkillDrawable(h, tint, combo));
+    use.setBackground(new BattleSkin(h, "button-surrender"));
     use.setEnabled(reason.isEmpty());
     use.setContentDescription(
         name
@@ -49,55 +43,47 @@ final class SkillCardView extends FrameLayout {
             + meta
             + " · "
             + sk.optString("desc")
+            + (bonusActive(sk) ? " · 조건 발동" : "")
             + (reason.isEmpty() ? "" : " · 사용 불가: " + reason));
     addView(use, new LayoutParams(-1, -1));
 
     content = new LinearLayout(h);
     content.setOrientation(LinearLayout.VERTICAL);
     content.setPadding(h.dp(8), h.dp(compact ? 5 : 7), h.dp(8), h.dp(compact ? 5 : 6));
-    title = label(h, name, large ? 24 : 19, true);
-    title.setTextColor(primary ? JournalTheme.WHITE : JournalTheme.INK);
-    if (combo) {
-      title.setCompoundDrawables(new ComboEmblem(h), null, null, null);
-      title.setCompoundDrawablePadding(h.dp(6));
-    } else {
-      GameSkillDrawable.Seal seal = new GameSkillDrawable.Seal(h, tint, large ? 38 : 28);
-      title.setCompoundDrawables(seal, null, null, null);
-      title.setCompoundDrawablePadding(h.dp(5));
-      String path = "/duel/icons/" + icon(sk) + ".png";
-      Runnable ready =
-          () -> {
-            android.graphics.Bitmap image = h.art.peek(path);
-            if (image != null) {
-              seal.image(image);
-              title.invalidate();
-            }
-          };
-      if (h.art.get(path, ready) != null) ready.run();
-    }
+    LinearLayout heading = new LinearLayout(h);
+    heading.setGravity(Gravity.CENTER_VERTICAL);
+    String attr = BattleTypeInfo.skillAttr(view, sk);
+    ImageView typeIcon = BattleTypeInfo.icon(h, attr);
+    typeIcon.setContentDescription(BattleTypeInfo.name(h, attr) + " 속성 상성 보기");
+    typeIcon.setFocusable(true);
+    typeIcon.setOnClickListener(v -> BattleTypeInfo.show(view, sk));
+    heading.addView(typeIcon, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+    title = label(h, name, 16, true);
+    title.setTextColor(reason.isEmpty() ? JournalTheme.INK : JournalTheme.MUTED);
+    title.setMaxLines(2);
+    title.setEllipsize(TextUtils.TruncateAt.END);
     title.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
     title.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
-    // 이름과 효과는 카드 전체 폭으로 줄바꿈해 전부 보여 준다.
-    content.addView(title, new LinearLayout.LayoutParams(-1, -2));
-    power = label(h, powerMeta(sk), large ? 18 : 15, true);
-    power.setTextColor(primary ? JournalTheme.PAPER : JournalTheme.INK);
-    power.setText(powerLabel(sk, primary));
-    content.addView(power);
+    heading.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+    content.addView(heading, new LinearLayout.LayoutParams(-1, -2));
+    // Keep the shared field for callers, without displaying power or a damage formula.
+    power = label(h, "", 14, false);
+    power.setVisibility(GONE);
     String brief = conciseEffect(sk);
     if (combo) brief = "전투당 1회" + (brief.isEmpty() ? "" : " · " + brief);
     if (!reason.isEmpty()) brief += (brief.isEmpty() ? "" : " · ") + shortReason(reason);
-    effect = label(h, brief, large ? 17 : 14, false);
+    effect = label(h, brief, 14, false);
     effect.setTextColor(
-        reason.isEmpty() ? primary ? 0xffd9e8df : JournalTheme.TEAL : NativeBattleLog.DAMAGE);
+        reason.isEmpty() ? JournalTheme.TEAL : NativeBattleLog.DAMAGE);
     effect.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
     effect.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
     effect.setMaxLines(2);
     effect.setEllipsize(TextUtils.TruncateAt.END);
     if (effect.getText().length() == 0) effect.setVisibility(GONE);
-    // 전투는 현재 위력과 핵심 효과만 빠르게 읽는다. 전체 설명은 접근성과 육성 화면에 남긴다.
+    // 효과는 두 줄로 유지하며 전체 효과 문장은 버튼 접근성 설명에 남긴다.
     content.addView(effect, new LinearLayout.LayoutParams(-1, -2));
     addView(content, new LayoutParams(-1, -2, compact ? Gravity.CENTER_VERTICAL : Gravity.TOP));
-    setMinimumHeight(h.dp(combo ? large ? 100 : 84 : large ? 124 : compact ? 100 : 108));
+    setMinimumHeight(h.dp(compact ? 96 : 104));
   }
 
   final TextView title, power;
@@ -123,38 +109,17 @@ final class SkillCardView extends FrameLayout {
         <= 2;
   }
 
-  /** 긴 글꼴·예외 데이터는 선택 모달 안에서 생략 없이 읽는다. */
+  /** 기존 선택 모달 호출과 호환하되 카드의 두 줄 제한은 유지한다. */
   void showCompleteEffect() {
-    effect.setMaxLines(Integer.MAX_VALUE);
-    effect.setEllipsize(null);
+    effect.setMaxLines(2);
+    effect.setEllipsize(TextUtils.TruncateAt.END);
   }
 
-  /** 실제 효과/속성에 맞는 기존 도구 기호. 별도 기술 수치나 규칙을 만들지 않는다. */
+  /** 실제 공격 속성의 아이콘만 사용한다. 일반 기술 일러스트로 대체하지 않는다. */
   static String icon(JSONObject sk) {
-    String original = sk.optString("icon");
-    int query = original.indexOf('?');
-    if (query >= 0) original = original.substring(0, query);
-    original = original.toLowerCase(java.util.Locale.ROOT);
-    if (!original.isEmpty() && JournalIcons.supports(original))
-      return original
-          .substring(original.lastIndexOf('/') + 1)
-          .replaceFirst("\\.(png|webp|jpg)$", "");
-    JSONArray effects = sk.optJSONArray("effects");
-    if (effects != null)
-      for (int i = 0; i < effects.length(); i++) {
-        JSONObject effect = effects.optJSONObject(i);
-        if (effect == null) continue;
-        String kind = effect.optString("kind");
-        if (kind.equals("guard") || kind.equals("protect") || kind.equals("endure"))
-          return "shield";
-        if (kind.equals("heal") || kind.equals("regen") || kind.equals("revive")) return "heal";
-        if (kind.equals("cleanse")) return "clear";
-      }
-    if (sk.optBoolean("priority")) return "feather";
     JSONObject preview = sk.optJSONObject("preview");
-    String attr = preview == null ? "" : preview.optString("attr");
-    String symbol = "attr-" + attr.toLowerCase(java.util.Locale.ROOT);
-    return JournalIcons.supports(symbol) ? symbol : currentPower(sk) > 0 ? "swords" : "compass";
+    String attr = preview == null ? sk.optString("attr") : preview.optString("attr");
+    return BattleTypeInfo.valid(attr) ? "attr-" + attr.toLowerCase(java.util.Locale.ROOT) : "";
   }
 
   static TextView label(MainActivity h, String text, int size, boolean headline) {

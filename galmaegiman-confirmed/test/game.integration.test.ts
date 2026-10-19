@@ -987,7 +987,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await app.inject({method:'POST',url:'/my/api/draw',payload:{kind:'LOW',times:1},headers:{'x-gmm':'1',cookie}})).statusCode).toBe(200);expect((await get()).missions.find(m=>m.key==='DRAW')!.value).toBe(1);
     }finally{await app.close();}
   });
-  it('PvP: 같은 레벨 대전 · 랭크는 서버가 기록을 다시 돌려 승패 확인 · 중간에 나가면 패배',async()=>{
+  it('PvP: 일반전 기록 검증은 유지하고 AI 랭크 시작과 점수 변경은 차단한다',async()=>{
     const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com'});
     try{
       const code=/(\d{6})/.exec((await send('웹 로그인')).text!)![1];
@@ -1014,21 +1014,25 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
         }
         return {log,won:b.winner===0};
       };
+      const botGame=play(bot);
+      expect((await post('/my/api/pvp/result',{match:bot.match,log:botGame.log},cookie)).statusCode).toBe(200);
       const before=(await db.player.findUniqueOrThrow({where:{id:p.id}})).rankPoint;
-      const m=(await post('/my/api/pvp/match',{mode:'rank'},cookie)).json().result;
+      const rejected=await post('/my/api/pvp/match',{mode:'rank'},cookie);
+      expect(rejected.statusCode).toBe(400);expect(rejected.json().error).toContain('실시간 유저 랭크전');
+      const m=(await post('/my/api/pvp/match',{mode:'normal'},cookie)).json().result;
       expect(m.foeName).toBe('상대왕');expect(m.foe.map((r:{id:string})=>r.id)).toEqual(['D2','T2','E2']);
-      expect((await db.player.findUniqueOrThrow({where:{id:p.id}})).rankPoint).toBe(before-content.economy.pvp.lose);   // 시작하면 먼저 패배로
+      expect((await db.player.findUniqueOrThrow({where:{id:p.id}})).rankPoint).toBe(before);   // 차단된 랭크와 일반전은 랭크 점수를 바꾸지 않는다
       const g=play(m);
       expect((await post('/my/api/pvp/result',{match:m.match,log:g.log.slice(0,1)},cookie)).statusCode).toBe(400);   // 덜 끝난 기록
       expect((await post('/my/api/pvp/result',{match:m.match,log:[{a:{kind:'skill',skillId:'없는기술'}}]},cookie)).statusCode).toBe(400);   // 맞지 않는 기록
       const r=(await post('/my/api/pvp/result',{match:m.match,log:g.log},cookie)).json().result;
       expect(r.won).toBe(g.won);
       const after=await db.player.findUniqueOrThrow({where:{id:p.id}});
-      expect(after.rankPoint).toBe(g.won?before+content.economy.pvp.win:before-content.economy.pvp.lose);
-      expect([after.rankWins,after.rankLosses]).toEqual(g.won?[1,0]:[0,1]);
+      expect(after.rankPoint).toBe(before);
+      expect([after.rankWins,after.rankLosses]).toEqual([0,0]);
       expect((await post('/my/api/pvp/result',{match:m.match,log:g.log},cookie)).statusCode).toBe(400);   // 같은 대전 두 번 안 됨
       const info=(await app.inject({method:'GET',url:'/my/api/pvp',headers:{'x-gmm':'1',cookie}})).json();
-      expect(info.me).toMatchObject({point:after.rankPoint,rank:1});expect(info.top[0].me).toBe(true);
+      expect(info.me).toMatchObject({point:after.rankPoint,rank:null});expect(info.top).toEqual([]);
       expect(content.characters.filter(c=>topTiers.has(c.rarity)).every(c=>R.units.has(c.id))).toBe(true);   // 편성할 수 있는 갈매미는 모두 전투 유닛
       await db.player.delete({where:{id:foe.id}});
     }finally{await app.close();}

@@ -38,6 +38,7 @@ final class NativeSettingsSheet {
     LinearLayout content = k.column();
     content.setPadding(h.dp(16), h.dp(2), h.dp(16), h.dp(12));
     content.setTag("settings-dialog-body");
+    content.setBackground(new AppSkin.Place("archive"));
     LinearLayout title = k.row();
     title.setTag("settings-dialog-header");
     title.setPadding(h.dp(20), h.dp(12), h.dp(20), h.dp(8));
@@ -96,7 +97,7 @@ final class NativeSettingsSheet {
     reducedMotion.setThumbTintList(
         new ColorStateList(motionStates, new int[] {JournalTheme.TEAL, JournalTheme.MUTED}));
     reducedMotion.setTrackTintList(
-        new ColorStateList(motionStates, new int[] {0xffadc5bd, 0xffd8cfbb}));
+        new ColorStateList(motionStates, new int[] {0xffb8ced7, 0xffd8cfbb}));
     reducedMotion.setChecked(!h.motionEnabled);
     reducedMotion.setOnCheckedChangeListener((button, reduced) -> h.reducedMotion(reduced));
     addRow(h, left, reducedMotion);
@@ -244,7 +245,7 @@ final class NativeSettingsSheet {
       int[][] toggleStates = new int[][] {{android.R.attr.state_checked}, {}};
       alerts.setThumbTintList(
           new ColorStateList(toggleStates, new int[] {JournalTheme.TEAL, 0xff9b8c73}));
-      alerts.setTrackTintList(new ColorStateList(toggleStates, new int[] {0xffadc5bd, 0xffd8cfbb}));
+      alerts.setTrackTintList(new ColorStateList(toggleStates, new int[] {0xffb8ced7, 0xffd8cfbb}));
       alerts.setMinHeight(h.dp(48));
       alerts.setMinimumHeight(h.dp(48));
       alerts.setChecked(h.getSharedPreferences("native_account", 0).getBoolean("alerts", false));

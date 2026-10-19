@@ -198,7 +198,7 @@ final class NativeExtras {
     h.base("랭크 · 순위표", "pvp");
     LinearLayout[] cols = fixedSplit(.5f);
     m.fetch(
-        "pvp",
+        "pvp/rank",
         r -> {
           JSONObject me = r.optJSONObject("me");
           if (me != null) {
@@ -533,7 +533,7 @@ final class NativeExtras {
     }
     popup.showAsDropDown(anchor, 0, h.dp(8));
     h.api.call(
-        "pvp",
+        "pvp/rank",
         null,
         (r, e) -> {
           if (!popup.isShowing()) return;

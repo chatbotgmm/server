@@ -1945,6 +1945,193 @@ img.art-fallback{object-fit:contain !important;background:#eee4ce}
  .scene .dbox #pg{margin-right:0}
 }
 .xpinfo{color:#355b8b;font-variant-numeric:tabular-nums}
+
+/* augment-no-scroll-v1 */
+#modal.full:has(.sheet.pick.full) {
+  overflow: hidden;
+  background: #eee1c3 !important;
+}
+#modal.full .sheet.pick.full,
+#modal.full .sheet.pick.full:not(.both),
+#modal.full .sheet.pick.full:not(.both):not(:has(.tipline)) {
+  zoom: 1;
+  box-sizing: border-box;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto minmax(0, 1fr) 48px;
+  grid-auto-rows: 0;
+  align-content: stretch;
+  align-items: stretch;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  gap: 8px 12px;
+  overflow: hidden;
+  padding: max(8px, env(safe-area-inset-top, 0px))
+    calc(16px + var(--sr, 0px))
+    max(8px, env(safe-area-inset-bottom, 0px))
+    calc(16px + var(--sl, 0px));
+  border: 3px solid #a88a51;
+  color: #302b22;
+  background: radial-gradient(ellipse at top, #fffaf0, #eee1c3);
+  box-shadow: inset 0 0 0 3px #fff8e7;
+}
+#modal.full .sheet.pick.full > h2 {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  margin: 0;
+  font-size: clamp(19px, 2.3vw, 24px);
+  line-height: 1.2;
+  color: #302b22;
+  text-shadow: none;
+}
+#modal.full .sheet.pick.full h2::before,
+#modal.full .sheet.pick.full h2::after { content: none; }
+#modal.full .sheet.pick.full > .sub,
+#modal.full .sheet.pick.full > .steps:not(:has(#backAug)),
+#modal.full .sheet.pick.full > .vs,
+#modal.full .sheet.pick.full > .tipline { display: none; }
+#modal.full .sheet.pick.full > .augc {
+  grid-column: auto;
+  grid-row: 2;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 48px;
+  min-width: 0;
+  min-height: 0;
+  gap: 4px;
+}
+#modal.full .sheet.pick.full .augc .aug {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: start;
+  justify-content: stretch;
+  min-height: 0;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  gap: 7px;
+  padding: 12px;
+  margin: 0;
+  color: #302b22;
+  border: 2px solid var(--aug-color);
+  border-radius: 12px;
+  background: linear-gradient(155deg, #fffdf4, #f2e5c6);
+  box-shadow: inset 0 0 0 3px #fffaf0, 0 3px 0 #b5a17a;
+  transform: none;
+}
+#modal.full .sheet.pick.full .augc .aug .ic,
+#modal.full .sheet.pick.full .augc .aug .ic .ico {
+  width: 24px;
+  height: 24px;
+  font-size: 20px;
+  padding: 0;
+}
+#modal.full .sheet.pick.full .augc .aug .tx {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+}
+#modal.full .sheet.pick.full .augc .aug .tx b {
+  font-size: clamp(17px, 2vw, 23px);
+  flex-wrap: wrap;
+  justify-content: center;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+#modal.full .sheet.pick.full .augc .aug .tx b em { display: none; }
+#modal.full .sheet.pick.full .augc .aug .tx small {
+  font-size: 12px;
+  line-height: 1.3;
+  padding: 1px 7px;
+}
+#modal.full .sheet.pick.full .augc .aug .tx span {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  -webkit-box-orient: initial;
+  max-height: none;
+  overflow: visible;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  margin: auto 0;
+  color: #494235;
+  font-size: 15px;
+  line-height: 1.4;
+}
+#modal.full .sheet.pick.full .augc .aug.on {
+  transform: none;
+  outline: 2px solid #386c69;
+  outline-offset: 1px;
+  background: linear-gradient(155deg, #fffdf4, #e6eedb);
+}
+#modal.full .sheet.pick.full .augc .aug.on::after { content: none; }
+#modal.full .sheet.pick.full .augc .aug .ck { display: none; }
+#modal.full .sheet.pick.full .augc .aug.on .tx b::before {
+  content: "✓";
+  color: #386c69;
+}
+#modal.full .sheet.pick.full .aug-actions {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  min-height: 0;
+  gap: 4px;
+}
+#modal.full .sheet.pick.full .aug-actions button {
+  box-sizing: border-box;
+  height: 48px;
+  min-height: 48px;
+  min-width: 0;
+  padding: 4px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: #386c69;
+  font-size: 13px;
+  box-shadow: none;
+}
+#modal.full .sheet.pick.full #ok {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  position: static;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 720px;
+  height: 48px;
+  min-height: 48px;
+  margin: 0 auto;
+  padding: 4px 12px;
+  font-size: 15px;
+  white-space: normal;
+  line-height: 1.2;
+}
+@media (orientation: portrait) {
+  #modal.full .sheet.pick.full,
+  #modal.full .sheet.pick.full:not(.both),
+  #modal.full .sheet.pick.full:not(.both):not(:has(.tipline)) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto repeat(3, minmax(0, 1fr)) 48px;
+    gap: 6px;
+  }
+  #modal.full .sheet.pick.full > .augc {
+    grid-column: 1;
+    grid-row: auto;
+    grid-template-columns: minmax(0, 1fr) 76px;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  #modal.full .sheet.pick.full .aug-actions {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(2, minmax(48px, 1fr));
+  }
+  #modal.full .sheet.pick.full .aug-actions button { align-self: center; }
+  #modal.full .sheet.pick.full #ok { grid-row: 5; }
+}
+
 </style>
 <script src="/image-state.js"></script>
 <link rel="stylesheet" href="/parchment/parchment.css?v=20261016-1">

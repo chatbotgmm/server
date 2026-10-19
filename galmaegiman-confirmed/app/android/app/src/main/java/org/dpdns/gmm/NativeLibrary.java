@@ -12,6 +12,8 @@ final class NativeLibrary {
   final MenuKit k;
   JSONObject catalogData, catalogState;
   String selectedCollectionId = "", selectedItemId = "";
+  int collectionPage;
+  boolean collectionOwned;
 
   NativeLibrary(NativeMenus menus) {
     m = menus;
@@ -30,11 +32,15 @@ final class NativeLibrary {
     catalogState = null;
     selectedCollectionId = "";
     selectedItemId = "";
+    collectionPage = 0;
+    collectionOwned = false;
   }
 
   /** 수비대의 기본 화면은 선택한 한 마리와 바로 실행할 행동을 한 장에 둔다. */
   void collection() {
-    h.base("수비대", "collection");
+    h.base("방범대 · 도감", "collection");
+    AppSkin.apply(h, "archive");
+    k.fixedBody();
     m.defenderTabs(h.body, 0);
     JSONArray source = h.list(h.me(), "units");
     ArrayList<JSONObject> all = new ArrayList<>();
@@ -59,32 +65,93 @@ final class NativeLibrary {
     }
     JSONObject u = selected;
     selectedCollectionId = u.optString("id");
-    Button picker =
-        k.action(null, u.optString("name") + "  ·  갈매미 고르기  ›", () -> collectionPicker(all));
-    picker.setTag("collection-picker");
-    fixedAction(picker);
-    h.body.addView(picker, new LinearLayout.LayoutParams(-1, h.dp(48)));
-    LinearLayout[] cols = fixedColumns(h.body, .38f);
-    LinearLayout portrait = k.paper();
-    portrait.setTag("collection-card-" + u.optString("id"));
-    portrait.setGravity(Gravity.CENTER_HORIZONTAL);
-    portrait.addView(
-        k.image(u.optString("image", "/thumbs/" + u.optString("id") + ".jpg"), 1, 1),
-        new LinearLayout.LayoutParams(-1, 0, 1));
-    TextView count = line("보유 " + u.optInt("have") + "마리", 17, true);
-    count.setGravity(Gravity.CENTER);
-    portrait.addView(count);
-    portrait.setOnClickListener(v -> detail(all, all.indexOf(u)));
-    portrait.setOnLongClickListener(
-        v -> {
-          hold(all, all.indexOf(u));
-          return true;
-        });
-    cols[0].addView(portrait, new LinearLayout.LayoutParams(-1, -1));
+    LinearLayout[] cols = fixedColumns(h.body, .61f);
+    LinearLayout controls = k.row();
+    cols[0].addView(controls, new LinearLayout.LayoutParams(-1, h.dp(48)));
+    EditText search = new EditText(h);
+    search.setSingleLine(true);
+    search.setTextSize(14);
+    search.setHint("대원 이름 검색");
+    search.setText(m.query);
+    search.setTextColor(JournalTheme.INK);
+    search.setBackground(new GamePaperDrawable(h));
+    controls.addView(search, new LinearLayout.LayoutParams(0, -1, 1));
+    Button owned = k.action(null, collectionOwned ? "보유" : "전체", () -> {});
+    owned.setSelected(collectionOwned);
+    controls.addView(owned, new LinearLayout.LayoutParams(h.dp(68), -1));
+    Button previous = k.action(null, "‹", () -> {});
+    previous.setContentDescription("이전 도감 페이지");
+    controls.addView(previous, new LinearLayout.LayoutParams(h.dp(48), -1));
+    TextView page = k.note("");
+    page.setGravity(Gravity.CENTER);
+    controls.addView(page, new LinearLayout.LayoutParams(h.dp(52), -1));
+    Button next = k.action(null, "›", () -> {});
+    next.setContentDescription("다음 도감 페이지");
+    controls.addView(next, new LinearLayout.LayoutParams(h.dp(48), -1));
+    LinearLayout grid = k.column();
+    grid.setTag("collection-inline-grid");
+    cols[0].addView(grid, new LinearLayout.LayoutParams(-1, 0, 1));
+    Runnable[] paint = new Runnable[1];
+    paint[0] = () -> {
+      grid.removeAllViews();
+      ArrayList<JSONObject> visible = new ArrayList<>();
+      for (JSONObject entry : all)
+        if ((!collectionOwned || entry.optInt("have") > 0)
+            && (entry.optString("name") + entry.optString("attrName") + entry.optString("tierName"))
+                .toLowerCase(Locale.KOREA).contains(m.query.toLowerCase(Locale.KOREA))) visible.add(entry);
+      int pages = Math.max(1, (visible.size() + 7) / 8);
+      collectionPage = Math.max(0, Math.min(collectionPage, pages - 1));
+      previous.setEnabled(collectionPage > 0);
+      next.setEnabled(collectionPage < pages - 1);
+      page.setText((collectionPage+1) + "/" + pages);
+      if (visible.isEmpty()) {
+        grid.addView(k.note("조건에 맞는 대원이 없어요."));
+        return;
+      }
+      for (int row=0; row<2; row++) {
+        LinearLayout strip = k.row();
+        grid.addView(strip, new LinearLayout.LayoutParams(-1, 0, 1));
+        for (int col=0; col<4; col++) {
+          int index = collectionPage*8 + row*4 + col;
+          LinearLayout tile = k.paper();
+          tile.setPadding(h.dp(4), h.dp(2), h.dp(4), h.dp(2));
+          tile.setGravity(Gravity.CENTER);
+          LinearLayout.LayoutParams cell = new LinearLayout.LayoutParams(0, -1, 1);
+          cell.setMargins(h.dp(2), h.dp(2), h.dp(2), h.dp(2));
+          strip.addView(tile, cell);
+          if (index >= visible.size()) { tile.setVisibility(View.INVISIBLE); continue; }
+          JSONObject entry = visible.get(index);
+          tile.addView(k.image(entry.optString("image", "/thumbs/" + entry.optString("id") + ".jpg"), 1, 1),
+              new LinearLayout.LayoutParams(-1, 0, 1));
+          TextView label = line((entry.optString("id").equals(selectedCollectionId) ? "✓ " : "")
+              + entry.optString("name"), 14, false);
+          label.setGravity(Gravity.CENTER);
+          tile.addView(label);
+          tile.setSelected(entry.optString("id").equals(selectedCollectionId));
+          tile.setContentDescription(entry.optString("name") + " · 보유 " + entry.optInt("have") + "마리");
+          tile.setOnClickListener(v -> { selectedCollectionId = entry.optString("id"); collection(); });
+        }
+      }
+    };
+    previous.setOnClickListener(v -> { collectionPage--; paint[0].run(); });
+    next.setOnClickListener(v -> { collectionPage++; paint[0].run(); });
+    owned.setOnClickListener(v -> {
+      collectionOwned = !collectionOwned; collectionPage = 0;
+      owned.setText(collectionOwned ? "보유" : "전체"); owned.setSelected(collectionOwned); paint[0].run();
+    });
+    search.addTextChangedListener(new android.text.TextWatcher() {
+      public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+      public void onTextChanged(CharSequence value, int start, int before, int count) {
+        m.query = value.toString(); collectionPage = 0; paint[0].run();
+      }
+      public void afterTextChanged(android.text.Editable value) {}
+    });
+    paint[0].run();
     LinearLayout info = k.paper();
     info.setPadding(h.dp(10), h.dp(4), h.dp(10), h.dp(4));
     cols[1].addView(info, new LinearLayout.LayoutParams(-1, -1));
-    info.addView(line(u.optString("tierName") + " · " + u.optString("attrName"), 18, true));
+    info.addView(line(u.optString("name"), 20, true));
+    info.addView(line(u.optString("tierName") + " · " + u.optString("attrName") + " · 보유 " + u.optInt("have"), 14, false));
     info.addView(
         line(
             "탐험 "
@@ -94,8 +161,8 @@ final class NativeLibrary {
                 + (u.optBoolean("known", u.optInt("have") > 0) ? " · 발견" : " · 미발견"),
             14,
             false));
-    View space = new View(h);
-    info.addView(space, new LinearLayout.LayoutParams(-1, 0, 1));
+    ImageView selectedPortrait = k.image(u.optString("image", "/thumbs/" + u.optString("id") + ".jpg"), 1, 1);
+    info.addView(selectedPortrait, new LinearLayout.LayoutParams(-1, 0, 1));
     LinearLayout top = k.row(), bottom = k.row();
     Button grow = k.primary("learn", "성장", () -> openOwnedGrowth(u));
     grow.setTag("collection-growth");
@@ -620,6 +687,7 @@ final class NativeLibrary {
     h.currentKey = key;
     JSONObject u = h.unit(key);
     h.base(u.optString("name") + " · 기술과 승진", "unit");
+    AppSkin.apply(h, "archive");
     LinearLayout[] cols = fixedColumns(h.body, .32f);
     LinearLayout who = k.paper();
     who.setTag("unit-summary");
@@ -1141,6 +1209,7 @@ final class NativeLibrary {
 
   void items() {
     h.base("수비대", "items");
+    AppSkin.apply(h, "archive");
     m.defenderTabs(h.body, 2);
     JSONObject defs = h.state.optJSONObject("itemDefs");
     if (defs == null) {

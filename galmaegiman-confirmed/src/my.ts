@@ -10,12 +10,15 @@ import { GameError } from './types.js';
 import { loadBattleRules } from './battle/load.js';
 import { duelKey } from './duel.js';
 import {registerNative} from './native.js';
+import type {PrismaClient} from '@prisma/client';
+import {RealtimePvpService} from './pvp/service.js';
+import {registerRealtimePvp} from './pvp/routes.js';
 
 const COOKIE='gmm_s',DAYS=30,KSTATE='gmm_ks',KPEND='gmm_kp',KAPP='gmm_ka',KLINK='gmm_kl';
 // 안드로이드 앱(Capacitor) 화면 주소. 앱에서 오는 요청만 다른 주소에서 받음(CORS)
 const APP_ORIGINS=new Set(['https://localhost','capacitor://localhost','http://localhost']);
 export interface KakaoLogin {restKey:string;clientSecret?:string}
-export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string;secret:string;baseUrl:()=>Promise<string>;kakao?:KakaoLogin;fetch?:typeof fetch;reviewCode?:string}){
+export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaClient;root:string;secret:string;baseUrl:()=>Promise<string>;kakao?:KakaoLogin;fetch?:typeof fetch;reviewCode?:string}){
   const key=createHmac('sha256',opt.secret).update('web-session').digest();
   const sign=(v:string)=>createHmac('sha256',key).update(v).digest('base64url');
   const issue=(playerId:string)=>{const exp=Math.floor(Date.now()/1000)+DAYS*86400,v=`${playerId}.${exp}`;return `${v}.${sign(v)}`;};
@@ -50,6 +53,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
   const setCookie=(req:FastifyRequest,reply:FastifyReply,value:string,maxAge:number)=>reply.header('Set-Cookie',cookieLine(req,COOKIE,value,maxAge));
   // 다른 사이트에서 몰래 보내는 요청 막기: 화면 스크립트가 붙이는 머리글이 있어야 함
   const guard=(req:FastifyRequest,reply:FastifyReply)=>{if(req.headers['x-gmm']!=='1'){reply.code(403).send({error:'forbidden'});return false;}return true;};
+  const realtime=new RealtimePvpService(opt.db,game.content,opt.root,opt.secret);
   const ipKey=(p:string)=>(req:FastifyRequest)=>{const ip=req.headers['cf-connecting-ip'];return typeof ip==='string'&&ip.length<=45?`${p}:${ip}`:p;};
   const file=async(reply:FastifyReply,type:string,path:string)=>{
     const body=await readFile(resolve(opt.root,path)).catch(()=>null);
@@ -258,7 +262,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     try{return reply.header('Cache-Control','no-store').send(await game.webPvp(id));}
     catch(e){if(e instanceof GameError)return reply.code(400).send({error:e.message});throw e;}
   });
-  act<{mode?:unknown}>('/my/api/pvp/match',(id,b)=>game.webPvpMatch(id,String(b.mode??'')));
+  act<{mode?:unknown}>('/my/api/pvp/match',(id,b)=>realtime.legacyWebStart(id,()=>game.webPvpMatch(id,String(b.mode??''))));
   const pvpEvent=z.union([z.object({r:z.number().int().min(0).max(2)}).strict(),
     z.object({c:z.object({augment:z.string().max(30).optional(),switchTo:z.number().int().min(0).max(2).optional()}).strict()}).strict(),
     z.object({a:z.union([z.object({kind:z.literal('skill'),skillId:z.string().max(40)}).strict(),
@@ -266,7 +270,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
   act<{match?:unknown;log?:unknown}>('/my/api/pvp/result',async(id,b)=>{
     const log=z.array(pvpEvent).max(600).safeParse(b.log);
     if(!log.success||typeof b.match!=='string')throw new GameError('대전 기록이 맞지 않아요.');
-    return game.webPvpResult(id,loadBattleRules(opt.root),b.match,log.data);
+    return realtime.legacyWebResult(id,b.match,()=>game.webPvpResult(id,loadBattleRules(opt.root),b.match as string,log.data));
   });
   // 대결 하나마다 표(서버 메모리, 2시간): 대결 한 번에 쓸 수 있는 아이템 수를 서버에서도 셈
   const fights=new Map<string,{player:string;used:number;exp:number}>();
@@ -307,7 +311,8 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{root:string
     return {left};
   });
 
-  const native=registerNative(app,game,opt.root,session,guard);
+  const native=registerNative(app,game,opt.root,session,guard,realtime);
+  registerRealtimePvp(app,realtime,session,guard);
 
   // ── 카카오 로그인(KAKAO_REST_KEY가 있을 때만) ──
   // 처음: 카카오 → 연결된 계정 없음 → 카톡 코드로 한 번 로그인하면 그 계정에 연결. 다음부터는 카카오만 누르면 로그인

@@ -147,6 +147,31 @@ final class MenuKit {
     return new LinearLayout[] {left, right};
   }
 
+  /** Remove the legacy overflow wrapper when the page manages its own pagination. */
+  void fixedBody() {
+    ViewGroup wrapper = (ViewGroup) h.body.getParent();
+    int index = h.page.indexOfChild(wrapper);
+    if (index < 0) return;
+    wrapper.removeView(h.body);
+    h.page.removeView(wrapper);
+    h.page.addView(h.body, index, new LinearLayout.LayoutParams(-1, 0, 1));
+  }
+
+  /** Fixed-height selection panes never fall back to an overflow dialog. */
+  LinearLayout[] fixedSplit(float leftWeight) {
+    h.page.removeViewAt(h.page.getChildCount() - 1);
+    LinearLayout line = row();
+    line.setGravity(Gravity.TOP);
+    h.page.addView(line, new LinearLayout.LayoutParams(-1, 0, 1));
+    LinearLayout left = column(), right = column();
+    LinearLayout.LayoutParams a = new LinearLayout.LayoutParams(0, -1, leftWeight);
+    a.rightMargin = h.dp(8);
+    line.addView(left, a);
+    line.addView(right, new LinearLayout.LayoutParams(0, -1, 1-leftWeight));
+    h.body = right;
+    return new LinearLayout[] {left, right};
+  }
+
   void footer(View v) {
     LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
     lp.topMargin = h.dp(6);

@@ -51,7 +51,10 @@ final class NativeArt {
     images.execute(
         () -> {
           try {
-            if (!closed) JournalMaterial.prepare(context);
+            if (!closed) {
+              JournalMaterial.prepare(context);
+              JournalParchment.prepare(context);
+            }
           } finally {
             api.ui.post(
                 () -> {

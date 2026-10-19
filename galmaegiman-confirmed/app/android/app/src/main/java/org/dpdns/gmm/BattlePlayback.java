@@ -394,6 +394,10 @@ final class BattlePlayback {
 
   void fighter(Canvas c, JSONObject fighter, RectF area, int index) {
     if ((playing && down[index]) || (!playing && fighter.optInt("hp") <= 0)) return;
+    Paint shadow = view.scene.p;
+    shadow.setColor(0x35484139);
+    c.drawOval(new RectF(area.left+area.width()*.15f,area.bottom-host.dp(10),
+        area.right-area.width()*.15f,area.bottom+host.dp(2)),shadow);
     RectF moved = new RectF(area);
     if (playing && index == side) {
       float pulse = (float) Math.sin(progress * Math.PI);

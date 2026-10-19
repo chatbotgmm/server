@@ -17,15 +17,21 @@ final class BattleView extends FrameLayout implements FullBleed {
   final LinearLayout tools;
   final Button foeInfo, history, augmentInfo;
   final Button[] effectInfo = new Button[2];
+  final ImageView[] typeInfo = new ImageView[2];
   String pane = "menu";
   boolean tablet;
   final Scene scene;
+  final TextView inputTimer;
+  final BattleSkin panelSkin, hpSkin;
   final TextView log;
   final BattlePlayback playback;
   NativeAugmentView augmentView;
   int arenaWidth, arenaHeight, logHeight, panelLeft, panelWidth;
   int safeLeft, safeTop, uiWidth, uiHeight;
   boolean skillSheetNeeded, skillSheetRequested;
+  int selectedSwitch = -1, itemPage;
+  JSONObject selectedItem;
+  boolean expiredInput;
 
   BattleView(MainActivity a, JSONObject b) {
     super(a);
@@ -36,6 +42,9 @@ final class BattleView extends FrameLayout implements FullBleed {
     } catch (JSONException e) {
       throw new IllegalArgumentException(e);
     }
+    panelSkin = new BattleSkin(a, "panel-command");
+    hpSkin = new BattleSkin(a, "panel-hp");
+    for(String asset:new String[]{"bg-harbor","decor-shell","decor-wheel"}) BattleSkin.bitmap(a,asset);
     scene = new Scene();
     addView(scene, new LayoutParams(-1, -1));
     logBox = new FixedViewport(a);
@@ -90,7 +99,18 @@ final class BattleView extends FrameLayout implements FullBleed {
       effects.setPadding(0, 0, 0, 0);
       effectInfo[side] = effects;
       addView(effects);
+      String attr=active(side).optString("attrCode");
+      ImageView type=BattleTypeInfo.icon(a,attr);
+      type.setFocusable(true);
+      type.setContentDescription((side==0?"내 ":"상대 ")+BattleTypeInfo.name(a,attr)+" 속성 상성 보기");
+      type.setOnClickListener(v->BattleTypeInfo.showFighter(this,target));
+      typeInfo[side]=type;addView(type);
     }
+    inputTimer = a.text("", 18);
+    inputTimer.setTextColor(0xfffff8e8);
+    inputTimer.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+    inputTimer.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    addView(inputTimer);
     playback = new BattlePlayback(this);
     render();
   }
@@ -135,16 +155,34 @@ final class BattleView extends FrameLayout implements FullBleed {
     return true;
   }
 
+  void blockExpiredInput() {
+    if (expiredInput) return;
+    expiredInput = true;
+    disableInputs(controls);
+  }
+
+  void disableInputs(View view) {
+    view.setEnabled(false);
+    if(view instanceof android.view.ViewGroup) {
+      android.view.ViewGroup group=(android.view.ViewGroup)view;
+      for(int i=0;i<group.getChildCount();i++) disableInputs(group.getChildAt(i));
+    }
+  }
+
+  boolean backInPane() {
+    if (!pane.equals("menu")) { pane="menu"; render(); return true; }
+    return false;
+  }
+
   void showEffects(int side) {
     if (!playback.playing) NativeBattleSheets.effects(this, side);
   }
 
   RectF statusArea(int side) {
-    float ownHeight = Math.min(uiHeight * .29f, host.dp(160));
-    float foeHeight = Math.min(uiHeight * .28f, host.dp(160));
+    float world = uiWidth * .655f, height = Math.min(host.dp(92), uiHeight * .24f);
     return side == 0
-        ? new RectF(uiWidth * .30f, uiHeight * .97f - ownHeight, uiWidth * .635f, uiHeight * .97f)
-        : new RectF(uiWidth * .025f, uiHeight * .04f, uiWidth * .335f, uiHeight * .04f + foeHeight);
+        ? new RectF(world * .53f, uiHeight * .91f - height, world * .96f, uiHeight * .91f)
+        : new RectF(world * .04f, uiHeight * .055f, world * .47f, uiHeight * .055f + height);
   }
 
   JSONObject side(int i) {
@@ -173,15 +211,9 @@ final class BattleView extends FrameLayout implements FullBleed {
     arenaHeight = h;
     tablet = (float) uiWidth / uiHeight < 1.85f;
     panelLeft = Math.round(uiWidth * .655f);
-    panelWidth = uiWidth - panelLeft - m;
-    int buttonH = commandHeight();
-    logHeight =
-        pane.equals("menu")
-            ? Math.max(minimumLogHeight(), uiHeight - 2 * buttonH - host.dp(32))
-            : 0;
-    logBox.setVisibility(
-        battle.optString("phase").equals("choose") || logHeight == 0 ? GONE : VISIBLE);
-    log.setTextSize(tablet ? 23 : 17);
+    panelWidth = uiWidth - panelLeft - host.dp(tablet ? 48 : 32);
+    logHeight = 0;
+    logBox.setVisibility(GONE);
     if (resized) render();
     getChildAt(0)
         .measure(
@@ -193,12 +225,16 @@ final class BattleView extends FrameLayout implements FullBleed {
     menu.measure(
         MeasureSpec.makeMeasureSpec(panelWidth, MeasureSpec.EXACTLY),
         MeasureSpec.makeMeasureSpec(
-            Math.max(1, uiHeight - logHeight - (logHeight == 0 ? 2 : 3) * m), MeasureSpec.EXACTLY));
+            Math.max(1, uiHeight - host.dp(60)), MeasureSpec.EXACTLY));
+    inputTimer.measure(MeasureSpec.makeMeasureSpec(panelWidth, MeasureSpec.EXACTLY),
+        MeasureSpec.makeMeasureSpec(host.dp(28), MeasureSpec.EXACTLY));
     tools.measure(
         MeasureSpec.makeMeasureSpec(Math.round(uiWidth * .285f), MeasureSpec.EXACTLY),
         MeasureSpec.makeMeasureSpec(host.dp(48), MeasureSpec.EXACTLY));
     for (int side = 0; side < 2; side++) {
       RectF area = statusArea(side);
+      typeInfo[side].measure(MeasureSpec.makeMeasureSpec(host.dp(48),MeasureSpec.EXACTLY),
+          MeasureSpec.makeMeasureSpec(host.dp(48),MeasureSpec.EXACTLY));
       effectInfo[side].measure(
           MeasureSpec.makeMeasureSpec(Math.round(area.width()), MeasureSpec.EXACTLY),
           MeasureSpec.makeMeasureSpec(
@@ -217,11 +253,11 @@ final class BattleView extends FrameLayout implements FullBleed {
     getChildAt(0).layout(0, 0, arenaWidth, arenaHeight);
     logBox.layout(
         safeLeft + panelLeft, safeTop + m, safeLeft + uiWidth - m, safeTop + m + logHeight);
-    menu.layout(
-        safeLeft + panelLeft,
-        safeTop + logHeight + (logHeight == 0 ? m : 2 * m),
-        safeLeft + uiWidth - m,
-        safeTop + uiHeight - m);
+    int inset = host.dp(tablet ? 24 : 16);
+    menu.layout(safeLeft + panelLeft + inset, safeTop + host.dp(44),
+        safeLeft + uiWidth - inset, safeTop + uiHeight - host.dp(16));
+    inputTimer.layout(safeLeft + panelLeft + inset, safeTop + host.dp(12),
+        safeLeft + uiWidth - inset, safeTop + host.dp(40));
     tools.layout(
         safeLeft + Math.round(uiWidth * .35f),
         safeTop + m,
@@ -230,6 +266,8 @@ final class BattleView extends FrameLayout implements FullBleed {
     for (int side = 0; side < 2; side++) {
       RectF area = statusArea(side);
       area.offset(safeLeft, safeTop);
+      typeInfo[side].layout(Math.round(area.right)-host.dp(54),Math.round(area.bottom)-host.dp(50),
+          Math.round(area.right)-host.dp(6),Math.round(area.bottom)-host.dp(2));
       effectInfo[side].layout(
           Math.round(area.left),
           Math.round(area.top),
@@ -386,6 +424,7 @@ final class BattleView extends FrameLayout implements FullBleed {
 
   void render() {
     controls.removeAllViews();
+    controls.setEnabled(!expiredInput || pane.equals("leave"));
     controls.setPadding(0, 0, 0, 0);
     if (!pane.equals("skills")) {
       skillSheetNeeded = false;
@@ -395,6 +434,7 @@ final class BattleView extends FrameLayout implements FullBleed {
     String phase = battle.optString("phase");
     tools.setVisibility(phase.equals("choose") || phase.equals("over") ? GONE : VISIBLE);
     for (int side = 0; side < 2; side++) {
+      typeInfo[side].setVisibility(phase.equals("choose") || phase.equals("over") ? GONE : VISIBLE);
       effectInfo[side].setVisibility(
           phase.equals("choose") || phase.equals("over") ? GONE : VISIBLE);
       JSONArray current = BattleEffects.current(active(side));
@@ -412,6 +452,12 @@ final class BattleView extends FrameLayout implements FullBleed {
     foeInfo.setContentDescription(
         battle.optInt("turn") > 1 ? "상대 능력치와 기술 보기" : "한 턴이 지나면 상대 정보를 볼 수 있어요");
     history.setContentDescription("전투 기록 · " + battle.optInt("turn") + "턴");
+    if (NativeRealtime.isBattle(battle) && !battle.optBoolean("canSubmit")
+        && !phase.equals("over") && !pane.equals("leave")) {
+      TextView waiting=host.text("상대 선택 중",18); waiting.setTextColor(0xfffff8e8); controls.addView(waiting);
+      controls.addView(host.button("나가기", this::confirmLeave));
+      return;
+    }
     if (phase.equals("choose")) {
       choose();
       return;
@@ -420,21 +466,36 @@ final class BattleView extends FrameLayout implements FullBleed {
       controls.addView(host.text("전투 종료", 24));
       return;
     }
+    if (expiredInput && !pane.equals("leave")) {
+      TextView pending=host.text("결과 확인 중",18);pending.setTextColor(0xfffff8e8);controls.addView(pending);return;
+    }
     switch (pane) {
       case "skills":
         skills();
         return;
+      case "combo":
+        combos();
+        return;
+      case "leave":
+        surrenderPane();
+        return;
+      case "itemTarget":
+        itemTargets();
+        return;
       case "switch":
-        choiceLauncher("교체", () -> NativeBattleSheets.switches(this, false, null));
+        switchPane();
         return;
       case "items":
-        choiceLauncher("아이템", () -> NativeBattleSheets.items(this));
+        itemPane();
         return;
     }
     int height = commandHeight();
     for (int row = 0; row < 2; row++) {
       LinearLayout line = new LinearLayout(host);
-      controls.addView(line);
+      // Different icon aspect ratios produce different Button baselines. Do not shift a
+      // command below its allocated row in an attempt to align those text baselines.
+      line.setBaselineAligned(false);
+      controls.addView(line,new LinearLayout.LayoutParams(-1,height+2*host.dp(3)));
       for (int col = 0; col < 2; col++) {
         final int ix = row * 2 + col;
         String[] names = {
@@ -442,7 +503,7 @@ final class BattleView extends FrameLayout implements FullBleed {
           "아이템",
           "교체",
           battle.optString("mode").equals("normal") || battle.optString("mode").equals("rank")
-              ? "나가기"
+              ? "항복"
               : "도망가기"
         };
         Button b =
@@ -450,50 +511,40 @@ final class BattleView extends FrameLayout implements FullBleed {
                 names[ix],
                 () -> {
                   if (ix == 3) confirmLeave();
-                  else if (ix == 1) NativeBattleSheets.items(this);
-                  else if (ix == 2) NativeBattleSheets.switches(this, false, null);
+                  else if (ix == 1) { pane="items"; itemPage=0; render(); }
+                  else if (ix == 2) { pane="switch"; selectedSwitch=-1; render(); }
                   else {
                     pane = "skills";
                     render();
                   }
                 });
         b.setTypeface(host.headline);
-        b.setTextSize(tablet ? (ix == 3 ? 30 : 33) : (ix == 3 ? 23 : 27));
-        float labelWidth = Math.max(host.dp(60), (panelWidth - host.dp(8)) / 2f - host.dp(16));
-        float measuredLabel = b.getPaint().measureText(names[ix]);
-        if (measuredLabel > labelWidth)
-          b.setTextSize(
-              b.getTextSize()
-                  / host.getResources().getDisplayMetrics().scaledDensity
-                  * labelWidth
-                  / measuredLabel);
-        b.setSingleLine(true);
-        b.setHorizontallyScrolling(false);
+        b.setTextSize(18);
+        b.setMaxLines(2);
         b.setGravity(Gravity.CENTER);
         b.setPadding(host.dp(8), host.dp(8), host.dp(8), host.dp(10));
-        b.setBackground(
-            new GameButtonDrawable(
-                host, ix == 0 ? GameButtonDrawable.PRIMARY : GameButtonDrawable.PAPER));
-        b.setTextColor(
-            JournalTheme.controlText(
-                ix == 0 ? GameButtonDrawable.PRIMARY : GameButtonDrawable.PAPER));
+        String[] surfaces = {"attack", "item", "switch", "surrender"};
+        String name = surfaces[ix];
+        b.setBackground(new BattleSkin(host, "button-" + name));
+        b.setTextColor(ix == 3 ? JournalTheme.INK : 0xfffff8e8);
+        Bitmap image = BattleSkin.bitmap(host, "icon-" + name);
+        if (image != null && uiHeight >= host.dp(320) && host.getResources().getConfiguration().fontScale < 1.5f) {
+          android.graphics.drawable.BitmapDrawable icon = new android.graphics.drawable.BitmapDrawable(getResources(),image);
+          int bound=host.dp(tablet ? 64 : 56);
+          float scale=Math.min((float)bound/image.getWidth(),(float)bound/image.getHeight());
+          icon.setBounds(0,0,Math.round(image.getWidth()*scale),Math.round(image.getHeight()*scale));
+          b.setCompoundDrawables(null,icon,null,null);
+          b.setCompoundDrawablePadding(host.dp(6));
+        }
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, height, 1);
-        p.setMargins(host.dp(2), host.dp(2), host.dp(2), host.dp(2));
+        p.setMargins(host.dp(3), host.dp(3), host.dp(3), host.dp(3));
         line.addView(b, p);
       }
     }
   }
 
   int commandHeight() {
-    int width = panelWidth > 0 ? panelWidth : Math.round(uiWidth * .345f) - host.dp(8);
-    // 태블릿에서 버튼만 커지지 않게 하고 여유 높이는 전투 기록에 준다.
-    int available =
-        uiHeight > 0
-            ? Math.max(host.dp(72), (uiHeight - minimumLogHeight() - host.dp(32)) / 2)
-            : host.dp(152);
-    return Math.max(
-        host.dp(72),
-        Math.min(available, Math.min(host.dp(152), Math.round((width - host.dp(8)) / 2f * .82f))));
+    return Math.max(host.dp(48), Math.min(host.dp(tablet ? 160 : 122), (uiHeight-host.dp(72))/2));
   }
 
   int minimumLogHeight() {
@@ -549,16 +600,24 @@ final class BattleView extends FrameLayout implements FullBleed {
   }
 
   void confirmLeave() {
+    if (battle.optString("phase").equals("choose")) return;
+    pane="leave"; render();
+  }
+
+  void surrenderPane() {
+    heading("나가기 확인");
     String mode = battle.optString("mode");
     String message =
         mode.equals("rank")
-            ? "랭크게임에서 나갈까요? 패배로 처리되며 랭크 점수가 차감돼요."
+            ? "랭크게임에서 나갈까요? 패배로 기록되며 랭크 결과에 반영돼요."
             : mode.equals("normal")
                 ? "대전에서 나갈까요? 패배로 처리돼요."
                 : mode.equals("story")
                     ? "전투에서 도망칠까요? 경험치를 받지 못하고 남은 체력은 다음 전투로 이어져요."
                     : "연습 전투에서 나갈까요? 진행 상황은 저장되지 않아요.";
-    host.confirm(message, () -> host.battleTurn(MainActivity.obj("leave", true)));
+    TextView explanation=host.text(message,16); explanation.setTextColor(0xfffff8e8);
+    controls.addView(explanation);
+    add(host.button("확인 · 나가기", () -> host.battleTurnFrom(battle, MainActivity.obj("leave", true))));
   }
 
   int accessibleCardHeight(int baseDp) {
@@ -566,76 +625,117 @@ final class BattleView extends FrameLayout implements FullBleed {
   }
 
   void skills() {
-    heading("기술 선택");
     JSONArray skills = host.list(active(0), "skills");
     ArrayList<JSONObject> normals = new ArrayList<>();
-    ArrayList<JSONObject> combos = new ArrayList<>();
-    for (int i = 0; i < skills.length(); i++) {
-      JSONObject sk = skills.optJSONObject(i);
-      if (sk.optString("id").startsWith("combo-")) {
-        combos.add(sk);
-      } else normals.add(sk);
+    for (int i=0;i<skills.length();i++) {
+      JSONObject sk=skills.optJSONObject(i);
+      if(sk!=null && !sk.optString("id").startsWith("combo-")) normals.add(sk);
     }
-    if (panelWidth <= 0 || uiHeight <= 0) return;
-    int available = uiHeight - host.dp(16), required = host.dp(48);
-    int width = Math.max(1, panelWidth / 2 - host.dp(6));
-    ArrayList<LinearLayout> rows = new ArrayList<>();
-    ArrayList<Integer> rowHeights = new ArrayList<>();
-    ArrayList<SkillCardView> joint = new ArrayList<>();
-    boolean readable = normals.size() <= 4;
-    for (int i = 0; i < normals.size(); i += 2) {
-      LinearLayout row = new LinearLayout(host);
-      int rowHeight = 0;
-      for (int j = i; j < Math.min(i + 2, normals.size()); j++) {
-        SkillCardView card = new SkillCardView(this, normals.get(j), tablet, true, null);
-        rowHeight = Math.max(rowHeight, card.naturalHeight(width));
-        readable &= card.summaryFits(width);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1);
-        lp.setMargins(host.dp(3), host.dp(3), host.dp(3), host.dp(3));
-        row.addView(card, lp);
+    int cardHeight=Math.max(host.dp(48), Math.min(host.dp(tablet?160:124),(uiHeight-host.dp(132))/2));
+    for(int row=0;row<2;row++) {
+      LinearLayout line=new LinearLayout(host);
+      for(int col=0;col<2;col++) {
+        int index=row*2+col;
+        View card=index<normals.size()?new SkillCardView(this,normals.get(index),false,true,null):new View(host);
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,cardHeight,1);
+        lp.setMargins(host.dp(3),host.dp(3),host.dp(3),host.dp(3)); line.addView(card,lp);
       }
-      if (row.getChildCount() == 1)
-        row.addView(new View(host), new LinearLayout.LayoutParams(0, 1, 1));
-      required += rowHeight + host.dp(6);
-      rows.add(row);
-      rowHeights.add(rowHeight + host.dp(6));
+      controls.addView(line);
     }
-    for (JSONObject combo : combos) {
-      SkillCardView card = new SkillCardView(this, combo, tablet, true, null);
-      int cardWidth = panelWidth - host.dp(6);
-      required += card.naturalHeight(cardWidth) + host.dp(6);
-      readable &= card.summaryFits(cardWidth);
-      joint.add(card);
+    LinearLayout footer=new LinearLayout(host);
+    Button combo=host.button("합동기",()->{pane="combo";render();});
+    Button back=host.button("뒤로가기",()->{pane="menu";render();});
+    for(Button button:new Button[]{combo,back}) {
+      button.setTextSize(16); button.setBackground(new BattleSkin(host,button==combo?"button-item":"button-surrender"));
+      button.setTextColor(button==combo?0xfffff8e8:JournalTheme.INK);
+      LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,host.dp(52),1);
+      lp.setMargins(host.dp(3),host.dp(6),host.dp(3),0);footer.addView(button,lp);
     }
-    JSONArray legal = host.list(side(0), "legal");
-    for (int i = 0; i < legal.length(); i++)
-      if (legal.optJSONObject(i).optString("skillId").equals("struggle")) required += host.dp(54);
-    skillSheetNeeded = !readable || required > available;
-    if (skillSheetNeeded) {
-      choiceLauncher("기술 선택", () -> NativeBattleSheets.skills(this));
-      if (!skillSheetRequested) {
-        skillSheetRequested = true;
-        post(
-            () -> {
-              if (isAttachedToWindow() && pane.equals("skills") && !playback.playing)
-                NativeBattleSheets.skills(this);
-            });
+    controls.addView(footer);
+    JSONArray legal=host.list(side(0),"legal");
+    for(int i=0;i<legal.length();i++) {
+      JSONObject action=legal.optJSONObject(i);
+      if(action!=null && action.optString("skillId").equals("struggle")) {
+        combo.setText("몸통 박치기");
+        combo.setOnClickListener(v->host.battleTurnFrom(battle,MainActivity.obj("action",action)));
       }
-      return;
     }
-    for (int i = 0; i < rows.size(); i++)
-      controls.addView(rows.get(i), new LinearLayout.LayoutParams(-1, rowHeights.get(i), 1));
-    for (SkillCardView card : joint) {
-      LinearLayout.LayoutParams lp =
-          new LinearLayout.LayoutParams(-1, card.naturalHeight(panelWidth - host.dp(6)));
-      lp.setMargins(host.dp(3), host.dp(3), host.dp(3), host.dp(3));
-      controls.addView(card, lp);
+  }
+
+  void combos() {
+    heading("합동기");
+    JSONArray skills=host.list(active(0),"skills");
+    int count=0;
+    for(int i=0;i<skills.length();i++) {
+      JSONObject sk=skills.optJSONObject(i);
+      if(sk!=null && sk.optString("id").startsWith("combo-")) {
+        SkillCardView card=new SkillCardView(this,sk,false,true,null);
+        card.showCompleteEffect(); controls.addView(card,new LinearLayout.LayoutParams(-1,-2)); count++;
+      }
     }
-    for (int i = 0; i < legal.length(); i++) {
-      JSONObject a = legal.optJSONObject(i);
-      if (a.optString("skillId").equals("struggle"))
-        add(host.button("몸통 박치기 · 위력 30", () -> host.battleTurn(MainActivity.obj("action", a))));
+    if(count==0) controls.addView(host.text("사용할 합동기가 없어요.",16));
+  }
+
+  void switchPane() {
+    heading("교체");
+    JSONArray fighters=host.list(side(0),"fighters"), legal=host.list(side(0),"legal");
+    for(int i=0;i<fighters.length();i++) {
+      final int index=i; JSONObject f=fighters.optJSONObject(i); boolean allowed=false;
+      for(int j=0;j<legal.length();j++) {
+        JSONObject a=legal.optJSONObject(j);
+        if(a!=null && "switch".equals(a.optString("kind")) && a.optInt("to")==i) allowed=true;
+      }
+      String reason=i==side(0).optInt("active")?"출전 중":f.optInt("hp")<=0?"전투불가":!allowed?"지금 교체 불가":"";
+      Button option=host.button((selectedSwitch==i?"✓ ":"")+f.optString("name")+" · "+f.optInt("hp")+"/"+f.optInt("maxHp")
+          +(reason.isEmpty()?"":" · "+reason),()->{selectedSwitch=index;render();});
+      option.setTextSize(14); option.setEnabled(reason.isEmpty()); add(option);
     }
+    Button confirm=host.button("교체 · 이번 턴 행동 사용",()->host.battleTurnFrom(battle,
+        MainActivity.obj("action",MainActivity.obj("kind","switch","to",selectedSwitch))));
+    confirm.setEnabled(selectedSwitch>=0); confirm.setTextSize(14);add(confirm);
+  }
+
+  void itemPane() {
+    heading("아이템");
+    if(!battle.optString("mode").equals("story") && !NativeRealtime.isBattle(battle)) {
+      TextView hint=host.text("스토리에서 사용할 수 있어요.",16);hint.setTextColor(0xfffff8e8);controls.addView(hint);return;
+    }
+    JSONArray items=host.list(battle,"items"), inventory=host.list(battle,"inventory");
+    if(inventory.length()==0 && !NativeRealtime.isBattle(battle)) inventory=host.list(host.state,"items");
+    for(int row=0;row<2;row++) {
+      LinearLayout line=new LinearLayout(host);
+      for(int col=0;col<2;col++) {
+        int index=itemPage*4+row*2+col;
+        if(index>=items.length()) break;
+        JSONObject item=items.optJSONObject(index); int count=0;
+        for(int j=0;j<inventory.length();j++) if(inventory.optJSONObject(j).optString("id").equals(item.optString("id"))) count=inventory.optJSONObject(j).optInt("count");
+        String why=item.isNull("reason")?"":item.optString("reason");
+        Button button=host.button(item.optString("name")+" ×"+count+"\n"+NativeBattleSheets.itemEffect(item)
+            +(count<=0?" · 없음":why.isEmpty()?"":" · "+why),()->{selectedItem=item;pane="itemTarget";render();});
+        button.setTextSize(14); button.setEnabled(count>0 && why.isEmpty()); button.setBackground(new BattleSkin(host,"button-item"));button.setTextColor(0xfffff8e8);
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,Math.max(host.dp(48),(uiHeight-host.dp(180))/2),1);lp.setMargins(host.dp(3),host.dp(3),host.dp(3),host.dp(3));line.addView(button,lp);
+      }
+      controls.addView(line);
+    }
+    if(items.length()>4) add(host.button("다음 목록",()->{itemPage=(itemPage+1)%((items.length()+3)/4);render();}));
+  }
+
+  void itemTargets() {
+    heading("아이템 사용");
+    if(selectedItem==null){pane="items";render();return;}
+    TextView detail=host.text(selectedItem.optString("name")+" 1개 · 사용하면 이번 턴 행동이 끝나요.",14);
+    detail.setTextColor(0xfffff8e8);controls.addView(detail);
+    JSONObject action=MainActivity.obj("kind","item","item",selectedItem.optString("id"));
+    if(selectedItem.optInt("revive")>0) {
+      JSONArray fighters=host.list(side(0),"fighters");
+      for(int i=0;i<fighters.length();i++) {
+        final int index=i;JSONObject f=fighters.optJSONObject(i);
+        Button target=host.button(f.optString("name")+(f.optInt("hp")>0?" · 부활 대상 아님":" · 부활 사용"),()->{
+          try{action.put("target",index);}catch(JSONException ignored){}
+          host.battleTurnFrom(battle,MainActivity.obj("action",action));
+        });target.setEnabled(f.optInt("hp")<=0);add(target);
+      }
+    } else add(host.button("사용",()->host.battleTurnFrom(battle,MainActivity.obj("action",action))));
   }
 
   void choiceLauncher(String title, Runnable open) {
@@ -724,9 +824,11 @@ final class BattleView extends FrameLayout implements FullBleed {
       super.onDraw(c);
       float w = getWidth(), h = getHeight();
       String background = BattleBackground.path(battle.optString("scene", "harbor"));
-      Bitmap bg = background == null ? null : host.art.scene(background, this::invalidate);
+      Bitmap bg = battle.optString("scene", "harbor").equals("harbor")
+          ? BattleSkin.bitmap(host,"bg-harbor")
+          : background == null ? null : host.art.scene(background, this::invalidate);
       if (bg != null) {
-        float scale = Math.max(w / bg.getWidth(), h / bg.getHeight()),
+        float scale = Math.max((safeLeft + uiWidth * .655f) / bg.getWidth(), h / bg.getHeight()),
             baseWidth = bg.getWidth() * scale,
             baseHeight = bg.getHeight() * scale,
             bw = baseWidth * 1.035f,
@@ -742,15 +844,17 @@ final class BattleView extends FrameLayout implements FullBleed {
       c.translate(safeLeft, safeTop);
       w = uiWidth;
       h = uiHeight;
-      float world = w * .645f;
+      float world = w * .655f;
+      c.save();
+      c.clipRect(0,0,world,h);
       JSONObject a = active(0), b = active(1);
       c.save();
       c.translate(parallax.x, parallax.y);
-      playback.fighter(c, a, new RectF(world * .015f, h * .36f, world * .48f, h * .96f), 0);
+      playback.fighter(c, a, new RectF(world * .045f, h * .30f, world * .495f, h * .90f), 0);
       c.restore();
       c.save();
       c.translate(parallax.x * .6f, parallax.y * .6f);
-      playback.fighter(c, b, new RectF(world * .51f, h * .2f, world * .95f, h * .66f), 1);
+      playback.fighter(c, b, new RectF(world * .51f, h * .07f, world * .95f, h * .53f), 1);
       c.restore();
       c.save();
       c.translate(parallax.x * .8f, parallax.y * .8f);
@@ -759,19 +863,19 @@ final class BattleView extends FrameLayout implements FullBleed {
       status(c, b, statusArea(1), false);
       status(c, a, statusArea(0), true);
       c.restore();
+      panelSkin.surface(c,new RectF(world,0,w,h));
+      float decorationTop=host.dp(44)+2*(commandHeight()+host.dp(6))+host.dp(16);
+      if(pane.equals("menu") && h-decorationTop>=host.dp(56)) {
+        float size=Math.min(host.dp(64),h-decorationTop-host.dp(8));
+        BattleSkin.contain(c,BattleSkin.bitmap(host,"decor-shell"),new RectF(world+(w-world)*.25f,decorationTop,world+(w-world)*.65f,decorationTop+size),p);
+        BattleSkin.contain(c,BattleSkin.bitmap(host,"decor-wheel"),new RectF(w-size-host.dp(12),h-size-host.dp(12),w-host.dp(12),h-host.dp(12)),p);
+      }
+      c.restore();
     }
 
     void fighter(Canvas c, JSONObject f, RectF area) {
       String path = f.optString("image");
       Bitmap b = host.art.scene(path, this::invalidate);
-      p.setColor(0x35484139);
-      c.drawOval(
-          new RectF(
-              area.left + area.width() * .1f,
-              area.bottom - host.dp(12),
-              area.right - area.width() * .1f,
-              area.bottom),
-          p);
       boolean flash =
           playback.playing
               && playback.effect.equals("hit")
@@ -790,110 +894,31 @@ final class BattleView extends FrameLayout implements FullBleed {
     }
 
     void status(Canvas c, JSONObject f, RectF r, boolean own) {
-      JournalTheme.drawPanel(
-          c, r, host.getResources().getDisplayMetrics().density, JournalTheme.PAPER, true);
-      float x = r.left + host.dp(14),
-          top = r.top + Math.max(host.dp(25), r.height() * .24f),
-          right = r.right - host.dp(14),
-          size =
-              Math.min(
-                  (tablet ? 25 : 20) * getResources().getDisplayMetrics().scaledDensity,
-                  r.height() * .17f);
-      p.setTypeface(host.headline);
-      p.setTextSize(size);
-      p.setColor(MainActivity.INK);
-      p.setTextAlign(Paint.Align.LEFT);
-      String name = f.optString("name");
-      float space = right - x - host.dp(48);
-      while (p.measureText(name) > space && name.length() > 2)
-        name = name.substring(0, name.length() - 2) + "…";
-      c.drawText(name, x, top, p);
-      p.setTypeface(host.prose);
-      p.setTextSize(size * .8f);
+      hpSkin.surface(c,r);
+      float inset=host.dp(14),x=r.left+inset,right=r.right-inset;
+      p.setTypeface(host.headline);p.setTextSize(14*getResources().getDisplayMetrics().scaledDensity);
+      p.setTextAlign(Paint.Align.LEFT);p.setColor(JournalTheme.INK);
+      String name=f.optString("name");
+      float nameWidth=(right-x)*.53f;
+      while(p.measureText(name)>nameWidth && name.length()>2) name=name.substring(0,name.length()-2)+"…";
+      float baseline=r.top+host.dp(25);
+      c.drawText(name,x,baseline,p);
+      p.setTypeface(host.prose);p.setTextSize(12*getResources().getDisplayMetrics().scaledDensity);
       p.setTextAlign(Paint.Align.RIGHT);
-      c.drawText("Lv" + f.optInt("level"), right, top, p);
-      p.setTextAlign(Paint.Align.LEFT);
-      float barY = top + r.height() * .1f, bh = Math.max(5, r.height() * .08f);
-      p.setColor(0xffd9d3bf);
-      c.drawRoundRect(new RectF(x, barY, right, barY + bh), bh / 2, bh / 2, p);
-      float frac =
-          Math.max(0, Math.min(1, (float) f.optInt("hp") / Math.max(1, f.optInt("maxHp"))));
-      p.setColor(frac > .5f ? 0xff4b947e : frac > .2f ? 0xffc49a59 : 0xffb54a3d);
-      c.drawRoundRect(new RectF(x, barY, x + (right - x) * frac, barY + bh), bh / 2, bh / 2, p);
-      p.setTextSize(size * .78f);
-      String attribute =
-          f.optString("attr") + (f.isNull("extraAttr") ? "" : " · " + f.optString("extraAttr"));
-      float attrY = barY + bh + r.height() * .17f;
-      float chipWidth = p.measureText(attribute) + host.dp(10);
-      p.setColor(MenuKit.attrColor(f.optString("attrCode")));
-      c.drawRoundRect(
-          new RectF(x - host.dp(3), attrY - size * .9f, x + chipWidth, attrY + host.dp(3)),
-          host.dp(7),
-          host.dp(7),
-          p);
-      p.setColor(MainActivity.INK);
-      c.drawText(attribute, x + host.dp(2), attrY, p);
-      p.setTextAlign(Paint.Align.RIGHT);
-      p.setColor(MainActivity.INK);
-      if (own)
-        c.drawText(
-            f.optInt("hp") + "/" + f.optInt("maxHp"), right, barY + bh + r.height() * .17f, p);
-      else c.drawText((int) Math.ceil(frac * 100) + "%", right, barY + bh + r.height() * .17f, p);
-      p.setTextAlign(Paint.Align.LEFT);
-      JSONObject u = host.unit(f.optString("key"));
-      p.setTextSize(size * .64f);
-      JSONArray team = host.list(side(own ? 0 : 1), "fighters");
-      float dotsY = r.bottom - r.height() * .10f - size * .20f;
-      for (int i = 0; i < team.length(); i++) {
-        p.setColor(team.optJSONObject(i).optInt("hp") > 0 ? 0xff51c98b : 0xffb6ae9d);
-        c.drawCircle(right - i * host.dp(10), dotsY, host.dp(3.5f), p);
-      }
-      p.setTextSize(size * .7f);
-      JSONArray current = BattleEffects.current(f);
-      float effectY = r.bottom - r.height() * .22f;
-      String effectLabel;
-      if (playback.playing) {
-        effectLabel = "효과 갱신 중";
-        p.setColor(MainActivity.INK);
-      } else if (current.length() == 0) {
-        effectLabel = "효과 없음";
-        p.setColor(0xff634a35);
-      } else {
-        JSONObject first = current.optJSONObject(0);
-        int shown = 1;
-        effectLabel = BattleEffects.compactLabel(first);
-        p.setColor(BattleEffects.color(first));
-        if (p.measureText(
-                effectLabel + (current.length() > shown ? " +" + (current.length() - shown) : ""))
-            > right - x) {
-          effectLabel = first.optString("label") + " · " + BattleEffects.duration(first) + " 상세";
-        }
-        if (p.measureText(effectLabel) > right - x)
-          effectLabel = "현재 효과 " + current.length() + "개 · 상세";
-        else if (current.length() > shown) effectLabel += " +" + (current.length() - shown);
-      }
-      c.drawText(effectLabel, x, effectY, p);
-      p.setTextSize(size * .64f);
-      p.setColor(MainActivity.BLUE);
-      if (own)
-        c.drawText(
-            battle.optString("mode").equals("practice")
-                ? "연습 · 저장되지 않음"
-                : u.has("key") ? "경험치 " + u.optInt("xp") + " / " + u.optInt("xpNext") : "동일 레벨 대전",
-            x,
-            r.bottom - r.height() * .10f,
-            p);
-      else {
-        JSONArray augs = host.list(side(1), "augments");
-        ArrayList<String> names = new ArrayList<>();
-        for (int i = 0; i < augs.length(); i++)
-          if (augs.optJSONObject(i) != null) names.add(augs.optJSONObject(i).optString("name"));
-        String label = android.text.TextUtils.join(" · ", names);
-        float footerWidth = right - x - host.dp(team.length() * 10 + 6);
-        while (p.measureText(label) > footerWidth && label.length() > 2)
-          label = label.substring(0, label.length() - 2) + "…";
-        c.drawText(label, x, r.bottom - r.height() * .10f, p);
-      }
+      c.drawText(f.optInt("hp")+" / "+f.optInt("maxHp"),right,baseline,p);
+      float frac=Math.max(0,Math.min(1,(float)f.optInt("hp")/Math.max(1,f.optInt("maxHp"))));
+      float barY=baseline+host.dp(8), bh=host.dp(10);
+      p.setColor(0xff263f45);c.drawRoundRect(new RectF(x,barY,right,barY+bh),bh/2,bh/2,p);
+      int clip=c.save();c.clipRect(x,barY,x+(right-x)*frac,barY+bh);
+      p.setColor(frac>.5f?0xff438f85:frac>.2f?0xffc49a59:0xffb54a3d);
+      c.drawRoundRect(new RectF(x,barY,right,barY+bh),bh/2,bh/2,p);c.restoreToCount(clip);
+      p.setTextAlign(Paint.Align.LEFT);p.setColor(JournalTheme.INK);
+      JSONArray current=BattleEffects.current(f);
+      String effects=playback.playing?"효과 갱신 중":current.length()==0?"효과 없음":BattleEffects.compactLabel(current.optJSONObject(0));
+      if(current.length()>1) effects+=" +"+(current.length()-1);
+      float available=right-x-host.dp(44);
+      while(p.measureText(effects)>available && effects.length()>2) effects=effects.substring(0,effects.length()-2)+"…";
+      if(r.height()>=host.dp(74)) c.drawText(effects,x,r.bottom-host.dp(15),p);
     }
   }
 }

@@ -1,0 +1,477 @@
+{
+  "version": "1.0",
+  "date": "2026-10-18",
+  "scope": "development art and assembled previews; no production deployment",
+  "safeRegionSplit": {
+    "stage": 0.655,
+    "command": 0.345
+  },
+  "layerOrder": [
+    "background",
+    "groundShadow",
+    "actor",
+    "VFX",
+    "HUD",
+    "commandPanel",
+    "decoration",
+    "buttonSurface",
+    "icon",
+    "runtimeText",
+    "runtimeStateMark"
+  ],
+  "interactionOwner": "existing client button hit rectangles, NOT image layers",
+  "runtimeValues": [
+    "localizedLabels",
+    "characterNames",
+    "skillNames",
+    "HP",
+    "itemCount",
+    "timer",
+    "disabledReason",
+    "selection",
+    "submissionStatus"
+  ],
+  "shadow": {
+    "source": "runtime reusable ellipse/soft shadow or separate neutral PNG",
+    "zOrder": 10,
+    "pivot": "ground anchor independent of actor jump Y",
+    "bakedInActor": false
+  },
+  "assets": [
+    {
+      "file": "assets/bg-harbor.png",
+      "purposeKo": "전투 왼쪽 무대의 항구 배경. 배우·지면그림자·HP는 별도 레이어.",
+      "sourceSizePx": [
+        1672,
+        941
+      ],
+      "assetDensity": 2,
+      "zOrder": 0,
+      "anchor": "safeRect.stage center",
+      "resize": "cover inside stage clip",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "e645d4dd88323728c7ae7670435db9848464d7c651110d29b9a4e9057dded44c"
+    },
+    {
+      "file": "assets/button-attack.png",
+      "purposeKo": "ROOT 공격 버튼. ATTACK 속성/종류 대응 표면 후보; 실제 매핑은 데이터 기준.",
+      "sourceSizePx": [
+        722,
+        254
+      ],
+      "assetDensity": 3,
+      "zOrder": 60,
+      "anchor": "command grid cell",
+      "resize": "generic-nine-slice",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "360d05f214331b748f4b66c112b543e4c0a45f0050b24267ae3e3d00f51a6c21",
+      "nineSlice": {
+        "type": "generic-uncompiled",
+        "sourceInsetsLTRB": [
+          64,
+          48,
+          64,
+          48
+        ]
+      },
+      "contentInsetsLogical": [
+        12,
+        12,
+        12,
+        12
+      ]
+    },
+    {
+      "file": "assets/button-item.png",
+      "purposeKo": "ROOT 아이템 버튼 및 합동기 보조 행동 표면. 실제 활성 상태는 런타임.",
+      "sourceSizePx": [
+        721,
+        254
+      ],
+      "assetDensity": 3,
+      "zOrder": 60,
+      "anchor": "command grid cell",
+      "resize": "generic-nine-slice",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "efb98a3b2e8940457a09319ab35488d8bd1c94c12d3c0dbc5cab6115fb458fc2",
+      "nineSlice": {
+        "type": "generic-uncompiled",
+        "sourceInsetsLTRB": [
+          64,
+          48,
+          64,
+          48
+        ]
+      },
+      "contentInsetsLogical": [
+        12,
+        12,
+        12,
+        12
+      ]
+    },
+    {
+      "file": "assets/button-surrender.png",
+      "purposeKo": "ROOT 항복/도망 및 보조 뒤로 버튼의 밝은 표면. 레이블·의미는 각각 분리.",
+      "sourceSizePx": [
+        721,
+        250
+      ],
+      "assetDensity": 3,
+      "zOrder": 60,
+      "anchor": "command grid cell",
+      "resize": "generic-nine-slice",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "25b2f5defb6decc79f8ec87d2fdffcc4f898f3e95a5d60b1ed332ba664ed252f",
+      "nineSlice": {
+        "type": "generic-uncompiled",
+        "sourceInsetsLTRB": [
+          64,
+          48,
+          64,
+          48
+        ]
+      },
+      "contentInsetsLogical": [
+        12,
+        12,
+        12,
+        12
+      ]
+    },
+    {
+      "file": "assets/button-switch.png",
+      "purposeKo": "ROOT 교체 버튼 표면. 후보 선택이 확정 제출을 대신하지 않음.",
+      "sourceSizePx": [
+        721,
+        250
+      ],
+      "assetDensity": 3,
+      "zOrder": 60,
+      "anchor": "command grid cell",
+      "resize": "generic-nine-slice",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "11d400907965666672c3209a4566163606f9204c2345694d376bd8fa7765ea2c",
+      "nineSlice": {
+        "type": "generic-uncompiled",
+        "sourceInsetsLTRB": [
+          64,
+          48,
+          64,
+          48
+        ]
+      },
+      "contentInsetsLogical": [
+        12,
+        12,
+        12,
+        12
+      ]
+    },
+    {
+      "file": "assets/decor-corner-bl.png",
+      "purposeKo": "가장자리 장식; 조작과 무관",
+      "sourceSizePx": [
+        537,
+        454
+      ],
+      "assetDensity": 2,
+      "zOrder": 55,
+      "anchor": "panel corner or reserved ornament area",
+      "resize": "contain uniform",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "a7ba39099c251a97ea2a5c12e8970d0d9736073cd0205db686c99a5677b81c0c"
+    },
+    {
+      "file": "assets/decor-corner-br.png",
+      "purposeKo": "가장자리 장식; 조작과 무관",
+      "sourceSizePx": [
+        536,
+        454
+      ],
+      "assetDensity": 2,
+      "zOrder": 55,
+      "anchor": "panel corner or reserved ornament area",
+      "resize": "contain uniform",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "0899c49a51b8a0ed8033426ea3efc8709a6b36a769b9ef2e237279d4cfc02f0e"
+    },
+    {
+      "file": "assets/decor-corner-tl.png",
+      "purposeKo": "가장자리 장식; 조작과 무관",
+      "sourceSizePx": [
+        529,
+        447
+      ],
+      "assetDensity": 2,
+      "zOrder": 55,
+      "anchor": "panel corner or reserved ornament area",
+      "resize": "contain uniform",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "bcfac4934de9c27793db38354e839d3759e4cff198e0f43fc3c7816170754515"
+    },
+    {
+      "file": "assets/decor-corner-tr.png",
+      "purposeKo": "가장자리 장식; 조작과 무관",
+      "sourceSizePx": [
+        529,
+        448
+      ],
+      "assetDensity": 2,
+      "zOrder": 55,
+      "anchor": "panel corner or reserved ornament area",
+      "resize": "contain uniform",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "dd4648ba5067d1b70c0ac7241803bdaa36b827c45bb0fe44323e13bf56b4a594"
+    },
+    {
+      "file": "assets/decor-shell.png",
+      "purposeKo": "조개 장식. 명령 영역 하단 중앙 예약 여백. 조작부 아래 가용 높이40dp 미만이면 숨김.",
+      "sourceSizePx": [
+        293,
+        283
+      ],
+      "assetDensity": 2,
+      "zOrder": 55,
+      "anchor": "panel corner or reserved ornament area",
+      "resize": "contain uniform",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "b306ac3efd24b800efa1e9264e4fd0ac0404b9b08ae8b3b82d8fa4a396a1870e"
+    },
+    {
+      "file": "assets/decor-wheel.png",
+      "purposeKo": "항구 테마 휠 장식. 명령 영역 하단 오른쪽 예약 여백. 조작부 아래 가용 높이40dp 미만이면 숨김.",
+      "sourceSizePx": [
+        435,
+        435
+      ],
+      "assetDensity": 2,
+      "zOrder": 55,
+      "anchor": "panel corner or reserved ornament area",
+      "resize": "contain uniform",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "4f046628f9412e1b5545919aff297c45965c6ae5edb3f95a2081bcc24c35ab00"
+    },
+    {
+      "file": "assets/icon-attack.png",
+      "purposeKo": "공격 메뉴 진입 아이콘.",
+      "sourceSizePx": [
+        290,
+        266
+      ],
+      "assetDensity": 2,
+      "zOrder": 70,
+      "anchor": "button content slot center",
+      "resize": "contain uniform",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "dae19c7760f1090b6c5dc09f5354ed1dd7d5f4b1e8a0a2a9df7cb4a714a2e40b"
+    },
+    {
+      "file": "assets/icon-back.png",
+      "purposeKo": "패널 안 이전 단계로 돌아가기. 전투 종료나 항복 아이콘이 아님.",
+      "sourceSizePx": [
+        292,
+        260
+      ],
+      "assetDensity": 2,
+      "zOrder": 70,
+      "anchor": "button content slot center",
+      "resize": "contain uniform",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "4f72eec3c323937e25da12bfbd36eb3e6dc1e34fc9b86ebc8cb95b88956e7280"
+    },
+    {
+      "file": "assets/icon-combo.png",
+      "purposeKo": "합동기 버튼 아이콘. 실제 사용 조건은 서버/게임 데이터.",
+      "sourceSizePx": [
+        324,
+        301
+      ],
+      "assetDensity": 2,
+      "zOrder": 70,
+      "anchor": "button content slot center",
+      "resize": "contain uniform",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "0a05680df82d64ba04e563b2a0b7b28805818364746337230afb7b92bab35a10"
+    },
+    {
+      "file": "assets/icon-goldenstrike.png",
+      "purposeKo": "타격 계열 기술 아이콘 후보. 실제 기술 의미와 연결.",
+      "sourceSizePx": [
+        332,
+        324
+      ],
+      "assetDensity": 2,
+      "zOrder": 70,
+      "anchor": "button content slot center",
+      "resize": "contain uniform",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "5a9725d2f1808f7afc7f1336ebb36b4cbc7ed0bdc279f926f57c395766955ce2"
+    },
+    {
+      "file": "assets/icon-item.png",
+      "purposeKo": "아이템 메뉴 진입 아이콘.",
+      "sourceSizePx": [
+        274,
+        271
+      ],
+      "assetDensity": 2,
+      "zOrder": 70,
+      "anchor": "button content slot center",
+      "resize": "contain uniform",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "eec8140e83d089faa30775585d686672adf113f029bfc13d7106b820359e1c25"
+    },
+    {
+      "file": "assets/icon-shield.png",
+      "purposeKo": "방어 계열 기술 아이콘 후보. 실제 기술 의미와 연결.",
+      "sourceSizePx": [
+        332,
+        328
+      ],
+      "assetDensity": 2,
+      "zOrder": 70,
+      "anchor": "button content slot center",
+      "resize": "contain uniform",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "d9cf5cd4ad36aa823aa6d1290db025eb437620c2f03d7e69290a92ad496ba24e"
+    },
+    {
+      "file": "assets/icon-stance.png",
+      "purposeKo": "자세/이동 계열 기술 아이콘 후보. 실제 기술 의미와 연결.",
+      "sourceSizePx": [
+        354,
+        328
+      ],
+      "assetDensity": 2,
+      "zOrder": 70,
+      "anchor": "button content slot center",
+      "resize": "contain uniform",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "5daa8af8e7c333657cdef5c19c33a7be21f228d7934f9fbbbb769c3669a1caf7"
+    },
+    {
+      "file": "assets/icon-stonecrack.png",
+      "purposeKo": "기술 카드 아이콘 후보. 기존 기술 ID와 의미 검증 후 연결; 임의 기술 추가 금지.",
+      "sourceSizePx": [
+        307,
+        327
+      ],
+      "assetDensity": 2,
+      "zOrder": 70,
+      "anchor": "button content slot center",
+      "resize": "contain uniform",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "a383a2e0cedd8b4830f33e12af40372d83f318193c6511a078fd23664170cee7"
+    },
+    {
+      "file": "assets/icon-surrender.png",
+      "purposeKo": "항복/도망 의미 아이콘. 버튼 텍스트로 실제 모드 의미 구분.",
+      "sourceSizePx": [
+        278,
+        302
+      ],
+      "assetDensity": 2,
+      "zOrder": 70,
+      "anchor": "button content slot center",
+      "resize": "contain uniform",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "bad165fcd6166ef6145dc9867d2883039e34f6b67a630a4fd9eacf57d9d4b967"
+    },
+    {
+      "file": "assets/icon-switch.png",
+      "purposeKo": "교체 메뉴 진입 아이콘.",
+      "sourceSizePx": [
+        266,
+        228
+      ],
+      "assetDensity": 2,
+      "zOrder": 70,
+      "anchor": "button content slot center",
+      "resize": "contain uniform",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "57ea8f410b8a3ce9b291bf504b00e39ce5b328359e89df53d7afac98d0bb1c25"
+    },
+    {
+      "file": "assets/panel-command.png",
+      "purposeKo": "오른쪽 명령 영역 공통 바탕. 모든 메뉴 상태에서 같은 위치 유지.",
+      "sourceSizePx": [
+        1010,
+        1383
+      ],
+      "assetDensity": 4,
+      "zOrder": 50,
+      "anchor": "safeRect x=65.5%, top",
+      "resize": "generic-nine-slice",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "0c729083d93dd15bcc6b1a17eaef468dc89d48ffc64966916b1f88460f268a12",
+      "nineSlice": {
+        "type": "generic-uncompiled",
+        "sourceInsetsLTRB": [
+          80,
+          80,
+          80,
+          80
+        ]
+      },
+      "contentInsetsLogical": [
+        12,
+        12,
+        12,
+        12
+      ]
+    },
+    {
+      "file": "assets/panel-hp.png",
+      "purposeKo": "상대/내 체력 명패. 이름·수치·체력바·상태를 런타임에 덧그림.",
+      "sourceSizePx": [
+        721,
+        248
+      ],
+      "assetDensity": 3,
+      "zOrder": 40,
+      "anchor": "enemy stage top-left / ally stage bottom-right",
+      "resize": "generic-nine-slice",
+      "hitTest": false,
+      "runtimeText": false,
+      "sha256": "18248af2535151c48d0c25f171997311e9f084ee01c50fb762ac39e60bbf9d09",
+      "nineSlice": {
+        "type": "generic-uncompiled",
+        "sourceInsetsLTRB": [
+          64,
+          48,
+          64,
+          48
+        ]
+      },
+      "contentInsetsLogical": [
+        12,
+        12,
+        12,
+        12
+      ]
+    }
+  ]
+}

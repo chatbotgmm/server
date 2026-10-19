@@ -56,6 +56,8 @@ const num=(n:number)=>n.toLocaleString('ko-KR');
 const report=(below:string,nextLine:string)=>`${below?`${below}\n\n${RULE}\n`:''}${nextLine}`;
 const statusOf=(c:Count|undefined):Count=>c??{total:0,usable:0,locked:0,away:0};
 
+export const LEGACY_RANK_UNAVAILABLE="랭크는 실제 유저끼리만 대전해요. 최신 앱의 실시간 유저 랭크전에서 다시 시작해 주세요.";
+
 export class GameService {
   private tail:Promise<unknown>=Promise.resolve();
   private pending=0;
@@ -1109,6 +1111,18 @@ export class GameService {
   // 계정 삭제(탈퇴): 이 사람의 모든 게임 데이터를 한 거래로 지움. 다음에 카톡에 말을 걸면 새 계정으로 시작
   async webDeleteAccount(playerId:string){
     return this.webRun(playerId,async(tx,p)=>{
+      await tx.appMeta.upsert({where:{key:'realtime-pvp-write-lock'},create:{key:'realtime-pvp-write-lock',value:'1'},update:{value:'1'}});
+      const active=await tx.realtimeActivity.findUnique({where:{playerId:p.id}});
+      if(active&&(active.kind==='ROOM'||active.expiresAt.getTime()>Date.now()))throw new GameError('매칭을 취소하거나 진행 중인 대전을 마친 뒤 탈퇴해 주세요.');
+      await tx.rankedProfile.deleteMany({where:{playerId:p.id}});
+      await tx.casualHumanRating.deleteMany({where:{playerId:p.id}});
+      await tx.realtimeAttempt.deleteMany({where:{playerId:p.id}});
+      await tx.realtimeRequest.deleteMany({where:{playerId:p.id}});
+      await tx.realtimeLineup.deleteMany({where:{playerId:p.id}});
+      await tx.realtimeItemEscrow.deleteMany({where:{playerId:p.id}});
+      await tx.realtimeActivity.deleteMany({where:{playerId:p.id}});
+      const rooms=await tx.realtimeRoom.findMany({where:{OR:[{player0Id:p.id},{player1Id:p.id}]},select:{id:true,player0Id:true,namesJson:true}});
+      for(const room of rooms){const names=JSON.parse(room.namesJson) as string[];names[room.player0Id===p.id?0:1]='탈퇴한 사용자';await tx.realtimeRoom.update({where:{id:room.id},data:{namesJson:JSON.stringify(names)}});}
       const where={playerId:p.id};
       const mine=(await tx.comment.findMany({where,select:{id:true}})).map(c=>c.id);
       await tx.commentLike.deleteMany({where:{OR:[{commentId:{in:mine}},{voter:`p:${p.id}`}]}});
@@ -1214,7 +1228,8 @@ export class GameService {
     return this.webRun(playerId,async(tx,p)=>{
       const cost=item.price*count;
       const have=(await tx.playerItem.findUnique({where:{playerId_itemId:{playerId:p.id,itemId:item.id}}}))?.count??0;
-      if(have+count>maxStack)throw new GameError(`${item.name}은(는) ${maxStack}개까지 가질 수 있어요. 지금 ${have}개.`);
+      const held=await tx.realtimeItemEscrow.count({where:{playerId:p.id,itemId:item.id,state:'HELD'}});
+      if(have+held+count>maxStack)throw new GameError(`${item.name}은(는) 예약한 수량을 포함해 ${maxStack}개까지 가질 수 있어요. 지금 ${have}개, 전투 예약 ${held}개.`);
       const paid=await tx.player.updateMany({where:{id:p.id,snack:{gte:cost}},data:{snack:{decrement:cost}}});
       if(paid.count!==1)throw new GameError(`🍤 새우gang이 부족해요. ${cost}개 필요, 지금 ${p.snack}개.`);
       await tx.playerItem.upsert({where:{playerId_itemId:{playerId:p.id,itemId:item.id}},create:{playerId:p.id,itemId:item.id,count},update:{count:{increment:count}}});
@@ -1290,7 +1305,12 @@ export class GameService {
       me:{point:p.rankPoint,tier:this.pvpTier(p.rankPoint),wins:p.rankWins,losses:p.rankLosses,rank},
       top:top.map((r,i)=>({rank:i+1,name:r.nickname??`갈매미 #${r.id.slice(0,4)}`,point:r.rankPoint,tier:this.pvpTier(r.rankPoint),wins:r.rankWins,losses:r.rankLosses,me:r.id===p.id}))};
   }
+  assertLegacyPvpAllowed(mode:string):void{
+    // Human-owned saved teams are still AI controlled in this legacy path.
+    if(mode==='rank')throw new GameError(LEGACY_RANK_UNAVAILABLE);
+  }
   async webPvpMatch(playerId:string,mode:string){
+    this.assertLegacyPvpAllowed(mode);
     if(mode!=='normal'&&mode!=='rank')throw new GameError('없는 대전 방식이에요.');
     const now=this.clock().getTime();
     for(const [k,v] of this.pvpMatches)if(v.exp<now)this.pvpMatches.delete(k);
@@ -1323,6 +1343,7 @@ export class GameService {
   async webPvpResult(playerId:string,R:Rules,match:string,events:PvpEvent[]){
     const m=this.pvpMatches.get(match);
     if(!m||m.player!==playerId||m.exp<this.clock().getTime())throw new GameError('대전 정보가 없어요. 다시 시작해 주세요.');
+    this.assertLegacyPvpAllowed(m.mode);
     if(m.done)throw new GameError('이미 결과를 받은 대전이에요.');
     let winner:0|1|null;
     try{winner=replay(createBattle(R,m.mine,m.foe,m.seed),events);}catch{throw new GameError('대전 기록이 맞지 않아요.');}

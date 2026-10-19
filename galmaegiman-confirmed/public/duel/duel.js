@@ -2,6 +2,7 @@
 // 규칙·유닛·스토리는 서버가 data/battle.yaml·data/story.yaml을 검사해 보내 줌(/duel/data.json). 기술 효과는 그림 없이 코드로 그림
 // 스토리 진행(레벨·경험치·배운 기술·승진·깬 스테이지): 「내 갈매미」에 로그인돼 있으면 계정에, 아니면 이 브라우저에 저장
 // 로그인돼 있으면 「내 갈매미」 전투 편성을 스토리 팀으로 쓸 수 있고, 스토리 대결에서 가진 아이템을 쓸 수 있음
+import { createRealtimeScreen } from './realtime-ranked-screen.js';
 import { rulesFrom } from '../../src/battle/core.ts';
 import { createBattle, choose, rerollAugment, act, pending, legalActions, pickAi, aiChoose, skillProblem, skillPreview, activeOf, itemProblem } from '../../src/battle/engine.ts';
 import { bgm, sfx, isMuted, toggleMute, getVol, setVol, isChMuted, setChMute } from './sound.js';
@@ -318,6 +319,7 @@ async function boot() {
       if (!SAVE.team.length && ACC.battleTeam.length) { for (const sp of ACC.battleTeam) SAVE.team.push(keyFor(sp)); persist(); }   // 스토리는 1~3마리(v0.15.0), 개체로
     } else SAVE = load();
     titleScreen(!!ACC);
+    if (ACC) { try { await getRealtimeScreen().restore(); } catch { /* Available again on the next PvP start; never substitute AI. */ } }
     const fieldItem = new URLSearchParams(location.search).get('fieldItem');
     if (fieldItem && R.data.items[fieldItem]?.heal) { menu(); healSheet(fieldItem, menu); const url = new URL(location.href); url.searchParams.delete('fieldItem'); history.replaceState(null, '', url); }
     if (TUT) setInterval(tutTick, 350);
@@ -579,7 +581,7 @@ function profMenu() {
   const out = e => { if (!m.contains(e.target) && !e.target.closest('#lprof')) close(); };
   addEventListener('pointerdown', out, true);
   m.querySelectorAll('[data-m]').forEach(x => x.onclick = () => { close(); ({ account: () => openMy('account'), rank: pvpTop, set: settingsSheet })[x.dataset.m](); });
-  if (ACC) myApi('pvp').then(d => { const el = m.querySelector('#pmRank'); if (el) el.innerHTML = `${tierIco(d, d.me.tier)}${esc(d.me.tier)} · ${d.me.point}점 · ${d.me.wins}승 ${d.me.losses}패`; }).catch(() => { const el = m.querySelector('#pmRank'); if (el) el.textContent = ''; });
+  if (ACC) myApi('pvp/rank').then(d => { const el = m.querySelector('#pmRank'); if (el) el.innerHTML = `${tierIco(d, d.me.tier)}${esc(d.me.tier)} · ${d.me.point}점 · ${d.me.wins}승 ${d.me.losses}패`; }).catch(() => { const el = m.querySelector('#pmRank'); if (el) el.textContent = ''; });
 }
 // 스토리 이어하기(다음 스테이지 바로, 팀이 없으면 편성부터)
 function continueStory() {
@@ -600,7 +602,7 @@ function modeScreen() {
         <button class="mbtn main" id="mStory"><i>${ico('u-story', '📖')}</i><span><b>스토리</b><small>챕터를 골라 이야기 시작 · 기술·승진 관리</small><small>${st ? `다음 이야기 · ${esc(st.id)} ${esc(st.title)}` : '모든 이야기 완료 · 다시 보기'}</small></span></button>
         <button class="mbtn" id="mAdv" disabled><i>${ico('mode-adv', '🧭')}</i><span><b>모험 · 상위 갈매미 포획</b><small>준비 중 · 다음 업데이트</small></span></button>
         </section>
-      <section class="mcard pvp"><div class="mhead"><i>${ico('mode-pvp', '⚔️')}</i><span><b>PvP</b><small>다른 수비대의 「전투 편성」 팀과 대결 · 모두 같은 레벨</small></span></div>
+      <section class="mcard pvp"><div class="mhead"><i>${ico('mode-pvp', '⚔️')}</i><span><b>PvP</b><small>실제 유저와 동시에 선택 · 모두 같은 레벨</small></span></div>
         <div class="mrank" id="mRank">${ACC ? '랭크 불러오는 중…' : '로그인하면 PvP를 할 수 있어요'}</div>
         <button class="mbtn" id="mNormal" ${ACC ? '' : 'disabled'}><i>${ico('mode-normal', '🤝')}</i><span><b>일반게임</b><small>점수 없이 가볍게</small></span></button>
         <button class="mbtn" id="mRankGo" ${ACC ? '' : 'disabled'}><i>${ico('mode-rank', '🏆')}</i><span><b>랭크게임</b><small id="mRankSub">이기면 점수가 올라요</small></span></button>
@@ -614,9 +616,9 @@ function modeScreen() {
   app.querySelector('#mNormal').onclick = () => pvpStart('normal');
   app.querySelector('#mRankGo').onclick = () => pvpStart('rank');
   app.querySelector('#mTop').onclick = pvpTop;
-  if (ACC) myApi('pvp').then(d => {
+  if (ACC) myApi('pvp/rank').then(d => {
     const el = app.querySelector('#mRank'); if (!el) return;
-    el.innerHTML = `${tierIco(d, d.me.tier)}<b class="tier">${esc(d.me.tier)}</b><span>${d.me.point.toLocaleString('ko-KR')}점 · ${d.me.wins}승 ${d.me.losses}패${d.me.rank ? ` · ${d.me.rank}위` : ''}</span>`;
+    el.innerHTML = `${tierIco(d, d.me.tier)}<b class="tier">${esc(d.me.tier)}${d.me.promotion?.active ? ` · 승급전 ${d.me.promotion.wins}승 ${d.me.promotion.losses}패` : ''}</b><span>${d.me.point.toLocaleString('ko-KR')}점 · ${d.me.wins}승 ${d.me.losses}패${d.me.rank ? ` · ${d.me.rank}위` : ''}</span>`;
     app.querySelector('#mRankSub').textContent = `이기면 +${d.win} · 지면 -${d.lose} · Lv${d.level}로 맞춤`;
     if (!d.team) el.insertAdjacentHTML('beforeend', '<em class="mwarn">「전투 편성」에서 3마리를 먼저 정해요</em>');
   }).catch(() => { const el = app.querySelector('#mRank'); if (el) el.textContent = '랭크 정보를 불러오지 못했어요'; });
@@ -626,7 +628,7 @@ const tierIco = (d, name) => { const n = (d.tiers ?? []).indexOf(name) + 1; retu
 // PvP 순위표(상위 20)
 async function pvpTop() {
   modal.className = ''; modal.hidden = false; modal.innerHTML = '<div class="sheet today"><p class="sub">불러오는 중…</p></div>';
-  let d; try { d = await myApi('pvp'); } catch (e) { modal.hidden = true; return tell(e.message); }
+  let d; try { d = await myApi('pvp/rank'); } catch (e) { modal.hidden = true; return tell(e.message); }
   modal.innerHTML = `<div class="sheet today ptop"><h2>🏆 랭크 순위<button class="xbtn" id="ptX" aria-label="닫기">✕</button></h2>
     <p class="sub">내 랭크: ${esc(d.me.tier)} · ${d.me.point}점${d.me.rank ? ` · ${d.me.rank}위` : ' · 아직 랭크게임을 안 했어요'}</p>
     <div class="ptl">${d.top.length ? d.top.map(r => `<div class="ptr ${r.me ? 'me' : ''}"><em>${r.rank}</em><b>${esc(r.name)}</b><span>${tierIco(d, r.tier)}${esc(r.tier)}</span><small>${r.point}점 · ${r.wins}승 ${r.losses}패</small></div>`).join('') : '<p class="sub">아직 랭크게임을 한 사람이 없어요. 첫 번째가 되어 보세요!</p>'}</div></div>`;
@@ -635,32 +637,28 @@ async function pvpTop() {
 }
 // PvP 대전: 서버가 상대·시드·양쪽 팀(같은 레벨)을 정함 → 내가 고른 것을 기록 → 끝나면 서버가 다시 돌려 승패 확인
 let pvp = null;   // { match, mode, log }
+let realtimeScreen;
+function getRealtimeScreen() {
+  if (!realtimeScreen) realtimeScreen = createRealtimeScreen({
+    host: document.body, imageBase: BASE,
+    api: async (path, body) => {
+      const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 12000);
+      const headers = { 'x-gmm': '1', ...(APP && APP.token() ? { 'x-gmm-app': '1', 'x-gmm-s': APP.token() } : {}) };
+      try {
+        const response = await fetch(`${BASE}/my/api/${path}`, { signal: controller.signal, cache: 'no-store', headers: body === undefined ? headers : {...headers, 'content-type':'application/json'}, ...(body === undefined ? {} : {method:'POST', body:JSON.stringify(body)}) });
+        const json = await response.json();
+        if (!response.ok) { const error = new Error(json.error || `오류(${response.status})`); error.status = response.status; throw error; }
+        return json;
+      } finally { clearTimeout(timer); }
+    },
+    confirmLeave: text => ask(text, {ok:'항복',danger:true}),
+    onExit: modeScreen,
+  });
+  return realtimeScreen;
+}
 async function pvpStart(mode) {
-  let m;
-  try { m = (await myApi('pvp/match', { mode })).result; }
-  catch (e) {
-    if (/전투 편성/.test(e.message)) { if (await ask(`${e.message}\n지금 편성할까요?`, { ok: '전투 편성으로' })) openMy('battle'); return; }
-    return tell(e.message);
-  }
-  // 상대 소개(VS)
-  modal.className = ''; modal.hidden = false;
-  const row = recs => recs.map(r => `<img src="${sprite(r.id, 'front', 0)}" class="${tintOf(r.id)}" alt="" title="${esc(r.name)}">`).join('');
-  modal.innerHTML = `<div class="sheet pvs"><small class="pvs-mode">${mode === 'rank' ? '🏆 랭크게임' : '🤝 일반게임'} · 모두 Lv${m.mine[0].level}</small>
-    <div class="pvs-row"><div class="pvs-side me"><b>${esc(ACC?.nickname || '내 수비대')}</b><div class="pvs-team">${row(m.mine)}</div></div><em class="pvs-vs">VS</em>
-    <div class="pvs-side foe"><b>${esc(m.foeName)}</b>${m.foeTier ? `<small>${esc(m.foeTier)}</small>` : m.bot ? '<small>상대가 없어 연습 팀과 붙어요</small>' : ''}<div class="pvs-team">${row(m.foe)}</div></div></div>
-    <button class="big wide" id="pvsGo">대전 시작</button>${mode === 'rank' ? '<p class="sub">랭크는 중간에 나가면 패배로 처리돼요.</p>' : ''}</div>`;
-  modal.querySelector('#pvsGo').onclick = () => {
-    modal.hidden = true; sceneNow = 'harbor'; fightId = null;
-    startBattle(m.mine, m.foe, won => {
-      const sent = pvp; pvp = null;
-      myApi('pvp/result', { match: sent.match, log: sent.log }).then(r => {
-        const t = r.result, el = document.querySelector('#panel .sheet .sub');
-        if (el) el.textContent = t.mode === 'rank' ? `랭크 ${t.change >= 0 ? '+' : ''}${t.change}점 → ${t.point}점 (${t.tier}) · ${t.wins}승 ${t.losses}패` : '일반게임은 점수가 없어요. 랭크게임에서 실력을 겨뤄 봐요!';
-      }).catch(e => { const el = document.querySelector('#panel .sheet .sub'); if (el) el.textContent = `결과를 확인하지 못했어요: ${e.message}`; });
-      return { text: mode === 'rank' ? '결과 확인 중…' : '결과 확인 중…', buttons: [['한 판 더', () => pvpStart(mode)], ['모드 고르기로', modeScreen]] };
-    }, '', { retry: () => pvpStart(mode), back: modeScreen }, m.seed);
-    pvp = { match: m.match, mode, log: [] };
-  };
+  modal.hidden = true;
+  getRealtimeScreen().start(mode);
 }
 // 로비 「출석체크」: 출석(하루 한 번 뽑기권, 날·주가 갈수록 커짐) + 오늘의 미션(카톡과 같은 진행, 채우면 바로 지급)
 async function todaySheet() {
@@ -1260,6 +1258,16 @@ function augmentInfo(anchor, id) {
 }
 const multTag = m => m > 1 ? `<b class="good">×${m} 유리</b>` : m < 1 ? `<b class="bad">×${m} 불리</b>` : '<b>×1 보통</b>';
 
+// augment-no-scroll-v1
+const AUG_CORE_TEXT = {"reverse": "이번 전투: 내 공격 상성\n강함 ↔ 약함", "weakguard": "받는 강한 상성 피해\n→ 보통 피해", "focus": "강한 상성 공격 배율\n×{value}", "neutral": "{turns}턴 동안\n양쪽 모든 상성 ×1.0", "camo": "내 선두 속성 변경\n→ 상대에게 강한 속성", "dual": "기본기·역할 공격에\n상대 약점 속성 추가", "counter": "약한 상성 공격을 맞고 생존 시\n위력 {power} 반격", "learn": "동일 속성 피격마다\n해당 피해 -{step}% · 최대 -{max}%", "first": "다음 기술에\n선공 우선권", "bulwark": "내 선두 받는 피해\n-{pct}% · {turns}턴", "firstaid": "쓰러지지 않은 아군 모두\n체력 {pct}% 회복", "freeswitch": "이번 전투:\n교체 시 턴 소모 없음", "lastone": "아군이 하나만 남으면\n공격·방어·속도 +{pct}%", "strip": "상대 선두 강화 능력치·보호막 제거\n공격 -{pct}% · {turns}턴", "rustle": "상대 선두 수면 1턴\n상태 이상 면역 제외", "peanut": "아군 갈매미맨 공격 +{atk}%\n대신 받는 피해 +{taken}%", "sharp": "아군 급소 확률\n+{pct}%", "swift": "아군 속도\n+{pct}%", "thick": "아군 물리·마법 방어\n+{pct}%", "overtime": "아군 물리·마법 공격\n+{pct}%", "drain": "내가 준 피해의\n{pct}%만큼 체력 회복", "thorns": "나를 때린 상대에게\n받은 피해의 {pct}% 반사", "pierce": "내 공격 시\n상대 방어 {pct}% 무시", "lunch": "매 턴 종료 시\n내 선두 체력 {pct}% 회복"};
+function augCore(a) {
+  const template = AUG_CORE_TEXT[a.id];
+  if (!template) return a.desc;
+  const keys = [...template.matchAll(/\{([a-z]+)\}/g)].map(m => m[1]);
+  if (keys.some(key => a.p?.[key] == null)) return a.desc;
+  return template.replace(/\{([a-z]+)\}/g, (_, key) => String(a.p[key]));
+}
+
 function chooseSheet(p) {
   let aug = null, to = null, enter = true, step = p.augments && p.needSwitch ? 'aug' : null;   // 둘 다 고를 때: 증강체 먼저 → 다음 갈매미(v0.14.1)   // enter: 처음 열 때만 카드가 떠오름(고를 때마다 다시 그려도 반복 안 함)
   const me = activeOf(b, 0), foe = activeOf(b, 1);
@@ -1281,14 +1289,17 @@ function chooseSheet(p) {
       ${showAug ? `${step === 'aug' ? '<p class="steps">① 증강체 고르기 → ② 다음 갈매미</p>' : ''}<h2>전투 증강체</h2><p class="sub">${b.turn === 1 ? '대결 시작' : '전투불가 발생'} · 3개 중 하나를 골라요. 마음에 안 들면 칸마다 한 번씩 🎲 다시 뽑을 수 있어요.</p>${vs}
         ${hintNow && b.turn === 1 ? `<div class="tipline">💡 ${hl(hintNow)}</div>` : ''}
         ${p.augments.map(id => { const a = R.battleAug.get(id), [ic, kind] = AUG_ICON[id] ?? ['✨', ''], rec = bad && FLIP.includes(id);
-          return `<div class="augc ${augKind(id)}"><button class="aug ${aug === id ? 'on' : ''}" data-a="${id}"><span class="ic">${ico(id, ic)}</span><span class="tx"><b>${esc(a.name)}${rec ? '<em>지금 추천</em>' : ''}</b><small>${augKindName(id)}${kind && kind !== augKindName(id) ? ` · ${esc(kind)}` : ''}</small><span>${esc(a.desc)}</span></span><span class="ck">${aug === id ? '✓' : ''}</span></button>
-            <button class="ghost reroll" data-r="${p.augments.indexOf(id)}" ${rr[p.augments.indexOf(id)] ? 'disabled' : ''}>${rr[p.augments.indexOf(id)] ? '다시 뽑기 끝' : '🎲 다시 뽑기'}</button></div>`; }).join('')}` : ''}
+          return `<div class="augc ${augKind(id)}"><button class="aug ${aug === id ? 'on' : ''}" data-a="${id}"><span class="ic">${ico(id, ic)}</span><span class="tx"><b>${esc(a.name)}${rec ? '<em>지금 추천</em>' : ''}</b><small>${augKindName(id)}${kind && kind !== augKindName(id) ? ` · ${esc(kind)}` : ''}</small><span>${esc(augCore(a))}</span></span><span class="ck">${aug === id ? '✓' : ''}</span></button>
+            <div class="aug-actions"><button class="ghost reroll" data-r="${p.augments.indexOf(id)}" ${rr[p.augments.indexOf(id)] ? 'disabled' : ''}>${rr[p.augments.indexOf(id)] ? '재추첨 완료' : '다시 뽑기'}</button><button class="ghost aug-detail" data-aug-detail="${id}" aria-label="${esc(a.name)} 전체 효과 보기">상세</button></div></div>`; }).join('')}` : ''}
       ${showSw ? `${step === 'sw' ? `<p class="steps"><button class="ghost" id="backAug">‹ 증강체 다시 고르기</button><span>✓ 증강체 「${esc(R.battleAug.get(aug).name)}」 → ② 다음 갈매미</span></p>` : ''}<h2>다음에 나갈 갈매미</h2><p class="sub">상대: ${esc(foe.name)} ${chip(foe.attr)}</p>
         ${alive.map(([f, i]) => { const m = R.typeMult(f.attr, foe.attr), pct = Math.round(f.hp / f.maxHp * 100);
           return `<button class="aug ${to === i ? 'on' : ''}" data-t="${i}"><img class="ic" src="${face(f)}" alt=""><span class="tx"><b>${esc(f.name)}</b><small>${R.attrName(f.attr)} · ${ROLE[f.role]} · 상대에게 ${m > 1 ? '유리' : m < 1 ? '불리' : '보통'}</small><i class="hpmini"><i style="width:${pct}%"></i></i></span><span class="ck">${to === i ? '✓' : ''}</span></button>`; }).join('')}` : ''}
       <button class="big wide" id="ok" ${(showAug && !aug) || (showSw && to === null) ? 'disabled' : ''}>${okLabel()}</button></div>`;
     enter = false;
     modal.querySelectorAll('[data-a]').forEach(x => x.onclick = () => { aug = x.dataset.a; draw(); });
+    modal.querySelectorAll('[data-aug-detail]').forEach(x => {
+      x.onclick = () => augmentInfo(x, x.dataset.augDetail);
+    });
     modal.querySelectorAll('[data-r]').forEach(x => x.onclick = () => {
       const i = +x.dataset.r, old = p.augments[i];
       try { rerollAugment(b, 0, i); if (pvp) pvp.log.push({ r: i }); } catch { x.disabled = true; x.textContent = '다른 증강체가 없어요'; return; }

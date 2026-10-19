@@ -114,17 +114,42 @@ export function rerollAugment(b:Battle,side:0|1,i:number){
 export function choose(b:Battle,side:0|1,pick:{augment?:string;switchTo?:number}){
   if(b.phase!=='choose')throw new Error('지금은 고를 때가 아님');
   const s=b.sides[side];
-  if(s.offers){
-    if(!pick.augment||!s.offers.includes(pick.augment))throw new Error('제안된 증강체 중 하나를 골라야 함');
-    s.augs.push(pick.augment);s.offers=null;applyAugment(b,side,pick.augment);
-  }
+  const augment=s.offers?pick.augment:undefined;
+  if(s.offers&&(!augment||!s.offers.includes(augment)))throw new Error('제안된 증강체 중 하나를 골라야 함');
+  const to=s.needSwitch?pick.switchTo:undefined;
+  if(s.needSwitch&&(to===undefined||!s.fighters[to]||!alive(s.fighters[to])))throw new Error('나갈 갈매미를 골라야 함');
   if(s.needSwitch){
-    const to=pick.switchTo;
-    if(to===undefined||!s.fighters[to]||!alive(s.fighters[to]))throw new Error('나갈 갈매미를 골라야 함');
-    const out=s.fighters[s.active];s.active=to;s.needSwitch=false;b.log.push(`${josa(s.fighters[to].name,'이가')} 나왔어요!`);
-    event(b,{kind:'switch',actor:fighterRef(b,out),target:fighterRef(b,s.fighters[to]),reason:'faint'});
+    const out=s.fighters[s.active];
+    s.active=to!;s.needSwitch=false;
+    const incoming=s.fighters[s.active];
+    b.log.push(`${josa(incoming.name,'이가')} 나왔어요!`);
+    event(b,{kind:'switch',actor:fighterRef(b,out),target:fighterRef(b,incoming),reason:'faint'});
+  }
+  if(augment){
+    s.augs.push(augment);s.offers=null;applyAugment(b,side,augment);
   }
   if(b.sides.every(x=>!x.offers&&!x.needSwitch))b.phase='action';
+}
+// Realtime only: validate both selections, replace both fainted fighters, then apply augments.
+// The caller resolves this on a clone and persists only after successful completion.
+export function chooseTogether(b:Battle,picks:[{augment?:string;switchTo?:number},{augment?:string;switchTo?:number}]){
+  if(b.phase!=='choose')throw new Error('지금은 고를 때가 아님');
+  for(const side of [0,1] as const){
+    const s=b.sides[side],p=picks[side];
+    if(s.offers&&(!p.augment||!s.offers.includes(p.augment)))throw new Error('제안된 증강체 중 하나를 골라야 함');
+    if(s.needSwitch&&(p.switchTo===undefined||!Number.isInteger(p.switchTo)||!s.fighters[p.switchTo]||!alive(s.fighters[p.switchTo])))throw new Error('나갈 갈매미를 골라야 함');
+  }
+  for(const side of [0,1] as const){
+    const s=b.sides[side];if(!s.needSwitch)continue;
+    const out=s.fighters[s.active];s.active=picks[side].switchTo!;s.needSwitch=false;
+    const incoming=s.fighters[s.active];b.log.push(`${josa(incoming.name,'이가')} 나왔어요!`);
+    event(b,{kind:'switch',actor:fighterRef(b,out),target:fighterRef(b,incoming),reason:'faint'});
+  }
+  for(const side of [0,1] as const){
+    const s=b.sides[side];if(!s.offers)continue;
+    const augment=picks[side].augment!;s.augs.push(augment);s.offers=null;applyAugment(b,side,augment);
+  }
+  if(b.sides.every(s=>!s.offers&&!s.needSwitch))b.phase='action';
 }
 export const pending=(b:Battle,side:0|1)=>({augments:b.sides[side].offers,needSwitch:b.sides[side].needSwitch});
 
@@ -387,7 +412,7 @@ export function legalActions(b:Battle,side:0|1):Action[]{
 }
 
 // 한 턴 진행. 양쪽 행동을 동시에 받음
-export function act(b:Battle,actions:[Action,Action]){
+export function act(b:Battle,actions:[Action,Action],options?:{prevalidated?:boolean}){
   if(b.phase!=='action')throw new Error('지금은 행동할 때가 아님');
   const order:{side:0|1;action:Action;pri:number;spd:number;tie:number}[]=[];
   for(const side of [0,1] as const){
@@ -401,7 +426,8 @@ export function act(b:Battle,actions:[Action,Action]){
     }
     const f=activeOf(b,side),skill=skillOf(f,(action as {skillId:string}).skillId);
     if(!skill)throw new Error('쓸 수 없는 기술');
-    const why=skillProblem(b,side,skill);if(why)throw new Error(why);
+    // Realtime commands are prevalidated together against the phase-start snapshot.
+    if(!options?.prevalidated){const why=skillProblem(b,side,skill);if(why)throw new Error(why);}
     order.push({side,action,pri:(s.goFirst?2:0)+(skill.priority?1:0),spd:statOf(b,f,'spd'),tie:rand(b)});
     s.goFirst=false;
   }

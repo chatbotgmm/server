@@ -30,7 +30,7 @@ final class NativeResultBackdrop {
               height * .4f,
               Math.max(1, Math.max(width, height) * .7f),
               JournalTheme.TEAL,
-              0xff102a2e,
+              0xff102b3c,
               Shader.TileMode.CLAMP);
     }
     paint.setStyle(Paint.Style.FILL);
