@@ -4,6 +4,8 @@ import static org.junit.Assert.*;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Path;
 import android.graphics.RectF;
 import android.os.Looper;
 import android.provider.Settings;
@@ -76,25 +78,54 @@ public class ReleaseHomeMotionTest {
       Bitmap first = Bitmap.createBitmap(HomeWater.WIDTH, HomeWater.HEIGHT, Bitmap.Config.ARGB_8888);
       Bitmap second = Bitmap.createBitmap(HomeWater.WIDTH, HomeWater.HEIGHT, Bitmap.Config.ARGB_8888);
       Bitmap still = Bitmap.createBitmap(HomeWater.WIDTH, HomeWater.HEIGHT, Bitmap.Config.ARGB_8888);
+      Bitmap expectedWater = rasterizedWaterMask();
       try {
+        art.background(new Canvas(still), still.getWidth(), still.getHeight(), 0, false);
         art.background(new Canvas(first), first.getWidth(), first.getHeight(), .2, true);
         art.background(new Canvas(second), second.getWidth(), second.getHeight(), 2.7, true);
         int changedWater = 0;
         for (int y = 0; y < first.getHeight(); y++)
           for (int x = 0; x < first.getWidth(); x++) {
             if (first.getPixel(x, y) == second.getPixel(x, y)) continue;
-            // Boundary rasterization can touch a pixel whose centre is outside the path.
+            // Use native clip coverage, including narrow polygon corners. Four
+            // diagonal point samples are not equivalent to a rasterized pixel.
             assertTrue("Only water pixels animate: " + x + "," + y,
-                HomeWater.contains(x - 1, y - 1) || HomeWater.contains(x + 1, y - 1)
-                    || HomeWater.contains(x - 1, y + 1) || HomeWater.contains(x + 1, y + 1));
+                Color.alpha(expectedWater.getPixel(x, y)) > 0);
             changedWater++;
           }
         assertTrue("Water visibly changes between frames", changedWater > 100);
+        for (int[] landmark : new int[][] {
+            {1200, 140}, {990, 396}, {1300, 380}, {1389, 520},
+            {1470, 490}, {1664, 407}, {1117, 551}, {700, 600}, {1000, 720}}) {
+          int x = landmark[0], y = landmark[1];
+          assertEquals("Structure/foreground landmark is outside the rasterized water mask",
+              0, Color.alpha(expectedWater.getPixel(x, y)));
+          assertEquals("First animated frame preserves the original landmark",
+              still.getPixel(x, y), first.getPixel(x, y));
+          assertEquals("Second animated frame preserves the original landmark",
+              still.getPixel(x, y), second.getPixel(x, y));
+        }
         art.background(new Canvas(first), first.getWidth(), first.getHeight(), 0, false);
         art.background(new Canvas(still), still.getWidth(), still.getHeight(), 55, false);
         assertTrue("Platform-reduced motion draws a stable original", first.sameAs(still));
-      } finally { first.recycle(); second.recycle(); still.recycle(); }
+      } finally { first.recycle(); second.recycle(); still.recycle(); expectedWater.recycle(); }
     }
+  }
+
+  private Bitmap rasterizedWaterMask() {
+    Bitmap coverage = Bitmap.createBitmap(HomeWater.WIDTH, HomeWater.HEIGHT, Bitmap.Config.ARGB_8888);
+    Path expected = new Path();
+    // Build independently from the approved polygon coordinates, without calling
+    // HomeWater.draw/update or expanding their boundary by an arbitrary tolerance.
+    for (float[] polygon : HomeWater.POLYGONS) {
+      expected.moveTo(polygon[0], polygon[1]);
+      for (int i = 2; i < polygon.length; i += 2) expected.lineTo(polygon[i], polygon[i + 1]);
+      expected.close();
+    }
+    Canvas canvas = new Canvas(coverage);
+    canvas.clipPath(expected);
+    canvas.drawColor(Color.WHITE);
+    return coverage;
   }
 
   @Test public void dragKeepsFeetAndShadowFixedAndCancelsOnPauseSystemOffAndDetach() {
