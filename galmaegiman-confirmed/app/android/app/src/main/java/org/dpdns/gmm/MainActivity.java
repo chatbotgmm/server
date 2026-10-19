@@ -43,6 +43,12 @@ public class MainActivity extends AppCompatActivity {
   String selectionMode = "story", mixIds = "";
   String currentKey = "", accountReturn = "home";
   NativeTutorialController guide;
+  private RegistrationArt registrationCards;
+
+  RegistrationArt registrationArt() {
+    if (registrationCards == null) registrationCards = new RegistrationArt(this);
+    return registrationCards;
+  }
   ArrayList<String> practiceRoster = new ArrayList<>(Arrays.asList("D1", "D2", "D3")),
       practiceEnemy = new ArrayList<>();
   int practiceLevel = 15, practicePromotion = 0;
@@ -1506,6 +1512,7 @@ public class MainActivity extends AppCompatActivity {
     if (journalTime != null) journalTime.close();
     if (operations != null) operations.close();
     if (guide != null) guide.close();
+    if (registrationCards != null) registrationCards.close();
     art.close();
     api.close();
     sound.close();

@@ -140,7 +140,9 @@ public class NativeRenderReviewTestEconomy {
           String before = total.getText().toString();
           button(quantity, "＋").performClick();
           assertNotEquals("수량 조정에 총 비용 동시 갱신", before, total.getText().toString());
-          assertEquals("2회 뽑기", submit.getText().toString());
+          assertEquals("지원서 받기", submit.getText().toString());
+          assertTrue("수량은 접근성 설명에도 유지", submit.getContentDescription().toString().contains("2회"));
+          assertTrue("총 비용은 접근성 설명에도 유지", submit.getContentDescription().toString().contains("뽑기권"));
         }
         Button high = a.root.findViewWithTag("draw-submit-HIGH");
         high.performClick();

@@ -1,0 +1,389 @@
+package org.dpdns.gmm;
+
+import static org.junit.Assert.*;
+
+import android.graphics.*;
+import android.os.Looper;
+import android.view.*;
+import android.widget.*;
+import androidx.core.view.ViewCompat;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
+import java.util.*;
+import org.json.*;
+import org.junit.*;
+import org.junit.runner.RunWith;
+import org.robolectric.*;
+import org.robolectric.android.controller.ActivityController;
+import org.robolectric.annotation.*;
+
+/** Actual APK views, fonts and asynchronous bundled card images. No painted test placeholders or server. */
+@RunWith(RobolectricTestRunner.class)
+@Config(sdk = 35, qualifiers = "w915dp-h412dp-land-mdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@LooperMode(LooperMode.Mode.PAUSED)
+public class NativeRegistrationReviewTest {
+  final NativeGameFlowTest flow = new NativeGameFlowTest();
+  final NativeRenderReviewTest review = new NativeRenderReviewTest();
+  final NativeDialogLayoutReviewTest geometry = new NativeDialogLayoutReviewTest();
+  static final String[] PAGES = {"recruit", "collection", "team-story", "team-pvp", "result"};
+  static final String[] IDS = {"D1", "D2", "D3", "D8", "L14", "E7", "H14", "S18", "R23", "I9"};
+
+  @Before public void isolate() {
+    flow.isolate();
+    review.scheduledFramesUseThePausedLooperClock();
+  }
+  @After public void restore() { RuntimeEnvironment.setFontScale(1); }
+
+  JSONObject species(String id) throws Exception {
+    JSONArray entries = RegistrationArtTest.metadata("manifest.json").getJSONArray("items");
+    for (int i = 0; i < entries.length(); i++) {
+      JSONObject entry = entries.getJSONObject(i);
+      if (!entry.getString("id").equals(id)) continue;
+      return MainActivity.obj("id", id, "name", entry.getString("name"),
+          "tier", entry.getString("tier"), "tierName", entry.getString("tier_ko"),
+          "known", true, "have", 3, "away", 0, "locked", 0, "top", true,
+          "attr", "STONE", "attrCode", "STONE", "attrName", "돌", "image", "");
+    }
+    throw new AssertionError("Missing fixture identity in APK manifest: " + id);
+  }
+
+  JSONObject fixture() throws Exception {
+    JSONArray units = new JSONArray(), owned = new JSONArray();
+    for (int i = 0; i < IDS.length; i++) {
+      JSONObject item = species(IDS[i]);
+      owned.put(item);
+      JSONObject instance = new JSONObject(item.toString());
+      instance.put("key", "o" + (i + 1)).put("level", 12).put("hp", 100).put("maxHp", 100)
+          .put("xp", 20).put("xpNext", 100).put("skills", new JSONArray());
+      units.put(instance);
+    }
+    return MainActivity.obj("me", MainActivity.obj("name", "등록증 검토", "units", owned,
+        "battleTeam", MainActivity.arr(Arrays.asList("D1", "D2", "D3"))),
+        "units", units, "team", MainActivity.arr(Arrays.asList("o1", "o2", "o3")),
+        "chapters", new JSONArray(), "attributes", MainActivity.obj("STONE", MainActivity.obj("name", "돌")),
+        "typeChart", new JSONObject(), "tutorial", MainActivity.obj("step", 9));
+  }
+
+  JSONObject recruitment() {
+    JSONArray offers = new JSONArray();
+    String[] kinds = {"LOW", "MID", "HIGH"}, labels = {"하급", "중급", "고급"};
+    for (int i = 0; i < kinds.length; i++) offers.put(MainActivity.obj(
+        "kind", kinds[i], "label", labels[i], "cost", i == 2 ? 5 : i + 1,
+        "img", "C1", "weights", new JSONArray().put(MainActivity.obj(
+            "tier", "COMMON", "tierName", "흔함", "w", 100))));
+    return MainActivity.obj("credits", 100, "claim", 5, "wait", 3600000, "gachas", offers,
+        "pity", MainActivity.obj("tierName", "전설", "left", 9));
+  }
+
+  final class FakeApi extends NativeApi {
+    final JSONObject stored;
+    final List<String> reads = new ArrayList<>(), writes = new ArrayList<>();
+    FakeApi(MainActivity host) throws Exception { super(host); stored = fixture(); }
+    @Override String token() { return "offline-registration-review"; }
+    @Override void call(String path, JSONObject body, Result done) {
+      if (body != null) {
+        writes.add(path);
+        throw new AssertionError("Review is read-only; unexpected API write: " + path);
+      }
+      reads.add(path);
+      if (path.equals("draw")) done.done(recruitment(), null);
+      else if (path.equals("native/state")) done.done(stored, null);
+      else if (path.equals("native/catalog"))
+        done.done(MainActivity.obj("units", stored.optJSONObject("me").optJSONArray("units")), null);
+      else throw new AssertionError("Unexpected fixture API read: " + path);
+    }
+  }
+
+  FakeApi prepare(MainActivity host) throws Exception {
+    host.api.close();
+    FakeApi api = new FakeApi(host);
+    host.api = api;
+    host.state = api.stored;
+    host.art.key = "offline-registration-review";
+    host.guide.enabled = false;
+    host.motionEnabled = false;
+    return api;
+  }
+
+  void layout(MainActivity host, int width, int height) {
+    review.viewport(host, width, height);
+    // Match GameSafeArea's effective insets; prevent the synthetic Window from replacing them.
+    ViewCompat.setOnApplyWindowInsetsListener(host.root, null);
+    host.root.setPadding(width == 1006 ? 36 : 0, width == 1006 ? 10 : 0,
+        width == 1006 ? 10 : 0, width == 1006 ? 10 : 0);
+    Runnable measure = () -> {
+      review.force(host.root);
+      host.root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+          View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
+      host.root.layout(0, 0, width, height);
+    };
+    measure.run();
+    review.preparePreDraw(host.root, measure);
+  }
+
+  void show(MainActivity host, String page) throws Exception {
+    if (page.equals("recruit")) host.menus.economy.draw();
+    else if (page.equals("collection")) host.collection();
+    else if (page.startsWith("team-")) {
+      host.selectionMode = page.equals("team-pvp") ? "pvp" : "story";
+      host.menus.teamDraft = null;
+      host.team();
+    } else {
+      JSONArray items = new JSONArray();
+      for (String id : new String[] {"D8", "E7", "L14"}) {
+        JSONObject unit = species(id);
+        unit.put("n", id.equals("D8") ? 3 : 1).put("first", !id.equals("L14"));
+        items.put(unit);
+      }
+      // A deterministic recorded-result fixture exercises the real result and acquisition actions.
+      // It does not manufacture a draw API response, mutate inventory or call a real account.
+      host.menus.economy.reveal(MainActivity.obj("items", items), () -> {}, true);
+    }
+  }
+
+  List<RegistrationCardView.Artwork> artworks(View root) {
+    List<RegistrationCardView.Artwork> cards = new ArrayList<>();
+    for (View view : geometry.descendants(root))
+      if (view instanceof RegistrationCardView.Artwork && view.isShown())
+        cards.add((RegistrationCardView.Artwork) view);
+    return cards;
+  }
+
+  void awaitRealArt(MainActivity host, String page, int width, int height) throws Exception {
+    // Drawing once starts the normal asynchronous scene pipeline; no test drawable is inserted.
+    Bitmap kickoff = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+    try { host.root.draw(new Canvas(kickoff)); } finally { kickoff.recycle(); }
+    RegistrationArtTest.await(() -> !host.busy && host.menus.pendingFetches == 0 && host.art.idle()
+        && host.registrationArt().idle());
+    layout(host, width, height);
+    if (!page.equals("recruit")) {
+      List<RegistrationCardView.Artwork> cards = artworks(host.root);
+      assertEquals("Actual registration artwork count on " + page,
+          page.equals("result") ? 3 : 9, cards.size());
+      RegistrationArtTest.await(() -> {
+        for (RegistrationCardView.Artwork card : cards)
+          if (card.bitmap == null || card.status.length() != 0) return false;
+        return true;
+      });
+      for (RegistrationCardView.Artwork card : cards) {
+        assertFalse(card.bitmap.isRecycled());
+        assertTrue("Loaded real asset, not a one-pixel placeholder", card.bitmap.getWidth() >= 64);
+        assertTrue("All shown IDs exist in canonical bundle", RegistrationArtTest.canonicalIds().contains(card.id));
+        int bucket = RegistrationArt.widthBucket(card.mode, card.getWidth(), card.getHeight());
+        Bitmap reference = RegistrationArtTest.expected(host, card.id, card.mode, bucket);
+        try { RegistrationArtTest.samePixels(page + "/" + card.id, reference, card.bitmap); }
+        finally { reference.recycle(); }
+      }
+    } else {
+      int realImages = 0;
+      for (View view : geometry.descendants(host.root))
+        if (view instanceof ImageView && view.isShown()) {
+          assertNotNull("Recruitment uses loaded bundled pictures", ((ImageView) view).getDrawable());
+          realImages++;
+        }
+      assertTrue("Recruitment's three real offer pictures remain visible", realImages >= 3);
+    }
+  }
+
+  View tag(MainActivity host, String tag) {
+    View view = host.root.findViewWithTag(tag);
+    assertNotNull("Required action: " + tag, view);
+    return view;
+  }
+
+  void visible(MainActivity host, View view) {
+    NativeNoScrollReviewTest.assertFullyVisible(view, host.root);
+    Rect box = geometry.bounds(view, host.root);
+    RectF safe = host.safeBounds(host.root.getWidth(), host.root.getHeight());
+    assertTrue("Inside safe insets: " + view.getTag() + " " + box, safe.contains(new RectF(box)));
+  }
+
+  void action(MainActivity host, String tag) {
+    View view = tag(host, tag);
+    assertTrue("Action is an actual Button: " + tag, view instanceof Button);
+    visible(host, view);
+    assertTrue("48dp touch target: " + tag, view.getHeight() >= host.dp(48));
+    TextView label = (TextView) view;
+    assertNotNull("Native text layout: " + tag, label.getLayout());
+    assertTrue("Action text has vertical room: " + tag,
+        label.getHeight() - label.getCompoundPaddingTop() - label.getCompoundPaddingBottom()
+            >= label.getLayout().getHeight());
+    for (int line = 0; line < label.getLayout().getLineCount(); line++)
+      assertEquals("Action text cannot be ellipsized: " + tag, 0, label.getLayout().getEllipsisCount(line));
+  }
+
+  JSONObject check(MainActivity host, String page, FakeApi api) throws Exception {
+    JSONArray bounds = new JSONArray();
+    List<RegistrationCardView.Artwork> cards = artworks(host.root);
+    int overlapChecks = 0;
+    View interactionSurface = host.root;
+    if (page.equals("result")) {
+      for (View view : geometry.descendants(host.root))
+        if (view instanceof NativeReveal) interactionSurface = view;
+      assertTrue("Audit the visible result overlay, not its covered header", interactionSurface instanceof NativeReveal);
+    }
+    List<View> activeViews = geometry.descendants(interactionSurface);
+    for (RegistrationCardView.Artwork card : cards) {
+      visible(host, card);
+      assertNotNull("Ready bitmap", card.bitmap);
+      assertFalse("Nonempty contain target", card.target.isEmpty());
+      assertTrue("Entire approved card/window remains inside its view",
+          new RectF(0, 0, card.getWidth(), card.getHeight()).contains(card.target));
+      assertEquals("Contain is centered horizontally", card.getWidth() / 2f, card.target.centerX(), .01f);
+      assertEquals("Contain is centered vertically", card.getHeight() / 2f, card.target.centerY(), .01f);
+      assertEquals("Contain never squeezes image", card.bitmap.getWidth() / (float) card.bitmap.getHeight(),
+          card.target.width() / card.target.height(), .0001f);
+      Rect own = geometry.bounds(card, host.root);
+      bounds.put(MainActivity.obj("id", card.id, "mode", card.mode,
+          "left", own.left, "top", own.top, "right", own.right, "bottom", own.bottom,
+          "bitmapWidth", card.bitmap.getWidth(), "bitmapHeight", card.bitmap.getHeight(),
+          "targetLeft", card.target.left, "targetTop", card.target.top,
+          "targetRight", card.target.right, "targetBottom", card.target.bottom));
+      for (View action : activeViews)
+        if (action instanceof Button && action.isShown()) {
+          assertFalse("Artwork may not cover action: " + card.id + "/" + ((Button) action).getText(),
+              Rect.intersects(own, geometry.bounds(action, host.root)));
+          overlapChecks++;
+        }
+    }
+    for (int i = 0; i < cards.size(); i++)
+      for (int j = i + 1; j < cards.size(); j++) {
+        assertFalse("Registration pictures cannot overlap each other",
+            Rect.intersects(geometry.bounds(cards.get(i), host.root), geometry.bounds(cards.get(j), host.root)));
+        overlapChecks++;
+      }
+    int actions = 0;
+    if (page.equals("recruit")) {
+      for (String kind : new String[] {"LOW", "MID", "HIGH"}) {
+        action(host, "draw-submit-" + kind);
+        View quantity = tag(host, "draw-quantity-" + kind), total = tag(host, "draw-total-" + kind);
+        visible(host, quantity);
+        visible(host, total);
+        assertTrue(quantity.getBottom() <= total.getTop());
+        assertTrue(total.getBottom() <= tag(host, "draw-submit-" + kind).getTop());
+        assertTrue(((TextView) total).getText().toString().startsWith("1회 · 총 "));
+        assertEquals("지원서 받기", ((TextView) tag(host, "draw-submit-" + kind)).getText().toString());
+        assertTrue(tag(host, "draw-submit-" + kind).getContentDescription().toString().contains("1회"));
+        actions++;
+      }
+    } else if (page.equals("collection")) {
+      for (String name : new String[] {"collection-growth", "collection-team", "collection-craft", "collection-record"}) {
+        action(host, name);
+        actions++;
+      }
+      assertEquals(RegistrationCardView.FULL,
+          ((RegistrationCardView.Artwork) tag(host, "collection-selected-registration")).mode);
+      assertEquals("D1", host.menus.library.selectedCollectionId);
+    } else if (page.startsWith("team-")) {
+      action(host, "tutorial:team-save");
+      actions++;
+      boolean pvp = page.equals("team-pvp");
+      assertEquals(pvp ? Arrays.asList("D1", "D2", "D3") : Arrays.asList("o1", "o2", "o3"), host.menus.teamDraft);
+      for (int i = 0; i < 3; i++) {
+        View slot = tag(host, "lineup-slot-" + i);
+        View grip = slot.findViewWithTag(NativeTeamReorder.HANDLE_TAG);
+        assertNotNull(grip);
+        visible(host, grip);
+        assertTrue(grip.getWidth() >= host.dp(48) && grip.getHeight() >= host.dp(48));
+        assertTrue("Drag action remains accessible", grip.isFocusable());
+        assertEquals("D" + (i + 1), ((RegistrationCardView.Artwork) slot.findViewWithTag("lineup-portrait")).id);
+        actions++;
+      }
+    } else {
+      for (String name : new String[] {"acquisition-detail", "acquisition-grow", "acquisition-team", "acquisition-result-picker", "acquisition-confirm"}) {
+        action(host, name);
+        actions++;
+      }
+      String labels = flow.labels(host.root);
+      for (String id : new String[] {"D8", "E7", "L14"}) {
+        assertTrue("Real server fixture name is visible", labels.contains(species(id).getString("name")));
+        assertTrue("Real tier text is visible", labels.contains(species(id).getString("tierName")));
+      }
+      assertTrue(labels.contains("NEW"));
+      assertTrue(labels.contains("×3"));
+      assertEquals(3, host.menus.lastDraw.getJSONArray("items").length());
+    }
+    assertTrue("Review never writes to API", api.writes.isEmpty());
+    assertTrue("At least one action was checked", actions > 0);
+    if (!page.equals("recruit")) assertTrue("Pairwise overlap checks ran", overlapChecks > 0);
+    return MainActivity.obj("page", page, "width", host.root.getWidth(), "height", host.root.getHeight(),
+        "fontScale", host.getResources().getConfiguration().fontScale,
+        "insets", new JSONArray(Arrays.asList(host.root.getPaddingLeft(), host.root.getPaddingTop(),
+            host.root.getPaddingRight(), host.root.getPaddingBottom())),
+        "checkedActions", actions, "overlapChecks", overlapChecks,
+        "loadedRegistrationImages", cards.size(), "registrationBounds", bounds,
+        "apiWrites", api.writes.size(), "realBundledImages", true);
+  }
+
+  void writeScreenshot(MainActivity host, Path target, int width, int height) throws Exception {
+    Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+    try {
+      host.root.draw(new Canvas(bitmap));
+      Set<Integer> pixels = new HashSet<>();
+      for (int y = 0; y < height; y += 7)
+        for (int x = 0; x < width; x += 7) pixels.add(bitmap.getPixel(x, y));
+      assertTrue("A meaningful native screenshot contains actual artwork and text", pixels.size() > 64);
+      try (OutputStream stream = Files.newOutputStream(target)) {
+        assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream));
+      }
+    } finally { bitmap.recycle(); }
+  }
+
+  @Test public void renderTwentyRealAssetScreensWithSafeAreaActionsAndOverlapEvidence() throws Exception {
+    Path output = Path.of(System.getProperty("gmm.nativeReviewOutput", "build/reports/native-review"), "registration");
+    Files.createDirectories(output);
+    JSONObject findings = new JSONObject(), metrics = new JSONObject();
+    List<String> failures = new ArrayList<>();
+    int exported = 0;
+    int[][] variants = {{915, 412, 100}, {1006, 411, 100}, {1280, 720, 100}, {915, 412, 130}};
+    for (int[] variant : variants) for (String page : PAGES) {
+      int width = variant[0], height = variant[1];
+      String stem = page + "-" + width + "x" + height + (variant[2] == 130 ? "-font130" : "");
+      findings.put(stem, new JSONArray().put("Capture and assertions have not completed"));
+    }
+    try {
+      for (int[] variant : variants) {
+        int width = variant[0], height = variant[1];
+        RuntimeEnvironment.setQualifiers("w" + width + "dp-h" + height + "dp-land-mdpi");
+        RuntimeEnvironment.setFontScale(variant[2] / 100f);
+        for (String page : PAGES) {
+          String stem = page + "-" + width + "x" + height + (variant[2] == 130 ? "-font130" : "");
+          JSONArray errors = new JSONArray();
+          try (ActivityController<MainActivity> controller = flow.start()) {
+            MainActivity host = controller.get();
+            FakeApi api = prepare(host);
+            layout(host, width, height);
+            show(host, page);
+            layout(host, width, height);
+            try {
+              awaitRealArt(host, page, width, height);
+              layout(host, width, height);
+              metrics.put(stem, check(host, page, api));
+            } catch (AssertionError | Exception error) {
+              errors.put(error.toString());
+            }
+            // Preserve the actual failed screen for diagnosis, but never mark it as a passing capture.
+            try {
+              writeScreenshot(host, output.resolve(stem + ".png"), width, height);
+              exported++;
+            } catch (AssertionError | Exception error) { errors.put(error.toString()); }
+          } catch (AssertionError | Exception error) { errors.put(error.toString()); }
+          findings.put(stem, errors);
+          if (errors.length() > 0) failures.add(stem + ": " + errors);
+          Files.write(output.resolve("findings.json"), findings.toString(2).getBytes(StandardCharsets.UTF_8));
+          Files.write(output.resolve("metrics.json"), metrics.toString(2).getBytes(StandardCharsets.UTF_8));
+        }
+      }
+    } finally {
+      Files.write(output.resolve("findings.json"), findings.toString(2).getBytes(StandardCharsets.UTF_8));
+      Files.write(output.resolve("metrics.json"), metrics.toString(2).getBytes(StandardCharsets.UTF_8));
+      RuntimeEnvironment.setFontScale(1);
+    }
+    assertEquals("All screenshot cases are recorded", 20, findings.length());
+    assertEquals("All required PNGs are exported", 20, exported);
+    assertTrue("Registration geometry/assets/actions failed:\n" + String.join("\n", failures), failures.isEmpty());
+    assertEquals("Every screenshot has successful bounds/overlap/action evidence", 20, metrics.length());
+  }
+}

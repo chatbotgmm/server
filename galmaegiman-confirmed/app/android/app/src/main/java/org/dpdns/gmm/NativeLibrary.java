@@ -121,12 +121,16 @@ final class NativeLibrary {
           strip.addView(tile, cell);
           if (index >= visible.size()) { tile.setVisibility(View.INVISIBLE); continue; }
           JSONObject entry = visible.get(index);
-          tile.addView(k.image(entry.optString("image", "/thumbs/" + entry.optString("id") + ".jpg"), 1, 1),
-              new LinearLayout.LayoutParams(-1, 0, 1));
+          View portrait = RegistrationCardView.art(h, entry, RegistrationCardView.COMPACT);
+          portrait.setTag("collection-registration-" + entry.optString("id"));
+          tile.addView(portrait, new LinearLayout.LayoutParams(-1, 0, 1));
           TextView label = line((entry.optString("id").equals(selectedCollectionId) ? "✓ " : "")
               + entry.optString("name"), 14, false);
           label.setGravity(Gravity.CENTER);
           tile.addView(label);
+          TextView tier = line(entry.optString("tierName"), 12, false);
+          tier.setGravity(Gravity.CENTER);
+          tile.addView(tier);
           tile.setSelected(entry.optString("id").equals(selectedCollectionId));
           tile.setContentDescription(entry.optString("name") + " · 보유 " + entry.optInt("have") + "마리");
           tile.setOnClickListener(v -> { selectedCollectionId = entry.optString("id"); collection(); });
@@ -161,7 +165,8 @@ final class NativeLibrary {
                 + (u.optBoolean("known", u.optInt("have") > 0) ? " · 발견" : " · 미발견"),
             14,
             false));
-    ImageView selectedPortrait = k.image(u.optString("image", "/thumbs/" + u.optString("id") + ".jpg"), 1, 1);
+    View selectedPortrait = RegistrationCardView.art(h, u, RegistrationCardView.FULL);
+    selectedPortrait.setTag("collection-selected-registration");
     info.addView(selectedPortrait, new LinearLayout.LayoutParams(-1, 0, 1));
     LinearLayout top = k.row(), bottom = k.row();
     Button grow = k.primary("learn", "성장", () -> openOwnedGrowth(u));
@@ -264,7 +269,8 @@ final class NativeLibrary {
             row.setMinimumHeight(h.dp(64));
             row.setSelected(u.optString("id").equals(selectedCollectionId));
             face.addView(
-                k.image(u.optString("image", "/thumbs/" + u.optString("id") + ".jpg"), 48, 48));
+                RegistrationCardView.art(h, u, RegistrationCardView.COMPACT),
+                new LinearLayout.LayoutParams(h.dp(60), h.dp(48)));
             name.addView(line(u.optString("name"), 16, true));
             name.addView(
                 line(
@@ -368,8 +374,9 @@ final class NativeLibrary {
     JSONObject u = units.get(at);
     LinearLayout info = k.column();
     LinearLayout identity = k.row(), labels = k.column();
-    identity.addView(
-        k.image(u.optString("image", "/thumbs/" + u.optString("id") + ".jpg"), 112, 112));
+    View registration = RegistrationCardView.art(h, u, RegistrationCardView.FULL);
+    registration.setTag("collection-record-registration");
+    identity.addView(registration, new LinearLayout.LayoutParams(h.dp(112), h.dp(150)));
     labels.addView(heading(u.optString("name"), 24));
     labels.addView(k.note(u.optString("tierName") + " · " + u.optString("attrName")));
     labels.addView(
@@ -693,7 +700,9 @@ final class NativeLibrary {
     who.setTag("unit-summary");
     who.setPadding(h.dp(8), h.dp(6), h.dp(8), h.dp(6));
     cols[0].addView(who, new LinearLayout.LayoutParams(-1, -1));
-    who.addView(k.image(u.optString("image"), 1, 1), new LinearLayout.LayoutParams(-1, 0, 1));
+    View registration = RegistrationCardView.art(h, u, RegistrationCardView.FULL);
+    registration.setTag("unit-registration");
+    who.addView(registration, new LinearLayout.LayoutParams(-1, 0, 1));
     String role = u.optString("role");
     String roleName =
         role.equals("ATTACK")

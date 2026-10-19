@@ -110,7 +110,7 @@ final class NativeOperationUi {
     if (path.contains("growth")) return "성장 적용 중…";
     if (path.contains("heal")) return "회복 중…";
     if (path.contains("expedition/start")) return "탐험 출발 중…";
-    if (path.contains("draw")) return "뽑기 준비 중…";
+    if (path.contains("draw")) return "지원서 읽는 중…";
     if (path.contains("craft") || path.contains("mix")) return "조합 중…";
     return "진행 확인 중…";
   }

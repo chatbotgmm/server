@@ -1049,15 +1049,11 @@ final class NativeMenus {
               order.setFocusable(true);
               order.setClickable(true);
               int portrait = h.compact() ? 48 : 132;
-              ImageView image =
-                  k.image(
-                      pvp ? "/thumbs/" + unit.optString("id") + ".jpg" : unit.optString("image"),
-                      portrait,
-                      portrait);
+              View image = RegistrationCardView.art(h, unit, RegistrationCardView.COMPACT);
               image.setTag("lineup-portrait");
               if (crest != null)
                 crest.addView(image, 0, new LinearLayout.LayoutParams(0, h.dp(48), 1));
-              else card.addView(image);
+              else card.addView(image, new LinearLayout.LayoutParams(-1, h.dp(portrait)));
               TextView name = heading(unit.optString("name"), h.compact() ? 15 : 19);
               name.setGravity(Gravity.CENTER);
               name.setMaxLines(2);
@@ -1065,7 +1061,7 @@ final class NativeMenus {
               card.addView(name);
               TextView meta =
                   k.note(
-                      (pvp ? "" : "Lv" + unit.optInt("level") + " · ")
+                      (pvp ? unit.optString("tierName") + " · " : "Lv" + unit.optInt("level") + " · ")
                           + unit.optString("attrName", unit.optString("attr")));
               meta.setGravity(Gravity.CENTER);
               meta.setPadding(h.dp(2), 0, h.dp(2), 0);
@@ -1148,18 +1144,20 @@ final class NativeMenus {
               if (index >= candidates.size()) { tile.setVisibility(View.INVISIBLE); continue; }
               JSONObject candidate = candidates.get(index);
               String key = candidate.optString(pvp ? "id" : "key");
-              String image = pvp ? "/thumbs/" + candidate.optString("id") + ".jpg"
-                  : candidate.optString("image");
-              ImageView portrait = k.image(image, 40, 40);
+              View portrait = RegistrationCardView.art(h, candidate, RegistrationCardView.COMPACT);
+              portrait.setTag("team-candidate-registration-" + key);
               tile.addView(portrait, new LinearLayout.LayoutParams(-1, 0, 1));
               TextView candidateName = k.note((teamDraft.contains(key) ? "✓ " : "")
                   + candidate.optString("name"));
               candidateName.setTextColor(JournalTheme.INK);
+              candidateName.setTextSize(14);
               candidateName.setSingleLine(true);
+              candidateName.setContentDescription(candidate.optString("name"));
               candidateName.setEllipsize(android.text.TextUtils.TruncateAt.END);
               candidateName.setGravity(Gravity.CENTER);
               tile.addView(candidateName);
-              TextView meta = k.note((pvp ? "" : "Lv" + candidate.optInt("level") + " · ")
+              TextView meta = k.note((pvp ? candidate.optString("tierName") + " · "
+                  : "Lv" + candidate.optInt("level") + " · ")
                   + candidate.optString("attrName", candidate.optString("attr")));
               meta.setSingleLine(true);
               meta.setGravity(Gravity.CENTER);
@@ -1282,24 +1280,38 @@ final class NativeMenus {
                   int order = teamDraft.indexOf(id);
                   if (!candidateMatches(unit, teamQuery, teamAttr, teamSelectedOnly && order < 0))
                     continue;
-                  LinearLayout tile =
-                      k.tile(
-                          unit,
-                          pvp
-                              ? "/thumbs/" + unit.optString("id") + ".jpg"
-                              : unit.optString("image"),
-                          (order < 0 ? "" : "✓ " + (order == 0 ? "선봉 · " : (order + 1) + "번 · "))
-                              + (pvp ? unit.optString("tierName") : "Lv" + unit.optInt("level")),
-                          () -> {
-                            if (teamDraft.contains(id)) teamDraft.remove(id);
-                            else if (teamDraft.size() < 3) teamDraft.add(id);
-                            else {
-                              h.message("3마리까지 고를 수 있어요.");
-                              return;
-                            }
-                            updated.run();
-                            paint[0].run();
-                          });
+                  LinearLayout tile = k.paper();
+                  tile.setGravity(Gravity.CENTER_HORIZONTAL);
+                  if (unit.has("tier"))
+                    tile.setBackground(new GamePaperDrawable(h, NativeReveal.tier(unit.optString("tier"))));
+                  tile.addView(
+                      RegistrationCardView.art(h, unit, RegistrationCardView.COMPACT),
+                      new LinearLayout.LayoutParams(-1, h.dp(100)));
+                  TextView name = heading(unit.optString("name"), 15);
+                  name.setGravity(Gravity.CENTER);
+                  name.setMaxLines(2);
+                  name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                  name.setContentDescription(unit.optString("name"));
+                  tile.addView(name);
+                  String label =
+                      (order < 0 ? "" : "✓ " + (order == 0 ? "선봉 · " : (order + 1) + "번 · "))
+                          + (pvp ? unit.optString("tierName") : "Lv" + unit.optInt("level"));
+                  TextView meta = k.note(label);
+                  meta.setGravity(Gravity.CENTER);
+                  tile.addView(meta);
+                  tile.setContentDescription(unit.optString("name") + " · " + label);
+                  tile.setOnClickListener(
+                      v -> {
+                        if (h.busy) return;
+                        if (teamDraft.contains(id)) teamDraft.remove(id);
+                        else if (teamDraft.size() < 3) teamDraft.add(id);
+                        else {
+                          h.message("3마리까지 고를 수 있어요.");
+                          return;
+                        }
+                        updated.run();
+                        paint[0].run();
+                      });
                   tile.setTag("lineup-candidate-" + id);
                   tile.setSelected(order >= 0);
                   if (order >= 0) tile.setBackground(new GamePaperDrawable(h, JournalTheme.TEAL));

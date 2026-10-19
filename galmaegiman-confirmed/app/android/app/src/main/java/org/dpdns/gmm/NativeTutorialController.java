@@ -11,6 +11,8 @@ final class NativeTutorialController {
   static final WeakHashMap<MainActivity, WeakReference<NativeTutorialController>> INSTANCES =
       new WeakHashMap<>();
   static final Map<String, String[]> HINTS = new LinkedHashMap<>();
+  // 모집 CTA의 기존 draw-submit-* 태그를 바꾸지 않는 보조 안내 앵커.
+  static final WeakHashMap<View, String> EXTRA_ANCHORS = new WeakHashMap<>();
 
   static {
     HINTS.put(
@@ -35,6 +37,11 @@ final class NativeTutorialController {
 
   static <T extends View> T anchor(T view, String key) {
     view.setTag("tutorial:" + key);
+    return view;
+  }
+
+  static <T extends View> T anchorPreservingTag(T view, String key) {
+    EXTRA_ANCHORS.put(view, "tutorial:" + key);
     return view;
   }
 
@@ -273,7 +280,11 @@ final class NativeTutorialController {
         spotlight("draw", find("draw", "뽑기"), "② 첫 뽑기", "뽑기로 가요. 가입 선물로 받은 뽑기권이 있어요!", null);
       else if (screen.equals("draw"))
         spotlight(
-            "draw-go", find("draw-go", "회 뽑기"), "② 첫 뽑기", "1회 뽑기를 눌러요. 알이 나오면 눌러서 열어요.", null);
+            "draw-go",
+            findTag(h.root, "tutorial:draw-go"),
+            "② 첫 모집",
+            "수량 1회를 확인하고 지원서 받기를 눌러요. 봉투가 나오면 눌러서 지원서를 열어요.",
+            null);
       else back("뽑기");
       return;
     }
@@ -567,7 +578,8 @@ final class NativeTutorialController {
 
   View findTag(View view, String tag) {
     if (view == overlay) return null;
-    if (tag.equals(view.getTag()) && view.isShown()) return view;
+    if ((tag.equals(view.getTag()) || tag.equals(EXTRA_ANCHORS.get(view))) && view.isShown())
+      return view;
     if (view instanceof ViewGroup) {
       ViewGroup group = (ViewGroup) view;
       for (int i = 0; i < group.getChildCount(); i++) {

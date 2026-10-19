@@ -97,7 +97,7 @@ final class NativeEconomy {
                     "/thumbs/" + g.optString("img") + ".jpg",
                     shortDraw ? 24 : compact() ? 48 : 88,
                     shortDraw ? 24 : compact() ? 48 : 88));
-            TextView name = h.text(g.optString("label") + " 뽑기", 18);
+            TextView name = h.text(recruitmentLabel(g), 18);
             name.setTypeface(h.headline);
             if (shortDraw) {
               card.setPadding(h.dp(8), h.dp(2), h.dp(8), h.dp(2));
@@ -113,7 +113,7 @@ final class NativeEconomy {
               label.addView(k.note("1회 · " + cost + "장  ›"));
               heading.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
             }
-            heading.setContentDescription(g.optString("label") + " 뽑기 · 확률과 보장 보기");
+            heading.setContentDescription(recruitmentLabel(g) + " · 확률과 보장 보기");
             heading.setOnClickListener(v -> gachaGuide(g, r));
             card.addView(heading);
             int[] amount = {1};
@@ -124,7 +124,7 @@ final class NativeEconomy {
             Button go =
                 k.primary(
                     "u-ticket",
-                    "1회 뽑기",
+                    "지원서 받기",
                     () ->
                         h.confirm(
                             g.optString("label")
@@ -140,13 +140,17 @@ final class NativeEconomy {
                                         "kind", g.optString("kind"), "times", amount[0]),
                                     "draw")));
             go.setTag("draw-submit-" + g.optString("kind"));
+            if (g.optString("kind").equals("LOW"))
+              NativeTutorialController.anchorPreservingTag(go, "draw-go");
             k.compactQuantity(
                 card,
                 limit,
                 n -> {
                   amount[0] = n;
                   total.setText(n + "회 · 총 " + cost * n + "장");
-                  go.setText(n + "회 뽑기");
+                  go.setText("지원서 받기");
+                  go.setContentDescription(recruitmentLabel(g) + " · 지원서 받기 · " + n
+                      + "회 · 뽑기권 " + cost * n + "장");
                 });
             quantityLimit(card, limit);
             card.getChildAt(card.getChildCount() - 1)
@@ -155,6 +159,7 @@ final class NativeEconomy {
             go.setEnabled(limit > 0);
             if (limit <= 0) {
               go.setText("뽑기권 부족");
+              go.setContentDescription(recruitmentLabel(g) + " · 뽑기권 부족");
               total.setText("필요 " + cost + "장 · 보유 " + r.optInt("credits") + "장");
             }
             card.addView(go, new LinearLayout.LayoutParams(-1, h.dp(48)));
@@ -236,7 +241,7 @@ final class NativeEconomy {
     }
     acquisitionFlow = drawFlow;
     drawFlow.reopen = () -> reveal(result, next, true);
-    h.base("뽑기 결과", "drawResult");
+    h.base("모집 결과", "drawResult");
     AppSkin.apply(h, "reception");
     h.root.addView(
         new NativeReveal(h, result, next, again, drawFlow),
@@ -1725,9 +1730,18 @@ final class NativeEconomy {
     dialog.show();
   }
 
+  static String recruitmentLabel(JSONObject gacha) {
+    switch (gacha.optString("kind")) {
+      case "LOW": return "하급 모집";
+      case "MID": return "중급 모집";
+      case "HIGH": return "고급 모집";
+      default: return gacha.optString("label") + " 모집";
+    }
+  }
+
   void gachaGuide(JSONObject gacha, JSONObject draw) {
     LinearLayout panel = k.paper();
-    panel.addView(h.text(gacha.optString("label") + " 뽑기 확률", 22));
+    panel.addView(h.text(recruitmentLabel(gacha) + " 확률", 22));
     panel.addView(k.note("1회당 뽑기권 " + gacha.optInt("cost") + "장 · 낮은 등급도 나올 수 있어요."));
     JSONArray weights = h.list(gacha, "weights");
     for (int i = 0; i < weights.length(); i++) {
@@ -1744,8 +1758,8 @@ final class NativeEconomy {
     if (gacha.optString("kind").equals("HIGH") && pity != null)
       panel.addView(
           k.note(
-              pity.optString("tierName") + " 보장까지 " + pity.optInt("left") + "회 · 고급 뽑기에만 누적돼요."));
-    else panel.addView(k.note("이 뽑기는 보장 횟수를 누적하지 않아요."));
+              pity.optString("tierName") + " 보장까지 " + pity.optInt("left") + "회 · 고급 모집에만 누적돼요."));
+    else panel.addView(k.note("이 모집은 보장 횟수를 누적하지 않아요."));
     new GameDialog(h).setView(k.scroll(panel)).setPositiveButton("확인", (d, w) -> {}).show();
   }
 
@@ -1757,12 +1771,12 @@ final class NativeEconomy {
             "뽑기권은 " + draw.optDouble("cooldownHours") + "시간마다 " + draw.optInt("claim") + "장 받아요."));
     JSONObject event = draw.optJSONObject("event");
     if (event != null) panel.addView(k.note(event.optString("label")));
-    panel.addView(k.note("중급·고급에서도 흔함·안흔함이 나와요. 보장은 고급 뽑기에만 적용돼요."));
+    panel.addView(k.note("중급·고급 모집에서도 흔함·안흔함이 나와요. 보장은 고급 모집에만 적용돼요."));
     JSONArray offered = h.list(draw, "gachas");
     for (int i = 0; i < offered.length(); i++) {
       JSONObject gacha = offered.optJSONObject(i);
       panel.addView(
-          k.action(null, gacha.optString("label") + " 확률 보기", () -> gachaGuide(gacha, draw)),
+          k.action(null, recruitmentLabel(gacha) + " 확률 보기", () -> gachaGuide(gacha, draw)),
           new LinearLayout.LayoutParams(-1, h.dp(48)));
     }
     JSONObject rewards = economy().optJSONObject("rewards");

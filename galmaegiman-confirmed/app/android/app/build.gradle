@@ -12,6 +12,13 @@ tasks.register('bundleGameArt', Sync) {
         include '*.jpg'
         into 'game-art/thumbs'
     }
+    // 검증된 등록증만 APK에 추가한다. 웹 경로·원본 캐릭터·게임 규칙은 바꾸지 않는다.
+    from('../../../art/gpt/registration-v1') {
+        include 'manifest.json', 'component/layout.json', 'component/application-animation.json'
+        include 'resources/cards/*.webp', 'resources/application-envelope-atlas.png'
+        include 'resources/fonts/Noto-CJK-LICENSE.txt'
+        into 'native/registration-v1'
+    }
 }
 
 android {

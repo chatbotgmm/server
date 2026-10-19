@@ -1,4 +1,4 @@
-# Isolated home-assembly verification plus authorized preview prerelease publication.
+# Isolated home/registration verification plus authorized preview prerelease publication.
 # No server deployment or signing secrets; only the gated release job can write contents.
 name: Home assembly check
 
@@ -10,6 +10,7 @@ on:
       - galmaegiman-confirmed/app/**
       - galmaegiman-confirmed/public/battle/**
       - galmaegiman-confirmed/public/thumbs/**
+      - galmaegiman-confirmed/art/gpt/registration-v1/**
       - .github/workflows/home-assembly-check.yml
 
 permissions:
@@ -30,6 +31,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
@@ -44,6 +46,15 @@ jobs:
           test -x "$ANDROID_HOME/build-tools/35.0.0/aapt2"
           echo "Using preinstalled SDK 36 and build-tools 35.0.0"
 
+      - name: Test registration validation checks
+        run: python3 -m unittest discover -s ci -p test_verify_registration_ci.py -v
+      - name: Verify frozen registration artwork and untouched originals
+        id: source
+        run: >
+          python3 ci/verify_registration_ci.py source
+          --repo "${{ github.workspace }}"
+          --output app/build/registration-ci/source-verification.json
+
       # The project excludes NativeRenderReviewTest unless a review token is supplied.
       # Do not supply that token: R1 uses local fixtures and bundled artwork instead.
       # Loopback prevents missing art/API fallbacks from reaching the production service.
@@ -54,6 +65,26 @@ jobs:
           -PnativeServer=http://127.0.0.1:9
           --no-daemon --max-workers=2 --stacktrace
           "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
+      - name: Verify full suite coverage and report skip changes
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' }}
+        id: full_gate
+        run: >
+          python3 ci/verify_registration_ci.py junit app/build/test-results/testDebugUnitTest
+          --minimum-tests 260 --previous-skipped 16
+          --require-suite org.dpdns.gmm.NativeAcquisitionFlowTest
+          --require-suite org.dpdns.gmm.NativeOperationUiTest
+          --require-suite org.dpdns.gmm.NativeNoScrollReviewTest
+          --require-suite org.dpdns.gmm.NativeTeamDragTest
+          --require-suite org.dpdns.gmm.NativeTeamPodiumReorderTest
+          --require-suite org.dpdns.gmm.NativeEffectsPresentationTest
+          --require-suite org.dpdns.gmm.NativeResultNavigationTest
+          --require-suite org.dpdns.gmm.NativeGameFlowTest
+          --require-suite org.dpdns.gmm.JournalActivityLifecycleTest
+          --require-suite org.dpdns.gmm.ReleaseHomeLayoutTest
+          --require-suite org.dpdns.gmm.ReleaseHomeMotionTest
+          --require-suite org.dpdns.gmm.NativeBackNavigationTest
+          --require-unskipped-suite org.dpdns.gmm.NativeRegistrationReviewTest
+          --output app/build/registration-ci/full-suite.json
       # Upload before the targeted rerun overwrites testDebugUnitTest reports.
       - name: Save full native unit-test reports
         if: always()
@@ -63,6 +94,7 @@ jobs:
           path: |
             galmaegiman-confirmed/app/android/app/build/reports/tests/
             galmaegiman-confirmed/app/android/app/build/test-results/
+            galmaegiman-confirmed/app/android/app/build/registration-ci/
           if-no-files-found: warn
           retention-days: 14
 
@@ -76,13 +108,15 @@ jobs:
           -PnativeReviewOutput=${{ github.workspace }}/galmaegiman-confirmed/app/android/app/build/home-assembly-review
           --no-daemon --max-workers=2 --stacktrace
           "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
-      - name: Verify requested home screenshots exist
+      - name: Verify requested home screenshots and native findings
         if: ${{ !cancelled() && steps.home.outcome == 'success' }}
+        id: home_gate
         run: |
-          for size in 915x412 1006x411 1280x720; do
-            test -s "app/build/home-assembly-review/r1/home-$size.png"
-          done
-          test -s app/build/home-assembly-review/r1/findings.json
+          python3 ci/verify_registration_ci.py junit app/build/test-results/testDebugUnitTest \
+            --require-unskipped-suite org.dpdns.gmm.R1ScreenReviewTest \
+            --output app/build/registration-ci/home-tests.json
+          python3 ci/verify_registration_ci.py captures home app/build/home-assembly-review/r1 \
+            --output app/build/registration-ci/home-captures.json
       - name: Save home screenshots and geometry findings
         if: always()
         uses: actions/upload-artifact@v7
@@ -110,15 +144,74 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      # Keep home JUnit artifacts above: this rerun replaces Gradle's report files.
+      - name: Native registration recruit, collection, team and result captures
+        if: ${{ !cancelled() }}
+        id: registration
+        run: >
+          bash ./gradlew :app:testDebugUnitTest
+          --tests org.dpdns.gmm.NativeRegistrationReviewTest
+          -PnativeServer=http://127.0.0.1:9
+          -PnativeReviewOutput=${{ github.workspace }}/galmaegiman-confirmed/app/android/app/build/registration-review
+          --no-daemon --max-workers=2 --stacktrace
+          "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
+      - name: Verify all 20 registration screenshots and native findings
+        if: ${{ !cancelled() && steps.registration.outcome == 'success' }}
+        id: registration_gate
+        run: |
+          python3 ci/verify_registration_ci.py junit app/build/test-results/testDebugUnitTest \
+            --require-unskipped-suite org.dpdns.gmm.NativeRegistrationReviewTest \
+            --output app/build/registration-ci/registration-tests.json
+          python3 ci/verify_registration_ci.py captures registration app/build/registration-review/registration \
+            --output app/build/registration-ci/registration-captures.json
+      - name: Save registration screenshots and findings
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-registration-screenshots-${{ github.sha }}
+          path: galmaegiman-confirmed/app/android/app/build/registration-review/registration/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Save targeted registration-test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-registration-test-reports-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/reports/tests/
+            galmaegiman-confirmed/app/android/app/build/test-results/
+          if-no-files-found: warn
+          retention-days: 14
+
       # Build again without the test-only loopback override. APKs retain the existing
       # server URL, package IDs and debug signing behavior from app/build.gradle.
       - name: Assemble debug and separately installable preview APKs
-        if: ${{ !cancelled() }}
+        if: >-
+          ${{ !cancelled() && steps.source.outcome == 'success'
+          && steps.unit.outcome == 'success' && steps.full_gate.outcome == 'success'
+          && steps.home.outcome == 'success' && steps.home_gate.outcome == 'success'
+          && steps.registration.outcome == 'success' && steps.registration_gate.outcome == 'success' }}
         id: assemble
         run: >
           bash ./gradlew :app:assembleDebug :app:assemblePreview
           --no-daemon --max-workers=2 --stacktrace
           "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
+      - name: Verify both APK registration payloads against the frozen artwork
+        if: ${{ !cancelled() && steps.assemble.outcome == 'success' }}
+        id: apk_assets
+        run: >
+          python3 ci/verify_registration_ci.py apk
+          app/build/outputs/apk/debug/app-debug.apk
+          app/build/outputs/apk/preview/app-preview.apk
+          --output app/build/registration-ci/apk-verification.json
+      - name: Save registration validation reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-registration-validation-${{ github.sha }}
+          path: galmaegiman-confirmed/app/android/app/build/registration-ci/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Record APK identities and checksums
         if: ${{ !cancelled() && steps.assemble.outcome == 'success' }}
         run: |
@@ -129,7 +222,7 @@ jobs:
           done
           echo 'APKs are inspection builds, not releases. Preview installs separately; APK availability does not mean all tests passed.' >> "$GITHUB_STEP_SUMMARY"
       - name: Save debug APK if built
-        if: ${{ always() && steps.assemble.outcome == 'success' }}
+        if: ${{ always() && steps.assemble.outcome == 'success' && steps.apk_assets.outcome == 'success' }}
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-debug-apk-${{ github.sha }}
@@ -138,7 +231,7 @@ jobs:
           retention-days: 14
           compression-level: 0
       - name: Save preview APK if built
-        if: ${{ always() && steps.assemble.outcome == 'success' }}
+        if: ${{ always() && steps.assemble.outcome == 'success' && steps.apk_assets.outcome == 'success' }}
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-preview-apk-${{ github.sha }}
@@ -176,8 +269,9 @@ jobs:
           cat > notes.md <<EOF_NOTES
           갈매미맨 홈 조립 미리보기 · 커밋 \`$SHA\` · 브랜치 \`$BRANCH\`
 
-          - 기본 네이티브 단위 테스트 전체와 별도 홈 캡처 테스트, debug/preview APK 빌드가 모두 통과한 결과입니다.
+          - 기본 네이티브 단위 테스트 전체, 홈 및 등록증 네이티브 캡처, debug/preview APK 빌드와 145장 등록증·봉투·메타데이터 해시 검사가 통과한 결과입니다.
           - 홈 캡처: 915×412, 1006×411(안전 영역), 1280×720. PNG 및 검사 보고서는 같은 Actions 실행의 아티팩트에 보관됩니다.
+          - 등록증 캡처: 모집·도감·스토리 편성·PvP 편성·결과를 세 화면 크기와 915×412 큰 글자 1.3배로 확인합니다. 직접 시각검수·실기기 검수 완료를 뜻하지 않습니다.
           - 패키지 \`org.dpdns.gmm.native.revised.r1preview\`로 기존 정식 앱 옆에 따로 설치됩니다. 정식 앱 업데이트가 아닙니다.
           - 디버그 서명은 실행마다 달라질 수 있습니다. 설치 충돌 시 미리보기 앱만 제거한 뒤 설치하세요. 미리보기 앱의 로컬 데이터는 삭제됩니다.
           - APK는 기존 운영 서버 주소를 사용합니다. 이 작업은 서버·DB에 배포하지 않습니다.

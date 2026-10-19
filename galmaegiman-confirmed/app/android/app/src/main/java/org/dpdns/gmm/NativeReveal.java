@@ -2,6 +2,10 @@ package org.dpdns.gmm;
 
 import android.animation.*;
 import android.graphics.*;
+import android.database.ContentObserver;
+import android.os.Handler;
+import android.os.Looper;
+import android.provider.Settings;
 import android.view.*;
 import android.view.animation.LinearInterpolator;
 import android.widget.*;
@@ -9,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.json.*;
 
-/** 웹의 알 흔들림 → 등급 빛 → 카드 뒤집기. 결과와 등급은 서버 응답만 사용한다. */
+/** 서버가 확정한 지원서 봉투 → 등급 빛 → 등록증. 결과 순서·등급·수량은 서버 응답만 쓴다. */
 final class NativeReveal extends FrameLayout {
   final MainActivity h;
   final JSONObject result;
@@ -22,6 +26,24 @@ final class NativeReveal extends FrameLayout {
   final Glow glow;
   boolean opening, detached, revealed, leaving;
   ValueAnimator animation;
+  ApplicationEnvelopeView envelope;
+  Button openButton;
+  final int ownerEpoch;
+  final String ownerAccount;
+  boolean observing, attachedOnce, finishDelivered;
+  private final Runnable lifecycle = this::refreshMotion;
+  private final ViewTreeObserver.OnPreDrawListener visibility =
+      () -> {
+        refreshMotion();
+        return true;
+      };
+  private final ContentObserver animationSetting =
+      new ContentObserver(new Handler(Looper.getMainLooper())) {
+        @Override
+        public void onChange(boolean selfChange) {
+          refreshMotion();
+        }
+      };
 
   NativeReveal(MainActivity h, JSONObject result, Runnable next, boolean again) {
     this(h, result, next, again, null);
@@ -34,8 +56,10 @@ final class NativeReveal extends FrameLayout {
     this.result = result;
     this.next = next;
     this.flow = flow;
+    ownerEpoch = h.epoch;
+    ownerAccount = h.api.token();
     k = new MenuKit(h);
-    units = h.list(result, "items");
+    units = result == null ? new JSONArray() : h.list(result, "items");
     String best = "COMMON";
     for (int i = 0; i < units.length(); i++) {
       JSONObject unit = units.optJSONObject(i);
@@ -46,8 +70,8 @@ final class NativeReveal extends FrameLayout {
     setBackgroundColor(JournalTheme.TEAL);
     setClickable(true);
     glow = new Glow();
-    if (again) cards(false);
-    else egg();
+    if (again && hasServerResult()) cards(false);
+    else application();
   }
 
   static int rank(String name) {
@@ -120,12 +144,41 @@ final class NativeReveal extends FrameLayout {
   }
 
   boolean motion() {
-    return NativeMotion.enabled(h, h.motionEnabled);
+    return NativeMotion.enabled(h, h.motionEnabled)
+        && NativeMotion.legacyEnabled(h, h.motionEnabled);
+  }
+
+  boolean current() {
+    return !detached
+        && !h.isFinishing()
+        && !h.isDestroyed()
+        && ownerEpoch == h.epoch
+        && ownerAccount.equals(h.api.token());
+  }
+
+  boolean active() {
+    return current()
+        && h.motionResumed
+        && isAttachedToWindow()
+        && getWindowVisibility() == VISIBLE
+        && isShown();
+  }
+
+  boolean hasServerResult() {
+    return result != null && result.optJSONArray("items") != null && units.length() > 0;
   }
 
   void animate(ValueAnimator animator) {
     animations.add(animator);
+    animator.addListener(
+        new AnimatorListenerAdapter() {
+          @Override
+          public void onAnimationEnd(Animator animation) {
+            animations.remove(animation);
+          }
+        });
     animator.start();
+    if (!active()) animator.pause();
   }
 
   void stopAnimations() {
@@ -133,61 +186,63 @@ final class NativeReveal extends FrameLayout {
     animations.clear();
   }
 
+  void refreshMotion() {
+    if (h == null) return;
+    if (!current()) {
+      stopAnimations();
+      if (envelope != null) envelope.cancel();
+      return;
+    }
+    for (Animator animator : new ArrayList<>(animations)) {
+      if (!active()) {
+        if (animator.isStarted() && !animator.isPaused()) animator.pause();
+      } else if (!motion()) {
+        // 결과가 확정된 카드의 뒤집기와 fade만 끝낸다. pause 중에는 완료하지 않는다.
+        animator.end();
+      } else if (animator.isPaused()) animator.resume();
+    }
+  }
+
   void addGlow() {
     if (glow.getParent() instanceof ViewGroup) ((ViewGroup) glow.getParent()).removeView(glow);
     addView(glow, new LayoutParams(-1, -1));
   }
 
-  void egg() {
+  void application() {
     addGlow();
-    Egg art = new Egg();
-    addView(art, new LayoutParams(-1, -1));
-    Button open = h.button("알 열기", this::openEgg);
-    open.setBackgroundColor(Color.TRANSPARENT);
-    open.setTextColor(Color.TRANSPARENT);
-    open.setContentDescription("알을 열어 뽑기 결과 보기");
-    addView(open, new LayoutParams(h.dp(240), h.dp(240), Gravity.CENTER));
-    if (motion()) {
-      ValueAnimator idle = ValueAnimator.ofFloat(0, 1);
-      idle.setDuration(1600);
-      idle.setRepeatCount(ValueAnimator.INFINITE);
-      idle.setInterpolator(new LinearInterpolator());
-      idle.addUpdateListener(
-          a -> {
-            if (!opening) {
-              art.idle = (Float) a.getAnimatedValue();
-              art.invalidate();
-            }
-          });
-      animate(idle);
-    }
+    LinearLayout page = k.column();
+    page.setGravity(Gravity.CENTER);
+    page.setPadding(h.dp(16), h.dp(8), h.dp(16), h.dp(16));
+    envelope = new ApplicationEnvelopeView(h);
+    page.addView(envelope, new LinearLayout.LayoutParams(-1, 0, 1));
+    openButton = h.button("지원서 열기", this::openApplication);
+    openButton.setTag("application-open");
+    openButton.setContentDescription("지원서를 열어 모집 결과 보기");
+    page.addView(openButton, new LinearLayout.LayoutParams(h.dp(240), -2));
+    addView(page, new LayoutParams(-1, -1));
   }
 
-  void openEgg() {
-    if (opening || revealed || detached) return;
+  void openApplication() {
+    if (opening || revealed || leaving || !current()) return;
     opening = true;
+    openButton.setEnabled(false);
+    openButton.setText("지원서 읽는 중…");
     h.sound.effect("draw");
-    if (!motion()) {
+    // 정지 화면의 동기 표시도 서버 결과를 반드시 요구한다. 기존 비부착 검수 경로 유지.
+    if (!motion() && hasServerResult() && (!attachedOnce || active())) {
       cards(true);
       return;
     }
-    Egg egg = (Egg) getChildAt(1);
-    animation = ValueAnimator.ofFloat(0, 1);
-    animation.setDuration(700);
-    animation.setInterpolator(new LinearInterpolator());
-    animation.addUpdateListener(
-        a -> {
-          egg.shake = (Float) a.getAnimatedValue();
-          egg.invalidate();
+    envelope.play(
+        hasServerResult(),
+        () -> {
+          if (current() && active() && !revealed && !leaving && hasServerResult()) cards(true);
         });
-    animation.addListener(
-        new AnimatorListenerAdapter() {
-          @Override
-          public void onAnimationEnd(Animator a) {
-            if (isAttachedToWindow() && !detached && !revealed) cards(true);
-          }
-        });
-    animate(animation);
+  }
+
+  /** 이전 검수/호출자를 위한 이름만 남긴다. 알 그림이나 별도 요청은 사용하지 않는다. */
+  void openEgg() {
+    openApplication();
   }
 
   void cards() {
@@ -195,7 +250,9 @@ final class NativeReveal extends FrameLayout {
   }
 
   void cards(boolean playEffect) {
+    if (!current() || leaving || revealed || !hasServerResult()) return;
     revealed = true;
+    if (envelope != null) envelope.cancel();
     stopAnimations();
     removeAllViews();
     addGlow();
@@ -224,7 +281,7 @@ final class NativeReveal extends FrameLayout {
     int labelHeight = flow != null && units.length() > 1 ? selectedLabel.getLineHeight() : 0;
     int height = Math.max(96, available - (flow == null ? 88 : 136) - labelHeight),
         width =
-            Math.max(112, Math.min(units.length() == 1 ? 220 : 168, (int) (height * 3 / 4.15f)));
+            Math.max(144, Math.min(units.length() == 1 ? 220 : 176, (int) (height * 3 / 4.15f)));
     final LinearLayout footer = k.column();
     final ArrayList<RevealCard> shown = new ArrayList<>();
     Runnable[] paint = new Runnable[1];
@@ -245,7 +302,7 @@ final class NativeReveal extends FrameLayout {
                       : new GamePaperDrawable(h, tier(units.optJSONObject(j).optString("tier"))));
               selectedCard.setElevation(h.dp(j == flow.selected ? 8 : 2));
               selectedCard.setContentDescription(
-                  units.optJSONObject(j).optString("name")
+                  RegistrationCardView.description(units.optJSONObject(j))
                       + (j == flow.selected ? " · 선택됨" : " · 눌러 선택"));
             }
           }
@@ -341,8 +398,8 @@ final class NativeReveal extends FrameLayout {
                 int index = i;
                 LinearLayout row = k.paper(), line = k.row(), words = k.column();
                 line.addView(
-                    k.image(
-                        "/thumbs/" + unit.optString("img", unit.optString("id")) + ".jpg", 64, 64));
+                    RegistrationCardView.art(h, unit, RegistrationCardView.COMPACT),
+                    new LinearLayout.LayoutParams(h.dp(64), h.dp(64)));
                 TextView name = h.text(unit.optString("name"), 18);
                 name.setTypeface(h.headline);
                 words.addView(name);
@@ -371,25 +428,73 @@ final class NativeReveal extends FrameLayout {
   }
 
   void finish() {
-    if (leaving) return;
+    if (leaving || !revealed || !current() || (attachedOnce && !active())) return;
     leaving = true;
     stopAnimations();
-    if (motion())
-      animate()
-          .alpha(0)
-          .setDuration(200)
-          .withEndAction(
-              () -> {
-                if (!detached) next.run();
-              })
-          .start();
-    else next.run();
+    if (!motion()) {
+      if (!attachedOnce || active()) {
+        finishDelivered = true;
+        next.run();
+      }
+      return;
+    }
+    animation = ValueAnimator.ofFloat(getAlpha(), 0);
+    animation.setDuration(200);
+    animation.addUpdateListener(a -> setAlpha((Float) a.getAnimatedValue()));
+    animation.addListener(
+        new AnimatorListenerAdapter() {
+          boolean cancelled;
+
+          @Override
+          public void onAnimationCancel(Animator animator) {
+            cancelled = true;
+          }
+
+          @Override
+          public void onAnimationEnd(Animator animator) {
+            if (!cancelled && !finishDelivered && current() && active()) {
+              finishDelivered = true;
+              next.run();
+            }
+          }
+        });
+    animate(animation);
+  }
+
+  @Override
+  protected void onAttachedToWindow() {
+    super.onAttachedToWindow();
+    attachedOnce = true;
+    if (detached) return;
+    observing = true;
+    if (h.journalTime != null) h.journalTime.addListener(lifecycle);
+    getViewTreeObserver().addOnPreDrawListener(visibility);
+    h.getContentResolver()
+        .registerContentObserver(
+            Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE),
+            false,
+            animationSetting);
+    refreshMotion();
+  }
+
+  @Override
+  protected void onWindowVisibilityChanged(int visibility) {
+    super.onWindowVisibilityChanged(visibility);
+    refreshMotion();
   }
 
   @Override
   protected void onDetachedFromWindow() {
     detached = true;
     stopAnimations();
+    if (envelope != null) envelope.cancel();
+    if (observing) {
+      observing = false;
+      if (h.journalTime != null) h.journalTime.removeListener(lifecycle);
+      if (getViewTreeObserver().isAlive())
+        getViewTreeObserver().removeOnPreDrawListener(visibility);
+      h.getContentResolver().unregisterContentObserver(animationSetting);
+    }
     animate().cancel();
     super.onDetachedFromWindow();
   }
@@ -444,7 +549,7 @@ final class NativeReveal extends FrameLayout {
     RevealCard(JSONObject unit, int width, int heightBudget) {
       super(h);
       cardWidth = h.dp(width);
-      portraitHeight = h.dp(width - 16);
+      portraitHeight = h.dp((width - 16) * 4f / 3f);
       int color = tier(unit.optString("tier"));
       LinearLayout face = k.column();
       face.setGravity(Gravity.CENTER);
@@ -452,10 +557,10 @@ final class NativeReveal extends FrameLayout {
       face.setBackground(new GamePaperDrawable(h, color));
       FrameLayout photo = new FrameLayout(h);
       photo.addView(
-          k.image("/thumbs/" + unit.optString("img") + ".jpg", width - 16, width - 16),
+          RegistrationCardView.art(h, unit, RegistrationCardView.FULL),
           new LayoutParams(-1, -1));
       if (unit.optBoolean("first")) {
-        TextView badge = h.text("NEW", 11);
+        TextView badge = h.text("NEW", 12);
         badge.setGravity(Gravity.CENTER);
         fitBadge(badge);
         badge.setBackground(new GamePaperDrawable(h, JournalTheme.BRASS));
@@ -464,7 +569,7 @@ final class NativeReveal extends FrameLayout {
         photo.addView(badge, box);
       }
       if (unit.optInt("n") > 1) {
-        TextView count = h.text("×" + unit.optInt("n"), 11);
+        TextView count = h.text("×" + unit.optInt("n"), 12);
         count.setGravity(Gravity.CENTER);
         fitBadge(count);
         count.setBackground(new GamePaperDrawable(h));
@@ -472,9 +577,10 @@ final class NativeReveal extends FrameLayout {
         box.setMargins(0, h.dp(4), h.dp(4), 0);
         photo.addView(count, box);
       }
-      face.addView(photo, new LinearLayout.LayoutParams(-1, h.dp(width - 16)));
+      face.addView(photo, new LinearLayout.LayoutParams(-1, portraitHeight));
       TextView name = h.text(unit.optString("name"), 14);
       name.setMaxLines(2);
+      name.setContentDescription(unit.optString("name"));
       name.setEllipsize(android.text.TextUtils.TruncateAt.END);
       name.setTypeface(h.headline);
       name.setGravity(Gravity.CENTER);
@@ -489,8 +595,7 @@ final class NativeReveal extends FrameLayout {
       grade.setTextColor(tierInk(unit.optString("tier")));
       grade.setGravity(Gravity.CENTER);
       face.addView(grade);
-      // 이름·등급은 같은 글자 크기로 측정하고, 카드가 남는 높이를 넘으면 초상만 비율 유지해 줄인다.
-      // 전체 원문·수량·NEW 표시는 별도 결과 목록에서 확인할 수 있다.
+      // 이름·등급·NEW·수량은 실제 TextView로 남기고, 등록증 전체를 남은 영역에 contain한다.
       face.measure(
           MeasureSpec.makeMeasureSpec(h.dp(width), MeasureSpec.EXACTLY),
           MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
@@ -532,6 +637,7 @@ final class NativeReveal extends FrameLayout {
               p.setStyle(Paint.Style.FILL);
             }
           };
+      setContentDescription(RegistrationCardView.description(unit));
       addView(front, new LayoutParams(-1, -1));
       addView(back, new LayoutParams(-1, -1));
       if (rank(unit.optString("tier")) >= 6) setElevation(h.dp(6));
@@ -633,62 +739,4 @@ final class NativeReveal extends FrameLayout {
     }
   }
 
-  final class Egg extends View {
-    final Paint p = new Paint(3);
-    float shake, idle;
-
-    Egg() {
-      super(h);
-    }
-
-    @Override
-    protected void onDraw(Canvas c) {
-      float x = getWidth() / 2f,
-          y = getHeight() / 2f,
-          w = Math.min(h.dp(130), getHeight() * .36f),
-          height = w * 1.27f;
-      float bob = opening ? 0 : (float) Math.sin(idle * Math.PI) * h.dp(6);
-      c.save();
-      c.translate(0, -bob);
-      c.rotate(
-          opening
-              ? (float) Math.sin(shake * Math.PI * 2 * 700 / 120) * 8
-              : (float) Math.sin(idle * Math.PI) * -3,
-          x,
-          y);
-      p.setShader(
-          new RadialGradient(
-              x,
-              y,
-              w * .8f,
-              topColor & 0x00ffffff | 0xa0000000,
-              Color.TRANSPARENT,
-              Shader.TileMode.CLAMP));
-      c.drawCircle(x, y, w * .8f, p);
-      p.setShader(
-          new RadialGradient(
-              x - w * .18f,
-              y - height * .2f,
-              w,
-              new int[] {JournalTheme.PAPER, 0xffe4d6b5, JournalTheme.BRASS},
-              null,
-              Shader.TileMode.CLAMP));
-      RectF egg = new RectF(x - w / 2, y - height / 2, x + w / 2, y + height / 2);
-      c.drawOval(egg, p);
-      p.setShader(null);
-      p.setColor(JournalTheme.LEATHER);
-      p.setStyle(Paint.Style.STROKE);
-      p.setStrokeWidth(h.dp(4));
-      c.drawOval(egg, p);
-      p.setStyle(Paint.Style.FILL);
-      c.restore();
-      p.setColor(JournalTheme.PAPER);
-      p.setAlpha(opening ? 255 : (int) (170 + Math.cos(idle * Math.PI * 2) * 70));
-      p.setTypeface(h.prose);
-      p.setTextSize(h.dp(15));
-      p.setTextAlign(Paint.Align.CENTER);
-      c.drawText("눌러서 열기", x, y + height / 2 + h.dp(32), p);
-      p.setAlpha(255);
-    }
-  }
 }
