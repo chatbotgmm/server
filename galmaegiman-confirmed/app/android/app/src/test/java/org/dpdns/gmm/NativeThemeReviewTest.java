@@ -244,8 +244,8 @@ public class NativeThemeReviewTest {
           if (host.menus.extras.profilePopup != null) host.menus.extras.profilePopup.dismiss();
         }
       } catch (Throwable failure) { problems.put(failure.toString()); failures.add(name + ": " + failure); }
-      Files.writeString(output().resolve("findings.json"), findings.toString(2), StandardCharsets.UTF_8);
-      Files.writeString(output().resolve("metrics.json"), metrics.toString(2), StandardCharsets.UTF_8);
+      Files.write(output().resolve("findings.json"), findings.toString(2).getBytes(StandardCharsets.UTF_8));
+      Files.write(output().resolve("metrics.json"), metrics.toString(2).getBytes(StandardCharsets.UTF_8));
     }
     assertTrue(String.join("\n", failures), failures.isEmpty());
     assertEquals(PAGES.length * SIZES.length, metrics.length());
