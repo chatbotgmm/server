@@ -139,6 +139,43 @@ def verify_runtime(read, paths, lock):
             "atlas_frames": rectangles, "card_bytes": sum(len(content[path]) for path in cards)}
 
 
+# This is a finite, reviewed source extension, never a backend directory wildcard.
+PROGRESSION_SOURCE_LOCK = HERE / "progression-source-lock.json"
+PROGRESSION_PATHS = frozenset(['galmaegiman-confirmed/docs/PROGRESSION.md', 'galmaegiman-confirmed/prisma/manual/20261019_progression_additive.sql', 'galmaegiman-confirmed/prisma/schema.prisma', 'galmaegiman-confirmed/src/battle/engine.ts', 'galmaegiman-confirmed/src/battle/growth.ts', 'galmaegiman-confirmed/src/battle/realtime-adapter.ts', 'galmaegiman-confirmed/src/game.ts', 'galmaegiman-confirmed/src/native.ts', 'galmaegiman-confirmed/src/progression.ts', 'galmaegiman-confirmed/src/pvp/realtime-native-view.ts', 'galmaegiman-confirmed/src/pvp/service.ts', 'galmaegiman-confirmed/src/server.ts', 'galmaegiman-confirmed/test/progression-migration.test.ts', 'galmaegiman-confirmed/test/progression.integration.test.ts'])
+
+
+def verify_source_scope(root, changed, registration_lock, progression_lock=None):
+    approved = json.loads(PROGRESSION_SOURCE_LOCK.read_text()) if progression_lock is None else progression_lock
+    check(approved.get("schema") == "authorized-progression-source/v1"
+          and approved.get("approved_commit") == "5279b39021a6cea5919a61379ca6173e0cd9c98e",
+          "Unrecognized progression source authorization")
+    files = approved.get("files")
+    check(type(files) is list and len(files) == 14 and all(type(item) is dict for item in files),
+          "Progression source authorization must contain exactly fourteen files")
+    indexed = {item.get("path"): item for item in files}
+    check(set(indexed) == PROGRESSION_PATHS, "Progression source path allowlist changed")
+    for path, item in indexed.items():
+        check(set(item) == {"path", "sha256", "bytes"}
+              and type(item["bytes"]) is int and item["bytes"] > 0
+              and type(item["sha256"]) is str and len(item["sha256"]) == 64
+              and all(c in "0123456789abcdef" for c in item["sha256"]),
+              "Invalid progression source lock entry: " + path)
+        source = root / path
+        check(source.is_file() and not source.is_symlink() and source.resolve().is_relative_to(root.resolve()),
+              "Missing or redirected approved progression source: " + path)
+        data = source.read_bytes()
+        check(len(data) == item["bytes"] and sha256(data) == item["sha256"],
+              "Approved progression source hash changed: " + path)
+    allowed_prefixes = ("galmaegiman-confirmed/app/android/", registration_lock["source_prefix"] + "/")
+    forbidden = [path for path in changed if path
+                 and path != ".github/workflows/home-assembly-check.yml"
+                 and path not in indexed and not path.startswith(allowed_prefixes)]
+    check(not forbidden, "Changes outside Android/registration/locked progression scope: " + ", ".join(forbidden))
+    return {"approved_progression_files": len(indexed),
+            "progression_source_commit": approved["approved_commit"],
+            "progression_source_sha256": {path: entry["sha256"] for path, entry in sorted(indexed.items())}}
+
+
 def verify_source(args):
     lock = json.loads(LOCK.read_text())
     root = Path(args.repo).resolve()
@@ -155,20 +192,14 @@ def verify_source(args):
         original_paths.append(str(relative))
         check(sha256((root / relative).read_bytes()) == item["source"]["sha256"],
               "Original character image changed: " + str(relative))
-    # This compares all original/public assets, web/backend and economy data to the
-    # exact frozen app baseline, not only the 145 manifest-linked image paths.
+    # Compare all original/public assets, web/backend and economy data to the
+    # original frozen baseline; only fourteen exact progression source hashes extend scope.
     baseline = lock["app_baseline_commit"]
     subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", baseline, "HEAD"], check=True)
     changed = subprocess.check_output(
         ["git", "-C", str(root), "diff", "--name-only", "--no-renames", "-z", baseline, "HEAD"]
     ).decode().split("\0")
-    allowed_prefixes = (
-        "galmaegiman-confirmed/app/android/", lock["source_prefix"] + "/"
-    )
-    forbidden = [path for path in changed if path and
-                 path != ".github/workflows/home-assembly-check.yml" and
-                 not path.startswith(allowed_prefixes)]
-    check(not forbidden, "Changes outside Android/registration scope: " + ", ".join(forbidden))
+    report.update(verify_source_scope(root, changed, lock))
     report.update({"status": "passed", "original_images_unchanged": len(original_paths),
                    "app_baseline_commit": baseline, "art_commit": lock["art_commit"]})
     emit(report, args.output)

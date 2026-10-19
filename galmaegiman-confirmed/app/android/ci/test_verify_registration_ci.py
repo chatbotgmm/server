@@ -25,6 +25,89 @@ def png(width, height, color=0):
             chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
 
 
+class SourceScopeTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.lock = {"source_prefix": "galmaegiman-confirmed/art/gpt/registration-v1"}
+        self.approved = json.loads(verifier.PROGRESSION_SOURCE_LOCK.read_text())
+        for entry in self.approved["files"]:
+            data = ("approved synthetic source: " + entry["path"]).encode()
+            entry["bytes"] = len(data); entry["sha256"] = verifier.sha256(data)
+            file = self.root / entry["path"]; file.parent.mkdir(parents=True, exist_ok=True); file.write_bytes(data)
+    def verify(self, paths=None):
+        return verifier.verify_source_scope(self.root, list(verifier.PROGRESSION_PATHS) if paths is None else paths,
+                                            self.lock, self.approved)
+    def test_exact_fourteen_backend_paths_and_hashes_pass(self):
+        self.assertEqual(self.verify()["approved_progression_files"], 14)
+    def test_existing_android_registration_workflow_scope_remains(self):
+        self.verify(["galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/MainActivity.java",
+                     "galmaegiman-confirmed/art/gpt/registration-v1/manifest.json",
+                     ".github/workflows/home-assembly-check.yml"])
+    def test_empty_diff_still_checks_locked_sources(self):
+        self.verify([])
+        file = self.root / self.approved["files"][0]["path"]; file.write_bytes(b"changed")
+        with self.assertRaises(ValueError): self.verify([])
+    def test_allowed_path_wrong_hash_fails(self):
+        file = self.root / self.approved["files"][0]["path"]
+        data = bytearray(file.read_bytes()); data[0] ^= 1; file.write_bytes(data)
+        with self.assertRaises(ValueError): self.verify()
+    def test_allowed_path_wrong_size_fails(self):
+        file = self.root / self.approved["files"][0]["path"]; file.write_bytes(file.read_bytes()+b"extra")
+        with self.assertRaises(ValueError): self.verify()
+    def test_missing_approved_source_fails(self):
+        (self.root / self.approved["files"][0]["path"]).unlink()
+        with self.assertRaises(ValueError): self.verify()
+    def test_symlink_approved_source_fails(self):
+        file = self.root / self.approved["files"][0]["path"]; target = self.root/"redirect"
+        file.rename(target); file.symlink_to(target)
+        with self.assertRaises(ValueError): self.verify()
+    def test_extra_allowlist_entry_fails(self):
+        self.approved["files"].append(dict(self.approved["files"][0]))
+        with self.assertRaises(ValueError): self.verify()
+    def test_duplicate_allowlist_entry_fails(self):
+        self.approved["files"][1] = dict(self.approved["files"][0])
+        with self.assertRaises(ValueError): self.verify()
+    def test_missing_allowlist_entry_fails(self):
+        self.approved["files"].pop()
+        with self.assertRaises(ValueError): self.verify()
+    def test_different_path_even_with_valid_hash_fails(self):
+        self.approved["files"][0]["path"] = "galmaegiman-confirmed/src/unrelated.ts"
+        with self.assertRaises(ValueError): self.verify()
+    def test_wrong_authorized_commit_fails(self):
+        self.approved["approved_commit"] = "HEAD"
+        with self.assertRaises(ValueError): self.verify()
+    def test_changed_lock_hash_fails(self):
+        self.approved["files"][0]["sha256"] = "0"*64
+        with self.assertRaises(ValueError): self.verify()
+    def test_wrong_lock_schema_fails(self):
+        self.approved["schema"] = "unbounded"
+        with self.assertRaises(ValueError): self.verify()
+
+def _add_source_scope_negative_tests():
+    forbidden = {
+        "backend": "galmaegiman-confirmed/src/admin.ts",
+        "backend_neighbor": "galmaegiman-confirmed/src/progression.ts.bak",
+        "schema_neighbor": "galmaegiman-confirmed/prisma/seed.ts",
+        "economy": "galmaegiman-confirmed/data/economy.json",
+        "web": "galmaegiman-confirmed/public/play.html",
+        "sprite": "galmaegiman-confirmed/public/thumbs/C1.jpg",
+        "original": "galmaegiman-confirmed/public/images/D1.png",
+        "battle_art": "galmaegiman-confirmed/public/battle/duel.png",
+        "font": "galmaegiman-confirmed/public/fonts/game.ttf",
+        "unrelated_test": "galmaegiman-confirmed/test/admin.test.ts",
+        "docs": "galmaegiman-confirmed/docs/UNRELATED.md",
+        "package": "galmaegiman-confirmed/package.json",
+        "other_workflow": ".github/workflows/deploy.yml",
+    }
+    for name, path in forbidden.items():
+        def test(self, path=path):
+            with self.assertRaises(ValueError): self.verify([path])
+        setattr(SourceScopeTests, "test_reject_unrelated_"+name, test)
+_add_source_scope_negative_tests()
+
+
 class CheckerTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()

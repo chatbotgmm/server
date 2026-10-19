@@ -340,13 +340,14 @@ public class NativeHomeTipLayoutTest {
     exclusions.add(l.tipHeroExclusion());
     // Independently use laid-out controls, not only the production solver's input rectangles.
     for (View button : l.buttons) exclusions.add(new RectF(bounds(button, l)));
-    exclusions.add(new RectF(bounds(l.growthCard, l)));
+    assertNull("Removed HOME growth surface is not an advice obstacle", l.findViewWithTag("lobby-growth"));
+    assertNull("Removed harbor shortcut is absent", l.findViewWithTag("lobby-harbor"));
     View resume = l.findViewWithTag("lobby-resume");
     if (resume != null) exclusions.add(new RectF(bounds(resume, l)));
     JSONArray excluded = new JSONArray();
     float minimumClearance = Float.POSITIVE_INFINITY;
     for (RectF obstacle : exclusions) {
-      assertFalse("Bubble covers hero/header/growth/menu: " + obstacle,
+      assertFalse("Bubble covers hero/header/menu: " + obstacle,
           RectF.intersects(new RectF(bubble), obstacle));
       assertFalse("Actual paper pixels cover an exclusion: " + obstacle,
           RectF.intersects(new RectF(paper), obstacle));

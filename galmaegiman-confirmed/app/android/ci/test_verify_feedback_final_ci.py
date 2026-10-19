@@ -183,6 +183,8 @@ class Contracts(unittest.TestCase):
         self.assertNotIn("secrets.",backend);self.assertNotIn("deploy",backend)
         for required in ("node-version: '22'","npm ci","npx prisma generate","npm run test:db","npm run build","DATABASE_URL: file:./ci.db"):
             self.assertIn(required,backend)
+        self.assertLess(backend.index("run: npm run build"),backend.index("run: npm run test:db"),
+                        "Static asset routes require generated bundles before full DB tests")
         release=workflow[workflow.index("  preview-release:"):]
         self.assertIn("needs: [native-home, backend]",release)
         self.assertIn("contents: write",release)

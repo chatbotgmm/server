@@ -150,17 +150,19 @@ public class ReleaseHomeLayoutTest {
           assertTrue("All home artwork including local map-reading guide loads", l.homeArt.ready());
           assertNotNull(l.homeArt.hero());
           assertNotNull(l.homeArt.heroBounds());
-          assertEquals("Only duplicate information is removed; every route remains accessible", 14, l.buttons.size());
+          assertEquals("Five dock routes plus play, team, daily, profile, settings and three currencies", 13, l.buttons.size());
+          assertNull("Retired harbor shortcut stays absent", l.findViewWithTag("lobby-harbor"));
+          assertNull("Retired growth panel stays absent", l.findViewWithTag("lobby-growth"));
           RectF safe = h.safeBounds(l.getWidth(), l.getHeight());
           for (Button button : l.buttons) containedTouch(h, l, button, safe);
           for (int i = 0; i < l.buttons.size(); i++)
             for (int j = i + 1; j < l.buttons.size(); j++)
               assertFalse("Overlapping commands " + i + " / " + j,
                   Rect.intersects(box(l, l.buttons.get(i)), box(l, l.buttons.get(j))));
-          int[] dock = {13, 0, 1, 2, 3, 4};
+          int[] dock = {0, 1, 2, 3, 4};
           for (int i = 1; i < dock.length; i++) {
             Rect a = box(l, l.buttons.get(dock[i - 1])), b = box(l, l.buttons.get(dock[i]));
-            assertTrue("Harbor, explore, draw, collection, craft, shop order", a.right <= b.left);
+            assertTrue("Explore, draw, collection, craft, shop order", a.right <= b.left);
             assertEquals("Bottom commands share a baseline", a.bottom, b.bottom);
           }
           int[] stack = {5, 12, 6};
@@ -169,29 +171,27 @@ public class ReleaseHomeLayoutTest {
             assertTrue("Play, team, daily vertical order", a.bottom <= b.top);
             assertEquals("Right commands align", a.right, b.right);
           }
-          assertTrue(box(l, l.buttons.get(6)).bottom <= box(l, l.buttons.get(13)).top);
-          containedTouch(h, l, l.growthAction, safe);
-          assertEquals("Compact XP remains readable at enlarged font scale",
-              View.VISIBLE, l.growthCompactXp.getVisibility());
-          assertTrue("XP row fits without clipping",
-              l.growthCompactXp.getHeight() >= l.growthCompactXp.getLineHeight()
-                  + l.growthCompactXp.getPaddingTop());
-          Rect growth = box(l, l.growthCard);
-          for (Button button : l.buttons)
-            assertFalse("Growth card must not cover a menu", Rect.intersects(growth, box(l, button)));
+          assertTrue("Right action stack clears the bottom dock",
+              box(l, l.buttons.get(6)).bottom <= box(l, l.buttons.get(0)).top);
+          for (int i = 1; i < dock.length; i++) {
+            Rect first = box(l, l.buttons.get(dock[0]));
+            Rect current = box(l, l.buttons.get(dock[i]));
+            assertTrue("Five dock commands retain equal usable widths", Math.abs(first.width() - current.width()) <= 1);
+          }
           assertTrue("Profile is a compact portrait/name chip", l.boxes[7].width() <= h.dp(220));
           containedTouch(h, l, l.gull, safe);
           RectF hero = l.heroBox();
           assertTrue("Guide stands on foreground paving", hero.bottom >= safe.top + safe.height() * .72f);
           assertTrue("Guide keeps a sensible tablet scale", hero.height() <= safe.height() * .56f);
-          assertTrue("Growth sits beside the guide, leaving the feet visible",
-              growth.left >= hero.right + h.dp(24));
+          assertTrue("Guide feet retain clearance above the five-route dock",
+              hero.bottom + h.dp(20) <= box(l, l.buttons.get(0)).top + 1);
           View resumeButton = l.findViewWithTag("lobby-resume");
           if (resume) {
             containedTouch(h, l, resumeButton, safe);
             for (Button button : l.buttons)
               assertFalse("Resume must not cover a menu", Rect.intersects(box(l, resumeButton), box(l, button)));
-            assertFalse("Resume and growth stay separate", Rect.intersects(box(l, resumeButton), growth));
+            assertFalse("Resume stays clear of the foreground guide",
+                RectF.intersects(new RectF(box(l, resumeButton)), hero));
           } else assertNull(resumeButton);
           for (float pulse : new float[] {-1, 0, 1})
             for (float dragX : new float[] {-h.dp(18), 0, h.dp(18)})
@@ -205,8 +205,8 @@ public class ReleaseHomeLayoutTest {
                 RectF shadow = l.heroShadowBox(l.heroBox());
                 assertTrue("Animated guide stays in the mobile safe area", safe.contains(drawn));
                 assertTrue("Separate contact shadow stays safe", safe.contains(shadow));
-                assertFalse("Growth never masks the guide or shadow", RectF.intersects(drawn, new RectF(growth))
-                    || RectF.intersects(shadow, new RectF(growth)));
+                assertNull("Removed growth surface cannot mask the guide or shadow",
+                    l.findViewWithTag("lobby-growth"));
                 assertTrue("Contact shadow meets the feet", shadow.top < drawn.bottom && shadow.bottom > drawn.bottom);
                 assertEquals("Breathing and drag never lift the feet", l.heroBox().bottom,
                     drawn.bottom, .001f);
@@ -235,11 +235,9 @@ public class ReleaseHomeLayoutTest {
         assertEquals("Original command " + i, destinations[i], h.requested);
       }
       assertSame(l.buttons.get(12), l.findViewWithTag("lobby-team"));
-      assertSame(l.buttons.get(13), l.findViewWithTag("lobby-harbor"));
-      h.requested = "";
-      l.buttons.get(13).performClick();
-      assertEquals("home", h.requested);
-      assertEquals(14, l.buttons.size());
+      assertNull("Removed harbor command is not mounted", l.findViewWithTag("lobby-harbor"));
+      assertNull("Removed direct growth command is not mounted", l.findViewWithTag("lobby-growth"));
+      assertEquals(13, l.buttons.size());
       assertNull(l.findViewWithTag("lobby-information"));
       assertSame(l.buttons.get(7), l.findViewWithTag("lobby-profile"));
       assertSame(l.buttons.get(8), l.findViewWithTag("lobby-settings"));
@@ -270,14 +268,44 @@ public class ReleaseHomeLayoutTest {
     try (ActivityController<HomeHost> controller = start(false)) {
       HomeHost h = controller.get();
       layout(h, 915, 412, 0, 0, 0, 0);
-      lobby(h).growthAction.performClick();
-      assertEquals("unit", h.requested);
-      assertEquals("instance-one", h.currentKey);
-      assertEquals("home", h.menus.unitReturn);
-      h.state.put("team", new JSONArray());
-      h.home();
-      lobby(h).growthAction.performClick();
+      // HOME no longer prints a growth card. The existing collection is the growth entry.
+      JSONObject owned = new JSONObject(h.state.getJSONArray("units").getJSONObject(0).toString());
+      owned.put("known", true).put("have", 1).put("tier", "COMMON").put("tierName", "흔함");
+      h.me().put("units", new JSONArray().put(owned));
+      lobby(h).findViewWithTag("lobby-collection").performClick();
       assertEquals("collection", h.requested);
+      h.collection();
+      layout(h, 915, 412, 0, 0, 0, 0);
+      Button growth = h.root.findViewWithTag("collection-growth");
+      assertNotNull("Existing collection growth action remains", growth);
+      assertTrue(growth.isEnabled());
+      new NativeDialogLayoutReviewTest().fixedButton(h, h.root, growth);
+      JSONObject authoritative = h.state;
+      growth.performClick();
+      assertEquals("unit", h.screen);
+      assertEquals("instance-one", h.currentKey);
+      assertEquals("collection", h.menus.unitReturn);
+      assertSame("Growth navigation does not mutate or replace inventory", authoritative, h.state);
+      layout(h, 915, 412, 0, 0, 0, 0);
+      android.widget.TextView experience = h.root.findViewWithTag("unit-xp");
+      assertNotNull("Actual growth retains the server experience row", experience);
+      assertEquals("경험치 20 / 100", experience.getText().toString());
+      new NativeDialogLayoutReviewTest().readable(experience);
+      NativeNoScrollReviewTest.assertFullyVisible(experience, h.root);
+      assertTrue("Actual server level remains visible", flow.labels(h.root).contains("Lv12"));
+      h.getOnBackPressedDispatcher().onBackPressed();
+      assertEquals("Existing growth back route returns to its collection", "collection", h.screen);
+      h.state.put("team", new JSONArray()).put("units", new JSONArray());
+      h.me().put("units", new JSONArray());
+      h.home();
+      assertNull("No growth panel reappears for an empty roster", lobby(h).findViewWithTag("lobby-growth"));
+      h.requested = "";
+      lobby(h).findViewWithTag("lobby-collection").performClick();
+      assertEquals("collection", h.requested);
+      h.collection();
+      assertEquals("collection", h.screen);
+      assertNull("Empty collection does not invent an individual growth action",
+          h.root.findViewWithTag("collection-growth"));
     }
   }
 

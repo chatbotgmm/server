@@ -187,8 +187,8 @@ public class NativeCommerceFeedbackTest {
         }
       }
     }
-    Files.writeString(output().resolve("geometry.json"), results.toString(2));
-    Files.writeString(output().resolve("findings.json"), findings.toString(2));
+    Files.write(output().resolve("geometry.json"), results.toString(2).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    Files.write(output().resolve("findings.json"), findings.toString(2).getBytes(java.nio.charset.StandardCharsets.UTF_8));
     assertEquals(119, results.length()); assertTrue(String.join("\n", failures), failures.isEmpty());
   }
 

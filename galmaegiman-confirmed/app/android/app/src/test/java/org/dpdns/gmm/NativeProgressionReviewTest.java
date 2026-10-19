@@ -5,7 +5,8 @@ import android.graphics.*;
 import android.view.*;
 import android.widget.*;
 import java.io.OutputStream;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.json.*;
 import org.junit.*;
 import org.junit.runner.RunWith;
@@ -95,8 +96,8 @@ public class NativeProgressionReviewTest {
         } finally { f.cleanup(); }
       }
     }
-    Files.writeString(output().resolve("geometry.json"), geometry.toString(2));
-    Files.writeString(output().resolve("findings.json"), findings.toString(2));
+    Files.write(output().resolve("geometry.json"), geometry.toString(2).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    Files.write(output().resolve("findings.json"), findings.toString(2).getBytes(java.nio.charset.StandardCharsets.UTF_8));
     assertEquals(20, geometry.length());
   }
 

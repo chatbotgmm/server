@@ -11,7 +11,8 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import org.json.*;
 import org.junit.*;
@@ -235,8 +236,8 @@ public class NativeAttendanceFeedbackTest {
     metrics.put(name,value);findings.put(name,errors);
     // JUnit creates a new test instance per method. Keep both capture matrices independently.
     String group=name.startsWith("profile-")?"profile":"attendance";
-    Files.writeString(output().resolve(group+"-metrics.json"),metrics.toString(2),StandardCharsets.UTF_8);
-    Files.writeString(output().resolve(group+"-findings.json"),findings.toString(2),StandardCharsets.UTF_8);
+    Files.write(output().resolve(group+"-metrics.json"),metrics.toString(2).getBytes(StandardCharsets.UTF_8));
+    Files.write(output().resolve(group+"-findings.json"),findings.toString(2).getBytes(StandardCharsets.UTF_8));
   }
 
   @Test public void captureAttendanceAndEveryMissionAtShortLargeFontAndDensityProfiles() throws Exception {
