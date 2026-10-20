@@ -761,7 +761,13 @@ final class BattleView extends FrameLayout implements FullBleed {
         button.setContentDescription(item.optString("name")+" "+count+"개 · "+NativeBattleSheets.itemEffect(item)
             +(count<=0?" · 없음":why.isEmpty()?"":" · "+why));
         button.setMaxLines(3); button.setGravity(Gravity.CENTER);
-        button.setPadding(host.dp(6),host.dp(6),host.dp(6),host.dp(6));
+        // Explicit bounded wrapping also on the API24-26 AppCompat autosize path.
+        // Balanced paragraph breaking can leave a Korean item line wider than its cell.
+        button.setHorizontallyScrolling(false);
+        button.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+        button.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
+        button.setIncludeFontPadding(false);
+        button.setPadding(host.dp(4),host.dp(4),host.dp(4),host.dp(4));
         androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(button,12,tablet?16:14,1,android.util.TypedValue.COMPLEX_UNIT_SP);
         button.setTextSize(tablet?16:14); button.setEnabled(count>0 && why.isEmpty()); button.setBackground(new BattleSkin(host,"button-item"));button.setTextColor(0xfffff8e8);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,itemRowHeight(items.length()>4),1);lp.setMargins(host.dp(3),host.dp(3),host.dp(3),host.dp(3));line.addView(button,lp);

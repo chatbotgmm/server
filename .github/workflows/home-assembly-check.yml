@@ -159,6 +159,16 @@ jobs:
           "-PnativeReviewOutput=$PWD/app/build/native-review-preflight"
           --no-daemon --max-workers=2 --stacktrace
           "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
+      - name: Save failed battle preflight diagnostic captures
+        if: ${{ failure() && steps.battle_preflight.outcome == 'failure' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assembly-failed-battle-preflight-${{ github.sha }}
+          path: |
+            galmaegiman-confirmed/app/android/app/build/native-review-preflight/battle-ui-revision/*.png
+            galmaegiman-confirmed/app/android/app/build/native-review-preflight/battle-ui-revision/*.json
+          if-no-files-found: warn
+          retention-days: 1
       - name: All native unit tests with local fixtures
         id: unit
         run: >

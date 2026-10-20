@@ -191,7 +191,7 @@ final class BattleTypeInfo {
     android.widget.HorizontalScrollView scroll=new android.widget.HorizontalScrollView(h);
     scroll.setTag("battle-type-matrix");scroll.setFillViewport(true);
     scroll.setHorizontalScrollBarEnabled(true);
-    // Put all ten rows before explanatory prose. 36 + 10*22 = 256dp fits
+    // Put all ten rows before explanatory prose. 40 + 10*22 = 260dp fits
     // the 640x360 inset landscape body; retain horizontal scrolling on smaller widths.
     int rowHeight=h.dp(22);
     int labelWidth=h.dp(68);
@@ -200,15 +200,16 @@ final class BattleTypeInfo {
     scroll.addView(table,new android.widget.FrameLayout.LayoutParams(-1,-2));
     LinearLayout head=new LinearLayout(h);head.setBaselineAligned(false);
     android.widget.TextView axes=cell(h,"공격↓\n방어→",false);axes.setTextSize(11);axes.setSingleLine(false);axes.setMaxLines(2);
-    head.addView(axes,new LinearLayout.LayoutParams(labelWidth,h.dp(36)));
+    head.addView(axes,new LinearLayout.LayoutParams(labelWidth,h.dp(40)));
     for(String type:TYPES) {
       LinearLayout title=new LinearLayout(h);title.setOrientation(LinearLayout.VERTICAL);title.setGravity(Gravity.CENTER);
       title.setBackgroundColor(defense && type.equals(selected)?0xffd2e9e1:0xffeee0c1);
       ImageView emblem=icon(h,type);emblem.setPadding(0,0,0,0);
       title.addView(emblem,new LinearLayout.LayoutParams(h.dp(16),h.dp(16)));
       android.widget.TextView name=cell(h,name(h,type),false);name.setTextSize(11);name.setTag("matrix-defense:"+type);
-      title.addView(name,new LinearLayout.LayoutParams(-1,-2));
-      head.addView(title,new LinearLayout.LayoutParams(0,h.dp(36),1));
+      // Reserve the full glyph line; vertical LinearLayout must not shrink it after the icon.
+      title.addView(name,new LinearLayout.LayoutParams(-1,h.dp(24)));
+      head.addView(title,new LinearLayout.LayoutParams(0,h.dp(40),1));
     }
     table.addView(head);
     for(String attack:TYPES) {

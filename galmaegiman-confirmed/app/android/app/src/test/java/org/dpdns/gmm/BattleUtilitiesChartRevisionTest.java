@@ -103,7 +103,7 @@ public class BattleUtilitiesChartRevisionTest {
     assertTrue("no vertical text clipping: "+b.getText()+" layout="+text.getHeight()+" box="+b.getHeight()+" compoundTop="+b.getCompoundPaddingTop()+" compoundBottom="+b.getCompoundPaddingBottom(),text.getHeight()<=b.getHeight()-b.getCompoundPaddingTop()-b.getCompoundPaddingBottom());
     for(int i=0;i<text.getLineCount();i++) {
       assertEquals(0,text.getEllipsisCount(i));
-      assertTrue("no horizontal text clipping: "+b.getText(),text.getLineWidth(i)<=b.getWidth()-b.getCompoundPaddingLeft()-b.getCompoundPaddingRight()+1);
+      assertTrue("no horizontal text clipping: "+b.getText()+" line="+i+" inkWidth="+text.getLineWidth(i)+" box="+b.getWidth()+" padding="+b.getCompoundPaddingLeft()+","+b.getCompoundPaddingRight()+" textSize="+b.getTextSize(),text.getLineWidth(i)<=b.getWidth()-b.getCompoundPaddingLeft()-b.getCompoundPaddingRight()+1);
     }
   }
   @Test public void utilitiesStayInCommandPanelAtSmallInsetAndFont130() throws Exception {
@@ -243,7 +243,7 @@ public class BattleUtilitiesChartRevisionTest {
         TextView text=decor.findViewWithTag(tag);assertNotNull(tag,text);
         assertEquals("No virtual horizontal scroll: "+tag,0,text.getScrollX());
         android.text.Layout layout=text.getLayout();assertNotNull("Rendered layout: "+tag,layout);
-        assertTrue("Text height: "+tag,layout.getHeight()<=text.getHeight()-text.getCompoundPaddingTop()-text.getCompoundPaddingBottom());
+        assertTrue("Text height: "+tag+" layout="+layout.getHeight()+" box="+text.getHeight()+" padding="+text.getCompoundPaddingTop()+","+text.getCompoundPaddingBottom()+" size="+text.getTextSize(),layout.getHeight()<=text.getHeight()-text.getCompoundPaddingTop()-text.getCompoundPaddingBottom());
         for(int line=0;line<layout.getLineCount();line++) {
           assertEquals("No ellipsis: "+tag,0,layout.getEllipsisCount(line));
           assertTrue("Text width: "+tag,layout.getLineWidth(line)<=text.getWidth()-text.getCompoundPaddingLeft()-text.getCompoundPaddingRight()+1);
