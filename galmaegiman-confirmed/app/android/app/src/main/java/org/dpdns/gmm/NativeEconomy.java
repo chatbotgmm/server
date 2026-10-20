@@ -175,7 +175,8 @@ final class NativeEconomy {
         station.setPadding(h.dp(8), h.dp(6), h.dp(8), h.dp(6));
         TextView name = h.text(recruitmentLabel(g), 20);
         name.setTypeface(h.headline);
-        name.setIncludeFontPadding(false);
+        // Jua's Korean ink can exceed its ascent; retain the font's full top/bottom metrics.
+        name.setIncludeFontPadding(true);
         name.setGravity(Gravity.CENTER);
         name.setPadding(h.dp(12), h.dp(4), h.dp(12), h.dp(4));
         android.graphics.drawable.GradientDrawable chosenTitle = new android.graphics.drawable.GradientDrawable();

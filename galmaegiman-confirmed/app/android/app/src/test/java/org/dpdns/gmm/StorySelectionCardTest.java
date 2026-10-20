@@ -185,6 +185,16 @@ public class StorySelectionCardTest {
           assertTrue("제목·조건이 카드 높이 안에 있음",card.info.getBottom() <= card.getHeight());
           for (View label : review.geometry.descendants(card.info)) if (label instanceof TextView) {
             TextView text = (TextView)label;
+            if (text == card.titleLabel) {
+              assertEquals("전체 제목 보존",card.titleText,
+                  text.getText().toString().replace('\n',' '));
+              for (int line = 0; line < text.getLayout().getLineCount() - 1; line++) {
+                int end = text.getLayout().getLineEnd(line);
+                assertTrue("제목은 음절이 아닌 단어 경계에서 줄바꿈",
+                    end > 0 && Character.isWhitespace(text.getText().charAt(end - 1)));
+              }
+              assertEquals("글자 가로 압축 없음",1f,text.getTextScaleX(),.001f);
+            }
             assertTrue(text.getHeight() - text.getCompoundPaddingTop() - text.getCompoundPaddingBottom() >= text.getLayout().getHeight());
           }
         }
@@ -205,6 +215,7 @@ public class StorySelectionCardTest {
     }
   }
 }
+
 
 
 

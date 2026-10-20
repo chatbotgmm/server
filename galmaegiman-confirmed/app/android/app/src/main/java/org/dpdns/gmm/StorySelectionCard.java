@@ -19,6 +19,8 @@ final class StorySelectionCard extends LinearLayout {
   final String scene;
   final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
   final LinearLayout info;
+  final TextView titleLabel;
+  final String titleText;
   Bitmap artwork;
   boolean entered;
   final boolean locked;
@@ -41,12 +43,16 @@ final class StorySelectionCard extends LinearLayout {
     JSONObject lock = chapter.optJSONObject("lock");
     locked = lock != null && !lock.optBoolean("open");
     String title = description(chapter.optString("title"));
+    titleText = title;
     String reason = locked ? description(lock.optString("reason", "앞 이야기를 완료해 주세요."))
         : chapter.optInt("needStage") > 0 ? "팀 전원 " + chapter.optInt("needStage") + "단계 승진" : "";
     addView(new View(host), new LayoutParams(-1, 0, 1));
     info = menus.k.column();
     info.setPadding(host.dp(12), host.dp(10), host.dp(12), host.dp(12));
     TextView name = menus.navyLabel(title, 19, true);
+    titleLabel = name;
+    name.setContentDescription(title);
+    name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
     name.setTag("story-chapter-title-" + index);
     info.addView(name);
     info.addView(menus.navyLabel((locked ? "🔒 잠김 · " : "") + cleared + " / " + stages.length() + " 완료", 14, false));
@@ -67,6 +73,27 @@ final class StorySelectionCard extends LinearLayout {
       host.stages();
     });
     if (index == 0) NativeTutorialController.anchorPreservingTag(this, "chapter");
+  }
+
+  @Override protected void onMeasure(int widthSpec, int heightSpec) {
+    // Prefer whole words over Korean syllable breaks without shrinking the title.
+    int width = View.MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight()
+        - info.getPaddingLeft() - info.getPaddingRight()
+        - titleLabel.getCompoundPaddingLeft() - titleLabel.getCompoundPaddingRight();
+    if (width > 0 && View.MeasureSpec.getMode(widthSpec) != View.MeasureSpec.UNSPECIFIED) {
+      StringBuilder wrapped = new StringBuilder(), line = new StringBuilder();
+      for (String word : titleText.split("\\s+")) {
+        String candidate = line.length() == 0 ? word : line + " " + word;
+        if (line.length() > 0 && titleLabel.getPaint().measureText(candidate) > width) {
+          wrapped.append(line).append('\n'); line.setLength(0);
+        }
+        if (line.length() > 0) line.append(' ');
+        line.append(word);
+      }
+      wrapped.append(line);
+      if (!wrapped.toString().contentEquals(titleLabel.getText())) titleLabel.setText(wrapped);
+    }
+    super.onMeasure(widthSpec,heightSpec);
   }
 
   static String description(String value) {
@@ -119,3 +146,4 @@ final class StorySelectionCard extends LinearLayout {
     paint.setStyle(Paint.Style.FILL);
   }
 }
+

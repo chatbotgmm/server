@@ -1522,7 +1522,14 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
             const key=`${e.target.side}:${e.target.slot}`;
             expect(e.hpBefore).toBe(health.get(key));
             expect(e.hpAfter).toBeGreaterThanOrEqual(0);expect(e.hpAfter).toBeLessThanOrEqual(e.maxHp);
-            expect(e.amount).toBe(Math.abs(e.hpAfter-e.hpBefore));health.set(key,e.hpAfter);
+            if(e.kind==='faint'){
+              // 전투불가는 앞선 피해의 결과를 알리는 HP 스냅샷이며 추가 피해가 아니다.
+              expect(e.hpBefore).toBe(0);expect(e.hpAfter).toBe(0);expect(e.amount).toBeUndefined();
+            }else{
+              expect(['damage','heal','revive']).toContain(e.kind);
+              expect(e.amount).toBe(Math.abs(e.hpAfter-e.hpBefore));
+            }
+            health.set(key,e.hpAfter);
           }
           if(e.kind==='switch')active[e.target.side]=e.target.slot;
         }

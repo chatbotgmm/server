@@ -159,6 +159,7 @@ jobs:
           --tests org.dpdns.gmm.BattleItemTypographyTest
           --tests org.dpdns.gmm.NativeResultReassessmentSwipeTest.captureRefreshTargetAndSwipeAtRealDensityAndFont130
           --tests org.dpdns.gmm.StorySelectionCardTest.captureWholeCardsAcrossShortFontAndCutoutSafeAreas
+          --tests org.dpdns.gmm.NativeRecruitmentCounterReviewTest.renderDistinctCounterTraysAndActionStatesAcrossSizes
           -PnativeServer=http://127.0.0.1:9
           "-PnativeReviewOutput=$PWD/app/build/native-review-preflight"
           --no-daemon --max-workers=2 --stacktrace
@@ -175,6 +176,8 @@ jobs:
             galmaegiman-confirmed/app/android/app/build/native-review-preflight/result-reassessment/*.json
             galmaegiman-confirmed/app/android/app/build/native-review-preflight/story-cards/*.png
             galmaegiman-confirmed/app/android/app/build/native-review-preflight/story-cards/*.json
+            galmaegiman-confirmed/app/android/app/build/native-review-preflight/recruitment-counter/*.png
+            galmaegiman-confirmed/app/android/app/build/native-review-preflight/recruitment-counter/*.json
           if-no-files-found: warn
           retention-days: 1
       - name: All native unit tests with local fixtures
@@ -865,6 +868,7 @@ jobs:
               --title "홈 미리보기 $short" --notes-file notes.md --prerelease --latest=false
           fi
           gh release view "$tag" --repo "$REPO" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"
+
 
 
 
