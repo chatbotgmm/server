@@ -1118,6 +1118,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       }
       // 개인정보 처리방침(작성지침 2026.4.): 이전 버전 링크·필수 항목 제목, 없는 버전·이상한 경로는 404
       const pp=(await app.inject({method:'GET',url:'/privacy'})).body;
+      expect(pp).not.toContain('◆');   // 운영자가 채울 빈칸이 남은 채로 공개하지 않음
       for(const h of ['처리 목적','보유 기간','파기 절차','위탁','국외 이전','안전성 확보조치','쿠키','행사방법','개인정보 보호책임자','권익침해 구제방법','처리방침의 변경','href="/privacy/2026-10-08"'])expect(pp).toContain(h);
       for(const u of ['/privacy/2020-01-01','/privacy/..%2Fpackage'])expect((await app.inject({method:'GET',url:u,headers:{accept:'text/html'}})).statusCode).toBe(404);
       const odds=(await app.inject({method:'GET',url:'/odds'})).body;
