@@ -1135,7 +1135,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
         expect(apk.headers['content-type']).toBe('application/vnd.android.package-archive');expect(apk.headers['content-disposition']).toContain('attachment');
         expect(apk.rawPayload.subarray(0,2).toString()).toBe('PK');
       }else{expect(info.statusCode).toBe(404);expect(apk.statusCode).toBe(404);}
-      expect((await app.inject({method:'GET',url:'/my'})).body).toContain('id="inst"');
+      expect((await app.inject({method:'GET',url:'/my?g=1'})).body).toContain('id="inst"');   // 앱 게임 창은 기존 화면(설치 안내 포함)
+      expect((await app.inject({method:'GET',url:'/my'})).body).toContain('/my/api/who');   // 웹 /my는 새 화면으로 이어 보내는 페이지
     }finally{await app.close();}
   });
   it.each(['2','3'])('네이티브 카카오 앱 %s: 처음 연결은 코드 확인, 계정 연결은 현재 로그인 계정을 유지',async(appVersion)=>{
@@ -1298,7 +1299,10 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(ev).toContain('5단계 · 단계마다 🎟 <b>10장</b> (총 50장)');expect(ev).toContain('<b>재료로 직접 조합해 보기</b>');expect(ev).toContain('<b>닉네임 정하기</b>');
       expect(ev).toContain('하루 최대 🎟 <b>230장</b>');expect(ev).toContain('진행 중');
       expect(ev).not.toContain('따개비도새우깡은못참지');
-      expect(await get('/hidden')).toMatch(/class="more"[^]*href="\/hidden" class="on"/);
+      expect(await get('/hidden')).toMatch(/class="drawer-more"[^]*href="\/hidden" aria-current="page"/);
+      // 없는 주소: 브라우저 페이지는 새 틀의 「없음」 화면, API는 JSON 그대로
+      const miss=await app.inject({method:'GET',url:'/zz-none',headers:{accept:'text/html'}});expect(miss.statusCode).toBe(404);expect(miss.body).toContain('찾는 페이지가 없어요');expect(miss.body).toContain('class="legacy"');
+      const missApi=await app.inject({method:'GET',url:'/api/zz-none',headers:{accept:'text/html'}});expect(missApi.statusCode).toBe(404);expect(missApi.json()).toMatchObject({statusCode:404});
       // 히든: 1명 발견 → 초성 공개, 3명 전 → 재료 이름 잠김, 최초 발견자 표시
       const hid=await get('/hidden');noHidden(hid);
       expect(hid).toContain('재료 초성');expect(hid).toContain('최초 발견: <a href="/p/'+encodeURIComponent('돌왕'));

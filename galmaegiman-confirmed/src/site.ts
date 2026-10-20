@@ -20,23 +20,26 @@ const FROM=/^\/(?:about|world|characters|notices(?:\/[A-Za-z0-9_-]{1,40})?|downl
 export const safeNext=(v:unknown)=>typeof v==='string'&&NEXT.has(v)?v:'/game';
 export const safeFrom=(v:unknown)=>typeof v==='string'&&FROM.test(v)?v:'/';
 
-export function registerSite(app:FastifyInstance,content:Content,opt:SiteOptions){
+// 공개 페이지 공통 틀(머리줄·메뉴·바닥). 새 공개 페이지(site.ts)와 예전 공개 페이지(web.ts: 도감·조합법·랭킹·이벤트 등)가 같이 쓴다
+export interface ShellOptions{path:string;title:string;desc:string;body:string;bare?:boolean;script?:string;noindex?:boolean;image?:string;legacy?:boolean;canonical?:boolean}
+// 예전부터 있던 공개 페이지(내용·기능 그대로, 새 디자인 틀): 메뉴의 「둘러보기」와 바닥에 연결
+const MORE:[string,string][]=[['/dex','도감'],['/recipes','조합법'],['/hidden','히든 단서'],['/rank','랭킹'],['/talk','수다방'],['/event','이벤트'],['/search','검색']];
+// 파일 수정 시각을 주소 뒤에 붙여, 파일이 바뀌면 브라우저가 새로 받게 한다
+export const stampFor=(root:string)=>(p:string)=>{try{return `/${p}?v=${Math.floor(statSync(resolve(root,'public',p)).mtimeMs)}`;}catch{return `/${p}`;}};
+export function siteShell(root:string,version:string,content:Content){
   const site=(content.economy.homepage??'').replace(/\/$/,'');
   const channel=content.economy.kakaoChannel;
-  const readJson=<T,>(file:string,empty:T):T=>{try{return JSON.parse(readFileSync(resolve(opt.root,'data',file),'utf8')) as T;}catch{return empty;}};
-  const notices=()=>readJson<Notice[]>('notices.json',[]).filter(n=>n&&typeof n.id==='string'&&/^[A-Za-z0-9_-]{1,40}$/.test(n.id)&&n.title&&n.date).sort((a,b)=>b.date.localeCompare(a.date));
-  const downloads=()=>readJson<{official:DownloadInfo|null;test:DownloadInfo|null}>('downloads.json',{official:null,test:null});
-  const stamp=(()=>{const cache=new Map<string,string>();return (p:string)=>{try{const m=String(Math.floor(statSync(resolve(opt.root,'public',p)).mtimeMs));cache.set(p,m);return `/${p}?v=${m}`;}catch{return `/${p}`;}};})();
+  const stamp=stampFor(root);
   const NAV:[string,string][]=[['/about','게임 소개'],['/world','세계관'],['/characters','캐릭터 소개'],['/notices','공지사항'],['/download','다운로드']];
   const logo='<img src="/images/logo.png" alt="" width="123" height="40">';
-  const shell=(o:{path:string;title:string;desc:string;body:string;bare?:boolean;script?:string;noindex?:boolean})=>`<!doctype html>
+  return (o:ShellOptions)=>`<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${o.path==='/'?'갈매미맨':`${esc(o.title)} · 갈매미맨`}</title>
 <meta name="description" content="${esc(o.desc)}">${o.noindex?'<meta name="robots" content="noindex">':''}
-<meta property="og:type" content="website"><meta property="og:site_name" content="갈매미맨"><meta property="og:title" content="${esc(o.path==='/'?'갈매미맨':o.title)}"><meta property="og:description" content="${esc(o.desc)}">${site?`<meta property="og:image" content="${site}/images/C1.png"><link rel="canonical" href="${esc(site+o.path)}">`:''}
+<meta property="og:type" content="website"><meta property="og:site_name" content="갈매미맨"><meta property="og:title" content="${esc(o.path==='/'?'갈매미맨':o.title)}"><meta property="og:description" content="${esc(o.desc)}">${site?`<meta property="og:image" content="${site}${o.image??'/images/C1.png'}">${o.canonical===false?'':`<link rel="canonical" href="${esc(site+o.path)}">`}`:''}
 <link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/icon-192.png"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#1d3550">
 ${o.path==='/'&&site?`<script type="application/ld+json">${JSON.stringify({'@context':'https://schema.org','@type':'WebSite',name:'갈매미맨',alternateName:['갈매미맨 수비대'],url:`${site}/`}).replace(/</g,'\\u003c')}</script>`:''}
-<link rel="preload" href="/site/a/jua.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="${stamp('site/site.css')}">
+<link rel="preload" href="/site/a/jua.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="${stamp('site/site.css')}">${o.legacy?`<link rel="stylesheet" href="${stamp('site/legacy.css')}">`:''}
 </head><body class="site">
 <a class="skip" href="#main">본문 바로가기</a>
 <header class="top"><div class="wrap">
@@ -48,16 +51,28 @@ ${o.bare?`<a class="toplink" href="/" data-back>홈페이지로</a>`:`<nav class
 ${o.bare?'':`<div class="drawer" id="drawer" hidden><div class="drawer-in" role="dialog" aria-modal="true" aria-label="메뉴">
 <div class="drawer-top">${logo}<button class="close" type="button" aria-label="메뉴 닫기">×</button></div>
 <nav aria-label="공개 메뉴">${NAV.map(([h,t])=>`<a href="${h}"${o.path===h?' aria-current="page"':''}>${t}</a>`).join('')}</nav>
+<nav class="drawer-more" aria-label="둘러보기">${MORE.map(([h,t])=>`<a href="${h}"${o.path===h?' aria-current="page"':''}>${t}</a>`).join('')}</nav>
 <a class="btn primary wide" href="/game" data-start>게임 시작</a><a class="btn ghost wide" href="/login?next=/account" data-auth="account">로그인 / 내 계정</a>
 </div></div>`}
 <main id="main">${o.body}</main>
 <footer class="foot"><div class="wrap">
 <b class="foot-name">갈매미맨</b>
 <p class="foot-links">${channel?`<a href="${esc(channel)}" target="_blank" rel="noopener">카카오톡 채널(문의)</a>`:''}<a href="/privacy">개인정보처리방침</a><a href="/account/delete">계정 삭제 안내</a><a href="/odds">모집 확률</a></p>
-<p class="foot-links sub"><a href="/notices">공지사항</a><a href="/download">다운로드</a><span>v${esc(opt.version)}</span></p>
+<p class="foot-links sub"><a href="/notices">공지사항</a><a href="/download">다운로드</a><span>v${esc(version)}</span></p>
+<p class="foot-links sub" aria-label="둘러보기">${MORE.map(([h,t])=>`<a href="${h}">${t}</a>`).join('')}</p>
 </div></footer>
 <script src="${stamp('site/site.js')}" defer></script>${o.script??''}
 </body></html>`;
+}
+
+export function registerSite(app:FastifyInstance,content:Content,opt:SiteOptions){
+  const site=(content.economy.homepage??'').replace(/\/$/,'');
+  const channel=content.economy.kakaoChannel;
+  const readJson=<T,>(file:string,empty:T):T=>{try{return JSON.parse(readFileSync(resolve(opt.root,'data',file),'utf8')) as T;}catch{return empty;}};
+  const notices=()=>readJson<Notice[]>('notices.json',[]).filter(n=>n&&typeof n.id==='string'&&/^[A-Za-z0-9_-]{1,40}$/.test(n.id)&&n.title&&n.date).sort((a,b)=>b.date.localeCompare(a.date));
+  const downloads=()=>readJson<{official:DownloadInfo|null;test:DownloadInfo|null}>('downloads.json',{official:null,test:null});
+  const shell=siteShell(opt.root,opt.version,content);
+  const stamp=stampFor(opt.root);
   const send=(reply:FastifyReply,html:string,cache='public, max-age=300')=>reply.type('text/html; charset=utf-8').header('Cache-Control',cache).send(html);
   const limit={config:{rateLimit:{max:300,timeWindow:'1 minute',keyGenerator:(req:FastifyRequest)=>{const ip=req.headers['cf-connecting-ip'];return typeof ip==='string'&&ip.length<=45?`site:${ip}`:'site';}}}};
   const pub=()=>content.characters.filter(c=>c.rarity!=='HIDDEN'&&!topTiers.has(c.rarity));
