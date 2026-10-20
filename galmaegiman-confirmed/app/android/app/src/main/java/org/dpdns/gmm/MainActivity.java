@@ -453,6 +453,8 @@ public class MainActivity extends AppCompatActivity {
     b.setTextColor(JournalTheme.controlText(GameButtonDrawable.PRIMARY));
     b.setTextSize(uiText(18));
     b.setTypeface(font);
+    b.setGravity(Gravity.CENTER);
+    b.setIncludeFontPadding(false);
     b.setMinHeight(dp(52));
     b.setMinimumHeight(dp(52));
     b.setPadding(dp(14), dp(8), dp(14), dp(8));
@@ -516,7 +518,8 @@ public class MainActivity extends AppCompatActivity {
     title.setHorizontallyScrolling(false);
     title.setEllipsize(android.text.TextUtils.TruncateAt.END);
     title.setTextColor(Color.WHITE);
-    title.setGravity(Gravity.CENTER_VERTICAL);
+    title.setGravity(Gravity.CENTER);
+    title.setIncludeFontPadding(false);
     title.setBackground(ThemeArt.of(this).drawable(ThemeArt.Surface.HEADER));
     title.setPadding(dp(16), 0, dp(16), 0);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
@@ -1526,4 +1529,5 @@ public class MainActivity extends AppCompatActivity {
     sound.close();
   }
 }
+
 

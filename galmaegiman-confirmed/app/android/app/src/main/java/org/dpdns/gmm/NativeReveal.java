@@ -302,6 +302,7 @@ final class NativeReveal extends FrameLayout {
     heading.setGravity(Gravity.CENTER);
     final TextView selectedLabel = k.note("");
     if (flow != null && units.length() > 1) {
+      selectedLabel.setIncludeFontPadding(false);
       selectedLabel.setTextColor(JournalTheme.PAPER);
       selectedLabel.setGravity(Gravity.CENTER);
       selectedLabel.setSingleLine(true);
@@ -311,6 +312,7 @@ final class NativeReveal extends FrameLayout {
     }
     reassessmentStatus = h.text("", 12);
     reassessmentStatus.setTag("acquisition-reassessment-status");
+    reassessmentStatus.setIncludeFontPadding(false);
     reassessmentStatus.setTextColor(JournalTheme.PAPER);
     reassessmentStatus.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
     reassessmentStatus.setPadding(0, 0, 0, 0);
@@ -343,22 +345,28 @@ final class NativeReveal extends FrameLayout {
         }
       }
       LinearLayout finish = k.row();
+      finish.setBaselineAligned(false);
+      finish.setGravity(Gravity.CENTER_VERTICAL);
       if (units.length() > RESULT_PAGE_SIZE) {
         Button previous = k.action(null, "‹", () -> {
           if (!canTurnResults() || resultPage <= 0) return;
           scroll.turn(-1);
         });
+        h.menus.pagerChevron(previous, false);
         previous.setTag("acquisition-previous-page");
         previous.setContentDescription("이전 모집 결과 페이지");
         previous.setEnabled(resultPage > 0);
         finish.addView(previous, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
         TextView pageNumber = RegistrationCardView.stateLabel(h,
             (resultPage + 1) + "/" + ((units.length() + RESULT_PAGE_SIZE - 1) / RESULT_PAGE_SIZE));
+        pageNumber.setIncludeFontPadding(false);
+        pageNumber.setGravity(Gravity.CENTER);
         finish.addView(pageNumber, new LinearLayout.LayoutParams(h.dp(52), h.dp(48)));
         Button nextPage = k.action(null, "›", () -> {
           if (!canTurnResults() || (resultPage + 1) * RESULT_PAGE_SIZE >= units.length()) return;
           scroll.turn(1);
         });
+        h.menus.pagerChevron(nextPage, true);
         nextPage.setTag("acquisition-next-page");
         nextPage.setContentDescription("다음 모집 결과 페이지");
         nextPage.setEnabled((resultPage + 1) * RESULT_PAGE_SIZE < units.length());
@@ -575,28 +583,57 @@ final class NativeReveal extends FrameLayout {
     if (candidates.isEmpty()) return;
     Button button = k.action(null, "↻", () -> chooseReassessment(unit, index));
     button.setTag("acquisition-reassess-card-" + index);
-    button.setTextSize(26); button.setPadding(0, 0, 0, h.dp(2));
-    android.graphics.drawable.StateListDrawable circle = new android.graphics.drawable.StateListDrawable();
-    android.graphics.drawable.GradientDrawable pressed = new android.graphics.drawable.GradientDrawable();
-    pressed.setShape(android.graphics.drawable.GradientDrawable.OVAL); pressed.setColor(JournalTheme.TEAL);
-    pressed.setStroke(h.dp(2), JournalTheme.BRASS);
-    android.graphics.drawable.GradientDrawable normal = new android.graphics.drawable.GradientDrawable();
-    normal.setShape(android.graphics.drawable.GradientDrawable.OVAL); normal.setColor(JournalTheme.PAPER);
-    normal.setStroke(h.dp(2), JournalTheme.BRASS);
-    circle.addState(new int[] {android.R.attr.state_pressed}, pressed);
-    circle.addState(new int[] {}, normal);
-    button.setBackground(circle);
+    // Keep the full touch target; only the small corner seal is opaque.
+    // The baked registration heading occupies the middle of this same header.
+    button.setText("");
+    button.setPadding(0, 0, 0, 0);
+    button.setBackground(new ReassessmentSeal());
     button.setContentDescription(unit.optString("name") + " · 이번 획득 개체 재심사"
         + (reassessmentNextAt > reassessmentServerNow ? " · 대기 시간 남음" : ""));
     button.setEnabled(!resultSyncing && reassessmentNextAt <= reassessmentServerNow);
     LayoutParams slot = new LayoutParams(h.dp(48), h.dp(48), Gravity.TOP | Gravity.RIGHT);
     slot.setMargins(0, h.dp(4), h.dp(4), 0);
     card.photo.addView(button, slot);
-    if (card.countBadge != null) {
-      LayoutParams count = (LayoutParams) card.countBadge.getLayoutParams();
-      count.topMargin = h.dp(56);
-      card.countBadge.setLayoutParams(count);
+  }
+
+  final class ReassessmentSeal extends android.graphics.drawable.Drawable {
+    final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    final RectF arc = new RectF();
+
+    @Override public boolean isStateful() { return true; }
+    @Override protected boolean onStateChange(int[] state) { invalidateSelf(); return true; }
+    @Override public void draw(Canvas canvas) {
+      Rect bounds = getBounds();
+      float radius = h.dp(12), x = bounds.right - radius, y = bounds.top + radius;
+      boolean enabled = false, pressed = false;
+      for (int state : getState()) {
+        enabled |= state == android.R.attr.state_enabled;
+        pressed |= state == android.R.attr.state_pressed;
+      }
+      paint.setStyle(Paint.Style.FILL);
+      paint.setColor(pressed ? JournalTheme.TEAL : JournalTheme.PAPER);
+      paint.setAlpha(enabled ? 255 : 120);
+      canvas.drawCircle(x, y, radius - h.dp(1), paint);
+      paint.setStyle(Paint.Style.STROKE);
+      paint.setStrokeWidth(h.dp(1));
+      paint.setColor(JournalTheme.BRASS);
+      paint.setAlpha(enabled ? 255 : 120);
+      canvas.drawCircle(x, y, radius - h.dp(1), paint);
+      paint.setColor(pressed ? JournalTheme.PAPER : JournalTheme.INK);
+      paint.setAlpha(enabled ? 255 : 120);
+      paint.setStrokeWidth(h.dp(1.5f));
+      paint.setStrokeCap(Paint.Cap.ROUND);
+      float r = h.dp(5);
+      arc.set(x - r, y - r, x + r, y + r);
+      canvas.drawArc(arc, -65, 290, false, paint);
+      canvas.drawLine(x + r * .42f, y - r * .91f, x + r * .50f, y - r * .15f, paint);
+      canvas.drawLine(x + r * .42f, y - r * .91f, x - r * .32f, y - r * .80f, paint);
+      paint.setStrokeCap(Paint.Cap.BUTT);
+      paint.setAlpha(255);
     }
+    @Override public void setAlpha(int alpha) { }
+    @Override public void setColorFilter(ColorFilter filter) { paint.setColorFilter(filter); }
+    @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
   }
 
   void chooseReassessment(JSONObject unit, int index) {
@@ -986,7 +1023,7 @@ final class NativeReveal extends FrameLayout {
     final View front, back;
     final int preferredHeight;
     final FrameLayout photo;
-    TextView countBadge;
+    TextView newBadge, countBadge;
     int cardWidth, portraitHeight;
 
     RevealCard(JSONObject unit, int width) {
@@ -1005,9 +1042,14 @@ final class NativeReveal extends FrameLayout {
       art.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
       photo.addView(art, new LayoutParams(-1, -1));
       if (unit.optBoolean("first")) {
-        TextView badge = h.text("NEW", 12);
+        TextView badge = h.text("NEW", 10);
+        newBadge = badge;
         badge.setGravity(Gravity.CENTER);
         fitBadge(badge);
+        // This non-interactive flag must fit before the baked heading, even at 130% text.
+        badge.setMinWidth(Math.max(h.dp(30),
+            (int) Math.ceil(badge.getPaint().measureText("NEW")) + h.dp(6)));
+        badge.setMinHeight(Math.max(h.dp(20), badge.getLineHeight() + h.dp(4)));
         badge.setBackground(new GamePaperDrawable(h, JournalTheme.BRASS));
         LayoutParams box = new LayoutParams(-2, -2, Gravity.TOP | Gravity.LEFT);
         box.setMargins(h.dp(4), h.dp(4), 0, 0);
@@ -1025,6 +1067,7 @@ final class NativeReveal extends FrameLayout {
       }
       face.addView(photo, new LinearLayout.LayoutParams(-1, portraitHeight));
       preferredHeight = portraitHeight;
+      alignBadges();
       front = face;
       back =
           new View(h) {
@@ -1065,12 +1108,22 @@ final class NativeReveal extends FrameLayout {
       LinearLayout face = (LinearLayout) front;
       View photo = face.getChildAt(0);
       photo.getLayoutParams().height = portraitHeight;
+      alignBadges();
       photo.forceLayout();
       face.forceLayout();
       return portraitHeight;
     }
 
+    void alignBadges() {
+      // Keep NEW at the quiet top-left corner, clear of the portrait's printed dialogue.
+      // Put quantity below the printed header at every card size, away from the 48dp target.
+      if (countBadge == null) return;
+      LayoutParams slot = (LayoutParams) countBadge.getLayoutParams();
+      slot.topMargin = Math.max(h.dp(56), Math.round(portraitHeight * .205f));
+    }
+
     void fitBadge(TextView label) {
+      label.setIncludeFontPadding(false);
       label.setPadding(0, 0, 0, 0);
       label.setSingleLine(true);
       label.setMinWidth(

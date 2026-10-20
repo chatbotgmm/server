@@ -150,23 +150,31 @@ jobs:
       # Use a separate capture root; the successful preflight never substitutes
       # for the mandatory full suite below. Existing always() report upload
       # retains this run's JUnit if the preflight fails and the full suite skips.
-      - name: Battle SDK and native chart preflight
+      - name: Typography, result and battle native preflight
         id: battle_preflight
         run: >
           bash ./gradlew :app:testDebugUnitTest
           --tests org.dpdns.gmm.BattleUtilitiesChartRevisionTest
+          --tests org.dpdns.gmm.NativeTypographyAlignmentTest
+          --tests org.dpdns.gmm.BattleItemTypographyTest
+          --tests org.dpdns.gmm.NativeResultReassessmentSwipeTest.captureRefreshTargetAndSwipeAtRealDensityAndFont130
+          --tests org.dpdns.gmm.StorySelectionCardTest.captureWholeCardsAcrossShortFontAndCutoutSafeAreas
           -PnativeServer=http://127.0.0.1:9
           "-PnativeReviewOutput=$PWD/app/build/native-review-preflight"
           --no-daemon --max-workers=2 --stacktrace
           "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
-      - name: Save failed battle preflight diagnostic captures
+      - name: Save failed native preflight diagnostic captures
         if: ${{ failure() && steps.battle_preflight.outcome == 'failure' }}
         uses: actions/upload-artifact@v7
         with:
-          name: home-assembly-failed-battle-preflight-${{ github.sha }}
+          name: home-assembly-failed-native-preflight-${{ github.sha }}
           path: |
             galmaegiman-confirmed/app/android/app/build/native-review-preflight/battle-ui-revision/*.png
             galmaegiman-confirmed/app/android/app/build/native-review-preflight/battle-ui-revision/*.json
+            galmaegiman-confirmed/app/android/app/build/native-review-preflight/result-reassessment/*.png
+            galmaegiman-confirmed/app/android/app/build/native-review-preflight/result-reassessment/*.json
+            galmaegiman-confirmed/app/android/app/build/native-review-preflight/story-cards/*.png
+            galmaegiman-confirmed/app/android/app/build/native-review-preflight/story-cards/*.json
           if-no-files-found: warn
           retention-days: 1
       - name: All native unit tests with local fixtures
@@ -201,6 +209,8 @@ jobs:
           --require-unskipped-suite org.dpdns.gmm.StorySelectionCardTest
           --require-unskipped-suite org.dpdns.gmm.NativeRealtimeIdentityRevisionTest
           --require-unskipped-suite org.dpdns.gmm.BattleUtilitiesChartRevisionTest
+          --require-unskipped-suite org.dpdns.gmm.BattleItemTypographyTest
+          --require-unskipped-suite org.dpdns.gmm.NativeTypographyAlignmentTest
           --require-unskipped-suite org.dpdns.gmm.BattleReplayStabilityTest
           --require-unskipped-suite org.dpdns.gmm.BattleReplayStoreTest
           --require-unskipped-suite org.dpdns.gmm.NativeBattleReplayReviewTest

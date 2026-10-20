@@ -102,6 +102,28 @@ public class StorySelectionCardTest {
     }
   }
 
+  void captureStory(MainActivity h, int[] size, Path file) throws Exception {
+    Bitmap bitmap = Bitmap.createBitmap(size[0],size[1],Bitmap.Config.ARGB_8888);
+    try {
+      h.root.draw(new Canvas(bitmap));
+      try (OutputStream stream = Files.newOutputStream(file)) {
+        assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,stream));
+      }
+    } finally { bitmap.recycle(); }
+  }
+
+  void awaitVisibleArtwork(MainActivity h, StorySelectionCard card) throws Exception {
+    Bitmap frame = Bitmap.createBitmap(h.root.getWidth(),h.root.getHeight(),Bitmap.Config.ARGB_8888);
+    try {
+      // Artwork is assigned by onDraw, not its invalidation callback. Draw the real
+      // scrolled viewport on each bounded wait iteration so an offscreen card loads.
+      RegistrationArtTest.await(() -> {
+        h.root.draw(new Canvas(frame));
+        return card.artwork != null && !card.artwork.isRecycled();
+      });
+    } finally { frame.recycle(); }
+  }
+
   @Test public void captureWholeCardsAcrossShortFontAndCutoutSafeAreas() throws Exception {
     Path output = Path.of(System.getProperty("gmm.nativeReviewOutput", "build/native-review"), "story-cards");
     Files.createDirectories(output);
@@ -138,6 +160,7 @@ public class StorySelectionCardTest {
         h.root.layout(0,0,size[0],size[1]);
         android.graphics.Rect safe = new android.graphics.Rect(effective.left,effective.top,
             size[0]-effective.right,size[1]-effective.bottom);
+        captureStory(h,size,output.resolve(name + ".png")); // Diagnostic pixels survive any later assertion.
         assertEquals(safe,review.geometry.bounds(h.page,h.root));
         JSONObject checked = review.inspect(h,h.root,"story",api);
         assertEquals(safe.width(),checked.getInt("safeWidth"));
@@ -146,6 +169,7 @@ public class StorySelectionCardTest {
         int initialScroll = chapters.getScrollX();
         assertTrue("챕터 뷰포트가 실제 안전영역 안에 있음",safe.contains(review.geometry.bounds(chapters,h.root)));
         int cards = 0;
+        try {
         for (View view : review.geometry.descendants(h.root)) if (view instanceof StorySelectionCard) {
           StorySelectionCard card = (StorySelectionCard)view; cards++;
           // Existing chapter list scrolls horizontally: reveal each whole card before checking it.
@@ -155,6 +179,7 @@ public class StorySelectionCardTest {
               safe.contains(cardBounds));
           assertEquals("노출한 챕터 카드 전체가 잘리지 않음",cardBounds,
               review.geometry.visibleIntersection(card,h.root));
+          awaitVisibleArtwork(h,card);
           assertNotNull("원본 그림 로딩",card.artwork);
           assertTrue(card.getHeight() >= h.dp(48));
           assertTrue("제목·조건이 카드 높이 안에 있음",card.info.getBottom() <= card.getHeight());
@@ -163,14 +188,10 @@ public class StorySelectionCardTest {
             assertTrue(text.getHeight() - text.getCompoundPaddingTop() - text.getCompoundPaddingBottom() >= text.getLayout().getHeight());
           }
         }
-        chapters.scrollTo(initialScroll,0);
-        Bitmap bitmap = Bitmap.createBitmap(size[0],size[1],Bitmap.Config.ARGB_8888);
-        try {
-          h.root.draw(new Canvas(bitmap));
-          try (OutputStream stream = Files.newOutputStream(output.resolve(name + ".png"))) {
-            assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,stream));
-          }
-        } finally { bitmap.recycle(); }
+        } finally {
+          chapters.scrollTo(initialScroll,0);
+          captureStory(h,size,output.resolve(name + ".png"));
+        }
         assertEquals(3,cards);
         checked.put("cards",cards).put("width",size[0]).put("height",size[1]).put("fontScale",size[2]/100f)
             .put("actualNativeViews",true).put("safeInsetsPx",new JSONArray().put(effective.left).put(effective.top).put(effective.right).put(effective.bottom));
@@ -184,6 +205,7 @@ public class StorySelectionCardTest {
     }
   }
 }
+
 
 
 

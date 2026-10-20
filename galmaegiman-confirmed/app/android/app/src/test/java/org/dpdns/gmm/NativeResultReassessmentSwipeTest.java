@@ -701,6 +701,18 @@ public class NativeResultReassessmentSwipeTest {
           assertNotNull(refresh.getContentDescription());
           assertTrue(refresh.getContentDescription().toString().contains("재심사"));
           NativeReveal.RevealCard first = s.reveal.findViewWithTag("acquisition-card-R13");
+          assertTrue("48dp 터치 영역은 유지하고 보이는 인장은 작게 그린다",
+              refresh.getBackground() instanceof NativeReveal.ReassessmentSeal);
+          assertEquals("글꼴에 의존하는 회전 문자를 겹쳐 그리지 않는다", "", ((TextView) refresh).getText().toString());
+          assertNotNull(first.newBadge); assertNotNull(first.countBadge);
+          assertTrue("작은 NEW 배지가 제목 쪽으로 넓어지지 않는다", first.newBadge.getWidth() <= s.h.dp(36));
+          assertTrue("확대 글꼴에서도 NEW 전체를 표시한다",
+              first.newBadge.getWidth() >= Math.ceil(first.newBadge.getPaint().measureText("NEW")));
+          assertEquals("NEW", first.newBadge.getText().toString());
+          assertTrue("NEW는 초상 대사를 가리지 않는 왼쪽 위 모서리에 둔다",
+              first.newBadge.getTop() <= s.h.dp(4));
+          assertTrue("수량은 인쇄된 등록증 제목 아래에 놓인다",
+              first.countBadge.getTop() >= Math.round(first.portraitHeight * .205f));
           Rect card = records.bounds(first, s.h.root), target = records.bounds(refresh, s.h.root);
           assertTrue(card.contains(target));
           assertTrue("등록증 오른쪽 위 터치 영역", target.top - card.top <= s.h.dp(8)

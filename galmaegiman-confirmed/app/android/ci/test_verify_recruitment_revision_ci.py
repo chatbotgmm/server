@@ -10,9 +10,9 @@ from verify_recruitment_revision_ci import (TRAYS, TRAY_INK, SUITES, PROFILES, S
 
 class RevisionContractTest(unittest.TestCase):
     def test_full_suite_minima_reject_previous_count_or_added_skips(self):
-        good=dict(status='passed',totals=dict(tests=501,passed=485,skipped=16))
+        good=dict(status='passed',totals=dict(tests=506,passed=490,skipped=16))
         verify_totals(good)
-        for field,value in [('tests',500),('passed',484),('skipped',17)]:
+        for field,value in [('tests',505),('passed',489),('skipped',17)]:
             data=json.loads(json.dumps(good));data['totals'][field]=value
             with self.subTest(field=field), self.assertRaises(ValueError):verify_totals(data)
         good['status']='failed'
@@ -27,6 +27,29 @@ class RevisionContractTest(unittest.TestCase):
         with self.assertRaises(ValueError):junit(self.root)
         tree.getroot().remove(case);tree.write(p)
         with self.assertRaises(ValueError):junit(self.root)
+    def test_five_typography_methods_cannot_be_missing_or_skipped(self):
+        for suite in ('NativeTypographyAlignmentTest','BattleItemTypographyTest'):
+            for method in SUITES[suite]:
+                for mode in ('missing','skipped'):
+                    self.junit_fixture()
+                    path=self.root/('TEST-org.dpdns.gmm.'+suite+'.xml');tree=ET.parse(path)
+                    case=next(c for c in tree.getroot().findall('testcase') if c.get('name')==method)
+                    if mode=='missing':tree.getroot().remove(case)
+                    else:ET.SubElement(case,'skipped')
+                    tree.write(path)
+                    with self.subTest(suite=suite,method=method,mode=mode), self.assertRaises(ValueError):junit(self.root)
+    @patch('verify_recruitment_revision_ci.verify_png',return_value={})
+    def test_three_typography_pngs_are_exactly_sized_and_each_required(self,mock):
+        self.battle_utilities_fixture();verify_battle_utilities(self.root)
+        calls={call.args[0].name:call.args[1:3] for call in mock.call_args_list}
+        expected={'battle-items-word-aligned-640-sdk35.png':(640,360),'battle-items-word-aligned-915-sdk35.png':(915,412),'battle-items-word-aligned-640-sdk26.png':(640,360)}
+        for name,size in expected.items():
+            self.assertEqual(calls[name],size)
+            def missing(path,*args,**kwargs):
+                if path.name==name:raise FileNotFoundError(name)
+                return {}
+            mock.side_effect=missing
+            with self.subTest(name=name), self.assertRaises(FileNotFoundError):verify_battle_utilities(self.root)
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
         self.root=Path(self.tmp.name)
@@ -276,8 +299,8 @@ class RevisionContractTest(unittest.TestCase):
         data=[dict(capture=f'battle-{pane}-{w}-inset-font130.png',width=w,height=h,fontScale=1.3,utilityLeft=200,panelLeft=190,status='화상',buttons=[dict(text='약 × 2',width=80,height=48,enabled=True)]) for w,h in ((640,360),(915,412)) for pane in ('menu','items')]
         self.write('battle-ui-revision/observations.json',data);return data
     @patch('verify_recruitment_revision_ci.verify_png',return_value={})
-    def test_battle_utilities_require_six_short_large_font_frames(self,mock):
-        self.battle_utilities_fixture();self.assertEqual(len(verify_battle_utilities(self.root)),6)
+    def test_battle_utilities_require_nine_native_frames(self,mock):
+        self.battle_utilities_fixture();self.assertEqual(len(verify_battle_utilities(self.root)),9)
     @patch('verify_recruitment_revision_ci.verify_png',return_value={})
     def test_battle_utilities_cannot_escape_panel_or_restore_effect_numbers(self,mock):
         for key,value in [('utilityLeft',180),('status','화상 6%'),('fontScale',1.0)]:

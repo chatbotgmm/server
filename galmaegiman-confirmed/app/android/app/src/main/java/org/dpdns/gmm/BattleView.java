@@ -748,7 +748,7 @@ final class BattleView extends FrameLayout implements FullBleed {
     JSONArray items=host.list(battle,"items"), inventory=host.list(battle,"inventory");
     if(inventory.length()==0 && !NativeRealtime.isBattle(battle)) inventory=host.list(host.state,"items");
     for(int row=0;row<2;row++) {
-      LinearLayout line=new LinearLayout(host);
+      ItemRow line=new ItemRow();
       // 설명 줄 수가 다른 버튼을 글자 기준선으로 맞추면 아래로 밀려 잘린다(기본 메뉴와 같은 처리).
       line.setBaselineAligned(false);
       for(int col=0;col<2;col++) {
@@ -771,11 +771,52 @@ final class BattleView extends FrameLayout implements FullBleed {
         androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(button,12,tablet?16:14,1,android.util.TypedValue.COMPLEX_UNIT_SP);
         button.setTextSize(tablet?16:14); button.setEnabled(count>0 && why.isEmpty()); button.setBackground(new BattleSkin(host,"button-item"));button.setTextColor(0xfffff8e8);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,itemRowHeight(items.length()>4),1);lp.setMargins(host.dp(3),host.dp(3),host.dp(3),host.dp(3));line.addView(button,lp);
+        line.names.add(item.optString("name")); line.quantities.add(count);
       }
       controls.addView(line);
     }
     int pages=(items.length()+3)/4;
     if(pages>1) add(host.button("다음 목록 · "+(itemPage+1)+"/"+pages,()->{itemPage=(itemPage+1)%pages;render();}));
+  }
+
+  /** Keep Korean words intact when two name lines fit above the quantity. */
+  static String itemLabel(String name, int count, Paint paint, float width, float minSize) {
+    String quantity="\n×"+count;
+    if(width<=0 || paint.measureText(name)<=width) return name+quantity;
+    int split=-1;
+    float best=Float.MAX_VALUE;
+    for(int i=1;i<name.length()-1;i++) {
+      if(name.charAt(i)!=' ') continue;
+      float widest=Math.max(paint.measureText(name.substring(0,i)),
+          paint.measureText(name.substring(i+1)));
+      // On equal widths retain the longer leading phrase (e.g. 다시 출근).
+      if(widest<=best) { best=widest; split=i; }
+    }
+    if(split<0 || best*minSize/paint.getTextSize()>width) return name+quantity;
+    return name.substring(0,split)+"\n"+name.substring(split+1)+quantity;
+  }
+
+  final class ItemRow extends LinearLayout {
+    final ArrayList<String> names=new ArrayList<>();
+    final ArrayList<Integer> quantities=new ArrayList<>();
+    ItemRow() { super(host); }
+    @Override protected void onMeasure(int widthSpec,int heightSpec) {
+      super.onMeasure(widthSpec,heightSpec);
+      boolean changed=false;
+      for(int i=0;i<getChildCount();i++) {
+        Button button=(Button)getChildAt(i);
+        Paint paint=new Paint(button.getPaint());
+        float scaled=host.getResources().getDisplayMetrics().scaledDensity;
+        paint.setTextSize((tablet?16:14)*scaled);
+        // Use the measured weighted cell, including its real compound padding.
+        int width=button.getMeasuredWidth()-button.getCompoundPaddingLeft()-button.getCompoundPaddingRight();
+        String label=itemLabel(names.get(i),quantities.get(i),paint,width,12*scaled);
+        if(!android.text.TextUtils.equals(button.getText(),label)) {
+          button.setText(label); changed=true;
+        }
+      }
+      if(changed) super.onMeasure(widthSpec,heightSpec);
+    }
   }
 
   /** 제목 줄과 쪽 넘김 버튼을 뺀 패널 높이를 두 줄로 나눈다. 폰 124dp·태블릿 160dp를 넘기지 않아 버튼 그림이 세로로 늘어나지 않는다. */

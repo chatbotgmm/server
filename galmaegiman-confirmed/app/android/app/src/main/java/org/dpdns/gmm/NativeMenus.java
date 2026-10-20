@@ -174,19 +174,32 @@ final class NativeMenus {
     button.setMaxLines(2);
     button.setEllipsize(null);
     button.setGravity(Gravity.CENTER);
-    button.setPadding(h.dp(18), h.dp(78), h.dp(18), h.dp(10));
+    // Center the icon and the actual one/two-line title as a single visual stack.
+    button.setIncludeFontPadding(false);
+    button.setPadding(h.dp(18), h.dp(78), h.dp(18), 0);
+    button.addOnLayoutChangeListener((view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+      int reserve = Math.round(modeIconSize(right - left, bottom - top)) + h.dp(12);
+      if (button.getPaddingTop() != reserve)
+        button.setPadding(h.dp(18), reserve, h.dp(18), 0);
+    });
     button.setMinHeight(h.dp(144));
     button.setMinimumHeight(h.dp(144));
-    button.setBackground(new ModeCardDrawable(motif));
+    button.setBackground(new ModeCardDrawable(motif, button));
     return button;
+  }
+
+  float modeIconSize(int width, int height) {
+    return Math.min(h.dp(66), Math.min(Math.max(0, width - h.dp(4)) * .24f,
+        Math.max(0, height - h.dp(4)) * .32f));
   }
 
   /** 기존 장면 그림 위에 책·방패·지도 표식을 얹어 각 갈래를 구분한다. */
   final class ModeCardDrawable extends android.graphics.drawable.Drawable {
     final int motif;
+    final Button label;
     final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     boolean enabled = true, pressed, focused;
-    ModeCardDrawable(int motif) { this.motif = motif; }
+    ModeCardDrawable(int motif, Button label) { this.motif = motif; this.label = label; }
     @Override public boolean isStateful() { return true; }
     @Override protected boolean onStateChange(int[] states) {
       boolean nextEnabled = false, nextPressed = false, nextFocused = false;
@@ -233,8 +246,9 @@ final class NativeMenus {
       paint.setColor(focused ? JournalTheme.FOCUS : enabled ? JournalTheme.BRASS : JournalTheme.LINE);
       canvas.drawRoundRect(card, 12 * d, 12 * d, paint);
       // 실제 카드 높이에 따라 장식만 이동한다. 글꼴이나 클릭 영역은 줄이지 않는다.
-      float size = Math.min(66 * d, Math.min(card.width() * .24f, card.height() * .32f));
-      float x = card.centerX(), y = card.centerY() - 40 * d;
+      float size = modeIconSize(bounds.width(), bounds.height());
+      float textHeight = label.getLayout() == null ? label.getLineHeight() : label.getLayout().getHeight();
+      float x = card.centerX(), y = card.centerY() - (textHeight + 12 * d) / 2;
       int save = canvas.save(); canvas.translate(x - size / 2, y - size / 2); canvas.scale(size / 64, size / 64);
       paint.setColor(enabled ? JournalTheme.BRASS : JournalTheme.MUTED);
       paint.setStrokeWidth(2); paint.setStrokeJoin(Paint.Join.ROUND); paint.setStrokeCap(Paint.Cap.ROUND);
@@ -1337,9 +1351,7 @@ final class NativeMenus {
               image.setTag("lineup-portrait");
               image.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
               card.addView(image, new LinearLayout.LayoutParams(-1, 0, 1));
-              TextView name = PartyCharacterView.stateLabel(h, unit.optString("name"));
-              name.setTypeface(h.headline);
-              name.setSingleLine(false); name.setMaxLines(2);
+              TextView name = PartyCharacterView.nameLabel(h, unit.optString("name"));
               name.setTag("lineup-name");
               card.addView(name);
               String state = pvp ? "보유 " + unit.optInt("have") : "Lv" + unit.optInt("level");
@@ -1482,9 +1494,7 @@ final class NativeMenus {
             portrait.setTag("team-candidate-character-" + key);
             portrait.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
             tile.addView(portrait, new LinearLayout.LayoutParams(-1, 0, 1));
-            TextView candidateName = PartyCharacterView.stateLabel(h, candidate.optString("name"));
-            candidateName.setTypeface(h.headline);
-            candidateName.setSingleLine(false); candidateName.setMaxLines(2);
+            TextView candidateName = PartyCharacterView.nameLabel(h, candidate.optString("name"));
             candidateName.setTag("team-candidate-name");
             tile.addView(candidateName);
             boolean isSelected = teamDraft.contains(key);
@@ -1881,5 +1891,6 @@ final class NativeMenus {
     return a == null ? id : a.optString("name", id);
   }
 }
+
 
 

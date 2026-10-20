@@ -14,6 +14,8 @@ HERE = Path(__file__).resolve().parent
 TRAY_INK = {'LOW':[19,76,749,435],'MID':[19,76,750,436],'HIGH':[19,72,750,436]}
 TRAYS = {f'recruitment/tray-{kind}-v1.png' for kind in ('low','mid','high')}
 SUITES = {
+ 'NativeTypographyAlignmentTest': ['namesWrapAtWordsAndIdenticalMeasuresDoNotResetText','plaquesAndModeStacksStayCenteredAcrossExistingProfiles'],
+ 'BattleItemTypographyTest': ['narrowAndWideCardsKeepWordsAndCenteredLabels','sdk26CompatKeepsWordsWithinActualCells','sdk24KeepsCompatConfigurationAndAction'],
  'BattleReplayStabilityTest': ['identicalSnapshotPerformsNoMoreDiskWrites', 'byteOverflowWritesMarkerOnceAndNeverPretendsComplete', 'frameOverflowStopsWritesOnce', 'corruptNullFramesAndInvalidTeamsAreExcluded', 'actualSpeciesIdentityNeverFallsBackToCombatAncestor', 'recordedStageTintAndScaleRemainFixed', 'preparationRevisionIsNotEvidenceOfMissingBattleStart', 'identicalTerminalCanRetryAfterIndexWriteFailure', 'restartCleansCrashOrphansAndTemporaryFiles', 'modeAndResultLabelsNeverGuessUnknownValues'],
  'NativeResultReassessmentSwipeTest': ['iconWaitsForServerAndOnlyMapsNewEligibleExactSpecies', 'oldOwnedConcurrentAndUnprovenKeysNeverBecomeThisAcquisition', 'unsupportedServerExplainsAndReadOnlyRetryDoesNotFakeSuccess', 'malformedOrCrossSpeciesReceiptKeysFailClosed', 'serverCooldownCannotBeBypassedByWaitingOnClientClock', 'horizontalSwipesMoveThreeCardsWithoutDossierAndKeepBackSelection', 'cancelledAndVerticalGesturesDoNotPageOrOpenDossier', 'cancelIsReadOnlyAndConfirmedRetryUsesSameExactDurableIntent', 'multipleNewInstancesRequireChooserAndNeverSelectOldOwnedKey', 'successRefreshesAuthoritativeStateAndArtWithoutLosingPageOrSelection', 'convertingOneOfAggregatedCopiesPreservesEveryUnconvertedCopy', 'closingOverlayDuringMutationStillReconcilesTheOwnedResultWithoutReopening', 'retryOpenedFromAnotherCardReplacesTheOriginalSourceKeyOnly', 'lateEligibilityAndStateReadsCannotPaintDetachedOrOtherAccountResults', 'navigatingDuringMutationDoesNotReopenOrRepaintAnAbandonedResult', 'captureRefreshTargetAndSwipeAtRealDensityAndFont130'],
  'BattleReplayStoreTest': ['eleventhCompletionPrunesOldest', 'duplicateCompletionDoesNotReorderOrReward', 'accountSwitchNeverLeaksRecords', 'restartRetainsDraftAndCompletedTimeline', 'failedPartialAndResultOnlyAreNotCompleted', 'regressionRejectedAndMissingBeginningDisclosed', 'capturesAreImmutableAndRemovePrivateSubmissionData', 'replaySnapshotCannotBeRecaptured', 'deterministicTimelineAndDefensiveCopies', 'stopDisposeAndNoEconomicApiDependencies'],
@@ -351,6 +353,8 @@ def verify_battle_utilities(root):
         images.append(verify_png(d/m['capture'],w,h,minimum_bytes=1000))
     for w,h in ((640,360),(915,412)):
         images.append(verify_png(d/f'battle-types-{w}-font130.png',w-24,h-16,minimum_bytes=1000))
+    for w,h,sdk in ((640,360,35),(915,412,35),(640,360,26)):
+        images.append(verify_png(d/f'battle-items-word-aligned-{w}-sdk{sdk}.png',w,h,minimum_bytes=1000))
     return images
 
 def verify_replay(root):
@@ -399,7 +403,7 @@ def verify_dossier_diagnostics(root):
     return [verify_png(root/'result-dossier'/f'780x360-dpi160-font{font}-results.png',780,360,minimum_bytes=1000) for font in (100,130)]
 
 def verify_totals(full):
-    check(full.get('status')=='passed' and full['totals']['tests']>=501 and full['totals']['passed']>=485 and full['totals']['skipped']<=16, 'Existing 401/385/16 baseline plus one hundred new tests required')
+    check(full.get('status')=='passed' and full['totals']['tests']>=506 and full['totals']['passed']>=490 and full['totals']['skipped']<=16, 'Existing 401/385/16 baseline plus one hundred and five new tests required')
 
 def main():
     p=argparse.ArgumentParser()

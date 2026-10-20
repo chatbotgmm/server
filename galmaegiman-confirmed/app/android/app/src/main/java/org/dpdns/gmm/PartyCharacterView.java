@@ -22,9 +22,7 @@ final class PartyCharacterView extends LinearLayout {
     picture = art(h, unit);
     picture.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
     addView(picture, new LinearLayout.LayoutParams(-1, 0, 1));
-    name = stateLabel(h, unit.optString("name"));
-    name.setTypeface(h.headline);
-    name.setSingleLine(false); name.setMaxLines(2);
+    name = nameLabel(h, unit.optString("name"));
     name.setTag("party-character-name");
     addView(name, new LinearLayout.LayoutParams(-1, -2));
     picture.statusChanged = () -> setContentDescription(description(unit) + picture.statusDescription());
@@ -63,6 +61,46 @@ final class PartyCharacterView extends LinearLayout {
     label.setTextColor(JournalTheme.INK);
     label.setBackgroundColor(0xeef3e9d3);
     label.setContentDescription(text);
+    return label;
+  }
+
+  /** Keep Korean name words intact instead of leaving a final syllable on its own line. */
+  static TextView nameLabel(MainActivity h, String fullName) {
+    TextView label = new TextView(h) {
+      @Override protected void onMeasure(int widthSpec, int heightSpec) {
+        int width = View.MeasureSpec.getMode(widthSpec) == View.MeasureSpec.UNSPECIFIED
+            ? Integer.MAX_VALUE : View.MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight();
+        String display = fullName;
+        if (width > 0 && getPaint().measureText(fullName) > width) {
+          int split = -1;
+          float best = Float.MAX_VALUE;
+          for (int i = 1; i < fullName.length() - 1; i++) {
+            if (!Character.isWhitespace(fullName.charAt(i))) continue;
+            float first = getPaint().measureText(fullName.substring(0, i));
+            float second = getPaint().measureText(fullName.substring(i + 1));
+            if (first <= width && second <= width && Math.abs(first - second) < best) {
+              best = Math.abs(first - second); split = i;
+            }
+          }
+          if (split >= 0) display = fullName.substring(0, split) + "\n" + fullName.substring(split + 1);
+        }
+        if (!getText().toString().equals(display)) setText(display);
+        super.onMeasure(widthSpec, heightSpec);
+      }
+    };
+    label.setText(fullName);
+    label.setTextSize(h.uiText(13));
+    label.setTypeface(h.headline);
+    label.setTextColor(JournalTheme.INK);
+    label.setGravity(Gravity.CENTER);
+    label.setIncludeFontPadding(false);
+    label.setSingleLine(false);
+    // No ellipsis or maximum: an unusually long original name must remain readable.
+    label.setEllipsize(null);
+    label.setPadding(h.dp(4), h.dp(3), h.dp(4), h.dp(3));
+    label.setBackgroundColor(0xeef3e9d3);
+    label.setContentDescription(fullName);
+    label.setLayoutParams(new LinearLayout.LayoutParams(-1, -2));
     return label;
   }
 
@@ -185,4 +223,5 @@ final class PartyCharacterView extends LinearLayout {
     }
   }
 }
+
 
