@@ -42,5 +42,6 @@ describe('공개 홈페이지(src/site.ts)',()=>{
     expect((await app.inject({method:'GET',url:'/site/reg/cards/C1.webp'})).headers['content-type']).toBe('image/webp');   // 입사 등록증(art/gpt/registration-v1)
     await get('/site/reg/cards/Z99.webp',404);await get('/site/reg/cards/manifest.json',404);
     await get('/site/../../.env',404);await get('/game/%2e%2e/%2e%2e/package.json',404);await get('/site/a/x.exe',404);
+    await get('/game/zzz.js',404);await get('/site/a/none.webp',404);   // 정해진 형식이지만 없는 파일도 404(500 아님)
   });
 });

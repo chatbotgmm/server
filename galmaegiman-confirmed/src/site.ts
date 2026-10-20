@@ -195,7 +195,8 @@ ${opt.kakao&&k!=='link'?'<a class="btn kakao wide" href="/my/kakao" data-kakao-s
   for(const dir of ['site','game'])app.get<{Params:{'*':string}}>(`/${dir}/*`,limit,async(req,reply)=>{
     const rel=req.params['*'],ext=/^[a-z0-9/_-]+\.([a-z0-9]+)$/.exec(rel)?.[1];
     if(!ext||!types[ext]||rel.includes('..'))return reply.code(404).send({error:'not found'});
-    try{return reply.type(types[ext]).header('Cache-Control',ext==='css'||ext==='js'?'public, max-age=300':'public, max-age=86400').send(readFileSync(resolve(opt.root,'public',dir,rel)));}
-    catch{return reply.code(404).send({error:'not found'});}
+    // 파일을 먼저 읽고 형식을 정한다(없는 파일에 형식을 먼저 정하면 404 대신 500이 남)
+    let body:Buffer;try{body=readFileSync(resolve(opt.root,'public',dir,rel));}catch{return reply.code(404).send({error:'not found'});}
+    return reply.type(types[ext]).header('Cache-Control',ext==='css'||ext==='js'?'public, max-age=300':'public, max-age=86400').send(body);
   });
 }
