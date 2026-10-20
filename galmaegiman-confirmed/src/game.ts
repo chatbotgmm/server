@@ -1,3 +1,4 @@
+import { hiddenMaterialHint, mixMaterialLimit } from './craft-hints.js';
 import { randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -1394,8 +1395,8 @@ export class GameService {
           materials:[...materialCounts(r.materials)].map(([id,n])=>{const s=statusOf(stock.get(id));return {...unit(id),need:n,usable:s.usable,locked:s.locked,away:s.away};})};
       }).sort((a,b)=>Number(b.ready)-Number(a.ready)||tiers[b.tier as Tier]-tiers[a.tier as Tier]);
       const pool=this.revealed(known).map(c=>({c,u:statusOf(stock.get(c.id)).usable})).filter(x=>x.u>0)
-        .sort((a,b)=>tiers[b.c.rarity]-tiers[a.c.rarity]||a.c.position-b.c.position).map(({c,u})=>({...unit(c.id),usable:u}));
-      return {recipes,pool};
+        .sort((a,b)=>tiers[b.c.rarity]-tiers[a.c.rarity]||a.c.position-b.c.position).map(({c,u})=>({...unit(c.id),usable:u,hiddenHint:hiddenMaterialHint(this.content.recipes,known,c.id)}));
+      return {recipes,pool,maxMaterials:mixMaterialLimit(this.content.recipes)};
     });
   }
   // 이름(결과 유닛)으로 조합: times번(재료가 되는 만큼까지)
@@ -1415,7 +1416,7 @@ export class GameService {
   }
   // 재료로 직접 섞기(숨은 조합 찾기): 맞는 조합식이 없으면 재료는 그대로
   async webMix(playerId:string,ids:string[]){
-    if(!Array.isArray(ids)||ids.length<2||ids.length>6||ids.some(id=>typeof id!=='string'||!this.content.map.has(id)))throw new GameError('재료는 2~6마리를 골라 주세요.');
+    if(!Array.isArray(ids)||ids.length<2||ids.length>mixMaterialLimit(this.content.recipes)||ids.some(id=>typeof id!=='string'||!this.content.map.has(id)))throw new GameError(`재료는 2~${mixMaterialLimit(this.content.recipes)}마리를 골라 주세요.`);
     return this.webRun(playerId,async(tx,p,now)=>{
       const known=await this.known(tx,p);
       if(ids.some(id=>!isRevealed(this.content.map.get(id)!,known)))throw new GameError('재료는 가진 갈매미로만 골라 주세요.');

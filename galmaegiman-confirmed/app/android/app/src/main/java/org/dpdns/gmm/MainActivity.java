@@ -1096,7 +1096,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void craft() {
-    menus.economy.craft(false);
+    menus.economy.craft(true);
   }
 
   void mix() {
@@ -1456,7 +1456,7 @@ public class MainActivity extends AppCompatActivity {
     else if (screen.equals("team")) {
       menus.requestLeaveTeam(() -> load(menus.teamReturnTarget()));
     } else if (screen.equals("dialog")) load("story");
-    else if (screen.equals("mix")) craft();
+    else if (screen.equals("mix")) load("home");
     else if (screen.equals("drawResult")) load("draw");
     else if (screen.equals("craftResult")) load(menus.economy.acquisitionOrigin());
     else if (screen.equals("story")) load("modesStory");
