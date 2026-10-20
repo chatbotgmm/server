@@ -26,7 +26,8 @@ android {
     sourceSets.main.assets.srcDir(bundledArt)
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "org.dpdns.gmm.native.revised"
+        // Play 출시 번들만 -PgmmApplicationId=org.gmm 으로 바꿔 만든다. 기본값(시험판·기존 설치)은 그대로.
+        applicationId project.findProperty('gmmApplicationId') ?: "org.dpdns.gmm.native.revised"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 78
