@@ -1,0 +1,38 @@
+{
+  "source_sha256": "dec8e5f6f430121e93cae18d862aab16455274b8e3c34efb05c4b30c019efba3",
+  "sheet": "I2/front/attack.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      235,
+      435
+    ],
+    [
+      238,
+      436
+    ],
+    [
+      266,
+      438
+    ],
+    [
+      260,
+      432
+    ],
+    [
+      261,
+      433
+    ],
+    [
+      248,
+      430
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Visual feet-pair midpoint and lowest sole estimate, approximately +/-4px; excludes casting slabs and dripping wing tips. Renderer validation pending.",
+  "renderer_validation": "pending"
+}

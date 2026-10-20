@@ -1,0 +1,1520 @@
+{
+  "id": "I1",
+  "name": "앙~ 갈매미맨이야",
+  "tier": "IMMORTAL",
+  "status": "asset accepted with measured per-frame anchors and proposed sheet scales; renderer validation pending",
+  "generation_method": "builtin_image_gen",
+  "layout": {
+    "columns": 3,
+    "rows": 2,
+    "frame_order": "row-major",
+    "pivot_normalized": [
+      0.5,
+      0.9
+    ],
+    "camera": "fixed orthographic",
+    "foot_anchor_normalized": [
+      0.5,
+      0.9
+    ]
+  },
+  "actions": {
+    "idle": {
+      "duration_ms": [
+        160,
+        160,
+        160,
+        160,
+        160,
+        160
+      ],
+      "loop": true
+    },
+    "attack": {
+      "duration_ms": [
+        100,
+        90,
+        70,
+        100,
+        110,
+        140
+      ],
+      "loop": false
+    },
+    "hit-defend": {
+      "duration_ms": [
+        90,
+        90,
+        110,
+        130,
+        120,
+        140
+      ],
+      "loop": false
+    },
+    "entry": {
+      "duration_ms": [
+        100,
+        110,
+        110,
+        120,
+        140,
+        180
+      ],
+      "loop": false
+    }
+  },
+  "assets": [
+    {
+      "path": "front/idle.png",
+      "sha256": "0c30c8099dae935e2daaea2d68bc411104d7f63bd935e692d884a0d93fa2264f",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "zero_alpha_fraction": 0.5834833780924479,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            57,
+            90,
+            498,
+            467
+          ],
+          "feet_anchor_px_estimate": [
+            274.5,
+            467
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            277.5,
+            467
+          ]
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            58,
+            88,
+            490,
+            467
+          ],
+          "feet_anchor_px_estimate": [
+            262.0,
+            467
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            262.5,
+            467
+          ]
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            36,
+            60,
+            484,
+            467
+          ],
+          "feet_anchor_px_estimate": [
+            257.5,
+            467
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            259.5,
+            467
+          ]
+        },
+        {
+          "index": 3,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            46,
+            67,
+            499,
+            440
+          ],
+          "feet_anchor_px_estimate": [
+            273.0,
+            440
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            277.0,
+            440
+          ]
+        },
+        {
+          "index": 4,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            55,
+            64,
+            488,
+            440
+          ],
+          "feet_anchor_px_estimate": [
+            263.0,
+            440
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            265.0,
+            440
+          ]
+        },
+        {
+          "index": 5,
+          "rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            65,
+            72,
+            490,
+            441
+          ],
+          "feet_anchor_px_estimate": [
+            271.5,
+            441
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            273.5,
+            441
+          ]
+        }
+      ],
+      "loop": true,
+      "duration_ms": [
+        160,
+        160,
+        160,
+        160,
+        160,
+        160
+      ],
+      "status": "asset accepted; renderer validation pending",
+      "renderer_validation": "pending",
+      "anchor_policy": "per-frame measured anchors at fixed world origin, estimates need visual validation",
+      "neutral_body_height_px_estimate": 331,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 0.785498,
+      "scale_status": "proposed based on central-body crown-to-feet estimate; cross-action/view renderer validation pending",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame feet_anchor times sheet scale",
+      "refined_anchor_file": "front/idle.measured-anchors.json",
+      "foot_anchor_precedence": "independent measured gold-claw anchors below override silhouette estimates",
+      "placement_rule": "Align measured feet anchor to fixed actor world origin."
+    },
+    {
+      "path": "front/attack.png",
+      "sha256": "edc8b2d13defccba4d545fbdd840835c1745bd49bb0f6b782c6a204dd036b90d",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "zero_alpha_fraction": 0.6989345550537109,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            108,
+            93,
+            442,
+            412
+          ],
+          "feet_anchor_px_estimate": [
+            269.5,
+            412
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            269.0,
+            412
+          ]
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            96,
+            136,
+            415,
+            413
+          ],
+          "feet_anchor_px_estimate": [
+            253.0,
+            413
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            252.5,
+            413
+          ]
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            69,
+            153,
+            430,
+            414
+          ],
+          "feet_anchor_px_estimate": [
+            195.0,
+            414
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            211.5,
+            414
+          ]
+        },
+        {
+          "index": 3,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            92,
+            75,
+            464,
+            394
+          ],
+          "feet_anchor_px_estimate": [
+            272.0,
+            394
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            271.0,
+            394
+          ]
+        },
+        {
+          "index": 4,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            97,
+            92,
+            420,
+            395
+          ],
+          "feet_anchor_px_estimate": [
+            272.5,
+            395
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            272.5,
+            395
+          ]
+        },
+        {
+          "index": 5,
+          "rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            101,
+            77,
+            435,
+            397
+          ],
+          "feet_anchor_px_estimate": [
+            260.5,
+            397
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            260.5,
+            397
+          ]
+        }
+      ],
+      "loop": false,
+      "duration_ms": [
+        100,
+        90,
+        70,
+        100,
+        110,
+        140
+      ],
+      "status": "asset accepted; renderer validation pending",
+      "renderer_validation": "pending",
+      "anchor_policy": "per-frame measured anchors at fixed world origin, estimates need visual validation",
+      "neutral_body_height_px_estimate": 276,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 0.942029,
+      "scale_status": "proposed based on central-body crown-to-feet estimate; cross-action/view renderer validation pending",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame feet_anchor times sheet scale",
+      "refined_anchor_file": "front/attack.measured-anchors.json",
+      "foot_anchor_precedence": "independent measured gold-claw anchors below override silhouette estimates",
+      "placement_rule": "Align measured feet anchor to fixed actor world origin."
+    },
+    {
+      "path": "front/hit-defend.png",
+      "sha256": "21756dda290b043f29d0414e908b736c7720de2ee5ebd3685030551a0932629b",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "zero_alpha_fraction": 0.7044792175292969,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            119,
+            103,
+            463,
+            429
+          ],
+          "feet_anchor_px_estimate": [
+            280.5,
+            429
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            281.0,
+            429
+          ]
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            101,
+            103,
+            463,
+            429
+          ],
+          "feet_anchor_px_estimate": [
+            267.0,
+            429
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            267.5,
+            429
+          ]
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            119,
+            121,
+            403,
+            430
+          ],
+          "feet_anchor_px_estimate": [
+            275.0,
+            430
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            287.5,
+            430
+          ]
+        },
+        {
+          "index": 3,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            107,
+            78,
+            447,
+            402
+          ],
+          "feet_anchor_px_estimate": [
+            323.5,
+            402
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            283.0,
+            402
+          ]
+        },
+        {
+          "index": 4,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            95,
+            78,
+            459,
+            402
+          ],
+          "feet_anchor_px_estimate": [
+            263.5,
+            402
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            264.0,
+            402
+          ]
+        },
+        {
+          "index": 5,
+          "rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            112,
+            78,
+            464,
+            401
+          ],
+          "feet_anchor_px_estimate": [
+            279.0,
+            401
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            279.5,
+            401
+          ]
+        }
+      ],
+      "loop": false,
+      "duration_ms": [
+        90,
+        90,
+        110,
+        130,
+        120,
+        140
+      ],
+      "status": "asset accepted; renderer validation pending",
+      "renderer_validation": "pending",
+      "anchor_policy": "per-frame measured anchors at fixed world origin, estimates need visual validation",
+      "neutral_body_height_px_estimate": 308,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 0.844156,
+      "scale_status": "proposed based on central-body crown-to-feet estimate; cross-action/view renderer validation pending",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame feet_anchor times sheet scale",
+      "refined_anchor_file": "front/hit-defend.measured-anchors.json",
+      "foot_anchor_precedence": "independent measured gold-claw anchors below override silhouette estimates",
+      "placement_rule": "Align measured feet anchor to fixed actor world origin."
+    },
+    {
+      "path": "front/entry.png",
+      "sha256": "fb4a0f678b2aec1aa5951417365fe4a58c61b58b7f9f47223e5d838d342f917d",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "zero_alpha_fraction": 0.686194101969401,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            123,
+            106,
+            435,
+            424
+          ],
+          "feet_anchor_px_estimate": [
+            280.0,
+            424
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            284.5,
+            424
+          ]
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            111,
+            105,
+            433,
+            425
+          ],
+          "feet_anchor_px_estimate": [
+            263.0,
+            425
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            302.5,
+            425
+          ]
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            107,
+            101,
+            438,
+            424
+          ],
+          "feet_anchor_px_estimate": [
+            256.0,
+            424
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            262.5,
+            424
+          ]
+        },
+        {
+          "index": 3,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            107,
+            79,
+            447,
+            407
+          ],
+          "feet_anchor_px_estimate": [
+            265.5,
+            407
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            268.5,
+            407
+          ]
+        },
+        {
+          "index": 4,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            108,
+            73,
+            442,
+            407
+          ],
+          "feet_anchor_px_estimate": [
+            266.0,
+            407
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            266.0,
+            407
+          ]
+        },
+        {
+          "index": 5,
+          "rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            108,
+            72,
+            445,
+            407
+          ],
+          "feet_anchor_px_estimate": [
+            265.0,
+            407
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            266.0,
+            407
+          ]
+        }
+      ],
+      "loop": false,
+      "duration_ms": [
+        100,
+        110,
+        110,
+        120,
+        140,
+        180
+      ],
+      "status": "asset accepted; renderer validation pending",
+      "renderer_validation": "pending",
+      "anchor_policy": "per-frame measured anchors at fixed world origin, estimates need visual validation",
+      "neutral_body_height_px_estimate": 314,
+      "neutral_reference_frame": 5,
+      "proposed_sheet_scale_to_neutral260px_height": 0.828025,
+      "scale_status": "proposed based on central-body crown-to-feet estimate; cross-action/view renderer validation pending",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame feet_anchor times sheet scale",
+      "refined_anchor_file": "front/entry.measured-anchors.json",
+      "foot_anchor_precedence": "independent measured gold-claw anchors below override silhouette estimates",
+      "placement_rule": "Align measured feet anchor to fixed actor world origin."
+    },
+    {
+      "path": "back/idle.png",
+      "sha256": "5e5ad1a83b1c672ce4cc58a3d5b9d1d8d4e152267e435bd728c386e62ba7949c",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "zero_alpha_fraction": 0.7194544474283854,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            79,
+            96,
+            405,
+            422
+          ],
+          "feet_anchor_px_estimate": [
+            239.0,
+            422
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            235.5,
+            422
+          ]
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            79,
+            94,
+            407,
+            422
+          ],
+          "feet_anchor_px_estimate": [
+            239.0,
+            422
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            235.5,
+            422
+          ]
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            79,
+            94,
+            407,
+            422
+          ],
+          "feet_anchor_px_estimate": [
+            238.5,
+            422
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            235.5,
+            422
+          ]
+        },
+        {
+          "index": 3,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            79,
+            95,
+            406,
+            422
+          ],
+          "feet_anchor_px_estimate": [
+            239.5,
+            422
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            235.5,
+            422
+          ]
+        },
+        {
+          "index": 4,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            79,
+            94,
+            407,
+            422
+          ],
+          "feet_anchor_px_estimate": [
+            239.5,
+            422
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            235.5,
+            422
+          ]
+        },
+        {
+          "index": 5,
+          "rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            78,
+            94,
+            407,
+            422
+          ],
+          "feet_anchor_px_estimate": [
+            239.0,
+            422
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            235.0,
+            422
+          ]
+        }
+      ],
+      "loop": true,
+      "duration_ms": [
+        160,
+        160,
+        160,
+        160,
+        160,
+        160
+      ],
+      "status": "asset accepted; renderer validation pending",
+      "renderer_validation": "pending",
+      "anchor_policy": "per-frame measured anchors at fixed world origin, estimates need visual validation",
+      "neutral_body_height_px_estimate": 304,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 0.855263,
+      "scale_status": "proposed based on central-body crown-to-feet estimate; cross-action/view renderer validation pending",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame feet_anchor times sheet scale",
+      "refined_anchor_file": "back/idle.measured-anchors.json",
+      "foot_anchor_precedence": "independent measured gold-claw anchors below override silhouette estimates",
+      "placement_rule": "Align measured feet anchor to fixed actor world origin."
+    },
+    {
+      "path": "back/attack.png",
+      "sha256": "570608b2006cae6fa197bcb69eba4106f3ce7e4965ba3d0b4226eab7ac66dfe4",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "zero_alpha_fraction": 0.7171065012613932,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            72,
+            149,
+            395,
+            443
+          ],
+          "feet_anchor_px_estimate": [
+            256.0,
+            443
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            251.5,
+            443
+          ]
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            50,
+            146,
+            425,
+            443
+          ],
+          "feet_anchor_px_estimate": [
+            280.5,
+            443
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            212.0,
+            443
+          ]
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            13,
+            144,
+            454,
+            440
+          ],
+          "feet_anchor_px_estimate": [
+            141.0,
+            440
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            222.0,
+            440
+          ]
+        },
+        {
+          "index": 3,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            81,
+            124,
+            471,
+            423
+          ],
+          "feet_anchor_px_estimate": [
+            241.0,
+            423
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            240.5,
+            423
+          ]
+        },
+        {
+          "index": 4,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            84,
+            133,
+            407,
+            423
+          ],
+          "feet_anchor_px_estimate": [
+            267.5,
+            423
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            263.5,
+            423
+          ]
+        },
+        {
+          "index": 5,
+          "rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            84,
+            131,
+            414,
+            423
+          ],
+          "feet_anchor_px_estimate": [
+            272.0,
+            423
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            268.0,
+            423
+          ]
+        }
+      ],
+      "loop": false,
+      "duration_ms": [
+        100,
+        90,
+        70,
+        100,
+        110,
+        140
+      ],
+      "status": "asset accepted; renderer validation pending",
+      "renderer_validation": "pending",
+      "anchor_policy": "per-frame measured anchors at fixed world origin, estimates need visual validation",
+      "neutral_body_height_px_estimate": 294,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 0.884354,
+      "scale_status": "proposed based on central-body crown-to-feet estimate; cross-action/view renderer validation pending",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame feet_anchor times sheet scale",
+      "refined_anchor_file": "back/attack.measured-anchors.json",
+      "foot_anchor_precedence": "independent measured gold-claw anchors below override silhouette estimates",
+      "placement_rule": "Align measured feet anchor to fixed actor world origin."
+    },
+    {
+      "path": "back/hit-defend.png",
+      "sha256": "f47f57382868dc0bcdbe0d86869404846609e29ac06d34c0c7ddfa4ea7ae45b3",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "zero_alpha_fraction": 0.5184586842854818,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            12,
+            49,
+            495,
+            487
+          ],
+          "feet_anchor_px_estimate": [
+            320.0,
+            487
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            241.5,
+            487
+          ]
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            45,
+            50,
+            481,
+            487
+          ],
+          "feet_anchor_px_estimate": [
+            322.5,
+            487
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            241.0,
+            487
+          ]
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            102,
+            77,
+            478,
+            486
+          ],
+          "feet_anchor_px_estimate": [
+            259.5,
+            486
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            254.0,
+            486
+          ]
+        },
+        {
+          "index": 3,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            47,
+            102,
+            495,
+            472
+          ],
+          "feet_anchor_px_estimate": [
+            184.0,
+            472
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            259.0,
+            472
+          ]
+        },
+        {
+          "index": 4,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            22,
+            42,
+            487,
+            475
+          ],
+          "feet_anchor_px_estimate": [
+            244.5,
+            475
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            241.0,
+            475
+          ]
+        },
+        {
+          "index": 5,
+          "rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            11,
+            49,
+            495,
+            487
+          ],
+          "feet_anchor_px_estimate": [
+            320.0,
+            487
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            241.5,
+            487
+          ]
+        }
+      ],
+      "loop": false,
+      "duration_ms": [
+        90,
+        90,
+        110,
+        130,
+        120,
+        140
+      ],
+      "status": "asset accepted; renderer validation pending",
+      "renderer_validation": "pending",
+      "anchor_policy": "per-frame measured anchors at fixed world origin, estimates need visual validation",
+      "neutral_body_height_px_estimate": 387,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 0.671835,
+      "scale_status": "proposed based on central-body crown-to-feet estimate; cross-action/view renderer validation pending",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame feet_anchor times sheet scale",
+      "refined_anchor_file": "back/hit-defend.measured-anchors.json",
+      "foot_anchor_precedence": "independent measured gold-claw anchors below override silhouette estimates",
+      "placement_rule": "Align measured feet anchor to fixed actor world origin."
+    },
+    {
+      "path": "back/entry.png",
+      "sha256": "131fc56fa77017fe5658ce1c069dbba1830443aadf20818dac4efb5ecf17aac2",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "zero_alpha_fraction": 0.5167973836263021,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            46,
+            108,
+            481,
+            484
+          ],
+          "feet_anchor_px_estimate": [
+            331.5,
+            484
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            281.5,
+            484
+          ]
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            25,
+            52,
+            484,
+            488
+          ],
+          "feet_anchor_px_estimate": [
+            319.0,
+            488
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            238.0,
+            488
+          ]
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            20,
+            30,
+            485,
+            494
+          ],
+          "feet_anchor_px_estimate": [
+            290.0,
+            494
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            219.0,
+            494
+          ]
+        },
+        {
+          "index": 3,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            41,
+            14,
+            503,
+            474
+          ],
+          "feet_anchor_px_estimate": [
+            260.0,
+            474
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            259.0,
+            474
+          ]
+        },
+        {
+          "index": 4,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            40,
+            11,
+            492,
+            476
+          ],
+          "feet_anchor_px_estimate": [
+            261.5,
+            476
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            257.0,
+            476
+          ]
+        },
+        {
+          "index": 5,
+          "rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "alpha_bbox_gt128": [
+            27,
+            56,
+            485,
+            474
+          ],
+          "feet_anchor_px_estimate": [
+            255.5,
+            474
+          ],
+          "edge_touch": false,
+          "feet_anchor_px": [
+            255.0,
+            474
+          ]
+        }
+      ],
+      "loop": false,
+      "duration_ms": [
+        100,
+        110,
+        110,
+        120,
+        140,
+        180
+      ],
+      "status": "asset accepted; renderer validation pending",
+      "renderer_validation": "pending",
+      "anchor_policy": "per-frame measured anchors at fixed world origin, estimates need visual validation",
+      "neutral_body_height_px_estimate": 366,
+      "neutral_reference_frame": 5,
+      "proposed_sheet_scale_to_neutral260px_height": 0.710383,
+      "scale_status": "proposed based on central-body crown-to-feet estimate; cross-action/view renderer validation pending",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame feet_anchor times sheet scale",
+      "refined_anchor_file": "back/entry.measured-anchors.json",
+      "foot_anchor_precedence": "independent measured gold-claw anchors below override silhouette estimates",
+      "placement_rule": "Align measured feet anchor to fixed actor world origin."
+    }
+  ],
+  "references": [
+    {
+      "path": "../reference/I1_s0_front.webp",
+      "sha256": "78b291d0f4c20c3209d4d04a4f2962c96c99b59e05fc2b9d6786c02ed56a5fa7"
+    },
+    {
+      "path": "../reference/I1_s0_back.webp",
+      "sha256": "06f133b944a9b2e69d7ca4c164843d9714d67402e233c133ad48adfd5e0b0eda"
+    }
+  ],
+  "image_processing": "Exact built-in image_gen output bytes copied to destination. No resize, crop, alpha manipulation or pixel editing performed."
+}

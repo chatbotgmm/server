@@ -1,0 +1,20 @@
+{
+  "id": "T1",
+  "status": "Eight sheets individually accepted; full-set scale normalization metadata pending",
+  "accepted": [
+    "T1/front/idle.png",
+    "T1/front/attack.png",
+    "T1/front/hit-defend.png",
+    "T1/front/entry.png",
+    "T1/back/idle.png",
+    "T1/back/attack.png",
+    "T1/back/hit-defend.png",
+    "T1/back/entry.png"
+  ],
+  "edge_issues": [],
+  "caveats": [
+    "Per-frame measured anchors required.",
+    "Cross-action/view scaling and playback remain renderer-validation tasks.",
+    "Repaired action sheets smaller than idle/entry; explicit sheet scale factors requested. Front entry frames1–2 zero-based airborne, preserve authored hop."
+  ]
+}

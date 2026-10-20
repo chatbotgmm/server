@@ -1,0 +1,38 @@
+{
+  "source_sha256": "d0f6e9d671c4c1fe60caa78a7b16a80611d13cf00d2093b7d986383e3a55168a",
+  "sheet": "I6/back/idle.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      297,
+      454
+    ],
+    [
+      294,
+      454
+    ],
+    [
+      307,
+      453
+    ],
+    [
+      299,
+      447
+    ],
+    [
+      295,
+      446
+    ],
+    [
+      302,
+      447
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Visual gold-claw/sole anchor estimate +/-4px, excluding orbital stars and feathers. Renderer validation pending.",
+  "renderer_validation": "pending"
+}

@@ -1,0 +1,38 @@
+{
+  "source_sha256": "470cc840fb5728445a9eb6f3f4322ea2b592ca3d703ee842183c8089d8017429",
+  "sheet": "T2/front/idle.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      246,
+      418
+    ],
+    [
+      252,
+      417
+    ],
+    [
+      251,
+      418
+    ],
+    [
+      246,
+      418
+    ],
+    [
+      252,
+      420
+    ],
+    [
+      250,
+      419
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Visual claw/sole estimate +/-4px; excludes molten drip and hammer impact VFX. Frame3 front attack foot pair partly obscured by hammer, inferred from visible lateral toes.",
+  "renderer_validation": "pending"
+}

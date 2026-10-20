@@ -1,0 +1,38 @@
+{
+  "source_sha256": "7f4ff111aa321a715f7ae57e44ef409a7ec9ee746b843408ba1630d480febb15",
+  "sheet": "D3/back/attack.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      264.0,
+      432
+    ],
+    [
+      255.5,
+      432
+    ],
+    [
+      253.5,
+      432
+    ],
+    [
+      257.5,
+      404
+    ],
+    [
+      258.5,
+      407
+    ],
+    [
+      259.0,
+      407
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Alpha>128 foot-region pixels in lower40px central band, visually checked against feet; requires renderer validation.",
+  "renderer_validation": "pending"
+}

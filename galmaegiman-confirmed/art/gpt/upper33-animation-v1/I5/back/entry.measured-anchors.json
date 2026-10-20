@@ -1,0 +1,38 @@
+{
+  "source_sha256": "d565901183f43efd22970e19c60ba5fcc0169453116f7830e75ed0be62c32bf1",
+  "sheet": "I5/back/entry.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      268,
+      485
+    ],
+    [
+      268,
+      483
+    ],
+    [
+      263,
+      478
+    ],
+    [
+      270,
+      440
+    ],
+    [
+      261,
+      442
+    ],
+    [
+      257,
+      443
+    ]
+  ],
+  "placement_rule": "Align measured grounded feet anchor to fixed world origin, preserve authored airborne or recoil offsets.",
+  "measurement": "Visually checked claw contact centers excluding pink petals and nearby vines; approximate \u00b16px. Front hit frame3 airborne contact inferred from paired claws, preserve recoil offset.",
+  "renderer_validation": "pending"
+}

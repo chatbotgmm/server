@@ -1,0 +1,38 @@
+{
+  "source_sha256": "91f3a7f7e0f1682d6f65ffdc5d0f62bac29e0c8620cd03f8ef702a57cdc86d11",
+  "sheet": "I8/front/attack.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      278,
+      426
+    ],
+    [
+      252,
+      428
+    ],
+    [
+      241,
+      427
+    ],
+    [
+      274,
+      406
+    ],
+    [
+      253,
+      413
+    ],
+    [
+      240,
+      414
+    ]
+  ],
+  "placement_rule": "Align measured grounded feet anchor to fixed world origin, preserve authored airborne or recoil offsets.",
+  "measurement": "Visually measured claw contact centers, excludes intrinsic magic oval. Approximate \u00b14px; renderer validation pending.",
+  "renderer_validation": "pending"
+}

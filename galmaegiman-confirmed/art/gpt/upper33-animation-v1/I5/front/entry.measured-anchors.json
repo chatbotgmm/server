@@ -1,0 +1,38 @@
+{
+  "source_sha256": "c257bc00454ca2592c966505ba39290ee660f3f8577acbfc71b2f1e83cabb555",
+  "sheet": "I5/front/entry.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      259.5,
+      463
+    ],
+    [
+      256.0,
+      463
+    ],
+    [
+      239.0,
+      464
+    ],
+    [
+      261.0,
+      430
+    ],
+    [
+      252.0,
+      429
+    ],
+    [
+      243.5,
+      431
+    ]
+  ],
+  "placement_rule": "Align measured ground-contact feet anchor to fixed actor world origin; preserve authored offsets for lifted feet or airborne poses.",
+  "measurement": "Visually checked claw contact centers excluding pink petals and nearby vines; approximate \u00b16px. Front hit frame3 airborne contact inferred from paired claws, preserve recoil offset.",
+  "renderer_validation": "pending"
+}

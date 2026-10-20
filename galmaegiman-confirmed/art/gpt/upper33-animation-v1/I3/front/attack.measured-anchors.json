@@ -1,0 +1,41 @@
+{
+  "source_sha256": "5ebe3ce850e740e19caeddc77258699e4778a82c75a2afd4ac4556ef351bf3f0",
+  "sheet": "I3/front/attack.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      265.5,
+      450
+    ],
+    [
+      264.5,
+      450
+    ],
+    [
+      270.5,
+      450
+    ],
+    [
+      276.0,
+      420
+    ],
+    [
+      249.0,
+      427
+    ],
+    [
+      262.5,
+      439
+    ]
+  ],
+  "placement_rule": "Fixed actor origin with authored lunge/hop offset on frame3; other frames use feet anchors.",
+  "measurement": "Gold claw region below body, central x170..360; excludes dark-purple floating shards. Visually checked, renderer pending.",
+  "renderer_validation": "pending",
+  "airborne_frames_zero_based": [
+    3
+  ]
+}

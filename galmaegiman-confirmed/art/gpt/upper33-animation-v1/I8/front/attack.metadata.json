@@ -1,0 +1,206 @@
+{
+  "character": "I8",
+  "view": "front",
+  "action": "attack",
+  "sheet_size": [
+    1536,
+    1024
+  ],
+  "cell_size": [
+    512,
+    512
+  ],
+  "grid": [
+    3,
+    2
+  ],
+  "frame_order": "row-major left-to-right, top-to-bottom",
+  "loop": false,
+  "frames": [
+    {
+      "index": 0,
+      "rect": [
+        0,
+        0,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        128,
+        126,
+        448,
+        447
+      ],
+      "foot_anchor_px": [
+        278,
+        426
+      ],
+      "foot_anchor_method": "Visually measured claw contact centers, excludes intrinsic magic oval. Approximate ±4px; renderer validation pending.",
+      "duration_ms": 100,
+      "auto_estimated_anchor_px": [
+        283.5,
+        445
+      ]
+    },
+    {
+      "index": 1,
+      "rect": [
+        512,
+        0,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        105,
+        165,
+        411,
+        449
+      ],
+      "foot_anchor_px": [
+        252,
+        428
+      ],
+      "foot_anchor_method": "Visually measured claw contact centers, excludes intrinsic magic oval. Approximate ±4px; renderer validation pending.",
+      "duration_ms": 100,
+      "auto_estimated_anchor_px": [
+        255.5,
+        446
+      ]
+    },
+    {
+      "index": 2,
+      "rect": [
+        1024,
+        0,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        51,
+        146,
+        423,
+        449
+      ],
+      "foot_anchor_px": [
+        241,
+        427
+      ],
+      "foot_anchor_method": "Visually measured claw contact centers, excludes intrinsic magic oval. Approximate ±4px; renderer validation pending.",
+      "duration_ms": 80,
+      "auto_estimated_anchor_px": [
+        242.0,
+        447
+      ]
+    },
+    {
+      "index": 3,
+      "rect": [
+        0,
+        512,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        83,
+        102,
+        463,
+        428
+      ],
+      "foot_anchor_px": [
+        274,
+        406
+      ],
+      "foot_anchor_method": "Visually measured claw contact centers, excludes intrinsic magic oval. Approximate ±4px; renderer validation pending.",
+      "duration_ms": 100,
+      "auto_estimated_anchor_px": [
+        275.5,
+        426
+      ]
+    },
+    {
+      "index": 4,
+      "rect": [
+        512,
+        512,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        110,
+        122,
+        427,
+        434
+      ],
+      "foot_anchor_px": [
+        253,
+        413
+      ],
+      "foot_anchor_method": "Visually measured claw contact centers, excludes intrinsic magic oval. Approximate ±4px; renderer validation pending.",
+      "duration_ms": 120,
+      "auto_estimated_anchor_px": [
+        258.0,
+        432
+      ]
+    },
+    {
+      "index": 5,
+      "rect": [
+        1024,
+        512,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        78,
+        105,
+        415,
+        437
+      ],
+      "foot_anchor_px": [
+        240,
+        414
+      ],
+      "foot_anchor_method": "Visually measured claw contact centers, excludes intrinsic magic oval. Approximate ±4px; renderer validation pending.",
+      "duration_ms": 180,
+      "auto_estimated_anchor_px": [
+        242.0,
+        435
+      ]
+    }
+  ],
+  "render_world_origin": "same foot position for every frame; draw at worldOrigin - foot_anchor_px*scale",
+  "proposed_sheet_scale_to_neutral260px_height": 0.809969,
+  "scale_status": "Use body_normalization instead of silhouette-height proposal; renderer validation pending",
+  "sha256": "91f3a7f7e0f1682d6f65ffdc5d0f62bac29e0c8620cd03f8ef702a57cdc86d11",
+  "alpha_range": [
+    0,
+    254
+  ],
+  "alpha_zero_fraction": 0.7270781199137369,
+  "generator": "built-in image_gen",
+  "prompt_file": "attack.prompt.txt",
+  "qa": {
+    "static_identity": "visually inspected; canonical source bird identity preserved",
+    "true_alpha": true,
+    "equal_cells": true,
+    "visible_gutter_pass": true,
+    "cast_shadow": "none visibly drawn; hidden RGB includes brown preview background",
+    "issues": [
+      "Per-sheet scale and per-frame anchors required; renderer validation pending",
+      "Very low alpha fringe may extend beyond visible sprite; alpha threshold for QA is 8/255"
+    ],
+    "runtime_ready": false,
+    "static_asset_status": "independently accepted"
+  },
+  "measured_anchor_file": "attack.measured-anchors.json",
+  "body_normalization": {
+    "neutral_frame": 0,
+    "source_crest_to_sole_height_px": 300,
+    "target_height_px": 260,
+    "uniform_sheet_render_scale": 0.8666666666666667,
+    "measurement": "independent visual estimate +/-5px",
+    "exclude": "non-body ornaments, orbit decorations, magic floor oval and T7 drill",
+    "status": "proposed; renderer validation pending",
+    "apply": "Use same uniform scale for all six frames; align each measured foot anchor to fixed world origin. Do not individually scale each frame."
+  }
+}

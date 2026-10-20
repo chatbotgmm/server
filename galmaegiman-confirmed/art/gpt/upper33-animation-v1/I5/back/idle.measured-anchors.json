@@ -1,0 +1,38 @@
+{
+  "source_sha256": "a1c32afc42d53b437c83ab7c85155fe24373685a8039102d1267b3741dca268c",
+  "sheet": "I5/back/idle.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      266.5,
+      447
+    ],
+    [
+      272.5,
+      447
+    ],
+    [
+      264.5,
+      447
+    ],
+    [
+      271.0,
+      439
+    ],
+    [
+      278.0,
+      439
+    ],
+    [
+      271.5,
+      444
+    ]
+  ],
+  "placement_rule": "Align measured ground-contact feet anchor to fixed actor world origin; preserve authored offsets for lifted feet or airborne poses.",
+  "measurement": "Visually checked claw contact centers excluding pink petals and nearby vines; approximate \u00b16px. Front hit frame3 airborne contact inferred from paired claws, preserve recoil offset.",
+  "renderer_validation": "pending"
+}

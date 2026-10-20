@@ -1,0 +1,1269 @@
+{
+  "source_repository": "chatbotgmm/server",
+  "source_ref": "main-oz3tvo",
+  "character_count": 33,
+  "reference_count": 66,
+  "scope": "base stage s0; front/back animation; no promotion designs",
+  "characters": [
+    {
+      "id": "D1",
+      "name": "태초의 갈매미맨",
+      "stage": 0,
+      "tier": "LIMITED",
+      "attribute": "STONE",
+      "role": "DEFENSE",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/D1_s0_front.webp",
+          "sha256": "ca6888a85e76716cd40b8d5c9145604c0ecc4ab30f58dc3efeee5fbd16fb6a73",
+          "git_blob_sha": "efaf745dde58376ae627ea45107f9221a46a8e39",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/D1_s0_front.webp",
+          "size": [
+            1034,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 167030,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/D1_s0_back.webp",
+          "sha256": "303842b82e51a27d326782d572dff183b43244531e59d8619e179512f226cff8",
+          "git_blob_sha": "72cdcbbf75abf37ec69d2819a05e2b1a373c8781",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/D1_s0_back.webp",
+          "size": [
+            1016,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 214012,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": [
+        "/workspace/shared/primordial-animation-v1/entry/D1-entry-6f-review.png",
+        "/workspace/shared/primordial-animation-v1/idle/D1-idle-6f-review.png",
+        "/workspace/shared/primordial-animation-v1/attack/D1-attack-6f-review.png"
+      ]
+    },
+    {
+      "id": "D2",
+      "name": "원금 갈매미맨",
+      "stage": 0,
+      "tier": "LIMITED",
+      "attribute": "GOLD",
+      "role": "ATTACK",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/D2_s0_front.webp",
+          "sha256": "2ba05827d82dcce940d2a72059f1d4785e823f97e8270af624bceeafd92b15e2",
+          "git_blob_sha": "7025e6c4d431d655fbb0951f1b2539854269ee7b",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/D2_s0_front.webp",
+          "size": [
+            902,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 169456,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/D2_s0_back.webp",
+          "sha256": "6a78e316e6ff07f9c98d84777616b6218f6963562f02ea6b060bcd93b82baebc",
+          "git_blob_sha": "65c698361307819aa06e77857b70e6805d065c35",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/D2_s0_back.webp",
+          "size": [
+            948,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 185438,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "D3",
+      "name": "첫밤의 갈매미맨",
+      "stage": 0,
+      "tier": "LIMITED",
+      "attribute": "SHADOW",
+      "role": "UTILITY",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/D3_s0_front.webp",
+          "sha256": "b5241d18eabf5fe4144e7d3224dc25c966b1ed8deccc3d3803a3d1bbe2b14a61",
+          "git_blob_sha": "05ffb82120b0872c53985a8c8ca608a2b2670aaf",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/D3_s0_front.webp",
+          "size": [
+            651,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 108680,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/D3_s0_back.webp",
+          "sha256": "1c61e0bb7781359a4b0f02ad1cd1436288c78f9c85a17bd2bc907d34332d7fda",
+          "git_blob_sha": "ab79c6067d429f51405d64c32c396e6179fdc926",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/D3_s0_back.webp",
+          "size": [
+            598,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 117856,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "D4",
+      "name": "원해 갈매미맨",
+      "stage": 0,
+      "tier": "LIMITED",
+      "attribute": "SEA",
+      "role": "ATTACK",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/D4_s0_front.webp",
+          "sha256": "9846f946926a16a8e388191a369d750c1f4300228c5f44e719c999ce31147c27",
+          "git_blob_sha": "401cb1b007a789aa1147c92c62bf7d382f883471",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/D4_s0_front.webp",
+          "size": [
+            684,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 183798,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/D4_s0_back.webp",
+          "sha256": "ff54c2d13c1a059197a944e0f610a3aa3f2bfedb88ca08375f16a2cdc4ae9461",
+          "git_blob_sha": "994df02029a6582dffbbbd477e907d1cef7a84d2",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/D4_s0_back.webp",
+          "size": [
+            705,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 197572,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "D5",
+      "name": "시원화 갈매미맨",
+      "stage": 0,
+      "tier": "LIMITED",
+      "attribute": "ICE",
+      "role": "UTILITY",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/D5_s0_front.webp",
+          "sha256": "36b6c7f0308ae723e2307e4e56ac36d86e61c9c7e2bfd87aaa207fcb7f8e6619",
+          "git_blob_sha": "b63b5e86ef5bf851dccbcff61f37cdf985be2ee8",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/D5_s0_front.webp",
+          "size": [
+            753,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 130190,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/D5_s0_back.webp",
+          "sha256": "955ffdf1ccf6065ff634936388c118d74e0ee41cc1ee85d5992c43000a20b0c7",
+          "git_blob_sha": "56b3fc6e04aae4b659b1ff57a1ef4c9894288902",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/D5_s0_back.webp",
+          "size": [
+            783,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 143928,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "D6",
+      "name": "첫별의 갈매미맨",
+      "stage": 0,
+      "tier": "LIMITED",
+      "attribute": "STAR",
+      "role": "ATTACK",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/D6_s0_front.webp",
+          "sha256": "79c11f737b95cc68bce9e3e45f5916a5c0c307f1df0c4c7f10ee7258fe2c169e",
+          "git_blob_sha": "b8c568372c839a398d88b5f32bf5be7f3af71904",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/D6_s0_front.webp",
+          "size": [
+            573,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 110556,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/D6_s0_back.webp",
+          "sha256": "6c12a6b3351765438dea2b6859ef5ff9a925c901278b374d0f9a20b10c434f58",
+          "git_blob_sha": "6949c6fecdb2aa38ce2830dd23fffb3981a741a2",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/D6_s0_back.webp",
+          "size": [
+            525,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 109638,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "D7",
+      "name": "갈크탑",
+      "stage": 0,
+      "tier": "LIMITED",
+      "attribute": "GOLD",
+      "role": "DEFENSE",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/D7_s0_front.webp",
+          "sha256": "5f11bb207291b5f3ea0571ab1dcecbb85f1f3717a04fdc4a6adc0c9d39bcfead",
+          "git_blob_sha": "9f154e1298a94baaad1c80c4af0f8a0ec070d43d",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/D7_s0_front.webp",
+          "size": [
+            873,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 130198,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/D7_s0_back.webp",
+          "sha256": "c10bbb11dc6fe964c1d3cb81b701208848b999ff0fc885fb345b05802e6088df",
+          "git_blob_sha": "d9f7e7860f1df5205dcd1dc4a89e3b171ecc8989",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/D7_s0_back.webp",
+          "size": [
+            858,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 141802,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "D8",
+      "name": "갈리번",
+      "stage": 0,
+      "tier": "LIMITED",
+      "attribute": "THREAD",
+      "role": "UTILITY",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/D8_s0_front.webp",
+          "sha256": "7382e500550c13db1dc1f4a91833acaa12efd1881499e222da66dddb8cf4bfaa",
+          "git_blob_sha": "a23b71d659ca9dfa24eceb2e7e77471c9c4ed02d",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/D8_s0_front.webp",
+          "size": [
+            834,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 202952,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/D8_s0_back.webp",
+          "sha256": "0079988fa2c7bb7814c81d0ac716f34ae2817b84a682733bcee538279ac1797a",
+          "git_blob_sha": "bfa93ad0dcc23a7c544471b46158dd5fc90051be",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/D8_s0_back.webp",
+          "size": [
+            778,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 190144,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "T1",
+      "name": "만상의 수호자",
+      "stage": 0,
+      "tier": "TRANSCEND",
+      "attribute": "STONE",
+      "role": "DEFENSE",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/T1_s0_front.webp",
+          "sha256": "f83fa83c7918e16a0c2ef0fb0449a5401cc7a58679e9476c8294a0bb9d659d6b",
+          "git_blob_sha": "79884dd67849bbc1d96f063bc4e98199ac1aed76",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T1_s0_front.webp",
+          "size": [
+            849,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 229792,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/T1_s0_back.webp",
+          "sha256": "60fa74536a8301cab0d2f150c324f542e084154910c6740a0de4b4caebf20536",
+          "git_blob_sha": "82d6dc71f4d1bbbce15ac67da8a5f9ff497fdd93",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T1_s0_back.webp",
+          "size": [
+            852,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 239348,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "T2",
+      "name": "금율 갈매미맨",
+      "stage": 0,
+      "tier": "TRANSCEND",
+      "attribute": "FIRE",
+      "role": "ATTACK",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/T2_s0_front.webp",
+          "sha256": "b283b2d00186f18219d9ba255dca532917b6e6a6ab343fdd6089ae8de82c5512",
+          "git_blob_sha": "15341aa8b45663cc5848126a4e929246d2d21f7e",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T2_s0_front.webp",
+          "size": [
+            854,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 172616,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/T2_s0_back.webp",
+          "sha256": "f5220398d8444251b02f356b9981de9e4dd046ce37112c3f5e88276a633158a4",
+          "git_blob_sha": "5828ce16bad7e7f8468cada8c783acdf3d7e4f11",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T2_s0_back.webp",
+          "size": [
+            874,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 175626,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "T3",
+      "name": "영야 갈매미맨",
+      "stage": 0,
+      "tier": "TRANSCEND",
+      "attribute": "SHADOW",
+      "role": "ATTACK",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/T3_s0_front.webp",
+          "sha256": "002574a7fded6528456e4d231ef47f5bfeb1a4a526453511542cf04aceae41c2",
+          "git_blob_sha": "ce05716b190d7cda02dbae35f7a24ea9300c220f",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T3_s0_front.webp",
+          "size": [
+            852,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 173376,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/T3_s0_back.webp",
+          "sha256": "d7fb21d6fe25de53acf7a0a6c1b05cf5dc1eff9e6ab9e4d57be7c21e2a0491a5",
+          "git_blob_sha": "a2e87c29c57aa219e5f53e49cc01c1eee704cfb2",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T3_s0_back.webp",
+          "size": [
+            843,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 179176,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "T4",
+      "name": "대양 갈매미맨",
+      "stage": 0,
+      "tier": "TRANSCEND",
+      "attribute": "GRAVITY",
+      "role": "ATTACK",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/T4_s0_front.webp",
+          "sha256": "4db390fce98a29f6d65b7d31876dfce5b983ffb6c2674098a57ecd6c15d0cbdd",
+          "git_blob_sha": "5de9f11d8d7ba89d5c4a1520351d516615c9de93",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T4_s0_front.webp",
+          "size": [
+            861,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 248528,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/T4_s0_back.webp",
+          "sha256": "27c678fec2685e139207bf5812271669b076f487116428f25cae862bbdcba646",
+          "git_blob_sha": "409d50359f3c4bbd56fb604f5f2dd901e7d3a77b",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T4_s0_back.webp",
+          "size": [
+            850,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 229970,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "T5",
+      "name": "만개 갈매미맨",
+      "stage": 0,
+      "tier": "TRANSCEND",
+      "attribute": "BLOSSOM",
+      "role": "UTILITY",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/T5_s0_front.webp",
+          "sha256": "6c7b302d89ce2ea4ad21f8ef35400e9a4163748fbf9a1b9f36c40b113a9321be",
+          "git_blob_sha": "530d890a799ba36e1b5ea0f39a7a65f9dba25136",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T5_s0_front.webp",
+          "size": [
+            747,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 139994,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/T5_s0_back.webp",
+          "sha256": "d5da4c2c21aeee1d57566037b47774ec23db006c57b30e518dbd83f9e1c31c6b",
+          "git_blob_sha": "2246ba1f356282d652d53a627e42e2d691cab0ad",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T5_s0_back.webp",
+          "size": [
+            801,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 156242,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "T6",
+      "name": "천체 갈매미맨",
+      "stage": 0,
+      "tier": "TRANSCEND",
+      "attribute": "GRAVITY",
+      "role": "UTILITY",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/T6_s0_front.webp",
+          "sha256": "03f4a898614b905c29b74060accb3059407290b6c8b40a90498ea5fb62620126",
+          "git_blob_sha": "fc7fcc0e0270d89c6d1367c0b64a8325582be9ee",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T6_s0_front.webp",
+          "size": [
+            784,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 215870,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/T6_s0_back.webp",
+          "sha256": "f856a742a5a1aeb8e5c62da8c065cdcbe0834c9777ae01692dbf4da34ef065ac",
+          "git_blob_sha": "a1003ddb681f2961efb59857c7da77d2cbfdef80",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T6_s0_back.webp",
+          "size": [
+            782,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 233236,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "T7",
+      "name": "갈깁스",
+      "stage": 0,
+      "tier": "TRANSCEND",
+      "attribute": "ICE",
+      "role": "ATTACK",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/T7_s0_front.webp",
+          "sha256": "dd09a3722e4f9d969292f7cb0099e44d7bd9f3a3c1408559756a2120b24c327d",
+          "git_blob_sha": "e34539070d9c6311211596e2e7a60460e030c215",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T7_s0_front.webp",
+          "size": [
+            831,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 142090,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/T7_s0_back.webp",
+          "sha256": "97d93977b503c356aee603168ec934c3e7be9e72a16756bb7698ecf900b4b3f4",
+          "git_blob_sha": "154430b974173c19c0163fe0179061b4777f9d56",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T7_s0_back.webp",
+          "size": [
+            718,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 144900,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "T8",
+      "name": "갈쫄쫄이",
+      "stage": 0,
+      "tier": "TRANSCEND",
+      "attribute": "THREAD",
+      "role": "DEFENSE",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/T8_s0_front.webp",
+          "sha256": "25e9eb8e7adb001ab8f06d7ac0dc00f656433bdc323e21f9632a4b91424be8d6",
+          "git_blob_sha": "0781048a2bf9f5348246653d5bf2f3b6805cc907",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T8_s0_front.webp",
+          "size": [
+            802,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 144226,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/T8_s0_back.webp",
+          "sha256": "33cdc406fa231411880b047f6232ac40d591970554ec5b7c6df65ce06afde020",
+          "git_blob_sha": "e84eab773ea019647628410a1f3d1d84229fcc30",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T8_s0_back.webp",
+          "size": [
+            771,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 155446,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "E1",
+      "name": "불퇴의 수호자",
+      "stage": 0,
+      "tier": "ETERNAL",
+      "attribute": "STONE",
+      "role": "ATTACK",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/E1_s0_front.webp",
+          "sha256": "96add9e0a60aad47ad4d3361b29eb39612069e7bd794a3ace4572f975ee6c1e6",
+          "git_blob_sha": "3e052a667ebb8d17435aa69e602864eeaee24caf",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/E1_s0_front.webp",
+          "size": [
+            951,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 155676,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/E1_s0_back.webp",
+          "sha256": "533159d2ad4dda8134f214f6915b132ba99218d60979970fe0caddc0ee4c8770",
+          "git_blob_sha": "bc40985517530439c1623a21b119d147c29d0f4b",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/E1_s0_back.webp",
+          "size": [
+            854,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 153702,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "E2",
+      "name": "황금향 갈매미맨",
+      "stage": 0,
+      "tier": "ETERNAL",
+      "attribute": "GOLD",
+      "role": "UTILITY",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/E2_s0_front.webp",
+          "sha256": "fe6f9a47742ce8cd4c9f510cbf50b67b8a66ee8d027b0c1e72b2fe06a18179e3",
+          "git_blob_sha": "f9afb3325e15c471039fb082fa8be1c6407c4fdf",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/E2_s0_front.webp",
+          "size": [
+            610,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 120964,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/E2_s0_back.webp",
+          "sha256": "1725695af44efa54692fba42525da8b75d872bcff56b7dace20dd76a22993ae7",
+          "git_blob_sha": "c2b145dc14b4fd18dc1ffe3d2adede0664e69d40",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/E2_s0_back.webp",
+          "size": [
+            660,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 150380,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "E3",
+      "name": "끝없는 밤",
+      "stage": 0,
+      "tier": "ETERNAL",
+      "attribute": "SHADOW",
+      "role": "UTILITY",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/E3_s0_front.webp",
+          "sha256": "2af7ded42efd2f078b855dec2538bbeb390f12012819a15f0a085d0519c0a022",
+          "git_blob_sha": "6d34f5075fa12beb6662718d4982ce644fb8df91",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/E3_s0_front.webp",
+          "size": [
+            888,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 151808,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/E3_s0_back.webp",
+          "sha256": "848ccf34b6734baf6a19594dc9903b48cfc9237f17229064cbaaa6b8c93b9105",
+          "git_blob_sha": "2a2659812ba5e60d957ac18a84688e47a51282bf",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/E3_s0_back.webp",
+          "size": [
+            939,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 167400,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "E4",
+      "name": "돌아오는 바다",
+      "stage": 0,
+      "tier": "ETERNAL",
+      "attribute": "SEA",
+      "role": "UTILITY",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/E4_s0_front.webp",
+          "sha256": "f0987dd9245a355ad0ea75f1fa517fa4544fe4a796bf2a94008fb8a0406fb49e",
+          "git_blob_sha": "08ffa5c2bb8362a800019000090af1d941afc123",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/E4_s0_front.webp",
+          "size": [
+            804,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 233256,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/E4_s0_back.webp",
+          "sha256": "e4470a7d7202d51c34228a79c723fbee7085836010f440c38b7cbff09f51cfe2",
+          "git_blob_sha": "037945a2464223940981360535bd3e95bd578c6d",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/E4_s0_back.webp",
+          "size": [
+            820,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 222970,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "E5",
+      "name": "지지 않는 벚꽃",
+      "stage": 0,
+      "tier": "ETERNAL",
+      "attribute": "BLOSSOM",
+      "role": "DEFENSE",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/E5_s0_front.webp",
+          "sha256": "3464fe4dbb345ac7258794f32824029b48784f689c1507a69039d9ef70ed22d8",
+          "git_blob_sha": "1255d01e1d4e7949e6f7f8757080711b33a00fae",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/E5_s0_front.webp",
+          "size": [
+            670,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 173328,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/E5_s0_back.webp",
+          "sha256": "9bad178e85cf3392c7cf647bf4c61a8b479351c082ce40759d1e510881b05cdd",
+          "git_blob_sha": "7310c0eb54175802b8359c34c9907c0ed38a7211",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/E5_s0_back.webp",
+          "size": [
+            663,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 205332,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "E6",
+      "name": "별의 기록자",
+      "stage": 0,
+      "tier": "ETERNAL",
+      "attribute": "STAR",
+      "role": "UTILITY",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/E6_s0_front.webp",
+          "sha256": "e0631753ae69dd4dd63147bcd920ab758665b46cee58e15dcf5b9fb06655f8a2",
+          "git_blob_sha": "7ca01e666663392f9851b7f59a594d3684e1e152",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/E6_s0_front.webp",
+          "size": [
+            945,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 189572,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/E6_s0_back.webp",
+          "sha256": "ba1fac21d80df9320ba4186117b9782658ed430364fb831a5ca3b3821f77ae82",
+          "git_blob_sha": "139a521d7c92b6e2b1c88840b782b7603987fa97",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/E6_s0_back.webp",
+          "size": [
+            870,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 201770,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "E7",
+      "name": "갈발",
+      "stage": 0,
+      "tier": "ETERNAL",
+      "attribute": "THREAD",
+      "role": "ATTACK",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/E7_s0_front.webp",
+          "sha256": "3f9e44671d3a2c97f949212e5e56fcbbdd1ac03af63eeb3deb5b1329e2a1adc5",
+          "git_blob_sha": "6ebc398df235934b8aa98af55f4bef1a7ad217df",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/E7_s0_front.webp",
+          "size": [
+            618,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 156958,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/E7_s0_back.webp",
+          "sha256": "df30cd8fb0563f547904a64917d42fec2575d6565bd9e351f0f22c542b97a645",
+          "git_blob_sha": "4a20ba7d7cb138fdc9bc563f80a55e23b65ca2e7",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/E7_s0_back.webp",
+          "size": [
+            598,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 170642,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "E8",
+      "name": "갈내복",
+      "stage": 0,
+      "tier": "ETERNAL",
+      "attribute": "FIRE",
+      "role": "UTILITY",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/E8_s0_front.webp",
+          "sha256": "97dabc93e3c042a31b06b26ade084a5f17e66266de5c8d14954a33c5a04d5243",
+          "git_blob_sha": "dc188fb18db50aed61c83393508a5a9b8eb3477c",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/E8_s0_front.webp",
+          "size": [
+            837,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 179714,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/E8_s0_back.webp",
+          "sha256": "2488eae68d487cd950bcc6ec1d2d547776623e841b1342aea185223abaa27ed4",
+          "git_blob_sha": "4fab08fd44e1f18595879e939f5590579bf92751",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/E8_s0_back.webp",
+          "size": [
+            866,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 184638,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "I1",
+      "name": "앙~ 갈매미맨이야",
+      "stage": 0,
+      "tier": "IMMORTAL",
+      "attribute": "STONE",
+      "role": "UTILITY",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/I1_s0_front.webp",
+          "sha256": "78b291d0f4c20c3209d4d04a4f2962c96c99b59e05fc2b9d6786c02ed56a5fa7",
+          "git_blob_sha": "380686677faa5f0913eba9b57d134665d0037c2b",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I1_s0_front.webp",
+          "size": [
+            900,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 175332,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/I1_s0_back.webp",
+          "sha256": "06f133b944a9b2e69d7ca4c164843d9714d67402e233c133ad48adfd5e0b0eda",
+          "git_blob_sha": "2089bed67443988ef3dcd31d0ad5af1eaf9fb17f",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I1_s0_back.webp",
+          "size": [
+            884,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 187238,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "I2",
+      "name": "녹슬지 않는 황금",
+      "stage": 0,
+      "tier": "IMMORTAL",
+      "attribute": "FIRE",
+      "role": "DEFENSE",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/I2_s0_front.webp",
+          "sha256": "8c48dbc38971888140b36b15f88adbec2ed0c86754650fb3b3914b3e0f6f5fc4",
+          "git_blob_sha": "d0beaf1234a7386cfdf45218a4917731f2738d7b",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I2_s0_front.webp",
+          "size": [
+            846,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 191372,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/I2_s0_back.webp",
+          "sha256": "1f7973e95b4cbb1df34b9ff81b9bc8e579696208550e6e8df66e481e54f64a8f",
+          "git_blob_sha": "9f9dddd2c2fe16648f36c27eb0d3f1689b082e3c",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I2_s0_back.webp",
+          "size": [
+            854,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 188316,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "I3",
+      "name": "꺼지지 않는 그림자",
+      "stage": 0,
+      "tier": "IMMORTAL",
+      "attribute": "SHADOW",
+      "role": "DEFENSE",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/I3_s0_front.webp",
+          "sha256": "afb7d4363b6bdc1661bfdbb57119870b7f5d0ec0188e07c75babc5ed046cbba0",
+          "git_blob_sha": "867c2526acfbc3b09b99b795565ebd95d3a6a745",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I3_s0_front.webp",
+          "size": [
+            796,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 188336,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/I3_s0_back.webp",
+          "sha256": "fd391d10d13579f85c2cb7f56d01edb6c868cd484910258e77d48b07912edb66",
+          "git_blob_sha": "b8c29371e627c5c01a371a0f358965400805b864",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I3_s0_back.webp",
+          "size": [
+            790,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 201516,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "I4",
+      "name": "마르지 않는 바다",
+      "stage": 0,
+      "tier": "IMMORTAL",
+      "attribute": "SEA",
+      "role": "DEFENSE",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/I4_s0_front.webp",
+          "sha256": "11236f1c95a5862fa5420b6a70b431cd7fdb62aba7043619447a7a1d916bbf45",
+          "git_blob_sha": "504724f3386784fc52386c4f952324802fda1017",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I4_s0_front.webp",
+          "size": [
+            950,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 252406,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/I4_s0_back.webp",
+          "sha256": "abdfa285b7ea3f0f099d0cf91ff06aad2678c0881436fd7cabd9b83c73e9c44e",
+          "git_blob_sha": "11ccb62811f28b58702df60c261c05c223c60eb4",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I4_s0_back.webp",
+          "size": [
+            908,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 271754,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "I5",
+      "name": "다시 피는 벚꽃",
+      "stage": 0,
+      "tier": "IMMORTAL",
+      "attribute": "BLOSSOM",
+      "role": "UTILITY",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/I5_s0_front.webp",
+          "sha256": "6a7681202d773bcb078f122e52cdf87facd7f42d1361cf869a1b32d1cc469a46",
+          "git_blob_sha": "3899b72f6131b77f869bca613a4b4bec5c73798c",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I5_s0_front.webp",
+          "size": [
+            930,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 226628,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/I5_s0_back.webp",
+          "sha256": "3a04465ecb94c4666a0d18aca35b4ad80ace8b62fd3422f855ed214e7343c2ff",
+          "git_blob_sha": "e84f7be715645f2b5d6999a491880a2487da99bf",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I5_s0_back.webp",
+          "size": [
+            850,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 236292,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "I6",
+      "name": "돌아오는 별",
+      "stage": 0,
+      "tier": "IMMORTAL",
+      "attribute": "GRAVITY",
+      "role": "DEFENSE",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/I6_s0_front.webp",
+          "sha256": "6aa9546944263cd49488331727252f9a274a5a7795e20ff8ff350331b310f75c",
+          "git_blob_sha": "3f63a8aa75e96c9159472601d1d95e1bc1d0b494",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I6_s0_front.webp",
+          "size": [
+            963,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 288914,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/I6_s0_back.webp",
+          "sha256": "e52a8fe19cfbd70c261a7489cbe8cf1885d7d13fa6aee03c9934e550b8b1835b",
+          "git_blob_sha": "a6b8dbf2259862d2e1c6ccf9a5cd98db5fb94c2a",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I6_s0_back.webp",
+          "size": [
+            972,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 315978,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "I7",
+      "name": "갈터벨트",
+      "stage": 0,
+      "tier": "IMMORTAL",
+      "attribute": "THREAD",
+      "role": "DEFENSE",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/I7_s0_front.webp",
+          "sha256": "e73d12b31feb3aee43fb699ce1d3ed83f3c0dbca0df51a703294c8c46e6f1178",
+          "git_blob_sha": "7c46b757545781cfb2052f5bc73e6b4c107d3691",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I7_s0_front.webp",
+          "size": [
+            746,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 134426,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/I7_s0_back.webp",
+          "sha256": "86b9b5268639b00247c40151a00b0aa4bd9a527f7e71b6a66dd51277a20ec185",
+          "git_blob_sha": "47fcfc72ea3f011574fdc128320e279f42bdaa3b",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I7_s0_back.webp",
+          "size": [
+            765,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 127774,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "I8",
+      "name": "갈압스타킹",
+      "stage": 0,
+      "tier": "IMMORTAL",
+      "attribute": "GRAVITY",
+      "role": "DEFENSE",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/I8_s0_front.webp",
+          "sha256": "e35e8e7998b0275558ff8548fc3b31ec5eade33903624c19f8fc61cb6bbbace7",
+          "git_blob_sha": "3643e4423f5e6b1cd4f4311480998d40193d6298",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I8_s0_front.webp",
+          "size": [
+            657,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 132826,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/I8_s0_back.webp",
+          "sha256": "7385d2043d0c4d5ada45ee5f6cf0d28f0c3b7623e62ada9850d535646749e2f0",
+          "git_blob_sha": "f3ed9586ac1ae57076d168a64229224ecb055a3b",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I8_s0_back.webp",
+          "size": [
+            636,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 121260,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    },
+    {
+      "id": "I9",
+      "name": "갈슬리퍼",
+      "stage": 0,
+      "tier": "IMMORTAL",
+      "attribute": "SEA",
+      "role": "ATTACK",
+      "references": {
+        "front": {
+          "path": "/workspace/shared/upper33-animation/reference/I9_s0_front.webp",
+          "sha256": "22e8f311d829497bc09e50a6b74baae310eeaef34c683a9482f9fd4209ffb9e9",
+          "git_blob_sha": "a41a5088d350e4bbf98552a0345dd8eaa0ec8d88",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I9_s0_front.webp",
+          "size": [
+            846,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 184438,
+          "status": "canonical_reference_downloaded_hash_verified"
+        },
+        "back": {
+          "path": "/workspace/shared/upper33-animation/reference/I9_s0_back.webp",
+          "sha256": "c2acc4d1b0a56f6ef8f15c69c7bc5adb76717b5ba4f15e6afb746836204b0e1b",
+          "git_blob_sha": "de5858b9b403fcbe657c2df6aba8c63ecdb8379c",
+          "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/I9_s0_back.webp",
+          "size": [
+            837,
+            768
+          ],
+          "mode": "RGBA",
+          "bytes": 164270,
+          "status": "canonical_reference_downloaded_hash_verified"
+        }
+      },
+      "animation_status": "not_verified_runtime_ready",
+      "prior_drafts": []
+    }
+  ],
+  "handoff": "source/handoff.md",
+  "existing_animation_note": "D1 idle, attack, hit, entry review drafts exist under /workspace/shared/primordial-animation-v1; no runtime-ready animation assets verified."
+}

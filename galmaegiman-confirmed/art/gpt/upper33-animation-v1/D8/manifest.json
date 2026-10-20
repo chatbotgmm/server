@@ -1,0 +1,1637 @@
+{
+  "character": "D8",
+  "generator": "built-in image_gen",
+  "canonical_references": [
+    "../reference/D8_s0_front.webp",
+    "../reference/D8_s0_back.webp"
+  ],
+  "status": "asset_level_accepted_with_per_frame_anchors_renderer_validation_pending",
+  "sheets": [
+    {
+      "view": "front",
+      "action": "idle",
+      "file": "front/idle.png",
+      "sha256": "7d2bf73e17c696535d7625b9479f4d0d4ba78e8ca4245b7af62525980f46d90b",
+      "size": [
+        1536,
+        1024
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "cell": [
+        512,
+        512
+      ],
+      "frame_order": "row-major",
+      "loop": true,
+      "frame_durations_ms": [
+        150,
+        150,
+        150,
+        150,
+        150,
+        150
+      ],
+      "world_origin": "fixed; renderer aligns per-frame measured anchors",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "transparent_fraction": 0.6853987375895182,
+      "frames": [
+        {
+          "index": 0,
+          "source_rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            85,
+            143,
+            429,
+            424
+          ],
+          "alpha127_bounds": [
+            87,
+            144,
+            428,
+            423
+          ],
+          "measured_anchor_px": [
+            257.5,
+            423
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 1,
+          "source_rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            78,
+            143,
+            432,
+            428
+          ],
+          "alpha127_bounds": [
+            79,
+            143,
+            431,
+            427
+          ],
+          "measured_anchor_px": [
+            255.0,
+            427
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 2,
+          "source_rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            80,
+            142,
+            435,
+            428
+          ],
+          "alpha127_bounds": [
+            81,
+            143,
+            434,
+            427
+          ],
+          "measured_anchor_px": [
+            257.5,
+            427
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 3,
+          "source_rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            77,
+            108,
+            434,
+            389
+          ],
+          "alpha127_bounds": [
+            78,
+            109,
+            434,
+            389
+          ],
+          "measured_anchor_px": [
+            256.0,
+            389
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 4,
+          "source_rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            89,
+            104,
+            446,
+            389
+          ],
+          "alpha127_bounds": [
+            90,
+            105,
+            445,
+            389
+          ],
+          "measured_anchor_px": [
+            267.5,
+            389
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 5,
+          "source_rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            92,
+            108,
+            435,
+            389
+          ],
+          "alpha127_bounds": [
+            93,
+            109,
+            434,
+            389
+          ],
+          "measured_anchor_px": [
+            263.5,
+            389
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        }
+      ],
+      "status": "asset_level_accepted_renderer_pending",
+      "proposed_sheet_scale": 1.1207,
+      "scale_method": "reviewer measured central-body crest-to-claw height excluding ribbons, normalized to 260px; estimates +/-5px",
+      "anchor_sidecar": "front/idle.measured-anchors.json"
+    },
+    {
+      "view": "front",
+      "action": "attack",
+      "file": "front/attack.png",
+      "sha256": "1b868db189ddf49562ae39c326abe39096a3e8d974130a6b0a9cf83f4591ea6a",
+      "size": [
+        1536,
+        1024
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "cell": [
+        512,
+        512
+      ],
+      "frame_order": "row-major",
+      "loop": false,
+      "frame_durations_ms": [
+        100,
+        90,
+        70,
+        90,
+        110,
+        140
+      ],
+      "world_origin": "fixed; renderer aligns per-frame measured anchors",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "transparent_fraction": 0.6563504536946615,
+      "frames": [
+        {
+          "index": 0,
+          "source_rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            89,
+            149,
+            486,
+            450
+          ],
+          "alpha127_bounds": [
+            89,
+            151,
+            485,
+            449
+          ],
+          "measured_anchor_px": [
+            287.0,
+            449
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 1,
+          "source_rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            100,
+            168,
+            411,
+            450
+          ],
+          "alpha127_bounds": [
+            101,
+            169,
+            410,
+            449
+          ],
+          "measured_anchor_px": [
+            255.5,
+            449
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 2,
+          "source_rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            25,
+            159,
+            424,
+            445
+          ],
+          "alpha127_bounds": [
+            25,
+            159,
+            423,
+            444
+          ],
+          "measured_anchor_px": [
+            224.0,
+            444
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 3,
+          "source_rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            83,
+            87,
+            472,
+            381
+          ],
+          "alpha127_bounds": [
+            84,
+            87,
+            471,
+            379
+          ],
+          "measured_anchor_px": [
+            277.5,
+            379
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 4,
+          "source_rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            95,
+            104,
+            419,
+            378
+          ],
+          "alpha127_bounds": [
+            96,
+            105,
+            418,
+            377
+          ],
+          "measured_anchor_px": [
+            257.0,
+            377
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 5,
+          "source_rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            42,
+            82,
+            448,
+            395
+          ],
+          "alpha127_bounds": [
+            43,
+            83,
+            448,
+            394
+          ],
+          "measured_anchor_px": [
+            245.5,
+            394
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        }
+      ],
+      "status": "asset_level_accepted_renderer_pending",
+      "proposed_sheet_scale": 1.0442,
+      "scale_method": "reviewer measured central-body crest-to-claw height excluding ribbons, normalized to 260px; estimates +/-5px",
+      "anchor_sidecar": "front/attack.measured-anchors.json"
+    },
+    {
+      "view": "front",
+      "action": "hit-defend",
+      "file": "front/hit-defend.png",
+      "sha256": "469552e75a0bbe794184c68a3acceeb828cf351392b55c7a3cf76609bb7599b8",
+      "size": [
+        1536,
+        1024
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "cell": [
+        512,
+        512
+      ],
+      "frame_order": "row-major",
+      "loop": false,
+      "frame_durations_ms": [
+        100,
+        90,
+        70,
+        90,
+        110,
+        140
+      ],
+      "world_origin": "fixed; renderer aligns per-frame measured anchors",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "transparent_fraction": 0.5198860168457031,
+      "frames": [
+        {
+          "index": 0,
+          "source_rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            37,
+            119,
+            467,
+            446
+          ],
+          "alpha127_bounds": [
+            38,
+            120,
+            466,
+            445
+          ],
+          "measured_anchor_px": [
+            252.0,
+            445
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 1,
+          "source_rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            39,
+            61,
+            477,
+            445
+          ],
+          "alpha127_bounds": [
+            40,
+            62,
+            477,
+            443
+          ],
+          "measured_anchor_px": [
+            258.5,
+            443
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 2,
+          "source_rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            92,
+            162,
+            451,
+            447
+          ],
+          "alpha127_bounds": [
+            93,
+            162,
+            450,
+            446
+          ],
+          "measured_anchor_px": [
+            271.5,
+            446
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 3,
+          "source_rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            31,
+            108,
+            483,
+            433
+          ],
+          "alpha127_bounds": [
+            32,
+            109,
+            482,
+            432
+          ],
+          "measured_anchor_px": [
+            257.0,
+            432
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 4,
+          "source_rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            12,
+            69,
+            500,
+            445
+          ],
+          "alpha127_bounds": [
+            14,
+            70,
+            499,
+            443
+          ],
+          "measured_anchor_px": [
+            256.5,
+            443
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 5,
+          "source_rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            36,
+            109,
+            467,
+            442
+          ],
+          "alpha127_bounds": [
+            37,
+            110,
+            467,
+            440
+          ],
+          "measured_anchor_px": [
+            252.0,
+            440
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        }
+      ],
+      "status": "asset_level_accepted_renderer_pending",
+      "proposed_sheet_scale": 0.8844,
+      "scale_method": "reviewer measured central-body crest-to-claw height excluding ribbons, normalized to 260px; estimates +/-5px",
+      "anchor_sidecar": "front/hit-defend.measured-anchors.json"
+    },
+    {
+      "view": "front",
+      "action": "entry",
+      "file": "front/entry.png",
+      "sha256": "8714503b1ec1fc86d4cc9b5bd58d161920e0e4543184c5b3de8adb49d2b9a16a",
+      "size": [
+        1536,
+        1024
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "cell": [
+        512,
+        512
+      ],
+      "frame_order": "row-major",
+      "loop": false,
+      "frame_durations_ms": [
+        100,
+        90,
+        70,
+        90,
+        110,
+        140
+      ],
+      "world_origin": "fixed; renderer aligns per-frame measured anchors",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "transparent_fraction": 0.6580899556477865,
+      "frames": [
+        {
+          "index": 0,
+          "source_rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            80,
+            116,
+            443,
+            430
+          ],
+          "alpha127_bounds": [
+            81,
+            117,
+            442,
+            429
+          ],
+          "measured_anchor_px": [
+            261.5,
+            429
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 1,
+          "source_rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            67,
+            133,
+            441,
+            433
+          ],
+          "alpha127_bounds": [
+            68,
+            134,
+            440,
+            431
+          ],
+          "measured_anchor_px": [
+            254.0,
+            431
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 2,
+          "source_rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            63,
+            166,
+            432,
+            435
+          ],
+          "alpha127_bounds": [
+            63,
+            167,
+            432,
+            434
+          ],
+          "measured_anchor_px": [
+            247.5,
+            434
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 3,
+          "source_rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            71,
+            131,
+            462,
+            391
+          ],
+          "alpha127_bounds": [
+            72,
+            133,
+            459,
+            390
+          ],
+          "measured_anchor_px": [
+            265.5,
+            390
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 4,
+          "source_rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            77,
+            128,
+            437,
+            401
+          ],
+          "alpha127_bounds": [
+            78,
+            129,
+            437,
+            400
+          ],
+          "measured_anchor_px": [
+            257.5,
+            400
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 5,
+          "source_rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            61,
+            123,
+            438,
+            396
+          ],
+          "alpha127_bounds": [
+            62,
+            125,
+            437,
+            395
+          ],
+          "measured_anchor_px": [
+            249.5,
+            395
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        }
+      ],
+      "status": "asset_level_accepted_renderer_pending",
+      "airborne_offset_integration": "Frames 0 and 1 are airborne; preserve authored vertical displacement rather than pinning claws to ground. Use measured-anchor sidecar motion flags.",
+      "proposed_sheet_scale": 1.1927,
+      "scale_method": "reviewer measured central-body crest-to-claw height excluding ribbons, normalized to 260px; estimates +/-5px",
+      "anchor_sidecar": "front/entry.measured-anchors.json"
+    },
+    {
+      "view": "back",
+      "action": "idle",
+      "file": "back/idle.png",
+      "sha256": "2180e17f84fd41f83c8df8f5be101ae0a8834a35a43ec76162c0a1d193c377d0",
+      "size": [
+        1536,
+        1024
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "cell": [
+        512,
+        512
+      ],
+      "frame_order": "row-major",
+      "loop": true,
+      "frame_durations_ms": [
+        150,
+        150,
+        150,
+        150,
+        150,
+        150
+      ],
+      "world_origin": "fixed; renderer aligns per-frame measured anchors",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "transparent_fraction": 0.49284998575846356,
+      "frames": [
+        {
+          "index": 0,
+          "source_rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            58,
+            125,
+            487,
+            490
+          ],
+          "alpha127_bounds": [
+            59,
+            126,
+            486,
+            489
+          ],
+          "measured_anchor_px": [
+            272.5,
+            489
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 1,
+          "source_rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            35,
+            106,
+            479,
+            490
+          ],
+          "alpha127_bounds": [
+            37,
+            107,
+            478,
+            489
+          ],
+          "measured_anchor_px": [
+            257.5,
+            489
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 2,
+          "source_rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            21,
+            146,
+            482,
+            491
+          ],
+          "alpha127_bounds": [
+            23,
+            147,
+            481,
+            490
+          ],
+          "measured_anchor_px": [
+            252.0,
+            490
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 3,
+          "source_rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            49,
+            99,
+            511,
+            431
+          ],
+          "alpha127_bounds": [
+            51,
+            100,
+            510,
+            430
+          ],
+          "measured_anchor_px": [
+            280.5,
+            430
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 4,
+          "source_rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            49,
+            61,
+            472,
+            430
+          ],
+          "alpha127_bounds": [
+            50,
+            62,
+            471,
+            429
+          ],
+          "measured_anchor_px": [
+            260.5,
+            429
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 5,
+          "source_rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            34,
+            72,
+            462,
+            437
+          ],
+          "alpha127_bounds": [
+            36,
+            73,
+            461,
+            436
+          ],
+          "measured_anchor_px": [
+            248.5,
+            436
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        }
+      ],
+      "status": "asset_level_accepted_renderer_pending",
+      "proposed_sheet_scale": 0.8581,
+      "scale_method": "reviewer measured central-body crest-to-claw height excluding ribbons, normalized to 260px; estimates +/-5px",
+      "anchor_sidecar": "back/idle.measured-anchors.json"
+    },
+    {
+      "view": "back",
+      "action": "attack",
+      "file": "back/attack.png",
+      "sha256": "313617acb29e9076f69a1333161ab59720cb0df4043b62333ae832346d9e685a",
+      "size": [
+        1536,
+        1024
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "cell": [
+        512,
+        512
+      ],
+      "frame_order": "row-major",
+      "loop": false,
+      "frame_durations_ms": [
+        100,
+        90,
+        70,
+        90,
+        110,
+        140
+      ],
+      "world_origin": "fixed; renderer aligns per-frame measured anchors",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "transparent_fraction": 0.5157299041748047,
+      "frames": [
+        {
+          "index": 0,
+          "source_rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            24,
+            79,
+            502,
+            466
+          ],
+          "alpha127_bounds": [
+            25,
+            80,
+            501,
+            465
+          ],
+          "measured_anchor_px": [
+            263.0,
+            465
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 1,
+          "source_rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            69,
+            127,
+            437,
+            444
+          ],
+          "alpha127_bounds": [
+            71,
+            128,
+            436,
+            443
+          ],
+          "measured_anchor_px": [
+            253.5,
+            443
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 2,
+          "source_rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            13,
+            66,
+            492,
+            442
+          ],
+          "alpha127_bounds": [
+            14,
+            68,
+            490,
+            441
+          ],
+          "measured_anchor_px": [
+            252.0,
+            441
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 3,
+          "source_rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            23,
+            39,
+            500,
+            457
+          ],
+          "alpha127_bounds": [
+            24,
+            41,
+            500,
+            456
+          ],
+          "measured_anchor_px": [
+            262.0,
+            456
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 4,
+          "source_rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            74,
+            118,
+            442,
+            429
+          ],
+          "alpha127_bounds": [
+            75,
+            119,
+            441,
+            428
+          ],
+          "measured_anchor_px": [
+            258.0,
+            428
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 5,
+          "source_rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            5,
+            74,
+            499,
+            463
+          ],
+          "alpha127_bounds": [
+            6,
+            75,
+            498,
+            461
+          ],
+          "measured_anchor_px": [
+            252.0,
+            461
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        }
+      ],
+      "status": "asset_level_accepted_renderer_pending",
+      "proposed_sheet_scale": 0.9353,
+      "scale_method": "reviewer measured central-body crest-to-claw height excluding ribbons, normalized to 260px; estimates +/-5px",
+      "anchor_sidecar": "back/attack.measured-anchors.json"
+    },
+    {
+      "view": "back",
+      "action": "hit-defend",
+      "file": "back/hit-defend.png",
+      "sha256": "804bf1cb4a14200b03beb1f286f90d523646313b29642a5b16b8fc7e9760a206",
+      "size": [
+        1536,
+        1024
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "cell": [
+        512,
+        512
+      ],
+      "frame_order": "row-major",
+      "loop": false,
+      "frame_durations_ms": [
+        100,
+        90,
+        70,
+        90,
+        110,
+        140
+      ],
+      "world_origin": "fixed; renderer aligns per-frame measured anchors",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "transparent_fraction": 0.5132840474446615,
+      "frames": [
+        {
+          "index": 0,
+          "source_rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            31,
+            101,
+            477,
+            455
+          ],
+          "alpha127_bounds": [
+            32,
+            102,
+            476,
+            454
+          ],
+          "measured_anchor_px": [
+            254.0,
+            454
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 1,
+          "source_rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            16,
+            42,
+            492,
+            465
+          ],
+          "alpha127_bounds": [
+            17,
+            43,
+            489,
+            465
+          ],
+          "measured_anchor_px": [
+            253.0,
+            465
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 2,
+          "source_rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            74,
+            150,
+            455,
+            465
+          ],
+          "alpha127_bounds": [
+            75,
+            151,
+            454,
+            464
+          ],
+          "measured_anchor_px": [
+            264.5,
+            464
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 3,
+          "source_rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            44,
+            145,
+            478,
+            432
+          ],
+          "alpha127_bounds": [
+            54,
+            146,
+            477,
+            431
+          ],
+          "measured_anchor_px": [
+            265.5,
+            431
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 4,
+          "source_rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            15,
+            52,
+            508,
+            449
+          ],
+          "alpha127_bounds": [
+            16,
+            53,
+            506,
+            449
+          ],
+          "measured_anchor_px": [
+            261.0,
+            449
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 5,
+          "source_rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            36,
+            102,
+            476,
+            448
+          ],
+          "alpha127_bounds": [
+            38,
+            103,
+            474,
+            447
+          ],
+          "measured_anchor_px": [
+            256.0,
+            447
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        }
+      ],
+      "status": "asset_level_accepted_renderer_pending",
+      "proposed_sheet_scale": 0.8784,
+      "scale_method": "reviewer measured central-body crest-to-claw height excluding ribbons, normalized to 260px; estimates +/-5px",
+      "anchor_sidecar": "back/hit-defend.measured-anchors.json"
+    },
+    {
+      "view": "back",
+      "action": "entry",
+      "file": "back/entry.png",
+      "sha256": "b6d63235e1d757ea8185b2545b05a7f3eec1feb08ec5b5ef004db872c4b576a4",
+      "size": [
+        1536,
+        1024
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "cell": [
+        512,
+        512
+      ],
+      "frame_order": "row-major",
+      "loop": false,
+      "frame_durations_ms": [
+        100,
+        90,
+        70,
+        90,
+        110,
+        140
+      ],
+      "world_origin": "fixed; renderer aligns per-frame measured anchors",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "transparent_fraction": 0.5259596506754557,
+      "frames": [
+        {
+          "index": 0,
+          "source_rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            35,
+            64,
+            486,
+            476
+          ],
+          "alpha127_bounds": [
+            36,
+            65,
+            485,
+            475
+          ],
+          "measured_anchor_px": [
+            260.5,
+            475
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 1,
+          "source_rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            32,
+            99,
+            487,
+            475
+          ],
+          "alpha127_bounds": [
+            32,
+            100,
+            486,
+            474
+          ],
+          "measured_anchor_px": [
+            259.0,
+            474
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 2,
+          "source_rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            28,
+            152,
+            478,
+            483
+          ],
+          "alpha127_bounds": [
+            30,
+            153,
+            476,
+            482
+          ],
+          "measured_anchor_px": [
+            253.0,
+            482
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 3,
+          "source_rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            35,
+            143,
+            478,
+            456
+          ],
+          "alpha127_bounds": [
+            36,
+            144,
+            477,
+            455
+          ],
+          "measured_anchor_px": [
+            256.5,
+            455
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 4,
+          "source_rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            28,
+            110,
+            481,
+            456
+          ],
+          "alpha127_bounds": [
+            29,
+            111,
+            480,
+            455
+          ],
+          "measured_anchor_px": [
+            254.5,
+            455
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        },
+        {
+          "index": 5,
+          "source_rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "alpha8_bounds": [
+            26,
+            114,
+            485,
+            446
+          ],
+          "alpha127_bounds": [
+            26,
+            115,
+            484,
+            445
+          ],
+          "measured_anchor_px": [
+            255.0,
+            445
+          ],
+          "anchor_method": "opaque silhouette bottom-center; feet visual validation pending",
+          "edge_touch": false
+        }
+      ],
+      "status": "asset_level_accepted_renderer_pending",
+      "airborne_offset_integration": "Frames 0 and 1 are airborne; preserve authored vertical displacement rather than pinning claws to ground. Use measured-anchor sidecar motion flags.",
+      "proposed_sheet_scale": 0.9028,
+      "scale_method": "reviewer measured central-body crest-to-claw height excluding ribbons, normalized to 260px; estimates +/-5px",
+      "anchor_sidecar": "back/entry.measured-anchors.json"
+    }
+  ],
+  "cautions": [
+    "PNG bytes copied exactly from built-in image_gen outputs; no programmatic image editing.",
+    "Use hash-bound measured-anchor sidecars over provisional silhouette anchors.",
+    "Proposed sheet scales require renderer validation; no runtime playback acceptance claimed.",
+    "Entry and flagged hit/idle airborne frames require authored world-origin offsets.",
+    "Files named *-first-needsqa.png are archived rejected drafts, not runtime assets."
+  ],
+  "independent_review": "independent-set-review.json"
+}

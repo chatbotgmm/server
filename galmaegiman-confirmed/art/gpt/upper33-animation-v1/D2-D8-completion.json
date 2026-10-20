@@ -1,0 +1,23 @@
+{
+  "scope": "D2-D8",
+  "characters": 7,
+  "canonical_sheets": 56,
+  "frames": 336,
+  "status": "all_asset_level_accepted_renderer_validation_pending",
+  "generation": "built-in image_gen only; exact PNG byte copies",
+  "manifests": [
+    "D2/manifest.json",
+    "D3/manifest.json",
+    "D4/manifest.json",
+    "D5/manifest.json",
+    "D6/manifest.json",
+    "D7/manifest.json",
+    "D8/manifest.json"
+  ],
+  "remaining": [
+    "Renderer playback validation",
+    "Apply reviewed per-frame claw anchors and proposed scale normalization",
+    "Author vertical motion offsets for flagged airborne frames"
+  ],
+  "excluded": "*-first-needsqa.png archived rejected drafts"
+}

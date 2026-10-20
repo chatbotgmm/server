@@ -1,0 +1,42 @@
+{
+  "source_sha256": "179ff0dd8fbc5cdb87abd91bbb4ab448f015bc60823f4509721a917a6403348d",
+  "sheet": "D2/front/entry.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      293.0,
+      418
+    ],
+    [
+      246.0,
+      435
+    ],
+    [
+      228.5,
+      439
+    ],
+    [
+      274.0,
+      392
+    ],
+    [
+      241.0,
+      391
+    ],
+    [
+      238.0,
+      390
+    ]
+  ],
+  "placement_rule": "Fixed actor world origin plus authored airborne offset, minus measured feet anchor. Frames 0–1 airborne; animation offset requires renderer integration. Do not pin airborne feet to ground.",
+  "measurement": "Alpha>128 foot-region pixels in lower40px central band, visually checked against feet; requires renderer validation.",
+  "renderer_validation": "pending",
+  "airborne_frames_zero_based": [
+    0,
+    1
+  ]
+}

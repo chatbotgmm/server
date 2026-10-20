@@ -1,0 +1,38 @@
+{
+  "source_sha256": "edd1f25a4bcd759ba2475d47074619bb81db74d76889fae34cd3ab6ed51d4db4",
+  "sheet": "I7/back/idle.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      233.5,
+      467
+    ],
+    [
+      243.0,
+      467
+    ],
+    [
+      242.5,
+      467
+    ],
+    [
+      234.0,
+      467
+    ],
+    [
+      243.0,
+      467
+    ],
+    [
+      242.5,
+      468
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Alpha>128 foot-region pixels in lower40px central band, visually checked against feet; requires renderer validation.",
+  "renderer_validation": "pending"
+}

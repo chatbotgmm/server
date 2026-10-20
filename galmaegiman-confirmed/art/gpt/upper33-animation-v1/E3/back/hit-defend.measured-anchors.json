@@ -1,0 +1,38 @@
+{
+  "source_sha256": "b485649814cd224ada2fb13270cd3572afc88c71071e9b3776ffc3243cfaedcf",
+  "sheet": "E3/back/hit-defend.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      258,
+      411
+    ],
+    [
+      270,
+      412
+    ],
+    [
+      262,
+      415
+    ],
+    [
+      270,
+      395
+    ],
+    [
+      280,
+      390
+    ],
+    [
+      260,
+      402
+    ]
+  ],
+  "placement_rule": "Align measured grounded feet anchor to fixed world origin, preserve authored airborne or recoil offsets.",
+  "measurement": "Feet fully hidden by cloak; inferred central ground pivot from cloak contact \u00b112px, requires renderer validation.",
+  "renderer_validation": "pending"
+}

@@ -1,0 +1,38 @@
+{
+  "source_sha256": "186f52f2f0c267d25cb9875eceb5e9444d99eb104ed083760f272f65fe716f20",
+  "sheet": "I9/back/idle.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      260.0,
+      437
+    ],
+    [
+      258.5,
+      437
+    ],
+    [
+      252.5,
+      437
+    ],
+    [
+      259.5,
+      427
+    ],
+    [
+      256.0,
+      427
+    ],
+    [
+      249.5,
+      427
+    ]
+  ],
+  "placement_rule": "Align paired shell-base midpoint to fixed world origin. Shells are canonical footwear, not cast shadows.",
+  "measurement": "Alpha>128 lower40px shell-base center, visually verified against paired pearl shell boots. Approximate \u00b14px; renderer validation pending.",
+  "renderer_validation": "pending"
+}

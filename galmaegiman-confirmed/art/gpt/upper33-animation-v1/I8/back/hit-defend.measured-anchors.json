@@ -1,0 +1,38 @@
+{
+  "source_sha256": "1232bf0d956b42b2ce3361c95d9ca9c73a67157288d4898418c26d1383ff09a5",
+  "sheet": "I8/back/hit-defend.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      275,
+      442
+    ],
+    [
+      268,
+      442
+    ],
+    [
+      267,
+      441
+    ],
+    [
+      277,
+      431
+    ],
+    [
+      268,
+      433
+    ],
+    [
+      267,
+      434
+    ]
+  ],
+  "placement_rule": "Align measured grounded feet anchor to fixed world origin, preserve authored airborne or recoil offsets.",
+  "measurement": "Visually measured claw contact centers, excludes intrinsic magic oval. Approximate \u00b14px; renderer validation pending.",
+  "renderer_validation": "pending"
+}

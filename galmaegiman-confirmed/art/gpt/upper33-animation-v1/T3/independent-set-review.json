@@ -1,0 +1,19 @@
+{
+  "id": "T3",
+  "status": "all eight assets accepted; renderer validation pending",
+  "accepted": [
+    "T3/front/idle.png",
+    "T3/front/attack.png",
+    "T3/front/hit-defend.png",
+    "T3/front/entry.png",
+    "T3/back/idle.png",
+    "T3/back/attack.png",
+    "T3/back/hit-defend.png",
+    "T3/back/entry.png"
+  ],
+  "edge_issues": [],
+  "caveats": [
+    "Per-frame measured anchors required.",
+    "Cross-action/view scaling and playback remain renderer-validation tasks."
+  ]
+}

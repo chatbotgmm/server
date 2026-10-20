@@ -1,0 +1,38 @@
+{
+  "source_sha256": "c308146b795b6b97f7c5a7dd0d1e712576b576f57071bb005e43c9b7c492a59b",
+  "sheet": "T2/front/attack.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      244,
+      476
+    ],
+    [
+      250,
+      477
+    ],
+    [
+      239,
+      481
+    ],
+    [
+      258,
+      434
+    ],
+    [
+      252,
+      454
+    ],
+    [
+      242,
+      449
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Visual claw/sole estimate +/-4px; excludes molten drip and hammer impact VFX. Frame3 front attack foot pair partly obscured by hammer, inferred from visible lateral toes.",
+  "renderer_validation": "pending"
+}

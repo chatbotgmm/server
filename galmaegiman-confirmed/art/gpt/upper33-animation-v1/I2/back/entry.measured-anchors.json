@@ -1,0 +1,38 @@
+{
+  "source_sha256": "b5825734b02845fca7d0ee1d14adaff0b4f1a1098345e5246edf6297056f43b8",
+  "sheet": "I2/back/entry.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      264,
+      456
+    ],
+    [
+      252,
+      455
+    ],
+    [
+      258,
+      446
+    ],
+    [
+      265,
+      447
+    ],
+    [
+      265,
+      448
+    ],
+    [
+      258,
+      447
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Visual feet-pair midpoint and lowest sole estimate, approximately +/-4px; excludes casting slabs and dripping wing tips. Renderer validation pending.",
+  "renderer_validation": "pending"
+}

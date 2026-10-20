@@ -1,0 +1,20 @@
+{
+  "id": "D1",
+  "status": "all eight assets accepted; renderer validation pending",
+  "reviewed_sheets": [
+    "D1/back/attack.png",
+    "D1/back/entry.png",
+    "D1/back/hit-defend.png",
+    "D1/back/idle.png",
+    "D1/front/attack.png",
+    "D1/front/entry.png",
+    "D1/front/hit-defend.png",
+    "D1/front/idle.png"
+  ],
+  "source_manifest_sha256": "76cda184b1993ac7ae12e708640f0177cb9398b5963b061eabd2400d97b4663a",
+  "caveats": [
+    "Raw rendered size differs across actions/views; proposed sheet scaling requires renderer validation.",
+    "Per-frame measured feet anchors must drive a fixed world origin.",
+    "No runtime animation test was performed."
+  ]
+}

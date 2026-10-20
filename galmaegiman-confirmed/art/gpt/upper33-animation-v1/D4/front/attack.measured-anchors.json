@@ -1,0 +1,38 @@
+{
+  "source_sha256": "9d2cc0b2b3d533cd6de885b932ef0fe5673961f1e57077ccc6fd5ded874941b8",
+  "sheet": "D4/front/attack.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      264,
+      441
+    ],
+    [
+      253,
+      440
+    ],
+    [
+      241,
+      443
+    ],
+    [
+      263,
+      421
+    ],
+    [
+      246,
+      411
+    ],
+    [
+      232,
+      419
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Visual gold-claw anchor estimate +/-4px, excludes water droplets and plate tips. Renderer validation pending.",
+  "renderer_validation": "pending"
+}

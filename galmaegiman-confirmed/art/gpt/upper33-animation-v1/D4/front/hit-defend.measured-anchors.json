@@ -1,0 +1,41 @@
+{
+  "source_sha256": "7c458a58ddd646b024b6377e002651fc6ec137b34e6e83f342d47f3e54e7dcfc",
+  "sheet": "D4/front/hit-defend.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      268,
+      456
+    ],
+    [
+      257,
+      455
+    ],
+    [
+      231,
+      457
+    ],
+    [
+      267,
+      414
+    ],
+    [
+      249,
+      418
+    ],
+    [
+      234,
+      419
+    ]
+  ],
+  "placement_rule": "Fixed actor origin plus authored airborne offset on listed frames; grounded frames use feet anchor.",
+  "measurement": "Visual gold-claw anchor estimate +/-4px, excludes water droplets and plate tips. Renderer validation pending.",
+  "renderer_validation": "pending",
+  "airborne_frames_zero_based": [
+    3
+  ]
+}

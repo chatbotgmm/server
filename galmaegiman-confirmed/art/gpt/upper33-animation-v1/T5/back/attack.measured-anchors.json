@@ -1,0 +1,38 @@
+{
+  "source_sha256": "9ae2324552efb67f5cdaaa9500f5d027e957cb9299b0040c0a924a4e9af10a75",
+  "sheet": "T5/back/attack.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      241,
+      397
+    ],
+    [
+      239,
+      395
+    ],
+    [
+      246,
+      396
+    ],
+    [
+      213,
+      372
+    ],
+    [
+      235,
+      374
+    ],
+    [
+      243,
+      374
+    ]
+  ],
+  "placement_rule": "Align measured grounded feet anchor to fixed world origin, preserve authored airborne or recoil offsets.",
+  "measurement": "Visually measured paired claw contact centers excluding broom and petals, approximate \u00b15px. Partially broom-occluded foot inferred from stance.",
+  "renderer_validation": "pending"
+}
