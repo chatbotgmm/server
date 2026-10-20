@@ -655,7 +655,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com'});
     try{
       const get=async(url:string)=>{const r=await app.inject({method:'GET',url});expect(r.statusCode).toBe(200);expect(r.headers['content-type']).toContain('text/html');return r.body;};
-      expect(await get('/')).toContain('갈매미는 <span class="hl">존재</span>한다');
+      expect(await get('/')).toContain('href="/game" data-start');   // 메인은 공개 홈페이지(src/site.ts), 예전 소개 화면은 /web/landing
       expect(await get('/dex?view=s&sort=name')).toContain('<link rel="canonical" href="https://gmm.dpdns.org/dex">');
       expect(await get('/rank?k=top')).toContain('<link rel="canonical" href="https://gmm.dpdns.org/rank?k=top">');
       expect(await get('/search?q=금갑')).toContain('<meta name="robots" content="noindex">');
@@ -1113,9 +1113,14 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const again=await db.player.findUniqueOrThrow({where:{identity:actor}});
       expect(again.id).not.toBe(p.id);expect(again.nickname).toBeNull();
       // 공개 페이지·앱 파일
-      for(const [url,has] of [['/privacy','개인정보처리방침'],['/account/delete','계정 삭제'],['/odds','뽑기 확률']] as const){
+      for(const [url,has] of [['/privacy','개인정보 처리방침'],['/privacy/2026-10-08','이전 버전'],['/account/delete','계정 삭제'],['/odds','뽑기 확률']] as const){
         const r=await app.inject({method:'GET',url});expect(r.statusCode).toBe(200);expect(r.body).toContain(has);
       }
+      // 개인정보 처리방침(작성지침 2026.4.): 이전 버전 링크·필수 항목 제목, 없는 버전·이상한 경로는 404
+      const pp=(await app.inject({method:'GET',url:'/privacy'})).body;
+      expect(pp).not.toContain('◆');   // 운영자가 채울 빈칸이 남은 채로 공개하지 않음
+      for(const h of ['처리 목적','보유 기간','파기 절차','위탁','국외 이전','안전성 확보조치','쿠키','행사방법','개인정보 보호책임자','권익침해 구제방법','처리방침의 변경','href="/privacy/2026-10-08"'])expect(pp).toContain(h);
+      for(const u of ['/privacy/2020-01-01','/privacy/..%2Fpackage'])expect((await app.inject({method:'GET',url:u,headers:{accept:'text/html'}})).statusCode).toBe(404);
       const odds=(await app.inject({method:'GET',url:'/odds'})).body;
       for(const k of ['LOW','MID','HIGH'] as const)expect(odds).toContain(`${content.economy.gachas[k].label} 뽑기`);
       expect(content.characters.filter(x=>x.rarity==='HIDDEN').some(x=>odds.includes(x.name))).toBe(false);
@@ -1135,7 +1140,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
         expect(apk.headers['content-type']).toBe('application/vnd.android.package-archive');expect(apk.headers['content-disposition']).toContain('attachment');
         expect(apk.rawPayload.subarray(0,2).toString()).toBe('PK');
       }else{expect(info.statusCode).toBe(404);expect(apk.statusCode).toBe(404);}
-      expect((await app.inject({method:'GET',url:'/my'})).body).toContain('id="inst"');
+      expect((await app.inject({method:'GET',url:'/my?g=1'})).body).toContain('id="inst"');   // 앱 게임 창은 기존 화면(설치 안내 포함)
+      expect((await app.inject({method:'GET',url:'/my'})).body).toContain('/my/api/who');   // 웹 /my는 새 화면으로 이어 보내는 페이지
     }finally{await app.close();}
   });
   it.each(['2','3'])('네이티브 카카오 앱 %s: 처음 연결은 코드 확인, 계정 연결은 현재 로그인 계정을 유지',async(appVersion)=>{
@@ -1284,13 +1290,13 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const d1=await get('/dex/D1');expect(d1).toContain('조합 계보도');noHidden(d1);expect(d1).not.toContain('og:image" content="https://gmm.dpdns.org/images/D1.png');
       // 도감 작은 그림·가나다순, 홈 구성
       const small=await get('/dex?view=s&sort=name');expect(small).toContain('class="tiles"');noHidden(small);
-      const homeHtml=await get('/');expect(homeHtml).toContain('href="https://pf.kakao.com/_GIAaX"');expect(homeHtml).toContain('오늘의 갈매미');expect(homeHtml).toContain('TOP 3');expect(homeHtml).toContain('최근 발견된 히든');expect(homeHtml).toContain('class="tabbar"');
-      expect(homeHtml).toContain('href="/event"');
-      // v0.16.0: 메인(/)은 「내 갈매미」 대시보드 + 로그인 전 소개 화면. 검색엔진용 정보는 그대로, /my는 색인 제외
-      expect(homeHtml).toContain('<script src="/my/dash.js"></script>');expect(homeHtml).toContain('id="login"');expect(homeHtml).toContain('<title>갈매미맨</title>');
+      // 공개 홈페이지(/): 소개·게임 시작·이벤트·공지, 검색엔진용 정보. 예전 메인의 소개 화면(오늘의 갈매미·랭킹·히든)은 /web/landing(로그인 전 /my)에 그대로
+      const homeHtml=await get('/');expect(homeHtml).toContain('href="https://pf.kakao.com/_GIAaX"');expect(homeHtml).toContain('href="/event"');
+      expect(homeHtml).toContain('<title>갈매미맨</title>');
       expect(homeHtml).toContain('"@type":"WebSite"');expect(homeHtml).toContain('<link rel="canonical" href="https://gmm.dpdns.org/">');expect(homeHtml).not.toContain('noindex');
       expect(homeHtml).toContain('class="foot"');expect(homeHtml).not.toContain('/web/img/char-');
-      expect(await get('/web/landing')).toContain('갈매미는 <span class="hl">존재</span>한다');
+      const landingHtml=await get('/web/landing');expect(landingHtml).toContain('갈매미는 <span class="hl">존재</span>한다');
+      expect(landingHtml).toContain('오늘의 갈매미');expect(landingHtml).toContain('TOP 3');expect(landingHtml).toContain('최근 발견된 히든');expect(landingHtml).toContain('id="login"');
       expect(await get('/web/foot')).toContain('href="/privacy"');
       expect(await get('/my')).toContain('<meta name="robots" content="noindex">');
       const ev=await get('/event');
@@ -1298,7 +1304,10 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(ev).toContain('5단계 · 단계마다 🎟 <b>10장</b> (총 50장)');expect(ev).toContain('<b>재료로 직접 조합해 보기</b>');expect(ev).toContain('<b>닉네임 정하기</b>');
       expect(ev).toContain('하루 최대 🎟 <b>230장</b>');expect(ev).toContain('진행 중');
       expect(ev).not.toContain('따개비도새우깡은못참지');
-      expect(await get('/hidden')).toMatch(/class="more"[^]*href="\/hidden" class="on"/);
+      expect(await get('/hidden')).toMatch(/class="drawer-more"[^]*href="\/hidden" aria-current="page"/);
+      // 없는 주소: 브라우저 페이지는 새 틀의 「없음」 화면, API는 JSON 그대로
+      const miss=await app.inject({method:'GET',url:'/zz-none',headers:{accept:'text/html'}});expect(miss.statusCode).toBe(404);expect(miss.body).toContain('찾는 페이지가 없어요');expect(miss.body).toContain('class="legacy"');
+      const missApi=await app.inject({method:'GET',url:'/api/zz-none',headers:{accept:'text/html'}});expect(missApi.statusCode).toBe(404);expect(missApi.json()).toMatchObject({statusCode:404});
       // 히든: 1명 발견 → 초성 공개, 3명 전 → 재료 이름 잠김, 최초 발견자 표시
       const hid=await get('/hidden');noHidden(hid);
       expect(hid).toContain('재료 초성');expect(hid).toContain('최초 발견: <a href="/p/'+encodeURIComponent('돌왕'));
@@ -1404,7 +1413,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(view.text).toContain('수다왕');expect(view.text).toContain('👍 1');expect(view.text).not.toContain('브라자');
       // 웹: 도감·수다방·홈에 보이고, 히든 이름은 ???
       const dex=await page('/dex/C1');expect(dex).toContain('너무 귀여워요');expect(dex).not.toContain('브라자');
-      expect(await page('/talk')).toContain('수다왕');expect(await page('/')).toContain('최근 한마디');
+      expect(await page('/talk')).toContain('수다왕');expect(await page('/web/landing')).toContain('최근 한마디');
       expect((await like(cm.id,'198.51.100.1')).json()).toEqual({likes:2,already:false});
       expect((await like(cm.id,'198.51.100.1')).json()).toEqual({likes:2,already:true});
       expect((await like(cm.id,'198.51.100.2')).json()).toEqual({likes:3,already:false});

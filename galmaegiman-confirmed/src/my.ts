@@ -60,8 +60,8 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
     return body?reply.type(type).header('Cache-Control','no-cache').send(body):reply.code(404).send({error:'not found'});
   };
 
-  // /my: 웹은 새 대시보드(public/web, v0.14.0), 게임 안 창(?g=1)은 기존 화면. 대시보드에 없는 메뉴(탐험대·상점·계정)는 /my/classic(기존 화면)
-  app.get<{Querystring:{g?:string;next?:string}}>('/my',async(req,reply)=>file(reply,'text/html; charset=utf-8',req.query.g==='1'||req.query.next==='duel'?'public/my/index.html':'public/web/index.html'));
+  // 웹은 새 화면(공개 사이트·/game)으로 이어 보내는 작은 페이지(public/site/my.html). 앱 게임 창(?g=1)·대결 다음(next=duel)은 기존 화면
+  app.get<{Querystring:{g?:string;next?:string}}>('/my',async(req,reply)=>file(reply,'text/html; charset=utf-8',req.query.g==='1'||req.query.next==='duel'?'public/my/index.html':'public/site/my.html'));
   app.get('/my/classic',async(_req,reply)=>file(reply,'text/html; charset=utf-8','public/my/index.html'));
   app.get('/my/dash.js',async(_req,reply)=>file(reply,'text/javascript; charset=utf-8','public/web/dash.js'));
   // 웹 그림(ChatGPT가 만든 것, public/web/img): 없으면 화면이 크기 정해진 빈 칸을 그림

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>갈매미맨 · 게임</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1d3550">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preload" href="/site/a/jua.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{game.css}}">
+</head><body class="g">
+<div class="app" id="app" aria-busy="true">
+<header class="bar" id="bar">
+  <button class="profile" id="profile" type="button" aria-haspopup="dialog" aria-label="프로필·계정 열기">
+    <span class="face" id="face" aria-hidden="true"></span>
+    <span class="who"><b id="nick">&nbsp;</b><small>프로필 · 계정</small></span>
+  </button>
+  <a class="back" id="back" href="#home" hidden aria-label="항구로"><span aria-hidden="true">‹</span><b id="title"></b></a>
+  <div class="money" id="money" aria-label="보유 재화"></div>
+  <button class="icon-btn" id="settings" type="button" aria-haspopup="dialog" aria-label="설정"><img src="/site/a/settings.webp" alt="" width="30" height="30"></button>
+</header>
+<main class="view" id="view" tabindex="-1"></main>
+<nav class="dock" id="dock" aria-label="게임 메뉴"></nav>
+</div>
+<div class="sheet-wrap" id="sheet" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><div class="sheet-head"><h2 id="sheet-title"></h2><button class="icon-btn close" type="button" aria-label="닫기">×</button></div><div class="sheet-body"></div></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<noscript><p class="noscript">게임 화면은 자바스크립트가 필요해요. <a href="/">공개 홈페이지</a></p></noscript>
+<script src="{{game.js}}" defer></script>
+<script src="{{screens.js}}" defer></script>
+<script src="{{battle.js}}" defer></script>
+<script src="{{more.js}}" defer></script>
+<script src="{{story.js}}" defer></script>
+</body></html>

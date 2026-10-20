@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>갈매미맨</title><meta name="robots" content="noindex"><meta name="theme-color" content="#1d3550">
+<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f1ece3;color:#1e2833;font:17px/1.6 system-ui,sans-serif}a{color:#26476a}</style>
+</head><body>
+<p role="status">이동하는 중… <a href="/game">웹 게임</a> · <a href="/">홈페이지</a></p>
+<script>
+// /my: 예전 「내 갈매미」 주소. 카톡 챗봇 안내(웹 로그인 코드·계정 삭제)와 카카오 로그인 복귀가 이 주소로 온다.
+// 새 화면으로 이어 보낸다: 로그인돼 있으면 웹 게임(/game)의 같은 메뉴, 아니면 로그인(/login). 앱 게임 창(?g=1)은 서버가 예전 화면을 그대로 준다.
+(() => {
+  const go = u => location.replace(u);
+  const q = new URLSearchParams(location.search), k = q.get('kakao');
+  const MAP = { account: 'account', draw: 'draw', craft: 'craft', party: 'explore', units: 'dex', shop: 'shop', home: 'home' };
+  const tab = MAP[location.hash.slice(1).split('=')[0]] || 'home';
+  const next = tab === 'account' ? '/account' : '/game';
+  let ret = null;
+  try { ret = JSON.parse(sessionStorage.getItem('gmm-login-return') || 'null'); if (ret && Date.now() - ret.at > 600e3) ret = null; sessionStorage.removeItem('gmm-login-return'); } catch { /* 저장 안 되는 브라우저 */ }
+  const from = ret && /^\/(?!\/)[A-Za-z0-9/_-]*$/.test(ret.from) ? ret.from : '/';
+  const target = ret ? (ret.next === '/account' ? '/account' : '/game') : next;
+  if (k === 'cancel') {   // 카카오 로그인 취소: 원래 공개 페이지로(스크롤 위치 복구는 site.js)
+    if (ret) try { const was = JSON.parse(sessionStorage.getItem('gmm-from') || 'null'); sessionStorage.setItem('gmm-restore', JSON.stringify({ path: from, y: was && was.path === from ? was.y : 0, at: Date.now() })); } catch { /* 무시 */ }
+    return go(ret ? from : '/');
+  }
+  if (k && k !== 'linked') return go(`/login?next=${target}&from=${encodeURIComponent(from)}&kakao=${encodeURIComponent(k)}`);   // 실패·이미 연결됨·처음 연결
+  fetch('/my/api/who', { headers: { 'x-gmm': '1' }, credentials: 'same-origin' })
+    .then(r => go(r.ok ? (target === '/account' ? '/game#account' : `/game#${tab}`) : `/login?next=${target}&from=${encodeURIComponent(from)}`))
+    .catch(() => go(`/login?next=${target}&from=${encodeURIComponent(from)}`));
+})();
+</script>
+</body></html>

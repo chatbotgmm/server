@@ -1,0 +1,3940 @@
+{
+  "schema": "registration-source-viewports/v2",
+  "coordinateSystem": "immutable original 800x800 PNG pixels; rect is [x,y,width,height]",
+  "policy": "Render original pixels using SVG viewBox/clipPath or equivalent UI clipping only. Never rewrite source images, use generated cutouts, invent occluded anatomy, or apply an extra object-fit:cover crop. Fit the complete selected viewport into the art window. Full-original fallbacks intentionally retain the baked legacy frame/nameplate and require further design review.",
+  "ordering": "characters array order from manifest/registration-cards-145.json",
+  "sourceImagesModified": false,
+  "records": {
+    "C1": {
+      "id": "C1",
+      "basename": "C1.png",
+      "manifestIndex": 0,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/C1.png",
+      "status": "reviewed",
+      "reason": "Preserves the exact face, stone crest, both wings, feet and in-scene dialogue.",
+      "sourceSha256": "3dd36e02da25a56b9ca997e67dad02dc998532efd89e34ec5796f25f774c408f",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/C1.png"
+    },
+    "C2": {
+      "id": "C2",
+      "basename": "C2.png",
+      "manifestIndex": 1,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/C2.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "679b3ecdfdf574b63516c6903a0ff5cf45d6ea29665e1e54795684faec484b4d",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/C2.png"
+    },
+    "C3": {
+      "id": "C3",
+      "basename": "C3.png",
+      "manifestIndex": 2,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/C3.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "834f1deb022b2326595dc0c6aaeae1c28bf0bf854ef61c6618895e6643266d9b",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/C3.png"
+    },
+    "C4": {
+      "id": "C4",
+      "basename": "C4.png",
+      "manifestIndex": 3,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/C4.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "7166de3a986623a5ef671ef685bbd893e9a25b71b4100e008df8770006348459",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/C4.png"
+    },
+    "C5": {
+      "id": "C5",
+      "basename": "C5.png",
+      "manifestIndex": 4,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/C5.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "c75c667ddf107d471a1b5103b8f23acbb14717e873adbbd74cbc5787420a63a4",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/C5.png"
+    },
+    "C6": {
+      "id": "C6",
+      "basename": "C6.png",
+      "manifestIndex": 5,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/C6.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "ffafe3d8dc9353a205bcc800f2c76f014e9a85b2512bb33239de3bf8c210911e",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/C6.png"
+    },
+    "U1": {
+      "id": "U1",
+      "basename": "U1.png",
+      "manifestIndex": 6,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/U1.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "5a9970589af75f88eb1f184ce32689695a155314f1ec89bfd0c0341bdaa9e18c",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/U1.png"
+    },
+    "U2": {
+      "id": "U2",
+      "basename": "U2.png",
+      "manifestIndex": 7,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/U2.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "370425015d3ead0c691501a150fb53187d51fdbcca39b8f9c33e406f9c61a4e9",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/U2.png"
+    },
+    "U3": {
+      "id": "U3",
+      "basename": "U3.png",
+      "manifestIndex": 8,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/U3.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "b434538207f4d9f57b7be50605f5a8062e0bd2191e1791565c5df023f8d54904",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/U3.png"
+    },
+    "U4": {
+      "id": "U4",
+      "basename": "U4.png",
+      "manifestIndex": 9,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/U4.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "561e1cdcbb89297b52d63ab4b9b3d4bf7df9eff29c83c653ca2de0abf10ac03d",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/U4.png"
+    },
+    "U5": {
+      "id": "U5",
+      "basename": "U5.png",
+      "manifestIndex": 10,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/U5.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "0d123eab23287eb440d19e225ddd7d02a7375f629aa705b7a79a1a86f5da7bc9",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/U5.png"
+    },
+    "U6": {
+      "id": "U6",
+      "basename": "U6.png",
+      "manifestIndex": 11,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/U6.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "49b2d0408c8378b53b030ea20cec8994cd8ab8961f4a88371230aeec94526db3",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/U6.png"
+    },
+    "U7": {
+      "id": "U7",
+      "basename": "U7.png",
+      "manifestIndex": 12,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/U7.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "030fe1d09188ce1d12f6af8f7d4c10c0ba2e0391ce8c84f099d7049da34deacf",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/U7.png"
+    },
+    "U8": {
+      "id": "U8",
+      "basename": "U8.png",
+      "manifestIndex": 13,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/U8.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "2dad97f589911950f30b37e4b9b7fbbea596a851043e9ae50e701024a71b183c",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/U8.png"
+    },
+    "U9": {
+      "id": "U9",
+      "basename": "U9.png",
+      "manifestIndex": 14,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/U9.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "732671866846e11d7f780ae42194fca6cbdbfd817d178e3a7512d6b98e3adcc4",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/U9.png"
+    },
+    "U10": {
+      "id": "U10",
+      "basename": "U10.png",
+      "manifestIndex": 15,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/U10.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "572f9834ed27ececfa40642ccefb0c082dff64ba61dc3d25f79f38d2c015c467",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/U10.png"
+    },
+    "U11": {
+      "id": "U11",
+      "basename": "U11.png",
+      "manifestIndex": 16,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/U11.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "1eaf8e31b1df21622319963a0742f199faf2a52899d8212a5cbd936eed06756f",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/U11.png"
+    },
+    "S1": {
+      "id": "S1",
+      "basename": "S1.png",
+      "manifestIndex": 17,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S1.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "e5511a095b992752bb4d24e79216f38ad7655dce28c9d9922bea71d76b1acbfc",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/S1.png"
+    },
+    "S2": {
+      "id": "S2",
+      "basename": "S2.png",
+      "manifestIndex": 18,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S2.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "5803ed45c421faa2fac994b082b9c75f7193d77586e434ddf79daa6fc18f375e",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/S2.png"
+    },
+    "S3": {
+      "id": "S3",
+      "basename": "S3.png",
+      "manifestIndex": 19,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S3.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "e65d858021ce2c636a8a9960e0c68aab15eb292fb4947b44af566d6d45c9d2eb",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/S3.png"
+    },
+    "S4": {
+      "id": "S4",
+      "basename": "S4.png",
+      "manifestIndex": 20,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S4.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "696acee304cf67d76ae0f41795704d9a0ceabb6570d11a7fc17a0468565cd0af",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/S4.png"
+    },
+    "S5": {
+      "id": "S5",
+      "basename": "S5.png",
+      "manifestIndex": 21,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S5.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "d16c3461b2ae4af251ae781ce7423e0668291358b59de9bd5440fee5a29f2e54",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/S5.png"
+    },
+    "S6": {
+      "id": "S6",
+      "basename": "S6.png",
+      "manifestIndex": 22,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S6.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "984a34328a5f9ae493d8fb74e71bb6010b4de7e96576fd61771a4b558415a0e3",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/S6.png"
+    },
+    "S7": {
+      "id": "S7",
+      "basename": "S7.png",
+      "manifestIndex": 23,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S7.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "5eb45c88f7c54124db3288f52d6c708c3d0daeba3981c1b75a45a3decbfd05a7",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/S7.png"
+    },
+    "S8": {
+      "id": "S8",
+      "basename": "S8.png",
+      "manifestIndex": 24,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S8.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "daae9c77472d02328b6e5398fffe1bcaa36c471ad8f1d1d72c0a11239f1e9c1e",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/S8.png"
+    },
+    "S9": {
+      "id": "S9",
+      "basename": "S9.png",
+      "manifestIndex": 25,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S9.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "c697916739e5528849bcce2e1863f9615bfc37fa9ac6095ae47d1d20da90c488",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/S9.png"
+    },
+    "S10": {
+      "id": "S10",
+      "basename": "S10.png",
+      "manifestIndex": 26,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S10.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "7ed288f513018584c0cf8428a093b7f262d8928f75cc44208141b5de6d38d169",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/S10.png"
+    },
+    "S11": {
+      "id": "S11",
+      "basename": "S11.png",
+      "manifestIndex": 27,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S11.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "be842d5a7bb95024f9a0e36048bd46c653f345bd435ffcd33572647cb90bc06f",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/S11.png"
+    },
+    "S12": {
+      "id": "S12",
+      "basename": "S12.png",
+      "manifestIndex": 28,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S12.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "f3d7d5566be2926094b3878978ca1efc13ed756ae004de6fac3d6bf945f88270",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/S12.png"
+    },
+    "S13": {
+      "id": "S13",
+      "basename": "S13.png",
+      "manifestIndex": 29,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S13.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "9ccec712ecc37257d3a8ab638c27f8a56e0fc06e239f862271714590cf4f1dfa",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/S13.png"
+    },
+    "S14": {
+      "id": "S14",
+      "basename": "S14.png",
+      "manifestIndex": 30,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S14.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "d671258da8678ec2b7224d6c2489d045e4f1304cfb539da3d7024212420ddf9b",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/S14.png"
+    },
+    "S15": {
+      "id": "S15",
+      "basename": "S15.png",
+      "manifestIndex": 31,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S15.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "c1277315a69116b6f63170433eb77f117c9bfe558bc70214b850ea7f45a6126b",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/S15.png"
+    },
+    "R1": {
+      "id": "R1",
+      "basename": "R1.png",
+      "manifestIndex": 32,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R1.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "8b02fc89b62d6bbcc3cbf667d73cb6eb2b45d327831f1d9e12df625260d2160e",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R1.png"
+    },
+    "R2": {
+      "id": "R2",
+      "basename": "R2.png",
+      "manifestIndex": 33,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R2.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "a33908184cf6095dd00a8a3df124828ec876fcb5a44d127527cf0180a998c817",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R2.png"
+    },
+    "R3": {
+      "id": "R3",
+      "basename": "R3.png",
+      "manifestIndex": 34,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R3.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "b898c55ecae18c2d6685f7cc01b6b8959e169349cdc3e72422abfb585428dc28",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R3.png"
+    },
+    "R4": {
+      "id": "R4",
+      "basename": "R4.png",
+      "manifestIndex": 35,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R4.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "d100312746cda9b97a061850e3d4130dc5133ad561a34fd0dad8b2a98c4eded2",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R4.png"
+    },
+    "R5": {
+      "id": "R5",
+      "basename": "R5.png",
+      "manifestIndex": 36,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R5.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "4ff25786b4aa11b5dd0d7f61285a268067299f1c82454228c2f5b47428535b72",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R5.png"
+    },
+    "R6": {
+      "id": "R6",
+      "basename": "R6.png",
+      "manifestIndex": 37,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R6.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "80e82ca507adf73464e4ba66ab15f6147c91f6711bf6812b2284333ce3514f31",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R6.png"
+    },
+    "R7": {
+      "id": "R7",
+      "basename": "R7.png",
+      "manifestIndex": 38,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R7.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "05f2beeb035a24606221acb6d2856e88e1df3650d8a5c42e4935247810eed98a",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R7.png"
+    },
+    "R8": {
+      "id": "R8",
+      "basename": "R8.png",
+      "manifestIndex": 39,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R8.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "5f9a3e60f703d091475473fc751bcd762113d1a888ae95939cdf4b9342b68019",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R8.png"
+    },
+    "R9": {
+      "id": "R9",
+      "basename": "R9.png",
+      "manifestIndex": 40,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R9.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "03a5f1f97556b681be7444dc4ee367df6e628f2210678eb03678e1ebb56399b1",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R9.png"
+    },
+    "R10": {
+      "id": "R10",
+      "basename": "R10.png",
+      "manifestIndex": 41,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R10.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "3680038826087ed1584d9081e5b999854b966758e1da52698f38e6e6c700730a",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R10.png"
+    },
+    "R11": {
+      "id": "R11",
+      "basename": "R11.png",
+      "manifestIndex": 42,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R11.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "6f103231d80b88f3496e7e2e8f8940f1cdfd509d919d67149841b9267f825a2b",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R11.png"
+    },
+    "R12": {
+      "id": "R12",
+      "basename": "R12.png",
+      "manifestIndex": 43,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R12.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "795a8a8a0c5bf08e65f739673b5cde4e76de6b3abd1881532c14f02c86ae3a83",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R12.png"
+    },
+    "R13": {
+      "id": "R13",
+      "basename": "R13.png",
+      "manifestIndex": 44,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R13.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "0e0add3137e6bacec3acc3ba28f82feeaa2bf7607af11237c23368de7e243442",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R13.png"
+    },
+    "R14": {
+      "id": "R14",
+      "basename": "R14.png",
+      "manifestIndex": 45,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R14.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "bef022bca657de814e4051fa381bd6b11c29d300f386c1c31661db8551ee05a7",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R14.png"
+    },
+    "R15": {
+      "id": "R15",
+      "basename": "R15.png",
+      "manifestIndex": 46,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R15.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "be323d99d11977cd81ba785e555fd3df23684fb32d97ccb611045beaff6189e9",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R15.png"
+    },
+    "R16": {
+      "id": "R16",
+      "basename": "R16.png",
+      "manifestIndex": 47,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R16.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "a5159e9f3e4d1204864b23f1825570a7726e7e994cee6128ce955546dba3f16a",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R16.png"
+    },
+    "R17": {
+      "id": "R17",
+      "basename": "R17.png",
+      "manifestIndex": 48,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R17.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "1af927f55f509c1467005d5422add3a84661c5dfb65b63887bb9b28053076869",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R17.png"
+    },
+    "R18": {
+      "id": "R18",
+      "basename": "R18.png",
+      "manifestIndex": 49,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R18.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "b992283465a6a609be3b1a9317dcc828fe14b90947da62080388c17d9496e6e0",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R18.png"
+    },
+    "R19": {
+      "id": "R19",
+      "basename": "R19.png",
+      "manifestIndex": 50,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R19.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "7f9eac07b1c41476a5d84c247c63e1071e86c286a8eb91fe9e94108805b6da62",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R19.png"
+    },
+    "R20": {
+      "id": "R20",
+      "basename": "R20.png",
+      "manifestIndex": 51,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R20.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "4b15cb2206d0d105a3d1feaf6cc9b5d08f5cafac47420782a9fbd19c4bd6988d",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R20.png"
+    },
+    "L1": {
+      "id": "L1",
+      "basename": "L1.png",
+      "manifestIndex": 52,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L1.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "8991f80b767442e294b46efd3ef402b111a1d7b5ac7b20c30eff81c2e77e62ea",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L1.png"
+    },
+    "L2": {
+      "id": "L2",
+      "basename": "L2.png",
+      "manifestIndex": 53,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L2.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "8e0f8864a7a880788912f12e7bc26baffea6f326985ad646aefa418501ee61d2",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L2.png"
+    },
+    "L3": {
+      "id": "L3",
+      "basename": "L3.png",
+      "manifestIndex": 54,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L3.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "a3b7af7025ad0f5b9eb2b4741feef3b35d3fa3a4af89dbbd0a310d65528c90f3",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L3.png"
+    },
+    "L4": {
+      "id": "L4",
+      "basename": "L4.png",
+      "manifestIndex": 55,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        64,
+        748,
+        632
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 64,
+        "width": 748,
+        "height": 632
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L4.png",
+      "status": "reviewed",
+      "reason": "Taller viewport preserves the high ice-wing tip and full feet.",
+      "sourceSha256": "fbcc0de823013e35c96630cfe5a46c3446d48f95771052a6863e08b2cf3b0a21",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L4.png"
+    },
+    "L5": {
+      "id": "L5",
+      "basename": "L5.png",
+      "manifestIndex": 56,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L5.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "1ce9a2c49c435794287c7bff6e073ed271704c12c10d0bd8b860d2fdc1a9587e",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L5.png"
+    },
+    "L6": {
+      "id": "L6",
+      "basename": "L6.png",
+      "manifestIndex": 57,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L6.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "a926a54b1b21efe8fdd21e92d93160276b780ff3dd1b254e28bbe62245da64a6",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L6.png"
+    },
+    "L7": {
+      "id": "L7",
+      "basename": "L7.png",
+      "manifestIndex": 58,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L7.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "f24deb69652e6ed793d31b08373181d1effa485b39dddcbb1ae269b2eaf1d3fa",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L7.png"
+    },
+    "L8": {
+      "id": "L8",
+      "basename": "L8.png",
+      "manifestIndex": 59,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        50,
+        748,
+        646
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 50,
+        "width": 748,
+        "height": 646
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L8.png",
+      "status": "reviewed",
+      "reason": "Taller viewport preserves the bird, held map, wings, feet and more of the tall celestial architecture behind it.",
+      "sourceSha256": "bad454ef407d37f8d7bf61631a2cd71c4222a85aa245e6edd54c0ef633f85332",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L8.png"
+    },
+    "L9": {
+      "id": "L9",
+      "basename": "L9.png",
+      "manifestIndex": 60,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L9.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "67fd68ef7904d974c87ee7cc05e82a26169c3c2e6a1314e7001959eb595a6252",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L9.png"
+    },
+    "L10": {
+      "id": "L10",
+      "basename": "L10.png",
+      "manifestIndex": 61,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L10.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "78a72aefa810b6694b4b63764629a5641406a5a2c0d1a33eb6994694a12ce45e",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L10.png"
+    },
+    "L11": {
+      "id": "L11",
+      "basename": "L11.png",
+      "manifestIndex": 62,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L11.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "110495c95a7efdb413623eb450c3761283b1c492db09f237c98e0ad420ff3dbc",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L11.png"
+    },
+    "L12": {
+      "id": "L12",
+      "basename": "L12.png",
+      "manifestIndex": 63,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L12.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "063025173c2fe24b5d2eac65754691452dee4df70b2a15223c7389fa3457d05a",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L12.png"
+    },
+    "L13": {
+      "id": "L13",
+      "basename": "L13.png",
+      "manifestIndex": 64,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L13.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "47452e0822bc2cce5cf867c8ba5961e0b76b9023319eb4a6b2f636a1fe9016f5",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L13.png"
+    },
+    "L14": {
+      "id": "L14",
+      "basename": "L14.png",
+      "manifestIndex": 65,
+      "mode": "full-original-fallback",
+      "rect": [
+        0,
+        0,
+        800,
+        800
+      ],
+      "sourceViewport": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 800
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L14.png",
+      "status": "needsattention",
+      "reason": "Wide rainbow wings meet both original side-frame edges; full original prevents additional wing truncation.",
+      "sourceSha256": "cea85f9d9fd117d3d660255a34d70a4c66bc7cd5c3154e74043d551f8ea4a1cc",
+      "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention.",
+      "review": "needsattention",
+      "sourceUrl": "/images/L14.png"
+    },
+    "L15": {
+      "id": "L15",
+      "basename": "L15.png",
+      "manifestIndex": 66,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L15.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "2af05f94feca30ad56eb378172a3ca758a8a4157ad1d5853be58fe15fb506dea",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L15.png"
+    },
+    "L16": {
+      "id": "L16",
+      "basename": "L16.png",
+      "manifestIndex": 67,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L16.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "d9163221007a4c9db8bfecc85ab20dfd60b6347daf0613e01834d865bd00af63",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L16.png"
+    },
+    "L17": {
+      "id": "L17",
+      "basename": "L17.png",
+      "manifestIndex": 68,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L17.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "2b1ea46f301e090757df1ab60cc29afcfb83bf2282f2ab77a7cc23372ccbbde8",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L17.png"
+    },
+    "L18": {
+      "id": "L18",
+      "basename": "L18.png",
+      "manifestIndex": 69,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L18.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "7870fa90c951b9a8a7e739a001c68f21ba311b8b7e55d49d035601652ba1368f",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L18.png"
+    },
+    "L19": {
+      "id": "L19",
+      "basename": "L19.png",
+      "manifestIndex": 70,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L19.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "96012fec30275140ffff4256f7e557164e64ccfa13e76a14a467a4a414457633",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L19.png"
+    },
+    "L20": {
+      "id": "L20",
+      "basename": "L20.png",
+      "manifestIndex": 71,
+      "mode": "full-original-fallback",
+      "rect": [
+        0,
+        0,
+        800,
+        800
+      ],
+      "sourceViewport": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 800
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L20.png",
+      "status": "needsattention",
+      "reason": "Large rear stone/water appendages extend close to the top and right original edges. Full scene avoids deciding which connected details may be discarded.",
+      "sourceSha256": "1c61a160b45355de77a0bc905a08e4c31f1dd70f46936f23ed91fa56ef2f772b",
+      "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention.",
+      "review": "needsattention",
+      "sourceUrl": "/images/L20.png"
+    },
+    "H1": {
+      "id": "H1",
+      "basename": "H1.png",
+      "manifestIndex": 72,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H1.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "249436403399c70b96b1c76c4fa4a89e06cf37a9e96f26f473e1679993c595e9",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/H1.png"
+    },
+    "H2": {
+      "id": "H2",
+      "basename": "H2.png",
+      "manifestIndex": 73,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H2.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "baefb03069a7666817661efa4c214a5583a715d3d9d73f643b56762f4990fac6",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/H2.png"
+    },
+    "H3": {
+      "id": "H3",
+      "basename": "H3.png",
+      "manifestIndex": 74,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H3.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "eb5beb4be32ddf5bbc128c79e62d82bc4d60d7f754181c19075f2ea24d0325f7",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/H3.png"
+    },
+    "H4": {
+      "id": "H4",
+      "basename": "H4.png",
+      "manifestIndex": 75,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H4.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "947f1f0c0dd607d6f37c12d13473a2f70a1bd6f2e3aab55cd623567ab3ba33a8",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/H4.png"
+    },
+    "H5": {
+      "id": "H5",
+      "basename": "H5.png",
+      "manifestIndex": 76,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H5.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "00b5a23a598878de1a3b96b29a991f0fad6073ae52780c1e08d77567453ca587",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/H5.png"
+    },
+    "H6": {
+      "id": "H6",
+      "basename": "H6.png",
+      "manifestIndex": 77,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H6.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "268db01faa4c94f09ece145a6a42e76031717e4cad27ba6a216416ac57659631",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/H6.png"
+    },
+    "H7": {
+      "id": "H7",
+      "basename": "H7.png",
+      "manifestIndex": 78,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H7.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "f391ca6f6bbd2e951933de4ab717e917d2f5140d89e1898db003cad720b904b0",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/H7.png"
+    },
+    "H8": {
+      "id": "H8",
+      "basename": "H8.png",
+      "manifestIndex": 79,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        64,
+        748,
+        632
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 64,
+        "width": 748,
+        "height": 632
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H8.png",
+      "status": "reviewed",
+      "reason": "Taller viewport preserves the upper floating crystal prop, beam and complete bird silhouette.",
+      "sourceSha256": "72809734263a18a791536c073f94d2b154bff0c1094df7a561980c6f691016c2",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/H8.png"
+    },
+    "H9": {
+      "id": "H9",
+      "basename": "H9.png",
+      "manifestIndex": 80,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H9.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "7ca17a89c8257436a1aa233935e5b9e7f201760446209a8f311dc3edf84c7e73",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/H9.png"
+    },
+    "H10": {
+      "id": "H10",
+      "basename": "H10.png",
+      "manifestIndex": 81,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H10.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "c1573851d5bc0f1c814048a31d43b29bc1b74d3f29d06cbdd687ef5954b7f0ec",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/H10.png"
+    },
+    "H11": {
+      "id": "H11",
+      "basename": "H11.png",
+      "manifestIndex": 82,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H11.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "8fdd1621c01557f2d34768947ed839fe0299d94b7162e22becd649545eb266ea",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/H11.png"
+    },
+    "H12": {
+      "id": "H12",
+      "basename": "H12.png",
+      "manifestIndex": 83,
+      "mode": "full-original-fallback",
+      "rect": [
+        0,
+        0,
+        800,
+        800
+      ],
+      "sourceViewport": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 800
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H12.png",
+      "status": "needsattention",
+      "reason": "Wide water-wing feather tips reach and overlap the original right edge; full scene avoids truncating those signature appendages.",
+      "sourceSha256": "1e66b3bcb8ce8a5072cb9cff544e0f5feff83a32cb7e3bce6929945585402df8",
+      "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention.",
+      "review": "needsattention",
+      "sourceUrl": "/images/H12.png"
+    },
+    "H13": {
+      "id": "H13",
+      "basename": "H13.png",
+      "manifestIndex": 84,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H13.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "bb25862558a31219ae0689af423196caf605d4790ef15c534b073d6d5247e4ac",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/H13.png"
+    },
+    "D1": {
+      "id": "D1",
+      "basename": "D1.png",
+      "manifestIndex": 85,
+      "mode": "source-scene",
+      "rect": [
+        29,
+        90,
+        742,
+        607
+      ],
+      "sourceViewport": {
+        "x": 29,
+        "y": 90,
+        "width": 742,
+        "height": 607
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/D1.png",
+      "status": "reviewed",
+      "reason": "Both gold wing-shields, central bird and background birds retained; lower polygon removes old corner accents.",
+      "sourceSha256": "cca2f7251c01d0fe090a751d24ea724a631a598899ad776ccf09eb117371f524",
+      "sourceClipPath": "M29 90H771V638L716 697H84L29 638Z",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/D1.png"
+    },
+    "D2": {
+      "id": "D2",
+      "basename": "D2.png",
+      "manifestIndex": 86,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/D2.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "781b8d9babc37710053481cfe6cb88fccb87667973b51a6d8e749bba0baecf08",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/D2.png"
+    },
+    "D3": {
+      "id": "D3",
+      "basename": "D3.png",
+      "manifestIndex": 87,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/D3.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "2046705d1d014896eaaf7b50800d541f3db8812d8d47087b8d8e5cf034ad5163",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/D3.png"
+    },
+    "D4": {
+      "id": "D4",
+      "basename": "D4.png",
+      "manifestIndex": 88,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        32,
+        748,
+        664
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 32,
+        "width": 748,
+        "height": 664
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/D4.png",
+      "status": "reviewed",
+      "reason": "Taller viewport preserves the distinctive overhead whirlpool; some baked top-frame decoration remains.",
+      "sourceSha256": "e4fda9b71ff534db805372c95388767635e0aa57aec6f3a32bd7ef18b2fa5c00",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/D4.png"
+    },
+    "D5": {
+      "id": "D5",
+      "basename": "D5.png",
+      "manifestIndex": 89,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/D5.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "b73b924b05711e9498d7e1e52d4a54311864c4d5fdc05f3c28bcea262d3e697d",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/D5.png"
+    },
+    "D6": {
+      "id": "D6",
+      "basename": "D6.png",
+      "manifestIndex": 90,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/D6.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "90b8df481969921fffe01c4c82c292b88a0e6be2f05f04625c4e2f2ea9ec0d3c",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/D6.png"
+    },
+    "D7": {
+      "id": "D7",
+      "basename": "D7.png",
+      "manifestIndex": 91,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/D7.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "cb77f3f61b9ee718faa446c09b42f0bd44bbb6b5cb024e8671b89f8d772962e2",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/D7.png"
+    },
+    "D8": {
+      "id": "D8",
+      "basename": "D8.png",
+      "manifestIndex": 92,
+      "mode": "full-original-fallback",
+      "rect": [
+        0,
+        0,
+        800,
+        800
+      ],
+      "sourceViewport": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 800
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/D8.png",
+      "status": "needsattention",
+      "reason": "Ribbons, bow, gift and wide wings meet original frame; no tighter automatic crop is approved.",
+      "sourceSha256": "1865821114bd71cf50dd1c7911a3c9cc3203248aea125bfa56c81a842a86ebc8",
+      "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention.",
+      "review": "needsattention",
+      "sourceUrl": "/images/D8.png"
+    },
+    "T1": {
+      "id": "T1",
+      "basename": "T1.png",
+      "manifestIndex": 93,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/T1.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "6e09cd3d274c97c09d77a1784f2225aa1a882bc1ac51eb539a4f5575b941ebc5",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/T1.png"
+    },
+    "T2": {
+      "id": "T2",
+      "basename": "T2.png",
+      "manifestIndex": 94,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/T2.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "1dd0146a29e73103b3651656764950622ca44249eb83333a445e4fdf2b371c9a",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/T2.png"
+    },
+    "T3": {
+      "id": "T3",
+      "basename": "T3.png",
+      "manifestIndex": 95,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/T3.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "36c1cc390d5cb7083ea5d01c2fd1bf365ac0e891b3f4058cfbb53b3b49097fe3",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/T3.png"
+    },
+    "T4": {
+      "id": "T4",
+      "basename": "T4.png",
+      "manifestIndex": 96,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        40,
+        748,
+        656
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 40,
+        "width": 748,
+        "height": 656
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/T4.png",
+      "status": "reviewed",
+      "reason": "Taller viewport preserves the overhead water rings; some baked top-frame decoration remains.",
+      "sourceSha256": "218b1d237bde26331a463159457b2c27ab39a642c968074b59eee5bb27df3a95",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/T4.png"
+    },
+    "T5": {
+      "id": "T5",
+      "basename": "T5.png",
+      "manifestIndex": 97,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/T5.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "ff438ce612042ed4f057e1f5765b5a8e8968242e62885638bc3ee4804259c4af",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/T5.png"
+    },
+    "T6": {
+      "id": "T6",
+      "basename": "T6.png",
+      "manifestIndex": 98,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/T6.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "b81c260660bb36b6e8864e29b7923df7183619308b64e521642663b753353478",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/T6.png"
+    },
+    "T7": {
+      "id": "T7",
+      "basename": "T7.png",
+      "manifestIndex": 99,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/T7.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "531eeca357abc9f84ea6d78d84b568b411f37ca456f9ae45f8707452d44a24cb",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/T7.png"
+    },
+    "T8": {
+      "id": "T8",
+      "basename": "T8.png",
+      "manifestIndex": 100,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/T8.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "31cf3e480284ea082a5899ac5445aa7f6ad26d4e070488d2ef0c58b19733c3c2",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/T8.png"
+    },
+    "E1": {
+      "id": "E1",
+      "basename": "E1.png",
+      "manifestIndex": 101,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/E1.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "1654c6db9b63339ff6e7cbb82211b7685866d63c6c79d0f46b96e5b8065c9bcf",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/E1.png"
+    },
+    "E2": {
+      "id": "E2",
+      "basename": "E2.png",
+      "manifestIndex": 102,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/E2.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "0645734965461d7deb0262be734b219c1f3a8111d2c9bde3c9347f06931ed7f7",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/E2.png"
+    },
+    "E3": {
+      "id": "E3",
+      "basename": "E3.png",
+      "manifestIndex": 103,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/E3.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "7989c252cf5431cf094caf6f57b3a21e91ddca2e2edfc016a48ab37f2336d9fb",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/E3.png"
+    },
+    "E4": {
+      "id": "E4",
+      "basename": "E4.png",
+      "manifestIndex": 104,
+      "mode": "full-original-fallback",
+      "rect": [
+        0,
+        0,
+        800,
+        800
+      ],
+      "sourceViewport": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 800
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/E4.png",
+      "status": "needsattention",
+      "reason": "Left wing closely meets and is overlapped by ornate old side-frame elements; keep original until frame-overlap review.",
+      "sourceSha256": "38c625005128edba2fb41fd3da963f9a14ca5c52aea914bc9b902fda9400d257",
+      "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention.",
+      "review": "needsattention",
+      "sourceUrl": "/images/E4.png"
+    },
+    "E5": {
+      "id": "E5",
+      "basename": "E5.png",
+      "manifestIndex": 105,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/E5.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "e06b24785d2ce2139b2c449217041f9a25543a19301cf920106a24707a7d9bf4",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/E5.png"
+    },
+    "E6": {
+      "id": "E6",
+      "basename": "E6.png",
+      "manifestIndex": 106,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/E6.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "a51970d09dc6fcd0c4c5166387acd3132ae44f61ac48ec0f19b2429a2b73eb51",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/E6.png"
+    },
+    "E7": {
+      "id": "E7",
+      "basename": "E7.png",
+      "manifestIndex": 107,
+      "mode": "full-original-fallback",
+      "rect": [
+        0,
+        0,
+        800,
+        800
+      ],
+      "sourceViewport": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 800
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/E7.png",
+      "status": "needsattention",
+      "reason": "Floating feather hairpiece begins near the decorated top frame; full scene preserves the separate signature prop.",
+      "sourceSha256": "22e37ea1d2e10ad583d11cd14c015e62a45c030a38de489b94906bc620cd5e5b",
+      "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention.",
+      "review": "needsattention",
+      "sourceUrl": "/images/E7.png"
+    },
+    "E8": {
+      "id": "E8",
+      "basename": "E8.png",
+      "manifestIndex": 108,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/E8.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "39dfb681e5868bb3aa7fb7467955ee22b847a8cd0722191acda7de59ba90e186",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/E8.png"
+    },
+    "I1": {
+      "id": "I1",
+      "basename": "I1.png",
+      "manifestIndex": 109,
+      "mode": "source-scene",
+      "rect": [
+        32,
+        80,
+        736,
+        616
+      ],
+      "sourceViewport": {
+        "x": 32,
+        "y": 80,
+        "width": 736,
+        "height": 616
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/I1.png",
+      "status": "reviewed",
+      "reason": "Tall viewport preserves the upper original dialogue, waving hand, armour and feet; small baked top ornament remains.",
+      "sourceSha256": "76cee2329e4b757fa69682ab1c79ef77f1f3052f08526164979970ed3d024aab",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/I1.png"
+    },
+    "I2": {
+      "id": "I2",
+      "basename": "I2.png",
+      "manifestIndex": 110,
+      "mode": "source-scene",
+      "rect": [
+        32,
+        112,
+        736,
+        584
+      ],
+      "sourceViewport": {
+        "x": 32,
+        "y": 112,
+        "width": 736,
+        "height": 584
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/I2.png",
+      "status": "reviewed",
+      "reason": "Viewport below the central old crest preserves the inspected bird, wings, equipment and feet; small ornate side fragments may remain.",
+      "sourceSha256": "b1092761f802a4e8a8cc3e33cbe249e577a80f6f5ad82f420f76c92f0d02dd46",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/I2.png"
+    },
+    "I3": {
+      "id": "I3",
+      "basename": "I3.png",
+      "manifestIndex": 111,
+      "mode": "source-scene",
+      "rect": [
+        32,
+        112,
+        736,
+        584
+      ],
+      "sourceViewport": {
+        "x": 32,
+        "y": 112,
+        "width": 736,
+        "height": 584
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/I3.png",
+      "status": "reviewed",
+      "reason": "Viewport below the central old crest preserves the inspected bird, wings, equipment and feet; small ornate side fragments may remain.",
+      "sourceSha256": "66214a858fe7504a70154160c3db7d1e7e0d314929011af2d105a2c71638067c",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/I3.png"
+    },
+    "I4": {
+      "id": "I4",
+      "basename": "I4.png",
+      "manifestIndex": 112,
+      "mode": "source-scene",
+      "rect": [
+        32,
+        112,
+        736,
+        584
+      ],
+      "sourceViewport": {
+        "x": 32,
+        "y": 112,
+        "width": 736,
+        "height": 584
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/I4.png",
+      "status": "reviewed",
+      "reason": "Viewport below the central old crest preserves the inspected bird, wings, equipment and feet; small ornate side fragments may remain.",
+      "sourceSha256": "30490727ac84fca453a548ba7d17d9872b1efb0ef81f7c4801506299ce349d3f",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/I4.png"
+    },
+    "I5": {
+      "id": "I5",
+      "basename": "I5.png",
+      "manifestIndex": 113,
+      "mode": "source-scene",
+      "rect": [
+        32,
+        112,
+        736,
+        584
+      ],
+      "sourceViewport": {
+        "x": 32,
+        "y": 112,
+        "width": 736,
+        "height": 584
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/I5.png",
+      "status": "reviewed",
+      "reason": "Viewport below the central old crest preserves the inspected bird, wings, equipment and feet; small ornate side fragments may remain.",
+      "sourceSha256": "5040f4206f1cd73dc6a18babbd8d508f86b549116b9a464fc1988c38de4b0b4f",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/I5.png"
+    },
+    "I6": {
+      "id": "I6",
+      "basename": "I6.png",
+      "manifestIndex": 114,
+      "mode": "source-scene",
+      "rect": [
+        32,
+        112,
+        736,
+        584
+      ],
+      "sourceViewport": {
+        "x": 32,
+        "y": 112,
+        "width": 736,
+        "height": 584
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/I6.png",
+      "status": "reviewed",
+      "reason": "Viewport below the central old crest preserves the inspected bird, wings, equipment and feet; small ornate side fragments may remain.",
+      "sourceSha256": "2945a880a998b028a51d40a6222bc9732e2c435095afd43690483a0c3a744655",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/I6.png"
+    },
+    "I7": {
+      "id": "I7",
+      "basename": "I7.png",
+      "manifestIndex": 115,
+      "mode": "source-scene",
+      "rect": [
+        32,
+        112,
+        736,
+        584
+      ],
+      "sourceViewport": {
+        "x": 32,
+        "y": 112,
+        "width": 736,
+        "height": 584
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/I7.png",
+      "status": "reviewed",
+      "reason": "Viewport below the central old crest preserves the inspected bird, wings, equipment and feet; small ornate side fragments may remain.",
+      "sourceSha256": "3af89a36ffbd12ba3a0373cf5ad0a2ac8682325e730269c174953fb78dbf5025",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/I7.png"
+    },
+    "I8": {
+      "id": "I8",
+      "basename": "I8.png",
+      "manifestIndex": 116,
+      "mode": "source-scene",
+      "rect": [
+        32,
+        112,
+        736,
+        584
+      ],
+      "sourceViewport": {
+        "x": 32,
+        "y": 112,
+        "width": 736,
+        "height": 584
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/I8.png",
+      "status": "reviewed",
+      "reason": "Viewport below the central old crest preserves the inspected bird, wings, equipment and feet; small ornate side fragments may remain.",
+      "sourceSha256": "6813ca3ef95b27686f30839f407f56ff200e3bc26924e5fb38b4421fdd6fa1de",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/I8.png"
+    },
+    "I9": {
+      "id": "I9",
+      "basename": "I9.png",
+      "manifestIndex": 117,
+      "mode": "source-scene",
+      "rect": [
+        32,
+        112,
+        736,
+        584
+      ],
+      "sourceViewport": {
+        "x": 32,
+        "y": 112,
+        "width": 736,
+        "height": 584
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/I9.png",
+      "status": "reviewed",
+      "reason": "Viewport below the central old crest preserves the inspected bird, wings, equipment and feet; small ornate side fragments may remain.",
+      "sourceSha256": "085b9ecbab21909eade909c1eba9a9afafef43c96e405e38d2ff4f04e1c48169",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/I9.png"
+    },
+    "C7": {
+      "id": "C7",
+      "basename": "C7.png",
+      "manifestIndex": 118,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        27,
+        748,
+        671
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 27,
+        "width": 748,
+        "height": 671
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/C7.png",
+      "status": "reviewed",
+      "reason": "Taller giant, crushed truck and upper dialogue retained; polygon only removes decorative corner areas.",
+      "sourceSha256": "7f95c1c513227298d0c0df5e0a39db74ec9bcc88a446e5fadbe179accc9b391f",
+      "sourceClipPath": "M100 27H700L774 101V674L750 698H50L26 674V101Z",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/C7.png"
+    },
+    "C8": {
+      "id": "C8",
+      "basename": "C8.png",
+      "manifestIndex": 119,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/C8.png",
+      "status": "reviewed",
+      "reason": "Tiny bird, large shrimp snack, held food and crumbs retained at their original relative scale.",
+      "sourceSha256": "01eb9c7df39bf4bedb3fef799ede5848bf82bb7c39e76e79a6edede31d2e8123",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/C8.png"
+    },
+    "C9": {
+      "id": "C9",
+      "basename": "C9.png",
+      "manifestIndex": 120,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/C9.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "6feb5d4959bd0c21a99bf0cfdd5168dd76f03c67213baf3a67dc53e7a09d812e",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/C9.png"
+    },
+    "U12": {
+      "id": "U12",
+      "basename": "U12.png",
+      "manifestIndex": 121,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        64,
+        748,
+        632
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 64,
+        "width": 748,
+        "height": 632
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/U12.png",
+      "status": "reviewed",
+      "reason": "Taller viewport preserves the crest tip at y94, both raised feet, wings and complete original dialogue.",
+      "sourceSha256": "628e0224503feedf717152105a359fbd584b1ab12524cd18c8714a8d13d1a60c",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/U12.png"
+    },
+    "U13": {
+      "id": "U13",
+      "basename": "U13.png",
+      "manifestIndex": 122,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/U13.png",
+      "status": "reviewed",
+      "reason": "Tiny central star-like character retained within the original large cosmic scene; no inferred enlargement or invented anatomy.",
+      "sourceSha256": "5c72e84f1cc7fce6872b835241345913abf4325959f536b8868eaf09ba6ac98f",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/U13.png"
+    },
+    "U14": {
+      "id": "U14",
+      "basename": "U14.png",
+      "manifestIndex": 123,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/U14.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "521c5ab456bb89ba6c0a10fd730e52e477b4ef31bd3ed4178ada791249c475dc",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/U14.png"
+    },
+    "U15": {
+      "id": "U15",
+      "basename": "U15.png",
+      "manifestIndex": 124,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/U15.png",
+      "status": "reviewed",
+      "reason": "Both the small left companion and tall right bird retained.",
+      "sourceSha256": "9d5fa3b27a79ed19c0e125cbbfd3bfbad0b9f31bf1261c59df0c478e382582bf",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/U15.png"
+    },
+    "U16": {
+      "id": "U16",
+      "basename": "U16.png",
+      "manifestIndex": 125,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/U16.png",
+      "status": "reviewed",
+      "reason": "Both members of the couple retained.",
+      "sourceSha256": "f120e4e1f1983eb4626dc710300877cb9a870de40ff3c676466a7028987d6504",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/U16.png"
+    },
+    "S16": {
+      "id": "S16",
+      "basename": "S16.png",
+      "manifestIndex": 126,
+      "mode": "full-original-fallback",
+      "rect": [
+        0,
+        0,
+        800,
+        800
+      ],
+      "sourceViewport": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 800
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S16.png",
+      "status": "needsattention",
+      "reason": "Right wing is already occluded by the original right frame; preserve whole scene and dock bystanders.",
+      "sourceSha256": "7d9b2f2542978a0d324d7f60158c76edd71122c5831b0ea1cf869b0bbd470676",
+      "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention.",
+      "review": "needsattention",
+      "sourceUrl": "/images/S16.png"
+    },
+    "S17": {
+      "id": "S17",
+      "basename": "S17.png",
+      "manifestIndex": 127,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S17.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "f17f406a2a70b9164d2943fea70032c82c741e99728ee31e2e93cefff20c3b6e",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/S17.png"
+    },
+    "S18": {
+      "id": "S18",
+      "basename": "S18.png",
+      "manifestIndex": 128,
+      "mode": "full-original-fallback",
+      "rect": [
+        0,
+        0,
+        800,
+        800
+      ],
+      "sourceViewport": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 800
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S18.png",
+      "status": "needsattention",
+      "reason": "Carriage crest rises above the default viewport and the right-hand attendant meets the original side edge. Full scene preserves the complete visible group and carriage.",
+      "sourceSha256": "79ab6bfa7221f95c3414f945ebde1cc7aa48e6d5bf73ad9f889b3ef6d2a57c54",
+      "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention.",
+      "review": "needsattention",
+      "sourceUrl": "/images/S18.png"
+    },
+    "S19": {
+      "id": "S19",
+      "basename": "S19.png",
+      "manifestIndex": 129,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        48,
+        748,
+        648
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 48,
+        "width": 748,
+        "height": 648
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/S19.png",
+      "status": "reviewed",
+      "reason": "Taller viewport preserves the small upper bird, its high right wing and the bearer feet through y687; both figures kept.",
+      "sourceSha256": "d3780abeb04c74c3728b698d9e736cd0d3743a1fba75c291611d4563de02929a",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/S19.png"
+    },
+    "R21": {
+      "id": "R21",
+      "basename": "R21.png",
+      "manifestIndex": 130,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        48,
+        748,
+        648
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 48,
+        "width": 748,
+        "height": 648
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R21.png",
+      "status": "reviewed",
+      "reason": "Taller viewport preserves the upper mountain-wing tip beginning near y60.",
+      "sourceSha256": "f228dc9bab5501d3065df146c96428448ce79c8442cdd95d828e8d02bbe2438e",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/R21.png"
+    },
+    "R22": {
+      "id": "R22",
+      "basename": "R22.png",
+      "manifestIndex": 131,
+      "mode": "full-original-fallback",
+      "rect": [
+        0,
+        0,
+        800,
+        800
+      ],
+      "sourceViewport": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 800
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R22.png",
+      "status": "needsattention",
+      "reason": "Multiple members of the queue reach the original right edge; preserve the whole group.",
+      "sourceSha256": "aedee4fd4b54452bd5bb5b16fee8eed5a210d50f86bc9260a5865828216ed212",
+      "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention.",
+      "review": "needsattention",
+      "sourceUrl": "/images/R22.png"
+    },
+    "R23": {
+      "id": "R23",
+      "basename": "R23.png",
+      "manifestIndex": 132,
+      "mode": "full-original-fallback",
+      "rect": [
+        0,
+        0,
+        800,
+        800
+      ],
+      "sourceViewport": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 800
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/R23.png",
+      "status": "needsattention",
+      "reason": "Left wing and right wedding guest reach opposite original edges; full scene preserves the group.",
+      "sourceSha256": "ad5fb5d4e6e3877118423085be4fb1804c49f2dd9131ce07e221ac87b7cef711",
+      "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention.",
+      "review": "needsattention",
+      "sourceUrl": "/images/R23.png"
+    },
+    "L21": {
+      "id": "L21",
+      "basename": "L21.png",
+      "manifestIndex": 133,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        52,
+        748,
+        644
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 52,
+        "width": 748,
+        "height": 644
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L21.png",
+      "status": "reviewed",
+      "reason": "Taller viewport preserves the giant crest tip beginning near y66, feet and full island context.",
+      "sourceSha256": "70b971dfbee7e10925589041d812936bbded670132352dc3c8d8e39204ca2313",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L21.png"
+    },
+    "L22": {
+      "id": "L22",
+      "basename": "L22.png",
+      "manifestIndex": 134,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L22.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "b427f9af0e3f5ec48ca62910fda2fdbabe4bcfb78d7d1f675fe2df9417b4a04d",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/L22.png"
+    },
+    "L23": {
+      "id": "L23",
+      "basename": "L23.png",
+      "manifestIndex": 135,
+      "mode": "full-original-fallback",
+      "rect": [
+        0,
+        0,
+        800,
+        800
+      ],
+      "sourceViewport": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 800
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/L23.png",
+      "status": "needsattention",
+      "reason": "Large family scene includes birds at both side edges and upper background; preserve the entire group.",
+      "sourceSha256": "3cb4c26f04a31c43894306a92d8835d0a8561493be5c518ac180a3aabfe197ae",
+      "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention.",
+      "review": "needsattention",
+      "sourceUrl": "/images/L23.png"
+    },
+    "H14": {
+      "id": "H14",
+      "basename": "H14.png",
+      "manifestIndex": 136,
+      "mode": "full-original-fallback",
+      "rect": [
+        0,
+        0,
+        800,
+        800
+      ],
+      "sourceViewport": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 800
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H14.png",
+      "status": "needsattention",
+      "reason": "Giant rear wing reaches the top original frame and tiny companion is far below; preserve both figures.",
+      "sourceSha256": "c5d09766384f537ffd373f71a2e5c1bfe790dad694137c9e6623782ee9fa0ecd",
+      "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention.",
+      "review": "needsattention",
+      "sourceUrl": "/images/H14.png"
+    },
+    "H15": {
+      "id": "H15",
+      "basename": "H15.png",
+      "manifestIndex": 137,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H15.png",
+      "status": "reviewed",
+      "reason": "Wedding pair and visible foreground context retained without reconstructing hidden bodies.",
+      "sourceSha256": "e023844544297f8c986174304a106adafd2e11ee8cb81d86357df23460a7bcb4",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/H15.png"
+    },
+    "N1": {
+      "id": "N1",
+      "basename": "N1.png",
+      "manifestIndex": 138,
+      "mode": "source-scene",
+      "rect": [
+        27,
+        97,
+        746,
+        600
+      ],
+      "sourceViewport": {
+        "x": 27,
+        "y": 97,
+        "width": 746,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/N1.png",
+      "status": "reviewed",
+      "reason": "Original neutral bird, stone wings and feet retained.",
+      "sourceSha256": "11ab4fc55f2e3ffc4a37bfac5e7ad0713be9feb063894f32940977f603f30a24",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/N1.png"
+    },
+    "H16": {
+      "id": "H16",
+      "basename": "H16.png",
+      "manifestIndex": 139,
+      "mode": "full-original-fallback",
+      "rect": [
+        0,
+        0,
+        800,
+        800
+      ],
+      "sourceViewport": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 800
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H16.png",
+      "status": "needsattention",
+      "reason": "Wedding guests reach both edges and lower foreground; no automatic cleanup crop is approved.",
+      "sourceSha256": "83411783ba891d73f89561ab80be2f28ed013eea0da2252645fba1acf666de06",
+      "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention.",
+      "review": "needsattention",
+      "sourceUrl": "/images/H16.png"
+    },
+    "H17": {
+      "id": "H17",
+      "basename": "H17.png",
+      "manifestIndex": 140,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H17.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "30643dca7b6bb7a8119594f83c1dd062602b005ce8fc9b3bd6f7571b5689aed5",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/H17.png"
+    },
+    "H18": {
+      "id": "H18",
+      "basename": "H18.png",
+      "manifestIndex": 141,
+      "mode": "full-original-fallback",
+      "rect": [
+        0,
+        0,
+        800,
+        800
+      ],
+      "sourceViewport": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 800
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H18.png",
+      "status": "needsattention",
+      "reason": "Side birds and guard equipment meet original side edges; preserve all visible group pixels.",
+      "sourceSha256": "19921f8727e95669640adc24dabf41e7b8750276bc57539b7a684b388d190cdf",
+      "legacyFrameNote": "Full old frame/nameplate intentionally retained; requires further visual design attention.",
+      "review": "needsattention",
+      "sourceUrl": "/images/H18.png"
+    },
+    "H19": {
+      "id": "H19",
+      "basename": "H19.png",
+      "manifestIndex": 142,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H19.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "6e48b3ad6a4afd2eba702198dedd1813acc84dce03cc4cdef7822e232e1011ab",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/H19.png"
+    },
+    "H20": {
+      "id": "H20",
+      "basename": "H20.png",
+      "manifestIndex": 143,
+      "mode": "source-scene",
+      "rect": [
+        26,
+        96,
+        748,
+        600
+      ],
+      "sourceViewport": {
+        "x": 26,
+        "y": 96,
+        "width": 748,
+        "height": 600
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H20.png",
+      "status": "reviewed",
+      "reason": "Inspected original silhouette, wings, feet and signature equipment fit inside this viewport; lower baked nameplate is outside it.",
+      "sourceSha256": "855ded57ca2e36e180ce0e99c61a7234ffa7fcad5fb066e557da67aaf7e853a6",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/H20.png"
+    },
+    "H21": {
+      "id": "H21",
+      "basename": "H21.png",
+      "manifestIndex": 144,
+      "mode": "source-scene",
+      "rect": [
+        28,
+        105,
+        744,
+        593
+      ],
+      "sourceViewport": {
+        "x": 28,
+        "y": 105,
+        "width": 744,
+        "height": 593
+      },
+      "width": 800,
+      "height": 800,
+      "path": "../../../../public/images/H21.png",
+      "status": "reviewed",
+      "reason": "All four birds, table and peanut retained; occluded anatomy stays occluded.",
+      "sourceSha256": "287a56f3c5d91c1f8dcf8a590d9fb0972f3be5b2f2c77cfc63cc0d077f42d9b6",
+      "legacyFrameNote": "Lower baked nameplate removed. Some small ornate side/corner fragments may remain where native clipping preserves nearby artwork.",
+      "review": "reviewed",
+      "sourceUrl": "/images/H21.png"
+    }
+  },
+  "summary": {
+    "total": 145,
+    "reviewedSceneViewports": 131,
+    "fullOriginalNeedsAttention": 14,
+    "allOriginalsViewedOnContactSheets": true,
+    "allViewportRenderingsViewedOnContactSheets": true,
+    "individual800pxOriginalsViewed": 30,
+    "all145Individually800pxInspected": false,
+    "sourceImagePixelsEdited": false,
+    "allOriginalsMatchPinnedGitBlobSha": true,
+    "sourceBaselineCommit": "a9023073fd2dc1e34de7994ae1b7d8f215c7c08b"
+  },
+  "auditComplete": true,
+  "auditScope": "145 originals and 145 clipped viewports inspected, including 30 native-size checks; 131 scene crops and 14 full-original exceptions. No app/browser production QA claim."
+}
