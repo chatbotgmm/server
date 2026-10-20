@@ -1046,9 +1046,9 @@ final class NativeReveal extends FrameLayout {
         newBadge = badge;
         badge.setGravity(Gravity.CENTER);
         fitBadge(badge);
-        // This non-interactive flag must fit before the baked heading, even at 130% text.
+        // Keep 2dp of breathing room per side without pushing into the printed heading.
         badge.setMinWidth(Math.max(h.dp(30),
-            (int) Math.ceil(badge.getPaint().measureText("NEW")) + h.dp(6)));
+            (int) Math.ceil(badge.getPaint().measureText("NEW")) + h.dp(4)));
         badge.setMinHeight(Math.max(h.dp(20), badge.getLineHeight() + h.dp(4)));
         badge.setBackground(new GamePaperDrawable(h, JournalTheme.BRASS));
         LayoutParams box = new LayoutParams(-2, -2, Gravity.TOP | Gravity.LEFT);

@@ -715,7 +715,7 @@ public class NativeResultReassessmentSwipeTest {
           assertEquals("글꼴에 의존하는 회전 문자를 겹쳐 그리지 않는다", "", ((TextView) refresh).getText().toString());
           assertNotNull(first.newBadge); assertNotNull(first.countBadge);
           int fittedWidth = Math.max(s.h.dp(30),
-              (int) Math.ceil(first.newBadge.getPaint().measureText("NEW")) + s.h.dp(6));
+              (int) Math.ceil(first.newBadge.getPaint().measureText("NEW")) + s.h.dp(4));
           String badgeGeometry = name + " badge=" + first.newBadge.getWidth()
               + "px fitted=" + fittedWidth + "px text=" + first.newBadge.getTextSize()
               + "px card=" + first.getWidth() + "px";
