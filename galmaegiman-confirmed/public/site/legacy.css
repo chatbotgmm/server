@@ -248,3 +248,19 @@ main#main.legacy{max-width:1080px;margin:0 auto;padding:28px 16px 56px}
 .legacy .chip{min-width:52px;justify-content:center}
 .legacy .btn{min-height:48px;box-sizing:border-box}
 main#main.legacy{min-height:calc(100vh - var(--head,64px) - 260px)}
+/* 개인정보 처리방침: 법적 문서라 제목·표를 왼쪽 정렬, 목차 상자 */
+.legacy .tale.privacy h2{text-align:left;scroll-margin-top:calc(var(--head,64px) + 16px)}
+.legacy .tale.privacy h2::after{margin:10px 0 0}
+.legacy .tale.privacy p:last-child{text-align:left;font-size:inherit;margin-top:0}
+.legacy .tale.privacy .toc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:0 0 1.5em}
+.legacy .tale.privacy .toc ol{margin:.4em 0 0}
+.legacy .tale.privacy .toc a{display:inline-flex;align-items:center;min-height:48px}
+.legacy .tale.privacy .toc li{margin:0}
+.legacy .tale.privacy td:first-child{white-space:normal}
+/* 개인정보 처리방침: 진중한 문서 — 서문 왼쪽 정렬·보통 크기, 절 제목은 한 색, 강조 글자는 본문 색 */
+.legacy .tale.privacy>blockquote{text-align:left;font-size:1rem;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:0 0 1.5em}
+.legacy .tale.privacy>blockquote p{margin:0 0 .6em}
+.legacy .tale.privacy>blockquote p:last-child{margin:0;font-size:inherit;text-align:left}
+.legacy .tale.privacy h2,.legacy .tale.privacy h2:nth-of-type(n){color:var(--accent)}
+.legacy .tale.privacy p b,.legacy .tale.privacy li b,.legacy .tale.privacy p strong,.legacy .tale.privacy li strong{color:var(--text)}
+.legacy .tale.privacy h1{font-size:1.7rem}

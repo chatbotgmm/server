@@ -57,7 +57,7 @@ ${o.bare?'':`<div class="drawer" id="drawer" hidden><div class="drawer-in" role=
 <main id="main">${o.body}</main>
 <footer class="foot"><div class="wrap">
 <b class="foot-name">갈매미맨</b>
-<p class="foot-links">${channel?`<a href="${esc(channel)}" target="_blank" rel="noopener">카카오톡 채널(문의)</a>`:''}<a href="/privacy">개인정보처리방침</a><a href="/account/delete">계정 삭제 안내</a><a href="/odds">모집 확률</a></p>
+<p class="foot-links">${channel?`<a href="${esc(channel)}" target="_blank" rel="noopener">카카오톡 채널(문의)</a>`:''}<a href="/privacy" class="privacy"><b>개인정보 처리방침</b></a><a href="/account/delete">계정 삭제 안내</a><a href="/odds">모집 확률</a></p>
 <p class="foot-links sub"><a href="/notices">공지사항</a><a href="/download">다운로드</a><span>v${esc(version)}</span></p>
 <p class="foot-links sub" aria-label="둘러보기">${MORE.map(([h,t])=>`<a href="${h}">${t}</a>`).join('')}</p>
 </div></footer>
