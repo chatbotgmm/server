@@ -188,6 +188,13 @@ final class BattleView extends FrameLayout implements FullBleed {
         : new RectF(world * .04f, uiHeight * .055f, world * .47f, uiHeight * .055f + height);
   }
 
+  static String shieldLabel(JSONObject fighter) {
+    int amount = Math.max(0, fighter.optInt("shield"));
+    int turns = Math.max(0, fighter.optInt("shieldTurns"));
+    return fighter.optInt("hp") > 0 && amount > 0 && turns > 0
+        ? "보호막 " + amount + " · " + turns + "턴" : "";
+  }
+
   JSONObject side(int i) {
     return host.list(battle, "teams").optJSONObject(i);
   }
@@ -445,6 +452,8 @@ final class BattleView extends FrameLayout implements FullBleed {
           phase.equals("choose") || phase.equals("over") ? GONE : VISIBLE);
       JSONArray current = BattleEffects.current(active(side));
       ArrayList<String> labels = new ArrayList<>();
+      String shield = shieldLabel(active(side));
+      if (!shield.isEmpty()) labels.add(shield);
       for (int i = 0; i < current.length(); i++)
         labels.add(BattleEffects.label(current.optJSONObject(i)));
       effectInfo[side].setContentDescription(
@@ -952,9 +961,12 @@ final class BattleView extends FrameLayout implements FullBleed {
       JSONArray current=BattleEffects.current(f);
       String effects=playback.playing?"효과 갱신 중":current.length()==0?"효과 없음":BattleEffects.compactLabel(current.optJSONObject(0));
       if(current.length()>1) effects+=" +"+(current.length()-1);
+      String shield = playback.playing ? "" : shieldLabel(f);
+      if (!shield.isEmpty()) effects = shield;
       float available=right-x-host.dp(44);
       while(p.measureText(effects)>available && effects.length()>2) effects=effects.substring(0,effects.length()-2)+"…";
-      if(r.height()>=host.dp(74)) c.drawText(effects,x,r.bottom-host.dp(15),p);
+      if(r.height()>=host.dp(74) || (!shield.isEmpty() && r.height()>=host.dp(64)))
+        c.drawText(effects,x,r.bottom-host.dp(r.height()>=host.dp(74)?15:10),p);
     }
   }
 }

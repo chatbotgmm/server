@@ -21,6 +21,7 @@ export function registerRealtimePvp(app:FastifyInstance,service:RealtimePvpServi
     if(!guard(req,reply))return;
     const id=auth(req);if(!id)return reply.code(401).send({error:'로그인을 다시 해 주세요.'});
     reply.header('Cache-Control','no-store');
+    if(!await service.supportsAugmentClient(id,path,req.body,req.query,req.headers['x-gmm-augment-version']))return reply.code(409).send({error:'새 증강체를 사용하려면 앱을 업데이트해 주세요.',code:'AUGMENT_VERSION_UNSUPPORTED',augmentVersion:2});
     try{return await run(id,req.body??{},req.query??{});}
     catch(e){
       if(e instanceof GameError||e instanceof z.ZodError||(e instanceof Error&&e.message==='Invalid realtime command'))return reply.code(400).send({error:e instanceof z.ZodError?'입력 정보를 확인해 주세요.':e.message});
@@ -38,3 +39,4 @@ export function registerRealtimePvp(app:FastifyInstance,service:RealtimePvpServi
   service.start(error=>app.log.error({error},'realtime PvP sweep failed'));
   app.addHook('onClose',async()=>service.stop());
 }
+

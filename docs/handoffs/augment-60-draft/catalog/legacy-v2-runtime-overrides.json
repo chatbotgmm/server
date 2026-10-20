@@ -1,0 +1,189 @@
+{
+  "rulesVersion": "BATTLE_AUGMENT_V2",
+  "note": "Existing keys are retained where applicable. New numeric flags are a proposed typed runtime contract, not automatically interpreted by the old engine. Gold IDs retain original p. V1 battle.yaml remains unchanged.",
+  "overrides": {
+    "first": {
+      "p": {
+        "priority": 1,
+        "uses": 1
+      },
+      "name": "출근 도장",
+      "desc": "다음 기술의 우선도 +1",
+      "semantics": {
+        "priorityBonus": 1
+      },
+      "duration": "다음 기술 행동 순서1회",
+      "cap": "1회; 우선도 동률은 속도 순, 기존보다 우선권 낮음"
+    },
+    "bulwark": {
+      "p": {
+        "pct": 12,
+        "turns": 2
+      },
+      "name": "철벽",
+      "desc": "선두가 2턴 동안 피해 12% 감소",
+      "semantics": {
+        "guardPct": 12
+      },
+      "duration": "행동2턴",
+      "cap": "선택당1회; 전체 피해감소 상한60%"
+    },
+    "firstaid": {
+      "p": {
+        "pct": 10
+      },
+      "name": "응급처치",
+      "desc": "살아 있는 아군 모두 체력 10% 회복",
+      "semantics": {
+        "healMaxHpPct": 10,
+        "target": "living_team"
+      },
+      "duration": "즉시",
+      "cap": "선택당1회; 결손HP까지만"
+    },
+    "sharp": {
+      "p": {
+        "pct": 10,
+        "uses": 3,
+        "firstHitOnly": 1
+      },
+      "name": "매의 눈",
+      "desc": "다음 3번 공격 첫 타 급소 확률 +10%p",
+      "semantics": {
+        "critChancePlus": 10,
+        "firstHitOnly": true
+      },
+      "duration": "3시전까지",
+      "cap": "팀3시전; 확률상한100%; 막혀도 시전횟수 소비"
+    },
+    "swift": {
+      "p": {
+        "pct": 10,
+        "turns": 3
+      },
+      "name": "칼퇴 준비",
+      "desc": "3턴 동안 아군 속도 +10%",
+      "semantics": {
+        "speedPct": 10,
+        "target": "living_team"
+      },
+      "duration": "행동3턴",
+      "cap": "선택당1회; 같은 방향 속도 강화는 큰 값만"
+    },
+    "thick": {
+      "p": {
+        "pct": 10,
+        "turns": 3
+      },
+      "name": "두꺼운 깃털",
+      "desc": "3턴 동안 아군 물리·마법 방어 +10%",
+      "semantics": {
+        "defensePct": 10,
+        "target": "living_team"
+      },
+      "duration": "행동3턴",
+      "cap": "선택당1회; 같은 방향 방어 강화는 큰 값만"
+    },
+    "overtime": {
+      "p": {
+        "pct": 8,
+        "uses": 3,
+        "powerBonus": 1
+      },
+      "name": "야근 수당",
+      "desc": "다음 3번 공격 위력 +8%",
+      "semantics": {
+        "powerBonusPct": 8
+      },
+      "duration": "3시전까지",
+      "cap": "팀3시전; 다단1회; 막혀도 소비"
+    },
+    "drain": {
+      "p": {
+        "pct": 12,
+        "uses": 3,
+        "maxHpCapPct": 4
+      },
+      "name": "회식비 정산",
+      "desc": "다음 3번 적중 실제 피해의 12% 회복",
+      "semantics": {
+        "actualDamageHealPct": 12,
+        "maxHpHealCapPct": 4
+      },
+      "duration": "3회 유효적중까지",
+      "cap": "팀3회; 시전당 최대HP4%; 0피해 미소모"
+    },
+    "thorns": {
+      "p": {
+        "pct": 10,
+        "uses": 3,
+        "maxHpCapPct": 4,
+        "actualDamage": 1
+      },
+      "name": "가시 깃털",
+      "desc": "다음 3번 피격 실제 피해의 10% 반사",
+      "semantics": {
+        "actualDamageReflectPct": 10,
+        "attackerMaxHpDamageCapPct": 4
+      },
+      "duration": "3회 유효피격까지",
+      "cap": "팀3회; 공격자최대HP4% 상한; 반사·흡혈 비재귀"
+    },
+    "pierce": {
+      "p": {
+        "pct": 10,
+        "uses": 3
+      },
+      "name": "송곳 부리",
+      "desc": "다음 3번 공격 방어 10% 관통",
+      "semantics": {
+        "piercePct": 10
+      },
+      "duration": "3시전까지",
+      "cap": "팀3시전; 총관통상한70%; 다단1회"
+    },
+    "lunch": {
+      "p": {
+        "pct": 3,
+        "turns": 3
+      },
+      "name": "점심시간",
+      "desc": "다음 3턴 종료에 선두 체력 3% 회복",
+      "semantics": {
+        "healMaxHpPct": 3
+      },
+      "duration": "행동3턴",
+      "cap": "3턴; 만피여도 기간감소; 선택당 총 최대9%"
+    },
+    "learn": {
+      "p": {
+        "step": 8,
+        "max": 16,
+        "turns": 3
+      },
+      "name": "상성 학습",
+      "desc": "3턴 동안 같은 속성 재피격 피해 −8%, 최대16%",
+      "semantics": {
+        "cutPerPriorCastPct": 8,
+        "maxCutPct": 16
+      },
+      "duration": "행동3턴",
+      "cap": "유닛·속성별 최대2중첩; 선택 이전 피격 횟수는 제외; 다단1중첩"
+    },
+    "strip": {
+      "p": {
+        "pct": 0,
+        "turns": 0,
+        "removeCount": 1
+      },
+      "name": "기세 꺾기",
+      "desc": "상대 선두 강화 하나를 제거",
+      "semantics": {
+        "removePositiveEffectCount": 1,
+        "order": "pct 높은 순, 동률 guard→atk→def→spd, 기간 긴 순"
+      },
+      "duration": "즉시",
+      "cap": "선택당1회; 양수 mods/guards 중 하나만; 공격약화 없음"
+    }
+  }
+}
