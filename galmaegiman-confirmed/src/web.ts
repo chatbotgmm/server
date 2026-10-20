@@ -297,8 +297,8 @@ ${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이
   // 이전 개인정보 처리방침(작성지침: 이전 버전과 적용 기간을 함께 공개). 버전 = data/privacy-<날짜>.md
   app.get<{Params:{ver:string}}>('/privacy/:ver',limit,async(req,reply)=>{
     const ver=req.params.ver;
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(ver)||!existsSync(resolve(options.root,'data',`privacy-${ver}.md`)))return notFound(reply,'그런 버전의 개인정보 처리방침이 없어요.');
-    return send(reply,page('이전 개인정보 처리방침','',`<p class="note" style="text-align:center">이전 버전이에요. <a href="/privacy">지금 적용되는 개인정보 처리방침 보기</a></p><article class="prose tale privacy">${mdHtml(`privacy-${ver}.md`,'')}</article>`));
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(ver)||!existsSync(resolve(options.root,'data',`privacy-${ver}.md`)))return notFound(reply,'해당 버전의 개인정보 처리방침이 없습니다.');
+    return send(reply,page('이전 개인정보 처리방침','',`<p class="note" style="text-align:center">이전 버전의 개인정보 처리방침입니다. <a href="/privacy">현행 개인정보 처리방침 보기</a></p><article class="prose tale privacy">${mdHtml(`privacy-${ver}.md`,'')}</article>`));
   });
   app.get('/account/delete',limit,async(_req,reply)=>send(reply,page('계정 삭제','',`<article class="prose tale"><h1>🗑 계정 삭제(탈퇴) 안내</h1>
 <p>앱을 지웠어도 아래 순서로 언제든 계정과 게임 데이터를 지울 수 있어요.</p>
