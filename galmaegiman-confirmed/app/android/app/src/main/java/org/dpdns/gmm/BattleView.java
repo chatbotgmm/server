@@ -814,6 +814,33 @@ final class BattleView extends FrameLayout implements FullBleed {
         if(!android.text.TextUtils.equals(button.getText(),label)) {
           button.setText(label); changed=true;
         }
+        // Autosize checks line count/end index, but an explicit paragraph can still
+        // exceed its width. Retain only sizes whose real shaped lines fit the cell.
+        ArrayList<Integer> fitting=new ArrayList<>();
+        int minPx=Math.round(12*scaled);
+        for(int sp=12;sp<=(tablet?16:14);sp++) {
+          int px=Math.round(sp*scaled);
+          android.text.TextPaint candidate=new android.text.TextPaint(button.getPaint());
+          candidate.setTextSize(px);
+          android.text.StaticLayout layout=android.text.StaticLayout.Builder
+              .obtain(label,0,label.length(),candidate,Math.max(1,width))
+              .setIncludePad(false)
+              .setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE)
+              .setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE).build();
+          boolean fits=layout.getLineCount()<=3;
+          for(int line=0;line<layout.getLineCount();line++)
+            fits &= layout.getLineWidth(line)<=width;
+          if(fits && !fitting.contains(px)) fitting.add(px);
+        }
+        // Preserve the accessibility floor even if an unknown future name cannot fit.
+        if(fitting.isEmpty()) fitting.add(minPx);
+        int[] sizes=new int[fitting.size()];
+        for(int n=0;n<sizes.length;n++) sizes[n]=fitting.get(n);
+        if(!Arrays.equals(sizes,androidx.core.widget.TextViewCompat.getAutoSizeTextAvailableSizes(button))) {
+          androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithPresetSizes(
+              button,sizes,android.util.TypedValue.COMPLEX_UNIT_PX);
+          changed=true;
+        }
       }
       if(changed) super.onMeasure(widthSpec,heightSpec);
     }

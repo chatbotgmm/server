@@ -37,7 +37,10 @@ public class BattleItemTypographyTest {
         assertEquals(Layout.BREAK_STRATEGY_SIMPLE,button.getBreakStrategy());
         assertEquals(3,button.getMaxLines());
         review.itemButtonBounds(button,battle.controls);
-        review.compatAutoSizeConfigured(button);
+        assertEquals(androidx.core.widget.TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM,
+            androidx.core.widget.TextViewCompat.getAutoSizeTextType(button));
+        // API27+ uses framework autosize; the private compat helper is inactive there.
+        if(android.os.Build.VERSION.SDK_INT<27) review.compatAutoSizeConfigured(button);
         if(!pixels) continue;
         review.readable(button);
         assertTrue(button.getTextSize()+.1f>=12*button.getResources().getDisplayMetrics().scaledDensity);

@@ -659,9 +659,17 @@ public class NativeResultReassessmentSwipeTest {
     Path output = Path.of(System.getProperty("gmm.nativeReviewOutput", "build/reports/native-review"), "result-reassessment");
     Files.createDirectories(output);
     records.captures.writeScreenshot(session.h, output.resolve(name + ".png"), size[0], size[1]);
-    JSONArray species = new JSONArray(), refreshTargets = new JSONArray();
+    JSONArray species = new JSONArray(), refreshTargets = new JSONArray(), newBadges = new JSONArray();
     for (NativeReveal.RevealCard card : records.revealFixture.cards(session.reveal)) {
       species.put(acquisition.registrationArtwork(card).id);
+      if (card.newBadge != null) {
+        float density = session.h.getResources().getDisplayMetrics().density;
+        newBadges.put(MainActivity.obj("text", card.newBadge.getText().toString(),
+            "widthPx", card.newBadge.getWidth(), "widthDp", card.newBadge.getWidth() / density,
+            "textWidthPx", card.newBadge.getPaint().measureText("NEW"),
+            "textSizePx", card.newBadge.getTextSize(), "cardWidthPx", card.getWidth(),
+            "headingClearancePx", card.getWidth() * .23f - card.newBadge.getRight()));
+      }
       for (View view : records.captures.geometry.descendants(card)) {
         if (view.getTag() == null || !view.getTag().toString().startsWith("acquisition-reassess-card-")) continue;
         Rect rect = records.bounds(view, session.h.root);
@@ -680,7 +688,8 @@ public class NativeResultReassessmentSwipeTest {
         "resultPage", session.reveal.resultPage, "selectedIndex", session.flow.selected,
         "visibleSpecies", species, "visibleCardCount", species.length(),
         "translationX", strip.cardsRow.getTranslationX(), "mutationCount", session.api.bodies.size(),
-        "dossierOpen", session.reveal.dossier != null, "refreshTargets", refreshTargets));
+        "dossierOpen", session.reveal.dossier != null, "refreshTargets", refreshTargets,
+        "newBadges", newBadges));
     Files.write(output.resolve("observations.json"), screenshotObservations.toString(2).getBytes(StandardCharsets.UTF_8));
   }
 
@@ -705,7 +714,19 @@ public class NativeResultReassessmentSwipeTest {
               refresh.getBackground() instanceof NativeReveal.ReassessmentSeal);
           assertEquals("글꼴에 의존하는 회전 문자를 겹쳐 그리지 않는다", "", ((TextView) refresh).getText().toString());
           assertNotNull(first.newBadge); assertNotNull(first.countBadge);
-          assertTrue("작은 NEW 배지가 제목 쪽으로 넓어지지 않는다", first.newBadge.getWidth() <= s.h.dp(36));
+          int fittedWidth = Math.max(s.h.dp(30),
+              (int) Math.ceil(first.newBadge.getPaint().measureText("NEW")) + s.h.dp(6));
+          String badgeGeometry = name + " badge=" + first.newBadge.getWidth()
+              + "px fitted=" + fittedWidth + "px text=" + first.newBadge.getTextSize()
+              + "px card=" + first.getWidth() + "px";
+          // uiText adds 14% on a tall tablet before Android applies the user's font scale.
+          // A fixed 36dp cap therefore rejects correctly measured, fully visible lettering.
+          assertTrue("NEW는 실제 글꼴 너비와 여백만 차지한다: " + badgeGeometry,
+              first.newBadge.getWidth() <= fittedWidth + 1);
+          // The inspected R13 art starts its printed heading at ~24% of card width.
+          // Reserve a conservative 23% corner region, independently of density/font scale.
+          assertTrue("NEW가 원본 입사 등록증 제목을 침범하지 않는다: " + badgeGeometry,
+              first.newBadge.getRight() <= (int) Math.floor(first.getWidth() * .23f));
           assertTrue("확대 글꼴에서도 NEW 전체를 표시한다",
               first.newBadge.getWidth() >= Math.ceil(first.newBadge.getPaint().measureText("NEW")));
           assertEquals("NEW", first.newBadge.getText().toString());

@@ -185,7 +185,7 @@ jobs:
           --no-daemon --max-workers=2 --stacktrace
           "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
       - name: Verify full suite coverage and report skip changes
-        if: ${{ !cancelled() && steps.unit.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' && steps.unit.outcome == 'success' }}
         id: full_gate
         run: >
           python3 ci/verify_registration_ci.py junit app/build/test-results/testDebugUnitTest
@@ -262,7 +262,7 @@ jobs:
       # Keep all native-review JSON measurements; unique revision PNG groups are uploaded below.
       # In particular, do not add phase-two --tests invocations to the reruns below.
       - name: Save full-suite native measurements before any targeted rerun
-        if: always()
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') }}
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-phase2-full-suite-measurements-${{ github.sha }}
@@ -270,7 +270,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 1
       - name: Verify phase-two menus captures and non-skipped full-suite tests
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' }}
         id: phase2_menus
         run: >
           python3 ci/verify_phase2_ci.py module
@@ -279,7 +279,7 @@ jobs:
           --junit app/build/test-results/testDebugUnitTest
           --output app/build/phase2-ci/menus.json
       - name: Verify phase-two realtime captures and non-skipped full-suite tests
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' }}
         id: phase2_realtime
         run: >
           python3 ci/verify_phase2_ci.py module
@@ -288,7 +288,7 @@ jobs:
           --junit app/build/test-results/testDebugUnitTest
           --output app/build/phase2-ci/realtime.json
       - name: Verify full registration cards and complete status in 28 preparation captures
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' }}
         id: preparation_cards
         run: >
           python3 ci/verify_preparation_cards.py
@@ -297,7 +297,7 @@ jobs:
           --realtime-report app/build/phase2-ci/realtime.json
           --output app/build/phase2-ci/preparation-cards.json
       - name: Verify phase-two economy captures and non-skipped full-suite tests
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' }}
         id: phase2_economy
         run: >
           python3 ci/verify_phase2_ci.py module
@@ -306,7 +306,7 @@ jobs:
           --junit app/build/test-results/testDebugUnitTest
           --output app/build/phase2-ci/economy.json
       - name: Verify phase-two extras captures and non-skipped full-suite tests
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' }}
         id: phase2_extras
         run: >
           python3 ci/verify_phase2_ci.py module
@@ -315,7 +315,7 @@ jobs:
           --junit app/build/test-results/testDebugUnitTest
           --output app/build/phase2-ci/extras.json
       - name: Report phase-two captured cases and pending all-state coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' }}
         id: phase2_coverage
         run: >
           python3 ci/verify_phase2_ci.py coverage
@@ -324,14 +324,14 @@ jobs:
           --reports app/build/phase2-ci
           --output app/build/phase2-ci/coverage-report.json
       - name: Verify all requested phase-two section contracts are ready
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' }}
         id: phase2_ready
         run: >
           python3 ci/verify_phase2_ci.py readiness
           --registry ci/phase2-registry.json
           --output app/build/phase2-ci/readiness.json
       - name: Save phase-two validation, timing and coverage reports
-        if: always()
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') }}
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-phase2-validation-${{ github.sha }}
@@ -342,7 +342,7 @@ jobs:
       # NativeHomeTipLayoutTest runs only in the full suite. Preserve its root-level
       # evidence and exact JUnit report before any targeted task replaces reports.
       - name: Verify 20 native home-tip captures and all 160 tip measurements
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' }}
         id: home_tip_gate
         run: >
           python3 ci/verify_home_tip_ci.py
@@ -351,7 +351,7 @@ jobs:
           --test-results app/build/test-results/testDebugUnitTest
           --output app/build/home-tip-ci/validation.json
       - name: Save native home-tip measurements, tests and gate report
-        if: always()
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') }}
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-home-tip-evidence-${{ github.sha }}
@@ -365,7 +365,7 @@ jobs:
       # Stage-one regressions run once in the full native suite. Validate and
       # preserve their exact JUnit/PNG/geometry evidence before targeted reruns.
       - name: Verify stage-one short-screen controls and ornamental shop text bounds
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' }}
         id: feedback_stage1_gate
         run: >
           python3 ci/verify_feedback_stage1_ci.py
@@ -374,7 +374,7 @@ jobs:
           --full-suite-report app/build/registration-ci/full-suite.json
           --output app/build/feedback-stage1-ci/validation.json
       - name: Save stage-one device regression measurements and exact tests
-        if: always()
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') }}
         id: feedback_stage1_evidence
         uses: actions/upload-artifact@v7
         with:
@@ -389,7 +389,7 @@ jobs:
           retention-days: 1
 
       - name: Verify final feedback captures and every new unskipped method
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' }}
         id: feedback_final_gate
         run: >
           python3 ci/verify_feedback_final_ci.py
@@ -398,7 +398,7 @@ jobs:
           --full-suite-report app/build/registration-ci/full-suite.json
           --output app/build/feedback-final-ci/validation.json
       - name: Save final feedback measurements and exact full-suite tests
-        if: always()
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') }}
         id: feedback_final_evidence
         uses: actions/upload-artifact@v7
         with:
@@ -416,7 +416,7 @@ jobs:
           retention-days: 1
 
       - name: Verify recruitment counters, artwork button states and real home motion
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' }}
         id: revision_gate
         run: >
           python3 ci/verify_recruitment_revision_ci.py
@@ -426,21 +426,21 @@ jobs:
           --full-suite-report app/build/registration-ci/full-suite.json
           --output app/build/recruitment-revision-ci/evidence.json
       - name: Require visual approval bound to the unchanged source and assets
-        if: ${{ !cancelled() && steps.revision_gate.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' && steps.revision_gate.outcome == 'success' }}
         id: visual_approval
         run: >
           python3 ci/verify_visual_approval.py
           --repo "${{ github.workspace }}"
           --output app/build/recruitment-revision-ci/visual-approval.json
       - name: Measure unique review artifact input bytes
-        if: always()
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') }}
         run: >
           python3 ci/report_artifact_storage.py
           --root app/build/native-review
           --approved "${{ steps.visual_approval.outputs.approved }}"
           --output app/build/recruitment-revision-ci/artifact-storage.json
       - name: Save recruitment counter native captures for visual review
-        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') && steps.visual_approval.outputs.approved != 'true' }}
         id: revision_counter_evidence
         uses: actions/upload-artifact@v7
         with:
@@ -450,7 +450,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Save home drag and timed water native frames for visual review
-        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') && steps.visual_approval.outputs.approved != 'true' }}
         id: revision_motion_evidence
         uses: actions/upload-artifact@v7
         with:
@@ -463,7 +463,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Save shared button artwork state native captures for visual review
-        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') && steps.visual_approval.outputs.approved != 'true' }}
         id: revision_state_evidence
         uses: actions/upload-artifact@v7
         with:
@@ -473,7 +473,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Save distinct currency display native captures for visual review
-        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') && steps.visual_approval.outputs.approved != 'true' }}
         id: revision_currency_evidence
         uses: actions/upload-artifact@v7
         with:
@@ -483,7 +483,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Save solid team panels and inline pager native captures for visual review
-        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') && steps.visual_approval.outputs.approved != 'true' }}
         id: revision_team_evidence
         uses: actions/upload-artifact@v7
         with:
@@ -493,7 +493,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Save full-bleed native scenes and inset evidence for visual review
-        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') && steps.visual_approval.outputs.approved != 'true' }}
         id: revision_fullscreen_evidence
         uses: actions/upload-artifact@v7
         with:
@@ -503,7 +503,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Save live team insertion preview and cancel native frames
-        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') && steps.visual_approval.outputs.approved != 'true' }}
         id: revision_insertion_evidence
         uses: actions/upload-artifact@v7
         with:
@@ -513,7 +513,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Save whole story-card native touch and safe-area evidence
-        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') && steps.visual_approval.outputs.approved != 'true' }}
         id: revision_story_evidence
         uses: actions/upload-artifact@v7
         with:
@@ -523,7 +523,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Save two-category modes and story navigation native evidence
-        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') && steps.visual_approval.outputs.approved != 'true' }}
         id: revision_modes_evidence
         uses: actions/upload-artifact@v7
         with:
@@ -533,7 +533,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Save realtime-identity-revision native evidence
-        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') && steps.visual_approval.outputs.approved != 'true' }}
         id: revision_realtime_identity_evidence
         uses: actions/upload-artifact@v7
         with:
@@ -543,7 +543,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Save battle-ui-revision native evidence
-        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') && steps.visual_approval.outputs.approved != 'true' }}
         id: revision_battle_utilities_evidence
         uses: actions/upload-artifact@v7
         with:
@@ -553,7 +553,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Save account-local read-only replay native evidence
-        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') && steps.visual_approval.outputs.approved != 'true' }}
         id: revision_replay_evidence
         uses: actions/upload-artifact@v7
         with:
@@ -563,7 +563,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Save acquisition reassessment and physical swipe native evidence
-        if: ${{ always() && steps.visual_approval.outputs.approved != 'true' }}
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') && steps.visual_approval.outputs.approved != 'true' }}
         id: revision_reassessment_evidence
         uses: actions/upload-artifact@v7
         with:
@@ -575,7 +575,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Save visual review candidate fingerprint and approval result
-        if: always()
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') }}
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-visual-approval-${{ github.sha }}
@@ -584,7 +584,7 @@ jobs:
           retention-days: 1
 
       - name: Targeted home lobby capture at phone, inset phone and tablet sizes
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' }}
         id: home
         run: >
           bash ./gradlew :app:testDebugUnitTest
@@ -594,7 +594,7 @@ jobs:
           --no-daemon --max-workers=2 --stacktrace
           "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
       - name: Verify requested home screenshots and native findings
-        if: ${{ !cancelled() && steps.home.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' && steps.home.outcome == 'success' }}
         id: home_gate
         run: |
           python3 ci/verify_registration_ci.py junit app/build/test-results/testDebugUnitTest \
@@ -603,7 +603,7 @@ jobs:
           python3 ci/verify_registration_ci.py captures home app/build/home-assembly-review/r1 \
             --output app/build/registration-ci/home-captures.json
       - name: Save home geometry findings
-        if: always()
+        if: ${{ always() && (steps.home.outcome == 'success' || steps.home.outcome == 'failure') }}
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-home-screenshots-${{ github.sha }}
@@ -611,7 +611,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 1
       - name: Save targeted home-test reports
-        if: always()
+        if: ${{ always() && (steps.home.outcome == 'success' || steps.home.outcome == 'failure') }}
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-home-test-reports-${{ github.sha }}
@@ -621,7 +621,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 1
       - name: Native registration recruit, collection, team and result captures
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' }}
         id: registration
         run: >
           bash ./gradlew :app:testDebugUnitTest
@@ -631,7 +631,7 @@ jobs:
           --no-daemon --max-workers=2 --stacktrace
           "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
       - name: Verify all 20 registration screenshots and native findings
-        if: ${{ !cancelled() && steps.registration.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' && steps.registration.outcome == 'success' }}
         id: registration_gate
         run: |
           python3 ci/verify_registration_ci.py junit app/build/test-results/testDebugUnitTest \
@@ -640,7 +640,7 @@ jobs:
           python3 ci/verify_registration_ci.py captures registration app/build/registration-review/registration \
             --output app/build/registration-ci/registration-captures.json
       - name: Save registration geometry findings
-        if: always()
+        if: ${{ always() && (steps.registration.outcome == 'success' || steps.registration.outcome == 'failure') }}
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-registration-screenshots-${{ github.sha }}
@@ -648,7 +648,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 1
       - name: Save targeted registration-test reports
-        if: always()
+        if: ${{ always() && (steps.registration.outcome == 'success' || steps.registration.outcome == 'failure') }}
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-registration-test-reports-${{ github.sha }}
@@ -660,7 +660,7 @@ jobs:
 
       # Registration JUnit reports above are retained before this targeted rerun.
       - name: Native shared-theme settings, profile and representative page captures
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' }}
         id: theme
         run: >
           bash ./gradlew :app:testDebugUnitTest
@@ -671,7 +671,7 @@ jobs:
           --no-daemon --max-workers=2 --stacktrace
           "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8"
       - name: Verify 32 actual theme captures, measured geometry and coverage limits
-        if: ${{ !cancelled() && steps.theme.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.unit.outcome == 'success' && steps.theme.outcome == 'success' }}
         id: theme_gate
         run: |
           python3 ci/verify_registration_ci.py junit app/build/test-results/testDebugUnitTest \
@@ -683,7 +683,7 @@ jobs:
           python3 ci/verify_theme_ci.py coverage app/build/theme-ci/theme-captures.json \
             --output app/build/theme-ci/coverage-report.json
       - name: Save theme findings and measured checks
-        if: always()
+        if: ${{ always() && (steps.theme.outcome == 'success' || steps.theme.outcome == 'failure') }}
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-theme-screenshots-${{ github.sha }}
@@ -691,7 +691,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 1
       - name: Save targeted theme-test reports
-        if: always()
+        if: ${{ always() && (steps.theme.outcome == 'success' || steps.theme.outcome == 'failure') }}
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-theme-test-reports-${{ github.sha }}
@@ -746,7 +746,7 @@ jobs:
           app/build/outputs/apk/preview/app-preview.apk
           --output app/build/theme-ci/apk-verification.json
       - name: Save shared-theme validation and coverage reports
-        if: always()
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') }}
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-theme-validation-${{ github.sha }}
@@ -754,7 +754,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 1
       - name: Save registration validation reports
-        if: always()
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') }}
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-registration-validation-${{ github.sha }}
@@ -780,14 +780,14 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Measure final metadata and APK storage inputs
-        if: always()
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') }}
         run: >
           python3 ci/report_artifact_storage.py
           --root app/build/native-review
           --approved "${{ steps.visual_approval.outputs.approved }}"
           --output app/build/artifact-storage/final.json
       - name: Save final artifact storage measurements
-        if: always()
+        if: ${{ always() && (steps.unit.outcome == 'success' || steps.unit.outcome == 'failure') }}
         uses: actions/upload-artifact@v7
         with:
           name: home-assembly-artifact-storage-${{ github.sha }}
@@ -865,6 +865,7 @@ jobs:
               --title "홈 미리보기 $short" --notes-file notes.md --prerelease --latest=false
           fi
           gh release view "$tag" --repo "$REPO" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"
+
 
 
 
