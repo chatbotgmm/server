@@ -527,7 +527,7 @@ final class NativeEconomy {
   void craft(boolean mix) {
     if (h.busy) return;
     recipeRepaint = null;
-    h.base("조합", mix ? "mix" : "craft");
+    h.base("조합", mix ? "mix" : "craftRecipes");
     economyScene("workshop");
     LinearLayout tools = k.row();
     tools.setTag("craft-inline-tools");
@@ -1008,7 +1008,8 @@ final class NativeEconomy {
   void performCraft(String endpoint, JSONObject body, JSONObject result, JSONArray materials) {
     if (h.busy) return;
     Set<String> before = NativeAcquisitionFlow.keys(h.state);
-    String origin = endpoint.equals("mix") ? "mix" : "craft";
+    // 홈 기본 진입(craft)과 결과 탭 복원 경로를 분리한다. API 이름은 그대로 유지한다.
+    String origin = endpoint.equals("mix") ? "mix" : "craftRecipes";
     h.request(
         endpoint,
         body,

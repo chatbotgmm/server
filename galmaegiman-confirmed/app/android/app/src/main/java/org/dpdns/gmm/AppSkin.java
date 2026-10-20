@@ -17,7 +17,7 @@ final class AppSkin {
   static String backgroundForScreen(String id) {
     if (id.equals("draw") || id.equals("drawResult")) return background("reception");
     if (id.equals("shop")) return background("market");
-    if (id.equals("craft") || id.equals("mix")) return background("workshop");
+    if (id.equals("craft") || id.equals("craftRecipes") || id.equals("mix")) return background("workshop");
     if (id.equals("expedition")) return background("routes");
     if (id.equals("modes") || id.equals("pvp") || id.equals("practice")
         || id.equals("chapters") || id.equals("stages") || id.equals("team")) return background("training");

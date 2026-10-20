@@ -484,7 +484,7 @@ public class MainActivity extends AppCompatActivity {
     screen = id;
     sound.play("title");
     root.removeAllViews();
-    boolean mapPage = id.equals("craft") || id.equals("mix");
+    boolean mapPage = id.equals("craft") || id.equals("craftRecipes") || id.equals("mix");
     View scene = new GameSceneBackground(this);
     scene.setTag("theme-scene-background");
     scene.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
@@ -659,6 +659,9 @@ public class MainActivity extends AppCompatActivity {
         break;
       case "craft":
         craft();
+        break;
+      case "craftRecipes":
+        menus.economy.craft(false);
         break;
       case "mix":
         mix();
