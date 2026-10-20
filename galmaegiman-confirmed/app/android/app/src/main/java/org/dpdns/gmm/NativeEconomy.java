@@ -569,7 +569,8 @@ final class NativeEconomy {
       tools.setGravity(Gravity.CENTER);
     }
     h.page.addView(tools, h.page.getChildCount() - 1);
-    LinearLayout[] cols = k.fixedSplit(.30f);
+    // 재료 탭은 보유 썸네일 2열과 양옆 쪽 넘김(48dp)을 담도록 왼쪽을 조금 넓힌다.
+    LinearLayout[] cols = k.fixedSplit(mix ? .34f : .30f);
     craftActions = k.row();
     craftActions.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
     craftActions.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(4));
@@ -913,7 +914,7 @@ final class NativeEconomy {
     // 힌트는 성공 판정이 아니다. 미공개 조합은 서버가 확정 시에만 검사한다.
     Button make = k.primary(null, "조합하기", () -> confirmMix(pool));
     make.setTag("mix-submit");
-    actions.addView(new View(h), new LinearLayout.LayoutParams(0, 1, .30f));
+    actions.addView(new View(h), new LinearLayout.LayoutParams(0, 1, .34f));
     LinearLayout.LayoutParams clearSlot = new LinearLayout.LayoutParams(0, h.dp(48), .26f);
     clearSlot.setMargins(h.dp(8), 0, h.dp(6), 0);
     actions.addView(clear, clearSlot);
@@ -929,19 +930,30 @@ final class NativeEconomy {
             && unit.optString("name").toLowerCase(Locale.KOREA).contains(mixQuery.toLowerCase(Locale.KOREA))) available.add(unit);
       }
       // 썸네일은 2열. 줄 수는 화면 높이로 정하고(작은 가로 1줄 ~ 큰 화면 3줄) 넘치면 쪽을 넘긴다.
-      int rows = Math.max(1, Math.min(3, (h.contentHeightDp() - 236) / 64));
+      int rows = mixRows();
       int perPage = rows * 2;
       int pages = Math.max(1, (available.size() + perPage - 1) / perPage);
       mixPage = Math.max(0, Math.min(mixPage, pages - 1));
       LinearLayout choices = k.column();
       choices.setTag("mix-inventory");
       inventory.addView(choices, new LinearLayout.LayoutParams(-1, 0, 1));
+      // 낮은 화면(한 줄)에서는 쪽 넘김을 썸네일 양옆에 둬 썸네일 높이를 48dp 이상 남긴다.
+      boolean sidePager = rows == 1 && pages > 1;
       LinearLayout line = null;
       for (int n = 0; n < perPage; n++) {
         if (n % 2 == 0) {
           line = k.row();
           line.setBaselineAligned(false);
           choices.addView(line, new LinearLayout.LayoutParams(-1, 0, 1));
+          if (sidePager) {
+            line.setTag("mix-material-pages");
+            Button prev = k.action(null, "‹", () -> { mixPage = Math.max(0, mixPage - 1); paint[0].run(); });
+            prev.setEnabled(mixPage > 0);
+            prev.setContentDescription("이전 보유 갈매미맨 쪽 · " + (mixPage + 1) + "/" + pages);
+            prev.setPadding(0, 0, 0, 0);
+            line.addView(prev, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+            ((LinearLayout.LayoutParams) prev.getLayoutParams()).gravity = Gravity.CENTER_VERTICAL;
+          }
         }
         int i = mixPage * perPage + n;
         FrameLayout cell = new FrameLayout(h);
@@ -952,7 +964,9 @@ final class NativeEconomy {
         int left = unit.optInt("usable") - Collections.frequency(m.mixDraft, id);
         Shape tile = thumbTile(unit);
         tile.setTag("mix-picker-material-" + id);
-        tile.addView(countBadge(String.valueOf(left)), new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END));
+        TextView badge = countBadge(String.valueOf(left));
+        badge.setTag("mix-picker-count");
+        tile.addView(badge, new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END));
         tile.setEnabled(left > 0 && m.mixDraft.size() < limit);
         tile.setAlpha(tile.isEnabled() ? 1 : .45f);
         tile.setContentDescription(unit.optString("name") + " 재료 추가 · 사용 가능 " + left);
@@ -963,6 +977,15 @@ final class NativeEconomy {
         });
         cell.addView(tile, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
       }
+      if (sidePager) {
+        Button next = k.action(null, "›", () -> { mixPage = Math.min(pages - 1, mixPage + 1); paint[0].run(); });
+        next.setEnabled(mixPage < pages - 1);
+        next.setContentDescription("다음 보유 갈매미맨 쪽 · " + (mixPage + 1) + "/" + pages);
+        next.setPadding(0, 0, 0, 0);
+        LinearLayout.LayoutParams nextSlot = new LinearLayout.LayoutParams(h.dp(48), h.dp(48));
+        nextSlot.gravity = Gravity.CENTER_VERTICAL;
+        line.addView(next, nextSlot);
+      }
       if (available.isEmpty()) {
         choices.removeAllViews();
         TextView none = k.note(mixQuery.isEmpty() ? "사용 가능한 재료가 없어요." : "검색과 맞는 갈매미맨이 없어요.");
@@ -970,17 +993,20 @@ final class NativeEconomy {
         none.setGravity(Gravity.CENTER);
         choices.addView(none, new LinearLayout.LayoutParams(-1, -1));
       }
-      if (pages > 1)
+      if (pages > 1 && !sidePager)
         pageControls(inventory, mixPage, pages, page -> { mixPage = page; paint[0].run(); }, "mix-material-pages");
       TextView count = benchHeading("선택한 재료 " + m.mixDraft.size() + "/" + limit);
       count.setTag("mix-count");
       count.setGravity(Gravity.CENTER);
       selected.addView(count, new LinearLayout.LayoutParams(-1, h.dp(48)));
+      // 아주 낮은 화면은 리본 제목을 숨겨 선택 칸 두 줄을 48dp 이상으로 둔다(내용은 화면 읽기 설명으로).
+      if (tightBench()) count.setVisibility(View.GONE);
       // 재료 칸은 최소 4칸, 고르면 다음 빈 칸이 생긴다(서버 한도까지). 4칸 넘으면 3열.
       int slots = Math.min(limit, Math.max(4, m.mixDraft.size() + 1));
       int columns = slots <= 4 ? 2 : 3;
       LinearLayout grid = k.column();
       grid.setTag("mix-workbench");
+      grid.setContentDescription("선택한 재료 " + m.mixDraft.size() + "/" + limit);
       selected.addView(grid, new LinearLayout.LayoutParams(-1, 0, 1));
       boolean hint = false;
       LinearLayout slotLine = null;
@@ -1031,9 +1057,11 @@ final class NativeEconomy {
       resultHeading.setTag("mix-result-heading");
       resultHeading.setGravity(Gravity.CENTER);
       results.addView(resultHeading, new LinearLayout.LayoutParams(-1, h.dp(48)));
+      if (tightBench()) resultHeading.setVisibility(View.GONE);
       LinearLayout cards = k.row();
       cards.setBaselineAligned(false);
       cards.setTag("mix-results");
+      cards.setContentDescription("가능한 결과");
       results.addView(cards, new LinearLayout.LayoutParams(-1, 0, 1));
       ArrayList<View> shown = new ArrayList<>();
       if (m.mixDraft.size() < 2) {
@@ -1064,11 +1092,23 @@ final class NativeEconomy {
     paint[0].run();
   }
 
+  /** 보유 썸네일 줄 수: 작은 가로 1줄 ~ 큰 화면 3줄(2열이므로 쪽마다 줄 수 × 2). */
+  int mixRows() {
+    // 제목·탭·하단 버튼·패널 제목·쪽 넘김을 뺀 실제 높이를 줄마다 56dp(48dp 터치 + 간격)로 나눈다.
+    return Math.max(1, Math.min(3, (h.contentHeightDp() - 284) / 56));
+  }
+
+  /** 아주 낮은 가로 화면: 선택 칸 두 줄이 48dp를 넘도록 누르지 않는 제목·여백만 줄인다. */
+  boolean tightBench() {
+    return h.contentHeightDp() - 236 < 112;
+  }
+
   /** 시안의 남색 패널. 기존 남색 틀 그림을 그대로 쓴다. */
   LinearLayout benchPanel() {
     LinearLayout panel = k.column();
     panel.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAVY));
-    panel.setPadding(h.dp(10), h.dp(8), h.dp(10), h.dp(10));
+    if (tightBench()) panel.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(6));
+    else panel.setPadding(h.dp(10), h.dp(8), h.dp(10), h.dp(10));
     return panel;
   }
 
@@ -1151,12 +1191,36 @@ final class NativeEconomy {
     return slot;
   }
 
+  /** 한국어도 음절 중간이 아니라 띄어쓰기에서만 줄을 바꾼다(실제 폭을 재서, SDK 24 호환). */
+  static void wrapAtSpaces(TextView label, String text) {
+    label.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+    label.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+      int width = label.getWidth() - label.getCompoundPaddingLeft() - label.getCompoundPaddingRight();
+      if (width <= 0) return;
+      StringBuilder wrapped = new StringBuilder(), line = new StringBuilder();
+      for (String word : text.split(" ")) {
+        String candidate = line.length() == 0 ? word : line + " " + word;
+        if (line.length() > 0 && label.getPaint().measureText(candidate) > width) {
+          wrapped.append(line).append('\n');
+          line.setLength(0);
+        }
+        if (line.length() > 0) line.append(' ');
+        line.append(word);
+      }
+      wrapped.append(line);
+      if (!wrapped.toString().contentEquals(label.getText())) label.post(() -> label.setText(wrapped));
+    });
+  }
+
   HiddenRecipeFrame unknownResult(String label, boolean hint) {
+    // 아주 낮은 화면의 작은 카드에서는 음절 중간에서 끊기지 않게 한 단어로 줄인다.
+    if (tightBench()) label = label.equals("재료 선택 중") ? "선택 중" : label.equals("결과 미확인") ? "미확인" : label;
     JSONObject unknown = MainActivity.obj("known", false, "name", label, "tierName", "", "img", "unknown");
     HiddenRecipeFrame frame = new HiddenRecipeFrame(h, hint);
     RegistrationCardView card = fullEconomyCard(unknown);
     // 시안처럼 미공개 카드에는 상태 한 줄만 둔다(빈 등급 줄이 공간을 차지하지 않게).
     card.grade.setVisibility(View.GONE);
+    wrapAtSpaces(card.name, label);
     frame.addView(card, new FrameLayout.LayoutParams(-1, -1));
     return frame;
   }

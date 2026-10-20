@@ -199,6 +199,7 @@ public class NativeEconomyThemeReviewTest {
   }
 
   JSONArray economyFullCards(MainActivity host, String page, NativeEconomyThemeFixture.Api api) {
+    if (page.startsWith("mix")) return mixCards(host, page, api);
     JSONArray measured = new JSONArray();
     if (!page.equals("craft") && !page.startsWith("mix") && !page.equals("forge")) return measured;
     View foreground = page.equals("forge") ? host.root.getChildAt(host.root.getChildCount() - 1) : host.root;
@@ -323,8 +324,9 @@ public class NativeEconomyThemeReviewTest {
     assertTrue(controls > 0);
     assertTrue(labels > 0);
     if (page.startsWith("mix")) {
-      assertNotNull(host.root.findViewWithTag("mix-inline-materials"));
+      assertNotNull(host.root.findViewWithTag("mix-inventory"));
       assertNotNull(host.root.findViewWithTag("mix-workbench"));
+      assertNotNull(host.root.findViewWithTag("mix-results"));
     }
     if (page.equals("craft")) {
       View workbench = host.root.findViewWithTag("craft-workbench");
@@ -543,18 +545,22 @@ public class NativeEconomyThemeReviewTest {
         RegistrationArtTest.await(() -> host.menus.pendingFetches == 0);
         JSONArray pool = api.responses.get("craft").getJSONArray("pool");
         expected.clear(); seen.clear(); pageIndex = 0;
+        // 재료 탭은 썸네일 2열 × 화면 높이별 줄 수가 한 쪽이다.
+        int mixPerPage = host.menus.economy.mixRows() * 2;
         for (int i = 0; i < pool.length(); i++) if (pool.getJSONObject(i).optInt("usable") > 0)
           expected.add(pool.getJSONObject(i).getString("id"));
         while (true) {
           ready(host, size); economyFullCards(host, "mix", api);
           List<String> pageIds = new ArrayList<>();
-          for (View view : geometry.descendants(host.root.findViewWithTag("mix-inline-materials"))) {
+          for (View view : geometry.descendants(host.root.findViewWithTag("mix-inventory"))) {
             String tag = String.valueOf(view.getTag());
             if (tag.startsWith("mix-picker-material-")) pageIds.add(tag.substring("mix-picker-material-".length()));
           }
-          assertEquals(expected.subList(pageIndex * perPage, Math.min(expected.size(), (pageIndex + 1) * perPage)), pageIds);
+          assertEquals(expected.subList(pageIndex * mixPerPage, Math.min(expected.size(), (pageIndex + 1) * mixPerPage)), pageIds);
           seen.addAll(pageIds);
-          Button next = actions.button(host.root.findViewWithTag("mix-material-pages"), "›");
+          View pager = host.root.findViewWithTag("mix-material-pages");
+          if (pager == null) { assertTrue("한 쪽이면 쪽 넘김 없음", expected.size() <= mixPerPage); break; }
+          Button next = actions.button(pager, "›");
           if (!next.isEnabled()) break;
           next.performClick(); pageIndex++;
         }
@@ -581,7 +587,9 @@ public class NativeEconomyThemeReviewTest {
     for (View view : geometry.descendants(host.root.findViewWithTag("mix-workbench")))
       if (String.valueOf(view.getTag()).startsWith("mix-material-")) selected.add(view);
     assertEquals(3, selected.size());
-    for (int i = 3; i < 6; i++) assertNotNull(host.root.findViewWithTag("mix-empty-slot-" + i));
+    // 최소 4칸, 고르면 다음 빈 칸 하나만 열린다.
+    assertNotNull(host.root.findViewWithTag("mix-empty-slot-3"));
+    assertNull(host.root.findViewWithTag("mix-empty-slot-4"));
     host.busy = true; selected.get(2).performClick();
     assertEquals(Arrays.asList(a, b, a), host.menus.mixDraft);
     host.root.findViewWithTag("mix-picker-material-" + a).performClick();
@@ -598,8 +606,11 @@ public class NativeEconomyThemeReviewTest {
     assertFalse("Usable count or six-slot cap disables excess additions", exhausted.isEnabled());
     exhausted.performClick(); assertEquals(before, host.menus.mixDraft);
     assertEquals("Canonical server usable inventory is never changed optimistically", usable, first.getInt("usable"));
-    assertEquals("Original six visible slots", 6, ((ViewGroup) host.root.findViewWithTag("mix-workbench")).getChildCount() == 1
-        ? ((ViewGroup) ((ViewGroup) host.root.findViewWithTag("mix-workbench")).getChildAt(0)).getChildCount() : -1);
+    int filled = 0;
+    for (View view : geometry.descendants(host.root.findViewWithTag("mix-workbench")))
+      if (String.valueOf(view.getTag()).startsWith("mix-material-")) filled++;
+    assertEquals("Six selected slots at the six-material limit", 6, filled);
+    assertNull("No empty slot beyond the limit", host.root.findViewWithTag("mix-empty-slot-6"));
     economyFullCards(host, "mix-selected", api);
     assertEquals(0, api.writes); assertNull(host.visibleDialog);
     // Separate behavior-only server response: inventory exhausts before the six-slot cap.
@@ -609,12 +620,60 @@ public class NativeEconomyThemeReviewTest {
       economy.craft(true); ready(host, size);
       View noneLeft = host.root.findViewWithTag("mix-picker-material-" + a);
       assertFalse(noneLeft.isEnabled());
-      assertEquals("남은 0", ((TextView) noneLeft.findViewWithTag("economy-card-state")).getText().toString());
+      assertEquals("0", ((TextView) noneLeft.findViewWithTag("mix-picker-count")).getText().toString());
       noneLeft.performClick();
       assertEquals(Arrays.asList(a, a), host.menus.mixDraft);
       assertEquals(2, first.getInt("usable"));
     } finally { first.put("usable", usable); }
     host.menus.mixDraft.clear();
+  }
+
+  /** 재료 탭(시안): 보유·선택 칸은 원본 썸네일, 결과 칸만 등록증. 미공개 카드는 그림·정체를 드러내지 않는다. */
+  JSONArray mixCards(MainActivity host, String page, NativeEconomyThemeFixture.Api api) {
+    JSONArray measured = new JSONArray();
+    List<String> selectedMix = new ArrayList<>();
+    for (View view : geometry.descendants(host.root)) {
+      String tag = String.valueOf(view.getTag());
+      boolean picker = tag.startsWith("mix-picker-material-"),
+          chosen = tag.startsWith("mix-material-") && !tag.equals("mix-material-pages");
+      if (!picker && !chosen) continue;
+      String id = tag.substring(picker ? "mix-picker-material-".length() : "mix-material-".length());
+      if (chosen) selectedMix.add(id);
+      assertNotNull("Identity comes from the canonical visible server fixture: " + id, api.data.units.get(id));
+      assertTrue("48dp thumbnail target: " + tag, view.getWidth() >= host.dp(48) && view.getHeight() >= host.dp(48));
+      assertEquals(geometry.bounds(view, host.root), geometry.visibleIntersection(view, host.root));
+      ImageView art = null;
+      for (View child : geometry.descendants(view)) if (child instanceof ImageView) art = (ImageView) child;
+      assertNotNull("Original thumbnail: " + tag, art);
+      assertTrue("Thumbnail bitmap loaded before proof: " + tag, art.getDrawable() instanceof android.graphics.drawable.BitmapDrawable);
+      measured.put(MainActivity.obj("tag", tag, "id", id, "mode", "THUMB", "width", view.getWidth(), "height", view.getHeight()));
+    }
+    for (View view : geometry.descendants(host.root.findViewWithTag("mix-results"))) {
+      if (!(view instanceof RegistrationCardView) || !view.isShown()) continue;
+      RegistrationCardView card = (RegistrationCardView) view;
+      boolean masked = false;
+      for (android.view.ViewParent up = card.getParent(); up instanceof View; up = up.getParent())
+        masked |= up instanceof HiddenRecipeFrame;
+      if (masked) {
+        assertNotEquals("Unknown result never shows character art", View.VISIBLE, card.picture.getVisibility());
+        assertNotNull(card.findViewWithTag("craft-masked-placeholder"));
+        measured.put(MainActivity.obj("tag", "mix-unknown", "mode", "MASKED"));
+        continue;
+      }
+      RegistrationCardView.Artwork art = card.picture;
+      JSONObject canonical = api.data.units.get(art.id);
+      assertNotNull("Result identity is a canonical server unit: " + art.id, canonical);
+      assertEquals(RegistrationCardView.FULL, art.mode);
+      assertNotNull("Canonical FULL bitmap loaded before proof: " + art.id, art.bitmap);
+      assertEquals(art.bitmap.getWidth() / (float) art.bitmap.getHeight(), art.target.width() / art.target.height(), .001f);
+      assertEquals(geometry.bounds(art, host.root), geometry.visibleIntersection(art, host.root));
+      measured.put(MainActivity.obj("tag", "mix-result", "id", art.id, "mode", "FULL",
+          "artWidth", art.target.width(), "artHeight", art.target.height()));
+    }
+    assertTrue("This state contains actual cards", measured.length() > 0);
+    assertEquals("Selected slots preserve ordered duplicate material identity", host.menus.mixDraft, selectedMix);
+    assertTrue(host.registrationArt().cachedBytes() <= 16 * 1024 * 1024);
+    return measured;
   }
 
   void assertMaskedCard(RegistrationCardView card, JSONObject serverUnit) {

@@ -190,7 +190,8 @@ final class NativeAcquisitionFlow {
     h.menus.recipeQuery = item.optString("name");
     h.menus.recipeId = "";
     h.menus.craftOnly = false;
-    h.menus.economy.craft(false);
+    // 결과 탭 전용 경로로 이동한다. load()가 보유 상태를 새로 읽은 뒤 결과로 찾기를 연다.
+    h.load("craftRecipes");
   }
 
   void detail(JSONObject item) {
