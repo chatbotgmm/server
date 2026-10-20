@@ -14,7 +14,8 @@ const only = process.argv[3] ? new Set(process.argv[3].split(',')) : null;
 mkdirSync(out, { recursive: true });
 const B = 'http://127.0.0.1:3999';
 const VIEWS = [['pc', 1440, 900], ['tab', 1024, 768], ['land', 915, 412], ['port', 390, 844], ['small', 360, 640]].filter(([n]) => !process.env.VIEWS || process.env.VIEWS.split(',').includes(n));   // VIEWS=pc,port 처럼 일부만
-const PUBLIC = [['home', '/'], ['about', '/about'], ['characters', '/characters'], ['notices', '/notices'], ['download', '/download'], ['login', '/login?next=/game&from=/about']];
+const PUBLIC = [['home', '/'], ['about', '/about'], ['characters', '/characters'], ['notices', '/notices'], ['download', '/download'], ['login', '/login?next=/game&from=/about'],
+  ['event', '/event'], ['dex', '/dex'], ['dex-one', '/dex/C1'], ['recipes', '/recipes'], ['hidden', '/hidden'], ['rank', '/rank'], ['talk', '/talk'], ['world', '/world'], ['search', '/search?q=갈매미'], ['odds', '/odds'], ['privacy', '/privacy'], ['delete', '/account/delete'], ['native', '/app/native'], ['missing', '/zz-none']];   // 옛 공개 페이지도 새 틀(legacy.css)로 검수
 const GAME = [['g-home', '#home'], ['g-dex', '#dex'], ['g-team', '#team'], ['g-team-pvp', '#team?mode=pvp'], ['g-play', '#play'], ['g-story', '#story'], ['g-draw', '#draw'], ['g-craft', '#craft'], ['g-explore', '#explore'], ['g-shop', '#shop'], ['g-account', '#account']];
 // 전투 단계: 화면마다 새 스토리 전투(P-1)를 시작해 증강체 → 명령(기본·공격·아이템·교체·도망 확인) → 상성표를 찍고 물러난다
 const BATTLE = [['g-root', null], ['g-attack', '[data-p="attack"]'], ['g-item', '[data-p="item"]'], ['g-switch', '[data-p="switch"]'], ['g-leave', '[data-p="leave"]']];
