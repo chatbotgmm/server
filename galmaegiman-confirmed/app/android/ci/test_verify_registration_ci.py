@@ -39,6 +39,62 @@ class SourceScopeTests(unittest.TestCase):
     def verify(self, paths=None):
         return verifier.verify_source_scope(self.root, list(verifier.PROGRESSION_PATHS) if paths is None else paths,
                                             self.lock, self.approved)
+    def prepare_backend_fixture(self, path):
+        data = ("approved fixture: " + path).encode()
+        source = self.root / path
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_bytes(data)
+        self.addCleanup(mock.patch.stopall)
+        mock.patch.dict(verifier.BACKEND_FIXTURE_TEST_LOCKS,
+                        {path: (len(data), verifier.sha256(data))}).start()
+        return source
+
+    def test_backend_fixture_lock_has_only_two_exact_approved_hashes(self):
+        self.assertEqual(verifier.BACKEND_FIXTURE_TEST_LOCKS, {
+            "galmaegiman-confirmed/test/battle-events.test.ts":
+                (13489, "4c38cd9c5cd9333ece04a7b46528db2e08c7aff1317d649ef61817e188d5ec78"),
+            "galmaegiman-confirmed/test/game.integration.test.ts":
+                (139862, "092e55b3b42fac030d5ac55591960df1dd50a8c15489e12f7a5461765432e533"),
+        })
+
+    def test_exact_backend_fixture_paths_and_hashes_pass(self):
+        paths = list(verifier.BACKEND_FIXTURE_TEST_LOCKS)
+        for path in paths:
+            self.prepare_backend_fixture(path)
+        report = self.verify(paths)
+        self.assertEqual(set(report["approved_backend_fixture_test_sha256"]), set(paths))
+        self.assertEqual(report["approved_progression_files"], 14)
+
+    def test_backend_fixture_hash_size_missing_and_redirect_are_rejected(self):
+        for path in list(verifier.BACKEND_FIXTURE_TEST_LOCKS):
+            for mutation in ("hash", "size", "missing", "symlink"):
+                with self.subTest(path=path, mutation=mutation):
+                    source = self.prepare_backend_fixture(path)
+                    data = source.read_bytes()
+                    if mutation == "hash":
+                        source.write_bytes(bytes([data[0] ^ 1]) + data[1:])
+                    elif mutation == "size":
+                        source.write_bytes(data + b"x")
+                    elif mutation == "missing":
+                        source.unlink()
+                    else:
+                        target = self.root / "redirected-fixture"
+                        target.write_bytes(data)
+                        source.unlink()
+                        source.symlink_to(target)
+                    with self.assertRaises(ValueError):
+                        self.verify([path])
+                    if source.is_symlink():
+                        source.unlink()
+
+    def test_backend_fixture_neighbors_and_unlisted_path_are_rejected(self):
+        for path in list(verifier.BACKEND_FIXTURE_TEST_LOCKS):
+            with self.subTest(path=path):
+                with self.assertRaises(ValueError):
+                    self.verify([path + ".bak"])
+        with self.assertRaises(ValueError):
+            verifier.verify_backend_fixture_test(self.root, "galmaegiman-confirmed/test/other.test.ts")
+
     def test_exact_fourteen_backend_paths_and_hashes_pass(self):
         self.assertEqual(self.verify()["approved_progression_files"], 14)
     def test_existing_android_registration_workflow_scope_remains(self):

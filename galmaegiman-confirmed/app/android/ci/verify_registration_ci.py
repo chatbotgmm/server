@@ -166,6 +166,27 @@ def verify_receipt_test(root):
     return RECEIPT_TEST_SHA256
 
 
+# Exact approved CI fixture corrections; no other backend tests enter scope.
+BACKEND_FIXTURE_TEST_LOCKS = {
+    "galmaegiman-confirmed/test/battle-events.test.ts":
+        (13489, "4c38cd9c5cd9333ece04a7b46528db2e08c7aff1317d649ef61817e188d5ec78"),
+    "galmaegiman-confirmed/test/game.integration.test.ts":
+        (139862, "092e55b3b42fac030d5ac55591960df1dd50a8c15489e12f7a5461765432e533"),
+}
+
+
+def verify_backend_fixture_test(root, path):
+    check(path in BACKEND_FIXTURE_TEST_LOCKS, "Unapproved backend fixture test: " + path)
+    source = root / path
+    check(source.is_file() and not source.is_symlink() and source.resolve().is_relative_to(root.resolve()),
+          "Missing or redirected approved backend fixture test: " + path)
+    size, digest = BACKEND_FIXTURE_TEST_LOCKS[path]
+    data = source.read_bytes()
+    check(len(data) == size and sha256(data) == digest,
+          "Approved backend fixture test changed: " + path)
+    return digest
+
+
 def verify_source_scope(root, changed, registration_lock, progression_lock=None):
     approved = json.loads(PROGRESSION_SOURCE_LOCK.read_text()) if progression_lock is None else progression_lock
     check(approved.get("schema") == "authorized-progression-source/v1"
@@ -192,12 +213,16 @@ def verify_source_scope(root, changed, registration_lock, progression_lock=None)
         verify_matrix_test(root)
     if RECEIPT_TEST_PATH in changed:
         verify_receipt_test(root)
+    fixture_hashes = {path: verify_backend_fixture_test(root, path)
+                      for path in sorted(set(changed) & BACKEND_FIXTURE_TEST_LOCKS.keys())}
     allowed_prefixes = ("galmaegiman-confirmed/app/android/", registration_lock["source_prefix"] + "/")
     forbidden = [path for path in changed if path
                  and path != ".github/workflows/home-assembly-check.yml"
-                 and path not in indexed and path not in (MATRIX_TEST_PATH, RECEIPT_TEST_PATH) and not path.startswith(allowed_prefixes)]
+                 and path not in indexed and path not in (MATRIX_TEST_PATH, RECEIPT_TEST_PATH)
+                 and path not in BACKEND_FIXTURE_TEST_LOCKS and not path.startswith(allowed_prefixes)]
     check(not forbidden, "Changes outside Android/registration/locked progression scope: " + ", ".join(forbidden))
-    return {"approved_progression_files": len(indexed),
+    return {"approved_backend_fixture_test_sha256": fixture_hashes,
+            "approved_progression_files": len(indexed),
             "progression_source_commit": approved["approved_commit"],
             "progression_source_sha256": {path: entry["sha256"] for path, entry in sorted(indexed.items())}}
 
