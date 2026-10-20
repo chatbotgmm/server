@@ -36,6 +36,7 @@ describe('조합 진입과 복원 경로 계약', () => {
     expect(economy).toContain('m.fetch("craft",');
     expect(economy).toMatch(/performCraft\(\s*"craft",/);
     expect(source('NativeLibrary')).toContain('m.economy.craft(false);');
-    expect(flow).toContain('h.menus.economy.craft(false);');
+    // 획득 결과의 조합식 이동은 결과 탭 전용 경로를 load해 보유 상태를 새로 읽는다.
+    expect(flow).toContain('h.load("craftRecipes");');
   });
 });

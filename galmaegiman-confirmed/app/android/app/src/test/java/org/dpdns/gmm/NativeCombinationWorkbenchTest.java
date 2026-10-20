@@ -320,11 +320,19 @@ public class NativeCombinationWorkbenchTest {
           screens.layout(host, size[0], size[1], size[2]);
           screens.review.await(() -> host.registrationArt().pendingCount() == 0);
           screens.layout(host, size[0], size[1], size[2]);
+          idle();
+          screens.layout(host, size[0], size[1], size[2]);
           captures.writeScreenshot(host, output.resolve(name + "-start.png"), size[0], size[1]);
+          for (View view : NativeNoScrollReviewTest.descendants(host.root.findViewWithTag("mix-results")))
+            if (view instanceof TextView && view.isShown() && ((TextView) view).getLayout() != null) {
+              TextView label = (TextView) view;
+              assertEquals("결과 카드 글자는 띄어쓰기에서만 줄바꿈 · " + label.getText() + " · " + name,
+                  label.getText().toString().split("\n").length, label.getLineCount());
+            }
           assertFalse("재료 2개 미만이면 조합하기 비활성", host.root.findViewWithTag("mix-submit").isEnabled());
           assertEquals(2, ((ViewGroup) host.root.findViewWithTag("mix-results")).getChildCount());
           assertTrue(NativeNoScrollReviewTest.descendants(host.root.findViewWithTag("mix-results")).stream()
-              .anyMatch(v -> v instanceof TextView && ((TextView) v).getText().toString().equals("재료 선택 중")));
+              .anyMatch(v -> v instanceof TextView && ((TextView) v).getText().toString().replace('\n', ' ').equals("재료 선택 중")));
           host.menus.mixDraft.clear();
           host.menus.mixDraft.addAll(Arrays.asList("C3", "C1"));
           host.menus.economy.craft(true);
