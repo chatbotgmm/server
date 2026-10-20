@@ -90,6 +90,37 @@ final class SkillCardView extends FrameLayout {
 
   final TextView title, power;
 
+  @Override protected void onMeasure(int widthSpec, int heightSpec) {
+    // 가로 명령판의 고정 높이 안에서 완전한 줄만 보여 준다. 다음 카드나 테두리에
+    // 설명이 걸치지 않게 하며, 전체 원문은 기존 버튼 접근성 설명에 그대로 남긴다.
+    effect.setVisibility(effect.length() == 0 ? GONE : VISIBLE);
+    effect.setMaxLines(2);
+    if (MeasureSpec.getMode(heightSpec) != MeasureSpec.UNSPECIFIED
+        && MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
+      int width = Math.max(1, MeasureSpec.getSize(widthSpec));
+      int height = MeasureSpec.getSize(heightSpec);
+      int innerWidth = Math.max(1, width - content.getPaddingLeft() - content.getPaddingRight());
+      View heading = content.getChildAt(0);
+      heading.measure(MeasureSpec.makeMeasureSpec(innerWidth, MeasureSpec.EXACTLY),
+          MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+      int room = height - content.getPaddingTop() - content.getPaddingBottom()
+          - heading.getMeasuredHeight();
+      if (effect.getVisibility() != GONE) {
+        int lines = 2;
+        while (lines > 0) {
+          effect.setMaxLines(lines);
+          effect.measure(MeasureSpec.makeMeasureSpec(innerWidth, MeasureSpec.EXACTLY),
+              MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+          // 마지막 줄의 실제 폰트 여백까지 포함한 최종 높이로 판정한다.
+          if (effect.getMeasuredHeight() <= room) break;
+          lines--;
+        }
+        if (lines == 0) effect.setVisibility(GONE);
+      }
+    }
+    super.onMeasure(widthSpec, heightSpec);
+  }
+
   /** 고정 명령판에 넣기 전에 실제 글꼴·줄바꿈으로 필요한 높이를 계산한다. */
   int naturalHeight(int width) {
     content.measure(
@@ -100,7 +131,8 @@ final class SkillCardView extends FrameLayout {
 
   boolean summaryFits(int width) {
     if (effect.getVisibility() == GONE || effect.getText().length() == 0) return true;
-    int textWidth = Math.max(1, width - content.getPaddingLeft() - content.getPaddingRight());
+    int textWidth = Math.max(1, width - content.getPaddingLeft() - content.getPaddingRight()
+        - effect.getPaddingLeft() - effect.getPaddingRight());
     return StaticLayout.Builder.obtain(
                 effect.getText(), 0, effect.length(), effect.getPaint(), textWidth)
             .setIncludePad(effect.getIncludeFontPadding())
@@ -199,7 +231,7 @@ final class SkillCardView extends FrameLayout {
   }
 
   static String conciseEffect(JSONObject sk) {
-    if (sk.has("summary")) return sk.optString("summary");
+    if (sk.has("summary")) return statusNamesOnly(sk.optString("summary"));
     java.util.ArrayList<String> parts = new java.util.ArrayList<>();
     JSONArray effects = sk.optJSONArray("effects");
     if (effects != null)
@@ -240,13 +272,18 @@ final class SkillCardView extends FrameLayout {
         if (!summary.isEmpty() && !parts.contains(summary)) parts.add(summary);
       }
     if (!parts.isEmpty()) return TextUtils.join(" · ", parts.subList(0, Math.min(2, parts.size())));
-    return effect(sk)
+    return statusNamesOnly(effect(sk))
         .replace("맞은 상대의", "상대")
         .replace("우리 팀의", "우리 팀")
         .replace("체력을 회복해요.", "체력 회복")
         .replace("방어를 낮추고", "방어 감소 ·")
         .replace(" 동안 ", " ")
         .replace("추가 효과 없음", "");
+  }
+
+  static String statusNamesOnly(String text) {
+    return text.replaceAll("(화상|빙결|수면|속박|상태 이상)\\s*\\d+(?:\\.\\d+)?\\s*(?:%|프로)(?:\\s*·?\\s*\\d+턴)?", "$1")
+        .replaceAll("(화상|빙결|수면|속박|상태 이상)\\s*·?\\s*\\d+턴", "$1");
   }
 
   static String shortEffect(JSONObject effect) {
@@ -268,11 +305,7 @@ final class SkillCardView extends FrameLayout {
                 case "sleep" -> "수면";
                 case "bind" -> "속박";
                 default -> "상태 이상";
-              })
-              + " "
-              + effect.optInt("chance", 100)
-              + "%"
-              + duration;
+              });
       case "heal" ->
           (effect.optString("target").equals("bench") ? "대기 아군 " : "체력 ")
               + effect.optInt("pct")

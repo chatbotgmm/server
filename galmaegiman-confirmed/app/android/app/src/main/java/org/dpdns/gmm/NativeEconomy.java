@@ -766,6 +766,13 @@ final class NativeEconomy {
       photo.addView(mask, new FrameLayout.LayoutParams(-1, -1));
       card.name.setVisibility(View.VISIBLE);
       card.grade.setVisibility(View.VISIBLE);
+      // 미공개 표기는 그림 밖에 있으므로 배경 풍경과 분리해서 읽을 수 있게 한다.
+      // 서버가 가린 이름이나 등급을 추정하지 않고 기존 공개 문구만 그대로 사용한다.
+      for (TextView label : new TextView[] {card.name, card.grade}) {
+        label.setBackgroundColor(JournalTheme.PAPER);
+        label.setTextColor(JournalTheme.INK);
+        label.setIncludeFontPadding(true);
+      }
     }
     return card;
   }

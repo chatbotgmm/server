@@ -93,7 +93,8 @@ final class PartyCharacterView extends LinearLayout {
     label.setTypeface(h.headline);
     label.setTextColor(JournalTheme.INK);
     label.setGravity(Gravity.CENTER);
-    label.setIncludeFontPadding(false);
+    // Jua 한글의 위·아래 획까지 이름 영역에 포함한다.
+    label.setIncludeFontPadding(true);
     label.setSingleLine(false);
     // No ellipsis or maximum: an unusually long original name must remain readable.
     label.setEllipsize(null);
