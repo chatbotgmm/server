@@ -78,6 +78,8 @@ final class BattleTypeInfo {
     attr = attr.toUpperCase(Locale.ROOT);
     boolean defense=skill==null;
     LinearLayout body = NativeBattleSheets.column(h);
+    // The fixed header already separates the table: reclaim the generic 6dp prose inset.
+    body.setPadding(body.getPaddingLeft(),0,body.getPaddingRight(),body.getPaddingBottom());
     JSONObject chart=h.state.optJSONObject("typeChart");
     JSONObject multipliers=h.state.optJSONObject("typeMultipliers");
     boolean bundled=multipliers==null;
