@@ -9,6 +9,7 @@ import type { GameService } from './game.js';
 import { GameError } from './types.js';
 import { loadBattleRules } from './battle/load.js';
 import { duelKey } from './duel.js';
+import {ReviewAuth,reviewRouteAllowed,REVIEW_ERROR,type ReviewConfig} from './review-auth.js';
 import {registerNative} from './native.js';
 import type {PrismaClient} from '@prisma/client';
 import {RealtimePvpService} from './pvp/service.js';
@@ -18,7 +19,7 @@ const COOKIE='gmm_s',DAYS=30,KSTATE='gmm_ks',KPEND='gmm_kp',KAPP='gmm_ka',KLINK=
 // 안드로이드 앱(Capacitor) 화면 주소. 앱에서 오는 요청만 다른 주소에서 받음(CORS)
 const APP_ORIGINS=new Set(['https://localhost','capacitor://localhost','http://localhost']);
 export interface KakaoLogin {restKey:string;clientSecret?:string}
-export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaClient;root:string;secret:string;baseUrl:()=>Promise<string>;kakao?:KakaoLogin;fetch?:typeof fetch;reviewCode?:string}){
+export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaClient;root:string;secret:string;baseUrl:()=>Promise<string>;kakao?:KakaoLogin;fetch?:typeof fetch;reviewLogin?:ReviewConfig}){
   const key=createHmac('sha256',opt.secret).update('web-session').digest();
   const sign=(v:string)=>createHmac('sha256',key).update(v).digest('base64url');
   const issue=(playerId:string)=>{const exp=Math.floor(Date.now()/1000)+DAYS*86400,v=`${playerId}.${exp}`;return `${v}.${sign(v)}`;};
@@ -34,7 +35,25 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
     return id;
   };
   // 웹은 쿠키, 앱은 머리글(x-gmm-s)에 같은 서명 값
-  const session=(req:FastifyRequest)=>{const h=req.headers['x-gmm-s'];return unsign('',typeof h==='string'&&h.length<200?h:cookie(req,COOKIE));};
+  const review=new ReviewAuth(opt.db,opt.reviewLogin);
+  const checked=new WeakMap<FastifyRequest,string>();
+  const rawSession=(req:FastifyRequest)=>{const h=req.headers['x-gmm-s'];return typeof h==='string'&&h.length<200?h:cookie(req,COOKIE);};
+  const session=(req:FastifyRequest)=>checked.get(req)??null;
+  app.addHook('onClose',async()=>review.close());
+  app.addHook('preHandler',async(req,reply)=>{
+    const raw=rawSession(req);if(!raw)return;
+    if(raw.startsWith('rv_')){
+      const id=await review.authenticate(raw);
+      if(!id)return reply.code(401).send({error:'login'});
+      const path=req.url.split('?')[0].replace(/^\/my\/api\//,'');
+      if(!reviewRouteAllowed(req.method,path,req.body))return reply.code(403).send({error:'심사 계정에서는 계정 연결·삭제와 다른 이용자에게 영향을 주는 기능을 사용할 수 없어요.'});
+      checked.set(req,id);return;
+    }
+    const id=unsign('',raw);if(!id)return;
+    // 과거 REVIEW_CODE로 발급한 30일 쿠키도 차단. 전용 계정은 전용 세션으로만 접근.
+    const p=await opt.db.player.findUnique({where:{id},select:{identity:true}});
+    if(p&&!p.identity.startsWith('review:'))checked.set(req,id);
+  });
   app.addHook('onRequest',async(req,reply)=>{
     if(!req.url.startsWith('/my/api/')&&!req.url.startsWith('/duel/data.json')&&!req.url.startsWith('/app/apk.json'))return;   // 게임 데이터·새 앱 버전 정보도 앱에서 받음
     const o=req.headers.origin;
@@ -79,8 +98,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
     const linkCode=typeof req.body?.linkCode==='string'?req.body.linkCode:'';
     const nativeLink=linkCode?appLinkPending.get(linkCode):null;
     if(linkCode&&(!nativeLink||nativeLink.exp<Date.now()))return reply.code(400).send({error:'카카오 연결 요청이 만료됐어요. 카카오 로그인을 다시 시작해 주세요.'});
-    // 스토어 심사용 코드(.env REVIEW_CODE): 심사 전용 계정으로만 들어감
-    const playerId=opt.reviewCode&&code===opt.reviewCode?await game.webReviewPlayer():await game.webLoginCode(code);
+    const playerId=await game.webLoginCode(code);
     if(!playerId)return reply.code(400).send({error:'코드가 맞지 않거나 시간이 지났어요. 카톡에서 「웹 로그인」을 다시 보내 새 코드를 받아 주세요.'});
     // 카카오로 로그인하다 넘어온 경우: 이번 로그인한 계정에 그 카카오 계정을 연결
     const kakaoId=unsign('kp.',cookie(req,KPEND));
@@ -99,7 +117,15 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
     reply.header('Set-Cookie',[cookieLine(req,COOKIE,token,DAYS*86400),...(kakaoId?[cookieLine(req,KPEND,'',0)]:[])]);
     return {ok:true,kakao,...(req.headers['x-gmm-app']==='1'?{token}:{})};
   });
-  app.post('/my/api/logout',async(req,reply)=>{if(!guard(req,reply))return;setCookie(req,reply,'',0);return {ok:true};});
+  app.post<{Body:{username?:unknown;password?:unknown}}>('/my/api/review/login',{bodyLimit:2048,config:{rateLimit:{max:5,timeWindow:'1 minute',keyGenerator:()=> 'review-login',errorResponseBuilder:()=>({statusCode:429,error:REVIEW_ERROR})}}},async(req,reply)=>{
+    if(!guard(req,reply))return;
+    reply.header('Cache-Control','no-store');
+    const token=await review.login(req.body?.username,req.body?.password);
+    if(!token)return reply.code(400).send({error:REVIEW_ERROR});
+    setCookie(req,reply,token,12*3600);
+    return {ok:true,...(req.headers['x-gmm-app']==='1'?{token}:{})};
+  });
+  app.post('/my/api/logout',async(req,reply)=>{if(!guard(req,reply))return;review.revoke(rawSession(req)??'');setCookie(req,reply,'',0);return {ok:true};});
   const limit={config:{rateLimit:{max:120,timeWindow:'1 minute',keyGenerator:ipKey('myapi')}}};
   // 아이템 종류·가격(battle.yaml을 요청 때마다 읽어 고치면 바로 반영)
   const itemDefs=()=>{const R=loadBattleRules(opt.root);return {items:Object.entries(R.data.items).map(([id,v])=>({id,...v})),rules:R.data.itemRules};};
