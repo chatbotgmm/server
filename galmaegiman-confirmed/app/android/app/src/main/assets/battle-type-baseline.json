@@ -1,7 +1,7 @@
 {
   "source": "data/battle.yaml",
-  "sourceCommit": "680cc3565aafddcd262541faed44b6a333dde912",
-  "sourceSha256": "a0fd9c655604180e39cbc654184d65d64a593657d03cb44c7f282c64d80aea09",
+  "sourceCommit": "88dec3686f8796abee8cd4a269ba43f49352108a",
+  "sourceSha256": "5db5c50aab3cda3599ba5b34a2ab739301ce09bb50d5ba7a8749dce6e632f72d",
   "chart": {
     "SEA": {
       "strong": [

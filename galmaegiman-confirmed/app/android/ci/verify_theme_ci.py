@@ -16,7 +16,8 @@ INVENTORY = HERE / "theme-coverage-inventory.json"
 
 
 MATRIX_ASSET_PATH = "galmaegiman-confirmed/app/android/app/src/main/assets/battle-type-baseline.json"
-MATRIX_ASSET_SHA256 = "8352ced6a5dd3f2d78ff2a34fa3c8c668132d188ec1b85b99818f86dce4d8aad"
+# 2026-10-20: battle.yaml 승진 배율 변경(88dec36)으로 원본 해시·커밋만 갱신. 상성표·배율 값은 그대로.
+MATRIX_ASSET_SHA256 = "8524ced649302dcd1806f8dd6eef60fb293834f981e948bf7039aa8c9e16c489"
 
 def verify_matrix_asset(data):
     check(len(data) == 2267 and sha256(data) == MATRIX_ASSET_SHA256, "Canonical matrix asset changed")
