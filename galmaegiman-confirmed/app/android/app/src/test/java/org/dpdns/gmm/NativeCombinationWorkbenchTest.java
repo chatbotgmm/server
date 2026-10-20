@@ -97,13 +97,10 @@ public class NativeCombinationWorkbenchTest {
   }
 
   void remove(MainActivity host, String id) {
-    ViewGroup slot = host.root.findViewWithTag("mix-material-" + id);
+    View slot = host.root.findViewWithTag("mix-material-" + id);
     assertNotNull("선택한 재료 칸 " + id, slot);
-    Button button = null;
-    for (int i = 0; i < slot.getChildCount(); i++)
-      if (slot.getChildAt(i) instanceof Button) button = (Button) slot.getChildAt(i);
-    assertNotNull("개별 × 버튼", button);
-    button.performClick();
+    assertTrue("× 배지가 있는 칸 전체가 빼기 버튼", slot.isClickable());
+    slot.performClick();
     idle();
   }
 
@@ -296,8 +293,17 @@ public class NativeCombinationWorkbenchTest {
             if (view instanceof Button)
               assertTrue(tag + " 48dp · " + name, view.getHeight() >= host.dp(48));
           }
+          if (host.root.findViewWithTag("mix-picker-material-I3") == null)
+            assertNotNull("보유 재료가 한 쪽을 넘으면 쪽 넘김 · " + name, host.root.findViewWithTag("mix-material-pages"));
+          for (String tag : new String[] {"mix-picker-material-C3", "mix-picker-material-C1", "mix-material-C3",
+              "mix-empty-slot-2"}) {
+            View touch = host.root.findViewWithTag(tag);
+            assertNotNull(tag + " · " + name, touch);
+            assertTrue(tag + " 48dp 터치 · " + name, touch.getWidth() >= host.dp(48) && touch.getHeight() >= host.dp(48));
+            assertTrue(tag + " 화면 안 · " + name, screen.contains(screens.bounds(touch, host.root)));
+          }
           for (String tag : new String[] {"craft-material-picker", "craft-recipe-picker", "mix-count",
-              "mix-result-heading", "mix-clear", "mix-submit", "mix-picker-material-I3"}) {
+              "mix-result-heading", "mix-clear", "mix-submit"}) {
             TextView label = host.root.findViewWithTag(tag);
             assertNotNull(tag, label);
             assertNotNull(tag, label.getLayout());
@@ -307,6 +313,22 @@ public class NativeCombinationWorkbenchTest {
             assertTrue("글자 세로 잘림 없음 · " + tag + " · " + name, label.getLayout().getHeight()
                 <= label.getHeight() - label.getCompoundPaddingTop() - label.getCompoundPaddingBottom() + 1);
           }
+          // 재료를 하나만 고른 시작 상태: 「재료 선택 중」 카드 두 장, 조합하기 비활성.
+          host.menus.mixDraft.clear();
+          host.menus.mixDraft.add("C1");
+          host.menus.economy.craft(true);
+          screens.layout(host, size[0], size[1], size[2]);
+          screens.review.await(() -> host.registrationArt().pendingCount() == 0);
+          screens.layout(host, size[0], size[1], size[2]);
+          captures.writeScreenshot(host, output.resolve(name + "-start.png"), size[0], size[1]);
+          assertFalse("재료 2개 미만이면 조합하기 비활성", host.root.findViewWithTag("mix-submit").isEnabled());
+          assertEquals(2, ((ViewGroup) host.root.findViewWithTag("mix-results")).getChildCount());
+          assertTrue(NativeNoScrollReviewTest.descendants(host.root.findViewWithTag("mix-results")).stream()
+              .anyMatch(v -> v instanceof TextView && ((TextView) v).getText().toString().equals("재료 선택 중")));
+          host.menus.mixDraft.clear();
+          host.menus.mixDraft.addAll(Arrays.asList("C3", "C1"));
+          host.menus.economy.craft(true);
+          screens.layout(host, size[0], size[1], size[2]);
           Rect submit = screens.bounds(host.root.findViewWithTag("mix-submit"), host.root);
           View result = host.root.findViewWithTag("mix-result-card");
           for (ViewParent up = result.getParent(); up instanceof View; up = up.getParent())
