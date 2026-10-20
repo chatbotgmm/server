@@ -1,5 +1,6 @@
 # 버튼 리소스 로더 인계
 
+> 최신 화면 연결 상태와 Claude 최종 지시문은 [motion-screen-integration-20261020.md](motion-screen-integration-20261020.md)를 우선 참고하세요. 아래 내용은 초기 유틸리티 단계 기록입니다.
 ## 입력과 범위
 
 - 작업 브랜치 `feature/ui-motion-resources-20261020`. 조합 작업대 `d9f2375`를 보존한다.

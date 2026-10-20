@@ -972,6 +972,10 @@ final class BattleView extends FrameLayout implements FullBleed {
         RectF r = new RectF(left, top, left + bw, top + bh);
         r.offset(parallax.x * .2f, parallax.y * .2f);
         bitmap(c, bg, null, r);
+        if (host.backgroundEffects != null) {
+          if (battle.optString("scene", "harbor").equals("harbor")) host.backgroundEffects.boat.draw(c, bg, r, host.motionResumed && SceneMotion.enabled(host) && host.visibleDialog == null && hasWindowFocus());
+          host.backgroundEffects.draw(c, battle.optString("scene", "harbor").equals("harbor") ? "battle-v1/bg-harbor.png" : "", r, this, this::invalidate);
+        }
       } else BattleBackground.fallback(c, p, w, h);
       ambientLight.draw(c, battle.optString("scene", "harbor"), host.journalTime.phase());
       c.save();

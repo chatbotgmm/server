@@ -1,5 +1,6 @@
 # 배경 효과 시트 애니메이터 인계
 
+> 최신 화면 연결 상태와 Claude 최종 지시문은 [motion-screen-integration-20261020.md](motion-screen-integration-20261020.md)를 우선 참고하세요. 아래 내용은 초기 유틸리티 단계 기록입니다.
 ## 입력 및 변경 범위
 
 `feature/ui-motion-resources-20261020`의 부모 업로드 `2e07077fa6c276879c9867b8f0adf74c64580484`를 정상 Git fetch로 받아 `native/background-motion-v1/runtime.json`과 indoor/outdoor 8개 PNG를 실제 확인했다. 각 시트는 2048×1024 RGBA, 512×512 셀 8개다. 64프레임을 회색 배경의 임시 검토 시트로 열어 등불·먼지·물 반짝임·잎 모양을 확인했다. 원본 배경 PNG와 효과 PNG, 전달된 runtime.json은 수정하지 않았다. 기존 버튼 리소스와 첫 화면 ‘갈매미맨 방범대’, 조합 작업대 변경을 보존한다.

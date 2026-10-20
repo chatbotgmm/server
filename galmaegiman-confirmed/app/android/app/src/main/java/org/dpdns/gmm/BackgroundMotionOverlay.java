@@ -23,6 +23,29 @@ import java.util.concurrent.Executors;
 /** 원본 배경 위, UI 아래에 명시적으로 배치하는 단일 장면 효과 View. 자동 화면 적용 없음. */
 final class BackgroundMotionOverlay extends View {
   private final AssetManager assets;
+  private View compositeOwner;
+  private Runnable repaint;
+  private java.util.function.BooleanSupplier runtimeGate = () -> true;
+
+  // 별도 터치 View를 끼우지 않고 기존 배경 renderer의 정확한 레이어 위치에서 합성한다.
+  void bindCompositeOwner(View owner, Runnable invalidateOwner, java.util.function.BooleanSupplier gate) {
+    mainThread();
+    compositeOwner = owner;
+    repaint = invalidateOwner;
+    runtimeGate = gate;
+  }
+
+  void unbindCompositeOwner() {
+    mainThread();
+    compositeOwner = null;
+    repaint = null;
+    runtimeGate = () -> true;
+    releaseSheet();
+  }
+
+  private View owner() { return compositeOwner == null ? this : compositeOwner; }
+  private void invalidateDisplay() { invalidate(); if (repaint != null) repaint.run(); }
+
   private final Handler ui = new Handler(Looper.getMainLooper());
   private final ExecutorService decoder = Executors.newSingleThreadExecutor();
   private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
@@ -38,8 +61,8 @@ final class BackgroundMotionOverlay extends View {
   private Bitmap sheet;
   private final Runnable tick = new Runnable() {
     @Override public void run() {
-      if (!canAnimate()) return;
-      invalidate();
+      if (!canAnimate()) { reconcile(); return; }
+      invalidateDisplay();
       // 로컬 주변 효과는 최대 30fps. 경과 시간으로 샘플하므로 프레임 누락을 추격하지 않는다.
       ui.postDelayed(this, 33);
     }
@@ -77,6 +100,8 @@ final class BackgroundMotionOverlay extends View {
     if (width <= 0 || height <= 0 || clip.isEmpty() || !finite(clip)) throw new IllegalArgumentException("배경 좌표 범위 오류");
     Matrix inverse = new Matrix();
     if (!transform.invert(inverse)) throw new IllegalArgumentException("역변환 불가능한 배경 행렬");
+    if (transformReady && sourceToLocal.equals(transform) && viewport.equals(clip)
+        && mappedBackground.equals(background) && mappedWidth == width && mappedHeight == height) return;
     sourceToLocal.set(transform);
     viewport.set(clip);
     mappedBackground = background;
@@ -104,11 +129,12 @@ final class BackgroundMotionOverlay extends View {
     reconcile();
   }
 
-  void setHostResumed(boolean resumed) { mainThread(); hostResumed = resumed; reconcile(); }
-  void setReducedMotion(boolean reduced) { mainThread(); reducedMotion = reduced; reconcile(); }
-  void onTrimMemory() { mainThread(); fallback = true; generation++; releaseSheet(); invalidate(); }
+  void setHostResumed(boolean resumed) { mainThread(); if (hostResumed == resumed) return; hostResumed = resumed; reconcile(); }
+  void setReducedMotion(boolean reduced) { mainThread(); if (reducedMotion == reduced) return; reducedMotion = reduced; reconcile(); }
+  void onTrimMemory() { mainThread(); fallback = true; generation++; releaseSheet(); invalidateDisplay(); }
   void retryEffects() { mainThread(); fallback = false; error = ""; reconcile(); }
   String lastError() { return error; }
+  void refreshLifecycle() { mainThread(); reconcile(); }
 
   void dispose() {
     mainThread();
@@ -118,16 +144,16 @@ final class BackgroundMotionOverlay extends View {
     releaseSheet();
     decoder.shutdownNow();
     waterMask = null;
-    invalidate();
+    invalidateDisplay();
   }
 
   private boolean visibleHost() {
-    return !disposed && hostResumed && !reducedMotion && !fallback && isAttachedToWindow()
-        && getWindowVisibility() == VISIBLE && isShown();
+    return !disposed && hostResumed && !reducedMotion && !fallback && owner().isAttachedToWindow() && runtimeGate.getAsBoolean()
+        && owner().getWindowVisibility() == VISIBLE && owner().isShown();
   }
 
   private boolean canAnimate() {
-    return visibleHost() && hasWindowFocus() && sheet != null && spec != null && transformReady
+    return visibleHost() && owner().hasWindowFocus() && sheet != null && spec != null && transformReady
         && spec.background.equals(mappedBackground) && spec.width == mappedWidth && spec.height == mappedHeight
         && (!spec.needsWaterMask || (waterMask != null && spec.background.equals(maskBackground)));
   }
@@ -138,7 +164,7 @@ final class BackgroundMotionOverlay extends View {
     ui.removeCallbacks(tick);
     if (!visibleHost()) {
       releaseSheet();
-      invalidate();
+      invalidateDisplay();
       return;
     }
     if (sheet == null && !inFlight && !scene.isEmpty()) load();
@@ -146,7 +172,7 @@ final class BackgroundMotionOverlay extends View {
       if (!spec.timeline.isRunning()) spec.timeline.start(SystemClock.elapsedRealtime());
       ui.post(tick);
     } else if (spec != null) spec.timeline.stop();
-    invalidate();
+    invalidateDisplay();
   }
 
   private void releaseSheet() {
@@ -203,6 +229,11 @@ final class BackgroundMotionOverlay extends View {
 
   @Override protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
+    drawEffect(canvas);
+  }
+
+  void drawEffect(Canvas canvas) {
+    if (visibleHost() && ((sheet == null && !inFlight) || (canAnimate() && !spec.timeline.isRunning()))) reconcile();
     if (!canAnimate()) return; // 효과만 사라져 아래 기존 정적 배경이 그대로 남는다.
     BackgroundMotionTimeline time = spec.timeline;
     time.sample(SystemClock.elapsedRealtime());

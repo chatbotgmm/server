@@ -111,6 +111,8 @@ final class ThemeArt {
             b.exactCenterX() + width / 2, b.exactCenterY() + height / 2);
         int save = canvas.save(); canvas.clipRect(b);
         brush.setAlpha(alpha); canvas.drawBitmap(bitmap, null, destination, brush);
+        if (host.backgroundEffects != null && alpha == 255)
+          host.backgroundEffects.draw(canvas, "native/release-v1/" + file, destination, host.root, this::invalidateSelf);
         canvas.restoreToCount(save);
       }
       @Override public void setAlpha(int value) { alpha = Math.max(0, Math.min(255, value)); invalidateSelf(); }

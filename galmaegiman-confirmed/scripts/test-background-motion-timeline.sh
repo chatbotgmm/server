@@ -8,5 +8,9 @@ trap 'rm -rf "$test_output"' EXIT
 java_runner="${JAVA:-java}"
 "$java_runner" --add-modules jdk.compiler com.sun.tools.javac.Main -d "$test_output" \
   "$project_dir/app/android/app/src/main/java/org/dpdns/gmm/BackgroundMotionTimeline.java" \
-  "$project_dir/test/java/org/dpdns/gmm/BackgroundMotionTimelineCheck.java"
+  "$project_dir/test/java/org/dpdns/gmm/BackgroundMotionTimelineCheck.java" \
+  "$project_dir/app/android/app/src/main/java/org/dpdns/gmm/HarborBoatGeometry.java" \
+  "$project_dir/test/java/org/dpdns/gmm/HarborBoatGeometryCheck.java"
 "$java_runner" -cp "$test_output" org.dpdns.gmm.BackgroundMotionTimelineCheck
+
+"$java_runner" -cp "$test_output" org.dpdns.gmm.HarborBoatGeometryCheck

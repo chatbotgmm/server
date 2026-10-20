@@ -115,6 +115,7 @@ final class MenuKit {
     b.setTextColor(JournalTheme.controlText());
     b.setTextSize(h.uiText(16));
     b.setBackground(new GameButtonDrawable(h, GameButtonDrawable.PAPER));
+    if (h.uiMotion != null && "account".equals(h.screen) && "u-settings".equals(icon)) h.uiMotion.settingsIcon(b);
     if (icon != null) {
       String themed = themeIcon(icon);
       Bitmap nativeIcon = themed == null ? null : ThemeArt.of(h).image("icons/" + themed + ".png");
@@ -155,7 +156,10 @@ final class MenuKit {
 
   /** 실행은 남색 황동판, 이동·수량·취소는 종이판으로 구분한다. */
   Button primary(String icon, String name, Runnable click) {
-    return emphasize(action(icon, name, click));
+    Button button = emphasize(action(icon, name, click));
+    if (h.uiMotion != null && "mix".equals(h.screen) && "조합하기".equals(name) && icon == null)
+      h.uiMotion.primary(button);
+    return button;
   }
 
   Button emphasize(Button button) {

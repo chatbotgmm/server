@@ -12,6 +12,14 @@ final class GameRootLayout extends FrameLayout {
     setBackgroundColor(JournalTheme.LEATHER);
   }
 
+  @Override public void removeAllViews() {
+    if (getContext() instanceof MainActivity) {
+      MainActivity host = (MainActivity) getContext();
+      if (host.backgroundEffects != null) host.backgroundEffects.reset();
+    }
+    super.removeAllViews();
+  }
+
   @Override
   protected void measureChildWithMargins(
       View child, int parentWidthSpec, int widthUsed, int parentHeightSpec, int heightUsed) {

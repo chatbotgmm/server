@@ -38,6 +38,8 @@ public class MainActivity extends AppCompatActivity {
   JSONObject state = new JSONObject(), battle;
   String screen = "home", pendingAugment = "";
   int chapter = 0, epoch = 0;
+  BackgroundMotionBinding backgroundEffects;
+  UiMotionUiBinding uiMotion;
   boolean busy = false, motionEnabled = true, motionResumed = false;
   android.app.AlertDialog visibleDialog;
   ArrayList<String> selected = new ArrayList<>();
@@ -75,6 +77,8 @@ public class MainActivity extends AppCompatActivity {
     }
     WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
     root = new GameRootLayout(this);
+    backgroundEffects = new BackgroundMotionBinding(this);
+    uiMotion = new UiMotionUiBinding(this);
     setContentView(root);
     operations = new NativeOperationUi(this);
     menus = new NativeMenus(this);
@@ -122,6 +126,7 @@ public class MainActivity extends AppCompatActivity {
   @Override
   public void onWindowFocusChanged(boolean focus) {
     super.onWindowFocusChanged(focus);
+    if (backgroundEffects != null && root != null) root.post(() -> backgroundEffects.effect.refreshLifecycle());
     if (focus) immersive();
   }
 
@@ -1491,6 +1496,7 @@ public class MainActivity extends AppCompatActivity {
     if (sound != null) sound.resume();
     if (realtime != null) realtime.resume();
     motionResumed = true;
+    if (backgroundEffects != null) backgroundEffects.resumed(true);
     journalTime.resume();
   }
 
@@ -1500,8 +1506,15 @@ public class MainActivity extends AppCompatActivity {
     if (sound != null) sound.pause();
     if (realtime != null) realtime.pause();
     motionResumed = false;
+    if (backgroundEffects != null) backgroundEffects.resumed(false);
     journalTime.pause();
     super.onPause();
+  }
+
+  @Override
+  public void onTrimMemory(int level) {
+    super.onTrimMemory(level);
+    if (backgroundEffects != null) backgroundEffects.trim();
   }
 
   @Override
@@ -1520,6 +1533,8 @@ public class MainActivity extends AppCompatActivity {
 
   @Override
   protected void onDestroy() {
+    if (backgroundEffects != null) backgroundEffects.close();
+    if (uiMotion != null) uiMotion.close();
     if (realtime != null) realtime.close();
     super.onDestroy();
     motionResumed = false;
