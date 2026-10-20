@@ -182,7 +182,16 @@ public class NativeHomePartyFeedbackTest {
   void settle(MainActivity h, Profile p) throws Exception {
     layout(h, p); Bitmap kickoff = render(h.root);
     kickoff.recycle();
-    RegistrationArtTest.await(() -> h.art.idle() && h.registrationArt().idle());
+    RegistrationArtTest.await(() -> {
+      if (!h.art.idle() || !h.registrationArt().idle()) return false;
+      // NativeArt clears decoder loading before posting UI callbacks. Wait for the
+      // actual visible portrait callback too, not just the worker's idle flag.
+      for (View view : all(h.root)) if (view instanceof PartyCharacterView.Artwork && view.isShown()) {
+        PartyCharacterView.Artwork art = (PartyCharacterView.Artwork)view;
+        if (!art.path.isEmpty() && "이미지 준비 중".equals(art.status)) return false;
+      }
+      return true;
+    });
     layout(h, p);
     Bitmap last = render(h.root); last.recycle();
   }
@@ -626,5 +635,6 @@ public class NativeHomePartyFeedbackTest {
     }
   }
 }
+
 
 

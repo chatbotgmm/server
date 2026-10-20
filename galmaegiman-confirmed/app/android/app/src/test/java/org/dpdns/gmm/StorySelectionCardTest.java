@@ -139,20 +139,22 @@ public class StorySelectionCardTest {
         android.graphics.Rect safe = new android.graphics.Rect(effective.left,effective.top,
             size[0]-effective.right,size[1]-effective.bottom);
         assertEquals(safe,review.geometry.bounds(h.page,h.root));
-        Bitmap bitmap = Bitmap.createBitmap(size[0],size[1],Bitmap.Config.ARGB_8888);
-        try {
-          h.root.draw(new Canvas(bitmap));
-          try (OutputStream stream = Files.newOutputStream(output.resolve(name + ".png"))) {
-            assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,stream));
-          }
-        } finally { bitmap.recycle(); }
         JSONObject checked = review.inspect(h,h.root,"story",api);
         assertEquals(safe.width(),checked.getInt("safeWidth"));
         assertEquals(safe.height(),checked.getInt("safeHeight"));
+        android.widget.HorizontalScrollView chapters = h.root.findViewWithTag("story-chapters-inline");
+        int initialScroll = chapters.getScrollX();
+        assertTrue("챕터 뷰포트가 실제 안전영역 안에 있음",safe.contains(review.geometry.bounds(chapters,h.root)));
         int cards = 0;
         for (View view : review.geometry.descendants(h.root)) if (view instanceof StorySelectionCard) {
           StorySelectionCard card = (StorySelectionCard)view; cards++;
-          assertTrue("카드가 실제 컷아웃 안전영역 안에 있음",safe.contains(review.geometry.bounds(card,h.root)));
+          // Existing chapter list scrolls horizontally: reveal each whole card before checking it.
+          chapters.scrollTo(card.getLeft(),0);
+          android.graphics.Rect cardBounds = review.geometry.bounds(card,h.root);
+          assertTrue("스크롤로 노출한 카드가 실제 컷아웃 안전영역 안에 있음: " + cardBounds,
+              safe.contains(cardBounds));
+          assertEquals("노출한 챕터 카드 전체가 잘리지 않음",cardBounds,
+              review.geometry.visibleIntersection(card,h.root));
           assertNotNull("원본 그림 로딩",card.artwork);
           assertTrue(card.getHeight() >= h.dp(48));
           assertTrue("제목·조건이 카드 높이 안에 있음",card.info.getBottom() <= card.getHeight());
@@ -161,6 +163,14 @@ public class StorySelectionCardTest {
             assertTrue(text.getHeight() - text.getCompoundPaddingTop() - text.getCompoundPaddingBottom() >= text.getLayout().getHeight());
           }
         }
+        chapters.scrollTo(initialScroll,0);
+        Bitmap bitmap = Bitmap.createBitmap(size[0],size[1],Bitmap.Config.ARGB_8888);
+        try {
+          h.root.draw(new Canvas(bitmap));
+          try (OutputStream stream = Files.newOutputStream(output.resolve(name + ".png"))) {
+            assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,stream));
+          }
+        } finally { bitmap.recycle(); }
         assertEquals(3,cards);
         checked.put("cards",cards).put("width",size[0]).put("height",size[1]).put("fontScale",size[2]/100f)
             .put("actualNativeViews",true).put("safeInsetsPx",new JSONArray().put(effective.left).put(effective.top).put(effective.right).put(effective.bottom));
@@ -174,5 +184,6 @@ public class StorySelectionCardTest {
     }
   }
 }
+
 
 
