@@ -536,8 +536,15 @@ final class NativeEconomy {
     recipes.setTag("craft-recipe-picker");
     Button materials = k.action(null, "재료로 찾기", () -> craft(true));
     materials.setSelected(mix);
-    tools.addView(materials, new LinearLayout.LayoutParams(h.dp(120), h.dp(48)));
-    tools.addView(recipes, new LinearLayout.LayoutParams(h.dp(120), h.dp(48)));
+    materials.setTag("craft-material-picker");
+    // 큰 글씨에서도 탭 이름이 두 줄로 잘리지 않게 글자 폭만큼 넓힌다(최소 120dp).
+    for (Button tab : new Button[] {materials, recipes}) {
+      tab.setMinWidth(h.dp(120));
+      tab.setMinimumWidth(h.dp(120));
+      tab.setSingleLine(true);
+    }
+    tools.addView(materials, new LinearLayout.LayoutParams(-2, h.dp(48)));
+    tools.addView(recipes, new LinearLayout.LayoutParams(-2, h.dp(48)));
     if (!mix) {
       LinearLayout search = k.column();
       k.search(search, "이름·재료로 찾기", m.recipeQuery, query -> {
@@ -888,7 +895,8 @@ final class NativeEconomy {
       if (available.isEmpty()) choices.addView(caption("사용 가능한 재료가 없어요."));
       pageControls(inventory, mixPage, pages, page -> { mixPage = page; paint[0].run(); }, "mix-material-pages");
       LinearLayout heading = k.row();
-      TextView count = caption("재료 " + m.mixDraft.size() + "/" + limit);
+      TextView count = benchHeading("재료 " + m.mixDraft.size() + "/" + limit);
+      count.setTag("mix-count");
       heading.addView(count, new LinearLayout.LayoutParams(0, -1, 1));
       Button clear = k.action(null, "비우기", () -> {
         if (h.busy) return;
@@ -925,7 +933,8 @@ final class NativeEconomy {
       }
       if (m.mixDraft.isEmpty()) slots.addView(caption("왼쪽에서 재료를 골라 주세요."));
       JSONObject match = mixResult(h.list(data, "recipes"));
-      TextView resultHeading = caption(match == null ? "결과 미확인" : "가능한 결과");
+      TextView resultHeading = benchHeading(match == null ? "결과 미확인" : "가능한 결과");
+      resultHeading.setTag("mix-result-heading");
       results.addView(resultHeading, new LinearLayout.LayoutParams(-1, h.dp(48)));
       JSONObject unknown = MainActivity.obj("known", false, "name", "미공개", "tierName", "입사등록증", "img", "unknown");
       HiddenRecipeFrame frame = new HiddenRecipeFrame(h, hint);
@@ -955,6 +964,14 @@ final class NativeEconomy {
       paint[0].run();
     });
     paint[0].run();
+  }
+
+  /** 작업대 제목 칸: 글자를 세로 가운데에 두고 종이 모서리 장식과 겹치지 않게 띄운다. */
+  TextView benchHeading(String text) {
+    TextView label = caption(text);
+    label.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+    label.setPadding(h.dp(16), 0, h.dp(16), 0);
+    return label;
   }
 
   JSONObject mixUnit(JSONArray pool, String id) {
