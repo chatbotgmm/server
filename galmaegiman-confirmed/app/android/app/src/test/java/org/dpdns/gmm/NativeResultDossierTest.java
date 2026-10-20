@@ -175,11 +175,15 @@ public class NativeResultDossierTest {
       String original = reveal.result.toString(), originalState = host.state.toString();
       reveal.findViewWithTag("acquisition-next-page").performClick();
       View selected = reveal.findViewWithTag("acquisition-card-D1");
-      selected.performClick(); selected.performClick();
+      selected.performClick();
+      assertNull("카드를 눌러도 새 창을 띄우지 않고 뒤집는다", reveal.dossier);
+      assertTrue(((NativeReveal.RevealCard) selected).infoShown);
+      View record = reveal.findViewWithTag("acquisition-card-record");
+      record.performClick(); record.performClick();
       NativeUnitDossier dossier = reveal.dossier;
       assertNotNull(dossier);
       assertEquals(1, reveal.resultPage); assertEquals(4, reveal.flow.selected);
-      assertEquals(Arrays.asList("native/catalog", "native/state"), api.reads);
+      assertEquals(Arrays.asList("native/catalog", "native/catalog", "native/state"), api.reads);
       assertEquals(item("D1").getString("intro"),
           ((TextView) dossier.findViewWithTag("acquisition-dossier-intro")).getText().toString());
       assertNotNull(dossier.findViewWithTag("acquisition-dossier-skill-o2-exact-skill"));
@@ -198,7 +202,113 @@ public class NativeResultDossierTest {
       Button confirm = reveal.findViewWithTag("acquisition-confirm");
       confirm.performClick(); confirm.performClick();
       assertEquals(1, finished.get());
-      assertEquals(2, api.reads.size());
+      assertEquals(3, api.reads.size());
+    }
+  }
+
+  void openRecord(NativeReveal reveal, String id) {
+    NativeReveal.RevealCard card = reveal.findViewWithTag("acquisition-card-" + id);
+    if (!card.infoShown) card.performClick();
+    card.findViewWithTag("acquisition-card-record").performClick();
+  }
+
+  @Test public void tapTurnsCardToAttributeAndIntroAndTapAgainReturnsFront() throws Exception {
+    try (var controller = fixtures.start()) {
+      MainActivity host = controller.get(); FakeApi api = prepare(host);
+      // 서버는 전투 종에만 속성을 싣는다. 뒷면 속성 표시를 확인하려고 이 응답에만 넣는다.
+      NativeUnitDossier.entry(catalog, "R14").put("attr", "SEA").put("attrName", "바다");
+      NativeReveal reveal = attach(host, new AtomicInteger());
+      String original = reveal.result.toString();
+      NativeReveal.RevealCard card = reveal.findViewWithTag("acquisition-card-R14");
+      card.performClick();
+      assertNull("새 창 없이 그 자리에서 뒤집힌다", reveal.dossier);
+      assertTrue(card.infoShown);
+      assertEquals(View.VISIBLE, card.info.getVisibility());
+      assertNotEquals(View.VISIBLE, card.front.getVisibility());
+      assertEquals(Collections.singletonList("native/catalog"), api.reads);
+      JSONObject expected = NativeUnitDossier.entry(catalog, "R14");
+      assertEquals(expected.getString("intro"),
+          ((TextView) card.findViewWithTag("acquisition-card-info-intro")).getText().toString().replace('\n', ' '));
+      assertEquals(expected.getString("tagline"),
+          ((TextView) card.findViewWithTag("acquisition-card-info-tagline")).getText().toString().replace('\n', ' '));
+      assertEquals("바다 속성",
+          ((TextView) card.findViewWithTag("acquisition-card-info-attribute")).getText().toString());
+      assertTrue(card.getContentDescription().toString().contains("다시 눌러 앞면"));
+      card.performClick();
+      assertFalse("다시 누르면 앞면", card.infoShown);
+      assertEquals(View.VISIBLE, card.front.getVisibility());
+      assertEquals(View.GONE, card.info.getVisibility());
+      assertNull(reveal.dossier);
+      card.performClick();
+      assertTrue(card.infoShown);
+      assertEquals("소개는 한 번만 읽는다", 1, api.reads.size());
+      card.info.findViewWithTag("acquisition-card-info-reading").performClick();
+      assertEquals(1, api.reads.size());
+      assertEquals(original, reveal.result.toString());
+    }
+  }
+
+  @Test public void animatedTurnIgnoresTapsMidwayAndEndsOnRequestedFace() throws Exception {
+    try (var controller = fixtures.start()) {
+      MainActivity host = controller.get(); prepare(host);
+      NativeReveal reveal = attach(host, new AtomicInteger());
+      host.motionEnabled = true;
+      host.motionResumed = true;
+      NativeReveal.RevealCard card = reveal.findViewWithTag("acquisition-card-R14");
+      org.junit.Assume.assumeTrue("애니메이션이 켜진 환경에서만 의미가 있다", reveal.motion() && reveal.active());
+      card.performClick();
+      android.animation.ValueAnimator turning = card.turning;
+      assertNotNull("뒤집는 중", turning);
+      card.performClick();
+      assertTrue("뒤집는 중 탭은 무시", card.infoShown);
+      assertSame(turning, card.turning);
+      // 기존 결과 화면 테스트처럼 실제 애니메이터 시간을 직접 진행한다.
+      turning.setCurrentPlayTime(80);
+      assertEquals("앞쪽 절반은 앞면", View.VISIBLE, card.front.getVisibility());
+      assertTrue("가로로 접히는 중", card.getScaleX() < 1f);
+      turning.setCurrentPlayTime(240);
+      assertEquals("뒤쪽 절반은 소개 면", View.VISIBLE, card.info.getVisibility());
+      assertNotEquals(View.VISIBLE, card.front.getVisibility());
+      turning.end();
+      assertNull(card.turning);
+      assertEquals(View.VISIBLE, card.info.getVisibility());
+      assertNotEquals(View.VISIBLE, card.front.getVisibility());
+      assertEquals(1f, card.getScaleX(), .001f);
+      card.performClick();
+      assertNotNull(card.turning);
+      card.turning.end();
+      assertFalse(card.infoShown);
+      assertEquals(View.VISIBLE, card.front.getVisibility());
+      assertEquals(View.GONE, card.info.getVisibility());
+      assertEquals(1f, card.getScaleX(), .001f);
+    }
+  }
+
+  @Test public void cardIntroFailureShowsRetryAndLateReplyIsDiscarded() throws Exception {
+    try (var controller = fixtures.start()) {
+      MainActivity host = controller.get(); FakeApi api = prepare(host); api.deferred = true;
+      NativeReveal reveal = attach(host, new AtomicInteger());
+      NativeReveal.RevealCard card = reveal.findViewWithTag("acquisition-card-R14");
+      card.performClick();
+      assertNotNull(card.findViewWithTag("acquisition-card-info-status"));
+      host.epoch++;
+      api.deliver();
+      assertNull("다른 화면이 된 뒤 도착한 응답은 반영하지 않음", reveal.infoCatalog);
+    }
+    try (var controller = fixtures.start()) {
+      MainActivity host = controller.get(); prepare(host);
+      host.api.close();
+      NativeApi failing = new NativeApi(host) {
+        @Override String token() { return "result-dossier-review"; }
+        @Override void call(String path, JSONObject body, Result done) { done.done(null, "연결 실패"); }
+      };
+      host.api = failing;
+      NativeReveal reveal = attach(host, new AtomicInteger());
+      NativeReveal.RevealCard card = reveal.findViewWithTag("acquisition-card-R14");
+      card.performClick();
+      assertNotNull(card.findViewWithTag("acquisition-card-info-error"));
+      assertNotNull(card.findViewWithTag("acquisition-card-info-retry"));
+      assertNull(card.findViewWithTag("acquisition-card-info-intro"));
     }
   }
 
@@ -207,7 +317,7 @@ public class NativeResultDossierTest {
       try (var controller = fixtures.start()) {
         MainActivity host = controller.get(); FakeApi api = prepare(host); api.deferred = true;
         NativeReveal reveal = attach(host, new AtomicInteger());
-        reveal.findViewWithTag("acquisition-card-R13").performClick();
+        openRecord(reveal, "R13");
         NativeUnitDossier old = reveal.dossier;
         assertNotNull(old);
         if (exit.equals("close")) old.findViewWithTag("acquisition-dossier-back").performClick();
@@ -217,7 +327,8 @@ public class NativeResultDossierTest {
         api.deliver();
         assertNull("닫히거나 다른 화면/계정의 응답은 기록에 반영하지 않음", old.catalog);
         assertNull(old.snapshot);
-        assertEquals(1, api.reads.size());
+        assertEquals("뒷면 소개 1회 + 기록 1회", 2, api.reads.size());
+        if (!exit.equals("close")) assertNull(reveal.infoCatalog);
       }
     }
   }
@@ -227,8 +338,10 @@ public class NativeResultDossierTest {
       MainActivity host = controller.get(); FakeApi api = prepare(host);
       NativeReveal reveal = attach(host, new AtomicInteger());
       catalog = MainActivity.obj("units", new JSONArray().put(item("D1")));
-      reveal.findViewWithTag("acquisition-card-R13").performClick();
+      openRecord(reveal, "R13");
       assertNull(reveal.dossier.catalog);
+      NativeReveal.RevealCard turned = reveal.findViewWithTag("acquisition-card-R13");
+      assertFalse("다른 종의 소개를 뒷면에 싣지 않음", fixtures.labels(turned).contains("진짜 대장님"));
       assertFalse(fixtures.labels(reveal.dossier).contains("진짜 대장님"));
       reveal.dossier.dismiss();
       JSONObject hidden = MainActivity.obj("id", "I3", "name", "???", "tier", "IMMORTAL",
@@ -255,7 +368,7 @@ public class NativeResultDossierTest {
       }
       assertEquals(Arrays.asList("R13", "R14", "S3", "S4", "D1", "I3"), seen);
       reveal.findViewWithTag("acquisition-previous-page").performClick();
-      reveal.findViewWithTag("acquisition-card-R14").performClick();
+      openRecord(reveal, "R14");
       NativeUnitDossier dossier = reveal.dossier;
       api.deferred = true;
       dossier.findViewWithTag("acquisition-craft").performClick();
@@ -299,10 +412,14 @@ public class NativeResultDossierTest {
   }
 
   void capture(MainActivity host, String name, int width, int height, int density) throws Exception {
+    capture(host, name, width, height, density, "result-dossier");
+  }
+
+  void capture(MainActivity host, String name, int width, int height, int density, String folder) throws Exception {
     layout(host, width, height, density);
     review.await(() -> host.registrationArt().pendingCount() == 0);
     layout(host, width, height, density);
-    Path output = Path.of(System.getProperty("gmm.nativeReviewOutput", "build/reports/native-review"), "result-dossier");
+    Path output = Path.of(System.getProperty("gmm.nativeReviewOutput", "build/reports/native-review"), folder);
     Files.createDirectories(output);
     captures.writeScreenshot(host, output.resolve(name + ".png"), width, height);
   }
@@ -352,10 +469,38 @@ public class NativeResultDossierTest {
               "acquisition-result-picker", "acquisition-craft", "acquisition-confirm"})
             readable(reveal.findViewWithTag(tag), host);
           assertNull(reveal.findViewWithTag("acquisition-detail"));
-          View tapped = reveal.findViewWithTag("acquisition-card-R13");
+          NativeReveal.RevealCard tapped = reveal.findViewWithTag("acquisition-card-R13");
           tapped.performClick();
+          assertNull("카드는 새 창 없이 뒤집힌다", reveal.dossier);
+          capture(host, name + "-info", size[0], size[1], size[2], "result-card-info");
+          fullyVisible(tapped, host);
+          fullyVisible(tapped.info, host);
+          TextView infoName = tapped.findViewWithTag("acquisition-card-info-name");
+          assertEquals(item("R13").getString("name"), infoName.getText().toString().replace('\n', ' '));
+          TextView infoIntro = tapped.findViewWithTag("acquisition-card-info-intro");
+          assertEquals("소개는 자르지 않는다", item("R13").getString("intro"), infoIntro.getText().toString().replace('\n', ' '));
+          assertNull(infoIntro.getEllipsize());
+          for (View view : captures.geometry.descendants(tapped.info))
+            if (view instanceof TextView && !(view instanceof Button) && view.isShown()) {
+              TextView label = (TextView) view;
+              assertTrue("뒷면 글자 가로 넘침 없음 · " + label.getText() + " · " + name,
+                  label.getLayout() == null || label.getLayout().getWidth()
+                      <= label.getWidth() - label.getCompoundPaddingLeft() - label.getCompoundPaddingRight() + 1);
+              if (label instanceof NativeReveal.WordWrapText && label.getLayout() != null)
+                assertEquals("띄어쓰기에서만 줄바꿈(음절 중간 끊김 없음) · " + label.getText() + " · " + name,
+                    label.getText().toString().split("\n").length, label.getLayout().getLineCount());
+            }
+          ScrollView infoReading = tapped.findViewWithTag("acquisition-card-info-reading");
+          assertTrue("소개 영역은 카드 안에 높이를 가진다 · " + name, infoReading.getHeight() >= host.dp(40));
+          readable(tapped.findViewWithTag("acquisition-card-record"), host);
+          tapped.performClick();
+          assertFalse("다시 누르면 앞면", tapped.infoShown);
+          assertEquals(View.VISIBLE, tapped.front.getVisibility());
+          tapped.performClick();
+          View record = tapped.findViewWithTag("acquisition-card-record");
+          record.performClick();
           NativeUnitDossier firstOpen = reveal.dossier;
-          tapped.performClick();
+          record.performClick();
           assertSame("빠른 연속 탭도 기록 화면은 하나", firstOpen, reveal.dossier);
           capture(host, name + "-record", size[0], size[1], size[2]);
           NativeUnitDossier dossier = reveal.dossier;
@@ -380,12 +525,12 @@ public class NativeResultDossierTest {
           dossier.findViewWithTag("acquisition-dossier-back").performClick();
           assertSame(tapped, reveal.findViewWithTag("acquisition-card-R13"));
           assertEquals(0, reveal.resultPage); assertEquals(0, reveal.flow.selected);
-          assertEquals(Collections.singletonList("native/catalog"), api.reads);
+          assertEquals("뒷면 소개 1회 + 기록 1회", Arrays.asList("native/catalog", "native/catalog"), api.reads);
           // 같은 짧은/고밀도/확대 글꼴 조건에서도 늦은 이전 화면 응답을 거른다.
           api.deferred = true;
-          tapped.performClick(); tapped.performClick();
+          record.performClick(); record.performClick();
           NativeUnitDossier stale = reveal.dossier;
-          assertEquals(2, api.reads.size());
+          assertEquals(3, api.reads.size());
           host.epoch++;
           api.deliver();
           assertNull(stale.catalog);

@@ -40,6 +40,12 @@ final class NativeReveal extends FrameLayout {
   TextView reassessmentStatus;
 
   NativeUnitDossier dossier;
+  // 카드 뒷면 소개는 도감과 같은 읽기 전용 catalog를 결과 화면에서 한 번만 읽는다.
+  JSONObject infoCatalog;
+  boolean infoLoading;
+  String infoError = "";
+  int infoRequest;
+  final ArrayList<RevealCard> pageCards = new ArrayList<>();
   android.app.AlertDialog resultPickerDialog;
   ValueAnimator animation;
   ApplicationEnvelopeView envelope;
@@ -340,8 +346,8 @@ final class NativeReveal extends FrameLayout {
           boolean selected = serverIndex == flow.selected;
           card.setSelected(selected);
           card.setForeground(RegistrationCardView.selection(h, selected));
-          card.setContentDescription(RegistrationCardView.description(units.optJSONObject(serverIndex))
-              + (selected ? " · 선택됨" : "") + " · 눌러 대원 기록 보기");
+          card.describe(RegistrationCardView.description(units.optJSONObject(serverIndex))
+              + (selected ? " · 선택됨" : ""));
         }
       }
       LinearLayout finish = k.row();
@@ -410,6 +416,7 @@ final class NativeReveal extends FrameLayout {
       // 페이지 밖 FULL 뷰는 분리해 큰 비트맵 참조도 해제한다. 50회 결과도 동시에 최대 세 장이다.
       row.removeAllViews();
       shown.clear();
+      pageCards.clear();
       int pages = Math.max(1, (units.length() + RESULT_PAGE_SIZE - 1) / RESULT_PAGE_SIZE);
       resultPage = Math.max(0, Math.min(resultPage, pages - 1));
       int start = resultPage * RESULT_PAGE_SIZE;
@@ -418,14 +425,19 @@ final class NativeReveal extends FrameLayout {
         if (unit == null) continue;
         RevealCard card = new RevealCard(unit, 240);
         shown.add(card);
+        pageCards.add(card);
         int index = i;
         bindReassessment(card, unit, index);
         card.setTag("acquisition-card-" + unit.optString("id"));
+        // 새 창을 띄우지 않고 그 자리에서 뒤집어 소개를 보여 준다. 다시 누르면 앞면으로 돌아온다.
         card.setOnClickListener(v -> {
-          if (!canTurnResults() || scroll.suppressClick || card.front.getVisibility() != VISIBLE) return;
+          if (!canTurnResults() || scroll.suppressClick || card.turning != null) return;
+          if (card.infoShown) { card.turn(false); return; }
+          if (card.front.getVisibility() != VISIBLE) return;
           if (flow != null) flow.selected = index;
           selection[0].run();
-          openDossier(unit, card);
+          if (RegistrationCardView.canShow(unit)) loadInfoCatalog();
+          card.turn(true);
         });
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(h.dp(240), card.preferredHeight);
         lp.setMargins(h.dp(6), h.dp(3), h.dp(6), h.dp(3));
@@ -740,6 +752,115 @@ final class NativeReveal extends FrameLayout {
     return resultPickerDialog != null && resultPickerDialog.isShowing();
   }
 
+  void loadInfoCatalog() {
+    if (infoCatalog != null || infoLoading || !current()) return;
+    infoLoading = true;
+    infoError = "";
+    final int request = ++infoRequest;
+    refreshInfo();
+    h.api.call("native/catalog", null, (data, error) -> {
+      if (!current() || request != infoRequest || !isAttachedToWindow()) return;
+      infoLoading = false;
+      if (error == null && data != null) infoCatalog = data;
+      else infoError = "대원 소개를 불러오지 못했어요.";
+      refreshInfo();
+    });
+  }
+
+  void refreshInfo() {
+    for (RevealCard card : pageCards) renderInfo(card);
+  }
+
+  /** 뒷면은 속성·한 줄 소개·소개만 싣는다. 기술·재심사·육성은 「기록 보기」의 기존 도감에 둔다. */
+  void renderInfo(RevealCard card) {
+    if (card.infoBody == null) return;
+    LinearLayout body = card.infoBody, meta = card.infoMeta;
+    body.removeAllViews();
+    meta.removeAllViews();
+    JSONObject unit = card.unit;
+    if (!RegistrationCardView.canShow(unit)) {
+      addInfo(body, "아직 공개되지 않은 대원이에요.", "acquisition-card-info-hidden", false);
+      return;
+    }
+    JSONObject entry = infoCatalog == null ? null
+        : NativeUnitDossier.entry(infoCatalog, unit.optString("id"));
+    JSONObject source = entry != null ? entry : unit;
+    boolean visible = entry == null || RegistrationCardView.canShow(entry);
+    if (visible && !source.optString("attrName").isEmpty()) {
+      TextView attr = k.chip(source.optString("attrName") + " 속성", source.optString("attr"));
+      attr.setTag("acquisition-card-info-attribute");
+      meta.addView(attr, new LinearLayout.LayoutParams(-2, -2));
+    }
+    TextView tier = new WordWrapText(unit.optString("tierName"), 13);
+    tier.setTextColor(JournalTheme.MUTED);
+    tier.setTag("acquisition-card-info-tier");
+    LinearLayout.LayoutParams tierSlot = new LinearLayout.LayoutParams(-2, -2);
+    tierSlot.leftMargin = h.dp(6);
+    meta.addView(tier, tierSlot);
+    if (visible) {
+      addInfo(body, source.optString("tagline"), "acquisition-card-info-tagline", true);
+      addInfo(body, source.optString("intro"), "acquisition-card-info-intro", false);
+    } else addInfo(body, source.optString("intro"), "acquisition-card-info-hidden", false);
+    if (body.getChildCount() == 0 && infoError.isEmpty())
+      addInfo(body, infoLoading ? "소개를 불러오는 중…" : "등록된 소개가 아직 없어요.",
+          "acquisition-card-info-status", false);
+    if (!infoError.isEmpty()) {
+      addInfo(body, infoError, "acquisition-card-info-error", false);
+      Button retry = k.action(null, "다시 불러오기", () -> {
+        if (!canTurnResults() || infoLoading) return;
+        loadInfoCatalog();
+      });
+      retry.setTag("acquisition-card-info-retry");
+      body.addView(retry, new LinearLayout.LayoutParams(-1, h.dp(48)));
+    }
+  }
+
+  void addInfo(LinearLayout body, String value, String tag, boolean lead) {
+    if (value.isEmpty()) return;
+    WordWrapText text = new WordWrapText(value, lead ? 14 : 13);
+    text.setTextColor(lead ? JournalTheme.INK : JournalTheme.MUTED);
+    text.setLineSpacing(h.dp(1), 1.05f);
+    text.setTag(tag);
+    LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(-1, -2);
+    slot.bottomMargin = h.dp(4);
+    body.addView(text, slot);
+  }
+
+  /** 한국어도 음절 중간이 아니라 띄어쓰기에서 줄을 나눈다(스토리 제목과 같은 방식, SDK 24 호환). */
+  final class WordWrapText extends TextView {
+    final String full;
+
+    WordWrapText(String value, float size) {
+      super(h);
+      full = value;
+      setText(value);
+      setTextSize(h.uiText(size));
+      setTypeface(h.prose);
+      setTextColor(JournalTheme.INK);
+      setPadding(0, 0, 0, 0);
+      setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+    }
+
+    @Override protected void onMeasure(int widthSpec, int heightSpec) {
+      int width = MeasureSpec.getSize(widthSpec) - getCompoundPaddingLeft() - getCompoundPaddingRight();
+      if (width > 0 && MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
+        StringBuilder wrapped = new StringBuilder(), line = new StringBuilder();
+        for (String word : full.split(" ")) {
+          String candidate = line.length() == 0 ? word : line + " " + word;
+          if (line.length() > 0 && getPaint().measureText(candidate) > width) {
+            wrapped.append(line).append('\n');
+            line.setLength(0);
+          }
+          if (line.length() > 0) line.append(' ');
+          line.append(word);
+        }
+        wrapped.append(line);
+        if (!wrapped.toString().contentEquals(getText())) setText(wrapped);
+      }
+      super.onMeasure(widthSpec, heightSpec);
+    }
+  }
+
   void openDossier(JSONObject unit, View returnFocus) {
     if (!canTurnResults() || pickerShowing()) return;
     for (int i = 0; i < getChildCount(); i++)
@@ -1023,8 +1144,13 @@ final class NativeReveal extends FrameLayout {
     final View front, back;
     final int preferredHeight;
     final FrameLayout photo;
+    final JSONObject unit;
     TextView newBadge, countBadge;
     int cardWidth, portraitHeight;
+    LinearLayout info, infoBody, infoMeta;
+    boolean infoShown;
+    ValueAnimator turning;
+    String description = "";
 
     RevealCard(JSONObject unit, int width) {
       this(unit, width, Integer.MAX_VALUE);
@@ -1032,6 +1158,7 @@ final class NativeReveal extends FrameLayout {
 
     RevealCard(JSONObject unit, int width, int heightBudget) {
       super(h);
+      this.unit = unit;
       cardWidth = h.dp(width);
       portraitHeight = Math.max(1, Math.min(Math.round(cardWidth * 4f / 3f), heightBudget));
       LinearLayout face = k.column();
@@ -1139,6 +1266,86 @@ final class NativeReveal extends FrameLayout {
       back.setVisibility(progress < .5f ? VISIBLE : INVISIBLE);
       setScaleX(Math.max(.02f, Math.abs((float) Math.cos(progress * Math.PI))));
       setAlpha(.55f + .45f * Math.min(1, progress * 4));
+    }
+
+    void describe(String base) {
+      description = base;
+      setContentDescription(base + (infoShown ? " · 소개 면 · 다시 눌러 앞면 보기" : " · 눌러 소개 보기"));
+    }
+
+    /** 뒷면은 처음 뒤집을 때 만든다. 결과 50장을 한 번에 그려도 보이지 않는 면은 만들지 않는다. */
+    void ensureInfo() {
+      if (info != null) return;
+      info = k.paper();
+      info.setTag("acquisition-card-info-" + unit.optString("id"));
+      info.setPadding(h.dp(10), h.dp(8), h.dp(10), h.dp(8));
+      // 글자 영역을 눌러도 카드처럼 다시 앞면으로 돌아간다.
+      info.setOnClickListener(v -> performClick());
+      if (RegistrationCardView.canShow(unit)) {
+        TextView name = new WordWrapText(unit.optString("name"), 17);
+        name.setTypeface(h.headline);
+        name.setGravity(Gravity.CENTER);
+        name.setTag("acquisition-card-info-name");
+        info.addView(name, new LinearLayout.LayoutParams(-1, -2));
+      }
+      infoMeta = k.row();
+      infoMeta.setGravity(Gravity.CENTER);
+      LinearLayout.LayoutParams metaSlot = new LinearLayout.LayoutParams(-1, -2);
+      metaSlot.topMargin = h.dp(2);
+      metaSlot.bottomMargin = h.dp(4);
+      info.addView(infoMeta, metaSlot);
+      infoBody = k.column();
+      infoBody.setClickable(true);
+      infoBody.setOnClickListener(v -> performClick());
+      // 긴 소개는 자르지 않고 이 면 안에서만 세로로 넘긴다. 아래가 더 있으면 가장자리가 흐려진다.
+      ScrollView reading = k.scroll(infoBody);
+      reading.setTag("acquisition-card-info-reading");
+      reading.setFillViewport(true);
+      reading.setVerticalFadingEdgeEnabled(true);
+      reading.setFadingEdgeLength(h.dp(18));
+      info.addView(reading, new LinearLayout.LayoutParams(-1, 0, 1));
+      if (RegistrationCardView.canShow(unit)) {
+        Button record = k.action(null, "기록 보기", () -> {
+          if (!infoShown || turning != null) return;
+          openDossier(unit, this);
+        });
+        record.setTag("acquisition-card-record");
+        record.setContentDescription(unit.optString("name") + " 기술·재심사 등 대원 기록 보기");
+        LinearLayout.LayoutParams recordSlot = new LinearLayout.LayoutParams(-1, h.dp(48));
+        recordSlot.topMargin = h.dp(6);
+        info.addView(record, recordSlot);
+      }
+      info.setVisibility(GONE);
+      addView(info, new LayoutParams(-1, -1));
+      renderInfo(this);
+    }
+
+    void turn(boolean toInfo) {
+      if (turning != null || toInfo == infoShown) return;
+      ensureInfo();
+      infoShown = toInfo;
+      final View from = toInfo ? front : info, to = toInfo ? info : front;
+      Runnable done = () -> {
+        turning = null;
+        from.setVisibility(toInfo ? INVISIBLE : GONE);
+        to.setVisibility(VISIBLE);
+        setScaleX(1);
+        describe(description);
+      };
+      if (!motion()) { done.run(); return; }
+      ValueAnimator animator = ValueAnimator.ofFloat(0, 1);
+      animator.setDuration(320);
+      animator.addUpdateListener(a -> {
+        float progress = (Float) a.getAnimatedValue();
+        from.setVisibility(progress < .5f ? VISIBLE : (toInfo ? INVISIBLE : GONE));
+        to.setVisibility(progress >= .5f ? VISIBLE : (toInfo ? GONE : INVISIBLE));
+        setScaleX(Math.max(.02f, Math.abs((float) Math.cos(progress * Math.PI))));
+      });
+      animator.addListener(new AnimatorListenerAdapter() {
+        @Override public void onAnimationEnd(Animator animation) { done.run(); }
+      });
+      turning = animator;
+      NativeReveal.this.animate(animator);
     }
   }
 

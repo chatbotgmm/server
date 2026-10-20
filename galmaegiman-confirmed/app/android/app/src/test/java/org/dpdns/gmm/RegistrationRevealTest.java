@@ -273,16 +273,21 @@ public class RegistrationRevealTest {
           last.requestRectangleOnScreen(new Rect(0, 0, last.getWidth(), last.getHeight()), true);
           last.performClick();
           assertEquals("같은 화면의 실제 결과 인덱스 선택", 2, flow.selected);
-          assertNotNull("카드가 바로 도감 기록을 연다", reveal.dossier);
+          assertNull("카드는 새 창 없이 뒤집힌다", reveal.dossier);
+          assertTrue(last.infoShown);
+          last.findViewWithTag("acquisition-card-record").performClick();
+          assertNotNull("뒷면의 기록 보기가 도감 기록을 연다", reveal.dossier);
           review.capture(host, name + "-record", size[0], size[1]);
           reveal.dossier.findViewWithTag("acquisition-dossier-back").performClick();
           assertNull(reveal.dossier);
           assertEquals("기록을 닫아도 선택 유지", 2, flow.selected);
+          last.performClick();
+          assertFalse("다시 누르면 앞면", last.infoShown);
           review.capture(host, name + "-last", size[0], size[1]);
           NativeNoScrollReviewTest.assertFullyVisible(last, host.root);
           acquisition.assertAcquisitionActionsVisible(host, size[0], size[1]);
-          assertEquals("기록은 catalog와 현재 개체를 읽기만 한다",
-              java.util.Arrays.asList("GET native/catalog", "GET native/state"), api.requests);
+          assertEquals("뒷면 소개와 기록은 catalog와 현재 개체를 읽기만 한다",
+              java.util.Arrays.asList("GET native/catalog", "GET native/catalog", "GET native/state"), api.requests);
           // Native Skia 실제 렌더는 텍스트와 그림이 함께 있는 front 전체를 그린다.
           Bitmap output = Bitmap.createBitmap(last.getWidth(), last.getHeight(), Bitmap.Config.ARGB_8888);
           try {

@@ -359,7 +359,10 @@ public class NativeAcquisitionFlowTest {
         review.capture(h, name + "-collection-grade", size[0], size[1]);
         assertNull("별도 상세 버튼을 두지 않음", h.root.findViewWithTag("acquisition-detail"));
         assertActionVisible(h, "acquisition-craft", size[0], size[1]);
-        h.root.findViewWithTag("acquisition-card-C1").performClick();
+        View turned = h.root.findViewWithTag("acquisition-card-C1");
+        turned.performClick();
+        assertNull("카드는 새 창 없이 뒤집힌다", h.root.findViewWithTag("acquisition-dossier"));
+        turned.findViewWithTag("acquisition-card-record").performClick();
         review.capture(h, name + "-direct-card-record", size[0], size[1]);
         assertNotNull(h.root.findViewWithTag("acquisition-dossier"));
         h.root.findViewWithTag("acquisition-dossier-back").performClick();

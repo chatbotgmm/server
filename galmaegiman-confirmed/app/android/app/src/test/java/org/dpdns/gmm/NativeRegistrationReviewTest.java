@@ -473,7 +473,7 @@ public class NativeRegistrationReviewTest {
       String labels = flow.labels(host.root);
       for (String id : new String[] {"D8", "E7", "L14"}) {
         View card = tag(host, "acquisition-card-" + id);
-        assertTrue("Card itself opens the dossier", card.isClickable());
+        assertTrue("Card itself turns to its attribute and introduction", card.isClickable());
         assertTrue("Server identity remains available to accessibility",
             card.getContentDescription().toString().contains(species(id).getString("name")));
         assertTrue("Server tier remains available to accessibility",

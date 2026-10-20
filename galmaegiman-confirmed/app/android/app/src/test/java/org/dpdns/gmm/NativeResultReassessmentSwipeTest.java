@@ -374,6 +374,8 @@ public class NativeResultReassessmentSwipeTest {
       button(s.h, "acquisition-next-page").performClick(); s.layout();
       Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(250));
       View tapped = s.reveal.findViewWithTag("acquisition-card-I3"); tapped.performClick();
+      assertNull("카드는 새 창 없이 뒤집힌다", s.reveal.dossier);
+      tapped.findViewWithTag("acquisition-card-record").performClick();
       assertNotNull(s.reveal.dossier); assertEquals(5, s.flow.selected);
       s.h.getOnBackPressedDispatcher().onBackPressed();
       assertNull(s.reveal.dossier); assertEquals(1, s.reveal.resultPage); assertEquals(5, s.flow.selected);
