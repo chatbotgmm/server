@@ -191,16 +191,21 @@ final class BattleTypeInfo {
     android.widget.HorizontalScrollView scroll=new android.widget.HorizontalScrollView(h);
     scroll.setTag("battle-type-matrix");scroll.setFillViewport(true);
     scroll.setHorizontalScrollBarEnabled(true);
-    // Put all ten rows before explanatory prose. 40 + 10*22 = 260dp fits
-    // the 640x360 inset landscape body; retain horizontal scrolling on smaller widths.
-    int rowHeight=h.dp(22);
+    // Numeric data uses the existing compact UI font at 13sp. Derive minimum
+    // heights from the actual configured fonts, including larger accessibility scales.
+    android.widget.TextView numericProbe=cell(h,"×0.67",false);numericProbe.setTypeface(h.font);
+    android.widget.TextView rowProbe=cell(h,"그림자",false);rowProbe.setTextSize(12);
+    android.widget.TextView headerProbe=cell(h,"그림자",false);headerProbe.setTextSize(11);
+    int rowHeight=Math.max(h.dp(22),Math.max(lineHeight(numericProbe),lineHeight(rowProbe)));
+    int nameHeight=Math.max(h.dp(24),lineHeight(headerProbe));
+    int headerHeight=h.dp(16)+nameHeight;
     int labelWidth=h.dp(68);
     LinearLayout table=new LinearLayout(h);table.setOrientation(LinearLayout.VERTICAL);
     table.setMinimumWidth(h.dp(568));
     scroll.addView(table,new android.widget.FrameLayout.LayoutParams(-1,-2));
     LinearLayout head=new LinearLayout(h);head.setBaselineAligned(false);
     android.widget.TextView axes=cell(h,"공격↓\n방어→",false);axes.setTextSize(11);axes.setSingleLine(false);axes.setMaxLines(2);
-    head.addView(axes,new LinearLayout.LayoutParams(labelWidth,h.dp(40)));
+    head.addView(axes,new LinearLayout.LayoutParams(labelWidth,headerHeight));
     for(String type:TYPES) {
       LinearLayout title=new LinearLayout(h);title.setOrientation(LinearLayout.VERTICAL);title.setGravity(Gravity.CENTER);
       title.setBackgroundColor(defense && type.equals(selected)?0xffd2e9e1:0xffeee0c1);
@@ -208,8 +213,8 @@ final class BattleTypeInfo {
       title.addView(emblem,new LinearLayout.LayoutParams(h.dp(16),h.dp(16)));
       android.widget.TextView name=cell(h,name(h,type),false);name.setTextSize(11);name.setTag("matrix-defense:"+type);
       // Reserve the full glyph line; vertical LinearLayout must not shrink it after the icon.
-      title.addView(name,new LinearLayout.LayoutParams(-1,h.dp(24)));
-      head.addView(title,new LinearLayout.LayoutParams(0,h.dp(40),1));
+      title.addView(name,new LinearLayout.LayoutParams(-1,nameHeight));
+      head.addView(title,new LinearLayout.LayoutParams(0,headerHeight,1));
     }
     table.addView(head);
     for(String attack:TYPES) {
@@ -222,6 +227,7 @@ final class BattleTypeInfo {
         String number=Double.isFinite(value) && value>=0?"×"+java.math.BigDecimal.valueOf(value).stripTrailingZeros().toPlainString():"—";
         boolean marked=selectedRow || defense && target.equals(selected);
         android.widget.TextView valueView=cell(h,number,marked);
+        valueView.setTypeface(h.font);
         valueView.setTag("matchup:"+attack+":"+target);
         valueView.setContentDescription(name(h,attack)+" 공격 → "+name(h,target)+" 방어 "+number);
         valueView.setTextColor(!Double.isFinite(value)?JournalTheme.INK:value>1?0xff8c3426:value<1?0xff235b7c:JournalTheme.INK);
@@ -230,6 +236,11 @@ final class BattleTypeInfo {
       table.addView(row);
     }
     return scroll;
+  }
+
+  private static int lineHeight(android.widget.TextView text) {
+    android.graphics.Paint.FontMetricsInt metrics=text.getPaint().getFontMetricsInt();
+    return metrics.descent-metrics.ascent+metrics.leading;
   }
 
   private static android.widget.TextView cell(MainActivity h,String text,boolean selected) {

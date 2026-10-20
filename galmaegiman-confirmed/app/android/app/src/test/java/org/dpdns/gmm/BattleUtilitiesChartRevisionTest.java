@@ -283,8 +283,9 @@ public class BattleUtilitiesChartRevisionTest {
         }
         BattleTypeInfo.showFighter(v,0);assertNotNull(h.visibleDialog);
         View decor=h.visibleDialog.getWindow().getDecorView();measure(decor,size[0]-24,size[1]-16);
-        matrixInk(decor);
+        // Preserve the actual failed image too; pixel/geometry assertions still gate success.
         capture(decor,size[0]-24,size[1]-16,"battle-types-"+size[0]+"-font130");
+        matrixInk(decor);
         assertNotNull(decor.findViewWithTag("battle-type-matrix"));h.visibleDialog.dismiss();
       }
     }
