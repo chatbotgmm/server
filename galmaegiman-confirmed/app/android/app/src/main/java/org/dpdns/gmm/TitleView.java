@@ -55,7 +55,7 @@ final class TitleView extends FrameLayout implements FullBleed {
     titleFirst.setTag("title-name-first");
     titleFirst.setSingleLine(true);
     addView(titleFirst);
-    titleSecond = text("수비대", 62, true, 0xffedcf8c);
+    titleSecond = text("방범대", 62, true, 0xffedcf8c);
     titleSecond.setTag("title-name-second");
     titleSecond.setSingleLine(true);
     addView(titleSecond);
@@ -265,7 +265,7 @@ final class TitleView extends FrameLayout implements FullBleed {
             Math.min(
                 body.width() / textWidth("갈매미맨", firstSize),
                 Math.min(
-                    body.width() / textWidth("수비대", secondSize),
+                    body.width() / textWidth("방범대", secondSize),
                     (available - gap - host.dp(4))
                         / (fontHeight(firstSize) + fontHeight(secondSize)))));
     firstSize *= fit;
