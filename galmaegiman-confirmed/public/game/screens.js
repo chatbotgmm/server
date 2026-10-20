@@ -116,6 +116,13 @@
       if (!u) { $('.f-info', view).innerHTML = '<p class="muted">슬롯을 고르고 아래 후보에서 대원을 골라요.</p>'; $('.skills', view).innerHTML = ''; $('.stand', view).innerHTML = ''; return; }
       $('.f-info', view).innerHTML = `<h2>${esc(u.name)}</h2><p class="sub">Lv ${fmt(u.level)} · ${S.STAGE[u.stage] ?? ''} · ${esc(u.attr || '')} · ${esc(S.ROLE[u.role] || '')}</p>
         ${u.maxHp && opts.mode === 'save' && opts.need !== 3 ? `<p class="sub">스토리 체력 ${fmt(u.hp)} / ${fmt(u.maxHp)}</p>` : ''}${opts.mode === 'save' && u.promotionNeed ? `<p class="sub">경험치 ${fmt(u.xp)} / ${fmt(u.xpNext)}${u.canLearn ? ' · 새 기술 배우기 가능' : ''}${u.canPromote || u.canEvolve ? ' · 승진 가능' : ''}</p>` : ''}`;
+      // 스토리 편성에서만: 성장(기술 배우기·승진)·체력 회복. 대전 편성·실시간 준비에서는 보여 주지 않음
+      if (opts.mode === 'save' && opts.need !== 3 && u.key) {
+        const canGrow = u.learn?.length || u.promo?.length || u.evolve?.length;
+        $('.f-info', view).insertAdjacentHTML('beforeend', `<div class="f-acts"><button class="btn ${canGrow ? 'primary' : 'ghost'} sm" type="button" data-grow>${canGrow ? '성장하기' : '성장 조건'}</button>${u.maxHp && u.hp < u.maxHp ? '<button class="btn ghost sm" type="button" data-heal>체력 회복</button>' : ''}</div>`);
+        $('[data-grow]', view).onclick = () => S.growth(u.key, () => S.render());
+        const hb = $('[data-heal]', view); if (hb) hb.onclick = () => S.heal(u.key, () => S.render());
+      }
       const sk = (u.skills || []).filter(s => !String(s.id).startsWith('combo-'));
       $('.skills', view).innerHTML = [0, 1, 2, 3].map(i => skillCard(sk[i])).join('');
       S.standee($('.stand', view), S.sprite(u.image), u.name);
@@ -182,7 +189,7 @@
     const st = S.state;
     const next = st && st.chapters.flatMap(c => c.stages.map(s => ({ ...s, chapter: c }))).find(s => s.open && !s.cleared);
     view.innerHTML = `<section class="modes">
-      <button type="button" class="mode" data-mode="story" ${next ? '' : 'disabled'}><b>스토리</b><span>${next ? `${esc(next.chapter.title)} · ${esc(next.title)}` : st ? '열린 다음 이야기가 없어요' : '정보를 받는 중…'}</span></button>
+      <button type="button" class="mode" data-mode="story" ${st ? '' : 'disabled'}><b>스토리</b><span>${next ? `다음: ${esc(next.chapter.title)} · ${esc(next.title)}` : st ? '단계를 골라 다시 도전할 수 있어요' : '정보를 받는 중…'}</span></button>
       <button type="button" class="mode" data-mode="practice" ${st ? '' : 'disabled'}><b>연습</b><span>지금 편성으로 연습 전투를 해요</span></button>
       <button type="button" class="mode" data-mode="normal"><b>일반전</b><span>실시간 대전. 30초 넘게 상대가 없으면 서버 규칙에 따라 AI와 겨룰 수 있고, 그때는 AI라고 표시해요.</span></button>
       <button type="button" class="mode" data-mode="rank"><b>랭크전</b><span>사람끼리만 겨뤄요. AI로 바꾸지 않아요.</span></button>
@@ -191,9 +198,10 @@
       const b = e.target.closest('[data-mode]'); if (!b || b.disabled) return;
       const m = b.dataset.mode;
       if (m === 'normal' || m === 'rank') { location.hash = `#match?mode=${m}`; return; }
+      if (m === 'story') { location.hash = '#story'; return; }   // 단계 고르기·대사는 story.js
       $$('.mode', view).forEach(x => { x.disabled = true; }); b.setAttribute('aria-busy', 'true');
       try {
-        const body = m === 'story' ? { mode: 'story', stage: next.id } : { mode: 'practice', roster: st.team.map(k => st.units.find(u => u.key === k)?.id).filter(Boolean) };
+        const body = { mode: 'practice', roster: st.team.map(k => st.units.find(u => u.key === k)?.id).filter(Boolean) };
         S.battle = { kind: 'native', snap: await S.api('native/battle/start', body), at: Date.now() };
         S.state.activeBattle = true; location.hash = '#battle';
       } catch (x) { $('.err', view).textContent = x.message; $$('.mode', view).forEach(y => { y.disabled = false; }); b.removeAttribute('aria-busy'); }
