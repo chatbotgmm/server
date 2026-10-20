@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# 영구 6자리 심사 코드 경로는 폐기됨. 운영 설정/계정/서비스를 변경하지 않습니다.
+# localhost 전용 합성 fixture. 운영 .env/DB/심사 비밀번호를 사용하지 않습니다.
+# 사용: bash scripts/verify/review-server.sh [--check]
+# 실행 중 출력되는 임시 폴더의 token.txt를 화면 캡처 도구에 전달. 종료하면 삭제됩니다.
 set -euo pipefail
-echo '이전 심사 코드 도구는 중단되었습니다. docs/handoffs/play-review-login-20261020.md를 확인하세요.' >&2
-exit 2
+cd "$(dirname "$0")/../.."
+exec env -i PATH="$PATH" node --import tsx scripts/verify/review-fixture.ts "$@"

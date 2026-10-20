@@ -36,10 +36,10 @@ describe('심사 전용 인증',()=>{
     const b=await f.auth.login(config.username,password);f.c.enabled=false;expect(await f.auth.authenticate(b!)).toBeNull();
     f.c.enabled=true;const c=await f.auth.login(config.username,password);f.player.isAdmin=true;expect(await f.auth.authenticate(c!)).toBeNull();
   });
-  it('틀린 사용자/비밀번호와 과다 요청 거부',async()=>{
+  it('틀린 사용자/비밀번호 거부, 무효 입력은 입장 예산을 소진하지 않음',async()=>{
     const f=fixture();expect(await f.auth.login('wrong-name',password)).toBeNull();expect(await f.auth.login(config.username,'wrong-dummy-password')).toBeNull();
-    for(let i=0;i<8;i++)await f.auth.login('', '');expect(await f.auth.login(config.username,password)).toBeNull();
-    f.advance(60001);expect(await f.auth.login(config.username,password)).toMatch(/^rv_/);
+    for(let i=0;i<12;i++)expect(await f.auth.login('', '')).toBeNull();
+expect(await f.auth.login(config.username,password)).toMatch(/^rv_/);
   });
   it('명시적 자기 계정 경로와 단독 전투만 허용',()=>{
     expect(reviewRouteAllowed('POST','mix',{})).toBe(true);expect(reviewRouteAllowed('POST','native/battle/start',{mode:'story'})).toBe(true);
@@ -96,5 +96,71 @@ describe('일반 인증 유지와 심사 실패 폐쇄',()=>{
   it('동시 비밀번호 검증 작업은 하나만 실행',async()=>{
     const f=fixture();const first=f.auth.login(config.username,password);
     expect(await f.auth.login(config.username,password)).toBeNull();expect(await first).toMatch(/^rv_/);
+  });
+});
+
+describe('브라우저 심사 쿠키 복구',()=>{
+  it.each(['valid','expired','revoked'] as const)('%s 쿠키로 재로그인·로그아웃 가능, 일반 API 우회 불가',async state=>{
+    let clock=Date.now();vi.spyOn(Date,'now').mockImplementation(()=>clock);
+    const f=fixture(),game=new GameService(f.db,loadContent());
+    vi.spyOn(game,'webWho').mockResolvedValue({nickname:'dummy',credits:0});
+    const app=await buildApp(f.db,game,{secret:'test-only-secret'.repeat(4),baseUrl:async()=>'',reviewLogin:f.c});
+    const base={'x-gmm':'1'},payload={username:config.username,password};
+    const login=(cookie?:string)=>app.inject({method:'POST',url:'/my/api/review/login',headers:{...base,...(cookie?{cookie}:{})},payload});
+    const cookieOf=(r:{headers:Record<string,unknown>})=>String(r.headers['set-cookie']).split(';')[0];
+    try{
+      const initial=await login();expect(initial.statusCode).toBe(200);const old=cookieOf(initial);
+      if(state==='revoked')await app.inject({method:'POST',url:'/my/api/logout',headers:{...base,cookie:old},payload:{}});
+      if(state==='expired')clock+=13*3600000;
+      const denied=await app.inject({method:'POST',url:'/my/api/account/delete',headers:{...base,cookie:old},payload:{confirm:'탈퇴'}});
+      expect(denied.statusCode).toBe(state==='valid'?403:401);
+      if(state!=='valid')expect(denied.headers['set-cookie']).toContain('Max-Age=0');
+      // 만료/철회 여부와 무관하게 logout은 쿠키를 제거한다.
+      const out=await app.inject({method:'POST',url:'/my/api/logout',headers:{...base,cookie:old},payload:{}});
+      expect(out.statusCode).toBe(200);expect(out.headers['set-cookie']).toContain('Max-Age=0');
+      const again=await login(old);expect(again.statusCode).toBe(200);const current=cookieOf(again);
+      expect(current).not.toBe(old);
+      expect((await app.inject({url:'/my/api/who',headers:{...base,cookie:current}})).statusCode).toBe(200);
+      // 유효 쿠키도 재인증 가능하며 교체한 세션은 폐기된다.
+      const replaced=await login(current);expect(replaced.statusCode).toBe(200);
+      expect((await app.inject({url:'/my/api/who',headers:{...base,cookie:current}})).statusCode).toBe(401);
+      const forbidden=await app.inject({method:'POST',url:'/my/api/review/login',headers:{cookie:cookieOf(replaced)},payload});
+      expect(forbidden.statusCode).toBe(403); // CSRF guard 유지
+      const bad=await app.inject({method:'POST',url:'/my/api/review/login',headers:{...base,cookie:cookieOf(replaced)},payload:{username:config.username,password:'wrong-dummy-password'}});
+      expect(bad.statusCode).toBe(400);expect(bad.headers['set-cookie']).toContain('Max-Age=0');
+    }finally{vi.restoreAllMocks();await app.close();}
+  });
+});
+
+describe('로그인 출처별 제한과 한정된 공정 대기',()=>{
+  it('한 직접 IP의 무효 요청/위조 전달 헤더가 다른 직접 IP의 입장을 소진하지 않음',async()=>{
+    const f=fixture(),game=new GameService(f.db,loadContent());
+    const app=await buildApp(f.db,game,{secret:'test-only-secret'.repeat(4),baseUrl:async()=>'',reviewLogin:f.c});
+    try{
+      for(let i=0;i<5;i++)expect((await app.inject({method:'POST',url:'/my/api/review/login',remoteAddress:'192.0.2.1',headers:{'x-gmm':'1','x-forwarded-for':`198.51.100.${i}`,'cf-connecting-ip':`198.51.100.${i}`},payload:{username:'invalid',password:''}})).statusCode).toBe(400);
+      expect((await app.inject({method:'POST',url:'/my/api/review/login',remoteAddress:'192.0.2.1',headers:{'x-gmm':'1','x-forwarded-for':'203.0.113.99'},payload:{username:config.username,password}})).statusCode).toBe(429);
+      expect((await app.inject({method:'POST',url:'/my/api/review/login',remoteAddress:'192.0.2.2',headers:{'x-gmm':'1'},payload:{username:config.username,password}})).statusCode).toBe(200);
+    }finally{await app.close();}
+  });
+  it('DB 계정 검증 중 종료해도 뒤늦게 세션을 발급하지 않음',async()=>{
+    const f=fixture();let entered!:()=>void,release!:(id:string)=>void;
+    const ready=new Promise<void>(resolve=>{entered=resolve;});
+    vi.spyOn(f.auth,'account').mockImplementation(()=>{entered();return new Promise<string>(resolve=>{release=resolve;});});
+    const pending=f.auth.login(config.username,password,'source-a');
+    await ready;f.auth.close();release(config.playerId);expect(await pending).toBeNull();
+  });
+  it('전역 대기는 8개로 제한하며 종료 시 대기 요청은 세션을 만들지 않음',async()=>{
+    const f=fixture();
+    const pending=Array.from({length:9},(_,i)=>f.auth.login(config.username,password,`source-${i}`));
+    expect(await f.auth.login(config.username,password,'overflow')).toBeNull();
+    f.auth.close();expect(await Promise.all(pending)).toEqual(Array(9).fill(null));
+  });
+  it('한 출처 중복 대기는 거부하되 다른 출처는 FIFO로 처리',async()=>{
+    const f=fixture();const order:string[]=[];
+    const a=f.auth.login(config.username,'wrong-dummy-password','source-a').then(x=>{order.push('a');return x;});
+    const b=f.auth.login(config.username,password,'source-b').then(x=>{order.push('b');return x;});
+    expect(await f.auth.login(config.username,password,'source-a')).toBeNull();
+    expect(await f.auth.login(config.username,password,'source-b')).toBeNull();
+    expect(await a).toBeNull();expect(await b).toMatch(/^rv_/);expect(order).toEqual(['a','b']);
   });
 });

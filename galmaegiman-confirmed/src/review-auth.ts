@@ -15,7 +15,8 @@ const hash=(password:string,salt:string)=>new Promise<Buffer>((resolve,reject)=>
 const equal=(a:string,b:string)=>{const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length&&timingSafeEqual(x,y);};
 export class ReviewAuth {
   private sessions=new Map<string,{expires:number;version:string}>();
-  private attempts:number[]=[];
+  private sources=new Set<string>();
+  private waiting:Array<()=>void>=[];
   private working=false;
   constructor(private db:PrismaClient,private config?:ReviewConfig,private now=Date.now){}
   async account(){
@@ -23,21 +24,24 @@ export class ReviewAuth {
     const p=await this.db.player.findUnique({where:{id:c.playerId},include:{kakao:true,chatApp:true,adminSnapshot:true}}).catch(()=>null);
     return p&&p.identity===REVIEW_IDENTITY&&!p.isAdmin&&!p.adminMode&&!p.kakao&&!p.chatApp&&!p.adminSnapshot?p.id:null;
   }
-  async login(username:unknown,password:unknown){
-    const now=this.now();this.attempts=this.attempts.filter(t=>t>now-60000);
-    // 전체 로그인 endpoint 예산: IP 헤더 조작/분산 시도에도 해시 작업을 제한.
-    if(this.attempts.length>=10||this.working)return null;
-    this.attempts.push(now);
+  async login(username:unknown,password:unknown,source='local'){
     const c=this.config;if(!c||!validConfig(c)||typeof username!=='string'||typeof password!=='string'||username.length>80||password.length<16||password.length>256)return null;
-    this.working=true;
+    // 요청 출처별 rate limit은 HTTP 경계에서 적용. 출처마다 진행/대기 1개,
+    // 전체 KDF 1개 + FIFO 대기 8개: 한 출처가 대기열 전체를 차지하지 못한다.
+    if(this.sources.has(source)||this.waiting.length>=8)return null;
+    this.sources.add(source);
+    if(this.working)await new Promise<void>(resolve=>this.waiting.push(resolve));
+    else this.working=true;
     try{
+      if(this.config!==c||!validConfig(c))return null;
+      const now=this.now();
       const parts=c.passwordHash.split('$'),key=await hash(password,parts[4]);
-      if(!equal(username,c.username)||!timingSafeEqual(key,Buffer.from(parts[5],'hex'))||!await this.account())return null;
+      if(!equal(username,c.username)||!timingSafeEqual(key,Buffer.from(parts[5],'hex'))||!await this.account()||this.config!==c||!validConfig(c))return null;
       for(const [k,s] of this.sessions)if(s.expires<=now)this.sessions.delete(k);
       if(this.sessions.size>=20)this.sessions.delete(this.sessions.keys().next().value!);
       const token='rv_'+randomBytes(32).toString('base64url');
       this.sessions.set(token,{expires:now+12*3600000,version:c.version});return token;
-    }catch{return null;}finally{this.working=false;}
+    }catch{return null;}finally{this.sources.delete(source);const next=this.waiting.shift();if(next)next();else this.working=false;}
   }
   async authenticate(token:string){const s=this.sessions.get(token);if(!s||s.expires<=this.now()||!this.config?.enabled||s.version!==this.config.version){this.sessions.delete(token);return null;}const id=await this.account();if(!id)this.sessions.clear();return id;}
   revoke(token:string){this.sessions.delete(token);}
