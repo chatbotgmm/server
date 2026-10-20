@@ -30,7 +30,8 @@ android {
         applicationId project.findProperty('gmmApplicationId') ?: "org.dpdns.gmm.native.revised"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 78
+        // Play 출시 번들은 올린 번호보다 커야 해서 -PgmmVersionCode=79 처럼 지정한다. 기본값은 기존 78.
+        versionCode((project.findProperty('gmmVersionCode') ?: '78') as int)
         versionName "2.2.4-native"
         // 카카오 로그인 복귀 주소(서버가 gmmrevised://auth로 돌려보낸다). 미리보기판도 같은 주소를 써서 카카오 로그인이 된다.
         // 정식 앱과 함께 설치돼 있으면 로그인 복귀 때 Android가 어느 앱으로 열지 묻는다 → 로그인을 시작한 앱을 고른다.
