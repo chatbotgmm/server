@@ -235,7 +235,7 @@ ${c?`<a class="levent panel" href="/event"><b>🎉 ${esc(c.label)} 이벤트</b>
   };
   // 공용 아래쪽(로그인 전·후 모두): 공개 페이지 바로 가기 + 정보
   const dashFoot=()=>`<footer class="foot"><nav aria-label="둘러보기"><a href="/dex">📚 도감</a><a href="/recipes">📜 조합법</a><a href="/hidden">❔ 히든 단서</a><a href="/rank">🏆 랭킹</a><a href="/talk">💬 수다방</a><a href="/world">🗺 세계관</a><a href="/event">🎁 이벤트</a><a href="/search">🔍 검색</a></nav>
-<p>갈매미맨 · 카카오톡 채널 챗봇 게임 · v${esc(options.version)}<br><a href="/privacy">개인정보처리방침</a> · <a href="/odds">뽑기 확률</a> · <a href="/account/delete">계정 삭제</a></p></footer>`;
+<p>갈매미맨 · 카카오톡 채널 챗봇 게임 · v${esc(options.version)}<br><a href="/privacy"><b>개인정보 처리방침</b></a> · <a href="/odds">뽑기 확률</a> · <a href="/account/delete">계정 삭제</a></p></footer>`;
   // 메인(/)은 공개 홈페이지(src/site.ts)로 옮겼다. 예전 메인의 소개 화면은 /web/landing(로그인 전 /my)에서 그대로 쓴다.
   // /my(로그인 전)·로그인이 풀린 화면이 같은 소개 화면을 받아 감
   app.get('/web/landing',limit,async(_req,reply)=>reply.type('text/html; charset=utf-8').header('Cache-Control','no-cache').send(await landing()));
@@ -292,8 +292,14 @@ ${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이
     return send(reply,page('이벤트','/event',body,'',{desc:`친구 초대하면 친구도 나도 뽑기권 ${e.invite.tickets}장! 갈매미맨 이벤트·혜택 모음`}),60);
   });
 
-  // ── 개인정보처리방침 · 계정 삭제 안내 · 뽑기 확률 공시 ──
-  app.get('/privacy',limit,async(_req,reply)=>send(reply,page('개인정보처리방침','',`<article class="prose tale">${mdHtml('privacy.md','<p>준비 중이에요.</p>')}</article>`)));
+  // ── 개인정보 처리방침 · 계정 삭제 안내 · 뽑기 확률 공시 ──
+  app.get('/privacy',limit,async(_req,reply)=>send(reply,page('개인정보 처리방침','',`<article class="prose tale privacy">${mdHtml('privacy.md','<p>준비 중이에요.</p>')}</article>`)));
+  // 이전 개인정보 처리방침(작성지침: 이전 버전과 적용 기간을 함께 공개). 버전 = data/privacy-<날짜>.md
+  app.get<{Params:{ver:string}}>('/privacy/:ver',limit,async(req,reply)=>{
+    const ver=req.params.ver;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(ver)||!existsSync(resolve(options.root,'data',`privacy-${ver}.md`)))return notFound(reply,'그런 버전의 개인정보 처리방침이 없어요.');
+    return send(reply,page('이전 개인정보 처리방침','',`<p class="note" style="text-align:center">이전 버전이에요. <a href="/privacy">지금 적용되는 개인정보 처리방침 보기</a></p><article class="prose tale privacy">${mdHtml(`privacy-${ver}.md`,'')}</article>`));
+  });
   app.get('/account/delete',limit,async(_req,reply)=>send(reply,page('계정 삭제','',`<article class="prose tale"><h1>🗑 계정 삭제(탈퇴) 안내</h1>
 <p>앱을 지웠어도 아래 순서로 언제든 계정과 게임 데이터를 지울 수 있어요.</p>
 <ol><li>카카오톡 채널 「갈매미맨」에 <b>웹 로그인</b>을 보내 6자리 코드를 받거나, 카카오 계정을 연결해 두었다면 「카카오로 로그인」을 눌러요.</li>
@@ -301,7 +307,7 @@ ${couponBox+eventBox||'<div class="empty">지금 진행 중인 기간 한정 이
 <li>「계정 삭제」 칸에 <b>탈퇴</b>라고 적고 버튼을 눌러요. 바로 지워져요.</li></ol>
 <p><b>지워지는 것:</b> 가진 갈매미, 도감, 뽑기권·새우gang·땅콩, 아이템, 탐험·미션·업적 기록, 스토리 진행, 닉네임, 댓글, 로그인 연결(카카오 회원번호 포함).</p>
 <p><b>남는 것:</b> 서버 백업에 최대 7일 동안 남았다가 자동으로 사라져요. 다른 사람이 남긴 댓글이나 기록은 지워지지 않아요.</p>
-<p>카톡 채널에 <b>탈퇴</b>를 보내도 이 방법을 알려 드려요. 자세한 내용은 <a href="/privacy">개인정보처리방침</a>을 봐 주세요.</p>
+<p>카톡 채널에 <b>탈퇴</b>를 보내도 이 방법을 알려 드려요. 자세한 내용은 <a href="/privacy">개인정보 처리방침</a>을 봐 주세요.</p>
 <p style="text-align:center"><a class="btn" href="/my#account">계정 삭제하러 가기</a></p></article>`)));
   app.get('/odds',limit,async(_req,reply)=>{
     const g=content.economy.gachas,pct=(n:number)=>`${Number(n.toFixed(4))}%`;
