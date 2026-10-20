@@ -1078,6 +1078,8 @@ export class GameService {
     return this.db.$transaction(async tx=>{
       const now=this.clock(),row=await tx.webLogin.findUnique({where:{code}});
       if(!row||row.usedAt||row.expiresAt<now)return null;
+      const player=await tx.player.findUnique({where:{id:row.playerId}});
+      if(!player||player.identity.startsWith('review:'))return null;
       const used=await tx.webLogin.updateMany({where:{code,usedAt:null},data:{usedAt:now}});
       if(used.count!==1)return null;
       await tx.auditEvent.create({data:{playerId:row.playerId,kind:'WEB_LOGIN',detail:json({})}});
@@ -1108,6 +1110,7 @@ export class GameService {
   }
   async webLinkKakao(playerId:string,kakaoId:string|null){
     return this.webRun(playerId,async(tx,p)=>{
+      if(p.identity.startsWith('review:'))throw new GameError('연결할 수 없는 계정이에요.');
       if(kakaoId){
         const other=await tx.kakaoLink.findUnique({where:{kakaoId}});
         if(other&&other.playerId!==p.id)throw new GameError('이 카카오 계정은 이미 다른 갈매미맨 계정에 연결돼 있어요.');
@@ -1141,12 +1144,6 @@ export class GameService {
       await tx.player.delete({where:{id:p.id}});
       return true;
     });
-  }
-  // 스토어 심사 전용 계정(없으면 만들고 튜토리얼은 끝난 상태, 뽑기권 넉넉히)
-  async webReviewPlayer(){
-    const identity='review:store';
-    const p=await this.db.player.upsert({where:{identity},create:{identity,nickname:'심사용 수비대원',tutorial:5,credits:500,snack:5000},update:{}});
-    return p.id;
   }
   async webWho(playerId:string){
     const p=await this.db.player.findUnique({where:{id:playerId},select:{nickname:true,credits:true}});
@@ -1308,8 +1305,8 @@ export class GameService {
   async webPvp(playerId:string){
     const p=await this.db.player.findUnique({where:{id:playerId}});
     if(!p)throw new GameError('로그인을 다시 해 주세요.');
-    const top=await this.db.player.findMany({where:{OR:[{rankWins:{gt:0}},{rankLosses:{gt:0}}]},orderBy:[{rankPoint:'desc'},{rankWins:'desc'}],take:20,select:{id:true,nickname:true,rankPoint:true,rankWins:true,rankLosses:true}});
-    const played=p.rankWins+p.rankLosses>0,rank=played?await this.db.player.count({where:{rankPoint:{gt:p.rankPoint},OR:[{rankWins:{gt:0}},{rankLosses:{gt:0}}]}})+1:null;
+    const top=await this.db.player.findMany({where:{identity:{not:{startsWith:'review:'}},OR:[{rankWins:{gt:0}},{rankLosses:{gt:0}}]},orderBy:[{rankPoint:'desc'},{rankWins:'desc'}],take:20,select:{id:true,nickname:true,rankPoint:true,rankWins:true,rankLosses:true}});
+    const played=p.rankWins+p.rankLosses>0,rank=played?await this.db.player.count({where:{identity:{not:{startsWith:'review:'}},rankPoint:{gt:p.rankPoint},OR:[{rankWins:{gt:0}},{rankLosses:{gt:0}}]}})+1:null;
     return {tiers:[...this.content.economy.pvp.tiers].sort((a,b)=>a.min-b.min).map(t=>t.name),level:this.content.economy.pvp.level,win:this.content.economy.pvp.win,lose:this.content.economy.pvp.lose,team:this.pvpTeam(p.battleTeam),
       me:{point:p.rankPoint,tier:this.pvpTier(p.rankPoint),wins:p.rankWins,losses:p.rankLosses,rank},
       top:top.map((r,i)=>({rank:i+1,name:r.nickname??`갈매미 #${r.id.slice(0,4)}`,point:r.rankPoint,tier:this.pvpTier(r.rankPoint),wins:r.rankWins,losses:r.rankLosses,me:r.id===p.id}))};
@@ -1330,7 +1327,7 @@ export class GameService {
       const have=await tx.ownedCharacter.findMany({where:{playerId:p.id,characterId:{in:mine},status:{in:['AVAILABLE','EXPEDITION']}},select:{characterId:true}});
       if(new Set(have.map(h=>h.characterId)).size!==3)throw new GameError('전투 편성에 지금 가지고 있지 않은 갈매미가 있어요. 편성을 다시 해 주세요.');
       // 상대: 3마리를 편성한 다른 유저. 랭크는 점수가 가까운 10명 중에서
-      const cands=(await tx.player.findMany({where:{id:{not:p.id},battleTeam:{contains:','}},select:{id:true,nickname:true,battleTeam:true,rankPoint:true},take:500}))
+      const cands=(await tx.player.findMany({where:{identity:{not:{startsWith:'review:'}},id:{not:p.id},battleTeam:{contains:','}},select:{id:true,nickname:true,battleTeam:true,rankPoint:true},take:500}))
         .map(r=>({...r,team:this.pvpTeam(r.battleTeam)})).filter(r=>r.team);
       const pool=mode==='rank'?cands.sort((a,b)=>Math.abs(a.rankPoint-p.rankPoint)-Math.abs(b.rankPoint-p.rankPoint)).slice(0,10):cands;
       const pick=pool.length?pool[randomInt(pool.length)]:null;
@@ -1574,7 +1571,7 @@ export class GameService {
   // 랭킹: 도감(수집 종 수) / 최상위(보유 최상위 수) / 주간(이번 주 조합 횟수, 월요일 0시 기준)
   // 랭킹 점수(관리자 모드 제외). 카톡 랭킹과 웹 랭킹이 같은 기준을 씁니다
   private async rankRows(tx:Tx,kind:'DEX'|'TOP'|'WEEK',now:Date){
-    const where={player:{adminMode:false}};
+    const where={player:{adminMode:false,identity:{not:{startsWith:'review:'}}}};
     let rows:{playerId:string;score:number}[];
     if(kind==='DEX')rows=(await tx.collectionEntry.groupBy({by:['playerId'],where,_count:{_all:true}})).map(r=>({playerId:r.playerId,score:r._count._all}));
     else if(kind==='TOP')rows=(await tx.ownedCharacter.groupBy({by:['playerId'],where:{...where,status:{in:['AVAILABLE','EXPEDITION']},characterId:{in:this.topIds}},_count:{_all:true}})).map(r=>({playerId:r.playerId,score:r._count._all}));
@@ -1649,14 +1646,14 @@ export class GameService {
   sourceText(id:string){return this.source(id);}
   // 유닛별로 만난 사람 수(관리자 모드 제외)
   async seenCounts():Promise<Map<string,number>>{
-    return this.cached('seen',60_000,async()=>new Map((await this.reader.collectionEntry.groupBy({by:['characterId'],where:{player:{adminMode:false}},_count:{_all:true}})).map(r=>[r.characterId,r._count._all])));
+    return this.cached('seen',60_000,async()=>new Map((await this.reader.collectionEntry.groupBy({by:['characterId'],where:{player:{adminMode:false,identity:{not:{startsWith:'review:'}}}},_count:{_all:true}})).map(r=>[r.characterId,r._count._all])));
   }
   // 히든별 최초 발견자(닉네임 없으면 null)와 시각: 조합 기록에서 가장 이른 것
   async hiddenFirsts():Promise<Map<string,{name:string|null;at:Date}>>{
     return this.cached('firsts',60_000,async()=>{
       const want=new Set(this.content.hiddenIds),found=new Map<string,{playerId:string;at:Date}>(),admin=await this.adminWindows(this.reader);
       for(let skip=0;want.size;skip+=1000){
-        const batch=await this.reader.auditEvent.findMany({where:{kind:'CRAFT',player:{adminMode:false}},orderBy:{createdAt:'asc'},skip,take:1000,select:{playerId:true,detail:true,createdAt:true}});
+        const batch=await this.reader.auditEvent.findMany({where:{kind:'CRAFT',player:{adminMode:false,identity:{not:{startsWith:'review:'}}}},orderBy:{createdAt:'asc'},skip,take:1000,select:{playerId:true,detail:true,createdAt:true}});
         for(const e of batch){const id=String((e.detail as {recipe?:string}).recipe??'');if(want.has(id)&&!admin(e.playerId,e.createdAt)){want.delete(id);found.set(id,{playerId:e.playerId,at:e.createdAt});}}
         if(batch.length<1000)break;
       }
@@ -1667,11 +1664,11 @@ export class GameService {
   // 닉네임 검색(관리자 모드 제외, 최대 10명)
   async searchPlayers(q:string){
     if(!q.trim())return [];
-    return (await this.reader.player.findMany({where:{nickname:{contains:q.trim()},adminMode:false},select:{nickname:true},take:10,orderBy:{nickname:'asc'}})).map(p=>p.nickname!);
+    return (await this.reader.player.findMany({where:{nickname:{contains:q.trim()},adminMode:false,identity:{not:{startsWith:'review:'}}},select:{nickname:true},take:10,orderBy:{nickname:'asc'}})).map(p=>p.nickname!);
   }
   // 공개 프로필: 등급별 수집 수, 순위, 칭호, 최고 유닛, 최초 발견 히든 수
   async webProfile(nickname:string){
-    const p=await this.reader.player.findFirst({where:{nickname,adminMode:false}});
+    const p=await this.reader.player.findFirst({where:{nickname,adminMode:false,identity:{not:{startsWith:'review:'}}}});
     if(!p)return null;
     const now=this.clock();
     const got=(await this.reader.collectionEntry.findMany({where:{playerId:p.id},select:{characterId:true}})).map(g=>this.content.map.get(g.characterId)).filter((c):c is Character=>Boolean(c));

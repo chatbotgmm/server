@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { loadContent } from './content.js';
 import { GameService } from './game.js';
 import {assertProgressionSchema} from './progression.js';
+import {reviewConfig} from './review-auth.js';
 import { buildApp } from './app.js';
 const env=z.object({
   DATABASE_URL:z.string().startsWith('file:'),
@@ -12,7 +13,6 @@ const env=z.object({
   SKILL_SECRET:z.string().min(32),KAKAO_BOT_ID:z.string().optional(),
   PUBLIC_BASE_URL:z.string().optional(),ADMIN_CODE:z.preprocess(v=>v===''?undefined:v,z.string().min(16).optional()),LOG_ENABLED:z.enum(['true','false']).default('true'),
   KAKAO_REST_KEY:z.preprocess(v=>v===''?undefined:v,z.string().min(10).optional()),KAKAO_CLIENT_SECRET:z.preprocess(v=>v===''?undefined:v,z.string().min(10).optional()),
-  REVIEW_CODE:z.preprocess(v=>v===''?undefined:v,z.string().regex(/^\d{6}$/).optional())
 }).parse(process.env);
 const db=new PrismaClient();
 try{await assertProgressionSchema(db);}catch(e){await db.$disconnect();throw e;}
@@ -30,7 +30,7 @@ async function baseUrl(){
   try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&u.pathname==='/'&&!u.search&&!u.hash?u.origin:'';}catch{return '';}
 }
 const app=await buildApp(db,new GameService(db,content,undefined,undefined,undefined,undefined,env.ADMIN_CODE),{secret:env.SKILL_SECRET,botId:env.KAKAO_BOT_ID,baseUrl,log:env.LOG_ENABLED==='true',
-  reviewCode:env.REVIEW_CODE,kakaoLogin:env.KAKAO_REST_KEY?{restKey:env.KAKAO_REST_KEY,clientSecret:env.KAKAO_CLIENT_SECRET}:undefined});
+  reviewLogin:reviewConfig(process.env),kakaoLogin:env.KAKAO_REST_KEY?{restKey:env.KAKAO_REST_KEY,clientSecret:env.KAKAO_CLIENT_SECRET}:undefined});
 let closing=false;
 const close=async()=>{if(closing)return;closing=true;await app.close();await db.$disconnect();};
 process.on('SIGTERM',()=>void close());process.on('SIGINT',()=>void close());
