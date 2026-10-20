@@ -337,21 +337,29 @@ final class NativeArt {
               } finally {
                 if (temp != null) temp.delete();
                 if (c != null) c.disconnect();
+                // 화면 콜백이 끝날 때까지 idle()이 참이 되지 않게 전달 표시를 먼저 남긴다.
+                String delivery = "deliver:" + java.util.UUID.randomUUID();
+                pending.add(delivery);
                 pending.remove(path);
+                java.util.List<Runnable> listeners;
+                synchronized (this) {
+                  listeners = waiters.remove(path);
+                }
+                // UI 처리 전 LRU에서 빠져도 이번 요청의 그림을 잃지 않는다.
+                Bitmap completed = decoded;
+                api.ui.post(
+                    () -> {
+                      try {
+                        if (listeners != null)
+                          for (Runnable callback : listeners) {
+                            if (completed != null) bitmaps.put(path, completed);
+                            callback.run();
+                          }
+                      } finally {
+                        pending.remove(delivery);
+                      }
+                    });
               }
-              java.util.List<Runnable> listeners;
-              synchronized (this) {
-                listeners = waiters.remove(path);
-              }
-              // UI 처리 전 LRU에서 빠져도 이번 요청의 그림을 잃지 않는다.
-              Bitmap completed = decoded;
-              if (listeners != null)
-                for (Runnable callback : listeners)
-                  api.ui.post(
-                      () -> {
-                        if (completed != null) bitmaps.put(path, completed);
-                        callback.run();
-                      });
             });
     return null;
   }
