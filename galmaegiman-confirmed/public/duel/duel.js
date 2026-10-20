@@ -811,7 +811,7 @@ function freeBattle() {
 // ── 스토리 ──
 const stages = () => STORY.chapters.flatMap(c => c.stages.map(s => ({ ...s, chapter: c })));
 const teamStageOk = need => !need || (SAVE.team.length > 0 && SAVE.team.every(id => (unitRec(id).stage ?? 0) >= need));
-const unlocked = id => { const all = stages(), i = all.findIndex(s => s.id === id); return (i === 0 || (SAVE.cleared.includes(all[i - 1].id) || SAVE.cleared.includes(id) || all.slice(i + 1).some(st => SAVE.cleared.includes(st.id)))) && teamStageOk(all[i].chapter.needStage); };
+const unlocked = id => { const all = stages(), i = all.findIndex(s => s.id === id); return (i === 0 || (SAVE.cleared.includes(all[i - 1].id) || SAVE.cleared.includes(id) || all.slice(i + 1).some(st => SAVE.cleared.includes(st.id)))); };   // 2026-10-20: 승진은 해금 조건이 아니라 능력치 이점
 
 function storyScreen() {
   modal.hidden = true; bgm('title');
@@ -913,7 +913,7 @@ function healSheet(initial = null, returnTo = storyScreen) {
   modal.onclick = null; modal.className = ''; modal.hidden = false; draw();
 }   // 스토리에서 지금 열어 둔 부(번호), null이면 부 목록
 const chapInfo = c => { const cl = c.stages.filter(s => SAVE.cleared.includes(s.id)).length; return { sc: c.stages[0].scene || 'harbor', cl, open: c.stages.some(s => unlocked(s.id)), all: cl === c.stages.length }; };
-const needLine = c => c.needStage ? `<p class="need ${teamStageOk(c.needStage) ? 'ok' : ''}">${teamStageOk(c.needStage) ? '✓' : '🔒'} 팀 전원 ${c.needStage}단계 승진 필요 (${STARS[c.needStage]})</p>` : '';
+const needLine = c => c.needStage ? `<p class="need ${teamStageOk(c.needStage) ? 'ok' : ''}">${teamStageOk(c.needStage) ? '✓' : '💡'} 적 ${c.needStage}단계 승진 · 승진하면 유리 (${STARS[c.needStage]})</p>` : '';
 function partList() {
   return STORY.chapters.map((c, i) => { const { sc, cl, open, all } = chapInfo(c);
     return `<button class="pcard chead sc-${sc} ${open ? '' : 'locked'} ${all ? 'done' : ''}" data-p="${i}" style="${bgStyle(sc)}"><div class="in"><h2>${esc(c.title)}</h2><span class="pn">${all ? '✓ 완료' : open ? `${cl}/${c.stages.length}` : '🔒 잠김'}</span>${c.intro ? `<p>${esc(c.intro)}</p>` : ''}${needLine(c)}<span class="pgo">${open ? (all ? '다시 보기 ›' : '들어가기 ›') : '미리 보기 ›'}</span></div></button>`; }).join('')

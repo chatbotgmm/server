@@ -45,7 +45,7 @@ final class StorySelectionCard extends LinearLayout {
     String title = description(chapter.optString("title"));
     titleText = title;
     String reason = locked ? description(lock.optString("reason", "앞 이야기를 완료해 주세요."))
-        : chapter.optInt("needStage") > 0 ? "팀 전원 " + chapter.optInt("needStage") + "단계 승진" : "";
+        : chapter.optInt("needStage") > 0 ? "적 " + chapter.optInt("needStage") + "단계 승진 · 승진하면 유리" : "";
     addView(new View(host), new LayoutParams(-1, 0, 1));
     info = menus.k.column();
     info.setPadding(host.dp(12), host.dp(10), host.dp(12), host.dp(12));

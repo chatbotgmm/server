@@ -377,9 +377,8 @@ public class NativeResultDossierTest {
           fullyVisible(tapped.info, host);
           TextView infoName = tapped.findViewWithTag("acquisition-card-info-name");
           assertEquals(item("R13").getString("name"), infoName.getText().toString().replace('\n', ' '));
-          TextView infoIntro = tapped.findViewWithTag("acquisition-card-info-intro");
-          assertEquals("소개는 자르지 않는다", item("R13").getString("intro"), infoIntro.getText().toString().replace('\n', ' '));
-          assertNull(infoIntro.getEllipsize());
+          assertNull("도감 설명은 뒷면에 싣지 않는다", tapped.findViewWithTag("acquisition-card-info-intro"));
+          assertFalse(fixtures.labels(tapped.info).contains(item("R13").getString("tagline")));
           for (View view : captures.geometry.descendants(tapped.info))
             if (view instanceof TextView && !(view instanceof Button) && view.isShown()) {
               TextView label = (TextView) view;
@@ -390,8 +389,8 @@ public class NativeResultDossierTest {
                 assertEquals("띄어쓰기에서만 줄바꿈(음절 중간 끊김 없음) · " + label.getText() + " · " + name,
                     label.getText().toString().split("\n").length, label.getLayout().getLineCount());
             }
-          ScrollView infoReading = tapped.findViewWithTag("acquisition-card-info-reading");
-          assertTrue("소개 영역은 카드 안에 높이를 가진다 · " + name, infoReading.getHeight() >= host.dp(40));
+          View infoReading = tapped.findViewWithTag("acquisition-card-info-reading");
+          assertTrue("등급·속성 칸이 카드 안에 높이를 가진다 · " + name, infoReading.getHeight() >= host.dp(40));
           readable(tapped.findViewWithTag("acquisition-card-record"), host);
           tapped.performClick();
           assertFalse("다시 누르면 앞면", tapped.infoShown);

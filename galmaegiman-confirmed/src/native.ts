@@ -87,14 +87,7 @@ export function registerNative(app:FastifyInstance,game:GameService,root:string,
     const requirements:Array<{kind:string;label:string;met:boolean;action:string;stageId?:string;chapterIndex?:number;key?:string;name?:string;current?:number;required?:number;level?:number;needLevel?:number;clearedParts?:number;needParts?:number;canEvolve?:boolean;nextStage?:number;conditions?:Array<{kind:string;label:string;met:boolean;current:number;required:number;action?:string;stageId?:string;chapterIndex?:number}>}>=[];
     if(previous)requirements.push({kind:'stage',label:`${previous.id} ${previous.title} 클리어`,met:progressed,action:'stage',stageId:previous.id,chapterIndex:story.chapters.indexOf(previous.chapter)});
     requirements.push({kind:'team',label:'전투 수비대 1마리 이상 편성',met:team.length>0,action:'team',current:team.length,required:1});
-    if(requiredStage>0)for(const r of team){
-      const met=r.stage>=requiredStage,needLevel=(R.data.growth.evolveLevel as number[])[r.stage],needParts=r.stage+1;
-      const part=story.chapters.find(c=>/^\d+$/.test(c.id)&&!s.cleared.includes(c.stages.at(-1)!.id)),stageId=part?.stages.at(-1)?.id;
-      requirements.push({kind:'growth',label:`${r.name} ${requiredStage}단계 승진`,met,action:'growth',key:r.uid,name:r.name,current:r.stage,required:requiredStage,level:r.level,needLevel,clearedParts,needParts,canEvolve:canEvolve(R,r,clearedParts),nextStage:Math.min(3,r.stage+1),conditions:met?[]:[
-        {kind:'level',label:`Lv${needLevel} 도달`,met:r.level>=needLevel,current:r.level,required:needLevel},
-        {kind:'chapter',label:`스토리 ${needParts}개 부 클리어`,met:clearedParts>=needParts,current:clearedParts,required:needParts,action:'stage',stageId,chapterIndex:part?story.chapters.indexOf(part):undefined},
-      ]});
-    }
+    // 2026-10-20: 다음 부는 앞 이야기만 클리어하면 열린다. 승진은 조건이 아니라 능력치 이점이다(requiredStage는 적 승진 단계 안내용).
     const open=requirements.every(r=>r.met);
     return {open,reason:requirements.filter(r=>!r.met).map(r=>r.label).join(' · '),requiredStage,previousStageId:previous?.id??null,requirements};
   };
@@ -185,7 +178,7 @@ export function registerNative(app:FastifyInstance,game:GameService,root:string,
         while(learnChances(R,r)>0){const offers=learnOffers(R,r),used=r.learnUsed??0,replace=slotSkills(R,r).find(sk=>!sk.id.startsWith('basic-')&&sk.id!=='sig')?.id;learnSkill(R,r,offers.length&&replace?offers[randomInt(offers.length)].id:null,replace);if((r.learnUsed??0)===used)learnSkill(R,r,null);}
         return r;});
       if(v.mode==='practice')team=practice(v.roster??['D1','D2','D3'],'practice');
-      if(!team.length)throw new GameError('먼저 수비대를 편성해 주세요.');const st=stages.find(st=>st.id===(v.stage??'P-1'));if(!st||v.mode==='story'&&!unlocked(s,st.id,team))throw new GameError('앞 전투와 승진 조건을 확인해 주세요.');if(v.mode==='story'&&s.team.some(k=>Math.round(statsOf(R,rec(k,s,o)).hp*hp(s,k))<=0))throw new GameError('체력이 0인 갈매미를 회복해 주세요.');foe=st.enemy.map((e,i)=>({uid:`foe${i}`,id:e.id,name:R.villains.get(e.id)!.name!,tier:'LIMITED',level:e.level,xp:0,stage:(e.stage??st.chapter.needStage??0) as Stage,evoAugs:[]}));if(v.mode==='practice'&&v.enemyRoster)foe=practice(v.enemyRoster,'practice-foe');}
+      if(!team.length)throw new GameError('먼저 수비대를 편성해 주세요.');const st=stages.find(st=>st.id===(v.stage??'P-1'));if(!st||v.mode==='story'&&!unlocked(s,st.id,team))throw new GameError('앞 전투를 먼저 클리어해 주세요.');if(v.mode==='story'&&s.team.some(k=>Math.round(statsOf(R,rec(k,s,o)).hp*hp(s,k))<=0))throw new GameError('체력이 0인 갈매미를 회복해 주세요.');foe=st.enemy.map((e,i)=>({uid:`foe${i}`,id:e.id,name:R.villains.get(e.id)!.name!,tier:'LIMITED',level:e.level,xp:0,stage:(e.stage??st.chapter.needStage??0) as Stage,evoAugs:[]}));if(v.mode==='practice'&&v.enemyRoster)foe=practice(v.enemyRoster,'practice-foe');}
     const b=createBattle(R,team,foe,seed);if(v.mode==='story')b.sides[0].fighters.forEach((f,i)=>f.hp=Math.max(1,Math.round(f.maxHp*hp(s,s.team[i]))));
     const f:Fight={id:randomBytes(16).toString('base64url'),player:id,b,keys:s.team,mode:v.mode,stage:v.stage??'P-1',revision:0,exp:now+2*3600000,events:[],match,matchInfo,done:false};fights.set(f.id,f);syncChoice(f);return {...snapshot(f),inventory:await game.webItems(id),bonusReroll:{...(await game.webProgression(id)).reroll,...(f.match?{available:false}: {})}};
   });

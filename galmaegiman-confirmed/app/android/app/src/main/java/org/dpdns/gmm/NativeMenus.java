@@ -854,7 +854,7 @@ final class NativeMenus {
           if (lock != null && !lock.optBoolean("open"))
             guide.addView(k.notice(storyDescription(lock.optString("reason"))));
           if (chapter.optInt("needStage") > 0)
-            guide.addView(k.note("팀 전원 " + chapter.optInt("needStage") + "단계 승진 필요"));
+            guide.addView(k.note("이 부의 적은 " + chapter.optInt("needStage") + "단계 승진 상태예요. 앞 이야기만 클리어하면 들어갈 수 있고, 승진하면 능력치가 올라 유리해요."));
           guide.addView(k.note("진 전투에서도 경험치를 받아요. 완료한 전투는 다시 도전해 레벨을 올릴 수 있어요."));
           guide.addView(k.note("레벨이 오르면 체력이 가득 차요. 새 기술·전용 기술·승진 가능 표시는 팀 칸에서 확인해 주세요."));
           guide.addView(k.action(null, "스토리 처음부터", this::resetStory));

@@ -40,7 +40,7 @@ final class NativeReveal extends FrameLayout {
   TextView reassessmentStatus;
 
   NativeUnitDossier dossier;
-  // 카드 뒷면 소개는 도감과 같은 읽기 전용 catalog를 결과 화면에서 한 번만 읽는다.
+  // 카드 뒷면 속성은 도감과 같은 읽기 전용 catalog를 결과 화면에서 한 번만 읽는다.
   JSONObject infoCatalog;
   boolean infoLoading;
   String infoError = "";
@@ -762,7 +762,7 @@ final class NativeReveal extends FrameLayout {
       if (!current() || request != infoRequest || !isAttachedToWindow()) return;
       infoLoading = false;
       if (error == null && data != null) infoCatalog = data;
-      else infoError = "대원 소개를 불러오지 못했어요.";
+      else infoError = "속성을 불러오지 못했어요.";
       refreshInfo();
     });
   }
@@ -771,7 +771,7 @@ final class NativeReveal extends FrameLayout {
     for (RevealCard card : pageCards) renderInfo(card);
   }
 
-  /** 뒷면은 속성·한 줄 소개·소개만 싣는다. 기술·재심사·육성은 「기록 보기」의 기존 도감에 둔다. */
+  /** 뒷면은 이름·등급·속성만 싣는다. 설명·기술·재심사·육성은 「기록 보기」(도감)에서 본다. */
   void renderInfo(RevealCard card) {
     if (card.infoBody == null) return;
     LinearLayout body = card.infoBody, meta = card.infoMeta;
@@ -782,27 +782,37 @@ final class NativeReveal extends FrameLayout {
       addInfo(body, "아직 공개되지 않은 대원이에요.", "acquisition-card-info-hidden", false);
       return;
     }
-    JSONObject entry = infoCatalog == null ? null
-        : NativeUnitDossier.entry(infoCatalog, unit.optString("id"));
-    JSONObject source = entry != null ? entry : unit;
-    boolean visible = entry == null || RegistrationCardView.canShow(entry);
-    if (visible && !source.optString("attrName").isEmpty()) {
-      TextView attr = k.chip(source.optString("attrName") + " 속성", source.optString("attr"));
-      attr.setTag("acquisition-card-info-attribute");
-      meta.addView(attr, new LinearLayout.LayoutParams(-2, -2));
-    }
-    TextView tier = new WordWrapText(unit.optString("tierName"), 13);
-    tier.setTextColor(JournalTheme.MUTED);
+    body.addView(meta, new LinearLayout.LayoutParams(-1, -2));
+    // 앞면 등록증의 등급 배지와 같은 남색 알약 모양.
+    TextView tier = h.text(unit.optString("tierName"), 15);
+    tier.setTypeface(h.headline);
+    tier.setTextColor(JournalTheme.PAPER);
+    tier.setGravity(Gravity.CENTER);
+    tier.setPadding(h.dp(16), h.dp(4), h.dp(16), h.dp(4));
+    android.graphics.drawable.GradientDrawable pill = new android.graphics.drawable.GradientDrawable();
+    pill.setColor(JournalTheme.NAVY);
+    pill.setCornerRadius(h.dp(14));
+    pill.setStroke(h.dp(1), JournalTheme.BRASS);
+    tier.setBackground(pill);
     tier.setTag("acquisition-card-info-tier");
     LinearLayout.LayoutParams tierSlot = new LinearLayout.LayoutParams(-2, -2);
-    tierSlot.leftMargin = h.dp(6);
+    tierSlot.gravity = Gravity.CENTER_HORIZONTAL;
     meta.addView(tier, tierSlot);
-    if (visible) {
-      addInfo(body, source.optString("tagline"), "acquisition-card-info-tagline", true);
-      addInfo(body, source.optString("intro"), "acquisition-card-info-intro", false);
-    } else addInfo(body, source.optString("intro"), "acquisition-card-info-hidden", false);
-    if (body.getChildCount() == 0 && infoError.isEmpty())
-      addInfo(body, infoLoading ? "소개를 불러오는 중…" : "등록된 소개가 아직 없어요.",
+    JSONObject entry = infoCatalog == null ? null
+        : NativeUnitDossier.entry(infoCatalog, unit.optString("id"));
+    if (entry != null && RegistrationCardView.canShow(entry) && !entry.optString("attrName").isEmpty()) {
+      TextView attr = k.chip(entry.optString("attrName") + " 속성", entry.optString("attr"));
+      attr.setTextSize(h.uiText(18));
+      attr.setTypeface(h.headline);
+      attr.setPadding(h.dp(18), h.dp(8), h.dp(18), h.dp(8));
+      attr.setTag("acquisition-card-info-attribute");
+      LinearLayout.LayoutParams attrSlot = new LinearLayout.LayoutParams(-2, -2);
+      attrSlot.gravity = Gravity.CENTER_HORIZONTAL;
+      attrSlot.topMargin = h.dp(10);
+      meta.addView(attr, attrSlot);
+    } else if (infoError.isEmpty())
+      // 조합 재료 대원은 전투 속성이 없다. 불러오는 중이면 그 상태를 알린다.
+      addInfo(meta, infoLoading || infoCatalog == null ? "속성을 불러오는 중…" : "조합 재료 대원",
           "acquisition-card-info-status", false);
     if (!infoError.isEmpty()) {
       addInfo(body, infoError, "acquisition-card-info-error", false);
@@ -820,8 +830,10 @@ final class NativeReveal extends FrameLayout {
     WordWrapText text = new WordWrapText(value, lead ? 14 : 13);
     text.setTextColor(lead ? JournalTheme.INK : JournalTheme.MUTED);
     text.setLineSpacing(h.dp(1), 1.05f);
+    text.setGravity(Gravity.CENTER);
     text.setTag(tag);
     LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(-1, -2);
+    slot.topMargin = h.dp(4);
     slot.bottomMargin = h.dp(4);
     body.addView(text, slot);
   }
@@ -1276,34 +1288,33 @@ final class NativeReveal extends FrameLayout {
     /** 뒷면은 처음 뒤집을 때 만든다. 결과 50장을 한 번에 그려도 보이지 않는 면은 만들지 않는다. */
     void ensureInfo() {
       if (info != null) return;
-      info = k.paper();
+      info = k.column();
+      // 앞면 등록증처럼 황동 테두리 종이, 위에 남색 이름 띠, 가운데 등급 배지·속성. 도감 설명은 싣지 않는다(도감에서 본다).
+      info.setBackground(new GamePaperDrawable(h, JournalTheme.BRASS));
       info.setTag("acquisition-card-info-" + unit.optString("id"));
-      info.setPadding(h.dp(10), h.dp(8), h.dp(10), h.dp(8));
-      // 글자 영역을 눌러도 카드처럼 다시 앞면으로 돌아간다.
+      info.setPadding(h.dp(8), h.dp(8), h.dp(8), h.dp(10));
+      // 어디를 눌러도 카드처럼 다시 앞면으로 돌아간다.
       info.setOnClickListener(v -> performClick());
       if (RegistrationCardView.canShow(unit)) {
-        TextView name = new WordWrapText(unit.optString("name"), 17);
+        FrameLayout band = new FrameLayout(h);
+        band.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAVY));
+        band.setPadding(h.dp(12), h.dp(12), h.dp(12), h.dp(12));
+        TextView name = new WordWrapText(unit.optString("name"), 21);
         name.setTypeface(h.headline);
+        name.setTextColor(JournalTheme.PAPER);
         name.setGravity(Gravity.CENTER);
         name.setTag("acquisition-card-info-name");
-        info.addView(name, new LinearLayout.LayoutParams(-1, -2));
+        band.addView(name, new FrameLayout.LayoutParams(-1, -2, Gravity.CENTER));
+        info.addView(band, new LinearLayout.LayoutParams(-1, -2));
       }
-      infoMeta = k.row();
-      infoMeta.setGravity(Gravity.CENTER);
-      LinearLayout.LayoutParams metaSlot = new LinearLayout.LayoutParams(-1, -2);
-      metaSlot.topMargin = h.dp(2);
-      metaSlot.bottomMargin = h.dp(4);
-      info.addView(infoMeta, metaSlot);
       infoBody = k.column();
+      infoBody.setGravity(Gravity.CENTER);
+      infoBody.setTag("acquisition-card-info-reading");
       infoBody.setClickable(true);
       infoBody.setOnClickListener(v -> performClick());
-      // 긴 소개는 자르지 않고 이 면 안에서만 세로로 넘긴다. 아래가 더 있으면 가장자리가 흐려진다.
-      ScrollView reading = k.scroll(infoBody);
-      reading.setTag("acquisition-card-info-reading");
-      reading.setFillViewport(true);
-      reading.setVerticalFadingEdgeEnabled(true);
-      reading.setFadingEdgeLength(h.dp(18));
-      info.addView(reading, new LinearLayout.LayoutParams(-1, 0, 1));
+      info.addView(infoBody, new LinearLayout.LayoutParams(-1, 0, 1));
+      infoMeta = k.column();
+      infoMeta.setGravity(Gravity.CENTER);
       if (RegistrationCardView.canShow(unit)) {
         Button record = k.action(null, "기록 보기", () -> {
           if (!infoShown || turning != null) return;

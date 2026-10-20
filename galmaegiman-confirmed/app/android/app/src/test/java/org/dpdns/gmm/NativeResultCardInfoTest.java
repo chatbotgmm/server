@@ -42,10 +42,16 @@ public class NativeResultCardInfoTest {
       assertNotEquals(View.VISIBLE, card.front.getVisibility());
       assertEquals(Collections.singletonList("native/catalog"), api.reads);
       JSONObject expected = NativeUnitDossier.entry(d.catalog, "R14");
-      assertEquals(expected.getString("intro"),
-          ((TextView) card.findViewWithTag("acquisition-card-info-intro")).getText().toString().replace('\n', ' '));
-      assertEquals(expected.getString("tagline"),
-          ((TextView) card.findViewWithTag("acquisition-card-info-tagline")).getText().toString().replace('\n', ' '));
+      // 도감 설명은 뒷면에 싣지 않는다(도감에서 직접 본다).
+      String shown = d.fixtures.labels(card.info);
+      assertFalse("한 줄 소개 없음", shown.contains(expected.getString("tagline")));
+      assertFalse("소개 없음", shown.contains(expected.getString("intro").substring(0, 12)));
+      assertNull(card.findViewWithTag("acquisition-card-info-intro"));
+      assertNull(card.findViewWithTag("acquisition-card-info-tagline"));
+      assertEquals(expected.getString("name"),
+          ((TextView) card.findViewWithTag("acquisition-card-info-name")).getText().toString().replace('\n', ' '));
+      assertEquals(expected.getString("tierName"),
+          ((TextView) card.findViewWithTag("acquisition-card-info-tier")).getText().toString().replace('\n', ' '));
       assertEquals("바다 속성",
           ((TextView) card.findViewWithTag("acquisition-card-info-attribute")).getText().toString());
       assertTrue(card.getContentDescription().toString().contains("다시 눌러 앞면"));
