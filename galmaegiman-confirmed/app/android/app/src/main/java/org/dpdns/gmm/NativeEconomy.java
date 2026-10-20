@@ -17,6 +17,7 @@ final class NativeEconomy {
   String shopFocus = "";
   String crewSelectionNote = "";
   int recipePage, mixPage, crewPage, selectedCrewPage;
+  String mixQuery = "";
   Runnable recipeRepaint;
   TextView recipeIdentity;
   View recipeHint;
@@ -30,6 +31,8 @@ final class NativeEconomy {
   }
 
   void resetAcquisition() {
+    mixQuery = "";
+    mixPage = 0;
     drawBefore = null;
     drawFlow = null;
     acquisitionFlow = null;
@@ -522,18 +525,19 @@ final class NativeEconomy {
   }
 
   void craft(boolean mix) {
+    if (h.busy) return;
     recipeRepaint = null;
-    h.base("조합", mix ? "mix" : "craft");
+    h.base("조합", mix ? "mix" : "craftRecipes");
     economyScene("workshop");
     LinearLayout tools = k.row();
     tools.setTag("craft-inline-tools");
-    Button recipes = k.action(null, "결과 후보", () -> craft(false));
+    Button recipes = k.action(null, "결과로 찾기", () -> craft(false));
     recipes.setSelected(!mix);
     recipes.setTag("craft-recipe-picker");
-    Button materials = k.action(null, "재료로 섞기", () -> craft(true));
+    Button materials = k.action(null, "재료로 찾기", () -> craft(true));
     materials.setSelected(mix);
-    tools.addView(recipes, new LinearLayout.LayoutParams(h.dp(100), h.dp(48)));
     tools.addView(materials, new LinearLayout.LayoutParams(h.dp(120), h.dp(48)));
+    tools.addView(recipes, new LinearLayout.LayoutParams(h.dp(120), h.dp(48)));
     if (!mix) {
       LinearLayout search = k.column();
       k.search(search, "이름·재료로 찾기", m.recipeQuery, query -> {
@@ -553,7 +557,7 @@ final class NativeEconomy {
       });
       tools.addView(ready, new LinearLayout.LayoutParams(h.dp(96), h.dp(48)));
     } else {
-      TextView help = caption("2~6마리 · 조합이 맞지 않으면 재료가 남아요");
+      TextView help = caption("재료를 골라 결과 확인 · 맞지 않으면 재료 유지");
       help.setMaxLines(2);
       tools.addView(help, new LinearLayout.LayoutParams(0, -2, 1));
     }
@@ -562,8 +566,10 @@ final class NativeEconomy {
     craftActions = k.row();
     craftActions.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
     craftActions.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(4));
-    k.footer(craftActions);
-    ((LinearLayout.LayoutParams) craftActions.getLayoutParams()).topMargin = 0;
+    if (!mix) {
+      k.footer(craftActions);
+      ((LinearLayout.LayoutParams) craftActions.getLayoutParams()).topMargin = 0;
+    }
     m.fetch("craft", r -> {
       if (mix) mix(cols, r);
       else recipes(cols, r);
@@ -826,123 +832,184 @@ final class NativeEconomy {
 
   void mix(LinearLayout[] cols, JSONObject data) {
     JSONArray pool = h.list(data, "pool");
+    int limit = data.optInt("maxMaterials", 6); // 구 서버의 기존 한도와 호환.
+    // 화면 재진입 때 보호·편성·보유 수량이 바뀐 초안을 정리한다.
+    ArrayList<String> valid = new ArrayList<>();
+    for (String id : m.mixDraft) {
+      JSONObject unit = mixUnit(pool, id);
+      if (valid.size() < limit && Collections.frequency(valid, id) < unit.optInt("usable")) valid.add(id);
+    }
+    m.mixDraft.clear();
+    m.mixDraft.addAll(valid);
+    LinearLayout search = k.column();
+    cols[0].addView(search, new LinearLayout.LayoutParams(-1, h.dp(48)));
+    LinearLayout inventory = k.column();
+    cols[0].addView(inventory, new LinearLayout.LayoutParams(-1, 0, 1));
+    LinearLayout bench = k.row();
+    bench.setBaselineAligned(false);
+    cols[1].addView(bench, new LinearLayout.LayoutParams(-1, -1));
+    LinearLayout selected = k.column(), results = k.column();
+    bench.addView(selected, new LinearLayout.LayoutParams(0, -1, 1));
+    bench.addView(results, new LinearLayout.LayoutParams(0, -1, 1));
     Runnable[] paint = new Runnable[1];
     paint[0] = () -> {
-      cols[0].removeAllViews();
-      cols[1].removeAllViews();
+      inventory.removeAllViews();
+      selected.removeAllViews();
+      results.removeAllViews();
       ArrayList<JSONObject> available = new ArrayList<>();
       for (int i = 0; i < pool.length(); i++) {
         JSONObject unit = pool.optJSONObject(i);
-        if (unit != null && unit.optInt("usable") > 0) available.add(unit);
+        if (unit != null && unit.optInt("usable") > 0
+            && unit.optString("name").toLowerCase(Locale.KOREA).contains(mixQuery.toLowerCase(Locale.KOREA))) available.add(unit);
       }
-      int perPage = h.contentHeightDp() >= 520 ? 4 : 2;
+      // 행 높이를 줄이지 않고 좁은 가로 화면에서도 48dp와 페이지 이동을 확보한다.
+      int perPage = Math.max(1, Math.min(6, (h.contentHeightDp() - 200) / 48));
       int pages = Math.max(1, (available.size() + perPage - 1) / perPage);
       mixPage = Math.max(0, Math.min(mixPage, pages - 1));
       LinearLayout choices = k.column();
-      choices.setTag("mix-inline-materials");
-      LinearLayout picker = k.row();
-      picker.setBaselineAligned(false);
-      cols[0].addView(picker, new LinearLayout.LayoutParams(-1, 0, 1));
-      picker.addView(choices, new LinearLayout.LayoutParams(0, -1, 1));
-      LinearLayout row = null;
+      inventory.addView(choices, new LinearLayout.LayoutParams(-1, 0, 1));
       for (int i = mixPage * perPage; i < Math.min(available.size(), (mixPage + 1) * perPage); i++) {
         JSONObject unit = available.get(i);
         String id = unit.optString("id");
         int left = unit.optInt("usable") - Collections.frequency(m.mixDraft, id);
-        if ((i - mixPage * perPage) % 2 == 0) {
-          row = k.row();
-          row.setBaselineAligned(false);
-          choices.addView(row, new LinearLayout.LayoutParams(-1, 0, 1));
-        }
-        LinearLayout item = fullEconomyTile(unit, "남은 " + left);
-        item.setTag("mix-picker-material-" + id);
-        item.setEnabled(left > 0 && m.mixDraft.size() < 6);
-        item.setAlpha(item.isEnabled() ? 1 : .6f);
-        item.setContentDescription(unit.optString("name") + " 재료 추가 · 남은 " + left);
-        item.setOnClickListener(v -> {
-          if (h.busy || m.mixDraft.size() >= 6 || left <= 0) return;
+        Button add = k.action(null, unit.optString("name") + " · " + left, () -> {
+          if (h.busy || m.mixDraft.size() >= limit || left <= 0) return;
           m.mixDraft.add(id);
           paint[0].run();
         });
-        LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, -1, 1);
-        slot.setMargins(h.dp(2), h.dp(2), h.dp(2), h.dp(2));
-        row.addView(item, slot);
+        add.setTag("mix-picker-material-" + id);
+        add.setTextSize(14);
+        add.setSingleLine(true);
+        add.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        add.setEnabled(left > 0 && m.mixDraft.size() < limit);
+        add.setContentDescription(unit.optString("name") + " 재료 추가 · 사용 가능 " + left);
+        choices.addView(add, new LinearLayout.LayoutParams(-1, h.dp(48)));
       }
-      if (available.isEmpty()) choices.addView(caption("사용할 수 있는 재료가 없어요."));
-      crewPageControls(picker, mixPage, pages, page -> { mixPage = page; paint[0].run(); }, "mix-material-pages");
-      cols[1].addView(caption("선택한 재료 · " + m.mixDraft.size() + " / 6 · 누르면 빼기"));
-      FrameLayout workbench = new FrameLayout(h);
-      workbench.setTag("mix-workbench");
-      LinearLayout slots = k.row();
-      slots.setGravity(Gravity.CENTER_VERTICAL);
-      slots.setBaselineAligned(false);
-      workbench.addView(slots, new FrameLayout.LayoutParams(-1, -1, Gravity.CENTER));
-      cols[1].addView(workbench, new LinearLayout.LayoutParams(-1, 0, 1));
-      for (int i = 0; i < 6; i++) {
-        int index = i;
-        LinearLayout slot = k.paper();
-        slot.setPadding(h.dp(3), h.dp(5), h.dp(3), h.dp(5));
-        slot.setGravity(Gravity.CENTER);
-        slot.setMinimumHeight(h.dp(compact() ? 92 : 156));
-        LinearLayout.LayoutParams box = new LinearLayout.LayoutParams(0, -1, 1);
-        box.setMargins(h.dp(2), 0, h.dp(2), 0);
-        slots.addView(slot, box);
-        if (i >= m.mixDraft.size()) {
-          slot.setTag("mix-empty-slot-" + i);
-          slot.addView(h.text("＋", 24));
-          TextView empty = k.note("빈 자리");
-          empty.setTextSize(h.uiText(12));
-          empty.setGravity(Gravity.CENTER);
-          slot.addView(empty);
-          slot.setContentDescription("재료 " + (i + 1) + " 빈 자리 · 왼쪽 재료를 눌러 추가해요");
-        } else {
-          String id = m.mixDraft.get(i);
-          JSONObject unit = new JSONObject();
-          for (int j = 0; j < pool.length(); j++)
-            if (id.equals(pool.optJSONObject(j).optString("id"))) unit = pool.optJSONObject(j);
-          slot.setTag("mix-material-" + id);
-          slot.setPadding(0, 0, 0, 0);
-          slot.setBackgroundColor(Color.TRANSPARENT);
-          RegistrationCardView card = fullEconomyCard(unit);
-          card.setTag("economy-full-card");
-          slot.addView(card, new LinearLayout.LayoutParams(-1, -1));
-          slot.setContentDescription(unit.optString("name") + " 재료에서 빼기");
-          slot.setOnClickListener(v -> {
-            if (h.busy) return;
-            m.mixDraft.remove(index);
-            paint[0].run();
-          });
-        }
-      }
-      LinearLayout actions = k.row();
-      Button clear = k.action(null, "비우기", () -> { m.mixDraft.clear(); paint[0].run(); });
-      clear.setEnabled(!m.mixDraft.isEmpty());
-      h.cell(actions, clear);
-      ((LinearLayout.LayoutParams) clear.getLayoutParams()).topMargin = 0;
-      ((LinearLayout.LayoutParams) clear.getLayoutParams()).bottomMargin = 0;
-      Button make = k.primary("u-emblem", m.mixDraft.size() >= 2 ? m.mixDraft.size() + "마리 섞기" : "2마리 이상 선택", () -> {
-        JSONArray materials = new JSONArray();
-        for (String id : m.mixDraft)
-          for (int j = 0; j < pool.length(); j++)
-            if (id.equals(pool.optJSONObject(j).optString("id"))) materials.put(pool.optJSONObject(j));
-        h.confirm("선택한 재료로 섞을까요?", () -> performCraft("mix",
-            MainActivity.obj("ids", MainActivity.arr(m.mixDraft)), null, materials));
+      if (available.isEmpty()) choices.addView(caption("사용 가능한 재료가 없어요."));
+      pageControls(inventory, mixPage, pages, page -> { mixPage = page; paint[0].run(); }, "mix-material-pages");
+      LinearLayout heading = k.row();
+      TextView count = caption("재료 " + m.mixDraft.size() + "/" + limit);
+      heading.addView(count, new LinearLayout.LayoutParams(0, -1, 1));
+      Button clear = k.action(null, "비우기", () -> {
+        if (h.busy) return;
+        m.mixDraft.clear();
+        paint[0].run();
       });
-      make.setEnabled(m.mixDraft.size() >= 2);
+      clear.setTextSize(12);
+      clear.setEnabled(!m.mixDraft.isEmpty());
+      clear.setTag("mix-clear");
+      heading.addView(clear, new LinearLayout.LayoutParams(h.dp(72), h.dp(48)));
+      selected.addView(heading);
+      HorizontalScrollView strip = new HorizontalScrollView(h);
+      strip.setFillViewport(true);
+      LinearLayout slots = k.row();
+      slots.setTag("mix-workbench");
+      strip.addView(slots, new FrameLayout.LayoutParams(-2, -1));
+      selected.addView(strip, new LinearLayout.LayoutParams(-1, 0, 1));
+      boolean hint = false;
+      for (int i = 0; i < m.mixDraft.size(); i++) {
+        int index = i;
+        JSONObject unit = mixUnit(pool, m.mixDraft.get(i));
+        hint |= unit.optBoolean("hiddenHint");
+        LinearLayout slot = k.column();
+        slot.setTag("mix-material-" + m.mixDraft.get(i));
+        slot.addView(fullEconomyCard(unit), new LinearLayout.LayoutParams(-1, 0, 1));
+        Button remove = k.action(null, "×", () -> {
+          if (h.busy) return;
+          m.mixDraft.remove(index);
+          paint[0].run();
+        });
+        remove.setContentDescription(unit.optString("name") + " 재료에서 빼기");
+        slot.addView(remove, new LinearLayout.LayoutParams(-1, h.dp(48)));
+        slots.addView(slot, new LinearLayout.LayoutParams(h.dp(120), -1));
+      }
+      if (m.mixDraft.isEmpty()) slots.addView(caption("왼쪽에서 재료를 골라 주세요."));
+      JSONObject match = mixResult(h.list(data, "recipes"));
+      TextView resultHeading = caption(match == null ? "결과 미확인" : "가능한 결과");
+      results.addView(resultHeading, new LinearLayout.LayoutParams(-1, h.dp(48)));
+      JSONObject unknown = MainActivity.obj("known", false, "name", "미공개", "tierName", "입사등록증", "img", "unknown");
+      HiddenRecipeFrame frame = new HiddenRecipeFrame(h, hint);
+      frame.setTag("mix-result-card");
+      frame.addView(fullEconomyCard(unknown), new FrameLayout.LayoutParams(-1, -1));
+      if (match != null && hint) {
+        // 공개 결과와 미공개 단서를 함께 표시하되 서로 같은 결과라고 암시하지 않는다.
+        HorizontalScrollView candidates = new HorizontalScrollView(h);
+        LinearLayout cards = k.row();
+        candidates.addView(cards, new FrameLayout.LayoutParams(-2, -1));
+        cards.addView(fullEconomyCard(match), new LinearLayout.LayoutParams(h.dp(144), -1));
+        cards.addView(frame, new LinearLayout.LayoutParams(h.dp(144), -1));
+        results.addView(candidates, new LinearLayout.LayoutParams(-1, 0, 1));
+        resultHeading.setText("결과 · 옆으로 단서 보기");
+      } else {
+        results.addView(match == null ? frame : fullEconomyCard(match), new LinearLayout.LayoutParams(-1, 0, 1));
+      }
+      // 힌트는 성공 판정이 아니다. 미공개 조합은 서버가 확정 시에만 검사한다.
+      Button make = k.primary(null, "조합하기", () -> confirmMix(pool));
       make.setTag("mix-submit");
-      h.cell(actions, make);
-      ((LinearLayout.LayoutParams) make.getLayoutParams()).topMargin = 0;
-      ((LinearLayout.LayoutParams) make.getLayoutParams()).bottomMargin = 0;
-      craftActions.removeAllViews();
-      craftActions.addView(actions, new LinearLayout.LayoutParams(-1, -2));
+      make.setEnabled(m.mixDraft.size() >= 2);
+      results.addView(make, new LinearLayout.LayoutParams(-1, h.dp(48)));
     };
+    k.search(search, "보유 캐릭터 검색", mixQuery, query -> {
+      mixQuery = query;
+      mixPage = 0;
+      paint[0].run();
+    });
     paint[0].run();
+  }
+
+  JSONObject mixUnit(JSONArray pool, String id) {
+    for (int i = 0; i < pool.length(); i++) {
+      JSONObject unit = pool.optJSONObject(i);
+      if (unit != null && id.equals(unit.optString("id"))) return unit;
+    }
+    return new JSONObject();
+  }
+
+  JSONObject mixResult(JSONArray recipes) {
+    ArrayList<String> selected = new ArrayList<>(m.mixDraft);
+    Collections.sort(selected);
+    for (int i = 0; i < recipes.length(); i++) {
+      JSONObject recipe = recipes.optJSONObject(i);
+      ArrayList<String> required = new ArrayList<>();
+      JSONArray materials = h.list(recipe, "materials");
+      for (int j = 0; j < materials.length(); j++) {
+        JSONObject material = materials.optJSONObject(j);
+        for (int n = 0; n < material.optInt("need"); n++) required.add(material.optString("id"));
+      }
+      Collections.sort(required);
+      if (recipe.optBoolean("ready") && required.equals(selected)) return recipe;
+    }
+    return null;
+  }
+
+  boolean mixConfirming;
+  void confirmMix(JSONArray pool) {
+    if (h.busy || mixConfirming || m.mixDraft.size() < 2) return;
+    mixConfirming = true;
+    int epoch = h.epoch;
+    String account = h.api.token();
+    ArrayList<String> ids = new ArrayList<>(m.mixDraft);
+    JSONArray materials = new JSONArray();
+    for (String id : ids) materials.put(mixUnit(pool, id));
+    GameDialog dialog = new GameDialog(h);
+    dialog.setMessage("선택한 " + ids.size() + "마리를 사용해 조합할까요? 맞는 조합이 없으면 재료는 그대로예요.")
+        .setNegativeButton("취소", null)
+        .setPositiveButton("확인", (d, w) -> {
+          if (h.epoch != epoch || !account.equals(h.api.token()) || !ids.equals(m.mixDraft)) return;
+          performCraft("mix", MainActivity.obj("ids", MainActivity.arr(ids)), null, materials);
+        });
+    android.app.AlertDialog showing = dialog.show();
+    showing.setOnDismissListener(d -> {
+      mixConfirming = false;
+      if (h.visibleDialog == showing) h.visibleDialog = null;
+    });
   }
 
   void performCraft(String endpoint, JSONObject body, JSONObject result, JSONArray materials) {
     if (h.busy) return;
     Set<String> before = NativeAcquisitionFlow.keys(h.state);
-    String origin = endpoint.equals("mix") ? "mix" : "craft";
+    // 홈 기본 진입(craft)과 결과 탭 복원 경로를 분리한다. API 이름은 그대로 유지한다.
+    String origin = endpoint.equals("mix") ? "mix" : "craftRecipes";
     h.request(
         endpoint,
         body,

@@ -387,7 +387,7 @@ final class NativeLibrary {
     m.recipeQuery = u.optString("name");
     m.recipeId = u.optString("id");
     m.craftOnly = false;
-    h.craft();
+    m.economy.craft(false);
   }
 
   void detail(ArrayList<JSONObject> units, int at) {
@@ -518,7 +518,7 @@ final class NativeLibrary {
                       m.recipeId = material.optString("id");
                       m.recipeQuery = material.optString("name");
                       m.craftOnly = false;
-                      h.craft();
+                      m.economy.craft(false);
                     }
                   });
           obtain.setTextSize(13);
@@ -534,7 +534,7 @@ final class NativeLibrary {
                 m.recipeId = u.optString("id");
                 m.recipeQuery = u.optString("name");
                 m.craftOnly = false;
-                h.craft();
+                m.economy.craft(false);
               }));
     }
     JSONArray used = h.list(u, "usedIn");
@@ -550,7 +550,7 @@ final class NativeLibrary {
                   m.recipeId = recipe.optString("id");
                   m.recipeQuery = recipe.optString("name");
                   m.craftOnly = false;
-                  h.craft();
+                  m.economy.craft(false);
                 }));
       }
     }
@@ -577,7 +577,7 @@ final class NativeLibrary {
         m.recipeQuery = u.optString("name");
         m.recipeId = id;
         m.craftOnly = false;
-        h.craft();
+        m.economy.craft(false);
       },
       () -> {
         JSONArray draft = new JSONArray();

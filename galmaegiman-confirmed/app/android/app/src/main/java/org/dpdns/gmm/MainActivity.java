@@ -484,7 +484,7 @@ public class MainActivity extends AppCompatActivity {
     screen = id;
     sound.play("title");
     root.removeAllViews();
-    boolean mapPage = id.equals("craft") || id.equals("mix");
+    boolean mapPage = id.equals("craft") || id.equals("craftRecipes") || id.equals("mix");
     View scene = new GameSceneBackground(this);
     scene.setTag("theme-scene-background");
     scene.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
@@ -659,6 +659,9 @@ public class MainActivity extends AppCompatActivity {
         break;
       case "craft":
         craft();
+        break;
+      case "craftRecipes":
+        menus.economy.craft(false);
         break;
       case "mix":
         mix();
@@ -1096,7 +1099,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void craft() {
-    menus.economy.craft(false);
+    menus.economy.craft(true);
   }
 
   void mix() {
@@ -1456,7 +1459,7 @@ public class MainActivity extends AppCompatActivity {
     else if (screen.equals("team")) {
       menus.requestLeaveTeam(() -> load(menus.teamReturnTarget()));
     } else if (screen.equals("dialog")) load("story");
-    else if (screen.equals("mix")) craft();
+    else if (screen.equals("mix")) load("home");
     else if (screen.equals("drawResult")) load("draw");
     else if (screen.equals("craftResult")) load(menus.economy.acquisitionOrigin());
     else if (screen.equals("story")) load("modesStory");

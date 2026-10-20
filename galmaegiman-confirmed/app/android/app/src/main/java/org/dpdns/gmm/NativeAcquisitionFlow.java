@@ -190,7 +190,7 @@ final class NativeAcquisitionFlow {
     h.menus.recipeQuery = item.optString("name");
     h.menus.recipeId = "";
     h.menus.craftOnly = false;
-    h.load("craft");
+    h.menus.economy.craft(false);
   }
 
   void detail(JSONObject item) {

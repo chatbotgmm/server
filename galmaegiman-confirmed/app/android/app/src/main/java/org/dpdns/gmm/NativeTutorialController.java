@@ -500,7 +500,7 @@ final class NativeTutorialController {
   }
 
   void showHint() {
-    String key = h.screen;
+    String key = h.screen.equals("craftRecipes") ? "craft" : h.screen;
     String savedKey = key.equals("expedition") ? "party" : key;
     if (overlay != null && overlay.hint) return;
     String[] message = HINTS.get(key);
