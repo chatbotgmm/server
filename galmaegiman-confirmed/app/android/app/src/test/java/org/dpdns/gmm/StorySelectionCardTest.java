@@ -120,12 +120,25 @@ public class StorySelectionCardTest {
             .setInsetsIgnoringVisibility(WindowInsetsCompat.Type.displayCutout(), Insets.of(28,0,0,0))
             .setVisible(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout(), true).build();
         Insets effective = GameSafeArea.read(insets);
-        ViewCompat.dispatchApplyWindowInsets(h.root, insets);
-        ViewCompat.setOnApplyWindowInsetsListener(h.root, (view, ignored) -> {
-          view.setPadding(effective.left, effective.top, effective.right, effective.bottom); return ignored;
-        });
-        h.root.setPadding(effective.left,effective.top,effective.right,effective.bottom);
         review.show(h, "story", size);
+        // The shared registration layout resets padding. Apply cutout insets AFTER it,
+        // then measure the real root again so pixels and safety metadata describe the same UI.
+        ViewCompat.setOnApplyWindowInsetsListener(h.root, (view, delivered) -> {
+          Insets actual = GameSafeArea.read(delivered);
+          view.setPadding(actual.left, actual.top, actual.right, actual.bottom); return delivered;
+        });
+        ViewCompat.dispatchApplyWindowInsets(h.root, insets);
+        assertEquals(effective.left,h.root.getPaddingLeft());
+        assertEquals(effective.top,h.root.getPaddingTop());
+        assertEquals(effective.right,h.root.getPaddingRight());
+        assertEquals(effective.bottom,h.root.getPaddingBottom());
+        h.root.requestLayout();
+        h.root.measure(View.MeasureSpec.makeMeasureSpec(size[0],View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(size[1],View.MeasureSpec.EXACTLY));
+        h.root.layout(0,0,size[0],size[1]);
+        android.graphics.Rect safe = new android.graphics.Rect(effective.left,effective.top,
+            size[0]-effective.right,size[1]-effective.bottom);
+        assertEquals(safe,review.geometry.bounds(h.page,h.root));
         Bitmap bitmap = Bitmap.createBitmap(size[0],size[1],Bitmap.Config.ARGB_8888);
         try {
           h.root.draw(new Canvas(bitmap));
@@ -134,9 +147,12 @@ public class StorySelectionCardTest {
           }
         } finally { bitmap.recycle(); }
         JSONObject checked = review.inspect(h,h.root,"story",api);
+        assertEquals(safe.width(),checked.getInt("safeWidth"));
+        assertEquals(safe.height(),checked.getInt("safeHeight"));
         int cards = 0;
         for (View view : review.geometry.descendants(h.root)) if (view instanceof StorySelectionCard) {
           StorySelectionCard card = (StorySelectionCard)view; cards++;
+          assertTrue("카드가 실제 컷아웃 안전영역 안에 있음",safe.contains(review.geometry.bounds(card,h.root)));
           assertNotNull("원본 그림 로딩",card.artwork);
           assertTrue(card.getHeight() >= h.dp(48));
           assertTrue("제목·조건이 카드 높이 안에 있음",card.info.getBottom() <= card.getHeight());
@@ -158,4 +174,5 @@ public class StorySelectionCardTest {
     }
   }
 }
+
 

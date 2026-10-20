@@ -278,7 +278,7 @@ def verify_mode_navigation(root):
     metrics,findings,manifest=read(directory/'metrics.json'),read(directory/'findings.json'),read(directory/'manifest.json')
     check(set(metrics)==set(findings)==set(expected), 'Missing category measurements/findings')
     check(manifest.get('schemaVersion')==1 and manifest.get('suite')=='feedback-mode-navigation'
-          and manifest.get('baseline')=='8b55b4bde86c4ea8e1a9f4efb643d905564ffe89'
+          and manifest.get('baseline')=='680cc3565aafddcd262541faed44b6a333dde912'
           and manifest.get('routes')==['modes','modesStory'], 'Wrong category manifest')
     captures=manifest.get('captures',[]); profiles=manifest.get('profiles',[])
     check(len(captures)==16 and {c['filename'] for c in captures}==set(expected), 'Category capture manifest incomplete')
@@ -302,7 +302,7 @@ def verify_mode_navigation(root):
         boxes=[]
         for key,label in labels.items():
             c=cards[key];box=rect(c['boundsPx']);glyph=rect(c['glyphBoundsPx']);reading=rect(c['readingBoundsPx']);boxes.append(box)
-            check(c.get('text')==label and c.get('enabled') is (key!='adventure') and c.get('motif')==({'story':0,'pvp':1,'adventure':2}[key]), 'Wrong category label/availability/motif')
+            check(c.get('text')==label and c.get('enabled') is (key!='adventure') and c.get('motif')==({'story':0 if route=='modes' else 3,'pvp':1,'adventure':2}[key]), 'Wrong category label/availability/motif')
             check(inside(safe,box) and box[2]-box[0]>=48*dpi/160-.5 and box[3]-box[1]>=48*dpi/160-.5
                   and inside(box,reading) and inside(reading,glyph), 'Category ink/touch/ornament bounds regression')
         check(not overlap(boxes[0],boxes[1]), 'Category click targets overlap')

@@ -121,7 +121,7 @@ def mode_manifest():
                          "densityInterpretation": verifier.density_interpretation(name)})
         for state in verifier.MODE_STATES:
             captures.append({"filename": name + "-" + state + ".png", "profile": name, "state": state})
-    return {"schemaVersion": 1, "suite": "feedback-stage1-modes", "baseline": "8b55b4bde86c4ea8e1a9f4efb643d905564ffe89",
+    return {"schemaVersion": 2, "suite": "feedback-stage1-modes", "screen": "modesPvp", "baseline": "680cc3565aafddcd262541faed44b6a333dde912",
             "profiles": profiles, "states": list(verifier.MODE_STATES), "captures": captures,
             "requiredActions": list(verifier.MODE_ACTIONS), "requiredContainers": list(verifier.MODE_CONTAINERS),
             "reference": {"widthPx": 2048, "heightPx": 838, "densityDpi": "unknown"}}
@@ -457,6 +457,12 @@ class StageOneValidatorTests(unittest.TestCase):
         result = verifier.verify_modes_metric(self.mode, "short-915x374-mdpi", "ready")
         self.assertEqual(result, dict(actions=5, texts=6, decorative_frame_checks=5))
 
+    def test_modes_requires_current_pvp_manifest_identity(self):
+        folder=self.build_modes_evidence()
+        for key,value in [('schemaVersion',1),('screen','modes'),('baseline','8b55b4bde86c4ea8e1a9f4efb643d905564ffe89')]:
+            data=mode_manifest();data[key]=value
+            (folder/'manifest.json').write_text(json.dumps(data))
+            with self.subTest(key=key), self.assertRaises(ValueError):self.modes_fixture_verify()
     def test_all_thirty_two_modes_profiles_validate(self):
         self.build_modes_evidence()
         report = self.modes_fixture_verify()

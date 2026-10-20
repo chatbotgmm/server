@@ -412,8 +412,9 @@ def verify_modes(root):
     check(isinstance(metrics, dict) and set(metrics) == expected, "Missing/unexpected modes measurements")
     check(isinstance(findings, dict) and set(findings) == expected, "Missing/unexpected modes findings")
     check({path.name for path in directory.glob("*.png")} == expected, "Missing/unexpected modes screenshots")
-    check(manifest.get("schemaVersion") == 1 and manifest.get("suite") == "feedback-stage1-modes"
-          and manifest.get("baseline") == "8b55b4bde86c4ea8e1a9f4efb643d905564ffe89", "Modes manifest identity mismatch")
+    check(manifest.get("schemaVersion") == 2 and manifest.get("suite") == "feedback-stage1-modes"
+          and manifest.get("screen") == "modesPvp"
+          and manifest.get("baseline") == "680cc3565aafddcd262541faed44b6a333dde912", "Modes manifest identity mismatch")
     check(manifest.get("states") == list(MODE_STATES) and manifest.get("requiredActions") == list(MODE_ACTIONS)
           and manifest.get("requiredContainers") == list(MODE_CONTAINERS), "Modes manifest reduced required state/control coverage")
     profiles = manifest.get("profiles")

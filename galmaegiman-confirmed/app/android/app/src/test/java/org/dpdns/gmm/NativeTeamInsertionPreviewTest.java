@@ -73,11 +73,12 @@ public class NativeTeamInsertionPreviewTest {
       touch(h,MotionEvent.ACTION_DOWN,x,y); touch(h,MotionEvent.ACTION_MOVE,tx,y); touch(h,MotionEvent.ACTION_UP,tx,y);
       assertEquals(Arrays.asList(initial.get(0),initial.get(2),initial.get(1)),h.menus.teamDraft);
       assertTrue(h.menus.isTeamDirty()); assertTrue(api.writes.isEmpty()); helper.settle(h,PROFILES[0]);
+      org.json.JSONArray droppedOrder = new org.json.JSONArray(h.menus.teamDraft);
       capture(h,"party-drop");
       label(h,"변경 취소").performClick(); assertEquals(initial,h.menus.teamDraft);
       helper.write("party.json",MainActivity.obj("schemaVersion",1,"widthPx",915,"heightPx",412,
           "previewOffsetPx",expected,"repeatedMoves",12,"directionReversalStable",true,"draftUnchangedBeforeDrop",true,
-          "cancelRestored",true,"outsideDropRestored",true,"dropOrder",Arrays.asList(initial.get(0),initial.get(2),initial.get(1)),
+          "cancelRestored",true,"outsideDropRestored",true,"dropOrder",droppedOrder,
           "apiWrites",api.writes.size(),"findings",new org.json.JSONArray()));
     }
   }
@@ -120,3 +121,4 @@ public class NativeTeamInsertionPreviewTest {
     }
   }
 }
+

@@ -219,11 +219,11 @@ class RevisionContractTest(unittest.TestCase):
                 for i,(key,label) in enumerate(labels.items()):
                     x=safe[0]+i*(cardwidth+10);y=safe[1]+10;box=[x,y,x+cardwidth,y+80*dpi/160]
                     reading=[box[0]+4,box[1]+4,box[2]-4,box[3]-4];glyph=[box[0]+8,box[1]+8,box[2]-8,box[3]-8]
-                    cards[key]=dict(text=label,enabled=key!='adventure',motif={'story':0,'pvp':1,'adventure':2}[key],boundsPx=box,readingBoundsPx=reading,glyphBoundsPx=glyph)
+                    cards[key]=dict(text=label,enabled=key!='adventure',motif={'story':0 if route=='modes' else 3,'pvp':1,'adventure':2}[key],boundsPx=box,readingBoundsPx=reading,glyphBoundsPx=glyph)
                     texts[key]=dict(boundsPx=box,visibleBoundsPx=box,glyphBoundsPx=glyph,ellipsisCount=0,autoSizeTextType=0,textScaleX=1,textSizePx=26)
                 metrics[file]=dict(profile=name,route=route,actualNativeViews=True,screenWidthPx=w,screenHeightPx=h,densityDpi=dpi,fontScale=font,safeBoundsPx=safe,scrollContainers=0,apiWrites=0,fixtureReads=[],touchChecks=2,textChecks=2,cards=cards,texts=texts,findings=[])
                 findings[file]=[]
-        self.write('feedback-mode-navigation/manifest.json',dict(schemaVersion=1,suite='feedback-mode-navigation',baseline='8b55b4bde86c4ea8e1a9f4efb643d905564ffe89',routes=['modes','modesStory'],captures=captures,profiles=mode_manifest()['profiles']))
+        self.write('feedback-mode-navigation/manifest.json',dict(schemaVersion=1,suite='feedback-mode-navigation',baseline='680cc3565aafddcd262541faed44b6a333dde912',routes=['modes','modesStory'],captures=captures,profiles=mode_manifest()['profiles']))
         self.write('feedback-mode-navigation/metrics.json',metrics);self.write('feedback-mode-navigation/findings.json',findings)
         return metrics
     @patch('verify_recruitment_revision_ci.verify_png',return_value={})
@@ -237,6 +237,16 @@ class RevisionContractTest(unittest.TestCase):
                 data=json.loads(json.dumps(original));data[first]['cards']['adventure'][key]=value;self.write('feedback-mode-navigation/metrics.json',data)
                 with self.assertRaises(ValueError):verify_mode_navigation(self.root)
         data=json.loads(json.dumps(original));data[first]['texts']['story']['ellipsisCount']=1;self.write('feedback-mode-navigation/metrics.json',data)
+        with self.assertRaises(ValueError):verify_mode_navigation(self.root)
+    @patch('verify_recruitment_revision_ci.verify_png',return_value={})
+    def test_category_rejects_stale_baseline_and_root_motif_on_story_route(self,mock):
+        original=self.mode_navigation_fixture()
+        path=self.root/'feedback-mode-navigation/manifest.json';manifest=json.loads(path.read_text())
+        stale=dict(manifest,baseline='8b55b4bde86c4ea8e1a9f4efb643d905564ffe89');path.write_text(json.dumps(stale))
+        with self.assertRaises(ValueError):verify_mode_navigation(self.root)
+        path.write_text(json.dumps(manifest))
+        first=next(k for k in original if '-modesStory.' in k)
+        original[first]['cards']['story']['motif']=0;self.write('feedback-mode-navigation/metrics.json',original)
         with self.assertRaises(ValueError):verify_mode_navigation(self.root)
     def junit_fixture(self):
         for suite,methods in dict(SUITES,JournalThemeTest=['existing'],NativeEffectsPresentationTest=['existing'],NativeHarborAudioTest=['existing'],NativeRecruitmentProbabilityTest=['existing']).items():
