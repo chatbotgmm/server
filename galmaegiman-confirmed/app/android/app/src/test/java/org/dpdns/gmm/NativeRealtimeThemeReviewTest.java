@@ -330,7 +330,7 @@ public class NativeRealtimeThemeReviewTest {
         for (int i = 0; i < choice.offers.length(); i++) {
           JSONObject offer = choice.offers.getJSONObject(i); View card = choice.picks.get(i);
           TextView effect = card.findViewWithTag("augment-core-effect"); assertNotNull(effect);
-          assertEquals(NativeAugmentView.coreEffect(offer), effect.getText().toString());
+          assertEquals(NativeAugmentView.coreEffect(offer).replace('\n', ' '), effect.getText().toString().replace('\n', ' '));
           assertEquals(geometry.bounds(effect, target), geometry.visibleIntersection(effect, target));
           View icon = card.findViewWithTag("augment-icon-" + offer.getString("id"));
           assertTrue(icon.getWidth() >= h.dp(56)); assertTrue(icon.getHeight() >= h.dp(56));

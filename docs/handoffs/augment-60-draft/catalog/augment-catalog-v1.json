@@ -1,0 +1,1903 @@
+{
+  "schemaVersion": "augment-design-spec/v1",
+  "rulesVersion": "BATTLE_AUGMENT_V2_PROPOSED",
+  "status": "design_only_not_implemented_not_balance_validated",
+  "sourceCommit": "34e9b4b08ee0e6ed181bf9e87f73ce34bee7872d",
+  "note": "This is a design interchange document, not the current BattleData runtime schema. effectParams keys require explicit engine implementation. Tier names and 20/20/20 allocation are parent-proposed defaults pending owner confirmation.",
+  "counts": {
+    "SILVER": 20,
+    "GOLD": 20,
+    "PRISM": 20
+  },
+  "augments": [
+    {
+      "id": "first",
+      "tier": "SILVER",
+      "name": "출근 도장",
+      "shortDescription": "다음 기술의 우선도 +1",
+      "trigger": "다음 기술 행동 순서 계산",
+      "effectParams": {
+        "priorityBonus": 1
+      },
+      "cap": "1회; 우선도 동률은 속도 순, 기존보다 우선권 낮음",
+      "duration": "다음 기술 행동 순서1회",
+      "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용.",
+      "existing": true,
+      "implementationHook": "act / useSkill",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "priorityBonus": 2
+        },
+        "trigger": "다음 기술 행동 순서 계산에서 goFirst 사용",
+        "duration": "다음 기술 행동 순서 1회",
+        "cap": "1회; 기존대로 수면·빙결 행동 실패에도 우선권 소비",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "priorityBonus": 1
+        },
+        "trigger": "다음 기술 행동 순서 계산",
+        "duration": "다음 기술 행동 순서1회",
+        "cap": "1회; 우선도 동률은 속도 순, 기존보다 우선권 낮음",
+        "cost": "없음",
+        "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "explicit_silver_rebalance",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "bulwark",
+      "tier": "SILVER",
+      "name": "철벽",
+      "shortDescription": "선두가 2턴 동안 피해 12% 감소",
+      "trigger": "선택 확정 후 새 선두 결정 뒤",
+      "effectParams": {
+        "guardPct": 12
+      },
+      "cap": "선택당1회; 전체 피해감소 상한60%",
+      "duration": "행동2턴",
+      "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용.",
+      "existing": true,
+      "implementationHook": "applyAugment / damage / endTurn",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "guardPct": 40
+        },
+        "trigger": "선택 확정 후 새 선두 결정 뒤",
+        "duration": "행동 2턴",
+        "cap": "1회; 기존 multipliers.maxGuard 상한",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "guardPct": 12
+        },
+        "trigger": "선택 확정 후 새 선두 결정 뒤",
+        "duration": "행동2턴",
+        "cap": "선택당1회; 전체 피해감소 상한60%",
+        "cost": "없음",
+        "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "explicit_silver_rebalance",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "firstaid",
+      "tier": "SILVER",
+      "name": "응급처치",
+      "shortDescription": "살아 있는 아군 모두 체력 10% 회복",
+      "trigger": "선택 확정 직후",
+      "effectParams": {
+        "healMaxHpPct": 10,
+        "target": "living_team"
+      },
+      "cap": "선택당1회; 결손HP까지만",
+      "duration": "즉시",
+      "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용.",
+      "existing": true,
+      "implementationHook": "applyAugment / heal",
+      "cost": "없음",
+      "offerEligibility": "기존 조건: 아군 전원이 만피인 경우에만 후보 제외",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "healMaxHpPct": 25,
+          "target": "living_team"
+        },
+        "trigger": "선택 확정 직후",
+        "duration": "즉시",
+        "cap": "선택당1회; 결손 HP까지만",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "healMaxHpPct": 10,
+          "target": "living_team"
+        },
+        "trigger": "선택 확정 직후",
+        "duration": "즉시",
+        "cap": "선택당1회; 결손HP까지만",
+        "cost": "없음",
+        "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "explicit_silver_rebalance",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "sharp",
+      "tier": "SILVER",
+      "name": "매의 눈",
+      "shortDescription": "다음 3번 공격 첫 타 급소 확률 +10%p",
+      "trigger": "직접 공격 시전 첫 타 급소 판정",
+      "effectParams": {
+        "critChancePlus": 10,
+        "firstHitOnly": true
+      },
+      "cap": "팀3시전; 확률상한100%; 막혀도 시전횟수 소비",
+      "duration": "3시전까지",
+      "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용.",
+      "existing": true,
+      "implementationHook": "damage / useSkill",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "critChancePlus": 15
+        },
+        "trigger": "피해 계산의 급소 판정",
+        "duration": "전투 종료까지",
+        "cap": "상시; 기존 다단 각 타격 판정",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "critChancePlus": 10,
+          "firstHitOnly": true
+        },
+        "trigger": "직접 공격 시전 첫 타 급소 판정",
+        "duration": "3시전까지",
+        "cap": "팀3시전; 확률상한100%; 막혀도 시전횟수 소비",
+        "cost": "없음",
+        "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "explicit_silver_rebalance",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "swift",
+      "tier": "SILVER",
+      "name": "칼퇴 준비",
+      "shortDescription": "3턴 동안 아군 속도 +10%",
+      "trigger": "선택 확정 직후",
+      "effectParams": {
+        "speedPct": 10,
+        "target": "living_team"
+      },
+      "cap": "선택당1회; 같은 방향 속도 강화는 큰 값만",
+      "duration": "행동3턴",
+      "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용.",
+      "existing": true,
+      "implementationHook": "applyAugment / statOf",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "speedPct": 25
+        },
+        "trigger": "statOf 속도 계산",
+        "duration": "전투 종료까지",
+        "cap": "상시; 기존 강화와 곱연산",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "speedPct": 10,
+          "target": "living_team"
+        },
+        "trigger": "선택 확정 직후",
+        "duration": "행동3턴",
+        "cap": "선택당1회; 같은 방향 속도 강화는 큰 값만",
+        "cost": "없음",
+        "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "explicit_silver_rebalance",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "thick",
+      "tier": "SILVER",
+      "name": "두꺼운 깃털",
+      "shortDescription": "3턴 동안 아군 물리·마법 방어 +10%",
+      "trigger": "선택 확정 직후",
+      "effectParams": {
+        "defensePct": 10,
+        "target": "living_team"
+      },
+      "cap": "선택당1회; 같은 방향 방어 강화는 큰 값만",
+      "duration": "행동3턴",
+      "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용.",
+      "existing": true,
+      "implementationHook": "applyAugment / statOf",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "defensePct": 15
+        },
+        "trigger": "statOf 방어 계산",
+        "duration": "전투 종료까지",
+        "cap": "상시; 기존 강화와 곱연산",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "defensePct": 10,
+          "target": "living_team"
+        },
+        "trigger": "선택 확정 직후",
+        "duration": "행동3턴",
+        "cap": "선택당1회; 같은 방향 방어 강화는 큰 값만",
+        "cost": "없음",
+        "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "explicit_silver_rebalance",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "overtime",
+      "tier": "SILVER",
+      "name": "야근 수당",
+      "shortDescription": "다음 3번 공격 위력 +8%",
+      "trigger": "직접 공격 시전 직전",
+      "effectParams": {
+        "powerBonusPct": 8
+      },
+      "cap": "팀3시전; 다단1회; 막혀도 소비",
+      "duration": "3시전까지",
+      "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용.",
+      "existing": true,
+      "implementationHook": "skillPower / useSkill",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "attackPct": 12
+        },
+        "trigger": "statOf 공격 계산",
+        "duration": "전투 종료까지",
+        "cap": "상시; 기존 강화와 곱연산",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "powerBonusPct": 8
+        },
+        "trigger": "직접 공격 시전 직전",
+        "duration": "3시전까지",
+        "cap": "팀3시전; 다단1회; 막혀도 소비",
+        "cost": "없음",
+        "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "explicit_silver_rebalance",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "drain",
+      "tier": "SILVER",
+      "name": "회식비 정산",
+      "shortDescription": "다음 3번 적중 실제 피해의 12% 회복",
+      "trigger": "직접 공격 모든 타격 완료 직후, 반사·상대 행동 전",
+      "effectParams": {
+        "actualDamageHealPct": 12,
+        "maxHpHealCapPct": 4
+      },
+      "cap": "팀3회; 시전당 최대HP4%; 0피해 미소모",
+      "duration": "3회 유효적중까지",
+      "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용.",
+      "existing": true,
+      "implementationHook": "useSkill / heal",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "requestedDamageHealPct": 20,
+          "basis": "total, includes overkill"
+        },
+        "trigger": "직접 공격 모든 타격 완료 직후, 반사·상대 행동 전",
+        "duration": "전투 종료까지",
+        "cap": "상시; 최대HP까지만",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "actualDamageHealPct": 12,
+          "maxHpHealCapPct": 4
+        },
+        "trigger": "직접 공격 모든 타격 완료 직후, 반사·상대 행동 전",
+        "duration": "3회 유효적중까지",
+        "cap": "팀3회; 시전당 최대HP4%; 0피해 미소모",
+        "cost": "없음",
+        "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "explicit_silver_rebalance",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "thorns",
+      "tier": "SILVER",
+      "name": "가시 깃털",
+      "shortDescription": "다음 3번 피격 실제 피해의 10% 반사",
+      "trigger": "직접 피격 시전 완료 후",
+      "effectParams": {
+        "actualDamageReflectPct": 10,
+        "attackerMaxHpDamageCapPct": 4
+      },
+      "cap": "팀3회; 공격자최대HP4% 상한; 반사·흡혈 비재귀",
+      "duration": "3회 유효피격까지",
+      "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용.",
+      "existing": true,
+      "implementationHook": "useSkill / hurt",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "reflectPct": 20,
+          "basis": "기존 total(방어 적용 후 요청 피해 합계)"
+        },
+        "trigger": "직접 공격 완료 후; 방어자 전투불가여도 기존대로 발동",
+        "duration": "전투 종료까지",
+        "cap": "상시; 반사 피해는 반사·흡혈 재발동 없음",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "actualDamageReflectPct": 10,
+          "attackerMaxHpDamageCapPct": 4
+        },
+        "trigger": "직접 피격 시전 완료 후",
+        "duration": "3회 유효피격까지",
+        "cap": "팀3회; 공격자최대HP4% 상한; 반사·흡혈 비재귀",
+        "cost": "없음",
+        "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "explicit_silver_rebalance",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "pierce",
+      "tier": "SILVER",
+      "name": "송곳 부리",
+      "shortDescription": "다음 3번 공격 방어 10% 관통",
+      "trigger": "직접 공격 시전 직전",
+      "effectParams": {
+        "piercePct": 10
+      },
+      "cap": "팀3시전; 총관통상한70%; 다단1회",
+      "duration": "3시전까지",
+      "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용.",
+      "existing": true,
+      "implementationHook": "damage / useSkill",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "piercePct": 20
+        },
+        "trigger": "damage 방어 계산",
+        "duration": "전투 종료까지",
+        "cap": "상시; 기존 관통과 곱연산",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "piercePct": 10
+        },
+        "trigger": "직접 공격 시전 직전",
+        "duration": "3시전까지",
+        "cap": "팀3시전; 총관통상한70%; 다단1회",
+        "cost": "없음",
+        "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "explicit_silver_rebalance",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "lunch",
+      "tier": "SILVER",
+      "name": "점심시간",
+      "shortDescription": "다음 3턴 종료에 선두 체력 3% 회복",
+      "trigger": "턴 종료 화상 후 선두 생존 시",
+      "effectParams": {
+        "healMaxHpPct": 3
+      },
+      "cap": "3턴; 만피여도 기간감소; 선택당 총 최대9%",
+      "duration": "행동3턴",
+      "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용.",
+      "existing": true,
+      "implementationHook": "endTurn / heal",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "healMaxHpPct": 6
+        },
+        "trigger": "턴 종료 화상 피해 후 생존 시",
+        "duration": "전투 종료까지",
+        "cap": "상시; 기존 regen과 합산, 최대HP까지만",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "healMaxHpPct": 3
+        },
+        "trigger": "턴 종료 화상 후 선두 생존 시",
+        "duration": "행동3턴",
+        "cap": "3턴; 만피여도 기간감소; 선택당 총 최대9%",
+        "cost": "없음",
+        "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "explicit_silver_rebalance",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "learn",
+      "tier": "SILVER",
+      "name": "상성 학습",
+      "shortDescription": "3턴 동안 같은 속성 재피격 피해 −8%, 최대16%",
+      "trigger": "직접 피격 완료 후 해당 유닛·속성 hitBy 증가",
+      "effectParams": {
+        "cutPerPriorCastPct": 8,
+        "maxCutPct": 16
+      },
+      "cap": "유닛·속성별 최대2중첩; 선택 이전 피격 횟수는 제외; 다단1중첩",
+      "duration": "행동3턴",
+      "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용.",
+      "existing": true,
+      "implementationHook": "damage / useSkill",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "cutPerPriorCastPct": 15,
+          "maxCutPct": 45
+        },
+        "trigger": "직접 피격 시전 완료 후 hitBy 증가",
+        "duration": "전투 종료까지",
+        "cap": "유닛·속성별 최대45%; 다단 1중첩; 기존 계산 유지",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "cutPerPriorCastPct": 8,
+          "maxCutPct": 16
+        },
+        "trigger": "직접 피격 완료 후 해당 유닛·속성 hitBy 증가",
+        "duration": "행동3턴",
+        "cap": "유닛·속성별 최대2중첩; 선택 이전 피격 횟수는 제외; 다단1중첩",
+        "cost": "없음",
+        "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "explicit_silver_rebalance",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "strip",
+      "tier": "SILVER",
+      "name": "기세 꺾기",
+      "shortDescription": "상대 선두 강화 하나를 제거",
+      "trigger": "선택 확정 직후",
+      "effectParams": {
+        "removePositiveEffectCount": 1,
+        "order": "pct 높은 순, 동률 guard→atk→def→spd, 기간 긴 순"
+      },
+      "cap": "선택당1회; 양수 mods/guards 중 하나만; 공격약화 없음",
+      "duration": "즉시",
+      "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용.",
+      "existing": true,
+      "implementationHook": "applyAugment",
+      "cost": "없음",
+      "offerEligibility": "상대 새 선두에 양수 mods 또는 guards 존재",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "removeAllPositiveModsAndGuards": true,
+          "attackPenaltyPct": 20
+        },
+        "trigger": "선택 확정 직후",
+        "duration": "제거 즉시; 약화 행동2턴",
+        "cap": "선택당1회",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "removePositiveEffectCount": 1,
+          "order": "pct 높은 순, 동률 guard→atk→def→spd, 기간 긴 순"
+        },
+        "trigger": "선택 확정 직후",
+        "duration": "즉시",
+        "cap": "선택당1회; 양수 mods/guards 중 하나만; 공격약화 없음",
+        "cost": "없음",
+        "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "explicit_silver_rebalance",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "rinse",
+      "tier": "SILVER",
+      "name": "긴급 세척",
+      "shortDescription": "선두의 상태 이상을 모두 해제",
+      "trigger": "선택 확정 직후",
+      "effectParams": {
+        "cleanseStatuses": [
+          "burn",
+          "freeze",
+          "sleep",
+          "bind",
+          "rage"
+        ]
+      },
+      "cap": "1회; 상태 재적용 보호기간은 지우지 않음",
+      "duration": "즉시",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "applyAugment / statusEvent",
+      "cost": "없음",
+      "offerEligibility": "내 새 선두에게 해제 가능한 상태 존재",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "resetline",
+      "tier": "SILVER",
+      "name": "전열 정비",
+      "shortDescription": "살아 있는 아군의 능력치 약화 제거",
+      "trigger": "선택 확정 직후",
+      "effectParams": {
+        "removeNegativeMods": true,
+        "target": "living_team"
+      },
+      "cap": "1회; 증강 대가·lockAtk·상태는 해제 안 됨",
+      "duration": "즉시",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "applyAugment",
+      "cost": "없음",
+      "offerEligibility": "생존 아군에게 음수 mods 존재",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "handoffguard",
+      "tier": "SILVER",
+      "name": "안전 인계",
+      "shortDescription": "다음 두 번 교체 후 피해 12% 감소",
+      "trigger": "자발적 교체 성공 직후, 상대 행동 전",
+      "effectParams": {
+        "guardPct": 12
+      },
+      "cap": "팀2회; 강제교체 제외; 전체 감소상한60%",
+      "duration": "각 교체 행동 턴 종료까지",
+      "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용.",
+      "existing": false,
+      "implementationHook": "doSwitch / damage / endTurn",
+      "cost": "없음",
+      "offerEligibility": "생존 대기 아군 존재",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "relief",
+      "tier": "SILVER",
+      "name": "구호 배달",
+      "shortDescription": "다음 두 번 교체 때 출전 아군 8% 회복",
+      "trigger": "자발적 교체 성공 직후, 상대 행동 전",
+      "effectParams": {
+        "healMaxHpPct": 8
+      },
+      "cap": "팀 2회; 만피면 미소모; 강제 교체 제외",
+      "duration": "2회 소모까지",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "doSwitch / heal",
+      "cost": "없음",
+      "offerEligibility": "생존 대기 아군 존재",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "aim",
+      "tier": "SILVER",
+      "name": "정밀 조준",
+      "shortDescription": "다음 공격 첫 타 급소 확률 +20%p",
+      "trigger": "다음 직접 공격 첫 타 급소 판정",
+      "effectParams": {
+        "critChancePlus": 20,
+        "firstHitOnly": true
+      },
+      "cap": "팀1시전; 확정급소 아님; 막혀도 소비; 확률상한100%",
+      "duration": "1시전까지",
+      "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용.",
+      "existing": false,
+      "implementationHook": "useSkill / damage",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "response",
+      "tier": "SILVER",
+      "name": "후수 응수",
+      "shortDescription": "상대 기술 후 공격하면 위력 +12%",
+      "trigger": "상대가 이번 턴 실제 시전한 뒤 내 직접 공격",
+      "effectParams": {
+        "powerBonusPct": 12
+      },
+      "cap": "팀 3회; 상대 행동 실패·교체·아이템 제외",
+      "duration": "3회 소모까지",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "useSkill castTurn / skillPower",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "exploit",
+      "tier": "SILVER",
+      "name": "빈틈 공략",
+      "shortDescription": "약화된 적에게 방어 10% 추가 관통",
+      "trigger": "음수 mods가 있는 상대에게 직접 공격",
+      "effectParams": {
+        "piercePct": 10
+      },
+      "cap": "팀3회; 총관통상한70%",
+      "duration": "3회까지",
+      "stackRules": "같은 ID 중복 선택 불가. 유한 사용횟수는 팀 공유이며 교체·부활로 초기화 안 됨. 공통 V2 상한 적용.",
+      "existing": false,
+      "implementationHook": "damage / useSkill",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "reverse",
+      "tier": "GOLD",
+      "name": "역상성",
+      "shortDescription": "이번 전투 내 공격 강함과 약함을 뒤집음",
+      "trigger": "multiplier 상성 계산",
+      "effectParams": {
+        "flipStrongWeak": true,
+        "changeUnitType": false
+      },
+      "cap": "상시; 중립 유지, neutral 우선",
+      "duration": "전투 종료까지",
+      "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음.",
+      "existing": true,
+      "implementationHook": "multiplier / skillPreview / useSkill",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "flipStrongWeak": true,
+          "changeUnitType": false
+        },
+        "trigger": "multiplier 상성 계산",
+        "duration": "전투 종료까지",
+        "cap": "상시; 중립 유지, neutral 우선",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "flipStrongWeak": true,
+          "changeUnitType": false
+        },
+        "trigger": "multiplier 상성 계산",
+        "duration": "전투 종료까지",
+        "cap": "상시; 중립 유지, neutral 우선",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "tier_metadata_only_preserve_v1_effect",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "weakguard",
+      "tier": "GOLD",
+      "name": "약점 보강",
+      "shortDescription": "받는 강한 상성 피해를 보통 배율로",
+      "trigger": "공격자 역상성·집중공략 적용 후 m>1",
+      "effectParams": {
+        "capIncomingTypeMultiplier": 1
+      },
+      "cap": "상시; 피해·상태 전체 면역이 아니라 상성 보정만 제거",
+      "duration": "전투 종료까지",
+      "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음.",
+      "existing": true,
+      "implementationHook": "multiplier / useSkill",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "capIncomingTypeMultiplier": 1
+        },
+        "trigger": "공격자 역상성·집중공략 적용 후 m>1",
+        "duration": "전투 종료까지",
+        "cap": "상시; 피해·상태 전체 면역이 아니라 상성 보정만 제거",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "capIncomingTypeMultiplier": 1
+        },
+        "trigger": "공격자 역상성·집중공략 적용 후 m>1",
+        "duration": "전투 종료까지",
+        "cap": "상시; 피해·상태 전체 면역이 아니라 상성 보정만 제거",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "tier_metadata_only_preserve_v1_effect",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "focus",
+      "tier": "GOLD",
+      "name": "집중 공략",
+      "shortDescription": "강한 상성 공격 배율을 1.9로",
+      "trigger": "역상성 적용 후 강함 배율",
+      "effectParams": {
+        "strongMultiplier": 1.9
+      },
+      "cap": "상시; neutral 우선, weakguard 후처리",
+      "duration": "전투 종료까지",
+      "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음.",
+      "existing": true,
+      "implementationHook": "multiplier / skillPreview / useSkill",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "strongMultiplier": 1.9
+        },
+        "trigger": "역상성 적용 후 강함 배율",
+        "duration": "전투 종료까지",
+        "cap": "상시; neutral 우선, weakguard 후처리",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "strongMultiplier": 1.9
+        },
+        "trigger": "역상성 적용 후 강함 배율",
+        "duration": "전투 종료까지",
+        "cap": "상시; neutral 우선, weakguard 후처리",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "tier_metadata_only_preserve_v1_effect",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "neutral",
+      "tier": "GOLD",
+      "name": "무속성 지대",
+      "shortDescription": "3턴 동안 양쪽 모든 상성 1배",
+      "trigger": "선택 확정 직후",
+      "effectParams": {
+        "typeMultiplier": 1,
+        "bothSides": true
+      },
+      "cap": "기존 양쪽 neutral=3 설정",
+      "duration": "행동3턴",
+      "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음.",
+      "existing": true,
+      "implementationHook": "applyAugment / multiplier / endTurn",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "typeMultiplier": 1,
+          "bothSides": true
+        },
+        "trigger": "선택 확정 직후",
+        "duration": "행동3턴",
+        "cap": "기존 양쪽 neutral=3 설정",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "typeMultiplier": 1,
+          "bothSides": true
+        },
+        "trigger": "선택 확정 직후",
+        "duration": "행동3턴",
+        "cap": "기존 양쪽 neutral=3 설정",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "tier_metadata_only_preserve_v1_effect",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "camo",
+      "tier": "GOLD",
+      "name": "보호색",
+      "shortDescription": "선두 속성을 상대에게 강한 속성으로 변경",
+      "trigger": "선택 확정 후 선두에 적용",
+      "effectParams": {
+        "setUnitType": "beats_foe_with_best_resistance",
+        "rewriteSkills": false
+      },
+      "cap": "1회; 동률 attrKeys 순, 자동 추적 안 함",
+      "duration": "해당 유닛 전투 종료까지",
+      "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음.",
+      "existing": true,
+      "implementationHook": "chooseTogether / applyAugment / statusEvent",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "setUnitType": "beats_foe_with_best_resistance",
+          "rewriteSkills": false
+        },
+        "trigger": "선택 확정 후 선두에 적용",
+        "duration": "해당 유닛 전투 종료까지",
+        "cap": "1회; 동률 attrKeys 순, 자동 추적 안 함",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "setUnitType": "beats_foe_with_best_resistance",
+          "rewriteSkills": false
+        },
+        "trigger": "선택 확정 후 선두에 적용",
+        "duration": "해당 유닛 전투 종료까지",
+        "cap": "1회; 동률 attrKeys 순, 자동 추적 안 함",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "tier_metadata_only_preserve_v1_effect",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "dual",
+      "tier": "GOLD",
+      "name": "이중 속성",
+      "shortDescription": "선두 기본·역할 공격에 상대 약점 속성 추가",
+      "trigger": "선택 확정 후 선두에 적용",
+      "effectParams": {
+        "extraAttackType": "beats_foe_with_best_resistance",
+        "skillIds": "basic-* / role-ATTACK",
+        "selection": "기존 R.typeMult가 더 큰 속성"
+      },
+      "cap": "1회; 기존 공격속성 선택 규칙 유지",
+      "duration": "해당 유닛 전투 종료까지",
+      "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음.",
+      "existing": true,
+      "implementationHook": "applyAugment / attackAttr / skillPreview",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "extraAttackType": "beats_foe_with_best_resistance",
+          "skillIds": "basic-* / role-ATTACK",
+          "selection": "기존 R.typeMult가 더 큰 속성"
+        },
+        "trigger": "선택 확정 후 선두에 적용",
+        "duration": "해당 유닛 전투 종료까지",
+        "cap": "1회; 기존 공격속성 선택 규칙 유지",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "extraAttackType": "beats_foe_with_best_resistance",
+          "skillIds": "basic-* / role-ATTACK",
+          "selection": "기존 R.typeMult가 더 큰 속성"
+        },
+        "trigger": "선택 확정 후 선두에 적용",
+        "duration": "해당 유닛 전투 종료까지",
+        "cap": "1회; 기존 공격속성 선택 규칙 유지",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "tier_metadata_only_preserve_v1_effect",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "counter",
+      "tier": "GOLD",
+      "name": "역습 태세",
+      "shortDescription": "약한 상성 공격을 맞고 생존하면 위력40 반격",
+      "trigger": "피격 완료 후 마지막 배율<1, 방어자 생존",
+      "effectParams": {
+        "counterPower": 40,
+        "category": "auto"
+      },
+      "cap": "매 직접 피격 시전 최대1회; 반격에서 반사·흡혈·추가 반격 안 함",
+      "duration": "전투 종료까지",
+      "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음.",
+      "existing": true,
+      "implementationHook": "useSkill / damage / hurt",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "counterPower": 40,
+          "category": "auto"
+        },
+        "trigger": "피격 완료 후 마지막 배율<1, 방어자 생존",
+        "duration": "전투 종료까지",
+        "cap": "매 직접 피격 시전 최대1회; 반격에서 반사·흡혈·추가 반격 안 함",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "counterPower": 40,
+          "category": "auto"
+        },
+        "trigger": "피격 완료 후 마지막 배율<1, 방어자 생존",
+        "duration": "전투 종료까지",
+        "cap": "매 직접 피격 시전 최대1회; 반격에서 반사·흡혈·추가 반격 안 함",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "tier_metadata_only_preserve_v1_effect",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "freeswitch",
+      "tier": "GOLD",
+      "name": "인사 발령",
+      "shortDescription": "교체 후 같은 턴 기술 사용 가능",
+      "trigger": "자발적 교체 성공 후",
+      "effectParams": {
+        "allowThenSkill": true
+      },
+      "cap": "턴당 교체1회; 기술은 기존 우선도·속도 순서",
+      "duration": "전투 종료까지",
+      "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음.",
+      "existing": true,
+      "implementationHook": "legalActions / act / doSwitch",
+      "cost": "없음",
+      "offerEligibility": "항상; 새 엄격 후보 필터는 추가 제안사항",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "allowThenSkill": true
+        },
+        "trigger": "자발적 교체 성공 후",
+        "duration": "전투 종료까지",
+        "cap": "턴당 교체1회; 기술은 기존 우선도·속도 순서",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "allowThenSkill": true
+        },
+        "trigger": "자발적 교체 성공 후",
+        "duration": "전투 종료까지",
+        "cap": "턴당 교체1회; 기술은 기존 우선도·속도 순서",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "tier_metadata_only_preserve_v1_effect",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "lastone",
+      "tier": "GOLD",
+      "name": "마지막 출근",
+      "shortDescription": "아군이 하나면 공격·방어·속도 +30%",
+      "trigger": "statOf에서 생존 아군1명 여부 확인",
+      "effectParams": {
+        "atkPct": 30,
+        "defPct": 30,
+        "spdPct": 30
+      },
+      "cap": "상시; 부활로2명이면 해제, 다시1명이면 재적용",
+      "duration": "조건 만족 중; 전투 종료까지",
+      "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음.",
+      "existing": true,
+      "implementationHook": "applyAugment / endTurn / statOf",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "atkPct": 30,
+          "defPct": 30,
+          "spdPct": 30
+        },
+        "trigger": "statOf에서 생존 아군1명 여부 확인",
+        "duration": "조건 만족 중; 전투 종료까지",
+        "cap": "상시; 부활로2명이면 해제, 다시1명이면 재적용",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "atkPct": 30,
+          "defPct": 30,
+          "spdPct": 30
+        },
+        "trigger": "statOf에서 생존 아군1명 여부 확인",
+        "duration": "조건 만족 중; 전투 종료까지",
+        "cap": "상시; 부활로2명이면 해제, 다시1명이면 재적용",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "tier_metadata_only_preserve_v1_effect",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "rustle",
+      "tier": "GOLD",
+      "name": "바스락",
+      "shortDescription": "상대 선두 수면1턴, 면역이면 제외",
+      "trigger": "선택 직후 !foe.immune일 때 기존 직접 적용",
+      "effectParams": {
+        "sleepTurns": 1
+      },
+      "cap": "선택당1회; 기존 상태저항 미적용. 새 수면·빙결 증강을 추가하지 않음",
+      "duration": "상태 턴1",
+      "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음.",
+      "existing": true,
+      "implementationHook": "applyAugment / applyStatus",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "sleepTurns": 1
+        },
+        "trigger": "선택 직후 !foe.immune일 때 기존 직접 적용",
+        "duration": "상태 턴1",
+        "cap": "선택당1회; 기존 상태저항 미적용. 새 수면·빙결 증강을 추가하지 않음",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "sleepTurns": 1
+        },
+        "trigger": "선택 직후 !foe.immune일 때 기존 직접 적용",
+        "duration": "상태 턴1",
+        "cap": "선택당1회; 기존 상태저항 미적용. 새 수면·빙결 증강을 추가하지 않음",
+        "cost": "없음",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "tier_metadata_only_preserve_v1_effect",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "peanut",
+      "tier": "GOLD",
+      "name": "땅콩 기세",
+      "shortDescription": "갈매미맨 공격 +30%, 받는 피해 +15%",
+      "trigger": "damage에서 이름에 갈매미맨이 포함된 공격자·방어자",
+      "effectParams": {
+        "outgoingDamageBonusPct": 30,
+        "incomingDamagePlusPct": 15
+      },
+      "cap": "상시; 기존 계산 유지",
+      "duration": "전투 종료까지",
+      "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음.",
+      "existing": true,
+      "implementationHook": "useSkill / skillPower",
+      "cost": "갈매미맨 받는 피해 +15%",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated",
+      "oldParameters": {
+        "rulesVersion": "BATTLE_V1",
+        "effectParams": {
+          "outgoingDamageBonusPct": 30,
+          "incomingDamagePlusPct": 15
+        },
+        "trigger": "damage에서 이름에 갈매미맨이 포함된 공격자·방어자",
+        "duration": "전투 종료까지",
+        "cap": "상시; 기존 계산 유지",
+        "cost": "갈매미맨 받는 피해 +15%",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "newVersionParams": {
+        "rulesVersion": "BATTLE_AUGMENT_V2",
+        "effectParams": {
+          "outgoingDamageBonusPct": 30,
+          "incomingDamagePlusPct": 15
+        },
+        "trigger": "damage에서 이름에 갈매미맨이 포함된 공격자·방어자",
+        "duration": "전투 종료까지",
+        "cap": "상시; 기존 계산 유지",
+        "cost": "갈매미맨 받는 피해 +15%",
+        "stackRules": "기존 V1 중첩 계산을 유지. 같은 ID 중복 선택 불가. 신규 증강의 전역 상한을 기존 효과에 소급 적용하지 않음."
+      },
+      "migration": {
+        "idPreserved": true,
+        "applyToExistingBattles": false,
+        "legacyRulesVersion": "BATTLE_V1",
+        "newBattleRulesVersion": "BATTLE_AUGMENT_V2",
+        "change": "tier_metadata_only_preserve_v1_effect",
+        "legacySnapshotRequired": true
+      }
+    },
+    {
+      "id": "relaytype",
+      "tier": "GOLD",
+      "name": "속성 릴레이",
+      "shortDescription": "다른 속성을 이어 쓰면 공격 +25%",
+      "trigger": "같은 유닛의 직전 직접 공격과 실제 속성이 다름",
+      "effectParams": {
+        "powerBonusPct": 25
+      },
+      "cap": "팀 3회; 첫 공격 제외; 교체로 기록 초기화 안 함",
+      "duration": "3회 소모까지",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "attackAttr / skillPower / useSkill",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "breach",
+      "tier": "GOLD",
+      "name": "파훼 예고",
+      "shortDescription": "보조 기술 뒤 다음 공격은 보호막 관통",
+      "trigger": "순수 보조 실제 시전으로 표식, 다음 직접 공격에 소비",
+      "effectParams": {
+        "ignoreGuards": true
+      },
+      "cap": "전투당 표식 발급 1회; protect·방어 능력치는 무시 못함",
+      "duration": "발급 턴 다음 턴 종료까지",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "useSkill / damage / skillPreview",
+      "cost": "없음",
+      "offerEligibility": "생존 아군에게 순수 보조 기술 존재",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "triage",
+      "tier": "GOLD",
+      "name": "응급 흡수",
+      "shortDescription": "체력 절반 이하 공격 시 실제 피해 25% 회복",
+      "trigger": "시전 직전 HP≤50%, 직접 공격 완료 직후",
+      "effectParams": {
+        "actualDamageHealPct": 25,
+        "maxHpHealCapPct": 10
+      },
+      "cap": "팀 2회; 0피해 미소모; 공통 회복 상한",
+      "duration": "2회 소모까지",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "useSkill / heal",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "rescue",
+      "tier": "GOLD",
+      "name": "구조 신호",
+      "shortDescription": "피격으로 체력 30% 아래가 되면 상태 해제",
+      "trigger": "직접 피격 시전 완료 후 생존, HP가 30% 초과→이하",
+      "effectParams": {
+        "cleanseAllStatuses": true
+      },
+      "cap": "팀 1회; 회복 없음; 재적용 보호 보존",
+      "duration": "즉시",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "useSkill postHit / statusEvent",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "firstshell",
+      "tier": "GOLD",
+      "name": "단단한 첫발",
+      "shortDescription": "각 아군 첫 피격 기술 피해 30% 감소",
+      "trigger": "각 유닛의 선택 후 첫 직접 피격 시전",
+      "effectParams": {
+        "guardPct": 30
+      },
+      "cap": "유닛당 1회; 다단 전체 1회; 교체·부활로 재충전 안 함",
+      "duration": "각 유닛 1회 소모까지",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "damage / useSkill",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "chase",
+      "tier": "GOLD",
+      "name": "추격 표식",
+      "shortDescription": "적이 교체한 턴 공격 위력 +30%",
+      "trigger": "양측 자발적 교체 전처리 완료 후, 상대가 교체했으면",
+      "effectParams": {
+        "powerBonusPct": 30
+      },
+      "cap": "팀 2회; 강제 교체 제외; 표식 중첩 없음",
+      "duration": "해당 행동 턴 종료까지",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "act postSwitch / skillPower",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "baton",
+      "tier": "GOLD",
+      "name": "마지막 전달",
+      "shortDescription": "첫 아군 전투불가 후 다음 출전 피해 −35%",
+      "trigger": "첫 아군 전투불가 기록 후 다음 강제 출전 완료",
+      "effectParams": {
+        "guardPct": 35
+      },
+      "cap": "팀 1회; 전투 종료 시 발동 없음",
+      "duration": "다음 행동 턴 종료까지",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "endTurn / chooseTogether / damage",
+      "cost": "없음",
+      "offerEligibility": "생존 아군 2명 이상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "overflowguard",
+      "tier": "GOLD",
+      "name": "넘치는 활력",
+      "shortDescription": "초과회복을 최대체력20%까지 흡수쉴드로 전환",
+      "trigger": "생존 아군의 정당한 회복 처리 직후 실제 HP 수용량보다 남은 회복량이 양수일 때",
+      "effectParams": {
+        "overflowToShieldPct": 100,
+        "shieldMaxHpCapPct": 20,
+        "shieldTurns": 2,
+        "conversions": 3,
+        "absorbDirectSkillDamageOnly": true,
+        "excludeRevive": true
+      },
+      "cap": "팀3회 유효변환; 대상별 현재쉴드≤최대HP20%; 쉴드가 실제 증가할 때만 소비; 손실피해·회복상한초과분·적 과잉피해는 생성재료 아님",
+      "duration": "각 변환 시 현재 행동턴을 포함한2턴 종료까지; 같은 대상 기존쉴드는 최대20% 내 합산하고 마지막 변환기준2턴으로 갱신",
+      "stackRules": "같은 ID 중복 없음. 자체쉴드는 최대20% 내 합산, 변환3회공유. 쉴드생성/소모는 회복이나 피해 재발동 원인이 아니며 신규 흡혈은 실제HP손실만 기준. 부활HP는 제외.",
+      "existing": false,
+      "implementationHook": "centralized heal / hurt direct-skill absorption / endTurn",
+      "cost": "없음",
+      "offerEligibility": "생존 아군에 회복 기술·진화회복·회복증강 중 하나가 있거나 현재 모드에서 합법적 회복아이템 사용 가능",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "typebridge",
+      "tier": "GOLD",
+      "name": "상성 다리",
+      "shortDescription": "다음 2번 불리한 공격 배율을 보통으로",
+      "trigger": "역상성 적용 후 직접 공격 배율<1",
+      "effectParams": {
+        "floorOutgoingTypeMultiplier": 1
+      },
+      "cap": "팀 2시전; 방어·보호막·면역 무시 없음",
+      "duration": "2회 소모까지",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "multiplier / skillPreview / useSkill",
+      "cost": "없음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "redline",
+      "tier": "PRISM",
+      "name": "한계 돌파",
+      "shortDescription": "체력을 걸고 다음 공격 위력 +65%",
+      "trigger": "다음 직접 공격 시전 직전, 현재HP>최대HP20%",
+      "effectParams": {
+        "powerBonusPct": 65,
+        "selfMaxHpCostPct": 20,
+        "healingBlockedForCast": true
+      },
+      "cap": "팀 1회; 공격이 막혀도 대가·횟수 소모",
+      "duration": "1시전",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "useSkill / skillPower / heal",
+      "cost": "최대HP 20% 선차감, 그 공격으로 모든 흡혈 불가",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "underdog",
+      "tier": "PRISM",
+      "name": "거인 사냥",
+      "shortDescription": "상대가 10레벨 높으면 실제 피해 35% 추가",
+      "trigger": "직접 공격 시전 직전 상대 레벨−내 레벨≥10",
+      "effectParams": {
+        "actualDamageBonusPct": 35,
+        "extraDamageFoeMaxHpCapPct": 18,
+        "selfMaxHpCostPct": 8
+      },
+      "cap": "팀 2회; 추가 피해는 흡혈·반사 기준에서 제외; 0피해면 추가 없음",
+      "duration": "2회",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "useSkill / hurt",
+      "cost": "발동 직전 최대HP 8% 손실, HP 부족하면 미발동",
+      "offerEligibility": "생존 아군보다 10레벨 이상 높은 생존 적 존재",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "glasswing",
+      "tier": "PRISM",
+      "name": "유리 날개",
+      "shortDescription": "두 공격 위력 +50%, 그동안 받는 피해 증가",
+      "trigger": "선택 즉시 위험 상태; 다음 직접 공격 2회",
+      "effectParams": {
+        "powerBonusPct": 50,
+        "incomingDamagePlusPct": 25
+      },
+      "cap": "팀 2시전; 위험 상태는 미시전해도 최대 3턴",
+      "duration": "행동 3턴 또는 2시전 완료 턴 종료 중 빠른 시점",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "damage / useSkill / endTurn",
+      "cost": "효과 유지 중 팀 직접 피격 피해 +25%, 해제 불가",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "lonecharge",
+      "tier": "PRISM",
+      "name": "배수의 진",
+      "shortDescription": "선두가 교체를 포기하고 두 공격 강화",
+      "trigger": "선택 직후 현재 선두에 결속",
+      "effectParams": {
+        "powerBonusPct": 45,
+        "piercePct": 20,
+        "lockVoluntarySwitch": true
+      },
+      "cap": "선두 2시전; 관통 총상한 70%; 전투불가 시 소멸",
+      "duration": "행동 3턴 또는 2시전 완료 턴 종료",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "legalActions / useSkill / damage",
+      "cost": "결속 중 자발적 교체 불가, 아이템 회복 불가",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "equalfield",
+      "tier": "PRISM",
+      "name": "평준화 결투",
+      "shortDescription": "한 턴 낮은 레벨 쪽의 공격 계산을 보정",
+      "trigger": "다음 내 직접 공격 시전",
+      "effectParams": {
+        "effectiveAttackLevelGapCap": 15,
+        "outgoingTypeMultiplier": 1,
+        "disableCrit": true
+      },
+      "cap": "팀 1시전; base 공격 능력치만 levelScale 비율 보정; HP·방어·진화 보정 없음",
+      "duration": "1시전",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "skillPower / damage / skillPreview",
+      "cost": "해당 공격 상성 1배 고정, 급소 불가",
+      "offerEligibility": "내 생존 유닛보다 레벨 높은 생존 적 존재",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "blindspot",
+      "tier": "PRISM",
+      "name": "사각 돌파",
+      "shortDescription": "불리한 공격 한 번을 2배 상성으로",
+      "trigger": "원래 최종 공격 배율<1인 다음 직접 공격",
+      "effectParams": {
+        "replaceTypeMultiplier": 2,
+        "selfMaxHpCostPct": 12
+      },
+      "cap": "팀 1시전; 상대 약점 보강은 마지막에 적용; 무속성 지대에서는 대기",
+      "duration": "1시전",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "multiplier / useSkill / skillPreview",
+      "cost": "최대HP 12% 선차감; 부족하면 미발동",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "doubleedge",
+      "tier": "PRISM",
+      "name": "양날 계약",
+      "shortDescription": "다음 적중에 실제 피해 30% 추가, 자신도 반동",
+      "trigger": "다음 직접 공격 실제 피해>0 완료 직후",
+      "effectParams": {
+        "extraActualDamagePct": 30,
+        "extraFoeMaxHpCapPct": 18,
+        "recoilOfExtraPct": 50
+      },
+      "cap": "팀 1회; 추가·반동 모두 비재귀; 반동은 자신을 쓰러뜨릴 수 있음",
+      "duration": "즉시",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "useSkill / hurt",
+      "cost": "추가로 준 실제 피해의 50%를 자신도 잃음; 흡혈 불가",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "lastmatch",
+      "tier": "PRISM",
+      "name": "최후의 불꽃",
+      "shortDescription": "마지막 아군 저체력 공격 한 번 +80%",
+      "trigger": "생존 아군 1명, 내 HP≤30%인 직접 공격",
+      "effectParams": {
+        "powerBonusPct": 80,
+        "selfMaxHpCostPct": 10
+      },
+      "cap": "팀 1시전; HP가 최대HP10% 이하면 미발동",
+      "duration": "1시전",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "skillPower / useSkill",
+      "cost": "최대HP 10% 선차감, 그 시전 흡혈 불가",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "bloodrelay",
+      "tier": "PRISM",
+      "name": "혈맹 인계",
+      "shortDescription": "교체하는 아군 체력을 써서 다음 공격 강화",
+      "trigger": "다음 자발적 교체 성공 직전 출전 중 유닛 HP>최대HP20%",
+      "effectParams": {
+        "outgoingMaxHpCostPct": 20,
+        "incomingNextPowerBonusPct": 60
+      },
+      "cap": "팀 1회; 교체 후 정상 행동 규칙 유지; 자동 추가 기술 없음",
+      "duration": "들어온 유닛의 다음 공격, 교체 턴 다음 턴 종료까지",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "doSwitch / skillPower",
+      "cost": "나가는 유닛 최대HP 20% 손실; 결손 없는 상대에게도 비용 고정",
+      "offerEligibility": "생존 대기 아군 존재",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "quietstorm",
+      "tier": "PRISM",
+      "name": "고요한 폭풍",
+      "shortDescription": "보조 기술 두 번 뒤 공격 한 번 +90%",
+      "trigger": "같은 유닛이 서로 다른 순수 보조 기술 2회 실제 시전",
+      "effectParams": {
+        "nextPowerBonusPct": 90,
+        "requiredDistinctUtilityCasts": 2
+      },
+      "cap": "팀 1회 충전; 보조 시전 사이 공격하면 누적 초기화; 횟수 재충전 없음",
+      "duration": "선택 후 행동 5턴 이내 충전·공격 완료",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "useSkill / skillPower",
+      "cost": "충전된 공격은 급소·흡혈 불가; 효과 준비에 보조 행동 2회 필요",
+      "offerEligibility": "한 생존 유닛이 서로 다른 순수 보조 기술 2개 이상 보유",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "rainbow",
+      "tier": "PRISM",
+      "name": "삼색 연쇄",
+      "shortDescription": "세 속성으로 연속 공격하면 세 번째 +75%",
+      "trigger": "같은 유닛의 연속 직접 공격 3회가 모두 다른 실제 속성",
+      "effectParams": {
+        "thirdPowerBonusPct": 75,
+        "distinctTypes": 3
+      },
+      "cap": "팀 1회; 같은 속성 반복·보조·교체면 연쇄 초기화",
+      "duration": "선택 후 행동 5턴 이내",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "useSkill / attackAttr / skillPower",
+      "cost": "세 번째 공격 급소 불가, 이전 두 공격의 증강 흡혈 불가",
+      "offerEligibility": "한 생존 유닛이 서로 다른 공격 속성 3종 사용 가능",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "crackedarmor",
+      "tier": "PRISM",
+      "name": "균열 갑옷",
+      "shortDescription": "첫 피격을 줄이고 이후 방어가 약해짐",
+      "trigger": "다음 직접 피격 시전",
+      "effectParams": {
+        "guardPct": 60,
+        "afterwardDefensePenaltyPct": 25
+      },
+      "cap": "팀 1시전; 감소 공통상한60%; 다단 전체",
+      "duration": "감소 1시전, 이후 행동 2턴 방어약화",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "damage / useSkill / statOf",
+      "cost": "발동 후 해당 유닛 물리·마법 방어 −25%, 해제 불가",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "mortgage",
+      "tier": "PRISM",
+      "name": "빌린 생명",
+      "shortDescription": "즉시 선두 35% 회복, 두 턴 뒤 대가",
+      "trigger": "선택 직후",
+      "effectParams": {
+        "healMaxHpPct": 35,
+        "deferredMaxHpCostPct": 25
+      },
+      "cap": "팀 1회; 부족 HP만 회복; 부활 불가; 대가는 교체해도 동일 유닛",
+      "duration": "회복 즉시, 다음 두 행동 턴 종료 후 비용",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "applyAugment / heal / endTurn",
+      "cost": "2턴 뒤 최대HP25% 손실, 사망 가능; 해제·교체로 면제 불가",
+      "offerEligibility": "선두 생존 및 HP≤65%",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "coldbargain",
+      "tier": "PRISM",
+      "name": "냉혹한 거래",
+      "shortDescription": "다음 공격은 회복 효과를 포기하고 위력 +55%",
+      "trigger": "직접 공격이며 해당 기술·패시브·증강 중 흡혈이 있는 첫 시전",
+      "effectParams": {
+        "powerBonusPct": 55,
+        "suppressHealingThisCast": true
+      },
+      "cap": "팀 1시전; 직접 기술에 포함된 회복도 취소",
+      "duration": "1시전",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "useSkill / applyEffects / heal",
+      "cost": "그 시전에서 발생하는 아군 회복 전부 취소",
+      "offerEligibility": "생존 아군이 공격 기술에서 회복을 발생시킬 수 있음",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "shatterprice",
+      "tier": "PRISM",
+      "name": "방벽 거래",
+      "shortDescription": "자기 강화 전부를 버리고 방어 관통 공격",
+      "trigger": "다음 직접 공격 직전 양수 mods 또는 guards 보유",
+      "effectParams": {
+        "consumeAllPositiveModsAndGuards": true,
+        "piercePct": 65
+      },
+      "cap": "팀 1시전; 관통 총상한70%; protect는 무시 못함",
+      "duration": "1시전",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "useSkill / damage",
+      "cost": "자기 양수 mods와 guards 전부 제거; 효과가 막혀도 복구 안 됨",
+      "offerEligibility": "선두에게 양수 mods 또는 guards 존재",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "hostileweather",
+      "tier": "PRISM",
+      "name": "폭풍 계약",
+      "shortDescription": "두 턴 상성 공격을 강화하되 양쪽이 받음",
+      "trigger": "선택 직후 전장 효과",
+      "effectParams": {
+        "bothSidesStrongMultiplier": 2.2,
+        "bothSidesWeakMultiplier": 0.6
+      },
+      "cap": "전장 1회; 중복은 재발동 안 함; 무속성 지대가 우선; 약점 보강 후처리",
+      "duration": "행동 2턴",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "applyAugment / multiplier / endTurn",
+      "cost": "적의 유리한 공격도 같은 2.2배를 받음",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "slowhammer",
+      "tier": "PRISM",
+      "name": "느린 철퇴",
+      "shortDescription": "다음 공격을 후공으로 미루고 위력 +70%",
+      "trigger": "다음 직접 공격 행동 순서 계산",
+      "effectParams": {
+        "forcePriority": -3,
+        "powerBonusPct": 70
+      },
+      "cap": "팀 1시전; 선공 증강·우선기술보다 강제후공 우선; 수면 실패 시 대기",
+      "duration": "1시전",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "act / useSkill / skillPower",
+      "cost": "그 공격은 모든 일반 기술보다 나중에 실행; 쓰러지면 효과 소멸",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "siegebreak",
+      "tier": "PRISM",
+      "name": "공성 돌파",
+      "shortDescription": "고체력 적에게 한 번 큰 피해, 다음 턴 취약",
+      "trigger": "상대 HP≥80%인 다음 직접 공격",
+      "effectParams": {
+        "powerBonusPct": 65,
+        "nextTurnIncomingPlusPct": 30
+      },
+      "cap": "팀 1시전; 조건은 시전 직전 고정",
+      "duration": "강화 1시전, 취약은 다음 행동 턴 종료까지",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "skillPower / useSkill / damage",
+      "cost": "시전 직후부터 다음 턴 종료까지 해당 유닛 받는 직접 피해 +30%, 해제 불가",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "sharedburden",
+      "tier": "PRISM",
+      "name": "공동 부담",
+      "shortDescription": "대기 아군의 체력을 걸고 다음 공격 +60%",
+      "trigger": "다음 직접 공격 직전, 생존 대기 아군 전원이 최대HP10% 초과",
+      "effectParams": {
+        "benchMaxHpCostPct": 10,
+        "powerBonusPct": 60
+      },
+      "cap": "팀1시전; 생존 대기 아군 최소1명 필요; HP 부족 시 자동 미발동",
+      "duration": "1시전",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "useSkill / skillPower / hurt",
+      "cost": "생존 대기 아군 각 최대HP10% 선차감; 반사·흡혈·발동 연쇄 없음",
+      "offerEligibility": "생존 대기 아군 최소1명 및 각 HP>최대HP10%",
+      "balanceStatus": "proposal_not_validated"
+    },
+    {
+      "id": "sealedduel",
+      "tier": "PRISM",
+      "name": "봉인 결투",
+      "shortDescription": "다음 공격에서 쌍방 증강 방어와 흡혈을 차단",
+      "trigger": "다음 직접 공격 시전",
+      "effectParams": {
+        "ignoreAugmentGuard": true,
+        "ignoreAugmentTypeDefense": true,
+        "disableOwnAugmentOffense": true,
+        "disableAllCastHealing": true
+      },
+      "cap": "팀 1시전; 기본 기술·패시브 방어와 protect는 유지; 레벨·속성 자체 변경 없음",
+      "duration": "1시전",
+      "stackRules": "같은 ID 중복 선택 불가. 공통 상한과 비재귀 규칙 적용.",
+      "existing": false,
+      "implementationHook": "damage / multiplier / useSkill",
+      "cost": "그 공격에서 자기 다른 증강 공격 보정과 모든 회복도 포기",
+      "offerEligibility": "항상",
+      "balanceStatus": "proposal_not_validated"
+    }
+  ]
+}

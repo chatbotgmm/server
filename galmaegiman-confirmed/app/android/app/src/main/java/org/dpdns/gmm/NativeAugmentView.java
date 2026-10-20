@@ -222,6 +222,9 @@ final class NativeAugmentView extends LinearLayout {
   }
 
   static String coreEffect(JSONObject augment) {
+    // V2의 횟수·기간·대상은 카탈로그 설명이 기준이다. V1 템플릿을 재사용하지 않는다.
+    if (augment.optInt("version") == 2)
+      return augment.optString("desc", "효과 설명을 확인할 수 없어요.");
     String template;
     switch (augment.optString("id")) {
       case "reverse": template = "이번 전투: 내 공격 상성\n강함 ↔ 약함"; break;
@@ -303,6 +306,41 @@ final class NativeAugmentView extends LinearLayout {
     return kind == 0 ? "공격" : kind == 2 ? "수비" : "유틸";
   }
 
+  // 희귀도와 공격·수비·유틸 역할은 별개다. 등급은 V2에서만 표시한다.
+  static String tierName(JSONObject augment) {
+    if (augment.optInt("version") != 2) return "";
+    switch (augment.optString("tier")) {
+      case "silver": return "실버";
+      case "gold": return "골드";
+      case "prismatic": return "프리즘";
+      default: return "등급 미확인";
+    }
+  }
+
+  static int cardColor(JSONObject augment) {
+    if (augment.optInt("version") != 2) return color(kind(augment.optString("id")));
+    switch (augment.optString("tier")) {
+      case "gold": return 0xff806017;
+      case "prismatic": return 0xff735191;
+      default: return 0xff596778;
+    }
+  }
+
+  static String cardRole(JSONObject augment) {
+    String id = augment.optString("id");
+    if (augment.optInt("version") == 2 && !Arrays.asList(
+        "reverse", "weakguard", "focus", "neutral", "camo", "dual", "counter", "learn",
+        "first", "bulwark", "firstaid", "freeswitch", "lastone", "strip", "rustle", "peanut",
+        "sharp", "swift", "thick", "overtime", "drain", "thorns", "pierce", "lunch").contains(id))
+      return "증강";
+    return kindName(kind(id));
+  }
+
+  static String cardLabel(JSONObject augment) {
+    String tier = tierName(augment);
+    return (tier.isEmpty() ? "" : tier + " · ") + cardRole(augment);
+  }
+
   LinearLayout columnCard(int tint) {
     LinearLayout column = k.column();
     LayoutParams col = new LayoutParams(0, -1, 1);
@@ -338,12 +376,11 @@ final class NativeAugmentView extends LinearLayout {
       int ix = i;
       JSONObject aug = offers.optJSONObject(i);
       String id = aug.optString("id");
-      int type = kind(id);
-      LinearLayout content = columnCard(color(type));
+      LinearLayout content = columnCard(cardColor(aug));
       ImageView icon =
           k.image(
               "/duel/icons/"
-                  + (JournalIcons.supports(id) ? id : aug.optString("icon", "u-gift"))
+                  + (JournalIcons.supports(id) ? id : aug.optInt("version") == 2 ? "u-gift" : aug.optString("icon", "u-gift"))
                   + ".png",
               large ? 76 : 56,
               large ? 76 : 56);
@@ -375,8 +412,8 @@ final class NativeAugmentView extends LinearLayout {
           disadvantaged
               && Arrays.asList("camo", "reverse", "weakguard", "neutral", "dual", "counter")
                   .contains(id);
-      TextView badge = h.text(kindName(type) + (recommend ? " · 추천" : ""), large ? 15 : 12);
-      badge.setTextColor(color(type));
+      TextView badge = h.text(cardLabel(aug) + (recommend ? " · 추천" : ""), large ? 15 : 12);
+      badge.setTextColor(cardColor(aug));
       badge.setBackground(new GamePaperDrawable(h));
       badge.setPadding(h.dp(10), h.dp(2), h.dp(10), h.dp(2));
       content.addView(badge, new LayoutParams(-2, -2));
@@ -392,12 +429,14 @@ final class NativeAugmentView extends LinearLayout {
       desc.setEllipsize(null);
       desc.setGravity(Gravity.CENTER);
       desc.setTag("augment-core-effect");
+      // V2 카탈로그 설명에는 줄바꿈 표시가 없으므로 낱말 중간(「흡수쉴드/로」)에서 끊지 않고 띄어쓰기에서만 바꾼다.
+      if (aug.optInt("version") == 2) NativeEconomy.wrapAtSpaces(desc, coreEffect(aug));
       desc.setBackground(new GamePaperDrawable(h));
       LayoutParams effectSlot = new LayoutParams(-1, 0, 1);
       effectSlot.topMargin = h.dp(5);
       content.addView(desc, effectSlot);
       content.setContentDescription(
-          aug.optString("name") + " · " + kindName(type) + " · " + aug.optString("desc"));
+          aug.optString("name") + " · " + cardLabel(aug) + " · " + aug.optString("desc"));
       content.setOnClickListener(
           v -> {
             if (!canChoose()) return;
@@ -444,7 +483,7 @@ final class NativeAugmentView extends LinearLayout {
       JSONObject aug = offers.optJSONObject(i);
       boolean on = aug.optString("id").equals(selected);
       ((View) picks.get(i).getTag())
-          .setBackground(new CardFrame(color(kind(aug.optString("id"))), on));
+          .setBackground(new CardFrame(cardColor(aug), on));
       picks.get(i).setSelected(on);
       names.get(i).setText((on ? "✓ " : "") + aug.optString("name"));
     }

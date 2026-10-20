@@ -49,6 +49,8 @@ class NativeApi {
             conn.setReadTimeout(20000);
             conn.setRequestProperty("x-gmm", "1");
             conn.setRequestProperty("x-gmm-app", "1");
+            // 클라이언트 표시 능력만 알린다. V2 활성화는 서버 설정이 결정한다.
+            conn.setRequestProperty("x-gmm-augment-version", "2");
             if (!requestSession.isEmpty()) conn.setRequestProperty("x-gmm-s", requestSession);
             if (body != null) {
               conn.setRequestMethod("POST");

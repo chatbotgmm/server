@@ -14,6 +14,7 @@ function keys(v:Record<string,unknown>,allowed:string[]){if(Object.keys(v).some(
 export function serializeBattle(b:Battle):string{const {R,...state}=b;return JSON.stringify(state);}
 export function deserializeBattle(R:Rules,json:string):Battle{
   const state=JSON.parse(json);
+  if((state.effectsVersion===2)!==(R.augmentVersion===2))throw new Error('저장 전투와 규칙의 증강 버전이 달라요');
   // Trusted database payload only. Never deserialize a client-supplied battle.
   return {...state,R};
 }

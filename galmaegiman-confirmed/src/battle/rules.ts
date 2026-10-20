@@ -4,6 +4,13 @@ import { z } from 'zod';
 import { attrKeys, roleKeys, statusKeys, battleAugIds, rulesFrom } from './core.js';
 import { loadContent, type Content } from '../content.js';
 import { commonRecipeValues } from './recipe-value.js';
+import { parseAugmentCatalogV2, type AugmentCatalogV2 } from './augment-catalog-v2.js';
+import type { RulesOptions } from './core.js';
+// Pure parser enforces stable IDs, exact numeric parameter keys and bounded values.
+export const augmentCatalogV2Schema=z.unknown().transform((input,ctx):AugmentCatalogV2=>{
+  try{return parseAugmentCatalogV2(input);}
+  catch(error){ctx.addIssue({code:'custom',message:error instanceof Error?error.message:'증강 카탈로그 오류'});return z.NEVER;}
+});
 export * from './core.js';
 
 // ── YAML 모양 검사 ──
@@ -35,6 +42,8 @@ const statsIn=z.object({hp:z.number().positive(),patk:z.number().positive(),pdef
 const tierNums=z.object({LIMITED:z.number(),TRANSCEND:z.number(),ETERNAL:z.number(),IMMORTAL:z.number()}).strict();
 export const battleSchema=z.object({
   version:z.literal('BATTLE_V1'),
+  augmentVersion:z.union([z.literal(1),z.literal(2)]).optional(),
+  augmentCatalog:augmentCatalogV2Schema.optional(),
   multipliers:z.object({strong:z.number().min(1),weak:z.number().min(0.1).max(1),sameAttr:z.number().min(1),crit:z.number().min(1),critChance:z.number().min(0).max(100),maxGuard:z.number().min(0).max(95)}).strict(),
   attributes:z.record(attr,z.object({name:z.string().min(1).max(10),basic:z.string().min(1).max(30),sub:z.string().min(1).max(30),basicCat:cat,subCat:cat}).strict()),
   basicPower:z.number().int().min(1).max(200),
@@ -66,9 +75,10 @@ export const battleSchema=z.object({
 }).strict();
 export type BattleData=z.infer<typeof battleSchema>;
 
-export function buildRules(input:unknown,content?:Pick<Content,'characters'|'recipes'>){
+export function buildRules(input:unknown,content?:Pick<Content,'characters'|'recipes'>,options:RulesOptions={}){
   const data=battleSchema.parse(input);
   // 조합식 변경이 즉시 반영되도록 저장 수치 대신 검증된 원재료 그래프에서 재계산해요.
   if(data.recipePower)data.recipeValues=commonRecipeValues(content??loadContent(),Object.keys(data.units));
-  return rulesFrom(data);
+  return rulesFrom(data,options);
 }
+

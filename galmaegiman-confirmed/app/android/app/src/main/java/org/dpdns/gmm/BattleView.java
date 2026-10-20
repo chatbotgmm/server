@@ -211,6 +211,13 @@ final class BattleView extends FrameLayout implements FullBleed {
         : new RectF(world * .04f, uiHeight * .055f, world * .47f, uiHeight * .055f + height);
   }
 
+  static String shieldLabel(JSONObject fighter) {
+    int amount = Math.max(0, fighter.optInt("shield"));
+    int turns = Math.max(0, fighter.optInt("shieldTurns"));
+    return fighter.optInt("hp") > 0 && amount > 0 && turns > 0
+        ? "보호막 " + amount + " · " + turns + "턴" : "";
+  }
+
   JSONObject side(int i) {
     return host.list(battle, "teams").optJSONObject(i);
   }
@@ -465,6 +472,8 @@ final class BattleView extends FrameLayout implements FullBleed {
           phase.equals("choose") || phase.equals("over") ? GONE : VISIBLE);
       JSONArray current = BattleEffects.current(active(side));
       ArrayList<String> labels = new ArrayList<>();
+      String shield = shieldLabel(active(side));
+      if (!shield.isEmpty()) labels.add(shield);
       for (int i = 0; i < current.length(); i++)
         labels.add(BattleEffects.label(current.optJSONObject(i)));
       effectInfo[side].setContentDescription(
@@ -1051,10 +1060,14 @@ final class BattleView extends FrameLayout implements FullBleed {
       c.drawRoundRect(new RectF(x,barY,right,barY+bh),bh/2,bh/2,p);c.restoreToCount(clip);
       p.setTextAlign(Paint.Align.LEFT);p.setColor(JournalTheme.INK);
       JSONArray current=BattleEffects.current(f);
+      // 최신 상태명 표시를 유지하고, 보호막이 있으면 맨 앞에 붙인다(재생 중에는 최종 상태를 앞서 보이지 않음).
+      String shield = playback.playing ? "" : shieldLabel(f);
       String effects=statusNames(f);
+      if (!shield.isEmpty()) effects = effects.isEmpty() ? shield : shield + " · " + effects;
       float available=right-x-host.dp(44);
       while(p.measureText(effects)>available && effects.length()>2) effects=effects.substring(0,effects.length()-2)+"…";
-      if(r.height()>=host.dp(74)) c.drawText(effects,x,r.bottom-host.dp(15),p);
+      if(r.height()>=host.dp(74) || (!shield.isEmpty() && r.height()>=host.dp(64)))
+        c.drawText(effects,x,r.bottom-host.dp(r.height()>=host.dp(74)?15:10),p);
     }
   }
 }
