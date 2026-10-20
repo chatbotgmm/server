@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "scope": "opt-in; semantic suggestions only; no navigation binding",
+  "minimumTouchTargetDp": 48,
+  "textAndIcons": "separate native layers; never baked into background PNG",
+  "families": {
+    "blue_banner": {"base":"buttons/blue_banner_normal.png", "roleKo":"화면의 주 행동 한 개", "exampleKo":"조합하기", "textColor":"#FFFFFF"},
+    "sealed_banner": {"base":"buttons/sealed_banner_normal.png", "roleKo":"봉인·수령 관련 보조 행동", "exampleKo":"내용 확인", "textColor":"#292D2A"},
+    "blue_round": {"base":"buttons/blue_round_normal.png", "roleKo":"아이콘 중심의 짧은 주 행동", "exampleKo":"확인 아이콘", "textColor":"#FFFFFF"},
+    "split_pill": {"base":"buttons/split_pill_normal.png", "roleKo":"왼쪽 설명과 오른쪽 보조 기호를 가진 단일 행동", "exampleKo":"자세히 보기", "textColor":"#292D2A"},
+    "parchment_square": {"base":"buttons/parchment_square_normal.png", "roleKo":"설정·정보 등 보조 아이콘 행동", "exampleKo":"설정", "textColor":"#292D2A"},
+    "parchment_panel": {"base":"buttons/parchment_panel_normal.png", "roleKo":"보조 행동 또는 정보 패널", "exampleKo":"돌아가기", "textColor":"#292D2A"}
+  }
+}
