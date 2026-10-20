@@ -41,10 +41,13 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
   const session=(req:FastifyRequest)=>checked.get(req)??null;
   app.addHook('onClose',async()=>review.close());
   app.addHook('preHandler',async(req,reply)=>{
+    // 자격증명 교환/폐기만 기존 세션 없이 처리. guard와 로그인 제한은 각 handler에서 유지.
+    const path=req.url.split('?')[0];
+    if(req.method==='POST'&&(path==='/my/api/review/login'||path==='/my/api/logout'))return;
     const raw=rawSession(req);if(!raw)return;
     if(raw.startsWith('rv_')){
       const id=await review.authenticate(raw);
-      if(!id)return reply.code(401).send({error:'login'});
+      if(!id){setCookie(req,reply,'',0);return reply.code(401).send({error:'login'});}
       const path=req.url.split('?')[0].replace(/^\/my\/api\//,'');
       if(!reviewRouteAllowed(req.method,path,req.body))return reply.code(403).send({error:'심사 계정에서는 계정 연결·삭제와 다른 이용자에게 영향을 주는 기능을 사용할 수 없어요.'});
       checked.set(req,id);return;
@@ -117,11 +120,12 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
     reply.header('Set-Cookie',[cookieLine(req,COOKIE,token,DAYS*86400),...(kakaoId?[cookieLine(req,KPEND,'',0)]:[])]);
     return {ok:true,kakao,...(req.headers['x-gmm-app']==='1'?{token}:{})};
   });
-  app.post<{Body:{username?:unknown;password?:unknown}}>('/my/api/review/login',{bodyLimit:2048,config:{rateLimit:{max:5,timeWindow:'1 minute',keyGenerator:()=> 'review-login',errorResponseBuilder:()=>({statusCode:429,error:REVIEW_ERROR})}}},async(req,reply)=>{
+  app.post<{Body:{username?:unknown;password?:unknown}}>('/my/api/review/login',{bodyLimit:2048,config:{rateLimit:{max:5,timeWindow:'1 minute',keyGenerator:(req:FastifyRequest)=>`review-login:${req.ip}`,errorResponseBuilder:()=>({statusCode:429,error:REVIEW_ERROR})}}},async(req,reply)=>{
     if(!guard(req,reply))return;
     reply.header('Cache-Control','no-store');
-    const token=await review.login(req.body?.username,req.body?.password);
-    if(!token)return reply.code(400).send({error:REVIEW_ERROR});
+    const token=await review.login(req.body?.username,req.body?.password,req.ip);
+    if(!token){if(rawSession(req)?.startsWith('rv_')){review.revoke(rawSession(req)!);setCookie(req,reply,'',0);}return reply.code(400).send({error:REVIEW_ERROR});}
+    review.revoke(rawSession(req)??'');
     setCookie(req,reply,token,12*3600);
     return {ok:true,...(req.headers['x-gmm-app']==='1'?{token}:{})};
   });

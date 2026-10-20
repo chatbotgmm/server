@@ -9,7 +9,7 @@
 - POST `/my/api/review/login`: 서버 환경값에 고정된 단일 Player ID만 사용한다. 요청의 임의 playerId는 인증 대상을 바꾸지 못한다. 계정 자동 생성/재화 지급/관리자 부여 없음.
 - `REVIEW_LOGIN_ENABLED=true`와 모든 유효 설정이 함께 있어야 동작. 없거나 잘못되면 일반적인 인증 실패. 기존 `REVIEW_CODE` 옵션·자동 계정 생성은 제거. 이전 `review:*` 계정의 서명 쿠키도 차단한다.
 - 고정 ID의 identity가 정확히 `review:play-store`, isAdmin=false, adminMode=false, KakaoLink/ChatAppUser/AdminSnapshot 없음을 로그인 및 매 인증 요청마다 검사한다. 일반 개인 계정을 가리키는 설정은 실패한다. 별도 Prisma 스키마 변경 없음.
-- 서버에는 scrypt 해시만 보관: `scrypt$131072$8$1$<16~32바이트 salt의 소문자 hex>$<32바이트 key의 소문자 hex>`. Node 비동기 scrypt, N=131072/r=8/p=1, maxmem=192MiB, 키 timingSafeEqual. 검증 중 동시 작업 1개, endpoint 전체 5회/분 및 해시 작업 자체 10회/분 제한. 실패 입력/미설정/없는 계정은 동일 안내, 제한은 동일 안내+429. 단일 계정 보호를 위해 공유 요청 예산을 사용하므로 반복 시도 후 1분 기다려야 한다.
+- 서버에는 scrypt 해시만 보관: `scrypt$131072$8$1$<16~32바이트 salt의 소문자 hex>$<32바이트 key의 소문자 hex>`. Node 비동기 scrypt, N=131072/r=8/p=1, maxmem=192MiB, 키 timingSafeEqual. 직접 연결 IP(req.ip)별 endpoint 5회/분, 전역 KDF 동시 실행 1개와 FIFO 대기 8개 제한. 출처마다 실행/대기 합계 1개만 허용하며 무효 입력은 KDF 대기를 만들지 않는다. 실패 입력/미설정/없는 계정은 동일 안내, 제한은 동일 안내+429. 임의 X-Forwarded-For/CF-Connecting-IP는 신뢰하지 않는다(trustProxy=false). 한 직접 IP의 실패 요청은 다른 직접 IP의 예산을 소모하지 않는다. 프록시 뒤에서 모든 요청이 같은 직접 IP로 보이면 제한을 공유하므로 실제 활성화 전 신뢰 경계 검토가 필요하다. 운영 프록시 설정은 변경하지 않았고 분산 서비스 거부 공격 전체를 방어한다고 주장하지 않는다.
 - 32바이트 랜덤 불투명 세션, 12시간 만료, 최대20개. 로그아웃 시 해당 세션 폐기, 서버 종료/재시작 시 전부 폐기. 비활성화 또는 버전 변경 후 프로세스 재시작 필요(환경값 hot reload 아님). 계정 권한/연결 조건이 바뀌면 기존 세션도 거부. 네트워크 실패한 로그아웃은 서버 폐기를 보장하지 못하며 전체 폐기는 재시작으로 수행한다.
 - 세션 저장은 프로세스 메모리. 현재 단일 서버용이며 다중 인스턴스 운영 전 공유 세션/제한 저장소 설계가 별도로 필요하다. 이번 변경에서 배포 형태를 바꾸지 않는다.
 - 요청 본문/비밀번호를 로그에 쓰지 않으며 인증 관련 헤더 redaction도 설정했다. 앱은 비밀번호를 저장·자동완성·상태 복원하지 않고 제출 즉시 칸을 비운다. 기존 request busy/epoch/account 검사로 중복 요청과 화면 변경 후 늦은 응답을 처리한다.
@@ -37,9 +37,15 @@ Open the app and tap "로그인" (Login), then "심사 계정 로그인 / Review
 
 ## 검증과 Claude 인계
 
-단위 테스트/HTTP inject는 mock DB와 더미 자격증명만 사용. `review-auth.test.ts` 15개와 기존 조합·content 회귀 20개, 합계 5파일 35개 통과. TypeScript noEmit, Java 구문 분석, diff whitespace 검사 수행. 실제 DB 계정 발급/통합 테스트, 실기기·에뮬레이터 터치/키보드/화면 캡처·Android 컴파일은 미실행. 현재는 APK/Actions/운영 배포 금지이며 별도 허가 없이 실행하지 않는다.
+단위 테스트/HTTP inject는 mock DB와 더미 자격증명만 사용. `review-auth.test.ts` 22개와 기존 조합·content 회귀 20개, 합계 5파일 42개 통과. TypeScript noEmit, Java 구문 분석, diff whitespace 검사 수행. 운영 계정 발급/운영 DB 통합 테스트, 실기기·에뮬레이터 터치/키보드/화면 캡처·Android 컴파일은 미실행. 현재는 APK/Actions/운영 배포 금지이며 별도 허가 없이 실행하지 않는다.
 
-기존 `scripts/review-code.sh`와 `scripts/verify/review-server.sh`는 영구 코드 의존 때문에 실패 종료(2)로 폐기했다. 후자는 기존 로컬 디자인 캡처 준비 도구이므로 Claude는 승인된 격리 테스트 fixture를 새로 준비해야 한다. 이를 운영 계정으로 우회하지 않는다.
+`scripts/review-code.sh`는 계속 실패 종료(2)로 폐기되어 있다. 화면 검토용 `scripts/verify/review-server.sh`는 합성 fixture로 복구했다.
+
+- `bash scripts/verify/review-server.sh --check`: /tmp의 새 SQLite에 합성 데이터만 생성, 기존 OTP 로그인 성공/동일 코드 재사용 실패/네이티브 상태 조회를 검증하고 삭제한다. 운영 .env를 읽지 않으며 부모 비밀 환경값도 전달하지 않는다. DB 경로 인수는 받지 않는다.
+- `bash scripts/verify/review-server.sh`: 127.0.0.1:3999에서 같은 fixture를 실행한다. 출력된 임시 폴더의 token.txt를 기존 nativeReviewTokenFile에 전달한다. 파일 권한 0600, 폴더 0700. Ctrl+C/SIGTERM에서 서버·DB를 닫고 삭제한다. 강제 종료(SIGKILL) 때 남은 해당 임시 폴더만 수동 정리한다.
+- 키를 발급하지 않고 로컬 전용 더미 서명 문자열을 사용한다. 합성 OTP는 정상 WebLogin에서 한 번 소비되며 이미 사용한 상태로 캡처를 시작한다. 실제 심사 계정/운영 활성화 수단이 아니다. localhost 실제 기동/health 응답, 토큰 0600 권한, SIGTERM 정리도 확인했다. APK/화면 캡처 자체는 실행하지 않았다.
+
+P2 쿠키 수정: POST review/login과 logout만 기존 세션 검증에서 제외하되 각 handler의 x-gmm guard와 자격증명 검증/요청 제한을 유지한다. 유효 쿠키 재인증은 기존 세션을 폐기하며 실패 시 기존 rv_ 쿠키도 제거한다. 만료/철회 세션으로 일반 API에 접근하면 여전히401과 쿠키 삭제, 유효 세션의 금지 API는403이다.
 
 향후 빌드 허가 후 Claude: 이 브랜치와 기존 motion/workbench 변경 전체를 유지하고 실제 Jua/GowunDodum 글꼴로 915×412·1280×720 및 키보드 열린 상태를 확인한다. 심사 진입 버튼/입력/제출/뒤로는 세로 스크롤에 있고 터치 높이 48dp 이상이다. 중복 클릭/틀린 비밀번호/429/뒤로/백그라운드/계정 전환/만료 후 재로그인과 카카오·OTP 회귀를 실제 확인한다. 현재는 이러한 런타임 검증을 통과했다고 표시하지 않는다.
 
