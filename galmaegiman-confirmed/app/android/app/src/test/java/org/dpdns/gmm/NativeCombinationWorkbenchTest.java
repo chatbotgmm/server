@@ -125,6 +125,47 @@ public class NativeCombinationWorkbenchTest {
     }
   }
 
+  /** 히든 단서 반짝임이 눈에 띄는지 실제 글꼴 화면과 카드 확대 캡처로 남긴다(멈춤·재생 중 시점). */
+  @Test public void hiddenHintFrameIsClearlyVisibleAtPhoneAndTablet() throws Exception {
+    Path folder = Path.of(System.getProperty("gmm.nativeReviewOutput", "build/reports/native-review"), "workbench-hint");
+    Files.createDirectories(folder);
+    for (int[] size : new int[][] {{915, 412, 160}, {1280, 720, 160}}) {
+      RuntimeEnvironment.setQualifiers("w" + size[0] + "dp-h" + size[1] + "dp-land-mdpi");
+      try (var controller = flow.start()) {
+        MainActivity host = controller.get(); prepare(host, true);
+        host.menus.economy.craft(true);
+        idle();
+        add(host, "C3"); add(host, "C1");
+        HiddenRecipeFrame frame = frame(host);
+        assertTrue(hinted(frame));
+        screens.layout(host, size[0], size[1], size[2]);
+        host.motionResumed = false;
+        screens.capture(host, "hint-paused-" + size[0] + "x" + size[1], size[0], size[1], size[2], "workbench-hint");
+        // 멈춘 상태에서도 단서 테두리는 진한 캐러멜로 또렷해야 한다(종이 테두리와 구분).
+        Bitmap still = Bitmap.createBitmap(frame.getWidth(), frame.getHeight(), Bitmap.Config.ARGB_8888);
+        frame.draw(new Canvas(still));
+        int edge = still.getPixel(frame.getWidth() / 2, Math.round(frame.getResources().getDisplayMetrics().density * 4f));
+        assertTrue("멈춤 상태 테두리가 진한 색 · " + Integer.toHexString(edge), Color.red(edge) + Color.green(edge) + Color.blue(edge) < 3 * 190);
+        try (var out = Files.newOutputStream(folder.resolve("hint-card-paused-" + size[0] + ".png"))) { still.compress(Bitmap.CompressFormat.PNG, 100, out); }
+        still.recycle();
+        // 시험 창에는 포커스가 없어 재생 프레임을 직접 그린다: 빛줄기 위치와 밝기가 시점마다 달라야 한다.
+        int[] previous = null;
+        for (int ms : new int[] {0, 400, 1000}) {
+          Bitmap moving = Bitmap.createBitmap(frame.getWidth(), frame.getHeight(), Bitmap.Config.ARGB_8888);
+          Canvas canvas = new Canvas(moving);
+          frame.getBackground().draw(canvas);
+          frame.paintHint(canvas, true, ms);
+          int[] row = new int[frame.getWidth()];
+          moving.getPixels(row, 0, frame.getWidth(), 0, Math.round(frame.getResources().getDisplayMetrics().density * 4f), frame.getWidth(), 1);
+          if (previous != null) assertFalse("시점마다 빛줄기가 움직임 · " + ms, Arrays.equals(previous, row));
+          previous = row;
+          try (var out = Files.newOutputStream(folder.resolve("hint-card-moving-" + size[0] + "-" + ms + ".png"))) { moving.compress(Bitmap.CompressFormat.PNG, 100, out); }
+          moving.recycle();
+        }
+      }
+    }
+  }
+
   void confirm(MainActivity host) {
     assertNotNull(host.visibleDialog);
     host.visibleDialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
