@@ -404,5 +404,47 @@ public class ReleaseHomeLayoutTest {
       assertEquals("battle", h.screen);
     }
   }
+
+  @Test public void approvedHomeUsesBundledJuaCompactHudAndGroundedGuide() {
+    try (ActivityController<HomeHost> controller = start(false)) {
+      HomeHost h = controller.get();
+      layout(h, 915, 412, 0, 0, 0, 0);
+      LobbyView l = lobby(h);
+      assertSame("Home must use the explicitly bundled Jua face, not system/workbench fallback",
+          h.font, l.homeHeading);
+      assertEquals(915 * .175f, l.boxes[7].width(), 1f);
+      assertEquals(915 * .58f, l.boxes[9].left, 1f);
+      RectF hero = l.heroBox();
+      assertEquals(915 * .23f, hero.centerX(), 1f);
+      assertTrue("Repositioning must not inflate the approved guide", hero.height() <= 412 * .43f);
+      assertTrue("Feet sit in the lower scene", hero.bottom >= 412 * .72f);
+      assertEquals("Advice remains tap-triggered", View.GONE, l.tip.getVisibility());
+      l.gull.performClick();
+      layout(h, 915, 412, 0, 0, 0, 0);
+      assertEquals(View.VISIBLE, l.tip.getVisibility());
+      assertTrue("Visible advice is below all hero/contact ink", l.tipFrame.top > l.tipHeroExclusion().bottom);
+      assertEquals("Advice does not reposition the guide", hero, l.heroBox());
+    }
+  }
+
+  @Test public void broadEnvelopeUsesVisibleAlphaRatherThanPaddedSquareCanvas() {
+    try (ActivityController<HomeHost> controller = start(false)) {
+      HomeHost h = controller.get();
+      LobbyView l = lobby(h);
+      android.graphics.Bitmap rendered = android.graphics.Bitmap.createBitmap(120, 100,
+          android.graphics.Bitmap.Config.ARGB_8888);
+      l.menuArt.icon(new android.graphics.Canvas(rendered), "draw", new RectF(10, 10, 96, 68));
+      int top = 100, bottom = -1, left = 120, right = -1;
+      for (int y = 0; y < 100; y++) for (int x = 0; x < 120; x++) {
+        if (android.graphics.Color.alpha(rendered.getPixel(x, y)) <= 12) continue;
+        top = Math.min(top, y); bottom = Math.max(bottom, y);
+        left = Math.min(left, x); right = Math.max(right, x);
+      }
+      assertTrue("Envelope ink fills the wide slot (not the 512px transparent canvas)",
+          right - left >= 82 && bottom - top >= 53);
+      assertTrue("Ink remains inside slot", left >= 9 && right <= 97 && top >= 9 && bottom <= 69);
+      rendered.recycle();
+    }
+  }
 }
 

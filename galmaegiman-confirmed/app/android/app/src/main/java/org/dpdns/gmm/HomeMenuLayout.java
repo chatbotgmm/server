@@ -63,12 +63,11 @@ final class HomeMenuLayout {
     // widths before converting boxes to Android RectF objects.
     controls[8] = new Box(right - hit, edge, right, edge + hit);
     float moneyRight = controls[8].left - gap;
-    float profileW = Math.min(184 * d, width * (width / d < 720 ? .20f : .24f));
+    float profileW = Math.max(96 * d, Math.min(184 * d, width * .175f));
     controls[7] = new Box(edge, edge, edge + profileW, edge + hit);
-    float moneyLeft = width / d < 720 ? controls[7].right + gap
-        : Math.max(controls[7].right + gap, width * .48f);
+    float moneyLeft = Math.max(controls[7].right + gap, width * .58f);
     moneyLeft = Math.max(controls[7].right + gap,
-        Math.min(moneyLeft, moneyRight - 3 * 112 * d - 2 * gap));
+        Math.min(moneyLeft, moneyRight - 3 * 88 * d - 2 * gap));
     float moneyW = (moneyRight - moneyLeft - 2 * gap) / 3;
     for (int i = 0; i < 3; i++) {
       float x = moneyLeft + i * (moneyW + gap);
@@ -78,7 +77,7 @@ final class HomeMenuLayout {
     // Reserve advice under the whole hero, not beside its face/map. The left column
     // is bounded by BOTH the open panel and the fixed toggle, even when menu is shut.
     float leftColumnRight = Math.min(panel.left, toggle.left) - gap;
-    float tipH = Math.min(height * .31f, Math.max(72 * d,
+    float tipH = Math.min(height * .31f, Math.max(64 * d,
         56 * d * Math.min(2f, Math.max(1f, fontScale))));
     float heroTop = Math.max(headerBottom + 12 * d, height * .19f)
         + (activeBattle ? 56 * d : 0);
@@ -87,7 +86,7 @@ final class HomeMenuLayout {
     tipH = Math.min(tipH, Math.max(64 * d, bottom - heroTop - 66 * d));
     Box tipRegion = new Box(edge, bottom - tipH, leftColumnRight, bottom);
     Box heroStage = new Box(edge + 12 * d, heroTop,
-        leftColumnRight - 12 * d, tipRegion.top - 10 * d);
+        leftColumnRight - 12 * d, Math.min(height * .75f, tipRegion.top - 6 * d));
     return new Result(controls, panel, toggle, heroStage, tipRegion);
   }
 
