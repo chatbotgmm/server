@@ -566,7 +566,11 @@ final class NativeEconomy {
       // 재료 탭은 시안처럼 탭만 가운데에 둔다. 「맞지 않으면 재료 유지」는 확인창에서 안내한다.
       tools.setGravity(Gravity.CENTER);
     }
-    h.page.addView(tools, h.page.getChildCount() - 1);
+    if (mix) {
+      // 조합 탐색은 머리줄의 빈 폭을 쓴다. 별도 탭 줄로 카드 높이를 깎지 않는다.
+      LinearLayout header = h.page.findViewWithTag("theme-page-header");
+      header.addView(tools, new LinearLayout.LayoutParams(-2, h.dp(48)));
+    } else h.page.addView(tools, h.page.getChildCount() - 1);
     // 재료 탭은 보유 썸네일 2열과 양옆 쪽 넘김(48dp)을 담도록 왼쪽을 조금 넓힌다.
     LinearLayout[] cols = k.fixedSplit(mix ? .34f : .30f);
     craftActions = k.row();
@@ -857,6 +861,8 @@ final class NativeEconomy {
     // 시안: 보유 갈매미맨 | 선택한 재료 › 가능한 결과, 아래에 선택 해제·조합하기.
     LinearLayout owned = benchPanel();
     cols[0].addView(owned, new LinearLayout.LayoutParams(-1, -1));
+    owned.setPadding(0, 0, 0, 0);
+    owned.setBackgroundColor(android.graphics.Color.TRANSPARENT);
     LinearLayout inventory = k.column();
     owned.addView(inventory, new LinearLayout.LayoutParams(-1, 0, 1));
     LinearLayout bench = k.row();
@@ -902,13 +908,16 @@ final class NativeEconomy {
     // 힌트는 성공 판정이 아니다. 미공개 조합은 서버가 확정 시에만 검사한다.
     Button make = k.primary(null, "조합하기", () -> confirmMix(pool));
     make.setTag("mix-submit");
-    actions.addView(new View(h), new LinearLayout.LayoutParams(0, 1, .34f));
+    LinearLayout browseActions = k.row();
+    browseActions.setTag("mix-browse-actions");
+    actions.addView(browseActions, new LinearLayout.LayoutParams(0, h.dp(48), .34f));
     LinearLayout.LayoutParams clearSlot = new LinearLayout.LayoutParams(0, h.dp(48), .26f);
     clearSlot.setMargins(h.dp(8), 0, h.dp(6), 0);
     actions.addView(clear, clearSlot);
     actions.addView(make, new LinearLayout.LayoutParams(0, h.dp(48), .44f));
     paint[0] = () -> {
       inventory.removeAllViews();
+      browseActions.removeAllViews();
       selected.removeAllViews();
       results.removeAllViews();
       ArrayList<JSONObject> available = new ArrayList<>();
@@ -935,6 +944,8 @@ final class NativeEconomy {
       position.setTextColor(JournalTheme.PAPER);
       position.setGravity(Gravity.CENTER);
       position.setSingleLine(true);
+      position.setPadding(0, 0, 0, 0);
+      position.setIncludeFontPadding(false);
       position.setTag("mix-material-position");
       pager.addView(position, new LinearLayout.LayoutParams(0, -1, 1));
       Button next = k.action(null, "›", () -> {
@@ -981,35 +992,28 @@ final class NativeEconomy {
         });
         add.setTag("mix-picker-material-" + id);
         add.setTextSize(h.uiText(14));
+        add.setPadding(h.dp(4), 0, h.dp(4), 0);
         add.setEnabled(left > 0 && m.mixDraft.size() < limit);
         add.setContentDescription(unit.optString("name") + " 재료 추가 · 사용 가능 " + left
             + " · 선택한 재료 " + chosen);
-        inventory.addView(add, new LinearLayout.LayoutParams(-1, h.dp(48)));
+        browseActions.addView(add, new LinearLayout.LayoutParams(0, h.dp(48), 1));
       }
+      if (available.isEmpty()) browseActions.addView(new View(h), new LinearLayout.LayoutParams(0, 1, 1));
       TextView count = benchHeading("선택한 재료 " + m.mixDraft.size() + "/" + limit);
       count.setTag("mix-count");
       count.setGravity(Gravity.CENTER);
-      selected.addView(count, new LinearLayout.LayoutParams(-1, h.dp(48)));
-      // 아주 낮은 화면은 리본 제목을 숨겨 선택 칸 두 줄을 48dp 이상으로 둔다(내용은 화면 읽기 설명으로).
-      if (tightBench()) count.setVisibility(View.GONE);
-      // 재료 칸은 최소 4칸, 고르면 다음 빈 칸이 생긴다(서버 한도까지). 4칸 넘으면 3열.
-      int slots = Math.min(limit, Math.max(4, m.mixDraft.size() + 1));
-      int columns = slots <= 4 ? 2 : 3;
-      LinearLayout grid = k.column();
+      selected.addView(count, new LinearLayout.LayoutParams(-1, -2));
+      // 처음부터 서버 한도의 모든 칸을 보여 준다. 0/6인데 네 칸만 보이던 혼동을 없앤다.
+      int slots = Math.max(0, limit);
+      MixMaterialGrid grid = new MixMaterialGrid(slots);
       grid.setTag("mix-workbench");
       grid.setContentDescription("선택한 재료 " + m.mixDraft.size() + "/" + limit);
-      selected.addView(grid, new LinearLayout.LayoutParams(-1, 0, 1));
+      MixSlotViewport slotViewport = new MixSlotViewport(grid);
+      selected.addView(slotViewport, new LinearLayout.LayoutParams(-1, 0, 1));
       boolean hint = false;
-      LinearLayout slotLine = null;
-      for (int i = 0; i < (slots + columns - 1) / columns * columns; i++) {
-        if (i % columns == 0) {
-          slotLine = k.row();
-          slotLine.setBaselineAligned(false);
-          grid.addView(slotLine, new LinearLayout.LayoutParams(-1, 0, 1));
-        }
+      for (int i = 0; i < slots; i++) {
         FrameLayout cell = new FrameLayout(h);
-        slotLine.addView(cell, new LinearLayout.LayoutParams(0, -1, 1));
-        if (i >= slots) continue;
+        grid.addView(cell);
         if (i >= m.mixDraft.size()) {
           cell.addView(emptySlot(i), new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
           continue;
@@ -1047,8 +1051,7 @@ final class NativeEconomy {
       TextView resultHeading = benchHeading("가능한 결과");
       resultHeading.setTag("mix-result-heading");
       resultHeading.setGravity(Gravity.CENTER);
-      results.addView(resultHeading, new LinearLayout.LayoutParams(-1, h.dp(48)));
-      if (tightBench()) resultHeading.setVisibility(View.GONE);
+      results.addView(resultHeading, new LinearLayout.LayoutParams(-1, -2));
       LinearLayout cards = k.row();
       cards.setBaselineAligned(false);
       cards.setTag("mix-results");
@@ -1076,6 +1079,48 @@ final class NativeEconomy {
       make.setEnabled(m.mixDraft.size() >= 2);
     };
     paint[0].run();
+  }
+
+  /** 폭이 좁으면 열 수를 줄인다. 최소 터치 높이보다 부족한 세로 공간은 스크롤한다. */
+  final class MixMaterialGrid extends ViewGroup {
+    final int slots;
+    int viewportHeight, columns, rowHeight;
+    MixMaterialGrid(int slots) { super(h); this.slots = slots; }
+    @Override protected void onMeasure(int widthSpec, int heightSpec) {
+      int width = MeasureSpec.getSize(widthSpec);
+      columns = Math.max(1, Math.min(slots <= 4 ? 2 : 3, width / Math.max(1, h.dp(48))));
+      int rows = (slots + columns - 1) / columns;
+      rowHeight = Math.max(h.dp(48), viewportHeight / Math.max(1, rows));
+      for (int i = 0; i < getChildCount(); i++) {
+        int col = i % columns;
+        int cellWidth = (col + 1) * width / columns - col * width / columns;
+        getChildAt(i).measure(MeasureSpec.makeMeasureSpec(cellWidth, MeasureSpec.EXACTLY),
+            MeasureSpec.makeMeasureSpec(rowHeight, MeasureSpec.EXACTLY));
+      }
+      setMeasuredDimension(width, rows * rowHeight);
+    }
+    @Override protected void onLayout(boolean changed, int l, int t, int r, int b) {
+      for (int i = 0; i < getChildCount(); i++) {
+        int col = i % columns, row = i / columns;
+        getChildAt(i).layout(col * getWidth() / columns, row * rowHeight,
+            (col + 1) * getWidth() / columns, (row + 1) * rowHeight);
+      }
+    }
+  }
+
+  final class MixSlotViewport extends ScrollView {
+    final MixMaterialGrid grid;
+    MixSlotViewport(MixMaterialGrid grid) {
+      super(h);
+      this.grid = grid;
+      setVerticalScrollBarEnabled(true);
+      setScrollbarFadingEnabled(false);
+      addView(grid, new ScrollView.LayoutParams(-1, -2));
+    }
+    @Override protected void onMeasure(int widthSpec, int heightSpec) {
+      grid.viewportHeight = MeasureSpec.getSize(heightSpec);
+      super.onMeasure(widthSpec, heightSpec);
+    }
   }
 
   /** 좌우 탐색만 처리한다. 카드 누르기·수직 드래그·취소는 재료를 추가하지 않는다. */
@@ -1261,7 +1306,8 @@ final class NativeEconomy {
   TextView benchHeading(String text) {
     TextView label = caption(text);
     label.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
-    label.setPadding(h.dp(16), 0, h.dp(16), 0);
+    label.setPadding(h.dp(6), h.dp(4), h.dp(6), h.dp(4));
+    label.setMinHeight(h.dp(32));
     return label;
   }
 
@@ -2566,6 +2612,7 @@ final class NativeEconomy {
     return MainActivity.obj("id", id, "name", id);
   }
 }
+
 
 
 

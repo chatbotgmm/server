@@ -237,6 +237,33 @@ public class NativeCombinationWorkbenchTest {
     }
   }
 
+  @Test public void allServerSlotsExistBeforeSelectionAndCardUsesRecoveredHeight() throws Exception {
+    for (int limit : new int[] {2, 5, 6, 9}) {
+      try (var controller = flow.start()) {
+        MainActivity host = controller.get(); Api api = prepare(host, true);
+        api.craft.put("maxMaterials", limit);
+        host.menus.economy.craft(true); idle();
+        screens.layout(host, 915, 412, 160);
+        for (int i = 0; i < limit; i++) {
+          View slot = host.root.findViewWithTag("mix-empty-slot-" + i);
+          assertNotNull("처음부터 서버 한도의 칸 표시 " + i, slot);
+          assertTrue("최소 터치 크기", slot.getWidth() >= host.dp(48) && slot.getHeight() >= host.dp(48));
+          if (limit <= 6) assertTrue("기본 여섯 칸 모두 스크롤 없이 표시",
+              screens.bounds((View) host.root.findViewWithTag("mix-workbench").getParent(), host.root)
+                  .contains(screens.bounds(slot, host.root)));
+        }
+        assertNull(host.root.findViewWithTag("mix-empty-slot-" + limit));
+        View card = host.root.findViewWithTag("mix-browse-card-C3");
+        assertTrue("915×412 카드 높이 240dp 이상", card.getHeight() >= host.dp(240));
+        ViewGroup header = host.root.findViewWithTag("theme-page-header");
+        assertSame(header, host.root.findViewWithTag("craft-inline-tools").getParent());
+        assertSame(host.root.findViewWithTag("mix-browse-actions"),
+            host.root.findViewWithTag("mix-picker-material-C3").getParent());
+        assertTrue("탐색 초기화로 서버에 쓰지 않음", api.writes.isEmpty());
+      }
+    }
+  }
+
   @Test public void emptyPoolHasNoCardOrAddButtonAndNavigationIsDisabled() throws Exception {
     try (var controller = flow.start()) {
       MainActivity host = controller.get(); Api api = prepare(host, true);
@@ -385,7 +412,7 @@ public class NativeCombinationWorkbenchTest {
   }
 
   @Test public void captureWorkbenchAtShortLandscapeLargeFontAndTablet() throws Exception {
-    for (int[] size : new int[][] {{780, 360, 160}, {915, 412, 160}, {1280, 720, 160}})
+    for (int[] size : new int[][] {{780, 360, 160}, {915, 412, 160}, {1080, 444, 160}, {1080, 444, 240}, {1280, 720, 160}})
       for (float fontScale : new float[] {1, 1.3f}) {
         RuntimeEnvironment.setQualifiers("w" + Math.round(size[0] * 160f / size[2]) + "dp-h"
             + Math.round(size[1] * 160f / size[2]) + "dp-land-" + size[2] + "dpi");
@@ -480,4 +507,5 @@ public class NativeCombinationWorkbenchTest {
       }
   }
 }
+
 
