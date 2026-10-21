@@ -83,7 +83,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   LobbyView(MainActivity host) {
     super(host);
     this.host = host;
-    homeArt = new HomeArt(host);
+    homeArt = new HomeArt(host, this);
     motion = new SceneMotion(this, host);
     ambient = new JournalAmbient(this, host, motion);
     parallax = new HomeGullDrag(this, host.dp(4), host.dp(1.2f));
@@ -979,4 +979,5 @@ final class LobbyView extends FrameLayout implements FullBleed {
     return super.dispatchTouchEvent(event);
   }
 }
+
 

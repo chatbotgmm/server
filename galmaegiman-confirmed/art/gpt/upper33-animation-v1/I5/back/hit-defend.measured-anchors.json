@@ -1,0 +1,38 @@
+{
+  "source_sha256": "6815a7085db0236445043f1a991226267f71b394d9d1df8afdbee7c69c1bf482",
+  "sheet": "I5/back/hit-defend.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      270.0,
+      394
+    ],
+    [
+      278.0,
+      392
+    ],
+    [
+      264.0,
+      386
+    ],
+    [
+      300.5,
+      363
+    ],
+    [
+      269.5,
+      361
+    ],
+    [
+      258.0,
+      364
+    ]
+  ],
+  "placement_rule": "Align measured ground-contact feet anchor to fixed actor world origin; preserve authored offsets for lifted feet or airborne poses.",
+  "measurement": "Visually checked claw contact centers excluding pink petals and nearby vines; approximate \u00b16px. Front hit frame3 airborne contact inferred from paired claws, preserve recoil offset.",
+  "renderer_validation": "pending"
+}

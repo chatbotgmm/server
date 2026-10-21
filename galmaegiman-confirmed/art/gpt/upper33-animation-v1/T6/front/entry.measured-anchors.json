@@ -1,0 +1,38 @@
+{
+  "source_sha256": "6f851fd315055dd1260917618b3f99b0c9c77bdb322ac172179a3d4c39959979",
+  "sheet": "T6/front/entry.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      238,
+      474
+    ],
+    [
+      231,
+      475
+    ],
+    [
+      204,
+      478
+    ],
+    [
+      240,
+      447
+    ],
+    [
+      234,
+      446
+    ],
+    [
+      204,
+      450
+    ]
+  ],
+  "placement_rule": "Align grounded contact anchor to fixed actor origin; preserve authored airborne/recoil offsets. Apply proposed uniform scale per sheet, never per frame.",
+  "measurement": "Visually checked claw contact centers excluding props, ribbons, floating ornaments and effects; approximately \u00b15px, renderer validation pending.",
+  "renderer_validation": "pending"
+}

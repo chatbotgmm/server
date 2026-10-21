@@ -1,0 +1,38 @@
+{
+  "source_sha256": "0b4f1545a031598aff003fd69c0125e394762523c8a4100694ce378079b894cd",
+  "sheet": "I3/front/idle.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      263.0,
+      460
+    ],
+    [
+      265.0,
+      459
+    ],
+    [
+      267.0,
+      459
+    ],
+    [
+      247.5,
+      431
+    ],
+    [
+      255.5,
+      431
+    ],
+    [
+      260.0,
+      431
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Gold claw region below body, central x170..360; excludes dark-purple floating shards. Visually checked, renderer pending.",
+  "renderer_validation": "pending"
+}

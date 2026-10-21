@@ -1,0 +1,38 @@
+{
+  "source_sha256": "01dcffb0bf313ff6bf0094177687f8672ea3ddc78e888f8b8d4de63746491fca",
+  "sheet": "T3/back/idle.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      288,
+      436
+    ],
+    [
+      294,
+      438
+    ],
+    [
+      301,
+      436
+    ],
+    [
+      289,
+      436
+    ],
+    [
+      308,
+      440
+    ],
+    [
+      293,
+      436
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Feet fully concealed by cloak; inferred body-ground anchor +/-12px, not directly measured feet. Renderer validation required.",
+  "renderer_validation": "pending"
+}

@@ -17,7 +17,6 @@ final class NativeEconomy {
   String shopFocus = "";
   String crewSelectionNote = "";
   int recipePage, mixPage, crewPage, selectedCrewPage;
-  String mixQuery = "";
   Runnable recipeRepaint;
   TextView recipeIdentity;
   View recipeHint;
@@ -31,7 +30,6 @@ final class NativeEconomy {
   }
 
   void resetAcquisition() {
-    mixQuery = "";
     mixPage = 0;
     drawBefore = null;
     drawFlow = null;
@@ -774,6 +772,13 @@ final class NativeEconomy {
       photo.addView(mask, new FrameLayout.LayoutParams(-1, -1));
       card.name.setVisibility(View.VISIBLE);
       card.grade.setVisibility(View.VISIBLE);
+      // 미공개 표기는 그림 밖에 있으므로 배경 풍경과 분리해서 읽을 수 있게 한다.
+      // 서버가 가린 이름이나 등급을 추정하지 않고 기존 공개 문구만 그대로 사용한다.
+      for (TextView label : new TextView[] {card.name, card.grade}) {
+        label.setBackgroundColor(JournalTheme.PAPER);
+        label.setTextColor(JournalTheme.INK);
+        label.setIncludeFontPadding(true);
+      }
     }
     return card;
   }
@@ -852,16 +857,6 @@ final class NativeEconomy {
     // 시안: 보유 갈매미맨 | 선택한 재료 › 가능한 결과, 아래에 선택 해제·조합하기.
     LinearLayout owned = benchPanel();
     cols[0].addView(owned, new LinearLayout.LayoutParams(-1, -1));
-    LinearLayout ownedHead = k.row();
-    TextView ownedTitle = h.text("보유 갈매미맨", 16);
-    ownedTitle.setTypeface(h.headline);
-    ownedTitle.setTextColor(JournalTheme.PAPER);
-    ownedTitle.setPadding(h.dp(4), 0, h.dp(6), 0);
-    ownedTitle.setSingleLine(true);
-    ownedHead.addView(ownedTitle, new LinearLayout.LayoutParams(-2, -2));
-    LinearLayout search = k.column();
-    ownedHead.addView(search, new LinearLayout.LayoutParams(0, h.dp(48), 1));
-    owned.addView(ownedHead, new LinearLayout.LayoutParams(-1, h.dp(48)));
     LinearLayout inventory = k.column();
     owned.addView(inventory, new LinearLayout.LayoutParams(-1, 0, 1));
     LinearLayout bench = k.row();
@@ -919,75 +914,78 @@ final class NativeEconomy {
       ArrayList<JSONObject> available = new ArrayList<>();
       for (int i = 0; i < pool.length(); i++) {
         JSONObject unit = pool.optJSONObject(i);
-        if (unit != null && unit.optInt("usable") > 0
-            && unit.optString("name").toLowerCase(Locale.KOREA).contains(mixQuery.toLowerCase(Locale.KOREA))) available.add(unit);
+        if (unit != null && unit.optInt("usable") > 0) available.add(unit);
       }
-      // 썸네일은 2열. 줄 수는 화면 높이로 정하고(작은 가로 1줄 ~ 큰 화면 3줄) 넘치면 쪽을 넘긴다.
-      int rows = mixRows();
-      int perPage = rows * 2;
-      int pages = Math.max(1, (available.size() + perPage - 1) / perPage);
+      // 한 번에 원본 등록증 한 장을 크게 본다. 탐색과 재료 추가는 별개 행동이다.
+      int pages = available.size();
       mixPage = Math.max(0, Math.min(mixPage, pages - 1));
-      LinearLayout choices = k.column();
+      LinearLayout pager = k.row();
+      pager.setTag("mix-material-pages");
+      Button prev = k.action(null, "‹", () -> {
+        if (h.busy || mixPage <= 0) return;
+        mixPage--;
+        paint[0].run();
+      });
+      prev.setTag("mix-material-previous");
+      prev.setEnabled(mixPage > 0);
+      prev.setContentDescription("이전 보유 갈매미맨");
+      prev.setPadding(0, 0, 0, 0);
+      pager.addView(prev, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+      TextView position = h.text(pages == 0 ? "0 / 0" : (mixPage + 1) + " / " + pages, 14);
+      position.setTextColor(JournalTheme.PAPER);
+      position.setGravity(Gravity.CENTER);
+      position.setSingleLine(true);
+      position.setTag("mix-material-position");
+      pager.addView(position, new LinearLayout.LayoutParams(0, -1, 1));
+      Button next = k.action(null, "›", () -> {
+        if (h.busy || mixPage + 1 >= pages) return;
+        mixPage++;
+        paint[0].run();
+      });
+      next.setTag("mix-material-next");
+      next.setEnabled(mixPage + 1 < pages);
+      next.setContentDescription("다음 보유 갈매미맨");
+      next.setPadding(0, 0, 0, 0);
+      pager.addView(next, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+      inventory.addView(pager, new LinearLayout.LayoutParams(-1, h.dp(48)));
+      MixCarousel choices = new MixCarousel(direction -> {
+        if (h.busy) return;
+        int destination = mixPage + direction;
+        if (destination < 0 || destination >= pages) return;
+        mixPage = destination;
+        paint[0].run();
+      });
       choices.setTag("mix-inventory");
       inventory.addView(choices, new LinearLayout.LayoutParams(-1, 0, 1));
-      // 낮은 화면(한 줄)에서는 쪽 넘김을 썸네일 양옆에 둬 썸네일 높이를 48dp 이상 남긴다.
-      boolean sidePager = rows == 1 && pages > 1;
-      LinearLayout line = null;
-      for (int n = 0; n < perPage; n++) {
-        if (n % 2 == 0) {
-          line = k.row();
-          line.setBaselineAligned(false);
-          choices.addView(line, new LinearLayout.LayoutParams(-1, 0, 1));
-          if (sidePager) {
-            line.setTag("mix-material-pages");
-            Button prev = k.action(null, "‹", () -> { mixPage = Math.max(0, mixPage - 1); paint[0].run(); });
-            prev.setEnabled(mixPage > 0);
-            prev.setContentDescription("이전 보유 갈매미맨 쪽 · " + (mixPage + 1) + "/" + pages);
-            prev.setPadding(0, 0, 0, 0);
-            line.addView(prev, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
-            ((LinearLayout.LayoutParams) prev.getLayoutParams()).gravity = Gravity.CENTER_VERTICAL;
-          }
-        }
-        int i = mixPage * perPage + n;
-        FrameLayout cell = new FrameLayout(h);
-        line.addView(cell, new LinearLayout.LayoutParams(0, -1, 1));
-        if (i >= available.size()) continue;
-        JSONObject unit = available.get(i);
+      if (available.isEmpty()) {
+        TextView none = k.note("사용 가능한 재료가 없어요.");
+        none.setTextColor(JournalTheme.PAPER);
+        none.setGravity(Gravity.CENTER);
+        choices.addView(none, new FrameLayout.LayoutParams(-1, -1));
+      } else {
+        JSONObject unit = available.get(mixPage);
         String id = unit.optString("id");
-        int left = unit.optInt("usable") - Collections.frequency(m.mixDraft, id);
-        Shape tile = thumbTile(unit);
-        tile.setTag("mix-picker-material-" + id);
-        TextView badge = countBadge(String.valueOf(left));
-        badge.setTag("mix-picker-count");
-        tile.addView(badge, new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END));
-        tile.setEnabled(left > 0 && m.mixDraft.size() < limit);
-        tile.setAlpha(tile.isEnabled() ? 1 : .45f);
-        tile.setContentDescription(unit.optString("name") + " 재료 추가 · 사용 가능 " + left);
-        tile.setOnClickListener(v -> {
-          if (h.busy || m.mixDraft.size() >= limit || left <= 0) return;
+        int chosen = Collections.frequency(m.mixDraft, id);
+        int left = unit.optInt("usable") - chosen;
+        RegistrationCardView card = fullEconomyCard(unit);
+        card.setTag("mix-browse-card-" + id);
+        // 원본에 인쇄된 이름·등급은 중복하지 않고, 남은 수량은 추가 버튼에 표시한다.
+        card.setContentDescription(RegistrationCardView.description(unit)
+            + " · 사용 가능 " + left + " · 선택한 재료 " + chosen + " · 좌우로 넘겨 보기");
+        choices.addView(card, new FrameLayout.LayoutParams(-1, -1));
+        Button add = k.primary(null, "재료 추가 · " + left, () -> {
+          if (h.busy || m.mixDraft.size() >= limit
+              || Collections.frequency(m.mixDraft, id) >= unit.optInt("usable")) return;
           m.mixDraft.add(id);
           paint[0].run();
         });
-        cell.addView(tile, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
+        add.setTag("mix-picker-material-" + id);
+        add.setTextSize(h.uiText(14));
+        add.setEnabled(left > 0 && m.mixDraft.size() < limit);
+        add.setContentDescription(unit.optString("name") + " 재료 추가 · 사용 가능 " + left
+            + " · 선택한 재료 " + chosen);
+        inventory.addView(add, new LinearLayout.LayoutParams(-1, h.dp(48)));
       }
-      if (sidePager) {
-        Button next = k.action(null, "›", () -> { mixPage = Math.min(pages - 1, mixPage + 1); paint[0].run(); });
-        next.setEnabled(mixPage < pages - 1);
-        next.setContentDescription("다음 보유 갈매미맨 쪽 · " + (mixPage + 1) + "/" + pages);
-        next.setPadding(0, 0, 0, 0);
-        LinearLayout.LayoutParams nextSlot = new LinearLayout.LayoutParams(h.dp(48), h.dp(48));
-        nextSlot.gravity = Gravity.CENTER_VERTICAL;
-        line.addView(next, nextSlot);
-      }
-      if (available.isEmpty()) {
-        choices.removeAllViews();
-        TextView none = k.note(mixQuery.isEmpty() ? "사용 가능한 재료가 없어요." : "검색과 맞는 갈매미맨이 없어요.");
-        none.setTextColor(JournalTheme.PAPER);
-        none.setGravity(Gravity.CENTER);
-        choices.addView(none, new LinearLayout.LayoutParams(-1, -1));
-      }
-      if (pages > 1 && !sidePager)
-        pageControls(inventory, mixPage, pages, page -> { mixPage = page; paint[0].run(); }, "mix-material-pages");
       TextView count = benchHeading("선택한 재료 " + m.mixDraft.size() + "/" + limit);
       count.setTag("mix-count");
       count.setGravity(Gravity.CENTER);
@@ -1077,18 +1075,59 @@ final class NativeEconomy {
       clear.setEnabled(!m.mixDraft.isEmpty());
       make.setEnabled(m.mixDraft.size() >= 2);
     };
-    k.search(search, "검색", mixQuery, query -> {
-      mixQuery = query;
-      mixPage = 0;
-      paint[0].run();
-    });
     paint[0].run();
   }
 
-  /** 보유 썸네일 줄 수: 작은 가로 1줄 ~ 큰 화면 3줄(2열이므로 쪽마다 줄 수 × 2). */
-  int mixRows() {
-    // 제목·탭·하단 버튼·패널 제목·쪽 넘김을 뺀 실제 높이를 줄마다 56dp(48dp 터치 + 간격)로 나눈다.
-    return Math.max(1, Math.min(3, (h.contentHeightDp() - 284) / 56));
+  /** 좌우 탐색만 처리한다. 카드 누르기·수직 드래그·취소는 재료를 추가하지 않는다. */
+  final class MixCarousel extends FrameLayout {
+    final java.util.function.IntConsumer turn;
+    final int slop;
+    float downX, downY;
+    boolean horizontal, vertical;
+    MixCarousel(java.util.function.IntConsumer turn) {
+      super(h);
+      this.turn = turn;
+      slop = ViewConfiguration.get(h).getScaledTouchSlop();
+      setContentDescription("보유 갈매미맨 · 좌우로 넘겨 보기 · 아래 재료 추가 버튼으로 선택");
+    }
+    @Override public boolean onInterceptTouchEvent(MotionEvent event) {
+      if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+        downX = event.getX(); downY = event.getY(); horizontal = false; vertical = false;
+      } else if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
+        float dx = event.getX() - downX, dy = event.getY() - downY;
+        if (!vertical && Math.abs(dx) > slop && Math.abs(dx) > Math.abs(dy) * 1.25f) {
+          horizontal = true;
+          if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+          return true;
+        }
+        if (!horizontal && Math.abs(dy) > slop) vertical = true;
+      }
+      return horizontal;
+    }
+    @Override public boolean onTouchEvent(MotionEvent event) {
+      switch (event.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN:
+          downX = event.getX(); downY = event.getY(); horizontal = false; vertical = false;
+          return true;
+        case MotionEvent.ACTION_MOVE:
+          float dx = event.getX() - downX, dy = event.getY() - downY;
+          if (!horizontal && Math.abs(dy) > slop && Math.abs(dy) >= Math.abs(dx)) vertical = true;
+          if (!vertical && Math.abs(dx) > slop && Math.abs(dx) > Math.abs(dy) * 1.25f) horizontal = true;
+          return true;
+        case MotionEvent.ACTION_UP:
+          float distance = event.getX() - downX;
+          if (!vertical && horizontal && Math.abs(distance) >= Math.max(h.dp(48), getWidth() * .12f))
+            turn.accept(distance < 0 ? 1 : -1);
+          else performClick();
+          horizontal = false; vertical = false;
+          return true;
+        case MotionEvent.ACTION_CANCEL:
+          horizontal = false; vertical = false;
+          return true;
+        default: return true;
+      }
+    }
+    @Override public boolean performClick() { super.performClick(); return true; }
   }
 
   /** 아주 낮은 가로 화면: 선택 칸 두 줄이 48dp를 넘도록 누르지 않는 제목·여백만 줄인다. */
@@ -1180,7 +1219,7 @@ final class NativeEconomy {
     plus.setGravity(Gravity.CENTER);
     plus.setPadding(0, 0, 0, 0);
     slot.addView(plus, new FrameLayout.LayoutParams(-1, -1));
-    slot.setContentDescription("빈 재료 칸 " + (index + 1) + " · 왼쪽 보유 갈매미맨을 눌러 추가");
+    slot.setContentDescription("빈 재료 칸 " + (index + 1) + " · 왼쪽에서 카드를 찾고 재료 추가");
     return slot;
   }
 
@@ -2527,6 +2566,7 @@ final class NativeEconomy {
     return MainActivity.obj("id", id, "name", id);
   }
 }
+
 
 
 

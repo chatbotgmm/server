@@ -1,0 +1,41 @@
+{
+  "source_sha256": "dd465bb28780055e8262a47625c0d22e07e5449e2b4fbe468d642fe94a7bb684",
+  "sheet": "D4/front/idle.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      260,
+      446
+    ],
+    [
+      249,
+      445
+    ],
+    [
+      248,
+      443
+    ],
+    [
+      250,
+      416
+    ],
+    [
+      252,
+      418
+    ],
+    [
+      250,
+      419
+    ]
+  ],
+  "placement_rule": "Fixed actor origin plus authored airborne offset on listed frames; grounded frames use feet anchor.",
+  "measurement": "Visual gold-claw anchor estimate +/-4px, excludes water droplets and plate tips. Renderer validation pending.",
+  "renderer_validation": "pending",
+  "airborne_frames_zero_based": [
+    2
+  ]
+}

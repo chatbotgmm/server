@@ -366,6 +366,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
     if(!id)return reply.code(401).send({error:'login'});
     return reply.header('Cache-Control','no-store').send(await game.webTutorial(id));
   });
+  act<{nickname?:unknown}>('/my/api/nickname',(id,b)=>game.webInitialNickname(id,b?.nickname));
   act<{step?:unknown;seen?:unknown}>('/my/api/tutorial',(id,b)=>game.webTutorialSet(id,Number(b.step),b.seen===undefined?undefined:String(b.seen)));
   act<{battle?:unknown;id?:unknown}>('/my/api/items/use',async(id,b)=>{
     if(native.hasActiveStory(id))throw new GameError('진행 중인 네이티브 전투에서 아이템을 사용해 주세요.');

@@ -38,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
   JSONObject state = new JSONObject(), battle;
   String screen = "home", pendingAugment = "";
   int chapter = 0, epoch = 0;
+  BackgroundMotionBinding backgroundEffects;
   boolean busy = false, motionEnabled = true, motionResumed = false;
   android.app.AlertDialog visibleDialog;
   ArrayList<String> selected = new ArrayList<>();
@@ -75,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
     }
     WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
     root = new GameRootLayout(this);
+    backgroundEffects = new BackgroundMotionBinding(this);
     setContentView(root);
     operations = new NativeOperationUi(this);
     menus = new NativeMenus(this);
@@ -122,6 +124,7 @@ public class MainActivity extends AppCompatActivity {
   @Override
   public void onWindowFocusChanged(boolean focus) {
     super.onWindowFocusChanged(focus);
+    if (backgroundEffects != null && root != null) root.post(() -> backgroundEffects.effect.refreshLifecycle());
     if (focus) immersive();
   }
 
@@ -614,7 +617,17 @@ public class MainActivity extends AppCompatActivity {
     return c;
   }
 
+  boolean nicknameRequired() {
+    JSONObject tutorial = state.optJSONObject("tutorial");
+    return !api.token().isEmpty() && tutorial != null
+        && tutorial.optBoolean("nicknameRequired", false);
+  }
+
   void show(String s) {
+    if (nicknameRequired() && !s.equals("title") && !s.equals("login")) {
+      NativeNicknameSetup.show(this);
+      return;
+    }
     switch (s) {
       case "modes":
         menus.modes();
@@ -993,6 +1006,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void home() {
+    if (nicknameRequired()) { NativeNicknameSetup.show(this); return; }
     epoch++;
     screen = "home";
     sound.play("title");
@@ -1429,6 +1443,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void back() {
+    if (screen.equals("nickname")) { if (!busy) titleScreen(); return; }
     if (screen.equals("battleReplay")) { NativeBattleReplay.records(this); return; }
     if (screen.equals("battleRecords")) { load("modesPvp"); return; }
     for (int i=0;i<root.getChildCount();i++)
@@ -1508,6 +1523,7 @@ public class MainActivity extends AppCompatActivity {
     if (sound != null) sound.resume();
     if (realtime != null) realtime.resume();
     motionResumed = true;
+    if (backgroundEffects != null) backgroundEffects.resumed(true);
     journalTime.resume();
   }
 
@@ -1517,8 +1533,15 @@ public class MainActivity extends AppCompatActivity {
     if (sound != null) sound.pause();
     if (realtime != null) realtime.pause();
     motionResumed = false;
+    if (backgroundEffects != null) backgroundEffects.resumed(false);
     journalTime.pause();
     super.onPause();
+  }
+
+  @Override
+  public void onTrimMemory(int level) {
+    super.onTrimMemory(level);
+    if (backgroundEffects != null) backgroundEffects.trim();
   }
 
   @Override
@@ -1537,6 +1560,7 @@ public class MainActivity extends AppCompatActivity {
 
   @Override
   protected void onDestroy() {
+    if (backgroundEffects != null) backgroundEffects.close();
     if (realtime != null) realtime.close();
     super.onDestroy();
     motionResumed = false;
@@ -1549,5 +1573,6 @@ public class MainActivity extends AppCompatActivity {
     sound.close();
   }
 }
+
 
 

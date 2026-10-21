@@ -545,8 +545,8 @@ public class NativeEconomyThemeReviewTest {
         RegistrationArtTest.await(() -> host.menus.pendingFetches == 0);
         JSONArray pool = api.responses.get("craft").getJSONArray("pool");
         expected.clear(); seen.clear(); pageIndex = 0;
-        // 재료 탭은 썸네일 2열 × 화면 높이별 줄 수가 한 쪽이다.
-        int mixPerPage = host.menus.economy.mixRows() * 2;
+        // 재료 탭은 원본 등록증 한 장씩 서버 순서대로 탐색한다.
+        int mixPerPage = 1;
         for (int i = 0; i < pool.length(); i++) if (pool.getJSONObject(i).optInt("usable") > 0)
           expected.add(pool.getJSONObject(i).getString("id"));
         while (true) {
@@ -554,13 +554,14 @@ public class NativeEconomyThemeReviewTest {
           List<String> pageIds = new ArrayList<>();
           for (View view : geometry.descendants(host.root.findViewWithTag("mix-inventory"))) {
             String tag = String.valueOf(view.getTag());
-            if (tag.startsWith("mix-picker-material-")) pageIds.add(tag.substring("mix-picker-material-".length()));
+            if (tag.startsWith("mix-browse-card-")) pageIds.add(tag.substring("mix-browse-card-".length()));
           }
           assertEquals(expected.subList(pageIndex * mixPerPage, Math.min(expected.size(), (pageIndex + 1) * mixPerPage)), pageIds);
           seen.addAll(pageIds);
           View pager = host.root.findViewWithTag("mix-material-pages");
-          if (pager == null) { assertTrue("한 쪽이면 쪽 넘김 없음", expected.size() <= mixPerPage); break; }
-          Button next = actions.button(pager, "›");
+          assertNotNull("한 장 탐색의 이전·다음 버튼은 항상 표시", pager);
+          assertTrue("탐색만으로 재료 선택 없음", host.menus.mixDraft.isEmpty());
+          Button next = host.root.findViewWithTag("mix-material-next");
           if (!next.isEnabled()) break;
           next.performClick(); pageIndex++;
         }
@@ -620,7 +621,7 @@ public class NativeEconomyThemeReviewTest {
       economy.craft(true); ready(host, size);
       View noneLeft = host.root.findViewWithTag("mix-picker-material-" + a);
       assertFalse(noneLeft.isEnabled());
-      assertEquals("0", ((TextView) noneLeft.findViewWithTag("mix-picker-count")).getText().toString());
+      assertEquals("재료 추가 · 0", ((Button) noneLeft).getText().toString());
       noneLeft.performClick();
       assertEquals(Arrays.asList(a, a), host.menus.mixDraft);
       assertEquals(2, first.getInt("usable"));
@@ -628,17 +629,38 @@ public class NativeEconomyThemeReviewTest {
     host.menus.mixDraft.clear();
   }
 
-  /** 재료 탭(시안): 보유·선택 칸은 원본 썸네일, 결과 칸만 등록증. 미공개 카드는 그림·정체를 드러내지 않는다. */
+  /** 재료 탭: 보유 한 장은 원본 등록증, 선택 칸은 썸네일. 미공개 결과의 그림·정체는 숨긴다. */
   JSONArray mixCards(MainActivity host, String page, NativeEconomyThemeFixture.Api api) {
     JSONArray measured = new JSONArray();
     List<String> selectedMix = new ArrayList<>();
-    for (View view : geometry.descendants(host.root)) {
+    ViewGroup carousel = host.root.findViewWithTag("mix-inventory");
+    assertEquals("한 번에 보유 카드 한 장만 표시", 1, carousel.getChildCount());
+    assertTrue(carousel.getChildAt(0) instanceof RegistrationCardView);
+    RegistrationCardView browsing = (RegistrationCardView) carousel.getChildAt(0);
+    RegistrationCardView.Artwork full = browsing.picture;
+    JSONObject canonicalBrowse = api.data.units.get(full.id);
+    assertNotNull("보유 카드의 정체는 서버 목록 그대로", canonicalBrowse);
+    assertEquals("mix-browse-card-" + full.id, browsing.getTag());
+    assertEquals(RegistrationCardView.FULL, full.mode);
+    assertNotNull("원본 등록증을 읽은 뒤 검증", full.bitmap);
+    assertFalse(full.bitmap.isRecycled());
+    assertEquals(View.GONE, browsing.name.getVisibility());
+    assertEquals(View.GONE, browsing.grade.getVisibility());
+    assertEquals(full.bitmap.getWidth() / (float) full.bitmap.getHeight(),
+        full.target.width() / full.target.height(), .001f);
+    assertTrue(new RectF(0, 0, full.getWidth(), full.getHeight()).contains(full.target));
+    assertEquals(geometry.bounds(full, host.root), geometry.visibleIntersection(full, host.root));
+    assertTrue("보유 등록증은 작은 썸네일보다 크게 표시", full.target.height() >= host.dp(100));
+    Button add = host.root.findViewWithTag("mix-picker-material-" + full.id);
+    assertNotNull(add);
+    assertTrue(add.getWidth() >= host.dp(48) && add.getHeight() >= host.dp(48));
+    measured.put(MainActivity.obj("tag", browsing.getTag(), "id", full.id, "mode", "FULL",
+        "artWidth", full.target.width(), "artHeight", full.target.height()));
+    for (View view : geometry.descendants(host.root.findViewWithTag("mix-workbench"))) {
       String tag = String.valueOf(view.getTag());
-      boolean picker = tag.startsWith("mix-picker-material-"),
-          chosen = tag.startsWith("mix-material-") && !tag.equals("mix-material-pages");
-      if (!picker && !chosen) continue;
-      String id = tag.substring(picker ? "mix-picker-material-".length() : "mix-material-".length());
-      if (chosen) selectedMix.add(id);
+      if (!tag.startsWith("mix-material-")) continue;
+      String id = tag.substring("mix-material-".length());
+      selectedMix.add(id);
       assertNotNull("Identity comes from the canonical visible server fixture: " + id, api.data.units.get(id));
       assertTrue("48dp thumbnail target: " + tag, view.getWidth() >= host.dp(48) && view.getHeight() >= host.dp(48));
       assertEquals(geometry.bounds(view, host.root), geometry.visibleIntersection(view, host.root));
@@ -774,6 +796,7 @@ public class NativeEconomyThemeReviewTest {
     assertNull(host.visibleDialog);
   }
 }
+
 
 
 

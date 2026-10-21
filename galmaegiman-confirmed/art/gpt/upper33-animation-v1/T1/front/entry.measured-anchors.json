@@ -1,0 +1,42 @@
+{
+  "source_sha256": "23f16bac11736cefe83c30f317e0d2971378c2574fac1b38c8d3ddd28159b73a",
+  "sheet": "T1/front/entry.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      255.5,
+      487
+    ],
+    [
+      252.0,
+      488
+    ],
+    [
+      250.0,
+      486
+    ],
+    [
+      262.5,
+      445
+    ],
+    [
+      261.0,
+      444
+    ],
+    [
+      264.0,
+      446
+    ]
+  ],
+  "placement_rule": "Fixed actor origin plus authored airborne offset minus measured feet anchor; preserve hop in frames1–2. Renderer validation pending.",
+  "measurement": "Alpha>128 foot-region pixels in lower40px central band, visually checked against feet; requires renderer validation.",
+  "renderer_validation": "pending",
+  "airborne_frames_zero_based": [
+    1,
+    2
+  ]
+}

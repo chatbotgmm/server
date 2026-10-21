@@ -1,0 +1,38 @@
+{
+  "source_sha256": "0aad7677a054d8f0c2d48b55b42b5552e4a6e50f8b6b2055d8184e163a30b0de",
+  "sheet": "I9/front/hit-defend.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      256.0,
+      474
+    ],
+    [
+      260.5,
+      475
+    ],
+    [
+      257.5,
+      472
+    ],
+    [
+      258.0,
+      454
+    ],
+    [
+      256.0,
+      460
+    ],
+    [
+      256.0,
+      462
+    ]
+  ],
+  "placement_rule": "Align paired shell-base midpoint to fixed world origin. Shells are canonical footwear, not cast shadows.",
+  "measurement": "Alpha>128 lower40px shell-base center, visually verified against paired pearl shell boots. Approximate \u00b14px; renderer validation pending.",
+  "renderer_validation": "pending"
+}

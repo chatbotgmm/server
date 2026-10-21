@@ -1,0 +1,1654 @@
+{
+  "character": "T8",
+  "status": "8/8 independently accepted static assets; proposed body normalization and measured per-frame anchors; renderer validation pending",
+  "sheets": [
+    {
+      "character": "T8",
+      "view": "front",
+      "action": "idle",
+      "sheet_size": [
+        1536,
+        1024
+      ],
+      "cell_size": [
+        512,
+        512
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "frame_order": "row-major left-to-right, top-to-bottom",
+      "loop": true,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            71,
+            101,
+            480,
+            454
+          ],
+          "foot_anchor_px": [
+            273.5,
+            452
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            273.0,
+            452
+          ]
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            48,
+            101,
+            462,
+            454
+          ],
+          "foot_anchor_px": [
+            250.5,
+            451
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            250.0,
+            451
+          ]
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            5,
+            104,
+            453,
+            455
+          ],
+          "foot_anchor_px": [
+            222.5,
+            452
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            223.5,
+            452
+          ]
+        },
+        {
+          "index": 3,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            73,
+            81,
+            489,
+            434
+          ],
+          "foot_anchor_px": [
+            274.5,
+            432
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            274.0,
+            432
+          ]
+        },
+        {
+          "index": 4,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            47,
+            83,
+            471,
+            434
+          ],
+          "foot_anchor_px": [
+            250.0,
+            431
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            250.0,
+            431
+          ]
+        },
+        {
+          "index": 5,
+          "rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            22,
+            76,
+            436,
+            434
+          ],
+          "foot_anchor_px": [
+            227.5,
+            432
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            227.0,
+            432
+          ]
+        }
+      ],
+      "render_world_origin": "same foot position for every frame; draw at worldOrigin - foot_anchor_px*scale",
+      "proposed_sheet_scale_to_neutral260px_height": 0.736544,
+      "scale_status": "Use body_normalization instead of silhouette-height proposal; renderer validation pending",
+      "sha256": "1caed41b6cef1ce5be60ee6c392c18980b7028a52440de49baf9f62d4ba138c6",
+      "alpha_range": [
+        0,
+        254
+      ],
+      "alpha_zero_fraction": 0.5527973175048828,
+      "generator": "built-in image_gen",
+      "prompt_file": "idle.prompt.txt",
+      "qa": {
+        "static_identity": "visually inspected; canonical source bird identity preserved",
+        "true_alpha": true,
+        "equal_cells": true,
+        "visible_gutter_pass": true,
+        "cast_shadow": "none visibly drawn; hidden RGB includes brown preview background",
+        "issues": [
+          "Per-sheet scale and per-frame anchors required; renderer validation pending",
+          "Very low alpha fringe may extend beyond visible sprite; alpha threshold for QA is 8/255"
+        ],
+        "runtime_ready": false,
+        "static_asset_status": "independently accepted"
+      },
+      "measured_anchor_file": "idle.measured-anchors.json",
+      "body_normalization": {
+        "neutral_frame": 0,
+        "source_crest_to_sole_height_px": 350,
+        "target_height_px": 260,
+        "uniform_sheet_render_scale": 0.7428571428571429,
+        "measurement": "independent visual estimate +/-5px",
+        "exclude": "non-body ornaments, orbit decorations, magic floor oval and T7 drill",
+        "status": "proposed; renderer validation pending",
+        "apply": "Use same uniform scale for all six frames; align each measured foot anchor to fixed world origin. Do not individually scale each frame."
+      }
+    },
+    {
+      "character": "T8",
+      "view": "front",
+      "action": "attack",
+      "sheet_size": [
+        1536,
+        1024
+      ],
+      "cell_size": [
+        512,
+        512
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "frame_order": "row-major left-to-right, top-to-bottom",
+      "loop": false,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            46,
+            95,
+            477,
+            453
+          ],
+          "foot_anchor_px": [
+            260.0,
+            451
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            259.5,
+            451
+          ]
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            67,
+            142,
+            453,
+            453
+          ],
+          "foot_anchor_px": [
+            253.0,
+            450
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            253.0,
+            450
+          ]
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            80,
+            117,
+            462,
+            451
+          ],
+          "foot_anchor_px": [
+            259.5,
+            449
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 80,
+          "auto_estimated_anchor_px": [
+            255.5,
+            448
+          ]
+        },
+        {
+          "index": 3,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            81,
+            91,
+            492,
+            446
+          ],
+          "foot_anchor_px": [
+            267.0,
+            446
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            254.5,
+            443
+          ]
+        },
+        {
+          "index": 4,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            46,
+            98,
+            471,
+            448
+          ],
+          "foot_anchor_px": [
+            266.5,
+            447
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 120,
+          "auto_estimated_anchor_px": [
+            259.0,
+            445
+          ]
+        },
+        {
+          "index": 5,
+          "rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            38,
+            88,
+            468,
+            450
+          ],
+          "foot_anchor_px": [
+            250.5,
+            448
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            251.0,
+            448
+          ]
+        }
+      ],
+      "render_world_origin": "same foot position for every frame; draw at worldOrigin - foot_anchor_px*scale",
+      "proposed_sheet_scale_to_neutral260px_height": 0.726257,
+      "scale_status": "Use body_normalization instead of silhouette-height proposal; renderer validation pending",
+      "sha256": "8d3d247ca4e969c3b2b25523848465a66a0c0de217f73990c4cc803c2891b949",
+      "alpha_range": [
+        0,
+        254
+      ],
+      "alpha_zero_fraction": 0.6090431213378906,
+      "generator": "built-in image_gen",
+      "prompt_file": "attack.prompt.txt",
+      "qa": {
+        "static_identity": "visually inspected; canonical source bird identity preserved",
+        "true_alpha": true,
+        "equal_cells": true,
+        "visible_gutter_pass": true,
+        "cast_shadow": "none visibly drawn; hidden RGB includes brown preview background",
+        "issues": [
+          "Per-sheet scale and per-frame anchors required; renderer validation pending",
+          "Very low alpha fringe may extend beyond visible sprite; alpha threshold for QA is 8/255"
+        ],
+        "runtime_ready": false,
+        "static_asset_status": "independently accepted"
+      },
+      "measured_anchor_file": "attack.measured-anchors.json",
+      "body_normalization": {
+        "neutral_frame": 0,
+        "source_crest_to_sole_height_px": 355,
+        "target_height_px": 260,
+        "uniform_sheet_render_scale": 0.7323943661971831,
+        "measurement": "independent visual estimate +/-5px",
+        "exclude": "non-body ornaments, orbit decorations, magic floor oval and T7 drill",
+        "status": "proposed; renderer validation pending",
+        "apply": "Use same uniform scale for all six frames; align each measured foot anchor to fixed world origin. Do not individually scale each frame."
+      }
+    },
+    {
+      "character": "T8",
+      "view": "front",
+      "action": "hit-defend",
+      "sheet_size": [
+        1536,
+        1024
+      ],
+      "cell_size": [
+        512,
+        512
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "frame_order": "row-major left-to-right, top-to-bottom",
+      "loop": false,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            67,
+            107,
+            502,
+            464
+          ],
+          "foot_anchor_px": [
+            281.5,
+            463
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            277.5,
+            462
+          ]
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            83,
+            117,
+            423,
+            464
+          ],
+          "foot_anchor_px": [
+            258.0,
+            462
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            260.0,
+            462
+          ]
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            86,
+            185,
+            395,
+            464
+          ],
+          "foot_anchor_px": [
+            247.0,
+            462
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 80,
+          "auto_estimated_anchor_px": [
+            243.0,
+            461
+          ]
+        },
+        {
+          "index": 3,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            96,
+            92,
+            443,
+            432
+          ],
+          "foot_anchor_px": [
+            269.5,
+            430
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            268.5,
+            429
+          ]
+        },
+        {
+          "index": 4,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            29,
+            78,
+            482,
+            432
+          ],
+          "foot_anchor_px": [
+            255.0,
+            431
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 120,
+          "auto_estimated_anchor_px": [
+            254.5,
+            431
+          ]
+        },
+        {
+          "index": 5,
+          "rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            22,
+            83,
+            458,
+            433
+          ],
+          "foot_anchor_px": [
+            238.5,
+            431
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            238.0,
+            431
+          ]
+        }
+      ],
+      "render_world_origin": "same foot position for every frame; draw at worldOrigin - foot_anchor_px*scale",
+      "proposed_sheet_scale_to_neutral260px_height": 0.728291,
+      "scale_status": "Use body_normalization instead of silhouette-height proposal; renderer validation pending",
+      "sha256": "9a33c2139077b4bd45382ff66b4947c520d1d0b02dafae6c963015cb8f977012",
+      "alpha_range": [
+        0,
+        254
+      ],
+      "alpha_zero_fraction": 0.5996932983398438,
+      "generator": "built-in image_gen",
+      "prompt_file": "hit-defend.prompt.txt",
+      "qa": {
+        "static_identity": "visually inspected; canonical source bird identity preserved",
+        "true_alpha": true,
+        "equal_cells": true,
+        "visible_gutter_pass": true,
+        "cast_shadow": "none visibly drawn; hidden RGB includes brown preview background",
+        "issues": [
+          "Per-sheet scale and per-frame anchors required; renderer validation pending",
+          "Very low alpha fringe may extend beyond visible sprite; alpha threshold for QA is 8/255"
+        ],
+        "runtime_ready": false,
+        "static_asset_status": "independently accepted"
+      },
+      "measured_anchor_file": "hit-defend.measured-anchors.json",
+      "body_normalization": {
+        "neutral_frame": 0,
+        "source_crest_to_sole_height_px": 355,
+        "target_height_px": 260,
+        "uniform_sheet_render_scale": 0.7323943661971831,
+        "measurement": "independent visual estimate +/-5px",
+        "exclude": "non-body ornaments, orbit decorations, magic floor oval and T7 drill",
+        "status": "proposed; renderer validation pending",
+        "apply": "Use same uniform scale for all six frames; align each measured foot anchor to fixed world origin. Do not individually scale each frame."
+      }
+    },
+    {
+      "character": "T8",
+      "view": "front",
+      "action": "entry",
+      "sheet_size": [
+        1536,
+        1024
+      ],
+      "cell_size": [
+        512,
+        512
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "frame_order": "row-major left-to-right, top-to-bottom",
+      "loop": false,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            83,
+            163,
+            453,
+            453
+          ],
+          "foot_anchor_px": [
+            252.5,
+            451
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            252.0,
+            450
+          ]
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            45,
+            123,
+            463,
+            454
+          ],
+          "foot_anchor_px": [
+            248.5,
+            451
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            248.5,
+            451
+          ]
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            26,
+            93,
+            484,
+            453
+          ],
+          "foot_anchor_px": [
+            246.5,
+            451
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 80,
+          "auto_estimated_anchor_px": [
+            246.0,
+            451
+          ]
+        },
+        {
+          "index": 3,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            25,
+            38,
+            496,
+            434
+          ],
+          "foot_anchor_px": [
+            255.5,
+            431
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            254.5,
+            431
+          ]
+        },
+        {
+          "index": 4,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            42,
+            68,
+            462,
+            435
+          ],
+          "foot_anchor_px": [
+            246.0,
+            433
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 120,
+          "auto_estimated_anchor_px": [
+            245.0,
+            433
+          ]
+        },
+        {
+          "index": 5,
+          "rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            34,
+            67,
+            479,
+            436
+          ],
+          "foot_anchor_px": [
+            253.0,
+            433
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            252.5,
+            433
+          ]
+        }
+      ],
+      "render_world_origin": "same foot position for every frame; draw at worldOrigin - foot_anchor_px*scale",
+      "proposed_sheet_scale_to_neutral260px_height": 0.704607,
+      "scale_status": "Use body_normalization instead of silhouette-height proposal; renderer validation pending",
+      "sha256": "f7229bbba9c7c9189cd0d49c94f82d8445952d659fb2ad6354875e00662ba9ac",
+      "alpha_range": [
+        0,
+        254
+      ],
+      "alpha_zero_fraction": 0.5671558380126953,
+      "generator": "built-in image_gen",
+      "prompt_file": "entry.prompt.txt",
+      "qa": {
+        "static_identity": "visually inspected; canonical source bird identity preserved",
+        "true_alpha": true,
+        "equal_cells": true,
+        "visible_gutter_pass": true,
+        "cast_shadow": "none visibly drawn; hidden RGB includes brown preview background",
+        "issues": [
+          "Per-sheet scale and per-frame anchors required; renderer validation pending",
+          "Very low alpha fringe may extend beyond visible sprite; alpha threshold for QA is 8/255"
+        ],
+        "runtime_ready": false,
+        "static_asset_status": "independently accepted"
+      },
+      "measured_anchor_file": "entry.measured-anchors.json",
+      "body_normalization": {
+        "neutral_frame": 5,
+        "source_crest_to_sole_height_px": 356,
+        "target_height_px": 260,
+        "uniform_sheet_render_scale": 0.7303370786516854,
+        "measurement": "independent visual estimate +/-5px",
+        "exclude": "non-body ornaments, orbit decorations, magic floor oval and T7 drill",
+        "status": "proposed; renderer validation pending",
+        "apply": "Use same uniform scale for all six frames; align each measured foot anchor to fixed world origin. Do not individually scale each frame."
+      }
+    },
+    {
+      "character": "T8",
+      "view": "back",
+      "action": "idle",
+      "sheet_size": [
+        1536,
+        1024
+      ],
+      "cell_size": [
+        512,
+        512
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "frame_order": "row-major left-to-right, top-to-bottom",
+      "loop": true,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            66,
+            92,
+            455,
+            460
+          ],
+          "foot_anchor_px": [
+            281.0,
+            460
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            254.5,
+            457
+          ]
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            69,
+            90,
+            456,
+            460
+          ],
+          "foot_anchor_px": [
+            280.0,
+            457
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            254.0,
+            457
+          ]
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            36,
+            93,
+            462,
+            461
+          ],
+          "foot_anchor_px": [
+            253.5,
+            457
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            253.5,
+            457
+          ]
+        },
+        {
+          "index": 3,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            67,
+            92,
+            455,
+            460
+          ],
+          "foot_anchor_px": [
+            277.5,
+            457
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            267.0,
+            457
+          ]
+        },
+        {
+          "index": 4,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            48,
+            89,
+            457,
+            461
+          ],
+          "foot_anchor_px": [
+            255.5,
+            457
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            255.0,
+            457
+          ]
+        },
+        {
+          "index": 5,
+          "rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            67,
+            92,
+            456,
+            460
+          ],
+          "foot_anchor_px": [
+            280.5,
+            457
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            254.5,
+            457
+          ]
+        }
+      ],
+      "render_world_origin": "same foot position for every frame; draw at worldOrigin - foot_anchor_px*scale",
+      "proposed_sheet_scale_to_neutral260px_height": 0.706522,
+      "scale_status": "Use body_normalization instead of silhouette-height proposal; renderer validation pending",
+      "sha256": "b576d9e79ed39be6e76a0545b8942773e462ad2088f6a090376542472aca57e8",
+      "alpha_range": [
+        0,
+        254
+      ],
+      "alpha_zero_fraction": 0.6066379547119141,
+      "generator": "built-in image_gen",
+      "prompt_file": "idle.prompt.txt",
+      "qa": {
+        "static_identity": "visually inspected; canonical source bird identity preserved",
+        "true_alpha": true,
+        "equal_cells": true,
+        "visible_gutter_pass": true,
+        "cast_shadow": "none visibly drawn; hidden RGB includes brown preview background",
+        "issues": [
+          "Per-sheet scale and per-frame anchors required; renderer validation pending",
+          "Very low alpha fringe may extend beyond visible sprite; alpha threshold for QA is 8/255"
+        ],
+        "runtime_ready": false,
+        "static_asset_status": "independently accepted"
+      },
+      "measured_anchor_file": "idle.measured-anchors.json",
+      "body_normalization": {
+        "neutral_frame": 0,
+        "source_crest_to_sole_height_px": 368,
+        "target_height_px": 260,
+        "uniform_sheet_render_scale": 0.7065217391304348,
+        "measurement": "independent visual estimate +/-5px",
+        "exclude": "non-body ornaments, orbit decorations, magic floor oval and T7 drill",
+        "status": "proposed; renderer validation pending",
+        "apply": "Use same uniform scale for all six frames; align each measured foot anchor to fixed world origin. Do not individually scale each frame."
+      }
+    },
+    {
+      "character": "T8",
+      "view": "back",
+      "action": "attack",
+      "sheet_size": [
+        1536,
+        1024
+      ],
+      "cell_size": [
+        512,
+        512
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "frame_order": "row-major left-to-right, top-to-bottom",
+      "loop": false,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            81,
+            119,
+            421,
+            451
+          ],
+          "foot_anchor_px": [
+            238.0,
+            447
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            254.5,
+            447
+          ]
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            83,
+            152,
+            421,
+            452
+          ],
+          "foot_anchor_px": [
+            240.5,
+            449
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            251.0,
+            449
+          ]
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            60,
+            137,
+            469,
+            452
+          ],
+          "foot_anchor_px": [
+            223.0,
+            449
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 80,
+          "auto_estimated_anchor_px": [
+            235.0,
+            449
+          ]
+        },
+        {
+          "index": 3,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            69,
+            107,
+            494,
+            423
+          ],
+          "foot_anchor_px": [
+            234.0,
+            419
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            242.5,
+            419
+          ]
+        },
+        {
+          "index": 4,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            74,
+            86,
+            445,
+            423
+          ],
+          "foot_anchor_px": [
+            249.5,
+            420
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 120,
+          "auto_estimated_anchor_px": [
+            249.0,
+            419
+          ]
+        },
+        {
+          "index": 5,
+          "rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            77,
+            89,
+            444,
+            422
+          ],
+          "foot_anchor_px": [
+            248.0,
+            420
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            257.5,
+            419
+          ]
+        }
+      ],
+      "render_world_origin": "same foot position for every frame; draw at worldOrigin - foot_anchor_px*scale",
+      "proposed_sheet_scale_to_neutral260px_height": 0.783133,
+      "scale_status": "Use body_normalization instead of silhouette-height proposal; renderer validation pending",
+      "sha256": "44f84a0b57f6aba257890263b21f6f40a2663529b1e235f450d082975a493a19",
+      "alpha_range": [
+        0,
+        254
+      ],
+      "alpha_zero_fraction": 0.6863549550374349,
+      "generator": "built-in image_gen",
+      "prompt_file": "attack.prompt.txt",
+      "qa": {
+        "static_identity": "visually inspected; canonical source bird identity preserved",
+        "true_alpha": true,
+        "equal_cells": true,
+        "visible_gutter_pass": true,
+        "cast_shadow": "none visibly drawn; hidden RGB includes brown preview background",
+        "issues": [
+          "Per-sheet scale and per-frame anchors required; renderer validation pending",
+          "Very low alpha fringe may extend beyond visible sprite; alpha threshold for QA is 8/255"
+        ],
+        "runtime_ready": false,
+        "static_asset_status": "independently accepted"
+      },
+      "measured_anchor_file": "attack.measured-anchors.json",
+      "body_normalization": {
+        "neutral_frame": 0,
+        "source_crest_to_sole_height_px": 328,
+        "target_height_px": 260,
+        "uniform_sheet_render_scale": 0.7926829268292683,
+        "measurement": "independent visual estimate +/-5px",
+        "exclude": "non-body ornaments, orbit decorations, magic floor oval and T7 drill",
+        "status": "proposed; renderer validation pending",
+        "apply": "Use same uniform scale for all six frames; align each measured foot anchor to fixed world origin. Do not individually scale each frame."
+      }
+    },
+    {
+      "character": "T8",
+      "view": "back",
+      "action": "hit-defend",
+      "sheet_size": [
+        1536,
+        1024
+      ],
+      "cell_size": [
+        512,
+        512
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "frame_order": "row-major left-to-right, top-to-bottom",
+      "loop": false,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            40,
+            47,
+            469,
+            458
+          ],
+          "foot_anchor_px": [
+            248.0,
+            454
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            247.5,
+            454
+          ]
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            96,
+            66,
+            440,
+            458
+          ],
+          "foot_anchor_px": [
+            267.0,
+            454
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            266.5,
+            454
+          ]
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            139,
+            103,
+            429,
+            459
+          ],
+          "foot_anchor_px": [
+            266.0,
+            455
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 80,
+          "auto_estimated_anchor_px": [
+            270.0,
+            455
+          ]
+        },
+        {
+          "index": 3,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            122,
+            96,
+            417,
+            460
+          ],
+          "foot_anchor_px": [
+            258.0,
+            456
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            262.0,
+            456
+          ]
+        },
+        {
+          "index": 4,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            39,
+            47,
+            474,
+            460
+          ],
+          "foot_anchor_px": [
+            249.5,
+            456
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 120,
+          "auto_estimated_anchor_px": [
+            249.0,
+            456
+          ]
+        },
+        {
+          "index": 5,
+          "rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            39,
+            45,
+            472,
+            459
+          ],
+          "foot_anchor_px": [
+            247.5,
+            456
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            247.5,
+            456
+          ]
+        }
+      ],
+      "render_world_origin": "same foot position for every frame; draw at worldOrigin - foot_anchor_px*scale",
+      "proposed_sheet_scale_to_neutral260px_height": 0.632603,
+      "scale_status": "Use body_normalization instead of silhouette-height proposal; renderer validation pending",
+      "sha256": "3a41dd2458a8e4151db3807e8286d4f4ccc8ba03e356dabc2b8496c15ae71b1b",
+      "alpha_range": [
+        0,
+        254
+      ],
+      "alpha_zero_fraction": 0.5997346242268881,
+      "generator": "built-in image_gen",
+      "prompt_file": "hit-defend.prompt.txt",
+      "qa": {
+        "static_identity": "visually inspected; canonical source bird identity preserved",
+        "true_alpha": true,
+        "equal_cells": true,
+        "visible_gutter_pass": true,
+        "cast_shadow": "none visibly drawn; hidden RGB includes brown preview background",
+        "issues": [
+          "Per-sheet scale and per-frame anchors required; renderer validation pending",
+          "Very low alpha fringe may extend beyond visible sprite; alpha threshold for QA is 8/255"
+        ],
+        "runtime_ready": false,
+        "static_asset_status": "independently accepted"
+      },
+      "measured_anchor_file": "hit-defend.measured-anchors.json",
+      "body_normalization": {
+        "neutral_frame": 0,
+        "source_crest_to_sole_height_px": 409,
+        "target_height_px": 260,
+        "uniform_sheet_render_scale": 0.6356968215158925,
+        "measurement": "independent visual estimate +/-5px",
+        "exclude": "non-body ornaments, orbit decorations, magic floor oval and T7 drill",
+        "status": "proposed; renderer validation pending",
+        "apply": "Use same uniform scale for all six frames; align each measured foot anchor to fixed world origin. Do not individually scale each frame."
+      }
+    },
+    {
+      "character": "T8",
+      "view": "back",
+      "action": "entry",
+      "sheet_size": [
+        1536,
+        1024
+      ],
+      "cell_size": [
+        512,
+        512
+      ],
+      "grid": [
+        3,
+        2
+      ],
+      "frame_order": "row-major left-to-right, top-to-bottom",
+      "loop": false,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            78,
+            169,
+            447,
+            468
+          ],
+          "foot_anchor_px": [
+            274.5,
+            465
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            262.0,
+            465
+          ]
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            51,
+            125,
+            464,
+            468
+          ],
+          "foot_anchor_px": [
+            250.5,
+            465
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            262.0,
+            465
+          ]
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            46,
+            90,
+            459,
+            468
+          ],
+          "foot_anchor_px": [
+            250.0,
+            465
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 80,
+          "auto_estimated_anchor_px": [
+            249.5,
+            465
+          ]
+        },
+        {
+          "index": 3,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            33,
+            34,
+            469,
+            456
+          ],
+          "foot_anchor_px": [
+            251.5,
+            453
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 100,
+          "auto_estimated_anchor_px": [
+            251.0,
+            453
+          ]
+        },
+        {
+          "index": 4,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            44,
+            60,
+            469,
+            459
+          ],
+          "foot_anchor_px": [
+            252.5,
+            456
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 120,
+          "auto_estimated_anchor_px": [
+            251.5,
+            456
+          ]
+        },
+        {
+          "index": 5,
+          "rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "visible_bounds_alpha_gt8": [
+            48,
+            63,
+            472,
+            459
+          ],
+          "foot_anchor_px": [
+            255.5,
+            456
+          ],
+          "foot_anchor_method": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate ±4px. Renderer validation pending.",
+          "duration_ms": 180,
+          "auto_estimated_anchor_px": [
+            255.0,
+            455
+          ]
+        }
+      ],
+      "render_world_origin": "same foot position for every frame; draw at worldOrigin - foot_anchor_px*scale",
+      "proposed_sheet_scale_to_neutral260px_height": 0.656566,
+      "scale_status": "Use body_normalization instead of silhouette-height proposal; renderer validation pending",
+      "sha256": "6d9b4b57d2b8529141595ecf70ec1e3cc14dc1aba31a8fbf6d5432f834af2d94",
+      "alpha_range": [
+        0,
+        254
+      ],
+      "alpha_zero_fraction": 0.5909455617268881,
+      "generator": "built-in image_gen",
+      "prompt_file": "entry.prompt.txt",
+      "qa": {
+        "static_identity": "visually inspected; canonical source bird identity preserved",
+        "true_alpha": true,
+        "equal_cells": true,
+        "visible_gutter_pass": true,
+        "cast_shadow": "none visibly drawn; hidden RGB includes brown preview background",
+        "issues": [
+          "Per-sheet scale and per-frame anchors required; renderer validation pending",
+          "Very low alpha fringe may extend beyond visible sprite; alpha threshold for QA is 8/255"
+        ],
+        "runtime_ready": false,
+        "static_asset_status": "independently accepted"
+      },
+      "measured_anchor_file": "entry.measured-anchors.json",
+      "body_normalization": {
+        "neutral_frame": 5,
+        "source_crest_to_sole_height_px": 393,
+        "target_height_px": 260,
+        "uniform_sheet_render_scale": 0.6615776081424937,
+        "measurement": "independent visual estimate +/-5px",
+        "exclude": "non-body ornaments, orbit decorations, magic floor oval and T7 drill",
+        "status": "proposed; renderer validation pending",
+        "apply": "Use same uniform scale for all six frames; align each measured foot anchor to fixed world origin. Do not individually scale each frame."
+      }
+    }
+  ]
+}

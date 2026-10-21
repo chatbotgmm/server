@@ -91,7 +91,20 @@ public class NativeCombinationWorkbenchTest {
 
   void idle() { Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32)); }
 
+  void browse(MainActivity host, String id) {
+    // 모든 카드를 동시에 그리지 않으므로 실제 이전·다음 버튼으로 찾는다.
+    for (int i = 0; i < 200 && host.root.findViewWithTag("mix-material-previous").isEnabled(); i++) {
+      host.root.findViewWithTag("mix-material-previous").performClick(); idle();
+    }
+    for (int i = 0; i < 200 && host.root.findViewWithTag("mix-picker-material-" + id) == null
+        && host.root.findViewWithTag("mix-material-next").isEnabled(); i++) {
+      host.root.findViewWithTag("mix-material-next").performClick(); idle();
+    }
+    assertNotNull("탐색한 재료 " + id, host.root.findViewWithTag("mix-picker-material-" + id));
+  }
+
   void add(MainActivity host, String id) {
+    browse(host, id);
     host.root.findViewWithTag("mix-picker-material-" + id).performClick();
     idle();
   }
@@ -170,6 +183,74 @@ public class NativeCombinationWorkbenchTest {
     assertNotNull(host.visibleDialog);
     host.visibleDialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
     idle();
+  }
+
+  void swipe(MainActivity host, float dx, float dy, boolean cancel) {
+    screens.layout(host, 915, 412, 160);
+    View carousel = host.root.findViewWithTag("mix-inventory");
+    float x = carousel.getWidth() / 2f, y = carousel.getHeight() / 2f;
+    long now = SystemClock.uptimeMillis();
+    int[] actions = {MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE,
+        cancel ? MotionEvent.ACTION_CANCEL : MotionEvent.ACTION_UP};
+    for (int i = 0; i < actions.length; i++) {
+      MotionEvent event = MotionEvent.obtain(now, now + i * 16, actions[i],
+          x + (i == 0 ? 0 : dx), y + (i == 0 ? 0 : dy), 0);
+      carousel.dispatchTouchEvent(event);
+      event.recycle();
+    }
+    idle();
+  }
+
+  @Test public void oneFullCardBrowsesWithoutSelectingAndSearchIsRemoved() throws Exception {
+    try (var controller = flow.start()) {
+      MainActivity host = controller.get(); Api api = prepare(host, true);
+      host.menus.economy.craft(true); idle();
+      ViewGroup carousel = host.root.findViewWithTag("mix-inventory");
+      assertEquals(1, carousel.getChildCount());
+      assertTrue(carousel.getChildAt(0) instanceof RegistrationCardView);
+      assertNotNull(host.root.findViewWithTag("mix-browse-card-C3"));
+      assertNull(host.root.findViewWithTag("mix-browse-card-C1"));
+      assertFalse(NativeNoScrollReviewTest.descendants(host.root).stream().anyMatch(v -> v instanceof EditText));
+      carousel.getChildAt(0).performClick();
+      host.root.findViewWithTag("mix-material-next").performClick(); idle();
+      assertNotNull(host.root.findViewWithTag("mix-browse-card-C1"));
+      assertTrue(host.menus.mixDraft.isEmpty());
+      swipe(host, -90, 0, false);
+      assertNotNull(host.root.findViewWithTag("mix-browse-card-I3"));
+      swipe(host, -90, 0, false);
+      assertNotNull("끝에서 넘어가지 않음", host.root.findViewWithTag("mix-browse-card-I3"));
+      swipe(host, 90, 0, true);
+      swipe(host, 0, 90, false);
+      assertNotNull("취소·수직 드래그는 탐색하지 않음", host.root.findViewWithTag("mix-browse-card-I3"));
+      host.busy = true;
+      swipe(host, 90, 0, false);
+      assertNotNull("요청 중 탐색 차단", host.root.findViewWithTag("mix-browse-card-I3"));
+      host.busy = false;
+      swipe(host, 90, 0, false);
+      assertNotNull(host.root.findViewWithTag("mix-browse-card-C1"));
+      assertTrue("탐색만으로 선택·소모하지 않음", host.menus.mixDraft.isEmpty() && api.writes.isEmpty());
+      for (int i = 0; i < 4; i++) add(host, "C1");
+      assertEquals(4, Collections.frequency(host.menus.mixDraft, "C1"));
+      assertFalse(host.root.findViewWithTag("mix-picker-material-C1").isEnabled());
+      assertTrue("소진한 카드도 넘길 수 있음", host.root.findViewWithTag("mix-material-next").isEnabled());
+      assertTrue(api.writes.isEmpty());
+    }
+  }
+
+  @Test public void emptyPoolHasNoCardOrAddButtonAndNavigationIsDisabled() throws Exception {
+    try (var controller = flow.start()) {
+      MainActivity host = controller.get(); Api api = prepare(host, true);
+      api.craft.put("pool", new JSONArray());
+      host.menus.economy.craft(true); idle();
+      assertFalse(host.root.findViewWithTag("mix-material-previous").isEnabled());
+      assertFalse(host.root.findViewWithTag("mix-material-next").isEnabled());
+      assertEquals("0 / 0", ((TextView) host.root.findViewWithTag("mix-material-position")).getText().toString());
+      assertFalse(NativeNoScrollReviewTest.descendants(host.root.findViewWithTag("mix-inventory")).stream()
+          .anyMatch(v -> v instanceof RegistrationCardView));
+      assertNull(host.root.findViewWithTag("mix-picker-material-C3"));
+      assertTrue(host.menus.mixDraft.isEmpty());
+      assertTrue(api.writes.isEmpty());
+    }
   }
 
   @Test public void hintStartsWithClueMaterialAndStopsWhenItIsRemovedOrCleared() throws Exception {
@@ -290,6 +371,7 @@ public class NativeCombinationWorkbenchTest {
       idle();
       for (int i = 0; i < 3; i++) { add(host, "C3"); add(host, "C1"); }
       assertEquals("구 서버는 maxMaterials가 없어 기존 6개 한도", 6, host.menus.mixDraft.size());
+      browse(host, "I3");
       assertFalse(host.root.findViewWithTag("mix-picker-material-I3").isEnabled());
       assertFalse("구 서버는 hiddenHint가 없어 반짝이지 않음", hinted(frame(host)));
     }
@@ -334,9 +416,12 @@ public class NativeCombinationWorkbenchTest {
             if (view instanceof Button)
               assertTrue(tag + " 48dp · " + name, view.getHeight() >= host.dp(48));
           }
-          if (host.root.findViewWithTag("mix-picker-material-I3") == null)
-            assertNotNull("보유 재료가 한 쪽을 넘으면 쪽 넘김 · " + name, host.root.findViewWithTag("mix-material-pages"));
-          for (String tag : new String[] {"mix-picker-material-C3", "mix-picker-material-C1", "mix-material-C3",
+          assertEquals("큰 카드 한 장만 표시 · " + name,
+              1, ((ViewGroup) host.root.findViewWithTag("mix-inventory")).getChildCount());
+          assertNotNull("보유 카드 탐색 · " + name, host.root.findViewWithTag("mix-material-pages"));
+          assertTrue("큰 카드 화면 안 · " + name,
+              screen.contains(screens.bounds(host.root.findViewWithTag("mix-browse-card-C3"), host.root)));
+          for (String tag : new String[] {"mix-picker-material-C3", "mix-material-previous", "mix-material-next", "mix-material-C3",
               "mix-empty-slot-2"}) {
             View touch = host.root.findViewWithTag(tag);
             assertNotNull(tag + " · " + name, touch);
@@ -344,7 +429,7 @@ public class NativeCombinationWorkbenchTest {
             assertTrue(tag + " 화면 안 · " + name, screen.contains(screens.bounds(touch, host.root)));
           }
           for (String tag : new String[] {"craft-material-picker", "craft-recipe-picker", "mix-count",
-              "mix-result-heading", "mix-clear", "mix-submit"}) {
+              "mix-result-heading", "mix-clear", "mix-submit", "mix-material-position", "mix-picker-material-C3"}) {
             TextView label = host.root.findViewWithTag(tag);
             assertNotNull(tag, label);
             assertNotNull(tag, label.getLayout());
@@ -395,3 +480,4 @@ public class NativeCombinationWorkbenchTest {
       }
   }
 }
+

@@ -1,0 +1,171 @@
+{
+  "character": "D1",
+  "name": "태초의 갈매미맨",
+  "view": "front",
+  "action": "entry",
+  "sheet_size": [
+    1536,
+    1024
+  ],
+  "cell_size": [
+    512,
+    512
+  ],
+  "grid": [
+    3,
+    2
+  ],
+  "frame_order": "row-major left-to-right, top-to-bottom",
+  "loop": false,
+  "frames": [
+    {
+      "index": 0,
+      "rect": [
+        0,
+        0,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        111,
+        183,
+        407,
+        415
+      ],
+      "foot_anchor_px": [
+        254.5,
+        412
+      ],
+      "foot_anchor_method": "gold-claw pixels in central lower35px, alpha>128; inspect renderer",
+      "duration_ms": 100
+    },
+    {
+      "index": 1,
+      "rect": [
+        512,
+        0,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        81,
+        170,
+        431,
+        419
+      ],
+      "foot_anchor_px": [
+        254.5,
+        415
+      ],
+      "foot_anchor_method": "gold-claw pixels in central lower35px, alpha>128; inspect renderer",
+      "duration_ms": 100
+    },
+    {
+      "index": 2,
+      "rect": [
+        1024,
+        0,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        24,
+        153,
+        471,
+        419
+      ],
+      "foot_anchor_px": [
+        248.0,
+        416
+      ],
+      "foot_anchor_method": "gold-claw pixels in central lower35px, alpha>128; inspect renderer",
+      "duration_ms": 80
+    },
+    {
+      "index": 3,
+      "rect": [
+        0,
+        512,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        28,
+        85,
+        483,
+        397
+      ],
+      "foot_anchor_px": [
+        255.5,
+        393
+      ],
+      "foot_anchor_method": "gold-claw pixels in central lower35px, alpha>128; inspect renderer",
+      "duration_ms": 100
+    },
+    {
+      "index": 4,
+      "rect": [
+        512,
+        512,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        50,
+        128,
+        458,
+        396
+      ],
+      "foot_anchor_px": [
+        254.5,
+        393
+      ],
+      "foot_anchor_method": "gold-claw pixels in central lower35px, alpha>128; inspect renderer",
+      "duration_ms": 120
+    },
+    {
+      "index": 5,
+      "rect": [
+        1024,
+        512,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        35,
+        118,
+        466,
+        396
+      ],
+      "foot_anchor_px": [
+        271.5,
+        393
+      ],
+      "foot_anchor_method": "gold-claw pixels in central lower35px, alpha>128; inspect renderer",
+      "duration_ms": 180
+    }
+  ],
+  "render_world_origin": "same foot position for every frame; draw at worldOrigin - foot_anchor_px*scale",
+  "proposed_sheet_scale_to_neutral260px_height": 0.935252,
+  "scale_status": "proposal only; cross-action/view renderer validation pending",
+  "sha256": "50200fd0cb19dcb3da9144de7876eaf3084b584d8e9737a815df6474999fb2e2",
+  "alpha_range": [
+    0,
+    254
+  ],
+  "alpha_zero_fraction": 0.6487026214599609,
+  "generator": "built-in image_gen",
+  "prompt_file": "entry.prompt.txt",
+  "qa": {
+    "static_identity": "visually inspected; canonical gold stone bird preserved",
+    "true_alpha": true,
+    "equal_cells": true,
+    "visible_gutter_pass": true,
+    "cast_shadow": "none visibly drawn; hidden RGB includes brown preview background",
+    "issues": [
+      "Per-sheet scale and per-frame anchors required; renderer validation pending",
+      "Very low alpha fringe may extend beyond visible sprite; alpha threshold for QA is 8/255"
+    ],
+    "runtime_ready": false
+  }
+}

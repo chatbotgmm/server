@@ -159,3 +159,31 @@ tasks.register('prepareNativeReviewSdk', Copy) {
     into layout.buildDirectory.dir('native-review-sdk')
 }
 
+
+
+// 원본은 Git에 보존하고, APK에는 셀 256px 파생 시트만 넣는다.
+def upper33Source = file('../../../art/gpt/upper33-animation-v1')
+def upper33Runtime = file('../../../art/gpt/upper33-runtime-v1')
+def upper33Generator = file('../../../scripts/PrepareUpper33Art.java')
+def upper33Generated = layout.buildDirectory.dir('generated/upper33')
+tasks.register('prepareUpper33Art') {
+    inputs.dir upper33Source
+    inputs.dir upper33Runtime
+    inputs.file upper33Generator
+    outputs.dir upper33Generated
+    doLast {
+        def out = upper33Generated.get().asFile
+        delete out
+        // Gradle 실행 JDK 17 이상을 사용한다. 외부 다운로드/서버 인증은 없다.
+        exec {
+            commandLine new File(System.getProperty('java.home'), 'bin/java').absolutePath,
+                '-Djava.awt.headless=true', upper33Generator.absolutePath,
+                upper33Source.absolutePath, new File(upper33Runtime, 'sources.tsv').absolutePath,
+                new File(upper33Runtime, 'catalog.json').absolutePath, out.absolutePath
+        }
+    }
+}
+tasks.named('bundleGameArt').configure {
+    dependsOn 'prepareUpper33Art'
+    from(upper33Generated) { into 'native/upper33-v1' }
+}

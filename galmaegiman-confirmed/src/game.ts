@@ -1,3 +1,4 @@
+import { normalizeNickname, nicknameError, needsInitialNickname } from './nickname.js';
 import { hiddenMaterialHint, mixMaterialLimit } from './craft-hints.js';
 import { randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -1498,14 +1499,34 @@ export class GameService {
   }
   // 게임 튜토리얼(v0.15.0): 처음 물을 때 새 유저(스토리 저장·가진 갈매미 없음)면 1단계, 아니면 9(끝)로 정함
   async webTutorial(playerId:string){
-    const p=await this.db.player.findUnique({where:{id:playerId},select:{gameTutorial:true,gameSeen:true}});
+    const p=await this.db.player.findUnique({where:{id:playerId},select:{gameTutorial:true,gameSeen:true,nickname:true}});
     if(!p)throw new GameError('계정을 찾지 못했어요.');
     let step=p.gameTutorial;
     if(step===0){
       const old=(await this.db.storySave.count({where:{playerId}}))>0||(await this.db.ownedCharacter.count({where:{playerId}}))>0;
       step=old?9:1;await this.db.player.update({where:{id:playerId},data:{gameTutorial:step}});
     }
-    return {step,seen:p.gameSeen.split(',').filter(Boolean)};
+    return {step,seen:p.gameSeen.split(',').filter(Boolean),nicknameRequired:needsInitialNickname({...p,gameTutorial:step})};
+  }
+  // Initial setup only: retrying the same request is safe; never overwrite an existing name.
+  async webInitialNickname(playerId:string,value:unknown){
+    if(typeof value!=='string')throw new GameError('닉네임을 입력해 주세요.');
+    const name=normalizeNickname(value),error=nicknameError(name);
+    if(error)throw new GameError(error);
+    try {
+      return await this.webRun(playerId,async(tx,p)=>{
+        if(p.nickname===name)return {nickname:name};
+        if(p.nickname)throw new GameError('이미 닉네임이 설정되어 있어요. 진행을 다시 불러와 주세요.');
+        if(!needsInitialNickname(p))throw new GameError('첫 시작 닉네임 설정 대상이 아니에요. 진행을 다시 불러와 주세요.');
+        if(await tx.player.findUnique({where:{nickname:name}}))throw new GameError(`「${name}」은(는) 이미 누가 쓰고 있어요.`);
+        await tx.player.update({where:{id:p.id},data:{nickname:name}});
+        await this.audit(tx,p,'NICKNAME',{from:p.nickname,to:name});
+        return {nickname:name};
+      });
+    } catch(error) {
+      if(error instanceof Prisma.PrismaClientKnownRequestError && error.code==='P2002')throw new GameError('이미 사용 중인 닉네임이에요. 다른 이름을 골라 주세요.');
+      throw error;
+    }
   }
   // 단계는 앞으로만(9 = 끝·건너뛰기). 뽑기 단계(2)를 지나면 태초의 갈매미맨(D1)을 한 번 지급(한 번도 가진 적 없을 때만). 그 자리에서 건너뛰면 전투 편성도 D1로
   async webTutorialSet(playerId:string,step:number,seen?:string){
@@ -2254,12 +2275,9 @@ export class GameService {
       return {text:`🛠 관리자로 등록했어요.\n${adminOnText}\n끄기: 관리자 끄기 · 켜기: 관리자 켜기\n등록 해제: 관리자 해제`,choices:[choice('뽑기'),choice('관리자 끄기'),...menu]};
     }
     if(command==='닉네임'||command==='닉네임설정'){
-      const name=query.normalize('NFKC').trim().replace(/\s+/g,' ');
+      const name=normalizeNickname(query);
       if(!name)return {text:`🏷 닉네임: ${p.nickname??'(없음)'}\n랭킹에 표시돼요. 바꾸려면: 닉네임 갈매미왕\n(2~10자, 한글·영문·숫자)`,choices:[choice('랭킹'),...menu]};
-      if(!/^[가-힣a-zA-Z0-9 ]{2,10}$/u.test(name))throw new GameError('닉네임은 2~10자, 한글·영문·숫자(띄어쓰기 가능)만 쓸 수 있어요.');
-      // 공개 랭킹에서 운영자인 척하지 못하게 막는 이름
-      const plain=name.replace(/\s+/g,'').toLowerCase();
-      if(['관리자','운영자','운영진','운영팀','관리팀','개발자','공식','갈매미맨','admin','official','staff'].some(w=>plain.includes(w))||/^(gm|dev)\d*$/.test(plain))throw new GameError(`「${name}」은(는) 운영진과 헷갈릴 수 있어서 쓸 수 없어요.`);
+      const error=nicknameError(name);if(error)throw new GameError(error);
       if(name===p.nickname)return {text:`이미 「${name}」이에요.`,choices:[choice('랭킹'),...menu]};
       if(await tx.player.findUnique({where:{nickname:name}}))throw new GameError(`「${name}」은(는) 이미 누가 쓰고 있어요.`);
       await tx.player.update({where:{id:p.id},data:{nickname:name}});

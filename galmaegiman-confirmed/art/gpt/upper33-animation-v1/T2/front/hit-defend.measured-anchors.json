@@ -1,0 +1,38 @@
+{
+  "source_sha256": "59ef7d7ec6900419f98705422dde7478855d8cfa03638b0bd278ead5315cd3d7",
+  "sheet": "T2/front/hit-defend.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      246,
+      447
+    ],
+    [
+      258,
+      446
+    ],
+    [
+      257,
+      447
+    ],
+    [
+      269,
+      417
+    ],
+    [
+      240,
+      435
+    ],
+    [
+      247,
+      437
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Visual claw/sole estimate +/-4px; excludes molten drip and hammer impact VFX. Frame3 front attack foot pair partly obscured by hammer, inferred from visible lateral toes.",
+  "renderer_validation": "pending"
+}

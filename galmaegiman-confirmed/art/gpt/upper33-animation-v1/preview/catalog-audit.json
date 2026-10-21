@@ -1,0 +1,543 @@
+{
+  "characters": 33,
+  "sheets": 264,
+  "hashes_verified": 264,
+  "issues": [
+    {
+      "id": "D1",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D1",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D2",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D2",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D3",
+      "view": "front",
+      "action": "hit-defend",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D3",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D3",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D4",
+      "view": "front",
+      "action": "idle",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D4",
+      "view": "front",
+      "action": "hit-defend",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D4",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D4",
+      "view": "back",
+      "action": "idle",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D4",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D5",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D5",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D6",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D6",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D7",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D7",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D8",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "D8",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "T2",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "T2",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "T4",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "T4",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "T5",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "T5",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "T6",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "T6",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "T7",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "T7",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "T8",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "T8",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "E1",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "E1",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "E2",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "E2",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "E3",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "E3",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "E4",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "E4",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "E5",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "E5",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "E6",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "E6",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "E7",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "E7",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "E8",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "E8",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I1",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I1",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I2",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I2",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I3",
+      "view": "front",
+      "action": "attack",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I3",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I3",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I4",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I4",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I5",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I5",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I6",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I6",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I7",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I7",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I8",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I8",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I9",
+      "view": "front",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    },
+    {
+      "id": "I9",
+      "view": "back",
+      "action": "entry",
+      "warnings": [
+        "Entry/airborne vertical trajectory unprovided: anchor-only diagnostic, not faithful motion"
+      ]
+    }
+  ]
+}

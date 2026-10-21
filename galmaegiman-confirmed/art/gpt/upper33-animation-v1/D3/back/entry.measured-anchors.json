@@ -1,0 +1,42 @@
+{
+  "source_sha256": "d2f74c68579bfaacf3be83e00b4ba7ef28d2ddb6419eeaa4b85bb932fec7b818",
+  "sheet": "D3/back/entry.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      255.0,
+      448
+    ],
+    [
+      260.5,
+      450
+    ],
+    [
+      251.0,
+      453
+    ],
+    [
+      258.5,
+      414
+    ],
+    [
+      256.0,
+      415
+    ],
+    [
+      289.5,
+      416
+    ]
+  ],
+  "placement_rule": "Fixed actor world origin plus authored airborne offset for listed frames; do not ground airborne feet. Other frames align measured feet.",
+  "measurement": "Alpha>128 foot-region pixels in lower40px central band, visually checked against feet; requires renderer validation.",
+  "renderer_validation": "pending",
+  "airborne_frames_zero_based": [
+    0,
+    1
+  ]
+}

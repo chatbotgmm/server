@@ -1,0 +1,38 @@
+{
+  "source_sha256": "21003293998b95669e72777f8f1febfe229495acdb59268ebc471ce95ede8c26",
+  "sheet": "T3/back/attack.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      287,
+      448
+    ],
+    [
+      288,
+      450
+    ],
+    [
+      299,
+      450
+    ],
+    [
+      293,
+      439
+    ],
+    [
+      297,
+      439
+    ],
+    [
+      301,
+      439
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Feet fully concealed by cloak; inferred body-ground anchor +/-12px, not directly measured feet. Renderer validation required.",
+  "renderer_validation": "pending"
+}

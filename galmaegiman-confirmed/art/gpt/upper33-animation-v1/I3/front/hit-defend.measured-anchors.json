@@ -1,0 +1,38 @@
+{
+  "source_sha256": "ee72b5d2aa7915fb23d5294cde815d726224a98fc5da0093bd456c2345476539",
+  "sheet": "I3/front/hit-defend.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      266.0,
+      451
+    ],
+    [
+      258.0,
+      452
+    ],
+    [
+      264.5,
+      452
+    ],
+    [
+      242.5,
+      447
+    ],
+    [
+      258.0,
+      448
+    ],
+    [
+      267.5,
+      451
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Gold claw region below body, central x170..360; excludes dark-purple floating shards. Visually checked, renderer pending.",
+  "renderer_validation": "pending"
+}

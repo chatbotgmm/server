@@ -1,0 +1,87 @@
+{
+  "target_body_height_px": 260,
+  "pixels_modified": false,
+  "renderer_validation": "pending",
+  "sheets": [
+    {
+      "path": "back/attack.png",
+      "sha256": "66375d520d395c41bdcc054663592b720db95d3f1cb75e3dd78097226e5d8b29",
+      "neutral_frame": 0,
+      "neutral_body_height_px": 186,
+      "uncertainty_px": 5,
+      "proposed_uniform_scale": 1.397849,
+      "basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "source": "independent visual QA report"
+    },
+    {
+      "path": "back/entry.png",
+      "sha256": "31b6c266cb5abd7814e4aa0d03c3f9b03c55acd71645223b4c63df5653f296fc",
+      "neutral_frame": 5,
+      "neutral_body_height_px": 286,
+      "uncertainty_px": 5,
+      "proposed_uniform_scale": 0.909091,
+      "basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "source": "independent visual QA report"
+    },
+    {
+      "path": "back/hit-defend.png",
+      "sha256": "3c57cb8e17033e14e47e2d0f6468d54e77828ed3bfe4b0902af8fc04ebffacf1",
+      "neutral_frame": 0,
+      "neutral_body_height_px": 307,
+      "uncertainty_px": 5,
+      "proposed_uniform_scale": 0.846906,
+      "basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "source": "independent visual QA report"
+    },
+    {
+      "path": "back/idle.png",
+      "sha256": "1bbcf1625fc662e51c8957bbb4a5df1c5ce24d62829170ff3c85d07e11ed8d72",
+      "neutral_frame": 0,
+      "neutral_body_height_px": 300,
+      "uncertainty_px": 5,
+      "proposed_uniform_scale": 0.866667,
+      "basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "source": "independent visual QA report"
+    },
+    {
+      "path": "front/attack.png",
+      "sha256": "0a3bdec207b3df24abe840ee110bdb05b8a8ea0fc9ef5c6993621ff480bbe455",
+      "neutral_frame": 0,
+      "neutral_body_height_px": 216,
+      "uncertainty_px": 5,
+      "proposed_uniform_scale": 1.203704,
+      "basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "source": "independent visual QA report"
+    },
+    {
+      "path": "front/entry.png",
+      "sha256": "d1754c4f90bb9b0b8a45e362ee1afd928228afca3bcc66fe733f772e88d3bb6d",
+      "neutral_frame": 5,
+      "neutral_body_height_px": 288,
+      "uncertainty_px": 5,
+      "proposed_uniform_scale": 0.902778,
+      "basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "source": "independent visual QA report"
+    },
+    {
+      "path": "front/hit-defend.png",
+      "sha256": "9146054c988a0ca8af7cabb9e532852211cc41df10e22267fc8d2a8a232ab22c",
+      "neutral_frame": 0,
+      "neutral_body_height_px": 218,
+      "uncertainty_px": 5,
+      "proposed_uniform_scale": 1.192661,
+      "basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "source": "independent visual QA report"
+    },
+    {
+      "path": "front/idle.png",
+      "sha256": "db57629e8c993107944d9e554a831cff5b58df5fe3ab09db1cc88217c53f126c",
+      "neutral_frame": 0,
+      "neutral_body_height_px": 235,
+      "uncertainty_px": 5,
+      "proposed_uniform_scale": 1.106383,
+      "basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "source": "independent visual QA report"
+    }
+  ]
+}

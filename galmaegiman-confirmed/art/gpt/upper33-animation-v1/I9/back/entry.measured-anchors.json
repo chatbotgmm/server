@@ -1,0 +1,38 @@
+{
+  "source_sha256": "3676b815dd7d96f0a63f458bd1af0a900a0257b4932452360c1452a10561b7ab",
+  "sheet": "I9/back/entry.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      258.0,
+      442
+    ],
+    [
+      253.0,
+      443
+    ],
+    [
+      256.0,
+      443
+    ],
+    [
+      251.5,
+      423
+    ],
+    [
+      253.5,
+      422
+    ],
+    [
+      258.0,
+      423
+    ]
+  ],
+  "placement_rule": "Align paired shell-base midpoint to fixed world origin. Shells are canonical footwear, not cast shadows.",
+  "measurement": "Alpha>128 lower40px shell-base center, visually verified against paired pearl shell boots. Approximate \u00b14px; renderer validation pending.",
+  "renderer_validation": "pending"
+}

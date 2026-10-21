@@ -1,0 +1,38 @@
+{
+  "source_sha256": "7e33241a2114b38116c005b38fa0e84a60f9be9f67d0790abf6f6faeb674cd4c",
+  "sheet": "T3/back/entry.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      282,
+      440
+    ],
+    [
+      296,
+      443
+    ],
+    [
+      290,
+      443
+    ],
+    [
+      314,
+      411
+    ],
+    [
+      301,
+      412
+    ],
+    [
+      303,
+      413
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Feet fully concealed by cloak; inferred body-ground anchor +/-12px, not directly measured feet. Renderer validation required.",
+  "renderer_validation": "pending"
+}

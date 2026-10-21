@@ -1,0 +1,41 @@
+{
+  "source_sha256": "7940fb983b39d984e3753af1d23c783e9c28b690ef75c44f320812666a745fbb",
+  "sheet": "D3/front/hit-defend.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      270.5,
+      436
+    ],
+    [
+      259.0,
+      439
+    ],
+    [
+      251.0,
+      435
+    ],
+    [
+      265.5,
+      412
+    ],
+    [
+      267.0,
+      416
+    ],
+    [
+      262.0,
+      419
+    ]
+  ],
+  "placement_rule": "Fixed actor world origin plus authored airborne offset for listed frames; do not ground airborne feet. Other frames align measured feet.",
+  "measurement": "Alpha>128 foot-region pixels in lower40px central band, visually checked against feet; requires renderer validation.",
+  "renderer_validation": "pending",
+  "airborne_frames_zero_based": [
+    3
+  ]
+}

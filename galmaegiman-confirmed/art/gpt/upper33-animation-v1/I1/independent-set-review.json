@@ -1,0 +1,21 @@
+{
+  "id": "I1",
+  "status": "all eight assets accepted with per-frame anchors and proposed sheet scale; renderer validation pending",
+  "accepted": [
+    "I1/front/idle.png",
+    "I1/front/attack.png",
+    "I1/front/hit-defend.png",
+    "I1/front/entry.png",
+    "I1/back/idle.png",
+    "I1/back/attack.png",
+    "I1/back/hit-defend.png",
+    "I1/back/entry.png"
+  ],
+  "edge_issues": [],
+  "caveats": [
+    "Refined measured feet anchors provided beside each sheet.",
+    "Proposed per-sheet neutral260 body-height scale now recorded; requires renderer validation.",
+    "No runtime animation test performed."
+  ],
+  "scale_metadata_manifest_sha256": "a75908a0fb9a7dfae5fbc4d88085d72026195d6a84de6fee09f8018c12159729"
+}

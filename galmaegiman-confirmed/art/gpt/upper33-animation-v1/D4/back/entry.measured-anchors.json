@@ -1,0 +1,42 @@
+{
+  "source_sha256": "eef07bcd7da6c81252e5202d2b04dd630994fc261465fc56f1c33d5f7ba47ecf",
+  "sheet": "D4/back/entry.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      264,
+      473
+    ],
+    [
+      272,
+      490
+    ],
+    [
+      267,
+      493
+    ],
+    [
+      266,
+      446
+    ],
+    [
+      267,
+      451
+    ],
+    [
+      256,
+      451
+    ]
+  ],
+  "placement_rule": "Fixed actor origin plus authored airborne offset on listed frames; grounded frames use feet anchor.",
+  "measurement": "Visual gold-claw anchor estimate +/-4px, excludes water droplets and plate tips. Renderer validation pending.",
+  "renderer_validation": "pending",
+  "airborne_frames_zero_based": [
+    0,
+    1
+  ]
+}

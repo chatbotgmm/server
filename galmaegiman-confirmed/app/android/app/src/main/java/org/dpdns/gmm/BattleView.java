@@ -918,7 +918,50 @@ final class BattleView extends FrameLayout implements FullBleed {
   final class Scene extends View {
     Paint p = new Paint(3);
     final JournalBattleLight ambientLight = new JournalBattleLight();
-    final Runnable timeChanged = this::invalidate;
+    final Runnable timeChanged = () -> { invalidate(); refreshAnimation(); };
+    UpperAnimationArt upperArt;
+    boolean animationScheduled;
+    final ViewTreeObserver.OnPreDrawListener animationVisibility = () -> { refreshAnimation(); return true; };
+    final android.database.ContentObserver animationSetting = new android.database.ContentObserver(
+        new android.os.Handler(android.os.Looper.getMainLooper())) {
+      @Override public void onChange(boolean selfChange) { invalidate(); refreshAnimation(); }
+    };
+    final Runnable animationTick = new Runnable() {
+      public void run() {
+        animationScheduled = false;
+        if (!animationVisible()) return;
+        invalidate();
+        refreshAnimation();
+      }
+    };
+    boolean animationVisible() {
+      return isAttachedToWindow() && isShown() && getWindowVisibility() == View.VISIBLE
+          && hasWindowFocus() && host.motionResumed && host.visibleDialog == null
+          && (hasAnimation(active(0)) || hasAnimation(active(1)));
+    }
+    void refreshAnimation() {
+      if (!animationVisible()) {
+        removeCallbacks(animationTick);
+        animationScheduled = false;
+      } else if (!animationScheduled) {
+        animationScheduled = true;
+        postDelayed(animationTick, 80);
+      }
+    }
+    @Override public void onWindowFocusChanged(boolean focus) {
+      super.onWindowFocusChanged(focus);
+      refreshAnimation();
+    }
+    @Override protected void onWindowVisibilityChanged(int visibility) {
+      super.onWindowVisibilityChanged(visibility);
+      if (animationTick != null) refreshAnimation();
+    }
+    boolean hasAnimation(JSONObject fighter) {
+      return upperArt != null && SceneMotion.enabled(host) && upperArt.supports(fighter);
+    }
+    int animationDuration(JSONObject fighter, int side, String effect, int fallback) {
+      return !hasAnimation(fighter) ? fallback : upperArt.duration(fighter, side, effect, fallback);
+    }
 
     Scene() {
       super(host);
@@ -928,11 +971,22 @@ final class BattleView extends FrameLayout implements FullBleed {
     protected void onAttachedToWindow() {
       super.onAttachedToWindow();
       host.journalTime.addListener(timeChanged);
+      upperArt = new UpperAnimationArt(host, () -> { invalidate(); refreshAnimation(); });
+      getViewTreeObserver().addOnPreDrawListener(animationVisibility);
+      host.getContentResolver().registerContentObserver(
+          android.provider.Settings.Global.getUriFor(android.provider.Settings.Global.ANIMATOR_DURATION_SCALE),
+          false, animationSetting);
+      refreshAnimation();
     }
 
     @Override
     protected void onDetachedFromWindow() {
       host.journalTime.removeListener(timeChanged);
+      removeCallbacks(animationTick);
+      animationScheduled = false;
+      if (getViewTreeObserver().isAlive()) getViewTreeObserver().removeOnPreDrawListener(animationVisibility);
+      host.getContentResolver().unregisterContentObserver(animationSetting);
+      if (upperArt != null) { upperArt.close(); upperArt = null; }
       super.onDetachedFromWindow();
     }
 
@@ -981,6 +1035,11 @@ final class BattleView extends FrameLayout implements FullBleed {
         RectF r = new RectF(left, top, left + bw, top + bh);
         r.offset(parallax.x * .2f, parallax.y * .2f);
         bitmap(c, bg, null, r);
+        if (host.backgroundEffects != null) {
+          if (battle.optString("scene", "harbor").equals("harbor")) host.backgroundEffects.boat.draw(c, bg, r, host.motionResumed && SceneMotion.enabled(host) && host.visibleDialog == null && hasWindowFocus());
+          host.backgroundEffects.draw(c, battle.optString("scene", "harbor").equals("harbor") ? "battle-v1/bg-harbor.png" : "", r, this, this::invalidate);
+        }
+
       } else BattleBackground.fallback(c, p, w, h);
       ambientLight.draw(c, battle.optString("scene", "harbor"), host.journalTime.phase());
       c.save();
@@ -1019,7 +1078,7 @@ final class BattleView extends FrameLayout implements FullBleed {
       c.restore();
     }
 
-    void fighter(Canvas c, JSONObject f, RectF area) {
+    void fighter(Canvas c, JSONObject f, RectF area, int side) {
       String path = f.optString("image");
       Bitmap b = host.art.scene(path, this::invalidate);
       boolean flash =
@@ -1035,7 +1094,10 @@ final class BattleView extends FrameLayout implements FullBleed {
                   1, 0, 0, 0, light, 0, 1, 0, 0, light, 0, 0, 1, 0, light, 0, 0, 0, 1, 0
                 }));
       }
-      fit(c, b, path, area);
+      if (upperArt == null || !SceneMotion.enabled(host) || !upperArt.draw(c, p, f, area, side,
+          playback.effect, playback.progress, playback.playing && playback.side == side)) {
+        fit(c, b, path, area);
+      }
       p.setColorFilter(null);
     }
 
@@ -1071,3 +1133,4 @@ final class BattleView extends FrameLayout implements FullBleed {
     }
   }
 }
+

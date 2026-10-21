@@ -1,0 +1,38 @@
+{
+  "source_sha256": "20b94d788a63e0aab187089059b3c5fe3328a44289052cb2b8c5630052a339d7",
+  "sheet": "I9/back/attack.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      270.5,
+      423
+    ],
+    [
+      258.5,
+      426
+    ],
+    [
+      244.5,
+      422
+    ],
+    [
+      275.5,
+      414
+    ],
+    [
+      260.0,
+      414
+    ],
+    [
+      240.5,
+      414
+    ]
+  ],
+  "placement_rule": "Align paired shell-base midpoint to fixed world origin. Shells are canonical footwear, not cast shadows.",
+  "measurement": "Alpha>128 lower40px shell-base center, visually verified against paired pearl shell boots. Approximate \u00b14px; renderer validation pending.",
+  "renderer_validation": "pending"
+}

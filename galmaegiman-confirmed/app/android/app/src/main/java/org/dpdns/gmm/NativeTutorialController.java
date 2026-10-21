@@ -83,7 +83,7 @@ final class NativeTutorialController {
       JSONArray list = h.list(saved, "seen");
       for (int i = 0; i < list.length(); i++) seen.add(list.optString(i));
       progress.sync(saved.optInt("step", 9), seen);
-      if (progress.step == 1 && !progress.seen.contains("tut") && !progress.replay) {
+      if (!h.nicknameRequired() && progress.step == 1 && !progress.seen.contains("tut") && !progress.replay) {
         progress.seen.add("tut");
         h.api.call("tutorial", MainActivity.obj("step", 1, "seen", "tut"), (r, e) -> {});
       }
@@ -92,7 +92,7 @@ final class NativeTutorialController {
 
   void onScreenShown(String screen) {
     onStateUpdated();
-    if (!enabled || h.api.token().isEmpty()) {
+    if (!enabled || h.nicknameRequired() || h.api.token().isEmpty()) {
       removeOverlay();
       return;
     }
@@ -229,7 +229,7 @@ final class NativeTutorialController {
   }
 
   void update() {
-    if (!enabled
+    if (h.nicknameRequired() || !enabled
         || saving
         || h.api.token().isEmpty()
         || h.root.getWidth() == 0
@@ -255,7 +255,7 @@ final class NativeTutorialController {
       card(
           "first-reward",
           "첫 모집 보상",
-          "태초의 갈매미맨이 수비대에 들어왔어요. 모든 갈매미의 원형이에요. 이 한 마리로 첫 전투에 나가요."
+          "태초의 갈매미맨이 방범대에 들어왔어요. 모든 갈매미의 원형이에요. 이 한 마리로 첫 전투에 나가요."
               + (progress.replay ? "\n다시 보기에서는 새 갈매미를 지급하지 않아요." : ""),
           "받기",
           () -> {
@@ -294,9 +294,9 @@ final class NativeTutorialController {
       if (screen.equals("home"))
         spotlight(
             "defenders",
-            find("defenders", "수비대"),
+            find("defenders", "방범대"),
             "③ 전투 편성",
-            "수비대에서 전투에 나갈 갈매미를 정해요.",
+            "방범대에서 전투에 나갈 갈매미를 정해요.",
             () -> {
               h.selectionMode = "story";
               h.menus.teamDraft = null;
@@ -330,7 +330,7 @@ final class NativeTutorialController {
               "③ 전투 편성",
               "갈매미를 눌러 단상에 올려요. 이름 옆 칩은 속성이에요.",
               null);
-      } else back("수비대");
+      } else back("방범대");
       return;
     }
     if (progress.step == 4) {
@@ -616,4 +616,5 @@ final class NativeTutorialController {
     return null;
   }
 }
+
 

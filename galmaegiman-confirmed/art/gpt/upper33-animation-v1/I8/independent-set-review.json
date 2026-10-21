@@ -1,0 +1,19 @@
+{
+  "id": "I8",
+  "status": "all eight assets accepted; renderer validation pending",
+  "accepted": [
+    "I8/front/idle.png",
+    "I8/front/attack.png",
+    "I8/front/hit-defend.png",
+    "I8/front/entry.png",
+    "I8/back/idle.png",
+    "I8/back/attack.png",
+    "I8/back/hit-defend.png",
+    "I8/back/entry.png"
+  ],
+  "edge_issues": [],
+  "caveats": [
+    "Per-frame measured anchors required.",
+    "Cross-action/view scaling and playback remain renderer-validation tasks."
+  ]
+}

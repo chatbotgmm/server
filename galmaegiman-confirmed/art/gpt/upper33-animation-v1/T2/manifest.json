@@ -1,0 +1,644 @@
+{
+  "id": "T2",
+  "name": "금율 갈매미맨",
+  "references": {
+    "front": {
+      "path": "/workspace/shared/upper33-animation/reference/T2_s0_front.webp",
+      "sha256": "b283b2d00186f18219d9ba255dca532917b6e6a6ab343fdd6089ae8de82c5512",
+      "git_blob_sha": "15341aa8b45663cc5848126a4e929246d2d21f7e",
+      "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T2_s0_front.webp",
+      "size": [
+        854,
+        768
+      ],
+      "mode": "RGBA",
+      "bytes": 172616,
+      "status": "canonical_reference_downloaded_hash_verified"
+    },
+    "back": {
+      "path": "/workspace/shared/upper33-animation/reference/T2_s0_back.webp",
+      "sha256": "f5220398d8444251b02f356b9981de9e4dd046ce37112c3f5e88276a633158a4",
+      "git_blob_sha": "5828ce16bad7e7f8468cada8c783acdf3d7e4f11",
+      "source_url": "https://github.com/chatbotgmm/server/blob/main-oz3tvo/galmaegiman-confirmed/public/battle/sprites/T2_s0_back.webp",
+      "size": [
+        874,
+        768
+      ],
+      "mode": "RGBA",
+      "bytes": 175626,
+      "status": "canonical_reference_downloaded_hash_verified"
+    }
+  },
+  "method": "built-in image_gen",
+  "status": "independently accepted asset set; renderer validation pending",
+  "renderer_validation": "pending",
+  "grid": [
+    3,
+    2
+  ],
+  "frame_order": "row-major",
+  "normalization": {
+    "origin": "fixed world feet anchor; align measured per-frame local feet anchors",
+    "scale": "Apply one proposed sheet scale to all frames, then align measured feet. Do not rescale individual crouch frames.",
+    "runtime_status": "not tested",
+    "target_neutral_body_height_px": 260
+  },
+  "sheets": [
+    {
+      "path": "front/idle.png",
+      "sha256": "470cc840fb5728445a9eb6f3f4322ea2b592ca3d703ee842183c8089d8017429",
+      "size": [
+        1536,
+        1024
+      ],
+      "cell_size": [
+        512,
+        512
+      ],
+      "frames": 6,
+      "durations_ms": [
+        160,
+        160,
+        160,
+        160,
+        160,
+        160
+      ],
+      "loop": true,
+      "alpha_range": [
+        0,
+        254
+      ],
+      "bounds_alpha127": [
+        [
+          38,
+          90,
+          463,
+          427
+        ],
+        [
+          48,
+          89,
+          469,
+          426
+        ],
+        [
+          41,
+          84,
+          476,
+          426
+        ],
+        [
+          41,
+          86,
+          466,
+          428
+        ],
+        [
+          48,
+          86,
+          470,
+          430
+        ],
+        [
+          45,
+          86,
+          472,
+          428
+        ]
+      ],
+      "isolated": true,
+      "repairs": null,
+      "neutral_body_height_px_estimate": 326,
+      "sheet_scale_factor_proposed": 0.79755,
+      "scale_measurement_uncertainty_px": 5,
+      "scale_basis": "QA visual crest tip to feet excluding equipment, frame0 except entry frame5",
+      "anchor_file": "front/idle.measured-anchors.json",
+      "prompt_files": [
+        "front/idle.json",
+        "front/idle.repair.json"
+      ]
+    },
+    {
+      "path": "front/attack.png",
+      "sha256": "c308146b795b6b97f7c5a7dd0d1e712576b576f57071bb005e43c9b7c492a59b",
+      "size": [
+        1536,
+        1024
+      ],
+      "cell_size": [
+        512,
+        512
+      ],
+      "frames": 6,
+      "durations_ms": [
+        100,
+        90,
+        80,
+        110,
+        110,
+        140
+      ],
+      "loop": false,
+      "alpha_range": [
+        0,
+        254
+      ],
+      "bounds_alpha127": [
+        [
+          32,
+          123,
+          475,
+          480
+        ],
+        [
+          31,
+          85,
+          482,
+          482
+        ],
+        [
+          24,
+          25,
+          474,
+          483
+        ],
+        [
+          47,
+          110,
+          490,
+          462
+        ],
+        [
+          44,
+          87,
+          482,
+          468
+        ],
+        [
+          32,
+          102,
+          472,
+          458
+        ]
+      ],
+      "isolated": true,
+      "repairs": null,
+      "neutral_body_height_px_estimate": 347,
+      "sheet_scale_factor_proposed": 0.74928,
+      "scale_measurement_uncertainty_px": 5,
+      "scale_basis": "QA visual crest tip to feet excluding equipment, frame0 except entry frame5",
+      "anchor_file": "front/attack.measured-anchors.json",
+      "prompt_files": [
+        "front/attack.json"
+      ]
+    },
+    {
+      "path": "front/hit-defend.png",
+      "sha256": "59ef7d7ec6900419f98705422dde7478855d8cfa03638b0bd278ead5315cd3d7",
+      "size": [
+        1536,
+        1024
+      ],
+      "cell_size": [
+        512,
+        512
+      ],
+      "frames": 6,
+      "durations_ms": [
+        100,
+        90,
+        80,
+        110,
+        110,
+        140
+      ],
+      "loop": false,
+      "alpha_range": [
+        0,
+        254
+      ],
+      "bounds_alpha127": [
+        [
+          30,
+          81,
+          483,
+          450
+        ],
+        [
+          30,
+          82,
+          509,
+          447
+        ],
+        [
+          16,
+          97,
+          493,
+          450
+        ],
+        [
+          28,
+          111,
+          504,
+          433
+        ],
+        [
+          18,
+          55,
+          501,
+          436
+        ],
+        [
+          38,
+          71,
+          497,
+          439
+        ]
+      ],
+      "isolated": true,
+      "repairs": null,
+      "neutral_body_height_px_estimate": 364,
+      "sheet_scale_factor_proposed": 0.71429,
+      "scale_measurement_uncertainty_px": 5,
+      "scale_basis": "QA visual crest tip to feet excluding equipment, frame0 except entry frame5",
+      "anchor_file": "front/hit-defend.measured-anchors.json",
+      "prompt_files": [
+        "front/hit-defend.json"
+      ]
+    },
+    {
+      "path": "front/entry.png",
+      "sha256": "8e03763a30b1b30674ed6491ff3388d48ba2f1062a8aa350c094e9284a62be53",
+      "size": [
+        1536,
+        1024
+      ],
+      "cell_size": [
+        512,
+        512
+      ],
+      "frames": 6,
+      "durations_ms": [
+        100,
+        90,
+        80,
+        110,
+        110,
+        140
+      ],
+      "loop": false,
+      "alpha_range": [
+        0,
+        254
+      ],
+      "bounds_alpha127": [
+        [
+          81,
+          159,
+          459,
+          408
+        ],
+        [
+          63,
+          128,
+          447,
+          410
+        ],
+        [
+          73,
+          108,
+          436,
+          408
+        ],
+        [
+          85,
+          40,
+          463,
+          398
+        ],
+        [
+          84,
+          100,
+          450,
+          384
+        ],
+        [
+          91,
+          104,
+          438,
+          384
+        ]
+      ],
+      "isolated": true,
+      "repairs": null,
+      "neutral_body_height_px_estimate": 271,
+      "sheet_scale_factor_proposed": 0.95941,
+      "scale_measurement_uncertainty_px": 5,
+      "scale_basis": "QA visual crest tip to feet excluding equipment, frame0 except entry frame5",
+      "anchor_file": "front/entry.measured-anchors.json",
+      "prompt_files": [
+        "front/entry.json",
+        "front/entry.repair.json"
+      ]
+    },
+    {
+      "path": "back/idle.png",
+      "sha256": "809c2609122d8449154f7a395667b373280c08f58a8dadeab71c2f46622b1e63",
+      "size": [
+        1536,
+        1024
+      ],
+      "cell_size": [
+        512,
+        512
+      ],
+      "frames": 6,
+      "durations_ms": [
+        160,
+        160,
+        160,
+        160,
+        160,
+        160
+      ],
+      "loop": true,
+      "alpha_range": [
+        0,
+        254
+      ],
+      "bounds_alpha127": [
+        [
+          20,
+          64,
+          487,
+          471
+        ],
+        [
+          20,
+          56,
+          486,
+          472
+        ],
+        [
+          2,
+          58,
+          468,
+          471
+        ],
+        [
+          21,
+          55,
+          490,
+          460
+        ],
+        [
+          20,
+          48,
+          494,
+          460
+        ],
+        [
+          22,
+          56,
+          486,
+          460
+        ]
+      ],
+      "isolated": true,
+      "repairs": null,
+      "neutral_body_height_px_estimate": 393,
+      "sheet_scale_factor_proposed": 0.66158,
+      "scale_measurement_uncertainty_px": 5,
+      "scale_basis": "QA visual crest tip to feet excluding equipment, frame0 except entry frame5",
+      "anchor_file": "back/idle.measured-anchors.json",
+      "prompt_files": [
+        "back/idle.json"
+      ]
+    },
+    {
+      "path": "back/attack.png",
+      "sha256": "ed21fbf68bead543eea2691b537f2b2d6f66309eccb2f5a881905e5b62b5f846",
+      "size": [
+        1536,
+        1024
+      ],
+      "cell_size": [
+        512,
+        512
+      ],
+      "frames": 6,
+      "durations_ms": [
+        100,
+        90,
+        80,
+        110,
+        110,
+        140
+      ],
+      "loop": false,
+      "alpha_range": [
+        0,
+        254
+      ],
+      "bounds_alpha127": [
+        [
+          63,
+          137,
+          437,
+          449
+        ],
+        [
+          59,
+          151,
+          463,
+          447
+        ],
+        [
+          73,
+          70,
+          462,
+          446
+        ],
+        [
+          60,
+          122,
+          481,
+          415
+        ],
+        [
+          58,
+          70,
+          462,
+          419
+        ],
+        [
+          69,
+          104,
+          442,
+          423
+        ]
+      ],
+      "isolated": true,
+      "repairs": null,
+      "neutral_body_height_px_estimate": 302,
+      "sheet_scale_factor_proposed": 0.86093,
+      "scale_measurement_uncertainty_px": 5,
+      "scale_basis": "QA visual crest tip to feet excluding equipment, frame0 except entry frame5",
+      "anchor_file": "back/attack.measured-anchors.json",
+      "prompt_files": [
+        "back/attack.json",
+        "back/attack.repair.json"
+      ]
+    },
+    {
+      "path": "back/hit-defend.png",
+      "sha256": "24a342a21a8eac72548e15c51ca60ed5efca58fa8219a8441ec29fd736602564",
+      "size": [
+        1536,
+        1024
+      ],
+      "cell_size": [
+        512,
+        512
+      ],
+      "frames": 6,
+      "durations_ms": [
+        100,
+        90,
+        80,
+        110,
+        110,
+        140
+      ],
+      "loop": false,
+      "alpha_range": [
+        0,
+        254
+      ],
+      "bounds_alpha127": [
+        [
+          59,
+          110,
+          484,
+          485
+        ],
+        [
+          16,
+          74,
+          499,
+          482
+        ],
+        [
+          75,
+          152,
+          445,
+          483
+        ],
+        [
+          75,
+          96,
+          488,
+          441
+        ],
+        [
+          15,
+          67,
+          498,
+          443
+        ],
+        [
+          27,
+          77,
+          452,
+          452
+        ]
+      ],
+      "isolated": true,
+      "repairs": null,
+      "neutral_body_height_px_estimate": 364,
+      "sheet_scale_factor_proposed": 0.71429,
+      "scale_measurement_uncertainty_px": 5,
+      "scale_basis": "QA visual crest tip to feet excluding equipment, frame0 except entry frame5",
+      "anchor_file": "back/hit-defend.measured-anchors.json",
+      "prompt_files": [
+        "back/hit-defend.json"
+      ]
+    },
+    {
+      "path": "back/entry.png",
+      "sha256": "c5e6afd94693aa16412c68e6f13eef1fd46c7a46a8911a7c2bf10ef481e4204d",
+      "size": [
+        1536,
+        1024
+      ],
+      "cell_size": [
+        512,
+        512
+      ],
+      "frames": 6,
+      "durations_ms": [
+        100,
+        90,
+        80,
+        110,
+        110,
+        140
+      ],
+      "loop": false,
+      "alpha_range": [
+        0,
+        254
+      ],
+      "bounds_alpha127": [
+        [
+          94,
+          177,
+          432,
+          430
+        ],
+        [
+          95,
+          163,
+          424,
+          432
+        ],
+        [
+          101,
+          151,
+          434,
+          434
+        ],
+        [
+          106,
+          101,
+          426,
+          400
+        ],
+        [
+          95,
+          117,
+          433,
+          399
+        ],
+        [
+          107,
+          122,
+          442,
+          402
+        ]
+      ],
+      "isolated": true,
+      "repairs": null,
+      "neutral_body_height_px_estimate": 266,
+      "sheet_scale_factor_proposed": 0.97744,
+      "scale_measurement_uncertainty_px": 5,
+      "scale_basis": "QA visual crest tip to feet excluding equipment, frame0 except entry frame5",
+      "anchor_file": "back/entry.measured-anchors.json",
+      "prompt_files": [
+        "back/entry.json",
+        "back/entry.repair.json"
+      ]
+    }
+  ]
+}

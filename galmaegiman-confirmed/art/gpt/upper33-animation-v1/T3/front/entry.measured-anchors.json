@@ -1,0 +1,41 @@
+{
+  "source_sha256": "57c9cc841810a8abb42074a5725609f202a74491f9819ab3c671ecee9eab390b",
+  "sheet": "T3/front/entry.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      236,
+      448
+    ],
+    [
+      241,
+      460
+    ],
+    [
+      248,
+      460
+    ],
+    [
+      246,
+      447
+    ],
+    [
+      238,
+      449
+    ],
+    [
+      249,
+      450
+    ]
+  ],
+  "placement_rule": "Fixed actor origin plus authored hop offset on frame3; other frames use feet or inferred ground anchor.",
+  "measurement": "Visual sole estimate +/-4px; front entry frame0 feet concealed, inferred body-ground contact +/-12px.",
+  "renderer_validation": "pending",
+  "airborne_frames_zero_based": [
+    3
+  ]
+}

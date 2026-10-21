@@ -1,0 +1,38 @@
+{
+  "source_sha256": "71fbcf855c01fe9bb9803b01d29972d030ec71eafe4fb5cc0aba82acaa7099f8",
+  "sheet": "T7/front/hit-defend.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      217.0,
+      437
+    ],
+    [
+      225.0,
+      437
+    ],
+    [
+      231.0,
+      437
+    ],
+    [
+      227.0,
+      441
+    ],
+    [
+      244.0,
+      441
+    ],
+    [
+      244.5,
+      441
+    ]
+  ],
+  "placement_rule": "Align grounded contact anchor to fixed actor origin; preserve authored airborne/recoil offsets. Apply proposed uniform scale per sheet, never per frame.",
+  "measurement": "Visually checked claw contact centers excluding props, ribbons, floating ornaments and effects; approximately \u00b15px, renderer validation pending.",
+  "renderer_validation": "pending"
+}
