@@ -296,7 +296,7 @@ final class NativeTutorialController {
             "defenders",
             find("defenders", "방범대"),
             "③ 전투 편성",
-            "방범대에서 전투에 나갈 갈매미를 정해요.",
+            "전투 편성에서 전투에 나갈 갈매미를 정해요.",
             () -> {
               h.selectionMode = "story";
               h.menus.teamDraft = null;
@@ -566,6 +566,13 @@ final class NativeTutorialController {
   }
 
   View find(String key, String text) {
+    // 홈의 실제 목표를 펼친 뒤 안내한다. 접힌 메뉴를 찾지 못해 첫 튜토리얼이 멈추지 않는다.
+    if (h.screen.equals("home") && (h.visibleDialog == null || !h.visibleDialog.isShowing()))
+      for (int i = 0; i < h.root.getChildCount(); i++)
+        if (h.root.getChildAt(i) instanceof LobbyView) {
+          View target = ((LobbyView) h.root.getChildAt(i)).tutorialMenuTarget(key);
+          if (target != null) return target;
+        }
     // 목록 선택은 별도 창에 있어도 실제 원본 버튼을 찾는다. 모달에는 중복 안내막을 올리지 않는다.
     if (h.visibleDialog != null
         && h.visibleDialog.isShowing()
@@ -616,5 +623,6 @@ final class NativeTutorialController {
     return null;
   }
 }
+
 
 

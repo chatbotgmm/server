@@ -1484,6 +1484,9 @@ public class MainActivity extends AppCompatActivity {
       titleScreen();
       return;
     }
+    if (screen.equals("home")) for (int i = 0; i < root.getChildCount(); i++)
+      if (root.getChildAt(i) instanceof LobbyView
+          && ((LobbyView) root.getChildAt(i)).closeMenuOnBack()) return;
     if (screen.equals("home") || screen.equals("title")) {
       confirm("게임을 닫을까요?", this::finish);
       return;
@@ -1595,6 +1598,7 @@ public class MainActivity extends AppCompatActivity {
     sound.close();
   }
 }
+
 
 
 
