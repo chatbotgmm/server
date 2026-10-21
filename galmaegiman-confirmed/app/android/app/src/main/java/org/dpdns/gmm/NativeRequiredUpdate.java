@@ -25,6 +25,11 @@ import com.google.android.play.core.install.model.UpdateAvailability;
 /** Play가 이 설치/계정에 제공하는 업데이트만 차단한다. 서버 버전/출시 예정 버전은 사용하지 않는다. */
 final class NativeRequiredUpdate {
   static final int REQUEST_UPDATE = 7712;
+  /** 단위 시험(Robolectric, Play 없음) 전용: 확인을 곧바로 「새 버전 없음」으로 끝내 기존 시작 순서를 유지한다. 앱에서는 항상 false. */
+  static boolean skipPlayCheckForUnitTests;
+  /** 시험에서 Play 공식 FakeAppUpdateManager로 바꿔 끼우는 자리. 앱에서는 실제 Play 관리자. */
+  static java.util.function.Function<android.content.Context, AppUpdateManager> managers =
+      AppUpdateManagerFactory::create;
   private final MainActivity a;
   private final AppUpdateManager manager;
   private final RequiredUpdatePolicy policy;
@@ -42,7 +47,7 @@ final class NativeRequiredUpdate {
     preferences = a.getSharedPreferences("native_required_update", 0);
     policy = new RequiredUpdatePolicy(BuildConfig.VERSION_CODE,
         preferences.getLong("confirmed_version", 0));
-    manager = AppUpdateManagerFactory.create(a);
+    manager = managers.apply(a);
   }
 
   boolean blocks() { return policy.blocks(); }
@@ -55,17 +60,21 @@ final class NativeRequiredUpdate {
   void resume() {
     resumed = true;
     if (closed || flowRunning) return;
-    if (queryRunning) { render(null); return; }
+    if (queryRunning) { if (policy.blocks()) render(null); return; }
     check(firstCheck);
     firstCheck = false;
   }
 
   private void check(boolean launch) {
     if (closed || !resumed || queryRunning || flowRunning) return;
-    policy.checking();
+    if (skipPlayCheckForUnitTests) { policy.unavailable(); settle(null); return; }
+    // 첫 실행과 이미 확인된 필수 업데이트만 확인 중 화면으로 막는다. 이후 복귀 때는 뒤에서 다시 확인하고
+    // 실제 새 버전이 확인될 때만 막는다(전투·대화 중 복귀마다 화면을 가리지 않음).
+    boolean silent = started && !policy.required();
+    if (!silent) policy.checking();
     queryRunning = true;
     final int ticket = ++generation;
-    render(null);
+    if (!silent) render(null);
     // Play 응답이 오지 않는 설치도 무한 로딩시키지 않는다. 이미 확인한 업데이트는 유지.
     ui.postDelayed(() -> {
       if (!live(ticket)) return;

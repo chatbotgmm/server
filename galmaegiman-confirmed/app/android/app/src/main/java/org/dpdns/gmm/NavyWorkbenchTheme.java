@@ -72,7 +72,8 @@ final class NavyWorkbenchTheme {
   }
   static void text(MainActivity h, TextView v, int size, boolean bold, int color) {
     v.setTypeface(font(h), bold ? Typeface.BOLD : Typeface.NORMAL);
-    v.setTextSize(size); v.setTextColor(color); v.setIncludeFontPadding(true);
+    // 이 글꼴은 ascent/descent에 이미 한글 높이가 들어 있고 top/bottom 여백은 약 2.9배라 48dp 버튼·고정 칸에서 글자가 밀려 잘린다.
+    v.setTextSize(size); v.setTextColor(color); v.setIncludeFontPadding(false);
   }
   static void button(MainActivity h, Button v, boolean primary) {
     v.setAllCaps(false); v.setMinHeight(h.dp(48)); v.setMinimumHeight(h.dp(48));
@@ -94,11 +95,14 @@ final class NavyWorkbenchTheme {
   static void applyText(MainActivity h, View view) {
     // 원본 등록증의 인쇄된 글자와 미공개 표기/보호 테두리는 이 재귀 스타일에서 제외한다.
     if (view instanceof RegistrationCardView || view instanceof HiddenRecipeFrame) return;
-    if (view instanceof Button) button(h, (Button)view, false);
+    // 글자 없는 버튼(쪽 넘김 ‹ ›)은 배경 그림이 곧 화살표다. 종이 배경으로 덮으면 빈 버튼이 된다.
+    if (view instanceof Button) { if (((Button)view).getText().length() > 0) button(h, (Button)view, false); }
     else if (view instanceof TextView) {
       TextView t = (TextView)view;
       boolean bold = t.getTypeface() != null && t.getTypeface().isBold();
       t.setTypeface(font(h), bold ? Typeface.BOLD : Typeface.NORMAL);
+      // 이 글꼴의 위아래 여백은 글자 크기의 약 2.9배라 고정 높이 칸(쪽 번호 24dp 등)에서 글자가 잘린다.
+      t.setIncludeFontPadding(false);
     }
     if (view instanceof ViewGroup) {
       ViewGroup g=(ViewGroup)view;
@@ -116,10 +120,14 @@ final class NavyWorkbenchTheme {
     Button back=(Button)header.getChildAt(0);
     button(h,back,false); back.setBackgroundColor(Color.TRANSPARENT); text(h,back,26,false,TEXT);
     // 접근성 큰 글씨에서 고정 48dp 제목/뒤로 글자를 잘라내지 않는다.
+    // 이 글꼴의 top/bottom 여백은 글자 크기의 약 2.9배라 머리줄이 79dp까지 커져 카드 높이를 깎았다.
+    // 한 줄 제목·뒤로 기호는 글리프가 들어가는 ascent/descent 높이로 잰다(글자는 잘리지 않음).
+    h.title.setIncludeFontPadding(false); back.setIncludeFontPadding(false);
     h.title.getLayoutParams().height = Math.max(h.dp(48),
-        (int)Math.ceil(h.title.getPaint().getFontMetrics().bottom-h.title.getPaint().getFontMetrics().top));
+        (int)Math.ceil(h.title.getPaint().getFontMetrics().descent-h.title.getPaint().getFontMetrics().ascent));
     back.getLayoutParams().height = Math.max(h.dp(48),
-        (int)Math.ceil(back.getPaint().getFontMetrics().bottom-back.getPaint().getFontMetrics().top));
+        (int)Math.ceil(back.getPaint().getFontMetrics().descent-back.getPaint().getFontMetrics().ascent)
+            + back.getPaddingTop() + back.getPaddingBottom());
   }
   private NavyWorkbenchTheme() {}
 }

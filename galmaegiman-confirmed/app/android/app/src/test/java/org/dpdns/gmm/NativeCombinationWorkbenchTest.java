@@ -420,7 +420,7 @@ public class NativeCombinationWorkbenchTest {
     Rect visible = new Rect();
     assertTrue(note + " 전역 가시영역", view.getGlobalVisibleRect(visible));
     assertTrue(note + " 가로 도달 가능", visible.width() >= view.getWidth()-1);
-    assertTrue(note + " 세로 도달 가능", visible.height() >= view.getHeight()-1);
+    assertTrue(note + " 세로 도달 가능 · 보임 " + visible + " 높이 " + view.getHeight(), visible.height() >= view.getHeight()-1);
   }
 
   void textFits(TextView label, String note) {
@@ -484,7 +484,7 @@ public class NativeCombinationWorkbenchTest {
           assertEquals(1,((ViewGroup)host.root.findViewWithTag("mix-results")).getChildCount());
           assertNull("단서 없는 빈 상태에 가짜 카드 없음",frame(host));
           for(View view:NativeNoScrollReviewTest.descendants(host.root.findViewWithTag("mix-result-empty")))
-            if(view instanceof TextView) textFits((TextView)view,"빈 결과 · "+name);
+            if(view instanceof TextView) textFits((TextView)view,"빈 결과 · "+((TextView)view).getText()+" · "+name);
           captures.writeScreenshot(host,output.resolve(name+"-start.png"),size[0],size[1]);
         }
       }

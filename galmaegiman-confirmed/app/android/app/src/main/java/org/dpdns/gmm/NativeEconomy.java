@@ -545,8 +545,10 @@ final class NativeEconomy {
       tab.setTextSize(12);
     }
     // 시안 순서: 결과로 찾기 | 재료로 찾기.
-    tools.addView(recipes, new LinearLayout.LayoutParams(-2, h.dp(48)));
-    tools.addView(materials, new LinearLayout.LayoutParams(-2, h.dp(48)));
+    // 최소 48dp, 큰 글씨(200%)에서는 글자 높이만큼 늘어나 탭 글자가 잘리지 않는다.
+    for (Button tab : new Button[] {recipes, materials}) { tab.setMinHeight(h.dp(48)); tab.setMinimumHeight(h.dp(48)); }
+    tools.addView(recipes, new LinearLayout.LayoutParams(-2, -2));
+    tools.addView(materials, new LinearLayout.LayoutParams(-2, -2));
     if (!mix) {
       LinearLayout search = k.column();
       k.search(search, "이름·재료로 찾기", m.recipeQuery, query -> {
@@ -579,7 +581,8 @@ final class NativeEconomy {
       HorizontalScrollView modes = new HorizontalScrollView(h);
       modes.setHorizontalScrollBarEnabled(true);
       modes.addView(tools);
-      header.addView(modes, new LinearLayout.LayoutParams(0, h.dp(48), 2));
+      modes.setMinimumHeight(h.dp(48));
+      header.addView(modes, new LinearLayout.LayoutParams(0, -2, 2));
     } else h.page.addView(tools, h.page.getChildCount() - 1);
     // 재료 탭은 보유 썸네일 2열과 양옆 쪽 넘김(48dp)을 담도록 왼쪽을 조금 넓힌다.
     LinearLayout[] cols = mix ? navyMixColumns() : k.fixedSplit(.30f);
@@ -683,7 +686,7 @@ final class NativeEconomy {
     recipeIdentity = resultName;
     heading.addView(resultName, new LinearLayout.LayoutParams(0, -2, 1));
     recipeHint = k.note("재료 ＋ 재료 → 결과");
-    NavyWorkbenchTheme.text(h,recipeHint,11,false,NavyWorkbenchTheme.MUTED);
+    NavyWorkbenchTheme.text(h,(TextView) recipeHint,11,false,NavyWorkbenchTheme.MUTED);
     heading.addView(recipeHint);
     panel.addView(heading);
     JSONArray mats = h.list(r, "materials");
@@ -921,6 +924,10 @@ final class NativeEconomy {
       workbench.contentHeight=height;
       workbench.getLayoutParams().height=height;
       super.onMeasure(widthSpec,heightSpec);
+      // HorizontalScrollView는 자식 폭을 UNSPECIFIED로 재서 위 width를 무시한다. 그러면 배치할 때마다
+      // 직전 내용 폭만큼 열이 계속 넓어진다(같은 915×412에서 621→862px). 의도한 폭으로 다시 잰다.
+      vertical.measure(MeasureSpec.makeMeasureSpec(width,MeasureSpec.EXACTLY),
+          MeasureSpec.makeMeasureSpec(vertical.getMeasuredHeight(),MeasureSpec.EXACTLY));
     }
   }
 
@@ -942,7 +949,8 @@ final class NativeEconomy {
     NavyWorkbenchTheme.text(h,title,14,true,NavyWorkbenchTheme.TEXT);
     title.setGravity(Gravity.CENTER);
     empty.addView(title,new LinearLayout.LayoutParams(-1,-2));
-    TextView detail=h.text("선택한 재료에 맞는 결과를\n이곳에서 확인할 수 있어요",11);
+    // 강제 줄바꿈 대신 칸 폭에 맞춰 자연스럽게 줄을 나눈다(작은 화면·큰 글씨에서 첫 줄이 넘쳤다).
+    TextView detail=h.text("선택한 재료에 맞는 결과를 이곳에서 확인할 수 있어요",11);
     NavyWorkbenchTheme.text(h,detail,11,false,NavyWorkbenchTheme.MUTED);
     detail.setGravity(Gravity.CENTER);
     empty.addView(detail,new LinearLayout.LayoutParams(-1,-2));
@@ -984,7 +992,9 @@ final class NativeEconomy {
     browseActions.setTag("mix-browse-actions");
     NavyWorkbenchTheme.button(h, clear, false);
     NavyWorkbenchTheme.button(h, make, true);
-    owned.addView(browseActions, new LinearLayout.LayoutParams(-1, h.dp(48)));
+    // 큰 글씨(130%~)에서는 이 글꼴의 줄 높이가 48dp를 넘어 「선택 해제」 글자가 위아래로 잘렸다. 최소 48dp에서 글자만큼 늘린다.
+    browseActions.setMinimumHeight(h.dp(48));
+    owned.addView(browseActions, new LinearLayout.LayoutParams(-1, -2));
     paint[0] = () -> {
       inventory.removeAllViews();
       browseActions.removeAllViews();
@@ -1040,7 +1050,11 @@ final class NativeEconomy {
       pager.addView(choices, new LinearLayout.LayoutParams(0, -1, 1));
       pager.addView(next, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
       inventory.addView(position, new LinearLayout.LayoutParams(-1, -2));
-      NavyWorkbenchTheme.text(h, position, 10, false, NavyWorkbenchTheme.MUTED);
+      // 쪽 번호는 배경 그림 위에 놓인다. 10sp 회색은 읽히지 않아 12sp 밝은 글자에 어두운 받침을 둔다.
+      NavyWorkbenchTheme.text(h, position, 12, true, NavyWorkbenchTheme.TEXT);
+      position.setBackground(NavyWorkbenchTheme.surface(h, 0xb3071f30, 0, 6));
+      position.setPadding(h.dp(6), h.dp(2), h.dp(6), h.dp(2));
+      position.setIncludeFontPadding(false);
       NavyWorkbenchTheme.button(h, prev, false);
       NavyWorkbenchTheme.button(h, next, false);
       if (available.isEmpty()) {
@@ -1072,7 +1086,7 @@ final class NativeEconomy {
         add.setEnabled(left > 0 && m.mixDraft.size() < limit);
         add.setContentDescription(unit.optString("name") + " 재료 추가 · 사용 가능 " + left
             + " · 선택한 재료 " + chosen);
-        browseActions.addView(add, new LinearLayout.LayoutParams(0, h.dp(48), 1));
+        browseActions.addView(add, new LinearLayout.LayoutParams(0, -2, 1));
       }
       if (available.isEmpty()) browseActions.addView(new View(h), new LinearLayout.LayoutParams(0, 1, 1));
       LinearLayout heading = k.row();
@@ -1133,7 +1147,8 @@ final class NativeEconomy {
         });
         cell.addView(slot, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
       }
-      selected.addView(clear, new LinearLayout.LayoutParams(-1, h.dp(48)));
+      // 버튼은 최소 48dp(button()), 큰 글씨에서는 글자 높이만큼 늘어난다.
+      selected.addView(clear, new LinearLayout.LayoutParams(-1, -2));
       JSONObject match = m.mixDraft.size() >= 2 ? mixResult(h.list(data, "recipes")) : null;
       TextView resultHeading = benchHeading("가능한 결과");
       resultHeading.setTag("mix-result-heading");
@@ -1171,7 +1186,7 @@ final class NativeEconomy {
         cell.addView(ratio, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
         cards.addView(cell, new LinearLayout.LayoutParams(0, -1, 1));
       }
-      results.addView(make, new LinearLayout.LayoutParams(-1, h.dp(48)));
+      results.addView(make, new LinearLayout.LayoutParams(-1, -2));
       clear.setEnabled(!m.mixDraft.isEmpty());
       make.setEnabled(m.mixDraft.size() >= 2);
     };
@@ -1187,7 +1202,10 @@ final class NativeEconomy {
       int width = MeasureSpec.getSize(widthSpec);
       columns = Math.max(1, Math.min(slots <= 4 ? 2 : 3, width / Math.max(1, h.dp(48))));
       int rows = (slots + columns - 1) / columns;
-      rowHeight = Math.max(h.dp(48), viewportHeight / Math.max(1, rows));
+      // 칸 안 등록증은 가로:세로 3:4(thumbTile)라 그보다 높은 칸은 빈 공간뿐이다. 아주 낮은 화면(큰 글씨)에서
+      // 칸이 보이는 영역보다 높아져 끝까지 보이지 않던 문제를 막기 위해 카드 비율 높이로 제한한다.
+      int cardHeight = Math.round(width / (float) columns * 4f / 3f);
+      rowHeight = Math.max(h.dp(48), Math.min(viewportHeight / Math.max(1, rows), cardHeight));
       for (int i = 0; i < getChildCount(); i++) {
         int col = i % columns;
         int cellWidth = (col + 1) * width / columns - col * width / columns;
@@ -1391,7 +1409,8 @@ final class NativeEconomy {
   /** 작업대 제목 칸: 글자를 세로 가운데에 두고 종이 모서리 장식과 겹치지 않게 띄운다. */
   TextView benchHeading(String text) {
     TextView label = caption(text);
-    NavyWorkbenchTheme.text(h,label,16,true,NavyWorkbenchTheme.TEXT);
+    // caption()은 양피지 리본 배경이다. 밝은 글자(TEXT)는 리본 위에서 거의 보이지 않아 진한 잉크색을 쓴다.
+    NavyWorkbenchTheme.text(h,label,16,true,NavyWorkbenchTheme.INK);
     label.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
     label.setPadding(h.dp(6), h.dp(4), h.dp(6), h.dp(4));
     label.setMinHeight(h.dp(32));

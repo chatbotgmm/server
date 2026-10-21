@@ -588,9 +588,11 @@ public class NativeEconomyThemeReviewTest {
     for (View view : geometry.descendants(host.root.findViewWithTag("mix-workbench")))
       if (String.valueOf(view.getTag()).startsWith("mix-material-")) selected.add(view);
     assertEquals(3, selected.size());
-    // 최소 4칸, 고르면 다음 빈 칸 하나만 열린다.
+    // 최종 조합 시안(495ca8e): 처음부터 서버 한도만큼 칸을 모두 보인다(0/6인데 4칸만 보이던 혼동 제거).
+    int limit = api.data.craft.optInt("maxMaterials", 6);
     assertNotNull(host.root.findViewWithTag("mix-empty-slot-3"));
-    assertNull(host.root.findViewWithTag("mix-empty-slot-4"));
+    assertNotNull(host.root.findViewWithTag("mix-empty-slot-" + (limit - 1)));
+    assertNull(host.root.findViewWithTag("mix-empty-slot-" + limit));
     host.busy = true; selected.get(2).performClick();
     assertEquals(Arrays.asList(a, b, a), host.menus.mixDraft);
     host.root.findViewWithTag("mix-picker-material-" + a).performClick();
@@ -664,10 +666,13 @@ public class NativeEconomyThemeReviewTest {
       assertNotNull("Identity comes from the canonical visible server fixture: " + id, api.data.units.get(id));
       assertTrue("48dp thumbnail target: " + tag, view.getWidth() >= host.dp(48) && view.getHeight() >= host.dp(48));
       assertEquals(geometry.bounds(view, host.root), geometry.visibleIntersection(view, host.root));
-      ImageView art = null;
-      for (View child : geometry.descendants(view)) if (child instanceof ImageView) art = (ImageView) child;
-      assertNotNull("Original thumbnail: " + tag, art);
-      assertTrue("Thumbnail bitmap loaded before proof: " + tag, art.getDrawable() instanceof android.graphics.drawable.BitmapDrawable);
+      // 최종 조합 시안(495ca8e)은 선택 재료를 정사각 썸네일 대신 원본 등록증 축소본으로 보인다.
+      // 원본 그림(같은 ID)이 실제로 불러와졌는지는 그대로 검사한다.
+      RegistrationCardView art = null;
+      for (View child : geometry.descendants(view)) if (child instanceof RegistrationCardView) art = (RegistrationCardView) child;
+      assertNotNull("Original registration art: " + tag, art);
+      assertEquals("Same canonical identity: " + tag, id, art.picture.id);
+      assertNotNull("Original bitmap loaded before proof: " + tag, art.picture.bitmap);
       measured.put(MainActivity.obj("tag", tag, "id", id, "mode", "THUMB", "width", view.getWidth(), "height", view.getHeight()));
     }
     for (View view : geometry.descendants(host.root.findViewWithTag("mix-results"))) {
