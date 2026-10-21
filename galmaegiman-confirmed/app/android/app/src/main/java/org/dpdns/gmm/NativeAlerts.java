@@ -83,7 +83,7 @@ public final class NativeAlerts extends BroadcastReceiver {
     m.notify(
         id,
         b.setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("갈매미맨 수비대")
+            .setContentTitle("갈매미맨 방범대")
             .setContentText(id == 1 ? "탐험대가 돌아왔어요. 귀환 보상을 받아 주세요." : "지원서를 받을 수 있어요.")
             .setContentIntent(p)
             .setAutoCancel(true)

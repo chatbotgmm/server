@@ -164,7 +164,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
     reply.header('Cache-Control','no-store');
     const code=typeof req.body?.code==='string'?req.body.code:'',e=reviewCodes.get(code);
     reviewCodes.delete(code);   // 한 번만
-    if(!e||e.exp<=Date.now()||!await review.authenticate(e.token))return reply.code(400).send({error:'심사 로그인 페이지에서 다시 로그인해 주세요.'});
+    if(!e||e.exp<=Date.now()||!await review.authenticate(e.token))return reply.code(400).send({error:'심사 로그인 페이지에서 다시 로그인해 주세요.\nPlease sign in again at https://gmm.dpdns.org/review'});
     return {ok:true,token:e.token};
   });
   app.post('/my/api/logout',async(req,reply)=>{if(!guard(req,reply))return;review.revoke(rawSession(req)??'');setCookie(req,reply,'',0);return {ok:true};});
