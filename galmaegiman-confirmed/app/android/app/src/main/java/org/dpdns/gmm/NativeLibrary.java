@@ -796,9 +796,9 @@ final class NativeLibrary {
     card.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(4));
     card.setMinimumHeight(h.dp(48));
     TextView name = skillLine(skill.optString("name"), 17, true);
-    name.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
     name.setTextColor(JournalTheme.WHITE);
     name.setPadding(h.dp(8), h.dp(3), h.dp(8), h.dp(3));
+    k.headingBackground(name);
     card.addView(name);
     String category =
         skill.optString("cat").equals("phys")
@@ -1328,7 +1328,7 @@ final class NativeLibrary {
     pager.addView(previous, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
     TextView page = m.navyLabel("아이템 " + (itemPage + 1) + " / " + pages, 17, true);
     page.setGravity(Gravity.CENTER);
-    page.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
+    k.headingBackground(page);
     pager.addView(page, new LinearLayout.LayoutParams(0, h.dp(48), 1));
     Button next = k.action(null, "›", () -> { itemPage++; items(); });
     next.setTag("items-next-page"); next.setContentDescription("다음 아이템 페이지");

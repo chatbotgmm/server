@@ -545,48 +545,30 @@ final class NativeEconomy {
       tab.setTextSize(12);
     }
     // 시안 순서: 결과로 찾기 | 재료로 찾기.
-    // 최소 48dp, 큰 글씨(200%)에서는 글자 높이만큼 늘어나 탭 글자가 잘리지 않는다.
-    for (Button tab : new Button[] {recipes, materials}) { tab.setMinHeight(h.dp(48)); tab.setMinimumHeight(h.dp(48)); }
-    tools.addView(recipes, new LinearLayout.LayoutParams(-2, -2));
-    tools.addView(materials, new LinearLayout.LayoutParams(-2, -2));
-    if (!mix) {
-      LinearLayout search = k.column();
-      k.search(search, "이름·재료로 찾기", m.recipeQuery, query -> {
-        m.recipeQuery = query;
-        m.recipeId = "";
-        recipePage = 0;
-        if (recipeRepaint != null) recipeRepaint.run();
-      });
-      tools.addView(search, new LinearLayout.LayoutParams(0, h.dp(48), 1));
-      Button ready = k.action(null, m.craftOnly ? "✓ 가능만" : "가능만", null);
-      ready.setOnClickListener(v -> {
-        m.craftOnly = !m.craftOnly;
-        m.recipeId = "";
-        ready.setText(m.craftOnly ? "✓ 가능만" : "가능만");
-        recipePage = 0;
-        if (recipeRepaint != null) recipeRepaint.run();
-      });
-      tools.addView(ready, new LinearLayout.LayoutParams(h.dp(96), h.dp(48)));
-    } else {
-      // 재료 탭은 시안처럼 탭만 가운데에 둔다. 「맞지 않으면 재료 유지」는 확인창에서 안내한다.
-      tools.setGravity(Gravity.CENTER);
-    }
+    tools.addView(recipes, new LinearLayout.LayoutParams(-2, h.dp(48)));
+    tools.addView(materials, new LinearLayout.LayoutParams(-2, h.dp(48)));
+    // Search/ready filters were removed: no invisible query may hide carousel cards.
+    m.recipeQuery = "";
+    m.craftOnly = false;
+    tools.setGravity(Gravity.END);
     NavyWorkbenchTheme.applyText(h, tools);
     NavyWorkbenchTheme.tab(h, recipes, !mix);
     NavyWorkbenchTheme.tab(h, materials, mix);
     recipes.setTextSize(12); materials.setTextSize(12);
-    if (mix) {
-      // 조합 탐색은 머리줄의 빈 폭을 쓴다. 별도 탭 줄로 카드 높이를 깎지 않는다.
-      LinearLayout header = h.page.findViewWithTag("theme-page-header");
-      HorizontalScrollView modes = new HorizontalScrollView(h);
-      modes.setHorizontalScrollBarEnabled(true);
-      modes.addView(tools);
-      modes.setMinimumHeight(h.dp(48));
-      header.addView(modes, new LinearLayout.LayoutParams(0, -2, 2));
-    } else h.page.addView(tools, h.page.getChildCount() - 1);
-    // 재료 탭은 보유 썸네일 2열과 양옆 쪽 넘김(48dp)을 담도록 왼쪽을 조금 넓힌다.
-    LinearLayout[] cols = mix ? navyMixColumns() : k.fixedSplit(.30f);
+    // applyText/button resets minima; restore the intended tab width AFTER styling.
+    for (Button tab : new Button[] {recipes, materials}) {
+      tab.setMinWidth(h.dp(120)); tab.setMinimumWidth(h.dp(120));
+    }
+    // Both modes share the right-anchored tab strip, leaving no second toolbar row.
+    LinearLayout header = h.page.findViewWithTag("theme-page-header");
+    // No horizontal viewport: BOTH tabs must be visible on the first layout.
+    // MainActivity.base already omits currency for mix/craftRecipes (mapPage).
+    // Existing title weight=1 consumes the remaining space before this unweighted strip.
+    header.addView(tools, new LinearLayout.LayoutParams(-2, h.dp(48)));
+    // 카드 탐색은 화살표 없이 스와이프. 기존 3열 비율과 원본 카드 비율을 유지한다.
+    LinearLayout[] cols = mix ? navyMixColumns() : k.fixedSplit(.39f);
     craftActions = k.row();
+    craftActions.setTag("craft-actions");
     craftActions.setBackground(NavyWorkbenchTheme.quiet(h,ThemeArt.Surface.NAVY));
     craftActions.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(4));
     if (!mix) {
@@ -600,76 +582,65 @@ final class NativeEconomy {
   }
 
   void recipes(LinearLayout[] cols, JSONObject data) {
+    // Only the server-disclosed recipes are considered. Filtering never fetches or unmasks any.
     JSONArray recipes = h.list(data, "recipes");
-    boolean[] firstPaint = {true};
-    Runnable[] paint = new Runnable[1];
-    paint[0] = () -> {
+    ArrayList<JSONObject> available = new ArrayList<>();
+    for (int i=0;i<recipes.length();i++) {
+      JSONObject recipe=recipes.optJSONObject(i);
+      if(recipe!=null && CraftTierPolicy.result(recipe.optString("tier"))) available.add(recipe);
+    }
+    for(int i=0;i<available.size();i++)
+      if(available.get(i).optString("id").equals(m.recipeId)) { recipePage=i; break; }
+    recipePage=Math.max(0,Math.min(recipePage,available.size()-1));
+    Runnable[] paint=new Runnable[1];
+    paint[0]=()-> {
       cols[0].removeAllViews();
-      ArrayList<JSONObject> filtered = new ArrayList<>();
-      JSONObject current = null;
-      for (int i = 0; i < recipes.length(); i++) {
-        JSONObject recipe = recipes.optJSONObject(i);
-        if (recipe == null) continue;
-        String names = recipe.optString("name");
-        JSONArray materials = h.list(recipe, "materials");
-        for (int j = 0; j < materials.length(); j++) names += " " + materials.optJSONObject(j).optString("name");
-        if ((!m.craftOnly || recipe.optBoolean("ready"))
-            && names.toLowerCase(Locale.KOREA).contains(m.recipeQuery.toLowerCase(Locale.KOREA))) filtered.add(recipe);
-      }
-      int perPage = h.contentHeightDp() >= 520 ? 4 : 2;
-      int pages = Math.max(1, (filtered.size() + perPage - 1) / perPage);
-      recipePage = Math.max(0, Math.min(recipePage, pages - 1));
-      // Paging/filtering deliberately clears the workbench. A hidden candidate must not
-      // remain actionable while the user is looking at a different page or result set.
-      for (int i = recipePage * perPage; i < Math.min(filtered.size(), (recipePage + 1) * perPage); i++)
-        if (filtered.get(i).optString("id").equals(m.recipeId)) current = filtered.get(i);
-      if (current == null && firstPaint[0] && !filtered.isEmpty()) current = filtered.get(recipePage * perPage);
-      m.recipeId = current == null ? "" : current.optString("id");
-      firstPaint[0] = false;
-      LinearLayout list = k.column();
+      LinearLayout list=k.column();
       list.setTag("craft-recipe-list");
-      LinearLayout picker = k.row();
-      picker.setBaselineAligned(false);
-      cols[0].addView(picker, new LinearLayout.LayoutParams(-1, 0, 1));
-      picker.addView(list, new LinearLayout.LayoutParams(0, -1, 1));
-      LinearLayout row = null;
-      for (int i = recipePage * perPage; i < Math.min(filtered.size(), (recipePage + 1) * perPage); i++) {
-        JSONObject recipe = filtered.get(i);
-        if ((i - recipePage * perPage) % 2 == 0) {
-          row = k.row();
-          row.setBaselineAligned(false);
-          list.addView(row, new LinearLayout.LayoutParams(-1, 0, 1));
-        }
-        LinearLayout item = fullEconomyTile(recipe,
-            recipe.optBoolean("ready") ? recipe.optInt("max") + "개 가능" : "재료 부족");
-        item.setSelected(recipe.optString("id").equals(m.recipeId));
-        item.setBackground(RegistrationCardView.selection(h, item.isSelected()));
-        item.setTag("craft-recipe-" + recipe.optString("id"));
-        item.setContentDescription(recipe.optString("name") + " 조합식 선택");
-        item.setOnClickListener(v -> {
-          if (h.busy) return;
-          m.recipeId = recipe.optString("id");
-          paint[0].run();
-        });
-        LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, -1, 1);
-        slot.setMargins(h.dp(2), h.dp(2), h.dp(2), h.dp(2));
-        row.addView(item, slot);
+      list.setPadding(h.dp(10),h.dp(8),h.dp(10),h.dp(8));
+      cols[0].addView(list,new LinearLayout.LayoutParams(-1,-1));
+      if(available.isEmpty()) {
+        m.recipeId="";
+        cols[1].removeAllViews(); craftActions.removeAllViews();
+        TextView empty=h.text("공개된 상위 조합식이 없어요",14);
+        NavyWorkbenchTheme.text(h,empty,14,false,NavyWorkbenchTheme.TEXT);
+        empty.setPadding(h.dp(16),h.dp(12),h.dp(16),h.dp(12));
+        empty.setTag("craft-selection-empty");
+        cols[1].addView(empty);
+        return;
       }
-      if (filtered.isEmpty()) list.addView(caption("조건에 맞는 조합식이 없어요."));
-      crewPageControls(picker, recipePage, pages, page -> { recipePage = page; m.recipeId = ""; paint[0].run(); }, "craft-recipe-pages");
-      if (current == null) {
-        cols[1].removeAllViews();
-        TextView choose = caption(filtered.isEmpty() ? "조건에 맞는 결과 후보가 없어요." : "왼쪽 결과 후보를 눌러 조합식을 선택해 주세요.");
-        choose.setTag("craft-selection-empty");
-        cols[1].addView(choose);
-        craftActions.removeAllViews();
-      } else recipe(cols[1], current);
-      NavyWorkbenchTheme.applyText(h, cols[0]);
-      NavyWorkbenchTheme.applyText(h, cols[1]);
-      NavyWorkbenchTheme.applyText(h, craftActions);
+      recipePage=Math.max(0,Math.min(recipePage,available.size()-1));
+      JSONObject current=available.get(recipePage);
+      m.recipeId=current.optString("id");
+      MixCarousel carousel=new MixCarousel(direction->{
+        if(h.busy) return;
+        int destination=recipePage+direction;
+        if(destination<0 || destination>=available.size()) return;
+        recipePage=destination; paint[0].run();
+      });
+      carousel.setTag("craft-result-carousel");
+      carousel.page=recipePage; carousel.pages=available.size();
+      carousel.actionLabel="조합식 보기";
+      RegistrationCardView card=fullEconomyCard(current);
+      card.setTag("craft-recipe-"+m.recipeId);
+      card.setSelected(true);
+      card.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+      carousel.setContentDescription((RegistrationCardView.canShow(current)?current.optString("name"):"미발견")
+          + " 조합식 · 좌우로 밀어 결과 이동");
+      carousel.tap=()-> { if(!h.busy) paint[0].run(); };
+      card.setOnClickListener(v->carousel.performClick());
+      carousel.addView(card,new FrameLayout.LayoutParams(-1,-1));
+      list.addView(carousel,new LinearLayout.LayoutParams(-1,0,1));
+      TextView position=h.text((recipePage+1)+" / "+available.size()+" · 밀어 이동",10);
+      position.setTag("craft-result-position");
+      NavyWorkbenchTheme.text(h,position,10,false,NavyWorkbenchTheme.MUTED);
+      position.setGravity(Gravity.CENTER);
+      list.addView(position,new LinearLayout.LayoutParams(-1,-2));
+      recipe(cols[1],current);
+      NavyWorkbenchTheme.applyText(h,cols[1]);
+      NavyWorkbenchTheme.applyText(h,craftActions);
     };
-    recipeRepaint = paint[0];
-    paint[0].run();
+    recipeRepaint=paint[0]; paint[0].run();
   }
 
   void recipe(LinearLayout parent, JSONObject r) {
@@ -679,7 +650,7 @@ final class NativeEconomy {
     parent.addView(panel, new LinearLayout.LayoutParams(-1, -1));
     LinearLayout heading = k.row();
     heading.setBackground(NavyWorkbenchTheme.quiet(h,ThemeArt.Surface.NAVY));
-    heading.setPadding(h.dp(6),h.dp(4),h.dp(6),h.dp(4));
+    heading.setPadding(h.dp(16),h.dp(4),h.dp(16),h.dp(4));
     TextView resultName = h.text("선택한 조합", 16);
     resultName.setTag("craft-selected-heading");
     NavyWorkbenchTheme.text(h,resultName,16,true,NavyWorkbenchTheme.TEXT);
@@ -756,11 +727,38 @@ final class NativeEconomy {
         });
     quantityLimit(quantity, r.optInt("max"));
     quantityTargets(quantity);
-    craftActions.addView(quantity, new LinearLayout.LayoutParams(h.dp(236), h.dp(48)));
-    craftActions.addView(new View(h), new LinearLayout.LayoutParams(0, 1, 1));
+    quantity.setTag("craft-quantity");
+    craftActions.addView(quantity, new LinearLayout.LayoutParams(-2, -2));
     make.setEnabled(r.optBoolean("ready"));
     if (!r.optBoolean("ready")) make.setText("재료 부족");
-    craftActions.addView(make, new LinearLayout.LayoutParams(h.dp(220), h.dp(48)));
+    make.setTag("craft-submit");
+    LinearLayout.LayoutParams makeSlot=new LinearLayout.LayoutParams(0,workbenchActionHeight(make),1);
+    makeSlot.leftMargin=h.dp(8);
+    craftActions.addView(make,makeSlot);
+    NavyWorkbenchTheme.applyText(h,craftActions);
+    sizeCraftQuantity(quantity);
+    makeSlot.height=workbenchActionHeight(make);
+  }
+
+  /** Measure each quantity label after styling; do not give '최대' the same narrow weight as '+'. */
+  void sizeCraftQuantity(LinearLayout quantity) {
+    LinearLayout row=(LinearLayout)quantity.getChildAt(0);
+    int width=0,height=h.dp(48);
+    for(int i=0;i<row.getChildCount();i++) {
+      View child=row.getChildAt(i);
+      if(!(child instanceof TextView)) continue;
+      TextView text=(TextView)child;
+      text.setSingleLine(true);
+      String widest=child instanceof EditText?"50":text.getText().toString();
+      int w=Math.max(h.dp(48),(int)Math.ceil(text.getPaint().measureText(widest))
+          +text.getCompoundPaddingLeft()+text.getCompoundPaddingRight()+h.dp(4));
+      int ch=workbenchActionHeight(text);
+      LinearLayout.LayoutParams slot=new LinearLayout.LayoutParams(w,ch);
+      slot.setMargins(h.dp(2),0,h.dp(2),0);
+      child.setLayoutParams(slot);
+      width+=w+slot.leftMargin+slot.rightMargin; height=Math.max(height,ch);
+    }
+    quantity.setLayoutParams(new LinearLayout.LayoutParams(width,height));
   }
 
   LinearLayout materialSlot(JSONObject unit, boolean result) {
@@ -869,7 +867,7 @@ final class NativeEconomy {
     return slot;
   }
 
-  /** 기본 가로 화면은 시안 39:33:28. 작은 dp/큰 글씨는 잘라내지 않고 스크롤한다. */
+  /** 승인한 39:33:28 배치. 실제 남은 viewport 안에서 세 열을 함께 측정한다. */
   LinearLayout[] navyMixColumns() {
     h.page.removeViewAt(h.page.getChildCount() - 1);
     NavyWorkbenchRow row = new NavyWorkbenchRow();
@@ -896,38 +894,16 @@ final class NativeEconomy {
     return cols;
   }
 
+  /** The parent has already subtracted safe-area insets, padding and the measured header.
+   * Never manufacture a larger canvas here: weighted panel bodies get only the remainder. */
   final class NavyWorkbenchRow extends LinearLayout {
-    int contentHeight;
     NavyWorkbenchRow() { super(h); setOrientation(HORIZONTAL); }
-    @Override protected void onMeasure(int widthSpec,int heightSpec) {
-      super.onMeasure(widthSpec,MeasureSpec.makeMeasureSpec(contentHeight,MeasureSpec.EXACTLY));
-    }
   }
 
-  final class NavyWorkbenchViewport extends HorizontalScrollView {
-    final NavyWorkbenchRow workbench;
-    final ScrollView vertical;
+  final class NavyWorkbenchViewport extends FrameLayout {
     NavyWorkbenchViewport(NavyWorkbenchRow row) {
-      super(h); workbench=row;
-      setHorizontalScrollBarEnabled(true); setScrollbarFadingEnabled(false);
-      vertical=new ScrollView(h);
-      vertical.setVerticalScrollBarEnabled(true); vertical.setScrollbarFadingEnabled(false);
-      vertical.addView(row,new ScrollView.LayoutParams(-1,-2));
-      addView(vertical,new HorizontalScrollView.LayoutParams(-2,-1));
-    }
-    @Override protected void onMeasure(int widthSpec,int heightSpec) {
-      int width=Math.max(MeasureSpec.getSize(widthSpec),h.dp(720));
-      float scale=h.getResources().getConfiguration().fontScale;
-      int height=Math.max(MeasureSpec.getSize(heightSpec),h.dp(320+(int)Math.ceil(Math.max(0,scale-1)*100)));
-      // 두 축의 viewport와 content 크기를 분리해 하단 버튼·모든 재료칸에 도달할 수 있게 한다.
-      vertical.getLayoutParams().width=width;
-      workbench.contentHeight=height;
-      workbench.getLayoutParams().height=height;
-      super.onMeasure(widthSpec,heightSpec);
-      // HorizontalScrollView는 자식 폭을 UNSPECIFIED로 재서 위 width를 무시한다. 그러면 배치할 때마다
-      // 직전 내용 폭만큼 열이 계속 넓어진다(같은 915×412에서 621→862px). 의도한 폭으로 다시 잰다.
-      vertical.measure(MeasureSpec.makeMeasureSpec(width,MeasureSpec.EXACTLY),
-          MeasureSpec.makeMeasureSpec(vertical.getMeasuredHeight(),MeasureSpec.EXACTLY));
+      super(h);
+      addView(row, new FrameLayout.LayoutParams(-1, -1));
     }
   }
 
@@ -949,8 +925,7 @@ final class NativeEconomy {
     NavyWorkbenchTheme.text(h,title,14,true,NavyWorkbenchTheme.TEXT);
     title.setGravity(Gravity.CENTER);
     empty.addView(title,new LinearLayout.LayoutParams(-1,-2));
-    // 강제 줄바꿈 대신 칸 폭에 맞춰 자연스럽게 줄을 나눈다(작은 화면·큰 글씨에서 첫 줄이 넘쳤다).
-    TextView detail=h.text("선택한 재료에 맞는 결과를 이곳에서 확인할 수 있어요",11);
+    TextView detail=h.text("선택한 재료에 맞는 결과를\n이곳에서 확인할 수 있어요",11);
     NavyWorkbenchTheme.text(h,detail,11,false,NavyWorkbenchTheme.MUTED);
     detail.setGravity(Gravity.CENTER);
     empty.addView(detail,new LinearLayout.LayoutParams(-1,-2));
@@ -964,7 +939,8 @@ final class NativeEconomy {
     ArrayList<String> valid = new ArrayList<>();
     for (String id : m.mixDraft) {
       JSONObject unit = mixUnit(pool, id);
-      if (valid.size() < limit && Collections.frequency(valid, id) < unit.optInt("usable")) valid.add(id);
+      if (CraftTierPolicy.material(unit.optString("tier")) && valid.size() < limit
+          && Collections.frequency(valid, id) < unit.optInt("usable")) valid.add(id);
     }
     m.mixDraft.clear();
     m.mixDraft.addAll(valid);
@@ -988,38 +964,23 @@ final class NativeEconomy {
     // 힌트는 성공 판정이 아니다. 미공개 조합은 서버가 확정 시에만 검사한다.
     Button make = k.primary(null, "조합하기", () -> confirmMix(pool));
     make.setTag("mix-submit");
-    LinearLayout browseActions = k.row();
-    browseActions.setTag("mix-browse-actions");
     NavyWorkbenchTheme.button(h, clear, false);
     NavyWorkbenchTheme.button(h, make, true);
-    // 큰 글씨(130%~)에서는 이 글꼴의 줄 높이가 48dp를 넘어 「선택 해제」 글자가 위아래로 잘렸다. 최소 48dp에서 글자만큼 늘린다.
-    browseActions.setMinimumHeight(h.dp(48));
-    owned.addView(browseActions, new LinearLayout.LayoutParams(-1, -2));
+    reserveWorkbenchAction(clear);
+    reserveWorkbenchAction(make);
     paint[0] = () -> {
       inventory.removeAllViews();
-      browseActions.removeAllViews();
       selected.removeAllViews();
       results.removeAllViews();
       ArrayList<JSONObject> available = new ArrayList<>();
       for (int i = 0; i < pool.length(); i++) {
         JSONObject unit = pool.optJSONObject(i);
-        if (unit != null && unit.optInt("usable") > 0) available.add(unit);
+        if (unit != null && unit.optInt("usable") > 0
+            && CraftTierPolicy.material(unit.optString("tier"))) available.add(unit);
       }
-      // 한 번에 원본 등록증 한 장을 크게 본다. 탐색과 재료 추가는 별개 행동이다.
+      // 한 번에 원본 등록증 한 장. 밀기는 탐색, 별도의 짧은 탭은 재료 한 개 추가.
       int pages = available.size();
       mixPage = Math.max(0, Math.min(mixPage, pages - 1));
-      LinearLayout pager = k.row();
-      pager.setTag("mix-material-pages");
-      Button prev = k.action(null, "‹", () -> {
-        if (h.busy || mixPage <= 0) return;
-        mixPage--;
-        paint[0].run();
-      });
-      prev.setTag("mix-material-previous");
-      prev.setEnabled(mixPage > 0);
-      prev.setContentDescription("이전 보유 갈매미맨");
-      prev.setPadding(0, 0, 0, 0);
-      pager.addView(prev, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
       TextView position = h.text(pages == 0 ? "0 / 0" : (mixPage + 1) + " / " + pages, 14);
       position.setTextColor(JournalTheme.PAPER);
       position.setGravity(Gravity.CENTER);
@@ -1028,17 +989,6 @@ final class NativeEconomy {
       position.setIncludeFontPadding(false);
       position.setTag("mix-material-position");
 
-      Button next = k.action(null, "›", () -> {
-        if (h.busy || mixPage + 1 >= pages) return;
-        mixPage++;
-        paint[0].run();
-      });
-      next.setTag("mix-material-next");
-      next.setEnabled(mixPage + 1 < pages);
-      next.setContentDescription("다음 보유 갈매미맨");
-      next.setPadding(0, 0, 0, 0);
-      pager.setGravity(Gravity.CENTER_VERTICAL);
-      inventory.addView(pager, new LinearLayout.LayoutParams(-1, 0, 1));
       MixCarousel choices = new MixCarousel(direction -> {
         if (h.busy) return;
         int destination = mixPage + direction;
@@ -1047,16 +997,12 @@ final class NativeEconomy {
         paint[0].run();
       });
       choices.setTag("mix-inventory");
-      pager.addView(choices, new LinearLayout.LayoutParams(0, -1, 1));
-      pager.addView(next, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+      inventory.addView(choices, new LinearLayout.LayoutParams(-1, 0, 1));
+      choices.page = mixPage;
+      choices.pages = pages;
       inventory.addView(position, new LinearLayout.LayoutParams(-1, -2));
-      // 쪽 번호는 배경 그림 위에 놓인다. 10sp 회색은 읽히지 않아 12sp 밝은 글자에 어두운 받침을 둔다.
-      NavyWorkbenchTheme.text(h, position, 12, true, NavyWorkbenchTheme.TEXT);
-      position.setBackground(NavyWorkbenchTheme.surface(h, 0xb3071f30, 0, 6));
-      position.setPadding(h.dp(6), h.dp(2), h.dp(6), h.dp(2));
-      position.setIncludeFontPadding(false);
-      NavyWorkbenchTheme.button(h, prev, false);
-      NavyWorkbenchTheme.button(h, next, false);
+      NavyWorkbenchTheme.text(h, position, 10, false, NavyWorkbenchTheme.MUTED);
+
       if (available.isEmpty()) {
         TextView none = k.note("사용 가능한 재료가 없어요.");
         none.setTextColor(JournalTheme.PAPER);
@@ -1069,26 +1015,30 @@ final class NativeEconomy {
         int left = unit.optInt("usable") - chosen;
         RegistrationCardView card = fullEconomyCard(unit);
         card.setTag("mix-browse-card-" + id);
-        // 원본에 인쇄된 이름·등급은 중복하지 않고, 남은 수량은 추가 버튼에 표시한다.
-        card.setContentDescription(RegistrationCardView.description(unit)
-            + " · 사용 가능 " + left + " · 선택한 재료 " + chosen + " · 좌우로 넘겨 보기");
-        choices.addView(card, new FrameLayout.LayoutParams(-1, -1));
-        Button add = k.primary(null, "재료 추가 · " + left, () -> {
-          if (h.busy || m.mixDraft.size() >= limit
-              || Collections.frequency(m.mixDraft, id) >= unit.optInt("usable")) return;
+        card.setSelected(chosen > 0);
+        card.setForeground(RegistrationCardView.selection(h, chosen > 0));
+        // The carousel owns one gesture stream; its accessibility click uses this same action.
+        Runnable add = () -> {
+          if (h.busy) return;
+          if (m.mixDraft.size() >= limit) { h.root.announceForAccessibility("재료는 " + limit + "개까지 선택할 수 있어요."); return; }
+          if (Collections.frequency(m.mixDraft, id) >= unit.optInt("usable")) {
+            h.root.announceForAccessibility("사용 가능한 재료가 없어요."); return;
+          }
           m.mixDraft.add(id);
           paint[0].run();
-        });
-        NavyWorkbenchTheme.addButton(h, add);
-        add.setTag("mix-picker-material-" + id);
-        add.setTextSize(h.uiText(14));
-        add.setPadding(h.dp(4), 0, h.dp(4), 0);
-        add.setEnabled(left > 0 && m.mixDraft.size() < limit);
-        add.setContentDescription(unit.optString("name") + " 재료 추가 · 사용 가능 " + left
-            + " · 선택한 재료 " + chosen);
-        browseActions.addView(add, new LinearLayout.LayoutParams(0, -2, 1));
+          h.root.announceForAccessibility(unit.optString("name") + " 재료 추가");
+        };
+        card.setOnClickListener(v -> add.run());
+        card.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+        choices.tap = add;
+        choices.setSelected(chosen > 0);
+        choices.setContentDescription(RegistrationCardView.description(unit) + " · 사용 가능 " + left
+            + (chosen > 0 ? " · 선택됨" : " · 눌러 재료 추가") + " · 좌우로 밀어 이동");
+        choices.addView(card, new FrameLayout.LayoutParams(-1, -1));
+        position.setSingleLine(false);
+        position.setText((mixPage + 1) + " / " + pages + " · 눌러 선택 · 밀어 이동"
+            + (chosen > 0 ? " · " + chosen + "개 선택" : ""));
       }
-      if (available.isEmpty()) browseActions.addView(new View(h), new LinearLayout.LayoutParams(0, 1, 1));
       LinearLayout heading = k.row();
       heading.setGravity(Gravity.CENTER_VERTICAL);
       TextView selectedTitle = benchHeading("선택한 재료");
@@ -1144,11 +1094,11 @@ final class NativeEconomy {
           if (h.busy) return;
           m.mixDraft.remove(index);
           paint[0].run();
+          h.root.announceForAccessibility(unit.optString("name") + " 재료 해제");
         });
         cell.addView(slot, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
       }
-      // 버튼은 최소 48dp(button()), 큰 글씨에서는 글자 높이만큼 늘어난다.
-      selected.addView(clear, new LinearLayout.LayoutParams(-1, -2));
+      selected.addView(clear, new LinearLayout.LayoutParams(-1, workbenchActionHeight(clear)));
       JSONObject match = m.mixDraft.size() >= 2 ? mixResult(h.list(data, "recipes")) : null;
       TextView resultHeading = benchHeading("가능한 결과");
       resultHeading.setTag("mix-result-heading");
@@ -1186,11 +1136,38 @@ final class NativeEconomy {
         cell.addView(ratio, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
         cards.addView(cell, new LinearLayout.LayoutParams(0, -1, 1));
       }
-      results.addView(make, new LinearLayout.LayoutParams(-1, -2));
+      results.addView(make, new LinearLayout.LayoutParams(-1, workbenchActionHeight(make)));
       clear.setEnabled(!m.mixDraft.isEmpty());
       make.setEnabled(m.mixDraft.size() >= 2);
     };
     paint[0].run();
+  }
+
+  /** 큰 글씨가 두 줄 이상이면 그 높이를 행동 행에 먼저 확보한다. 글씨를 줄이지 않는다. */
+  void reserveWorkbenchAction(TextView action) {
+    String fullLabel=action.getText().toString();
+    String concise=fullLabel.equals("조합하기") ? "조합" : fullLabel.equals("선택 해제") ? "비우기" : fullLabel;
+    action.setContentDescription(fullLabel);
+    action.setSingleLine(false);
+    action.setMaxLines(Integer.MAX_VALUE);
+    action.setEllipsize(null);
+    action.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob) -> {
+      int width=action.getWidth()-action.getCompoundPaddingLeft()-action.getCompoundPaddingRight();
+      String display=width>0 && action.getPaint().measureText(fullLabel)>width ? concise : fullLabel;
+      if(!display.contentEquals(action.getText())) { action.setText(display); return; }
+      if(action.getLayout()==null || action.getLayoutParams()==null) return;
+      int required=Math.max(workbenchActionHeight(action),action.getLayout().getHeight()
+          +action.getCompoundPaddingTop()+action.getCompoundPaddingBottom()+h.dp(8));
+      if(action.getLayoutParams().height!=required) {
+        action.getLayoutParams().height=required;
+        action.requestLayout();
+      }
+    });
+  }
+
+  int workbenchActionHeight(TextView action) {
+    android.graphics.Paint.FontMetrics f = action.getPaint().getFontMetrics();
+    return Math.max(h.dp(48), (int)Math.ceil(f.bottom-f.top)+h.dp(8));
   }
 
   /** 폭이 좁으면 열 수를 줄인다. 최소 터치 높이보다 부족한 세로 공간은 스크롤한다. */
@@ -1202,10 +1179,7 @@ final class NativeEconomy {
       int width = MeasureSpec.getSize(widthSpec);
       columns = Math.max(1, Math.min(slots <= 4 ? 2 : 3, width / Math.max(1, h.dp(48))));
       int rows = (slots + columns - 1) / columns;
-      // 칸 안 등록증은 가로:세로 3:4(thumbTile)라 그보다 높은 칸은 빈 공간뿐이다. 아주 낮은 화면(큰 글씨)에서
-      // 칸이 보이는 영역보다 높아져 끝까지 보이지 않던 문제를 막기 위해 카드 비율 높이로 제한한다.
-      int cardHeight = Math.round(width / (float) columns * 4f / 3f);
-      rowHeight = Math.max(h.dp(48), Math.min(viewportHeight / Math.max(1, rows), cardHeight));
+      rowHeight = Math.max(h.dp(48), viewportHeight / Math.max(1, rows));
       for (int i = 0; i < getChildCount(); i++) {
         int col = i % columns;
         int cellWidth = (col + 1) * width / columns - col * width / columns;
@@ -1238,66 +1212,71 @@ final class NativeEconomy {
     }
   }
 
-  /** 좌우 탐색만 처리한다. 카드 누르기·수직 드래그·취소는 재료를 추가하지 않는다. */
+  /** One gesture owner: a drag, cancellation or second pointer can never become an add. */
   final class MixCarousel extends FrameLayout {
     final java.util.function.IntConsumer turn;
     final int slop;
     float downX, downY;
-    boolean horizontal, vertical;
+    boolean moved, cancelled = true;
+    int page, pages;
+    Runnable tap;
+    String actionLabel = "재료 한 개 추가";
     MixCarousel(java.util.function.IntConsumer turn) {
-      super(h);
-      this.turn = turn;
+      super(h); this.turn = turn;
       slop = ViewConfiguration.get(h).getScaledTouchSlop();
-      setContentDescription("보유 갈매미맨 · 좌우로 넘겨 보기 · 아래 재료 추가 버튼으로 선택");
+      setClickable(true); setFocusable(true);
+      setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
     }
-    @Override public boolean onInterceptTouchEvent(MotionEvent event) {
-      if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-        downX = event.getX(); downY = event.getY(); horizontal = false; vertical = false;
-        if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
-      } else if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
-        float dx = event.getX() - downX, dy = event.getY() - downY;
-        if (!vertical && Math.abs(dx) > slop && Math.abs(dx) > Math.abs(dy) * 1.25f) {
-          horizontal = true;
-          if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
-          return true;
-        }
-        if (!horizontal && Math.abs(dy) > slop) {
-          vertical = true;
-          if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
-        }
-      }
-      return horizontal;
-    }
+    @Override public boolean onInterceptTouchEvent(MotionEvent event) { return true; }
     @Override public boolean onTouchEvent(MotionEvent event) {
       switch (event.getActionMasked()) {
         case MotionEvent.ACTION_DOWN:
-          downX = event.getX(); downY = event.getY(); horizontal = false; vertical = false;
+          downX = event.getX(); downY = event.getY(); moved = false; cancelled = false;
           if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
           return true;
+        case MotionEvent.ACTION_POINTER_DOWN:
+          cancelled = true; return true;
         case MotionEvent.ACTION_MOVE:
-          float dx = event.getX() - downX, dy = event.getY() - downY;
-          if (!horizontal && Math.abs(dy) > slop && Math.abs(dy) >= Math.abs(dx)) {
-            vertical = true;
-            if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
-          }
-          if (!vertical && Math.abs(dx) > slop && Math.abs(dx) > Math.abs(dy) * 1.25f) horizontal = true;
+          moved |= Math.abs(event.getX()-downX) > slop || Math.abs(event.getY()-downY) > slop;
+          if (event.getPointerCount() != 1) cancelled = true;
           return true;
         case MotionEvent.ACTION_UP:
-          float distance = event.getX() - downX;
-          if (!vertical && horizontal && Math.abs(distance) >= Math.max(h.dp(48), getWidth() * .12f))
-            turn.accept(distance < 0 ? 1 : -1);
-          else performClick();
-          horizontal = false; vertical = false;
+          float dx = event.getX()-downX, dy = event.getY()-downY;
+          moved |= Math.abs(dx) > slop || Math.abs(dy) > slop;
+          if (!cancelled) {
+            if (moved && Math.abs(dx) >= Math.max(h.dp(48),getWidth()*.12f) && Math.abs(dx)>Math.abs(dy)*1.25f)
+              turn.accept(dx < 0 ? 1 : -1);
+            else if (!moved) performClick();
+          }
+          cancelled = true;
           if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
           return true;
         case MotionEvent.ACTION_CANCEL:
-          horizontal = false; vertical = false;
+          cancelled = true;
           if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
           return true;
         default: return true;
       }
     }
-    @Override public boolean performClick() { super.performClick(); return true; }
+    @Override public boolean performClick() {
+      super.performClick(); if (tap != null) tap.run(); return true;
+    }
+    @Override public void onInitializeAccessibilityNodeInfo(android.view.accessibility.AccessibilityNodeInfo info) {
+      super.onInitializeAccessibilityNodeInfo(info);
+      info.setClassName("android.widget.Button");
+      info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
+          android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK, actionLabel));
+      info.setScrollable(pages > 1);
+      if (page > 0) info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
+          android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD, "이전 갈매미맨"));
+      if (page + 1 < pages) info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
+          android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD, "다음 갈매미맨"));
+    }
+    @Override public boolean performAccessibilityAction(int action, android.os.Bundle args) {
+      if (action == android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD && page > 0) { turn.accept(-1); return true; }
+      if (action == android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD && page + 1 < pages) { turn.accept(1); return true; }
+      return super.performAccessibilityAction(action,args);
+    }
   }
 
   /** 아주 낮은 가로 화면: 선택 칸 두 줄이 48dp를 넘도록 누르지 않는 제목·여백만 줄인다. */
@@ -1408,11 +1387,22 @@ final class NativeEconomy {
 
   /** 작업대 제목 칸: 글자를 세로 가운데에 두고 종이 모서리 장식과 겹치지 않게 띄운다. */
   TextView benchHeading(String text) {
-    TextView label = caption(text);
-    // caption()은 양피지 리본 배경이다. 밝은 글자(TEXT)는 리본 위에서 거의 보이지 않아 진한 잉크색을 쓴다.
-    NavyWorkbenchTheme.text(h,label,16,true,NavyWorkbenchTheme.INK);
+    TextView label = new TextView(h) {
+      @Override protected void onMeasure(int widthSpec, int heightSpec) {
+        int available = MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight();
+        // At accessibility sizes use a shorter equivalent label, not smaller or clipped glyphs.
+        String display = available > 0 && getPaint().measureText(text) > available
+            ? (text.equals("선택한 재료") ? "재료" : text.equals("가능한 결과") ? "결과" : text) : text;
+        if (!display.contentEquals(getText())) setText(display);
+        super.onMeasure(widthSpec, heightSpec);
+      }
+    };
+    label.setText(text);
+    label.setContentDescription(text);
+    label.setBackgroundColor(Color.TRANSPARENT);
+    NavyWorkbenchTheme.text(h,label,16,true,NavyWorkbenchTheme.TEXT);
     label.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
-    label.setPadding(h.dp(6), h.dp(4), h.dp(6), h.dp(4));
+    label.setPadding(h.dp(6), h.dp(4), h.dp(6), h.dp(4)); // panel 10dp + heading 6dp = 16dp leading inset
     label.setMinHeight(h.dp(32));
     return label;
   }
@@ -2718,6 +2708,7 @@ final class NativeEconomy {
     return MainActivity.obj("id", id, "name", id);
   }
 }
+
 
 
 

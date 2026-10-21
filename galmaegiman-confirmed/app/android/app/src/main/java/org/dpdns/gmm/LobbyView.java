@@ -20,6 +20,12 @@ final class LobbyView extends FrameLayout implements FullBleed {
   final RectF dockFrame = new RectF();
   final RectF heroFrame = new RectF(), heroPose = new RectF(), heroContact = new RectF();
   final Paint.FontMetrics canvasMetrics = new Paint.FontMetrics();
+  private final Paint groundShadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+  private final Matrix groundShadowMatrix = new Matrix();
+  private static final float[] GROUND_PROJECTION = {1, .92f * .32f, 0,
+      0, -.39f * .32f, 0, 0, 0, 1};
+  private final RectF groundShadowSource = new RectF();
+  private final ColorFilter groundShadowColor = new PorterDuffColorFilter(0xff26323a, PorterDuff.Mode.SRC_IN);
   final ArrayList<Button> buttons = new ArrayList<>();
   final String room;
   final HomeArt homeArt;
@@ -90,7 +96,9 @@ final class LobbyView extends FrameLayout implements FullBleed {
     this.host = host;
     homeArt = new HomeArt(host, this);
     menuArt = new HomeMenuArt(host, homeArt);
-    homeHeading = Typeface.create(NavyWorkbenchTheme.font(host), Typeface.BOLD);
+    // The approved home uses the bundled compact Jua face, not the workbench Noto.
+    // MainActivity loads this asset explicitly; do not silently substitute a system font.
+    homeHeading = host.font;
     motion = new SceneMotion(this, host);
     ambient = new JournalAmbient(this, host, motion);
     parallax = new HomeGullDrag(this, host.dp(4), host.dp(1.2f));
@@ -514,7 +522,24 @@ final class LobbyView extends FrameLayout implements FullBleed {
     p.setTextSize(size);
     p.setTextAlign(Paint.Align.CENTER);
     p.setColor(color);
-    c.drawText(text, x, y, p);
+    if (heading && text.indexOf('·') >= 0) {
+      // Jua does not ship U+00B7. Draw the separator as ink rather than relying
+      // on a device-dependent fallback face (or a missing-glyph square).
+      String[] pieces = text.split("·", -1);
+      float dotWidth = size * .32f, width = dotWidth * (pieces.length - 1);
+      for (String piece : pieces) width += p.measureText(piece);
+      float at = x - width / 2;
+      p.setTextAlign(Paint.Align.LEFT);
+      for (int i = 0; i < pieces.length; i++) {
+        c.drawText(pieces[i], at, y, p);
+        at += p.measureText(pieces[i]);
+        if (i + 1 < pieces.length) {
+          c.drawCircle(at + dotWidth/2, y - size * .35f, size * .065f, p);
+          at += dotWidth;
+        }
+      }
+      p.setTextAlign(Paint.Align.CENTER);
+    } else c.drawText(text, x, y, p);
   }
 
   String fitted(String text, float width, float size, boolean heading) {
@@ -584,7 +609,8 @@ final class LobbyView extends FrameLayout implements FullBleed {
     if (pressed) r.offset(0, host.dp(1));
     controlSurface(c, index, r);
     boolean small = index == 8;
-    float size = Math.min(host.dp(small ? 25 : 36), r.height() * .55f);
+    float size = Math.min(host.dp(small ? 25 : primary ? 44 : 36),
+        r.height() * (primary ? .72f : .55f));
     float inset = host.dp(small ? 10 : 14);
     if (icon != null) menuArt.icon(c, icon,
         new RectF(r.left + inset, r.centerY() - size / 2,
@@ -610,7 +636,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
     float left = index == 13 ? r.left + host.dp(12) + size + host.dp(6)
         : r.left + (icon == null ? host.dp(8) : inset + size + host.dp(5));
     float right = r.right - host.dp(12);
-    float textSize = canvasTextSize(host.dp(index == 5 || index == 12 ? 21 : 16), r.height() - host.dp(18), true);
+    float textSize = canvasTextSize(host.dp(index == 5 ? 28 : index == 12 ? 21 : 16), r.height() - host.dp(18), true);
     p.setTypeface(homeHeading); p.setTextSize(textSize);
     float measured = p.measureText(name);
     if (measured > right - left) textSize *= (right - left) / measured;
@@ -621,10 +647,14 @@ final class LobbyView extends FrameLayout implements FullBleed {
   void menuTile(Canvas c, int index, String name, String icon) {
     RectF r = boxes[index];
     controlSurface(c, index, r);
-    float labelHeight = Math.min(host.dp(30), r.height() * .36f);
-    float size = Math.max(host.dp(18), Math.min(r.width() * .52f, r.height() - labelHeight - host.dp(20)));
-    menuArt.navigationIcon(c, index, new RectF(r.centerX()-size/2,
-        r.top+host.dp(7), r.centerX()+size/2, r.top+host.dp(7)+size));
+    float labelHeight = Math.min(host.dp(26), r.height() * .27f);
+    // A wide envelope must not be fitted into a square slot: its visible height
+    // would shrink again even after removing transparent padding.
+    float iconHeight = Math.max(host.dp(18), Math.min(r.height() * .58f,
+        r.height() - labelHeight - host.dp(14)));
+    float iconWidth = r.width() * .86f;
+    menuArt.navigationIcon(c, index, new RectF(r.centerX()-iconWidth/2,
+        r.top+host.dp(7), r.centerX()+iconWidth/2, r.top+host.dp(7)+iconHeight));
     float font = canvasTextSize(host.dp(16), labelHeight-host.dp(3), true);
     p.setTypeface(homeHeading); p.setTextSize(font);
     font *= Math.min(1, (r.width()-host.dp(20))/Math.max(1,p.measureText(name)));
@@ -721,14 +751,17 @@ final class LobbyView extends FrameLayout implements FullBleed {
     RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
     // 아래 조언 영역은 항상 예약: 말풍선 표시나 메뉴 토글 때 캐릭터가 뛰지 않는다.
     float left = heroStage.left + host.dp(8), right = heroStage.right - host.dp(8);
-    float bottom = heroStage.bottom - host.dp(4);
-    float maxHeight = Math.max(1, Math.min(bottom - heroStage.top - host.dp(4), safe.height() * .56f));
+    float bottom = heroStage.bottom;
+    float maxHeight = Math.max(1, Math.min(bottom - heroStage.top - host.dp(4), safe.height() * .43f));
     float maxWidth = Math.max(1, right - left);
     Rect source = homeArt.heroBounds();
     float aspect = source == null ? 1 : source.width() / (float) source.height();
     // Leave room for the small breathing scale as well as the bounded drag.
     float height = Math.min(maxHeight, maxWidth / aspect) / 1.004f;
-    float width = height * aspect, center = (left + right) / 2;
+    float width = height * aspect;
+    // Pin the guide to the left scene composition, while clamping its full ink to stage.
+    float center = Math.max(left + width / 2,
+        Math.min(getMeasuredWidth() * .23f, right - width / 2));
     return new RectF(center - width / 2, bottom - height, center + width / 2, bottom);
   }
 
@@ -770,12 +803,26 @@ final class LobbyView extends FrameLayout implements FullBleed {
     heroDrawBox(heroFrame, heroPose, motion.pulse(3600, 0), parallax.y);
     heroShadowBox(heroFrame, heroContact);
     RectF target = heroPose, shadow = heroContact;
+    // Upper-right daylight: project the actual alpha silhouette lower-left.
+    // Use the planted frame, never the breathing/drag pose or padded sprite canvas.
+    // This decorative cast shadow may sit behind the foreground advice paper; it
+    // must not consume the paper's readable/tappable below-hero safe region.
+    groundShadowMatrix.setValues(GROUND_PROJECTION);
+    groundShadowSource.set(-heroFrame.width()/2, -heroFrame.height(), heroFrame.width()/2, 0);
+    groundShadowPaint.setColorFilter(groundShadowColor);
+    groundShadowPaint.setAlpha(65);
+    int ground = c.save();
+    c.translate(heroFrame.centerX(), heroFrame.bottom);
+    c.concat(groundShadowMatrix);
+    c.drawBitmap(bitmap, source, groundShadowSource, groundShadowPaint);
+    c.restoreToCount(ground);
+    // A separate, tighter contact patch anchors the feet even with motion disabled.
     p.setShader(null);
     p.setStyle(Paint.Style.FILL);
-    p.setColor(0x180f2430);
+    p.setColor(0x40232d33);
     c.drawOval(shadow, p);
-    shadow.inset(shadow.width() * .15f, shadow.height() * .18f);
-    p.setColor(0x240f2430);
+    shadow.inset(shadow.width() * .16f, shadow.height() * .22f);
+    p.setColor(0x62232d33);
     c.drawOval(shadow, p);
     p.setShader(null);
     p.setAlpha(255);
@@ -983,17 +1030,23 @@ final class LobbyView extends FrameLayout implements FullBleed {
 
   void dot(Canvas c, RectF target) {
     RectF safe = host.safeBounds(getWidth(), getHeight());
-    float radius = host.dp(6) * (1 + .15f * motion.pulse(1600, 0));
-    float x = Math.min(safe.right - radius - host.dp(2), target.right - host.dp(3)),
-        y = Math.max(safe.top + radius + host.dp(2), target.top + host.dp(3));
+    float radius = Math.min(host.dp(5), Math.min(target.width(), target.height()) * .07f)
+        * (1 + .07f * motion.pulse(1600, 0));
+    float inset = radius + host.dp(3);
+    float x = Math.min(safe.right - inset, target.right - inset),
+        y = Math.max(safe.top + inset, target.top + inset);
     p.setStyle(Paint.Style.FILL);
-    p.setColor(JournalTheme.NEGATIVE_INFO);
+    p.setShader(new LinearGradient(x, y-radius, x, y+radius,
+        0xfffa665e, 0xffc42128, Shader.TileMode.CLAMP));
     c.drawCircle(x, y, radius, p);
+    p.setShader(null);
     p.setStyle(Paint.Style.STROKE);
-    p.setStrokeWidth(host.dp(1.3f));
-    p.setColor(JournalTheme.BRASS);
+    p.setStrokeWidth(host.dp(.8f));
+    p.setColor(0xffe6bc70);
     c.drawCircle(x, y, radius, p);
     p.setStyle(Paint.Style.FILL);
+    p.setColor(0x90fff0d0);
+    c.drawCircle(x-radius*.25f, y-radius*.32f, radius*.2f, p);
   }
 
   RectF gullBox() {

@@ -16,11 +16,13 @@ import java.util.Map;
 /** 홈 전용: 원본 종이·남색 질감에 입체 황동 테두리와 재화 메달을 더한다. */
 final class HomeMenuArt {
   private final Map<String, Bitmap> assets = new HashMap<>();
+  private final Map<Bitmap, Rect> iconBounds = new HashMap<>();
   private final Rect sliceSource = new Rect();
   private final RectF sliceTarget = new RectF();
   private final MainActivity host;
   private final HomeArt original;
   private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+  private final Paint surfaceTone = new Paint();
   private final Path clip = new Path();
   private final RectF inner = new RectF();
   private final RectF icon = new RectF();
@@ -34,7 +36,12 @@ final class HomeMenuArt {
         "currency-peanut", "currency-application", "icon-draw", "icon-collection",
         "icon-combine", "icon-explore", "icon-shop", "icon-team", "icon-daily"}) {
       Bitmap bitmap = host.art.asset("home-menu-v1/" + file + ".png");
-      if (bitmap != null) assets.put(file, bitmap);
+      if (bitmap != null) {
+        assets.put(file, bitmap);
+        // Crop transparent atlas padding once, not once per frame. The visible art,
+        // rather than its 512px canvas, must occupy the requested icon slot.
+        iconBounds.put(bitmap, host.art.alpha(bitmap, "home-menu-v1/" + file + ".png"));
+      }
     }
     paper = ThemeArt.of(host).image("ui/button-secondary.png");
     navy = ThemeArt.of(host).image("ui/button-primary.png");
@@ -61,6 +68,17 @@ final class HomeMenuArt {
   void tile(Canvas canvas, RectF bounds, boolean pressed, boolean enabled,
       boolean focus, boolean primary) {
     if (bounds.isEmpty()) return;
+    if (primary && paper != null) {
+      // The original parchment asset has the center crest. The later play.png
+      // rectangle does not; nine-slicing it cannot restore a missing ornament.
+      surfaceTone.setAlpha(enabled ? 255 : 140);
+      surfaceTone.setColorFilter(pressed ? new LightingColorFilter(0xffc4ad87, 0) : null);
+      int layer = canvas.saveLayer(bounds, surfaceTone);
+      original.surface(canvas, "ui/button-secondary.png", bounds);
+      canvas.restoreToCount(layer);
+      if (focus) focus(canvas, bounds);
+      return;
+    }
     String key = primary ? "play" : bounds.width() / bounds.height() < 1.45f ? "tile" : "menu";
     if (!assetSurface(canvas, key, bounds, pressed, enabled, focus,
         primary || bounds.height() >= host.dp(90) ? 16 : 12))
@@ -165,12 +183,14 @@ final class HomeMenuArt {
   }
 
   private void drawIcon(Canvas canvas, Bitmap bitmap, RectF bounds, int alpha) {
-    float scale = Math.min(bounds.width()/bitmap.getWidth(), bounds.height()/bitmap.getHeight());
-    float width=bitmap.getWidth()*scale, height=bitmap.getHeight()*scale;
+    Rect source = iconBounds.get(bitmap);
+    if (source == null || source.isEmpty()) return;
+    float scale = Math.min(bounds.width()/source.width(), bounds.height()/source.height());
+    float width=source.width()*scale, height=source.height()*scale;
     sliceTarget.set(bounds.centerX()-width/2,bounds.centerY()-height/2,
         bounds.centerX()+width/2,bounds.centerY()+height/2);
     fill(Color.WHITE); paint.setColorFilter(null); paint.setAlpha(alpha);
-    canvas.drawBitmap(bitmap, null, sliceTarget, paint);
+    canvas.drawBitmap(bitmap, source, sliceTarget, paint);
     paint.setAlpha(255);
   }
 

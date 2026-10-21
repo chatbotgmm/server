@@ -618,7 +618,7 @@ final class NativeRealtime {
     LinearLayout.LayoutParams left = new LinearLayout.LayoutParams(0, -1, .50f);
     left.rightMargin = h.dp(12); body.addView(order, left);
     TextView orderTitle = lightText("출전 순서", 17); orderTitle.setTypeface(h.headline);
-    orderTitle.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
+    kit.headingBackground(orderTitle);
     order.addView(orderTitle, new LinearLayout.LayoutParams(-1, h.dp(48)));
     LinearLayout podium = kit.row(); podium.setGravity(Gravity.TOP); podium.setBaselineAligned(false);
     podium.setTag("realtime-prepare-podium");
@@ -642,7 +642,7 @@ final class NativeRealtime {
     LinearLayout choices = kit.column(); body.addView(choices, new LinearLayout.LayoutParams(0, -1, .50f));
     LinearLayout pager = kit.row(); pager.setBaselineAligned(false);
     TextView candidateTitle = lightText("후보 · " + (preparationSlot == 0 ? "선봉" : (preparationSlot + 1) + "번"), 17);
-    candidateTitle.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
+    kit.headingBackground(candidateTitle);
     pager.addView(candidateTitle, new LinearLayout.LayoutParams(0, -1, 1));
     TextView pageNumber = h.text((preparationPage + 1) + " / " + pageCount, 13);
     pageNumber.setGravity(Gravity.CENTER); pageNumber.setBackground(new GamePaperDrawable(h));
