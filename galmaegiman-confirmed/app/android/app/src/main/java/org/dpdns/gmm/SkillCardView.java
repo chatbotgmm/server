@@ -8,6 +8,11 @@ import org.json.*;
 
 /** 기술명과 핵심 효과만 표시하고 속성 아이콘에서 상성을 확인하는 전투 카드. */
 final class SkillCardView extends FrameLayout {
+  private final BattleView battleView;
+  private final SkillHoldGesture hold;
+  private final SkillHoldPreview preview = new SkillHoldPreview();
+  private MotionEvent downEvent;
+  private final Runnable showHold;
   final Button use;
   final TextView effect;
   final JSONObject skill;
@@ -22,6 +27,18 @@ final class SkillCardView extends FrameLayout {
     super(view.host);
     MainActivity h = view.host;
     skill = sk;
+    battleView = view;
+    hold = new SkillHoldGesture(ViewConfiguration.getLongPressTimeout(),
+        ViewConfiguration.get(h).getScaledTouchSlop());
+    showHold = () -> {
+    if (!isAttachedToWindow() || !isShown() || !hasWindowFocus()) { cancelHold(); return; }
+    if (hold.hold(android.os.SystemClock.uptimeMillis())) {
+      cancelChild();
+      getParent().requestDisallowInterceptTouchEvent(true);
+      preview.show(battleView, skill, this);
+    }
+  };
+
     boolean combo = sk.optString("id").startsWith("combo-");
     String reason = reason(view, sk);
     String name = sk.optString("name");
@@ -86,6 +103,75 @@ final class SkillCardView extends FrameLayout {
     content.addView(effect, new LinearLayout.LayoutParams(-1, -2));
     addView(content, new LayoutParams(-1, -2, compact ? Gravity.CENTER_VERTICAL : Gravity.TOP));
     setMinimumHeight(h.dp(compact ? 96 : 104));
+  }
+
+  @Override public boolean dispatchTouchEvent(MotionEvent event) {
+    int action = event.getActionMasked();
+    if (action == MotionEvent.ACTION_DOWN) {
+      cancelHold();
+      downEvent = MotionEvent.obtain(event);
+      hold.down(event.getEventTime(), event.getX(), event.getY());
+      battleView.activeSkillPress = this;
+      battleView.skillTouchStream = true;
+      postDelayed(showHold, ViewConfiguration.getLongPressTimeout());
+      super.dispatchTouchEvent(event);
+      return true;
+    }
+    if (action == MotionEvent.ACTION_POINTER_DOWN || action == MotionEvent.ACTION_CANCEL) {
+      cancelHold();
+      return true;
+    }
+    if (action == MotionEvent.ACTION_MOVE && hold.move(event.getX(), event.getY())) {
+      cancelHold();
+      return true;
+    }
+    if (action == MotionEvent.ACTION_UP) {
+      boolean click = hold.release(event.getEventTime());
+      removeCallbacks(showHold);
+      preview.dismiss();
+      if (click) super.dispatchTouchEvent(event); else cancelChild();
+      finishPress();
+      return true;
+    }
+    if (hold.holding() || hold.cancelled()) return true;
+    return super.dispatchTouchEvent(event);
+  }
+
+  private void cancelChild() {
+    if (downEvent == null) return;
+    MotionEvent cancel = MotionEvent.obtain(downEvent);
+    cancel.setAction(MotionEvent.ACTION_CANCEL);
+    super.dispatchTouchEvent(cancel);
+    cancel.recycle();
+  }
+
+  private void finishPress() {
+    if (downEvent != null) { downEvent.recycle(); downEvent = null; }
+    if (battleView.activeSkillPress == this) battleView.activeSkillPress = null;
+    if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+  }
+
+  void cancelHold() {
+    if (showHold != null) removeCallbacks(showHold);
+    if (hold != null) hold.cancel();
+    preview.dismiss();
+    cancelChild();
+    finishPress();
+  }
+
+  @Override protected void onDetachedFromWindow() {
+    cancelHold();
+    super.onDetachedFromWindow();
+  }
+
+  @Override public void onWindowFocusChanged(boolean focused) {
+    super.onWindowFocusChanged(focused);
+    if (!focused) cancelHold();
+  }
+
+  @Override protected void onVisibilityChanged(View changed, int visibility) {
+    super.onVisibilityChanged(changed, visibility);
+    if (visibility != VISIBLE && preview != null) cancelHold();
   }
 
   final TextView title, power;
@@ -368,3 +454,4 @@ final class SkillCardView extends FrameLayout {
             : reason.contains("합동기") ? "동료 조건 필요" : reason;
   }
 }
+

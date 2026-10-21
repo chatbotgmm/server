@@ -32,6 +32,29 @@ final class BattleView extends FrameLayout implements FullBleed {
   int selectedSwitch = -1, itemPage;
   JSONObject selectedItem;
   boolean expiredInput;
+  SkillCardView activeSkillPress;
+  boolean skillTouchStream;
+  private boolean cancelSkillTouchStream;
+
+  @Override public boolean dispatchTouchEvent(MotionEvent event) {
+    int action = event.getActionMasked();
+    if (action == MotionEvent.ACTION_DOWN) { cancelSkillTouchStream = false; skillTouchStream = false; }
+    if (action == MotionEvent.ACTION_POINTER_DOWN && skillTouchStream) {
+      if (activeSkillPress != null) activeSkillPress.cancelHold();
+      MotionEvent cancel = MotionEvent.obtain(event);
+      cancel.setAction(MotionEvent.ACTION_CANCEL);
+      super.dispatchTouchEvent(cancel);
+      cancel.recycle();
+      cancelSkillTouchStream = true;
+    }
+    if (cancelSkillTouchStream) {
+      if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL)
+        cancelSkillTouchStream = false;
+      return true;
+    }
+    return super.dispatchTouchEvent(event);
+  }
+
 
   BattleView(MainActivity a, JSONObject b) {
     super(a);
@@ -144,6 +167,7 @@ final class BattleView extends FrameLayout implements FullBleed {
 
   @Override
   protected void onDetachedFromWindow() {
+    if (activeSkillPress != null) activeSkillPress.cancelHold();
     parallax.close();
     playback.cancel();
     super.onDetachedFromWindow();
