@@ -1,0 +1,61 @@
+{
+  "source": "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+  "source_sha256": "b76b0433203017ca80401b2ee0dd69350349871c4b19d504c34dbdd80541690a",
+  "source_face": 0,
+  "source_family": "Noto Sans CJK JP",
+  "source_version": "Version 2.004;hotconv 1.0.118;makeotfexe 2.5.65603",
+  "output": "workbench-noto-regular.otf",
+  "output_sha256": "615c5dde6d447d0d04833177702a09a93d120fa71eb940acc921bc4b2dfa5d35",
+  "bytes": 2172064,
+  "cmap_count": 13620,
+  "glyph_count": 15748,
+  "full_hangul_syllables": 11172,
+  "outline_and_advance_comparisons": 13620,
+  "mock_character_JP_KR_differences": [],
+  "ranges": [
+    [
+      "0x0",
+      "0x52f"
+    ],
+    [
+      "0x1100",
+      "0x11ff"
+    ],
+    [
+      "0x1e00",
+      "0x1eff"
+    ],
+    [
+      "0x2000",
+      "0x2bff"
+    ],
+    [
+      "0x3000",
+      "0x303f"
+    ],
+    [
+      "0x3130",
+      "0x318f"
+    ],
+    [
+      "0x3200",
+      "0x33ff"
+    ],
+    [
+      "0xa960",
+      "0xa97f"
+    ],
+    [
+      "0xac00",
+      "0xd7ff"
+    ],
+    [
+      "0xfe00",
+      "0xfe6f"
+    ],
+    [
+      "0xff00",
+      "0xffef"
+    ]
+  ]
+}

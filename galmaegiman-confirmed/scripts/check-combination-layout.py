@@ -1,55 +1,47 @@
-"""네이티브 실행을 대신하지 않는 조합 레이아웃 산술/소스 회귀 검사."""
+"""네이티브 View 실행 대신 사용할 수 없는 독립 산술/소스 경계 검사."""
 from pathlib import Path
 import math
-root = Path(__file__).resolve().parents[1]
-p = root / 'app/android/app/src/main/java/org/dpdns/gmm/NativeEconomy.java'
-if not p.exists(): p = Path(__file__).with_name('NativeEconomy.java')
-s = p.read_text()
-# 검증한 산술과 실제 런타임 코드가 분리되어 조용히 달라지는 것을 차단한다.
-for formula in ['width / Math.max(1, h.dp(48))', '(slots + columns - 1) / columns',
-                'Math.max(h.dp(48), viewportHeight / Math.max(1, rows))',
-                'int slots = Math.max(0, limit)', 'data.optInt("maxMaterials", 6)',
-                'header.addView(tools', 'browseActions.addView(add']:
-    assert formula in s, formula
-assert 'Math.max(4, m.mixDraft.size() + 1)' not in s
-# px, density, 좌우 inset 합, 상하 inset 합. fontScale 증가는 제목 높이에 반영.
-cases = [(915,412,1,0,0),(1080,444,1,0,0),(1080,444,1.5,48,24),
-         (1080,444,2,48,24),(1280,720,1,0,0),(915,412,1,48,24)]
-checks = 0
-for w,h,d,ix,iy in cases:
-  W,H=(w-ix)/d,(h-iy)/d
-  page_width=W-24
-  body=H-12-52-54  # page padding, existing header, existing footer+gap
-  card_h=body-48   # pager; no extra tab/add/frame rows
-  old_card_h=body-48-48-48-(10 if H<348 else 18)
-  assert card_h>old_card_h+90
-  # Left original 3:4 art contains, no crop or arbitrary width stretch.
-  card_w=min((page_width-8)*.34,card_h*.75)
-  assert card_w>0 and card_h>0
-  if d==1 and ix==0 and w in (915,1080): assert card_h>=240
-  selected=((page_width-8)*.66-22)*1.1/2.1-20
-  for fs in (1,1.3,1.5):
-    heading=max(32,math.ceil(22*fs)+8)
-    viewport=max(0,body-18-heading)
-    for slots in (0,2,4,5,6,9,12):
-      columns=max(1,min(2 if slots<=4 else 3,int(selected)//48))
-      rows=(slots+columns-1)//columns
-      rh=max(48,int(viewport)//max(1,rows))
-      assert selected/columns>=48
-      assert rh>=48
-      rects=[]
-      for i in range(slots):
-        col,row=i%columns,i//columns
-        box=(col*selected/columns,row*rh,(col+1)*selected/columns,(row+1)*rh)
-        assert box[0]>=0 and box[2]<=selected+1e-6
-        assert box[3]<=rows*rh
-        rects.append(box)
-      if slots<=6 and d==1: assert rows*rh<=viewport  # 기본 화면 여섯 칸 동시 표시
-      checks+=1
-  print(f'{w}x{h} density={d} insets={ix}/{iy}: card area height {card_h:.1f}dp (old {old_card_h:.1f}dp)')
-# 동작 보존: 탐색 경로는 draft/api를 만지지 않는다.
-carousel=s[s.index('  final class MixCarousel'):s.index('  boolean tightBench')]
-assert 'mixDraft.add' not in carousel and 'api.' not in carousel
-assert 'case MotionEvent.ACTION_CANCEL:' in carousel
-assert 'm.mixDraft.size() >= limit' in s and 'Collections.frequency(m.mixDraft, id) >= unit.optInt("usable")' in s
-print(f'PASS {checks} geometry combinations + source/interaction guards (not Android rendering)')
+base=Path(__file__).parent
+source=base.parent/'app/android/app/src/main/java/org/dpdns/gmm/NativeEconomy.java'
+if not source.exists(): source=base/'NativeEconomy.java'
+s=source.read_text()
+for token in ['float[] weights = {.39f, .33f, .28f}', 'new LinearLayout.LayoutParams(h.dp(8),-1)', 'h.dp(720)',
+              'h.dp(320+(int)Math.ceil(Math.max(0,scale-1)*100))',
+              'MeasureSpec.makeMeasureSpec(contentHeight,MeasureSpec.EXACTLY)',
+              'cell.setTag("mix-material-"', 'cell.setOnClickListener',
+              'slot.setClickable(false)', 'viewport.setFillViewport(true)',
+              'View empty = navyEmptyResult()', 'new HiddenRecipeFrame(h, true)']:
+    assert token in s,token
+checks=0
+for width,height,density in [(915,412,1),(1080,444,1),(1080,444,1.5),(1080,444,2),(780,360,1),(1280,720,1)]:
+ for insets in [(0,0),(48,24)]:
+  for scale in [1,1.3,2]:
+   vw=(width-insets[0])/density-24
+   vh=(height-insets[1])/density-12-52
+   content_w=max(vw,720)
+   content_h=max(vh,320+math.ceil(max(0,scale-1)*100))
+   # Final approved texture design uses two explicit8dp gaps.
+   weights=[.39,.33,.28]
+   columns=[(content_w-16)*x for x in weights]
+   assert min(columns)>48
+   assert columns[0]-20-96>0 # full card + distinct48dp previous/next
+   selected_w=columns[1]-20
+   # Heading is text-measured at runtime; use90dp upper allowance for scale2.
+   selected_h=content_h-16-90-48
+   assert selected_h>=96
+   for slots in [0,2,4,5,6,9,12,24]:
+    ncol=max(1,min(2 if slots<=4 else 3,int(selected_w)//48))
+    rows=math.ceil(slots/ncol)
+    row_h=max(48,int(selected_h)//max(1,rows))
+    rects=[]
+    for i in range(slots):
+     x=i%ncol*selected_w/ncol;y=i//ncol*row_h
+     rect=(x,y,x+selected_w/ncol,y+row_h)
+     assert rect[2]-rect[0]>=48 and rect[3]-rect[1]>=48
+     assert rect[2]<=selected_w+1e-6
+     for a in rects:
+      assert not (rect[0]<a[2]-1e-6 and rect[2]>a[0]+1e-6 and rect[1]<a[3] and rect[3]>a[1])
+     rects.append(rect)
+    if slots<=6: assert rows*row_h<=selected_h
+    checks+=1
+print('PASS',checks,'geometry cases (text/Android measurement NOT executed)')
