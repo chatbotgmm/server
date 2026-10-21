@@ -19,58 +19,52 @@ import org.robolectric.annotation.*;
 @LooperMode(LooperMode.Mode.PAUSED)
 public class JournalActivityLifecycleTest {
   @Test
-  public void reduceMotionAppliesImmediatelyAndRestoresItsSavedValueOnNewActivity() {
+  public void retiredMotionPreferenceMigratesWithoutChangingPlatformOrGameState() {
     NativeGameFlowTest fixtures = new NativeGameFlowTest();
     fixtures.isolate();
-    var display = RuntimeEnvironment.getApplication().getSharedPreferences("native_display", 0);
-    display.edit().clear().commit();
+    var context = RuntimeEnvironment.getApplication();
+    var display = context.getSharedPreferences("native_display", 0);
+    float original = android.provider.Settings.Global.getFloat(context.getContentResolver(),
+        android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f);
+    display.edit().clear().putBoolean("reduce_motion", true).putInt("unrelated", 42).commit();
     try {
+      android.provider.Settings.Global.putFloat(context.getContentResolver(),
+          android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 0f);
       try (var lifecycle =
           Robolectric.buildActivity(MainActivity.class).create().start().resume().visible()) {
         MainActivity host = lifecycle.get();
-        assertTrue("기본값은 움직임 허용", host.motionEnabled);
+        assertTrue("Retired local preference cannot strand an upgraded install", host.motionEnabled);
+        assertFalse(display.contains("reduce_motion"));
+        assertEquals(42, display.getInt("unrelated", 0));
+        assertFalse("Platform animation-off remains authoritative", SceneMotion.enabled(host));
+        assertEquals(0f, android.provider.Settings.Global.getFloat(host.getContentResolver(),
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, -1f), 0f);
         host.api.close();
-        host.api =
-            new NativeApi(host) {
-              @Override
-              void call(String path, JSONObject body, Result done) {
-                throw new AssertionError("표시 설정에 API를 호출하면 안 됨: " + path);
-              }
-            };
+        host.api = new NativeApi(host) {
+          @Override void call(String path, JSONObject body, Result done) {
+            throw new AssertionError("Display migration cannot call API: " + path);
+          }
+        };
         host.state = MainActivity.obj("me", MainActivity.obj("ticket", 277));
         host.battle = MainActivity.obj("turn", 7);
         JSONObject state = host.state, battle = host.battle;
         android.view.View page = host.root.getChildAt(0);
         String screen = host.screen;
-        LocalTimeTheme.Phase phase = host.journalTime.phase();
-        AtomicInteger notices = new AtomicInteger();
-        host.journalTime.addListener(notices::incrementAndGet);
-        host.reducedMotion(true);
-        assertFalse(host.motionEnabled);
-        assertTrue(display.getBoolean("reduce_motion", false));
-        host.reducedMotion(false);
-        assertTrue(host.motionEnabled);
-        assertFalse(display.getBoolean("reduce_motion", true));
-        assertEquals(2, notices.get());
+        NativeMotion.migrateLegacyPreference(host);
         assertSame(state, host.state);
         assertSame(battle, host.battle);
         assertSame(page, host.root.getChildAt(0));
         assertEquals(screen, host.screen);
-        assertEquals(phase, host.journalTime.phase());
-        host.reducedMotion(true);
-      }
-      try (var lifecycle =
-          Robolectric.buildActivity(MainActivity.class).create().start().resume().visible()) {
-        MainActivity host = lifecycle.get();
-        assertFalse("앱 재진입에도 움직임 줄이기를 보존", host.motionEnabled);
-        assertTrue(host.motionResumed);
-        host.reducedMotion(false);
       }
       try (var lifecycle = Robolectric.buildActivity(MainActivity.class).create()) {
-        assertTrue("해제한 값도 다음 Activity에 반영", lifecycle.get().motionEnabled);
+        assertTrue(lifecycle.get().motionEnabled);
+        assertFalse(display.contains("reduce_motion"));
+        assertFalse(SceneMotion.enabled(lifecycle.get()));
       }
     } finally {
       display.edit().clear().commit();
+      android.provider.Settings.Global.putFloat(context.getContentResolver(),
+          android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, original);
     }
   }
 

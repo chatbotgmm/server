@@ -117,7 +117,7 @@ public class NativeRenderReviewTest {
     CharSequence description = view.getContentDescription();
     if (view instanceof ViewGroup
         && description != null
-        && description.toString().matches("\\d+일 .* · 뽑기권 \\d+장")) {
+        && description.toString().matches("\\d+일 .* · 지원서 \\d+장")) {
       ViewGroup card = (ViewGroup) view;
       for (int i = 0; i < card.getChildCount(); i++) {
         View child = card.getChildAt(i);
@@ -420,8 +420,7 @@ public class NativeRenderReviewTest {
         viewport(a, size[0], size[1]);
         a.lobbyRoom = "cafe";
         a.home();
-        // 10-19부터 홈은 HarborHomeView(항구 광장). 이전 LobbyView일 때만 준비 완료를 기다린다.
-        await(() -> !(a.root.getChildAt(0) instanceof LobbyView) || ((LobbyView) a.root.getChildAt(0)).ready());
+        await(() -> ((LobbyView) a.root.getChildAt(0)).ready());
         capture(a, prefix + "home", size[0], size[1]);
         for (String screen :
             new String[] {
@@ -473,7 +472,7 @@ public class NativeRenderReviewTest {
               int count = 0;
               for (View view : geometry.descendants(decor))
                 if (view instanceof TextView
-                    && ((TextView) view).getText().toString().matches("\\d+일째 · 뽑기권 \\d+장"))
+                    && ((TextView) view).getText().toString().matches("\\d+일째 · 지원서 \\d+장"))
                   count++;
               assertEquals("모달에서도 매주 일곱 보상의 숫자와 단위를 모두 유지", 7, count);
               geometry.capture(a, size, prefix + "daily-rewards-modal-top");
@@ -650,7 +649,8 @@ public class NativeRenderReviewTest {
           story.say.length() > 0 && story.say.length() < story.fullText.length());
       story.next.performClick();
       assertFalse("첫 터치는 현재 줄 완성", story.typing);
-      assertEquals(firstLine, story.say.getText().toString());
+      assertEquals(firstLine.replace("수비대", "방범대"), story.say.getText().toString());
+      assertEquals("서버 원문 대사는 변경하지 않음", firstLine, story.lines.getJSONObject(0).getString("say"));
       assertEquals(0, story.index);
       story.next.performClick();
       assertEquals("다음 터치는 다음 대사", 1, story.index);

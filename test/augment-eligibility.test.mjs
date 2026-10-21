@@ -1,0 +1,12 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import {eligibleAugmentIds} from '../galmaegiman-confirmed/src/battle/augment-eligibility.ts';
+const ids=['firstaid','rinse','resetline','handoffguard','relief','bloodrelay','baton','breach','underdog','equalfield','quietstorm','rainbow','mortgage','coldbargain','shatterprice','sharedburden','focus'];
+const fighter=(extra={})=>({hp:100,maxHp:100,rec:{level:10},status:{},mods:[],guards:[],passive:{},skills:[],attr:'STONE',...extra});
+const battle=()=>({R:{battleAugments:ids.map(id=>({id}))},sides:[{active:0,needSwitch:false,augs:[],fighters:[fighter()]},{active:0,needSwitch:false,augs:[],fighters:[fighter()]}]});
+const has=(b,id)=>eligibleAugmentIds(b,0).includes(id);
+test('상태/약화/회복 조건은 현재 생존자만',()=>{const b=battle();assert(!has(b,'firstaid'));b.sides[0].fighters.push(fighter({hp:0,mods:[{pct:-10,turns:2}],status:{burn:2}}));assert(!has(b,'firstaid'));assert(!has(b,'resetline'));b.sides[0].fighters[0].hp=60;assert(has(b,'firstaid'));assert(has(b,'mortgage'));b.sides[0].fighters[0].status.bind=1;assert(has(b,'rinse'));});
+test('강제교체 전 다음 출전 가능 유닛 상태 검사',()=>{const b=battle();b.sides[0].needSwitch=true;b.sides[0].fighters=[fighter({hp:0}),fighter({status:{burn:2},hp:50})];assert(has(b,'rinse'));assert(has(b,'mortgage'));assert(!has(b,'handoffguard'));});
+test('고레벨 적 조건은 현재 공개 생존 유닛만',()=>{const b=battle();b.sides[1].fighters[0].rec.level=19;assert(has(b,'equalfield'));assert(!has(b,'underdog'));b.sides[1].fighters[0].rec.level=20;assert(has(b,'underdog'));b.sides[1].fighters[0].hp=0;assert(!has(b,'underdog'));});
+test('서로 다른 보조 기술 및 공격 속성 수',()=>{const b=battle(),f=b.sides[0].fighters[0];f.skills=[{id:'u',effects:[{kind:'heal'}]},{id:'u',effects:[{kind:'heal'}]}];assert(has(b,'breach'));assert(!has(b,'quietstorm'));f.skills[1].id='v';assert(has(b,'quietstorm'));f.skills=[{power:30,effects:[]},{power:30,attr:'FIRE',effects:[]},{power:30,attr:'SEA',effects:[]}];assert(has(b,'rainbow'));});
+test('흡혈과 강화 비용 및 대기 HP 조건',()=>{const b=battle(),f=b.sides[0].fighters[0];f.skills=[{power:30,effects:[],drain:10}];assert(has(b,'coldbargain'));f.guards=[{pct:10,turns:1}];assert(has(b,'shatterprice'));b.sides[0].fighters.push(fighter({hp:10}));assert(!has(b,'sharedburden'));b.sides[0].fighters[1].hp=11;assert(has(b,'sharedburden'));});
+test('검사는 전투 상태를 변경하지 않음',()=>{const b=battle(),before=JSON.stringify(b);eligibleAugmentIds(b,0);assert.equal(JSON.stringify(b),before);});

@@ -97,10 +97,11 @@ public class NativeAcquisitionFlowTest {
     @Override
     void call(String path, JSONObject body, Result done) {
       requests.add((body == null ? "GET " : "POST ") + path);
-      assertEquals("native/state", path);
+      assertTrue("결과 확인에는 상태·도감 읽기만 사용", path.equals("native/state") || path.equals("native/catalog"));
       assertNull("획득 이동에서는 소비 요청을 재실행하지 않음", body);
       if (deferred) pending = done;
-      else done.done(state, null);
+      else done.done(path.equals("native/catalog")
+          ? MainActivity.obj("units", state.optJSONObject("me").optJSONArray("units")) : state, null);
     }
   }
 
@@ -300,29 +301,30 @@ public class NativeAcquisitionFlowTest {
           NativeReveal.RevealCard card = h.root.findViewWithTag("acquisition-card-" + id);
           assertNotNull("원본 획득 카드 유지: " + id, card);
           assertCardTextFits(card.front);
-          ImageView image = card.findViewWithTag("/thumbs/" + id + ".jpg");
-          assertNotNull("원본 수집 카드 경로 유지: " + id, image);
-          assertEquals(ImageView.ScaleType.FIT_CENTER, image.getScaleType());
-          assertNotNull("원본 카드 이미지를 실제로 불러옴: " + id, image.getDrawable());
-          int originalWidth = image.getDrawable().getIntrinsicWidth();
-          int originalHeight = image.getDrawable().getIntrinsicHeight();
-          assertTrue(originalWidth > 0 && originalHeight > 0);
-          android.graphics.RectF drawn =
-              new android.graphics.RectF(0, 0, originalWidth, originalHeight);
-          image.getImageMatrix().mapRect(drawn);
-          drawn.offset(image.getPaddingLeft(), image.getPaddingTop());
+          RegistrationCardView.Artwork image = registrationArtwork(card);
+          assertNotNull("서버 종 ID의 등록증 그림 유지: " + id, image);
+          assertEquals(id, image.id);
+          assertEquals(RegistrationCardView.FULL, image.mode);
+          review.await(() -> image.bitmap != null);
+          assertNotNull("번들 등록증 이미지를 실제로 불러옴: " + id, image.bitmap);
+          assertEquals("완성 등록증 3:4 비율", .75,
+              image.bitmap.getWidth() / (double) image.bitmap.getHeight(), .01);
+          android.graphics.RectF drawn = new android.graphics.RectF(image.target);
+          assertTrue("실제 등록증 표시 영역 존재: " + id, drawn.width() > 0 && drawn.height() > 0);
           assertEquals(
-              "높이가 낮아도 실제 그림의 원본 비율 유지: " + id,
-              originalWidth / (double) originalHeight,
+              "높이가 낮아도 등록증 전체 원본 비율 유지: " + id,
+              image.bitmap.getWidth() / (double) image.bitmap.getHeight(),
               drawn.width() / (double) drawn.height(),
               .01);
           assertTrue(
-              "실제 원본 그림을 자르지 않음: " + id + " " + drawn,
+              "완성 등록증을 자르지 않음: " + id + " " + drawn,
               drawn.left >= -.5f
                   && drawn.top >= -.5f
                   && drawn.right <= image.getWidth() + .5f
                   && drawn.bottom <= image.getHeight() + .5f);
         }
+        // 비동기 등록증이 준비된 뒤 같은 검수 캡처를 확정한다.
+        review.capture(h, name, size[0], size[1]);
         HorizontalScrollView cards = h.root.findViewWithTag("acquisition-cards-scroll");
         assertNotNull("전체 카드 목록은 의도한 가로 스트립으로 유지", cards);
         assertFalse("결과 기본 화면은 세로 스크롤하지 않는다", cards.canScrollVertically(1));
@@ -355,8 +357,17 @@ public class NativeAcquisitionFlowTest {
         assertNotNull(h.root.findViewWithTag("acquisition-craft"));
         assertNull(h.root.findViewWithTag("acquisition-grow"));
         review.capture(h, name + "-collection-grade", size[0], size[1]);
-        assertActionVisible(h, "acquisition-detail", size[0], size[1]);
+        assertNull("별도 상세 버튼을 두지 않음", h.root.findViewWithTag("acquisition-detail"));
         assertActionVisible(h, "acquisition-craft", size[0], size[1]);
+        View turned = h.root.findViewWithTag("acquisition-card-C1");
+        turned.performClick();
+        assertNull("카드는 새 창 없이 뒤집힌다", h.root.findViewWithTag("acquisition-dossier"));
+        turned.findViewWithTag("acquisition-card-record").performClick();
+        review.capture(h, name + "-direct-card-record", size[0], size[1]);
+        assertNotNull(h.root.findViewWithTag("acquisition-dossier"));
+        h.root.findViewWithTag("acquisition-dossier-back").performClick();
+        assertNull(h.root.findViewWithTag("acquisition-dossier"));
+        assertEquals(1, flow.selected);
         Button confirm = h.root.findViewWithTag("acquisition-confirm");
         assertActionVisible(h, "acquisition-confirm", size[0], size[1]);
         assertTrue("가로 카드·전체 목록 선택 뒤에도 확인 버튼을 누를 수 있음", confirm.performClick());
@@ -369,7 +380,7 @@ public class NativeAcquisitionFlowTest {
   void assertAcquisitionActionsVisible(MainActivity host, int width, int height) {
     for (String tag :
         new String[] {
-          "acquisition-detail", "acquisition-grow", "acquisition-team", "acquisition-confirm"
+          "acquisition-grow", "acquisition-team", "acquisition-confirm"
         }) assertActionVisible(host, tag, width, height);
   }
 
@@ -393,6 +404,18 @@ public class NativeAcquisitionFlowTest {
             >= action.getLayout().getHeight());
   }
 
+  RegistrationCardView.Artwork registrationArtwork(View view) {
+    if (view instanceof RegistrationCardView.Artwork) return (RegistrationCardView.Artwork) view;
+    if (view instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) view;
+      for (int i = 0; i < group.getChildCount(); i++) {
+        RegistrationCardView.Artwork image = registrationArtwork(group.getChildAt(i));
+        if (image != null) return image;
+      }
+    }
+    return null;
+  }
+
   void assertCardTextFits(View view) {
     if (view.getVisibility() != View.VISIBLE) return;
     if (view instanceof TextView) {
@@ -412,3 +435,4 @@ public class NativeAcquisitionFlowTest {
     }
   }
 }
+

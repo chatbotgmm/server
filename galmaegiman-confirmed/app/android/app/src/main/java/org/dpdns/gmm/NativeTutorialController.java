@@ -11,6 +11,8 @@ final class NativeTutorialController {
   static final WeakHashMap<MainActivity, WeakReference<NativeTutorialController>> INSTANCES =
       new WeakHashMap<>();
   static final Map<String, String[]> HINTS = new LinkedHashMap<>();
+  // 모집 CTA의 기존 draw-submit-* 태그를 바꾸지 않는 보조 안내 앵커.
+  static final WeakHashMap<View, String> EXTRA_ANCHORS = new WeakHashMap<>();
 
   static {
     HINTS.put(
@@ -18,8 +20,10 @@ final class NativeTutorialController {
     HINTS.put(
         "expedition",
         new String[] {"탐험", "갈매미를 탐험에 보내면 시간이 지난 뒤 보상을 가지고 돌아와요. 탐험 중인 갈매미도 전투에 참여할 수 있어요."});
-    HINTS.put("shop", new String[] {"상점", "새우gang으로 뽑기권과 아이템을 살 수 있어요."});
-    HINTS.put("modes", new String[] {"모드", "왼쪽은 스토리, 오른쪽은 다른 수비조장과 겨루는 PvP예요. PvP는 3마리 편성이 필요해요."});
+    HINTS.put("shop", new String[] {"상점", "새우gang으로 지원서와 아이템을 살 수 있어요."});
+    HINTS.put("modes", new String[] {"모드", "스토리나 대전을 먼저 골라요. 각 화면에서 세부 모드를 선택할 수 있어요."});
+    HINTS.put("modesStory", new String[] {"스토리", "스토리모드에서 챕터를 골라요. 모험은 아직 준비 중이에요."});
+    HINTS.put("modesPvp", new String[] {"대전", "일반 게임·랭크게임·연습 중에서 골라요. 실시간 대전에는 3마리 편성이 필요해요."});
     HINTS.put("story", new String[] {"스토리", "챕터를 고르면 스테이지가 나와요. 깬 스테이지도 다시 도전해 레벨을 올릴 수 있어요."});
   }
 
@@ -35,6 +39,11 @@ final class NativeTutorialController {
 
   static <T extends View> T anchor(T view, String key) {
     view.setTag("tutorial:" + key);
+    return view;
+  }
+
+  static <T extends View> T anchorPreservingTag(T view, String key) {
+    EXTRA_ANCHORS.put(view, "tutorial:" + key);
     return view;
   }
 
@@ -245,7 +254,7 @@ final class NativeTutorialController {
     if (rewardCard) {
       card(
           "first-reward",
-          "첫 뽑기 보상",
+          "첫 모집 보상",
           "태초의 갈매미맨이 수비대에 들어왔어요. 모든 갈매미의 원형이에요. 이 한 마리로 첫 전투에 나가요."
               + (progress.replay ? "\n다시 보기에서는 새 갈매미를 지급하지 않아요." : ""),
           "받기",
@@ -263,18 +272,22 @@ final class NativeTutorialController {
             "attend",
             find("daily", "출석체크"),
             "① 출석체크",
-            "매일 들르면 뽑기권을 줘요. 날마다 보상이 커지고, 7일째에는 선물 상자! 눌러서 받아 봐요.",
+            "매일 들르면 지원서를 줘요. 날마다 보상이 커지고, 7일째에는 선물 상자! 눌러서 받아 봐요.",
             () -> advance(2));
       else removeOverlay();
       return;
     }
     if (progress.step == 2) {
       if (screen.equals("home"))
-        spotlight("draw", find("draw", "뽑기"), "② 첫 뽑기", "뽑기로 가요. 가입 선물로 받은 뽑기권이 있어요!", null);
+        spotlight("draw", find("draw", "모집"), "② 첫 모집", "모집으로 가요. 가입 선물로 받은 지원서가 있어요!", null);
       else if (screen.equals("draw"))
         spotlight(
-            "draw-go", find("draw-go", "회 뽑기"), "② 첫 뽑기", "1회 뽑기를 눌러요. 알이 나오면 눌러서 열어요.", null);
-      else back("뽑기");
+            "draw-go",
+            findTag(h.root, "tutorial:draw-go"),
+            "② 첫 모집",
+            "수량 1회를 확인하고 모집하기를 눌러요. 봉투가 나오면 눌러서 지원서를 열어요.",
+            null);
+      else back("모집");
       return;
     }
     if (progress.step == 3) {
@@ -328,7 +341,9 @@ final class NativeTutorialController {
       if (screen.equals("home"))
         spotlight("play", find("play", "플레이"), "④ 첫 전투", "플레이를 눌러요.", null);
       else if (screen.equals("modes"))
-        spotlight("story", find("story", "스토리"), "④ 첫 전투", "스토리에서 챕터를 골라요.", null);
+        spotlight("story", find("story", "스토리"), "④ 첫 전투", "스토리를 눌러 세부 모드를 골라요.", null);
+      else if (screen.equals("modesStory"))
+        spotlight("story-mode", find("story", "스토리모드"), "④ 첫 전투", "스토리모드를 눌러 챕터를 골라요.", null);
       else if (screen.equals("story"))
         spotlight("chapter", find("chapter", "프롤로그"), "④ 첫 전투", "프롤로그 챕터를 눌러요.", null);
       else if (screen.equals("stages"))
@@ -485,7 +500,7 @@ final class NativeTutorialController {
   }
 
   void showHint() {
-    String key = h.screen;
+    String key = h.screen.equals("craftRecipes") ? "craft" : h.screen;
     String savedKey = key.equals("expedition") ? "party" : key;
     if (overlay != null && overlay.hint) return;
     String[] message = HINTS.get(key);
@@ -567,7 +582,8 @@ final class NativeTutorialController {
 
   View findTag(View view, String tag) {
     if (view == overlay) return null;
-    if (tag.equals(view.getTag()) && view.isShown()) return view;
+    if ((tag.equals(view.getTag()) || tag.equals(EXTRA_ANCHORS.get(view))) && view.isShown())
+      return view;
     if (view instanceof ViewGroup) {
       ViewGroup group = (ViewGroup) view;
       for (int i = 0; i < group.getChildCount(); i++) {
@@ -600,3 +616,4 @@ final class NativeTutorialController {
     return null;
   }
 }
+

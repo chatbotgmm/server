@@ -14,6 +14,7 @@ function keys(v:Record<string,unknown>,allowed:string[]){if(Object.keys(v).some(
 export function serializeBattle(b:Battle):string{const {R,...state}=b;return JSON.stringify(state);}
 export function deserializeBattle(R:Rules,json:string):Battle{
   const state=JSON.parse(json);
+  if((state.effectsVersion===2)!==(R.augmentVersion===2))throw new Error('저장 전투와 규칙의 증강 버전이 달라요');
   // Trusted database payload only. Never deserialize a client-supplied battle.
   return {...state,R};
 }
@@ -102,10 +103,10 @@ export function consumedItemSides(before:Battle,after:Battle):Array<0|1>{
   }
   return used;
 }
-export function rerollCommand(b:Battle,side:Side,index:number):Battle{
+export function rerollCommand(b:Battle,side:Side,index:number,bonus=false):Battle{
   if(!Number.isInteger(index)||index<0)fail();
   const next=clone(b);
-  try{rerollAugment(next,side,index);}catch{fail();}
+  try{rerollAugment(next,side,index,bonus);}catch{fail();}
   return next;
 }
 export function resolvePhase(b:Battle,commands:[Command|null,Command|null],automatic:[boolean,boolean]):Battle{
@@ -126,3 +127,4 @@ export function resolvePhase(b:Battle,commands:[Command|null,Command|null],autom
   else act(next,actions as [Action,Action],{prevalidated:true});
   return next;
 }
+

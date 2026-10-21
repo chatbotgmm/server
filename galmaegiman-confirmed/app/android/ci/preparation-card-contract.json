@@ -1,0 +1,91 @@
+{
+  "schema": "native-realtime-preparation-character-review-contract/v2",
+  "status": "awaiting_android_execution",
+  "extends": "../review-contract.json",
+  "expected_total_capture_count": 124,
+  "expected_preparation_capture_count": 28,
+  "state_test_count": 15,
+  "test_class": "org.dpdns.gmm.NativeRealtimeThemeReviewTest",
+  "state_test_class": "org.dpdns.gmm.NativeRealtimeThemeStateTest",
+  "output_subdirectory": "realtime-theme",
+  "validator": "validation/verify_preparation_cards.py",
+  "workflow_integration": "pending_with_preparation_commit; run after original 124-capture validator",
+  "variants": [
+    "915x412",
+    "1006x411",
+    "1280x720",
+    "915x412-font130"
+  ],
+  "scenario_stems": [
+    "prepare-rank",
+    "prepare-slot",
+    "prepare-page2",
+    "prepare-ready",
+    "prepare-expired",
+    "prepare-ai",
+    "prepare-empty"
+  ],
+  "additional_metric_fields": {
+    "preparationStatus": {
+      "text": "complete displayed status including full AI_NOTICE",
+      "lines": "1-2 actual native Layout left/right pairs",
+      "contentWidth": "measured content pixels",
+      "contentHeight": "measured content pixels",
+      "layoutHeight": "native Layout height <= contentHeight",
+      "textLength": "complete status UTF-16 length",
+      "laidOutTextEnd": "last native Layout lineEnd == textLength"
+    },
+    "preparationCards": {
+      "tag": "authoritative slot/candidate tag",
+      "id": "server-disclosed catalog ID",
+      "mode": "CHARACTER",
+      "pixelIdentityVerified": "true for approved exact APK sprite; false for L14 missing identity",
+      "containedWidth": "positive and exact source aspect for approved sprite; zero for L14",
+      "containedHeight": ">=24dp approved sprite; zero for L14",
+      "bitmapWidth": "positive exact source pixels; zero for L14",
+      "bitmapHeight": "positive exact source pixels; zero for L14",
+      "enabled": "false for ready/expired; true otherwise",
+      "dynamicState": "slot and/or Lv30 only",
+      "spritePath": "/duel/sprites/ID_s0_front.webp for approved; empty for L14",
+      "nameMatchesServer": true,
+      "registrationViews": 0,
+      "targetContained": true,
+      "missingIdentityPreserved": "true for L14, with imageStatus 이미지 없음"
+    }
+  },
+  "card_identity": {
+    "selected": [
+      "D1",
+      "D2",
+      "D3"
+    ],
+    "first_candidate_page": [
+      "D1",
+      "D2",
+      "D3"
+    ],
+    "second_candidate_page": [
+      "D8",
+      "L14",
+      "E7"
+    ],
+    "empty": []
+  },
+  "native_assertions": [
+    "independent RegistrationArt FULL decode pixel equality",
+    "3:4 complete contain with no clipping",
+    "no duplicate printed name/tier",
+    "accessible identity and live state",
+    "strict 48dp actions and no core scrolling",
+    "complete status within native Layout line and height bounds; zero ellipsis",
+    "card click authoritative swap, no optimistic mutation, pending lock, server reply image"
+  ],
+  "asset_wait": {
+    "per_fixture_max_ms": 10000,
+    "aggregate_max_ms": 120000,
+    "fixed_delay_per_fixture_ms": 0,
+    "frame_advance_ms": 16,
+    "pacing": "wall-time paced while decode or UI callbacks remain pending"
+  },
+  "runtime_execution": "not_run"
+}

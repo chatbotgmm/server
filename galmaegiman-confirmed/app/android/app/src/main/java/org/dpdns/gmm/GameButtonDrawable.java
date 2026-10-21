@@ -13,10 +13,13 @@ final class GameButtonDrawable extends Drawable {
   final GamePressState state = new GamePressState();
   private final RectF bounds = new RectF(), layerBounds = new RectF();
   private boolean selected;
+  private ColorFilter filter;
 
   GameButtonDrawable(MainActivity h, int c) {
     host = h;
     color = c == 0xfffffaf0 ? PAPER : c == 0xffdd9a58 || c == 0xffe0c296 ? PRIMARY : c;
+    ThemeArt.of(h).image(ThemeArt.file(ThemeArt.Surface.PAPER));
+    ThemeArt.of(h).image(ThemeArt.file(ThemeArt.Surface.NAVY));
   }
 
   @Override
@@ -31,7 +34,7 @@ final class GameButtonDrawable extends Drawable {
       if (value == android.R.attr.state_selected
           || value == android.R.attr.state_checked
           || value == android.R.attr.state_activated) nextSelected = true;
-    boolean changed = state.update(states) | (nextSelected != selected);
+    boolean changed = state.update(states, true) | (nextSelected != selected);
     selected = nextSelected;
     if (changed) invalidateSelf();
     return changed;
@@ -42,26 +45,33 @@ final class GameButtonDrawable extends Drawable {
     RectF r = bounds;
     r.set(getBounds());
     r.bottom -= host.dp(3);
-    int save;
-    if (state.enabled)
-      save = state.begin(c, getBounds(), host.getResources().getDisplayMetrics().density);
-    else {
-      opacity.setAlpha(state.alpha);
+    int outer = c.save();
+    if (filter != null) {
+      opacity.setAlpha(255);
+      opacity.setColorFilter(filter);
       layerBounds.set(getBounds());
-      save = c.saveLayer(layerBounds, opacity);
+      c.saveLayer(layerBounds, opacity);
     }
-    int fill = !state.enabled ? JournalTheme.DISABLED : selected ? JournalTheme.SELECTED : color;
-    drawSurface(
-        c, r, fill, host.dp(16), host.dp(2), state.pressed || !state.enabled ? 0 : host.dp(2), p);
-    if (selected && state.enabled) {
-      r.inset(host.dp(2.5f), host.dp(2.5f));
+    int save = state.begin(c, getBounds(), host.getResources().getDisplayMetrics().density);
+    // 비활성도 같은 양피지 그림·프레임을 사용한다. 상태 필터만 약하게 적용한다.
+    ThemeArt.of(host).surface(c,
+        state.enabled && state.pressed ? ThemeArt.Surface.NAVY : ThemeArt.Surface.PAPER, r);
+    boolean focused = false;
+    for (int value : getState()) if (value == android.R.attr.state_focused) focused = true;
+    if ((selected || focused) && state.enabled) {
+      r.inset(host.dp(3), host.dp(3));
       p.setStyle(Paint.Style.STROKE);
       p.setStrokeWidth(host.dp(1.8f));
-      p.setColor(JournalTheme.TEAL);
-      c.drawRoundRect(r, host.dp(4), host.dp(4), p);
+      p.setColor(focused ? JournalTheme.FOCUS : JournalTheme.BRASS);
+      c.drawRoundRect(r, host.dp(3), host.dp(3), p);
       p.setStyle(Paint.Style.FILL);
+      if (selected && !state.pressed) {
+        p.setColor(0x14628c90);
+        c.drawRoundRect(r, host.dp(3), host.dp(3), p);
+      }
     }
     state.finish(c, save);
+    c.restoreToCount(outer);
   }
 
   static void drawSurface(
@@ -86,7 +96,7 @@ final class GameButtonDrawable extends Drawable {
 
   @Override
   public void setColorFilter(ColorFilter value) {
-    p.setColorFilter(value);
+    filter = value;
     invalidateSelf();
   }
 

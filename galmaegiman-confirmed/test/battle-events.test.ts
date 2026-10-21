@@ -36,7 +36,11 @@ describe('전투 표시 이벤트',()=>{
   it('과잉 피해는 실제 남은 체력까지만 표시하며 버티기·방어에도 음수 체력이 생기지 않는다',()=>{
     const b=ready(),foe=activeOf(b,1);foe.hp=2;cast(b,move({power:100,hits:3}));
     const hit=events(b,'damage')[0];expect(hit).toMatchObject({amount:2,hpBefore:2,hpAfter:0,maxHp:1000,hit:1});
-    expect(events(b,'damage')).toHaveLength(1);expect(events(b,'faint')[0].target?.side).toBe(1);
+    expect(events(b,'damage')).toHaveLength(1);
+    const faint=events(b,'faint')[0];
+    expect(faint).toMatchObject({target:{side:1,slot:0,key:'same-key',id:'D1'},hpBefore:0,hpAfter:0,maxHp:1000});
+    expect(faint.amount).toBeUndefined();expect(faint.id).toBeGreaterThan(hit.id);
+    expect(faint.hpBefore).toBe(hit.hpAfter);
     const endured=ready();activeOf(endured,1).hp=1;activeOf(endured,1).endure=2;cast(endured,move({hits:2}));
     expect(events(endured,'damage').map(e=>e.amount)).toEqual([0,0]);
     const protectedBattle=ready();activeOf(protectedBattle,1).protect=true;cast(protectedBattle,move());

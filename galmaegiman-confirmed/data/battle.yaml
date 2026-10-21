@@ -312,7 +312,7 @@ battleAugments:
 growth:
   maxLevel: 60
   evolveLevel: [20, 35, 50]          # 1·2·3단계 진화 레벨(스토리 1·2·3부 클리어도 필요)
-  stageMult: [1, 1.12, 1.25, 1.4]    # 원형·1·2·3단계 능력치 배율
+  stageMult: [1, 1.2, 1.4, 1.6]      # 원형·1·2·3단계 능력치 배율(2026-10-20: 승진 차이 확대, 이전 1·1.12·1.25·1.4)
   levelGrowth: 4                     # 레벨 1당 능력치 +%
   xpBase: 20                         # 다음 레벨 경험치 = xpBase × 레벨^xpExp
   xpExp: 1.5

@@ -1,0 +1,313 @@
+{
+  "schema": "native-theme-assets-lock/v1",
+  "app_baseline_commit": "9d8d7b445b8d7957c9b0ebf549e775be5ab2ee3e",
+  "source_prefix": "galmaegiman-confirmed/app/android/app/src/main/assets/native/release-v1",
+  "apk_prefix": "assets/native/release-v1",
+  "background_count": 8,
+  "ui_count": 6,
+  "protected_home_art_count": 11,
+  "added_file_count": 11,
+  "runtime_bytes": 28859181,
+  "files": [
+    {
+      "path": "backgrounds/bg-augments.png",
+      "bytes": 2971456,
+      "sha256": "2e68774067bda86fee5bab928743f3f4fbab627275fbc68397231a3ff3b1fcfb",
+      "git_blob_sha": "2f737ab084523a2f3d30b8529a23ae0683923582",
+      "dimensions": [
+        1870,
+        841
+      ],
+      "baseline": false,
+      "role": "background"
+    },
+    {
+      "path": "backgrounds/bg-collection.png",
+      "bytes": 2736842,
+      "sha256": "790429e3853f5bb8a76280f6403e29c744b6dc48920215bd5986aef053f16fee",
+      "git_blob_sha": "ac14e86b5c509baf3a602b7a61d08c648902e919",
+      "dimensions": [
+        1870,
+        841
+      ],
+      "baseline": false,
+      "role": "background"
+    },
+    {
+      "path": "backgrounds/bg-home.png",
+      "bytes": 3047052,
+      "sha256": "adce04f6958598d4b6c1382909f7012d0ad880eb5f32aecf671e4ba8796900ea",
+      "git_blob_sha": "a16c93c978c941b70877b8e873ade770fbbbfbfc",
+      "dimensions": [
+        1870,
+        841
+      ],
+      "baseline": true,
+      "role": "background"
+    },
+    {
+      "path": "backgrounds/bg-market-canopy-v1.png",
+      "bytes": 2712725,
+      "sha256": "53dbeaca57cc970c35a829581500fbba4b3d35e921f6a8fa950c987f8a7ee6fd",
+      "git_blob_sha": "3c8d0b206dee58ef76662f09d6145910009af19f",
+      "dimensions": [
+        1867,
+        842
+      ],
+      "baseline": false,
+      "role": "background"
+    },
+    {
+      "path": "backgrounds/bg-navigation-workshop-v1.png",
+      "bytes": 2971456,
+      "sha256": "2e68774067bda86fee5bab928743f3f4fbab627275fbc68397231a3ff3b1fcfb",
+      "git_blob_sha": "2f737ab084523a2f3d30b8529a23ae0683923582",
+      "dimensions": [
+        1870,
+        841
+      ],
+      "baseline": false,
+      "role": "background"
+    },
+    {
+      "path": "backgrounds/bg-recruitment-counter-v1.png",
+      "bytes": 2583451,
+      "sha256": "d8a42cc3b6d86e5003f8dd829ea710f3f2ee390a7ff11de83ed1f46b1c8853c8",
+      "git_blob_sha": "fb6effbb65c6a48e4fecc914b9063d14b91985e1",
+      "dimensions": [
+        1866,
+        843
+      ],
+      "baseline": false,
+      "role": "background"
+    },
+    {
+      "path": "backgrounds/bg-settings-harbor-office-v1.png",
+      "bytes": 2475116,
+      "sha256": "47b95d2a0db8d41255c51d1aeb95bbb4890bb0eccf1bdb9317257b0c7a4c8a91",
+      "git_blob_sha": "14f9100617ec16b11606ae6b74bc406956522270",
+      "dimensions": [
+        1866,
+        843
+      ],
+      "baseline": false,
+      "role": "background"
+    },
+    {
+      "path": "backgrounds/bg-team.png",
+      "bytes": 3116567,
+      "sha256": "f4248c5200a51fd47e56a604ecb46a28d6d44cd8ffbd40bc5b0f6df57202c090",
+      "git_blob_sha": "a55a4a679187191164433eed8695d0750667f624",
+      "dimensions": [
+        1870,
+        841
+      ],
+      "baseline": false,
+      "role": "background"
+    },
+    {
+      "path": "characters/home-guide-map.png",
+      "bytes": 1564255,
+      "sha256": "954d4f6eba938e4086ad12d41301ef664022210ec246124e6f77c03cc4763a77",
+      "git_blob_sha": "3206683d3c4f51bb51bcc5103da526a0c01a3360",
+      "dimensions": [
+        1402,
+        1122
+      ],
+      "baseline": true,
+      "role": "protected_home_art"
+    },
+    {
+      "path": "icons/combine.png",
+      "bytes": 194778,
+      "sha256": "412d3775fe6af4e6fe7e6e66b7eb19ecbbcf553b1938439c67780c0450187cc3",
+      "git_blob_sha": "e0fa81f9f448770c945d3cddc0f405b106093c35",
+      "dimensions": [
+        402,
+        342
+      ],
+      "baseline": true,
+      "role": "protected_home_art"
+    },
+    {
+      "path": "icons/daily.png",
+      "bytes": 144634,
+      "sha256": "5b7a470a368f42c06d7fd2b587f0aaaa16af357529e35d705150a56a04b19f73",
+      "git_blob_sha": "88933d528e17c8d59bcda9ab8ad4c88ac4e5b627",
+      "dimensions": [
+        325,
+        336
+      ],
+      "baseline": true,
+      "role": "protected_home_art"
+    },
+    {
+      "path": "icons/draw.png",
+      "bytes": 156693,
+      "sha256": "074aa1c15b1d74a24b434a823db653294fc810955361ba5e7108f2f38622fdc7",
+      "git_blob_sha": "dbf8a5b4411c5f6e9a66e59e33be290b60545097",
+      "dimensions": [
+        329,
+        388
+      ],
+      "baseline": true,
+      "role": "protected_home_art"
+    },
+    {
+      "path": "icons/explore.png",
+      "bytes": 164204,
+      "sha256": "83f61c6d72fc86df7f2cbcdc9ea649dc9527055639142fcfeaba081739229fc1",
+      "git_blob_sha": "8cd2f4c9cee24fb71058d50551a8d77482202150",
+      "dimensions": [
+        376,
+        382
+      ],
+      "baseline": true,
+      "role": "protected_home_art"
+    },
+    {
+      "path": "icons/harbor.png",
+      "bytes": 146432,
+      "sha256": "a20212fd201c2b2bce09630c271d34755c3e55135f2ce2a8cc20846a3c0caa73",
+      "git_blob_sha": "5bcdea23028f8225a6d5a88ff08af5047e362351",
+      "dimensions": [
+        375,
+        383
+      ],
+      "baseline": true,
+      "role": "protected_home_art"
+    },
+    {
+      "path": "icons/peanut.png",
+      "bytes": 123799,
+      "sha256": "868f41bad9278acf54b1c51674a5fc92730bbd0110ea3b3e9dcb8d3865158547",
+      "git_blob_sha": "b641df6e790d1948598a6f4d4a204d6e748dc2ca",
+      "dimensions": [
+        394,
+        378
+      ],
+      "baseline": true,
+      "role": "protected_home_art"
+    },
+    {
+      "path": "icons/settings.png",
+      "bytes": 161429,
+      "sha256": "27467acb4d84e1e90ebf1b320860c21f997d65b47129c0b665509487986219ce",
+      "git_blob_sha": "551346e7cae727c39467f9dac98bd4f37c3b864b",
+      "dimensions": [
+        357,
+        342
+      ],
+      "baseline": true,
+      "role": "protected_home_art"
+    },
+    {
+      "path": "icons/shop.png",
+      "bytes": 201472,
+      "sha256": "f4d7621d1f8558da0bba6106ce5792420f772eec96e78f143149c0b71ced8a1a",
+      "git_blob_sha": "3a0f207cea9ec9b1a287e4d0d2005863539b35cf",
+      "dimensions": [
+        363,
+        340
+      ],
+      "baseline": true,
+      "role": "protected_home_art"
+    },
+    {
+      "path": "icons/shrimp-snack.png",
+      "bytes": 145934,
+      "sha256": "3ebb44354ba85338e53ae31b24990812f5e2088ba3b4d4613697616ede5502b0",
+      "git_blob_sha": "798b3894f62921da749a165243b1ef7267df2da2",
+      "dimensions": [
+        353,
+        349
+      ],
+      "baseline": true,
+      "role": "protected_home_art"
+    },
+    {
+      "path": "icons/team.png",
+      "bytes": 157479,
+      "sha256": "3fd0b52dfa05618bdaabc6335af2fb30d4e24c93d7fa50fa109749ad2851f35f",
+      "git_blob_sha": "10200acc273a33a26de35a1f8b3e1c56a6d9e3bb",
+      "dimensions": [
+        357,
+        385
+      ],
+      "baseline": true,
+      "role": "protected_home_art"
+    },
+    {
+      "path": "shared/panel-command.png",
+      "bytes": 1933531,
+      "sha256": "0c729083d93dd15bcc6b1a17eaef468dc89d48ffc64966916b1f88460f268a12",
+      "git_blob_sha": "6c1951c53d354e75d5ff4a6c332e665b3dbf428d",
+      "dimensions": [
+        1010,
+        1383
+      ],
+      "baseline": false,
+      "role": "ui"
+    },
+    {
+      "path": "shared/panel-hp.png",
+      "bytes": 323348,
+      "sha256": "18248af2535151c48d0c25f171997311e9f084ee01c50fb762ac39e60bbf9d09",
+      "git_blob_sha": "321cddc214c200f3ff150baa814db9f01ec6a55f",
+      "dimensions": [
+        721,
+        248
+      ],
+      "baseline": false,
+      "role": "ui"
+    },
+    {
+      "path": "ui/button-primary.png",
+      "bytes": 242520,
+      "sha256": "c7a74565dbad1d52a556c07be520250743603b3d97a06ab12598891ebc5df6c2",
+      "git_blob_sha": "bdb28e32f3b8492642ca5e3c21a7e5eb55df0895",
+      "dimensions": [
+        630,
+        282
+      ],
+      "baseline": true,
+      "role": "ui"
+    },
+    {
+      "path": "ui/button-secondary.png",
+      "bytes": 252640,
+      "sha256": "ed079d7b868084d9bd9e6e08c770c5aad105ce8c6f7b92f11fbb5f9298f7d2b9",
+      "git_blob_sha": "267b4d660290f8ff5b169e8dc5582c38b49ff905",
+      "dimensions": [
+        598,
+        267
+      ],
+      "baseline": true,
+      "role": "ui"
+    },
+    {
+      "path": "ui/tab.png",
+      "bytes": 165086,
+      "sha256": "3ed18cbd53d7c6168cb9f1f82ce295e00d107c7220d93c918f99f9f34da3a634",
+      "git_blob_sha": "e9c7b32e8ac0d8868b9ae6c1aa53857edce220ae",
+      "dimensions": [
+        562,
+        274
+      ],
+      "baseline": false,
+      "role": "ui"
+    },
+    {
+      "path": "ui/title-strip.png",
+      "bytes": 166282,
+      "sha256": "a552c094a8a5bbfc71b8901b29e3e590b0bc45d8641e05480ed08daf8f7bdb94",
+      "git_blob_sha": "4aa0ce685f75fe6cc8060a128877625eb0d3ce3d",
+      "dimensions": [
+        583,
+        256
+      ],
+      "baseline": false,
+      "role": "ui"
+    }
+  ]
+}

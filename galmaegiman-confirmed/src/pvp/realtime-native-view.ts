@@ -1,3 +1,4 @@
+import {publicAugment,publicAugmentState,publicShield} from '../battle/public-dto.js';
 // V2 MANUAL INTEGRATION DRAFT; not built, executed, or deployed.
 // Supersedes the separately frozen v1 mapper only when integrating the v2 bundle.
 // Place at galmaegiman-confirmed/src/pvp/realtime-native-view.ts.
@@ -9,7 +10,8 @@ import {legalActions, itemProblem, skillPreview, skillProblem, STRUGGLE,
   type Battle, type BattleEvent, type BattleFighterRef, type Fighter} from '../battle/engine.js';
 import {statusKeys, statusName, type Attr, type Rules, type Skill} from '../battle/core.js';
 
-import {topTiers, type Content} from '../content.js';
+import type {Content} from '../content.js';
+import {topTiers} from '../battle/core.js';
 
 type Side = 0 | 1;
 export interface RealtimeNativeInventoryItem {id: string; count: number}
@@ -19,7 +21,7 @@ export interface RealtimeNativeInventoryItem {id: string; count: number}
 export function mapRealtimePreparationCandidates(content: Content, ownedIds: readonly string[]) {
   return [...new Set(ownedIds)].flatMap(id => {
     const character = content.map.get(id);
-    if (!character || !topTiers.has(character.rarity)) return [];
+    if (!character || !topTiers.some(tier=>tier===character.rarity)) return [];
     return [{id: character.id, name: character.name, rarity: character.rarity,
       image: `/thumbs/${character.id}.jpg`}];
   });
@@ -96,6 +98,7 @@ function image(R: Rules, root: string, id: string, side: 'front' | 'back', stage
     if (!existsSync(`${root}/public/battle/sprites/${id}_front.webp`) && v?.look) return image(R, root, v.look, side, stage, seen);
     return `/duel/sprites/${id}_front.webp`;
   }
+  if(!R.units.has(id)&&!R.villains.has(id))return `/thumbs/${id}.jpg`;
   const actualStage = existsSync(`${root}/public/battle/sprites/${id}_s${stage}_${side}.webp`) ? stage : 0;
   return `/duel/sprites/${id}_s${actualStage}_${side}.webp`;
 }
@@ -144,6 +147,7 @@ function viewerEvent(e: BattleEvent, viewerSide: Side): BattleEvent {
     ...(e.actor ? {actor: viewerRef(e.actor, viewerSide)} : {}),
     ...(e.target ? {target: viewerRef(e.target, viewerSide)} : {}),
     skillId: e.skillId, skillName: e.skillName, attr: e.attr, power: e.power,
+    absorbed: e.absorbed, shieldBefore: e.shieldBefore, shieldAfter: e.shieldAfter,
     reason: e.reason, amount: e.amount, hpBefore: e.hpBefore, hpAfter: e.hpAfter,
     maxHp: e.maxHp, crit: e.crit, multiplier: e.multiplier, hit: e.hit,
     status: e.status ? {...e.status} : undefined, extraAttr: e.extraAttr,
@@ -177,12 +181,12 @@ export function mapRealtimeNativeBattle(input: RealtimeNativeInput & {assetRoot:
     const s = b.sides[side], own = relativeSide === 0;
     return {
       active: s.active, comboUsed: s.comboUsed,
-      augments: s.augs.map(id => structuredClone(R.battleAug.get(id)!)),
+      augments: s.augs.map(id => publicAugment(b,id)),
       // Opponent pending choices are never exposed. Empty arrays retain the
       // old NativeBattle parser contract; booleans do not reveal choice payloads.
       needSwitch: own ? s.needSwitch : false,
       offers: own && b.phase === 'choose' ? (s.offers ?? []).map((id, index) => ({
-        ...structuredClone(R.battleAug.get(id)!),
+        ...publicAugment(b,id,s.rerolled[index]??false),
         icon: existsSync(`${root}/public/battle/icons/${id}.png`) ? id : 'u-gift',
         rerolled: s.rerolled[index] ?? false,
       })) : [],
@@ -193,12 +197,12 @@ export function mapRealtimeNativeBattle(input: RealtimeNativeInput & {assetRoot:
             legalActions(b, side).some(a => a.kind === 'skill' && a.skillId === STRUGGLE.id) &&
             !skills.some(sk => sk.id === STRUGGLE.id)) skills.push({...STRUGGLE, attr: f.attr});
         return {
-          key: f.rec.uid, id: f.rec.id, name: f.name, level: f.rec.level, stage: f.rec.stage,
+          key: f.rec.uid, id: f.rec.ownedCharacterId??f.rec.id, combatDefinitionId:f.rec.id, name: f.name, level: f.rec.level, stage: f.rec.stage,
           role: f.role, base: {...f.base}, tint: R.data.villains[f.rec.id]?.tint ?? null,
           realTintArt: !!R.data.villains[f.rec.id]?.tint && existsSync(`${root}/public/battle/sprites/V17_front.webp`),
           bodyScale: f.rec.stage && existsSync(`${root}/public/battle/sprites/${f.rec.id}_s${f.rec.stage}_front.webp`) ? 1 : bodyScale[f.rec.id] ?? 1,
-          matchup: matchup(b, side, slot), image: image(R, root, f.rec.id, own ? 'back' : 'front', f.rec.stage),
-          hp: f.hp, maxHp: f.maxHp, attr: R.attrName(f.attr), attrCode: f.attr,
+          matchup: matchup(b, side, slot), image: image(R, root, f.rec.ownedCharacterId??f.rec.id, own ? 'back' : 'front', f.rec.stage),
+          hp: f.hp, maxHp: f.maxHp, ...publicShield(b,f), attr: R.attrName(f.attr), attrCode: f.attr,
           extraAttr: f.extraAttr ? R.attrName(f.extraAttr) : null,
           status: {...f.status}, effects: fighterEffects(R, f),
           skills: skills.map(sk => ({...structuredClone(sk),
@@ -214,7 +218,7 @@ export function mapRealtimeNativeBattle(input: RealtimeNativeInput & {assetRoot:
   });
   // Build a fresh output. Never spread Battle, SideState, Fighter, or room state.
   return {
-    session: sessionId, revision: room.revision, mode: room.mode,
+    ...publicAugmentState(b), session: sessionId, revision: room.revision, mode: room.mode,
     phase: b.phase, turn: b.turn,
     winner: b.winner === null ? null : b.winner === viewerSide ? 0 : 1,
     serverNow: room.serverNow, chooseDeadline: b.phase === 'choose' ? room.deadline : null,
@@ -234,4 +238,5 @@ export function mapRealtimeNativeBattle(input: RealtimeNativeInput & {assetRoot:
   };
 }
 export type RealtimeNativeBattle = ReturnType<typeof mapRealtimeNativeBattle>;
+
 

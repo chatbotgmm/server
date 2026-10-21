@@ -811,7 +811,7 @@ function freeBattle() {
 // ── 스토리 ──
 const stages = () => STORY.chapters.flatMap(c => c.stages.map(s => ({ ...s, chapter: c })));
 const teamStageOk = need => !need || (SAVE.team.length > 0 && SAVE.team.every(id => (unitRec(id).stage ?? 0) >= need));
-const unlocked = id => { const all = stages(), i = all.findIndex(s => s.id === id); return (i === 0 || (SAVE.cleared.includes(all[i - 1].id) || SAVE.cleared.includes(id) || all.slice(i + 1).some(st => SAVE.cleared.includes(st.id)))) && teamStageOk(all[i].chapter.needStage); };
+const unlocked = id => { const all = stages(), i = all.findIndex(s => s.id === id); return (i === 0 || (SAVE.cleared.includes(all[i - 1].id) || SAVE.cleared.includes(id) || all.slice(i + 1).some(st => SAVE.cleared.includes(st.id)))); };   // 2026-10-20: 승진은 해금 조건이 아니라 능력치 이점
 
 function storyScreen() {
   modal.hidden = true; bgm('title');
@@ -913,7 +913,7 @@ function healSheet(initial = null, returnTo = storyScreen) {
   modal.onclick = null; modal.className = ''; modal.hidden = false; draw();
 }   // 스토리에서 지금 열어 둔 부(번호), null이면 부 목록
 const chapInfo = c => { const cl = c.stages.filter(s => SAVE.cleared.includes(s.id)).length; return { sc: c.stages[0].scene || 'harbor', cl, open: c.stages.some(s => unlocked(s.id)), all: cl === c.stages.length }; };
-const needLine = c => c.needStage ? `<p class="need ${teamStageOk(c.needStage) ? 'ok' : ''}">${teamStageOk(c.needStage) ? '✓' : '🔒'} 팀 전원 ${c.needStage}단계 승진 필요 (${STARS[c.needStage]})</p>` : '';
+const needLine = c => c.needStage ? `<p class="need ${teamStageOk(c.needStage) ? 'ok' : ''}">${teamStageOk(c.needStage) ? '✓' : '💡'} 적 ${c.needStage}단계 승진 · 승진하면 유리 (${STARS[c.needStage]})</p>` : '';
 function partList() {
   return STORY.chapters.map((c, i) => { const { sc, cl, open, all } = chapInfo(c);
     return `<button class="pcard chead sc-${sc} ${open ? '' : 'locked'} ${all ? 'done' : ''}" data-p="${i}" style="${bgStyle(sc)}"><div class="in"><h2>${esc(c.title)}</h2><span class="pn">${all ? '✓ 완료' : open ? `${cl}/${c.stages.length}` : '🔒 잠김'}</span>${c.intro ? `<p>${esc(c.intro)}</p>` : ''}${needLine(c)}<span class="pgo">${open ? (all ? '다시 보기 ›' : '들어가기 ›') : '미리 보기 ›'}</span></div></button>`; }).join('')
@@ -1173,6 +1173,14 @@ function placeMon(s) {
 }
 addEventListener('resize', () => { if (document.getElementById('arena')) { placeMon(0); placeMon(1); } });
 
+// 보호막은 체력과 별도의 흡수 HP다. 만료·전투불가·V1에는 표시하지 않는다.
+function shieldLabel(f, battle) {
+  const amount = Math.max(0, f.augment?.shield ?? 0), until = f.augment?.shieldUntil ?? 0;
+  return battle.R.augmentVersion === 2 && battle.augmentOffers?.version === 2
+    && f.hp > 0 && amount > 0 && until >= battle.turn
+    ? `보호막 ${amount} · ${until - battle.turn + 1}턴` : '';
+}
+
 function render() {
   closeAugmentInfo?.();
   for (const s of [0, 1]) {
@@ -1183,13 +1191,13 @@ function render() {
     const hp = view[s].hp[view[s].active], pct = Math.max(0, hp / f.maxHp * 100);
     const col = pct > 50 ? 'var(--hp)' : pct > 20 ? 'var(--hpmid)' : 'var(--hplow)';
     const st = Object.keys(f.status).map(k => `<span class="st">${({ burn: '화상', freeze: '빙결', sleep: '잠', bind: '묶임', rage: '폭주' })[k]}</span>`).join('');
-    const augs = b.sides[s].augs.map(id => `<button class="aug-chip ${augKind(id)}" data-aug-info="${id}" aria-label="${esc(R.battleAug.get(id).name)} 설명">${ico(id, AUG_ICON[id]?.[0] ?? '✨')}<span>${esc(R.battleAug.get(id).name)}</span></button>`).join('');
+    const augs = b.sides[s].augs.map(id => `<button class="aug-chip ${augKind(id)}"${augStyle(R.battleAug.get(id))} data-aug-info="${id}" aria-label="${esc(R.battleAug.get(id).name)}${augTier(R.battleAug.get(id)) ? ` · ${esc(augLabel(R.battleAug.get(id)))}` : ''} 설명">${ico(id, AUG_ICON[id]?.[0] ?? '✨')}<span>${esc(R.battleAug.get(id).name)}</span></button>`).join('');
     const box = document.getElementById(`b${s}`), downNow = view[s].down[view[s].active];
     box.classList.toggle('down', downNow);
     img.classList.remove('st-1', 'st-2', 'st-3'); if (f.rec.stage && !tintOf(f.rec.id)) img.classList.add(`st-${f.rec.stage}`);
     box.innerHTML = `<div class="nm"><span>${esc(f.name)}${f.rec.stage ? ` <em class="stars">${STARS[f.rec.stage]}</em>` : ''}</span>${downNow ? '<em class="ko">전투불가</em>' : `<em>Lv${f.rec.level}</em>`}</div>
       <div class="hpr"><div class="hpb" role="meter" aria-label="${esc(f.name)} 체력" aria-valuemin="0" aria-valuemax="${f.maxHp}" aria-valuenow="${Math.max(0, Math.round(hp))}"><i style="width:${pct}%;background:${col}"></i></div></div>
-      <div class="row"><span class="chips">${chip(f.attr)}${f.extraAttr ? chip(f.extraAttr) : ''}${st}</span><small class="hpn">${s === 0 ? `${Math.max(0, Math.round(hp))}/${f.maxHp}` : `${Math.ceil(pct)}%`}</small></div>
+      <div class="row"><span class="chips">${chip(f.attr)}${f.extraAttr ? chip(f.extraAttr) : ''}${st}${shieldLabel(f, b) ? `<span class="st">${esc(shieldLabel(f, b))}</span>` : ''}</span><small class="hpn">${s === 0 ? `${Math.max(0, Math.round(hp))}/${f.maxHp}` : `${Math.ceil(pct)}%`}</small></div>
       <div class="dots" aria-label="남은 갈매미 ${view[s].down.filter(d => !d).length}마리">${view[s].down.map((d, i) => `<i class="${d ? 'down' : ''}" title="${esc(b.sides[s].fighters[i].name)}"></i>`).join('')}</div>
       ${augs ? `<div class="augs">${augs}</div>` : ''}${s === 1 ? `<button class="finfo" ${b.turn > 1 ? '' : 'disabled'} title="${b.turn > 1 ? '상대 정보' : '한 턴이 지나면 볼 수 있어요'}">🔍 ${b.turn > 1 ? '정보' : '1턴 뒤'}</button>` : ''}`;
     if (s === 1) box.querySelector('.finfo').onclick = e => { e.stopPropagation(); if (b.turn > 1 && b.phase === 'action' && !busy) foeInfo(); };
@@ -1238,14 +1246,31 @@ const AUG_KINDS = {
 };
 const augKind = id => Object.entries(AUG_KINDS).find(([, ids]) => ids.includes(id))?.[0] ?? 'utility';
 const augKindName = id => ({ attack: '공격', defense: '수비', utility: '유틸' })[augKind(id)];
+// 희귀도 색은 V2에만 적용하고 역할 분류와 따로 전달한다.
+const AUG_TIERS = {
+  silver: { name: '실버', color: '#596778', soft: '#e8edf1' },
+  gold: { name: '골드', color: '#806017', soft: '#f5e8c5' },
+  prismatic: { name: '프리즘', color: '#735191', soft: '#eee3f4' },
+};
+const augTier = a => a?.version === 2 ? (Object.hasOwn(AUG_TIERS, a.tier) ? AUG_TIERS[a.tier] : { name: '등급 미확인', color: '#596778', soft: '#e8edf1' }) : null;
+const augLabel = a => {
+  const tier = augTier(a), role = a.version === 2 && !Object.hasOwn(AUG_ICON, a.id) ? '증강' : augKindName(a.id);
+  return (tier ? `${tier.name} · ` : '') + role;
+};
+const augStyle = a => {
+  const tier = augTier(a);
+  return tier ? ` style="--aug-color:${tier.color};--aug-soft:${tier.soft}"` : '';
+};
 let closeAugmentInfo = null;
 function augmentInfo(anchor, id) {
   closeAugmentInfo?.();
   const a = R.battleAug.get(id); if (!a) return;
   const tip = document.createElement('div'); tip.className = `augment-info ${augKind(id)}`;
+  const tier = augTier(a);
+  if (tier) { tip.style.setProperty('--aug-color', tier.color); tip.style.setProperty('--aug-soft', tier.soft); }
   tip.setAttribute('role', 'dialog'); tip.setAttribute('aria-label', `${a.name} 설명`);
   const category = AUG_ICON[id]?.[1] ?? '';
-  tip.innerHTML = `<button class="aug-tip-close" aria-label="닫기">✕</button><small>${augKindName(id)}${category && category !== augKindName(id) ? ` · ${esc(category)}` : ''}</small><b>${esc(a.name)}</b><p>${esc(a.desc)}</p>`;
+  tip.innerHTML = `<button class="aug-tip-close" aria-label="닫기">✕</button><small>${esc(augLabel(a))}${category && category !== augKindName(id) ? ` · ${esc(category)}` : ''}</small><b>${esc(a.name)}</b><p>${esc(a.desc)}</p>`;
   document.body.append(tip);
   const r = anchor.getBoundingClientRect(), width = tip.offsetWidth, height = tip.offsetHeight;
   tip.style.left = `${Math.max(8, Math.min(innerWidth - width - 8, r.left))}px`;
@@ -1261,6 +1286,8 @@ const multTag = m => m > 1 ? `<b class="good">×${m} 유리</b>` : m < 1 ? `<b c
 // augment-no-scroll-v1
 const AUG_CORE_TEXT = {"reverse": "이번 전투: 내 공격 상성\n강함 ↔ 약함", "weakguard": "받는 강한 상성 피해\n→ 보통 피해", "focus": "강한 상성 공격 배율\n×{value}", "neutral": "{turns}턴 동안\n양쪽 모든 상성 ×1.0", "camo": "내 선두 속성 변경\n→ 상대에게 강한 속성", "dual": "기본기·역할 공격에\n상대 약점 속성 추가", "counter": "약한 상성 공격을 맞고 생존 시\n위력 {power} 반격", "learn": "동일 속성 피격마다\n해당 피해 -{step}% · 최대 -{max}%", "first": "다음 기술에\n선공 우선권", "bulwark": "내 선두 받는 피해\n-{pct}% · {turns}턴", "firstaid": "쓰러지지 않은 아군 모두\n체력 {pct}% 회복", "freeswitch": "이번 전투:\n교체 시 턴 소모 없음", "lastone": "아군이 하나만 남으면\n공격·방어·속도 +{pct}%", "strip": "상대 선두 강화 능력치·보호막 제거\n공격 -{pct}% · {turns}턴", "rustle": "상대 선두 수면 1턴\n상태 이상 면역 제외", "peanut": "아군 갈매미맨 공격 +{atk}%\n대신 받는 피해 +{taken}%", "sharp": "아군 급소 확률\n+{pct}%", "swift": "아군 속도\n+{pct}%", "thick": "아군 물리·마법 방어\n+{pct}%", "overtime": "아군 물리·마법 공격\n+{pct}%", "drain": "내가 준 피해의\n{pct}%만큼 체력 회복", "thorns": "나를 때린 상대에게\n받은 피해의 {pct}% 반사", "pierce": "내 공격 시\n상대 방어 {pct}% 무시", "lunch": "매 턴 종료 시\n내 선두 체력 {pct}% 회복"};
 function augCore(a) {
+  // V2는 같은 ID라도 효과·기간·횟수가 다르므로 카탈로그 설명을 그대로 사용한다.
+  if (a.version === 2) return a.desc ?? '효과 설명을 확인할 수 없어요.';
   const template = AUG_CORE_TEXT[a.id];
   if (!template) return a.desc;
   const keys = [...template.matchAll(/\{([a-z]+)\}/g)].map(m => m[1]);
@@ -1289,7 +1316,7 @@ function chooseSheet(p) {
       ${showAug ? `${step === 'aug' ? '<p class="steps">① 증강체 고르기 → ② 다음 갈매미</p>' : ''}<h2>전투 증강체</h2><p class="sub">${b.turn === 1 ? '대결 시작' : '전투불가 발생'} · 3개 중 하나를 골라요. 마음에 안 들면 칸마다 한 번씩 🎲 다시 뽑을 수 있어요.</p>${vs}
         ${hintNow && b.turn === 1 ? `<div class="tipline">💡 ${hl(hintNow)}</div>` : ''}
         ${p.augments.map(id => { const a = R.battleAug.get(id), [ic, kind] = AUG_ICON[id] ?? ['✨', ''], rec = bad && FLIP.includes(id);
-          return `<div class="augc ${augKind(id)}"><button class="aug ${aug === id ? 'on' : ''}" data-a="${id}"><span class="ic">${ico(id, ic)}</span><span class="tx"><b>${esc(a.name)}${rec ? '<em>지금 추천</em>' : ''}</b><small>${augKindName(id)}${kind && kind !== augKindName(id) ? ` · ${esc(kind)}` : ''}</small><span>${esc(augCore(a))}</span></span><span class="ck">${aug === id ? '✓' : ''}</span></button>
+          return `<div class="augc ${augKind(id)}"${augStyle(a)}><button class="aug ${aug === id ? 'on' : ''}" data-a="${id}"><span class="ic">${ico(id, ic)}</span><span class="tx"><b>${esc(a.name)}${rec ? '<em>지금 추천</em>' : ''}</b><small>${esc(augLabel(a))}${kind && kind !== augKindName(id) ? ` · ${esc(kind)}` : ''}</small><span>${esc(augCore(a))}</span></span><span class="ck">${aug === id ? '✓' : ''}</span></button>
             <div class="aug-actions"><button class="ghost reroll" data-r="${p.augments.indexOf(id)}" ${rr[p.augments.indexOf(id)] ? 'disabled' : ''}>${rr[p.augments.indexOf(id)] ? '재추첨 완료' : '다시 뽑기'}</button><button class="ghost aug-detail" data-aug-detail="${id}" aria-label="${esc(a.name)} 전체 효과 보기">상세</button></div></div>`; }).join('')}` : ''}
       ${showSw ? `${step === 'sw' ? `<p class="steps"><button class="ghost" id="backAug">‹ 증강체 다시 고르기</button><span>✓ 증강체 「${esc(R.battleAug.get(aug).name)}」 → ② 다음 갈매미</span></p>` : ''}<h2>다음에 나갈 갈매미</h2><p class="sub">상대: ${esc(foe.name)} ${chip(foe.attr)}</p>
         ${alive.map(([f, i]) => { const m = R.typeMult(f.attr, foe.attr), pct = Math.round(f.hp / f.maxHp * 100);

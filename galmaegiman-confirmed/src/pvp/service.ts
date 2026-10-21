@@ -3,13 +3,15 @@ import {createHash,createHmac,randomBytes,randomInt,timingSafeEqual} from 'node:
 import type {Prisma,PrismaClient,RealtimeAttempt,RealtimeRoom} from '@prisma/client';
 import type {Content} from '../content.js';
 import {topTiers} from '../content.js';
+import {consumeReroll,freshProgression,awardPlayPoints} from '../progression.js';
 import {GameError} from '../types.js';
 import {loadBattleRules} from '../battle/load.js';
-import {createBattle,type Battle} from '../battle/engine.js';
+import type {Battle} from '../battle/engine.js';
+import {createBattleService,serializeServiceBattle as serializeBattle,supportsAugmentVersion,requiredAugmentClientVersion,type BattleServiceOptions} from '../battle/service-factory.js';
 import type {UnitRecord} from '../battle/growth.js';
 import {loadStory} from '../battle/story.js';
 import {casualRecord,matchCasualBot,applyCasualCompensation,deployedMean} from './casual-balance.js';
-import {serializeBattle,deserializeBattle,required,validateCommand,resolvePhase,automaticCommand,rerollCommand,itemRequirement,consumedItemSides,type Command} from '../battle/realtime-adapter.js';
+import {required,validateCommand,resolvePhase,automaticCommand,rerollCommand,itemRequirement,consumedItemSides,type Command} from '../battle/realtime-adapter.js';
 import {registerRankedMatch,finishAndSettleRankedMatch,matchmakingRating,settleCasualHuman,rankSummary} from '../ranked/settlement.js';
 import {DEFAULT_RANKED_CONFIG} from '../ranked/rating.js';
 import {createRealtimeNativeMapper,mapRealtimePreparationCandidates} from './realtime-native-view.js';
@@ -45,11 +47,27 @@ const canonical=(x:unknown):string=>{
 
 export class RealtimePvpService {
   private R:ReturnType<typeof loadBattleRules>;private mapper:ReturnType<typeof createRealtimeNativeMapper>;private timer:ReturnType<typeof setInterval>|undefined;private ticking=false;private work:Promise<void>|undefined;
+  private battles:ReturnType<typeof createBattleService>;
+  async supportsAugmentClient(playerId:string,path:string,body:unknown,query:unknown,header:unknown){
+    if(path==='queue/attempt'||path==='queue/join')return supportsAugmentVersion(requiredAugmentClientVersion(path,this.battles.version),header);
+    if(path!=='room/current'&&path!=='room/command')return true;
+    const input=(path==='room/current'?query:body) as {roomId?:unknown}|null;
+    if(typeof input?.roomId!=='string')return true; // 기존 입력 검증으로 처리한다.
+    const room=await this.db.realtimeRoom.findUnique({where:{id:input.roomId}});
+    if(!room||(room.player0Id!==playerId&&room.player1Id!==playerId))return true;
+    const b=this.battles.restore(parseState(room).battle);
+    return supportsAugmentVersion(requiredAugmentClientVersion(path,this.battles.version,b.R.augmentVersion),header);
+  }
   private rulesVersion:string;private casualRulesVersion:string;private startLevel:number;
-  constructor(private db:PrismaClient,private content:Content,root:string,private secret:string,private now=()=>Date.now()){
-    this.R=loadBattleRules(root);this.startLevel=loadStory(root,this.R).start.level;this.mapper=createRealtimeNativeMapper(root);
-    this.rulesVersion=createHash('sha256').update('realtime-engine-v2-preparation-items\0').update(JSON.stringify(this.R.data)).digest('hex');
-    this.casualRulesVersion=createHash('sha256').update('realtime-engine-v3-casual-growth\0').update(JSON.stringify(this.R.data)).digest('hex');
+  constructor(private db:PrismaClient,private content:Content,root:string,private secret:string,private now=()=>Date.now(),options:BattleServiceOptions={version:1}){
+    this.battles=createBattleService(loadBattleRules(root),options);this.R=this.battles.R;this.startLevel=loadStory(root,this.R).start.level;this.mapper=createRealtimeNativeMapper(root);
+    this.rulesVersion=createHash('sha256').update('realtime-engine-v2-preparation-items\0').update(this.battles.fingerprint).digest('hex');
+    this.casualRulesVersion=createHash('sha256').update('realtime-engine-v3-casual-growth\0').update(this.battles.fingerprint).digest('hex');
+  }
+  private compatibleRules(s:State,mode:string){
+    const fingerprint=this.battles.compatibleFingerprint(s.battle);if(fingerprint===null)return false;
+    const prefix=mode==='normal'?'realtime-engine-v3-casual-growth\0':'realtime-engine-v2-preparation-items\0';
+    return s.rulesVersion===createHash('sha256').update(prefix).update(fingerprint).digest('hex');
   }
   private version(mode:string){return mode==='normal'?this.casualRulesVersion:this.rulesVersion;}
   start(onError:(e:unknown)=>void){if(this.timer)return;this.timer=setInterval(()=>{if(this.ticking)return;this.ticking=true;this.work=this.tick().catch(onError).finally(()=>{this.ticking=false;});},1000);this.timer.unref();}
@@ -110,10 +128,10 @@ export class RealtimePvpService {
     const ids:string[]=selection??(previous?JSON.parse(previous.teamJson):p.battleTeam.split(','));
     const fallback=()=>{if(previous)return this.roster(tx,playerId,p.battleTeam.split(','),mode);return fail('전투 편성에서 소유한 최상위 갈매미 세 마리를 정해 주세요.');};
     if(!Array.isArray(ids)||ids.length!==3||new Set(ids).size!==3)return fallback();
-    const own=await tx.ownedCharacter.findMany({where:{playerId,status:{in:['AVAILABLE','EXPEDITION']}},select:{id:true,characterId:true},orderBy:{id:'asc'}});
+    const own=await tx.ownedCharacter.findMany({where:{playerId,status:{in:['AVAILABLE','EXPEDITION']}},select:{id:true,characterId:true,reincarnation:true,inheritedFrom:true,statBonusPct:true},orderBy:{id:'asc'}});
     // Species IDs from older clients resolve deterministically, never to account maximum.
     const selected=ids.map(key=>own.find(x=>`o${x.id}`===key)||own.find(x=>x.characterId===key));
-    if(selected.some(x=>!x||!topTiers.has(this.content.map.get(x.characterId)?.rarity??''))||new Set(selected.map(x=>x?.characterId)).size!==3)return fallback();
+    if(selected.some(x=>!x||(!topTiers.has(this.content.map.get(x.characterId)?.rarity??'')&&!x.inheritedFrom))||new Set(selected.map(x=>x?.characterId)).size!==3)return fallback();
     let saved:{units?:Record<string,unknown>}={};
     if(mode==='normal'){
       const row=await tx.storySave.findUnique({where:{playerId}});
@@ -122,10 +140,14 @@ export class RealtimePvpService {
     }
     const units=selected.map((owned):UnitRecord=>{
       const x=owned!,c=this.content.map.get(x.characterId)!;
-      const base={uid:mode==='normal'?`o${x.id}`:id(),id:c.id,name:c.name,tier:c.rarity as UnitRecord['tier']};
-      return mode==='normal'?casualRecord(this.R,base,saved.units?.[base.uid]??saved.units?.[c.id],this.startLevel):{...base,level:this.content.economy.pvp.level,xp:0,stage:0,evoAugs:[]};
+      const combatId=topTiers.has(c.rarity)?c.id:(x.inheritedFrom??c.id),combat=this.content.map.get(combatId)!;
+      const base={uid:`o${x.id}`,id:combatId,name:x.reincarnation?`${c.name} +${x.reincarnation}`:c.name,tier:combat.rarity as UnitRecord['tier']};
+      const lineage={reincarnation:x.reincarnation,inheritedFrom:x.inheritedFrom??undefined,ownedCharacterId:c.id,statBonusPct:x.statBonusPct};
+      const record=mode==='normal'?casualRecord(this.R,base,saved.units?.[base.uid]??(x.reincarnation?undefined:saved.units?.[c.id]),this.startLevel):{...base,level:this.content.economy.pvp.level,xp:0,stage:0 as const,evoAugs:[]};
+      if(x.reincarnation&&!saved.units?.[base.uid])record.learned=['@','basic','sig'];
+      return {...record,...lineage};
     });
-    return {units,name:p.nickname??`갈매미 #${p.id.slice(0,4)}`,ids:units.map(x=>x.id)};
+    return {units,name:p.nickname??`갈매미 #${p.id.slice(0,4)}`,ids:units.map(x=>x.ownedCharacterId??x.id)};
   }
   async join(playerId:string,attemptId:string,token:string){return this.tx(async tx=>{
     let a=await this.ownedAttempt(tx,playerId,attemptId,token);
@@ -181,7 +203,7 @@ export class RealtimePvpService {
       if(!b)continue;
       if(created>=REALTIME_LIMITS.maxMatchesPerPass)return;
       if(await tx.realtimeRoom.count({where:{state:'ACTIVE'}})>=REALTIME_LIMITS.maxRooms)return;
-      const roomId=id(),battle=createBattle(this.R,this.attemptUnits(a),this.attemptUnits(b),randomInt(2**31-1));
+      const roomId=id(),battle=this.battles.create(this.attemptUnits(a),this.attemptUnits(b),randomInt(2**31-1));
       const state:State={acceptance:{accepted:[false,false],attempts:[a.id,b.id]},preparation:{teams:[this.attemptUnits(a),this.attemptUnits(b)],ready:[false,false],available:[await this.preparationOptions(tx,a.playerId,mode),await this.preparationOptions(tx,b.playerId,mode)]},rulesVersion:this.version(mode),battle:serializeBattle(battle),phase:0,pending:[null,null],automatic:[false,false],misses:[0,0]};
       await tx.realtimeRoom.create({data:{id:roomId,mode,player0Id:a.playerId,player1Id:b.playerId,namesJson:JSON.stringify([a.playerName,b.playerName]),stateJson:JSON.stringify(state),deadline:new Date(this.now()+REALTIME_LIMITS.acceptMs)}});
       for(const x of [a,b]){
@@ -212,7 +234,7 @@ export class RealtimePvpService {
     const chosen=[] as typeof pool;
     while(chosen.length<3)chosen.push(pool.splice(randomInt(pool.length),1)[0]);
     const bot=matchCasualBot(this.R,human,chosen.map((x):UnitRecord=>({uid:id(),id:x.id,name:x.name,tier:x.rarity as UnitRecord['tier'],level:this.content.economy.pvp.level,xp:0,stage:0,evoAugs:[]})));
-    const battle=createBattle(this.R,human,bot,randomInt(2**31-1));
+    const battle=this.battles.create(human,bot,randomInt(2**31-1));
     const state:State={acceptance:{accepted:[false,true],attempts:[a.id,null]},botSide:1,preparation:{teams:[human,bot],ready:[false,true],available:[await this.preparationOptions(tx,a.playerId,'normal'),[]]},rulesVersion:this.version('normal'),battle:serializeBattle(battle),phase:0,pending:[null,null],automatic:[false,false],misses:[0,0]};
     // No synthetic Player, rating profile, queue entry or inventory is created for the AI.
     await tx.realtimeRoom.create({data:{id:roomId,mode:'normal',player0Id:a.playerId,player1Id:'AI:'+roomId,namesJson:JSON.stringify([a.playerName,'AI 갈매미 · 일반 MMR 미반영']),stateJson:JSON.stringify(state),deadline:new Date(this.now()+REALTIME_LIMITS.acceptMs)}});
@@ -245,7 +267,7 @@ export class RealtimePvpService {
       }else await tx.realtimeAttempt.update({where:{id:a.id},data:{state:'CANCELLED',roomId:null}});
     }
     delete s.acceptance;delete s.preparation;s.pending=[null,null];s.automatic=[false,false];
-    const battle=deserializeBattle(this.R,s.battle);battle.phase='over';battle.winner=null;s.battle=serializeBattle(battle);
+    const battle=this.battles.restore(s.battle);battle.phase='over';battle.winner=null;s.battle=serializeBattle(battle);
     const end:End={winner:null,reason,settlement:'not_applicable',requeuedSides,returnedAttempts:acceptance.attempts};
     return tx.realtimeRoom.update({where:{id:r.id},data:{state:'FINISHED',stateJson:JSON.stringify(s),resultJson:JSON.stringify(end),deadline:null,revision:{increment:1}}});
   }
@@ -275,30 +297,30 @@ export class RealtimePvpService {
     return tx.realtimeRoom.update({where:{id:r.id},data:{stateJson:JSON.stringify(s),deadline:new Date(this.now()+REALTIME_LIMITS.turnMs),revision:{increment:1}}});
   }
   private async preparationOptions(tx:Tx,playerId:string,mode:Mode){
-    const owned=await tx.ownedCharacter.findMany({where:{playerId,status:{in:['AVAILABLE','EXPEDITION']}},select:{id:true,characterId:true},orderBy:{id:'asc'}});
+    const owned=await tx.ownedCharacter.findMany({where:{playerId,status:{in:['AVAILABLE','EXPEDITION']}},select:{id:true,characterId:true,reincarnation:true,inheritedFrom:true,statBonusPct:true},orderBy:{id:'asc'}});
     const candidates=mapRealtimePreparationCandidates(this.content,owned.map(x=>x.characterId));
-    if(mode==='rank')return candidates;
+    if(mode==='rank')return [...candidates.filter(c=>owned.some(x=>x.characterId===c.id&&!x.reincarnation)),...owned.filter(x=>x.reincarnation>0&&x.inheritedFrom).map(x=>({id:`o${x.id}`,name:`${this.content.map.get(x.characterId)!.name} +${x.reincarnation}`,rarity:this.content.map.get(x.characterId)!.rarity,image:`/thumbs/${x.characterId}.jpg`}))];
     const row=await tx.storySave.findUnique({where:{playerId}});
     let saved:{units?:Record<string,unknown>}={};try{saved=row?JSON.parse(row.data):{};}catch{fail('저장된 갈매미 성장 정보를 확인해 주세요.');}
     return owned.flatMap(x=>{
-      const c=candidates.find(c=>c.id===x.characterId);if(!c)return [];
+      const original=this.content.map.get(x.characterId)!;const c=candidates.find(c=>c.id===x.characterId)??(x.inheritedFrom?{id:x.inheritedFrom,name:original.name,rarity:this.content.map.get(x.inheritedFrom)!.rarity,image:`/thumbs/${x.characterId}.jpg`}:null);if(!c)return [];
       const key=`o${x.id}`;
       // Corrupt unused copies must not poison a valid deployed roster.
-      try{const rec=casualRecord(this.R,{uid:key,id:c.id,name:c.name,tier:c.rarity as UnitRecord['tier']},saved?.units?.[key]??saved?.units?.[c.id],this.startLevel);
-        return [{...c,id:key,characterId:x.characterId,level:rec.level,stage:rec.stage}];
+      try{const rec=casualRecord(this.R,{uid:key,id:c.id,name:c.name,tier:c.rarity as UnitRecord['tier']},saved?.units?.[key]??(x.reincarnation?undefined:saved?.units?.[c.id]),this.startLevel);
+        return [{...c,id:key,name:x.reincarnation?`${original.name} +${x.reincarnation}`:c.name,rarity:original.rarity,characterId:x.characterId,level:rec.level,stage:rec.stage}];
       }catch(e){if(e instanceof GameError)return [];throw e;}
     });
   }
   private async beginBattle(tx:Tx,r:RealtimeRoom,s:State){
     const prep=s.preparation!;
     // Revalidate ownership at the boundary; no half-created battle or saved partial lineup.
-    const a=await this.roster(tx,r.player0Id,prep.teams[0].map(x=>r.mode==='normal'?x.uid:x.id),r.mode as Mode);
-    const b=s.botSide===1?{units:matchCasualBot(this.R,a.units,prep.teams[1]),ids:prep.teams[1].map(x=>x.id)}:await this.roster(tx,r.player1Id,prep.teams[1].map(x=>r.mode==='normal'?x.uid:x.id),r.mode as Mode);
-    const battle=createBattle(this.R,a.units,b.units,randomInt(2**31-1));
+    const a=await this.roster(tx,r.player0Id,prep.teams[0].map(x=>x.uid),r.mode as Mode);
+    const b=s.botSide===1?{units:matchCasualBot(this.R,a.units,prep.teams[1]),ids:prep.teams[1].map(x=>x.id)}:await this.roster(tx,r.player1Id,prep.teams[1].map(x=>x.uid),r.mode as Mode);
+    const battle=this.battles.restart(s.battle,a.units,b.units,randomInt(2**31-1));
     applyCasualCompensation(battle,r.mode as Mode,s.botSide===1);
     await tx.player.update({where:{id:r.player0Id},data:{battleTeam:a.ids.join(',')}});
     if(s.botSide!==1)await tx.player.update({where:{id:r.player1Id},data:{battleTeam:b.ids.join(',')}});
-    for(const [playerId,ids] of (s.botSide===1?[[r.player0Id,a.units.map(x=>x.uid)]]:[[r.player0Id,r.mode==='normal'?a.units.map(x=>x.uid):a.ids],[r.player1Id,r.mode==='normal'?b.units.map(x=>x.uid):b.ids]]) as Array<[string,string[]]>)await tx.realtimeLineup.upsert({where:{playerId},create:{playerId,teamJson:JSON.stringify(ids)},update:{teamJson:JSON.stringify(ids)}});
+    for(const [playerId,ids] of (s.botSide===1?[[r.player0Id,a.units.map(x=>x.uid)]]:[[r.player0Id,a.units.map(x=>x.uid)],[r.player1Id,b.units.map(x=>x.uid)]]) as Array<[string,string[]]>)await tx.realtimeLineup.upsert({where:{playerId},create:{playerId,teamJson:JSON.stringify(ids)},update:{teamJson:JSON.stringify(ids)}});
     delete s.preparation;s.battle=serializeBattle(battle);s.phase++;s.pending=[null,null];s.automatic=[false,false];
     try{this.commitBot(s,battle);}catch{return this.finish(tx,r,s,null,'SERVER_ABORT');}
     return tx.realtimeRoom.update({where:{id:r.id},data:{stateJson:JSON.stringify(s),deadline:new Date(this.now()+REALTIME_LIMITS.turnMs),revision:{increment:1}}});
@@ -309,8 +331,9 @@ export class RealtimePvpService {
   private async finish(tx:Tx,r:RealtimeRoom,s:State,winner:Side|null,reason:Exclude<EndReason,'MATCH_DECLINED'|'MATCH_TIMEOUT'>){
     if(s.acceptance)return this.rejectAcceptance(tx,r,s,'MATCH_TIMEOUT');
     await refundRoomItems(tx,r.id);
-    delete s.preparation;const b=deserializeBattle(this.R,s.battle);b.phase='over';b.winner=winner;s.battle=serializeBattle(b);s.pending=[null,null];s.automatic=[false,false];
+    delete s.preparation;const b=this.battles.restore(s.battle);b.phase='over';b.winner=winner;s.battle=serializeBattle(b);s.pending=[null,null];s.automatic=[false,false];
     const receipt=s.botSide!==undefined?undefined:r.mode==='rank'?await finishAndSettleRankedMatch(tx,{roomId:r.id,winner,reason}):await settleCasualHuman(tx,{roomId:r.id,player0Id:r.player0Id,player1Id:r.player1Id,participant0Kind:'HUMAN',participant1Kind:'HUMAN',winner,reason});
+    if(reason==='BATTLE'&&winner!==null&&s.botSide!==winner){const p=await tx.player.findUniqueOrThrow({where:{id:winner===0?r.player0Id:r.player1Id}});await awardPlayPoints(tx,p,3,new Date(this.now()));}
     const end:End={winner,reason,settlement:s.botSide!==undefined||reason==='SERVER_ABORT'||reason==='DOUBLE_TIMEOUT'?'not_applicable':'settled',receipt};
     const updated=await tx.realtimeRoom.update({where:{id:r.id},data:{state:'FINISHED',stateJson:JSON.stringify(s),resultJson:JSON.stringify(end),deadline:null,revision:{increment:1}}});
     await tx.realtimeActivity.deleteMany({where:{kind:'ROOM',targetId:r.id}});
@@ -318,9 +341,9 @@ export class RealtimePvpService {
   }
   private async advance(tx:Tx,r:RealtimeRoom,expire:boolean){
     if(r.state!=='ACTIVE')return r;
-    const s=parseState(r);let b=deserializeBattle(this.R,s.battle);
+    const s=parseState(r);let b=this.battles.restore(s.battle);
     if(s.botSide!==undefined&&(s.botSide!==1||r.mode!=='normal'))return this.finish(tx,r,s,null,'SERVER_ABORT');
-    if(s.rulesVersion!==this.version(r.mode))return this.finish(tx,r,s,null,'SERVER_ABORT');
+    if(!this.compatibleRules(s,r.mode))return this.finish(tx,r,s,null,'SERVER_ABORT');
     if(this.now()-r.createdAt.getTime()>=REALTIME_LIMITS.roomMaxMs)return this.finish(tx,r,s,null,'SERVER_ABORT');
     if(s.acceptance){
       if(s.acceptance.accepted.every(Boolean))return this.acceptMatch(tx,r,s);
@@ -357,29 +380,30 @@ export class RealtimePvpService {
     return tx.realtimeRoom.update({where:{id:r.id},data:{stateJson:JSON.stringify(s),...(transitioned?{deadline:new Date(this.now()+REALTIME_LIMITS.turnMs)}:{}),revision:{increment:1}}});
   }
   private async view(tx:Tx,r:RealtimeRoom,playerId:string){
-    const side=this.side(r,playerId),s=parseState(r),b=deserializeBattle(this.R,s.battle),end=r.resultJson?JSON.parse(r.resultJson) as End:null;
+    const side=this.side(r,playerId),s=parseState(r),b=this.battles.restore(s.battle),end=r.resultJson?JSON.parse(r.resultJson) as End:null;
     if(s.acceptance&&r.state==='ACTIVE')return {roomId:r.id,mode:r.mode as Mode,phase:'accept' as const,opponentKind:s.botSide===1?'AI' as const:'HUMAN' as const,phaseId:this.phaseId(r,s),revision:r.revision,deadline:r.deadline?.getTime()??null,serverNow:this.now(),canSubmit:!s.acceptance.accepted[side],mySubmitted:s.acceptance.accepted[side],opponentReady:s.acceptance.accepted[(1-side) as Side],acceptance:{accepted:s.acceptance.accepted[side],opponentAccepted:s.acceptance.accepted[(1-side) as Side]},result:null,battle:null,preparation:null};
     if(end&&(end.reason==='MATCH_DECLINED'||end.reason==='MATCH_TIMEOUT'))return {roomId:r.id,mode:r.mode as Mode,phase:'over' as const,opponentKind:s.botSide===1?'AI' as const:'HUMAN' as const,phaseId:this.phaseId(r,s),revision:r.revision,deadline:null,serverNow:this.now(),canSubmit:false,mySubmitted:false,opponentReady:false,acceptance:null,preparation:null,battle:null,result:{winner:null,reason:end.reason,settlement:'not_applicable' as const,requeued:end.requeuedSides?.includes(side)??false}};
-    if(s.preparation&&r.state==='ACTIVE'){const p=s.preparation;return {roomId:r.id,mode:r.mode as Mode,phase:'prepare' as const,opponentKind:s.botSide===1?'AI' as const:'HUMAN' as const,phaseId:this.phaseId(r,s),revision:r.revision,deadline:r.deadline?.getTime()??null,serverNow:this.now(),canSubmit:!p.ready[side],mySubmitted:p.ready[side],opponentReady:p.ready[(1-side) as Side],result:null,battle:null,preparation:{selectedIds:p.teams[side].map(x=>r.mode==='normal'?x.uid:x.id),ready:p.ready[side],opponentReady:p.ready[(1-side) as Side],available:p.available[side]}};}
+    if(s.preparation&&r.state==='ACTIVE'){const p=s.preparation;return {roomId:r.id,mode:r.mode as Mode,phase:'prepare' as const,opponentKind:s.botSide===1?'AI' as const:'HUMAN' as const,phaseId:this.phaseId(r,s),revision:r.revision,deadline:r.deadline?.getTime()??null,serverNow:this.now(),canSubmit:!p.ready[side],mySubmitted:p.ready[side],opponentReady:p.ready[(1-side) as Side],result:null,battle:null,preparation:{selectedIds:p.teams[side].map(x=>r.mode==='normal'||x.reincarnation?x.uid:x.id),ready:p.ready[side],opponentReady:p.ready[(1-side) as Side],available:p.available[side]}};}
     const receipt=end?.receipt as {players?:Array<{playerId:string;before:unknown;after:unknown;lpDelta?:number;mmrDelta?:number;promotionChange?:unknown}>}|undefined;
     const own=receipt?.players?.find(p=>p.playerId===playerId);
     const publicRank=(value:unknown)=>{const p=value as {tierIndex:number;lp:number;promotionActive:boolean;promotionWins:number;promotionLosses:number;wins:number;losses:number;games:number};return {tierIndex:p.tierIndex,tier:DEFAULT_RANKED_CONFIG.tiers[p.tierIndex],lp:p.lp,promotionActive:p.promotionActive,promotionWins:p.promotionWins,promotionLosses:p.promotionLosses,wins:p.wins,losses:p.losses,games:p.games};};
     const before=own&&r.mode==='rank'?publicRank(own.before):undefined,after=own&&r.mode==='rank'?publicRank(own.after):undefined;
     const rank=own&&before&&after?{before,after,tier:after.tier,point:after.lp,change:own.lpDelta,lpDelta:own.lpDelta,wins:after.wins,losses:after.losses,promotionChange:own.promotionChange}:undefined;
+    const bonus=await freshProgression(tx,playerId);const bonusReroll={available:bonus.rerollAvailable&&!!bonus.rerollExpiresAt&&bonus.rerollExpiresAt.getTime()>this.now(),expiresAt:bonus.rerollExpiresAt?.getTime()??null};
     const result=end?{winner:end.winner===null?null:(end.winner===side?0:1) as Side,reason:end.reason,settlement:end.settlement,...(rank?{rank}:{})}:null;
     const meta={roomId:r.id,mode:r.mode as Mode,opponentKind:s.botSide===1?'AI' as const:'HUMAN' as const,phaseId:this.phaseId(r,s),revision:r.revision,deadline:r.deadline?.getTime()??null,serverNow:this.now(),canSubmit:r.state==='ACTIVE'&&required(b,side)&&!s.pending[side],mySubmitted:!!s.pending[side],opponentReady:!!s.pending[(1-side) as Side],result};
-    return {...meta,phase:b.phase,preparation:null,battle:this.mapper({battle:b,viewerSide:side,sessionId:r.id,names:JSON.parse(r.namesJson) as [string,string],room:meta,inventory:await inventoryForPlayer(tx,playerId)})};
+    return {...meta,phase:b.phase,preparation:null,battle:{...this.mapper({battle:b,viewerSide:side,sessionId:r.id,names:JSON.parse(r.namesJson) as [string,string],room:meta,inventory:await inventoryForPlayer(tx,playerId)}),bonusReroll}};
   }
   async currentRoom(playerId:string,roomId:string){return this.tx(async tx=>{
     let r=await this.room(tx,playerId,roomId);
-    if(r.state==='ACTIVE'&&(parseState(r).rulesVersion!==this.version(r.mode)||(r.deadline&&this.now()>=r.deadline.getTime())))r=await this.advance(tx,r,true);
+    if(r.state==='ACTIVE'&&(!this.compatibleRules(parseState(r),r.mode)||(r.deadline&&this.now()>=r.deadline.getTime())))r=await this.advance(tx,r,true);
     return this.view(tx,r,playerId);
   });}
   async command(playerId:string,input:{roomId:string;phaseId:string;requestId:string;command:Command|{reroll:number}|PrepareCommand|{accept:boolean}}){return this.tx(async tx=>{
     let r=await this.room(tx,playerId,input.roomId);const side=this.side(r,playerId),fingerprint=canonical({phaseId:input.phaseId,command:input.command});
     const prior=await tx.realtimeRequest.findUnique({where:{roomId_playerId_requestId:{roomId:r.id,playerId,requestId:input.requestId}}});
     if(prior){if(prior.fingerprint!==fingerprint)fail('같은 요청 번호의 내용이 달라요.');return this.view(tx,r,playerId);}
-    if(r.state==='ACTIVE'&&(parseState(r).rulesVersion!==this.version(r.mode)||(r.deadline&&this.now()>=r.deadline.getTime())))r=await this.advance(tx,r,true);
+    if(r.state==='ACTIVE'&&(!this.compatibleRules(parseState(r),r.mode)||(r.deadline&&this.now()>=r.deadline.getTime())))r=await this.advance(tx,r,true);
     // Return the authoritative progressed state rather than rolling back an expired phase.
     if(r.state!=='ACTIVE'||this.phaseId(r,parseState(r))!==input.phaseId){
       if('accept' in input.command&&!input.command.accept&&this.phaseId(r,parseState(r))===input.phaseId){
@@ -389,7 +413,7 @@ export class RealtimePvpService {
       }
       return this.view(tx,r,playerId);
     }
-    const s=parseState(r),b=deserializeBattle(this.R,s.battle);
+    const s=parseState(r),b=this.battles.restore(s.battle);
     if(s.acceptance){
       if(!('accept' in input.command))fail('먼저 대전 수락 여부를 선택해 주세요.');
       if(await tx.realtimeRequest.count({where:{roomId:r.id}})>=REALTIME_LIMITS.maxRequestsPerRoom)fail('요청 한도를 넘었어요.');
@@ -413,7 +437,7 @@ export class RealtimePvpService {
     if('prepare' in input.command)fail('편성 시간이 끝났어요.');
     if(s.pending[side]||!required(b,side))fail('이미 선택했어요. 상대를 기다려 주세요.');
     if(await tx.realtimeRequest.count({where:{roomId:r.id}})>=REALTIME_LIMITS.maxRequestsPerRoom)fail('요청 한도를 넘었어요.');
-    if('reroll' in input.command){s.battle=serializeBattle(rerollCommand(b,side,input.command.reroll));}
+    if('reroll' in input.command){const bonus=!!b.sides[side].rerolled[input.command.reroll];const next=rerollCommand(b,side,input.command.reroll,bonus);if(bonus){const p=await tx.player.findUniqueOrThrow({where:{id:playerId}});await consumeReroll(tx,p,new Date(this.now()));}s.battle=serializeBattle(next);}
     else {validateCommand(b,side,input.command);const item=itemRequirement(b,side,input.command);if(item)await holdItem(tx,{roomId:r.id,phaseId:input.phaseId,side,playerId,itemId:item.itemId});s.pending[side]=input.command;s.automatic[side]=false;if(b.phase==='action')s.misses[side]=0;}
     await tx.realtimeRequest.create({data:{id:id(),roomId:r.id,playerId,requestId:input.requestId,fingerprint}});
     r=await tx.realtimeRoom.update({where:{id:r.id},data:{stateJson:JSON.stringify(s),revision:{increment:1}}});
@@ -427,7 +451,7 @@ export class RealtimePvpService {
     if(r.state!=='ACTIVE')return this.view(tx,await this.cancelReturnedWaiter(tx,r,side),playerId);
     if(!prior&&await tx.realtimeRequest.count({where:{roomId}})>=REALTIME_LIMITS.maxRequestsPerRoom)fail('요청 한도를 넘었어요.');
     if(!prior)await tx.realtimeRequest.create({data:{id:id(),roomId,playerId,requestId,fingerprint}});
-    if(r.state==='ACTIVE'&&(parseState(r).rulesVersion!==this.version(r.mode)||(r.deadline&&this.now()>=r.deadline.getTime())))r=await this.advance(tx,r,true);
+    if(r.state==='ACTIVE'&&(!this.compatibleRules(parseState(r),r.mode)||(r.deadline&&this.now()>=r.deadline.getTime())))r=await this.advance(tx,r,true);
     if(r.state==='ACTIVE'){const s=parseState(r);r=s.acceptance?await this.rejectAcceptance(tx,r,s,'MATCH_DECLINED',side):await this.finish(tx,r,s,(1-side) as Side,'SURRENDER');}
     r=await this.cancelReturnedWaiter(tx,r,side);return this.view(tx,r,playerId);
   });}
@@ -468,3 +492,4 @@ export class RealtimePvpService {
   }
   async legacyWebResult(playerId:string,matchId:string,run:()=>Promise<unknown>){const result=await run();await this.releaseLegacy(playerId,matchId,'LEGACY_WEB');return result;}
 }
+

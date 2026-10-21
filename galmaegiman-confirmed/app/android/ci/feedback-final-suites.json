@@ -1,0 +1,59 @@
+{
+  "org.dpdns.gmm.NativeHomePartyFeedbackTest": [
+    "captureHomePartyModesAndRealtimeAcrossNativeProfiles",
+    "actualButtonDispatchRestoresPaperAfterReleaseCancelAndSelection",
+    "homeCustomCanvasButtonsKeepRoutesAndCancelWithoutNavigation",
+    "partyReplacementOrderDiscardAndSaveKeepOriginalPayloadsAndBusyLock",
+    "realtimeSwapConfirmDeadlineAndStalePhaseRemainServerControlled",
+    "homeDragKeepsFeetAndMenusFixedAndReturnsAfterCancel",
+    "approvedSpriteBoundaryNeverFallsBackToAnotherIdentity"
+  ],
+  "org.dpdns.gmm.NativeCommerceFeedbackTest": [
+    "shortLandscapeDensityAndLargeFontScreens",
+    "recipePagesAndFiltersClearOnlyTheSelection",
+    "all33CandidatesCapacityAndDuplicateIndicesAreLocal",
+    "failedOrPendingSaveCannotDepartAndSuccessStillNeedsConfirmation",
+    "shortCraftFocusShowsSafeIdentityWithoutChangingRecipeOrOpeningDialog",
+    "registrationReadinessRejectsPendingAndAllowsOnlyExplicitFallback"
+  ],
+  "org.dpdns.gmm.NativeAttendanceFeedbackTest": [
+    "captureAttendanceAndEveryMissionAtShortLargeFontAndDensityProfiles",
+    "canonicalWeekAmountsAndServerOverridesAreNeverRecalculated",
+    "claimUsesExactRouteOnceWhilePendingAndClaimedStatusCannotWrite",
+    "boundedPaginationPreservesClaimAndSurvivesResizeBackAndRepeatedTaps",
+    "emptyMissionsAndAllCompleteRemainInformational",
+    "profileRemovesOnlyDuplicateSettingsAndHomeGearStillOpensSettings"
+  ],
+  "org.dpdns.gmm.NativeResultDossierTest": [
+    "tapIsReadOnlyAndBackKeepsExactPageSelectionAndConfirmationOnce",
+    "closeEpochAccountAndDetachDiscardLateResponses",
+    "onlyRequestedSpeciesMaySupplyRecordsAndHiddenCardsStayMasked",
+    "recipeRouteAndAllResultPagesRemainReachable",
+    "forgeUsesSameRecordAndStaleFinishCannotNavigate",
+    "captureLargeCardsAndSplitRecordsAtRealScreenshotDensityAndFont130"
+  ],
+  "org.dpdns.gmm.NativeProgressionTest": [
+    "repeatedTapSendsOneDurableIntent",
+    "ambiguousRetryReusesExactRequestIdAndPayload",
+    "successRequiresExplicitOkAndMissingApiDoesNotGrantAnything",
+    "terminalIneligibleResponseReleasesIntentButAmbiguousServerErrorDoesNot",
+    "backDismissesOverlayAndLateReadCannotReplaceResult",
+    "authChangeAndLateReadCannotPaintOtherAccount",
+    "lateMutationAfterNavigationDoesNotReopenPage",
+    "cooldownAndLockedInstanceDisableActions",
+    "destructiveConversionRequiresConfirmationAndUsesInstanceKey",
+    "resultEntryFiltersExactAcquiredInstanceAndRejectsMissingCandidate",
+    "authExpirationPreservesIntentForSamePlayerNewSession",
+    "augmentBonusRequiresAuthoritativePhaseAvailabilityAndExpiry",
+    "clientTimeCannotAuthorizeClaim"
+  ],
+  "org.dpdns.gmm.NativeProgressionReviewTest": [
+    "captureFourTabsWithoutScrollAtFiveProfiles",
+    "candidatePaginationKeepsExactKeyAndTabPage"
+  ],
+  "org.dpdns.gmm.NativeInheritedSkillProtectionTest": [
+    "protectedSignatureNeverOfferedOrSubmittedAndLearningOpportunityRemains",
+    "remainingReplacementStillRequiresConfirmationAndKeepsExactPayload",
+    "explicitServerProtectionPreservesUnprotectedSignatureAndOtherSkillChoices"
+  ]
+}

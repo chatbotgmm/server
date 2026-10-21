@@ -1,0 +1,82 @@
+{
+  "schema": "native-theme-review-contract/v1",
+  "test_class": "org.dpdns.gmm.NativeThemeReviewTest",
+  "state_test_class": "org.dpdns.gmm.NativeThemeStateTest",
+  "output_subdirectory": "theme",
+  "variants": [
+    {
+      "suffix": "915x412",
+      "width": 915,
+      "height": 412,
+      "font_scale": 1.0
+    },
+    {
+      "suffix": "1006x411",
+      "width": 1006,
+      "height": 411,
+      "font_scale": 1.0
+    },
+    {
+      "suffix": "1280x720",
+      "width": 1280,
+      "height": 720,
+      "font_scale": 1.0
+    },
+    {
+      "suffix": "915x412-font130",
+      "width": 915,
+      "height": 412,
+      "font_scale": 1.3
+    }
+  ],
+  "screens": [
+    {
+      "stem": "settings-sound",
+      "audit_id": "settings",
+      "scene_asset": "backgrounds/bg-settings-harbor-office-v1.png",
+      "root_kind": "dialog"
+    },
+    {
+      "stem": "settings-alerts",
+      "audit_id": "settings",
+      "scene_asset": "backgrounds/bg-settings-harbor-office-v1.png",
+      "root_kind": "dialog"
+    },
+    {
+      "stem": "settings-account",
+      "audit_id": "settings",
+      "scene_asset": "backgrounds/bg-settings-harbor-office-v1.png",
+      "root_kind": "dialog"
+    },
+    {
+      "stem": "settings-probability",
+      "audit_id": "settings",
+      "scene_asset": "backgrounds/bg-settings-harbor-office-v1.png",
+      "root_kind": "dialog"
+    },
+    {
+      "stem": "profile",
+      "audit_id": "profile",
+      "scene_asset": "backgrounds/bg-home.png",
+      "root_kind": "popup"
+    },
+    {
+      "stem": "modes",
+      "audit_id": "modes",
+      "scene_asset": "backgrounds/bg-team.png",
+      "root_kind": "page"
+    },
+    {
+      "stem": "shop",
+      "audit_id": "shop",
+      "scene_asset": "backgrounds/bg-market-canopy-v1.png",
+      "root_kind": "page"
+    },
+    {
+      "stem": "explore",
+      "audit_id": "expedition",
+      "scene_asset": "backgrounds/bg-navigation-workshop-v1.png",
+      "root_kind": "page"
+    }
+  ]
+}

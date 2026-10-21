@@ -1,0 +1,471 @@
+{
+  "schema": "phase-two-review-contract/v1",
+  "id": "realtime",
+  "status": "source_complete_native_execution_pending",
+  "source_contract": "phase2-realtime/review-contract.json",
+  "source_contract_sha256": "fc3660eb12a27b22ce202eba3c5c889bf196614a6db2bcaf219db36184378f60",
+  "output_subdirectory": "realtime-theme",
+  "expected_capture_count": 124,
+  "test_suites": [
+    {
+      "name": "org.dpdns.gmm.NativeRealtimeThemeReviewTest",
+      "minimum_tests": 1
+    },
+    {
+      "name": "org.dpdns.gmm.NativeRealtimeThemeStateTest",
+      "minimum_tests": 15
+    }
+  ],
+  "variants": [
+    {
+      "suffix": "915x412",
+      "width": 915,
+      "height": 412,
+      "font_scale": 1.0,
+      "safe_insets": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "suffix": "1006x411",
+      "width": 1006,
+      "height": 411,
+      "font_scale": 1.0,
+      "safe_insets": [
+        36,
+        10,
+        10,
+        10
+      ]
+    },
+    {
+      "suffix": "1280x720",
+      "width": 1280,
+      "height": 720,
+      "font_scale": 1.0,
+      "safe_insets": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "suffix": "915x412-font130",
+      "width": 915,
+      "height": 412,
+      "font_scale": 1.3,
+      "safe_insets": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "screens": [
+    {
+      "stem": "queue-connecting",
+      "audit_id": "realtimeQueue",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "queue-normal",
+      "audit_id": "realtimeQueue",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "queue-rank",
+      "audit_id": "realtimeQueue",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "queue-cancelling",
+      "audit_id": "realtimeQueue",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "queue-failure",
+      "audit_id": "realtimeQueue",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "accept-human",
+      "audit_id": "realtimeAccept",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "accept-ai",
+      "audit_id": "realtimeAccept",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "accept-accepted",
+      "audit_id": "realtimeAccept",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "accept-expired",
+      "audit_id": "realtimeAccept",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "prepare-rank",
+      "audit_id": "realtimePrepare",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "prepare-slot",
+      "audit_id": "realtimePrepare",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "prepare-page2",
+      "audit_id": "realtimePrepare",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "prepare-ready",
+      "audit_id": "realtimePrepare",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "prepare-expired",
+      "audit_id": "realtimePrepare",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "prepare-ai",
+      "audit_id": "realtimePrepare",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "prepare-empty",
+      "audit_id": "realtimePrepare",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "augment",
+      "audit_id": "augments",
+      "expected_fields": {
+        "rootKind": "overlay",
+        "sceneAsset": "backgrounds/bg-augments.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "augment-selected",
+      "audit_id": "augments",
+      "expected_fields": {
+        "rootKind": "overlay",
+        "sceneAsset": "backgrounds/bg-augments.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "augment-rerolls-spent",
+      "audit_id": "augments",
+      "expected_fields": {
+        "rootKind": "overlay",
+        "sceneAsset": "backgrounds/bg-augments.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "augment-next-fighter",
+      "audit_id": "augments",
+      "expected_fields": {
+        "rootKind": "overlay",
+        "sceneAsset": "backgrounds/bg-augments.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "augment-switch-only",
+      "audit_id": "augments",
+      "expected_fields": {
+        "rootKind": "overlay",
+        "sceneAsset": "backgrounds/bg-augments.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "augment-expired",
+      "audit_id": "augments",
+      "expected_fields": {
+        "rootKind": "overlay",
+        "sceneAsset": "backgrounds/bg-augments.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "augment-long-effects",
+      "audit_id": "augments",
+      "expected_fields": {
+        "rootKind": "overlay",
+        "sceneAsset": "backgrounds/bg-augments.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "result-pending",
+      "audit_id": "realtimePrepare",
+      "expected_fields": {
+        "rootKind": "page",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 0,
+        "checkedBounds": 0
+      }
+    },
+    {
+      "stem": "result-win",
+      "audit_id": "realtime-result",
+      "expected_fields": {
+        "rootKind": "dialog",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "result-loss",
+      "audit_id": "realtime-result",
+      "expected_fields": {
+        "rootKind": "dialog",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "result-draw",
+      "audit_id": "realtime-result",
+      "expected_fields": {
+        "rootKind": "dialog",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "result-abort",
+      "audit_id": "realtime-result",
+      "expected_fields": {
+        "rootKind": "dialog",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "result-ai",
+      "audit_id": "realtime-result",
+      "expected_fields": {
+        "rootKind": "dialog",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "result-promoted",
+      "audit_id": "realtime-result",
+      "expected_fields": {
+        "rootKind": "dialog",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    },
+    {
+      "stem": "result-promotion-failed",
+      "audit_id": "realtime-result",
+      "expected_fields": {
+        "rootKind": "dialog",
+        "sceneAsset": "backgrounds/bg-team.png"
+      },
+      "minimum_integers": {
+        "actions": 1,
+        "checkedBounds": 1
+      }
+    }
+  ],
+  "measurements": {
+    "true_fields": [
+      "actualNativeViews"
+    ],
+    "zero_integer_fields": [
+      "apiWrites"
+    ],
+    "positive_integer_fields": [
+      "text",
+      "sceneWidth",
+      "sceneHeight"
+    ],
+    "nonnegative_integer_fields": [
+      "checkedBounds",
+      "actions",
+      "apiReads",
+      "assetWaitMillis",
+      "renderMillis"
+    ],
+    "array_fields": [],
+    "duration_fields": [
+      "assetWaitMillis",
+      "renderMillis"
+    ],
+    "scene_asset_field": "sceneAsset",
+    "scene_width_field": "sceneWidth",
+    "scene_height_field": "sceneHeight"
+  }
+}

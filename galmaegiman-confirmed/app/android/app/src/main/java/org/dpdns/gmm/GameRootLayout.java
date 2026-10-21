@@ -13,14 +13,18 @@ final class GameRootLayout extends FrameLayout {
   }
 
   @Override
-  protected void onMeasure(int ws, int hs) {
-    super.onMeasure(ws, hs);
-    for (int i = 0; i < getChildCount(); i++) {
-      View v = getChildAt(i);
-      if (v instanceof FullBleed && v.getVisibility() != GONE)
-        v.measure(
-            MeasureSpec.makeMeasureSpec(getMeasuredWidth(), MeasureSpec.EXACTLY),
-            MeasureSpec.makeMeasureSpec(getMeasuredHeight(), MeasureSpec.EXACTLY));
+  protected void measureChildWithMargins(
+      View child, int parentWidthSpec, int widthUsed, int parentHeightSpec, int heightUsed) {
+    if (child instanceof FullBleed) {
+      // Measure full-bleed content correctly on the FIRST pass. Measuring once
+      // with FrameLayout padding and again without it made BattleView alternate
+      // sizes and recreate its controls every traversal. AppCompat autosize then
+      // never received a follow-up traversal on the same button instance.
+      child.measure(
+          MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(parentWidthSpec), MeasureSpec.EXACTLY),
+          MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(parentHeightSpec), MeasureSpec.EXACTLY));
+    } else {
+      super.measureChildWithMargins(child, parentWidthSpec, widthUsed, parentHeightSpec, heightUsed);
     }
   }
 

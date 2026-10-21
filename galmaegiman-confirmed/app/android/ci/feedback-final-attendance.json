@@ -1,0 +1,200 @@
+{
+  "schema": "attendance-feedback-native-review/v1",
+  "baseline": "b40dc7c1ed81ba1cdaa56da88d40a7f4996c992a",
+  "suite": "org.dpdns.gmm.NativeAttendanceFeedbackTest",
+  "requiredUnskippedTests": [
+    "captureAttendanceAndEveryMissionAtShortLargeFontAndDensityProfiles",
+    "canonicalWeekAmountsAndServerOverridesAreNeverRecalculated",
+    "claimUsesExactRouteOnceWhilePendingAndClaimedStatusCannotWrite",
+    "boundedPaginationPreservesClaimAndSurvivesResizeBackAndRepeatedTaps",
+    "emptyMissionsAndAllCompleteRemainInformational",
+    "profileRemovesOnlyDuplicateSettingsAndHomeGearStillOpensSettings"
+  ],
+  "outputDirectory": "feedback-attendance",
+  "profiles": [
+    {
+      "name": "phone-915x412",
+      "widthPx": 915,
+      "heightPx": 412,
+      "densityDpi": 160,
+      "fontScale": 1.0,
+      "insetsPx": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "densityHypothesis": false
+    },
+    {
+      "name": "tablet-1280x720",
+      "widthPx": 1280,
+      "heightPx": 720,
+      "densityDpi": 160,
+      "fontScale": 1.0,
+      "insetsPx": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "densityHypothesis": false
+    },
+    {
+      "name": "short-915x374",
+      "widthPx": 915,
+      "heightPx": 374,
+      "densityDpi": 160,
+      "fontScale": 1.0,
+      "insetsPx": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "densityHypothesis": false
+    },
+    {
+      "name": "short-915x374-font130",
+      "widthPx": 915,
+      "heightPx": 374,
+      "densityDpi": 160,
+      "fontScale": 1.3,
+      "insetsPx": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "densityHypothesis": false
+    },
+    {
+      "name": "short-780x319",
+      "widthPx": 780,
+      "heightPx": 319,
+      "densityDpi": 160,
+      "fontScale": 1.0,
+      "insetsPx": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "densityHypothesis": false
+    },
+    {
+      "name": "short-780x319-font130",
+      "widthPx": 780,
+      "heightPx": 319,
+      "densityDpi": 160,
+      "fontScale": 1.3,
+      "insetsPx": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "densityHypothesis": false
+    },
+    {
+      "name": "device-ratio-2048x838-360dpi",
+      "widthPx": 2048,
+      "heightPx": 838,
+      "densityDpi": 360,
+      "fontScale": 1.0,
+      "insetsPx": [
+        73,
+        26,
+        26,
+        26
+      ],
+      "densityHypothesis": true
+    },
+    {
+      "name": "device-ratio-2048x838-420dpi",
+      "widthPx": 2048,
+      "heightPx": 838,
+      "densityDpi": 420,
+      "fontScale": 1.0,
+      "insetsPx": [
+        73,
+        26,
+        26,
+        26
+      ],
+      "densityHypothesis": true
+    },
+    {
+      "name": "device-ratio-2048x838-420dpi-font130",
+      "widthPx": 2048,
+      "heightPx": 838,
+      "densityDpi": 420,
+      "fontScale": 1.3,
+      "insetsPx": [
+        73,
+        26,
+        26,
+        26
+      ],
+      "densityHypothesis": true
+    },
+    {
+      "name": "insets-1950x844-xhdpi-font130",
+      "widthPx": 1950,
+      "heightPx": 844,
+      "densityDpi": 320,
+      "fontScale": 1.3,
+      "insetsPx": [
+        72,
+        32,
+        48,
+        64
+      ],
+      "densityHypothesis": false
+    }
+  ],
+  "attendanceStates": [
+    "claimable",
+    "claimed",
+    "week-seven"
+  ],
+  "attendanceMetricsFile": "attendance-metrics.json",
+  "attendanceFindingsFile": "attendance-findings.json",
+  "attendanceCaseCount": 30,
+  "attendanceCaptureRule": "For every state/profile metrics key, require exactly {key}-page1.png through {key}-page{pageCount}.png and no extra PNG. pageCount must equal ceil(6/perPage), perPage must be 2, 4, or 6. pageCaptures must equal that ordered list. Width and height equal profile physical pixels.",
+  "profileMetricsFile": "profile-metrics.json",
+  "profileFindingsFile": "profile-findings.json",
+  "profileCaseCount": 10,
+  "profileCaptureRule": "Exactly profile-{profile.name}.png for every profile. Width and height equal profile physical pixels.",
+  "attendanceRequiredFields": {
+    "baseline": "b40dc7c1ed81ba1cdaa56da88d40a7f4996c992a",
+    "actualNativeViews": true,
+    "apiWrites": 0,
+    "missionCount": 6,
+    "rewardCells": 7
+  },
+  "attendancePositiveFields": [
+    "checkedBounds",
+    "apiReads",
+    "pageCount",
+    "perPage"
+  ],
+  "profileRequiredFields": {
+    "actualNativeViews": true,
+    "apiWrites": 0,
+    "profileSettingsAbsent": true,
+    "homeGearOpensSettings": true
+  },
+  "profilePositiveFields": [
+    "checkedBounds"
+  ],
+  "requiredFindingArrays": "All 30 attendance and all 10 profile arrays must be present and empty. Missing/failed/skipped JUnit tests must fail even if image files exist.",
+  "requiredVisualReview": [
+    "780x319 font130 7-day grid and long Korean mission names",
+    "2048x838 360dpi and 420dpi physical-pixel hypotheses; 420dpi font130",
+    "claimable and claimed status",
+    "all mission pages, state labels and progress values",
+    "profile duplicate Settings absent; original right HOME gear visible"
+  ],
+  "status": "native execution and candidate screenshot review pending; source checks are not a native pass"
+}

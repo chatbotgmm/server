@@ -96,9 +96,20 @@ public class JournalThemeTest {
     Bitmap pressed =
         button(host, new int[] {android.R.attr.state_enabled, android.R.attr.state_pressed});
     assertEquals(0, colorCount(normal, JournalTheme.TEAL));
-    assertTrue(colorCount(selected, JournalTheme.TEAL) > 20);
+    assertFalse("Selection remains visually distinct", normal.sameAs(selected));
+    assertTrue("Selection retains a thin brass edge", nearColorCount(selected, JournalTheme.BRASS) > 20);
+    assertTrue("Idle buttons remain light parchment", luminance(normal.getPixel(120, 32)) > .5);
+    assertTrue("Selection does not become a navy pressed surface", luminance(selected.getPixel(120, 32)) > .5);
+    assertTrue("Only active pressing uses navy", luminance(pressed.getPixel(120, 32)) < .25);
+    assertTrue("Idle ink contrast", contrast(JournalTheme.INK, normal.getPixel(120, 32)) >= 4.5);
+    assertTrue("Selected ink contrast", contrast(JournalTheme.INK, selected.getPixel(120, 32)) >= 4.5);
+    assertTrue("Pressed white contrast", contrast(JournalTheme.WHITE, pressed.getPixel(120, 32)) >= 4.5);
     assertEquals("비활성도 사진 배경에 묻히지 않는 읽기 면 유지", 255, Color.alpha(disabled.getPixel(120, 32)));
-    assertEquals(JournalTheme.DISABLED, disabled.getPixel(120, 32));
+    assertTrue("비활성 양피지에서도 실제 라벨 대비 유지",
+        contrast(JournalTheme.MUTED, disabled.getPixel(120, 32)) >= 4.5);
+    for (int y = 0; y < normal.getHeight(); y++) for (int x = 0; x < normal.getWidth(); x++)
+      assertEquals("비활성도 원래 프레임 윤곽 유지",
+          Color.alpha(normal.getPixel(x, y)), Color.alpha(disabled.getPixel(x, y)));
     assertFalse("비활성 면과 정상 면을 구별", normal.sameAs(disabled));
     assertFalse("눌린 프레임은 실제 위치가 달라짐", normal.sameAs(pressed));
     normal.recycle();
@@ -150,19 +161,22 @@ public class JournalThemeTest {
     button.setBackground(new GameButtonDrawable(host, GameButtonDrawable.PAPER));
     assertEquals(JournalTheme.INK, button.getCurrentTextColor());
     button.setBackground(new GameButtonDrawable(host, GameButtonDrawable.PRIMARY));
-    assertEquals(JournalTheme.WHITE, button.getCurrentTextColor());
+    assertEquals("Primary role also rests on paper", JournalTheme.INK, button.getCurrentTextColor());
     button.setPressed(true);
     assertEquals(JournalTheme.WHITE, button.getCurrentTextColor());
     button.setPressed(false);
+    assertEquals("Release restores resting ink", JournalTheme.INK, button.getCurrentTextColor());
     button.setSelected(true);
-    assertEquals(JournalTheme.TEAL, button.getCurrentTextColor());
+    assertEquals("Selection alone does not retain the pressed palette", JournalTheme.INK, button.getCurrentTextColor());
     button.setEnabled(false);
     assertEquals(JournalTheme.MUTED, button.getCurrentTextColor());
-    assertTrue("Disabled control text remains readable",
-        contrast(button.getCurrentTextColor(), JournalTheme.DISABLED) >= 4.5);
+    Bitmap disabledSurface = button(host, new int[0]);
+    assertTrue("Disabled control text remains readable on the rendered parchment",
+        contrast(button.getCurrentTextColor(), disabledSurface.getPixel(120, 32)) >= 4.5);
+    disabledSurface.recycle();
     button.setSelected(false);
     button.setEnabled(true);
-    assertEquals(JournalTheme.WHITE, button.getCurrentTextColor());
+    assertEquals(JournalTheme.INK, button.getCurrentTextColor());
     button.setBackground(new GameButtonDrawable(host, GameButtonDrawable.PAPER));
     assertEquals(JournalTheme.INK, button.getCurrentTextColor());
   }

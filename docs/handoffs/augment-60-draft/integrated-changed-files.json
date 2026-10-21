@@ -1,0 +1,104 @@
+[
+  {
+    "path": "galmaegiman-confirmed/src/battle/engine.ts",
+    "status": "modified",
+    "sha256": "ca0109e0ad5ad2c628e0fba4f35313792ddb1717df27dd35b51f0d5142a0909a",
+    "sourceSha256": "25a7656a1c3eb07b8e89f2e9f20bd6eb71b395130abb361dea0ba6b0a2c66fec"
+  },
+  {
+    "path": "galmaegiman-confirmed/src/battle/realtime-adapter.ts",
+    "status": "modified",
+    "sha256": "6cb3f0ae824703e216555595032127065b55c6c4b84157945078c2ad4b455422",
+    "sourceSha256": "3d405020e004092a664820d0bd4935d0c73c3a41852ab42bbbacba9d977cfadd"
+  },
+  {
+    "path": "galmaegiman-confirmed/src/battle/rules.ts",
+    "status": "modified",
+    "sha256": "dbd81d9efba830336d69df90891ca7b0154be121380aea6ee8ac6a2addf46999",
+    "sourceSha256": "8fc4ba8a245dcb9aae54aaa71aef8156302fde6770aa3ca8f5776efa0b68207c"
+  },
+  {
+    "path": "galmaegiman-confirmed/src/battle/core.ts",
+    "status": "modified",
+    "sha256": "a7350b61f8367aad40dc3ee354e2a6bb37760512bb18c43e60e3ea57186a2769",
+    "sourceSha256": "7fc5d31cfb34a51fb7931e30fb06d2623a6837598278bb4ff55b69023f379a06"
+  },
+  {
+    "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeAugmentView.java",
+    "status": "modified",
+    "sha256": "268bbd3f1ad816f5c34147300cbdb13a4442e312c196964d0ba223d94a260068",
+    "sourceSha256": "b9089c9b57470adc4db60674e845cfc1e4a9348e3f61495bb02b5f04fd5719ec"
+  },
+  {
+    "path": "galmaegiman-confirmed/public/duel/duel.js",
+    "status": "modified",
+    "sha256": "1164784272477545ae1dcc27c7f0ee8d8c4e3ba6eff29246f4d4feaae5fb0410",
+    "sourceSha256": "1444e1c66d6e4578e67737096a38980ebc3fbd223deecef6d672201bfd3461df"
+  },
+  {
+    "path": "galmaegiman-confirmed/src/native.ts",
+    "status": "modified",
+    "sha256": "b934a1b9c171ae688b1c8a72e327c5638b0d6d130a1132534eef7047dcfc539e",
+    "sourceSha256": "de20dd54fa7827b0d4e59ac8c075957a3a41051e9fc19f315b2ab7268c3140c2"
+  },
+  {
+    "path": "galmaegiman-confirmed/src/pvp/service.ts",
+    "status": "modified",
+    "sha256": "77b42240d72103d58289e205bf9c4f72219e788e89cc154ea7c1452ad6b6e672",
+    "sourceSha256": "78d17adc87646ac17492c221683315881ce9464cb23dede0d880708d017f60f1"
+  },
+  {
+    "path": "galmaegiman-confirmed/src/pvp/realtime-native-view.ts",
+    "status": "modified",
+    "sha256": "074fefd114e32b70bc9419e47fc172a4ee89b51b37b67e960c15c08bd51808c1",
+    "sourceSha256": "fc482e091bb0e2d92c42c951467bbfa95f80fc02e52fd98218c55b0d6fb3cf4d"
+  },
+  {
+    "path": "galmaegiman-confirmed/src/pvp/routes.ts",
+    "status": "modified",
+    "sha256": "b4a68acf34f2cd4ed84f460d693a8645a03818a5cebbbb235fbf99fa198ff836",
+    "sourceSha256": "b25104f84b7b804cc228513da33f8761813bdf91378dd0dedfe3b95f94a51c9f"
+  },
+  {
+    "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeApi.java",
+    "status": "modified",
+    "sha256": "46917691bcb58267be9470ce040bf5d29bd7c106348ed3bc7eae2a0050baf459",
+    "sourceSha256": "6cbc047ef50d5d654afbd360bbcd08fa42096f5b1f547dd002f96c5552043476"
+  },
+  {
+    "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/BattleView.java",
+    "status": "modified",
+    "sha256": "1c535038b63de9cd6d8e63368e9323397de8a94dedd62cd6a00213533555240c",
+    "sourceSha256": "cb7f7338b7d49fe8443bb2db5fa9d4eb72ae3e2191be79b1d50d37c0afb6bd95"
+  },
+  {
+    "path": "galmaegiman-confirmed/src/battle/augment-offers.ts",
+    "status": "new",
+    "sha256": "f56a75dcff245986a07f8f00e6014f005448277a6a33bd85d4ebda005f620a8a"
+  },
+  {
+    "path": "galmaegiman-confirmed/src/battle/augment-eligibility.ts",
+    "status": "new",
+    "sha256": "244ad787a778a38cde1e1bf9ab70db5b5c738acaa13e61f084d2612b6a58f4e7"
+  },
+  {
+    "path": "galmaegiman-confirmed/src/battle/augment-catalog-v2.ts",
+    "status": "new",
+    "sha256": "07ae2bbfbc56e78915a0cc2c059874085122ad13b47afe1250f3aa68669b8418"
+  },
+  {
+    "path": "galmaegiman-confirmed/src/battle/augment-effects.ts",
+    "status": "new",
+    "sha256": "169b69cf8b5b754dda4c96092fd44fdf3c254adf4f30bf95feef2b7caba40680"
+  },
+  {
+    "path": "galmaegiman-confirmed/src/battle/service-factory.ts",
+    "status": "new",
+    "sha256": "ccc35bd816632d290e4e390122aca3935b2fd86e61a24e5ef0e3ca56b9ea72ee"
+  },
+  {
+    "path": "galmaegiman-confirmed/src/battle/public-dto.ts",
+    "status": "new",
+    "sha256": "b0f917ad85f71dc854d319691b81fbf7a223c0cd774906608ff7c6f79a61962a"
+  }
+]

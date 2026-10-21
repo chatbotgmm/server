@@ -81,7 +81,10 @@ public class NativeEffectsPresentationTest {
     second.drawRect(0, 0, 40, 40, paint);
     state.finish(second, save);
     assertEquals(255, Color.alpha(enabled.getPixel(20, 20)));
-    assertTrue(Color.alpha(disabled.getPixel(20, 20)) < 150);
+    assertEquals("비활성 아이콘은 원래 불투명도를 유지", 255, Color.alpha(disabled.getPixel(20, 20)));
+    assertTrue("색을 완전히 회색으로 지우지 않음",
+        Color.red(disabled.getPixel(20, 20)) > Color.green(disabled.getPixel(20, 20)));
+    assertTrue("밝기를 조금 낮춤", Color.red(disabled.getPixel(20, 20)) < 255);
     assertTrue(Color.green(disabled.getPixel(20, 20)) > 0);
     state.update(new int[] {android.R.attr.state_enabled, android.R.attr.state_pressed});
     int before = first.getSaveCount();
@@ -101,17 +104,19 @@ public class NativeEffectsPresentationTest {
         new JSONArray()
             .put(
                 new JSONObject()
+                    .put("id", "C1")
                     .put("name", "평범한 친구")
                     .put("tier", "COMMON")
                     .put("tierName", "흔함")
-                    .put("img", "A1")
+                    .put("img", "C1")
                     .put("n", 1))
             .put(
                 new JSONObject()
+                    .put("id", "I3")
                     .put("name", "불멸의 친구")
                     .put("tier", "IMMORTAL")
                     .put("tierName", "불멸")
-                    .put("img", "T1")
+                    .put("img", "I3")
                     .put("first", true)
                     .put("n", 3));
     NativeReveal reveal =
@@ -121,8 +126,20 @@ public class NativeEffectsPresentationTest {
     assertEquals(2, reveal.units.length());
     reveal.openEgg();
     layout(reveal);
-    assertNotNull(text(reveal, "평범한 친구"));
-    assertNotNull(text(reveal, "불멸의 친구"));
+    assertSame("Server item order and values are retained", units, reveal.units);
+    for (int i = 0; i < units.length(); i++) {
+      JSONObject unit = units.getJSONObject(i);
+      NativeReveal.RevealCard card = reveal.findViewWithTag("acquisition-card-" + unit.getString("id"));
+      assertNotNull(card);
+      assertEquals("Reduced motion still reveals the actual full card", View.VISIBLE, card.front.getVisibility());
+      assertTrue(card.getContentDescription().toString().contains(unit.getString("name")));
+      assertTrue(card.getContentDescription().toString().contains(unit.getString("tierName")));
+      RegistrationCardView.Artwork art = new NativeAcquisitionFlowTest().registrationArtwork(card);
+      assertNotNull(art);
+      assertEquals(unit.getString("id"), art.id);
+      assertEquals(RegistrationCardView.FULL, art.mode);
+      assertNull("Name is already printed on the canonical full card", text(card, unit.getString("name")));
+    }
     assertNotNull(text(reveal, "NEW"));
     assertNotNull(text(reveal, "×3"));
     TextView ok = text(reveal, "확인");

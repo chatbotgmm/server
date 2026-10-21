@@ -1,0 +1,1360 @@
+{
+  "schema": "native-theme-coverage-inventory/v1",
+  "baseline_commit": "9d8d7b445b8d7957c9b0ebf549e775be5ab2ee3e",
+  "route_count": 28,
+  "item_count": 100,
+  "completion_rule": "각 required_states에 실제 최종 렌더/기능 증거가 있어야 완료. 공통 표면 상속만으로 개별 페이지/상태 완료 불가.",
+  "items": [
+    {
+      "id": "title",
+      "kind": "route",
+      "label": "첫 화면",
+      "batch": "B5",
+      "required_states": [
+        "로그아웃",
+        "로그인됨",
+        "입장",
+        "설정",
+        "뒤로 종료 확인"
+      ]
+    },
+    {
+      "id": "login",
+      "kind": "route",
+      "label": "로그인",
+      "batch": "B5",
+      "required_states": [
+        "일반 로그인",
+        "카카오 처음 연결",
+        "코드 입력 열기",
+        "입력 오류",
+        "키보드",
+        "취소/닫기",
+        "카카오 외부 복귀 실패/취소"
+      ]
+    },
+    {
+      "id": "loading",
+      "kind": "route",
+      "label": "최초 연결",
+      "batch": "B5",
+      "required_states": [
+        "계정/진행 로딩",
+        "다시 연결",
+        "토큰 만료",
+        "네트워크 실패",
+        "duel-key 조회 실패"
+      ]
+    },
+    {
+      "id": "home",
+      "kind": "route",
+      "label": "홈",
+      "batch": "B0",
+      "required_states": [
+        "재화/긴 별명",
+        "대표 성장 안내",
+        "활성 전투 이어하기",
+        "돌갈매미 상호작용",
+        "설정/프로필",
+        "insets/큰 글자"
+      ]
+    },
+    {
+      "id": "modes",
+      "kind": "route",
+      "label": "게임 모드",
+      "batch": "B1",
+      "required_states": [
+        "스토리",
+        "일반/랭크",
+        "순위/연습/편성",
+        "랭크 로딩/성공/오류",
+        "3인 미편성",
+        "모험 준비 중 비활성"
+      ]
+    },
+    {
+      "id": "story",
+      "kind": "route",
+      "label": "스토리 챕터",
+      "batch": "B1",
+      "required_states": [
+        "챕터 선택",
+        "잠금/열림/클리어",
+        "팀 없음",
+        "왼쪽 팀/HP/성장",
+        "순서 변경",
+        "주기 갱신",
+        "소개/합동기/리셋"
+      ]
+    },
+    {
+      "id": "stages",
+      "kind": "route",
+      "label": "스토리 스테이지",
+      "batch": "B1",
+      "required_states": [
+        "이전/다음",
+        "전투 선택",
+        "잠금 조건",
+        "첫 시작/재도전",
+        "미공개 빈 상태",
+        "치료/성장 경유 복귀"
+      ]
+    },
+    {
+      "id": "dialog",
+      "kind": "route",
+      "label": "스토리 대화",
+      "batch": "B5",
+      "required_states": [
+        "제목 카드",
+        "타이핑",
+        "원문 완료",
+        "다음",
+        "스킵",
+        "긴 대화 전체 읽기",
+        "내레이션/팁/상대 초상",
+        "결과 후속 대화"
+      ]
+    },
+    {
+      "id": "team",
+      "kind": "route",
+      "label": "일반 편성",
+      "batch": "B2",
+      "required_states": [
+        "스토리 key 기준",
+        "PvP species id 기준",
+        "고정 3슬롯",
+        "6후보 페이지",
+        "빈 슬롯/후보",
+        "활성 슬롯",
+        "스왑/드래그/장누름 순서",
+        "변경됨/저장됨",
+        "무작위/불러오기/취소",
+        "미저장 종료/저장 실패"
+      ]
+    },
+    {
+      "id": "collection",
+      "kind": "route",
+      "label": "도감",
+      "batch": "B2",
+      "required_states": [
+        "8카드 페이지",
+        "전체/보유",
+        "이름/속성/등급 검색",
+        "선택 FULL 카드",
+        "빈 도감/필터 0개",
+        "미발견/히든",
+        "보유/탐험/보호",
+        "성장/편성/조합/기록"
+      ]
+    },
+    {
+      "id": "unit",
+      "kind": "route",
+      "label": "개체 성장·기술·승진",
+      "batch": "B2",
+      "required_states": [
+        "FULL 등록증",
+        "HP/XP",
+        "0~4 기술/빈칸",
+        "새 기술/전용기/승진 가능",
+        "회복 필요/체력 가득",
+        "능력치·표창",
+        "원래 문맥으로 복귀"
+      ]
+    },
+    {
+      "id": "items",
+      "kind": "route",
+      "label": "아이템 보관",
+      "batch": "B2",
+      "required_states": [
+        "아이템 없음",
+        "선택된 아이템",
+        "보유 수량",
+        "회복 가능한 대상",
+        "상점/스토리 이동",
+        "선택 목록"
+      ]
+    },
+    {
+      "id": "draw",
+      "kind": "route",
+      "label": "모집",
+      "batch": "B3",
+      "required_states": [
+        "하급/중급/고급",
+        "수량 1~서버 한도",
+        "총 비용",
+        "재화 부족",
+        "뽑기권 대기/받기 가능",
+        "확률/보장",
+        "지난 결과",
+        "요청중",
+        "실패"
+      ]
+    },
+    {
+      "id": "drawResult",
+      "kind": "route",
+      "label": "모집 결과",
+      "batch": "B3",
+      "required_states": [
+        "지원서 봉투 시작/열기/스킵",
+        "결과 카드",
+        "단일/다수/50결과",
+        "신규/중복 수량",
+        "페이지/결과 목록",
+        "상세/육성/편성/조합식",
+        "지난 결과 재열기",
+        "원래 결과 복귀",
+        "빈/누락 결과"
+      ]
+    },
+    {
+      "id": "craft",
+      "kind": "route",
+      "label": "조합식",
+      "batch": "B3",
+      "required_states": [
+        "조합식 탭",
+        "선택/검색/만들 수 있는 것",
+        "2개 이하/다수 재료",
+        "가용/부족",
+        "보호/탐험 제외",
+        "수량",
+        "확인",
+        "빈 조합식"
+      ]
+    },
+    {
+      "id": "mix",
+      "kind": "route",
+      "label": "재료로 섞기",
+      "batch": "B3",
+      "required_states": [
+        "재료 선택",
+        "빈 6슬롯",
+        "2~6 선택",
+        "동종 중복",
+        "재료 제거/비우기",
+        "재료 없음",
+        "확인",
+        "성공/실패"
+      ]
+    },
+    {
+      "id": "craftResult",
+      "kind": "route",
+      "label": "조합 결과",
+      "batch": "B3",
+      "required_states": [
+        "흡입/빛 연출",
+        "탭 즉시 결과",
+        "성공",
+        "실패/재료 유지",
+        "결과 내용 전체",
+        "동기화 후 실제 개체",
+        "상세/육성/편성/조합",
+        "재열기"
+      ]
+    },
+    {
+      "id": "shop",
+      "kind": "route",
+      "label": "상점",
+      "batch": "B3",
+      "required_states": [
+        "티켓/땅콩 교환/아이템",
+        "3개 또는6개 페이지",
+        "선택",
+        "수량/총액",
+        "재화 부족/보유 한도",
+        "구매 확인",
+        "상품 없음"
+      ]
+    },
+    {
+      "id": "expedition",
+      "kind": "route",
+      "label": "탐험",
+      "batch": "B3",
+      "required_states": [
+        "저장된 편성",
+        "변경됨/저장 필요",
+        "최근 편성",
+        "빈/중복 후보",
+        "최대 인원",
+        "보상·시너지",
+        "출발 확인",
+        "탐험 중/타이머",
+        "귀환 가능",
+        "바로 귀환 비용 확인",
+        "보상",
+        "Back 저장"
+      ]
+    },
+    {
+      "id": "daily",
+      "kind": "route",
+      "label": "출석·미션",
+      "batch": "B5",
+      "required_states": [
+        "미수령/수령 완료",
+        "주차/연속 출석",
+        "오늘/내일 보상",
+        "미션 진행/지급 중/완료",
+        "미션 없음",
+        "긴 보상 수치"
+      ]
+    },
+    {
+      "id": "pvp",
+      "kind": "route",
+      "label": "랭크·순위표",
+      "batch": "B1",
+      "required_states": [
+        "자신 티어/점수/승패",
+        "미랭크",
+        "상위3명/큰 글자2명",
+        "본인 강조",
+        "순위 없음",
+        "전체 순위",
+        "일반/랭크 시작"
+      ]
+    },
+    {
+      "id": "practice",
+      "kind": "route",
+      "label": "연습 편성",
+      "batch": "B1",
+      "required_states": [
+        "우리 팀",
+        "상대 1~3",
+        "기본 1-6 상대",
+        "상대 없음",
+        "레벨1~60",
+        "승진0~3",
+        "시작",
+        "저장 안 됨 표시"
+      ]
+    },
+    {
+      "id": "types",
+      "kind": "route",
+      "label": "속성 상성",
+      "batch": "B2",
+      "required_states": [
+        "서버 typeChart 있음/없음",
+        "팀 기준 상성",
+        "공격/방어",
+        "속성별 이유"
+      ]
+    },
+    {
+      "id": "account",
+      "kind": "route",
+      "label": "계정 관리",
+      "batch": "B5",
+      "required_states": [
+        "프로필/버전",
+        "카카오 연결됨/안됨/연결중",
+        "재열기/취소",
+        "로그아웃",
+        "개인정보처리방침 외부",
+        "탈퇴",
+        "계정 안내"
+      ]
+    },
+    {
+      "id": "realtimeQueue",
+      "kind": "route",
+      "label": "실시간 매칭 대기",
+      "batch": "B4",
+      "required_states": [
+        "현재 상태 확인",
+        "준비/신청",
+        "확정 대기+서버 시간",
+        "문구 탭 순환",
+        "취소 확인",
+        "재접속2/4/8초",
+        "재시도 소진",
+        "프로토콜 거절",
+        "취소/매칭 경합",
+        "재큐"
+      ]
+    },
+    {
+      "id": "realtimeAccept",
+      "kind": "route",
+      "label": "매칭 수락",
+      "batch": "B4",
+      "required_states": [
+        "실제 유저/AI",
+        "수락 전",
+        "수락 완료·상대 대기",
+        "거절",
+        "10초 deadline",
+        "타임아웃/상대 거절→재큐/종료"
+      ]
+    },
+    {
+      "id": "realtimePrepare",
+      "kind": "route",
+      "label": "실시간 제한시간 편성·정산 대기",
+      "batch": "B4",
+      "required_states": [
+        "3슬롯 교체/스왑",
+        "준비 전/완료",
+        "상대 준비",
+        "30초 deadline",
+        "타임아웃",
+        "나가기",
+        "AI 표시",
+        "battle 없는 결과 확인"
+      ]
+    },
+    {
+      "id": "battle",
+      "kind": "route",
+      "label": "전투 무대",
+      "batch": "B0",
+      "required_states": [
+        "action",
+        "choose",
+        "over",
+        "상대 선택 대기",
+        "전송중",
+        "입력 만료",
+        "애니메이션 재생",
+        "재접속",
+        "서버 확정 결과"
+      ]
+    },
+    {
+      "id": "settings",
+      "kind": "overlay",
+      "label": "설정 3탭",
+      "batch": "B0",
+      "required_states": [
+        "로그인 전/후",
+        "소리/알림/계정 탭",
+        "전체 소리",
+        "음악/효과 슬라이더·개별 음소거·복원",
+        "알림 on/off/권한 거절",
+        "쿠폰 공백/제출",
+        "튜토리얼 재보기",
+        "탈퇴 펼침/정확한 문구/마지막 확인",
+        "X/Back"
+      ]
+    },
+    {
+      "id": "profile",
+      "kind": "overlay",
+      "label": "프로필 팝업",
+      "batch": "B0",
+      "required_states": [
+        "랭크 로딩/성공/실패",
+        "긴 별명",
+        "계정/순위/설정",
+        "바깥 탭/Back/anchor 위치"
+      ]
+    },
+    {
+      "id": "login-code",
+      "kind": "overlay",
+      "label": "코드 로그인 입력",
+      "batch": "B5",
+      "required_states": [
+        "6자리 숫자 검증",
+        "오류 표시",
+        "IME done",
+        "취소/닫기",
+        "처리 중",
+        "재열기",
+        "처음 카카오 연결"
+      ]
+    },
+    {
+      "id": "login-help",
+      "kind": "dialog",
+      "label": "로그인 안내·인증 실패",
+      "batch": "B5",
+      "required_states": [
+        "코드 받는 법",
+        "카카오 취소/실패",
+        "다른 계정 연결 거절",
+        "만료/네트워크 메시지"
+      ]
+    },
+    {
+      "id": "mode-summary",
+      "kind": "dialog",
+      "label": "다음 이야기/현재 전투 편성",
+      "batch": "B1",
+      "required_states": [
+        "스토리 다음 stage",
+        "현재 PvP 3명",
+        "빈 편성"
+      ]
+    },
+    {
+      "id": "rank-start",
+      "kind": "dialog",
+      "label": "랭크 시작 확인",
+      "batch": "B1",
+      "required_states": [
+        "3인 편성 부족 안내",
+        "중도 패배 확인",
+        "취소/확정"
+      ]
+    },
+    {
+      "id": "rank-all",
+      "kind": "dialog",
+      "label": "전체 순위표",
+      "batch": "B1",
+      "required_states": [
+        "빈 목록",
+        "본인 표시",
+        "긴 이름",
+        "모든 행/스크롤/닫기"
+      ]
+    },
+    {
+      "id": "practice-picker",
+      "kind": "dialog",
+      "label": "연습 팀/상대 선택",
+      "batch": "B1",
+      "required_states": [
+        "1~3마리",
+        "빈 선택 오류",
+        "초과 오류",
+        "선택/취소",
+        "기존 선택 유지"
+      ]
+    },
+    {
+      "id": "story-stage-picker",
+      "kind": "dialog",
+      "label": "전투 선택",
+      "batch": "B1",
+      "required_states": [
+        "잠금/열림/완료",
+        "선택된 항목",
+        "전체 목록",
+        "닫기/복귀"
+      ]
+    },
+    {
+      "id": "story-guide",
+      "kind": "dialog",
+      "label": "부 소개·성장 안내",
+      "batch": "B1",
+      "required_states": [
+        "챕터 소개",
+        "잠금 이유",
+        "승진 필요",
+        "성장",
+        "스토리 처음부터"
+      ]
+    },
+    {
+      "id": "story-combo",
+      "kind": "dialog",
+      "label": "우리 수비대 합동기",
+      "batch": "B1",
+      "required_states": [
+        "가능/불가",
+        "서버 기술/이름",
+        "긴 조합 설명"
+      ]
+    },
+    {
+      "id": "story-lock",
+      "kind": "dialog",
+      "label": "스테이지 잠금 조건",
+      "batch": "B1",
+      "required_states": [
+        "충족/미충족",
+        "nested 조건",
+        "필요 전투/성장/편성 바로가기",
+        "닫기"
+      ]
+    },
+    {
+      "id": "story-order",
+      "kind": "dialog",
+      "label": "스토리 출전 순서",
+      "batch": "B1",
+      "required_states": [
+        "선봉/자리 선택",
+        "드래그 대신 접근",
+        "저장 요청/실패",
+        "scroll 복원"
+      ]
+    },
+    {
+      "id": "story-reset",
+      "kind": "dialog",
+      "label": "스토리 처음부터 확인",
+      "batch": "B1",
+      "required_states": [
+        "리셋 설명",
+        "취소",
+        "확정 요청",
+        "실패"
+      ]
+    },
+    {
+      "id": "team-unsaved",
+      "kind": "dialog",
+      "label": "미저장 편성 종료",
+      "batch": "B2",
+      "required_states": [
+        "저장하고 나가기",
+        "변경 취소",
+        "계속 편집",
+        "빈 선택",
+        "거절된 저장",
+        "원래 화면"
+      ]
+    },
+    {
+      "id": "team-order",
+      "kind": "dialog",
+      "label": "편성 순서 선택",
+      "batch": "B2",
+      "required_states": [
+        "장누름 순서 변경",
+        "2~3 슬롯",
+        "변경됨 상태"
+      ]
+    },
+    {
+      "id": "collection-record",
+      "kind": "dialog",
+      "label": "도감 기록",
+      "batch": "B2",
+      "required_states": [
+        "FULL 등록증",
+        "이전/다음",
+        "긴 소개",
+        "미발견",
+        "카탈로그 로딩/실패",
+        "관리",
+        "육성",
+        "얻는 곳/만드는 법/재료 사용처/힌트"
+      ]
+    },
+    {
+      "id": "collection-manage",
+      "kind": "dialog",
+      "label": "갈매미 관리",
+      "batch": "B2",
+      "required_states": [
+        "자세히",
+        "조합",
+        "탐험 투입 조건",
+        "보호/해제 확인",
+        "탐험중/히든 비활성"
+      ]
+    },
+    {
+      "id": "owned-growth",
+      "kind": "dialog",
+      "label": "소유 개체 선택",
+      "batch": "B2",
+      "required_states": [
+        "해당 종 개체0/1/복수",
+        "실제 key 선택",
+        "육성 진입"
+      ]
+    },
+    {
+      "id": "unit-details",
+      "kind": "dialog",
+      "label": "능력치·기술·직무 표창",
+      "batch": "B2",
+      "required_states": [
+        "조합 가치",
+        "시너지",
+        "5능력치",
+        "표창 없음/복수",
+        "기술 원문"
+      ]
+    },
+    {
+      "id": "skill-choice",
+      "kind": "dialog",
+      "label": "새 기술/전용 기술 학습",
+      "batch": "B2",
+      "required_states": [
+        "후보 미선택/선택",
+        "4슬롯 미만/가득",
+        "닫아 기회 유지",
+        "학습 종료 확인",
+        "나중에",
+        "고정 footer/긴 설명",
+        "연속 학습"
+      ]
+    },
+    {
+      "id": "skill-forget",
+      "kind": "dialog",
+      "label": "잊을 기술 선택",
+      "batch": "B2",
+      "required_states": [
+        "기본/전용기 포함",
+        "4후보",
+        "다시 고르기",
+        "취소"
+      ]
+    },
+    {
+      "id": "skill-compare",
+      "kind": "dialog",
+      "label": "기술 교체 비교",
+      "batch": "B2",
+      "required_states": [
+        "기존/새 기술",
+        "긴 효과",
+        "다시 선택",
+        "교체 확정",
+        "요청/실패"
+      ]
+    },
+    {
+      "id": "promotion-select",
+      "kind": "dialog",
+      "label": "승진 표창 선택",
+      "batch": "B2",
+      "required_states": [
+        "후보 설명",
+        "나중에",
+        "미리 보기",
+        "재화 없음 안내"
+      ]
+    },
+    {
+      "id": "promotion-compare",
+      "kind": "dialog",
+      "label": "승진 비교·확정",
+      "batch": "B2",
+      "required_states": [
+        "전후 능력치/전용기",
+        "preview 누락 재조회",
+        "다시 선택",
+        "변경 불가 마지막 확인",
+        "요청/실패"
+      ]
+    },
+    {
+      "id": "promotion-success",
+      "kind": "dialog",
+      "label": "승진 완료",
+      "batch": "B2",
+      "required_states": [
+        "표창",
+        "HP 회복",
+        "전용기/새 기술 다음 행동"
+      ]
+    },
+    {
+      "id": "item-picker",
+      "kind": "dialog",
+      "label": "아이템 선택",
+      "batch": "B2",
+      "required_states": [
+        "전체 아이템",
+        "보유0",
+        "현재 선택",
+        "닫기"
+      ]
+    },
+    {
+      "id": "healing",
+      "kind": "dialog",
+      "label": "회복 대상 선택",
+      "batch": "B2",
+      "required_states": [
+        "아이템별 보유",
+        "회복 가능/불가",
+        "기절/부활",
+        "아군별 HP",
+        "다중 선택",
+        "치료약 부족→상점",
+        "확정/닫기",
+        "원래 unit/story/items 복귀"
+      ]
+    },
+    {
+      "id": "draw-consume",
+      "kind": "dialog",
+      "label": "모집 소모 확인",
+      "batch": "B3",
+      "required_states": [
+        "등급",
+        "횟수",
+        "총 티켓",
+        "취소",
+        "확정/중복 클릭 잠금"
+      ]
+    },
+    {
+      "id": "ticket-reward",
+      "kind": "dialog",
+      "label": "뽑기권 수령",
+      "batch": "B3",
+      "required_states": [
+        "확정 수량",
+        "상태 새로고침 성공/실패",
+        "닫고 재확인"
+      ]
+    },
+    {
+      "id": "draw-probability",
+      "kind": "dialog",
+      "label": "모집 확률·보장",
+      "batch": "B3",
+      "required_states": [
+        "등급별 확률",
+        "보장 진행",
+        "긴 안내",
+        "상하 끝",
+        "닫기"
+      ]
+    },
+    {
+      "id": "draw-grade-guide",
+      "kind": "dialog",
+      "label": "등급별 모집 안내",
+      "batch": "B3",
+      "required_states": [
+        "등급 제목 탭",
+        "실제 확률·비용·설명"
+      ]
+    },
+    {
+      "id": "draw-result-picker",
+      "kind": "dialog",
+      "label": "획득 결과 목록",
+      "batch": "B3",
+      "required_states": [
+        "모든 결과",
+        "COMPACT 카드",
+        "선택 결과 복귀",
+        "다수/긴 이름"
+      ]
+    },
+    {
+      "id": "acquisition-details",
+      "kind": "dialog",
+      "label": "획득 상세",
+      "batch": "B3",
+      "required_states": [
+        "성장 종/수집 종",
+        "실제 보유 수량",
+        "이번 획득 개체",
+        "소개",
+        "육성/조합식"
+      ]
+    },
+    {
+      "id": "acquisition-instance",
+      "kind": "dialog",
+      "label": "획득/이전 결과 개체 선택",
+      "batch": "B3",
+      "required_states": [
+        "이번 획득1개 자동",
+        "여러개 선택",
+        "이전 결과 보유 선택",
+        "보유없음 오류"
+      ]
+    },
+    {
+      "id": "acquisition-slot",
+      "kind": "dialog",
+      "label": "획득 후 편성 자리 선택",
+      "batch": "B3",
+      "required_states": [
+        "활성 전투 차단",
+        "3슬롯 가득→교체",
+        "3미만",
+        "저장 전 preview",
+        "취소"
+      ]
+    },
+    {
+      "id": "recipe-picker",
+      "kind": "dialog",
+      "label": "조합식 선택",
+      "batch": "B3",
+      "required_states": [
+        "이름/재료 검색",
+        "가능한 것만",
+        "선택",
+        "0개",
+        "전체 목록",
+        "닫기"
+      ]
+    },
+    {
+      "id": "craft-guidance",
+      "kind": "dialog",
+      "label": "조합 안내·선택 조합 정보",
+      "batch": "B3",
+      "required_states": [
+        "재료 보호/탐험 제외",
+        "결과 제목 상세",
+        "부족 설명"
+      ]
+    },
+    {
+      "id": "material-guide",
+      "kind": "dialog",
+      "label": "재료 얻는 곳",
+      "batch": "B3",
+      "required_states": [
+        "가용/필요",
+        "원산지",
+        "상점/모집/다른 조합 경유"
+      ]
+    },
+    {
+      "id": "mix-picker",
+      "kind": "dialog",
+      "label": "섞기 재료 선택",
+      "batch": "B3",
+      "required_states": [
+        "가용 남은 수량",
+        "동종 중복",
+        "최대6",
+        "모든 재료 없음",
+        "닫기"
+      ]
+    },
+    {
+      "id": "mix-guide",
+      "kind": "dialog",
+      "label": "섞기 안내·실행 확인",
+      "batch": "B3",
+      "required_states": [
+        "재료 사용 안내",
+        "2~6",
+        "실행 확인",
+        "취소"
+      ]
+    },
+    {
+      "id": "craft-consume",
+      "kind": "dialog",
+      "label": "조합 실행 확인",
+      "batch": "B3",
+      "required_states": [
+        "이름",
+        "수량",
+        "재료 소모",
+        "취소/확정"
+      ]
+    },
+    {
+      "id": "forge-details",
+      "kind": "dialog",
+      "label": "조합 결과 내용",
+      "batch": "B3",
+      "required_states": [
+        "긴 성공/실패 원문",
+        "재료 유지",
+        "닫기"
+      ]
+    },
+    {
+      "id": "shop-buy",
+      "kind": "dialog",
+      "label": "상점 구매 확인",
+      "batch": "B3",
+      "required_states": [
+        "상품/수량/총액",
+        "취소",
+        "확정",
+        "부족/한도",
+        "결과"
+      ]
+    },
+    {
+      "id": "explore-picker",
+      "kind": "dialog",
+      "label": "탐험 갈매미 선택",
+      "batch": "B3",
+      "required_states": [
+        "상위/가용 종",
+        "최대 인원",
+        "동종 수량",
+        "없음",
+        "선택/닫기"
+      ]
+    },
+    {
+      "id": "explore-rewards",
+      "kind": "dialog",
+      "label": "탐험 보상·시너지",
+      "batch": "B3",
+      "required_states": [
+        "예상 소요/보상",
+        "시너지",
+        "모든 조건",
+        "설명 확장"
+      ]
+    },
+    {
+      "id": "explore-synergy",
+      "kind": "dialog",
+      "label": "시너지 안내",
+      "batch": "B3",
+      "required_states": [
+        "서버 정의별 효과",
+        "긴 내용",
+        "닫기"
+      ]
+    },
+    {
+      "id": "explore-depart",
+      "kind": "dialog",
+      "label": "탐험 출발/미저장 경고",
+      "batch": "B3",
+      "required_states": [
+        "미저장 차단",
+        "출발 인원",
+        "전투/조합 제한 설명",
+        "취소/확정"
+      ]
+    },
+    {
+      "id": "explore-return",
+      "kind": "dialog",
+      "label": "바로 귀환/보상",
+      "batch": "B3",
+      "required_states": [
+        "비용 조회 실패",
+        "재화 부족",
+        "귀환 소모 확인",
+        "자연 귀환",
+        "보상 받기",
+        "일반 결과창"
+      ]
+    },
+    {
+      "id": "daily-calendar",
+      "kind": "dialog",
+      "label": "출석 보상표",
+      "batch": "B5",
+      "required_states": [
+        "7일 전체",
+        "받음/오늘/다음",
+        "주별/연속",
+        "스크롤 상하"
+      ]
+    },
+    {
+      "id": "daily-missions",
+      "kind": "dialog",
+      "label": "전체 미션",
+      "batch": "B5",
+      "required_states": [
+        "진행/지급 중/완료",
+        "모든 미션",
+        "숫자+단위 유지"
+      ]
+    },
+    {
+      "id": "account-info",
+      "kind": "dialog",
+      "label": "계정 안내",
+      "batch": "B5",
+      "required_states": [
+        "연결됨/안됨",
+        "진행 보존 안내",
+        "버전"
+      ]
+    },
+    {
+      "id": "account-confirm",
+      "kind": "dialog",
+      "label": "계정 연결·해제·로그아웃 확인",
+      "batch": "B5",
+      "required_states": [
+        "연결 시작",
+        "해제",
+        "연결 취소",
+        "로그아웃",
+        "외부 브라우저 복귀"
+      ]
+    },
+    {
+      "id": "account-delete",
+      "kind": "dialog",
+      "label": "계정 삭제",
+      "batch": "B5",
+      "required_states": [
+        "경고 원문",
+        "탈퇴 입력 틀림/맞음",
+        "버튼 비활성/활성",
+        "마지막 확인",
+        "취소",
+        "성공/실패"
+      ]
+    },
+    {
+      "id": "tutorial",
+      "kind": "overlay",
+      "label": "튜토리얼·페이지 힌트",
+      "batch": "B5",
+      "required_states": [
+        "첫 보상",
+        "출석",
+        "지원서/봉투",
+        "편성",
+        "첫 스토리 전투",
+        "상성/기술/증강",
+        "완료",
+        "재보기 보상 미중복",
+        "hint 자동 닫힘",
+        "skip 확인",
+        "잘못된 페이지에서 Back 유도"
+      ]
+    },
+    {
+      "id": "operation",
+      "kind": "overlay",
+      "label": "처리중/입력 잠금",
+      "batch": "B5",
+      "required_states": [
+        "즉시 버튼 비활성",
+        "180ms 이상 중앙 진행",
+        "짧은 요청",
+        "화면 전환",
+        "계정 변경",
+        "오래된 응답 무시",
+        "수량/뒤로 라벨 고정"
+      ]
+    },
+    {
+      "id": "generic-results",
+      "kind": "dialog",
+      "label": "일반 결과·확인·오류",
+      "batch": "B5",
+      "required_states": [
+        "문자열 결과",
+        "summary",
+        "티켓/출석",
+        "null",
+        "items→모집결과",
+        "확인/취소",
+        "입력",
+        "서버 에러",
+        "연결 끊김→진행 확인",
+        "토큰 만료"
+      ]
+    },
+    {
+      "id": "app-exit",
+      "kind": "dialog",
+      "label": "앱 종료 확인",
+      "batch": "B5",
+      "required_states": [
+        "홈/첫 화면 Back",
+        "취소",
+        "종료"
+      ]
+    },
+    {
+      "id": "match-decline",
+      "kind": "dialog",
+      "label": "매칭 거절 확인",
+      "batch": "B4",
+      "required_states": [
+        "수락 전 거절",
+        "돌아가기",
+        "이미 수락한 상태",
+        "매칭 종료/재큐"
+      ]
+    },
+    {
+      "id": "prepare-exit",
+      "kind": "dialog",
+      "label": "제한시간 편성 나가기",
+      "batch": "B4",
+      "required_states": [
+        "나가기 패배 안내",
+        "계속 편성",
+        "서버 응답/실패"
+      ]
+    },
+    {
+      "id": "prepare-slot",
+      "kind": "dialog",
+      "label": "제한시간 편성 후보",
+      "batch": "B4",
+      "required_states": [
+        "서버 available",
+        "동일 후보 다른 자리 스왑",
+        "준비 완료/만료 입력 차단",
+        "돌아가기"
+      ]
+    },
+    {
+      "id": "realtime-followup",
+      "kind": "dialog",
+      "label": "무료 교체 후 기술",
+      "batch": "B4",
+      "required_states": [
+        "서버 후속 기술",
+        "누락 오류",
+        "돌아가기",
+        "turn 변경/제출중"
+      ]
+    },
+    {
+      "id": "realtime-result",
+      "kind": "dialog",
+      "label": "실시간 대전 결과",
+      "batch": "B4",
+      "required_states": [
+        "정산 pending",
+        "승리/패배/무승부/SERVER_ABORT",
+        "일반/랭크/AI",
+        "LP/승급전/승급/실패",
+        "모드로"
+      ]
+    },
+    {
+      "id": "battle-panes",
+      "kind": "substate",
+      "label": "전투 조작 판",
+      "batch": "B0",
+      "required_states": [
+        "menu",
+        "skills",
+        "combo",
+        "items 페이지",
+        "itemTarget",
+        "switch",
+        "leave",
+        "만료",
+        "상대 선택중",
+        "over"
+      ]
+    },
+    {
+      "id": "augments",
+      "kind": "substate",
+      "label": "증강 선택/출전 교체",
+      "batch": "B4",
+      "required_states": [
+        "실제 offers",
+        "미선택/선택",
+        "reroll 가능/소진",
+        "needSwitch 후 다음 출전",
+        "offers 없음→교체",
+        "선택 없음/만료/결과 확인",
+        "서버 deadline"
+      ]
+    },
+    {
+      "id": "battle-history",
+      "kind": "dialog",
+      "label": "전투 기록",
+      "batch": "B4",
+      "required_states": [
+        "턴/모든 기록",
+        "빈/긴 log",
+        "상하 스크롤",
+        "닫기"
+      ]
+    },
+    {
+      "id": "battle-fighter",
+      "kind": "dialog",
+      "label": "상대 능력치·기술",
+      "batch": "B4",
+      "required_states": [
+        "첫 턴 잠금",
+        "해제",
+        "stats/skills/augments",
+        "현재/기절",
+        "닫기"
+      ]
+    },
+    {
+      "id": "battle-effects",
+      "kind": "dialog",
+      "label": "현재 효과",
+      "batch": "B4",
+      "required_states": [
+        "내/상대",
+        "없음/다수",
+        "지속/조건",
+        "닫기"
+      ]
+    },
+    {
+      "id": "battle-augments",
+      "kind": "dialog",
+      "label": "선택한 증강체 목록",
+      "batch": "B4",
+      "required_states": [
+        "내/상대",
+        "없음",
+        "효과/목록",
+        "닫기"
+      ]
+    },
+    {
+      "id": "battle-type",
+      "kind": "dialog",
+      "label": "전투 속성 상성",
+      "batch": "B4",
+      "required_states": [
+        "내/상대",
+        "preview 없음",
+        "공격/방어",
+        "서버 상성만",
+        "닫기"
+      ]
+    },
+    {
+      "id": "battle-rewards",
+      "kind": "dialog",
+      "label": "스토리/연습 전투 결과",
+      "batch": "B4",
+      "required_states": [
+        "승/패/도주/연습",
+        "경험치/레벨업/HP",
+        "학습·승진",
+        "전투 돌아보기 접힘/펼침",
+        "팀",
+        "재도전/목록/스토리/한판더",
+        "후속 대화"
+      ]
+    },
+    {
+      "id": "battle-skill-card",
+      "kind": "substate",
+      "label": "전투 기술 카드",
+      "batch": "B0",
+      "required_states": [
+        "핵심 효과 두 줄",
+        "긴 원문은 접근성 설명",
+        "효과 없음",
+        "사용가능/비활성",
+        "속성 아이콘→상성 창"
+      ]
+    }
+  ]
+}

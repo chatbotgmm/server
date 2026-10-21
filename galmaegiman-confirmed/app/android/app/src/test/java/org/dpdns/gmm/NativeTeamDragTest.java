@@ -2,7 +2,6 @@ package org.dpdns.gmm;
 
 import static org.junit.Assert.*;
 
-import android.app.AlertDialog;
 import android.graphics.Rect;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -279,7 +278,7 @@ public class NativeTeamDragTest {
   }
 
   @Test
-  public void gripTapOffersAccessibleOrderMenuAndCardTapSelectsInlineReplacement() {
+  public void gripTapSelectsSlotAndAccessibleInlineOrderPreservesReplacement() {
     try (ActivityController<MainActivity> controller = flow.start()) {
       MainActivity host = controller.get();
       StoredApi api = prepare(host, false);
@@ -292,9 +291,14 @@ public class NativeTeamDragTest {
       touch(host, MotionEvent.ACTION_DOWN, point.exactCenterX(), point.exactCenterY());
       touch(host, MotionEvent.ACTION_UP, point.exactCenterX(), point.exactCenterY());
       assertEquals(3, host.menus.teamDraft.size());
-      AlertDialog dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
-      assertNotNull(dialog);
-      dialog.getListView().performItemClick(null, 0, 0);
+      assertNull("손잡이 탭은 순서 팝업을 열지 않음", host.visibleDialog);
+      assertEquals("탭은 순서를 바꾸지 않고 교체 자리만 선택",
+          List.of("same-species-1", "same-species-2", "same-species-3"), host.menus.teamDraft);
+      assertTrue(host.root.findViewWithTag("lineup-slot-2").isSelected());
+      assertTrue("접근성 앞 순서 이동은 별도 창 없이 동작",
+          host.root.findViewWithTag("lineup-slot-2").performAccessibilityAction(android.R.id.button1, null));
+      assertTrue(host.root.findViewWithTag("lineup-slot-1").performAccessibilityAction(android.R.id.button1, null));
+      assertNull("접근성 이동 후에도 모달 없음", host.visibleDialog);
       assertEquals(
           List.of("same-species-3", "same-species-1", "same-species-2"), host.menus.teamDraft);
       assertTrue(api.submitted.isEmpty());
@@ -311,7 +315,7 @@ public class NativeTeamDragTest {
       assertTrue("Selected slot is exposed to accessibility", selectedSlot.isSelected());
       ViewGroup grid = host.root.findViewWithTag("team-inline-candidates");
       assertNotNull("Replacement candidates are on the same screen", grid);
-      assertFalse("Old order dialog is closed", dialog.isShowing());
+      assertNull("후보 선택도 순서 창을 열지 않음", host.visibleDialog);
       View firstCandidate = ((ViewGroup) grid.getChildAt(0)).getChildAt(0);
       NativeNoScrollReviewTest.assertFullyVisible(firstCandidate, host.root);
       assertTrue(firstCandidate.getContentDescription().toString().contains("3번에 배치"));
@@ -437,3 +441,4 @@ public class NativeTeamDragTest {
     }
   }
 }
+

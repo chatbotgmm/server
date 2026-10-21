@@ -5,9 +5,16 @@ import android.content.Context;
 import android.os.Build;
 import android.provider.Settings;
 
-/** 앱 설정과 시스템의 애니메이션 끄기를 지원하는 모든 Android 버전에서 함께 따른다. */
+/** 시스템 애니메이션 끄기를 따른다. appEnabled는 화면/테스트 내부의 비활성 게이트다. */
 final class NativeMotion {
   private NativeMotion() {}
+
+  static void migrateLegacyPreference(Context context) {
+    android.content.SharedPreferences display =
+        context.getSharedPreferences("native_display", Context.MODE_PRIVATE);
+    if (display.contains("reduce_motion")) display.edit().remove("reduce_motion").apply();
+    // Never write any platform animation/accessibility setting.
+  }
 
   static boolean enabled(Context context, boolean appEnabled) {
     if (!appEnabled) return false;

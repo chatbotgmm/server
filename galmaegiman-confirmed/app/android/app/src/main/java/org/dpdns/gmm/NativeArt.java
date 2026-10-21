@@ -121,6 +121,30 @@ final class NativeArt {
     return get(path, ready, true);
   }
 
+  /** 불투명 공통 배경은 기존 LRU/작업자를 사용하고 필요 없는 전체 알파 스캔을 생략한다. */
+  private final Map<String, java.util.List<java.util.function.Consumer<Bitmap>>> opaqueWaiters = new HashMap<>();
+
+  synchronized void localOpaqueAsset(String path, java.util.function.Consumer<Bitmap> ready) {
+    if (closed) return;
+    Bitmap cached = bitmaps.get("asset:" + path);
+    if (cached != null) { ready.accept(cached); return; }
+    java.util.List<java.util.function.Consumer<Bitmap>> waiting = opaqueWaiters.get(path);
+    if (waiting != null) { waiting.add(ready); return; }
+    waiting = new ArrayList<>(); waiting.add(ready); opaqueWaiters.put(path, waiting);
+    String pending = "opaque:" + path;
+    loading.add(pending);
+    images.execute(() -> {
+      Bitmap bitmap = closed ? null : asset(path);
+      api.ui.post(() -> {
+        java.util.List<java.util.function.Consumer<Bitmap>> callbacks;
+        synchronized (NativeArt.this) { callbacks = opaqueWaiters.remove(path); }
+        loading.remove(pending);
+        if (!closed && callbacks != null)
+          for (java.util.function.Consumer<Bitmap> callback : callbacks) callback.accept(bitmap);
+      });
+    });
+  }
+
   /** 첫 화면 원본 캐릭터도 그리기 밖에서 디코딩·알파 범위를 준비한다. */
   void localAsset(String path, java.util.function.Consumer<Bitmap> ready) {
     String pending = "local:" + java.util.UUID.randomUUID();
@@ -313,21 +337,29 @@ final class NativeArt {
               } finally {
                 if (temp != null) temp.delete();
                 if (c != null) c.disconnect();
+                // 화면 콜백이 끝날 때까지 idle()이 참이 되지 않게 전달 표시를 먼저 남긴다.
+                String delivery = "deliver:" + java.util.UUID.randomUUID();
+                pending.add(delivery);
                 pending.remove(path);
+                java.util.List<Runnable> listeners;
+                synchronized (this) {
+                  listeners = waiters.remove(path);
+                }
+                // UI 처리 전 LRU에서 빠져도 이번 요청의 그림을 잃지 않는다.
+                Bitmap completed = decoded;
+                api.ui.post(
+                    () -> {
+                      try {
+                        if (listeners != null)
+                          for (Runnable callback : listeners) {
+                            if (completed != null) bitmaps.put(path, completed);
+                            callback.run();
+                          }
+                      } finally {
+                        pending.remove(delivery);
+                      }
+                    });
               }
-              java.util.List<Runnable> listeners;
-              synchronized (this) {
-                listeners = waiters.remove(path);
-              }
-              // UI 처리 전 LRU에서 빠져도 이번 요청의 그림을 잃지 않는다.
-              Bitmap completed = decoded;
-              if (listeners != null)
-                for (Runnable callback : listeners)
-                  api.ui.post(
-                      () -> {
-                        if (completed != null) bitmaps.put(path, completed);
-                        callback.run();
-                      });
             });
     return null;
   }

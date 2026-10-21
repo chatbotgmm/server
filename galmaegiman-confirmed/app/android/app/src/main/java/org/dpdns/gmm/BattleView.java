@@ -78,17 +78,24 @@ final class BattleView extends FrameLayout implements FullBleed {
     menu.addView(controls);
     addView(menu);
     tools = new LinearLayout(a);
+    tools.setGravity(Gravity.CENTER_VERTICAL);
+    tools.setBaselineAligned(false);
+    tools.setBackground(utilityBackground());
     foeInfo = a.button("1턴 뒤", () -> NativeBattleSheets.fighter(this, 1));
     history = a.button("기록", () -> NativeBattleSheets.history(this));
     augmentInfo = a.button("증강체", () -> NativeBattleSheets.augments(this));
     for (Button tool : new Button[] {foeInfo, history, augmentInfo}) {
-      tool.setTextSize(14);
-      tool.setPadding(a.dp(2), 0, a.dp(2), a.dp(3));
+      tool.setTextSize(12);
+      tool.setSingleLine(true);
+      tool.setHorizontallyScrolling(false);
+      tool.setAllCaps(false);
+      tool.setTextColor(0xfffff8e8);
+      tool.setPadding(0, 0, 0, 0);
       tool.setMinHeight(a.dp(48));
       tool.setMinimumHeight(a.dp(48));
-      tool.setBackground(new GameButtonDrawable(a, GameButtonDrawable.PAPER));
+      tool.setBackgroundColor(Color.TRANSPARENT);
       LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, a.dp(48), 1);
-      tp.setMargins(a.dp(2), 0, a.dp(2), 0);
+      tp.setMargins(0, 0, 0, 0);
       tools.addView(tool, tp);
     }
     addView(tools);
@@ -116,6 +123,12 @@ final class BattleView extends FrameLayout implements FullBleed {
     addView(inputTimer);
     playback = new BattlePlayback(this);
     render();
+  }
+
+  private android.graphics.drawable.Drawable utilityBackground() {
+    android.graphics.drawable.GradientDrawable bg=new android.graphics.drawable.GradientDrawable();
+    bg.setColor(0xdd173e4b); bg.setCornerRadius(host.dp(14));
+    bg.setStroke(host.dp(1),0xffc1a473); return bg;
   }
 
   void playTo(JSONObject next, Runnable complete) {
@@ -177,6 +190,16 @@ final class BattleView extends FrameLayout implements FullBleed {
     return false;
   }
 
+  static String statusNames(JSONObject fighter) {
+    JSONArray effects=BattleEffects.current(fighter);
+    ArrayList<String> names=new ArrayList<>();
+    for(int i=0;i<effects.length();i++) {
+      JSONObject effect=effects.optJSONObject(i);
+      if(effect!=null && !effect.optString("label").isEmpty())names.add(effect.optString("label"));
+    }
+    return android.text.TextUtils.join(" · ",names);
+  }
+
   void showEffects(int side) {
     if (!playback.playing) NativeBattleSheets.effects(this, side);
   }
@@ -186,6 +209,13 @@ final class BattleView extends FrameLayout implements FullBleed {
     return side == 0
         ? new RectF(world * .53f, uiHeight * .91f - height, world * .96f, uiHeight * .91f)
         : new RectF(world * .04f, uiHeight * .055f, world * .47f, uiHeight * .055f + height);
+  }
+
+  static String shieldLabel(JSONObject fighter) {
+    int amount = Math.max(0, fighter.optInt("shield"));
+    int turns = Math.max(0, fighter.optInt("shieldTurns"));
+    return fighter.optInt("hp") > 0 && amount > 0 && turns > 0
+        ? "보호막 " + amount + " · " + turns + "턴" : "";
   }
 
   JSONObject side(int i) {
@@ -228,11 +258,11 @@ final class BattleView extends FrameLayout implements FullBleed {
     menu.measure(
         MeasureSpec.makeMeasureSpec(panelWidth, MeasureSpec.EXACTLY),
         MeasureSpec.makeMeasureSpec(
-            Math.max(1, uiHeight - host.dp(60)), MeasureSpec.EXACTLY));
-    inputTimer.measure(MeasureSpec.makeMeasureSpec(panelWidth, MeasureSpec.EXACTLY),
+            Math.max(1, uiHeight - host.dp(80)), MeasureSpec.EXACTLY));
+    inputTimer.measure(MeasureSpec.makeMeasureSpec(host.dp(30), MeasureSpec.EXACTLY),
         MeasureSpec.makeMeasureSpec(host.dp(28), MeasureSpec.EXACTLY));
     tools.measure(
-        MeasureSpec.makeMeasureSpec(Math.round(uiWidth * .285f), MeasureSpec.EXACTLY),
+        MeasureSpec.makeMeasureSpec(Math.max(host.dp(144),panelWidth-host.dp(34)), MeasureSpec.EXACTLY),
         MeasureSpec.makeMeasureSpec(host.dp(48), MeasureSpec.EXACTLY));
     for (int side = 0; side < 2; side++) {
       RectF area = statusArea(side);
@@ -257,15 +287,12 @@ final class BattleView extends FrameLayout implements FullBleed {
     logBox.layout(
         safeLeft + panelLeft, safeTop + m, safeLeft + uiWidth - m, safeTop + m + logHeight);
     int inset = host.dp(tablet ? 24 : 16);
-    menu.layout(safeLeft + panelLeft + inset, safeTop + host.dp(44),
+    menu.layout(safeLeft + panelLeft + inset, safeTop + host.dp(64),
         safeLeft + uiWidth - inset, safeTop + uiHeight - host.dp(16));
-    inputTimer.layout(safeLeft + panelLeft + inset, safeTop + host.dp(12),
-        safeLeft + uiWidth - inset, safeTop + host.dp(40));
-    tools.layout(
-        safeLeft + Math.round(uiWidth * .35f),
-        safeTop + m,
-        safeLeft + Math.round(uiWidth * .635f),
-        safeTop + m + host.dp(48));
+    inputTimer.layout(safeLeft + uiWidth - host.dp(34), safeTop + host.dp(18),
+        safeLeft + uiWidth - host.dp(4), safeTop + host.dp(46));
+    tools.layout(safeLeft + panelLeft + inset, safeTop + host.dp(8),
+        safeLeft + panelLeft + inset + tools.getMeasuredWidth(), safeTop + host.dp(56));
     for (int side = 0; side < 2; side++) {
       RectF area = statusArea(side);
       area.offset(safeLeft, safeTop);
@@ -429,7 +456,7 @@ final class BattleView extends FrameLayout implements FullBleed {
     controls.removeAllViews();
     // 설계(LAYOUT-AND-STATES 2절): 태블릿은 명령·기술 묶음을 패널 세로 가운데에 두어 아래 절반이 비지 않게 한다.
     controls.setGravity(tablet ? Gravity.CENTER_VERTICAL : Gravity.TOP);
-    controls.setMinimumHeight(tablet ? Math.max(0, uiHeight - host.dp(60)) : 0);
+    controls.setMinimumHeight(tablet ? Math.max(0, uiHeight - host.dp(80)) : 0);
     controls.setEnabled(!expiredInput || pane.equals("leave"));
     controls.setPadding(0, 0, 0, 0);
     if (!pane.equals("skills")) {
@@ -445,6 +472,8 @@ final class BattleView extends FrameLayout implements FullBleed {
           phase.equals("choose") || phase.equals("over") ? GONE : VISIBLE);
       JSONArray current = BattleEffects.current(active(side));
       ArrayList<String> labels = new ArrayList<>();
+      String shield = shieldLabel(active(side));
+      if (!shield.isEmpty()) labels.add(shield);
       for (int i = 0; i < current.length(); i++)
         labels.add(BattleEffects.label(current.optJSONObject(i)));
       effectInfo[side].setContentDescription(
@@ -527,7 +556,10 @@ final class BattleView extends FrameLayout implements FullBleed {
         b.setTypeface(host.headline);
         // 기존 판·07 확정 시안처럼 이름을 크게 쓰고, 아이콘과 이름을 한 묶음으로 버튼 가운데에 둔다.
         b.setTextSize(tablet ? (ix == 3 ? 30 : 33) : (ix == 3 ? 23 : 27));
-        float labelWidth = Math.max(host.dp(60), (panelWidth - host.dp(8)) / 2f - host.dp(20));
+        // Two weighted cells share panelWidth after four 3dp margins. Respect the
+        // real inner width, including 8dp padding per side and rounding slack;
+        // a 60dp floor can exceed the whole text area on small inset screens.
+        float labelWidth = Math.max(1, (panelWidth - host.dp(12)) / 2f - host.dp(18));
         float measuredLabel = b.getPaint().measureText(names[ix]);
         if (measuredLabel > labelWidth)
           b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, b.getTextSize() * labelWidth / measuredLabel);
@@ -566,7 +598,7 @@ final class BattleView extends FrameLayout implements FullBleed {
   }
 
   int commandHeight() {
-    return Math.max(host.dp(48), Math.min(host.dp(tablet ? 160 : 122), (uiHeight-host.dp(72))/2));
+    return Math.max(host.dp(48), Math.min(host.dp(tablet ? 160 : 122), (uiHeight-host.dp(92))/2));
   }
 
   int minimumLogHeight() {
@@ -653,7 +685,7 @@ final class BattleView extends FrameLayout implements FullBleed {
       JSONObject sk=skills.optJSONObject(i);
       if(sk!=null && !sk.optString("id").startsWith("combo-")) normals.add(sk);
     }
-    int cardHeight=Math.max(host.dp(48), Math.min(host.dp(tablet?160:124),(uiHeight-host.dp(132))/2));
+    int cardHeight=Math.max(host.dp(48), Math.min(host.dp(tablet?160:124),(uiHeight-host.dp(152))/2));
     for(int row=0;row<2;row++) {
       LinearLayout line=new LinearLayout(host);
       for(int col=0;col<2;col++) {
@@ -725,7 +757,7 @@ final class BattleView extends FrameLayout implements FullBleed {
     JSONArray items=host.list(battle,"items"), inventory=host.list(battle,"inventory");
     if(inventory.length()==0 && !NativeRealtime.isBattle(battle)) inventory=host.list(host.state,"items");
     for(int row=0;row<2;row++) {
-      LinearLayout line=new LinearLayout(host);
+      ItemRow line=new ItemRow();
       // 설명 줄 수가 다른 버튼을 글자 기준선으로 맞추면 아래로 밀려 잘린다(기본 메뉴와 같은 처리).
       line.setBaselineAligned(false);
       for(int col=0;col<2;col++) {
@@ -734,10 +766,21 @@ final class BattleView extends FrameLayout implements FullBleed {
         JSONObject item=items.optJSONObject(index); int count=0;
         for(int j=0;j<inventory.length();j++) if(inventory.optJSONObject(j).optString("id").equals(item.optString("id"))) count=inventory.optJSONObject(j).optInt("count");
         String why=item.isNull("reason")?"":item.optString("reason");
-        Button button=host.button(item.optString("name")+" ×"+count+"\n"+NativeBattleSheets.itemEffect(item)
-            +(count<=0?" · 없음":why.isEmpty()?"":" · "+why),()->{selectedItem=item;pane="itemTarget";render();});
+        Button button=host.button(item.optString("name")+"\n×"+count,()->{selectedItem=item;pane="itemTarget";render();});
+        button.setContentDescription(item.optString("name")+" "+count+"개 · "+NativeBattleSheets.itemEffect(item)
+            +(count<=0?" · 없음":why.isEmpty()?"":" · "+why));
+        button.setMaxLines(3); button.setGravity(Gravity.CENTER);
+        // Explicit bounded wrapping also on the API24-26 AppCompat autosize path.
+        // Balanced paragraph breaking can leave a Korean item line wider than its cell.
+        button.setHorizontallyScrolling(false);
+        button.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+        button.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
+        button.setIncludeFontPadding(false);
+        button.setPadding(host.dp(4),host.dp(4),host.dp(4),host.dp(4));
+        androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(button,12,tablet?16:14,1,android.util.TypedValue.COMPLEX_UNIT_SP);
         button.setTextSize(tablet?16:14); button.setEnabled(count>0 && why.isEmpty()); button.setBackground(new BattleSkin(host,"button-item"));button.setTextColor(0xfffff8e8);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,itemRowHeight(items.length()>4),1);lp.setMargins(host.dp(3),host.dp(3),host.dp(3),host.dp(3));line.addView(button,lp);
+        line.names.add(item.optString("name")); line.quantities.add(count);
       }
       controls.addView(line);
     }
@@ -745,9 +788,76 @@ final class BattleView extends FrameLayout implements FullBleed {
     if(pages>1) add(host.button("다음 목록 · "+(itemPage+1)+"/"+pages,()->{itemPage=(itemPage+1)%pages;render();}));
   }
 
+  /** Keep Korean words intact when two name lines fit above the quantity. */
+  static String itemLabel(String name, int count, Paint paint, float width, float minSize) {
+    String quantity="\n×"+count;
+    if(width<=0 || paint.measureText(name)<=width) return name+quantity;
+    int split=-1;
+    float best=Float.MAX_VALUE;
+    for(int i=1;i<name.length()-1;i++) {
+      if(name.charAt(i)!=' ') continue;
+      float widest=Math.max(paint.measureText(name.substring(0,i)),
+          paint.measureText(name.substring(i+1)));
+      // On equal widths retain the longer leading phrase (e.g. 다시 출근).
+      if(widest<=best) { best=widest; split=i; }
+    }
+    if(split<0 || best*minSize/paint.getTextSize()>width) return name+quantity;
+    return name.substring(0,split)+"\n"+name.substring(split+1)+quantity;
+  }
+
+  final class ItemRow extends LinearLayout {
+    final ArrayList<String> names=new ArrayList<>();
+    final ArrayList<Integer> quantities=new ArrayList<>();
+    ItemRow() { super(host); }
+    @Override protected void onMeasure(int widthSpec,int heightSpec) {
+      super.onMeasure(widthSpec,heightSpec);
+      boolean changed=false;
+      for(int i=0;i<getChildCount();i++) {
+        Button button=(Button)getChildAt(i);
+        Paint paint=new Paint(button.getPaint());
+        float scaled=host.getResources().getDisplayMetrics().scaledDensity;
+        paint.setTextSize((tablet?16:14)*scaled);
+        // Use the measured weighted cell, including its real compound padding.
+        int width=button.getMeasuredWidth()-button.getCompoundPaddingLeft()-button.getCompoundPaddingRight();
+        String label=itemLabel(names.get(i),quantities.get(i),paint,width,12*scaled);
+        if(!android.text.TextUtils.equals(button.getText(),label)) {
+          button.setText(label); changed=true;
+        }
+        // Autosize checks line count/end index, but an explicit paragraph can still
+        // exceed its width. Retain only sizes whose real shaped lines fit the cell.
+        ArrayList<Integer> fitting=new ArrayList<>();
+        int minPx=Math.round(12*scaled);
+        for(int sp=12;sp<=(tablet?16:14);sp++) {
+          int px=Math.round(sp*scaled);
+          android.text.TextPaint candidate=new android.text.TextPaint(button.getPaint());
+          candidate.setTextSize(px);
+          android.text.StaticLayout layout=android.text.StaticLayout.Builder
+              .obtain(label,0,label.length(),candidate,Math.max(1,width))
+              .setIncludePad(false)
+              .setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE)
+              .setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE).build();
+          boolean fits=layout.getLineCount()<=3;
+          for(int line=0;line<layout.getLineCount();line++)
+            fits &= layout.getLineWidth(line)<=width;
+          if(fits && !fitting.contains(px)) fitting.add(px);
+        }
+        // Preserve the accessibility floor even if an unknown future name cannot fit.
+        if(fitting.isEmpty()) fitting.add(minPx);
+        int[] sizes=new int[fitting.size()];
+        for(int n=0;n<sizes.length;n++) sizes[n]=fitting.get(n);
+        if(!Arrays.equals(sizes,androidx.core.widget.TextViewCompat.getAutoSizeTextAvailableSizes(button))) {
+          androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithPresetSizes(
+              button,sizes,android.util.TypedValue.COMPLEX_UNIT_PX);
+          changed=true;
+        }
+      }
+      if(changed) super.onMeasure(widthSpec,heightSpec);
+    }
+  }
+
   /** 제목 줄과 쪽 넘김 버튼을 뺀 패널 높이를 두 줄로 나눈다. 폰 124dp·태블릿 160dp를 넘기지 않아 버튼 그림이 세로로 늘어나지 않는다. */
   int itemRowHeight(boolean paged) {
-    int menuHeight=uiHeight-host.dp(60);
+    int menuHeight=uiHeight-host.dp(80);
     int free=menuHeight-host.dp(48)-(paged?host.dp(54):0)-host.dp(12);
     int row=free/2-host.dp(6);
     return Math.max(host.dp(48),Math.min(row,host.dp(tablet?160:124)));
@@ -898,7 +1008,7 @@ final class BattleView extends FrameLayout implements FullBleed {
       c.restore();
       panelSkin.surface(c,new RectF(world,0,w,h));
       // 설계(LAYOUT-AND-STATES 7절): 조개는 패널 하단 중앙, 휠은 하단 오른쪽. 마지막 버튼 아래 16dp를 빼고 40dp 이상 남을 때만.
-      float gridHeight=2*(commandHeight()+host.dp(6)), menuTop=host.dp(44), menuHeight=uiHeight-host.dp(60);
+      float gridHeight=2*(commandHeight()+host.dp(6)), menuTop=host.dp(64), menuHeight=uiHeight-host.dp(80);
       float gridBottom=tablet?menuTop+(menuHeight+gridHeight)/2:menuTop+gridHeight;
       float size=Math.min(host.dp(64),h-gridBottom-host.dp(16)-host.dp(12));
       if(pane.equals("menu") && size>=host.dp(40)) {
@@ -950,11 +1060,14 @@ final class BattleView extends FrameLayout implements FullBleed {
       c.drawRoundRect(new RectF(x,barY,right,barY+bh),bh/2,bh/2,p);c.restoreToCount(clip);
       p.setTextAlign(Paint.Align.LEFT);p.setColor(JournalTheme.INK);
       JSONArray current=BattleEffects.current(f);
-      String effects=playback.playing?"효과 갱신 중":current.length()==0?"효과 없음":BattleEffects.compactLabel(current.optJSONObject(0));
-      if(current.length()>1) effects+=" +"+(current.length()-1);
+      // 최신 상태명 표시를 유지하고, 보호막이 있으면 맨 앞에 붙인다(재생 중에는 최종 상태를 앞서 보이지 않음).
+      String shield = playback.playing ? "" : shieldLabel(f);
+      String effects=statusNames(f);
+      if (!shield.isEmpty()) effects = effects.isEmpty() ? shield : shield + " · " + effects;
       float available=right-x-host.dp(44);
       while(p.measureText(effects)>available && effects.length()>2) effects=effects.substring(0,effects.length()-2)+"…";
-      if(r.height()>=host.dp(74)) c.drawText(effects,x,r.bottom-host.dp(15),p);
+      if(r.height()>=host.dp(74) || (!shield.isEmpty() && r.height()>=host.dp(64)))
+        c.drawText(effects,x,r.bottom-host.dp(r.height()>=host.dp(74)?15:10),p);
     }
   }
 }

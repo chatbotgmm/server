@@ -286,7 +286,7 @@ describe('3부 블랙 갈매미맨',()=>{
 });
 
 describe('승진해야 2·3부',()=>{
-  it('2부는 팀 전원 1단계, 3부는 2단계 승진이 조건이고, 승진은 레벨+깬 부 수가 필요',()=>{
+  it('2부·3부 적은 1·2단계 승진 상태(해금 조건은 아님)이고, 승진은 레벨+깬 부 수가 필요',()=>{
     const story=loadStory(process.cwd(),R);
     expect(story.chapters.map(c=>c.needStage??0)).toEqual([0,0,0,1,1,2]);
     const u:UnitRecord={uid:'a',id:'D2',name:'원금 갈매미맨',tier:'LIMITED',level:20,xp:0,stage:0,evoAugs:[]};

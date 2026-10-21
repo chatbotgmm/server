@@ -9,25 +9,28 @@ import org.json.*;
 /** 항구 본부의 모험 도감 UI. 원본 캐릭터와 보상·조언·패럴랙스 동작은 유지한다. */
 final class LobbyView extends FrameLayout implements FullBleed {
   final MainActivity host;
-  final DragParallax parallax;
+  final HomeGullDrag parallax;
   final SceneMotion motion;
   final JournalAmbient ambient;
   final Runnable motionChanged;
   final Paint p = new Paint(3);
+  private final GamePressState disabledControlTone = new GamePressState();
+  private final Rect disabledControlBounds = new Rect();
   final Path mapRoute = new Path();
   final RectF dockFrame = new RectF();
+  final RectF heroFrame = new RectF(), heroPose = new RectF(), heroContact = new RectF();
   final Paint.FontMetrics canvasMetrics = new Paint.FontMetrics();
   final ArrayList<Button> buttons = new ArrayList<>();
   final String room;
+  final HomeArt homeArt;
   final Button gull;
   final TextView tip;
-  final LinearLayout growthCard;
-  final LinearLayout growthInfo;
-  final TextView growthName, growthMeta, growthXp, growthNeed, growthSummary, growthCompactXp;
-  final ProgressBar growthProgress;
-  final Button growthAction;
+  final Rect tipFrame = new Rect();
+  boolean tipPaged;
+  CharSequence tipCopy = "";
+  int tipPageStart, tipNextPageStart;
   final Runnable hideTip = this::hideGullTip;
-  final boolean[] badges = new boolean[12];
+  final boolean[] badges = new boolean[13];
   long claimReadyMono = -1;
   int liveEpoch, tipAt = -1;
   String dailyDay = "";
@@ -46,10 +49,10 @@ final class LobbyView extends FrameLayout implements FullBleed {
       };
   final Map<String, Bitmap> visibleArt = new HashMap<>();
   final Map<String, Rect> visibleBounds = new HashMap<>();
-  static final String[] NAMES = {"탐험", "뽑기", "방범대", "조합", "상점"};
+  static final String[] NAMES = {"탐험", "모집", "방범대", "조합", "상점"};
   static final String[] IDS = {"expedition", "draw", "collection", "craft", "shop"};
   static final String[] ICONS = {"mode-camp", "u-draw", "mode-normal", "u-emblem", "u-shop"};
-  final RectF[] boxes = new RectF[12];
+  final RectF[] boxes = new RectF[13];
 
   static String room(MainActivity host) {
     if (host.lobbyRoom == null)
@@ -59,7 +62,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   static void warm(MainActivity host) {
-    host.art.scene("/duel/bg/" + room(host) + "char.webp", () -> {});
+    host.art.asset("release-v1/characters/home-guide-map.png");
     for (String icon :
         new String[] {
           "u-story",
@@ -80,15 +83,16 @@ final class LobbyView extends FrameLayout implements FullBleed {
   LobbyView(MainActivity host) {
     super(host);
     this.host = host;
+    homeArt = new HomeArt(host);
     motion = new SceneMotion(this, host);
     ambient = new JournalAmbient(this, host, motion);
-    parallax = new DragParallax(this, host.dp(18));
+    parallax = new HomeGullDrag(this, host.dp(4), host.dp(1.2f));
     motionChanged =
         () -> {
-          if (!SceneMotion.enabled(host)) parallax.close();
+          if (!SceneMotion.enabled(host) || !host.motionResumed) parallax.close();
         };
     room = room(host);
-    image("bg/" + room + "char.webp");
+    // Representative guide is bundled locally; no room-dependent network image.
     setWillNotDraw(false);
     gull = host.button("갈매미 조언", this::showGullTip);
     gull.setTextColor(Color.TRANSPARENT);
@@ -106,78 +110,25 @@ final class LobbyView extends FrameLayout implements FullBleed {
     add("설정", () -> host.load("settings"));
     add("새우gang · 상점", () -> host.load("shop"));
     add("땅콩 · 상점", () -> host.load("shop"));
-    add("뽑기권 · 상점", () -> host.load("shop"));
+    add("지원서 · 상점", () -> host.load("shop"));
     for (int i = 0; i < 5; i++) buttons.get(i).setTag("lobby-" + IDS[i]);
     buttons.get(5).setTag("lobby-play");
     buttons.get(6).setTag("lobby-daily");
     buttons.get(7).setTag("lobby-profile");
     buttons.get(8).setTag("lobby-settings");
-    growthCard = new LinearLayout(host);
-    growthCard.setOrientation(LinearLayout.VERTICAL);
-    growthCard.setPadding(host.dp(12), host.dp(9), host.dp(12), host.dp(10));
-    growthCard.setBackground(new GamePanelDrawable(host));
-    growthCard.setTag("lobby-growth-card");
-    LinearLayout details = new LinearLayout(host);
-    details.setOrientation(LinearLayout.VERTICAL);
-    TextView growthHeading = host.text("오늘의 근무 기록", 13);
-    growthHeading.setTextColor(JournalTheme.MUTED);
-    details.addView(growthHeading);
-    growthName = host.text("", 19);
-    growthName.setTypeface(host.headline);
-    growthName.setMaxLines(1);
-    growthName.setEllipsize(android.text.TextUtils.TruncateAt.END);
-    details.addView(growthName);
-    growthMeta = host.text("", 13);
-    growthMeta.setTextColor(JournalTheme.MUTED);
-    details.addView(growthMeta);
-    growthXp = host.text("", 14);
-    details.addView(growthXp);
-    growthProgress = new ProgressBar(host, null, android.R.attr.progressBarStyleHorizontal);
-    growthProgress.setProgressTintList(
-        android.content.res.ColorStateList.valueOf(JournalTheme.TEAL));
-    growthProgress.setProgressBackgroundTintList(
-        android.content.res.ColorStateList.valueOf(0xffddd2ba));
-    LinearLayout.LayoutParams meterSlot = new LinearLayout.LayoutParams(-1, host.dp(6));
-    meterSlot.setMargins(host.dp(8), host.dp(3), host.dp(8), host.dp(3));
-    details.addView(growthProgress, meterSlot);
-    growthNeed = host.text("", 12);
-    growthNeed.setTextColor(JournalTheme.MUTED);
-    details.addView(growthNeed);
-    growthInfo = details;
-    growthCard.addView(growthInfo, new LinearLayout.LayoutParams(-1, 0, 1));
-    LinearLayout growthControls = new LinearLayout(host);
-    growthControls.setGravity(Gravity.CENTER_VERTICAL);
-    growthSummary = host.text("", 14);
-    growthSummary.setTextColor(JournalTheme.TEAL);
-    growthSummary.setMaxLines(2);
-    growthSummary.setIncludeFontPadding(false);
-    growthSummary.setPadding(host.dp(6), 0, host.dp(6), 0);
-    growthSummary.setEllipsize(android.text.TextUtils.TruncateAt.END);
-    growthControls.addView(growthSummary, new LinearLayout.LayoutParams(0, -2, 1));
-    growthAction = host.button("성장", this::openGrowth);
-    growthAction.setTag("lobby-growth");
-    growthAction.setTextSize(host.uiText(16));
-    growthAction.setPadding(host.dp(8), host.dp(3), host.dp(8), host.dp(6));
-    growthAction.setBackground(new GameButtonDrawable(host, GameButtonDrawable.PAPER));
-    growthControls.addView(growthAction, new LinearLayout.LayoutParams(host.dp(88), host.dp(48)));
-    growthCard.addView(growthControls, new LinearLayout.LayoutParams(-1, host.dp(48)));
-    growthCompactXp = host.text("", 12);
-    growthCompactXp.setTag("lobby-growth-core");
-    growthCompactXp.setIncludeFontPadding(false);
-    growthCompactXp.setSingleLine(true);
-    growthCompactXp.setEllipsize(android.text.TextUtils.TruncateAt.END);
-    growthCompactXp.setTextColor(JournalTheme.INK);
-    growthCompactXp.setPadding(host.dp(6), host.dp(4), host.dp(6), 0);
-    growthCard.addView(growthCompactXp, new LinearLayout.LayoutParams(-1, -2));
-    addView(growthCard);
-    refreshGrowth();
+    add("전투 편성", this::openTeam);
+    buttons.get(12).setTag("lobby-team");
     tip = host.text("", host.getResources().getConfiguration().screenHeightDp < 600 ? 13 : 15);
     tip.setTypeface(host.prose);
+    tip.setHorizontallyScrolling(false);
+    tip.setGravity(Gravity.TOP | Gravity.START);
+    tip.setMinHeight(host.dp(48));
     tip.setTextColor(MainActivity.INK);
     tip.setPadding(host.dp(12), host.dp(8), host.dp(12), host.dp(8));
     tip.setBackground(new GamePaperDrawable(host, 0xffb8823f));
     tip.setVisibility(View.GONE);
     tip.setTag("lobby-gull-tip");
+    tip.setOnClickListener(v -> advanceGullTip());
     addView(tip);
     if (host.state.optBoolean("activeBattle")) {
       Button resume =
@@ -207,10 +158,28 @@ final class LobbyView extends FrameLayout implements FullBleed {
     }
   }
 
+  void openTeam() {
+    host.selectionMode = "story";
+    host.menus.teamDraft = null;
+    host.team();
+    host.menus.teamReturn = "home";
+  }
+
   void add(String name, Runnable click) {
     Button b = host.button(name, click);
     b.setTextColor(Color.TRANSPARENT);
-    b.setBackground(null);
+    // Observe the actual native button state without replacing its click/write/sound behavior.
+    b.setBackground(new android.graphics.drawable.Drawable() {
+      @Override public boolean isStateful() { return true; }
+      @Override protected boolean onStateChange(int[] states) {
+        LobbyView.this.postInvalidateOnAnimation();
+        return true;
+      }
+      @Override public void draw(Canvas canvas) { }
+      @Override public void setAlpha(int alpha) { }
+      @Override public void setColorFilter(ColorFilter filter) { }
+      @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
+    });
     b.setOnTouchListener(
         (v, e) -> {
           postInvalidateOnAnimation();
@@ -223,17 +192,34 @@ final class LobbyView extends FrameLayout implements FullBleed {
 
   @Override
   public boolean onInterceptTouchEvent(MotionEvent e) {
-    RectF safe = host.safeBounds(getWidth(), getHeight());
-    RectF card = growthBox();
-    return parallax.intercept(
-            e,
-            new RectF(
-                Math.max(card.right + host.dp(8), safe.left + safe.width() * .35f),
-                safe.top + safe.height() * .20f,
-                safe.left + safe.width() * .88f,
-                safe.top + safe.height() * .75f),
-            true)
+    // Lock eligibility at DOWN. A drag that starts on a menu must never become
+    // a scene gesture when the finger leaves that button.
+    return parallax.intercept(e, sceneDragBox(), sceneDragStart(e.getX(), e.getY()))
         || super.onInterceptTouchEvent(e);
+  }
+
+  RectF sceneDragBox() {
+    RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
+    // Use measured controls, not screen percentages: reserve the complete header
+    // and bottom navigation strips, including the blank gaps between controls.
+    if (boxes[7] == null || boxes[0] == null) return new RectF();
+    safe.top = Math.max(safe.top, Math.max(boxes[7].bottom, boxes[8].bottom));
+    safe.bottom = Math.min(safe.bottom, boxes[0].top);
+    return safe;
+  }
+
+  boolean sceneDragStart(float x, float y) {
+    if (!sceneDragBox().contains(x, y)) return false;
+    for (int i = getChildCount() - 1; i >= 0; i--) {
+      View child = getChildAt(i);
+      // The guide still supports tap-for-advice and drag-for-weighted-pose.
+      // Every other interactive child, including resume and the tip, keeps input.
+      if (child == gull || child.getVisibility() != View.VISIBLE
+          || (!child.isClickable() && !child.isLongClickable())) continue;
+      if (x >= child.getLeft() && x < child.getRight()
+          && y >= child.getTop() && y < child.getBottom()) return false;
+    }
+    return true;
   }
 
   @Override
@@ -288,32 +274,48 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   void positions(int w, int h) {
-    float margin = host.dp(12), gap = host.dp(6);
-    float bh = Math.min(host.dp(70), Math.max(host.dp(48), h * .12f));
-    float playW = Math.min(w * .25f, host.dp(320));
-    float menuW = (w - margin * 3 - playW - gap * 4) / 5;
-    for (int i = 0; i < 5; i++)
-      boxes[i] =
-          new RectF(
-              margin + i * (menuW + gap),
-              h - margin - bh,
-              margin + i * (menuW + gap) + menuW,
-              h - margin);
-    boxes[5] = new RectF(w - margin - playW, h - margin - bh, w - margin, h - margin);
-    boxes[6] =
-        new RectF(
-            margin,
-            h - margin - bh - host.dp(62),
-            margin + Math.min(host.dp(180), w * .24f),
-            h - margin - bh - host.dp(12));
-    boxes[7] = new RectF(margin, host.dp(10), Math.min(w * .33f, host.dp(265)), host.dp(62));
-    boxes[8] = new RectF(w - margin - host.dp(64), host.dp(8), w - margin, host.dp(60));
-    float curW = Math.min(host.dp(116), w * .11f);
-    float right = boxes[8].left - gap;
-    for (int i = 0; i < 3; i++) {
-      float x = right - (3 - i) * (curW + gap);
-      boxes[9 + i] = new RectF(x, host.dp(12), x + curW, host.dp(60));
+    boolean tablet = w / (float) h < 1.85f;
+    float margin = host.dp(tablet ? 24 : 16), gap = host.dp(8);
+    float hit = host.dp(48), header = hit;
+    float navH = Math.max(hit, Math.min(host.dp(64), h * .1262f));
+    float navW = (w - margin * 2 - gap * 4) / 5;
+    int[] dock = {0, 1, 2, 3, 4};
+    for (int i = 0; i < dock.length; i++) {
+      float x = margin + i * (navW + gap);
+      boxes[dock[i]] = new RectF(x, h - margin - navH, x + navW, h - margin);
     }
+    float stackLeft = w * (tablet ? .70625f : .699454f);
+    float stackTop = h * (tablet ? .20f : .213592f);
+    float stackH = Math.max(hit, h * (tablet ? .09f : .145631f));
+    float stackGap = Math.max(host.dp(12), h * (tablet ? .04f : .038835f));
+    int[] stack = {5, 12, 6};
+    for (int i = 0; i < stack.length; i++) {
+      float y = stackTop + i * (stackH + stackGap);
+      boxes[stack[i]] = new RectF(stackLeft, y, w - margin, y + stackH);
+    }
+    boxes[8] = new RectF(w - margin - hit, margin, w - margin, margin + header);
+    float currencyRight = boxes[8].left - gap;
+    float amountSize = currencyTextSize();
+    p.setTypeface(host.headline); p.setTextSize(amountSize);
+    float currencyWidth = host.dp(90);
+    for (String key : new String[] {"snack", "peanut", "credits"})
+      currencyWidth = Math.max(currencyWidth,
+          (float) Math.ceil(p.measureText(String.format(Locale.KOREA, "%,d", host.me().optInt(key)))) + host.dp(40));
+    // 큰 잔액은 글씨를 줄이는 대신 왼쪽 빈 공간을 사용한다.
+    float currencyLeft = Math.min(w * .49f, currencyRight - currencyWidth * 3 - gap * 2);
+    float curW = (currencyRight - currencyLeft - gap * 2) / 3;
+    for (int i = 0; i < 3; i++) {
+      float x = currencyLeft + i * (curW + gap);
+      boxes[9 + i] = new RectF(x, margin, x + curW, margin + header);
+    }
+    // A profile chip needs only the portrait and name. Rank/details remain in the
+    // existing profile popup and accessibility description, not a scene-wide bar.
+    p.setTypeface(host.headline);
+    p.setTextSize(canvasTextSize(host.dp(16), host.dp(24), true));
+    float profileWidth = Math.max(host.dp(148),
+        p.measureText(host.me().optString("nickname", "수비조장")) + host.dp(64));
+    profileWidth = Math.min(Math.min(host.dp(220), currencyLeft - margin - gap), profileWidth);
+    boxes[7] = new RectF(margin, margin, margin + profileWidth, margin + header);
   }
 
   @Override
@@ -327,47 +329,6 @@ final class LobbyView extends FrameLayout implements FullBleed {
     RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
     positions(Math.round(safe.width()), Math.round(safe.height()));
     for (RectF box : boxes) box.offset(safe.left, safe.top);
-    growthCompactXp.setTextSize(host.uiText(12));
-    growthCompactXp.setPadding(host.dp(6), host.dp(4), host.dp(6), 0);
-    RectF availableGrowth = growthAvailableBox();
-    boolean detailedGrowth = availableGrowth.height() >= host.dp(140);
-    growthNeed.setVisibility(View.VISIBLE);
-    int infoWidth = Math.max(1, Math.round(availableGrowth.width()) - host.dp(24));
-    int infoRoom = Math.max(0, Math.round(availableGrowth.height()) - host.dp(48 + 9 + 10));
-    growthInfo.measure(
-        MeasureSpec.makeMeasureSpec(infoWidth, MeasureSpec.EXACTLY),
-        MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-    if (growthInfo.getMeasuredHeight() > infoRoom) {
-      // 승진의 긴 조건은 성장 화면에서 확인한다. 기본 기록판은 스크롤하지 않는다.
-      growthNeed.setVisibility(View.GONE);
-      growthInfo.measure(
-          MeasureSpec.makeMeasureSpec(infoWidth, MeasureSpec.EXACTLY),
-          MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-    }
-    detailedGrowth &= growthInfo.getMeasuredHeight() <= infoRoom;
-    growthInfo.setVisibility(detailedGrowth ? View.VISIBLE : View.GONE);
-    growthCompactXp.setVisibility(detailedGrowth ? View.GONE : View.VISIBLE);
-    RectF growth = growthBox();
-    if (detailedGrowth) {
-      growthCard.setPadding(host.dp(12), host.dp(9), host.dp(12), host.dp(10));
-    } else {
-      int rowHeight = growthCompactXp.getLineHeight() + host.dp(4);
-      int room = Math.max(0, Math.round(growth.height()) - host.dp(48));
-      if (rowHeight > room) {
-        // 극단적으로 낮은 안전 영역에서도 글자를 압축하지 않는다. 성장 버튼은 그대로 남긴다.
-        growthCompactXp.setVisibility(View.GONE);
-        rowHeight = 0;
-      }
-      int padding = Math.max(0, room - rowHeight);
-      int top = Math.min(host.dp(9), padding / 2);
-      growthCard.setPadding(host.dp(12), top, host.dp(12), padding - top);
-      growthCompactXp.getLayoutParams().height = rowHeight;
-    }
-    growthCard.setVisibility(growth.height() >= host.dp(64) ? View.VISIBLE : View.GONE);
-    refreshGrowth();
-    growthCard.measure(
-        MeasureSpec.makeMeasureSpec(Math.max(1, (int) growth.width()), MeasureSpec.EXACTLY),
-        MeasureSpec.makeMeasureSpec(Math.max(1, (int) growth.height()), MeasureSpec.EXACTLY));
     RectF gullRect = gullBox();
     gullRect.intersect(safe);
     gull.measure(
@@ -375,12 +336,6 @@ final class LobbyView extends FrameLayout implements FullBleed {
             Math.max(host.dp(48), (int) gullRect.width()), MeasureSpec.EXACTLY),
         MeasureSpec.makeMeasureSpec(
             Math.max(host.dp(48), (int) gullRect.height()), MeasureSpec.EXACTLY));
-    if (tip.getVisibility() == View.VISIBLE)
-      tip.measure(
-          MeasureSpec.makeMeasureSpec(
-              Math.round(Math.min(host.dp(300), safe.width() * .42f)), MeasureSpec.EXACTLY),
-          MeasureSpec.makeMeasureSpec(
-              Math.max(host.dp(48), (int) safe.height() - host.dp(140)), MeasureSpec.AT_MOST));
     for (int i = 0; i < buttons.size(); i++) {
       RectF r = boxes[i];
       buttons
@@ -390,27 +345,63 @@ final class LobbyView extends FrameLayout implements FullBleed {
               MeasureSpec.makeMeasureSpec(
                   Math.max(host.dp(48), (int) r.height()), MeasureSpec.EXACTLY));
     }
+    if (tip.getVisibility() == View.VISIBLE) measureGullTip(safe);
+  }
+
+  /** The complete planted animation envelope is protected, not just the tap target. */
+  RectF tipHeroExclusion() {
+    RectF hero = heroBox();
+    float side = hero.width() * .002f + host.dp(4);
+    RectF occupied = new RectF(hero.left - side,
+        hero.top - hero.height() * .004f - host.dp(1.2f), hero.right + side, hero.bottom);
+    occupied.union(heroShadowBox(hero));
+    return occupied;
+  }
+
+  RectF resumeBox(RectF safe) {
+    int x = Math.round(safe.left + host.dp(24));
+    int y = Math.round(boxes[7].bottom + host.dp(8));
+    return new RectF(x, y, x + Math.round(safe.width() * .58f), y + host.dp(48));
+  }
+
+  ArrayList<RectF> tipExclusions(RectF safe) {
+    ArrayList<RectF> occupied = new ArrayList<>();
+    occupied.add(tipHeroExclusion());
+    for (int i = 0; i < buttons.size(); i++) {
+      RectF box = boxes[i];
+      occupied.add(new RectF((int) box.left, (int) box.top, (int) box.right,
+          (int) box.top + buttons.get(i).getMeasuredHeight()));
+    }
+    if (findViewWithTag("lobby-resume") != null) occupied.add(resumeBox(safe));
+    return occupied;
+  }
+
+  void measureGullTip(RectF safe) {
+    tip.setPadding(host.dp(12), host.dp(8), host.dp(12), host.dp(8));
+    tip.setText(tipCopy.subSequence(tipPageStart, tipCopy.length()));
+    HomeTipLayout.Result placement = HomeTipLayout.measure(tip, safe, tipHeroExclusion(),
+        tipExclusions(safe), host.dp(8), host.dp(300), host.dp(420), host.dp(120));
+    tipFrame.set(placement.bounds);
+    tipPaged = placement.paged;
+    tipNextPageStart = tipPageStart + placement.consumed;
+    if (tipFrame.isEmpty()) tip.setVisibility(View.GONE);
   }
 
   @Override
   protected void onLayout(boolean changed, int l, int t, int r, int b) {
     super.onLayout(changed, l, t, r, b);
+    heroFrame.set(heroBox());
     RectF safe = host.safeBounds(getWidth(), getHeight()), area = gullBox();
     area.intersect(safe);
     gull.layout((int) area.left, (int) area.top, (int) area.right, (int) area.bottom);
-    RectF growth = growthBox();
-    growthCard.layout((int) growth.left, (int) growth.top, (int) growth.right, (int) growth.bottom);
-    if (tip.getVisibility() == View.VISIBLE) {
-      int width = tip.getMeasuredWidth(), height = tip.getMeasuredHeight();
-      int x = (int) Math.max(safe.left + host.dp(8), area.left - width - host.dp(10));
-      x = Math.min(x, (int) safe.right - width - host.dp(8));
-      int y =
-          (int)
-              Math.max(
-                  safe.top + host.dp(56),
-                  Math.min(safe.bottom - height - host.dp(90), area.top + area.height() * .12f));
-      tip.layout(x, y, x + width, y + height);
+    View resume = findViewWithTag("lobby-resume");
+    if (resume != null) {
+      RectF resumeArea = resumeBox(safe);
+      resume.layout((int) resumeArea.left, (int) resumeArea.top,
+          (int) resumeArea.right, (int) resumeArea.bottom);
     }
+    if (tip.getVisibility() == View.VISIBLE)
+      tip.layout(tipFrame.left, tipFrame.top, tipFrame.right, tipFrame.bottom);
     for (int i = 0; i < buttons.size(); i++) {
       RectF box = boxes[i];
       Button button = buttons.get(i);
@@ -444,9 +435,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   boolean ready() {
-    return ambient.ready()
-        && visibleArt.containsKey("bg/" + room + "char.webp")
-        && visibleBounds.containsKey("bg/" + room + "char.webp");
+    return homeArt.ready() && homeArt.hero() != null && homeArt.heroBounds() != null;
   }
 
   void fit(Canvas c, Bitmap image, RectF r) {
@@ -491,6 +480,10 @@ final class LobbyView extends FrameLayout implements FullBleed {
     return value + "…";
   }
 
+  float currencyTextSize() {
+    return canvasTextSize(host.dp(14), host.dp(30), true);
+  }
+
   float canvasTextSize(float basePixels, float maxHeight, boolean heading) {
     android.util.DisplayMetrics metrics = host.getResources().getDisplayMetrics();
     float size = basePixels * metrics.scaledDensity / metrics.density;
@@ -508,56 +501,53 @@ final class LobbyView extends FrameLayout implements FullBleed {
     return centerY - (canvasMetrics.ascent + canvasMetrics.descent) / 2;
   }
 
+  boolean controlPressed(int index) {
+    Button button = buttons.get(index);
+    return button.isEnabled() && (button.isPressed() || button.isHovered());
+  }
+
+  void controlSurface(Canvas canvas, int index, RectF bounds) {
+    if (buttons.get(index).isEnabled()) {
+      homeArt.surface(canvas,
+          controlPressed(index) ? "ui/button-primary.png" : "ui/button-secondary.png", bounds);
+      return;
+    }
+    // HomeArt.surface has no state filter. Apply the shared disabled tone exactly
+    // once around the original ornate surface, preserving its texture and alpha.
+    disabledControlTone.enabled = false;
+    disabledControlTone.pressed = false;
+    bounds.roundOut(disabledControlBounds);
+    int save = disabledControlTone.begin(canvas, disabledControlBounds,
+        host.getResources().getDisplayMetrics().density);
+    homeArt.surface(canvas, "ui/button-secondary.png", bounds);
+    disabledControlTone.finish(canvas, save);
+  }
+
+  int controlInk(int index) {
+    return !buttons.get(index).isEnabled() ? JournalTheme.MUTED
+        : controlPressed(index) ? Color.WHITE : JournalTheme.INK;
+  }
+
   void command(Canvas c, int index, String name, String icon, boolean primary) {
     RectF r = new RectF(boxes[index]);
-    boolean pressed = buttons.get(index).isPressed();
-    if (pressed) r.offset(0, host.dp(2));
-    JournalTheme.drawButton(
-        c,
-        r,
-        primary ? GameButtonDrawable.PRIMARY : JournalTheme.PAPER,
-        host.dp(13),
-        pressed ? host.dp(1) : host.dp(4),
-        p);
-    float size =
-        index == 8
-            ? host.dp(15)
-            : Math.min(host.dp(primary ? 34 : 32), r.height() * (primary ? .65f : .52f));
-    float iconInset = host.dp(index == 8 ? 7 : 11);
-    if (icon != null) {
-      RectF iconBox =
-          new RectF(
-              r.left + iconInset,
-              r.centerY() - size / 2,
-              r.left + iconInset + size,
-              r.centerY() + size / 2);
-      if (primary) ship(c, iconBox);
-      else fit(c, image("icons/" + icon + ".png"), iconBox);
-    }
-    float left = r.left + (icon == null ? host.dp(10) : iconInset + host.dp(5) + size);
-    float right = r.right - host.dp(index == 8 ? 7 : primary ? 20 : 10);
-    float textSize =
-        canvasTextSize(
-            index == 8
-                ? host.dp(14)
-                : Math.min(host.dp(primary ? 24 : 19), r.width() * (primary ? .16f : .17f)),
-            r.height() - host.dp(16),
-            true);
-    // 짧은 핵심 메뉴명은 고정 폭 안에서 전체를 유지하고, 긴 보상 안내만 말줄임한다.
-    float textWidth = Math.max(1, right - left);
-    p.setTypeface(host.headline);
-    p.setTextSize(textSize);
+    boolean pressed = controlPressed(index);
+    if (pressed) r.offset(0, host.dp(1));
+    controlSurface(c, index, r);
+    boolean small = index == 8;
+    float size = Math.min(host.dp(small ? 25 : 36), r.height() * .55f);
+    float inset = host.dp(small ? 10 : 14);
+    if (icon != null) homeArt.icon(c, "icons/" + icon + ".png",
+        new RectF(r.left + inset, r.centerY() - size / 2,
+            r.left + inset + size, r.centerY() + size / 2));
+    if (small && icon != null) return;
+    float left = r.left + (icon == null ? host.dp(8) : inset + size + host.dp(5));
+    float right = r.right - host.dp(12);
+    float textSize = canvasTextSize(host.dp(index == 5 || index == 12 ? 21 : 16), r.height() - host.dp(18), true);
+    p.setTypeface(host.headline); p.setTextSize(textSize);
     float measured = p.measureText(name);
-    if (index != 6 && measured > textWidth) textSize *= textWidth / measured;
-    label(
-        c,
-        fitted(name, textWidth, textSize, true),
-        (left + right) / 2,
-        centeredBaseline(r.centerY(), textSize, true),
-        textSize,
-        true,
-        primary ? Color.WHITE : JournalTheme.INK);
-    if (primary) chevron(c, r.right - host.dp(11), r.centerY(), host.dp(4), Color.WHITE);
+    if (measured > right - left) textSize *= (right - left) / measured;
+    label(c, name, (left + right) / 2, centeredBaseline(r.centerY(), textSize, true),
+        textSize, true, controlInk(index));
   }
 
   /** 메뉴의 터치 영역을 바꾸지 않고 얇은 목재 받침과 황동 가장자리만 더한다. */
@@ -647,43 +637,79 @@ final class LobbyView extends FrameLayout implements FullBleed {
 
   RectF heroBox() {
     RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
-    Bitmap bg = ambient.current;
-    RectF backdrop = backgroundBox(bg);
-    float center = backdrop.left + backdrop.width() * JournalAmbient.HERO_X,
-        foot = backdrop.top + backdrop.height() * JournalAmbient.HERO_FOOT;
-    float width = Math.min(safe.width() * .40f, host.dp(500)),
-        height = Math.min(safe.height() * .61f, host.dp(420));
-    center =
-        Math.min(safe.right - host.dp(14) - width / 2, Math.max(safe.left + width / 2, center));
-    // 발은 지도 테이블에 놓는다. 하단 메뉴 기준으로 올리면 짧은 화면에서 공중에 뜬다.
-    return new RectF(
-        center - width / 2,
-        Math.max(safe.top + host.dp(82), foot - height),
-        center + width / 2,
-        foot);
+    boolean tablet = safe.width() / safe.height() < 1.85f;
+    // Preserve the approved foreground character stage after removing the growth panel.
+    // The paving/contact point stays visible above the bottom navigation.
+    float left = safe.left + host.dp(tablet ? 40 : 24) + host.dp(18);
+    float formerPanelWidth = Math.min(host.dp(300), Math.max(host.dp(232), safe.width() * .24f));
+    float right = boxes[5].left - host.dp(24) - formerPanelWidth - host.dp(24 + 18);
+    float top = safe.top + Math.max(host.dp(host.state.optBoolean("activeBattle") ? 132 : 90), safe.height() * .18f);
+    float bottom = boxes[0].top - host.dp(20);
+    float maxHeight = Math.max(1, Math.min(bottom - top - host.dp(6), safe.height() * .56f));
+    float maxWidth = Math.max(1, right - left);
+    Rect source = homeArt.heroBounds();
+    float aspect = source == null ? 1 : source.width() / (float) source.height();
+    // Leave room for the small breathing scale as well as the bounded drag.
+    float height = Math.min(maxHeight, maxWidth / aspect) / 1.004f;
+    float width = height * aspect, center = (left + right) / 2;
+    return new RectF(center - width / 2, bottom - height, center + width / 2, bottom);
+  }
+
+  RectF heroDrawBox(float pulse, float dragX, float dragY) {
+    RectF target = new RectF();
+    heroDrawBox(heroBox(), target, pulse, dragY);
+    return target;
+  }
+
+  private void heroDrawBox(RectF area, RectF target, float pulse, float dragY) {
+    float width = area.width() * (1 + .004f * pulse);
+    float height = area.height() * (1 - .004f * pulse);
+    target.set(area.centerX() - width / 2, area.bottom - height,
+        area.centerX() + width / 2, area.bottom);
+    // The feet never translate. Vertical drag only adds a tiny planted compression.
+    float compression = Math.max(-host.dp(1.2f), Math.min(host.dp(1.2f), dragY));
+    target.top += compression;
+  }
+
+  RectF heroShadowBox(RectF target) {
+    RectF shadow = new RectF();
+    heroShadowBox(target, shadow);
+    return shadow;
+  }
+
+  private void heroShadowBox(RectF target, RectF shadow) {
+    float center = target.centerX() - target.width() * .055f;
+    float radius = target.width() * .23f;
+    float height = Math.max(host.dp(8), target.height() * .035f);
+    shadow.set(center - radius, target.bottom - height * .85f,
+        center + radius, target.bottom + height * .15f);
   }
 
   void character(Canvas c) {
-    String path = "bg/" + room + "char.webp";
-    Bitmap bitmap = visibleArt.get(path);
-    Rect source = visibleBounds.get(path);
+    Bitmap bitmap = homeArt.hero();
+    Rect source = homeArt.heroBounds();
     if (bitmap == null || source == null) return;
-    RectF area = heroBox();
-    ambient.ground(c, area, parallax.x, parallax.y);
-    float pulse = motion.pulse(3600, 0);
-    float scale = Math.min(area.width() / source.width(), area.height() / source.height());
-    float width = source.width() * scale * (1 + .004f * pulse),
-        height = source.height() * scale * (1 - .004f * pulse);
-    RectF target =
-        new RectF(
-            area.centerX() - width / 2,
-            area.bottom - height,
-            area.centerX() + width / 2,
-            area.bottom);
-    target.offset(parallax.x, parallax.y - getHeight() * .005f * pulse);
+    if (heroFrame.isEmpty()) return;
+    heroDrawBox(heroFrame, heroPose, motion.pulse(3600, 0), parallax.y);
+    heroShadowBox(heroFrame, heroContact);
+    RectF target = heroPose, shadow = heroContact;
+    p.setShader(null);
+    p.setStyle(Paint.Style.FILL);
+    p.setColor(0x180f2430);
+    c.drawOval(shadow, p);
+    shadow.inset(shadow.width() * .15f, shadow.height() * .18f);
+    p.setColor(0x240f2430);
+    c.drawOval(shadow, p);
     p.setShader(null);
     p.setAlpha(255);
+    int pose = c.save();
+    // Shear about the contact line: upper body leans at most 4dp, feet stay planted.
+    float lean = Math.max(-host.dp(4), Math.min(host.dp(4), parallax.x));
+    c.translate(target.centerX(), target.bottom);
+    c.skew(-lean / Math.max(1, target.height()), 0);
+    c.translate(-target.centerX(), -target.bottom);
     c.drawBitmap(bitmap, source, target, p);
+    c.restoreToCount(pose);
   }
 
   void loosePaper(Canvas c) {
@@ -740,213 +766,50 @@ final class LobbyView extends FrameLayout implements FullBleed {
     c.restore();
   }
 
-  String growthKey() {
-    JSONArray team = host.list(host.state, "team");
-    for (String action : new String[] {"evolve", "promo", "learn"})
-      for (int i = 0; i < team.length(); i++) {
-        String key = team.optString(i);
-        if (host.list(host.unit(key), action).length() > 0) return key;
-      }
-    return team.optString(0, "");
-  }
-
-  void openGrowth() {
-    String key = growthKey();
-    if (key.isEmpty()) host.load("collection");
-    else {
-      host.currentKey = key;
-      host.menus.unitReturn = "home";
-      host.load("unit");
-    }
-  }
-
-  RectF growthBox() {
-    RectF box = growthAvailableBox();
-    if (growthInfo.getVisibility() == View.GONE) {
-      float content =
-          host.dp(48 + 9 + 10) + growthCompactXp.getLineHeight() + growthCompactXp.getPaddingTop();
-      box.bottom = box.top + Math.min(box.height(), content);
-    }
-    return box;
-  }
-
-  RectF growthAvailableBox() {
-    RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
-    float top = boxes[7].bottom + host.dp(host.state.optBoolean("activeBattle") ? 72 : 14);
-    float bottom = Math.min(top + host.dp(232), boxes[6].top - host.dp(10));
-    return new RectF(
-        safe.left + host.dp(12),
-        top,
-        safe.left + host.dp(12) + Math.min(host.dp(420), safe.width() * .34f),
-        Math.max(top, bottom));
-  }
-
-  void setText(TextView view, String value) {
-    if (!view.getText().toString().equals(value)) view.setText(value);
-  }
-
-  void refreshGrowth() {
-    String key = growthKey();
-    JSONObject unit = key.isEmpty() ? null : host.unit(key);
-    if (unit == null) {
-      setText(growthName, "첫 수비대를 편성해요");
-      setText(growthMeta, "보유한 동료 중 3마리를 골라요");
-      setText(growthXp, "함께 전투하며 경험치를 쌓아요");
-      setText(growthNeed, "수비대에서 동료를 확인해요");
-      setText(growthSummary, "첫 동료부터 차근차근");
-      setText(growthCompactXp, "동료 3마리를 편성해요");
-      growthProgress.setProgress(0);
-      setText(growthAction, "수비대");
-    } else {
-      setText(growthName, unit.optString("name"));
-      String role = unit.optString("role");
-      role =
-          role.equals("ATTACK")
-              ? "공격"
-              : role.equals("DEFENSE") ? "수비" : role.equals("UTILITY") ? "유틸" : role;
-      setText(
-          growthMeta,
-          "Lv" + unit.optInt("level", 1) + " · " + unit.optString("attr") + " · " + role);
-      int xp = unit.optInt("xp"), next = unit.optInt("xpNext");
-      setText(
-          growthXp,
-          next > 0 ? "경험치 " + String.format(Locale.KOREA, "%,d / %,d", xp, next) : "최고 레벨 · 성장 완료");
-      setText(
-          growthCompactXp,
-          "Lv"
-              + unit.optInt("level", 1)
-              + " · "
-              + (next > 0 ? "경험치 " + String.format(Locale.KOREA, "%,d / %,d", xp, next) : "최고 레벨"));
-      growthProgress.setMax(Math.max(1, next));
-      growthProgress.setProgress(next <= 0 ? 1 : Math.min(xp, next));
-      setText(growthNeed, new NativeGrowthGuidance(host, new MenuKit(host)).promotionNeed(unit));
-      String summary = NativeGrowthGuidance.actionSummary(unit);
-      setText(
-          growthSummary,
-          growthInfo.getVisibility() == View.GONE ? unit.optString("name") : summary);
-      setText(
-          growthAction,
-          host.list(unit, "evolve").length() > 0
-              ? "승진"
-              : host.list(unit, "promo").length() > 0 || host.list(unit, "learn").length() > 0
-                  ? "기술"
-                  : "성장");
-    }
-    growthAction.setContentDescription(
-        growthName.getText()
-            + " · "
-            + growthMeta.getText()
-            + " · "
-            + growthXp.getText()
-            + " · "
-            + growthNeed.getText()
-            + " · "
-            + (unit == null ? growthSummary.getText() : NativeGrowthGuidance.actionSummary(unit))
-            + " · 상세 열기");
-    growthCompactXp.setContentDescription(growthCompactXp.getText());
-  }
-
   @Override
   protected void onDraw(Canvas c) {
     super.onDraw(c);
-    ambient.draw(c, parallax.x, parallax.y);
-    loosePaper(c);
+    boolean moving = SceneMotion.enabled(host) && host.motionResumed && motion.clock != null
+        && isShown() && getWindowVisibility() == View.VISIBLE;
+    if (!moving) parallax.close();
+    homeArt.background(c, getWidth(), getHeight(), motion.millis / 1000d, moving);
     character(c);
-    navigationDock(c);
-    for (int i = 0; i < 5; i++) command(c, i, NAMES[i], ICONS[i], false);
-    command(c, 5, "플레이", "u-story", true);
-    command(c, 6, "출석·미션", "u-attend", false);
-    command(c, 8, "설정", "u-settings", false);
+    String[] icons = {"explore", "draw", "team", "combine", "shop"};
+    for (int i = 0; i < 5; i++) command(c, i, NAMES[i], icons[i], false);
+    command(c, 5, "플레이", "explore", true);
+    command(c, 12, "전투 편성", "team", false);
+    command(c, 6, "출석·미션", "daily", false);
+    command(c, 8, "설정", "settings", false);
     RectF profile = boxes[7];
-    panel(c, profile, JournalTheme.PAPER);
-    fit(
-        c,
-        image("icons/u-profile.png"),
-        new RectF(
-            profile.left + host.dp(9),
-            profile.top + host.dp(10),
-            profile.left + host.dp(39),
-            profile.bottom - host.dp(10)));
-    String nick = host.me().optString("nickname", "수비조장");
-    float cx = (profile.left + host.dp(43) + profile.right - host.dp(7)) / 2;
-    float nickSize = canvasTextSize(host.dp(17), host.dp(22), true);
-    label(
-        c,
-        fitted(nick, profile.width() - host.dp(58), nickSize, true),
-        cx,
-        profile.top + host.dp(24),
-        nickSize,
-        true);
-    String summary = profileSummary();
-    float summarySize = canvasTextSize(host.dp(11), host.dp(17), false);
-    label(
-        c,
-        fitted(summary, profile.width() - host.dp(58), summarySize, false),
-        cx,
-        profile.bottom - host.dp(9),
-        summarySize,
-        false);
+    controlSurface(c, 7, profile);
+    fit(c, image("icons/u-profile.png"), new RectF(profile.left + host.dp(10),
+        profile.top + host.dp(8), profile.left + host.dp(42), profile.bottom - host.dp(8)));
+    String nick = host.me().optString("nickname", "수비조장"), summary = profileSummary();
+    float cx = (profile.left + host.dp(47) + profile.right - host.dp(12)) / 2;
+    float nickSize = canvasTextSize(host.dp(16), profile.height() - host.dp(16), true);
+    label(c, fitted(nick, profile.width() - host.dp(65), nickSize, true), cx,
+        centeredBaseline(profile.centerY(), nickSize, true), nickSize, true,
+        controlInk(7));
     buttons.get(7).setContentDescription("내 정보 · " + nick + " · " + summary);
-    String[] keys = {"snack", "peanut", "credits"}, icons = {"u-snack", "u-peanut", "u-ticket"};
+    String[] keys = {"snack", "peanut", "credits"};
+    String[] currencyIcons = {"shrimp-snack", "peanut", null};
+    String[] currencyNames = {"새우gang", "땅콩", "지원서"};
     for (int i = 0; i < 3; i++) {
       RectF r = boxes[9 + i];
-      panel(c, r, JournalTheme.PAPER);
-      fit(
-          c,
-          image("icons/" + icons[i] + ".png"),
-          new RectF(
-              r.left + host.dp(9),
-              r.top + host.dp(12),
-              r.left + host.dp(29),
-              r.bottom - host.dp(12)));
+      Button currency = buttons.get(9 + i);
+      CurrencyDisplay.draw(c, r, host.getResources().getDisplayMetrics().density,
+          currency.isEnabled(), currency.isPressed(), currency.isFocused());
+      RectF iconBox = new RectF(r.left + host.dp(7), r.centerY() - host.dp(10),
+          r.left + host.dp(27), r.centerY() + host.dp(10));
+      if (currencyIcons[i] != null) homeArt.icon(c, "icons/" + currencyIcons[i] + ".png", iconBox);
+      else fit(c, image("icons/u-ticket.png"), iconBox);
       String amount = String.format(Locale.KOREA, "%,d", host.me().optInt(keys[i]));
-      float amountSize =
-          canvasTextSize(
-              Math.min(host.dp(15), r.width() / Math.max(5, amount.length())),
-              r.height() - host.dp(16),
-              true);
-      float amountWidth = r.width() * .56f - host.dp(8);
-      p.setTypeface(host.headline);
-      p.setTextSize(amountSize);
-      float amountMeasured = p.measureText(amount);
-      if (amountMeasured > amountWidth) amountSize *= amountWidth / amountMeasured;
-      label(
-          c,
-          amount,
-          r.left + r.width() * .64f,
-          centeredBaseline(r.centerY(), amountSize, true),
-          amountSize,
-          true);
+      float amountSize = currencyTextSize();
+      label(c, amount, (r.left + host.dp(29) + r.right - host.dp(7)) / 2,
+          centeredBaseline(r.centerY(), amountSize, true), amountSize, true,
+          CurrencyDisplay.ink(currency.isEnabled()));
+      buttons.get(9 + i).setContentDescription(currencyNames[i] + " " + amount + " · 상점");
     }
-    String next = "모든 이야기 완료";
-    JSONArray chapters = host.list(host.state, "chapters");
-    outer:
-    for (int i = 0; i < chapters.length(); i++) {
-      JSONArray stages = host.list(chapters.optJSONObject(i), "stages");
-      for (int j = 0; j < stages.length(); j++) {
-        JSONObject stage = stages.optJSONObject(j);
-        if (stage.optBoolean("open") && !stage.optBoolean("cleared")) {
-          next = stage.optString("id") + " " + stage.optString("title");
-          break outer;
-        }
-      }
-    }
-    RectF play = boxes[5];
-    RectF tag = new RectF(play.left, play.top - host.dp(52), play.right, play.top - host.dp(7));
-    panel(c, tag, JournalTheme.PAPER);
-    float storyHeadingSize = canvasTextSize(host.dp(9), host.dp(15), false);
-    float storySize = canvasTextSize(host.dp(12), host.dp(19), true);
-    label(c, "다음 이야기", tag.centerX(), tag.top + host.dp(16), storyHeadingSize, false);
-    label(
-        c,
-        fitted(next, tag.width() - host.dp(36), storySize, true),
-        tag.centerX() - host.dp(4),
-        tag.bottom - host.dp(10),
-        storySize,
-        true);
-    chevron(c, tag.right - host.dp(12), tag.centerY(), host.dp(3), JournalTheme.INK);
-    String playDescription = badges[5] ? "플레이 · 배울 기술 또는 승진이 있어요" : "플레이";
-    buttons.get(5).setContentDescription(playDescription + " · 다음 이야기 " + next);
     for (int i = 0; i < badges.length; i++) if (badges[i]) dot(c, boxes[i]);
   }
 
@@ -1005,7 +868,6 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   void updateBadges() {
-    refreshGrowth();
     long now = System.currentTimeMillis();
     long claimAt = parseTime(host.me().optString("claimReadyAt"));
     badges[1] =
@@ -1023,7 +885,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
     }
     badges[5] = growth;
     buttons.get(0).setContentDescription(badges[0] ? "탐험 · 귀환 보상을 받을 수 있어요" : "탐험");
-    buttons.get(1).setContentDescription(badges[1] ? "뽑기 · 뽑기권을 받을 수 있어요" : "뽑기");
+    buttons.get(1).setContentDescription(badges[1] ? "모집 · 지원서를 받을 수 있어요" : "모집");
     buttons.get(5).setContentDescription(growth ? "플레이 · 배울 기술 또는 승진이 있어요" : "플레이");
     invalidate();
   }
@@ -1080,21 +942,41 @@ final class LobbyView extends FrameLayout implements FullBleed {
         tipAt < 0
             ? random.nextInt(tips.length)
             : (tipAt + 1 + random.nextInt(tips.length - 1)) % tips.length;
-    tip.setText(android.text.Html.fromHtml(tips[tipAt], android.text.Html.FROM_HTML_MODE_LEGACY));
+    tipCopy = android.text.Html.fromHtml(tips[tipAt], android.text.Html.FROM_HTML_MODE_LEGACY);
+    tipPageStart = 0;
+    tipNextPageStart = 0; // A new tip cannot inherit a page offset before the next traversal.
+    tipPaged = false;
+    tip.setText(tipCopy);
     tip.setVisibility(View.VISIBLE);
-    tip.setContentDescription("갈매미 조언 " + tip.getText());
+    tip.scrollTo(0, 0);
+    tip.setContentDescription("갈매미 조언 " + tipCopy + " · 눌러서 다음 조언");
     removeCallbacks(hideTip);
     postDelayed(hideTip, 6000);
     requestLayout();
     invalidate();
   }
 
+  void advanceGullTip() {
+    if (tipNextPageStart < 0) return; // The requested page has not been measured yet.
+    if (tipNextPageStart > tipPageStart && tipNextPageStart < tipCopy.length()) {
+      tipPageStart = tipNextPageStart;
+      tipNextPageStart = -1; // Repeated taps before layout cannot skip unread pages.
+      removeCallbacks(hideTip);
+      postDelayed(hideTip, 6000);
+      requestLayout();
+      invalidate();
+    } else showGullTip();
+  }
+
   @Override
   public boolean dispatchTouchEvent(MotionEvent event) {
-    if (event.getActionMasked() == MotionEvent.ACTION_DOWN && tip.getVisibility() == View.VISIBLE) {
+    boolean readingTip = tipFrame.contains((int) event.getX(), (int) event.getY());
+    if (event.getActionMasked() == MotionEvent.ACTION_DOWN
+        && tip.getVisibility() == View.VISIBLE && !readingTip) {
       tip.setVisibility(View.GONE);
       removeCallbacks(hideTip);
     }
     return super.dispatchTouchEvent(event);
   }
 }
+

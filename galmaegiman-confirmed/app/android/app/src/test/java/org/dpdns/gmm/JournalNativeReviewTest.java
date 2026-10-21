@@ -154,7 +154,7 @@ public class JournalNativeReviewTest {
     View view = host.root.getChildAt(0);
     if (view instanceof LobbyView) {
       LobbyView lobby = (LobbyView) view;
-      result.add("성장 기록:" + geometry.bounds(lobby.growthCard, host.root).toShortString());
+      assertHomeNavigation(host, lobby);
       result.add("대표 캐릭터:" + lobby.heroBox().toString());
     } else result.add("원본 캐릭터:" + ((TitleView) view).guardianBox(ambient(view).current));
     return result;
@@ -253,7 +253,7 @@ public class JournalNativeReviewTest {
         originalUi = currentUi;
         originalPixels = currentPixels;
       } else {
-        assertEquals("시간대와 무관하게 메뉴·캐릭터·성장 기록 위치와 글자색 고정", originalUi, currentUi);
+        assertEquals("시간대와 무관하게 메뉴·캐릭터 위치와 글자색 고정", originalUi, currentUi);
         assertEquals("밤에도 UI 안쪽 양피지와 글자 밝기 고정", originalPixels, currentPixels);
       }
       Bitmap first = ambient.current;
@@ -308,7 +308,7 @@ public class JournalNativeReviewTest {
         fourPhases(host, clock, "home", size);
         LobbyView lobby = (LobbyView) host.root.getChildAt(0);
         for (int i = 0; i < 6; i++) geometry.fixedButton(host, host.root, lobby.buttons.get(i));
-        assertTrue("실제 서버 성장 기록 유지", lobby.growthName.length() > 0);
+        assertHomeNavigation(host, lobby);
         Bitmap character = lobby.visibleArt.get("bg/" + lobby.room + "char.webp");
         assertNotNull("원본 캐릭터를 배경과 별도로 보관", character);
         assertNull(JournalAssets.sceneAsset("/duel/bg/" + lobby.room + "char.webp"));
@@ -372,31 +372,21 @@ public class JournalNativeReviewTest {
       lobby.getViewTreeObserver().dispatchOnPreDraw();
       assertNotNull(lobby.motion.clock);
       NativeSettingsSheet.show(host);
-      Switch reduced =
-          host.visibleDialog.getWindow().getDecorView().findViewWithTag("settings-reduced-motion");
-      assertNotNull("실제 설정에서 움직임 줄이기 제공", reduced);
-      assertFalse(reduced.isChecked());
-      reduced.performClick();
-      assertFalse(host.motionEnabled);
-      assertNull("움직임 줄이기 설정은 정적 표시", lobby.motion.clock);
-      staticSceneRejectsDrag(lobby);
-      assertTrue(
-          "움직임 설정은 기기에 저장",
-          host.getSharedPreferences("native_display", 0).getBoolean("reduce_motion", false));
-      setHour(host, clock, 18);
-      review.await(() -> lobby.ambient.currentPhase == LocalTimeTheme.Phase.EVENING);
-      assertNull("감소 모션의 시간대 변경은 크로스페이드 없이 즉시 표시", lobby.ambient.incoming);
-      review.popup(host, "journal-c-settings-reduced-motion");
-      reduced.performClick();
-      assertTrue(host.motionEnabled);
-      assertFalse(host.getSharedPreferences("native_display", 0).getBoolean("reduce_motion", true));
+      assertNull("Retired motion switch is absent",
+          host.visibleDialog.getWindow().getDecorView().findViewWithTag("settings-reduced-motion"));
+      review.popup(host, "journal-c-settings-platform-motion");
       host.visibleDialog.dismiss();
       Settings.Global.putFloat(
           host.getContentResolver(), Settings.Global.ANIMATOR_DURATION_SCALE, 0);
       Shadows.shadowOf(Looper.getMainLooper()).idle();
       lobby.getViewTreeObserver().dispatchOnPreDraw();
-      assertNull("시스템 애니메이션 비활성은 정적 표시", lobby.motion.clock);
+      assertNull("System animation-off stops repeated motion", lobby.motion.clock);
       staticSceneRejectsDrag(lobby);
+      assertTrue("No retired app preference is reintroduced",
+          !host.getSharedPreferences("native_display", 0).contains("reduce_motion"));
+      setHour(host, clock, 18);
+      review.await(() -> lobby.ambient.currentPhase == LocalTimeTheme.Phase.EVENING);
+      assertNull("System-off transitions are immediate", lobby.ambient.incoming);
       assertSame(state, host.state);
       assertEquals("현지 시간·복귀·움직임 설정에서 추가 API 없음", reads, api.calls);
       review.capture(host, "journal-c-offline-resume-static", 915, 412);
@@ -412,37 +402,42 @@ public class JournalNativeReviewTest {
     review.viewport(host, size[0], size[1]);
   }
 
-  void compactGrowthKeepsActualLevelAndExperience(MainActivity host, LobbyView lobby) {
-    assertFalse("작은 화면은 상세 성장 영역 대신 핵심행 사용", lobby.growthInfo.isShown());
-    TextView core = lobby.growthCompactXp;
-    assertTrue("큰 글자에서도 Lv·경험치 핵심행 표시", core.isShown());
-    assertTrue("핵심행 실제 높이 확보", core.getHeight() > 0);
-    JSONObject unit = host.unit(lobby.growthKey());
-    assertTrue("실제 편성 동료를 기준으로 성장 안내", unit.has("level"));
-    String expected =
-        "Lv"
-            + unit.optInt("level", 1)
-            + " · "
-            + (unit.optInt("xpNext") > 0
-                ? "경험치 "
-                    + String.format(
-                        Locale.KOREA, "%,d / %,d", unit.optInt("xp"), unit.optInt("xpNext"))
-                : "최고 레벨");
-    assertEquals("시안 수치 대신 서버 Lv·경험치를 표시", expected, core.getText().toString());
-    geometry.readable(core);
-    assertEquals(
-        "핵심행 전체가 화면에 표시",
-        geometry.bounds(core, host.root),
-        geometry.visibleIntersection(core, host.root));
-    geometry.fixedButton(host, host.root, lobby.growthAction);
-    assertTrue("빈 성장 패널 대신 약90dp의 압축 카드", lobby.growthCard.getHeight() <= host.dp(110));
-    assertTrue(
-        "핵심행 아래 불필요한 빈 공간 없음",
-        Math.abs(
-                lobby.growthCard.getHeight()
-                    - core.getBottom()
-                    - lobby.growthCard.getPaddingBottom())
-            <= 1);
+  void assertHomeNavigation(MainActivity host, LobbyView lobby) {
+    assertNull("Removed harbor shortcut stays absent", lobby.findViewWithTag("lobby-harbor"));
+    assertNull("Removed growth panel stays absent", lobby.findViewWithTag("lobby-growth"));
+    for (String route : new String[] {"expedition", "draw", "collection", "craft", "shop", "play", "daily", "profile", "settings", "team"}) {
+      View action = lobby.findViewWithTag("lobby-" + route);
+      assertNotNull("Existing HOME route retained: " + route, action);
+      assertTrue(action instanceof Button);
+      geometry.fixedButton(host, host.root, (Button) action);
+    }
+  }
+
+  void collectionStillProvidesActualGrowth(MainActivity host, LobbyView lobby, int[] size) throws Exception {
+    assertHomeNavigation(host, lobby);
+    lobby.findViewWithTag("lobby-collection").performClick();
+    review.await(() -> host.menus.pendingFetches == 0 && !host.busy);
+    review.viewport(host, size[0], size[1]);
+    Button growth = host.root.findViewWithTag("collection-growth");
+    assertNotNull("Growth remains accessible through the existing collection", growth);
+    geometry.fixedButton(host, host.root, growth);
+    JSONObject state = host.state;
+    assertTrue("Owned collection member can grow", growth.isEnabled());
+    growth.performClick();
+    review.await(() -> host.menus.pendingFetches == 0 && !host.busy);
+    review.viewport(host, size[0], size[1]);
+    assertEquals("Growth returns to the collection", "collection", host.menus.unitReturn);
+    if (host.visibleDialog != null && host.visibleDialog.isShowing()) {
+      View picker = geometry.layoutDialog(host);
+      assertTrue("Existing individual picker retains live levels", new NativeGameFlowTest().labels(picker).contains("Lv"));
+      host.visibleDialog.dismiss();
+    } else {
+      assertEquals("Existing growth destination", "unit", host.screen);
+      JSONObject unit = host.unit(host.currentKey);
+      String labels = new NativeGameFlowTest().labels(host.root);
+      assertTrue("Growth shows actual server level", labels.contains("Lv" + unit.optInt("level", 1)));
+    }
+    assertSame("Navigation cannot replace the authoritative state", state, host.state);
   }
 
   @Test
@@ -469,7 +464,7 @@ public class JournalNativeReviewTest {
           ready(host, lobby, size);
           review.capture(host, "journal-c-" + size[0] + "-home-safe", size[0], size[1]);
           review.checkSafeButtons(host.root, host);
-          if (size[0] == 780) compactGrowthKeepsActualLevelAndExperience(host, lobby);
+          if (size[0] == 780) collectionStillProvidesActualGrowth(host, lobby, size);
         }
         host.show("craft");
         review.await(() -> host.menus.pendingFetches == 0 && api.responses.containsKey("craft"));

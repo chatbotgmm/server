@@ -41,6 +41,10 @@ final class NativeTeamReorder {
             boolean active, dragging, scrolling;
             int target = from, pointer = -1;
             View pressed;
+            // 제스처 시작 좌표만 사용한다. 미리 밀린 뷰의 좌표를 다시 목표로 삼지 않는다.
+            final float[] positions = new float[cards.size()], centers = new float[cards.size()];
+            final float[] translationsX = new float[cards.size()], translationsY = new float[cards.size()];
+            final float[] alphas = new float[cards.size()];
             final int slop = ViewConfiguration.get(host).getScaledTouchSlop();
             final Runnable hold =
                 () -> {
@@ -73,7 +77,11 @@ final class NativeTeamReorder {
               card.setPressed(false);
               if (pressed != null) pressed.setPressed(false);
               parent.requestDisallowInterceptTouchEvent(false);
-              for (View other : cards) if (other != card) other.setAlpha(1);
+              for (int i = 0; i < cards.size(); i++) {
+                View other = cards.get(i);
+                other.setTranslationX(translationsX[i]); other.setTranslationY(translationsY[i]);
+                other.setAlpha(alphas[i]);
+              }
             }
 
             boolean inside(float x, float y) {
@@ -93,25 +101,29 @@ final class NativeTeamReorder {
             }
 
             int nearest(float delta) {
-              float center =
-                  horizontal
-                      ? card.getLeft() + card.getWidth() / 2f + delta
-                      : card.getTop() + card.getHeight() / 2f + delta;
+              float center = centers[from] + delta;
               float distance = Float.MAX_VALUE;
               int closest = from;
               for (int i = 0; i < cards.size(); i++) {
-                View other = cards.get(i);
-                float otherCenter =
-                    horizontal
-                        ? other.getLeft() + other.getWidth() / 2f
-                        : other.getTop() + other.getHeight() / 2f;
-                float next = Math.abs(center - otherCenter);
-                if (next < distance) {
-                  closest = i;
-                  distance = next;
+                float next = Math.abs(center - centers[i]);
+                if (next < distance || (next == distance && Math.abs(i-from) < Math.abs(closest-from))) {
+                  closest = i; distance = next;
                 }
               }
               return closest;
+            }
+
+            void preview(int insertion) {
+              for (int i = 0; i < cards.size(); i++) {
+                if (i == from) continue;
+                int destination = i;
+                if (from < insertion && i > from && i <= insertion) destination = i - 1;
+                else if (from > insertion && i >= insertion && i < from) destination = i + 1;
+                float offset = positions[destination] - positions[i];
+                View other = cards.get(i);
+                other.setTranslationX(translationsX[i] + (horizontal ? offset : 0));
+                other.setTranslationY(translationsY[i] + (horizontal ? 0 : offset));
+              }
             }
 
             @Override
@@ -133,6 +145,13 @@ final class NativeTeamReorder {
                 active = true;
                 dragging = scrolling = false;
                 target = from;
+                for (int i = 0; i < cards.size(); i++) {
+                  View other = cards.get(i);
+                  positions[i] = horizontal ? other.getLeft() : other.getTop();
+                  centers[i] = positions[i] + (horizontal ? other.getWidth() : other.getHeight()) / 2f;
+                  translationsX[i] = other.getTranslationX(); translationsY[i] = other.getTranslationY();
+                  alphas[i] = other.getAlpha();
+                }
                 view.setPressed(true);
                 parent.requestDisallowInterceptTouchEvent(true);
                 handler.postDelayed(hold, ViewConfiguration.getLongPressTimeout());
@@ -167,8 +186,7 @@ final class NativeTeamReorder {
                     target = next;
                     card.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
                   }
-                  for (int i = 0; i < cards.size(); i++)
-                    if (cards.get(i) != card) cards.get(i).setAlpha(i == target ? .72f : 1);
+                  preview(target);
                 }
                 return true;
               }
@@ -204,3 +222,4 @@ final class NativeTeamReorder {
     }
   }
 }
+

@@ -460,12 +460,15 @@ public class BattleReadabilityTest {
       BattleTypeInfo.showFighter(v,0);
       assertNotNull(h.visibleDialog);
       String defense=labels(h.visibleDialog.getWindow().getDecorView());
-      assertTrue(defense.contains("방어할 때"));assertTrue(defense.contains("무효 · ×0"));
+      assertTrue(defense.contains("방어 열"));assertTrue(defense.contains("행 ↓ 공격 · 열 → 방어"));
+      assertNotNull(h.visibleDialog.getWindow().getDecorView().findViewWithTag("battle-type-matrix"));
+      assertTrue(defense.contains("무효 · ×0"));
       assertTrue(defense.contains("5"));
       h.visibleDialog.dismiss();
       BattleTypeInfo.show(v,skill("basic","기본 공격",null));
       assertNotNull(h.visibleDialog);
-      assertTrue(labels(h.visibleDialog.getWindow().getDecorView()).contains("기술로 공격할 때"));
+      assertTrue(labels(h.visibleDialog.getWindow().getDecorView()).contains("공격 행"));
+      assertNotNull(h.visibleDialog.getWindow().getDecorView().findViewWithTag("matchup:SEA:FIRE"));
       android.app.AlertDialog shown=h.visibleDialog;
       n.latest.put("phaseId","p2");
       Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(251));

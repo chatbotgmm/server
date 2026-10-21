@@ -78,21 +78,25 @@ final class BattleTypeInfo {
     attr = attr.toUpperCase(Locale.ROOT);
     boolean defense=skill==null;
     LinearLayout body = NativeBattleSheets.column(h);
-    body.addView(NativeBattleSheets.heading(h, defense?"기본 상성 · 방어할 때":"기본 상성 · 기술로 공격할 때",16));
-    JSONObject chart = h.state.optJSONObject("typeChart");
-    JSONObject entry = chart == null ? null : chart.optJSONObject(attr);
-    if(entry==null) body.addView(NativeBattleSheets.prose(h,"기본 상성 정보를 아직 받지 못했어요.",14));
-    else {
-      for(String other:TYPES) {
-        JSONObject otherEntry=chart.optJSONObject(other);
-        if(otherEntry==null) continue;
-        boolean outgoing=contains(entry.optJSONArray("strong"),other);
-        boolean incoming=contains(otherEntry.optJSONArray("strong"),attr);
-        String relation=defense?(incoming?"취약":outgoing?"저항":"보통"):(outgoing?"유리":incoming?"불리":"보통");
-        relationRow(h,body,other,(defense?name(h,other)+" 공격을 받을 때 · ":name(h,other)+"에게 공격할 때 · ")+relation);
-      }
-      body.addView(NativeBattleSheets.prose(h,"증강체 적용 전의 기본 상성이에요. 배율은 현재 서버 미리보기가 제공할 때만 표시해요.",14));
+    // The fixed header already separates the table: reclaim the generic 6dp prose inset.
+    body.setPadding(body.getPaddingLeft(),0,body.getPaddingRight(),body.getPaddingBottom());
+    JSONObject chart=h.state.optJSONObject("typeChart");
+    JSONObject multipliers=h.state.optJSONObject("typeMultipliers");
+    boolean bundled=multipliers==null;
+    if(bundled) {
+      // Explicitly labelled baseline for older servers; never present bundled values as live balance.
+      JSONObject baseline=baseline(h);
+      chart=baseline==null?null:baseline.optJSONObject("chart");
+      multipliers=baseline==null?null:baseline.optJSONObject("multipliers");
     }
+    if(chart==null || multipliers==null)
+      body.addView(NativeBattleSheets.prose(h,"상성 데이터를 아직 받지 못했어요.",16));
+    else body.addView(matrix(h,chart,multipliers,attr,defense));
+    body.addView(NativeBattleSheets.prose(h,
+        (bundled?"앱 기본 상성":"서버 기본 상성")+" · 행 ↓ 공격 · 열 → 방어\n강조: "+name(h,attr)+(defense?" 방어 열":" 공격 행"),14));
+    body.addView(NativeBattleSheets.prose(h,bundled
+        ?"앱 기본 데이터 · 서버의 현재 적용 배율은 아래 미리보기에서 확인해요."
+        :"서버 기본 상성 · 증강체 적용 전",14));
     JSONObject preview=skill==null?null:skill.optJSONObject("preview");
     if(fighter!=null) {
       JSONObject matchup=fighter.optJSONObject("matchup");
@@ -105,17 +109,7 @@ final class BattleTypeInfo {
           +" · "+currentMultiplier(preview.optDouble("multiplier",Double.NaN),defense);
     else current+="\n현재 적용 상성을 확인할 수 없어요.";
     body.addView(NativeBattleSheets.heading(h,current,16));
-    body.addView(NativeBattleSheets.prose(h,"위 현재 배율은 서버가 계산한 증강체 적용 결과예요. 캐릭터의 방어 미리보기는 상대 기본 공격 기준이며, 다른 기술은 달라질 수 있어요.",14));
-    body.addView(NativeBattleSheets.heading(h,"현재 증강체",16));
-    for(int side=0;side<2;side++) {
-      JSONArray augments=h.list(v.side(side),"augments");
-      for(int i=0;i<augments.length();i++) {
-        JSONObject augment=augments.optJSONObject(i);if(augment==null)continue;
-        body.addView(NativeBattleSheets.prose(h,(side==0?"내 ":"상대 ")+augment.optString("name")
-            +(augment.optString("desc").isEmpty()?"":" · "+augment.optString("desc")),14));
-      }
-    }
-    showDialog(v,name(h,attr)+" 속성 상성",body);
+    showDialog(v,name(h,attr)+" 속성 상성 · "+(bundled?"앱 기본":"서버 기본"),body);
   }
 
   /** Timer observes the same server lease; closing or changing panels never creates a new lease. */
@@ -123,10 +117,12 @@ final class BattleTypeInfo {
     MainActivity h=v.host;
     LinearLayout header=new LinearLayout(h);header.setGravity(Gravity.CENTER_VERTICAL);
     android.widget.TextView timer=h.text("",18);timer.setGravity(Gravity.RIGHT);
-    header.addView(timer,new LinearLayout.LayoutParams(0,h.dp(48),1));
+    android.widget.TextView caption=NativeBattleSheets.heading(h,title,18);
+    header.addView(caption,new LinearLayout.LayoutParams(0,-2,1));
+    header.addView(timer,new LinearLayout.LayoutParams(h.dp(48),h.dp(48)));
     android.widget.Button close=h.button("×",()->{});close.setContentDescription("상성 창 닫기");
     header.addView(close,new LinearLayout.LayoutParams(h.dp(48),h.dp(48)));
-    android.app.AlertDialog dialog=new GameDialog(h).setMaxWidthDp(760).setTitle(title)
+    android.app.AlertDialog dialog=new GameDialog(h).setMaxWidthDp(1000)
         .setFixedHeader(header).setScrollBody(body).show();
     dialog.setCancelable(true);dialog.setCanceledOnTouchOutside(true);
     close.setOnClickListener(view->dialog.dismiss());
@@ -174,11 +170,86 @@ final class BattleTypeInfo {
     tick[0].run();
   }
 
-  private static void relationRow(MainActivity h, LinearLayout body, String attr, String text) {
-    LinearLayout row = new LinearLayout(h);
-    row.setGravity(Gravity.CENTER_VERTICAL);
-    row.addView(icon(h, attr), new LinearLayout.LayoutParams(h.dp(40), h.dp(40)));
-    row.addView(NativeBattleSheets.prose(h, text, 14), new LinearLayout.LayoutParams(0, -2, 1));
-    body.addView(row);
+  static JSONObject baseline(MainActivity h) {
+    try(java.io.InputStream in=h.getAssets().open("battle-type-baseline.json")) {
+      java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream();
+      byte[] bytes=new byte[4096];int read;
+      while((read=in.read(bytes))!=-1)out.write(bytes,0,read);
+      return new JSONObject(out.toString("UTF-8"));
+    }catch(Exception unavailable){return null;}
+  }
+
+  /** Same precedence as rulesFrom().typeMult: attack strong, reverse strong, neutral. */
+  static double baseMultiplier(JSONObject chart, JSONObject multipliers,String attack,String defense) {
+    JSONObject a=chart==null?null:chart.optJSONObject(attack),d=chart==null?null:chart.optJSONObject(defense);
+    if(a==null || d==null || multipliers==null)return Double.NaN;
+    if(contains(a.optJSONArray("strong"),defense))return multipliers.optDouble("strong",Double.NaN);
+    if(contains(d.optJSONArray("strong"),attack))return multipliers.optDouble("weak",Double.NaN);
+    return 1;
+  }
+
+  static android.widget.HorizontalScrollView matrix(MainActivity h,JSONObject chart,JSONObject multipliers,
+      String selected,boolean defense) {
+    android.widget.HorizontalScrollView scroll=new android.widget.HorizontalScrollView(h);
+    scroll.setTag("battle-type-matrix");scroll.setFillViewport(true);
+    scroll.setHorizontalScrollBarEnabled(true);
+    // Numeric data uses the existing compact UI font at 13sp. Derive minimum
+    // heights from the actual configured fonts, including larger accessibility scales.
+    android.widget.TextView numericProbe=cell(h,"×0.67",false);numericProbe.setTypeface(h.font);
+    android.widget.TextView rowProbe=cell(h,"그림자",false);rowProbe.setTextSize(12);
+    android.widget.TextView headerProbe=cell(h,"그림자",false);headerProbe.setTextSize(11);
+    int rowHeight=Math.max(h.dp(22),Math.max(lineHeight(numericProbe),lineHeight(rowProbe)));
+    int nameHeight=Math.max(h.dp(24),lineHeight(headerProbe));
+    int headerHeight=h.dp(16)+nameHeight;
+    int labelWidth=h.dp(68);
+    LinearLayout table=new LinearLayout(h);table.setOrientation(LinearLayout.VERTICAL);
+    table.setMinimumWidth(h.dp(568));
+    scroll.addView(table,new android.widget.FrameLayout.LayoutParams(-1,-2));
+    LinearLayout head=new LinearLayout(h);head.setBaselineAligned(false);
+    android.widget.TextView axes=cell(h,"공격↓\n방어→",false);axes.setTextSize(11);axes.setSingleLine(false);axes.setMaxLines(2);
+    head.addView(axes,new LinearLayout.LayoutParams(labelWidth,headerHeight));
+    for(String type:TYPES) {
+      LinearLayout title=new LinearLayout(h);title.setOrientation(LinearLayout.VERTICAL);title.setGravity(Gravity.CENTER);
+      title.setBackgroundColor(defense && type.equals(selected)?0xffd2e9e1:0xffeee0c1);
+      ImageView emblem=icon(h,type);emblem.setPadding(0,0,0,0);
+      title.addView(emblem,new LinearLayout.LayoutParams(h.dp(16),h.dp(16)));
+      android.widget.TextView name=cell(h,name(h,type),false);name.setTextSize(11);name.setTag("matrix-defense:"+type);
+      // Reserve the full glyph line; vertical LinearLayout must not shrink it after the icon.
+      title.addView(name,new LinearLayout.LayoutParams(-1,nameHeight));
+      head.addView(title,new LinearLayout.LayoutParams(0,headerHeight,1));
+    }
+    table.addView(head);
+    for(String attack:TYPES) {
+      LinearLayout row=new LinearLayout(h);row.setBaselineAligned(false);
+      boolean selectedRow=!defense && attack.equals(selected);
+      android.widget.TextView label=cell(h,name(h,attack),selectedRow);label.setTextSize(12);label.setTag("matrix-attack:"+attack);
+      row.addView(label,new LinearLayout.LayoutParams(labelWidth,rowHeight));
+      for(String target:TYPES) {
+        double value=baseMultiplier(chart,multipliers,attack,target);
+        String number=Double.isFinite(value) && value>=0?"×"+java.math.BigDecimal.valueOf(value).stripTrailingZeros().toPlainString():"—";
+        boolean marked=selectedRow || defense && target.equals(selected);
+        android.widget.TextView valueView=cell(h,number,marked);
+        valueView.setTypeface(h.font);
+        valueView.setTag("matchup:"+attack+":"+target);
+        valueView.setContentDescription(name(h,attack)+" 공격 → "+name(h,target)+" 방어 "+number);
+        valueView.setTextColor(!Double.isFinite(value)?JournalTheme.INK:value>1?0xff8c3426:value<1?0xff235b7c:JournalTheme.INK);
+        row.addView(valueView,new LinearLayout.LayoutParams(0,rowHeight,1));
+      }
+      table.addView(row);
+    }
+    return scroll;
+  }
+
+  private static int lineHeight(android.widget.TextView text) {
+    android.graphics.Paint.FontMetricsInt metrics=text.getPaint().getFontMetricsInt();
+    return metrics.descent-metrics.ascent+metrics.leading;
+  }
+
+  private static android.widget.TextView cell(MainActivity h,String text,boolean selected) {
+    android.widget.TextView cell=h.text(text,13);cell.setPadding(h.dp(2),0,h.dp(2),0);
+    cell.setGravity(Gravity.CENTER);cell.setSingleLine(true);cell.setHorizontallyScrolling(false);cell.setIncludeFontPadding(false);
+    android.graphics.drawable.GradientDrawable bg=new android.graphics.drawable.GradientDrawable();
+    bg.setColor(selected?0xffd2e9e1:0xfffff7e5);bg.setStroke(h.dp(1),selected?0xff508d80:0xffe2d4b5);
+    cell.setBackground(bg);return cell;
   }
 }

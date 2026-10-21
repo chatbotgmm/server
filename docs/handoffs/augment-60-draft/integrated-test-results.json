@@ -1,0 +1,603 @@
+{
+  "generatedAt": "2026-10-20T12:52:51.273919+00:00",
+  "baselineCommit": "34e9b4b08ee0e6ed181bf9e87f73ce34bee7872d",
+  "engine": "Node v24.19.0 native type stripping",
+  "command": "node --import ./scripts/ts-source-loader.mjs --test --test-reporter=tap test/*.test.mjs galmaegiman-confirmed/test/*.test.mjs",
+  "testCount": 168,
+  "pass": 168,
+  "fail": 0,
+  "perId": [
+    {
+      "id": "first",
+      "name": "출근 도장",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "V2 first: 우선도 1회, 우선기술 동률은 속도 비교"
+      ],
+      "covered": true
+    },
+    {
+      "id": "bulwark",
+      "name": "철벽",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "V2 bulwark: 피해12% 감소 정확히 두 행동턴"
+      ],
+      "covered": true
+    },
+    {
+      "id": "firstaid",
+      "name": "응급처치",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "V2 firstaid: 생존 팀10% 회복, 기절자는 제외"
+      ],
+      "covered": true
+    },
+    {
+      "id": "sharp",
+      "name": "매의 눈",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "sharp: 첫 타에만 급소확률 추가, 유한 시전 후 소멸"
+      ],
+      "covered": true
+    },
+    {
+      "id": "swift",
+      "name": "칼퇴 준비",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "V2 swift: 10% 속도 증가가 3턴 후 종료"
+      ],
+      "covered": true
+    },
+    {
+      "id": "thick",
+      "name": "두꺼운 깃털",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "V2 thick: 방어10% 증가가 3턴 후 종료"
+      ],
+      "covered": true
+    },
+    {
+      "id": "overtime",
+      "name": "야근 수당",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "V2 overtime: 직접 공격 강화 3회 뒤 종료"
+      ],
+      "covered": true
+    },
+    {
+      "id": "drain",
+      "name": "회식비 정산",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "회복상한 초과분은 쉴드로 전환하지 않음: drain 최대HP4%",
+        "V2 drain: 실제 HP 손실만12%, 3회 후 종료",
+        "V2 drain: 과잉피해를 회복하지 않고 전투가 종료",
+        "overflowguard: 보호막 흡수분은 drain·패시브·기술흡혈 재료 제외"
+      ],
+      "covered": true
+    },
+    {
+      "id": "thorns",
+      "name": "가시 깃털",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "V2 thorns: 실제피해10% 반사 3회 후 종료",
+        "보호막이 모든 피해를 막으면 thorns도 반사하지 않음"
+      ],
+      "covered": true
+    },
+    {
+      "id": "pierce",
+      "name": "송곳 부리",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "V2 pierce: 직접 공격 강화 3회 뒤 종료"
+      ],
+      "covered": true
+    },
+    {
+      "id": "lunch",
+      "name": "점심시간",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "V2 lunch: 3턴 동안만3% 회복"
+      ],
+      "covered": true
+    },
+    {
+      "id": "learn",
+      "name": "상성 학습",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "V2 learn: 같은 속성 재피격8%,16%, 3턴 종료",
+        "공통 피해감소60%상한: learn 재피격감소도 기존guard와 합산"
+      ],
+      "covered": true
+    },
+    {
+      "id": "strip",
+      "name": "기세 꺾기",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "strip 0턴만 허용하고 필수 숫자·정수·유한값·키를 검사",
+        "V2 strip: 강화 하나만 제거, 공격약화 추가 없음"
+      ],
+      "covered": true
+    },
+    {
+      "id": "rinse",
+      "name": "긴급 세척",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "rinse: 상태 해제 후 행동하며 재적용 보호기간 보존",
+        "rinse: 대기 아군의 상태는 해제하지 않음"
+      ],
+      "covered": true
+    },
+    {
+      "id": "resetline",
+      "name": "전열 정비",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "resetline: 생존 팀 능력약화만 제거"
+      ],
+      "covered": true
+    },
+    {
+      "id": "handoffguard",
+      "name": "안전 인계",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "handoffguard: 자발적 교체 시 12% 감소, 팀2회"
+      ],
+      "covered": true
+    },
+    {
+      "id": "relief",
+      "name": "구호 배달",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "relief: 자발적 교체 때8% 회복, 팀2회"
+      ],
+      "covered": true
+    },
+    {
+      "id": "aim",
+      "name": "정밀 조준",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "aim: 첫 타에만 급소확률 추가, 유한 시전 후 소멸"
+      ],
+      "covered": true
+    },
+    {
+      "id": "response",
+      "name": "후수 응수",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "response: 실제 상대 기술 시전 후 공격 위력12%",
+        "response: 상대 수면실패·교체는 응수 발동조건에서 제외"
+      ],
+      "covered": true
+    },
+    {
+      "id": "exploit",
+      "name": "빈틈 공략",
+      "tier": "SILVER",
+      "directBehaviorTests": [
+        "V2 exploit: 직접 공격 강화 3회 뒤 종료"
+      ],
+      "covered": true
+    },
+    {
+      "id": "reverse",
+      "name": "역상성",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "기존 gold reverse: 실제 상성 피해에 적용"
+      ],
+      "covered": true
+    },
+    {
+      "id": "weakguard",
+      "name": "약점 보강",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "기존 gold weakguard: 실제 상성 피해에 적용"
+      ],
+      "covered": true
+    },
+    {
+      "id": "focus",
+      "name": "집중 공략",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "기존 gold focus: 실제 상성 피해에 적용"
+      ],
+      "covered": true
+    },
+    {
+      "id": "neutral",
+      "name": "무속성 지대",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "기존 gold neutral: 실제 상성 피해에 적용"
+      ],
+      "covered": true
+    },
+    {
+      "id": "camo",
+      "name": "보호색",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "chooseTogether camo/dual은 양쪽 새 선두 공통스냅샷으로 결정",
+        "기존 gold camo: 바뀐 선두속성으로 실제 공격"
+      ],
+      "covered": true
+    },
+    {
+      "id": "dual",
+      "name": "이중 속성",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "chooseTogether camo/dual은 양쪽 새 선두 공통스냅샷으로 결정",
+        "기존 gold dual: 기본공격에 상대 약점 속성 사용"
+      ],
+      "covered": true
+    },
+    {
+      "id": "counter",
+      "name": "역습 태세",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "기존 gold counter: 약한 공격에 살아남으면 반격"
+      ],
+      "covered": true
+    },
+    {
+      "id": "freeswitch",
+      "name": "인사 발령",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "기존 gold freeswitch: 교체한 턴 기술까지 실행"
+      ],
+      "covered": true
+    },
+    {
+      "id": "lastone",
+      "name": "마지막 출근",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "기존 gold lastone: 마지막 생존일때 공격 증가"
+      ],
+      "covered": true
+    },
+    {
+      "id": "rustle",
+      "name": "바스락",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "기존 gold rustle: 상대 한턴 수면으로 시전실패, 다음턴 복구"
+      ],
+      "covered": true
+    },
+    {
+      "id": "peanut",
+      "name": "땅콩 기세",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "기존 gold peanut: 갈매미맨 공격·받는피해 증가"
+      ],
+      "covered": true
+    },
+    {
+      "id": "relaytype",
+      "name": "속성 릴레이",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "relaytype: 실제 속성 변경 시25% 증가"
+      ],
+      "covered": true
+    },
+    {
+      "id": "breach",
+      "name": "파훼 예고",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "breach: 보조 후 공격1회 guards 관통"
+      ],
+      "covered": true
+    },
+    {
+      "id": "triage",
+      "name": "응급 흡수",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "triage: 저체력 시 실제 피해25% 회복, 2회 후 종료",
+        "검토수정 triage: 설정에서15%상한 거절 및 런타임변조에도 신규회복15% 유지"
+      ],
+      "covered": true
+    },
+    {
+      "id": "rescue",
+      "name": "구조 신호",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "rescue:30% 경계 통과시 상태 해제하고 HP 회복 없음",
+        "검토수정 rescue: 같은 시전이 부여한 상태도 완료시 해제"
+      ],
+      "covered": true
+    },
+    {
+      "id": "firstshell",
+      "name": "단단한 첫발",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "firstshell: 유닛 첫 피격 시전 전체30%, 이후 종료",
+        "firstshell: protect로0피해이면 첫피격 보호를 소비하지 않음"
+      ],
+      "covered": true
+    },
+    {
+      "id": "chase",
+      "name": "추격 표식",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "chase: 적의 자발적 교체 턴 위력30%"
+      ],
+      "covered": true
+    },
+    {
+      "id": "baton",
+      "name": "마지막 전달",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "baton: 첫 기절 후 강제 출전 한 턴35% 감소"
+      ],
+      "covered": true
+    },
+    {
+      "id": "overflowguard",
+      "name": "넘치는 활력",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "만피 회복기는 overflowguard 잔여횟수·쉴드공간이 있을 때만 합법",
+        "overflowguard: 초과회복20% 상한, 다음 턴까지 흡수, 그뒤 종료",
+        "overflowguard: 보호막 흡수분은 drain·패시브·기술흡혈 재료 제외",
+        "overflowguard: 20% 넘어선 피해만 HP에 적용",
+        "overflowguard: 부활 HP는 초과회복 보호막을 만들지 않음",
+        "overflowguard: 화상·지연 비용은 보호막으로 막지 않음",
+        "overflowguard: 실제 증가하는 초과회복 변환은 팀3회만"
+      ],
+      "covered": true
+    },
+    {
+      "id": "typebridge",
+      "name": "상성 다리",
+      "tier": "GOLD",
+      "directBehaviorTests": [
+        "typebridge: 불리상성 두 시전만 보통화"
+      ],
+      "covered": true
+    },
+    {
+      "id": "redline",
+      "name": "한계 돌파",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "redline 시전회복 금지는 기술회복·흡혈·초과회복쉴드 모두 차단",
+        "redline 미리보기는 신규 위력 예측, RNG·HP·횟수 전체불변",
+        "비용을 낼 수 없는 redline 미리보기는 기본위력, 전투상태 불변",
+        "redline: 조건 성립 시 실제 시전 위력·대가",
+        "redline: protect에 막혀도 비용과시전 소비, 모든 회복금지"
+      ],
+      "covered": true
+    },
+    {
+      "id": "underdog",
+      "name": "거인 사냥",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "underdog: 실제 피해35% 추가와8% 선차감",
+        "공통 추가피해18%상한: underdog와doubleedge 중첩시 합산 제한",
+        "검토수정 underdog: 비용은내HP만, 추가피해는 상대버티기 보존"
+      ],
+      "covered": true
+    },
+    {
+      "id": "glasswing",
+      "name": "유리 날개",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "glasswing 미리보기는 신규 위력 예측, RNG·HP·횟수 전체불변",
+        "glasswing: 조건 성립 시 실제 시전 위력·대가"
+      ],
+      "covered": true
+    },
+    {
+      "id": "lonecharge",
+      "name": "배수의 진",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "lonecharge: 교체 제한, 두 공격 강화 후 해제"
+      ],
+      "covered": true
+    },
+    {
+      "id": "equalfield",
+      "name": "평준화 결투",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "equalfield: 공격레벨 보정, 보통상성 및 급소 금지",
+        "equalfield: 실제 저레벨 공격량만 보정하고 한시전 후 원상복구"
+      ],
+      "covered": true
+    },
+    {
+      "id": "blindspot",
+      "name": "사각 돌파",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "blindspot 미리보기는 조건부 상성2배, 비용/사용권 소비 없음",
+        "blindspot: 불리상성1회2배 전환과12% 대가"
+      ],
+      "covered": true
+    },
+    {
+      "id": "doubleedge",
+      "name": "양날 계약",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "doubleedge: 실제 피해30% 추가와 추가피해50% 반동",
+        "공통 추가피해18%상한: underdog와doubleedge 중첩시 합산 제한"
+      ],
+      "covered": true
+    },
+    {
+      "id": "lastmatch",
+      "name": "최후의 불꽃",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "lastmatch: 조건 성립 시 실제 시전 위력·대가"
+      ],
+      "covered": true
+    },
+    {
+      "id": "bloodrelay",
+      "name": "혈맹 인계",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "bloodrelay: 출전유닛20% 지불, 다음 유닛 공격60% 강화"
+      ],
+      "covered": true
+    },
+    {
+      "id": "quietstorm",
+      "name": "고요한 폭풍",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "quietstorm: 서로 다른 보조 두번 이후90% 증가 한 번"
+      ],
+      "covered": true
+    },
+    {
+      "id": "rainbow",
+      "name": "삼색 연쇄",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "rainbow: 세 속성 연속공격의 세번째75% 증가"
+      ],
+      "covered": true
+    },
+    {
+      "id": "crackedarmor",
+      "name": "균열 갑옷",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "crackedarmor: 첫 피격60% 감소 후 방어25% 약화"
+      ],
+      "covered": true
+    },
+    {
+      "id": "mortgage",
+      "name": "빌린 생명",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "mortgage:35% 즉시 회복, 교체해도 두 턴뒤 동일유닛25% 차감"
+      ],
+      "covered": true
+    },
+    {
+      "id": "coldbargain",
+      "name": "냉혹한 거래",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "coldbargain 시전회복 금지는 기술회복·흡혈·초과회복쉴드 모두 차단",
+        "coldbargain 미리보기는 신규 위력 예측, RNG·HP·횟수 전체불변",
+        "coldbargain: 조건 성립 시 실제 시전 위력·대가",
+        "검토수정 coldbargain: regen-only 공격은 후보에서 제외"
+      ],
+      "covered": true
+    },
+    {
+      "id": "shatterprice",
+      "name": "방벽 거래",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "shatterprice: 강화·보호 모두 소비하고 관통 증가"
+      ],
+      "covered": true
+    },
+    {
+      "id": "hostileweather",
+      "name": "폭풍 계약",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "hostileweather: 양쪽 상성2.2/0.6 및 두턴 종료"
+      ],
+      "covered": true
+    },
+    {
+      "id": "slowhammer",
+      "name": "느린 철퇴",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "slowhammer 미리보기는 신규 위력 예측, RNG·HP·횟수 전체불변",
+        "slowhammer: 조건 성립 시 실제 시전 위력·대가",
+        "slowhammer: 수면으로 시전실패시 효과 대기, 깨어나면 후공 강화"
+      ],
+      "covered": true
+    },
+    {
+      "id": "siegebreak",
+      "name": "공성 돌파",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "siegebreak: 조건 성립 시 실제 시전 위력·대가"
+      ],
+      "covered": true
+    },
+    {
+      "id": "sharedburden",
+      "name": "공동 부담",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "sharedburden: 조건 성립 시 실제 시전 위력·대가"
+      ],
+      "covered": true
+    },
+    {
+      "id": "sealedduel",
+      "name": "봉인 결투",
+      "tier": "PRISM",
+      "directBehaviorTests": [
+        "sealedduel 시전회복 금지는 기술회복·흡혈·초과회복쉴드 모두 차단",
+        "sealedduel: 증강방어 무시, 기본보호 유지 및 회복 금지",
+        "sealedduel: 일반 기술guard와 protect는 보존",
+        "sealedduel: 자신의 다른 공격증강과 흡혈을 해당 시전만 차단"
+      ],
+      "covered": true
+    }
+  ],
+  "simulationFile": "test/augment-simulation-result.json",
+  "limitations": [
+    "TypeScript static compiler unavailable; no full dependency/build verification",
+    "Full Fastify/DB HTTP integration not executed",
+    "Android compile and real-font landscape visual/overflow checks not performed",
+    "No APK, deployment, GitHub push, or database mutation",
+    "Production remains V1; V2 opt-in source only; legacy web replay remains V1",
+    "Balance simulation is bounded smoke, not fairness proof"
+  ],
+  "stage": "engine_service_client_source_candidate",
+  "independentServiceChecks": {
+    "serviceAndUiTests": 23,
+    "actualServiceMethodScenarios": 18,
+    "privacyMapperBothViews": true
+  }
+}

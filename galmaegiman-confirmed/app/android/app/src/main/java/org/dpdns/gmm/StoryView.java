@@ -110,6 +110,11 @@ final class StoryView extends FrameLayout implements FullBleed {
     say.setText(highlight(fullText));
   }
 
+  /** Display only for authored story descriptions; never actor or player names. */
+  static String description(String text) {
+    return text.replace("수비대", "방범대");
+  }
+
   static CharSequence highlight(String text) {
     SpannableString result = new SpannableString(text);
     Matcher quoted = Pattern.compile("「[^」]+」").matcher(text);
@@ -196,7 +201,7 @@ final class StoryView extends FrameLayout implements FullBleed {
     if (portraits != null) foeImage = portraits.optString(foe);
     canvas = new Scene();
     addView(canvas);
-    badge = a.text(caption, 20);
+    badge = a.text(description(caption), 20);
     badge.setTypeface(a.headline);
     badge.setTextColor(Color.WHITE);
     badge.setShadowLayer(a.dp(2), 0, a.dp(1), 0xff302b25);
@@ -247,6 +252,7 @@ final class StoryView extends FrameLayout implements FullBleed {
     controls.addView(count);
     skip = a.button("건너뛰기", this::finish);
     skip.setBackground(new GameButtonDrawable(a, GameButtonDrawable.PAPER));
+    skip.setTextColor(JournalTheme.controlText(GameButtonDrawable.PAPER));
     addView(skip);
     update();
     if (a.motionEnabled && !caption.isEmpty()) {
@@ -257,12 +263,12 @@ final class StoryView extends FrameLayout implements FullBleed {
       String sub = "";
       JSONObject chapter = a.list(a.state, "chapters").optJSONObject(a.chapter);
       if (chapter != null) sub = chapter.optString("title");
-      TextView subtitle = a.text(sub, 16);
+      TextView subtitle = a.text(description(sub), 16);
       subtitle.setTypeface(a.prose);
       subtitle.setTextColor(JournalTheme.BRASS);
       subtitle.setGravity(Gravity.CENTER);
       titleCard.addView(subtitle);
-      TextView heading = a.text(caption, 28);
+      TextView heading = a.text(description(caption), 28);
       heading.setTextColor(Color.WHITE);
       heading.setGravity(Gravity.CENTER);
       heading.setMaxLines(3);
@@ -310,7 +316,7 @@ final class StoryView extends FrameLayout implements FullBleed {
     who.setBackground(nameplate);
     who.setVisibility(name.isEmpty() ? GONE : VISIBLE);
     host.api.ui.removeCallbacks(typeTick);
-    fullText = l.optString("say");
+    fullText = description(l.optString("say"));
     say.setContentDescription(fullText);
     shown = 0;
     typing = host.motionEnabled && !fullText.isEmpty();

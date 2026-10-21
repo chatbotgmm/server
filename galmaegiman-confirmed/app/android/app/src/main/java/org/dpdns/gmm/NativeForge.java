@@ -23,6 +23,10 @@ final class NativeForge extends FrameLayout {
   boolean complete, detached, leaving;
   Ring ring;
   View resultCard;
+  NativeUnitDossier dossier;
+  final int ownerEpoch;
+  final String ownerAccount;
+  boolean finishDelivered;
 
   NativeForge(
       MainActivity h, JSONArray mats, JSONObject result, boolean fail, String text, Runnable next) {
@@ -45,8 +49,10 @@ final class NativeForge extends FrameLayout {
     this.text = text;
     this.next = next;
     this.flow = flow;
+    ownerEpoch = h.epoch;
+    ownerAccount = h.api.token();
     k = new MenuKit(h);
-    setBackgroundColor(JournalTheme.TEAL);
+    setBackground(ThemeArt.of(h).background("backgrounds/bg-navigation-workshop-v1.png"));
     setClickable(true);
     ring = new Ring();
     addView(ring, new LayoutParams(-1, -1));
@@ -62,12 +68,12 @@ final class NativeForge extends FrameLayout {
         new AnimatorListenerAdapter() {
           @Override
           public void onAnimationEnd(Animator a) {
-            if (isAttachedToWindow() && !detached && !complete) showResult(true);
+            if (isAttachedToWindow() && current() && !complete && !leaving) showResult(true);
           }
         });
     setOnClickListener(
         v -> {
-          if (!complete) {
+          if (current() && !complete && !leaving) {
             complete = true;
             animation.cancel();
             complete = false;
@@ -76,11 +82,16 @@ final class NativeForge extends FrameLayout {
         });
     post(
         () -> {
-          if (detached) return;
+          if (!current() || leaving || complete) return;
           h.sound.effect(fail ? "forgefail" : "forge");
           if (motion()) animation.start();
           else showResult(false);
         });
+  }
+
+  boolean current() {
+    return !detached && !h.isFinishing() && !h.isDestroyed()
+        && ownerEpoch == h.epoch && ownerAccount.equals(h.api.token());
   }
 
   boolean motion() {
@@ -94,7 +105,10 @@ final class NativeForge extends FrameLayout {
   }
 
   void updateResult(JSONObject unit) {
-    if (detached) return;
+    if (!current() || leaving) return;
+    // 갱신 응답도 현재 결과의 종 ID와 같아야 한다.
+    if (unit == null || (result != null && !result.optString("id").equals(unit.optString("id")))) return;
+    if (dossier != null) dossier.dismiss();
     result = unit;
     if (complete) {
       complete = false;
@@ -107,7 +121,7 @@ final class NativeForge extends FrameLayout {
   }
 
   void showResult(boolean playEffect) {
-    if (complete || detached) return;
+    if (complete || !current() || leaving) return;
     complete = true;
     if (resultCard != null) resultCard.animate().cancel();
     removeAllViews();
@@ -116,11 +130,6 @@ final class NativeForge extends FrameLayout {
     LinearLayout page = k.column();
     page.setGravity(Gravity.CENTER_HORIZONTAL);
     page.setPadding(h.dp(14), h.dp(10), h.dp(14), h.dp(10));
-    int available =
-        getHeight() > 0
-            ? (int) (getHeight() / h.getResources().getDisplayMetrics().density)
-            : h.contentHeightDp();
-    int imageSize = Math.max(72, Math.min(200, (int) (available * (flow == null ? .42f : .30f))));
     LayoutParams box =
         new LayoutParams(
             Math.min(h.dp(760), (int) ((getWidth() > 0 ? getWidth() : h.root.getWidth()) * .9f)),
@@ -132,36 +141,23 @@ final class NativeForge extends FrameLayout {
     content.setGravity(Gravity.CENTER_VERTICAL);
     content.setPadding(0, h.dp(6), 0, h.dp(6));
     FrameLayout stage = new FrameLayout(h);
-    stage.addView(content, new FrameLayout.LayoutParams(-1, -2, Gravity.CENTER));
+    // Successful art uses the height left after the existing action/footer rows.
+    // Keep the failure message centered at its original wrap-content height.
+    stage.addView(
+        content,
+        new FrameLayout.LayoutParams(-1, result != null && !fail ? -1 : -2, Gravity.CENTER));
     page.addView(stage, new LinearLayout.LayoutParams(-1, 0, 1));
     if (result != null && !fail) {
-      LinearLayout card = k.column();
-      resultCard = card;
-      card.setGravity(Gravity.CENTER);
-      card.setPadding(h.dp(10), h.dp(10), h.dp(10), h.dp(10));
-      card.setBackground(new GamePaperDrawable(h, color()));
-      card.setElevation(h.dp(5));
-      card.addView(
-          k.image(
-              "/thumbs/" + result.optString("img", result.optString("id")) + ".jpg",
-              imageSize,
-              imageSize));
-      TextView name = h.text(result.optString("name"), 20);
-      name.setTag("forge-result-name");
-      name.setTypeface(h.headline);
-      name.setGravity(Gravity.CENTER);
-      name.setTextLocale(java.util.Locale.KOREA);
-      name.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_HIGH_QUALITY);
-      if (android.os.Build.VERSION.SDK_INT >= 33)
-        name.setLineBreakWordStyle(
-            android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE);
-      card.addView(name);
-      if (!result.optString("tierName").isEmpty()) {
-        TextView grade = k.note(result.optString("tierName"));
-        grade.setTextColor(NativeReveal.tierInk(result.optString("tier")));
-        card.addView(grade);
+      RegistrationCardView card = new RegistrationCardView(h, result, RegistrationCardView.FULL);
+      if (!RegistrationCardView.canShow(result)) {
+        card.name.setVisibility(View.VISIBLE);
+        card.grade.setVisibility(View.VISIBLE);
       }
-      content.addView(card, new LinearLayout.LayoutParams(0, -2, .55f));
+      resultCard = card;
+      card.setTag("forge-result-card");
+      card.setOnClickListener(v -> openDossier());
+      card.setContentDescription(RegistrationCardView.description(result) + " · 눌러 대원 기록 보기");
+      content.addView(card, new LinearLayout.LayoutParams(0, -1, .55f));
       if (playEffect && motion()) {
         card.setScaleX(.4f);
         card.setScaleY(.4f);
@@ -182,7 +178,7 @@ final class NativeForge extends FrameLayout {
     outcome.setTypeface(h.headline);
     words.addView(outcome);
     String resultText =
-        text == null || text.isEmpty() ? (fail ? "조합이 맞지 않아 재료는 그대로예요." : "새로운 갈매미를 얻었어요.") : text;
+        text == null || text.isEmpty() ? (fail ? "조합이 맞지 않아 재료는 그대로예요." : "새로운 갈매미를 얻었어요.") : RecruitmentText.display(text);
     TextView message = k.note(resultText);
     message.setMaxLines(3);
     message.setEllipsize(android.text.TextUtils.TruncateAt.END);
@@ -206,20 +202,45 @@ final class NativeForge extends FrameLayout {
         new LinearLayout.LayoutParams(0, -2, result != null && !fail ? .45f : 1);
     wordsSlot.leftMargin = result != null && !fail ? h.dp(12) : 0;
     content.addView(words, wordsSlot);
+    LinearLayout actions = k.row();
     if (flow != null && result != null && !fail) {
-      page.addView(flow.actions(result), new LinearLayout.LayoutParams(-1, h.dp(48)));
+      actions.addView(NativeUnitDossier.actions(h, flow, result,
+          () -> current() && !leaving && dossier == null && !h.busy),
+          new LinearLayout.LayoutParams(0, h.dp(48), 1));
     }
     Button ok = k.primary(null, "확인", this::finish);
     ok.setTag("forge-result-confirm");
-    LinearLayout.LayoutParams footer = new LinearLayout.LayoutParams(h.dp(180), h.dp(48));
-    footer.gravity = Gravity.CENTER_HORIZONTAL;
+    actions.addView(ok, new LinearLayout.LayoutParams(h.dp(160), h.dp(48)));
+    actions.setGravity(Gravity.CENTER);
+    LinearLayout.LayoutParams footer = new LinearLayout.LayoutParams(-1, h.dp(48));
     footer.topMargin = h.dp(6);
-    page.addView(ok, footer);
+    page.addView(actions, footer);
     setOnClickListener(null);
   }
 
+  void openDossier() {
+    if (!current() || leaving || !complete || fail || result == null || dossier != null || h.busy) return;
+    for (int i = 0; i < getChildCount(); i++)
+      getChildAt(i).setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+    dossier = new NativeUnitDossier(h, result, flow, this::current, () -> {
+      NativeUnitDossier shown = dossier;
+      dossier = null;
+      if (shown != null) removeView(shown);
+      for (int i = 0; i < getChildCount(); i++)
+        getChildAt(i).setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+      if (current() && resultCard != null) resultCard.requestFocus();
+    });
+    addView(dossier, new LayoutParams(-1, -1));
+  }
+
+  void deliverFinish() {
+    if (!current() || finishDelivered) return;
+    finishDelivered = true;
+    next.run();
+  }
+
   void finish() {
-    if (leaving) return;
+    if (leaving || !current() || !complete || dossier != null) return;
     leaving = true;
     if (motion())
       animate()
@@ -227,15 +248,16 @@ final class NativeForge extends FrameLayout {
           .setDuration(200)
           .withEndAction(
               () -> {
-                if (!detached) next.run();
+                deliverFinish();
               })
           .start();
-    else next.run();
+    else deliverFinish();
   }
 
   @Override
   protected void onDetachedFromWindow() {
     detached = true;
+    if (dossier != null) dossier.dismiss();
     animation.cancel();
     animate().cancel();
     if (resultCard != null) resultCard.animate().cancel();
@@ -256,7 +278,9 @@ final class NativeForge extends FrameLayout {
     @Override
     protected void onDraw(Canvas c) {
       float x = getWidth() / 2f, y = getHeight() / 2f, dimension = Math.min(getHeight(), h.dp(540));
-      NativeResultBackdrop.draw(h, c, getWidth(), getHeight(), p);
+      // The production workshop stays visible behind the existing material/result animation.
+      p.setColor(0x260c2335);
+      c.drawRect(0, 0, getWidth(), getHeight(), p);
       float ms = progress * (fail ? 1300 : 1500);
       float ringSize = Math.min(dimension * .56f, h.dp(300)), startRadius = ringSize / 2.6f;
       float move =
@@ -340,3 +364,4 @@ final class NativeForge extends FrameLayout {
     }
   }
 }
+

@@ -71,6 +71,9 @@ model OwnedCharacter {
   status       String              @default("AVAILABLE") // AVAILABLE | CONSUMED | EXPEDITION
   locked       Boolean             @default(false)
   expeditionId String?
+  reincarnation Int @default(0)
+  inheritedFrom String?
+  statBonusPct Int @default(0)
   obtainedVia  String
   obtainedAt   DateTime            @default(now())
   consumedAt   DateTime?
@@ -376,4 +379,31 @@ model RealtimeItemEscrow {
   @@id([roomId, phaseId, side])
   @@index([playerId, itemId, state])
   @@index([roomId, state])
+}
+
+
+// 서버 전용 진행도. Player 삭제 시 게임 서비스가 함께 정리합니다.
+model ProgressionState {
+  playerId String @id
+  points Int @default(0)
+  pointDay String @default("")
+  dailyPoints Int @default(0)
+  rerollAvailable Boolean @default(false)
+  rerollExpiresAt DateTime?
+  rerollNextClaimAt DateTime?
+  reassessNextAt DateTime?
+}
+model ProgressionReceipt {
+  playerId String
+  requestId String
+  fingerprint String
+  result String
+  createdAt DateTime @default(now())
+  @@id([playerId, requestId])
+}
+model ProgressionMilestone {
+  playerId String
+  milestoneId String
+  claimedAt DateTime @default(now())
+  @@id([playerId, milestoneId])
 }

@@ -1,0 +1,76 @@
+{
+  "schema": "authorized-progression-source/v1",
+  "approved_commit": "5279b39021a6cea5919a61379ca6173e0cd9c98e",
+  "files": [
+    {
+      "path": "galmaegiman-confirmed/docs/PROGRESSION.md",
+      "sha256": "fec1c391dc2c0e1fb50b66b1b77ea6a725099e98a0ecdfc85453d77c3321405d",
+      "bytes": 7059
+    },
+    {
+      "path": "galmaegiman-confirmed/prisma/manual/20261019_progression_additive.sql",
+      "sha256": "6241b515407feb7257c1f84a21fe8290839c062daf38e2ee1f86d9a6522b8576",
+      "bytes": 1115
+    },
+    {
+      "path": "galmaegiman-confirmed/prisma/schema.prisma",
+      "sha256": "95734eea9480188acc9f6947ac9321363d3693d798ee2762b463b6cf07dd2581",
+      "bytes": 12139
+    },
+    {
+      "path": "galmaegiman-confirmed/src/battle/engine.ts",
+      "sha256": "990f8a117f2fd154eeb46dd9705d576b80ae3ce4f82c08430d9910b058224291",
+      "bytes": 37658
+    },
+    {
+      "path": "galmaegiman-confirmed/src/battle/growth.ts",
+      "sha256": "93d3cfc40c97d250a07dea41e7da717e8f6624ee233e8b04bd6013ca4ff1c08d",
+      "bytes": 11001
+    },
+    {
+      "path": "galmaegiman-confirmed/src/battle/realtime-adapter.ts",
+      "sha256": "7025650440f71b02dfbe37e726e1f6a8ee28d73cb8a270e05fe6b466f62a774c",
+      "bytes": 6858
+    },
+    {
+      "path": "galmaegiman-confirmed/src/game.ts",
+      "sha256": "52c90e3c1acb460c3e5e5cc1344ea0f3d19e78d5783c9fc1c893a713c8f30a7e",
+      "bytes": 207224
+    },
+    {
+      "path": "galmaegiman-confirmed/src/native.ts",
+      "sha256": "156977e40b2a30b6d3ac5e307f8bbcd45bd37785d3d0d3e6aa87bd65bb44715f",
+      "bytes": 34338
+    },
+    {
+      "path": "galmaegiman-confirmed/src/progression.ts",
+      "sha256": "d368e3b0ebb4570387d04fa8a46082f8c10c0a3bd4a409682d86f4bba35c8ab8",
+      "bytes": 10181
+    },
+    {
+      "path": "galmaegiman-confirmed/src/pvp/realtime-native-view.ts",
+      "sha256": "c7e7005550a84226fcccfa52df24de8eab4bf16e15e0b74de9d5c5aaf61ecf34",
+      "bytes": 14280
+    },
+    {
+      "path": "galmaegiman-confirmed/src/pvp/service.ts",
+      "sha256": "c0db6cbb625fc6d40c3b6c042aff1c305c2240c199f26513a2cbc1ab9fb64a3c",
+      "bytes": 44983
+    },
+    {
+      "path": "galmaegiman-confirmed/src/server.ts",
+      "sha256": "80ce8e39b2426aceadab6a074660dcda88b3f47f2f84bc800432b79fc76a0b1f",
+      "bytes": 2494
+    },
+    {
+      "path": "galmaegiman-confirmed/test/progression-migration.test.ts",
+      "sha256": "45da5dc6475bfd5f83d0e029e6faac2a9c619256376be78b2bff9a9da943d2ba",
+      "bytes": 2359
+    },
+    {
+      "path": "galmaegiman-confirmed/test/progression.integration.test.ts",
+      "sha256": "17090e4e47c897ebba1f72e8324c895afbd75fd962b1799f7ddd573aff2e15ee",
+      "bytes": 13541
+    }
+  ]
+}

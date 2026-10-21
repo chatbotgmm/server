@@ -25,18 +25,29 @@ final class NativeAugmentView extends LinearLayout {
   final TextView title, compare, hint, timerRule;
   final long deadline, clockOffset;
   boolean refreshing;
+  final long bonusReceivedAt = android.os.SystemClock.elapsedRealtime();
   final Runnable tick =
       new Runnable() {
         public void run() {
           if (!isAttachedToWindow() || deadline <= 0) return;
           long remaining = Math.max(0, deadline - (System.currentTimeMillis() + clockOffset));
+          boolean localInput = canChoose();
           title.setText(
               (switching
                       ? "② 다음 출전"
                       : battleView.side(0).optBoolean("needSwitch") ? "① 증강체" : "전투 증강체")
                   + " · "
-                  + ((remaining + 999) / 1000)
-                  + "초");
+                  + (remaining <= 0 ? "결과 확인 중"
+                      : NativeRealtime.isBattle(battleView.battle) && !localInput
+                          ? h.realtime.writing ? "선택 전송 중" : "상대 선택 대기"
+                          : ((remaining + 999) / 1000) + "초"));
+          for (View pick : picks) pick.setEnabled(localInput);
+          for (int i = 0; i < rerolls.size(); i++) {
+            JSONObject offer = offers.optJSONObject(i);
+            rerolls.get(i).setEnabled(localInput && canReroll(offer));
+            rerolls.get(i).setText(rerollLabel(offer));
+          }
+          confirm.setEnabled(localInput && (switching ? switchTo >= 0 : !selected.isEmpty()));
           if (remaining <= 0) {
             confirm.setEnabled(false);
             confirm.setText("결과 확인 중");
@@ -44,7 +55,7 @@ final class NativeAugmentView extends LinearLayout {
             for (Button reroll : rerolls) reroll.setEnabled(false);
           }
           boolean urgent = remaining <= 10000;
-          title.setTextColor(urgent ? NativeBattleLog.DAMAGE : JournalTheme.INK);
+          title.setTextColor(urgent ? 0xffffd2bc : JournalTheme.WHITE);
           timerRule.setTextColor(urgent ? NativeBattleLog.DAMAGE : JournalTheme.MUTED);
           timerRule.setTypeface(h.prose, urgent ? Typeface.BOLD : Typeface.NORMAL);
           if (remaining <= 0 && NativeRealtime.isBattle(battleView.battle)) {
@@ -96,7 +107,10 @@ final class NativeAugmentView extends LinearLayout {
       valid |= offers.optJSONObject(i).optString("id").equals(selected);
     if (!valid) selected = "";
     setOrientation(VERTICAL);
-    setBackground(new AppSkin.Place("training"));
+    setTag("theme-augment-desk");
+    // This view covers the battle while choosing. The decoded scene is opaque,
+    // and ThemeArt paints navy until it is ready, so no secret battle UI leaks through.
+    setBackground(ThemeArt.of(h).background(AppSkin.background("workshop")));
     setPadding(
         h.dp(large ? 44 : 20) + h.root.getPaddingLeft(),
         h.dp(8) + h.root.getPaddingTop(),
@@ -104,11 +118,12 @@ final class NativeAugmentView extends LinearLayout {
         h.dp(10) + h.root.getPaddingBottom());
     title = h.text("증강체 선택", large ? 24 : 19);
     title.setTextSize(large ? 24 : 19);
-    title.setPadding(0, 0, 0, h.dp(3));
+    title.setPadding(h.dp(16), h.dp(7), h.dp(16), h.dp(7));
     title.setIncludeFontPadding(false);
     title.setTypeface(h.headline);
     title.setGravity(Gravity.CENTER);
-    title.setTextColor(JournalTheme.INK);
+    title.setTextColor(JournalTheme.WHITE);
+    title.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
     addView(title, new LayoutParams(-1, -2));
     timerRule = h.text("30초 안에 확정하지 않으면 선택지 중 무작위로 결정돼요.", large ? 17 : 14);
     timerRule.setTypeface(h.prose);
@@ -179,8 +194,8 @@ final class NativeAugmentView extends LinearLayout {
     cp.bottomMargin = h.dp(6);
     addView(cards, cp);
     confirm = h.button("증강체 선택", this::submit);
-    confirm.setBackground(new GameButtonDrawable(h, JournalTheme.PRIMARY));
-    confirm.setTextColor(JournalTheme.controlText(JournalTheme.PRIMARY));
+    PhaseButtonStyle.apply(h, confirm, true);
+    confirm.setTag("augment-confirm");
     confirm.setTextSize(large ? 18 : 16);
     confirm.setMinHeight(h.dp(48));
     confirm.setMinimumHeight(h.dp(48));
@@ -188,7 +203,8 @@ final class NativeAugmentView extends LinearLayout {
     footer = k.row();
     LayoutParams foot = new LayoutParams(-1, h.dp(48));
     addView(footer, foot);
-    footer.addView(confirm, new LayoutParams(0, -1, 2));
+    footer.setGravity(Gravity.CENTER);
+    footer.addView(confirm, new LayoutParams(h.dp(large ? 360 : 300), -1));
     if (offers.length() == 0) showSwitch();
     else showOffers();
   }
@@ -206,6 +222,9 @@ final class NativeAugmentView extends LinearLayout {
   }
 
   static String coreEffect(JSONObject augment) {
+    // V2의 횟수·기간·대상은 카탈로그 설명이 기준이다. V1 템플릿을 재사용하지 않는다.
+    if (augment.optInt("version") == 2)
+      return augment.optString("desc", "효과 설명을 확인할 수 없어요.");
     String template;
     switch (augment.optString("id")) {
       case "reverse": template = "이번 전투: 내 공격 상성\n강함 ↔ 약함"; break;
@@ -287,6 +306,41 @@ final class NativeAugmentView extends LinearLayout {
     return kind == 0 ? "공격" : kind == 2 ? "수비" : "유틸";
   }
 
+  // 희귀도와 공격·수비·유틸 역할은 별개다. 등급은 V2에서만 표시한다.
+  static String tierName(JSONObject augment) {
+    if (augment.optInt("version") != 2) return "";
+    switch (augment.optString("tier")) {
+      case "silver": return "실버";
+      case "gold": return "골드";
+      case "prismatic": return "프리즘";
+      default: return "등급 미확인";
+    }
+  }
+
+  static int cardColor(JSONObject augment) {
+    if (augment.optInt("version") != 2) return color(kind(augment.optString("id")));
+    switch (augment.optString("tier")) {
+      case "gold": return 0xff806017;
+      case "prismatic": return 0xff735191;
+      default: return 0xff596778;
+    }
+  }
+
+  static String cardRole(JSONObject augment) {
+    String id = augment.optString("id");
+    if (augment.optInt("version") == 2 && !Arrays.asList(
+        "reverse", "weakguard", "focus", "neutral", "camo", "dual", "counter", "learn",
+        "first", "bulwark", "firstaid", "freeswitch", "lastone", "strip", "rustle", "peanut",
+        "sharp", "swift", "thick", "overtime", "drain", "thorns", "pierce", "lunch").contains(id))
+      return "증강";
+    return kindName(kind(id));
+  }
+
+  static String cardLabel(JSONObject augment) {
+    String tier = tierName(augment);
+    return (tier.isEmpty() ? "" : tier + " · ") + cardRole(augment);
+  }
+
   LinearLayout columnCard(int tint) {
     LinearLayout column = k.column();
     LayoutParams col = new LayoutParams(0, -1, 1);
@@ -322,15 +376,15 @@ final class NativeAugmentView extends LinearLayout {
       int ix = i;
       JSONObject aug = offers.optJSONObject(i);
       String id = aug.optString("id");
-      int type = kind(id);
-      LinearLayout content = columnCard(color(type));
+      LinearLayout content = columnCard(cardColor(aug));
       ImageView icon =
           k.image(
               "/duel/icons/"
-                  + (JournalIcons.supports(id) ? id : aug.optString("icon", "u-gift"))
+                  + (JournalIcons.supports(id) ? id : aug.optInt("version") == 2 ? "u-gift" : aug.optString("icon", "u-gift"))
                   + ".png",
-              large ? 56 : 40,
-              large ? 56 : 40);
+              large ? 76 : 56,
+              large ? 76 : 56);
+      icon.setTag("augment-icon-" + id);
       android.graphics.drawable.GradientDrawable ring =
           new android.graphics.drawable.GradientDrawable();
       ring.setShape(android.graphics.drawable.GradientDrawable.OVAL);
@@ -347,6 +401,7 @@ final class NativeAugmentView extends LinearLayout {
       name.setMaxLines(2);
       name.setEllipsize(android.text.TextUtils.TruncateAt.END);
       name.setTypeface(h.headline);
+      name.setTextColor(JournalTheme.WHITE);
       name.setGravity(Gravity.CENTER);
       name.setPadding(h.dp(3), 0, 0, 0);
       name.setIncludeFontPadding(true);
@@ -357,14 +412,14 @@ final class NativeAugmentView extends LinearLayout {
           disadvantaged
               && Arrays.asList("camo", "reverse", "weakguard", "neutral", "dual", "counter")
                   .contains(id);
-      TextView badge = h.text(kindName(type) + (recommend ? " · 추천" : ""), large ? 15 : 12);
-      badge.setTextColor(color(type));
+      TextView badge = h.text(cardLabel(aug) + (recommend ? " · 추천" : ""), large ? 15 : 12);
+      badge.setTextColor(cardColor(aug));
       badge.setBackground(new GamePaperDrawable(h));
       badge.setPadding(h.dp(10), h.dp(2), h.dp(10), h.dp(2));
       content.addView(badge, new LayoutParams(-2, -2));
       TextView desc = k.note(coreEffect(aug));
       desc.setTextSize(large ? 19 : 16);
-      desc.setPadding(0, h.dp(3), 0, 0);
+      desc.setPadding(h.dp(8), h.dp(6), h.dp(8), h.dp(6));
       desc.setIncludeFontPadding(false);
       desc.setTextColor(JournalTheme.MUTED);
       desc.setGravity(Gravity.CENTER);
@@ -374,9 +429,14 @@ final class NativeAugmentView extends LinearLayout {
       desc.setEllipsize(null);
       desc.setGravity(Gravity.CENTER);
       desc.setTag("augment-core-effect");
-      content.addView(desc, new LayoutParams(-1, 0, 1));
+      // V2 카탈로그 설명에는 줄바꿈 표시가 없으므로 낱말 중간(「흡수쉴드/로」)에서 끊지 않고 띄어쓰기에서만 바꾼다.
+      if (aug.optInt("version") == 2) NativeEconomy.wrapAtSpaces(desc, coreEffect(aug));
+      desc.setBackground(new GamePaperDrawable(h));
+      LayoutParams effectSlot = new LayoutParams(-1, 0, 1);
+      effectSlot.topMargin = h.dp(5);
+      content.addView(desc, effectSlot);
       content.setContentDescription(
-          aug.optString("name") + " · " + kindName(type) + " · " + aug.optString("desc"));
+          aug.optString("name") + " · " + cardLabel(aug) + " · " + aug.optString("desc"));
       content.setOnClickListener(
           v -> {
             if (!canChoose()) return;
@@ -389,9 +449,9 @@ final class NativeAugmentView extends LinearLayout {
       Button reroll =
           k.action(
               null,
-              aug.optBoolean("rerolled") ? "재추첨 완료" : "다시 뽑기",
+              rerollLabel(aug),
               () -> {
-                if (!canChoose()) return;
+                if (!canChoose() || !canReroll(aug)) return;
                 if (id.equals(selected)) {
                   selected = "";
                   h.pendingAugment = "";
@@ -399,15 +459,18 @@ final class NativeAugmentView extends LinearLayout {
                 h.battleTurnFrom(battleView.battle, MainActivity.obj("reroll", ix));
               });
       // 종이 버튼 표면을 유지해 누를 수 있는 버튼으로 보이게 하고, 재추첨 뒤에는 비활성 표면으로 구분한다.
+      PhaseButtonStyle.apply(h, reroll, false);
+      reroll.setTag("augment-reroll-" + ix);
       reroll.setTextSize(large ? 15 : 14);
       reroll.setPadding(h.dp(4), 0, h.dp(4), h.dp(2));
       reroll.setMinHeight(h.dp(48));
       reroll.setMinimumHeight(h.dp(48));
-      reroll.setEnabled(!aug.optBoolean("rerolled"));
+      reroll.setEnabled(canChoose() && canReroll(aug));
       LayoutParams rp = new LayoutParams(-1, h.dp(48));
       rp.topMargin = h.dp(4);
       LinearLayout actions = k.row();
-      actions.addView(reroll, new LayoutParams(0, -1, 2));
+      actions.setGravity(Gravity.CENTER);
+      actions.addView(reroll, new LayoutParams(h.dp(136), -1));
 
       column.addView(actions, rp);
       rerolls.add(reroll);
@@ -420,7 +483,7 @@ final class NativeAugmentView extends LinearLayout {
       JSONObject aug = offers.optJSONObject(i);
       boolean on = aug.optString("id").equals(selected);
       ((View) picks.get(i).getTag())
-          .setBackground(new CardFrame(color(kind(aug.optString("id"))), on));
+          .setBackground(new CardFrame(cardColor(aug), on));
       picks.get(i).setSelected(on);
       names.get(i).setText((on ? "✓ " : "") + aug.optString("name"));
     }
@@ -433,8 +496,8 @@ final class NativeAugmentView extends LinearLayout {
         selected.isEmpty()
             ? "증강체 선택"
             : battleView.side(0).optBoolean("needSwitch")
-                ? name + " · 다음 출전 선택"
-                : name + " · 선택 확정");
+                ? name + " · 다음"
+                : name + " · 확정");
     confirm.setContentDescription(name.isEmpty() ? "증강체 선택" : name + " 선택 확정");
   }
 
@@ -464,6 +527,7 @@ final class NativeAugmentView extends LinearLayout {
               large ? 100 : 56));
       TextView name = h.text(f.optString("name"), large ? 25 : 19);
       name.setTypeface(h.headline);
+      name.setTextColor(JournalTheme.WHITE);
       identity.addView(name, new LayoutParams(0, -2, 1));
       card.addView(identity, new LayoutParams(-1, -2));
       TextView match =
@@ -474,9 +538,14 @@ final class NativeAugmentView extends LinearLayout {
                   + " · 방어 "
                   + NativeBattleSheets.defense(h, battleView.active(1), f));
       match.setTextSize(large ? 17 : 13);
+      match.setTextColor(JournalTheme.PAPER);
       card.addView(match);
+      LinearLayout vitality = k.column();
+      vitality.setPadding(h.dp(8), h.dp(6), h.dp(8), h.dp(8));
+      vitality.setBackground(new GamePaperDrawable(h));
+      card.addView(vitality, new LayoutParams(-1, -2));
       k.progress(
-          card,
+          vitality,
           "체력 " + f.optInt("hp") + " / " + f.optInt("maxHp"),
           f.optInt("hp"),
           f.optInt("maxHp"),
@@ -487,7 +556,7 @@ final class NativeAugmentView extends LinearLayout {
             switchTo = to;
             for (View p : picks)
               ((View) p.getTag()).setBackground(new CardFrame(0xff927017, p == card));
-            confirm.setText(f.optString("name") + " · 출전 확정");
+            confirm.setText("출전 확정");
             confirm.setContentDescription(f.optString("name") + " · 출전 확정");
             confirm.setEnabled(true);
           });
@@ -496,7 +565,10 @@ final class NativeAugmentView extends LinearLayout {
     confirm.setText("출전 선택");
     if (offers.length() > 0) {
       Button back = k.action(null, "증강체", this::showOffers);
-      footer.addView(back, 0, new LayoutParams(0, -1, 1));
+      PhaseButtonStyle.apply(h, back, false);
+      LayoutParams backSize = new LayoutParams(h.dp(112), -1);
+      backSize.rightMargin = h.dp(8);
+      footer.addView(back, 0, backSize);
       back.setTag("augment-back");
     }
   }
@@ -510,9 +582,32 @@ final class NativeAugmentView extends LinearLayout {
                 : "30초 안에 확정하지 않으면 선택지 중 무작위로 결정돼요.");
   }
 
+  static boolean bonusRerollAvailable(JSONObject battle, long estimatedServerNow) {
+    JSONObject bonus = battle.optJSONObject("bonusReroll");
+    return "choose".equals(battle.optString("phase")) && battle.optLong("serverNow") > 0
+        && bonus != null && bonus.optBoolean("available")
+        && bonus.optLong("expiresAt") > estimatedServerNow;
+  }
+
+  boolean canReroll(JSONObject offer) {
+    if (offer == null) return false;
+    long now = battleView.battle.optLong("serverNow")
+        + Math.max(0, android.os.SystemClock.elapsedRealtime() - bonusReceivedAt);
+    return !offer.optBoolean("rerolled") || bonusRerollAvailable(battleView.battle, now);
+  }
+
+  String rerollLabel(JSONObject offer) {
+    return !offer.optBoolean("rerolled") ? "다시 뽑기" : canReroll(offer) ? "추가 +1 사용" : "재추첨 완료";
+  }
+
   boolean canChoose() {
-    return !h.busy && (deadline <= 0
-        || System.currentTimeMillis() + clockOffset < deadline);
+    if (h.busy || (deadline > 0 && System.currentTimeMillis() + clockOffset >= deadline)) return false;
+    if (!NativeRealtime.isBattle(battleView.battle)) return true;
+    NativeRealtime realtime = h.realtime;
+    return realtime != null && !realtime.writing && !realtime.playing
+        && realtime.latest != null && realtime.latest.optBoolean("canSubmit")
+        && !realtime.latest.optBoolean("mySubmitted")
+        && battleView.battle.optString("phaseId").equals(realtime.latest.optString("phaseId"));
   }
 
   void submit() {
@@ -534,39 +629,57 @@ final class NativeAugmentView extends LinearLayout {
     final int tint;
     final boolean selected;
     final Paint p = new Paint(3);
+    int alpha = 255;
+    ColorFilter filter;
 
     CardFrame(int tint, boolean selected) {
       this.tint = tint;
       this.selected = selected;
+      ThemeArt.of(h).image(ThemeArt.file(ThemeArt.Surface.NAV));
     }
 
     public void draw(Canvas c) {
       RectF r = new RectF(getBounds());
-      float density = h.getResources().getDisplayMetrics().density;
-      JournalTheme.drawPanel(
-          c, r, density, selected ? JournalTheme.SELECTED : JournalTheme.PAPER, true);
+      int saved = c.save();
+      p.setAlpha(alpha);
+      p.setColorFilter(filter);
+      if (alpha != 255 || filter != null) c.saveLayer(r, p);
+      r.inset(h.dp(2), h.dp(2));
+      p.setStyle(Paint.Style.FILL);
+      p.setColor(0xff163846);
+      c.drawRoundRect(r, h.dp(16), h.dp(16), p);
+      p.setStyle(Paint.Style.STROKE);
+      p.setStrokeWidth(h.dp(selected ? 3 : 1));
+      p.setColor(selected ? JournalTheme.SELECTED_EDGE : tint);
+      c.drawRoundRect(r, h.dp(16), h.dp(16), p);
+      p.setStyle(Paint.Style.FILL);
+      p.setAlpha(255);
+      p.setColorFilter(null);
       r.inset(h.dp(7), h.dp(7));
       p.setStyle(Paint.Style.FILL);
       p.setColor(tint);
-      c.drawRect(r.left, r.top, r.right, r.top + h.dp(2), p);
+      c.drawRoundRect(r.centerX() - h.dp(28), r.top, r.centerX() + h.dp(28), r.top + h.dp(3), h.dp(2), h.dp(2), p);
       if (selected) {
         r.set(getBounds());
         r.inset(h.dp(4), h.dp(4));
         r.bottom -= h.dp(4);
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(h.dp(2));
-        p.setColor(JournalTheme.BRASS);
-        c.drawRoundRect(r, h.dp(4), h.dp(4), p);
+        p.setColor(JournalTheme.SELECTED_EDGE);
+        c.drawRoundRect(r, h.dp(12), h.dp(12), p);
         p.setStyle(Paint.Style.FILL);
       }
+      c.restoreToCount(saved);
     }
 
     public void setAlpha(int a) {
-      p.setAlpha(a);
+      alpha = Math.max(0, Math.min(255, a));
+      invalidateSelf();
     }
 
     public void setColorFilter(ColorFilter f) {
-      p.setColorFilter(f);
+      filter = f;
+      invalidateSelf();
     }
 
     public int getOpacity() {
@@ -574,3 +687,5 @@ final class NativeAugmentView extends LinearLayout {
     }
   }
 }
+
+

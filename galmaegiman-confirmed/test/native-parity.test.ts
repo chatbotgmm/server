@@ -64,7 +64,7 @@ suite('네이티브 게임 기능 복원 API (격리 DB)',()=>{
     }finally{await app.close();}
   });
 
-  it('스토리 잠금 안내는 선행 전투·실제 미승진 개체·승진의 레벨과 부 조건을 구분하며 기존 입장 판정과 같다',async()=>{
+  it('스토리 잠금은 앞 이야기 클리어만 본다: 승진은 조건이 아니며 적 승진 단계는 안내로만 남는다',async()=>{
     try{
       const empty=await get('state');expect(empty.chapters[0].lock.requirements).toContainEqual(expect.objectContaining({kind:'team',met:false,action:'team'}));
       const a=await own('D1'),b=await own('D2'),flat=story.chapters.flatMap((c,chapterIndex)=>c.stages.map(st=>({...st,chapter:c,chapterIndex})));
@@ -73,26 +73,26 @@ suite('네이티브 게임 기능 복원 API (격리 DB)',()=>{
         await game.webSaveStory(playerId,{units:{[a]:{...record('D1',level),stage:stageA},[b]:{...record('D2',level),stage:stageB}},team:[a,b],cleared,hp:{}});
         const state=await get('state');
         for(const [ix,st] of flat.entries()){
-          const result=state.chapters[st.chapterIndex].stages.find((s:any)=>s.id===st.id),need=st.chapter.needStage??0;
-          const original=(ix===0||cleared.includes(flat[ix-1].id)||flat.slice(ix).some(st=>cleared.includes(st.id)))&&stageA>=need&&stageB>=need;
-          expect(result.open,st.id).toBe(original);expect(result.lock.open,st.id).toBe(original);expect(result.lock.requirements.every((r:any)=>r.met),st.id).toBe(original);
+          const result=state.chapters[st.chapterIndex].stages.find((s:any)=>s.id===st.id);
+          // 승진 단계와 무관하게 앞 단계 클리어(또는 뒤쪽 진행 기록)만으로 열린다.
+          const expected=ix===0||cleared.includes(flat[ix-1].id)||flat.slice(ix).some(st=>cleared.includes(st.id));
+          expect(result.open,st.id).toBe(expected);expect(result.lock.open,st.id).toBe(expected);expect(result.lock.requirements.every((r:any)=>r.met),st.id).toBe(expected);
+          expect(result.lock.requirements.some((r:any)=>r.kind==='growth'),st.id).toBe(false);
         }
         return {state,stage:state.chapters.find((c:any)=>c.id==='2').stages[0]};
       };
-      const initial=await save([],0,0);expect(initial.stage.lock).toMatchObject({requiredStage:1,previousStageId:previous.id});
+      const initial=await save([],0,0);expect(initial.stage.lock).toMatchObject({requiredStage:1,previousStageId:previous.id,open:false});
       expect(initial.stage.lock.requirements.find((r:any)=>r.kind==='stage')).toMatchObject({met:false,action:'stage',stageId:previous.id,chapterIndex:previous.chapterIndex});
-      expect(initial.stage.lock.requirements.find((r:any)=>r.key===a)).toMatchObject({kind:'growth',met:false,action:'growth',current:0,required:1,level:15,needLevel:20,clearedParts:0,needParts:1,canEvolve:false,nextStage:1,conditions:[{kind:'level',met:false,current:15,required:20},{kind:'chapter',met:false,current:0,required:1}]});
-      const firstPart=story.chapters.find(c=>c.id==='1')!.stages.at(-1)!.id;
-      const partial=await save([firstPart,previous.id],1,0,20);
-      expect(partial.stage.lock.requirements.filter((r:any)=>!r.met).map((r:any)=>r.key)).toEqual([b]);
-      expect(partial.stage.lock.requirements.find((r:any)=>r.key===b)).toMatchObject({needLevel:20,clearedParts:1,needParts:1,canEvolve:true});
-      const ready=await save([firstPart,previous.id],1,1,20);expect(ready.stage.open).toBe(true);expect(ready.stage.lock.reason).toBe('');expect(ready.state.chapters.find((c:any)=>c.id==='2').open).toBe(true);
-      const battle=await post('battle/start',{mode:'story',stage:target.id});expect(battle.stage).toBe(target.id);await post('battle/turn',{session:battle.session,revision:battle.revision,leave:true});
-      // 후속 단계를 깬 기존 저장은 중간 기록이 없어도 재입장 가능해야 한다.
-      expect((await save([chapter.stages[1].id],1,1,20)).stage.open).toBe(true);
-      // 진행 이력이 있어도 미승진 개체가 남아 있으면 우회되지 않는다.
-      expect((await save([chapter.stages[1].id],1,0,20)).stage.open).toBe(false);
       expect((await app.inject({method:'POST',url:'/my/api/native/battle/start',headers,payload:{mode:'story',stage:target.id}})).statusCode).toBe(400);
+      // 앞 단계만 깨면 아무도 승진하지 않아도 2부에 들어간다.
+      const unpromoted=await save([previous.id],0,0,15);
+      expect(unpromoted.stage.open).toBe(true);expect(unpromoted.stage.lock.reason).toBe('');expect(unpromoted.state.chapters.find((c:any)=>c.id==='2').open).toBe(true);
+      const battle=await post('battle/start',{mode:'story',stage:target.id});expect(battle.stage).toBe(target.id);
+      // 적은 여전히 그 부의 승진 단계(1)로 나온다.
+      expect(battle.teams[1].fighters.map((f:any)=>f.stage)).toEqual(target.enemy.map((e:any)=>e.stage??chapter.needStage));
+      await post('battle/turn',{session:battle.session,revision:battle.revision,leave:true});
+      // 후속 단계를 깬 기존 저장은 중간 기록이 없어도 재입장 가능해야 한다.
+      expect((await save([chapter.stages[1].id],0,1,20)).stage.open).toBe(true);
     }finally{await app.close();}
   });
 

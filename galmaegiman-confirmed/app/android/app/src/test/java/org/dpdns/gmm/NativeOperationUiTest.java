@@ -26,6 +26,180 @@ public class NativeOperationUiTest {
   }
 
   @Test
+  public void headerBackKeepsArrowWhileLoadingAndBlocksRepeatedNavigation() {
+    try (ActivityController<MainActivity> controller = new NativeGameFlowTest().start()) {
+      MainActivity host = controller.get();
+      PendingApi api = prepareHeader(host);
+      Button back = (Button) ((android.view.ViewGroup) host.page.getChildAt(0)).getChildAt(0);
+      Button money = (Button) ((android.view.ViewGroup) host.page.getChildAt(0)).getChildAt(2);
+      back.performClick();
+      assertEquals("native/state", api.lastPath);
+      assertEquals("‹", back.getText().toString());
+      assertEquals("뒤로", back.getContentDescription().toString());
+      assertFalse(back.isEnabled());
+      assertTrue(host.busy);
+      back.performClick();
+      money.performClick();
+      assertEquals("뒤로와 재화를 연속 눌러도 이동 요청은 한 번", 1, api.calls);
+      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(220));
+      View overlay = host.root.findViewWithTag("request-progress");
+      assertNotNull(overlay);
+      assertEquals("진행 불러오는 중…", overlay.getContentDescription().toString());
+      assertEquals(View.ACCESSIBILITY_LIVE_REGION_POLITE, overlay.getAccessibilityLiveRegion());
+      assertEquals("‹", back.getText().toString());
+      api.fail("테스트 연결 오류");
+      assertFalse(host.busy);
+      assertTrue(back.isEnabled());
+      assertEquals("‹", back.getText().toString());
+      assertEquals("뒤로", back.getContentDescription().toString());
+      assertNull(host.root.findViewWithTag("request-progress"));
+    }
+  }
+
+  @Test
+  public void allHeaderCurrenciesKeepValuesAndAccessibleNamesDuringLoading() {
+    for (int index = 0; index < 3; index++) {
+      try (ActivityController<MainActivity> controller = new NativeGameFlowTest().start()) {
+        MainActivity host = controller.get();
+        PendingApi api = prepareHeader(host);
+        Button money =
+            (Button) ((android.view.ViewGroup) host.page.getChildAt(0)).getChildAt(index + 2);
+        String expected = new String[] {"6,483", "0", "152"}[index];
+        CharSequence description = money.getContentDescription();
+        money.performClick();
+        assertEquals("native/state", api.lastPath);
+        assertEquals(expected, money.getText().toString());
+        assertEquals(description, money.getContentDescription());
+        assertFalse(money.isEnabled());
+        assertTrue(host.busy);
+        money.performClick();
+        assertEquals(1, api.calls);
+        api.fail("테스트 연결 오류");
+        assertEquals(expected, money.getText().toString());
+        assertEquals(description, money.getContentDescription());
+        assertTrue(money.isEnabled());
+        assertFalse(host.busy);
+        assertNull(host.root.findViewWithTag("request-progress"));
+      }
+    }
+  }
+
+  @Test
+  public void preservedValueUpdatedDuringRequestIsNotRolledBackOnCompletion() {
+    try (ActivityController<MainActivity> controller = new NativeGameFlowTest().start()) {
+      MainActivity host = controller.get();
+      Button money = host.button("6,483", () -> {});
+      JournalButton.keepLabelDuringOperation(money);
+      money.setContentDescription("새우 6,483");
+      int operation = host.operations.begin("진행 불러오는 중…", money);
+      assertEquals("6,483", money.getText().toString());
+      money.setText("6,500");
+      money.setContentDescription("새우 6,500");
+      assertTrue(host.operations.finish(operation));
+      assertEquals("6,500", money.getText().toString());
+      assertEquals("새우 6,500", money.getContentDescription().toString());
+      assertTrue(money.isEnabled());
+    }
+  }
+
+  @Test
+  public void preservedBackAlsoKeepsLabelDuringSaveBeforeLeavingAndClose() {
+    try (ActivityController<MainActivity> controller = new NativeGameFlowTest().start()) {
+      MainActivity host = controller.get();
+      prepareHeader(host);
+      Button back = (Button) ((android.view.ViewGroup) host.page.getChildAt(0)).getChildAt(0);
+      // 탐험 편성 저장처럼 뒤로 이동 전에 실행되는 요청도 같은 버튼을 사용한다.
+      int operation = host.operations.begin("편성 저장 중…", back);
+      assertEquals("‹", back.getText().toString());
+      assertEquals("뒤로", back.getContentDescription().toString());
+      assertFalse(back.isEnabled());
+      host.operations.close();
+      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(220));
+      assertFalse(host.operations.finish(operation));
+      assertEquals("‹", back.getText().toString());
+      assertTrue(back.isEnabled());
+      assertNull(host.root.findViewWithTag("request-progress"));
+    }
+  }
+
+  @Test
+  public void switchingBetweenPreservedValuesAndCommandLabelsDoesNotLeakPolicy() {
+    try (ActivityController<MainActivity> controller = new NativeGameFlowTest().start()) {
+      MainActivity host = controller.get();
+      Button money = host.button("152", () -> {});
+      JournalButton.keepLabelDuringOperation(money);
+      Button save = host.button("편성 저장", () -> {});
+      int stale = host.operations.begin("진행 불러오는 중…", money);
+      int active = host.operations.begin("편성 저장 중…", save);
+      assertEquals("152", money.getText().toString());
+      assertTrue(money.isEnabled());
+      assertEquals("편성 저장 중…", save.getText().toString());
+      assertFalse(save.isEnabled());
+      assertFalse(host.operations.finish(stale));
+      assertTrue(host.operations.finish(active));
+      assertEquals("편성 저장", save.getText().toString());
+      int next = host.operations.begin("진행 불러오는 중…", money);
+      assertEquals("152", money.getText().toString());
+      assertTrue(host.operations.finish(next));
+      assertEquals("152", money.getText().toString());
+    }
+  }
+
+  @Test
+  public void preservingLabelDoesNotEnableAnOriginallyDisabledValue() {
+    try (ActivityController<MainActivity> controller = new NativeGameFlowTest().start()) {
+      MainActivity host = controller.get();
+      Button money = host.button("0", () -> {});
+      JournalButton.keepLabelDuringOperation(money);
+      money.setEnabled(false);
+      int operation = host.operations.begin("진행 불러오는 중…", money);
+      assertEquals("0", money.getText().toString());
+      assertTrue(host.operations.finish(operation));
+      assertFalse(money.isEnabled());
+    }
+  }
+
+  PendingApi prepareHeader(MainActivity host) {
+    host.api.close();
+    PendingApi api = new PendingApi(host);
+    host.api = api;
+    host.guide.enabled = false;
+    host.state =
+        MainActivity.obj(
+            "me", MainActivity.obj("snack", 6483, "peanut", 0, "credits", 152));
+    host.base("게임 모드", "modes");
+    return api;
+  }
+
+  static final class PendingApi extends NativeApi {
+    int calls;
+    String lastPath;
+    Result pending;
+
+    PendingApi(MainActivity host) {
+      super(host);
+    }
+
+    @Override
+    String token() {
+      return "test-player.test-token";
+    }
+
+    @Override
+    void call(String path, org.json.JSONObject body, Result callback) {
+      calls++;
+      lastPath = path;
+      pending = callback;
+    }
+
+    void fail(String error) {
+      Result callback = pending;
+      pending = null;
+      callback.done(null, error);
+    }
+  }
+
+  @Test
   public void immediateButtonFeedbackPrecedesDelayedProgressAndRestoresOnCompletion() {
     try (ActivityController<MainActivity> controller = new NativeGameFlowTest().start()) {
       MainActivity host = controller.get();

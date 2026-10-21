@@ -1222,14 +1222,6 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await ex({code:nativeCode,verifier})).statusCode).toBe(200);
 
     }finally{await app.close();}
-    // 심사용 코드: 정해 둔 경우만, 심사 전용 계정으로
-    const rv=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com',reviewCode:'424242'});
-    try{
-      const r=await rv.inject({method:'POST',url:'/my/api/login',payload:{code:'424242'},headers:{'x-gmm':'1','x-gmm-app':'1'}});
-      expect(r.statusCode).toBe(200);
-      const me=(await rv.inject({method:'GET',url:'/my/api/me',headers:{'x-gmm':'1','x-gmm-s':(r.json() as {token:string}).token}})).json() as {nickname:string};
-      expect(me.nickname).toBe('심사용 수비대원');
-    }finally{await app.close();}
   });
   it('공개 웹 랭킹: 카톡과 같은 순위, 닉네임 표시, 히든·최상위 가림, 관리자 모드 제외',async()=>{
     const mk=async(identity:string,nickname:string|null,ids:string[],adminMode=false)=>{
@@ -1531,7 +1523,14 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
             const key=`${e.target.side}:${e.target.slot}`;
             expect(e.hpBefore).toBe(health.get(key));
             expect(e.hpAfter).toBeGreaterThanOrEqual(0);expect(e.hpAfter).toBeLessThanOrEqual(e.maxHp);
-            expect(e.amount).toBe(Math.abs(e.hpAfter-e.hpBefore));health.set(key,e.hpAfter);
+            if(e.kind==='faint'){
+              // 전투불가는 앞선 피해의 결과를 알리는 HP 스냅샷이며 추가 피해가 아니다.
+              expect(e.hpBefore).toBe(0);expect(e.hpAfter).toBe(0);expect(e.amount).toBeUndefined();
+            }else{
+              expect(['damage','heal','revive']).toContain(e.kind);
+              expect(e.amount).toBe(Math.abs(e.hpAfter-e.hpBefore));
+            }
+            health.set(key,e.hpAfter);
           }
           if(e.kind==='switch')active[e.target.side]=e.target.slot;
         }

@@ -12,6 +12,13 @@ tasks.register('bundleGameArt', Sync) {
         include '*.jpg'
         into 'game-art/thumbs'
     }
+    // 검증된 등록증만 APK에 추가한다. 웹 경로·원본 캐릭터·게임 규칙은 바꾸지 않는다.
+    from('../../../art/gpt/registration-v1') {
+        include 'manifest.json', 'component/layout.json', 'component/application-animation.json'
+        include 'resources/cards/*.webp', 'resources/application-envelope-atlas.png'
+        include 'resources/fonts/Noto-CJK-LICENSE.txt'
+        into 'native/registration-v1'
+    }
 }
 
 android {
@@ -19,10 +26,12 @@ android {
     sourceSets.main.assets.srcDir(bundledArt)
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "org.dpdns.gmm.native.revised"
+        // Play 출시 번들만 -PgmmApplicationId=org.gmm 으로 바꿔 만든다. 기본값(시험판·기존 설치)은 그대로.
+        applicationId project.findProperty('gmmApplicationId') ?: "org.dpdns.gmm.native.revised"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 78
+        // Play 출시 번들은 올린 번호보다 커야 해서 -PgmmVersionCode=79 처럼 지정한다. 기본값은 기존 78.
+        versionCode((project.findProperty('gmmVersionCode') ?: '78') as int)
         versionName "2.2.4-native"
         // 카카오 로그인 복귀 주소(서버가 gmmrevised://auth로 돌려보낸다). 미리보기판도 같은 주소를 써서 카카오 로그인이 된다.
         // 정식 앱과 함께 설치돼 있으면 로그인 복귀 때 Android가 어느 앱으로 열지 묻는다 → 로그인을 시작한 앱을 고른다.
@@ -42,7 +51,16 @@ android {
     testOptions {
         unitTests.includeAndroidResources = true
         unitTests.all {
-            testLogging { exceptionFormat = 'full' }
+            // Emit each result immediately so an interrupted runner still identifies
+            // the last started/completed method without requiring final JUnit XML.
+            testLogging {
+                events 'started', 'passed', 'skipped', 'failed'
+                exceptionFormat = 'full'
+            }
+            // Render suites retain large native bitmap caches. Recycle the single
+            // test worker between bounded class batches; do not skip or shard tests.
+            maxParallelForks = 1
+            forkEvery = 10
             if (project.hasProperty('nativeReviewTokenFile')) {
                 dependsOn 'prepareNativeReviewSdk'
                 systemProperty 'robolectric.offline', 'true'
@@ -128,13 +146,16 @@ try {
 }
 
 // 선택적으로 실행하는 네이티브 화면 검토용 Android SDK. 기본 APK에는 포함하지 않는다.
-configurations { nativeReviewSdk; nativeReviewLegacySdk }
+configurations { nativeReviewSdk; nativeReviewLegacySdk; nativeReviewOreoSdk }
 dependencies {
     nativeReviewSdk 'org.robolectric:android-all-instrumented:15-robolectric-13954326-i7'
     nativeReviewLegacySdk 'org.robolectric:android-all-instrumented:7.0.0_r1-robolectric-r1-i7'
+    nativeReviewOreoSdk 'org.robolectric:android-all-instrumented:8.0.0_r4-robolectric-r1-i7'
 }
 tasks.register('prepareNativeReviewSdk', Copy) {
     from configurations.nativeReviewSdk
     from configurations.nativeReviewLegacySdk
+    from configurations.nativeReviewOreoSdk
     into layout.buildDirectory.dir('native-review-sdk')
 }
+

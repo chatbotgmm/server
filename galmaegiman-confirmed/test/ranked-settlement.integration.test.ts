@@ -174,6 +174,19 @@ suite('실제 SQLite: 랭크 원자성·재시도·일반전 격리', () => {
     expect((await db.rankedProfile.findUniqueOrThrow({where: {playerId: player1Id}})).wins).toBe(1);
     expect((await repairUnsettledRankedMatches(second)).repaired).not.toContain(roomId);
   });
+  it('심사 전용 계정(review:*)은 공개 랭킹 목록과 순위 계산에서 빠진다', async () => {
+    const reviewId = (await db.player.create({data: {identity: `review:ranked-test-${randomUUID()}`}})).id;
+    createdPlayers.push(reviewId);
+    await withRankedTransaction(db, tx => rankSummary(tx, reviewId));
+    await withRankedTransaction(db, tx => rankSummary(tx, player0Id));
+    await db.rankedProfile.update({where: {playerId: player0Id}, data: {games: 1, wins: 1}});
+    const before = await withRankedTransaction(db, tx => rankSummary(tx, player0Id));
+    // 심사 계정을 최상위로 올려도 다른 이용자의 공개 목록·순위는 그대로여야 한다.
+    await db.rankedProfile.update({where: {playerId: reviewId}, data: {games: 50, wins: 50, tierIndex: 5, lp: 99}});
+    const after = await withRankedTransaction(db, tx => rankSummary(tx, player0Id));
+    expect(after.top.some(p => p.playerId === reviewId)).toBe(false);
+    expect(after.me.rank).toBe(before.me.rank);
+  });
   it('공개 랭킹은 새 프로필로 만들고 MMR/초기 사전값을 노출하지 않는다', async () => {
     const summary = await withRankedTransaction(db, tx => rankSummary(tx, player0Id));
     expect(summary.me.point).toBe(0); expect(summary.me.tier).toBe('Bronze');

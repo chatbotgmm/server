@@ -327,16 +327,16 @@ export async function rankSummary(tx: Tx, playerId: string) {
   const row = await ensureRankedProfile(tx, playerId);
   const c = DEFAULT_RANKED_CONFIG;
   const names = await tx.player.findUniqueOrThrow({where: {id: playerId}, select: {nickname: true}});
-  // 삭제된 Player의 잔여 프로필은 공개 랭킹에서 제외합니다. 기존 스키마와의 FK 충돌은 피합니다.
+  // 삭제된 Player의 잔여 프로필과 심사 전용 계정(review:*)은 공개 랭킹에서 제외합니다. 기존 스키마와의 FK 충돌은 피합니다.
   const rows = await tx.$queryRaw<{playerId: string; nickname: string | null; tierIndex: number | bigint; lp: number | bigint; wins: number | bigint; losses: number | bigint}[]>(Prisma.sql`
     SELECT r."playerId", p."nickname", r."tierIndex", r."lp", r."wins", r."losses"
     FROM "RankedProfile" r INNER JOIN "Player" p ON p."id" = r."playerId"
-    WHERE r."games" > 0
+    WHERE r."games" > 0 AND p."identity" NOT LIKE 'review:%'
     ORDER BY r."tierIndex" DESC, r."lp" DESC, r."wins" DESC, r."playerId" ASC LIMIT 20
   `);
   const rankRows = await tx.$queryRaw<{ahead: bigint | number}[]>(Prisma.sql`
     SELECT COUNT(*) AS "ahead" FROM "RankedProfile" r INNER JOIN "Player" p ON p."id" = r."playerId"
-    WHERE r."games" > 0 AND (r."tierIndex" > ${row.tierIndex}
+    WHERE r."games" > 0 AND p."identity" NOT LIKE 'review:%' AND (r."tierIndex" > ${row.tierIndex}
       OR (r."tierIndex" = ${row.tierIndex} AND r."lp" > ${row.lp})
       OR (r."tierIndex" = ${row.tierIndex} AND r."lp" = ${row.lp} AND r."wins" > ${row.wins})
       OR (r."tierIndex" = ${row.tierIndex} AND r."lp" = ${row.lp} AND r."wins" = ${row.wins} AND r."playerId" < ${row.playerId}))

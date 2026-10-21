@@ -116,7 +116,7 @@ public class NativeRenderReviewTestEconomy {
   }
 
   @Test
-  public void drawKeepsQuantityTotalAndSubmitInTheSameCardAndCraftKeepsItsFooter()
+  public void drawKeepsOneSelectionRailAndCraftKeepsItsFooter()
       throws Exception {
     try (ActivityController<MainActivity> controller = review.start()) {
       MainActivity a = controller.get();
@@ -128,25 +128,28 @@ public class NativeRenderReviewTestEconomy {
         review.capture(a, "economy-" + size[0] + "-draw", size[0], size[1]);
         for (String kind : new String[] {"LOW", "MID", "HIGH"}) {
           LinearLayout card = a.root.findViewWithTag("draw-card-" + kind);
-          LinearLayout quantity = a.root.findViewWithTag("draw-quantity-" + kind);
-          Button submit = a.root.findViewWithTag("draw-submit-" + kind);
-          TextView total = a.root.findViewWithTag("draw-total-" + kind);
-          assertSame("실행은 해당 등급 카드 안에", card, submit.getParent());
-          assertSame("수량은 같은 카드 안에", card, quantity.getParent());
-          assertSame("총 비용은 같은 카드 안에", card, total.getParent());
-          assertTrue(quantity.getBottom() <= total.getTop());
-          assertTrue(total.getBottom() <= submit.getTop());
-          assertTrue("수량·비용·실행은 이어서 배치", submit.getBottom() - quantity.getTop() < a.dp(145));
+          card.performClick();
+          review.viewport(a, size[0], size[1]);
+          LinearLayout quantity = a.root.findViewWithTag("draw-quantity");
+          Button submit = a.root.findViewWithTag("draw-submit");
+          TextView total = a.root.findViewWithTag("draw-total");
+          assertTrue("선택한 등급 표시", card.isSelected());
+          assertSame("수량과 실행은 하나의 공용 행에", quantity.getParent(), submit.getParent());
+          assertSame("총 비용도 공용 행에", quantity.getParent(), total.getParent());
+          assertTrue(quantity.getRight() <= total.getLeft());
+          assertTrue(total.getRight() <= submit.getLeft());
           String before = total.getText().toString();
           button(quantity, "＋").performClick();
           assertNotEquals("수량 조정에 총 비용 동시 갱신", before, total.getText().toString());
-          assertEquals("2회 뽑기", submit.getText().toString());
+          assertEquals("모집하기", submit.getText().toString());
+          assertTrue("수량은 접근성 설명에도 유지", submit.getContentDescription().toString().contains("2회"));
+          assertTrue("총 비용은 접근성 설명에도 유지", submit.getContentDescription().toString().contains("지원서"));
         }
-        Button high = a.root.findViewWithTag("draw-submit-HIGH");
+        Button high = a.root.findViewWithTag("draw-submit");
         high.performClick();
         assertNotNull("재화 사용 확인 유지", a.visibleDialog);
         TextView confirmation = a.visibleDialog.findViewById(android.R.id.message);
-        assertTrue(confirmation.getText().toString().contains("고급 2회"));
+        assertTrue(confirmation.getText().toString().contains("고급 모집 2회"));
         assertTrue(confirmation.getText().toString().contains("10장"));
         a.visibleDialog.dismiss();
         review.viewport(a, size[0], size[1]);
@@ -160,7 +163,7 @@ public class NativeRenderReviewTestEconomy {
   }
 
   @Test
-  public void emptyMixSlotOpensAvailableMaterialPickerAndSelectionHasExplicitRemove()
+  public void inlineMixChoicesKeepSelectionAndExplicitRemoval()
       throws Exception {
     try (ActivityController<MainActivity> controller = review.start()) {
       MainActivity a = controller.get();
@@ -170,18 +173,14 @@ public class NativeRenderReviewTestEconomy {
       review.capture(a, "economy-mix-empty", 915, 412);
       View empty = a.root.findViewWithTag("mix-empty-slot-0");
       assertNotNull(empty);
-      assertTrue("빈 + 슬롯도 실제 선택 동작 제공", empty.performClick());
-      assertNotNull(a.visibleDialog);
-      android.app.AlertDialog pickerDialog = a.visibleDialog;
-      View picker = taggedPrefix(pickerDialog.getWindow().getDecorView(), "mix-picker-material-");
+      assertNull("기본 재료 선택은 같은 화면에서 보임", a.visibleDialog);
+      View picker = taggedPrefix(a.root, "mix-picker-material-");
       assertNotNull("사용할 수 있는 검토 재료 필요", picker);
       String id = picker.getTag().toString().substring("mix-picker-material-".length());
       picker.performClick();
       assertEquals(java.util.List.of(id), a.menus.mixDraft);
-      assertFalse("재료 선택 후 실제 선택기 닫기", pickerDialog.isShowing());
-      // Dialog의 OnDismissListener는 메인 큐에서 전달되므로 실제 종료 뒤 참조 정리도 확인한다.
       Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
-      assertNull("닫기 콜백 이후 선택기 참조 정리", a.visibleDialog);
+      assertNull("재료 선택 후 모달 없음", a.visibleDialog);
       View remove = a.root.findViewWithTag("mix-material-" + id);
       assertNotNull("선택한 재료는 고정 슬롯에서 직접 뺄 수 있음", remove);
       assertTrue(remove.getContentDescription().toString().contains("재료에서 빼기"));

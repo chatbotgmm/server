@@ -15,6 +15,7 @@ final class NativeOperationUi {
   Button trigger;
   CharSequence originalText, originalDescription;
   boolean originalEnabled;
+  boolean triggerLabelChanged;
   Runnable pending;
 
   NativeOperationUi(MainActivity host) {
@@ -29,8 +30,12 @@ final class NativeOperationUi {
       originalText = button.getText();
       originalDescription = button.getContentDescription();
       originalEnabled = button.isEnabled();
-      button.setText(label);
-      button.setContentDescription(label);
+      triggerLabelChanged =
+          !(button instanceof JournalButton) || ((JournalButton) button).operationLabelEnabled;
+      if (triggerLabelChanged) {
+        button.setText(label);
+        button.setContentDescription(label);
+      }
       button.setEnabled(false);
     }
     pending =
@@ -81,11 +86,15 @@ final class NativeOperationUi {
       ((ViewGroup) overlay.getParent()).removeView(overlay);
     overlay = null;
     if (trigger != null) {
-      trigger.setText(originalText);
-      trigger.setContentDescription(originalDescription);
+      // 유지한 숫자가 요청 중 갱신됐어도 이전 값으로 되돌리지 않는다.
+      if (triggerLabelChanged) {
+        trigger.setText(originalText);
+        trigger.setContentDescription(originalDescription);
+      }
       trigger.setEnabled(originalEnabled);
     }
     trigger = null;
+    triggerLabelChanged = false;
   }
 
   void close() {
@@ -101,7 +110,7 @@ final class NativeOperationUi {
     if (path.contains("growth")) return "성장 적용 중…";
     if (path.contains("heal")) return "회복 중…";
     if (path.contains("expedition/start")) return "탐험 출발 중…";
-    if (path.contains("draw")) return "뽑기 준비 중…";
+    if (path.contains("draw")) return "지원서 읽는 중…";
     if (path.contains("craft") || path.contains("mix")) return "조합 중…";
     return "진행 확인 중…";
   }

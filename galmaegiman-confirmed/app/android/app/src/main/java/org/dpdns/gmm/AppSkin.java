@@ -7,7 +7,30 @@ import android.widget.LinearLayout;
 /** Native, asset-independent architectural materials. No fabricated character artwork. */
 final class AppSkin {
   static void apply(MainActivity h, String place) {
-    if (h.page != null) h.page.setBackground(new Place(place));
+    android.view.View backdrop = h.root.findViewWithTag("theme-scene-background");
+    if (backdrop != null) {
+      backdrop.setBackground(ThemeArt.of(h).background(background(place)));
+      if (h.page != null) h.page.setBackground(null);
+    } else if (h.page != null) h.page.setBackground(ThemeArt.of(h).background(background(place)));
+  }
+
+  static String backgroundForScreen(String id) {
+    if (id.equals("draw") || id.equals("drawResult")) return background("reception");
+    if (id.equals("shop")) return background("market");
+    if (id.equals("craft") || id.equals("craftRecipes") || id.equals("mix")) return background("workshop");
+    if (id.equals("expedition")) return background("routes");
+    if (id.equals("modes") || id.equals("pvp") || id.equals("practice")
+        || id.equals("chapters") || id.equals("stages") || id.equals("team")) return background("training");
+    if (id.equals("account")) return "backgrounds/bg-settings-harbor-office-v1.png";
+    return background("archive");
+  }
+
+  static String background(String place) {
+    if (place.equals("training")) return "backgrounds/bg-team.png";
+    if (place.equals("reception")) return "backgrounds/bg-recruitment-counter-v1.png";
+    if (place.equals("market")) return "backgrounds/bg-market-canopy-v1.png";
+    if (place.equals("routes") || place.equals("workshop")) return "backgrounds/bg-augments.png";
+    return "backgrounds/bg-collection.png";
   }
 
   static final class Place extends Drawable {

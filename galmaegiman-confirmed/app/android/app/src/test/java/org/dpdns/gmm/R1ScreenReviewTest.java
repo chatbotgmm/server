@@ -326,11 +326,10 @@ public class R1ScreenReviewTest {
           androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(a.root, null);
           a.root.setPadding(inset ? 36 : 0, inset ? 10 : 0, inset ? 8 : 0, inset ? 10 : 0);
           JSONObject unit =
-              MainActivity.obj("key", "o1", "id", "D1", "name", "태초의 갈매미맨", "level", 24, "xp", 2290, "xpNext", 2352, "tier", "C", "attr", "돌",
-                  "image", "/duel/sprites/D1_s0_front.webp");
+              MainActivity.obj("key", "o1", "id", "D1", "name", "갈크탑", "level", 24, "xp", 2290, "xpNext", 2352, "tier", "C", "attr", "바다");
           a.state =
               MainActivity.obj(
-                  "me", MainActivity.obj("nickname", "와로듀", "snack", 33280, "peanut", 40, "credits", 170),
+                  "name", "와로듀", "level", 23, "gold", 6483, "tickets", 122,
                   "units", new JSONArray().put(unit),
                   "team", new JSONArray().put("o1"),
                   "chapters", new JSONArray(),

@@ -19,6 +19,7 @@ import org.json.*;
 public class MainActivity extends AppCompatActivity {
   NativeApi api;
   NativeArt art;
+  ThemeArt themeArt;
   NativeSound sound;
   JournalTimeController journalTime;
   NativeMenus menus;
@@ -43,6 +44,12 @@ public class MainActivity extends AppCompatActivity {
   String selectionMode = "story", mixIds = "";
   String currentKey = "", accountReturn = "home";
   NativeTutorialController guide;
+  private RegistrationArt registrationCards;
+
+  RegistrationArt registrationArt() {
+    if (registrationCards == null) registrationCards = new RegistrationArt(this);
+    return registrationCards;
+  }
   ArrayList<String> practiceRoster = new ArrayList<>(Arrays.asList("D1", "D2", "D3")),
       practiceEnemy = new ArrayList<>();
   int practiceLevel = 15, practicePromotion = 0;
@@ -51,7 +58,9 @@ public class MainActivity extends AppCompatActivity {
   @Override
   public void onCreate(Bundle saved) {
     super.onCreate(saved);
-    motionEnabled = !getSharedPreferences("native_display", 0).getBoolean("reduce_motion", false);
+    // The retired app toggle must not leave upgraded installs permanently static.
+    NativeMotion.migrateLegacyPreference(this);
+    motionEnabled = true;
     journalTime = new JournalTimeController(this);
     api = new NativeApi(this);
     realtime = new NativeRealtime(this);
@@ -171,13 +180,6 @@ public class MainActivity extends AppCompatActivity {
     if (guide != null) guide.onStateUpdated();
   }
 
-  void reducedMotion(boolean reduced) {
-    getSharedPreferences("native_display", 0).edit().putBoolean("reduce_motion", reduced).apply();
-    motionEnabled = !reduced;
-    if (journalTime != null) journalTime.motionPreferenceChanged();
-    if (root != null) root.invalidate();
-  }
-
   static JSONObject obj(Object... xs) {
     JSONObject o = new JSONObject();
     try {
@@ -255,9 +257,10 @@ public class MainActivity extends AppCompatActivity {
       menus.requestLeaveTeam(() -> load(target));
       return;
     }
+    if (target.equals("battleRecords")) { NativeBattleReplay.records(this); return; }
     if (!state.has("me") && target.equals("title")) titleScreen();
     else if (!state.has("me")) {
-      base("수비대 연결", "loading");
+      base("방범대 연결", "loading");
       body.addView(text("계정과 진행을 불러오고 있어요.", 22));
       addButton("다시 연결", () -> load(target));
     }
@@ -280,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
               message(e);
             } else
               new GameDialog(this)
-                  .setMessage(e)
+                  .setMessage(RecruitmentText.display(e))
                   .setNegativeButton("닫기", null)
                   .setPositiveButton("다시 연결", (dialog, which) -> load(target))
                   .show();
@@ -386,27 +389,27 @@ public class MainActivity extends AppCompatActivity {
         Iterator<String> k = r.keys();
         while (k.hasNext()) {
           String x = k.next();
-          if (x.equals("tickets")) lines.add("뽑기권 +" + r.optInt(x));
+          if (x.equals("tickets")) lines.add("지원서 +" + r.optInt(x));
           if (x.equals("streak")) lines.add("연속 출석 " + r.optInt(x) + "일");
         }
         t = android.text.TextUtils.join("\n", lines);
       }
       if (t.isEmpty()) t = "완료됐어요.";
-      new GameDialog(this).setMessage(t).setPositiveButton("확인", (d, w) -> next.run()).show();
+      new GameDialog(this).setMessage(RecruitmentText.display(t)).setPositiveButton("확인", (d, w) -> next.run()).show();
     } else
       new GameDialog(this)
-          .setMessage(String.valueOf(result))
+          .setMessage(RecruitmentText.display(String.valueOf(result)))
           .setPositiveButton("확인", (d, w) -> next.run())
           .show();
   }
 
   void message(String s) {
-    new GameDialog(this).setMessage(s).setPositiveButton("확인", null).show();
+    new GameDialog(this).setMessage(RecruitmentText.display(s)).setPositiveButton("확인", null).show();
   }
 
   void confirm(String s, Runnable yes) {
     new GameDialog(this)
-        .setMessage(s)
+        .setMessage(RecruitmentText.display(s))
         .setNegativeButton("취소", null)
         .setPositiveButton("확인", (d, w) -> yes.run())
         .show();
@@ -447,9 +450,11 @@ public class MainActivity extends AppCompatActivity {
     Button b = new JournalButton(this);
     b.setText(s);
     b.setAllCaps(false);
-    b.setTextColor(JournalTheme.controlText());
+    b.setTextColor(JournalTheme.controlText(GameButtonDrawable.PRIMARY));
     b.setTextSize(uiText(18));
     b.setTypeface(font);
+    b.setGravity(Gravity.CENTER);
+    b.setIncludeFontPadding(false);
     b.setMinHeight(dp(52));
     b.setMinimumHeight(dp(52));
     b.setPadding(dp(14), dp(8), dp(14), dp(8));
@@ -479,24 +484,12 @@ public class MainActivity extends AppCompatActivity {
     screen = id;
     sound.play("title");
     root.removeAllViews();
-    boolean mapPage = id.equals("craft") || id.equals("mix");
-    if (mapPage) root.addView(new JournalMapBackdrop(this), new FrameLayout.LayoutParams(-1, -1));
-    else {
-      GameBackdrop bg = new GameBackdrop(this);
-      bg.blurred(true);
-      bg.setScaleType(ImageView.ScaleType.CENTER_CROP);
-      bg.setImageBitmap(art.asset("harbor.jpg"));
-      String menuBg =
-          id.equals("draw") || id.equals("drawResult")
-              ? "greenhouse"
-              : id.equals("shop")
-                  ? "cafe"
-                  : id.equals("expedition") || id.equals("modes") || id.equals("pvp")
-                      ? "cabin"
-                      : "attic";
-      art.into(bg, "/duel/bg/" + menuBg + ".jpg");
-      root.addView(bg, new FrameLayout.LayoutParams(-1, -1));
-    }
+    boolean mapPage = id.equals("craft") || id.equals("craftRecipes") || id.equals("mix");
+    View scene = new GameSceneBackground(this);
+    scene.setTag("theme-scene-background");
+    scene.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    scene.setBackground(ThemeArt.of(this).background(AppSkin.backgroundForScreen(id)));
+    root.addView(scene, new FrameLayout.LayoutParams(-1, -1));
     View shade = new GameShade(this);
     shade.setBackgroundColor(0x08000000);
     root.addView(shade, new FrameLayout.LayoutParams(-1, -1));
@@ -507,13 +500,12 @@ public class MainActivity extends AppCompatActivity {
     // 10-18 앱 배치 설계: 남색 머리줄에 「‹ 제목」, 오른쪽에 재화(맥락) 표시.
     LinearLayout head = new LinearLayout(this);
     head.setGravity(Gravity.CENTER_VERTICAL);
-    android.graphics.drawable.GradientDrawable bar = new android.graphics.drawable.GradientDrawable();
-    bar.setColor(JournalTheme.PRIMARY);
-    bar.setCornerRadius(dp(10));
-    head.setBackground(bar);
+    head.setTag("theme-page-header");
+    head.setBackgroundColor(Color.TRANSPARENT);
     head.setPadding(dp(4), dp(2), dp(8), dp(2));
     Button back = NativeTutorialController.anchor(button("‹", this::back), "back");
-    back.setBackgroundColor(Color.TRANSPARENT);
+    JournalButton.keepLabelDuringOperation(back);
+    back.setBackground(ThemeArt.of(this).drawable(ThemeArt.Surface.NAVY));
     back.setTextColor(Color.WHITE);
     back.setTextSize(26);
     back.setPadding(0, 0, 0, dp(3));
@@ -521,10 +513,15 @@ public class MainActivity extends AppCompatActivity {
     head.addView(back, new LinearLayout.LayoutParams(dp(48), dp(48)));
     title = text(name, 22);
     title.setTypeface(headline);
-    title.setSingleLine(true);
+    title.setSingleLine(false);
+    title.setMaxLines(1);
+    title.setHorizontallyScrolling(false);
     title.setEllipsize(android.text.TextUtils.TruncateAt.END);
     title.setTextColor(Color.WHITE);
-    title.setGravity(Gravity.CENTER_VERTICAL);
+    title.setGravity(Gravity.CENTER);
+    title.setIncludeFontPadding(false);
+    title.setBackground(ThemeArt.of(this).drawable(ThemeArt.Surface.HEADER));
+    title.setPadding(dp(16), 0, dp(16), 0);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
     MenuKit kit = new MenuKit(this);
     for (String kind : mapPage ? new String[0] : new String[] {"snack", "peanut", "credits"}) {
@@ -535,20 +532,22 @@ public class MainActivity extends AppCompatActivity {
               icon,
               String.format(java.util.Locale.KOREA, "%,d", me().optInt(kind)),
               () -> load("shop"));
+      JournalButton.keepLabelDuringOperation(money);
       money.setTextSize(14);
       money.setTypeface(prose);
-      money.setSingleLine(true);
+      money.setSingleLine(false);
+      money.setMaxLines(1);
+      money.setHorizontallyScrolling(false);
       money.setContentDescription(
-          (kind.equals("snack") ? "새우 " : kind.equals("peanut") ? "땅콩 " : "뽑기권 ")
+          (kind.equals("snack") ? "새우 " : kind.equals("peanut") ? "땅콩 " : "지원서 ")
               + String.format(java.util.Locale.KOREA, "%,d", me().optInt(kind)));
-      android.graphics.drawable.GradientDrawable pill = new android.graphics.drawable.GradientDrawable();
-      pill.setColor(0x26ffffff);
-      pill.setCornerRadius(dp(18));
-      // 누르면 상점으로 가는 버튼이라 터치 높이는 48dp, 보이는 알약만 위아래 4dp 들인다.
-      money.setBackground(new android.graphics.drawable.InsetDrawable(pill, 0, dp(4), 0, dp(4)));
-      money.setTextColor(Color.WHITE);
+      CurrencyDisplay.bind(this, money, kind);
       money.setPadding(dp(6), 0, dp(8), 0);
-      LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(dp(compact() ? 90 : 102), dp(48));
+      // The full live balance and its 26dp icon must fit at the current font scale.
+      // Reserve only the measured amount, leaving the weighted title its own space.
+      int moneyWidth = Math.max(dp(compact() ? 90 : 102),
+          (int) Math.ceil(money.getPaint().measureText(money.getText().toString())) + dp(26 + 6 + 6 + 8 + 2));
+      LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(moneyWidth, dp(48));
       slot.leftMargin = dp(4);
       head.addView(money, slot);
     }
@@ -620,6 +619,12 @@ public class MainActivity extends AppCompatActivity {
       case "modes":
         menus.modes();
         break;
+      case "modesStory":
+        menus.storyModes();
+        break;
+      case "modesPvp":
+        menus.pvpModes();
+        break;
       case "account":
         menus.extras.account();
         break;
@@ -654,6 +659,9 @@ public class MainActivity extends AppCompatActivity {
         break;
       case "craft":
         craft();
+        break;
+      case "craftRecipes":
+        menus.economy.craft(false);
         break;
       case "mix":
         mix();
@@ -691,7 +699,7 @@ public class MainActivity extends AppCompatActivity {
     sound.play("title");
     root.removeAllViews();
     root.addView(new TitleView(this, !api.token().isEmpty()), new FrameLayout.LayoutParams(-1, -1));
-    title = text("갈매미맨 수비대", 24);
+    title = text("갈매미맨 방범대", 24);
     screenShown();
   }
 
@@ -732,7 +740,7 @@ public class MainActivity extends AppCompatActivity {
     form.addView(head);
     boolean linking =
         !getSharedPreferences("native_account", 0).getString("linkCode", "").isEmpty();
-    title = text(linking ? "카카오 계정 처음 연결" : "수비대 인사 기록부", linking ? 18 : 22);
+    title = text(linking ? "카카오 계정 처음 연결" : "방범대 인사 기록부", linking ? 18 : 22);
     title.setTypeface(headline);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
     Button close =
@@ -835,7 +843,7 @@ public class MainActivity extends AppCompatActivity {
     codeEntry.setTag("login-code-open");
     code.setTag("login-code-input");
     form.addView(codeEntry, new LinearLayout.LayoutParams(-1, dp(48)));
-    form.addView(text("카톡 채널에서 받은 코드로 기존 수비대를 이어가요.", 14));
+    form.addView(text("카톡 채널에서 받은 코드로 기존 방범대를 이어가요.", 14));
     Button help =
         new MenuKit(this)
             .action(
@@ -930,6 +938,23 @@ public class MainActivity extends AppCompatActivity {
     Uri u = intent.getData();
     if (u == null || !"gmmrevised".equals(u.getScheme()) || !"auth".equals(u.getHost()))
       return false;
+    // 심사용 로그인 페이지(/review)에서 넘어온 2분짜리 일회용 코드. 화면 배치는 바꾸지 않는다.
+    String reviewCode = u.getQueryParameter("review");
+    if (reviewCode != null) {
+      if (busy) {
+        api.ui.postDelayed(() -> exchange(intent), 250);
+        return true;
+      }
+      getSharedPreferences("native_account", 0).edit().remove("verifier").remove("linking").remove("linkCode").apply();
+      request(
+          "review/exchange",
+          obj("code", reviewCode),
+          (r, e) -> {
+            api.token(r.optString("token"));
+            load("title");
+          });
+      return true;
+    }
     String authError = u.getQueryParameter("error");
     if (authError != null) {
       getSharedPreferences("native_account", 0).edit().remove("verifier").remove("linking").apply();
@@ -973,8 +998,7 @@ public class MainActivity extends AppCompatActivity {
     sound.play("title");
     loginScroll = null;
     root.removeAllViews();
-    // 10-19 galmaemiman-runtime-v1 홈(항구 광장). 이전 로비(LobbyView)는 코드에 남겨 비교·되돌리기용으로 둔다.
-    root.addView(new HarborHomeView(this), new FrameLayout.LayoutParams(-1, -1));
+    root.addView(new LobbyView(this), new FrameLayout.LayoutParams(-1, -1));
     screenShown();
   }
 
@@ -1075,7 +1099,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   String waitText(long ms) {
-    if (ms <= 0) return "뽑기권 지급 가능";
+    if (ms <= 0) return "지원서 지급 가능";
     long minutes = (ms + 59999) / 60000;
     return "다음 지급 " + (minutes / 60) + "시간 " + (minutes % 60) + "분 뒤";
   }
@@ -1092,7 +1116,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void craft() {
-    menus.economy.craft(false);
+    menus.economy.craft(true);
   }
 
   void mix() {
@@ -1109,9 +1133,9 @@ public class MainActivity extends AppCompatActivity {
         skip = p.optJSONObject("skip");
     return "간식 "
         + (t == null ? 0 : t.optInt("snack"))
-        + "개 → 뽑기권 "
+        + "개 → 지원서 "
         + (t == null ? 0 : t.optInt("amount"))
-        + "장\n땅콩 1개 → 뽑기권 "
+        + "장\n땅콩 1개 → 지원서 "
         + (q == null ? 0 : q.optInt("amount"))
         + "장\n귀환권: 간식 "
         + (skip == null ? 0 : skip.optInt("snack"))
@@ -1202,6 +1226,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void battleScreen() {
+    NativeBattleReplay.observe(this, battle);
     epoch++;
     screen = "battle";
     sound.play(battleMusic());
@@ -1218,6 +1243,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void battleTurnFrom(JSONObject shown, JSONObject event) {
+    if (shown != null && shown.optBoolean("replayReadOnly")) return;
     if (NativeRealtime.isBattle(shown)) realtime.submit(shown, event);
     else battleTurn(event);
   }
@@ -1243,6 +1269,7 @@ public class MainActivity extends AppCompatActivity {
               || battle == null
               || !requestedSession.equals(battle.optString("session"))
               || !requestedSession.equals(r.optString("session"))) return;
+          NativeBattleReplay.observe(this, r);
           Runnable finishTurn =
               () -> {
                 if (isFinishing()
@@ -1402,6 +1429,8 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void back() {
+    if (screen.equals("battleReplay")) { NativeBattleReplay.records(this); return; }
+    if (screen.equals("battleRecords")) { load("modesPvp"); return; }
     for (int i=0;i<root.getChildCount();i++)
       if(root.getChildAt(i) instanceof BattleView && ((BattleView)root.getChildAt(i)).backInPane()) return;
     if (realtime != null && realtime.back()) return;
@@ -1447,11 +1476,12 @@ public class MainActivity extends AppCompatActivity {
     else if (screen.equals("team")) {
       menus.requestLeaveTeam(() -> load(menus.teamReturnTarget()));
     } else if (screen.equals("dialog")) load("story");
-    else if (screen.equals("mix")) craft();
+    else if (screen.equals("mix")) load("home");
     else if (screen.equals("drawResult")) load("draw");
     else if (screen.equals("craftResult")) load(menus.economy.acquisitionOrigin());
-    else if (screen.equals("story") || screen.equals("pvp") || screen.equals("practice"))
-      load("modes");
+    else if (screen.equals("story")) load("modesStory");
+    else if (screen.equals("pvp") || screen.equals("practice")) load("modesPvp");
+    else if (screen.equals("modesStory") || screen.equals("modesPvp")) load("modes");
     else load("home");
   }
 
@@ -1475,6 +1505,7 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onResume() {
     super.onResume();
+    if (sound != null) sound.resume();
     if (realtime != null) realtime.resume();
     motionResumed = true;
     journalTime.resume();
@@ -1482,6 +1513,8 @@ public class MainActivity extends AppCompatActivity {
 
   @Override
   protected void onPause() {
+    NativeBattleReplay.pause(this);
+    if (sound != null) sound.pause();
     if (realtime != null) realtime.pause();
     motionResumed = false;
     journalTime.pause();
@@ -1510,8 +1543,11 @@ public class MainActivity extends AppCompatActivity {
     if (journalTime != null) journalTime.close();
     if (operations != null) operations.close();
     if (guide != null) guide.close();
+    if (registrationCards != null) registrationCards.close();
     art.close();
     api.close();
     sound.close();
   }
 }
+
+

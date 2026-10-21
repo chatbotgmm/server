@@ -3,6 +3,9 @@
 // 기술 설명은 적지 않으면 숫자로 자동으로 만듦 → 숫자만 고쳐도 설명이 맞음
 import type { BattleData } from './rules.js';
 import { recipePowerBonus } from './recipe-value.js';
+import { augmentCatalogV2, parseAugmentCatalogV2, type AugmentCatalogV2, type CatalogTier } from './augment-catalog-v2.js';
+export { battleAugIdsV2, augmentCatalogV2, parseAugmentCatalogV2, createAugmentConfigV2 } from './augment-catalog-v2.js';
+export type { AugmentCatalogV2, CatalogTier } from './augment-catalog-v2.js';
 export const attrKeys=['STONE','GOLD','FIRE','ICE','BLOSSOM','SEA','SHADOW','STAR','THREAD','GRAVITY'] as const;
 export type Attr=typeof attrKeys[number];
 export const roleKeys=['ATTACK','DEFENSE','UTILITY'] as const;
@@ -38,7 +41,9 @@ export interface UnitDef {id:string;attr:Attr;sub?:Attr;syn?:string;basic?:strin
 export interface Passive {hpPct?:number;atkPct?:number;defPct?:number;spdPct?:number;pierce?:number;execute?:number;critPlus?:number;opener?:number;
   lifesteal?:number;reflect?:number;cut?:number;regen?:number;lastStand?:boolean;statusPlus?:number;statusResist?:number;sigCd?:number;handoff?:number;durationPlus?:number}
 export interface EvoAugment {id:string;name:string;desc:string;roles:Role[]|'ANY';passive:Passive}
-export interface BattleAugment {id:string;name:string;desc:string;p:Record<string,number>}
+export interface BattleAugment {id:string;name:string;desc:string;p:Record<string,number>;tier?:CatalogTier;version?:2}
+// Version is absent in old saved rules; absence always means legacy V1.
+export interface RulesOptions {augmentVersion?:1|2;augmentCatalog?:AugmentCatalogV2}
 export const battleAugIds=['reverse','weakguard','focus','neutral','camo','dual','counter','learn','first','bulwark','firstaid','freeswitch','lastone','strip','rustle','peanut','sharp','swift','thick','overtime','drain','thorns','pierce','lunch'] as const;
 type SkillIn=BattleData['roles']['ATTACK']['skill'];
 type EffectIn=NonNullable<SkillIn['effects']>[number];
@@ -131,7 +136,7 @@ const passiveText:Record<keyof Passive,(v:number)=>string>={
   durationPlus:v=>`주는 강화·약화가 ${v}턴 더 감`,sigCd:v=>`고유기 재사용 ${v}턴 줄어듦`,handoff:v=>`교체되어 나갈 때 들어오는 아군 체력 ${v}% 회복`,
   hpPct:v=>`최대 체력 +${v}%`,atkPct:v=>`물리·마법 공격 +${v}%`,defPct:v=>`물리·마법 방어 +${v}%`,spdPct:v=>`속도 +${v}%`,
 };
-function augDesc(id:string,p:Record<string,number>,attrNm:string){
+export function augDesc(id:string,p:Record<string,number>,attrNm:string){
   void attrNm;
   switch(id){
     case 'reverse':return '이번 전투 동안 내 공격의 상성이 뒤집혀요(강함 ↔ 약함)';
@@ -159,11 +164,15 @@ function augDesc(id:string,p:Record<string,number>,attrNm:string){
     case 'pierce':return `내 공격이 상대 방어를 ${p.pct}% 무시해요`;
     case 'lunch':return `턴이 끝날 때마다 나와 있는 내 갈매미 체력 ${p.pct}% 회복`;
   }
-  return '';
+  return augmentCatalogV2.augments.find(a=>a.id===id)?.desc??'';
 }
 
 // 검사를 마친 데이터로 규칙 만들기(브라우저는 서버가 검사한 데이터를 받아 이것만 씀)
-export function rulesFrom(d:BattleData){
+export function rulesFrom(d:BattleData,options:RulesOptions={}){
+  const augmentVersion=options.augmentVersion??d.augmentVersion??1;
+  if(augmentVersion!==1&&augmentVersion!==2)throw new Error('증강 버전은 1 또는 2여야 해요');
+  if((options.augmentCatalog||d.augmentCatalog)&&augmentVersion!==2)throw new Error('V2 증강 카탈로그에는 버전 2가 필요해요');
+  const catalog=augmentVersion===2?parseAugmentCatalogV2(options.augmentCatalog??d.augmentCatalog??augmentCatalogV2):undefined;
   // 상성: 강점 2·약점 2, 자기 자신 금지
   for(const a of attrKeys){
     const s=d.chart[a].strong;
@@ -217,7 +226,7 @@ export function rulesFrom(d:BattleData){
       ...(!(sk.bonus)&&trait.bonus?{bonus:trait.bonus}:{}),...(split?{power:Math.round(sk.power!*.55),hits:2}:{})},a);
   };
   const learnables=Object.entries(d.learn.skills).map(([id,s])=>({id,level:s.level,roles:s.roles}));
-  const battleAugments:BattleAugment[]=battleAugIds.map(id=>{
+  const battleAugments:BattleAugment[]=catalog?catalog.augments.map(a=>({...a,p:{...a.p}})):battleAugIds.map(id=>{
     const raw=d.battleAugments[id] as {name:string;desc?:string}&Record<string,unknown>;
     const p=Object.fromEntries(Object.entries(raw).filter(([,v])=>typeof v==='number')) as Record<string,number>;
     return {id,name:raw.name,desc:raw.desc??augDesc(id,p,''),p};
@@ -229,7 +238,8 @@ export function rulesFrom(d:BattleData){
     const text=(Object.entries(passive) as [keyof Passive,number|boolean][]).map(([k,v])=>passiveText[k](Number(v))).join(', ');
     return {id,name,roles,passive:passive as Passive,desc:desc??text};
   });
-  return {data:d,attrName,typeMult,basicSkill,roleSkill,subSkill,elementalSkill,unitPower,recipeValue,recipeBonus,comboSkill,learnSkill,learnables,units,villains,unitDef,battleAugments,battleAug:new Map(battleAugments.map(a=>[a.id,a])),
+  return {data:d,augmentVersion,attrName,typeMult,basicSkill,roleSkill,subSkill,elementalSkill,unitPower,recipeValue,recipeBonus,comboSkill,learnSkill,learnables,units,villains,unitDef,battleAugments,battleAug:new Map(battleAugments.map(a=>[a.id,a])),
     evoAugments,evoAug:new Map(evoAugments.map(a=>[a.id,a]))};
 }
 export type Rules=ReturnType<typeof rulesFrom>;
+
