@@ -861,7 +861,7 @@ public class MainActivity extends AppCompatActivity {
                         .show());
     form.addView(help, new LinearLayout.LayoutParams(-1, dp(48)));
     if (!linking) form.addView(button("심사 계정 로그인 / Review login", () -> reviewLogin(form)),
-        new LinearLayout.LayoutParams(-1, dp(64)));
+        new LinearLayout.LayoutParams(-1, dp(48)));
 
   }
 
@@ -887,9 +887,13 @@ public class MainActivity extends AppCompatActivity {
       field.setSaveEnabled(false);
       field.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
       field.setBackground(new GamePaperDrawable(this));
+      // 종이 테두리에 글자가 붙지 않게 안쪽 여백.
+      field.setPadding(dp(14), 0, dp(14), 0);
       field.setFilters(new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(field == username ? 80 : 256)});
       form.addView(field, new LinearLayout.LayoutParams(-1, dp(52)));
     }
+    // setSingleLine()이 비밀번호 가림을 한 줄 변환으로 덮어쓰므로 마지막에 다시 가린다.
+    password.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());
     Runnable submit = () -> {
       if (busy) return;
       String name = username.getText().toString();

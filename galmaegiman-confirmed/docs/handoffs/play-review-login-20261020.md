@@ -54,3 +54,23 @@ P2 쿠키 수정: POST review/login과 logout만 기존 세션 검증에서 제�
 ## 독립 검토 요청 범위
 
 완료 커밋에서 별도 검토자가 고정 계정 바인딩, 기존 서명 쿠키/OTP 우회 차단, API 허용 목록의 빠진 경계, 로그·세션 폐기, 공개 집계 제외 쿼리와 일반 인증 회귀를 검토해야 한다. 이 문서의 테스트 결과는 독립 보안 검토 완료를 뜻하지 않는다. 실제 기기 검증과 독립 검토 결과 확인 전 운영 활성화하지 않는다.
+
+## 2026-10-21 통합·변경 (manual/home-assembly-20261019)
+
+`47b393e`·`30770c9`를 이 브랜치에 옮겼다(`review-server.sh` 충돌은 30770c9 판으로). 바뀐 점:
+
+- **실시간 PvP를 일반 이용자와 같은 규칙으로 개방**: `pvp/queue/*`, `pvp/room/*`, `pvp/rank`, 네이티브 `battle/start`의 `normal`. 심사 계정만 다른 게임 동작을 두지 않는다. 랭크 공개 순위(`rankSummary`)에서는 다른 공개 집계처럼 `review:*`를 뺀다. 계정 삭제·카카오 연결·쿠폰·관리 기능은 계속 403.
+- **앱**: 비밀번호 칸이 `setSingleLine()` 때문에 가려지지 않던 문제 수정(실제 기기에서도 노출됐을 것). 진입 버튼 높이 48dp로 통일, 입력 칸 안쪽 여백. `ReviewLoginCaptureTest`(915×412·1280×720·780×360, 글자 130%).
+- **운영 도구** `scripts/manual/review-account.mjs`: check(읽기 전용) → create → prepare(1회 시작 자원) → password(입력 숨김, .env에는 해시만) → enable → 재시작 → verify(서버 안에서 로그인·주요 API·로그아웃·재로그인, 상태 코드만 출력). 로컬 격리 DB·서버로 전 단계 확인, 서버 로그·.env에 평문 없음 확인.
+- prepare 시작 자원(승인 대상): 닉네임 GmmReview, 뽑기권 100, 새우깡 3000, 갈매미 D1·D2·D3·C1·C2·U1, 대전 편성 D1·D2·D3, 튜토리얼 완료. 최상위 3마리는 실시간 PvP 진입 조건이다.
+
+### EC2 순서(각 단계 승인 후)
+```bash
+cd ~/gmm/galmaegiman-confirmed
+node --env-file=.env scripts/manual/review-account.mjs check
+node --env-file=.env scripts/manual/review-account.mjs create
+node --env-file=.env scripts/manual/review-account.mjs prepare
+node --env-file=.env scripts/manual/review-account.mjs password
+node --env-file=.env scripts/manual/review-account.mjs enable && sudo systemctl restart gmm-server
+node --env-file=.env scripts/manual/review-account.mjs verify
+```

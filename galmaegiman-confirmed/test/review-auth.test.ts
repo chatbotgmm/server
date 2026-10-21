@@ -41,10 +41,15 @@ describe('심사 전용 인증',()=>{
     for(let i=0;i<12;i++)expect(await f.auth.login('', '')).toBeNull();
 expect(await f.auth.login(config.username,password)).toMatch(/^rv_/);
   });
-  it('명시적 자기 계정 경로와 단독 전투만 허용',()=>{
+  it('명시적 자기 계정 경로와 일반 이용자와 같은 전투·실시간 PvP를 허용',()=>{
     expect(reviewRouteAllowed('POST','mix',{})).toBe(true);expect(reviewRouteAllowed('POST','native/battle/start',{mode:'story'})).toBe(true);
-    for(const p of ['account/delete','kakao/link-start','coupon','admin','pvp/queue/attempt','future-route'])expect(reviewRouteAllowed('POST',p,{})).toBe(false);
-    expect(reviewRouteAllowed('POST','native/battle/start',{mode:'normal'})).toBe(false);
+    // 실시간 PvP는 일반 이용자와 같은 규칙으로 연다(심사 계정에만 다른 동작 금지).
+    for(const p of ['pvp/queue/attempt','pvp/queue/join','pvp/queue/cancel','pvp/room/command','pvp/room/surrender'])expect(reviewRouteAllowed('POST',p,{})).toBe(true);
+    for(const p of ['pvp/queue/current','pvp/room/current','pvp/rank'])expect(reviewRouteAllowed('GET',p,{})).toBe(true);
+    expect(reviewRouteAllowed('POST','native/battle/start',{mode:'normal'})).toBe(true);
+    // 계정 연결·삭제·쿠폰·관리 기능·검토하지 않은 새 경로는 계속 막는다.
+    for(const p of ['account/delete','kakao/link-start','kakao/unlink','coupon','admin','app/exchange','future-route'])expect(reviewRouteAllowed('POST',p,{})).toBe(false);
+    expect(reviewRouteAllowed('POST','native/battle/start',{mode:'rank'})).toBe(false);
   });
 });
 describe('실제 HTTP 인증 경계 (mock DB)',()=>{
