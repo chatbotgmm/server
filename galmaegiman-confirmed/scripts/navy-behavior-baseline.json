@@ -1,0 +1,11 @@
+{
+  "commit": "36c83cb64016f658271e6e876adf26753966fd1a",
+  "methods": {
+    "mixUnit": "71c82462091df9429794b0cc6bf951eb4b1a1fccf913a9077b155cef09fd1686",
+    "mixResult": "ff1e343b000d118d1b95136869fec132a56f7d328a672284a6634fe3cf012ecb",
+    "confirmMix": "af8c37bfd1327edc724953af13a962a7baa1598d8d211aab1408a9197d593b56",
+    "performCraft": "d989d6e5e59819e4df494dc1c14e5e3b63c85c8e3616c12cd155b77b169ced10",
+    "acquisitionOrigin": "d11a67db3dd890edd6e0377d8ffc9c91d51769c3e5d110211725511daa9a96b7",
+    "materialGuide": "29c98bf76cc3e5890463fe01e1193d84d12f37bde927712d3ae2a9da31fccca9"
+  }
+}

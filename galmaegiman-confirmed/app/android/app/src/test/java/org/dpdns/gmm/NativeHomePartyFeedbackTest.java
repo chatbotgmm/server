@@ -333,7 +333,7 @@ public class NativeHomePartyFeedbackTest {
       check(!Rect.intersects(bounds(sprites.get(i), h.root), bounds(sprites.get(j), h.root)), "Party artwork overlaps", findings);
     if (scene.equals("home")) {
       LobbyView lobby = (LobbyView) h.root.getChildAt(0);
-      check(lobby.buttons.size() == 13, "HOME action count changed beyond removing harbor", findings);
+      check(lobby.buttons.size() == 14, "HOME keeps thirteen actions plus menu toggle", findings);
       check(h.root.findViewWithTag("lobby-harbor") == null && h.root.findViewWithTag("lobby-growth") == null, "Removed HOME action survives", findings);
       check(lobby.ready(), "Original HOME art did not load", findings);
       check(!lobby.heroBox().isEmpty() && !lobby.heroShadowBox(lobby.heroBox()).isEmpty(), "Grounded character/contact shadow missing", findings);
@@ -458,6 +458,8 @@ public class NativeHomePartyFeedbackTest {
       int[] indices = {0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12};
       String[] routes = {"expedition", "draw", "collection", "craft", "shop", "modes", "daily", "settings", "shop", "shop", "shop", "team"};
       for (int i = 0; i < indices.length; i++) {
+        boolean tile = indices[i] <= 4 || indices[i] == 6 || indices[i] == 12;
+        lobby.setMenuOpen(tile); layout(h, PROFILES[0]);
         Button b = lobby.buttons.get(indices[i]); Rect r = bounds(b, h.root); int count = h.routes.size();
         Bitmap scene = render(h.root); Bitmap normal = Bitmap.createBitmap(scene, r.left, r.top, r.width(), r.height()); scene.recycle();
         try {
@@ -466,18 +468,25 @@ public class NativeHomePartyFeedbackTest {
           int sampleX = Math.round(face.centerX()) - b.getLeft();
           int sampleY = Math.round(face.top + h.dp(11)) - b.getTop();
           if (currency) {
-            assertEquals("Currency keeps its distinct inset navy surface", CurrencyDisplay.NAVY,
-                normal.getPixel(sampleX, sampleY));
+            Bitmap expected = Bitmap.createBitmap(h.root.getWidth(), h.root.getHeight(), Bitmap.Config.ARGB_8888);
+            try {
+              lobby.menuArt.currency(new Canvas(expected), face, indices[i] - 9, false, true, b.isFocused());
+              assertEquals("Currency uses the actual textured medallion surface",
+                  expected.getPixel(Math.round(face.centerX()), Math.round(face.top + h.dp(11))),
+                  normal.getPixel(sampleX, sampleY));
+            } finally { expected.recycle(); }
             assertTrue("Currency is not a parchment menu", tones(normal).optDouble("navyFraction") > .55);
           } else assertTrue("HOME menu default contains parchment", tones(normal).optDouble("paperFraction") > .15);
           down(b); assertTrue(b.isPressed()); scene = render(h.root);
           Bitmap pressed = Bitmap.createBitmap(scene, r.left, r.top, r.width(), r.height()); scene.recycle();
           try {
             if (currency) {
-              assertEquals("Currency press uses its own lighter navy", CurrencyDisplay.PRESSED,
-                  pressed.getPixel(sampleX, sampleY));
               assertFalse("Currency has visible press feedback", samePixels(normal, pressed));
-            } else assertTrue("HOME press makes its real Canvas surface navy", tones(pressed).optDouble("navyFraction") > tones(normal).optDouble("navyFraction") + .15);
+              assertTrue("Pressed currency retains navy identity", tones(pressed).optDouble("navyFraction") > .55);
+            } else {
+              assertFalse("Parchment HOME controls give visible press feedback", samePixels(normal, pressed));
+              assertTrue("Pressed HOME controls retain approved parchment identity", tones(pressed).optDouble("paperFraction") > .15);
+            }
           } finally { pressed.recycle(); }
           cancel(b); assertFalse(b.isPressed()); assertEquals(count, h.routes.size());
           scene = render(h.root); Bitmap cancelled = Bitmap.createBitmap(scene, r.left, r.top, r.width(), r.height()); scene.recycle();
@@ -635,6 +644,7 @@ public class NativeHomePartyFeedbackTest {
     }
   }
 }
+
 
 
 
