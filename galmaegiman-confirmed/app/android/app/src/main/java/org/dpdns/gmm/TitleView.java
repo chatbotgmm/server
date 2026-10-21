@@ -50,6 +50,8 @@ final class TitleView extends FrameLayout implements FullBleed {
     caption = text("작은 날개로, 우리 섬을 지켜요.", 17, false, 0xffead7ab);
     caption.setMaxLines(2);
     caption.setTag("title-caption");
+    // 좁은 화면·큰 글씨에서 「지/켜요」처럼 낱말 중간에서 끊지 않고 띄어쓰기에서만 줄을 바꾼다.
+    NativeEconomy.wrapAtSpaces(caption, caption.getText().toString());
     addView(caption);
     titleFirst = text("갈매미맨", 46, true, 0xfffff4db);
     titleFirst.setTag("title-name-first");
