@@ -46,7 +46,8 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
-        coreLibraryDesugaringEnabled true
+        implementation "com.google.android.play:app-update:2.1.0"
+    coreLibraryDesugaringEnabled true
     }
     testOptions {
         unitTests.includeAndroidResources = true
@@ -187,3 +188,4 @@ tasks.named('bundleGameArt').configure {
     dependsOn 'prepareUpper33Art'
     from(upper33Generated) { into 'native/upper33-v1' }
 }
+

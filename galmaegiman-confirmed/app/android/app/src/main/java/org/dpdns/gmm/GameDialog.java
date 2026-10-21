@@ -191,6 +191,8 @@ final class GameDialog extends AlertDialog.Builder {
 
                 public void onChildViewRemoved(View parent, View child) {}
               });
+    // 비동기 게임 응답의 별도 Window가 필수 업데이트 화면 위로 올라오지 않게 한다.
+    if (host.updateBlocks()) host.requiredUpdate.holdGameDialog(dialog);
     return dialog;
   }
 
@@ -224,3 +226,4 @@ final class GameDialog extends AlertDialog.Builder {
     }
   }
 }
+

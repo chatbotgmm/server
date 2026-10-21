@@ -46,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
   String currentKey = "", accountReturn = "home";
   NativeTutorialController guide;
   private RegistrationArt registrationCards;
+  NativeRequiredUpdate requiredUpdate;
 
   RegistrationArt registrationArt() {
     if (registrationCards == null) registrationCards = new RegistrationArt(this);
@@ -107,16 +108,18 @@ public class MainActivity extends AppCompatActivity {
       getWindow().setAttributes(window);
     }
     immersive();
-    if (!exchange(getIntent())) {
-      if (api.token().isEmpty()) titleScreen();
-      else load(notificationTarget(getIntent()));
-    }
+    requiredUpdate = new NativeRequiredUpdate(this);
+    // onResume에서 Play 확인을 마친 뒤 로그인/닉네임/튜토리얼을 시작한다.
   }
 
   @Override
   protected void onNewIntent(Intent i) {
     super.onNewIntent(i);
     setIntent(i);
+    if (requiredUpdate != null && requiredUpdate.blocks()) {
+      requiredUpdate.deferIntent();
+      return;
+    }
     if (!exchange(i) && i.hasExtra("destination") && !api.token().isEmpty())
       load(notificationTarget(i));
   }
@@ -178,7 +181,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void stateUpdated() {
-    if (realtime != null) realtime.recover();
+    if (realtime != null && !updateBlocks()) realtime.recover();
     NativeAlerts.schedule(this, me());
     if (guide != null) guide.onStateUpdated();
   }
@@ -215,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void request(String path, JSONObject data, NativeApi.Result done) {
-    if (busy) return;
+    if (busy || updateBlocks()) return;
     busy = true;
     final int operation = operations.begin(NativeOperationUi.label(path), actionButton);
     final int operationEpoch = epoch;
@@ -226,6 +229,7 @@ public class MainActivity extends AppCompatActivity {
         (r, e) -> {
           if (isFinishing()
               || isDestroyed()
+              || (requiredUpdate != null && requiredUpdate.required())
               || operationEpoch != epoch
               || (!operationAccount.equals(api.token()) && !(e != null && api.token().isEmpty()))) {
             if (operations.finish(operation)) busy = false;
@@ -255,6 +259,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void load(String target) {
+    if (updateBlocks()) { requiredUpdate.deferLoad(target); return; }
     if (busy) return;
     if (screen.equals("team") && !target.equals("team") && menus.isTeamDirty()) {
       menus.requestLeaveTeam(() -> load(target));
@@ -274,7 +279,8 @@ public class MainActivity extends AppCompatActivity {
         "native/state",
         null,
         (r, e) -> {
-          if (isFinishing() || isDestroyed() || destination != epoch) {
+          if (isFinishing() || isDestroyed() || destination != epoch
+              || (requiredUpdate != null && requiredUpdate.required())) {
             if (operations.finish(operation)) busy = false;
             return;
           }
@@ -304,7 +310,8 @@ public class MainActivity extends AppCompatActivity {
               "duel-key",
               null,
               (key, error) -> {
-                if (isFinishing() || isDestroyed() || destination != epoch) {
+                if (isFinishing() || isDestroyed() || destination != epoch
+              || (requiredUpdate != null && requiredUpdate.required())) {
                   if (operations.finish(operation)) busy = false;
                   return;
                 }
@@ -466,7 +473,7 @@ public class MainActivity extends AppCompatActivity {
     b.setStateListAnimator(null);
     b.setOnClickListener(
         v -> {
-          if (!busy) {
+          if (!busy && !updateBlocks()) {
             sound.click();
             Button previous = actionButton;
             actionButton = b;
@@ -948,6 +955,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   boolean exchange(Intent intent) {
+    if (updateBlocks()) { requiredUpdate.deferIntent(); return true; }
     Uri u = intent.getData();
     if (u == null || !"gmmrevised".equals(u.getScheme()) || !"auth".equals(u.getHost()))
       return false;
@@ -1418,7 +1426,8 @@ public class MainActivity extends AppCompatActivity {
         "native/state",
         null,
         (fresh, error) -> {
-          if (isFinishing() || isDestroyed() || destination != epoch) {
+          if (isFinishing() || isDestroyed() || destination != epoch
+              || (requiredUpdate != null && requiredUpdate.required())) {
             if (operations.finish(operation)) busy = false;
             return;
           }
@@ -1443,6 +1452,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void back() {
+    if (updateBlocks()) return;
     if (screen.equals("nickname")) { if (!busy) titleScreen(); return; }
     if (screen.equals("battleReplay")) { NativeBattleReplay.records(this); return; }
     if (screen.equals("battleRecords")) { load("modesPvp"); return; }
@@ -1521,7 +1531,8 @@ public class MainActivity extends AppCompatActivity {
   protected void onResume() {
     super.onResume();
     if (sound != null) sound.resume();
-    if (realtime != null) realtime.resume();
+    if (requiredUpdate != null) requiredUpdate.resume();
+    if (realtime != null && !updateBlocks()) realtime.resume();
     motionResumed = true;
     if (backgroundEffects != null) backgroundEffects.resumed(true);
     journalTime.resume();
@@ -1529,6 +1540,7 @@ public class MainActivity extends AppCompatActivity {
 
   @Override
   protected void onPause() {
+    if (requiredUpdate != null) requiredUpdate.pause();
     NativeBattleReplay.pause(this);
     if (sound != null) sound.pause();
     if (realtime != null) realtime.pause();
@@ -1558,8 +1570,18 @@ public class MainActivity extends AppCompatActivity {
           screen.equals("battle") ? battleMusic() : screen.equals("dialog") ? "story" : "title");
   }
 
+  boolean updateBlocks() { return requiredUpdate != null && requiredUpdate.blocks(); }
+
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    super.onActivityResult(requestCode, resultCode, data);
+    if (requestCode == NativeRequiredUpdate.REQUEST_UPDATE && requiredUpdate != null)
+      requiredUpdate.result();
+  }
+
   @Override
   protected void onDestroy() {
+    if (requiredUpdate != null) requiredUpdate.close();
     if (backgroundEffects != null) backgroundEffects.close();
     if (realtime != null) realtime.close();
     super.onDestroy();
@@ -1573,6 +1595,7 @@ public class MainActivity extends AppCompatActivity {
     sound.close();
   }
 }
+
 
 
 
