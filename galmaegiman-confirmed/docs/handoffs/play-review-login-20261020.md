@@ -57,11 +57,13 @@ P2 쿠키 수정: POST review/login과 logout만 기존 세션 검증에서 제�
 
 ## 2026-10-21 통합·변경 (manual/home-assembly-20261019)
 
-`47b393e`·`30770c9`를 이 브랜치에 옮겼다(`review-server.sh` 충돌은 30770c9 판으로). 바뀐 점:
+`47b393e`·`30770c9`를 이 브랜치에 옮긴 뒤, 사용자 요청으로 **앱 로그인 화면 배치는 원래대로 두고 별도 로그인 주소 방식**으로 바꿨다. 위 「첫 화면 심사 계정 로그인」 버튼 설명은 더 이상 해당하지 않는다.
 
-- **실시간 PvP를 일반 이용자와 같은 규칙으로 개방**: `pvp/queue/*`, `pvp/room/*`, `pvp/rank`, 네이티브 `battle/start`의 `normal`. 심사 계정만 다른 게임 동작을 두지 않는다. 랭크 공개 순위(`rankSummary`)에서는 다른 공개 집계처럼 `review:*`를 뺀다. 계정 삭제·카카오 연결·쿠폰·관리 기능은 계속 403.
-- **앱**: 비밀번호 칸이 `setSingleLine()` 때문에 가려지지 않던 문제 수정(실제 기기에서도 노출됐을 것). 진입 버튼 높이 48dp로 통일, 입력 칸 안쪽 여백. `ReviewLoginCaptureTest`(915×412·1280×720·780×360, 글자 130%).
-- **운영 도구** `scripts/manual/review-account.mjs`: check(읽기 전용) → create → prepare(1회 시작 자원) → password(입력 숨김, .env에는 해시만) → enable → 재시작 → verify(서버 안에서 로그인·주요 API·로그아웃·재로그인, 상태 코드만 출력). 로컬 격리 DB·서버로 전 단계 확인, 서버 로그·.env에 평문 없음 확인.
+- **심사용 로그인 주소 `https://gmm.dpdns.org/review`** (noindex, no-store, no-referrer): 아이디·비밀번호 확인(같은 scrypt·요청 제한) → 2분짜리 일회용 코드 → `intent://auth?review=…;package=org.gmm`(Chrome) 자동 이동 + 「앱에서 열기」·`gmmrevised://auth?review=…` 버튼. 응답·로그에 비밀번호·세션 값 없음.
+- **앱**: 로그인 화면 변경 없음. 기존 복귀 주소 처리에 `review` 코드만 추가 → `POST /my/api/review/exchange`(한 번만) → 심사 세션. `NativeReviewDeepLinkTest`.
+- 사용자 지정 주소(gmmrevised)는 다른 앱이 같은 주소를 등록하면 코드를 가로챌 수 있다. 코드는 2분·1회·심사 계정 전용으로 제한했고, Chrome에서는 package=org.gmm으로 출시 앱을 직접 연다.
+- **실시간 PvP를 일반 이용자와 같은 규칙으로 개방**(`pvp/queue/*`, `pvp/room/*`, `pvp/rank`, 네이티브 `battle/start`의 `normal`). 랭크 공개 순위에서는 다른 공개 집계처럼 `review:*` 제외. 계정 삭제·카카오 연결·쿠폰·관리 기능은 계속 403.
+- **운영 도구** `scripts/manual/review-account.mjs`: check(읽기 전용) → create → prepare(1회 시작 자원) → password(입력 숨김, .env에는 해시만) → enable → 재시작 → verify(API 로그인·주요 API·로그아웃·재로그인과 /review 페이지→코드→세션까지, 상태 코드만 출력). 로컬 격리 DB·서버로 전 단계 확인, 서버 로그·.env에 평문·코드 없음.
 - prepare 시작 자원(승인 대상): 닉네임 GmmReview, 뽑기권 100, 새우깡 3000, 갈매미 D1·D2·D3·C1·C2·U1, 대전 편성 D1·D2·D3, 튜토리얼 완료. 최상위 3마리는 실시간 PvP 진입 조건이다.
 
 ### EC2 순서(각 단계 승인 후)

@@ -860,62 +860,6 @@ public class MainActivity extends AppCompatActivity {
                         .setPositiveButton("확인", null)
                         .show());
     form.addView(help, new LinearLayout.LayoutParams(-1, dp(48)));
-    if (!linking) form.addView(button("심사 계정 로그인 / Review login", () -> reviewLogin(form)),
-        new LinearLayout.LayoutParams(-1, dp(48)));
-
-  }
-
-  // 전용 심사 계정만 서버에서 인증. 입력값은 저장하거나 로그에 남기지 않는다.
-  void reviewLogin(LinearLayout form) {
-    if (busy) return;
-    epoch++;
-    form.removeAllViews();
-    form.addView(text("심사 계정 로그인 / Review login", 18));
-    EditText username = new EditText(this);
-    username.setHint("Username");
-    username.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-        | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-    EditText password = new EditText(this);
-    password.setHint("Password");
-    password.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-    for (EditText field : new EditText[] {username, password}) {
-      field.setSingleLine(true);
-      field.setTextColor(INK);
-      field.setHintTextColor(BLUE);
-      field.setTextSize(16);
-      field.setTypeface(prose);
-      field.setSaveEnabled(false);
-      field.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
-      field.setBackground(new GamePaperDrawable(this));
-      // 종이 테두리에 글자가 붙지 않게 안쪽 여백.
-      field.setPadding(dp(14), 0, dp(14), 0);
-      field.setFilters(new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(field == username ? 80 : 256)});
-      form.addView(field, new LinearLayout.LayoutParams(-1, dp(52)));
-    }
-    // setSingleLine()이 비밀번호 가림을 한 줄 변환으로 덮어쓰므로 마지막에 다시 가린다.
-    password.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());
-    Runnable submit = () -> {
-      if (busy) return;
-      String name = username.getText().toString();
-      String secret = password.getText().toString();
-      password.setText("");
-      if (name.isEmpty() || secret.isEmpty()) { message("Enter your review username and password."); return; }
-      ((android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE))
-          .hideSoftInputFromWindow(password.getWindowToken(), 0);
-      request("review/login", obj("username", name, "password", secret), (r, e) -> {
-        getSharedPreferences("native_account", 0).edit().remove("linkCode").apply();
-        api.token(r.optString("token"));
-        load("title");
-      });
-    };
-    password.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
-    password.setOnEditorActionListener((v, action, event) -> {
-      if (action != android.view.inputmethod.EditorInfo.IME_ACTION_DONE) return false;
-      submit.run(); return true;
-    });
-    form.addView(button("로그인 / Sign in", submit), new LinearLayout.LayoutParams(-1, dp(48)));
-    form.addView(button("뒤로 / Back", this::login), new LinearLayout.LayoutParams(-1, dp(48)));
-    root.post(this::resizeLogin);
   }
 
   void resizeLogin() {
@@ -994,6 +938,23 @@ public class MainActivity extends AppCompatActivity {
     Uri u = intent.getData();
     if (u == null || !"gmmrevised".equals(u.getScheme()) || !"auth".equals(u.getHost()))
       return false;
+    // 심사용 로그인 페이지(/review)에서 넘어온 2분짜리 일회용 코드. 화면 배치는 바꾸지 않는다.
+    String reviewCode = u.getQueryParameter("review");
+    if (reviewCode != null) {
+      if (busy) {
+        api.ui.postDelayed(() -> exchange(intent), 250);
+        return true;
+      }
+      getSharedPreferences("native_account", 0).edit().remove("verifier").remove("linking").remove("linkCode").apply();
+      request(
+          "review/exchange",
+          obj("code", reviewCode),
+          (r, e) -> {
+            api.token(r.optString("token"));
+            load("title");
+          });
+      return true;
+    }
     String authError = u.getQueryParameter("error");
     if (authError != null) {
       getSharedPreferences("native_account", 0).edit().remove("verifier").remove("linking").apply();

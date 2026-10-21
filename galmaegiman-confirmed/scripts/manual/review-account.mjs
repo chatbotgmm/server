@@ -165,6 +165,21 @@ async function verify() {
   const again = await call('POST', 'review/login', null, {username: USERNAME, password: secret});
   ok = line('다시 로그인', again.status === 200 && String(again.json?.token ?? '').startsWith('rv_'), again.status) && ok;
   if (again.json?.token) await call('POST', 'logout', again.json.token, {});
+  // 심사자가 실제로 쓰는 경로: /review 페이지 로그인 → 일회용 코드 → 앱이 세션으로 교환.
+  const page = await fetch(`${base}/review`);
+  ok = line('심사 로그인 페이지 열림', page.status === 200, page.status) && ok;
+  const form = await fetch(`${base}/review`, {method: 'POST', headers: {'content-type': 'application/x-www-form-urlencoded'},
+    body: new URLSearchParams({username: USERNAME, password: secret}).toString()});
+  const code = /gmmrevised:\/\/auth\?review=([A-Za-z0-9_-]+)/.exec(await form.text())?.[1];
+  ok = line('페이지 로그인 → 앱 열기 코드', form.status === 200 && !!code, form.status) && ok;
+  if (code) {
+    const ex = await call('POST', 'review/exchange', null, {code});
+    const t = ex.json?.token;
+    ok = line('앱 코드 → 심사 세션', ex.status === 200 && String(t ?? '').startsWith('rv_'), ex.status) && ok;
+    if (t) { const me = await call('GET', 'native/state', t); ok = line('그 세션으로 게임 상태 조회', me.status === 200, me.status) && ok; await call('POST', 'logout', t, {}); }
+    const reuse = await call('POST', 'review/exchange', null, {code});
+    ok = line('같은 코드 재사용은 거부', reuse.status === 400, reuse.status) && ok;
+  }
   console.log(ok ? '모든 확인 통과' : '실패 항목이 있어요');
   if (!ok) process.exitCode = 1;
 }

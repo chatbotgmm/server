@@ -43,7 +43,8 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
   app.addHook('preHandler',async(req,reply)=>{
     // 자격증명 교환/폐기만 기존 세션 없이 처리. guard와 로그인 제한은 각 handler에서 유지.
     const path=req.url.split('?')[0];
-    if(req.method==='POST'&&(path==='/my/api/review/login'||path==='/my/api/logout'))return;
+    if(req.method==='POST'&&(path==='/my/api/review/login'||path==='/my/api/review/exchange'||path==='/my/api/logout'))return;
+    if(path==='/review')return;   // 심사용 로그인 페이지: 기존 브라우저 쿠키와 무관하게 동작
     const raw=rawSession(req);if(!raw)return;
     if(raw.startsWith('rv_')){
       const id=await review.authenticate(raw);
@@ -128,6 +129,43 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
     review.revoke(rawSession(req)??'');
     setCookie(req,reply,token,12*3600);
     return {ok:true,...(req.headers['x-gmm-app']==='1'?{token}:{})};
+  });
+  // ── Play 심사용 로그인 페이지 ──
+  // 심사자에게 이 주소만 전달한다. 아이디·비밀번호 확인 후 2분짜리 일회용 코드로 앱(gmmrevised://auth?review=…)을 연다.
+  // 앱은 코드를 심사 세션으로 바꾼다. 앱 화면 배치는 바꾸지 않는다. 비밀번호는 응답·로그에 남기지 않는다.
+  const reviewCodes=new Map<string,{token:string;exp:number}>();
+  const reviewPage=(body:string)=>`<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Gmm review login</title>
+<style>body{font-family:system-ui,sans-serif;background:#f5efdc;color:#26323a;margin:0;padding:24px;display:flex;justify-content:center}main{max-width:420px;width:100%}h1{font-size:22px}label{display:block;margin:14px 0 6px;font-weight:600}input{width:100%;box-sizing:border-box;font-size:18px;padding:12px;border:1px solid #8a7a5a;border-radius:8px;background:#fffaf0}button,a.btn{display:block;font:inherit;width:100%;box-sizing:border-box;margin-top:18px;padding:14px;font-size:18px;font-weight:700;text-align:center;border:0;border-radius:10px;background:#26323a;color:#fff8e8;text-decoration:none}p{line-height:1.5}.err{color:#a3332a}</style></head><body><main>${body}</main></body></html>`;
+  const reviewForm=(error='')=>reviewPage(`<h1>갈매미맨 심사 계정 로그인<br>Gmm review login</h1>${error?`<p class="err">${error}</p>`:''}
+<form method="post" action="/review" autocomplete="off"><label for="u">Username</label><input id="u" name="username" autocapitalize="none" autocomplete="off" spellcheck="false" maxlength="80" required>
+<label for="p">Password</label><input id="p" name="password" type="password" autocomplete="off" maxlength="256" required>
+<button type="submit">로그인 후 앱 열기 / Sign in and open the app</button></form><p>Install the app from Google Play first. 앱을 먼저 설치해 주세요.</p>`);
+  app.get('/review',async(_req,reply)=>reply.type('text/html; charset=utf-8').header('Cache-Control','no-store').header('X-Robots-Tag','noindex').header('Referrer-Policy','no-referrer').send(reviewForm()));
+  app.register(async sub=>{
+    // 이 페이지의 HTML 폼만 받는다(다른 경로에는 영향 없음).
+    sub.addContentTypeParser('application/x-www-form-urlencoded',{parseAs:'string',bodyLimit:2048},(_req,body,done)=>{try{done(null,Object.fromEntries(new URLSearchParams(String(body))));}catch(e){done(e as Error,undefined);}});
+    sub.post<{Body:{username?:unknown;password?:unknown}}>('/review',{bodyLimit:2048,config:{rateLimit:{max:5,timeWindow:'1 minute',keyGenerator:(req:FastifyRequest)=>`review-login:${req.ip}`,errorResponseBuilder:()=>({statusCode:429,error:REVIEW_ERROR})}}},async(req,reply)=>{
+      reply.type('text/html; charset=utf-8').header('Cache-Control','no-store').header('X-Robots-Tag','noindex').header('Referrer-Policy','no-referrer');
+      const token=await review.login(req.body?.username,req.body?.password,req.ip);
+      if(!token)return reply.code(400).send(reviewForm('로그인 정보를 확인해 주세요. / Check the username and password.'));
+      const now=Date.now();
+      for(const [k,v] of reviewCodes)if(v.exp<=now){review.revoke(v.token);reviewCodes.delete(k);}
+      if(reviewCodes.size>=20){const [k,v]=reviewCodes.entries().next().value!;review.revoke(v.token);reviewCodes.delete(k);}
+      const code=randomBytes(24).toString('base64url');reviewCodes.set(code,{token,exp:now+120_000});
+      // Play 출시 앱(org.gmm)을 직접 연다. 다른 브라우저용으로 기존 앱 복귀 주소도 둔다.
+      const intent=`intent://auth?review=${code}#Intent;scheme=gmmrevised;package=org.gmm;end`,plain=`gmmrevised://auth?review=${code}`;
+      return reviewPage(`<h1>로그인 완료 / Signed in</h1><p>앱이 열리지 않으면 아래 버튼을 눌러 주세요(2분 안에). If the app does not open, tap the button within 2 minutes.</p>
+<a class="btn" id="open" href="${intent}">앱에서 열기 / Open the app</a><a class="btn" href="${plain}" style="background:#596778">다른 방법으로 열기 / Open another way</a>
+<script>location.href=${JSON.stringify(intent)};</script>`);
+    });
+  });
+  app.post<{Body:{code?:unknown}}>('/my/api/review/exchange',{bodyLimit:1024,config:{rateLimit:{max:10,timeWindow:'1 minute',keyGenerator:(req:FastifyRequest)=>`review-exchange:${req.ip}`}}},async(req,reply)=>{
+    if(!guard(req,reply))return;
+    reply.header('Cache-Control','no-store');
+    const code=typeof req.body?.code==='string'?req.body.code:'',e=reviewCodes.get(code);
+    reviewCodes.delete(code);   // 한 번만
+    if(!e||e.exp<=Date.now()||!await review.authenticate(e.token))return reply.code(400).send({error:'심사 로그인 페이지에서 다시 로그인해 주세요.'});
+    return {ok:true,token:e.token};
   });
   app.post('/my/api/logout',async(req,reply)=>{if(!guard(req,reply))return;review.revoke(rawSession(req)??'');setCookie(req,reply,'',0);return {ok:true};});
   const limit={config:{rateLimit:{max:120,timeWindow:'1 minute',keyGenerator:ipKey('myapi')}}};

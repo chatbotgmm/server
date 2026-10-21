@@ -79,6 +79,40 @@ describe('실제 HTTP 인증 경계 (mock DB)',()=>{
   });
 });
 
+describe('심사용 로그인 페이지 → 일회용 코드 → 앱 세션',()=>{
+  it('페이지 로그인 성공 시 앱 열기 주소만 주고, 코드는 한 번만 세션으로 바뀐다',async()=>{
+    const f=fixture(),game=new GameService(f.db,loadContent());
+    vi.spyOn(game,'webWho').mockResolvedValue({nickname:'dummy',credits:0});
+    const app=await buildApp(f.db,game,{secret:'test-only-secret'.repeat(4),baseUrl:async()=>'',reviewLogin:f.c});
+    const form=(u:string,p:string)=>app.inject({method:'POST',url:'/review',headers:{'content-type':'application/x-www-form-urlencoded'},payload:new URLSearchParams({username:u,password:p}).toString()});
+    try{
+      const page=await app.inject({url:'/review'});
+      expect(page.statusCode).toBe(200);expect(page.headers['cache-control']).toBe('no-store');expect(page.headers['x-robots-tag']).toBe('noindex');
+      expect(page.body).toContain('type="password"');
+      const bad=await form(config.username,'wrong-dummy-password');
+      expect(bad.statusCode).toBe(400);expect(bad.body).not.toContain('wrong-dummy-password');expect(bad.body).not.toContain('intent://');
+      const ok=await form(config.username,password);
+      expect(ok.statusCode).toBe(200);expect(ok.body).not.toContain(password);expect(ok.body).not.toContain('rv_');
+      const code=/review=([A-Za-z0-9_-]+)#Intent;scheme=gmmrevised;package=org\.gmm;end/.exec(ok.body)?.[1];
+      expect(code).toBeTruthy();expect(ok.body).toContain(`gmmrevised://auth?review=${code}`);
+      const headers={'x-gmm':'1','x-gmm-app':'1'};
+      expect((await app.inject({method:'POST',url:'/my/api/review/exchange',payload:{code}})).statusCode).toBe(403);   // x-gmm 없으면 거부(코드는 그대로)
+      const ex=await app.inject({method:'POST',url:'/my/api/review/exchange',headers,payload:{code}});
+      expect(ex.statusCode).toBe(200);const token=ex.json().token;expect(token).toMatch(/^rv_/);
+      expect((await app.inject({url:'/my/api/who',headers:{...headers,'x-gmm-s':token}})).statusCode).toBe(200);
+      expect((await app.inject({method:'POST',url:'/my/api/review/exchange',headers,payload:{code}})).statusCode).toBe(400);   // 한 번만
+      expect((await app.inject({method:'POST',url:'/my/api/account/delete',headers:{...headers,'x-gmm-s':token},payload:{confirm:'탈퇴'}})).statusCode).toBe(403);
+    }finally{await app.close();}
+  });
+  it('설정이 꺼져 있으면 페이지 로그인도 실패하고 코드를 만들지 않는다',async()=>{
+    const f=fixture(),app=await buildApp(f.db,new GameService(f.db,loadContent()),{secret:'test-only-secret'.repeat(4),baseUrl:async()=>''});
+    try{
+      const r=await app.inject({method:'POST',url:'/review',headers:{'content-type':'application/x-www-form-urlencoded'},payload:new URLSearchParams({username:config.username,password}).toString()});
+      expect(r.statusCode).toBe(400);expect(r.body).not.toContain('intent://');
+    }finally{await app.close();}
+  });
+});
+
 describe('일반 인증 유지와 심사 실패 폐쇄',()=>{
   it('일반 코드 계정은 기존 서명 세션으로 동작',async()=>{
     const f=fixture();f.player.identity='normal-player';f.player.id='normal-player';
