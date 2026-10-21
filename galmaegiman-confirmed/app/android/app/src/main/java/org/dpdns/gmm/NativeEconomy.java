@@ -919,7 +919,9 @@ final class NativeEconomy {
       // 한 번에 원본 등록증 한 장을 크게 본다. 탐색과 재료 추가는 별개 행동이다.
       int pages = available.size();
       mixPage = Math.max(0, Math.min(mixPage, pages - 1));
-      LinearLayout pager = k.row();
+      // 「‹ 1/14 ›」 줄을 따로 두면 낮은 화면에서 카드가 90dp까지 줄어든다.
+      // 넘기기 버튼은 카드 양옆 가운데, 쪽 번호는 카드 위에 얹어 그 높이를 카드에 준다.
+      FrameLayout pager = new FrameLayout(h);
       pager.setTag("mix-material-pages");
       Button prev = k.action(null, "‹", () -> {
         if (h.busy || mixPage <= 0) return;
@@ -930,13 +932,17 @@ final class NativeEconomy {
       prev.setEnabled(mixPage > 0);
       prev.setContentDescription("이전 보유 갈매미맨");
       prev.setPadding(0, 0, 0, 0);
-      pager.addView(prev, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+      pager.addView(prev, new FrameLayout.LayoutParams(h.dp(48), h.dp(48), Gravity.START | Gravity.CENTER_VERTICAL));
       TextView position = h.text(pages == 0 ? "0 / 0" : (mixPage + 1) + " / " + pages, 14);
       position.setTextColor(JournalTheme.PAPER);
       position.setGravity(Gravity.CENTER);
       position.setSingleLine(true);
       position.setTag("mix-material-position");
-      pager.addView(position, new LinearLayout.LayoutParams(0, -1, 1));
+      position.setTextSize(h.uiText(12));
+      position.setPadding(h.dp(4), 0, h.dp(4), 0);
+      android.graphics.drawable.GradientDrawable chip = new android.graphics.drawable.GradientDrawable();
+      chip.setColor(0xcc1d2b35); chip.setCornerRadius(h.dp(10));
+      position.setBackground(chip);
       Button next = k.action(null, "›", () -> {
         if (h.busy || mixPage + 1 >= pages) return;
         mixPage++;
@@ -946,8 +952,8 @@ final class NativeEconomy {
       next.setEnabled(mixPage + 1 < pages);
       next.setContentDescription("다음 보유 갈매미맨");
       next.setPadding(0, 0, 0, 0);
-      pager.addView(next, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
-      inventory.addView(pager, new LinearLayout.LayoutParams(-1, h.dp(48)));
+      pager.addView(next, new FrameLayout.LayoutParams(h.dp(48), h.dp(48), Gravity.END | Gravity.CENTER_VERTICAL));
+      inventory.addView(pager, new LinearLayout.LayoutParams(-1, 0, 1));
       MixCarousel choices = new MixCarousel(direction -> {
         if (h.busy) return;
         int destination = mixPage + direction;
@@ -956,7 +962,11 @@ final class NativeEconomy {
         paint[0].run();
       });
       choices.setTag("mix-inventory");
-      inventory.addView(choices, new LinearLayout.LayoutParams(-1, 0, 1));
+      FrameLayout.LayoutParams stageSlot = new FrameLayout.LayoutParams(-1, -1);
+      stageSlot.setMargins(h.dp(48), 0, h.dp(48), 0);
+      pager.addView(choices, 0, stageSlot);
+      // 쪽 번호는 카드를 가리지 않게 왼쪽 위(‹ 버튼 위) 빈 칸에 둔다.
+      pager.addView(position, new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.START));
       if (available.isEmpty()) {
         TextView none = k.note("사용 가능한 재료가 없어요.");
         none.setTextColor(JournalTheme.PAPER);

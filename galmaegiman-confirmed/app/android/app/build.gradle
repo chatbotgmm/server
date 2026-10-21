@@ -166,10 +166,12 @@ def upper33Source = file('../../../art/gpt/upper33-animation-v1')
 def upper33Runtime = file('../../../art/gpt/upper33-runtime-v1')
 def upper33Generator = file('../../../scripts/PrepareUpper33Art.java')
 def upper33Generated = layout.buildDirectory.dir('generated/upper33')
+def upper33Webp = file('../../../scripts/upper33-webp.py')
 tasks.register('prepareUpper33Art') {
     inputs.dir upper33Source
     inputs.dir upper33Runtime
     inputs.file upper33Generator
+    inputs.file upper33Webp
     outputs.dir upper33Generated
     doLast {
         def out = upper33Generated.get().asFile
@@ -180,6 +182,10 @@ tasks.register('prepareUpper33Art') {
                 '-Djava.awt.headless=true', upper33Generator.absolutePath,
                 upper33Source.absolutePath, new File(upper33Runtime, 'sources.tsv').absolutePath,
                 new File(upper33Runtime, 'catalog.json').absolutePath, out.absolutePath
+        }
+        // PNG 그대로면 APK가 약 125MB 늘어난다(Play 기본 모듈 한도 초과). 같은 셀을 WebP로 바꾼다.
+        exec {
+            commandLine 'python3', upper33Webp.absolutePath, out.absolutePath
         }
     }
 }

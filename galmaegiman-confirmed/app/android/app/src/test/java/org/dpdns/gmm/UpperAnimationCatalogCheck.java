@@ -6,7 +6,7 @@ public final class UpperAnimationCatalogCheck {
   public static void main(String[] args)throws Exception{
     UpperAnimationCatalog catalog;JSONObject raw;
     try(InputStream in=new FileInputStream(args[0])){catalog=new UpperAnimationCatalog(in);}
-    raw=new JSONObject(java.nio.file.Files.readString(java.nio.file.Path.of(args[0])));
+    raw=new JSONObject(new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(args[0])),java.nio.charset.StandardCharsets.UTF_8));   // Android 단위시험 환경에는 Files.readString이 없음
     int sheets=0,frames=0,fallbacks=0;
     for(int i=0;i<33;i++){
       JSONObject data=raw.getJSONArray("characters").getJSONObject(i);String id=data.getString("id");

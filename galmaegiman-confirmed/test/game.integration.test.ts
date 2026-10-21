@@ -873,14 +873,14 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await post('/my/api/items/use-field',{id:'big'},cookie)).statusCode).toBe(400);   // 없는 아이템
       expect((await post('/my/api/items/use-field',{id:'potion'},cookie)).json()).toEqual({ok:true,result:{left:0,heal:35}});
       expect((await post('/my/api/items/use-field',{id:'potion'},cookie)).statusCode).toBe(400);   // 다 씀
-      // 게임 튜토리얼(v0.15.0): 스토리 저장이 있는 이 계정은 기존 유저 → 9(끝). 새 계정은 1 → 뽑기 단계 지나면 D1 한 번 지급
-      expect((await app.inject({method:'GET',url:'/my/api/tutorial',headers:{'x-gmm':'1',cookie}})).json()).toMatchObject({step:9});
+      // 게임 튜토리얼(v0.15.0): 스토리 저장이 있는 이 계정은 기존 유저 → 9(끝)·닉네임 요구 없음. 새 계정은 1·닉네임 먼저 → 뽑기 단계 지나면 D1 한 번 지급
+      expect((await app.inject({method:'GET',url:'/my/api/tutorial',headers:{'x-gmm':'1',cookie}})).json()).toMatchObject({step:9,nicknameRequired:false});
       {
         const nc=/(\d{6})/.exec((await send('웹 로그인','tut-new-user')).text!)![1];
         const lr=await post('/my/api/login',{code:nc});const ck=String(lr.headers['set-cookie']).split(';')[0];
         const np=await db.player.findUniqueOrThrow({where:{identity:'tut-new-user'}});
         await db.ownedCharacter.deleteMany({where:{playerId:np.id}});await db.collectionEntry.deleteMany({where:{playerId:np.id}});await db.storySave.deleteMany({where:{playerId:np.id}});
-        expect((await app.inject({method:'GET',url:'/my/api/tutorial',headers:{'x-gmm':'1',cookie:ck}})).json()).toEqual({step:1,seen:[]});
+        expect((await app.inject({method:'GET',url:'/my/api/tutorial',headers:{'x-gmm':'1',cookie:ck}})).json()).toEqual({step:1,seen:[],nicknameRequired:true});
         expect((await post('/my/api/tutorial',{step:2},ck)).json()).toMatchObject({ok:true,result:{step:2,granted:false}});
         expect((await post('/my/api/tutorial',{step:3,seen:'craft'},ck)).json()).toMatchObject({ok:true,result:{step:3,granted:true,seen:['craft']}});
         expect(await db.ownedCharacter.count({where:{playerId:np.id,characterId:'D1'}})).toBe(1);

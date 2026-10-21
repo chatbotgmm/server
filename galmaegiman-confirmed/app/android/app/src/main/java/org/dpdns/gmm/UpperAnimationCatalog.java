@@ -31,7 +31,7 @@ final class UpperAnimationCatalog {
     final int duration;
     Sheet(JSONObject j) throws JSONException {
       path=j.getString("url");
-      if(!path.matches("(?:D[1-8]|T[1-8]|E[1-8]|I[1-9])/(?:front|back)/(?:idle|entry|attack|hit-defend)\\.png"))
+      if(!path.matches("(?:D[1-8]|T[1-8]|E[1-8]|I[1-9])/(?:front|back)/(?:idle|entry|attack|hit-defend)\\.(?:png|webp)"))
         throw new JSONException("Invalid animation path");
       scale=(float)j.getDouble("scale"); loop=j.getBoolean("loop");
       if(!finite(scale)||scale<=0||scale>4) throw new JSONException("Invalid animation scale");
@@ -67,7 +67,8 @@ final class UpperAnimationCatalog {
       for(int j=0;j<sheets.length();j++){
         JSONObject dataSheet=sheets.getJSONObject(j);Sheet sheet=new Sheet(dataSheet);
         String key=dataSheet.getString("view")+"/"+dataSheet.getString("action");
-        if(!sheet.path.equals(id+"/"+key+".png")||c.sheets.put(key,sheet)!=null)throw new JSONException("Sheet identity mismatch");
+        // APK에는 빌드 때 만든 WebP(용량 절감), 원본 검사용 카탈로그는 PNG 경로를 쓴다.
+        if(!(sheet.path.equals(id+"/"+key+".png")||sheet.path.equals(id+"/"+key+".webp"))||c.sheets.put(key,sheet)!=null)throw new JSONException("Sheet identity mismatch");
         JSONArray fs=dataSheet.getJSONArray("frames");
         for(int k=0;k<6;k++){
           Frame f=sheet.frames[k];JSONArray b=fs.getJSONObject(k).getJSONArray("bounds");

@@ -155,7 +155,8 @@ public class NativeRenderReviewTest {
     v.scene.fighter(
         new Canvas(mask),
         v.active(1),
-        new android.graphics.RectF(world * .51f, h * .2f, world * .95f, h * .66f));
+        new android.graphics.RectF(world * .51f, h * .2f, world * .95f, h * .66f),
+        1);   // 상대 진영(앞모습): Scene.fighter에 진영 인자가 추가됨
     int[] pixels = new int[w * h];
     mask.getPixels(pixels, 0, w, 0, 0, w, h);
     mask.recycle();
