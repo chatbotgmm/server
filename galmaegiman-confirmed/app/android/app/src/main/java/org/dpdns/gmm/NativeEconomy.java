@@ -541,9 +541,15 @@ final class NativeEconomy {
       tab.setMinimumWidth(h.dp(120));
       tab.setSingleLine(true);
     }
-    // 시안 순서: 결과로 찾기 | 재료로 찾기.
-    tools.addView(recipes, new LinearLayout.LayoutParams(-2, h.dp(48)));
-    tools.addView(materials, new LinearLayout.LayoutParams(-2, h.dp(48)));
+    // 위쪽 「조합」 띠는 없애고, 결과로 찾기 | 재료로 찾기를 머리줄 오른쪽(뒤로 버튼 반대편)에 둔다.
+    // 띠 자리는 비워 두어(INVISIBLE) 두 버튼을 오른쪽으로 민다. 아래 칸 높이는 카드에 준다.
+    LinearLayout head = h.page.findViewWithTag("theme-page-header");
+    h.title.setVisibility(View.INVISIBLE);
+    for (Button tab : new Button[] {recipes, materials}) {
+      LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(-2, h.dp(48));
+      slot.leftMargin = h.dp(6);
+      head.addView(tab, slot);
+    }
     if (!mix) {
       LinearLayout search = k.column();
       k.search(search, "이름·재료로 찾기", m.recipeQuery, query -> {
@@ -562,13 +568,10 @@ final class NativeEconomy {
         if (recipeRepaint != null) recipeRepaint.run();
       });
       tools.addView(ready, new LinearLayout.LayoutParams(h.dp(96), h.dp(48)));
-    } else {
-      // 재료 탭은 시안처럼 탭만 가운데에 둔다. 「맞지 않으면 재료 유지」는 확인창에서 안내한다.
-      tools.setGravity(Gravity.CENTER);
+      h.page.addView(tools, h.page.getChildCount() - 1);
     }
-    h.page.addView(tools, h.page.getChildCount() - 1);
-    // 재료 탭은 보유 썸네일 2열과 양옆 쪽 넘김(48dp)을 담도록 왼쪽을 조금 넓힌다.
-    LinearLayout[] cols = k.fixedSplit(mix ? .34f : .30f);
+    // 재료 탭은 입사 등록증 한 장을 크게 보도록 왼쪽을 넓힌다. 「맞지 않으면 재료 유지」는 확인창에서 안내한다.
+    LinearLayout[] cols = k.fixedSplit(mix ? .38f : .30f);
     craftActions = k.row();
     craftActions.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
     craftActions.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(4));
@@ -861,7 +864,7 @@ final class NativeEconomy {
     owned.addView(inventory, new LinearLayout.LayoutParams(-1, 0, 1));
     LinearLayout bench = k.row();
     bench.setBaselineAligned(false);
-    cols[1].addView(bench, new LinearLayout.LayoutParams(-1, -1));
+    cols[1].addView(bench, new LinearLayout.LayoutParams(-1, 0, 1));
     LinearLayout selected = benchPanel(), results = benchPanel();
     bench.addView(selected, new LinearLayout.LayoutParams(0, -1, 1.1f));
     // 글꼴에 없는 기호 대신 화살표를 직접 그린다(선택한 재료 › 가능한 결과).
@@ -889,9 +892,24 @@ final class NativeEconomy {
     arrow.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     bench.addView(arrow, new LinearLayout.LayoutParams(h.dp(22), -1));
     bench.addView(results, new LinearLayout.LayoutParams(0, -1, 1));
+    // 선택 해제·조합하기는 화면 전체 아랫줄 대신 오른쪽 칸 아래에 둔다 → 왼쪽 등록증이 아래 끝까지 커진다.
     LinearLayout actions = k.row();
     actions.setTag("mix-actions");
-    k.footer(actions);
+    LinearLayout.LayoutParams actionLine = new LinearLayout.LayoutParams(-1, -2);
+    actionLine.topMargin = h.dp(6);
+    cols[1].addView(actions, actionLine);
+    // 쪽 번호는 머리줄 왼쪽(뒤로 버튼 옆)에 크게 둔다. 카드 위를 가리지 않는다.
+    TextView position = h.text("", 14);
+    position.setTextColor(JournalTheme.PAPER);
+    position.setGravity(Gravity.CENTER);
+    position.setSingleLine(true);
+    position.setTag("mix-material-position");
+    position.setTextSize(h.uiText(15));
+    position.setPadding(h.dp(12), 0, h.dp(12), 0);
+    position.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.NAVY));
+    LinearLayout.LayoutParams positionSlot = new LinearLayout.LayoutParams(-2, h.dp(40));
+    positionSlot.leftMargin = h.dp(6);
+    ((LinearLayout) h.page.findViewWithTag("theme-page-header")).addView(position, 1, positionSlot);
     Runnable[] paint = new Runnable[1];
     Button clear = k.action(null, "선택 해제", () -> {
       if (h.busy) return;
@@ -902,11 +920,10 @@ final class NativeEconomy {
     // 힌트는 성공 판정이 아니다. 미공개 조합은 서버가 확정 시에만 검사한다.
     Button make = k.primary(null, "조합하기", () -> confirmMix(pool));
     make.setTag("mix-submit");
-    actions.addView(new View(h), new LinearLayout.LayoutParams(0, 1, .34f));
-    LinearLayout.LayoutParams clearSlot = new LinearLayout.LayoutParams(0, h.dp(48), .26f);
-    clearSlot.setMargins(h.dp(8), 0, h.dp(6), 0);
+    LinearLayout.LayoutParams clearSlot = new LinearLayout.LayoutParams(0, h.dp(48), .38f);
+    clearSlot.setMargins(0, 0, h.dp(6), 0);
     actions.addView(clear, clearSlot);
-    actions.addView(make, new LinearLayout.LayoutParams(0, h.dp(48), .44f));
+    actions.addView(make, new LinearLayout.LayoutParams(0, h.dp(48), .62f));
     paint[0] = () -> {
       inventory.removeAllViews();
       selected.removeAllViews();
@@ -920,7 +937,7 @@ final class NativeEconomy {
       int pages = available.size();
       mixPage = Math.max(0, Math.min(mixPage, pages - 1));
       // 「‹ 1/14 ›」 줄을 따로 두면 낮은 화면에서 카드가 90dp까지 줄어든다.
-      // 넘기기 버튼은 카드 양옆 가운데, 쪽 번호는 카드 위에 얹어 그 높이를 카드에 준다.
+      // 넘기기 버튼은 카드 양옆 가장자리에 얹고, 카드는 칸 전체를 쓴다.
       FrameLayout pager = new FrameLayout(h);
       pager.setTag("mix-material-pages");
       Button prev = k.action(null, "‹", () -> {
@@ -933,16 +950,8 @@ final class NativeEconomy {
       prev.setContentDescription("이전 보유 갈매미맨");
       prev.setPadding(0, 0, 0, 0);
       pager.addView(prev, new FrameLayout.LayoutParams(h.dp(48), h.dp(48), Gravity.START | Gravity.CENTER_VERTICAL));
-      TextView position = h.text(pages == 0 ? "0 / 0" : (mixPage + 1) + " / " + pages, 14);
-      position.setTextColor(JournalTheme.PAPER);
-      position.setGravity(Gravity.CENTER);
-      position.setSingleLine(true);
-      position.setTag("mix-material-position");
-      position.setTextSize(h.uiText(12));
-      position.setPadding(h.dp(4), 0, h.dp(4), 0);
-      android.graphics.drawable.GradientDrawable chip = new android.graphics.drawable.GradientDrawable();
-      chip.setColor(0xcc1d2b35); chip.setCornerRadius(h.dp(10));
-      position.setBackground(chip);
+      position.setText(pages == 0 ? "0 / 0" : (mixPage + 1) + " / " + pages);
+      position.setContentDescription("보유 갈매미맨 " + position.getText());
       Button next = k.action(null, "›", () -> {
         if (h.busy || mixPage + 1 >= pages) return;
         mixPage++;
@@ -962,11 +971,7 @@ final class NativeEconomy {
         paint[0].run();
       });
       choices.setTag("mix-inventory");
-      FrameLayout.LayoutParams stageSlot = new FrameLayout.LayoutParams(-1, -1);
-      stageSlot.setMargins(h.dp(48), 0, h.dp(48), 0);
-      pager.addView(choices, 0, stageSlot);
-      // 쪽 번호는 카드를 가리지 않게 왼쪽 위(‹ 버튼 위) 빈 칸에 둔다.
-      pager.addView(position, new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.START));
+      pager.addView(choices, 0, new FrameLayout.LayoutParams(-1, -1));
       if (available.isEmpty()) {
         TextView none = k.note("사용 가능한 재료가 없어요.");
         none.setTextColor(JournalTheme.PAPER);
