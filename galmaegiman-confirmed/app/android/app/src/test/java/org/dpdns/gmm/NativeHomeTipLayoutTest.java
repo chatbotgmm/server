@@ -319,7 +319,10 @@ public class NativeHomeTipLayoutTest {
     assertTrue("Every page makes progress", l.tipNextPageStart > l.tipPageStart);
     assertTrue("Advice is beneath hero, never across face or map", l.tipFrame.top > l.tipHeroExclusion().bottom);
     assertTrue("Advice uses dedicated below-character region", l.tipRegion.contains(new RectF(l.tipFrame)));
-    assertTrue("Body font was not reduced to force a fit", tip.getTextSize() >= h.dp(13) * scale - 1);
+    // Android 14+ 큰 글씨(130% 초과)는 비선형으로 커진다. 13sp를 시스템 변환으로 잰 값과 비교한다(200%에서 13dp×2가 아님).
+    float minimum = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 13,
+        h.getResources().getDisplayMetrics());
+    assertTrue("Body font was not reduced to force a fit", tip.getTextSize() >= minimum - 1);
     assertEquals(tip.getText().length(), tip.getLayout().getLineEnd(tip.getLineCount() - 1));
     for (int line = 0; line < tip.getLineCount(); line++)
       assertEquals("No ellipsis hides advice", 0, tip.getLayout().getEllipsisCount(line));
