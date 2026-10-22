@@ -19,6 +19,7 @@ public class BattleReplayStoreTest {
     for(int i=0;i<2;i++)teams.put(new JSONObject().put("active",0).put("fighters",new JSONArray().put(new JSONObject().put("name","갈매미").put("hp",over?0:100).put("maxHp",100)))
         .put("offers",new JSONArray().put("hidden-choice")).put("legal",new JSONArray().put("submit")));
     JSONObject s=new JSONObject().put("session",session).put("revision",revision).put("phase",over?"over":"action").put("mode","normal")
+        .put("combatRulesEpoch",CombatReplayCompatibility.CURRENT_EPOCH).put("replayAvailable",true)
         .put("teams",teams).put("turn",revision+1).put("displayEventSeq",revision).put("history",new JSONArray().put("turn "+revision));
     if(over)s.put("result",new JSONObject().put("won",true)).put("winner",0);
     return s;

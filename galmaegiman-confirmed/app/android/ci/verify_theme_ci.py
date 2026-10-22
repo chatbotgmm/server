@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Additional theme gates; existing registration/home verification stays unchanged."""
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -25,8 +26,8 @@ def verify_matrix_asset(data):
 
 
 def verify_payload(read, paths, lock, recruitment=None):
-    # The original 25-entry theme inventory remains byte-for-byte frozen. Only
-    # three separately hash-locked tray assets extend its exact payload.
+    # Inventory is unchanged except the exact approved home lighting identity.
+    # Three separately hash-locked trays extend the exact payload.
     if recruitment is not None:
         from verify_recruitment_revision_ci import verify_trays
         tray_report = verify_trays(read, recruitment)
@@ -53,13 +54,39 @@ def verify_payload(read, paths, lock, recruitment=None):
     return report
 
 
-def allowed_asset_changes(changed, lock, recruitment=None):
+# 유일한 승인 전이: 실제 이전/이후 bytes를 검사하고 baseline 보호를 유지한다.
+HOME_PATH = "galmaegiman-confirmed/app/android/app/src/main/assets/native/release-v1/backgrounds/bg-home.png"
+HOME_BEFORE = (3047052, "adce04f6958598d4b6c1382909f7012d0ad880eb5f32aecf671e4ba8796900ea", "a16c93c978c941b70877b8e873ade770fbbbfbfc")
+HOME_AFTER = (3013465, "c6a3c3b3b09f13b8659fad7e69c15e913242c022b6111fa6eb34702f5bc1a492", "f568071de2bdae33dd7da33c10d036e5fbb2b43b")
+
+
+def verify_home_transition(before, after, lock):
+    check(lock["source_prefix"] + "/backgrounds/bg-home.png" == HOME_PATH,
+          "Unapproved home source path")
+    home = [entry for entry in lock["files"] if entry["path"] == "backgrounds/bg-home.png"]
+    check(len(home) == 1, "Missing/duplicate approved home entry")
+    entry = home[0]
+    check(entry["baseline"] is True and entry["dimensions"] == [1870, 841]
+          and (entry["bytes"], entry["sha256"], entry["git_blob_sha"]) == HOME_AFTER,
+          "Approved home lock identity changed")
+    for label, data, identity in (("before", before, HOME_BEFORE), ("after", after, HOME_AFTER)):
+        check(type(data) is bytes, "Missing actual home transition bytes: " + label)
+        blob = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
+        check((len(data), sha256(data), blob) == identity, "Unapproved home transition identity: " + label)
+        check(png_dimensions(data) == (1870, 841), "Home transition dimensions changed: " + label)
+    return {"path": HOME_PATH, "before_git_blob": HOME_BEFORE[2], "after_git_blob": HOME_AFTER[2]}
+
+
+def allowed_asset_changes(changed, lock, recruitment=None, home_transition=None):
     allowed = {lock["source_prefix"] + "/" + entry["path"]
                for entry in lock["files"] if not entry["baseline"]}
     if recruitment is not None:
         from verify_recruitment_revision_ci import TRAYS
         check(len(recruitment) == 3 and {entry["path"] for entry in recruitment} == TRAYS, "Unexpected tray allowlist")
         allowed.update(lock["source_prefix"] + "/" + path for path in TRAYS)
+    if home_transition is not None:
+        verify_home_transition(*home_transition, lock)
+        allowed.add(HOME_PATH)
     allowed.add(MATRIX_ASSET_PATH)
     # No implicit permission for new sprites, registration edits, fonts or audio.
     sensitive_suffixes = {".png", ".webp", ".jpg", ".jpeg", ".gif", ".svg", ".ktx", ".ktx2",
@@ -81,7 +108,11 @@ def verify_source(args):
     subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", baseline, "HEAD"], check=True)
     changed = subprocess.check_output(["git", "-C", str(repo), "diff", "--name-only", "--no-renames",
                                        "-z", baseline, "HEAD"]).decode().split("\0")
-    allowed_asset_changes(changed, lock, recruitment)
+    transition = None
+    if HOME_PATH in changed:
+        before = subprocess.check_output(["git", "-C", str(repo), "show", baseline + ":" + HOME_PATH])
+        transition = (before, (repo / HOME_PATH).read_bytes())
+    allowed_asset_changes(changed, lock, recruitment, transition)
     report["canonical_matrix_sha256"] = verify_matrix_asset((repo / MATRIX_ASSET_PATH).read_bytes())
     report.update({"app_baseline_commit": baseline, "protected_native_home_files": 11,
                    "unapproved_asset_changes": [], "added_files": lock["added_file_count"]})

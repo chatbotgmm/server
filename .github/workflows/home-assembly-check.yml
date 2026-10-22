@@ -56,6 +56,9 @@ jobs:
       - name: Build backend and packaged web assets
         run: npm run build
       - name: Test all backend suites with isolated seeded SQLite
+        env:
+          # Four simultaneous SQLite transactions must not exhaust the engine workers.
+          TOKIO_WORKER_THREADS: '4'
         run: |
           set -o pipefail
           npm run test:db 2>&1 | tee backend-test.log

@@ -18,23 +18,33 @@ final class NativeEconomyThemeFixture {
       source = new JSONObject(new String(input.readAllBytes(), StandardCharsets.UTF_8));
     }
     assertEquals("9d8d7b445b8d7957c9b0ebf549e775be5ab2ee3e", source.getString("sourceCommit"));
-    JSONArray canonical = source.getJSONArray("units"), owned = new JSONArray(), pool = new JSONArray();
+    // Keep the original pinned economy snapshot intact. Current high-tier workbench
+    // cases use a separately pinned, verbatim excerpt from this checkout's data/units.json.
+    JSONArray canonical = new JSONArray(source.getJSONArray("units").toString());
+    try (InputStream input = getClass().getResourceAsStream("economy-workbench-source.json")) {
+      assertNotNull("Pinned high-tier recipe source must be packaged", input);
+      JSONObject supplement = new JSONObject(new String(input.readAllBytes(), StandardCharsets.UTF_8));
+      assertEquals("76470df7b9b99d15f2ef89b1e600592ea3d8cf27b19b27e5ca0ce2a05c3fa744", supplement.getString("sourceSha256"));
+      JSONArray extra = supplement.getJSONArray("units");
+      for (int i = 0; i < extra.length(); i++) canonical.put(extra.getJSONObject(i));
+    }
+    JSONArray owned = new JSONArray(), pool = new JSONArray();
     for (int i = 0; i < canonical.length(); i++) {
       JSONObject definition = canonical.getJSONObject(i);
       String id = definition.getString("id"), tier = definition.getString("tier");
       int have = id.startsWith("D") ? 2 : 8, locked = id.equals("C1") ? 1 : 0;
       JSONObject unit = MainActivity.obj("id", id, "img", id, "name", definition.getString("name"),
-          "tier", tier, "tierName", tier.equals("COMMON") ? "흔함" : tier.equals("UNCOMMON") ? "안흔함" : "제한",
+          "tier", tier, "tierName", tier.equals("COMMON") ? "흔함" : tier.equals("UNCOMMON") ? "안흔함" : tier.equals("RARE") ? "희귀" : tier.equals("LEGEND") ? "전설" : "제한",
           "have", have, "away", 0, "locked", locked, "usable", have - locked, "known", true,
           "top", id.startsWith("D"), "synergy", definition.optString("synergy"),
           "source", id.startsWith("C") ? "하급·중급·고급 뽑기" : "조합");
       units.put(id, unit); owned.put(unit);
-      if (!id.startsWith("D")) pool.put(unit);
+      if (CraftTierPolicy.material(tier)) pool.put(unit);
     }
     JSONArray recipes = new JSONArray();
     for (int i = 0; i < canonical.length(); i++) {
       JSONObject definition = canonical.getJSONObject(i);
-      if (!definition.getString("id").startsWith("U")) continue;
+      if (!definition.getString("tier").equals("LEGEND")) continue;
       JSONObject recipe = new JSONObject(units.get(definition.getString("id")).toString());
       JSONArray ingredients = definition.getJSONArray("recipe"), materials = new JSONArray();
       int max = Integer.MAX_VALUE;
@@ -85,6 +95,7 @@ final class NativeEconomyThemeFixture {
       else if (path.equals("me")) response = data.state.optJSONObject("me");
       else if (path.equals("draw")) response = NativeRecruitmentProbabilityTest.serverEconomyFixture();
       else if (path.equals("native/state")) response = data.state;
+      else if (path.equals("starter-loans")) response = StarterLoanTestFixture.ineligible();
       else throw new AssertionError("Unexpected local-fixture read: " + path);
       responses.put(path, response);
       done.done(response, null);

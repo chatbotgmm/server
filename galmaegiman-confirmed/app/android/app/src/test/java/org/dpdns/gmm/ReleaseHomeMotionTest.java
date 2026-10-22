@@ -405,7 +405,12 @@ public class ReleaseHomeMotionTest {
           assertTrue(currency.getContentDescription().toString().contains("상점"));
           Bitmap expected = Bitmap.createBitmap(lobby.getWidth(), lobby.getHeight(), Bitmap.Config.ARGB_8888);
           try {
-            lobby.menuArt.currency(new Canvas(expected), box, i - 9, false, true, currency.isFocused());
+            // The textured asset has translucent edge pixels. Compare the same
+            // source-over composition as the real home, not a transparent canvas.
+            Canvas expectedCanvas = new Canvas(expected);
+            lobby.homeArt.background(expectedCanvas, lobby.getWidth(), lobby.getHeight());
+            lobby.menuArt.currency(expectedCanvas, box, i - 9,
+                currency.isPressed(), currency.isEnabled(), currency.isFocused());
             assertEquals("Currency renders its textured navy/brass medallion surface",
                 expected.getPixel(Math.round(box.centerX()), Math.round(box.top + host.dp(11))),
                 frame.getPixel(Math.round(box.centerX()), Math.round(box.top + host.dp(11))));

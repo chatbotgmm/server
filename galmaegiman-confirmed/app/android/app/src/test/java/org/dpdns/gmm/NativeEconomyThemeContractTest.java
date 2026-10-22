@@ -26,12 +26,12 @@ public class NativeEconomyThemeContractTest {
   @Before public void isolate() { flow.isolate(); }
 
   static JSONObject material() {
-    return MainActivity.obj("id", "C1", "img", "C1", "name", "검토 재료", "usable", 4, "need", 2);
+    return MainActivity.obj("id", "C1", "img", "C1", "name", "검토 재료", "tier", "COMMON", "usable", 4, "need", 2);
   }
 
   static JSONObject recipe() {
     return MainActivity.obj("id", "fixture-visible", "img", "C1", "name", "서버 공개 조합식",
-        "tierName", "안흔함", "ready", true, "max", 2,
+        "tier", "LEGEND", "tierName", "전설", "ready", true, "max", 2,
         "materials", new JSONArray().put(material()));
   }
 
@@ -60,6 +60,7 @@ public class NativeEconomyThemeContractTest {
       if (path.equals("draw")) done.done(NativeRecruitmentProbabilityTest.serverEconomyFixture(), null);
       else if (path.equals("craft")) done.done(craft, null);
       else if (path.equals("me")) done.done(me, null);
+      else if (path.equals("starter-loans")) done.done(StarterLoanTestFixture.ineligible(), null);
       else throw new AssertionError("Unexpected read " + path);
     }
   }
@@ -78,6 +79,21 @@ public class NativeEconomyThemeContractTest {
     assertNotNull(host.visibleDialog);
     host.visibleDialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
     Shadows.shadowOf(Looper.getMainLooper()).idle();
+  }
+
+  @Test public void missingTierMetadataCannotInventCraftEligibility() throws Exception {
+    try (var controller = flow.start()) {
+      MainActivity host = controller.get(); Api api = prepare(host);
+      api.craft.getJSONArray("recipes").getJSONObject(0).remove("tier");
+      api.craft.getJSONArray("pool").getJSONObject(0).remove("tier");
+      host.menus.economy.craft(false);
+      assertNull(host.root.findViewWithTag("craft-recipe-fixture-visible"));
+      assertNotNull(host.root.findViewWithTag("craft-selection-empty"));
+      host.menus.economy.craft(true);
+      assertNull(host.root.findViewWithTag("mix-browse-card-C1"));
+      assertTrue(host.menus.mixDraft.isEmpty());
+      assertTrue(api.writes.isEmpty());
+    }
   }
 
   @Test public void everyRecruitmentStationKeepsKindTimesAndOneConfirmedSpend() {
@@ -157,8 +173,8 @@ public class NativeEconomyThemeContractTest {
       MainActivity host = controller.get(); Api api = prepare(host);
       host.menus.mixDraft.clear();
       host.menus.economy.craft(true);
-      host.root.findViewWithTag("mix-picker-material-C1").performClick();
-      host.root.findViewWithTag("mix-picker-material-C1").performClick();
+      host.root.findViewWithTag("mix-browse-card-C1").performClick();
+      host.root.findViewWithTag("mix-browse-card-C1").performClick();
       assertEquals(List.of("C1", "C1"), host.menus.mixDraft);
       assertNull(host.visibleDialog);
       host.root.findViewWithTag("mix-submit").performClick();

@@ -1167,7 +1167,11 @@ final class NativeEconomy {
 
   int workbenchActionHeight(TextView action) {
     android.graphics.Paint.FontMetrics f = action.getPaint().getFontMetrics();
-    return Math.max(h.dp(48), (int)Math.ceil(f.bottom-f.top)+h.dp(8));
+    // Workbench labels deliberately exclude the bundled font's oversized top/bottom padding.
+    // Reserving it anyway starves weighted card lanes on 222dp-high, 200% screens.
+    float inkHeight = action.getIncludeFontPadding() ? f.bottom-f.top : f.descent-f.ascent;
+    return Math.max(h.dp(48), (int)Math.ceil(inkHeight)
+        + action.getCompoundPaddingTop() + action.getCompoundPaddingBottom() + h.dp(8));
   }
 
   /** 폭이 좁으면 열 수를 줄인다. 최소 터치 높이보다 부족한 세로 공간은 스크롤한다. */

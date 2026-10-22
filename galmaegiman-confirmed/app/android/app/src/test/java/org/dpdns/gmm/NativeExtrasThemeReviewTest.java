@@ -88,6 +88,7 @@ public class NativeExtrasThemeReviewTest {
           done.done(rank.put("top",top),null);
         } else if (path.equals("me")) done.done(state.getJSONObject("me"),null);
         else if (path.equals("native/state")) done.done(state,null);
+      else if (path.equals("starter-loans")) done.done(StarterLoanTestFixture.ineligible(),null);
         else throw new AssertionError("Unexpected fixture read: " + path);
       } catch (JSONException failure) { throw new AssertionError(failure); }
     }

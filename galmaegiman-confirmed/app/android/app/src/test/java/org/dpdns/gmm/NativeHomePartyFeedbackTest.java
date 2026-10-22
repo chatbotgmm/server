@@ -135,6 +135,7 @@ public class NativeHomePartyFeedbackTest {
       }
       reads.add(path);
       if (path.equals("native/state")) done.done(stored, null);
+      else if (path.equals("starter-loans")) done.done(StarterLoanTestFixture.ineligible(), null);
       else if (path.equals("native/catalog")) done.done(MainActivity.obj("units", stored.optJSONObject("me").optJSONArray("units")), null);
       else if (path.equals("pvp/rank")) done.done(NativeThemeReviewTest.rank(), null);
       else if (path.equals("draw")) done.done(MainActivity.obj("wait", 3600000, "credits", 30), null);
@@ -385,8 +386,9 @@ public class NativeHomePartyFeedbackTest {
       findings.put(name, errors); if (errors.length() > 0) failures.add(name + ": " + errors);
       write("findings.json", findings); write("metrics.json", metrics);
     }
-    assertEquals(PROFILES.length * SCENES.length, saved);
-    assertEquals(PROFILES.length * SCENES.length, metrics.length());
+    String missing = "HOME/PARTY captures must all complete:\n" + String.join("\n", failures);
+    assertEquals(missing, PROFILES.length * SCENES.length, saved);
+    assertEquals(missing, PROFILES.length * SCENES.length, metrics.length());
     assertTrue("HOME/PARTY render regressions:\n" + String.join("\n", failures), failures.isEmpty());
   }
 

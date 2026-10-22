@@ -91,6 +91,33 @@ class ThemeCheckerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             verifier.verify_payload(data.__getitem__, list(data), lock)
 
+    def test_changed_byte_count_still_fails(self):
+        data, lock = self.payload()
+        data["0.png"] += b"x"
+        with self.assertRaisesRegex(ValueError, "byte count changed"):
+            verifier.verify_payload(data.__getitem__, list(data), lock)
+
+    def test_changed_dimensions_fail_even_if_content_hash_is_registered(self):
+        data, lock = self.payload()
+        data["0.png"] = png(9, 4)
+        # Isolate the independent dimension guard: updating a hash must not resize art.
+        lock["files"][0]["bytes"] = len(data["0.png"])
+        lock["files"][0]["sha256"] = verifier.sha256(data["0.png"])
+        with self.assertRaisesRegex(ValueError, "dimensions changed"):
+            verifier.verify_payload(data.__getitem__, list(data), lock)
+
+    def test_reviewed_home_lighting_keeps_original_canvas_and_exact_identity(self):
+        home = next(entry for entry in self.lock["files"]
+                    if entry["path"] == "backgrounds/bg-home.png")
+        self.assertEqual(home["dimensions"], [1870, 841])
+        self.assertEqual(home["bytes"], 3013465)
+        self.assertEqual(home["sha256"],
+                         "c6a3c3b3b09f13b8659fad7e69c15e913242c022b6111fa6eb34702f5bc1a492")
+        self.assertEqual(home["git_blob_sha"], "f568071de2bdae33dd7da33c10d036e5fbb2b43b")
+        self.assertTrue(home["baseline"])
+        self.assertEqual(sum(entry["bytes"] for entry in self.lock["files"]),
+                         self.lock["runtime_bytes"])
+
     def captures(self):
         contract = json.loads(verifier.CONTRACT.read_text())
         assets = {entry["path"]: entry for entry in self.lock["files"]}

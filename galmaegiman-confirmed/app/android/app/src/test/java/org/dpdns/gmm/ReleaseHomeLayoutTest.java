@@ -151,7 +151,7 @@ public class ReleaseHomeLayoutTest {
           assertTrue("Four surfaces and ten separate runtime icons load", l.menuArt.ready());
           assertNotNull(l.homeArt.hero());
           assertNotNull(l.homeArt.heroBounds());
-          assertEquals("Original thirteen actions plus menu toggle", 14, l.buttons.size());
+          assertEquals("Original actions, menu toggle and news", 15, l.buttons.size());
           assertFalse(l.menuOpen);
           for (int index : LobbyView.MENU_ITEMS) assertEquals(View.GONE, l.buttons.get(index).getVisibility());
           Rect fixedPlay = box(l, l.buttons.get(5));
@@ -172,7 +172,7 @@ public class ReleaseHomeLayoutTest {
           int[] ordered = LobbyView.MENU_ITEMS;
           for (int i = 0; i < ordered.length; i++) {
             Rect current = box(l, l.buttons.get(ordered[i]));
-            assertTrue("Seven menu tiles stay in the panel", l.menuPanel.contains(new RectF(current)));
+            assertTrue("Eight menu tiles stay in the panel", l.menuPanel.contains(new RectF(current)));
             if (i % 4 != 0) {
               Rect previous = box(l, l.buttons.get(ordered[i-1]));
               assertTrue("Approved menu order left to right", previous.right <= current.left);
@@ -240,8 +240,13 @@ public class ReleaseHomeLayoutTest {
       assertSame(l.buttons.get(12), l.findViewWithTag("lobby-team"));
       assertNull("Removed harbor command is not mounted", l.findViewWithTag("lobby-harbor"));
       assertNull("Removed direct growth command is not mounted", l.findViewWithTag("lobby-growth"));
-      assertEquals(14, l.buttons.size());
+      assertEquals(15, l.buttons.size());
       assertNull(l.findViewWithTag("lobby-information"));
+      assertSame(l.buttons.get(14), l.findViewWithTag("lobby-news"));
+      l.setMenuOpen(true);
+      h.requested = "";
+      assertTrue(l.buttons.get(14).performClick());
+      assertEquals("news", h.requested);
       assertSame(l.buttons.get(7), l.findViewWithTag("lobby-profile"));
       assertSame(l.buttons.get(8), l.findViewWithTag("lobby-settings"));
     }

@@ -214,7 +214,7 @@ public class NativeEconomyThemeReviewTest {
       if (tag.equals("forge-result-card")) id = ((NativeForge) foreground).result.optString("id");
       else if (tag.equals("craft-result-image")) id = host.menus.recipeId;
       else if (tag.startsWith("craft-material-image-")) id = tag.substring("craft-material-image-".length());
-      else if (parentTag.startsWith("craft-recipe-")) id = parentTag.substring("craft-recipe-".length());
+      else if (tag.startsWith("craft-recipe-")) id = tag.substring("craft-recipe-".length());
       else if (parentTag.startsWith("mix-picker-material-")) id = parentTag.substring("mix-picker-material-".length());
       else if (parentTag.startsWith("mix-material-")) {
         id = parentTag.substring("mix-material-".length()); selectedMix.add(id);
@@ -491,7 +491,7 @@ public class NativeEconomyThemeReviewTest {
         JSONArray recipes = api.responses.get("craft").getJSONArray("recipes");
         List<String> expected = new ArrayList<>(), seen = new ArrayList<>();
         for (int i = 0; i < recipes.length(); i++) expected.add(recipes.getJSONObject(i).getString("id"));
-        int perPage = host.contentHeightDp() >= 520 ? 4 : 2, pageIndex = 0;
+        int perPage = 1, pageIndex = 0;
         while (true) {
           ready(host, size); economyFullCards(host, "craft", api);
           List<String> pageIds = new ArrayList<>();
@@ -502,30 +502,15 @@ public class NativeEconomyThemeReviewTest {
           }
           assertEquals(expected.subList(pageIndex * perPage, Math.min(expected.size(), (pageIndex + 1) * perPage)), pageIds);
           seen.addAll(pageIds);
-          for (String direction : new String[] {"previous", "next"}) {
-            Button arrow = host.root.findViewWithTag("craft-recipe-pages-" + direction);
-            assertNotNull(arrow);
-            assertEquals(direction.equals("previous") ? "이전 쪽" : "다음 쪽", arrow.getContentDescription());
-            assertEquals("Arrow does not depend on a font glyph", "", arrow.getText().toString());
-            assertTrue(arrow.getWidth() >= host.dp(48) && arrow.getHeight() >= host.dp(48));
-            Bitmap pixels = Bitmap.createBitmap(arrow.getWidth(), arrow.getHeight(), Bitmap.Config.ARGB_8888);
-            try {
-              arrow.draw(new Canvas(pixels));
-              int ink = 0, expectedInk = arrow.isEnabled() ? JournalTheme.NAVY : JournalTheme.MUTED;
-              for (int y = pixels.getHeight() / 2 - host.dp(9); y <= pixels.getHeight() / 2 + host.dp(9); y++)
-                for (int x = pixels.getWidth() / 2 - host.dp(7); x <= pixels.getWidth() / 2 + host.dp(7); x++)
-                  if (pixels.getPixel(x, y) == expectedInk) ink++;
-              assertTrue("Actual craft arrow pixels stay legible: " + direction, ink >= 12);
-            } finally { pixels.recycle(); }
-          }
-          assertEquals("Only the initial page keeps the initial recipe selected", pageIndex == 0,
-              !host.menus.recipeId.isEmpty());
-          if (pageIndex > 0) {
-            assertNotNull("Paging clears the workbench until a recipe is selected",
-                host.root.findViewWithTag("craft-selection-empty"));
-            assertEquals(0, host.menus.economy.craftActions.getChildCount());
-            assertNull(host.root.findViewWithTag("craft-availability"));
-          } else if (!host.menus.economy.compact()) {
+          ViewGroup carousel = host.root.findViewWithTag("craft-result-carousel");
+          assertNotNull(carousel); assertEquals(1, carousel.getChildCount());
+          assertTrue(carousel.getWidth() >= host.dp(48) && carousel.getHeight() >= host.dp(48));
+          assertEquals(geometry.bounds(carousel, host.root), geometry.visibleIntersection(carousel, host.root));
+          assertNull(host.root.findViewWithTag("craft-recipe-pages-next"));
+          assertNull(host.root.findViewWithTag("craft-recipe-pages-previous"));
+          assertEquals(expected.get(pageIndex), host.menus.recipeId);
+          assertNotNull(host.root.findViewWithTag("craft-submit"));
+          if (!host.menus.economy.compact()) {
             TextView availability = host.root.findViewWithTag("craft-availability");
             assertNotNull(availability);
             assertEquals(JournalTheme.NAVY, availability.getCurrentTextColor());
@@ -535,11 +520,14 @@ public class NativeEconomyThemeReviewTest {
             readable(availability);
             assertEquals(geometry.bounds(availability, host.root), geometry.visibleIntersection(availability, host.root));
           }
-          Button next = host.root.findViewWithTag("craft-recipe-pages-next");
-          if (!next.isEnabled()) break;
-          next.performClick(); pageIndex++;
+          if (pageIndex + 1 == expected.size()) {
+            swipeForward(carousel);
+            assertEquals("Swiping past the final recipe does not wrap or clear selection", expected.get(pageIndex), host.menus.recipeId);
+            break;
+          }
+          swipeForward(carousel); pageIndex++;
         }
-        assertEquals("Every server-visible recipe, in original order and original page size", expected, seen);
+        assertEquals("Every server-visible high-tier recipe, in original order, one card per swipe", expected, seen);
         assertNull(host.visibleDialog);
         host.menus.economy.craft(true);
         RegistrationArtTest.await(() -> host.menus.pendingFetches == 0);
@@ -558,12 +546,17 @@ public class NativeEconomyThemeReviewTest {
           }
           assertEquals(expected.subList(pageIndex * mixPerPage, Math.min(expected.size(), (pageIndex + 1) * mixPerPage)), pageIds);
           seen.addAll(pageIds);
-          View pager = host.root.findViewWithTag("mix-material-pages");
-          assertNotNull("한 장 탐색의 이전·다음 버튼은 항상 표시", pager);
-          assertTrue("탐색만으로 재료 선택 없음", host.menus.mixDraft.isEmpty());
-          Button next = host.root.findViewWithTag("mix-material-next");
-          if (!next.isEnabled()) break;
-          next.performClick(); pageIndex++;
+          View carousel = host.root.findViewWithTag("mix-inventory");
+          assertNotNull(carousel);
+          assertNull("Navigation is swipe-only, without obsolete arrows", host.root.findViewWithTag("mix-material-pages"));
+          assertTrue("Browsing alone never adds a material", host.menus.mixDraft.isEmpty());
+          if (pageIndex + 1 == expected.size()) {
+            swipeForward(carousel);
+            assertEquals("Swiping past the final material stays on the same card", pageIndex, host.menus.economy.mixPage);
+            assertTrue(host.menus.mixDraft.isEmpty());
+            break;
+          }
+          swipeForward(carousel); pageIndex++;
         }
         assertEquals("Every usable material keeps its server order and page size", expected, seen);
         assertNull(host.visibleDialog);
@@ -572,6 +565,17 @@ public class NativeEconomyThemeReviewTest {
         if (size == SIZES[0]) expeditionPagesKeepIdentityAndDuplicateIndices(host, api);
         assertEquals("All display, paging and draft actions remain read-only", 0, api.writes);
       }
+    }
+  }
+
+  void swipeForward(View carousel) {
+    assertTrue("Swipe uses an actually measured visible viewport", carousel.getWidth() > 0 && carousel.getHeight() > 0);
+    long time = android.os.SystemClock.uptimeMillis();
+    float from = carousel.getWidth() * .85f, to = carousel.getWidth() * .15f, y = carousel.getHeight() / 2f;
+    for (int action : new int[] {android.view.MotionEvent.ACTION_DOWN, android.view.MotionEvent.ACTION_MOVE, android.view.MotionEvent.ACTION_UP}) {
+      android.view.MotionEvent event = android.view.MotionEvent.obtain(time, time + (action == android.view.MotionEvent.ACTION_DOWN ? 0 : 100), action,
+          action == android.view.MotionEvent.ACTION_DOWN ? from : to, y, 0);
+      try { assertTrue(carousel.dispatchTouchEvent(event)); } finally { event.recycle(); }
     }
   }
 
@@ -595,7 +599,7 @@ public class NativeEconomyThemeReviewTest {
     assertNull(host.root.findViewWithTag("mix-empty-slot-" + limit));
     host.busy = true; selected.get(2).performClick();
     assertEquals(Arrays.asList(a, b, a), host.menus.mixDraft);
-    host.root.findViewWithTag("mix-picker-material-" + a).performClick();
+    host.root.findViewWithTag("mix-inventory").performClick();
     assertEquals(Arrays.asList(a, b, a), host.menus.mixDraft);
     host.busy = false; selected.get(2).performClick();
     assertEquals("Remove the third slot, not the first matching identity", Arrays.asList(a, b), host.menus.mixDraft);
@@ -605,8 +609,8 @@ public class NativeEconomyThemeReviewTest {
     for (int i = 0; i < Math.min(6, usable); i++) host.menus.mixDraft.add(a);
     economy.craft(true); ready(host, size);
     List<String> before = new ArrayList<>(host.menus.mixDraft);
-    View exhausted = host.root.findViewWithTag("mix-picker-material-" + a);
-    assertFalse("Usable count or six-slot cap disables excess additions", exhausted.isEnabled());
+    View exhausted = host.root.findViewWithTag("mix-inventory");
+    assertTrue("Carousel remains navigable when additions are exhausted", exhausted.isEnabled());
     exhausted.performClick(); assertEquals(before, host.menus.mixDraft);
     assertEquals("Canonical server usable inventory is never changed optimistically", usable, first.getInt("usable"));
     int filled = 0;
@@ -621,9 +625,9 @@ public class NativeEconomyThemeReviewTest {
       first.put("usable", 2);
       host.menus.mixDraft.clear(); host.menus.mixDraft.add(a); host.menus.mixDraft.add(a);
       economy.craft(true); ready(host, size);
-      View noneLeft = host.root.findViewWithTag("mix-picker-material-" + a);
-      assertFalse(noneLeft.isEnabled());
-      assertEquals("재료 추가 · 0", ((Button) noneLeft).getText().toString());
+      View noneLeft = host.root.findViewWithTag("mix-inventory");
+      assertTrue(noneLeft.isEnabled());
+      assertTrue(noneLeft.getContentDescription().toString().contains("사용 가능 0"));
       noneLeft.performClick();
       assertEquals(Arrays.asList(a, a), host.menus.mixDraft);
       assertEquals(2, first.getInt("usable"));
@@ -653,7 +657,7 @@ public class NativeEconomyThemeReviewTest {
     assertTrue(new RectF(0, 0, full.getWidth(), full.getHeight()).contains(full.target));
     assertEquals(geometry.bounds(full, host.root), geometry.visibleIntersection(full, host.root));
     assertTrue("보유 등록증은 작은 썸네일보다 크게 표시", full.target.height() >= host.dp(100));
-    Button add = host.root.findViewWithTag("mix-picker-material-" + full.id);
+    View add = host.root.findViewWithTag("mix-inventory");
     assertNotNull(add);
     assertTrue(add.getWidth() >= host.dp(48) && add.getHeight() >= host.dp(48));
     measured.put(MainActivity.obj("tag", browsing.getTag(), "id", full.id, "mode", "FULL",
@@ -722,10 +726,10 @@ public class NativeEconomyThemeReviewTest {
     JSONObject recipe = api.data.craft.getJSONArray("recipes").getJSONObject(0);
     JSONObject material = recipe.getJSONArray("materials").getJSONObject(0);
     String recipeImg = recipe.getString("img"), materialImg = material.getString("img");
-    recipe.put("img", "q-UNCOMMON"); material.put("img", "unknown");
+    recipe.put("img", "q-" + recipe.getString("tier")); material.put("img", "unknown");
     host.menus.recipeId = recipe.getString("id"); host.menus.economy.recipePage = 0;
     host.menus.economy.craft(false); ready(host, size);
-    RegistrationCardView choice = (RegistrationCardView) ((ViewGroup) host.root.findViewWithTag("craft-recipe-" + recipe.getString("id"))).getChildAt(0);
+    RegistrationCardView choice = host.root.findViewWithTag("craft-recipe-" + recipe.getString("id"));
     assertMaskedCard(choice, recipe);
     assertMaskedCard(host.root.findViewWithTag("craft-result-image"), recipe);
     assertMaskedCard(host.root.findViewWithTag("craft-material-image-" + material.getString("id")), material);

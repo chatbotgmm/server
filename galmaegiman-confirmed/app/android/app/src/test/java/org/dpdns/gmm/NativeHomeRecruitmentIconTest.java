@@ -111,9 +111,21 @@ public class NativeHomeRecruitmentIconTest {
         try {
           RectF target = new RectF(0,0,size,size);
           lobby.menuArt.navigationIcon(new Canvas(actual), indices[i], target);
-          new Canvas(expected).drawBitmap(source,null,target,
+          // Approved runtime sizing fits visible alpha, not the padded 512px canvas.
+          Rect crop = host.art.alpha(source, "home-menu-v1/icon-" + names[i] + ".png");
+          assertFalse("Independent icon must contain visible artwork", crop.isEmpty());
+          float scale = Math.min(target.width() / crop.width(), target.height() / crop.height());
+          float width = crop.width() * scale, height = crop.height() * scale;
+          RectF fitted = new RectF(target.centerX() - width / 2, target.centerY() - height / 2,
+              target.centerX() + width / 2, target.centerY() + height / 2);
+          new Canvas(expected).drawBitmap(source, crop, fitted,
               new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG));
-          assertTrue("Menu icon maps to its independent source: " + names[i], actual.sameAs(expected));
+          assertTrue("Menu icon maps to its independent source with visible-alpha fitting: " + names[i],
+              actual.sameAs(expected));
+          int ink = 0;
+          for (int y = 0; y < size; y++) for (int x = 0; x < size; x++)
+            if ((actual.getPixel(x, y) >>> 24) > 8) ink++;
+          assertTrue("Blank icon must not satisfy source comparison", ink > size);
         } finally { actual.recycle(); expected.recycle(); }
       }
       assertEquals(requests, ((NativeHomeTipLayoutTest.OfflineApi) host.api).paths.size());

@@ -81,9 +81,9 @@ public class NativeHomeTipLayoutTest {
     @Override void call(String path, JSONObject body, Result done) {
       assertNull("No account mutations in visual fixtures", body);
       assertTrue("No unexpected request escapes the offline fixture: " + path,
-          path.equals("draw") || path.equals("daily"));
+          path.equals("draw") || path.equals("daily") || path.equals("starter-loans"));
       paths.add(path);
-      done.done(new JSONObject(), null);
+      done.done(path.equals("starter-loans") ? StarterLoanTestFixture.ineligible() : new JSONObject(), null);
     }
   }
 

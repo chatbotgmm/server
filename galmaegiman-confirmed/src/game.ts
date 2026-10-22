@@ -1364,9 +1364,10 @@ export class GameService {
     if(!m||m.player!==playerId||m.exp<this.clock().getTime())throw new GameError('대전 정보가 없어요. 다시 시작해 주세요.');
     this.assertLegacyPvpAllowed(m.mode);
     if(m.done)throw new GameError('이미 결과를 받은 대전이에요.');
-    let winner:0|1|null;
-    try{winner=replay(createBattle(R,m.mine,m.foe,m.seed),events);}catch{throw new GameError('대전 기록이 맞지 않아요.');}
-    if(winner===null)throw new GameError('대전이 아직 끝나지 않았어요.');
+    let winner:0|1|null,finished=false;
+    try{const battle=createBattle(R,m.mine,m.foe,m.seed);winner=replay(battle,events);finished=battle.phase==='over';}catch{throw new GameError('대전 기록이 맞지 않아요.');}
+    // A completed draw has no winner too; only the replay phase proves completion.
+    if(!finished)throw new GameError('대전이 아직 끝나지 않았어요.');
     m.done=true;
     const won=winner===0,pv=this.content.economy.pvp;
     return this.webRun(playerId,async(tx,p)=>{

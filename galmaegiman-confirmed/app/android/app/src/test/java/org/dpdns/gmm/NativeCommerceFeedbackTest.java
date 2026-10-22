@@ -264,16 +264,25 @@ public class NativeCommerceFeedbackTest {
       MainActivity h = controller.get(); NativeEconomyThemeFixture.Api api = prepare(h);
       String source = api.data.craft.toString(); h.menus.economy.craft(false);
       assertFalse(h.menus.recipeId.isEmpty());
-      Button next = h.root.findViewWithTag("craft-recipe-pages-next");
-      assertNotNull(next); assertTrue(next.isEnabled());
-      next.performClick();
-      assertEquals("", h.menus.recipeId); assertNotNull(h.root.findViewWithTag("craft-selection-empty"));
-      assertEquals(0, h.menus.economy.craftActions.getChildCount());
-      for (View v : frames.descendants(h.root.findViewWithTag("craft-recipe-list")))
-        if (String.valueOf(v.getTag()).startsWith("craft-recipe-") && v.isClickable()) { v.performClick(); break; }
-      assertFalse(h.menus.recipeId.isEmpty());
-      controls.button(h.root.findViewWithTag("craft-inline-tools"), "가능만").performClick();
-      assertEquals("", h.menus.recipeId); assertNotNull(h.root.findViewWithTag("craft-selection-empty"));
+      String first = h.menus.recipeId;
+      View next = h.root.findViewWithTag("craft-result-carousel");
+      assertNotNull(next);
+      assertTrue(next.performAccessibilityAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD, null));
+      assertNotEquals(first, h.menus.recipeId);
+      assertEquals(api.data.craft.getJSONArray("recipes").getJSONObject(1).getString("id"), h.menus.recipeId);
+      assertNotNull(h.root.findViewWithTag("craft-workbench"));
+      assertNotNull(h.root.findViewWithTag("craft-submit"));
+      assertNull(h.root.findViewWithTag("craft-recipe-pages-next"));
+      // Removed filters cannot silently hide server-disclosed recipes on re-entry.
+      h.menus.recipeQuery = "no matching recipe"; h.menus.craftOnly = true;
+      h.menus.economy.craft(false);
+      assertEquals("", h.menus.recipeQuery); assertFalse(h.menus.craftOnly);
+      assertNotNull(h.root.findViewWithTag("craft-result-carousel"));
+      assertFalse(frames.descendants(h.root.findViewWithTag("craft-inline-tools")).stream()
+          .anyMatch(v -> v instanceof android.widget.EditText));
+      assertTrue(h.root.findViewWithTag("craft-result-carousel").performAccessibilityAction(
+          android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD, null));
+      assertEquals(first, h.menus.recipeId);
       assertEquals(source, api.data.craft.toString()); assertEquals(0, api.writes);
     }
   }

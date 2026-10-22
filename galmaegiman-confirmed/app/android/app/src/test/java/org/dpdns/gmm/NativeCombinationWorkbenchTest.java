@@ -601,8 +601,13 @@ public class NativeCombinationWorkbenchTest {
   void textFits(TextView label, String note) {
     assertNotNull(note, label.getLayout());
     for (int line=0;line<label.getLineCount();line++) {
-      assertTrue(note + " 가로 잘림 없음", label.getLayout().getLineWidth(line)
-          <= label.getWidth()-label.getCompoundPaddingLeft()-label.getCompoundPaddingRight()+1);
+      // Visible text extent excludes trailing wrap whitespace, unlike getLineWidth.
+      // Keep the same content-width budget; report both extents to distinguish real clipping.
+      float visibleWidth = label.getLayout().getLineMax(line);
+      assertTrue(note + " 가로 잘림 없음 · visible=" + visibleWidth
+          + " full=" + label.getLayout().getLineWidth(line)
+          + " offsets=" + label.getLayout().getLineStart(line) + ":" + label.getLayout().getLineEnd(line),
+          visibleWidth <= label.getWidth()-label.getCompoundPaddingLeft()-label.getCompoundPaddingRight()+1);
       assertEquals(note + " 말줄임 없음",0,label.getLayout().getEllipsisCount(line));
     }
     assertTrue(note + " 세로 잘림 없음",label.getLayout().getHeight()

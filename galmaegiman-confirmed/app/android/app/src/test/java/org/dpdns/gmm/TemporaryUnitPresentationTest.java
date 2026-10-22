@@ -1,8 +1,14 @@
 package org.dpdns.gmm;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 import static org.junit.Assert.*;
 
+// org.json is supplied by Android: use the same runtime as the native suites.
+@RunWith(RobolectricTestRunner.class)
+@Config(sdk = 35)
 public class TemporaryUnitPresentationTest {
   JSONObject loan(long expiry) throws Exception { return new JSONObject().put("temporary",true).put("expiresAt",expiry); }
   @Test public void missingMetadataNeverGraysPermanentSameSpecies() throws Exception {

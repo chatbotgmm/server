@@ -155,6 +155,8 @@ export function registerNative(app:FastifyInstance,game:GameService,root:string,
     const pick:Choice=freestyle?{freestyle:automaticFreestyleChoice(next,0)}:{augment:offers![randomInt(offers!.length)],...(next.sides[0].needSwitch?{switchTo:live[randomInt(live.length)]}:{})};
     next.log.push(freestyle?'선택 시간 30초가 지나 속성을 자동으로 골랐어요.':'선택 시간 30초가 지나 증강체를 무작위로 골랐어요.');
     choose(next,0,pick);if(next.phase==='choose')aiChoose(next,1);
+    // Match the manual-turn path: finish AI-only choices, but never consume a human choice.
+    while(next.phase==='choose'&&!pending(next,0).augments&&!pending(next,0).needSwitch&&!pending(next,0).freestyle)aiChoose(next,1);
     f.b=next;f.events.push({c:pick});f.revision++;syncChoice(f);
   }
   function syncChoice(f:Fight){

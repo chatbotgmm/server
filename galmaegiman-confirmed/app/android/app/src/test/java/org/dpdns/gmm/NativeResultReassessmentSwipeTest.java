@@ -149,6 +149,7 @@ public class NativeResultReassessmentSwipeTest {
       } else if (path.equals("native/state")) {
         if (holdState) stateReads.add(done); else done.done(snapshot, null);
       } else if (path.equals("native/catalog")) done.done(catalog, null);
+      else if (path.equals("starter-loans")) done.done(StarterLoanTestFixture.ineligible(), null);
       else fail("예상하지 않은 결과 화면 읽기: " + path);
     }
 

@@ -2,8 +2,14 @@ package org.dpdns.gmm;
 import org.json.JSONObject;
 import org.json.JSONArray;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 import static org.junit.Assert.*;
 
+// org.json is supplied by Android: use the same runtime as the native suites.
+@RunWith(RobolectricTestRunner.class)
+@Config(sdk = 35)
 public class FreestyleSelectionTest {
   JSONObject scope() throws Exception {
     return new JSONObject().put("kind","own-attribute").put("selectionId","choice-a")
