@@ -1,3 +1,4 @@
+import {CURRENT_COMBAT_RULES_EPOCH} from '../src/battle/combat-epoch.js';
 import {beforeAll,beforeEach,afterEach,afterAll,describe,it,expect} from 'vitest';
 import {PrismaClient} from '@prisma/client';
 import {randomUUID} from 'node:crypto';
@@ -19,8 +20,11 @@ suite('explicit match acceptance (isolated SQLite)',()=>{
  async function noSettlement(){expect(await db.rankedMatch.count()).toBe(0);expect(await db.rankedSettlement.count()).toBe(0);expect(await db.casualHumanSettlement.count()).toBe(0);expect(await db.realtimeItemEscrow.count()).toBe(0);expect(await db.realtimeLineup.count()).toBe(0);}
  it('requires protocol 3 on attempt route without changing service attempt arguments',async()=>{
   const p=await player(),app=Fastify();registerRealtimePvp(app,service,()=>p.id,()=>true);service.stop();
-  try{for(const payload of [{mode:'normal'},{mode:'normal',protocol:2}])expect((await app.inject({method:'POST',url:'/my/api/pvp/queue/attempt',payload})).statusCode).toBe(400);
-   const r=await app.inject({method:'POST',url:'/my/api/pvp/queue/attempt',payload:{mode:'normal',protocol:3}});expect(r.statusCode).toBe(200);expect(r.json()).toHaveProperty('attemptId');
+  try{const headers={'x-gmm-augment-version':'2','x-gmm-combat-epoch':CURRENT_COMBAT_RULES_EPOCH};
+   const unsupported=await app.inject({method:'POST',url:'/my/api/pvp/queue/attempt',payload:{mode:'normal',protocol:3}});expect(unsupported.statusCode).toBe(409);expect(unsupported.json().code).toBe('AUGMENT_VERSION_UNSUPPORTED');
+   const oldV2=await app.inject({method:'POST',url:'/my/api/pvp/queue/attempt',headers:{'x-gmm-augment-version':'2'},payload:{mode:'normal',protocol:3}});expect(oldV2.statusCode).toBe(409);expect(oldV2.json()).toMatchObject({code:'COMBAT_EPOCH_UNSUPPORTED',upgradeRequired:true});
+   for(const payload of [{mode:'normal'},{mode:'normal',protocol:2}])expect((await app.inject({method:'POST',url:'/my/api/pvp/queue/attempt',headers,payload})).statusCode).toBe(400);
+   const r=await app.inject({method:'POST',url:'/my/api/pvp/queue/attempt',headers,payload:{mode:'normal',protocol:3}});expect(r.statusCode).toBe(200);expect(r.json()).toHaveProperty('attemptId');
   }finally{await app.close();}
  });
  it.each(['rank','normal'] as const)('%s creates private 10-second acceptance before battle/preparation',async mode=>{

@@ -407,6 +407,23 @@ final class NativeLibrary {
                 + u.optInt("away")
                 + " · 보호 "
                 + u.optInt("locked")));
+    // Catalog artwork derives loan-only treatment from counts without mutating this DTO.
+    if (u.has("temporaryCount") && u.has("permanentCount"))
+      labels.addView(k.note("영구 " + u.optInt("permanentCount") + " / 임시 " + u.optInt("temporaryCount")));
+    JSONArray temporaryInstances = u.optJSONArray("temporaryInstances");
+    if (temporaryInstances != null) {
+      for (int i = 0; i < temporaryInstances.length(); i++) {
+        JSONObject instance = temporaryInstances.optJSONObject(i);
+        if (TemporaryUnitPresentation.temporary(instance))
+          labels.addView(k.note(instance.optString("key") + " / " + TemporaryUnitPresentation.label(instance)));
+      }
+    } else {
+      for (int i = 0; i < h.list(h.state, "units").length(); i++) {
+        JSONObject instance = h.list(h.state, "units").optJSONObject(i);
+        if (TemporaryUnitPresentation.temporary(instance) && instance.optString("id").equals(u.optString("id")))
+          labels.addView(k.note(instance.optString("key") + " / " + TemporaryUnitPresentation.label(instance)));
+      }
+    }
     identity.addView(labels, new LinearLayout.LayoutParams(0, -2, 1));
     info.addView(identity);
     info.addView(
@@ -730,6 +747,7 @@ final class NativeLibrary {
     View registration = RegistrationCardView.art(h, u, RegistrationCardView.FULL);
     registration.setTag("unit-registration");
     who.addView(registration, new LinearLayout.LayoutParams(-1, 0, 1));
+    if (u.optBoolean("temporary")) who.addView(k.note(TemporaryUnitPresentation.label(u)));
     String role = u.optString("role");
     String roleName =
         role.equals("ATTACK")
@@ -1256,7 +1274,10 @@ final class NativeLibrary {
     LinearLayout content = k.column();
     content.setGravity(Gravity.CENTER_HORIZONTAL);
     ImageView portrait = k.image(u.optString("image"), 156, 156);
+    TemporaryUnitPresentation.apply(portrait, u);
+    portrait.setContentDescription(u.optString("name") + TemporaryUnitPresentation.suffix(u));
     content.addView(portrait);
+    if (TemporaryUnitPresentation.temporary(u)) content.addView(k.note(TemporaryUnitPresentation.label(u)));
     content.addView(heading("승진! " + "★".repeat(u.optInt("stage")), 26));
     content.addView(k.note(u.optString("name") + " · " + u.optInt("stage") + "단계 · 체력 회복"));
     content.addView(k.note("직무 표창 「" + award + "」"));
@@ -1520,11 +1541,15 @@ final class NativeLibrary {
             LinearLayout choice = k.paper(), heading = k.row();
             choice.setTag("heal-target-" + key);
             choice.setSelected(key.equals(target[0]));
-            heading.addView(k.image(u.optString("image"), 38, 38));
+            ImageView targetPortrait = k.image(u.optString("image"), 38, 38);
+            TemporaryUnitPresentation.apply(targetPortrait, u);
+            targetPortrait.setContentDescription(u.optString("name") + TemporaryUnitPresentation.suffix(u));
+            heading.addView(targetPortrait);
             TextView name = heading(u.optString("name") + (full ? " · 가득" : ""), 14);
             heading.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
             if (key.equals(target[0])) heading.addView(h.text("✓", 18));
             choice.addView(heading);
+            if (TemporaryUnitPresentation.temporary(u)) choice.addView(k.note(TemporaryUnitPresentation.label(u)));
             TextView hp = k.note("체력 " + u.optInt("hp") + "/" + u.optInt("maxHp"));
             hp.setTextSize(12);
             choice.addView(hp);

@@ -1,3 +1,4 @@
+import {bindLoanLevelRecipient} from './starter-loan-levels.js';
 // 서버 확정 진행도. 클라이언트가 점수·등급·보상·시각을 지정할 수 없다.
 import {randomInt} from 'node:crypto';
 import type {Prisma, PrismaClient, Player} from '@prisma/client';
@@ -38,7 +39,7 @@ export async function progressionState(tx:Tx,p:Player,content:Content,now:Date){
   return {serverNow:now.getTime(),pass:{points:s.points,milestones:progressionConfig.milestones.map(m=>({...m,claimed:claims.some(c=>c.milestoneId===m.id),claimable:s.points>=m.points&&!claims.some(c=>c.milestoneId===m.id)}))},
     reroll:{available:s.rerollAvailable&&!!s.rerollExpiresAt&&s.rerollExpiresAt>now,expiresAt:s.rerollExpiresAt?.getTime()??null,nextClaimAt:s.rerollNextClaimAt?.getTime()??null,cooldownMs:progressionConfig.rerollCooldownMs,durationMs:progressionConfig.rerollDurationMs},
     reassessment:{cooldownMs:progressionConfig.reassessmentCooldownMs,nextAvailableAt:s.reassessNextAt?.getTime()??null,candidates:owned.filter(o=>o.status==='AVAILABLE'&&!o.locked&&o.obtainedVia==='GACHA_HIGH'&&['RARE','LEGEND'].includes(content.map.get(o.characterId)?.rarity??'')&&!busy).map(o=>({key:`o${o.id}`,id:o.characterId,name:content.map.get(o.characterId)!.name,rarity:content.map.get(o.characterId)!.rarity}))},
-    reincarnation:{statBonusPct:progressionConfig.statBonusPct,maxLevel:null,totalStatBonusCapPct:25,candidates:owned.filter(o=>topTiers.has(content.map.get(o.characterId)?.rarity??'')).map(o=>({key:`o${o.id}`,id:o.characterId,name:content.map.get(o.characterId)!.name,rarity:content.map.get(o.characterId)!.rarity,locked:o.locked,reincarnation:o.reincarnation,eligible:!busy&&!o.locked&&o.status==='AVAILABLE',reason:busy?'전투 또는 매칭 중':o.locked?'보호 중':o.status!=='AVAILABLE'?'탐험 중':null}))}};
+    reincarnation:{statBonusPct:progressionConfig.statBonusPct,maxLevel:null,totalStatBonusCapPct:25,candidates:owned.filter(o=>!o.loanExpiresAt&&topTiers.has(content.map.get(o.characterId)?.rarity??'')).map(o=>({key:`o${o.id}`,id:o.characterId,name:content.map.get(o.characterId)!.name,rarity:content.map.get(o.characterId)!.rarity,locked:o.locked,reincarnation:o.reincarnation,eligible:!busy&&!o.locked&&o.status==='AVAILABLE',reason:busy?'전투 또는 매칭 중':o.locked?'보호 중':o.status!=='AVAILABLE'?'탐험 중':null}))}};
 }
 export async function claimMilestone(tx:Tx,p:Player,id:string){
   const m=progressionConfig.milestones.find(m=>m.id===id);if(!m)throw new GameError('패스 보상을 다시 골라 주세요.');
@@ -61,7 +62,7 @@ export async function consumeReroll(tx:Tx,p:Player,now:Date){
 }
 export async function transformOwned(tx:Tx,p:Player,content:Content,key:string,kind:'reincarnate'|'reassess',now:Date){
   await requireProgressionIdle(tx,p.id,now);
-  const source=await tx.ownedCharacter.findFirst({where:{id:Number(key.slice(1)),playerId:p.id,status:'AVAILABLE',locked:false}});
+  const source=await tx.ownedCharacter.findFirst({where:{id:Number(key.slice(1)),playerId:p.id,status:'AVAILABLE',locked:false,loanExpiresAt:null}});
   if(!source)throw new GameError('보호·탐험 중이 아닌 내 개체를 골라 주세요.');
   const c=content.map.get(source.characterId)!;let pool=content.characters.filter(x=>x.rarity==='COMMON');
   if(kind==='reassess'){
@@ -70,10 +71,11 @@ export async function transformOwned(tx:Tx,p:Player,content:Content,key:string,k
     pool=content.characters.filter(x=>x.rarity===c.rarity&&x.id!==c.id);
   }else if(!topTiers.has(c.rarity))throw new GameError('최상위 개체 한 마리만 환생할 수 있어요.');
   if(!pool.length)throw new GameError('변경 가능한 갈매미가 아직 없어요.');
-  const target=pool[randomInt(pool.length)],changed=await tx.ownedCharacter.updateMany({where:{id:source.id,playerId:p.id,status:'AVAILABLE',locked:false},data:{status:'CONSUMED',consumedAt:now}});
+  const target=pool[randomInt(pool.length)],changed=await tx.ownedCharacter.updateMany({where:{id:source.id,playerId:p.id,status:'AVAILABLE',locked:false,loanExpiresAt:null},data:{status:'CONSUMED',consumedAt:now}});
   if(changed.count!==1)throw new GameError('개체 상태가 바뀌었어요. 다시 확인해 주세요.');
   const rebirth=kind==='reincarnate';
   const owned=await tx.ownedCharacter.create({data:{playerId:p.id,characterId:target.id,obtainedVia:rebirth?'REINCARNATION':'GACHA_HIGH',obtainedAt:now,reincarnation:rebirth?source.reincarnation+1:0,inheritedFrom:rebirth?(source.inheritedFrom??c.id):null,statBonusPct:rebirth?Math.min(25,(source.reincarnation+1)*progressionConfig.statBonusPct):0}});
+  if(!p.adminMode)await bindLoanLevelRecipient(tx,p.id,owned,now);
   await tx.collectionEntry.upsert({where:{playerId_characterId:{playerId:p.id,characterId:target.id}},create:{playerId:p.id,characterId:target.id,count:1},update:{count:{increment:1}}});
   const save=await tx.storySave.findUnique({where:{playerId:p.id}});
   if(save){const d=JSON.parse(save.data);delete d.units?.[key];delete d.hp?.[key];if(Array.isArray(d.team))d.team=d.team.filter((k:string)=>k!==key);await tx.storySave.update({where:{playerId:p.id},data:{data:JSON.stringify(d)}});}
@@ -91,3 +93,4 @@ export async function assertProgressionSchema(db:PrismaClient){
     db.progressionState.count(),db.progressionReceipt.count(),db.progressionMilestone.count(),
   ]);}catch{throw new Error('진행 기능 DB 스키마가 아직 적용되지 않았습니다. 서버를 시작하지 않습니다. 백업 후 prisma/manual/20261019_progression_additive.sql을 검토·승인하여 적용하고 Prisma client를 재생성하세요.');}
 }
+

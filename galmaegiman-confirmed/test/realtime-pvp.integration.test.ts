@@ -1,3 +1,5 @@
+import {CURRENT_COMBAT_RULES_EPOCH} from '../src/battle/combat-epoch.js';
+import {createBattleService,serializeServiceBattle} from '../src/battle/service-factory.js';
 import {beforeAll,beforeEach,afterEach,afterAll,describe,it,expect} from 'vitest';
 import {PrismaClient} from '@prisma/client';
 import {randomUUID} from 'node:crypto';
@@ -6,7 +8,6 @@ import {RealtimePvpService,REALTIME_LIMITS} from '../src/pvp/service.js';
 import {GameService} from '../src/game.js';
 import {buildApp} from '../src/app.js';
 import {loadBattleRules} from '../src/battle/load.js';
-import {deserializeBattle,serializeBattle} from '../src/battle/realtime-adapter.js';
 
 const suite=process.env.TEST_DB_URL?describe:describe.skip;
 suite('durable realtime two-human PvP (isolated SQLite)',()=>{
@@ -22,17 +23,21 @@ suite('durable realtime two-human PvP (isolated SQLite)',()=>{
   async function ticket(pid:string,mode:'rank'|'normal'='rank'){return service.attempt(pid,mode);}
   async function join(pid:string,t:Awaited<ReturnType<typeof ticket>>){return service.join(pid,t.attemptId,t.token);}
   async function pair(ready=true,mode:'rank'|'normal'='rank'){const a=await player(),b=await player(),ta=await ticket(a.id,mode),tb=await ticket(b.id,mode);await join(a.id,ta);const q=await join(b.id,tb);expect(q.status).toBe('matched');const roomId=(q as {roomId:string}).roomId;for(const p of [a,b]){const v=await service.currentRoom(p.id,roomId);await service.command(p.id,{roomId,phaseId:v.phaseId,requestId:randomUUID(),command:{accept:true}});}if(ready){for(const p of [a,b]){const v=await service.currentRoom(p.id,roomId);await service.command(p.id,{roomId,phaseId:v.phaseId,requestId:randomUUID(),command:{prepare:{team:['D1','T1','E1'],ready:true}}});}}return {a,b,ta,tb,roomId};}
-  const choose=(v:any)=>({choose:{...(v.battle!.teams[0].offers.length?{augment:v.battle!.teams[0].offers[0].id}:{}),...(v.battle!.teams[0].needSwitch?{switchTo:v.battle!.teams[0].fighters.findIndex((f:any)=>f.hp>0)}:{})}});
+  const choose=(v:any)=>v.battle.teams[0].attributeSelection?{choose:{freestyle:attributeChoice(v.battle.teams[0].attributeSelection)}}:({choose:{...(v.battle!.teams[0].offers.length?{augment:v.battle!.teams[0].offers[0].id}:{}),...(v.battle!.teams[0].needSwitch?{switchTo:v.battle!.teams[0].fighters.findIndex((f:any)=>f.hp>0)}:{})}});
+  const attributeChoice=(s:any)=>({selectionId:s.selectionId,phaseId:s.phaseId,targetKey:s.targetKey,attribute:s.attributes[0]});
   async function actionPhase(p:Awaited<ReturnType<typeof pair>>){
-    const a=await service.currentRoom(p.a.id,p.roomId),b=await service.currentRoom(p.b.id,p.roomId);
-    await service.command(p.a.id,{roomId:p.roomId,phaseId:a.phaseId,requestId:randomUUID(),command:choose(a)});
-    return service.command(p.b.id,{roomId:p.roomId,phaseId:b.phaseId,requestId:randomUUID(),command:choose(b)});
+    // 일반 증강 선택 다음 자유자재 선택도 완료해야 실제 action phase다.
+    for(let step=0;step<2;step++)for(const player of [p.a,p.b]){
+      const v=await service.currentRoom(player.id,p.roomId);
+      if(v.phase==='choose'&&v.canSubmit)await service.command(player.id,{roomId:p.roomId,phaseId:v.phaseId,requestId:randomUUID(),command:choose(v)});
+    }
+    const result=await service.currentRoom(p.b.id,p.roomId);expect(result.phase).toBe('action');return result;
   }
 
   it('preparation stays private and starts augment selection only after both ready',async()=>{
     const p=await pair(false),a=await service.currentRoom(p.a.id,p.roomId),b=await service.currentRoom(p.b.id,p.roomId);
     expect(a.phase).toBe('prepare');expect(a.battle).toBeNull();expect(a.deadline).toBe(now+30_000);
-    expect(a.preparation?.selectedIds).toEqual(['D1','T1','E1']);expect(a.preparation).not.toHaveProperty('opponentTeam');
+    const ownKeys=await db.ownedCharacter.findMany({where:{playerId:p.a.id},orderBy:{id:'asc'}});expect(a.preparation?.selectedIds).toEqual(ownKeys.map(x=>`o${x.id}`));expect(ownKeys.map(x=>x.characterId)).toEqual(['D1','T1','E1']);expect(a.preparation).not.toHaveProperty('opponentTeam');
     const ready=await service.command(p.a.id,{roomId:p.roomId,phaseId:a.phaseId,requestId:'ready-a',command:{prepare:{team:['E1','D1','T1'],ready:true}}});
     expect(ready.phase).toBe('prepare');expect(ready.deadline).toBe(a.deadline);expect(ready.canSubmit).toBe(false);
     const started=await service.command(p.b.id,{roomId:p.roomId,phaseId:b.phaseId,requestId:'ready-b',command:{prepare:{team:['D1','T1','E1'],ready:true}}});
@@ -45,7 +50,7 @@ suite('durable realtime two-human PvP (isolated SQLite)',()=>{
     const edited=await service.command(p.a.id,{roomId:p.roomId,phaseId:a.phaseId,requestId:'draft',command:{prepare:{team:['T1','E1','D1'],ready:false}}});
     expect(edited.deadline).toBe(a.deadline);expect((await db.player.findUniqueOrThrow({where:{id:p.a.id}})).battleTeam).toBe('D1,T1,E1');
     const restarted=new RealtimePvpService(db,content,process.cwd(),secret,()=>now);
-    expect((await restarted.currentRoom(p.a.id,p.roomId)).preparation?.selectedIds).toEqual(['T1','E1','D1']);
+    const owned=await db.ownedCharacter.findMany({where:{playerId:p.a.id}});expect((await restarted.currentRoom(p.a.id,p.roomId)).preparation?.selectedIds).toEqual(['T1','E1','D1'].map(id=>`o${owned.find(x=>x.characterId===id)!.id}`));
     now=a.deadline!;await service.tick();const started=await service.currentRoom(p.a.id,p.roomId);
     expect(started.phase).toBe('choose');expect(started.deadline).toBe(now+30_000);
     expect((await db.player.findUniqueOrThrow({where:{id:p.a.id}})).battleTeam).toBe('T1,E1,D1');
@@ -62,8 +67,8 @@ suite('durable realtime two-human PvP (isolated SQLite)',()=>{
     expect(late.phase).toBe('choose');expect((await db.player.findUniqueOrThrow({where:{id:p.a.id}})).battleTeam).toBe('T1,D1,E1');
   });
   async function wound(p:Awaited<ReturnType<typeof pair>>){
-    const r=await db.realtimeRoom.findUniqueOrThrow({where:{id:p.roomId}}),s=JSON.parse(r.stateJson),b=deserializeBattle(loadBattleRules(process.cwd()),s.battle),side=r.player0Id===p.a.id?0:1;
-    b.sides[side].fighters[b.sides[side].active].hp=1;s.battle=serializeBattle(b);
+    const r=await db.realtimeRoom.findUniqueOrThrow({where:{id:p.roomId}}),s=JSON.parse(r.stateJson),b=createBattleService(loadBattleRules(process.cwd())).restore(s.battle),side=r.player0Id===p.a.id?0:1;
+    b.sides[side].fighters[b.sides[side].active].hp=1;s.battle=serializeServiceBattle(b);
     await db.realtimeRoom.update({where:{id:r.id},data:{stateJson:JSON.stringify(s)}});
     await db.playerItem.upsert({where:{playerId_itemId:{playerId:p.a.id,itemId:'potion'}},create:{playerId:p.a.id,itemId:'potion',count:1},update:{count:1}});
   }
@@ -187,7 +192,7 @@ suite('durable realtime two-human PvP (isolated SQLite)',()=>{
     try{
       const code=(await game.handle(p.identity,'웹 로그인')).text!.match(/\b\d{6}\b/)![0];
       const login=(await app.inject({method:'POST',url:'/my/api/login',headers:{'x-gmm':'1','x-gmm-app':'1'},payload:{code}})).json();
-      const headers={'x-gmm':'1','x-gmm-s':login.token};
+      const headers={'x-gmm':'1','x-gmm-s':login.token,'x-gmm-augment-version':'2','x-gmm-combat-epoch':CURRENT_COMBAT_RULES_EPOCH};
       expect((await app.inject({method:'POST',url:'/my/api/pvp/queue/attempt',headers:{'x-gmm':'1'},payload:{mode:'rank',protocol:3}})).statusCode).toBe(401);
       for(const extra of [{playerId:'someone-else'},{bot:true},{participantKind:'AI'}])expect((await app.inject({method:'POST',url:'/my/api/pvp/queue/attempt',headers,payload:{mode:'rank',protocol:3,...extra}})).statusCode).toBe(400);
       const rank=(await app.inject({method:'GET',url:'/my/api/pvp/rank',headers})).json();expect(rank.me).toMatchObject({point:0,tier:'Bronze'});

@@ -2,7 +2,7 @@ package org.dpdns.gmm;
 
 /** Home-only geometry. All inputs/outputs are pixels inside the already inset safe rectangle. */
 final class HomeMenuLayout {
-  static final int[] MENU_ORDER = {1, 2, 3, 0, 4, 12, 6};
+  static final int[] MENU_ORDER = {1, 2, 3, 0, 4, 12, 6, 14};
 
   static final class Box {
     final float left, top, right, bottom;
@@ -37,12 +37,12 @@ final class HomeMenuLayout {
     float right = width - edge, bottom = height - edge;
     float playW = Math.max(176 * d, Math.min(256 * d, width * .245f));
     float toggleW = Math.max(88 * d, Math.min(112 * d, width * .112f));
-    Box[] controls = new Box[13];
+    Box[] controls = new Box[15];
     controls[5] = new Box(right - playW, bottom - actionH, right, bottom);
     Box toggle = new Box(controls[5].left - gap - toggleW, bottom - actionH,
         controls[5].left - gap, bottom);
 
-    // Compact landscape devices still retain seven real 48dp hit targets. The panel
+    // Compact landscape devices still retain eight real 48dp hit targets. The panel
     // never changes the action row position, and closed/open share identical geometry.
     float panelW = Math.max(4 * hit + 5 * gap, Math.min(width * .51f, 640 * d));
     float panelLeft = right - panelW;

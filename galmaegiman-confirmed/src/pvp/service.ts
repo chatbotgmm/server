@@ -1,3 +1,4 @@
+import {applyLoanLevel,loanLevelFloors} from '../starter-loan-levels.js';
 // Draft target: src/pvp/service.ts. Requires generated Prisma models and battle adapter.
 import {createHash,createHmac,randomBytes,randomInt,timingSafeEqual} from 'node:crypto';
 import type {Prisma,PrismaClient,RealtimeAttempt,RealtimeRoom} from '@prisma/client';
@@ -7,7 +8,7 @@ import {consumeReroll,freshProgression,awardPlayPoints} from '../progression.js'
 import {GameError} from '../types.js';
 import {loadBattleRules} from '../battle/load.js';
 import type {Battle} from '../battle/engine.js';
-import {createBattleService,serializeServiceBattle as serializeBattle,supportsAugmentVersion,requiredAugmentClientVersion,type BattleServiceOptions} from '../battle/service-factory.js';
+import {createBattleService,supportsCombatEpoch,serializeServiceBattle as serializeBattle,supportsAugmentVersion,requiredAugmentClientVersion,type BattleServiceOptions} from '../battle/service-factory.js';
 import type {UnitRecord} from '../battle/growth.js';
 import {loadStory} from '../battle/story.js';
 import {casualRecord,matchCasualBot,applyCasualCompensation,deployedMean} from './casual-balance.js';
@@ -58,8 +59,18 @@ export class RealtimePvpService {
     const b=this.battles.restore(parseState(room).battle);
     return supportsAugmentVersion(requiredAugmentClientVersion(path,this.battles.version,b.R.augmentVersion),header);
   }
+  async supportsCombatClient(playerId:string,path:string,body:unknown,query:unknown,header:unknown){
+    if(path==='queue/attempt'||path==='queue/join')return supportsCombatEpoch(path,this.battles.combatRulesEpoch,undefined,header);
+    if(path!=='room/current'&&path!=='room/command')return true;
+    const input=(path==='room/current'?query:body) as {roomId?:unknown}|null;
+    if(typeof input?.roomId!=='string')return true;
+    const room=await this.db.realtimeRoom.findUnique({where:{id:input.roomId}});
+    if(!room||(room.player0Id!==playerId&&room.player1Id!==playerId))return true;
+    const b=this.battles.restore(parseState(room).battle);
+    return supportsCombatEpoch(path,this.battles.combatRulesEpoch,b.combatRulesEpoch,header);
+  }
   private rulesVersion:string;private casualRulesVersion:string;private startLevel:number;
-  constructor(private db:PrismaClient,private content:Content,root:string,private secret:string,private now=()=>Date.now(),options:BattleServiceOptions={version:1}){
+  constructor(private db:PrismaClient,private content:Content,root:string,private secret:string,private now=()=>Date.now(),options?:BattleServiceOptions){
     this.battles=createBattleService(loadBattleRules(root),options);this.R=this.battles.R;this.startLevel=loadStory(root,this.R).start.level;this.mapper=createRealtimeNativeMapper(root);
     this.rulesVersion=createHash('sha256').update('realtime-engine-v2-preparation-items\0').update(this.battles.fingerprint).digest('hex');
     this.casualRulesVersion=createHash('sha256').update('realtime-engine-v3-casual-growth\0').update(this.battles.fingerprint).digest('hex');
@@ -128,7 +139,7 @@ export class RealtimePvpService {
     const ids:string[]=selection??(previous?JSON.parse(previous.teamJson):p.battleTeam.split(','));
     const fallback=()=>{if(previous)return this.roster(tx,playerId,p.battleTeam.split(','),mode);return fail('전투 편성에서 소유한 최상위 갈매미 세 마리를 정해 주세요.');};
     if(!Array.isArray(ids)||ids.length!==3||new Set(ids).size!==3)return fallback();
-    const own=await tx.ownedCharacter.findMany({where:{playerId,status:{in:['AVAILABLE','EXPEDITION']}},select:{id:true,characterId:true,reincarnation:true,inheritedFrom:true,statBonusPct:true},orderBy:{id:'asc'}});
+    const own=await tx.ownedCharacter.findMany({where:{playerId,status:{in:['AVAILABLE','EXPEDITION']},OR:[{loanExpiresAt:null},{loanExpiresAt:{gt:new Date(this.now())}}]},select:{id:true,characterId:true,reincarnation:true,inheritedFrom:true,statBonusPct:true,loanExpiresAt:true},orderBy:{id:'asc'}});
     // Species IDs from older clients resolve deterministically, never to account maximum.
     const selected=ids.map(key=>own.find(x=>`o${x.id}`===key)||own.find(x=>x.characterId===key));
     if(selected.some(x=>!x||(!topTiers.has(this.content.map.get(x.characterId)?.rarity??'')&&!x.inheritedFrom))||new Set(selected.map(x=>x?.characterId)).size!==3)return fallback();
@@ -138,14 +149,15 @@ export class RealtimePvpService {
       try{saved=row?JSON.parse(row.data):{};}catch{fail('저장된 갈매미 성장 정보를 확인해 주세요.');}
       if(!saved||typeof saved!=='object'||(saved.units!==undefined&&(!saved.units||typeof saved.units!=='object'||Array.isArray(saved.units))))fail('저장된 갈매미 성장 정보를 확인해 주세요.');
     }
+    const levelFloors=mode==='normal'?await loanLevelFloors(tx,playerId,selected.map(o=>o!.id)):new Map<number,number>();
     const units=selected.map((owned):UnitRecord=>{
       const x=owned!,c=this.content.map.get(x.characterId)!;
       const combatId=topTiers.has(c.rarity)?c.id:(x.inheritedFrom??c.id),combat=this.content.map.get(combatId)!;
       const base={uid:`o${x.id}`,id:combatId,name:x.reincarnation?`${c.name} +${x.reincarnation}`:c.name,tier:combat.rarity as UnitRecord['tier']};
-      const lineage={reincarnation:x.reincarnation,inheritedFrom:x.inheritedFrom??undefined,ownedCharacterId:c.id,statBonusPct:x.statBonusPct};
-      const record=mode==='normal'?casualRecord(this.R,base,saved.units?.[base.uid]??(x.reincarnation?undefined:saved.units?.[c.id]),this.startLevel):{...base,level:this.content.economy.pvp.level,xp:0,stage:0 as const,evoAugs:[]};
+      const lineage={temporary:x.loanExpiresAt!==null,expiresAt:x.loanExpiresAt?.getTime()??null,reincarnation:x.reincarnation,inheritedFrom:x.inheritedFrom??undefined,ownedCharacterId:c.id,statBonusPct:x.statBonusPct};
+      const record=mode==='normal'?casualRecord(this.R,base,saved.units?.[base.uid]??(x.reincarnation||x.loanExpiresAt?undefined:saved.units?.[c.id]),this.startLevel):{...base,level:this.content.economy.pvp.level,xp:0,stage:0 as const,evoAugs:[]};
       if(x.reincarnation&&!saved.units?.[base.uid])record.learned=['@','basic','sig'];
-      return {...record,...lineage};
+      return {...(mode==='normal'?applyLoanLevel(record,levelFloors.get(x.id)??0,this.R.data.growth.maxLevel):record),...lineage};
     });
     return {units,name:p.nickname??`갈매미 #${p.id.slice(0,4)}`,ids:units.map(x=>x.ownedCharacterId??x.id)};
   }
@@ -192,7 +204,12 @@ export class RealtimePvpService {
     const activities=await tx.realtimeActivity.findMany({where:{kind:'QUEUE',targetId:{in:candidates.map(x=>x.id)},expiresAt:{gt:new Date(this.now())}}});
     const active=new Set(activities.map(x=>x.playerId+'\0'+x.targetId));
     for(const a of candidates)if(!this.hasProtocol(a))await this.rejectLegacyAttempt(tx,a);
-    const rows=candidates.filter(x=>this.hasProtocol(x)&&active.has(x.playerId+'\0'+x.id));
+    const rows:RealtimeAttempt[]=[];
+    for(const candidate of candidates.filter(x=>this.hasProtocol(x)&&active.has(x.playerId+'\0'+x.id))){
+      // 대기 도중 만료된 임시 개체는 대전 생성 전에 제외. 영구 동종 개체로 몰래 교체하지 않는다.
+      try{await this.roster(tx,candidate.playerId,this.attemptUnits(candidate).map(x=>x.uid),mode);rows.push(candidate);}
+      catch(e){if(!(e instanceof GameError))throw e;await tx.realtimeAttempt.update({where:{id:candidate.id},data:{state:'EXPIRED'}});await tx.realtimeActivity.deleteMany({where:{playerId:candidate.playerId,kind:'QUEUE',targetId:candidate.id}});}
+    }
     const used=new Set<string>();let created=0;
     for(const a of rows){
       if(used.has(a.id))continue;
@@ -297,17 +314,18 @@ export class RealtimePvpService {
     return tx.realtimeRoom.update({where:{id:r.id},data:{stateJson:JSON.stringify(s),deadline:new Date(this.now()+REALTIME_LIMITS.turnMs),revision:{increment:1}}});
   }
   private async preparationOptions(tx:Tx,playerId:string,mode:Mode){
-    const owned=await tx.ownedCharacter.findMany({where:{playerId,status:{in:['AVAILABLE','EXPEDITION']}},select:{id:true,characterId:true,reincarnation:true,inheritedFrom:true,statBonusPct:true},orderBy:{id:'asc'}});
+    const owned=await tx.ownedCharacter.findMany({where:{playerId,status:{in:['AVAILABLE','EXPEDITION']},OR:[{loanExpiresAt:null},{loanExpiresAt:{gt:new Date(this.now())}}]},select:{id:true,characterId:true,reincarnation:true,inheritedFrom:true,statBonusPct:true,loanExpiresAt:true},orderBy:{id:'asc'}});
     const candidates=mapRealtimePreparationCandidates(this.content,owned.map(x=>x.characterId));
-    if(mode==='rank')return [...candidates.filter(c=>owned.some(x=>x.characterId===c.id&&!x.reincarnation)),...owned.filter(x=>x.reincarnation>0&&x.inheritedFrom).map(x=>({id:`o${x.id}`,name:`${this.content.map.get(x.characterId)!.name} +${x.reincarnation}`,rarity:this.content.map.get(x.characterId)!.rarity,image:`/thumbs/${x.characterId}.jpg`}))];
+    if(mode==='rank')return owned.filter(x=>topTiers.has(this.content.map.get(x.characterId)!.rarity)||!!x.inheritedFrom).map(x=>({id:`o${x.id}`,characterId:x.characterId,name:this.content.map.get(x.characterId)!.name+(x.reincarnation?` +${x.reincarnation}`:''),rarity:this.content.map.get(x.characterId)!.rarity,image:`/thumbs/${x.characterId}.jpg`,temporary:x.loanExpiresAt!==null,expiresAt:x.loanExpiresAt?.getTime()??null}));
     const row=await tx.storySave.findUnique({where:{playerId}});
     let saved:{units?:Record<string,unknown>}={};try{saved=row?JSON.parse(row.data):{};}catch{fail('저장된 갈매미 성장 정보를 확인해 주세요.');}
+    const levelFloors=await loanLevelFloors(tx,playerId,owned.map(o=>o.id));
     return owned.flatMap(x=>{
       const original=this.content.map.get(x.characterId)!;const c=candidates.find(c=>c.id===x.characterId)??(x.inheritedFrom?{id:x.inheritedFrom,name:original.name,rarity:this.content.map.get(x.inheritedFrom)!.rarity,image:`/thumbs/${x.characterId}.jpg`}:null);if(!c)return [];
       const key=`o${x.id}`;
       // Corrupt unused copies must not poison a valid deployed roster.
-      try{const rec=casualRecord(this.R,{uid:key,id:c.id,name:c.name,tier:c.rarity as UnitRecord['tier']},saved?.units?.[key]??(x.reincarnation?undefined:saved?.units?.[c.id]),this.startLevel);
-        return [{...c,id:key,name:x.reincarnation?`${original.name} +${x.reincarnation}`:c.name,rarity:original.rarity,characterId:x.characterId,level:rec.level,stage:rec.stage}];
+      try{const rec=casualRecord(this.R,{uid:key,id:c.id,name:c.name,tier:c.rarity as UnitRecord['tier']},saved?.units?.[key]??(x.reincarnation||x.loanExpiresAt?undefined:saved?.units?.[c.id]),this.startLevel);
+        return [{...c,id:key,name:x.reincarnation?`${original.name} +${x.reincarnation}`:c.name,rarity:original.rarity,characterId:x.characterId,temporary:x.loanExpiresAt!==null,expiresAt:x.loanExpiresAt?.getTime()??null,level:applyLoanLevel(rec,levelFloors.get(x.id)??0,this.R.data.growth.maxLevel).level,stage:rec.stage}];
       }catch(e){if(e instanceof GameError)return [];throw e;}
     });
   }
@@ -383,7 +401,7 @@ export class RealtimePvpService {
     const side=this.side(r,playerId),s=parseState(r),b=this.battles.restore(s.battle),end=r.resultJson?JSON.parse(r.resultJson) as End:null;
     if(s.acceptance&&r.state==='ACTIVE')return {roomId:r.id,mode:r.mode as Mode,phase:'accept' as const,opponentKind:s.botSide===1?'AI' as const:'HUMAN' as const,phaseId:this.phaseId(r,s),revision:r.revision,deadline:r.deadline?.getTime()??null,serverNow:this.now(),canSubmit:!s.acceptance.accepted[side],mySubmitted:s.acceptance.accepted[side],opponentReady:s.acceptance.accepted[(1-side) as Side],acceptance:{accepted:s.acceptance.accepted[side],opponentAccepted:s.acceptance.accepted[(1-side) as Side]},result:null,battle:null,preparation:null};
     if(end&&(end.reason==='MATCH_DECLINED'||end.reason==='MATCH_TIMEOUT'))return {roomId:r.id,mode:r.mode as Mode,phase:'over' as const,opponentKind:s.botSide===1?'AI' as const:'HUMAN' as const,phaseId:this.phaseId(r,s),revision:r.revision,deadline:null,serverNow:this.now(),canSubmit:false,mySubmitted:false,opponentReady:false,acceptance:null,preparation:null,battle:null,result:{winner:null,reason:end.reason,settlement:'not_applicable' as const,requeued:end.requeuedSides?.includes(side)??false}};
-    if(s.preparation&&r.state==='ACTIVE'){const p=s.preparation;return {roomId:r.id,mode:r.mode as Mode,phase:'prepare' as const,opponentKind:s.botSide===1?'AI' as const:'HUMAN' as const,phaseId:this.phaseId(r,s),revision:r.revision,deadline:r.deadline?.getTime()??null,serverNow:this.now(),canSubmit:!p.ready[side],mySubmitted:p.ready[side],opponentReady:p.ready[(1-side) as Side],result:null,battle:null,preparation:{selectedIds:p.teams[side].map(x=>r.mode==='normal'||x.reincarnation?x.uid:x.id),ready:p.ready[side],opponentReady:p.ready[(1-side) as Side],available:p.available[side]}};}
+    if(s.preparation&&r.state==='ACTIVE'){const p=s.preparation;return {roomId:r.id,mode:r.mode as Mode,phase:'prepare' as const,opponentKind:s.botSide===1?'AI' as const:'HUMAN' as const,phaseId:this.phaseId(r,s),revision:r.revision,deadline:r.deadline?.getTime()??null,serverNow:this.now(),canSubmit:!p.ready[side],mySubmitted:p.ready[side],opponentReady:p.ready[(1-side) as Side],result:null,battle:null,preparation:{selectedIds:p.teams[side].map(x=>x.uid),ready:p.ready[side],opponentReady:p.ready[(1-side) as Side],available:p.available[side]}};}
     const receipt=end?.receipt as {players?:Array<{playerId:string;before:unknown;after:unknown;lpDelta?:number;mmrDelta?:number;promotionChange?:unknown}>}|undefined;
     const own=receipt?.players?.find(p=>p.playerId===playerId);
     const publicRank=(value:unknown)=>{const p=value as {tierIndex:number;lp:number;promotionActive:boolean;promotionWins:number;promotionLosses:number;wins:number;losses:number;games:number};return {tierIndex:p.tierIndex,tier:DEFAULT_RANKED_CONFIG.tiers[p.tierIndex],lp:p.lp,promotionActive:p.promotionActive,promotionWins:p.promotionWins,promotionLosses:p.promotionLosses,wins:p.wins,losses:p.losses,games:p.games};};
@@ -438,7 +456,7 @@ export class RealtimePvpService {
     if(s.pending[side]||!required(b,side))fail('이미 선택했어요. 상대를 기다려 주세요.');
     if(await tx.realtimeRequest.count({where:{roomId:r.id}})>=REALTIME_LIMITS.maxRequestsPerRoom)fail('요청 한도를 넘었어요.');
     if('reroll' in input.command){const bonus=!!b.sides[side].rerolled[input.command.reroll];const next=rerollCommand(b,side,input.command.reroll,bonus);if(bonus){const p=await tx.player.findUniqueOrThrow({where:{id:playerId}});await consumeReroll(tx,p,new Date(this.now()));}s.battle=serializeBattle(next);}
-    else {validateCommand(b,side,input.command);const item=itemRequirement(b,side,input.command);if(item)await holdItem(tx,{roomId:r.id,phaseId:input.phaseId,side,playerId,itemId:item.itemId});s.pending[side]=input.command;s.automatic[side]=false;if(b.phase==='action')s.misses[side]=0;}
+    else {validateCommand(b,side,input.command);const item=itemRequirement(b,side,input.command);if(item&&b.sides[side].fighters[item.target??b.sides[side].active]?.rec.temporary)fail('임시 갈매미에는 소모 아이템을 사용할 수 없어요.');if(item)await holdItem(tx,{roomId:r.id,phaseId:input.phaseId,side,playerId,itemId:item.itemId});s.pending[side]=input.command;s.automatic[side]=false;if(b.phase==='action')s.misses[side]=0;}
     await tx.realtimeRequest.create({data:{id:id(),roomId:r.id,playerId,requestId:input.requestId,fingerprint}});
     r=await tx.realtimeRoom.update({where:{id:r.id},data:{stateJson:JSON.stringify(s),revision:{increment:1}}});
     if(!('reroll' in input.command))r=await this.advance(tx,r,false);
@@ -492,4 +510,5 @@ export class RealtimePvpService {
   }
   async legacyWebResult(playerId:string,matchId:string,run:()=>Promise<unknown>){const result=await run();await this.releaseLegacy(playerId,matchId,'LEGACY_WEB');return result;}
 }
+
 

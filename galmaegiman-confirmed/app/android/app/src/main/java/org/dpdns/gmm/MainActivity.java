@@ -45,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
   String selectionMode = "story", mixIds = "";
   String currentKey = "", accountReturn = "home";
   NativeTutorialController guide;
+  NativeStarterLoans starterLoans;
   private RegistrationArt registrationCards;
   NativeRequiredUpdate requiredUpdate;
 
@@ -91,6 +92,7 @@ public class MainActivity extends AppCompatActivity {
               }
             });
     guide = NativeTutorialController.get(this);
+    starterLoans = new NativeStarterLoans(this);
     ViewCompat.setOnApplyWindowInsetsListener(
         root,
         (v, insets) -> {
@@ -177,10 +179,12 @@ public class MainActivity extends AppCompatActivity {
     root.post(
         () -> {
           if (epoch == shownEpoch && guide != null) guide.onScreenShown(screen);
+          if (epoch == shownEpoch && starterLoans != null) starterLoans.resume();
         });
   }
 
   void stateUpdated() {
+    TemporaryUnitPresentation.sync(state.optLong("serverNow"));
     if (realtime != null && !updateBlocks()) realtime.recover();
     NativeAlerts.schedule(this, me());
     if (guide != null) guide.onStateUpdated();
@@ -692,6 +696,9 @@ public class MainActivity extends AppCompatActivity {
       case "expedition":
         expedition();
         break;
+      case "news":
+        menus.news.open();
+        break;
       case "daily":
         daily();
         break;
@@ -759,7 +766,7 @@ public class MainActivity extends AppCompatActivity {
     head.setGravity(Gravity.CENTER_VERTICAL);
     form.addView(head);
     boolean linking =
-        !getSharedPreferences("native_account", 0).getString("linkCode", "").isEmpty();
+        !getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).getString("linkCode", "").isEmpty();
     title = text(linking ? "카카오 계정 처음 연결" : "방범대 인사 기록부", linking ? 18 : 22);
     title.setTypeface(headline);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
@@ -767,7 +774,7 @@ public class MainActivity extends AppCompatActivity {
         button(
             "×",
             () -> {
-              getSharedPreferences("native_account", 0).edit().remove("linkCode").apply();
+              getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).edit().remove("linkCode").apply();
               titleScreen();
             });
     close.setBackground(new GameButtonDrawable(this, GameButtonDrawable.PAPER));
@@ -810,10 +817,10 @@ public class MainActivity extends AppCompatActivity {
                   "code",
                   value,
                   "linkCode",
-                  getSharedPreferences("native_account", 0).getString("linkCode", "")),
+                  getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).getString("linkCode", "")),
               (r, e) -> {
                 if (codeDialog[0] != null) codeDialog[0].dismiss();
-                getSharedPreferences("native_account", 0).edit().remove("linkCode").apply();
+                getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).edit().remove("linkCode").apply();
                 api.token(r.optString("token"));
                 load("title");
               });
@@ -920,7 +927,7 @@ public class MainActivity extends AppCompatActivity {
               android.util.Base64.URL_SAFE
                   | android.util.Base64.NO_WRAP
                   | android.util.Base64.NO_PADDING);
-      getSharedPreferences("native_account", 0)
+      getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0)
           .edit()
           .putString("verifier", verifier)
           .putBoolean("linking", linking)
@@ -966,7 +973,7 @@ public class MainActivity extends AppCompatActivity {
         api.ui.postDelayed(() -> exchange(intent), 250);
         return true;
       }
-      getSharedPreferences("native_account", 0).edit().remove("verifier").remove("linking").remove("linkCode").apply();
+      getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).edit().remove("verifier").remove("linking").remove("linkCode").apply();
       request(
           "review/exchange",
           obj("code", reviewCode),
@@ -978,7 +985,7 @@ public class MainActivity extends AppCompatActivity {
     }
     String authError = u.getQueryParameter("error");
     if (authError != null) {
-      getSharedPreferences("native_account", 0).edit().remove("verifier").remove("linking").apply();
+      getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).edit().remove("verifier").remove("linking").apply();
       message(authError.equals("cancel") ? "카카오 로그인을 취소했어요." : "카카오 로그인에 실패했어요. 다시 시도해 주세요.");
       return true;
     }
@@ -987,10 +994,10 @@ public class MainActivity extends AppCompatActivity {
       return true;
     }
     String code = u.getQueryParameter("code"),
-        v = getSharedPreferences("native_account", 0).getString("verifier", "");
-    boolean linking = getSharedPreferences("native_account", 0).getBoolean("linking", false);
+        v = getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).getString("verifier", "");
+    boolean linking = getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).getBoolean("linking", false);
     String oldPlayer = api.token().split("\\.")[0];
-    getSharedPreferences("native_account", 0).edit().remove("verifier").remove("linking").apply();
+    getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).edit().remove("verifier").remove("linking").apply();
     request(
         "app/exchange",
         obj("code", code, "verifier", v),
@@ -1000,7 +1007,7 @@ public class MainActivity extends AppCompatActivity {
             return;
           }
           if (r.optBoolean("needsLink")) {
-            getSharedPreferences("native_account", 0)
+            getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0)
                 .edit()
                 .putString("linkCode", r.optString("linkCode"))
                 .apply();
@@ -1453,6 +1460,7 @@ public class MainActivity extends AppCompatActivity {
 
   void back() {
     if (updateBlocks()) return;
+    if (screen.equals("news") && menus.news.back()) return;
     if (screen.equals("nickname")) { if (!busy) titleScreen(); return; }
     if (screen.equals("battleReplay")) { NativeBattleReplay.records(this); return; }
     if (screen.equals("battleRecords")) { load("modesPvp"); return; }
@@ -1524,7 +1532,7 @@ public class MainActivity extends AppCompatActivity {
     if (requestCode == 11) {
       boolean granted =
           results.length > 0 && results[0] == android.content.pm.PackageManager.PERMISSION_GRANTED;
-      getSharedPreferences("native_account", 0).edit().putBoolean("alerts", granted).apply();
+      getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).edit().putBoolean("alerts", granted).apply();
       NativeAlerts.schedule(this, granted ? me() : new JSONObject());
       if (!granted) message("알림이 꺼졌어요. 기기 설정에서 알림을 허용하면 다시 켤 수 있어요.");
     }

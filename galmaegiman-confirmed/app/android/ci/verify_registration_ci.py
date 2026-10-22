@@ -250,7 +250,13 @@ def verify_source(args):
     changed = subprocess.check_output(
         ["git", "-C", str(root), "diff", "--name-only", "--no-renames", "-z", baseline, "HEAD"]
     ).decode().split("\0")
-    report.update(verify_source_scope(root, changed, lock))
+    # New batch still verifies the registration runtime/original images above.
+    # Legacy authorization and fixtures remain untouched for the legacy path.
+    from verify_v2_source_batch import LOCK as batch_lock, verify_repository
+    if batch_lock.is_file():
+        report.update(verify_repository(root))
+    else:
+        report.update(verify_source_scope(root, changed, lock))
     report.update({"status": "passed", "original_images_unchanged": len(original_paths),
                    "app_baseline_commit": baseline, "art_commit": lock["art_commit"]})
     emit(report, args.output)

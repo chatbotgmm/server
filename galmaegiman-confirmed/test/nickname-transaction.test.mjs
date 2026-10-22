@@ -39,6 +39,7 @@ test('tutorial first-load initializes only fresh users; existing inventory/story
  for(const old of ['none','story','inventory']){
   const p={gameTutorial:0,gameSeen:'',nickname:null};const s=new TutorialSubject();
   s.db={player:{findUnique:async()=>({...p}),update:async({data})=>Object.assign(p,data)},storySave:{count:async()=>old==='story'?1:0},ownedCharacter:{count:async()=>old==='inventory'?1:0}};
-  const state=await s.webTutorial('new');assert.equal(state.nicknameRequired,old==='none');assert.equal(state.step,old==='none'?1:9);
+  s.webRun=async(id,run)=>{assert.equal(id,'new');return run(s.db,p);};
+  const state=await s.webTutorial('new');assert.equal(state.nicknameRequired,old==='none');assert.equal(state.step,old==='none'?1:9);assert.equal(p.starterLoanEnrolled,old==='none');
  }
 });

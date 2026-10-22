@@ -92,7 +92,7 @@ final class RegistrationCardView extends LinearLayout {
     String result = unit.optString("name") + " · " + unit.optString("tierName");
     if (unit.optInt("n") > 1) result += " · " + unit.optInt("n") + "마리";
     if (unit.optBoolean("first")) result += " · 처음 만난 대원";
-    return result;
+    return result + TemporaryUnitPresentation.suffix(unit);
   }
 
   static boolean canShow(JSONObject unit) {
@@ -123,6 +123,7 @@ final class RegistrationCardView extends LinearLayout {
     final boolean visibleIdentity;
     final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     final RectF target = new RectF();
+    final JSONObject instance;
     Bitmap bitmap;
     boolean loadAttempted;
     String status = "이미지 준비 중";
@@ -131,6 +132,7 @@ final class RegistrationCardView extends LinearLayout {
 
     Artwork(MainActivity h, JSONObject unit, int mode) {
       super(h);
+      instance = TemporaryUnitPresentation.artUnit(unit);
       host = h;
       this.mode = mode;
       id = unit.optString("id");
@@ -204,7 +206,10 @@ final class RegistrationCardView extends LinearLayout {
     @Override protected void onDraw(Canvas canvas) {
       super.onDraw(canvas);
       if (bitmap != null && !bitmap.isRecycled()) {
+        paint.setColorFilter(TemporaryUnitPresentation.filter(instance));
         canvas.drawBitmap(bitmap, null, target, paint);
+        paint.setColorFilter(null);
+        TemporaryUnitPresentation.badge(canvas, instance, new RectF(0, 0, getWidth(), getHeight()), 12 * getResources().getDisplayMetrics().scaledDensity, host.prose);
         return;
       }
       // 실패를 다른 인물 그림으로 감추지 않는다. 정체와 실패 이유는 접근성에도 남긴다.
@@ -218,6 +223,7 @@ final class RegistrationCardView extends LinearLayout {
           && getHeight() >= host.dp(20))
         canvas.drawText(status, getWidth() / 2f,
             getHeight() / 2f - (paint.ascent() + paint.descent()) / 2f, paint);
+      TemporaryUnitPresentation.badge(canvas, instance, new RectF(0, 0, getWidth(), getHeight()), 12 * getResources().getDisplayMetrics().scaledDensity, host.prose);
     }
   }
 }

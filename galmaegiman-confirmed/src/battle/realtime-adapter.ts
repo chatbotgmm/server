@@ -1,8 +1,9 @@
 // Manual draft: place at src/battle/realtime-adapter.ts after the paired engine patch.
+import {validateFreestyleChoice} from './freestyle-selection.js';
 import type { Rules } from './core.js';
-import { act, activeOf, chooseTogether, itemProblem, legalActions, rerollAugment, STRUGGLE, type Action, type Battle } from './engine.js';
+import { act, activeOf, automaticFreestyleChoice, chooseTogether, itemProblem, legalActions, rerollAugment, STRUGGLE, type Action, type Battle, type Choice } from './engine.js';
 
-export type Command={action?:Action;choose?:{augment?:string;switchTo?:number}};
+export type Command={action?:Action;choose?:Choice};
 type Side=0|1;
 const sides=[0,1] as const;
 const fail=():never=>{throw new Error('Invalid realtime command');};
@@ -20,7 +21,7 @@ export function deserializeBattle(R:Rules,json:string):Battle{
 }
 const clone=(b:Battle)=>deserializeBattle(b.R,serializeBattle(b));
 export function required(b:Battle,side:Side):boolean{
-  return b.phase==='action'||(b.phase==='choose'&&!!(b.sides[side].offers||b.sides[side].needSwitch));
+  return b.phase==='action'||(b.phase==='choose'&&!!(b.sides[side].offers||b.sides[side].needSwitch||(b.sides[side].freestyle&&!b.sides[side].freestyle!.chosen)));
 }
 function basic(b:Battle,side:Side):Action{
   const f=activeOf(b,side),legal=legalActions(b,side);
@@ -31,6 +32,7 @@ export function automaticCommand(b:Battle,side:Side):Command{
   if(b.phase==='over')return fail();
   if(b.phase==='action')return {action:basic(b,side)};
   const s=b.sides[side],pick:NonNullable<Command['choose']>={};
+  if(s.freestyle&&!s.freestyle.chosen)return {choose:{freestyle:automaticFreestyleChoice(b,side)}};
   if(s.offers){if(!s.offers.length)return fail();pick.augment=s.offers[0];}
   if(s.needSwitch){pick.switchTo=s.fighters.findIndex(f=>f.hp>0);if(pick.switchTo<0)return fail();}
   return {choose:pick};
@@ -45,7 +47,12 @@ function validate(b:Battle,side:Side,c:Command,trustedAutomatic:boolean):Action|
   if(b.phase==='over')return fail();
   if(b.phase==='choose'){
     if('action' in cmd||!('choose' in cmd))return fail();
-    const p=object(cmd.choose);keys(p,['augment','switchTo']);const s=b.sides[side];
+    const p=object(cmd.choose);keys(p,['augment','switchTo','freestyle']);const s=b.sides[side];
+    if(s.freestyle&&!s.freestyle.chosen){
+      if(s.offers||s.needSwitch||'augment' in p||'switchTo' in p||activeOf(b,side).rec.uid!==s.freestyle.targetKey||activeOf(b,side).hp<=0)return fail();
+      try{validateFreestyleChoice(s.freestyle,side,s.freestyle.phaseId,p.freestyle);}catch{return fail();}return;
+    }
+    if('freestyle' in p)return fail();
     if(s.offers){if(typeof p.augment!=='string'||!s.offers.includes(p.augment))fail();}
     else if('augment' in p)fail();
     if(s.needSwitch){if(!Number.isInteger(p.switchTo)||typeof p.switchTo!=='number'||!s.fighters[p.switchTo]||s.fighters[p.switchTo].hp<=0)fail();}
@@ -127,4 +134,5 @@ export function resolvePhase(b:Battle,commands:[Command|null,Command|null],autom
   else act(next,actions as [Action,Action],{prevalidated:true});
   return next;
 }
+
 

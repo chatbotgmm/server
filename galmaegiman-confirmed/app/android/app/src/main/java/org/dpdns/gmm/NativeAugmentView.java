@@ -15,6 +15,12 @@ final class NativeAugmentView extends LinearLayout {
   final MainActivity h;
   final MenuKit k;
   final JSONArray offers;
+  final FreestyleSelection freestyle;
+  final boolean attributePhase;
+  final String selectionOwner;
+  final int selectionEpoch;
+  Button attributePicker;
+  final ArrayList<Button> attributeButtons = new ArrayList<>();
   final boolean large;
   final LinearLayout cards, footer;
   final Button confirm;
@@ -33,10 +39,10 @@ final class NativeAugmentView extends LinearLayout {
           long remaining = Math.max(0, deadline - (System.currentTimeMillis() + clockOffset));
           boolean localInput = canChoose();
           title.setText(
-              (switching
+              (attributePhase ? "자유자재 / 속성 선택" : switching
                       ? "② 다음 출전"
                       : battleView.side(0).optBoolean("needSwitch") ? "① 증강체" : "전투 증강체")
-                  + " · "
+                  + " / "
                   + (remaining <= 0 ? "결과 확인 중"
                       : NativeRealtime.isBattle(battleView.battle) && !localInput
                           ? h.realtime.writing ? "선택 전송 중" : "상대 선택 대기"
@@ -47,7 +53,8 @@ final class NativeAugmentView extends LinearLayout {
             rerolls.get(i).setEnabled(localInput && canReroll(offer));
             rerolls.get(i).setText(rerollLabel(offer));
           }
-          confirm.setEnabled(localInput && (switching ? switchTo >= 0 : !selected.isEmpty()));
+          confirm.setEnabled(localInput && (freestyle != null
+              ? freestyle.allows(freestyle.selected) : switching ? switchTo >= 0 : !selected.isEmpty()));
           if (remaining <= 0) {
             confirm.setEnabled(false);
             confirm.setText("결과 확인 중");
@@ -88,6 +95,11 @@ final class NativeAugmentView extends LinearLayout {
     super(view.host);
     battleView = view;
     h = view.host;
+    selectionOwner = NativeBattleReplay.account(h);
+    selectionEpoch = h.epoch;
+    attributePhase = "own-attribute".equals(view.battle.optString("choiceKind"));
+    JSONObject attributeScope = view.side(0).optJSONObject("attributeSelection");
+    freestyle = attributeScope == null ? null : new FreestyleSelection(attributeScope);
     deadline = view.battle.optLong("chooseDeadline", 0);
     clockOffset =
         view.battle.optLong("serverNow", System.currentTimeMillis()) - System.currentTimeMillis();
@@ -205,7 +217,9 @@ final class NativeAugmentView extends LinearLayout {
     addView(footer, foot);
     footer.setGravity(Gravity.CENTER);
     footer.addView(confirm, new LayoutParams(h.dp(large ? 360 : 300), -1));
-    if (offers.length() == 0) showSwitch();
+    if (freestyle != null) showAttributes();
+    else if (attributePhase) showAttributeWaiting();
+    else if (offers.length() == 0) showSwitch();
     else showOffers();
   }
 
@@ -308,37 +322,21 @@ final class NativeAugmentView extends LinearLayout {
 
   // 희귀도와 공격·수비·유틸 역할은 별개다. 등급은 V2에서만 표시한다.
   static String tierName(JSONObject augment) {
-    if (augment.optInt("version") != 2) return "";
-    switch (augment.optString("tier")) {
-      case "silver": return "실버";
-      case "gold": return "골드";
-      case "prismatic": return "프리즘";
-      default: return "등급 미확인";
-    }
+    return AugmentPresentation.tier(augment);
   }
 
   static int cardColor(JSONObject augment) {
-    if (augment.optInt("version") != 2) return color(kind(augment.optString("id")));
-    switch (augment.optString("tier")) {
-      case "gold": return 0xff806017;
-      case "prismatic": return 0xff735191;
-      default: return 0xff596778;
-    }
+    return augment.optInt("version") == 2 ? AugmentPresentation.ink(augment)
+        : color(kind(augment.optString("id")));
   }
 
   static String cardRole(JSONObject augment) {
-    String id = augment.optString("id");
-    if (augment.optInt("version") == 2 && !Arrays.asList(
-        "reverse", "weakguard", "focus", "neutral", "camo", "dual", "counter", "learn",
-        "first", "bulwark", "firstaid", "freeswitch", "lastone", "strip", "rustle", "peanut",
-        "sharp", "swift", "thick", "overtime", "drain", "thorns", "pierce", "lunch").contains(id))
-      return "증강";
-    return kindName(kind(id));
+    return augment.optInt("version") == 2 ? "증강" : kindName(kind(augment.optString("id")));
   }
 
   static String cardLabel(JSONObject augment) {
     String tier = tierName(augment);
-    return (tier.isEmpty() ? "" : tier + " · ") + cardRole(augment);
+    return (tier.isEmpty() ? "" : tier + " / ") + cardRole(augment);
   }
 
   LinearLayout columnCard(int tint) {
@@ -409,10 +407,10 @@ final class NativeAugmentView extends LinearLayout {
       content.addView(heading, new LayoutParams(-1, -2));
       names.add(name);
       boolean recommend =
-          disadvantaged
+          aug.optInt("version") != 2 && disadvantaged
               && Arrays.asList("camo", "reverse", "weakguard", "neutral", "dual", "counter")
                   .contains(id);
-      TextView badge = h.text(cardLabel(aug) + (recommend ? " · 추천" : ""), large ? 15 : 12);
+      TextView badge = h.text(cardLabel(aug) + (recommend ? " · 추천" : "") + " / 길게 눌러 상세", large ? 15 : 12);
       badge.setTextColor(cardColor(aug));
       badge.setBackground(new GamePaperDrawable(h));
       badge.setPadding(h.dp(10), h.dp(2), h.dp(10), h.dp(2));
@@ -425,8 +423,8 @@ final class NativeAugmentView extends LinearLayout {
       desc.setGravity(Gravity.CENTER);
       desc.setTextSize(large ? 18 : 15);
       desc.setTextColor(JournalTheme.INK);
-      desc.setMaxLines(Integer.MAX_VALUE);
-      desc.setEllipsize(null);
+      desc.setMaxLines(large ? 7 : 4);
+      desc.setEllipsize(android.text.TextUtils.TruncateAt.END);
       desc.setGravity(Gravity.CENTER);
       desc.setTag("augment-core-effect");
       // V2 카탈로그 설명에는 줄바꿈 표시가 없으므로 낱말 중간(「흡수쉴드/로」)에서 끊지 않고 띄어쓰기에서만 바꾼다.
@@ -435,8 +433,12 @@ final class NativeAugmentView extends LinearLayout {
       LayoutParams effectSlot = new LayoutParams(-1, 0, 1);
       effectSlot.topMargin = h.dp(5);
       content.addView(desc, effectSlot);
+      // Long catalog text remains complete in a modal; do not shrink the fixed desk.
       content.setContentDescription(
-          aug.optString("name") + " · " + cardLabel(aug) + " · " + aug.optString("desc"));
+          aug.optString("name") + " · " + cardLabel(aug) + " · " + aug.optString("desc")
+              + " · 길게 눌러 전체 효과 보기");
+      content.setOnLongClickListener(v -> { showDetail(aug); return true; });
+
       content.setOnClickListener(
           v -> {
             if (!canChoose()) return;
@@ -478,12 +480,150 @@ final class NativeAugmentView extends LinearLayout {
     updateSelection();
   }
 
+  void showAttributeWaiting() {
+    cards.removeAllViews(); picks.clear(); rerolls.clear(); names.clear();
+    selected = "";
+    TextView waiting = h.text("상대가 자유자재 속성을 선택하고 있어요.", large ? 22 : 18);
+    waiting.setGravity(Gravity.CENTER); waiting.setTextColor(JournalTheme.INK);
+    waiting.setBackground(new GamePaperDrawable(h));
+    cards.addView(waiting, new LayoutParams(-1, -1));
+    confirm.setText("상대 선택 대기"); confirm.setEnabled(false);
+  }
+
+  String attributeName(String code) {
+    return h.menus.attrName(h.state.optJSONObject("attributes"), code);
+  }
+
+  void showAttributes() {
+    switching = false;
+    selected = "";
+    title.setText("자유자재 / 속성 선택");
+    cards.removeAllViews(); picks.clear(); rerolls.clear(); names.clear();
+    LinearLayout panel = k.column();
+    panel.setGravity(Gravity.CENTER);
+    panel.setPadding(h.dp(12), h.dp(8), h.dp(12), h.dp(8));
+    panel.setBackground(new GamePaperDrawable(h, 0xff735191));
+    cards.addView(panel, new LayoutParams(-1, -1));
+    float density = h.getResources().getDisplayMetrics().density;
+    float width = h.root.getWidth() > 0 ? h.root.getWidth() / density
+        : h.getResources().getConfiguration().screenWidthDp;
+    float height = h.root.getHeight() > 0 ? h.root.getHeight() / density
+        : h.getResources().getConfiguration().screenHeightDp;
+    boolean compact = FreestyleLayout.compact(
+        width - (getPaddingLeft() + getPaddingRight()) / density,
+        height - (getPaddingTop() + getPaddingBottom()) / density,
+        h.getResources().getConfiguration().fontScale);
+    String opponent = attributeName(freestyle.scope.optString("opponentAttribute"));
+    String own = battleView.active(0).optString("name");
+    String matchupText = "상대 속성: " + opponent + " / 내 선두: " + own;
+    TextView matchup = h.text(matchupText, large ? 21 : 17);
+    matchup.setTextColor(JournalTheme.INK); matchup.setGravity(Gravity.CENTER);
+    matchup.setMaxLines(compact ? 2 : 3);
+    matchup.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    matchup.setContentDescription(matchupText + " / 길게 눌러 효과 안내");
+    matchup.setOnLongClickListener(v -> { showFreestyleRules(); return true; });
+    panel.addView(matchup, new LayoutParams(-1, -2));
+    if (!compact) {
+      TextView rule = h.text("이번 전투 동안 유지 / 다른 속성 기술에도 상성 적용\n속성을 누른 뒤 아래에서 확정해 주세요.", large ? 17 : 14);
+      rule.setTextColor(JournalTheme.INK); rule.setGravity(Gravity.CENTER);
+      panel.addView(rule, new LayoutParams(-1, -2));
+    }
+    JSONArray attributes = freestyle.scope.optJSONArray("attributes");
+    int count = attributes == null ? 0 : Math.min(10, attributes.length());
+    if (compact) {
+      attributePicker = h.button("속성 고르기", this::openAttributePicker);
+      attributePicker.setTextSize(large ? 18 : 15);
+      attributePicker.setMinHeight(h.dp(48)); attributePicker.setMinimumHeight(h.dp(48));
+      PhaseButtonStyle.apply(h, attributePicker, false);
+      panel.addView(attributePicker, new LayoutParams(-1, -2));
+      picks.add(attributePicker);
+    } else for (int row = 0; row < 2; row++) {
+      LinearLayout line = k.row();
+      for (int i = row * 5; i < Math.min(count, row * 5 + 5); i++) {
+        String code = attributes.optString(i);
+        Button button = h.button(attributeName(code), () -> {
+          if (!canChoose()) return;
+          freestyle.select(code); updateAttributeDraft();
+        });
+        button.setTag(code);
+        button.setMinHeight(h.dp(48)); button.setMinimumHeight(h.dp(48));
+        button.setTextSize(large ? 18 : 15);
+        PhaseButtonStyle.apply(h, button, false);
+        LayoutParams lp = new LayoutParams(0, h.dp(48), 1);
+        lp.setMargins(h.dp(3), h.dp(3), h.dp(3), h.dp(3));
+        line.addView(button, lp); attributeButtons.add(button); picks.add(button);
+      }
+      panel.addView(line, new LayoutParams(-1, -2));
+    }
+    Button cancel = h.button("취소", () -> {
+      if (!canChoose()) return;
+      freestyle.cancel(); updateAttributeDraft();
+    });
+    PhaseButtonStyle.apply(h, cancel, false);
+    // No fixed 420dp footer: both controls stay inside the measured safe-area width.
+    cancel.setTextSize(16);
+    confirm.setLayoutParams(new LayoutParams(0, -1, 1));
+    LayoutParams cp = new LayoutParams(0, -1, 1); cp.rightMargin = h.dp(8);
+    footer.addView(cancel, 0, cp);
+    updateAttributeDraft();
+  }
+
+  void showFreestyleRules() {
+    new GameDialog(h).setTitle("자유자재 효과 안내")
+        .setMessage("내 선두: " + battleView.active(0).optString("name")
+            + "\n상대 속성: " + attributeName(freestyle.scope.optString("opponentAttribute"))
+            + "\n선택한 속성은 이번 전투 동안 유지돼요. 다른 속성 기술에도 상성이 적용돼요."
+            + "\n속성 선택은 초안이며 아래 확정을 눌러야 전송돼요.")
+        .setPositiveButton("닫기", null).show();
+  }
+
+  void openAttributePicker() {
+    if (!canChoose()) return;
+    JSONArray attributes = freestyle.scope.optJSONArray("attributes");
+    if (attributes == null || attributes.length() == 0 || attributes.length() > 10) return;
+    String[] labels = new String[attributes.length()];
+    for (int i = 0; i < labels.length; i++) {
+      String code = attributes.optString(i);
+      labels[i] = attributeName(code) + (code.equals(freestyle.selected) ? " (선택됨)" : "");
+    }
+    new GameDialog(h).setTitle(battleView.active(0).optString("name") + " 속성 선택")
+        .setItems(labels, (dialog, which) -> {
+          if (!canChoose()) return;
+          freestyle.select(attributes.optString(which)); updateAttributeDraft();
+        }).setNeutralButton("효과 안내", (dialog, which) -> showFreestyleRules())
+        .setNegativeButton("닫기", null).show();
+  }
+
+  void updateAttributeDraft() {
+    for (Button button : attributeButtons) {
+      String code = (String) button.getTag();
+      boolean on = code.equals(freestyle.selected);
+      button.setSelected(on);
+      button.setText(attributeName(code));
+      PhaseButtonStyle.apply(h, button, on);
+      button.setContentDescription(attributeName(code) + (on ? " 선택됨" : " 선택"));
+    }
+    confirm.setEnabled(canChoose() && freestyle.allows(freestyle.selected));
+    if (attributePicker != null) attributePicker.setText(freestyle.selected.isEmpty()
+        ? "속성 고르기" : attributeName(freestyle.selected) + " (선택됨)");
+    confirm.setText(attributePicker == null && !freestyle.selected.isEmpty()
+        ? attributeName(freestyle.selected) + " 확정" : "확정");
+    confirm.setContentDescription(freestyle.selected.isEmpty() ? "속성을 먼저 선택해 주세요"
+        : attributeName(freestyle.selected) + " 속성 확정");
+  }
+
+  void showDetail(JSONObject augment) {
+    new GameDialog(h).setTitle(AugmentPresentation.name(augment))
+        .setMessage(AugmentPresentation.detail(augment))
+        .setPositiveButton("닫기", null).show();
+  }
+
   void updateSelection() {
     for (int i = 0; i < offers.length(); i++) {
       JSONObject aug = offers.optJSONObject(i);
       boolean on = aug.optString("id").equals(selected);
       ((View) picks.get(i).getTag())
-          .setBackground(new CardFrame(cardColor(aug), on));
+          .setBackground(new CardFrame(cardColor(aug), on, AugmentPresentation.prism(aug)));
       picks.get(i).setSelected(on);
       names.get(i).setText((on ? "✓ " : "") + aug.optString("name"));
     }
@@ -601,6 +741,21 @@ final class NativeAugmentView extends LinearLayout {
   }
 
   boolean canChoose() {
+    if (attributePhase && freestyle == null) return false;
+    if (freestyle != null) {
+      if (h.epoch != selectionEpoch || selectionOwner.isEmpty()
+          || !selectionOwner.equals(NativeBattleReplay.account(h))
+          || !freestyle.valid()
+          || !freestyle.scope.optString("targetKey").equals(battleView.active(0).optString("key"))) return false;
+      if (NativeRealtime.isBattle(battleView.battle)
+          && (h.realtime == null || h.realtime.latest == null)) return false;
+      JSONObject current = NativeRealtime.isBattle(battleView.battle) && h.realtime != null
+          ? h.realtime.decorate(h.realtime.latest) : h.battle;
+      JSONArray teams = current == null ? null : current.optJSONArray("teams");
+      JSONObject own = teams == null ? null : teams.optJSONObject(0);
+      if (current == null || !battleView.battle.optString("session").equals(current.optString("session"))
+          || !freestyle.sameScope(own == null ? null : own.optJSONObject("attributeSelection"))) return false;
+    }
     if (h.busy || (deadline > 0 && System.currentTimeMillis() + clockOffset >= deadline)) return false;
     if (!NativeRealtime.isBattle(battleView.battle)) return true;
     NativeRealtime realtime = h.realtime;
@@ -611,6 +766,15 @@ final class NativeAugmentView extends LinearLayout {
   }
 
   void submit() {
+    if (freestyle != null) {
+      if (!isAttachedToWindow() || !canChoose()) return;
+      JSONObject choice = freestyle.confirmed();
+      if (choice == null) return;
+      // Existing transport locks busy/writing synchronously and owns revision/requestId.
+      h.battleTurnFrom(battleView.battle, MainActivity.obj("choose", MainActivity.obj("freestyle", choice)));
+      confirm.setEnabled(false);
+      return;
+    }
     if (!canChoose() || (switching ? switchTo < 0 : selected.isEmpty())) return;
     if (!switching && battleView.side(0).optBoolean("needSwitch")) {
       showSwitch();
@@ -627,12 +791,15 @@ final class NativeAugmentView extends LinearLayout {
 
   final class CardFrame extends Drawable {
     final int tint;
-    final boolean selected;
+    final boolean selected, prismatic;
     final Paint p = new Paint(3);
     int alpha = 255;
     ColorFilter filter;
 
-    CardFrame(int tint, boolean selected) {
+    CardFrame(int tint, boolean selected) { this(tint, selected, false); }
+
+    CardFrame(int tint, boolean selected, boolean prismatic) {
+      this.prismatic = prismatic;
       this.tint = tint;
       this.selected = selected;
       ThemeArt.of(h).image(ThemeArt.file(ThemeArt.Surface.NAV));
@@ -658,7 +825,12 @@ final class NativeAugmentView extends LinearLayout {
       r.inset(h.dp(7), h.dp(7));
       p.setStyle(Paint.Style.FILL);
       p.setColor(tint);
+      // Only the 56dp crest shimmers; the navy card and selection edge remain unchanged.
+      if (prismatic) p.setShader(new LinearGradient(r.centerX() - h.dp(28), r.top,
+          r.centerX() + h.dp(28), r.top,
+          new int[]{0xff78a5a4, 0xffb4a0c7, 0xffc8aa70}, null, Shader.TileMode.CLAMP));
       c.drawRoundRect(r.centerX() - h.dp(28), r.top, r.centerX() + h.dp(28), r.top + h.dp(3), h.dp(2), h.dp(2), p);
+      p.setShader(null);
       if (selected) {
         r.set(getBounds());
         r.inset(h.dp(4), h.dp(4));

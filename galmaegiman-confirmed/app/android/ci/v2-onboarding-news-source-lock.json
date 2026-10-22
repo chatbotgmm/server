@@ -1,0 +1,572 @@
+{
+  "schema": "reviewed-source-batch/v1",
+  "batch_id": "v2-onboarding-news-20261021",
+  "baseline_commit": "02a46bc58e8c031dd65e9a058e0ccec80f9e29b2",
+  "files": [
+    {
+      "path": "galmaegiman-confirmed/app/android/app/build.gradle",
+      "bytes": 11884,
+      "sha256": "8c9f54088d2e61eb13cc0e9fd5951c505417c0bf496a6426a3b59b29ab2393a9"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/AugmentPresentation.java",
+      "bytes": 1433,
+      "sha256": "c83bb81a5bd963f6ab7887ad3ac832af342597588d1b5e45ab4212a7a5fe6524"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/BattleReplayArt.java",
+      "bytes": 1777,
+      "sha256": "15cc00a2c4ff85dac766b1e935f05e698db77766032dd97af729cd9f48c7c5fa"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/BattleReplayStore.java",
+      "bytes": 12100,
+      "sha256": "6d5d67698add823c80e759f61cedd2a43462a6cc47bd775dc93f170f46982b24"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/BattleTypeInfo.java",
+      "bytes": 14604,
+      "sha256": "c5975b929a8b44faff47d623fbc19fd32abd6cbd0060f34a2fd053595a3546fe"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/BattleView.java",
+      "bytes": 51677,
+      "sha256": "92866db14297613beb0ae9508c02a76bc3cf5ae03dabb995dfbdea770b70f0a0"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/CombatReplayCompatibility.java",
+      "bytes": 1155,
+      "sha256": "5faf7ea3baec55582c9734fe183799859c97a06c584f74bf0228e828427f81f4"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/FreestyleLayout.java",
+      "bytes": 322,
+      "sha256": "0c7c0288c9968095e918f473e705eb3ed7ab8a486b8bfa65d32dda913036e907"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/FreestyleSelection.java",
+      "bytes": 1545,
+      "sha256": "9a9ea40cdde4e91f6982ace310026b0029b52b0da6371da765cdfd306ecb99a0"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/HomeMenuLayout.java",
+      "bytes": 4757,
+      "sha256": "1ae20ca64a9304aad510632619ef2663b2fef85b510c1ef1ae61cf4f8e985c5a"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/LineupGuidance.java",
+      "bytes": 833,
+      "sha256": "af5f822745ff37ee07cffcf4c2e6bec69ff0d805f361355050757a8caea54ceb"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/LobbyView.java",
+      "bytes": 47598,
+      "sha256": "bd61487745c3817fe83a3070fe341a616f942d27330a195f3f089c56e74566fe"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/MainActivity.java",
+      "bytes": 57436,
+      "sha256": "59c548b14d7d9839a11d72caf37773b309c9393a1756d1dcd348dcd94b9b7f71"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeAlerts.java",
+      "bytes": 4092,
+      "sha256": "8b30dc7c171cef8ffe98732e295a95b34417cf5b83d3b3bfe502b4c46a41da57"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeApi.java",
+      "bytes": 4459,
+      "sha256": "d6ffbc58d30157d65dbafc680ecc73bb608ad8b23b55c96113ed8da688eb95cd"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeArt.java",
+      "bytes": 18956,
+      "sha256": "94ce2d4e28f7c6535c810421fa973603b8ee7df547263325100a1af4dee8e81d"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeAugmentView.java",
+      "bytes": 39198,
+      "sha256": "1d2018782ce0132dbcf9dbe5c467ffb5826d2a5abaea7692b795dbd181a73c7c"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeBackend.java",
+      "bytes": 1342,
+      "sha256": "39be4d4eedcb2d356bf3ee495302358dec5715d5978afbcfa28db0381ccfce27"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeBattleReplay.java",
+      "bytes": 14588,
+      "sha256": "4ab441201ae09791655fe2e9b07440b7b1a68609317b9eafb5a311a503ca1749"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeBattleSheets.java",
+      "bytes": 20632,
+      "sha256": "581871891f5bee908401c5565ce132fee27c9295e09e0a97c5a545cffe6b57a1"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeExtras.java",
+      "bytes": 42494,
+      "sha256": "4f60b698b30bcfa3ca51f12505473b638dc4043cf0b59d0c906e904cee2a2e67"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeLibrary.java",
+      "bytes": 68530,
+      "sha256": "189849e7a3cd42fc4638b4a704b45ff6b484dc7027fcd58b303832bae1239c3b"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeMenus.java",
+      "bytes": 88850,
+      "sha256": "416f6036b18cdac2f827a3c3501a7d447d4b96bd3d62ef1b357741550d0e7760"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeNews.java",
+      "bytes": 11288,
+      "sha256": "694631413849a2b053a47c4ad53a15f907aba0ed4d55ae699cc90c06577cc059"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeSettingsSheet.java",
+      "bytes": 13509,
+      "sha256": "79d47d6e202b612b21c3f972aea008540e196e3a7d011d94ef6dd0a61e46c010"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeStarterLoans.java",
+      "bytes": 9958,
+      "sha256": "b44856a03efd7a694d462b1c9151203c19aba990e51b5d5fc2a05792af63403d"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeTutorialController.java",
+      "bytes": 23453,
+      "sha256": "bb05c5099dceb1a47248ac26f04af69276906590dde5f920bdebb3cf12ad41c6"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeVersusView.java",
+      "bytes": 3582,
+      "sha256": "9dbf95454257273fba92d1fccfaf28a1cfb88e886fb164b4b809403d0aca695f"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/PartyCharacterView.java",
+      "bytes": 11018,
+      "sha256": "09cc80b74f3c4a275cf9255c66a3e0b9e9dfe7000b10434d21018fc37e938555"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/RegistrationCardView.java",
+      "bytes": 10179,
+      "sha256": "61a6bb51ae5116f41edf1fadec9f5a86f1fd4289b10def61a612816d8541b3b3"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/SkillAttributeBreakdown.java",
+      "bytes": 1481,
+      "sha256": "2ed61fc75d533f57e7c6388e2a9e8e511b1f765a078ecbba74c06b1da0929ced"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/StarterLoanSelection.java",
+      "bytes": 694,
+      "sha256": "6ea1e4eb425c04cbc9dd8a4462ab401b5005db2a2de55fac98160bf4910cb69c"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/StoryView.java",
+      "bytes": 22214,
+      "sha256": "3bfdcf47af03d390d7e4501e7ccc138a4cede8f72014b62cfde2ea9f540bfe2b"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/TemporaryUnitPresentation.java",
+      "bytes": 4721,
+      "sha256": "b8434095114c09073300a81ee89ea6b9f4ad47c210c3618acdf3b85734918e52"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/AugmentPresentationTest.java",
+      "bytes": 1867,
+      "sha256": "5bc9856d0a43bf9cdc27eccea7a6c0c2ec412b43ad06fae2625b3b966b8d88b7"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/CombatReplayCompatibilityTest.java",
+      "bytes": 1802,
+      "sha256": "6b497a03229577ff23d99accf1737047f699a93c4b63e80a171f25d0d5899cfe"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/FreestyleLayoutTest.java",
+      "bytes": 560,
+      "sha256": "31f6d3c419592e7380b0e3e60fd4a22ab44a910bacf0d4f4cfcd393c66f9b894"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/FreestyleSelectionTest.java",
+      "bytes": 1926,
+      "sha256": "229ac5fdf0f56363e0e584dace44f8fdabe65035390605224db3ec9fb754c4b4"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/SkillAttributeBreakdownTest.java",
+      "bytes": 1458,
+      "sha256": "ca3462179f51b8b21940f55486d5e6282f90e19941840da7b55d7d1384b398d1"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/TemporaryUnitPresentationTest.java",
+      "bytes": 3158,
+      "sha256": "81584fd2115e923420dfad75058498bbd791171dc2679c155e24863e6495f1d6"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/ci/check_backend_target.groovy",
+      "bytes": 2622,
+      "sha256": "e6f631a689f04494684b9533be577c8e4ff7593a850fcafed245b46627e171c6"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/ci/test_backend_target.py",
+      "bytes": 4416,
+      "sha256": "553f80921d0fee2490f88592aaac886a572b73ba23f5f4e7ab83aa7a7989bf60"
+    },
+    {
+      "path": "galmaegiman-confirmed/data/battle.yaml",
+      "bytes": 39128,
+      "sha256": "5db5c50aab3cda3599ba5b34a2ab739301ce09bb50d5ba7a8749dce6e632f72d"
+    },
+    {
+      "path": "galmaegiman-confirmed/data/economy.yaml",
+      "bytes": 6748,
+      "sha256": "7d1e1abe0b89340b4ebc45834660af08f7637052860cee2413b5af4c6f88d192"
+    },
+    {
+      "path": "galmaegiman-confirmed/data/units.json",
+      "bytes": 104789,
+      "sha256": "76470df7b9b99d15f2ef89b1e600592ea3d8cf27b19b27e5ca0ce2a05c3fa744"
+    },
+    {
+      "path": "galmaegiman-confirmed/docs/PROGRESSION.md",
+      "bytes": 7059,
+      "sha256": "fec1c391dc2c0e1fb50b66b1b77ea6a725099e98a0ecdfc85453d77c3321405d"
+    },
+    {
+      "path": "galmaegiman-confirmed/docs/STARTER-LEVEL-INHERITANCE.md",
+      "bytes": 3946,
+      "sha256": "11bd9f374c2aa735643e4e51e16712d591c499c7935764001281e1c1a2927208"
+    },
+    {
+      "path": "galmaegiman-confirmed/docs/TEMPORARY-STARTER-REVIEW.md",
+      "bytes": 6759,
+      "sha256": "872b782ee97f21a1964205db894a838498c12347768af35b02b3440f37c1c097"
+    },
+    {
+      "path": "galmaegiman-confirmed/docs/handoffs/V2-ONBOARDING-NEWS-20261022.md",
+      "bytes": 11674,
+      "sha256": "fb336cc2588d43557c659df80a9195ab06e827d580b40e6b89e11d9b706e9acc"
+    },
+    {
+      "path": "galmaegiman-confirmed/docs/migrations/v2-onboarding-news.sql",
+      "bytes": 2956,
+      "sha256": "b0e02240f00103c0e1d184b9ee0e82da28cc487fe45ed6567a6aa88105e80432"
+    },
+    {
+      "path": "galmaegiman-confirmed/docs/temporary-starter-level-inheritance-migration.sql",
+      "bytes": 781,
+      "sha256": "73ab97f1f21d49667b1533747580cf49815d9ecb36a40891a3d222f2d525676a"
+    },
+    {
+      "path": "galmaegiman-confirmed/docs/temporary-starter-migration.sql",
+      "bytes": 1101,
+      "sha256": "3cca834d3b1151864235da46e6174521fcf73ab1e49f098983cd635922e28994"
+    },
+    {
+      "path": "galmaegiman-confirmed/prisma/manual/20261019_progression_additive.sql",
+      "bytes": 1115,
+      "sha256": "6241b515407feb7257c1f84a21fe8290839c062daf38e2ee1f86d9a6522b8576"
+    },
+    {
+      "path": "galmaegiman-confirmed/prisma/schema.prisma",
+      "bytes": 13930,
+      "sha256": "5cc3497b577b6ce7017f1d0d0210fb7f8559d6162e50894471cc59a37f70fb14"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/battle/augment-catalog-v2.ts",
+      "bytes": 19342,
+      "sha256": "438ad5df0d839fdf788d40a2115366838f0a707c49ef20f891838e7c0c6f73cf"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/battle/augment-sequence.ts",
+      "bytes": 2102,
+      "sha256": "1492cdc34e94e8a0569b40ef456ab922d75c719db46f430324263452381d77c5"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/battle/combat-epoch.ts",
+      "bytes": 1482,
+      "sha256": "1d55a717e049db2f4ec4c7d2890590025cee08763be81ddd00d08e58b218c40e"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/battle/core.ts",
+      "bytes": 20189,
+      "sha256": "504c2a580b1958312ef9f6f7ccb84a6e641d2c62775e394f2383846352fa14a2"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/battle/engine.ts",
+      "bytes": 55597,
+      "sha256": "f9527175dfe0ffa01b559a5f42dc95a1defc26a86e17bb07b7c309461cb8e864"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/battle/freestyle-selection.ts",
+      "bytes": 2072,
+      "sha256": "3ecb7d02abe906369785391d48219535c4cc1bb7f11a2f052b3b15118ea112f0"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/battle/growth.ts",
+      "bytes": 11044,
+      "sha256": "58bfc1e673b10a7744543f057c524254cb6e584b323153730f8f999f4c01b2e3"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/battle/public-dto.ts",
+      "bytes": 1373,
+      "sha256": "92d2326e94546ec9ca2ca8c346908e606c18312dcb944d0f0a77d277cef104d3"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/battle/realtime-adapter.ts",
+      "bytes": 7595,
+      "sha256": "0a7b653f351ed2e477353c4fdb197f36b21c656bef11339a960b785aea19b55b"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/battle/realtime-bot.ts",
+      "bytes": 3727,
+      "sha256": "f650ae7bf70fc145cb62e29746e299f2dad3b1e0cd8886209cc77adb5c9fad71"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/battle/replay.ts",
+      "bytes": 1529,
+      "sha256": "63c7eb91692a05e98290a0bb2f10cbc2467700dbdf1a0f80714cc52850786418"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/battle/service-factory.ts",
+      "bytes": 7204,
+      "sha256": "6f487fb01fe229c63f018690c573b92a26fbe13a80feca974e28611af7d14318"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/game.ts",
+      "bytes": 213033,
+      "sha256": "3ea54c4c48da7ca41ff502ad0c926e31df5cec2ea5202a3d98ffef83340db33d"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/my.ts",
+      "bytes": 38205,
+      "sha256": "cbfeadd0612f94610ab0491f878ddd70d946922dee2e3cfb409f6e25d6eff472"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/native.ts",
+      "bytes": 37504,
+      "sha256": "4f178f3a02e0b0d7a8535a2b17d892818d51b2754b7554b367e5e8dbd008ce7d"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/news-routes.ts",
+      "bytes": 1050,
+      "sha256": "265995db19722ed3525d8995291af0eb067c7d8d6f3edad5a619003093290f4a"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/news-sources.ts",
+      "bytes": 2048,
+      "sha256": "f3e1fc98a2a69e5ced5c15a8d656e29df7e55210a4bab8d37039fd1554fb4f2a"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/news-store.ts",
+      "bytes": 2012,
+      "sha256": "ba7a164911d72138d057b50c21414afa367a20b7a4797106d581eee260e06e46"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/news.ts",
+      "bytes": 5326,
+      "sha256": "3d2cb73fd7f133959773668846322d316605dd1252b0adb54e21276845055a07"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/progression.ts",
+      "bytes": 10370,
+      "sha256": "ae4afdd7ac8848c25cba3a2c12aacb942874d02cd3aa649d3d74bbc196aedde2"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/pvp/realtime-native-view.ts",
+      "bytes": 14911,
+      "sha256": "ebe2a27e0e2888df2a20e8e56d87f23df6ca4441436497aa56ce08d18e68cf23"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/pvp/routes.ts",
+      "bytes": 3884,
+      "sha256": "e6959ef2017c7a73e85f13bcf53a253ab11ff9d856d570ef0d56a908677045a0"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/pvp/service.ts",
+      "bytes": 48745,
+      "sha256": "6534aaa4a7c229d02ce3e92e99e38bc341c8ca8a306a4828da301f43714bbf3b"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/review-auth.ts",
+      "bytes": 5474,
+      "sha256": "2fed116dee92f1222ed352c28292c3afbe34c66f209f1584f17ce1a2e6f92f17"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/server.ts",
+      "bytes": 2463,
+      "sha256": "08f3ea742c68aabd89b30d6e688e6151b8f89d12b2e79c54ea0995180ae25653"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/starter-loan-levels.ts",
+      "bytes": 3444,
+      "sha256": "0a600c3cb0f2e601239aae9543d168c42f7017b66f53a34bdb346852421df2e9"
+    },
+    {
+      "path": "galmaegiman-confirmed/src/starter-loans.ts",
+      "bytes": 6550,
+      "sha256": "456898c11d1fe296a9adac897900e6fbde0301d1d6fc682fbba453622899b48f"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/augment-card-ui.test.mjs",
+      "bytes": 6985,
+      "sha256": "41819ef81fb13473f4edade97ae30808eb7f1dd132756fd5fe39d7a2cfe01f42"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/battle-events.test.ts",
+      "bytes": 13489,
+      "sha256": "4c38cd9c5cd9333ece04a7b46528db2e08c7aff1317d649ef61817e188d5ec78"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/casual-growth.integration.test.ts",
+      "bytes": 7275,
+      "sha256": "59049a242b3002d9f3efa5279e657ae0ea219b8de03d2ed59812d85b05328cdc"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/catalog-v2.test.mjs",
+      "bytes": 5570,
+      "sha256": "d0bc39c9cba8a28b04c83e3485f334c840d46caa43057a97348e7572c62a89d7"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/craft-preview.test.ts",
+      "bytes": 4003,
+      "sha256": "e7844d17f64e1e8f2b99ad8b5c110ab8a0c5dba684e43abb0c5e4826d07caa50"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/game.integration.test.ts",
+      "bytes": 142473,
+      "sha256": "8768a80c9acaf53837422e6dd5288447709c13b13ff0f5c3847e30b0427a0e95"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/native-parity.test.ts",
+      "bytes": 18175,
+      "sha256": "7d95736cdabf578f570fe67c693662f8ab253edbd175a3ae32f0af878a37a5a9"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/native-type-matrix.test.ts",
+      "bytes": 2372,
+      "sha256": "2080ce099a136f81a01dd1131a8add09bf3528e66395640ab44983ac7480d7e6"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/news-auth.integration.test.ts",
+      "bytes": 5156,
+      "sha256": "4faa7b7a171122246a5794259c8d566daa0be4105030c28bc68c6229d6afc872"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/news.node.ts",
+      "bytes": 5318,
+      "sha256": "35bd31f21181724d6a79d06a9674cb57b526f67ea6da983a8065dcc1b4977b78"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/nickname-transaction.test.mjs",
+      "bytes": 3635,
+      "sha256": "4b841006af7abc4918c39a56f48a5de96ff97e1832d2236dbb07f31180a0bedd"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/progression-migration.test.ts",
+      "bytes": 2359,
+      "sha256": "45da5dc6475bfd5f83d0e029e6faac2a9c619256376be78b2bff9a9da943d2ba"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/progression.integration.test.ts",
+      "bytes": 13553,
+      "sha256": "4b90c83d5c1ced4a52d7289036c4c2111eace9c9230cb5bb1bdb9e5c45591cc3"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/realtime-acceptance.integration.test.ts",
+      "bytes": 19344,
+      "sha256": "b12dae0feaeb145693fde57abd0805f0ec60057d8433916989807f29be611cb9"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/realtime-casual-ai.integration.test.ts",
+      "bytes": 20473,
+      "sha256": "4ea8b1ad825678ef320e4efcfbc35f3da28e532bacdd0a4eb19ae641b4bba4bc"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/realtime-pvp.integration.test.ts",
+      "bytes": 21922,
+      "sha256": "2bb08b20ed503381f0d86a9eea9f5e083362ea342205ffe3058c3c5a98b15e93"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/recruitment-owned-receipts.integration.test.ts",
+      "bytes": 8395,
+      "sha256": "72fa07d762db915b709e344895adf43eaa2f11fa01d5ea6b7d8195a57fb4785d"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/resolve-ts.mjs",
+      "bytes": 349,
+      "sha256": "2655b664bb2f3069dba71732f5691aa4134f308df5e26e52567c74313f617b18"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/routes.node.ts",
+      "bytes": 1433,
+      "sha256": "cf4b2db92e7bc185ef57ebc28aad742c9a02c18e330a77bd81532b64ee2e3d22"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/sources.node.ts",
+      "bytes": 1558,
+      "sha256": "6d6199741807b55096b5337a76b3350ee49eff66cc3c00217078c13ad33bd398"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/starter-loan-levels.integration.test.ts",
+      "bytes": 9219,
+      "sha256": "5c095498fca47a478741f60cdd99dbeef8152911a47c8fe90ae45810f6c734ce"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/starter-loan-levels.test.mjs",
+      "bytes": 7479,
+      "sha256": "fbf9da7f0f82acff493fa8ce3145d0d5639056b8d20caa6ac761cafa680af5db"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/starter-loan-save-boundary.test.mjs",
+      "bytes": 5600,
+      "sha256": "5e2944ed25ba95dd677c8d5f0fd463c461a84421c0efa7c3c13dd2a03f266a4b"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/starter-loans.node.test.mjs",
+      "bytes": 7460,
+      "sha256": "44a2a0ba61124529493c5f36b2b7a4feb788adf5e5c103dd0e7075348a657ebc"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/store.node.ts",
+      "bytes": 2246,
+      "sha256": "fde5cc0e95a70dea2113bbc81e09a3218ae7f4d7bcf7b3422273cdf94d941677"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/temporary-loan-battle-gates.test.mjs",
+      "bytes": 5590,
+      "sha256": "faa8746835fa67d3ed733052b2ecc03ed7ce9a81c17925a8a14e1ddc806647bd"
+    },
+    {
+      "path": "galmaegiman-confirmed/test/ts-source-loader.mjs",
+      "bytes": 328,
+      "sha256": "6558b973651c68a92ee89ac9489582032df9c8c3e8bfa1ffddbd64ed7279a6ed"
+    },
+    {
+      "path": "test/augment-effects.test.mjs",
+      "bytes": 25551,
+      "sha256": "7c98ddc4062f2e4d11560a468483342349a876d6ba14511562c98a69362c98e1"
+    },
+    {
+      "path": "test/augment-sequence.test.mjs",
+      "bytes": 9114,
+      "sha256": "5be4b5d4bd4aa0457b00839a1d9dc174a995d6a888bd261a8fe734e02d3e0567"
+    },
+    {
+      "path": "test/freestyle-review.test.mjs",
+      "bytes": 7165,
+      "sha256": "70f5901ac7ebabca506605c1159434d0ebcb3363c88c11d74c52234e12ccc600"
+    },
+    {
+      "path": "test/innate-factor.test.mjs",
+      "bytes": 9522,
+      "sha256": "c289e457ac23238694b6dc7f523d5b13fc9af58e61d68fea7a7317dfbd65fd73"
+    },
+    {
+      "path": "test/service-integration.test.mjs",
+      "bytes": 9157,
+      "sha256": "6e2400f30a1f785d9baf457cf5622e495252a0606620ff21bed442c629e08083"
+    }
+  ]
+}

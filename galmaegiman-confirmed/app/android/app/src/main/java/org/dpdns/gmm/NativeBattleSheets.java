@@ -416,18 +416,19 @@ final class NativeBattleSheets {
     col.addView(heading(h, "증강체", 20));
     for (int i = 0; i < augs.length(); i++) {
       JSONObject aug = augs.optJSONObject(i);
+      if (aug == null) { col.addView(prose(h, augs.optString(i), 16)); continue; }
       LinearLayout card = column(h);
-      card.setBackground(new GamePaperDrawable(h));
+      card.setBackground(new GamePaperDrawable(h, NativeAugmentView.cardColor(aug)));
       TextView name =
           heading(
               h,
               aug.optString("name")
                   + " · "
-                  + NativeAugmentView.kindName(NativeAugmentView.kind(aug.optString("id"))),
+                  + NativeAugmentView.cardLabel(aug),
               18);
-      semanticColor(name, NativeAugmentView.color(NativeAugmentView.kind(aug.optString("id"))));
+      semanticColor(name, NativeAugmentView.cardColor(aug));
       card.addView(name);
-      card.addView(prose(h, aug.optString("desc"), 16));
+      card.addView(prose(h, AugmentPresentation.detail(aug), 16));
       col.addView(card, new LinearLayout.LayoutParams(-1, -2));
     }
   }

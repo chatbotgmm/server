@@ -31,7 +31,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   final HomeArt homeArt;
   final HomeMenuArt menuArt;
   final RectF menuPanel = new RectF(), heroStage = new RectF(), tipRegion = new RectF();
-  static final int[] MENU_ITEMS = {1, 2, 3, 0, 4, 12, 6};
+  static final int[] MENU_ITEMS = {1, 2, 3, 0, 4, 12, 6, 14};
   boolean menuOpen, dismissGesture;
   Typeface homeHeading;
   final Button gull;
@@ -41,7 +41,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   CharSequence tipCopy = "";
   int tipPageStart, tipNextPageStart;
   final Runnable hideTip = this::hideGullTip;
-  final boolean[] badges = new boolean[13];
+  final boolean[] badges = new boolean[15];
   long claimReadyMono = -1;
   int liveEpoch, tipAt = -1;
   String dailyDay = "";
@@ -63,7 +63,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   static final String[] NAMES = {"탐험", "모집", "방범대", "조합", "상점"};
   static final String[] IDS = {"expedition", "draw", "collection", "craft", "shop"};
   static final String[] ICONS = {"mode-camp", "u-draw", "mode-normal", "u-emblem", "u-shop"};
-  final RectF[] boxes = new RectF[14];
+  final RectF[] boxes = new RectF[15];
 
   static String room(MainActivity host) {
     if (host.lobbyRoom == null)
@@ -135,6 +135,8 @@ final class LobbyView extends FrameLayout implements FullBleed {
     buttons.get(12).setTag("lobby-team");
     add("메뉴", () -> setMenuOpen(!menuOpen));
     buttons.get(13).setTag("lobby-menu-toggle");
+    add("소식함", () -> host.load("news"));
+    buttons.get(14).setTag("lobby-news");
     for (Button button : buttons) button.setId(View.generateViewId());
     for (int n = 0; n < MENU_ITEMS.length; n++) {
       Button item = buttons.get(MENU_ITEMS[n]);
@@ -318,6 +320,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
         host.getResources().getConfiguration().fontScale, host.state.optBoolean("activeBattle"));
     for (int i = 0; i < 13; i++) boxes[i] = rect(layout.controls[i]);
     boxes[13] = rect(layout.toggle);
+    boxes[14] = rect(layout.controls[14]);
     menuPanel.set(rect(layout.panel));
     heroStage.set(rect(layout.heroStage));
     tipRegion.set(rect(layout.tipRegion));
@@ -331,7 +334,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
     boolean notice = false;
     for (int i : MENU_ITEMS) notice |= badges[i];
     buttons.get(13).setText(menuOpen ? "닫기" : "메뉴");
-    buttons.get(13).setContentDescription((menuOpen ? "메뉴 닫기" : "메뉴 펼치기 · 7개 기능")
+    buttons.get(13).setContentDescription((menuOpen ? "메뉴 닫기" : "메뉴 펼치기 · 8개 기능")
         + (notice ? " · 받을 보상이 있어요" : ""));
   }
 
@@ -345,7 +348,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
     invalidate();
     if (open) buttons.get(MENU_ITEMS[0]).requestFocus();
     else buttons.get(13).requestFocus();
-    announceForAccessibility(open ? "메뉴 펼침, 모집부터 7개 기능" : "메뉴 닫힘");
+    announceForAccessibility(open ? "메뉴 펼침, 모집부터 8개 기능" : "메뉴 닫힘");
   }
 
   View tutorialMenuTarget(String key) {
@@ -653,13 +656,26 @@ final class LobbyView extends FrameLayout implements FullBleed {
     float iconHeight = Math.max(host.dp(18), Math.min(r.height() * .58f,
         r.height() - labelHeight - host.dp(14)));
     float iconWidth = r.width() * .86f;
-    menuArt.navigationIcon(c, index, new RectF(r.centerX()-iconWidth/2,
+    if (index == 14) newsBell(c, r.centerX(), r.top + host.dp(7), iconHeight);
+    else menuArt.navigationIcon(c, index, new RectF(r.centerX()-iconWidth/2,
         r.top+host.dp(7), r.centerX()+iconWidth/2, r.top+host.dp(7)+iconHeight));
     float font = canvasTextSize(host.dp(16), labelHeight-host.dp(3), true);
     p.setTypeface(homeHeading); p.setTextSize(font);
     font *= Math.min(1, (r.width()-host.dp(20))/Math.max(1,p.measureText(name)));
     label(c, name, r.centerX(), centeredBaseline(r.bottom-labelHeight/2-host.dp(8), font, true),
         font, true, controlInk(index));
+  }
+
+  /** A distinct brass bell, not the recruitment envelope asset. */
+  void newsBell(Canvas c, float cx, float top, float height) {
+    float w = Math.min(height * .72f, host.dp(32));
+    float y = top + height * .14f;
+    p.setColor(JournalTheme.BRASS); p.setStyle(Paint.Style.FILL);
+    c.drawCircle(cx, y, w * .12f, p);
+    c.drawRoundRect(cx-w*.38f, y+w*.12f, cx+w*.38f, y+w*.86f, w*.35f, w*.35f, p);
+    c.drawRoundRect(cx-w*.5f, y+w*.72f, cx+w*.5f, y+w*.87f, w*.08f, w*.08f, p);
+    p.setColor(JournalTheme.INK);
+    c.drawCircle(cx, y+w, w*.10f, p);
   }
 
   /** 메뉴의 터치 영역을 바꾸지 않고 얇은 목재 받침과 황동 가장자리만 더한다. */
@@ -904,6 +920,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
       for (int i = 0; i < 5; i++) menuTile(c, i, NAMES[i], icons[i]);
       menuTile(c, 12, "전투 편성", "team");
       menuTile(c, 6, "출석·미션", "daily");
+      menuTile(c, 14, "소식함", null);
     }
     command(c, 5, "플레이", "explore", true);
     command(c, 13, menuOpen ? "닫기" : "메뉴", null, false);

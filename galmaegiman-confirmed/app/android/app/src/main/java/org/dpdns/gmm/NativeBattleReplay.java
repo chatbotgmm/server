@@ -47,7 +47,7 @@ final class NativeBattleReplay {
   static void records(MainActivity h) {
     h.base("전투 기록", "battleRecords");
     h.page.removeViewAt(h.page.getChildCount()-1);
-    TextView note=h.text("이 기기에서 기록한 최근 완료 전투 10개 · 전투당 1,200상태·4MiB\n업데이트 이후 받은 전투 상태만 보관해요. 이전 기록·다른 기기 기록은 재생할 수 없어요.",15);
+    TextView note=h.text("이 기기에서 기록한 최근 완료 전투 10개 · 전투당 1,200상태·4MiB\n이전 버전 전투기록은 목록에 보관되며 재생할 수 없어요. 다른 기기 기록은 이 목록에 없어요.",15);
     note.setBackground(new GamePaperDrawable(h));h.page.addView(note);
     ScrollView scroll=new ScrollView(h);LinearLayout list=new LinearLayout(h);list.setOrientation(LinearLayout.VERTICAL);
     scroll.addView(list);h.page.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
@@ -81,12 +81,19 @@ final class NativeBattleReplay {
       String result=resultLabel(last);
       String mode=modeLabel(record.optString("mode"));
       String label=mode+" · "+result+" · "+last.optInt("turn")+"턴\n"+DateFormat.getDateTimeInstance(DateFormat.SHORT,DateFormat.SHORT).format(new Date(record.optLong("completedAt")));
+      boolean playable=CombatReplayCompatibility.playable(record);
+      if(!playable) label=CombatReplayCompatibility.BLOCKED_LABEL+"\n"+label;
       Button open=h.button(label,()->{if(owner.equals(account(h))) show(h,record,owner);else records(h);});
-      open.setContentDescription(label+" 다시 보기");list.addView(open,new LinearLayout.LayoutParams(-1,-2));
+      open.setContentDescription(label+(playable?" 다시 보기":" · "+CombatReplayCompatibility.BLOCKED_REASON));list.addView(open,new LinearLayout.LayoutParams(-1,-2));
     }
   }
   static void show(MainActivity h, JSONObject record, String owner) {
     if(!owner.equals(account(h))||!BattleReplayStore.validRecord(record,true)) { records(h);return; }
+    if(!CombatReplayCompatibility.playable(record)) {
+      new GameDialog(h).setTitle(CombatReplayCompatibility.BLOCKED_LABEL)
+          .setMessage(CombatReplayCompatibility.BLOCKED_REASON).setPositiveButton("닫기",null).show();
+      return;
+    }
     h.base("전투 다시 보기", "battleReplay");
     h.page.removeViewAt(h.page.getChildCount()-1);
     if(h.page.getChildAt(0) instanceof android.view.ViewGroup) {
@@ -102,7 +109,7 @@ final class NativeBattleReplay {
     final Arena arena;final boolean partial;boolean disposed;
     Player(MainActivity h,JSONObject record,String owner) {
       super(h);this.h=h;this.owner=owner;partial=record.optBoolean("partial");setOrientation(VERTICAL);
-      timeline=new BattleReplayTimeline(record.optJSONArray("frames"));
+      timeline=new BattleReplayTimeline(CombatReplayCompatibility.requirePlayableFrames(record));
       status=h.text("",15);status.setBackground(new GamePaperDrawable(h));addView(status);
       LinearLayout body=new LinearLayout(h);addView(body,new LinearLayout.LayoutParams(-1,0,1));
       arena=new Arena(h,timeline.current());body.addView(arena,new LinearLayout.LayoutParams(0,-1,1));
@@ -133,20 +140,38 @@ final class NativeBattleReplay {
         JSONArray fs=team.optJSONArray("fighters");if(fs==null)continue;
         for(int j=0;j<fs.length();j++){
           JSONObject f=fs.optJSONObject(j);if(f==null)continue;String text=(j==team.optInt("active")?"▶ ":"")+f.optString("name")+"  "+f.optInt("hp")+" / "+f.optInt("maxHp");
+          if (TemporaryUnitPresentation.temporary(f)) text += "\n" + TemporaryUnitPresentation.label(f, b.optLong("serverNow"));
           JSONArray effects=BattleEffects.current(f);for(int e=0;e<effects.length();e++){JSONObject effect=effects.optJSONObject(e);if(effect!=null)text+="\n"+BattleEffects.label(effect);}
           JSONArray skills=f.optJSONArray("skills");if((side==0||b.optInt("turn")>1)&&skills!=null&&skills.length()>0){text+="\n기술: ";for(int sk=0;sk<skills.length();sk++){JSONObject skill=skills.optJSONObject(sk);if(skill!=null)text+=(sk>0?", ":"")+skill.optString("name");}}
           if(side==0&&BattleReplayArt.frontOnly(f))text+="\n기록에 뒷모습이 없어 원종의 앞모습으로 표시해요.";
           details.addView(h.text(text,15));
         }
-        JSONArray a=team.optJSONArray("augments");String names="증강체: ";if(a!=null)for(int j=0;j<a.length();j++){JSONObject aug=a.optJSONObject(j);names+=(j>0?", ":"")+(aug==null?a.optString(j):aug.optString("name"));}
-        details.addView(h.text(names,14));
-        JSONArray offers=team.optJSONArray("offers");if(side==0&&"choose".equals(b.optString("phase"))&&offers!=null){String choices="이 시점의 선택 후보: ";for(int o=0;o<offers.length();o++){JSONObject offer=offers.optJSONObject(o);if(offer!=null)choices+=(o>0?", ":"")+offer.optString("name");}details.addView(h.text(choices,14));}
+        JSONArray a=team.optJSONArray("augments");
+        appendRecordedAugments("증강체", a);
+        JSONArray offers=team.optJSONArray("offers");
+        if(side==0&&"choose".equals(b.optString("phase"))&&offers!=null)
+          appendRecordedAugments("이 시점의 선택 후보", offers);
       }
       details.addView(h.text("이 시점까지의 전투 기록",18));
       JSONArray lines=b.optJSONArray("history");if(lines==null)lines=b.optJSONArray("log");
       StringBuilder text=new StringBuilder();if(lines!=null)for(int i=0;i<lines.length();i++)text.append(lines.optString(i)).append('\n');
       details.addView(h.text(text.toString(),15));
     }
+    void appendRecordedAugments(String title, JSONArray augments) {
+      details.addView(h.text(title + (augments == null || augments.length() == 0 ? ": 없음" : ""), 14));
+      if (augments == null) return;
+      for (int i = 0; i < augments.length(); i++) {
+        JSONObject aug = augments.optJSONObject(i);
+        if (aug == null) { details.addView(h.text(augments.optString(i), 14)); continue; }
+        TextView entry = h.text(AugmentPresentation.name(aug) + "\n"
+            + AugmentPresentation.detail(aug), 14);
+        entry.setTextColor(JournalTheme.INK);
+        entry.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(4));
+        entry.setBackground(new GamePaperDrawable(h, AugmentPresentation.ink(aug)));
+        details.addView(entry);
+      }
+    }
+
   }
   static final class Arena extends View {
     final MainActivity h;final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);JSONObject state;
@@ -161,6 +186,7 @@ final class NativeBattleReplay {
         String path=BattleReplayArt.path(f);Bitmap art=path.isEmpty()?null:h.art.scene(path,this::invalidate);
         RectF box=side==0?new RectF(w*.03f,height*.38f,w*.65f,height*.95f):new RectF(w*.39f,height*.03f,w*.97f,height*.58f);
         if(art!=null){Rect src=h.art.alpha(art,path);float scale=Math.min(box.width()/src.width(),box.height()/src.height())*BattleReplayArt.scale(f);float bw=src.width()*scale,bh=src.height()*scale;p.setColorFilter(BattleReplayArt.tint(f));int save=c.save();c.clipRect(0,0,w,height);c.drawBitmap(art,src,new RectF(box.centerX()-bw/2,box.bottom-bh,box.centerX()+bw/2,box.bottom),p);c.restoreToCount(save);p.setColorFilter(null);}
+        TemporaryUnitPresentation.badge(c, TemporaryUnitPresentation.label(f, state.optLong("serverNow")), box, 12 * getResources().getDisplayMetrics().scaledDensity, h.prose);
         p.setColor(0xfffff6df);p.setTextSize(h.dp(15));p.setShadowLayer(2,1,1,Color.BLACK);
         c.drawText(f.optString("name")+" "+f.optInt("hp")+"/"+f.optInt("maxHp"),h.dp(10),side==0?height-h.dp(10):h.dp(24),p);p.clearShadowLayer();
       }

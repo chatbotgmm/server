@@ -142,7 +142,7 @@ final class BattleReplayStore {
   }
   static JSONObject sanitize(JSONObject source) throws JSONException {
     JSONObject out = new JSONObject();
-    for (String field : new String[]{"session","revision","mode","stage","scene","boss","phase","turn","winner","teams","history","log","displayEventVersion","displayEventSeq","displayEvents","displayLogStart"})
+    for (String field : new String[]{"session","revision","mode","stage","scene","boss","phase","turn","winner","teams","history","log","combatRulesEpoch","replayAvailable","replayBlockedReason","replayLabel","displayEventVersion","displayEventSeq","displayEvents","displayLogStart","serverNow"})
       if (source.has(field)) out.put(field,source.get(field));
     out = copy(out); out.put("replayReadOnly",true);
     out.put("completionConfirmed", "over".equals(source.optString("phase")) && source.optJSONObject("result") != null);
@@ -156,7 +156,7 @@ final class BattleReplayStore {
       }
       JSONArray fighters=new JSONArray(), sourceFighters=original.getJSONArray("fighters");
       for(int f=0;f<sourceFighters.length();f++) {
-        JSONObject fighter=project(sourceFighters.getJSONObject(f),new String[]{"key","id","characterId","combatDefinitionId","name","level","stage","role","base","tint","realTintArt","bodyScale","matchup","image","hp","maxHp","attr","attrCode","extraAttr","status","effects","skills"});
+        JSONObject fighter=project(sourceFighters.getJSONObject(f),new String[]{"key","id","characterId","combatDefinitionId","name","level","stage","role","base","tint","realTintArt","bodyScale","matchup","image","hp","maxHp","attr","attrCode","extraAttr","status","effects","skills","temporary","expiresAt"});
         if(i==1 && out.optInt("turn")<=1) {fighter.remove("skills");fighter.remove("base");fighter.remove("matchup");}
         fighters.put(fighter);
       }

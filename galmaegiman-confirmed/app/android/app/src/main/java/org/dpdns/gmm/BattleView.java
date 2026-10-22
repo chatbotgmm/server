@@ -504,6 +504,7 @@ final class BattleView extends FrameLayout implements FullBleed {
           (side == 0 ? "내 " : "상대 ")
               + "현재 효과 · "
               + (labels.isEmpty() ? "없음" : android.text.TextUtils.join(" · ", labels))
+              + TemporaryUnitPresentation.suffix(active(side))
               + " · 상세 보기");
     }
     foeInfo.setText(battle.optInt("turn") > 1 ? "정보" : "1턴 뒤");
@@ -1110,19 +1111,21 @@ final class BattleView extends FrameLayout implements FullBleed {
               && playback.effect.equals("hit")
               && f == active(playback.side)
               && playback.progress < .65f;
+      ColorMatrix artFilter = new ColorMatrix();
+      TemporaryUnitPresentation.append(artFilter, f);
       if (flash) {
         float light = 100 * (float) Math.sin(playback.progress * Math.PI / .65f);
-        p.setColorFilter(
-            new ColorMatrixColorFilter(
-                new float[] {
-                  1, 0, 0, 0, light, 0, 1, 0, 0, light, 0, 0, 1, 0, light, 0, 0, 0, 1, 0
-                }));
+        artFilter.postConcat(new ColorMatrix(new float[] {
+          1, 0, 0, 0, light, 0, 1, 0, 0, light, 0, 0, 1, 0, light, 0, 0, 0, 1, 0
+        }));
       }
+      p.setColorFilter(new ColorMatrixColorFilter(artFilter));
       if (upperArt == null || !SceneMotion.enabled(host) || !upperArt.draw(c, p, f, area, side,
           playback.effect, playback.progress, playback.playing && playback.side == side)) {
         fit(c, b, path, area);
       }
       p.setColorFilter(null);
+      TemporaryUnitPresentation.badge(c, f, area, 12 * getResources().getDisplayMetrics().scaledDensity, host.prose);
     }
 
     void status(Canvas c, JSONObject f, RectF r, boolean own) {

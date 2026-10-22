@@ -4,7 +4,7 @@ import type { EvoAugment, Passive, Rules, Skill, TopTier } from './core.js';
 export type Stage=0|1|2|3;
 export const stageName=['원형','1단계','2단계','3단계'] as const;
 // 저장되는 유닛 한 마리의 상태(스카우트하면 이 상태 그대로 복사)
-export interface UnitRecord {uid:string;id:string;name:string;tier:TopTier;level:number;xp:number;stage:Stage;evoAugs:string[];learned?:string[];learnUsed?:number;learnPick?:number;reincarnation?:number;statBonusPct?:number;ownedCharacterId?:string;inheritedFrom?:string}
+export interface UnitRecord {temporary?:boolean;expiresAt?:number|null;uid:string;id:string;name:string;tier:TopTier;level:number;xp:number;stage:Stage;evoAugs:string[];learned?:string[];learnUsed?:number;learnPick?:number;reincarnation?:number;statBonusPct?:number;ownedCharacterId?:string;inheritedFrom?:string}
 
 // 다음 레벨까지 경험치 = xpBase × 레벨^xpExp (기본 20 × 레벨^1.5)
 export const xpToNext=(r:Rules,level:number)=>Math.round(r.data.growth.xpBase*level**r.data.growth.xpExp);
@@ -138,4 +138,5 @@ export function learnSkill(r:Rules,rec:UnitRecord,id:string|null,replace?:string
   if(rec.learnPick>=(r.data.learn.perChance??1)||!learnOffers(r,rec).length)done();
   return rec;
 }
+
 

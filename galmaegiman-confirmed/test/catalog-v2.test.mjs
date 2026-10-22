@@ -18,11 +18,11 @@ test('최종 설계의 60 ID·등급·설명과 숫자 계약이 일치',()=>{
  assert.deepEqual(parsed.augments.map(a=>a.id),spec.augments.map(a=>a.id));
  for(const a of spec.augments){
   const current=parsed.augments.find(x=>x.id===a.id);
-  assert.equal(current.tier,tiers[a.tier]);assert.equal(current.name,a.name);assert.equal(current.desc,a.shortDescription);
+  if(a.id==='reverse'){assert.equal(current.tier,'prismatic');assert.equal(current.name,'자유자재');assert.equal(current.effect,'choose-own-attribute');}else{assert.equal(current.tier,tiers[a.tier]);assert.equal(current.name,a.name);assert.equal(current.desc,a.shortDescription);}
   if(overrides[a.id])assert.deepEqual(current.p,overrides[a.id].p);
   else if(!a.existing)assert.deepEqual(current.p,Object.fromEntries(Object.entries(a.effectParams).filter(([,n])=>typeof n==='number')));
  }
- for(const tier of Object.values(tiers))assert.equal(parsed.augments.filter(a=>a.tier===tier).length,20);
+ assert.deepEqual(Object.fromEntries(Object.values(tiers).map(t=>[t,parsed.augments.filter(a=>a.tier===t).length])),{silver:20,gold:19,prismatic:21});
  assert.deepEqual(parsed.augments.find(a=>a.id==='overflowguard').p,{overflowToShieldPct:100,shieldMaxHpCapPct:20,shieldTurns:2,conversions:3});
  assert.ok(!parsed.augments.some(a=>a.id==='dryspell'));
 });
@@ -42,8 +42,8 @@ test('모든 수치 키의 정상 경계값과 범위 밖을 검사',()=>{
   for(const v of [min-1,max+1,...(integer?[min+0.5]:[])])assert.throws(()=>parseAugmentCatalogV2(edit(a.id,k,v)),`${a.id}.${k}=${v}`);
  }
 });
-test('고정 ID·등급·20개씩·버전·외부 변조를 검증',()=>{
- for(const mutate of [c=>c.version=1,c=>c.augments.pop(),c=>c.augments.push(c.augments[0]),c=>c.augments[0].id='other',c=>c.augments[0].id=c.augments[1].id,c=>c.augments[0].tier='gold',c=>c.augments[0].version=1,c=>c.extra=true,c=>c.augments[0].p=null]){const c=copy();mutate(c);assert.throws(()=>parseAugmentCatalogV2(c));}
+test('고정 ID·유효 등급·버전·외부 변조를 검증',()=>{
+ for(const mutate of [c=>c.version=1,c=>c.augments.pop(),c=>c.augments.push(c.augments[0]),c=>c.augments[0].id='other',c=>c.augments[0].id=c.augments[1].id,c=>c.augments[0].tier='invalid',c=>c.augments[0].version=1,c=>c.extra=true,c=>c.augments[0].p=null]){const c=copy();mutate(c);assert.throws(()=>parseAugmentCatalogV2(c));}
  assert.throws(()=>{augmentCatalogV2.augments[0].id='bad';});
  assert.throws(()=>{augmentCatalogV2.augments[0].p.other=1;});
 });

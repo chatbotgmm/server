@@ -11,6 +11,10 @@ import { loadBattleRules } from './battle/load.js';
 import { duelKey } from './duel.js';
 import {ReviewAuth,reviewRouteAllowed,REVIEW_ERROR,type ReviewConfig} from './review-auth.js';
 import {registerNative} from './native.js';
+import {NewsService} from './news.js';
+import {prismaNewsStore} from './news-store.js';
+import {newsSources} from './news-sources.js';
+import {registerNews} from './news-routes.js';
 import type {PrismaClient} from '@prisma/client';
 import {RealtimePvpService} from './pvp/service.js';
 import {registerRealtimePvp} from './pvp/routes.js';
@@ -366,7 +370,13 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
     if(!id)return reply.code(401).send({error:'login'});
     return reply.header('Cache-Control','no-store').send(await game.webTutorial(id));
   });
-  act<{nickname?:unknown}>('/my/api/nickname',(id,b)=>game.webInitialNickname(id,b?.nickname));
+  app.get('/my/api/starter-loans',limit,async(req,reply)=>{
+    if(!guard(req,reply))return;
+    const id=session(req);if(!id)return reply.code(401).send({error:'login'});
+    return reply.header('Cache-Control','no-store').send(await game.webStarterLoans(id));
+  });
+  act<{ids?:unknown}>('/my/api/starter-loans',(id,b)=>game.webClaimStarterLoans(id,b.ids));
+  act<{nickname?:unknown}>('/my/api/nickname' ,(id,b)=>game.webInitialNickname(id,b?.nickname));
   act<{step?:unknown;seen?:unknown}>('/my/api/tutorial',(id,b)=>game.webTutorialSet(id,Number(b.step),b.seen===undefined?undefined:String(b.seen)));
   act<{battle?:unknown;id?:unknown}>('/my/api/items/use',async(id,b)=>{
     if(native.hasActiveStory(id))throw new GameError('진행 중인 네이티브 전투에서 아이템을 사용해 주세요.');
@@ -382,6 +392,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
 
   const native=registerNative(app,game,opt.root,session,guard,realtime);
   registerRealtimePvp(app,realtime,session,guard);
+  registerNews(app,new NewsService(prismaNewsStore(opt.db),newsSources(opt.root,()=>game.content.economy.events)),session,guard);
 
   // ── 카카오 로그인(KAKAO_REST_KEY가 있을 때만) ──
   // 처음: 카카오 → 연결된 계정 없음 → 카톡 코드로 한 번 로그인하면 그 계정에 연결. 다음부터는 카카오만 누르면 로그인
@@ -462,3 +473,4 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
     return back(reply.header('Set-Cookie',[clear,cookieLine(req,KPEND,signed('kp.',kakaoId,600),600)]),'?kakao=link');
   });
 }
+

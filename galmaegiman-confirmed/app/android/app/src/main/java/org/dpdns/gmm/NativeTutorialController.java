@@ -197,6 +197,7 @@ final class NativeTutorialController {
                 if (next == 3) rewardCard = true;
                 if ((next == 4 || next == 9) && failure == null) ensureStarterTeam();
                 onStateUpdated();
+                if (next == 9 && !progress.replay) { h.load("home"); return; }
                 update();
               });
         });
@@ -306,7 +307,7 @@ final class NativeTutorialController {
             "team",
             find("team", "전투 편성"),
             "③ 전투 편성",
-            "전투 편성을 눌러요.",
+            "상위부터 편성해요. 한정·초월·영원·불멸이 상위, 전설·히든 이하는 하위예요. 상위에서 환생한 대원도 가능해요. 전투 편성을 눌러요.",
             () -> {
               h.selectionMode = "story";
               h.menus.teamDraft = null;
@@ -357,7 +358,7 @@ final class NativeTutorialController {
       card(
           "done",
           "신입 연수 끝!",
-          "이제 자유롭게 출근해요. 처음 보는 화면에서는 짧게 또 알려 줄게요. 설정에서 언제든 다시 볼 수 있어요.",
+          "연수를 마쳤어요. 처음 완료하면 속성별 후보 중 서로 다른 임시 대원 2마리를 선택해요. 확정 후 15일이 지나면 만료되고, 다시 보기로 재지급하거나 연장되지 않아요.",
           "좋아요",
           () -> advance(9));
     else removeOverlay();

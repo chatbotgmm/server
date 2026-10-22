@@ -12,6 +12,7 @@ final class NativeMenus {
   final MainActivity h;
   final MenuKit k;
   final NativeLibrary library;
+  final NativeNews news;
   final NativeEconomy economy;
   final NativeExtras extras;
   final NativeGrowthGuidance growth;
@@ -31,6 +32,7 @@ final class NativeMenus {
     this.h = h;
     k = new MenuKit(h);
     library = new NativeLibrary(this);
+    news = new NativeNews(h, k);
     economy = new NativeEconomy(this);
     extras = new NativeExtras(this);
     growth = new NativeGrowthGuidance(h, k);
@@ -53,6 +55,7 @@ final class NativeMenus {
     selectedStageId = "";
     mixDraft.clear();
     library.reset();
+    news.reset();
     economy.resetAcquisition();
     unitReturn = "story";
     teamScrollX = 0;
@@ -1226,6 +1229,9 @@ final class NativeMenus {
     }
     ArrayList<String> submitted = new ArrayList<>(teamDraft);
     boolean pvp = teamMode.equals("pvp");
+    if (teamDraft.size() > 3 || (pvp && (teamDraft.size() != 3 || new HashSet<>(teamDraft).size() != 3))) {
+      h.message(LineupGuidance.shortText(pvp)); return;
+    }
     h.request(
         pvp ? "battle-team" : "native/team",
         MainActivity.obj(pvp ? "ids" : "keys", MainActivity.arr(submitted)),
@@ -1524,9 +1530,12 @@ final class NativeMenus {
           status.setText(
               (isTeamDirty() ? "변경됨 · 저장 필요" : "✓ 저장된 편성") + " · " + teamDraft.size() + "/3");
           status.setTextColor(isTeamDirty() ? 0xff8b4d13 : 0xff276646);
-          if (save[0] != null) save[0].setEnabled(!teamDraft.isEmpty() && isTeamDirty());
+          if (save[0] != null) save[0].setEnabled((pvp ? teamDraft.size() == 3 && new HashSet<>(teamDraft).size() == 3 : !teamDraft.isEmpty()) && isTeamDirty());
         };
-    TextView drag = k.note("자리 → 후보 선택 · ↔ 순서 변경");
+    TextView drag = k.note(LineupGuidance.shortText(pvp) + " · 기준 보기");
+    drag.setMinHeight(h.dp(48));
+    drag.setContentDescription(LineupGuidance.shortText(pvp) + ", 상위와 하위 기준 보기");
+    drag.setOnClickListener(v -> LineupGuidance.show(h));
     drag.setTextColor(JournalTheme.INK);
     drag.setTag("team-order-drag-hint");
     drag.setPadding(h.dp(4), 0, h.dp(4), 0);

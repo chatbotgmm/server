@@ -5,10 +5,13 @@ import { levelScale, passiveOf, slotSkills, statsOf, type UnitRecord } from './g
 export type { BattleAugment } from './core.js';
 
 import { applyNewAugment, beginAugmentCast, finishAugmentCast, finishAugmentDefense, augmentOverflow, absorbAugmentShield, onAugmentSwitch, endAugmentTurn, augmentSwitchLocked, augmentItemHealBlocked, augmentDefenseFactor, augmentPriority, augmentWeatherMultiplier, type AugmentCast } from './augment-effects.js';
+import {CURRENT_COMBAT_RULES_EPOCH} from './combat-epoch.js';
+import {createAugmentSequence,type AugmentSequenceProfile} from './augment-sequence.js';
+import {validateFreestyleChoice,type FreestyleChoice,type FreestyleSnapshot} from './freestyle-selection.js';
 import { eligibleAugmentIds } from './augment-eligibility.js';
 import { createOfferRound, rerollOffer, type AugmentTier, type OfferEntry, type OfferRound } from './augment-offers.js';
-export interface TieredAugmentConfig {version:2;catalog:OfferEntry[];weights:Record<AugmentTier,number>}
-interface TieredAugmentState extends TieredAugmentConfig {roundIndex:number;round?:OfferRound}
+export interface TieredAugmentConfig {sequenceProfile?:AugmentSequenceProfile;version:2;catalog:OfferEntry[];weights:Record<AugmentTier,number>}
+interface TieredAugmentState extends TieredAugmentConfig {sequence?:AugmentTier[];roundIndex:number;round?:OfferRound}
 
 // ── 상태 ──
 interface Mod {stat:Stat;pct:number;turns:number;augment?:boolean}
@@ -20,7 +23,7 @@ export interface Fighter {
   endure:number;protect:boolean;recharge:boolean;immune:number;lockAtk:number;lastStandUsed:boolean;attacked:boolean;actedTurn:number;
   lastUtility:Record<string,number>;healUntil:number;statusUntil:Partial<Record<Status,number>>;extraAttr?:Attr;hitBy:Partial<Record<Attr,number>>;
 }
-export interface SideState {augment?:Record<string,any>;legacyAug?:Record<string,{uses?:number;until?:number}>;fighters:Fighter[];active:number;comboUsed:boolean;augs:string[];offers:string[]|null;rerolled:boolean[];offerSeen:string[];needSwitch:boolean;reviveUsed:boolean;goFirst:boolean;neutral:number;itemsUsed:number}
+export interface SideState {freestyle?:FreestyleSnapshot;augment?:Record<string,any>;legacyAug?:Record<string,{uses?:number;until?:number}>;fighters:Fighter[];active:number;comboUsed:boolean;augs:string[];offers:string[]|null;rerolled:boolean[];offerSeen:string[];needSwitch:boolean;reviveUsed:boolean;goFirst:boolean;neutral:number;itemsUsed:number}
 // 교체: '인사 발령' 증강체가 있으면 턴을 안 쓰므로 then(바로 쓸 기술)을 함께 보냄(없으면 AI가 고름)
 // 아이템: 그 턴 행동을 쓰고, 기술보다 먼저 쓰임. target = 다시 일으킬 갈매미 순서(다시 출근 깃털)
 export type Action={kind:'skill';skillId:string}|{kind:'switch';to:number;then?:string}|{kind:'item';item:string;target?:number};
@@ -33,7 +36,7 @@ export interface BattleEvent {
   status?:Partial<Record<Status,number>>;extraAttr?:Attr|null;
   text:string;logIndex:number;
 }
-export interface Battle {effectsVersion?:2;augmentCast?:AugmentCast;augmentOffers?:TieredAugmentState;R:Rules;rng:number;turn:number;phase:'choose'|'action'|'over';winner:0|1|null;sides:[SideState,SideState];log:string[];events:BattleEvent[];eventSeq:number}
+export interface Battle {combatRulesEpoch?:string;innateDamageVersion?:1;effectsVersion?:2;augmentCast?:AugmentCast;augmentOffers?:TieredAugmentState;R:Rules;rng:number;turn:number;phase:'choose'|'action'|'over';winner:0|1|null;sides:[SideState,SideState];log:string[];events:BattleEvent[];eventSeq:number}
 export const BATTLE_EVENT_LIMIT=200;
 const fighterRef=(b:Battle,f:Fighter):BattleFighterRef=>({side:f.side,slot:b.sides[f.side].fighters.indexOf(f),key:f.rec.uid,id:f.rec.id});
 type EventData=Omit<BattleEvent,'id'|'turn'|'text'|'logIndex'>&{turn?:number};
@@ -102,7 +105,8 @@ export function createBattle(R:Rules,teamA:UnitRecord[],teamB:UnitRecord[],seed:
   const side=(t:UnitRecord[],i:0|1):SideState=>({fighters:t.map(r=>makeFighter(R,r,i,comboFor(t,r))),active:0,comboUsed:false,augs:[],offers:null,rerolled:[],offerSeen:[],needSwitch:false,reviveUsed:false,goFirst:false,neutral:0,itemsUsed:0});
   const b:Battle={R,rng:seed|0,turn:1,phase:'choose',winner:null,sides:[side(teamA,0),side(teamB,1)],log:[],events:[],eventSeq:0};
   if(R.augmentVersion===2)b.effectsVersion=2;
-  if(augmentConfig)b.augmentOffers={...structuredClone(augmentConfig),roundIndex:0};
+  if(R.augmentVersion===2&&(augmentConfig?.sequenceProfile||R.battleAug.get('reverse')?.effect==='choose-own-attribute')){b.combatRulesEpoch=CURRENT_COMBAT_RULES_EPOCH;b.innateDamageVersion=1;}
+  if(augmentConfig){b.augmentOffers={...structuredClone(augmentConfig),roundIndex:0};if(augmentConfig.sequenceProfile)b.augmentOffers.sequence=createAugmentSequence(augmentConfig.sequenceProfile,()=>rand(b));}
   // 거울(mirror) 빌런: 상대 팀에 가장 많은 속성을 그대로 비춤(같으면 상대 선두 속성)
   for(const i of [0,1] as const)for(const f of b.sides[i].fighters)if(R.unitDef(f.rec.id)?.mirror){
     const foes=b.sides[i===0?1:0].fighters,cnt=new Map<Attr,number>();for(const x of foes)cnt.set(x.attr,(cnt.get(x.attr)??0)+1);
@@ -120,8 +124,10 @@ const alive=(f:Fighter)=>f.hp>0;
 function offerAugments(b:Battle){
   const config=b.augmentOffers;
   if(config?.version===2){
-    const result=createOfferRound(config.catalog,[b.sides[0].augs,b.sides[1].augs],[eligibleAugmentIds(b,0),eligibleAugmentIds(b,1)],config.weights,()=>rand(b),(config.roundIndex%2) as 0|1);
-    config.roundIndex++;
+    const selectedTier=config.sequence?.[config.roundIndex];
+    const weights=config.sequence?{silver:selectedTier==='silver'?1:0,gold:selectedTier==='gold'?1:0,prismatic:selectedTier==='prismatic'?1:0}:config.weights;
+    const result=createOfferRound(config.catalog,[b.sides[0].augs,b.sides[1].augs],[eligibleAugmentIds(b,0),eligibleAugmentIds(b,1)],weights,()=>rand(b),(config.roundIndex%2) as 0|1);
+    if(!config.sequence||config.roundIndex<config.sequence.length)config.roundIndex++;
     if(result.kind==='exhausted'){
       delete config.round;for(const s of b.sides){s.offers=null;s.rerolled=[];s.offerSeen=[];}
       b.phase=b.sides.some(s=>s.needSwitch)?'choose':'action';return;
@@ -160,9 +166,11 @@ export function rerollAugment(b:Battle,side:0|1,i:number,bonus=false){
   return id;
 }
 // 고르기 단계: 증강체(제안이 있으면 필수), 쓰러진 선두 교체(필요하면 필수)
-export function choose(b:Battle,side:0|1,pick:{augment?:string;switchTo?:number}){
+export function choose(b:Battle,side:0|1,pick:Choice){
   if(b.phase!=='choose')throw new Error('지금은 고를 때가 아님');
   const s=b.sides[side];
+  if(pick.freestyle){applyFreestyle(b,side,pick);finishChoiceStage(b);return;}
+  if(s.freestyle&&!s.freestyle.chosen)throw new Error('속성을 선택해 주세요');
   const augment=s.offers?pick.augment:undefined;
   if(s.offers&&(!augment||!s.offers.includes(augment)))throw new Error('제안된 증강체 중 하나를 골라야 함');
   const to=s.needSwitch?pick.switchTo:undefined;
@@ -177,14 +185,16 @@ export function choose(b:Battle,side:0|1,pick:{augment?:string;switchTo?:number}
   if(augment){
     s.augs.push(augment);s.offers=null;applyAugment(b,side,augment);
   }
-  if(b.sides.every(x=>!x.offers&&!x.needSwitch))b.phase='action';
+  finishChoiceStage(b);
 }
 // Realtime only: validate both selections, replace both fainted fighters, then apply augments.
 // The caller resolves this on a clone and persists only after successful completion.
-export function chooseTogether(b:Battle,picks:[{augment?:string;switchTo?:number},{augment?:string;switchTo?:number}]){
+export function chooseTogether(b:Battle,picks:[Choice,Choice]){
   if(b.phase!=='choose')throw new Error('지금은 고를 때가 아님');
   for(const side of [0,1] as const){
     const s=b.sides[side],p=picks[side];
+    if(p.freestyle){validateFreestyle(b,side,p);continue;}
+    if(s.freestyle&&!s.freestyle.chosen)throw new Error('속성을 선택해 주세요');
     if(s.offers&&(!p.augment||!s.offers.includes(p.augment)))throw new Error('제안된 증강체 중 하나를 골라야 함');
     if(s.needSwitch&&(p.switchTo===undefined||!Number.isInteger(p.switchTo)||!s.fighters[p.switchTo]||!alive(s.fighters[p.switchTo])))throw new Error('나갈 갈매미를 골라야 함');
   }
@@ -199,9 +209,42 @@ export function chooseTogether(b:Battle,picks:[{augment?:string;switchTo?:number
     const s=b.sides[side];if(!s.offers)continue;
     const augment=picks[side].augment!;s.augs.push(augment);s.offers=null;applyAugment(b,side,augment,effectV2(b)?leaderAttrs[foeSide(side)]:undefined);
   }
-  if(b.sides.every(s=>!s.offers&&!s.needSwitch))b.phase='action';
+  for(const side of [0,1] as const)if(picks[side].freestyle)applyFreestyle(b,side,picks[side]);
+  finishChoiceStage(b);
 }
-export const pending=(b:Battle,side:0|1)=>({augments:b.sides[side].offers,needSwitch:b.sides[side].needSwitch});
+export const pending=(b:Battle,side:0|1)=>({augments:b.sides[side].offers,needSwitch:b.sides[side].needSwitch,freestyle:b.sides[side].freestyle&&!b.sides[side].freestyle!.chosen?b.sides[side].freestyle:undefined});
+
+export interface Choice {augment?:string;switchTo?:number;freestyle?:FreestyleChoice}
+// 양쪽 증강/강제교체가 끝난 뒤 공개 선두를 한 번만 고정한다. 제출 순서로 상대 선택을 엿볼 수 없다.
+function finishChoiceStage(b:Battle){
+  if(b.sides.some(s=>s.offers||s.needSwitch))return;
+  const attrs:[Attr,Attr]=[activeOf(b,0).attr,activeOf(b,1).attr];
+  for(const side of [0,1] as const){const s=b.sides[side];if(!s.augment?.freestylePending)continue;
+    delete s.augment.freestylePending;
+    const phaseId=`freestyle:${b.augmentOffers?.roundIndex??0}:${b.turn}`;
+    s.freestyle={selectionId:`${phaseId}:${side}`,phaseId,side,targetKey:activeOf(b,side).rec.uid,opponentAttribute:attrs[foeSide(side)]};
+  }
+  b.phase=b.sides.some(s=>s.freestyle&&!s.freestyle.chosen)?'choose':'action';
+}
+function validateFreestyle(b:Battle,side:0|1,p:Choice){
+  const s=b.sides[side],snapshot=s.freestyle;
+  if(p.augment!==undefined||p.switchTo!==undefined||s.offers||s.needSwitch||!snapshot||!p.freestyle)throw new Error('지금은 속성을 선택할 수 없어요');
+  const f=activeOf(b,side);if(f.hp<=0||f.rec.uid!==snapshot.targetKey)throw new Error('속성 선택 대상이 달라요');
+  return validateFreestyleChoice(snapshot,side,snapshot.phaseId,p.freestyle);
+}
+function applyFreestyle(b:Battle,side:0|1,p:Choice){
+  const {attribute,duplicate}=validateFreestyle(b,side,p);if(duplicate)return;
+  const s=b.sides[side],f=activeOf(b,side);s.freestyle!.chosen=attribute;f.attr=attribute;
+  // 유닛에 저장하므로 교체/복귀 후에도 이번 전투 동안 유지, 원본 수집 유닛은 불변.
+  b.log.push(`${f.name}의 자유자재! ${b.R.attrName(attribute)} 속성을 선택했어요.`);
+  statusEvent(b,f,'freestyle',f);
+}
+export function automaticFreestyleChoice(b:Battle,side:0|1):FreestyleChoice{
+  const snapshot=b.sides[side].freestyle;if(!snapshot)throw new Error('속성 선택 없음');
+  const foe=snapshot.opponentAttribute;
+  const attribute=[...attrKeys].sort((a,c)=>(b.R.typeMult(c,foe)/b.R.typeMult(foe,c))-(b.R.typeMult(a,foe)/b.R.typeMult(foe,a)))[0];
+  return {selectionId:snapshot.selectionId,phaseId:snapshot.phaseId,targetKey:snapshot.targetKey,attribute};
+}
 
 // V1 저장 상태에는 이 필드를 만들지 않는다. 유한 사용권은 팀 전체가 공유한다.
 const effectV2=(b:Battle)=>b.R.augmentVersion===2&&b.augmentOffers?.version===2;
@@ -235,6 +278,7 @@ function applyAugment(b:Battle,side:0|1,id:string,foeAttr?:Attr){
   const me=activeOf(b,side),foe=activeOf(b,foeSide(side)),s=b.sides[side];
   const R=b.R,a=R.battleAug.get(id)!,p=a.p;b.log.push(`[${side===0?'내 팀':'상대'}] 증강체 「${a.name}」!`);
   event(b,{kind:'augment',actor:fighterRef(b,me),skillId:id,skillName:a.name});
+  if(a.effect==='choose-own-attribute'){s.augment??={};s.augment.freestylePending=true;return;}
   if(applyNewAugment(b,side,id,augmentIO(b,me)))return;
   if(applyLegacyV2(b,side,id))return;
   if(id==='neutral'){b.sides[0].neutral=b.sides[1].neutral=p.turns??3;}
@@ -269,6 +313,11 @@ function statOf(b:Battle,f:Fighter,key:BaseStat){
   if(!effectV2(b)&&stat==='atk'&&s.augs.includes('overtime'))v*=1+ap('overtime');
   return Math.max(1,v);
 }
+// 신규 규칙 snapshot에서만 활성화. 기술 상성/증강 상성 변환과 독립적인 작은 보정이다.
+export function innateAttackFactor(b:Battle,att:Fighter,def:Fighter):number{
+  if(b.R.augmentVersion!==2||b.combatRulesEpoch!==CURRENT_COMBAT_RULES_EPOCH||b.innateDamageVersion!==1||b.sides.some(s=>s.neutral>0))return 1;
+  const matchup=b.R.typeMult(att.attr,def.attr);return matchup>1?1.1:matchup<1?0.9:1;
+}
 function attackAttr(R:Rules,f:Fighter,move:Skill,target:Fighter):Attr{
   const a=move.attr??f.attr;
   if(f.extraAttr&&(move.id.startsWith('basic')||move.id==='role-ATTACK')&&R.typeMult(f.extraAttr,target.attr)>R.typeMult(a,target.attr))return f.extraAttr;
@@ -280,13 +329,13 @@ function multiplier(b:Battle,att:Fighter,def:Fighter,a:Attr,raw=false){
   const as=b.sides[att.side],ds=b.sides[def.side];
   if(effectV2(b)){
     m=augmentWeatherMultiplier(b,m);
-    if(!b.augmentCast?.sealed&&as.augs.includes('reverse'))m=m>1?.6:m<1?2.2:1;
+    if(!b.augmentCast?.sealed&&as.augs.includes('reverse')&&b.R.battleAug.get('reverse')?.effect!=='choose-own-attribute')m=m>1?.6:m<1?2.2:1;
     // 일반 날씨에서는 기존 상성 수치를 뒤집는다.
-    if(as.augs.includes('reverse')&&!b.augmentCast?.sealed&&!b.sides.some(s=>(s.augment?.hostileweatherUntil??0)>=b.turn))m=m>1?M.strong:m<1?M.weak:1;
+    if(as.augs.includes('reverse')&&b.R.battleAug.get('reverse')?.effect!=='choose-own-attribute'&&!b.augmentCast?.sealed&&!b.sides.some(s=>(s.augment?.hostileweatherUntil??0)>=b.turn))m=m>1?M.strong:m<1?M.weak:1;
     if(raw)return m;
     if(!b.augmentCast?.sealed&&m>1&&as.augs.includes('focus'))m=b.R.battleAug.get('focus')!.p.value??1.9;
   }else{
-    if(as.augs.includes('reverse'))m=m===M.strong?M.weak:m===M.weak?M.strong:1;
+    if(as.augs.includes('reverse')&&b.R.battleAug.get('reverse')?.effect!=='choose-own-attribute')m=m===M.strong?M.weak:m===M.weak?M.strong:1;
     if(m===M.strong&&as.augs.includes('focus'))m=b.R.battleAug.get('focus')!.p.value??1.9;
   }
   if(m>1&&ds.augs.includes('weakguard'))m=1;
@@ -330,11 +379,12 @@ export function skillPreview(b:Battle,side:0|1,move:Skill){
     power.power=Math.round(power.power*(1+bonus/100));power.bonusPct=(power.power/(power.basePower||1)-1)*100;power.bonusActive=power.bonusActive||bonus>0;
     if(move.power){mult=c.typeMultiplier??multiplier(b,att,def,attr,true);if(!c.sealed&&mult>1&&b.sides[side].augs.includes('focus'))mult=b.R.battleAug.get('focus')!.p.value??1.9;if(!c.ignoreAugmentDefense&&mult>1&&b.sides[def.side].augs.includes('weakguard'))mult=1;}
   }
-  return {attr,attrName:original.R.attrName(attr),multiplier:mult,...power,
+  const innateMultiplier=move.power?innateAttackFactor(b,att,def):1,sameAttributeMultiplier=move.power&&attr===att.attr?b.R.data.multipliers.sameAttr:1;
+  return {attr,attrName:original.R.attrName(attr),multiplier:mult,innateMultiplier,sameAttributeMultiplier,combinedAttributeMultiplier:mult*innateMultiplier*sameAttributeMultiplier,...power,
     category:move.cat==='mag'||((move.cat??'auto')==='auto'&&att.base.matk>att.base.patk)?'mag':'phys'};
 }
 
-function damage(b:Battle,att:Fighter,def:Fighter,move:Skill,firstHit=true){
+function damage(b:Battle,att:Fighter,def:Fighter,move:Skill,firstHit=true,directTechnique=true){
   const R=b.R,M=R.data.multipliers,a=attackAttr(R,att,move,def),c=b.augmentCast;
   let mult=multiplier(b,att,def,a);
   if(c&&effectV2(b)){mult=c.typeMultiplier??multiplier(b,att,def,a,true);if(!c.sealed&&mult>1&&b.sides[att.side].augs.includes('focus'))mult=R.battleAug.get('focus')!.p.value??1.9;if(!c.ignoreAugmentDefense&&mult>1&&b.sides[def.side].augs.includes('weakguard'))mult=1;}
@@ -347,7 +397,7 @@ function damage(b:Battle,att:Fighter,def:Fighter,move:Skill,firstHit=true){
   else {if(att.passive.pierce)dv*=1-att.passive.pierce/100;if(move.pierce)dv*=1-move.pierce/100;if(aug(att.side,'pierce'))dv*=1-aug(att.side,'pierce')/100;}
   const crit=c?.disableCrit?false:move.crit||rand(b)<(M.critChance+(att.passive.critPlus??0)+((!effectV2(b)||firstHit)?aug(att.side,'sharp'):0)+(firstHit?(c?.critPlus??0):0))/100;
   // 체력이 레벨·진화로 커지는 만큼 피해도 같은 비율로 커짐(같은 레벨이면 몇 대에 쓰러지는지 일정)
-  let d=((atk/dv)*(move.power??0)*0.5+2)*att.scale*(a===att.attr?M.sameAttr:1)*mult*(0.9+rand(b)*0.1)*(crit?M.crit:1);
+  let d=((atk/dv)*(move.power??0)*0.5+2)*att.scale*(a===att.attr?M.sameAttr:1)*mult*(directTechnique&&(move.power??0)>0?innateAttackFactor(b,att,def):1)*(0.9+rand(b)*0.1)*(crit?M.crit:1);
   if(att.passive.execute&&def.hp<=def.maxHp*0.3)d*=1+att.passive.execute/100;
   if(att.passive.opener&&!att.attacked)d*=1+att.passive.opener/100;
   const as=b.sides[att.side],ds=b.sides[def.side];
@@ -457,7 +507,7 @@ function useSkillInner(b:Battle,user:Fighter,target:Fighter,skill:Skill){
     if(target.passive.reflect&&target.hp>0){const r=Math.round(total*target.passive.reflect/100),e=hurt(b,user,r,{actor:fighterRef(b,target),reason:'reflect'});b.log.push(`반사! ${josa(user.name,'이가')} ${r} 피해를 돌려받았어요.`);linkEvent(b,e);}
     if(!b.augmentCast?.ignoreAugmentDefense&&last.mult<1&&b.sides[target.side].augs.includes('counter')&&target.hp>0){
       const savedCast=b.augmentCast;if(effectV2(b))delete b.augmentCast;
-      const r=damage(b,target,user,{id:'counter',name:'역습',power:b.R.battleAug.get('counter')!.p.power??40,cd:0,effects:[],desc:''}),e=hurt(b,user,r.amount,{actor:fighterRef(b,target),reason:'counter',skillId:'counter',skillName:'역습',attr:r.attr,crit:!!r.crit,multiplier:r.mult});b.log.push(`역습! ${josa(user.name,'이가')} ${r.amount} 피해를 입었어요.`);linkEvent(b,e);if(savedCast)b.augmentCast=savedCast;
+      const r=damage(b,target,user,{id:'counter',name:'역습',power:b.R.battleAug.get('counter')!.p.power??40,cd:0,effects:[],desc:''},true,false),e=hurt(b,user,r.amount,{actor:fighterRef(b,target),reason:'counter',skillId:'counter',skillName:'역습',attr:r.attr,crit:!!r.crit,multiplier:r.mult});b.log.push(`역습! ${josa(user.name,'이가')} ${r.amount} 피해를 입었어요.`);linkEvent(b,e);if(savedCast)b.augmentCast=savedCast;
     }
   }
   applyEffects(b,user,target,skill.effects,skill);
@@ -618,7 +668,7 @@ export function pickAi(b:Battle,side:0|1):Action{
   let best:Action=legal[0]??{kind:'skill',skillId:f.skills[0].id},score=-1;
   for(const a of legal){
     const sk=skillOf(f,a.skillId)!;let v=0;
-    if(sk.power){const preview=skillPreview(b,side,sk);v=preview.power*(sk.hits??1)*preview.multiplier*(preview.attr===f.attr?b.R.data.multipliers.sameAttr:1);}
+    if(sk.power){const preview=skillPreview(b,side,sk);v=preview.power*(sk.hits??1)*preview.multiplier*preview.innateMultiplier*(preview.attr===f.attr?b.R.data.multipliers.sameAttr:1);}
     if(sk.effects.some(e=>e.kind==='heal')){
       let healing=0;
       if(f.healUntil<b.turn)for(const e of sk.effects)if(e.kind==='heal'){
@@ -638,7 +688,8 @@ export function pickAi(b:Battle,side:0|1):Action{
   return best;
 }
 export function aiChoose(b:Battle,side:0|1){
-  const s=b.sides[side],p:{augment?:string;switchTo?:number}={};
+  const s=b.sides[side],p:Choice={};
+  if(s.freestyle&&!s.freestyle.chosen){choose(b,side,{freestyle:automaticFreestyleChoice(b,side)});return;}
   if(s.offers){
     // 상대 선두에게 상성이 불리하면 상성 뒤집기류를 먼저
     const me=activeOf(b,side),foe=activeOf(b,foeSide(side));
@@ -650,4 +701,5 @@ export function aiChoose(b:Battle,side:0|1){
     s.fighters.forEach((f,i)=>{if(!alive(f))return;const v=b.R.typeMult(f.attr,foe.attr)/b.R.typeMult(foe.attr,f.attr);if(v>bv){bv=v;bi=i;}});p.switchTo=bi;}
   choose(b,side,p);
 }
+
 
