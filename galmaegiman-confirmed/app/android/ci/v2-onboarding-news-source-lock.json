@@ -174,6 +174,36 @@
       "sha256": "b8434095114c09073300a81ee89ea6b9f4ad47c210c3618acdf3b85734918e52"
     },
     {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/res/drawable-nodpi/user_launcher_art.png",
+      "bytes": 488469,
+      "sha256": "4e9bb052bfe77f168a678a11565941ee59ed010731cb42dcae06295408488883"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/res/drawable-nodpi/user_launcher_foreground.png",
+      "bytes": 173209,
+      "sha256": "f51908e7dde13204ecd97e35159351c7bf7117b33b5aa77bc78cc68627501017"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "bytes": 272,
+      "sha256": "49fe30d0c620453b558a79e92db45d0f11ec0c22f9cb072ccc5987545564c35a"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+      "bytes": 272,
+      "sha256": "49fe30d0c620453b558a79e92db45d0f11ec0c22f9cb072ccc5987545564c35a"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/res/mipmap-anydpi/ic_launcher.xml",
+      "bytes": 208,
+      "sha256": "09b679b0d4ee9fe0651da061c5d31ab4c8856bf58aec90e3e59e47e3da9707cf"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/res/mipmap-anydpi/ic_launcher_round.xml",
+      "bytes": 208,
+      "sha256": "09b679b0d4ee9fe0651da061c5d31ab4c8856bf58aec90e3e59e47e3da9707cf"
+    },
+    {
       "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/AugmentPresentationTest.java",
       "bytes": 1867,
       "sha256": "5bc9856d0a43bf9cdc27eccea7a6c0c2ec412b43ad06fae2625b3b966b8d88b7"
@@ -245,8 +275,8 @@
     },
     {
       "path": "galmaegiman-confirmed/docs/handoffs/V2-ONBOARDING-NEWS-20261022.md",
-      "bytes": 11674,
-      "sha256": "fb336cc2588d43557c659df80a9195ab06e827d580b40e6b89e11d9b706e9acc"
+      "bytes": 12835,
+      "sha256": "562c17097c948bea8690ea41f335b836d97d345b3c116d208f1ffb01732bf80e"
     },
     {
       "path": "galmaegiman-confirmed/docs/migrations/v2-onboarding-news.sql",
