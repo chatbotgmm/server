@@ -141,6 +141,8 @@ jobs:
         run: |
           python3 -m unittest discover -s ci -p test_verify_visual_approval.py -v
           python3 -m unittest discover -s ci -p test_verify_recruitment_revision_ci.py -v
+          python3 -m unittest discover -s ci -p test_verify_recruitment_v3_layout.py -v
+          python3 -m unittest discover -s ci -p test_verify_recruitment_reference_assets.py -v
 
       - name: Test final feedback evidence validation
         id: feedback_final_checks
@@ -453,6 +455,7 @@ jobs:
           name: home-assembly-recruitment-counter-${{ github.sha }}
           path: |
             galmaegiman-confirmed/app/android/app/build/native-review/recruitment-counter/*.png
+            galmaegiman-confirmed/app/android/app/build/native-review/recruitment-counter/*.json
           if-no-files-found: error
           retention-days: 1
       - name: Save home drag and timed water native frames for visual review

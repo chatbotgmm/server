@@ -31,7 +31,14 @@ def verify_payload(read, paths, lock, recruitment=None):
     if recruitment is not None:
         from verify_recruitment_revision_ci import verify_trays
         tray_report = verify_trays(read, recruitment)
-        tray_paths = {entry["path"] for entry in recruitment}
+        from recruitment_reference_assets import reference_lock
+        reference = [e for e in reference_lock() if 'kind' in e]
+        for e in reference:
+            relative = e['path'].removeprefix('native/release-v1/')
+            data = read(relative)
+            check(len(data) == e['bytes'] and sha256(data) == e['sha256'], 'R3 reference PNG identity mismatch')
+            check(list(png_dimensions(data)) == e['dimensions'] and data[25] == 6, 'R3 reference PNG dimensions mismatch')
+        tray_paths = {entry["path"] for entry in recruitment} | {e['path'].removeprefix('native/release-v1/') for e in reference}
         check(tray_paths <= set(paths), "Missing recruitment tray payload")
         paths = [path for path in paths if path not in tray_paths]
     expected = {entry["path"]: entry for entry in lock["files"]}
@@ -84,6 +91,8 @@ def allowed_asset_changes(changed, lock, recruitment=None, home_transition=None)
         from verify_recruitment_revision_ci import TRAYS
         check(len(recruitment) == 3 and {entry["path"] for entry in recruitment} == TRAYS, "Unexpected tray allowlist")
         allowed.update(lock["source_prefix"] + "/" + path for path in TRAYS)
+        from recruitment_reference_assets import reference_lock, ASSET_PREFIX
+        allowed.update(ASSET_PREFIX + e['path'] for e in reference_lock())
     if home_transition is not None:
         verify_home_transition(*home_transition, lock)
         allowed.add(HOME_PATH)
@@ -104,6 +113,8 @@ def verify_source(args):
     from verify_recruitment_revision_ci import tray_lock
     recruitment = tray_lock()
     report = verify_payload(lambda path: (source / path).read_bytes(), paths, lock, recruitment)
+    from recruitment_reference_assets import verify_reference_assets, ASSET_PREFIX
+    report['recruitment_reference_v3'] = verify_reference_assets(lambda path: (repo / ASSET_PREFIX / path).read_bytes())
     baseline = lock["app_baseline_commit"]
     subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", baseline, "HEAD"], check=True)
     changed = subprocess.check_output(["git", "-C", str(repo), "diff", "--name-only", "--no-renames",
@@ -132,6 +143,8 @@ def verify_apk(args):
             prefix = lock["apk_prefix"] + "/"
             paths = [name[len(prefix):] for name in names if name.startswith(prefix)]
             report = verify_payload(lambda relative: archive.read(prefix + relative), paths, lock, recruitment)
+            from recruitment_reference_assets import verify_reference_assets
+            report['recruitment_reference_v3'] = verify_reference_assets(lambda path: archive.read('assets/'+path))
             report["canonical_matrix_sha256"] = verify_matrix_asset(archive.read("assets/battle-type-baseline.json"))
         report.update({"apk": str(path), "apk_bytes": path.stat().st_size,
                        "apk_sha256": sha256(path.read_bytes())})

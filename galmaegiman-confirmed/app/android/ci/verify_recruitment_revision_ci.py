@@ -30,7 +30,7 @@ SUITES = {
  'NativeFullscreenReviewTest': ['decorationFillsWindowButContentKeepsEveryInset','realNativePagesFillEdgesAndRetainSafeContent','liveInsetsKeepKeyboardAndVisibleBarsAwayFromControls'],
  'NativeTeamCharacterPanelTest': ['captureSolidPortraitsAndCompactPagerAcrossProfiles','handleTapAndLongPressNeverOpenReorderModal','accessibleReorderIsInlineDraftOnlyAndBusyGuarded'],
  'CurrencyDisplayReviewTest': ['sharedDisplayRetainsClickAndBusySemantics','insetSurfaceKeepsReadableStatesWithinBounds','renderMeasuredBalancesAcrossSizes'],
- 'NativeRecruitmentCounterReviewTest': ['renderDistinctCounterTraysAndActionStatesAcrossSizes', 'preservesCooldownBoundaryAndSelectionWithoutWrites','claimRequestStaysLockedAcrossTicksAndRefreshesCooldown','preservesNewOperationLockWhenClaimRefreshBecomesStale'],
+ 'NativeRecruitmentCounterReviewTest': ['referenceArtworkUsesExactKindMetadataAndSafeImmutableFallback', 'renderDistinctCounterTraysAndActionStatesAcrossSizes', 'preservesCooldownBoundaryAndSelectionWithoutWrites','claimRequestStaysLockedAcrossTicksAndRefreshesCooldown','preservesNewOperationLockWhenClaimRefreshBecomesStale'],
  'ReleaseHomeMotionTest': ['criticalReturnIsSlowBoundedAndNeverCrossesRest','meshOnlyMovesWaterVerticesAndRetainsItsBuffers','realArtChangesOnlyInsideWaterAndReducedMotionIsPixelStable','dragKeepsFeetAndShadowFixedAndCancelsOnPauseSystemOffAndDetach','regrabCancelAndSecondPointerDoNotLeaveAnActiveDrag','blankCenterDragUsesRealDispatchAndControlsKeepTheirGestures','timedPhoneWaterFramesAdvanceAndResumeAfterPauseAndHomeReentry','disabledHomeControlKeepsImageAndAppliesSharedToneOnce','currencyInsetsKeepMaximumAmountsAndShopTargetsAtLargeFont','currencyMaximumAmountsKeepFourteenSpAcrossSafePhoneWidths'],
  'NativeThemeStateTest': ['nativeAudioRailsRemainVisibleAtZeroHalfAndFullVolume','settingsBackgroundAlphaFilterAndAsyncCallbackArePreserved','soundRestoreAccountGuardAndCloseRemainNativeAndDoNotWrite','buttonsPreservePressSelectionDisabledAlphaAndClearableFilters','sharedButtonCancelAndDisableNeverActivateAndReenableRestoresInput'],
 }
@@ -124,6 +124,24 @@ def verify_counter(root):
         if state in ('low','mid','high'): check(m['selectedKind']==state.upper(), 'Wrong selected tray')
         if state=='cooldown': check(m['claimEnabled'] is False, 'Cooldown claim must be disabled')
         if state=='insufficient': check(m['submitEnabled'] is False, 'Insufficient submit must be disabled')
+    return images
+
+def verify_counter_v3(root):
+    """Current aggregate uses v3; verify_counter remains historical fixture coverage only."""
+    from verify_recruitment_v3_layout import verify
+    directory = root / 'recruitment-counter'
+    verify(directory)
+    data = read(directory / 'evidence.json')
+    images = [verify_png(directory / c['png'], c['widthPx'], c['heightPx']) for c in data['captures']]
+    claim = read(directory / 'claim-state.json')
+    expected = {'requestingClaimEnabled':False,'requestingBusy':True,'requestsAfterDuplicateTap':1,
+                'refreshingClaimEnabled':False,'refreshingBusy':True,'refreshedClaimEnabled':False,
+                'refreshedBusy':False,'refreshedCredits':230,'refreshedCooldownMillis':3600000}
+    check(all(type(claim.get(k)) is type(v) and claim[k] == v for k,v in expected.items()), 'V3 claim request unlocked, duplicated or refreshed incorrectly')
+    check(claim.get('calls') == ['GET draw','POST claim','GET native/state','GET draw'], 'Unexpected v3 claim request sequence')
+    for name in ('claim-requesting-915x412.png','claim-refreshed-915x412.png'):
+        images.append(verify_png(directory/name,915,412))
+    check({p.name for p in directory.glob('*.png')} == {c['png'] for c in data['captures']} | {'claim-requesting-915x412.png','claim-refreshed-915x412.png'}, 'Unexpected v3 capture inventory')
     return images
 
 def verify_currency(root):
@@ -417,14 +435,15 @@ def main():
     verify_matrix_test(args.repo)
     verify_receipt_test(args.repo)
     suites=junit(args.test_results)
+    check(read(args.native_review/'recruitment-counter/evidence.json').get('sourceRevision') == git(args.repo,'rev-parse','HEAD').decode().strip(), 'V3 captures belong to another source revision')
     full=read(args.full_suite_report)
     verify_totals(full)
-    images=verify_reassessment(args.native_review)+verify_replay(args.native_review)+verify_realtime_identity(args.native_review)+verify_battle_utilities(args.native_review)+verify_counter(args.native_review)+verify_motion(args.native_review)+verify_currency(args.native_review)+verify_team(args.native_review)+verify_fullscreen(args.native_review)+verify_insertion(args.native_review)+verify_story_cards(args.native_review)+verify_mode_navigation(args.native_review)
+    images=verify_reassessment(args.native_review)+verify_replay(args.native_review)+verify_realtime_identity(args.native_review)+verify_battle_utilities(args.native_review)+verify_counter_v3(args.native_review)+verify_motion(args.native_review)+verify_currency(args.native_review)+verify_team(args.native_review)+verify_fullscreen(args.native_review)+verify_insertion(args.native_review)+verify_story_cards(args.native_review)+verify_mode_navigation(args.native_review)
     for i in range(4): images.append(verify_png(args.native_review/'theme-state'/f'button-{i}-normal-pressed-cancelled-selected-disabled.png',1100,56,minimum_bytes=1000))
     evidence={'source_commit':git(args.repo,'rev-parse','HEAD').decode().strip(),
               'source_tree_sha256':fingerprint(args.repo,'HEAD'),'captures':images,'diagnostic_captures':verify_dossier_diagnostics(args.native_review),'required_methods':suites,'totals':full['totals'],
               'sidecar_sha256': {name:sha256((args.native_review/name).read_bytes()) for name in
-                 ('result-reassessment/observations.json','battle-replay/manifest.json','battle-replay/metrics.json','battle-replay/findings.json','realtime-identity-revision/metrics.json','battle-ui-revision/observations.json','recruitment-counter/geometry.json','recruitment-counter/findings.json','recruitment-counter/claim-state.json','home-water-motion.json','currency-display/geometry.json','currency-display/findings.json','team-character-panels/manifest.json','team-character-panels/metrics.json','team-character-panels/findings.json','team-character-panels/inline-reorder.json','fullscreen/metrics.json','team-insertion-preview/party.json','team-insertion-preview/story-list.json','team-insertion-preview/story-order.json','story-cards/metrics.json','story-cards/findings.json','feedback-mode-navigation/manifest.json','feedback-mode-navigation/metrics.json','feedback-mode-navigation/findings.json')}}
+                 ('result-reassessment/observations.json','battle-replay/manifest.json','battle-replay/metrics.json','battle-replay/findings.json','realtime-identity-revision/metrics.json','battle-ui-revision/observations.json','recruitment-counter/evidence.json','recruitment-counter/claim-state.json','home-water-motion.json','currency-display/geometry.json','currency-display/findings.json','team-character-panels/manifest.json','team-character-panels/metrics.json','team-character-panels/findings.json','team-character-panels/inline-reorder.json','fullscreen/metrics.json','team-insertion-preview/party.json','team-insertion-preview/story-list.json','team-insertion-preview/story-order.json','story-cards/metrics.json','story-cards/findings.json','feedback-mode-navigation/manifest.json','feedback-mode-navigation/metrics.json','feedback-mode-navigation/findings.json')}}
     evidence['evidence_sha256']=sha256(json.dumps(evidence,sort_keys=True,separators=(',',':')).encode())
     emit(dict(status='passed',**evidence),args.output)
 

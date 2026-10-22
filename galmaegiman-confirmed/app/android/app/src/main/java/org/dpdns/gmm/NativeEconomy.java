@@ -44,192 +44,55 @@ final class NativeEconomy {
     AppSkin.apply(h, "reception");
     // 이 화면만 짧은 장소 명패와 오른쪽 재화를 사용한다.
     LinearLayout header = h.root.findViewWithTag("theme-page-header");
+    h.title.setTypeface(RecruitmentScreen.recruitmentFont(h, true));
     h.title.setGravity(Gravity.CENTER);
     h.title.setEllipsize(null);
+    h.title.setIncludeFontPadding(false);
+    // Recruitment-only smooth navy header; do not replace shared theme drawables globally.
+    android.graphics.drawable.GradientDrawable headerPanel = new android.graphics.drawable.GradientDrawable();
+    headerPanel.setColor(0xEB10283F);
+    headerPanel.setCornerRadius(h.dp(10));
+    header.setBackground(headerPanel);
+    h.title.setBackgroundColor(Color.TRANSPARENT);
+    h.title.setTextColor(0xFFF4F2EB);
     int titleWidth = Math.max(h.dp(132), (int) Math.ceil(h.title.getPaint().measureText("모집소")) + h.dp(32));
-    h.title.setLayoutParams(new LinearLayout.LayoutParams(titleWidth, h.dp(48)));
+    Paint.FontMetrics titleMetrics = h.title.getPaint().getFontMetrics();
+    int titleHeight = Math.max(h.dp(48), (int) Math.ceil(titleMetrics.descent - titleMetrics.ascent)
+        + h.title.getPaddingTop() + h.title.getPaddingBottom());
+    h.title.setLayoutParams(new LinearLayout.LayoutParams(titleWidth, titleHeight));
+    // Recruitment-local font choice; shared menus retain their existing Jua/Gowun faces.
+    for (int i = 0; i < header.getChildCount(); i++) {
+      View child = header.getChildAt(i);
+      if (!(child instanceof TextView) || !(child.getTag() instanceof String)
+          || !((String) child.getTag()).startsWith("currency-")) continue;
+      TextView currency = (TextView) child;
+      currency.setTypeface(RecruitmentScreen.recruitmentFont(h, false));
+      currency.setIncludeFontPadding(false);
+      LinearLayout.LayoutParams slot = (LinearLayout.LayoutParams) currency.getLayoutParams();
+      slot.width = Math.max(slot.width, (int) Math.ceil(currency.getPaint().measureText(currency.getText().toString())) + h.dp(48));
+      currency.setLayoutParams(slot);
+    }
     View air = new View(h);
     air.setTag("draw-header-space");
     header.addView(air, 2, new LinearLayout.LayoutParams(0, 1, 1));
     if (m.lastDraw != null) {
-      Button previous = k.action(null, "지난 결과", () -> reveal(m.lastDraw, () -> h.load("draw"), true));
+      Button previous = k.action(null, "↺", () -> reveal(m.lastDraw, () -> h.load("draw"), true));
       previous.setTag("draw-last-result");
-      previous.setTextSize(14);
-      header.addView(previous, 2, new LinearLayout.LayoutParams(h.dp(104), h.dp(48)));
+      previous.setTextSize(22);
+      previous.setContentDescription("지난 모집 결과 다시 보기");
+      previous.setPadding(0, 0, 0, 0);
+      header.addView(previous, 2, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
     }
+    // A response from another account must not attach to this screen, even at the same epoch.
+    final int drawEpoch = h.epoch;
+    final String drawAccount = h.api.token();
     m.fetch("draw", r -> {
+      if (h.isFinishing() || h.isDestroyed() || h.epoch != drawEpoch
+          || !drawAccount.equals(h.api.token())) return;
       LinearLayout counter = economyBody("recruitment-counter");
-      counter.setPadding(h.dp(8), 0, h.dp(8), h.dp(4));
-      LinearLayout stations = k.row();
-      stations.setTag("recruitment-stations");
-      stations.setGravity(Gravity.BOTTOM);
-      stations.setBaselineAligned(false);
-      counter.addView(stations, new LinearLayout.LayoutParams(-1, 0, 1));
-      LinearLayout status = k.row();
-      status.setTag("draw-status-line");
-      status.setBaselineAligned(false);
-      status.setGravity(Gravity.CENTER_VERTICAL);
-      status.setPadding(h.dp(8), h.dp(2), h.dp(8), h.dp(2));
-      status.setBackgroundColor(0xEAF7EBD2);
-      TextView wait = h.text("", 12);
-      wait.setTag("draw-claim-status");
-      wait.setIncludeFontPadding(false);
-      wait.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-      TextView pity = h.text(RecruitmentProbabilityView.pityText(r), 12);
-      pity.setTag("draw-pity");
-      pity.setIncludeFontPadding(false);
-      pity.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
-      status.addView(wait, new LinearLayout.LayoutParams(0, -2, 1));
-      status.addView(pity, new LinearLayout.LayoutParams(0, -2, 2));
-      counter.addView(status, new LinearLayout.LayoutParams(-1, -2));
-      LinearLayout rail = k.row();
-      rail.setTag("draw-purchase-rail");
-      rail.setBaselineAligned(false);
-      rail.setGravity(Gravity.CENTER_VERTICAL);
-      rail.setPadding(0, h.dp(4), 0, 0);
-      counter.addView(rail, new LinearLayout.LayoutParams(-1, -2));
-      Button claim = k.primary("u-ticket", "지원서 받기", this::claimTickets);
-      claim.setTag("draw-claim");
-      JournalButton.keepLabelDuringOperation(claim);
-      claim.setSingleLine(true);
-      claim.setTextSize(14);
-      claim.setPadding(h.dp(10), 0, h.dp(10), 0);
-      long ready = android.os.SystemClock.elapsedRealtime() + Math.max(0, r.optLong("wait"));
-      tick(counter, () -> {
-        long left = Math.max(0, ready - android.os.SystemClock.elapsedRealtime());
-        claim.setEnabled(left == 0 && !h.busy);
-        String message = left > 0 ? "다음 지급 " + duration(left) : "지금 " + r.optInt("claim") + "장 받기";
-        wait.setText(message);
-        claim.setContentDescription("지원서 받기 · " + message);
-      });
-      JSONArray offered = h.list(r, "gachas");
-      JSONObject[] selected = {RecruitmentProbabilityView.find(offered, "LOW")};
-      if (selected[0] == null) selected[0] = offered.optJSONObject(0);
-      Map<String, View> choices = new LinkedHashMap<>();
-      Runnable[] repaint = new Runnable[1];
-      repaint[0] = () -> {
-        rail.removeAllViews();
-        JSONObject g = selected[0];
-        if (g == null) {
-          rail.addView(k.note("현재 모집 정보를 받지 못했어요. 화면을 다시 열어 주세요."));
-          return;
-        }
-        for (Map.Entry<String, View> entry : choices.entrySet()) {
-          boolean active = entry.getKey().equals(g.optString("kind"));
-          View station = entry.getValue();
-          station.setSelected(active);
-          station.findViewWithTag("draw-station-title-" + entry.getKey()).setSelected(active);
-          station.findViewWithTag("draw-station-tray-" + entry.getKey()).setSelected(active);
-        }
-        int claimWidth = Math.max(h.dp(152), (int) Math.ceil(claim.getPaint().measureText("지원서 받기"))
-            + claim.getCompoundPaddingLeft() + claim.getCompoundPaddingRight() + h.dp(4));
-        rail.addView(claim, new LinearLayout.LayoutParams(claimWidth, h.dp(48)));
-        LinearLayout quantity = k.column();
-        int cost = Math.max(1, g.optInt("cost"));
-        int limit = r.optBoolean("unlimited") ? 50 : Math.min(50, r.optInt("credits") / cost);
-        int[] amount = {1};
-        TextView total = h.text("", 13);
-        total.setTag("draw-total");
-        total.setIncludeFontPadding(false);
-        total.setGravity(Gravity.CENTER);
-        total.setPadding(h.dp(4), h.dp(4), h.dp(4), h.dp(4));
-        total.setBackgroundColor(0xF2F7EBD2);
-        Button go = k.primary(null, "모집하기", () ->
-            h.confirm(recruitmentLabel(g) + " " + amount[0] + "회 · 지원서 " + cost * amount[0] + "장을 사용할까요?",
-                () -> performDraw("draw", MainActivity.obj("kind", g.optString("kind"), "times", amount[0]), "draw")));
-        go.setTag("draw-submit");
-        go.setSingleLine(true);
-        go.setTextSize(18);
-        go.setPadding(h.dp(10), 0, h.dp(10), 0);
-        NativeTutorialController.anchorPreservingTag(go, "draw-go");
-        k.compactQuantity(quantity, limit, n -> {
-          amount[0] = n;
-          total.setText("총 지원서\n" + cost * n + "장");
-          go.setContentDescription(recruitmentLabel(g) + " · 모집하기 · " + n + "회 · 지원서 " + cost * n + "장");
-        });
-        quantityLimit(quantity, limit);
-        quantityTargets(quantity);
-        quantity.setTag("draw-quantity");
-        LinearLayout.LayoutParams quantitySlot = new LinearLayout.LayoutParams(h.dp(216), h.dp(48));
-        quantitySlot.leftMargin = h.dp(6);
-        rail.addView(quantity, quantitySlot);
-        total.setMinHeight(h.dp(48));
-        rail.addView(total, new LinearLayout.LayoutParams(0, -2, 1));
-        int submitWidth = Math.max(h.dp(136), (int) Math.ceil(go.getPaint().measureText("지원서 부족")) + h.dp(24));
-        LinearLayout.LayoutParams submitSlot = new LinearLayout.LayoutParams(submitWidth, h.dp(48));
-        submitSlot.leftMargin = h.dp(6);
-        rail.addView(go, submitSlot);
-        go.setEnabled(limit > 0);
-        if (limit <= 0) {
-          go.setText("지원서 부족");
-          go.setContentDescription(recruitmentLabel(g) + " · 지원서 부족");
-          total.setText("필요 " + cost + "장\n보유 " + r.optInt("credits") + "장");
-        }
-      };
-      for (int i = 0; i < offered.length(); i++) {
-        JSONObject g = offered.optJSONObject(i);
-        if (g == null) continue;
-        String kind = g.optString("kind");
-        LinearLayout station = new RecruitmentStation(h);
-        station.setTag("draw-card-" + kind);
-        station.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        station.setPadding(h.dp(8), h.dp(6), h.dp(8), h.dp(6));
-        TextView name = h.text(recruitmentLabel(g), 20);
-        name.setTypeface(h.headline);
-        // Jua's Korean ink can exceed its ascent; retain the font's full top/bottom metrics.
-        name.setIncludeFontPadding(true);
-        name.setGravity(Gravity.CENTER);
-        name.setPadding(h.dp(12), h.dp(4), h.dp(12), h.dp(4));
-        android.graphics.drawable.GradientDrawable chosenTitle = new android.graphics.drawable.GradientDrawable();
-        chosenTitle.setColor(0xFFF8E4AA);
-        chosenTitle.setCornerRadius(h.dp(5));
-        chosenTitle.setStroke(h.dp(3), 0xFF294F60);
-        android.graphics.drawable.StateListDrawable titleStates = new android.graphics.drawable.StateListDrawable();
-        titleStates.addState(new int[] {android.R.attr.state_selected}, chosenTitle);
-        titleStates.addState(new int[] {}, ThemeArt.of(h).drawable(ThemeArt.Surface.TAB));
-        name.setBackground(titleStates);
-        name.setTextColor(JournalTheme.tabText());
-        name.setTag("draw-station-title-" + kind);
-        station.addView(name, new LinearLayout.LayoutParams(-1, -2));
-        RecruitmentTray tray = new RecruitmentTray(h, kind);
-        tray.setTag("draw-station-tray-" + kind);
-        station.addView(tray, new LinearLayout.LayoutParams(-1, 0, 1));
-        TextView cost = h.text("지원서 " + g.optInt("cost") + "장 / 1회", 15);
-        cost.setIncludeFontPadding(false);
-        cost.setPadding(h.dp(10), h.dp(4), h.dp(10), h.dp(4));
-        cost.setGravity(Gravity.CENTER);
-        cost.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
-        cost.setTag("draw-station-cost-" + kind);
-        station.addView(cost, new LinearLayout.LayoutParams(-2, -2));
-        station.setContentDescription(recruitmentLabel(g) + " 선택 · 1회당 지원서 " + g.optInt("cost") + "장");
-        station.setOnClickListener(v -> { if (!h.busy) { selected[0] = g; repaint[0].run(); } });
-        choices.put(kind, station);
-        stations.addView(station, new LinearLayout.LayoutParams(0, -1, 1));
-      }
-      repaint[0].run();
+      counter.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(4));
+      counter.addView(new RecruitmentScreen(this, r), new LinearLayout.LayoutParams(-1, -1));
     });
-  }
-
-  /** 큰 화면에서도 이름표가 그림에서 멀리 떨어지지 않도록 한 묶음으로 카운터에 놓는다. */
-  static final class RecruitmentStation extends LinearLayout {
-    RecruitmentStation(MainActivity host) { super(host); setOrientation(VERTICAL); }
-
-    @Override protected void onMeasure(int widthSpec, int heightSpec) {
-      if (getChildCount() == 3 && MeasureSpec.getMode(heightSpec) != MeasureSpec.UNSPECIFIED) {
-        int free = MeasureSpec.getSize(heightSpec) - getPaddingTop() - getPaddingBottom();
-        int width = Math.max(0, MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight());
-        for (int index : new int[] {0, 2}) {
-          measureChild(getChildAt(index), widthSpec, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-          free -= getChildAt(index).getMeasuredHeight();
-        }
-        LinearLayout.LayoutParams art = (LinearLayout.LayoutParams) getChildAt(1).getLayoutParams();
-        RecruitmentTray tray = (RecruitmentTray) getChildAt(1);
-        float ratio = tray.source.height() / (float) Math.max(1, tray.source.width());
-        art.height = Math.max(0, Math.min(free, Math.round(width * ratio)));
-        art.weight = 0;
-      }
-      super.onMeasure(widthSpec, heightSpec);
-    }
   }
 
   /** 등급마다 다른 접수 트레이. 등록 카드와 봉투 애니메이션 원본은 건드리지 않는다. */
@@ -247,9 +110,10 @@ final class NativeEconomy {
     RecruitmentTray(MainActivity host, String kind) {
       super(host);
       this.host = host;
-      path = "recruitment/tray-" + kind.toLowerCase(Locale.ROOT) + "-v1.png";
-      bitmap = ThemeArt.of(host).image(path);
-      source = bitmap == null ? new Rect(0, 0, 3, 2) : inkBounds(bitmap);
+      RecruitmentArtwork.Asset artwork = RecruitmentArtwork.load(host, kind);
+      path = artwork.path;
+      bitmap = artwork.bitmap;
+      source = artwork.sourceRect();
       setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     }
 

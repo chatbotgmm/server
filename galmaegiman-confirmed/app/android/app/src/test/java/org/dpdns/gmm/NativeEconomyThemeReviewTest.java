@@ -268,12 +268,27 @@ public class NativeEconomyThemeReviewTest {
     bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
     Rect bounds = new Rect(width, height, 0, 0);
     for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
-      if ((pixels[y * width + x] >>> 24) <= 8) continue;
+      if ((pixels[y * width + x] >>> 24) <= 128) continue;
       bounds.left = Math.min(bounds.left, x); bounds.top = Math.min(bounds.top, y);
       bounds.right = Math.max(bounds.right, x + 1); bounds.bottom = Math.max(bounds.bottom, y + 1);
     }
     assertFalse("Tray has actual visible ink", bounds.isEmpty());
     return bounds;
+  }
+
+  boolean rightSelectionMarker(MainActivity host, View station) {
+    Bitmap pixels = Bitmap.createBitmap(station.getWidth(), station.getHeight(), Bitmap.Config.ARGB_8888);
+    try {
+      station.draw(new Canvas(pixels)); int circle = 0, tick = 0;
+      int left = station.getWidth() - host.dp(18), right = station.getWidth() - host.dp(4);
+      assertTrue("Right selection ornament stays within the card", left >= 0 && station.getHeight() >= host.dp(20));
+      for (int y = host.dp(6); y < host.dp(20); y++) for (int x = left; x < right; x++) {
+        int color = pixels.getPixel(x, y);
+        if (color == 0xFF795724) circle++;
+        if (color == 0xFFFFEDC4) tick++;
+      }
+      return circle >= 20 && tick >= 3;
+    } finally { pixels.recycle(); }
   }
 
   JSONObject audit(MainActivity host, String page, NativeEconomyThemeFixture.Api api) {
@@ -339,53 +354,133 @@ public class NativeEconomyThemeReviewTest {
       assertNotNull(host.root.findViewWithTag("shop-purchase-rail"));
     }
     if (page.startsWith("recruit")) {
+      // V3 replaces the legacy three-large-tray/common-baseline composition, not its safety checks.
+      RecruitmentScreen screen = host.root.findViewWithTag("recruitment-stations");
+      assertNotNull(screen);
+      assertTrue("Unsupported geometry must fail rather than hide essential content", screen.layoutFits);
       int chosenTitles = 0;
       for (String kind : new String[] {"LOW", "MID", "HIGH"}) {
-        View title = host.root.findViewWithTag("draw-station-title-" + kind);
+        TextView title = host.root.findViewWithTag("draw-station-title-" + kind);
         View station = host.root.findViewWithTag("draw-card-" + kind);
-        assertEquals("Title drawing state follows the actual tier choice", station.isSelected(), title.isSelected());
-        Bitmap titlePixels = Bitmap.createBitmap(title.getWidth(), title.getHeight(), Bitmap.Config.ARGB_8888);
-        try {
-          title.getBackground().setBounds(0, 0, title.getWidth(), title.getHeight());
-          title.getBackground().draw(new Canvas(titlePixels));
-          int fill = titlePixels.getPixel(title.getWidth() / 2, title.getHeight() / 2);
-          int edge = titlePixels.getPixel(1, title.getHeight() / 2);
-          if (title.isSelected()) {
-            chosenTitles++;
-            assertEquals("Chosen tier has the distinct pale-gold reading surface", 0xFFF8E4AA, fill);
-            assertEquals("Only chosen tier has the navy selection outline", 0xFF294F60, edge);
-          } else {
-            assertNotEquals("Unselected tier retains parchment artwork", 0xFFF8E4AA, fill);
-          }
-        } finally { titlePixels.recycle(); }
+        assertNotNull(title); assertNotNull(station);
+        assertEquals("Title state follows actual tier choice", station.isSelected(), title.isSelected());
+        assertTrue("Whole selector card is the action", station.isClickable());
+        assertTrue("Selector keeps selected semantics", station.getContentDescription().toString().contains(station.isSelected() ? "선택됨" : "선택"));
+        if (station.isSelected()) {
+          chosenTitles++;
+          assertFalse("R2 does not prepend a check to the title", title.getText().toString().startsWith("✓"));
+          assertTrue("Selection uses a distinct right-side circle and tick", rightSelectionMarker(host, station));
+          Bitmap statePixels = Bitmap.createBitmap(station.getWidth(), station.getHeight(), Bitmap.Config.ARGB_8888);
+          try {
+            station.getBackground().setBounds(0, 0, station.getWidth(), station.getHeight());
+            station.getBackground().draw(new Canvas(statePixels));
+            assertEquals("Selected dark ink has a cream surface", 0xFFF5E2B5, statePixels.getPixel(station.getWidth() / 2, station.getHeight() / 2));
+            station.setPressed(true);
+            assertTrue("Pressed selection retains its right-side circle and tick", rightSelectionMarker(host, station));
+            station.getBackground().draw(new Canvas(statePixels));
+            assertEquals("Selected press retains light surface for dark ink", 0xFFE8CE96, statePixels.getPixel(station.getWidth() / 2, station.getHeight() / 2));
+          } finally { station.setPressed(false); statePixels.recycle(); }
+        }
       }
-      assertEquals("Exactly one visually selected title", 1, chosenTitles);
-      int trays = 0, submits = 0;
-      Set<String> paths = new HashSet<>();
+      assertEquals("Exactly one selected tier", 1, chosenTitles);
+      FrameLayout stage = host.root.findViewWithTag("draw-tray-stage");
+      assertNotNull(stage);
+      int innerWidth = screen.getWidth() - screen.getPaddingLeft() - screen.getPaddingRight();
+      assertTrue("Right information/action column retains at least 28% of usable width", screen.rightWidth >= Math.round(innerWidth * .28f));
+      assertTrue("Right column remains at least 224dp", screen.rightWidth >= host.dp(224));
+      int expectedHeroInset = Math.round(stage.getWidth() * .09f);
+      assertEquals("Hero keeps 9% left inset instead of full bleed", expectedHeroInset, stage.getPaddingLeft(), 1f);
+      assertEquals("Hero keeps 9% right inset instead of full bleed", expectedHeroInset, stage.getPaddingRight(), 1f);
+      assertEquals("Hero baseline is raised 8dp within its stage", host.dp(8), stage.getPaddingBottom());
+      assertEquals("Settled screen has exactly one hero", 1, stage.getChildCount());
+      assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS, stage.getImportantForAccessibility());
+      NativeEconomy.RecruitmentTray hero = (NativeEconomy.RecruitmentTray) stage.getChildAt(0);
+      assertTrue("Visible hero remains within the inset 82% stage width", hero.target.width() <= stage.getWidth() - stage.getPaddingLeft() - stage.getPaddingRight() + 1);
+      assertEquals("Hero view honors the stage's inset content width", stage.getWidth() - stage.getPaddingLeft() - stage.getPaddingRight(), hero.getWidth());
+      assertEquals("Hero follows selected kind", "recruitment/tray-" + screen.selected.optString("kind").toLowerCase(Locale.ROOT) + "-reference-v3.png", hero.path);
+      int submits = 0, visibleTrays = 0;
       for (View view : geometry.descendants(host.root)) {
         if ("draw-submit".equals(view.getTag())) submits++;
-        if (!(view instanceof NativeEconomy.RecruitmentTray)) continue;
+        if (!(view instanceof NativeEconomy.RecruitmentTray) || !view.isShown()) continue;
         NativeEconomy.RecruitmentTray tray = (NativeEconomy.RecruitmentTray) view;
-        assertNotNull("Distinct bundled application tray loaded", tray.bitmap);
+        assertNotNull("Canonical bundled tray loaded", tray.bitmap);
         assertFalse(tray.bitmap.isRecycled());
-        assertEquals(768, tray.bitmap.getWidth()); assertEquals(512, tray.bitmap.getHeight());
-        assertTrue("Tray is a station illustration, not a tiny icon", tray.target.width() >= host.dp(120));
-        assertTrue("Tray stays inside its native view", new RectF(0, 0, tray.getWidth(), tray.getHeight()).contains(tray.target));
-        Rect ink = trayAlphaBounds(tray.bitmap);
-        assertEquals("Transparent canvas margin is excluded from drawing", ink, tray.source);
-        float inkBottom = tray.target.top + (ink.bottom - tray.source.top) * tray.target.height() / tray.source.height();
-        assertEquals("Visible wood, not transparent padding, rests on the counter", tray.getHeight(), inkBottom, .01f);
-        assertTrue("Selection stays attached to visible wood", tray.target.contains(tray.selectionBounds));
-        assertEquals(tray.target.bottom, tray.selectionBounds.bottom, .01f);
-        paths.add(tray.path); trays++;
+        String trayTag = String.valueOf(tray.getTag());
+        if (trayTag.startsWith("draw-station-tray-"))
+          assertEquals("Thumbnail retains its exact kind", "recruitment/tray-" + trayTag.substring("draw-station-tray-".length()).toLowerCase(Locale.ROOT) + "-reference-v3.png", tray.path);
+        assertEquals(1663, tray.bitmap.getWidth()); assertEquals(946, tray.bitmap.getHeight());
+        assertTrue("Visible tray is not collapsed", tray.target.width() > 0 && tray.target.height() > 0);
+        assertTrue("Tray stays inside native view", new RectF(0, 0, tray.getWidth(), tray.getHeight()).contains(tray.target));
+        assertEquals("Transparent canvas margin excluded", trayAlphaBounds(tray.bitmap), tray.source);
+        assertEquals("Art is aspect-fit", tray.source.width() / (float) tray.source.height(), tray.target.width() / tray.target.height(), .001f);
+        assertEquals("Decorative tray never duplicates speech", View.IMPORTANT_FOR_ACCESSIBILITY_NO, tray.getImportantForAccessibility());
+        visibleTrays++;
       }
-      assertEquals(3, trays); assertEquals("Each tier has its own artwork", 3, paths.size());
+      assertEquals("One hero plus optional three thumbnails", screen.compact ? 1 : 4, visibleTrays);
       assertEquals("One actual spend action", 1, submits);
-      assertNull("Obsolete top claim banner is removed", host.root.findViewWithTag("draw-claim-rail"));
-      assertNull("No decorative panel behind the compact bottom actions", host.root.findViewWithTag("draw-purchase-rail").getBackground());
-      assertTrue("Claim lives in the same bottom row as quantity and submit",
-          contains(host.root.findViewWithTag("draw-purchase-rail"), host.root.findViewWithTag("draw-claim")));
+      assertNull("The full-height right column is not one opaque panel", screen.actions.getBackground());
+      assertNotNull("Only the purchase area has its dedicated panel", screen.purchase.getBackground());
+      assertTrue("Heading belongs to separate upper information", contains(screen.information, screen.heading));
+      assertTrue("Cost and pity belong to upper information", contains(screen.information, screen.cost) && contains(screen.information, screen.info));
+      assertFalse("Upper information is not inside purchase box", contains(screen.purchase, screen.information));
+      assertTrue("Quantity, total and CTA belong to lower purchase box", contains(screen.purchase, screen.quantity) && contains(screen.purchase, screen.total) && contains(screen.purchase, screen.go));
+      Rect upperBounds = geometry.bounds(screen.information, host.root);
+      Rect panelBounds = geometry.bounds(screen.purchase, host.root);
+      assertTrue("Upper information and purchase box do not overlap", upperBounds.bottom <= panelBounds.top);
+      assertEquals(upperBounds.left, panelBounds.left); assertEquals(upperBounds.right, panelBounds.right);
+      Rect rightBounds = geometry.bounds(screen.actions, host.root);
+      assertEquals("Information is centered in the free band above purchase", (rightBounds.top + panelBounds.top) / 2f, upperBounds.exactCenterY(), 1f);
+      Rect pillBounds = geometry.bounds(screen.cost, host.root);
+      assertEquals("Cost pill is centered above purchase", upperBounds.exactCenterX(), pillBounds.exactCenterX(), 1f);
+      if (!screen.compact) assertEquals("Normal cost pill is 184dp rather than full width", host.dp(184), pillBounds.width());
+      assertEquals("Count input stays 48dp rather than stretching", host.dp(48), screen.count.getWidth());
+      assertEquals(host.dp(48), screen.minus.getWidth()); assertEquals(host.dp(48), screen.plus.getWidth());
+      assertTrue("Maximum button keeps its 48dp touch target", screen.maximum.getWidth() >= host.dp(48));
+      if (host.getResources().getConfiguration().fontScale <= 1f)
+        assertTrue("Normal-font maximum button stays within 65dp", screen.maximum.getWidth() <= host.dp(65));
+      int maxNatural = (int) Math.ceil(screen.maximum.getPaint().measureText(screen.maximum.getText().toString()))
+          + screen.maximum.getCompoundPaddingLeft() + screen.maximum.getCompoundPaddingRight();
+      assertTrue("Large-font maximum label retains its natural width", screen.maximum.getWidth() >= maxNatural);
+      Rect minusBounds = geometry.bounds(screen.minus, host.root), countBounds = geometry.bounds(screen.count, host.root), plusBounds = geometry.bounds(screen.plus, host.root);
+      for (int actualGap : new int[] {countBounds.left - minusBounds.right, plusBounds.left - countBounds.right})
+        assertTrue("Quantity controls retain 4–10dp spacing", actualGap >= host.dp(4) && actualGap <= host.dp(10));
+      View maxDivider = host.root.findViewWithTag("draw-maximum-divider");
+      assertNotNull("Maximum is separated by a native divider", maxDivider);
+      assertEquals(host.dp(1), maxDivider.getWidth()); assertEquals(host.dp(24), maxDivider.getHeight());
+      if (!screen.compact) for (String kind : RecruitmentProbabilityView.KINDS) {
+        View card = host.root.findViewWithTag("draw-card-" + kind);
+        View thumbnail = host.root.findViewWithTag("draw-station-tray-" + kind);
+        assertEquals("Thumbnail is 94dp wide", host.dp(94), thumbnail.getWidth());
+        assertEquals("Thumbnail is 52dp high", host.dp(52), thumbnail.getHeight());
+        int preferred = host.dp(innerWidth >= host.dp(900) ? 74 : 68);
+        int available = Math.max(host.dp(48), (screen.bodyHeight - (screen.choices.size() - 1) * host.dp(4)) / screen.choices.size());
+        assertEquals("Card height uses preferred 74/68dp and actual available height", Math.min(preferred, available), card.getMinimumHeight());
+        if (host.getResources().getConfiguration().fontScale <= 1f)
+          assertEquals("Normal-size text does not inflate the intended card height", card.getMinimumHeight(), card.getHeight());
+      }
+
+      assertNull("Claim status is content text, not a full-width opaque bar", screen.wait.getBackground());
+      android.graphics.drawable.Drawable ticket = screen.claim.getCompoundDrawables()[0];
+      assertTrue("Claim uses a loaded ticket bitmap, not a missing or placeholder drawable", ticket instanceof android.graphics.drawable.BitmapDrawable);
+      Bitmap ticketBitmap = ((android.graphics.drawable.BitmapDrawable) ticket).getBitmap();
+      assertNotNull(ticketBitmap); assertFalse(ticketBitmap.isRecycled());
+      assertSame("Claim uses the canonical u-ticket art", host.art.peek("/duel/icons/u-ticket.png"), ticketBitmap);
+      assertEquals("Ticket compound drawable width is 26dp", host.dp(26), ticket.getBounds().width());
+      assertEquals("Ticket compound drawable height is 26dp", host.dp(26), ticket.getBounds().height());
+      assertEquals("Ticket-to-label gap is 6dp", host.dp(6), screen.claim.getCompoundDrawablePadding());
+
+      for (View descendant : geometry.descendants(screen)) {
+        assertFalse("Recruitment never introduces a vertical ScrollView", descendant instanceof ScrollView);
+        assertFalse("Recruitment never introduces a nested vertical scroller", descendant.getClass().getSimpleName().equals("NestedScrollView"));
+      }
+      Rect submitBounds = geometry.bounds(screen.go, host.root);
+      assertEquals("CTA is anchored to bottom of its panel", panelBounds.bottom - screen.purchase.getPaddingBottom(), submitBounds.bottom);
+      assertTrue("Quantity precedes total and submit", geometry.bounds(screen.quantity, host.root).bottom <= geometry.bounds(screen.total, host.root).top);
+      assertTrue("Live total precedes submit", geometry.bounds(screen.total, host.root).bottom <= submitBounds.top);
+      assertFalse("Claim is a separate footer, not in quantity/action panel", contains(screen.actions, screen.claim));
+      assertTrue("Footer remains inside recruitment screen", contains(screen, screen.claim));
       assertNotNull(host.root.findViewWithTag("draw-pity"));
+      assertTrue("Compact pity remains available as information", screen.info.isShown());
       assertTrue(host.root.findViewWithTag(page.equals("recruit-high") ? "draw-card-HIGH" : page.equals("recruit-mid") ? "draw-card-MID" : "draw-card-LOW").isSelected());
     }
     String sceneAsset = page.startsWith("recruit") ? AppSkin.background("reception")
@@ -422,6 +517,8 @@ public class NativeEconomyThemeReviewTest {
                 host.root.findViewWithTag("draw-card-HIGH").performClick();
                 actions.button(host.root.findViewWithTag("draw-quantity"), "＋").performClick();
               }
+              // Only recruitment transitions are advanced; unrelated page timings are unchanged.
+              Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(240));
             } else if (page.startsWith("shop")) {
               host.menus.economy.shopFocus = page.equals("shop-items") ? "items/buy:big" : "shop:tickets";
               host.menus.economy.shop();

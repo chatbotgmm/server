@@ -28,5 +28,70 @@
         512
       ]
     }
+  ],
+  "referenceV3": [
+    {
+      "path": "native/release-v1/recruitment/tray-low-reference-v3.png",
+      "kind": "LOW",
+      "bytes": 1764662,
+      "sha256": "bd17d0791ad410e00de0343900bcfea6e3be3e82ad99a5fd29ff2011d9132d22",
+      "dimensions": [
+        1663,
+        946
+      ],
+      "sourceRect": [
+        59,
+        84,
+        1639,
+        937
+      ]
+    },
+    {
+      "path": "native/release-v1/recruitment/tray-mid-reference-v3.png",
+      "kind": "MID",
+      "bytes": 1744944,
+      "sha256": "9e83838ef5fc8caf0b0a77d1323991d99f01785ea513940869070bd56cfd9a3e",
+      "dimensions": [
+        1663,
+        946
+      ],
+      "sourceRect": [
+        59,
+        83,
+        1637,
+        938
+      ]
+    },
+    {
+      "path": "native/release-v1/recruitment/tray-high-reference-v3.png",
+      "kind": "HIGH",
+      "bytes": 1892045,
+      "sha256": "6c319981a800974133746817e5d29403cd1c3edff0e0c8005a954b4c1150f5d0",
+      "dimensions": [
+        1663,
+        946
+      ],
+      "sourceRect": [
+        60,
+        86,
+        1640,
+        937
+      ]
+    },
+    {
+      "path": "native/recruitment/fonts/NotoSansKR-Regular.ttf",
+      "bytes": 6224868,
+      "sha256": "a516a09bb7351dc6254e0920b2ab6d21131a8f10213d45e5cf990af3b777695b"
+    },
+    {
+      "path": "native/recruitment/fonts/NotoSansKR-Bold.ttf",
+      "bytes": 6222712,
+      "sha256": "8440245279bc3819589f99dc8ddee6372d3481816d2ccdb052f2f1d1eb26b86c"
+    },
+    {
+      "path": "native/recruitment/fonts/OFL-NotoSansKR.txt",
+      "bytes": 4388,
+      "sha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9"
+    }
   ]
 }

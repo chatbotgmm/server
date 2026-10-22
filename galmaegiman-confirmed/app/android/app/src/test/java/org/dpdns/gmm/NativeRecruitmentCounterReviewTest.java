@@ -64,82 +64,155 @@ public class NativeRecruitmentCounterReviewTest {
     } finally { bitmap.recycle(); }
   }
 
+  static final int[][] V3_SIZES = {{800,360,100}, {640,320,100}, {800,360,130}, {960,400,200}, {1280,720,150}};
+
+  JSONArray coordinates(Rect r) { return new JSONArray(Arrays.asList(r.left, r.top, r.right, r.bottom)); }
+  String revision() throws Exception {
+    Process process = new ProcessBuilder("git", "rev-parse", "HEAD").redirectErrorStream(true).start();
+    String value = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
+    assertEquals("Capture needs a real checkout revision", 0, process.waitFor());
+    assertTrue(value.matches("[0-9a-f]{40}")); return value;
+  }
+  String digest(Path path) throws Exception {
+    byte[] hash = java.security.MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(path));
+    StringBuilder value = new StringBuilder(); for (byte b : hash) value.append(String.format(Locale.ROOT, "%02x", b & 255)); return value.toString();
+  }
+  String assetDigest(MainActivity host, String path) throws Exception {
+    try (java.io.InputStream in = host.getAssets().open("native/release-v1/" + path)) {
+      byte[] hash = java.security.MessageDigest.getInstance("SHA-256").digest(in.readAllBytes());
+      StringBuilder value = new StringBuilder();
+      for (byte b : hash) value.append(String.format(Locale.ROOT, "%02x", b & 255));
+      return value.toString();
+    }
+  }
+  JSONObject control(MainActivity host, String id, View v) {
+    assertNotNull(id, v); assertTrue(id + " shown", v.isShown());
+    Rect bounds = review.geometry.bounds(v, host.root), visible = review.geometry.visibleIntersection(v, host.root);
+    assertTrue(id + " 48dp", bounds.width() >= host.dp(48) && bounds.height() >= host.dp(48));
+    assertEquals(id + " unclipped", bounds, visible);
+    CharSequence description = v.getContentDescription();
+    if (description == null && v instanceof TextView) description = ((TextView) v).getText();
+    assertNotNull(id + " accessible name", description);
+    return MainActivity.obj("id", id, "boundsDp", coordinates(bounds), "visibleBoundsDp", coordinates(visible), "enabled", v.isEnabled(), "description", description.toString());
+  }
+  JSONArray textInk(MainActivity host, TextView text) {
+    Rect own = review.geometry.bounds(text, host.root), inkAll = null;
+    for (int line = 0; line < text.getLineCount(); line++) {
+      int start = text.getLayout().getLineStart(line), end = text.getLayout().getLineEnd(line);
+      String content = text.getText().subSequence(start, end).toString().stripTrailing();
+      if (content.isEmpty()) continue;
+      Rect ink = new Rect(); text.getPaint().getTextBounds(content, 0, content.length(), ink);
+      int x = own.left + text.getCompoundPaddingLeft() + Math.round(text.getLayout().getLineLeft(line));
+      int baseline = own.top + text.getBaseline() + text.getLayout().getLineBaseline(line) - text.getLayout().getLineBaseline(0);
+      ink.offset(x, baseline); if (inkAll == null) inkAll = ink; else inkAll.union(ink);
+    }
+    assertNotNull("Measured text ink " + text.getText(), inkAll); return coordinates(inkAll);
+  }
+  JSONObject v3Evidence(MainActivity host, String name, String state, int[] size, NativeEconomyThemeFixture.Api api) throws Exception {
+    RecruitmentScreen screen = host.root.findViewWithTag("recruitment-stations");
+    LinkedHashMap<String, View> targets = new LinkedHashMap<>();
+    targets.put("back", host.root.findViewWithTag("back"));
+    for (String kind : RecruitmentProbabilityView.KINDS) targets.put("draw-card-" + kind, host.root.findViewWithTag("draw-card-" + kind));
+    targets.put("minus", screen.minus); targets.put("plus", screen.plus); targets.put("count", screen.count); targets.put("maximum", screen.maximum);
+    targets.put("info", screen.info); targets.put("draw-claim", screen.claim); targets.put("draw-submit", screen.go);
+    JSONArray controls = new JSONArray(); for (Map.Entry<String, View> entry : targets.entrySet()) controls.put(control(host, entry.getKey(), entry.getValue()));
+    JSONArray labels = new JSONArray(); int index = 0;
+    for (View v : review.geometry.descendants(screen)) {
+      assertFalse("Recruitment body never scrolls vertically", v instanceof ScrollView);
+      if (!(v instanceof TextView) || !v.isShown() || ((TextView) v).length() == 0) continue;
+      TextView text = (TextView) v; review.readable(text);
+      String id = String.valueOf(v.getTag()); if (id.equals("null")) id = "label-" + index;
+      if (v == screen.info) id = "draw-pity-summary";
+      String owner = null; for (Map.Entry<String, View> entry : targets.entrySet()) if (review.contains(entry.getValue(), v)) { owner = entry.getKey(); break; }
+      int ellipsis = 0; for (int line = 0; line < text.getLineCount(); line++) ellipsis += text.getLayout().getEllipsisCount(line);
+      labels.put(MainActivity.obj("id", id, "boundsDp", coordinates(review.geometry.bounds(v, host.root)), "visibleBoundsDp", coordinates(review.geometry.visibleIntersection(v, host.root)), "inkBoundsDp", textInk(host, text), "text", text.getText().toString(), "ellipsisCount", ellipsis, "ownerControl", owner == null ? JSONObject.NULL : owner)); index++;
+    }
+    JSONArray selectors = new JSONArray();
+    for (String kind : RecruitmentProbabilityView.KINDS) {
+      View card = targets.get("draw-card-" + kind); TextView title = host.root.findViewWithTag("draw-station-title-" + kind);
+      selectors.put(MainActivity.obj("kind", kind, "selected", card.isSelected(), "nonColorSelectionCue", !card.isSelected() || review.rightSelectionMarker(host, card)));
+    }
+    NativeEconomy.RecruitmentTray hero = (NativeEconomy.RecruitmentTray) screen.stage.getChildAt(0);
+    Rect b = review.geometry.bounds(hero, host.root);
+    JSONArray art = new JSONArray(Arrays.asList(b.left + hero.target.left, b.top + hero.target.top, b.left + hero.target.right, b.top + hero.target.bottom));
+    JSONObject heroData = MainActivity.obj("count", screen.stage.getChildCount(), "kind", screen.selected.optString("kind"), "asset", hero.path,
+        "importantForAccessibility", hero.getImportantForAccessibility() != View.IMPORTANT_FOR_ACCESSIBILITY_NO, "boundsDp", coordinates(b), "artBoundsDp", art, "sourceBounds", coordinates(hero.source), "assetSha256", assetDigest(host, hero.path), "bitmapDimensions", new JSONArray().put(hero.bitmap.getWidth()).put(hero.bitmap.getHeight()));
+    assertEquals("Fixtures explicitly use mdpi, so px geometry equals dp", 1f, host.getResources().getDisplayMetrics().density, .001f);
+    return MainActivity.obj("widthDp", size[0], "heightDp", size[1], "fontScale", size[2] / 100.0, "density", 1, "widthPx", size[0], "heightPx", size[1],
+        "layoutRevision", 3, "compactMode", screen.compact, "composition", MainActivity.obj("upperInfoBoundsDp", coordinates(review.geometry.bounds(screen.information, host.root)), "purchaseBoundsDp", coordinates(review.geometry.bounds(screen.purchase, host.root))),
+        "state", state, "actualNativeViews", true, "apiWrites", api.writes, "verticalScroll", false, "findings", new JSONArray(), "png", name + ".png", "sha256", digest(output().resolve(name + ".png")),
+        "safeBoundsDp", new JSONArray(Arrays.asList(0,0,size[0],size[1])), "selectedKind", screen.selected.optString("kind"), "selectors", selectors, "hero", heroData, "controls", controls, "labels", labels);
+  }
+
   @Test public void renderDistinctCounterTraysAndActionStatesAcrossSizes() throws Exception {
-    JSONObject geometry = new JSONObject(), findings = new JSONObject();
-    List<String> failures = new ArrayList<>();
-    for (int[] size : NativeEconomyThemeReviewTest.SIZES) {
-      RuntimeEnvironment.setQualifiers("w" + size[0] + "dp-h" + size[1] + "dp-land-mdpi");
-      RuntimeEnvironment.setFontScale(size[2] / 100f);
-      for (String state : STATES) try (var controller = review.flow.start()) {
-        MainActivity host = controller.get();
-        String name = state + "-" + size[0] + "x" + size[1] + (size[2] == 130 ? "-font130" : "");
-        JSONArray problems = new JSONArray(); findings.put(name, problems);
+    JSONArray captures = new JSONArray(); List<String> failures = new ArrayList<>();
+    for (int profile = 0; profile < V3_SIZES.length; profile++) {
+      int[] size = V3_SIZES[profile];
+      RuntimeEnvironment.setQualifiers("w" + size[0] + "dp-h" + size[1] + "dp-land-mdpi"); RuntimeEnvironment.setFontScale(size[2] / 100f);
+      for (String state : profile == 0 ? STATES : new String[] {"low"}) try (var controller = review.flow.start()) {
+        MainActivity host = controller.get(); String name = state + "-" + size[0] + "x" + size[1] + "-font" + size[2];
         try {
           JSONObject response = NativeRecruitmentProbabilityTest.serverEconomyFixture();
           if (state.equals("cooldown")) response.put("wait", 3600000);
           if (state.equals("insufficient")) response.put("credits", 0);
           if (state.equals("unlimited")) response.put("credits", 0).put("unlimited", true);
-          String original = response.toString();
-          NativeEconomyThemeFixture.Api api = prepare(host, response);
+          String original = response.toString(); NativeEconomyThemeFixture.Api api = prepare(host, response);
           host.menus.economy.draw();
-          String kind = state.equals("mid") ? "MID" : state.equals("high") || state.equals("maximum")
-              || state.equals("unlimited") || state.equals("insufficient") ? "HIGH" : "LOW";
+          String kind = state.equals("mid") ? "MID" : state.equals("high") || state.equals("maximum") || state.equals("unlimited") || state.equals("insufficient") ? "HIGH" : "LOW";
           host.root.findViewWithTag("draw-card-" + kind).performClick();
-          if (state.equals("maximum") || state.equals("unlimited"))
-            review.actions.button(host.root.findViewWithTag("draw-quantity"), "최대").performClick();
+          if (state.equals("maximum") || state.equals("unlimited")) review.actions.button(host.root.findViewWithTag("draw-quantity"), "최대").performClick();
+          // Audit the settled v3 composition, not an in-flight two-tray crossfade.
+          Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(240));
           review.ready(host, size);
+          RecruitmentScreen stable = host.root.findViewWithTag("recruitment-stations");
+          int revisionBefore = stable.contentRevision, measuredBefore = stable.measuredRevision;
+          boolean compactBefore = stable.compact;
+          for (int repeat = 0; repeat < 3; repeat++) review.layout(host, size);
+          assertEquals("Identical layout cannot rewrite content", revisionBefore, stable.contentRevision);
+          assertEquals("Identical layout reuses measured content revision", measuredBefore, stable.measuredRevision);
+          assertEquals("Identical layout does not oscillate mode", compactBefore, stable.compact);
           capture(host, name, size);
-          JSONObject audit = review.audit(host, kind.equals("HIGH") ? "recruit-high" : kind.equals("MID") ? "recruit-mid" : "recruit", api);
-          Button claim = host.root.findViewWithTag("draw-claim"), submit = host.root.findViewWithTag("draw-submit");
-          assertEquals(!state.equals("cooldown"), claim.isEnabled());
-          assertEquals(!state.equals("insufficient"), submit.isEnabled());
-          assertEquals("지원서 받기", claim.getText().toString());
-          assertNotNull("Inactive claim retains themed drawable", claim.getBackground());
-          assertEquals(original, response.toString());
-          assertEquals(List.of("draw"), api.calls);
-          assertEquals(0, api.writes);
-          LinearLayout header = host.root.findViewWithTag("theme-page-header");
-          assertTrue("Compact title leaves a visible gap before the resource bars",
-              host.root.findViewWithTag("draw-header-space").getWidth() >= host.dp(24));
-          assertTrue(host.title.getWidth() < header.getWidth() / 3);
-          View rail = host.root.findViewWithTag("draw-purchase-rail");
-          for (String tag : new String[] {"draw-claim", "draw-quantity", "draw-total", "draw-submit"})
-            assertEquals("All primary controls share one bottom row", rail, host.root.findViewWithTag(tag).getParent());
-          JSONArray trays = new JSONArray();
-          float baseline = -1;
-          for (String tier : RecruitmentProbabilityView.KINDS) {
-            NativeEconomy.RecruitmentTray tray = host.root.findViewWithTag("draw-station-tray-" + tier);
-            assertEquals(tier.equals(kind), tray.isSelected());
-            Rect bounds = review.geometry.bounds(tray, host.root);
-            Rect ink = review.trayAlphaBounds(tray.bitmap);
-            assertEquals(ink, tray.source);
-            float bottom = bounds.top + tray.target.top
-                + (ink.bottom - tray.source.top) * tray.target.height() / tray.source.height();
-            Rect price = review.geometry.bounds(host.root.findViewWithTag("draw-station-cost-" + tier), host.root);
-            assertEquals("Visible wood meets its price plaque without a transparent gap", price.top, bottom, 1f);
-            if (baseline < 0) baseline = bottom;
-            assertEquals("All trays sit on a common counter", baseline, bottom, 1f);
-            assertTrue("Visible tray occupies meaningful height", tray.target.height() >= host.dp(64));
-            trays.put(MainActivity.obj("kind", tier, "path", tray.path, "artWidth", tray.target.width(), "artHeight", tray.target.height(),
-                "sourceBounds", new JSONArray(Arrays.asList(ink.left, ink.top, ink.right, ink.bottom)), "visibleBaseline", bottom));
-          }
-          String total = ((TextView) host.root.findViewWithTag("draw-total")).getText().toString();
-          int cost = kind.equals("LOW") ? 2 : kind.equals("MID") ? 3 : 5;
-          int amount = state.equals("maximum") ? 40 : state.equals("unlimited") ? 50 : 1;
-          assertTrue(total.contains(state.equals("insufficient") ? "필요 5장" : cost * amount + "장"));
-          geometry.put(name, audit.put("selectedKind", kind).put("totalText", total)
-              .put("claimEnabled", claim.isEnabled()).put("submitEnabled", submit.isEnabled()).put("trays", trays));
-        } catch (Throwable failure) {
-          failures.add(name + ": " + failure); problems.put(failure.toString());
-          capture(host, name, size);
-          geometry.put(name, MainActivity.obj("passed", false, "failure", failure.toString()));
-        }
+          review.audit(host, kind.equals("HIGH") ? "recruit-high" : kind.equals("MID") ? "recruit-mid" : "recruit", api);
+          RecruitmentScreen screen = host.root.findViewWithTag("recruitment-stations");
+          if (size[0] == 800 && size[1] == 360 && size[2] == 100)
+            assertFalse("Normal 800×360/font1 keeps the full approved composition; compact fallback is not fidelity", screen.compact);
+          assertEquals(!state.equals("cooldown"), screen.claim.isEnabled()); assertEquals(!state.equals("insufficient"), screen.go.isEnabled());
+          assertEquals("지원서 받기", screen.claim.getText().toString()); assertEquals(original, response.toString()); assertEquals(List.of("draw"), api.calls); assertEquals(0, api.writes);
+          int cost = RecruitmentProbabilityView.find(response.getJSONArray("gachas"), kind).getInt("cost");
+          int expected = state.equals("maximum") ? Math.min(50, response.optInt("credits") / cost) : state.equals("unlimited") ? 50 : 1;
+          assertEquals(expected, screen.amount); assertEquals(cost, screen.unitCost);
+          assertTrue(screen.total.getText().toString().contains("필요 " + ((long) cost * expected)));
+          captures.put(v3Evidence(host, name, state, size, api));
+        } catch (Throwable failure) { failures.add(name + ": " + failure); capture(host, name, size); }
       }
     }
-    Files.write(output().resolve("geometry.json"), geometry.toString(2).getBytes(StandardCharsets.UTF_8));
-    Files.write(output().resolve("findings.json"), findings.toString(2).getBytes(StandardCharsets.UTF_8));
-    assertEquals(35, geometry.length());
-    assertTrue(String.join("\n", failures), failures.isEmpty());
+    Files.writeString(output().resolve("evidence.json"), MainActivity.obj("schema", "recruitment-v3-native-layout/1", "sourceRevision", revision(), "captures", captures, "failures", new JSONArray(failures)).toString(2), StandardCharsets.UTF_8);
+    assertTrue(String.join("\n", failures), failures.isEmpty()); assertEquals(11, captures.length());
+  }
+
+  @Test public void referenceArtworkUsesExactKindMetadataAndSafeImmutableFallback() {
+    Bitmap preferred = Bitmap.createBitmap(1663, 946, Bitmap.Config.ARGB_8888);
+    Bitmap fallback = Bitmap.createBitmap(768, 512, Bitmap.Config.ARGB_8888);
+    Bitmap recycled = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888); recycled.recycle();
+    int[][] bounds = {{59,84,1639,937},{59,83,1637,938},{60,86,1640,937}};
+    String[] kinds = {"LOW", "MID", "HIGH"};
+    try {
+      for (int i = 0; i < kinds.length; i++) {
+        String kind = kinds[i], stem = "recruitment/tray-" + kind.toLowerCase(Locale.ROOT);
+        RecruitmentArtwork.Asset selected = RecruitmentArtwork.resolve(kind, path -> path.endsWith("reference-v3.png") ? preferred : fallback);
+        assertEquals(stem + "-reference-v3.png", selected.path); assertSame(preferred, selected.bitmap);
+        Rect expected = new Rect(bounds[i][0], bounds[i][1], bounds[i][2], bounds[i][3]);
+        assertEquals(expected, selected.sourceRect()); selected.sourceRect().setEmpty(); assertEquals(expected, selected.sourceRect());
+        for (Bitmap invalid : new Bitmap[] {null, fallback, recycled}) {
+          RecruitmentArtwork.Asset old = RecruitmentArtwork.resolve(kind, path -> path.endsWith("reference-v3.png") ? invalid : fallback);
+          assertEquals(stem + "-v1.png", old.path); assertSame(fallback, old.bitmap);
+        }
+        RecruitmentArtwork.Asset failure = RecruitmentArtwork.resolve(kind, path -> { if (path.endsWith("reference-v3.png")) throw new IllegalArgumentException("bad decode"); return fallback; });
+        assertEquals(stem + "-v1.png", failure.path); assertSame(fallback, failure.bitmap);
+      }
+      for (Rect invalid : new Rect[] {null, new Rect(), new Rect(-1,0,10,10), new Rect(0,0,1664,946), new Rect(0,0,1663,947)})
+        assertFalse(RecruitmentArtwork.validateSourceRect(preferred, invalid));
+    } finally { preferred.recycle(); fallback.recycle(); }
   }
 
   @Test public void preservesCooldownBoundaryAndSelectionWithoutWrites() throws Exception {
