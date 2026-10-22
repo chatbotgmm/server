@@ -1,0 +1,38 @@
+{
+  "source_sha256": "1caed41b6cef1ce5be60ee6c392c18980b7028a52440de49baf9f62d4ba138c6",
+  "sheet": "T8/front/idle.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      273.5,
+      452
+    ],
+    [
+      250.5,
+      451
+    ],
+    [
+      222.5,
+      452
+    ],
+    [
+      274.5,
+      432
+    ],
+    [
+      250.0,
+      431
+    ],
+    [
+      227.5,
+      432
+    ]
+  ],
+  "placement_rule": "Align grounded contact anchor to fixed actor origin; preserve authored airborne/recoil offsets. Apply proposed uniform scale per sheet, never per frame.",
+  "measurement": "Visually checked claw contact centers excluding props, ribbons, floating ornaments and effects; approximately \u00b15px, renderer validation pending.",
+  "renderer_validation": "pending"
+}

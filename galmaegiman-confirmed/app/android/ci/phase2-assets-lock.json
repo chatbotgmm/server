@@ -43,9 +43,9 @@
     },
     {
       "path": "backgrounds/bg-home.png",
-      "bytes": 3047052,
-      "sha256": "adce04f6958598d4b6c1382909f7012d0ad880eb5f32aecf671e4ba8796900ea",
-      "git_blob_sha": "a16c93c978c941b70877b8e873ade770fbbbfbfc",
+      "bytes": 3013465,
+      "sha256": "c6a3c3b3b09f13b8659fad7e69c15e913242c022b6111fa6eb34702f5bc1a492",
+      "git_blob_sha": "f568071de2bdae33dd7da33c10d036e5fbb2b43b",
       "dimensions": [
         1870,
         841

@@ -350,7 +350,7 @@ public class ReleaseHomeMotionTest {
     }
   }
 
-  @Test public void disabledHomeControlKeepsImageAndAppliesSharedToneOnce() throws Exception {
+  @Test public void disabledHomeControlKeepsTextureAndAppliesDisabledAppearanceOnce() throws Exception {
     try (var controller = fixture.start(false)) {
       var host = controller.get();
       fixture.layout(host, 915, 412, 0, 0, 0, 0);
@@ -363,18 +363,16 @@ public class ReleaseHomeMotionTest {
         lobby.controlSurface(new Canvas(original), 5, target);
         lobby.buttons.get(5).setEnabled(false);
         lobby.controlSurface(new Canvas(disabled), 5, target);
-        Canvas canvas = new Canvas(expected);
-        GamePressState tone = new GamePressState();
-        tone.enabled = false;
-        int saved = tone.begin(canvas, new android.graphics.Rect(0, 0, 260, 60), 1);
-        lobby.homeArt.surface(canvas, "ui/button-secondary.png", target);
-        tone.finish(canvas, saved);
-        assertTrue("Home uses original art with exactly one shared disabled filter", expected.sameAs(disabled));
+        lobby.menuArt.tile(new Canvas(expected), target, false, false,
+            lobby.buttons.get(5).isFocused(), true);
+        assertTrue("Home uses its single disabled textured surface", expected.sameAs(disabled));
         assertFalse("Disabled state is visibly distinguished", original.sameAs(disabled));
         java.util.Set<Integer> colors = new java.util.HashSet<>();
         for (int y = 0; y < 60; y++) for (int x = 0; x < 260; x++) {
-          assertEquals("Original surface opacity preserved", Color.alpha(original.getPixel(x, y)),
-              Color.alpha(disabled.getPixel(x, y)));
+          int originalAlpha = Color.alpha(original.getPixel(x, y));
+          int disabledAlpha = Color.alpha(disabled.getPixel(x, y));
+          assertTrue("Disabled rendering never adds opacity", disabledAlpha <= originalAlpha);
+          if (originalAlpha == 0) assertEquals("Transparent corners remain transparent", 0, disabledAlpha);
           colors.add(disabled.getPixel(x, y));
         }
         assertTrue("Ornate textured image is retained rather than a flat panel", colors.size() > 100);
@@ -405,8 +403,18 @@ public class ReleaseHomeMotionTest {
           assertTrue("Currency keeps the full accessible touch height", currency.getHeight() >= host.dp(48));
           assertTrue(currency.getContentDescription().toString().contains("2,147,483,647"));
           assertTrue(currency.getContentDescription().toString().contains("상점"));
-          assertEquals("Inset navy display replaces ornate menu surface", CurrencyDisplay.NAVY,
-              frame.getPixel(Math.round(box.centerX()), Math.round(box.top + host.dp(11))));
+          Bitmap expected = Bitmap.createBitmap(lobby.getWidth(), lobby.getHeight(), Bitmap.Config.ARGB_8888);
+          try {
+            // The textured asset has translucent edge pixels. Compare the same
+            // source-over composition as the real home, not a transparent canvas.
+            Canvas expectedCanvas = new Canvas(expected);
+            lobby.homeArt.background(expectedCanvas, lobby.getWidth(), lobby.getHeight());
+            lobby.menuArt.currency(expectedCanvas, box, i - 9,
+                currency.isPressed(), currency.isEnabled(), currency.isFocused());
+            assertEquals("Currency renders its textured navy/brass medallion surface",
+                expected.getPixel(Math.round(box.centerX()), Math.round(box.top + host.dp(11))),
+                frame.getPixel(Math.round(box.centerX()), Math.round(box.top + host.dp(11))));
+          } finally { expected.recycle(); }
           assertFalse("Currency control excluded from scene drag", lobby.sceneDragStart(box.centerX(), box.centerY()));
           host.requested = "";
           dispatch(lobby, MotionEvent.ACTION_DOWN, box.centerX(), box.centerY());
@@ -418,8 +426,8 @@ public class ReleaseHomeMotionTest {
     } finally { org.robolectric.RuntimeEnvironment.setFontScale(1f); }
   }
 
-  @Test public void currencyMaximumAmountsKeepFourteenSpAcrossSafePhoneWidths() throws Exception {
-    int[][] profiles = {{780, 360, 0, 0, 0, 0}, {915, 412, 0, 0, 0, 0},
+  @Test public void currencyMaximumAmountsKeepReadableAbbreviationAndExactAccessibleValue() throws Exception {
+    int[][] profiles = {{568, 280, 0, 0, 0, 0}, {640, 320, 0, 0, 0, 0}, {780, 360, 0, 0, 0, 0}, {915, 412, 0, 0, 0, 0},
         {1006, 411, 32, 8, 24, 16}, {1280, 720, 0, 0, 0, 0}};
     for (int[] profile : profiles) {
       org.robolectric.RuntimeEnvironment.setQualifiers(
@@ -431,15 +439,20 @@ public class ReleaseHomeMotionTest {
         fixture.layout(host, profile[0], profile[1], profile[2], profile[3], profile[4], profile[5]);
         LobbyView lobby = fixture.lobby(host);
         RectF safe = host.safeBounds(profile[0], profile[1]);
-        float textSize = lobby.currencyTextSize();
-        assertTrue("Rendered amount never shrinks below 14sp at font 130%",
-            textSize + .01f >= 14 * host.getResources().getDisplayMetrics().scaledDensity);
         android.graphics.Paint text = new android.graphics.Paint();
-        text.setTypeface(host.headline); text.setTextSize(textSize);
-        float amountWidth = text.measureText("2,147,483,647");
+        text.setTypeface(lobby.homeHeading);
         for (int i = 9; i <= 11; i++) {
           RectF box = lobby.boxes[i];
-          assertTrue("Maximum amount fits without font shrinking", amountWidth <= box.width() - host.dp(38));
+          float available = box.width() - host.dp(49);
+          String shown = lobby.currencyAmount(Integer.MAX_VALUE, available, lobby.currencyTextSize());
+          float actualSize = lobby.currencyAmountSize(shown, available);
+          assertTrue("Actual currency amount stays at least fourteen dp", actualSize + .01f >= host.dp(14));
+          text.setTextSize(actualSize);
+          assertTrue("Readable full or abbreviated amount stays inside its real region",
+              text.measureText(shown) <= available + .01f);
+          assertFalse("The displayed value is never empty", shown.isEmpty());
+          assertTrue("Maximum amount retains a scale unit or exact full value",
+              shown.contains("억") || shown.equals("2,147,483,647"));
           assertTrue("Amount keeps safe left edge", box.left >= safe.left);
           assertTrue("Amount keeps safe right edge", box.right <= safe.right);
           assertTrue("Amount does not overlap profile", box.left >= lobby.boxes[7].right + host.dp(8) - 1);
@@ -447,7 +460,11 @@ public class ReleaseHomeMotionTest {
           assertTrue("Profile stays a full hit target", lobby.boxes[7].width() >= host.dp(48));
         }
         Bitmap frame = Bitmap.createBitmap(profile[0], profile[1], Bitmap.Config.ARGB_8888);
-        try { lobby.draw(new Canvas(frame)); } finally { frame.recycle(); }
+        try {
+          lobby.draw(new Canvas(frame));
+          for (int i = 9; i <= 11; i++) assertTrue("Accessibility preserves the exact unabridged balance",
+              lobby.buttons.get(i).getContentDescription().toString().contains("2,147,483,647"));
+        } finally { frame.recycle(); }
       }
     }
   }
@@ -541,5 +558,6 @@ public class ReleaseHomeMotionTest {
     } finally { down.recycle(); move.recycle(); }
   }
 }
+
 
 

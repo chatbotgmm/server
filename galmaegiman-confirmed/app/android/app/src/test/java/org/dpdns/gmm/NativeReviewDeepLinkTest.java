@@ -28,7 +28,11 @@ public class NativeReviewDeepLinkTest {
     Recording(MainActivity a) { super(a); }
     @Override String token() { return saved; }
     @Override void token(String value) { saved = value; }
-    @Override void call(String path, JSONObject body, Result callback) { paths.add(path); bodies.add(body); }
+    String failWith;
+    @Override void call(String path, JSONObject body, Result callback) {
+      paths.add(path); bodies.add(body);
+      if (failWith != null) callback.done(null, failWith);
+    }
   }
 
   static List<View> all(View root) {
@@ -37,7 +41,39 @@ public class NativeReviewDeepLinkTest {
     return out;
   }
 
-  @Before public void isolate() { fixtures.isolate(); }
+  @Before public void isolate() {
+    fixtures.isolate();
+    if (System.getProperty("gmm.nativeReviewOutput") == null) System.setProperty("gmm.nativeReviewOutput", "build/native-review");
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  public void expiredReviewCodeReturnsToLoginWithKoreanAndEnglishGuide() throws Exception {
+    String guide = "심사 로그인 페이지에서 다시 로그인해 주세요.\nPlease sign in again at https://gmm.dpdns.org/review";
+    for (int[] size : new int[][] {{915, 412}, {1280, 720}}) {
+      RuntimeEnvironment.setQualifiers("w" + size[0] + "dp-h" + size[1] + "dp-land-mdpi");
+      try (ActivityController<MainActivity> controller = fixtures.start()) {
+        MainActivity host = controller.get();
+        Recording api = new Recording(host); host.api.close(); host.api = api; api.failWith = guide;
+        assertTrue(host.exchange(new Intent(Intent.ACTION_VIEW, Uri.parse("gmmrevised://auth?review=expired"))));
+        org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+        assertEquals("만료되면 로그인 화면으로", "login", host.screen);
+        assertEquals("", api.token());
+        assertNotNull("안내 창", host.visibleDialog);
+        new NativeRenderReviewTest().capture(host, "review-code-expired-" + size[0] + "x" + size[1], size[0], size[1]);
+        View decor = new NativeDialogLayoutReviewTest().layoutDialog(host);
+        boolean shown = false;
+        for (View v : all(decor)) if (v instanceof TextView && ((TextView) v).getText().toString().contains("Please sign in again")) {
+          shown = true;
+          android.text.Layout l = ((TextView) v).getLayout();
+          if (l != null) for (int i = 0; i < l.getLineCount(); i++) assertEquals("안내 말줄임 없음", 0, l.getEllipsisCount(i));
+        }
+        assertTrue("영어 안내가 보임", shown);
+        new NativeDialogLayoutReviewTest().capture(host, new int[] {size[0], size[1]}, "review-code-expired-dialog-" + size[0] + "x" + size[1]);
+        host.visibleDialog.dismiss();
+      }
+    }
+  }
 
   @Test public void loginScreenHasNoReviewEntryAndReviewLinkExchangesOneTimeCode() {
     try (ActivityController<MainActivity> controller = fixtures.start()) {

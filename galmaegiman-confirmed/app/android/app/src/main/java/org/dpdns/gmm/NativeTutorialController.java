@@ -83,7 +83,7 @@ final class NativeTutorialController {
       JSONArray list = h.list(saved, "seen");
       for (int i = 0; i < list.length(); i++) seen.add(list.optString(i));
       progress.sync(saved.optInt("step", 9), seen);
-      if (progress.step == 1 && !progress.seen.contains("tut") && !progress.replay) {
+      if (!h.nicknameRequired() && progress.step == 1 && !progress.seen.contains("tut") && !progress.replay) {
         progress.seen.add("tut");
         h.api.call("tutorial", MainActivity.obj("step", 1, "seen", "tut"), (r, e) -> {});
       }
@@ -92,7 +92,7 @@ final class NativeTutorialController {
 
   void onScreenShown(String screen) {
     onStateUpdated();
-    if (!enabled || h.api.token().isEmpty()) {
+    if (!enabled || h.nicknameRequired() || h.api.token().isEmpty()) {
       removeOverlay();
       return;
     }
@@ -197,6 +197,7 @@ final class NativeTutorialController {
                 if (next == 3) rewardCard = true;
                 if ((next == 4 || next == 9) && failure == null) ensureStarterTeam();
                 onStateUpdated();
+                if (next == 9 && !progress.replay) { h.load("home"); return; }
                 update();
               });
         });
@@ -229,7 +230,7 @@ final class NativeTutorialController {
   }
 
   void update() {
-    if (!enabled
+    if (h.nicknameRequired() || !enabled
         || saving
         || h.api.token().isEmpty()
         || h.root.getWidth() == 0
@@ -255,7 +256,7 @@ final class NativeTutorialController {
       card(
           "first-reward",
           "첫 모집 보상",
-          "태초의 갈매미맨이 수비대에 들어왔어요. 모든 갈매미의 원형이에요. 이 한 마리로 첫 전투에 나가요."
+          "태초의 갈매미맨이 방범대에 들어왔어요. 모든 갈매미의 원형이에요. 이 한 마리로 첫 전투에 나가요."
               + (progress.replay ? "\n다시 보기에서는 새 갈매미를 지급하지 않아요." : ""),
           "받기",
           () -> {
@@ -294,9 +295,9 @@ final class NativeTutorialController {
       if (screen.equals("home"))
         spotlight(
             "defenders",
-            find("defenders", "수비대"),
+            find("defenders", "방범대"),
             "③ 전투 편성",
-            "수비대에서 전투에 나갈 갈매미를 정해요.",
+            "전투 편성에서 전투에 나갈 갈매미를 정해요.",
             () -> {
               h.selectionMode = "story";
               h.menus.teamDraft = null;
@@ -306,7 +307,7 @@ final class NativeTutorialController {
             "team",
             find("team", "전투 편성"),
             "③ 전투 편성",
-            "전투 편성을 눌러요.",
+            "상위부터 편성해요. 한정·초월·영원·불멸이 상위, 전설·히든 이하는 하위예요. 상위에서 환생한 대원도 가능해요. 전투 편성을 눌러요.",
             () -> {
               h.selectionMode = "story";
               h.menus.teamDraft = null;
@@ -330,7 +331,7 @@ final class NativeTutorialController {
               "③ 전투 편성",
               "갈매미를 눌러 단상에 올려요. 이름 옆 칩은 속성이에요.",
               null);
-      } else back("수비대");
+      } else back("방범대");
       return;
     }
     if (progress.step == 4) {
@@ -357,7 +358,7 @@ final class NativeTutorialController {
       card(
           "done",
           "신입 연수 끝!",
-          "이제 자유롭게 출근해요. 처음 보는 화면에서는 짧게 또 알려 줄게요. 설정에서 언제든 다시 볼 수 있어요.",
+          "연수를 마쳤어요. 처음 완료하면 속성별 후보 중 서로 다른 임시 대원 2마리를 선택해요. 확정 후 15일이 지나면 만료되고, 다시 보기로 재지급하거나 연장되지 않아요.",
           "좋아요",
           () -> advance(9));
     else removeOverlay();
@@ -566,6 +567,13 @@ final class NativeTutorialController {
   }
 
   View find(String key, String text) {
+    // 홈의 실제 목표를 펼친 뒤 안내한다. 접힌 메뉴를 찾지 못해 첫 튜토리얼이 멈추지 않는다.
+    if (h.screen.equals("home") && (h.visibleDialog == null || !h.visibleDialog.isShowing()))
+      for (int i = 0; i < h.root.getChildCount(); i++)
+        if (h.root.getChildAt(i) instanceof LobbyView) {
+          View target = ((LobbyView) h.root.getChildAt(i)).tutorialMenuTarget(key);
+          if (target != null) return target;
+        }
     // 목록 선택은 별도 창에 있어도 실제 원본 버튼을 찾는다. 모달에는 중복 안내막을 올리지 않는다.
     if (h.visibleDialog != null
         && h.visibleDialog.isShowing()
@@ -616,4 +624,6 @@ final class NativeTutorialController {
     return null;
   }
 }
+
+
 

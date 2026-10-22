@@ -1,0 +1,38 @@
+{
+  "source_sha256": "93a9db9125a1e7e6d3a9542e3d0f253141ffbf621dae2d2bd7962977f5f3bcaa",
+  "sheet": "I8/front/idle.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      267,
+      449
+    ],
+    [
+      251,
+      449
+    ],
+    [
+      243,
+      449
+    ],
+    [
+      267,
+      448
+    ],
+    [
+      250,
+      448
+    ],
+    [
+      243,
+      448
+    ]
+  ],
+  "placement_rule": "Align measured grounded feet anchor to fixed world origin, preserve authored airborne or recoil offsets.",
+  "measurement": "Visually measured claw contact centers, excludes intrinsic magic oval. Approximate \u00b14px; renderer validation pending.",
+  "renderer_validation": "pending"
+}

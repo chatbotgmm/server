@@ -76,3 +76,9 @@ node --env-file=.env scripts/manual/review-account.mjs password
 node --env-file=.env scripts/manual/review-account.mjs enable && sudo systemctl restart gmm-server
 node --env-file=.env scripts/manual/review-account.mjs verify
 ```
+
+## 2026-10-21 운영 상태
+- 운영 `main-oz3tvo` @ `ee833d1`(PR #9) 배포. 외부 확인: `/review` 200(no-store, noindex), 잘못된 코드 교환 400.
+- EC2에서 계정 생성·시작 자원·비밀번호·활성화·verify를 사용자가 실행했고, 81 앱(org.gmm)에서 `/review` 로그인 → 앱 접속을 사용자가 실기기로 확인(사용자 보고 기준. 결과 화면은 받지 못함).
+- 만료 안내 영어 줄("Please sign in again …")은 `923fbc1`에만 있고 운영에는 아직 없다.
+- Play Console 항목 이름: `Gmm review account`, Username `gmm-review`, Password는 운영자 보관(저장소·채팅에 없음).

@@ -10,7 +10,7 @@ import org.json.JSONObject;
 public final class NativeAlerts extends BroadcastReceiver {
   static void schedule(Context c, JSONObject me) {
     AlarmManager alarms = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
-    android.content.SharedPreferences prefs = c.getSharedPreferences("native_account", 0);
+    android.content.SharedPreferences prefs = c.getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0);
     boolean enabled = prefs.getBoolean("alerts", false);
     JSONObject trip = me.optJSONObject("trip");
     prefs
@@ -45,7 +45,7 @@ public final class NativeAlerts extends BroadcastReceiver {
 
   @Override
   public void onReceive(Context c, Intent i) {
-    android.content.SharedPreferences prefs = c.getSharedPreferences("native_account", 0);
+    android.content.SharedPreferences prefs = c.getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0);
     if (Intent.ACTION_BOOT_COMPLETED.equals(i.getAction())
         || Intent.ACTION_MY_PACKAGE_REPLACED.equals(i.getAction())) {
       try {
@@ -83,7 +83,7 @@ public final class NativeAlerts extends BroadcastReceiver {
     m.notify(
         id,
         b.setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("갈매미맨 수비대")
+            .setContentTitle("갈매미맨 방범대")
             .setContentText(id == 1 ? "탐험대가 돌아왔어요. 귀환 보상을 받아 주세요." : "지원서를 받을 수 있어요.")
             .setContentIntent(p)
             .setAutoCancel(true)

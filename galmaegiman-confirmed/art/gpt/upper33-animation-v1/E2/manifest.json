@@ -1,0 +1,872 @@
+{
+  "id": "E2",
+  "name": "황금향 갈매미맨",
+  "generator": "builtin image_gen only",
+  "sheetCount": 8,
+  "status": "all eight assets accepted with measured anchors and proposed uniform sheet scales; renderer validation pending",
+  "grid": {
+    "columns": 3,
+    "rows": 2
+  },
+  "placementRule": "Align each frame anchor to fixed actor world origin. Never infer actor origin from VFX or overall alpha bounds. Apply per-sheet fixed scale from independent visual body measurement if supplied. Validate action transitions and loops in renderer.",
+  "independentReview": "independent-set-review.json",
+  "rendererValidation": "pending",
+  "sheets": [
+    {
+      "path": "back/attack.png",
+      "sha256": "bfc98ea124a63f3f1e156d061763d4cbca114d38bce0939e256706ad3ebbf94d",
+      "view": "back",
+      "action": "attack",
+      "imageSize": [
+        1536,
+        1024
+      ],
+      "cellSize": [
+        512,
+        512
+      ],
+      "frameCount": 6,
+      "frameOrder": "row-major",
+      "durationsMs": [
+        100,
+        100,
+        90,
+        140,
+        120,
+        140
+      ],
+      "loop": false,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "alphaBoundsThreshold8": [
+        [
+          131,
+          127,
+          463,
+          445
+        ],
+        [
+          87,
+          127,
+          476,
+          443
+        ],
+        [
+          70,
+          126,
+          434,
+          445
+        ],
+        [
+          126,
+          65,
+          500,
+          396
+        ],
+        [
+          113,
+          79,
+          477,
+          396
+        ],
+        [
+          86,
+          76,
+          430,
+          396
+        ]
+      ],
+      "cellIsolationPass": true,
+      "perFrameAnchors": [
+        [
+          277.5,
+          444
+        ],
+        [
+          265.5,
+          442
+        ],
+        [
+          225.0,
+          444
+        ],
+        [
+          277.5,
+          395
+        ],
+        [
+          264.5,
+          395
+        ],
+        [
+          239.5,
+          395
+        ]
+      ],
+      "anchorMethod": "Alpha>128 foot-region pixels in lower40px central band, visually checked against feet; requires renderer validation.",
+      "anchorMetadata": "back/attack.measured-anchors.json",
+      "rendererValidation": "pending",
+      "neutral_body_height_px_estimate": 246,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 1.056911,
+      "scale_target_body_height_px": 260,
+      "scale_measurement_basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "scale_measurement_source": "generation worker visual measurement of current saved sheet, 2026-10-20",
+      "scale_measurement_uncertainty_px": 8,
+      "scale_status": "proposed uniform sheet scale; renderer cross-action/view validation pending",
+      "scale_application": "One constant uniform scale for all six frames of this sheet. No per-frame resizing or warping.",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame measured anchor multiplied by uniform sheet scale"
+    },
+    {
+      "path": "back/entry.png",
+      "sha256": "4c3654877689a4ce7e953da356fde0004da294091c38e70bba5288b33796289d",
+      "view": "back",
+      "action": "entry",
+      "imageSize": [
+        1536,
+        1024
+      ],
+      "cellSize": [
+        512,
+        512
+      ],
+      "frameCount": 6,
+      "frameOrder": "row-major",
+      "durationsMs": [
+        100,
+        100,
+        90,
+        140,
+        120,
+        140
+      ],
+      "loop": false,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "alphaBoundsThreshold8": [
+        [
+          55,
+          105,
+          496,
+          482
+        ],
+        [
+          55,
+          72,
+          479,
+          480
+        ],
+        [
+          47,
+          60,
+          474,
+          483
+        ],
+        [
+          43,
+          30,
+          506,
+          453
+        ],
+        [
+          51,
+          41,
+          483,
+          453
+        ],
+        [
+          48,
+          81,
+          478,
+          453
+        ]
+      ],
+      "cellIsolationPass": true,
+      "perFrameAnchors": [
+        [
+          256.0,
+          481
+        ],
+        [
+          284.5,
+          479
+        ],
+        [
+          275.0,
+          482
+        ],
+        [
+          291.0,
+          452
+        ],
+        [
+          285.0,
+          452
+        ],
+        [
+          255.0,
+          452
+        ]
+      ],
+      "anchorMethod": "Alpha>128 foot-region pixels in lower40px central band, visually checked against feet; requires renderer validation.",
+      "anchorMetadata": "back/entry.measured-anchors.json",
+      "rendererValidation": "pending",
+      "neutral_body_height_px_estimate": 308,
+      "neutral_reference_frame": 2,
+      "proposed_sheet_scale_to_neutral260px_height": 0.844156,
+      "scale_target_body_height_px": 260,
+      "scale_measurement_basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "scale_measurement_source": "generation worker visual measurement of current saved sheet, 2026-10-20",
+      "scale_measurement_uncertainty_px": 8,
+      "scale_status": "proposed uniform sheet scale; renderer cross-action/view validation pending",
+      "scale_application": "One constant uniform scale for all six frames of this sheet. No per-frame resizing or warping.",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame measured anchor multiplied by uniform sheet scale"
+    },
+    {
+      "path": "back/hit-defend.png",
+      "sha256": "ba1efa4724132d51f486f71c36a3c3a6bb1008574bd099592158a1aba45faeb6",
+      "view": "back",
+      "action": "hit-defend",
+      "imageSize": [
+        1536,
+        1024
+      ],
+      "cellSize": [
+        512,
+        512
+      ],
+      "frameCount": 6,
+      "frameOrder": "row-major",
+      "durationsMs": [
+        100,
+        100,
+        90,
+        140,
+        120,
+        140
+      ],
+      "loop": false,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "alphaBoundsThreshold8": [
+        [
+          65,
+          52,
+          465,
+          479
+        ],
+        [
+          54,
+          61,
+          476,
+          478
+        ],
+        [
+          27,
+          94,
+          460,
+          481
+        ],
+        [
+          89,
+          103,
+          463,
+          461
+        ],
+        [
+          50,
+          38,
+          479,
+          469
+        ],
+        [
+          65,
+          46,
+          468,
+          478
+        ]
+      ],
+      "cellIsolationPass": true,
+      "perFrameAnchors": [
+        [
+          279.0,
+          479
+        ],
+        [
+          284.0,
+          477
+        ],
+        [
+          248.5,
+          480
+        ],
+        [
+          261.5,
+          459
+        ],
+        [
+          263.5,
+          468
+        ],
+        [
+          284.0,
+          476
+        ]
+      ],
+      "anchorMethod": "Alpha>128 foot-region pixels in lower40px central band, visually checked against feet; requires renderer validation.",
+      "anchorMetadata": "back/hit-defend.measured-anchors.json",
+      "rendererValidation": "pending",
+      "neutral_body_height_px_estimate": 323,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 0.804954,
+      "scale_target_body_height_px": 260,
+      "scale_measurement_basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "scale_measurement_source": "generation worker visual measurement of current saved sheet, 2026-10-20",
+      "scale_measurement_uncertainty_px": 8,
+      "scale_status": "proposed uniform sheet scale; renderer cross-action/view validation pending",
+      "scale_application": "One constant uniform scale for all six frames of this sheet. No per-frame resizing or warping.",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame measured anchor multiplied by uniform sheet scale"
+    },
+    {
+      "path": "back/idle.png",
+      "sha256": "1774867c8f4cafc471512123b211e4d1a2410be663605b7e955edcb6c0deb602",
+      "view": "back",
+      "action": "idle",
+      "imageSize": [
+        1536,
+        1024
+      ],
+      "cellSize": [
+        512,
+        512
+      ],
+      "frameCount": 6,
+      "frameOrder": "row-major",
+      "durationsMs": [
+        160,
+        160,
+        160,
+        160,
+        160,
+        160
+      ],
+      "loop": true,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "alphaBoundsThreshold8": [
+        [
+          80,
+          64,
+          464,
+          465
+        ],
+        [
+          77,
+          63,
+          462,
+          466
+        ],
+        [
+          67,
+          63,
+          455,
+          466
+        ],
+        [
+          79,
+          39,
+          466,
+          440
+        ],
+        [
+          77,
+          38,
+          461,
+          440
+        ],
+        [
+          65,
+          38,
+          455,
+          442
+        ]
+      ],
+      "cellIsolationPass": true,
+      "perFrameAnchors": [
+        [
+          249.0,
+          465
+        ],
+        [
+          244.5,
+          465
+        ],
+        [
+          241.5,
+          465
+        ],
+        [
+          250.5,
+          439
+        ],
+        [
+          245.5,
+          439
+        ],
+        [
+          241.5,
+          440
+        ]
+      ],
+      "anchorMethod": "Alpha>128 foot-region pixels in lower40px central band, visually checked against feet; requires renderer validation.",
+      "anchorMetadata": "back/idle.measured-anchors.json",
+      "rendererValidation": "pending",
+      "neutral_body_height_px_estimate": 304,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 0.855263,
+      "scale_target_body_height_px": 260,
+      "scale_measurement_basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "scale_measurement_source": "generation worker visual measurement of current saved sheet, 2026-10-20",
+      "scale_measurement_uncertainty_px": 8,
+      "scale_status": "proposed uniform sheet scale; renderer cross-action/view validation pending",
+      "scale_application": "One constant uniform scale for all six frames of this sheet. No per-frame resizing or warping.",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame measured anchor multiplied by uniform sheet scale"
+    },
+    {
+      "path": "front/attack.png",
+      "sha256": "f41f6f41a989fde1c21fe89f86f2558f9acba3ad1e909792a7ce89bb12d03e10",
+      "view": "front",
+      "action": "attack",
+      "imageSize": [
+        1536,
+        1024
+      ],
+      "cellSize": [
+        512,
+        512
+      ],
+      "frameCount": 6,
+      "frameOrder": "row-major",
+      "durationsMs": [
+        100,
+        100,
+        90,
+        140,
+        120,
+        140
+      ],
+      "loop": false,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "alphaBoundsThreshold8": [
+        [
+          46,
+          37,
+          464,
+          482
+        ],
+        [
+          46,
+          60,
+          485,
+          480
+        ],
+        [
+          20,
+          33,
+          457,
+          482
+        ],
+        [
+          31,
+          27,
+          483,
+          481
+        ],
+        [
+          43,
+          25,
+          469,
+          480
+        ],
+        [
+          62,
+          26,
+          480,
+          481
+        ]
+      ],
+      "cellIsolationPass": true,
+      "perFrameAnchors": [
+        [
+          249.5,
+          481
+        ],
+        [
+          252.0,
+          480
+        ],
+        [
+          261.0,
+          481
+        ],
+        [
+          230.5,
+          480
+        ],
+        [
+          251.5,
+          480
+        ],
+        [
+          266.5,
+          481
+        ]
+      ],
+      "anchorMethod": "Alpha>128 foot-region pixels in lower40px central band, visually checked against feet; requires renderer validation.",
+      "anchorMetadata": "front/attack.measured-anchors.json",
+      "rendererValidation": "pending",
+      "neutral_body_height_px_estimate": 338,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 0.769231,
+      "scale_target_body_height_px": 260,
+      "scale_measurement_basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "scale_measurement_source": "generation worker visual measurement of current saved sheet, 2026-10-20",
+      "scale_measurement_uncertainty_px": 8,
+      "scale_status": "proposed uniform sheet scale; renderer cross-action/view validation pending",
+      "scale_application": "One constant uniform scale for all six frames of this sheet. No per-frame resizing or warping.",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame measured anchor multiplied by uniform sheet scale"
+    },
+    {
+      "path": "front/entry.png",
+      "sha256": "681cd8f37ebb6f4082e0cf16c278010f3fa9ad7a510a634dba670aad9a9c10c4",
+      "view": "front",
+      "action": "entry",
+      "imageSize": [
+        1536,
+        1024
+      ],
+      "cellSize": [
+        512,
+        512
+      ],
+      "frameCount": 6,
+      "frameOrder": "row-major",
+      "durationsMs": [
+        100,
+        100,
+        90,
+        140,
+        120,
+        140
+      ],
+      "loop": false,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "alphaBoundsThreshold8": [
+        [
+          48,
+          76,
+          479,
+          496
+        ],
+        [
+          53,
+          58,
+          492,
+          498
+        ],
+        [
+          14,
+          37,
+          479,
+          498
+        ],
+        [
+          23,
+          16,
+          481,
+          477
+        ],
+        [
+          23,
+          17,
+          486,
+          475
+        ],
+        [
+          41,
+          78,
+          469,
+          485
+        ]
+      ],
+      "cellIsolationPass": true,
+      "perFrameAnchors": [
+        [
+          226.0,
+          495
+        ],
+        [
+          249.5,
+          497
+        ],
+        [
+          241.5,
+          497
+        ],
+        [
+          253.0,
+          475
+        ],
+        [
+          251.0,
+          475
+        ],
+        [
+          256.0,
+          484
+        ]
+      ],
+      "anchorMethod": "Alpha>128 foot-region pixels in lower40px central band, visually checked against feet; requires renderer validation.",
+      "anchorMetadata": "front/entry.measured-anchors.json",
+      "rendererValidation": "pending",
+      "neutral_body_height_px_estimate": 352,
+      "neutral_reference_frame": 2,
+      "proposed_sheet_scale_to_neutral260px_height": 0.738636,
+      "scale_target_body_height_px": 260,
+      "scale_measurement_basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "scale_measurement_source": "generation worker visual measurement of current saved sheet, 2026-10-20",
+      "scale_measurement_uncertainty_px": 8,
+      "scale_status": "proposed uniform sheet scale; renderer cross-action/view validation pending",
+      "scale_application": "One constant uniform scale for all six frames of this sheet. No per-frame resizing or warping.",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame measured anchor multiplied by uniform sheet scale"
+    },
+    {
+      "path": "front/hit-defend.png",
+      "sha256": "f4aed75433e8ad48d63000e8df248c9ece7a481f9eaef6e2fa65e4fdd36f4aee",
+      "view": "front",
+      "action": "hit-defend",
+      "imageSize": [
+        1536,
+        1024
+      ],
+      "cellSize": [
+        512,
+        512
+      ],
+      "frameCount": 6,
+      "frameOrder": "row-major",
+      "durationsMs": [
+        100,
+        100,
+        90,
+        140,
+        120,
+        140
+      ],
+      "loop": false,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "alphaBoundsThreshold8": [
+        [
+          91,
+          95,
+          419,
+          429
+        ],
+        [
+          86,
+          95,
+          424,
+          430
+        ],
+        [
+          60,
+          95,
+          410,
+          425
+        ],
+        [
+          96,
+          66,
+          415,
+          391
+        ],
+        [
+          83,
+          67,
+          435,
+          399
+        ],
+        [
+          74,
+          67,
+          405,
+          401
+        ]
+      ],
+      "cellIsolationPass": true,
+      "perFrameAnchors": [
+        [
+          260.0,
+          428
+        ],
+        [
+          250.5,
+          428
+        ],
+        [
+          237.5,
+          424
+        ],
+        [
+          262.0,
+          390
+        ],
+        [
+          253.0,
+          398
+        ],
+        [
+          244.5,
+          400
+        ]
+      ],
+      "anchorMethod": "Alpha>128 foot-region pixels in lower40px central band, visually checked against feet; requires renderer validation.",
+      "anchorMetadata": "front/hit-defend.measured-anchors.json",
+      "rendererValidation": "pending",
+      "neutral_body_height_px_estimate": 253,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 1.027668,
+      "scale_target_body_height_px": 260,
+      "scale_measurement_basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "scale_measurement_source": "generation worker visual measurement of current saved sheet, 2026-10-20",
+      "scale_measurement_uncertainty_px": 8,
+      "scale_status": "proposed uniform sheet scale; renderer cross-action/view validation pending",
+      "scale_application": "One constant uniform scale for all six frames of this sheet. No per-frame resizing or warping.",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame measured anchor multiplied by uniform sheet scale"
+    },
+    {
+      "path": "front/idle.png",
+      "sha256": "6508367aaf8241c6c2cba684ce3f2a91641317e11a9436e25098f2a820bee630",
+      "view": "front",
+      "action": "idle",
+      "imageSize": [
+        1536,
+        1024
+      ],
+      "cellSize": [
+        512,
+        512
+      ],
+      "frameCount": 6,
+      "frameOrder": "row-major",
+      "durationsMs": [
+        160,
+        160,
+        160,
+        160,
+        160,
+        160
+      ],
+      "loop": true,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "alphaBoundsThreshold8": [
+        [
+          71,
+          36,
+          463,
+          481
+        ],
+        [
+          49,
+          32,
+          463,
+          481
+        ],
+        [
+          38,
+          28,
+          456,
+          481
+        ],
+        [
+          63,
+          32,
+          472,
+          481
+        ],
+        [
+          59,
+          27,
+          462,
+          481
+        ],
+        [
+          50,
+          31,
+          454,
+          481
+        ]
+      ],
+      "cellIsolationPass": true,
+      "perFrameAnchors": [
+        [
+          256.0,
+          480
+        ],
+        [
+          297.0,
+          480
+        ],
+        [
+          292.0,
+          480
+        ],
+        [
+          260.5,
+          480
+        ],
+        [
+          297.0,
+          480
+        ],
+        [
+          292.0,
+          480
+        ]
+      ],
+      "anchorMethod": "Alpha>128 foot-region pixels in lower40px central band, visually checked against feet; requires renderer validation.",
+      "anchorMetadata": "front/idle.measured-anchors.json",
+      "rendererValidation": "pending",
+      "neutral_body_height_px_estimate": 333,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 0.780781,
+      "scale_target_body_height_px": 260,
+      "scale_measurement_basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "scale_measurement_source": "generation worker visual measurement of current saved sheet, 2026-10-20",
+      "scale_measurement_uncertainty_px": 8,
+      "scale_status": "proposed uniform sheet scale; renderer cross-action/view validation pending",
+      "scale_application": "One constant uniform scale for all six frames of this sheet. No per-frame resizing or warping.",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame measured anchor multiplied by uniform sheet scale"
+    }
+  ]
+}

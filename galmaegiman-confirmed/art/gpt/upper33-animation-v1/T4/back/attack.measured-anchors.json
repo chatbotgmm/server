@@ -1,0 +1,38 @@
+{
+  "source_sha256": "b5fe62031583837c33d9495f71554e65b87212eeb018803a9525aaf2f9dc7c0c",
+  "sheet": "T4/back/attack.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      262.0,
+      432
+    ],
+    [
+      275.0,
+      433
+    ],
+    [
+      270.0,
+      431
+    ],
+    [
+      279.0,
+      425
+    ],
+    [
+      268.5,
+      429
+    ],
+    [
+      261.5,
+      432
+    ]
+  ],
+  "placement_rule": "Align measured ground-contact feet anchor to fixed actor world origin; preserve authored offsets for lifted feet or airborne poses.",
+  "measurement": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate \u00b14px. Renderer validation pending.",
+  "renderer_validation": "pending"
+}

@@ -1,0 +1,38 @@
+{
+  "source_sha256": "c19c2c4a175695914fb95e4c664da0fc1be08ef33b5cb5cfab6db8ca61d56004",
+  "sheet": "D4/back/hit-defend.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      258,
+      463
+    ],
+    [
+      259,
+      459
+    ],
+    [
+      270,
+      458
+    ],
+    [
+      249,
+      438
+    ],
+    [
+      267,
+      448
+    ],
+    [
+      260,
+      452
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Visual gold-claw anchor estimate +/-4px, excludes water droplets and plate tips. Renderer validation pending.",
+  "renderer_validation": "pending"
+}

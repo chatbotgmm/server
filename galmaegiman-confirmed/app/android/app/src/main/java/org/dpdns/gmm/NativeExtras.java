@@ -752,7 +752,7 @@ final class NativeExtras {
             link.addView(heading("카카오 계정", 18));
             boolean linked = r.optBoolean("kakao");
             boolean linking =
-                h.getSharedPreferences("native_account", 0).getBoolean("linking", false);
+                h.getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).getBoolean("linking", false);
             link.addView(
                 k.note(
                     linking
@@ -778,7 +778,7 @@ final class NativeExtras {
                       null,
                       "연결 취소",
                       () -> {
-                        h.getSharedPreferences("native_account", 0)
+                        h.getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0)
                             .edit()
                             .remove("verifier")
                             .remove("linking")
@@ -874,7 +874,7 @@ final class NativeExtras {
     h.art.clear();
     h.state = new JSONObject();
     m.reset();
-    h.getSharedPreferences("native_account", 0)
+    h.getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0)
         .edit()
         .remove("verifier")
         .remove("linking")

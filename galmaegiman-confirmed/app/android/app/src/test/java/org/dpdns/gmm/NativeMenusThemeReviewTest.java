@@ -151,6 +151,7 @@ public class NativeMenusThemeReviewTest {
         else done.done(NativeThemeReviewTest.rank(), null);
       } else if (path.equals("native/state")) done.done(state, null);
       else if (path.equals("native/catalog")) done.done(MainActivity.obj("units", state.optJSONObject("me").optJSONArray("units")), null);
+      else if (path.equals("starter-loans")) done.done(StarterLoanTestFixture.ineligible(), null);
       else throw new AssertionError("Unexpected API path: " + path);
     }
   }

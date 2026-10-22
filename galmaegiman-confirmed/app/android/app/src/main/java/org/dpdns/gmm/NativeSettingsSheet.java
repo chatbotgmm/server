@@ -269,10 +269,10 @@ final class NativeSettingsSheet {
       alerts.setTrackTintList(new ColorStateList(toggleStates, new int[] {JournalTheme.NAVY, 0xffc9c5ba}));
       alerts.setMinHeight(h.dp(48));
       alerts.setMinimumHeight(h.dp(48));
-      alerts.setChecked(h.getSharedPreferences("native_account", 0).getBoolean("alerts", false));
+      alerts.setChecked(h.getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).getBoolean("alerts", false));
       alerts.setOnCheckedChangeListener(
           (v, on) -> {
-            h.getSharedPreferences("native_account", 0).edit().putBoolean("alerts", on).apply();
+            h.getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).edit().putBoolean("alerts", on).apply();
             if (on
                 && Build.VERSION.SDK_INT >= 33
                 && h.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)

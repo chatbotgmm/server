@@ -1,0 +1,38 @@
+{
+  "source_sha256": "ffcaacb463e894e2708b0f64ca565629048e651486ceb8cf73714fc3fa2fa3eb",
+  "sheet": "T5/front/idle.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      286,
+      448
+    ],
+    [
+      271,
+      448
+    ],
+    [
+      270,
+      448
+    ],
+    [
+      290,
+      417
+    ],
+    [
+      273,
+      417
+    ],
+    [
+      272,
+      417
+    ]
+  ],
+  "placement_rule": "Align measured grounded feet anchor to fixed world origin, preserve authored airborne or recoil offsets.",
+  "measurement": "Visually measured paired claw contact centers excluding broom and petals, approximate \u00b15px. Partially broom-occluded foot inferred from stance.",
+  "renderer_validation": "pending"
+}

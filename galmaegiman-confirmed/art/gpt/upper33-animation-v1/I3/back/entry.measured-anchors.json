@@ -1,0 +1,38 @@
+{
+  "source_sha256": "ae049bf6adbd512ec8e1167c2f2b6aa462bafde7180b70f8cbb24e91379dcd9c",
+  "sheet": "I3/back/entry.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      264.0,
+      464
+    ],
+    [
+      266.0,
+      463
+    ],
+    [
+      264.5,
+      462
+    ],
+    [
+      273.0,
+      456
+    ],
+    [
+      270.5,
+      456
+    ],
+    [
+      265.5,
+      455
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Gold claw region below body, central x170..360; excludes dark-purple floating shards. Visually checked, renderer pending.",
+  "renderer_validation": "pending"
+}

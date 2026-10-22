@@ -138,19 +138,29 @@ public class ReleaseHomeLayoutTest {
 
   @Test public void phoneAndTabletMenusAreSafeDisjointAndKeepOrnateHierarchy() {
     int[][] profiles = {{915, 412, 0, 0, 0, 0}, {1006, 411, 32, 8, 24, 16},
-        {1280, 720, 0, 0, 0, 0}, {1280, 800, 0, 0, 0, 0}};
+        {1280, 720, 0, 0, 0, 0}, {640, 320, 0, 0, 0, 0}, {1280, 800, 0, 0, 0, 0}};
     for (int[] p : profiles) {
       RuntimeEnvironment.setQualifiers("w" + p[0] + "dp-h" + p[1] + "dp-land-mdpi");
-      RuntimeEnvironment.setFontScale(p[1] == 800 ? 1.3f : 1f);
+      RuntimeEnvironment.setFontScale(p[1] == 320 ? 2f : p[1] == 800 ? 1.3f : 1f);
       for (boolean resume : new boolean[] {false, true}) {
         try (ActivityController<HomeHost> controller = start(resume)) {
           HomeHost h = controller.get();
           layout(h, p[0], p[1], p[2], p[3], p[4], p[5]);
           LobbyView l = lobby(h);
           assertTrue("All home artwork including local map-reading guide loads", l.homeArt.ready());
+          assertTrue("Four surfaces and ten separate runtime icons load", l.menuArt.ready());
           assertNotNull(l.homeArt.hero());
           assertNotNull(l.homeArt.heroBounds());
-          assertEquals("Five dock routes plus play, team, daily, profile, settings and three currencies", 13, l.buttons.size());
+          assertEquals("Original actions, menu toggle and news", 15, l.buttons.size());
+          assertFalse(l.menuOpen);
+          for (int index : LobbyView.MENU_ITEMS) assertEquals(View.GONE, l.buttons.get(index).getVisibility());
+          Rect fixedPlay = box(l, l.buttons.get(5));
+          RectF fixedHero = l.heroBox();
+          l.buttons.get(13).performClick();
+          layout(h, p[0], p[1], p[2], p[3], p[4], p[5]);
+          assertTrue(l.menuOpen);
+          assertEquals("Play does not move when opened", fixedPlay, box(l, l.buttons.get(5)));
+          assertEquals("Hero does not jump when opened", fixedHero, l.heroBox());
           assertNull("Retired harbor shortcut stays absent", l.findViewWithTag("lobby-harbor"));
           assertNull("Retired growth panel stays absent", l.findViewWithTag("lobby-growth"));
           RectF safe = h.safeBounds(l.getWidth(), l.getHeight());
@@ -159,32 +169,24 @@ public class ReleaseHomeLayoutTest {
             for (int j = i + 1; j < l.buttons.size(); j++)
               assertFalse("Overlapping commands " + i + " / " + j,
                   Rect.intersects(box(l, l.buttons.get(i)), box(l, l.buttons.get(j))));
-          int[] dock = {0, 1, 2, 3, 4};
-          for (int i = 1; i < dock.length; i++) {
-            Rect a = box(l, l.buttons.get(dock[i - 1])), b = box(l, l.buttons.get(dock[i]));
-            assertTrue("Explore, draw, collection, craft, shop order", a.right <= b.left);
-            assertEquals("Bottom commands share a baseline", a.bottom, b.bottom);
+          int[] ordered = LobbyView.MENU_ITEMS;
+          for (int i = 0; i < ordered.length; i++) {
+            Rect current = box(l, l.buttons.get(ordered[i]));
+            assertTrue("Eight menu tiles stay in the panel", l.menuPanel.contains(new RectF(current)));
+            if (i % 4 != 0) {
+              Rect previous = box(l, l.buttons.get(ordered[i-1]));
+              assertTrue("Approved menu order left to right", previous.right <= current.left);
+              assertEquals(previous.top, current.top);
+            }
           }
-          int[] stack = {5, 12, 6};
-          for (int i = 1; i < stack.length; i++) {
-            Rect a = box(l, l.buttons.get(stack[i - 1])), b = box(l, l.buttons.get(stack[i]));
-            assertTrue("Play, team, daily vertical order", a.bottom <= b.top);
-            assertEquals("Right commands align", a.right, b.right);
-          }
-          assertTrue("Right action stack clears the bottom dock",
-              box(l, l.buttons.get(6)).bottom <= box(l, l.buttons.get(0)).top);
-          for (int i = 1; i < dock.length; i++) {
-            Rect first = box(l, l.buttons.get(dock[0]));
-            Rect current = box(l, l.buttons.get(dock[i]));
-            assertTrue("Five dock commands retain equal usable widths", Math.abs(first.width() - current.width()) <= 1);
-          }
-          assertTrue("Profile is a compact portrait/name chip", l.boxes[7].width() <= h.dp(220));
+          assertTrue("Second row is below first row", l.boxes[ordered[4]].top >= l.boxes[ordered[0]].bottom);
+          assertTrue("Panel clears fixed action row", l.menuPanel.bottom < l.boxes[5].top);
+          assertEquals(l.boxes[5].bottom, l.boxes[13].bottom, .01f);
+          assertTrue("Profile is compact", l.boxes[7].width() <= h.dp(220));
           containedTouch(h, l, l.gull, safe);
           RectF hero = l.heroBox();
-          assertTrue("Guide stands on foreground paving", hero.bottom >= safe.top + safe.height() * .72f);
-          assertTrue("Guide keeps a sensible tablet scale", hero.height() <= safe.height() * .56f);
-          assertTrue("Guide feet retain clearance above the five-route dock",
-              hero.bottom + h.dp(20) <= box(l, l.buttons.get(0)).top + 1);
+          assertTrue("Advice is below the complete hero", l.tipRegion.top > l.tipHeroExclusion().bottom);
+          assertFalse("Open panel never covers hero", RectF.intersects(hero, l.menuPanel));
           View resumeButton = l.findViewWithTag("lobby-resume");
           if (resume) {
             containedTouch(h, l, resumeButton, safe);
@@ -230,6 +232,7 @@ public class ReleaseHomeLayoutTest {
       String[] destinations = {"expedition", "draw", "collection", "craft", "shop", "modes",
           "daily", null, "settings", "shop", "shop", "shop"};
       for (int i = 0; i < destinations.length; i++) if (destinations[i] != null) {
+        l.setMenuOpen(true);
         h.requested = "";
         assertTrue(l.buttons.get(i).performClick());
         assertEquals("Original command " + i, destinations[i], h.requested);
@@ -237,8 +240,13 @@ public class ReleaseHomeLayoutTest {
       assertSame(l.buttons.get(12), l.findViewWithTag("lobby-team"));
       assertNull("Removed harbor command is not mounted", l.findViewWithTag("lobby-harbor"));
       assertNull("Removed direct growth command is not mounted", l.findViewWithTag("lobby-growth"));
-      assertEquals(13, l.buttons.size());
+      assertEquals(15, l.buttons.size());
       assertNull(l.findViewWithTag("lobby-information"));
+      assertSame(l.buttons.get(14), l.findViewWithTag("lobby-news"));
+      l.setMenuOpen(true);
+      h.requested = "";
+      assertTrue(l.buttons.get(14).performClick());
+      assertEquals("news", h.requested);
       assertSame(l.buttons.get(7), l.findViewWithTag("lobby-profile"));
       assertSame(l.buttons.get(8), l.findViewWithTag("lobby-settings"));
     }
@@ -252,6 +260,7 @@ public class ReleaseHomeLayoutTest {
       h.menus.teamMode = "pvp";
       h.menus.teamDraft = new ArrayList<>(Arrays.asList("stale-pvp-draft"));
       layout(h, 915, 412, 0, 0, 0, 0);
+      lobby(h).setMenuOpen(true);
       lobby(h).findViewWithTag("lobby-team").performClick();
       assertEquals("team", h.screen);
       assertEquals("story", h.selectionMode);
@@ -272,6 +281,7 @@ public class ReleaseHomeLayoutTest {
       JSONObject owned = new JSONObject(h.state.getJSONArray("units").getJSONObject(0).toString());
       owned.put("known", true).put("have", 1).put("tier", "COMMON").put("tierName", "흔함");
       h.me().put("units", new JSONArray().put(owned));
+      lobby(h).setMenuOpen(true);
       lobby(h).findViewWithTag("lobby-collection").performClick();
       assertEquals("collection", h.requested);
       h.collection();
@@ -300,12 +310,84 @@ public class ReleaseHomeLayoutTest {
       h.home();
       assertNull("No growth panel reappears for an empty roster", lobby(h).findViewWithTag("lobby-growth"));
       h.requested = "";
+      lobby(h).setMenuOpen(true);
       lobby(h).findViewWithTag("lobby-collection").performClick();
       assertEquals("collection", h.requested);
       h.collection();
       assertEquals("collection", h.screen);
       assertNull("Empty collection does not invent an individual growth action",
           h.root.findViewWithTag("collection-growth"));
+    }
+  }
+
+  @Test public void tutorialFindUnfoldsRealActionsWithoutAdvancingProgress() {
+    try (ActivityController<HomeHost> controller = start(false)) {
+      HomeHost h = controller.get(); layout(h, 915, 412, 0, 0, 0, 0);
+      LobbyView l = lobby(h);
+      String[] keys = {"daily", "draw", "defenders", "team"};
+      String[] labels = {"출석체크", "모집", "방범대", "전투 편성"};
+      int[] indices = {6, 1, 12, 12};
+      int step = h.guide.progress.step;
+      String progress = h.state.toString();
+      for (int i = 0; i < keys.length; i++) {
+        l.setMenuOpen(false);
+        ((FixtureApi) h.api).paths.clear();
+        View target = h.guide.find(keys[i], labels[i]);
+        assertSame("Tutorial retains the actual original action", l.buttons.get(indices[i]), target);
+        assertTrue("Target lookup unfolds hidden home menu", l.menuOpen);
+        assertEquals(View.VISIBLE, target.getVisibility());
+        layout(h, 915, 412, 0, 0, 0, 0);
+        containedTouch(h, l, target, h.safeBounds(l.getWidth(), l.getHeight()));
+        assertEquals("Anchor lookup must not advance tutorial", step, h.guide.progress.step);
+        assertEquals("Anchor lookup never mutates game state", progress, h.state.toString());
+        assertTrue("Finding a tutorial anchor sends no API mutation", ((FixtureApi) h.api).paths.isEmpty());
+      }
+    }
+  }
+
+  @Test public void veryShortLargeFontBattleGuideKeepsFortyEightDpHitTarget() {
+    RuntimeEnvironment.setQualifiers("w568dp-h280dp-land-mdpi");
+    RuntimeEnvironment.setFontScale(2f);
+    try (ActivityController<HomeHost> controller = start(true)) {
+      HomeHost h = controller.get(); layout(h, 568, 280, 0, 0, 0, 0);
+      LobbyView l = lobby(h);
+      RectF safe = h.safeBounds(l.getWidth(), l.getHeight());
+      containedTouch(h, l, l.gull, safe);
+      Rect hit = box(l, l.gull);
+      assertFalse("Guide touch area stays clear of battle resume",
+          Rect.intersects(hit, box(l, l.findViewWithTag("lobby-resume"))));
+      assertFalse("Guide touch area stays clear of fixed play", Rect.intersects(hit, box(l, l.buttons.get(5))));
+      assertFalse("Guide touch area stays clear of menu toggle", Rect.intersects(hit, box(l, l.buttons.get(13))));
+    }
+  }
+
+  @Test public void menuToggleOutsideTapAndBackKeepUnderlyingActionsUntouched() {
+    try (ActivityController<HomeHost> controller = start(false)) {
+      HomeHost h = controller.get(); layout(h, 915, 412, 0, 0, 0, 0);
+      LobbyView l = lobby(h);
+      l.buttons.get(13).performClick(); layout(h, 915, 412, 0, 0, 0, 0);
+      assertTrue(l.menuOpen);
+      h.requested = "";
+      RectF settings = l.boxes[8];
+      for (int action : new int[] {android.view.MotionEvent.ACTION_DOWN, android.view.MotionEvent.ACTION_UP}) {
+        android.view.MotionEvent e = android.view.MotionEvent.obtain(0, 1, action, settings.centerX(), settings.centerY(), 0);
+        assertTrue(l.dispatchTouchEvent(e)); e.recycle();
+      }
+      assertFalse("Outside tap closes panel", l.menuOpen);
+      assertEquals("Closing gesture cannot activate the covered setting", "", h.requested);
+      l.setMenuOpen(true);
+      h.getOnBackPressedDispatcher().onBackPressed();
+      assertFalse("Android back closes menu first", l.menuOpen);
+      assertNull("First back does not show exit dialog", h.visibleDialog);
+      assertFalse(h.isFinishing());
+      assertEquals("home", h.screen);
+      for (int i : LobbyView.MENU_ITEMS) assertEquals(View.GONE, l.buttons.get(i).getVisibility());
+      l.badges[1] = true; l.updateMenuDescription();
+      assertTrue(l.buttons.get(13).getContentDescription().toString().contains("받을 보상"));
+      l.badges[1] = false; l.badges[0] = true; l.updateMenuDescription();
+      assertTrue(l.buttons.get(13).getContentDescription().toString().contains("받을 보상"));
+      l.badges[0] = false; l.updateMenuDescription();
+      assertFalse(l.buttons.get(13).getContentDescription().toString().contains("받을 보상"));
     }
   }
 
@@ -327,4 +409,47 @@ public class ReleaseHomeLayoutTest {
       assertEquals("battle", h.screen);
     }
   }
+
+  @Test public void approvedHomeUsesBundledJuaCompactHudAndGroundedGuide() {
+    try (ActivityController<HomeHost> controller = start(false)) {
+      HomeHost h = controller.get();
+      layout(h, 915, 412, 0, 0, 0, 0);
+      LobbyView l = lobby(h);
+      assertSame("Home must use the explicitly bundled Jua face, not system/workbench fallback",
+          h.font, l.homeHeading);
+      assertEquals(915 * .175f, l.boxes[7].width(), 1f);
+      assertEquals(915 * .58f, l.boxes[9].left, 1f);
+      RectF hero = l.heroBox();
+      assertEquals(915 * .23f, hero.centerX(), 1f);
+      assertTrue("Repositioning must not inflate the approved guide", hero.height() <= 412 * .43f);
+      assertTrue("Feet sit in the lower scene", hero.bottom >= 412 * .72f);
+      assertEquals("Advice remains tap-triggered", View.GONE, l.tip.getVisibility());
+      l.gull.performClick();
+      layout(h, 915, 412, 0, 0, 0, 0);
+      assertEquals(View.VISIBLE, l.tip.getVisibility());
+      assertTrue("Visible advice is below all hero/contact ink", l.tipFrame.top > l.tipHeroExclusion().bottom);
+      assertEquals("Advice does not reposition the guide", hero, l.heroBox());
+    }
+  }
+
+  @Test public void broadEnvelopeUsesVisibleAlphaRatherThanPaddedSquareCanvas() {
+    try (ActivityController<HomeHost> controller = start(false)) {
+      HomeHost h = controller.get();
+      LobbyView l = lobby(h);
+      android.graphics.Bitmap rendered = android.graphics.Bitmap.createBitmap(120, 100,
+          android.graphics.Bitmap.Config.ARGB_8888);
+      l.menuArt.icon(new android.graphics.Canvas(rendered), "draw", new RectF(10, 10, 96, 68));
+      int top = 100, bottom = -1, left = 120, right = -1;
+      for (int y = 0; y < 100; y++) for (int x = 0; x < 120; x++) {
+        if (android.graphics.Color.alpha(rendered.getPixel(x, y)) <= 12) continue;
+        top = Math.min(top, y); bottom = Math.max(bottom, y);
+        left = Math.min(left, x); right = Math.max(right, x);
+      }
+      assertTrue("Envelope ink fills the wide slot (not the 512px transparent canvas)",
+          right - left >= 82 && bottom - top >= 53);
+      assertTrue("Ink remains inside slot", left >= 9 && right <= 97 && top >= 9 && bottom <= 69);
+      rendered.recycle();
+    }
+  }
 }
+

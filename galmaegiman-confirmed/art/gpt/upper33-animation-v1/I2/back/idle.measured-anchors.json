@@ -1,0 +1,38 @@
+{
+  "source_sha256": "b9ee668ffb4d5dad15830735764f40ead7e66339781bce68326d60555752e119",
+  "sheet": "I2/back/idle.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      264,
+      441
+    ],
+    [
+      265,
+      442
+    ],
+    [
+      252,
+      442
+    ],
+    [
+      264,
+      435
+    ],
+    [
+      265,
+      436
+    ],
+    [
+      253,
+      435
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Visual feet-pair midpoint and lowest sole estimate, approximately +/-4px; excludes casting slabs and dripping wing tips. Renderer validation pending.",
+  "renderer_validation": "pending"
+}

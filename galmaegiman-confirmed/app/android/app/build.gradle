@@ -1,5 +1,34 @@
 apply plugin: 'com.android.application'
 
+// BEGIN REVIEWED BACKEND TARGET — no network request is performed while validating.
+def checkedServerLiteral = { Object configured, boolean debugLoopback ->
+    String raw = configured.toString()
+    try {
+        if (raw.isEmpty() || raw.any { ch -> ((int) ch) <= 32 || ((int) ch) >= 127 })
+            throw new IllegalArgumentException('ASCII URL without whitespace is required')
+        def uri = new java.net.URI(raw)
+        def host = uri.host
+        boolean local = host != null && ['localhost', '127.0.0.1', '[::1]', '::1', '10.0.2.2'].contains(host.toLowerCase(java.util.Locale.ROOT))
+        if (host == null || uri.userInfo != null || uri.rawQuery != null || uri.rawFragment != null ||
+            (uri.rawPath != null && !uri.rawPath.isEmpty()) ||
+            (uri.port != -1 && (uri.port < 1 || uri.port > 65535)) ||
+            !('https'.equalsIgnoreCase(uri.scheme) || (debugLoopback && local && 'http'.equalsIgnoreCase(uri.scheme))))
+            throw new IllegalArgumentException('HTTPS origin required; debug alias permits loopback HTTP only')
+        return groovy.json.JsonOutput.toJson(raw)
+    } catch (Exception invalid) {
+        throw new GradleException('Invalid backend URL: use an HTTPS origin without credentials, path, query or fragment.', invalid)
+    }
+}
+def defaultServer = 'https://gmm.dpdns.org'
+def configuredServer = project.findProperty('gmmServerUrl')
+def legacyDebugServer = project.findProperty('nativeServer')
+if (configuredServer != null && legacyDebugServer != null && configuredServer.toString() != legacyDebugServer.toString())
+    throw new GradleException('gmmServerUrl and nativeServer must not select different backends.')
+def releaseServerLiteral = checkedServerLiteral(configuredServer != null ? configuredServer : defaultServer, false)
+def debugServerLiteral = configuredServer != null ? releaseServerLiteral : checkedServerLiteral(legacyDebugServer != null ? legacyDebugServer : defaultServer, true)
+// END REVIEWED BACKEND TARGET
+
+
 // 원본 이미지 파일을 복제·편집하지 않고 APK 생성 시에만 함께 묶는다.
 def bundledArt = layout.buildDirectory.dir('generated/game-art')
 tasks.register('bundleGameArt', Sync) {
@@ -81,7 +110,7 @@ android {
     }
     buildFeatures { buildConfig true }
     defaultConfig {
-        buildConfigField "String", "SERVER_URL", "\"https://gmm.dpdns.org\""
+        buildConfigField "String", "SERVER_URL", releaseServerLiteral
     }
     // 기존 앱과 업데이트 서명을 이어가기 위한 외부 키. 키·암호는 저장소에 넣지 않는다.
     def nativeKeystore = System.getenv('GMM_ANDROID_KEYSTORE')
@@ -100,7 +129,7 @@ android {
     }
     buildTypes {
         debug {
-            buildConfigField "String", "SERVER_URL", "\"${project.findProperty('nativeServer') ?: 'https://gmm.dpdns.org'}\""
+            buildConfigField "String", "SERVER_URL", debugServerLiteral
         }
         // 기존 정식 앱(80판 등)을 지우지 않고 옆에 따로 설치해 보는 검수용. 패키지 이름이 달라 업데이트 설치가 아니다.
         preview {
@@ -126,6 +155,8 @@ dependencies {
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    // Play 새 버전 필수 업데이트(NativeRequiredUpdate) 확인용.
+    implementation "com.google.android.play:app-update:2.1.0"
 
     testImplementation "junit:junit:$junitVersion"
     testImplementation 'org.robolectric:robolectric:4.16.1'
@@ -157,5 +188,40 @@ tasks.register('prepareNativeReviewSdk', Copy) {
     from configurations.nativeReviewLegacySdk
     from configurations.nativeReviewOreoSdk
     into layout.buildDirectory.dir('native-review-sdk')
+}
+
+
+
+// 원본은 Git에 보존하고, APK에는 셀 256px 파생 시트만 넣는다.
+def upper33Source = file('../../../art/gpt/upper33-animation-v1')
+def upper33Runtime = file('../../../art/gpt/upper33-runtime-v1')
+def upper33Generator = file('../../../scripts/PrepareUpper33Art.java')
+def upper33Generated = layout.buildDirectory.dir('generated/upper33')
+def upper33Webp = file('../../../scripts/upper33-webp.py')
+tasks.register('prepareUpper33Art') {
+    inputs.dir upper33Source
+    inputs.dir upper33Runtime
+    inputs.file upper33Generator
+    inputs.file upper33Webp
+    outputs.dir upper33Generated
+    doLast {
+        def out = upper33Generated.get().asFile
+        delete out
+        // Gradle 실행 JDK 17 이상을 사용한다. 외부 다운로드/서버 인증은 없다.
+        exec {
+            commandLine new File(System.getProperty('java.home'), 'bin/java').absolutePath,
+                '-Djava.awt.headless=true', upper33Generator.absolutePath,
+                upper33Source.absolutePath, new File(upper33Runtime, 'sources.tsv').absolutePath,
+                new File(upper33Runtime, 'catalog.json').absolutePath, out.absolutePath
+        }
+        // PNG 그대로면 APK가 약 125MB 늘어난다(Play 기본 모듈 한도 초과). 같은 셀을 WebP로 바꾼다.
+        exec {
+            commandLine 'python3', upper33Webp.absolutePath, out.absolutePath
+        }
+    }
+}
+tasks.named('bundleGameArt').configure {
+    dependsOn 'prepareUpper33Art'
+    from(upper33Generated) { into 'native/upper33-v1' }
 }
 

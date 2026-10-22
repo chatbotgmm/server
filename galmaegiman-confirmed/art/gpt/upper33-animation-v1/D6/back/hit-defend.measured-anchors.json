@@ -1,0 +1,38 @@
+{
+  "source_sha256": "3913a70846da1b335ea8c2b6e3a55f9beedec6693fb42007f6f0aac8dc6c6e57",
+  "sheet": "D6/back/hit-defend.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      270.0,
+      427
+    ],
+    [
+      255.0,
+      427
+    ],
+    [
+      239.5,
+      426
+    ],
+    [
+      272.5,
+      407
+    ],
+    [
+      255.0,
+      408
+    ],
+    [
+      242.5,
+      408
+    ]
+  ],
+  "placement_rule": "Align measured ground-contact feet anchor to fixed actor world origin; preserve authored offsets for lifted feet or airborne poses.",
+  "measurement": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate \u00b14px. Renderer validation pending.",
+  "renderer_validation": "pending"
+}

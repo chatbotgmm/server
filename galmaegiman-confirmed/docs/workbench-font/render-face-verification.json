@@ -1,0 +1,40 @@
+{
+  "sample": "丫乳伴侮侵倂倜偉偏偠偰傑僊僧僭免兎全公关具兼再冒冓冬凞刃分判",
+  "hashes": {
+    "MockNoto": "4eabf1c725da67ad6e3f6911bbb61e73a81151e3a7076be4b8ba223f8f9fe248",
+    "FaceJP": "4eabf1c725da67ad6e3f6911bbb61e73a81151e3a7076be4b8ba223f8f9fe248",
+    "FaceKR": "a69cf86d251705884b5a2a2d201895362e69f07f1eac558adc4016a9d5ecbb34"
+  },
+  "families": [
+    {
+      "family": "MockNoto",
+      "styles": [
+        {
+          "weight": 400,
+          "width": "normal",
+          "style": "normal"
+        }
+      ]
+    },
+    {
+      "family": "FaceJP",
+      "styles": [
+        {
+          "weight": 400,
+          "width": "normal",
+          "style": "normal"
+        }
+      ]
+    },
+    {
+      "family": "FaceKR",
+      "styles": [
+        {
+          "weight": 400,
+          "width": "normal",
+          "style": "normal"
+        }
+      ]
+    }
+  ]
+}

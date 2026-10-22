@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">갈매미맨 수비대 개선판</string>
-    <string name="title_activity_main">갈매미맨 수비대 개선판</string>
+    <string name="app_name">갈매미맨 방범대</string>
+    <string name="title_activity_main">갈매미맨 방범대</string>
     <string name="package_name">org.dpdns.gmm.native.revised</string>
     <string name="custom_url_scheme">org.dpdns.gmm.native.revised</string>
 </resources>

@@ -77,6 +77,7 @@ public class NativeThemeReviewTest {
         done.done(NativeRecruitmentProbabilityTest.serverEconomyFixture(), null);
       }
       else if (path.equals("me")) done.done(me, null);
+      else if (path.equals("starter-loans")) done.done(StarterLoanTestFixture.ineligible(), null);
       else throw new AssertionError("예상하지 않은 API 읽기: " + path);
     }
   }

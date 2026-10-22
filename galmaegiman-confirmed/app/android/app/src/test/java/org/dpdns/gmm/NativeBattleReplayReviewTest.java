@@ -66,6 +66,20 @@ public class NativeBattleReplayReviewTest {
     }
     helper.write("manifest.json",new JSONObject().put("schemaVersion",1).put("suite","battle-replay").put("captures",captures).put("requiredCaptureCount",8));helper.write("metrics.json",metrics);helper.write("findings.json",findings);
   }
+  @Test public void oldEpochIsBlockedWithoutDeletingRecordOrCallingApi() throws Exception {
+    try(ActivityController<MainActivity> controller=helper.flow.start()) {
+      MainActivity h=controller.get();helper.prepare(h);h.api.close();ReadOnlyApi api=new ReadOnlyApi(h);h.api=api;
+      JSONObject old=record();
+      old.getJSONArray("frames").getJSONObject(0).put("combatRulesEpoch","gmm-combat-legacy");
+      String original=old.toString(), before=h.state.toString();
+      assertTrue(BattleReplayStore.validRecord(old,true));
+      assertFalse(CombatReplayCompatibility.playable(old));
+      NativeBattleReplay.show(h,old,api.owner);
+      assertNull(h.root.findViewWithTag("battle-replay-player"));
+      assertNotNull(h.visibleDialog);
+      assertEquals(original,old.toString());assertEquals(before,h.state.toString());assertEquals(0,api.calls);
+    }
+  }
   @Test public void changingAccountClearsVisibleReplay() throws Exception {
     try(ActivityController<MainActivity> controller=helper.flow.start()){
       MainActivity h=controller.get();helper.prepare(h);h.api.close();ReadOnlyApi api=new ReadOnlyApi(h);h.api=api;

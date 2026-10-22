@@ -1,0 +1,38 @@
+{
+  "source_sha256": "2476bd6367a779e725538c238afd3ec2b19fe80d4942c75814529fa7ab7541c6",
+  "sheet": "I3/back/attack.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      265.0,
+      460
+    ],
+    [
+      266.0,
+      467
+    ],
+    [
+      280.0,
+      465
+    ],
+    [
+      297.0,
+      428
+    ],
+    [
+      268.0,
+      429
+    ],
+    [
+      283.5,
+      428
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Gold claw region below body, central x170..360; excludes dark-purple floating shards. Visually checked, renderer pending.",
+  "renderer_validation": "pending"
+}

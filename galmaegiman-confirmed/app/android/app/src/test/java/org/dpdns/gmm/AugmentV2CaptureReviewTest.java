@@ -107,8 +107,14 @@ public class AugmentV2CaptureReviewTest {
         assertTrue("낱말 중간 줄바꿈 금지 · " + screen + " · " + shown,
             end > 0 && (shown.charAt(end - 1) == '\n' || shown.charAt(end - 1) == ' '));
       }
-      String label = NativeAugmentView.cardLabel(offer);
-      assertTrue(screen + " 등급 표시: " + label, label.startsWith(NativeAugmentView.tierName(offer) + " · "));
+      // Expected text is independent of the production formatter: keep checking the
+      // actual visible badge below, not merely the accessibility description.
+      String tier = offer.getString("tier");
+      String grade = tier.equals("silver") ? "실버" : tier.equals("gold") ? "골드" : "프리즘";
+      assertTrue("Fixture has a known V2 grade", Arrays.asList("silver", "gold", "prismatic").contains(tier));
+      assertEquals(grade, NativeAugmentView.tierName(offer));
+      String label = grade + " / 증강";
+      assertEquals(screen + " 등급 표시", label, NativeAugmentView.cardLabel(offer));
       boolean badge = false;
       for (View view : geometry.descendants(card))
         if (view instanceof TextView && ((TextView) view).getText().toString().startsWith(label)) {

@@ -22,7 +22,7 @@ class NativeApi {
   private final SharedPreferences prefs;
 
   NativeApi(Context c) {
-    prefs = c.getSharedPreferences("native_account", Context.MODE_PRIVATE);
+    prefs = c.getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), Context.MODE_PRIVATE);
   }
 
   String token() {
@@ -44,6 +44,7 @@ class NativeApi {
             conn =
                 (HttpURLConnection)
                     new URL(BuildConfig.SERVER_URL + "/my/api/" + path).openConnection();
+            NativeBackend.directConnection(conn);
             conn.setUseCaches(false);
             conn.setConnectTimeout(15000);
             conn.setReadTimeout(20000);
@@ -51,6 +52,8 @@ class NativeApi {
             conn.setRequestProperty("x-gmm-app", "1");
             // 클라이언트 표시 능력만 알린다. V2 활성화는 서버 설정이 결정한다.
             conn.setRequestProperty("x-gmm-augment-version", "2");
+            // 표시/입력 지원 선언일 뿐 인증이나 서버 규칙 우회가 아니다.
+            conn.setRequestProperty("x-gmm-combat-epoch", CombatReplayCompatibility.CURRENT_EPOCH);
             if (!requestSession.isEmpty()) conn.setRequestProperty("x-gmm-s", requestSession);
             if (body != null) {
               conn.setRequestMethod("POST");
@@ -61,6 +64,7 @@ class NativeApi {
               }
             }
             int status = conn.getResponseCode();
+            NativeBackend.requireDirectResponse(status);
             if (BuildConfig.DEBUG && BuildConfig.SERVER_URL.startsWith("http://10.0.2.2"))
               android.util.Log.i("GmmNative", path + " HTTP " + status);
             try (java.io.InputStream in =
@@ -74,6 +78,8 @@ class NativeApi {
             }
             if (status >= 400) {
               error = result.optString("error", "서버에 연결하지 못했어요.");
+              if ("COMBAT_EPOCH_UNSUPPORTED".equals(result.optString("code")))
+                error = "전투 규칙이 업데이트됐어요. 최신 앱으로 업데이트한 뒤 다시 시도해 주세요.";
               if (status == 401) {
                 if (requestSession.equals(token())) token("");
                 error = "로그인이 만료됐어요. 다시 로그인해 주세요.";

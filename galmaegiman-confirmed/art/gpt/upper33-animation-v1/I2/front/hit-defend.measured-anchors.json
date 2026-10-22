@@ -1,0 +1,38 @@
+{
+  "source_sha256": "5323eec72193632161ad9f5dbb5d0cdb26cb5c7811e4c719ac447b8700bd75e3",
+  "sheet": "I2/front/hit-defend.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      256,
+      391
+    ],
+    [
+      243,
+      395
+    ],
+    [
+      243,
+      397
+    ],
+    [
+      239,
+      354
+    ],
+    [
+      233,
+      361
+    ],
+    [
+      234,
+      361
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Visual feet-pair midpoint and lowest sole estimate, approximately +/-4px; excludes casting slabs and dripping wing tips. Renderer validation pending.",
+  "renderer_validation": "pending"
+}

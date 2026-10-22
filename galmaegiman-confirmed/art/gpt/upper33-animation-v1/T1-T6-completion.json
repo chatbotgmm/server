@@ -1,0 +1,42 @@
+{
+  "sets": [
+    {
+      "id": "T1",
+      "sheets": 8,
+      "status": "independently accepted asset set; renderer validation pending"
+    },
+    {
+      "id": "T2",
+      "sheets": 8,
+      "status": "independently accepted asset set; renderer validation pending"
+    },
+    {
+      "id": "T3",
+      "sheets": 8,
+      "status": "independently accepted asset set; renderer validation pending"
+    },
+    {
+      "id": "T4",
+      "sheets": 8,
+      "status": "independently accepted asset set; renderer validation pending"
+    },
+    {
+      "id": "T5",
+      "sheets": 8,
+      "status": "independently accepted asset set; renderer validation pending"
+    },
+    {
+      "id": "T6",
+      "sheets": 8,
+      "status": "independently accepted asset set; renderer validation pending"
+    }
+  ],
+  "method": "built-in image_gen only; no pixel editing",
+  "runtime": "renderer playback/scaling validation pending",
+  "scope": "48 selected PNGs, six frames each, front/back idle attack hit-defend entry",
+  "caveats": [
+    "T3 back pivots inferred through opaque cloak, ±12px.",
+    "T1 and T3 entry hop offsets proposed, require renderer validation.",
+    "T1 inherited front idle exact original prompt unavailable."
+  ]
+}

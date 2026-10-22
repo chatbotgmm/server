@@ -54,8 +54,11 @@ final class NativeVersusView {
         JSONObject unit = fighters.optJSONObject(i);
         LinearLayout fighter = k.column();
         fighter.setGravity(Gravity.CENTER);
-        fighter.addView(
-            k.image(unit.optString("image"), h.compact() ? 56 : 86, h.compact() ? 64 : 98));
+        ImageView portrait = k.image(unit.optString("image"), h.compact() ? 56 : 86, h.compact() ? 64 : 98);
+        TemporaryUnitPresentation.apply(portrait, unit);
+        portrait.setContentDescription(unit.optString("name") + TemporaryUnitPresentation.suffix(unit));
+        fighter.addView(portrait);
+        if (TemporaryUnitPresentation.temporary(unit)) fighter.addView(k.note(TemporaryUnitPresentation.label(unit)));
         TextView label = k.note("Lv" + unit.optInt("level"));
         label.setGravity(Gravity.CENTER);
         fighter.addView(label);

@@ -1,3 +1,6 @@
+import Fastify from 'fastify';
+import {registerNative} from '../src/native.js';
+import {CURRENT_COMBAT_RULES_EPOCH} from '../src/battle/combat-epoch.js';
 import {beforeAll,beforeEach,afterAll,describe,it,expect,vi} from 'vitest';
 import {PrismaClient} from '@prisma/client';
 import * as crypto from 'node:crypto';
@@ -19,8 +22,9 @@ suite('네이티브 게임 기능 복원 API (격리 DB)',()=>{
   const content=loadContent(),R=loadBattleRules(),story=loadStory(process.cwd(),R);
   const identity='native-parity-review';
   let db:PrismaClient,game:GameService,app:FastifyInstance,playerId:string,headers:Record<string,string>;
-  const get=async(path:string)=>{const r=await app.inject({method:'GET',url:`/my/api/native/${path}`,headers});expect(r.statusCode,r.body).toBe(200);return r.json();};
-  const post=async(path:string,payload:object)=>{const r=await app.inject({method:'POST',url:`/my/api/native/${path}`,headers,payload});expect(r.statusCode,r.body).toBe(200);return r.json();};
+  const currentBattleHeaders=()=>({...headers,'x-gmm-augment-version':'2','x-gmm-combat-epoch':CURRENT_COMBAT_RULES_EPOCH});
+  const get=async(path:string)=>{const r=await app.inject({method:'GET',url:`/my/api/native/${path}`,headers:path.startsWith('battle/')?currentBattleHeaders():headers});expect(r.statusCode,r.body).toBe(200);return r.json();};
+  const post=async(path:string,payload:object)=>{const r=await app.inject({method:'POST',url:`/my/api/native/${path}`,headers:path.startsWith('battle/')?currentBattleHeaders():headers,payload});expect(r.statusCode,r.body).toBe(200);return r.json();};
   const own=async(id:string,known=true)=>{
     const unit=await db.ownedCharacter.create({data:{playerId,characterId:id,obtainedVia:'TEST'}});
     if(known)await db.collectionEntry.upsert({where:{playerId_characterId:{playerId,characterId:id}},create:{playerId,characterId:id},update:{}});
@@ -47,6 +51,15 @@ suite('네이티브 게임 기능 복원 API (격리 DB)',()=>{
     expect(login.statusCode,login.body).toBe(200);headers={'x-gmm':'1','x-gmm-s':login.json().token};
   });
   afterAll(async()=>{if(app)await app.close();await db.$disconnect();});
+
+  it('신규 기본 전투는 V2/current epoch이며 capability 누락을 명확히 거부한다',async()=>{
+    try{
+      const payload={mode:'practice',roster:['D1'],enemyRoster:['T1'],level:15};
+      const absent=await app.inject({method:'POST',url:'/my/api/native/battle/start',headers,payload});expect(absent.statusCode).toBe(409);expect(absent.json().code).toBe('AUGMENT_VERSION_UNSUPPORTED');
+      const oldV2=await app.inject({method:'POST',url:'/my/api/native/battle/start',headers:{...headers,'x-gmm-augment-version':'2'},payload});expect(oldV2.statusCode).toBe(409);expect(oldV2.json()).toMatchObject({code:'COMBAT_EPOCH_UNSUPPORTED',upgradeRequired:true});
+      const next=await post('battle/start',payload);expect(next.augmentVersion).toBe(2);expect(next.combatRulesEpoch).toBe(CURRENT_COMBAT_RULES_EPOCH);expect(next.teams[0].offers.every((x:any)=>x.tier===next.teams[0].offers[0].tier)).toBe(true);
+    }finally{await app.close();}
+  });
 
   it('네이티브 상태는 실제 경제 설정과 학습·승진 조건 및 장면 메타를 전달한다',async()=>{
     try{
@@ -83,7 +96,7 @@ suite('네이티브 게임 기능 복원 API (격리 DB)',()=>{
       };
       const initial=await save([],0,0);expect(initial.stage.lock).toMatchObject({requiredStage:1,previousStageId:previous.id,open:false});
       expect(initial.stage.lock.requirements.find((r:any)=>r.kind==='stage')).toMatchObject({met:false,action:'stage',stageId:previous.id,chapterIndex:previous.chapterIndex});
-      expect((await app.inject({method:'POST',url:'/my/api/native/battle/start',headers,payload:{mode:'story',stage:target.id}})).statusCode).toBe(400);
+      expect((await app.inject({method:'POST',url:'/my/api/native/battle/start',headers:currentBattleHeaders(),payload:{mode:'story',stage:target.id}})).statusCode).toBe(400);
       // 앞 단계만 깨면 아무도 승진하지 않아도 2부에 들어간다.
       const unpromoted=await save([previous.id],0,0,15);
       expect(unpromoted.stage.open).toBe(true);expect(unpromoted.stage.lock.reason).toBe('');expect(unpromoted.state.chapters.find((c:any)=>c.id==='2').open).toBe(true);
@@ -137,14 +150,16 @@ suite('네이티브 게임 기능 복원 API (격리 DB)',()=>{
     }finally{await app.close();}
   });
 
-  for(const augment of ['reverse','neutral'] as const)it(`네이티브 ${augment} 증강체의 실제 상성은 기술 미리보기와 같고 조회로 RNG가 진행되지 않는다`,async()=>{
+  for(const augment of ['reverse','neutral'] as const)it(`명시 V1 네이티브 ${augment} 증강체의 실제 상성은 기술 미리보기와 같고 조회로 RNG가 진행되지 않는다`,async()=>{
     try{
+      // 역상성 뒤집기는 구 V1 계약. 신규 자유자재 검사와 혼동하지 않도록 명시 V1 route를 구성한다.
+      await app.close();app=Fastify();registerNative(app,game,process.cwd(),()=>playerId,()=>true,undefined,{version:1});
       const enemy=[...R.units.keys()].find(id=>R.typeMult(R.unitDef('D1')!.attr,R.unitDef(id)!.attr)>1)!;
       const mine=record('D1'),foe=record(enemy);let seed=0;
       for(;seed<2000;seed++){const b=createBattle(R,[mine],[foe],seed);if(!b.sides[0].offers!.includes(augment))continue;choose(b,0,{augment});if(b.phase==='choose')aiChoose(b,1);if(augment==='neutral'||b.sides[0].neutral===0)break;}
       expect(seed).toBeLessThan(2000);
       vi.mocked(crypto.randomInt).mockImplementation((max:number)=>max===2**31-1?seed:0);
-      let b=await post('battle/start',{mode:'practice',roster:['D1'],enemyRoster:[enemy],level:15});
+      let b=await post('battle/start',{mode:'practice',roster:['D1'],enemyRoster:[enemy],level:15});expect(b.augmentVersion).toBe(1);
       b=await post('battle/turn',{session:b.session,revision:b.revision,choose:{augment}});
       const me=b.teams[0].fighters[0],basic=me.skills.find((sk:any)=>sk.id.startsWith('basic'));
       expect(me.matchup.attack.multiplier).toBe(basic.preview.multiplier);
@@ -160,14 +175,17 @@ suite('네이티브 게임 기능 복원 API (격리 DB)',()=>{
       await game.webSetBattleTeam(playerId,['D1','T1','E1']);
       await db.player.update({where:{id:playerId},data:{rankPoint:1200}});
       const stats=async()=>{const p=await db.player.findUniqueOrThrow({where:{id:playerId}});return [p.rankPoint,p.rankWins,p.rankLosses];};
-      const raw=(path:string,payload:object)=>app.inject({method:'POST',url:`/my/api/native/${path}`,headers,payload});
+      const raw=(path:string,payload:object)=>app.inject({method:'POST',url:`/my/api/native/${path}`,headers:path.startsWith('battle/')?currentBattleHeaders():headers,payload});
       const before=await stats();
       expect((await raw('battle/start',{mode:'rank'})).statusCode).toBe(400);
       expect(await stats()).toEqual(before);
-      await db.player.create({data:{identity:'native-parity-opponent',nickname:'상대 수비대',battleTeam:'D1,T1,E1',rankPoint:1200}});
+      const opponent=await db.player.create({data:{identity:'native-parity-opponent',nickname:'상대 수비대',battleTeam:'D1,T1,E1',rankPoint:1200}});
+      for(const characterId of ['D1','T1','E1'])await db.ownedCharacter.create({data:{playerId:opponent.id,characterId,obtainedVia:'TEST'}});
       const rejected=await raw('battle/start',{mode:'rank'});
       expect(rejected.statusCode).toBe(400);expect(rejected.json().error).toContain('실시간 유저 랭크전');
       expect(await stats()).toEqual(before);
+      // 이미 차감된 구 세션 복구만 명시 V1로 검사한다. 위 신규 기본 경로의 랭크 차단은 유지한다.
+      await app.close();app=Fastify();registerNative(app,game,process.cwd(),()=>playerId,()=>true,undefined,{version:1});
       // Test-only bypass simulates an already pre-debited legacy session.
       const oldSession=async()=>{
         const guard=vi.spyOn(game,'assertLegacyPvpAllowed').mockImplementation(()=>{});

@@ -1,0 +1,206 @@
+{
+  "character": "I9",
+  "view": "back",
+  "action": "hit-defend",
+  "sheet_size": [
+    1536,
+    1024
+  ],
+  "cell_size": [
+    512,
+    512
+  ],
+  "grid": [
+    3,
+    2
+  ],
+  "frame_order": "row-major left-to-right, top-to-bottom",
+  "loop": false,
+  "frames": [
+    {
+      "index": 0,
+      "rect": [
+        0,
+        0,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        45,
+        84,
+        483,
+        440
+      ],
+      "foot_anchor_px": [
+        256.0,
+        439
+      ],
+      "foot_anchor_method": "Alpha>128 lower40px shell-base center, visually verified against paired pearl shell boots. Approximate ±4px; renderer validation pending.",
+      "duration_ms": 100,
+      "auto_estimated_anchor_px": [
+        254.5,
+        439
+      ]
+    },
+    {
+      "index": 1,
+      "rect": [
+        512,
+        0,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        90,
+        83,
+        428,
+        438
+      ],
+      "foot_anchor_px": [
+        258.5,
+        437
+      ],
+      "foot_anchor_method": "Alpha>128 lower40px shell-base center, visually verified against paired pearl shell boots. Approximate ±4px; renderer validation pending.",
+      "duration_ms": 100,
+      "auto_estimated_anchor_px": [
+        254.5,
+        435
+      ]
+    },
+    {
+      "index": 2,
+      "rect": [
+        1024,
+        0,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        85,
+        147,
+        425,
+        438
+      ],
+      "foot_anchor_px": [
+        256.0,
+        437
+      ],
+      "foot_anchor_method": "Alpha>128 lower40px shell-base center, visually verified against paired pearl shell boots. Approximate ±4px; renderer validation pending.",
+      "duration_ms": 80,
+      "auto_estimated_anchor_px": [
+        254.5,
+        435
+      ]
+    },
+    {
+      "index": 3,
+      "rect": [
+        0,
+        512,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        90,
+        78,
+        441,
+        435
+      ],
+      "foot_anchor_px": [
+        261.5,
+        434
+      ],
+      "foot_anchor_method": "Alpha>128 lower40px shell-base center, visually verified against paired pearl shell boots. Approximate ±4px; renderer validation pending.",
+      "duration_ms": 100,
+      "auto_estimated_anchor_px": [
+        254.5,
+        433
+      ]
+    },
+    {
+      "index": 4,
+      "rect": [
+        512,
+        512,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        28,
+        75,
+        484,
+        436
+      ],
+      "foot_anchor_px": [
+        256.5,
+        435
+      ],
+      "foot_anchor_method": "Alpha>128 lower40px shell-base center, visually verified against paired pearl shell boots. Approximate ±4px; renderer validation pending.",
+      "duration_ms": 120,
+      "auto_estimated_anchor_px": [
+        254.5,
+        433
+      ]
+    },
+    {
+      "index": 5,
+      "rect": [
+        1024,
+        512,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        34,
+        79,
+        471,
+        436
+      ],
+      "foot_anchor_px": [
+        255.5,
+        435
+      ],
+      "foot_anchor_method": "Alpha>128 lower40px shell-base center, visually verified against paired pearl shell boots. Approximate ±4px; renderer validation pending.",
+      "duration_ms": 180,
+      "auto_estimated_anchor_px": [
+        254.5,
+        434
+      ]
+    }
+  ],
+  "render_world_origin": "same foot position for every frame; draw at worldOrigin - foot_anchor_px*scale",
+  "proposed_sheet_scale_to_neutral260px_height": 0.730337,
+  "scale_status": "Use body_normalization instead of silhouette-height proposal; renderer validation pending",
+  "sha256": "fb77f57f165a465516b60309aab4f414a34d89217ff8d783fb9df597d13c4b1b",
+  "alpha_range": [
+    0,
+    254
+  ],
+  "alpha_zero_fraction": 0.5662428538004557,
+  "generator": "built-in image_gen",
+  "prompt_file": "hit-defend.prompt.txt",
+  "qa": {
+    "static_identity": "visually inspected; canonical source bird identity preserved",
+    "true_alpha": true,
+    "equal_cells": true,
+    "visible_gutter_pass": true,
+    "cast_shadow": "none visibly drawn; hidden RGB includes brown preview background",
+    "issues": [
+      "Per-sheet scale and per-frame anchors required; renderer validation pending",
+      "Very low alpha fringe may extend beyond visible sprite; alpha threshold for QA is 8/255"
+    ],
+    "runtime_ready": false,
+    "static_asset_status": "independently accepted"
+  },
+  "measured_anchor_file": "hit-defend.measured-anchors.json",
+  "body_normalization": {
+    "neutral_frame": 0,
+    "source_crest_to_sole_height_px": 351,
+    "target_height_px": 260,
+    "uniform_sheet_render_scale": 0.7407407407407407,
+    "measurement": "independent visual estimate +/-5px",
+    "exclude": "non-body ornaments, orbit decorations, magic floor oval and T7 drill",
+    "status": "proposed; renderer validation pending",
+    "apply": "Use same uniform scale for all six frames; align each measured foot anchor to fixed world origin. Do not individually scale each frame."
+  }
+}

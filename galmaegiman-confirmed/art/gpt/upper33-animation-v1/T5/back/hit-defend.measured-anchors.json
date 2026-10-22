@@ -1,0 +1,38 @@
+{
+  "source_sha256": "fb60fc264036c128bd15adea3e2dec4aad8e156e9908a48725e6563b0c94e98a",
+  "sheet": "T5/back/hit-defend.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      258,
+      457
+    ],
+    [
+      242,
+      458
+    ],
+    [
+      213,
+      458
+    ],
+    [
+      249,
+      426
+    ],
+    [
+      245,
+      428
+    ],
+    [
+      227,
+      431
+    ]
+  ],
+  "placement_rule": "Align measured grounded feet anchor to fixed world origin, preserve authored airborne or recoil offsets.",
+  "measurement": "Visually measured paired claw contact centers excluding broom and petals, approximate \u00b15px. Partially broom-occluded foot inferred from stance.",
+  "renderer_validation": "pending"
+}

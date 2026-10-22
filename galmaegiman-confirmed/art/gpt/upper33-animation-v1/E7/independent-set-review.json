@@ -1,0 +1,19 @@
+{
+  "id": "E7",
+  "status": "all eight assets accepted; renderer validation pending",
+  "accepted": [
+    "E7/front/idle.png",
+    "E7/front/attack.png",
+    "E7/front/hit-defend.png",
+    "E7/front/entry.png",
+    "E7/back/idle.png",
+    "E7/back/attack.png",
+    "E7/back/hit-defend.png",
+    "E7/back/entry.png"
+  ],
+  "edge_issues": [],
+  "caveats": [
+    "Per-frame measured anchors required.",
+    "Cross-action/view scaling and playback remain renderer-validation tasks."
+  ]
+}

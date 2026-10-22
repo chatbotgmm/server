@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "files": {
+    "currency-application.png": {
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "sha256": "37da5fced81515e2b95b132882a0421ce6bb9184e6b3739df2ec3690b4742cfa",
+      "render": "contain"
+    },
+    "currency-peanut.png": {
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "sha256": "80e7b2b7f7dbe3afecc1b2a2a573a8a670df90fffbe4af944d0b4d761aa3e895",
+      "render": "contain"
+    },
+    "currency-shrimp.png": {
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "sha256": "73bad2b20b29b6a0dd3d2bb799c31372d6d6cfee07c3dbbe124a843ed2bf08a1",
+      "render": "contain"
+    },
+    "icon-collection.png": {
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "sha256": "34d3b449c46193c659c2ce166b25dd56386e68d1281b9406b80a6ce81fef7971",
+      "render": "contain"
+    },
+    "icon-combine.png": {
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "sha256": "8a8b517d98b516ee27eca39e08fb8d3c31726a1dbd1bc3e4bb921fdd2d1cc4de",
+      "render": "contain"
+    },
+    "icon-daily.png": {
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "sha256": "2f52e0a510214452d827f178ff10b79df6cdda32b0c4705a00a64fd07b28aef5",
+      "render": "contain"
+    },
+    "icon-draw.png": {
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "sha256": "fe71d4295945c8ad3ad7e5c7f2d8c8c4fb985ae5dac5789853b95456631f10d4",
+      "render": "contain"
+    },
+    "icon-explore.png": {
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "sha256": "ff1dac9296bac7311d5e87525b7a5aa08f309b3467a240d11eb5989b5993459e",
+      "render": "contain"
+    },
+    "icon-shop.png": {
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "sha256": "b33aefc10e1fd9ea186fe4feec4ca7833ba5932028a2dcf9724a06fce82426b5",
+      "render": "contain"
+    },
+    "icon-team.png": {
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "sha256": "27441d9058e977e9d70ad682f88de6b2098cefd3d1285a05cc7da73ba69f9f63",
+      "render": "contain"
+    },
+    "menu.png": {
+      "width": 1024,
+      "height": 306,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "sha256": "a7f802d0291bbe446b5bef5e3fb6b0d14126dfbd44fecd61a9c56da782d1e01b",
+      "render": "nine-slice"
+    },
+    "panel.png": {
+      "width": 1024,
+      "height": 429,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "sha256": "8c2c433e944fbde42a97202db7098f8fcbc07e633d63864926b53d23930214e6",
+      "render": "nine-slice"
+    },
+    "play.png": {
+      "width": 1024,
+      "height": 253,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "sha256": "81d4e00ac60ddc250b910661e8eada44d8b44654e04623a55373fee91cbaf3e6",
+      "render": "nine-slice"
+    },
+    "tile.png": {
+      "width": 512,
+      "height": 496,
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "sha256": "6bf436943bd5d054a303f395df79b15e4b7f32cc994d59700791a72524808d41",
+      "render": "nine-slice"
+    }
+  },
+  "surfaceMetadata": "surface-manifest.json",
+  "provenance": "builtin imagegen; see surface-provenance.json and provenance/",
+  "qa": "Asset-only visual and alpha verification; not Android runtime QA"
+}

@@ -33,7 +33,7 @@ public class NativeCombinationWorkbenchTest {
   @After public void restore() { screens.restore(); }
 
   static JSONObject material(String id, String name, int usable, Boolean hint) {
-    JSONObject unit = MainActivity.obj("id", id, "img", id, "name", name, "tierName", "흔함", "usable", usable);
+    JSONObject unit = MainActivity.obj("id", id, "img", id, "name", name, "tierName", "흔함", "tier", "COMMON", "usable", usable);
     if (hint != null) {
       try { unit.put("hiddenHint", hint); } catch (JSONException error) { throw new AssertionError(error); }
     }
@@ -49,14 +49,14 @@ public class NativeCombinationWorkbenchTest {
     boolean holdWrites;
     Api(MainActivity host, boolean updatedServer) {
       super(host);
-      JSONObject recipe = MainActivity.obj("id", "U2", "img", "U2", "name", "야경", "tierName", "안흔함",
+      JSONObject recipe = MainActivity.obj("id", "U2", "img", "U2", "name", "야경", "tierName", "전설", "tier", "LEGEND",
           "ready", true, "max", 2, "materials", new JSONArray()
               .put(MainActivity.obj("id", "C3", "img", "C3", "name", "암흑 갈매미맨", "need", 1, "usable", 4))
               .put(MainActivity.obj("id", "C1", "img", "C1", "name", "기본 갈매미맨", "need", 1, "usable", 4)));
       JSONArray pool = new JSONArray()
           .put(material("C3", "암흑 갈매미맨", 4, updatedServer ? true : null))
           .put(material("C1", "기본 갈매미맨", 4, updatedServer ? false : null))
-          .put(material("I3", "꺼지지 않는 그림자", 6, updatedServer ? false : null));
+          .put(material("R3", "꺼지지 않는 그림자", 6, updatedServer ? false : null));
       craft = MainActivity.obj("recipes", new JSONArray().put(recipe), "pool", pool);
       if (updatedServer) {
         try { craft.put("maxMaterials", 5); } catch (JSONException error) { throw new AssertionError(error); }
@@ -91,15 +91,30 @@ public class NativeCombinationWorkbenchTest {
 
   void idle() { Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32)); }
 
+  void browse(MainActivity host, String id) {
+    // Nonvisual TalkBack actions expose the same bounded swipe navigation.
+    for (int i=0;i<200;i++) {
+      View carousel=host.root.findViewWithTag("mix-inventory");
+      if (!carousel.performAccessibilityAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD,null)) break;
+      idle();
+    }
+    for (int i=0;i<200 && host.root.findViewWithTag("mix-browse-card-"+id)==null;i++) {
+      if (!host.root.findViewWithTag("mix-inventory").performAccessibilityAction(
+          android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD,null)) break;
+      idle();
+    }
+    assertNotNull("탐색한 재료 "+id,host.root.findViewWithTag("mix-browse-card-"+id));
+  }
+
   void add(MainActivity host, String id) {
-    host.root.findViewWithTag("mix-picker-material-" + id).performClick();
-    idle();
+    browse(host,id);
+    host.root.findViewWithTag("mix-inventory").performClick(); idle();
   }
 
   void remove(MainActivity host, String id) {
     View slot = host.root.findViewWithTag("mix-material-" + id);
     assertNotNull("선택한 재료 칸 " + id, slot);
-    assertTrue("× 배지가 있는 칸 전체가 빼기 버튼", slot.isClickable());
+    assertTrue("− 배지가 있는 칸 전체가 빼기 버튼", slot.isClickable());
     slot.performClick();
     idle();
   }
@@ -125,10 +140,320 @@ public class NativeCombinationWorkbenchTest {
     }
   }
 
+  /** 히든 단서 반짝임이 눈에 띄는지 실제 글꼴 화면과 카드 확대 캡처로 남긴다(멈춤·재생 중 시점). */
+  @Test public void hiddenHintFrameIsClearlyVisibleAtPhoneAndTablet() throws Exception {
+    Path folder = Path.of(System.getProperty("gmm.nativeReviewOutput", "build/reports/native-review"), "workbench-hint");
+    Files.createDirectories(folder);
+    for (int[] size : new int[][] {{915, 412, 160}, {1280, 720, 160}}) {
+      RuntimeEnvironment.setQualifiers("w" + size[0] + "dp-h" + size[1] + "dp-land-mdpi");
+      try (var controller = flow.start()) {
+        MainActivity host = controller.get(); prepare(host, true);
+        host.menus.economy.craft(true);
+        idle();
+        add(host, "C3"); add(host, "C1");
+        HiddenRecipeFrame frame = frame(host);
+        assertTrue(hinted(frame));
+        screens.layout(host, size[0], size[1], size[2]);
+        host.motionResumed = false;
+        screens.capture(host, "hint-paused-" + size[0] + "x" + size[1], size[0], size[1], size[2], "workbench-hint");
+        // 멈춘 상태에서도 단서 테두리는 진한 캐러멜로 또렷해야 한다(종이 테두리와 구분).
+        Bitmap still = Bitmap.createBitmap(frame.getWidth(), frame.getHeight(), Bitmap.Config.ARGB_8888);
+        frame.draw(new Canvas(still));
+        int edge = still.getPixel(frame.getWidth() / 2, Math.round(frame.getResources().getDisplayMetrics().density * 4f));
+        assertTrue("멈춤 상태 테두리가 진한 색 · " + Integer.toHexString(edge), Color.red(edge) + Color.green(edge) + Color.blue(edge) < 3 * 190);
+        try (var out = Files.newOutputStream(folder.resolve("hint-card-paused-" + size[0] + ".png"))) { still.compress(Bitmap.CompressFormat.PNG, 100, out); }
+        still.recycle();
+        // 시험 창에는 포커스가 없어 재생 프레임을 직접 그린다: 빛줄기 위치와 밝기가 시점마다 달라야 한다.
+        int[] previous = null;
+        for (int ms : new int[] {0, 400, 1000}) {
+          Bitmap moving = Bitmap.createBitmap(frame.getWidth(), frame.getHeight(), Bitmap.Config.ARGB_8888);
+          Canvas canvas = new Canvas(moving);
+          frame.getBackground().draw(canvas);
+          frame.paintHint(canvas, true, ms);
+          int[] row = new int[frame.getWidth()];
+          moving.getPixels(row, 0, frame.getWidth(), 0, Math.round(frame.getResources().getDisplayMetrics().density * 4f), frame.getWidth(), 1);
+          if (previous != null) assertFalse("시점마다 빛줄기가 움직임 · " + ms, Arrays.equals(previous, row));
+          previous = row;
+          try (var out = Files.newOutputStream(folder.resolve("hint-card-moving-" + size[0] + "-" + ms + ".png"))) { moving.compress(Bitmap.CompressFormat.PNG, 100, out); }
+          moving.recycle();
+        }
+      }
+    }
+  }
+
   void confirm(MainActivity host) {
     assertNotNull(host.visibleDialog);
     host.visibleDialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
     idle();
+  }
+
+  void swipe(MainActivity host, float dx, float dy, boolean cancel) {
+    swipe(host,"mix-inventory",dx,dy,cancel);
+  }
+  void swipe(MainActivity host, String tag, float dx, float dy, boolean cancel) {
+    screens.layout(host, 915, 412, 160);
+    View carousel = host.root.findViewWithTag(tag);
+    float x = carousel.getWidth() / 2f, y = carousel.getHeight() / 2f;
+    long now = SystemClock.uptimeMillis();
+    int[] actions = {MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE,
+        cancel ? MotionEvent.ACTION_CANCEL : MotionEvent.ACTION_UP};
+    for (int i = 0; i < actions.length; i++) {
+      MotionEvent event = MotionEvent.obtain(now, now + i * 16, actions[i],
+          x + (i == 0 ? 0 : dx), y + (i == 0 ? 0 : dy), 0);
+      carousel.dispatchTouchEvent(event);
+      event.recycle();
+    }
+    idle();
+  }
+
+  @Test public void oneFullCardBrowsesWithoutSelectingAndSearchIsRemoved() throws Exception {
+    try (var controller = flow.start()) {
+      MainActivity host = controller.get(); Api api = prepare(host, true);
+      host.menus.economy.craft(true); idle();
+      ViewGroup carousel = host.root.findViewWithTag("mix-inventory");
+      assertEquals(1, carousel.getChildCount());
+      assertTrue(carousel.getChildAt(0) instanceof RegistrationCardView);
+      assertNotNull(host.root.findViewWithTag("mix-browse-card-C3"));
+      assertNull(host.root.findViewWithTag("mix-browse-card-C1"));
+      assertFalse(NativeNoScrollReviewTest.descendants(host.root).stream().anyMatch(v -> v instanceof EditText));
+      swipe(host,-90,0,false);
+      assertNotNull(host.root.findViewWithTag("mix-browse-card-C1"));
+      assertTrue(host.menus.mixDraft.isEmpty());
+      swipe(host, -90, 0, false);
+      assertNotNull(host.root.findViewWithTag("mix-browse-card-R3"));
+      swipe(host, -90, 0, false);
+      assertNotNull("끝에서 넘어가지 않음", host.root.findViewWithTag("mix-browse-card-R3"));
+      swipe(host, 90, 0, true);
+      swipe(host, 0, 90, false);
+      assertNotNull("취소·수직 드래그는 탐색하지 않음", host.root.findViewWithTag("mix-browse-card-R3"));
+      host.busy = true;
+      swipe(host, 90, 0, false);
+      assertNotNull("요청 중 탐색 차단", host.root.findViewWithTag("mix-browse-card-R3"));
+      host.busy = false;
+      swipe(host, 90, 0, false);
+      assertNotNull(host.root.findViewWithTag("mix-browse-card-C1"));
+      assertTrue("탐색만으로 선택·소모하지 않음", host.menus.mixDraft.isEmpty() && api.writes.isEmpty());
+      for (int i = 0; i < 4; i++) add(host, "C1");
+      assertEquals(4, Collections.frequency(host.menus.mixDraft, "C1"));
+      add(host,"C1");
+      assertEquals("재고 초과 탭은 추가하지 않음",4,Collections.frequency(host.menus.mixDraft,"C1"));
+      swipe(host,-90,0,false);
+      assertNotNull("소진한 카드도 탐색 가능",host.root.findViewWithTag("mix-browse-card-R3"));
+      assertTrue(api.writes.isEmpty());
+    }
+  }
+
+  @Test public void oneGestureAddsOnceAndSeparateTapsPreserveOwnedQuantities() throws Exception {
+    try (var controller=flow.start()) {
+      MainActivity host=controller.get(); prepare(host,true);
+      host.menus.economy.craft(true); idle();
+      swipe(host,0,0,false);
+      assertEquals(Arrays.asList("C3"),host.menus.mixDraft);
+      swipe(host,0,0,false);
+      assertEquals(Arrays.asList("C3","C3"),host.menus.mixDraft);
+      swipe(host,25,0,false); // over touch slop, below page turn threshold
+      swipe(host,0,70,false);
+      swipe(host,0,0,true);
+      assertEquals(2,host.menus.mixDraft.size());
+      remove(host,"C3");
+      assertEquals(Arrays.asList("C3"),host.menus.mixDraft);
+      assertNull(host.root.findViewWithTag("mix-picker-material-C3"));
+      assertNull(host.root.findViewWithTag("mix-material-previous"));
+      assertNull(host.root.findViewWithTag("mix-material-next"));
+    }
+  }
+
+  @Test public void secondPointerAndRepeatedUpCannotAdd() throws Exception {
+    try(var controller=flow.start()) {
+      MainActivity host=controller.get(); prepare(host,true);
+      host.menus.economy.craft(true); idle(); screens.layout(host,915,412,160);
+      View carousel=host.root.findViewWithTag("mix-inventory");
+      long now=SystemClock.uptimeMillis();
+      float x=carousel.getWidth()/2f,y=carousel.getHeight()/2f;
+      MotionEvent down=MotionEvent.obtain(now,now,MotionEvent.ACTION_DOWN,x,y,0);
+      carousel.dispatchTouchEvent(down); down.recycle();
+      MotionEvent.PointerProperties[] pp={new MotionEvent.PointerProperties(),new MotionEvent.PointerProperties()};
+      MotionEvent.PointerCoords[] pc={new MotionEvent.PointerCoords(),new MotionEvent.PointerCoords()};
+      for(int i=0;i<2;i++){pp[i].id=i;pp[i].toolType=MotionEvent.TOOL_TYPE_FINGER;pc[i].x=x+i*10;pc[i].y=y;pc[i].pressure=1;pc[i].size=1;}
+      MotionEvent second=MotionEvent.obtain(now,now+16,MotionEvent.ACTION_POINTER_DOWN|(1<<MotionEvent.ACTION_POINTER_INDEX_SHIFT),
+          2,pp,pc,0,0,1,1,0,0,android.view.InputDevice.SOURCE_TOUCHSCREEN,0);
+      carousel.dispatchTouchEvent(second);second.recycle();
+      for(int i=0;i<2;i++){
+        MotionEvent up=MotionEvent.obtain(now,now+32+i*16,MotionEvent.ACTION_UP,x,y,0);
+        carousel.dispatchTouchEvent(up);up.recycle();
+      }
+      assertTrue(host.menus.mixDraft.isEmpty());
+      swipe(host,0,0,false);
+      assertEquals(1,host.menus.mixDraft.size());
+    }
+  }
+
+  @Test public void safeInsetsKeepActionsVisibleWithoutScrolling() throws Exception {
+    for(int[] screen:new int[][]{{915,412,160},{1080,444,320},{2048,838,480}}) {
+      RuntimeEnvironment.setQualifiers("w"+Math.round(screen[0]*160f/screen[2])+"dp-h"
+          +Math.round(screen[1]*160f/screen[2])+"dp-land-"+screen[2]+"dpi");
+      RuntimeEnvironment.setFontScale(1.3f);
+      try(var controller=flow.start()) {
+        MainActivity host=controller.get(); prepare(host,true);
+        host.menus.economy.craft(true); idle();
+        host.root.setPadding(host.dp(24),host.dp(8),host.dp(16),host.dp(12));
+        screens.layout(host,screen[0],screen[1],screen[2]);
+        Rect safe=new Rect(host.root.getPaddingLeft(),host.root.getPaddingTop(),
+            screen[0]-host.root.getPaddingRight(),screen[1]-host.root.getPaddingBottom());
+        for(String tag:new String[]{"navy-workbench-columns","mix-inventory","mix-clear","mix-submit"}) {
+          View view=host.root.findViewWithTag(tag);
+          assertTrue(tag+" safe rectangle",safe.contains(screens.bounds(view,host.root)));
+          reachable(host,view,tag);
+        }
+      }
+    }
+  }
+
+  @Test public void resultModeHasOneLargeSwipeCardNoSearchOrStaleFilters() throws Exception {
+    try(var controller=flow.start()) {
+      MainActivity host=controller.get(); Api api=prepare(host,true);
+      JSONArray recipes=api.craft.getJSONArray("recipes");
+      recipes.put(new JSONObject(recipes.getJSONObject(0).toString()).put("id","L1").put("tier","LEGEND"));
+      recipes.put(new JSONObject(recipes.getJSONObject(0).toString()).put("id","H1").put("tier","HIDDEN")
+          .put("name","미발견").put("img","unknown"));
+      host.menus.recipeQuery="does not match"; host.menus.craftOnly=true;
+      host.menus.economy.craft(false);idle();
+      assertEquals("",host.menus.recipeQuery);assertFalse(host.menus.craftOnly);
+      View quantity=host.root.findViewWithTag("craft-quantity");
+      for(View v:NativeNoScrollReviewTest.descendants(host.root)) if(v instanceof EditText)
+        assertTrue("수량 외 검색 입력 없음",NativeNoScrollReviewTest.descendants(quantity).contains(v));
+      ViewGroup carousel=host.root.findViewWithTag("craft-result-carousel");
+      assertEquals(1,carousel.getChildCount());
+      assertTrue(carousel.getChildAt(0) instanceof RegistrationCardView);
+      assertNull(host.root.findViewWithTag("craft-recipe-pages"));
+      swipe(host,"craft-result-carousel",-140,0,false);
+      assertEquals("L1",host.menus.recipeId);
+      assertNotNull(host.root.findViewWithTag("craft-recipe-L1"));
+      swipe(host,"craft-result-carousel",-140,0,false);
+      assertEquals("H1",host.menus.recipeId);
+      assertNotNull(host.root.findViewWithTag("craft-masked-placeholder"));
+      swipe(host,"craft-result-carousel",-140,0,false);
+      assertEquals("H1",host.menus.recipeId);
+      assertTrue(host.menus.mixDraft.isEmpty()); assertTrue(api.writes.isEmpty());
+    }
+  }
+
+  @Test public void resultModeActionsAndRightTabsAreInitiallyVisible() throws Exception {
+    for(int[] size:new int[][]{{915,412,160},{1080,444,320},{2048,838,360},{2048,838,480}})
+      for(float scale:new float[]{1,1.3f,2}) {
+        RuntimeEnvironment.setQualifiers("w"+Math.round(size[0]*160f/size[2])+"dp-h"
+            +Math.round(size[1]*160f/size[2])+"dp-land-"+size[2]+"dpi");
+        RuntimeEnvironment.setFontScale(scale);
+        try(var controller=flow.start()) {
+          MainActivity host=controller.get();prepare(host,true);
+          host.menus.economy.craft(false);idle();screens.layout(host,size[0],size[1],size[2]);
+          for(String tag:new String[]{"craft-result-carousel","craft-submit","craft-quantity","craft-material-picker","craft-recipe-picker"})
+            reachable(host,host.root.findViewWithTag(tag),"결과 탭 최초표시 "+tag);
+          ViewGroup header=host.page.findViewWithTag("theme-page-header");
+          assertEquals(header.getWidth()-header.getPaddingRight(),screens.bounds(host.root.findViewWithTag("craft-inline-tools"),header).right);
+          assertEquals(1,((ViewGroup)host.root.findViewWithTag("craft-result-carousel")).getChildCount());
+          textFits(host.root.findViewWithTag("craft-submit"),"결과 실행 글씨");
+          for(View v:NativeNoScrollReviewTest.descendants(host.root.findViewWithTag("craft-quantity")))
+            if(v instanceof TextView){reachable(host,v,"수량 자식 초기표시");textFits((TextView)v,"수량 자식 글씨");}
+          screens.review.await(()->host.registrationArt().pendingCount()==0);
+          screens.layout(host,size[0],size[1],size[2]);
+          Path output=Path.of(System.getProperty("gmm.nativeReviewOutput","build/reports/native-review"),"combination-results-carousel");
+          Files.createDirectories(output);
+          captures.writeScreenshot(host,output.resolve(size[0]+"x"+size[1]+"-dpi"+size[2]+"-font"+Math.round(scale*100)+".png"),size[0],size[1]);
+        }
+      }
+  }
+
+  @Test public void tierBoundaryIncludesNeutralAndTreatsLegendAndHiddenAsPeers() {
+    for(String tier:new String[]{"COMMON","UNCOMMON","SPECIAL","RARE","NEUTRAL"}) {
+      assertTrue(tier,CraftTierPolicy.material(tier)); assertFalse(tier,CraftTierPolicy.result(tier));
+    }
+    for(String tier:new String[]{"LEGEND","HIDDEN","LIMITED","TRANSCEND","ETERNAL","IMMORTAL"}) {
+      assertFalse(tier,CraftTierPolicy.material(tier)); assertTrue(tier,CraftTierPolicy.result(tier));
+    }
+    for(String tier:new String[]{"","UNKNOWN","EPIC"}) {
+      assertFalse(tier,CraftTierPolicy.material(tier)); assertFalse(tier,CraftTierPolicy.result(tier));
+    }
+  }
+
+  @Test public void tiersFilterBeforePagingAndReconcileDraftWithoutChangingRecipeInputs() throws Exception {
+    try(var controller=flow.start()) {
+      MainActivity host=controller.get(); Api api=prepare(host,true);
+      JSONArray pool=api.craft.getJSONArray("pool");
+      pool.put(material("N1","특수함",2,false).put("tier","NEUTRAL"));
+      pool.put(material("L1","전설",2,false).put("tier","LEGEND"));
+      pool.put(material("H1","미발견",2,false).put("tier","HIDDEN"));
+      pool.put(material("X1","알 수 없음",2,false).put("tier",""));
+      host.menus.mixDraft.addAll(Arrays.asList("L1","H1","C1","C1","N1"));
+      String original=api.craft.toString();
+      host.menus.economy.mixPage=200;
+      host.menus.economy.craft(true); idle();
+      assertEquals(Arrays.asList("C1","C1","N1"),host.menus.mixDraft);
+      assertEquals(3,host.menus.economy.mixPage);
+      assertNotNull(host.root.findViewWithTag("mix-browse-card-N1"));
+      assertNull(host.root.findViewWithTag("mix-browse-card-L1"));
+      assertEquals(original,api.craft.toString());
+      JSONArray recipes=api.craft.getJSONArray("recipes");
+      JSONObject template=recipes.getJSONObject(0);
+      recipes.put(new JSONObject(template.toString()).put("id","U1").put("tier","UNCOMMON"));
+      recipes.put(new JSONObject(template.toString()).put("id","H1").put("tier","HIDDEN").put("name","미발견").put("img","unknown"));
+      JSONObject top=new JSONObject(template.toString()).put("id","I1").put("tier","IMMORTAL");
+      top.put("materials",new JSONArray().put(material("L1","전설",2,false).put("tier","LEGEND").put("need",1)));
+      recipes.put(top);
+      host.menus.recipeId="I1";
+      host.menus.economy.craft(false); idle();
+      assertEquals("I1",host.menus.recipeId);
+      assertNotNull(host.root.findViewWithTag("craft-recipe-I1"));
+      assertNull(host.root.findViewWithTag("craft-recipe-U1"));
+      assertNotNull("결과 탭 상위 재료 보존",host.root.findViewWithTag("craft-material-image-L1"));
+      assertEquals("LEGEND",top.getJSONArray("materials").getJSONObject(0).getString("tier"));
+      assertTrue(api.writes.isEmpty());
+    }
+  }
+
+  @Test public void allServerSlotsExistBeforeSelectionAndCardUsesRecoveredHeight() throws Exception {
+    for (int limit : new int[] {2, 5, 6, 9}) {
+      try (var controller = flow.start()) {
+        MainActivity host = controller.get(); Api api = prepare(host, true);
+        api.craft.put("maxMaterials", limit);
+        host.menus.economy.craft(true); idle();
+        screens.layout(host, 915, 412, 160);
+        for (int i = 0; i < limit; i++) {
+          View slot = host.root.findViewWithTag("mix-empty-slot-" + i);
+          assertNotNull("처음부터 서버 한도의 칸 표시 " + i, slot);
+          assertTrue("최소 터치 크기", slot.getWidth() >= host.dp(48) && slot.getHeight() >= host.dp(48));
+          if (limit <= 6) assertTrue("기본 여섯 칸 모두 스크롤 없이 표시",
+              screens.bounds((View) host.root.findViewWithTag("mix-workbench").getParent(), host.root)
+                  .contains(screens.bounds(slot, host.root)));
+        }
+        assertNull(host.root.findViewWithTag("mix-empty-slot-" + limit));
+        View card = host.root.findViewWithTag("mix-browse-card-C3");
+        assertTrue("915×412 카드 높이 240dp 이상", card.getHeight() >= host.dp(240));
+        ViewGroup header = host.root.findViewWithTag("theme-page-header");
+        assertSame(header,host.root.findViewWithTag("craft-inline-tools").getParent());
+        assertFalse(host.root.findViewWithTag("craft-inline-tools").getParent() instanceof HorizontalScrollView);
+        assertNull(host.root.findViewWithTag("mix-browse-actions"));
+        assertNull(host.root.findViewWithTag("mix-material-previous"));
+        assertNull(host.root.findViewWithTag("mix-material-next"));
+        assertTrue("탐색 초기화로 서버에 쓰지 않음", api.writes.isEmpty());
+      }
+    }
+  }
+
+  @Test public void emptyPoolHasNoCardOrAddButtonAndNavigationIsDisabled() throws Exception {
+    try (var controller = flow.start()) {
+      MainActivity host = controller.get(); Api api = prepare(host, true);
+      api.craft.put("pool", new JSONArray());
+      host.menus.economy.craft(true); idle();
+      assertNull(host.root.findViewWithTag("mix-material-previous"));
+      assertNull(host.root.findViewWithTag("mix-material-next"));
+      assertEquals("0 / 0", ((TextView) host.root.findViewWithTag("mix-material-position")).getText().toString());
+      assertFalse(NativeNoScrollReviewTest.descendants(host.root.findViewWithTag("mix-inventory")).stream()
+          .anyMatch(v -> v instanceof RegistrationCardView));
+      assertNull(host.root.findViewWithTag("mix-picker-material-C3"));
+      assertTrue(host.menus.mixDraft.isEmpty());
+      assertTrue(api.writes.isEmpty());
+    }
   }
 
   @Test public void hintStartsWithClueMaterialAndStopsWhenItIsRemovedOrCleared() throws Exception {
@@ -249,108 +574,157 @@ public class NativeCombinationWorkbenchTest {
       idle();
       for (int i = 0; i < 3; i++) { add(host, "C3"); add(host, "C1"); }
       assertEquals("구 서버는 maxMaterials가 없어 기존 6개 한도", 6, host.menus.mixDraft.size());
-      assertFalse(host.root.findViewWithTag("mix-picker-material-I3").isEnabled());
+      browse(host, "R3");
+      add(host,"R3");
+      assertEquals(6,host.menus.mixDraft.size());
       assertFalse("구 서버는 hiddenHint가 없어 반짝이지 않음", hinted(frame(host)));
     }
     try (var controller = flow.start()) {
       MainActivity host = controller.get(); prepare(host, true);
       host.menus.economy.craft(true);
       idle();
-      for (int i = 0; i < 3; i++) { add(host, "I3"); add(host, "C1"); }
+      for (int i = 0; i < 3; i++) { add(host, "R3"); add(host, "C1"); }
       assertEquals("새 서버 한도(실제 최대 재료 수) 5", 5, host.menus.mixDraft.size());
     }
   }
 
+  /** 첫 배치에서 모든 주요 행동이 함께 보여야 한다. */
+  void reachable(MainActivity host, View view, String note) {
+    assertNotNull(note, view);
+    // Initial simultaneous visibility: never scroll an action into view.
+    Rect visible = new Rect();
+    assertTrue(note + " 전역 가시영역", view.getGlobalVisibleRect(visible));
+    assertTrue(note + " 가로 도달 가능", visible.width() >= view.getWidth()-1);
+    assertTrue(note + " 세로 도달 가능 · 보임 " + visible + " 높이 " + view.getHeight(), visible.height() >= view.getHeight()-1);
+  }
+
+  void textFits(TextView label, String note) {
+    assertNotNull(note, label.getLayout());
+    for (int line=0;line<label.getLineCount();line++) {
+      // Visible text extent excludes trailing wrap whitespace, unlike getLineWidth.
+      // Keep the same content-width budget; report both extents to distinguish real clipping.
+      float visibleWidth = label.getLayout().getLineMax(line);
+      assertTrue(note + " 가로 잘림 없음 · visible=" + visibleWidth
+          + " full=" + label.getLayout().getLineWidth(line)
+          + " offsets=" + label.getLayout().getLineStart(line) + ":" + label.getLayout().getLineEnd(line),
+          visibleWidth <= label.getWidth()-label.getCompoundPaddingLeft()-label.getCompoundPaddingRight()+1);
+      assertEquals(note + " 말줄임 없음",0,label.getLayout().getEllipsisCount(line));
+    }
+    assertTrue(note + " 세로 잘림 없음",label.getLayout().getHeight()
+        <=label.getHeight()-label.getCompoundPaddingTop()-label.getCompoundPaddingBottom()+1);
+  }
+
   @Test public void captureWorkbenchAtShortLandscapeLargeFontAndTablet() throws Exception {
-    for (int[] size : new int[][] {{780, 360, 160}, {915, 412, 160}, {1280, 720, 160}})
-      for (float fontScale : new float[] {1, 1.3f}) {
-        RuntimeEnvironment.setQualifiers("w" + Math.round(size[0] * 160f / size[2]) + "dp-h"
-            + Math.round(size[1] * 160f / size[2]) + "dp-land-" + size[2] + "dpi");
+    for (int[] size : new int[][] {{780,360,160},{915,412,160},{1080,444,160},
+        {1080,444,240},{1080,444,320},{2048,838,160},{2048,838,320},
+        {2048,838,400},{2048,838,480},{1280,720,160}})
+      for (float fontScale : new float[] {1,1.3f,2}) {
+        RuntimeEnvironment.setQualifiers("w"+Math.round(size[0]*160f/size[2])+"dp-h"
+            +Math.round(size[1]*160f/size[2])+"dp-land-"+size[2]+"dpi");
         RuntimeEnvironment.setFontScale(fontScale);
-        try (var controller = flow.start()) {
-          MainActivity host = controller.get(); prepare(host, true);
-          host.menus.mixDraft.addAll(Arrays.asList("C3", "C1"));
+        try (var controller=flow.start()) {
+          MainActivity host=controller.get(); prepare(host,true);
+          host.menus.mixDraft.addAll(Arrays.asList("C3","C1"));
           host.menus.economy.craft(true);
-          screens.layout(host, size[0], size[1], size[2]);
-          // 실제 등록증 그림이 다 읽힌 뒤 찍는다(이미지 준비 중 자리 표시를 검토하지 않는다).
-          screens.review.await(() -> host.registrationArt().pendingCount() == 0);
-          screens.layout(host, size[0], size[1], size[2]);
-          String name = size[0] + "x" + size[1] + "-font" + Math.round(fontScale * 100);
-          Path output = Path.of(System.getProperty("gmm.nativeReviewOutput", "build/reports/native-review"),
+          screens.layout(host,size[0],size[1],size[2]);
+          screens.review.await(()->host.registrationArt().pendingCount()==0);
+          screens.layout(host,size[0],size[1],size[2]);
+          String name=size[0]+"x"+size[1]+"-dpi"+size[2]+"-font"+Math.round(fontScale*100);
+          Path output=Path.of(System.getProperty("gmm.nativeReviewOutput","build/reports/native-review"),
               "combination-workbench");
           Files.createDirectories(output);
-          captures.writeScreenshot(host, output.resolve(name + ".png"), size[0], size[1]);
-          Rect screen = new Rect(host.root.getPaddingLeft(), host.root.getPaddingTop(),
-              size[0] - host.root.getPaddingRight(), size[1] - host.root.getPaddingBottom());
-          for (String tag : new String[] {"mix-submit", "mix-clear", "craft-recipe-picker", "mix-result-card"}) {
-            View view = host.root.findViewWithTag(tag);
-            assertNotNull(tag + " · " + name, view);
-            // 공개 결과와 단서가 함께면 두 카드를 옆으로 넘긴다. 넘기는 영역이 화면 안이면 된다.
-            for (ViewParent up = view.getParent(); up instanceof View; up = up.getParent())
-              if (up instanceof HorizontalScrollView) { view = (View) up; break; }
-            Rect box = screens.bounds(view, host.root);
-            assertTrue(tag + " 화면 안 · " + name + " " + box, screen.contains(box));
-            if (view instanceof Button)
-              assertTrue(tag + " 48dp · " + name, view.getHeight() >= host.dp(48));
+          captures.writeScreenshot(host,output.resolve(name+".png"),size[0],size[1]);
+          ViewGroup row=host.root.findViewWithTag("navy-workbench-columns");
+          View viewport=host.root.findViewWithTag("navy-workbench-viewport");
+          assertFalse(viewport instanceof ScrollView);
+          assertFalse(viewport instanceof HorizontalScrollView);
+          assertEquals(viewport.getWidth(),row.getWidth());
+          assertEquals(viewport.getHeight(),row.getHeight());
+          reachable(host,row,"세 열 최초 표시 · "+name);
+          ViewGroup header=host.page.findViewWithTag("theme-page-header");
+          View tools=host.root.findViewWithTag("craft-inline-tools");
+          Rect tabs=screens.bounds(tools,header), title=screens.bounds(host.title,header);
+          assertEquals("탭 우측 끝 · "+name,header.getWidth()-header.getPaddingRight(),tabs.right);
+          assertTrue("탭/제목 겹침 없음 · "+name,title.right<=tabs.left);
+          RegistrationCardView browseCard=host.root.findViewWithTag("mix-browse-card-C3");
+          Rect cardBounds=screens.bounds(browseCard,host.root);
+          assertTrue("전체 카드 viewport 안 · "+name,screens.bounds(row,host.root).contains(cardBounds));
+          // Android 단위시험 환경에는 Files.writeString이 없어 같은 내용을 UTF-8 바이트로 쓴다.
+          Files.write(output.resolve(name+"-geometry.json"),("{\"cardWidth\":"+browseCard.getWidth()
+              +",\"cardHeight\":"+browseCard.getHeight()+",\"artWidth\":"+browseCard.picture.target.width()
+              +",\"artHeight\":"+browseCard.picture.target.height()+",\"bodyHeight\":"+row.getHeight()+"}")
+              .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+          assertEquals(1,((ViewGroup)host.root.findViewWithTag("mix-inventory")).getChildCount());
+          assertTrue(hinted(frame(host)));
+          assertEquals("공개 결과와 미공개 단서를 각각 유지",2,
+              ((ViewGroup)host.root.findViewWithTag("mix-results")).getChildCount());
+          for(String tag:new String[]{"mix-inventory","mix-clear","mix-submit","craft-material-picker","craft-recipe-picker"}) {
+            View touch=host.root.findViewWithTag(tag);
+            assertNotNull(tag,touch);
+            assertTrue(tag+" 48dp · "+name,touch.getWidth()>=host.dp(48)&&touch.getHeight()>=host.dp(48));
+            reachable(host,touch,tag+" · "+name);
           }
-          if (host.root.findViewWithTag("mix-picker-material-I3") == null)
-            assertNotNull("보유 재료가 한 쪽을 넘으면 쪽 넘김 · " + name, host.root.findViewWithTag("mix-material-pages"));
-          for (String tag : new String[] {"mix-picker-material-C3", "mix-picker-material-C1", "mix-material-C3",
-              "mix-empty-slot-2"}) {
-            View touch = host.root.findViewWithTag(tag);
-            assertNotNull(tag + " · " + name, touch);
-            assertTrue(tag + " 48dp 터치 · " + name, touch.getWidth() >= host.dp(48) && touch.getHeight() >= host.dp(48));
-            assertTrue(tag + " 화면 안 · " + name, screen.contains(screens.bounds(touch, host.root)));
+          for(String tag:new String[]{"craft-material-picker","craft-recipe-picker","mix-count",
+              "mix-result-heading","mix-clear","mix-submit","mix-material-position"})
+            textFits(host.root.findViewWithTag(tag),tag+" · "+name);
+          // 콘텐츠 좌표로 비교: 스크롤 위치와 무관하게 카드/버튼이 겹치지 않아야 한다.
+          Rect result=screens.bounds(host.root.findViewWithTag("mix-results"),row);
+          Rect submit=screens.bounds(host.root.findViewWithTag("mix-submit"),row);
+          assertTrue("결과 본문 초기 높이 양수 · "+name,result.height()>0);
+          reachable(host,host.root.findViewWithTag("mix-results"),"결과 본문 초기 표시 · "+name);
+          assertTrue("조합 버튼은 결과 아래 · "+name,submit.top>=result.bottom-1);
+          if(size[0]==1080 && size[2]==320 && fontScale==2f) {
+            TextView action=host.root.findViewWithTag("mix-submit");
+            assertEquals("좁은 큰글씨 행동 이름", "조합",action.getText().toString());
+            assertEquals("접근성 전체 행동 이름", "조합하기",action.getContentDescription().toString());
+            assertEquals("두 줄 행동으로 본문을 빼앗지 않음",1,action.getLineCount());
+            assertTrue("540x222dp 큰글씨 예산",submit.bottom<=row.getHeight());
           }
-          for (String tag : new String[] {"craft-material-picker", "craft-recipe-picker", "mix-count",
-              "mix-result-heading", "mix-clear", "mix-submit"}) {
-            TextView label = host.root.findViewWithTag(tag);
-            assertNotNull(tag, label);
-            assertNotNull(tag, label.getLayout());
-            for (int line = 0; line < label.getLineCount(); line++)
-              assertTrue("글자 가로 잘림 없음 · " + tag + " · " + name, label.getLayout().getLineWidth(line)
-                  <= label.getWidth() - label.getCompoundPaddingLeft() - label.getCompoundPaddingRight() + 1);
-            assertTrue("글자 세로 잘림 없음 · " + tag + " · " + name, label.getLayout().getHeight()
-                <= label.getHeight() - label.getCompoundPaddingTop() - label.getCompoundPaddingBottom() + 1);
-          }
-          // 재료를 하나만 고른 시작 상태: 「재료 선택 중」 카드 두 장, 조합하기 비활성.
-          host.menus.mixDraft.clear();
-          host.menus.mixDraft.add("C1");
+          Rect clear=screens.bounds(host.root.findViewWithTag("mix-clear"),row);
+          assertFalse("선택 해제/조합 터치영역 분리 · "+name,Rect.intersects(clear,submit));
+          host.menus.mixDraft.clear(); host.menus.mixDraft.add("C1");
           host.menus.economy.craft(true);
-          screens.layout(host, size[0], size[1], size[2]);
-          screens.review.await(() -> host.registrationArt().pendingCount() == 0);
-          screens.layout(host, size[0], size[1], size[2]);
-          idle();
-          screens.layout(host, size[0], size[1], size[2]);
-          captures.writeScreenshot(host, output.resolve(name + "-start.png"), size[0], size[1]);
-          for (View view : NativeNoScrollReviewTest.descendants(host.root.findViewWithTag("mix-results")))
-            if (view instanceof TextView && view.isShown() && ((TextView) view).getLayout() != null) {
-              TextView label = (TextView) view;
-              assertEquals("결과 카드 글자는 띄어쓰기에서만 줄바꿈 · " + label.getText() + " · " + name,
-                  label.getText().toString().split("\n").length, label.getLineCount());
-            }
-          assertFalse("재료 2개 미만이면 조합하기 비활성", host.root.findViewWithTag("mix-submit").isEnabled());
-          assertEquals(2, ((ViewGroup) host.root.findViewWithTag("mix-results")).getChildCount());
-          assertTrue(NativeNoScrollReviewTest.descendants(host.root.findViewWithTag("mix-results")).stream()
-              .anyMatch(v -> v instanceof TextView && ((TextView) v).getText().toString().replace('\n', ' ').equals("재료 선택 중")));
-          host.menus.mixDraft.clear();
-          host.menus.mixDraft.addAll(Arrays.asList("C3", "C1"));
-          host.menus.economy.craft(true);
-          screens.layout(host, size[0], size[1], size[2]);
-          Rect submit = screens.bounds(host.root.findViewWithTag("mix-submit"), host.root);
-          View result = host.root.findViewWithTag("mix-result-card");
-          for (ViewParent up = result.getParent(); up instanceof View; up = up.getParent())
-            if (up instanceof HorizontalScrollView) { result = (View) up; break; }
-          Rect card = screens.bounds(result, host.root);
-          assertTrue("조합 버튼은 결과 아래 · " + name, submit.top >= card.bottom - 1);
-          for (View view : NativeNoScrollReviewTest.descendants(host.root))
-            if (view instanceof TextView && view.isShown() && ((TextView) view).getLayout() != null) {
-              TextView label = (TextView) view;
-              // 실제 데이터의 가장 긴 이름(10자)도 사용 가능 수량까지 잘리지 않아야 한다.
-              for (int line = 0; line < label.getLineCount(); line++)
-                assertEquals("말줄임 없음 · " + name + " · " + label.getText(), 0, label.getLayout().getEllipsisCount(line));
-            }
+          screens.layout(host,size[0],size[1],size[2]); idle();
+          assertFalse("재료2개 미만 조합 비활성",host.root.findViewWithTag("mix-submit").isEnabled());
+          assertNotNull("의미 있는 단일 빈 상태",host.root.findViewWithTag("mix-result-empty"));
+          assertEquals(1,((ViewGroup)host.root.findViewWithTag("mix-results")).getChildCount());
+          assertNull("단서 없는 빈 상태에 가짜 카드 없음",frame(host));
+          for(View view:NativeNoScrollReviewTest.descendants(host.root.findViewWithTag("mix-result-empty")))
+            if(view instanceof TextView) textFits((TextView)view,"빈 결과 · "+((TextView)view).getText()+" · "+name);
+          captures.writeScreenshot(host,output.resolve(name+"-start.png"),size[0],size[1]);
         }
       }
   }
+
+  @Test public void oneHintMaterialKeepsHiddenClueWithoutPretendingItIsAResult() throws Exception {
+    try(var controller=flow.start()) {
+      MainActivity host=controller.get(); Api api=prepare(host,true);
+      host.menus.economy.craft(true); idle(); add(host,"C3");
+      assertTrue("한 재료의 기존 단서도 보존",hinted(frame(host)));
+      assertNotNull(host.root.findViewWithTag("mix-result-empty"));
+      assertFalse(host.root.findViewWithTag("mix-submit").isEnabled());
+      assertTrue(api.writes.isEmpty());
+    }
+  }
+
+  @Config(sdk=24,qualifiers="w915dp-h412dp-land-mdpi")
+  @GraphicsMode(GraphicsMode.Mode.LEGACY)
+  @Test public void scopedBundledFontAndBothModesWorkOnApi24() throws Exception {
+    try(var controller=flow.start()) {
+      MainActivity host=controller.get(); Api api=prepare(host,true);
+      Typeface prose=host.prose, headline=host.headline;
+      host.menus.economy.craft(true); idle();
+      screens.layout(host,915,412,160);
+      assertNotNull(NavyWorkbenchTheme.font(host));
+      assertSame("전역 본문 글꼴 변경 없음",prose,host.prose);
+      assertSame("전역 제목 글꼴 변경 없음",headline,host.headline);
+      add(host,"C3"); add(host,"C1"); remove(host,"C1");
+      assertEquals(1,host.menus.mixDraft.size());
+      host.root.findViewWithTag("craft-recipe-picker").performClick(); idle();
+      assertEquals("craftRecipes",host.screen);
+      assertTrue(host.root.findViewWithTag("craft-recipe-picker").isSelected());
+      assertTrue(api.writes.isEmpty());
+    }
+  }
 }
+

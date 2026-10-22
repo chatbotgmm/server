@@ -45,11 +45,26 @@ final class MenuKit {
 
   TextView section(String s) {
     TextView v = notice(s);
-    v.setBackground(new GamePaperDrawable(h, JournalTheme.BRASS));
+    readingBackground(v, new GamePaperDrawable(h, JournalTheme.BRASS));
     v.setTypeface(h.font);
     v.setTextSize(h.uiText(20));
     v.setTextColor(MainActivity.INK);
     return v;
+  }
+
+  /** 제목 배경 안쪽의 읽기 여백. 세로 높이와 기존의 더 넓은 여백은 바꾸지 않는다. */
+  void headingBackground(TextView title) {
+    readingBackground(title, ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
+  }
+
+  private void readingBackground(TextView title, Drawable background) {
+    int inset = h.dp(h.compact() ? 12 : 16);
+    int left = Math.max(inset, title.getPaddingLeft());
+    int right = Math.max(inset, title.getPaddingRight());
+    int top = title.getPaddingTop(), bottom = title.getPaddingBottom();
+    title.setBackground(background);
+    // 배경의 자체 패딩 유무와 관계없이 마지막에 콘텐츠 여백을 확정한다.
+    title.setPadding(left, top, right, bottom);
   }
 
   LinearLayout paper() {

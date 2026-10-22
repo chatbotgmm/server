@@ -13,6 +13,9 @@ model AppMeta {
 }
 
 model Player {
+  nativeInbox NativeInboxMessage[]
+  nativeNewsReads NativeNewsRead[]
+  nativeNewsRequests NativeNewsRequest[]
   id            String            @id @default(uuid())
   identity      String            @unique
   credits       Int               @default(30)
@@ -28,6 +31,9 @@ model Player {
   invitedBy     String? // 나를 초대한 플레이어 id
   partyDraft    String            @default("") // 탐험대 편성 중인 유닛 id(쉼표 구분)
   gameTutorial  Int               @default(0) // 게임 첫 실행 튜토리얼(v0.15.0): 0 미판정 · 1~5 진행 단계 · 9 끝(건너뜀·기존 유저 포함)
+  starterLoanEnrolled Boolean @default(false)
+  starterLoanEligibleAt DateTime?
+  starterLoanGrant StarterLoanGrant?
   gameSeen      String            @default("") // 처음 보는 화면 안내를 본 화면(쉼표 구분)
   battleTeam    String            @default("") // 수비대 대결 팀(최상위 유닛 종류 id 3개, 쉼표 구분, 웹에서 편성)
   badge         String? // 닉네임 옆 장식(땅콩 상점 배지 id)
@@ -74,6 +80,7 @@ model OwnedCharacter {
   reincarnation Int @default(0)
   inheritedFrom String?
   statBonusPct Int @default(0)
+  loanExpiresAt DateTime? // null = permanent; server clock, never renewed
   obtainedVia  String
   obtainedAt   DateTime            @default(now())
   consumedAt   DateTime?
@@ -406,4 +413,59 @@ model ProgressionMilestone {
   milestoneId String
   claimedAt DateTime @default(now())
   @@id([playerId, milestoneId])
+}
+
+
+// 생성 이후 수정하지 않는 1회 선택 영수증. ownedIds는 실제 지급 개체 번호이며 종별 삭제 금지.
+model StarterLoanGrant {
+  id String @id @default(uuid())
+  playerId String @unique
+  selectedIds Json
+  ownedIds Json
+  grantedAt DateTime
+  expiresAt DateTime
+  player Player @relation(fields: [playerId], references: [id])
+}
+
+model NativeInboxMessage {
+  id String @id @default(uuid())
+  playerId String
+  title String
+  bodyText String
+  publishedAt DateTime @default(now())
+  expiresAt DateTime?
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  @@index([playerId, publishedAt, id])
+}
+model NativeNewsRead {
+  playerId String
+  kind String
+  itemId String
+  readAt DateTime @default(now())
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  @@id([playerId, kind, itemId])
+}
+model NativeNewsRequest {
+  playerId String
+  requestId String
+  kind String
+  itemId String
+  readAt DateTime
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  @@id([playerId, requestId])
+}
+
+// Durable server-only level archive; StorySave/reset/loan expiry do not delete this provenance.
+model StarterLoanLevel {
+  loanOwnedId Int @id
+  playerId String
+  characterId String
+  grantId String
+  highestLevel Int @default(1)
+  recipientOwnedId Int? @unique
+  lastSession String?
+  createdAt DateTime
+  updatedAt DateTime
+  boundAt DateTime?
+  @@index([playerId, characterId])
 }

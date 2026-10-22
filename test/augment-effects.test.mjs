@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {rulesFrom,attrKeys,battleAugIds} from '../galmaegiman-confirmed/src/battle/core.ts';
 import {createBattle,choose,act,activeOf,legalActions,skillPreview} from '../galmaegiman-confirmed/src/battle/engine.ts';
-import {createAugmentConfigV2} from '../galmaegiman-confirmed/src/battle/augment-catalog-v2.ts';
+import {createAugmentConfigV2,augmentCatalogV2} from '../galmaegiman-confirmed/src/battle/augment-catalog-v2.ts';
 import {serializeBattle,deserializeBattle} from '../galmaegiman-confirmed/src/battle/realtime-adapter.ts';
 import {levelScale} from '../galmaegiman-confirmed/src/battle/growth.ts';
 import * as pristine from '../pristine/src/battle/engine.ts';
@@ -73,7 +73,7 @@ test('overflowguard: 보호막 흡수분은 drain·패시브·기술흡혈 재�
 test('overflowguard: 20% 넘어선 피해만 HP에 적용',()=>{const b=select(make(),'overflowguard'),plain=make();activeOf(b,0).hp=9990;step(b,healSkill(b));step(plain,idle(plain,0));for(const x of [b,plain])activeOf(x,1).skills[0].power=500;const d=incoming(plain);assert(d>2000);assert.equal(incoming(b),d-2000);});
 test('V2 직렬화: 지연대가·횟수·쉴드가 저장후 같은 행동 결과와 종료',()=>{const b=select(make(),'overflowguard');activeOf(b,0).hp=4000;select(b,'mortgage');select(b,'overtime');step(b,healSkill(b));const clone=deserializeBattle(R,serializeBattle(b));for(let i=0;i<4;i++){assert.equal(hit(b),hit(clone));assert.equal(serializeBattle(b),serializeBattle(clone));}for(const x of [b,clone]){activeOf(x,1).hp=1;x.sides[1].fighters[1].hp=0;}hit(b);hit(clone);assert.equal(b.phase,'over');assert.equal(serializeBattle(b),serializeBattle(clone));});
 
-for(const id of ['reverse','weakguard','focus','neutral'])test(`기존 gold ${id}: 실제 상성 피해에 적용`,()=>{const b=make();strongPair(b);select(b,id,id==='weakguard'?1:0);const e=step(b).find(e=>e.kind==='damage'&&e.reason==='skill');assert.equal(e.multiplier,id==='reverse'?R.data.multipliers.weak:id==='focus'?1.9:1);});
+for(const id of ['reverse','weakguard','focus','neutral'])test(`기존 gold ${id}: 실제 상성 피해에 적용`,()=>{const b=make();if(id==='reverse'){const catalog=structuredClone(augmentCatalogV2);const a=catalog.augments.find(a=>a.id==='reverse');delete a.effect;a.tier='gold';b.R=rulesFrom(b.R.data,{augmentVersion:2,augmentCatalog:catalog});}strongPair(b);select(b,id,id==='weakguard'?1:0);const e=step(b).find(e=>e.kind==='damage'&&e.reason==='skill');assert.equal(e.multiplier,id==='reverse'?R.data.multipliers.weak:id==='focus'?1.9:1);});
 test('기존 gold camo: 바뀐 선두속성으로 실제 공격',()=>{const b=make(),old=activeOf(b,0).attr;select(b,'camo');const f=activeOf(b,0);assert(R.typeMult(f.attr,activeOf(b,1).attr)>1);delete f.skills[0].attr;const e=step(b).find(e=>e.kind==='damage'&&e.reason==='skill');assert.equal(e.attr,f.attr);assert(e.multiplier>1);});
 test('기존 gold dual: 기본공격에 상대 약점 속성 사용',()=>{const b=make();activeOf(b,0).skills=[attack('basic-test')];select(b,'dual');const e=step(b,{kind:'skill',skillId:'basic-test'}).find(e=>e.kind==='damage'&&e.reason==='skill');assert(e.multiplier>1);});
 test('기존 gold counter: 약한 공격에 살아남으면 반격',()=>{const b=make();weakPair(b);select(b,'counter',1);const e=step(b);assert(e.some(e=>e.reason==='counter'&&e.amount>0));assert(activeOf(b,0).hp<10000);});

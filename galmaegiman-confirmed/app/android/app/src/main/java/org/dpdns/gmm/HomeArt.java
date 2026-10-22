@@ -7,6 +7,7 @@ import java.util.*;
 /** Home-only release art. Five horizontal slices preserve the central gold crest. */
 final class HomeArt {
   private final MainActivity host;
+  private final android.view.View owner;
   private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
   private final Map<String, Bitmap> images = new HashMap<>();
   private final Map<String, Rect> bounds = new HashMap<>();
@@ -17,8 +18,11 @@ final class HomeArt {
   private final int[] sx = new int[6], sy = new int[4];
   private final float[] dx = new float[6], dy = new float[4];
 
-  HomeArt(MainActivity host) {
+  HomeArt(MainActivity host) { this(host, host.root); }
+
+  HomeArt(MainActivity host, android.view.View owner) {
     this.host = host;
+    this.owner = owner;
     for (String file : new String[] {"backgrounds/bg-home.png", "ui/button-primary.png",
         "ui/button-secondary.png", "icons/harbor.png", "icons/explore.png", "icons/draw.png",
         "icons/team.png", "icons/combine.png", "icons/shop.png", "icons/daily.png",
@@ -56,6 +60,8 @@ final class HomeArt {
     backgroundTarget.set((width-w)/2, (height-h)/2, (width+w)/2, (height+h)/2);
     canvas.drawBitmap(b, null, backgroundTarget, paint);
     water.draw(canvas, b, backgroundTarget, seconds, moving);
+    if (host.backgroundEffects != null)
+      host.backgroundEffects.draw(canvas, "native/release-v1/backgrounds/bg-home.png", backgroundTarget, owner, owner::invalidate);
   }
 
   void icon(Canvas canvas, String file, RectF target) {
@@ -105,3 +111,4 @@ final class HomeArt {
     };
   }
 }
+

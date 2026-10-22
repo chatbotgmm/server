@@ -1,0 +1,38 @@
+{
+  "source_sha256": "f4aed75433e8ad48d63000e8df248c9ece7a481f9eaef6e2fa65e4fdd36f4aee",
+  "sheet": "E2/front/hit-defend.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      260.0,
+      428
+    ],
+    [
+      250.5,
+      428
+    ],
+    [
+      237.5,
+      424
+    ],
+    [
+      262.0,
+      390
+    ],
+    [
+      253.0,
+      398
+    ],
+    [
+      244.5,
+      400
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Alpha>128 foot-region pixels in lower40px central band, visually checked against feet; requires renderer validation.",
+  "renderer_validation": "pending"
+}

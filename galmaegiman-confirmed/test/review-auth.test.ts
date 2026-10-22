@@ -100,7 +100,9 @@ describe('심사용 로그인 페이지 → 일회용 코드 → 앱 세션',()=
       const ex=await app.inject({method:'POST',url:'/my/api/review/exchange',headers,payload:{code}});
       expect(ex.statusCode).toBe(200);const token=ex.json().token;expect(token).toMatch(/^rv_/);
       expect((await app.inject({url:'/my/api/who',headers:{...headers,'x-gmm-s':token}})).statusCode).toBe(200);
-      expect((await app.inject({method:'POST',url:'/my/api/review/exchange',headers,payload:{code}})).statusCode).toBe(400);   // 한 번만
+      const again=await app.inject({method:'POST',url:'/my/api/review/exchange',headers,payload:{code}});
+      expect(again.statusCode).toBe(400);   // 한 번만
+      expect(again.json().error).toContain('Please sign in again at https://gmm.dpdns.org/review');   // 심사자용 영어 안내
       expect((await app.inject({method:'POST',url:'/my/api/account/delete',headers:{...headers,'x-gmm-s':token},payload:{confirm:'탈퇴'}})).statusCode).toBe(403);
     }finally{await app.close();}
   });

@@ -1,0 +1,106 @@
+{
+  "play": {
+    "file": "play.png",
+    "width": 1024,
+    "height": 253,
+    "nineSliceInsets": {
+      "left": 64,
+      "top": 64,
+      "right": 64,
+      "bottom": 64
+    },
+    "contentPadding": {
+      "left": 64,
+      "top": 64,
+      "right": 64,
+      "bottom": 64
+    },
+    "recommendedCornerDp": 20,
+    "alpha": true,
+    "source": "source/play-generated.png",
+    "sourceCrop": [
+      79,
+      123,
+      2000,
+      597
+    ]
+  },
+  "menu": {
+    "file": "menu.png",
+    "width": 1024,
+    "height": 306,
+    "nineSliceInsets": {
+      "left": 64,
+      "top": 64,
+      "right": 64,
+      "bottom": 64
+    },
+    "contentPadding": {
+      "left": 64,
+      "top": 64,
+      "right": 64,
+      "bottom": 64
+    },
+    "recommendedCornerDp": 20,
+    "alpha": true,
+    "source": "source/menu-generated.png",
+    "sourceCrop": [
+      42,
+      278,
+      1540,
+      726
+    ]
+  },
+  "tile": {
+    "file": "tile.png",
+    "width": 512,
+    "height": 496,
+    "nineSliceInsets": {
+      "left": 64,
+      "top": 64,
+      "right": 64,
+      "bottom": 64
+    },
+    "contentPadding": {
+      "left": 64,
+      "top": 64,
+      "right": 64,
+      "bottom": 64
+    },
+    "recommendedCornerDp": 20,
+    "alpha": true,
+    "source": "source/tile-generated.png",
+    "sourceCrop": [
+      74,
+      91,
+      1181,
+      1164
+    ]
+  },
+  "panel": {
+    "file": "panel.png",
+    "width": 1024,
+    "height": 429,
+    "nineSliceInsets": {
+      "left": 52,
+      "top": 52,
+      "right": 52,
+      "bottom": 52
+    },
+    "contentPadding": {
+      "left": 52,
+      "top": 52,
+      "right": 52,
+      "bottom": 52
+    },
+    "recommendedCornerDp": 16,
+    "alpha": true,
+    "source": "source/panel-generated.png",
+    "sourceCrop": [
+      28,
+      82,
+      1746,
+      801
+    ]
+  }
+}

@@ -1,0 +1,872 @@
+{
+  "id": "E5",
+  "name": "지지 않는 벚꽃",
+  "generator": "builtin image_gen only",
+  "sheetCount": 8,
+  "status": "all eight assets accepted with measured anchors and proposed uniform sheet scales; renderer validation pending",
+  "grid": {
+    "columns": 3,
+    "rows": 2
+  },
+  "placementRule": "Align each frame anchor to fixed actor world origin. Never infer actor origin from VFX or overall alpha bounds. Apply per-sheet fixed scale from independent visual body measurement if supplied. Validate action transitions and loops in renderer.",
+  "independentReview": "independent-set-review.json",
+  "rendererValidation": "pending",
+  "sheets": [
+    {
+      "path": "back/attack.png",
+      "sha256": "66375d520d395c41bdcc054663592b720db95d3f1cb75e3dd78097226e5d8b29",
+      "view": "back",
+      "action": "attack",
+      "imageSize": [
+        1536,
+        1024
+      ],
+      "cellSize": [
+        512,
+        512
+      ],
+      "frameCount": 6,
+      "frameOrder": "row-major",
+      "durationsMs": [
+        100,
+        100,
+        90,
+        140,
+        120,
+        140
+      ],
+      "loop": false,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "alphaBoundsThreshold8": [
+        [
+          126,
+          130,
+          406,
+          426
+        ],
+        [
+          101,
+          87,
+          382,
+          428
+        ],
+        [
+          71,
+          142,
+          409,
+          429
+        ],
+        [
+          93,
+          142,
+          468,
+          400
+        ],
+        [
+          136,
+          81,
+          426,
+          400
+        ],
+        [
+          100,
+          97,
+          397,
+          417
+        ]
+      ],
+      "cellIsolationPass": true,
+      "perFrameAnchors": [
+        [
+          278,
+          425
+        ],
+        [
+          266,
+          427
+        ],
+        [
+          219,
+          427
+        ],
+        [
+          224,
+          399
+        ],
+        [
+          299,
+          399
+        ],
+        [
+          259,
+          416
+        ]
+      ],
+      "anchorMethod": "Visually measured claw contact centers, excludes intrinsic magic oval. Approximate ±4px; renderer validation pending.",
+      "anchorMetadata": "back/attack.measured-anchors.json",
+      "rendererValidation": "pending",
+      "neutral_body_height_px_estimate": 186,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 1.397849,
+      "scale_target_body_height_px": 260,
+      "scale_measurement_basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "scale_measurement_source": "independent visual QA report",
+      "scale_measurement_uncertainty_px": 5,
+      "scale_status": "proposed uniform sheet scale; renderer cross-action/view validation pending",
+      "scale_application": "One constant uniform scale for all six frames of this sheet. No per-frame resizing or warping.",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame measured anchor multiplied by uniform sheet scale"
+    },
+    {
+      "path": "back/entry.png",
+      "sha256": "31b6c266cb5abd7814e4aa0d03c3f9b03c55acd71645223b4c63df5653f296fc",
+      "view": "back",
+      "action": "entry",
+      "imageSize": [
+        1536,
+        1024
+      ],
+      "cellSize": [
+        512,
+        512
+      ],
+      "frameCount": 6,
+      "frameOrder": "row-major",
+      "durationsMs": [
+        100,
+        100,
+        90,
+        140,
+        120,
+        140
+      ],
+      "loop": false,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "alphaBoundsThreshold8": [
+        [
+          54,
+          157,
+          494,
+          497
+        ],
+        [
+          47,
+          37,
+          481,
+          496
+        ],
+        [
+          54,
+          20,
+          475,
+          497
+        ],
+        [
+          54,
+          9,
+          508,
+          478
+        ],
+        [
+          59,
+          9,
+          496,
+          478
+        ],
+        [
+          60,
+          13,
+          473,
+          478
+        ]
+      ],
+      "cellIsolationPass": true,
+      "perFrameAnchors": [
+        [
+          307,
+          495
+        ],
+        [
+          306,
+          495
+        ],
+        [
+          304,
+          496
+        ],
+        [
+          321,
+          477
+        ],
+        [
+          314,
+          476
+        ],
+        [
+          310,
+          477
+        ]
+      ],
+      "anchorMethod": "Visually measured paired claw contact center excluding umbrella pole, ribbon and petals; approximate ±5px. Renderer validation pending.",
+      "anchorMetadata": "back/entry.measured-anchors.json",
+      "rendererValidation": "pending",
+      "neutral_body_height_px_estimate": 286,
+      "neutral_reference_frame": 5,
+      "proposed_sheet_scale_to_neutral260px_height": 0.909091,
+      "scale_target_body_height_px": 260,
+      "scale_measurement_basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "scale_measurement_source": "independent visual QA report",
+      "scale_measurement_uncertainty_px": 5,
+      "scale_status": "proposed uniform sheet scale; renderer cross-action/view validation pending",
+      "scale_application": "One constant uniform scale for all six frames of this sheet. No per-frame resizing or warping.",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame measured anchor multiplied by uniform sheet scale"
+    },
+    {
+      "path": "back/hit-defend.png",
+      "sha256": "3c57cb8e17033e14e47e2d0f6468d54e77828ed3bfe4b0902af8fc04ebffacf1",
+      "view": "back",
+      "action": "hit-defend",
+      "imageSize": [
+        1536,
+        1024
+      ],
+      "cellSize": [
+        512,
+        512
+      ],
+      "frameCount": 6,
+      "frameOrder": "row-major",
+      "durationsMs": [
+        100,
+        100,
+        90,
+        140,
+        120,
+        140
+      ],
+      "loop": false,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "alphaBoundsThreshold8": [
+        [
+          35,
+          28,
+          479,
+          508
+        ],
+        [
+          25,
+          26,
+          478,
+          509
+        ],
+        [
+          18,
+          35,
+          478,
+          509
+        ],
+        [
+          30,
+          40,
+          473,
+          469
+        ],
+        [
+          34,
+          8,
+          482,
+          478
+        ],
+        [
+          30,
+          20,
+          483,
+          492
+        ]
+      ],
+      "cellIsolationPass": true,
+      "perFrameAnchors": [
+        [
+          298,
+          507
+        ],
+        [
+          290,
+          507
+        ],
+        [
+          285,
+          508
+        ],
+        [
+          332,
+          458
+        ],
+        [
+          294,
+          476
+        ],
+        [
+          308,
+          489
+        ]
+      ],
+      "anchorMethod": "Visually measured paired claw contact center excluding umbrella pole, ribbon and petals; approximate ±5px. Renderer validation pending.",
+      "anchorMetadata": "back/hit-defend.measured-anchors.json",
+      "rendererValidation": "pending",
+      "neutral_body_height_px_estimate": 307,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 0.846906,
+      "scale_target_body_height_px": 260,
+      "scale_measurement_basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "scale_measurement_source": "independent visual QA report",
+      "scale_measurement_uncertainty_px": 5,
+      "scale_status": "proposed uniform sheet scale; renderer cross-action/view validation pending",
+      "scale_application": "One constant uniform scale for all six frames of this sheet. No per-frame resizing or warping.",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame measured anchor multiplied by uniform sheet scale"
+    },
+    {
+      "path": "back/idle.png",
+      "sha256": "1bbcf1625fc662e51c8957bbb4a5df1c5ce24d62829170ff3c85d07e11ed8d72",
+      "view": "back",
+      "action": "idle",
+      "imageSize": [
+        1536,
+        1024
+      ],
+      "cellSize": [
+        512,
+        512
+      ],
+      "frameCount": 6,
+      "frameOrder": "row-major",
+      "durationsMs": [
+        160,
+        160,
+        160,
+        160,
+        160,
+        160
+      ],
+      "loop": true,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "alphaBoundsThreshold8": [
+        [
+          44,
+          27,
+          471,
+          499
+        ],
+        [
+          44,
+          26,
+          479,
+          499
+        ],
+        [
+          46,
+          18,
+          501,
+          497
+        ],
+        [
+          42,
+          22,
+          469,
+          493
+        ],
+        [
+          32,
+          27,
+          474,
+          490
+        ],
+        [
+          53,
+          23,
+          479,
+          492
+        ]
+      ],
+      "cellIsolationPass": true,
+      "perFrameAnchors": [
+        [
+          301,
+          496
+        ],
+        [
+          307,
+          498
+        ],
+        [
+          300,
+          496
+        ],
+        [
+          301,
+          491
+        ],
+        [
+          309,
+          488
+        ],
+        [
+          310,
+          491
+        ]
+      ],
+      "anchorMethod": "Visually measured paired claw contact center excluding umbrella pole, ribbon and petals; approximate ±5px. Renderer validation pending.",
+      "anchorMetadata": "back/idle.measured-anchors.json",
+      "rendererValidation": "pending",
+      "neutral_body_height_px_estimate": 300,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 0.866667,
+      "scale_target_body_height_px": 260,
+      "scale_measurement_basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "scale_measurement_source": "independent visual QA report",
+      "scale_measurement_uncertainty_px": 5,
+      "scale_status": "proposed uniform sheet scale; renderer cross-action/view validation pending",
+      "scale_application": "One constant uniform scale for all six frames of this sheet. No per-frame resizing or warping.",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame measured anchor multiplied by uniform sheet scale"
+    },
+    {
+      "path": "front/attack.png",
+      "sha256": "0a3bdec207b3df24abe840ee110bdb05b8a8ea0fc9ef5c6993621ff480bbe455",
+      "view": "front",
+      "action": "attack",
+      "imageSize": [
+        1536,
+        1024
+      ],
+      "cellSize": [
+        512,
+        512
+      ],
+      "frameCount": 6,
+      "frameOrder": "row-major",
+      "durationsMs": [
+        100,
+        100,
+        90,
+        140,
+        120,
+        140
+      ],
+      "loop": false,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "alphaBoundsThreshold8": [
+        [
+          111,
+          146,
+          464,
+          489
+        ],
+        [
+          119,
+          83,
+          442,
+          486
+        ],
+        [
+          48,
+          163,
+          407,
+          485
+        ],
+        [
+          64,
+          131,
+          508,
+          389
+        ],
+        [
+          128,
+          57,
+          445,
+          402
+        ],
+        [
+          95,
+          68,
+          436,
+          410
+        ]
+      ],
+      "cellIsolationPass": true,
+      "perFrameAnchors": [
+        [
+          268,
+          486
+        ],
+        [
+          270,
+          483
+        ],
+        [
+          244,
+          482
+        ],
+        [
+          363,
+          387
+        ],
+        [
+          281,
+          399
+        ],
+        [
+          255,
+          407
+        ]
+      ],
+      "anchorMethod": "Visually measured paired claw contact center excluding umbrella pole, ribbon and petals; approximate ±5px. Renderer validation pending.",
+      "anchorMetadata": "front/attack.measured-anchors.json",
+      "rendererValidation": "pending",
+      "neutral_body_height_px_estimate": 216,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 1.203704,
+      "scale_target_body_height_px": 260,
+      "scale_measurement_basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "scale_measurement_source": "independent visual QA report",
+      "scale_measurement_uncertainty_px": 5,
+      "scale_status": "proposed uniform sheet scale; renderer cross-action/view validation pending",
+      "scale_application": "One constant uniform scale for all six frames of this sheet. No per-frame resizing or warping.",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame measured anchor multiplied by uniform sheet scale"
+    },
+    {
+      "path": "front/entry.png",
+      "sha256": "d1754c4f90bb9b0b8a45e362ee1afd928228afca3bcc66fe733f772e88d3bb6d",
+      "view": "front",
+      "action": "entry",
+      "imageSize": [
+        1536,
+        1024
+      ],
+      "cellSize": [
+        512,
+        512
+      ],
+      "frameCount": 6,
+      "frameOrder": "row-major",
+      "durationsMs": [
+        100,
+        100,
+        90,
+        140,
+        120,
+        140
+      ],
+      "loop": false,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "alphaBoundsThreshold8": [
+        [
+          53,
+          115,
+          498,
+          495
+        ],
+        [
+          35,
+          61,
+          481,
+          502
+        ],
+        [
+          42,
+          30,
+          472,
+          502
+        ],
+        [
+          49,
+          11,
+          500,
+          476
+        ],
+        [
+          54,
+          14,
+          478,
+          471
+        ],
+        [
+          23,
+          27,
+          470,
+          473
+        ]
+      ],
+      "cellIsolationPass": true,
+      "perFrameAnchors": [
+        [
+          241,
+          493
+        ],
+        [
+          234,
+          500
+        ],
+        [
+          237,
+          500
+        ],
+        [
+          267,
+          474
+        ],
+        [
+          254,
+          469
+        ],
+        [
+          240,
+          471
+        ]
+      ],
+      "anchorMethod": "Visually measured paired claw contact center excluding umbrella pole, ribbon and petals; approximate ±5px. Renderer validation pending.",
+      "anchorMetadata": "front/entry.measured-anchors.json",
+      "rendererValidation": "pending",
+      "neutral_body_height_px_estimate": 288,
+      "neutral_reference_frame": 5,
+      "proposed_sheet_scale_to_neutral260px_height": 0.902778,
+      "scale_target_body_height_px": 260,
+      "scale_measurement_basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "scale_measurement_source": "independent visual QA report",
+      "scale_measurement_uncertainty_px": 5,
+      "scale_status": "proposed uniform sheet scale; renderer cross-action/view validation pending",
+      "scale_application": "One constant uniform scale for all six frames of this sheet. No per-frame resizing or warping.",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame measured anchor multiplied by uniform sheet scale"
+    },
+    {
+      "path": "front/hit-defend.png",
+      "sha256": "9146054c988a0ca8af7cabb9e532852211cc41df10e22267fc8d2a8a232ab22c",
+      "view": "front",
+      "action": "hit-defend",
+      "imageSize": [
+        1536,
+        1024
+      ],
+      "cellSize": [
+        512,
+        512
+      ],
+      "frameCount": 6,
+      "frameOrder": "row-major",
+      "durationsMs": [
+        100,
+        100,
+        90,
+        140,
+        120,
+        140
+      ],
+      "loop": false,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "alphaBoundsThreshold8": [
+        [
+          109,
+          112,
+          464,
+          454
+        ],
+        [
+          91,
+          118,
+          448,
+          453
+        ],
+        [
+          84,
+          151,
+          415,
+          453
+        ],
+        [
+          115,
+          69,
+          465,
+          398
+        ],
+        [
+          98,
+          64,
+          443,
+          397
+        ],
+        [
+          83,
+          62,
+          434,
+          398
+        ]
+      ],
+      "cellIsolationPass": true,
+      "perFrameAnchors": [
+        [
+          263,
+          452
+        ],
+        [
+          253,
+          451
+        ],
+        [
+          242,
+          451
+        ],
+        [
+          287,
+          397
+        ],
+        [
+          254,
+          396
+        ],
+        [
+          246,
+          396
+        ]
+      ],
+      "anchorMethod": "Visually measured paired claw contact center excluding umbrella pole, ribbon and petals; approximate ±5px. Renderer validation pending.",
+      "anchorMetadata": "front/hit-defend.measured-anchors.json",
+      "rendererValidation": "pending",
+      "neutral_body_height_px_estimate": 218,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 1.192661,
+      "scale_target_body_height_px": 260,
+      "scale_measurement_basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "scale_measurement_source": "independent visual QA report",
+      "scale_measurement_uncertainty_px": 5,
+      "scale_status": "proposed uniform sheet scale; renderer cross-action/view validation pending",
+      "scale_application": "One constant uniform scale for all six frames of this sheet. No per-frame resizing or warping.",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame measured anchor multiplied by uniform sheet scale"
+    },
+    {
+      "path": "front/idle.png",
+      "sha256": "db57629e8c993107944d9e554a831cff5b58df5fe3ab09db1cc88217c53f126c",
+      "view": "front",
+      "action": "idle",
+      "imageSize": [
+        1536,
+        1024
+      ],
+      "cellSize": [
+        512,
+        512
+      ],
+      "frameCount": 6,
+      "frameOrder": "row-major",
+      "durationsMs": [
+        160,
+        160,
+        160,
+        160,
+        160,
+        160
+      ],
+      "loop": true,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "alphaBoundsThreshold8": [
+        [
+          99,
+          94,
+          462,
+          458
+        ],
+        [
+          97,
+          96,
+          460,
+          458
+        ],
+        [
+          87,
+          95,
+          447,
+          459
+        ],
+        [
+          95,
+          62,
+          467,
+          430
+        ],
+        [
+          90,
+          62,
+          476,
+          430
+        ],
+        [
+          93,
+          62,
+          461,
+          430
+        ]
+      ],
+      "cellIsolationPass": true,
+      "perFrameAnchors": [
+        [
+          258,
+          456
+        ],
+        [
+          254,
+          456
+        ],
+        [
+          242,
+          457
+        ],
+        [
+          260,
+          429
+        ],
+        [
+          255,
+          427
+        ],
+        [
+          255,
+          428
+        ]
+      ],
+      "anchorMethod": "Visually measured paired claw contact center excluding umbrella pole, ribbon and petals; approximate ±5px. Renderer validation pending.",
+      "anchorMetadata": "front/idle.measured-anchors.json",
+      "rendererValidation": "pending",
+      "neutral_body_height_px_estimate": 235,
+      "neutral_reference_frame": 0,
+      "proposed_sheet_scale_to_neutral260px_height": 1.106383,
+      "scale_target_body_height_px": 260,
+      "scale_measurement_basis": "Tan head-crest apex to grounded gold-claw baseline, excluding shield height, held objects, castle/parasol, scroll/tassel, glow and detached particles.",
+      "scale_measurement_source": "independent visual QA report",
+      "scale_measurement_uncertainty_px": 5,
+      "scale_status": "proposed uniform sheet scale; renderer cross-action/view validation pending",
+      "scale_application": "One constant uniform scale for all six frames of this sheet. No per-frame resizing or warping.",
+      "render_world_origin": "constant world foot position; draw at worldOrigin minus per-frame measured anchor multiplied by uniform sheet scale"
+    }
+  ]
+}

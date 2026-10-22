@@ -1,0 +1,38 @@
+{
+  "source_sha256": "44f84a0b57f6aba257890263b21f6f40a2663529b1e235f450d082975a493a19",
+  "sheet": "T8/back/attack.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      238.0,
+      447
+    ],
+    [
+      240.5,
+      449
+    ],
+    [
+      223.0,
+      449
+    ],
+    [
+      234.0,
+      419
+    ],
+    [
+      249.5,
+      420
+    ],
+    [
+      248.0,
+      420
+    ]
+  ],
+  "placement_rule": "Align grounded contact anchor to fixed actor origin; preserve authored airborne/recoil offsets. Apply proposed uniform scale per sheet, never per frame.",
+  "measurement": "Visually checked claw contact centers excluding props, ribbons, floating ornaments and effects; approximately \u00b15px, renderer validation pending.",
+  "renderer_validation": "pending"
+}

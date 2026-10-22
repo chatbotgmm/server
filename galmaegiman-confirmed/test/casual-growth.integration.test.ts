@@ -1,3 +1,4 @@
+import {createBattleService} from '../src/battle/service-factory.js';
 import {beforeAll,beforeEach,afterAll,describe,it,expect} from 'vitest';
 import {PrismaClient} from '@prisma/client';
 import {mkdtempSync,writeFileSync,rmSync} from 'node:fs';
@@ -8,7 +9,6 @@ import {randomUUID} from 'node:crypto';
 import {loadContent} from '../src/content.js';
 import {loadBattleRules} from '../src/battle/load.js';
 import {createBattle} from '../src/battle/engine.js';
-import {deserializeBattle} from '../src/battle/realtime-adapter.js';
 import {RealtimePvpService} from '../src/pvp/service.js';
 const C=loadContent(),R=loadBattleRules();
 describe('actual owned growth through realtime service (new disposable SQLite)',()=>{
@@ -19,7 +19,7 @@ describe('actual owned growth through realtime service (new disposable SQLite)',
  async function player(levels:number[]){const p=await db.player.create({data:{identity:randomUUID(),battleTeam:'D1,T1,E1'}}),keys:string[]=[],units:Record<string,unknown>={};for(const [i,id] of ['D1','T1','E1'].entries()){const row=await db.ownedCharacter.create({data:{playerId:p.id,characterId:id,obtainedVia:'TEST'}});keys.push(`o${row.id}`);units[`o${row.id}`]={level:levels[i],xp:7,stage:0,learned:['@','basic']};}await db.storySave.create({data:{playerId:p.id,data:JSON.stringify({units})}});return {p,keys};}
  async function joinQueue(p:{id:string},mode:'normal'|'rank'='normal'){const t=await service.attempt(p.id,mode);return service.join(p.id,t.attemptId,t.token);}
  async function command(p:string,roomId:string,command:any){const v=await service.currentRoom(p,roomId);return service.command(p,{roomId,phaseId:v.phaseId,requestId:randomUUID(),command});}
- async function stored(roomId:string){const room=await db.realtimeRoom.findUniqueOrThrow({where:{id:roomId}}),s=JSON.parse(room.stateJson);return {room,s,b:deserializeBattle(R,s.battle)};}
+ async function stored(roomId:string){const room=await db.realtimeRoom.findUniqueOrThrow({where:{id:roomId}}),s=JSON.parse(room.stateJson);return {room,s,b:createBattleService(R).restore(s.battle)};}
  it('preserves exact chosen instance, ignores higher unused copy, matches AI again after preparation edit, and never writes growth',async()=>{
   const x=await player([10,20,30]),extra=await db.ownedCharacter.create({data:{playerId:x.p.id,characterId:'D1',obtainedVia:'TEST'}});const save=JSON.parse((await db.storySave.findUniqueOrThrow({where:{playerId:x.p.id}})).data);save.units[`o${extra.id}`]={level:60,xp:99,stage:0,learned:['@','basic']};await db.storySave.update({where:{playerId:x.p.id},data:{data:JSON.stringify(save)}});const before=await db.storySave.findUniqueOrThrow({where:{playerId:x.p.id}});
   await joinQueue(x.p);now+=30000;const q=await service.currentQueue(x.p.id),roomId=(q as {roomId:string}).roomId;let b=(await stored(roomId)).b;expect(b.sides[0].fighters.map(f=>f.rec.level)).toEqual([10,20,30]);expect(b.sides[1].fighters.every(f=>f.rec.level===20)).toBe(true);

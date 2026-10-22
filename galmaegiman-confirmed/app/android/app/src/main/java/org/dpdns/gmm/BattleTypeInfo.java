@@ -109,6 +109,9 @@ final class BattleTypeInfo {
           +" · "+currentMultiplier(preview.optDouble("multiplier",Double.NaN),defense);
     else current+="\n현재 적용 상성을 확인할 수 없어요.";
     body.addView(NativeBattleSheets.heading(h,current,16));
+    // Keep the command cards and hold controls unchanged; full math belongs in this scrollable detail.
+    if (skill != null && SkillCardView.currentPower(skill) > 0)
+      body.addView(NativeBattleSheets.prose(h, SkillAttributeBreakdown.text(preview), 14));
     showDialog(v,name(h,attr)+" 속성 상성 · "+(bundled?"앱 기본":"서버 기본"),body);
   }
 

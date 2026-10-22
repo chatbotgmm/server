@@ -1,0 +1,38 @@
+{
+  "source_sha256": "681cd8f37ebb6f4082e0cf16c278010f3fa9ad7a510a634dba670aad9a9c10c4",
+  "sheet": "E2/front/entry.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      226.0,
+      495
+    ],
+    [
+      249.5,
+      497
+    ],
+    [
+      241.5,
+      497
+    ],
+    [
+      253.0,
+      475
+    ],
+    [
+      251.0,
+      475
+    ],
+    [
+      256.0,
+      484
+    ]
+  ],
+  "placement_rule": "Align measured feet anchor to fixed actor world origin.",
+  "measurement": "Alpha>128 foot-region pixels in lower40px central band, visually checked against feet; requires renderer validation.",
+  "renderer_validation": "pending"
+}

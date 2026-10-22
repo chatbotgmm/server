@@ -1,0 +1,206 @@
+{
+  "character": "I6",
+  "view": "back",
+  "action": "hit-defend",
+  "sheet_size": [
+    1536,
+    1024
+  ],
+  "cell_size": [
+    512,
+    512
+  ],
+  "grid": [
+    3,
+    2
+  ],
+  "frame_order": "row-major left-to-right, top-to-bottom",
+  "loop": false,
+  "frames": [
+    {
+      "index": 0,
+      "rect": [
+        0,
+        0,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        55,
+        109,
+        475,
+        433
+      ],
+      "foot_anchor_px": [
+        304,
+        432
+      ],
+      "foot_anchor_method": "Visual gold-claw/sole anchor estimate +/-4px, excluding orbital stars and feathers. Renderer validation pending.",
+      "duration_ms": 100,
+      "auto_estimated_anchor_px": [
+        285.5,
+        430
+      ]
+    },
+    {
+      "index": 1,
+      "rect": [
+        512,
+        0,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        66,
+        115,
+        463,
+        433
+      ],
+      "foot_anchor_px": [
+        290,
+        433
+      ],
+      "foot_anchor_method": "Visual gold-claw/sole anchor estimate +/-4px, excluding orbital stars and feathers. Renderer validation pending.",
+      "duration_ms": 100,
+      "auto_estimated_anchor_px": [
+        242.0,
+        431
+      ]
+    },
+    {
+      "index": 2,
+      "rect": [
+        1024,
+        0,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        46,
+        134,
+        457,
+        441
+      ],
+      "foot_anchor_px": [
+        276,
+        439
+      ],
+      "foot_anchor_method": "Visual gold-claw/sole anchor estimate +/-4px, excluding orbital stars and feathers. Renderer validation pending.",
+      "duration_ms": 80,
+      "auto_estimated_anchor_px": [
+        254.5,
+        439
+      ]
+    },
+    {
+      "index": 3,
+      "rect": [
+        0,
+        512,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        58,
+        99,
+        470,
+        424
+      ],
+      "foot_anchor_px": [
+        289,
+        421
+      ],
+      "foot_anchor_method": "Visual gold-claw/sole anchor estimate +/-4px, excluding orbital stars and feathers. Renderer validation pending.",
+      "duration_ms": 100,
+      "auto_estimated_anchor_px": [
+        249.0,
+        422
+      ]
+    },
+    {
+      "index": 4,
+      "rect": [
+        512,
+        512,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        44,
+        97,
+        469,
+        424
+      ],
+      "foot_anchor_px": [
+        300,
+        423
+      ],
+      "foot_anchor_method": "Visual gold-claw/sole anchor estimate +/-4px, excluding orbital stars and feathers. Renderer validation pending.",
+      "duration_ms": 120,
+      "auto_estimated_anchor_px": [
+        247.0,
+        421
+      ]
+    },
+    {
+      "index": 5,
+      "rect": [
+        1024,
+        512,
+        512,
+        512
+      ],
+      "visible_bounds_alpha_gt8": [
+        32,
+        88,
+        453,
+        420
+      ],
+      "foot_anchor_px": [
+        285,
+        418
+      ],
+      "foot_anchor_method": "Visual gold-claw/sole anchor estimate +/-4px, excluding orbital stars and feathers. Renderer validation pending.",
+      "duration_ms": 180,
+      "auto_estimated_anchor_px": [
+        233.5,
+        417
+      ]
+    }
+  ],
+  "render_world_origin": "same foot position for every frame; draw at worldOrigin - foot_anchor_px*scale",
+  "proposed_sheet_scale_to_neutral260px_height": 0.802469,
+  "scale_status": "Use body_normalization instead of silhouette-height proposal; renderer validation pending",
+  "sha256": "911336b114221cf89a7e41cc2b7a33bb7206deaba75e7d1f9c398eb920872801",
+  "alpha_range": [
+    0,
+    254
+  ],
+  "alpha_zero_fraction": 0.5906168619791666,
+  "generator": "built-in image_gen",
+  "prompt_file": "hit-defend.prompt.txt",
+  "qa": {
+    "static_identity": "visually inspected; canonical source bird identity preserved",
+    "true_alpha": true,
+    "equal_cells": true,
+    "visible_gutter_pass": true,
+    "cast_shadow": "none visibly drawn; hidden RGB includes brown preview background",
+    "issues": [
+      "Per-sheet scale and per-frame anchors required; renderer validation pending",
+      "Very low alpha fringe may extend beyond visible sprite; alpha threshold for QA is 8/255"
+    ],
+    "runtime_ready": false,
+    "static_asset_status": "independently accepted"
+  },
+  "measured_anchor_file": "hit-defend.measured-anchors.json",
+  "body_normalization": {
+    "neutral_frame": 0,
+    "source_crest_to_sole_height_px": 285,
+    "target_height_px": 260,
+    "uniform_sheet_render_scale": 0.9122807017543859,
+    "measurement": "visual estimate +/-10px",
+    "exclude": "non-body ornaments, orbit decorations, magic floor oval and T7 drill",
+    "status": "proposed; renderer validation pending",
+    "apply": "Use same uniform scale for all six frames; align each measured foot anchor to fixed world origin. Do not individually scale each frame."
+  }
+}

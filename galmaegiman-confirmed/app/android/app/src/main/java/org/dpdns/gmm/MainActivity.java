@@ -38,13 +38,16 @@ public class MainActivity extends AppCompatActivity {
   JSONObject state = new JSONObject(), battle;
   String screen = "home", pendingAugment = "";
   int chapter = 0, epoch = 0;
+  BackgroundMotionBinding backgroundEffects;
   boolean busy = false, motionEnabled = true, motionResumed = false;
   android.app.AlertDialog visibleDialog;
   ArrayList<String> selected = new ArrayList<>();
   String selectionMode = "story", mixIds = "";
   String currentKey = "", accountReturn = "home";
   NativeTutorialController guide;
+  NativeStarterLoans starterLoans;
   private RegistrationArt registrationCards;
+  NativeRequiredUpdate requiredUpdate;
 
   RegistrationArt registrationArt() {
     if (registrationCards == null) registrationCards = new RegistrationArt(this);
@@ -75,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
     }
     WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
     root = new GameRootLayout(this);
+    backgroundEffects = new BackgroundMotionBinding(this);
     setContentView(root);
     operations = new NativeOperationUi(this);
     menus = new NativeMenus(this);
@@ -88,6 +92,7 @@ public class MainActivity extends AppCompatActivity {
               }
             });
     guide = NativeTutorialController.get(this);
+    starterLoans = new NativeStarterLoans(this);
     ViewCompat.setOnApplyWindowInsetsListener(
         root,
         (v, insets) -> {
@@ -105,16 +110,18 @@ public class MainActivity extends AppCompatActivity {
       getWindow().setAttributes(window);
     }
     immersive();
-    if (!exchange(getIntent())) {
-      if (api.token().isEmpty()) titleScreen();
-      else load(notificationTarget(getIntent()));
-    }
+    requiredUpdate = new NativeRequiredUpdate(this);
+    // onResume에서 Play 확인을 마친 뒤 로그인/닉네임/튜토리얼을 시작한다.
   }
 
   @Override
   protected void onNewIntent(Intent i) {
     super.onNewIntent(i);
     setIntent(i);
+    if (requiredUpdate != null && requiredUpdate.blocks()) {
+      requiredUpdate.deferIntent();
+      return;
+    }
     if (!exchange(i) && i.hasExtra("destination") && !api.token().isEmpty())
       load(notificationTarget(i));
   }
@@ -122,6 +129,7 @@ public class MainActivity extends AppCompatActivity {
   @Override
   public void onWindowFocusChanged(boolean focus) {
     super.onWindowFocusChanged(focus);
+    if (backgroundEffects != null && root != null) root.post(() -> backgroundEffects.effect.refreshLifecycle());
     if (focus) immersive();
   }
 
@@ -171,11 +179,13 @@ public class MainActivity extends AppCompatActivity {
     root.post(
         () -> {
           if (epoch == shownEpoch && guide != null) guide.onScreenShown(screen);
+          if (epoch == shownEpoch && starterLoans != null) starterLoans.resume();
         });
   }
 
   void stateUpdated() {
-    if (realtime != null) realtime.recover();
+    TemporaryUnitPresentation.sync(state.optLong("serverNow"));
+    if (realtime != null && !updateBlocks()) realtime.recover();
     NativeAlerts.schedule(this, me());
     if (guide != null) guide.onStateUpdated();
   }
@@ -212,7 +222,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void request(String path, JSONObject data, NativeApi.Result done) {
-    if (busy) return;
+    if (busy || updateBlocks()) return;
     busy = true;
     final int operation = operations.begin(NativeOperationUi.label(path), actionButton);
     final int operationEpoch = epoch;
@@ -223,6 +233,7 @@ public class MainActivity extends AppCompatActivity {
         (r, e) -> {
           if (isFinishing()
               || isDestroyed()
+              || (requiredUpdate != null && requiredUpdate.required())
               || operationEpoch != epoch
               || (!operationAccount.equals(api.token()) && !(e != null && api.token().isEmpty()))) {
             if (operations.finish(operation)) busy = false;
@@ -252,6 +263,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void load(String target) {
+    if (updateBlocks()) { requiredUpdate.deferLoad(target); return; }
     if (busy) return;
     if (screen.equals("team") && !target.equals("team") && menus.isTeamDirty()) {
       menus.requestLeaveTeam(() -> load(target));
@@ -271,7 +283,8 @@ public class MainActivity extends AppCompatActivity {
         "native/state",
         null,
         (r, e) -> {
-          if (isFinishing() || isDestroyed() || destination != epoch) {
+          if (isFinishing() || isDestroyed() || destination != epoch
+              || (requiredUpdate != null && requiredUpdate.required())) {
             if (operations.finish(operation)) busy = false;
             return;
           }
@@ -301,7 +314,8 @@ public class MainActivity extends AppCompatActivity {
               "duel-key",
               null,
               (key, error) -> {
-                if (isFinishing() || isDestroyed() || destination != epoch) {
+                if (isFinishing() || isDestroyed() || destination != epoch
+              || (requiredUpdate != null && requiredUpdate.required())) {
                   if (operations.finish(operation)) busy = false;
                   return;
                 }
@@ -463,7 +477,7 @@ public class MainActivity extends AppCompatActivity {
     b.setStateListAnimator(null);
     b.setOnClickListener(
         v -> {
-          if (!busy) {
+          if (!busy && !updateBlocks()) {
             sound.click();
             Button previous = actionButton;
             actionButton = b;
@@ -614,7 +628,17 @@ public class MainActivity extends AppCompatActivity {
     return c;
   }
 
+  boolean nicknameRequired() {
+    JSONObject tutorial = state.optJSONObject("tutorial");
+    return !api.token().isEmpty() && tutorial != null
+        && tutorial.optBoolean("nicknameRequired", false);
+  }
+
   void show(String s) {
+    if (nicknameRequired() && !s.equals("title") && !s.equals("login")) {
+      NativeNicknameSetup.show(this);
+      return;
+    }
     switch (s) {
       case "modes":
         menus.modes();
@@ -671,6 +695,9 @@ public class MainActivity extends AppCompatActivity {
         break;
       case "expedition":
         expedition();
+        break;
+      case "news":
+        menus.news.open();
         break;
       case "daily":
         daily();
@@ -739,7 +766,7 @@ public class MainActivity extends AppCompatActivity {
     head.setGravity(Gravity.CENTER_VERTICAL);
     form.addView(head);
     boolean linking =
-        !getSharedPreferences("native_account", 0).getString("linkCode", "").isEmpty();
+        !getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).getString("linkCode", "").isEmpty();
     title = text(linking ? "카카오 계정 처음 연결" : "방범대 인사 기록부", linking ? 18 : 22);
     title.setTypeface(headline);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
@@ -747,7 +774,7 @@ public class MainActivity extends AppCompatActivity {
         button(
             "×",
             () -> {
-              getSharedPreferences("native_account", 0).edit().remove("linkCode").apply();
+              getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).edit().remove("linkCode").apply();
               titleScreen();
             });
     close.setBackground(new GameButtonDrawable(this, GameButtonDrawable.PAPER));
@@ -790,10 +817,10 @@ public class MainActivity extends AppCompatActivity {
                   "code",
                   value,
                   "linkCode",
-                  getSharedPreferences("native_account", 0).getString("linkCode", "")),
+                  getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).getString("linkCode", "")),
               (r, e) -> {
                 if (codeDialog[0] != null) codeDialog[0].dismiss();
-                getSharedPreferences("native_account", 0).edit().remove("linkCode").apply();
+                getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).edit().remove("linkCode").apply();
                 api.token(r.optString("token"));
                 load("title");
               });
@@ -900,7 +927,7 @@ public class MainActivity extends AppCompatActivity {
               android.util.Base64.URL_SAFE
                   | android.util.Base64.NO_WRAP
                   | android.util.Base64.NO_PADDING);
-      getSharedPreferences("native_account", 0)
+      getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0)
           .edit()
           .putString("verifier", verifier)
           .putBoolean("linking", linking)
@@ -935,6 +962,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   boolean exchange(Intent intent) {
+    if (updateBlocks()) { requiredUpdate.deferIntent(); return true; }
     Uri u = intent.getData();
     if (u == null || !"gmmrevised".equals(u.getScheme()) || !"auth".equals(u.getHost()))
       return false;
@@ -945,7 +973,7 @@ public class MainActivity extends AppCompatActivity {
         api.ui.postDelayed(() -> exchange(intent), 250);
         return true;
       }
-      getSharedPreferences("native_account", 0).edit().remove("verifier").remove("linking").remove("linkCode").apply();
+      getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).edit().remove("verifier").remove("linking").remove("linkCode").apply();
       request(
           "review/exchange",
           obj("code", reviewCode),
@@ -957,7 +985,7 @@ public class MainActivity extends AppCompatActivity {
     }
     String authError = u.getQueryParameter("error");
     if (authError != null) {
-      getSharedPreferences("native_account", 0).edit().remove("verifier").remove("linking").apply();
+      getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).edit().remove("verifier").remove("linking").apply();
       message(authError.equals("cancel") ? "카카오 로그인을 취소했어요." : "카카오 로그인에 실패했어요. 다시 시도해 주세요.");
       return true;
     }
@@ -966,10 +994,10 @@ public class MainActivity extends AppCompatActivity {
       return true;
     }
     String code = u.getQueryParameter("code"),
-        v = getSharedPreferences("native_account", 0).getString("verifier", "");
-    boolean linking = getSharedPreferences("native_account", 0).getBoolean("linking", false);
+        v = getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).getString("verifier", "");
+    boolean linking = getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).getBoolean("linking", false);
     String oldPlayer = api.token().split("\\.")[0];
-    getSharedPreferences("native_account", 0).edit().remove("verifier").remove("linking").apply();
+    getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).edit().remove("verifier").remove("linking").apply();
     request(
         "app/exchange",
         obj("code", code, "verifier", v),
@@ -979,7 +1007,7 @@ public class MainActivity extends AppCompatActivity {
             return;
           }
           if (r.optBoolean("needsLink")) {
-            getSharedPreferences("native_account", 0)
+            getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0)
                 .edit()
                 .putString("linkCode", r.optString("linkCode"))
                 .apply();
@@ -993,6 +1021,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void home() {
+    if (nicknameRequired()) { NativeNicknameSetup.show(this); return; }
     epoch++;
     screen = "home";
     sound.play("title");
@@ -1404,7 +1433,8 @@ public class MainActivity extends AppCompatActivity {
         "native/state",
         null,
         (fresh, error) -> {
-          if (isFinishing() || isDestroyed() || destination != epoch) {
+          if (isFinishing() || isDestroyed() || destination != epoch
+              || (requiredUpdate != null && requiredUpdate.required())) {
             if (operations.finish(operation)) busy = false;
             return;
           }
@@ -1429,6 +1459,9 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void back() {
+    if (updateBlocks()) return;
+    if (screen.equals("news") && menus.news.back()) return;
+    if (screen.equals("nickname")) { if (!busy) titleScreen(); return; }
     if (screen.equals("battleReplay")) { NativeBattleReplay.records(this); return; }
     if (screen.equals("battleRecords")) { load("modesPvp"); return; }
     for (int i=0;i<root.getChildCount();i++)
@@ -1459,6 +1492,9 @@ public class MainActivity extends AppCompatActivity {
       titleScreen();
       return;
     }
+    if (screen.equals("home")) for (int i = 0; i < root.getChildCount(); i++)
+      if (root.getChildAt(i) instanceof LobbyView
+          && ((LobbyView) root.getChildAt(i)).closeMenuOnBack()) return;
     if (screen.equals("home") || screen.equals("title")) {
       confirm("게임을 닫을까요?", this::finish);
       return;
@@ -1496,7 +1532,7 @@ public class MainActivity extends AppCompatActivity {
     if (requestCode == 11) {
       boolean granted =
           results.length > 0 && results[0] == android.content.pm.PackageManager.PERMISSION_GRANTED;
-      getSharedPreferences("native_account", 0).edit().putBoolean("alerts", granted).apply();
+      getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).edit().putBoolean("alerts", granted).apply();
       NativeAlerts.schedule(this, granted ? me() : new JSONObject());
       if (!granted) message("알림이 꺼졌어요. 기기 설정에서 알림을 허용하면 다시 켤 수 있어요.");
     }
@@ -1506,19 +1542,29 @@ public class MainActivity extends AppCompatActivity {
   protected void onResume() {
     super.onResume();
     if (sound != null) sound.resume();
-    if (realtime != null) realtime.resume();
+    if (requiredUpdate != null) requiredUpdate.resume();
+    if (realtime != null && !updateBlocks()) realtime.resume();
     motionResumed = true;
+    if (backgroundEffects != null) backgroundEffects.resumed(true);
     journalTime.resume();
   }
 
   @Override
   protected void onPause() {
+    if (requiredUpdate != null) requiredUpdate.pause();
     NativeBattleReplay.pause(this);
     if (sound != null) sound.pause();
     if (realtime != null) realtime.pause();
     motionResumed = false;
+    if (backgroundEffects != null) backgroundEffects.resumed(false);
     journalTime.pause();
     super.onPause();
+  }
+
+  @Override
+  public void onTrimMemory(int level) {
+    super.onTrimMemory(level);
+    if (backgroundEffects != null) backgroundEffects.trim();
   }
 
   @Override
@@ -1535,8 +1581,19 @@ public class MainActivity extends AppCompatActivity {
           screen.equals("battle") ? battleMusic() : screen.equals("dialog") ? "story" : "title");
   }
 
+  boolean updateBlocks() { return requiredUpdate != null && requiredUpdate.blocks(); }
+
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    super.onActivityResult(requestCode, resultCode, data);
+    if (requestCode == NativeRequiredUpdate.REQUEST_UPDATE && requiredUpdate != null)
+      requiredUpdate.result();
+  }
+
   @Override
   protected void onDestroy() {
+    if (requiredUpdate != null) requiredUpdate.close();
+    if (backgroundEffects != null) backgroundEffects.close();
     if (realtime != null) realtime.close();
     super.onDestroy();
     motionResumed = false;
@@ -1549,5 +1606,8 @@ public class MainActivity extends AppCompatActivity {
     sound.close();
   }
 }
+
+
+
 
 

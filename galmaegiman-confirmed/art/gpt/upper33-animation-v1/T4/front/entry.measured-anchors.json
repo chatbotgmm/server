@@ -1,0 +1,38 @@
+{
+  "source_sha256": "902128fcd14c2e38d432920bcb0811dbd989d8c01cdedfa24ee8be20c2de04e8",
+  "sheet": "T4/front/entry.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      256.0,
+      449
+    ],
+    [
+      263.0,
+      451
+    ],
+    [
+      254.0,
+      449
+    ],
+    [
+      261.0,
+      416
+    ],
+    [
+      260.0,
+      416
+    ],
+    [
+      248.5,
+      417
+    ]
+  ],
+  "placement_rule": "Align measured ground-contact feet anchor to fixed actor world origin; preserve authored offsets for lifted feet or airborne poses.",
+  "measurement": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate \u00b14px. Renderer validation pending.",
+  "renderer_validation": "pending"
+}

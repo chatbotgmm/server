@@ -20,9 +20,20 @@ final class LobbyView extends FrameLayout implements FullBleed {
   final RectF dockFrame = new RectF();
   final RectF heroFrame = new RectF(), heroPose = new RectF(), heroContact = new RectF();
   final Paint.FontMetrics canvasMetrics = new Paint.FontMetrics();
+  private final Paint groundShadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+  private final Matrix groundShadowMatrix = new Matrix();
+  private static final float[] GROUND_PROJECTION = {1, .92f * .32f, 0,
+      0, -.39f * .32f, 0, 0, 0, 1};
+  private final RectF groundShadowSource = new RectF();
+  private final ColorFilter groundShadowColor = new PorterDuffColorFilter(0xff26323a, PorterDuff.Mode.SRC_IN);
   final ArrayList<Button> buttons = new ArrayList<>();
   final String room;
   final HomeArt homeArt;
+  final HomeMenuArt menuArt;
+  final RectF menuPanel = new RectF(), heroStage = new RectF(), tipRegion = new RectF();
+  static final int[] MENU_ITEMS = {1, 2, 3, 0, 4, 12, 6, 14};
+  boolean menuOpen, dismissGesture;
+  Typeface homeHeading;
   final Button gull;
   final TextView tip;
   final Rect tipFrame = new Rect();
@@ -30,7 +41,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   CharSequence tipCopy = "";
   int tipPageStart, tipNextPageStart;
   final Runnable hideTip = this::hideGullTip;
-  final boolean[] badges = new boolean[13];
+  final boolean[] badges = new boolean[15];
   long claimReadyMono = -1;
   int liveEpoch, tipAt = -1;
   String dailyDay = "";
@@ -52,7 +63,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   static final String[] NAMES = {"탐험", "모집", "방범대", "조합", "상점"};
   static final String[] IDS = {"expedition", "draw", "collection", "craft", "shop"};
   static final String[] ICONS = {"mode-camp", "u-draw", "mode-normal", "u-emblem", "u-shop"};
-  final RectF[] boxes = new RectF[13];
+  final RectF[] boxes = new RectF[15];
 
   static String room(MainActivity host) {
     if (host.lobbyRoom == null)
@@ -83,7 +94,11 @@ final class LobbyView extends FrameLayout implements FullBleed {
   LobbyView(MainActivity host) {
     super(host);
     this.host = host;
-    homeArt = new HomeArt(host);
+    homeArt = new HomeArt(host, this);
+    menuArt = new HomeMenuArt(host, homeArt);
+    // The approved home uses the bundled compact Jua face, not the workbench Noto.
+    // MainActivity loads this asset explicitly; do not silently substitute a system font.
+    homeHeading = host.font;
     motion = new SceneMotion(this, host);
     ambient = new JournalAmbient(this, host, motion);
     parallax = new HomeGullDrag(this, host.dp(4), host.dp(1.2f));
@@ -118,6 +133,26 @@ final class LobbyView extends FrameLayout implements FullBleed {
     buttons.get(8).setTag("lobby-settings");
     add("전투 편성", this::openTeam);
     buttons.get(12).setTag("lobby-team");
+    add("메뉴", () -> setMenuOpen(!menuOpen));
+    buttons.get(13).setTag("lobby-menu-toggle");
+    add("소식함", () -> host.load("news"));
+    buttons.get(14).setTag("lobby-news");
+    for (Button button : buttons) button.setId(View.generateViewId());
+    for (int n = 0; n < MENU_ITEMS.length; n++) {
+      Button item = buttons.get(MENU_ITEMS[n]);
+      item.setVisibility(View.GONE);
+      item.setAccessibilityTraversalAfter(n == 0 ? buttons.get(13).getId()
+          : buttons.get(MENU_ITEMS[n-1]).getId());
+      item.setNextFocusForwardId(n + 1 < MENU_ITEMS.length
+          ? buttons.get(MENU_ITEMS[n+1]).getId() : buttons.get(13).getId());
+      if (n % 4 > 0) item.setNextFocusLeftId(buttons.get(MENU_ITEMS[n-1]).getId());
+      if (n % 4 < 3 && n+1 < MENU_ITEMS.length)
+        item.setNextFocusRightId(buttons.get(MENU_ITEMS[n+1]).getId());
+      if (n >= 4) item.setNextFocusUpId(buttons.get(MENU_ITEMS[n-4]).getId());
+      item.setNextFocusDownId(n+4 < MENU_ITEMS.length
+          ? buttons.get(MENU_ITEMS[n+4]).getId() : buttons.get(13).getId());
+    }
+    updateMenuDescription();
     tip = host.text("", host.getResources().getConfiguration().screenHeightDp < 600 ? 13 : 15);
     tip.setTypeface(host.prose);
     tip.setHorizontallyScrolling(false);
@@ -154,6 +189,9 @@ final class LobbyView extends FrameLayout implements FullBleed {
       lp.leftMargin = host.dp(12);
       lp.topMargin = host.dp(72);
       resume.setTag("lobby-resume");
+      resume.setMaxLines(2);
+      resume.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      resume.setContentDescription("진행 중인 전투로 돌아가기");
       addView(resume, lp);
     }
   }
@@ -166,7 +204,10 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   void add(String name, Runnable click) {
-    Button b = host.button(name, click);
+    Button b = host.button(name, () -> {
+      if (menuOpen && !name.equals("메뉴")) setMenuOpen(false);
+      click.run();
+    });
     b.setTextColor(Color.TRANSPARENT);
     // Observe the actual native button state without replacing its click/write/sound behavior.
     b.setBackground(new android.graphics.drawable.Drawable() {
@@ -202,9 +243,9 @@ final class LobbyView extends FrameLayout implements FullBleed {
     RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
     // Use measured controls, not screen percentages: reserve the complete header
     // and bottom navigation strips, including the blank gaps between controls.
-    if (boxes[7] == null || boxes[0] == null) return new RectF();
+    if (menuOpen || boxes[7] == null || boxes[13] == null) return new RectF();
     safe.top = Math.max(safe.top, Math.max(boxes[7].bottom, boxes[8].bottom));
-    safe.bottom = Math.min(safe.bottom, boxes[0].top);
+    safe.bottom = Math.min(safe.bottom, boxes[13].top);
     return safe;
   }
 
@@ -274,48 +315,54 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   void positions(int w, int h) {
-    boolean tablet = w / (float) h < 1.85f;
-    float margin = host.dp(tablet ? 24 : 16), gap = host.dp(8);
-    float hit = host.dp(48), header = hit;
-    float navH = Math.max(hit, Math.min(host.dp(64), h * .1262f));
-    float navW = (w - margin * 2 - gap * 4) / 5;
-    int[] dock = {0, 1, 2, 3, 4};
-    for (int i = 0; i < dock.length; i++) {
-      float x = margin + i * (navW + gap);
-      boxes[dock[i]] = new RectF(x, h - margin - navH, x + navW, h - margin);
-    }
-    float stackLeft = w * (tablet ? .70625f : .699454f);
-    float stackTop = h * (tablet ? .20f : .213592f);
-    float stackH = Math.max(hit, h * (tablet ? .09f : .145631f));
-    float stackGap = Math.max(host.dp(12), h * (tablet ? .04f : .038835f));
-    int[] stack = {5, 12, 6};
-    for (int i = 0; i < stack.length; i++) {
-      float y = stackTop + i * (stackH + stackGap);
-      boxes[stack[i]] = new RectF(stackLeft, y, w - margin, y + stackH);
-    }
-    boxes[8] = new RectF(w - margin - hit, margin, w - margin, margin + header);
-    float currencyRight = boxes[8].left - gap;
-    float amountSize = currencyTextSize();
-    p.setTypeface(host.headline); p.setTextSize(amountSize);
-    float currencyWidth = host.dp(90);
-    for (String key : new String[] {"snack", "peanut", "credits"})
-      currencyWidth = Math.max(currencyWidth,
-          (float) Math.ceil(p.measureText(String.format(Locale.KOREA, "%,d", host.me().optInt(key)))) + host.dp(40));
-    // 큰 잔액은 글씨를 줄이는 대신 왼쪽 빈 공간을 사용한다.
-    float currencyLeft = Math.min(w * .49f, currencyRight - currencyWidth * 3 - gap * 2);
-    float curW = (currencyRight - currencyLeft - gap * 2) / 3;
-    for (int i = 0; i < 3; i++) {
-      float x = currencyLeft + i * (curW + gap);
-      boxes[9 + i] = new RectF(x, margin, x + curW, margin + header);
-    }
-    // A profile chip needs only the portrait and name. Rank/details remain in the
-    // existing profile popup and accessibility description, not a scene-wide bar.
-    p.setTypeface(host.headline);
-    p.setTextSize(canvasTextSize(host.dp(16), host.dp(24), true));
-    float profileWidth = Math.max(host.dp(148),
-        p.measureText(host.me().optString("nickname", "수비조장")) + host.dp(64));
-    profileWidth = Math.min(Math.min(host.dp(220), currencyLeft - margin - gap), profileWidth);
-    boxes[7] = new RectF(margin, margin, margin + profileWidth, margin + header);
+    float density = host.getResources().getDisplayMetrics().density;
+    HomeMenuLayout.Result layout = HomeMenuLayout.calculate(w, h, density, host.dp(64),
+        host.getResources().getConfiguration().fontScale, host.state.optBoolean("activeBattle"));
+    for (int i = 0; i < 13; i++) boxes[i] = rect(layout.controls[i]);
+    boxes[13] = rect(layout.toggle);
+    boxes[14] = rect(layout.controls[14]);
+    menuPanel.set(rect(layout.panel));
+    heroStage.set(rect(layout.heroStage));
+    tipRegion.set(rect(layout.tipRegion));
+  }
+
+  static RectF rect(HomeMenuLayout.Box box) {
+    return new RectF(box.left, box.top, box.right, box.bottom);
+  }
+
+  void updateMenuDescription() {
+    boolean notice = false;
+    for (int i : MENU_ITEMS) notice |= badges[i];
+    buttons.get(13).setText(menuOpen ? "닫기" : "메뉴");
+    buttons.get(13).setContentDescription((menuOpen ? "메뉴 닫기" : "메뉴 펼치기 · 8개 기능")
+        + (notice ? " · 받을 보상이 있어요" : ""));
+  }
+
+  void setMenuOpen(boolean open) {
+    if (menuOpen == open) return;
+    menuOpen = open;
+    parallax.close();
+    for (int i : MENU_ITEMS) buttons.get(i).setVisibility(open ? View.VISIBLE : View.GONE);
+    updateMenuDescription();
+    requestLayout();
+    invalidate();
+    if (open) buttons.get(MENU_ITEMS[0]).requestFocus();
+    else buttons.get(13).requestFocus();
+    announceForAccessibility(open ? "메뉴 펼침, 모집부터 8개 기능" : "메뉴 닫힘");
+  }
+
+  View tutorialMenuTarget(String key) {
+    int target = key.equals("daily") ? 6 : key.equals("draw") ? 1
+        : key.equals("defenders") || key.equals("team") ? 12 : -1;
+    if (target < 0) return null;
+    setMenuOpen(true);
+    return buttons.get(target);
+  }
+
+  boolean closeMenuOnBack() {
+    if (!menuOpen) return false;
+    setMenuOpen(false);
+    return true;
   }
 
   @Override
@@ -329,6 +376,9 @@ final class LobbyView extends FrameLayout implements FullBleed {
     RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
     positions(Math.round(safe.width()), Math.round(safe.height()));
     for (RectF box : boxes) box.offset(safe.left, safe.top);
+    menuPanel.offset(safe.left, safe.top);
+    heroStage.offset(safe.left, safe.top);
+    tipRegion.offset(safe.left, safe.top);
     RectF gullRect = gullBox();
     gullRect.intersect(safe);
     gull.measure(
@@ -344,6 +394,12 @@ final class LobbyView extends FrameLayout implements FullBleed {
               MeasureSpec.makeMeasureSpec((int) r.width(), MeasureSpec.EXACTLY),
               MeasureSpec.makeMeasureSpec(
                   Math.max(host.dp(48), (int) r.height()), MeasureSpec.EXACTLY));
+    }
+    View resume = findViewWithTag("lobby-resume");
+    if (resume != null) {
+      RectF r = resumeBox(safe);
+      resume.measure(MeasureSpec.makeMeasureSpec(Math.round(r.width()), MeasureSpec.EXACTLY),
+          MeasureSpec.makeMeasureSpec(Math.round(r.height()), MeasureSpec.EXACTLY));
     }
     if (tip.getVisibility() == View.VISIBLE) measureGullTip(safe);
   }
@@ -361,17 +417,19 @@ final class LobbyView extends FrameLayout implements FullBleed {
   RectF resumeBox(RectF safe) {
     int x = Math.round(safe.left + host.dp(24));
     int y = Math.round(boxes[7].bottom + host.dp(8));
-    return new RectF(x, y, x + Math.round(safe.width() * .58f), y + host.dp(48));
+    return new RectF(x, y, Math.min(heroStage.right, x + host.dp(300)), y + host.dp(48));
   }
 
   ArrayList<RectF> tipExclusions(RectF safe) {
     ArrayList<RectF> occupied = new ArrayList<>();
     occupied.add(tipHeroExclusion());
     for (int i = 0; i < buttons.size(); i++) {
+      if (buttons.get(i).getVisibility() != View.VISIBLE) continue;
       RectF box = boxes[i];
       occupied.add(new RectF((int) box.left, (int) box.top, (int) box.right,
           (int) box.top + buttons.get(i).getMeasuredHeight()));
     }
+    if (menuOpen) occupied.add(new RectF(menuPanel));
     if (findViewWithTag("lobby-resume") != null) occupied.add(resumeBox(safe));
     return occupied;
   }
@@ -379,7 +437,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   void measureGullTip(RectF safe) {
     tip.setPadding(host.dp(12), host.dp(8), host.dp(12), host.dp(8));
     tip.setText(tipCopy.subSequence(tipPageStart, tipCopy.length()));
-    HomeTipLayout.Result placement = HomeTipLayout.measure(tip, safe, tipHeroExclusion(),
+    HomeTipLayout.Result placement = HomeTipLayout.measure(tip, tipRegion, tipHeroExclusion(),
         tipExclusions(safe), host.dp(8), host.dp(300), host.dp(420), host.dp(120));
     tipFrame.set(placement.bounds);
     tipPaged = placement.paged;
@@ -463,21 +521,53 @@ final class LobbyView extends FrameLayout implements FullBleed {
     p.setShader(null);
     p.setStyle(Paint.Style.FILL);
     p.setAlpha(255);
-    p.setTypeface(heading ? host.headline : host.prose);
+    p.setTypeface(heading ? homeHeading : NavyWorkbenchTheme.font(host));
     p.setTextSize(size);
     p.setTextAlign(Paint.Align.CENTER);
     p.setColor(color);
-    c.drawText(text, x, y, p);
+    if (heading && text.indexOf('·') >= 0) {
+      // Jua does not ship U+00B7. Draw the separator as ink rather than relying
+      // on a device-dependent fallback face (or a missing-glyph square).
+      String[] pieces = text.split("·", -1);
+      float dotWidth = size * .32f, width = dotWidth * (pieces.length - 1);
+      for (String piece : pieces) width += p.measureText(piece);
+      float at = x - width / 2;
+      p.setTextAlign(Paint.Align.LEFT);
+      for (int i = 0; i < pieces.length; i++) {
+        c.drawText(pieces[i], at, y, p);
+        at += p.measureText(pieces[i]);
+        if (i + 1 < pieces.length) {
+          c.drawCircle(at + dotWidth/2, y - size * .35f, size * .065f, p);
+          at += dotWidth;
+        }
+      }
+      p.setTextAlign(Paint.Align.CENTER);
+    } else c.drawText(text, x, y, p);
   }
 
   String fitted(String text, float width, float size, boolean heading) {
-    p.setTypeface(heading ? host.headline : host.prose);
+    p.setTypeface(heading ? homeHeading : NavyWorkbenchTheme.font(host));
     p.setTextSize(size);
     if (p.measureText(text) <= width) return text;
     String value = text;
     while (value.length() > 1 && p.measureText(value + "…") > width)
       value = value.substring(0, value.length() - 1);
     return value + "…";
+  }
+
+  String currencyAmount(int balance, float available, float size) {
+    String full = String.format(Locale.KOREA, "%,d", balance);
+    p.setTypeface(homeHeading); p.setTextSize(size);
+    if (p.measureText(full) <= available) return full;
+    return balance >= 100000000 ? String.format(Locale.KOREA, "%.1f억", balance / 100000000d)
+        : balance >= 10000 ? String.format(Locale.KOREA, "%.1f만", balance / 10000d)
+        : String.valueOf(balance);
+  }
+
+  float currencyAmountSize(String shown, float available) {
+    float size = currencyTextSize();
+    p.setTypeface(homeHeading); p.setTextSize(size);
+    return size * Math.min(1, available / Math.max(1, p.measureText(shown)));
   }
 
   float currencyTextSize() {
@@ -487,7 +577,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   float canvasTextSize(float basePixels, float maxHeight, boolean heading) {
     android.util.DisplayMetrics metrics = host.getResources().getDisplayMetrics();
     float size = basePixels * metrics.scaledDensity / metrics.density;
-    p.setTypeface(heading ? host.headline : host.prose);
+    p.setTypeface(heading ? homeHeading : NavyWorkbenchTheme.font(host));
     p.setTextSize(size);
     p.getFontMetrics(canvasMetrics);
     float height = canvasMetrics.descent - canvasMetrics.ascent;
@@ -495,7 +585,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   float centeredBaseline(float centerY, float size, boolean heading) {
-    p.setTypeface(heading ? host.headline : host.prose);
+    p.setTypeface(heading ? homeHeading : NavyWorkbenchTheme.font(host));
     p.setTextSize(size);
     p.getFontMetrics(canvasMetrics);
     return centerY - (canvasMetrics.ascent + canvasMetrics.descent) / 2;
@@ -507,25 +597,13 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   void controlSurface(Canvas canvas, int index, RectF bounds) {
-    if (buttons.get(index).isEnabled()) {
-      homeArt.surface(canvas,
-          controlPressed(index) ? "ui/button-primary.png" : "ui/button-secondary.png", bounds);
-      return;
-    }
-    // HomeArt.surface has no state filter. Apply the shared disabled tone exactly
-    // once around the original ornate surface, preserving its texture and alpha.
-    disabledControlTone.enabled = false;
-    disabledControlTone.pressed = false;
-    bounds.roundOut(disabledControlBounds);
-    int save = disabledControlTone.begin(canvas, disabledControlBounds,
-        host.getResources().getDisplayMetrics().density);
-    homeArt.surface(canvas, "ui/button-secondary.png", bounds);
-    disabledControlTone.finish(canvas, save);
+    menuArt.tile(canvas, bounds, controlPressed(index), buttons.get(index).isEnabled(),
+        buttons.get(index).isFocused(), index == 5);
   }
 
   int controlInk(int index) {
     return !buttons.get(index).isEnabled() ? JournalTheme.MUTED
-        : controlPressed(index) ? Color.WHITE : JournalTheme.INK;
+        : JournalTheme.INK;
   }
 
   void command(Canvas c, int index, String name, String icon, boolean primary) {
@@ -534,20 +612,70 @@ final class LobbyView extends FrameLayout implements FullBleed {
     if (pressed) r.offset(0, host.dp(1));
     controlSurface(c, index, r);
     boolean small = index == 8;
-    float size = Math.min(host.dp(small ? 25 : 36), r.height() * .55f);
+    float size = Math.min(host.dp(small ? 25 : primary ? 44 : 36),
+        r.height() * (primary ? .72f : .55f));
     float inset = host.dp(small ? 10 : 14);
-    if (icon != null) homeArt.icon(c, "icons/" + icon + ".png",
+    if (icon != null) menuArt.icon(c, icon,
         new RectF(r.left + inset, r.centerY() - size / 2,
             r.left + inset + size, r.centerY() + size / 2));
     if (small && icon != null) return;
-    float left = r.left + (icon == null ? host.dp(8) : inset + size + host.dp(5));
+    if (index == 13) {
+      size = Math.min(host.dp(24), r.height() * .42f);
+      float x = r.left + host.dp(12), y = r.centerY() - size / 2;
+      p.setShader(null); p.setColor(controlInk(index)); p.setStyle(Paint.Style.FILL);
+      if (menuOpen) {
+        p.setStrokeWidth(host.dp(3)); p.setStrokeCap(Paint.Cap.ROUND);
+        c.drawLine(x+host.dp(3), y+host.dp(3), x+size-host.dp(3), y+size-host.dp(3), p);
+        c.drawLine(x+size-host.dp(3), y+host.dp(3), x+host.dp(3), y+size-host.dp(3), p);
+        p.setStrokeCap(Paint.Cap.BUTT);
+      } else {
+        float cell = (size-host.dp(3))/2;
+        for (int row=0;row<2;row++) for(int col=0;col<2;col++) {
+          float a=x+col*(cell+host.dp(3)), b=y+row*(cell+host.dp(3));
+          c.drawRoundRect(new RectF(a,b,a+cell,b+cell), host.dp(2),host.dp(2),p);
+        }
+      }
+    }
+    float left = index == 13 ? r.left + host.dp(12) + size + host.dp(6)
+        : r.left + (icon == null ? host.dp(8) : inset + size + host.dp(5));
     float right = r.right - host.dp(12);
-    float textSize = canvasTextSize(host.dp(index == 5 || index == 12 ? 21 : 16), r.height() - host.dp(18), true);
-    p.setTypeface(host.headline); p.setTextSize(textSize);
+    float textSize = canvasTextSize(host.dp(index == 5 ? 28 : index == 12 ? 21 : 16), r.height() - host.dp(18), true);
+    p.setTypeface(homeHeading); p.setTextSize(textSize);
     float measured = p.measureText(name);
     if (measured > right - left) textSize *= (right - left) / measured;
     label(c, name, (left + right) / 2, centeredBaseline(r.centerY(), textSize, true),
         textSize, true, controlInk(index));
+  }
+
+  void menuTile(Canvas c, int index, String name, String icon) {
+    RectF r = boxes[index];
+    controlSurface(c, index, r);
+    float labelHeight = Math.min(host.dp(26), r.height() * .27f);
+    // A wide envelope must not be fitted into a square slot: its visible height
+    // would shrink again even after removing transparent padding.
+    float iconHeight = Math.max(host.dp(18), Math.min(r.height() * .58f,
+        r.height() - labelHeight - host.dp(14)));
+    float iconWidth = r.width() * .86f;
+    if (index == 14) newsBell(c, r.centerX(), r.top + host.dp(7), iconHeight);
+    else menuArt.navigationIcon(c, index, new RectF(r.centerX()-iconWidth/2,
+        r.top+host.dp(7), r.centerX()+iconWidth/2, r.top+host.dp(7)+iconHeight));
+    float font = canvasTextSize(host.dp(16), labelHeight-host.dp(3), true);
+    p.setTypeface(homeHeading); p.setTextSize(font);
+    font *= Math.min(1, (r.width()-host.dp(20))/Math.max(1,p.measureText(name)));
+    label(c, name, r.centerX(), centeredBaseline(r.bottom-labelHeight/2-host.dp(8), font, true),
+        font, true, controlInk(index));
+  }
+
+  /** A distinct brass bell, not the recruitment envelope asset. */
+  void newsBell(Canvas c, float cx, float top, float height) {
+    float w = Math.min(height * .72f, host.dp(32));
+    float y = top + height * .14f;
+    p.setColor(JournalTheme.BRASS); p.setStyle(Paint.Style.FILL);
+    c.drawCircle(cx, y, w * .12f, p);
+    c.drawRoundRect(cx-w*.38f, y+w*.12f, cx+w*.38f, y+w*.86f, w*.35f, w*.35f, p);
+    c.drawRoundRect(cx-w*.5f, y+w*.72f, cx+w*.5f, y+w*.87f, w*.08f, w*.08f, p);
+    p.setColor(JournalTheme.INK);
+    c.drawCircle(cx, y+w, w*.10f, p);
   }
 
   /** 메뉴의 터치 영역을 바꾸지 않고 얇은 목재 받침과 황동 가장자리만 더한다. */
@@ -637,21 +765,19 @@ final class LobbyView extends FrameLayout implements FullBleed {
 
   RectF heroBox() {
     RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
-    boolean tablet = safe.width() / safe.height() < 1.85f;
-    // Preserve the approved foreground character stage after removing the growth panel.
-    // The paving/contact point stays visible above the bottom navigation.
-    float left = safe.left + host.dp(tablet ? 40 : 24) + host.dp(18);
-    float formerPanelWidth = Math.min(host.dp(300), Math.max(host.dp(232), safe.width() * .24f));
-    float right = boxes[5].left - host.dp(24) - formerPanelWidth - host.dp(24 + 18);
-    float top = safe.top + Math.max(host.dp(host.state.optBoolean("activeBattle") ? 132 : 90), safe.height() * .18f);
-    float bottom = boxes[0].top - host.dp(20);
-    float maxHeight = Math.max(1, Math.min(bottom - top - host.dp(6), safe.height() * .56f));
+    // 아래 조언 영역은 항상 예약: 말풍선 표시나 메뉴 토글 때 캐릭터가 뛰지 않는다.
+    float left = heroStage.left + host.dp(8), right = heroStage.right - host.dp(8);
+    float bottom = heroStage.bottom;
+    float maxHeight = Math.max(1, Math.min(bottom - heroStage.top - host.dp(4), safe.height() * .43f));
     float maxWidth = Math.max(1, right - left);
     Rect source = homeArt.heroBounds();
     float aspect = source == null ? 1 : source.width() / (float) source.height();
     // Leave room for the small breathing scale as well as the bounded drag.
     float height = Math.min(maxHeight, maxWidth / aspect) / 1.004f;
-    float width = height * aspect, center = (left + right) / 2;
+    float width = height * aspect;
+    // Pin the guide to the left scene composition, while clamping its full ink to stage.
+    float center = Math.max(left + width / 2,
+        Math.min(getMeasuredWidth() * .23f, right - width / 2));
     return new RectF(center - width / 2, bottom - height, center + width / 2, bottom);
   }
 
@@ -693,12 +819,26 @@ final class LobbyView extends FrameLayout implements FullBleed {
     heroDrawBox(heroFrame, heroPose, motion.pulse(3600, 0), parallax.y);
     heroShadowBox(heroFrame, heroContact);
     RectF target = heroPose, shadow = heroContact;
+    // Upper-right daylight: project the actual alpha silhouette lower-left.
+    // Use the planted frame, never the breathing/drag pose or padded sprite canvas.
+    // This decorative cast shadow may sit behind the foreground advice paper; it
+    // must not consume the paper's readable/tappable below-hero safe region.
+    groundShadowMatrix.setValues(GROUND_PROJECTION);
+    groundShadowSource.set(-heroFrame.width()/2, -heroFrame.height(), heroFrame.width()/2, 0);
+    groundShadowPaint.setColorFilter(groundShadowColor);
+    groundShadowPaint.setAlpha(65);
+    int ground = c.save();
+    c.translate(heroFrame.centerX(), heroFrame.bottom);
+    c.concat(groundShadowMatrix);
+    c.drawBitmap(bitmap, source, groundShadowSource, groundShadowPaint);
+    c.restoreToCount(ground);
+    // A separate, tighter contact patch anchors the feet even with motion disabled.
     p.setShader(null);
     p.setStyle(Paint.Style.FILL);
-    p.setColor(0x180f2430);
+    p.setColor(0x40232d33);
     c.drawOval(shadow, p);
-    shadow.inset(shadow.width() * .15f, shadow.height() * .18f);
-    p.setColor(0x240f2430);
+    shadow.inset(shadow.width() * .16f, shadow.height() * .22f);
+    p.setColor(0x62232d33);
     c.drawOval(shadow, p);
     p.setShader(null);
     p.setAlpha(255);
@@ -774,11 +914,16 @@ final class LobbyView extends FrameLayout implements FullBleed {
     if (!moving) parallax.close();
     homeArt.background(c, getWidth(), getHeight(), motion.millis / 1000d, moving);
     character(c);
-    String[] icons = {"explore", "draw", "team", "combine", "shop"};
-    for (int i = 0; i < 5; i++) command(c, i, NAMES[i], icons[i], false);
+    if (menuOpen) {
+      menuArt.panel(c, menuPanel);
+      String[] icons = {"explore", "draw", "team", "combine", "shop"};
+      for (int i = 0; i < 5; i++) menuTile(c, i, NAMES[i], icons[i]);
+      menuTile(c, 12, "전투 편성", "team");
+      menuTile(c, 6, "출석·미션", "daily");
+      menuTile(c, 14, "소식함", null);
+    }
     command(c, 5, "플레이", "explore", true);
-    command(c, 12, "전투 편성", "team", false);
-    command(c, 6, "출석·미션", "daily", false);
+    command(c, 13, menuOpen ? "닫기" : "메뉴", null, false);
     command(c, 8, "설정", "settings", false);
     RectF profile = boxes[7];
     controlSurface(c, 7, profile);
@@ -797,20 +942,20 @@ final class LobbyView extends FrameLayout implements FullBleed {
     for (int i = 0; i < 3; i++) {
       RectF r = boxes[9 + i];
       Button currency = buttons.get(9 + i);
-      CurrencyDisplay.draw(c, r, host.getResources().getDisplayMetrics().density,
-          currency.isEnabled(), currency.isPressed(), currency.isFocused());
-      RectF iconBox = new RectF(r.left + host.dp(7), r.centerY() - host.dp(10),
-          r.left + host.dp(27), r.centerY() + host.dp(10));
-      if (currencyIcons[i] != null) homeArt.icon(c, "icons/" + currencyIcons[i] + ".png", iconBox);
-      else fit(c, image("icons/u-ticket.png"), iconBox);
-      String amount = String.format(Locale.KOREA, "%,d", host.me().optInt(keys[i]));
-      float amountSize = currencyTextSize();
-      label(c, amount, (r.left + host.dp(29) + r.right - host.dp(7)) / 2,
+      menuArt.currency(c, r, i, currency.isPressed(), currency.isEnabled(), currency.isFocused());
+      int balance = host.me().optInt(keys[i]);
+      String amount = String.format(Locale.KOREA, "%,d", balance);
+      float room = Math.max(1, r.width() - host.dp(49));
+      String shown = currencyAmount(balance, room, currencyTextSize());
+      float amountSize = currencyAmountSize(shown, room);
+      label(c, shown, (r.left + host.dp(42) + r.right - host.dp(7)) / 2,
           centeredBaseline(r.centerY(), amountSize, true), amountSize, true,
-          CurrencyDisplay.ink(currency.isEnabled()));
+          currency.isEnabled() ? Color.WHITE : JournalTheme.MUTED);
       buttons.get(9 + i).setContentDescription(currencyNames[i] + " " + amount + " · 상점");
     }
-    for (int i = 0; i < badges.length; i++) if (badges[i]) dot(c, boxes[i]);
+    for (int i = 0; i < badges.length; i++)
+      if (badges[i] && buttons.get(i).getVisibility() == View.VISIBLE) dot(c, boxes[i]);
+    for (int i : MENU_ITEMS) if (badges[i]) { dot(c, boxes[13]); break; }
   }
 
   String profileSummary() {
@@ -863,6 +1008,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
           }
           badges[6] = ready;
           buttons.get(6).setContentDescription(ready ? "출석·미션 · 받을 보상이 있어요" : "출석·미션");
+          updateMenuDescription();
           invalidate();
         });
   }
@@ -887,6 +1033,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
     buttons.get(0).setContentDescription(badges[0] ? "탐험 · 귀환 보상을 받을 수 있어요" : "탐험");
     buttons.get(1).setContentDescription(badges[1] ? "모집 · 지원서를 받을 수 있어요" : "모집");
     buttons.get(5).setContentDescription(growth ? "플레이 · 배울 기술 또는 승진이 있어요" : "플레이");
+    updateMenuDescription();
     invalidate();
   }
 
@@ -900,21 +1047,32 @@ final class LobbyView extends FrameLayout implements FullBleed {
 
   void dot(Canvas c, RectF target) {
     RectF safe = host.safeBounds(getWidth(), getHeight());
-    float radius = host.dp(6) * (1 + .15f * motion.pulse(1600, 0));
-    float x = Math.min(safe.right - radius - host.dp(2), target.right - host.dp(3)),
-        y = Math.max(safe.top + radius + host.dp(2), target.top + host.dp(3));
+    float radius = Math.min(host.dp(5), Math.min(target.width(), target.height()) * .07f)
+        * (1 + .07f * motion.pulse(1600, 0));
+    float inset = radius + host.dp(3);
+    float x = Math.min(safe.right - inset, target.right - inset),
+        y = Math.max(safe.top + inset, target.top + inset);
     p.setStyle(Paint.Style.FILL);
-    p.setColor(JournalTheme.NEGATIVE_INFO);
+    p.setShader(new LinearGradient(x, y-radius, x, y+radius,
+        0xfffa665e, 0xffc42128, Shader.TileMode.CLAMP));
     c.drawCircle(x, y, radius, p);
+    p.setShader(null);
     p.setStyle(Paint.Style.STROKE);
-    p.setStrokeWidth(host.dp(1.3f));
-    p.setColor(JournalTheme.BRASS);
+    p.setStrokeWidth(host.dp(.8f));
+    p.setColor(0xffe6bc70);
     c.drawCircle(x, y, radius, p);
     p.setStyle(Paint.Style.FILL);
+    p.setColor(0x90fff0d0);
+    c.drawCircle(x-radius*.25f, y-radius*.32f, radius*.2f, p);
   }
 
   RectF gullBox() {
-    return heroBox();
+    RectF area = heroBox();
+    float width = Math.max(host.dp(48), area.width());
+    float height = Math.max(host.dp(48), area.height());
+    float left = Math.max(heroStage.left, Math.min(area.centerX()-width/2, heroStage.right-width));
+    float top = Math.max(heroStage.top, Math.min(area.centerY()-height/2, heroStage.bottom-height));
+    return new RectF(left, top, left+width, top+height);
   }
 
   String[] gullTips() {
@@ -970,6 +1128,17 @@ final class LobbyView extends FrameLayout implements FullBleed {
 
   @Override
   public boolean dispatchTouchEvent(MotionEvent event) {
+    int action = event.getActionMasked();
+    if (action == MotionEvent.ACTION_DOWN) {
+      dismissGesture = menuOpen && !menuPanel.contains(event.getX(), event.getY())
+          && !boxes[13].contains(event.getX(), event.getY())
+          && !boxes[5].contains(event.getX(), event.getY());
+      if (dismissGesture) setMenuOpen(false);
+    }
+    if (dismissGesture) {
+      if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) dismissGesture = false;
+      return true; // 닫기 탭이 아래 캐릭터·재화·설정으로 관통하지 않는다.
+    }
     boolean readingTip = tipFrame.contains((int) event.getX(), (int) event.getY());
     if (event.getActionMasked() == MotionEvent.ACTION_DOWN
         && tip.getVisibility() == View.VISIBLE && !readingTip) {
@@ -979,4 +1148,6 @@ final class LobbyView extends FrameLayout implements FullBleed {
     return super.dispatchTouchEvent(event);
   }
 }
+
+
 

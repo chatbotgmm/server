@@ -458,7 +458,7 @@ final class StoryView extends FrameLayout implements FullBleed {
       super(host);
     }
 
-    void fit(Canvas c, String path, String id, RectF area, boolean dim, float pulse) {
+    void fit(Canvas c, String path, String id, RectF area, boolean dim, float pulse, JSONObject instance) {
       if (path.isEmpty()) return;
       Bitmap b = host.art.scene(path, this::invalidate);
       if (b == null) return;
@@ -494,6 +494,8 @@ final class StoryView extends FrameLayout implements FullBleed {
                   }));
         }
       }
+      TemporaryUnitPresentation.append(filter, instance);
+      colored |= TemporaryUnitPresentation.temporary(instance);
       c.save();
       c.translate(0, -area.height() * .006f * pulse);
       c.scale(1 + .006f * pulse, 1 - .004f * pulse, area.centerX(), area.bottom);
@@ -528,6 +530,7 @@ final class StoryView extends FrameLayout implements FullBleed {
       p.setAlpha(255);
       p.setColorFilter(null);
       c.restore();
+      TemporaryUnitPresentation.badge(c, instance, area, 12 * getResources().getDisplayMetrics().scaledDensity, host.prose);
     }
 
     @Override
@@ -552,6 +555,9 @@ final class StoryView extends FrameLayout implements FullBleed {
       h = safe.height();
       JSONArray team = host.list(host.state, "team");
       String leadId = team.length() == 0 ? "" : host.unit(team.optString(0)).optString("id");
+      JSONObject leadInstance = team.length() == 0 ? null : host.unit(team.optString(0));
+      String accessibleLead = leadInstance == null ? "스토리 장면" : leadInstance.optString("name") + TemporaryUnitPresentation.suffix(leadInstance);
+      if (!accessibleLead.contentEquals(getContentDescription() == null ? "" : getContentDescription())) setContentDescription(accessibleLead);
       boolean narration = speaker.equals("N") || speaker.equals("TIP");
       float floor = (bubble.getTop() > 0 ? bubble.getTop() - safe.top : h * .70f) - host.dp(14);
       fit(
@@ -560,7 +566,8 @@ final class StoryView extends FrameLayout implements FullBleed {
           leadId,
           new RectF(w * .09f, h * .19f, w * .42f, floor),
           !narration && !speaker.equals("ME"),
-          motion.pulse(2800, 0));
+          motion.pulse(2800, 0),
+          team.length() == 0 ? null : host.unit(team.optString(0)));
       JSONObject foeActor = actor(foe);
       boolean boss = foeActor != null && foeActor.optBoolean("boss");
       fit(
@@ -569,7 +576,7 @@ final class StoryView extends FrameLayout implements FullBleed {
           foe,
           new RectF(w * .59f, h * (boss ? .11f : .18f), w * .92f, floor),
           !narration && speaker.equals("ME"),
-          motion.pulse(3300, 0));
+          motion.pulse(3300, 0), null);
       c.restore();
     }
   }

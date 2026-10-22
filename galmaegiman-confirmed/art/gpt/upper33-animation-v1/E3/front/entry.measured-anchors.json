@@ -1,0 +1,38 @@
+{
+  "source_sha256": "5718e4a4e47a9461212da6c485d8812789a99f2772053025edcb3deba46f0d04",
+  "sheet": "E3/front/entry.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      256,
+      400
+    ],
+    [
+      247,
+      400
+    ],
+    [
+      231,
+      400
+    ],
+    [
+      264,
+      360
+    ],
+    [
+      247,
+      360
+    ],
+    [
+      231,
+      360
+    ]
+  ],
+  "placement_rule": "Align measured grounded feet anchor to fixed world origin, preserve authored airborne or recoil offsets.",
+  "measurement": "Visually measured claw contact midpoint \u00b14px.",
+  "renderer_validation": "pending"
+}

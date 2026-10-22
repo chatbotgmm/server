@@ -32,7 +32,7 @@ final class PartyCharacterView extends LinearLayout {
   static Artwork art(MainActivity h, JSONObject unit) { return new Artwork(h, unit); }
 
   static String description(JSONObject unit) {
-    return unit.optString("name") + (unit.optString("tierName").isEmpty() ? "" : " · " + unit.optString("tierName"));
+    return unit.optString("name") + (unit.optString("tierName").isEmpty() ? "" : " · " + unit.optString("tierName")) + TemporaryUnitPresentation.suffix(unit);
   }
 
   static String spritePath(JSONObject unit) {
@@ -150,6 +150,7 @@ final class PartyCharacterView extends LinearLayout {
     final String id, path, identity;
     final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     final RectF target = new RectF();
+    final JSONObject instance;
     Bitmap bitmap;
     String status;
     Runnable statusChanged;
@@ -158,6 +159,7 @@ final class PartyCharacterView extends LinearLayout {
 
     Artwork(MainActivity h, JSONObject unit) {
       super(h);
+      instance = TemporaryUnitPresentation.artUnit(unit);
       host = h; id = unit.optString("id"); path = spritePath(unit); identity = description(unit);
       setBackgroundColor(PORTRAIT_BACKPLATE);
       status = path.isEmpty() ? "이미지 없음" : "이미지 준비 중";
@@ -212,7 +214,10 @@ final class PartyCharacterView extends LinearLayout {
     }
     @Override protected void onDraw(Canvas canvas) {
       super.onDraw(canvas);
-      if (bitmap != null && !bitmap.isRecycled()) { canvas.drawBitmap(bitmap, null, target, paint); return; }
+      if (bitmap != null && !bitmap.isRecycled()) { paint.setColorFilter(TemporaryUnitPresentation.filter(instance));
+        canvas.drawBitmap(bitmap, null, target, paint);
+        paint.setColorFilter(null);
+        TemporaryUnitPresentation.badge(canvas, instance, new RectF(0, 0, getWidth(), getHeight()), 12 * getResources().getDisplayMetrics().scaledDensity, host.prose); return; }
       // An explicit, identity-preserving placeholder is safer than using another character.
       paint.setColor(PORTRAIT_BACKPLATE);
       canvas.drawRoundRect(0, 0, getWidth(), getHeight(), host.dp(4), host.dp(4), paint);
@@ -220,6 +225,7 @@ final class PartyCharacterView extends LinearLayout {
       paint.setTextSize(host.dp(12)); paint.setTextAlign(Paint.Align.CENTER);
       if (getWidth() >= paint.measureText(status) + host.dp(8) && getHeight() >= host.dp(20))
         canvas.drawText(status, getWidth()/2f, getHeight()/2f - (paint.ascent()+paint.descent())/2f, paint);
+      TemporaryUnitPresentation.badge(canvas, instance, new RectF(0, 0, getWidth(), getHeight()), 12 * getResources().getDisplayMetrics().scaledDensity, host.prose);
     }
   }
 }

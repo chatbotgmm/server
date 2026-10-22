@@ -304,9 +304,11 @@ final class NativeArt {
                               ? "?k=" + URLEncoder.encode(key, "UTF-8")
                               : "");
                   c = (HttpURLConnection) new URL(url).openConnection();
+                  NativeBackend.directConnection(c);
                   c.setConnectTimeout(15000);
                   c.setReadTimeout(15000);
                   if (!api.token().isEmpty()) c.setRequestProperty("x-gmm-s", api.token());
+                  NativeBackend.requireDirectResponse(c.getResponseCode());
                   temp = File.createTempFile("image-", ".tmp", disk);
                   try (InputStream in = c.getInputStream();
                       OutputStream out = new FileOutputStream(temp)) {

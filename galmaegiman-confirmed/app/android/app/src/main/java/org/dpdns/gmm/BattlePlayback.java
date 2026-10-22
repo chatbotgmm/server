@@ -97,10 +97,13 @@ final class BattlePlayback {
             return;
           }
           animator = ValueAnimator.ofFloat(0, 1);
-          animator.setDuration(
+          animator.setDuration(view.scene.animationDuration(view.active(side), side, effect,
               effect.equals("combo")
                   ? 1100
-                  : effect.equals("faint") ? 900 : effect.equals("attack") ? 400 : 650);
+                  : effect.equals("faint") ? 900 : effect.equals("attack") ? 400 : 650));
+          if (view.scene.hasAnimation(view.active(side))) {
+            animator.setInterpolator(new android.view.animation.LinearInterpolator());
+          }
           animator.addUpdateListener(
               v -> {
                 progress = (float) v.getAnimatedValue();
@@ -420,7 +423,7 @@ final class BattlePlayback {
             playing && index == side && effect.equals("faint")
                 ? (int) (255 * (1 - progress))
                 : 255);
-    view.scene.fighter(c, fighter, moved);
+    view.scene.fighter(c, fighter, moved, index);
     c.restoreToCount(saved);
   }
 
@@ -490,3 +493,4 @@ final class BattlePlayback {
     completion = null;
   }
 }
+

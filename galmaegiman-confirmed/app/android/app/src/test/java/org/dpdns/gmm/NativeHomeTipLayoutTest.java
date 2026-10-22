@@ -63,6 +63,7 @@ public class NativeHomeTipLayoutTest {
       new Profile(915, 412, "w915dp-h412dp-land-mdpi", 0, 0, 0, 0),
       new Profile(1006, 411, "w1006dp-h411dp-land-mdpi", 32, 8, 24, 16),
       new Profile(1280, 720, "w1280dp-h720dp-land-mdpi", 0, 0, 0, 0),
+      new Profile(640, 320, "w640dp-h320dp-land-mdpi", 0, 0, 0, 0),
       new Profile(915, 374, "w915dp-h374dp-land-mdpi", 0, 0, 0, 0),
       // Supplied screenshot ratio/pixels at a synthetic phone density; actual device DPI is unknown.
       new Profile(2048, 838, "w1024dp-h419dp-land-xhdpi", 32, 0, 32, 0)
@@ -80,9 +81,9 @@ public class NativeHomeTipLayoutTest {
     @Override void call(String path, JSONObject body, Result done) {
       assertNull("No account mutations in visual fixtures", body);
       assertTrue("No unexpected request escapes the offline fixture: " + path,
-          path.equals("draw") || path.equals("daily"));
+          path.equals("draw") || path.equals("daily") || path.equals("starter-loans"));
       paths.add(path);
-      done.done(new JSONObject(), null);
+      done.done(path.equals("starter-loans") ? StarterLoanTestFixture.ineligible() : new JSONObject(), null);
     }
   }
 
@@ -315,9 +316,13 @@ public class NativeHomeTipLayoutTest {
   JSONObject inspect(HomeHost h, LobbyView l, float scale) throws Exception {
     TextView tip = l.tip;
     assertEquals(View.VISIBLE, tip.getVisibility());
-    if (l.tipPaged) fail("Complete native advice does not fit this fixture; measured constraints: "
-        + fitConstraints(h, l, scale).toString());
-    assertTrue("Body font was not reduced to force a fit", tip.getTextSize() >= h.dp(13) * scale - 1);
+    assertTrue("Every page makes progress", l.tipNextPageStart > l.tipPageStart);
+    assertTrue("Advice is beneath hero, never across face or map", l.tipFrame.top > l.tipHeroExclusion().bottom);
+    assertTrue("Advice uses dedicated below-character region", l.tipRegion.contains(new RectF(l.tipFrame)));
+    // Android 14+ 큰 글씨(130% 초과)는 비선형으로 커진다. 13sp를 시스템 변환으로 잰 값과 비교한다(200%에서 13dp×2가 아님).
+    float minimum = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 13,
+        h.getResources().getDisplayMetrics());
+    assertTrue("Body font was not reduced to force a fit", tip.getTextSize() >= minimum - 1);
     assertEquals(tip.getText().length(), tip.getLayout().getLineEnd(tip.getLineCount() - 1));
     for (int line = 0; line < tip.getLineCount(); line++)
       assertEquals("No ellipsis hides advice", 0, tip.getLayout().getEllipsisCount(line));
@@ -339,7 +344,8 @@ public class NativeHomeTipLayoutTest {
     ArrayList<RectF> exclusions = new ArrayList<>();
     exclusions.add(l.tipHeroExclusion());
     // Independently use laid-out controls, not only the production solver's input rectangles.
-    for (View button : l.buttons) exclusions.add(new RectF(bounds(button, l)));
+    for (View button : l.buttons) if (button.getVisibility() == View.VISIBLE) exclusions.add(new RectF(bounds(button, l)));
+    if (l.menuOpen) exclusions.add(new RectF(l.menuPanel));
     assertNull("Removed HOME growth surface is not an advice obstacle", l.findViewWithTag("lobby-growth"));
     assertNull("Removed harbor shortcut is absent", l.findViewWithTag("lobby-harbor"));
     View resume = l.findViewWithTag("lobby-resume");
@@ -390,14 +396,16 @@ public class NativeHomeTipLayoutTest {
 
   @Test public void everyTipKeepsNativeInkAndPaperClearAtPhoneInsetsTabletAndLargeFont() throws Exception {
     JSONArray fixtures = new JSONArray();
-    for (Profile profile : PROFILES) for (float scale : new float[] {1f, 1.3f}) {
+    for (Profile profile : PROFILES) for (float scale : new float[] {1f, 1.3f, 2f}) {
       RuntimeEnvironment.setQualifiers(profile.qualifiers);
       RuntimeEnvironment.setFontScale(scale);
-      for (boolean resume : new boolean[] {false, true}) {
+      for (boolean resume : new boolean[] {false, true}) for (boolean open : new boolean[] {false, true}) {
         try (ActivityController<HomeHost> controller = start(resume)) {
           HomeHost h = controller.get();
           layout(h, profile);
           LobbyView l = (LobbyView) h.root.getChildAt(0);
+          l.setMenuOpen(open);
+          layout(h, profile);
           // Load and settle the exact bundled native artwork before checking/capturing it.
           Bitmap warm = Bitmap.createBitmap(profile.width, profile.height, Bitmap.Config.ARGB_8888);
           h.root.draw(new Canvas(warm)); warm.recycle();
@@ -413,24 +421,33 @@ public class NativeHomeTipLayoutTest {
             l.tip.setVisibility(View.VISIBLE);
             l.tip.scrollTo(0, 0);
             layout(h, profile);
-            JSONObject evidence = inspect(h, l, scale);
-            allTips.put(evidence);
-            if (i == 6) {
-              String name = "home-advice-" + profile.width + "x" + profile.height
-                  + "-font" + Math.round(scale * 100) + (resume ? "-resume" : "");
-              save(h, profile, name, evidence);
+            JSONArray pages = new JSONArray();
+            StringBuilder reconstructed = new StringBuilder();
+            int count = 0;
+            while (true) {
+              JSONObject evidence = inspect(h, l, scale);
+              pages.put(evidence);
+              reconstructed.append(l.tip.getText());
+              assertTrue("Pagination terminates", ++count <= l.tipCopy.length());
+              if (l.tipNextPageStart >= l.tipCopy.length()) break;
+              l.tip.performClick(); layout(h, profile);
             }
+            assertEquals("All advice characters survive measured pages", l.tipCopy.toString(), reconstructed.toString());
+            allTips.put(MainActivity.obj("pages", pages, "pageCount", count));
+            if (i == 6) save(h, profile, "home-advice-" + profile.width + "x" + profile.height
+                + "-font" + Math.round(scale * 100) + (resume ? "-resume" : "") + (open ? "-open" : "-closed"),
+                MainActivity.obj("pages", pages));
           }
           assertEquals(8, allTips.length());
           fixtures.put(MainActivity.obj("width", profile.width, "height", profile.height,
               "qualifiers", profile.qualifiers, "fontScale", scale, "resume", resume,
-              "tips", allTips, "pagedTips", 0, "scrollableTips", 0));
+              "tips", allTips, "menuOpen", open, "scrollableTips", 0));
         }
       }
     }
     String output = System.getProperty("gmm.nativeReviewOutput");
     if (output != null && !output.isBlank()) Files.write(Path.of(output, "home-advice-fixtures.json"),
-        MainActivity.obj("fixtures", fixtures, "tipChecks", 160, "screenshotCount", 20)
+        MainActivity.obj("fixtures", fixtures, "fixtureCount", fixtures.length())
             .toString(2).getBytes(StandardCharsets.UTF_8));
   }
 
@@ -444,9 +461,11 @@ public class NativeHomeTipLayoutTest {
       layout(h, PROFILES[0]);
       int first = l.tipAt;
       assertEquals(View.VISIBLE, l.tip.getVisibility());
-      l.tip.performClick();
-      layout(h, PROFILES[0]);
-      assertNotEquals("A native text tap manually chooses a different tip", first, l.tipAt);
+      while (l.tipNextPageStart < l.tipCopy.length()) {
+        l.tip.performClick(); layout(h, PROFILES[0]);
+      }
+      l.tip.performClick(); layout(h, PROFILES[0]);
+      assertNotEquals("A native text tap after the last page chooses different advice", first, l.tipAt);
       assertNull(h.visibleDialog);
       // A stale preceding page offset must not skip the beginning of a newly selected tip.
       l.tipNextPageStart = 7;
@@ -476,10 +495,11 @@ public class NativeHomeTipLayoutTest {
       l.dispatchTouchEvent(down); down.recycle();
       assertEquals("Existing outside-tap dismissal remains", View.GONE, l.tip.getVisibility());
       String[] targets = {"expedition", "draw", "collection", "craft", "shop", "modes",
-          "daily", null, "settings", "shop", "shop", "shop", null};
+          "daily", null, "settings", "shop", "shop", "shop", null, null};
       assertEquals("Every remaining HOME control is represented", targets.length, l.buttons.size());
       assertNull("Retired harbor route is absent", l.findViewWithTag("lobby-harbor"));
       for (int i = 0; i < targets.length; i++) if (targets[i] != null) {
+        l.setMenuOpen(true);
         h.requested = "";
         l.buttons.get(i).performClick();
         assertEquals(targets[i], h.requested);
@@ -606,3 +626,4 @@ public class NativeHomeTipLayoutTest {
     }
   }
 }
+

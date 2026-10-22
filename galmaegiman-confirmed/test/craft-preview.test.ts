@@ -10,7 +10,10 @@ function fixture() {
   const tx = {
     player: {findUnique: vi.fn(async () => ({id:'viewer'}))},
     collectionEntry: {findMany: vi.fn(async () => [...known].map(characterId => ({characterId})))},
-    ownedCharacter: {groupBy: vi.fn(async () => content.characters.flatMap(c => [
+    ownedCharacter: {findMany: vi.fn(async (query: {where?:{loanExpiresAt?:unknown}}) => {
+      // This preview fixture contains no expired loans; do not bypass production pruning.
+      expect(query.where?.loanExpiresAt).toBeDefined();return [];
+    }),groupBy: vi.fn(async () => content.characters.flatMap(c => [
       {characterId:c.id,locked:false,status:'AVAILABLE',_count:{_all:2}},
       {characterId:c.id,locked:true,status:'AVAILABLE',_count:{_all:3}},
       {characterId:c.id,locked:false,status:'EXPEDITION',_count:{_all:4}},

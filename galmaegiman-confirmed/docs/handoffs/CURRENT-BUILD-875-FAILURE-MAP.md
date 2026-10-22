@@ -1,0 +1,49 @@
+# 실제875 실패43개 소스 대응표
+
+581total/43failed/16skipped. 43행은소스대응이지43pass/실제UIbug판정이아니다. JSON실패16과skipped16은별개. Android모두미실행.
+
+|실패method|분류|소스대응|
+|---|---|---|
+|AugmentPresentationTest.replayRoundTripPreservesLabelAndFullCostCap|JSON runtime16|runner+SDK35|
+|AugmentPresentationTest.allThreeGradesAreTextNotNameGuesses|JSON runtime16|runner+SDK35|
+|AugmentPresentationTest.legacyAndMissingTierNeverInventPrism|JSON runtime16|runner+SDK35|
+|AugmentV2CaptureReviewTest.captureV2AugmentRoundsAndShield|other12|독립적인 등급 / 증강 separator 기대값; 실제TextView 배지/접근성/가시성단언유지|
+|CombatReplayCompatibilityTest.directPlayerFramesFailClosed|JSON runtime16|runner+SDK35|
+|CombatReplayCompatibilityTest.blockedRecordIsNotDeletedOrRewritten|JSON runtime16|runner+SDK35|
+|CombatReplayCompatibilityTest.onlyEveryServerApprovedCurrentFrameCanPlay|JSON runtime16|runner+SDK35|
+|FreestyleSelectionTest.draftCancelAndConfirmation|JSON runtime16|runner+SDK35|
+|FreestyleSelectionTest.repeatedDraftIsNotAutomaticSubmission|JSON runtime16|runner+SDK35|
+|FreestyleSelectionTest.rejectArbitraryAttributesAndStaleScope|JSON runtime16|runner+SDK35|
+|NativeAttendanceFeedbackTest.profileRemovesOnlyDuplicateSettingsAndHomeGearStillOpensSettings|starter GET8|strict exact starter-loans GET ineligible response|
+|NativeBattleReplayReviewTest.captureReadOnlyTimelineAndDisposeAcrossProfiles|replay4|current epoch+true fixture; retain old blocked|
+|NativeBattleReplayReviewTest.realTimerAdvancesPausesAndStopsOnBack|replay4|current epoch+true fixture; retain old blocked|
+|NativeBattleReplayReviewTest.changingAccountClearsVisibleReplay|replay4|current epoch+true fixture; retain old blocked|
+|NativeBattleReplayReviewTest.malformedEffectEntriesCannotCrashDefensiveRenderer|replay4|current epoch+true fixture; retain old blocked|
+|NativeCombinationWorkbenchTest.resultModeActionsAndRightTabsAreInitiallyVisible|other12|includeFontPadding-aware높이예약; 실제font/최소48dp유지; native positivebounds회귀미실행|
+|NativeCombinationWorkbenchTest.captureWorkbenchAtShortLandscapeLargeFontAndTablet|other12|getLineMax를동일contentWidth+1로검사; full/visible/offset진단,oversizednegative. 실제glyph/whitespace원인미확정; native shaping불변|
+|NativeCommerceFeedbackTest.shortCraftFocusShowsSafeIdentityWithoutChangingRecipeOrOpeningDialog|other12|정식L1–L8+R14fixture와현재carousel swipe/serverorder/boundary; strict art/geometry/no-write유지|
+|NativeCommerceFeedbackTest.recipePagesAndFiltersClearOnlyTheSelection|other12|정식L1–L8+R14fixture와현재carousel swipe/serverorder/boundary; strict art/geometry/no-write유지|
+|NativeCommerceFeedbackTest.shortLandscapeDensityAndLargeFontScreens|other12|정식L1–L8+R14fixture와현재carousel swipe/serverorder/boundary; strict art/geometry/no-write유지|
+|NativeEconomyThemeContractTest.inlineMixKeepsDuplicatesInventoryLimitsAndIdsOnlyBody|other12|COMMON/LEGEND tier와현재mix-browse-card 태그; ids/times/POST/duplicates유지|
+|NativeEconomyThemeContractTest.recipeKeepsOnlyServerVisibleIdAndOriginalTimesContract|other12|COMMON/LEGEND tier와현재mix-browse-card 태그; ids/times/POST/duplicates유지|
+|NativeEconomyThemeReviewTest.inlineRecipeAndMaterialPagesKeepEveryServerChoiceWithoutMutations|other12|정식L1–L8+R14fixture와현재carousel swipe/serverorder/boundary; strict art/geometry/no-write유지|
+|NativeEconomyThemeReviewTest.renderImageLedEconomyPagesAcrossPhoneInsetTabletAndLargeFont|other12|정식L1–L8+R14fixture와현재carousel swipe/serverorder/boundary; strict art/geometry/no-write유지|
+|NativeHomePartyFeedbackTest.homeDragKeepsFeetAndMenusFixedAndReturnsAfterCancel|starter GET8|strict exact starter-loans GET ineligible response|
+|NativeHomePartyFeedbackTest.homeCustomCanvasButtonsKeepRoutesAndCancelWithoutNavigation|starter GET8|strict exact starter-loans GET ineligible response|
+|NativeHomePartyFeedbackTest.captureHomePartyModesAndRealtimeAcrossNativeProfiles|aggregate1|정확starterGET fake+countfailure진단; expected24유지; 누락4인과확인재실행필요|
+|NativeHomeRecruitmentIconTest.newHomeMenuUsesEachSeparateRuntimeIconWithoutNetworkRequests|other12|visible-alpha crop+aspect-fit 독립기대렌더; 정확pixel/no-network유지|
+|NativeHomeTipLayoutTest.manualCharacterTipsStillCycleAndButtonsKeepTheirRoutes|starter GET8|strict exact starter-loans GET ineligible response|
+|NativeHomeTipLayoutTest.everyTipKeepsNativeInkAndPaperClearAtPhoneInsetsTabletAndLargeFont|starter GET8|strict exact starter-loans GET ineligible response|
+|NativeResultReassessmentSwipeTest.navigatingDuringMutationDoesNotReopenOrRepaintAnAbandonedResult|starter GET8|strict exact starter-loans GET ineligible response|
+|NativeThemeReviewTest.captureSettingsProfileAndSharedPages|starter GET8|strict exact starter-loans GET ineligible response|
+|NativeThemeStateTest.soundRestoreAccountGuardAndCloseRemainNativeAndDoNotWrite|starter GET8|strict exact starter-loans GET ineligible response|
+|ReleaseHomeLayoutTest.phoneAndTabletMenusAreSafeDisjointAndKeepOrnateHierarchy|home count2|15 buttons; exact news tag/destination|
+|ReleaseHomeLayoutTest.originalCommandsKeepTheirDestinationsAndNewCommandsHaveStableTags|home count2|15 buttons; exact news tag/destination|
+|ReleaseHomeMotionTest.currencyInsetsKeepMaximumAmountsAndShopTargetsAtLargeFont|other12|실제background위source-over 기대합성; 정확pixel/touch/accessibility유지|
+|SkillAttributeBreakdownTest.displaysAuthoritativePartsForOtherAttributeMove|JSON runtime16|runner+SDK35|
+|SkillAttributeBreakdownTest.oldMissingMalformedFieldsDoNotInventOne|JSON runtime16|runner+SDK35|
+|SkillAttributeBreakdownTest.noLocalProductRecalculationOrHiddenCap|JSON runtime16|runner+SDK35|
+|TemporaryUnitPresentationTest.expiryBoundaryDoesNotRenewOrHideLoan|JSON runtime16|runner+SDK35|
+|TemporaryUnitPresentationTest.missingMetadataNeverGraysPermanentSameSpecies|JSON runtime16|runner+SDK35|
+|TemporaryUnitPresentationTest.aggregateCopyOnlyWhenAllCopiesAreTemporary|JSON runtime16|runner+SDK35|
+|TemporaryUnitPresentationTest.reloadAndOfflineNeedAuthoritativeClock|JSON runtime16|runner+SDK35|

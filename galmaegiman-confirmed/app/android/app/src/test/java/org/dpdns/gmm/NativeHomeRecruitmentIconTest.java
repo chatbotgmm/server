@@ -17,7 +17,7 @@ import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.annotation.LooperMode;
 
-/** Native pixel checks for the home alias; no new artwork, animation, or account requests. */
+/** Native pixel checks for the retained fallback and the approved separate HOME runtime icons. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35, qualifiers = "w915dp-h412dp-land-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -54,7 +54,7 @@ public class NativeHomeRecruitmentIconTest {
     }
   }
 
-  @Test public void homeDrawAliasRendersOnlyTheClosedApplicationEnvelope() {
+  @Test public void retainedHomeArtFallbackRendersOnlyTheClosedApplicationEnvelope() {
     try (ActivityController<NativeHomeTipLayoutTest.HomeHost> controller = fixture.start(false)) {
       NativeHomeTipLayoutTest.HomeHost host = controller.get();
       HomeArt art = ((LobbyView) host.root.getChildAt(0)).homeArt;
@@ -77,7 +77,7 @@ public class NativeHomeRecruitmentIconTest {
     }
   }
 
-  @Test public void unrelatedHomeIconsAndRecruitmentDestinationStayUnchanged() {
+  @Test public void fallbackHomeIconsAndRecruitmentDestinationStayUnchanged() {
     try (ActivityController<NativeHomeTipLayoutTest.HomeHost> controller = fixture.start(false)) {
       NativeHomeTipLayoutTest.HomeHost host = controller.get();
       LobbyView lobby = (LobbyView) host.root.getChildAt(0);
@@ -88,8 +88,49 @@ public class NativeHomeRecruitmentIconTest {
         assertNotNull(bitmap);
         assertIcon(lobby.homeArt, key, bitmap, host.art.alpha(bitmap, path), 36);
       }
+      lobby.setMenuOpen(true);
+      assertEquals(android.view.View.VISIBLE, lobby.buttons.get(1).getVisibility());
       assertTrue(lobby.buttons.get(1).performClick());
       assertEquals("draw", host.requested);
     }
   }
+  @Test public void newHomeMenuUsesEachSeparateRuntimeIconWithoutNetworkRequests() {
+    try (ActivityController<NativeHomeTipLayoutTest.HomeHost> controller = fixture.start(false)) {
+      NativeHomeTipLayoutTest.HomeHost host = controller.get();
+      LobbyView lobby = (LobbyView) host.root.getChildAt(0);
+      assertTrue(lobby.menuArt.ready());
+      String[] names = {"draw", "collection", "combine", "explore", "shop", "team", "daily"};
+      int[] indices = {1, 2, 3, 0, 4, 12, 6};
+      int requests = ((NativeHomeTipLayoutTest.OfflineApi) host.api).paths.size();
+      for (int i = 0; i < names.length; i++) for (int size : new int[]{36,72}) {
+        Bitmap source = host.art.asset("home-menu-v1/icon-" + names[i] + ".png");
+        assertNotNull(source);
+        assertEquals(512, source.getWidth()); assertEquals(512, source.getHeight());
+        Bitmap actual = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Bitmap expected = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        try {
+          RectF target = new RectF(0,0,size,size);
+          lobby.menuArt.navigationIcon(new Canvas(actual), indices[i], target);
+          // Approved runtime sizing fits visible alpha, not the padded 512px canvas.
+          Rect crop = host.art.alpha(source, "home-menu-v1/icon-" + names[i] + ".png");
+          assertFalse("Independent icon must contain visible artwork", crop.isEmpty());
+          float scale = Math.min(target.width() / crop.width(), target.height() / crop.height());
+          float width = crop.width() * scale, height = crop.height() * scale;
+          RectF fitted = new RectF(target.centerX() - width / 2, target.centerY() - height / 2,
+              target.centerX() + width / 2, target.centerY() + height / 2);
+          new Canvas(expected).drawBitmap(source, crop, fitted,
+              new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG));
+          assertTrue("Menu icon maps to its independent source with visible-alpha fitting: " + names[i],
+              actual.sameAs(expected));
+          int ink = 0;
+          for (int y = 0; y < size; y++) for (int x = 0; x < size; x++)
+            if ((actual.getPixel(x, y) >>> 24) > 8) ink++;
+          assertTrue("Blank icon must not satisfy source comparison", ink > size);
+        } finally { actual.recycle(); expected.recycle(); }
+      }
+      assertEquals(requests, ((NativeHomeTipLayoutTest.OfflineApi) host.api).paths.size());
+    }
+  }
+
 }
+

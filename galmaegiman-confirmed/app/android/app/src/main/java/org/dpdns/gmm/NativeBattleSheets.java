@@ -21,7 +21,29 @@ final class NativeBattleSheets {
   /** 보통은 기본 2×2 카드로 선택한다. 큰 글꼴·긴 서버 데이터만 넓은 선택지를 사용한다. */
   static void skills(BattleView v) {
     MainActivity h = v.host;
-    LinearLayout body = column(h);
+    LinearLayout body = new LinearLayout(h) {
+      private boolean cancelledStream;
+      @Override public boolean dispatchTouchEvent(android.view.MotionEvent event) {
+        int action = event.getActionMasked();
+        if (action == android.view.MotionEvent.ACTION_DOWN) { cancelledStream = false; v.skillTouchStream = false; }
+        if (action == android.view.MotionEvent.ACTION_POINTER_DOWN && v.skillTouchStream) {
+          if (v.activeSkillPress != null) v.activeSkillPress.cancelHold();
+          android.view.MotionEvent cancel = android.view.MotionEvent.obtain(event);
+          cancel.setAction(android.view.MotionEvent.ACTION_CANCEL);
+          super.dispatchTouchEvent(cancel);
+          cancel.recycle();
+          cancelledStream = true;
+        }
+        if (cancelledStream) {
+          if (action == android.view.MotionEvent.ACTION_UP || action == android.view.MotionEvent.ACTION_CANCEL)
+            cancelledStream = false;
+          return true;
+        }
+        return super.dispatchTouchEvent(event);
+      }
+    };
+    body.setOrientation(LinearLayout.VERTICAL);
+    body.setPadding(h.dp(12), h.dp(6), h.dp(12), h.dp(8));
     body.setTag("battle-skills-modal");
     AlertDialog[] dialog = {null};
     Runnable close =
@@ -394,18 +416,19 @@ final class NativeBattleSheets {
     col.addView(heading(h, "증강체", 20));
     for (int i = 0; i < augs.length(); i++) {
       JSONObject aug = augs.optJSONObject(i);
+      if (aug == null) { col.addView(prose(h, augs.optString(i), 16)); continue; }
       LinearLayout card = column(h);
-      card.setBackground(new GamePaperDrawable(h));
+      card.setBackground(new GamePaperDrawable(h, NativeAugmentView.cardColor(aug)));
       TextView name =
           heading(
               h,
               aug.optString("name")
                   + " · "
-                  + NativeAugmentView.kindName(NativeAugmentView.kind(aug.optString("id"))),
+                  + NativeAugmentView.cardLabel(aug),
               18);
-      semanticColor(name, NativeAugmentView.color(NativeAugmentView.kind(aug.optString("id"))));
+      semanticColor(name, NativeAugmentView.cardColor(aug));
       card.addView(name);
-      card.addView(prose(h, aug.optString("desc"), 16));
+      card.addView(prose(h, AugmentPresentation.detail(aug), 16));
       col.addView(card, new LinearLayout.LayoutParams(-1, -2));
     }
   }
@@ -465,3 +488,4 @@ final class NativeBattleSheets {
             : item.optBoolean("cleanse") ? "상태 이상 해제" : item.optString("desc");
   }
 }
+

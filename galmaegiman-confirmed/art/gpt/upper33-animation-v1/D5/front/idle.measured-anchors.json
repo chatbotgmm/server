@@ -1,0 +1,38 @@
+{
+  "source_sha256": "29fb9b185618caf9701b3790c7ddb57804a7d01166bed8c28838aca77f0af135",
+  "sheet": "D5/front/idle.png",
+  "cell_size": [
+    512,
+    512
+  ],
+  "frame_order": "row-major",
+  "feet_anchors_local_px": [
+    [
+      261.5,
+      476
+    ],
+    [
+      257.0,
+      474
+    ],
+    [
+      258.0,
+      474
+    ],
+    [
+      261.5,
+      439
+    ],
+    [
+      259.0,
+      439
+    ],
+    [
+      254.0,
+      439
+    ]
+  ],
+  "placement_rule": "Align measured ground-contact feet anchor to fixed actor world origin; preserve authored offsets for lifted feet or airborne poses.",
+  "measurement": "Gold claw pixels in visually inspected lower foot band, excludes blue water; approximate \u00b14px. Renderer validation pending.",
+  "renderer_validation": "pending"
+}

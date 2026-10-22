@@ -100,6 +100,7 @@ public class NativeAttendanceFeedbackTest {
       else if(path.equals("pvp/rank")) done.done(NativeThemeReviewTest.rank(),null);
       else if(path.equals("draw")) done.done(NativeRecruitmentProbabilityTest.serverEconomyFixture(),null);
       else if(path.equals("me")) done.done(state.optJSONObject("me"),null);
+      else if (path.equals("starter-loans")) done.done(StarterLoanTestFixture.ineligible(),null);
       else throw new AssertionError("Unexpected read: "+path);
     }
   }

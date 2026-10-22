@@ -1,0 +1,148 @@
+{
+  "path": "back/hit-defend.png",
+  "sha256": "f47f57382868dc0bcdbe0d86869404846609e29ac06d34c0c7ddfa4ea7ae45b3",
+  "size": [
+    1536,
+    1024
+  ],
+  "mode": "RGBA",
+  "alpha_extrema": [
+    0,
+    254
+  ],
+  "zero_alpha_fraction": 0.5184586842854818,
+  "frames": [
+    {
+      "index": 0,
+      "rect": [
+        0,
+        0,
+        512,
+        512
+      ],
+      "alpha_bbox_gt128": [
+        12,
+        49,
+        495,
+        487
+      ],
+      "feet_anchor_px_estimate": [
+        320.0,
+        487
+      ],
+      "edge_touch": false
+    },
+    {
+      "index": 1,
+      "rect": [
+        512,
+        0,
+        512,
+        512
+      ],
+      "alpha_bbox_gt128": [
+        45,
+        50,
+        481,
+        487
+      ],
+      "feet_anchor_px_estimate": [
+        322.5,
+        487
+      ],
+      "edge_touch": false
+    },
+    {
+      "index": 2,
+      "rect": [
+        1024,
+        0,
+        512,
+        512
+      ],
+      "alpha_bbox_gt128": [
+        102,
+        77,
+        478,
+        486
+      ],
+      "feet_anchor_px_estimate": [
+        259.5,
+        486
+      ],
+      "edge_touch": false
+    },
+    {
+      "index": 3,
+      "rect": [
+        0,
+        512,
+        512,
+        512
+      ],
+      "alpha_bbox_gt128": [
+        47,
+        102,
+        495,
+        472
+      ],
+      "feet_anchor_px_estimate": [
+        184.0,
+        472
+      ],
+      "edge_touch": false
+    },
+    {
+      "index": 4,
+      "rect": [
+        512,
+        512,
+        512,
+        512
+      ],
+      "alpha_bbox_gt128": [
+        22,
+        42,
+        487,
+        475
+      ],
+      "feet_anchor_px_estimate": [
+        244.5,
+        475
+      ],
+      "edge_touch": false
+    },
+    {
+      "index": 5,
+      "rect": [
+        1024,
+        512,
+        512,
+        512
+      ],
+      "alpha_bbox_gt128": [
+        11,
+        49,
+        495,
+        487
+      ],
+      "feet_anchor_px_estimate": [
+        320.0,
+        487
+      ],
+      "edge_touch": false
+    }
+  ],
+  "loop": false,
+  "duration_ms": [
+    90,
+    90,
+    110,
+    130,
+    120,
+    140
+  ],
+  "status": "awaiting_independent_visual_QA",
+  "renderer_validation": "pending",
+  "anchor_policy": "per-frame measured anchors at fixed world origin, estimates need visual validation"
+}

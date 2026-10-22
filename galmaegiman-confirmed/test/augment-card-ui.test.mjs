@@ -46,10 +46,10 @@ test('신규 36개와 미래 ID는 역할을 유틸로 단정하지 않고 안�
 test('네이티브는 V2 설명 우선·등급 선택색 유지·공통 아이콘 폴백을 연결한다 (소스 계약)', () => {
   assert.ok(java.indexOf('if (augment.optInt("version") == 2)') < java.indexOf('switch (augment.optString("id"))'));
   assert.match(java, /columnCard\(cardColor\(aug\)\)/);
-  assert.match(java, /new CardFrame\(cardColor\(aug\), on\)/);
+  assert.match(java, /new CardFrame\(cardColor\(aug\), on, AugmentPresentation\.prism\(aug\)\)/);
   assert.match(java, /badge\.setTextColor\(cardColor\(aug\)\)/);
   assert.match(java, /aug\.optInt\("version"\) == 2 \? "u-gift"/);
-  for (const tier of ['silver', 'gold', 'prismatic']) assert.ok(java.includes(`case "${tier}"`));
+  for (const tier of ['silver', 'gold', 'prismatic']) assert.ok(read('../app/android/app/src/main/java/org/dpdns/gmm/AugmentPresentation.java').includes(`case "${tier}"`));
 });
 test('등급 잉크는 실제 양피지 바탕에서 일반 글자 대비 4.5 이상이다', () => {
   const luminance = hex => hex.match(/[a-f\d]{2}/gi).map(x => parseInt(x, 16) / 255).map(x => x <= .04045 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4).reduce((a, v, i) => a + v * [.2126, .7152, .0722][i], 0);
@@ -64,7 +64,14 @@ test('네이티브 공통 HTTP는 지원 버전만 광고하며 나머지 요청
   const before = read('../../pristine/app/android/app/src/main/java/org/dpdns/gmm/NativeApi.java');
   const added = '            // 클라이언트 표시 능력만 알린다. V2 활성화는 서버 설정이 결정한다.\n            conn.setRequestProperty("x-gmm-augment-version", "2");\n';
   assert.ok(api.includes(added));
-  assert.equal(api.replace(added, ''), before);
+  const epoch = '            // 표시/입력 지원 선언일 뿐 인증이나 서버 규칙 우회가 아니다.\n            conn.setRequestProperty("x-gmm-combat-epoch", CombatReplayCompatibility.CURRENT_EPOCH);\n';
+  const upgrade = '              if ("COMBAT_EPOCH_UNSUPPORTED".equals(result.optString("code")))\n                error = "전투 규칙이 업데이트됐어요. 최신 앱으로 업데이트한 뒤 다시 시도해 주세요.";\n';
+  assert.ok(api.includes(epoch));assert.ok(api.includes(upgrade));
+  const scoped = 'getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL),';
+  const direct = '            NativeBackend.directConnection(conn);\n';
+  const reject = '            NativeBackend.requireDirectResponse(status);\n';
+  assert.ok(api.includes(scoped));assert.ok(api.includes(direct));assert.ok(api.includes(reject));
+  assert.equal(api.replace(added, '').replace(epoch, '').replace(upgrade, '').replace(scoped, 'getSharedPreferences("native_account",').replace(direct, '').replace(reject, ''), before);
 });
 test('웹 보호막은 V2의 살아 있는 전투원에게 남은 HP 절대량·턴 수만 표시한다', () => {
   const context = vm.createContext({});
