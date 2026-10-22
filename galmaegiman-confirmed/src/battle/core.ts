@@ -41,7 +41,7 @@ export interface UnitDef {id:string;attr:Attr;sub?:Attr;syn?:string;basic?:strin
 export interface Passive {hpPct?:number;atkPct?:number;defPct?:number;spdPct?:number;pierce?:number;execute?:number;critPlus?:number;opener?:number;
   lifesteal?:number;reflect?:number;cut?:number;regen?:number;lastStand?:boolean;statusPlus?:number;statusResist?:number;sigCd?:number;handoff?:number;durationPlus?:number}
 export interface EvoAugment {id:string;name:string;desc:string;roles:Role[]|'ANY';passive:Passive}
-export interface BattleAugment {id:string;name:string;desc:string;p:Record<string,number>;tier?:CatalogTier;version?:2}
+export interface BattleAugment {id:string;name:string;desc:string;p:Record<string,number>;tier?:CatalogTier;version?:2;effect?:'choose-own-attribute'}
 // Version is absent in old saved rules; absence always means legacy V1.
 export interface RulesOptions {augmentVersion?:1|2;augmentCatalog?:AugmentCatalogV2}
 export const battleAugIds=['reverse','weakguard','focus','neutral','camo','dual','counter','learn','first','bulwark','firstaid','freeswitch','lastone','strip','rustle','peanut','sharp','swift','thick','overtime','drain','thorns','pierce','lunch'] as const;
@@ -242,4 +242,5 @@ export function rulesFrom(d:BattleData,options:RulesOptions={}){
     evoAugments,evoAug:new Map(evoAugments.map(a=>[a.id,a]))};
 }
 export type Rules=ReturnType<typeof rulesFrom>;
+
 

@@ -1,4 +1,5 @@
-import {publicAugment,publicAugmentState,publicShield} from '../battle/public-dto.js';
+import {publicCombatReplayState,exposeCombatHistory} from '../battle/combat-epoch.js';
+import {publicAugment,publicAugmentState,publicShield,publicAttributeSelection} from '../battle/public-dto.js';
 // V2 MANUAL INTEGRATION DRAFT; not built, executed, or deployed.
 // Supersedes the separately frozen v1 mapper only when integrating the v2 bundle.
 // Place at galmaegiman-confirmed/src/pvp/realtime-native-view.ts.
@@ -162,7 +163,8 @@ export function mapRealtimeNativeBattle(input: RealtimeNativeInput & {assetRoot:
   const {battle: b, viewerSide, sessionId, names, room, assetRoot: root} = input;
   const R = b.R;
   const order: [Side, Side] = [viewerSide, (1 - viewerSide) as Side];
-  const history = b.log.map(line => viewerText(line, viewerSide));
+  const exposeHistory = exposeCombatHistory(b);
+  const history = exposeHistory ? b.log.map(line => viewerText(line, viewerSide)) : [];
   const canSubmit = room.canSubmit && !room.mySubmitted && b.phase !== 'over';
   const counts = new Map<string, number>();
   for (const row of input.inventory ?? []) {
@@ -185,6 +187,7 @@ export function mapRealtimeNativeBattle(input: RealtimeNativeInput & {assetRoot:
       // Opponent pending choices are never exposed. Empty arrays retain the
       // old NativeBattle parser contract; booleans do not reveal choice payloads.
       needSwitch: own ? s.needSwitch : false,
+      attributeSelection: own ? publicAttributeSelection(b, side) : null,
       offers: own && b.phase === 'choose' ? (s.offers ?? []).map((id, index) => ({
         ...publicAugment(b,id,s.rerolled[index]??false),
         icon: existsSync(`${root}/public/battle/icons/${id}.png`) ? id : 'u-gift',
@@ -218,14 +221,14 @@ export function mapRealtimeNativeBattle(input: RealtimeNativeInput & {assetRoot:
   });
   // Build a fresh output. Never spread Battle, SideState, Fighter, or room state.
   return {
-    ...publicAugmentState(b), session: sessionId, revision: room.revision, mode: room.mode,
+    ...publicCombatReplayState(b), ...publicAugmentState(b), session: sessionId, revision: room.revision, mode: room.mode,
     phase: b.phase, turn: b.turn,
     winner: b.winner === null ? null : b.winner === viewerSide ? 0 : 1,
     serverNow: room.serverNow, chooseDeadline: b.phase === 'choose' ? room.deadline : null,
     scene: 'harbor', hint: '', boss: false,
     teams, history, log: history.slice(-50),
     displayEventVersion: 1, displayEventSeq: b.eventSeq,
-    displayEvents: b.events.map(e => viewerEvent(e, viewerSide)),
+    displayEvents: exposeHistory ? b.events.map(e => viewerEvent(e, viewerSide)) : [],
     displayLogStart: Math.max(0, history.length - 50),
     items, inventory, itemLimit: R.data.itemRules.perBattle,
     matchInfo: {mode: room.mode, level: b.sides[viewerSide].fighters[0].rec.level,
@@ -238,5 +241,6 @@ export function mapRealtimeNativeBattle(input: RealtimeNativeInput & {assetRoot:
   };
 }
 export type RealtimeNativeBattle = ReturnType<typeof mapRealtimeNativeBattle>;
+
 
 

@@ -1,7 +1,7 @@
 // Versioned opt-in catalog. Importing it never activates V2 in an existing battle.
 // V1 data/battle.yaml and its 24 IDs remain unchanged. Numeric semantics are implemented by ID.
 export type CatalogTier='silver'|'gold'|'prismatic';
-export interface CatalogAugment {id:string;tier:CatalogTier;version:2;name:string;desc:string;p:Record<string,number>}
+export interface CatalogAugment {id:string;tier:CatalogTier;version:2;name:string;desc:string;p:Record<string,number>;effect?:'choose-own-attribute'}
 export interface AugmentCatalogV2 {version:2;augments:CatalogAugment[]}
 export const augmentCatalogV2:AugmentCatalogV2={
   "version": 2,
@@ -223,10 +223,11 @@ export const augmentCatalogV2:AugmentCatalogV2={
     },
     {
       "id": "reverse",
-      "tier": "gold",
+      "tier": "prismatic",
+      "effect": "choose-own-attribute",
       "version": 2,
-      "name": "역상성",
-      "desc": "이번 전투 내 공격 강함과 약함을 뒤집음",
+      "name": "자유자재",
+      "desc": "상대 속성을 확인한 뒤 내 유닛의 속성을 선택",
       "p": {}
     },
     {
@@ -657,22 +658,22 @@ function keys(value:Record<string,unknown>,allowed:string[],label:string){
 export function parseAugmentCatalogV2(input:unknown):AugmentCatalogV2{
   const data=object(input,'카탈로그');keys(data,['version','augments'],'카탈로그');
   if(data.version!==2||!Array.isArray(data.augments)||data.augments.length!==60)throw new Error('V2 증강은 버전 2, 정확히 60개여야 해요');
-  const seen=new Set<string>();const counts={silver:0,gold:0,prismatic:0};
+  const seen=new Set<string>();
   const augments=data.augments.map((raw,index):CatalogAugment=>{
-    const a=object(raw,`증강 ${index}`);keys(a,['id','tier','version','name','desc','p'],'증강');
+    const a=object(raw,`증강 ${index}`);keys(a,['id','tier','version','name','desc','p','effect'],'증강');
     const template=augmentCatalogV2.augments.find(t=>t.id===a.id);
     if(!template||seen.has(template.id))throw new Error('알 수 없거나 중복된 증강 ID');seen.add(template.id);
-    if(a.version!==2||a.tier!==template.tier)throw new Error(`${template.id}: 버전 또는 등급 오류`);
+    if(a.version!==2||!['silver','gold','prismatic'].includes(a.tier as string))throw new Error(`${template.id}: 버전 또는 등급 오류`);
     if(typeof a.name!=='string'||a.name.length<1||a.name.length>30||typeof a.desc!=='string'||a.desc.length<1||a.desc.length>160)throw new Error(`${template.id}: 이름/설명 오류`);
     const p=object(a.p,`${template.id}.p`);keys(p,Object.keys(template.p),`${template.id}.p`);
     for(const k of Object.keys(template.p)){
       const n=p[k],range=parameterRange(k,template.id);
       if(typeof n!=='number'||!Number.isFinite(n)||n<range.min||n>range.max||(range.integer&&!Number.isInteger(n)))throw new Error(`${template.id}.${k}: ${range.min}–${range.max}${range.integer?' 정수':''} 필요`);
     }
-    counts[template.tier]++;
-    return {id:template.id,tier:template.tier,version:2,name:a.name,desc:a.desc,p:{...p} as Record<string,number>};
+    // effect가 없는 과거 V2 스냅샷은 예전 역상성 동작을 유지한다.
+    if(a.effect!==undefined&&(a.id!=='reverse'||a.effect!=='choose-own-attribute'))throw new Error('알 수 없는 증강 효과');
+    return {id:template.id,tier:a.tier as CatalogTier,version:2,name:a.name,desc:a.desc,p:{...p} as Record<string,number>,...(a.effect===undefined?{}:{effect:'choose-own-attribute' as const})};
   });
-  if(Object.values(counts).some(n=>n!==20))throw new Error('각 등급은 정확히 20개여야 해요');
   return {version:2,augments};
 }
 // Weights deliberately required: no unapproved probability defaults or automatic activation.
@@ -683,3 +684,4 @@ export function createAugmentConfigV2(weights:Record<CatalogTier,number>,catalog
   if(!Number.isFinite(weights.silver+weights.gold+weights.prismatic)||weights.silver+weights.gold+weights.prismatic<=0)throw new Error('양수 등급 가중치가 필요해요');
   return {version:2 as const,catalog:checked.augments.map(({id,tier})=>({id,tier})),weights:{...weights}};
 }
+

@@ -510,3 +510,11 @@ table.odds{border-collapse:collapse;margin:8px 0;min-width:220px}
   .dex{grid-template-rows:minmax(0,1.3fr) minmax(110px,1fr) auto}
 }
 
+
+/* V2 server-owned choices: retain stage; scroll only the bounded command pane. */
+.attribute-picker{min-height:0;overflow:auto;overscroll-behavior:contain;padding:2px 4px 8px}
+.attribute-picker p{margin:4px 0 8px;font-size:15px;overflow-wrap:anywhere}
+.attribute-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.attribute-grid .cbtn{min-height:44px;padding:6px}.attribute-grid .cbtn b{font-size:18px}
+.tier-label{font-weight:700}.a-card[data-tier="silver"]{border-color:#8b9ba8}
+.a-card[data-tier="gold"]{border-color:#b78b35}.a-card[data-tier="prismatic"]{border-color:#9672c6}

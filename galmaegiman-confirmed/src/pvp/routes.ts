@@ -1,3 +1,5 @@
+import {attrKeys} from '../battle/core.js';
+import {combatUpgradeRequired} from '../battle/service-factory.js';
 import type {FastifyInstance,FastifyReply,FastifyRequest} from 'fastify';
 import {z} from 'zod';
 import {GameError} from '../types.js';
@@ -13,7 +15,7 @@ const command=z.union([
   z.object({accept:z.boolean()}).strict(),
   z.object({prepare:z.object({team:z.array(key).length(3),ready:z.boolean()}).strict()}).strict(),
   z.object({action}).strict(),
-  z.object({choose:z.object({augment:key.optional(),switchTo:z.number().int().min(0).max(2).optional()}).strict()}).strict(),
+  z.object({choose:z.object({augment:key.optional(),switchTo:z.number().int().min(0).max(2).optional(),freestyle:z.object({selectionId:key,phaseId:key,targetKey:key,attribute:z.enum(attrKeys)}).strict().optional()}).strict()}).strict(),
   z.object({reroll:z.number().int().min(0).max(2)}).strict()
 ]);
 export function registerRealtimePvp(app:FastifyInstance,service:RealtimePvpService,auth:(req:FastifyRequest)=>string|null,guard:(req:FastifyRequest,reply:FastifyReply)=>boolean){
@@ -22,6 +24,7 @@ export function registerRealtimePvp(app:FastifyInstance,service:RealtimePvpServi
     const id=auth(req);if(!id)return reply.code(401).send({error:'로그인을 다시 해 주세요.'});
     reply.header('Cache-Control','no-store');
     if(!await service.supportsAugmentClient(id,path,req.body,req.query,req.headers['x-gmm-augment-version']))return reply.code(409).send({error:'새 증강체를 사용하려면 앱을 업데이트해 주세요.',code:'AUGMENT_VERSION_UNSUPPORTED',augmentVersion:2});
+    if(!await service.supportsCombatClient(id,path,req.body,req.query,req.headers['x-gmm-combat-epoch']))return reply.code(409).send(combatUpgradeRequired());
     try{return await run(id,req.body??{},req.query??{});}
     catch(e){
       if(e instanceof GameError||e instanceof z.ZodError||(e instanceof Error&&e.message==='Invalid realtime command'))return reply.code(400).send({error:e instanceof z.ZodError?'입력 정보를 확인해 주세요.':e.message});
@@ -39,4 +42,5 @@ export function registerRealtimePvp(app:FastifyInstance,service:RealtimePvpServi
   service.start(error=>app.log.error({error},'realtime PvP sweep failed'));
   app.addHook('onClose',async()=>service.stop());
 }
+
 

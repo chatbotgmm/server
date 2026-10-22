@@ -7,7 +7,8 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmt = n => (typeof n === 'number' ? n.toLocaleString('ko-KR') : '—');
   const view = $('#view'), app = $('#app');
-  const S = { who: null, state: null, key: '', catalog: null, loading: new Set() };
+  const COMBAT_EPOCH = 'gmm-combat-20261021-v3';
+  const S = { combatEpoch: COMBAT_EPOCH, who: null, state: null, key: '', catalog: null, loading: new Set() };
   window.GMM = S;   // 검수 도구용(읽기만)
 
   // ── 서버 호출: 401이면 로그인 진입으로(돌아갈 곳은 공개 페이지 기억값) ──
@@ -16,7 +17,7 @@
     let r;
     try {
       r = await fetch(`/my/api/${path}`, { method: body === undefined ? 'GET' : 'POST', credentials: 'same-origin', signal: opt.signal,
-        headers: body === undefined ? { 'x-gmm': '1' } : { 'x-gmm': '1', 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+        headers: { 'x-gmm': '1', 'x-gmm-augment-version': '2', 'x-gmm-combat-epoch': COMBAT_EPOCH, ...(body === undefined ? {} : { 'content-type': 'application/json' }) }, body: body === undefined ? undefined : JSON.stringify(body) });
     } catch (e) { if (e.name === 'AbortError') throw e; throw new ApiError('연결이 불안정해요. 연결을 확인해 주세요.', 0); }
     const j = await r.json().catch(() => ({}));
     if (r.status === 401) { goLogin(); throw new ApiError('로그인이 필요해요.', 401); }
