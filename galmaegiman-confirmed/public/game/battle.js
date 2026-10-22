@@ -10,6 +10,9 @@
   const view = $('#view'), app = $('#app');
   const rid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`);
   const STATUS = { burn: '화상', freeze: '빙결', sleep: '잠', bind: '묶임', rage: '땅콩 폭주' };
+  const ATTR = { STONE: '돌', GOLD: '황금', FIRE: '불', ICE: '얼음', BLOSSOM: '꽃', SEA: '바다', SHADOW: '그림자', STAR: '별', THREAD: '실', GRAVITY: '중력' };
+  const TIER = { silver: '실버', gold: '골드', prismatic: '프리즘' };
+  const replayAllowed = s => s.replayAvailable === true && s.combatRulesEpoch === S.combatEpoch;
   const MODE = { normal: '일반전', rank: '랭크전', story: '스토리', practice: '연습' };
   const mmss = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
   let poll = null, tick = null;
@@ -93,7 +96,7 @@
   const ui = { pane: 'root', item: null, target: null, sw: null, aug: null, sending: false, note: '' };
   const me = s => s.teams[0], foe = s => s.teams[1];
   const active = t => t.fighters[t.active];
-  const canAct = () => { const b = S.battle; if (!b?.snap || b.snap.phase === 'over' || ui.sending) return false; return b.kind === 'native' ? true : !!(b.room?.canSubmit && !b.room?.mySubmitted); };
+  const canAct = () => { const b = S.battle; if (!b?.snap || b.snap.phase === 'over' || ui.sending) return false; if (b.kind === 'native' && b.snap.phase === 'choose' && b.snap.chooseDeadline && b.snap.chooseDeadline <= clock.now()) return false; return b.kind === 'native' ? true : !!(b.room?.canSubmit && !b.room?.mySubmitted); };
   const deadline = () => { const b = S.battle; if (!b?.snap) return null; if (b.kind === 'native') return b.snap.phase === 'choose' ? b.snap.chooseDeadline || null : null; return canAct() ? b.room?.deadline || null : null; };
   const isPve = () => S.battle?.kind === 'native';
 
@@ -185,6 +188,9 @@
     if (b.kind === 'realtime' && b.room && !b.snap) return drawRoom(b.room);
     const s = b.snap; if (!s) return;
     const offers = me(s).offers || [];
+    // A local draft belongs only to this exact server selection scope/revision.
+    const selectionKey = JSON.stringify([s.session || b.roomId, s.revision, b.room?.phaseId, b.room?.revision, me(s).attributeSelection]);
+    if (ui.selectionKey !== selectionKey) { ui.selectionKey = selectionKey; ui.attribute = null; ui.aug = null; ui.sw = null; }
     S.title('', ''); app.dataset.screen = 'battle';   // 전투·증강체: 머리줄·하단 메뉴 없이
     if (s.phase === 'choose' && offers.length && canAct() && !ui.aug) { app.dataset.place = 'augments'; return drawAugment(s); }
     app.dataset.place = 'battle';
@@ -195,14 +201,14 @@
         ${s.matchInfo ? `<p class="vs">${esc(MODE[s.mode] || '')} · ${esc(s.matchInfo.foeName || '')}${s.matchInfo.bot ? ' <b class="ai">AI 상대</b>' : ''}</p>` : `<p class="vs">${esc(MODE[s.mode] || '')}</p>`}
       </div>
       <div class="cmd"><div class="cmd-head"><b data-pane-title></b><span class="timer" data-timer hidden></span></div><div class="cmd-body"></div>
-        <p class="log" aria-live="polite">${esc((s.log || []).slice(-2).join(' '))}</p><p class="err" role="alert">${esc(ui.note)}</p></div></section>`;
+        <p class="log" aria-live="polite">${esc(replayAllowed(s) ? (s.log || []).slice(-2).join(' ') : s.replayBlockedReason || '이전 버전 전투기록 · 재생할 수 없어요.')}</p><p class="err" role="alert">${esc(ui.note)}</p></div></section>`;
     hpPanel($('.foe-hp', view), active(foe(s)), false);
     hpPanel($('.my-hp', view), active(me(s)), true);
     S.standee($('.actor-slot.foe', view), S.sprite(active(foe(s)).image), `상대 ${active(foe(s)).name}`);
     S.standee($('.actor-slot.mine', view), S.sprite(active(me(s)).image), `내 ${active(me(s)).name}`);
     $('.actor-slot.foe', view).classList.toggle('down', active(foe(s)).hp <= 0); $('.actor-slot.mine', view).classList.toggle('down', active(me(s)).hp <= 0);   // 쓰러진 대원은 무대에서 빠진 모습
     // 전투가 끝난 턴은 연출을 다 보여 준 뒤에 결과를 띄운다(입력이 필요 없는 때라 잠가도 됨)
-    const key = s.session || b.roomId, holdResult = s.phase === 'over' && b.seenKey === key && (s.displayEvents || []).some(e => e && e.id > (b.seen || 0));
+    const key = s.session || b.roomId, holdResult = replayAllowed(s) && s.phase === 'over' && b.seenKey === key && (s.displayEvents || []).some(e => e && e.id > (b.seen || 0));
     if (holdResult) { $('[data-pane-title]', view).textContent = '전투 중'; $('.cmd-body', view).innerHTML = '<div class="waiting" role="status"><span class="spin"></span>마지막 장면을 보여 주는 중…</div>'; }
     else pane(s);
     countdown($('[data-timer]', view), deadline(), refetchAfterExpiry);
@@ -218,7 +224,9 @@
   const wait = ms => new Promise(r => setTimeout(r, ms));
   let playToken = 0;
   async function replay(s) {
-    const b = S.battle, token = ++playToken, evs = (s.displayEvents || []).filter(e => e && typeof e.id === 'number');
+    const b = S.battle, token = ++playToken;
+    if (!replayAllowed(s)) { b.seenKey = s.session || b.roomId; b.seen = s.displayEventSeq || 0; return; }
+    const evs = (s.displayEvents || []).filter(e => e && typeof e.id === 'number');
     const last = evs.length ? evs[evs.length - 1].id : (s.displayEventSeq || 0);
     const key = s.session || b.roomId;
     if (b.seenKey !== key) { b.seenKey = key; b.seen = last; return; }   // 처음 보는 전투: 지난 기록은 재생하지 않음
@@ -298,7 +306,7 @@
     const pct = f.maxHp ? Math.max(0, Math.round(f.hp / f.maxHp * 100)) : 0, st = Object.keys(f.status || {}).filter(k => f.status[k]);
     el.innerHTML = `<div class="hp-top"><b>${esc(f.name)}</b><span class="lv">Lv ${fmt(f.level)}</span><button class="attr" type="button" data-chart aria-label="${esc(f.attr)} 속성 · 상성표 열기">${esc(f.attr)}</button></div>
       <div class="hpbar" role="meter" aria-valuemin="0" aria-valuemax="${f.maxHp}" aria-valuenow="${f.hp}" aria-label="${mine ? '내' : '상대'} 체력"><i class="${pct <= 25 ? 'low' : pct <= 50 ? 'mid' : ''}" style="width:${pct}%"></i></div>
-      <div class="hp-bot"><span>${st.map(k => `<em>${esc(STATUS[k] || k)}</em>`).join('')}</span><span class="num">${fmt(f.hp)} / ${fmt(f.maxHp)}</span></div>`;
+      <div class="hp-bot"><span>${st.map(k => `<em>${esc(STATUS[k] || k)}</em>`).join('')}${f.shield > 0 ? `<em>보호막 ${fmt(f.shield)}</em>` : ''}</span><span class="num">${fmt(f.hp)} / ${fmt(f.maxHp)}</span></div>`;
     $('[data-chart]', el).onclick = e => typeChart(e.currentTarget);
   }
   const btn = (attrs, label, sub = '', cls = '') => `<button type="button" class="cbtn ${cls}" ${attrs}><b>${label}</b>${sub ? `<small>${sub}</small>` : ''}</button>`;
@@ -328,6 +336,25 @@
     if (!act) {
       title.textContent = ui.sending ? '보내는 중' : '상대를 기다리는 중';
       body.innerHTML = `<div class="waiting" role="status"><span class="spin"></span>${ui.sending ? '선택을 보내고 있어요…' : S.battle.room?.mySubmitted ? '선택을 보냈어요. 상대 선택을 기다려요.' : '서버 결과를 기다려요.'}</div>`;
+      return;
+    }
+    if (s.phase === 'choose' && t.attributeSelection) {
+      const a = t.attributeSelection;
+      const valid = a.kind === 'own-attribute' && a.targetKey === f.key && typeof a.selectionId === 'string' && a.selectionId.length > 0 && typeof a.phaseId === 'string' && a.phaseId.length > 0
+        && Array.isArray(a.attributes) && a.attributes.length === 10 && new Set(a.attributes).size === 10 && a.attributes.every(k => Object.hasOwn(ATTR, k));
+      title.textContent = '자유자재 · 내 선두 속성';
+      if (!valid) { body.innerHTML = '<p class="err">속성 선택 정보를 다시 받아야 해요.</p>'; return; }
+      body.innerHTML = `<div class="attribute-picker"><p>상대 선두 ${esc(active(foe(s)).name)} · ${esc(ATTR[a.opponentAttribute] || a.opponentAttribute)}</p><p>내 선두 <b>${esc(f.name)}</b>의 속성을 골라 확정해 주세요. 이 전투에 유지돼요.</p>
+        <div class="attribute-grid" role="group" aria-label="내 선두 속성">${a.attributes.map(k => btn(`data-attribute="${k}" aria-pressed="${ui.attribute === k}"`, esc(ATTR[k]))).join('')}</div>
+        <p aria-live="polite">${ui.attribute ? `${esc(ATTR[ui.attribute])} 선택 · 아직 확정하지 않았어요` : '선택한 속성 없음'}</p>
+        <div class="grid2">${btn(`data-attribute-confirm ${!ui.attribute ? 'disabled' : ''}`, '속성 확정', '', 'primary')}${btn('data-attribute-cancel', '선택 취소')}</div></div>`;
+      body.onclick = e => {
+        const pick = e.target.closest('[data-attribute]');
+        if (pick && !pick.disabled && a.attributes.includes(pick.dataset.attribute)) { ui.attribute = pick.dataset.attribute; pane(s); $(`[data-attribute="${ui.attribute}"]`, body)?.focus(); return; }
+        if (e.target.closest('[data-attribute-cancel]')) { ui.attribute = null; pane(s); $('[data-attribute-cancel]', body)?.focus(); return; }
+        if (e.target.closest('[data-attribute-confirm]') && a.attributes.includes(ui.attribute) && canAct())
+          send('choose', { freestyle: { selectionId: a.selectionId, phaseId: a.phaseId, targetKey: a.targetKey, attribute: ui.attribute } });
+      };
       return;
     }
     // 강제 교체(기절 등): 뒤로 없음, Esc도 막음
@@ -388,7 +415,7 @@
   // Esc: 일반 패널은 뒤로, 강제 교체·모달 중에는 무시
   addEventListener('keydown', e => {
     if (e.key !== 'Escape' || !location.hash.startsWith('#battle') || !$('#chart').hidden) return;
-    const s = S.battle?.snap; if (!s || me(s).needSwitch || ui.pane === 'root') return;
+    const s = S.battle?.snap; if (s && me(s).attributeSelection) { ui.attribute = null; pane(s); $('[data-attribute]', view)?.focus(); return; } if (!s || me(s).needSwitch || ui.pane === 'root') return;
     ui.pane = 'root'; pane(s);
   });
 
@@ -396,9 +423,9 @@
   function drawAugment(s) {
     const t = me(s), offers = t.offers;
     let pick = null;
-    view.innerHTML = `<section class="augment"><div class="a-head"><h1>증강체 선택</h1><p class="muted">함께 출정할 장비를 하나 골라요.</p><span class="timer" data-timer hidden></span></div>
-      <div class="a-cards" role="radiogroup" aria-label="증강체 후보">${offers.map((o, i) => `<button type="button" class="a-card" role="radio" aria-checked="false" data-a="${i}">
-        <img src="/duel/icons/${esc(o.icon)}.png" alt="" width="96" height="96" onerror="this.style.visibility='hidden'"><span class="a-txt"><b>${esc(o.name)}</b><span>${esc(o.desc)}</span></span></button>`).join('')}</div>
+    view.innerHTML = `<section class="augment"><div class="a-head"><h1>증강체 선택${TIER[offers[0]?.tier] ? ` · ${TIER[offers[0].tier]}` : ''}</h1><p class="muted">함께 출정할 장비를 하나 골라요.</p><span class="timer" data-timer hidden></span></div>
+      <div class="a-cards" role="radiogroup" aria-label="증강체 후보">${offers.map((o, i) => `<button type="button" class="a-card" data-tier="${esc(o.tier || '')}" role="radio" aria-checked="false" data-a="${i}">
+        <img src="/duel/icons/${esc(o.icon)}.png" alt="" width="96" height="96" onerror="this.style.visibility='hidden'"><span class="a-txt"><b>${esc(o.name)}</b>${TIER[o.tier] ? `<small class="tier-label">${TIER[o.tier]}</small>` : ''}<span>${esc(o.desc)}</span></span></button>`).join('')}</div>
       <div class="a-rerolls">${offers.map((o, i) => `<button class="btn ghost sm" type="button" data-r="${i}" ${o.rerolled ? 'disabled' : ''}>${o.rerolled ? '바꾼 후보' : `${i + 1}번 후보 바꾸기`}</button>`).join('')}</div>
       <div class="cta"><button class="btn primary lg wide" type="button" data-ok disabled>선택 확정</button><p class="err" role="alert">${esc(ui.note)}</p></div></section>`;
     const ok = $('[data-ok]', view);

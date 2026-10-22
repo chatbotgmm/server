@@ -1,5 +1,5 @@
 // DRAFT target: src/battle/realtime-bot.ts. Not executed or deployed.
-import {activeOf,pickAi,type Action,type Battle} from './engine.js';
+import {activeOf,automaticFreestyleChoice,pickAi,type Action,type Battle} from './engine.js';
 import {deserializeBattle,required,serializeBattle,validateCommand,type Command} from './realtime-adapter.js';
 
 type Side=0|1;
@@ -42,6 +42,7 @@ export function chooseBotCommand(source:Battle,side:Side):Command{
   else {
     const s=battle.sides[side],foe=activeOf(battle,(1-side) as Side);
     const choose:NonNullable<Command['choose']>={};
+    if(s.freestyle&&!s.freestyle.chosen){command={choose:{freestyle:automaticFreestyleChoice(battle,side)}};validateCommand(battle,side,command);return command;}
     // The opponent remains the public phase-start fighter. Never project its
     // pending forced replacement or selected augment into this decision.
     if(s.needSwitch){
@@ -64,3 +65,4 @@ export function chooseBotCommand(source:Battle,side:Side):Command{
   }
   return command;
 }
+

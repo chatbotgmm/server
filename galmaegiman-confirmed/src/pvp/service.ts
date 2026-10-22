@@ -7,7 +7,7 @@ import {consumeReroll,freshProgression,awardPlayPoints} from '../progression.js'
 import {GameError} from '../types.js';
 import {loadBattleRules} from '../battle/load.js';
 import type {Battle} from '../battle/engine.js';
-import {createBattleService,serializeServiceBattle as serializeBattle,supportsAugmentVersion,requiredAugmentClientVersion,type BattleServiceOptions} from '../battle/service-factory.js';
+import {createBattleService,supportsCombatEpoch,serializeServiceBattle as serializeBattle,supportsAugmentVersion,requiredAugmentClientVersion,type BattleServiceOptions} from '../battle/service-factory.js';
 import type {UnitRecord} from '../battle/growth.js';
 import {loadStory} from '../battle/story.js';
 import {casualRecord,matchCasualBot,applyCasualCompensation,deployedMean} from './casual-balance.js';
@@ -58,8 +58,18 @@ export class RealtimePvpService {
     const b=this.battles.restore(parseState(room).battle);
     return supportsAugmentVersion(requiredAugmentClientVersion(path,this.battles.version,b.R.augmentVersion),header);
   }
+  async supportsCombatClient(playerId:string,path:string,body:unknown,query:unknown,header:unknown){
+    if(path==='queue/attempt'||path==='queue/join')return supportsCombatEpoch(path,this.battles.combatRulesEpoch,undefined,header);
+    if(path!=='room/current'&&path!=='room/command')return true;
+    const input=(path==='room/current'?query:body) as {roomId?:unknown}|null;
+    if(typeof input?.roomId!=='string')return true;
+    const room=await this.db.realtimeRoom.findUnique({where:{id:input.roomId}});
+    if(!room||(room.player0Id!==playerId&&room.player1Id!==playerId))return true;
+    const b=this.battles.restore(parseState(room).battle);
+    return supportsCombatEpoch(path,this.battles.combatRulesEpoch,b.combatRulesEpoch,header);
+  }
   private rulesVersion:string;private casualRulesVersion:string;private startLevel:number;
-  constructor(private db:PrismaClient,private content:Content,root:string,private secret:string,private now=()=>Date.now(),options:BattleServiceOptions={version:1}){
+  constructor(private db:PrismaClient,private content:Content,root:string,private secret:string,private now=()=>Date.now(),options?:BattleServiceOptions){
     this.battles=createBattleService(loadBattleRules(root),options);this.R=this.battles.R;this.startLevel=loadStory(root,this.R).start.level;this.mapper=createRealtimeNativeMapper(root);
     this.rulesVersion=createHash('sha256').update('realtime-engine-v2-preparation-items\0').update(this.battles.fingerprint).digest('hex');
     this.casualRulesVersion=createHash('sha256').update('realtime-engine-v3-casual-growth\0').update(this.battles.fingerprint).digest('hex');
@@ -492,4 +502,5 @@ export class RealtimePvpService {
   }
   async legacyWebResult(playerId:string,matchId:string,run:()=>Promise<unknown>){const result=await run();await this.releaseLegacy(playerId,matchId,'LEGACY_WEB');return result;}
 }
+
 

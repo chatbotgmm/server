@@ -1,5 +1,6 @@
-import {createBattleService,supportsAugmentVersion,requiredAugmentClientVersion,type BattleServiceOptions} from './battle/service-factory.js';
-import {publicAugment,publicAugmentState,publicShield} from './battle/public-dto.js';
+import {publicCombatReplayState,exposeCombatHistory} from './battle/combat-epoch.js';
+import {createBattleService,supportsCombatEpoch,combatUpgradeRequired,supportsAugmentVersion,requiredAugmentClientVersion,type BattleServiceOptions} from './battle/service-factory.js';
+import {publicAugment,publicAugmentState,publicShield,publicAttributeSelection} from './battle/public-dto.js';
 // Android 전용 JSON API. 화면은 네이티브 View/Canvas, 전투는 공통 TypeScript 엔진.
 import {randomBytes, randomInt} from 'node:crypto';
 import {existsSync} from 'node:fs';
@@ -11,8 +12,8 @@ import type {RealtimePvpService} from './pvp/service.js';
 import {loadBattleRules} from './battle/load.js';
 import {loadStory} from './battle/story.js';
 import {loadContent,rarityNames,topTiers} from './content.js';
-import {act,choose,aiChoose,pickAi,legalActions,skillProblem,skillPreview,itemProblem,rerollAugment,pending,type Battle,type Action,type Fighter} from './battle/engine.js';
-import {statusKeys,statusName,type Attr,type Rules} from './battle/core.js';
+import {act,choose,aiChoose,automaticFreestyleChoice,pickAi,legalActions,skillProblem,skillPreview,itemProblem,rerollAugment,pending,type Battle,type Action,type Fighter,type Choice} from './battle/engine.js';
+import {attrKeys,statusKeys,statusName,type Attr,type Rules} from './battle/core.js';
 import {addXp,battleXp,xpToNext,innateLearned,statsOf,slotSkills,learnOffers,learnChances,learnLeft,learnSkill,learnPromo,promoSkills,canEvolve,stableEvoChoices,type UnitRecord,type Stage} from './battle/growth.js';
 import type {PvpEvent} from './battle/replay.js';
 
@@ -43,15 +44,15 @@ export function nativeEvolutionChoices(R:Rules,r:UnitRecord){
     return {...a,preview:{fromStage:r.stage,toStage:next.stage,beforeStats:{...beforeStats},afterStats:statsOf(R,next),beforeSkills:structuredClone(beforeSkills),afterSkills:structuredClone(slotSkills(R,next)),beforePromo:structuredClone(beforePromo),afterPromo:structuredClone(promoSkills(R,next)),restoresHp:true,cost:0}};
   });
 }
-interface Fight {id:string;player:string;b:Battle;keys:string[];mode:string;stage?:string;revision:number;exp:number;events:PvpEvent[];match?:string;matchInfo?:{mode:string;level:number;mineName:string;foeName:string;foeTier:string|null;bot:boolean;pointBefore:number;pointAfterStart:number};result?:unknown;done:boolean;chooseDeadline?:number;timer?:ReturnType<typeof setTimeout>}
+interface Fight {id:string;player:string;b:Battle;keys:string[];mode:string;stage?:string;revision:number;exp:number;events:PvpEvent[];match?:string;matchInfo?:{mode:string;level:number;mineName:string;foeName:string;foeTier:string|null;bot:boolean;pointBefore:number;pointAfterStart:number};result?:unknown;done:boolean;chooseDeadline?:number;choiceToken?:string;timer?:ReturnType<typeof setTimeout>}
 const action=z.union([z.object({kind:z.literal('skill'),skillId:z.string().max(40)}).strict(),z.object({kind:z.literal('switch'),to:z.number().int().min(0).max(2)}).strict(),z.object({kind:z.literal('item'),item:z.string().max(30),target:z.number().int().min(0).max(2).optional()}).strict()]);
-const turn=z.object({session:z.string().max(40),revision:z.number().int().min(0),action:action.optional(),choose:z.object({augment:z.string().max(30).optional(),switchTo:z.number().int().min(0).max(2).optional()}).strict().optional(),reroll:z.number().int().min(0).max(2).optional(),leave:z.boolean().optional()}).strict().refine(b=>[b.action,b.choose,b.reroll,b.leave].filter(x=>x!==undefined).length===1);
-export function registerNative(app:FastifyInstance,game:GameService,root:string,auth:(r:FastifyRequest)=>string|null,guard:(r:FastifyRequest,p:FastifyReply)=>boolean,realtime?:RealtimePvpService,options:BattleServiceOptions={version:1}){
+const turn=z.object({session:z.string().max(40),revision:z.number().int().min(0),action:action.optional(),choose:z.object({augment:z.string().max(30).optional(),switchTo:z.number().int().min(0).max(2).optional(),freestyle:z.object({selectionId:z.string().max(100),phaseId:z.string().max(100),targetKey:z.string().max(100),attribute:z.enum(attrKeys)}).strict().optional()}).strict().optional(),reroll:z.number().int().min(0).max(2).optional(),leave:z.boolean().optional()}).strict().refine(b=>[b.action,b.choose,b.reroll,b.leave].filter(x=>x!==undefined).length===1);
+export function registerNative(app:FastifyInstance,game:GameService,root:string,auth:(r:FastifyRequest)=>string|null,guard:(r:FastifyRequest,p:FastifyReply)=>boolean,realtime?:RealtimePvpService,options?:BattleServiceOptions){
   const battles=createBattleService(loadBattleRules(root),options),R=battles.R,story=loadStory(root,R),content=loadContent(root),fights=new Map<string,Fight>(),locks=new Map<string,Promise<unknown>>();
   const serial=async<T>(id:string,run:()=>Promise<T>)=>{const p=(locks.get(id)??Promise.resolve()).catch(()=>{}).then(run);locks.set(id,p);try{return await p;}finally{if(locks.get(id)===p)locks.delete(id);}};
   const route=(method:'GET'|'POST',path:string,run:(id:string,body:any)=>Promise<unknown>)=>app.route({method,url:`/my/api/native/${path}`,config:{rateLimit:{max:120,timeWindow:'1 minute'}},handler:async(req,reply)=>{
     if(!guard(req,reply))return;const id=auth(req);if(!id)return reply.code(401).send({error:'login',...(path.startsWith('progression')?{ok:false,retryable:false}:{})});
-    reply.header('Cache-Control','no-store');const target=path==='battle/current'?[...fights.values()].find(f=>f.player===id&&!f.done&&f.exp>Date.now()):path==='battle/turn'?fights.get((req.body as {session?:string}|undefined)?.session??''):undefined;const requiredVersion=requiredAugmentClientVersion(path,battles.version,target?.player===id?target.b.R.augmentVersion:1,(req.body as {leave?:unknown}|undefined)?.leave===true);if(!supportsAugmentVersion(requiredVersion,req.headers['x-gmm-augment-version']))return reply.code(409).send({error:'새 증강체를 사용하려면 앱을 업데이트해 주세요.',code:'AUGMENT_VERSION_UNSUPPORTED',augmentVersion:2});try{return await serial(id,()=>realtime?realtime.nativeOperation(id,path,()=>run(id,req.body??{})):run(id,req.body??{}));}catch(e){if(e instanceof GameError||e instanceof z.ZodError)return reply.code(400).send({error:e instanceof GameError?e.message:'입력 정보를 확인해 주세요.',...(path.startsWith('progression')?{ok:false,retryable:false}:{})});throw e;}
+    reply.header('Cache-Control','no-store');const target=path==='battle/current'?[...fights.values()].find(f=>f.player===id&&!f.done&&f.exp>Date.now()):path==='battle/turn'?fights.get((req.body as {session?:string}|undefined)?.session??''):undefined;const requiredVersion=requiredAugmentClientVersion(path,battles.version,target?.player===id?target.b.R.augmentVersion:1,(req.body as {leave?:unknown}|undefined)?.leave===true);if(!supportsAugmentVersion(requiredVersion,req.headers['x-gmm-augment-version']))return reply.code(409).send({error:'새 증강체를 사용하려면 앱을 업데이트해 주세요.',code:'AUGMENT_VERSION_UNSUPPORTED',augmentVersion:2});if(!supportsCombatEpoch(path,battles.combatRulesEpoch,target?.player===id?target.b.combatRulesEpoch:undefined,req.headers['x-gmm-combat-epoch'],(req.body as {leave?:unknown}|undefined)?.leave===true))return reply.code(409).send(combatUpgradeRequired());try{return await serial(id,()=>realtime?realtime.nativeOperation(id,path,()=>run(id,req.body??{})):run(id,req.body??{}));}catch(e){if(e instanceof GameError||e instanceof z.ZodError)return reply.code(400).send({error:e instanceof GameError?e.message:'입력 정보를 확인해 주세요.',...(path.startsWith('progression')?{ok:false,retryable:false}:{})});throw e;}
   }});
   const requireIdle=(id:string)=>{if([...fights.values()].some(f=>f.player===id&&!f.done&&f.exp>Date.now()))throw new GameError('진행 중인 전투를 마친 뒤 편성·성장·회복을 변경해 주세요.');};
   const requestId=z.string().regex(/^[A-Za-z0-9:_-]{8,80}$/);
@@ -146,16 +147,20 @@ export function registerNative(app:FastifyInstance,game:GameService,root:string,
   // 다시 뽑기·재접속으로 제한 시간을 늘리지 않는다. 사용자별 직렬 처리 안에서만 실행한다.
   function expireChoice(f:Fight){
     if(f.done||!f.chooseDeadline||Date.now()<f.chooseDeadline||f.b.phase!=='choose')return;
-    const offers=f.b.sides[0].offers;if(!offers?.length)return;
-    const next:Battle={...f.b,sides:structuredClone(f.b.sides),log:[...f.b.log],events:structuredClone(f.b.events)};
+    const offers=f.b.sides[0].offers,freestyle=pending(f.b,0).freestyle;if(!offers?.length&&!freestyle)return;
+    const next:Battle={...f.b,sides:structuredClone(f.b.sides),augmentOffers:structuredClone(f.b.augmentOffers),log:[...f.b.log],events:structuredClone(f.b.events)};
     const live=next.sides[0].fighters.map((x,i)=>x.hp>0?i:-1).filter(i=>i>=0);
-    const pick={augment:offers[randomInt(offers.length)],...(next.sides[0].needSwitch?{switchTo:live[randomInt(live.length)]}:{})};
-    next.log.push('선택 시간 30초가 지나 증강체를 무작위로 골랐어요.');
+    const pick:Choice=freestyle?{freestyle:automaticFreestyleChoice(next,0)}:{augment:offers![randomInt(offers!.length)],...(next.sides[0].needSwitch?{switchTo:live[randomInt(live.length)]}:{})};
+    next.log.push(freestyle?'선택 시간 30초가 지나 속성을 자동으로 골랐어요.':'선택 시간 30초가 지나 증강체를 무작위로 골랐어요.');
     choose(next,0,pick);if(next.phase==='choose')aiChoose(next,1);
+    // Match the manual-turn path: finish AI-only choices, but never consume a human choice.
+    while(next.phase==='choose'&&!pending(next,0).augments&&!pending(next,0).needSwitch&&!pending(next,0).freestyle)aiChoose(next,1);
     f.b=next;f.events.push({c:pick});f.revision++;syncChoice(f);
   }
   function syncChoice(f:Fight){
-    if(f.done||f.b.phase!=='choose'||!f.b.sides[0].offers?.length){
+    const work=pending(f.b,0),token=work.freestyle?.selectionId??`augment:${f.b.augmentOffers?.roundIndex??f.b.turn}`;
+    if(f.choiceToken!==token){if(f.timer)clearTimeout(f.timer);f.timer=undefined;f.chooseDeadline=undefined;f.choiceToken=token;}
+    if(f.done||f.b.phase!=='choose'||(!f.b.sides[0].offers?.length&&!work.freestyle)){
       if(f.timer)clearTimeout(f.timer);f.timer=undefined;f.chooseDeadline=undefined;return;
     }
     if(f.chooseDeadline)return;
@@ -171,7 +176,7 @@ export function registerNative(app:FastifyInstance,game:GameService,root:string,
     const move={id:'basic-preview',name:'상성 확인',power:1,cd:0,effects:[],desc:''};
     return {attack:skillPreview(copy,side,move),defense:skillPreview(copy,(1-side) as 0|1,move)};
   }
-  function snapshot(f:Fight){const b=f.b,R=b.R;return {...publicAugmentState(b),session:f.id,revision:f.revision,serverNow:Date.now(),chooseDeadline:f.chooseDeadline,mode:f.mode,stage:f.stage,scene:stages.find(st=>st.id===f.stage)?.scene??'harbor',hint:stages.find(st=>st.id===f.stage)?.hint??'',boss:b.sides[1].fighters.some(x=>R.villains.get(x.rec.id)?.boss),phase:b.phase,turn:b.turn,winner:b.winner,result:f.result,matchInfo:f.matchInfo,itemLimit:R.data.itemRules.perBattle,history:b.log,log:b.log.slice(-50),displayEventVersion:1,displayEventSeq:b.eventSeq,displayEvents:b.events,displayLogStart:Math.max(0,b.log.length-50),teams:b.sides.map((s,side)=>({active:s.active,comboUsed:s.comboUsed,augments:s.augs.map(id=>publicAugment(b,id)),needSwitch:s.needSwitch,offers:s.offers?.map((id,i)=>({...publicAugment(b,id,s.rerolled[i]??false),icon:existsSync(`${root}/public/battle/icons/${id}.png`)?id:'u-gift',rerolled:s.rerolled[i]}))??[],fighters:s.fighters.map((x,slot)=>({key:x.rec.uid,id:x.rec.ownedCharacterId??x.rec.id,combatDefinitionId:x.rec.id,name:x.name,level:x.rec.level,stage:x.rec.stage,role:x.role,base:x.base,tint:R.data.villains[x.rec.id]?.tint??null,realTintArt:!!R.data.villains[x.rec.id]?.tint&&existsSync(`${root}/public/battle/sprites/V17_front.webp`),bodyScale:x.rec.stage&&existsSync(`${root}/public/battle/sprites/${x.rec.id}_s${x.rec.stage}_front.webp`)?1:bodyScale[x.rec.id]??1,matchup:matchup(b,side as 0|1,slot),image:image(x.rec.ownedCharacterId??x.rec.id,side===0?'back':'front',x.rec.stage),hp:x.hp,maxHp:x.maxHp,...publicShield(b,x),attr:R.attrName(x.attr),attrCode:x.attr,extraAttr:x.extraAttr?R.attrName(x.extraAttr):null,status:x.status,effects:nativeFighterEffects(R,x),skills:x.skills.map(sk=>({...sk,preview:skillPreview(battleFor(b,side as 0|1,slot),side as 0|1,sk),reason:skillProblem(battleFor(b,side as 0|1,slot),side as 0|1,sk)}))})),legal:b.phase==='action'?legalActions(b,side as 0|1):[],itemsUsed:s.itemsUsed})),items:Object.entries(R.data.items).map(([id,it])=>({id,...it,reason:itemProblem(b,0,id)}))};}
+  function snapshot(f:Fight){const b=f.b,R=b.R,exposeHistory=exposeCombatHistory(b);return {...publicCombatReplayState(b),...publicAugmentState(b),session:f.id,revision:f.revision,serverNow:Date.now(),chooseDeadline:f.chooseDeadline,mode:f.mode,stage:f.stage,scene:stages.find(st=>st.id===f.stage)?.scene??'harbor',hint:stages.find(st=>st.id===f.stage)?.hint??'',boss:b.sides[1].fighters.some(x=>R.villains.get(x.rec.id)?.boss),phase:b.phase,turn:b.turn,winner:b.winner,result:f.result,matchInfo:f.matchInfo,itemLimit:R.data.itemRules.perBattle,history:exposeHistory?b.log:[],log:exposeHistory?b.log.slice(-50):[],displayEventVersion:1,displayEventSeq:b.eventSeq,displayEvents:exposeHistory?b.events:[],displayLogStart:exposeHistory?Math.max(0,b.log.length-50):0,teams:b.sides.map((s,side)=>({active:s.active,comboUsed:s.comboUsed,augments:s.augs.map(id=>publicAugment(b,id)),needSwitch:s.needSwitch,attributeSelection:side===0?publicAttributeSelection(b,0):null,offers:s.offers?.map((id,i)=>({...publicAugment(b,id,s.rerolled[i]??false),icon:existsSync(`${root}/public/battle/icons/${id}.png`)?id:'u-gift',rerolled:s.rerolled[i]}))??[],fighters:s.fighters.map((x,slot)=>({key:x.rec.uid,id:x.rec.ownedCharacterId??x.rec.id,combatDefinitionId:x.rec.id,name:x.name,level:x.rec.level,stage:x.rec.stage,role:x.role,base:x.base,tint:R.data.villains[x.rec.id]?.tint??null,realTintArt:!!R.data.villains[x.rec.id]?.tint&&existsSync(`${root}/public/battle/sprites/V17_front.webp`),bodyScale:x.rec.stage&&existsSync(`${root}/public/battle/sprites/${x.rec.id}_s${x.rec.stage}_front.webp`)?1:bodyScale[x.rec.id]??1,matchup:matchup(b,side as 0|1,slot),image:image(x.rec.ownedCharacterId??x.rec.id,side===0?'back':'front',x.rec.stage),hp:x.hp,maxHp:x.maxHp,...publicShield(b,x),attr:R.attrName(x.attr),attrCode:x.attr,extraAttr:x.extraAttr?R.attrName(x.extraAttr):null,status:x.status,effects:nativeFighterEffects(R,x),skills:x.skills.map(sk=>({...sk,preview:skillPreview(battleFor(b,side as 0|1,slot),side as 0|1,sk),reason:skillProblem(battleFor(b,side as 0|1,slot),side as 0|1,sk)}))})),legal:b.phase==='action'?legalActions(b,side as 0|1):[],itemsUsed:s.itemsUsed})),items:Object.entries(R.data.items).map(([id,it])=>({id,...it,reason:itemProblem(b,0,id)}))};}
   route('POST','battle/start',async(id,body)=>{const v=z.object({mode:z.enum(['story','practice','normal','rank']),stage:z.string().max(12).optional(),roster:z.array(z.string()).min(1).max(3).optional(),enemyRoster:z.array(z.string()).min(1).max(3).optional(),level:z.number().int().min(1).max(60).optional(),promotion:z.number().int().min(0).max(3).optional()}).strict().refine(v=>v.mode==='practice'||[v.roster,v.enemyRoster,v.level,v.promotion].every(x=>x===undefined)).parse(body);game.assertLegacyPvpAllowed(v.mode);const now=Date.now();for(const [k,f] of fights)if(f.exp<now){if(f.timer)clearTimeout(f.timer);fights.delete(k);}if([...fights.values()].some(f=>f.player===id&&!f.done))throw new GameError('진행 중인 전투로 돌아가 주세요.');if(fights.size>=20000)throw new GameError('잠시 후 다시 시도해 주세요.');
     const s=await read(id),o=await mine(id);let team=s.team.filter(k=>o.has(k)).map(k=>rec(k,s,o)),foe:UnitRecord[],seed=randomInt(2**31-1),match:string|undefined,matchInfo:Fight['matchInfo'];
     if(v.mode==='normal'||v.mode==='rank'){if(battles.version===2)throw new GameError('새 증강 대전은 실시간 대전에서 시작해 주세요.');const before=await game.webPvp(id),me=await game.webMe(id),m=await game.webPvpMatch(id,v.mode),after=await game.webPvp(id);team=m.mine;foe=m.foe;seed=m.seed;match=m.match;matchInfo={mode:m.mode,level:m.mine[0].level,mineName:me?.nickname??'내 수비대',foeName:m.foeName,foeTier:m.foeTier,bot:m.bot,pointBefore:before.me.point,pointAfterStart:after.me.point};}
@@ -189,12 +194,12 @@ export function registerNative(app:FastifyInstance,game:GameService,root:string,
   route('POST','battle/turn',async(id,body)=>{const v=turn.parse(body),f=fights.get(v.session);if(!f||f.player!==id||f.exp<Date.now())throw new GameError('전투가 만료됐어요. 다시 시작해 주세요.');if(f.mode==='rank'){discardLegacyRank(f);throw new GameError(LEGACY_RANK_UNAVAILABLE);}expireChoice(f);if(v.revision!==f.revision)return snapshot(f);if(f.done)return snapshot(f);
     const b=f.b;
     // 실패 시 턴/RNG/아이템이 일부만 바뀌지 않도록 복사에서 먼저 검증한다.
-    const next:Battle={...b,sides:structuredClone(b.sides),log:[...b.log],events:structuredClone(b.events)};let event:PvpEvent|undefined;let bonusReroll=false;
+    const next:Battle={...b,sides:structuredClone(b.sides),augmentOffers:structuredClone(b.augmentOffers),log:[...b.log],events:structuredClone(b.events)};let event:PvpEvent|undefined;let bonusReroll=false;
     try{if(v.leave){next.phase='over';next.winner=1;}
       else if(v.choose){choose(next,0,v.choose);if(next.phase==='choose')aiChoose(next,1);event={c:v.choose};}
       else if(v.reroll!==undefined){bonusReroll=!!next.sides[0].rerolled[v.reroll];if(bonusReroll&&f.match)throw new Error('추가 다시뽑기는 스토리·연습·실시간 대전에서 사용할 수 있어요.');rerollAugment(next,0,v.reroll,bonusReroll);event={r:v.reroll};}
       else if(v.action){if(v.action.kind==='item'){if(f.mode!=='story')throw new Error('스토리에서만 아이템을 사용할 수 있어요.');const why=itemProblem(next,0,v.action.item,v.action.target);if(why)throw new Error(why);}act(next,[v.action as Action,pickAi(next,1)]);event={a:v.action as Action};}
-      while(next.phase==='choose'&&!pending(next,0).augments&&!pending(next,0).needSwitch)aiChoose(next,1);
+      while(next.phase==='choose'&&!pending(next,0).augments&&!pending(next,0).needSwitch&&!pending(next,0).freestyle)aiChoose(next,1);
     }catch(e){throw new GameError((e as Error).message);}
     if(bonusReroll)await game.webConsumeBonusReroll(id,`reroll:${f.id}:${f.revision}`);
     const item=v.action?.kind==='item'?{id:v.action.item,name:R.data.items[v.action.item].name}:undefined;
@@ -213,4 +218,5 @@ export function registerNative(app:FastifyInstance,game:GameService,root:string,
   });
   return {hasActiveStory:(id:string)=>[...fights.values()].some(f=>f.player===id&&f.mode==='story'&&!f.done&&f.exp>Date.now())};
 }
+
 
