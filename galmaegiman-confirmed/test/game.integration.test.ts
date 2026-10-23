@@ -96,16 +96,16 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await me()).credits).toBe(50);
   });
   it('뽑기 비용 하급 2 / 중급 3 / 고급 5, 여러 번 뽑기, 부족하면 차감 없음',async()=>{
-    expect((await send('하급뽑기')).text).toContain('새 흔함 발견');
+    expect((await send('하급뽑기')).text).toContain('새 커먼 발견');
     expect((await me()).credits).toBe(28);
     await send('중급 뽑기');expect((await me()).credits).toBe(25);
     await send('뽑기 고급');expect((await me()).credits).toBe(20);
     const multi=await send('하급뽑기 5');
     expect(multi.text).toContain('하급 뽑기 ×5');
     // 같은 유닛은 한 줄로 묶고 등급 머리말 아래에 표시
-    expect(multi.text).toContain('🥚 흔함\n  기본 갈매미맨 ×5');
+    expect(multi.text).toContain('🥚 커먼\n  기본 갈매미맨 ×5');
     expect(multi.text).toContain('──────────\n📌 지금  🎟');
-    expect(multi.cards?.items).toEqual([{imageId:'C1',title:'🥚 기본 갈매미맨 ×5',description:'흔함',buttons:[{label:'도감 보기',message:'도감 기본 갈매미맨'}]}]);
+    expect(multi.cards?.items).toEqual([{imageId:'C1',title:'🥚 기본 갈매미맨 ×5',description:'커먼',buttons:[{label:'도감 보기',message:'도감 기본 갈매미맨'}]}]);
     expect(multi.cards?.outro).toContain('──────────\n📌 지금  🎟');
     // 뽑기 8회째에 '뽑기 5회' 미션 달성 → +20
     expect(multi.text).toContain('오늘의 미션 완료');
@@ -121,7 +121,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(preview.text).not.toContain('가리키기');
     expect(await db.ownedCharacter.count({where:{status:'CONSUMED'}})).toBe(0);
     const done=await confirm(preview);
-    expect(done.text).toContain('조합 성공! 새 희귀 발견');
+    expect(done.text).toContain('조합 성공! 새 에픽 발견');
     expect(done.text).not.toContain('💬');
     expect(await db.ownedCharacter.count({where:{status:'CONSUMED'}})).toBe(2);
     expect((await me()).snack).toBe(200);
@@ -181,7 +181,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await me()).snack).toBe(1450-350+50);   // 금갑 첫 발견 보상 +50
     expect(await db.ownedCharacter.count({where:{characterId:'U1'}})).toBe(1);
     const shop=await send('상점');
-    expect(shop.cards!.items.map(i=>i.title)).toEqual(['🥚 흔함 고르기','🔹 안흔함 고르기','🎟 뽑기권 10장','🍤 남는 갈매미 팔기','🧭 탐험 즉시 귀환','🥜 땅콩 상점']);
+    expect(shop.cards!.items.map(i=>i.title)).toEqual(['🥚 커먼 고르기','🔹 레어 고르기','🎟 뽑기권 10장','🍤 남는 갈매미 팔기','🧭 탐험 즉시 귀환','🥜 땅콩 상점']);
     const before=(await me()).credits;
     const tickets=await send('상점 뽑기권');
     expect(tickets.list!.items[0].message).toBe('구매 확정');
@@ -230,7 +230,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const p=await fixtures(['D1'],{snack:300});
     for(const id of ['C2','C3','C4','C5','C6','C7','C8','C9'])await db.collectionEntry.create({data:{playerId:p.id,characterId:id}});
     const done=await confirm(await send('교환 기본'));
-    expect(done.text).toContain('흔함 도감 완성');
+    expect(done.text).toContain('커먼 도감 완성');
     expect(done.text).toContain('바닷가 산책자');
     expect((await me()).credits).toBe(35);
     await confirm(await send('교환 기본'));
@@ -339,7 +339,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(one.text).not.toContain('💬');
     const drawn=content.characters.find(c=>one.text.includes(`【${c.name}】`))!;
     expect(one.text).not.toContain(drawn.tagline);
-    expect(one.text).toContain('새 흔함 발견');
+    expect(one.text).toContain('새 커먼 발견');
     expect((await send('하급뽑기')).text).not.toContain('💬');
     expect((await send('고급뽑기 3')).text).not.toContain('💬');
     expect((await send('도감 C1')).text).toContain('💬');
@@ -361,10 +361,10 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(dex.cards!.items[5]).toMatchObject({imageId:'unknown',title:'❔ 히든'});
     const grades=await send('조합목록');
     expect(grades.cards!.items).toHaveLength(9);
-    expect(grades.cards!.items[0].buttons![0]).toEqual({label:'목록 보기',message:'조합목록 안흔함'});
+    expect(grades.cards!.items[0].buttons![0]).toEqual({label:'목록 보기',message:'조합목록 레어'});
     const common=await send('도감 흔함');
     expect(common.cards!.items).toHaveLength(9);
-    expect(common.cards!.items.find(c=>c.title.includes('우주'))!.imageId).toBe('q-COMMON');// 미수집 흔함은 흔함 실루엣
+    expect(common.cards!.items.find(c=>c.title.includes('우주'))!.imageId).toBe('q-COMMON');// 미수집 커먼은 커먼 실루엣
     expect(common.cards!.items.find(c=>c.title.includes('기본'))!.imageId).toBe('C1');
     const info=await send('내정보');
     expect(info.cards!.items[0].imageId).toBe('U1');
@@ -420,14 +420,14 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await fixtures(['S1','U1','R1','R20','L2','H1','S1','U1'],{credits:0});
     await db.collectionEntry.create({data:{playerId:(await me()).id,characterId:'H1'}});
     const rare=await confirm(await send('조합 황금쌍패성기사'));
-    expect(rare.text).toContain('🎉 오늘의 미션 완료! 희귀 조합하기 · 🎟 +30');
+    expect(rare.text).toContain('🎉 오늘의 미션 완료! 에픽 조합하기 · 🎟 +30');
     const legend=await confirm(await send('조합 쌍패성왕'));
     expect(legend.text).toContain('🎉 오늘의 미션 완료! 전설 또는 히든 조합하기 · 🎟 +50');
     expect(legend.text).not.toContain('조합 3회');
     const top=await confirm(await send('조합 갈크탑'));
     expect(top.text).toContain('🎉 오늘의 미션 완료! 최상위 유닛 조합하기 · 🎟 +100');
     expect(top.text).toContain('🎉 오늘의 미션 완료! 조합 3회 · 🎟 +20');
-    expect((await confirm(await send('조합 황금쌍패성기사'))).text).not.toContain('희귀 조합하기');
+    expect((await confirm(await send('조합 황금쌍패성기사'))).text).not.toContain('에픽 조합하기');
     expect((await me()).credits).toBe(30+50+100+20);
     expect((await send('미션')).text).toContain('✅ 최상위 유닛 조합하기 · 🎟 100');
   });
@@ -514,7 +514,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect(sell.list!.items[0].message).toBe('팔기 확정');
     await confirm(sell);
     expect(await db.ownedCharacter.count({where:{characterId:'C3',status:'AVAILABLE'}})).toBe(1);
-    expect((await me()).snack).toBe(50+10+10+30);   // 금갑 첫 50 + 중복 10×2 + 흔함 10×3
+    expect((await me()).snack).toBe(50+10+10+30);   // 금갑 첫 50 + 중복 10×2 + 커먼 10×3
     expect((await send('팔기 암흑 갈매미맨')).text).toContain('팔 수 있는');
     await send('잠금 금갑');
     expect(await db.ownedCharacter.count({where:{characterId:'U1',locked:true}})).toBe(3);
@@ -598,7 +598,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await db.collectionEntry.create({data:{playerId:(await me()).id,characterId:'C1'}});
     const face=(r:GameReply,title:string)=>r.cards!.items.find(c=>c.title.includes(title))!.imageId;
     const dex=await send('도감');
-    expect(face(dex,'흔함')).toBe('C1');// 얻은 유닛
+    expect(face(dex,'커먼')).toBe('C1');// 얻은 유닛
     expect(['q-IMMORTAL','unknown']).toContain(face(dex,'불멸'));// 못 얻은 등급
     expect(['q-RARE','unknown']).toContain((await send('조합목록 희귀')).cards!.items[0].imageId);
     expect(['q-RARE','unknown']).toContain((await send('조합식 황금쌍패성기사')).cards!.items[0].imageId);
@@ -1358,6 +1358,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     expect((await game.webMe((await me()).id))!.party).toEqual(saved);
     await game.webStartExpedition((await me()).id);
     expect((await game.webMe((await me()).id))!.trip!.ids).toEqual(saved);
+    const storedTrip=await db.expedition.findFirstOrThrow({where:{playerId:(await me()).id,claimedAt:null}});
+    expect((await game.webMe((await me()).id))!.trip!.plan).toEqual(storedTrip.plan);
     expect((await game.webMe((await me()).id))!.party).toEqual(saved);
   });
   it('이벤트 기간: 뽑기권 받기 추가 지급과 뽑기 메뉴 배너',async()=>{

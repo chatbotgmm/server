@@ -192,11 +192,14 @@ public class NativeEconomyThemeContractTest {
     try (var controller = flow.start()) {
       MainActivity host = controller.get(); Api api = prepare(host);
       host.menus.economy.expedition();
+      host.menus.economy.expeditionPreparation.open(-1);
       host.root.findViewWithTag("expedition-add-D1").performClick();
       host.root.findViewWithTag("expedition-add-D1").performClick();
-      assertEquals(List.of("D1", "D1"), host.expeditionDraft);
+      assertEquals(List.of("D1", "D1"), host.menus.economy.expeditionPreparation.draft.editing);
+      assertTrue(host.expeditionDraft.isEmpty());
       assertFalse(host.root.findViewWithTag("expedition-add-D1").isEnabled());
-      assertFalse(controls.button(host.root, "탐험 출발").isEnabled());
+      host.root.findViewWithTag("expedition-picker-accept").performClick();
+      assertNull(host.root.findViewWithTag("expedition-depart"));
       assertTrue(api.writes.isEmpty());
       controls.button(host.root, "편성 저장").performClick();
       assertEquals(List.of("POST party"), api.requests);

@@ -178,9 +178,9 @@ public class NativeCommerceFeedbackTest {
               : tag.substring("expedition-add-".length());
           TextView name = v.findViewWithTag("economy-name-preview");
           assertNotNull("Small character sprites have a visible native name", name);
-          assertEquals(h.menus.economy.find(id).optString("name"), name.getText().toString());
-          assertEquals(name.getText().toString(), name.getContentDescription().toString());
-          assertEquals(1, name.getMaxLines());
+          assertEquals(h.menus.economy.find(id).optString("name"), name.getText().toString().replace("\n", " "));
+          assertEquals(name.getText().toString().replace("\n", " "), name.getContentDescription().toString());
+          assertEquals(h.getResources().getConfiguration().fontScale >= 1.6f ? 1 : 2, name.getMaxLines());
         }
         if (state.equals("expedition-ten") && tag.startsWith("expedition-add-")) {
           assertFalse(v.isEnabled()); assertTrue(v.getContentDescription().toString().contains("정원 10명"));
@@ -189,7 +189,7 @@ public class NativeCommerceFeedbackTest {
       assertEquals(10, filled + empty);
       assertEquals(state.equals("expedition-ten") ? 10 : 0, filled);
       assertNull(h.root.findViewWithTag("expedition-selected-pages"));
-      assertTrue(art >= 8);
+      assertEquals("Board displays only selected character art", filled, art);
     }
     if (state.equals("recruit")) {
       assertFalse(flow.labels(h.root).contains("지급·보장"));
@@ -290,31 +290,30 @@ public class NativeCommerceFeedbackTest {
   @Test public void all33CandidatesCapacityAndDuplicateIndicesAreLocal() throws Exception {
     try (var controller = flow.start()) {
       MainActivity h = controller.get(); NativeEconomyThemeFixture.Api api = prepare(h);
-      h.menus.economy.expedition(); List<String> seen = new ArrayList<>();
+      h.menus.economy.expedition(); NativeExpeditionPreparation prep = h.menus.economy.expeditionPreparation;
+      prep.open(-1); List<String> seen = new ArrayList<>();
       while (true) {
         for (View view : frames.descendants(h.root.findViewWithTag("expedition-candidates"))) {
           String tag = String.valueOf(view.getTag());
-          if (tag.startsWith("expedition-add-")) {
-            String id = tag.substring("expedition-add-".length()); seen.add(id);
+          if (tag.startsWith("expedition-candidate-")) {
+            String id = tag.substring("expedition-candidate-".length()); seen.add(id);
             TextView name = view.findViewWithTag("economy-name-preview");
-            assertEquals(h.menus.economy.find(id).optString("name"), name.getText().toString());
-            assertEquals(name.getText().toString(), name.getContentDescription().toString());
+            assertEquals(h.menus.economy.find(id).optString("name"), name.getContentDescription().toString());
           }
         }
-        Button next = controls.button(h.root.findViewWithTag("expedition-candidate-pages"), "›");
+        Button next = h.root.findViewWithTag("expedition-candidate-next");
         if (!next.isEnabled()) break; next.performClick();
       }
-      assertEquals(top33(), seen);
+      assertEquals(top33(), seen); prep.back();
       h.expeditionDraft = new ArrayList<>(Arrays.asList("D1", "D2", "D1", "D3", "D4", "D5", "D6", "D7", "D8", "E1"));
-      h.menus.economy.crewPage = 0; h.menus.economy.expedition();
-      View candidate = h.root.findViewWithTag("expedition-add-D3");
-      assertFalse(candidate.isEnabled()); assertTrue(candidate.getContentDescription().toString().contains("정원 10명"));
-      candidate.performClick(); assertEquals(10, h.expeditionDraft.size());
+      prep.render(); prep.open(-1);
+      View candidate = h.root.findViewWithTag("expedition-add-D3"); assertFalse(candidate.isEnabled());
+      candidate.performClick(); assertEquals(10, prep.draft.editing.size()); prep.back();
       h.root.findViewWithTag("expedition-member-2").performClick();
+      h.visibleDialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+      Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
       assertEquals(Arrays.asList("D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "E1"), h.expeditionDraft);
-      assertTrue(((TextView) h.root.findViewWithTag("expedition-selection-summary")).getText().toString()
-          .contains(h.menus.economy.find("D1").optString("name")));
-      assertTrue(h.root.findViewWithTag("expedition-add-D3").isEnabled());
+      prep.open(-1); assertTrue(h.root.findViewWithTag("expedition-add-D3").isEnabled()); prep.back();
       assertEquals(0, api.writes); assertNull(h.visibleDialog);
     }
   }
@@ -376,18 +375,20 @@ public class NativeCommerceFeedbackTest {
       PendingApi api = new PendingApi(h); h.api = api;
       h.me().put("party", new JSONArray()); h.expeditionDraft = null;
       h.menus.economy.expedition();
+      h.menus.economy.expeditionPreparation.open(-1);
       h.root.findViewWithTag("expedition-add-D1").performClick();
       h.root.findViewWithTag("expedition-add-D1").performClick();
+      h.root.findViewWithTag("expedition-picker-accept").performClick();
       h.root.findViewWithTag("expedition-save").performClick();
       assertEquals(List.of("party"), api.writes);
       assertEquals("[\"D1\",\"D1\"]", api.bodies.get(0).getJSONArray("ids").toString());
       h.root.findViewWithTag("expedition-save").performClick();
       assertEquals(1, api.writes.size());
-      assertFalse(h.root.findViewWithTag("expedition-depart").isEnabled());
+      assertNull(h.root.findViewWithTag("expedition-depart"));
       api.complete("편성을 저장하지 못했어요.");
       assertTrue(h.menus.economy.partyChanged());
       assertEquals(0, h.me().getJSONArray("party").length());
-      assertFalse(h.root.findViewWithTag("expedition-depart").isEnabled());
+      assertNull(h.root.findViewWithTag("expedition-depart"));
       assertNotNull(h.visibleDialog); h.visibleDialog.dismiss();
       h.root.findViewWithTag("expedition-save").performClick();
       api.complete(null);

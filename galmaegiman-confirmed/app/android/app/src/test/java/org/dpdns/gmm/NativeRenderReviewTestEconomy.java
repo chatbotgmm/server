@@ -8,6 +8,7 @@ import android.widget.*;
 import java.time.Duration;
 import org.json.*;
 import org.junit.Before;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.*;
@@ -25,7 +26,11 @@ public class NativeRenderReviewTestEconomy {
   @Before
   public void scheduledFramesUseThePausedLooperClock() {
     review.scheduledFramesUseThePausedLooperClock();
+    TemporaryUnitPresentation.reset();
   }
+
+  @After
+  public void resetServerClockAnchor() { TemporaryUnitPresentation.reset(); }
 
   View taggedPrefix(View root, String prefix) {
     if (root.getTag() instanceof String && ((String) root.getTag()).startsWith(prefix)) return root;
@@ -56,24 +61,33 @@ public class NativeRenderReviewTestEconomy {
   public void completedTripChangesActionWithoutReloadAndStopsTickerOnLeave() throws Exception {
     try (ActivityController<MainActivity> controller = review.start()) {
       MainActivity a = controller.get();
-      long now = System.currentTimeMillis();
+      long now = 1800000000000L, end = now + 2400000;
+      TemporaryUnitPresentation.sync(now);
       a.me()
           .put(
               "trip",
               MainActivity.obj(
                   "startedAt",
-                  java.time.Instant.ofEpochMilli(now - 30000).toString(),
+                  java.time.Instant.ofEpochMilli(now - 1200000).toString(),
                   "endsAt",
-                  java.time.Instant.ofEpochMilli(now + 1500).toString(),
+                  java.time.Instant.ofEpochMilli(end).toString(),
                   "ids",
                   MainActivity.arr(java.util.List.of("D1", "T1"))));
       a.menus.economy.expedition();
       review.capture(a, "economy-trip-waiting", 915, 412);
-      assertNotNull(button(a.root, "바로 귀환"));
-      Thread.sleep(1800);
+      Button pending = a.root.findViewWithTag("expedition-trip-action");
+      assertNotNull(pending);
+      assertTrue(pending.getText().toString().startsWith("즉시 완료 ·"));
+      int tripEpoch = a.epoch;
+      // Match the elapsedRealtime-backed server clock used by the actual ticker.
+      // Artwork loading/capture may advance the paused looper, so establish the boundary afterwards.
+      TemporaryUnitPresentation.sync(end - 1500);
       Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(2));
-      Button reward = button(a.root, "탐험 보상 받기");
-      assertNotNull("귀환 경계에서 서버 재호출 없이 보상 버튼으로 갱신", reward);
+      assertTrue(TemporaryUnitPresentation.now() >= end);
+      Button reward = a.root.findViewWithTag("expedition-trip-action");
+      assertSame("Ticker updates the existing action without rebuilding the screen", pending, reward);
+      assertEquals("보상 받기", reward.getText().toString());
+      assertEquals("No navigation/reload at the completion boundary", tripEpoch, a.epoch);
       review.capture(a, "economy-trip-ready", 915, 412);
       int epoch = a.epoch;
       a.show("home");
@@ -102,14 +116,15 @@ public class NativeRenderReviewTestEconomy {
       a.expeditionDraft = null;
       a.menus.economy.expedition();
       review.capture(a, "economy-expedition-saved", 915, 412);
-      assertNotNull(a.root.findViewWithTag("expedition-summary").getBackground());
+      assertNotNull(a.root.findViewWithTag("expedition-selected-crew"));
       View saveStatus = a.root.findViewWithTag("expedition-save-status");
-      assertNotNull(((View) saveStatus.getParent()).getBackground());
-      assertFalse(button(a.root, "편성 저장").isEnabled());
+      assertNotNull(saveStatus);
+      assertNull(a.root.findViewWithTag("expedition-save"));
       assertTrue(button(a.root, "탐험 출발").isEnabled());
-      button(a.root, "비우기").performClick();
+      a.root.findViewWithTag("expedition-more").performClick();
+      button(a.visibleDialog.getWindow().getDecorView(), "비우기").performClick();
       assertTrue(button(a.root, "편성 저장").isEnabled());
-      assertFalse(button(a.root, "탐험 출발").isEnabled());
+      assertNull(a.root.findViewWithTag("expedition-depart"));
       assertTrue(a.expeditionDirty);
       a.show("home");
     }

@@ -322,13 +322,13 @@ public class BattleReadabilityTest {
     assertEquals("", NativeLibrary.recipeValueNote(new JSONObject()));
     assertEquals("", NativeLibrary.recipeValueNote(MainActivity.obj("recipeValue", 16)));
     assertEquals(
-        "조합 가치 · 흔함 16마리\n공격기 위력 +10%",
+        "조합 가치 · 커먼 16마리\n공격기 위력 +10%",
         NativeLibrary.recipeValueNote(MainActivity.obj("recipeValue", 16, "recipeBonusPct", 10)));
     assertEquals(
-        "조합 가치 · 흔함 16마리\n공격기 위력 +2.5%",
+        "조합 가치 · 커먼 16마리\n공격기 위력 +2.5%",
         NativeLibrary.recipeValueNote(MainActivity.obj("recipeValue", 16, "recipeBonusPct", 2.5)));
     assertEquals(
-        "조합 가치 · 흔함 1마리\n공격기 위력 +0%",
+        "조합 가치 · 커먼 1마리\n공격기 위력 +0%",
         NativeLibrary.recipeValueNote(MainActivity.obj("recipeValue", 1, "recipeBonusPct", 0)));
     try (ActivityController<MainActivity> c =
         Robolectric.buildActivity(MainActivity.class).setup().visible()) {
@@ -352,7 +352,7 @@ public class BattleReadabilityTest {
       assertNotNull("원래 상세 내용은 실제 모달에서 접근", decor.findViewWithTag("unit-extra-details"));
       TextView recipe = decor.findViewWithTag("unit-recipe-value");
       assertNotNull(recipe);
-      assertTrue(recipe.getText().toString().contains("흔함 16마리"));
+      assertTrue(recipe.getText().toString().contains("커먼 16마리"));
       assertTrue(recipe.getText().toString().contains("공격기 위력 +10%"));
       c.get().visibleDialog.dismiss();
       org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper())

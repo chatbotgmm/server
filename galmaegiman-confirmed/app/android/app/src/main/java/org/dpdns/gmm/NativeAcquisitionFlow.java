@@ -211,7 +211,7 @@ final class NativeAcquisitionFlow {
     words.addView(title);
     words.addView(
         k.note(
-            item.optString("tierName")
+            TierDisplay.name(item.optString("tier"), item.optString("tierName"))
                 + (owned.optString("attrName").isEmpty()
                     ? ""
                     : " · " + owned.optString("attrName"))));

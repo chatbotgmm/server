@@ -18,6 +18,7 @@ final class NativeEconomy {
   String crewSelectionNote = "";
   int recipePage, mixPage, crewPage, selectedCrewPage;
   Runnable recipeRepaint;
+  NativeExpeditionPreparation expeditionPreparation;
   TextView recipeIdentity;
   View recipeHint;
   final LinkedHashMap<String, Button> shopActions = new LinkedHashMap<>();
@@ -703,9 +704,9 @@ final class NativeEconomy {
     count.setTag(result ? "craft-result-tier" : "craft-material-count-" + unit.optString("id"));
     count.setGravity(Gravity.CENTER);
     if (result && bounded) {
-      slot.setContentDescription(unit.optString("name") + " · " + unit.optString("tierName"));
+      slot.setContentDescription(unit.optString("name") + " · " + TierDisplay.name(unit.optString("tier"), unit.optString("tierName")));
       slot.setOnClickListener(
-          v -> h.message(unit.optString("name") + " · " + unit.optString("tierName")));
+          v -> h.message(unit.optString("name") + " · " + TierDisplay.name(unit.optString("tier"), unit.optString("tierName"))));
     }
     if (!result) {
       boolean missing = unit.optInt("usable") < unit.optInt("need");
@@ -1931,8 +1932,10 @@ final class NativeEconomy {
   void expedition() {
     boolean returning = h.screen.equals("expedition") && h.expeditionDraft != null;
     crewSelectionNote = "";
-    h.base("탐험대 편성", "expedition");
+    expeditionPreparation = null;
+    h.base("탐험대", "expedition");
     economyScene("routes");
+    expeditionHeader();
     JSONObject trip = h.me().optJSONObject("trip");
     if (trip != null) {
       h.expeditionDirty = false;
@@ -1945,120 +1948,7 @@ final class NativeEconomy {
       for (int i = 0; i < saved.length(); i++) h.expeditionDraft.add(saved.optString(i));
       h.expeditionDirty = false;
     }
-    int max = partyMax();
-    LinearLayout chart = economyBody("expedition-chart");
-    chart.setPadding(h.dp(8), 0, h.dp(8), 0);
-    LinearLayout summary = k.row();
-    summary.setTag("expedition-summary");
-    summary.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
-    LinearLayout notes = k.column();
-    notes.setTag("expedition-summary-copy");
-    // Reserve a quiet reading inset inside the brass frame, without padding the 48dp actions.
-    notes.setPadding(h.dp(12), h.dp(6), h.dp(12), h.dp(6));
-    if (h.contentHeightDp() < 390) { notes.setOrientation(LinearLayout.HORIZONTAL); notes.setGravity(Gravity.CENTER_VERTICAL); }
-    summary.addView(notes, new LinearLayout.LayoutParams(0, -2, 1));
-    chart.addView(summary, new LinearLayout.LayoutParams(-1, -2));
-    LinearLayout columns = k.row();
-    columns.setGravity(Gravity.BOTTOM);
-    columns.setBaselineAligned(false);
-    chart.addView(columns, new LinearLayout.LayoutParams(-1, 0, 1));
-    LinearLayout selected = k.column(), candidates = k.column();
-    LinearLayout.LayoutParams a = new LinearLayout.LayoutParams(0, -1, .46f);
-    a.rightMargin = h.dp(8);
-    columns.addView(selected, a);
-    columns.addView(candidates, new LinearLayout.LayoutParams(0, -1, .54f));
-    LinearLayout footer = k.row();
-    footer.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
-    footer.setPadding(h.dp(6), h.dp(4), h.dp(6), h.dp(4));
-    TextView status = k.note("");
-    status.setTextColor(MainActivity.INK);
-    status.setTag("expedition-save-status");
-    footer.addView(status, new LinearLayout.LayoutParams(0, -2, 1));
-    Runnable[] paint = new Runnable[1];
-    Button save =
-        k.action(
-            "u-emblem",
-            "편성 저장",
-            () -> {
-              ArrayList<String> submitted = new ArrayList<>(h.expeditionDraft);
-              h.request(
-                  "party",
-                  MainActivity.obj("ids", MainActivity.arr(submitted)),
-                  (r, e) -> {
-                    try {
-                      h.me().put("party", MainActivity.arr(submitted));
-                    } catch (JSONException ignored) {
-                    }
-                    h.expeditionDirty = !h.expeditionDraft.equals(submitted);
-                    paint[0].run();
-                    Toast.makeText(h, "탐험 편성을 저장했어요.", Toast.LENGTH_SHORT).show();
-                  });
-            });
-    Button go =
-        k.primary(
-            "mode-camp",
-            "탐험 출발",
-            () -> {
-              if (partyChanged()) {
-                h.message("편성을 저장한 뒤 출발해 주세요.");
-                return;
-              }
-              if (h.expeditionDraft.isEmpty()) return;
-              h.confirm(
-                  "탐험대 " + h.expeditionDraft.size() + "마리를 출발시킬까요?\n귀환까지 전투·조합에 사용할 수 없어요.",
-                  () -> h.mutate("expedition/start", MainActivity.obj(), "expedition"));
-            });
-    save.setTag("expedition-save");
-    go.setTag("expedition-depart");
-    footer.addView(save, new LinearLayout.LayoutParams(h.dp(152), h.dp(48)));
-    footer.addView(go, new LinearLayout.LayoutParams(h.dp(176), h.dp(48)));
-    k.footer(footer);
-    ((LinearLayout.LayoutParams) footer.getLayoutParams()).topMargin = 0;
-    summary.addView(k.action(null, "보상·시너지", () -> expeditionDetails(h.expeditionDraft)),
-        new LinearLayout.LayoutParams(h.dp(124), h.dp(48)));
-    Button clear = k.action(null, "비우기", () -> { h.expeditionDraft.clear(); crewSelectionNote = ""; paint[0].run(); });
-    summary.addView(clear, new LinearLayout.LayoutParams(h.dp(80), h.dp(48)));
-    JSONArray previous = h.list(h.me(), "previousParty");
-    if (previous.length() > 0) summary.addView(k.action(null, "최근 편성", () -> {
-      h.expeditionDraft.clear();
-      crewSelectionNote = "";
-      for (int i = 0; i < previous.length() && h.expeditionDraft.size() < max; i++) {
-        String id = previous.optString(i);
-        JSONObject unit = find(id);
-        if (unit.optBoolean("top") && Collections.frequency(h.expeditionDraft, id)
-            < unit.optInt("have") - unit.optInt("away")) h.expeditionDraft.add(id);
-      }
-      if (h.expeditionDraft.size() < previous.length())
-        Toast.makeText(h, "지금 보낼 수 있는 갈매미만 불러왔어요.", Toast.LENGTH_SHORT).show();
-      paint[0].run();
-    }), new LinearLayout.LayoutParams(h.dp(104), h.dp(48)));
-    paint[0] = () -> {
-      notes.removeAllViews();
-      TextView heading = h.text("탐험대 " + h.expeditionDraft.size() + " / " + max, 16);
-      heading.setTag("expedition-summary-count");
-      heading.setTypeface(h.headline);
-      heading.setPadding(h.dp(8), 0, h.dp(4), 0);
-      notes.addView(heading);
-      compactExpeditionEstimate(notes, h.expeditionDraft);
-      selected.removeAllViews();
-      candidates.removeAllViews();
-      TextView selectedHeading = crewCaption(crewSelectionNote.isEmpty() ? "선택 대원 · 누르면 빼기" : crewSelectionNote);
-      selectedHeading.setTag("expedition-selection-summary");
-      selected.addView(selectedHeading);
-      TextView candidateHeading = crewCaption(h.expeditionDraft.size() >= max ? "정원 " + max + "명 · 먼저 빼기" : "후보 · 누르면 넣기");
-      candidateHeading.setTag("expedition-candidate-heading");
-      candidates.addView(candidateHeading);
-      partyStrip(selected, h.expeditionDraft, true, paint[0]);
-      candidateStrip(candidates, max, paint[0]);
-      clear.setEnabled(!h.expeditionDraft.isEmpty());
-      h.expeditionDirty = partyChanged();
-      save.setBackground(new GameButtonDrawable(h, h.expeditionDirty ? GameButtonDrawable.PRIMARY : GameButtonDrawable.PAPER));
-      go.setBackground(new GameButtonDrawable(h, h.expeditionDirty ? GameButtonDrawable.PAPER : GameButtonDrawable.PRIMARY));
-      save.setEnabled(h.expeditionDirty);
-      go.setEnabled(!h.expeditionDraft.isEmpty() && !h.expeditionDirty);
-      status.setText(h.expeditionDirty ? "① 편성 저장 → ② 출발" : "저장됨 · 출발할 수 있어요");
-    };
-    paint[0].run();
+    expeditionPreparation = new NativeExpeditionPreparation(this);
   }
 
   /** All ten ordered slots are visible together. Duplicate IDs still remove by exact index. */
@@ -2067,7 +1957,7 @@ final class NativeEconomy {
     content.setTag("expedition-selected-crew");
     parent.addView(content, new LinearLayout.LayoutParams(-1, 0, 1));
     selectedCrewPage = 0;
-    int slots = Math.max(partyMax(), ids.size()), columns = editable ? 5 : 10;
+    int slots = Math.max(partyMax(), ids.size()), columns = 5;
     int rows = Math.max(1, (slots + columns - 1) / columns);
     for (int row = 0; row < rows; row++) {
       LinearLayout line = k.row();
@@ -2080,8 +1970,9 @@ final class NativeEconomy {
         if (index >= ids.size()) {
           tile = k.column();
           tile.setGravity(Gravity.CENTER);
-          tile.setBackground(PartyCharacterView.selection(h, false));
+          tile.setBackground(expeditionSurface(false));
           TextView empty = h.text("＋", 18);
+          empty.setTextColor(EXPEDITION_CREAM);
           empty.setPadding(0, 0, 0, 0);
           empty.setGravity(Gravity.CENTER);
           tile.addView(empty);
@@ -2093,6 +1984,7 @@ final class NativeEconomy {
           tile.setTag("expedition-member-" + index);
           tile.setContentDescription((index + 1) + "번 · " + unit.optString("name")
               + " · " + synergyLabel(unit.optString("synergy")) + (editable ? " · 탐험대에서 빼기" : " · 탐험 중"));
+          if (!editable) tile.setOnClickListener(v -> expeditionMember(unit));
           if (editable) tile.setOnClickListener(v -> {
             if (h.busy) return;
             h.expeditionDraft.remove(index);
@@ -2110,6 +2002,8 @@ final class NativeEconomy {
 
   TextView crewCaption(String text) {
     TextView label = caption(text);
+    label.setBackground(expeditionSurface(false));
+    label.setTextColor(EXPEDITION_CREAM);
     label.setTextSize(h.uiText(12));
     label.setPadding(h.dp(6), h.dp(1), h.dp(6), h.dp(1));
     return label;
@@ -2117,29 +2011,32 @@ final class NativeEconomy {
 
   LinearLayout crewTile(JSONObject unit, String detail) {
     LinearLayout tile = k.column();
-    // Keep the one-line name and the full 48dp target; return two vertical dp
-    // to the contained sprite at short high-density/font-scaled viewports.
+    // 탐험에만 적용: 원본 그림과 48dp 터치 영역, 두 줄 이름을 보존한다.
     tile.setPadding(h.dp(2), h.dp(1), h.dp(2), h.dp(1));
     tile.setGravity(Gravity.CENTER);
     tile.setBackground(PartyCharacterView.selection(h, false));
     tile.setContentDescription(unit.optString("name") + " · " + detail);
-    View portrait = PartyCharacterView.art(h, unit);
+    PartyCharacterView.Artwork portrait = PartyCharacterView.art(h, unit);
+    portrait.backplate(Color.TRANSPARENT);
     portrait.setTag("expedition-character-art");
     portrait.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     tile.addView(portrait, new LinearLayout.LayoutParams(-1, 0, 1));
-    // Keep the same single caption row: canonical names make small sprites identifiable.
-    // Ordered slot/remove and remaining-copy information stays on the tile's accessible label.
-    TextView status = PartyCharacterView.stateLabel(h, unit.optString("name"));
+    // 긴 전체 이름은 길게 누르기 또는 진행 중 카드 누르기로 확인한다.
+    TextView status = PartyCharacterView.nameLabel(h, unit.optString("name"));
     status.setTextSize(h.uiText(12));
-    status.setPadding(h.dp(2), 0, h.dp(2), 0);
+    status.setTypeface(h.prose);
+    status.setPadding(h.dp(3), h.dp(1), h.dp(3), h.dp(1));
     status.setSingleLine(false);
-    status.setMaxLines(1);
+    status.setMaxLines(h.getResources().getConfiguration().fontScale >= 1.6f ? 1 : 2);
+    status.setTextColor(EXPEDITION_CREAM);
+    status.setBackground(expeditionShape(0xe512293b, 0x809d956b, 7));
     status.setHorizontallyScrolling(false);
     status.setEllipsize(android.text.TextUtils.TruncateAt.END);
     status.setTag("economy-name-preview");
     status.setContentDescription(unit.optString("name"));
     tile.addView(status, new LinearLayout.LayoutParams(-1, -2));
     tile.setMinimumHeight(h.dp(48));
+    tile.setOnLongClickListener(v -> { expeditionMember(unit); return true; });
     return tile;
   }
 
@@ -2151,6 +2048,7 @@ final class NativeEconomy {
     Button prev = k.action(null, "‹", () -> turn.accept(page - 1));
     prev.setEnabled(page > 0);
     prev.setContentDescription("이전 쪽");
+    if (tag.startsWith("expedition-")) expeditionButton(prev, false);
     if (tag.equals("craft-recipe-pages")) {
       prev.setTag(tag + "-previous");
       m.pagerChevron(prev, false);
@@ -2168,6 +2066,7 @@ final class NativeEconomy {
     Button next = k.action(null, "›", () -> turn.accept(page + 1));
     next.setEnabled(page + 1 < pages);
     next.setContentDescription("다음 쪽");
+    if (tag.startsWith("expedition-")) expeditionButton(next, false);
     if (tag.equals("craft-recipe-pages")) {
       next.setTag(tag + "-next");
       m.pagerChevron(next, true);
@@ -2184,10 +2083,11 @@ final class NativeEconomy {
     ArrayList<JSONObject> available = new ArrayList<>();
     for (int i = 0; i < units.length(); i++) {
       JSONObject unit = units.optJSONObject(i);
-      if (unit != null && unit.optBoolean("top") && unit.optInt("have") - unit.optInt("away") > 0)
+      if (unit != null && unit.optBoolean("top") && expeditionAvailable(unit) > 0)
         available.add(unit);
     }
-    int perPage = 8;
+    int candidateColumns = h.getResources().getConfiguration().screenWidthDp < 700 ? 3 : 4;
+    int perPage = candidateColumns * 2;
     int pages = Math.max(1, (available.size() + perPage - 1) / perPage);
     crewPage = Math.max(0, Math.min(crewPage, pages - 1));
     TextView heading = parent.findViewWithTag("expedition-candidate-heading");
@@ -2202,12 +2102,12 @@ final class NativeEconomy {
       LinearLayout group = k.row();
       group.setBaselineAligned(false);
       candidates.addView(group, new LinearLayout.LayoutParams(-1, 0, 1));
-      for (int col = 0; col < 4; col++) {
-        int index = crewPage * perPage + row * 4 + col;
+      for (int col = 0; col < candidateColumns; col++) {
+        int index = crewPage * perPage + row * candidateColumns + col;
         if (index >= available.size()) { group.addView(new View(h), new LinearLayout.LayoutParams(0, -1, 1)); continue; }
         JSONObject unit = available.get(index);
         String id = unit.optString("id");
-        int left = unit.optInt("have") - unit.optInt("away") - Collections.frequency(h.expeditionDraft, id);
+        int left = expeditionAvailable(unit) - Collections.frequency(h.expeditionDraft, id);
         LinearLayout tile = crewTile(unit, "남은 " + left);
         boolean can = left > 0 && h.expeditionDraft.size() < max;
         tile.setEnabled(can);
@@ -2234,13 +2134,16 @@ final class NativeEconomy {
   void compactExpeditionEstimate(LinearLayout parent, List<String> ids) {
     JSONObject rules = economy().optJSONObject("expedition");
     if (rules == null || ids.isEmpty()) {
-      parent.addView(k.note(ids.isEmpty() ? "갈매미를 선택해 주세요." : "보상·시너지에서 자세히 확인해요."));
+      TextView empty = k.note(ids.isEmpty() ? "갈매미를 선택해 주세요." : "보상·시너지에서 자세히 확인해요.");
+      empty.setTextColor(EXPEDITION_CREAM);
+      parent.addView(empty);
       return;
     }
     ArrayList<EconomyPreview.Member> members = new ArrayList<>();
     for (String id : ids) members.add(new EconomyPreview.Member(id, find(id).optString("synergy")));
     EconomyPreview.Plan plan = EconomyPreview.estimate(previewRules(rules), members);
-    TextView estimate = k.note("예상 " + plan.minutes + "분 · 새우gang " + plan.snacks);
+    TextView estimate = k.note(plan.minutes + "분 · 기본 계산 " + plan.snacks + " 새우gang");
+    estimate.setTextColor(EXPEDITION_CREAM);
     estimate.setPadding(h.dp(4), 0, h.dp(4), 0);
     parent.addView(estimate);
   }
@@ -2261,75 +2164,351 @@ final class NativeEconomy {
         .show();
   }
 
+  static final int EXPEDITION_CREAM = 0xfff4ead4;
+
+  android.graphics.drawable.Drawable expeditionShape(int fill, int edge, int radius) {
+    android.graphics.drawable.GradientDrawable shape = new android.graphics.drawable.GradientDrawable();
+    shape.setColor(fill);
+    shape.setCornerRadius(h.dp(radius));
+    shape.setStroke(Math.max(1, h.dp(.65f)), edge);
+    return shape;
+  }
+
+  android.graphics.drawable.Drawable expeditionSurface(boolean emphasis) {
+    return expeditionShape(emphasis ? 0xec294659 : 0xd0162c40, 0xc9c0aa72, 12);
+  }
+
+  void expeditionHeader() {
+    boolean narrow = h.getResources().getConfiguration().screenWidthDp < 700;
+    h.page.setPadding(h.dp(narrow ? 16 : 28), 0, h.dp(narrow ? 16 : 28), h.dp(16));
+    LinearLayout head = h.root.findViewWithTag("theme-page-header");
+    View back = head.getChildAt(0);
+    ArrayList<View> balances = new ArrayList<>();
+    for (int i = 2; i < head.getChildCount(); i++) balances.add(head.getChildAt(i));
+    head.removeAllViews();
+    head.setPadding(0, 0, 0, 0);
+    LinearLayout navigation = k.row();
+    navigation.setTag("expedition-navigation");
+    navigation.setBackground(new android.graphics.drawable.InsetDrawable(expeditionSurface(false), 0, h.dp(8), 0, h.dp(8)));
+    back.setBackgroundColor(Color.TRANSPARENT);
+    navigation.addView(back, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+    h.title.setBackgroundColor(Color.TRANSPARENT);
+    h.title.setTextColor(EXPEDITION_CREAM);
+    h.title.setTypeface(h.prose);
+    h.title.setTextSize(h.uiText(16));
+    h.title.setPadding(0, 0, h.dp(10), 0);
+    int labelWidth = (int) Math.ceil(h.title.getPaint().measureText("탐험대")) + h.dp(12);
+    navigation.addView(h.title, new LinearLayout.LayoutParams(labelWidth, h.dp(48)));
+    head.addView(navigation);
+    head.addView(new View(h), new LinearLayout.LayoutParams(0, 1, 1));
+    for (View balance : balances) {
+      Button money = (Button) balance;
+      money.setBackground(new android.graphics.drawable.InsetDrawable(expeditionSurface(false), 0, h.dp(8), 0, h.dp(8)));
+      money.setTextColor(EXPEDITION_CREAM);
+      int width = Math.max(h.dp(76), (int) Math.ceil(money.getPaint().measureText(money.getText().toString())) + h.dp(48));
+      LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(width, h.dp(48));
+      slot.leftMargin = h.dp(4);
+      head.addView(money, slot);
+    }
+  }
+
+  View expeditionCompass() {
+    return new View(h) {
+      final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+      @Override protected void onDraw(Canvas canvas) {
+        float cx = getWidth() / 2f, cy = getHeight() / 2f, r = Math.min(cx, cy) * .68f;
+        p.setColor(0xffd9c38b); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(h.dp(1));
+        canvas.drawCircle(cx, cy, r * .68f, p);
+        for (int i = 0; i < 8; i++) {
+          double a = Math.PI * i / 4;
+          canvas.drawLine(cx + (float)Math.sin(a)*r*.76f, cy + (float)Math.cos(a)*r*.76f,
+              cx + (float)Math.sin(a)*r*1.18f, cy + (float)Math.cos(a)*r*1.18f, p);
+        }
+        Path needle = new Path();
+        needle.moveTo(cx, cy-r); needle.lineTo(cx+r*.22f, cy); needle.lineTo(cx, cy+r);
+        needle.lineTo(cx-r*.22f, cy); needle.close();
+        p.setStyle(Paint.Style.FILL); canvas.drawPath(needle, p);
+      }
+    };
+  }
+
+  void expeditionButton(Button button, boolean emphasis) {
+    android.graphics.drawable.StateListDrawable states = new android.graphics.drawable.StateListDrawable();
+    states.addState(new int[] {android.R.attr.state_pressed}, expeditionShape(0xf03b5866, 0xffdfc78c, 24));
+    states.addState(new int[] {}, expeditionShape(emphasis ? 0xf0294e60 : 0xe4112a3e, 0xd9c3ae77, 24));
+    // 48dp hit region remains intact; the inset keeps the reference's slender pill silhouette.
+    int visualInset = h.dp(h.getResources().getConfiguration().fontScale >= 1.6f ? 3 : 8);
+    button.setBackground(new android.graphics.drawable.InsetDrawable(states, 0, visualInset, 0, visualInset));
+    button.setTextColor(EXPEDITION_CREAM);
+    button.setTypeface(h.prose);
+    button.setMinHeight(h.dp(48));
+    button.setMinimumHeight(h.dp(48));
+    button.setPadding(h.dp(6), 0, h.dp(6), 0);
+    button.setMaxLines(2);
+    button.setTextSize(h.uiText(h.getResources().getConfiguration().fontScale >= 1.6f ? 10 : 14));
+  }
+
+  int expeditionAvailable(JSONObject unit) {
+    if (unit.optBoolean("temporary")) return 0;
+    int permanent = unit.has("permanentCount") ? unit.optInt("permanentCount")
+        : unit.optInt("have") - unit.optInt("temporaryCount");
+    return Math.max(0, permanent - unit.optInt("away"));
+  }
+
+  boolean validExpeditionParty() {
+    if (h.expeditionDraft.size() > partyMax()) return false;
+    for (String id : h.expeditionDraft) {
+      JSONObject unit = find(id);
+      if (!unit.optBoolean("top") || Collections.frequency(h.expeditionDraft, id) > expeditionAvailable(unit)) return false;
+    }
+    return true;
+  }
+
+  void expeditionMember(JSONObject unit) {
+    if (h.busy || h.visibleDialog != null) return;
+    h.message(unit.optString("name") + "\n" + synergyLabel(unit.optString("synergy")));
+  }
+
+  // The server anchor uses elapsedRealtime, so changing the device wall clock cannot finish a trip.
+  long expeditionNow() { return TemporaryUnitPresentation.now(); }
+
+  void refreshExpeditionOnResume() {
+    if (!h.screen.equals("expedition") || h.busy || h.updateBlocks()) return;
+    if (h.visibleDialog != null) h.visibleDialog.dismiss();
+    h.load("expedition");
+  }
+
+  ArrayList<String> tripParty(JSONObject trip) {
+    ArrayList<String> party = new ArrayList<>();
+    JSONArray ids = h.list(trip, "ids");
+    for (int i = 0; i < ids.length(); i++) party.add(ids.optString(i));
+    return party;
+  }
+
+  String tripReward(JSONObject trip) {
+    JSONObject plan = trip.optJSONObject("plan");
+    if (plan == null) return "출발 보상 정보 확인 필요";
+    long base = Math.round(plan.optInt("baseSnacks") * (1 + plan.optInt("snackPercent") / 100.0))
+        + (long) plan.optInt("flatPerUnit") * plan.optInt("size");
+    return "기본 계산 · " + base + " 새우gang";
+  }
+
+  String tripSynergies(JSONObject trip) {
+    JSONObject plan = trip.optJSONObject("plan");
+    if (plan == null) return "보상은 서버에서 수령 시 확정돼요";
+    ArrayList<String> labels = new ArrayList<>();
+    JSONArray active = h.list(plan, "synergies");
+    for (int i = 0; i < active.length(); i++) {
+      JSONObject item = active.optJSONObject(i);
+      if (item != null) labels.add(item.optString("label") + " " + item.optInt("level") + "단계");
+    }
+    JSONObject bonus = plan.optJSONObject("countBonus");
+    if (bonus != null) labels.add("중복 +" + bonus.optInt("percent") + "%");
+    return labels.isEmpty() ? "적용 시너지 없음" : String.join(" · ", labels);
+  }
+
+  String tripChances(JSONObject trip) {
+    JSONObject plan = trip.optJSONObject("plan");
+    if (plan == null) return "확률 보상 정보 확인 필요";
+    ArrayList<String> extra = new ArrayList<>();
+    if (plan.optInt("doublePercent") > 0) extra.add("새우gang 2배 " + plan.optInt("doublePercent") + "%");
+    if (plan.optInt("commonPercent") > 0) extra.add("커먼 1마리 " + plan.optInt("commonPercent") + "%");
+    if (plan.optInt("uncommonPercent") > 0) extra.add("레어 1마리 " + plan.optInt("uncommonPercent") + "%");
+    if (plan.optInt("ticketPercent") > 0) extra.add("지원서 1장 " + plan.optInt("ticketPercent") + "%");
+    return extra.isEmpty() ? "추가 확률 보상 없음" : "추가 확률 · " + String.join(" · ", extra);
+  }
+
+  void tripDetails(JSONObject trip) {
+    LinearLayout details = k.paper();
+    details.addView(k.note(tripReward(trip)));
+    details.addView(k.note("출발 시 저장된 계산값 · 통계적 기대값이 아니에요"));
+    details.addView(k.note(tripChances(trip)));
+    details.addView(k.note(tripSynergies(trip)));
+    for (String id : tripParty(trip)) details.addView(k.note(find(id).optString("name")));
+    details.addView(k.action(null, "시너지 안내", this::synergyGuide), new LinearLayout.LayoutParams(-1, h.dp(48)));
+    new GameDialog(h).setTitle("탐험 보상·시너지").setScrollBody(details)
+        .setPositiveButton("닫기", null).show();
+  }
+
+  // One read per deliberate action. Existing request/mutate owns busy, failures and uncertain-result recovery.
+  void tripAction(JSONObject shownTrip, boolean claiming) {
+    if (h.busy || h.visibleDialog != null) return;
+    h.request("native/state", null, (fresh, ignored) -> {
+      h.state = fresh;
+      h.stateUpdated();
+      JSONObject current = h.me().optJSONObject("trip");
+      if (current == null || !current.optString("startedAt").equals(shownTrip.optString("startedAt"))) {
+        h.show("expedition");
+        return;
+      }
+      boolean complete = expeditionNow() > 0 && expeditionNow() >= time(current.optString("endsAt"));
+      if (claiming && complete) {
+        h.mutate("expedition/claim", MainActivity.obj(), "expedition");
+        return;
+      }
+      if (complete || claiming || expeditionNow() <= 0) { h.show("expedition"); return; }
+      JSONObject prices = h.me().optJSONObject("prices");
+      JSONObject skip = prices == null ? null : prices.optJSONObject("skip");
+      int cost = skip == null ? -1 : skip.optInt("snack", -1);
+      h.show("expedition");
+      if (cost < 0) { h.message("즉시 완료 비용을 불러오지 못했어요. 다시 시도해 주세요."); return; }
+      if (h.me().optInt("snack") < cost) { h.message("새우gang " + cost + "개가 필요해요."); return; }
+      final int confirmationEpoch = h.epoch;
+      h.confirm("새우gang " + cost + "개로 즉시 완료할까요?\n보상 받기는 별도이며, 수령할 때 대원이 돌아와요.", () -> {
+        if (h.epoch != confirmationEpoch || !h.screen.equals("expedition")) return;
+        // Recheck price, balance and this same expedition after a long-open dialog / app return.
+        h.request("native/state", null, (latest, error) -> {
+          h.state = latest;
+          h.stateUpdated();
+          JSONObject active = h.me().optJSONObject("trip");
+          JSONObject latestPrices = h.me().optJSONObject("prices");
+          JSONObject latestSkip = latestPrices == null ? null : latestPrices.optJSONObject("skip");
+          int latestCost = latestSkip == null ? -1 : latestSkip.optInt("snack", -1);
+          if (active == null || !active.optString("startedAt").equals(current.optString("startedAt"))
+              || expeditionNow() <= 0 || expeditionNow() >= time(active.optString("endsAt"))) {
+            h.show("expedition"); return;
+          }
+          if (latestCost != cost || h.me().optInt("snack") < cost) {
+            h.show("expedition"); h.message("비용 또는 잔액이 바뀌었어요. 다시 확인해 주세요."); return;
+          }
+          h.mutate("shop", MainActivity.obj("item", "skip", "count", 1), "expedition");
+        });
+      });
+    });
+  }
+
   void showTrip(JSONObject trip) {
     long start = time(trip.optString("startedAt")), end = time(trip.optString("endsAt"));
+    boolean largeText = h.getResources().getConfiguration().fontScale >= 1.6f;
+    boolean compactSummary = largeText || h.getResources().getConfiguration().fontScale >= 1.2f
+        || h.getResources().getConfiguration().screenWidthDp < 700;
     LinearLayout panel = economyBody("expedition-trip");
+    panel.setPadding(0, 0, 0, 0);
+    panel.setOrientation(LinearLayout.HORIZONTAL);
+    panel.setBaselineAligned(false);
+    LinearLayout crew = k.column(), info = k.column();
+    crew.setTag("expedition-crew-panel");
+    info.setTag("expedition-status-panel");
+    crew.setBackground(expeditionSurface(false));
+    info.setBackground(expeditionSurface(false));
+    crew.setPadding(h.dp(10), h.dp(4), h.dp(10), h.dp(10));
+    info.setPadding(h.dp(12), h.dp(largeText ? 6 : 10), h.dp(12), h.dp(6));
+    LinearLayout.LayoutParams left = new LinearLayout.LayoutParams(0, -1, .68f);
+    left.rightMargin = h.dp(12);
+    panel.addView(crew, left);
+    panel.addView(info, new LinearLayout.LayoutParams(0, -1, .32f));
+    ArrayList<String> party = tripParty(trip);
     LinearLayout heading = k.row();
-    heading.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
-    TextView title = h.text("", 22), remaining = k.note("");
+    heading.addView(expeditionCompass(), new LinearLayout.LayoutParams(h.dp(34), h.dp(40)));
+    TextView title = h.text("탐험 중", largeText ? 20 : 32);
+    title.setTag("expedition-state");
+    title.setIncludeFontPadding(false);
+    title.setTypeface(h.prose);
+    title.setTextColor(EXPEDITION_CREAM);
+    title.setPadding(h.dp(4), 0, 0, 0);
+    title.setSingleLine(true);
+    title.setEllipsize(android.text.TextUtils.TruncateAt.END);
     heading.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
-    heading.addView(remaining);
-    panel.addView(heading);
+    TextView count = h.text("대원 " + party.size() + " / " + partyMax(), largeText ? 10 : 13);
+    count.setTypeface(h.prose);
+    count.setTextColor(EXPEDITION_CREAM); count.setPadding(0, 0, h.dp(4), 0);
+    heading.addView(count);
+    crew.addView(heading, new LinearLayout.LayoutParams(-1, h.dp(largeText ? 52 : 42)));
+    View rule = new View(h); rule.setBackgroundColor(0xbac5aa6a);
+    crew.addView(rule, new LinearLayout.LayoutParams(-1, Math.max(1, h.dp(.65f))));
+    partyStrip(crew, party, false, null);
+
+    TextView timerLabel = h.text("남은 시간", largeText ? 10 : 14);
+    timerLabel.setTag("expedition-time-label");
+    timerLabel.setTypeface(h.prose);
+    timerLabel.setTextColor(EXPEDITION_CREAM);
+    timerLabel.setPadding(0, 0, 0, 0);
+    timerLabel.setSingleLine(true);
+    info.addView(timerLabel);
+    TextView remaining = h.text("", largeText ? 20 : 42);
+    remaining.setTextColor(EXPEDITION_CREAM);
+    remaining.setTypeface(h.prose);
+    remaining.setIncludeFontPadding(false);
+    remaining.setPadding(0, 0, 0, 0);
+    remaining.setMaxLines(1);
+    remaining.setTag("expedition-remaining");
+    info.addView(remaining);
     ProgressBar progress = new ProgressBar(h, null, android.R.attr.progressBarStyleHorizontal);
+    progress.setTag("expedition-progress");
     progress.setMax(1000);
-    progress.setProgressTintList(android.content.res.ColorStateList.valueOf(JournalTheme.TEAL));
-    panel.addView(progress, new LinearLayout.LayoutParams(-1, h.dp(12)));
-    JSONArray ids = h.list(trip, "ids");
-    ArrayList<String> party = new ArrayList<>();
-    for (int i = 0; i < ids.length(); i++) party.add(ids.optString(i));
-    partyStrip(panel, party, false, null);
-    panel.addView(
-        k.action(null, "보상·시너지  ›", () -> expeditionDetails(party)),
-        new LinearLayout.LayoutParams(-1, h.dp(48)));
-    Button action =
-        k.primary(
-            "u-gift",
-            "",
-            () -> {
-              if (System.currentTimeMillis() >= end)
-                h.mutate("expedition/claim", MainActivity.obj(), "expedition");
-              else
-                m.fetch(
-                    "me",
-                    me -> {
-                      JSONObject prices = me.optJSONObject("prices"),
-                          skip = prices == null ? null : prices.optJSONObject("skip");
-                      int cost = skip == null ? -1 : skip.optInt("snack", -1);
-                      if (cost < 0) {
-                        h.message("귀환 비용을 불러오지 못했어요. 다시 시도해 주세요.");
-                        return;
-                      }
-                      if (me.optInt("snack") < cost) {
-                        h.message("새우gang " + cost + "개가 필요해요.");
-                        return;
-                      }
-                      h.confirm(
-                          "새우gang " + cost + "개로 바로 귀환할까요?",
-                          () ->
-                              h.mutate(
-                                  "shop",
-                                  MainActivity.obj("item", "skip", "count", 1),
-                                  "expedition"));
-                    });
-            });
-    LinearLayout footer = k.row();
-    footer.addView(action, new LinearLayout.LayoutParams(-1, h.dp(48)));
-    k.footer(footer);
-    tick(
-        panel,
-        () -> {
-          long left = Math.max(0, end - System.currentTimeMillis());
-          title.setText(left > 0 ? "탐험 중" : "탐험대가 돌아왔어요!");
-          remaining.setText(left > 0 ? "남은 시간 " + duration(left) : "보상을 받을 수 있어요.");
-          progress.setProgress(
-              (int)
-                  Math.min(
-                      1000,
-                      Math.max(
-                          0,
-                          (System.currentTimeMillis() - start) * 1000 / Math.max(1, end - start))));
-          action.setText(left > 0 ? "바로 귀환" : "탐험 보상 받기");
-        });
+    progress.setProgressTintList(android.content.res.ColorStateList.valueOf(0xff35c6ee));
+    progress.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(0x707c97ab));
+    LinearLayout.LayoutParams progressSlot = new LinearLayout.LayoutParams(-1, h.dp(10));
+    progressSlot.topMargin = h.dp(4);
+    info.addView(progress, progressSlot);
+
+    // The reference's compass still life is reserved for the actual saved-plan reward summary.
+    LinearLayout summary = k.column();
+    summary.setGravity(Gravity.CENTER_VERTICAL);
+    info.addView(summary, new LinearLayout.LayoutParams(-1, 0, 1));
+    TextView reward = k.note(tripReward(trip));
+    reward.setTag("expedition-base-reward");
+    reward.setTextColor(EXPEDITION_CREAM);
+    reward.setPadding(0, h.dp(2), 0, 0);
+    reward.setTextSize(h.uiText(largeText ? 11 : 13));
+    reward.setMaxLines(compactSummary ? 1 : 2);
+    reward.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    reward.setContentDescription(tripReward(trip));
+    summary.addView(reward);
+    TextView synergy = k.note(tripSynergies(trip));
+    synergy.setTextColor(0xffddd4bc);
+    synergy.setPadding(0, h.dp(2), 0, 0);
+    synergy.setTextSize(h.uiText(11));
+    synergy.setMaxLines(2);
+    synergy.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    if (compactSummary) synergy.setVisibility(View.GONE);
+    summary.addView(synergy);
+    // Large fonts and short safe areas reserve the timer and both full-size actions first.
+    // The fixed detail action always exposes the complete saved plan if this summary cannot fit.
+    summary.addOnLayoutChangeListener((v, l, t, r, b, oldL, oldT, oldR, oldB) -> {
+      int room = b - t;
+      int rewardHeight = reward.getLineHeight() + reward.getPaddingTop() + reward.getPaddingBottom();
+      int rewardVisibility = room >= rewardHeight ? View.VISIBLE : View.GONE;
+      if (reward.getVisibility() != rewardVisibility) reward.setVisibility(rewardVisibility);
+      int synergyVisibility = !compactSummary && room >= reward.getMeasuredHeight() + synergy.getMeasuredHeight()
+          ? View.VISIBLE : View.GONE;
+      if (synergy.getVisibility() != synergyVisibility) synergy.setVisibility(synergyVisibility);
+    });
+
+    LinearLayout actions = k.column();
+    actions.setTag("expedition-trip-actions");
+    Button details = k.action(null, "보상·시너지 보기  ›", () -> tripDetails(trip));
+    details.setTag("expedition-trip-details");
+    Button action = k.primary(null, "", () -> tripAction(trip, expeditionNow() > 0 && expeditionNow() >= end));
+    action.setTag("expedition-trip-action");
+    expeditionButton(details, false);
+    expeditionButton(action, false);
+    int actionHeight = h.dp(largeText ? 64 : 48);
+    actions.addView(details, new LinearLayout.LayoutParams(-1, actionHeight));
+    TextView costNote = k.note("확인 후 재화 사용");
+    costNote.setGravity(Gravity.CENTER); costNote.setPadding(0, 0, 0, 0);
+    costNote.setTextColor(0xffc2baa8); costNote.setTextSize(h.uiText(9));
+    if (largeText) costNote.setVisibility(View.GONE);
+    actions.addView(costNote);
+    actions.addView(action, new LinearLayout.LayoutParams(-1, actionHeight));
+    info.addView(actions);
+    tick(panel, () -> {
+      long now = expeditionNow(), leftMillis = Math.max(0, end - now);
+      boolean complete = now > 0 && leftMillis == 0;
+      title.setText(complete ? "수령 대기" : "탐험 중");
+      timerLabel.setText(complete ? "탐험 완료" : "남은 시간");
+      remaining.setText(now <= 0 ? "확인 필요" : complete ? "완료" : ((leftMillis + 59999) / 60000) + "분");
+      remaining.setContentDescription(complete ? "탐험 완료 · 보상 수령 대기" : "남은 시간 " + duration(leftMillis));
+      progress.setProgress(now <= 0 ? 0 : (int) Math.min(1000, Math.max(0, (now - start) * 1000 / Math.max(1, end - start))));
+      JSONObject prices = h.me().optJSONObject("prices");
+      JSONObject skip = prices == null ? null : prices.optJSONObject("skip");
+      int cost = skip == null ? -1 : skip.optInt("snack", -1);
+      action.setText(complete ? "보상 받기" : cost < 0 ? "즉시 완료 · 비용 확인" : "즉시 완료 ·" + (largeText ? "\n" : " ") + cost + " 새우gang");
+      costNote.setText(complete ? "수령하면 대원이 돌아와요" : "확인 후 재화 사용");
+      if (action.isSelected() != complete) {
+        action.setSelected(complete); expeditionButton(action, complete);
+      }
+    });
   }
 
   boolean partyChanged() {
@@ -2482,16 +2661,16 @@ final class NativeEconomy {
     EconomyPreview.Plan plan = EconomyPreview.estimate(previewRules(rules), members);
     parent.addView(
         k.notice(
-            "예상 · "
+            "기본 계산 · "
                 + plan.minutes
                 + "분 / 새우gang "
                 + plan.snacks
                 + (plan.doublePercent > 0 ? " · 2배 " + plan.doublePercent + "%" : "")));
     ArrayList<String> extra = new ArrayList<>();
-    if (plan.commonPercent > 0) extra.add("흔함 1마리 " + plan.commonPercent + "%");
-    if (plan.uncommonPercent > 0) extra.add("안흔함 1마리 " + plan.uncommonPercent + "%");
+    if (plan.commonPercent > 0) extra.add("커먼 1마리 " + plan.commonPercent + "%");
+    if (plan.uncommonPercent > 0) extra.add("레어 1마리 " + plan.uncommonPercent + "%");
     if (plan.ticketPercent > 0) extra.add("지원서 1장 " + plan.ticketPercent + "%");
-    if (!extra.isEmpty()) parent.addView(k.note("추가 보상 · " + String.join(" · ", extra)));
+    if (!extra.isEmpty()) parent.addView(k.note("추가 확률 보상 · " + String.join(" · ", extra)));
     if (!plan.active.isEmpty()) parent.addView(k.note("적용 중 · " + String.join(" · ", plan.active)));
   }
 
@@ -2556,9 +2735,9 @@ final class NativeEconomy {
                     : key.equals("DARK")
                         ? "탐험 시간 " + v[0] + "/" + v[1] + "분"
                         : key.equals("SEA")
-                            ? "흔함 1마리 " + v[0] + "/" + v[1] + "%"
+                            ? "커먼 1마리 " + v[0] + "/" + v[1] + "%"
                             : key.equals("BLOSSOM")
-                                ? "안흔함 1마리 " + v[0] + "/" + v[1] + "%"
+                                ? "레어 1마리 " + v[0] + "/" + v[1] + "%"
                                 : key.equals("COSMOS")
                                     ? "지원서 1장 " + v[0] + "/" + v[1] + "%"
                                     : "마리당 새우gang +" + v[0] + "/+" + v[1];

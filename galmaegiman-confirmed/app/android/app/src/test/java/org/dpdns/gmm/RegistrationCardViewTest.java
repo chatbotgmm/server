@@ -257,4 +257,17 @@ public class RegistrationCardViewTest {
       assertTrue(view.target.isEmpty());
     }
   }
+  @Test public void rankReplacementIsLimitedToVisibleFullCardsAndChangedTiers() throws Exception {
+    String[] tiers = {"COMMON", "UNCOMMON", "RARE"}, names = {"커먼", "레어", "에픽"};
+    for (int i = 0; i < tiers.length; i++) {
+      JSONObject unit = MainActivity.obj("tier", tiers[i], "known", true);
+      assertEquals(names[i], RegistrationCardView.rankReplacement(unit, RegistrationCardView.FULL));
+      assertEquals("", RegistrationCardView.rankReplacement(unit, RegistrationCardView.COMPACT));
+      unit.put("known", false);
+      assertEquals("", RegistrationCardView.rankReplacement(unit, RegistrationCardView.FULL));
+    }
+    for (String tier : new String[]{"SPECIAL", "LEGEND", "HIDDEN", "LIMITED", "TRANSCEND", "ETERNAL", "IMMORTAL"})
+      assertEquals("", RegistrationCardView.rankReplacement(MainActivity.obj("tier", tier, "known", true), RegistrationCardView.FULL));
+  }
+
 }

@@ -165,7 +165,7 @@ final class RecruitmentProbabilityView extends LinearLayout {
             continue;
           }
           LinearLayout row = kit.row();
-          String tier = RecruitmentText.display(weight.optString("tierName", weight.optString("tier")));
+          String tier = RecruitmentText.display(TierDisplay.name(weight.optString("tier"), weight.optString("tierName", weight.optString("tier"))));
           row.addView(compactText(tier.isEmpty() ? "등급 확인 필요" : tier, 13),
               new LinearLayout.LayoutParams(0, -2, 1));
           TextView rate = compactText(percent(weight), 14);
@@ -219,7 +219,7 @@ final class RecruitmentProbabilityView extends LinearLayout {
         || ((Number) left).doubleValue() < 0
         || pity.optString("tierName").isEmpty())
       return "현재 보장 횟수를 확인할 수 없어요. 이 항목을 다시 열어 주세요.";
-    return RecruitmentText.display(pity.optString("tierName")) + " 보장까지 "
+    return RecruitmentText.display(TierDisplay.name(pity.optString("tier"), pity.optString("tierName"))) + " 보장까지 "
         + number((Number) left) + "회 · 고급 모집에만 누적돼요.";
   }
 }

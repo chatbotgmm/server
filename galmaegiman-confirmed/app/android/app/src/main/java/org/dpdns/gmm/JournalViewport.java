@@ -288,6 +288,10 @@ final class JournalViewport extends ViewGroup {
   }
 
   static AlertDialog openSheet(MainActivity host, String title, View contents) {
+    return openSheet(host, title, contents, null);
+  }
+
+  static AlertDialog openSheet(MainActivity host, String title, View contents, Runnable afterDismiss) {
     final View page = host.page != null && host.page.isAttachedToWindow() ? host.page : host.root;
     ArrayList<ModalSizing> sizing = new ArrayList<>();
     prepareModalSizing(contents, sizing);
@@ -304,6 +308,7 @@ final class JournalViewport extends ViewGroup {
           if (host.visibleDialog == dialog) host.visibleDialog = null;
           guard.remove();
           restoreModalSizing(sizing);
+          if (afterDismiss != null) afterDismiss.run();
         });
     return dialog;
   }

@@ -120,9 +120,9 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
   function units(el) {
     const groups = [['all', '전체'], ['top', '최상위'], ['LEGEND', '전설'], ['HIDDEN', '히든'], ['low', '그 밖']];
     const pass = u => filter === 'all' || (filter === 'top' ? u.top : filter === 'low' ? !u.top && !['LEGEND', 'HIDDEN'].includes(u.tier) : u.tier === filter);
-    const list = me.units.filter(u => pass(u) && `${u.name} ${u.tierName} ${u.attrName || ''}`.toLocaleLowerCase().includes(unitQuery.toLocaleLowerCase()));
+    const list = me.units.filter(u => pass(u) && `${u.name} ${gmmTierName(u)} ${u.attrName || ''}`.toLocaleLowerCase().includes(unitQuery.toLocaleLowerCase()));
     el.innerHTML = `<label class="unit-search">🔍 <input id="unitQuery" type="search" value="${esc(unitQuery)}" placeholder="이름·등급·속성으로 찾기" aria-label="갈매미 검색"></label><div class="filters">${groups.map(([k, t]) => `<button data-f="${k}" class="${filter === k ? 'on' : ''}">${t}</button>`).join('')}</div>
-      ${list.length ? `<div class="grid">${list.map((u, i) => `<div class="u" data-ui="${i}" style="--tc:${TIER_COLOR[u.tier] ?? '#888'}"><img loading="lazy" src="${thumb(u.id)}" alt=""><span class="n">×${u.have}</span>${u.away ? `<span class="away">탐험 ${u.away}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}${u.attrName ? ` <span class="achip" style="--ac:${ACOLOR[u.attr] ?? '#c9b48a'}">${esc(u.attrName)}</span>` : ''}</small></div>`).join('')}</div>`
+      ${list.length ? `<div class="grid">${list.map((u, i) => `<div class="u" data-ui="${i}" style="--tc:${TIER_COLOR[u.tier] ?? '#888'}"><img loading="lazy" src="${thumb(u.id)}" alt=""><span class="n">×${u.have}</span>${u.away ? `<span class="away">탐험 ${u.away}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(gmmTierName(u))}${u.attrName ? ` <span class="achip" style="--ac:${ACOLOR[u.attr] ?? '#c9b48a'}">${esc(u.attrName)}</span>` : ''}</small></div>`).join('')}</div>`
         : `<p class="empty" role="status">${unitQuery ? '찾는 갈매미가 없어요. 다른 이름이나 등급으로 찾아보세요.' : '이 등급의 갈매미가 아직 없어요.'}</p>`}
       ${me.kakaoLogin && !GAMEUI ? `<div class="card row" style="justify-content:space-between;margin-top:14px"><span class="note">${me.kakao ? '✅ 카카오 계정 연결됨 (카카오로 로그인 가능)' : '카카오 계정을 연결하면 다음부터 코드 없이 로그인해요.'}</span>
         ${me.kakao ? '<button class="btn ghost" id="unlink" style="padding:6px 12px;font-size:.85rem">연결 해제</button>' : '<a class="btn kakao" href="/my/kakao" style="padding:8px 14px;font-size:.9rem">카카오 연결</a>'}</div>` : ''}`;
@@ -180,7 +180,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     // 저장 상태: 변경 없음(회색) · 저장 가능(노랑) · 저장 중(흐림+글)
     const stateText = () => saving ? '저장 중…' : same() ? (pick.length ? '✓ 저장된 편성이에요' : '아직 편성이 없어요') : pick.length ? `바뀐 편성이 있어요(${pick.length}/3마리) · 저장해 주세요` : '한 마리 이상 골라 주세요';
     const saveBtn = () => `<button class="btn wide ${GAMEUI ? 'imgsave' : ''} ${saving ? 'saving' : ''}" id="save" ${same() || saving ? 'disabled' : ''} aria-label="편성 저장">${GAMEUI ? `<img class="on" src="${BASE}/duel/icons/btn-save.png" alt="편성 저장" onerror="this.replaceWith('편성 저장')"><img class="off" src="${BASE}/duel/icons/btn-save-off.png" alt="" onerror="this.remove()">` : '편성 저장'}</button>`;
-    const grid = () => tops.length ? `<div class="grid ${GAMEUI ? 'btgrid' : ''}">${tops.map(u => { const i = pick.indexOf(u.id); return `<button class="u ${i >= 0 ? 'on' : ''}" data-id="${u.id}" aria-pressed="${i >= 0}"><img loading="lazy" src="${thumb(u.id)}" alt="">${i >= 0 ? `<span class="ord">✓</span><span class="selb s${i + 1}">${ROLE[i]}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}${u.attrName ? ` <span class="achip" style="--ac:${ACOLOR[u.attr] ?? '#c9b48a'}">${esc(u.attrName)}</span>` : ''}</small></button>`; }).join('')}</div>`
+    const grid = () => tops.length ? `<div class="grid ${GAMEUI ? 'btgrid' : ''}">${tops.map(u => { const i = pick.indexOf(u.id); return `<button class="u ${i >= 0 ? 'on' : ''}" data-id="${u.id}" aria-pressed="${i >= 0}"><img loading="lazy" src="${thumb(u.id)}" alt="">${i >= 0 ? `<span class="ord">✓</span><span class="selb s${i + 1}">${ROLE[i]}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(gmmTierName(u))}${u.attrName ? ` <span class="achip" style="--ac:${ACOLOR[u.attr] ?? '#c9b48a'}">${esc(u.attrName)}</span>` : ''}</small></button>`; }).join('')}</div>`
       : '<p class="empty">아직 최상위 갈매미가 없어요. 카톡에서 조합해 깨워 주세요.</p>';
     // 속성 상성표(v0.15.2): 속성마다 강한 상대 2 · 약한 상대 2(데이터 그대로). 지금 편성의 속성은 줄을 밝히고, 아래에 우리 팀이 강한·조심할 속성 요약
     const ac = a => `<span class="achip" style="--ac:${ACOLOR[a] ?? '#c9b48a'}">${esc(me.typeChart?.[a]?.name ?? a)}</span>`;
@@ -241,12 +241,12 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
         <div><b style="font-weight:400;font-size:1.15rem">${gI('u-ticket', '🎟')} 뽑기권 ${d.unlimited ? '무제한(관리자)' : `${d.credits}장`}</b>
         <p class="note" style="margin:2px 0 0">${d.wait ? `다음 뽑기권 받기까지 ${waitText(d.wait)}` : `지금 뽑기권 ${d.claim}장을 받을 수 있어요! (${d.cooldownHours}시간마다)`}${d.event ? ` · 🎉 ${esc(d.event.label)}` : ''}</p></div>
         <div class="row" style="gap:8px">${drawLast && GAMEUI ? `<button class="btn ghost" id="rvAgain">${gI('u-draw', '🥚')} 지난 결과</button>` : ''}<button class="btn" id="claim" ${d.wait ? 'disabled' : ''}>${gI('u-ticket', '🎟')} 뽑기권 받기</button></div></div>
-      ${drawLast && !GAMEUI ? `<div class="card drawres"><b style="font-weight:400">🥚 결과</b><div class="dgrid">${drawLast.items.map(u => `<div class="du ${u.first ? 'new' : ''}" style="--tc:${TIER_COLOR[u.tier] ?? '#888'}"><img src="${cimg(u.img)}" alt="">${u.first ? '<span class="nb">NEW</span>' : ''}${u.n > 1 ? `<span class="n">×${u.n}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}</small></div>`).join('')}</div><p class="pre note" style="margin-top:8px">${esc(drawLast.summary)}</p></div>` : ''}
+      ${drawLast && !GAMEUI ? `<div class="card drawres"><b style="font-weight:400">🥚 결과</b><div class="dgrid">${drawLast.items.map(u => `<div class="du ${u.first ? 'new' : ''}" style="--tc:${TIER_COLOR[u.tier] ?? '#888'}"><img src="${cimg(u.img)}" alt="">${u.first ? '<span class="nb">NEW</span>' : ''}${u.n > 1 ? `<span class="n">×${u.n}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(gmmTierName(u))}</small></div>`).join('')}</div><p class="pre note" style="margin-top:8px">${esc(drawLast.summary)}</p></div>` : ''}
       <div class="ggrid">${d.gachas.map(g => `<div class="gc"><img src="${cimg(g.img)}" alt=""><div class="gi"><b>${esc(g.label)} 뽑기</b>
         ${GAMEUI ? (() => { const lim = Math.min(50, Math.floor(credits / g.cost)); return `<div class="dqty"><div class="qty"><button class="btn ghost" data-dq="${g.kind}" data-d="-1" ${lim ? '' : 'disabled'}>－</button><input type="number" inputmode="numeric" min="1" max="${Math.max(1, lim)}" value="1" data-di="${g.kind}" data-lim="${lim}" ${lim ? '' : 'disabled'}><button class="btn ghost" data-dq="${g.kind}" data-d="1" ${lim ? '' : 'disabled'}>＋</button><button class="btn ghost dmax" data-dq="${g.kind}" data-d="max" ${lim > 1 ? '' : 'disabled'}>최대</button></div>
           <button class="btn dgo" data-k="${g.kind}" data-n="1" data-cost="${g.cost}" ${lim ? '' : 'disabled'}>${lim ? `1회 뽑기 · ${gI('u-ticket', '🎟')} ${g.cost}` : '뽑기권 부족'}</button></div>`; })()
         : `<div class="row">${[1, 5, 10].map(n => `<button class="btn ${n === 1 ? '' : 'ghost'}" data-k="${g.kind}" data-n="${n}" ${credits >= g.cost * n ? '' : 'disabled'}>${n}회<small>🎟 ${g.cost * n}</small></button>`).join('')}</div>`}
-        <small class="odds">확률 · ${g.weights.map(w => `<span class="nw">${esc(w.tierName)} ${w.w}%</span>`).join(' · ')}${g.kind === 'HIGH' && d.pity ? `<br>🎯 ${esc(d.pity.tierName)} 보장까지 ${d.pity.left}회` : ''}</small></div></div>`).join('')}</div>
+        <small class="odds">확률 · ${g.weights.map(w => `<span class="nw">${esc(gmmTierName(w))} ${w.w}%</span>`).join(' · ')}${g.kind === 'HIGH' && d.pity ? `<br>🎯 ${esc(gmmTierName(d.pity))} 보장까지 ${d.pity.left}회` : ''}</small></div></div>`).join('')}</div>
       ${GAMEUI ? '' : '<p class="note">결과·보상·미션은 카톡과 같이 계정에 바로 들어가요.</p>'}`;
     // 수량 고르기(게임 화면, v0.11.1): －/＋/최대 → 뽑기 버튼에 횟수·뽑기권 표시
     el.querySelectorAll('[data-di]').forEach(i => {
@@ -275,7 +275,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     const ov = document.createElement('div'); ov.className = `reveal ${hi ? 'hi' : ''}`; ov.style.setProperty('--tc', col);
     ov.innerHTML = `<div class="rv-egg"><div class="egg"></div><p>눌러서 열기</p></div>
       <div class="rv-cards" hidden>${items.map((u, i) => `<div class="rv-c ${rank(u.tier) >= rank('LEGEND') ? 'hi' : ''}" style="--tc:${TIER_COLOR[u.tier] ?? '#888'};--d:${(Math.min(i, 12) * 0.12).toFixed(2)}s"><div class="rv-in"><div class="rv-back">🥚</div>
-        <div class="rv-front"><img src="${cimg(u.img)}" alt="">${u.first ? '<span class="nb">NEW</span>' : ''}${u.n > 1 ? `<span class="n">×${u.n}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)}</small></div></div></div>`).join('')}</div>
+        <div class="rv-front"><img src="${cimg(u.img)}" alt="">${u.first ? '<span class="nb">NEW</span>' : ''}${u.n > 1 ? `<span class="n">×${u.n}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(gmmTierName(u))}</small></div></div></div>`).join('')}</div>
       <div class="rv-btns" hidden><button class="btn" id="rvOk">확인</button></div>`;
     document.body.append(ov);
     const open = () => {
@@ -305,7 +305,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
       const ov = document.createElement('div'); ov.className = `forge ${fail ? 'fail' : ''}`; ov.style.setProperty('--tc', col);
       const k = mats.length;
       ov.innerHTML = `<div class="fg-ring">${mats.map((m, i) => `<img class="fg-m" src="${cimg(m)}" style="--a:${(360 / k) * i}deg" alt="">`).join('')}<div class="fg-core"></div></div>
-        ${r ? `<div class="fg-res"><img src="${thumb(r.id)}" alt=""><b>${esc(r.name)}${n > 1 ? ` ×${n}` : ''}</b><small>${esc(r.tierName)}</small></div>` : ''}
+        ${r ? `<div class="fg-res"><img src="${thumb(r.id)}" alt=""><b>${esc(r.name)}${n > 1 ? ` ×${n}` : ''}</b><small>${esc(gmmTierName(r))}</small></div>` : ''}
         <p class="fg-tip">${fail ? '…아무 일도 일어나지 않았어요' : '누르면 계속'}</p>`;
       document.body.append(ov);
       requestAnimationFrame(() => ov.classList.add('go'));
@@ -321,7 +321,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     const ov = document.createElement('div'); ov.className = 'udet'; ov.style.setProperty('--tc', col);
     ov.innerHTML = `<div class="ud-box"><button class="ud-x" aria-label="닫기">✕</button>
       <div class="ud-art"><img src="${big(u.id)}" alt=""></div>
-      <div class="ud-tx"><span class="ud-tier">${esc(u.tierName)}</span>${u.attrName ? ` <span class="achip" style="--ac:${ACOLOR[u.attr] ?? '#c9b48a'}">${esc(u.attrName)}</span>` : ''}<h2>${esc(u.name)}</h2>
+      <div class="ud-tx"><span class="ud-tier">${esc(gmmTierName(u))}</span>${u.attrName ? ` <span class="achip" style="--ac:${ACOLOR[u.attr] ?? '#c9b48a'}">${esc(u.attrName)}</span>` : ''}<h2>${esc(u.name)}</h2>
         ${u.quote ? `<p class="ud-q">「${esc(u.quote)}」</p>` : ''}${u.tagline ? `<p class="ud-tag">${esc(u.tagline)}</p>` : ''}
         ${u.intro ? `<p class="ud-intro">${esc(u.intro)}</p>` : ''}
         <div class="ud-chips"><span>🪺 ${u.have}마리</span>${u.away ? `<span>🧭 탐험 중 ${u.away}</span>` : ''}${u.top ? '<span>⚔️ 수비대 대결 출전 가능</span>' : ''}</div></div>
@@ -353,10 +353,10 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     let body;
     if (craftView !== 'mix') {
       const list = visibleRecipes;
-      const slots = r ? `<div class="crmats">${r.materials.map((m, i) => `${i ? '<span class="op">+</span>' : ''}<div class="crslot ${m.usable < m.need ? 'short' : ''}"><img src="${cimg(m.img)}" alt=""><b>${esc(m.name)}</b><small>${m.usable}/${m.need}${m.locked ? ` · 보호 ${m.locked}` : ''}${m.away ? ` · 탐험 ${m.away}` : ''}</small></div>`).join('')}<span class="op">→</span><div class="crslot res"><img src="${cimg(r.img)}" alt=""><b>${esc(r.name)}</b><small class="tg" style="--tc:${TIER_COLOR[r.tier] ?? '#8a7a6a'}">${esc(r.tierName)}</small></div></div>` : '';
+      const slots = r ? `<div class="crmats">${r.materials.map((m, i) => `${i ? '<span class="op">+</span>' : ''}<div class="crslot ${m.usable < m.need ? 'short' : ''}"><img src="${cimg(m.img)}" alt=""><b>${esc(m.name)}</b><small>${m.usable}/${m.need}${m.locked ? ` · 보호 ${m.locked}` : ''}${m.away ? ` · 탐험 ${m.away}` : ''}</small></div>`).join('')}<span class="op">→</span><div class="crslot res"><img src="${cimg(r.img)}" alt=""><b>${esc(r.name)}</b><small class="tg" style="--tc:${TIER_COLOR[r.tier] ?? '#8a7a6a'}">${esc(gmmTierName(r))}</small></div></div>` : '';
       body = `<div class="cr2"><section class="crl"><div class="crsearch"><input id="cq" placeholder="이름·재료로 찾기" value="${esc(craftQ)}"><button class="crchip ${craftOnly ? 'on' : ''}" id="conly">만들 수 있는 것만</button></div>
-        <div class="crlist">${list.map(x => `<button class="cri ${x.id === craftSel ? 'on' : ''}" data-r="${x.id}"><img loading="lazy" src="${cimg(x.img)}" alt=""><span><b>${esc(x.name)}</b><small>${esc(x.tierName)}${x.isNew ? ' · 🆕 처음' : ''}</small></span><em class="${x.ready ? 'ok' : 'no'}">${x.ready ? `${x.max}개 가능` : '재료 부족'}</em></button>`).join('') || `<p class="empty">${craftOnly ? '지금 만들 수 있는 게 없어요. 「만들 수 있는 것만」을 끄면 전체 조합식이 보여요.' : '찾는 조합식이 없어요.'}</p>`}</div></section>
-        <section class="crr">${r ? `<div class="crh"><h2>${esc(r.name)}</h2><span class="tg" style="--tc:${TIER_COLOR[r.tier] ?? '#8a7a6a'}">${esc(r.tierName)}</span>${r.isNew ? '<span class="tag">🆕 처음</span>' : ''}</div>${slots}
+        <div class="crlist">${list.map(x => `<button class="cri ${x.id === craftSel ? 'on' : ''}" data-r="${x.id}"><img loading="lazy" src="${cimg(x.img)}" alt=""><span><b>${esc(x.name)}</b><small>${esc(gmmTierName(x))}${x.isNew ? ' · 🆕 처음' : ''}</small></span><em class="${x.ready ? 'ok' : 'no'}">${x.ready ? `${x.max}개 가능` : '재료 부족'}</em></button>`).join('') || `<p class="empty">${craftOnly ? '지금 만들 수 있는 게 없어요. 「만들 수 있는 것만」을 끄면 전체 조합식이 보여요.' : '찾는 조합식이 없어요.'}</p>`}</div></section>
+        <section class="crr">${r ? `<div class="crh"><h2>${esc(r.name)}</h2><span class="tg" style="--tc:${TIER_COLOR[r.tier] ?? '#8a7a6a'}">${esc(gmmTierName(r))}</span>${r.isNew ? '<span class="tag">🆕 처음</span>' : ''}</div>${slots}
           <p class="note">${r.ready ? `재료가 있어요. 한 번에 최대 <b>${r.max}개</b>까지 만들 수 있어요.` : '빨간 칸의 재료가 모자라요. 보호·탐험 중인 갈매미는 재료로 쓰지 않아요.'}</p>
           <div class="crgo"><div class="qty"><button class="btn ghost" data-cq="-1" ${r.ready ? '' : 'disabled'}>－</button><input id="ct" type="number" inputmode="numeric" min="1" max="${Math.max(1, r.max)}" value="1" ${r.ready ? '' : 'disabled'}><button class="btn ghost" data-cq="1" ${r.ready ? '' : 'disabled'}>＋</button><button class="btn ghost" data-cq="max" ${r.max > 1 ? '' : 'disabled'}>최대</button></div>
           <button class="btn crdo" id="doCraft" ${r.ready ? '' : 'disabled'}>${r.ready ? '만들기' : '재료가 모자라요'}</button></div>` : '<p class="empty">볼 수 있는 조합식이 없어요.</p>'}</section></div>`;
@@ -401,13 +401,13 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
     const { recipes, pool } = craftData, ready = recipes.filter(r => r.ready);
     const seg = [['ready', `✨ 만들 수 있는 것 ${ready.length}`], ['all', '📜 전체 조합식'], ['mix', '🔮 재료로 섞기']];
     const head = `<div class="filters">${seg.map(([k, t]) => `<button data-v="${k}" class="${craftView === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
-    const card = r => `<div class="rc ${r.ready ? 'ok' : ''}"><div class="rh"><img loading="lazy" src="${cimg(r.img)}" alt=""><div><b>${esc(r.name)}</b>${r.isNew ? ' <span class="tag">🆕 처음</span>' : ''}<small>${esc(r.tierName)}</small></div></div>
+    const card = r => `<div class="rc ${r.ready ? 'ok' : ''}"><div class="rh"><img loading="lazy" src="${cimg(r.img)}" alt=""><div><b>${esc(r.name)}</b>${r.isNew ? ' <span class="tag">🆕 처음</span>' : ''}<small>${esc(gmmTierName(r))}</small></div></div>
       <ul>${r.materials.map(m => `<li class="${m.usable >= m.need ? 'have' : ''}">${m.usable >= m.need ? '✅' : '⬜'} ${esc(m.name)} <b>${Math.min(m.usable, m.need)}/${m.need}</b>${m.locked || m.away ? ` <small>(${[m.locked ? `보호 ${m.locked}` : '', m.away ? `탐험 ${m.away}` : ''].filter(Boolean).join('·')})</small>` : ''}</li>`).join('')}</ul>
       ${r.ready ? `<div class="row"><button class="btn" data-c="${r.id}" data-n="1">만들기</button>${r.max > 1 ? `<button class="btn ghost" data-c="${r.id}" data-n="${r.max}">${r.max}개 모두</button>` : ''}</div>` : ''}</div>`;
     let body = '';
     if (craftView === 'ready') body = ready.length ? `<div class="rgrid">${ready.map(card).join('')}</div>` : '<p class="empty">지금 만들 수 있는 게 없어요. 「전체 조합식」에서 모자란 재료를 확인해 보세요.</p>';
     if (craftView === 'all') {
-      const grades = [...new Map(recipes.map(r => [r.tier, r.tierName])).entries()];
+      const grades = [...new Map(recipes.map(r => [r.tier, gmmTierName(r)])).entries()];
       const list = recipes.filter(r => (craftGrade === 'all' || r.tier === craftGrade) && (!craftQ || r.name.includes(craftQ) || r.materials.some(m => m.name.includes(craftQ))));
       body = `<div class="row" style="margin-bottom:8px"><input id="cq" class="search" placeholder="이름으로 찾기 (결과·재료)" value="${esc(craftQ)}"></div>
         <div class="filters"><button data-g="all" class="${craftGrade === 'all' ? 'on' : ''}">전체</button>${grades.map(([k, t]) => `<button data-g="${k}" class="${craftGrade === k ? 'on' : ''}">${esc(t)}</button>`).join('')}</div>
@@ -419,7 +419,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
       body = `<div class="card"><b style="font-weight:400">🔮 재료 ${mixPick.length}/6</b>
         <p class="note">${mixPick.length ? mixPick.map(id => esc(nm(id))).join(' + ') : '아래에서 재료를 2~6마리 골라 섞어요. 조합목록에 없는 숨은 조합도 이렇게 찾아요. 아무것도 안 나오면 재료는 그대로예요.'}</p>
         <div class="row"><button class="btn ghost" id="mclr" ${mixPick.length ? '' : 'disabled'}>비우기</button><button class="btn" id="mgo" ${mixPick.length >= 2 ? '' : 'disabled'}>🔮 섞기</button></div></div>
-        ${pool.length ? `<div class="grid">${pool.map(u => { const n = mixPick.filter(x => x === u.id).length; return `<div class="u ${n ? 'on' : ''}"><img loading="lazy" src="${cimg(u.img)}" alt="">${n ? `<span class="ord">${n}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(u.tierName)} · 남은 ${left(u.id)}</small>
+        ${pool.length ? `<div class="grid">${pool.map(u => { const n = mixPick.filter(x => x === u.id).length; return `<div class="u ${n ? 'on' : ''}"><img loading="lazy" src="${cimg(u.img)}" alt="">${n ? `<span class="ord">${n}</span>` : ''}<b>${esc(u.name)}</b><small>${esc(gmmTierName(u))} · 남은 ${left(u.id)}</small>
           <div class="row" style="justify-content:center;margin-top:4px"><button class="btn ghost" data-mm="${u.id}" style="padding:2px 10px" ${n ? '' : 'disabled'}>－</button><button class="btn ghost" data-mp="${u.id}" style="padding:2px 10px" ${left(u.id) > 0 && mixPick.length < 6 ? '' : 'disabled'}>＋</button></div></div>`; }).join('')}</div>` : '<p class="empty">재료로 쓸 갈매미가 없어요.</p>'}`;
     }
     el.innerHTML = head + body;

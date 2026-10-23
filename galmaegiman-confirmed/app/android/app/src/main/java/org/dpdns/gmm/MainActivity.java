@@ -1461,6 +1461,10 @@ public class MainActivity extends AppCompatActivity {
   void back() {
     if (updateBlocks()) return;
     if (screen.equals("news") && menus.news.back()) return;
+    if (screen.equals("collection") && menus.library.collectionFocus != null
+        && menus.library.collectionFocus.back()) return;
+    if (screen.equals("expedition") && menus.economy.expeditionPreparation != null
+        && menus.economy.expeditionPreparation.back()) return;
     if (screen.equals("nickname")) { if (!busy) titleScreen(); return; }
     if (screen.equals("battleReplay")) { NativeBattleReplay.records(this); return; }
     if (screen.equals("battleRecords")) { load("modesPvp"); return; }
@@ -1547,6 +1551,7 @@ public class MainActivity extends AppCompatActivity {
     motionResumed = true;
     if (backgroundEffects != null) backgroundEffects.resumed(true);
     journalTime.resume();
+    if (menus != null) menus.economy.refreshExpeditionOnResume();
   }
 
   @Override

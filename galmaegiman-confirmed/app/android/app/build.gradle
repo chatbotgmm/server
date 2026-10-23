@@ -45,6 +45,7 @@ tasks.register('bundleGameArt', Sync) {
     from('../../../art/gpt/registration-v1') {
         include 'manifest.json', 'component/layout.json', 'component/application-animation.json'
         include 'resources/cards/*.webp', 'resources/application-envelope-atlas.png'
+        include 'resources/registration-frame.png'
         include 'resources/fonts/Noto-CJK-LICENSE.txt'
         into 'native/registration-v1'
     }

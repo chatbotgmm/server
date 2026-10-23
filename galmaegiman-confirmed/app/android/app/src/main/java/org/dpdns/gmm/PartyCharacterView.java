@@ -32,7 +32,7 @@ final class PartyCharacterView extends LinearLayout {
   static Artwork art(MainActivity h, JSONObject unit) { return new Artwork(h, unit); }
 
   static String description(JSONObject unit) {
-    return unit.optString("name") + (unit.optString("tierName").isEmpty() ? "" : " · " + unit.optString("tierName")) + TemporaryUnitPresentation.suffix(unit);
+    return unit.optString("name") + (TierDisplay.name(unit.optString("tier"), unit.optString("tierName")).isEmpty() ? "" : " · " + TierDisplay.name(unit.optString("tier"), unit.optString("tierName"))) + TemporaryUnitPresentation.suffix(unit);
   }
 
   static String spritePath(JSONObject unit) {
@@ -152,6 +152,7 @@ final class PartyCharacterView extends LinearLayout {
     final RectF target = new RectF();
     final JSONObject instance;
     Bitmap bitmap;
+    int backplateColor = PORTRAIT_BACKPLATE;
     String status;
     Runnable statusChanged;
     boolean requested;
@@ -166,6 +167,8 @@ final class PartyCharacterView extends LinearLayout {
       setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
       updateAccessibility();
     }
+
+    void backplate(int color) { backplateColor = color; setBackgroundColor(color); invalidate(); }
 
     String statusDescription() { return status.isEmpty() ? "" : " · " + status; }
     void updateAccessibility() {
@@ -219,7 +222,7 @@ final class PartyCharacterView extends LinearLayout {
         paint.setColorFilter(null);
         TemporaryUnitPresentation.badge(canvas, instance, new RectF(0, 0, getWidth(), getHeight()), 12 * getResources().getDisplayMetrics().scaledDensity, host.prose); return; }
       // An explicit, identity-preserving placeholder is safer than using another character.
-      paint.setColor(PORTRAIT_BACKPLATE);
+      paint.setColor(backplateColor);
       canvas.drawRoundRect(0, 0, getWidth(), getHeight(), host.dp(4), host.dp(4), paint);
       paint.setColor(JournalTheme.MUTED); paint.setTypeface(host.prose);
       paint.setTextSize(host.dp(12)); paint.setTextAlign(Paint.Align.CENTER);

@@ -29,7 +29,7 @@ const WHY = {
   BLOSSOM: '꽃이 피면 그늘이 밝아져요', DARK: '어둠이 별빛을 삼켜요', COSMOS: '달이 바닷물을 끌어당겨요',
 };
 const TEAM_NAME = { BASIC: '정문 부두 훈련조', GOLD: '금빛 시장 경비대', DARK: '그늘 골목 밤근무조', SEA: '해저 2층 수비대', BLOSSOM: '벚꽃 언덕 낮잠조', COSMOS: '별 관측대 야간조', OUTFIT: '빨래터 수비대' };
-const TIER_NAME = { COMMON: '흔함', UNCOMMON: '안흔함', SPECIAL: '특별', RARE: '희귀', LEGEND: '전설' };
+const TIER_NAME = { COMMON: '커먼', UNCOMMON: '레어', SPECIAL: '특별', RARE: '에픽', LEGEND: '전설' };
 
 // 증강체: 1·3·5번째 전투 뒤에 3개 중 1개
 const AUGMENTS = [
@@ -38,7 +38,7 @@ const AUGMENTS = [
   { id: 'stamp', tier: 'silver', name: '출근 도장', desc: '전투 첫 턴에는 무조건 내가 먼저' },
   { id: 'market', tier: 'silver', name: '금빛 시장', desc: '치명타 확률 +20%' },
   { id: 'rustle', tier: 'silver', name: '바스락 소리', desc: '전투 시작 때 상대 선두가 1턴 멈춤' },
-  { id: 'rookie', tier: 'silver', name: '신입 연수', desc: '흔함·안흔함 갈매미 모든 능력치 +30%' },
+  { id: 'rookie', tier: 'silver', name: '신입 연수', desc: '커먼·레어 갈매미 모든 능력치 +30%' },
   { id: 'photo', tier: 'silver', name: '단체 사진', desc: '모두 최대 체력 +15%' },
   { id: 'overtime', tier: 'gold', name: '야근 수당', desc: '체력이 절반 이하인 갈매미 공격 +35%' },
   { id: 'transfer', tier: 'gold', name: '인사 발령', desc: '교체해도 턴을 쓰지 않음' },

@@ -1647,7 +1647,7 @@ final class NativeMenus {
                   tile.addView(name);
                   String label =
                       (order < 0 ? "" : "✓ " + (order == 0 ? "선봉 · " : (order + 1) + "번 · "))
-                          + (pvp ? unit.optString("tierName") : "Lv" + unit.optInt("level"));
+                          + (pvp ? TierDisplay.name(unit.optString("tier"), unit.optString("tierName")) : "Lv" + unit.optInt("level"));
                   TextView meta = k.note(label);
                   meta.setGravity(Gravity.CENTER);
                   tile.addView(meta);

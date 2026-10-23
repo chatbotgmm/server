@@ -10,7 +10,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { marked } from 'marked';
 import { DateTime } from 'luxon';
 import type { Character, Content } from './content.js';
-import { rarityNames, topTiers } from './content.js';
+import { rarityNames, tierFromLabel, topTiers } from './content.js';
 import { emblems } from './acquisition.js';
 import { tutorialSteps } from './game.js';
 import { siteShell } from './site.js';
@@ -454,7 +454,8 @@ ${list?`<ol class="rank">${list}</ol>`:'<div class="empty">아직 기록이 없�
     const players=ini?[]:await data.searchPlayers(q);
     const card=(c:Character)=>`<a class="card${topTiers.has(c.rarity)?' locked':''}" href="/dex/${c.id}"><img loading="lazy" src="${img('thumbs',face(c))}" alt="${esc(c.name)}" width="480" height="480"><div class="in">${badge(c.rarity)}<h3>${esc(c.name)}</h3></div></a>`;
     // 등급 이름으로 찾기(예: 전설), 이야기 속 낱말로 찾기(히든·최상위 제외)
-    const tier=Object.keys(rarityNames).find(t=>rarityNames[t]===plain&&t!=='HIDDEN');
+    const parsedTier=tierFromLabel(plain);
+    const tier=parsedTier==='HIDDEN'?undefined:parsedTier;
     const byTier=tier?content.characters.filter(c=>c.rarity===tier):[];
     const byStory=ini?[]:content.characters.filter(c=>c.rarity!=='HIDDEN'&&!topTiers.has(c.rarity)&&!units.includes(c)&&c.introduction.replace(/\s+/g,'').includes(plain)).slice(0,24);
     // 이름이 정확히 맞으면: 이 갈매미로 만들 수 있는 것

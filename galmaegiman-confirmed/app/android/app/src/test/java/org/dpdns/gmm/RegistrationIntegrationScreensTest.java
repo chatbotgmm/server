@@ -151,10 +151,10 @@ public class RegistrationIntegrationScreensTest {
   }
 
   @Test
-  public void collectionShowsThreeOrFourLargeFullCardsWithoutDuplicateIdentityWithinEachViewport() throws Exception {
+  public void collectionShowsOneFullCardAndAutomaticallySelectsTheVisibleSpecies() throws Exception {
     for (float scale : new float[] {1, 1.3f}) {
       RuntimeEnvironment.setFontScale(scale);
-      for (int[] size : new int[][] {{915, 412}, {1006, 411}, {1280, 720}}) {
+      for (int[] size : new int[][] {{840, 344}, {800, 360}, {640, 320}, {915, 412}, {1280, 720}}) {
         try (ActivityController<MainActivity> controller = flow.start()) {
           MainActivity host = controller.get();
           FixtureApi api = prepare(host);
@@ -180,10 +180,8 @@ public class RegistrationIntegrationScreensTest {
           assertTrue("선택 등록증은 최소 180dp 높이", display.height() >= host.dp(180));
           for (String tag : new String[] {"collection-growth", "collection-team", "collection-craft", "collection-record"})
             NativeNoScrollReviewTest.assertFullyVisible(host.root.findViewWithTag(tag), host.root);
-          if (host.menus.library.collectionPageSize() == 3)
-            host.root.findViewWithTag("collection-next-page").performClick();
-          View choice = host.root.findViewWithTag("collection-registration-C4");
-          ((View) choice.getParent()).performClick();
+          for (int i = 0; i < 3; i++) assertTrue(grid.performAccessibilityAction(
+              android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD, null));
           assertEquals("C4", host.menus.library.selectedCollectionId);
           assertEquals("C4", artwork(host.root.findViewWithTag("collection-registration-C4"),
               RegistrationCardView.FULL).id);
@@ -220,16 +218,19 @@ public class RegistrationIntegrationScreensTest {
         for (View view : geometry.descendants(grid))
           if (view instanceof RegistrationCardView.Artwork)
             seen.add(((RegistrationCardView.Artwork) view).id);
-        Button next = host.root.findViewWithTag("collection-next-page");
-        if (!next.isEnabled()) break;
-        next.performClick();
+        if (!grid.performAccessibilityAction(
+            android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD, null)) break;
       } while (true);
       assertEquals(9, seen.size());
       assertFalse("Unowned species stays outside the owned filter", seen.contains("C2"));
+      host.root.findViewWithTag("collection-open-list").performClick();
       EditText search = null;
-      for (View view : geometry.descendants(host.root)) if (view instanceof EditText) search = (EditText) view;
+      for (View view : geometry.descendants(host.visibleDialog.getWindow().getDecorView()))
+        if (view instanceof EditText) search = (EditText) view;
       assertNotNull(search);
       search.setText("아주 긴 이름");
+      host.visibleDialog.dismiss();
+      Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
       ViewGroup filtered = host.root.findViewWithTag("collection-inline-grid");
       List<String> matches = new ArrayList<>();
       for (View view : geometry.descendants(filtered))

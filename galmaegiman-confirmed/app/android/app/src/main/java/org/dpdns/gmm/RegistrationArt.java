@@ -69,6 +69,22 @@ final class RegistrationArt {
         () -> decodeCard(id, mode, bucket), ready);
   }
 
+  /** 공통 SVG/layout.json의 rank 영역. 원본 카드에는 쓰지 않는 별도 UI 배경 조각. */
+  void requestRankPlate(Consumer<Bitmap> ready) {
+    enqueue("rank-plate:430:1094:656:1162", () -> {
+      Bitmap frame;
+      try (InputStream in = context.getAssets().open(ROOT + "resources/registration-frame.png")) {
+        frame = BitmapFactory.decodeStream(in);
+      }
+      if (frame == null) return null;
+      if (frame.getWidth() != 1086 || frame.getHeight() != 1448) { frame.recycle(); return null; }
+      Bitmap plate = Bitmap.createBitmap(frame, 430, 1094, 226, 68);
+      if (plate != frame) frame.recycle();
+      plate.setDensity(Bitmap.DENSITY_NONE);
+      return plate;
+    }, ready);
+  }
+
   void requestEnvelope(Consumer<Bitmap> ready) {
     enqueue("envelope", () -> {
       Bitmap bitmap;

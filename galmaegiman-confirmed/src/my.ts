@@ -97,6 +97,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
     const ext=req.params.file.split('.').pop()!.toLowerCase();
     return file(reply,ext==='jpg'?'image/jpeg':`image/${ext}`,`public/web/img/${req.params.file}`);
   });
+  app.get('/my/tier-display.js',async(_req,reply)=>file(reply,'text/javascript; charset=utf-8','public/my/tier-display.js'));
   app.get('/my/my.js',async(_req,reply)=>file(reply,'text/javascript; charset=utf-8','public/my/my.js'));
   app.get('/image-state.js',async(_req,reply)=>file(reply,'text/javascript; charset=utf-8','public/image-state.js'));
   // 로그인: 6자리 코드(같은 곳에서 1분에 10번까지)

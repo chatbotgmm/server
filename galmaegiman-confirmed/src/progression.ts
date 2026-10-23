@@ -66,7 +66,7 @@ export async function transformOwned(tx:Tx,p:Player,content:Content,key:string,k
   if(!source)throw new GameError('보호·탐험 중이 아닌 내 개체를 골라 주세요.');
   const c=content.map.get(source.characterId)!;let pool=content.characters.filter(x=>x.rarity==='COMMON');
   if(kind==='reassess'){
-    if(source.obtainedVia!=='GACHA_HIGH'||!['RARE','LEGEND'].includes(c.rarity))throw new GameError('고급 모집에서 얻은 희귀·전설만 재심사할 수 있어요.');
+    if(source.obtainedVia!=='GACHA_HIGH'||!['RARE','LEGEND'].includes(c.rarity))throw new GameError('고급 모집에서 얻은 에픽·전설만 재심사할 수 있어요.');
     const s=await freshProgression(tx,p.id);if(s.reassessNextAt&&s.reassessNextAt>now)throw new GameError('재심사 대기 시간이 남았어요.');
     pool=content.characters.filter(x=>x.rarity===c.rarity&&x.id!==c.id);
   }else if(!topTiers.has(c.rarity))throw new GameError('최상위 개체 한 마리만 환생할 수 있어요.');

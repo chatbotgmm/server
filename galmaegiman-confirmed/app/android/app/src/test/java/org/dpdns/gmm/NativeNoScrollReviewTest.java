@@ -445,15 +445,14 @@ public class NativeNoScrollReviewTest {
         for (View view : descendants(host.root.findViewWithTag("collection-inline-grid")))
           if (view instanceof RegistrationCardView.Artwork)
             visited.add(((RegistrationCardView.Artwork) view).id);
-        Button next = host.root.findViewWithTag("collection-next-page");
-        if (!next.isEnabled()) break;
-        next.performClick();
+        if (!host.root.findViewWithTag("collection-inline-grid").performAccessibilityAction(
+            android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD, null)) break;
       }
       assertEquals("페이지를 넘겨 모든 서버 대원에 접근", all.length(), visited.size());
       JSONObject last = all.getJSONObject(all.length() - 1);
       View art = host.root.findViewWithTag("collection-registration-" + last.getString("id"));
       assertNotNull(art);
-      ((View) art.getParent()).performClick();
+      // 한 장형은 보이는 종이 이미 선택되어 별도 탭이 필요 없다.
       Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32));
       assertEquals("원래 선택 callback의 정확한 id 유지", last.getString("id"),
           host.menus.library.selectedCollectionId);

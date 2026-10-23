@@ -5,7 +5,7 @@
   "source_prefix": "galmaegiman-confirmed/art/gpt/registration-v1",
   "apk_prefix": "assets/native/registration-v1",
   "card_count": 145,
-  "runtime_bytes": 28343418,
+  "runtime_bytes": 29871707,
   "files": [
     {
       "path": "component/application-animation.json",
@@ -906,6 +906,12 @@
       "bytes": 14712,
       "sha256": "849f4ea9c214fa4ac3593b770c699f387534b11ce671264c1b10d85bdcb5997b",
       "git_blob_sha": "420b42087079f0595edc4809d382e67dc2b31d38"
+    },
+    {
+      "path": "resources/registration-frame.png",
+      "bytes": 1528289,
+      "sha256": "0af8a163f3baa91e22aaa3665a66a63e6789eca68212cbbc6b03bda083b4f609",
+      "git_blob_sha": "7869f7debd9ba040504849b9a7a5b3fffad01f0d"
     }
   ]
 }

@@ -118,6 +118,10 @@ def verify_runtime(read, paths, lock):
     check(layout["viewBox"] == [0, 0, 1086, 1448], "Card coordinate system changed")
     check(layout["portraitWindow"] == {"x": 54, "y": 286, "width": 978, "height": 779},
           "Portrait window changed")
+    check(png_dimensions(content["resources/registration-frame.png"]) == (1086, 1448),
+          "Unexpected blank rank frame dimensions")
+    check(layout["rank"] == {"x": 543, "y": 1145, "fontSize": 46, "maxWidth": 220},
+          "Rank text coordinates changed")
     animation = json.loads(content["component/application-animation.json"])
     frames = animation["frames"]
     check(len(frames) == 8 and sum(frame["durationMs"] for frame in frames) == 1000,
@@ -171,7 +175,7 @@ BACKEND_FIXTURE_TEST_LOCKS = {
     "galmaegiman-confirmed/test/battle-events.test.ts":
         (13489, "4c38cd9c5cd9333ece04a7b46528db2e08c7aff1317d649ef61817e188d5ec78"),
     "galmaegiman-confirmed/test/game.integration.test.ts":
-        (139862, "092e55b3b42fac030d5ac55591960df1dd50a8c15489e12f7a5461765432e533"),
+        (142467, "7e65b4d234bae0bd5acb02df9d34aa68ba32ee31fc3c19881bc193604dfc8fa6"),
 }
 
 

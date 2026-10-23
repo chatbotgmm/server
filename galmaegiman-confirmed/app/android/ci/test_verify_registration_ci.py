@@ -54,7 +54,7 @@ class SourceScopeTests(unittest.TestCase):
             "galmaegiman-confirmed/test/battle-events.test.ts":
                 (13489, "4c38cd9c5cd9333ece04a7b46528db2e08c7aff1317d649ef61817e188d5ec78"),
             "galmaegiman-confirmed/test/game.integration.test.ts":
-                (139862, "092e55b3b42fac030d5ac55591960df1dd50a8c15489e12f7a5461765432e533"),
+                (142467, "7e65b4d234bae0bd5acb02df9d34aa68ba32ee31fc3c19881bc193604dfc8fa6"),
         })
 
     def test_exact_backend_fixture_paths_and_hashes_pass(self):
@@ -276,6 +276,21 @@ class CheckerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             verifier.verify_runtime(lambda _: b"corrupt", [entry["path"] for entry in lock["files"]], lock)
 
+
+
+class RankPlatePackagingTests(unittest.TestCase):
+    def test_original_blank_frame_is_hash_locked_and_packaged(self):
+        root = verifier.HERE.parents[3]
+        lock = json.loads(verifier.LOCK.read_text())
+        frame = next(x for x in lock["files"] if x["path"] == "resources/registration-frame.png")
+        data = (root / lock["source_prefix"] / frame["path"]).read_bytes()
+        self.assertEqual(len(data), frame["bytes"])
+        self.assertEqual(verifier.sha256(data), frame["sha256"])
+        self.assertEqual(verifier.png_dimensions(data), (1086, 1448))
+        build = (verifier.HERE.parent / "app/build.gradle").read_text()
+        self.assertIn("include 'resources/registration-frame.png'", build)
+        layout = json.loads((root / lock["source_prefix"] / "component/layout.json").read_text())
+        self.assertEqual(layout["rank"], {"x": 543, "y": 1145, "fontSize": 46, "maxWidth": 220})
 
 if __name__ == "__main__":
     unittest.main()

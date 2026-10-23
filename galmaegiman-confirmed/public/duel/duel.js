@@ -957,7 +957,7 @@ function skillSheet(key, open = null) {   // open: 'promo'면 승진 전용 기�
     modal.innerHTML = `<div class="sheet skv">
       <aside class="skl"><div class="who-head"><img src="${sprite(id, 'front', rec.stage)}" class="st-${rec.stage}" alt=""><div><b>${esc(u.name)} ${rec.stage ? `<em class="stars">${STARS[rec.stage]}</em>` : ''}</b><small>Lv${rec.level} · ${rec.stage ? `${rec.stage}단계 승진` : '원형'} · ${esc(R.attrName(def.attr))} · ${ROLE[def.role]}${synName(id) ? ` · ${esc(synName(id))}` : ''}</small></div></div>
         ${statGrid(st)}
-        ${R.recipeValue(id) !== undefined ? `<p class="sub">조합 가치 · 흔함 ${R.recipeValue(id)}마리 · 공격기 위력 +${R.recipeBonus(id)}%</p>` : ''}
+        ${R.recipeValue(id) !== undefined ? `<p class="sub">조합 가치 · 커먼 ${R.recipeValue(id)}마리 · 공격기 위력 +${R.recipeBonus(id)}%</p>` : ''}
         <div class="promo"><b>승진</b> <small>${rec.stage >= 3 ? '최고 단계' : `다음: ${promoNeed(rec)}`}</small>${rec.evoAugs.length ? `<div class="evo">${rec.evoAugs.map(a => { const e = R.evoAug.get(a); return `<span title="${esc(e.desc)}">🎖️ ${esc(e.name)}</span>`; }).join('')}</div>` : ''}
         ${canEvolve(R, rec, partsCleared()) ? `<button class="big wide" id="promo">⬆ ${rec.stage + 1}단계 승진하기</button>` : ''}</div></aside>
       <main class="skr"><div class="skh"><h2>기술 <small>${mine.length}/${R.data.learn.slots}칸 · 모두 바꿀 수 있어요</small></h2><div class="skbtn">${promoBtn}${learnBtn}</div></div>

@@ -34,7 +34,7 @@
   addEventListener('resize', () => { clearTimeout(onResize.t); onResize.t = setTimeout(() => resizer && resizer(), 120); });
   addEventListener('hashchange', () => { resizer = null; });
 
-  const unitSub = u => [u.attrName || u.attr, u.tierName].filter(Boolean).join(' · ');
+  const unitSub = u => [u.attrName || u.attr, gmmTierName(u)].filter(Boolean).join(' · ');
   // 공통 대원 카드(입사 등록증 자리). 최종 카드 디자인이 정해지면 이 함수와 CSS .reg-card만 바꾼다(145종 그림은 기존 그대로 씀)
   // card: {i, id, name, image, sub, selected}
   const regCard = c => `<button type="button" class="card unit reg-card" data-card="registration" role="option" data-i="${c.i}" data-id="${esc(c.id)}" aria-selected="${!!c.selected}">
@@ -57,8 +57,8 @@
     if (!S.catalog) { try { S.busy('catalog', true); S.catalog = (await S.api('native/catalog')).units; } catch (x) { if (x.status !== 401) $('.dex-detail').innerHTML = `<p class="err" role="alert">${esc(x.message)}</p>`; return; } finally { S.busy('catalog', false); } }
     if (!view.querySelector('.dex')) return;   // 받는 동안 다른 화면으로 이동
     const all = S.catalog;
-    const values = f => [...new Set(all.map(u => (f === 'attr' ? u.attrName : f === 'tier' ? u.tierName : '')).filter(Boolean))];
-    const list = () => all.filter(u => dexState.f === 'all' || (dexState.f === 'own' ? u.have > 0 : !dexState.v || (dexState.f === 'attr' ? u.attrName : u.tierName) === dexState.v));
+    const values = f => [...new Set(all.map(u => (f === 'attr' ? u.attrName : f === 'tier' ? gmmTierName(u) : '')).filter(Boolean))];
+    const list = () => all.filter(u => dexState.f === 'all' || (dexState.f === 'own' ? u.have > 0 : !dexState.v || (dexState.f === 'attr' ? u.attrName : gmmTierName(u)) === dexState.v));
     const chips = $('[data-chips]', view);
     const drawChips = () => {
       chips.hidden = !(dexState.f === 'attr' || dexState.f === 'tier');
@@ -80,7 +80,7 @@
     };
     const p = pager(view, {
       grid: '.dex-grid', list, selected: () => all.find(u => u.id === dexState.sel),
-      item: (u, i, on) => regCard({ i, id: u.id, name: u.name, image: S.card(u.id, u.image), sub: u.known ? u.attrName || u.tierName : '미발견', selected: on }),
+      item: (u, i, on) => regCard({ i, id: u.id, name: u.name, image: S.card(u.id, u.image), sub: u.known ? u.attrName || gmmTierName(u) : '미발견', selected: on }),
       onPick: u => detail(u),
     });
     $('.filters', view).onclick = e => { const b = e.target.closest('[data-f]'); if (!b) return; dexState.f = b.dataset.f; dexState.v = ''; $$('.filters [data-f]', view).forEach(x => x.setAttribute('aria-selected', String(x === b))); drawChips(); p.draw(); };

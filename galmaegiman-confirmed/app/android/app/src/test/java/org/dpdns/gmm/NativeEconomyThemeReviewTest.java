@@ -81,7 +81,7 @@ public class NativeEconomyThemeReviewTest {
     boolean preview = "economy-name-preview".equals(text.getTag());
     if (preview) {
       assertNotNull("Truncated identity keeps its complete accessible name", text.getContentDescription());
-      assertEquals(text.getText().toString(), text.getContentDescription().toString());
+      assertEquals(text.getText().toString().replace("\n", " "), text.getContentDescription().toString());
       assertTrue(text.getMaxLines() <= 2);
     }
     int truncations = 0;
@@ -131,17 +131,10 @@ public class NativeEconomyThemeReviewTest {
     NativeEconomy economy = host.menus.economy;
     assertNull("Every selected slot is visible; no selected-member paging", host.root.findViewWithTag("expedition-selected-pages"));
     if (page.equals("explore")) {
-      View pager = host.root.findViewWithTag("expedition-candidate-pages");
-      assertNotNull(pager);
-      assertTrue("Two 48dp candidate page actions fit", pager.getHeight() >= host.dp(96));
-      assertEquals(geometry.bounds(pager, host.root), geometry.visibleIntersection(pager, host.root));
-      View frame = host.root.findViewWithTag("expedition-summary");
-      View copy = host.root.findViewWithTag("expedition-summary-copy");
-      int labels = 0;
-      for (View child : geometry.descendants(copy)) if (child instanceof TextView) {
-        inkInsideFrame(host, (TextView) child, frame, 6, 6); labels++;
-      }
-      assertEquals("Count and exact live estimate remain readable", 2, labels);
+      assertNull("Candidates are a separate mode", host.root.findViewWithTag("expedition-candidates"));
+      assertNotNull(host.root.findViewWithTag("expedition-summary-count"));
+      assertNotNull(host.root.findViewWithTag("expedition-more"));
+      assertTrue(host.menus.economy.expeditionPreparation.primary.getHeight() >= host.dp(48));
     }
     int selected = 0, candidates = 0, empty = 0;
     List<String> ids = new ArrayList<>();
@@ -179,7 +172,7 @@ public class NativeEconomyThemeReviewTest {
       assertTrue(geometry.bounds(art, host.root).bottom <= geometry.bounds(status, host.root).top);
       assertEquals(geometry.bounds(status, host.root), geometry.visibleIntersection(status, host.root));
       int left = unit.optInt("have") - unit.optInt("away") - (candidate ? Collections.frequency(host.expeditionDraft, id) : 0);
-      assertEquals(unit.optString("name"), status.getText().toString());
+      assertEquals(unit.optString("name"), status.getText().toString().replace("\n", " "));
       assertEquals(unit.optString("name"), status.getContentDescription().toString());
       assertEquals("economy-name-preview", status.getTag());
       assertTrue(tile.getContentDescription().toString().contains(candidate ? "남은 " + left : (index + 1) + "번"));
@@ -194,7 +187,7 @@ public class NativeEconomyThemeReviewTest {
     assertEquals("Every selected duplicate has its own visible slot", ids.size(), selected);
     assertEquals("All ten slot positions stay visible", economy.partyMax(), selected + empty);
     assertTrue("Candidate page is bounded at eight", candidates <= 8);
-    if (page.equals("explore")) assertTrue(candidates > 0);
+    if (page.equals("explore")) assertEquals("Board has no simultaneous candidate list", 0, candidates);
     return dimensions;
   }
 
@@ -547,6 +540,7 @@ public class NativeEconomyThemeReviewTest {
               }
               // Presentation-only recorded-trip state. No departure or claim request is made.
               long now = System.currentTimeMillis();
+              TemporaryUnitPresentation.sync(now);
               host.me().put("trip", MainActivity.obj("ids", ids,
                   "startedAt", java.time.Instant.ofEpochMilli(now - 900000).toString(),
                   "endsAt", java.time.Instant.ofEpochMilli(now + 2700000).toString()));
@@ -849,60 +843,42 @@ public class NativeEconomyThemeReviewTest {
   }
 
   void expeditionPagesKeepIdentityAndDuplicateIndices(MainActivity host, NativeEconomyThemeFixture.Api api) throws Exception {
-    host.me().remove("trip");
-    NativeEconomy economy = host.menus.economy;
-    economy.expedition();
+    host.me().remove("trip"); NativeEconomy economy = host.menus.economy;
+    economy.expedition(); NativeExpeditionPreparation prep = economy.expeditionPreparation;
+    prep.open(-1);
     List<String> expected = new ArrayList<>(), seen = new ArrayList<>();
-    JSONArray owned = host.list(host.me(), "units");
-    for (int i = 0; i < owned.length(); i++) {
-      JSONObject unit = owned.optJSONObject(i);
-      if (unit.optBoolean("top") && unit.optInt("have") - unit.optInt("away") > 0) expected.add(unit.optString("id"));
-    }
+    for (JSONObject unit : prep.candidates()) expected.add(unit.optString("id"));
     while (true) {
-      ready(host, SIZES[0]);
-      expeditionCards(host, "explore");
-      int visible = 0;
+      ready(host, SIZES[0]); int visible = 0;
+      assertNull(host.root.findViewWithTag("expedition-selected-crew"));
       for (View view : geometry.descendants(host.root.findViewWithTag("expedition-candidates"))) {
-        String tag = view.getTag() instanceof String ? view.getTag().toString() : "";
-        if (tag.startsWith("expedition-add-")) { seen.add(tag.substring("expedition-add-".length())); visible++; }
+        String tag = String.valueOf(view.getTag());
+        if (tag.startsWith("expedition-candidate-") && !tag.endsWith("pages")) {
+          String id = tag.substring("expedition-candidate-".length());
+          seen.add(id); visible++;
+          TextView name = view.findViewWithTag("economy-name-preview");
+          assertEquals(economy.find(id).optString("name"), name.getText().toString().replace("\n", " "));
+          assertEquals(economy.find(id).optString("name"), name.getContentDescription());
+          readable(name);
+        }
       }
-      assertEquals(Math.min(8, expected.size() - economy.crewPage * 8), visible);
-      Button next = actions.button(host.root.findViewWithTag("expedition-candidate-pages"), "›");
-      if (!next.isEnabled()) break;
-      next.performClick();
+      assertEquals(Math.min(prep.perPage(), expected.size() - prep.page * prep.perPage()), visible);
+      Button next = host.root.findViewWithTag("expedition-candidate-next");
+      if (!next.isEnabled()) break; next.performClick();
     }
-    assertEquals("Side paging preserves every eligible server ID and its order", expected, seen);
-    // Separate behavior fixture: duplicate selected copies retain global slot identity.
+    assertEquals("Paging preserves eligible IDs and order", expected, seen);
+    prep.back();
     host.expeditionDraft = new ArrayList<>(Arrays.asList("D1", "D2", "D1", "D3", "D4"));
-    economy.selectedCrewPage = economy.crewPage = 0;
-    economy.expedition();
-    ready(host, SIZES[0]);
-    View exhausted = host.root.findViewWithTag("expedition-add-D1");
-    assertNotNull(exhausted); assertFalse(exhausted.isEnabled());
-    assertTrue(exhausted.getContentDescription().toString().contains("남은 0"));
-    assertEquals(economy.find("D1").optString("name"),
-        ((TextView) exhausted.findViewWithTag("economy-name-preview")).getText().toString());
-    host.busy = true;
-    host.root.findViewWithTag("expedition-member-0").performClick();
-    assertEquals(Arrays.asList("D1", "D2", "D1", "D3", "D4"), host.expeditionDraft);
-    host.busy = false;
-    assertNull(host.root.findViewWithTag("expedition-selected-pages"));
-    ready(host, SIZES[0]);
+    economy.expedition(); prep = economy.expeditionPreparation; ready(host, SIZES[0]);
+    host.busy = true; host.root.findViewWithTag("expedition-member-0").performClick();
+    assertNull(host.visibleDialog); assertEquals(5, host.expeditionDraft.size()); host.busy = false;
     host.root.findViewWithTag("expedition-member-2").performClick();
-    assertEquals("Remove exactly the visible third-slot duplicate, not the first matching ID",
-        Arrays.asList("D1", "D2", "D3", "D4"), host.expeditionDraft);
-    ready(host, SIZES[0]);
-    host.root.findViewWithTag("expedition-member-3").performClick();
-    ready(host, SIZES[0]);
-    host.root.findViewWithTag("expedition-member-2").performClick();
-    ready(host, SIZES[0]);
-    assertEquals(Arrays.asList("D1", "D2"), host.expeditionDraft);
-    assertEquals("Selected slots never require paging", 0, economy.selectedCrewPage);
-    assertEquals("Presentation paging and draft selection never submit automatically", 0, api.writes);
-    assertNull(host.visibleDialog);
+    host.visibleDialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick();
+    org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    assertEquals("Remove exact duplicate slot", Arrays.asList("D1", "D2", "D3", "D4"), host.expeditionDraft);
+    prep.open(-1); assertEquals(economy.expeditionAvailable(economy.find("D1")) > Collections.frequency(prep.draft.editing, "D1"),
+        host.root.findViewWithTag("expedition-add-D1").isEnabled());
+    host.back(); assertFalse(prep.draft.active());
+    assertEquals(0, api.writes); assertNull(host.visibleDialog);
   }
 }
-
-
-
-

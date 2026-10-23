@@ -6,7 +6,7 @@ import android.widget.*;
 import java.lang.ref.WeakReference;
 import org.json.JSONObject;
 
-/** FULL은 원본 인쇄를 그대로 크게 보여 주고, 동적 상태와 접근성만 별도로 둔다. */
+/** FULL은 원본 그림과 비율을 보존하고, 바뀐 등급 명판·동적 상태를 별도 UI로 둔다. */
 final class RegistrationCardView extends LinearLayout {
   static final int FULL = 0, COMPACT = 1;
   final Artwork picture;
@@ -32,7 +32,7 @@ final class RegistrationCardView extends LinearLayout {
     name.setVisibility(mode == FULL ? GONE : VISIBLE);
     name.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
     addView(name, new LinearLayout.LayoutParams(-1, -2));
-    grade = h.text(unit.optString("tierName"), 13);
+    grade = h.text(TierDisplay.name(unit.optString("tier"), unit.optString("tierName")), 13);
     grade.setTypeface(h.prose);
     grade.setTextColor(NativeReveal.tierInk(unit.optString("tier")));
     grade.setGravity(Gravity.CENTER);
@@ -88,8 +88,14 @@ final class RegistrationCardView extends LinearLayout {
     return new Artwork(h, unit, mode);
   }
 
+  static String rankReplacement(JSONObject unit, int mode) {
+    String tier = unit.optString("tier");
+    return canShow(unit) && mode == FULL && (tier.equals("COMMON") || tier.equals("UNCOMMON") || tier.equals("RARE"))
+        ? TierDisplay.name(tier, unit.optString("tierName")) : "";
+  }
+
   static String description(JSONObject unit) {
-    String result = unit.optString("name") + " · " + unit.optString("tierName");
+    String result = unit.optString("name") + " · " + TierDisplay.name(unit.optString("tier"), unit.optString("tierName"));
     if (unit.optInt("n") > 1) result += " · " + unit.optInt("n") + "마리";
     if (unit.optBoolean("first")) result += " · 처음 만난 대원";
     return result + TemporaryUnitPresentation.suffix(unit);
@@ -124,7 +130,8 @@ final class RegistrationCardView extends LinearLayout {
     final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     final RectF target = new RectF();
     final JSONObject instance;
-    Bitmap bitmap;
+    Bitmap bitmap, rankPlate;
+    final String rankLabel;
     boolean loadAttempted;
     String status = "이미지 준비 중";
     Runnable statusChanged;
@@ -138,6 +145,7 @@ final class RegistrationCardView extends LinearLayout {
       id = unit.optString("id");
       identity = description(unit);
       visibleIdentity = canShow(unit);
+      rankLabel = rankReplacement(unit, mode);
       setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
       if (!visibleIdentity) status = "미발견";
       updateAccessibility();
@@ -166,6 +174,14 @@ final class RegistrationCardView extends LinearLayout {
       int serial = ++generation, epoch = host.epoch;
       String account = host.api.token();
       WeakReference<Artwork> weak = new WeakReference<>(this);
+      if (!rankLabel.isEmpty()) host.registrationArt().requestRankPlate(ready -> {
+        Artwork view = weak.get();
+        if (view == null || view.generation != serial || !view.isAttachedToWindow()
+            || view.host.epoch != epoch || !java.util.Objects.equals(account, view.host.api.token())
+            || view.host.isDestroyed() || view.host.isFinishing()) return;
+        view.rankPlate = ready;
+        view.invalidate();
+      });
       host.registrationArt().request(id, mode, getWidth(), getHeight(), ready -> {
         Artwork view = weak.get();
         if (view == null || view.generation != serial || !view.isAttachedToWindow()
@@ -199,6 +215,7 @@ final class RegistrationCardView extends LinearLayout {
       ++generation;
       loadAttempted = false;
       bitmap = null;
+      rankPlate = null;
       target.setEmpty();
       super.onDetachedFromWindow();
     }
@@ -208,6 +225,20 @@ final class RegistrationCardView extends LinearLayout {
       if (bitmap != null && !bitmap.isRecycled()) {
         paint.setColorFilter(TemporaryUnitPresentation.filter(instance));
         canvas.drawBitmap(bitmap, null, target, paint);
+        // 원본 장면·이름·프레임 밖에는 손대지 않고, 실제 contain 사각형 안의 명판 글자만 교체.
+        if (rankPlate != null && !rankPlate.isRecycled() && !rankLabel.isEmpty()) {
+          int saved = canvas.save();
+          canvas.translate(target.left, target.top);
+          canvas.scale(target.width() / 1086f, target.height() / 1448f);
+          canvas.clipRect(430, 1094, 656, 1162);
+          canvas.drawBitmap(rankPlate, null, new RectF(430, 1094, 656, 1162), paint);
+          paint.setTypeface(android.graphics.Typeface.create(NavyWorkbenchTheme.font(host), android.graphics.Typeface.BOLD));
+          paint.setTextAlign(Paint.Align.CENTER);
+          paint.setTextSize(46);
+          paint.setColor(0xfff5e4c2);
+          canvas.drawText(rankLabel, 543, 1145, paint);
+          canvas.restoreToCount(saved);
+        }
         paint.setColorFilter(null);
         TemporaryUnitPresentation.badge(canvas, instance, new RectF(0, 0, getWidth(), getHeight()), 12 * getResources().getDisplayMetrics().scaledDensity, host.prose);
         return;

@@ -6,7 +6,13 @@ import { z } from 'zod';
 // NEUTRAL(특수함): 뽑기·조합으로 나오지 않고 '땅콩떼기'로만 얻는 등급. 히든 조합 재료로 쓸 예정
 export const tierOrder=['COMMON','UNCOMMON','SPECIAL','RARE','LEGEND','HIDDEN','LIMITED','TRANSCEND','ETERNAL','IMMORTAL','NEUTRAL'] as const;
 export type Tier=typeof tierOrder[number];
-export const rarityNames:Record<string,string>={COMMON:'흔함',UNCOMMON:'안흔함',SPECIAL:'특별',RARE:'희귀',LEGEND:'전설',HIDDEN:'히든',LIMITED:'제한',TRANSCEND:'초월',ETERNAL:'영원',IMMORTAL:'불멸',NEUTRAL:'특수함'};
+export const rarityNames:Record<string,string>={COMMON:'커먼',UNCOMMON:'레어',SPECIAL:'특별',RARE:'에픽',LEGEND:'전설',HIDDEN:'히든',LIMITED:'제한',TRANSCEND:'초월',ETERNAL:'영원',IMMORTAL:'불멸',NEUTRAL:'특수함'};
+// 구버전 버튼/즐겨찾기 명령은 표시명 변경 뒤에도 해석한다.
+export function tierFromLabel(label:string):Tier|undefined {
+  const legacy:Record<string,Tier>={'흔함':'COMMON','안흔함':'UNCOMMON','희귀':'RARE'};
+  return Object.prototype.hasOwnProperty.call(legacy,label) ? legacy[label]
+    : tierOrder.find(t=>rarityNames[t]===label);
+}
 // 조합 재료는 결과보다 낮은 단계여야 합니다. 전설=히든, 최상위 4분류는 서로 동급입니다.
 export const tiers:Record<string,number>={COMMON:1,UNCOMMON:2,SPECIAL:3,RARE:4,LEGEND:5,HIDDEN:5,LIMITED:6,TRANSCEND:6,ETERNAL:6,IMMORTAL:6,NEUTRAL:2};
 export const topTiers=new Set<string>(['LIMITED','TRANSCEND','ETERNAL','IMMORTAL']);

@@ -64,8 +64,8 @@
     const detail = () => {
       const x = g(), total = x.weights.reduce((a, w) => a + w.w, 0), max = Math.max(1, Math.min(50, Math.floor((S.state?.me?.credits ?? info.credits) / x.cost)));
       $('[data-detail]', view).innerHTML = `<h2>${esc(x.label)} 모집</h2><p class="sub">지원서 ${fmt(x.cost)}장으로 한 명을 모집해요. <b>어떤 대원이 올지는 무작위</b>예요.</p>
-        <table class="odds"><caption class="sr">등급별 확률</caption><thead><tr><th scope="col">등급</th><th scope="col">확률</th></tr></thead><tbody>${x.weights.map(w => `<tr><th scope="row">${esc(w.tierName)}</th><td>${(w.w / total * 100).toFixed(w.w / total * 100 < 1 ? 1 : 0)}%</td></tr>`).join('')}</tbody></table>
-        ${x.kind === 'HIGH' && info.pity ? `<p class="sub">${esc(info.pity.tierName)} 보장까지 고급 모집 ${fmt(info.pity.left)}회(천장)</p>` : ''}
+        <table class="odds"><caption class="sr">등급별 확률</caption><thead><tr><th scope="col">등급</th><th scope="col">확률</th></tr></thead><tbody>${x.weights.map(w => `<tr><th scope="row">${esc(gmmTierName(w))}</th><td>${(w.w / total * 100).toFixed(w.w / total * 100 < 1 ? 1 : 0)}%</td></tr>`).join('')}</tbody></table>
+        ${x.kind === 'HIGH' && info.pity ? `<p class="sub">${esc(gmmTierName(info.pity))} 보장까지 고급 모집 ${fmt(info.pity.left)}회(천장)</p>` : ''}
         <p class="sub"><a href="/odds" target="_blank" rel="noopener">전체 확률 보기</a> · 가진 지원서 ${fmt(S.state?.me?.credits ?? info.credits)}장</p>`;
       $('[data-qslot]', view).innerHTML = qty(max);
       const get = qtyBind(view, max, n => { $('[data-why]', view).textContent = `지원서 ${fmt(n * x.cost)}장을 써요.`; });
@@ -76,7 +76,7 @@
           const req = S.api('draw', { kind: x.kind, times: get() });
           await Promise.all([req.catch(() => {}), env.played]);   // 마지막 장면은 서버 결과가 올 때까지 유지
           const r = (await req).result;
-          $('[data-detail]', view).innerHTML = `<h2>모집 결과</h2><div class="got">${r.items.map(it => `<div class="got-card${it.first ? ' first' : ''}"><img src="${S.card(it.id, it.img)}" alt="${esc(it.name)} 입사 등록증" width="120" height="160"><b class="${S.card(it.id, it.img).startsWith('/site/reg/') ? 'sr' : ''}">${esc(it.name)}</b><small>${esc(it.tierName)}${it.n > 1 ? ` ×${fmt(it.n)}` : ''}${it.first ? ' · 새 대원' : ''}</small></div>`).join('')}</div><div class="srv">${lines(r.summary)}</div>
+          $('[data-detail]', view).innerHTML = `<h2>모집 결과</h2><div class="got">${r.items.map(it => `<div class="got-card${it.first ? ' first' : ''}"><img src="${S.card(it.id, it.img)}" alt="${esc(it.name)} 입사 등록증" width="120" height="160"><b class="${S.card(it.id, it.img).startsWith('/site/reg/') ? 'sr' : ''}">${esc(it.name)}</b><small>${esc(gmmTierName(it))}${it.n > 1 ? ` ×${fmt(it.n)}` : ''}${it.first ? ' · 새 대원' : ''}</small></div>`).join('')}</div><div class="srv">${lines(r.summary)}</div>
             <button class="btn ghost" type="button" data-again>${esc(x.label)} 모집으로 돌아가기</button>`;
           $('[data-again]', view).onclick = detail;
           S.catalog = null; await refreshMe(); info = await S.api('draw').catch(() => info);
@@ -109,14 +109,14 @@
     if (craftTab === 'recipes') {
       const detail = r => {
         craftSel = r.id;
-        $('[data-detail]', view).innerHTML = `<div class="d-head"><img class="${S.card(r.id, r.img).startsWith('/site/reg/') ? 'reg' : ''}" src="${S.card(r.id, r.img)}" alt="" width="96" height="128"><div><h2>${esc(r.name)}</h2><p class="sub">${esc(r.tierName)}${r.isNew ? ' · 처음 만드는 대원' : ''}</p></div></div>
+        $('[data-detail]', view).innerHTML = `<div class="d-head"><img class="${S.card(r.id, r.img).startsWith('/site/reg/') ? 'reg' : ''}" src="${S.card(r.id, r.img)}" alt="" width="96" height="128"><div><h2>${esc(r.name)}</h2><p class="sub">${esc(gmmTierName(r))}${r.isNew ? ' · 처음 만드는 대원' : ''}</p></div></div>
           <ul class="mats">${r.materials.map(m => `<li class="${m.usable >= m.need ? 'ok' : 'short'}"><img src="/thumbs/${encodeURIComponent(m.img)}.jpg" alt="" width="40" height="40"><b>${esc(m.name)}</b><span>${fmt(m.usable)} / ${fmt(m.need)}${m.locked ? ` · 보호 ${fmt(m.locked)}` : ''}${m.away ? ` · 탐험 ${fmt(m.away)}` : ''}</span><em>${m.usable >= m.need ? '충분' : '부족'}</em></li>`).join('')}</ul>
           <p class="sub">보호·탐험 중인 대원은 재료로 쓰지 않아요.</p>`;
         $('[data-qslot]', view).innerHTML = r.ready ? qty(Math.max(1, Math.min(50, r.max))) : '';
         const get = r.ready ? qtyBind(view, Math.max(1, Math.min(50, r.max))) : () => 1;
         let confirmed = !r.confirm;
         go.disabled = !r.ready; go.textContent = '조합하기';
-        why.textContent = r.ready ? (r.confirm ? '희귀 이상 대원이에요. 한 번 더 눌러 확인해요.' : '') : '재료가 모자라요.';
+        why.textContent = r.ready ? (r.confirm ? '에픽 이상 대원이에요. 한 번 더 눌러 확인해요.' : '') : '재료가 모자라요.';
         go.onclick = e => {
           if (!confirmed) { confirmed = true; go.textContent = `재료를 써서 ${get()}번 조합`; why.textContent = '재료로 쓴 대원은 사라져요. 맞으면 한 번 더 눌러요.'; return; }
           run(e.currentTarget, '조합하는 중…', async () => {
@@ -127,7 +127,7 @@
         $$('.craft-grid [data-i]', view).forEach(b => b.setAttribute('aria-selected', String(b.dataset.id === r.id)));
       };
       const p = S.pager(view, { grid: '.craft-grid', list: () => info.recipes, selected: () => info.recipes.find(r => r.id === craftSel),
-        item: (r, i, on) => S.regCard({ i, id: r.id, name: r.name, image: S.card(r.id, r.img), sub: r.ready ? `가능 · 최대 ${r.max}` : r.tierName, selected: on }), onPick: r => detail(r) });
+        item: (r, i, on) => S.regCard({ i, id: r.id, name: r.name, image: S.card(r.id, r.img), sub: r.ready ? `가능 · 최대 ${r.max}` : gmmTierName(r), selected: on }), onPick: r => detail(r) });
       p.draw(); const first = info.recipes.find(r => r.id === craftSel) || info.recipes[0]; if (first) { p.show(first); detail(first); } else $('[data-detail]', view).innerHTML = '<p class="muted">아직 열린 조합식이 없어요.</p>';
       S.onResize(() => p.draw());
     } else {
@@ -182,7 +182,7 @@
       $('[data-go]', view).disabled = !pick.length; $('[data-why]', view).textContent = pick.length ? '' : '대원을 1마리 이상 골라요.';
     };
     const p = S.pager(view, { grid: '.ex-grid', list: () => cands, selected: () => null,
-      item: (u, i) => S.regCard({ i, id: u.id, name: u.name, image: S.card(u.id), sub: pick.includes(u.id) ? '탐험대' : esc(u.attrName || u.tierName), selected: pick.includes(u.id) }),
+      item: (u, i) => S.regCard({ i, id: u.id, name: u.name, image: S.card(u.id), sub: pick.includes(u.id) ? '탐험대' : esc(u.attrName || gmmTierName(u)), selected: pick.includes(u.id) }),
       onPick: u => { const k = pick.indexOf(u.id); if (k >= 0) pick.splice(k, 1); else if (pick.length < max) pick.push(u.id); else { $('[data-why]', view).textContent = `탐험대는 ${max}마리까지예요.`; return; } drawTeam(); p.draw(); } });
     $('[data-team]', view).onclick = e => { const b = e.target.closest('[data-rm]'); if (b) { pick.splice(Number(b.dataset.rm), 1); drawTeam(); p.draw(); } };
     $('[data-go]', view).onclick = e => run(e.currentTarget, '출발 준비 중…', async () => {

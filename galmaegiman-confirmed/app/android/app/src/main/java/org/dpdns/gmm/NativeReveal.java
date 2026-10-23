@@ -784,7 +784,7 @@ final class NativeReveal extends FrameLayout {
     }
     body.addView(meta, new LinearLayout.LayoutParams(-1, -2));
     // 앞면 등록증의 등급 배지와 같은 남색 알약 모양.
-    TextView tier = h.text(unit.optString("tierName"), 15);
+    TextView tier = h.text(TierDisplay.name(unit.optString("tier"), unit.optString("tierName")), 15);
     tier.setTypeface(h.headline);
     tier.setTextColor(JournalTheme.PAPER);
     tier.setGravity(Gravity.CENTER);
@@ -910,7 +910,7 @@ final class NativeReveal extends FrameLayout {
                 words.addView(name);
                 TextView grade =
                     k.note(
-                        unit.optString("tierName")
+                        TierDisplay.name(unit.optString("tier"), unit.optString("tierName"))
                             + (unit.optInt("n") > 1 ? " · ×" + unit.optInt("n") : "")
                             + (unit.optBoolean("first") ? " · NEW" : ""));
                 grade.setTextColor(tierInk(unit.optString("tier")));
