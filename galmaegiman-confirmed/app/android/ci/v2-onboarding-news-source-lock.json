@@ -5,13 +5,43 @@
   "files": [
     {
       "path": ".github/workflows/home-assembly-check.yml",
-      "bytes": 51494,
-      "sha256": "6945262e7f36e5133f1fb9656524e7da1828c2d82b4f5126c994ef378dad2e81"
+      "bytes": 51774,
+      "sha256": "3c6ecc20b531c0d336726a96784dd72f9173607f7d8f5308d0a12136652eeec4"
     },
     {
       "path": "galmaegiman-confirmed/app/android/app/build.gradle",
       "bytes": 11884,
       "sha256": "8c9f54088d2e61eb13cc0e9fd5951c505417c0bf496a6426a3b59b29ab2393a9"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/assets/native/recruitment/fonts/NotoSansKR-Bold.ttf",
+      "bytes": 6222712,
+      "sha256": "8440245279bc3819589f99dc8ddee6372d3481816d2ccdb052f2f1d1eb26b86c"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/assets/native/recruitment/fonts/NotoSansKR-Regular.ttf",
+      "bytes": 6224868,
+      "sha256": "a516a09bb7351dc6254e0920b2ab6d21131a8f10213d45e5cf990af3b777695b"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/assets/native/recruitment/fonts/OFL-NotoSansKR.txt",
+      "bytes": 4388,
+      "sha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/assets/native/release-v1/recruitment/tray-high-reference-v3.png",
+      "bytes": 1892045,
+      "sha256": "6c319981a800974133746817e5d29403cd1c3edff0e0c8005a954b4c1150f5d0"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/assets/native/release-v1/recruitment/tray-low-reference-v3.png",
+      "bytes": 1764662,
+      "sha256": "bd17d0791ad410e00de0343900bcfea6e3be3e82ad99a5fd29ff2011d9132d22"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/assets/native/release-v1/recruitment/tray-mid-reference-v3.png",
+      "bytes": 1744944,
+      "sha256": "9e83838ef5fc8caf0b0a77d1323991d99f01785ea513940869070bd56cfd9a3e"
     },
     {
       "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/AugmentPresentation.java",
@@ -110,8 +140,8 @@
     },
     {
       "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeEconomy.java",
-      "bytes": 126863,
-      "sha256": "59d0699d4f6816a6df0fa2220bf4dcc8bdc1b32dd4fb8d4010f6f9a777744f7a"
+      "bytes": 119400,
+      "sha256": "78d3660d7182e65feb50db92f908474e9add93d1e9da1b3b32ca00b8f27fbc56"
     },
     {
       "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeExtras.java",
@@ -157,6 +187,16 @@
       "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/PartyCharacterView.java",
       "bytes": 11018,
       "sha256": "09cc80b74f3c4a275cf9255c66a3e0b9e9dfe7000b10434d21018fc37e938555"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/RecruitmentArtwork.java",
+      "bytes": 2844,
+      "sha256": "aacb5973c2fde66a9abf2b80bd93c91da076c67288d522c06c64f1a679c8d895"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/RecruitmentScreen.java",
+      "bytes": 28887,
+      "sha256": "4410ed1ff936ec8b43532ba95159a3a70d7e6fcc8f7ee2a73bee950401c4ed0f"
     },
     {
       "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/RegistrationCardView.java",
@@ -275,8 +315,8 @@
     },
     {
       "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/NativeEconomyThemeReviewTest.java",
-      "bytes": 49909,
-      "sha256": "1b04c3dc0a57cb1e61e6d3bd9c6b9a828d717b44de018f1b6514ffa344ae5ea3"
+      "bytes": 59251,
+      "sha256": "edbe434f97f6749214bb0b51d6977191b57ba895ceb00673b67e3f01891b8b92"
     },
     {
       "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/NativeExtrasThemeReviewTest.java",
@@ -302,6 +342,11 @@
       "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/NativeMenusThemeReviewTest.java",
       "bytes": 35513,
       "sha256": "9580439728b0db7234df1e3f317120790060677496d226329af1bc383711243e"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/NativeRecruitmentCounterReviewTest.java",
+      "bytes": 24141,
+      "sha256": "c715545346a5abe0e44edd5288a73bbbf47c9111ed8189538a1a9b55d0036b7c"
     },
     {
       "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/NativeResultReassessmentSwipeTest.java",
@@ -354,6 +399,11 @@
       "sha256": "b88049068dd8c42bb09dbb7eae2bc376a2bc671b64f8b2323e617128a606df88"
     },
     {
+      "path": "galmaegiman-confirmed/app/android/ci/RECRUITMENT_V3_EVIDENCE.md",
+      "bytes": 10156,
+      "sha256": "af222b4d057a994c3d722f392dd8d76fe79cbd3a120f28d6da3d96f11a39f2b1"
+    },
+    {
       "path": "galmaegiman-confirmed/app/android/ci/check_backend_target.groovy",
       "bytes": 2622,
       "sha256": "e6f631a689f04494684b9533be577c8e4ff7593a850fcafed245b46627e171c6"
@@ -362,6 +412,16 @@
       "path": "galmaegiman-confirmed/app/android/ci/phase2-assets-lock.json",
       "bytes": 8870,
       "sha256": "b8f689b14bb6f202a8fe5d37fb5972cb831fc380bea2dba737b9c887fb224545"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/ci/recruitment-assets-lock.json",
+      "bytes": 2349,
+      "sha256": "a4d47de71b82142ca7a6208fa1460f87c8e3c7231f440b1f9632427a84bd6b15"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/ci/recruitment_reference_assets.py",
+      "bytes": 2355,
+      "sha256": "6af004e35b11a3d7899d513977f944e959f3921021aace03656585f9de12dc9f"
     },
     {
       "path": "galmaegiman-confirmed/app/android/ci/test_backend_target.py",
@@ -374,6 +434,16 @@
       "sha256": "053af3dc408c03253ba103a8d16f92f1ef90aea59a76763cd776b3993873d043"
     },
     {
+      "path": "galmaegiman-confirmed/app/android/ci/test_verify_recruitment_reference_assets.py",
+      "bytes": 1704,
+      "sha256": "ea150d269d976c0a2848e356de7e1024e3471aa2da4d6b56be49240109415017"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/ci/test_verify_recruitment_v3_layout.py",
+      "bytes": 9989,
+      "sha256": "4a3d8055a2466cb8e7b21f6bb398072e29a865653aa76d80521a8d76d5c1ac7e"
+    },
+    {
       "path": "galmaegiman-confirmed/app/android/ci/test_verify_theme_ci.py",
       "bytes": 9654,
       "sha256": "1ded8d142b20d9ffea7fda71c92a3fe2b8b0c1646818a94c96dd16807ca281cd"
@@ -384,9 +454,19 @@
       "sha256": "6fd194a055792acb4d132cc2cb7f440c21fd7f20afb32b5ae6f29b5d6c59406f"
     },
     {
+      "path": "galmaegiman-confirmed/app/android/ci/verify_recruitment_revision_ci.py",
+      "bytes": 42170,
+      "sha256": "92604c0d9810c8b5ca21962c9d5355039fb0499cf55c64e2f9193b34e0306255"
+    },
+    {
+      "path": "galmaegiman-confirmed/app/android/ci/verify_recruitment_v3_layout.py",
+      "bytes": 9548,
+      "sha256": "2ec97ba9e898388263366b6bbe40f3efb2f08d584db4678b969e0421beffe95f"
+    },
+    {
       "path": "galmaegiman-confirmed/app/android/ci/verify_theme_ci.py",
-      "bytes": 13467,
-      "sha256": "2932d5e17a39f094f21f53965b2a7b511653ab10251add32b7ae4e8eaf46ecc1"
+      "bytes": 14580,
+      "sha256": "b2e849d3c13d04b0b8b5efd9965534cc35cf27a23acc0b877a93a135b2f64038"
     },
     {
       "path": "galmaegiman-confirmed/data/battle.yaml",
