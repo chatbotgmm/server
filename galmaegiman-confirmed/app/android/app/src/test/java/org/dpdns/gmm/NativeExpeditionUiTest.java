@@ -46,6 +46,7 @@ public class NativeExpeditionUiTest {
         finishWrite(done);
         return;
       }
+      if (path.equals("starter-loans")) { done.done(StarterLoanTestFixture.ineligible(), null); return; }
       if (!path.equals("native/state")) throw new AssertionError(path);
       if (defer) { pending = done; return; }
       done.done(failure == null ? snapshot(state) : null, failure);
@@ -118,7 +119,7 @@ public class NativeExpeditionUiTest {
             "previousParty", new JSONArray().put("D1").put("D1").put("D1"), "trip", trip(complete),
             "prices", MainActivity.obj("maxParty", 10, "skip", MainActivity.obj("snack", 100))));
     h.api.close(); Api api = new Api(h, state); h.api = api; h.guide.enabled = false;
-    h.motionEnabled = false; h.state = snapshot(state); TemporaryUnitPresentation.sync(NOW);
+    h.motionEnabled = false; h.state = snapshot(state); h.art.key = "offline-expedition-contract"; TemporaryUnitPresentation.sync(NOW);
     h.menus.economy.expedition(); return api;
   }
 
@@ -188,6 +189,7 @@ public class NativeExpeditionUiTest {
       assertFalse(h.root.findViewWithTag("expedition-depart").isEnabled());
       h.root.findViewWithTag("expedition-more").performClick();
       new NativeRenderReviewTestEconomy().button(h.visibleDialog.getWindow().getDecorView(), "최근 편성").performClick();
+      idle(); // the previous dialog's onDismiss callback completes before the next user tap
       assertEquals(List.of("D1", "D1"), h.expeditionDraft);
       assertNull(h.root.findViewWithTag("expedition-depart"));
       h.root.findViewWithTag("expedition-member-0").performClick();
@@ -463,6 +465,31 @@ public class NativeExpeditionUiTest {
           }
           assertTrue(api.writes.isEmpty());
         }
+      }
+    }
+  }
+
+  /** Native Android View rendering with local fixtures; these are not device screenshots. */
+  @Test public void captureLocalPreparationAndCollectionViews() throws Exception {
+    for (int[] size : new int[][] {{840,344,100}, {800,360,150}, {568,320,200}}) {
+      RuntimeEnvironment.setQualifiers("w" + size[0] + "dp-h" + size[1] + "dp-land-mdpi");
+      RuntimeEnvironment.setFontScale(size[2] / 100f);
+      try (var controller = flow.start()) {
+        MainActivity h = controller.get();
+        NativeEconomyThemeFixture.Api api = new NativeEconomyThemeFixture().prepare(h);
+        h.root.setPadding(h.dp(12), h.dp(4), h.dp(12), h.dp(8));
+        h.menus.economy.expedition();
+        String suffix = size[0] + "x" + size[1] + "-font" + size[2];
+        layout.ready(h, size); layout.capture(h, "local-board-" + suffix, size);
+        h.root.findViewWithTag("expedition-empty-3").performClick();
+        layout.ready(h, size); layout.capture(h, "local-picker-" + suffix, size);
+        h.back();
+        assertEquals(0, api.writes);
+        h.collection();
+        layout.ready(h, size); layout.capture(h, "local-collection-" + suffix, size);
+        h.root.findViewWithTag("collection-info").performClick();
+        layout.ready(h, size); layout.capture(h, "local-collection-info-" + suffix, size);
+        assertEquals(0, api.writes);
       }
     }
   }

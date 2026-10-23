@@ -155,8 +155,8 @@
     },
     {
       "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeCollectionFocus.java",
-      "bytes": 20904,
-      "sha256": "49c5e29b408a5678de34d085c232b9323cbfca8b85e306e68bbd1bcb6c85fe34"
+      "bytes": 21130,
+      "sha256": "a96764b9a5fffbc808fc236a4a9c1e247ac515ac3674f962f004d38f7e1d2e18"
     },
     {
       "path": "galmaegiman-confirmed/app/android/app/src/main/java/org/dpdns/gmm/NativeEconomy.java",
@@ -345,8 +345,8 @@
     },
     {
       "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/NativeCollectionFocusTest.java",
-      "bytes": 10518,
-      "sha256": "b4847c6030e1f284e90a8da0c7dd73bd9e8317f914e4da13edda32e66b0ab41e"
+      "bytes": 10702,
+      "sha256": "99a5e5b60f439e271c9dc8f30a720b55e794c027ad4c3f16ed04e49bcd85b3e6"
     },
     {
       "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/NativeCombinationWorkbenchTest.java",
@@ -375,8 +375,8 @@
     },
     {
       "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/NativeExpeditionUiTest.java",
-      "bytes": 25544,
-      "sha256": "9f321c277665dd1144830917f804f91557c69b84abed1a7f3c5771386ac77709"
+      "bytes": 27149,
+      "sha256": "59ef9385b39d21d37b4a2947a2105133efba39a2a7e08f34f6d8b8cef9c29f09"
     },
     {
       "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/NativeExtrasThemeReviewTest.java",
@@ -410,8 +410,8 @@
     },
     {
       "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/NativeRecruitmentCounterReviewTest.java",
-      "bytes": 24141,
-      "sha256": "c715545346a5abe0e44edd5288a73bbbf47c9111ed8189538a1a9b55d0036b7c"
+      "bytes": 24144,
+      "sha256": "8ee1dad1c96053ad0eca41fa68d458a970d8b60b40910fbdd0c780dbf2869852"
     },
     {
       "path": "galmaegiman-confirmed/app/android/app/src/test/java/org/dpdns/gmm/NativeRenderReviewTestEconomy.java",
@@ -945,8 +945,8 @@
     },
     {
       "path": "galmaegiman-confirmed/test/realtime-pvp.integration.test.ts",
-      "bytes": 21922,
-      "sha256": "2bb08b20ed503381f0d86a9eea9f5e083362ea342205ffe3058c3c5a98b15e93"
+      "bytes": 22240,
+      "sha256": "70200ad993e04696ec9141812bcc3a67545c0941b494d30834f2ff267fa8e1a2"
     },
     {
       "path": "galmaegiman-confirmed/test/recruitment-owned-receipts.integration.test.ts",

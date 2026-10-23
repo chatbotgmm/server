@@ -166,6 +166,7 @@ public class NativeCollectionFocusTest {
   @Test public void fixedActionsRemainVisibleAtRequestedSizesAndLargeText() {
     for (float scale : new float[]{1f, 1.5f, 2f})
       for (int[] size : new int[][]{{840,344},{800,360},{640,320},{568,320}}) {
+        RuntimeEnvironment.setQualifiers("w" + size[0] + "dp-h" + size[1] + "dp-land-mdpi");
         RuntimeEnvironment.setFontScale(scale);
         try (var controller = fixture.flow.start()) {
           MainActivity h = controller.get(); fixture.prepare(h);
@@ -174,6 +175,7 @@ public class NativeCollectionFocusTest {
           for (String tag : new String[]{"collection-info", "collection-growth", "collection-team",
               "collection-craft", "collection-record", "collection-open-list", "collection-open-items", "collection-grade-filter"}) {
             View action = h.root.findViewWithTag(tag);
+            assertNotNull(size[0] + "x" + size[1] + " font " + scale + " " + tag, action);
             NativeNoScrollReviewTest.assertFullyVisible(action, h.root);
             assertTrue(tag, action.getWidth() >= h.dp(48) && action.getHeight() >= h.dp(48));
           }

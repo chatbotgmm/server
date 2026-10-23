@@ -186,7 +186,7 @@ public class NativeRecruitmentCounterReviewTest {
         } catch (Throwable failure) { failures.add(name + ": " + failure); capture(host, name, size); }
       }
     }
-    Files.writeString(output().resolve("evidence.json"), MainActivity.obj("schema", "recruitment-v3-native-layout/1", "sourceRevision", revision(), "captures", captures, "failures", new JSONArray(failures)).toString(2), StandardCharsets.UTF_8);
+    Files.write(output().resolve("evidence.json"), MainActivity.obj("schema", "recruitment-v3-native-layout/1", "sourceRevision", revision(), "captures", captures, "failures", new JSONArray(failures)).toString(2).getBytes(StandardCharsets.UTF_8));
     assertTrue(String.join("\n", failures), failures.isEmpty()); assertEquals(11, captures.length());
   }
 

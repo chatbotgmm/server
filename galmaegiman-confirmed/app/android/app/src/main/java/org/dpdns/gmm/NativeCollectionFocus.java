@@ -210,7 +210,7 @@ final class NativeCollectionFocus {
       library.m.teamDraft = null;
       h.team();
     });
-    NativeTutorialController.anchor(team, "team");
+    NativeTutorialController.anchorPreservingTag(team, "team");
     actionCell(first, team);
     Button craft = button("조합", "collection-craft", () -> library.openRecipe(unit));
     craft.setEnabled(unit.optBoolean("known", unit.optInt("have") > 0) || !unit.optString("tier").equals("HIDDEN"));
@@ -340,6 +340,10 @@ final class NativeCollectionFocus {
   }
 
   void actionCell(LinearLayout row, Button button) {
+    // MATCH_PARENT cells with a top margin must not be vertically re-centered
+    // beyond the measured row bounds on short landscape screens.
+    row.setGravity(Gravity.TOP);
+    row.setBaselineAligned(false);
     LinearLayout.LayoutParams box = new LinearLayout.LayoutParams(0, -1, 1);
     box.setMargins(h.dp(2), h.dp(4), h.dp(2), 0);
     row.addView(button, box);

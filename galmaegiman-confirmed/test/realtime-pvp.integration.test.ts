@@ -132,9 +132,14 @@ suite('durable realtime two-human PvP (isolated SQLite)',()=>{
     const pending=await service.command(p.a.id,cmd);expect(pending.phaseId).toBe(first.phaseId);expect(pending.canSubmit).toBe(false);
     const foe=await service.currentRoom(p.b.id,p.roomId);expect(foe.opponentReady).toBe(true);expect(foe.battle!.teams[1].offers).toEqual([]);
     const done=await service.command(p.b.id,{roomId:p.roomId,phaseId:other.phaseId,requestId:'second',command:choose(other)});
-    expect(done.phaseId).not.toBe(first.phaseId);expect(done.battle!.phase).toBe('action');
+    expect(done.phaseId).not.toBe(first.phaseId);
+    // A freestyle augment opens a separate attribute-choice phase after both submissions.
+    if(done.battle!.phase==='choose')expect(done.battle!.choiceKind).toBe('own-attribute');
+    else expect(done.battle!.phase).toBe('action');
     expect((await service.command(p.a.id,cmd)).phaseId).toBe(done.phaseId);
     await expect(service.command(p.a.id,{...cmd,command:{choose:{augment:'forged'}}})).rejects.toThrow('같은 요청 번호');
+    // Complete any legitimate attribute choice only after checking duplicate-request idempotency.
+    await actionPhase(p);
     const stranger=await player();await expect(service.currentRoom(stranger.id,p.roomId)).rejects.toThrow('참가한');
   });
   it('stale phase requests do not mutate battle, RNG or event stream',async()=>{
