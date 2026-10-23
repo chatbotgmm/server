@@ -1,0 +1,620 @@
+{
+  "status": "APPROVED_ART_AND_MOTION_REQUIRES_ANDROID_INTEGRATION",
+  "cellSize": 512,
+  "sourceArtUnchanged": true,
+  "skillsFxIncluded": false,
+  "characters": [
+    {
+      "id": "u01",
+      "name": "기본",
+      "cfg": {
+        "pivot": [
+          570,
+          1190
+        ],
+        "scale": 0.24179620034542315,
+        "height": 280,
+        "alphaBBox": [
+          63,
+          47,
+          1196,
+          1205
+        ]
+      },
+      "atlas": {
+        "idle": {
+          "file": "idle-sheet.png",
+          "columns": 4,
+          "count": 8,
+          "durations": [
+            180,
+            180,
+            180,
+            180,
+            180,
+            180,
+            180,
+            180
+          ]
+        },
+        "cast": {
+          "file": "cast-sheet.png",
+          "columns": 4,
+          "count": 12,
+          "durations": [
+            80,
+            90,
+            100,
+            100,
+            60,
+            60,
+            90,
+            90,
+            100,
+            100,
+            110,
+            120
+          ]
+        },
+        "hit": {
+          "file": "hit-sheet.png",
+          "columns": 4,
+          "count": 6,
+          "durations": [
+            60,
+            90,
+            100,
+            170,
+            180,
+            50
+          ]
+        }
+      },
+      "bounds": [
+        127,
+        134,
+        431,
+        422
+      ],
+      "clippedPixels": 0,
+      "idleWeight": 1,
+      "hitWeight": 1
+    },
+    {
+      "id": "u02",
+      "name": "미니",
+      "cfg": {
+        "pivot": [
+          642.5,
+          1177
+        ],
+        "scale": 0.15512465373961218,
+        "height": 168,
+        "alphaBBox": [
+          115,
+          94,
+          1170,
+          1177
+        ]
+      },
+      "atlas": {
+        "idle": {
+          "file": "idle-sheet.png",
+          "columns": 4,
+          "count": 8,
+          "durations": [
+            180,
+            180,
+            180,
+            180,
+            180,
+            180,
+            180,
+            180
+          ]
+        },
+        "cast": {
+          "file": "cast-sheet.png",
+          "columns": 4,
+          "count": 12,
+          "durations": [
+            80,
+            90,
+            100,
+            100,
+            60,
+            60,
+            90,
+            90,
+            100,
+            100,
+            110,
+            120
+          ]
+        },
+        "hit": {
+          "file": "hit-sheet.png",
+          "columns": 4,
+          "count": 6,
+          "durations": [
+            60,
+            90,
+            100,
+            170,
+            180,
+            50
+          ]
+        }
+      },
+      "bounds": [
+        171,
+        244,
+        352,
+        417
+      ],
+      "clippedPixels": 0,
+      "idleWeight": 1.2,
+      "hitWeight": 1.2
+    },
+    {
+      "id": "u03",
+      "name": "자이언트",
+      "cfg": {
+        "pivot": [
+          632,
+          963
+        ],
+        "scale": 0.504885993485342,
+        "height": 310,
+        "alphaBBox": [
+          187,
+          349,
+          1077,
+          963
+        ]
+      },
+      "atlas": {
+        "idle": {
+          "file": "idle-sheet.png",
+          "columns": 4,
+          "count": 8,
+          "durations": [
+            180,
+            180,
+            180,
+            180,
+            180,
+            180,
+            180,
+            180
+          ]
+        },
+        "cast": {
+          "file": "cast-sheet.png",
+          "columns": 4,
+          "count": 12,
+          "durations": [
+            80,
+            90,
+            100,
+            100,
+            60,
+            60,
+            90,
+            90,
+            100,
+            100,
+            110,
+            120
+          ]
+        },
+        "hit": {
+          "file": "hit-sheet.png",
+          "columns": 4,
+          "count": 6,
+          "durations": [
+            60,
+            90,
+            100,
+            170,
+            180,
+            50
+          ]
+        }
+      },
+      "bounds": [
+        30,
+        100,
+        493,
+        421
+      ],
+      "clippedPixels": 0,
+      "idleWeight": 0.5,
+      "hitWeight": 0.5
+    },
+    {
+      "id": "u04",
+      "name": "꽃",
+      "cfg": {
+        "pivot": [
+          645.5,
+          1203
+        ],
+        "scale": 0.24059492563429571,
+        "height": 275,
+        "alphaBBox": [
+          150,
+          60,
+          1141,
+          1203
+        ]
+      },
+      "atlas": {
+        "idle": {
+          "file": "idle-sheet.png",
+          "columns": 4,
+          "count": 8,
+          "durations": [
+            180,
+            180,
+            180,
+            180,
+            180,
+            180,
+            180,
+            180
+          ]
+        },
+        "cast": {
+          "file": "cast-sheet.png",
+          "columns": 4,
+          "count": 12,
+          "durations": [
+            80,
+            90,
+            100,
+            100,
+            60,
+            60,
+            90,
+            90,
+            100,
+            100,
+            110,
+            120
+          ]
+        },
+        "hit": {
+          "file": "hit-sheet.png",
+          "columns": 4,
+          "count": 6,
+          "durations": [
+            60,
+            90,
+            100,
+            170,
+            180,
+            50
+          ]
+        }
+      },
+      "bounds": [
+        132,
+        136,
+        389,
+        415
+      ],
+      "clippedPixels": 0,
+      "idleWeight": 1.1,
+      "hitWeight": 0.8
+    },
+    {
+      "id": "u05",
+      "name": "황금",
+      "cfg": {
+        "pivot": [
+          629.5,
+          1175
+        ],
+        "scale": 0.2661596958174905,
+        "height": 280,
+        "alphaBBox": [
+          48,
+          123,
+          1211,
+          1175
+        ]
+      },
+      "atlas": {
+        "idle": {
+          "file": "idle-sheet.png",
+          "columns": 4,
+          "count": 8,
+          "durations": [
+            180,
+            180,
+            180,
+            180,
+            180,
+            180,
+            180,
+            180
+          ]
+        },
+        "cast": {
+          "file": "cast-sheet.png",
+          "columns": 4,
+          "count": 12,
+          "durations": [
+            80,
+            90,
+            100,
+            100,
+            60,
+            60,
+            90,
+            90,
+            100,
+            100,
+            110,
+            120
+          ]
+        },
+        "hit": {
+          "file": "hit-sheet.png",
+          "columns": 4,
+          "count": 6,
+          "durations": [
+            60,
+            90,
+            100,
+            170,
+            180,
+            50
+          ]
+        }
+      },
+      "bounds": [
+        98,
+        132,
+        420,
+        416
+      ],
+      "clippedPixels": 0,
+      "idleWeight": 0.45,
+      "hitWeight": 0.5
+    },
+    {
+      "id": "u06",
+      "name": "물방울",
+      "cfg": {
+        "pivot": [
+          663.5,
+          1225
+        ],
+        "scale": 0.2179379715004191,
+        "height": 260,
+        "alphaBBox": [
+          165,
+          32,
+          1162,
+          1225
+        ]
+      },
+      "atlas": {
+        "idle": {
+          "file": "idle-sheet.png",
+          "columns": 4,
+          "count": 8,
+          "durations": [
+            180,
+            180,
+            180,
+            180,
+            180,
+            180,
+            180,
+            180
+          ]
+        },
+        "cast": {
+          "file": "cast-sheet.png",
+          "columns": 4,
+          "count": 12,
+          "durations": [
+            80,
+            90,
+            100,
+            100,
+            60,
+            60,
+            90,
+            90,
+            100,
+            100,
+            110,
+            120
+          ]
+        },
+        "hit": {
+          "file": "hit-sheet.png",
+          "columns": 4,
+          "count": 6,
+          "durations": [
+            60,
+            90,
+            100,
+            170,
+            180,
+            50
+          ]
+        }
+      },
+      "bounds": [
+        140,
+        151,
+        402,
+        414
+      ],
+      "clippedPixels": 0,
+      "idleWeight": 1.25,
+      "hitWeight": 1.15
+    },
+    {
+      "id": "u07",
+      "name": "불씨",
+      "cfg": {
+        "pivot": [
+          629,
+          1187
+        ],
+        "scale": 0.24793388429752067,
+        "height": 270,
+        "alphaBBox": [
+          56,
+          98,
+          1202,
+          1187
+        ]
+      },
+      "atlas": {
+        "idle": {
+          "file": "idle-sheet.png",
+          "columns": 4,
+          "count": 8,
+          "durations": [
+            180,
+            180,
+            180,
+            180,
+            180,
+            180,
+            180,
+            180
+          ]
+        },
+        "cast": {
+          "file": "cast-sheet.png",
+          "columns": 4,
+          "count": 12,
+          "durations": [
+            80,
+            90,
+            100,
+            100,
+            60,
+            60,
+            90,
+            90,
+            100,
+            100,
+            110,
+            120
+          ]
+        },
+        "hit": {
+          "file": "hit-sheet.png",
+          "columns": 4,
+          "count": 6,
+          "durations": [
+            60,
+            90,
+            100,
+            170,
+            180,
+            50
+          ]
+        }
+      },
+      "bounds": [
+        108,
+        141,
+        419,
+        417
+      ],
+      "clippedPixels": 0,
+      "idleWeight": 1.3,
+      "hitWeight": 1
+    },
+    {
+      "id": "u08",
+      "name": "그림자",
+      "cfg": {
+        "pivot": [
+          633,
+          1037
+        ],
+        "scale": 0.35398230088495575,
+        "height": 280,
+        "alphaBBox": [
+          35,
+          246,
+          1231,
+          1037
+        ]
+      },
+      "atlas": {
+        "idle": {
+          "file": "idle-sheet.png",
+          "columns": 4,
+          "count": 8,
+          "durations": [
+            180,
+            180,
+            180,
+            180,
+            180,
+            180,
+            180,
+            180
+          ]
+        },
+        "cast": {
+          "file": "cast-sheet.png",
+          "columns": 4,
+          "count": 12,
+          "durations": [
+            80,
+            90,
+            100,
+            100,
+            60,
+            60,
+            90,
+            90,
+            100,
+            100,
+            110,
+            120
+          ]
+        },
+        "hit": {
+          "file": "hit-sheet.png",
+          "columns": 4,
+          "count": 6,
+          "durations": [
+            60,
+            90,
+            100,
+            170,
+            180,
+            50
+          ]
+        }
+      },
+      "bounds": [
+        38,
+        128,
+        477,
+        422
+      ],
+      "clippedPixels": 0,
+      "idleWeight": 0.65,
+      "hitWeight": 0.8
+    }
+  ],
+  "platform": "android",
+  "battleSystem": "v2-overhaul",
+  "runtimeIntegrated": false,
+  "storage": "GitHub source archive: chatbotgmm/server gpt-art galmaegiman-confirmed/art/gpt/android-battle-v2/common8; not packaged in Android app"
+}

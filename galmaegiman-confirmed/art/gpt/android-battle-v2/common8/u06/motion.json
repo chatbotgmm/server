@@ -1,0 +1,405 @@
+{
+  "schemaVersion": 1,
+  "characterId": "u06",
+  "name": "물방울",
+  "status": "approved-whole-cutout-motion-awaiting-android-integration",
+  "purpose": "Reuse identical cutout parts in every frame; smooth movement without character identity drift.",
+  "coordinates": {
+    "positiveX": "screen right",
+    "positiveY": "screen down",
+    "positiveRotation": "clockwise",
+    "H": "reference character height excluding effects",
+    "transformOrder": "scale about local pivot, then rotate about pivot, then attach to parent"
+  },
+  "playback": {
+    "renderFps": 60,
+    "interpolation": "linear within short strike spans; monotone ease-in-out elsewhere; never overshoot contact angles",
+    "export": "Variable duration frame timeline. If a fixed-rate atlas is required, resample transforms from this timeline rather than duplicate whole drawings blindly.",
+    "timingNote": "Frame duration is time until next key pose; last pose holds for its duration. Non-loop clips end at neutral. Frame counts are control poses, not a limit on display refresh rate."
+  },
+  "clips": {
+    "idle": {
+      "loop": true,
+      "totalMs": 1440,
+      "frames": [
+        {
+          "index": 0,
+          "startMs": 0,
+          "durationMs": 180,
+          "phase": "breathe",
+          "body": {
+            "rotationDeg": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 1,
+          "startMs": 180,
+          "durationMs": 180,
+          "phase": "breathe",
+          "body": {
+            "rotationDeg": -0.25,
+            "scaleX": 1,
+            "scaleY": 1.0025,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 2,
+          "startMs": 360,
+          "durationMs": 180,
+          "phase": "breathe",
+          "body": {
+            "rotationDeg": -0.4375,
+            "scaleX": 1,
+            "scaleY": 1.0062499999999999,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 3,
+          "startMs": 540,
+          "durationMs": 180,
+          "phase": "breathe",
+          "body": {
+            "rotationDeg": -0.25,
+            "scaleX": 1,
+            "scaleY": 1.01,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 4,
+          "startMs": 720,
+          "durationMs": 180,
+          "phase": "breathe",
+          "body": {
+            "rotationDeg": 0,
+            "scaleX": 1,
+            "scaleY": 1.0075,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 5,
+          "startMs": 900,
+          "durationMs": 180,
+          "phase": "breathe",
+          "body": {
+            "rotationDeg": 0.25,
+            "scaleX": 1,
+            "scaleY": 1.00375,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 6,
+          "startMs": 1080,
+          "durationMs": 180,
+          "phase": "breathe",
+          "body": {
+            "rotationDeg": 0.4375,
+            "scaleX": 1,
+            "scaleY": 1,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 7,
+          "startMs": 1260,
+          "durationMs": 180,
+          "phase": "breathe",
+          "body": {
+            "rotationDeg": 0.25,
+            "scaleX": 1,
+            "scaleY": 0.99875,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        }
+      ],
+      "notes": [
+        "Fixed ground contact. 0.8% maximum vertical breathing.",
+        "Interpolate final pose back to first over last duration for seamless loop."
+      ]
+    },
+    "cast": {
+      "loop": false,
+      "totalMs": 1100,
+      "gameplayNote": "Synchronize existing damage event to contact only after engine review; this file does not alter combat logic.",
+      "frames": [
+        {
+          "index": 0,
+          "startMs": 0,
+          "durationMs": 80,
+          "phase": "prepare",
+          "body": {
+            "rotationDeg": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 1,
+          "startMs": 80,
+          "durationMs": 90,
+          "phase": "prepare",
+          "body": {
+            "rotationDeg": 0.4,
+            "scaleX": 1.00125,
+            "scaleY": 0.99625,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 2,
+          "startMs": 170,
+          "durationMs": 100,
+          "phase": "prepare",
+          "body": {
+            "rotationDeg": 0.8,
+            "scaleX": 1.00375,
+            "scaleY": 0.9875,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 3,
+          "startMs": 270,
+          "durationMs": 100,
+          "phase": "prepare",
+          "body": {
+            "rotationDeg": 1,
+            "scaleX": 1.0075,
+            "scaleY": 0.975,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 4,
+          "startMs": 370,
+          "durationMs": 60,
+          "phase": "release",
+          "body": {
+            "rotationDeg": 0,
+            "scaleX": 1.005625,
+            "scaleY": 0.9824999999999999,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 5,
+          "startMs": 430,
+          "durationMs": 60,
+          "phase": "release",
+          "body": {
+            "rotationDeg": -2.5,
+            "scaleX": 0.998125,
+            "scaleY": 1.009375,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 6,
+          "startMs": 490,
+          "durationMs": 90,
+          "phase": "release",
+          "body": {
+            "rotationDeg": -3,
+            "scaleX": 0.99875,
+            "scaleY": 1.0075,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 7,
+          "startMs": 580,
+          "durationMs": 90,
+          "phase": "recover",
+          "body": {
+            "rotationDeg": -2,
+            "scaleX": 1,
+            "scaleY": 1.0025,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 8,
+          "startMs": 670,
+          "durationMs": 100,
+          "phase": "recover",
+          "body": {
+            "rotationDeg": -1,
+            "scaleX": 1,
+            "scaleY": 1,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 9,
+          "startMs": 770,
+          "durationMs": 100,
+          "phase": "recover",
+          "body": {
+            "rotationDeg": 0.3,
+            "scaleX": 1,
+            "scaleY": 1,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 10,
+          "startMs": 870,
+          "durationMs": 110,
+          "phase": "recover",
+          "body": {
+            "rotationDeg": 0.1,
+            "scaleX": 1,
+            "scaleY": 1,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 11,
+          "startMs": 980,
+          "durationMs": 120,
+          "phase": "recover",
+          "body": {
+            "rotationDeg": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        }
+      ],
+      "notes": [
+        "Generic skill casting, no physical wing/punch attack.",
+        "Effects are separate and not included."
+      ],
+      "releaseMs": 430
+    },
+    "hit": {
+      "loop": false,
+      "totalMs": 650,
+      "frames": [
+        {
+          "index": 0,
+          "startMs": 0,
+          "durationMs": 60,
+          "phase": "contact-hold",
+          "body": {
+            "rotationDeg": 1.15,
+            "scaleX": 1,
+            "scaleY": 1,
+            "translateXH": 0.0092,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 1,
+          "startMs": 60,
+          "durationMs": 90,
+          "phase": "strike",
+          "body": {
+            "rotationDeg": 1.15,
+            "scaleX": 1,
+            "scaleY": 1,
+            "translateXH": 0.0092,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 2,
+          "startMs": 150,
+          "durationMs": 100,
+          "phase": "recover",
+          "body": {
+            "rotationDeg": 6.8999999999999995,
+            "scaleX": 1,
+            "scaleY": 1,
+            "translateXH": 0.046,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 3,
+          "startMs": 250,
+          "durationMs": 170,
+          "phase": "recover",
+          "body": {
+            "rotationDeg": -1.15,
+            "scaleX": 1,
+            "scaleY": 1,
+            "translateXH": 0.020699999999999996,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 4,
+          "startMs": 420,
+          "durationMs": 180,
+          "phase": "recover",
+          "body": {
+            "rotationDeg": 0.575,
+            "scaleX": 1,
+            "scaleY": 1,
+            "translateXH": 0.00575,
+            "translateYH": 0
+          }
+        },
+        {
+          "index": 5,
+          "startMs": 600,
+          "durationMs": 50,
+          "phase": "recover",
+          "body": {
+            "rotationDeg": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "translateXH": 0,
+            "translateYH": 0
+          }
+        }
+      ],
+      "notes": [
+        "Initial recoil pose held60ms, rapid90ms pushback, damped return; no vertical bounce."
+      ]
+    }
+  },
+  "calibration": {
+    "root": [
+      256,
+      414
+    ],
+    "assetPivot": [
+      663.5,
+      1225
+    ],
+    "assetScale": 0.2179379715004191,
+    "source": "approved-original-full-cutout",
+    "separateLimbs": false,
+    "referenceHeight": 260
+  }
+}

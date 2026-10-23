@@ -1,0 +1,49 @@
+{
+  "idle": {
+    "file": "idle-sheet.png",
+    "columns": 4,
+    "count": 8,
+    "durations": [
+      180,
+      180,
+      180,
+      180,
+      180,
+      180,
+      180,
+      180
+    ]
+  },
+  "cast": {
+    "file": "cast-sheet.png",
+    "columns": 4,
+    "count": 12,
+    "durations": [
+      80,
+      90,
+      100,
+      100,
+      60,
+      60,
+      90,
+      90,
+      100,
+      100,
+      110,
+      120
+    ]
+  },
+  "hit": {
+    "file": "hit-sheet.png",
+    "columns": 4,
+    "count": 6,
+    "durations": [
+      60,
+      90,
+      100,
+      170,
+      180,
+      50
+    ]
+  }
+}

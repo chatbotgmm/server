@@ -1,0 +1,115 @@
+[
+  {
+    "id": "u01",
+    "name": "기본",
+    "height": 280,
+    "metadataIdentityAndCalibrationCorrected": false,
+    "unchangedImages": 4,
+    "clipCounts": [
+      8,
+      12,
+      6
+    ],
+    "hitDurationMs": 650
+  },
+  {
+    "id": "u02",
+    "name": "미니",
+    "height": 168,
+    "metadataIdentityAndCalibrationCorrected": true,
+    "unchangedImages": 4,
+    "clipCounts": [
+      8,
+      12,
+      6
+    ],
+    "hitDurationMs": 650
+  },
+  {
+    "id": "u03",
+    "name": "자이언트",
+    "height": 310,
+    "metadataIdentityAndCalibrationCorrected": true,
+    "unchangedImages": 4,
+    "clipCounts": [
+      8,
+      12,
+      6
+    ],
+    "hitDurationMs": 650
+  },
+  {
+    "id": "u04",
+    "name": "꽃",
+    "height": 275,
+    "metadataIdentityAndCalibrationCorrected": true,
+    "unchangedImages": 4,
+    "clipCounts": [
+      8,
+      12,
+      6
+    ],
+    "hitDurationMs": 650
+  },
+  {
+    "id": "u05",
+    "name": "황금",
+    "height": 280,
+    "metadataIdentityAndCalibrationCorrected": true,
+    "unchangedImages": 4,
+    "clipCounts": [
+      8,
+      12,
+      6
+    ],
+    "hitDurationMs": 650
+  },
+  {
+    "id": "u06",
+    "name": "물방울",
+    "height": 260,
+    "metadataIdentityAndCalibrationCorrected": true,
+    "unchangedImages": 4,
+    "clipCounts": [
+      8,
+      12,
+      6
+    ],
+    "hitDurationMs": 650
+  },
+  {
+    "id": "u07",
+    "name": "불씨",
+    "height": 270,
+    "metadataIdentityAndCalibrationCorrected": true,
+    "unchangedImages": 4,
+    "clipCounts": [
+      8,
+      12,
+      6
+    ],
+    "hitDurationMs": 650
+  },
+  {
+    "id": "u08",
+    "name": "그림자",
+    "height": 280,
+    "metadataIdentityAndCalibrationCorrected": true,
+    "unchangedImages": 4,
+    "clipCounts": [
+      8,
+      12,
+      6
+    ],
+    "hitDurationMs": 650
+  },
+  {
+    "status": "pass",
+    "miniHeightRatio": 0.6,
+    "copiedImageCount": 32,
+    "sheetCount": 24,
+    "keyframes": 208,
+    "pixelsModified": false,
+    "androidRuntimeTested": false
+  }
+]
