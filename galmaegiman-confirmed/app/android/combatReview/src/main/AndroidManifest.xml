@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Offline engine only: no network, login, background receiver, or product launcher. -->
+  <application android:allowBackup="false" android:label="갈매미맨 오프라인 전투 검토"
+      android:icon="@drawable/combat_v2_normal" android:supportsRtl="true"
+      android:theme="@android:style/Theme.Material.NoActionBar">
+    <activity android:name=".CombatV2ReviewActivity" android:screenOrientation="sensorLandscape" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity>
+  </application>
+</manifest>

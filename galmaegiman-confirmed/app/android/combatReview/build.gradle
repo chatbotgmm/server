@@ -1,0 +1,60 @@
+apply plugin: 'com.android.application'
+
+// Independent offline review product. Reuse exact source/art bytes; never mutate :app assets.
+def reviewAssets = layout.buildDirectory.dir('generated/review-assets')
+def reviewResources = layout.buildDirectory.dir('generated/review-res')
+tasks.register('stageReviewAssets', Sync) {
+    into reviewAssets
+    from('../app/src/debug/assets') { include 'combat-v2/manifest.json','combat-v2/offline-fixture.json','combat-v2/u01/front.png','combat-v2/u01/rear.png' }
+    from('../app/src/main/assets') { include 'fonts/workbench-noto-regular.otf', 'fonts/OFL-workbench.txt' }
+}
+tasks.register('stageReviewResources', Sync) {
+    into reviewResources
+    from('../app/src/main/res') { include 'drawable/combat_v2_*.xml', 'values/combat_v2_strings.xml' }
+}
+android {
+    namespace 'org.dpdns.gmm'
+    compileSdk rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId 'org.dpdns.gmm.combatreview'
+        minSdk rootProject.ext.minSdkVersion
+        targetSdk rootProject.ext.targetSdkVersion
+        versionCode 79
+        versionName '2.2.4-offline-review-lite'
+    }
+    sourceSets {
+        main {
+            java.srcDirs = ['../app/src/main/java','../app/src/debug/java']
+            java.includes = ['**/CombatV2ReviewActivity.java','**/CombatV2OfflineEngine.java',
+                '**/CombatV2OfflineSession.java','**/CombatV2ReviewContract.java',
+                '**/CombatV2ReviewPanel.java','**/CombatV2ReviewStyle.java',
+                '**/CombatV2ArtCatalog.java','**/CombatV2Effects.java','**/SkillHoldGesture.java']
+            assets.srcDirs = [reviewAssets]
+            res.srcDirs = [reviewResources]
+        }
+        test {
+            java.srcDirs = ['../app/src/test/java','src/test/java']
+            java.includes = ['**/CombatV2OfflineScreenTest.java','**/CombatReviewPackagingTest.java']
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+        coreLibraryDesugaringEnabled true
+    }
+    testOptions {
+        unitTests.includeAndroidResources = true
+        unitTests.all {
+            systemProperty 'robolectric.dependency.repo.url','https://repo.maven.apache.org/maven2'
+            systemProperty 'maven.repo.local',new File(System.getProperty('java.io.tmpdir'),'gmm-robolectric-cache').absolutePath
+            ['http.proxyHost','http.proxyPort','https.proxyHost','https.proxyPort'].each { key -> if(System.getProperty(key))systemProperty key,System.getProperty(key) }
+            maxParallelForks = 1
+        }
+    }
+}
+tasks.named('preBuild').configure { dependsOn 'stageReviewAssets','stageReviewResources' }
+dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+    testImplementation "junit:junit:$junitVersion"
+    testImplementation 'org.robolectric:robolectric:4.16.1'
+}
