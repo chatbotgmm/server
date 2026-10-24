@@ -1,0 +1,33 @@
+id,name,nameStatus,element,damageChannel,tier,power,mpCost,defaultLearnLevel,actualLearnLevels,approved
+normal_1,주먹,confirmed_in_parent_history,normal,physical,1,35,6,1,1;5,false
+normal_2,강한주먹,confirmed_in_parent_history,normal,physical,2,60,12,10,10,false
+normal_3,맹렬한주먹,confirmed_in_parent_history,normal,physical,3,95,20,24,24,false
+normal_4,온힘의 주먹,confirmed_in_parent_history,normal,physical,4,140,30,40,40,false
+fire_1,불씨,workbook_proposal_not_name_approval,fire,magical,1,35,6,1,1;5,false
+fire_2,불꽃이빨,workbook_proposal_not_name_approval,fire,magical,2,60,12,10,10,false
+fire_3,불길채찍,workbook_proposal_not_name_approval,fire,magical,3,95,20,24,24,false
+fire_4,불아귀,workbook_proposal_not_name_approval,fire,magical,4,140,30,40,40,false
+water_1,물방울,workbook_proposal_not_name_approval,water,magical,1,35,6,1,1;5,false
+water_2,물살찌르기,workbook_proposal_not_name_approval,water,magical,2,60,12,10,10,false
+water_3,너울송곳,workbook_proposal_not_name_approval,water,magical,3,95,20,24,24,false
+water_4,너울어금니,workbook_proposal_not_name_approval,water,magical,4,140,30,40,40,false
+lightning_1,번갯불,workbook_proposal_not_name_approval,lightning,magical,1,35,6,1,1;5,false
+lightning_2,번개쏘기,workbook_proposal_not_name_approval,lightning,magical,2,60,12,10,10,false
+lightning_3,벼락송곳,workbook_proposal_not_name_approval,lightning,magical,3,95,20,24,24,false
+lightning_4,우레엄니,confirmed_in_parent_history,lightning,magical,4,140,30,40,40,false
+ice_1,서리바늘,workbook_proposal_not_name_approval,ice,magical,1,35,6,1,1;5,false
+ice_2,고드름,workbook_proposal_not_name_approval,ice,magical,2,60,12,10,10,false
+ice_3,얼음쐐기,workbook_proposal_not_name_approval,ice,magical,3,95,20,24,24,false
+ice_4,서릿발,workbook_proposal_not_name_approval,ice,magical,4,140,30,40,40,false
+nature_1,잎날,workbook_proposal_not_name_approval,nature,magical,1,35,6,1,1;5,false
+nature_2,가시꿰기,workbook_proposal_not_name_approval,nature,magical,2,60,12,10,10,false
+nature_3,덩굴아귀,workbook_proposal_not_name_approval,nature,magical,3,95,20,24,24,false
+nature_4,숲의 꾸짖음,confirmed_in_parent_history,nature,magical,4,140,30,40,40,false
+holy_1,빛살,workbook_proposal_not_name_approval,holy,magical,1,35,6,1,1;5,false
+holy_2,빛살꿰기,workbook_proposal_not_name_approval,holy,magical,2,60,12,10,10,false
+holy_3,햇무리,workbook_proposal_not_name_approval,holy,magical,3,95,20,24,24,false
+holy_4,새벽날개,workbook_proposal_not_name_approval,holy,magical,4,140,30,40,40,false
+dark_1,그늘손,workbook_proposal_not_name_approval,dark,magical,1,35,6,1,1;5,false
+dark_2,그늘발톱,workbook_proposal_not_name_approval,dark,magical,2,60,12,10,10,false
+dark_3,어둠송곳,workbook_proposal_not_name_approval,dark,magical,3,95,20,24,24,false
+dark_4,그늘낫,workbook_proposal_not_name_approval,dark,magical,4,140,30,40,40,false

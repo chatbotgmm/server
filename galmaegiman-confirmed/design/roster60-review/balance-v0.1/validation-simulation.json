@@ -1,0 +1,245 @@
+{
+  "approved": false,
+  "simulator": "draft arithmetic model, NOT runtime/auth/device evidence",
+  "testsPassed": 7,
+  "matchups": [
+    {
+      "left": "u01",
+      "right": "u03",
+      "level": 20,
+      "actions": 47,
+      "winner": "u01",
+      "remainingHp": [
+        72,
+        0
+      ],
+      "remainingMp": [
+        0,
+        6
+      ],
+      "focusActions": [
+        4,
+        11
+      ],
+      "mpSpent": [
+        120,
+        144
+      ],
+      "attackActions": [
+        20,
+        12
+      ],
+      "fixtureOverride": null,
+      "strategy": "highest projected target damage; focus until its cost is available; avoids reflection; player first (proposal)"
+    },
+    {
+      "left": "u07",
+      "right": "u06",
+      "level": 20,
+      "actions": 8,
+      "winner": "u06",
+      "remainingHp": [
+        0,
+        168
+      ],
+      "remainingMp": [
+        27,
+        38
+      ],
+      "focusActions": [
+        0,
+        0
+      ],
+      "mpSpent": [
+        48,
+        42
+      ],
+      "attackActions": [
+        4,
+        4
+      ],
+      "fixtureOverride": null,
+      "strategy": "highest projected target damage; focus until its cost is available; avoids reflection; player first (proposal)"
+    },
+    {
+      "left": "u04",
+      "right": "u07",
+      "level": 20,
+      "actions": 8,
+      "winner": "u07",
+      "remainingHp": [
+        0,
+        116
+      ],
+      "remainingMp": [
+        56,
+        33
+      ],
+      "focusActions": [
+        0,
+        0
+      ],
+      "mpSpent": [
+        24,
+        42
+      ],
+      "attackActions": [
+        4,
+        4
+      ],
+      "fixtureOverride": null,
+      "strategy": "highest projected target damage; focus until its cost is available; avoids reflection; player first (proposal)"
+    },
+    {
+      "left": "u17",
+      "right": "u31",
+      "level": 40,
+      "actions": 16,
+      "winner": "u31",
+      "remainingHp": [
+        0,
+        250
+      ],
+      "remainingMp": [
+        40,
+        1
+      ],
+      "focusActions": [
+        4,
+        3
+      ],
+      "mpSpent": [
+        120,
+        126
+      ],
+      "attackActions": [
+        4,
+        5
+      ],
+      "fixtureOverride": null,
+      "strategy": "highest projected target damage; focus until its cost is available; avoids reflection; player first (proposal)"
+    },
+    {
+      "left": "u01",
+      "right": "u57",
+      "level": 40,
+      "actions": 3,
+      "winner": "u01",
+      "remainingHp": [
+        306,
+        0
+      ],
+      "remainingMp": [
+        27,
+        101
+      ],
+      "focusActions": [
+        0,
+        0
+      ],
+      "mpSpent": [
+        60,
+        30
+      ],
+      "attackActions": [
+        2,
+        1
+      ],
+      "fixtureOverride": null,
+      "strategy": "highest projected target damage; focus until its cost is available; avoids reflection; player first (proposal)"
+    },
+    {
+      "left": "u53",
+      "right": "u47",
+      "level": 40,
+      "actions": 18,
+      "winner": "u47",
+      "remainingHp": [
+        0,
+        204
+      ],
+      "remainingMp": [
+        70,
+        19
+      ],
+      "focusActions": [
+        0,
+        0
+      ],
+      "mpSpent": [
+        54,
+        54
+      ],
+      "attackActions": [
+        9,
+        9
+      ],
+      "fixtureOverride": null,
+      "strategy": "highest projected target damage; focus until its cost is available; avoids reflection; player first (proposal)"
+    },
+    {
+      "left": "u49",
+      "right": "u48",
+      "level": 40,
+      "actions": 4,
+      "winner": "u48",
+      "remainingHp": [
+        0,
+        279
+      ],
+      "remainingMp": [
+        71,
+        44
+      ],
+      "focusActions": [
+        0,
+        0
+      ],
+      "mpSpent": [
+        60,
+        50
+      ],
+      "attackActions": [
+        2,
+        2
+      ],
+      "fixtureOverride": null,
+      "strategy": "highest projected target damage; focus until its cost is available; avoids reflection; player first (proposal)"
+    },
+    {
+      "left": "u52",
+      "right": "u52",
+      "level": 20,
+      "actions": 200,
+      "winner": "draw_cap",
+      "remainingHp": [
+        340,
+        340
+      ],
+      "remainingMp": [
+        65,
+        65
+      ],
+      "focusActions": [
+        100,
+        100
+      ],
+      "mpSpent": [
+        0,
+        0
+      ],
+      "attackActions": [
+        0,
+        0
+      ],
+      "fixtureOverride": "normal-only stress fixture",
+      "strategy": "highest projected target damage; focus until its cost is available; avoids reflection; player first (proposal)"
+    }
+  ],
+  "limitations": [
+    "Player-first bias; no Monte Carlo tuning",
+    "No item/swap/augments; not a full product battle",
+    "Source concept passives are not implemented",
+    "Current results do not establish win-rate balance across60 units"
+  ]
+}

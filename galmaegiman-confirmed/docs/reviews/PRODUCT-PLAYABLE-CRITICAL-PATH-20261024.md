@@ -55,3 +55,7 @@ Acceptance needed as ONE package: approve/adjust test-balancev0.1 (not final com
 ## Independent implementation that can proceed before balance approval
 
 Persisted battle/session/action/settlement schemas, owner/revision checks, durable idempotency and restart tests; authenticated transport/interface and response-order handling; server-owned party instance selection and locks; tutorial settlement hook wiring with injected reward/catalog policy. Numerical transitions must fail closed without approved catalog, and tests must use labeled fixtures. Do not equate these infrastructure steps with a playable complete APK.
+
+## 후속 데이터 초안
+
+이 문서의 초기 수치 제안은 `design/roster60-review/balance-v0.1/REVIEW-KO.md`와 구조화된 데이터로 구체화·수정되었습니다. 현재 검토에는 해당 v0.1을 사용합니다. 운영 승인이나 제품 활성화를 의미하지 않습니다.
