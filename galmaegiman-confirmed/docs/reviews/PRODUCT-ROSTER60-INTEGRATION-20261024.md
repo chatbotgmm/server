@@ -6,11 +6,13 @@ New reset preview contract in battle/roster60-reincarnation.ts separates baselin
 
 Current-cycle cumulative XP is the crafting input; historical/lifetime XP is not. Reborn ingredients are rejected with CRAFT_REINCARNATION_POLICY_REQUIRED until eligibility inheritance is decided. XP above the exact configured cap threshold is rejected with CAP_XP_POLICY_REQUIRED, not banked, dropped, awarded or migrated. Short synthetic curves remain test inputs, not complete production growth tables.
 
-Conflicting parent messages arrived on 70%: an approval with user “그러자” was immediately followed by a message saying the proposal is unapproved. Latest hold is respected pending clarification. ReincarnationXpPolicy is mandatory for reborn growth; there is NO product default. Explicit tests use 70% of each next-level requirement, ceil rounding (positive transitions), for current levels 1..59 and 100% from 60 onward. No earned XP multiplier. Normal crafting result uses its own normal curve. Ability bonus magnitude, repeat policy, base XP/MP curves and other balance remain unapproved.
+Parent clarified the delayed hold was not a user cancellation: 70% is confirmed. confirmedReincarnationXpPolicy is now the product default: each next-level requirement for current levels 1..59 is 70%, ceil rounding; current levels 60..98 use the normal requirement. Normal instances use the unchanged base curve and cap at 60. No earned XP multiplier is applied. Normal crafting results use their own normal curve. An explicit policy parameter remains available for isolated test cases, without setting other balance defaults. Ability bonuses, repeat policy and base XP/MP curves remain unapproved.
+
+Confirmed-70% follow-up: server build and 7 rule cases plus 15 crafting/onboarding/reset integration cases passed. Android source did not change in this follow-up; no new APK was built.
 
 Validation: server build passed; full disposable-DB suite 555/555 (46 files), focused craft/reset 10/10, Node rule tests 7/7, Android crafting/onboarding 4/4 and product debug build passed. The 60/99 UI test consumes server DTO values. Device execution and new reset screen are unverified/unconnected.
 
-Pending minimum decisions: resolve the contradictory 70% status; bonus stat values and repeat policy; crafting inheritance of reincarnation; cap overflow XP disposition. Schema/data deployment and actual reset execution remain unperformed.
+Pending minimum decisions: bonus stat values and repeat policy; crafting inheritance of reincarnation; cap overflow XP disposition. Schema/data deployment and actual reset execution remain unperformed.
 
 ## Product crafting UI connection (2026-10-24, local only)
 

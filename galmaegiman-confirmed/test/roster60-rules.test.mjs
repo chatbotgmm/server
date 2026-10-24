@@ -69,7 +69,7 @@ test('only server-owned reincarnation unlocks 99; overflow and reset are not inf
  assert.deepEqual(startMp(980,c,1,{earlyRequiredPercent:100,throughLevel:60}),{mp:99,maxMp:99});
 });
 
-test('explicit synthetic 70 percent requirement policy switches after 59 to 60, never boosts earned XP',()=>{
+test('confirmed default 70 percent requirement policy switches after 59 to 60, never boosts earned XP',()=>{
  const c=Array.from({length:99},(_,i)=>({totalXp:i*11,maxMp:i+1}));
  const policy={earlyRequiredPercent:70,throughLevel:60};
  const r=instanceGrowthCurve(c,1,policy);
@@ -78,5 +78,9 @@ test('explicit synthetic 70 percent requirement policy switches after 59 to 60, 
  assert.equal(growthAt(r[98].totalXp,c,1,policy).level,99);
  assert.equal(growthAt(80,c,1,policy).totalXp,80);
  assert.equal(combinationGrowth([80,80],c).level,8); // normal result curve, no inherited rebirth
- assert.throws(()=>growthAt(0,c,1),/XP_POLICY_REQUIRED/);
+ assert.deepEqual(instanceGrowthCurve(c,1),r);
+ assert.equal(growthAt(80,c,1).level,11);
+ assert.equal(growthAt(80,c,0).level,8);
+ assert.equal(growthAt(r[98].totalXp,c,1).level,99);
+ assert.throws(()=>growthAt(r[98].totalXp+1,c,1),/CAP_XP_POLICY_REQUIRED/);
 });

@@ -10,6 +10,6 @@ it('new cycle starts at one, permanent bonus is separate, prior XP cannot immedi
  const before=structuredClone(input);
  const p=previewReincarnation(input,{approved:true,version:'synthetic-only',bonusFor:cycle=>{if(cycle!==1)throw Error('REPEAT_POLICY_REQUIRED');return {hp:2,mp:0};}});
  expect(p.next).toMatchObject({level:1,maxLevel:99,totalXp:0,reincarnation:1,permanentBonusStats:{hp:2,mp:0}});
- expect(growthAt(p.next.totalXp,input.curve,p.next.reincarnation,{earlyRequiredPercent:70,throughLevel:60}).level).toBe(1);
+ expect(growthAt(p.next.totalXp,input.curve,p.next.reincarnation).level).toBe(1);
  expect(p.afterLevelOneStats).toEqual({hp:12,mp:5});expect(input).toEqual(before);
 });

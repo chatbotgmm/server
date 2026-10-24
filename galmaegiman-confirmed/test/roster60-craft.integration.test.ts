@@ -11,7 +11,7 @@ suite('roster60 transactional combination',()=>{
  const catalog:RosterCatalog={approved:true,version:'craft-test-only',characters:['u02','u09'].map(id=>({id,name:id,rarity:'COMMON',stats:{hp:10},
    attack:{id:'test',name:'test',element:'NORMAL',mpCost:1},skills:[],
    suitability:Object.fromEntries(skillElements.map(e=>[e,0])) as any,defense:Object.fromEntries(skillElements.map(e=>[e,'normal'])) as any,
-   reincarnationXpPolicy:{earlyRequiredPercent:70,throughLevel:60},growth:[{totalXp:0,maxMp:7},{totalXp:id==='u02'?10:12,maxMp:9}]})),recipes:[{resultId:'u09',ingredients:[{unitId:'u02',count:2,minLevel:2}],visibility:'public'}]};
+   growth:[{totalXp:0,maxMp:7},{totalXp:id==='u02'?10:12,maxMp:9}]})),recipes:[{resultId:'u09',ingredients:[{unitId:'u02',count:2,minLevel:2}],visibility:'public'}]};
  beforeAll(async()=>{
    const url=process.env.TEST_DB_URL!;if(!/^file:\/tmp\/galmaegiman-tests-[^/]+\/test\.db$/.test(url))throw Error('disposable DB only');
    db=new PrismaClient({datasources:{db:{url}}});

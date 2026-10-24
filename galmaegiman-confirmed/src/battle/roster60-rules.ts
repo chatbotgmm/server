@@ -6,6 +6,8 @@ export type Defense = 'weak'|'normal'|'resist'|'immune'|'reflect';
 export type ElementProfile<T> = Record<SkillElement,T>;
 export type SkillDefinition = {id:string;name:string;element:SkillElement;mpCost:number};
 export type ReincarnationXpPolicy = {earlyRequiredPercent:number;throughLevel:number};
+// Confirmed product policy: target levels 2..60 discounted; 61..99 normal.
+export const confirmedReincarnationXpPolicy:Readonly<ReincarnationXpPolicy> = Object.freeze({earlyRequiredPercent:70,throughLevel:60});
 export type GrowthPoint = {totalXp:number;maxMp:number};
 export type RosterDefinition = {
   id:string;name:string;skills:SkillDefinition[];attack:SkillDefinition;
@@ -55,7 +57,7 @@ export function validateRosterDefinition(unit:RosterDefinition) {
 export function instanceGrowthCurve(curve:readonly GrowthPoint[],reincarnation=0,policy?:ReincarnationXpPolicy):GrowthPoint[] {
  validateGrowth(curve);rosterMaxLevel(reincarnation);
  if(!reincarnation)return curve.map(p=>({...p}));
- if(!policy)throw Error('REINCARNATION_XP_POLICY_REQUIRED');
+ policy ??= confirmedReincarnationXpPolicy;
  if(!Number.isSafeInteger(policy.earlyRequiredPercent)||policy.earlyRequiredPercent<1||policy.earlyRequiredPercent>100||!Number.isSafeInteger(policy.throughLevel)||policy.throughLevel<2||policy.throughLevel>99)throw Error('INVALID_REINCARNATION_XP_POLICY');
  let totalXp=0;return curve.map((p,i)=>{
   if(i){const delta=BigInt(p.totalXp-curve[i-1].totalXp),percent=i<policy.throughLevel?policy.earlyRequiredPercent:100;
