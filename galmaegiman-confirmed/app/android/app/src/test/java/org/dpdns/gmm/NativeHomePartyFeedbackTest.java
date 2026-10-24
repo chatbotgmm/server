@@ -138,6 +138,7 @@ public class NativeHomePartyFeedbackTest {
       else if (path.equals("starter-loans")) done.done(StarterLoanTestFixture.ineligible(), null);
       else if (path.equals("native/catalog")) done.done(MainActivity.obj("units", stored.optJSONObject("me").optJSONArray("units")), null);
       else if (path.equals("pvp/rank")) done.done(NativeThemeReviewTest.rank(), null);
+      else if(path.equals("native/roster60/home"))done.done(MainActivity.obj("rebirthUnlocked",false,"rebirthIntroPending",false,"mailUnread",0),null);
       else if (path.equals("draw")) done.done(MainActivity.obj("wait", 3600000, "credits", 30), null);
       else if (path.equals("daily")) done.done(MainActivity.obj("attend", MainActivity.obj("today", true), "missions", new JSONArray()), null);
       else if (path.startsWith("pvp/room/")) { /* Expired/stale input may request a read; leave it pending. */ }
@@ -334,7 +335,7 @@ public class NativeHomePartyFeedbackTest {
       check(!Rect.intersects(bounds(sprites.get(i), h.root), bounds(sprites.get(j), h.root)), "Party artwork overlaps", findings);
     if (scene.equals("home")) {
       LobbyView lobby = (LobbyView) h.root.getChildAt(0);
-      check(lobby.buttons.size() == 14, "HOME keeps thirteen actions plus menu toggle", findings);
+      check(lobby.buttons.size() == 16, "HOME keeps original controls plus rebirth and independent mail", findings);
       check(h.root.findViewWithTag("lobby-harbor") == null && h.root.findViewWithTag("lobby-growth") == null, "Removed HOME action survives", findings);
       check(lobby.ready(), "Original HOME art did not load", findings);
       check(!lobby.heroBox().isEmpty() && !lobby.heroShadowBox(lobby.heroBox()).isEmpty(), "Grounded character/contact shadow missing", findings);
@@ -444,6 +445,7 @@ public class NativeHomePartyFeedbackTest {
   public static class RouteHost extends MainActivity {
     boolean record; final List<String> routes = new ArrayList<>();
     @Override void load(String route) { if (record) routes.add(route); else super.load(route); }
+    @Override void openRosterBattle(){if(record)routes.add("roster60Battle");else super.openRosterBattle();}
     @Override void team() { if (record) routes.add("team"); else super.team(); }
   }
   ActivityController<RouteHost> routeHost() throws Exception {
@@ -458,7 +460,7 @@ public class NativeHomePartyFeedbackTest {
       RouteHost h = controller.get(); Api api = prepare(h); show(h, PROFILES[0], "home"); h.record = true;
       LobbyView lobby = (LobbyView) h.root.getChildAt(0); String before = h.state.toString();
       int[] indices = {0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12};
-      String[] routes = {"expedition", "draw", "collection", "craft", "shop", "modes", "daily", "settings", "shop", "shop", "shop", "team"};
+      String[] routes = {"expedition", "draw", "collection", "craft", "shop", "roster60Battle", "daily", "settings", "shop", "shop", "shop", "team"};
       for (int i = 0; i < indices.length; i++) {
         boolean tile = indices[i] <= 4 || indices[i] == 6 || indices[i] == 12;
         lobby.setMenuOpen(tile); layout(h, PROFILES[0]);
@@ -473,9 +475,12 @@ public class NativeHomePartyFeedbackTest {
             Bitmap expected = Bitmap.createBitmap(h.root.getWidth(), h.root.getHeight(), Bitmap.Config.ARGB_8888);
             try {
               lobby.menuArt.currency(new Canvas(expected), face, indices[i] - 9, false, true, b.isFocused());
-              assertEquals("Currency uses the actual textured medallion surface",
-                  expected.getPixel(Math.round(face.centerX()), Math.round(face.top + h.dp(11))),
-                  normal.getPixel(sampleX, sampleY));
+              // Source medallion has alpha 253 at this pixel; the room composite is opaque.
+              int source=expected.getPixel(Math.round(face.centerX()), Math.round(face.top+h.dp(11))), actual=normal.getPixel(sampleX,sampleY);
+              assertTrue("Currency textured color survives alpha compositing", android.graphics.Color.alpha(source)>=250 && android.graphics.Color.alpha(actual)==255
+                  && Math.abs(android.graphics.Color.red(source)-android.graphics.Color.red(actual))<=3
+                  && Math.abs(android.graphics.Color.green(source)-android.graphics.Color.green(actual))<=3
+                  && Math.abs(android.graphics.Color.blue(source)-android.graphics.Color.blue(actual))<=3);
             } finally { expected.recycle(); }
             assertTrue("Currency is not a parchment menu", tones(normal).optDouble("navyFraction") > .55);
           } else assertTrue("HOME menu default contains parchment", tones(normal).optDouble("paperFraction") > .15);

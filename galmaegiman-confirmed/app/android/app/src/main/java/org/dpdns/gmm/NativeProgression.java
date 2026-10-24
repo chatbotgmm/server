@@ -51,6 +51,9 @@ final class NativeProgression {
     return screen;
   }
 
+  boolean forceRoster60;
+  static void openRosterRebirth(MainActivity host){NativeProgression p=new NativeProgression(host);p.forceRoster60=true;p.tab="reincarnation";p.open();}
+
   void open() {
     if (h.api.token().isEmpty()) { h.login(); return; }
     h.base("성장 · 플레이 패스", "progression");
@@ -116,7 +119,7 @@ final class NativeProgression {
         && !h.isFinishing() && !h.isDestroyed();
   }
 
-  boolean roster60(){JSONObject t=h.state.optJSONObject("tutorial");return t!=null&&"roster60-v1".equals(t.optString("flow"));}
+  boolean roster60(){if(forceRoster60)return true;JSONObject t=h.state.optJSONObject("tutorial");return t!=null&&"roster60-v1".equals(t.optString("flow"));}
   boolean newReincarnation(){return roster60()&&tab.equals("reincarnation");}
 
   void refresh() {

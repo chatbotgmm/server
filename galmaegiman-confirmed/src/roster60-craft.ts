@@ -1,3 +1,4 @@
+import {recordRebirthUnlock} from './roster60-home.js';
 import {createHash,randomUUID} from 'node:crypto';
 import type {Prisma,PrismaClient} from '@prisma/client';
 import {combinationGrowth,growthAt,rosterMaxLevel,validateRosterDefinition} from './battle/roster60-rules.js';
@@ -61,8 +62,8 @@ export class RosterCraft {
     try{result=combinationGrowth(materials.map(m=>xp(m.totalXp)),target.growth);}catch(e){if((e as Error).message==='CAP_XP_POLICY_REQUIRED')return fail('CAP_XP_POLICY_REQUIRED');throw e;}
     // Include the calculated result as well as version: a mistakenly edited catalog
     // with an unchanged version must not silently change the confirmed level.
-    const previewFingerprint=hash([canonical(input),materials.map(m=>[m.id,m.speciesId,m.totalXp.toString()]),target.name,recipe,result]);
-    return {resultId:target.id,resultName:target.name,catalogVersion:catalog.version,materialIds:materials.map(m=>m.id),
+    const previewFingerprint=hash([canonical(input),materials.map(m=>[m.id,m.speciesId,m.totalXp.toString()]),target.name,target.rarity,recipe,result]);
+    return {resultId:target.id,resultName:target.name,resultRarity:target.rarity,catalogVersion:catalog.version,materialIds:materials.map(m=>m.id),
       inheritedTotalXp:result.totalXp,expectedLevel:result.level,maxLevel:result.maxLevel,reincarnation:0,previewFingerprint};
   }
   preview(playerId:string,input:CraftSelection){return this.db.$transaction(tx=>this.plan(tx,playerId,input));}
@@ -77,6 +78,7 @@ export class RosterCraft {
       const consumed=await tx.roster60Owned.updateMany({where:{playerId,id:{in:plan.materialIds},status:'AVAILABLE',locked:false},data:{status:'CONSUMED'}});
       if(consumed.count!==plan.materialIds.length)return fail('MATERIALS_UNAVAILABLE');
       const unit=await tx.roster60Owned.create({data:{id:randomUUID(),playerId,speciesId:plan.resultId,totalXp:BigInt(plan.inheritedTotalXp),source:'craft:'+input.requestId}});
+      await recordRebirthUnlock(tx,playerId,plan.resultRarity);
       const result={...plan,ownedId:unit.id};
       await tx.roster60CraftReceipt.create({data:{playerId,requestId:input.requestId,fingerprint,result:JSON.stringify(result)}});
       return result;

@@ -20,4 +20,6 @@
   <string name="roster60_defense">방어 판정</string>
   <string name="roster60_granted">영구 개체 지급이 확인되었습니다.</string>
   <string name="roster60_confirm_failed">결과를 확인하지 못했습니다. 우편을 다시 열어 지급 상태를 확인해 주세요.</string>
+<string name="roster60_battle_vitals">%1$s · 체력 %2$d/%3$d · MP %4$d/%5$d</string>
+<string name="roster60_battle_pending">새 전투 데이터 또는 정책 준비 중입니다. 현재 전투를 시작할 수 없습니다.</string>
 </resources>

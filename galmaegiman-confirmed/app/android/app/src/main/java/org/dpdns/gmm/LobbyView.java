@@ -32,7 +32,8 @@ final class LobbyView extends FrameLayout implements FullBleed {
   final HomeMenuArt menuArt;
   final RectF menuPanel = new RectF(), heroStage = new RectF(), tipRegion = new RectF();
   static final int[] MENU_ITEMS = {1, 2, 3, 0, 4, 12, 6, 14};
-  boolean menuOpen, dismissGesture;
+  boolean menuOpen, dismissGesture, rebirthUnlocked;
+  android.app.AlertDialog rebirthIntro;
   Typeface homeHeading;
   final Button gull;
   final TextView tip;
@@ -41,7 +42,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   CharSequence tipCopy = "";
   int tipPageStart, tipNextPageStart;
   final Runnable hideTip = this::hideGullTip;
-  final boolean[] badges = new boolean[15];
+  final boolean[] badges = new boolean[16];
   long claimReadyMono = -1;
   int liveEpoch, tipAt = -1;
   String dailyDay = "";
@@ -63,7 +64,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   static final String[] NAMES = {"탐험", "모집", "방범대", "조합", "상점"};
   static final String[] IDS = {"expedition", "draw", "collection", "craft", "shop"};
   static final String[] ICONS = {"mode-camp", "u-draw", "mode-normal", "u-emblem", "u-shop"};
-  final RectF[] boxes = new RectF[15];
+  final RectF[] boxes = new RectF[16];
 
   static String room(MainActivity host) {
     if (host.lobbyRoom == null)
@@ -119,7 +120,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
       String id = IDS[i];
       add(NAMES[i], () -> host.load(id));
     }
-    add("플레이", () -> host.load("modes"));
+    add("플레이", host::openRosterBattle);
     add("출석·미션", () -> host.load("daily"));
     add("내 정보", () -> host.menus.extras.profile(buttons.get(7)));
     add("설정", () -> host.load("settings"));
@@ -135,8 +136,10 @@ final class LobbyView extends FrameLayout implements FullBleed {
     buttons.get(12).setTag("lobby-team");
     add("메뉴", () -> setMenuOpen(!menuOpen));
     buttons.get(13).setTag("lobby-menu-toggle");
-    add("소식함", () -> host.load("news"));
-    buttons.get(14).setTag("lobby-news");
+    add("환생", () -> {if(rebirthUnlocked)NativeProgression.openRosterRebirth(host);});
+    buttons.get(14).setTag("lobby-rebirth");buttons.get(14).setEnabled(false);buttons.get(14).setContentDescription("환생 잠김 · 제한 이상 개체 첫 획득 시 해제");
+    add("우편함", () -> {host.menus.news.tab=0;host.load("news");});
+    buttons.get(15).setTag("lobby-news");
     for (Button button : buttons) button.setId(View.generateViewId());
     for (int n = 0; n < MENU_ITEMS.length; n++) {
       Button item = buttons.get(MENU_ITEMS[n]);
@@ -282,6 +285,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
     if (host.journalTime != null) host.journalTime.addListener(motionChanged);
     live = true;
     liveEpoch = host.epoch;
+    fetchRosterHome();
     refreshBadges.run();
     host.api.call(
         "draw",
@@ -299,6 +303,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
     ambient.detach();
     if (host.journalTime != null) host.journalTime.removeListener(motionChanged);
     live = false;
+    if(rebirthIntro!=null){rebirthIntro.dismiss();rebirthIntro=null;}
     dailyLoading = false;
     removeCallbacks(refreshBadges);
     removeCallbacks(hideTip);
@@ -323,6 +328,8 @@ final class LobbyView extends FrameLayout implements FullBleed {
     boxes[14] = rect(layout.controls[14]);
     menuPanel.set(rect(layout.panel));
     heroStage.set(rect(layout.heroStage));
+    boxes[15]=new RectF(host.dp(16),host.dp(72),host.dp(64),host.dp(120));
+    heroStage.top=Math.max(heroStage.top,boxes[15].bottom+host.dp(8));
     tipRegion.set(rect(layout.tipRegion));
   }
 
@@ -415,7 +422,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   RectF resumeBox(RectF safe) {
-    int x = Math.round(safe.left + host.dp(24));
+    int x = Math.round(safe.left + host.dp(72));
     int y = Math.round(boxes[7].bottom + host.dp(8));
     return new RectF(x, y, Math.min(heroStage.right, x + host.dp(300)), y + host.dp(48));
   }
@@ -656,7 +663,9 @@ final class LobbyView extends FrameLayout implements FullBleed {
     float iconHeight = Math.max(host.dp(18), Math.min(r.height() * .58f,
         r.height() - labelHeight - host.dp(14)));
     float iconWidth = r.width() * .86f;
-    if (index == 14) newsBell(c, r.centerX(), r.top + host.dp(7), iconHeight);
+    if (index == 14) {
+      label(c, rebirthUnlocked?"↻":"🔒", r.centerX(), r.top+iconHeight, host.dp(22), true, controlInk(index));
+    }
     else menuArt.navigationIcon(c, index, new RectF(r.centerX()-iconWidth/2,
         r.top+host.dp(7), r.centerX()+iconWidth/2, r.top+host.dp(7)+iconHeight));
     float font = canvasTextSize(host.dp(16), labelHeight-host.dp(3), true);
@@ -920,8 +929,9 @@ final class LobbyView extends FrameLayout implements FullBleed {
       for (int i = 0; i < 5; i++) menuTile(c, i, NAMES[i], icons[i]);
       menuTile(c, 12, "전투 편성", "team");
       menuTile(c, 6, "출석·미션", "daily");
-      menuTile(c, 14, "소식함", null);
+      menuTile(c, 14, rebirthUnlocked?"환생":"환생 잠김", null);
     }
+    command(c, 15, "우편", null, false);
     command(c, 5, "플레이", "explore", true);
     command(c, 13, menuOpen ? "닫기" : "메뉴", null, false);
     command(c, 8, "설정", "settings", false);
@@ -1011,6 +1021,33 @@ final class LobbyView extends FrameLayout implements FullBleed {
           updateMenuDescription();
           invalidate();
         });
+  }
+
+  void fetchRosterHome(){
+    String owner=host.api.token();
+    host.api.call("native/roster60/home",null,(r,e)->{
+      if(!current()||!owner.equals(host.api.token())||e!=null||r==null)return;
+      rebirthUnlocked=r.optBoolean("rebirthUnlocked");buttons.get(14).setEnabled(rebirthUnlocked);
+      buttons.get(14).setContentDescription(rebirthUnlocked?"환생 · 조건과 안내 확인":"환생 잠김 · 제한 이상 개체 첫 획득 시 해제");
+      badges[15]=r.optInt("mailUnread")>0||r.optBoolean("mailRewardPending");buttons.get(15).setContentDescription("우편함"+(badges[15]?" · 안 읽은 우편 또는 받을 보상 있음":""));invalidate();
+      if(r.optBoolean("rebirthIntroPending")&&rebirthIntro==null){
+        rebirthIntro=new GameDialog(host).navy().setTitle("환생 기능 해제")
+          .setMessage("제한·초월·불멸·영원 개체를 획득해 환생 안내가 열렸습니다. 실제 환생은 60·70·80·90·99레벨 조건을 따릅니다. 새 5스탯 보너스는 아직 준비 중입니다.")
+          .setNegativeButton("나중에",(d,w)->{rebirthIntro=null;})
+          .setPositiveButton("안내 확인",null).show();
+        final android.app.AlertDialog intro=rebirthIntro;
+        intro.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setOnClickListener(v->{
+          if(!current()||!owner.equals(host.api.token())||!v.isEnabled())return;
+          v.setEnabled(false);
+          host.api.call("native/roster60/home/rebirth-intro/complete",new JSONObject(),(done,error)->{
+            if(!current()||!owner.equals(host.api.token()))return;
+            if(error==null){intro.dismiss();if(rebirthIntro==intro)rebirthIntro=null;}
+            else {v.setEnabled(true);host.message("확인 저장에 실패했습니다. 다시 시도하거나 다음 접속에서 안내를 확인하세요.");}
+          });
+        });
+        rebirthIntro.setOnCancelListener(d->rebirthIntro=null);
+      }
+    });
   }
 
   void updateBadges() {

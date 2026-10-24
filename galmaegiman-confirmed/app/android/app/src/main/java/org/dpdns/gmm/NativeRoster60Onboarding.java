@@ -19,6 +19,7 @@ final class NativeRoster60Onboarding {
       new GameDialog(h).navy().setTitle(h.getString(R.string.roster60_title))
         .setMessage(h.getString(R.string.roster60_start_description))
         .setNegativeButton(h.getString(R.string.roster60_close),null)
+        .setNeutralButton("전투 시작",(d,w)->h.openRosterBattle())
         .setPositiveButton(h.getString(R.string.roster60_reward_status),(d,w)->{
           if(ticket!=null)preview(ticket.optString("ticketId"));
           else h.message(h.getString(R.string.roster60_tutorial_pending));

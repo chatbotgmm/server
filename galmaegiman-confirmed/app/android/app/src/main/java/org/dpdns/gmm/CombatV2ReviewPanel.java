@@ -14,10 +14,11 @@ import java.util.UUID;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** Review-only DTO consumer. Attached only to debug review Activity; no production API. */
+/** Shared command widget. Product mode requires its distinct server-derived DTO epoch. */
 final class CombatV2ReviewPanel extends LinearLayout {
   interface Transport { void submit(JSONObject command); }
   interface IconBinder { void bind(Button button,String slot); }
+  private final boolean product;
   private final IconBinder icons;
   private final Transport transport;
   private final TextView status, details, badge;
@@ -34,14 +35,17 @@ final class CombatV2ReviewPanel extends LinearLayout {
     this(context,transport,CombatV2ReviewStyle::icon);
   }
   CombatV2ReviewPanel(Context context, Transport transport,IconBinder icons) {
-    super(context); this.transport=transport; this.icons=java.util.Objects.requireNonNull(icons); setOrientation(VERTICAL);
-    status=new TextView(context);status.setTextSize(12);CombatV2ReviewStyle.text(status); addView(status,new LayoutParams(-1,-2));
+    this(context,transport,icons,false);
+  }
+  CombatV2ReviewPanel(Context context,Transport transport,IconBinder icons,boolean product) {
+    super(context); this.product=product; this.transport=transport; this.icons=java.util.Objects.requireNonNull(icons); setOrientation(VERTICAL);
+    status=new TextView(context);status.setTextSize(12);CombatV2ReviewStyle.text(status); addView(status,new LayoutParams(-1,-2));if(product)status.setVisibility(GONE);
     hp=bar("hp");mp=bar("mp");
     badge=new TextView(context);CombatV2ReviewStyle.text(badge);badge.setTextSize(11);addView(badge,new LayoutParams(-1,dp(20)));
-    details=new TextView(context);CombatV2ReviewStyle.text(details); details.setVisibility(INVISIBLE); details.setTextSize(11); details.setMaxLines(3); addView(details,new LayoutParams(-1,dp(48)));
+    details=new TextView(context);CombatV2ReviewStyle.text(details); details.setVisibility(INVISIBLE); details.setTextSize(11); details.setMaxLines(3); addView(details,new LayoutParams(-1,dp(product?32:48)));
     rows=new LinearLayout(context); rows.setOrientation(VERTICAL); addView(rows,new LayoutParams(-1,0,1));
     back=new Button(context);back.setText(CombatV2ReviewStyle.label(context,"back"));back.setContentDescription(CombatV2ReviewStyle.label(getContext(),"back_description"));
-    addView(back,new LayoutParams(-1,dp(40)));back.setOnClickListener(v->{skills=false;render();});
+    addView(back,new LayoutParams(-1,dp(product?32:40)));back.setOnClickListener(v->{skills=false;render();});
   }
 
   private ProgressBar bar(String name){ProgressBar b=new ProgressBar(getContext(),null,android.R.attr.progressBarStyleHorizontal);b.setProgressDrawable(getResources().getDrawable(CombatV2ReviewStyle.resource(getContext(),"drawable",name)));addView(b,new LayoutParams(-1,dp(4)));return b;}
@@ -54,7 +58,7 @@ final class CombatV2ReviewPanel extends LinearLayout {
   void bind(JSONObject snapshot) {
     cancelHolds();
     try {
-      dto=CombatV2ReviewContract.checked(snapshot);pending=false;render();
+      dto=CombatV2ReviewContract.checked(snapshot,product);pending=false;render();
     } catch(Exception invalid) {
       dto=null;rows.removeAllViews();back.setVisibility(GONE);status.setText(CombatV2ReviewStyle.label(getContext(),"invalid"));
     }
@@ -63,11 +67,11 @@ final class CombatV2ReviewPanel extends LinearLayout {
     cancelHolds();timers.clear();gestures.clear();holdButtons.clear();rows.removeAllViews();
     if(dto==null)return;
     JSONObject self=dto.optJSONObject("self");
-    status.setText(CombatV2ReviewStyle.format(getContext(),"status",self.optString("name"),self.optInt("hp"),self.optInt("maxHp"),self.optInt("mp"),self.optInt("maxMp")));
+    status.setText(product?getContext().getString(R.string.roster60_battle_vitals,self.optString("name"),self.optInt("hp"),self.optInt("maxHp"),self.optInt("mp"),self.optInt("maxMp")):CombatV2ReviewStyle.format(getContext(),"status",self.optString("name"),self.optInt("hp"),self.optInt("maxHp"),self.optInt("mp"),self.optInt("maxMp")));
     hp.setMax(self.optInt("maxHp"));hp.setProgress(self.optInt("hp"));hp.setContentDescription("HP "+self.optInt("hp"));mp.setMax(self.optInt("maxMp"));mp.setProgress(self.optInt("mp"));mp.setContentDescription("MP "+self.optInt("mp"));
-    JSONArray events=dto.optJSONArray("events");String defense="normal";
-    for(int i=events.length()-1;i>=0;i--){JSONObject e=events.optJSONObject(i);if(e.has("defense")){defense=e.optString("defense");break;}}
-    badge.setText(CombatV2ReviewStyle.label(getContext(),"badge_"+defense));badge.setBackgroundResource(CombatV2ReviewStyle.resource(getContext(),"drawable","badge_"+defense));
+    JSONArray events=dto.optJSONArray("events");String defense="normal";boolean hasDefense=false;
+    for(int i=events.length()-1;i>=0;i--){JSONObject e=events.optJSONObject(i);if(e.has("defense")){defense=e.optString("defense");hasDefense=true;break;}}
+    badge.setVisibility(product&&!hasDefense?INVISIBLE:VISIBLE);badge.setText(CombatV2ReviewStyle.label(getContext(),"badge_"+defense));badge.setBackgroundResource(CombatV2ReviewStyle.resource(getContext(),"drawable","badge_"+defense));
     JSONArray entries=dto.optJSONArray(skills?"skills":"commands");
     for(int row=0;row<2;row++) {
       LinearLayout line=new LinearLayout(getContext());line.setOrientation(HORIZONTAL);

@@ -72,6 +72,7 @@ public class NativeHomeTipLayoutTest {
   public static class HomeHost extends MainActivity {
     String requested = "";
     @Override void load(String target) { requested = target; }
+    @Override void openRosterBattle(){requested="roster60Battle";}
   }
 
   static final class OfflineApi extends NativeApi {
@@ -81,7 +82,7 @@ public class NativeHomeTipLayoutTest {
     @Override void call(String path, JSONObject body, Result done) {
       assertNull("No account mutations in visual fixtures", body);
       assertTrue("No unexpected request escapes the offline fixture: " + path,
-          path.equals("draw") || path.equals("daily") || path.equals("starter-loans"));
+          path.equals("native/roster60/home") || path.equals("draw") || path.equals("daily") || path.equals("starter-loans"));
       paths.add(path);
       done.done(path.equals("starter-loans") ? StarterLoanTestFixture.ineligible() : new JSONObject(), null);
     }
@@ -494,8 +495,8 @@ public class NativeHomeTipLayoutTest {
       MotionEvent down = MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, 1, 1, 0);
       l.dispatchTouchEvent(down); down.recycle();
       assertEquals("Existing outside-tap dismissal remains", View.GONE, l.tip.getVisibility());
-      String[] targets = {"expedition", "draw", "collection", "craft", "shop", "modes",
-          "daily", null, "settings", "shop", "shop", "shop", null, null};
+      String[] targets = {"expedition", "draw", "collection", "craft", "shop", "roster60Battle",
+          "daily", null, "settings", "shop", "shop", "shop", null, null, null, "news"};
       assertEquals("Every remaining HOME control is represented", targets.length, l.buttons.size());
       assertNull("Retired harbor route is absent", l.findViewWithTag("lobby-harbor"));
       for (int i = 0; i < targets.length; i++) if (targets[i] != null) {

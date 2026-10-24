@@ -10,19 +10,20 @@ import org.json.JSONObject;
 final class CombatV2ReviewContract {
   static final String EPOCH="review-roster60-combat-v1";
   static final String[] COMMANDS={"attack","skills","focus","item","switch","escape"};
-  static JSONObject checked(JSONObject source) throws Exception {
+  static JSONObject checked(JSONObject source) throws Exception {return checked(source,false);}
+  static JSONObject checked(JSONObject source,boolean product) throws Exception {
     JSONObject dto=new JSONObject(source.toString());
-    if(!EPOCH.equals(dto.getString("epoch")) || dto.getString("battleId").isEmpty()
+    if(!(product?"product-five-battle-v1":EPOCH).equals(dto.getString("epoch")) || dto.getString("battleId").isEmpty()
         || dto.getInt("revision")<0)throw new IllegalArgumentException("Invalid identity/version");
     for(String side:new String[]{"self","foe"}) {
       JSONObject f=dto.getJSONObject(side);
-      if(f.getInt("hp")<0||f.getInt("maxHp")<1||f.getInt("hp")>f.getInt("maxHp")||f.getInt("mp")<0||f.getInt("maxMp")<1||f.getInt("mp")>f.getInt("maxMp"))throw new IllegalArgumentException("Invalid vitals");
+      if(f.getInt("hp")<0||f.getInt("maxHp")<1||f.getInt("hp")>f.getInt("maxHp")||f.getInt("mp")<0||f.getInt("maxMp")<(product?0:1)||f.getInt("mp")>f.getInt("maxMp"))throw new IllegalArgumentException("Invalid vitals");
       f.getString("name");f.getJSONObject("suitability");
     }
     dto.getJSONArray("events");
     JSONObject self=dto.getJSONObject("self");
     int mp=self.getInt("mp"),max=self.getInt("maxMp");
-    if(max<=0 || mp<0 || mp>max)throw new IllegalArgumentException("Invalid MP");
+    if(max<(product?0:1) || mp<0 || mp>max)throw new IllegalArgumentException("Invalid MP");
     JSONArray commands=dto.getJSONArray("commands"),skills=dto.getJSONArray("skills");
     if(commands.length()!=6 || skills.length()>6)throw new IllegalArgumentException("Invalid command count");
     for(int i=0;i<6;i++) {

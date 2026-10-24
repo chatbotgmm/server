@@ -1020,6 +1020,9 @@ public class MainActivity extends AppCompatActivity {
     return true;
   }
 
+  NativeRoster60Battle rosterBattle;
+  void openRosterBattle(){rosterBattle=new NativeRoster60Battle(this);rosterBattle.open();}
+
   void home() {
     if (nicknameRequired()) { NativeNicknameSetup.show(this); return; }
     epoch++;
@@ -1460,6 +1463,7 @@ public class MainActivity extends AppCompatActivity {
 
   void back() {
     if (updateBlocks()) return;
+    if(screen.equals("roster60Battle")&&rosterBattle!=null){rosterBattle.back();return;}
     if((screen.equals("mix")||screen.equals("craftRecipes"))&&menus.economy.roster60Craft!=null)menus.economy.roster60Craft.leave();
     if (screen.equals("news") && menus.news.back()) return;
     if (screen.equals("collection") && menus.library.collectionFocus != null
@@ -1559,6 +1563,7 @@ public class MainActivity extends AppCompatActivity {
   protected void onPause() {
     if (requiredUpdate != null) requiredUpdate.pause();
     NativeBattleReplay.pause(this);
+    if(rosterBattle!=null)rosterBattle.pause();
     if (sound != null) sound.pause();
     if (realtime != null) realtime.pause();
     motionResumed = false;

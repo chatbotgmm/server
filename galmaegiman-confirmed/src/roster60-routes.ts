@@ -1,3 +1,4 @@
+import {RosterHome} from './roster60-home.js';
 import type {FastifyInstance,FastifyRequest,FastifyReply} from 'fastify';
 import {readFileSync,existsSync} from 'node:fs';
 import {resolve} from 'node:path';
@@ -15,6 +16,7 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   const policyFile=resolve(root,'data/roster60-battle-policy.json');
   const battle=new RosterBattle(db,catalog,()=>{if(!existsSync(policyFile))return null;try{return JSON.parse(readFileSync(policyFile,'utf8')) as BattlePolicy;}catch{throw new RosterError(503,'BATTLE_POLICY_INVALID');}});
   const service=new RosterOnboarding(db,catalog);
+  const home=new RosterHome(db,catalog);
   const craft=new RosterCraft(db,catalog);
   const reincarnation=new RosterReincarnation(db,catalog);
   const empty=z.object({}).strict();
@@ -28,6 +30,9 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
     }
   }});
   const requestId=z.string().min(1).max(100),battleId=z.string().uuid(),revision=z.number().int().nonnegative();
+  route('GET','home',id=>home.read(id));
+  route('POST','home/rebirth-intro/complete',(id,r)=>{empty.parse(r.body);return home.completeIntro(id);});
+  route('GET','battle/options',id=>battle.options(id));
   route('POST','battle/create',(id,r)=>battle.create(id,z.object({requestId,ownedId:z.string().min(1).max(100),encounterId:z.string().min(1).max(100)}).strict().parse(r.body)));
   route('POST','battle/read',(id,r)=>battle.read(id,z.object({battleId}).strict().parse(r.body).battleId));
   route('GET','battle/active',id=>battle.active(id));

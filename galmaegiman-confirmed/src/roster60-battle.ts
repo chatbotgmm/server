@@ -44,6 +44,11 @@ export class RosterBattle {
   });
   try{return await once();}catch(e){if(['P2002','P2034'].includes((e as {code?:string}).code??''))return once();throw e;}
  }
+ async options(playerId:string){
+  const c=this.catalog(),p=this.policy();validatePolicy(p,c);
+  const rows=await this.db.roster60Owned.findMany({where:{playerId,status:'AVAILABLE',locked:false,reincarnation:0},orderBy:{id:'asc'},take:1000});
+  return {units:rows.map(u=>({ownedId:u.id,speciesId:u.speciesId,name:c!.characters.find(d=>d.id===u.speciesId)?.name??u.speciesId})),encounters:p.encounters.map(e=>({id:e.id,name:c!.characters.find(u=>u.id===e.speciesId)?.name??e.speciesId,tutorial:e.tutorial})),catalogVersion:c!.version};
+ }
  async create(playerId:string,b:{requestId:string;ownedId:string;encounterId:string}){
   return this.request(playerId,b.requestId,['create',b.ownedId,b.encounterId],async tx=>{
    const c=this.catalog(),p=this.policy();validatePolicy(p,c);
