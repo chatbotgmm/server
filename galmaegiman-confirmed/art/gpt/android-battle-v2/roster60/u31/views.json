@@ -1,6 +1,6 @@
 {
   "id": "u31",
-  "layout": "two_view_sheet",
+  "layout": "replacement_two_view_sheet",
   "files": [
     {
       "sha256": "7ea14d1240907400b24957a6b5c297f6bf1f0faf5aa475106a8942ee7e7210be",
@@ -95,7 +95,9 @@
         "128": 0
       },
       "lower_alpha_fringe_touches_split": false,
-      "views": [
+      "views": [],
+      "file": "u31/turnaround-original.png",
+      "superseded_views": [
         {
           "view": "front_3quarter_left",
           "source_rect_ltrb_exclusive": [
@@ -204,24 +206,74 @@
           ],
           "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
         }
+      ]
+    },
+    {
+      "file": "u31/turnaround-v5-legs.png",
+      "sha256": "f4470f12aac2aa21021686d81d5e7f5a1370de7f821d8807c05486354c84e189",
+      "size": [
+        1774,
+        887
       ],
-      "file": "u31/turnaround-original.png"
+      "mode": "RGBA",
+      "chosen_gap_l_r_exclusive": [
+        840,
+        928
+      ],
+      "split_x": 884,
+      "views": [
+        {
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            884,
+            887
+          ],
+          "view": "front_3quarter_left"
+        },
+        {
+          "source_rect_ltrb_exclusive": [
+            884,
+            0,
+            1774,
+            887
+          ],
+          "view": "rear_3quarter_right"
+        }
+      ],
+      "review_status": "structure_and_depth_review_pass_archive_candidate_pending_user_final_approval"
     }
   ],
   "name": "듀라한",
   "grade": "에픽",
-  "review_status": "draft_not_final_user_approved",
-  "known_issues": [
-    {
-      "view": "rear",
-      "priority": "reconstruction_needed",
-      "note": "후면 몸통/앞치마 또는 갑옷의 앞뒤 구조 재검토 필요"
-    }
-  ],
+  "review_status": "corrected_design_draft_pending_final_user_approval",
+  "known_issues": [],
   "runtime_integrated": false,
   "source_archive": "04_에픽_원본PNG_01.zip",
   "active_views": {
     "front": {
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        884,
+        887
+      ],
+      "file": "u31/turnaround-v5-legs.png",
+      "sha256": "f4470f12aac2aa21021686d81d5e7f5a1370de7f821d8807c05486354c84e189"
+    },
+    "rear": {
+      "source_rect_ltrb_exclusive": [
+        884,
+        0,
+        1774,
+        887
+      ],
+      "file": "u31/turnaround-v5-legs.png",
+      "sha256": "f4470f12aac2aa21021686d81d5e7f5a1370de7f821d8807c05486354c84e189"
+    }
+  },
+  "superseded_views": [
+    {
       "file": "u31/turnaround-original.png",
       "source_rect_ltrb_exclusive": [
         0,
@@ -229,9 +281,11 @@
         920,
         887
       ],
-      "sha256": "7ea14d1240907400b24957a6b5c297f6bf1f0faf5aa475106a8942ee7e7210be"
+      "sha256": "7ea14d1240907400b24957a6b5c297f6bf1f0faf5aa475106a8942ee7e7210be",
+      "view": "front",
+      "reason": "사용자 요청으로 목 연기 및 손에 든 머리 디자인으로 정면과 후면 모두 교체"
     },
-    "rear": {
+    {
       "file": "u31/turnaround-original.png",
       "source_rect_ltrb_exclusive": [
         920,
@@ -239,7 +293,19 @@
         1774,
         887
       ],
-      "sha256": "7ea14d1240907400b24957a6b5c297f6bf1f0faf5aa475106a8942ee7e7210be"
+      "sha256": "7ea14d1240907400b24957a6b5c297f6bf1f0faf5aa475106a8942ee7e7210be",
+      "view": "rear",
+      "reason": "사용자 요청으로 목 연기 및 손에 든 머리 디자인으로 정면과 후면 모두 교체"
     }
-  }
+  ],
+  "resolved_issues": [
+    {
+      "view": "rear",
+      "priority": "reconstruction_needed",
+      "note": "후면 몸통/앞치마 또는 갑옷의 앞뒤 구조 재검토 필요",
+      "resolved_by": "u31/turnaround-v5-legs.png"
+    }
+  ],
+  "design_note": "목에는 연기만, 해부학적 왼손에 분리된 머리, 오른손에 검. 사용자 요청으로 정면도 변경.",
+  "front_leg_review": "v5: pelvis-leg-ankle-foot connections and support reviewed; passed archive candidate, pending final user approval."
 }

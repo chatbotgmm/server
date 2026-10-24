@@ -1,6 +1,6 @@
 {
   "id": "u28",
-  "layout": "two_view_sheet",
+  "layout": "original_sheet_front_plus_rear_override",
   "files": [
     {
       "sha256": "61732bac09f9517169a9e0336a11f70c557b25539d5ff38e1d031101dd96eef9",
@@ -145,7 +145,10 @@
             869
           ],
           "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
-        },
+        }
+      ],
+      "file": "u28/turnaround-original.png",
+      "superseded_views": [
         {
           "view": "rear_3quarter_right",
           "source_rect_ltrb_exclusive": [
@@ -200,18 +203,50 @@
           ],
           "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
         }
+      ]
+    },
+    {
+      "file": "u28/rear-v3.png",
+      "sha256": "ad79795bbe547f3b842cc5c29aebd1e287adc72aa256446dffec3c93d10dcd79",
+      "size": [
+        1393,
+        1129
       ],
-      "file": "u28/turnaround-original.png"
+      "mode": "RGBA",
+      "views": [
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            1393,
+            1129
+          ],
+          "visible_bbox_source_alpha_gt8": [
+            169,
+            6,
+            1373,
+            1083
+          ],
+          "visible_bbox_source_alpha_gt128": [
+            169,
+            7,
+            1372,
+            1083
+          ]
+        }
+      ],
+      "review_status": "structural_and_occlusion_review_pass_archive_candidate_pending_user_final_approval"
     }
   ],
   "name": "인어기사",
   "grade": "에픽",
-  "review_status": "draft_not_final_user_approved",
+  "review_status": "corrected_draft_pending_final_user_approval",
   "known_issues": [
     {
       "view": "rear",
-      "priority": "reconstruction_needed",
-      "note": "후면 몸통/앞치마 또는 갑옷의 앞뒤 구조 재검토 필요"
+      "priority": "optional_runtime_padding",
+      "note": "창의 불투명 실루엣은 잘리지 않음(상단 여백7px). 게임 표시/회전 시 여백 확보 검토; 원본 재편집 없이 렌더 패딩 우선."
     }
   ],
   "runtime_integrated": false,
@@ -228,6 +263,18 @@
       "sha256": "61732bac09f9517169a9e0336a11f70c557b25539d5ff38e1d031101dd96eef9"
     },
     "rear": {
+      "file": "u28/rear-v3.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        1393,
+        1129
+      ],
+      "sha256": "ad79795bbe547f3b842cc5c29aebd1e287adc72aa256446dffec3c93d10dcd79"
+    }
+  },
+  "superseded_views": [
+    {
       "file": "u28/turnaround-original.png",
       "source_rect_ltrb_exclusive": [
         884,
@@ -235,7 +282,17 @@
         1774,
         887
       ],
-      "sha256": "61732bac09f9517169a9e0336a11f70c557b25539d5ff38e1d031101dd96eef9"
+      "sha256": "61732bac09f9517169a9e0336a11f70c557b25539d5ff38e1d031101dd96eef9",
+      "reason": "후면 몸통·장비·가림 구조를 수정한 rear-v3로 대체. 원본 시트는 정면 보존 및 이력용."
     }
-  }
+  ],
+  "resolved_issues": [
+    {
+      "view": "rear",
+      "priority": "reconstruction_needed",
+      "note": "후면 몸통/앞치마 또는 갑옷의 앞뒤 구조 재검토 필요",
+      "resolved_by": "u28/rear-v3.png",
+      "review": "Root and independent structural review passed; not final user art approval."
+    }
+  ]
 }

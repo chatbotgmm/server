@@ -5,10 +5,10 @@
   "runtime_integrated": false,
   "character_count": 60,
   "active_view_count": 120,
-  "png_file_count": 69,
+  "png_file_count": 72,
   "coordinate_convention": "Pixel integer [left,top,right,bottom], right/bottom exclusive; Android Rect compatible. Do not split sheets at 50%.",
   "pixel_edits_during_archival": false,
-  "default_view_selection": "entries[].active_views is authoritative. u17 original rear is superseded.",
+  "default_view_selection": "entries[].active_views is authoritative. Original rears of u09/u17/u28 and original front+rear of u31 are superseded; original sources remain unchanged for history.",
   "scale_note": "미니의 게임 표시 높이는 기본의60%. 다른 개체를 임의로 동일 높이에 맞추지 말 것. 피벗/발 기준점/실기기 검증은 미완료.",
   "review_note": "Known issues are inherited review findings, not newly fixed in this archive. No issue listed does not equal final approval. Rejected rear-v2 variants excluded.",
   "entries": [
@@ -155,7 +155,7 @@
           "file": "u01/rear.png"
         }
       ],
-      "name": "기본",
+      "name": "갈매미맨",
       "grade": "커먼",
       "review_status": "draft_not_final_user_approved",
       "known_issues": [],
@@ -1410,7 +1410,7 @@
     },
     {
       "id": "u09",
-      "layout": "two_view_sheet",
+      "layout": "original_sheet_front_plus_rear_override",
       "files": [
         {
           "sha256": "376404486a2fa7a6bfb83e408442b06a35ae8928557a30fc7c9c1c74288dc7bc",
@@ -1531,7 +1531,10 @@
                 861
               ],
               "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
-            },
+            }
+          ],
+          "file": "u09/turnaround-original.png",
+          "superseded_views": [
             {
               "view": "rear_3quarter_right",
               "source_rect_ltrb_exclusive": [
@@ -1586,20 +1589,46 @@
               ],
               "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
             }
+          ]
+        },
+        {
+          "file": "u09/rear-v3.png",
+          "sha256": "cc64dbfa499cdf376537ea6299eb94835e51fb54c86a3a6b1a352276502cc85f",
+          "size": [
+            1312,
+            1199
           ],
-          "file": "u09/turnaround-original.png"
+          "mode": "RGBA",
+          "views": [
+            {
+              "view": "rear_3quarter_right",
+              "source_rect_ltrb_exclusive": [
+                0,
+                0,
+                1312,
+                1199
+              ],
+              "visible_bbox_source_alpha_gt8": [
+                119,
+                19,
+                1293,
+                1155
+              ],
+              "visible_bbox_source_alpha_gt128": [
+                120,
+                20,
+                1292,
+                1154
+              ]
+            }
+          ],
+          "review_status": "structural_and_occlusion_review_pass_archive_candidate_pending_user_final_approval"
         }
       ],
       "name": "노움",
       "grade": "언커먼",
-      "review_status": "draft_not_final_user_approved",
-      "known_issues": [
-        {
-          "view": "rear",
-          "priority": "reconstruction_needed",
-          "note": "후면 몸통/앞치마 또는 갑옷의 앞뒤 구조 재검토 필요"
-        }
-      ],
+      "review_status": "corrected_draft_pending_final_user_approval",
+      "known_issues": [],
       "runtime_integrated": false,
       "source_archive": "02_언커먼_원본PNG_01.zip",
       "active_views": {
@@ -1614,6 +1643,18 @@
           "sha256": "376404486a2fa7a6bfb83e408442b06a35ae8928557a30fc7c9c1c74288dc7bc"
         },
         "rear": {
+          "file": "u09/rear-v3.png",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            1312,
+            1199
+          ],
+          "sha256": "cc64dbfa499cdf376537ea6299eb94835e51fb54c86a3a6b1a352276502cc85f"
+        }
+      },
+      "superseded_views": [
+        {
           "file": "u09/turnaround-original.png",
           "source_rect_ltrb_exclusive": [
             924,
@@ -1621,9 +1662,19 @@
             1774,
             887
           ],
-          "sha256": "376404486a2fa7a6bfb83e408442b06a35ae8928557a30fc7c9c1c74288dc7bc"
+          "sha256": "376404486a2fa7a6bfb83e408442b06a35ae8928557a30fc7c9c1c74288dc7bc",
+          "reason": "후면 몸통·장비·가림 구조를 수정한 rear-v3로 대체. 원본 시트는 정면 보존 및 이력용."
         }
-      }
+      ],
+      "resolved_issues": [
+        {
+          "view": "rear",
+          "priority": "reconstruction_needed",
+          "note": "후면 몸통/앞치마 또는 갑옷의 앞뒤 구조 재검토 필요",
+          "resolved_by": "u09/rear-v3.png",
+          "review": "Root and independent structural review passed; not final user art approval."
+        }
+      ]
     },
     {
       "id": "u10",
@@ -5784,7 +5835,7 @@
     },
     {
       "id": "u28",
-      "layout": "two_view_sheet",
+      "layout": "original_sheet_front_plus_rear_override",
       "files": [
         {
           "sha256": "61732bac09f9517169a9e0336a11f70c557b25539d5ff38e1d031101dd96eef9",
@@ -5929,7 +5980,10 @@
                 869
               ],
               "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
-            },
+            }
+          ],
+          "file": "u28/turnaround-original.png",
+          "superseded_views": [
             {
               "view": "rear_3quarter_right",
               "source_rect_ltrb_exclusive": [
@@ -5984,18 +6038,50 @@
               ],
               "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
             }
+          ]
+        },
+        {
+          "file": "u28/rear-v3.png",
+          "sha256": "ad79795bbe547f3b842cc5c29aebd1e287adc72aa256446dffec3c93d10dcd79",
+          "size": [
+            1393,
+            1129
           ],
-          "file": "u28/turnaround-original.png"
+          "mode": "RGBA",
+          "views": [
+            {
+              "view": "rear_3quarter_right",
+              "source_rect_ltrb_exclusive": [
+                0,
+                0,
+                1393,
+                1129
+              ],
+              "visible_bbox_source_alpha_gt8": [
+                169,
+                6,
+                1373,
+                1083
+              ],
+              "visible_bbox_source_alpha_gt128": [
+                169,
+                7,
+                1372,
+                1083
+              ]
+            }
+          ],
+          "review_status": "structural_and_occlusion_review_pass_archive_candidate_pending_user_final_approval"
         }
       ],
       "name": "인어기사",
       "grade": "에픽",
-      "review_status": "draft_not_final_user_approved",
+      "review_status": "corrected_draft_pending_final_user_approval",
       "known_issues": [
         {
           "view": "rear",
-          "priority": "reconstruction_needed",
-          "note": "후면 몸통/앞치마 또는 갑옷의 앞뒤 구조 재검토 필요"
+          "priority": "optional_runtime_padding",
+          "note": "창의 불투명 실루엣은 잘리지 않음(상단 여백7px). 게임 표시/회전 시 여백 확보 검토; 원본 재편집 없이 렌더 패딩 우선."
         }
       ],
       "runtime_integrated": false,
@@ -6012,6 +6098,18 @@
           "sha256": "61732bac09f9517169a9e0336a11f70c557b25539d5ff38e1d031101dd96eef9"
         },
         "rear": {
+          "file": "u28/rear-v3.png",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            1393,
+            1129
+          ],
+          "sha256": "ad79795bbe547f3b842cc5c29aebd1e287adc72aa256446dffec3c93d10dcd79"
+        }
+      },
+      "superseded_views": [
+        {
           "file": "u28/turnaround-original.png",
           "source_rect_ltrb_exclusive": [
             884,
@@ -6019,9 +6117,19 @@
             1774,
             887
           ],
-          "sha256": "61732bac09f9517169a9e0336a11f70c557b25539d5ff38e1d031101dd96eef9"
+          "sha256": "61732bac09f9517169a9e0336a11f70c557b25539d5ff38e1d031101dd96eef9",
+          "reason": "후면 몸통·장비·가림 구조를 수정한 rear-v3로 대체. 원본 시트는 정면 보존 및 이력용."
         }
-      }
+      ],
+      "resolved_issues": [
+        {
+          "view": "rear",
+          "priority": "reconstruction_needed",
+          "note": "후면 몸통/앞치마 또는 갑옷의 앞뒤 구조 재검토 필요",
+          "resolved_by": "u28/rear-v3.png",
+          "review": "Root and independent structural review passed; not final user art approval."
+        }
+      ]
     },
     {
       "id": "u29",
@@ -6463,7 +6571,7 @@
     },
     {
       "id": "u31",
-      "layout": "two_view_sheet",
+      "layout": "replacement_two_view_sheet",
       "files": [
         {
           "sha256": "7ea14d1240907400b24957a6b5c297f6bf1f0faf5aa475106a8942ee7e7210be",
@@ -6558,7 +6666,9 @@
             "128": 0
           },
           "lower_alpha_fringe_touches_split": false,
-          "views": [
+          "views": [],
+          "file": "u31/turnaround-original.png",
+          "superseded_views": [
             {
               "view": "front_3quarter_left",
               "source_rect_ltrb_exclusive": [
@@ -6667,24 +6777,74 @@
               ],
               "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
             }
+          ]
+        },
+        {
+          "file": "u31/turnaround-v5-legs.png",
+          "sha256": "f4470f12aac2aa21021686d81d5e7f5a1370de7f821d8807c05486354c84e189",
+          "size": [
+            1774,
+            887
           ],
-          "file": "u31/turnaround-original.png"
+          "mode": "RGBA",
+          "chosen_gap_l_r_exclusive": [
+            840,
+            928
+          ],
+          "split_x": 884,
+          "views": [
+            {
+              "source_rect_ltrb_exclusive": [
+                0,
+                0,
+                884,
+                887
+              ],
+              "view": "front_3quarter_left"
+            },
+            {
+              "source_rect_ltrb_exclusive": [
+                884,
+                0,
+                1774,
+                887
+              ],
+              "view": "rear_3quarter_right"
+            }
+          ],
+          "review_status": "structure_and_depth_review_pass_archive_candidate_pending_user_final_approval"
         }
       ],
       "name": "듀라한",
       "grade": "에픽",
-      "review_status": "draft_not_final_user_approved",
-      "known_issues": [
-        {
-          "view": "rear",
-          "priority": "reconstruction_needed",
-          "note": "후면 몸통/앞치마 또는 갑옷의 앞뒤 구조 재검토 필요"
-        }
-      ],
+      "review_status": "corrected_design_draft_pending_final_user_approval",
+      "known_issues": [],
       "runtime_integrated": false,
       "source_archive": "04_에픽_원본PNG_01.zip",
       "active_views": {
         "front": {
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            884,
+            887
+          ],
+          "file": "u31/turnaround-v5-legs.png",
+          "sha256": "f4470f12aac2aa21021686d81d5e7f5a1370de7f821d8807c05486354c84e189"
+        },
+        "rear": {
+          "source_rect_ltrb_exclusive": [
+            884,
+            0,
+            1774,
+            887
+          ],
+          "file": "u31/turnaround-v5-legs.png",
+          "sha256": "f4470f12aac2aa21021686d81d5e7f5a1370de7f821d8807c05486354c84e189"
+        }
+      },
+      "superseded_views": [
+        {
           "file": "u31/turnaround-original.png",
           "source_rect_ltrb_exclusive": [
             0,
@@ -6692,9 +6852,11 @@
             920,
             887
           ],
-          "sha256": "7ea14d1240907400b24957a6b5c297f6bf1f0faf5aa475106a8942ee7e7210be"
+          "sha256": "7ea14d1240907400b24957a6b5c297f6bf1f0faf5aa475106a8942ee7e7210be",
+          "view": "front",
+          "reason": "사용자 요청으로 목 연기 및 손에 든 머리 디자인으로 정면과 후면 모두 교체"
         },
-        "rear": {
+        {
           "file": "u31/turnaround-original.png",
           "source_rect_ltrb_exclusive": [
             920,
@@ -6702,9 +6864,21 @@
             1774,
             887
           ],
-          "sha256": "7ea14d1240907400b24957a6b5c297f6bf1f0faf5aa475106a8942ee7e7210be"
+          "sha256": "7ea14d1240907400b24957a6b5c297f6bf1f0faf5aa475106a8942ee7e7210be",
+          "view": "rear",
+          "reason": "사용자 요청으로 목 연기 및 손에 든 머리 디자인으로 정면과 후면 모두 교체"
         }
-      }
+      ],
+      "resolved_issues": [
+        {
+          "view": "rear",
+          "priority": "reconstruction_needed",
+          "note": "후면 몸통/앞치마 또는 갑옷의 앞뒤 구조 재검토 필요",
+          "resolved_by": "u31/turnaround-v5-legs.png"
+        }
+      ],
+      "design_note": "목에는 연기만, 해부학적 왼손에 분리된 머리, 오른손에 검. 사용자 요청으로 정면도 변경.",
+      "front_leg_review": "v5: pelvis-leg-ankle-foot connections and support reviewed; passed archive candidate, pending final user approval."
     },
     {
       "id": "u32",
@@ -13152,5 +13326,8 @@
         }
       }
     }
-  ]
+  ],
+  "updated_date": "2026-10-24",
+  "name_change_note": "u01 표시 이름: 기본 → 갈매미맨. ID와 다른 개체 이름은 유지. 원본 파일의 과거 이름은 출처 기록으로만 보존.",
+  "design_revision_note": "u09/u28 후면 수정, u31은 사용자 요청에 따라 머리를 손에 든 정면·후면 새 디자인 선택. 나머지59개 정면 매핑은 유지."
 }

@@ -1,5 +1,5 @@
 ﻿ID,이름,등급,정면 파일,정면 영역LTRB,후면 파일,후면 영역LTRB,검토 메모
-u01,기본,커먼,u01/front.png,"[0, 0, 1254, 1254]",u01/rear.png,"[0, 0, 1254, 1254]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u01,갈매미맨,커먼,u01/front.png,"[0, 0, 1254, 1254]",u01/rear.png,"[0, 0, 1254, 1254]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
 u02,미니,커먼,u02/front.png,"[0, 0, 1254, 1254]",u02/rear.png,"[0, 0, 1254, 1254]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
 u03,자이언트,커먼,u03/front.png,"[0, 0, 1254, 1254]",u03/rear.png,"[0, 0, 1254, 1254]",겹침/장착 구조가 모호해 추가 구조 확인 필요
 u04,꽃,커먼,u04/front.png,"[0, 0, 1254, 1254]",u04/rear.png,"[0, 0, 1254, 1254]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
@@ -7,7 +7,7 @@ u05,황금,커먼,u05/front.png,"[0, 0, 1254, 1254]",u05/rear.png,"[0, 0, 1254, 
 u06,물방울,커먼,u06/front.png,"[0, 0, 1254, 1254]",u06/rear.png,"[0, 0, 1254, 1254]",겹침/장착 구조가 모호해 추가 구조 확인 필요
 u07,불씨,커먼,u07/front.png,"[0, 0, 1254, 1254]",u07/rear.png,"[0, 0, 1254, 1254]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
 u08,그림자,커먼,u08/front.png,"[0, 0, 1254, 1254]",u08/rear.png,"[0, 0, 1254, 1254]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
-u09,노움,언커먼,u09/turnaround-original.png,"[0, 0, 924, 887]",u09/turnaround-original.png,"[924, 0, 1774, 887]",후면 몸통/앞치마 또는 갑옷의 앞뒤 구조 재검토 필요
+u09,노움,언커먼,u09/turnaround-original.png,"[0, 0, 924, 887]",u09/rear-v3.png,"[0, 0, 1312, 1199]",수정 검토본; 최종 승인 및 실기기 검증 전
 u10,정령,언커먼,u10/turnaround-original.png,"[0, 0, 918, 887]",u10/turnaround-original.png,"[918, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
 u11,고블린,언커먼,u11/turnaround-original.png,"[0, 0, 909, 887]",u11/turnaround-original.png,"[909, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
 u12,어인,언커먼,u12/turnaround-original.png,"[0, 0, 898, 887]",u12/turnaround-original.png,"[898, 0, 1774, 887]",겹침/장착 구조가 모호해 추가 구조 확인 필요
@@ -26,10 +26,10 @@ u24,불도마뱀,레어,u24/turnaround-original.png,"[0, 0, 901, 887]",u24/turna
 u25,룬장인,에픽,u25/turnaround-original.png,"[0, 0, 893, 887]",u25/turnaround-original.png,"[893, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
 u26,드라이어드,에픽,u26/turnaround-original.png,"[0, 0, 926, 887]",u26/turnaround-original.png,"[926, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
 u27,미노타우로스,에픽,u27/turnaround-original.png,"[0, 0, 887, 887]",u27/turnaround-original.png,"[887, 0, 1774, 887]",후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요
-u28,인어기사,에픽,u28/turnaround-original.png,"[0, 0, 884, 887]",u28/turnaround-original.png,"[884, 0, 1774, 887]",후면 몸통/앞치마 또는 갑옷의 앞뒤 구조 재검토 필요
+u28,인어기사,에픽,u28/turnaround-original.png,"[0, 0, 884, 887]",u28/rear-v3.png,"[0, 0, 1393, 1129]",창의 불투명 실루엣은 잘리지 않음(상단 여백7px). 게임 표시/회전 시 여백 확보 검토; 원본 재편집 없이 렌더 패딩 우선.
 u29,서리마녀,에픽,u29/turnaround-original.png,"[0, 0, 884, 887]",u29/turnaround-original.png,"[884, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
 u30,그리핀,에픽,u30/turnaround-original.png,"[0, 0, 926, 887]",u30/turnaround-original.png,"[926, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
-u31,듀라한,에픽,u31/turnaround-original.png,"[0, 0, 920, 887]",u31/turnaround-original.png,"[920, 0, 1774, 887]",후면 몸통/앞치마 또는 갑옷의 앞뒤 구조 재검토 필요
+u31,듀라한,에픽,u31/turnaround-v5-legs.png,"[0, 0, 884, 887]",u31/turnaround-v5-legs.png,"[884, 0, 1774, 887]",머리를 손에 든 정면·후면 새 디자인; 최종 승인 및 실기기 검증 전
 u32,화룡,에픽,u32/turnaround-original.png,"[0, 0, 946, 887]",u32/turnaround-original.png,"[946, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
 u33,거장,전설,u33/turnaround-original.png,"[0, 0, 910, 887]",u33/turnaround-original.png,"[910, 0, 1774, 887]",후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요
 u34,가시여왕,전설,u34/turnaround-original.png,"[0, 0, 947, 887]",u34/turnaround-original.png,"[947, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전

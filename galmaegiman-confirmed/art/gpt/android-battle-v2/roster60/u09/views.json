@@ -1,6 +1,6 @@
 {
   "id": "u09",
-  "layout": "two_view_sheet",
+  "layout": "original_sheet_front_plus_rear_override",
   "files": [
     {
       "sha256": "376404486a2fa7a6bfb83e408442b06a35ae8928557a30fc7c9c1c74288dc7bc",
@@ -121,7 +121,10 @@
             861
           ],
           "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
-        },
+        }
+      ],
+      "file": "u09/turnaround-original.png",
+      "superseded_views": [
         {
           "view": "rear_3quarter_right",
           "source_rect_ltrb_exclusive": [
@@ -176,20 +179,46 @@
           ],
           "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
         }
+      ]
+    },
+    {
+      "file": "u09/rear-v3.png",
+      "sha256": "cc64dbfa499cdf376537ea6299eb94835e51fb54c86a3a6b1a352276502cc85f",
+      "size": [
+        1312,
+        1199
       ],
-      "file": "u09/turnaround-original.png"
+      "mode": "RGBA",
+      "views": [
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            1312,
+            1199
+          ],
+          "visible_bbox_source_alpha_gt8": [
+            119,
+            19,
+            1293,
+            1155
+          ],
+          "visible_bbox_source_alpha_gt128": [
+            120,
+            20,
+            1292,
+            1154
+          ]
+        }
+      ],
+      "review_status": "structural_and_occlusion_review_pass_archive_candidate_pending_user_final_approval"
     }
   ],
   "name": "노움",
   "grade": "언커먼",
-  "review_status": "draft_not_final_user_approved",
-  "known_issues": [
-    {
-      "view": "rear",
-      "priority": "reconstruction_needed",
-      "note": "후면 몸통/앞치마 또는 갑옷의 앞뒤 구조 재검토 필요"
-    }
-  ],
+  "review_status": "corrected_draft_pending_final_user_approval",
+  "known_issues": [],
   "runtime_integrated": false,
   "source_archive": "02_언커먼_원본PNG_01.zip",
   "active_views": {
@@ -204,6 +233,18 @@
       "sha256": "376404486a2fa7a6bfb83e408442b06a35ae8928557a30fc7c9c1c74288dc7bc"
     },
     "rear": {
+      "file": "u09/rear-v3.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        1312,
+        1199
+      ],
+      "sha256": "cc64dbfa499cdf376537ea6299eb94835e51fb54c86a3a6b1a352276502cc85f"
+    }
+  },
+  "superseded_views": [
+    {
       "file": "u09/turnaround-original.png",
       "source_rect_ltrb_exclusive": [
         924,
@@ -211,7 +252,17 @@
         1774,
         887
       ],
-      "sha256": "376404486a2fa7a6bfb83e408442b06a35ae8928557a30fc7c9c1c74288dc7bc"
+      "sha256": "376404486a2fa7a6bfb83e408442b06a35ae8928557a30fc7c9c1c74288dc7bc",
+      "reason": "후면 몸통·장비·가림 구조를 수정한 rear-v3로 대체. 원본 시트는 정면 보존 및 이력용."
     }
-  }
+  ],
+  "resolved_issues": [
+    {
+      "view": "rear",
+      "priority": "reconstruction_needed",
+      "note": "후면 몸통/앞치마 또는 갑옷의 앞뒤 구조 재검토 필요",
+      "resolved_by": "u09/rear-v3.png",
+      "review": "Root and independent structural review passed; not final user art approval."
+    }
+  ]
 }

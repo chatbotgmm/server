@@ -2,7 +2,7 @@
   "status": "archive_integrity_pass_not_art_approval",
   "characters": 60,
   "active_views": 120,
-  "png_files": 69,
+  "png_files": 72,
   "original_png_hashes_preserved": 68,
   "original_pixel_files_unchanged": true,
   "runtime_tested": false,
@@ -131,7 +131,7 @@
     {
       "id": "u09",
       "view": "rear",
-      "file": "u09/turnaround-original.png",
+      "file": "u09/rear-v3.png",
       "hash_match": true,
       "rect_in_bounds": true
     },
@@ -397,7 +397,7 @@
     {
       "id": "u28",
       "view": "rear",
-      "file": "u28/turnaround-original.png",
+      "file": "u28/rear-v3.png",
       "hash_match": true,
       "rect_in_bounds": true
     },
@@ -432,14 +432,14 @@
     {
       "id": "u31",
       "view": "front",
-      "file": "u31/turnaround-original.png",
+      "file": "u31/turnaround-v5-legs.png",
       "hash_match": true,
       "rect_in_bounds": true
     },
     {
       "id": "u31",
       "view": "rear",
-      "file": "u31/turnaround-original.png",
+      "file": "u31/turnaround-v5-legs.png",
       "hash_match": true,
       "rect_in_bounds": true
     },
@@ -849,5 +849,19 @@
       "hash_match": true,
       "rect_in_bounds": true
     }
-  ]
+  ],
+  "updated_date": "2026-10-24",
+  "front_mappings_preserved": 59,
+  "replacement_rears": [
+    "u09/rear-v3.png",
+    "u28/rear-v3.png"
+  ],
+  "original_source_files_reuploaded_or_modified": false,
+  "front_mapping_replaced_by_user_request": [
+    "u31"
+  ],
+  "replacement_front_rear_sheets": [
+    "u31/turnaround-v5-legs.png"
+  ],
+  "u31_split_boundary_alpha_le8": true
 }
