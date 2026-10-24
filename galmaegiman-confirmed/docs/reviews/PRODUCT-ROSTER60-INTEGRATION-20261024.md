@@ -1,3 +1,15 @@
+## First reincarnation six-stat bonus and real preview tab
+
+Confirmed: ordinary same-species level-one base HP, MP, patk, matk, pdef and mdef each receive +10% once. firstReincarnationStats computes absolute after-values from immutable baseline (integer round-half-up via BigInt), never increments an already bonused value. previewFirstReincarnation rejects reincarnation !=0, preserves suitability/defense by copy, and resets current-cycle totalXp to 0 / level1 / cap99. All six fields are mandatory; no attack/defense values are invented. The old battle/core growth contract already separates physical/magic attack/defense, but the workbook lacks those base values.
+
+Actual native progression reincarnation tab for roster60 accounts now reads authenticated GET /my/api/native/roster60/reincarnation/preview. It displays same-species normal-level-one versus reborn-level-one six stats and Lv1/99, XP0. No old sprite/character substitution. The existing viewport/pagination remains. An approved catalog must provide explicit levelOneStats; Lv20 worksheet stats are not relabeled Lv1. Missing catalog/baseline data shows preparation state.
+
+Execution is deliberately NOT enabled: POST reincarnation/confirm validates signed owner and strict request, then returns REINCARNATION_ELIGIBILITY_COST_POLICY_REQUIRED with no writes. Repeated calls cannot compound the bonus. Old progression reincarnate is blocked for enrolled new-flow accounts, so it cannot silently consume a legacy top-tier and return a random common. The existing old policy allows only top-tier, no level requirement, consumes source and randomly creates a common, adds 5% per cycle capped25%, with no extra currency charge. These restrictions/conversions conflict with same-species new roster and cannot be carried over as approval.
+
+Validation for this step: server build passed; disposable full suite 558/558; final focused integration 18/18; growth rules 7/7; Android new-flow 5/5 and product debug build passed. No real device test. Preview compares ordinary level-one base versus reborn level-one base; current-level HP/MP/stat growth curves remain unapproved, so no fabricated current-level comparison is shown.
+
+Minimum decisions before transactional execution: (1) eligible species/grades and required level, (2) any currency/material charge or explicitly free. Repeat rebirth remains blocked; craft inheritance and excess XP remain pending independently. After those decisions, implement owner/CAS reset + durable request receipt in one transaction, lock/battle checks and persisted preview fingerprint, then enable Android confirmation. Do not claim the current read-only preview is an executed reset.
+
 ## Reincarnation caps and cycle reset (2026-10-24)
 
 Confirmed: ordinary owned instances cap at 60; server-owned reincarnation >0 unlocks 99. New roster schema adds reincarnation=0, additive manual SQL only. No client request accepts reincarnation or maxLevel. rosterMaxLevel is the common server source; growthAt/startMp and crafting options/result DTO use it; Android renders server maxLevel instead of guessing from grade. Existing legacy OwnedCharacter.reincarnation and progression.ts consume/create/reset behavior were inspected but not imported into the new model. Legacy runtime is still separate and not claimed upgraded.
@@ -6,13 +18,13 @@ New reset preview contract in battle/roster60-reincarnation.ts separates baselin
 
 Current-cycle cumulative XP is the crafting input; historical/lifetime XP is not. Reborn ingredients are rejected with CRAFT_REINCARNATION_POLICY_REQUIRED until eligibility inheritance is decided. XP above the exact configured cap threshold is rejected with CAP_XP_POLICY_REQUIRED, not banked, dropped, awarded or migrated. Short synthetic curves remain test inputs, not complete production growth tables.
 
-Parent clarified the delayed hold was not a user cancellation: 70% is confirmed. confirmedReincarnationXpPolicy is now the product default: each next-level requirement for current levels 1..59 is 70%, ceil rounding; current levels 60..98 use the normal requirement. Normal instances use the unchanged base curve and cap at 60. No earned XP multiplier is applied. Normal crafting results use their own normal curve. An explicit policy parameter remains available for isolated test cases, without setting other balance defaults. Ability bonuses, repeat policy and base XP/MP curves remain unapproved.
+Parent clarified the delayed hold was not a user cancellation: 70% is confirmed. confirmedReincarnationXpPolicy is now the product default: each next-level requirement for current levels 1..59 is 70%, ceil rounding; current levels 60..98 use the normal requirement. Normal instances use the unchanged base curve and cap at 60. No earned XP multiplier is applied. Normal crafting results use their own normal curve. An explicit policy parameter remains available for isolated test cases, without setting other balance defaults. Six-stat first bonus is now approved as described above; repeat policy and base XP/MP curves remain unapproved.
 
 Confirmed-70% follow-up: server build and 7 rule cases plus 15 crafting/onboarding/reset integration cases passed. Android source did not change in this follow-up; no new APK was built.
 
 Validation: server build passed; full disposable-DB suite 555/555 (46 files), focused craft/reset 10/10, Node rule tests 7/7, Android crafting/onboarding 4/4 and product debug build passed. The 60/99 UI test consumes server DTO values. Device execution and new reset screen are unverified/unconnected.
 
-Pending minimum decisions: bonus stat values and repeat policy; crafting inheritance of reincarnation; cap overflow XP disposition. Schema/data deployment and actual reset execution remain unperformed.
+Pending minimum decisions: base stat inputs and repeat policy; crafting inheritance of reincarnation; cap overflow XP disposition. Schema/data deployment and actual reset execution remain unperformed.
 
 ## Product crafting UI connection (2026-10-24, local only)
 

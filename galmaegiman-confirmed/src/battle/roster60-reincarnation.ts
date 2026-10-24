@@ -22,3 +22,24 @@ export function previewReincarnation(input:{totalXp:number;reincarnation:number;
   baselineLevelOneStats:{...base},afterLevelOneStats:after,
   next:{level:1,maxLevel:rosterMaxLevel(cycle),totalXp:0,reincarnation:cycle,permanentBonusStats:{...bonus}}};
 }
+
+export const reincarnationStatKeys=['hp','mp','patk','matk','pdef','mdef'] as const;
+export type BaseSixStats=Record<typeof reincarnationStatKeys[number],number>;
+// Compute from ordinary species level-one base ONLY. Nearest integer, halves up.
+// Returning a projection rather than incrementing stored stats prevents compounding.
+export function firstReincarnationStats(base:BaseSixStats){
+ if(Object.keys(base).sort().join()!==[...reincarnationStatKeys].sort().join())throw Error('SIX_BASE_STATS_REQUIRED');
+ const after={} as BaseSixStats;
+ for(const k of reincarnationStatKeys){
+  if(!Number.isSafeInteger(base[k])||base[k]<0)throw Error('INVALID_BASE_STAT');
+  const n=(BigInt(base[k])*110n+50n)/100n;
+  if(n>BigInt(Number.MAX_SAFE_INTEGER))throw Error('INVALID_BASE_STAT');after[k]=Number(n);
+ }
+ return after;
+}
+export function previewFirstReincarnation(input:{totalXp:number;reincarnation:number;baseLevelOneStats:BaseSixStats;curve:GrowthPoint[];suitability:unknown;defense:unknown}){
+ if(input.reincarnation!==0)throw Error('REPEAT_REINCARNATION_POLICY_REQUIRED');
+ const after=firstReincarnationStats(input.baseLevelOneStats);
+ const plan=previewReincarnation(input,{approved:true,version:'first-six-stats-10pct-v1',bonusFor:()=>Object.fromEntries(reincarnationStatKeys.map(k=>[k,after[k]-input.baseLevelOneStats[k]]))});
+ return {...plan,suitability:structuredClone(input.suitability),defense:structuredClone(input.defense)};
+}

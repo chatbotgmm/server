@@ -1,6 +1,7 @@
 import {beforeAll,afterAll,describe,it,expect} from 'vitest';
 import {PrismaClient} from '@prisma/client';
 import {randomUUID} from 'node:crypto';
+import {RosterReincarnation} from '../src/roster60-reincarnation.js';
 import {RosterCraft} from '../src/roster60-craft.js';
 import type {RosterCatalog} from '../src/roster60-onboarding.js';
 import {skillElements} from '../src/battle/roster60-rules.js';
@@ -39,6 +40,20 @@ suite('roster60 transactional combination',()=>{
  expect((await service.options(owner)).units.find(u=>u.ownedId===a.id)?.maxLevel).toBe(99);
  await expect(service.preview(owner,selection([a.id,b.id]))).rejects.toThrow('CRAFT_REINCARNATION_POLICY_REQUIRED');
  expect(await db.roster60Owned.count({where:{id:{in:[a.id,b.id]},status:'AVAILABLE'}})).toBe(2);
+ });
+ it('first reincarnation execution stays closed without eligibility/cost and cannot stack on retry',async()=>{
+ const a=await material(11),service=new RosterReincarnation(db,()=>catalog);
+ for(let i=0;i<2;i++)await expect(service.confirm(owner,a.id)).rejects.toThrow('REINCARNATION_ELIGIBILITY_COST_POLICY_REQUIRED');
+ await expect(service.confirm(other,a.id)).rejects.toThrow('UNIT_NOT_FOUND');
+ const after=await db.roster60Owned.findUniqueOrThrow({where:{id:a.id}});expect(after.totalXp).toBe(11n);expect(after.reincarnation).toBe(0);
+ });
+ it('real preview service provides all six baseline fields and preserves profiles',async()=>{
+ const a=await material(11),d=catalog.characters.find(u=>u.id==='u02')!;
+ (d as any).levelOneStats={hp:100,mp:7,patk:20,matk:30,pdef:40,mdef:50};
+ try{const response=await new RosterReincarnation(db,()=>catalog).preview(owner);
+ const c=response.candidates.find(x=>x.ownedId===a.id)!;expect(c.eligible).toBe(false);
+ expect(c.preview).toMatchObject({next:{level:1,totalXp:0,maxLevel:99},afterLevelOneStats:{hp:110,mp:8,patk:22,matk:33,pdef:44,mdef:55},suitability:d.suitability,defense:d.defense});
+ }finally{delete (d as any).levelOneStats;}
  });
  it('preview floors average cumulative XP then calculates result level, never consumes',async()=>{
    const a=await material(11),b=await material(16);

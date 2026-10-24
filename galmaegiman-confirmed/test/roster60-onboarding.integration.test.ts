@@ -30,6 +30,8 @@ suite('roster60 real authenticated routes and atomic rewards',()=>{
   it('real auth and strict body; repeated start grants one permanent u01',async()=>{
     expect((await app.inject({method:'POST',url:'/my/api/native/roster60/start',headers:{'x-gmm':'1'},payload:{}})).statusCode).toBe(401);
     expect((await post('start',{playerId:other})).statusCode).toBe(400);
+    expect((await app.inject({url:'/my/api/native/roster60/reincarnation/preview',headers})).statusCode).toBe(503);
+    expect((await post('reincarnation/confirm',{ownedId:'unknown',requestId:'test',catalogVersion:'test',reincarnation:1})).statusCode).toBe(400);
     expect((await app.inject({url:'/my/api/native/roster60/craft/options',headers})).statusCode).toBe(503);
     expect((await post('craft/receipt',{requestId:'not-present'})).json()).toEqual({status:'unknown'});
     expect((await post('craft/receipt',{requestId:'a',playerId:'forged'})).statusCode).toBe(400);

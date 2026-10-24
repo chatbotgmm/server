@@ -4,6 +4,7 @@ import {resolve} from 'node:path';
 import {z} from 'zod';
 import {RosterOnboarding,RosterError,type RosterCatalog} from './roster60-onboarding.js';
 import type {PrismaClient} from '@prisma/client';
+import {RosterReincarnation} from './roster60-reincarnation.js';
 import {RosterCraft} from './roster60-craft.js';
 export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string,auth:(r:FastifyRequest)=>string|null,guard:(r:FastifyRequest,p:FastifyReply)=>boolean){
   const file=resolve(root,'data/roster60-approved.json');
@@ -11,6 +12,7 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   const catalog=()=>{if(!existsSync(file))return null;try{return JSON.parse(readFileSync(file,'utf8')) as RosterCatalog;}catch{throw new RosterError(503,'ROSTER_CATALOG_INVALID');}};
   const service=new RosterOnboarding(db,catalog);
   const craft=new RosterCraft(db,catalog);
+  const reincarnation=new RosterReincarnation(db,catalog);
   const empty=z.object({}).strict();
   const route=(method:'GET'|'POST',path:string,run:(id:string,r:FastifyRequest)=>Promise<unknown>)=>app.route({method,url:'/my/api/native/roster60/'+path,bodyLimit:2048,config:{rateLimit:{max:60,timeWindow:'1 minute'}},handler:async(req,reply)=>{
     reply.header('Cache-Control','no-store');if(!guard(req,reply))return;
@@ -21,6 +23,8 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
       throw e;
     }
   }});
+  route('GET','reincarnation/preview',id=>reincarnation.preview(id));
+  route('POST','reincarnation/confirm',(id,r)=>{const b=z.object({ownedId:z.string().min(1).max(100),requestId:z.string().min(1).max(100),catalogVersion:z.string().min(1).max(100)}).strict().parse(r.body);return reincarnation.confirm(id,b.ownedId);});
   route('GET','state',id=>service.state(id));
   route('POST','start',(id,r)=>{empty.parse(r.body);return service.start(id);});
   route('POST','complete',(id,r)=>{empty.parse(r.body);return service.complete(id);});

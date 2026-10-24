@@ -1522,6 +1522,7 @@ export class GameService {
     return this.webRun(playerId,(tx,p,now)=>progressionReceipt(tx,p,requestId,action,{value:value??null},async()=>{
       if(action==='pass')return claimMilestone(tx,p,value!);
       if(action==='reroll')return claimReroll(tx,p,now);
+      if(action==='reincarnate'&&await tx.roster60State.findUnique({where:{playerId:p.id}}))throw new GameError('새 환생 화면에서 정책 준비 상태를 확인해 주세요.');
       before?.();return transformOwned(tx,p,this.content,value!,action,now);
     }));
   }

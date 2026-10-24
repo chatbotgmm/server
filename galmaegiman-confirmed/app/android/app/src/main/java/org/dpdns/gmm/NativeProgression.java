@@ -59,7 +59,7 @@ final class NativeProgression {
     String[][] options = {{"pass", "플레이 패스"}, {"reroll", "다시뽑기"},
         {"reincarnation", "환생"}, {"reassessment", "재심사"}};
     for (String[] option : options) {
-      Button b = k.action(null, option[1], () -> { tab = option[0]; selectedKey = ""; receipt = null; notice = ""; render(); });
+      Button b = k.action(null, option[1], () -> { tab = option[0]; selectedKey = ""; receipt = null; notice = ""; if(roster60()){loading=false;refresh();}else render(); });
       fixedButton(b);
       b.setTag("progression-tab-" + option[0]);
       tabs.addView(b, new LinearLayout.LayoutParams(0, h.dp(48), 1));
@@ -116,14 +116,18 @@ final class NativeProgression {
         && !h.isFinishing() && !h.isDestroyed();
   }
 
+  boolean roster60(){JSONObject t=h.state.optJSONObject("tutorial");return t!=null&&"roster60-v1".equals(t.optString("flow"));}
+  boolean newReincarnation(){return roster60()&&tab.equals("reincarnation");}
+
   void refresh() {
     if (!current() || loading) return;
     loading = true; snapshot = null; int ticket = clock.begin(); render();
-    h.api.call("native/progression", null, (data, error) -> {
+    final boolean newFlow=newReincarnation();
+    h.api.call(newFlow?"native/roster60/reincarnation/preview":"native/progression", null, (data, error) -> {
       if (epoch == h.epoch && h.api.token().isEmpty()) { h.login(); return; }
       if (!current() || !clock.current(ticket)) return;
       loading = false;
-      if (error != null || !validSnapshot(data) || !clock.accept(ticket, data.optLong("serverNow"), SystemClock.elapsedRealtime())) {
+      if (error != null || (newFlow?(data==null||!"roster60-v1".equals(data.optString("flow"))):!validSnapshot(data)) || !clock.accept(ticket, data.optLong("serverNow"), SystemClock.elapsedRealtime())) {
         notice = "서버에서 이 기능의 진행 정보를 확인하지 못했어요. 아직 지원하지 않는 서버이거나 연결 문제일 수 있어요.\n"
             + (error == null ? "지급이나 변환은 실행하지 않았어요. 다시 조회해 주세요." : error);
         render(); return;
@@ -143,6 +147,7 @@ final class NativeProgression {
     if (!current() || contents == null) return;
     contents.removeAllViews();
     if (refreshButton != null) refreshButton.setEnabled(!loading);
+    if(newReincarnation()){renderNewReincarnation();return;}
     JSONObject intent = pending();
     if (intent.has("requestId")) {
       summary(notice.isEmpty() ? "처리 결과 확인 중 · 다른 지급/변환은 확인 뒤 이용해요." : notice, 3);
@@ -170,6 +175,24 @@ final class NativeProgression {
     if (tab.equals("pass")) pass();
     else if (tab.equals("reroll")) reroll();
     else candidates(tab);
+  }
+
+  void renderNewReincarnation(){
+    if(loading){summary("환생 정보 확인 중…",2);return;}
+    if(snapshot==null){summary("새 환생 데이터 준비 중 · 아직 실행하지 않습니다.\n"+notice,4);return;}
+    JSONArray list=snapshot.optJSONArray("candidates");
+    if(list==null||list.length()==0){summary("환생 미리보기 대상이 없습니다.",2);return;}
+    JSONObject unit=list.optJSONObject(page(list.length())),p=unit.optJSONObject("preview");
+    if(p==null)summary(unit.optString("name")+" · 기본 능력치 또는 환생 정책 준비 중",3);
+    else {
+      JSONObject before=p.optJSONObject("baselineLevelOneStats"),after=p.optJSONObject("afterLevelOneStats");
+      StringBuilder line=new StringBuilder(unit.optString("name")+" · Lv.1 / 99 · XP 0\n일반 1레벨 → 환생 1레벨\n");
+      String[] keys={"hp","mp","patk","matk","pdef","mdef"},labels={"HP","MP","공격","마법공격","방어","마법방어"};
+      for(int i=0;i<keys.length;i++)line.append(labels[i]).append(" ").append(before.optString(keys[i])).append(" → ").append(after.optString(keys[i])).append(i%2==1?"\n":" · ");
+      summary(line.toString(),6);
+    }
+    action("roster60-reincarnation-confirm","대상·필요 레벨·비용 정책 준비 중",false,()->{});
+    pagination(list.length());
   }
 
   void summary(String text, int lines) {
