@@ -22,7 +22,7 @@ policy['proposed']['v02Changes']={'casterHpPercent':120,'tierPowers':[35,60,85,1
 write('complete60-unit-data.draft.json',u2);write('skills32.draft.json',s2);write('policies.draft.json',policy)
 for filename,rows in [('complete60-unit-data.draft.csv',u2['units']),('skills32.draft.csv',s2['skills'])]:
  with (OUT/filename).open('w') as f:
-  w=csv.DictWriter(f,fieldnames=list(rows[0])+['approved']);w.writeheader()
+  w=csv.DictWriter(f,fieldnames=list(rows[0])+['approved'],lineterminator='\n');w.writeheader()
   for row in rows:w.writerow({**{k:json.dumps(v,ensure_ascii=False) if isinstance(v,(dict,list)) else v for k,v in row.items()},'approved':False})
 BASIC=policy['proposed']['basicAttack']
 def stat(u,l):return {k:b+half((u['referenceStats'][k]-b)*(l-1),19) for k,b in u['levelOneStats'].items()}
