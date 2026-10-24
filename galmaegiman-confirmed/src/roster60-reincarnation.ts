@@ -1,31 +1,54 @@
-import type {PrismaClient} from '@prisma/client';
+import type {PrismaClient,Prisma} from '@prisma/client';
+import {createHash} from 'node:crypto';
 import {RosterError,type RosterCatalog} from './roster60-onboarding.js';
-import {previewFirstReincarnation,type BaseSixStats} from './battle/roster60-reincarnation.js';
+import {previewReincarnationCycle,type BaseSixStats} from './battle/roster60-reincarnation.js';
 import {growthAt,validateRosterDefinition} from './battle/roster60-rules.js';
-// No writes: eligibility/required level/cost still require product decisions.
+export type RebirthEligibility={version:string;grades:string[];firstMinLevel:number;repeatMinLevel:number};
+export type RebirthRequest={ownedId:string;requestId:string;catalogVersion:string;previewFingerprint:string};
+const hash=(v:unknown)=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
+const fail=(code:string,status=409):never=>{throw new RosterError(status,code);};
+export function rebirthCost(){const n=Number(process.env.ROSTER60_REBIRTH_PEANUT_COST??1);if(!Number.isSafeInteger(n)||n<0)throw Error('INVALID_REBIRTH_COST');return n;}
 export class RosterReincarnation {
- constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null){}
- async preview(playerId:string){
-  const c=this.catalog();if(!c?.approved)throw new RosterError(503,'ROSTER_CATALOG_PENDING');
-  const units=await this.db.roster60Owned.findMany({where:{playerId,status:'AVAILABLE'},take:1000,orderBy:{id:'asc'}});
-  return {serverNow:Date.now(),flow:'roster60-v1',catalogVersion:c.version,candidates:units.map(u=>{
-   const d=c.characters.find(x=>x.id===u.speciesId);let plan:unknown=null,reason='REINCARNATION_ELIGIBILITY_COST_POLICY_REQUIRED';
-   try{
-    if(!d)throw Error('ROSTER_CATALOG_INVALID');validateRosterDefinition(d);
-    const base=(d as typeof d&{levelOneStats?:BaseSixStats}).levelOneStats;
-    if(!base)throw Error('LEVEL_ONE_BASE_STATS_REQUIRED');
-    if(base.mp!==d.growth[0].maxMp)throw Error('BASE_MP_MISMATCH');
-    if(u.totalXp>BigInt(Number.MAX_SAFE_INTEGER))throw Error('INVALID_XP');
-    const before=growthAt(Number(u.totalXp),d.growth,u.reincarnation,d.reincarnationXpPolicy);
-    plan={beforeLevel:before.level,...previewFirstReincarnation({totalXp:Number(u.totalXp),reincarnation:u.reincarnation,baseLevelOneStats:base,curve:d.growth,suitability:d.suitability,defense:d.defense})};
-   }catch(e){reason=(e as Error).message;}
-   return {ownedId:u.id,speciesId:u.speciesId,name:d?.name??u.speciesId,eligible:false,reason,preview:plan};
-  })};
+ constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private eligibility:()=>RebirthEligibility|null=()=>null){}
+ private async plan(tx:Prisma.TransactionClient,playerId:string,ownedId:string){
+  const c=this.catalog();if(!c?.approved)return fail('ROSTER_CATALOG_PENDING',503);
+  const u=await tx.roster60Owned.findFirst({where:{id:ownedId,playerId}});if(!u)return fail('UNIT_NOT_FOUND',404);
+  if(u.reincarnation>=5)return fail('REINCARNATION_LIMIT');
+  if(u.status!=='AVAILABLE'||u.locked)return fail('UNIT_UNAVAILABLE');
+  const d=c.characters.find(x=>x.id===u.speciesId);if(!d)return fail('ROSTER_CATALOG_INVALID',503);validateRosterDefinition(d);
+  const base=(d as typeof d&{levelOneStats?:BaseSixStats}).levelOneStats;if(!base)return fail('LEVEL_ONE_BASE_STATS_REQUIRED',503);
+  if(base.mp!==d.growth[0].maxMp)return fail('BASE_MP_MISMATCH',503);
+  if(u.totalXp<0n||u.totalXp>BigInt(Number.MAX_SAFE_INTEGER))return fail('INVALID_XP');
+  const before=growthAt(Number(u.totalXp),d.growth,u.reincarnation,d.reincarnationXpPolicy);
+  const preview={beforeLevel:before.level,...previewReincarnationCycle({totalXp:Number(u.totalXp),reincarnation:u.reincarnation,baseLevelOneStats:base,curve:d.growth,suitability:d.suitability,defense:d.defense})};
+  const account=await tx.roster60RebirthAccount.findUnique({where:{playerId}}),successes=account?.successes??0,cost=successes===0?0:rebirthCost();
+  const policy=this.eligibility();let reason='';
+  if(!policy)reason='REINCARNATION_ELIGIBILITY_POLICY_REQUIRED';
+  else if(!policy.version||!policy.grades.length||![policy.firstMinLevel,policy.repeatMinLevel].every(n=>Number.isInteger(n)&&n>=1&&n<=99))reason='INVALID_REINCARNATION_POLICY';
+  else if(!policy.grades.includes(d.rarity)||before.level<(u.reincarnation===0?policy.firstMinLevel:policy.repeatMinLevel))reason='REINCARNATION_REQUIREMENTS_NOT_MET';
+  const fingerprint=hash([c.version,u.id,u.speciesId,u.totalXp.toString(),u.reincarnation,successes,cost,policy,preview]);
+  return {ownedId:u.id,speciesId:u.speciesId,name:d.name,catalogVersion:c.version,eligible:!reason,reason,preview,costPeanut:cost,accountFreeAvailable:successes===0,successes,previewFingerprint:fingerprint};
  }
- async confirm(playerId:string,ownedId:string){
-  const unit=await this.db.roster60Owned.findFirst({where:{id:ownedId,playerId}});
-  if(!unit)throw new RosterError(404,'UNIT_NOT_FOUND');
-  if(unit.reincarnation!==0)throw new RosterError(409,'REPEAT_REINCARNATION_POLICY_REQUIRED');
-  throw new RosterError(503,'REINCARNATION_ELIGIBILITY_COST_POLICY_REQUIRED');
+ async preview(playerId:string){
+  const c=this.catalog();if(!c?.approved)return fail('ROSTER_CATALOG_PENDING',503);
+  const units=await this.db.roster60Owned.findMany({where:{playerId,status:'AVAILABLE'},take:1000,orderBy:{id:'asc'}});
+  const candidates=[];for(const u of units){try{candidates.push(await this.plan(this.db,playerId,u.id));}catch(e){candidates.push({ownedId:u.id,name:c.characters.find(d=>d.id===u.speciesId)?.name??u.speciesId,eligible:false,reason:e instanceof RosterError?e.code:(e as Error).message,preview:null});}}
+  return {serverNow:Date.now(),flow:'roster60-v1',catalogVersion:c.version,candidates};
+ }
+ async confirm(playerId:string,input:RebirthRequest){
+  const fingerprint=hash(input),run=()=>this.db.$transaction(async tx=>{
+   const prior=await tx.roster60RebirthReceipt.findUnique({where:{playerId_requestId:{playerId,requestId:input.requestId}}});
+   if(prior){if(prior.fingerprint!==fingerprint)return fail('REQUEST_ID_REUSED');return JSON.parse(prior.result);}
+   const p=await this.plan(tx,playerId,input.ownedId);if(!p.eligible)return fail(p.reason,503);
+   if(input.catalogVersion!==p.catalogVersion||input.previewFingerprint!==p.previewFingerprint)return fail('PREVIEW_CHANGED');
+   if(await tx.realtimeActivity.findFirst({where:{playerId,OR:[{kind:'ROOM'},{expiresAt:{gt:new Date()}}]}}))return fail('BATTLE_ACTIVE');
+   await tx.roster60RebirthAccount.upsert({where:{playerId},create:{playerId},update:{}});
+   const account=await tx.roster60RebirthAccount.updateMany({where:{playerId,successes:p.successes},data:{successes:{increment:1}}});if(account.count!==1)return fail('PREVIEW_CHANGED');
+   const paid=await tx.player.updateMany({where:{id:playerId,peanut:{gte:p.costPeanut}},data:{peanut:{decrement:p.costPeanut},revision:{increment:1}}});if(paid.count!==1)return fail('INSUFFICIENT_PEANUT');
+   const updated=await tx.roster60Owned.updateMany({where:{id:input.ownedId,playerId,status:'AVAILABLE',locked:false,totalXp:BigInt(p.preview.previousCycleTotalXp),reincarnation:p.preview.next.reincarnation-1},data:{reincarnation:p.preview.next.reincarnation,totalXp:0n}});if(updated.count!==1)return fail('UNIT_CHANGED');
+   const result={...p,paidPeanut:p.costPeanut,completed:true};
+   await tx.roster60RebirthReceipt.create({data:{playerId,requestId:input.requestId,fingerprint,result:JSON.stringify(result)}});return result;
+  });
+  try{return await run();}catch(e){if(['P2002','P2034'].includes((e as {code?:string}).code??''))return run();throw e;}
  }
 }

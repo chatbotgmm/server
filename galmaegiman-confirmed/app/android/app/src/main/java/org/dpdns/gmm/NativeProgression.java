@@ -186,12 +186,13 @@ final class NativeProgression {
     if(p==null)summary(unit.optString("name")+" · 기본 능력치 또는 환생 정책 준비 중",3);
     else {
       JSONObject before=p.optJSONObject("baselineLevelOneStats"),after=p.optJSONObject("afterLevelOneStats");
-      StringBuilder line=new StringBuilder(unit.optString("name")+" · Lv.1 / 99 · XP 0\n일반 1레벨 → 환생 1레벨\n");
+      StringBuilder line=new StringBuilder(unit.optString("name")+" · Lv.1 / 99 · XP 0\n일반 1레벨 → 환생 "+object(p,"next").optInt("reincarnation")+"회\n");
       String[] keys={"hp","mp","patk","matk","pdef","mdef"},labels={"HP","MP","공격","마법공격","방어","마법방어"};
       for(int i=0;i<keys.length;i++)line.append(labels[i]).append(" ").append(before.optString(keys[i])).append(" → ").append(after.optString(keys[i])).append(i%2==1?"\n":" · ");
       summary(line.toString(),6);
     }
-    action("roster60-reincarnation-confirm","대상·필요 레벨·비용 정책 준비 중",false,()->{});
+    summary(!unit.has("costPeanut")?"비용 확인 준비 중":unit.optBoolean("accountFreeAvailable")?"계정 첫 성공 1회 무료":"비용: 땅콩 "+unit.optInt("costPeanut")+"개",1);
+    action("roster60-reincarnation-confirm","대상·요구 레벨 정책 준비 중",false,()->{});
     pagination(list.length());
   }
 

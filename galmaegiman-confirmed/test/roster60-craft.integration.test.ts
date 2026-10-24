@@ -43,8 +43,8 @@ suite('roster60 transactional combination',()=>{
  });
  it('first reincarnation execution stays closed without eligibility/cost and cannot stack on retry',async()=>{
  const a=await material(11),service=new RosterReincarnation(db,()=>catalog);
- for(let i=0;i<2;i++)await expect(service.confirm(owner,a.id)).rejects.toThrow('REINCARNATION_ELIGIBILITY_COST_POLICY_REQUIRED');
- await expect(service.confirm(other,a.id)).rejects.toThrow('UNIT_NOT_FOUND');
+ for(let i=0;i<2;i++)await expect(service.confirm(owner,{ownedId:a.id,requestId:'blocked-test',catalogVersion:catalog.version,previewFingerprint:'0'.repeat(64)})).rejects.toThrow('LEVEL_ONE_BASE_STATS_REQUIRED');
+ await expect(service.confirm(other,{ownedId:a.id,requestId:'foreign-test',catalogVersion:catalog.version,previewFingerprint:'0'.repeat(64)})).rejects.toThrow('UNIT_NOT_FOUND');
  const after=await db.roster60Owned.findUniqueOrThrow({where:{id:a.id}});expect(after.totalXp).toBe(11n);expect(after.reincarnation).toBe(0);
  });
  it('real preview service provides all six baseline fields and preserves profiles',async()=>{

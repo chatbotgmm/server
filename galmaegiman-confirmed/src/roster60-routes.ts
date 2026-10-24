@@ -24,7 +24,7 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
     }
   }});
   route('GET','reincarnation/preview',id=>reincarnation.preview(id));
-  route('POST','reincarnation/confirm',(id,r)=>{const b=z.object({ownedId:z.string().min(1).max(100),requestId:z.string().min(1).max(100),catalogVersion:z.string().min(1).max(100)}).strict().parse(r.body);return reincarnation.confirm(id,b.ownedId);});
+  route('POST','reincarnation/confirm',(id,r)=>{const b=z.object({ownedId:z.string().min(1).max(100),requestId:z.string().min(1).max(100),catalogVersion:z.string().min(1).max(100),previewFingerprint:z.string().regex(/^[a-f0-9]{64}$/)}).strict().parse(r.body);return reincarnation.confirm(id,b);});
   route('GET','state',id=>service.state(id));
   route('POST','start',(id,r)=>{empty.parse(r.body);return service.start(id);});
   route('POST','complete',(id,r)=>{empty.parse(r.body);return service.complete(id);});

@@ -16,6 +16,8 @@ model Player {
   roster60State Roster60State?
   roster60Units Roster60Owned[]
   roster60CraftReceipts Roster60CraftReceipt[]
+  roster60RebirthAccount Roster60RebirthAccount?
+  roster60RebirthReceipts Roster60RebirthReceipt[]
   nativeInbox NativeInboxMessage[]
   nativeNewsReads NativeNewsRead[]
   nativeNewsRequests NativeNewsRequest[]
@@ -509,4 +511,18 @@ model StarterLoanLevel {
   updatedAt DateTime
   boundAt DateTime?
   @@index([playerId, characterId])
+}
+
+model Roster60RebirthAccount {
+ playerId String @id
+ successes Int @default(0)
+ player Player @relation(fields:[playerId],references:[id],onDelete:Cascade)
+}
+model Roster60RebirthReceipt {
+ playerId String
+ requestId String
+ fingerprint String
+ result String
+ player Player @relation(fields:[playerId],references:[id],onDelete:Cascade)
+ @@id([playerId,requestId])
 }

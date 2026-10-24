@@ -1,7 +1,7 @@
 import {rosterMaxLevel,validateGrowth} from './roster60-rules.js';
 import type {GrowthPoint} from './roster60-rules.js';
 export type ReincarnationBonusPolicy={approved:true;version:string;bonusFor:(nextCycle:number)=>Record<string,number>};
-// Preview only: no grant endpoint until bonus values and repeat policy are approved.
+// Pure preview contract; eligibility is independently enforced by the transaction service.
 // totalXp is current growth-cycle cumulative XP, NOT lifetime XP. The old cycle is
 // returned for audit only and must never feed growthAt after reset or crafting XP.
 export function previewReincarnation(input:{totalXp:number;reincarnation:number;baseLevelOneStats:Record<string,number>;curve:GrowthPoint[]},policy?:ReincarnationBonusPolicy){
@@ -27,19 +27,20 @@ export const reincarnationStatKeys=['hp','mp','patk','matk','pdef','mdef'] as co
 export type BaseSixStats=Record<typeof reincarnationStatKeys[number],number>;
 // Compute from ordinary species level-one base ONLY. Nearest integer, halves up.
 // Returning a projection rather than incrementing stored stats prevents compounding.
-export function firstReincarnationStats(base:BaseSixStats){
+export function reincarnationBaseStats(base:BaseSixStats,cycle=1){
+ if(!Number.isInteger(cycle)||cycle<1||cycle>5)throw Error('REINCARNATION_LIMIT');
  if(Object.keys(base).sort().join()!==[...reincarnationStatKeys].sort().join())throw Error('SIX_BASE_STATS_REQUIRED');
  const after={} as BaseSixStats;
  for(const k of reincarnationStatKeys){
   if(!Number.isSafeInteger(base[k])||base[k]<0)throw Error('INVALID_BASE_STAT');
-  const n=(BigInt(base[k])*110n+50n)/100n;
+  const n=(BigInt(base[k])*BigInt(100+cycle*10)+50n)/100n;
   if(n>BigInt(Number.MAX_SAFE_INTEGER))throw Error('INVALID_BASE_STAT');after[k]=Number(n);
  }
  return after;
 }
-export function previewFirstReincarnation(input:{totalXp:number;reincarnation:number;baseLevelOneStats:BaseSixStats;curve:GrowthPoint[];suitability:unknown;defense:unknown}){
- if(input.reincarnation!==0)throw Error('REPEAT_REINCARNATION_POLICY_REQUIRED');
- const after=firstReincarnationStats(input.baseLevelOneStats);
- const plan=previewReincarnation(input,{approved:true,version:'first-six-stats-10pct-v1',bonusFor:()=>Object.fromEntries(reincarnationStatKeys.map(k=>[k,after[k]-input.baseLevelOneStats[k]]))});
+export function previewReincarnationCycle(input:{totalXp:number;reincarnation:number;baseLevelOneStats:BaseSixStats;curve:GrowthPoint[];suitability:unknown;defense:unknown}){
+ if(!Number.isInteger(input.reincarnation)||input.reincarnation<0||input.reincarnation>=5)throw Error('REINCARNATION_LIMIT');
+ const after=reincarnationBaseStats(input.baseLevelOneStats,input.reincarnation+1);
+ const plan=previewReincarnation(input,{approved:true,version:'six-stats-additive-10pct-max5-v1',bonusFor:()=>Object.fromEntries(reincarnationStatKeys.map(k=>[k,after[k]-input.baseLevelOneStats[k]]))});
  return {...plan,suitability:structuredClone(input.suitability),defense:structuredClone(input.defense)};
 }

@@ -1,5 +1,5 @@
 import {it,expect} from 'vitest';
-import {previewReincarnation,previewFirstReincarnation,firstReincarnationStats} from '../src/battle/roster60-reincarnation.js';
+import {previewReincarnation,previewReincarnationCycle,reincarnationBaseStats} from '../src/battle/roster60-reincarnation.js';
 import {growthAt} from '../src/battle/roster60-rules.js';
 const input={totalXp:590,reincarnation:0,baseLevelOneStats:{hp:10,mp:5},curve:Array.from({length:99},(_,i)=>({totalXp:i*10,maxMp:i+1}))};
 it('bonus approval gates reset; no balance defaults',()=>{
@@ -17,12 +17,18 @@ it('new cycle starts at one, permanent bonus is separate, prior XP cannot immedi
 it('confirmed first bonus covers six baseline fields once, rounding halves up, profiles unchanged',()=>{
  const base={hp:105,mp:55,patk:35,matk:45,pdef:65,mdef:75};
  const expected={hp:116,mp:61,patk:39,matk:50,pdef:72,mdef:83};
- expect(firstReincarnationStats(base)).toEqual(expected);expect(firstReincarnationStats(base)).toEqual(expected);
+ expect(reincarnationBaseStats(base)).toEqual(expected);expect(reincarnationBaseStats(base)).toEqual(expected);
  const source={...input,baseLevelOneStats:base,suitability:{FIRE:2},defense:{FIRE:'resist'}};
- const p=previewFirstReincarnation(source);
+ const p=previewReincarnationCycle(source);
  expect(p.afterLevelOneStats).toEqual(expected);expect(p.suitability).toEqual(source.suitability);expect(p.defense).toEqual(source.defense);
  expect(source.baseLevelOneStats).toEqual(base);expect(p.next.totalXp).toBe(0);
- expect(()=>previewFirstReincarnation({...source,reincarnation:1})).toThrow('REPEAT_REINCARNATION_POLICY_REQUIRED');
- expect(()=>firstReincarnationStats({hp:100,mp:10} as any)).toThrow('SIX_BASE_STATS_REQUIRED');
- expect(()=>firstReincarnationStats({...base,patk:-1})).toThrow('INVALID_BASE_STAT');
+ expect(()=>previewReincarnationCycle({...source,reincarnation:5})).toThrow('REINCARNATION_LIMIT');
+ expect(()=>reincarnationBaseStats({hp:100,mp:10} as any)).toThrow('SIX_BASE_STATS_REQUIRED');
+ expect(()=>reincarnationBaseStats({...base,patk:-1})).toThrow('INVALID_BASE_STAT');
+});
+
+it('repeated bonuses add from original baseline, max 50 percent, never compound',()=>{
+ const base={hp:100,mp:100,patk:100,matk:100,pdef:100,mdef:100};
+ for(let n=1;n<=5;n++)expect(reincarnationBaseStats(base,n)).toEqual(Object.fromEntries(Object.keys(base).map(k=>[k,100+n*10])));
+ expect(()=>reincarnationBaseStats(base,6)).toThrow('REINCARNATION_LIMIT');
 });
