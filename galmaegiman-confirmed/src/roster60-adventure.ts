@@ -1,3 +1,5 @@
+import {checkedAdventureRewards,validateRewardRecipients,checkedRewardTotal} from './roster60-adventure-rewards.js';
+import {loadBattleRules} from './battle/load.js';
 import {createHash} from 'node:crypto';
 import type {Prisma,PrismaClient,Roster60Adventure} from '@prisma/client';
 import {RosterError,type RosterCatalog} from './roster60-onboarding.js';
@@ -26,7 +28,10 @@ export class RosterAdventure{
  });}
  async return(playerId:string,b:{requestId:string;adventureId:string;revision:number}){return this.request(playerId,b.requestId,['return',b.adventureId,b.revision],async tx=>{
   const row=await tx.roster60Adventure.findFirst({where:{id:b.adventureId,playerId}});if(!row)return fail('ADVENTURE_NOT_FOUND',404);if(row.status!=='ACTIVE')return adventureDto(row);if(row.revision!==b.revision)return fail('STALE_REVISION');if(row.activeBattleId)return fail('RETURN_ONLY_OUTSIDE_BATTLE');
-  const state=JSON.parse(row.state),rewards=JSON.parse(row.pendingRewards);
+  const state=JSON.parse(row.state),rules=loadBattleRules().data;let rewards;try{rewards=checkedAdventureRewards(JSON.parse(row.pendingRewards),Object.keys(rules.items));validateRewardRecipients(rewards,state.members.map((m:{ownedId:string})=>m.ownedId));}catch(e){return fail((e as Error).message);}
+  const player=await tx.player.findUniqueOrThrow({where:{id:playerId}});
+  for(const key of ['credits','snack','peanut'] as const){const amount=rewards.currencies?.[key]??0;try{checkedRewardTotal(player[key],amount,2_000_000_000);}catch(e){return fail((e as Error).message);}if(amount)await tx.player.update({where:{id:playerId},data:{[key]:{increment:amount}}});}
+  for(const [itemId,amount] of Object.entries(rewards.items??{})){const prior=await tx.playerItem.findUnique({where:{playerId_itemId:{playerId,itemId}}});try{checkedRewardTotal(prior?.count??0,amount,rules.itemRules.maxStack);}catch(e){return fail((e as Error).message);}if(amount)await tx.playerItem.upsert({where:{playerId_itemId:{playerId,itemId}},create:{playerId,itemId,count:amount},update:{count:{increment:amount}}});}
   for(const m of state.members){const amount=rewards.xp[m.ownedId]??0;if(!Number.isSafeInteger(amount)||amount<0)return fail('INVALID_REWARD');const next=BigInt(m.startingXp)+BigInt(amount);if(next>BigInt(Number.MAX_SAFE_INTEGER))return fail('INVALID_XP');try{growthAt(Number(next),m.growth,m.reincarnation,m.reincarnationXpPolicy);}catch(e){return fail((e as Error).message);}
    const changed=await tx.roster60Owned.updateMany({where:{id:m.ownedId,playerId,status:'ADVENTURE',totalXp:BigInt(m.startingXp)},data:{status:'AVAILABLE',totalXp:next}});if(changed.count!==1)return fail('UNIT_STATE_CHANGED');
   }
