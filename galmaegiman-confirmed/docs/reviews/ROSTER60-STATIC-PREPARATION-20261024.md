@@ -4,6 +4,8 @@
 
 2026-10-24 사용자 결정이 이전 145종 병행 보존 방침보다 우선한다. 85버전까지의 옛 캐릭터/자체속성/증강체와 관련 테스트 성장 데이터는 새 체계와 영구 병행할 필요가 없다. 새 60종 전투·화면·증강체 개편을 준비한다. 이번에는 **1대1만**, 3대3 UI/실행은 보류한다. 계정 인증·결제 등 무관 데이터는 초기화 범위 밖이다. 이번 작업은 정적 자산 준비 스크립트와 문서만 작성하며 운영 DB 삭제·변경, 코드 push/병합, 빌드, 배포는 하지 않았다.
 
+**표시명 확정:** u01은 이제 ‘갈매미맨’이며 ID는 유지한다. 검토 catalog에 이 표시명을 적용하고, 후속 도감·편성·전투·튜토리얼에 같은 이름을 사용한다. 다른 개체에 갈매미맨 접미사를 일괄 추가하지 않는다. 게임 타이틀 변경이 아니다. 원본 아트 manifest는 해시를 유지하고 표시명 override로 구분한다.
+
 ## 기준과 접근
 
 - 실제 원격 heads 재조회: 앱 `manual/home-assembly-20261019` = `cde215207210d4eed8dde80fe5c7b3df629337eb`, 운영 `main-oz3tvo` = `41104175d007f726a126ad39f8187dce9ccadff3`. cde2152 이후 해당 앱 브랜치 변경 없음.
@@ -17,7 +19,7 @@
 
 ```sh
 python3 scripts/prepare-roster60-static-review.py \
-  /workspace/roster60-d8465fd3 /workspace/roster60-static-review-new-u01
+  /workspace/roster60-d8465fd3 /workspace/roster60-static-review-u01-named
 ```
 
 - 전체 60종·120 활성뷰·69PNG 검증 완료. 중앙 분할하지 않고 active_views.source_rect_ltrb_exclusive 사용.
@@ -26,7 +28,7 @@ python3 scripts/prepare-roster60-static-review.py \
 - side 0=rear(아군), side 1=front(적), default_enabled=false, 기존 renderer fallback 계약. 실제 앱이 catalog를 읽도록 연결하지 않았음.
 - 미니 u02는 기본 대비 0.6 높이 제약을 기록했지만 현재 u01 패키지에 넣지 않았다. 다른 개체를 모두 같은 높이로 자동 정규화하지 않음.
 - anchor는 alpha>8 실루엣 하단 중앙의 **후보**다. 발 접지점의 최종 승인값으로 승격하지 않는다. source rect와 별도로 보존하므로 PNG 픽셀을 자르거나 다시 인코딩하지 않음.
-- 출력 `/workspace/roster60-static-review-new-u01/`: catalog.json, validation.json, u01/front.png, u01/rear.png, 합계 2,997,437 bytes. 이것은 APK/빌드 산출물이 아니다.
+- 출력 `/workspace/roster60-static-review-u01-named/`: catalog.json, validation.json, u01/front.png, u01/rear.png, 원본 PNG는 바이트 동일. 이것은 APK/빌드 산출물이 아니다.
 
 ## 최소 연결 순서
 

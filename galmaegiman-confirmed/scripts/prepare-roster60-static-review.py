@@ -13,6 +13,7 @@ from PIL import Image
 
 ART_COMMIT = "d8465fd3d991212e5318fe3cee2fdd2326c6c375"
 MANIFEST_SHA256 = "205699537e0fdc184ced33211210aed906f9f6ddbe80d9a12de61dc19907005d"
+DISPLAY_NAMES = {"u01": "갈매미맨"}  # User-approved label override; source archive stays unchanged.
 REVIEW_ART_IDS = ("u01",)  # New roster IDs only; no permanent legacy-character mapping.
 
 
@@ -90,7 +91,7 @@ def prepare(source, output):
         "fallback": "existing_renderer",
         "review_constraints": {"u02_height_relative_to_u01": 0.6,
             "mini_in_review_package": False, "anchors_approved": False},
-        "characters": {art_id: dict(index[art_id], art_id=art_id)
+        "characters": {art_id: dict(index[art_id], art_id=art_id, display_name=DISPLAY_NAMES[art_id])
                        for art_id in REVIEW_ART_IDS},
     }
     output.mkdir(parents=True)
