@@ -1,0 +1,1 @@
+CREATE TABLE "Roster60RecruitReceipt" ("playerId" TEXT NOT NULL,"requestId" TEXT NOT NULL,"fingerprint" TEXT NOT NULL,"result" TEXT NOT NULL,"createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY("playerId","requestId"),FOREIGN KEY("playerId") REFERENCES "Player"("id") ON DELETE CASCADE ON UPDATE CASCADE);

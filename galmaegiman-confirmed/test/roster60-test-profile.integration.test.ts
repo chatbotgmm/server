@@ -27,6 +27,9 @@ suite('authorized test baseline through real product authentication and disposab
   const completed=await api('complete',{});expect((await api('complete',{})).ticket.ticketId).toBe(completed.ticket.ticketId);
   const preview=await api('preview',{ticketId:completed.ticket.ticketId});expect(preview.characters).toHaveLength(7);
   const claim={ticketId:completed.ticket.ticketId,characterId:'u02',catalogVersion:c.version};const claimed=await api('confirm',claim);expect((await api('confirm',claim)).ticket.ownedId).toBe(claimed.ticket.ownedId);
+  const library=await api('collection');expect(library.characters).toHaveLength(60);expect(library.characters.find((u:any)=>u.id==='u02').ownedCount).toBe(1);
+  const recruitInfo=await api('recruit');expect(recruitInfo.offers.filter((o:any)=>o.enabled).map((o:any)=>o.kind)).toEqual(['LOW']);
+  const recruitment={requestId:randomUUID(),kind:'LOW',times:1,catalogVersion:c.version};const recruited=await api('recruit',recruitment);expect(await api('recruit',recruitment)).toEqual(recruited);expect(recruited.items[0].speciesId).toMatch(/^u(0[1-9]|1[0-6])$/);
   // Explicit accelerated progression fixtures ONLY in the disposable DB, no product grant/debug endpoint.
   const xp=definition('u02').growth[4].totalXp;await db.roster60Owned.update({where:{id:claimed.ticket.ownedId},data:{totalXp:xp}});
   const extra=await db.roster60Owned.create({data:{playerId:id,speciesId:'u02',totalXp:xp+1,source:'isolated-e2e-seed'}});

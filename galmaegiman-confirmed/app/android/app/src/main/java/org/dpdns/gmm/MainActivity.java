@@ -1122,11 +1122,15 @@ public class MainActivity extends AppCompatActivity {
     menus.library.items();
   }
 
+  boolean roster60Menus() { return "org.gmm.producttest".equals(BuildConfig.APPLICATION_ID) || "roster60-v1".equals(state.optJSONObject("tutorial") == null ? "" : state.optJSONObject("tutorial").optString("flow")); }
+
   void collection() {
+    if (roster60Menus()) { new NativeRoster60Library(this).collection(); return; }
     menus.library.collection();
   }
 
   void draw() {
+    if (roster60Menus()) { new NativeRoster60Library(this).recruit(); return; }
     menus.economy.draw();
   }
 

@@ -431,6 +431,7 @@ export class GameService {
   }
   // out: 웹 화면용으로 뽑은 결과(유닛·처음 발견)를 받아 감
   private async draw(tx:Tx,p:Player,kind:GachaKind,times:number,now:Date,out?:{c:Character;first:boolean;key:string}[]):Promise<GameReply>{
+    if(await tx.roster60State.findUnique({where:{playerId:p.id}}))throw new GameError('새 60종 모집 화면에서 진행해 주세요.');
     const g=this.content.economy.gachas[kind];
     const cost=g.cost*times;
     const admin=unlimited(p);
@@ -1381,6 +1382,7 @@ export class GameService {
     if(kind!=='LOW'&&kind!=='MID'&&kind!=='HIGH')throw new GameError('없는 뽑기예요.');
     if(!Number.isSafeInteger(times)||times<1||times>50)throw new GameError('뽑기는 한 번에 1~50회예요.');
     return this.webRun(playerId,async(tx,p,now)=>{
+      if(await tx.roster60State.findUnique({where:{playerId}}))throw new GameError('새 60종 모집 화면에서 진행해 주세요.');
       const out:{c:Character;first:boolean;key:string}[]=[];
       const r=await this.draw(tx,p,kind,times,now,out);
       if(!out.length)throw new GameError(this.replyText(r));   // 뽑기권 부족 안내

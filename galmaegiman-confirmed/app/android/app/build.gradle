@@ -221,8 +221,10 @@ tasks.register('prepareUpper33Art') {
         }
     }
 }
-tasks.named('bundleGameArt').configure {
-    dependsOn 'prepareUpper33Art'
-    from(upper33Generated) { into 'native/upper33-v1' }
+// The new product test uses roster60-art. Keep originals and legacy builds intact.
+if (project.findProperty('gmmApplicationId') != 'org.gmm.producttest') {
+    tasks.named('bundleGameArt').configure {
+        dependsOn 'prepareUpper33Art'
+        from(upper33Generated) { into 'native/upper33-v1' }
+    }
 }
-

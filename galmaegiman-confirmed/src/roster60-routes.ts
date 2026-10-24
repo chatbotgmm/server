@@ -1,3 +1,4 @@
+import {RosterLibrary} from './roster60-library.js';
 import {RosterHome} from './roster60-home.js';
 import type {FastifyInstance,FastifyRequest,FastifyReply} from 'fastify';
 import {readFileSync,existsSync} from 'node:fs';
@@ -18,6 +19,7 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   const policyFile=resolve(root,profile?'data/test-profiles/'+profile+'/battle-policy.json':'data/roster60-battle-policy.json');
   const battle=new RosterBattle(db,catalog,()=>{if(!existsSync(policyFile))return null;try{return JSON.parse(readFileSync(policyFile,'utf8')) as BattlePolicy;}catch{throw new RosterError(503,'BATTLE_POLICY_INVALID');}});
   const service=new RosterOnboarding(db,catalog);
+  const library=new RosterLibrary(db,catalog);
   const home=new RosterHome(db,catalog);
   const craft=new RosterCraft(db,catalog);
   const reincarnation=new RosterReincarnation(db,catalog);
@@ -32,6 +34,9 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
     }
   }});
   const requestId=z.string().min(1).max(100),battleId=z.string().uuid(),revision=z.number().int().nonnegative();
+  route('GET','collection',id=>library.collection(id));
+  route('GET','recruit',id=>library.info(id));
+  route('POST','recruit',(id,r)=>library.recruit(id,z.object({requestId,kind:z.enum(['LOW','MID','HIGH']),times:z.number().int().min(1).max(50),catalogVersion:z.string().min(1).max(100)}).strict().parse(r.body)));
   route('GET','home',id=>home.read(id));
   route('POST','home/rebirth-intro/complete',(id,r)=>{empty.parse(r.body);return home.completeIntro(id);});
   route('GET','battle/options',id=>battle.options(id));
