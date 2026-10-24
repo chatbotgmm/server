@@ -391,7 +391,7 @@
       const needTarget = it && it.revive, targets = needTarget ? t.fighters.map((x, i) => ({ x, i })).filter(o => o.x.hp <= 0) : [];
       body.innerHTML = `${items.length ? `<div class="grid2 items">${items.slice(0, 4).map(x => btn(`data-item="${esc(x.id)}" aria-pressed="${ui.item === x.id}"`, `<img src="/duel/icons/${esc(x.id)}.png" alt="" width="32" height="32" onerror="this.remove()">${esc(x.name)}`, `${fmt(inv.get(x.id) || 0)}개${isPve() ? '(전투 시작 때)' : ''}`)).join('')}</div>` : '<p class="hint">쓸 수 있는 아이템이 없어요.</p>'}
         ${it ? `<div class="pick"><b>${esc(it.name)}</b><p>${esc(it.desc)}</p>${needTarget ? `<div class="row">${targets.map(o => btn(`data-target="${o.i}" aria-pressed="${ui.target === o.i}"`, esc(o.x.name), '기절')).join('') || '<p class="hint">다시 일으킬 대원이 없어요.</p>'}</div>` : ''}
-          <p class="why">${esc(it.reason || `쓰면 이번 턴 행동을 써요 · 전투당 ${fmt(s.itemLimit)}개까지 (사용 ${fmt(t.itemsUsed || 0)})`)}</p></div>` : ''}
+          <p class="why">${esc(it.reason || `쓰면 이번 턴 행동을 써요 · ${s.itemLimit > 0 ? `전투당 ${fmt(s.itemLimit)}개까지` : `횟수 제한 없음`} (사용 ${fmt(t.itemsUsed || 0)})`)}</p></div>` : ''}
         <div class="grid2 sub">${btn(`data-use ${!it || it.reason || (needTarget && ui.target == null) ? 'disabled' : ''}`, '사용', '', 'primary')}${back}</div>`;
       body.onclick = e => {
         const x = e.target.closest('[data-item]'); if (x) { ui.item = x.dataset.item; ui.target = null; pane(s); return; }

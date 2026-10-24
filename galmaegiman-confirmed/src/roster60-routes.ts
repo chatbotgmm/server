@@ -1,3 +1,4 @@
+import {RosterAdventure} from './roster60-adventure.js';
 import {RosterLibrary} from './roster60-library.js';
 import {RosterHome} from './roster60-home.js';
 import type {FastifyInstance,FastifyRequest,FastifyReply} from 'fastify';
@@ -8,7 +9,7 @@ import {RosterOnboarding,RosterError,type RosterCatalog} from './roster60-onboar
 import type {PrismaClient} from '@prisma/client';
 import {RosterReincarnation} from './roster60-reincarnation.js';
 import {validateFiveStatCatalog} from './battle/roster60-five-stats.js';
-import {RosterBattle,type BattlePolicy} from './roster60-battle.js';
+import {RosterBattle,fighter,type BattlePolicy} from './roster60-battle.js';
 import {RosterCraft} from './roster60-craft.js';
 export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string,auth:(r:FastifyRequest)=>string|null,guard:(r:FastifyRequest,p:FastifyReply)=>boolean){
   const profile=process.env.ROSTER60_PROFILE;
@@ -19,6 +20,7 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   const policyFile=resolve(root,profile?'data/test-profiles/'+profile+'/battle-policy.json':'data/roster60-battle-policy.json');
   const battle=new RosterBattle(db,catalog,()=>{if(!existsSync(policyFile))return null;try{return JSON.parse(readFileSync(policyFile,'utf8')) as BattlePolicy;}catch{throw new RosterError(503,'BATTLE_POLICY_INVALID');}});
   const service=new RosterOnboarding(db,catalog);
+  const adventure=new RosterAdventure(db,catalog,fighter);
   const library=new RosterLibrary(db,catalog);
   const home=new RosterHome(db,catalog);
   const craft=new RosterCraft(db,catalog);
@@ -34,16 +36,20 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
     }
   }});
   const requestId=z.string().min(1).max(100),battleId=z.string().uuid(),revision=z.number().int().nonnegative();
+  route('GET','adventure/active',id=>adventure.active(id));
+  route('POST','adventure/read',(id,r)=>adventure.read(id,z.object({adventureId:z.string().uuid()}).strict().parse(r.body).adventureId));
+  route('POST','adventure/start',(id,r)=>adventure.start(id,z.object({requestId,ownedIds:z.array(z.string().min(1).max(100)).min(1).max(6)}).strict().parse(r.body)));
+  route('POST','adventure/return',(id,r)=>adventure.return(id,z.object({requestId,adventureId:z.string().uuid(),revision}).strict().parse(r.body)));
   route('GET','collection',id=>library.collection(id));
   route('GET','recruit',id=>library.info(id));
   route('POST','recruit',(id,r)=>library.recruit(id,z.object({requestId,kind:z.enum(['LOW','MID','HIGH']),times:z.number().int().min(1).max(50),catalogVersion:z.string().min(1).max(100)}).strict().parse(r.body)));
   route('GET','home',id=>home.read(id));
   route('POST','home/rebirth-intro/complete',(id,r)=>{empty.parse(r.body);return home.completeIntro(id);});
   route('GET','battle/options',id=>battle.options(id));
-  route('POST','battle/create',(id,r)=>battle.create(id,z.object({requestId,ownedId:z.string().min(1).max(100),encounterId:z.string().min(1).max(100)}).strict().parse(r.body)));
+  route('POST','battle/create',(id,r)=>battle.create(id,z.object({requestId,ownedId:z.string().min(1).max(100),encounterId:z.string().min(1).max(100),reserveIds:z.array(z.string().min(1).max(100)).max(5).optional(),adventureId:z.string().uuid().optional()}).strict().parse(r.body)));
   route('POST','battle/read',(id,r)=>battle.read(id,z.object({battleId}).strict().parse(r.body).battleId));
   route('GET','battle/active',id=>battle.active(id));
-  const action=z.discriminatedUnion('kind',[z.object({kind:z.literal('attack')}).strict(),z.object({kind:z.literal('focus')}).strict(),z.object({kind:z.literal('skill'),skillId:z.string().min(1).max(100)}).strict()]);
+  const action=z.discriminatedUnion('kind',[z.object({kind:z.literal('attack')}).strict(),z.object({kind:z.literal('focus')}).strict(),z.object({kind:z.literal('switch'),targetOwnedId:z.string().min(1).max(100)}).strict(),z.object({kind:z.literal('item'),itemId:z.string().min(1).max(100),targetOwnedId:z.string().min(1).max(100).optional()}).strict(),z.object({kind:z.literal('escape')}).strict(),z.object({kind:z.literal('skill'),skillId:z.string().min(1).max(100)}).strict()]);
   route('POST','battle/action',(id,r)=>battle.action(id,z.object({requestId,battleId,revision,action}).strict().parse(r.body)));
   route('POST','battle/settle',(id,r)=>battle.settle(id,z.object({requestId,battleId,revision}).strict().parse(r.body)));
   route('GET','reincarnation/preview',id=>reincarnation.preview(id));

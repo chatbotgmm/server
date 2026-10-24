@@ -58,7 +58,7 @@ describe('수비대 대결 데이터', ()=>{
     expect(b.sides[0].augs).toContain(got);
     expect(()=>rerollAugment(b,0,2)).toThrow();          // 고르기가 끝나면 다시 뽑기 없음
   });
-  it('대결 아이템: 턴을 쓰고 기술보다 먼저, 회복·상태 풀기·다시 일으키기, 대결당 개수 제한', ()=>{
+  it('대결 아이템: 턴을 쓰고 기술보다 먼저, 회복·상태 풀기·다시 일으키기, 보유 수량 외 횟수 제한 없음', ()=>{
     const b=createBattle(R,[rec('D6',30),rec('T3',30)],[rec('D4',1)],3);   // 상대는 Lv1이라 몇 턴 맞아도 안 쓰러짐
     aiChoose(b,0);aiChoose(b,1);
     const me=activeOf(b,0),per=R.data.itemRules.perBattle;
@@ -80,10 +80,10 @@ describe('수비대 대결 데이터', ()=>{
     expect(itemProblem(b,0,'feather',0)).toBe('다시 일으킬 갈매미가 없어요.');
     act(b,[{kind:'item',item:'feather',target:1},pickAi(b,1)]);
     expect(b.sides[0].fighters[1].hp).toBe(Math.round(b.sides[0].fighters[1].maxHp*R.data.items.feather.revive!/100));
-    expect(b.sides[0].itemsUsed).toBe(3);expect(per).toBe(3);
+    expect(b.sides[0].itemsUsed).toBe(3);expect(per).toBe(0);
     me.hp=1;
-    expect(itemProblem(b,0,'potion')).toBe('아이템은 대결 한 번에 3개까지예요.');
-    expect(()=>act(b,[{kind:'item',item:'potion'},pickAi(b,1)])).toThrow();
+    expect(itemProblem(b,0,'potion')).toBeNull();
+    act(b,[{kind:'item',item:'potion'},pickAi(b,1)]);expect(b.sides[0].itemsUsed).toBe(4);
   });
   it('10속성: 모두 강점 2·약점 2, 배율 1.5 / 0.67', ()=>{
     for(const a of attrs){

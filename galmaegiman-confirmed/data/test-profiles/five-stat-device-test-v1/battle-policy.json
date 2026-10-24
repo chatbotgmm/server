@@ -21,7 +21,8 @@
       "level": 1,
       "tutorial": true,
       "winXp": 30,
-      "lossXp": 0
+      "lossXp": 0,
+      "mode": "story"
     },
     {
       "id": "training-1",
@@ -29,7 +30,8 @@
       "level": 1,
       "tutorial": false,
       "winXp": 60,
-      "lossXp": 20
+      "lossXp": 20,
+      "mode": "duel"
     },
     {
       "id": "training-5",
@@ -37,7 +39,8 @@
       "level": 5,
       "tutorial": false,
       "winXp": 300,
-      "lossXp": 100
+      "lossXp": 100,
+      "mode": "duel"
     },
     {
       "id": "training-10",
@@ -45,7 +48,8 @@
       "level": 10,
       "tutorial": false,
       "winXp": 600,
-      "lossXp": 200
+      "lossXp": 200,
+      "mode": "duel"
     },
     {
       "id": "training-20",
@@ -53,7 +57,8 @@
       "level": 20,
       "tutorial": false,
       "winXp": 1200,
-      "lossXp": 400
+      "lossXp": 400,
+      "mode": "duel"
     },
     {
       "id": "training-40",
@@ -61,7 +66,8 @@
       "level": 40,
       "tutorial": false,
       "winXp": 2400,
-      "lossXp": 800
+      "lossXp": 800,
+      "mode": "duel"
     },
     {
       "id": "training-60",
@@ -69,7 +75,17 @@
       "level": 60,
       "tutorial": false,
       "winXp": 3600,
-      "lossXp": 1200
+      "lossXp": 1200,
+      "mode": "duel"
+    },
+    {
+      "id": "adventure-1",
+      "speciesId": "u07",
+      "level": 1,
+      "tutorial": false,
+      "mode": "adventure",
+      "winXp": 60,
+      "lossXp": 0
     }
   ]
 }

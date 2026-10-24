@@ -13,6 +13,8 @@ model AppMeta {
 }
 
 model Player {
+  roster60Adventures Roster60Adventure[]
+  roster60AdventureReceipts Roster60AdventureReceipt[]
   roster60RecruitReceipts Roster60RecruitReceipt[]
   roster60Home Roster60Home?
   roster60Battles Roster60Battle[]
@@ -571,4 +573,28 @@ model Roster60RecruitReceipt {
  createdAt DateTime @default(now())
  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
  @@id([playerId, requestId])
+}
+
+model Roster60Adventure {
+ id String @id @default(uuid())
+ playerId String
+ status String @default("ACTIVE")
+ revision Int @default(0)
+ activeBattleId String?
+ catalogVersion String
+ state String
+ pendingRewards String
+ settlement String?
+ createdAt DateTime @default(now())
+ player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+ @@index([playerId,status])
+}
+model Roster60AdventureReceipt {
+ playerId String
+ requestId String
+ fingerprint String
+ result String
+ createdAt DateTime @default(now())
+ player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+ @@id([playerId,requestId])
 }

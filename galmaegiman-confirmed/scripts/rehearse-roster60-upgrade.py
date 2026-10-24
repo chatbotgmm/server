@@ -25,7 +25,7 @@ assert db.execute('SELECT * FROM Player').fetchall()==before
 assert db.execute('PRAGMA integrity_check').fetchone()[0]=='ok'
 assert db.execute('PRAGMA foreign_key_check').fetchall()==[]
 new_tables={r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}-old_tables
-assert len(new_tables)==9
+assert len(new_tables)==11
 # A deliberately invalid owner cannot create a new-system unit.
 try: db.execute("INSERT INTO Roster60Owned(id,playerId,speciesId,source) VALUES('bad','other','u01','test')")
 except sqlite3.IntegrityError: db.rollback()

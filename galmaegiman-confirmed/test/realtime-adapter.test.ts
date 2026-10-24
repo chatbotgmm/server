@@ -137,7 +137,7 @@ describe('ranked realtime engine adapter',()=>{
     for(const item of ['potion','big','clear','feather','__proto__','constructor'])expect(()=>validateCommand(b,0,{action:{kind:'item',item}})).toThrow();
     activeOf(b,0).hp=100;
     expect(()=>validateCommand(b,0,{action:{kind:'item',item:'potion',target:1}})).toThrow();
-    b.sides[0].itemsUsed=R.data.itemRules.perBattle;
+    b.R={...b.R,data:{...b.R.data,itemRules:{...b.R.data.itemRules,perBattle:3}}};b.sides[0].itemsUsed=3;
     expect(()=>validateCommand(b,0,{action:{kind:'item',item:'potion'}})).toThrow();
   });
   it('cleanse remains usable at full HP and while frozen, with no bonus attack',()=>{

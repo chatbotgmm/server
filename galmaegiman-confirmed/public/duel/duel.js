@@ -1358,7 +1358,7 @@ function actionPanel(pane = 'menu') {
   const foe = activeOf(b, 1);
   const bench = s.fighters.map((x, i) => [x, i]).filter(([, i]) => i !== s.active), swaps = bench.filter(([, i]) => can({ kind: 'switch', to: i })).length;
   const items = fightId ? { n: s.itemsUsed, max: R.data.itemRules.perBattle, have: ACC.items.reduce((a, i) => a + i.count, 0) } : null;
-  const itemOk = items && items.n < items.max && items.have;
+  const itemOk = items && (items.max <= 0 || items.n < items.max) && items.have;
   const back = '<button class="ghost bback" id="bback">‹ 뒤로</button>';
   if (pane === 'fight') {
     // 기술 4칸(무엇을 넣었든)을 2×2로. 모두 재사용 대기면 몸통 박치기 버튼. 지금 상대에게 유리/불리를 같이 보여 줌
@@ -1382,7 +1382,7 @@ function actionPanel(pane = 'menu') {
     const UI = APP ? 'intro' : `${BASE}/duel/intro`;   // 모바일 그림 버튼: 재질·아이콘은 시트, 제목·안내는 실제 글꼴
     panel.innerHTML = `<div class="bmenu img">
       <button class="bm atk" id="bAtk" aria-label="공격" title="기술 ${f.skills.filter(k => can({ kind: 'skill', skillId: k.id })).length}개">${commandArt(UI, 42, 74)}<b class="bt">공격</b></button>
-      <button class="bm bag" id="bag" aria-label="아이템" ${itemOk ? '' : 'disabled'} title="${items ? `${items.n}/${items.max} · 가진 ${items.have}` : pvp ? '대전에선 못 써요' : '불러오는 중'}">${commandArt(UI, 638, 74)}<b class="bt">아이템</b></button>
+      <button class="bm bag" id="bag" aria-label="아이템" ${itemOk ? '' : 'disabled'} title="${items ? `${items.max > 0 ? `${items.n}/${items.max}` : `사용 ${items.n} · 횟수 제한 없음`} · 가진 ${items.have}` : pvp ? '대전에선 못 써요' : '불러오는 중'}">${commandArt(UI, 638, 74)}<b class="bt">아이템</b></button>
       <button class="bm sw" id="bSw" aria-label="교체" ${swaps ? '' : 'disabled'} title="${swaps ? `${swaps}마리 대기` : '바꿀 갈매미 없음'}">${commandArt(UI, 42, 639)}<b class="bt">교체</b></button>
       <button class="bm run" id="flee" aria-label="${pvp ? '나가기' : '도망가기'}" title="${pvp?.mode === 'rank' ? '패배로 처리' : pvp ? '대전 끝내기' : '경험치 없음'}">${commandArt(UI, 638, 639)}<b class="bt">${pvp ? '나가기' : '도망가기'}</b></button></div>`;
     panel.querySelector('#bAtk').onclick = () => actionPanel('fight');
@@ -1402,7 +1402,7 @@ function itemSheet() {
     // 읽기 쉽게(v0.14.9): 이름 크게 · 효과는 짧게 한 줄 · 못 쓰는 이유는 따로 · 2×2
     const eff = d => d.heal ? `체력 ${d.heal}% 회복` : d.revive ? `쓰러진 갈매미를 체력 ${d.revive}%로` : d.cleanse ? '상태 이상 풀기' : esc(d.desc);
     const left = R.data.itemRules.perBattle - b.sides[0].itemsUsed;
-    modal.innerHTML = `<div class="sheet pick items"><div class="ihead"><h2>🎒 아이템</h2><p>이번 대결에 <b>${left}개</b> 더 쓸 수 있어요 · 쓰면 이번 턴 행동이 끝나요</p></div>
+    modal.innerHTML = `<div class="sheet pick items"><div class="ihead"><h2>🎒 아이템</h2><p>${R.data.itemRules.perBattle > 0 ? `이번 대결에 <b>${left}개</b> 더 쓸 수 있어요` : `전투당 횟수 제한 없음`} · 쓰면 이번 턴 행동이 끝나요</p></div>
       <div class="igrid">${Object.entries(R.data.items).map(([id, d]) => { const n = mine(id), why = n ? itemProblem(b, 0, id) : '가진 게 없어요';
         return `<button class="itm ${pick === id ? 'on' : ''}" data-i="${id}" ${why ? 'disabled' : ''}><span class="ic">${ico(id, d.revive ? '🪶' : d.cleanse && !d.heal ? '💧' : '🩹')}</span><span class="tx"><b>${esc(d.name)}</b><span class="ef">${eff(d)}</span>${why ? `<small class="why">${esc(why)}</small>` : ''}</span><em class="cnt">×${n}</em></button>`; }).join('')}</div>
       ${it?.revive ? `<p class="isub">다시 일으킬 갈매미</p><div class="igrid">${down.map(([f, i]) => `<button class="itm ${target === i ? 'on' : ''}" data-t="${i}"><img class="ic" src="${sprite(f.rec.id, 'front', f.rec.stage)}" alt=""><span class="tx"><b>${esc(f.name)}</b><span class="ef">${chip(f.attr)}</span></span></button>`).join('')}</div>` : ''}

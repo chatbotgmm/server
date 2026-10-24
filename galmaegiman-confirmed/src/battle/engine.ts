@@ -530,7 +530,7 @@ function doSwitch(b:Battle,side:0|1,to:number){
 export function itemProblem(b:Battle,side:0|1,item:string,target?:number):string|null{
   const it=b.R.data.items?.[item],s=b.sides[side],f=activeOf(b,side);
   if(!it)return '없는 아이템';
-  if(s.itemsUsed>=(b.R.data.itemRules?.perBattle??0))return `아이템은 대결 한 번에 ${b.R.data.itemRules?.perBattle??0}개까지예요.`;
+  if((b.R.data.itemRules?.perBattle??0)>0&&s.itemsUsed>=b.R.data.itemRules.perBattle)return `아이템은 대결 한 번에 ${b.R.data.itemRules?.perBattle??0}개까지예요.`;
   if(it.revive){const t=target===undefined?s.fighters.findIndex(x=>!alive(x)):target;return s.fighters[t]&&!alive(s.fighters[t])?null:'다시 일으킬 갈매미가 없어요.';}
   if(!alive(f))return '나와 있는 갈매미가 전투불가예요.';
   if(it.heal&&augmentItemHealBlocked(b,f))return '증강 효과로 회복 아이템을 쓸 수 없어요.';

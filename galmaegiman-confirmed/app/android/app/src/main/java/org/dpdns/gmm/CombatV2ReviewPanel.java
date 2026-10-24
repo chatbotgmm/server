@@ -86,7 +86,7 @@ final class CombatV2ReviewPanel extends LinearLayout {
         String why=entry.optString("reason");
         icons.bind(button,skillPage?entry.optString("element").toLowerCase(java.util.Locale.ROOT):entry.optString("kind"));
         String shownWhy=why;
-        if(!skillPage&&("item".equals(entry.optString("kind"))||"switch".equals(entry.optString("kind"))||"escape".equals(entry.optString("kind"))))shownWhy=CombatV2ReviewStyle.label(getContext(),entry.optString("kind")+"_reason");
+        if(!product&&!skillPage&&("item".equals(entry.optString("kind"))||"switch".equals(entry.optString("kind"))||"escape".equals(entry.optString("kind"))))shownWhy=CombatV2ReviewStyle.label(getContext(),entry.optString("kind")+"_reason");
         button.setText(label+(shownWhy.isEmpty()?"":"\n"+shownWhy));button.setContentDescription(label+" "+why);
         button.setEnabled(!pending && (skillPage || entry.optBoolean("enabled")));
         button.setOnClickListener(v->{

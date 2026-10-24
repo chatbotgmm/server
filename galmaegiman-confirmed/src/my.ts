@@ -386,7 +386,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
     if(!f||f.player!==id||f.exp<Date.now())throw new GameError('대결 정보가 없어요. 대결을 다시 시작해 주세요.');
     const defs=itemDefs(),item=defs.items.find(x=>x.id===b.id);
     if(!item)throw new GameError('없는 아이템이에요.');
-    if(f.used>=defs.rules.perBattle)throw new GameError(`아이템은 대결 한 번에 ${defs.rules.perBattle}개까지예요.`);
+    if(defs.rules.perBattle>0&&f.used>=defs.rules.perBattle)throw new GameError(`아이템은 대결 한 번에 ${defs.rules.perBattle}개까지예요.`);
     const left=await game.webUseItem(id,{id:item.id,name:item.name});
     f.used++;
     return {left};

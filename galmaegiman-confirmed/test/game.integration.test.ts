@@ -860,16 +860,16 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       for(const bad of [{...data,hp:{D1:{f:1.5,at:1}}},{...data,hp:{D1:{f:0.5,at:1,x:1}}},{...data,hp:{C1:{f:0.5,at:1}}}])
         expect((await post('/my/api/story',{data:bad},cookie)).statusCode).toBe(400);
       expect((await post('/my/api/story',{data},cookie)).statusCode).toBe(200);
-      // 아이템: 대결 표 없으면 거절, 표마다 대결당 3개, 계정에서 1개씩 빠짐, 없으면 거절
+      // 아이템: 대결 표 없으면 거절, 횟수 제한 없음, 계정에서 1개씩 빠짐, 없으면 거절
       await db.playerItem.create({data:{playerId:p.id,itemId:'potion',count:4}});
       expect((await post('/my/api/items/use',{battle:'nope',id:'potion'},cookie)).statusCode).toBe(400);
       const fight=(await post('/my/api/story/battle',{},cookie)).json() as {result:{battle:string;items:{id:string;count:number}[]}};
       expect(fight.result.items).toEqual([{id:'potion',count:4}]);
-      for(const left of [3,2,1])expect((await post('/my/api/items/use',{battle:fight.result.battle,id:'potion'},cookie)).json()).toEqual({ok:true,result:{left}});
-      expect((await post('/my/api/items/use',{battle:fight.result.battle,id:'potion'},cookie)).json()).toMatchObject({error:expect.stringContaining('3개까지')});
+      for(const left of [3,2,1,0])expect((await post('/my/api/items/use',{battle:fight.result.battle,id:'potion'},cookie)).json()).toEqual({ok:true,result:{left}});
+      expect((await post('/my/api/items/use',{battle:fight.result.battle,id:'potion'},cookie)).json()).toMatchObject({error:expect.any(String)});
       const fight2=(await post('/my/api/story/battle',{},cookie)).json() as {result:{battle:string}};
       expect((await post('/my/api/items/use',{battle:fight2.result.battle,id:'big'},cookie)).statusCode).toBe(400);   // 없는 아이템
-      expect((await post('/my/api/items/use',{battle:fight2.result.battle,id:'potion'},cookie)).json()).toEqual({ok:true,result:{left:0}});
+      expect((await post('/my/api/items/use',{battle:fight2.result.battle,id:'potion'},cookie)).statusCode).toBe(400);
       expect((await post('/my/api/items/use',{battle:fight2.result.battle,id:'potion'},cookie)).statusCode).toBe(400);   // 다 씀
       // 전투 밖 치료(v0.14.7): 체력 회복 아이템만, 대결 표 없이, 계정에서 1개 빠짐
       await db.playerItem.update({where:{playerId_itemId:{playerId:p.id,itemId:'potion'}},data:{count:2}});

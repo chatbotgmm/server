@@ -92,11 +92,11 @@ export function createRealtimeScreen({api,host,confirmLeave,onExit,imageBase=''}
         controls+=button(free?'교체 + 기술 확정':'교체 확정','switchConfirm',blocked||(free&&!followup));
       }
       const stock=id=>(b.inventory||[]).find(x=>x.id===id)?.count||0;
-      controls+=`<div class="rt-actions">${(b.items||[]).map((it,i)=>button(`${esc(it.name)} ×${stock(it.id)}${it.reason?` · ${esc(it.reason)}`:''}`,`itemPick:${i}`,blocked||stock(it.id)<=0||!!it.reason||t.itemsUsed>=b.itemLimit,selectedItem===it.id)).join('')}</div>`;
+      controls+=`<div class="rt-actions">${(b.items||[]).map((it,i)=>button(`${esc(it.name)} ×${stock(it.id)}${it.reason?` · ${esc(it.reason)}`:''}`,`itemPick:${i}`,blocked||stock(it.id)<=0||!!it.reason||(b.itemLimit>0&&t.itemsUsed>=b.itemLimit),selectedItem===it.id)).join('')}</div>`;
       const item=(b.items||[]).find(x=>x.id===selectedItem);
       if(item){
         if(item.revive>0)controls+=`<div class="rt-actions">${t.fighters.map((unit,i)=>button(`부활: ${esc(unit.name)}`,`itemTarget:${i}`,blocked||unit.hp>0,itemTarget===i)).join('')}</div>`;
-        controls+=button(`${esc(item.name)} 사용 확정`,`itemConfirm`,blocked||!!item.reason||stock(item.id)<=0||t.itemsUsed>=b.itemLimit||(item.revive>0&&itemTarget===null));
+        controls+=button(`${esc(item.name)} 사용 확정`,`itemConfirm`,blocked||!!item.reason||stock(item.id)<=0||(b.itemLimit>0&&t.itemsUsed>=b.itemLimit)||(item.revive>0&&itemTarget===null));
       }
     }
     root.innerHTML=`<div class="rt-paper" role="dialog" aria-modal="true" aria-label="실시간 대전"><header class="rt-head"><h2>${r.mode==='rank'?'랭크게임':'일반게임'} · ${b.turn}턴</h2><span class="rt-clock"></span>${r.result?'':button('항복','surrender',s.pending)}</header><div class="rt-arena">${fighter(t)}${fighter(foe)}</div><p role="status">${aiNotice(r)?esc(aiNotice(r))+" · ":""}${r.mySubmitted?'선택 완료 · 상대를 기다려요.':r.opponentReady?'상대 선택 완료':'동시에 선택해요.'}</p><div class="rt-controls">${controls}</div><p class="rt-error" role="status">${esc(s.error)}</p>${s.error&&client.pendingCommand?button('같은 선택 다시 확인','retry'):''}${s.error&&client.pendingSurrender?button('항복 처리 다시 확인','surrenderRetry'):''}<p class="rt-log">${esc((b.log||[]).slice(-2).join(' / '))}</p><p class="rt-foot">30초가 지나면 서버가 기본 공격·교체·증강체를 자동 선택해요. 행동 3회 연속 미입력 시 패배해요.</p></div>`;

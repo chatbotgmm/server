@@ -496,7 +496,7 @@ const josaEul = w => { const c = (w || '').charCodeAt(w.length - 1); return c >=
   // 아이템: 가진 대결 아이템
   function items(el) {
     const mine = id => me.items.find(i => i.id === id)?.count ?? 0;
-    el.innerHTML = `<div class="card"><b style="font-weight:400">${gI('u-bag', '🎒')} 아이템</b><p class="note">치료약은 전투 밖에서도 쓸 수 있어요. 일반·랭크 대전은 체력이 유지되지 않아요. 스토리 대결 중에는 한 번에 ${me.itemRules.perBattle}개까지예요.</p></div>
+    el.innerHTML = `<div class="card"><b style="font-weight:400">${gI('u-bag', '🎒')} 아이템</b><p class="note">치료약은 전투 밖에서도 쓸 수 있어요. 일반·랭크 대전은 체력이 유지되지 않아요. ${me.itemRules.perBattle > 0 ? `스토리 대결 중에는 한 번에 ${me.itemRules.perBattle}개까지예요.` : `전투당 사용 횟수 제한은 없어요.`}</p></div>
       <div class="item-shelf">${me.itemDefs.map(d => `<article class="card"><div class="item-name"><b>${esc(d.name)}</b> <span class="tag">${mine(d.id)}개</span></div><p class="note">${esc(d.desc)}</p>${d.heal ? `<button class="btn" data-field="${d.id}" ${mine(d.id) ? '' : 'disabled'}>쓰기 · 갈매미 고르기</button>` : '<small>스토리 대결 중에 사용할 수 있어요</small>'}</article>`).join('')}</div>`;
     el.querySelectorAll('[data-field]').forEach(b => b.onclick = () => {
       if (EMBED) parent.postMessage({ gmm: 'field-item', id: b.dataset.field }, '*');
