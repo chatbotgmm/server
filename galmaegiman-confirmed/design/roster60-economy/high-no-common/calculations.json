@@ -1,0 +1,97 @@
+{
+  "status": "candidate_not_approved",
+  "confirmedDirection": [
+    "no common in HIGH",
+    "HIGH price greater than prior proposed 20"
+  ],
+  "candidate": {
+    "price": 30,
+    "probabilities": {
+      "COMMON": 0,
+      "UNCOMMON": 0.8,
+      "RARE": 0.19,
+      "EPIC": 0.01
+    }
+  },
+  "pity": [
+    {
+      "threshold": 100,
+      "expectedDrawsToFirstEpic": 63.396765872677086,
+      "expectedTicketsToFirstEpic": 1901.9029761803126,
+      "guaranteedMaximumTicketsToAnyEpic": 3000,
+      "probabilityOfReachingPityDraw": 0.36972963764972644
+    },
+    {
+      "threshold": 150,
+      "expectedDrawsToFirstEpic": 77.85482127611391,
+      "expectedTicketsToFirstEpic": 2335.6446382834174,
+      "guaranteedMaximumTicketsToAnyEpic": 4500,
+      "probabilityOfReachingPityDraw": 0.2236886739786474
+    },
+    {
+      "threshold": 200,
+      "expectedDrawsToFirstEpic": 86.60203251420383,
+      "expectedTicketsToFirstEpic": 2598.060975426115,
+      "guaranteedMaximumTicketsToAnyEpic": 6000,
+      "probabilityOfReachingPityDraw": 0.13533300490703204
+    }
+  ],
+  "budgets": [
+    {
+      "label": "ordinaryDay_twoClaims_matureAttendanceDay4",
+      "tickets": 84,
+      "allHighDraws": 2,
+      "leftoverTickets": 24,
+      "expectedDirectEpics": 0.02,
+      "probabilityAtLeastOneDirectEpic": 0.01990000000000003,
+      "prior20TicketHighDraws": 4
+    },
+    {
+      "label": "new7_twoClaimsDaily",
+      "tickets": 738,
+      "allHighDraws": 24,
+      "leftoverTickets": 18,
+      "expectedDirectEpics": 0.24,
+      "probabilityAtLeastOneDirectEpic": 0.21432185919278124,
+      "prior20TicketHighDraws": 36
+    },
+    {
+      "label": "new7_twoClaimsDaily_plusExistingCoupon",
+      "tickets": 1238,
+      "allHighDraws": 41,
+      "leftoverTickets": 8,
+      "expectedDirectEpics": 0.41000000000000003,
+      "probabilityAtLeastOneDirectEpic": 0.33771795901601653,
+      "prior20TicketHighDraws": 61
+    },
+    {
+      "label": "new7_fourClaimsDaily",
+      "tickets": 1158,
+      "allHighDraws": 38,
+      "leftoverTickets": 18,
+      "expectedDirectEpics": 0.38,
+      "probabilityAtLeastOneDirectEpic": 0.31744540498961304,
+      "prior20TicketHighDraws": 57
+    }
+  ],
+  "materialEfficiencyPer100Tickets": {
+    "LOW_proposed": {
+      "COMMON": 25.0,
+      "UNCOMMON": 8.333333333333334,
+      "RARE": 0.0,
+      "EPIC": 0.0
+    },
+    "MID_proposed": {
+      "COMMON": 5.0,
+      "UNCOMMON": 6.875000000000001,
+      "RARE": 0.625,
+      "EPIC": 0.0
+    },
+    "HIGH_candidate": {
+      "COMMON": 0.0,
+      "UNCOMMON": 2.6666666666666665,
+      "RARE": 0.6333333333333333,
+      "EPIC": 0.03333333333333333
+    }
+  }
+}
