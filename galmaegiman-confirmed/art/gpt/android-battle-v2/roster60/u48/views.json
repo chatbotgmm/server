@@ -1,0 +1,229 @@
+{
+  "id": "u48",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "c791fa762fd562ec9227cb28668902ca84dfe6142e0e3831ae5a53387e48306e",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            911,
+            912
+          ],
+          [
+            913,
+            914
+          ],
+          [
+            915,
+            916
+          ],
+          [
+            917,
+            918
+          ],
+          [
+            925,
+            926
+          ],
+          [
+            929,
+            931
+          ],
+          [
+            933,
+            934
+          ],
+          [
+            935,
+            944
+          ],
+          [
+            948,
+            969
+          ]
+        ],
+        "8": [
+          [
+            905,
+            971
+          ]
+        ],
+        "128": [
+          [
+            904,
+            972
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 939,
+      "chosen_gap_l_r_exclusive": [
+        905,
+        971
+      ],
+      "gutter_max_alpha": 5,
+      "equal_half_split_cuts_alpha_gt8": true,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            939,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              0,
+              22,
+              935,
+              871
+            ],
+            "8": [
+              62,
+              24,
+              905,
+              865
+            ],
+            "128": [
+              63,
+              25,
+              904,
+              864
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              0,
+              22,
+              935,
+              871
+            ],
+            "8": [
+              62,
+              24,
+              905,
+              865
+            ],
+            "128": [
+              63,
+              25,
+              904,
+              864
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            483.5,
+            865
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            939,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              5,
+              29,
+              811,
+              855
+            ],
+            "8": [
+              32,
+              35,
+              771,
+              846
+            ],
+            "128": [
+              33,
+              36,
+              770,
+              846
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              944,
+              29,
+              1750,
+              855
+            ],
+            "8": [
+              971,
+              35,
+              1710,
+              846
+            ],
+            "128": [
+              972,
+              36,
+              1709,
+              846
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            401.5,
+            846
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u48/turnaround-original.png"
+    }
+  ],
+  "name": "빙령",
+  "grade": "제한",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [
+    {
+      "view": "rear",
+      "priority": "local_correction_review",
+      "note": "후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요"
+    }
+  ],
+  "runtime_integrated": false,
+  "source_archive": "07_제한_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u48/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        939,
+        887
+      ],
+      "sha256": "c791fa762fd562ec9227cb28668902ca84dfe6142e0e3831ae5a53387e48306e"
+    },
+    "rear": {
+      "file": "u48/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        939,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "c791fa762fd562ec9227cb28668902ca84dfe6142e0e3831ae5a53387e48306e"
+    }
+  }
+}

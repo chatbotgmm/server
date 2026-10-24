@@ -1,0 +1,173 @@
+{
+  "id": "u04",
+  "layout": "separate_files",
+  "files": [
+    {
+      "sha256": "d92d505e0eccf5fcaf4fd8d1ec9f39b3b039a12a68bada738cccd6032da4303c",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "views": [
+        {
+          "view": "front",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              0,
+              17,
+              1200,
+              1232
+            ],
+            "8": [
+              149,
+              60,
+              1143,
+              1205
+            ],
+            "128": [
+              150,
+              60,
+              1142,
+              1204
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              0,
+              17,
+              1200,
+              1232
+            ],
+            "8": [
+              149,
+              60,
+              1143,
+              1205
+            ],
+            "128": [
+              150,
+              60,
+              1142,
+              1204
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            646.0,
+            1205
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u04/front.png"
+    },
+    {
+      "sha256": "4a27811f46fc857ac07a4be35d4de15b2b753ac7787797e977dfec2159362ff3",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "views": [
+        {
+          "view": "rear",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              0,
+              21,
+              1228,
+              1213
+            ],
+            "8": [
+              183,
+              58,
+              1076,
+              1211
+            ],
+            "128": [
+              184,
+              59,
+              1075,
+              1211
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              0,
+              21,
+              1228,
+              1213
+            ],
+            "8": [
+              183,
+              58,
+              1076,
+              1211
+            ],
+            "128": [
+              184,
+              59,
+              1075,
+              1211
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            629.5,
+            1211
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u04/rear.png"
+    }
+  ],
+  "name": "꽃",
+  "grade": "커먼",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [],
+  "runtime_integrated": false,
+  "source_archive": "01_커먼_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u04/front.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        1254,
+        1254
+      ],
+      "sha256": "d92d505e0eccf5fcaf4fd8d1ec9f39b3b039a12a68bada738cccd6032da4303c"
+    },
+    "rear": {
+      "file": "u04/rear.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        1254,
+        1254
+      ],
+      "sha256": "4a27811f46fc857ac07a4be35d4de15b2b753ac7787797e977dfec2159362ff3"
+    }
+  },
+  "front_status": "previously_approved_original_unchanged"
+}

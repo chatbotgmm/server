@@ -1,0 +1,275 @@
+{
+  "id": "u22",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "93a10bf8df8ad62911fdd38fc272303c7470b59637e8ef0f450ebc96f2580a37",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            869,
+            870
+          ],
+          [
+            873,
+            874
+          ],
+          [
+            875,
+            876
+          ],
+          [
+            877,
+            878
+          ],
+          [
+            879,
+            880
+          ],
+          [
+            881,
+            884
+          ],
+          [
+            885,
+            886
+          ],
+          [
+            887,
+            888
+          ],
+          [
+            889,
+            902
+          ],
+          [
+            903,
+            916
+          ],
+          [
+            917,
+            918
+          ],
+          [
+            919,
+            934
+          ],
+          [
+            935,
+            936
+          ],
+          [
+            937,
+            942
+          ],
+          [
+            948,
+            993
+          ],
+          [
+            994,
+            995
+          ],
+          [
+            996,
+            999
+          ],
+          [
+            1000,
+            1017
+          ],
+          [
+            1018,
+            1019
+          ],
+          [
+            1020,
+            1023
+          ],
+          [
+            1024,
+            1025
+          ],
+          [
+            1026,
+            1036
+          ]
+        ],
+        "8": [
+          [
+            863,
+            1041
+          ]
+        ],
+        "128": [
+          [
+            862,
+            1041
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 939,
+      "chosen_gap_l_r_exclusive": [
+        863,
+        1041
+      ],
+      "gutter_max_alpha": 8,
+      "equal_half_split_cuts_alpha_gt8": false,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            939,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              0,
+              61,
+              937,
+              861
+            ],
+            "8": [
+              64,
+              160,
+              863,
+              750
+            ],
+            "128": [
+              65,
+              161,
+              862,
+              749
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              0,
+              61,
+              937,
+              861
+            ],
+            "8": [
+              64,
+              160,
+              863,
+              750
+            ],
+            "128": [
+              65,
+              161,
+              862,
+              749
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            463.5,
+            750
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            939,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              3,
+              96,
+              805,
+              832
+            ],
+            "8": [
+              102,
+              159,
+              783,
+              751
+            ],
+            "128": [
+              102,
+              160,
+              783,
+              751
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              942,
+              96,
+              1744,
+              832
+            ],
+            "8": [
+              1041,
+              159,
+              1722,
+              751
+            ],
+            "128": [
+              1041,
+              160,
+              1722,
+              751
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            442.5,
+            751
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u22/turnaround-original.png"
+    }
+  ],
+  "name": "뇌수",
+  "grade": "레어",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [],
+  "runtime_integrated": false,
+  "source_archive": "03_레어_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u22/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        939,
+        887
+      ],
+      "sha256": "93a10bf8df8ad62911fdd38fc272303c7470b59637e8ef0f450ebc96f2580a37"
+    },
+    "rear": {
+      "file": "u22/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        939,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "93a10bf8df8ad62911fdd38fc272303c7470b59637e8ef0f450ebc96f2580a37"
+    }
+  }
+}

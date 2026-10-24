@@ -1,0 +1,342 @@
+[
+  {
+    "path": "u01/front.png",
+    "sha256": "dfb19fcde7a0b2cc2ed00dd7d106206ac68b2e3b0c486b568724b981a0457122",
+    "original_filename": "u01_기본_앞모습.png"
+  },
+  {
+    "path": "u01/rear.png",
+    "sha256": "e38512508cde1e6b9beddb5b42d33ddcc3b3ff0295739291c52079dd2c839652",
+    "original_filename": "u01_기본_뒷모습.png"
+  },
+  {
+    "path": "u02/front.png",
+    "sha256": "6b0d8362c6d4d33a9679a14e937767ae1880f827d4db961d97c0a56827eeea43",
+    "original_filename": "u02_미니_앞모습.png"
+  },
+  {
+    "path": "u02/rear.png",
+    "sha256": "59684308492d45fa3778b696024edf31b03c081754b4a0d6d30c2a6d19609d7a",
+    "original_filename": "u02_미니_뒷모습.png"
+  },
+  {
+    "path": "u03/front.png",
+    "sha256": "70109328358ba8e2ff1e9853854f2d4e1fba91d89b46df46ceeb14ab751366ba",
+    "original_filename": "u03_자이언트_앞모습.png"
+  },
+  {
+    "path": "u03/rear.png",
+    "sha256": "5c261d65f546e8aca5a197a061741a04842157ac4bfa76ff9fe78ef70cb041ae",
+    "original_filename": "u03_자이언트_뒷모습.png"
+  },
+  {
+    "path": "u04/front.png",
+    "sha256": "d92d505e0eccf5fcaf4fd8d1ec9f39b3b039a12a68bada738cccd6032da4303c",
+    "original_filename": "u04_꽃_앞모습.png"
+  },
+  {
+    "path": "u04/rear.png",
+    "sha256": "4a27811f46fc857ac07a4be35d4de15b2b753ac7787797e977dfec2159362ff3",
+    "original_filename": "u04_꽃_뒷모습.png"
+  },
+  {
+    "path": "u05/front.png",
+    "sha256": "71ef995a5c19caf401e9522a7df139cbb7a368094795b58ecbb467cad33eabc3",
+    "original_filename": "u05_황금_앞모습.png"
+  },
+  {
+    "path": "u05/rear.png",
+    "sha256": "edbd1d43508445752d434de4f5cce6fd4bb9707b1f93699c890996ddf56a957a",
+    "original_filename": "u05_황금_뒷모습.png"
+  },
+  {
+    "path": "u06/front.png",
+    "sha256": "f36c40c9860fa42cca5daee60a1cf839310a3fd355a49de2eb0ac80229654ee5",
+    "original_filename": "u06_물방울_앞모습.png"
+  },
+  {
+    "path": "u06/rear.png",
+    "sha256": "2bc4a432cdacbcf0243a301fee428fde3ef89786db444c8c3553f0a6265630b6",
+    "original_filename": "u06_물방울_뒷모습.png"
+  },
+  {
+    "path": "u07/front.png",
+    "sha256": "da0b49b4410437d2643f1816c63bbfed3aaaa60cfdd12cdc94cf476a48071cc5",
+    "original_filename": "u07_불씨_앞모습.png"
+  },
+  {
+    "path": "u07/rear.png",
+    "sha256": "340e2504d9cdc6da1d5f65738ad982c1cf8d45d8ee20d604efdc4ea16a1ea04a",
+    "original_filename": "u07_불씨_뒷모습.png"
+  },
+  {
+    "path": "u08/front.png",
+    "sha256": "088f86d89112ac50ed3594a640907f9a3f55dc66fce2e43bde7a75b6bf86459f",
+    "original_filename": "u08_그림자_앞모습.png"
+  },
+  {
+    "path": "u08/rear.png",
+    "sha256": "22e2f241519b6925345cd265a8c9d98d9e00dd1bbf1054c6a8369e564aefa91c",
+    "original_filename": "u08_그림자_뒷모습.png"
+  },
+  {
+    "path": "u09/turnaround-original.png",
+    "sha256": "376404486a2fa7a6bfb83e408442b06a35ae8928557a30fc7c9c1c74288dc7bc",
+    "original_filename": "u09_노움_앞뒤.png"
+  },
+  {
+    "path": "u10/turnaround-original.png",
+    "sha256": "83399efa405b4a31304e945a881a326e80b471f2ebdb5f70a71a6987dc5ad109",
+    "original_filename": "u10_정령_앞뒤.png"
+  },
+  {
+    "path": "u11/turnaround-original.png",
+    "sha256": "22fa5b512e8e469fc0259483aeb5d704db1df8ccef30be44da4311f81282e656",
+    "original_filename": "u11_고블린_앞뒤.png"
+  },
+  {
+    "path": "u12/turnaround-original.png",
+    "sha256": "55c938ae49ec3dc3ba30d257ca856d15b782aeeba921b9e626ee957a64b4ba90",
+    "original_filename": "u12_어인_앞뒤.png"
+  },
+  {
+    "path": "u13/turnaround-original.png",
+    "sha256": "045bc5310bdfb76ec551c6c0eebe9c664b6159cf60e5cf39f514523d8c2c54b5",
+    "original_filename": "u13_도깨비_앞뒤.png"
+  },
+  {
+    "path": "u14/turnaround-original.png",
+    "sha256": "e7489dc0cc1c449da8a61d88a65ded69c99126d1293a20ed69e11f1b4a8aca80",
+    "original_filename": "u14_서리_앞뒤.png"
+  },
+  {
+    "path": "u15/turnaround-original.png",
+    "sha256": "9376fce33e55ccb65626780cd052054d323ccc46891ab9d7dcc62e9f0b83b298",
+    "original_filename": "u15_반딧불_앞뒤.png"
+  },
+  {
+    "path": "u16/turnaround-original.png",
+    "sha256": "69f3437294fbcb4ef80a6e055a179f61766cc025be60f44352a686eaa86baa03",
+    "original_filename": "u16_먹구름_앞뒤.png"
+  },
+  {
+    "path": "u17/turnaround-original.png",
+    "sha256": "850e3b62cb7bb7d5a6daee21be033933135dcab136c1e1800995f3fb484de63b",
+    "original_filename": "u17_드워프_앞뒤.png"
+  },
+  {
+    "path": "u18/turnaround-original.png",
+    "sha256": "77f70924bc3a371694da0b2ef14aaa79ca37ffa420b4176873198d0f06c63248",
+    "original_filename": "u18_요정_앞뒤.png"
+  },
+  {
+    "path": "u19/turnaround-original.png",
+    "sha256": "0fa5eeea509daad5c76aad01c9cb9ede32ad4dac99dd43a06cc2c24579095676",
+    "original_filename": "u19_트롤_앞뒤.png"
+  },
+  {
+    "path": "u20/turnaround-original.png",
+    "sha256": "b2745a49e575727d326b4f596c18b6c412dd65607c561202c4cf24167dead579",
+    "original_filename": "u20_세이렌_앞뒤.png"
+  },
+  {
+    "path": "u21/turnaround-original.png",
+    "sha256": "8790554ce77ddef24e5bdfea2b356b1524cf0baab02737f5eace06e8e75221c7",
+    "original_filename": "u21_설인_앞뒤.png"
+  },
+  {
+    "path": "u22/turnaround-original.png",
+    "sha256": "93a10bf8df8ad62911fdd38fc272303c7470b59637e8ef0f450ebc96f2580a37",
+    "original_filename": "u22_뇌수_앞뒤.png"
+  },
+  {
+    "path": "u23/turnaround-original.png",
+    "sha256": "e7ebfc60ccf9277bdd6085d17b7f61cc9157e7c71f465b709ddebc37743bd84a",
+    "original_filename": "u23_가고일_앞뒤.png"
+  },
+  {
+    "path": "u24/turnaround-original.png",
+    "sha256": "ee9e50fff31c320ccde502864e9f3188ced7494ef80788073131331104517cb4",
+    "original_filename": "u24_불도마뱀_앞뒤.png"
+  },
+  {
+    "path": "u25/turnaround-original.png",
+    "sha256": "2db739e2927477a7cf98644299097518876da31127c7802d2f9dea5f62321c48",
+    "original_filename": "u25_룬장인_앞뒤.png"
+  },
+  {
+    "path": "u26/turnaround-original.png",
+    "sha256": "4de07afbb1a01bcba32f649651005dcd94c9820f5267758166dfb43b2802defa",
+    "original_filename": "u26_드라이어드_앞뒤.png"
+  },
+  {
+    "path": "u27/turnaround-original.png",
+    "sha256": "de152bbb607dff3ff823477ad5a5112e75ab1bd067112f0d33668d07da5a547f",
+    "original_filename": "u27_미노타우로스_앞뒤.png"
+  },
+  {
+    "path": "u28/turnaround-original.png",
+    "sha256": "61732bac09f9517169a9e0336a11f70c557b25539d5ff38e1d031101dd96eef9",
+    "original_filename": "u28_인어기사_앞뒤.png"
+  },
+  {
+    "path": "u29/turnaround-original.png",
+    "sha256": "22e2e755f7f9db1462997e04f832e654c4c4c7b16c1a4a77bcf33fc454bd2920",
+    "original_filename": "u29_서리마녀_앞뒤.png"
+  },
+  {
+    "path": "u30/turnaround-original.png",
+    "sha256": "0aa6fd5d793f0ab5bd2afb7f8d1fc7bd32df5ad8a47c68592801c20fd1a8b238",
+    "original_filename": "u30_그리핀_앞뒤.png"
+  },
+  {
+    "path": "u31/turnaround-original.png",
+    "sha256": "7ea14d1240907400b24957a6b5c297f6bf1f0faf5aa475106a8942ee7e7210be",
+    "original_filename": "u31_듀라한_앞뒤.png"
+  },
+  {
+    "path": "u32/turnaround-original.png",
+    "sha256": "61b8aa73c42233508685b5bc351b8312ddb1add1ef5c99186c7824837ef7dff0",
+    "original_filename": "u32_화룡_앞뒤.png"
+  },
+  {
+    "path": "u33/turnaround-original.png",
+    "sha256": "2de976efd10f7009cfda28d3683fe27226a0e9668972a78b27a55f5f821e7cd2",
+    "original_filename": "u33_거장_앞뒤.png"
+  },
+  {
+    "path": "u34/turnaround-original.png",
+    "sha256": "09d627826f438e24ad60323377ac4a928091282ed97d1658412a0eea744f065d",
+    "original_filename": "u34_가시여왕_앞뒤.png"
+  },
+  {
+    "path": "u35/turnaround-original.png",
+    "sha256": "564ae46d305a037bc45c10bf0e4f1c6da407b317ff29a7188a603609bf042d4f",
+    "original_filename": "u35_네레이드_앞뒤.png"
+  },
+  {
+    "path": "u36/turnaround-original.png",
+    "sha256": "43e826c08045faa21a8f77bc28a60618e983ce641702ad669e9520e445dc1c71",
+    "original_filename": "u36_설랑_앞뒤.png"
+  },
+  {
+    "path": "u37/turnaround-original.png",
+    "sha256": "26d7329364b304f908978ae0215747886d1c0eec506a95e75446533568d3b215",
+    "original_filename": "u37_뇌호_앞뒤.png"
+  },
+  {
+    "path": "u38/turnaround-original.png",
+    "sha256": "0dbce386d74013ad234690b6d333459340a7a88c479ab82a063abd28e44dd79f",
+    "original_filename": "u38_잿불새_앞뒤.png"
+  },
+  {
+    "path": "u39/turnaround-original.png",
+    "sha256": "47e2c902e03f753142a016b560cb537669f23a09d439640b8369c75d32c20c0e",
+    "original_filename": "u39_무명_앞뒤.png"
+  },
+  {
+    "path": "u40/turnaround-original.png",
+    "sha256": "9de193198c42a8cae59d0fc38137a9693174ff67d250925a9fc3ee27b3eb307d",
+    "original_filename": "u40_몽마_앞뒤.png"
+  },
+  {
+    "path": "u41/turnaround-original.png",
+    "sha256": "8c15e5bd011c02dac7a5059755a41a9fd819c45aab68ba464daf3ce6767e9e70",
+    "original_filename": "u41_수경_앞뒤.png"
+  },
+  {
+    "path": "u42/turnaround-original.png",
+    "sha256": "039857807c0fa0685f4ce208eb5b9c83e4acef100f2cc0f8e994e9511b1d6495",
+    "original_filename": "u42_흑등_앞뒤.png"
+  },
+  {
+    "path": "u43/turnaround-original.png",
+    "sha256": "abc03a1f4a20b84571ee910a558dd403542b0dfa46576e0907ebfafdb67a556f",
+    "original_filename": "u43_금각_앞뒤.png"
+  },
+  {
+    "path": "u44/turnaround-original.png",
+    "sha256": "c2487ac40e54217ab29f6011822e73e2b45b0bc1949f5540d0003c64099a1fe7",
+    "original_filename": "u44_꽃무덤_앞뒤.png"
+  },
+  {
+    "path": "u45/turnaround-original.png",
+    "sha256": "2894c3184b15535e1eeca63e7beb64647fea03e5a933e9d0e2958bba20ead1b1",
+    "original_filename": "u45_타이탄_앞뒤.png"
+  },
+  {
+    "path": "u46/turnaround-original.png",
+    "sha256": "4701faad53901796fa1cb0b98456e014f2d095d2cd9794af3d5637888e7f2f3d",
+    "original_filename": "u46_베히모스_앞뒤.png"
+  },
+  {
+    "path": "u47/turnaround-original.png",
+    "sha256": "3870c73fc74e860f46308e16d0c8b4c7b4d7444df4d03f754a04a69c28407201",
+    "original_filename": "u47_이프리트_앞뒤.png"
+  },
+  {
+    "path": "u48/turnaround-original.png",
+    "sha256": "c791fa762fd562ec9227cb28668902ca84dfe6142e0e3831ae5a53387e48306e",
+    "original_filename": "u48_빙령_앞뒤.png"
+  },
+  {
+    "path": "u49/turnaround-original.png",
+    "sha256": "a7022cf5a71062105a41933dfc8c352efa79a86f2d52953e1b018ce4b7bcfb0a",
+    "original_filename": "u49_가루다_앞뒤.png"
+  },
+  {
+    "path": "u50/turnaround-original.png",
+    "sha256": "e22674195ddedd805a01a1342fce5d2005bb4fd36e4eb925515e16bbb99b4ee3",
+    "original_filename": "u50_레비아탄_앞뒤.png"
+  },
+  {
+    "path": "u51/turnaround-original.png",
+    "sha256": "2ccd891168f47bdbfd34767cc5ba9ea94a9952ed4d89ad0e6b321747e56b3714",
+    "original_filename": "u51_세계수_앞뒤.png"
+  },
+  {
+    "path": "u52/turnaround-original.png",
+    "sha256": "49dde8146c2fd2bab50a1c110b0709da9a6a05d08df6af2254b9be64ee76470f",
+    "original_filename": "u52_망령_앞뒤.png"
+  },
+  {
+    "path": "u53/turnaround-original.png",
+    "sha256": "7ff19eb42c52c322652e749f483b5089b9454156a1251248d5a5fe2582922f27",
+    "original_filename": "u53_피닉스_앞뒤.png"
+  },
+  {
+    "path": "u54/turnaround-original.png",
+    "sha256": "b7d3d4e419104dfdb3ef1111407eb11c6271ee6f1c1f298475a6248d6e99d1f2",
+    "original_filename": "u54_등불정령_앞뒤.png"
+  },
+  {
+    "path": "u55/turnaround-original.png",
+    "sha256": "b269d9fae442395666421a8127b350e617e65613be0c36d88e175871e57b24a8",
+    "original_filename": "u55_우로보로스_앞뒤.png"
+  },
+  {
+    "path": "u56/turnaround-original.png",
+    "sha256": "3771a975c9e126d84da73f5b6411cef36124ee0852315e11ded615c9a862a169",
+    "original_filename": "u56_리치_앞뒤.png"
+  },
+  {
+    "path": "u57/turnaround-original.png",
+    "sha256": "18c073b6bc0d9d91e8658517a66164e870554fca31720563603800d9cb1696d6",
+    "original_filename": "u57_여명_앞뒤.png"
+  },
+  {
+    "path": "u58/turnaround-original.png",
+    "sha256": "b514e9b4ad82c047e894ccf33248bb1a25d473e03373721084716bac88807ce3",
+    "original_filename": "u58_설왕_앞뒤.png"
+  },
+  {
+    "path": "u59/turnaround-original.png",
+    "sha256": "767ff3207a4778a1681796965c65b532bc84f2a80d85a37783cf12ae698a4af3",
+    "original_filename": "u59_영야_앞뒤.png"
+  },
+  {
+    "path": "u60/turnaround-original.png",
+    "sha256": "28649ce44b1641fc8687425c6125f39569da60d9028faf260c09ce9eef9c2111",
+    "original_filename": "u60_해룡_앞뒤.png"
+  }
+]

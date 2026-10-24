@@ -1,0 +1,245 @@
+{
+  "id": "u31",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "7ea14d1240907400b24957a6b5c297f6bf1f0faf5aa475106a8942ee7e7210be",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            890,
+            902
+          ],
+          [
+            903,
+            908
+          ],
+          [
+            909,
+            916
+          ],
+          [
+            917,
+            924
+          ],
+          [
+            925,
+            926
+          ],
+          [
+            927,
+            928
+          ],
+          [
+            929,
+            930
+          ],
+          [
+            931,
+            932
+          ],
+          [
+            933,
+            934
+          ],
+          [
+            937,
+            938
+          ],
+          [
+            946,
+            950
+          ],
+          [
+            951,
+            952
+          ],
+          [
+            954,
+            955
+          ]
+        ],
+        "8": [
+          [
+            888,
+            960
+          ]
+        ],
+        "128": [
+          [
+            887,
+            961
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 920,
+      "chosen_gap_l_r_exclusive": [
+        888,
+        960
+      ],
+      "gutter_max_alpha": 5,
+      "equal_half_split_cuts_alpha_gt8": true,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            920,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              25,
+              17,
+              917,
+              875
+            ],
+            "8": [
+              80,
+              19,
+              888,
+              873
+            ],
+            "128": [
+              81,
+              20,
+              887,
+              872
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              25,
+              17,
+              917,
+              875
+            ],
+            "8": [
+              80,
+              19,
+              888,
+              873
+            ],
+            "128": [
+              81,
+              20,
+              887,
+              872
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            484.0,
+            873
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            920,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              4,
+              13,
+              776,
+              867
+            ],
+            "8": [
+              40,
+              15,
+              773,
+              859
+            ],
+            "128": [
+              41,
+              16,
+              772,
+              858
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              924,
+              13,
+              1696,
+              867
+            ],
+            "8": [
+              960,
+              15,
+              1693,
+              859
+            ],
+            "128": [
+              961,
+              16,
+              1692,
+              858
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            406.5,
+            859
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u31/turnaround-original.png"
+    }
+  ],
+  "name": "듀라한",
+  "grade": "에픽",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [
+    {
+      "view": "rear",
+      "priority": "reconstruction_needed",
+      "note": "후면 몸통/앞치마 또는 갑옷의 앞뒤 구조 재검토 필요"
+    }
+  ],
+  "runtime_integrated": false,
+  "source_archive": "04_에픽_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u31/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        920,
+        887
+      ],
+      "sha256": "7ea14d1240907400b24957a6b5c297f6bf1f0faf5aa475106a8942ee7e7210be"
+    },
+    "rear": {
+      "file": "u31/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        920,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "7ea14d1240907400b24957a6b5c297f6bf1f0faf5aa475106a8942ee7e7210be"
+    }
+  }
+}

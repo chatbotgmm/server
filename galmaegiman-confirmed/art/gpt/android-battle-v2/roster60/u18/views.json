@@ -1,0 +1,287 @@
+{
+  "id": "u18",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "77f70924bc3a371694da0b2ef14aaa79ca37ffa420b4176873198d0f06c63248",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            841,
+            842
+          ],
+          [
+            843,
+            844
+          ],
+          [
+            845,
+            846
+          ],
+          [
+            847,
+            848
+          ],
+          [
+            849,
+            850
+          ],
+          [
+            851,
+            852
+          ],
+          [
+            853,
+            854
+          ],
+          [
+            873,
+            874
+          ],
+          [
+            875,
+            876
+          ],
+          [
+            877,
+            878
+          ],
+          [
+            879,
+            880
+          ],
+          [
+            881,
+            882
+          ],
+          [
+            885,
+            886
+          ],
+          [
+            887,
+            888
+          ],
+          [
+            889,
+            890
+          ],
+          [
+            891,
+            892
+          ],
+          [
+            893,
+            896
+          ],
+          [
+            897,
+            898
+          ],
+          [
+            899,
+            908
+          ],
+          [
+            909,
+            912
+          ],
+          [
+            913,
+            914
+          ],
+          [
+            915,
+            916
+          ],
+          [
+            917,
+            918
+          ],
+          [
+            919,
+            938
+          ],
+          [
+            950,
+            954
+          ]
+        ],
+        "8": [
+          [
+            839,
+            958
+          ]
+        ],
+        "128": [
+          [
+            838,
+            959
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 894,
+      "chosen_gap_l_r_exclusive": [
+        839,
+        958
+      ],
+      "gutter_max_alpha": 5,
+      "equal_half_split_cuts_alpha_gt8": false,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            894,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              12,
+              9,
+              893,
+              887
+            ],
+            "8": [
+              81,
+              46,
+              839,
+              834
+            ],
+            "128": [
+              82,
+              47,
+              838,
+              833
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              12,
+              9,
+              893,
+              887
+            ],
+            "8": [
+              81,
+              46,
+              839,
+              834
+            ],
+            "128": [
+              82,
+              47,
+              838,
+              833
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            460.0,
+            834
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            894,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              2,
+              19,
+              856,
+              887
+            ],
+            "8": [
+              64,
+              38,
+              815,
+              843
+            ],
+            "128": [
+              65,
+              40,
+              814,
+              842
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              896,
+              19,
+              1750,
+              887
+            ],
+            "8": [
+              958,
+              38,
+              1709,
+              843
+            ],
+            "128": [
+              959,
+              40,
+              1708,
+              842
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            439.5,
+            843
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u18/turnaround-original.png"
+    }
+  ],
+  "name": "요정",
+  "grade": "레어",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [],
+  "runtime_integrated": false,
+  "source_archive": "03_레어_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u18/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        894,
+        887
+      ],
+      "sha256": "77f70924bc3a371694da0b2ef14aaa79ca37ffa420b4176873198d0f06c63248"
+    },
+    "rear": {
+      "file": "u18/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        894,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "77f70924bc3a371694da0b2ef14aaa79ca37ffa420b4176873198d0f06c63248"
+    }
+  }
+}

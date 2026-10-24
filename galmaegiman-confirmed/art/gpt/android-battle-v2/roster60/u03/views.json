@@ -1,0 +1,179 @@
+{
+  "id": "u03",
+  "layout": "separate_files",
+  "files": [
+    {
+      "sha256": "70109328358ba8e2ff1e9853854f2d4e1fba91d89b46df46ceeb14ab751366ba",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "views": [
+        {
+          "view": "front",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              41,
+              57,
+              1242,
+              1190
+            ],
+            "8": [
+              186,
+              348,
+              1078,
+              964
+            ],
+            "128": [
+              187,
+              349,
+              1077,
+              963
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              41,
+              57,
+              1242,
+              1190
+            ],
+            "8": [
+              186,
+              348,
+              1078,
+              964
+            ],
+            "128": [
+              187,
+              349,
+              1077,
+              963
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            632.0,
+            964
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u03/front.png"
+    },
+    {
+      "sha256": "5c261d65f546e8aca5a197a061741a04842157ac4bfa76ff9fe78ef70cb041ae",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "views": [
+        {
+          "view": "rear",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              32,
+              32,
+              1241,
+              1254
+            ],
+            "8": [
+              34,
+              209,
+              1239,
+              1062
+            ],
+            "128": [
+              35,
+              210,
+              1238,
+              1062
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              32,
+              32,
+              1241,
+              1254
+            ],
+            "8": [
+              34,
+              209,
+              1239,
+              1062
+            ],
+            "128": [
+              35,
+              210,
+              1238,
+              1062
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            636.5,
+            1062
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u03/rear.png"
+    }
+  ],
+  "name": "자이언트",
+  "grade": "커먼",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [
+    {
+      "view": "rear",
+      "priority": "construction_check",
+      "note": "겹침/장착 구조가 모호해 추가 구조 확인 필요"
+    }
+  ],
+  "runtime_integrated": false,
+  "source_archive": "01_커먼_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u03/front.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        1254,
+        1254
+      ],
+      "sha256": "70109328358ba8e2ff1e9853854f2d4e1fba91d89b46df46ceeb14ab751366ba"
+    },
+    "rear": {
+      "file": "u03/rear.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        1254,
+        1254
+      ],
+      "sha256": "5c261d65f546e8aca5a197a061741a04842157ac4bfa76ff9fe78ef70cb041ae"
+    }
+  },
+  "front_status": "previously_approved_original_unchanged"
+}

@@ -1,0 +1,201 @@
+{
+  "id": "u23",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "e7ebfc60ccf9277bdd6085d17b7f61cc9157e7c71f465b709ddebc37743bd84a",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            919,
+            920
+          ],
+          [
+            921,
+            945
+          ]
+        ],
+        "8": [
+          [
+            917,
+            947
+          ]
+        ],
+        "128": [
+          [
+            915,
+            948
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 933,
+      "chosen_gap_l_r_exclusive": [
+        917,
+        947
+      ],
+      "gutter_max_alpha": 5,
+      "equal_half_split_cuts_alpha_gt8": true,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            933,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              0,
+              16,
+              921,
+              853
+            ],
+            "8": [
+              46,
+              18,
+              917,
+              851
+            ],
+            "128": [
+              47,
+              18,
+              915,
+              850
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              0,
+              16,
+              921,
+              853
+            ],
+            "8": [
+              46,
+              18,
+              917,
+              851
+            ],
+            "128": [
+              47,
+              18,
+              915,
+              850
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            481.5,
+            851
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            933,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              12,
+              14,
+              811,
+              867
+            ],
+            "8": [
+              14,
+              16,
+              806,
+              862
+            ],
+            "128": [
+              15,
+              17,
+              805,
+              861
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              945,
+              14,
+              1744,
+              867
+            ],
+            "8": [
+              947,
+              16,
+              1739,
+              862
+            ],
+            "128": [
+              948,
+              17,
+              1738,
+              861
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            410.0,
+            862
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u23/turnaround-original.png"
+    }
+  ],
+  "name": "가고일",
+  "grade": "레어",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [
+    {
+      "view": "rear",
+      "priority": "construction_check",
+      "note": "겹침/장착 구조가 모호해 추가 구조 확인 필요"
+    }
+  ],
+  "runtime_integrated": false,
+  "source_archive": "03_레어_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u23/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        933,
+        887
+      ],
+      "sha256": "e7ebfc60ccf9277bdd6085d17b7f61cc9157e7c71f465b709ddebc37743bd84a"
+    },
+    "rear": {
+      "file": "u23/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        933,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "e7ebfc60ccf9277bdd6085d17b7f61cc9157e7c71f465b709ddebc37743bd84a"
+    }
+  }
+}

@@ -1,0 +1,191 @@
+{
+  "id": "u46",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "4701faad53901796fa1cb0b98456e014f2d095d2cd9794af3d5637888e7f2f3d",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            901,
+            902
+          ]
+        ],
+        "8": [
+          [
+            888,
+            937
+          ]
+        ],
+        "128": [
+          [
+            887,
+            938
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 912,
+      "chosen_gap_l_r_exclusive": [
+        888,
+        937
+      ],
+      "gutter_max_alpha": 5,
+      "equal_half_split_cuts_alpha_gt8": true,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 24,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": true,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            912,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              0,
+              15,
+              912,
+              863
+            ],
+            "8": [
+              82,
+              93,
+              888,
+              804
+            ],
+            "128": [
+              83,
+              94,
+              887,
+              803
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              0,
+              15,
+              912,
+              863
+            ],
+            "8": [
+              82,
+              93,
+              888,
+              804
+            ],
+            "128": [
+              83,
+              94,
+              887,
+              803
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            485.0,
+            804
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            912,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              0,
+              17,
+              846,
+              859
+            ],
+            "8": [
+              25,
+              104,
+              793,
+              799
+            ],
+            "128": [
+              26,
+              105,
+              792,
+              798
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              912,
+              17,
+              1758,
+              859
+            ],
+            "8": [
+              937,
+              104,
+              1705,
+              799
+            ],
+            "128": [
+              938,
+              105,
+              1704,
+              798
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            409.0,
+            799
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u46/turnaround-original.png"
+    }
+  ],
+  "name": "베히모스",
+  "grade": "제한",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [],
+  "runtime_integrated": false,
+  "source_archive": "07_제한_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u46/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        912,
+        887
+      ],
+      "sha256": "4701faad53901796fa1cb0b98456e014f2d095d2cd9794af3d5637888e7f2f3d"
+    },
+    "rear": {
+      "file": "u46/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        912,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "4701faad53901796fa1cb0b98456e014f2d095d2cd9794af3d5637888e7f2f3d"
+    }
+  }
+}

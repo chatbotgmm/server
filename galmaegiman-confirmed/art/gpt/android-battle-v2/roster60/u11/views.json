@@ -1,0 +1,251 @@
+{
+  "id": "u11",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "22fa5b512e8e469fc0259483aeb5d704db1df8ccef30be44da4311f81282e656",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            889,
+            890
+          ],
+          [
+            901,
+            902
+          ],
+          [
+            903,
+            904
+          ],
+          [
+            905,
+            906
+          ],
+          [
+            907,
+            912
+          ],
+          [
+            913,
+            914
+          ],
+          [
+            915,
+            916
+          ],
+          [
+            917,
+            918
+          ],
+          [
+            919,
+            920
+          ],
+          [
+            921,
+            922
+          ],
+          [
+            925,
+            926
+          ],
+          [
+            927,
+            928
+          ],
+          [
+            929,
+            930
+          ],
+          [
+            931,
+            932
+          ],
+          [
+            933,
+            936
+          ],
+          [
+            946,
+            950
+          ]
+        ],
+        "8": [
+          [
+            881,
+            954
+          ]
+        ],
+        "128": [
+          [
+            880,
+            955
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 909,
+      "chosen_gap_l_r_exclusive": [
+        881,
+        954
+      ],
+      "gutter_max_alpha": 6,
+      "equal_half_split_cuts_alpha_gt8": false,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            909,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              0,
+              9,
+              907,
+              887
+            ],
+            "8": [
+              96,
+              18,
+              881,
+              868
+            ],
+            "128": [
+              97,
+              19,
+              880,
+              867
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              0,
+              9,
+              907,
+              887
+            ],
+            "8": [
+              96,
+              18,
+              881,
+              868
+            ],
+            "128": [
+              97,
+              19,
+              880,
+              867
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            488.5,
+            868
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            909,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              3,
+              21,
+              845,
+              869
+            ],
+            "8": [
+              45,
+              24,
+              782,
+              863
+            ],
+            "128": [
+              46,
+              25,
+              781,
+              862
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              912,
+              21,
+              1754,
+              869
+            ],
+            "8": [
+              954,
+              24,
+              1691,
+              863
+            ],
+            "128": [
+              955,
+              25,
+              1690,
+              862
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            413.5,
+            863
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u11/turnaround-original.png"
+    }
+  ],
+  "name": "고블린",
+  "grade": "언커먼",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [],
+  "runtime_integrated": false,
+  "source_archive": "02_언커먼_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u11/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        909,
+        887
+      ],
+      "sha256": "22fa5b512e8e469fc0259483aeb5d704db1df8ccef30be44da4311f81282e656"
+    },
+    "rear": {
+      "file": "u11/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        909,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "22fa5b512e8e469fc0259483aeb5d704db1df8ccef30be44da4311f81282e656"
+    }
+  }
+}

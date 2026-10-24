@@ -1,0 +1,307 @@
+{
+  "id": "u57",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "18c073b6bc0d9d91e8658517a66164e870554fca31720563603800d9cb1696d6",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            873,
+            874
+          ],
+          [
+            875,
+            876
+          ],
+          [
+            879,
+            880
+          ],
+          [
+            881,
+            882
+          ],
+          [
+            885,
+            886
+          ],
+          [
+            887,
+            888
+          ],
+          [
+            889,
+            890
+          ],
+          [
+            893,
+            894
+          ],
+          [
+            895,
+            896
+          ],
+          [
+            897,
+            898
+          ],
+          [
+            899,
+            900
+          ],
+          [
+            901,
+            902
+          ],
+          [
+            903,
+            904
+          ],
+          [
+            905,
+            908
+          ],
+          [
+            909,
+            912
+          ],
+          [
+            913,
+            914
+          ],
+          [
+            915,
+            916
+          ],
+          [
+            917,
+            918
+          ],
+          [
+            919,
+            920
+          ],
+          [
+            923,
+            924
+          ],
+          [
+            925,
+            928
+          ],
+          [
+            929,
+            934
+          ],
+          [
+            935,
+            940
+          ],
+          [
+            943,
+            944
+          ],
+          [
+            948,
+            949
+          ],
+          [
+            952,
+            965
+          ],
+          [
+            966,
+            967
+          ],
+          [
+            974,
+            975
+          ],
+          [
+            976,
+            977
+          ],
+          [
+            978,
+            979
+          ]
+        ],
+        "8": [
+          [
+            860,
+            984
+          ]
+        ],
+        "128": [
+          [
+            860,
+            985
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 926,
+      "chosen_gap_l_r_exclusive": [
+        860,
+        984
+      ],
+      "gutter_max_alpha": 8,
+      "equal_half_split_cuts_alpha_gt8": false,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            926,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              37,
+              27,
+              925,
+              887
+            ],
+            "8": [
+              60,
+              54,
+              860,
+              852
+            ],
+            "128": [
+              61,
+              55,
+              860,
+              852
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              37,
+              27,
+              925,
+              887
+            ],
+            "8": [
+              60,
+              54,
+              860,
+              852
+            ],
+            "128": [
+              61,
+              55,
+              860,
+              852
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            460.0,
+            852
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            926,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              2,
+              23,
+              798,
+              871
+            ],
+            "8": [
+              58,
+              60,
+              795,
+              830
+            ],
+            "128": [
+              59,
+              61,
+              794,
+              830
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              928,
+              23,
+              1724,
+              871
+            ],
+            "8": [
+              984,
+              60,
+              1721,
+              830
+            ],
+            "128": [
+              985,
+              61,
+              1720,
+              830
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            426.5,
+            830
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u57/turnaround-original.png"
+    }
+  ],
+  "name": "여명",
+  "grade": "영원",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [],
+  "runtime_integrated": false,
+  "source_archive": "10_영원_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u57/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        926,
+        887
+      ],
+      "sha256": "18c073b6bc0d9d91e8658517a66164e870554fca31720563603800d9cb1696d6"
+    },
+    "rear": {
+      "file": "u57/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        926,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "18c073b6bc0d9d91e8658517a66164e870554fca31720563603800d9cb1696d6"
+    }
+  }
+}

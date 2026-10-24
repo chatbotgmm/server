@@ -1,0 +1,285 @@
+{
+  "id": "u39",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "47e2c902e03f753142a016b560cb537669f23a09d439640b8369c75d32c20c0e",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            857,
+            864
+          ],
+          [
+            865,
+            866
+          ],
+          [
+            867,
+            868
+          ],
+          [
+            869,
+            870
+          ],
+          [
+            871,
+            872
+          ],
+          [
+            885,
+            886
+          ],
+          [
+            887,
+            888
+          ],
+          [
+            889,
+            890
+          ],
+          [
+            893,
+            894
+          ],
+          [
+            895,
+            896
+          ],
+          [
+            897,
+            898
+          ],
+          [
+            899,
+            902
+          ],
+          [
+            903,
+            904
+          ],
+          [
+            905,
+            906
+          ],
+          [
+            907,
+            912
+          ],
+          [
+            913,
+            914
+          ],
+          [
+            917,
+            918
+          ],
+          [
+            919,
+            936
+          ],
+          [
+            937,
+            938
+          ],
+          [
+            940,
+            960
+          ],
+          [
+            962,
+            965
+          ],
+          [
+            966,
+            967
+          ],
+          [
+            970,
+            972
+          ]
+        ],
+        "8": [
+          [
+            854,
+            976
+          ]
+        ],
+        "128": [
+          [
+            854,
+            977
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 909,
+      "chosen_gap_l_r_exclusive": [
+        854,
+        976
+      ],
+      "gutter_max_alpha": 7,
+      "equal_half_split_cuts_alpha_gt8": false,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            909,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              30,
+              33,
+              907,
+              887
+            ],
+            "8": [
+              32,
+              37,
+              854,
+              859
+            ],
+            "128": [
+              33,
+              38,
+              854,
+              858
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              30,
+              33,
+              907,
+              887
+            ],
+            "8": [
+              32,
+              37,
+              854,
+              859
+            ],
+            "128": [
+              33,
+              38,
+              854,
+              858
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            443.0,
+            859
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            909,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              3,
+              63,
+              833,
+              847
+            ],
+            "8": [
+              67,
+              65,
+              828,
+              836
+            ],
+            "128": [
+              68,
+              66,
+              828,
+              835
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              912,
+              63,
+              1742,
+              847
+            ],
+            "8": [
+              976,
+              65,
+              1737,
+              836
+            ],
+            "128": [
+              977,
+              66,
+              1737,
+              835
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            447.5,
+            836
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u39/turnaround-original.png"
+    }
+  ],
+  "name": "무명",
+  "grade": "히든",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [
+    {
+      "view": "rear",
+      "priority": "local_correction_review",
+      "note": "후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요"
+    }
+  ],
+  "runtime_integrated": false,
+  "source_archive": "06_히든_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u39/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        909,
+        887
+      ],
+      "sha256": "47e2c902e03f753142a016b560cb537669f23a09d439640b8369c75d32c20c0e"
+    },
+    "rear": {
+      "file": "u39/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        909,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "47e2c902e03f753142a016b560cb537669f23a09d439640b8369c75d32c20c0e"
+    }
+  }
+}

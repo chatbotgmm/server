@@ -1,0 +1,197 @@
+{
+  "id": "u27",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "de152bbb607dff3ff823477ad5a5112e75ab1bd067112f0d33668d07da5a547f",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            883,
+            892
+          ]
+        ],
+        "8": [
+          [
+            878,
+            897
+          ]
+        ],
+        "128": [
+          [
+            877,
+            898
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 887,
+      "chosen_gap_l_r_exclusive": [
+        878,
+        897
+      ],
+      "gutter_max_alpha": 4,
+      "equal_half_split_cuts_alpha_gt8": false,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            887,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              0,
+              27,
+              883,
+              859
+            ],
+            "8": [
+              11,
+              32,
+              878,
+              856
+            ],
+            "128": [
+              12,
+              33,
+              877,
+              855
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              0,
+              27,
+              883,
+              859
+            ],
+            "8": [
+              11,
+              32,
+              878,
+              856
+            ],
+            "128": [
+              12,
+              33,
+              877,
+              855
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            444.5,
+            856
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            887,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              5,
+              29,
+              887,
+              865
+            ],
+            "8": [
+              10,
+              47,
+              877,
+              848
+            ],
+            "128": [
+              11,
+              48,
+              876,
+              847
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              892,
+              29,
+              1774,
+              865
+            ],
+            "8": [
+              897,
+              47,
+              1764,
+              848
+            ],
+            "128": [
+              898,
+              48,
+              1763,
+              847
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            443.5,
+            848
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u27/turnaround-original.png"
+    }
+  ],
+  "name": "미노타우로스",
+  "grade": "에픽",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [
+    {
+      "view": "rear",
+      "priority": "local_correction_review",
+      "note": "후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요"
+    }
+  ],
+  "runtime_integrated": false,
+  "source_archive": "04_에픽_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u27/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        887,
+        887
+      ],
+      "sha256": "de152bbb607dff3ff823477ad5a5112e75ab1bd067112f0d33668d07da5a547f"
+    },
+    "rear": {
+      "file": "u27/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        887,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "de152bbb607dff3ff823477ad5a5112e75ab1bd067112f0d33668d07da5a547f"
+    }
+  }
+}

@@ -1,0 +1,313 @@
+{
+  "id": "u56",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "3771a975c9e126d84da73f5b6411cef36124ee0852315e11ded615c9a862a169",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            825,
+            836
+          ],
+          [
+            837,
+            840
+          ],
+          [
+            841,
+            842
+          ],
+          [
+            843,
+            844
+          ],
+          [
+            845,
+            846
+          ],
+          [
+            847,
+            848
+          ],
+          [
+            849,
+            850
+          ],
+          [
+            852,
+            856
+          ],
+          [
+            857,
+            858
+          ],
+          [
+            859,
+            872
+          ],
+          [
+            873,
+            874
+          ],
+          [
+            875,
+            876
+          ],
+          [
+            877,
+            878
+          ],
+          [
+            879,
+            880
+          ],
+          [
+            881,
+            883
+          ],
+          [
+            885,
+            904
+          ],
+          [
+            905,
+            918
+          ],
+          [
+            921,
+            922
+          ],
+          [
+            923,
+            924
+          ],
+          [
+            925,
+            926
+          ],
+          [
+            927,
+            928
+          ],
+          [
+            929,
+            930
+          ],
+          [
+            931,
+            932
+          ],
+          [
+            933,
+            934
+          ],
+          [
+            935,
+            936
+          ],
+          [
+            937,
+            952
+          ],
+          [
+            962,
+            963
+          ],
+          [
+            964,
+            967
+          ],
+          [
+            968,
+            971
+          ],
+          [
+            972,
+            973
+          ]
+        ],
+        "8": [
+          [
+            823,
+            979
+          ]
+        ],
+        "128": [
+          [
+            822,
+            980
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 894,
+      "chosen_gap_l_r_exclusive": [
+        823,
+        979
+      ],
+      "gutter_max_alpha": 4,
+      "equal_half_split_cuts_alpha_gt8": false,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            894,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              31,
+              16,
+              885,
+              887
+            ],
+            "8": [
+              44,
+              67,
+              823,
+              830
+            ],
+            "128": [
+              45,
+              68,
+              822,
+              829
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              31,
+              16,
+              885,
+              887
+            ],
+            "8": [
+              44,
+              67,
+              823,
+              830
+            ],
+            "128": [
+              45,
+              68,
+              822,
+              829
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            433.5,
+            830
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            894,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              10,
+              29,
+              853,
+              863
+            ],
+            "8": [
+              85,
+              66,
+              850,
+              819
+            ],
+            "128": [
+              86,
+              67,
+              850,
+              818
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              904,
+              29,
+              1747,
+              863
+            ],
+            "8": [
+              979,
+              66,
+              1744,
+              819
+            ],
+            "128": [
+              980,
+              67,
+              1744,
+              818
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            467.5,
+            819
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u56/turnaround-original.png"
+    }
+  ],
+  "name": "리치",
+  "grade": "불멸",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [
+    {
+      "view": "rear",
+      "priority": "local_correction_review",
+      "note": "후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요"
+    }
+  ],
+  "runtime_integrated": false,
+  "source_archive": "09_불멸_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u56/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        894,
+        887
+      ],
+      "sha256": "3771a975c9e126d84da73f5b6411cef36124ee0852315e11ded615c9a862a169"
+    },
+    "rear": {
+      "file": "u56/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        894,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "3771a975c9e126d84da73f5b6411cef36124ee0852315e11ded615c9a862a169"
+    }
+  }
+}

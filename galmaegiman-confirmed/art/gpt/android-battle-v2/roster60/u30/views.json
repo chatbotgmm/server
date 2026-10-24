@@ -1,0 +1,191 @@
+{
+  "id": "u30",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "0aa6fd5d793f0ab5bd2afb7f8d1fc7bd32df5ad8a47c68592801c20fd1a8b238",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            919,
+            933
+          ]
+        ],
+        "8": [
+          [
+            916,
+            936
+          ]
+        ],
+        "128": [
+          [
+            915,
+            937
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 926,
+      "chosen_gap_l_r_exclusive": [
+        916,
+        936
+      ],
+      "gutter_max_alpha": 6,
+      "equal_half_split_cuts_alpha_gt8": true,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            926,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              30,
+              17,
+              919,
+              856
+            ],
+            "8": [
+              33,
+              19,
+              916,
+              853
+            ],
+            "128": [
+              34,
+              20,
+              915,
+              853
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              30,
+              17,
+              919,
+              856
+            ],
+            "8": [
+              33,
+              19,
+              916,
+              853
+            ],
+            "128": [
+              34,
+              20,
+              915,
+              853
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            474.5,
+            853
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            926,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              7,
+              9,
+              848,
+              859
+            ],
+            "8": [
+              10,
+              11,
+              836,
+              857
+            ],
+            "128": [
+              11,
+              12,
+              835,
+              856
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              933,
+              9,
+              1774,
+              859
+            ],
+            "8": [
+              936,
+              11,
+              1762,
+              857
+            ],
+            "128": [
+              937,
+              12,
+              1761,
+              856
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            423.0,
+            857
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u30/turnaround-original.png"
+    }
+  ],
+  "name": "그리핀",
+  "grade": "에픽",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [],
+  "runtime_integrated": false,
+  "source_archive": "04_에픽_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u30/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        926,
+        887
+      ],
+      "sha256": "0aa6fd5d793f0ab5bd2afb7f8d1fc7bd32df5ad8a47c68592801c20fd1a8b238"
+    },
+    "rear": {
+      "file": "u30/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        926,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "0aa6fd5d793f0ab5bd2afb7f8d1fc7bd32df5ad8a47c68592801c20fd1a8b238"
+    }
+  }
+}

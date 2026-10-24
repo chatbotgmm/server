@@ -1,0 +1,202 @@
+{
+  "id": "u49",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "a7022cf5a71062105a41933dfc8c352efa79a86f2d52953e1b018ce4b7bcfb0a",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            888,
+            901
+          ]
+        ],
+        "8": [
+          [
+            881,
+            903
+          ]
+        ],
+        "128": [
+          [
+            879,
+            904
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 894,
+      "chosen_gap_l_r_exclusive": [
+        881,
+        903
+      ],
+      "gutter_max_alpha": 6,
+      "equal_half_split_cuts_alpha_gt8": false,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            894,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              22,
+              0,
+              888,
+              887
+            ],
+            "8": [
+              27,
+              8,
+              881,
+              880
+            ],
+            "128": [
+              28,
+              9,
+              879,
+              879
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              22,
+              0,
+              888,
+              887
+            ],
+            "8": [
+              27,
+              8,
+              881,
+              880
+            ],
+            "128": [
+              28,
+              9,
+              879,
+              879
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            454.0,
+            880
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            894,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              7,
+              16,
+              858,
+              876
+            ],
+            "8": [
+              9,
+              19,
+              854,
+              874
+            ],
+            "128": [
+              10,
+              20,
+              852,
+              873
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              901,
+              16,
+              1752,
+              876
+            ],
+            "8": [
+              903,
+              19,
+              1748,
+              874
+            ],
+            "128": [
+              904,
+              20,
+              1746,
+              873
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            431.5,
+            874
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u49/turnaround-original.png"
+    }
+  ],
+  "name": "가루다",
+  "grade": "초월",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [
+    {
+      "view": "rear",
+      "priority": "local_correction_review",
+      "note": "후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요"
+    },
+    {
+      "view": "front",
+      "priority": "angle_correction",
+      "note": "정면에 가까운 좌측 3/4 방향보다 측면성이 강함"
+    }
+  ],
+  "runtime_integrated": false,
+  "source_archive": "08_초월_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u49/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        894,
+        887
+      ],
+      "sha256": "a7022cf5a71062105a41933dfc8c352efa79a86f2d52953e1b018ce4b7bcfb0a"
+    },
+    "rear": {
+      "file": "u49/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        894,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "a7022cf5a71062105a41933dfc8c352efa79a86f2d52953e1b018ce4b7bcfb0a"
+    }
+  }
+}

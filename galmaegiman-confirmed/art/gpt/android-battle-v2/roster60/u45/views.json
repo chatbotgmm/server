@@ -1,0 +1,192 @@
+{
+  "id": "u45",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "2894c3184b15535e1eeca63e7beb64647fea03e5a933e9d0e2958bba20ead1b1",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [],
+        "8": [
+          [
+            916,
+            931
+          ]
+        ],
+        "128": [
+          [
+            915,
+            932
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 923,
+      "chosen_gap_l_r_exclusive": [
+        916,
+        931
+      ],
+      "gutter_max_alpha": 6,
+      "equal_half_split_cuts_alpha_gt8": true,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 44,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": true,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            923,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              0,
+              20,
+              923,
+              887
+            ],
+            "8": [
+              9,
+              29,
+              916,
+              864
+            ],
+            "128": [
+              9,
+              30,
+              915,
+              863
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              0,
+              20,
+              923,
+              887
+            ],
+            "8": [
+              9,
+              29,
+              916,
+              864
+            ],
+            "128": [
+              9,
+              30,
+              915,
+              863
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            462.5,
+            864
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            923,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              0,
+              33,
+              851,
+              861
+            ],
+            "8": [
+              8,
+              37,
+              843,
+              840
+            ],
+            "128": [
+              9,
+              37,
+              842,
+              839
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              923,
+              33,
+              1774,
+              861
+            ],
+            "8": [
+              931,
+              37,
+              1766,
+              840
+            ],
+            "128": [
+              932,
+              37,
+              1765,
+              839
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            425.5,
+            840
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u45/turnaround-original.png"
+    }
+  ],
+  "name": "타이탄",
+  "grade": "제한",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [
+    {
+      "view": "rear",
+      "priority": "local_correction_review",
+      "note": "후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요"
+    }
+  ],
+  "runtime_integrated": false,
+  "source_archive": "07_제한_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u45/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        923,
+        887
+      ],
+      "sha256": "2894c3184b15535e1eeca63e7beb64647fea03e5a933e9d0e2958bba20ead1b1"
+    },
+    "rear": {
+      "file": "u45/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        923,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "2894c3184b15535e1eeca63e7beb64647fea03e5a933e9d0e2958bba20ead1b1"
+    }
+  }
+}

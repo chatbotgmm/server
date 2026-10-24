@@ -1,0 +1,219 @@
+{
+  "id": "u15",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "9376fce33e55ccb65626780cd052054d323ccc46891ab9d7dcc62e9f0b83b298",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            901,
+            902
+          ],
+          [
+            903,
+            904
+          ],
+          [
+            909,
+            910
+          ],
+          [
+            915,
+            916
+          ],
+          [
+            917,
+            918
+          ],
+          [
+            919,
+            920
+          ],
+          [
+            921,
+            922
+          ],
+          [
+            923,
+            924
+          ]
+        ],
+        "8": [
+          [
+            895,
+            930
+          ]
+        ],
+        "128": [
+          [
+            894,
+            931
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 912,
+      "chosen_gap_l_r_exclusive": [
+        895,
+        930
+      ],
+      "gutter_max_alpha": 6,
+      "equal_half_split_cuts_alpha_gt8": true,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 21,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": true,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            912,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              0,
+              8,
+              912,
+              887
+            ],
+            "8": [
+              35,
+              10,
+              895,
+              814
+            ],
+            "128": [
+              36,
+              11,
+              894,
+              813
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              0,
+              8,
+              912,
+              887
+            ],
+            "8": [
+              35,
+              10,
+              895,
+              814
+            ],
+            "128": [
+              36,
+              11,
+              894,
+              813
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            465.0,
+            814
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            912,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              0,
+              0,
+              823,
+              887
+            ],
+            "8": [
+              18,
+              11,
+              821,
+              826
+            ],
+            "128": [
+              19,
+              12,
+              820,
+              825
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              912,
+              0,
+              1735,
+              887
+            ],
+            "8": [
+              930,
+              11,
+              1733,
+              826
+            ],
+            "128": [
+              931,
+              12,
+              1732,
+              825
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            419.5,
+            826
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u15/turnaround-original.png"
+    }
+  ],
+  "name": "반딧불",
+  "grade": "언커먼",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [],
+  "runtime_integrated": false,
+  "source_archive": "02_언커먼_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u15/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        912,
+        887
+      ],
+      "sha256": "9376fce33e55ccb65626780cd052054d323ccc46891ab9d7dcc62e9f0b83b298"
+    },
+    "rear": {
+      "file": "u15/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        912,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "9376fce33e55ccb65626780cd052054d323ccc46891ab9d7dcc62e9f0b83b298"
+    }
+  }
+}

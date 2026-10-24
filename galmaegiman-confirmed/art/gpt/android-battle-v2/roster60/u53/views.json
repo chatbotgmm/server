@@ -1,0 +1,249 @@
+{
+  "id": "u53",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "7ff19eb42c52c322652e749f483b5089b9454156a1251248d5a5fe2582922f27",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            863,
+            864
+          ],
+          [
+            865,
+            880
+          ],
+          [
+            881,
+            882
+          ],
+          [
+            883,
+            886
+          ],
+          [
+            887,
+            892
+          ],
+          [
+            893,
+            894
+          ],
+          [
+            895,
+            896
+          ],
+          [
+            897,
+            898
+          ],
+          [
+            899,
+            902
+          ],
+          [
+            903,
+            904
+          ],
+          [
+            905,
+            906
+          ],
+          [
+            907,
+            908
+          ],
+          [
+            909,
+            910
+          ],
+          [
+            911,
+            926
+          ]
+        ],
+        "8": [
+          [
+            859,
+            929
+          ]
+        ],
+        "128": [
+          [
+            859,
+            930
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 889,
+      "chosen_gap_l_r_exclusive": [
+        859,
+        929
+      ],
+      "gutter_max_alpha": 7,
+      "equal_half_split_cuts_alpha_gt8": false,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            889,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              22,
+              11,
+              887,
+              887
+            ],
+            "8": [
+              25,
+              13,
+              859,
+              879
+            ],
+            "128": [
+              26,
+              14,
+              859,
+              878
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              22,
+              11,
+              887,
+              887
+            ],
+            "8": [
+              25,
+              13,
+              859,
+              879
+            ],
+            "128": [
+              26,
+              14,
+              859,
+              878
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            442.0,
+            879
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            889,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              3,
+              12,
+              873,
+              887
+            ],
+            "8": [
+              40,
+              15,
+              859,
+              878
+            ],
+            "128": [
+              41,
+              15,
+              858,
+              877
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              892,
+              12,
+              1762,
+              887
+            ],
+            "8": [
+              929,
+              15,
+              1748,
+              878
+            ],
+            "128": [
+              930,
+              15,
+              1747,
+              877
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            449.5,
+            878
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u53/turnaround-original.png"
+    }
+  ],
+  "name": "피닉스",
+  "grade": "불멸",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [
+    {
+      "view": "front",
+      "priority": "angle_correction",
+      "note": "정면에 가까운 좌측 3/4 방향보다 측면성이 강함"
+    }
+  ],
+  "runtime_integrated": false,
+  "source_archive": "09_불멸_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u53/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        889,
+        887
+      ],
+      "sha256": "7ff19eb42c52c322652e749f483b5089b9454156a1251248d5a5fe2582922f27"
+    },
+    "rear": {
+      "file": "u53/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        889,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "7ff19eb42c52c322652e749f483b5089b9454156a1251248d5a5fe2582922f27"
+    }
+  }
+}

@@ -1,0 +1,218 @@
+{
+  "id": "u51",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "2ccd891168f47bdbfd34767cc5ba9ea94a9952ed4d89ad0e6b321747e56b3714",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            902,
+            912
+          ],
+          [
+            913,
+            914
+          ],
+          [
+            915,
+            916
+          ],
+          [
+            917,
+            918
+          ],
+          [
+            919,
+            920
+          ]
+        ],
+        "8": [
+          [
+            891,
+            925
+          ]
+        ],
+        "128": [
+          [
+            890,
+            926
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 907,
+      "chosen_gap_l_r_exclusive": [
+        891,
+        925
+      ],
+      "gutter_max_alpha": 7,
+      "equal_half_split_cuts_alpha_gt8": true,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            907,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              14,
+              11,
+              902,
+              875
+            ],
+            "8": [
+              16,
+              13,
+              891,
+              873
+            ],
+            "128": [
+              16,
+              14,
+              890,
+              872
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              14,
+              11,
+              902,
+              875
+            ],
+            "8": [
+              16,
+              13,
+              891,
+              873
+            ],
+            "128": [
+              16,
+              14,
+              890,
+              872
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            453.5,
+            873
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            907,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              5,
+              17,
+              853,
+              871
+            ],
+            "8": [
+              18,
+              19,
+              850,
+              867
+            ],
+            "128": [
+              19,
+              20,
+              850,
+              865
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              912,
+              17,
+              1760,
+              871
+            ],
+            "8": [
+              925,
+              19,
+              1757,
+              867
+            ],
+            "128": [
+              926,
+              20,
+              1757,
+              865
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            434.0,
+            867
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u51/turnaround-original.png"
+    }
+  ],
+  "name": "세계수",
+  "grade": "초월",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [
+    {
+      "view": "rear",
+      "priority": "local_correction_review",
+      "note": "후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요"
+    },
+    {
+      "view": "front",
+      "priority": "optional_design",
+      "note": "고대 거목의 존재감 보완 후보"
+    }
+  ],
+  "runtime_integrated": false,
+  "source_archive": "08_초월_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u51/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        907,
+        887
+      ],
+      "sha256": "2ccd891168f47bdbfd34767cc5ba9ea94a9952ed4d89ad0e6b321747e56b3714"
+    },
+    "rear": {
+      "file": "u51/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        907,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "2ccd891168f47bdbfd34767cc5ba9ea94a9952ed4d89ad0e6b321747e56b3714"
+    }
+  }
+}

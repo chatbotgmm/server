@@ -1,0 +1,247 @@
+{
+  "id": "u29",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "22e2e755f7f9db1462997e04f832e654c4c4c7b16c1a4a77bcf33fc454bd2920",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            819,
+            870
+          ],
+          [
+            871,
+            872
+          ],
+          [
+            873,
+            874
+          ],
+          [
+            875,
+            876
+          ],
+          [
+            877,
+            878
+          ],
+          [
+            879,
+            880
+          ],
+          [
+            881,
+            888
+          ],
+          [
+            889,
+            890
+          ],
+          [
+            891,
+            892
+          ],
+          [
+            893,
+            894
+          ],
+          [
+            895,
+            896
+          ],
+          [
+            897,
+            898
+          ],
+          [
+            899,
+            900
+          ],
+          [
+            901,
+            950
+          ],
+          [
+            952,
+            955
+          ]
+        ],
+        "8": [
+          [
+            814,
+            960
+          ]
+        ],
+        "128": [
+          [
+            813,
+            961
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 884,
+      "chosen_gap_l_r_exclusive": [
+        814,
+        960
+      ],
+      "gutter_max_alpha": 5,
+      "equal_half_split_cuts_alpha_gt8": false,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            884,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              33,
+              5,
+              881,
+              887
+            ],
+            "8": [
+              39,
+              8,
+              814,
+              884
+            ],
+            "128": [
+              40,
+              9,
+              813,
+              884
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              33,
+              5,
+              881,
+              887
+            ],
+            "8": [
+              39,
+              8,
+              814,
+              884
+            ],
+            "128": [
+              40,
+              9,
+              813,
+              884
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            426.5,
+            884
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            884,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              4,
+              0,
+              850,
+              863
+            ],
+            "8": [
+              76,
+              8,
+              846,
+              858
+            ],
+            "128": [
+              77,
+              9,
+              845,
+              858
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              888,
+              0,
+              1734,
+              863
+            ],
+            "8": [
+              960,
+              8,
+              1730,
+              858
+            ],
+            "128": [
+              961,
+              9,
+              1729,
+              858
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            461.0,
+            858
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u29/turnaround-original.png"
+    }
+  ],
+  "name": "서리마녀",
+  "grade": "에픽",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [],
+  "runtime_integrated": false,
+  "source_archive": "04_에픽_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u29/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        884,
+        887
+      ],
+      "sha256": "22e2e755f7f9db1462997e04f832e654c4c4c7b16c1a4a77bcf33fc454bd2920"
+    },
+    "rear": {
+      "file": "u29/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        884,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "22e2e755f7f9db1462997e04f832e654c4c4c7b16c1a4a77bcf33fc454bd2920"
+    }
+  }
+}

@@ -1,0 +1,241 @@
+{
+  "id": "u41",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "8c15e5bd011c02dac7a5059755a41a9fd819c45aab68ba464daf3ce6767e9e70",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            859,
+            888
+          ],
+          [
+            889,
+            896
+          ],
+          [
+            897,
+            898
+          ],
+          [
+            899,
+            904
+          ],
+          [
+            905,
+            906
+          ],
+          [
+            907,
+            908
+          ],
+          [
+            909,
+            926
+          ],
+          [
+            927,
+            928
+          ],
+          [
+            929,
+            930
+          ],
+          [
+            931,
+            932
+          ],
+          [
+            933,
+            934
+          ],
+          [
+            935,
+            936
+          ]
+        ],
+        "8": [
+          [
+            856,
+            946
+          ]
+        ],
+        "128": [
+          [
+            855,
+            947
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 901,
+      "chosen_gap_l_r_exclusive": [
+        856,
+        946
+      ],
+      "gutter_max_alpha": 7,
+      "equal_half_split_cuts_alpha_gt8": false,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            901,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              0,
+              13,
+              899,
+              878
+            ],
+            "8": [
+              188,
+              15,
+              856,
+              876
+            ],
+            "128": [
+              189,
+              16,
+              855,
+              876
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              0,
+              13,
+              899,
+              878
+            ],
+            "8": [
+              188,
+              15,
+              856,
+              876
+            ],
+            "128": [
+              189,
+              16,
+              855,
+              876
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            522.0,
+            876
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            901,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              3,
+              13,
+              853,
+              871
+            ],
+            "8": [
+              45,
+              15,
+              712,
+              864
+            ],
+            "128": [
+              46,
+              16,
+              712,
+              864
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              904,
+              13,
+              1754,
+              871
+            ],
+            "8": [
+              946,
+              15,
+              1613,
+              864
+            ],
+            "128": [
+              947,
+              16,
+              1613,
+              864
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            378.5,
+            864
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u41/turnaround-original.png"
+    }
+  ],
+  "name": "수경",
+  "grade": "히든",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [
+    {
+      "view": "rear",
+      "priority": "local_correction_review",
+      "note": "후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요"
+    }
+  ],
+  "runtime_integrated": false,
+  "source_archive": "06_히든_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u41/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        901,
+        887
+      ],
+      "sha256": "8c15e5bd011c02dac7a5059755a41a9fd819c45aab68ba464daf3ce6767e9e70"
+    },
+    "rear": {
+      "file": "u41/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        901,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "8c15e5bd011c02dac7a5059755a41a9fd819c45aab68ba464daf3ce6767e9e70"
+    }
+  }
+}

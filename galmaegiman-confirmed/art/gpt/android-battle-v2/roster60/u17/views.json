@@ -1,0 +1,275 @@
+{
+  "id": "u17",
+  "layout": "original_sheet_front_plus_rear_override",
+  "files": [
+    {
+      "sha256": "850e3b62cb7bb7d5a6daee21be033933135dcab136c1e1800995f3fb484de63b",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            893,
+            894
+          ],
+          [
+            895,
+            896
+          ],
+          [
+            897,
+            908
+          ],
+          [
+            909,
+            910
+          ],
+          [
+            911,
+            912
+          ],
+          [
+            913,
+            920
+          ],
+          [
+            921,
+            922
+          ],
+          [
+            923,
+            924
+          ],
+          [
+            925,
+            926
+          ],
+          [
+            927,
+            933
+          ]
+        ],
+        "8": [
+          [
+            890,
+            936
+          ]
+        ],
+        "128": [
+          [
+            889,
+            937
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 916,
+      "chosen_gap_l_r_exclusive": [
+        890,
+        936
+      ],
+      "gutter_max_alpha": 5,
+      "equal_half_split_cuts_alpha_gt8": true,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            916,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              31,
+              15,
+              913,
+              870
+            ],
+            "8": [
+              42,
+              17,
+              890,
+              868
+            ],
+            "128": [
+              43,
+              18,
+              889,
+              867
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              31,
+              15,
+              913,
+              870
+            ],
+            "8": [
+              42,
+              17,
+              890,
+              868
+            ],
+            "128": [
+              43,
+              18,
+              889,
+              867
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            466.0,
+            868
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u17/turnaround-original.png",
+      "superseded_views": [
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            916,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              4,
+              29,
+              816,
+              867
+            ],
+            "8": [
+              20,
+              31,
+              813,
+              860
+            ],
+            "128": [
+              21,
+              32,
+              813,
+              859
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              920,
+              29,
+              1732,
+              867
+            ],
+            "8": [
+              936,
+              31,
+              1729,
+              860
+            ],
+            "128": [
+              937,
+              32,
+              1729,
+              859
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            416.5,
+            860
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ]
+    },
+    {
+      "file": "u17/rear-v4.png",
+      "sha256": "b2e65b6c7c4d4beb80f69a29555637c54504a95973440adf0ed30db518053850",
+      "size": [
+        1374,
+        1145
+      ],
+      "mode": "RGBA",
+      "views": [
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            1374,
+            1145
+          ],
+          "visible_bbox_source_alpha_gt8": [
+            218,
+            32,
+            1307,
+            1090
+          ]
+        }
+      ],
+      "review_status": "v4_occlusion_review_pass_minor_contact_readability_pending_user_approval"
+    }
+  ],
+  "name": "드워프",
+  "grade": "레어",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [
+    {
+      "view": "rear",
+      "priority": "minor_readability",
+      "note": "v4 깊이 가림 관계는 뚜렷한 역전 없음. 화면 오른쪽 날개 하단/팔/망치 자루 접점은 소형 표시에서 뭉침 가능. 최종 사용자 아트 승인 대기."
+    }
+  ],
+  "runtime_integrated": false,
+  "source_archive": "03_레어_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u17/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        916,
+        887
+      ],
+      "sha256": "850e3b62cb7bb7d5a6daee21be033933135dcab136c1e1800995f3fb484de63b"
+    },
+    "rear": {
+      "file": "u17/rear-v4.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        1374,
+        1145
+      ],
+      "sha256": "b2e65b6c7c4d4beb80f69a29555637c54504a95973440adf0ed30db518053850"
+    }
+  },
+  "superseded_views": [
+    {
+      "file": "u17/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        916,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "850e3b62cb7bb7d5a6daee21be033933135dcab136c1e1800995f3fb484de63b",
+      "reason": "후면 구조 및 팔/도구 겹침 개선 v4로 대체; 원본 시트는 정면 원본 보존을 위해 유지"
+    }
+  ]
+}

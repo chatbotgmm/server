@@ -1,0 +1,235 @@
+{
+  "id": "u10",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "83399efa405b4a31304e945a881a326e80b471f2ebdb5f70a71a6987dc5ad109",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            873,
+            904
+          ],
+          [
+            905,
+            906
+          ],
+          [
+            909,
+            910
+          ],
+          [
+            911,
+            926
+          ],
+          [
+            927,
+            928
+          ],
+          [
+            929,
+            930
+          ],
+          [
+            931,
+            932
+          ],
+          [
+            933,
+            934
+          ],
+          [
+            935,
+            936
+          ],
+          [
+            937,
+            952
+          ],
+          [
+            954,
+            955
+          ],
+          [
+            956,
+            967
+          ]
+        ],
+        "8": [
+          [
+            870,
+            969
+          ]
+        ],
+        "128": [
+          [
+            870,
+            970
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 918,
+      "chosen_gap_l_r_exclusive": [
+        870,
+        969
+      ],
+      "gutter_max_alpha": 6,
+      "equal_half_split_cuts_alpha_gt8": false,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            918,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              41,
+              17,
+              911,
+              871
+            ],
+            "8": [
+              95,
+              20,
+              870,
+              860
+            ],
+            "128": [
+              96,
+              21,
+              870,
+              859
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              41,
+              17,
+              911,
+              871
+            ],
+            "8": [
+              95,
+              20,
+              870,
+              860
+            ],
+            "128": [
+              96,
+              21,
+              870,
+              859
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            482.5,
+            860
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            918,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              8,
+              29,
+              836,
+              869
+            ],
+            "8": [
+              51,
+              34,
+              769,
+              861
+            ],
+            "128": [
+              52,
+              35,
+              768,
+              860
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              926,
+              29,
+              1754,
+              869
+            ],
+            "8": [
+              969,
+              34,
+              1687,
+              861
+            ],
+            "128": [
+              970,
+              35,
+              1686,
+              860
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            410.0,
+            861
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u10/turnaround-original.png"
+    }
+  ],
+  "name": "정령",
+  "grade": "언커먼",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [],
+  "runtime_integrated": false,
+  "source_archive": "02_언커먼_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u10/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        918,
+        887
+      ],
+      "sha256": "83399efa405b4a31304e945a881a326e80b471f2ebdb5f70a71a6987dc5ad109"
+    },
+    "rear": {
+      "file": "u10/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        918,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "83399efa405b4a31304e945a881a326e80b471f2ebdb5f70a71a6987dc5ad109"
+    }
+  }
+}

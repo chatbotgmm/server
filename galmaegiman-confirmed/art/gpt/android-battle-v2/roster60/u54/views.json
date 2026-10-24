@@ -1,0 +1,301 @@
+{
+  "id": "u54",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "b7d3d4e419104dfdb3ef1111407eb11c6271ee6f1c1f298475a6248d6e99d1f2",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            853,
+            854
+          ],
+          [
+            855,
+            856
+          ],
+          [
+            857,
+            880
+          ],
+          [
+            881,
+            882
+          ],
+          [
+            883,
+            886
+          ],
+          [
+            889,
+            890
+          ],
+          [
+            891,
+            904
+          ],
+          [
+            905,
+            908
+          ],
+          [
+            909,
+            910
+          ],
+          [
+            911,
+            912
+          ],
+          [
+            913,
+            914
+          ],
+          [
+            915,
+            916
+          ],
+          [
+            917,
+            920
+          ],
+          [
+            921,
+            922
+          ],
+          [
+            923,
+            926
+          ],
+          [
+            927,
+            928
+          ],
+          [
+            929,
+            930
+          ],
+          [
+            931,
+            932
+          ],
+          [
+            933,
+            952
+          ],
+          [
+            954,
+            956
+          ],
+          [
+            962,
+            977
+          ],
+          [
+            978,
+            979
+          ],
+          [
+            980,
+            984
+          ],
+          [
+            986,
+            987
+          ],
+          [
+            988,
+            989
+          ],
+          [
+            990,
+            991
+          ],
+          [
+            992,
+            993
+          ]
+        ],
+        "8": [
+          [
+            846,
+            998
+          ]
+        ],
+        "128": [
+          [
+            845,
+            999
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 924,
+      "chosen_gap_l_r_exclusive": [
+        846,
+        998
+      ],
+      "gutter_max_alpha": 6,
+      "equal_half_split_cuts_alpha_gt8": false,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            924,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              0,
+              34,
+              923,
+              887
+            ],
+            "8": [
+              59,
+              40,
+              846,
+              853
+            ],
+            "128": [
+              74,
+              41,
+              845,
+              852
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              0,
+              34,
+              923,
+              887
+            ],
+            "8": [
+              59,
+              40,
+              846,
+              853
+            ],
+            "128": [
+              74,
+              41,
+              845,
+              852
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            452.5,
+            853
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            924,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              2,
+              35,
+              838,
+              887
+            ],
+            "8": [
+              74,
+              42,
+              814,
+              851
+            ],
+            "128": [
+              75,
+              43,
+              804,
+              851
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              926,
+              35,
+              1762,
+              887
+            ],
+            "8": [
+              998,
+              42,
+              1738,
+              851
+            ],
+            "128": [
+              999,
+              43,
+              1728,
+              851
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            444.0,
+            851
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u54/turnaround-original.png"
+    }
+  ],
+  "name": "등불정령",
+  "grade": "불멸",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [
+    {
+      "view": "rear",
+      "priority": "local_correction_review",
+      "note": "후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요"
+    }
+  ],
+  "runtime_integrated": false,
+  "source_archive": "09_불멸_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u54/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        924,
+        887
+      ],
+      "sha256": "b7d3d4e419104dfdb3ef1111407eb11c6271ee6f1c1f298475a6248d6e99d1f2"
+    },
+    "rear": {
+      "file": "u54/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        924,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "b7d3d4e419104dfdb3ef1111407eb11c6271ee6f1c1f298475a6248d6e99d1f2"
+    }
+  }
+}

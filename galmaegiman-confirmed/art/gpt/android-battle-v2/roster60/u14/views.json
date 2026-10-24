@@ -1,0 +1,227 @@
+{
+  "id": "u14",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "e7489dc0cc1c449da8a61d88a65ded69c99126d1293a20ed69e11f1b4a8aca80",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            887,
+            904
+          ],
+          [
+            905,
+            906
+          ],
+          [
+            907,
+            908
+          ],
+          [
+            909,
+            914
+          ],
+          [
+            915,
+            916
+          ],
+          [
+            917,
+            918
+          ],
+          [
+            919,
+            920
+          ],
+          [
+            925,
+            926
+          ],
+          [
+            927,
+            928
+          ],
+          [
+            929,
+            975
+          ]
+        ],
+        "8": [
+          [
+            881,
+            981
+          ]
+        ],
+        "128": [
+          [
+            880,
+            983
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 911,
+      "chosen_gap_l_r_exclusive": [
+        881,
+        981
+      ],
+      "gutter_max_alpha": 6,
+      "equal_half_split_cuts_alpha_gt8": false,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            911,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              107,
+              30,
+              909,
+              871
+            ],
+            "8": [
+              110,
+              32,
+              881,
+              859
+            ],
+            "128": [
+              111,
+              33,
+              880,
+              858
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              107,
+              30,
+              909,
+              871
+            ],
+            "8": [
+              110,
+              32,
+              881,
+              859
+            ],
+            "128": [
+              111,
+              33,
+              880,
+              858
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            495.5,
+            859
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            911,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              3,
+              30,
+              795,
+              871
+            ],
+            "8": [
+              70,
+              33,
+              746,
+              850
+            ],
+            "128": [
+              72,
+              34,
+              745,
+              849
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              914,
+              30,
+              1706,
+              871
+            ],
+            "8": [
+              981,
+              33,
+              1657,
+              850
+            ],
+            "128": [
+              983,
+              34,
+              1656,
+              849
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            408.0,
+            850
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u14/turnaround-original.png"
+    }
+  ],
+  "name": "서리",
+  "grade": "언커먼",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [],
+  "runtime_integrated": false,
+  "source_archive": "02_언커먼_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u14/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        911,
+        887
+      ],
+      "sha256": "e7489dc0cc1c449da8a61d88a65ded69c99126d1293a20ed69e11f1b4a8aca80"
+    },
+    "rear": {
+      "file": "u14/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        911,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "e7489dc0cc1c449da8a61d88a65ded69c99126d1293a20ed69e11f1b4a8aca80"
+    }
+  }
+}

@@ -1,0 +1,271 @@
+{
+  "id": "u24",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "ee9e50fff31c320ccde502864e9f3188ced7494ef80788073131331104517cb4",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            863,
+            864
+          ],
+          [
+            865,
+            872
+          ],
+          [
+            873,
+            874
+          ],
+          [
+            875,
+            876
+          ],
+          [
+            877,
+            878
+          ],
+          [
+            879,
+            880
+          ],
+          [
+            881,
+            882
+          ],
+          [
+            883,
+            890
+          ],
+          [
+            891,
+            892
+          ],
+          [
+            893,
+            894
+          ],
+          [
+            895,
+            908
+          ],
+          [
+            909,
+            910
+          ],
+          [
+            911,
+            912
+          ],
+          [
+            913,
+            914
+          ],
+          [
+            917,
+            918
+          ],
+          [
+            927,
+            928
+          ],
+          [
+            929,
+            932
+          ],
+          [
+            933,
+            934
+          ],
+          [
+            935,
+            936
+          ],
+          [
+            937,
+            938
+          ],
+          [
+            939,
+            940
+          ]
+        ],
+        "8": [
+          [
+            858,
+            948
+          ]
+        ],
+        "128": [
+          [
+            857,
+            949
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 901,
+      "chosen_gap_l_r_exclusive": [
+        858,
+        948
+      ],
+      "gutter_max_alpha": 6,
+      "equal_half_split_cuts_alpha_gt8": false,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            901,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              0,
+              21,
+              895,
+              855
+            ],
+            "8": [
+              55,
+              60,
+              858,
+              852
+            ],
+            "128": [
+              56,
+              61,
+              857,
+              852
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              0,
+              21,
+              895,
+              855
+            ],
+            "8": [
+              55,
+              60,
+              858,
+              852
+            ],
+            "128": [
+              56,
+              61,
+              857,
+              852
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            456.5,
+            852
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            901,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              7,
+              21,
+              831,
+              869
+            ],
+            "8": [
+              47,
+              58,
+              829,
+              845
+            ],
+            "128": [
+              48,
+              59,
+              828,
+              844
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              908,
+              21,
+              1732,
+              869
+            ],
+            "8": [
+              948,
+              58,
+              1730,
+              845
+            ],
+            "128": [
+              949,
+              59,
+              1729,
+              844
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            438.0,
+            845
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u24/turnaround-original.png"
+    }
+  ],
+  "name": "불도마뱀",
+  "grade": "레어",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [],
+  "runtime_integrated": false,
+  "source_archive": "03_레어_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u24/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        901,
+        887
+      ],
+      "sha256": "ee9e50fff31c320ccde502864e9f3188ced7494ef80788073131331104517cb4"
+    },
+    "rear": {
+      "file": "u24/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        901,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "ee9e50fff31c320ccde502864e9f3188ced7494ef80788073131331104517cb4"
+    }
+  }
+}

@@ -1,0 +1,217 @@
+{
+  "id": "u12",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "55c938ae49ec3dc3ba30d257ca856d15b782aeeba921b9e626ee957a64b4ba90",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            881,
+            894
+          ],
+          [
+            895,
+            896
+          ],
+          [
+            897,
+            900
+          ],
+          [
+            917,
+            918
+          ],
+          [
+            919,
+            920
+          ],
+          [
+            921,
+            930
+          ]
+        ],
+        "8": [
+          [
+            878,
+            933
+          ]
+        ],
+        "128": [
+          [
+            877,
+            934
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 898,
+      "chosen_gap_l_r_exclusive": [
+        878,
+        933
+      ],
+      "gutter_max_alpha": 5,
+      "equal_half_split_cuts_alpha_gt8": false,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            898,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              27,
+              17,
+              897,
+              867
+            ],
+            "8": [
+              68,
+              78,
+              878,
+              824
+            ],
+            "128": [
+              69,
+              79,
+              877,
+              823
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              27,
+              17,
+              897,
+              867
+            ],
+            "8": [
+              68,
+              78,
+              878,
+              824
+            ],
+            "128": [
+              69,
+              79,
+              877,
+              823
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            473.0,
+            824
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            898,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              2,
+              45,
+              856,
+              887
+            ],
+            "8": [
+              35,
+              78,
+              810,
+              821
+            ],
+            "128": [
+              36,
+              79,
+              809,
+              820
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              900,
+              45,
+              1754,
+              887
+            ],
+            "8": [
+              933,
+              78,
+              1708,
+              821
+            ],
+            "128": [
+              934,
+              79,
+              1707,
+              820
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            422.5,
+            821
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u12/turnaround-original.png"
+    }
+  ],
+  "name": "어인",
+  "grade": "언커먼",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [
+    {
+      "view": "rear",
+      "priority": "construction_check",
+      "note": "겹침/장착 구조가 모호해 추가 구조 확인 필요"
+    }
+  ],
+  "runtime_integrated": false,
+  "source_archive": "02_언커먼_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u12/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        898,
+        887
+      ],
+      "sha256": "55c938ae49ec3dc3ba30d257ca856d15b782aeeba921b9e626ee957a64b4ba90"
+    },
+    "rear": {
+      "file": "u12/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        898,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "55c938ae49ec3dc3ba30d257ca856d15b782aeeba921b9e626ee957a64b4ba90"
+    }
+  }
+}

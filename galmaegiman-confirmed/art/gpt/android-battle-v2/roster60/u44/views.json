@@ -1,0 +1,195 @@
+{
+  "id": "u44",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "c2487ac40e54217ab29f6011822e73e2b45b0bc1949f5540d0003c64099a1fe7",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            921,
+            922
+          ],
+          [
+            923,
+            958
+          ]
+        ],
+        "8": [
+          [
+            917,
+            961
+          ]
+        ],
+        "128": [
+          [
+            916,
+            962
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 940,
+      "chosen_gap_l_r_exclusive": [
+        917,
+        961
+      ],
+      "gutter_max_alpha": 3,
+      "equal_half_split_cuts_alpha_gt8": true,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            940,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              0,
+              21,
+              923,
+              867
+            ],
+            "8": [
+              63,
+              50,
+              917,
+              839
+            ],
+            "128": [
+              63,
+              51,
+              916,
+              838
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              0,
+              21,
+              923,
+              867
+            ],
+            "8": [
+              63,
+              50,
+              917,
+              839
+            ],
+            "128": [
+              63,
+              51,
+              916,
+              838
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            490.0,
+            839
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            940,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              18,
+              32,
+              778,
+              841
+            ],
+            "8": [
+              21,
+              45,
+              773,
+              838
+            ],
+            "128": [
+              22,
+              46,
+              773,
+              837
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              958,
+              32,
+              1718,
+              841
+            ],
+            "8": [
+              961,
+              45,
+              1713,
+              838
+            ],
+            "128": [
+              962,
+              46,
+              1713,
+              837
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            397.0,
+            838
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u44/turnaround-original.png"
+    }
+  ],
+  "name": "꽃무덤",
+  "grade": "히든",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [],
+  "runtime_integrated": false,
+  "source_archive": "06_히든_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u44/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        940,
+        887
+      ],
+      "sha256": "c2487ac40e54217ab29f6011822e73e2b45b0bc1949f5540d0003c64099a1fe7"
+    },
+    "rear": {
+      "file": "u44/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        940,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "c2487ac40e54217ab29f6011822e73e2b45b0bc1949f5540d0003c64099a1fe7"
+    }
+  }
+}

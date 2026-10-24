@@ -1,0 +1,203 @@
+{
+  "id": "u35",
+  "layout": "two_view_sheet",
+  "files": [
+    {
+      "sha256": "564ae46d305a037bc45c10bf0e4f1c6da407b317ff29a7188a603609bf042d4f",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "central_gaps_l_r_exclusive_by_alpha_le": {
+        "0": [
+          [
+            934,
+            944
+          ],
+          [
+            946,
+            947
+          ],
+          [
+            949,
+            950
+          ],
+          [
+            954,
+            983
+          ]
+        ],
+        "8": [
+          [
+            930,
+            987
+          ]
+        ],
+        "128": [
+          [
+            929,
+            988
+          ]
+        ]
+      },
+      "status": "safe_alpha8_gutter_hash_bound_draft",
+      "split_x": 968,
+      "chosen_gap_l_r_exclusive": [
+        930,
+        987
+      ],
+      "gutter_max_alpha": 6,
+      "equal_half_split_cuts_alpha_gt8": true,
+      "split_boundary_pixel_counts_alpha_gt": {
+        "0": 0,
+        "8": 0,
+        "128": 0
+      },
+      "lower_alpha_fringe_touches_split": false,
+      "views": [
+        {
+          "view": "front_3quarter_left",
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            968,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              15,
+              16,
+              954,
+              875
+            ],
+            "8": [
+              17,
+              18,
+              930,
+              873
+            ],
+            "128": [
+              18,
+              19,
+              929,
+              872
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              15,
+              16,
+              954,
+              875
+            ],
+            "8": [
+              17,
+              18,
+              930,
+              873
+            ],
+            "128": [
+              18,
+              19,
+              929,
+              872
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            473.5,
+            873
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        },
+        {
+          "view": "rear_3quarter_right",
+          "source_rect_ltrb_exclusive": [
+            968,
+            0,
+            1774,
+            887
+          ],
+          "visible_bbox_local_by_alpha_gt": {
+            "0": [
+              15,
+              18,
+              794,
+              871
+            ],
+            "8": [
+              19,
+              20,
+              791,
+              864
+            ],
+            "128": [
+              20,
+              21,
+              790,
+              863
+            ]
+          },
+          "visible_bbox_source_by_alpha_gt": {
+            "0": [
+              983,
+              18,
+              1762,
+              871
+            ],
+            "8": [
+              987,
+              20,
+              1759,
+              864
+            ],
+            "128": [
+              988,
+              21,
+              1758,
+              863
+            ]
+          },
+          "suggested_silhouette_bottom_center_local": [
+            405.0,
+            864
+          ],
+          "pivot_note": "Candidate only; verify feet/contact or hover anchor visually. Do not auto-scale every unit to equal height."
+        }
+      ],
+      "file": "u35/turnaround-original.png"
+    }
+  ],
+  "name": "네레이드",
+  "grade": "전설",
+  "review_status": "draft_not_final_user_approved",
+  "known_issues": [],
+  "runtime_integrated": false,
+  "source_archive": "05_전설_원본PNG_01.zip",
+  "active_views": {
+    "front": {
+      "file": "u35/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        0,
+        0,
+        968,
+        887
+      ],
+      "sha256": "564ae46d305a037bc45c10bf0e4f1c6da407b317ff29a7188a603609bf042d4f"
+    },
+    "rear": {
+      "file": "u35/turnaround-original.png",
+      "source_rect_ltrb_exclusive": [
+        968,
+        0,
+        1774,
+        887
+      ],
+      "sha256": "564ae46d305a037bc45c10bf0e4f1c6da407b317ff29a7188a603609bf042d4f"
+    }
+  }
+}
