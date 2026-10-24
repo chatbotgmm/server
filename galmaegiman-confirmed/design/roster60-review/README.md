@@ -1,5 +1,11 @@
 # 60종 워크북 검토 입력 — 제품 기본값 아님
 
+## 보충 자료 병합 완료
+
+u30~u39, u40~u49 보충 메시지를 받아 `workbook-complete-proposal.json`에 전체60종을 병합했다. 초기 구조 파일은 이력을 보존한다. 세 개의 `workbook-units-*-proposal.json`은 전달 구간별 보관본이다. 60개 연속ID·14개 필드·개체별 적합도/방어8개·습득기술5개(합계300)·52개 레시피 및 이름/아트 일치를 검사했다. 원본 `null` 방어 표기를 바꾸지 않았다. 최신 확정 규칙은 latestConfirmedRules로 구분했다. 모두 approved:false다.
+
+이 소비 환경에서도 공식 Drive metadata는 파일명/34034바이트를 확인했고 raw file reference를 받았으나, 원본 바이트 가져오기는 NETWORK OSError로 실패했다. 재시도하지 않았다. 따라서 XLSX 해시는 여전히 부모가 검증해 전달한 값이며, 전체 JSON은 부모의 구조화 분석을 병합한 결과다. 아래의 누락 설명은 보충 전 이력이다.
+
 부모 작업이 Drive 커넥터로 읽은 `갈매미_60종_개편검토안.xlsx` 분석을 전달했다. Drive ID `1Hv1DlN2_WuHya58ik9LjTObiT7Pgk_SD`, 수정시각 2026-10-23T09:28:59.229Z, 부모가 보고한 원본 SHA256 `c2cb088f3b2a8fb856662404b395f06f9df7eeb6a9e606f89e614271424b1e86`. 이 환경에서 XLSX 원본 바이트를 직접 읽거나 해시 검증한 것은 아니다.
 
 메시지의 개체 u30~u49 구간이 잘려 전체 스탯/적합도/방어/습득표를 완전한 파일로 복원하지 않았다. `workbook-structure-proposal.json`은 전달된 52개 레시피를 개체별 수량으로 구조화하고, 정상 GitHub 읽기로 받은 b4b1981의 `roster.csv`에서 60개 이름/등급을 저장한 **부분 자료**다. 원본 XLSX나 전체 분석 JSON과 동일한 파일이 아니다. `approved:false`이며 src 로더에 연결하지 않는다. 레시피의 재료 최소 레벨과 숨김 구분도 검토안이다.

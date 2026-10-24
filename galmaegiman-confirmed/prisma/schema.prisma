@@ -15,6 +15,7 @@ model AppMeta {
 model Player {
   roster60State Roster60State?
   roster60Units Roster60Owned[]
+  roster60CraftReceipts Roster60CraftReceipt[]
   nativeInbox NativeInboxMessage[]
   nativeNewsReads NativeNewsRead[]
   nativeNewsRequests NativeNewsRequest[]
@@ -77,11 +78,23 @@ model Roster60Owned {
   playerId String
   speciesId String
   totalXp BigInt @default(0)
+  status String @default("AVAILABLE")
+  locked Boolean @default(false)
   source String
   createdAt DateTime @default(now())
   player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
   @@unique([playerId, source])
   @@index([playerId, speciesId])
+}
+
+model Roster60CraftReceipt {
+  playerId String
+  requestId String
+  fingerprint String
+  result String
+  createdAt DateTime @default(now())
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  @@id([playerId, requestId])
 }
 
 model CharacterDefinition {

@@ -30,6 +30,8 @@ suite('roster60 real authenticated routes and atomic rewards',()=>{
   it('real auth and strict body; repeated start grants one permanent u01',async()=>{
     expect((await app.inject({method:'POST',url:'/my/api/native/roster60/start',headers:{'x-gmm':'1'},payload:{}})).statusCode).toBe(401);
     expect((await post('start',{playerId:other})).statusCode).toBe(400);
+    expect((await post('craft/preview',{resultId:'u09',materialIds:['test-a','test-b'],catalogVersion:'test'})).statusCode).toBe(503);
+    expect((await post('craft/confirm',{resultId:'u09',materialIds:['test-a','test-b'],catalogVersion:'test',totalXp:1000})).statusCode).toBe(400);
     const a=await post('start'),b=await post('start');expect(a.statusCode).toBe(200);expect(b.json()).toEqual(a.json());
     expect(await db.roster60Owned.count({where:{playerId:owner,speciesId:'u01'}})).toBe(1);
     expect(await db.ownedCharacter.count({where:{playerId:owner,obtainedVia:'TUTORIAL'}})).toBe(0);

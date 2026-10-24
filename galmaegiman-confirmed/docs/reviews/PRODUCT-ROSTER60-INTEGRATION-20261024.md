@@ -1,5 +1,17 @@
 # 제품 60종 통합 진행 상태
 
+## 최신: 초안60종 복원 및 실제 조합 거래 경로
+
+숫자 임시 채택에 대한 사용자 답변은 아직 기다린다. 부모가 보충한 u30~u49를 합쳐 `design/roster60-review/workbook-complete-proposal.json`을 만들었다. 전체60개 ID/14필드/8개 적합도·방어/300습득 항목/52레시피를 검증했다. 원본 방어 `null`은 보존했으며 모든 자료는 approved:false다. `scripts/validate-roster60-proposal.mjs`로 다시 검증할 수 있다. source-workbook 원본 바이트는 Drive 파일참조 다운로드의 NETWORK OSError로 이 환경에서 읽지 못했으며 재시도하지 않았다. 전체 JSON은 부모의 분석 메시지 병합본이다.
+
+`src/roster60-craft.ts`와 실제 `/my/api/native/roster60/craft/preview`, `/craft/confirm`을 연결했다. signed-session/guard는 기존 제품 인증이다. 미승인/미설치 catalog는503으로 차단하며 fixture를 fallback으로 사용하지 않는다. 입력은 결과ID/실제 소유 개체ID 목록/catalogVersion, 확정은 추가 requestId/previewFingerprint다. 클라이언트 XP/레벨 주장은 받지 않는다.
+
+서버는 개체별 누적XP와 재료별 레벨을 조회하고, 소유권/AVAILABLE/잠금/중복ID/레시피별 정확한 수량/최소레벨을 확인한다. preview는 미소비이며 동일한 계산을 confirm에서 다시 수행한다. XP·레시피·예상 결과가 달라지면 PREVIEW_CHANGED로 거부한다(실수로 동일 catalogVersion을 유지한 변경도 포함). 소비·결과 개체 생성·멱등 영수증은 하나의 Prisma transaction이다. 동일 요청은 원래 결과, 같은 requestId의 다른 입력은 거부한다. 소비한 재료 재사용/타계정 개체/잠금 개체는 거부한다. 결과 생성 실패는 소비와 영수증까지 롤백한다.
+
+Roster60Owned에 status/locked를 추가하고 Roster60CraftReceipt는 Player와 cascade FK를 둔다. `prisma/manual/20261024_roster60_craft_additive.sql`은 ADD COLUMN/CREATE TABLE만 사용한다. Prisma 기본 diff의 테이블 재작성 대신 비파괴 추가 SQL로 정리했고 in-memory SQLite에서 기존123XP 개체가 보존되는 것을 확인했다. 실제 서버 schema/DB에는 적용하지 않았다.
+
+검증: TypeScript/웹 빌드 성공, 전체 격리 SQLite550/550(45파일) 통과. 같은 버전 카탈로그 수정 회귀를 추가한 후 조합6+온보딩5 대상11/11 통과. Android 소스는 이번 단계 변경하지 않았으며 경량 APK c3022df와 제품 온보딩 후보8f6d1fe는 보존한다. **현재 조합의 Android 화면/새 전투 사용중 개체 예약/정산 연동은 미연결**이며 새 전투 전체 완료나 새 제품 APK 적용으로 표현하지 않는다.
+
 ## 후속 구현: 실제 인증/DB/Android 온보딩 연결
 
 이 절은 아래 초기 조사보다 최신이다. `src/roster60-routes.ts`를 `src/my.ts`의 실제 signed-session/guard 경계에 등록했다. `/my/api/native/roster60/{state,start,complete,preview,confirm}`이며 요청에 playerId/완료증거를 넣을 수 없다. `src/roster60-onboarding.ts`는 Prisma의 실제 트랜잭션, 계정별 고유 시작/선택 영수증, 조건부 소비와 영구 지급을 사용한다. `prisma/schema.prisma`의 Roster60State/Roster60Owned는 옛 개체 ID를 덮어쓰지 않는다. 수동 검토 SQL은 `prisma/manual/20261024_roster60_onboarding_additive.sql`이며 실제 서버에는 실행하지 않았다.

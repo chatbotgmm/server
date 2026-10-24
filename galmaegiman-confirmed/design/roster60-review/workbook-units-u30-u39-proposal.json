@@ -1,0 +1,606 @@
+{
+  "approved": false,
+  "provenance": "Parent Drive extraction supplement; draft, not runtime catalog",
+  "units": [
+    {
+      "id": "u30",
+      "sourceName": "그리핀",
+      "name": "그리핀",
+      "grade": "에픽",
+      "role": "번개 근접술사",
+      "concept": "돌날개 사이에 번개를 모으는 환수",
+      "reviewStatus": "검토 전",
+      "sourceRow": 37,
+      "statsReferenceLevel": 20,
+      "hp": 360,
+      "mp": 60,
+      "aptitudes": {
+        "normal": 1,
+        "fire": 0,
+        "water": 0,
+        "lightning": 2,
+        "ice": -1,
+        "nature": 0,
+        "holy": 0,
+        "dark": 0
+      },
+      "defenses": {
+        "normal": "resist",
+        "fire": "normal",
+        "water": "resist",
+        "lightning": "null",
+        "ice": "weak",
+        "nature": "normal",
+        "holy": "normal",
+        "dark": "weak"
+      },
+      "learnset": [
+        {
+          "level": 1,
+          "name": "번갯불",
+          "stage": "beginner"
+        },
+        {
+          "level": 5,
+          "name": "주먹",
+          "stage": "secondary"
+        },
+        {
+          "level": 10,
+          "name": "번개쏘기",
+          "stage": "intermediate"
+        },
+        {
+          "level": 24,
+          "name": "벼락송곳",
+          "stage": "advanced"
+        },
+        {
+          "level": 40,
+          "name": "우레엄니",
+          "stage": "ultimate"
+        }
+      ]
+    },
+    {
+      "id": "u31",
+      "sourceName": "듀라한",
+      "name": "듀라한",
+      "grade": "에픽",
+      "role": "어둠 타격수",
+      "concept": "떠 있는 머리와 갑옷이 따로 움직이는 기사",
+      "reviewStatus": "검토 전",
+      "sourceRow": 38,
+      "statsReferenceLevel": 20,
+      "hp": 400,
+      "mp": 50,
+      "aptitudes": {
+        "normal": 1,
+        "fire": -1,
+        "water": 0,
+        "lightning": 0,
+        "ice": 0,
+        "nature": 0,
+        "holy": 0,
+        "dark": 2
+      },
+      "defenses": {
+        "normal": "resist",
+        "fire": "weak",
+        "water": "normal",
+        "lightning": "normal",
+        "ice": "normal",
+        "nature": "normal",
+        "holy": "weak",
+        "dark": "resist"
+      },
+      "learnset": [
+        {
+          "level": 1,
+          "name": "그늘손",
+          "stage": "beginner"
+        },
+        {
+          "level": 5,
+          "name": "주먹",
+          "stage": "secondary"
+        },
+        {
+          "level": 10,
+          "name": "그늘발톱",
+          "stage": "intermediate"
+        },
+        {
+          "level": 24,
+          "name": "어둠송곳",
+          "stage": "advanced"
+        },
+        {
+          "level": 40,
+          "name": "그늘낫",
+          "stage": "ultimate"
+        }
+      ]
+    },
+    {
+      "id": "u32",
+      "sourceName": "화룡",
+      "name": "화룡",
+      "grade": "에픽",
+      "role": "불 집중술사",
+      "concept": "돌비늘 틈으로 불꽃이 새어 나오는 용",
+      "reviewStatus": "검토 전",
+      "sourceRow": 39,
+      "statsReferenceLevel": 20,
+      "hp": 340,
+      "mp": 65,
+      "aptitudes": {
+        "normal": 1,
+        "fire": 2,
+        "water": -1,
+        "lightning": 0,
+        "ice": 0,
+        "nature": 0,
+        "holy": 0,
+        "dark": 0
+      },
+      "defenses": {
+        "normal": "resist",
+        "fire": "null",
+        "water": "weak",
+        "lightning": "normal",
+        "ice": "weak",
+        "nature": "resist",
+        "holy": "normal",
+        "dark": "normal"
+      },
+      "learnset": [
+        {
+          "level": 1,
+          "name": "불씨",
+          "stage": "beginner"
+        },
+        {
+          "level": 5,
+          "name": "주먹",
+          "stage": "secondary"
+        },
+        {
+          "level": 10,
+          "name": "불꽃이빨",
+          "stage": "intermediate"
+        },
+        {
+          "level": 24,
+          "name": "불길채찍",
+          "stage": "advanced"
+        },
+        {
+          "level": 40,
+          "name": "불아귀",
+          "stage": "ultimate"
+        }
+      ]
+    },
+    {
+      "id": "u33",
+      "sourceName": "거장",
+      "name": "거장",
+      "grade": "전설",
+      "role": "고체력 타격수",
+      "concept": "거대한 끌로 전장을 조각하는 노장",
+      "reviewStatus": "검토 전",
+      "sourceRow": 40,
+      "statsReferenceLevel": 20,
+      "hp": 420,
+      "mp": 45,
+      "aptitudes": {
+        "normal": 2,
+        "fire": 0,
+        "water": -1,
+        "lightning": 0,
+        "ice": 0,
+        "nature": 0,
+        "holy": 1,
+        "dark": 0
+      },
+      "defenses": {
+        "normal": "resist",
+        "fire": "normal",
+        "water": "weak",
+        "lightning": "weak",
+        "ice": "normal",
+        "nature": "normal",
+        "holy": "resist",
+        "dark": "normal"
+      },
+      "learnset": [
+        {
+          "level": 1,
+          "name": "주먹",
+          "stage": "beginner"
+        },
+        {
+          "level": 5,
+          "name": "빛살",
+          "stage": "secondary"
+        },
+        {
+          "level": 10,
+          "name": "강한주먹",
+          "stage": "intermediate"
+        },
+        {
+          "level": 24,
+          "name": "맹렬한주먹",
+          "stage": "advanced"
+        },
+        {
+          "level": 40,
+          "name": "온힘의 주먹",
+          "stage": "ultimate"
+        }
+      ]
+    },
+    {
+      "id": "u34",
+      "sourceName": "가시여왕",
+      "name": "가시여왕",
+      "grade": "전설",
+      "role": "자연 근접술사",
+      "concept": "꽃과 가시를 함께 다스리는 숲의 군주",
+      "reviewStatus": "검토 전",
+      "sourceRow": 41,
+      "statsReferenceLevel": 20,
+      "hp": 320,
+      "mp": 70,
+      "aptitudes": {
+        "normal": 0,
+        "fire": -1,
+        "water": 0,
+        "lightning": 0,
+        "ice": 0,
+        "nature": 2,
+        "holy": 0,
+        "dark": 1
+      },
+      "defenses": {
+        "normal": "resist",
+        "fire": "weak",
+        "water": "normal",
+        "lightning": "normal",
+        "ice": "normal",
+        "nature": "null",
+        "holy": "weak",
+        "dark": "resist"
+      },
+      "learnset": [
+        {
+          "level": 1,
+          "name": "잎날",
+          "stage": "beginner"
+        },
+        {
+          "level": 5,
+          "name": "그늘손",
+          "stage": "secondary"
+        },
+        {
+          "level": 10,
+          "name": "가시꿰기",
+          "stage": "intermediate"
+        },
+        {
+          "level": 24,
+          "name": "덩굴아귀",
+          "stage": "advanced"
+        },
+        {
+          "level": 40,
+          "name": "숲의 꾸짖음",
+          "stage": "ultimate"
+        }
+      ]
+    },
+    {
+      "id": "u35",
+      "sourceName": "네레이드",
+      "name": "네레이드",
+      "grade": "전설",
+      "role": "물 집중술사",
+      "concept": "바닷속 유적을 지키는 거대한 가희",
+      "reviewStatus": "검토 전",
+      "sourceRow": 42,
+      "statsReferenceLevel": 20,
+      "hp": 240,
+      "mp": 90,
+      "aptitudes": {
+        "normal": 0,
+        "fire": 0,
+        "water": 2,
+        "lightning": -1,
+        "ice": 0,
+        "nature": 0,
+        "holy": 1,
+        "dark": 0
+      },
+      "defenses": {
+        "normal": "normal",
+        "fire": "normal",
+        "water": "resist",
+        "lightning": "weak",
+        "ice": "normal",
+        "nature": "weak",
+        "holy": "resist",
+        "dark": "normal"
+      },
+      "learnset": [
+        {
+          "level": 1,
+          "name": "물방울",
+          "stage": "beginner"
+        },
+        {
+          "level": 5,
+          "name": "빛살",
+          "stage": "secondary"
+        },
+        {
+          "level": 10,
+          "name": "물살찌르기",
+          "stage": "intermediate"
+        },
+        {
+          "level": 24,
+          "name": "너울송곳",
+          "stage": "advanced"
+        },
+        {
+          "level": 40,
+          "name": "너울어금니",
+          "stage": "ultimate"
+        }
+      ]
+    },
+    {
+      "id": "u36",
+      "sourceName": "설랑",
+      "name": "설랑",
+      "grade": "전설",
+      "role": "얼음 타격수",
+      "concept": "서리 발자국을 남기는 늑대형 사냥꾼",
+      "reviewStatus": "검토 전",
+      "sourceRow": 43,
+      "statsReferenceLevel": 20,
+      "hp": 400,
+      "mp": 50,
+      "aptitudes": {
+        "normal": 1,
+        "fire": -1,
+        "water": 0,
+        "lightning": 0,
+        "ice": 2,
+        "nature": 0,
+        "holy": 0,
+        "dark": 0
+      },
+      "defenses": {
+        "normal": "resist",
+        "fire": "weak",
+        "water": "normal",
+        "lightning": "weak",
+        "ice": "null",
+        "nature": "normal",
+        "holy": "normal",
+        "dark": "resist"
+      },
+      "learnset": [
+        {
+          "level": 1,
+          "name": "서리바늘",
+          "stage": "beginner"
+        },
+        {
+          "level": 5,
+          "name": "주먹",
+          "stage": "secondary"
+        },
+        {
+          "level": 10,
+          "name": "고드름",
+          "stage": "intermediate"
+        },
+        {
+          "level": 24,
+          "name": "얼음쐐기",
+          "stage": "advanced"
+        },
+        {
+          "level": 40,
+          "name": "서릿발",
+          "stage": "ultimate"
+        }
+      ]
+    },
+    {
+      "id": "u37",
+      "sourceName": "뇌호",
+      "name": "뇌호",
+      "grade": "전설",
+      "role": "번개 타격수",
+      "concept": "번개를 머금은 엄니의 사족 보행 수호수",
+      "reviewStatus": "검토 전",
+      "sourceRow": 44,
+      "statsReferenceLevel": 20,
+      "hp": 420,
+      "mp": 45,
+      "aptitudes": {
+        "normal": 1,
+        "fire": 0,
+        "water": 0,
+        "lightning": 2,
+        "ice": -1,
+        "nature": 0,
+        "holy": 0,
+        "dark": 0
+      },
+      "defenses": {
+        "normal": "resist",
+        "fire": "normal",
+        "water": "normal",
+        "lightning": "resist",
+        "ice": "weak",
+        "nature": "normal",
+        "holy": "weak",
+        "dark": "normal"
+      },
+      "learnset": [
+        {
+          "level": 1,
+          "name": "번갯불",
+          "stage": "beginner"
+        },
+        {
+          "level": 5,
+          "name": "주먹",
+          "stage": "secondary"
+        },
+        {
+          "level": 10,
+          "name": "번개쏘기",
+          "stage": "intermediate"
+        },
+        {
+          "level": 24,
+          "name": "벼락송곳",
+          "stage": "advanced"
+        },
+        {
+          "level": 40,
+          "name": "우레엄니",
+          "stage": "ultimate"
+        }
+      ]
+    },
+    {
+      "id": "u38",
+      "sourceName": "잿불새",
+      "name": "잿불새",
+      "grade": "전설",
+      "role": "불 집중술사",
+      "concept": "타버린 돌날개를 불꽃으로 이어 붙인 새",
+      "reviewStatus": "검토 전",
+      "sourceRow": 45,
+      "statsReferenceLevel": 20,
+      "hp": 260,
+      "mp": 85,
+      "aptitudes": {
+        "normal": 0,
+        "fire": 2,
+        "water": -1,
+        "lightning": 0,
+        "ice": 0,
+        "nature": 0,
+        "holy": 1,
+        "dark": 0
+      },
+      "defenses": {
+        "normal": "normal",
+        "fire": "null",
+        "water": "weak",
+        "lightning": "resist",
+        "ice": "normal",
+        "nature": "normal",
+        "holy": "resist",
+        "dark": "weak"
+      },
+      "learnset": [
+        {
+          "level": 1,
+          "name": "불씨",
+          "stage": "beginner"
+        },
+        {
+          "level": 5,
+          "name": "빛살",
+          "stage": "secondary"
+        },
+        {
+          "level": 10,
+          "name": "불꽃이빨",
+          "stage": "intermediate"
+        },
+        {
+          "level": 24,
+          "name": "불길채찍",
+          "stage": "advanced"
+        },
+        {
+          "level": 40,
+          "name": "불아귀",
+          "stage": "ultimate"
+        }
+      ]
+    },
+    {
+      "id": "u39",
+      "sourceName": "무명",
+      "name": "무명",
+      "grade": "히든",
+      "role": "성 타격수",
+      "concept": "이름을 잃었지만 마을을 기억하는 오래된 석상",
+      "reviewStatus": "검토 전",
+      "sourceRow": 46,
+      "statsReferenceLevel": 20,
+      "hp": 380,
+      "mp": 55,
+      "aptitudes": {
+        "normal": 2,
+        "fire": 0,
+        "water": -1,
+        "lightning": 0,
+        "ice": 0,
+        "nature": 0,
+        "holy": 1,
+        "dark": 0
+      },
+      "defenses": {
+        "normal": "resist",
+        "fire": "normal",
+        "water": "weak",
+        "lightning": "normal",
+        "ice": "normal",
+        "nature": "normal",
+        "holy": "resist",
+        "dark": "weak"
+      },
+      "learnset": [
+        {
+          "level": 1,
+          "name": "주먹",
+          "stage": "beginner"
+        },
+        {
+          "level": 5,
+          "name": "빛살",
+          "stage": "secondary"
+        },
+        {
+          "level": 10,
+          "name": "강한주먹",
+          "stage": "intermediate"
+        },
+        {
+          "level": 24,
+          "name": "맹렬한주먹",
+          "stage": "advanced"
+        },
+        {
+          "level": 40,
+          "name": "온힘의 주먹",
+          "stage": "ultimate"
+        }
+      ]
+    }
+  ]
+}
