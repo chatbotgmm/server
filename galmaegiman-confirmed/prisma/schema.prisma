@@ -13,6 +13,8 @@ model AppMeta {
 }
 
 model Player {
+  roster60Battles Roster60Battle[]
+  roster60BattleReceipts Roster60BattleReceipt[]
   roster60State Roster60State?
   roster60Units Roster60Owned[]
   roster60CraftReceipts Roster60CraftReceipt[]
@@ -525,4 +527,29 @@ model Roster60RebirthReceipt {
  result String
  player Player @relation(fields:[playerId],references:[id],onDelete:Cascade)
  @@id([playerId,requestId])
+}
+
+// New authenticated 1v1 sessions; seed and immutable rules snapshot never leave server.
+model Roster60Battle {
+  id String @id
+  playerId String
+  ownedId String
+  revision Int @default(0)
+  status String @default("ACTIVE")
+  seed String
+  snapshot String
+  state String
+  settlement String?
+  createdAt DateTime @default(now())
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  @@index([playerId, status])
+}
+model Roster60BattleReceipt {
+  playerId String
+  requestId String
+  fingerprint String
+  result String
+  createdAt DateTime @default(now())
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  @@id([playerId, requestId])
 }

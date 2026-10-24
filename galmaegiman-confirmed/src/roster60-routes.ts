@@ -6,11 +6,14 @@ import {RosterOnboarding,RosterError,type RosterCatalog} from './roster60-onboar
 import type {PrismaClient} from '@prisma/client';
 import {RosterReincarnation} from './roster60-reincarnation.js';
 import {validateFiveStatCatalog} from './battle/roster60-five-stats.js';
+import {RosterBattle,type BattlePolicy} from './roster60-battle.js';
 import {RosterCraft} from './roster60-craft.js';
 export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string,auth:(r:FastifyRequest)=>string|null,guard:(r:FastifyRequest,p:FastifyReply)=>boolean){
   const file=resolve(root,'data/roster60-approved.json');
   // No fallback to review fixtures or legacy character definitions.
   const catalog=()=>{if(!existsSync(file))return null;try{const c=JSON.parse(readFileSync(file,'utf8'));validateFiveStatCatalog(c);return c as RosterCatalog;}catch(e){throw new RosterError(503,e instanceof Error&&['FIVE_STAT_CATALOG_REQUIRED','FIVE_STAT_CATALOG_INVALID','FIVE_STATS_REQUIRED','INVALID_FIVE_STATS','BASE_MP_MISMATCH'].includes(e.message)?e.message:'ROSTER_CATALOG_INVALID');}};
+  const policyFile=resolve(root,'data/roster60-battle-policy.json');
+  const battle=new RosterBattle(db,catalog,()=>{if(!existsSync(policyFile))return null;try{return JSON.parse(readFileSync(policyFile,'utf8')) as BattlePolicy;}catch{throw new RosterError(503,'BATTLE_POLICY_INVALID');}});
   const service=new RosterOnboarding(db,catalog);
   const craft=new RosterCraft(db,catalog);
   const reincarnation=new RosterReincarnation(db,catalog);
@@ -24,6 +27,13 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
       throw e;
     }
   }});
+  const requestId=z.string().min(1).max(100),battleId=z.string().uuid(),revision=z.number().int().nonnegative();
+  route('POST','battle/create',(id,r)=>battle.create(id,z.object({requestId,ownedId:z.string().min(1).max(100),encounterId:z.string().min(1).max(100)}).strict().parse(r.body)));
+  route('POST','battle/read',(id,r)=>battle.read(id,z.object({battleId}).strict().parse(r.body).battleId));
+  route('GET','battle/active',id=>battle.active(id));
+  const action=z.discriminatedUnion('kind',[z.object({kind:z.literal('attack')}).strict(),z.object({kind:z.literal('focus')}).strict(),z.object({kind:z.literal('skill'),skillId:z.string().min(1).max(100)}).strict()]);
+  route('POST','battle/action',(id,r)=>battle.action(id,z.object({requestId,battleId,revision,action}).strict().parse(r.body)));
+  route('POST','battle/settle',(id,r)=>battle.settle(id,z.object({requestId,battleId,revision}).strict().parse(r.body)));
   route('GET','reincarnation/preview',id=>reincarnation.preview(id));
   route('POST','reincarnation/confirm',(id,r)=>{const b=z.object({ownedId:z.string().min(1).max(100),requestId:z.string().min(1).max(100),catalogVersion:z.string().min(1).max(100),previewFingerprint:z.string().regex(/^[a-f0-9]{64}$/)}).strict().parse(r.body);return reincarnation.confirm(id,b);});
   route('GET','state',id=>service.state(id));
