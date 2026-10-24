@@ -17,6 +17,8 @@ import org.json.JSONObject;
 /** Review-only DTO consumer. Attached only to debug review Activity; no production API. */
 final class CombatV2ReviewPanel extends LinearLayout {
   interface Transport { void submit(JSONObject command); }
+  interface IconBinder { void bind(Button button,String slot); }
+  private final IconBinder icons;
   private final Transport transport;
   private final TextView status, details, badge;
   private final LinearLayout rows;
@@ -29,7 +31,10 @@ final class CombatV2ReviewPanel extends LinearLayout {
   private boolean skills, pending;
 
   CombatV2ReviewPanel(Context context, Transport transport) {
-    super(context); this.transport=transport; setOrientation(VERTICAL);
+    this(context,transport,CombatV2ReviewStyle::icon);
+  }
+  CombatV2ReviewPanel(Context context, Transport transport,IconBinder icons) {
+    super(context); this.transport=transport; this.icons=java.util.Objects.requireNonNull(icons); setOrientation(VERTICAL);
     status=new TextView(context);status.setTextSize(12);CombatV2ReviewStyle.text(status); addView(status,new LayoutParams(-1,-2));
     hp=bar("hp");mp=bar("mp");
     badge=new TextView(context);CombatV2ReviewStyle.text(badge);badge.setTextSize(11);addView(badge,new LayoutParams(-1,dp(20)));
@@ -72,7 +77,7 @@ final class CombatV2ReviewPanel extends LinearLayout {
         boolean skillPage=skills;
         String label=skillPage?entry.optString("name")+" · MP "+entry.optInt("mpCost"):entry.optString("label");
         String why=entry.optString("reason");
-        CombatV2ReviewStyle.icon(button,skillPage?entry.optString("element").toLowerCase(java.util.Locale.ROOT):entry.optString("kind"));
+        icons.bind(button,skillPage?entry.optString("element").toLowerCase(java.util.Locale.ROOT):entry.optString("kind"));
         String shownWhy=why;
         if(!skillPage&&("item".equals(entry.optString("kind"))||"switch".equals(entry.optString("kind"))||"escape".equals(entry.optString("kind"))))shownWhy=CombatV2ReviewStyle.label(getContext(),entry.optString("kind")+"_reason");
         button.setText(label+(shownWhy.isEmpty()?"":"\n"+shownWhy));button.setContentDescription(label+" "+why);

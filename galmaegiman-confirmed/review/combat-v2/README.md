@@ -1,5 +1,7 @@
 # Android 새 1대1 전투 검토 실행 단위
 
+후속 PNG 요청: [승인 PNG 연결 준비 상태](APPROVED-PNG-INTEGRATION-PENDING.md). 신규 자료 전송 실패로 **아직 기존 벡터 화면 유지**. 샘플 디코딩/주입 경계만 준비했으며 새 APK 없음.
+
 2026-10-24: **개발 전용 Android 런처 → 로컬 Node fixture → DTO → 6명령/6기술 패널** 연결 코드를 추가했다. 기존 MainActivity/운영 인증 API/DB는 연결하지 않는다. 앱을 실제 실행하거나 렌더링한 결과는 아니다. Gradle 다운로드가 DNS에서 막혔고 SDK/기기가 없어 Java 컴파일 및 실제 HTTP→Java 계약 검증까지만 완료했다.
 
 기준 브랜치 `review/roster60-static-20261024`, 앱 기준 `cde215207210d4eed8dde80fe5c7b3df629337eb`. 직전 로컬 `420f5d1`까지의 작업을 보존했다. 이번 read-only `git ls-remote`에서 app 브랜치 cde2152, 운영 main-oz3tvo 41104175, gpt-art b4b19815를 다시 확인했다. 원격 코드 변경 없음.
