@@ -1,5 +1,5 @@
 <resources>
-  <string-array name="roster60_stat_names"><item>HP</item><item>물리 공격</item><item>물리 방어</item><item>마법 공격</item><item>마법 방어</item><item>속도</item></string-array>
+  <string-array name="roster60_stat_names"><item>체력</item><item>마력(MP)</item><item>내구력</item><item>저항력(상태이상)</item><item>속도</item></string-array>
   <string-array name="roster60_element_names"><item>일반</item><item>불</item><item>물</item><item>번개</item><item>얼음</item><item>자연</item><item>성</item><item>어둠</item></string-array>
   <string-array name="roster60_defense_names"><item>약점</item><item>보통</item><item>내성</item><item>무효</item><item>반사</item></string-array>
   <string name="roster60_title">갈매미맨으로 시작</string>

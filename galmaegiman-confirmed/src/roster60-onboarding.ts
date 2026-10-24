@@ -3,7 +3,7 @@ import type {Prisma,PrismaClient} from '@prisma/client';
 import {validateRosterDefinition,type RosterDefinition} from './battle/roster60-rules.js';
 export const commonChoices=['u02','u03','u04','u05','u06','u07','u08'] as const;
 export type RosterRecipe={resultId:string;ingredients:{unitId:string;count:number;minLevel:number}[];visibility:'public'|'hidden'};
-export type RosterCatalog={version:string;approved:boolean;characters:(RosterDefinition&{rarity:string;stats:Record<string,number>})[];recipes?:RosterRecipe[]};
+export type RosterCatalog={statSchema?:'gmm-five-stats-v1';version:string;approved:boolean;characters:(RosterDefinition&{rarity:string;stats:Record<string,number>})[];recipes?:RosterRecipe[]};
 export class RosterError extends Error {constructor(public status:number,public code:string){super(code);}}
 const fail=(code:string,status=409):never=>{throw new RosterError(status,code);};
 type Tx=Prisma.TransactionClient;
@@ -18,7 +18,7 @@ function choices(catalog:RosterCatalog|null){
     if(unit.rarity!=='COMMON'||!unit.stats||!Object.keys(unit.stats).length||Object.values(unit.stats).some(v=>!Number.isFinite(v)||v<0))return fail('ROSTER_CATALOG_INVALID',503);
     return structuredClone(unit);
   });
-  return {catalogVersion:catalog.version,characters:list};
+  return {statSchema:catalog.statSchema,catalogVersion:catalog.version,characters:list};
 }
 function publicState(s:{starterId:string;completedAt:Date|null;mailId:string|null;selectedId:string|null;rewardOwnedId:string|null;catalogVersion:string|null}){
   return {flow:'roster60-v1',starter:{id:s.starterId,speciesId:'u01',name:'갈매미맨',permanent:true},

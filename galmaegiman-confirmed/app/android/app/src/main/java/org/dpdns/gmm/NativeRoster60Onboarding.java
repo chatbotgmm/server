@@ -46,7 +46,9 @@ final class NativeRoster60Onboarding {
     // Server supplied profile is shown before the only consuming action.
     StringBuilder description=new StringBuilder(h.getString(R.string.roster60_stats)).append('\n');
     JSONObject stats=unit.optJSONObject("stats");
-    String[] statKeys={"hp","patk","pdef","matk","mdef","spd"};
+    String[] statKeys={"hp","mp","durability","statusResistance","speed"};
+    if(stats==null||stats.length()!=statKeys.length){h.message(h.getString(R.string.roster60_catalog_pending));return;}
+    for(String key:statKeys)if(!stats.has(key)){h.message(h.getString(R.string.roster60_catalog_pending));return;}
     String[] statNames=h.getResources().getStringArray(R.array.roster60_stat_names);
     for(int i=0;i<statKeys.length;i++)if(stats!=null&&stats.has(statKeys[i]))description.append(statNames[i]).append(": ").append(stats.opt(statKeys[i])).append('\n');
     JSONArray growth=unit.optJSONArray("growth");

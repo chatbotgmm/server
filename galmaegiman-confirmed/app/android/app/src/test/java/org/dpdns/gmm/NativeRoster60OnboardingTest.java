@@ -39,8 +39,9 @@ public class NativeRoster60OnboardingTest {
         first.getButton(AlertDialog.BUTTON_NEGATIVE).performClick();
         assertEquals(1,api.requests.size());
         NativeRoster60Onboarding ui=new NativeRoster60Onboarding(h);
-        JSONObject unit=MainActivity.obj("id","u02","name","미니","stats",MainActivity.obj("hp",10),"skills",new JSONArray(),"suitability",new JSONObject(),"defense",new JSONObject());
+        JSONObject unit=MainActivity.obj("id","u02","name","미니","stats",MainActivity.obj("hp",10,"mp",12,"durability",3,"statusResistance",4,"speed",5),"skills",new JSONArray(),"suitability",new JSONObject(),"defense",new JSONObject());
         ui.detail("ticket-test","synthetic-test-only",unit);
+        assertArrayEquals(new String[]{"체력","마력(MP)","내구력","저항력(상태이상)","속도"},h.getResources().getStringArray(R.array.roster60_stat_names));
         ShadowAlertDialog.getLatestAlertDialog().getButton(AlertDialog.BUTTON_NEGATIVE).performClick();
         assertEquals(1,api.requests.size());
         ui.confirm("ticket-test","synthetic-test-only","u02");

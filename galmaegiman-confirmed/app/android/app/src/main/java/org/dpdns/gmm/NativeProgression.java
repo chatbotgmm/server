@@ -187,7 +187,7 @@ final class NativeProgression {
     else {
       JSONObject before=p.optJSONObject("baselineLevelOneStats"),after=p.optJSONObject("afterLevelOneStats");
       StringBuilder line=new StringBuilder(unit.optString("name")+" · Lv.1 / 99 · XP 0\n일반 1레벨 → 환생 "+object(p,"next").optInt("reincarnation")+"회\n");
-      String[] keys={"hp","mp","patk","matk","pdef","mdef"},labels={"HP","MP","공격","마법공격","방어","마법방어"};
+      String[] keys={"hp","mp","durability","statusResistance","speed"},labels={"체력","마력(MP)","내구력","저항력","속도"};
       for(int i=0;i<keys.length;i++)line.append(labels[i]).append(" ").append(before.optString(keys[i])).append(" → ").append(after.optString(keys[i])).append(i%2==1?"\n":" · ");
       summary(line.toString(),6);
     }

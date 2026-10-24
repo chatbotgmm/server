@@ -16,6 +16,8 @@ export class RosterReincarnation {
   if(u.reincarnation>=5)return fail('REINCARNATION_LIMIT');
   if(u.status!=='AVAILABLE'||u.locked)return fail('UNIT_UNAVAILABLE');
   const d=c.characters.find(x=>x.id===u.speciesId);if(!d)return fail('ROSTER_CATALOG_INVALID',503);validateRosterDefinition(d);
+  // Five-stat rebirth targets/formula are not approved. Never fall through to six-stat bonus.
+  if(c.statSchema==='gmm-five-stats-v1')return fail('FIVE_STAT_REBIRTH_POLICY_PENDING',503);
   const base=(d as typeof d&{levelOneStats?:BaseSixStats}).levelOneStats;if(!base)return fail('LEVEL_ONE_BASE_STATS_REQUIRED',503);
   if(base.mp!==d.growth[0].maxMp)return fail('BASE_MP_MISMATCH',503);
   if(u.totalXp<0n||u.totalXp>BigInt(Number.MAX_SAFE_INTEGER))return fail('INVALID_XP');

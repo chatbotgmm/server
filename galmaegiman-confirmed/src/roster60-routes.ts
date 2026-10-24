@@ -5,11 +5,12 @@ import {z} from 'zod';
 import {RosterOnboarding,RosterError,type RosterCatalog} from './roster60-onboarding.js';
 import type {PrismaClient} from '@prisma/client';
 import {RosterReincarnation} from './roster60-reincarnation.js';
+import {validateFiveStatCatalog} from './battle/roster60-five-stats.js';
 import {RosterCraft} from './roster60-craft.js';
 export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string,auth:(r:FastifyRequest)=>string|null,guard:(r:FastifyRequest,p:FastifyReply)=>boolean){
   const file=resolve(root,'data/roster60-approved.json');
   // No fallback to review fixtures or legacy character definitions.
-  const catalog=()=>{if(!existsSync(file))return null;try{return JSON.parse(readFileSync(file,'utf8')) as RosterCatalog;}catch{throw new RosterError(503,'ROSTER_CATALOG_INVALID');}};
+  const catalog=()=>{if(!existsSync(file))return null;try{const c=JSON.parse(readFileSync(file,'utf8'));validateFiveStatCatalog(c);return c as RosterCatalog;}catch(e){throw new RosterError(503,e instanceof Error&&['FIVE_STAT_CATALOG_REQUIRED','FIVE_STAT_CATALOG_INVALID','FIVE_STATS_REQUIRED','INVALID_FIVE_STATS','BASE_MP_MISMATCH'].includes(e.message)?e.message:'ROSTER_CATALOG_INVALID');}};
   const service=new RosterOnboarding(db,catalog);
   const craft=new RosterCraft(db,catalog);
   const reincarnation=new RosterReincarnation(db,catalog);
