@@ -1,0 +1,271 @@
+{
+  "fixtureOnly": true,
+  "balanceVersion": "synthetic-fixture-not-product",
+  "baseDamage": 20,
+  "reflectionPolicy": "fixture-base-times-fit",
+  "initial": {
+    "epoch": "review-roster60-combat-v1",
+    "battleId": "review-1",
+    "revision": 0,
+    "turn": 1,
+    "phase": "action",
+    "activeSide": 0,
+    "viewerSide": 0,
+    "winner": null,
+    "self": {
+      "id": "u01",
+      "name": "갈매미맨",
+      "level": 1,
+      "maxHp": 200,
+      "hp": 200,
+      "maxMp": 13,
+      "mp": 13,
+      "suitability": {
+        "NORMAL": 0,
+        "FIRE": 0,
+        "WATER": 0,
+        "LIGHTNING": 0,
+        "ICE": 0,
+        "NATURE": 0,
+        "HOLY": 0,
+        "DARK": 0
+      },
+      "defense": {
+        "NORMAL": "normal",
+        "FIRE": "normal",
+        "WATER": "normal",
+        "LIGHTNING": "normal",
+        "ICE": "normal",
+        "NATURE": "normal",
+        "HOLY": "normal",
+        "DARK": "normal"
+      },
+      "attack": {
+        "id": "fixture-basic",
+        "name": "검토 공격",
+        "element": "NORMAL",
+        "mpCost": 2,
+        "description": "비용은 테스트 전용"
+      },
+      "skills": [
+        {
+          "id": "fixture-0",
+          "name": "검토 기술 1",
+          "element": "NORMAL",
+          "mpCost": 3,
+          "description": "미승인 밸런스 fixture · 제품 기술 아님"
+        },
+        {
+          "id": "fixture-1",
+          "name": "검토 기술 2",
+          "element": "FIRE",
+          "mpCost": 4,
+          "description": "미승인 밸런스 fixture · 제품 기술 아님"
+        },
+        {
+          "id": "fixture-2",
+          "name": "검토 기술 3",
+          "element": "WATER",
+          "mpCost": 5,
+          "description": "미승인 밸런스 fixture · 제품 기술 아님"
+        },
+        {
+          "id": "fixture-3",
+          "name": "검토 기술 4",
+          "element": "LIGHTNING",
+          "mpCost": 6,
+          "description": "미승인 밸런스 fixture · 제품 기술 아님"
+        },
+        {
+          "id": "fixture-4",
+          "name": "검토 기술 5",
+          "element": "ICE",
+          "mpCost": 7,
+          "description": "미승인 밸런스 fixture · 제품 기술 아님"
+        },
+        {
+          "id": "fixture-5",
+          "name": "검토 기술 6",
+          "element": "NATURE",
+          "mpCost": 8,
+          "description": "미승인 밸런스 fixture · 제품 기술 아님"
+        }
+      ]
+    },
+    "foe": {
+      "id": "u01",
+      "name": "갈매미맨",
+      "level": 1,
+      "maxHp": 200,
+      "hp": 200,
+      "maxMp": 13,
+      "mp": 13,
+      "suitability": {
+        "NORMAL": 0,
+        "FIRE": 0,
+        "WATER": 0,
+        "LIGHTNING": 0,
+        "ICE": 0,
+        "NATURE": 0,
+        "HOLY": 0,
+        "DARK": 0
+      },
+      "defense": {
+        "NORMAL": "normal",
+        "FIRE": "normal",
+        "WATER": "normal",
+        "LIGHTNING": "normal",
+        "ICE": "normal",
+        "NATURE": "normal",
+        "HOLY": "normal",
+        "DARK": "normal"
+      },
+      "attack": {
+        "id": "fixture-basic",
+        "name": "검토 공격",
+        "element": "NORMAL",
+        "mpCost": 2,
+        "description": "비용은 테스트 전용"
+      },
+      "skills": [
+        {
+          "id": "fixture-0",
+          "name": "검토 기술 1",
+          "element": "NORMAL",
+          "mpCost": 3,
+          "description": "미승인 밸런스 fixture · 제품 기술 아님"
+        },
+        {
+          "id": "fixture-1",
+          "name": "검토 기술 2",
+          "element": "FIRE",
+          "mpCost": 4,
+          "description": "미승인 밸런스 fixture · 제품 기술 아님"
+        },
+        {
+          "id": "fixture-2",
+          "name": "검토 기술 3",
+          "element": "WATER",
+          "mpCost": 5,
+          "description": "미승인 밸런스 fixture · 제품 기술 아님"
+        },
+        {
+          "id": "fixture-3",
+          "name": "검토 기술 4",
+          "element": "LIGHTNING",
+          "mpCost": 6,
+          "description": "미승인 밸런스 fixture · 제품 기술 아님"
+        },
+        {
+          "id": "fixture-4",
+          "name": "검토 기술 5",
+          "element": "ICE",
+          "mpCost": 7,
+          "description": "미승인 밸런스 fixture · 제품 기술 아님"
+        },
+        {
+          "id": "fixture-5",
+          "name": "검토 기술 6",
+          "element": "NATURE",
+          "mpCost": 8,
+          "description": "미승인 밸런스 fixture · 제품 기술 아님"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "kind": "attack",
+        "label": "공격",
+        "enabled": true,
+        "reason": ""
+      },
+      {
+        "kind": "skills",
+        "label": "기술",
+        "enabled": true,
+        "reason": ""
+      },
+      {
+        "kind": "focus",
+        "label": "집중",
+        "enabled": true,
+        "reason": ""
+      },
+      {
+        "kind": "item",
+        "label": "아이템",
+        "enabled": false,
+        "reason": "아이템 계약 미연결"
+      },
+      {
+        "kind": "switch",
+        "label": "교체",
+        "enabled": false,
+        "reason": "현재 1대1 · 교체 계약 미연결"
+      },
+      {
+        "kind": "escape",
+        "label": "도망치기",
+        "enabled": false,
+        "reason": "도망 판정 미연결"
+      }
+    ],
+    "skills": [
+      {
+        "id": "fixture-0",
+        "name": "검토 기술 1",
+        "element": "NORMAL",
+        "mpCost": 3,
+        "description": "미승인 밸런스 fixture · 제품 기술 아님",
+        "enabled": true,
+        "reason": ""
+      },
+      {
+        "id": "fixture-1",
+        "name": "검토 기술 2",
+        "element": "FIRE",
+        "mpCost": 4,
+        "description": "미승인 밸런스 fixture · 제품 기술 아님",
+        "enabled": true,
+        "reason": ""
+      },
+      {
+        "id": "fixture-2",
+        "name": "검토 기술 3",
+        "element": "WATER",
+        "mpCost": 5,
+        "description": "미승인 밸런스 fixture · 제품 기술 아님",
+        "enabled": true,
+        "reason": ""
+      },
+      {
+        "id": "fixture-3",
+        "name": "검토 기술 4",
+        "element": "LIGHTNING",
+        "mpCost": 6,
+        "description": "미승인 밸런스 fixture · 제품 기술 아님",
+        "enabled": true,
+        "reason": ""
+      },
+      {
+        "id": "fixture-4",
+        "name": "검토 기술 5",
+        "element": "ICE",
+        "mpCost": 7,
+        "description": "미승인 밸런스 fixture · 제품 기술 아님",
+        "enabled": true,
+        "reason": ""
+      },
+      {
+        "id": "fixture-5",
+        "name": "검토 기술 6",
+        "element": "NATURE",
+        "mpCost": 8,
+        "description": "미승인 밸런스 fixture · 제품 기술 아님",
+        "enabled": true,
+        "reason": ""
+      }
+    ],
+    "events": []
+  }
+}

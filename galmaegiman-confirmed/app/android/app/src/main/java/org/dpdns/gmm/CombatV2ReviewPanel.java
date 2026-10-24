@@ -47,6 +47,9 @@ final class CombatV2ReviewPanel extends LinearLayout {
   private ProgressBar bar(String name){ProgressBar b=new ProgressBar(getContext(),null,android.R.attr.progressBarStyleHorizontal);b.setProgressDrawable(getResources().getDrawable(CombatV2ReviewStyle.resource(getContext(),"drawable",name)));addView(b,new LayoutParams(-1,dp(4)));return b;}
   private int dp(int n){return (int)(n*getResources().getDisplayMetrics().density+.5f);}
   void lock(){pending=true;render();}
+  void cancelInteraction(){cancelHolds();}
+  boolean isSkillPage(){return skills;}
+  void restoreSkillPage(boolean value){skills=value;render();}
   boolean showCommands(){if(skills){skills=false;render();return true;}return false;}
   void bind(JSONObject snapshot) {
     cancelHolds();

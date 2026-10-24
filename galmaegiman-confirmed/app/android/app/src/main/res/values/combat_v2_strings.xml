@@ -48,4 +48,7 @@
 <string name="combat_v2_item_reason">사용 계약 미연결</string>
 <string name="combat_v2_switch_reason">1대1 교체 미연결</string>
 <string name="combat_v2_escape_reason">판정 미연결</string>
+<string name="combat_v2_offline_banner">오프라인 검토 전투 · 기기 내부 fixture · 수치 미확정 · 제품 대전/계정 미연결</string>
+<string name="combat_v2_offline_failure">검토 데이터 오류 · 새 전투를 시작해 주세요.</string>
+<string name="combat_v2_offline_rejected">검토 요청 거부: %1$s</string>
 </resources>

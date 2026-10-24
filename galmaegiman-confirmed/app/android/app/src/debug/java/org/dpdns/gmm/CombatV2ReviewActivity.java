@@ -5,16 +5,14 @@ import android.graphics.*;
 import android.view.*;
 import android.widget.*;
 import java.io.*;
-import java.net.*;
-import java.util.concurrent.*;
+
+
 import org.json.*;
 
 /** Separate debug launcher. Never uses MainActivity sessions, SERVER_URL, account tokens or DB. */
 public final class CombatV2ReviewActivity extends Activity {
- private final ExecutorService worker=Executors.newSingleThreadExecutor();
- private final Handler ui=new Handler(Looper.getMainLooper());
- private CombatV2ReviewPanel panel;private TextView message;private Button retry;private Scene scene;
- private String pendingPath,pendingBody,savedDto;private boolean busy,closed;
+ private CombatV2ReviewPanel panel;private TextView message;private Scene scene;
+ private CombatV2OfflineSession session;
  @Override public void onCreate(Bundle state){super.onCreate(state);
   getWindow().setFlags(1024,1024);
   LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setBackgroundColor(0xff07131c);
@@ -22,38 +20,32 @@ public final class CombatV2ReviewActivity extends Activity {
   root.addView(message,new LinearLayout.LayoutParams(-1,dp(36)));
   LinearLayout body=new LinearLayout(this);root.addView(body,new LinearLayout.LayoutParams(-1,0,1));
   scene=new Scene();body.addView(scene,new LinearLayout.LayoutParams(0,-1,1));
-  panel=new CombatV2ReviewPanel(this,c->request("/command",c.toString()));body.addView(panel,new LinearLayout.LayoutParams(0,-1,1));
+  panel=new CombatV2ReviewPanel(this,this::submit);body.addView(panel,new LinearLayout.LayoutParams(0,-1,1));
   LinearLayout footer=new LinearLayout(this);
-  Button start=new Button(this);start.setText(CombatV2ReviewStyle.label(CombatV2ReviewActivity.this,"new"));start.setOnClickListener(v->{if(!busy)request("/session","{}");});
-  retry=new Button(this);retry.setText(CombatV2ReviewStyle.label(CombatV2ReviewActivity.this,"retry"));retry.setEnabled(false);retry.setOnClickListener(v->{if(!busy&&pendingBody!=null)request(pendingPath,pendingBody);});
+  Button start=new Button(this);start.setText(CombatV2ReviewStyle.label(CombatV2ReviewActivity.this,"new"));start.setOnClickListener(v->startFresh());
   Button effects=new Button(this);effects.setText(CombatV2ReviewStyle.label(CombatV2ReviewActivity.this,"effects"));effects.setOnClickListener(v->{scene.effects=!scene.effects;scene.invalidate();});
-  footer.addView(start,new LinearLayout.LayoutParams(0,dp(40),1));footer.addView(retry,new LinearLayout.LayoutParams(0,dp(40),1));footer.addView(effects,new LinearLayout.LayoutParams(0,dp(40),1));root.addView(footer);
-  CombatV2ReviewStyle.text(message);for(Button b:new Button[]{start,retry,effects}){CombatV2ReviewStyle.button(b);b.setTextSize(11);b.setMinHeight(0);b.setMinimumHeight(0);b.setPadding(2,0,2,0);}
-  setContentView(root);banner(CombatV2ReviewStyle.label(CombatV2ReviewActivity.this,"start_help"));
-  if(state!=null){savedDto=state.getString("dto");pendingPath=state.getString("path");pendingBody=state.getString("body");
-   try{if(savedDto!=null){JSONObject d=new JSONObject(savedDto);panel.bind(d);scene.bind(d);}}catch(Exception ignored){}
-   if(pendingBody!=null){panel.lock();retry.setEnabled(true);banner(CombatV2ReviewStyle.label(CombatV2ReviewActivity.this,"restore_help"));}
-  }
+  footer.addView(start,new LinearLayout.LayoutParams(0,dp(40),1));footer.addView(effects,new LinearLayout.LayoutParams(0,dp(40),1));root.addView(footer);
+  CombatV2ReviewStyle.text(message);for(Button b:new Button[]{start,effects}){CombatV2ReviewStyle.button(b);b.setTextSize(11);b.setMinHeight(0);b.setMinimumHeight(0);b.setPadding(2,0,2,0);}
+  setContentView(root);
+  try {
+   if(state!=null&&state.getString("offlineSession")!=null){session=CombatV2OfflineSession.restore(state.getString("offlineSession"));show(session.snapshot());panel.restoreSkillPage(state.getBoolean("skillsPage",false));}
+   else startFresh();
+  }catch(Exception invalid){startFresh();}
  }
+ private void startFresh(){try{
+  JSONObject config=new JSONObject(read(getAssets().open("combat-v2/offline-fixture.json")));
+  config.getJSONObject("initial").put("battleId",java.util.UUID.randomUUID().toString());
+  session=new CombatV2OfflineSession(config);panel.showCommands();show(session.snapshot());
+ }catch(Exception failure){session=null;panel.lock();banner(CombatV2ReviewStyle.label(this,"offline_failure"));}}
+ private void submit(JSONObject command){if(session==null)return;try{show(session.submit(command));}
+  catch(Exception failure){try{panel.bind(session.snapshot());}catch(Exception ignored){}banner(CombatV2ReviewStyle.format(this,"offline_rejected",failure.getMessage()));}}
+ private void show(JSONObject dto){panel.bind(dto);scene.bind(dto);banner(CombatV2ReviewStyle.format(this,"revision",dto.optInt("revision")));}
  private int dp(int n){return (int)(n*getResources().getDisplayMetrics().density+.5f);}
- private void banner(String text){message.setText(CombatV2ReviewStyle.label(this,"banner")+"\n"+text);}
- private void request(String path,String body){if(busy)return;busy=true;pendingPath=path;pendingBody=body;panel.lock();retry.setEnabled(false);banner(CombatV2ReviewStyle.label(CombatV2ReviewActivity.this,"loading"));
-  worker.execute(()->{JSONObject dto=null;String error=null;HttpURLConnection connection=null;
-   try{connection=(HttpURLConnection)new URL("http://127.0.0.1:18765"+path).openConnection();
-    connection.setInstanceFollowRedirects(false);connection.setConnectTimeout(2500);connection.setReadTimeout(3000);connection.setRequestMethod("POST");connection.setDoOutput(true);connection.setRequestProperty("Content-Type","application/json");
-    try(OutputStream out=connection.getOutputStream()){out.write(body.getBytes("UTF-8"));}
-    if(connection.getResponseCode()!=200)throw new IOException("HTTP "+connection.getResponseCode()+" · 새 검토 전투로 복구 가능");
-    dto=CombatV2ReviewContract.checked(new JSONObject(read(connection.getInputStream())));
-   }catch(Exception ex){error=ex.getMessage();}finally{if(connection!=null)connection.disconnect();}
-   final JSONObject result=dto;final String failure=error;
-   ui.post(()->{if(closed)return;busy=false;if(result!=null){pendingBody=null;pendingPath=null;savedDto=result.toString();panel.bind(result);scene.bind(result);banner(CombatV2ReviewStyle.format(this,"revision",result.optInt("revision")));}
-    else{retry.setEnabled(true);banner(CombatV2ReviewStyle.format(this,"failure",failure));}});
-  });
- }
+ private void banner(String text){message.setText(CombatV2ReviewStyle.label(this,"offline_banner")+"\n"+text);}
  static String read(InputStream stream)throws IOException{try(InputStream in=stream;ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1){out.write(b,0,n);if(out.size()>4*1024*1024)throw new IOException("Response too large");}return out.toString("UTF-8");}}
+ @Override protected void onPause(){if(panel!=null)panel.cancelInteraction();super.onPause();}
  @Override public void onBackPressed(){if(!panel.showCommands())super.onBackPressed();}
- @Override protected void onSaveInstanceState(Bundle b){super.onSaveInstanceState(b);b.putString("dto",savedDto);b.putString("path",pendingPath);b.putString("body",pendingBody);}
- @Override protected void onDestroy(){closed=true;ui.removeCallbacksAndMessages(null);worker.shutdownNow();super.onDestroy();}
+ @Override protected void onSaveInstanceState(Bundle b){super.onSaveInstanceState(b);try{if(session!=null)b.putString("offlineSession",session.save());b.putBoolean("skillsPage",panel.isSkillPage());}catch(Exception ignored){}}
  private final class Scene extends View {
   final Paint paint=new Paint(3);Bitmap front,rear;Rect fr,rr;JSONObject dto;String error="";boolean effects=false;long effectUntil;int previousRevision=-1;String battle="";JSONArray newEvents=new JSONArray();
   Scene(){super(CombatV2ReviewActivity.this);try{
