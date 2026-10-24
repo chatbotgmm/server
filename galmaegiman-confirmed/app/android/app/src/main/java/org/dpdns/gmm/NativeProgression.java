@@ -147,13 +147,13 @@ final class NativeProgression {
     if (!current() || contents == null) return;
     contents.removeAllViews();
     if (refreshButton != null) refreshButton.setEnabled(!loading);
-    if(newReincarnation()){renderNewReincarnation();return;}
     JSONObject intent = pending();
     if (intent.has("requestId")) {
       summary(notice.isEmpty() ? "처리 결과 확인 중 · 다른 지급/변환은 확인 뒤 이용해요." : notice, 3);
       action("progression-retry", "같은 요청 결과 확인", !IN_FLIGHT.contains(intent.optString("requestId")), () -> send(intent));
       return;
     }
+    if(newReincarnation()){renderNewReincarnation();return;}
     if (loading) { summary("서버 진행 확인 중…", 2); return; }
     if (receipt != null && !receipt.optString("key").isEmpty()) {
       summary("변환 완료 · " + receipt.optString("name") + " · " + receipt.optString("rarity")
@@ -192,7 +192,15 @@ final class NativeProgression {
       summary(line.toString(),6);
     }
     summary(!unit.has("costPeanut")?"비용 확인 준비 중":unit.optBoolean("accountFreeAvailable")?"계정 첫 성공 1회 무료":"비용: 땅콩 "+unit.optInt("costPeanut")+"개",1);
-    action("roster60-reincarnation-confirm",unit.has("requiredLevel")?"필요 Lv."+unit.optInt("requiredLevel")+" · 가능 등급 승인 대기":"환생 정보 준비 중",false,()->{});
+    action("roster60-reincarnation-confirm",unit.optBoolean("eligible")?"환생 확인":unit.has("requiredLevel")?"필요 Lv."+unit.optInt("requiredLevel")+" · 대상 조건 미충족":"환생 정보 준비 중",!blocked()&&unit.optBoolean("eligible"),()->{
+      final int shownEpoch=epoch;
+      android.app.AlertDialog dialog=new GameDialog(h).navy().setMessage(unit.optString("name")+" · Lv.1 / 99로 초기화\n"+(unit.optBoolean("accountFreeAvailable")?"계정 첫 성공 무료":"땅콩 "+unit.optInt("costPeanut")+"개 사용")+"\n환생할까요?").setNegativeButton("취소",null).setPositiveButton("확인",null).show();
+      dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
+        if(!current()||epoch!=shownEpoch||blocked())return;
+        submit("roster60/reincarnation/confirm",h.obj("ownedId",unit.optString("ownedId"),"catalogVersion",snapshot.optString("catalogVersion"),"previewFingerprint",unit.optString("previewFingerprint")));
+        dialog.dismiss();
+      });
+    });
     pagination(list.length());
   }
 
@@ -342,7 +350,7 @@ final class NativeProgression {
   void submit(String endpoint, JSONObject body) {
     if (!current() || blocked()) return;
     String id = UUID.randomUUID().toString();
-    JSONObject intent = h.obj("requestId", id, "path", "native/progression/" + endpoint,
+    JSONObject intent = h.obj("requestId", id, "path", endpoint.equals("roster60/reincarnation/confirm")?"native/"+endpoint:"native/progression/" + endpoint,
         "body", body);
     try { body.put("requestId", id); } catch (JSONException e) { return; }
     // commit before transmission; without a durable id no request is sent.
@@ -356,7 +364,7 @@ final class NativeProgression {
     if (!current()) return;
     String id = intent.optString("requestId"), path = intent.optString("path");
     JSONObject body = intent.optJSONObject("body");
-    if (id.isEmpty() || body == null || !path.startsWith("native/progression/") || !IN_FLIGHT.add(id)) return;
+    if (id.isEmpty() || body == null || (!path.startsWith("native/progression/")&&!path.equals("native/roster60/reincarnation/confirm")) || !IN_FLIGHT.add(id)) return;
     final String requestOwner = owner;
     render();
     h.api.call(path, body, (data, error) -> {
@@ -364,10 +372,12 @@ final class NativeProgression {
       boolean conversionProof = !path.equals("native/progression/reassess") || (data != null
           && data.optString("key").matches("o[1-9]\\d*") && !data.optString("key").equals(body.optString("key"))
           && data.optString("id").matches("[A-Za-z][0-9]{1,3}") && !data.optString("rarity").isEmpty());
-      boolean success = error == null && data != null && data.optBoolean("ok") && conversionProof;
+      boolean rebirth=path.equals("native/roster60/reincarnation/confirm");
+      boolean success = error == null && data != null && (rebirth?data.optBoolean("completed"):data.optBoolean("ok")) && conversionProof;
       boolean rejected = error != null && data != null && data.has("retryable")
           && !data.optBoolean("retryable", true) && !data.optBoolean("ok", true)
           && !h.api.token().isEmpty();
+      if(rebirth&&error!=null&&java.util.Arrays.asList("REINCARNATION_GRADE_NOT_ALLOWED","REINCARNATION_REQUIREMENTS_NOT_MET","REINCARNATION_LIMIT","UNIT_UNAVAILABLE","UNIT_NOT_FOUND","UNIT_CHANGED","BATTLE_ACTIVE","INSUFFICIENT_PEANUT","PREVIEW_CHANGED","REQUEST_ID_REUSED","ROSTER_CATALOG_PENDING","LEVEL_ONE_BASE_STATS_REQUIRED").contains(error))rejected=true;
       // Clear only this exact receipt; a delayed callback cannot erase a newer intent.
       if (success || rejected) {
         try {

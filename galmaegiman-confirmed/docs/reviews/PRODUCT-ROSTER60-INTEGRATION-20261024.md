@@ -1,3 +1,13 @@
+## Confirmed grade allowlist and Android confirmation (latest)
+
+Server product allowlist is immutable LIMITED(제한), TRANSCEND(초월), IMMORTAL(불멸), ETERNAL(영원). COMMON/UNCOMMON/RARE/EPIC/LEGEND/HIDDEN are rejected; unknown/legacy extra grade codes are not implicitly included. Eligibility injection used by prior tests was removed. The approved catalog's server-owned rarity is authoritative; request schema rejects client rarity/grade fields. No whole-roster/balance approval is inferred.
+
+Preview and confirm use the same fixed grade list and required-level function. Android's actual progression reincarnation tab enables confirmation only from server eligible=true. Confirmation displays reset and free/peanut cost, cancel sends nothing; on acceptance it persists a UUID and exact body before sending the authenticated roster60/reincarnation/confirm route. In-flight duplicates are blocked; unknown network outcome retains request for same-ID retry/re-entry; definitive rejection clears it for a new preview. The server receipt is read before recalculating eligibility, so completed retries do not reset/charge again. Legacy random-common conversion is not used.
+
+Validation: full server suite 565/565 (47 files), growth rules7/7, Android new-flow6/6 and product debug build passed. Ten-grade cases exercise both preview and transactional execution; strict route rejects forged client rarity. UI tests cover server-disabled state, cancel/no-write, actual confirm route, in-flight duplicate suppression, same-ID network retry and receipt clearing. The initial platform-dialog confirm test did not dispatch the request; the new dialog explicitly binds its positive button to persistence/send before dismissing, and the final tests pass. No real-device validation.
+
+Data prerequisites remain independent: roster60-approved.json is absent/unapproved and explicit levelOneStats/complete growth tables are not finalized. Therefore actual runtime remains in preparation state with no real account reset performed here. The transaction and Android confirmation path are connected and exercised using synthetic catalog data, not a claim of deployed or device-tested gameplay.
+
 ## Confirmed per-cycle required levels (latest)
 
 requiredReincarnationLevel(currentCount) is the single server rule: 0→60, 1→70, 2→80, 3→90, 4→99; count5 has no next rebirth. Eligibility configuration no longer accepts firstMinLevel/repeatMinLevel overrides. Preview includes requiredLevel and its fingerprint; confirmation recomputes the identical plan before any mutation. Android displays the returned requirement. The default product grade policy remains absent and execution returns REINCARNATION_GRADE_POLICY_REQUIRED; no all-grade assumption was added.

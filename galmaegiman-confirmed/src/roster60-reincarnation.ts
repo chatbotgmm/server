@@ -3,13 +3,13 @@ import {createHash} from 'node:crypto';
 import {RosterError,type RosterCatalog} from './roster60-onboarding.js';
 import {previewReincarnationCycle,requiredReincarnationLevel,type BaseSixStats} from './battle/roster60-reincarnation.js';
 import {growthAt,validateRosterDefinition} from './battle/roster60-rules.js';
-export type RebirthEligibility={version:string;grades:string[]};
+export const rebirthGradePolicy=Object.freeze({version:'limited-transcend-immortal-eternal-v1',grades:Object.freeze(['LIMITED','TRANSCEND','IMMORTAL','ETERNAL'])});
 export type RebirthRequest={ownedId:string;requestId:string;catalogVersion:string;previewFingerprint:string};
 const hash=(v:unknown)=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
 const fail=(code:string,status=409):never=>{throw new RosterError(status,code);};
 export function rebirthCost(){const n=Number(process.env.ROSTER60_REBIRTH_PEANUT_COST??1);if(!Number.isSafeInteger(n)||n<0)throw Error('INVALID_REBIRTH_COST');return n;}
 export class RosterReincarnation {
- constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private eligibility:()=>RebirthEligibility|null=()=>null){}
+ constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null){}
  private async plan(tx:Prisma.TransactionClient,playerId:string,ownedId:string){
   const c=this.catalog();if(!c?.approved)return fail('ROSTER_CATALOG_PENDING',503);
   const u=await tx.roster60Owned.findFirst({where:{id:ownedId,playerId}});if(!u)return fail('UNIT_NOT_FOUND',404);
@@ -23,10 +23,9 @@ export class RosterReincarnation {
   const preview={beforeLevel:before.level,...previewReincarnationCycle({totalXp:Number(u.totalXp),reincarnation:u.reincarnation,baseLevelOneStats:base,curve:d.growth,suitability:d.suitability,defense:d.defense})};
   const account=await tx.roster60RebirthAccount.findUnique({where:{playerId}}),successes=account?.successes??0,cost=successes===0?0:rebirthCost();
   const requiredLevel=requiredReincarnationLevel(u.reincarnation);
-  const policy=this.eligibility();let reason='';
-  if(!policy)reason='REINCARNATION_GRADE_POLICY_REQUIRED';
-  else if(!policy.version||!Array.isArray(policy.grades)||!policy.grades.length)reason='INVALID_REINCARNATION_POLICY';
-  else if(!policy.grades.includes(d.rarity)||before.level<requiredLevel)reason='REINCARNATION_REQUIREMENTS_NOT_MET';
+  const policy=rebirthGradePolicy;let reason='';
+  if(!policy.grades.includes(d.rarity))reason='REINCARNATION_GRADE_NOT_ALLOWED';
+  else if(before.level<requiredLevel)reason='REINCARNATION_REQUIREMENTS_NOT_MET';
   const fingerprint=hash([c.version,u.id,u.speciesId,u.totalXp.toString(),u.reincarnation,successes,cost,policy,requiredLevel,preview]);
   return {ownedId:u.id,speciesId:u.speciesId,name:d.name,catalogVersion:c.version,eligible:!reason,reason,requiredLevel,preview,costPeanut:cost,accountFreeAvailable:successes===0,successes,previewFingerprint:fingerprint};
  }
@@ -40,7 +39,7 @@ export class RosterReincarnation {
   const fingerprint=hash(input),run=()=>this.db.$transaction(async tx=>{
    const prior=await tx.roster60RebirthReceipt.findUnique({where:{playerId_requestId:{playerId,requestId:input.requestId}}});
    if(prior){if(prior.fingerprint!==fingerprint)return fail('REQUEST_ID_REUSED');return JSON.parse(prior.result);}
-   const p=await this.plan(tx,playerId,input.ownedId);if(!p.eligible)return fail(p.reason,503);
+   const p=await this.plan(tx,playerId,input.ownedId);if(!p.eligible)return fail(p.reason);
    if(input.catalogVersion!==p.catalogVersion||input.previewFingerprint!==p.previewFingerprint)return fail('PREVIEW_CHANGED');
    if(await tx.realtimeActivity.findFirst({where:{playerId,OR:[{kind:'ROOM'},{expiresAt:{gt:new Date()}}]}}))return fail('BATTLE_ACTIVE');
    await tx.roster60RebirthAccount.upsert({where:{playerId},create:{playerId},update:{}});

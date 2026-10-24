@@ -7,12 +7,12 @@ import {instanceGrowthCurve,skillElements} from '../src/battle/roster60-rules.js
 const suite=process.env.TEST_DB_URL?describe:describe.skip;
 suite('rebirth account cost transaction (synthetic eligibility only)',()=>{
  let db:PrismaClient,service:RosterReincarnation;const owners:string[]=[];
- const unit={id:'u01',name:'갈매미맨',rarity:'COMMON',stats:{hp:100},levelOneStats:{hp:100,mp:100,patk:100,matk:100,pdef:100,mdef:100},attack:{id:'a',name:'a',element:'NORMAL' as const,mpCost:1},skills:[],suitability:Object.fromEntries(skillElements.map(e=>[e,0])) as any,defense:Object.fromEntries(skillElements.map(e=>[e,'normal'])) as any,growth:Array.from({length:99},(_,i)=>({totalXp:i*10,maxMp:100+i}))};
+ const unit={id:'u45',name:'타이탄',rarity:'LIMITED',stats:{hp:100},levelOneStats:{hp:100,mp:100,patk:100,matk:100,pdef:100,mdef:100},attack:{id:'a',name:'a',element:'NORMAL' as const,mpCost:1},skills:[],suitability:Object.fromEntries(skillElements.map(e=>[e,0])) as any,defense:Object.fromEntries(skillElements.map(e=>[e,'normal'])) as any,growth:Array.from({length:99},(_,i)=>({totalXp:i*10,maxMp:100+i}))};
  const catalog={approved:true,version:'synthetic',characters:[unit]};
- beforeAll(()=>{const url=process.env.TEST_DB_URL!;if(!/^file:\/tmp\/galmaegiman-tests-[^/]+\/test.db$/.test(url))throw Error('disposable only');db=new PrismaClient({datasources:{db:{url}}});service=new RosterReincarnation(db,()=>catalog,()=>({version:'TEST_ONLY',grades:['COMMON']}));});
+ beforeAll(()=>{const url=process.env.TEST_DB_URL!;if(!/^file:\/tmp\/galmaegiman-tests-[^/]+\/test.db$/.test(url))throw Error('disposable only');db=new PrismaClient({datasources:{db:{url}}});service=new RosterReincarnation(db,()=>catalog);});
  afterAll(async()=>{await db.player.deleteMany({where:{id:{in:owners}}});await db.$disconnect();});
  async function account(peanut=5){const p=await db.player.create({data:{identity:randomUUID(),peanut}});owners.push(p.id);return p.id;}
- async function owned(playerId:string){return db.roster60Owned.create({data:{playerId,speciesId:'u01',source:randomUUID(),totalXp:590n}});}
+ async function owned(playerId:string){return db.roster60Owned.create({data:{playerId,speciesId:'u45',source:randomUUID(),totalXp:590n}});}
  async function reach(id:string,count:number,level=requiredReincarnationLevel(count)){const curve=instanceGrowthCurve(unit.growth,count);await db.roster60Owned.update({where:{id},data:{totalXp:BigInt(curve[level-1].totalXp)}});}
  async function request(p:string,id:string){const x=(await service.preview(p)).candidates.find(x=>x.ownedId===id) as any;return {ownedId:id,requestId:randomUUID(),catalogVersion:catalog.version,previewFingerprint:x.previewFingerprint};}
  it('first free, retries identical, then one peanut; cap5 and no compound',async()=>{
@@ -69,8 +69,13 @@ suite('rebirth account cost transaction (synthetic eligibility only)',()=>{
   }
   expect((await service.preview(p)).candidates.find(x=>x.ownedId===u.id)?.reason).toBe('REINCARNATION_LIMIT');
  });
- it('production default keeps unknown eligibility closed',async()=>{
-  const p=await account(),u=await owned(p),r=await request(p,u.id);
-  await expect(new RosterReincarnation(db,()=>catalog).confirm(p,r)).rejects.toThrow('REINCARNATION_GRADE_POLICY_REQUIRED');
+ it('server allowlist covers all ten grades; no client grade input is used',async()=>{
+  const p=await account(20);const original=unit.rarity;
+  try{for(const grade of ['COMMON','UNCOMMON','RARE','EPIC','LEGEND','HIDDEN','LIMITED','TRANSCEND','IMMORTAL','ETERNAL']){
+   unit.rarity=grade;const u=await owned(p),candidate=(await service.preview(p)).candidates.find(x=>x.ownedId===u.id) as any;
+   const allowed=['LIMITED','TRANSCEND','IMMORTAL','ETERNAL'].includes(grade);expect(candidate.eligible).toBe(allowed);
+   if(allowed)expect((await service.confirm(p,await request(p,u.id))).completed).toBe(true);
+   else await expect(service.confirm(p,await request(p,u.id))).rejects.toThrow('REINCARNATION_GRADE_NOT_ALLOWED');
+  }}finally{unit.rarity=original;}
  });
 });
