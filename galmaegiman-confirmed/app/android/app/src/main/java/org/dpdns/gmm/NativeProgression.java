@@ -192,7 +192,7 @@ final class NativeProgression {
       summary(line.toString(),6);
     }
     summary(!unit.has("costPeanut")?"비용 확인 준비 중":unit.optBoolean("accountFreeAvailable")?"계정 첫 성공 1회 무료":"비용: 땅콩 "+unit.optInt("costPeanut")+"개",1);
-    action("roster60-reincarnation-confirm","대상·요구 레벨 정책 준비 중",false,()->{});
+    action("roster60-reincarnation-confirm",unit.has("requiredLevel")?"필요 Lv."+unit.optInt("requiredLevel")+" · 가능 등급 승인 대기":"환생 정보 준비 중",false,()->{});
     pagination(list.length());
   }
 

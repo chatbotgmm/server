@@ -1,3 +1,13 @@
+## Confirmed per-cycle required levels (latest)
+
+requiredReincarnationLevel(currentCount) is the single server rule: 0→60, 1→70, 2→80, 3→90, 4→99; count5 has no next rebirth. Eligibility configuration no longer accepts firstMinLevel/repeatMinLevel overrides. Preview includes requiredLevel and its fingerprint; confirmation recomputes the identical plan before any mutation. Android displays the returned requirement. The default product grade policy remains absent and execution returns REINCARNATION_GRADE_POLICY_REQUIRED; no all-grade assumption was added.
+
+Transaction tests grow synthetic units through each actual confirmed threshold: 59/69/79/89/98 reject without consuming allowance or currency; 60/70/80/90/99 succeed, reset to Lv1/current-cycle XP0 and retain max99, followed by cap5 denial. Existing request receipt, duplicate/concurrent free usage, funds, fingerprint/ownership and rollback tests now use these real thresholds rather than synthetic level1 eligibility. Grade COMMON and arithmetic XP curve are still explicitly synthetic test inputs, not approved catalog data.
+
+Validation: server build and full disposable-DB suite 565/565 (47 files) passed; Android new-flow 5/5, explicit server-required-level display test 1/1 and product debug build passed. Real device execution remains untested.
+
+Only eligible grades/species remain undecided for enabling rebirth. Other independent blockers (approved base stats/catalog, new battle integration, craft inheritance and excess XP) remain unchanged. No production DB/schema changes, push or deployment.
+
 ## Account-first free rebirth and additive repeat policy (latest)
 
 Confirmed product defaults: account's first SUCCESS is free; thereafter one peanut (ROSTER60_REBIRTH_PEANUT_COST, default1). Each owned instance may rebirth at most five times. Six original species level-one stats use 100% + 10% * resulting count, max150%, integer half-up. No compounding, no change to suitability/defense. Each success resets current-cycle XP0 and Lv1; cap99 and confirmed early required-XP70% persist. The functions are now reincarnationBaseStats / previewReincarnationCycle.

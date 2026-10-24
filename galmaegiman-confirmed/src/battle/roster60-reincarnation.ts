@@ -44,3 +44,9 @@ export function previewReincarnationCycle(input:{totalXp:number;reincarnation:nu
  const plan=previewReincarnation(input,{approved:true,version:'six-stats-additive-10pct-max5-v1',bonusFor:()=>Object.fromEntries(reincarnationStatKeys.map(k=>[k,after[k]-input.baseLevelOneStats[k]]))});
  return {...plan,suitability:structuredClone(input.suitability),defense:structuredClone(input.defense)};
 }
+
+// Shared by preview and transactional execution; indexed by current completed count.
+export function requiredReincarnationLevel(currentCount:number){
+ if(!Number.isInteger(currentCount)||currentCount<0||currentCount>=5)throw Error('REINCARNATION_LIMIT');
+ return [60,70,80,90,99][currentCount];
+}

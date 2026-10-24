@@ -21,7 +21,7 @@ public class NativeRoster60ReincarnationTest {
   @Override String token(){return "synthetic-rebirth-session";}
   @Override void call(String p,JSONObject body,Result cb){path=p;if(body!=null)writes++;
    JSONObject base=MainActivity.obj("hp",100,"mp",50,"patk",30,"matk",40,"pdef",50,"mdef",60);
-   cb.done(MainActivity.obj("flow","roster60-v1","serverNow",1000,"candidates",new JSONArray().put(MainActivity.obj("name","갈매미맨","eligible",false,"preview",MainActivity.obj("baselineLevelOneStats",base,"afterLevelOneStats",base)))),null);
+   cb.done(MainActivity.obj("flow","roster60-v1","serverNow",1000,"candidates",new JSONArray().put(MainActivity.obj("name","갈매미맨","eligible",false,"requiredLevel",60,"preview",MainActivity.obj("baselineLevelOneStats",base,"afterLevelOneStats",base)))),null);
   }
  }
  @Test public void actualProgressionTabShowsNewPreviewAndCannotExecuteLegacyConversion() throws Exception {
@@ -29,7 +29,7 @@ public class NativeRoster60ReincarnationTest {
    MainActivity h=controller.get();helper.prepare(h);Api api=new Api(h);h.api=api;
    try{h.state.put("tutorial",MainActivity.obj("flow","roster60-v1"));NativeProgression ui=new NativeProgression(h);ui.tab="reincarnation";ui.open();
     assertEquals("native/roster60/reincarnation/preview",api.path);
-    Button confirm=h.root.findViewWithTag("roster60-reincarnation-confirm");assertNotNull(confirm);assertFalse(confirm.isEnabled());confirm.performClick();assertEquals(0,api.writes);
+    Button confirm=h.root.findViewWithTag("roster60-reincarnation-confirm");assertNotNull(confirm);assertFalse(confirm.isEnabled());assertTrue(confirm.getText().toString().contains("Lv.60"));confirm.performClick();assertEquals(0,api.writes);
    }finally{api.pool.shutdownNow();}
   }
  }
