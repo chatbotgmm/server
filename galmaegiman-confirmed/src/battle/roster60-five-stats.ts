@@ -1,3 +1,4 @@
+import {validateFiveCombatPolicy,type FiveCombatPolicy} from './roster60-five-combat.js';
 // Current product contract. Old six-stat drafts are archival, not convertible defaults.
 export const fiveStatSchema = 'gmm-five-stats-v1' as const;
 export const fiveStatKeys = ['hp','mp','durability','statusResistance','speed'] as const;
@@ -11,9 +12,10 @@ export function validateFiveStats(value:unknown):asserts value is FiveStats {
 // Applied at the actual product catalog boundary before grants/crafting/previews.
 // No formulas, resistance cap, or legacy-stat conversion is inferred here.
 export function validateFiveStatCatalog(value:unknown){
-  const c=value as {statSchema?:unknown;characters?:unknown};
+  const c=value as {statSchema?:unknown;characters?:unknown;combatPolicy?:FiveCombatPolicy};
   if(!c||c.statSchema!==fiveStatSchema)throw Error('FIVE_STAT_CATALOG_REQUIRED');
   if(!Array.isArray(c.characters)||!c.characters.length)throw Error('FIVE_STAT_CATALOG_INVALID');
+  if(c.combatPolicy!==undefined)validateFiveCombatPolicy(c.combatPolicy);
   for(const unit of c.characters){
     validateFiveStats(unit.stats);validateFiveStats(unit.levelOneStats);
     if(unit.growth?.[0]?.maxMp!==unit.levelOneStats.mp)throw Error('BASE_MP_MISMATCH');
