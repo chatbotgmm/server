@@ -75,10 +75,22 @@ suite('casual-only AI fallback (isolated SQLite)',()=>{
  it('preparation keeps the last valid edited team and begins a fresh 30-second augment phase',async()=>{
   const x=await fallback(),v=await service.currentRoom(x.p.id,x.roomId);await service.command(x.p.id,{roomId:x.roomId,phaseId:v.phaseId,requestId:'edit',command:{prepare:{team:['T1','E1','D1'],ready:false}}});now=v.deadline!;await service.tick();const a=await service.currentRoom(x.p.id,x.roomId);expect(a.phase).toBe('choose');expect(a.deadline).toBe(now+30_000);expect((await db.player.findUniqueOrThrow({where:{id:x.p.id}})).battleTeam).toBe('T1,E1,D1');expect(await db.realtimeLineup.count()).toBe(1);
  });
- it('AI choices are private and persist unchanged across polls, human rerolls and restart',async()=>{
+ it.each(['focus','reverse'])('AI choices are private and persist unchanged across polls, human rerolls and restart (%s)',async(offer)=>{
   const x=await fallback(),v=await ready(x),before=await stored(x.roomId);expect(before.s.pending[1]).toEqual(chooseBotCommand(createBattleService(R).restore(before.s.battle),1));expect(before.s.automatic[1]).toBe(false);expect(v.opponentReady).toBe(true);expect(v.battle!.teams[1].offers).toEqual([]);expect(v).not.toHaveProperty('pending');
   await service.currentRoom(x.p.id,x.roomId);await service.command(x.p.id,{roomId:x.roomId,phaseId:v.phaseId,requestId:'reroll',command:{reroll:0}});const restarted=new RealtimePvpService(db,content,process.cwd(),secret,()=>now);await restarted.currentRoom(x.p.id,x.roomId);const after=await stored(x.roomId);expect(after.s.pending[1]).toEqual(before.s.pending[1]);expect(after.r.deadline).toEqual(before.r.deadline);
-  const r=await service.currentRoom(x.p.id,x.roomId);const cmd={roomId:x.roomId,phaseId:r.phaseId,requestId:'choose',command:choice(r)};const next=await service.command(x.p.id,cmd);const committed=await stored(x.roomId);expect(next.phase).toBe('action');expect(committed.s.pending[1]).toEqual(chooseBotCommand(createBattleService(R).restore(committed.s.battle),1));await service.command(x.p.id,cmd);expect((await stored(x.roomId)).s.pending[1]).toEqual(committed.s.pending[1]);
+  // Deterministically cover ordinary selection and the legitimate extra attribute phase.
+  const fixture=await stored(x.roomId),battle=createBattleService(R).restore(fixture.s.battle);battle.sides[0].offers=[offer];fixture.s.battle=serializeServiceBattle(battle);await db.realtimeRoom.update({where:{id:x.roomId},data:{stateJson:JSON.stringify(fixture.s)}});
+  const r=await service.currentRoom(x.p.id,x.roomId);const cmd={roomId:x.roomId,phaseId:r.phaseId,requestId:'choose',command:choice(r)};let next=await service.command(x.p.id,cmd);const committed=await stored(x.roomId);
+  if(offer==='reverse'){
+    expect(next.phase).toBe('choose');expect(next.battle!.choiceKind).toBe('own-attribute');
+    expect(next.battle!.teams[0].attributeSelection).toBeTruthy();expect(committed.s.pending[1]).toBeNull();
+  }else expect(next.phase).toBe('action');
+  await service.command(x.p.id,cmd);expect((await stored(x.roomId)).s.pending[1]).toEqual(committed.s.pending[1]);
+  // Only complete the legitimate extra phase after checking retry cannot change the AI commitment.
+  if(next.phase==='choose')next=await service.command(x.p.id,{roomId:x.roomId,phaseId:next.phaseId,requestId:'attribute-choice',command:choice(next)});
+  expect(next.phase).toBe('action');const active=await stored(x.roomId);
+  expect(active.s.pending[1]).toEqual(chooseBotCommand(createBattleService(R).restore(active.s.battle),1));
+  await service.command(x.p.id,cmd);expect((await stored(x.roomId)).s.pending[1]).toEqual(active.s.pending[1]);
  });
  it('AI side cannot be authenticated even by passing its stored identifier to the service',async()=>{
   const x=await fallback(),{r}=await stored(x.roomId);await expect(service.currentRoom(r.player1Id,r.id)).rejects.toThrow('참가한');await expect(service.surrender(r.player1Id,r.id,'forged')).rejects.toThrow('참가한');
@@ -110,7 +122,9 @@ suite('casual-only AI fallback (isolated SQLite)',()=>{
  it('third missed human action forfeits to AI without a bot timeout or rating change',async()=>{
   const x=await fallback();await action(x);const {r,s}=await stored(x.roomId);s.misses=[2,0];await db.realtimeRoom.update({where:{id:r.id},data:{stateJson:JSON.stringify(s)}});now=r.deadline!.getTime();await service.tick();const v=await service.currentRoom(x.p.id,x.roomId);expect(v.result).toMatchObject({winner:1,reason:'TIMEOUT',settlement:'not_applicable'});expect((await stored(r.id)).s.misses).toEqual([3,0]);expect((await db.casualHumanRating.findUniqueOrThrow({where:{playerId:x.p.id}})).games).toBe(0);
  });
- async function wounded(){const x=await fallback();await action(x);const {r,s}=await stored(x.roomId),b=createBattleService(R).restore(s.battle);b.sides[0].fighters[b.sides[0].active].hp=1;s.battle=serializeServiceBattle(b);await db.realtimeRoom.update({where:{id:r.id},data:{stateJson:JSON.stringify(s)}});await db.playerItem.create({data:{playerId:x.p.id,itemId:'potion',count:1}});return x;}
+ async function wounded(){const x=await fallback();await action(x);const {r,s}=await stored(x.roomId),b=createBattleService(R).restore(s.battle);const injured=b.sides[0].fighters[b.sides[0].active];injured.hp=1;
+  // Item escrow tests require a usable potion, independently of random lonecharge heal-lock.
+  injured.augment={};s.battle=serializeServiceBattle(b);await db.realtimeRoom.update({where:{id:r.id},data:{stateJson:JSON.stringify(s)}});await db.playerItem.create({data:{playerId:x.p.id,itemId:'potion',count:1}});return x;}
  it('human item resolves with the precommitted AI action and is charged exactly once',async()=>{
   const x=await wounded(),v=await service.currentRoom(x.p.id,x.roomId);const cmd={roomId:x.roomId,phaseId:v.phaseId,requestId:'potion',command:{action:{kind:'item' as const,item:'potion'}}};await service.command(x.p.id,cmd);await service.command(x.p.id,cmd);expect((await db.playerItem.findUniqueOrThrow({where:{playerId_itemId:{playerId:x.p.id,itemId:'potion'}}})).count).toBe(0);expect((await db.realtimeItemEscrow.findFirstOrThrow({where:{roomId:x.roomId}})).state).toBe('CONSUMED');expect(await db.realtimeItemEscrow.count({where:{roomId:x.roomId}})).toBe(1);
  });
