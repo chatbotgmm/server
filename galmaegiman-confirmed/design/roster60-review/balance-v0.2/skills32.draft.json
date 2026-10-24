@@ -1,0 +1,2451 @@
+{
+  "schemaVersion": "roster60-balance-draft-v0.2",
+  "approved": false,
+  "status": "REVIEW_ONLY_NOT_RUNTIME",
+  "sourceFile": "design/roster60-review/workbook-complete-proposal.json",
+  "sourceJsonSha256": "f1f9546d531ff4f3dd41c8e765c8cae5af6e2dca06226776fe4610fccd890cf3",
+  "sourceWorkbookSha256ReportedByParent": "c2cb088f3b2a8fb856662404b395f06f9df7eeb6a9e606f89e614271424b1e86",
+  "note": "Workbook numbers and recipe thresholds are review proposals. Confirmed gameplay rules do not approve all catalog values.",
+  "skills": [
+    {
+      "id": "normal_1",
+      "name": "주먹",
+      "nameStatus": "confirmed_in_parent_history",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "normal",
+      "damageChannel": "physical",
+      "tier": 1,
+      "stage": "beginner",
+      "power": 35,
+      "mpCost": 6,
+      "defaultLearnLevel": 1,
+      "learnedBy": [
+        {
+          "unitId": "u01",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 8
+        },
+        {
+          "unitId": "u02",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 9
+        },
+        {
+          "unitId": "u03",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 10
+        },
+        {
+          "unitId": "u05",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 12
+        },
+        {
+          "unitId": "u07",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 14
+        },
+        {
+          "unitId": "u08",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 15
+        },
+        {
+          "unitId": "u09",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 16
+        },
+        {
+          "unitId": "u11",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 18
+        },
+        {
+          "unitId": "u12",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 19
+        },
+        {
+          "unitId": "u13",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 20
+        },
+        {
+          "unitId": "u17",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 24
+        },
+        {
+          "unitId": "u19",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 26
+        },
+        {
+          "unitId": "u21",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 28
+        },
+        {
+          "unitId": "u22",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 29
+        },
+        {
+          "unitId": "u23",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 30
+        },
+        {
+          "unitId": "u24",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 31
+        },
+        {
+          "unitId": "u25",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 32
+        },
+        {
+          "unitId": "u27",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 34
+        },
+        {
+          "unitId": "u30",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 37
+        },
+        {
+          "unitId": "u31",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 38
+        },
+        {
+          "unitId": "u32",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 39
+        },
+        {
+          "unitId": "u33",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 40
+        },
+        {
+          "unitId": "u36",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 43
+        },
+        {
+          "unitId": "u37",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 44
+        },
+        {
+          "unitId": "u39",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 46
+        },
+        {
+          "unitId": "u45",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 52
+        },
+        {
+          "unitId": "u47",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 54
+        },
+        {
+          "unitId": "u50",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 57
+        },
+        {
+          "unitId": "u51",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 58
+        },
+        {
+          "unitId": "u52",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 59
+        },
+        {
+          "unitId": "u56",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 63
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "normal_2",
+      "name": "강한주먹",
+      "nameStatus": "confirmed_in_parent_history",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "normal",
+      "damageChannel": "physical",
+      "tier": 2,
+      "stage": "intermediate",
+      "power": 60,
+      "mpCost": 12,
+      "defaultLearnLevel": 10,
+      "learnedBy": [
+        {
+          "unitId": "u01",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 8
+        },
+        {
+          "unitId": "u02",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 9
+        },
+        {
+          "unitId": "u03",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 10
+        },
+        {
+          "unitId": "u09",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 16
+        },
+        {
+          "unitId": "u11",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 18
+        },
+        {
+          "unitId": "u13",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 20
+        },
+        {
+          "unitId": "u17",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 24
+        },
+        {
+          "unitId": "u19",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 26
+        },
+        {
+          "unitId": "u27",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 34
+        },
+        {
+          "unitId": "u33",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 40
+        },
+        {
+          "unitId": "u39",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 46
+        },
+        {
+          "unitId": "u45",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 52
+        },
+        {
+          "unitId": "u56",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 63
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "normal_3",
+      "name": "맹렬한주먹",
+      "nameStatus": "confirmed_in_parent_history",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "normal",
+      "damageChannel": "physical",
+      "tier": 3,
+      "stage": "advanced",
+      "power": 85,
+      "mpCost": 20,
+      "defaultLearnLevel": 24,
+      "learnedBy": [
+        {
+          "unitId": "u01",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 8
+        },
+        {
+          "unitId": "u02",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 9
+        },
+        {
+          "unitId": "u03",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 10
+        },
+        {
+          "unitId": "u09",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 16
+        },
+        {
+          "unitId": "u11",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 18
+        },
+        {
+          "unitId": "u13",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 20
+        },
+        {
+          "unitId": "u17",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 24
+        },
+        {
+          "unitId": "u19",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 26
+        },
+        {
+          "unitId": "u27",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 34
+        },
+        {
+          "unitId": "u33",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 40
+        },
+        {
+          "unitId": "u39",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 46
+        },
+        {
+          "unitId": "u45",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 52
+        },
+        {
+          "unitId": "u56",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 63
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "normal_4",
+      "name": "온힘의 주먹",
+      "nameStatus": "confirmed_in_parent_history",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "normal",
+      "damageChannel": "physical",
+      "tier": 4,
+      "stage": "ultimate",
+      "power": 110,
+      "mpCost": 30,
+      "defaultLearnLevel": 40,
+      "learnedBy": [
+        {
+          "unitId": "u01",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 8
+        },
+        {
+          "unitId": "u02",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 9
+        },
+        {
+          "unitId": "u03",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 10
+        },
+        {
+          "unitId": "u09",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 16
+        },
+        {
+          "unitId": "u11",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 18
+        },
+        {
+          "unitId": "u13",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 20
+        },
+        {
+          "unitId": "u17",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 24
+        },
+        {
+          "unitId": "u19",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 26
+        },
+        {
+          "unitId": "u27",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 34
+        },
+        {
+          "unitId": "u33",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 40
+        },
+        {
+          "unitId": "u39",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 46
+        },
+        {
+          "unitId": "u45",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 52
+        },
+        {
+          "unitId": "u56",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 63
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "fire_1",
+      "name": "불씨",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "fire",
+      "damageChannel": "magical",
+      "tier": 1,
+      "stage": "beginner",
+      "power": 35,
+      "mpCost": 6,
+      "defaultLearnLevel": 1,
+      "learnedBy": [
+        {
+          "unitId": "u07",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 14
+        },
+        {
+          "unitId": "u13",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 20
+        },
+        {
+          "unitId": "u24",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 31
+        },
+        {
+          "unitId": "u27",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 34
+        },
+        {
+          "unitId": "u32",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 39
+        },
+        {
+          "unitId": "u38",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 45
+        },
+        {
+          "unitId": "u47",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 54
+        },
+        {
+          "unitId": "u53",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 60
+        },
+        {
+          "unitId": "u57",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 64
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "fire_2",
+      "name": "불꽃이빨",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "fire",
+      "damageChannel": "magical",
+      "tier": 2,
+      "stage": "intermediate",
+      "power": 60,
+      "mpCost": 12,
+      "defaultLearnLevel": 10,
+      "learnedBy": [
+        {
+          "unitId": "u07",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 14
+        },
+        {
+          "unitId": "u24",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 31
+        },
+        {
+          "unitId": "u32",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 39
+        },
+        {
+          "unitId": "u38",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 45
+        },
+        {
+          "unitId": "u47",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 54
+        },
+        {
+          "unitId": "u53",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 60
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "fire_3",
+      "name": "불길채찍",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "fire",
+      "damageChannel": "magical",
+      "tier": 3,
+      "stage": "advanced",
+      "power": 85,
+      "mpCost": 20,
+      "defaultLearnLevel": 24,
+      "learnedBy": [
+        {
+          "unitId": "u07",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 14
+        },
+        {
+          "unitId": "u24",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 31
+        },
+        {
+          "unitId": "u32",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 39
+        },
+        {
+          "unitId": "u38",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 45
+        },
+        {
+          "unitId": "u47",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 54
+        },
+        {
+          "unitId": "u53",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 60
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "fire_4",
+      "name": "불아귀",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "fire",
+      "damageChannel": "magical",
+      "tier": 4,
+      "stage": "ultimate",
+      "power": 110,
+      "mpCost": 30,
+      "defaultLearnLevel": 40,
+      "learnedBy": [
+        {
+          "unitId": "u07",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 14
+        },
+        {
+          "unitId": "u24",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 31
+        },
+        {
+          "unitId": "u32",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 39
+        },
+        {
+          "unitId": "u38",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 45
+        },
+        {
+          "unitId": "u47",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 54
+        },
+        {
+          "unitId": "u53",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 60
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "water_1",
+      "name": "물방울",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "water",
+      "damageChannel": "magical",
+      "tier": 1,
+      "stage": "beginner",
+      "power": 35,
+      "mpCost": 6,
+      "defaultLearnLevel": 1,
+      "learnedBy": [
+        {
+          "unitId": "u03",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 10
+        },
+        {
+          "unitId": "u04",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 11
+        },
+        {
+          "unitId": "u06",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 13
+        },
+        {
+          "unitId": "u12",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 19
+        },
+        {
+          "unitId": "u14",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 21
+        },
+        {
+          "unitId": "u16",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 23
+        },
+        {
+          "unitId": "u20",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 27
+        },
+        {
+          "unitId": "u26",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 33
+        },
+        {
+          "unitId": "u28",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 35
+        },
+        {
+          "unitId": "u35",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 42
+        },
+        {
+          "unitId": "u41",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 48
+        },
+        {
+          "unitId": "u50",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 57
+        },
+        {
+          "unitId": "u55",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 62
+        },
+        {
+          "unitId": "u59",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 66
+        },
+        {
+          "unitId": "u60",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 67
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "water_2",
+      "name": "물살찌르기",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "water",
+      "damageChannel": "magical",
+      "tier": 2,
+      "stage": "intermediate",
+      "power": 60,
+      "mpCost": 12,
+      "defaultLearnLevel": 10,
+      "learnedBy": [
+        {
+          "unitId": "u06",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 13
+        },
+        {
+          "unitId": "u12",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 19
+        },
+        {
+          "unitId": "u20",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 27
+        },
+        {
+          "unitId": "u28",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 35
+        },
+        {
+          "unitId": "u35",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 42
+        },
+        {
+          "unitId": "u41",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 48
+        },
+        {
+          "unitId": "u50",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 57
+        },
+        {
+          "unitId": "u55",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 62
+        },
+        {
+          "unitId": "u60",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 67
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "water_3",
+      "name": "너울송곳",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "water",
+      "damageChannel": "magical",
+      "tier": 3,
+      "stage": "advanced",
+      "power": 85,
+      "mpCost": 20,
+      "defaultLearnLevel": 24,
+      "learnedBy": [
+        {
+          "unitId": "u06",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 13
+        },
+        {
+          "unitId": "u12",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 19
+        },
+        {
+          "unitId": "u20",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 27
+        },
+        {
+          "unitId": "u28",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 35
+        },
+        {
+          "unitId": "u35",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 42
+        },
+        {
+          "unitId": "u41",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 48
+        },
+        {
+          "unitId": "u50",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 57
+        },
+        {
+          "unitId": "u55",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 62
+        },
+        {
+          "unitId": "u60",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 67
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "water_4",
+      "name": "너울어금니",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "water",
+      "damageChannel": "magical",
+      "tier": 4,
+      "stage": "ultimate",
+      "power": 110,
+      "mpCost": 30,
+      "defaultLearnLevel": 40,
+      "learnedBy": [
+        {
+          "unitId": "u06",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 13
+        },
+        {
+          "unitId": "u12",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 19
+        },
+        {
+          "unitId": "u20",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 27
+        },
+        {
+          "unitId": "u28",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 35
+        },
+        {
+          "unitId": "u35",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 42
+        },
+        {
+          "unitId": "u41",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 48
+        },
+        {
+          "unitId": "u50",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 57
+        },
+        {
+          "unitId": "u55",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 62
+        },
+        {
+          "unitId": "u60",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 67
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "lightning_1",
+      "name": "번갯불",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "lightning",
+      "damageChannel": "magical",
+      "tier": 1,
+      "stage": "beginner",
+      "power": 35,
+      "mpCost": 6,
+      "defaultLearnLevel": 1,
+      "learnedBy": [
+        {
+          "unitId": "u02",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 9
+        },
+        {
+          "unitId": "u15",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 22
+        },
+        {
+          "unitId": "u16",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 23
+        },
+        {
+          "unitId": "u22",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 29
+        },
+        {
+          "unitId": "u30",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 37
+        },
+        {
+          "unitId": "u37",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 44
+        },
+        {
+          "unitId": "u43",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 50
+        },
+        {
+          "unitId": "u48",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 55
+        },
+        {
+          "unitId": "u49",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 56
+        },
+        {
+          "unitId": "u60",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 67
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "lightning_2",
+      "name": "번개쏘기",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "lightning",
+      "damageChannel": "magical",
+      "tier": 2,
+      "stage": "intermediate",
+      "power": 60,
+      "mpCost": 12,
+      "defaultLearnLevel": 10,
+      "learnedBy": [
+        {
+          "unitId": "u16",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 23
+        },
+        {
+          "unitId": "u22",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 29
+        },
+        {
+          "unitId": "u30",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 37
+        },
+        {
+          "unitId": "u37",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 44
+        },
+        {
+          "unitId": "u49",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 56
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "lightning_3",
+      "name": "벼락송곳",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "lightning",
+      "damageChannel": "magical",
+      "tier": 3,
+      "stage": "advanced",
+      "power": 85,
+      "mpCost": 20,
+      "defaultLearnLevel": 24,
+      "learnedBy": [
+        {
+          "unitId": "u16",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 23
+        },
+        {
+          "unitId": "u22",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 29
+        },
+        {
+          "unitId": "u30",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 37
+        },
+        {
+          "unitId": "u37",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 44
+        },
+        {
+          "unitId": "u49",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 56
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": "벼락송곳 is present in preserved workbook extraction; NOT one of the six explicitly confirmed names.",
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "lightning_4",
+      "name": "우레엄니",
+      "nameStatus": "confirmed_in_parent_history",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "lightning",
+      "damageChannel": "magical",
+      "tier": 4,
+      "stage": "ultimate",
+      "power": 110,
+      "mpCost": 30,
+      "defaultLearnLevel": 40,
+      "learnedBy": [
+        {
+          "unitId": "u16",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 23
+        },
+        {
+          "unitId": "u22",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 29
+        },
+        {
+          "unitId": "u30",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 37
+        },
+        {
+          "unitId": "u37",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 44
+        },
+        {
+          "unitId": "u49",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 56
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "ice_1",
+      "name": "서리바늘",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "ice",
+      "damageChannel": "magical",
+      "tier": 1,
+      "stage": "beginner",
+      "power": 35,
+      "mpCost": 6,
+      "defaultLearnLevel": 1,
+      "learnedBy": [
+        {
+          "unitId": "u06",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 13
+        },
+        {
+          "unitId": "u14",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 21
+        },
+        {
+          "unitId": "u21",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 28
+        },
+        {
+          "unitId": "u29",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 36
+        },
+        {
+          "unitId": "u36",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 43
+        },
+        {
+          "unitId": "u41",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 48
+        },
+        {
+          "unitId": "u48",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 55
+        },
+        {
+          "unitId": "u58",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 65
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "ice_2",
+      "name": "고드름",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "ice",
+      "damageChannel": "magical",
+      "tier": 2,
+      "stage": "intermediate",
+      "power": 60,
+      "mpCost": 12,
+      "defaultLearnLevel": 10,
+      "learnedBy": [
+        {
+          "unitId": "u14",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 21
+        },
+        {
+          "unitId": "u21",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 28
+        },
+        {
+          "unitId": "u29",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 36
+        },
+        {
+          "unitId": "u36",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 43
+        },
+        {
+          "unitId": "u48",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 55
+        },
+        {
+          "unitId": "u58",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 65
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "ice_3",
+      "name": "얼음쐐기",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "ice",
+      "damageChannel": "magical",
+      "tier": 3,
+      "stage": "advanced",
+      "power": 85,
+      "mpCost": 20,
+      "defaultLearnLevel": 24,
+      "learnedBy": [
+        {
+          "unitId": "u14",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 21
+        },
+        {
+          "unitId": "u21",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 28
+        },
+        {
+          "unitId": "u29",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 36
+        },
+        {
+          "unitId": "u36",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 43
+        },
+        {
+          "unitId": "u48",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 55
+        },
+        {
+          "unitId": "u58",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 65
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "ice_4",
+      "name": "서릿발",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "ice",
+      "damageChannel": "magical",
+      "tier": 4,
+      "stage": "ultimate",
+      "power": 110,
+      "mpCost": 30,
+      "defaultLearnLevel": 40,
+      "learnedBy": [
+        {
+          "unitId": "u14",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 21
+        },
+        {
+          "unitId": "u21",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 28
+        },
+        {
+          "unitId": "u29",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 36
+        },
+        {
+          "unitId": "u36",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 43
+        },
+        {
+          "unitId": "u48",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 55
+        },
+        {
+          "unitId": "u58",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 65
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "nature_1",
+      "name": "잎날",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "nature",
+      "damageChannel": "magical",
+      "tier": 1,
+      "stage": "beginner",
+      "power": 35,
+      "mpCost": 6,
+      "defaultLearnLevel": 1,
+      "learnedBy": [
+        {
+          "unitId": "u04",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 11
+        },
+        {
+          "unitId": "u09",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 16
+        },
+        {
+          "unitId": "u10",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 17
+        },
+        {
+          "unitId": "u18",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 25
+        },
+        {
+          "unitId": "u19",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 26
+        },
+        {
+          "unitId": "u26",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 33
+        },
+        {
+          "unitId": "u34",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 41
+        },
+        {
+          "unitId": "u40",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 47
+        },
+        {
+          "unitId": "u44",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 51
+        },
+        {
+          "unitId": "u46",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 53
+        },
+        {
+          "unitId": "u51",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 58
+        },
+        {
+          "unitId": "u55",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 62
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "nature_2",
+      "name": "가시꿰기",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "nature",
+      "damageChannel": "magical",
+      "tier": 2,
+      "stage": "intermediate",
+      "power": 60,
+      "mpCost": 12,
+      "defaultLearnLevel": 10,
+      "learnedBy": [
+        {
+          "unitId": "u04",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 11
+        },
+        {
+          "unitId": "u10",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 17
+        },
+        {
+          "unitId": "u18",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 25
+        },
+        {
+          "unitId": "u26",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 33
+        },
+        {
+          "unitId": "u34",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 41
+        },
+        {
+          "unitId": "u44",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 51
+        },
+        {
+          "unitId": "u46",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 53
+        },
+        {
+          "unitId": "u51",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 58
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "nature_3",
+      "name": "덩굴아귀",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "nature",
+      "damageChannel": "magical",
+      "tier": 3,
+      "stage": "advanced",
+      "power": 85,
+      "mpCost": 20,
+      "defaultLearnLevel": 24,
+      "learnedBy": [
+        {
+          "unitId": "u04",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 11
+        },
+        {
+          "unitId": "u10",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 17
+        },
+        {
+          "unitId": "u18",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 25
+        },
+        {
+          "unitId": "u26",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 33
+        },
+        {
+          "unitId": "u34",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 41
+        },
+        {
+          "unitId": "u44",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 51
+        },
+        {
+          "unitId": "u46",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 53
+        },
+        {
+          "unitId": "u51",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 58
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "nature_4",
+      "name": "숲의 꾸짖음",
+      "nameStatus": "confirmed_in_parent_history",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "nature",
+      "damageChannel": "magical",
+      "tier": 4,
+      "stage": "ultimate",
+      "power": 110,
+      "mpCost": 30,
+      "defaultLearnLevel": 40,
+      "learnedBy": [
+        {
+          "unitId": "u04",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 11
+        },
+        {
+          "unitId": "u10",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 17
+        },
+        {
+          "unitId": "u18",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 25
+        },
+        {
+          "unitId": "u26",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 33
+        },
+        {
+          "unitId": "u34",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 41
+        },
+        {
+          "unitId": "u44",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 51
+        },
+        {
+          "unitId": "u46",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 53
+        },
+        {
+          "unitId": "u51",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 58
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "holy_1",
+      "name": "빛살",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "holy",
+      "damageChannel": "magical",
+      "tier": 1,
+      "stage": "beginner",
+      "power": 35,
+      "mpCost": 6,
+      "defaultLearnLevel": 1,
+      "learnedBy": [
+        {
+          "unitId": "u01",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 8
+        },
+        {
+          "unitId": "u05",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 12
+        },
+        {
+          "unitId": "u10",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 17
+        },
+        {
+          "unitId": "u15",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 22
+        },
+        {
+          "unitId": "u17",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 24
+        },
+        {
+          "unitId": "u18",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 25
+        },
+        {
+          "unitId": "u25",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 32
+        },
+        {
+          "unitId": "u28",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 35
+        },
+        {
+          "unitId": "u33",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 40
+        },
+        {
+          "unitId": "u35",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 42
+        },
+        {
+          "unitId": "u38",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 45
+        },
+        {
+          "unitId": "u39",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 46
+        },
+        {
+          "unitId": "u42",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 49
+        },
+        {
+          "unitId": "u43",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 50
+        },
+        {
+          "unitId": "u46",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 53
+        },
+        {
+          "unitId": "u49",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 56
+        },
+        {
+          "unitId": "u53",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 60
+        },
+        {
+          "unitId": "u54",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 61
+        },
+        {
+          "unitId": "u57",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 64
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "holy_2",
+      "name": "빛살꿰기",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "holy",
+      "damageChannel": "magical",
+      "tier": 2,
+      "stage": "intermediate",
+      "power": 60,
+      "mpCost": 12,
+      "defaultLearnLevel": 10,
+      "learnedBy": [
+        {
+          "unitId": "u05",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 12
+        },
+        {
+          "unitId": "u15",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 22
+        },
+        {
+          "unitId": "u25",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 32
+        },
+        {
+          "unitId": "u43",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 50
+        },
+        {
+          "unitId": "u54",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 61
+        },
+        {
+          "unitId": "u57",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 64
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "holy_3",
+      "name": "햇무리",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "holy",
+      "damageChannel": "magical",
+      "tier": 3,
+      "stage": "advanced",
+      "power": 85,
+      "mpCost": 20,
+      "defaultLearnLevel": 24,
+      "learnedBy": [
+        {
+          "unitId": "u05",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 12
+        },
+        {
+          "unitId": "u15",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 22
+        },
+        {
+          "unitId": "u25",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 32
+        },
+        {
+          "unitId": "u43",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 50
+        },
+        {
+          "unitId": "u54",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 61
+        },
+        {
+          "unitId": "u57",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 64
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "holy_4",
+      "name": "새벽날개",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "holy",
+      "damageChannel": "magical",
+      "tier": 4,
+      "stage": "ultimate",
+      "power": 110,
+      "mpCost": 30,
+      "defaultLearnLevel": 40,
+      "learnedBy": [
+        {
+          "unitId": "u05",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 12
+        },
+        {
+          "unitId": "u15",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 22
+        },
+        {
+          "unitId": "u25",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 32
+        },
+        {
+          "unitId": "u43",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 50
+        },
+        {
+          "unitId": "u54",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 61
+        },
+        {
+          "unitId": "u57",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 64
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "dark_1",
+      "name": "그늘손",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "dark",
+      "damageChannel": "magical",
+      "tier": 1,
+      "stage": "beginner",
+      "power": 35,
+      "mpCost": 6,
+      "defaultLearnLevel": 1,
+      "learnedBy": [
+        {
+          "unitId": "u08",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 15
+        },
+        {
+          "unitId": "u11",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 18
+        },
+        {
+          "unitId": "u20",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 27
+        },
+        {
+          "unitId": "u23",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 30
+        },
+        {
+          "unitId": "u29",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 36
+        },
+        {
+          "unitId": "u31",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 38
+        },
+        {
+          "unitId": "u34",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 41
+        },
+        {
+          "unitId": "u40",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 47
+        },
+        {
+          "unitId": "u42",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 49
+        },
+        {
+          "unitId": "u44",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 51
+        },
+        {
+          "unitId": "u45",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 52
+        },
+        {
+          "unitId": "u52",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 59
+        },
+        {
+          "unitId": "u54",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 61
+        },
+        {
+          "unitId": "u56",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 63
+        },
+        {
+          "unitId": "u58",
+          "level": 5,
+          "sourceStage": "secondary",
+          "sourceRow": 65
+        },
+        {
+          "unitId": "u59",
+          "level": 1,
+          "sourceStage": "beginner",
+          "sourceRow": 66
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "dark_2",
+      "name": "그늘발톱",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "dark",
+      "damageChannel": "magical",
+      "tier": 2,
+      "stage": "intermediate",
+      "power": 60,
+      "mpCost": 12,
+      "defaultLearnLevel": 10,
+      "learnedBy": [
+        {
+          "unitId": "u08",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 15
+        },
+        {
+          "unitId": "u23",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 30
+        },
+        {
+          "unitId": "u31",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 38
+        },
+        {
+          "unitId": "u40",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 47
+        },
+        {
+          "unitId": "u42",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 49
+        },
+        {
+          "unitId": "u52",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 59
+        },
+        {
+          "unitId": "u59",
+          "level": 10,
+          "sourceStage": "intermediate",
+          "sourceRow": 66
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "dark_3",
+      "name": "어둠송곳",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "dark",
+      "damageChannel": "magical",
+      "tier": 3,
+      "stage": "advanced",
+      "power": 85,
+      "mpCost": 20,
+      "defaultLearnLevel": 24,
+      "learnedBy": [
+        {
+          "unitId": "u08",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 15
+        },
+        {
+          "unitId": "u23",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 30
+        },
+        {
+          "unitId": "u31",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 38
+        },
+        {
+          "unitId": "u40",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 47
+        },
+        {
+          "unitId": "u42",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 49
+        },
+        {
+          "unitId": "u52",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 59
+        },
+        {
+          "unitId": "u59",
+          "level": 24,
+          "sourceStage": "advanced",
+          "sourceRow": 66
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    },
+    {
+      "id": "dark_4",
+      "name": "그늘낫",
+      "nameStatus": "workbook_proposal_not_name_approval",
+      "sourceVerifiedInPreservedJson": true,
+      "element": "dark",
+      "damageChannel": "magical",
+      "tier": 4,
+      "stage": "ultimate",
+      "power": 110,
+      "mpCost": 30,
+      "defaultLearnLevel": 40,
+      "learnedBy": [
+        {
+          "unitId": "u08",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 15
+        },
+        {
+          "unitId": "u23",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 30
+        },
+        {
+          "unitId": "u31",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 38
+        },
+        {
+          "unitId": "u40",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 47
+        },
+        {
+          "unitId": "u42",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 49
+        },
+        {
+          "unitId": "u52",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 59
+        },
+        {
+          "unitId": "u59",
+          "level": 40,
+          "sourceStage": "ultimate",
+          "sourceRow": 66
+        }
+      ],
+      "target": "single_enemy",
+      "effects": [],
+      "balanceStatus": "proposed",
+      "sourceNameConcern": null,
+      "damageChannelStatus": "proposed per-skill field; not approved classification"
+    }
+  ]
+}
