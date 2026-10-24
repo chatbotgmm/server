@@ -1,0 +1,12 @@
+{
+  "status": "proposal_only_not_runtime_configuration",
+  "approved": false,
+  "confirmedGrantLevels": {"COMMON": 1, "UNCOMMON": 1, "EPIC": 15},
+  "comparisonAssumptions": {"epicProbability": 0.2, "epicCount": 8, "uniformWithinGrade": true, "independentDrawsIgnoringPity": true, "firstDayTickets": 238, "firstDayBreakdown": {"newAccountWelcome": 200, "oneManualClaim": 30, "firstAttendance": 8}, "otherSpending": 0},
+  "options": [
+    {"id":"A","lowPrice":2,"midPrice":5,"highPrice":10,"expectedTicketsAnyEpic":50,"expectedTicketsSpecificEpic":400,"firstDayHighDraws":23,"firstDayExpectedEpics":4.6},
+    {"id":"B","lowPrice":3,"midPrice":8,"highPrice":20,"expectedTicketsAnyEpic":100,"expectedTicketsSpecificEpic":800,"firstDayHighDraws":11,"firstDayExpectedEpics":2.2,"recommendedForTesting":true},
+    {"id":"C","lowPrice":5,"midPrice":12,"highPrice":30,"expectedTicketsAnyEpic":150,"expectedTicketsSpecificEpic":1200,"firstDayHighDraws":7,"firstDayExpectedEpics":1.4}
+  ],
+  "unresolved": ["all offer grade mappings and weights", "prices", "pity policy", "rare and legendary direct grant levels", "legacy coupon and mission integration", "real manual claim frequency and measured progression time"]
+}
