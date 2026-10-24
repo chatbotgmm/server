@@ -1,0 +1,811 @@
+{
+  "optionalChanges": [
+    {
+      "id": "u57",
+      "before": [
+        {
+          "unitId": "u39",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u38",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u43",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "after": [
+        {
+          "unitId": "u39",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u38",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u25",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "commonBefore": 37,
+      "commonAfter": 34,
+      "xpBefore": 200267,
+      "xpAfter": 171191,
+      "reason": "무명과 잿불새를 룬장인의 성 문양으로 잇는 여명",
+      "status": "optional_unapproved_cost_normalization"
+    },
+    {
+      "id": "u59",
+      "before": [
+        {
+          "unitId": "u40",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u41",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u42",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "after": [
+        {
+          "unitId": "u40",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u29",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u42",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "commonBefore": 36,
+      "commonAfter": 31,
+      "xpBefore": 179813,
+      "xpAfter": 154233,
+      "reason": "몽마의 악몽과 흑등의 어둠에 서리마녀의 차가운 밤을 결합",
+      "status": "optional_unapproved_cost_normalization"
+    }
+  ],
+  "status": "review_only_no_runtime_changes",
+  "newTopRecipes": [
+    {
+      "id": "u45",
+      "name": "타이탄",
+      "grade": "LIMITED",
+      "before": [
+        {
+          "unitId": "u33",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u31",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u27",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "proposed": [
+        {
+          "unitId": "u33",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u31",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u27",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "change": "retain_no_peer_dependency",
+      "commonEquivalent": 27,
+      "externalXp": 131843,
+      "resultLevel": 25
+    },
+    {
+      "id": "u46",
+      "name": "베히모스",
+      "grade": "LIMITED",
+      "before": [
+        {
+          "unitId": "u34",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u19",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u26",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "proposed": [
+        {
+          "unitId": "u34",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u19",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u26",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "change": "retain_no_peer_dependency",
+      "commonEquivalent": 21,
+      "externalXp": 135359,
+      "resultLevel": 25
+    },
+    {
+      "id": "u47",
+      "name": "이프리트",
+      "grade": "LIMITED",
+      "before": [
+        {
+          "unitId": "u38",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u25",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u32",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "proposed": [
+        {
+          "unitId": "u38",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u25",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u32",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "change": "retain_no_peer_dependency",
+      "commonEquivalent": 30,
+      "externalXp": 139893,
+      "resultLevel": 25
+    },
+    {
+      "id": "u48",
+      "name": "빙령",
+      "grade": "LIMITED",
+      "before": [
+        {
+          "unitId": "u36",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u41",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u16",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "proposed": [
+        {
+          "unitId": "u36",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u41",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u16",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "change": "retain_no_peer_dependency",
+      "commonEquivalent": 31,
+      "externalXp": 166406,
+      "resultLevel": 25
+    },
+    {
+      "id": "u49",
+      "name": "가루다",
+      "grade": "TRANSCEND",
+      "before": [
+        {
+          "unitId": "u37",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u43",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u30",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "proposed": [
+        {
+          "unitId": "u37",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u43",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u30",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "change": "retain_no_peer_dependency",
+      "commonEquivalent": 30,
+      "externalXp": 156741,
+      "resultLevel": 25
+    },
+    {
+      "id": "u50",
+      "name": "레비아탄",
+      "grade": "TRANSCEND",
+      "before": [
+        {
+          "unitId": "u35",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u41",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u32",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "proposed": [
+        {
+          "unitId": "u35",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u41",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u32",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "change": "retain_no_peer_dependency",
+      "commonEquivalent": 37,
+      "externalXp": 162890,
+      "resultLevel": 25
+    },
+    {
+      "id": "u51",
+      "name": "세계수",
+      "grade": "TRANSCEND",
+      "before": [
+        {
+          "unitId": "u34",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u44",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u19",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "proposed": [
+        {
+          "unitId": "u34",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u44",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u19",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "change": "retain_no_peer_dependency",
+      "commonEquivalent": 29,
+      "externalXp": 164756,
+      "resultLevel": 25
+    },
+    {
+      "id": "u52",
+      "name": "망령",
+      "grade": "TRANSCEND",
+      "before": [
+        {
+          "unitId": "u40",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u42",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u31",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "proposed": [
+        {
+          "unitId": "u40",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u42",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u31",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "change": "retain_no_peer_dependency",
+      "commonEquivalent": 31,
+      "externalXp": 151936,
+      "resultLevel": 25
+    },
+    {
+      "id": "u53",
+      "name": "피닉스",
+      "grade": "IMMORTAL",
+      "before": [
+        {
+          "unitId": "u38",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u39",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u15",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "proposed": [
+        {
+          "unitId": "u38",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u39",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u15",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "change": "retain_no_peer_dependency",
+      "commonEquivalent": 30,
+      "externalXp": 160006,
+      "resultLevel": 25
+    },
+    {
+      "id": "u54",
+      "name": "등불정령",
+      "grade": "IMMORTAL",
+      "before": [
+        {
+          "unitId": "u42",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u39",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u10",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "proposed": [
+        {
+          "unitId": "u42",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u39",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u10",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "change": "retain_no_peer_dependency",
+      "commonEquivalent": 26,
+      "externalXp": 145556,
+      "resultLevel": 25
+    },
+    {
+      "id": "u55",
+      "name": "우로보로스",
+      "grade": "IMMORTAL",
+      "before": [
+        {
+          "unitId": "u35",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u44",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u32",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "proposed": [
+        {
+          "unitId": "u35",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u44",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u32",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "change": "retain_no_peer_dependency",
+      "commonEquivalent": 38,
+      "externalXp": 164144,
+      "resultLevel": 25
+    },
+    {
+      "id": "u56",
+      "name": "리치",
+      "grade": "IMMORTAL",
+      "before": [
+        {
+          "unitId": "u33",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u42",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u25",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "proposed": [
+        {
+          "unitId": "u33",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u42",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u25",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "change": "retain_no_peer_dependency",
+      "commonEquivalent": 31,
+      "externalXp": 148174,
+      "resultLevel": 25
+    },
+    {
+      "id": "u57",
+      "name": "여명",
+      "grade": "ETERNAL",
+      "before": [
+        {
+          "unitId": "u39",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u38",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u25",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "proposed": [
+        {
+          "unitId": "u39",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u38",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u25",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "change": "retain_no_peer_dependency",
+      "commonEquivalent": 37,
+      "externalXp": 200267,
+      "resultLevel": 25
+    },
+    {
+      "id": "u58",
+      "name": "설왕",
+      "grade": "ETERNAL",
+      "before": [
+        {
+          "unitId": "u36",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u40",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u29",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "proposed": [
+        {
+          "unitId": "u36",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u40",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u29",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "change": "retain_no_peer_dependency",
+      "commonEquivalent": 35,
+      "externalXp": 174742,
+      "resultLevel": 25
+    },
+    {
+      "id": "u59",
+      "name": "영야",
+      "grade": "ETERNAL",
+      "before": [
+        {
+          "unitId": "u40",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u29",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u42",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "proposed": [
+        {
+          "unitId": "u40",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u29",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u42",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "change": "retain_no_peer_dependency",
+      "commonEquivalent": 36,
+      "externalXp": 179813,
+      "resultLevel": 25
+    },
+    {
+      "id": "u60",
+      "name": "해룡",
+      "grade": "ETERNAL",
+      "before": [
+        {
+          "unitId": "u35",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u37",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u32",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "proposed": [
+        {
+          "unitId": "u35",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u37",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u32",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "change": "retain_no_peer_dependency",
+      "commonEquivalent": 36,
+      "externalXp": 149463,
+      "resultLevel": 25
+    }
+  ],
+  "newPeerDependencyViolations": [],
+  "legacyPeerDependencyViolations": [],
+  "gradeSummary": {
+    "ETERNAL": {
+      "count": 4,
+      "averageCommon": 36.0,
+      "averageXp": 176071.25
+    },
+    "IMMORTAL": {
+      "count": 4,
+      "averageCommon": 31.25,
+      "averageXp": 154470.0
+    },
+    "LIMITED": {
+      "count": 4,
+      "averageCommon": 27.25,
+      "averageXp": 143375.25
+    },
+    "TRANSCEND": {
+      "count": 4,
+      "averageCommon": 31.75,
+      "averageXp": 159080.75
+    }
+  },
+  "validation": {
+    "units": 60,
+    "recipes": 52,
+    "allReachCommonLeaves": true,
+    "cycles": 0
+  }
+}
