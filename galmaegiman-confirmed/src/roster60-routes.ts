@@ -1,3 +1,4 @@
+import {RecruitSessions,type RecruitSessionPolicy} from './roster60-recruit-session.js';
 import {RosterAdventure} from './roster60-adventure.js';
 import {RosterLibrary} from './roster60-library.js';
 import {RosterHome} from './roster60-home.js';
@@ -22,6 +23,9 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   const service=new RosterOnboarding(db,catalog);
   const adventure=new RosterAdventure(db,catalog,fighter);
   const library=new RosterLibrary(db,catalog);
+  // No implicit prices, odds, rounding or pity. Explicit reviewed policy file required.
+  const recruitPolicy=()=>{const path=resolve(root,'data/roster60-recruit-policy.json');return existsSync(path)?JSON.parse(readFileSync(path,'utf8')) as RecruitSessionPolicy:null;};
+  const recruitSessions=new RecruitSessions(db,catalog,recruitPolicy);
   const home=new RosterHome(db,catalog);
   const craft=new RosterCraft(db,catalog);
   const reincarnation=new RosterReincarnation(db,catalog);
@@ -43,6 +47,10 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   route('GET','collection',id=>library.collection(id));
   route('GET','recruit',id=>library.info(id));
   route('POST','recruit',(id,r)=>library.recruit(id,z.object({requestId,kind:z.enum(['LOW','MID','HIGH']),times:z.number().int().min(1).max(50),catalogVersion:z.string().min(1).max(100)}).strict().parse(r.body)));
+  route('GET','recruit/session',id=>recruitSessions.info(id));
+  route('POST','recruit/session/read',(id,r)=>recruitSessions.read(id,z.object({sessionId:z.string().uuid()}).strict().parse(r.body).sessionId));
+  route('POST','recruit/session/start',(id,r)=>recruitSessions.start(id,z.object({requestId,kind:z.enum(['LOW','MID','HIGH']),catalogVersion:z.string().min(1).max(100)}).strict().parse(r.body)));
+  route('POST','recruit/session/action',(id,r)=>recruitSessions.action(id,z.object({requestId,sessionId:z.string().uuid(),revision,action:z.enum(['reroll','claim'])}).strict().parse(r.body)));
   route('GET','home',id=>home.read(id));
   route('POST','home/rebirth-intro/complete',(id,r)=>{empty.parse(r.body);return home.completeIntro(id);});
   route('GET','battle/options',id=>battle.options(id));

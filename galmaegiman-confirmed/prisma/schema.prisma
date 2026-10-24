@@ -16,6 +16,7 @@ model Player {
   roster60Adventures Roster60Adventure[]
   roster60AdventureReceipts Roster60AdventureReceipt[]
   roster60RecruitReceipts Roster60RecruitReceipt[]
+  roster60RecruitSessions Roster60RecruitSession[]
   roster60Home Roster60Home?
   roster60Battles Roster60Battle[]
   roster60BattleReceipts Roster60BattleReceipt[]
@@ -597,4 +598,16 @@ model Roster60AdventureReceipt {
  createdAt DateTime @default(now())
  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
  @@id([playerId,requestId])
+}
+
+// Candidate only: owned units are created exclusively at final claim.
+model Roster60RecruitSession {
+ id String @id @default(uuid())
+ playerId String
+ revision Int @default(0)
+ status String @default("PENDING")
+ snapshot String
+ createdAt DateTime @default(now())
+ player Player @relation(fields:[playerId], references:[id], onDelete:Cascade)
+ @@index([playerId,status])
 }

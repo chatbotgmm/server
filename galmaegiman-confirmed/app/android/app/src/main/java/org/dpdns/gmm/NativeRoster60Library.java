@@ -26,7 +26,35 @@ final class NativeRoster60Library {
   details.addView(h.text("적합도 (공격 보정)\n"+map(u.optJSONObject("suitability"))+"\n속성 방어\n"+map(u.optJSONObject("defense")),12));JSONArray skills=u.optJSONArray("skills");if(skills!=null)for(int i=0;i<skills.length();i++){JSONObject sk=skills.optJSONObject(i);details.addView(h.text("Lv"+sk.optInt("learnLevel",1)+" "+sk.optString("name")+" · MP "+sk.optInt("mpCost"),12));}
  }
  String map(JSONObject obj){if(obj==null)return "준비 중";String[] ids={"normal","fire","water","lightning","ice","nature","holy","dark"},labels={"일반","불","물","번개","얼음","자연","성","어둠"};StringBuilder b=new StringBuilder();for(int i=0;i<ids.length;i++){String v=obj.optString(ids[i].toUpperCase(java.util.Locale.ROOT)).toLowerCase(java.util.Locale.ROOT);v=v.replace("reflect","반사").replace("resist","내성").replace("weak","약점").replace("normal","보통").replace("null","무효").replace("immune","무효");b.append(labels[i]).append(' ').append(v).append(i%2==0?" / ":"\n");}return b.toString();}
- void recruit(){base("모집","draw");h.api.call("native/roster60/recruit",null,(r,e)->{if(!current())return;if(e!=null){message.setText("모집 준비 중 · "+e);return;}offer=r;message.setText("지원서 "+r.optInt("credits")+" · 새 60종 모집\n중급·고급: 새 등급 확률 승인 대기");JSONArray offers=r.optJSONArray("offers");for(int i=0;i<offers.length();i++){JSONObject o=offers.optJSONObject(i);Button b=h.button(o.optString("label")+" · "+o.optInt("cost")+"장",()->confirm(o));b.setEnabled(o.optBoolean("enabled"));b.setContentDescription(b.getText()+" "+o.optString("reason"));root.addView(b,new LinearLayout.LayoutParams(-1,h.dp(48)));}root.addView(h.button("지원서 받기",()->{if(busy)return;busy=true;h.api.call("claim",h.obj(),(reward,error)->{busy=false;if(!current())return;if(error!=null){message.setText(error);return;}recruit();});}));root.addView(h.button("전송 결과 다시 확인",this::retry));root.addView(h.button("도감",()->h.collection()));if(!prefs.getString(key,"").isEmpty())retry();});}
+ void recruit(){base("모집","draw");h.api.call("native/roster60/recruit/session",null,(r,e)->{if(!current())return;if(e==null&&r!=null&&(!h.getSharedPreferences("roster60_recruit_session",0).getString(key,"").isEmpty()||!h.getSharedPreferences("roster60_recruit_session",0).getString(key+".result","").isEmpty()||r.optBoolean("enabled")||(r.optJSONArray("sessions")!=null&&r.optJSONArray("sessions").length()>0))){new NativeRecruitSession(h).open(r);return;}recruitLegacy();});}
+ void recruitLegacy(){base("모집","draw");h.api.call("native/roster60/recruit",null,(r,e)->{if(!current())return;if(e!=null){message.setText("모집 준비 중 · "+e);return;}offer=r;message.setText("지원서 "+r.optInt("credits")+" · 새 60종 모집\n중급·고급: 새 등급 확률 승인 대기 · 후보 새로고침 정책 준비 중");JSONArray offers=r.optJSONArray("offers");for(int i=0;i<offers.length();i++){JSONObject o=offers.optJSONObject(i);Button b=h.button(o.optString("label")+" · "+o.optInt("cost")+"장",()->confirm(o));b.setEnabled(o.optBoolean("enabled"));b.setContentDescription(b.getText()+" "+o.optString("reason"));root.addView(b,new LinearLayout.LayoutParams(-1,h.dp(48)));}root.addView(h.button("지원서 받기",()->{if(busy)return;busy=true;h.api.call("claim",h.obj(),(reward,error)->{busy=false;if(!current())return;if(error!=null){message.setText(error);return;}recruit();});}));root.addView(h.button("전송 결과 다시 확인",this::retry));root.addView(h.button("도감",()->h.collection()));restoreReceipt();if(!prefs.getString(key,"").isEmpty())retry();});}
  void confirm(JSONObject o){if(busy||!prefs.getString(key,"").isEmpty()){message.setText("이전 요청 결과를 먼저 확인하세요.");return;}new GameDialog(h).navy().setTitle("모집 확인").setMessage("지원서 "+o.optInt("cost")+"장 · 1회\n커먼 70% / 언커먼 30% · 등급 내 균등").setPositiveButton("모집",(d,w)->{if(!current()||busy||!prefs.getString(key,"").isEmpty())return;JSONObject body=h.obj("kind",o.optString("kind"),"times",1,"catalogVersion",offer.optString("catalogVersion"),"requestId",UUID.randomUUID().toString());if(prefs.edit().putString(key,body.toString()).commit())retry();}).setNegativeButton("취소",null).show();}
- void retry(){if(busy||!current())return;String raw=prefs.getString(key,"");if(raw.isEmpty())return;try{JSONObject body=new JSONObject(raw);busy=true;message.setText("모집 결과 확인 중…");h.api.call("native/roster60/recruit",body,(r,e)->{busy=false;if(!owner.equals(h.api.token()))return;boolean rejected=Arrays.asList("ROSTER_CATALOG_PENDING","CATALOG_CHANGED","INVALID_REQUEST","RECRUIT_GRADE_POLICY_PENDING","ROSTER_START_REQUIRED","INSUFFICIENT_CREDITS","REQUEST_ID_REUSED").contains(e);if(e==null||rejected)prefs.edit().remove(key).commit();if(!current())return;if(e!=null){message.setText("모집 결과 확인 필요 · "+e);return;}JSONArray items=r.optJSONArray("items");message.setText("영구 지급: "+items.optJSONObject(0).optString("name")+"\n지원서 "+r.optInt("credits")+" · 중복 요청은 재지급되지 않습니다.");});}catch(Exception bad){message.setText("저장된 모집 요청 확인이 필요합니다.");}}
+ // A receipt is committed locally before the pending request is cleared, including off-screen success.
+ // This is result recovery, never a paid reroll or deletion of an already granted unit.
+ void showReceipt(JSONObject r){JSONArray items=r.optJSONArray("items");if(items==null||items.length()==0)return;message.setText("영구 지급: "+items.optJSONObject(0).optString("name")+"\n지원서 "+r.optInt("credits")+" · 저장된 모집 결과 (무료 조회)");}
+ void restoreReceipt(){try{String raw=prefs.getString(key+".receipt","");if(!raw.isEmpty())showReceipt(new JSONObject(raw));}catch(JSONException bad){message.setText("저장된 결과를 읽지 못했습니다. 보유 개체는 도감에서 확인하세요.");}}
+ void retry(){
+  if(busy||!current())return;
+  String raw=prefs.getString(key,"");if(raw.isEmpty()){restoreReceipt();return;}
+  try{
+   JSONObject body=new JSONObject(raw);busy=true;message.setText("모집 결과 확인 중…");
+   h.api.call("native/roster60/recruit",body,(r,e)->{
+    busy=false;
+    boolean rejected=Arrays.asList("ROSTER_CATALOG_PENDING","CATALOG_CHANGED","INVALID_REQUEST","RECRUIT_GRADE_POLICY_PENDING","ROSTER_START_REQUIRED","INSUFFICIENT_CREDITS","REQUEST_ID_REUSED").contains(e);
+    // Account-scoped storage remains safe even if navigation/logout happens during the request.
+    // Never clear a newer request from a delayed callback.
+    if(raw.equals(prefs.getString(key,""))){
+     if(e==null&&r!=null&&body.optString("requestId").equals(r.optString("requestId"))){
+      if(!prefs.edit().putString(key+".receipt",r.toString()).remove(key).commit()){
+       if(current())message.setText("결과 저장 실패 · 같은 요청으로 다시 확인하세요.");return;
+      }
+     }else if(rejected)prefs.edit().remove(key).commit();
+    }
+    if(!current())return;
+    if(e!=null){restoreReceipt();message.append("\n모집 결과 확인 필요 · "+e);return;}
+    if(r==null||!body.optString("requestId").equals(r.optString("requestId"))){message.setText("응답 식별자가 일치하지 않습니다. 같은 요청으로 다시 확인하세요.");return;}
+    showReceipt(r);
+   });
+  }catch(JSONException bad){message.setText("저장된 모집 요청 확인이 필요합니다.");}
+ }
 }
