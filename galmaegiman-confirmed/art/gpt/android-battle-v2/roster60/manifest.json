@@ -5,12 +5,12 @@
   "runtime_integrated": false,
   "character_count": 60,
   "active_view_count": 120,
-  "png_file_count": 72,
+  "png_file_count": 73,
   "coordinate_convention": "Pixel integer [left,top,right,bottom], right/bottom exclusive; Android Rect compatible. Do not split sheets at 50%.",
   "pixel_edits_during_archival": false,
-  "default_view_selection": "entries[].active_views is authoritative. Original rears of u09/u17/u28 and original front+rear of u31 are superseded; original sources remain unchanged for history.",
+  "default_view_selection": "entries[].active_views is authoritative. Original rears of u09/u17/u28 and original + v5 front/rear of u31 are superseded; source history preserved.",
   "scale_note": "미니의 게임 표시 높이는 기본의60%. 다른 개체를 임의로 동일 높이에 맞추지 말 것. 피벗/발 기준점/실기기 검증은 미완료.",
-  "review_note": "Known issues are inherited review findings, not newly fixed in this archive. No issue listed does not equal final approval. Rejected rear-v2 variants excluded.",
+  "review_note": "Only u31 v6 design and direction have this update user approval. Other draft review states remain unchanged; no Android runtime readiness is implied.",
   "entries": [
     {
       "id": "u01",
@@ -6792,7 +6792,9 @@
             928
           ],
           "split_x": 884,
-          "views": [
+          "views": [],
+          "review_status": "structure_and_depth_review_pass_archive_candidate_pending_user_final_approval",
+          "superseded_views": [
             {
               "source_rect_ltrb_exclusive": [
                 0,
@@ -6811,13 +6813,47 @@
               ],
               "view": "rear_3quarter_right"
             }
+          ]
+        },
+        {
+          "file": "u31/turnaround-v6-direction.png",
+          "sha256": "4543932cf05dbbebbc1597fb1e279a77b20e9017d70f1562d0d363d006625c99",
+          "size": [
+            1774,
+            887
           ],
-          "review_status": "structure_and_depth_review_pass_archive_candidate_pending_user_final_approval"
+          "mode": "RGBA",
+          "chosen_gap_l_r_exclusive": [
+            858,
+            955
+          ],
+          "split_x": 906,
+          "views": [
+            {
+              "source_rect_ltrb_exclusive": [
+                0,
+                0,
+                906,
+                887
+              ],
+              "view": "front_3quarter_left"
+            },
+            {
+              "source_rect_ltrb_exclusive": [
+                906,
+                0,
+                1774,
+                887
+              ],
+              "view": "rear_3quarter_right"
+            }
+          ],
+          "review_status": "user_approved_v6_design_and_direction_only_not_runtime_ready"
         }
       ],
       "name": "듀라한",
       "grade": "에픽",
-      "review_status": "corrected_design_draft_pending_final_user_approval",
+      "review_status": "user_approved_v6_design_and_direction_only_not_runtime_ready",
       "known_issues": [],
       "runtime_integrated": false,
       "source_archive": "04_에픽_원본PNG_01.zip",
@@ -6826,21 +6862,21 @@
           "source_rect_ltrb_exclusive": [
             0,
             0,
-            884,
+            906,
             887
           ],
-          "file": "u31/turnaround-v5-legs.png",
-          "sha256": "f4470f12aac2aa21021686d81d5e7f5a1370de7f821d8807c05486354c84e189"
+          "file": "u31/turnaround-v6-direction.png",
+          "sha256": "4543932cf05dbbebbc1597fb1e279a77b20e9017d70f1562d0d363d006625c99"
         },
         "rear": {
           "source_rect_ltrb_exclusive": [
-            884,
+            906,
             0,
             1774,
             887
           ],
-          "file": "u31/turnaround-v5-legs.png",
-          "sha256": "f4470f12aac2aa21021686d81d5e7f5a1370de7f821d8807c05486354c84e189"
+          "file": "u31/turnaround-v6-direction.png",
+          "sha256": "4543932cf05dbbebbc1597fb1e279a77b20e9017d70f1562d0d363d006625c99"
         }
       },
       "superseded_views": [
@@ -6867,6 +6903,30 @@
           "sha256": "7ea14d1240907400b24957a6b5c297f6bf1f0faf5aa475106a8942ee7e7210be",
           "view": "rear",
           "reason": "사용자 요청으로 목 연기 및 손에 든 머리 디자인으로 정면과 후면 모두 교체"
+        },
+        {
+          "source_rect_ltrb_exclusive": [
+            0,
+            0,
+            884,
+            887
+          ],
+          "file": "u31/turnaround-v5-legs.png",
+          "sha256": "f4470f12aac2aa21021686d81d5e7f5a1370de7f821d8807c05486354c84e189",
+          "view": "front",
+          "reason": "사용자가 확인한 v6 전투 방향(정면 좌측/후면 우측)으로 대체"
+        },
+        {
+          "source_rect_ltrb_exclusive": [
+            884,
+            0,
+            1774,
+            887
+          ],
+          "file": "u31/turnaround-v5-legs.png",
+          "sha256": "f4470f12aac2aa21021686d81d5e7f5a1370de7f821d8807c05486354c84e189",
+          "view": "rear",
+          "reason": "사용자가 확인한 v6 전투 방향(정면 좌측/후면 우측)으로 대체"
         }
       ],
       "resolved_issues": [
@@ -6878,7 +6938,13 @@
         }
       ],
       "design_note": "목에는 연기만, 해부학적 왼손에 분리된 머리, 오른손에 검. 사용자 요청으로 정면도 변경.",
-      "front_leg_review": "v5: pelvis-leg-ankle-foot connections and support reviewed; passed archive candidate, pending final user approval."
+      "front_leg_review": "v6: coherent leg support and rear heels reviewed; user confirmed v6 direction.",
+      "user_approval": {
+        "scope": "u31 v6 design and battle-facing direction only",
+        "date": "2026-10-24",
+        "user_quote": "이게 맞아"
+      },
+      "direction_review": "front body and held head face left three-quarter; rear body and held head face right three-quarter; anatomical left hand holds head, right hand holds sword."
     },
     {
       "id": "u32",

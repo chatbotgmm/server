@@ -29,7 +29,7 @@ u27,미노타우로스,에픽,u27/turnaround-original.png,"[0, 0, 887, 887]",u27
 u28,인어기사,에픽,u28/turnaround-original.png,"[0, 0, 884, 887]",u28/rear-v3.png,"[0, 0, 1393, 1129]",창의 불투명 실루엣은 잘리지 않음(상단 여백7px). 게임 표시/회전 시 여백 확보 검토; 원본 재편집 없이 렌더 패딩 우선.
 u29,서리마녀,에픽,u29/turnaround-original.png,"[0, 0, 884, 887]",u29/turnaround-original.png,"[884, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
 u30,그리핀,에픽,u30/turnaround-original.png,"[0, 0, 926, 887]",u30/turnaround-original.png,"[926, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
-u31,듀라한,에픽,u31/turnaround-v5-legs.png,"[0, 0, 884, 887]",u31/turnaround-v5-legs.png,"[884, 0, 1774, 887]",머리를 손에 든 정면·후면 새 디자인; 최종 승인 및 실기기 검증 전
+u31,듀라한,에픽,u31/turnaround-v6-direction.png,"[0, 0, 906, 887]",u31/turnaround-v6-direction.png,"[906, 0, 1774, 887]",v6 디자인·전투 방향 사용자 승인. 정면 좌측/후면 우측; 안드로이드 실기기 검증 전.
 u32,화룡,에픽,u32/turnaround-original.png,"[0, 0, 946, 887]",u32/turnaround-original.png,"[946, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
 u33,거장,전설,u33/turnaround-original.png,"[0, 0, 910, 887]",u33/turnaround-original.png,"[910, 0, 1774, 887]",후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요
 u34,가시여왕,전설,u34/turnaround-original.png,"[0, 0, 947, 887]",u34/turnaround-original.png,"[947, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
