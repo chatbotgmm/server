@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {skillElements,validateRosterDefinition,combinationGrowth,startMp,focusMp,spendMp,resolveElementDamage} from '../src/battle/roster60-rules.ts';
+import {instanceGrowthCurve,growthAt,rosterMaxLevel,validateRosterLevel,skillElements,validateRosterDefinition,combinationGrowth,startMp,focusMp,spendMp,resolveElementDamage} from '../src/battle/roster60-rules.ts';
 // Synthetic arithmetic cases only, NOT a product roster, MP curve, or skill cost table.
 const curve=[{totalXp:0,maxMp:7},{totalXp:11,maxMp:13},{totalXp:30,maxMp:17}];
 const damage=(defense,suitability=0)=>resolveElementDamage({baseDamage:20,suitability,defense,attackerHp:100,defenderHp:100},(base,fit)=>base*fit);
@@ -34,7 +34,7 @@ test('full starting MP, focus floors quarter and caps without integer overflow',
   assert.throws(()=>spendMp(7,-1),/INVALID/);
 });
 test('combination averages cumulative XP with floor then calculates level; cap retains XP',()=>{
-  assert.deepEqual(combinationGrowth([10,15],curve),{level:2,totalXp:12,xp:1,maxMp:13,xpToNext:18});
+  assert.deepEqual(combinationGrowth([10,15],curve),{level:2,maxLevel:60,reincarnation:0,totalXp:12,xp:1,maxMp:13,xpToNext:18});
   assert.equal(combinationGrowth([0,30,2],curve).level,1);
   assert.equal(combinationGrowth([100,101],curve).totalXp,100);
   assert.equal(combinationGrowth([Number.MAX_SAFE_INTEGER,Number.MAX_SAFE_INTEGER],curve).totalXp,Number.MAX_SAFE_INTEGER);
@@ -54,4 +54,29 @@ test('roster contract accepts six skills and rejects legacy creature elements/in
   assert.throws(()=>validateRosterDefinition({...unit,skills:[...unit.skills,skill]}),/TOO_MANY/);
   assert.throws(()=>validateRosterDefinition({...unit,suitability:{NORMAL:0}}),/PROFILE/);
   assert.throws(()=>validateRosterDefinition({...unit,attack:{...skill,mpCost:-1}}),/MP_COST/);
+});
+
+test('only server-owned reincarnation unlocks 99; overflow and reset are not inferred',()=>{
+ const c=Array.from({length:99},(_,i)=>({totalXp:i*10,maxMp:i+1}));
+ assert.equal(rosterMaxLevel(),60);assert.equal(rosterMaxLevel(1),99);
+ assert.equal(growthAt(590,c).level,60);assert.equal(growthAt(590,c).xpToNext,null);
+ assert.throws(()=>growthAt(600,c),/CAP_XP_POLICY_REQUIRED/);
+ assert.throws(()=>validateRosterLevel(99,0),/LEVEL_CAP_EXCEEDED/);
+ assert.throws(()=>rosterMaxLevel(-1),/INVALID/);assert.throws(()=>rosterMaxLevel(true),/INVALID/);
+ assert.equal(growthAt(980,c,1,{earlyRequiredPercent:100,throughLevel:60}).level,99);assert.equal(growthAt(980,c,1,{earlyRequiredPercent:100,throughLevel:60}).maxLevel,99);
+ assert.throws(()=>growthAt(981,c,1,{earlyRequiredPercent:100,throughLevel:60}),/CAP_XP_POLICY_REQUIRED/);
+ assert.throws(()=>combinationGrowth([600,600],c),/CAP_XP_POLICY_REQUIRED/);
+ assert.deepEqual(startMp(980,c,1,{earlyRequiredPercent:100,throughLevel:60}),{mp:99,maxMp:99});
+});
+
+test('explicit synthetic 70 percent requirement policy switches after 59 to 60, never boosts earned XP',()=>{
+ const c=Array.from({length:99},(_,i)=>({totalXp:i*11,maxMp:i+1}));
+ const policy={earlyRequiredPercent:70,throughLevel:60};
+ const r=instanceGrowthCurve(c,1,policy);
+ assert.equal(r[59].totalXp-r[58].totalXp,8); // ceil(11*.7)
+ assert.equal(r[60].totalXp-r[59].totalXp,11);
+ assert.equal(growthAt(r[98].totalXp,c,1,policy).level,99);
+ assert.equal(growthAt(80,c,1,policy).totalXp,80);
+ assert.equal(combinationGrowth([80,80],c).level,8); // normal result curve, no inherited rebirth
+ assert.throws(()=>growthAt(0,c,1),/XP_POLICY_REQUIRED/);
 });

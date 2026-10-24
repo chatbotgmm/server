@@ -11,7 +11,7 @@ suite('roster60 transactional combination',()=>{
  const catalog:RosterCatalog={approved:true,version:'craft-test-only',characters:['u02','u09'].map(id=>({id,name:id,rarity:'COMMON',stats:{hp:10},
    attack:{id:'test',name:'test',element:'NORMAL',mpCost:1},skills:[],
    suitability:Object.fromEntries(skillElements.map(e=>[e,0])) as any,defense:Object.fromEntries(skillElements.map(e=>[e,'normal'])) as any,
-   growth:[{totalXp:0,maxMp:7},{totalXp:id==='u02'?10:12,maxMp:9}]})),recipes:[{resultId:'u09',ingredients:[{unitId:'u02',count:2,minLevel:2}],visibility:'public'}]};
+   reincarnationXpPolicy:{earlyRequiredPercent:70,throughLevel:60},growth:[{totalXp:0,maxMp:7},{totalXp:id==='u02'?10:12,maxMp:9}]})),recipes:[{resultId:'u09',ingredients:[{unitId:'u02',count:2,minLevel:2}],visibility:'public'}]};
  beforeAll(async()=>{
    const url=process.env.TEST_DB_URL!;if(!/^file:\/tmp\/galmaegiman-tests-[^/]+\/test\.db$/.test(url))throw Error('disposable DB only');
    db=new PrismaClient({datasources:{db:{url}}});
@@ -33,6 +33,12 @@ suite('roster60 transactional combination',()=>{
    const result=await service.confirm(owner,{...sel,requestId,previewFingerprint:p.previewFingerprint});
    expect(await service.receipt(owner,requestId)).toEqual({status:'completed',result});
    expect(await service.receipt(other,requestId)).toEqual({status:'unknown'});
+ });
+ it('reborn materials cannot implicitly transfer eligibility',async()=>{
+ const a=await material(),b=await material();await db.roster60Owned.update({where:{id:a.id},data:{reincarnation:1}});
+ expect((await service.options(owner)).units.find(u=>u.ownedId===a.id)?.maxLevel).toBe(99);
+ await expect(service.preview(owner,selection([a.id,b.id]))).rejects.toThrow('CRAFT_REINCARNATION_POLICY_REQUIRED');
+ expect(await db.roster60Owned.count({where:{id:{in:[a.id,b.id]},status:'AVAILABLE'}})).toBe(2);
  });
  it('preview floors average cumulative XP then calculates result level, never consumes',async()=>{
    const a=await material(11),b=await material(16);

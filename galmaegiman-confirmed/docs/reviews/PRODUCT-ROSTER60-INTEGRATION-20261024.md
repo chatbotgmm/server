@@ -1,3 +1,17 @@
+## Reincarnation caps and cycle reset (2026-10-24)
+
+Confirmed: ordinary owned instances cap at 60; server-owned reincarnation >0 unlocks 99. New roster schema adds reincarnation=0, additive manual SQL only. No client request accepts reincarnation or maxLevel. rosterMaxLevel is the common server source; growthAt/startMp and crafting options/result DTO use it; Android renders server maxLevel instead of guessing from grade. Existing legacy OwnedCharacter.reincarnation and progression.ts consume/create/reset behavior were inspected but not imported into the new model. Legacy runtime is still separate and not claimed upgraded.
+
+New reset preview contract in battle/roster60-reincarnation.ts separates baseline level-one stats, permanent bonus stats, resulting level-one stats, and previous-cycle XP for audit. next.totalXp=0, next.level=1, next.maxLevel=99: old XP cannot restore the prior level. No runtime reset route is exposed: approved bonus policy/version is mandatory, at least one stat must improve and none may decrease. Repeat bonuses are supplied as a full policy result, not multiplied implicitly. Android before/after reset screen is NOT connected yet; the DTO is prepared for it.
+
+Current-cycle cumulative XP is the crafting input; historical/lifetime XP is not. Reborn ingredients are rejected with CRAFT_REINCARNATION_POLICY_REQUIRED until eligibility inheritance is decided. XP above the exact configured cap threshold is rejected with CAP_XP_POLICY_REQUIRED, not banked, dropped, awarded or migrated. Short synthetic curves remain test inputs, not complete production growth tables.
+
+Conflicting parent messages arrived on 70%: an approval with user “그러자” was immediately followed by a message saying the proposal is unapproved. Latest hold is respected pending clarification. ReincarnationXpPolicy is mandatory for reborn growth; there is NO product default. Explicit tests use 70% of each next-level requirement, ceil rounding (positive transitions), for current levels 1..59 and 100% from 60 onward. No earned XP multiplier. Normal crafting result uses its own normal curve. Ability bonus magnitude, repeat policy, base XP/MP curves and other balance remain unapproved.
+
+Validation: server build passed; full disposable-DB suite 555/555 (46 files), focused craft/reset 10/10, Node rule tests 7/7, Android crafting/onboarding 4/4 and product debug build passed. The 60/99 UI test consumes server DTO values. Device execution and new reset screen are unverified/unconnected.
+
+Pending minimum decisions: resolve the contradictory 70% status; bonus stat values and repeat policy; crafting inheritance of reincarnation; cap overflow XP disposition. Schema/data deployment and actual reset execution remain unperformed.
+
 ## Product crafting UI connection (2026-10-24, local only)
 
 The actual MainActivity mix/craftRecipes entry now selects NativeRoster60Craft for accounts whose server tutorial.flow is roster60-v1. The authenticated product routes are GET native/roster60/craft/options and POST craft/preview, craft/confirm, craft/receipt. No fixture or legacy character grant substitutes for missing approved data. New onboarding updates this flow immediately; webTutorial returns it on reload. Old tutorial overlays and starter-loan prompts are suppressed for the new flow.

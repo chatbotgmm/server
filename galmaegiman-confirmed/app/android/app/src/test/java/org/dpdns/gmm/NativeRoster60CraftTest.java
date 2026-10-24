@@ -21,7 +21,7 @@ public class NativeRoster60CraftTest {
   Api(Context c){super(c);}
   @Override String token(){return "synthetic-craft-test";}
   @Override void call(String path,JSONObject b,Result cb){
-   if(path.endsWith("/options")){cb.done(MainActivity.obj("catalogVersion","synthetic-only","units",new JSONArray(Arrays.asList(MainActivity.obj("ownedId","a","name","미니","level",2,"totalXp","11"),MainActivity.obj("ownedId","b","name","미니","level",2,"totalXp","16"))),"recipes",new JSONArray(Arrays.asList(MainActivity.obj("resultId","u09","name","노움")))),unavailable?"ROSTER_CATALOG_PENDING":null);}
+   if(path.endsWith("/options")){cb.done(MainActivity.obj("catalogVersion","synthetic-only","units",new JSONArray(Arrays.asList(MainActivity.obj("ownedId","a","name","미니","level",2,"maxLevel",60,"totalXp","11"),MainActivity.obj("ownedId","b","name","미니","level",2,"maxLevel",60,"totalXp","16"))),"recipes",new JSONArray(Arrays.asList(MainActivity.obj("resultId","u09","name","노움")))),unavailable?"ROSTER_CATALOG_PENDING":null);}
    else if(path.endsWith("/preview"))cb.done(MainActivity.obj("expectedLevel",2,"inheritedTotalXp",13,"previewFingerprint","server-fingerprint"),null);
    else if(path.endsWith("/confirm")){confirms.add(b);confirm=cb;}
    else if(path.endsWith("/receipt"))cb.done(MainActivity.obj("status",receipt),null);
@@ -33,6 +33,9 @@ public class NativeRoster60CraftTest {
    try {
     h.state.put("tutorial",MainActivity.obj("flow","roster60-v1"));h.mix();
     NativeRoster60Craft ui=h.menus.economy.roster60Craft;assertNotNull(ui);assertEquals("mix",h.screen);
+    assertTrue(h.root.findViewWithTag("roster60-material-carousel").getContentDescription().toString().contains("/ 60"));
+    ui.units.getJSONObject(0).put("maxLevel",99);ui.render();
+    assertTrue(h.root.findViewWithTag("roster60-material-carousel").getContentDescription().toString().contains("/ 99"));
     ui.toggle(ui.units.getJSONObject(0));ui.toggle(ui.units.getJSONObject(1));ui.requestPreview();
     assertEquals(13,ui.preview.getInt("inheritedTotalXp"));assertTrue(ui.confirmButton.isEnabled());
     ui.toggle(ui.units.getJSONObject(0));assertNull(ui.preview);assertFalse(ui.confirmButton.isEnabled());

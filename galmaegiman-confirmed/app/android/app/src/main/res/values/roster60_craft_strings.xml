@@ -5,9 +5,9 @@
  <string name="roster60_craft_inventory_limit">보유 개체 중 첫 1,000개를 표시합니다.</string>
  <string name="roster60_craft_hint">좌우로 밀어 탐색 · 탭하여 재료 추가/해제</string>
  <string name="roster60_craft_empty">표시할 항목이 없습니다.</string>
- <string name="roster60_craft_unit_progress">Lv.%1$d · 누적 XP %2$s</string>
+ <string name="roster60_craft_unit_progress">Lv.%1$d / %2$s · 누적 XP %3$s</string>
  <string name="roster60_craft_tap">재료 추가 또는 해제</string><string name="roster60_craft_position">%1$d / %2$d · 밀어 이동</string>
- <string name="roster60_craft_slot">재료 %1$d</string><string name="roster60_craft_prediction">예상 Lv.%1$d · 계승 누적 XP %2$s</string>
+ <string name="roster60_craft_slot">재료 %1$d</string><string name="roster60_craft_prediction">예상 Lv.%1$d / %2$s · 계승 누적 XP %3$s</string>
  <string name="roster60_craft_reload">다시 확인</string><string name="roster60_craft_preview">예상 결과 확인</string><string name="roster60_craft_confirm">조합 확정</string><string name="roster60_craft_retry">같은 요청 재시도</string>
  <string name="roster60_craft_preview_failed">미리보기를 확인하지 못했습니다. 재료 수량·레벨과 연결을 확인해 주세요.</string>
  <string name="roster60_craft_repreview">재료 또는 조합 정보가 바뀌었습니다. 예상 결과를 다시 확인해 주세요.</string>

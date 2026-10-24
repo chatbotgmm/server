@@ -1,6 +1,6 @@
 import {createHash,randomUUID} from 'node:crypto';
 import type {Prisma,PrismaClient} from '@prisma/client';
-import {combinationGrowth,growthAt,validateRosterDefinition} from './battle/roster60-rules.js';
+import {combinationGrowth,growthAt,rosterMaxLevel,validateRosterDefinition} from './battle/roster60-rules.js';
 import {RosterError,type RosterCatalog} from './roster60-onboarding.js';
 type Tx=Prisma.TransactionClient;
 export type CraftSelection={resultId:string;materialIds:string[];catalogVersion:string};
@@ -19,7 +19,10 @@ export class RosterCraft {
     return {catalogVersion:c.version,truncated:rows.length>1000,units:rows.slice(0,1000).map(u=>{
       const d=definitions.get(u.speciesId);if(!d)return fail('ROSTER_CATALOG_INVALID',503);
       if(u.totalXp<0n||u.totalXp>BigInt(Number.MAX_SAFE_INTEGER))return fail('INVALID_STORED_XP');
-      return {ownedId:u.id,speciesId:u.speciesId,name:d.name,totalXp:u.totalXp.toString(),level:growthAt(Number(u.totalXp),d.growth).level};
+      let level:number;
+      try{level=growthAt(Number(u.totalXp),d.growth,u.reincarnation,d.reincarnationXpPolicy).level;}
+      catch(e){return fail((e as Error).message,503);}
+      return {ownedId:u.id,speciesId:u.speciesId,name:d.name,totalXp:u.totalXp.toString(),level,maxLevel:rosterMaxLevel(u.reincarnation),reincarnation:u.reincarnation};
     }),recipes:c.recipes.filter(r=>r.visibility==='public').map(r=>({resultId:r.resultId,name:definitions.get(r.resultId)?.name??r.resultId,ingredients:r.ingredients}))};
   }
   async receipt(playerId:string,requestId:string){
@@ -45,6 +48,7 @@ export class RosterCraft {
     const target=definition(input.resultId);
     const materials=await tx.roster60Owned.findMany({where:{id:{in:input.materialIds},playerId,status:'AVAILABLE',locked:false},orderBy:{id:'asc'}});
     if(materials.length!==input.materialIds.length)return fail('MATERIALS_UNAVAILABLE');
+    if(materials.some(m=>m.reincarnation!==0))return fail('CRAFT_REINCARNATION_POLICY_REQUIRED');
     if(recipe.ingredients.reduce((n,i)=>n+i.count,0)!==materials.length)return fail('INVALID_RECIPE',400);
     const xp=(v:bigint)=>{if(v<0n||v>BigInt(Number.MAX_SAFE_INTEGER))return fail('INVALID_STORED_XP');return Number(v);};
     for(const ingredient of recipe.ingredients){
@@ -53,12 +57,13 @@ export class RosterCraft {
       const curve=definition(ingredient.unitId).growth;
       if(group.some(m=>growthAt(xp(m.totalXp),curve).level<ingredient.minLevel))return fail('MATERIAL_LEVEL_REQUIRED');
     }
-    const result=combinationGrowth(materials.map(m=>xp(m.totalXp)),target.growth);
+    let result:ReturnType<typeof combinationGrowth>;
+    try{result=combinationGrowth(materials.map(m=>xp(m.totalXp)),target.growth);}catch(e){if((e as Error).message==='CAP_XP_POLICY_REQUIRED')return fail('CAP_XP_POLICY_REQUIRED');throw e;}
     // Include the calculated result as well as version: a mistakenly edited catalog
     // with an unchanged version must not silently change the confirmed level.
     const previewFingerprint=hash([canonical(input),materials.map(m=>[m.id,m.speciesId,m.totalXp.toString()]),target.name,recipe,result]);
     return {resultId:target.id,resultName:target.name,catalogVersion:catalog.version,materialIds:materials.map(m=>m.id),
-      inheritedTotalXp:result.totalXp,expectedLevel:result.level,previewFingerprint};
+      inheritedTotalXp:result.totalXp,expectedLevel:result.level,maxLevel:result.maxLevel,reincarnation:0,previewFingerprint};
   }
   preview(playerId:string,input:CraftSelection){return this.db.$transaction(tx=>this.plan(tx,playerId,input));}
   async confirm(playerId:string,input:CraftConfirmation){

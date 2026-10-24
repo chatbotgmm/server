@@ -5,10 +5,11 @@ export type SkillElement = typeof skillElements[number];
 export type Defense = 'weak'|'normal'|'resist'|'immune'|'reflect';
 export type ElementProfile<T> = Record<SkillElement,T>;
 export type SkillDefinition = {id:string;name:string;element:SkillElement;mpCost:number};
+export type ReincarnationXpPolicy = {earlyRequiredPercent:number;throughLevel:number};
 export type GrowthPoint = {totalXp:number;maxMp:number};
 export type RosterDefinition = {
   id:string;name:string;skills:SkillDefinition[];attack:SkillDefinition;
-  suitability:ElementProfile<number>;defense:ElementProfile<Defense>;growth:GrowthPoint[];
+  suitability:ElementProfile<number>;defense:ElementProfile<Defense>;growth:GrowthPoint[];reincarnationXpPolicy?:ReincarnationXpPolicy;
 };
 function integer(n:number,label:string) {
   if(!Number.isSafeInteger(n)||n<0)throw new Error(`INVALID_${label}`);
@@ -16,8 +17,15 @@ function integer(n:number,label:string) {
 function finite(n:number,label:string) {
   if(!Number.isFinite(n))throw new Error(`INVALID_${label}`);
 }
+// The argument is server-owned per-instance state, never a client eligibility claim.
+export function rosterMaxLevel(reincarnation=0):60|99 {
+  integer(reincarnation,'REINCARNATION');return reincarnation>0?99:60;
+}
+export function validateRosterLevel(level:number,reincarnation=0) {
+  integer(level,'LEVEL');if(level<1||level>rosterMaxLevel(reincarnation))throw new Error('LEVEL_CAP_EXCEEDED');
+}
 export function validateGrowth(curve:readonly GrowthPoint[]) {
-  if(!curve.length||curve[0].totalXp!==0)throw new Error('INVALID_GROWTH_ORIGIN');
+  if(!curve.length||curve.length>99||curve[0].totalXp!==0)throw new Error('INVALID_GROWTH_ORIGIN');
   curve.forEach((p,i)=>{
     integer(p.totalXp,'XP');integer(p.maxMp,'MAX_MP');
     if(i&&(p.totalXp<=curve[i-1].totalXp||p.maxMp<curve[i-1].maxMp))throw new Error('INVALID_GROWTH_ORDER');
@@ -42,22 +50,39 @@ export function validateRosterDefinition(unit:RosterDefinition) {
   }
   validateGrowth(unit.growth);
 }
-export function growthAt(totalXp:number,curve:readonly GrowthPoint[]) {
-  integer(totalXp,'XP');validateGrowth(curve);
-  let index=0;
-  while(index+1<curve.length&&curve[index+1].totalXp<=totalXp)index++;
-  return {level:index+1,totalXp,xp:totalXp-curve[index].totalXp,maxMp:curve[index].maxMp,
-    xpToNext:index+1<curve.length?curve[index+1].totalXp-totalXp:null};
+// Discount required XP only; earned/current-cycle cumulative XP is unchanged.
+// Per-level ceil rounds fractional requirements up and keeps positive transitions.
+export function instanceGrowthCurve(curve:readonly GrowthPoint[],reincarnation=0,policy?:ReincarnationXpPolicy):GrowthPoint[] {
+ validateGrowth(curve);rosterMaxLevel(reincarnation);
+ if(!reincarnation)return curve.map(p=>({...p}));
+ if(!policy)throw Error('REINCARNATION_XP_POLICY_REQUIRED');
+ if(!Number.isSafeInteger(policy.earlyRequiredPercent)||policy.earlyRequiredPercent<1||policy.earlyRequiredPercent>100||!Number.isSafeInteger(policy.throughLevel)||policy.throughLevel<2||policy.throughLevel>99)throw Error('INVALID_REINCARNATION_XP_POLICY');
+ let totalXp=0;return curve.map((p,i)=>{
+  if(i){const delta=BigInt(p.totalXp-curve[i-1].totalXp),percent=i<policy.throughLevel?policy.earlyRequiredPercent:100;
+   totalXp+=Number((delta*BigInt(percent)+99n)/100n);}
+  return {totalXp,maxMp:p.maxMp};
+ });
 }
-// Use this same result for preview and transactional result creation. Keep XP at level cap.
+export function growthAt(totalXp:number,curve:readonly GrowthPoint[],reincarnation=0,policy?:ReincarnationXpPolicy) {
+  curve=instanceGrowthCurve(curve,reincarnation,policy);
+  integer(totalXp,'XP');validateGrowth(curve);
+  const maxLevel=rosterMaxLevel(reincarnation);
+  // Reject unapproved overflow handling instead of discarding/banking/converting XP.
+  if(curve.length>=maxLevel&&totalXp>curve[maxLevel-1].totalXp)throw new Error('CAP_XP_POLICY_REQUIRED');
+  let index=0;
+  while(index+1<Math.min(curve.length,maxLevel)&&curve[index+1].totalXp<=totalXp)index++;
+  return {level:index+1,maxLevel,reincarnation,totalXp,xp:totalXp-curve[index].totalXp,maxMp:curve[index].maxMp,
+    xpToNext:index+1<Math.min(curve.length,maxLevel)?curve[index+1].totalXp-totalXp:null};
+}
+// Same result for preview and creation; overflow policy remains explicitly gated.
 export function combinationGrowth(materialTotalXp:readonly number[],curve:readonly GrowthPoint[]) {
   if(!materialTotalXp.length)throw new Error('MATERIALS_REQUIRED');
   let sum=0n;
   for(const xp of materialTotalXp){integer(xp,'XP');sum+=BigInt(xp);}
   return growthAt(Number(sum/BigInt(materialTotalXp.length)),curve);
 }
-export function startMp(totalXp:number,curve:readonly GrowthPoint[]) {
-  const {maxMp}=growthAt(totalXp,curve);return {mp:maxMp,maxMp};
+export function startMp(totalXp:number,curve:readonly GrowthPoint[],reincarnation=0,policy?:ReincarnationXpPolicy) {
+  const {maxMp}=growthAt(totalXp,curve,reincarnation,policy);return {mp:maxMp,maxMp};
 }
 export function focusMp(mp:number,maxMp:number) {
   integer(mp,'MP');integer(maxMp,'MAX_MP');if(mp>maxMp)throw new Error('MP_EXCEEDS_MAX');
