@@ -230,6 +230,8 @@ final class NativeTutorialController {
   }
 
   void update() {
+    JSONObject flow = h.state.optJSONObject("tutorial");
+    if (flow != null && "roster60-v1".equals(flow.optString("flow"))) { removeOverlay(); return; }
     if (h.nicknameRequired() || !enabled
         || saving
         || h.api.token().isEmpty()

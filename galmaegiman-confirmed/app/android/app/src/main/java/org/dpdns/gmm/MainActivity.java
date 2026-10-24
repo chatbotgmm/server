@@ -1460,6 +1460,7 @@ public class MainActivity extends AppCompatActivity {
 
   void back() {
     if (updateBlocks()) return;
+    if((screen.equals("mix")||screen.equals("craftRecipes"))&&menus.economy.roster60Craft!=null)menus.economy.roster60Craft.leave();
     if (screen.equals("news") && menus.news.back()) return;
     if (screen.equals("collection") && menus.library.collectionFocus != null
         && menus.library.collectionFocus.back()) return;

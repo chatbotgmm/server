@@ -22,6 +22,18 @@ suite('roster60 transactional combination',()=>{
  afterAll(async()=>{if(db){await db.player.deleteMany({where:{id:{in:[owner,other]}}});await db.$disconnect();}});
  async function material(xp=11,playerId=owner){return db.roster60Owned.create({data:{playerId,speciesId:'u02',totalXp:BigInt(xp),source:randomUUID()}});}
  const selection=(ids:string[])=>({materialIds:ids,resultId:'u09',catalogVersion:catalog.version});
+ it('options only expose available owned units and receipt is owner scoped',async()=>{
+   const a=await material(),foreign=await material(11,other),locked=await material();
+   await db.roster60Owned.update({where:{id:locked.id},data:{locked:true}});
+   const options=await service.options(owner);
+   expect(options.units.some(u=>u.ownedId===a.id)).toBe(true);
+   expect(options.units.some(u=>[foreign.id,locked.id].includes(u.ownedId))).toBe(false);
+   await expect(new RosterCraft(db,()=>null).options(owner)).rejects.toThrow('ROSTER_CATALOG_PENDING');
+   const b=await material(),sel=selection([a.id,b.id]),p=await service.preview(owner,sel),requestId=randomUUID();
+   const result=await service.confirm(owner,{...sel,requestId,previewFingerprint:p.previewFingerprint});
+   expect(await service.receipt(owner,requestId)).toEqual({status:'completed',result});
+   expect(await service.receipt(other,requestId)).toEqual({status:'unknown'});
+ });
  it('preview floors average cumulative XP then calculates result level, never consumes',async()=>{
    const a=await material(11),b=await material(16);
    const p=await service.preview(owner,selection([a.id,b.id]));

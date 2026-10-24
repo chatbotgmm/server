@@ -14,6 +14,7 @@ final class NativeRoster60Onboarding {
     h.api.call("native/roster60/start",new JSONObject(),(r,e)->{
       if(!valid(owner))return;
       if(e!=null){h.message(h.getString(R.string.roster60_connection_failed));return;}
+      try{JSONObject tutorial=h.state.optJSONObject("tutorial");if(tutorial==null)tutorial=new JSONObject();tutorial.put("flow","roster60-v1");h.state.put("tutorial",tutorial);}catch(JSONException impossible){throw new IllegalStateException(impossible);}
       JSONObject ticket=r.optJSONObject("ticket");
       new GameDialog(h).navy().setTitle(h.getString(R.string.roster60_title))
         .setMessage(h.getString(R.string.roster60_start_description))

@@ -19,6 +19,7 @@ final class NativeEconomy {
   int recipePage, mixPage, crewPage, selectedCrewPage;
   Runnable recipeRepaint;
   NativeExpeditionPreparation expeditionPreparation;
+  NativeRoster60Craft roster60Craft;
   TextView recipeIdentity;
   View recipeHint;
   final LinkedHashMap<String, Button> shopActions = new LinkedHashMap<>();
@@ -389,6 +390,11 @@ final class NativeEconomy {
 
   void craft(boolean mix) {
     if (h.busy) return;
+    JSONObject tutorial=h.state.optJSONObject("tutorial");
+    if(tutorial!=null&&"roster60-v1".equals(tutorial.optString("flow"))){
+      if(roster60Craft==null)roster60Craft=new NativeRoster60Craft(this);
+      roster60Craft.open(mix);return;
+    }
     recipeRepaint = null;
     h.base("조합", mix ? "mix" : "craftRecipes");
     economyScene("workshop");

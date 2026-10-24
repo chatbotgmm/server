@@ -18,7 +18,10 @@ final class NativeStarterLoans {
   int page;
   NativeStarterLoans(MainActivity host) { h = host; k = new MenuKit(h); }
 
+  boolean roster60() { JSONObject t=h.state.optJSONObject("tutorial");return t!=null&&"roster60-v1".equals(t.optString("flow")); }
+
   void resume() {
+    if(roster60()){if(dialog!=null)dialog.dismiss();return;}
     String token = h.api.token();
     if (!token.equals(account)) {
       if (dialog != null) dialog.dismiss();
@@ -32,12 +35,12 @@ final class NativeStarterLoans {
   }
 
   void check(boolean explicit) {
-    if (checking) return;
+    if (checking || roster60()) return;
     checking = true;
     final String session = h.api.token();
     h.api.call("starter-loans", null, (r, e) -> {
       checking = false;
-      if (h.isFinishing() || h.isDestroyed() || !session.equals(h.api.token())) return;
+      if (h.isFinishing() || h.isDestroyed() || roster60() || !session.equals(h.api.token())) return;
       if (e != null) {
         if (explicit) h.message("지급 상태를 확인하지 못했어요. 연결 후 홈에서 다시 확인해 주세요.");
         return;

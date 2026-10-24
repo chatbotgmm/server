@@ -1531,6 +1531,8 @@ export class GameService {
   // 게임 튜토리얼(v0.15.0): 처음 물을 때 새 유저(스토리 저장·가진 갈매미 없음)면 1단계, 아니면 9(끝)로 정함
   async webTutorial(playerId:string){
     return this.webRun(playerId,async(tx,p)=>{
+      const roster60=await tx.roster60State.findUnique({where:{playerId}});
+      if(roster60)return {flow:'roster60-v1',step:roster60.completedAt?9:1,seen:p.gameSeen.split(',').filter(Boolean),nicknameRequired:needsInitialNickname(p)};
       let step=p.gameTutorial;
       if(step===0){
         const old=(await tx.storySave.count({where:{playerId}}))>0||(await tx.ownedCharacter.count({where:{playerId}}))>0;

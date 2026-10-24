@@ -10,6 +10,22 @@ const hash=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).d
 const canonical=(b:CraftSelection)=>[b.resultId,[...b.materialIds].sort(),b.catalogVersion];
 export class RosterCraft {
   constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null){}
+  async options(playerId:string){
+    const c=this.catalog();
+    if(c?.approved!==true||!Array.isArray(c.characters)||!Array.isArray(c.recipes))return fail('ROSTER_CATALOG_PENDING',503);
+    const definitions=new Map(c.characters.map(u=>[u.id,u]));
+    try{for(const u of c.characters)validateRosterDefinition(u);}catch{return fail('ROSTER_CATALOG_INVALID',503);}
+    const rows=await this.db.roster60Owned.findMany({where:{playerId,status:'AVAILABLE',locked:false},orderBy:{id:'asc'},take:1001});
+    return {catalogVersion:c.version,truncated:rows.length>1000,units:rows.slice(0,1000).map(u=>{
+      const d=definitions.get(u.speciesId);if(!d)return fail('ROSTER_CATALOG_INVALID',503);
+      if(u.totalXp<0n||u.totalXp>BigInt(Number.MAX_SAFE_INTEGER))return fail('INVALID_STORED_XP');
+      return {ownedId:u.id,speciesId:u.speciesId,name:d.name,totalXp:u.totalXp.toString(),level:growthAt(Number(u.totalXp),d.growth).level};
+    }),recipes:c.recipes.filter(r=>r.visibility==='public').map(r=>({resultId:r.resultId,name:definitions.get(r.resultId)?.name??r.resultId,ingredients:r.ingredients}))};
+  }
+  async receipt(playerId:string,requestId:string){
+    const r=await this.db.roster60CraftReceipt.findUnique({where:{playerId_requestId:{playerId,requestId}}});
+    return r?{status:'completed',result:JSON.parse(r.result)}:{status:'unknown'};
+  }
   private async plan(tx:Tx,playerId:string,input:CraftSelection){
     if(!input.materialIds.length||input.materialIds.length>6||new Set(input.materialIds).size!==input.materialIds.length)return fail('INVALID_MATERIALS',400);
     const catalog=this.catalog();

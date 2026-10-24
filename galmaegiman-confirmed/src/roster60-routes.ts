@@ -28,5 +28,7 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   route('POST','confirm',(id,r)=>{const b=z.object({ticketId:z.string().min(1).max(100),characterId:z.string(),catalogVersion:z.string().min(1).max(100)}).strict().parse(r.body);return service.confirm(id,b.ticketId,b.characterId,b.catalogVersion);});
   const selection=z.object({resultId:z.string().regex(/^u\d{2}$/),materialIds:z.array(z.string().min(1).max(100)).min(1).max(6),catalogVersion:z.string().min(1).max(100)}).strict();
   route('POST','craft/preview',(id,r)=>craft.preview(id,selection.parse(r.body)));
+  route('GET','craft/options',id=>craft.options(id));
+  route('POST','craft/receipt',(id,r)=>{const b=z.object({requestId:z.string().min(1).max(100)}).strict().parse(r.body);return craft.receipt(id,b.requestId);});
   route('POST','craft/confirm',(id,r)=>craft.confirm(id,selection.extend({requestId:z.string().min(1).max(100),previewFingerprint:z.string().regex(/^[a-f0-9]{64}$/)}).strict().parse(r.body)));
 }
