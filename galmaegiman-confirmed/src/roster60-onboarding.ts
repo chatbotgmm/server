@@ -3,7 +3,7 @@ import type {Prisma,PrismaClient} from '@prisma/client';
 import {validateRosterDefinition,type RosterDefinition} from './battle/roster60-rules.js';
 export const commonChoices=['u02','u03','u04','u05','u06','u07','u08'] as const;
 export type RosterRecipe={resultId:string;ingredients:{unitId:string;count:number;minLevel:number}[];visibility:'public'|'hidden'};
-export type RosterCatalog={statSchema?:'gmm-five-stats-v1';version:string;approved:boolean;characters:(RosterDefinition&{rarity:string;stats:Record<string,number>})[];recipes?:RosterRecipe[]};
+export type RosterCatalog={statSchema?:'gmm-five-stats-v1';rebirthPolicy?:string;profileKind?:string;version:string;approved:boolean;characters:(RosterDefinition&{rarity:string;stats:Record<string,number>})[];recipes?:RosterRecipe[]};
 export class RosterError extends Error {constructor(public status:number,public code:string){super(code);}}
 const fail=(code:string,status=409):never=>{throw new RosterError(status,code);};
 type Tx=Prisma.TransactionClient;

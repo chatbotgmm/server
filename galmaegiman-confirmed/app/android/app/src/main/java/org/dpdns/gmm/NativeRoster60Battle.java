@@ -9,7 +9,7 @@ final class NativeRoster60Battle {
  final MainActivity h; final SharedPreferences prefs;
  static final Set<String> IN_FLIGHT=new HashSet<>();
  String owner,key; int epoch; LinearLayout container; TextView message,stats; Button retry,settle;
- CombatV2ReviewPanel panel; JSONObject view; boolean reading; android.app.AlertDialog selection;
+ NativeRoster60Art art; CombatV2ReviewPanel panel; JSONObject view; boolean reading; android.app.AlertDialog selection;
  NativeRoster60Battle(MainActivity host){h=host;prefs=h.getSharedPreferences("roster60_product_battle",Context.MODE_PRIVATE);}
  boolean current(){return epoch==h.epoch&&"roster60Battle".equals(h.screen)&&owner.equals(h.api.token())&&!h.isDestroyed();}
  void open(){
@@ -23,6 +23,7 @@ final class NativeRoster60Battle {
   LinearLayout controls=new LinearLayout(h);controls.setOrientation(LinearLayout.VERTICAL);info.addView(controls);
   retry=h.button("다시 확인",this::resume);retry.setTag("roster60-battle-retry");controls.addView(retry,new LinearLayout.LayoutParams(-1,h.dp(48)));
   settle=h.button("결과 받기",()->{if(view!=null)mutate("settle",h.obj("battleId",view.optString("battleId"),"revision",view.optInt("revision")));});settle.setTag("roster60-battle-settle");settle.setEnabled(false);controls.addView(settle,new LinearLayout.LayoutParams(-1,h.dp(48)));
+  art=new NativeRoster60Art(h);art.setTag("roster60-battle-art");container.addView(art,new LinearLayout.LayoutParams(0,-1,2));
   panel=new CombatV2ReviewPanel(h,this::command,CombatV2ReviewStyle::icon,true);panel.setTag("roster60-battle-panel");container.addView(panel,new LinearLayout.LayoutParams(0,-1,3));resume();
  }
  void resume(){
@@ -74,7 +75,7 @@ final class NativeRoster60Battle {
  void error(String e){message.setText(e.contains("PENDING")||e.contains("CATALOG")?h.getString(R.string.roster60_battle_pending)+"\n"+e:e);}
  void bind(JSONObject r){
   try{
-   JSONObject s=r.getJSONObject("state");if(!"five-battle-v1".equals(s.getString("version")))throw new JSONException("version");
+   JSONObject s=r.getJSONObject("state");art.bind(s);if(!"five-battle-v1".equals(s.getString("version")))throw new JSONException("version");
    JSONArray fighters=s.getJSONArray("fighters");JSONObject self=fighters.getJSONObject(0),foe=fighters.getJSONObject(1);
    StringBuilder text=new StringBuilder();for(JSONObject f:new JSONObject[]{self,foe}){JSONObject v=f.getJSONObject("stats");text.append(f.getString("name")).append(" · 체력 ").append(f.getInt("hp")).append('/').append(v.getInt("hp")).append(" · MP ").append(f.getInt("mp")).append('/').append(v.getInt("mp")).append(" · 내구력 ").append(v.getInt("durability")).append(" · 저항력 ").append(v.getInt("statusResistance")).append(" · 속도 ").append(v.getInt("speed")).append('\n');}
    stats.setText(text);boolean active="ACTIVE".equals(r.getString("status"));JSONArray commands=new JSONArray(),skills=new JSONArray();String[] ids={"attack","skills","focus","item","switch","escape"},labels={"공격","기술","집중","아이템","교체","도망치기"};
@@ -82,7 +83,7 @@ final class NativeRoster60Battle {
    JSONArray raw=self.getJSONArray("skills");for(int i=0;i<raw.length();i++){JSONObject sk=new JSONObject(raw.getJSONObject(i).toString());boolean enabled=active&&self.getInt("mp")>=sk.getInt("mpCost");sk.put("enabled",enabled);sk.put("reason",active?(enabled?"":"MP 부족"):"전투 종료");sk.put("description","위력 "+sk.optDouble("power"));skills.put(sk);}
    JSONObject displaySelf=new JSONObject(self.toString());displaySelf.put("maxHp",self.getJSONObject("stats").getInt("hp"));displaySelf.put("maxMp",self.getJSONObject("stats").getInt("mp"));JSONObject displayFoe=new JSONObject(foe.toString());displayFoe.put("maxHp",foe.getJSONObject("stats").getInt("hp"));displayFoe.put("maxMp",foe.getJSONObject("stats").getInt("mp"));
    panel.bind(h.obj("epoch","product-five-battle-v1","battleId",r.getString("battleId"),"revision",r.getInt("revision"),"self",displaySelf,"foe",displayFoe,"commands",commands,"skills",skills,"events",new JSONArray()));
-   view=r;message.setText(active?"서버 전투 · 턴 "+s.getInt("turn"):"SETTLED".equals(r.getString("status"))?"정산 완료 · "+r.getJSONObject("settlement").optString("outcome"):"전투 종료 · "+s.optString("outcome"));settle.setEnabled("FINISHED".equals(r.getString("status")));
+   view=r;message.setText(active?(r.optBoolean("testBaseline")?"시험안 "+r.optString("balanceProfile"):"서버 전투")+" · 턴 "+s.getInt("turn"):"SETTLED".equals(r.getString("status"))?"정산 완료 · "+r.getJSONObject("settlement").optString("outcome"):"전투 종료 · "+s.optString("outcome"));settle.setEnabled("FINISHED".equals(r.getString("status")));
   }catch(Exception bad){view=null;panel.lock();settle.setEnabled(false);message.setText("서버 전투 데이터 형식을 확인할 수 없습니다.");}
  }
  boolean back(){if(panel!=null){panel.cancelInteraction();if(panel.showCommands())return true;}h.home();return true;}

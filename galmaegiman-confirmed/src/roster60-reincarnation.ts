@@ -1,3 +1,5 @@
+import {fiveRebirthPolicy,fiveRebirthStats,type FiveStats} from './battle/roster60-five-stats.js';
+import {previewReincarnation} from './battle/roster60-reincarnation.js';
 import type {PrismaClient,Prisma} from '@prisma/client';
 import {createHash} from 'node:crypto';
 import {RosterError,type RosterCatalog} from './roster60-onboarding.js';
@@ -16,13 +18,13 @@ export class RosterReincarnation {
   if(u.reincarnation>=5)return fail('REINCARNATION_LIMIT');
   if(u.status!=='AVAILABLE'||u.locked)return fail('UNIT_UNAVAILABLE');
   const d=c.characters.find(x=>x.id===u.speciesId);if(!d)return fail('ROSTER_CATALOG_INVALID',503);validateRosterDefinition(d);
-  // Five-stat rebirth targets/formula are not approved. Never fall through to six-stat bonus.
-  if(c.statSchema==='gmm-five-stats-v1')return fail('FIVE_STAT_REBIRTH_POLICY_PENDING',503);
+  // Explicit approved three-stat policy only; never fall through to the archived six-stat bonus.
+  if(c.statSchema==='gmm-five-stats-v1'&&c.rebirthPolicy!==fiveRebirthPolicy)return fail('FIVE_STAT_REBIRTH_POLICY_PENDING',503);
   const base=(d as typeof d&{levelOneStats?:BaseSixStats}).levelOneStats;if(!base)return fail('LEVEL_ONE_BASE_STATS_REQUIRED',503);
   if(base.mp!==d.growth[0].maxMp)return fail('BASE_MP_MISMATCH',503);
   if(u.totalXp<0n||u.totalXp>BigInt(Number.MAX_SAFE_INTEGER))return fail('INVALID_XP');
   const before=growthAt(Number(u.totalXp),d.growth,u.reincarnation,d.reincarnationXpPolicy);
-  const preview={beforeLevel:before.level,...previewReincarnationCycle({totalXp:Number(u.totalXp),reincarnation:u.reincarnation,baseLevelOneStats:base,curve:d.growth,suitability:d.suitability,defense:d.defense})};
+  const preview={beforeLevel:before.level,...(c.statSchema==='gmm-five-stats-v1'?(()=>{const original=base as unknown as FiveStats;const after=fiveRebirthStats(original,original,u.reincarnation+1);return {...previewReincarnation({totalXp:Number(u.totalXp),reincarnation:u.reincarnation,baseLevelOneStats:original,curve:d.growth},{approved:true,version:fiveRebirthPolicy,bonusFor:()=>Object.fromEntries(Object.keys(original).map(k=>[k,after[k as keyof FiveStats]-original[k as keyof FiveStats]]))}),suitability:structuredClone(d.suitability),defense:structuredClone(d.defense)};})():previewReincarnationCycle({totalXp:Number(u.totalXp),reincarnation:u.reincarnation,baseLevelOneStats:base,curve:d.growth,suitability:d.suitability,defense:d.defense}))};
   const account=await tx.roster60RebirthAccount.findUnique({where:{playerId}}),successes=account?.successes??0,cost=successes===0?0:rebirthCost();
   const requiredLevel=requiredReincarnationLevel(u.reincarnation);
   const policy=rebirthGradePolicy;let reason='';

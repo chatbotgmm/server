@@ -10,10 +10,12 @@ import {validateFiveStatCatalog} from './battle/roster60-five-stats.js';
 import {RosterBattle,type BattlePolicy} from './roster60-battle.js';
 import {RosterCraft} from './roster60-craft.js';
 export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string,auth:(r:FastifyRequest)=>string|null,guard:(r:FastifyRequest,p:FastifyReply)=>boolean){
-  const file=resolve(root,'data/roster60-approved.json');
+  const profile=process.env.ROSTER60_PROFILE;
+  if(profile && profile!=='five-stat-device-test-v1')throw Error('UNKNOWN_ROSTER60_PROFILE');
+  const file=resolve(root,profile?'data/test-profiles/'+profile+'/catalog.json':'data/roster60-approved.json');
   // No fallback to review fixtures or legacy character definitions.
   const catalog=()=>{if(!existsSync(file))return null;try{const c=JSON.parse(readFileSync(file,'utf8'));validateFiveStatCatalog(c);return c as RosterCatalog;}catch(e){throw new RosterError(503,e instanceof Error&&['FIVE_STAT_CATALOG_REQUIRED','FIVE_STAT_CATALOG_INVALID','FIVE_STATS_REQUIRED','INVALID_FIVE_STATS','BASE_MP_MISMATCH'].includes(e.message)?e.message:'ROSTER_CATALOG_INVALID');}};
-  const policyFile=resolve(root,'data/roster60-battle-policy.json');
+  const policyFile=resolve(root,profile?'data/test-profiles/'+profile+'/battle-policy.json':'data/roster60-battle-policy.json');
   const battle=new RosterBattle(db,catalog,()=>{if(!existsSync(policyFile))return null;try{return JSON.parse(readFileSync(policyFile,'utf8')) as BattlePolicy;}catch{throw new RosterError(503,'BATTLE_POLICY_INVALID');}});
   const service=new RosterOnboarding(db,catalog);
   const home=new RosterHome(db,catalog);

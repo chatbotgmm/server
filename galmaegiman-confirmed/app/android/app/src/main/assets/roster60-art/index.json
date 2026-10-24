@@ -1,0 +1,4087 @@
+{
+  "sourceCommit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+  "purpose": "test-profile art; source approvals unchanged",
+  "pivotStatus": "alpha-bounds bottom center candidate; device validation pending",
+  "entries": [
+    {
+      "id": "u01",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u01-front.webp",
+          "sourceFile": "u01/front.png",
+          "sourceSha256": "dfb19fcde7a0b2cc2ed00dd7d106206ac68b2e3b0c486b568724b981a0457122",
+          "sourceRect": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "alphaBounds": [
+            62,
+            47,
+            1197,
+            1206
+          ],
+          "originalVisibleSize": [
+            1135,
+            1159
+          ],
+          "size": [
+            501,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "1ee3781a6434c340f208d07e6c9d9057fc737166845568f65524971d95df7549"
+        },
+        "rear": {
+          "file": "u01-rear.webp",
+          "sourceFile": "u01/rear.png",
+          "sourceSha256": "e38512508cde1e6b9beddb5b42d33ddcc3b3ff0295739291c52079dd2c839652",
+          "sourceRect": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "alphaBounds": [
+            95,
+            43,
+            1159,
+            1190
+          ],
+          "originalVisibleSize": [
+            1064,
+            1147
+          ],
+          "size": [
+            475,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "d8ec5e2b60304ed49f05f535983b3b52df723b594a2fd7410b09a90b101aa956"
+        }
+      }
+    },
+    {
+      "id": "u02",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u02-front.webp",
+          "sourceFile": "u02/front.png",
+          "sourceSha256": "6b0d8362c6d4d33a9679a14e937767ae1880f827d4db961d97c0a56827eeea43",
+          "sourceRect": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "alphaBounds": [
+            115,
+            93,
+            1171,
+            1178
+          ],
+          "originalVisibleSize": [
+            1056,
+            1085
+          ],
+          "size": [
+            498,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 0.6,
+          "runtimeSha256": "d54656c1b71a6f2db3e2e42544336d9d11db876f1958ab59a3a417d349d917f0"
+        },
+        "rear": {
+          "file": "u02-rear.webp",
+          "sourceFile": "u02/rear.png",
+          "sourceSha256": "59684308492d45fa3778b696024edf31b03c081754b4a0d6d30c2a6d19609d7a",
+          "sourceRect": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "alphaBounds": [
+            158,
+            78,
+            1069,
+            1190
+          ],
+          "originalVisibleSize": [
+            911,
+            1112
+          ],
+          "size": [
+            419,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 0.6,
+          "runtimeSha256": "0b60bdd8d9edd675e4ac9637ec2e70455ea0dc78cd4f17494c4fb6c81fa1e4de"
+        }
+      }
+    },
+    {
+      "id": "u03",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u03-front.webp",
+          "sourceFile": "u03/front.png",
+          "sourceSha256": "70109328358ba8e2ff1e9853854f2d4e1fba91d89b46df46ceeb14ab751366ba",
+          "sourceRect": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "alphaBounds": [
+            186,
+            348,
+            1078,
+            964
+          ],
+          "originalVisibleSize": [
+            892,
+            616
+          ],
+          "size": [
+            512,
+            354
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "b0c2ec69992f1a59abd4adde026895801491fa56fec4ffe23e8904b967bc9896"
+        },
+        "rear": {
+          "file": "u03-rear.webp",
+          "sourceFile": "u03/rear.png",
+          "sourceSha256": "5c261d65f546e8aca5a197a061741a04842157ac4bfa76ff9fe78ef70cb041ae",
+          "sourceRect": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "alphaBounds": [
+            34,
+            209,
+            1239,
+            1062
+          ],
+          "originalVisibleSize": [
+            1205,
+            853
+          ],
+          "size": [
+            512,
+            362
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "a78ebbea1a37ba6125f0a1cd694d765dd1df5b2c900285f2c20abda0c40f2412"
+        }
+      }
+    },
+    {
+      "id": "u04",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u04-front.webp",
+          "sourceFile": "u04/front.png",
+          "sourceSha256": "d92d505e0eccf5fcaf4fd8d1ec9f39b3b039a12a68bada738cccd6032da4303c",
+          "sourceRect": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "alphaBounds": [
+            149,
+            60,
+            1143,
+            1205
+          ],
+          "originalVisibleSize": [
+            994,
+            1145
+          ],
+          "size": [
+            444,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "24ad941a08c2337d5601eb9e2bcc184a8faec29942fc7d132725391577cb1bd1"
+        },
+        "rear": {
+          "file": "u04-rear.webp",
+          "sourceFile": "u04/rear.png",
+          "sourceSha256": "4a27811f46fc857ac07a4be35d4de15b2b753ac7787797e977dfec2159362ff3",
+          "sourceRect": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "alphaBounds": [
+            183,
+            58,
+            1076,
+            1211
+          ],
+          "originalVisibleSize": [
+            893,
+            1153
+          ],
+          "size": [
+            397,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "e5990bab190fdc9fa0127aeb78a14db6ef682567ef9a2173cfeb4c1df570876a"
+        }
+      }
+    },
+    {
+      "id": "u05",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u05-front.webp",
+          "sourceFile": "u05/front.png",
+          "sourceSha256": "71ef995a5c19caf401e9522a7df139cbb7a368094795b58ecbb467cad33eabc3",
+          "sourceRect": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "alphaBounds": [
+            48,
+            122,
+            1212,
+            1177
+          ],
+          "originalVisibleSize": [
+            1164,
+            1055
+          ],
+          "size": [
+            512,
+            464
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "90228ec07898f88b477db45c693da69e1416201316138158a6f2685623ee0136"
+        },
+        "rear": {
+          "file": "u05-rear.webp",
+          "sourceFile": "u05/rear.png",
+          "sourceSha256": "edbd1d43508445752d434de4f5cce6fd4bb9707b1f93699c890996ddf56a957a",
+          "sourceRect": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "alphaBounds": [
+            48,
+            111,
+            1206,
+            1181
+          ],
+          "originalVisibleSize": [
+            1158,
+            1070
+          ],
+          "size": [
+            512,
+            473
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "4663258b5091d7ac5376d47bac342c5bad1bd4844ab699bd6746274b119df1e8"
+        }
+      }
+    },
+    {
+      "id": "u06",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u06-front.webp",
+          "sourceFile": "u06/front.png",
+          "sourceSha256": "f36c40c9860fa42cca5daee60a1cf839310a3fd355a49de2eb0ac80229654ee5",
+          "sourceRect": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "alphaBounds": [
+            165,
+            32,
+            1163,
+            1227
+          ],
+          "originalVisibleSize": [
+            998,
+            1195
+          ],
+          "size": [
+            428,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "a293c05aa53f46a0e45d0d888f0292e2ed1db66f8badfd57dda02c46a69fac83"
+        },
+        "rear": {
+          "file": "u06-rear.webp",
+          "sourceFile": "u06/rear.png",
+          "sourceSha256": "2bc4a432cdacbcf0243a301fee428fde3ef89786db444c8c3553f0a6265630b6",
+          "sourceRect": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "alphaBounds": [
+            123,
+            41,
+            1191,
+            1224
+          ],
+          "originalVisibleSize": [
+            1068,
+            1183
+          ],
+          "size": [
+            462,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "f47ee781bc7ce408b8a3a93b2cc2b358ce3452c9e49703fd16d686a09502a47f"
+        }
+      }
+    },
+    {
+      "id": "u07",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u07-front.webp",
+          "sourceFile": "u07/front.png",
+          "sourceSha256": "da0b49b4410437d2643f1816c63bbfed3aaaa60cfdd12cdc94cf476a48071cc5",
+          "sourceRect": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "alphaBounds": [
+            56,
+            98,
+            1203,
+            1188
+          ],
+          "originalVisibleSize": [
+            1147,
+            1090
+          ],
+          "size": [
+            512,
+            487
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "298c9879043ec8176c6d17d1db697fa019ee3ae526d3a81a704a711cb29d18a4"
+        },
+        "rear": {
+          "file": "u07-rear.webp",
+          "sourceFile": "u07/rear.png",
+          "sourceSha256": "340e2504d9cdc6da1d5f65738ad982c1cf8d45d8ee20d604efdc4ea16a1ea04a",
+          "sourceRect": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "alphaBounds": [
+            89,
+            61,
+            1150,
+            1193
+          ],
+          "originalVisibleSize": [
+            1061,
+            1132
+          ],
+          "size": [
+            480,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "f295992d3268abd9ff9612fd4d5eb1a9e90acf9cfb6a8095b1e06ad84459ff58"
+        }
+      }
+    },
+    {
+      "id": "u08",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u08-front.webp",
+          "sourceFile": "u08/front.png",
+          "sourceSha256": "088f86d89112ac50ed3594a640907f9a3f55dc66fce2e43bde7a75b6bf86459f",
+          "sourceRect": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "alphaBounds": [
+            35,
+            245,
+            1232,
+            1038
+          ],
+          "originalVisibleSize": [
+            1197,
+            793
+          ],
+          "size": [
+            512,
+            339
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "845ec79589dae89d139e2a7372574644455017769d7e0042b44a06f06aff6627"
+        },
+        "rear": {
+          "file": "u08-rear.webp",
+          "sourceFile": "u08/rear.png",
+          "sourceSha256": "22e2f241519b6925345cd265a8c9d98d9e00dd1bbf1054c6a8369e564aefa91c",
+          "sourceRect": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "alphaBounds": [
+            42,
+            251,
+            1220,
+            1062
+          ],
+          "originalVisibleSize": [
+            1178,
+            811
+          ],
+          "size": [
+            512,
+            352
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "fb40bfa7d14a2ad031669f97f882dc54351bf30c1d6431198612b527003436ff"
+        }
+      }
+    },
+    {
+      "id": "u09",
+      "reviewStatus": "corrected_draft_pending_final_user_approval",
+      "views": {
+        "front": {
+          "file": "u09-front.webp",
+          "sourceFile": "u09/turnaround-original.png",
+          "sourceSha256": "376404486a2fa7a6bfb83e408442b06a35ae8928557a30fc7c9c1c74288dc7bc",
+          "sourceRect": [
+            0,
+            0,
+            924,
+            887
+          ],
+          "alphaBounds": [
+            135,
+            33,
+            899,
+            861
+          ],
+          "originalVisibleSize": [
+            764,
+            828
+          ],
+          "size": [
+            472,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "536de92b37adfa3d7ea135110664457e319ce6bf2206d6de5f0e099d6ef2ca1e"
+        },
+        "rear": {
+          "file": "u09-rear.webp",
+          "sourceFile": "u09/rear-v3.png",
+          "sourceSha256": "cc64dbfa499cdf376537ea6299eb94835e51fb54c86a3a6b1a352276502cc85f",
+          "sourceRect": [
+            0,
+            0,
+            1312,
+            1199
+          ],
+          "alphaBounds": [
+            119,
+            19,
+            1293,
+            1155
+          ],
+          "originalVisibleSize": [
+            1174,
+            1136
+          ],
+          "size": [
+            512,
+            495
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "089509cc02f5609a8f927d523f0f757ce7393143f760ffd1ded104a41cef1f1c"
+        }
+      }
+    },
+    {
+      "id": "u10",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u10-front.webp",
+          "sourceFile": "u10/turnaround-original.png",
+          "sourceSha256": "83399efa405b4a31304e945a881a326e80b471f2ebdb5f70a71a6987dc5ad109",
+          "sourceRect": [
+            0,
+            0,
+            918,
+            887
+          ],
+          "alphaBounds": [
+            95,
+            20,
+            870,
+            860
+          ],
+          "originalVisibleSize": [
+            775,
+            840
+          ],
+          "size": [
+            472,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "336956c5fc52b4e548af8f7b9994ce3f78b881d1119ed306740d129f920e174e"
+        },
+        "rear": {
+          "file": "u10-rear.webp",
+          "sourceFile": "u10/turnaround-original.png",
+          "sourceSha256": "83399efa405b4a31304e945a881a326e80b471f2ebdb5f70a71a6987dc5ad109",
+          "sourceRect": [
+            918,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            51,
+            34,
+            769,
+            861
+          ],
+          "originalVisibleSize": [
+            718,
+            827
+          ],
+          "size": [
+            445,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "02873d363c191e299ce2753b321343e7bc8366034dd03f9036820e93ae1b3155"
+        }
+      }
+    },
+    {
+      "id": "u11",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u11-front.webp",
+          "sourceFile": "u11/turnaround-original.png",
+          "sourceSha256": "22fa5b512e8e469fc0259483aeb5d704db1df8ccef30be44da4311f81282e656",
+          "sourceRect": [
+            0,
+            0,
+            909,
+            887
+          ],
+          "alphaBounds": [
+            96,
+            18,
+            881,
+            868
+          ],
+          "originalVisibleSize": [
+            785,
+            850
+          ],
+          "size": [
+            473,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "3de1c7fb99782bcea29ae920b717d16a9348601eaab73d9c429386dda2c906e2"
+        },
+        "rear": {
+          "file": "u11-rear.webp",
+          "sourceFile": "u11/turnaround-original.png",
+          "sourceSha256": "22fa5b512e8e469fc0259483aeb5d704db1df8ccef30be44da4311f81282e656",
+          "sourceRect": [
+            909,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            45,
+            24,
+            782,
+            863
+          ],
+          "originalVisibleSize": [
+            737,
+            839
+          ],
+          "size": [
+            450,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "a6a2b20d8091aeaaf2264bbd2d632716beff0fc07b5e453fe995eb0ef73ec3e1"
+        }
+      }
+    },
+    {
+      "id": "u12",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u12-front.webp",
+          "sourceFile": "u12/turnaround-original.png",
+          "sourceSha256": "55c938ae49ec3dc3ba30d257ca856d15b782aeeba921b9e626ee957a64b4ba90",
+          "sourceRect": [
+            0,
+            0,
+            898,
+            887
+          ],
+          "alphaBounds": [
+            68,
+            78,
+            878,
+            824
+          ],
+          "originalVisibleSize": [
+            810,
+            746
+          ],
+          "size": [
+            512,
+            472
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "ebb29062d31a659466a17ee8863adf81c6abdfba9b0d14de5b8924577df4b04e"
+        },
+        "rear": {
+          "file": "u12-rear.webp",
+          "sourceFile": "u12/turnaround-original.png",
+          "sourceSha256": "55c938ae49ec3dc3ba30d257ca856d15b782aeeba921b9e626ee957a64b4ba90",
+          "sourceRect": [
+            898,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            35,
+            78,
+            810,
+            821
+          ],
+          "originalVisibleSize": [
+            775,
+            743
+          ],
+          "size": [
+            512,
+            491
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "c85d4ed62cb22c0f9304ddbebd1ed0167f150c77efc389e95448473160c4c8f5"
+        }
+      }
+    },
+    {
+      "id": "u13",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u13-front.webp",
+          "sourceFile": "u13/turnaround-original.png",
+          "sourceSha256": "045bc5310bdfb76ec551c6c0eebe9c664b6159cf60e5cf39f514523d8c2c54b5",
+          "sourceRect": [
+            0,
+            0,
+            879,
+            887
+          ],
+          "alphaBounds": [
+            20,
+            19,
+            867,
+            874
+          ],
+          "originalVisibleSize": [
+            847,
+            855
+          ],
+          "size": [
+            507,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "ae45da547c80e8ce51d97e31bebe7bd3655571d57759a081f56e811833ad1518"
+        },
+        "rear": {
+          "file": "u13-rear.webp",
+          "sourceFile": "u13/turnaround-original.png",
+          "sourceSha256": "045bc5310bdfb76ec551c6c0eebe9c664b6159cf60e5cf39f514523d8c2c54b5",
+          "sourceRect": [
+            879,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            28,
+            15,
+            876,
+            861
+          ],
+          "originalVisibleSize": [
+            848,
+            846
+          ],
+          "size": [
+            512,
+            511
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "2cb189041e279e9f5bcbb93fbd3d2778c3b4190b88bb4a90cea70155b1521681"
+        }
+      }
+    },
+    {
+      "id": "u14",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u14-front.webp",
+          "sourceFile": "u14/turnaround-original.png",
+          "sourceSha256": "e7489dc0cc1c449da8a61d88a65ded69c99126d1293a20ed69e11f1b4a8aca80",
+          "sourceRect": [
+            0,
+            0,
+            911,
+            887
+          ],
+          "alphaBounds": [
+            110,
+            32,
+            881,
+            859
+          ],
+          "originalVisibleSize": [
+            771,
+            827
+          ],
+          "size": [
+            477,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "2b8bf7115860e6530155195a56a652461f113a7f842fe24e2bf7c0c538dbf85f"
+        },
+        "rear": {
+          "file": "u14-rear.webp",
+          "sourceFile": "u14/turnaround-original.png",
+          "sourceSha256": "e7489dc0cc1c449da8a61d88a65ded69c99126d1293a20ed69e11f1b4a8aca80",
+          "sourceRect": [
+            911,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            70,
+            33,
+            746,
+            850
+          ],
+          "originalVisibleSize": [
+            676,
+            817
+          ],
+          "size": [
+            424,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "041ed6b84672d7247825106822cb996adf62e2ef7280df141d6f5a6079a431b1"
+        }
+      }
+    },
+    {
+      "id": "u15",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u15-front.webp",
+          "sourceFile": "u15/turnaround-original.png",
+          "sourceSha256": "9376fce33e55ccb65626780cd052054d323ccc46891ab9d7dcc62e9f0b83b298",
+          "sourceRect": [
+            0,
+            0,
+            912,
+            887
+          ],
+          "alphaBounds": [
+            35,
+            10,
+            895,
+            814
+          ],
+          "originalVisibleSize": [
+            860,
+            804
+          ],
+          "size": [
+            512,
+            479
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "6a861db9da7cb35da496eb88beef89cfed5d772561ebcdded061046b69613588"
+        },
+        "rear": {
+          "file": "u15-rear.webp",
+          "sourceFile": "u15/turnaround-original.png",
+          "sourceSha256": "9376fce33e55ccb65626780cd052054d323ccc46891ab9d7dcc62e9f0b83b298",
+          "sourceRect": [
+            912,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            18,
+            11,
+            821,
+            826
+          ],
+          "originalVisibleSize": [
+            803,
+            815
+          ],
+          "size": [
+            504,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "aa5150e8e22adebfb0a6907aba50d3cde70baae0e08a85ef208d2d81e8bda65d"
+        }
+      }
+    },
+    {
+      "id": "u16",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u16-front.webp",
+          "sourceFile": "u16/turnaround-original.png",
+          "sourceSha256": "69f3437294fbcb4ef80a6e055a179f61766cc025be60f44352a686eaa86baa03",
+          "sourceRect": [
+            0,
+            0,
+            922,
+            887
+          ],
+          "alphaBounds": [
+            93,
+            17,
+            876,
+            880
+          ],
+          "originalVisibleSize": [
+            783,
+            863
+          ],
+          "size": [
+            465,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "2a90b3240fcbf7e12569756cc6b3ba864457d347b40eb7a1c26521747b6331e4"
+        },
+        "rear": {
+          "file": "u16-rear.webp",
+          "sourceFile": "u16/turnaround-original.png",
+          "sourceSha256": "69f3437294fbcb4ef80a6e055a179f61766cc025be60f44352a686eaa86baa03",
+          "sourceRect": [
+            922,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            48,
+            8,
+            752,
+            872
+          ],
+          "originalVisibleSize": [
+            704,
+            864
+          ],
+          "size": [
+            417,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "9f5d80906f87f99b09e4a939d5759ac16aa6eee8388ec4a54fdf40cd0661375e"
+        }
+      }
+    },
+    {
+      "id": "u17",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u17-front.webp",
+          "sourceFile": "u17/turnaround-original.png",
+          "sourceSha256": "850e3b62cb7bb7d5a6daee21be033933135dcab136c1e1800995f3fb484de63b",
+          "sourceRect": [
+            0,
+            0,
+            916,
+            887
+          ],
+          "alphaBounds": [
+            42,
+            17,
+            890,
+            868
+          ],
+          "originalVisibleSize": [
+            848,
+            851
+          ],
+          "size": [
+            510,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "1b3f130a02412798ab773a3abba27aa130e68bbfdb67ebbb1f52ec535ea5a436"
+        },
+        "rear": {
+          "file": "u17-rear.webp",
+          "sourceFile": "u17/rear-v4.png",
+          "sourceSha256": "b2e65b6c7c4d4beb80f69a29555637c54504a95973440adf0ed30db518053850",
+          "sourceRect": [
+            0,
+            0,
+            1374,
+            1145
+          ],
+          "alphaBounds": [
+            218,
+            32,
+            1307,
+            1090
+          ],
+          "originalVisibleSize": [
+            1089,
+            1058
+          ],
+          "size": [
+            512,
+            497
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "48155f167a876e60d65d94db6c11600fb9002ce373e7de5b0319ce9e8762212e"
+        }
+      }
+    },
+    {
+      "id": "u18",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u18-front.webp",
+          "sourceFile": "u18/turnaround-original.png",
+          "sourceSha256": "77f70924bc3a371694da0b2ef14aaa79ca37ffa420b4176873198d0f06c63248",
+          "sourceRect": [
+            0,
+            0,
+            894,
+            887
+          ],
+          "alphaBounds": [
+            81,
+            46,
+            839,
+            834
+          ],
+          "originalVisibleSize": [
+            758,
+            788
+          ],
+          "size": [
+            493,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "a6add1cdc3222420f5af2fce65da102abacd96f81c690c3119d90c6f6bdf413f"
+        },
+        "rear": {
+          "file": "u18-rear.webp",
+          "sourceFile": "u18/turnaround-original.png",
+          "sourceSha256": "77f70924bc3a371694da0b2ef14aaa79ca37ffa420b4176873198d0f06c63248",
+          "sourceRect": [
+            894,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            64,
+            38,
+            815,
+            843
+          ],
+          "originalVisibleSize": [
+            751,
+            805
+          ],
+          "size": [
+            478,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "799f020185736a3c61f6c3a9df024a3e461f5d04364338ce671e97a06e20ac74"
+        }
+      }
+    },
+    {
+      "id": "u19",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u19-front.webp",
+          "sourceFile": "u19/turnaround-original.png",
+          "sourceSha256": "0fa5eeea509daad5c76aad01c9cb9ede32ad4dac99dd43a06cc2c24579095676",
+          "sourceRect": [
+            0,
+            0,
+            919,
+            887
+          ],
+          "alphaBounds": [
+            49,
+            64,
+            897,
+            834
+          ],
+          "originalVisibleSize": [
+            848,
+            770
+          ],
+          "size": [
+            512,
+            465
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "5091c57b0ea21447a9c3799075e6b0cc2f2cb3d2cf122b8f99066afcb486225a"
+        },
+        "rear": {
+          "file": "u19-rear.webp",
+          "sourceFile": "u19/turnaround-original.png",
+          "sourceSha256": "0fa5eeea509daad5c76aad01c9cb9ede32ad4dac99dd43a06cc2c24579095676",
+          "sourceRect": [
+            919,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            24,
+            56,
+            826,
+            836
+          ],
+          "originalVisibleSize": [
+            802,
+            780
+          ],
+          "size": [
+            512,
+            498
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "f7d7ea40ae32dc7b0233964c7b94914d2c02f9e25dff1739d39cfc13646adebf"
+        }
+      }
+    },
+    {
+      "id": "u20",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u20-front.webp",
+          "sourceFile": "u20/turnaround-original.png",
+          "sourceSha256": "b2745a49e575727d326b4f596c18b6c412dd65607c561202c4cf24167dead579",
+          "sourceRect": [
+            0,
+            0,
+            910,
+            887
+          ],
+          "alphaBounds": [
+            82,
+            61,
+            803,
+            813
+          ],
+          "originalVisibleSize": [
+            721,
+            752
+          ],
+          "size": [
+            491,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "ffadc7dbd69f13163b5903ab9ec075eec7f6a7c86725a3a1ccd18b6919bd257b"
+        },
+        "rear": {
+          "file": "u20-rear.webp",
+          "sourceFile": "u20/turnaround-original.png",
+          "sourceSha256": "b2745a49e575727d326b4f596c18b6c412dd65607c561202c4cf24167dead579",
+          "sourceRect": [
+            910,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            88,
+            70,
+            776,
+            814
+          ],
+          "originalVisibleSize": [
+            688,
+            744
+          ],
+          "size": [
+            473,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "11af43071e83822d52bf3066ddd64de2516927f192f5212972549c88e5e45d71"
+        }
+      }
+    },
+    {
+      "id": "u21",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u21-front.webp",
+          "sourceFile": "u21/turnaround-original.png",
+          "sourceSha256": "8790554ce77ddef24e5bdfea2b356b1524cf0baab02737f5eace06e8e75221c7",
+          "sourceRect": [
+            0,
+            0,
+            890,
+            887
+          ],
+          "alphaBounds": [
+            18,
+            17,
+            873,
+            870
+          ],
+          "originalVisibleSize": [
+            855,
+            853
+          ],
+          "size": [
+            512,
+            511
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "65ce50885faeec5275f7b231927cc8f05deb0db6a6f97f7ae49861b1b84ef7f9"
+        },
+        "rear": {
+          "file": "u21-rear.webp",
+          "sourceFile": "u21/turnaround-original.png",
+          "sourceSha256": "8790554ce77ddef24e5bdfea2b356b1524cf0baab02737f5eace06e8e75221c7",
+          "sourceRect": [
+            890,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            18,
+            17,
+            855,
+            861
+          ],
+          "originalVisibleSize": [
+            837,
+            844
+          ],
+          "size": [
+            508,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "f8cddeb5fa703b32a112e35d435e48f748f52a04ef0363b972637ae27625ae0d"
+        }
+      }
+    },
+    {
+      "id": "u22",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u22-front.webp",
+          "sourceFile": "u22/turnaround-original.png",
+          "sourceSha256": "93a10bf8df8ad62911fdd38fc272303c7470b59637e8ef0f450ebc96f2580a37",
+          "sourceRect": [
+            0,
+            0,
+            939,
+            887
+          ],
+          "alphaBounds": [
+            64,
+            160,
+            863,
+            750
+          ],
+          "originalVisibleSize": [
+            799,
+            590
+          ],
+          "size": [
+            512,
+            378
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "fc3b4dfa5f7a2038ea27c11a2a5f0a0dc28aa32bfec2e9355be3d4f885c1b830"
+        },
+        "rear": {
+          "file": "u22-rear.webp",
+          "sourceFile": "u22/turnaround-original.png",
+          "sourceSha256": "93a10bf8df8ad62911fdd38fc272303c7470b59637e8ef0f450ebc96f2580a37",
+          "sourceRect": [
+            939,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            102,
+            159,
+            783,
+            751
+          ],
+          "originalVisibleSize": [
+            681,
+            592
+          ],
+          "size": [
+            512,
+            445
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "b66e96ab885f479a0590f8ce32825f25e49f217c01ff1974fd7f37277d31aad9"
+        }
+      }
+    },
+    {
+      "id": "u23",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u23-front.webp",
+          "sourceFile": "u23/turnaround-original.png",
+          "sourceSha256": "e7ebfc60ccf9277bdd6085d17b7f61cc9157e7c71f465b709ddebc37743bd84a",
+          "sourceRect": [
+            0,
+            0,
+            933,
+            887
+          ],
+          "alphaBounds": [
+            46,
+            18,
+            917,
+            851
+          ],
+          "originalVisibleSize": [
+            871,
+            833
+          ],
+          "size": [
+            512,
+            490
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "f4ad80e33e27fadb35fcc723c06fd12219ef8d7cde05dbf4ab93fe8d5e854389"
+        },
+        "rear": {
+          "file": "u23-rear.webp",
+          "sourceFile": "u23/turnaround-original.png",
+          "sourceSha256": "e7ebfc60ccf9277bdd6085d17b7f61cc9157e7c71f465b709ddebc37743bd84a",
+          "sourceRect": [
+            933,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            14,
+            16,
+            806,
+            862
+          ],
+          "originalVisibleSize": [
+            792,
+            846
+          ],
+          "size": [
+            479,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "1a3cb77fec54bc74819297acdd7589ffd8fac64d732d547a77716b9463e5805b"
+        }
+      }
+    },
+    {
+      "id": "u24",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u24-front.webp",
+          "sourceFile": "u24/turnaround-original.png",
+          "sourceSha256": "ee9e50fff31c320ccde502864e9f3188ced7494ef80788073131331104517cb4",
+          "sourceRect": [
+            0,
+            0,
+            901,
+            887
+          ],
+          "alphaBounds": [
+            55,
+            60,
+            858,
+            852
+          ],
+          "originalVisibleSize": [
+            803,
+            792
+          ],
+          "size": [
+            512,
+            505
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "a29ca67b159956679b787c9e1b8c5d61c0ba3e11ba1547358bba11910f44c439"
+        },
+        "rear": {
+          "file": "u24-rear.webp",
+          "sourceFile": "u24/turnaround-original.png",
+          "sourceSha256": "ee9e50fff31c320ccde502864e9f3188ced7494ef80788073131331104517cb4",
+          "sourceRect": [
+            901,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            47,
+            58,
+            829,
+            845
+          ],
+          "originalVisibleSize": [
+            782,
+            787
+          ],
+          "size": [
+            509,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "2415a4043a99264d5dc951688abc5b3241268d094b60631a3bb6b1bfd7740f2d"
+        }
+      }
+    },
+    {
+      "id": "u25",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u25-front.webp",
+          "sourceFile": "u25/turnaround-original.png",
+          "sourceSha256": "2db739e2927477a7cf98644299097518876da31127c7802d2f9dea5f62321c48",
+          "sourceRect": [
+            0,
+            0,
+            893,
+            887
+          ],
+          "alphaBounds": [
+            45,
+            35,
+            871,
+            872
+          ],
+          "originalVisibleSize": [
+            826,
+            837
+          ],
+          "size": [
+            505,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "5ccc6a228c2134a7916bd60f57ee79eecdc455d700ecb56cdfa340b01783ce48"
+        },
+        "rear": {
+          "file": "u25-rear.webp",
+          "sourceFile": "u25/turnaround-original.png",
+          "sourceSha256": "2db739e2927477a7cf98644299097518876da31127c7802d2f9dea5f62321c48",
+          "sourceRect": [
+            893,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            14,
+            34,
+            840,
+            858
+          ],
+          "originalVisibleSize": [
+            826,
+            824
+          ],
+          "size": [
+            512,
+            511
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "fd7fe7e602b6aad14c0c481ef56f42e243b8769dd108a049a1dd0c11bf4bd0fb"
+        }
+      }
+    },
+    {
+      "id": "u26",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u26-front.webp",
+          "sourceFile": "u26/turnaround-original.png",
+          "sourceSha256": "4de07afbb1a01bcba32f649651005dcd94c9820f5267758166dfb43b2802defa",
+          "sourceRect": [
+            0,
+            0,
+            926,
+            887
+          ],
+          "alphaBounds": [
+            19,
+            19,
+            899,
+            870
+          ],
+          "originalVisibleSize": [
+            880,
+            851
+          ],
+          "size": [
+            512,
+            495
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "fdd8c583e903eb31ce0e73b05a8f59b11e932f9314d01d850d35ef0a28099745"
+        },
+        "rear": {
+          "file": "u26-rear.webp",
+          "sourceFile": "u26/turnaround-original.png",
+          "sourceSha256": "4de07afbb1a01bcba32f649651005dcd94c9820f5267758166dfb43b2802defa",
+          "sourceRect": [
+            926,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            29,
+            27,
+            835,
+            867
+          ],
+          "originalVisibleSize": [
+            806,
+            840
+          ],
+          "size": [
+            491,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "86ce45aa0aff7f122d0deaa4a25bf05426696690fd58fa99653e1a1d85cbc96c"
+        }
+      }
+    },
+    {
+      "id": "u27",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u27-front.webp",
+          "sourceFile": "u27/turnaround-original.png",
+          "sourceSha256": "de152bbb607dff3ff823477ad5a5112e75ab1bd067112f0d33668d07da5a547f",
+          "sourceRect": [
+            0,
+            0,
+            887,
+            887
+          ],
+          "alphaBounds": [
+            11,
+            32,
+            878,
+            856
+          ],
+          "originalVisibleSize": [
+            867,
+            824
+          ],
+          "size": [
+            512,
+            487
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "1f35ff17aaf09c88b7b2d115423ccc68d5758db16fa9809b34acb1c6fbec8bd8"
+        },
+        "rear": {
+          "file": "u27-rear.webp",
+          "sourceFile": "u27/turnaround-original.png",
+          "sourceSha256": "de152bbb607dff3ff823477ad5a5112e75ab1bd067112f0d33668d07da5a547f",
+          "sourceRect": [
+            887,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            10,
+            47,
+            877,
+            848
+          ],
+          "originalVisibleSize": [
+            867,
+            801
+          ],
+          "size": [
+            512,
+            473
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "9b06e072dc97a774353a7d52bb3241243e0dc28718aef98574f1ac46feafbd13"
+        }
+      }
+    },
+    {
+      "id": "u28",
+      "reviewStatus": "corrected_draft_pending_final_user_approval",
+      "views": {
+        "front": {
+          "file": "u28-front.webp",
+          "sourceFile": "u28/turnaround-original.png",
+          "sourceSha256": "61732bac09f9517169a9e0336a11f70c557b25539d5ff38e1d031101dd96eef9",
+          "sourceRect": [
+            0,
+            0,
+            884,
+            887
+          ],
+          "alphaBounds": [
+            33,
+            13,
+            868,
+            869
+          ],
+          "originalVisibleSize": [
+            835,
+            856
+          ],
+          "size": [
+            499,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "e592da64dbe606291ebcec116bf0a2aa1607343d802a8fa2b5527367c49f6937"
+        },
+        "rear": {
+          "file": "u28-rear.webp",
+          "sourceFile": "u28/rear-v3.png",
+          "sourceSha256": "ad79795bbe547f3b842cc5c29aebd1e287adc72aa256446dffec3c93d10dcd79",
+          "sourceRect": [
+            0,
+            0,
+            1393,
+            1129
+          ],
+          "alphaBounds": [
+            169,
+            6,
+            1373,
+            1083
+          ],
+          "originalVisibleSize": [
+            1204,
+            1077
+          ],
+          "size": [
+            512,
+            458
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "7c7afcfe8c9352ba9d0bfa2026ea4802f85135c213595aa9f68d9d3498e0b44f"
+        }
+      }
+    },
+    {
+      "id": "u29",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u29-front.webp",
+          "sourceFile": "u29/turnaround-original.png",
+          "sourceSha256": "22e2e755f7f9db1462997e04f832e654c4c4c7b16c1a4a77bcf33fc454bd2920",
+          "sourceRect": [
+            0,
+            0,
+            884,
+            887
+          ],
+          "alphaBounds": [
+            39,
+            8,
+            814,
+            884
+          ],
+          "originalVisibleSize": [
+            775,
+            876
+          ],
+          "size": [
+            453,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "2d711de0bdbc1baf22fe880b28b65cfe659ef869da9f1aaba2d29db41528be68"
+        },
+        "rear": {
+          "file": "u29-rear.webp",
+          "sourceFile": "u29/turnaround-original.png",
+          "sourceSha256": "22e2e755f7f9db1462997e04f832e654c4c4c7b16c1a4a77bcf33fc454bd2920",
+          "sourceRect": [
+            884,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            76,
+            8,
+            846,
+            858
+          ],
+          "originalVisibleSize": [
+            770,
+            850
+          ],
+          "size": [
+            464,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "05be4c32ea4183d2ff1335653fcf31caac2deb7e820c192cad3f7636ced132e8"
+        }
+      }
+    },
+    {
+      "id": "u30",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u30-front.webp",
+          "sourceFile": "u30/turnaround-original.png",
+          "sourceSha256": "0aa6fd5d793f0ab5bd2afb7f8d1fc7bd32df5ad8a47c68592801c20fd1a8b238",
+          "sourceRect": [
+            0,
+            0,
+            926,
+            887
+          ],
+          "alphaBounds": [
+            33,
+            19,
+            916,
+            853
+          ],
+          "originalVisibleSize": [
+            883,
+            834
+          ],
+          "size": [
+            512,
+            484
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "ec7927ed8c3e9b15bcc855e9f3fe100c2edad8a80523404a634e493f3fdb87d8"
+        },
+        "rear": {
+          "file": "u30-rear.webp",
+          "sourceFile": "u30/turnaround-original.png",
+          "sourceSha256": "0aa6fd5d793f0ab5bd2afb7f8d1fc7bd32df5ad8a47c68592801c20fd1a8b238",
+          "sourceRect": [
+            926,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            10,
+            11,
+            836,
+            857
+          ],
+          "originalVisibleSize": [
+            826,
+            846
+          ],
+          "size": [
+            500,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "78c5e42efe886d378645ff4302e2617d73f438c451ada57653d265d851fce318"
+        }
+      }
+    },
+    {
+      "id": "u31",
+      "reviewStatus": "user_approved_v6_design_and_direction_only_not_runtime_ready",
+      "views": {
+        "front": {
+          "file": "u31-front.webp",
+          "sourceFile": "u31/turnaround-v6-direction.png",
+          "sourceSha256": "4543932cf05dbbebbc1597fb1e279a77b20e9017d70f1562d0d363d006625c99",
+          "sourceRect": [
+            0,
+            0,
+            906,
+            887
+          ],
+          "alphaBounds": [
+            83,
+            89,
+            858,
+            813
+          ],
+          "originalVisibleSize": [
+            775,
+            724
+          ],
+          "size": [
+            512,
+            478
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "8c976ed96fadbc2bbb72183830b50eeef3c871c4a3b26729e5fd83fe5086f96d"
+        },
+        "rear": {
+          "file": "u31-rear.webp",
+          "sourceFile": "u31/turnaround-v6-direction.png",
+          "sourceSha256": "4543932cf05dbbebbc1597fb1e279a77b20e9017d70f1562d0d363d006625c99",
+          "sourceRect": [
+            906,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            49,
+            90,
+            829,
+            812
+          ],
+          "originalVisibleSize": [
+            780,
+            722
+          ],
+          "size": [
+            512,
+            474
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "e0b79a56a0018d13787ac3ca41f1f03015122977148873fd8dc6dfa741ba3fce"
+        }
+      }
+    },
+    {
+      "id": "u32",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u32-front.webp",
+          "sourceFile": "u32/turnaround-original.png",
+          "sourceSha256": "61b8aa73c42233508685b5bc351b8312ddb1add1ef5c99186c7824837ef7dff0",
+          "sourceRect": [
+            0,
+            0,
+            946,
+            887
+          ],
+          "alphaBounds": [
+            53,
+            19,
+            927,
+            882
+          ],
+          "originalVisibleSize": [
+            874,
+            863
+          ],
+          "size": [
+            512,
+            506
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "5e664faec03b2a0c429dec8b447f814cfd06b01faf150a028bf88e04d30884f8"
+        },
+        "rear": {
+          "file": "u32-rear.webp",
+          "sourceFile": "u32/turnaround-original.png",
+          "sourceSha256": "61b8aa73c42233508685b5bc351b8312ddb1add1ef5c99186c7824837ef7dff0",
+          "sourceRect": [
+            946,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            20,
+            14,
+            761,
+            871
+          ],
+          "originalVisibleSize": [
+            741,
+            857
+          ],
+          "size": [
+            443,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "b0aa725b3710adb6a7c2da0351b6c8b7b7a0759443cfdb7cec6161aa67fc50de"
+        }
+      }
+    },
+    {
+      "id": "u33",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u33-front.webp",
+          "sourceFile": "u33/turnaround-original.png",
+          "sourceSha256": "2de976efd10f7009cfda28d3683fe27226a0e9668972a78b27a55f5f821e7cd2",
+          "sourceRect": [
+            0,
+            0,
+            910,
+            887
+          ],
+          "alphaBounds": [
+            17,
+            12,
+            895,
+            871
+          ],
+          "originalVisibleSize": [
+            878,
+            859
+          ],
+          "size": [
+            512,
+            501
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "907dcaaabd2574d274c5296eeceef28f7b655f3d103084ae97ccf51c2271125a"
+        },
+        "rear": {
+          "file": "u33-rear.webp",
+          "sourceFile": "u33/turnaround-original.png",
+          "sourceSha256": "2de976efd10f7009cfda28d3683fe27226a0e9668972a78b27a55f5f821e7cd2",
+          "sourceRect": [
+            910,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            15,
+            15,
+            852,
+            866
+          ],
+          "originalVisibleSize": [
+            837,
+            851
+          ],
+          "size": [
+            504,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "20748a0ab7a46b3a800747c9a917f6268f47a1ba12deadd58c3f35bb9801ca35"
+        }
+      }
+    },
+    {
+      "id": "u34",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u34-front.webp",
+          "sourceFile": "u34/turnaround-original.png",
+          "sourceSha256": "09d627826f438e24ad60323377ac4a928091282ed97d1658412a0eea744f065d",
+          "sourceRect": [
+            0,
+            0,
+            947,
+            887
+          ],
+          "alphaBounds": [
+            11,
+            38,
+            915,
+            858
+          ],
+          "originalVisibleSize": [
+            904,
+            820
+          ],
+          "size": [
+            512,
+            464
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "a60b129d1a2e3397ecbec29bc2a42b2cb6aa6b8d9b434030a843f7e42813777f"
+        },
+        "rear": {
+          "file": "u34-rear.webp",
+          "sourceFile": "u34/turnaround-original.png",
+          "sourceSha256": "09d627826f438e24ad60323377ac4a928091282ed97d1658412a0eea744f065d",
+          "sourceRect": [
+            947,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            36,
+            31,
+            815,
+            858
+          ],
+          "originalVisibleSize": [
+            779,
+            827
+          ],
+          "size": [
+            482,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "d499783bd79a50ada09451c1fc0e34917d354e8f19733d83c7abdffbfb86509b"
+        }
+      }
+    },
+    {
+      "id": "u35",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u35-front.webp",
+          "sourceFile": "u35/turnaround-original.png",
+          "sourceSha256": "564ae46d305a037bc45c10bf0e4f1c6da407b317ff29a7188a603609bf042d4f",
+          "sourceRect": [
+            0,
+            0,
+            968,
+            887
+          ],
+          "alphaBounds": [
+            17,
+            18,
+            930,
+            873
+          ],
+          "originalVisibleSize": [
+            913,
+            855
+          ],
+          "size": [
+            512,
+            479
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "6d34f795189cedae7d8ccb9e743952f5c0b0f3b4c961fe146b8319e94d12a413"
+        },
+        "rear": {
+          "file": "u35-rear.webp",
+          "sourceFile": "u35/turnaround-original.png",
+          "sourceSha256": "564ae46d305a037bc45c10bf0e4f1c6da407b317ff29a7188a603609bf042d4f",
+          "sourceRect": [
+            968,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            19,
+            20,
+            791,
+            864
+          ],
+          "originalVisibleSize": [
+            772,
+            844
+          ],
+          "size": [
+            468,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "5314fceeb5cfdc35d67c9f16576205c46409f4d07dbb0e2d8a9f719ec12ea79d"
+        }
+      }
+    },
+    {
+      "id": "u36",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u36-front.webp",
+          "sourceFile": "u36/turnaround-original.png",
+          "sourceSha256": "43e826c08045faa21a8f77bc28a60618e983ce641702ad669e9520e445dc1c71",
+          "sourceRect": [
+            0,
+            0,
+            965,
+            887
+          ],
+          "alphaBounds": [
+            22,
+            54,
+            950,
+            860
+          ],
+          "originalVisibleSize": [
+            928,
+            806
+          ],
+          "size": [
+            512,
+            445
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "5f2f3ebb8f75fc47abfa0e7c96216d7e5dd114c77694f80be807aafd4bd1b824"
+        },
+        "rear": {
+          "file": "u36-rear.webp",
+          "sourceFile": "u36/turnaround-original.png",
+          "sourceSha256": "43e826c08045faa21a8f77bc28a60618e983ce641702ad669e9520e445dc1c71",
+          "sourceRect": [
+            965,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            10,
+            24,
+            789,
+            845
+          ],
+          "originalVisibleSize": [
+            779,
+            821
+          ],
+          "size": [
+            486,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "396488a833e9fc3ad8b7ecc0cb3999ad4b80cb5d7983b74a8a54946dd93dd99e"
+        }
+      }
+    },
+    {
+      "id": "u37",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u37-front.webp",
+          "sourceFile": "u37/turnaround-original.png",
+          "sourceSha256": "26d7329364b304f908978ae0215747886d1c0eec506a95e75446533568d3b215",
+          "sourceRect": [
+            0,
+            0,
+            962,
+            887
+          ],
+          "alphaBounds": [
+            9,
+            56,
+            952,
+            837
+          ],
+          "originalVisibleSize": [
+            943,
+            781
+          ],
+          "size": [
+            512,
+            424
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "d5c5700e20a20aa6b21d01ba933fa45e6854f2e52372fa5d96bcba1d6ac38d24"
+        },
+        "rear": {
+          "file": "u37-rear.webp",
+          "sourceFile": "u37/turnaround-original.png",
+          "sourceSha256": "26d7329364b304f908978ae0215747886d1c0eec506a95e75446533568d3b215",
+          "sourceRect": [
+            962,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            15,
+            58,
+            809,
+            836
+          ],
+          "originalVisibleSize": [
+            794,
+            778
+          ],
+          "size": [
+            512,
+            502
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "54ae75e477ee14127627936f0947a25e55ebc8bc141b790c2f93875ee4375cc0"
+        }
+      }
+    },
+    {
+      "id": "u38",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u38-front.webp",
+          "sourceFile": "u38/turnaround-original.png",
+          "sourceSha256": "0dbce386d74013ad234690b6d333459340a7a88c479ab82a063abd28e44dd79f",
+          "sourceRect": [
+            0,
+            0,
+            936,
+            887
+          ],
+          "alphaBounds": [
+            30,
+            18,
+            926,
+            865
+          ],
+          "originalVisibleSize": [
+            896,
+            847
+          ],
+          "size": [
+            512,
+            484
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "adf23684404cc2feaee19e9b210039527910e9e3a7b48bb4ab4b52a8590031d7"
+        },
+        "rear": {
+          "file": "u38-rear.webp",
+          "sourceFile": "u38/turnaround-original.png",
+          "sourceSha256": "0dbce386d74013ad234690b6d333459340a7a88c479ab82a063abd28e44dd79f",
+          "sourceRect": [
+            936,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            9,
+            22,
+            810,
+            868
+          ],
+          "originalVisibleSize": [
+            801,
+            846
+          ],
+          "size": [
+            485,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "fbbd782d80c7dad39494eef47291f656471bca235fc27f2362d38df08d7fe0ec"
+        }
+      }
+    },
+    {
+      "id": "u39",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u39-front.webp",
+          "sourceFile": "u39/turnaround-original.png",
+          "sourceSha256": "47e2c902e03f753142a016b560cb537669f23a09d439640b8369c75d32c20c0e",
+          "sourceRect": [
+            0,
+            0,
+            909,
+            887
+          ],
+          "alphaBounds": [
+            32,
+            37,
+            854,
+            859
+          ],
+          "originalVisibleSize": [
+            822,
+            822
+          ],
+          "size": [
+            512,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "4da29e5beef6ddf346b4f613348426e0d585ed263824fa413d8d1c947d39addb"
+        },
+        "rear": {
+          "file": "u39-rear.webp",
+          "sourceFile": "u39/turnaround-original.png",
+          "sourceSha256": "47e2c902e03f753142a016b560cb537669f23a09d439640b8369c75d32c20c0e",
+          "sourceRect": [
+            909,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            67,
+            65,
+            828,
+            836
+          ],
+          "originalVisibleSize": [
+            761,
+            771
+          ],
+          "size": [
+            505,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "7da09eedae474a72e574f5104b3de2b701b803a002ed6a128a726ad17fdd23e7"
+        }
+      }
+    },
+    {
+      "id": "u40",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u40-front.webp",
+          "sourceFile": "u40/turnaround-original.png",
+          "sourceSha256": "9de193198c42a8cae59d0fc38137a9693174ff67d250925a9fc3ee27b3eb307d",
+          "sourceRect": [
+            0,
+            0,
+            934,
+            887
+          ],
+          "alphaBounds": [
+            1,
+            17,
+            912,
+            817
+          ],
+          "originalVisibleSize": [
+            911,
+            800
+          ],
+          "size": [
+            512,
+            450
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "c4a98f1a77c556a82ec54e2367f440be492ad56fec0294fed15242910f784fa3"
+        },
+        "rear": {
+          "file": "u40-rear.webp",
+          "sourceFile": "u40/turnaround-original.png",
+          "sourceSha256": "9de193198c42a8cae59d0fc38137a9693174ff67d250925a9fc3ee27b3eb307d",
+          "sourceRect": [
+            934,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            11,
+            14,
+            839,
+            849
+          ],
+          "originalVisibleSize": [
+            828,
+            835
+          ],
+          "size": [
+            508,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "8bf6aa355174b8f9c4f7d90d6219e4557226db5c3e7e60705d9c36185147cd9d"
+        }
+      }
+    },
+    {
+      "id": "u41",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u41-front.webp",
+          "sourceFile": "u41/turnaround-original.png",
+          "sourceSha256": "8c15e5bd011c02dac7a5059755a41a9fd819c45aab68ba464daf3ce6767e9e70",
+          "sourceRect": [
+            0,
+            0,
+            901,
+            887
+          ],
+          "alphaBounds": [
+            188,
+            15,
+            856,
+            876
+          ],
+          "originalVisibleSize": [
+            668,
+            861
+          ],
+          "size": [
+            397,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "6d1d6226d3a04feb78fc0ff6e1dea5271338fad74fad32204e5d4a20a919ce15"
+        },
+        "rear": {
+          "file": "u41-rear.webp",
+          "sourceFile": "u41/turnaround-original.png",
+          "sourceSha256": "8c15e5bd011c02dac7a5059755a41a9fd819c45aab68ba464daf3ce6767e9e70",
+          "sourceRect": [
+            901,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            45,
+            15,
+            712,
+            864
+          ],
+          "originalVisibleSize": [
+            667,
+            849
+          ],
+          "size": [
+            402,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "65704bc591886c0bd6a787efd353705e8ab8d6580165939a1e1f16a17aba72f5"
+        }
+      }
+    },
+    {
+      "id": "u42",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u42-front.webp",
+          "sourceFile": "u42/turnaround-original.png",
+          "sourceSha256": "039857807c0fa0685f4ce208eb5b9c83e4acef100f2cc0f8e994e9511b1d6495",
+          "sourceRect": [
+            0,
+            0,
+            951,
+            887
+          ],
+          "alphaBounds": [
+            55,
+            95,
+            944,
+            807
+          ],
+          "originalVisibleSize": [
+            889,
+            712
+          ],
+          "size": [
+            512,
+            410
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "b7b90ecbd77272da26dd387d79acc271cb931903297561537acf78d0ede02683"
+        },
+        "rear": {
+          "file": "u42-rear.webp",
+          "sourceFile": "u42/turnaround-original.png",
+          "sourceSha256": "039857807c0fa0685f4ce208eb5b9c83e4acef100f2cc0f8e994e9511b1d6495",
+          "sourceRect": [
+            951,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            4,
+            99,
+            804,
+            821
+          ],
+          "originalVisibleSize": [
+            800,
+            722
+          ],
+          "size": [
+            512,
+            462
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "6226fe430d5bf8c3d8135d2fe2ff5259cf47745f872b32fa17f173ad9dabee46"
+        }
+      }
+    },
+    {
+      "id": "u43",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u43-front.webp",
+          "sourceFile": "u43/turnaround-original.png",
+          "sourceSha256": "abc03a1f4a20b84571ee910a558dd403542b0dfa46576e0907ebfafdb67a556f",
+          "sourceRect": [
+            0,
+            0,
+            914,
+            887
+          ],
+          "alphaBounds": [
+            85,
+            75,
+            874,
+            837
+          ],
+          "originalVisibleSize": [
+            789,
+            762
+          ],
+          "size": [
+            512,
+            494
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "ec0b38c14a390f6bc7f2bf340cd022e2c1af7948de088dda201d040c0770f008"
+        },
+        "rear": {
+          "file": "u43-rear.webp",
+          "sourceFile": "u43/turnaround-original.png",
+          "sourceSha256": "abc03a1f4a20b84571ee910a558dd403542b0dfa46576e0907ebfafdb67a556f",
+          "sourceRect": [
+            914,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            40,
+            83,
+            786,
+            822
+          ],
+          "originalVisibleSize": [
+            746,
+            739
+          ],
+          "size": [
+            512,
+            507
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "7766db25dd3c7310954d751840948b48b8a206b8843107bec83a0ae9ecaded77"
+        }
+      }
+    },
+    {
+      "id": "u44",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u44-front.webp",
+          "sourceFile": "u44/turnaround-original.png",
+          "sourceSha256": "c2487ac40e54217ab29f6011822e73e2b45b0bc1949f5540d0003c64099a1fe7",
+          "sourceRect": [
+            0,
+            0,
+            940,
+            887
+          ],
+          "alphaBounds": [
+            63,
+            50,
+            917,
+            839
+          ],
+          "originalVisibleSize": [
+            854,
+            789
+          ],
+          "size": [
+            512,
+            473
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "40ddd39a04810acfe853658b3118601a66112eb3dd532d691bc6470cb01025c3"
+        },
+        "rear": {
+          "file": "u44-rear.webp",
+          "sourceFile": "u44/turnaround-original.png",
+          "sourceSha256": "c2487ac40e54217ab29f6011822e73e2b45b0bc1949f5540d0003c64099a1fe7",
+          "sourceRect": [
+            940,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            21,
+            45,
+            773,
+            838
+          ],
+          "originalVisibleSize": [
+            752,
+            793
+          ],
+          "size": [
+            486,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "fdd43a3def7e3cb6ad214a0f1ca2c56bf107dcb0df533e997398591fbb9e83a1"
+        }
+      }
+    },
+    {
+      "id": "u45",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u45-front.webp",
+          "sourceFile": "u45/turnaround-original.png",
+          "sourceSha256": "2894c3184b15535e1eeca63e7beb64647fea03e5a933e9d0e2958bba20ead1b1",
+          "sourceRect": [
+            0,
+            0,
+            923,
+            887
+          ],
+          "alphaBounds": [
+            9,
+            29,
+            916,
+            864
+          ],
+          "originalVisibleSize": [
+            907,
+            835
+          ],
+          "size": [
+            512,
+            471
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "90ff4b40c4a0e578c6f65dea83a06f2d3691a4db81764260aa408f9f36e6738d"
+        },
+        "rear": {
+          "file": "u45-rear.webp",
+          "sourceFile": "u45/turnaround-original.png",
+          "sourceSha256": "2894c3184b15535e1eeca63e7beb64647fea03e5a933e9d0e2958bba20ead1b1",
+          "sourceRect": [
+            923,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            8,
+            37,
+            843,
+            840
+          ],
+          "originalVisibleSize": [
+            835,
+            803
+          ],
+          "size": [
+            512,
+            492
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "b4bdcc9386418484f6f485e22c9d417fd597b2676950e10e0c2726068f41b0fc"
+        }
+      }
+    },
+    {
+      "id": "u46",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u46-front.webp",
+          "sourceFile": "u46/turnaround-original.png",
+          "sourceSha256": "4701faad53901796fa1cb0b98456e014f2d095d2cd9794af3d5637888e7f2f3d",
+          "sourceRect": [
+            0,
+            0,
+            912,
+            887
+          ],
+          "alphaBounds": [
+            82,
+            93,
+            888,
+            804
+          ],
+          "originalVisibleSize": [
+            806,
+            711
+          ],
+          "size": [
+            512,
+            452
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "b558433744f5c0e21a890b1e0fce3e67ab42814c974bc4cd95f2a283e4fca9af"
+        },
+        "rear": {
+          "file": "u46-rear.webp",
+          "sourceFile": "u46/turnaround-original.png",
+          "sourceSha256": "4701faad53901796fa1cb0b98456e014f2d095d2cd9794af3d5637888e7f2f3d",
+          "sourceRect": [
+            912,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            25,
+            104,
+            793,
+            799
+          ],
+          "originalVisibleSize": [
+            768,
+            695
+          ],
+          "size": [
+            512,
+            463
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "fc4c3e3eb2b3137ea34e5a59d82fa1f2ea01372f5e7c1ee309e3c6293b6e7d89"
+        }
+      }
+    },
+    {
+      "id": "u47",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u47-front.webp",
+          "sourceFile": "u47/turnaround-original.png",
+          "sourceSha256": "3870c73fc74e860f46308e16d0c8b4c7b4d7444df4d03f754a04a69c28407201",
+          "sourceRect": [
+            0,
+            0,
+            926,
+            887
+          ],
+          "alphaBounds": [
+            47,
+            39,
+            922,
+            858
+          ],
+          "originalVisibleSize": [
+            875,
+            819
+          ],
+          "size": [
+            512,
+            479
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "23bbb01a630bb57487ec15483bc0fb1921a2de555d391eda1de197cfaa2ce7dd"
+        },
+        "rear": {
+          "file": "u47-rear.webp",
+          "sourceFile": "u47/turnaround-original.png",
+          "sourceSha256": "3870c73fc74e860f46308e16d0c8b4c7b4d7444df4d03f754a04a69c28407201",
+          "sourceRect": [
+            926,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            23,
+            38,
+            803,
+            855
+          ],
+          "originalVisibleSize": [
+            780,
+            817
+          ],
+          "size": [
+            489,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "59692a53a9f2e5466ad4d637bde5c74c3f475cafa1c90c4d46f063e54d4d1600"
+        }
+      }
+    },
+    {
+      "id": "u48",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u48-front.webp",
+          "sourceFile": "u48/turnaround-original.png",
+          "sourceSha256": "c791fa762fd562ec9227cb28668902ca84dfe6142e0e3831ae5a53387e48306e",
+          "sourceRect": [
+            0,
+            0,
+            939,
+            887
+          ],
+          "alphaBounds": [
+            62,
+            24,
+            905,
+            865
+          ],
+          "originalVisibleSize": [
+            843,
+            841
+          ],
+          "size": [
+            512,
+            511
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "5b6395c017a7d5aafc53fa76aa8905f2714559d57cd8898e4fd05de95d35f16f"
+        },
+        "rear": {
+          "file": "u48-rear.webp",
+          "sourceFile": "u48/turnaround-original.png",
+          "sourceSha256": "c791fa762fd562ec9227cb28668902ca84dfe6142e0e3831ae5a53387e48306e",
+          "sourceRect": [
+            939,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            32,
+            35,
+            771,
+            846
+          ],
+          "originalVisibleSize": [
+            739,
+            811
+          ],
+          "size": [
+            467,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "f5f2c88cb2716cf1f2b13d20b81436fc2dd2320bab5574bee82807072ff27a62"
+        }
+      }
+    },
+    {
+      "id": "u49",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u49-front.webp",
+          "sourceFile": "u49/turnaround-original.png",
+          "sourceSha256": "a7022cf5a71062105a41933dfc8c352efa79a86f2d52953e1b018ce4b7bcfb0a",
+          "sourceRect": [
+            0,
+            0,
+            894,
+            887
+          ],
+          "alphaBounds": [
+            27,
+            8,
+            881,
+            880
+          ],
+          "originalVisibleSize": [
+            854,
+            872
+          ],
+          "size": [
+            501,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "212edf2b0d08bd6164ece72c1491903d7de57ac92126ddbe71dcee797c1c3ec6"
+        },
+        "rear": {
+          "file": "u49-rear.webp",
+          "sourceFile": "u49/turnaround-original.png",
+          "sourceSha256": "a7022cf5a71062105a41933dfc8c352efa79a86f2d52953e1b018ce4b7bcfb0a",
+          "sourceRect": [
+            894,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            9,
+            19,
+            854,
+            874
+          ],
+          "originalVisibleSize": [
+            845,
+            855
+          ],
+          "size": [
+            506,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "69de06e133bbae4d21d1eeeb42a111f50d8132fad7955f325d951f9b02729264"
+        }
+      }
+    },
+    {
+      "id": "u50",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u50-front.webp",
+          "sourceFile": "u50/turnaround-original.png",
+          "sourceSha256": "e22674195ddedd805a01a1342fce5d2005bb4fd36e4eb925515e16bbb99b4ee3",
+          "sourceRect": [
+            0,
+            0,
+            904,
+            887
+          ],
+          "alphaBounds": [
+            13,
+            110,
+            888,
+            801
+          ],
+          "originalVisibleSize": [
+            875,
+            691
+          ],
+          "size": [
+            512,
+            404
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "63c4af19fe41a7ed431ad8440b138593fb2675014424b8b087bfd4e2b97a1508"
+        },
+        "rear": {
+          "file": "u50-rear.webp",
+          "sourceFile": "u50/turnaround-original.png",
+          "sourceSha256": "e22674195ddedd805a01a1342fce5d2005bb4fd36e4eb925515e16bbb99b4ee3",
+          "sourceRect": [
+            904,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            13,
+            104,
+            857,
+            798
+          ],
+          "originalVisibleSize": [
+            844,
+            694
+          ],
+          "size": [
+            512,
+            421
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "58d5469bd72308c1b73ef0025d112d3254fa4e78a59f8fa818a532b18ff0d1b1"
+        }
+      }
+    },
+    {
+      "id": "u51",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u51-front.webp",
+          "sourceFile": "u51/turnaround-original.png",
+          "sourceSha256": "2ccd891168f47bdbfd34767cc5ba9ea94a9952ed4d89ad0e6b321747e56b3714",
+          "sourceRect": [
+            0,
+            0,
+            907,
+            887
+          ],
+          "alphaBounds": [
+            16,
+            13,
+            891,
+            873
+          ],
+          "originalVisibleSize": [
+            875,
+            860
+          ],
+          "size": [
+            512,
+            503
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "6d90454b3cb3aec0f2f51f5d0fd688ac840c44746a6f0bf9cfc56f3808363e5c"
+        },
+        "rear": {
+          "file": "u51-rear.webp",
+          "sourceFile": "u51/turnaround-original.png",
+          "sourceSha256": "2ccd891168f47bdbfd34767cc5ba9ea94a9952ed4d89ad0e6b321747e56b3714",
+          "sourceRect": [
+            907,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            18,
+            19,
+            850,
+            867
+          ],
+          "originalVisibleSize": [
+            832,
+            848
+          ],
+          "size": [
+            502,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "6728e87c55e03f2b04baf3804c37c56fe4813ae30318ea2cbe0d957cd12d663b"
+        }
+      }
+    },
+    {
+      "id": "u52",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u52-front.webp",
+          "sourceFile": "u52/turnaround-original.png",
+          "sourceSha256": "49dde8146c2fd2bab50a1c110b0709da9a6a05d08df6af2254b9be64ee76470f",
+          "sourceRect": [
+            0,
+            0,
+            935,
+            887
+          ],
+          "alphaBounds": [
+            19,
+            26,
+            918,
+            863
+          ],
+          "originalVisibleSize": [
+            899,
+            837
+          ],
+          "size": [
+            512,
+            477
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "d4354c7c7aa83ea645d944075bce15d4b3e7f67e63fccc89c5166c7f1e970006"
+        },
+        "rear": {
+          "file": "u52-rear.webp",
+          "sourceFile": "u52/turnaround-original.png",
+          "sourceSha256": "49dde8146c2fd2bab50a1c110b0709da9a6a05d08df6af2254b9be64ee76470f",
+          "sourceRect": [
+            935,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            22,
+            21,
+            816,
+            856
+          ],
+          "originalVisibleSize": [
+            794,
+            835
+          ],
+          "size": [
+            487,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "df8c44d3cc62ebaf677214e77c578fd5d0cd0344699a76877a146d178f3f7174"
+        }
+      }
+    },
+    {
+      "id": "u53",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u53-front.webp",
+          "sourceFile": "u53/turnaround-original.png",
+          "sourceSha256": "7ff19eb42c52c322652e749f483b5089b9454156a1251248d5a5fe2582922f27",
+          "sourceRect": [
+            0,
+            0,
+            889,
+            887
+          ],
+          "alphaBounds": [
+            25,
+            13,
+            859,
+            879
+          ],
+          "originalVisibleSize": [
+            834,
+            866
+          ],
+          "size": [
+            493,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "fe5dd3b6f116cfed33d960141c65cc4e74e9acc9f53b43404f227a9c3336903e"
+        },
+        "rear": {
+          "file": "u53-rear.webp",
+          "sourceFile": "u53/turnaround-original.png",
+          "sourceSha256": "7ff19eb42c52c322652e749f483b5089b9454156a1251248d5a5fe2582922f27",
+          "sourceRect": [
+            889,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            40,
+            15,
+            859,
+            878
+          ],
+          "originalVisibleSize": [
+            819,
+            863
+          ],
+          "size": [
+            486,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "50676be91bb9053271bd01bdb9593bb7be998eab875e3ca4e2a456a996c623c8"
+        }
+      }
+    },
+    {
+      "id": "u54",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u54-front.webp",
+          "sourceFile": "u54/turnaround-original.png",
+          "sourceSha256": "b7d3d4e419104dfdb3ef1111407eb11c6271ee6f1c1f298475a6248d6e99d1f2",
+          "sourceRect": [
+            0,
+            0,
+            924,
+            887
+          ],
+          "alphaBounds": [
+            59,
+            40,
+            846,
+            853
+          ],
+          "originalVisibleSize": [
+            787,
+            813
+          ],
+          "size": [
+            496,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "f18da7e49d779e71451e62918edd78c9c4296a7685fff12937bae9af37b5d020"
+        },
+        "rear": {
+          "file": "u54-rear.webp",
+          "sourceFile": "u54/turnaround-original.png",
+          "sourceSha256": "b7d3d4e419104dfdb3ef1111407eb11c6271ee6f1c1f298475a6248d6e99d1f2",
+          "sourceRect": [
+            924,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            74,
+            42,
+            814,
+            851
+          ],
+          "originalVisibleSize": [
+            740,
+            809
+          ],
+          "size": [
+            468,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "4d65aaa060bd46b744e7b7ed4d26490f9027b7540c337ddebd40759765aa717e"
+        }
+      }
+    },
+    {
+      "id": "u55",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u55-front.webp",
+          "sourceFile": "u55/turnaround-original.png",
+          "sourceSha256": "b269d9fae442395666421a8127b350e617e65613be0c36d88e175871e57b24a8",
+          "sourceRect": [
+            0,
+            0,
+            880,
+            887
+          ],
+          "alphaBounds": [
+            33,
+            65,
+            836,
+            837
+          ],
+          "originalVisibleSize": [
+            803,
+            772
+          ],
+          "size": [
+            512,
+            492
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "e6ec6913db771096745de18db15e484d85473567efd9c3feaa4342d6b269abe8"
+        },
+        "rear": {
+          "file": "u55-rear.webp",
+          "sourceFile": "u55/turnaround-original.png",
+          "sourceSha256": "b269d9fae442395666421a8127b350e617e65613be0c36d88e175871e57b24a8",
+          "sourceRect": [
+            880,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            65,
+            56,
+            862,
+            842
+          ],
+          "originalVisibleSize": [
+            797,
+            786
+          ],
+          "size": [
+            512,
+            505
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "09303f3f0ac862b2bfccbf56b34d4d3af26885818f5f5d1bb024c118dd12e932"
+        }
+      }
+    },
+    {
+      "id": "u56",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u56-front.webp",
+          "sourceFile": "u56/turnaround-original.png",
+          "sourceSha256": "3771a975c9e126d84da73f5b6411cef36124ee0852315e11ded615c9a862a169",
+          "sourceRect": [
+            0,
+            0,
+            894,
+            887
+          ],
+          "alphaBounds": [
+            44,
+            67,
+            823,
+            830
+          ],
+          "originalVisibleSize": [
+            779,
+            763
+          ],
+          "size": [
+            512,
+            501
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "a589bed8e67d023c7ba48ae35d632472d0a386e945ddc47d684dce8fcdd88ba8"
+        },
+        "rear": {
+          "file": "u56-rear.webp",
+          "sourceFile": "u56/turnaround-original.png",
+          "sourceSha256": "3771a975c9e126d84da73f5b6411cef36124ee0852315e11ded615c9a862a169",
+          "sourceRect": [
+            894,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            85,
+            66,
+            850,
+            819
+          ],
+          "originalVisibleSize": [
+            765,
+            753
+          ],
+          "size": [
+            512,
+            504
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "abfef8d0be3f7949b163196b94be0e9c9a67b094e50943669513b72019d20e6f"
+        }
+      }
+    },
+    {
+      "id": "u57",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u57-front.webp",
+          "sourceFile": "u57/turnaround-original.png",
+          "sourceSha256": "18c073b6bc0d9d91e8658517a66164e870554fca31720563603800d9cb1696d6",
+          "sourceRect": [
+            0,
+            0,
+            926,
+            887
+          ],
+          "alphaBounds": [
+            60,
+            54,
+            860,
+            852
+          ],
+          "originalVisibleSize": [
+            800,
+            798
+          ],
+          "size": [
+            512,
+            511
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "3f9f3058652e3a583126489b386a240ebd8066e27b86f3b3a7ee6398695a71a7"
+        },
+        "rear": {
+          "file": "u57-rear.webp",
+          "sourceFile": "u57/turnaround-original.png",
+          "sourceSha256": "18c073b6bc0d9d91e8658517a66164e870554fca31720563603800d9cb1696d6",
+          "sourceRect": [
+            926,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            58,
+            60,
+            795,
+            830
+          ],
+          "originalVisibleSize": [
+            737,
+            770
+          ],
+          "size": [
+            490,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "3c1880f9ab185945cb6855cf49999187b7c36bdafbda2be874a69b911fe471f4"
+        }
+      }
+    },
+    {
+      "id": "u58",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u58-front.webp",
+          "sourceFile": "u58/turnaround-original.png",
+          "sourceSha256": "b514e9b4ad82c047e894ccf33248bb1a25d473e03373721084716bac88807ce3",
+          "sourceRect": [
+            0,
+            0,
+            874,
+            887
+          ],
+          "alphaBounds": [
+            45,
+            83,
+            864,
+            825
+          ],
+          "originalVisibleSize": [
+            819,
+            742
+          ],
+          "size": [
+            512,
+            464
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "d98c38916f6b9a0ef82931ed49468c27c6427c58bd463ba014930d3ae52230a6"
+        },
+        "rear": {
+          "file": "u58-rear.webp",
+          "sourceFile": "u58/turnaround-original.png",
+          "sourceSha256": "b514e9b4ad82c047e894ccf33248bb1a25d473e03373721084716bac88807ce3",
+          "sourceRect": [
+            874,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            19,
+            96,
+            856,
+            812
+          ],
+          "originalVisibleSize": [
+            837,
+            716
+          ],
+          "size": [
+            512,
+            438
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "070e2425406b1973b2889d21352901b35d688dce7281fa15118943d7a4452744"
+        }
+      }
+    },
+    {
+      "id": "u59",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u59-front.webp",
+          "sourceFile": "u59/turnaround-original.png",
+          "sourceSha256": "767ff3207a4778a1681796965c65b532bc84f2a80d85a37783cf12ae698a4af3",
+          "sourceRect": [
+            0,
+            0,
+            932,
+            887
+          ],
+          "alphaBounds": [
+            63,
+            22,
+            898,
+            852
+          ],
+          "originalVisibleSize": [
+            835,
+            830
+          ],
+          "size": [
+            512,
+            509
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "36f90b6a22a7f1119b3de79ea215068ea5e855fa548cad430788fa24fd363357"
+        },
+        "rear": {
+          "file": "u59-rear.webp",
+          "sourceFile": "u59/turnaround-original.png",
+          "sourceSha256": "767ff3207a4778a1681796965c65b532bc84f2a80d85a37783cf12ae698a4af3",
+          "sourceRect": [
+            932,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            44,
+            22,
+            747,
+            863
+          ],
+          "originalVisibleSize": [
+            703,
+            841
+          ],
+          "size": [
+            428,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "c071f97b3c5efc05e90e6f81bd78ec038bc2d3fe0787abfbbcd134da8bc60ef0"
+        }
+      }
+    },
+    {
+      "id": "u60",
+      "reviewStatus": "draft_not_final_user_approved",
+      "views": {
+        "front": {
+          "file": "u60-front.webp",
+          "sourceFile": "u60/turnaround-original.png",
+          "sourceSha256": "28649ce44b1641fc8687425c6125f39569da60d9028faf260c09ce9eef9c2111",
+          "sourceRect": [
+            0,
+            0,
+            910,
+            887
+          ],
+          "alphaBounds": [
+            29,
+            50,
+            889,
+            849
+          ],
+          "originalVisibleSize": [
+            860,
+            799
+          ],
+          "size": [
+            512,
+            476
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "c0d2ada93094a60473e5f7e00efbca3b6c3c78ba204cc85914f537a44c5d19d8"
+        },
+        "rear": {
+          "file": "u60-rear.webp",
+          "sourceFile": "u60/turnaround-original.png",
+          "sourceSha256": "28649ce44b1641fc8687425c6125f39569da60d9028faf260c09ce9eef9c2111",
+          "sourceRect": [
+            910,
+            0,
+            1774,
+            887
+          ],
+          "alphaBounds": [
+            36,
+            51,
+            837,
+            852
+          ],
+          "originalVisibleSize": [
+            801,
+            801
+          ],
+          "size": [
+            512,
+            512
+          ],
+          "pivot": [
+            0.5,
+            1
+          ],
+          "relativeHeight": 1,
+          "runtimeSha256": "8359123cca0744ff99acaec6f30eb3b86fdc759625ba7704d240e191ea2ec1c9"
+        }
+      }
+    }
+  ]
+}

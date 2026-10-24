@@ -1,0 +1,1630 @@
+{
+  "profile": "five-stat-device-test-v1",
+  "scope": "deterministic algorithmic comparison, not device/playtesting; speed order applies, side/seed swapped",
+  "summaries": [
+    {
+      "level": 1,
+      "matches": 3540,
+      "min": 7,
+      "median": 14,
+      "p95": 37,
+      "max": 81,
+      "draws": 0,
+      "focusActions": 1273,
+      "reflections": 0,
+      "immuneHits": 337
+    },
+    {
+      "level": 20,
+      "matches": 3540,
+      "min": 6,
+      "median": 13,
+      "p95": 33,
+      "max": 74,
+      "draws": 0,
+      "focusActions": 3548,
+      "reflections": 0,
+      "immuneHits": 0
+    },
+    {
+      "level": 40,
+      "matches": 3540,
+      "min": 3,
+      "median": 10,
+      "p95": 36,
+      "max": 84,
+      "draws": 0,
+      "focusActions": 7661,
+      "reflections": 0,
+      "immuneHits": 0
+    },
+    {
+      "level": 60,
+      "matches": 3540,
+      "min": 5,
+      "median": 10,
+      "p95": 37,
+      "max": 96,
+      "draws": 0,
+      "focusActions": 5979,
+      "reflections": 0,
+      "immuneHits": 0
+    }
+  ],
+  "representative": [
+    {
+      "level": 20,
+      "ids": [
+        "u01",
+        "u57"
+      ],
+      "forward": {
+        "winner": 0,
+        "actions": 7,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      },
+      "reverse": {
+        "winner": 1,
+        "actions": 7,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "level": 20,
+      "ids": [
+        "u07",
+        "u53"
+      ],
+      "forward": {
+        "winner": 0,
+        "actions": 22,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      },
+      "reverse": {
+        "winner": 1,
+        "actions": 21,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "level": 20,
+      "ids": [
+        "u06",
+        "u41"
+      ],
+      "forward": {
+        "winner": 1,
+        "actions": 23,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      },
+      "reverse": {
+        "winner": 0,
+        "actions": 24,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "level": 20,
+      "ids": [
+        "u03",
+        "u08"
+      ],
+      "forward": {
+        "winner": 0,
+        "actions": 24,
+        "focus": 3,
+        "reflected": 0,
+        "immune": 0
+      },
+      "reverse": {
+        "winner": 1,
+        "actions": 24,
+        "focus": 3,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "level": 40,
+      "ids": [
+        "u01",
+        "u57"
+      ],
+      "forward": {
+        "winner": 0,
+        "actions": 5,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      },
+      "reverse": {
+        "winner": 1,
+        "actions": 5,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "level": 40,
+      "ids": [
+        "u07",
+        "u53"
+      ],
+      "forward": {
+        "winner": 1,
+        "actions": 17,
+        "focus": 1,
+        "reflected": 0,
+        "immune": 0
+      },
+      "reverse": {
+        "winner": 0,
+        "actions": 18,
+        "focus": 1,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "level": 40,
+      "ids": [
+        "u06",
+        "u41"
+      ],
+      "forward": {
+        "winner": 1,
+        "actions": 19,
+        "focus": 1,
+        "reflected": 0,
+        "immune": 0
+      },
+      "reverse": {
+        "winner": 0,
+        "actions": 19,
+        "focus": 1,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "level": 40,
+      "ids": [
+        "u03",
+        "u08"
+      ],
+      "forward": {
+        "winner": 0,
+        "actions": 22,
+        "focus": 7,
+        "reflected": 0,
+        "immune": 0
+      },
+      "reverse": {
+        "winner": 1,
+        "actions": 22,
+        "focus": 7,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "level": 60,
+      "ids": [
+        "u01",
+        "u57"
+      ],
+      "forward": {
+        "winner": 0,
+        "actions": 5,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      },
+      "reverse": {
+        "winner": 1,
+        "actions": 5,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "level": 60,
+      "ids": [
+        "u07",
+        "u53"
+      ],
+      "forward": {
+        "winner": 1,
+        "actions": 19,
+        "focus": 1,
+        "reflected": 0,
+        "immune": 0
+      },
+      "reverse": {
+        "winner": 0,
+        "actions": 19,
+        "focus": 1,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "level": 60,
+      "ids": [
+        "u06",
+        "u41"
+      ],
+      "forward": {
+        "winner": 1,
+        "actions": 21,
+        "focus": 1,
+        "reflected": 0,
+        "immune": 0
+      },
+      "reverse": {
+        "winner": 0,
+        "actions": 22,
+        "focus": 1,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "level": 60,
+      "ids": [
+        "u03",
+        "u08"
+      ],
+      "forward": {
+        "winner": 0,
+        "actions": 22,
+        "focus": 5,
+        "reflected": 0,
+        "immune": 0
+      },
+      "reverse": {
+        "winner": 1,
+        "actions": 22,
+        "focus": 5,
+        "reflected": 0,
+        "immune": 0
+      }
+    }
+  ],
+  "tieFirstSideChecks": [
+    {
+      "species": "u01",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 33,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u01",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 33,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u02",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 25,
+        "focus": 4,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u02",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 25,
+        "focus": 4,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u03",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 51,
+        "focus": 10,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u03",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 51,
+        "focus": 10,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u04",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 31,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u04",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 31,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u05",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 61,
+        "focus": 16,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u05",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 61,
+        "focus": 16,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u06",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 23,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u06",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 23,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u07",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 23,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u07",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 23,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u08",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 27,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u08",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 27,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u09",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 19,
+        "focus": 2,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u09",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 19,
+        "focus": 2,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u10",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 21,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u10",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 21,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u11",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 23,
+        "focus": 2,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u11",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 23,
+        "focus": 2,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u12",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 31,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u12",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 31,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u13",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 67,
+        "focus": 18,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u13",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 67,
+        "focus": 18,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u14",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 31,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u14",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 31,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u15",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 27,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u15",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 27,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u16",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 31,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u16",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 31,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u17",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 57,
+        "focus": 14,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u17",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 57,
+        "focus": 14,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u18",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 21,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u18",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 21,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u19",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 95,
+        "focus": 42,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u19",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 95,
+        "focus": 42,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u20",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 25,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u20",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 25,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u21",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 69,
+        "focus": 22,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u21",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 69,
+        "focus": 22,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u22",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 63,
+        "focus": 18,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u22",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 63,
+        "focus": 18,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u23",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 69,
+        "focus": 22,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u23",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 69,
+        "focus": 22,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u24",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 31,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u24",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 31,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u25",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 43,
+        "focus": 10,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u25",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 43,
+        "focus": 10,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u26",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 21,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u26",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 21,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u27",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 95,
+        "focus": 42,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u27",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 95,
+        "focus": 42,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u28",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 85,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u28",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 85,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u29",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 21,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u29",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 21,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u30",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 85,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u30",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 85,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u31",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 63,
+        "focus": 18,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u31",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 63,
+        "focus": 18,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u32",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 69,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u32",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 69,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u33",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 69,
+        "focus": 20,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u33",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 69,
+        "focus": 20,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u34",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 71,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u34",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 71,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u35",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 19,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u35",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 19,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u36",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 101,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u36",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 101,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u37",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 61,
+        "focus": 18,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u37",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 61,
+        "focus": 18,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u38",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 35,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u38",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 35,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u39",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 51,
+        "focus": 12,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u39",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 51,
+        "focus": 12,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u40",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 19,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u40",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 19,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u41",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 35,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u41",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 35,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u42",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 27,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u42",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 27,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u43",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 33,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u43",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 33,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u44",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 25,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u44",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 25,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u45",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 79,
+        "focus": 36,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u45",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 79,
+        "focus": 36,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u46",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 39,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u46",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 39,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u47",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 101,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u47",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 101,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u48",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 35,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u48",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 35,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u49",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 23,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u49",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 23,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u50",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 101,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u50",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 101,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u51",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 107,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u51",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 107,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u52",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 15,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u52",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 15,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u53",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 35,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u53",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 35,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u54",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 27,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u54",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 27,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u55",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 49,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u55",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 49,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u56",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 59,
+        "focus": 16,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u56",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 59,
+        "focus": 16,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u57",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 23,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u57",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 23,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u58",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 35,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u58",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 35,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u59",
+      "first": "0",
+      "result": {
+        "winner": 0,
+        "actions": 35,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u59",
+      "first": "1",
+      "result": {
+        "winner": 1,
+        "actions": 35,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u60",
+      "first": "0",
+      "result": {
+        "winner": 1,
+        "actions": 37,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    },
+    {
+      "species": "u60",
+      "first": "1",
+      "result": {
+        "winner": 0,
+        "actions": 37,
+        "focus": 0,
+        "reflected": 0,
+        "immune": 0
+      }
+    }
+  ]
+}

@@ -21,3 +21,16 @@ export function validateFiveStatCatalog(value:unknown){
     if(unit.growth?.[0]?.maxMp!==unit.levelOneStats.mp)throw Error('BASE_MP_MISMATCH');
   }
 }
+
+export const fiveRebirthPolicy='hp-mp-durability-additive-v1';
+// Original Lv1 base, additive 10% per completed cycle; nearest integer, halves up.
+export function fiveRebirthStats(base:FiveStats,levelStats:FiveStats,cycle:number):FiveStats{
+ validateFiveStats(base);validateFiveStats(levelStats);
+ if(!Number.isInteger(cycle)||cycle<0||cycle>5)throw Error('REINCARNATION_LIMIT');
+ const result={...levelStats};
+ for(const k of ['hp','mp','durability'] as const){
+  const bonus=Number((BigInt(base[k])*BigInt(cycle*10)+50n)/100n);
+  result[k]+=bonus;
+ }
+ validateFiveStats(result);return result;
+}

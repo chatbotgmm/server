@@ -1032,7 +1032,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
       badges[15]=r.optInt("mailUnread")>0||r.optBoolean("mailRewardPending");buttons.get(15).setContentDescription("우편함"+(badges[15]?" · 안 읽은 우편 또는 받을 보상 있음":""));invalidate();
       if(r.optBoolean("rebirthIntroPending")&&rebirthIntro==null){
         rebirthIntro=new GameDialog(host).navy().setTitle("환생 기능 해제")
-          .setMessage("제한·초월·불멸·영원 개체를 획득해 환생 안내가 열렸습니다. 실제 환생은 60·70·80·90·99레벨 조건을 따릅니다. 새 5스탯 보너스는 아직 준비 중입니다.")
+          .setMessage("제한·초월·불멸·영원 개체를 획득해 환생 안내가 열렸습니다. 실제 환생은 60·70·80·90·99레벨 조건을 따릅니다. HP·MP·내구력 기본값이 회당 10% 증가하며 속도·저항력은 유지됩니다. 시험 기본안입니다.")
           .setNegativeButton("나중에",(d,w)->{rebirthIntro=null;})
           .setPositiveButton("안내 확인",null).show();
         final android.app.AlertDialog intro=rebirthIntro;

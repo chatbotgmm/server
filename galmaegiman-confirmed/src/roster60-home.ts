@@ -23,7 +23,7 @@ export class RosterHome {
   const now=new Date(),mail=await this.db.nativeInboxMessage.findMany({where:{playerId,publishedAt:{lte:now},OR:[{expiresAt:null},{expiresAt:{gt:now}}]},select:{id:true}});
   const reads=await this.db.nativeNewsRead.count({where:{playerId,kind:'inbox',itemId:{in:mail.map(m=>m.id)}}});
   const onboarding=await this.db.roster60State.findUnique({where:{playerId}});
-  return {rebirthUnlocked:state?.rebirthUnlocked??false,rebirthIntroPending:!!state?.rebirthUnlocked&&!state.rebirthIntroComplete,rebirthAllowedGrades:grades,rebirthBonusPending:true,mailUnread:mail.length-reads,mailRewardPending:!!onboarding?.mailId&&!onboarding.selectedId};
+  return {rebirthUnlocked:state?.rebirthUnlocked??false,rebirthIntroPending:!!state?.rebirthUnlocked&&!state.rebirthIntroComplete,rebirthAllowedGrades:grades,rebirthBonusPending:c?.rebirthPolicy!=='hp-mp-durability-additive-v1',mailUnread:mail.length-reads,mailRewardPending:!!onboarding?.mailId&&!onboarding.selectedId};
  }
  async completeIntro(playerId:string){
   const result=await this.db.roster60Home.updateMany({where:{playerId,rebirthUnlocked:true},data:{rebirthIntroComplete:true}});

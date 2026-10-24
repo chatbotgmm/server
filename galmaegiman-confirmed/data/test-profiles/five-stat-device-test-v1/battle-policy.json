@@ -1,0 +1,75 @@
+{
+  "approved": true,
+  "profileKind": "user-authorized-test-baseline",
+  "productionBalanceApproved": false,
+  "version": "five-stat-device-test-v1",
+  "catalogVersion": "five-stat-device-test-v1",
+  "calculation": {
+    "model": "linear-level-hyperbolic-v1",
+    "version": "five-stat-device-test-v1",
+    "levelSlope": 0.025,
+    "durabilityScale": 50,
+    "resistanceScale": 50
+  },
+  "reflection": "return-post-durability",
+  "enemyStrategy": "best-affordable",
+  "maxRounds": 100,
+  "encounters": [
+    {
+      "id": "tutorial",
+      "speciesId": "u02",
+      "level": 1,
+      "tutorial": true,
+      "winXp": 30,
+      "lossXp": 0
+    },
+    {
+      "id": "training-1",
+      "speciesId": "u07",
+      "level": 1,
+      "tutorial": false,
+      "winXp": 60,
+      "lossXp": 20
+    },
+    {
+      "id": "training-5",
+      "speciesId": "u09",
+      "level": 5,
+      "tutorial": false,
+      "winXp": 300,
+      "lossXp": 100
+    },
+    {
+      "id": "training-10",
+      "speciesId": "u17",
+      "level": 10,
+      "tutorial": false,
+      "winXp": 600,
+      "lossXp": 200
+    },
+    {
+      "id": "training-20",
+      "speciesId": "u31",
+      "level": 20,
+      "tutorial": false,
+      "winXp": 1200,
+      "lossXp": 400
+    },
+    {
+      "id": "training-40",
+      "speciesId": "u45",
+      "level": 40,
+      "tutorial": false,
+      "winXp": 2400,
+      "lossXp": 800
+    },
+    {
+      "id": "training-60",
+      "speciesId": "u57",
+      "level": 60,
+      "tutorial": false,
+      "winXp": 3600,
+      "lossXp": 1200
+    }
+  ]
+}
