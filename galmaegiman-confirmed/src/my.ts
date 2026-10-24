@@ -11,6 +11,7 @@ import { loadBattleRules } from './battle/load.js';
 import { duelKey } from './duel.js';
 import {ReviewAuth,reviewRouteAllowed,REVIEW_ERROR,type ReviewConfig} from './review-auth.js';
 import {registerNative} from './native.js';
+import {registerRoster60} from './roster60-routes.js';
 import {NewsService} from './news.js';
 import {prismaNewsStore} from './news-store.js';
 import {newsSources} from './news-sources.js';
@@ -392,6 +393,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
   });
 
   const native=registerNative(app,game,opt.root,session,guard,realtime);
+  registerRoster60(app,opt.db,opt.root,session,guard);
   registerRealtimePvp(app,realtime,session,guard);
   registerNews(app,new NewsService(prismaNewsStore(opt.db),newsSources(opt.root,()=>game.content.economy.events)),session,guard);
 

@@ -1,5 +1,19 @@
 # 제품 60종 통합 진행 상태
 
+## 후속 구현: 실제 인증/DB/Android 온보딩 연결
+
+이 절은 아래 초기 조사보다 최신이다. `src/roster60-routes.ts`를 `src/my.ts`의 실제 signed-session/guard 경계에 등록했다. `/my/api/native/roster60/{state,start,complete,preview,confirm}`이며 요청에 playerId/완료증거를 넣을 수 없다. `src/roster60-onboarding.ts`는 Prisma의 실제 트랜잭션, 계정별 고유 시작/선택 영수증, 조건부 소비와 영구 지급을 사용한다. `prisma/schema.prisma`의 Roster60State/Roster60Owned는 옛 개체 ID를 덮어쓰지 않는다. 수동 검토 SQL은 `prisma/manual/20261024_roster60_onboarding_additive.sql`이며 실제 서버에는 실행하지 않았다.
+
+튜토리얼 메뉴 MainActivity.tutorial은 새 서비스의 start를 호출하며, NativeNews에서 roster60 우편을 누르면 7종 미리보기→상세정보→최종 확인으로 이어진다. 취소는 confirm API를 호출하지 않는다. 새 UI는 기존 폰트와 남색 패널/버튼 자산을 재사용한다. 승인된 data/roster60-approved.json이 없으면 서버 preview/confirm은503으로 차단한다. UI에 스탯/기술/적합도/방어 및 시작MP를 표시하며 fixture는 넣지 않았다.
+
+**현재 연결 한계:** Roster60Owned는 새 시스템의 영구 저장이지만 아직 기존 편성·BattleView·전투 엔진의 입력이 아니다. `verifyRosterTutorial`은 서버 정산 전용 함수로 만들었으나 새 전투 정산 호출자는 아직 없다. 클라이언트 complete는 서버 proof가 없으면409를 반환한다. 따라서 지금 제품 튜토리얼을 끝까지 플레이하거나 선택 보상을 정상 획득하는 전체 흐름은 미완료다. 새 흐름 시작 계정은 기존 D1 지급과 임시 스타터 요청이 거부된다. 아직 새 흐름을 시작하지 않은 구 계정의 옛 코드는 남아 있으며 전면 철거 완료라고 하지 않는다.
+
+로컬 검증: npm ci(쓰기 가능한 /workspace/npm-cache 사용), Prisma client 생성, npm run build 통과. 전체 격리 DB 테스트544/544(44파일) 통과 후 동시 시작/서로 다른 선택 경합을 추가하여 대상5/5 통과. 기존 Android 튜토리얼/스타터17개 통과, 새 MainActivity 진입·취소·중복 제출 억제 테스트1개 통과. 후속 스타일 변경 후 같은 관련18개 테스트와 assembleDebug를 다시 실행해 BUILD SUCCESSFUL(27초). 제품 패키지 org.gmm, debug서명, 개발 서버 loopback 설정이며 새 전투가 완성된 APK가 아니다. 실제 운영 DB와 실제 휴대폰에는 접근하지 않았다.
+
+워크북 자료는 `design/roster60-review/README.md`와 부분 구조 JSON/아트 CSV에 보존했다. 부모의 전체 메시지 중 u30~u49가 잘려 스탯 원본을 임의 복원하지 않았다. 60종 이름과52개 레시피 구조는 저장했지만 미승인 수치를 approved catalog로 승격하지 않았다.
+
+전달 상태 추가: Codex 로컬 파일을 직접 다운로드 첨부로 등록하는 도구는 현재 목록에 없음. 사용자 승인 Drive 개발 폴더의 동일 파일명 중복 없음 확인 후 공식 upload_file을 한 번 호출했으나, **호출 전 전달 계층 HTTP413:220610389bytes >104857600bytes**로 거절. Drive 신규 파일/링크 없음. 이 거절 뒤 분할/우회/재시도 없음.
+
 현재 기준은 review/roster60-static-20261024의 3de7670 이후 로컬 작업이다. 작업 시작 시 clean이었다. 이번 턴은 원격 최신 조회를 하지 않았다. 3de7670이 원격에 없다는 직전 확인을 유지한다. 운영 적용 완료가 아니다.
 
 ## APK 전달 재시도

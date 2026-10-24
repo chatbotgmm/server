@@ -1,0 +1,1406 @@
+{
+  "provenance": {
+    "driveId": "1Hv1DlN2_WuHya58ik9LjTObiT7Pgk_SD",
+    "filename": "갈매미_60종_개편검토안.xlsx",
+    "sourceWorkbookSha256": "c2cb088f3b2a8fb856662404b395f06f9df7eeb6a9e606f89e614271424b1e86",
+    "delivery": "parent structured extraction; unit payload truncated u30-u49; stats not copied",
+    "status": "review_proposal_not_final_balance",
+    "artIdentityCommit": "b4b19815e047b4a8189a084d44f78ae22530d7ed"
+  },
+  "approved": false,
+  "identities": [
+    {
+      "id": "u01",
+      "name": "갈매미맨",
+      "grade": "커먼"
+    },
+    {
+      "id": "u02",
+      "name": "미니",
+      "grade": "커먼"
+    },
+    {
+      "id": "u03",
+      "name": "자이언트",
+      "grade": "커먼"
+    },
+    {
+      "id": "u04",
+      "name": "꽃",
+      "grade": "커먼"
+    },
+    {
+      "id": "u05",
+      "name": "황금",
+      "grade": "커먼"
+    },
+    {
+      "id": "u06",
+      "name": "물방울",
+      "grade": "커먼"
+    },
+    {
+      "id": "u07",
+      "name": "불씨",
+      "grade": "커먼"
+    },
+    {
+      "id": "u08",
+      "name": "그림자",
+      "grade": "커먼"
+    },
+    {
+      "id": "u09",
+      "name": "노움",
+      "grade": "언커먼"
+    },
+    {
+      "id": "u10",
+      "name": "정령",
+      "grade": "언커먼"
+    },
+    {
+      "id": "u11",
+      "name": "고블린",
+      "grade": "언커먼"
+    },
+    {
+      "id": "u12",
+      "name": "어인",
+      "grade": "언커먼"
+    },
+    {
+      "id": "u13",
+      "name": "도깨비",
+      "grade": "언커먼"
+    },
+    {
+      "id": "u14",
+      "name": "서리",
+      "grade": "언커먼"
+    },
+    {
+      "id": "u15",
+      "name": "반딧불",
+      "grade": "언커먼"
+    },
+    {
+      "id": "u16",
+      "name": "먹구름",
+      "grade": "언커먼"
+    },
+    {
+      "id": "u17",
+      "name": "드워프",
+      "grade": "레어"
+    },
+    {
+      "id": "u18",
+      "name": "요정",
+      "grade": "레어"
+    },
+    {
+      "id": "u19",
+      "name": "트롤",
+      "grade": "레어"
+    },
+    {
+      "id": "u20",
+      "name": "세이렌",
+      "grade": "레어"
+    },
+    {
+      "id": "u21",
+      "name": "설인",
+      "grade": "레어"
+    },
+    {
+      "id": "u22",
+      "name": "뇌수",
+      "grade": "레어"
+    },
+    {
+      "id": "u23",
+      "name": "가고일",
+      "grade": "레어"
+    },
+    {
+      "id": "u24",
+      "name": "불도마뱀",
+      "grade": "레어"
+    },
+    {
+      "id": "u25",
+      "name": "룬장인",
+      "grade": "에픽"
+    },
+    {
+      "id": "u26",
+      "name": "드라이어드",
+      "grade": "에픽"
+    },
+    {
+      "id": "u27",
+      "name": "미노타우로스",
+      "grade": "에픽"
+    },
+    {
+      "id": "u28",
+      "name": "인어기사",
+      "grade": "에픽"
+    },
+    {
+      "id": "u29",
+      "name": "서리마녀",
+      "grade": "에픽"
+    },
+    {
+      "id": "u30",
+      "name": "그리핀",
+      "grade": "에픽"
+    },
+    {
+      "id": "u31",
+      "name": "듀라한",
+      "grade": "에픽"
+    },
+    {
+      "id": "u32",
+      "name": "화룡",
+      "grade": "에픽"
+    },
+    {
+      "id": "u33",
+      "name": "거장",
+      "grade": "전설"
+    },
+    {
+      "id": "u34",
+      "name": "가시여왕",
+      "grade": "전설"
+    },
+    {
+      "id": "u35",
+      "name": "네레이드",
+      "grade": "전설"
+    },
+    {
+      "id": "u36",
+      "name": "설랑",
+      "grade": "전설"
+    },
+    {
+      "id": "u37",
+      "name": "뇌호",
+      "grade": "전설"
+    },
+    {
+      "id": "u38",
+      "name": "잿불새",
+      "grade": "전설"
+    },
+    {
+      "id": "u39",
+      "name": "무명",
+      "grade": "히든"
+    },
+    {
+      "id": "u40",
+      "name": "몽마",
+      "grade": "히든"
+    },
+    {
+      "id": "u41",
+      "name": "수경",
+      "grade": "히든"
+    },
+    {
+      "id": "u42",
+      "name": "흑등",
+      "grade": "히든"
+    },
+    {
+      "id": "u43",
+      "name": "금각",
+      "grade": "히든"
+    },
+    {
+      "id": "u44",
+      "name": "꽃무덤",
+      "grade": "히든"
+    },
+    {
+      "id": "u45",
+      "name": "타이탄",
+      "grade": "제한"
+    },
+    {
+      "id": "u46",
+      "name": "베히모스",
+      "grade": "제한"
+    },
+    {
+      "id": "u47",
+      "name": "이프리트",
+      "grade": "제한"
+    },
+    {
+      "id": "u48",
+      "name": "빙령",
+      "grade": "제한"
+    },
+    {
+      "id": "u49",
+      "name": "가루다",
+      "grade": "초월"
+    },
+    {
+      "id": "u50",
+      "name": "레비아탄",
+      "grade": "초월"
+    },
+    {
+      "id": "u51",
+      "name": "세계수",
+      "grade": "초월"
+    },
+    {
+      "id": "u52",
+      "name": "망령",
+      "grade": "초월"
+    },
+    {
+      "id": "u53",
+      "name": "피닉스",
+      "grade": "불멸"
+    },
+    {
+      "id": "u54",
+      "name": "등불정령",
+      "grade": "불멸"
+    },
+    {
+      "id": "u55",
+      "name": "우로보로스",
+      "grade": "불멸"
+    },
+    {
+      "id": "u56",
+      "name": "리치",
+      "grade": "불멸"
+    },
+    {
+      "id": "u57",
+      "name": "여명",
+      "grade": "영원"
+    },
+    {
+      "id": "u58",
+      "name": "설왕",
+      "grade": "영원"
+    },
+    {
+      "id": "u59",
+      "name": "영야",
+      "grade": "영원"
+    },
+    {
+      "id": "u60",
+      "name": "해룡",
+      "grade": "영원"
+    }
+  ],
+  "recipes": [
+    {
+      "resultId": "u09",
+      "ingredients": [
+        {
+          "unitId": "u02",
+          "count": 2,
+          "minLevel": 5
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 16,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u10",
+      "ingredients": [
+        {
+          "unitId": "u04",
+          "count": 1,
+          "minLevel": 5
+        },
+        {
+          "unitId": "u02",
+          "count": 1,
+          "minLevel": 5
+        },
+        {
+          "unitId": "u01",
+          "count": 1,
+          "minLevel": 5
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 17,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u11",
+      "ingredients": [
+        {
+          "unitId": "u02",
+          "count": 1,
+          "minLevel": 5
+        },
+        {
+          "unitId": "u08",
+          "count": 1,
+          "minLevel": 5
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 18,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u12",
+      "ingredients": [
+        {
+          "unitId": "u06",
+          "count": 1,
+          "minLevel": 5
+        },
+        {
+          "unitId": "u01",
+          "count": 1,
+          "minLevel": 5
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 19,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u13",
+      "ingredients": [
+        {
+          "unitId": "u03",
+          "count": 1,
+          "minLevel": 5
+        },
+        {
+          "unitId": "u07",
+          "count": 1,
+          "minLevel": 5
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 20,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u14",
+      "ingredients": [
+        {
+          "unitId": "u06",
+          "count": 1,
+          "minLevel": 5
+        },
+        {
+          "unitId": "u08",
+          "count": 1,
+          "minLevel": 5
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 21,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u15",
+      "ingredients": [
+        {
+          "unitId": "u02",
+          "count": 1,
+          "minLevel": 5
+        },
+        {
+          "unitId": "u05",
+          "count": 1,
+          "minLevel": 5
+        },
+        {
+          "unitId": "u07",
+          "count": 1,
+          "minLevel": 5
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 22,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u16",
+      "ingredients": [
+        {
+          "unitId": "u06",
+          "count": 1,
+          "minLevel": 5
+        },
+        {
+          "unitId": "u07",
+          "count": 1,
+          "minLevel": 5
+        },
+        {
+          "unitId": "u08",
+          "count": 1,
+          "minLevel": 5
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 23,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u17",
+      "ingredients": [
+        {
+          "unitId": "u09",
+          "count": 1,
+          "minLevel": 10
+        },
+        {
+          "unitId": "u05",
+          "count": 1,
+          "minLevel": 10
+        },
+        {
+          "unitId": "u01",
+          "count": 1,
+          "minLevel": 10
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 24,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u18",
+      "ingredients": [
+        {
+          "unitId": "u02",
+          "count": 1,
+          "minLevel": 10
+        },
+        {
+          "unitId": "u10",
+          "count": 1,
+          "minLevel": 10
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 25,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u19",
+      "ingredients": [
+        {
+          "unitId": "u03",
+          "count": 1,
+          "minLevel": 10
+        },
+        {
+          "unitId": "u10",
+          "count": 1,
+          "minLevel": 10
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 26,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u20",
+      "ingredients": [
+        {
+          "unitId": "u12",
+          "count": 1,
+          "minLevel": 10
+        },
+        {
+          "unitId": "u08",
+          "count": 1,
+          "minLevel": 10
+        },
+        {
+          "unitId": "u15",
+          "count": 1,
+          "minLevel": 10
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 27,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u21",
+      "ingredients": [
+        {
+          "unitId": "u03",
+          "count": 1,
+          "minLevel": 10
+        },
+        {
+          "unitId": "u14",
+          "count": 1,
+          "minLevel": 10
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 28,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u22",
+      "ingredients": [
+        {
+          "unitId": "u16",
+          "count": 1,
+          "minLevel": 10
+        },
+        {
+          "unitId": "u03",
+          "count": 1,
+          "minLevel": 10
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 29,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u23",
+      "ingredients": [
+        {
+          "unitId": "u01",
+          "count": 1,
+          "minLevel": 10
+        },
+        {
+          "unitId": "u08",
+          "count": 1,
+          "minLevel": 10
+        },
+        {
+          "unitId": "u11",
+          "count": 1,
+          "minLevel": 10
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 30,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u24",
+      "ingredients": [
+        {
+          "unitId": "u13",
+          "count": 1,
+          "minLevel": 10
+        },
+        {
+          "unitId": "u12",
+          "count": 1,
+          "minLevel": 10
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 31,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u25",
+      "ingredients": [
+        {
+          "unitId": "u17",
+          "count": 1,
+          "minLevel": 15
+        },
+        {
+          "unitId": "u10",
+          "count": 1,
+          "minLevel": 15
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 32,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u26",
+      "ingredients": [
+        {
+          "unitId": "u18",
+          "count": 1,
+          "minLevel": 15
+        },
+        {
+          "unitId": "u04",
+          "count": 1,
+          "minLevel": 15
+        },
+        {
+          "unitId": "u06",
+          "count": 1,
+          "minLevel": 15
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 33,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u27",
+      "ingredients": [
+        {
+          "unitId": "u19",
+          "count": 1,
+          "minLevel": 15
+        },
+        {
+          "unitId": "u13",
+          "count": 1,
+          "minLevel": 15
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 34,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u28",
+      "ingredients": [
+        {
+          "unitId": "u20",
+          "count": 1,
+          "minLevel": 15
+        },
+        {
+          "unitId": "u17",
+          "count": 1,
+          "minLevel": 15
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 35,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u29",
+      "ingredients": [
+        {
+          "unitId": "u21",
+          "count": 1,
+          "minLevel": 15
+        },
+        {
+          "unitId": "u18",
+          "count": 1,
+          "minLevel": 15
+        },
+        {
+          "unitId": "u08",
+          "count": 1,
+          "minLevel": 15
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 36,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u30",
+      "ingredients": [
+        {
+          "unitId": "u22",
+          "count": 1,
+          "minLevel": 15
+        },
+        {
+          "unitId": "u23",
+          "count": 1,
+          "minLevel": 15
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 37,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u31",
+      "ingredients": [
+        {
+          "unitId": "u23",
+          "count": 1,
+          "minLevel": 15
+        },
+        {
+          "unitId": "u17",
+          "count": 1,
+          "minLevel": 15
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 38,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u32",
+      "ingredients": [
+        {
+          "unitId": "u24",
+          "count": 1,
+          "minLevel": 15
+        },
+        {
+          "unitId": "u19",
+          "count": 1,
+          "minLevel": 15
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 39,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u33",
+      "ingredients": [
+        {
+          "unitId": "u25",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u27",
+          "count": 1,
+          "minLevel": 20
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 40,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u34",
+      "ingredients": [
+        {
+          "unitId": "u26",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u18",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u08",
+          "count": 1,
+          "minLevel": 20
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 41,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u35",
+      "ingredients": [
+        {
+          "unitId": "u28",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u20",
+          "count": 1,
+          "minLevel": 20
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 42,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u36",
+      "ingredients": [
+        {
+          "unitId": "u29",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u21",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u22",
+          "count": 1,
+          "minLevel": 20
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 43,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u37",
+      "ingredients": [
+        {
+          "unitId": "u30",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u22",
+          "count": 1,
+          "minLevel": 20
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 44,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u38",
+      "ingredients": [
+        {
+          "unitId": "u32",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u15",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u23",
+          "count": 1,
+          "minLevel": 20
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 45,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u39",
+      "ingredients": [
+        {
+          "unitId": "u25",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u01",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u23",
+          "count": 1,
+          "minLevel": 20
+        }
+      ],
+      "visibility": "hidden",
+      "sourceRow": 46,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u40",
+      "ingredients": [
+        {
+          "unitId": "u18",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u29",
+          "count": 1,
+          "minLevel": 20
+        }
+      ],
+      "visibility": "hidden",
+      "sourceRow": 47,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u41",
+      "ingredients": [
+        {
+          "unitId": "u28",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u14",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u05",
+          "count": 1,
+          "minLevel": 20
+        }
+      ],
+      "visibility": "hidden",
+      "sourceRow": 48,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u42",
+      "ingredients": [
+        {
+          "unitId": "u31",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u15",
+          "count": 1,
+          "minLevel": 20
+        }
+      ],
+      "visibility": "hidden",
+      "sourceRow": 49,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u43",
+      "ingredients": [
+        {
+          "unitId": "u30",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u05",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u02",
+          "count": 1,
+          "minLevel": 20
+        }
+      ],
+      "visibility": "hidden",
+      "sourceRow": 50,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u44",
+      "ingredients": [
+        {
+          "unitId": "u26",
+          "count": 1,
+          "minLevel": 20
+        },
+        {
+          "unitId": "u31",
+          "count": 1,
+          "minLevel": 20
+        }
+      ],
+      "visibility": "hidden",
+      "sourceRow": 51,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u45",
+      "ingredients": [
+        {
+          "unitId": "u33",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u31",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u27",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 52,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u46",
+      "ingredients": [
+        {
+          "unitId": "u34",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u19",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u26",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 53,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u47",
+      "ingredients": [
+        {
+          "unitId": "u38",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u25",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u32",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 54,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u48",
+      "ingredients": [
+        {
+          "unitId": "u36",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u41",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u16",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 55,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u49",
+      "ingredients": [
+        {
+          "unitId": "u37",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u43",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u30",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 56,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u50",
+      "ingredients": [
+        {
+          "unitId": "u35",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u41",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u32",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 57,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u51",
+      "ingredients": [
+        {
+          "unitId": "u34",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u44",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u19",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 58,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u52",
+      "ingredients": [
+        {
+          "unitId": "u40",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u42",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u31",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 59,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u53",
+      "ingredients": [
+        {
+          "unitId": "u38",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u39",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u15",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 60,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u54",
+      "ingredients": [
+        {
+          "unitId": "u42",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u39",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u10",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 61,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u55",
+      "ingredients": [
+        {
+          "unitId": "u35",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u44",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u32",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 62,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u56",
+      "ingredients": [
+        {
+          "unitId": "u33",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u42",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u25",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 63,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u57",
+      "ingredients": [
+        {
+          "unitId": "u39",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u38",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u43",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 64,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u58",
+      "ingredients": [
+        {
+          "unitId": "u36",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u40",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u29",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 65,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u59",
+      "ingredients": [
+        {
+          "unitId": "u40",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u41",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u42",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 66,
+      "status": "proposal"
+    },
+    {
+      "resultId": "u60",
+      "ingredients": [
+        {
+          "unitId": "u35",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u37",
+          "count": 1,
+          "minLevel": 25
+        },
+        {
+          "unitId": "u32",
+          "count": 1,
+          "minLevel": 25
+        }
+      ],
+      "visibility": "public",
+      "sourceRow": 67,
+      "status": "proposal"
+    }
+  ],
+  "missingFromWorkbook": [
+    "skill MP costs",
+    "skill power/damage formula",
+    "explicit skill-to-element mapping",
+    "HP/MP scaling from Lv20 reference",
+    "XP curve",
+    "max level",
+    "excess XP handling",
+    "unique/support/inheritance skill effects"
+  ]
+}

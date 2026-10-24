@@ -13,6 +13,8 @@ model AppMeta {
 }
 
 model Player {
+  roster60State Roster60State?
+  roster60Units Roster60Owned[]
   nativeInbox NativeInboxMessage[]
   nativeNewsReads NativeNewsRead[]
   nativeNewsRequests NativeNewsRequest[]
@@ -56,6 +58,30 @@ model Player {
   kakao         KakaoLink?
   story         StorySave?
   chatApp       ChatAppUser?
+}
+
+// New-system identities are separate from legacy C/D/etc definitions. No destructive migration.
+model Roster60State {
+  playerId String @id
+  starterId String @unique
+  tutorialProof String?
+  completedAt DateTime?
+  mailId String? @unique
+  selectedId String?
+  rewardOwnedId String? @unique
+  catalogVersion String?
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+}
+model Roster60Owned {
+  id String @id @default(uuid())
+  playerId String
+  speciesId String
+  totalXp BigInt @default(0)
+  source String
+  createdAt DateTime @default(now())
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  @@unique([playerId, source])
+  @@index([playerId, speciesId])
 }
 
 model CharacterDefinition {

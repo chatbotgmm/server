@@ -1220,7 +1220,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void tutorial() {
-    menus.extras.tutorial();
+    new NativeRoster60Onboarding(this).open();
   }
 
   void startFight(String mode, String stage) {

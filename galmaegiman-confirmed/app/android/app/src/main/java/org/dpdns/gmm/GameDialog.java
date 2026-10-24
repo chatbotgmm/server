@@ -15,6 +15,8 @@ final class GameDialog extends AlertDialog.Builder {
   private boolean hasTitle;
   private int actions;
   private int maxWidthDp = 560;
+  private boolean navy;
+  GameDialog navy() { navy = true; return this; }
 
   GameDialog(MainActivity host) {
     super(new ContextThemeWrapper(host, android.R.style.Theme_Material_Light_Dialog_Alert));
@@ -129,6 +131,11 @@ final class GameDialog extends AlertDialog.Builder {
     Window window = dialog.getWindow();
     if (window != null) {
       window.setBackgroundDrawable(new GamePanelDrawable(host));
+      if (navy) {
+        android.graphics.drawable.GradientDrawable panel = new android.graphics.drawable.GradientDrawable();
+        panel.setColor(0xe8102433); panel.setCornerRadius(host.dp(12)); panel.setStroke(host.dp(1),0xff476171);
+        window.setBackgroundDrawable(panel);
+      }
       window.setDimAmount(.4f);
       window.setLayout(
           Math.min(
@@ -175,6 +182,7 @@ final class GameDialog extends AlertDialog.Builder {
                   ? GameButtonDrawable.PRIMARY
                   : GameButtonDrawable.PAPER));
       b.setMinHeight(host.dp(48));
+      if (navy) { b.setTextColor(0xfff5ead0); b.setBackgroundResource(R.drawable.combat_v2_button); }
       LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-2, host.dp(48));
       p.setMargins(host.dp(4), host.dp(4), host.dp(4), host.dp(4));
       b.setLayoutParams(p);
@@ -199,7 +207,8 @@ final class GameDialog extends AlertDialog.Builder {
   private void style(View v) {
     if (v instanceof TextView) {
       TextView t = (TextView) v;
-      if (t instanceof Button && t.getBackground() instanceof GameButtonDrawable)
+      if (navy) t.setTextColor(0xfff5ead0);
+      else if (t instanceof Button && t.getBackground() instanceof GameButtonDrawable)
         t.setTextColor(JournalTheme.controlText(((GameButtonDrawable) t.getBackground()).color));
       else if ((t.getCurrentTextColor() & 0x00ffffff) == 0)
         // 플랫폼 기본 검정만 바꾼다. 속성·상태·보상 안내의 의미색은 보존한다.

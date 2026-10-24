@@ -185,6 +185,10 @@ final class NativeNews {
     TextView body = label(item.optString("bodyText", ""), 17);
     body.setTextIsSelectable(true); body.setHorizontallyScrolling(false);
     words.addView(body);
+    if(tab==0&&item.optString("id").startsWith("roster60-")) {
+      words.addView(k.action(null,h.getString(R.string.roster60_ticket),
+        ()->new NativeRoster60Onboarding(h).preview(item.optString("id"))));
+    }
     ScrollView scroll = new ScrollView(h); scroll.setFillViewport(false); scroll.addView(words);
     panel.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
     addPager("< 목록", () -> { generation++; renderList(); }, true);

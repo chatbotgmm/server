@@ -1,0 +1,62 @@
+﻿ID,이름,등급,정면 파일,정면 영역LTRB,후면 파일,후면 영역LTRB,검토 메모
+u01,갈매미맨,커먼,u01/front.png,"[0, 0, 1254, 1254]",u01/rear.png,"[0, 0, 1254, 1254]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u02,미니,커먼,u02/front.png,"[0, 0, 1254, 1254]",u02/rear.png,"[0, 0, 1254, 1254]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u03,자이언트,커먼,u03/front.png,"[0, 0, 1254, 1254]",u03/rear.png,"[0, 0, 1254, 1254]",겹침/장착 구조가 모호해 추가 구조 확인 필요
+u04,꽃,커먼,u04/front.png,"[0, 0, 1254, 1254]",u04/rear.png,"[0, 0, 1254, 1254]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u05,황금,커먼,u05/front.png,"[0, 0, 1254, 1254]",u05/rear.png,"[0, 0, 1254, 1254]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u06,물방울,커먼,u06/front.png,"[0, 0, 1254, 1254]",u06/rear.png,"[0, 0, 1254, 1254]",겹침/장착 구조가 모호해 추가 구조 확인 필요
+u07,불씨,커먼,u07/front.png,"[0, 0, 1254, 1254]",u07/rear.png,"[0, 0, 1254, 1254]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u08,그림자,커먼,u08/front.png,"[0, 0, 1254, 1254]",u08/rear.png,"[0, 0, 1254, 1254]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u09,노움,언커먼,u09/turnaround-original.png,"[0, 0, 924, 887]",u09/rear-v3.png,"[0, 0, 1312, 1199]",수정 검토본; 최종 승인 및 실기기 검증 전
+u10,정령,언커먼,u10/turnaround-original.png,"[0, 0, 918, 887]",u10/turnaround-original.png,"[918, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u11,고블린,언커먼,u11/turnaround-original.png,"[0, 0, 909, 887]",u11/turnaround-original.png,"[909, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u12,어인,언커먼,u12/turnaround-original.png,"[0, 0, 898, 887]",u12/turnaround-original.png,"[898, 0, 1774, 887]",겹침/장착 구조가 모호해 추가 구조 확인 필요
+u13,도깨비,언커먼,u13/turnaround-original.png,"[0, 0, 879, 887]",u13/turnaround-original.png,"[879, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u14,서리,언커먼,u14/turnaround-original.png,"[0, 0, 911, 887]",u14/turnaround-original.png,"[911, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u15,반딧불,언커먼,u15/turnaround-original.png,"[0, 0, 912, 887]",u15/turnaround-original.png,"[912, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u16,먹구름,언커먼,u16/turnaround-original.png,"[0, 0, 922, 887]",u16/turnaround-original.png,"[922, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u17,드워프,레어,u17/turnaround-original.png,"[0, 0, 916, 887]",u17/rear-v4.png,"[0, 0, 1374, 1145]",v4 깊이 가림 관계는 뚜렷한 역전 없음. 화면 오른쪽 날개 하단/팔/망치 자루 접점은 소형 표시에서 뭉침 가능. 최종 사용자 아트 승인 대기.
+u18,요정,레어,u18/turnaround-original.png,"[0, 0, 894, 887]",u18/turnaround-original.png,"[894, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u19,트롤,레어,u19/turnaround-original.png,"[0, 0, 919, 887]",u19/turnaround-original.png,"[919, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u20,세이렌,레어,u20/turnaround-original.png,"[0, 0, 910, 887]",u20/turnaround-original.png,"[910, 0, 1774, 887]",겹침/장착 구조가 모호해 추가 구조 확인 필요 / 부리/눈/손의 기본 그림체 일관성 보완
+u21,설인,레어,u21/turnaround-original.png,"[0, 0, 890, 887]",u21/turnaround-original.png,"[890, 0, 1774, 887]",후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요
+u22,뇌수,레어,u22/turnaround-original.png,"[0, 0, 939, 887]",u22/turnaround-original.png,"[939, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u23,가고일,레어,u23/turnaround-original.png,"[0, 0, 933, 887]",u23/turnaround-original.png,"[933, 0, 1774, 887]",겹침/장착 구조가 모호해 추가 구조 확인 필요
+u24,불도마뱀,레어,u24/turnaround-original.png,"[0, 0, 901, 887]",u24/turnaround-original.png,"[901, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u25,룬장인,에픽,u25/turnaround-original.png,"[0, 0, 893, 887]",u25/turnaround-original.png,"[893, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u26,드라이어드,에픽,u26/turnaround-original.png,"[0, 0, 926, 887]",u26/turnaround-original.png,"[926, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u27,미노타우로스,에픽,u27/turnaround-original.png,"[0, 0, 887, 887]",u27/turnaround-original.png,"[887, 0, 1774, 887]",후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요
+u28,인어기사,에픽,u28/turnaround-original.png,"[0, 0, 884, 887]",u28/rear-v3.png,"[0, 0, 1393, 1129]",창의 불투명 실루엣은 잘리지 않음(상단 여백7px). 게임 표시/회전 시 여백 확보 검토; 원본 재편집 없이 렌더 패딩 우선.
+u29,서리마녀,에픽,u29/turnaround-original.png,"[0, 0, 884, 887]",u29/turnaround-original.png,"[884, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u30,그리핀,에픽,u30/turnaround-original.png,"[0, 0, 926, 887]",u30/turnaround-original.png,"[926, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u31,듀라한,에픽,u31/turnaround-v6-direction.png,"[0, 0, 906, 887]",u31/turnaround-v6-direction.png,"[906, 0, 1774, 887]",v6 디자인·전투 방향 사용자 승인. 정면 좌측/후면 우측; 안드로이드 실기기 검증 전.
+u32,화룡,에픽,u32/turnaround-original.png,"[0, 0, 946, 887]",u32/turnaround-original.png,"[946, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u33,거장,전설,u33/turnaround-original.png,"[0, 0, 910, 887]",u33/turnaround-original.png,"[910, 0, 1774, 887]",후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요
+u34,가시여왕,전설,u34/turnaround-original.png,"[0, 0, 947, 887]",u34/turnaround-original.png,"[947, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u35,네레이드,전설,u35/turnaround-original.png,"[0, 0, 968, 887]",u35/turnaround-original.png,"[968, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u36,설랑,전설,u36/turnaround-original.png,"[0, 0, 965, 887]",u36/turnaround-original.png,"[965, 0, 1774, 887]",후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요
+u37,뇌호,전설,u37/turnaround-original.png,"[0, 0, 962, 887]",u37/turnaround-original.png,"[962, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u38,잿불새,전설,u38/turnaround-original.png,"[0, 0, 936, 887]",u38/turnaround-original.png,"[936, 0, 1774, 887]",정면에 가까운 좌측 3/4 방향보다 측면성이 강함
+u39,무명,히든,u39/turnaround-original.png,"[0, 0, 909, 887]",u39/turnaround-original.png,"[909, 0, 1774, 887]",후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요
+u40,몽마,히든,u40/turnaround-original.png,"[0, 0, 934, 887]",u40/turnaround-original.png,"[934, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u41,수경,히든,u41/turnaround-original.png,"[0, 0, 901, 887]",u41/turnaround-original.png,"[901, 0, 1774, 887]",후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요
+u42,흑등,히든,u42/turnaround-original.png,"[0, 0, 951, 887]",u42/turnaround-original.png,"[951, 0, 1774, 887]",겹침/장착 구조가 모호해 추가 구조 확인 필요
+u43,금각,히든,u43/turnaround-original.png,"[0, 0, 914, 887]",u43/turnaround-original.png,"[914, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u44,꽃무덤,히든,u44/turnaround-original.png,"[0, 0, 940, 887]",u44/turnaround-original.png,"[940, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u45,타이탄,제한,u45/turnaround-original.png,"[0, 0, 923, 887]",u45/turnaround-original.png,"[923, 0, 1774, 887]",후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요
+u46,베히모스,제한,u46/turnaround-original.png,"[0, 0, 912, 887]",u46/turnaround-original.png,"[912, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u47,이프리트,제한,u47/turnaround-original.png,"[0, 0, 926, 887]",u47/turnaround-original.png,"[926, 0, 1774, 887]",후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요
+u48,빙령,제한,u48/turnaround-original.png,"[0, 0, 939, 887]",u48/turnaround-original.png,"[939, 0, 1774, 887]",후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요
+u49,가루다,초월,u49/turnaround-original.png,"[0, 0, 894, 887]",u49/turnaround-original.png,"[894, 0, 1774, 887]",후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요 / 정면에 가까운 좌측 3/4 방향보다 측면성이 강함
+u50,레비아탄,초월,u50/turnaround-original.png,"[0, 0, 904, 887]",u50/turnaround-original.png,"[904, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u51,세계수,초월,u51/turnaround-original.png,"[0, 0, 907, 887]",u51/turnaround-original.png,"[907, 0, 1774, 887]",후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요 / 고대 거목의 존재감 보완 후보
+u52,망령,초월,u52/turnaround-original.png,"[0, 0, 935, 887]",u52/turnaround-original.png,"[935, 0, 1774, 887]",겹침/장착 구조가 모호해 추가 구조 확인 필요
+u53,피닉스,불멸,u53/turnaround-original.png,"[0, 0, 889, 887]",u53/turnaround-original.png,"[889, 0, 1774, 887]",정면에 가까운 좌측 3/4 방향보다 측면성이 강함
+u54,등불정령,불멸,u54/turnaround-original.png,"[0, 0, 924, 887]",u54/turnaround-original.png,"[924, 0, 1774, 887]",후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요
+u55,우로보로스,불멸,u55/turnaround-original.png,"[0, 0, 880, 887]",u55/turnaround-original.png,"[880, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u56,리치,불멸,u56/turnaround-original.png,"[0, 0, 894, 887]",u56/turnaround-original.png,"[894, 0, 1774, 887]",후면 발/골반/몸통 방향 또는 날개 접합부 보완 검토; 확정 오류와 모호함 구분 필요
+u57,여명,영원,u57/turnaround-original.png,"[0, 0, 926, 887]",u57/turnaround-original.png,"[926, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u58,설왕,영원,u58/turnaround-original.png,"[0, 0, 874, 887]",u58/turnaround-original.png,"[874, 0, 1774, 887]",추가 확정 오류 없음; 최종 승인 및 실기기 검증 전
+u59,영야,영원,u59/turnaround-original.png,"[0, 0, 932, 887]",u59/turnaround-original.png,"[932, 0, 1774, 887]",게임 표시 크기에서 얼굴 가독성 확인
+u60,해룡,영원,u60/turnaround-original.png,"[0, 0, 910, 887]",u60/turnaround-original.png,"[910, 0, 1774, 887]",정면에 가까운 좌측 3/4 방향보다 측면성이 강함
+

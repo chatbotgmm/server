@@ -1,0 +1,23 @@
+<resources>
+  <string-array name="roster60_stat_names"><item>HP</item><item>물리 공격</item><item>물리 방어</item><item>마법 공격</item><item>마법 방어</item><item>속도</item></string-array>
+  <string-array name="roster60_element_names"><item>일반</item><item>불</item><item>물</item><item>번개</item><item>얼음</item><item>자연</item><item>성</item><item>어둠</item></string-array>
+  <string-array name="roster60_defense_names"><item>약점</item><item>보통</item><item>내성</item><item>무효</item><item>반사</item></string-array>
+  <string name="roster60_title">갈매미맨으로 시작</string>
+  <string name="roster60_start_description">갈매미맨 u01을 영구 지급받았습니다. 튜토리얼을 완료하면 우편함에서 커먼 선택지급권을 받습니다.</string>
+  <string name="roster60_reward_status">보상 상태 확인</string>
+  <string name="roster60_tutorial_pending">서버에서 확인된 튜토리얼 완료 기록이 아직 없습니다. 새 전투 연결이 준비 중입니다.</string>
+  <string name="roster60_connection_failed">서버에 연결하지 못했습니다. 지급 결과를 확인하려면 다시 열어 주세요.</string>
+  <string name="roster60_catalog_pending">선택 목록을 열지 못했습니다. 연결 또는 서버 데이터 준비 상태를 확인해 주세요. 선택권은 소비되지 않았습니다.</string>
+  <string name="roster60_already_used">이미 영구 개체를 지급받은 선택권입니다.</string>
+  <string name="roster60_ticket">커먼 선택지급권</string>
+  <string name="roster60_close">닫기</string>
+  <string name="roster60_cancel">취소</string>
+  <string name="roster60_confirm">이 개체로 확정 · 선택권 1장 사용</string>
+  <string name="roster60_stats">스탯</string>
+  <string name="roster60_start_mp">레벨 1 최대 MP</string>
+  <string name="roster60_skills">기술</string>
+  <string name="roster60_suitability">적합도 · 공격 보정</string>
+  <string name="roster60_defense">방어 판정</string>
+  <string name="roster60_granted">영구 개체 지급이 확인되었습니다.</string>
+  <string name="roster60_confirm_failed">결과를 확인하지 못했습니다. 우편을 다시 열어 지급 상태를 확인해 주세요.</string>
+</resources>

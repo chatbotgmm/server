@@ -1541,12 +1541,18 @@ export class GameService {
     });
   }
   async webStarterLoans(playerId:string){
-    return this.webRun(playerId,(tx,p,now)=>starterLoanState(tx,p,this.content,loadBattleRules(this.root),now));
+    return this.webRun(playerId,async(tx,p,now)=>{
+      if(await tx.roster60State.findUnique({where:{playerId}}))return {state:'retired',reason:'새 시작 흐름에서는 임시 지급을 사용하지 않습니다.'};
+      return starterLoanState(tx,p,this.content,loadBattleRules(this.root),now);
+    });
   }
   async webClaimStarterLoans(playerId:string,ids:unknown){
     // SQLite writer race / unique winner: retry the same selection after rollback, never renew a receipt.
     for(let attempt=0;;attempt++)try{
-      return await this.webRun(playerId,(tx,p,now)=>claimStarterLoans(tx,p,this.content,loadBattleRules(this.root),ids,now));
+      return await this.webRun(playerId,async(tx,p,now)=>{
+        if(await tx.roster60State.findUnique({where:{playerId}}))throw new GameError('새 시작 흐름에서는 임시 지급을 사용하지 않습니다.');
+        return claimStarterLoans(tx,p,this.content,loadBattleRules(this.root),ids,now);
+      });
     }catch(error){
       if(attempt>=2||!(error instanceof Prisma.PrismaClientKnownRequestError)||!['P2002','P2034','P1008'].includes(error.code))throw error;
     }
@@ -1576,6 +1582,7 @@ export class GameService {
     if(!Number.isInteger(step)||step<1||(step>5&&step!==9))throw new GameError('튜토리얼 단계가 맞지 않아요.');
     if(seen!==undefined&&!/^[a-z]{1,20}$/.test(seen))throw new GameError('화면 이름이 맞지 않아요.');
     return this.webRun(playerId,async(tx,p,now)=>{
+      if(await tx.roster60State.findUnique({where:{playerId}}))throw new GameError('새 튜토리얼에서 진행해 주세요. 기존 태초 보상은 지급하지 않습니다.');
       const cur=await tx.player.findUniqueOrThrow({where:{id:p.id},select:{gameTutorial:true,gameSeen:true,battleTeam:true}});
       const next=Math.max(cur.gameTutorial,step);
       let granted=false;
