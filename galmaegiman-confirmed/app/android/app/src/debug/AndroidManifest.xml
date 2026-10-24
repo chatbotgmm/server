@@ -1,1 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:usesCleartextTraffic="true" /></manifest>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:usesCleartextTraffic="true">
+<activity android:name=".CombatV2ReviewActivity" android:label="갈매미맨 전투 검토 (개발)" android:screenOrientation="sensorLandscape" android:exported="true">
+<intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+</activity></application></manifest>

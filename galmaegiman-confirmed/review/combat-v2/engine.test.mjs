@@ -75,3 +75,12 @@ test('review replay frame version and immutable snapshots retain MP/HP events',(
   replay.frames[1].fighters[0].mp=999;
   assert.equal(x.snapshot(a).self.mp,11);
 });
+
+// Regression from independent review: caller mutation cannot alter identity/policy version.
+test('creation captures owners and policy hooks',()=>{
+ const players=['review-a','review-b'],balance={...exampleBalance};
+ const battle=exampleBattle({players,balance});players[0]='outsider';balance.baseDamage=()=>999;balance.version='changed';
+ assert.throws(()=>battle.snapshot({playerId:'outsider'}),/UNAUTHORIZED/);
+ const result=battle.command({playerId:'review-a'},{battleId:'review-1',expectedRevision:0,requestId:'capture',kind:'attack'});
+ assert.equal(result.events[0].damage,20);assert.equal(battle.replay({playerId:'review-a'}).balanceVersion,'synthetic-fixture-not-product');
+});

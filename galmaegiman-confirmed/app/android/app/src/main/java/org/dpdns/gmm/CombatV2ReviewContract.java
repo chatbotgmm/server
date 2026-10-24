@@ -14,6 +14,12 @@ final class CombatV2ReviewContract {
     JSONObject dto=new JSONObject(source.toString());
     if(!EPOCH.equals(dto.getString("epoch")) || dto.getString("battleId").isEmpty()
         || dto.getInt("revision")<0)throw new IllegalArgumentException("Invalid identity/version");
+    for(String side:new String[]{"self","foe"}) {
+      JSONObject f=dto.getJSONObject(side);
+      if(f.getInt("hp")<0||f.getInt("maxHp")<1||f.getInt("hp")>f.getInt("maxHp")||f.getInt("mp")<0||f.getInt("maxMp")<1||f.getInt("mp")>f.getInt("maxMp"))throw new IllegalArgumentException("Invalid vitals");
+      f.getString("name");f.getJSONObject("suitability");
+    }
+    dto.getJSONArray("events");
     JSONObject self=dto.getJSONObject("self");
     int mp=self.getInt("mp"),max=self.getInt("maxMp");
     if(max<=0 || mp<0 || mp>max)throw new IllegalArgumentException("Invalid MP");

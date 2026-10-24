@@ -33,6 +33,8 @@ export function createCombat({battleId, players, fighters, firstSide, balance}) 
       || ![0,1].includes(firstSide) || typeof balance?.maxMp !== 'function'
       || typeof balance.baseDamage !== 'function' || typeof balance.reflectDamage !== 'function'
       || typeof balance.version !== 'string' || !balance.version) fail('EXPLICIT_REVIEW_CONFIG_REQUIRED');
+  players = Object.freeze([...players]);
+  balance = Object.freeze({...balance}); // Capture hooks/version; policy closures must remain pure.
   let state = {battleId, epoch:EPOCH, balanceVersion:balance.version, revision:0, turn:1,
     activeSide:firstSide, phase:'action', winner:null, fighters:fighters.map(f => fighter(f,balance)), events:[]};
   const receipts = new Map(), frames = [copy(state)];
@@ -89,7 +91,7 @@ export function createCombat({battleId, players, fighters, firstSide, balance}) 
         // Clamp only the invalid negative-damage outcome, not suitability balance range.
         const fit = Math.max(0,1 + .1 * a.suitability[sk.element]);
         const defense = d.defense[sk.element];
-        let raw = defense === 'reflect' ? balance.reflectDamage({baseDamage:base,suitabilityMultiplier:fit,
+        let raw = defense === 'immune' ? 0 : defense === 'reflect' ? balance.reflectDamage({baseDamage:base,suitabilityMultiplier:fit,
           attacker:copy(a),defender:copy(d),skill:copy(sk)}) : base * fit * MULTIPLIER[defense];
         if (!number(raw) || raw < 0) fail('INVALID_DAMAGE_POLICY');
         const target = defense === 'reflect' ? a : d;
