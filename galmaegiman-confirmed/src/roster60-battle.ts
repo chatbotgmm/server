@@ -9,11 +9,11 @@ import {validateFiveCombatPolicy,fiveStatAttack,decideTurnOrder,reuseTurnOrder,t
 export type BattlePolicy={approved:boolean;version:string;catalogVersion:string;calculation:FiveCombatPolicy;reflection:'return-post-durability';enemyStrategy:'first-affordable'|'best-affordable';maxRounds:number;encounters:{id:string;speciesId:string;level:number;tutorial:boolean;winXp:number;lossXp:number;mode?:'story'|'duel'|'adventure'}[]};
 type Skill={id:string;name:string;element:SkillElement;mpCost:number;power:number};
 export type Fighter={ownedId?:string;id:string;speciesId:string;name:string;level:number;stats:FiveStats;hp:number;mp:number;attack:Skill;skills:Skill[];suitability:ElementProfile<number>;defense:ElementProfile<Defense>};
-export type State={version:'five-battle-v1';turn:number;fighters:[Fighter,Fighter];decision:TurnOrderDecision;outcome:'win'|'loss'|'draw'|'escaped'|null;events:unknown[];adventureId?:string;reserves?:Fighter[];mode?:'story'|'duel'|'adventure';surrendered?:boolean;rulesVersion?:'party-actions-v2';inventory?:{itemId:string;count:number}[]};
+export type State={version:'five-battle-v1';turn:number;fighters:[Fighter,Fighter];decision:TurnOrderDecision;outcome:'win'|'loss'|'draw'|'escaped'|null;events:unknown[];adventureId?:string;reserves?:Fighter[];mode?:'story'|'duel'|'adventure';surrendered?:boolean;rulesVersion?:'party-actions-v2';inventory?:{itemId:string;count:number}[];participation?:{ownedId:string;kind:'start'|'switch'|'forced-switch';turn:number}[]};
 export type BattleAction={kind:'attack'|'skill'|'focus'|'switch'|'item'|'escape';skillId?:string;targetOwnedId?:string;itemId?:string};
 const fail=(code:string,status=409):never=>{throw new RosterError(status,code);};
 const hash=(v:unknown)=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
-function validatePolicy(p:BattlePolicy|null,c:RosterCatalog|null):asserts p is BattlePolicy{
+export function validatePolicy(p:BattlePolicy|null,c:RosterCatalog|null):asserts p is BattlePolicy{
  if(p?.approved!==true||c?.approved!==true||c.statSchema!=='gmm-five-stats-v1'||p.catalogVersion!==c.version)return fail('BATTLE_POLICY_PENDING',503);
  try{validateFiveCombatPolicy(p.calculation);}catch{return fail('BATTLE_POLICY_INVALID',503);}
  if(typeof p.version!=='string'||!p.version||p.reflection!=='return-post-durability'||!['first-affordable','best-affordable'].includes(p.enemyStrategy)||!Number.isSafeInteger(p.maxRounds)||p.maxRounds<1||p.maxRounds>1000||!Array.isArray(p.encounters))return fail('BATTLE_POLICY_INVALID',503);
@@ -80,6 +80,8 @@ export class RosterBattle {
     if(unit.totalXp<0n||unit.totalXp>BigInt(Number.MAX_SAFE_INTEGER))return fail('INVALID_XP');
     const d=c!.characters.find(u=>u.id===unit.speciesId);if(!d)return fail('BATTLE_UNIT_DATA_PENDING',503);
     const lv=growthAt(Number(unit.totalXp),d.growth,unit.reincarnation,d.reincarnationXpPolicy).level;
+    // Any reserve may enter: preflight the full award so normal return cannot be trapped by growth limits.
+    if(run)try{const next=Number(unit.totalXp)+(JSON.parse(run.pendingRewards).xp[unit.id]??0)+encounter.winXp;if(!Number.isSafeInteger(next))return fail('INVALID_XP');growthAt(next,d.growth,unit.reincarnation,d.reincarnationXpPolicy);}catch(e){return fail((e as Error).message);}
     reserves.push({...fighter(c!,unit.speciesId,lv,'self',unit.reincarnation),ownedId:unit.id});members.push({ownedId:unit.id,startingXp:unit.totalXp.toString()});
    }
    const id=randomUUID(),seed=randomBytes(32).toString('hex');
@@ -87,10 +89,10 @@ export class RosterBattle {
    f[0].ownedId=owned.id;
    if(runState)for(const next of [f[0],...reserves]){const prior=runState.party.find((x:Fighter)=>x.ownedId===next.ownedId);if(!prior)return fail('INVALID_PARTY');next.hp=prior.hp;}
    const items=loadBattleRules().data.items;
-   const state:State={rulesVersion:'party-actions-v2',adventureId:run?.id,reserves,mode:encounter.mode,inventory:await tx.playerItem.findMany({where:{playerId},select:{itemId:true,count:true}}),version:'five-battle-v1',turn:0,fighters:f,decision:order(id,{turn:0,fighters:f},seed),outcome:null,events:[]};
+   const state:State={participation:[{ownedId:owned.id,kind:'start',turn:0}],rulesVersion:'party-actions-v2',adventureId:run?.id,reserves,mode:encounter.mode,inventory:await tx.playerItem.findMany({where:{playerId},select:{itemId:true,count:true}}),version:'five-battle-v1',turn:0,fighters:f,decision:order(id,{turn:0,fighters:f},seed),outcome:null,events:[]};
    const lock=await tx.roster60Owned.updateMany({where:{id:owned.id,playerId,status:sourceStatus,locked:false,totalXp:owned.totalXp},data:{status:'BATTLE'}});if(lock.count!==1)return fail('UNIT_UNAVAILABLE');
    for(const member of members.slice(1)){const locked=await tx.roster60Owned.updateMany({where:{id:member.ownedId,playerId,status:sourceStatus,locked:false,totalXp:BigInt(member.startingXp)},data:{status:'BATTLE'}});if(locked.count!==1)return fail('UNIT_UNAVAILABLE');}
-   const row=await tx.roster60Battle.create({data:{id,playerId,ownedId:owned.id,seed,snapshot:JSON.stringify({policy:p,encounter,items,members,adventureId:run?.id,escapePolicy:adventureEscapePolicy,xpRecipient:'initial-owned-existing-v1',growth:def.growth,startingXp:owned.totalXp.toString()}),state:JSON.stringify(state)}});
+   const row=await tx.roster60Battle.create({data:{id,playerId,ownedId:owned.id,seed,snapshot:JSON.stringify({policy:p,encounter,items,members,adventureId:run?.id,escapePolicy:adventureEscapePolicy,xpRecipient:run?'adventure-participation-100-reserve-50-v1':'initial-owned-existing-v1',growth:def.growth,startingXp:owned.totalXp.toString()}),state:JSON.stringify(state)}});
    if(run){const claimed=await tx.roster60Adventure.updateMany({where:{id:run.id,playerId,revision:run.revision,status:'ACTIVE',activeBattleId:null},data:{activeBattleId:id,revision:{increment:1}}});if(claimed.count!==1)return fail('ADVENTURE_STATE_CHANGED');}
    return dto(row);
   });
@@ -120,7 +122,8 @@ export class RosterBattle {
     const forced=state.fighters[0].hp<=0;
     const ix=state.reserves?.findIndex(f=>f.ownedId===b.action.targetOwnedId)??-1;
     if(ix<0||!state.reserves![ix].hp)return fail('INVALID_SWITCH');
-    const outgoing=state.fighters[0];state.fighters[0]=state.reserves![ix];state.reserves![ix]=outgoing;actionConsumed=true;
+    const outgoing=state.fighters[0];state.participation??=[{ownedId:row.ownedId,kind:'start',turn:0}];state.fighters[0]=state.reserves![ix];state.reserves![ix]=outgoing;actionConsumed=true;
+    state.participation.push({ownedId:state.fighters[0].ownedId!,kind:forced?'forced-switch':'switch',turn:state.turn});
     events.push({actor:'self',kind:forced?'forced-switch':'switch',from:outgoing.ownedId,to:state.fighters[0].ownedId});
     if(forced){state.decision=order(row.id,state,row.seed);state.events.push({turn:state.turn,events});const changed=await tx.roster60Battle.updateMany({where:{id:row.id,playerId,revision:row.revision,status:'ACTIVE'},data:{state:JSON.stringify(state),revision:{increment:1}}});if(changed.count!==1)return fail('STALE_REVISION');return dto({...row,state:JSON.stringify(state),revision:row.revision+1});}
    }

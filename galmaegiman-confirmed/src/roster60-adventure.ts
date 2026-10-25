@@ -38,15 +38,27 @@ export class RosterAdventure{
   const settlement={kind:'normal-return',rewards};const changed=await tx.roster60Adventure.updateMany({where:{id:row.id,playerId,revision:row.revision,status:'ACTIVE',activeBattleId:null},data:{status:'RETURNED',revision:{increment:1},pendingRewards:JSON.stringify({xp:{}}),settlement:JSON.stringify(settlement)}});if(changed.count!==1)return fail('STALE_REVISION');await tx.player.update({where:{id:playerId},data:{revision:{increment:1}}});return adventureDto({...row,status:'RETURNED',revision:row.revision+1,pendingRewards:JSON.stringify({xp:{}}),settlement:JSON.stringify(settlement)});
  });}
 }
+/** Approved per-battle awards, never divided by party size. Fractional reserve XP is floored. */
+export function adventureBattleXp(baseXp:number,ownedIds:string[],enteredIds:string[]):Record<string,number>{
+ if(!Number.isSafeInteger(baseXp)||baseXp<0||!ownedIds.length||new Set(ownedIds).size!==ownedIds.length||!enteredIds.length||enteredIds.some(id=>!ownedIds.includes(id)))return fail('INVALID_PARTICIPATION');
+ const entered=new Set(enteredIds);return Object.fromEntries(ownedIds.map(id=>[id,entered.has(id)?baseXp:Math.floor(baseXp/2)]));
+}
 // Called only inside the authenticated battle settlement transaction. No client reward input.
 export async function settleAdventureBattle(tx:Prisma.TransactionClient,row:{id:string;playerId:string;ownedId:string},state:State,snap:any){
  const run=await tx.roster60Adventure.findFirst({where:{id:snap.adventureId,playerId:row.playerId,status:'ACTIVE',activeBattleId:row.id}});if(!run)return fail('ADVENTURE_STATE_CHANGED');
  const saved=JSON.parse(run.state),pending=JSON.parse(run.pendingRewards);const party=[state.fighters[0],...(state.reserves??[])];
  if(saved.party.length!==party.length||saved.party.some((f:Fighter)=>!party.some(x=>x.ownedId===f.ownedId)))return fail('ADVENTURE_STATE_CHANGED');
- const lost=party.every(f=>f.hp<=0);let xp=0;
- if(!lost&&state.outcome==='win'){xp=snap.encounter.winXp;pending.xp[row.ownedId]=(pending.xp[row.ownedId]??0)+xp;if(!Number.isSafeInteger(pending.xp[row.ownedId]))return fail('INVALID_REWARD');}
+ const lost=party.every(f=>f.hp<=0);let xp=0;let xpByOwnedId:Record<string,number>={};
+ if(!lost&&state.outcome==='win'){
+  xp=snap.encounter.winXp;
+  // Before participation was added, persisted server switch events are the authoritative fallback.
+  const entered=[row.ownedId,...(state.participation??[]).map(p=>p.ownedId)];
+  for(const turn of state.events as {events?:{actor?:string;kind?:string;to?:string}[]}[])for(const e of turn.events??[])if(e.actor==='self'&&['switch','forced-switch'].includes(e.kind??'')&&e.to)entered.push(e.to);
+  xpByOwnedId=adventureBattleXp(xp,saved.members.map((m:{ownedId:string})=>m.ownedId),entered);
+  for(const [id,amount] of Object.entries(xpByOwnedId)){pending.xp[id]=(pending.xp[id]??0)+amount;if(!Number.isSafeInteger(pending.xp[id])||pending.xp[id]>2_000_000_000)return fail('INVALID_REWARD');}
+ }
  for(const m of saved.members){const changed=await tx.roster60Owned.updateMany({where:{id:m.ownedId,playerId:row.playerId,status:'BATTLE',totalXp:BigInt(m.startingXp)},data:{status:lost?'AVAILABLE':'ADVENTURE'}});if(changed.count!==1)return fail('UNIT_STATE_CHANGED');}
  const settlement=lost?{kind:'forced-return',lostRewards:pending}:null;
  const changed=await tx.roster60Adventure.updateMany({where:{id:run.id,playerId:row.playerId,revision:run.revision,status:'ACTIVE',activeBattleId:row.id},data:{activeBattleId:null,revision:{increment:1},state:JSON.stringify({...saved,party}),pendingRewards:JSON.stringify(lost?{xp:{}}:pending),status:lost?'LOST':'ACTIVE',settlement:settlement?JSON.stringify(settlement):null}});if(changed.count!==1)return fail('ADVENTURE_STATE_CHANGED');
- return {outcome:state.outcome,xpAwarded:0,xpEscrowed:xp,adventureId:run.id,adventureStatus:lost?'LOST':'ACTIVE',pendingRewards:lost?{xp:{}}:pending};
+ return {outcome:state.outcome,xpAwarded:0,xpEscrowed:xp,xpByOwnedId,xpPolicy:'adventure-participation-100-reserve-50-v1',adventureId:run.id,adventureStatus:lost?'LOST':'ACTIVE',pendingRewards:lost?{xp:{}}:pending};
 }
