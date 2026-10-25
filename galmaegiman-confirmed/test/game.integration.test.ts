@@ -1153,7 +1153,36 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await app.inject({method:'GET',url:'/my'})).body).toContain('/my/api/who');   // 웹 /my는 새 화면으로 이어 보내는 페이지
     }finally{await app.close();}
   });
-  it.each(['2','3'])('네이티브 카카오 앱 %s: 처음 연결은 코드 확인, 계정 연결은 현재 로그인 계정을 유지',async(appVersion)=>{
+  it('카카오 신규 가입 동시 요청은 같은 계정/지원서/스타터 한 번만 생성',async()=>{
+    const ids=await Promise.all([game.webKakaoSignIn('81001'),game.webKakaoSignIn('81001')]);
+    expect(ids[0]).toBe(ids[1]);
+    const p=await db.player.findUniqueOrThrow({where:{id:ids[0]}});
+    expect(p.credits).toBe(content.economy.tickets.welcome);
+    expect(await db.auditEvent.count({where:{playerId:p.id,kind:'WELCOME'}})).toBe(1);
+    expect(await db.roster60Owned.count({where:{playerId:p.id}})).toBe(1);
+    expect((await db.roster60State.findUniqueOrThrow({where:{playerId:p.id}})).completedAt).toBeNull();
+    expect(await game.webKakaoSignIn('81001')).toBe(p.id);
+    await expect(game.webKakaoSignIn('unverified-invalid')).rejects.toThrow();
+  });
+  it('카카오 기존 회원번호 연결 보존, 다른 연결/심사 계정은 합치지 않음',async()=>{
+    const p=await me();await db.chatAppUser.create({data:{playerId:p.id,appUserId:'81002'}});
+    expect(await game.webKakaoSignIn('81002')).toBe(p.id);
+    expect(await db.roster60Owned.count({where:{playerId:p.id}})).toBe(0);
+    await db.kakaoLink.update({where:{playerId:p.id},data:{kakaoId:'81003'}});
+    await expect(game.webKakaoSignIn('81002')).rejects.toThrow('기존 카카오');
+    expect((await db.kakaoLink.findUniqueOrThrow({where:{playerId:p.id}})).kakaoId).toBe('81003');
+    const review=await db.player.create({data:{identity:'review:oauth-test'}});
+    await db.chatAppUser.create({data:{playerId:review.id,appUserId:'81004'}});
+    await expect(game.webKakaoSignIn('81004')).rejects.toThrow('연결할 수 없는');
+  });
+  it('카카오 스타터 생성 실패는 계정/지원서/연결까지 롤백',async()=>{
+    await db.$executeRawUnsafe(`CREATE TRIGGER oauth_test_fail BEFORE INSERT ON Roster60State BEGIN SELECT RAISE(ABORT,'fixture rollback'); END`);
+    try{await expect(game.webKakaoSignIn('81005')).rejects.toThrow();}
+    finally{await db.$executeRawUnsafe('DROP TRIGGER oauth_test_fail');}
+    expect(await db.player.count({where:{identity:'oauth-kakao:81005'}})).toBe(0);
+    expect(await db.kakaoLink.count({where:{kakaoId:'81005'}})).toBe(0);
+  });
+  it.each(['2','3'])('네이티브 카카오 앱 %s: 코드 없이 새 계정 생성, 계정 연결은 현재 로그인 계정을 유지',async(appVersion)=>{
     let kakaoId=9090;
     const fakeFetch=(async(url:string|URL)=>new Response(JSON.stringify(String(url).includes('/oauth/token')?{access_token:'t'}:{id:kakaoId}),{status:200})) as typeof fetch;
     const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com',kakaoLogin:{restKey:'0123456789abcdef0123456789abcdef'},fetch:fakeFetch});
@@ -1169,14 +1198,23 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       return new URL(String(cb.headers.location)).searchParams.get('code')!;
     };
     try{
+      const before=await db.player.count();
+      const cancelled=await app.inject({method:'GET',url:'/my/kakao/callback?error=access_denied'});
+      expect(String(cancelled.headers.location)).toContain('cancel');expect(await db.player.count()).toBe(before);
+      const intercepted=await oauth(`/my/kakao?app=${appVersion}&c=${challenge}`);
+      expect((await app.inject({method:'POST',url:'/my/api/app/exchange',headers,payload:{code:intercepted,verifier:'x'.repeat(50)}})).statusCode).toBe(400);
+      expect((await exchange(intercepted)).statusCode).toBe(400);expect(await db.player.count()).toBe(before);
       const one=await oauth(`/my/kakao?app=${appVersion}&c=${challenge}`),pending=(await exchange(one)).json();
-      expect(pending.needsLink).toBe(true);expect(pending.token).toBeUndefined();expect((await exchange(one)).statusCode).toBe(400);
-      const loginCode=(await send('웹 로그인')).text!.match(/\b\d{6}\b/)![0];
-      const login=await app.inject({method:'POST',url:'/my/api/login',headers,payload:{code:loginCode,linkCode:pending.linkCode}});
-      expect(login.statusCode).toBe(200);const token=login.json().token;const player=await me();
+      expect(pending.needsLink).toBeUndefined();expect(pending.token).toEqual(expect.any(String));expect((await exchange(one)).statusCode).toBe(400);
+      const token=pending.token;const player=await db.player.findUniqueOrThrow({where:{id:token.split('.')[0]}});
+      expect(player.credits).toBe(content.economy.tickets.welcome);
       expect(await game.webKakaoPlayer('9090')).toBe(player.id);
-      expect((await app.inject({method:'POST',url:'/my/api/login',headers,payload:{code:loginCode,linkCode:pending.linkCode}})).statusCode).toBe(400);
+      expect(await db.roster60State.findUnique({where:{playerId:player.id}})).not.toBeNull();
+      expect(await db.roster60Owned.count({where:{playerId:player.id,speciesId:'u01'}})).toBe(1);
       expect((await app.inject({method:'POST',url:'/my/api/kakao/link-start',headers,payload:{challenge,app:appVersion}})).statusCode).toBe(401);
+      const again=(await exchange(await oauth(`/my/kakao?app=${appVersion}&c=${challenge}`))).json();
+      expect(again.token.split('.')[0]).toBe(player.id);
+      expect(await db.auditEvent.count({where:{playerId:player.id,kind:'WELCOME'}})).toBe(1);
       kakaoId=9091;
       const startLink=await app.inject({method:'POST',url:'/my/api/kakao/link-start',headers:{...headers,'x-gmm-s':token},payload:{challenge,app:appVersion}});
       expect(startLink.statusCode).toBe(200);const url=startLink.json().result.url;

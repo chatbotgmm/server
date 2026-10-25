@@ -286,10 +286,9 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
     const want=Buffer.from(e.challenge),got=Buffer.from(createHash('sha256').update(verifier).digest('base64url'));
     if(want.length!==got.length||!timingSafeEqual(want,got))return reply.code(400).send({error:'로그인을 다시 해 주세요.'});
     if(e.error)return reply.code(400).send({error:e.error});
-    if(!e.player&&e.kakao){
-      for(const [k,v] of appLinkPending)if(v.exp<Date.now())appLinkPending.delete(k);
-      const linkCode=randomBytes(18).toString('base64url');appLinkPending.set(linkCode,{kakao:e.kakao,exp:Date.now()+600_000});
-      return {needsLink:true,linkCode};
+    if(e.kakao){
+      try{return {token:issue(await game.webKakaoSignIn(e.kakao))};}
+      catch(error){if(error instanceof GameError)return reply.code(409).send({error:error.message});throw error;}
     }
     return {token:issue(e.player)};
   });
@@ -466,7 +465,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
       const native=appNative,challenge=appChallenge;
       for(const [k,v] of appCodes)if(v.exp<Date.now())appCodes.delete(k);
       const code=randomBytes(18).toString('base64url');
-      appCodes.set(code,{player:linked??'',challenge,exp:Date.now()+120_000,...(!linked?{kakao:kakaoId}:{})});
+      appCodes.set(code,{player:linked??'',challenge,exp:Date.now()+120_000,...(appNative||!linked?{kakao:kakaoId}:{})});
       return reply.header('Set-Cookie',[clear,cookieLine(req,KAPP,'',0)]).redirect(`${native?appScheme:'gmmapp'}://auth?code=${code}`);
     }
     if(linked)return back(reply.header('Set-Cookie',[clear,cookieLine(req,COOKIE,issue(linked),DAYS*86400)]),'');

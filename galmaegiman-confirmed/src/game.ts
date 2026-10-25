@@ -1098,7 +1098,40 @@ export class GameService {
     if(linked)return linked;
     const chat=await this.db.chatAppUser.findUnique({where:{appUserId:kakaoId}});
     if(!chat)return null;
+    const occupied=await this.db.kakaoLink.findUnique({where:{playerId:chat.playerId}});
+    if(occupied)return null;
     try{await this.webLinkKakao(chat.playerId,kakaoId);return chat.playerId;}catch(e){if(e instanceof GameError)return null;throw e;}
+  }
+  // Called only after server-side Kakao verification and the app's one-time PKCE exchange.
+  // Never infer ownership from nickname/email or overwrite an existing identity link.
+  async webKakaoSignIn(kakaoId:string){
+    if(!/^\d+$/.test(kakaoId))throw new GameError('카카오 인증을 다시 진행해 주세요.');
+    const run=()=>this.db.$transaction(async tx=>{
+      const linked=await tx.kakaoLink.findUnique({where:{kakaoId},include:{player:true}});
+      if(linked){
+        if(linked.player.identity.startsWith('review:'))throw new GameError('연결할 수 없는 계정이에요.');
+        return linked.playerId;
+      }
+      const chat=await tx.chatAppUser.findUnique({where:{appUserId:kakaoId},include:{player:true}});
+      if(chat){
+        if(chat.player.identity.startsWith('review:'))throw new GameError('연결할 수 없는 계정이에요.');
+        const other=await tx.kakaoLink.findUnique({where:{playerId:chat.playerId}});
+        if(other)throw new GameError('기존 카카오 계정 연결을 확인해 주세요.');
+        await tx.kakaoLink.create({data:{kakaoId,playerId:chat.playerId}});
+        return chat.playerId;
+      }
+      const credits=this.content.economy.tickets.welcome;
+      const p=await tx.player.create({data:{identity:'oauth-kakao:'+kakaoId,credits}});
+      await tx.kakaoLink.create({data:{kakaoId,playerId:p.id}});
+      const starter=await tx.roster60Owned.create({data:{playerId:p.id,speciesId:'u01',source:'tutorial-starter'}});
+      await tx.roster60State.create({data:{playerId:p.id,starterId:starter.id}});
+      await this.audit(tx,p,'WELCOME',{credits,source:'kakao-oauth'});
+      return p.id;
+    });
+    try{return await run();}catch(e){
+      if(['P2002','P2034'].includes((e as {code?:string}).code??''))return run();
+      throw e;
+    }
   }
   // 챗봇 요청에 온 appUserId 기록(이 서버가 켜진 뒤 처음 본 짝만 DB에 씀). 처음 기록했으면 true
   private seenApp=new Map<string,string>();
