@@ -31,6 +31,9 @@ def debugServerLiteral = configuredServer != null ? releaseServerLiteral : check
 
 // 원본 이미지 파일을 복제·편집하지 않고 APK 생성 시에만 함께 묶는다.
 def bundledArt = layout.buildDirectory.dir('generated/game-art')
+// 2026-10-25 사용자 승인: 출시 패키지(org.gmm)와 제품 시험판에는 예전 등록증 카드 145장과 33종 애니메이션을 넣지 않는다(약 55MB).
+// 저장소 원본은 그대로 두며, 기본 시험 빌드에는 계속 넣어 기존 화면 시험을 유지한다. 앱은 그림이 없으면 글자 카드·정지 그림으로 대체한다.
+def leanLegacyArt = ['org.gmm', 'org.gmm.producttest'].contains(project.findProperty('gmmApplicationId'))
 tasks.register('bundleGameArt', Sync) {
     into bundledArt
     from('../../../public/battle') {
@@ -44,7 +47,8 @@ tasks.register('bundleGameArt', Sync) {
     // 검증된 등록증만 APK에 추가한다. 웹 경로·원본 캐릭터·게임 규칙은 바꾸지 않는다.
     from('../../../art/gpt/registration-v1') {
         include 'manifest.json', 'component/layout.json', 'component/application-animation.json'
-        include 'resources/cards/*.webp', 'resources/application-envelope-atlas.png'
+        if (!leanLegacyArt) include 'resources/cards/*.webp'
+        include 'resources/application-envelope-atlas.png'
         include 'resources/registration-frame.png'
         include 'resources/fonts/Noto-CJK-LICENSE.txt'
         into 'native/registration-v1'
@@ -222,7 +226,7 @@ tasks.register('prepareUpper33Art') {
     }
 }
 // The new product test uses roster60-art. Keep originals and legacy builds intact.
-if (project.findProperty('gmmApplicationId') != 'org.gmm.producttest') {
+if (!leanLegacyArt) {
     tasks.named('bundleGameArt').configure {
         dependsOn 'prepareUpper33Art'
         from(upper33Generated) { into 'native/upper33-v1' }
