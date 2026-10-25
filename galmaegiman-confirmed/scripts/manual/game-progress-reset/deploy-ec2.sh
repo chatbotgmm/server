@@ -93,10 +93,11 @@ for part in parts:
  src=app/part
  if src.is_dir():shutil.copytree(src,stage/part)
  else:shutil.copy2(src,stage/part)
-for part in ['node_modules','public','app']:
+for part in ['node_modules','public']:
  assert (app/part).is_dir(),'REQUIRED_BUILD_PATH_MISSING:'+part
  (stage/part).symlink_to((app/part).resolve())
 files=['src/app.ts','src/my.ts','src/server.ts','src/game-reset-session.ts','test/game-progress-reset.test.ts','test/game-reset-session.test.ts']
+files+=['app/android/app/src/main/java/org/dpdns/gmm/'+name+'.java' for name in ['NativeRecruitSession','Roster60RecruitPurchase','NativeRoster60Library','NativeApi','NativeProgression']]
 files+=subprocess.check_output(['git','-C',repo,'ls-tree','-r','--name-only',commit,'galmaegiman-confirmed/scripts/manual/game-progress-reset'],text=True).splitlines()
 for f in files:
  f=f.removeprefix('galmaegiman-confirmed/');dest=stage/f;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(blob(commit,f))

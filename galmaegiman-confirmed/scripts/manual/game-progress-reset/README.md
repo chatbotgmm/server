@@ -33,9 +33,9 @@
 
 ## 운영 절차 및 자원
 1. 기존 실행경로/DB환경/profile/소스 기준 일치, 최소512MiB 여유 확인.
-2. 서버 소스 복사 총량128MiB 상한. 기존node_modules/public/app을 빌드용으로
+2. 서버 소스 복사 총량128MiB 상한. 기존node_modules/public을 빌드용으로
    참조하되 설치/패키지생성/공유패키지 쓰기 없음. 전체archive/art복사/npm ci 금지.
-3. 현재서비스를 유지한 채 TypeScript컴파일+관련격리34시험 실행. 최소256MiB 여유 확인.
+3. 현재서비스를 유지한 채 TypeScript컴파일+관련격리35시험 실행. 최소256MiB 여유 확인.
 4. gmm-named-tunnel.service 및 gmm-server.service 정지(일시접속중단).
 5. 대상테이블/건수dry-run 출력→차단조건검사→DB일관백업+복원리허설.
 6. 소스4개와dist모듈4개만 백업/교체. 인증설정/economy.yaml/systemd설정은 불변.
@@ -66,3 +66,6 @@
 로그인/심사authenticate 보존, 이전요청차단, 중복스타터방지, 미확인결제차단,
 실패롤백, backup/restore, preserved필드비교를 포함한다.
 운영EC2에서는 에이전트가 명령을 실행하지 않는다. 실제결과는 사용자 실행 후 확인한다.
+
+검사에 필요한 Android Java5파일은 검증커밋에서 임시폴더로만 추출한다.
+운영release에 남은 오래된 Android소스와 혼동하지 않으며 앱파일/APK는 배포하지 않는다.

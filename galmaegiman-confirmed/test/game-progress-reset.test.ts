@@ -6,6 +6,7 @@ import {spawnSync} from 'node:child_process';
 import {plan,applyIsolated,isolatedUrl,initial,erased} from '../scripts/manual/game-progress-reset/reset.js';
 import {RosterOnboarding} from '../src/roster60-onboarding.js';
 import {verifyReset,requireStopped} from '../scripts/manual/game-progress-reset/production.js';
+import {verifyApi} from '../scripts/manual/game-progress-reset/verify-api.js';
 import {ReviewAuth} from '../src/review-auth.js';
 let db:PrismaClient,url:string;
 const confirm='APPLY TO ISOLATED COPY ONLY';
@@ -76,4 +77,13 @@ it('requires stopped service and rehearses backup/restore without touching any o
  await db.player.update({where:{id:'normal'},data:{credits:1}});await db.$disconnect();
  const restored=spawnSync('python3',[helper,'restore',path,backup,'--isolated'],{encoding:'utf8'});expect(restored.status,restored.stderr).toBe(0);
  db=new PrismaClient({datasourceUrl:url});expect((await db.player.findUniqueOrThrow({where:{id:'normal'}})).credits).toBe(999);expect(await db.ownedCharacter.count()).toBe(1);
+});
+
+it('post-reset read-only HTTP smoke verifies fresh state/policy and old-token rejection without any debit',async()=>{
+ await applyIsolated(db,url,(await plan(db)).fingerprint,confirm);
+ const previous=process.env.ROSTER60_PROFILE;process.env.ROSTER60_PROFILE='five-stat-device-test-v1';
+ try{
+  const r=await verifyApi(url.slice(5),process.cwd(),'isolated-api-test-secret'.repeat(3),{enabled:true,username:'review_user',playerId:'review',passwordHash:'scrypt$131072$8$1$'+'ab'.repeat(16)+'$'+'cd'.repeat(32),version:'fixture-version'});
+  expect(r).toEqual({readOnlyAuthenticatedApiAccounts:2,reviewIdentityVerified:true,gameplayRequests:0});expect((await db.player.findUniqueOrThrow({where:{id:'normal'}})).credits).toBe(200);expect(await db.roster60RecruitSession.count()).toBe(0);
+ }finally{if(previous===undefined)delete process.env.ROSTER60_PROFILE;else process.env.ROSTER60_PROFILE=previous;}
 });

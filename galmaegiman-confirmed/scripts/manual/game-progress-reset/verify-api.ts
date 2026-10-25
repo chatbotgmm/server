@@ -2,12 +2,12 @@
 import assert from 'node:assert/strict';import {PrismaClient} from '@prisma/client';import {createHmac} from 'node:crypto';
 import {buildApp} from '../../../src/app.js';import {GameService} from '../../../src/game.js';import {loadContent} from '../../../src/content.js';
 import {resetSessionCutoff,gameResetMarkerKey,ordinarySessionLifetimeSeconds as ttl} from '../../../src/game-reset-session.js';
-import {ReviewAuth,reviewConfig} from '../../../src/review-auth.js';
-const db=new PrismaClient({datasourceUrl:'file:/home/ubuntu/gmm/galmaegiman-confirmed/storage/confirmed.db?mode=ro'});
-const secret=process.env.SKILL_SECRET;if(!secret)throw Error('SIGNING_CONFIG_MISSING');
+import {resolve} from 'node:path';
+import {ReviewAuth,reviewConfig,type ReviewConfig} from '../../../src/review-auth.js';
+export async function verifyApi(dbPath:string,root:string,secret:string,config?:ReviewConfig){
+const db=new PrismaClient({datasourceUrl:'file:'+dbPath+'?mode=ro'});
 const cutoff=resetSessionCutoff((await db.appMeta.findUnique({where:{key:gameResetMarkerKey}}))?.value);assert(cutoff>0);
-const config=reviewConfig(process.env);if(process.env.REVIEW_LOGIN_ENABLED==='true')assert(config,'REVIEW_CONFIG_INVALID');
-const app=await buildApp(db,new GameService(db,loadContent()),{secret,baseUrl:async()=>'',gameResetSessionCutoff:cutoff,reviewLogin:config});
+const app=await buildApp(db,new GameService(db,loadContent()),{root,secret,baseUrl:async()=>'',gameResetSessionCutoff:cutoff,reviewLogin:config});
 try{
  const accounts=await db.player.findMany({select:{id:true,identity:true}});let checked=0;
  const key=createHmac('sha256',secret).update('web-session').digest();
@@ -22,5 +22,12 @@ try{
   assert.equal((await app.inject({url:'/my/api/native/roster60/state',headers:{'x-gmm':'1','x-gmm-s':oldToken}})).statusCode,401);checked++;
  }
  if(config){const review=new ReviewAuth(db,config);assert.equal(await review.account(),config.playerId,'REVIEW_ACCOUNT_INVALID');review.close();}
- console.log(JSON.stringify({readOnlyAuthenticatedApiAccounts:checked,reviewIdentityVerified:!!config,gameplayRequests:0}));
+ return {readOnlyAuthenticatedApiAccounts:checked,reviewIdentityVerified:!!config,gameplayRequests:0};
 }finally{await app.close();await db.$disconnect();}
+
+}
+if(process.argv[1]&&resolve(process.argv[1]).endsWith('/scripts/manual/game-progress-reset/verify-api.ts')){
+ const secret=process.env.SKILL_SECRET;if(!secret)throw Error('SIGNING_CONFIG_MISSING');
+ const config=reviewConfig(process.env);if(process.env.REVIEW_LOGIN_ENABLED==='true')assert(config,'REVIEW_CONFIG_INVALID');
+ console.log(JSON.stringify(await verifyApi('/home/ubuntu/gmm/galmaegiman-confirmed/storage/confirmed.db',process.cwd(),secret,config)));
+}
