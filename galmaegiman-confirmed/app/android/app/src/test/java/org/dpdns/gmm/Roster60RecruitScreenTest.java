@@ -78,7 +78,7 @@ public class Roster60RecruitScreenTest {
    if(p.equals("native/roster60/recruit/session")){cb.done(MainActivity.obj("enabled",true,"catalogVersion","roster60-fixture","offers",new JSONArray()
      .put(MainActivity.obj("kind","LOW","label","하급","cost",2,"rerollCost",1,"weights",MainActivity.obj("COMMON",700,"UNCOMMON",280,"RARE",20)))
      .put(MainActivity.obj("kind","MID","label","중급","cost",6,"rerollCost",3,"weights",MainActivity.obj("UNCOMMON",700,"RARE",280,"EPIC",20)))
-     .put(MainActivity.obj("kind","HIGH","label","고급","cost",10,"rerollCost",5,"weights",MainActivity.obj("RARE",900,"EPIC",90,"LEGEND",5,"HIDDEN",5))),"sessions",new JSONArray()),null);return;}
+     .put(MainActivity.obj("kind","HIGH","label","고급","cost",10,"rerollCost",5,"weights",MainActivity.obj("RARE",90,"EPIC",9,"LEGEND",0.5,"HIDDEN",0.5))),"sessions",new JSONArray()),null);return;}
    if(p.startsWith("native/roster60/recruit/session/")){posts.add(new JSONObject(b.toString()));pending=cb;return;}
    cb.done(new JSONObject(),null);}catch(JSONException e){throw new RuntimeException(e);}}}
 

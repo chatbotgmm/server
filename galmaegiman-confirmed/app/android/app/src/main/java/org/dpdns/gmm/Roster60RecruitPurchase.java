@@ -35,13 +35,13 @@ final class Roster60RecruitPurchase {
 
  static final String[][] GRADES={{"COMMON","커먼"},{"UNCOMMON","언커먼"},{"RARE","레어"},{"EPIC","에픽"},{"LEGEND","전설"},{"HIDDEN","히든"},{"LIMITED","제한"},{"TRANSCEND","초월"},{"IMMORTAL","불멸"},{"ETERNAL","영원"}};
  static String gradeName(String code){for(String[] g:GRADES)if(g[0].equals(code))return g[1];return code;}
- /** 서버가 보낸 등급별 가중치(합계 100 또는 1000)를 [{tier,tierName,w(%)}]로 바꾼다. 없거나 이상하면 빈 배열(숫자를 만들지 않음). */
+ /** 서버가 보낸 등급별 확률(%, 소수 가능, 합계 100 — 또는 1000 기준 정수)을 [{tier,tierName,w(%)}]로 바꾼다. 없거나 이상하면 빈 배열(숫자를 만들지 않음). */
  static JSONArray weightRows(JSONObject offer){
   JSONArray rows=new JSONArray();JSONObject w=offer==null?null:offer.optJSONObject("weights");if(w==null)return rows;
-  long total=0;Iterator<String> it=w.keys();while(it.hasNext()){Object v=w.opt(it.next());if(!(v instanceof Number)||((Number)v).doubleValue()<0)return new JSONArray();total+=((Number)v).longValue();}
-  if(total!=100&&total!=1000)return rows;
-  // 등급 순서(커먼→영원)로 보여 준다.
-  for(String[] g:GRADES)if(w.has(g[0])){double pct=w.optDouble(g[0])*100.0/total;rows.put(MainActivity.obj("tier",g[0],"tierName",g[1],"w",new java.math.BigDecimal(pct).setScale(1,java.math.RoundingMode.HALF_UP).stripTrailingZeros()));}
+  double total=0;Iterator<String> it=w.keys();while(it.hasNext()){Object v=w.opt(it.next());if(!(v instanceof Number)||!(((Number)v).doubleValue()>=0))return new JSONArray();total+=((Number)v).doubleValue();}
+  if(Math.abs(total-100)>1e-6&&Math.abs(total-1000)>1e-6)return rows;
+  // 등급 순서(커먼→영원)로 보여 준다. 0.5% 같은 소수는 그대로(최대 소수 둘째 자리).
+  for(String[] g:GRADES)if(w.has(g[0])){double pct=w.optDouble(g[0])*100.0/total;rows.put(MainActivity.obj("tier",g[0],"tierName",g[1],"w",java.math.BigDecimal.valueOf(pct).setScale(2,java.math.RoundingMode.HALF_UP).stripTrailingZeros()));}
   return rows;
  }
  /** 한 줄에 perLine개씩 끊어 등급 이름 중간에서 줄이 바뀌지 않게 한다. */
