@@ -1,0 +1,11 @@
+{
+  "version": "roster60-recruit-20261025-user-approved",
+  "note": "사용자 승인(2026-10-25): 모집권(credits) 사용. 하급2·중급6·고급10장, 새로고침은 비용의 절반(1·3·5장, 정수라 반올림 규칙 불필요). 확률은 예전 모집과 같게 등급 순서로 대응(흔함→커먼, 안흔함→언커먼, 특별→레어, 희귀→에픽, 전설→전설). 천장 없음.",
+  "halfRounding": null,
+  "pity": "none",
+  "offers": [
+    { "kind": "LOW", "label": "하급", "cost": 2, "weights": { "COMMON": 70, "UNCOMMON": 30 } },
+    { "kind": "MID", "label": "중급", "cost": 6, "weights": { "COMMON": 20, "UNCOMMON": 50, "RARE": 30 } },
+    { "kind": "HIGH", "label": "고급", "cost": 10, "weights": { "COMMON": 10, "UNCOMMON": 15, "RARE": 54, "EPIC": 20, "LEGEND": 1 } }
+  ]
+}

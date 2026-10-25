@@ -100,8 +100,23 @@ final class NativeEconomy {
     });
   }
 
+  // 후보 회차 모드: NativeRoster60Library.recruit가 받은 정보(비용·새로고침 비용·활성). 한 번 쓰고 비운다.
+  JSONObject roster60Session;
+
   /** 새 60종: 같은 모집소 화면에 새 모집 API의 등급·비용·활성 여부를 얹고, 결과는 방범대 등록증으로 보인다. */
   void drawRoster60(LinearLayout header, int drawEpoch, String drawAccount) {
+    JSONObject session = roster60Session; roster60Session = null;
+    if (session != null) {
+      LinearLayout counter = economyBody("recruitment-counter");
+      counter.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(4));
+      try {
+        Roster60RecruitPurchase purchase = new Roster60RecruitPurchase(h, session);
+        purchase.session = session;
+        counter.addView(new RecruitmentScreen(this, Roster60RecruitPurchase.merge(h.me(), session, System.currentTimeMillis()), purchase),
+            new LinearLayout.LayoutParams(-1, -1));
+      } catch (JSONException bad) { counter.addView(k.note("모집 정보를 읽지 못했어요.")); }
+      return;
+    }
     h.api.call("native/roster60/recruit", null, (roster, error) -> {
       if (h.isFinishing() || h.isDestroyed() || h.epoch != drawEpoch || !drawAccount.equals(h.api.token())) return;
       LinearLayout counter = economyBody("recruitment-counter");

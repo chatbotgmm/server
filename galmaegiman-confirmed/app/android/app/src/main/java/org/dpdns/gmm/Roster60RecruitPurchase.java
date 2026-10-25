@@ -15,21 +15,26 @@ final class Roster60RecruitPurchase {
  final MainActivity h;final SharedPreferences prefs;final String owner,key;final JSONObject info;boolean busy;
  // 요청 상태가 바뀌면 화면 버튼(모집하기/결과 확인 중)을 다시 그린다.
  Runnable changed=()->{};
+ // 후보 회차 정보. 있으면 모집하기가 1회 후보 회차를 시작하고(수량 1), 후보 화면에서 수령·새로고침한다.
+ JSONObject session;
  Roster60RecruitPurchase(MainActivity h,JSONObject info){this.h=h;this.info=info;owner=h.api.token();key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner);prefs=h.getSharedPreferences("roster60_recruit",Context.MODE_PRIVATE);}
- boolean pending(){return busy||!prefs.getString(key,"").isEmpty();}
+ boolean pending(){return session==null&&(busy||!prefs.getString(key,"").isEmpty());}
  boolean current(int epoch){return epoch==h.epoch&&owner.equals(h.api.token())&&!h.isDestroyed();}
  JSONObject receipt(){try{String raw=prefs.getString(key+".receipt","");return raw.isEmpty()?null:new JSONObject(raw);}catch(JSONException bad){return null;}}
 
  /** 예전 모집소 화면이 읽는 형태로 만든다: 새 60종 모집 등급·비용·활성 여부 + 상태(me)의 지원서 받기 시각. 천장(pity)은 넣지 않는다. */
  static JSONObject merge(JSONObject me,JSONObject roster,long now)throws JSONException{
   JSONArray gachas=new JSONArray(),offers=roster.optJSONArray("offers");
-  if(offers!=null)for(int i=0;i<offers.length();i++){JSONObject o=offers.optJSONObject(i);if(o==null)continue;gachas.put(MainActivity.obj("kind",o.optString("kind"),"label",o.optString("label"),"cost",o.optInt("cost"),"enabled",o.optBoolean("enabled"),"reason",o.optString("reason")));}
+  // 후보 회차 정보에는 등급별 enabled가 없고 전체 enabled만 있다.
+  boolean all=roster.has("sessions")&&roster.optBoolean("enabled");
+  if(offers!=null)for(int i=0;i<offers.length();i++){JSONObject o=offers.optJSONObject(i);if(o==null)continue;gachas.put(MainActivity.obj("kind",o.optString("kind"),"label",o.optString("label"),"cost",o.optInt("cost"),"rerollCost",o.opt("rerollCost"),"enabled",all||o.optBoolean("enabled"),"reason",o.optString("reason")));}
   long wait=0;String ready=me==null?"":me.optString("claimReadyAt","");
   if(!ready.isEmpty())try{wait=Math.max(0,java.time.Instant.parse(ready).toEpochMilli()-now);}catch(Exception ignored){}
   return MainActivity.obj("roster60",true,"gachas",gachas,"credits",roster.optInt("credits",me==null?0:me.optInt("credits")),"wait",wait);
  }
 
  void buy(JSONObject g,int times){
+  if(session!=null){if(!g.optBoolean("enabled"))return;NativeRecruitSession s=new NativeRecruitSession(h);s.fromCounter=true;s.open(session);s.queue("start",MainActivity.obj("kind",g.optString("kind"),"catalogVersion",session.optString("catalogVersion")));return;}
   if(pending()||!g.optBoolean("enabled"))return;
   try{JSONObject body=MainActivity.obj("kind",g.optString("kind"),"times",times,"catalogVersion",info.optString("catalogVersion"),"requestId",UUID.randomUUID().toString());if(prefs.edit().putString(key,body.toString()).commit()){changed.run();send();}}catch(Exception ignored){}
  }

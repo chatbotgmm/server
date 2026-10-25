@@ -11,6 +11,8 @@ import java.util.*;
 final class NativeRecruitSession {
  final MainActivity h;final SharedPreferences prefs;final String owner,key;int epoch;boolean busy;JSONObject state,info;
  LinearLayout root,controls;TextView message;RecruitCardTransition card;
+ // 예전 모집소 화면에서 들어온 경우, 수령 뒤에는 그 화면으로 돌아간다(이 화면의 별도 시작 버튼 대신).
+ boolean fromCounter;
  NativeRecruitSession(MainActivity h){this.h=h;owner=h.api.token();key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner);prefs=h.getSharedPreferences("roster60_recruit_session",0);}
  TextView label(String text,int size){TextView v=h.text(text,size);NavyWorkbenchTheme.text(h,v,size,false,NavyWorkbenchTheme.TEXT);return v;}
  Button button(String text,Runnable action){Button b=h.button(text,action);NavyWorkbenchTheme.text(h,b,14,true,NavyWorkbenchTheme.TEXT);b.setBackgroundTintList(null);b.setMinHeight(h.dp(48));b.setMinimumHeight(h.dp(48));
@@ -29,7 +31,8 @@ final class NativeRecruitSession {
  if("PENDING".equals(state.optString("status"))){Button refresh=button("새로고침 · 지원서 "+state.optInt("rerollCost")+"장 · 남은 "+(1-state.optInt("rerolls"))+"회",()->action("reroll"));refresh.setTag("recruit-reroll");refresh.setEnabled(!busy&&state.optInt("rerolls")==0&&prefs.getString(key,"").isEmpty());controls.addView(refresh);
  Button claim=button("이 후보 수령",()->action("claim"));claim.setTag("recruit-claim");claim.setEnabled(!busy&&prefs.getString(key,"").isEmpty());controls.addView(claim);
  }else controls.addView(label("영구 지급 완료 · 이미 받은 개체는 파쇄되지 않습니다.",12));}
- if(state==null||!"PENDING".equals(state.optString("status"))){JSONArray offers=info.optJSONArray("offers");if(offers!=null)for(int i=0;i<offers.length();i++){JSONObject o=offers.optJSONObject(i);Button start=button(o.optString("label")+" 모집 · 지원서 "+o.optInt("cost")+"장",()->start(o));start.setEnabled(info.optBoolean("enabled")&&!busy&&prefs.getString(key,"").isEmpty());controls.addView(start);}}
+ if(fromCounter&&(state==null||!"PENDING".equals(state.optString("status")))){Button back=button("모집소로 돌아가기",h::draw);back.setTag("recruit-back-counter");back.setEnabled(!busy&&prefs.getString(key,"").isEmpty());controls.addView(back);}
+ else if(state==null||!"PENDING".equals(state.optString("status"))){JSONArray offers=info.optJSONArray("offers");if(offers!=null)for(int i=0;i<offers.length();i++){JSONObject o=offers.optJSONObject(i);Button start=button(o.optString("label")+" 모집 · 지원서 "+o.optInt("cost")+"장",()->start(o));start.setEnabled(info.optBoolean("enabled")&&!busy&&prefs.getString(key,"").isEmpty());controls.addView(start);}}
  controls.addView(button("전송 결과 다시 확인 (무료)",this::send));
  }
  boolean motion(){return h.motionEnabled&&Settings.Global.getFloat(h.getContentResolver(),Settings.Global.ANIMATOR_DURATION_SCALE,1)>0;}

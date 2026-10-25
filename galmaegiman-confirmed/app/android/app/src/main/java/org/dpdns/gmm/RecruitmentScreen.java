@@ -201,6 +201,8 @@ final class RecruitmentScreen extends ViewGroup {
     if (g == null) { setAmount(1); go.setText("다시 열어 주세요"); cost.setText("모집 정보를 받지 못했어요."); return; }
     String kind = g.optString("kind");
     unitCost = Math.max(1, g.optInt("cost")); limit = response.optBoolean("unlimited") ? 50 : Math.max(0, Math.min(50, response.optInt("credits") / unitCost));
+    // 후보 회차는 한 번에 후보 1명(수령 또는 새로고침)이라 수량은 1로 고정한다.
+    if (roster != null && roster.session != null) limit = Math.min(limit, 1);
     heading.setText(NativeEconomy.recruitmentLabel(g)); cost.setText(compact ? "1회 · 지원서 " + unitCost + "장" : "지원서 " + unitCost + "장 / 1회");
     for (Tier tier : choices) tier.refresh(kind.equals(tier.g.optString("kind")));
     setAmount(1); showTray(kind, animate); requestLayout();

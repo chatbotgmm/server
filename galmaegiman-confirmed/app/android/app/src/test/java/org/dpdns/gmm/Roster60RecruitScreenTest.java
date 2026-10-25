@@ -71,4 +71,34 @@ public class Roster60RecruitScreenTest {
    h.visibleDialog.dismiss();idle();h.draw();idle();assertEquals("재진입해도 새 요청 없음",2,api.posts.size());assertNotNull("지난 결과 다시 보기",h.root.findViewWithTag("draw-last-result"));
   }
  }
+
+ // 후보 회차(서버 정책 켜짐): 예전 모집소에서 등급을 고르면 후보 화면으로 가고, 새로고침 비용은 모집 비용의 절반.
+ static class SessionApi extends NativeApi {final List<String> paths=new ArrayList<>();final List<JSONObject> posts=new ArrayList<>();NativeApi.Result pending;SessionApi(Context c){super(c);}@Override String token(){return "roster60-session-counter";}
+  @Override void call(String p,JSONObject b,Result cb){paths.add(p);try{
+   if(p.equals("native/roster60/recruit/session")){cb.done(MainActivity.obj("enabled",true,"catalogVersion","roster60-fixture","offers",new JSONArray()
+     .put(MainActivity.obj("kind","LOW","label","하급","cost",2,"rerollCost",1)).put(MainActivity.obj("kind","MID","label","중급","cost",6,"rerollCost",3)).put(MainActivity.obj("kind","HIGH","label","고급","cost",10,"rerollCost",5)),"sessions",new JSONArray()),null);return;}
+   if(p.startsWith("native/roster60/recruit/session/")){posts.add(new JSONObject(b.toString()));pending=cb;return;}
+   cb.done(new JSONObject(),null);}catch(JSONException e){throw new RuntimeException(e);}}}
+
+ @Test public void approvedSessionPolicyUsesCounterThenCandidateWithHalfReroll()throws Exception{
+  try(ActivityController<MainActivity> c=helper.flow.start()){MainActivity h=c.get();helper.prepare(h);SessionApi api=new SessionApi(h);h.api=api;h.state.put("tutorial",MainActivity.obj("flow","roster60-v1"));h.motionEnabled=false;
+   h.getSharedPreferences("roster60_recruit_session",0).edit().clear().commit();h.draw();idle();helper.layout(h,SIZES[0]);
+   assertNotNull("예전 모집소 화면",h.root.findViewWithTag("recruitment-stations"));assertFalse(api.paths.contains("draw"));
+   tag(h,"draw-card-MID").performClick();idle();Button go=(Button)tag(h,"draw-submit");assertTrue("승인된 중급",go.isEnabled());
+   assertTrue(((TextView)tag(h,"draw-total")).getText().toString().startsWith("필요 6"));
+   described(h.root,"모집 수량 늘리기").performClick();idle();assertTrue(((TextView)tag(h,"draw-total")).getText().toString().startsWith("필요 6"));
+   tag(h,"draw-card-HIGH").performClick();idle();assertTrue(((TextView)tag(h,"draw-total")).getText().toString().startsWith("필요 10"));
+   tag(h,"draw-card-MID").performClick();idle();
+   RecruitmentScreen screen=(RecruitmentScreen)tag(h,"recruitment-stations");screen.roster.buy(screen.selected,screen.amount);idle();
+   assertEquals(1,api.posts.size());assertEquals("MID",api.posts.get(0).getString("kind"));assertEquals("roster60-fixture",api.posts.get(0).getString("catalogVersion"));
+   JSONObject cand=MainActivity.obj("speciesId","u25","name","룬장인","rarity","RARE","level",3);
+   api.pending.done(MainActivity.obj("requestId",api.posts.get(0).getString("requestId"),"sessionId","s1","revision",0,"status","PENDING","rerolls",0,"rerollCost",3,"baseCost",6,"candidate",cand,"credits",4),null);idle();helper.layout(h,SIZES[0]);
+   assertNotNull("후보 등록증",h.root.findViewWithTag("recruit-registration-card"));
+   Button reroll=(Button)tag(h,"recruit-reroll");assertTrue("새로고침 = 중급 비용 절반",reroll.getText().toString().contains("3장"));
+   helper.png(NativeHomePartyFeedbackTest.render(h.root),"roster60-session-candidate-915x412.png");
+   tag(h,"recruit-claim").performClick();idle();assertEquals("claim",api.posts.get(1).getString("action"));
+   api.pending.done(MainActivity.obj("requestId",api.posts.get(1).getString("requestId"),"sessionId","s1","revision",1,"status","CLAIMED","rerolls",0,"rerollCost",3,"candidate",cand,"credits",4),null);idle();
+   assertNotNull("수령 뒤 모집소로",h.root.findViewWithTag("recruit-back-counter"));
+  }
+ }
 }
