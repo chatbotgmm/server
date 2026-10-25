@@ -35,6 +35,7 @@ public class NativeRoster60ProductBattleTest {
    if(p.endsWith("adventure/active")){cb.done(MainActivity.obj("adventures",run==null?new JSONArray():new JSONArray().put(run)),null);return;}
    if(p.endsWith("adventure/return")){actions.add(b);pending=cb;return;}
    if(p.endsWith("battle/options")){cb.done(null,"BATTLE_POLICY_PENDING");return;}
+   if(p.equals("native/menu-access")){cb.done(MainActivity.obj("features",MainActivity.obj("rebirth",MainActivity.obj("enabled",unlocked))),null);return;}
    if(p.endsWith("roster60/home")){cb.done(MainActivity.obj("rebirthUnlocked",unlocked,"rebirthIntroPending",introPending,"mailUnread",1),null);return;}
    if(p.endsWith("rebirth-intro/complete")){intros++;introPending=false;cb.done(MainActivity.obj("complete",true),null);return;}
    cb.done(new JSONObject(),null);
@@ -53,7 +54,7 @@ public class NativeRoster60ProductBattleTest {
   try(ActivityController<MainActivity> c=helper.flow.start()){
    MainActivity h=c.get();helper.prepare(h);Api api=new Api(h);h.api=api;helper.layout(h,NativeHomePartyFeedbackTest.PROFILES[0]);h.getSharedPreferences("roster60_product_battle",0).edit().clear().commit();home(h);
    ((Button)h.root.findViewWithTag("lobby-play")).performClick();assertEquals("roster60Battle",h.screen);assertTrue(api.paths.contains("native/roster60/battle/read"));
-   NativeRoster60Battle battle=h.rosterBattle;assertTrue(battle.stats.getText().toString().contains("저항력 2"));named(battle.panel,"기술").performClick();
+   NativeRoster60Battle battle=h.rosterBattle;assertEquals(View.GONE,battle.stats.getVisibility());assertEquals(2,battle.view.getJSONObject("state").getJSONArray("fighters").getJSONObject(0).getJSONObject("stats").getInt("statusResistance"));named(battle.panel,"기술").performClick();
    Button sixth=named(battle.panel,"시험기술5");assertNotNull(sixth);
    long down=android.os.SystemClock.uptimeMillis();touch(sixth,MotionEvent.ACTION_DOWN,down);org.robolectric.shadows.ShadowLooper.idleMainLooper((long)ViewConfiguration.getLongPressTimeout()+1);touch(sixth,MotionEvent.ACTION_UP,down);assertEquals(0,api.actions.size());
    down=android.os.SystemClock.uptimeMillis();touch(sixth,MotionEvent.ACTION_DOWN,down);touch(sixth,MotionEvent.ACTION_CANCEL,down);touch(sixth,MotionEvent.ACTION_UP,down);assertEquals(0,api.actions.size());
@@ -70,7 +71,7 @@ public class NativeRoster60ProductBattleTest {
  @Test public void lockedHomeKeepsMailAndPolicyPendingIsVisible()throws Exception{
   try(ActivityController<MainActivity> c=helper.flow.start()){
    MainActivity h=c.get();helper.prepare(h);Api api=new Api(h);h.api=api;helper.layout(h,NativeHomePartyFeedbackTest.PROFILES[0]);h.getSharedPreferences("roster60_product_battle",0).edit().clear().commit();home(h);
-   org.robolectric.shadows.ShadowLooper.idleMainLooper();LobbyView lobby=(LobbyView)h.root.getChildAt(0);lobby.fetchRosterHome();assertFalse(lobby.buttons.get(14).isEnabled());assertTrue(lobby.buttons.get(15).isEnabled());assertTrue("mail badge live="+lobby.live+" current="+lobby.current()+" rootAttached="+h.root.isAttachedToWindow()+" decorAttached="+h.getWindow().getDecorView().isAttachedToWindow()+" screen="+h.screen,lobby.badges[15]);
+   org.robolectric.shadows.ShadowLooper.idleMainLooper();LobbyView lobby=(LobbyView)h.root.getChildAt(0);lobby.fetchRosterHome();assertFalse(lobby.rebirthUnlocked);assertTrue(lobby.buttons.get(14).getContentDescription().toString().contains("잠김"));assertTrue(lobby.buttons.get(15).isEnabled());assertTrue("mail badge live="+lobby.live+" current="+lobby.current()+" rootAttached="+h.root.isAttachedToWindow()+" decorAttached="+h.getWindow().getDecorView().isAttachedToWindow()+" screen="+h.screen,lobby.badges[15]);
    lobby.positions(640,320);assertTrue(lobby.boxes[15].width()>=48);assertTrue(lobby.boxes[15].height()>=48);assertFalse(android.graphics.RectF.intersects(lobby.boxes[15],lobby.boxes[5]));assertFalse(android.graphics.RectF.intersects(lobby.boxes[15],lobby.boxes[14]));
    api.unlocked=true;lobby.fetchRosterHome();assertTrue(lobby.buttons.get(14).isEnabled());
    api.unavailable=true;lobby.buttons.get(5).performClick();assertTrue(h.rosterBattle.message.getText().toString().contains("준비 중"));assertEquals(0,api.actions.size());
