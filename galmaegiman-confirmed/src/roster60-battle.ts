@@ -31,6 +31,15 @@ export function fighter(c:RosterCatalog,speciesId:string,level:number,id:string,
  }
  return {id,speciesId,name:u.name,level,stats:fiveRebirthStats((u as typeof u&{levelOneStats:FiveStats}).levelOneStats??stats!,stats!,cycle),hp:fiveRebirthStats((u as typeof u&{levelOneStats:FiveStats}).levelOneStats??stats!,stats!,cycle).hp,mp:fiveRebirthStats((u as typeof u&{levelOneStats:FiveStats}).levelOneStats??stats!,stats!,cycle).mp,attack:structuredClone(u.attack as Skill),skills:structuredClone((u.skills as (Skill&{learnLevel?:number})[]).filter(s=>(s.learnLevel??1)<=level)),suitability:structuredClone(u.suitability),defense:structuredClone(u.defense)};
 }
+/** Owned growth is authoritative for formation previews; ranked normalization happens only on match entry. */
+export function formationUnit(c:RosterCatalog,u:{id:string;speciesId:string;totalXp:bigint;reincarnation:number}){
+ const def=c.characters.find(d=>d.id===u.speciesId);if(!def)return fail('BATTLE_UNIT_DATA_PENDING',503);
+ if(u.totalXp<0n||u.totalXp>BigInt(Number.MAX_SAFE_INTEGER))return fail('INVALID_XP');
+ const growth=growthAt(Number(u.totalXp),def.growth,u.reincarnation,def.reincarnationXpPolicy);
+ const f=fighter(c,u.speciesId,growth.level,u.id,u.reincarnation);
+ return {ownedId:u.id,speciesId:u.speciesId,name:f.name,rarity:def.rarity,level:growth.level,maxLevel:growth.maxLevel,stats:f.stats};
+}
+
 function order(id:string,state:Pick<State,'turn'|'fighters'>,seed:string){const f=(i:number)=>({id:state.fighters[i].id,baseSpeed:state.fighters[i].stats.speed,modifiers:[] as number[]});return decideTurnOrder(id,state.turn,[f(0),f(1)],seed);}
 function dto(row:{id:string;revision:number;status:string;state:string;settlement:string|null;snapshot?:string}){
  const s=JSON.parse(row.state) as State;const policy=row.snapshot?JSON.parse(row.snapshot).policy:null;
@@ -49,7 +58,7 @@ export class RosterBattle {
  async options(playerId:string){
   const c=this.catalog(),p=this.policy();validatePolicy(p,c);
   const rows=await this.db.roster60Owned.findMany({where:{playerId,status:'AVAILABLE',locked:false},orderBy:{id:'asc'},take:1000});
-  return {units:rows.map(u=>({ownedId:u.id,speciesId:u.speciesId,name:c!.characters.find(d=>d.id===u.speciesId)?.name??u.speciesId})),encounters:p.encounters.map(e=>({id:e.id,name:c!.characters.find(u=>u.id===e.speciesId)?.name??e.speciesId,tutorial:e.tutorial,mode:e.mode??null})),catalogVersion:c!.version};
+  return {units:rows.map(u=>formationUnit(c!,u)),encounters:p.encounters.map(e=>({id:e.id,name:c!.characters.find(u=>u.id===e.speciesId)?.name??e.speciesId,tutorial:e.tutorial,mode:e.mode??null})),catalogVersion:c!.version};
  }
  async create(playerId:string,b:{requestId:string;ownedId:string;encounterId:string;reserveIds?:string[];adventureId?:string}){
   return this.request(playerId,b.requestId,['create',b.ownedId,b.encounterId,b.reserveIds??[],b.adventureId??null],async tx=>{

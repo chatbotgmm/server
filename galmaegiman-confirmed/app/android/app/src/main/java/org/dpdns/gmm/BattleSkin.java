@@ -11,11 +11,21 @@ final class BattleSkin extends Drawable {
   final MainActivity host;
   final String asset;
   final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+  static org.json.JSONObject surfaces;
   int alpha = 255;
   BattleSkin(MainActivity h, String name) { host = h; asset = name; bitmap(h, name); }
   static Bitmap bitmap(MainActivity h, String name) {
     synchronized (CACHE) {
       if (!CACHE.containsKey(name)) {
+        Bitmap modern=null;
+        try {
+          if(surfaces==null)try(java.io.InputStream in=h.getAssets().open("ui-v3/config/runtime-asset-map.json")){surfaces=new org.json.JSONObject(new String(in.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8)).getJSONObject("baseSurfaces");}
+          org.json.JSONObject spec=surfaces.optJSONObject(name);
+          String file=spec==null?"optimized/ui/"+name+".webp":spec.getString("file");
+          try(java.io.InputStream in=h.getAssets().open("ui-v3/"+file)){modern=BitmapFactory.decodeStream(in);}
+          if(modern!=null&&spec!=null){org.json.JSONArray r=spec.getJSONArray("canvasSourceInteriorRect");modern=Bitmap.createBitmap(modern,r.getInt(0),r.getInt(1),r.getInt(2)-r.getInt(0),r.getInt(3)-r.getInt(1));}
+        }catch(Exception absent){}
+        if(modern!=null){CACHE.put(name,modern);return modern;}
         try (java.io.InputStream in = h.getAssets().open("battle-v1/" + name + ".png")) {
           CACHE.put(name, BitmapFactory.decodeStream(in));
         } catch (java.io.IOException e) { CACHE.put(name, null); }
@@ -34,6 +44,7 @@ final class BattleSkin extends Drawable {
     if (b == null) { paint.setColor(0xff163e52); c.drawRoundRect(box,host.dp(12),host.dp(12),paint); return; }
     boolean panel = asset.equals("panel-command");
     int ix = panel ? 80 : 64, iy = panel ? 80 : 48;
+    if(surfaces!=null){org.json.JSONObject spec=surfaces.optJSONObject(asset);if(spec!=null){org.json.JSONArray inset=spec.optJSONArray("sourceInsets");if(inset!=null){ix=inset.optInt(0);iy=inset.optInt(1);}}}
     float density = panel ? 4 : 3;
     float x=host.dp(ix/density), y=host.dp(iy/density);
     // Compact bounds shrink corners uniformly; never invert source/destination rectangles.
@@ -48,7 +59,7 @@ final class BattleSkin extends Drawable {
     paint.setAlpha(alpha); surface(c,new RectF(getBounds()));
     boolean pressed=false,enabled=false;
     for(int s:getState()){ pressed|=s==android.R.attr.state_pressed; enabled|=s==android.R.attr.state_enabled; }
-    if(pressed || !enabled) { paint.setColor(pressed?0x20000000:0x48787979); c.drawRect(getBounds(),paint); }
+    if(pressed || (!enabled && asset.startsWith("button-"))) { paint.setColor(pressed?0x20000000:0x48787979); c.drawRect(getBounds(),paint); }
   }
   @Override public boolean isStateful(){return true;}
   @Override protected boolean onStateChange(int[] s){invalidateSelf();return true;}

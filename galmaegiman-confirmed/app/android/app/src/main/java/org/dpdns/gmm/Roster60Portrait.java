@@ -10,6 +10,13 @@ import java.io.*;
 final class Roster60Portrait {
  static JSONObject index;
  static final android.util.LruCache<String,Bitmap> cache=new android.util.LruCache<String,Bitmap>(8*1024*1024){@Override protected int sizeOf(String key,Bitmap value){return value.getByteCount();}};
+ static synchronized boolean bindFace(Context context,ImageView view,String speciesId){
+  if(!speciesId.matches("u[0-9]{2}"))return bind(context,view,speciesId);
+  String key="face:"+speciesId;Bitmap image=cache.get(key);
+  if(image==null)try(InputStream in=context.getAssets().open("ui-v3/faces/"+speciesId+".png")){image=BitmapFactory.decodeStream(in);if(image!=null)cache.put(key,image);}catch(IOException ignored){}
+  if(image==null)return bind(context,view,speciesId);
+  view.setScaleType(ImageView.ScaleType.FIT_CENTER);view.setImageBitmap(image);return true;
+ }
  static synchronized boolean bind(Context context,ImageView view,String speciesId){
   view.setImageDrawable(null);view.setScaleType(ImageView.ScaleType.FIT_CENTER);
   try{

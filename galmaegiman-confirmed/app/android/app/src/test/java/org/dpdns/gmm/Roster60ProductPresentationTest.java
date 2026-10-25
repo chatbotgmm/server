@@ -6,6 +6,7 @@ import org.junit.*;import org.junit.runner.RunWith;import org.robolectric.*;impo
 /** Real product views and locally bundled approved art, never a separate review activity. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk=35,qualifiers="w640dp-h360dp-land-mdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @LooperMode(LooperMode.Mode.PAUSED)
 public class Roster60ProductPresentationTest {
  final NativeGameFlowTest fixtures=new NativeGameFlowTest();
@@ -38,6 +39,26 @@ public class Roster60ProductPresentationTest {
  }
  @Test public void switchPanelShowsCurrentAndFallenWithoutAllowingEitherTarget()throws Exception{
   try(var c=fixtures.start()){MainActivity h=c.get();authenticate(h);NativeRoster60Battle b=new NativeRoster60Battle(h){@Override void resume(){}};b.open();JSONObject value=snapshot("ACTIVE"),s=value.getJSONObject("state");s.getJSONArray("fighters").getJSONObject(0).put("ownedId","current");s.put("reserves",new JSONArray().put(fighter("u07").put("ownedId","fallen").put("hp",0)).put(fighter("u01").put("ownedId","live")));b.bind(value);b.chooseSwitch();assertEquals(View.GONE,b.panel.getVisibility());assertFalse(b.choicePanel.findViewWithTag("battle-switch-current").isEnabled());assertFalse(b.choicePanel.findViewWithTag("battle-switch-fallen").isEnabled());assertTrue(b.choicePanel.findViewWithTag("battle-switch-live").isEnabled());b.back();assertEquals(View.GONE,b.choicePanel.getVisibility());assertEquals(View.VISIBLE,b.panel.getVisibility());b.pause();
+  }
+ }
+
+ void capture(MainActivity h,String name,int w,int height)throws Exception{
+  h.root.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));h.root.layout(0,0,w,height);
+  android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(w,height,android.graphics.Bitmap.Config.ARGB_8888);h.root.draw(new android.graphics.Canvas(bitmap));
+  java.io.File dir=new java.io.File("/tmp/gmm-ui-v3-renders");dir.mkdirs();try(var out=new java.io.FileOutputStream(new java.io.File(dir,name+"-"+w+"x"+height+".png"))){assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out));}bitmap.recycle();
+  JSONArray measured=new JSONArray();for(View v:NativeReviewDeepLinkTest.all(h.root))if(v instanceof TextView){TextView t=(TextView)v;measured.put(new JSONObject().put("text",t.getText()).put("width",v.getWidth()).put("height",v.getHeight()).put("color",t.getCurrentTextColor()).put("size",t.getTextSize()).put("visibility",v.getVisibility()).put("baseline",t.getBaseline()));}try(var out=new java.io.FileWriter(new java.io.File(dir,name+"-"+w+"x"+height+".json"))){out.write(measured.toString(2));}
+  for(View v:NativeReviewDeepLinkTest.all(h.root))assertFalse("No page scroll",v instanceof ScrollView);
+ }
+ @Test public void actualProductViewsRenderPhoneAndTabletWithApprovedAssets()throws Exception{
+  for(int[] size:new int[][]{{780,319},{1280,800}})try(var c=fixtures.start()){
+   MainActivity h=c.get();authenticate(h);NativeRoster60Battle b=new NativeRoster60Battle(h){@Override void resume(){}};b.open();JSONObject value=snapshot("ACTIVE"),state=value.getJSONObject("state");state.getJSONArray("fighters").getJSONObject(0).put("ownedId","current");JSONArray reserves=new JSONArray();String[] ids={"u06","u07","u02","u04","u05"};for(int i=0;i<5;i++)reserves.put(fighter(ids[i]).put("ownedId","reserve"+i).put("hp",i==4?0:90));state.put("reserves",reserves);value.put("disabledCommands",new JSONObject().put("item","").put("switch","").put("escape",""));b.bind(value);
+   capture(h,"battle",size[0],size[1]);
+   android.graphics.Bitmap skin=BattleSkin.bitmap(h,"panel-hp");assertEquals(720,skin.getWidth());assertEquals(247,skin.getHeight());
+   NativeRoster60ProductBattleTest.named(b.panel,"기술").performClick();capture(h,"skills",size[0],size[1]);
+   Button skill=NativeRoster60ProductBattleTest.named(b.panel,"기술 1");long down=android.os.SystemClock.uptimeMillis();NativeRoster60ProductBattleTest.touch(skill,MotionEvent.ACTION_DOWN,down);ShadowLooper.idleMainLooper((long)ViewConfiguration.getLongPressTimeout()+1);capture(h,"hold",size[0],size[1]);assertEquals(View.VISIBLE,h.root.findViewWithTag("battle-hold-description").getVisibility());NativeRoster60ProductBattleTest.touch(skill,MotionEvent.ACTION_UP,down);assertEquals(View.INVISIBLE,h.root.findViewWithTag("battle-hold-description").getVisibility());
+   b.chooseSwitch();b.choicePanel.findViewWithTag("battle-switch-reserve0").performClick();capture(h,"switch",size[0],size[1]);assertTrue(b.choicePanel.findViewWithTag("battle-switch-confirm").isEnabled());
+   JSONArray units=new JSONArray();for(int i=0;i<6;i++)units.put(fighter(i==0?"u01":ids[i-1]).put("ownedId","o"+i));b.closeChoices();b.showFormation(units,new JSONObject().put("mode","story").put("id","fixture"));for(int i=0;i<6;i++)b.formation.toggle(units.getJSONObject(i));capture(h,"formation",size[0],size[1]);assertTrue(b.formation.start.getHeight()>=48);b.pause();
+   NativeRoster60Craft craft=new NativeRoster60Craft(h.menus.economy);craft.open(true);craft.loading=false;craft.version="render-fixture";craft.preview=new JSONObject().put("expectedLevel",15).put("maxLevel",60).put("inheritedTotalXp","1200").put("remainingXp","20").put("xpToNext","80");craft.units=units;craft.recipes=new JSONArray().put(new JSONObject().put("resultId","u25").put("name","룬장인"));for(int i=0;i<3;i++)craft.selected.put("o"+i,units.getJSONObject(i));craft.render();capture(h,"craft",size[0],size[1]);craft.leave();
   }
  }
 

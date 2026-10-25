@@ -21,6 +21,11 @@ suite('authenticated persisted five-stat battle (synthetic server policy only)',
   root=mkdtempSync(join(tmpdir(),'battle-policy-'));mkdirSync(join(root,'data'));write('roster60-approved.json',catalog);write('roster60-battle-policy.json',policy);server();
  });
  afterAll(async()=>{await app.close();await db.player.deleteMany({where:{id:{in:[player,other]}}});await db.$disconnect();rmSync(root,{recursive:true,force:true});});
+ it('formation uses owned XP and the same five stats as battle without another owner data',async()=>{
+  const u=await owned();await db.roster60Owned.update({where:{id:u.id},data:{totalXp:100n}});const foreign=await owned(other);
+  const r=await app.inject({method:'GET',url:'/my/api/native/roster60/battle/options',headers:{authorization:player}});
+  expect(r.statusCode).toBe(200);const units=r.json().units;expect(units.find((v:any)=>v.ownedId===u.id)).toMatchObject({level:2,stats:{hp:100,mp:11,durability:0,statusResistance:0,speed:1}});expect(units.some((v:any)=>v.ownedId===foreign.id)).toBe(false);
+ });
  it('gates missing policy and unauthorized or foreign owned IDs without consuming unit',async()=>{
   const u=await owned();write('roster60-battle-policy.json',{...policy,approved:false});
   expect((await post('create',{requestId:randomUUID(),ownedId:u.id,encounterId:'test-tutorial'})).json().error).toBe('BATTLE_POLICY_PENDING');write('roster60-battle-policy.json',policy);

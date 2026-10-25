@@ -20,8 +20,8 @@ final class NativeRoster60Art extends View {
  }
  RectF destination(int side,float w,float h){
   float widest=1;for(int i=0;i<2;i++)if(images[i]!=null)widest=Math.max(widest,heights[i]*images[i].getWidth()/images[i].getHeight());
-  float base=Math.min(h*.42f,w*.64f/widest),height=base*heights[side],width=images[side]==null?0:height*images[side].getWidth()/images[side].getHeight();
-  float floor=h*(side==0?.98f:.45f),cx=Math.max(width/2,Math.min(w-width/2,w*(side==0?.30f:.70f)));return new RectF(cx-width/2,floor-height,cx+width/2,floor);
+  float base=Math.min(h*.49f,w*.64f/widest),height=base*heights[side],width=images[side]==null?0:height*images[side].getWidth()/images[side].getHeight();
+  float floor=h*(side==0?.91f:.67f),cx=Math.max(width/2,Math.min(w-width/2,w*(side==0?.35f:.77f)));return new RectF(cx-width/2,floor-height,cx+width/2,floor);
  }
  @Override protected void onDraw(Canvas c){super.onDraw(c);float w=getWidth(),h=getHeight();if(background!=null)c.drawBitmap(background,null,new RectF(0,0,w,h),paint);else c.drawColor(0xff244b56);paint.setColor(0xffa6bdc9);paint.setTextSize(11*getResources().getDisplayMetrics().density);
   for(int side=0;side<2;side++){
@@ -33,18 +33,19 @@ final class NativeRoster60Art extends View {
  }
  void hud(Canvas c,JSONObject fighter,boolean self,float w,float h){
   if(fighter==null)return;float d=getResources().getDisplayMetrics().density;
-  float width=Math.min(w*.42f,270*d),height=Math.min(68*d,h*.46f),x=self?w-width-6*d:6*d,y=self?h-height-4*d:4*d;
+  float width=Math.min(w*.46f,290*d),height=Math.min(72*d,h*.26f),x=self?w-width-6*d:6*d,y=self?h-height-4*d:4*d;
   RectF box=new RectF(x,y,x+width,y+height);if(hpSkin!=null)hpSkin.surface(c,box);else{paint.setColor(0xfff4e4ba);c.drawRoundRect(box,6*d,6*d,paint);}
-  float font=Math.min(13*getResources().getDisplayMetrics().scaledDensity,height*.23f);paint.setColor(JournalTheme.INK);paint.setTextSize(font);paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-  String name=fighter.optString("name")+"  Lv"+fighter.optInt("level",1);float fit=Math.min(1,(width-16*d)/Math.max(1,paint.measureText(name)));paint.setTextSize(font*fit);c.drawText(name,x+8*d,y+height*.26f,paint);
+  float font=Math.min(13*getResources().getDisplayMetrics().scaledDensity,height*.23f);paint.setColor(JournalTheme.INK);paint.setTextSize(font);paint.setTypeface(android.graphics.Typeface.create(NavyWorkbenchTheme.font((MainActivity)getContext()),android.graphics.Typeface.BOLD));
+  String name=(self?"출전 · ":"상대 · ")+fighter.optString("name")+"  Lv"+fighter.optInt("level",1);float fit=Math.min(1,(width-32*d)/Math.max(1,paint.measureText(name)));paint.setTextSize(font*fit);c.drawText(name,x+16*d,y+height*.30f,paint);
   JSONObject stats=fighter.optJSONObject("stats");if(stats==null)return;
-  meter(c,"HP",fighter.optInt("hp"),stats.optInt("hp"),x+8*d,y+height*.48f,width-16*d,height*.16f,0xff72c98b);
-  meter(c,"MP",fighter.optInt("mp"),stats.optInt("mp"),x+8*d,y+height*.79f,width-16*d,height*.16f,0xff76b9eb);
+  meter(c,"HP",fighter.optInt("hp"),stats.optInt("hp"),x+16*d,y+height*.48f,width-32*d,height*.16f,0xff72c98b);
+  meter(c,"MP",fighter.optInt("mp"),stats.optInt("mp"),x+16*d,y+height*.73f,width-32*d,height*.16f,0xff76b9eb);
  }
  void meter(Canvas c,String label,int value,int max,float x,float y,float w,float h,int color){
-  paint.setTypeface(android.graphics.Typeface.DEFAULT);paint.setTextSize(11*getResources().getDisplayMetrics().scaledDensity);paint.setColor(JournalTheme.INK);c.drawText(label+" "+value+"/"+max,x,y,paint);
-  float top=y+h*.2f;paint.setColor(0xff263f4d);c.drawRoundRect(new RectF(x,top,x+w,top+h*.35f),h/3,h/3,paint);
-  paint.setColor(color);c.drawRoundRect(new RectF(x,top,x+w*Math.max(0,Math.min(1,value/(float)Math.max(1,max))),top+h*.35f),h/3,h/3,paint);
+  float d=getResources().getDisplayMetrics().density;paint.setTypeface(NavyWorkbenchTheme.font((MainActivity)getContext()));paint.setTextSize(10*getResources().getDisplayMetrics().scaledDensity);paint.setColor(JournalTheme.INK);c.drawText(label,x,y+h*.65f,paint);
+  String amount=value+"/"+max;float amountWidth=paint.measureText(amount);c.drawText(amount,x+w-amountWidth,y+h*.65f,paint);
+  float left=x+20*d,right=Math.max(left,x+w-amountWidth-4*d),top=y+h*.05f,bottom=y+h*.8f;paint.setColor(0xff263f4d);c.drawRoundRect(new RectF(left,top,right,bottom),h/3,h/3,paint);
+  paint.setColor(color);c.drawRoundRect(new RectF(left+1,top+1,left+1+Math.max(0,right-left-2)*Math.max(0,Math.min(1,value/(float)Math.max(1,max))),bottom-1),h/3,h/3,paint);
  }
 
 }

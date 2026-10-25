@@ -10,7 +10,7 @@ class NativeRoster60Battle {
  static final Set<String> IN_FLIGHT=new HashSet<>();
  String owner,key,autoSettled="",settlementError=""; int epoch; LinearLayout container; TextView message,stats; Button retry,settle,returnAdventure;
  Roster60FormationView formation;LinearLayout arena;
- LinearLayout choicePanel;String choiceKind="";int itemPage;
+ LinearLayout choicePanel;String choiceKind="",switchTarget="",targetItem="";int itemPage;
  NativeRoster60Art art; CombatV2ReviewPanel panel; JSONObject view,adventure; boolean reading; android.app.AlertDialog selection;
  final Roster60BattleMode requestedMode;
  NativeRoster60Battle(MainActivity host){this(host,Roster60BattleMode.ALL);}
@@ -26,15 +26,18 @@ class NativeRoster60Battle {
   message=h.text("전투 확인 중…",12);message.setTextColor(NavyWorkbenchTheme.TEXT);message.setMaxLines(2);toolbar.addView(message,new LinearLayout.LayoutParams(0,h.dp(48),1));container.addView(toolbar);
   // Same field/right-hand command split as production BattleView.onMeasure().
   arena=new LinearLayout(h);arena.setOrientation(LinearLayout.HORIZONTAL);arena.setBaselineAligned(false);container.addView(arena,new LinearLayout.LayoutParams(-1,0,1));
-  art=new NativeRoster60Art(h);art.setTag("roster60-battle-art");arena.addView(art,new LinearLayout.LayoutParams(0,-1,BattleView.FIELD_WIDTH_FRACTION));
-  LinearLayout commandRail=new LinearLayout(h);commandRail.setOrientation(LinearLayout.VERTICAL);commandRail.setTag("roster60-command-rail");commandRail.setPadding(h.dp(8),h.dp(8),h.dp(8),h.dp(8));commandRail.setBackground(new BattleSkin(h,"panel-command"));arena.addView(commandRail,new LinearLayout.LayoutParams(0,-1,1-BattleView.FIELD_WIDTH_FRACTION));
+  FrameLayout stage=new FrameLayout(h);arena.addView(stage,new LinearLayout.LayoutParams(0,-1,.625f));
+  art=new NativeRoster60Art(h);art.setTag("roster60-battle-art");stage.addView(art,new FrameLayout.LayoutParams(-1,-1));
+  TextView hold=new TextView(h);hold.setTag("battle-hold-description");CombatV2ReviewStyle.text(hold);hold.setTextColor(JournalTheme.INK);hold.setTextSize(12);hold.setPadding(h.dp(12),h.dp(8),h.dp(12),h.dp(8));hold.setBackground(new BattleSkin(h,"panel-hp"));hold.setVisibility(android.view.View.INVISIBLE);
+  FrameLayout.LayoutParams holdBox=new FrameLayout.LayoutParams(0,h.dp(94),android.view.Gravity.TOP|android.view.Gravity.RIGHT);stage.addView(hold,holdBox);stage.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{int width=(int)((r-l)*.49f);if(hold.getLayoutParams().width!=width){hold.getLayoutParams().width=width;hold.requestLayout();}});
+  LinearLayout commandRail=new LinearLayout(h);commandRail.setOrientation(LinearLayout.VERTICAL);commandRail.setTag("roster60-command-rail");commandRail.setPadding(h.dp(8),h.dp(8),h.dp(8),h.dp(8));commandRail.setBackground(new BattleSkin(h,"panel-command"));arena.addView(commandRail,new LinearLayout.LayoutParams(0,-1,.375f));
   stats=h.text("",12);stats.setTextColor(NavyWorkbenchTheme.TEXT);stats.setMaxLines(3);stats.setVisibility(android.view.View.GONE);commandRail.addView(stats);
   LinearLayout controls=new LinearLayout(h);controls.setOrientation(LinearLayout.HORIZONTAL);commandRail.addView(controls);
   retry=h.button("연결 재시도",()->{if(adventure!=null&&"ACTIVE".equals(adventure.optString("status")))chooseAdventureBattle();else resume();});retry.setTag("roster60-battle-retry");controls.addView(retry,new LinearLayout.LayoutParams(0,h.dp(48),1));
   settle=h.button("정산 다시 시도",()->{if(view!=null)mutate("settle",h.obj("battleId",view.optString("battleId"),"revision",view.optInt("revision")));});settle.setTag("roster60-battle-settle");settle.setEnabled(false);controls.addView(settle,new LinearLayout.LayoutParams(0,h.dp(48),1));
   returnAdventure=h.button("모험 정상 복귀",()->{if(adventure!=null)mutate("adventure/return",h.obj("adventureId",adventure.optString("adventureId"),"revision",adventure.optInt("revision")));});controls.addView(returnAdventure,new LinearLayout.LayoutParams(0,h.dp(48),1));
   for(Button button:new Button[]{retry,settle,returnAdventure}){button.setVisibility(android.view.View.GONE);NavyWorkbenchTheme.tab(h,button,false);button.setTextSize(12);button.setMinWidth(0);button.setMinimumWidth(0);button.setMaxLines(2);}
-  panel=new CombatV2ReviewPanel(h,this::command,CombatV2ReviewStyle::icon,true);panel.setTag("roster60-battle-panel");commandRail.addView(panel,new LinearLayout.LayoutParams(-1,0,1));choicePanel=new LinearLayout(h);choicePanel.setOrientation(1);choicePanel.setTag("roster60-battle-choices");choicePanel.setVisibility(android.view.View.GONE);commandRail.addView(choicePanel,new LinearLayout.LayoutParams(-1,0,1));resume();
+  panel=new CombatV2ReviewPanel(h,this::command,CombatV2ReviewStyle::icon,true);panel.setTag("roster60-battle-panel");panel.setHoldOverlay(hold);commandRail.addView(panel,new LinearLayout.LayoutParams(-1,0,1));choicePanel=new LinearLayout(h);choicePanel.setOrientation(1);choicePanel.setTag("roster60-battle-choices");choicePanel.setVisibility(android.view.View.GONE);commandRail.addView(choicePanel,new LinearLayout.LayoutParams(-1,0,1));resume();
  }
  void resume(){
   if(!current()||reading||(selection!=null&&selection.isShowing()))return;
@@ -79,29 +82,28 @@ class NativeRoster60Battle {
  void action(JSONObject a){if(view!=null)mutate("action",h.obj("battleId",view.optString("battleId"),"revision",view.optInt("revision"),"action",a));}
  void cancelSelection(){if(current()&&view!=null&&prefs.getString(key+":pending","").isEmpty())bind(view);}
  void unlockOnDismiss(){final android.app.AlertDialog dialog=selection;if(dialog!=null)dialog.setOnDismissListener(d->{if(h.visibleDialog==dialog)h.visibleDialog=null;if(selection!=dialog)return;selection=null;if(current()&&view!=null&&prefs.getString(key+":pending","").isEmpty())bind(view);});}
- void chooseSwitch(){choiceKind="switch";renderChoices();}
+ void chooseSwitch(){switchTarget="";choiceKind="switch";renderChoices();}
  void chooseItem(){choiceKind="item";itemPage=0;renderChoices();}
- void closeChoices(){choiceKind="";choicePanel.setVisibility(android.view.View.GONE);panel.setVisibility(android.view.View.VISIBLE);cancelSelection();}
+ void closeChoices(){switchTarget="";choiceKind="";choicePanel.setVisibility(android.view.View.GONE);panel.setVisibility(android.view.View.VISIBLE);cancelSelection();}
  void renderChoices(){
  if(view==null||choiceKind.isEmpty())return;panel.cancelInteraction();panel.setVisibility(android.view.View.GONE);choicePanel.setVisibility(android.view.View.VISIBLE);choicePanel.removeAllViews();
- JSONObject state=view.optJSONObject("state");ArrayList<JSONObject> entries=new ArrayList<>();boolean switching="switch".equals(choiceKind);
+ JSONObject state=view.optJSONObject("state");ArrayList<JSONObject> entries=new ArrayList<>();boolean reviving="revive".equals(choiceKind),switching="switch".equals(choiceKind)||reviving;
  if(switching){entries.add(state.optJSONArray("fighters").optJSONObject(0));JSONArray reserves=state.optJSONArray("reserves");if(reserves!=null)for(int i=0;i<reserves.length();i++)entries.add(reserves.optJSONObject(i));}
  else{JSONArray inventory=state.optJSONArray("inventory");JSONObject defs=view.optJSONObject("itemDefinitions");if(inventory!=null&&defs!=null)for(int i=0;i<inventory.length();i++){JSONObject item=inventory.optJSONObject(i);if(item.optInt("count")>0&&defs.has(item.optString("itemId")))entries.add(item);}}
  int pages=Math.max(1,(entries.size()+5)/6);itemPage=Math.min(itemPage,pages-1);boolean available=prefs.getString(key+":pending","").isEmpty()&&!view.optBoolean("waitingForOpponent");
- for(int row=0;row<2;row++){LinearLayout line=new LinearLayout(h);choicePanel.addView(line,new LinearLayout.LayoutParams(-1,0,1));for(int col=0;col<3;col++){int index=itemPage*6+row*3+col;
+ for(int row=0;row<3;row++){LinearLayout line=new LinearLayout(h);choicePanel.addView(line,new LinearLayout.LayoutParams(-1,0,1));for(int col=0;col<2;col++){int index=itemPage*6+row*2+col;
  if(index>=entries.size()){line.addView(new android.view.View(h),new LinearLayout.LayoutParams(0,-1,1));continue;}JSONObject item=entries.get(index);
- if(switching){boolean active=index==0,alive=item.optInt("hp")>0;String caption=item.optString("name")+(active?" · 출전":!alive?" · 전투불능":"")+"\nHP "+item.optInt("hp")+" · MP "+item.optInt("mp");Roster60MemberTile tile=new Roster60MemberTile(h,item,caption,!active&&alive&&available,()->{choiceKind="";choicePanel.setVisibility(android.view.View.GONE);action(h.obj("kind","switch","targetOwnedId",item.optString("ownedId")));});tile.action.setTag("battle-switch-"+item.optString("ownedId"));line.addView(tile,new LinearLayout.LayoutParams(0,-1,1));}
+ if(switching){boolean active=index==0,alive=item.optInt("hp")>0;Roster60SwitchTile tile=new Roster60SwitchTile(h,item,active,(reviving?!alive:!active&&alive)&&available,item.optString("ownedId").equals(switchTarget),()->{switchTarget=item.optString("ownedId");renderChoices();});tile.action.setTag("battle-switch-"+item.optString("ownedId"));line.addView(tile,new LinearLayout.LayoutParams(0,-1,1));}
  else{String id=item.optString("itemId");JSONObject def=view.optJSONObject("itemDefinitions").optJSONObject(id);Button button=h.button(def.optString("name")+" ×"+item.optInt("count"),()->{choiceKind="";choicePanel.setVisibility(android.view.View.GONE);if(def.optInt("revive")>0)chooseRevive(id);else action(h.obj("kind","item","itemId",id));});button.setTextSize(12);button.setMinWidth(0);button.setMinimumWidth(0);button.setEnabled(available);button.setBackground(new BattleSkin(h,"button-item"));line.addView(button,new LinearLayout.LayoutParams(0,-1,1));}
  }}
  LinearLayout footer=new LinearLayout(h);choicePanel.addView(footer,new LinearLayout.LayoutParams(-1,h.dp(48)));
  if(pages>1){Button prev=h.button("‹",()->{itemPage--;renderChoices();}),next=h.button("›",()->{itemPage++;renderChoices();});prev.setEnabled(itemPage>0);next.setEnabled(itemPage<pages-1);footer.addView(prev,new LinearLayout.LayoutParams(0,-1,1));footer.addView(next,new LinearLayout.LayoutParams(0,-1,1));}
  Button back=h.button("돌아가기",this::closeChoices);back.setTag("battle-choices-back");footer.addView(back,new LinearLayout.LayoutParams(0,-1,1));
+ if(switching){JSONObject target=null;for(JSONObject candidate:entries)if(candidate.optString("ownedId").equals(switchTarget)&&(reviving?candidate.optInt("hp")==0:candidate.optInt("hp")>0&&candidate!=entries.get(0)))target=candidate;final JSONObject chosen=target;
+ Button confirm=h.button(chosen==null?"대원 선택":chosen.optString("name")+(reviving?" 회복":" 교체"),()->{if(chosen==null||!current())return;switchTarget="";choiceKind="";choicePanel.setVisibility(android.view.View.GONE);action(reviving?h.obj("kind","item","itemId",targetItem,"targetOwnedId",chosen.optString("ownedId")):h.obj("kind","switch","targetOwnedId",chosen.optString("ownedId")));});confirm.setTag("battle-switch-confirm");confirm.setEnabled(chosen!=null&&available);confirm.setTextSize(11);confirm.setMinWidth(0);confirm.setMinimumWidth(0);confirm.setBackground(new BattleSkin(h,"button-surrender"));footer.addView(confirm,new LinearLayout.LayoutParams(0,-1,2));}
+
  }
- void chooseRevive(String item){
-  ArrayList<JSONObject> fallen=new ArrayList<>();JSONObject state=view.optJSONObject("state"),active=state.optJSONArray("fighters").optJSONObject(0);if(active.optInt("hp")==0)fallen.add(active);JSONArray reserves=state.optJSONArray("reserves");if(reserves!=null)for(int i=0;i<reserves.length();i++)if(reserves.optJSONObject(i).optInt("hp")==0)fallen.add(reserves.optJSONObject(i));
-  String[] names=new String[fallen.size()];for(int i=0;i<names.length;i++)names[i]=fallen.get(i).optString("name");
-  selection=new GameDialog(h).navy().setTitle("다시 일으킬 개체").setItems(names,(d,i)->{if(current())action(h.obj("kind","item","itemId",item,"targetOwnedId",fallen.get(i).optString("ownedId")));}).setNegativeButton("취소",(d,w)->cancelSelection()).show();unlockOnDismiss();
- }
+ void chooseRevive(String item){targetItem=item;switchTarget="";choiceKind="revive";itemPage=0;renderChoices();}
  void command(JSONObject command){
   if(view==null)return;String kind=command.optString("kind");
   if("switch".equals(kind)){chooseSwitch();return;}if("item".equals(kind)){chooseItem();return;}

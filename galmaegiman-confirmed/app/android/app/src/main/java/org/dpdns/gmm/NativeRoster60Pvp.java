@@ -20,7 +20,7 @@ final class NativeRoster60Pvp {
  root.setPadding(h.dp(8),h.dp(4),h.dp(8),h.dp(4));status.setTextColor(NavyWorkbenchTheme.TEXT);summary.setTextColor(NavyWorkbenchTheme.MUTED);
  LinearLayout columns=new LinearLayout(h);root.addView(columns,new LinearLayout.LayoutParams(-1,0,1));
  roster=new LinearLayout(h);roster.setOrientation(1);columns.addView(roster,new LinearLayout.LayoutParams(0,-1,3));
- actions=new LinearLayout(h);actions.setOrientation(1);columns.addView(actions,new LinearLayout.LayoutParams(0,-1,2));
+ actions=new LinearLayout(h);actions.setOrientation(1);columns.addView(actions,new LinearLayout.LayoutParams(0,-1,1));
  focusedArt=new ImageView(h);focusedArt.setTag("party-focused-portrait");actions.addView(focusedArt,new LinearLayout.LayoutParams(-1,0,1));focusedName=h.text("대원을 선택하세요",12);focusedName.setTextColor(NavyWorkbenchTheme.TEXT);actions.addView(focusedName);
  save=h.button("편성 저장",this::save);save.setTag("roster60-pvp-party-save");
  normal=h.button("일반 대전",()->join("normal"));normal.setTag("roster60-pvp-normal");
@@ -36,9 +36,9 @@ final class NativeRoster60Pvp {
  JSONObject unit(String id){for(int i=0;i<units.length();i++)if(id.equals(units.optJSONObject(i).optString("ownedId")))return units.optJSONObject(i);return null;}
  void drawParty(){
  roster.removeAllViews();
- LinearLayout slots=new LinearLayout(h);roster.addView(slots,new LinearLayout.LayoutParams(-1,h.dp(64)));
+ LinearLayout slots=new LinearLayout(h);roster.addView(slots,new LinearLayout.LayoutParams(-1,0,1));
  for(int slot=0;slot<6;slot++){final String id=slot<selected.size()?selected.get(slot):"";JSONObject u=unit(id);String title=(slot==0?"출전":"예비 "+slot)+(u==null?"": " · "+u.optString("name"));Roster60MemberTile tile=new Roster60MemberTile(h,u,title,u!=null&&!busy&&!waiting,()->{focused=id;selected.remove(id);drawParty();});tile.setTag("party-selected-"+slot);slots.addView(tile,new LinearLayout.LayoutParams(0,-1,1));}
- JSONObject focus=unit(focused);if(focus==null&&!selected.isEmpty()){focused=selected.get(0);focus=unit(focused);}if(focus!=null){Roster60Portrait.bind(h,focusedArt,focus.optString("speciesId"));focusedName.setText(focus.optString("name")+(focus.has("level")?" · Lv"+focus.optInt("level"):""));}
+ JSONObject focus=unit(focused);if(focus==null&&!selected.isEmpty()){focused=selected.get(0);focus=unit(focused);}if(focus!=null){Roster60Portrait.bind(h,focusedArt,focus.optString("speciesId"));focusedName.setText(Roster60FormationView.memberDetails(focus));}
 int pages=Math.max(1,(units.length()+2)/3);rosterPage=Math.min(rosterPage,pages-1);
  if(units.length()==0){TextView empty=h.text("표시할 새 개체가 없습니다.\n튜토리얼 시작 상태를 확인하세요.",14);empty.setTextColor(NavyWorkbenchTheme.TEXT);roster.addView(empty,new LinearLayout.LayoutParams(-1,0,1));Button start=h.button("튜토리얼 확인",()->new NativeRoster60Onboarding(h).open());style(start);roster.addView(start,new LinearLayout.LayoutParams(-1,h.dp(48)));}
  else for(int row=0;row<1;row++){LinearLayout line=new LinearLayout(h);roster.addView(line,new LinearLayout.LayoutParams(-1,0,1));for(int col=0;col<3;col++){int i=rosterPage*3+col;if(i>=units.length()){line.addView(new android.view.View(h),new LinearLayout.LayoutParams(0,-1,1));continue;}JSONObject u=units.optJSONObject(i);String id=u.optString("ownedId");Roster60MemberTile tile=new Roster60MemberTile(h,u,(selected.contains(id)?"✓ ":"")+u.optString("name")+(selected.indexOf(id)==0?" · 출전":""),!busy&&!waiting,()->{if(busy||waiting)return;focused=id;if(selected.contains(id))selected.remove(id);else if(selected.size()<6)selected.add(id);else status.setText("출전 포함 최대 6마리입니다.");drawParty();});tile.action.setTag("party-unit-"+id);line.addView(tile,new LinearLayout.LayoutParams(0,-1,1));}}

@@ -36,6 +36,15 @@ def bundledArt = layout.buildDirectory.dir('generated/game-art')
 def leanLegacyArt = ['org.gmm', 'org.gmm.producttest'].contains(project.findProperty('gmmApplicationId'))
 tasks.register('bundleGameArt', Sync) {
     into bundledArt
+    // Only runtime surfaces and 128px focus thumbnails; references/editable sources stay out of APK.
+    from('../../../art/gpt/ui-v3-20261025/runtime') {
+        include 'optimized/ui/bg-harbor.webp', 'optimized/ui/icon-attack.webp', 'optimized/ui/icon-goldenstrike.webp', 'optimized/ui/icon-shield.webp', 'optimized/ui/icon-item.webp', 'optimized/ui/icon-switch.webp', 'optimized/ui/icon-surrender.webp', 'android-ninepatch/*.9.png', 'config/runtime-asset-map.json'
+        into 'ui-v3'
+    }
+    from('../../../art/gpt/ui-v3-20261025/faces/thumbs/128') {
+        include 'u*.png'
+        into 'ui-v3/faces'
+    }
     from('../../../public/battle') {
         include 'sprites/*.webp', 'sprites/*.png', 'bg/*.jpg', 'bg/*.webp', 'icons/*.png'
         into 'game-art/duel'
