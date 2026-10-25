@@ -765,9 +765,8 @@ public class MainActivity extends AppCompatActivity {
     LinearLayout head = new LinearLayout(this);
     head.setGravity(Gravity.CENTER_VERTICAL);
     form.addView(head);
-    boolean linking =
-        !getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).getString("linkCode", "").isEmpty();
-    title = text(linking ? "카카오 계정 처음 연결" : "방범대 인사 기록부", linking ? 18 : 22);
+    getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).edit().remove("linkCode").apply();
+    title = text("방범대 인사 기록부", 22);
     title.setTypeface(headline);
     head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
     Button close =
@@ -781,112 +780,8 @@ public class MainActivity extends AppCompatActivity {
     head.addView(close, new LinearLayout.LayoutParams(dp(48), dp(48)));
     Button kakao = button("카카오로 로그인", this::kakao);
     kakao.setBackground(new GameButtonDrawable(this, 0xfffee500));
-    if (!linking) form.addView(kakao, new LinearLayout.LayoutParams(-1, dp(48)));
-    TextView guidance = text(linking ? "기존 계정의 코드로 처음 한 번 연결해요." : "또는 카톡으로 받은 6자리 코드", 14);
-    guidance.setTypeface(prose);
-    LinearLayout codeForm = new LinearLayout(this);
-    codeForm.setOrientation(LinearLayout.VERTICAL);
-    codeForm.addView(guidance);
-    EditText code = new EditText(this);
-    code.setHint("000000");
-    code.setTextColor(INK);
-    code.setHintTextColor(BLUE);
-    code.setTypeface(headline);
-    code.setTextSize(24);
-    code.setGravity(Gravity.CENTER);
-    code.setInputType(InputType.TYPE_CLASS_NUMBER);
-    code.setSingleLine(true);
-    code.setBackground(new GamePaperDrawable(this));
-    code.setFilters(new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(6)});
-    code.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
-    codeForm.addView(code, new LinearLayout.LayoutParams(-1, dp(52)));
-    final android.app.AlertDialog[] codeDialog = {null};
-    Runnable enter =
-        () -> {
-          String value = code.getText().toString().trim();
-          if (!value.matches("[0-9]{6}")) {
-            code.setError("6자리 숫자를 입력해 주세요.");
-            code.requestFocus();
-            return;
-          }
-          ((android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE))
-              .hideSoftInputFromWindow(code.getWindowToken(), 0);
-          request(
-              "login",
-              obj(
-                  "code",
-                  value,
-                  "linkCode",
-                  getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).getString("linkCode", "")),
-              (r, e) -> {
-                if (codeDialog[0] != null) codeDialog[0].dismiss();
-                getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).edit().remove("linkCode").apply();
-                api.token(r.optString("token"));
-                load("title");
-              });
-        };
-    code.setOnEditorActionListener(
-        (t, id, event) -> {
-          if (id == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
-            enter.run();
-            return true;
-          }
-          return false;
-        });
-    LinearLayout codeActions = new LinearLayout(this);
-    codeActions.setGravity(Gravity.CENTER_VERTICAL);
-    Button cancelCode =
-        new MenuKit(this)
-            .action(
-                null,
-                "취소",
-                () -> {
-                  if (codeDialog[0] != null) codeDialog[0].dismiss();
-                });
-    codeActions.addView(cancelCode, new LinearLayout.LayoutParams(0, dp(48), 1));
-    codeActions.addView(button("로그인", enter), new LinearLayout.LayoutParams(0, dp(48), 1));
-    Button codeEntry =
-        button(
-            linking ? "기존 계정 확인" : "코드로 로그인",
-            () -> {
-              if (codeDialog[0] != null && codeDialog[0].isShowing()) return;
-              if (codeForm.getParent() instanceof ViewGroup)
-                ((ViewGroup) codeForm.getParent()).removeView(codeForm);
-              if (codeActions.getParent() instanceof ViewGroup)
-                ((ViewGroup) codeActions.getParent()).removeView(codeActions);
-              android.app.AlertDialog opened =
-                  new GameDialog(this)
-                      .setTitle(linking ? "기존 계정 확인" : "코드로 로그인")
-                      .setView(codeForm)
-                      .setFooter(codeActions)
-                      .show();
-              codeDialog[0] = opened;
-              opened.setOnDismissListener(
-                  dialog -> {
-                    if (visibleDialog == opened) visibleDialog = null;
-                    if (codeDialog[0] == opened) codeDialog[0] = null;
-                  });
-            });
-    codeEntry.setTag("login-code-open");
-    code.setTag("login-code-input");
-    form.addView(codeEntry, new LinearLayout.LayoutParams(-1, dp(48)));
-    form.addView(text("카톡 채널에서 받은 코드로 기존 방범대를 이어가요.", 14));
-    Button help =
-        new MenuKit(this)
-            .action(
-                null,
-                "코드 받는 법",
-                () ->
-                    new GameDialog(this)
-                        .setTitle("로그인 안내")
-                        .setMessage(
-                            "1. 카톡 갈매미맨 채널에 ‘웹 로그인’을 보내요.\n"
-                                + "2. 받은 6자리 코드를 입력해요. (10분 안에, 한 번만)\n\n"
-                                + "처음 카카오 계정을 연결할 때도 기존 계정의 코드를 사용해요.\n"
-                                + "로그인은 이 기기에서 30일 동안 유지돼요.")
-                        .setPositiveButton("확인", null)
-                        .show());
-    form.addView(help, new LinearLayout.LayoutParams(-1, dp(48)));
+    form.addView(kakao, new LinearLayout.LayoutParams(-1, dp(48)));
+    form.addView(text("카카오 공식 인증 후 게임으로 돌아와요. 별도 채팅 코드는 필요하지 않아요.", 14));
   }
 
   void resizeLogin() {
@@ -1007,11 +902,7 @@ public class MainActivity extends AppCompatActivity {
             return;
           }
           if (r.optBoolean("needsLink")) {
-            getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0)
-                .edit()
-                .putString("linkCode", r.optString("linkCode"))
-                .apply();
-            login();
+            message("서버 로그인 업데이트가 필요해요. 잠시 후 다시 시도해 주세요.");
           } else {
             api.token(r.optString("token"));
             load("title");
