@@ -134,6 +134,7 @@ final class NativeMenus {
   }
 
   void storyModes() {
+    if(h.roster60Menus()){h.openRosterBattle();return;}
     ModesLayout choices = modePage("스토리", "modesStory");
     Button story = modeCard("스토리모드", 3, () -> h.load("story"));
     story.setTag("modes-story");

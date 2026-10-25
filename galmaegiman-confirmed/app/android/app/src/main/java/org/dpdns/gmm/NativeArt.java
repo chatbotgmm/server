@@ -367,6 +367,12 @@ final class NativeArt {
   }
 
   private Bitmap bundled(String path) {
+    if (path.matches("/roster60-art/u[0-9]{2}-(front|rear)\\.webp")) {
+      try (InputStream in = context.getAssets().open(path.substring(1))) {
+        BitmapFactory.Options options = new BitmapFactory.Options(); options.inSampleSize = 2;
+        return BitmapFactory.decodeStream(in, null, options);
+      } catch (IOException missing) { return null; }
+    }
     if (JournalAssets.oldPlatform(path)) return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
     String themed = JournalAssets.sceneAsset(path);
     if (themed != null) return asset(themed);

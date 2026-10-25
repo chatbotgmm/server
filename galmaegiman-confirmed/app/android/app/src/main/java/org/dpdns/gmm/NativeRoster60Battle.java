@@ -17,14 +17,15 @@ class NativeRoster60Battle {
   if(h.api.token().isEmpty()){h.login();return;}
   h.base("전투","roster60Battle");owner=h.api.token();key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner+storageScope());epoch=h.epoch;
   h.page.removeViewAt(h.page.getChildCount()-1);
-  container=new LinearLayout(h);container.setOrientation(LinearLayout.HORIZONTAL);h.page.addView(container,new LinearLayout.LayoutParams(-1,0,1));
+  container=new LinearLayout(h);container.setOrientation(LinearLayout.HORIZONTAL);container.setBackground(NavyWorkbenchTheme.surface(h,NavyWorkbenchTheme.PANEL,NavyWorkbenchTheme.LINE,10));h.page.addView(container,new LinearLayout.LayoutParams(-1,0,1));
   LinearLayout info=new LinearLayout(h);info.setOrientation(LinearLayout.VERTICAL);container.addView(info,new LinearLayout.LayoutParams(0,-1,2));
   message=h.text("서버 전투 확인 중…",12);message.setTextColor(NavyWorkbenchTheme.TEXT);message.setMaxLines(2);info.addView(message);
   stats=h.text("",11);stats.setTextColor(NavyWorkbenchTheme.TEXT);stats.setMaxLines(8);info.addView(stats,new LinearLayout.LayoutParams(-1,0,1));
-  LinearLayout controls=new LinearLayout(h);controls.setOrientation(LinearLayout.VERTICAL);info.addView(controls);
-  retry=h.button("다시 확인",()->{if(adventure!=null&&"ACTIVE".equals(adventure.optString("status")))chooseAdventureBattle();else resume();});retry.setTag("roster60-battle-retry");controls.addView(retry,new LinearLayout.LayoutParams(-1,h.dp(48)));
-  settle=h.button("결과 받기",()->{if(view!=null)mutate("settle",h.obj("battleId",view.optString("battleId"),"revision",view.optInt("revision")));});settle.setTag("roster60-battle-settle");settle.setEnabled(false);controls.addView(settle,new LinearLayout.LayoutParams(-1,h.dp(48)));
-  returnAdventure=h.button("모험 정상 복귀",()->{if(adventure!=null)mutate("adventure/return",h.obj("adventureId",adventure.optString("adventureId"),"revision",adventure.optInt("revision")));});returnAdventure.setVisibility(android.view.View.GONE);controls.addView(returnAdventure,new LinearLayout.LayoutParams(-1,h.dp(48)));
+  LinearLayout controls=new LinearLayout(h);controls.setOrientation(LinearLayout.HORIZONTAL);info.addView(controls);
+  retry=h.button("다시 확인",()->{if(adventure!=null&&"ACTIVE".equals(adventure.optString("status")))chooseAdventureBattle();else resume();});retry.setTag("roster60-battle-retry");controls.addView(retry,new LinearLayout.LayoutParams(0,h.dp(48),1));
+  settle=h.button("결과 받기",()->{if(view!=null)mutate("settle",h.obj("battleId",view.optString("battleId"),"revision",view.optInt("revision")));});settle.setTag("roster60-battle-settle");settle.setEnabled(false);controls.addView(settle,new LinearLayout.LayoutParams(0,h.dp(48),1));
+  returnAdventure=h.button("모험 정상 복귀",()->{if(adventure!=null)mutate("adventure/return",h.obj("adventureId",adventure.optString("adventureId"),"revision",adventure.optInt("revision")));});returnAdventure.setVisibility(android.view.View.GONE);controls.addView(returnAdventure,new LinearLayout.LayoutParams(0,h.dp(48),1));
+  for(Button b:new Button[]{retry,settle,returnAdventure}){CombatV2ReviewStyle.button(b);b.setTextSize(11);b.setMinWidth(0);b.setMinimumWidth(0);b.setPadding(2,0,2,0);b.setMaxLines(2);}
   art=new NativeRoster60Art(h);art.setTag("roster60-battle-art");container.addView(art,new LinearLayout.LayoutParams(0,-1,2));
   panel=new CombatV2ReviewPanel(h,this::command,CombatV2ReviewStyle::icon,true);panel.setTag("roster60-battle-panel");container.addView(panel,new LinearLayout.LayoutParams(0,-1,3));resume();
  }
@@ -125,6 +126,6 @@ class NativeRoster60Battle {
    adventure=null;returnAdventure.setVisibility(android.view.View.GONE);retry.setText("다시 확인");view=r;message.setText(active?(r.optBoolean("testBaseline")?"시험안 "+r.optString("balanceProfile"):"서버 전투")+" · 턴 "+s.getInt("turn"):"SETTLED".equals(r.getString("status"))?"정산 완료 · "+r.getJSONObject("settlement").optString("outcome"):"전투 종료 · "+s.optString("outcome"));if(active&&self.optInt("hp")==0)message.setText("출전 개체 전투불가 · 교체를 눌러 생존 예비 선택 · 행동 소모 없음");settle.setEnabled("FINISHED".equals(r.getString("status")));
   }catch(Exception bad){view=null;panel.lock();settle.setEnabled(false);message.setText("서버 전투 데이터 형식을 확인할 수 없습니다.");}
  }
- boolean back(){if(panel!=null){panel.cancelInteraction();if(panel.showCommands())return true;}h.home();return true;}
+ boolean back(){if(panel!=null){panel.cancelInteraction();if(panel.showCommands())return true;}h.load("home");return true;}
  void pause(){if(panel!=null)panel.cancelInteraction();if(selection!=null){selection.dismiss();selection=null;}}
 }

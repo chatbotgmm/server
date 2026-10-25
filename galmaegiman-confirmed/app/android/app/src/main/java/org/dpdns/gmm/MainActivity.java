@@ -929,10 +929,12 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void chapters() {
+    if(roster60Menus()){openRosterBattle();return;}
     menus.story(false);
   }
 
   void stages() {
+    if(roster60Menus()){openRosterBattle();return;}
     menus.story(true);
   }
 
@@ -1017,7 +1019,7 @@ public class MainActivity extends AppCompatActivity {
     menus.library.items();
   }
 
-  boolean roster60Menus() { return "org.gmm.producttest".equals(BuildConfig.APPLICATION_ID) || "roster60-v1".equals(state.optJSONObject("tutorial") == null ? "" : state.optJSONObject("tutorial").optString("flow")); }
+  boolean roster60Menus() { return "org.gmm".equals(BuildConfig.APPLICATION_ID) || "org.gmm.producttest".equals(BuildConfig.APPLICATION_ID) || "roster60-v1".equals(state.optJSONObject("tutorial") == null ? "" : state.optJSONObject("tutorial").optString("flow")); }
 
   void collection() {
     if (roster60Menus()) { new NativeRoster60Library(this).collection(); return; }
@@ -1074,6 +1076,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void expedition() {
+    if(roster60Menus()){openRosterBattle();return;}
     menus.economy.expedition();
   }
 
@@ -1098,6 +1101,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void pvp() {
+    if(roster60Menus()){openRosterPvp();return;}
     menus.extras.pvp();
   }
 
@@ -1106,6 +1110,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void practice() {
+    if(roster60Menus()){openRosterBattle();return;}
     menus.extras.practice();
   }
 
@@ -1455,7 +1460,7 @@ public class MainActivity extends AppCompatActivity {
     if (requiredUpdate != null) requiredUpdate.resume();
     if (realtime != null && !updateBlocks() && !roster60Menus()) realtime.resume();
     if(rosterPvp!=null&&screen.equals("roster60Pvp"))rosterPvp.resume();
-    if(rosterBattle instanceof NativeRoster60PvpBattle&&screen.equals("roster60Battle"))rosterBattle.resume();
+    if(rosterBattle!=null&&screen.equals("roster60Battle"))rosterBattle.resume();
     motionResumed = true;
     if (backgroundEffects != null) backgroundEffects.resumed(true);
     journalTime.resume();

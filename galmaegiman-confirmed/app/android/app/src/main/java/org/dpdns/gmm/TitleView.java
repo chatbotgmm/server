@@ -7,7 +7,7 @@ import android.widget.*;
 
 /** G 항구의 수호자. 전투 원본과 현지 시간·단일 장면 시계, 고정 UI를 함께 쓴다. */
 final class TitleView extends FrameLayout implements FullBleed {
-  static final String GUARDIAN_PATH = "/duel/sprites/D1_s0_front.webp";
+  static final String GUARDIAN_PATH = "/roster60-art/u01-front.webp";
   final MainActivity host;
   final Button enter, settings, account;
   final boolean loggedIn, loginBackdrop;

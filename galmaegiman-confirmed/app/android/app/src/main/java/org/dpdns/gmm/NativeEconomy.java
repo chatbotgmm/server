@@ -289,7 +289,7 @@ final class NativeEconomy {
                 if (error == null) {
                   h.state = fresh;
                   NativeAlerts.schedule(h, h.me());
-                  draw();
+                  h.draw();
                 }
                 showTicketReward(result, error != null);
               });
