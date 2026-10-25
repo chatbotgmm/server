@@ -316,6 +316,7 @@ final class NativeMenus {
   }
 
   void pvpModes() {
+    if(h.roster60Menus()){h.openRosterPvp();return;}
     ModesLayout panes = modePage("대전", "modesPvp");
     LinearLayout team = k.column(), pvp = k.column();
     LinearLayout.LayoutParams teamSlot = new LinearLayout.LayoutParams(0, -1, .46f);

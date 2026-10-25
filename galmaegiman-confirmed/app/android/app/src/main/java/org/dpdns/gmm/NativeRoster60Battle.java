@@ -5,21 +5,22 @@ import java.util.*;
 import org.json.*;
 
 /** Real authenticated product transport. No offline fixture or client-side damage. */
-final class NativeRoster60Battle {
+class NativeRoster60Battle {
  final MainActivity h; final SharedPreferences prefs;
  static final Set<String> IN_FLIGHT=new HashSet<>();
  String owner,key; int epoch; LinearLayout container; TextView message,stats; Button retry,settle,returnAdventure;
  NativeRoster60Art art; CombatV2ReviewPanel panel; JSONObject view,adventure; boolean reading; android.app.AlertDialog selection;
  NativeRoster60Battle(MainActivity host){h=host;prefs=h.getSharedPreferences("roster60_product_battle",Context.MODE_PRIVATE);}
  boolean current(){return epoch==h.epoch&&"roster60Battle".equals(h.screen)&&owner.equals(h.api.token())&&!h.isDestroyed();}
+ String storageScope(){return "";}
  void open(){
   if(h.api.token().isEmpty()){h.login();return;}
-  h.base("전투","roster60Battle");owner=h.api.token();key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner);epoch=h.epoch;
+  h.base("전투","roster60Battle");owner=h.api.token();key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner+storageScope());epoch=h.epoch;
   h.page.removeViewAt(h.page.getChildCount()-1);
   container=new LinearLayout(h);container.setOrientation(LinearLayout.HORIZONTAL);h.page.addView(container,new LinearLayout.LayoutParams(-1,0,1));
   LinearLayout info=new LinearLayout(h);info.setOrientation(LinearLayout.VERTICAL);container.addView(info,new LinearLayout.LayoutParams(0,-1,2));
-  message=h.text("서버 전투 확인 중…",12);message.setMaxLines(2);info.addView(message);
-  stats=h.text("",11);stats.setMaxLines(8);info.addView(stats,new LinearLayout.LayoutParams(-1,0,1));
+  message=h.text("서버 전투 확인 중…",12);message.setTextColor(NavyWorkbenchTheme.TEXT);message.setMaxLines(2);info.addView(message);
+  stats=h.text("",11);stats.setTextColor(NavyWorkbenchTheme.TEXT);stats.setMaxLines(8);info.addView(stats,new LinearLayout.LayoutParams(-1,0,1));
   LinearLayout controls=new LinearLayout(h);controls.setOrientation(LinearLayout.VERTICAL);info.addView(controls);
   retry=h.button("다시 확인",()->{if(adventure!=null&&"ACTIVE".equals(adventure.optString("status")))chooseAdventureBattle();else resume();});retry.setTag("roster60-battle-retry");controls.addView(retry,new LinearLayout.LayoutParams(-1,h.dp(48)));
   settle=h.button("결과 받기",()->{if(view!=null)mutate("settle",h.obj("battleId",view.optString("battleId"),"revision",view.optInt("revision")));});settle.setTag("roster60-battle-settle");settle.setEnabled(false);controls.addView(settle,new LinearLayout.LayoutParams(-1,h.dp(48)));

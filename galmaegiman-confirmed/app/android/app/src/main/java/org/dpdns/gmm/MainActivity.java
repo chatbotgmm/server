@@ -185,7 +185,7 @@ public class MainActivity extends AppCompatActivity {
 
   void stateUpdated() {
     TemporaryUnitPresentation.sync(state.optLong("serverNow"));
-    if (realtime != null && !updateBlocks()) realtime.recover();
+    if (realtime != null && !updateBlocks() && !roster60Menus()) realtime.recover();
     NativeAlerts.schedule(this, me());
     if (guide != null) guide.onStateUpdated();
   }
@@ -1021,6 +1021,9 @@ public class MainActivity extends AppCompatActivity {
   }
 
   NativeRoster60Battle rosterBattle;
+  NativeRoster60Pvp rosterPvp;
+  void openRosterPvp(){rosterPvp=new NativeRoster60Pvp(this);rosterPvp.open();}
+  void openRosterHumanBattle(JSONObject state){rosterBattle=new NativeRoster60PvpBattle(this,state);rosterBattle.open();}
   void openRosterBattle(){rosterBattle=new NativeRoster60Battle(this);rosterBattle.open();}
 
   void home() {
@@ -1059,6 +1062,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void team() {
+    if(roster60Menus()){openRosterPvp();return;}
     menus.team();
   }
 
@@ -1232,6 +1236,7 @@ public class MainActivity extends AppCompatActivity {
 
   void startFight(String mode, String stage) {
     if (mode.equals("normal") || mode.equals("rank")) {
+      if(roster60Menus()){openRosterPvp();return;}
       realtime.begin(mode);
       return;
     }
@@ -1467,6 +1472,7 @@ public class MainActivity extends AppCompatActivity {
 
   void back() {
     if (updateBlocks()) return;
+    if(screen.equals("roster60Pvp")&&rosterPvp!=null){rosterPvp.back();return;}
     if(screen.equals("roster60Battle")&&rosterBattle!=null){rosterBattle.back();return;}
     if((screen.equals("mix")||screen.equals("craftRecipes"))&&menus.economy.roster60Craft!=null)menus.economy.roster60Craft.leave();
     if (screen.equals("news") && menus.news.back()) return;
@@ -1556,7 +1562,9 @@ public class MainActivity extends AppCompatActivity {
     super.onResume();
     if (sound != null) sound.resume();
     if (requiredUpdate != null) requiredUpdate.resume();
-    if (realtime != null && !updateBlocks()) realtime.resume();
+    if (realtime != null && !updateBlocks() && !roster60Menus()) realtime.resume();
+    if(rosterPvp!=null&&screen.equals("roster60Pvp"))rosterPvp.resume();
+    if(rosterBattle instanceof NativeRoster60PvpBattle&&screen.equals("roster60Battle"))rosterBattle.resume();
     motionResumed = true;
     if (backgroundEffects != null) backgroundEffects.resumed(true);
     journalTime.resume();
@@ -1568,6 +1576,7 @@ public class MainActivity extends AppCompatActivity {
     if (requiredUpdate != null) requiredUpdate.pause();
     NativeBattleReplay.pause(this);
     if(rosterBattle!=null)rosterBattle.pause();
+    if(rosterPvp!=null)rosterPvp.pause();
     if (sound != null) sound.pause();
     if (realtime != null) realtime.pause();
     motionResumed = false;
