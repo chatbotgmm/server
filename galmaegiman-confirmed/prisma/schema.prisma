@@ -611,3 +611,34 @@ model Roster60RecruitSession {
  player Player @relation(fields:[playerId], references:[id], onDelete:Cascade)
  @@index([playerId,status])
 }
+
+// New roster human PvP; legacy rooms remain independently replayable.
+model Roster60PvpParty {
+ playerId String @id
+ ownedIds String
+}
+model Roster60PvpQueue {
+ playerId String @id
+ mode String
+ rating Int
+ tierIndex Int
+ ownedIds String
+ queuedAt DateTime
+ leaseUntil DateTime
+}
+model Roster60PvpMatch {
+ id String @id
+ player0Id String
+ player1Id String
+ mode String
+ status String @default("ACCEPTING")
+ revision Int @default(0)
+ seed String
+ snapshot String
+ state String
+ deadline DateTime
+ settlement String?
+ createdAt DateTime @default(now())
+ @@index([player0Id,status])
+ @@index([player1Id,status])
+}

@@ -1,3 +1,4 @@
+import {RosterPvp} from './roster60-pvp.js';
 import {RecruitSessions,type RecruitSessionPolicy} from './roster60-recruit-session.js';
 import {RosterAdventure} from './roster60-adventure.js';
 import {RosterLibrary} from './roster60-library.js';
@@ -19,7 +20,12 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   // No fallback to review fixtures or legacy character definitions.
   const catalog=()=>{if(!existsSync(file))return null;try{const c=JSON.parse(readFileSync(file,'utf8'));validateFiveStatCatalog(c);return c as RosterCatalog;}catch(e){throw new RosterError(503,e instanceof Error&&['FIVE_STAT_CATALOG_REQUIRED','FIVE_STAT_CATALOG_INVALID','FIVE_STATS_REQUIRED','INVALID_FIVE_STATS','BASE_MP_MISMATCH'].includes(e.message)?e.message:'ROSTER_CATALOG_INVALID');}};
   const policyFile=resolve(root,profile?'data/test-profiles/'+profile+'/battle-policy.json':'data/roster60-battle-policy.json');
-  const battle=new RosterBattle(db,catalog,()=>{if(!existsSync(policyFile))return null;try{return JSON.parse(readFileSync(policyFile,'utf8')) as BattlePolicy;}catch{throw new RosterError(503,'BATTLE_POLICY_INVALID');}});
+  const battlePolicy=()=>{if(!existsSync(policyFile))return null;try{return JSON.parse(readFileSync(policyFile,'utf8')) as BattlePolicy;}catch{throw new RosterError(503,'BATTLE_POLICY_INVALID');}};
+  const battle=new RosterBattle(db,catalog,battlePolicy);
+  const pvp=new RosterPvp(db,catalog,battlePolicy);
+  let pvpTimer:ReturnType<typeof setInterval>|undefined,pvpWork:Promise<unknown>|undefined;
+  app.addHook('onReady',async()=>{pvpTimer=setInterval(()=>{if(pvpWork)return;pvpWork=pvp.tick().catch(e=>app.log.error({err:e},'roster pvp deadline sweep')).finally(()=>{pvpWork=undefined;});},1000);pvpTimer.unref();});
+  app.addHook('onClose',async()=>{if(pvpTimer)clearInterval(pvpTimer);await pvpWork;});
   const service=new RosterOnboarding(db,catalog);
   const adventure=new RosterAdventure(db,catalog,fighter);
   const library=new RosterLibrary(db,catalog);
@@ -30,7 +36,7 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   const craft=new RosterCraft(db,catalog);
   const reincarnation=new RosterReincarnation(db,catalog);
   const empty=z.object({}).strict();
-  const route=(method:'GET'|'POST',path:string,run:(id:string,r:FastifyRequest)=>Promise<unknown>)=>app.route({method,url:'/my/api/native/roster60/'+path,bodyLimit:2048,config:{rateLimit:{max:60,timeWindow:'1 minute'}},handler:async(req,reply)=>{
+  const route=(method:'GET'|'POST',path:string,run:(id:string,r:FastifyRequest)=>Promise<unknown>)=>app.route({method,url:'/my/api/native/roster60/'+path,bodyLimit:2048,config:{rateLimit:{max:60,timeWindow:'1 minute',...(path.startsWith('pvp/')?{keyGenerator:(req:FastifyRequest)=>'roster-pvp:'+(auth(req)??'ip:'+req.ip)}:{})}},handler:async(req,reply)=>{
     reply.header('Cache-Control','no-store');if(!guard(req,reply))return;
     const id=auth(req);if(!id)return reply.code(401).send({error:'login'});
     try{return await run(id,req);}catch(e){
@@ -58,6 +64,14 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   route('POST','battle/read',(id,r)=>battle.read(id,z.object({battleId}).strict().parse(r.body).battleId));
   route('GET','battle/active',id=>battle.active(id));
   const action=z.discriminatedUnion('kind',[z.object({kind:z.literal('attack')}).strict(),z.object({kind:z.literal('focus')}).strict(),z.object({kind:z.literal('switch'),targetOwnedId:z.string().min(1).max(100)}).strict(),z.object({kind:z.literal('item'),itemId:z.string().min(1).max(100),targetOwnedId:z.string().min(1).max(100).optional()}).strict(),z.object({kind:z.literal('escape')}).strict(),z.object({kind:z.literal('skill'),skillId:z.string().min(1).max(100)}).strict()]);
+  route('GET','pvp/options',id=>pvp.options(id));
+  route('POST','pvp/party',(id,r)=>pvp.party(id,z.object({ownedIds:z.array(z.string().min(1).max(100)).min(1).max(6)}).strict().parse(r.body).ownedIds));
+  route('POST','pvp/join',(id,r)=>pvp.join(id,z.object({requestId,mode:z.enum(['normal','rank'])}).strict().parse(r.body)));
+  route('POST','pvp/cancel',(id,r)=>pvp.cancel(id,z.object({requestId}).strict().parse(r.body)));
+  route('GET','pvp/current',id=>pvp.current(id));
+  route('POST','pvp/accept',(id,r)=>pvp.accept(id,z.object({requestId,battleId,revision,accept:z.boolean()}).strict().parse(r.body)));
+  route('POST','pvp/action',(id,r)=>pvp.action(id,z.object({requestId,battleId,revision,action}).strict().parse(r.body)));
+  route('POST','pvp/settle',(id,r)=>pvp.settle(id,z.object({requestId,battleId,revision}).strict().parse(r.body)));
   route('POST','battle/action',(id,r)=>battle.action(id,z.object({requestId,battleId,revision,action}).strict().parse(r.body)));
   route('POST','battle/settle',(id,r)=>battle.settle(id,z.object({requestId,battleId,revision}).strict().parse(r.body)));
   route('GET','reincarnation/preview',id=>reincarnation.preview(id));

@@ -134,6 +134,7 @@ export class RealtimePvpService {
     return {attemptId:a.id,token:this.token(a),joinNotAfter:a.joinNotAfter.getTime(),serverNow:this.now()};
   });}
   private async roster(tx:Tx,playerId:string,selection?:string[],mode:Mode='rank'):Promise<{units:UnitRecord[];name:string;ids:string[]}>{
+    if(await tx.roster60State.findUnique({where:{playerId}}))fail('새 60종 대전 화면에서 진행해 주세요.');
     const p=await tx.player.findUniqueOrThrow({where:{id:playerId}});
     const previous=selection?null:await tx.realtimeLineup.findUnique({where:{playerId}});
     const ids:string[]=selection??(previous?JSON.parse(previous.teamJson):p.battleTeam.split(','));
