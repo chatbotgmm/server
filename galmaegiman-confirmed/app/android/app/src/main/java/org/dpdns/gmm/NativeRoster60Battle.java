@@ -10,7 +10,9 @@ class NativeRoster60Battle {
  static final Set<String> IN_FLIGHT=new HashSet<>();
  String owner,key; int epoch; LinearLayout container; TextView message,stats; Button retry,settle,returnAdventure;
  NativeRoster60Art art; CombatV2ReviewPanel panel; JSONObject view,adventure; boolean reading; android.app.AlertDialog selection;
- NativeRoster60Battle(MainActivity host){h=host;prefs=h.getSharedPreferences("roster60_product_battle",Context.MODE_PRIVATE);}
+ final Roster60BattleMode requestedMode;
+ NativeRoster60Battle(MainActivity host){this(host,Roster60BattleMode.ALL);}
+ NativeRoster60Battle(MainActivity host,Roster60BattleMode mode){h=host;requestedMode=mode;prefs=h.getSharedPreferences("roster60_product_battle",Context.MODE_PRIVATE);}
  boolean current(){return epoch==h.epoch&&"roster60Battle".equals(h.screen)&&owner.equals(h.api.token())&&!h.isDestroyed();}
  String storageScope(){return "";}
  void open(){
@@ -50,9 +52,10 @@ class NativeRoster60Battle {
  void options(){
   reading=true;h.api.call("native/roster60/battle/options",null,(r,e)->{
    if(!current())return;reading=false;if(e!=null){error(e);return;}
-   JSONArray units=r.optJSONArray("units"),encounters=r.optJSONArray("encounters");
+   JSONArray units=r.optJSONArray("units"),allEncounters=r.optJSONArray("encounters");
+   JSONArray encounters=new JSONArray();if(allEncounters!=null)for(int i=0;i<allEncounters.length();i++){JSONObject encounter=allEncounters.optJSONObject(i);if(encounter!=null&&requestedMode.includes(encounter.optString("mode")))encounters.put(encounter);}
    if(units==null||units.length()==0){message.setText("편성할 개체가 없습니다. 튜토리얼에서 갈매미맨으로 시작하세요.");return;}
-   if(encounters==null||encounters.length()==0){error("BATTLE_POLICY_PENDING");return;}
+   if(encounters.length()==0){message.setText("선택한 모드의 전투가 아직 준비되지 않았습니다.");return;}
    message.setText("전투 개체를 선택하세요.");String[] names=new String[units.length()];for(int i=0;i<names.length;i++)names[i]=units.optJSONObject(i).optString("name");
    selection=new GameDialog(h).navy().setTitle("전투 개체").setItems(names,(d,i)->{
     if(!current())return;String[] targets=new String[encounters.length()];for(int j=0;j<targets.length;j++)targets[j]=encounters.optJSONObject(j).optString("name");

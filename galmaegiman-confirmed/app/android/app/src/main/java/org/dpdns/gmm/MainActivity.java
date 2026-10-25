@@ -915,7 +915,8 @@ public class MainActivity extends AppCompatActivity {
   NativeRoster60Pvp rosterPvp;
   void openRosterPvp(){rosterPvp=new NativeRoster60Pvp(this);rosterPvp.open();}
   void openRosterHumanBattle(JSONObject state){rosterBattle=new NativeRoster60PvpBattle(this,state);rosterBattle.open();}
-  void openRosterBattle(){rosterBattle=new NativeRoster60Battle(this);rosterBattle.open();}
+  void openRosterBattle(){openRosterBattle(Roster60BattleMode.ALL);}
+  void openRosterBattle(Roster60BattleMode mode){rosterBattle=new NativeRoster60Battle(this,mode);rosterBattle.open();}
 
   void home() {
     if (nicknameRequired()) { NativeNicknameSetup.show(this); return; }
@@ -929,12 +930,12 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void chapters() {
-    if(roster60Menus()){openRosterBattle();return;}
+    if(roster60Menus()){openRosterBattle(Roster60BattleMode.STORY);return;}
     menus.story(false);
   }
 
   void stages() {
-    if(roster60Menus()){openRosterBattle();return;}
+    if(roster60Menus()){openRosterBattle(Roster60BattleMode.STORY);return;}
     menus.story(true);
   }
 
@@ -1076,7 +1077,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void expedition() {
-    if(roster60Menus()){openRosterBattle();return;}
+    if(roster60Menus()){openRosterBattle(Roster60BattleMode.ADVENTURE);return;}
     menus.economy.expedition();
   }
 
@@ -1110,7 +1111,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void practice() {
-    if(roster60Menus()){openRosterBattle();return;}
+    if(roster60Menus()){openRosterBattle(Roster60BattleMode.TRAINING);return;}
     menus.extras.practice();
   }
 

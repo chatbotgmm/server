@@ -29,6 +29,13 @@ public class Roster60ProductRoutingTest {
    editor.units=new JSONArray();editor.drawParty();assertFalse(editor.normal.isEnabled());assertFalse(editor.save.isEnabled());editor.pause();
   }
  }
+ @Test public void categoriesNeverOfferAnotherModesEncounters(){
+  for(String wire:new String[]{"story","duel","adventure","unknown",""}){
+   assertTrue(Roster60BattleMode.ALL.includes(wire));
+   for(Roster60BattleMode mode:new Roster60BattleMode[]{Roster60BattleMode.STORY,Roster60BattleMode.TRAINING,Roster60BattleMode.ADVENTURE})assertEquals(mode.wire.equals(wire),mode.includes(wire));
+  }
+  assertFalse(Roster60BattleMode.STORY.includes(null));
+ }
  @Test public void titleUsesNewStarterAndLoginHasNoChatCodeEntry(){
   assertEquals("/roster60-art/u01-front.webp",TitleView.GUARDIAN_PATH);
   try(var controller=fixtures.start()){

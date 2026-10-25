@@ -134,15 +134,15 @@ final class NativeMenus {
   }
 
   void storyModes() {
-    if(h.roster60Menus()){h.openRosterBattle();return;}
+    boolean roster60=h.roster60Menus();
     ModesLayout choices = modePage("스토리", "modesStory");
     Button story = modeCard("스토리모드", 3, () -> h.load("story"));
     story.setTag("modes-story");
     NativeTutorialController.anchorPreservingTag(story, "story");
-    Button adventure = modeCard("모험\n준비 중", 2, () -> {});
+    Button adventure = modeCard(roster60 ? "모험" : "모험\n준비 중", 2, () -> {if(roster60)h.openRosterBattle(Roster60BattleMode.ADVENTURE);});
     adventure.setTag("modes-adventure");
-    adventure.setEnabled(false);
-    adventure.setContentDescription("모험, 준비 중");
+    adventure.setEnabled(roster60);
+    adventure.setContentDescription(roster60?"새 60종 모험":"모험, 준비 중");
     addModeCard(choices, story, true);
     addModeCard(choices, adventure, false);
   }
