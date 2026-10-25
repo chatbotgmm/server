@@ -17,7 +17,7 @@ public class Roster60ProductPresentationTest {
   try(var c=fixtures.start()){MainActivity h=c.get();authenticate(h);NativeRoster60Battle b=new NativeRoster60Battle(h){@Override void resume(){}};b.open();b.bind(snapshot("ACTIVE"));
    h.root.measure(View.MeasureSpec.makeMeasureSpec(640,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(360,View.MeasureSpec.EXACTLY));h.root.layout(0,0,640,360);
    assertEquals(View.GONE,b.retry.getVisibility());assertEquals(View.GONE,b.settle.getVisibility());assertEquals(View.GONE,b.stats.getVisibility());assertNull(h.root.findViewWithTag("theme-page-header"));
-   assertTrue(b.art.getContentDescription().toString().contains("HP 120/150 MP 23/30"));assertTrue(b.art.getHeight()>0);assertTrue(b.panel.getTop()>=b.art.getBottom());
+   assertTrue(b.art.getContentDescription().toString().contains("HP 120/150 MP 23/30"));assertTrue(b.art.getHeight()>0);assertTrue(((View)b.panel.getParent()).getLeft()>=b.art.getRight());assertTrue(((View)b.panel.getParent()).getBackground() instanceof BattleSkin);assertTrue(b.art.getHeight()>b.art.getWidth()/2);
    int buttons=0;for(View v:NativeReviewDeepLinkTest.all(b.panel))if(v instanceof Button&&v.getVisibility()==View.VISIBLE){buttons++;assertTrue(v.getHeight()>=40);}assertEquals(6,buttons);
    assertFalse(b.message.getText().toString().contains("시험안"));assertFalse(b.message.getText().toString().contains("five-stat"));b.pause();
   }

@@ -22,14 +22,17 @@ class NativeRoster60Battle {
   container=new LinearLayout(h);container.setOrientation(LinearLayout.VERTICAL);container.setBackgroundColor(NavyWorkbenchTheme.HEADER);h.page.addView(container,new LinearLayout.LayoutParams(-1,0,1));
   LinearLayout toolbar=new LinearLayout(h);Button home=h.button("‹ 홈",()->back());home.setTextSize(12);toolbar.addView(home,new LinearLayout.LayoutParams(h.dp(72),h.dp(48)));
   message=h.text("전투 확인 중…",12);message.setTextColor(NavyWorkbenchTheme.TEXT);message.setMaxLines(2);toolbar.addView(message,new LinearLayout.LayoutParams(0,h.dp(48),1));container.addView(toolbar);
-  art=new NativeRoster60Art(h);art.setTag("roster60-battle-art");container.addView(art,new LinearLayout.LayoutParams(-1,0,1));
-  stats=h.text("",12);stats.setTextColor(NavyWorkbenchTheme.TEXT);stats.setMaxLines(3);stats.setVisibility(android.view.View.GONE);container.addView(stats);
-  LinearLayout controls=new LinearLayout(h);controls.setOrientation(LinearLayout.HORIZONTAL);container.addView(controls);
+  // Same field/right-hand command split as production BattleView.onMeasure().
+  LinearLayout arena=new LinearLayout(h);arena.setOrientation(LinearLayout.HORIZONTAL);arena.setBaselineAligned(false);container.addView(arena,new LinearLayout.LayoutParams(-1,0,1));
+  art=new NativeRoster60Art(h);art.setTag("roster60-battle-art");arena.addView(art,new LinearLayout.LayoutParams(0,-1,BattleView.FIELD_WIDTH_FRACTION));
+  LinearLayout commandRail=new LinearLayout(h);commandRail.setOrientation(LinearLayout.VERTICAL);commandRail.setTag("roster60-command-rail");commandRail.setPadding(h.dp(8),h.dp(8),h.dp(8),h.dp(8));commandRail.setBackground(new BattleSkin(h,"panel-command"));arena.addView(commandRail,new LinearLayout.LayoutParams(0,-1,1-BattleView.FIELD_WIDTH_FRACTION));
+  stats=h.text("",12);stats.setTextColor(NavyWorkbenchTheme.TEXT);stats.setMaxLines(3);stats.setVisibility(android.view.View.GONE);commandRail.addView(stats);
+  LinearLayout controls=new LinearLayout(h);controls.setOrientation(LinearLayout.HORIZONTAL);commandRail.addView(controls);
   retry=h.button("연결 재시도",()->{if(adventure!=null&&"ACTIVE".equals(adventure.optString("status")))chooseAdventureBattle();else resume();});retry.setTag("roster60-battle-retry");controls.addView(retry,new LinearLayout.LayoutParams(0,h.dp(48),1));
   settle=h.button("정산 다시 시도",()->{if(view!=null)mutate("settle",h.obj("battleId",view.optString("battleId"),"revision",view.optInt("revision")));});settle.setTag("roster60-battle-settle");settle.setEnabled(false);controls.addView(settle,new LinearLayout.LayoutParams(0,h.dp(48),1));
   returnAdventure=h.button("모험 정상 복귀",()->{if(adventure!=null)mutate("adventure/return",h.obj("adventureId",adventure.optString("adventureId"),"revision",adventure.optInt("revision")));});controls.addView(returnAdventure,new LinearLayout.LayoutParams(0,h.dp(48),1));
   for(Button button:new Button[]{retry,settle,returnAdventure}){button.setVisibility(android.view.View.GONE);NavyWorkbenchTheme.tab(h,button,false);button.setTextSize(12);button.setMinWidth(0);button.setMinimumWidth(0);button.setMaxLines(2);}
-  panel=new CombatV2ReviewPanel(h,this::command,CombatV2ReviewStyle::icon,true);panel.setTag("roster60-battle-panel");container.addView(panel,new LinearLayout.LayoutParams(-1,h.dp(162)));resume();
+  panel=new CombatV2ReviewPanel(h,this::command,CombatV2ReviewStyle::icon,true);panel.setTag("roster60-battle-panel");commandRail.addView(panel,new LinearLayout.LayoutParams(-1,0,1));resume();
  }
  void resume(){
   if(!current()||reading||(selection!=null&&selection.isShowing()))return;

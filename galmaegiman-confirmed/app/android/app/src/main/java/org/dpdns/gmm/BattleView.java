@@ -9,6 +9,7 @@ import org.json.*;
 
 /** Android Canvas 장면과 네이티브 조작 버튼. 메뉴 뒤 큰 패널은 사용하지 않는다. */
 final class BattleView extends FrameLayout implements FullBleed {
+  static final float FIELD_WIDTH_FRACTION = .655f;
   final MainActivity host;
   final DragParallax parallax;
   final JSONObject battle;
@@ -229,7 +230,7 @@ final class BattleView extends FrameLayout implements FullBleed {
   }
 
   RectF statusArea(int side) {
-    float world = uiWidth * .655f, height = Math.min(host.dp(92), uiHeight * .24f);
+    float world = uiWidth * FIELD_WIDTH_FRACTION, height = Math.min(host.dp(92), uiHeight * .24f);
     return side == 0
         ? new RectF(world * .53f, uiHeight * .91f - height, world * .96f, uiHeight * .91f)
         : new RectF(world * .04f, uiHeight * .055f, world * .47f, uiHeight * .055f + height);
@@ -267,7 +268,7 @@ final class BattleView extends FrameLayout implements FullBleed {
     arenaWidth = w;
     arenaHeight = h;
     tablet = (float) uiWidth / uiHeight < 1.85f;
-    panelLeft = Math.round(uiWidth * .655f);
+    panelLeft = Math.round(uiWidth * FIELD_WIDTH_FRACTION);
     panelWidth = uiWidth - panelLeft - host.dp(tablet ? 48 : 32);
     logHeight = 0;
     logBox.setVisibility(GONE);
@@ -1050,7 +1051,7 @@ final class BattleView extends FrameLayout implements FullBleed {
           ? BattleSkin.bitmap(host,"bg-harbor")
           : background == null ? null : host.art.scene(background, this::invalidate);
       if (bg != null) {
-        float scale = Math.max((safeLeft + uiWidth * .655f) / bg.getWidth(), h / bg.getHeight()),
+        float scale = Math.max((safeLeft + uiWidth * FIELD_WIDTH_FRACTION) / bg.getWidth(), h / bg.getHeight()),
             baseWidth = bg.getWidth() * scale,
             baseHeight = bg.getHeight() * scale,
             bw = baseWidth * 1.035f,

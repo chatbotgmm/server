@@ -67,7 +67,7 @@ final class CombatV2ReviewPanel extends LinearLayout {
   private void render() {
     cancelHolds();timers.clear();gestures.clear();holdButtons.clear();rows.removeAllViews();
     if(dto==null)return;
-    if(product&&getLayoutParams()!=null){android.view.ViewGroup.LayoutParams size=getLayoutParams();int target=dp(96+productDetailsHeight()+(skills?48:0));if(size.height!=target){size.height=target;setLayoutParams(size);}}
+    // Product height is allocated by the existing right-hand battlefield rail.
     JSONObject self=dto.optJSONObject("self");
     status.setText(product?getContext().getString(R.string.roster60_battle_vitals,self.optString("name"),self.optInt("hp"),self.optInt("maxHp"),self.optInt("mp"),self.optInt("maxMp")):CombatV2ReviewStyle.format(getContext(),"status",self.optString("name"),self.optInt("hp"),self.optInt("maxHp"),self.optInt("mp"),self.optInt("maxMp")));
     hp.setMax(self.optInt("maxHp"));hp.setProgress(self.optInt("hp"));hp.setContentDescription("HP "+self.optInt("hp"));mp.setMax(self.optInt("maxMp"));mp.setProgress(self.optInt("mp"));mp.setContentDescription("MP "+self.optInt("mp"));
@@ -89,6 +89,13 @@ final class CombatV2ReviewPanel extends LinearLayout {
         icons.bind(button,skillPage?entry.optString("element").toLowerCase(java.util.Locale.ROOT):entry.optString("kind"));
         String shownWhy=why;
         if(!product&&!skillPage&&("item".equals(entry.optString("kind"))||"switch".equals(entry.optString("kind"))||"escape".equals(entry.optString("kind"))))shownWhy=CombatV2ReviewStyle.label(getContext(),entry.optString("kind")+"_reason");
+        if(product && getContext() instanceof MainActivity){
+          MainActivity host=(MainActivity)getContext();String kind=entry.optString("kind");
+          String surface=skillPage?"attack":"escape".equals(kind)?"surrender":"item".equals(kind)?"item":"switch".equals(kind)?"switch":"attack";
+          button.setBackground(new BattleSkin(host,"button-"+surface));button.setTypeface(host.headline);
+          button.setTextColor("surrender".equals(surface)?JournalTheme.INK:0xfffff8e8);
+          button.setCompoundDrawables(null,null,null,null);
+        }
         button.setText(label+(shownWhy.isEmpty()?"":"\n"+shownWhy));button.setContentDescription(label+" "+why);
         button.setEnabled(!pending && (skillPage || entry.optBoolean("enabled")));
         button.setOnClickListener(v->{

@@ -8,8 +8,8 @@ import java.io.*;
 final class NativeRoster60Art extends View {
  final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);final JSONObject index;
  final Bitmap[] images=new Bitmap[2];final float[] heights={1,1};final String[] ids={"",""};
- String problem="";JSONObject snapshot;Bitmap background;
- NativeRoster60Art(Context c){super(c);JSONObject loaded;try(InputStream in=c.getAssets().open("roster60-art/index.json")){loaded=new JSONObject(new String(in.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));}catch(Exception e){loaded=new JSONObject();problem="전투 아트 준비 중";}index=loaded;if(c instanceof MainActivity)background=BattleSkin.bitmap((MainActivity)c,"bg-harbor");setContentDescription("아군 후면 · 적 정면");}
+ String problem="";JSONObject snapshot;Bitmap background;BattleSkin hpSkin;
+ NativeRoster60Art(Context c){super(c);JSONObject loaded;try(InputStream in=c.getAssets().open("roster60-art/index.json")){loaded=new JSONObject(new String(in.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));}catch(Exception e){loaded=new JSONObject();problem="전투 아트 준비 중";}index=loaded;if(c instanceof MainActivity){background=BattleSkin.bitmap((MainActivity)c,"bg-harbor");hpSkin=new BattleSkin((MainActivity)c,"panel-hp");}setContentDescription("아군 후면 · 적 정면");}
  JSONObject entry(String id)throws Exception {JSONArray all=index.getJSONArray("entries");for(int i=0;i<all.length();i++)if(all.getJSONObject(i).getString("id").equals(id))return all.getJSONObject(i);throw new IOException("unknown art");}
  void bind(JSONObject state){snapshot=state;JSONArray fighters=state.optJSONArray("fighters");if(fighters==null)return;
   for(int side=0;side<2;side++){String id=fighters.optJSONObject(side).optString("speciesId");if(id.equals(ids[side]))continue;ids[side]=id;images[side]=null;
@@ -34,15 +34,15 @@ final class NativeRoster60Art extends View {
  void hud(Canvas c,JSONObject fighter,boolean self,float w,float h){
   if(fighter==null)return;float d=getResources().getDisplayMetrics().density;
   float width=Math.min(w*.42f,270*d),height=Math.min(68*d,h*.46f),x=self?w-width-6*d:6*d,y=self?h-height-4*d:4*d;
-  RectF box=new RectF(x,y,x+width,y+height);paint.setColor(0xe8102433);c.drawRoundRect(box,6*d,6*d,paint);
-  float font=Math.min(13*getResources().getDisplayMetrics().scaledDensity,height*.23f);paint.setColor(NavyWorkbenchTheme.TEXT);paint.setTextSize(font);paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+  RectF box=new RectF(x,y,x+width,y+height);if(hpSkin!=null)hpSkin.surface(c,box);else{paint.setColor(0xfff4e4ba);c.drawRoundRect(box,6*d,6*d,paint);}
+  float font=Math.min(13*getResources().getDisplayMetrics().scaledDensity,height*.23f);paint.setColor(JournalTheme.INK);paint.setTextSize(font);paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
   String name=fighter.optString("name")+"  Lv"+fighter.optInt("level",1);float fit=Math.min(1,(width-16*d)/Math.max(1,paint.measureText(name)));paint.setTextSize(font*fit);c.drawText(name,x+8*d,y+height*.26f,paint);
   JSONObject stats=fighter.optJSONObject("stats");if(stats==null)return;
   meter(c,"HP",fighter.optInt("hp"),stats.optInt("hp"),x+8*d,y+height*.48f,width-16*d,height*.16f,0xff72c98b);
   meter(c,"MP",fighter.optInt("mp"),stats.optInt("mp"),x+8*d,y+height*.79f,width-16*d,height*.16f,0xff76b9eb);
  }
  void meter(Canvas c,String label,int value,int max,float x,float y,float w,float h,int color){
-  paint.setTypeface(android.graphics.Typeface.DEFAULT);paint.setTextSize(11*getResources().getDisplayMetrics().scaledDensity);paint.setColor(NavyWorkbenchTheme.TEXT);c.drawText(label+" "+value+"/"+max,x,y,paint);
+  paint.setTypeface(android.graphics.Typeface.DEFAULT);paint.setTextSize(11*getResources().getDisplayMetrics().scaledDensity);paint.setColor(JournalTheme.INK);c.drawText(label+" "+value+"/"+max,x,y,paint);
   float top=y+h*.2f;paint.setColor(0xff263f4d);c.drawRoundRect(new RectF(x,top,x+w,top+h*.35f),h/3,h/3,paint);
   paint.setColor(color);c.drawRoundRect(new RectF(x,top,x+w*Math.max(0,Math.min(1,value/(float)Math.max(1,max))),top+h*.35f),h/3,h/3,paint);
  }
