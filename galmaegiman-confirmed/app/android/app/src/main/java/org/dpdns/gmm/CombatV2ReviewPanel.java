@@ -40,15 +40,16 @@ final class CombatV2ReviewPanel extends LinearLayout {
   CombatV2ReviewPanel(Context context,Transport transport,IconBinder icons,boolean product) {
     super(context); this.product=product; this.transport=transport; this.icons=java.util.Objects.requireNonNull(icons); setOrientation(VERTICAL);
     status=new TextView(context);status.setTextSize(12);CombatV2ReviewStyle.text(status); addView(status,new LayoutParams(-1,-2));if(product)status.setVisibility(GONE);
-    hp=bar("hp");mp=bar("mp");
+    hp=bar("hp");mp=bar("mp");if(product){hp.setVisibility(GONE);mp.setVisibility(GONE);}
     badge=new TextView(context);CombatV2ReviewStyle.text(badge);badge.setTextSize(11);addView(badge,new LayoutParams(-1,dp(20)));
-    details=new TextView(context);CombatV2ReviewStyle.text(details); details.setVisibility(INVISIBLE); details.setTextSize(11); details.setMaxLines(3); addView(details,new LayoutParams(-1,dp(product?32:48)));
+    details=new TextView(context);CombatV2ReviewStyle.text(details); details.setVisibility(INVISIBLE); details.setTextSize(11); details.setMaxLines(3); addView(details,new LayoutParams(-1,dp(product?productDetailsHeight():48)));
     rows=new LinearLayout(context); rows.setOrientation(VERTICAL); addView(rows,new LayoutParams(-1,0,1));
     back=new Button(context);back.setText(CombatV2ReviewStyle.label(context,"back"));back.setContentDescription(CombatV2ReviewStyle.label(getContext(),"back_description"));
-    addView(back,new LayoutParams(-1,dp(product?32:40)));back.setOnClickListener(v->{skills=false;render();});
+    addView(back,new LayoutParams(-1,dp(product?48:40)));back.setOnClickListener(v->{skills=false;render();});
   }
 
   private ProgressBar bar(String name){ProgressBar b=new ProgressBar(getContext(),null,android.R.attr.progressBarStyleHorizontal);b.setProgressDrawable(getResources().getDrawable(CombatV2ReviewStyle.resource(getContext(),"drawable",name)));addView(b,new LayoutParams(-1,dp(4)));return b;}
+  private int productDetailsHeight(){return (int)Math.ceil(28*getResources().getConfiguration().fontScale);}
   private int dp(int n){return (int)(n*getResources().getDisplayMetrics().density+.5f);}
   void lock(){pending=true;render();}
   void cancelInteraction(){cancelHolds();}
@@ -66,19 +67,20 @@ final class CombatV2ReviewPanel extends LinearLayout {
   private void render() {
     cancelHolds();timers.clear();gestures.clear();holdButtons.clear();rows.removeAllViews();
     if(dto==null)return;
+    if(product&&getLayoutParams()!=null){android.view.ViewGroup.LayoutParams size=getLayoutParams();int target=dp(96+productDetailsHeight()+(skills?48:0));if(size.height!=target){size.height=target;setLayoutParams(size);}}
     JSONObject self=dto.optJSONObject("self");
     status.setText(product?getContext().getString(R.string.roster60_battle_vitals,self.optString("name"),self.optInt("hp"),self.optInt("maxHp"),self.optInt("mp"),self.optInt("maxMp")):CombatV2ReviewStyle.format(getContext(),"status",self.optString("name"),self.optInt("hp"),self.optInt("maxHp"),self.optInt("mp"),self.optInt("maxMp")));
     hp.setMax(self.optInt("maxHp"));hp.setProgress(self.optInt("hp"));hp.setContentDescription("HP "+self.optInt("hp"));mp.setMax(self.optInt("maxMp"));mp.setProgress(self.optInt("mp"));mp.setContentDescription("MP "+self.optInt("mp"));
     JSONArray events=dto.optJSONArray("events");String defense="normal";boolean hasDefense=false;
     for(int i=events.length()-1;i>=0;i--){JSONObject e=events.optJSONObject(i);if(e.has("defense")){defense=e.optString("defense");hasDefense=true;break;}}
-    badge.setVisibility(product&&!hasDefense?INVISIBLE:VISIBLE);badge.setText(CombatV2ReviewStyle.label(getContext(),"badge_"+defense));badge.setBackgroundResource(CombatV2ReviewStyle.resource(getContext(),"drawable","badge_"+defense));
+    badge.setVisibility(product?GONE:VISIBLE);badge.setText(CombatV2ReviewStyle.label(getContext(),"badge_"+defense));badge.setBackgroundResource(CombatV2ReviewStyle.resource(getContext(),"drawable","badge_"+defense));
     JSONArray entries=dto.optJSONArray(skills?"skills":"commands");
     for(int row=0;row<2;row++) {
       LinearLayout line=new LinearLayout(getContext());line.setOrientation(HORIZONTAL);
       rows.addView(line,new LayoutParams(-1,0,1));
       for(int col=0;col<3;col++) {
         JSONObject entry=entries.optJSONObject(row*3+col);
-        Button button=new Button(getContext());button.setMinHeight(0);button.setMinimumHeight(0);button.setPadding(dp(2),0,dp(2),0);button.setTextSize(10);button.setMaxLines(2);CombatV2ReviewStyle.button(button);
+        Button button=new Button(getContext());button.setMinHeight(0);button.setMinimumHeight(0);button.setPadding(dp(2),0,dp(2),0);button.setTextSize(product?12:10);button.setMaxLines(2);CombatV2ReviewStyle.button(button);
         line.addView(button,new LayoutParams(0,-1,1));
         if(entry==null){button.setText(CombatV2ReviewStyle.label(getContext(),"empty"));button.setEnabled(false);continue;}
         boolean skillPage=skills;
@@ -97,7 +99,7 @@ final class CombatV2ReviewPanel extends LinearLayout {
         if(skillPage)hold(button,entry);
       }
     }
-    back.setVisibility(skills?VISIBLE:INVISIBLE);back.setEnabled(!pending);
+    back.setVisibility(skills?VISIBLE:(product?GONE:INVISIBLE));back.setEnabled(!pending);
   }
   private void send(String kind,String skillId) {
     try {
@@ -115,7 +117,7 @@ final class CombatV2ReviewPanel extends LinearLayout {
     SkillHoldGesture gesture=new SkillHoldGesture(timeout,config.getScaledTouchSlop());gestures.add(gesture);
     Runnable timer=()->{if(gesture.hold(SystemClock.uptimeMillis())){button.setPressed(false);button.setSelected(true);
       details.setText(entry.optString("name")+" · "+elementName(entry.optString("element"))+" · MP "+entry.optInt("mpCost")
-          +" · "+CombatV2ReviewStyle.label(getContext(),"suitability")+" "+dto.optJSONObject("self").optJSONObject("suitability").optDouble(entry.optString("element"))+"\n"+entry.optString("description")+"\n"+entry.optString("reason"));details.setVisibility(VISIBLE);
+          +" · "+CombatV2ReviewStyle.label(getContext(),"suitability")+" "+dto.optJSONObject("self").optJSONObject("suitability").optDouble(entry.optString("element"))+"\n"+entry.optString("description")+(product?" · ":"\n")+entry.optString("reason"));details.setVisibility(VISIBLE);
     }};timers.add(timer);
     button.setOnTouchListener((v,event)->{
       switch(event.getActionMasked()) {

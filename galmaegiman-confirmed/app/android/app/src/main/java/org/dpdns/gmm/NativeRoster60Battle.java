@@ -8,7 +8,7 @@ import org.json.*;
 class NativeRoster60Battle {
  final MainActivity h; final SharedPreferences prefs;
  static final Set<String> IN_FLIGHT=new HashSet<>();
- String owner,key; int epoch; LinearLayout container; TextView message,stats; Button retry,settle,returnAdventure;
+ String owner,key,autoSettled="",settlementError=""; int epoch; LinearLayout container; TextView message,stats; Button retry,settle,returnAdventure;
  NativeRoster60Art art; CombatV2ReviewPanel panel; JSONObject view,adventure; boolean reading; android.app.AlertDialog selection;
  final Roster60BattleMode requestedMode;
  NativeRoster60Battle(MainActivity host){this(host,Roster60BattleMode.ALL);}
@@ -18,18 +18,18 @@ class NativeRoster60Battle {
  void open(){
   if(h.api.token().isEmpty()){h.login();return;}
   h.base("전투","roster60Battle");owner=h.api.token();key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner+storageScope());epoch=h.epoch;
-  h.page.removeViewAt(h.page.getChildCount()-1);
-  container=new LinearLayout(h);container.setOrientation(LinearLayout.HORIZONTAL);container.setBackground(NavyWorkbenchTheme.surface(h,NavyWorkbenchTheme.PANEL,NavyWorkbenchTheme.LINE,10));h.page.addView(container,new LinearLayout.LayoutParams(-1,0,1));
-  LinearLayout info=new LinearLayout(h);info.setOrientation(LinearLayout.VERTICAL);container.addView(info,new LinearLayout.LayoutParams(0,-1,2));
-  message=h.text("서버 전투 확인 중…",12);message.setTextColor(NavyWorkbenchTheme.TEXT);message.setMaxLines(2);info.addView(message);
-  stats=h.text("",11);stats.setTextColor(NavyWorkbenchTheme.TEXT);stats.setMaxLines(8);info.addView(stats,new LinearLayout.LayoutParams(-1,0,1));
-  LinearLayout controls=new LinearLayout(h);controls.setOrientation(LinearLayout.HORIZONTAL);info.addView(controls);
-  retry=h.button("다시 확인",()->{if(adventure!=null&&"ACTIVE".equals(adventure.optString("status")))chooseAdventureBattle();else resume();});retry.setTag("roster60-battle-retry");controls.addView(retry,new LinearLayout.LayoutParams(0,h.dp(48),1));
-  settle=h.button("결과 받기",()->{if(view!=null)mutate("settle",h.obj("battleId",view.optString("battleId"),"revision",view.optInt("revision")));});settle.setTag("roster60-battle-settle");settle.setEnabled(false);controls.addView(settle,new LinearLayout.LayoutParams(0,h.dp(48),1));
-  returnAdventure=h.button("모험 정상 복귀",()->{if(adventure!=null)mutate("adventure/return",h.obj("adventureId",adventure.optString("adventureId"),"revision",adventure.optInt("revision")));});returnAdventure.setVisibility(android.view.View.GONE);controls.addView(returnAdventure,new LinearLayout.LayoutParams(0,h.dp(48),1));
-  for(Button b:new Button[]{retry,settle,returnAdventure}){CombatV2ReviewStyle.button(b);b.setTextSize(11);b.setMinWidth(0);b.setMinimumWidth(0);b.setPadding(2,0,2,0);b.setMaxLines(2);}
-  art=new NativeRoster60Art(h);art.setTag("roster60-battle-art");container.addView(art,new LinearLayout.LayoutParams(0,-1,2));
-  panel=new CombatV2ReviewPanel(h,this::command,CombatV2ReviewStyle::icon,true);panel.setTag("roster60-battle-panel");container.addView(panel,new LinearLayout.LayoutParams(0,-1,3));resume();
+  h.page.removeAllViews();
+  container=new LinearLayout(h);container.setOrientation(LinearLayout.VERTICAL);container.setBackgroundColor(NavyWorkbenchTheme.HEADER);h.page.addView(container,new LinearLayout.LayoutParams(-1,0,1));
+  LinearLayout toolbar=new LinearLayout(h);Button home=h.button("‹ 홈",()->back());home.setTextSize(12);toolbar.addView(home,new LinearLayout.LayoutParams(h.dp(72),h.dp(48)));
+  message=h.text("전투 확인 중…",12);message.setTextColor(NavyWorkbenchTheme.TEXT);message.setMaxLines(2);toolbar.addView(message,new LinearLayout.LayoutParams(0,h.dp(48),1));container.addView(toolbar);
+  art=new NativeRoster60Art(h);art.setTag("roster60-battle-art");container.addView(art,new LinearLayout.LayoutParams(-1,0,1));
+  stats=h.text("",12);stats.setTextColor(NavyWorkbenchTheme.TEXT);stats.setMaxLines(3);stats.setVisibility(android.view.View.GONE);container.addView(stats);
+  LinearLayout controls=new LinearLayout(h);controls.setOrientation(LinearLayout.HORIZONTAL);container.addView(controls);
+  retry=h.button("연결 재시도",()->{if(adventure!=null&&"ACTIVE".equals(adventure.optString("status")))chooseAdventureBattle();else resume();});retry.setTag("roster60-battle-retry");controls.addView(retry,new LinearLayout.LayoutParams(0,h.dp(48),1));
+  settle=h.button("정산 다시 시도",()->{if(view!=null)mutate("settle",h.obj("battleId",view.optString("battleId"),"revision",view.optInt("revision")));});settle.setTag("roster60-battle-settle");settle.setEnabled(false);controls.addView(settle,new LinearLayout.LayoutParams(0,h.dp(48),1));
+  returnAdventure=h.button("모험 정상 복귀",()->{if(adventure!=null)mutate("adventure/return",h.obj("adventureId",adventure.optString("adventureId"),"revision",adventure.optInt("revision")));});controls.addView(returnAdventure,new LinearLayout.LayoutParams(0,h.dp(48),1));
+  for(Button button:new Button[]{retry,settle,returnAdventure}){button.setVisibility(android.view.View.GONE);NavyWorkbenchTheme.tab(h,button,false);button.setTextSize(12);button.setMinWidth(0);button.setMinimumWidth(0);button.setMaxLines(2);}
+  panel=new CombatV2ReviewPanel(h,this::command,CombatV2ReviewStyle::icon,true);panel.setTag("roster60-battle-panel");container.addView(panel,new LinearLayout.LayoutParams(-1,h.dp(162)));resume();
  }
  void resume(){
   if(!current()||reading||(selection!=null&&selection.isShowing()))return;
@@ -39,10 +39,10 @@ class NativeRoster60Battle {
    JSONArray battles=r.optJSONArray("battles");if(battles!=null&&battles.length()>0){read(battles.optJSONObject(0).optString("battleId"));return;}adventureResume();
   });
  }
- void adventureResume(){reading=true;h.api.call("native/roster60/adventure/active",null,(r,e)->{if(!current())return;reading=false;if(e!=null){error(e);return;}JSONArray runs=r.optJSONArray("adventures");if(runs!=null&&runs.length()>0)showAdventure(runs.optJSONObject(0));else{adventure=null;returnAdventure.setVisibility(android.view.View.GONE);options();}});}
+ void adventureResume(){reading=true;h.api.call("native/roster60/adventure/active",null,(r,e)->{if(!current())return;reading=false;if(e!=null){if(e.startsWith("MENU_LOCKED")&&requestedMode!=Roster60BattleMode.ADVENTURE){options();return;}error(e);return;}JSONArray runs=r.optJSONArray("adventures");if(runs!=null&&runs.length()>0)showAdventure(runs.optJSONObject(0));else{adventure=null;returnAdventure.setVisibility(android.view.View.GONE);options();}});}
  void showAdventure(JSONObject run){
-  adventure=run;view=null;panel.lock();settle.setEnabled(false);boolean active="ACTIVE".equals(run.optString("status"));returnAdventure.setVisibility(active?android.view.View.VISIBLE:android.view.View.GONE);returnAdventure.setEnabled(active&&run.isNull("activeBattleId"));retry.setText(active?"모험 계속":"다시 확인");
-  message.setText(active?"모험 전투 밖 · 도망 성공은 복귀가 아닙니다.":"모험 "+run.optString("status"));stats.setText("미정산 보상 "+run.optJSONObject("pendingRewards")+"\n정상 복귀 시 지급 · 전멸 시 이 모험의 미정산 보상 소멸");
+  adventure=run;view=null;panel.lock();panel.setVisibility(android.view.View.GONE);stats.setVisibility(android.view.View.VISIBLE);retry.setVisibility(android.view.View.VISIBLE);settle.setEnabled(false);boolean active="ACTIVE".equals(run.optString("status"));returnAdventure.setVisibility(active?android.view.View.VISIBLE:android.view.View.GONE);returnAdventure.setEnabled(active&&run.isNull("activeBattleId"));retry.setText(active?"모험 계속":"홈으로");retry.setOnClickListener(v->{if(active)chooseAdventureBattle();else h.load("home");});
+  message.setText(active?"모험 전투 밖 · 도망 성공은 복귀가 아닙니다.":"모험 종료");stats.setText("정상 복귀하면 모은 보상을 획득합니다.\n전멸하면 이번 모험의 미정산 보상을 잃습니다.");
  }
  void chooseAdventureBattle(){if(!current()||adventure==null||reading)return;reading=true;h.api.call("native/roster60/battle/options",null,(r,e)->{if(!current())return;reading=false;if(e!=null){error(e);return;}JSONArray all=r.optJSONArray("encounters");ArrayList<JSONObject> encounters=new ArrayList<>();if(all!=null)for(int i=0;i<all.length();i++)if("adventure".equals(all.optJSONObject(i).optString("mode")))encounters.add(all.optJSONObject(i));if(encounters.isEmpty()){error("ADVENTURE_ENCOUNTER_PENDING");return;}
   JSONArray party=adventure.optJSONArray("party");ArrayList<JSONObject> alive=new ArrayList<>();for(int i=0;i<party.length();i++)if(party.optJSONObject(i).optInt("hp")>0)alive.add(party.optJSONObject(i));String[] names=new String[alive.size()];for(int i=0;i<names.length;i++)names[i]=alive.get(i).optString("name")+" HP "+alive.get(i).optInt("hp");
@@ -96,6 +96,7 @@ class NativeRoster60Battle {
  }
  void mutate(String op,JSONObject body){
   if(!current()||!prefs.getString(key+":pending","").isEmpty())return;
+  if("settle".equals(op))settlementError="";
   try{body.put("requestId",UUID.randomUUID().toString());JSONObject intent=h.obj("operation",op,"body",body);
    if(!prefs.edit().putString(key+":pending",intent.toString()).commit()){error("요청 저장 실패");return;}send(intent);
   }catch(Exception bad){error("요청 생성 실패");}
@@ -106,29 +107,37 @@ class NativeRoster60Battle {
   if(!IN_FLIGHT.add(id)){message.setText("서버 응답 확인 중…");return;}panel.lock();settle.setEnabled(false);
   h.api.call("native/roster60/"+(op.startsWith("adventure/")?op:"battle/"+op),body,(r,e)->{
    IN_FLIGHT.remove(id);if(!owner.equals(h.api.token()))return;
-   boolean rejected=Arrays.asList("ADVENTURE_REQUIRED","ADVENTURE_NOT_FOUND","ADVENTURE_BATTLE_ACTIVE","ADVENTURE_STATE_CHANGED","RETURN_ONLY_OUTSIDE_BATTLE","CATALOG_CHANGED","UNIT_STATE_CHANGED","INVALID_PARTY","INVALID_SWITCH","INVALID_ITEM","INVALID_ITEM_TARGET","NO_STATUS_TO_CLEANSE","HP_FULL","ITEM_UNAVAILABLE","ACTIVE_UNIT_FAINTED","FORCED_SWITCH_REQUIRED","FORCED_SWITCH_POLICY_PENDING","ESCAPE_POLICY_PENDING","BATTLE_POLICY_PENDING","BATTLE_POLICY_INVALID","BATTLE_GROWTH_PENDING","BATTLE_SKILL_POLICY_PENDING","FIVE_STAT_REBIRTH_POLICY_PENDING","ROSTER_CATALOG_PENDING","FIVE_STAT_CATALOG_REQUIRED","FIVE_STAT_CATALOG_INVALID","FIVE_STATS_REQUIRED","INVALID_FIVE_STATS","BASE_MP_MISMATCH","ROSTER_CATALOG_INVALID","INSUFFICIENT_MP","STALE_REVISION","UNIT_UNAVAILABLE","UNIT_NOT_FOUND","ENCOUNTER_NOT_ALLOWED","BATTLE_NOT_FOUND","BATTLE_FINISHED","BATTLE_NOT_FINISHED","INVALID_REQUEST","REQUEST_ID_REUSED","CAP_XP_POLICY_REQUIRED").contains(e);
+   boolean rejected=(e!=null&&e.startsWith("MENU_LOCKED"))||Arrays.asList("ADVENTURE_REQUIRED","ADVENTURE_NOT_FOUND","ADVENTURE_BATTLE_ACTIVE","ADVENTURE_STATE_CHANGED","RETURN_ONLY_OUTSIDE_BATTLE","CATALOG_CHANGED","UNIT_STATE_CHANGED","INVALID_PARTY","INVALID_SWITCH","INVALID_ITEM","INVALID_ITEM_TARGET","NO_STATUS_TO_CLEANSE","HP_FULL","ITEM_UNAVAILABLE","ACTIVE_UNIT_FAINTED","FORCED_SWITCH_REQUIRED","FORCED_SWITCH_POLICY_PENDING","ESCAPE_POLICY_PENDING","BATTLE_POLICY_PENDING","BATTLE_POLICY_INVALID","BATTLE_GROWTH_PENDING","BATTLE_SKILL_POLICY_PENDING","FIVE_STAT_REBIRTH_POLICY_PENDING","ROSTER_CATALOG_PENDING","FIVE_STAT_CATALOG_REQUIRED","FIVE_STAT_CATALOG_INVALID","FIVE_STATS_REQUIRED","INVALID_FIVE_STATS","BASE_MP_MISMATCH","ROSTER_CATALOG_INVALID","INSUFFICIENT_MP","STALE_REVISION","UNIT_UNAVAILABLE","UNIT_NOT_FOUND","ENCOUNTER_NOT_ALLOWED","BATTLE_NOT_FOUND","BATTLE_FINISHED","BATTLE_NOT_FINISHED","INVALID_REQUEST","REQUEST_ID_REUSED","CAP_XP_POLICY_REQUIRED").contains(e);
    if(e==null||rejected)prefs.edit().remove(key+":pending").commit();
    if(!current())return;
-   if(e!=null){error(e);if(rejected&&view!=null)read(view.optString("battleId"));return;}
+   if(e!=null){if("settle".equals(op))settlementError=e;error(e);if(rejected&&view!=null&&!"settle".equals(op))read(view.optString("battleId"));return;}
    // Receipt may be older than current state after reconnect: read authoritative latest.
    if(op.startsWith("adventure/")){showAdventure(r);return;}
    bind(r);read(r.optString("battleId"));
   });
  }
- void error(String e){message.setText(e.contains("PENDING")||e.contains("CATALOG")?h.getString(R.string.roster60_battle_pending)+"\n"+e:e);}
+ void error(String e){if(view!=null&&"FINISHED".equals(view.optString("status"))){settle.setVisibility(android.view.View.VISIBLE);settle.setEnabled(true);}retry.setVisibility(android.view.View.VISIBLE);retry.setText("연결 재시도");retry.setOnClickListener(v->resume());message.setText(e.contains("PENDING")||e.contains("CATALOG")?h.getString(R.string.roster60_battle_pending)+"\n"+e:e);}
  void bind(JSONObject r){
   try{
    JSONObject s=r.getJSONObject("state");art.bind(s);if(!"five-battle-v1".equals(s.getString("version")))throw new JSONException("version");
    JSONArray fighters=s.getJSONArray("fighters");JSONObject self=fighters.getJSONObject(0),foe=fighters.getJSONObject(1);
-   StringBuilder text=new StringBuilder();for(JSONObject f:new JSONObject[]{self,foe}){JSONObject v=f.getJSONObject("stats");text.append(f.getString("name")).append(" · 체력 ").append(f.getInt("hp")).append('/').append(v.getInt("hp")).append(" · MP ").append(f.getInt("mp")).append('/').append(v.getInt("mp")).append(" · 내구력 ").append(v.getInt("durability")).append(" · 저항력 ").append(v.getInt("statusResistance")).append(" · 속도 ").append(v.getInt("speed")).append('\n');}
-   stats.setText(text);boolean active="ACTIVE".equals(r.getString("status"));JSONArray commands=new JSONArray(),skills=new JSONArray();String[] ids={"attack","skills","focus","item","switch","escape"},labels={"공격","기술","집중","아이템","교체","도망치기"};
+   stats.setText("");stats.setVisibility(android.view.View.GONE);boolean active="ACTIVE".equals(r.getString("status"));JSONArray commands=new JSONArray(),skills=new JSONArray();String[] ids={"attack","skills","focus","item","switch","escape"},labels={"공격","기술","집중","아이템","교체","도망치기"};
    for(int i=0;i<6;i++){String reason=i<3?"":r.optJSONObject("disabledCommands")==null?"정책 준비 중":r.optJSONObject("disabledCommands").optString(ids[i]);boolean enabled=active&&reason.isEmpty();if(i<3&&self.optInt("hp")==0){enabled=false;reason="전투불가";}commands.put(h.obj("kind",ids[i],"label",labels[i],"enabled",enabled,"reason",reason));}
    JSONArray raw=self.getJSONArray("skills");for(int i=0;i<raw.length();i++){JSONObject sk=new JSONObject(raw.getJSONObject(i).toString());boolean enabled=active&&self.optInt("hp")>0&&self.getInt("mp")>=sk.getInt("mpCost");sk.put("enabled",enabled);sk.put("reason",active?(enabled?"":"MP 부족"):"전투 종료");sk.put("description","위력 "+sk.optDouble("power"));skills.put(sk);}
    JSONObject displaySelf=new JSONObject(self.toString());displaySelf.put("maxHp",self.getJSONObject("stats").getInt("hp"));displaySelf.put("maxMp",self.getJSONObject("stats").getInt("mp"));JSONObject displayFoe=new JSONObject(foe.toString());displayFoe.put("maxHp",foe.getJSONObject("stats").getInt("hp"));displayFoe.put("maxMp",foe.getJSONObject("stats").getInt("mp"));
    panel.bind(h.obj("epoch","product-five-battle-v1","battleId",r.getString("battleId"),"revision",r.getInt("revision"),"self",displaySelf,"foe",displayFoe,"commands",commands,"skills",skills,"events",new JSONArray()));
-   adventure=null;returnAdventure.setVisibility(android.view.View.GONE);retry.setText("다시 확인");view=r;message.setText(active?(r.optBoolean("testBaseline")?"시험안 "+r.optString("balanceProfile"):"서버 전투")+" · 턴 "+s.getInt("turn"):"SETTLED".equals(r.getString("status"))?"정산 완료 · "+r.getJSONObject("settlement").optString("outcome"):"전투 종료 · "+s.optString("outcome"));if(active&&self.optInt("hp")==0)message.setText("출전 개체 전투불가 · 교체를 눌러 생존 예비 선택 · 행동 소모 없음");settle.setEnabled("FINISHED".equals(r.getString("status")));
+   adventure=null;returnAdventure.setVisibility(android.view.View.GONE);retry.setVisibility(android.view.View.GONE);settle.setVisibility(android.view.View.GONE);view=r;
+   panel.setVisibility(active?android.view.View.VISIBLE:android.view.View.GONE);
+   message.setText(active?"턴 "+s.getInt("turn")+" · 행동을 선택하세요":resultLabel(s.optString("outcome")));
+   if(active&&self.optInt("hp")==0)message.setText("전투불가 · 생존한 예비 개체를 선택하세요");
+   if("FINISHED".equals(r.optString("status"))&&!settlementError.isEmpty()){error(settlementError);}
+   else if("FINISHED".equals(r.optString("status"))){message.setText(resultLabel(s.optString("outcome"))+" · 결과 정산 중…");
+    if(!r.optString("battleId").equals(autoSettled)){autoSettled=r.optString("battleId");final String id=autoSettled;h.page.post(()->{if(current()&&view!=null&&id.equals(view.optString("battleId"))&&"FINISHED".equals(view.optString("status")))mutate("settle",h.obj("battleId",id,"revision",view.optInt("revision")));});}
+   }else if("SETTLED".equals(r.optString("status"))){stats.setVisibility(android.view.View.VISIBLE);JSONObject receipt=r.optJSONObject("settlement");boolean exploring="adventure".equals(s.optString("mode"));stats.setText(exploring?"LOST".equals(receipt==null?"":receipt.optString("adventureStatus"))?"전멸로 이번 모험의 미정산 보상을 잃었습니다.":"모험 보상은 누적 보관됩니다. 정상 복귀 시 획득합니다.":"경험치 +"+(receipt==null?0:receipt.optInt("xpAwarded"))+" · 결과 저장 완료");retry.setVisibility(android.view.View.VISIBLE);retry.setText(exploring?"모험 확인":"홈으로");retry.setOnClickListener(v->{if(exploring)adventureResume();else h.load("home");});}
+
   }catch(Exception bad){view=null;panel.lock();settle.setEnabled(false);message.setText("서버 전투 데이터 형식을 확인할 수 없습니다.");}
  }
+ static String resultLabel(String outcome){return "win".equals(outcome)?"승리":"loss".equals(outcome)?"패배":"escaped".equals(outcome)?"도망 성공":"전투 종료";}
  boolean back(){if(panel!=null){panel.cancelInteraction();if(panel.showCommands())return true;}h.load("home");return true;}
  void pause(){if(panel!=null)panel.cancelInteraction();if(selection!=null){selection.dismiss();selection=null;}}
 }
