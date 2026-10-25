@@ -5,7 +5,7 @@ import {RosterError,type RosterCatalog} from './roster60-onboarding.js';
 import {loadContent} from './content.js';
 export const rosterGrades={COMMON:'커먼',UNCOMMON:'언커먼',RARE:'레어',EPIC:'에픽',LEGEND:'전설',HIDDEN:'히든',LIMITED:'제한',TRANSCEND:'초월',IMMORTAL:'불멸',ETERNAL:'영원'};
 // Approved grant levels, independent of unapproved offer prices/grade weights.
-export const recruitGrantLevels=Object.freeze({COMMON:1,UNCOMMON:1,EPIC:15});
+export const recruitGrantLevels=Object.freeze({COMMON:1,UNCOMMON:1,RARE:10,EPIC:15,LEGEND:20,HIDDEN:20});
 export function recruitmentGrowth(unit:RosterCatalog['characters'][number]){
  const level=recruitGrantLevels[unit.rarity as keyof typeof recruitGrantLevels];
  if(level===undefined)throw new RosterError(409,'RECRUIT_LEVEL_POLICY_PENDING');
