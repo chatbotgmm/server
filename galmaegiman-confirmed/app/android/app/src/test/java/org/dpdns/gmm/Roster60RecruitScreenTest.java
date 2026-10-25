@@ -75,7 +75,7 @@ public class Roster60RecruitScreenTest {
  // 후보 회차(서버 정책 켜짐): 예전 모집소에서 등급을 고르면 후보 화면으로 가고, 새로고침 비용은 모집 비용의 절반.
  static class SessionApi extends NativeApi {final List<String> paths=new ArrayList<>();final List<JSONObject> posts=new ArrayList<>();NativeApi.Result pending;SessionApi(Context c){super(c);}@Override String token(){return "roster60-session-counter";}
   @Override void call(String p,JSONObject b,Result cb){paths.add(p);try{
-   if(p.equals("native/roster60/recruit/session")){cb.done(MainActivity.obj("enabled",true,"catalogVersion","roster60-fixture","offers",new JSONArray()
+   if(p.equals("native/roster60/recruit/session")){cb.done(MainActivity.obj("enabled",true,"catalogVersion","roster60-fixture","credits",200,"offers",new JSONArray()
      .put(MainActivity.obj("kind","LOW","label","하급","cost",2,"rerollCost",1,"weights",MainActivity.obj("COMMON",700,"UNCOMMON",280,"RARE",20)))
      .put(MainActivity.obj("kind","MID","label","중급","cost",6,"rerollCost",3,"weights",MainActivity.obj("UNCOMMON",700,"RARE",280,"EPIC",20)))
      .put(MainActivity.obj("kind","HIGH","label","고급","cost",10,"rerollCost",5,"weights",MainActivity.obj("RARE",90,"EPIC",9,"LEGEND",0.5,"HIDDEN",0.5))),"sessions",new JSONArray()),null);return;}
@@ -90,14 +90,15 @@ public class Roster60RecruitScreenTest {
    // 확률은 서버가 보낸 값 그대로(1000 기준 → %). 앱에 고정된 숫자 없음.
    Button odds=(Button)tag(h,"draw-pity");assertEquals(View.VISIBLE,odds.getVisibility());assertEquals("언커먼 70% · 레어 28%\n에픽 2%",odds.getText().toString());assertEquals("모집 확률 · 언커먼 70% · 레어 28% · 에픽 2%",odds.getContentDescription().toString());
    assertTrue(((TextView)tag(h,"draw-total")).getText().toString().startsWith("필요 6"));
-   described(h.root,"모집 수량 늘리기").performClick();idle();assertTrue(((TextView)tag(h,"draw-total")).getText().toString().startsWith("필요 6"));
+   described(h.root,"모집 수량 늘리기").performClick();idle();assertTrue(((TextView)tag(h,"draw-total")).getText().toString().startsWith("필요 12"));
    tag(h,"draw-card-HIGH").performClick();idle();helper.layout(h,SIZES[0]);assertTrue(((TextView)tag(h,"draw-total")).getText().toString().startsWith("필요 10"));
    assertEquals("레어 90% · 에픽 9%\n전설 0.5% · 히든 0.5%",((Button)tag(h,"draw-pity")).getText().toString());
    if(System.getProperty("gmm.nativeReviewOutput")==null)System.setProperty("gmm.nativeReviewOutput","build/native-review");
    helper.review.capture(h,"roster60-session-counter-high-915x412",915,412);
    tag(h,"draw-card-MID").performClick();idle();
-   RecruitmentScreen screen=(RecruitmentScreen)tag(h,"recruitment-stations");screen.roster.buy(screen.selected,screen.amount);idle();
-   assertEquals(1,api.posts.size());assertEquals("MID",api.posts.get(0).getString("kind"));assertEquals("roster60-fixture",api.posts.get(0).getString("catalogVersion"));
+   described(h.root,"모집 수량 늘리기").performClick();idle();
+   RecruitmentScreen screen=(RecruitmentScreen)tag(h,"recruitment-stations");assertEquals(2,screen.amount);screen.roster.buy(screen.selected,screen.amount);idle();
+   assertEquals(1,api.posts.size());assertEquals("MID",api.posts.get(0).getString("kind"));assertEquals(2,api.posts.get(0).getInt("times"));assertEquals("roster60-fixture",api.posts.get(0).getString("catalogVersion"));
    JSONObject cand=MainActivity.obj("speciesId","u25","name","룬장인","rarity","RARE","level",3);
    api.pending.done(MainActivity.obj("requestId",api.posts.get(0).getString("requestId"),"sessionId","s1","revision",0,"status","PENDING","rerolls",0,"rerollCost",3,"baseCost",6,"candidate",cand,"credits",4),null);idle();helper.layout(h,SIZES[0]);
    assertNotNull("후보 등록증",h.root.findViewWithTag("recruit-registration-card"));

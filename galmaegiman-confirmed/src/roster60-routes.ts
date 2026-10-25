@@ -102,7 +102,8 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   route('POST','recruit',(id,r)=>library.recruit(id,z.object({requestId,kind:z.enum(['LOW','MID','HIGH']),times:z.number().int().min(1).max(50),catalogVersion:z.string().min(1).max(100)}).strict().parse(r.body)));
   route('GET','recruit/session',id=>recruitSessions.info(id));
   route('POST','recruit/session/read',(id,r)=>recruitSessions.read(id,z.object({sessionId:z.string().uuid()}).strict().parse(r.body).sessionId));
-  route('POST','recruit/session/start',(id,r)=>recruitSessions.start(id,z.object({requestId,kind:z.enum(['LOW','MID','HIGH']),catalogVersion:z.string().min(1).max(100)}).strict().parse(r.body)));
+  route('POST','recruit/session/start',(id,r)=>recruitSessions.start(id,z.object({requestId,kind:z.enum(['LOW','MID','HIGH']),catalogVersion:z.string().min(1).max(100),times:z.number().int().min(1).max(50).optional()}).strict().parse(r.body)));
+  route('POST','recruit/session/claim-all',(id,r)=>recruitSessions.claimAll(id,z.object({requestId,sessions:z.array(z.object({sessionId:z.string().uuid(),revision}).strict()).min(1).max(50)}).strict().parse(r.body)));
   route('POST','recruit/session/action',(id,r)=>recruitSessions.action(id,z.object({requestId,sessionId:z.string().uuid(),revision,action:z.enum(['reroll','claim'])}).strict().parse(r.body)));
   route('GET','home',id=>home.read(id));
   route('POST','home/rebirth-intro/complete',(id,r)=>{empty.parse(r.body);return home.completeIntro(id);});

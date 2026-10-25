@@ -19,4 +19,17 @@ public class NativeRoster60RecruitSessionTest {
  helper.png(NativeHomePartyFeedbackTest.render(h.root),"recruit-session-640x320-robolectric.png");
  }}
  @Test public void reducedMotionAndDetachKeepCommittedReplacement()throws Exception{try(ActivityController<MainActivity> c=helper.flow.start()){MainActivity h=c.get();helper.prepare(h);RecruitCardTransition card=new RecruitCardTransition(h);TextView old=new TextView(h),next=new TextView(h);card.replace(old,false);card.replace(next,false);assertSame(next,card.getChildAt(0));assertNull(card.animation);TextView newer=new TextView(h);card.replace(newer,true);card.onDetachedFromWindow();assertSame(newer,card.getChildAt(0));assertNull(card.animation);assertEquals(0,newer.getTranslationY(),0);}}
+ @Test public void batchPagingKeepsOtherCardsAndOffscreenBulkClaimRestoresWithoutNewCharge()throws Exception{
+ try(ActivityController<MainActivity> c=helper.flow.start()){MainActivity h=c.get();helper.prepare(h);Api api=new Api(h);h.api=api;h.motionEnabled=false;h.getSharedPreferences("roster60_recruit_session",0).edit().clear().commit();
+ JSONObject a=state(0).put("sessionId","a").put("batchId","batch"),b=state(0).put("sessionId","b").put("batchId","batch");
+ NativeRecruitSession screen=new NativeRecruitSession(h);screen.fromCounter=true;screen.open(info().put("sessions",new JSONArray().put(a).put(b)));screen.page(1);assertEquals("b",screen.state.getString("sessionId"));
+ ((Button)h.root.findViewWithTag("recruit-reroll")).performClick();assertEquals("b",api.bodies.get(0).getString("sessionId"));JSONObject changed=new JSONObject(b.toString()).put("revision",1).put("rerolls",1).put("requestId",api.bodies.get(0).getString("requestId"));api.pending.done(changed,null);
+ assertEquals(0,screen.candidates.getJSONObject(0).getInt("rerolls"));assertEquals(1,screen.candidates.getJSONObject(1).getInt("rerolls"));assertFalse(((Button)h.root.findViewWithTag("recruit-reroll")).isEnabled());
+ ((Button)h.root.findViewWithTag("recruit-claim-all")).performClick();assertEquals(2,api.bodies.get(1).getJSONArray("sessions").length());h.epoch++;
+ api.pending.done(MainActivity.obj("requestId",api.bodies.get(1).getString("requestId"),"credits",193,"sessions",new JSONArray().put(new JSONObject(a.toString()).put("revision",1).put("status","CLAIMED")).put(new JSONObject(changed.toString()).put("revision",2).put("status","CLAIMED"))),null);
+ NativeRecruitSession resumed=new NativeRecruitSession(h);resumed.fromCounter=true;resumed.open(info().put("sessions",new JSONArray()));assertFalse(resumed.hasPending());assertEquals(2,resumed.candidates.length());assertEquals(2,api.bodies.size());assertNotNull(h.root.findViewWithTag("recruit-back-counter"));
+ // An old replay must not undo a later claimed revision.
+ resumed.acceptResult(changed);assertEquals("CLAIMED",resumed.candidates.getJSONObject(1).getString("status"));
+ }}
+
 }

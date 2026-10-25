@@ -15,7 +15,7 @@ final class Roster60RecruitPurchase {
  final MainActivity h;final SharedPreferences prefs;final String owner,key;final JSONObject info;boolean busy;
  // 요청 상태가 바뀌면 화면 버튼(모집하기/결과 확인 중)을 다시 그린다.
  Runnable changed=()->{};
- // 후보 회차 정보. 있으면 모집하기가 1회 후보 회차를 시작하고(수량 1), 후보 화면에서 수령·새로고침한다.
+ // 후보 회차 정보. 있으면 모집하기가 1회 후보 회차를 시작하고(선택 수량), 후보 화면에서 수령·새로고침한다.
  JSONObject session;
  Roster60RecruitPurchase(MainActivity h,JSONObject info){this.h=h;this.info=info;owner=h.api.token();key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner);prefs=h.getSharedPreferences("roster60_recruit",Context.MODE_PRIVATE);}
  boolean pending(){return session==null&&(busy||!prefs.getString(key,"").isEmpty());}
@@ -49,7 +49,7 @@ final class Roster60RecruitPurchase {
  static String oddsText(JSONObject offer,String separator){JSONArray rows=weightRows(offer);StringBuilder b=new StringBuilder();for(int i=0;i<rows.length();i++){JSONObject r=rows.optJSONObject(i);if(b.length()>0)b.append(separator);b.append(r.optString("tierName")).append(' ').append(RecruitmentProbabilityView.number((Number)r.opt("w"))).append('%');}return b.toString();}
 
  void buy(JSONObject g,int times){
-  if(session!=null){if(!g.optBoolean("enabled"))return;NativeRecruitSession s=new NativeRecruitSession(h);s.fromCounter=true;s.open(session);s.queue("start",MainActivity.obj("kind",g.optString("kind"),"catalogVersion",session.optString("catalogVersion")));return;}
+  if(session!=null){if(!g.optBoolean("enabled"))return;NativeRecruitSession s=new NativeRecruitSession(h);s.fromCounter=true;s.open(session);s.queue("start",MainActivity.obj("kind",g.optString("kind"),"catalogVersion",session.optString("catalogVersion"),"times",times));return;}
   if(pending()||!g.optBoolean("enabled"))return;
   try{JSONObject body=MainActivity.obj("kind",g.optString("kind"),"times",times,"catalogVersion",info.optString("catalogVersion"),"requestId",UUID.randomUUID().toString());if(prefs.edit().putString(key,body.toString()).commit()){changed.run();send();}}catch(Exception ignored){}
  }

@@ -112,6 +112,13 @@ final class NativeEconomy {
       try {
         Roster60RecruitPurchase purchase = new Roster60RecruitPurchase(h, session);
         purchase.session = session;
+        NativeRecruitSession history = new NativeRecruitSession(h);
+        if (history.hasSavedResult()) {
+          Button previous = k.action(null, "↺", () -> { history.fromCounter = true; history.open(session); });
+          previous.setTag("draw-last-result"); previous.setTextSize(22);
+          previous.setContentDescription("지난 모집 결과 다시 보기"); previous.setPadding(0, 0, 0, 0);
+          header.addView(previous, 2, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+        }
         counter.addView(new RecruitmentScreen(this, Roster60RecruitPurchase.merge(h.me(), session, System.currentTimeMillis()), purchase),
             new LinearLayout.LayoutParams(-1, -1));
       } catch (JSONException bad) { counter.addView(k.note("모집 정보를 읽지 못했어요.")); }
