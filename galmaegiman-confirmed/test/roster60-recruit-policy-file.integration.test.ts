@@ -44,14 +44,44 @@ suite('approved recruit policy file on isolated DB',()=>{
    expect((await db.player.findUniqueOrThrow({where:{id}})).credits).toBe(before);
   }finally{await app.close();if(previous===undefined)delete process.env.ROSTER60_PROFILE;else process.env.ROSTER60_PROFILE=previous;}
  });
- it('all 0.5% boundaries preserve balance when grant level is not approved',async()=>{
-  for(const ticket of [0,8999,9900,9949,9950,9999]){
-   const before=await db.player.findUniqueOrThrow({where:{id}});
-   const service=new RecruitSessions(db,()=>c,()=>policy,max=>max===10000?ticket:0);
-   await expect(service.start(id,{requestId:randomUUID(),kind:'HIGH',catalogVersion:c.version})).rejects.toMatchObject({code:'RECRUIT_LEVEL_POLICY_PENDING'});
-   expect((await db.player.findUniqueOrThrow({where:{id}})).credits).toBe(before.credits);
-   expect(await db.roster60RecruitSession.count({where:{playerId:id,status:'PENDING'}})).toBe(0);
-  }
+ // Both ends of every positive probability band, across all three offers.
+ const draws=policy.offers.flatMap(offer=>{let offset=0;return recruitWeightTickets(offer.weights).flatMap(([grade,count])=>{const start=offset;offset+=count;return [start,offset-1].map(ticket=>({offer,grade,ticket}));});});
+ it.each(draws)('$offer.kind ticket $ticket grants $grade at its approved level exactly once',async({offer,grade,ticket})=>{
+  const player=await db.player.create({data:{identity:randomUUID(),credits:100}});
+  try{
+   await new RosterOnboarding(db,()=>c).start(player.id);
+   const pool=c.characters.filter((u:any)=>u.rarity===grade);
+   let memberDraw=0;
+   const service=new RecruitSessions(db,()=>c,()=>policy,max=>{
+    if(max===10000)return ticket;
+    expect(max).toBe(pool.length);return memberDraw++===0?0:max-1;
+   });
+   const credits=async()=>(await db.player.findUniqueOrThrow({where:{id:player.id}})).credits;
+   const countBefore=await db.roster60Owned.count({where:{playerId:player.id}});
+   const request={requestId:randomUUID(),kind:offer.kind,catalogVersion:c.version};
+   const [start,retry]=await Promise.all([service.start(player.id,request),service.start(player.id,request)]);
+   expect(retry).toEqual(start);expect(start.candidate).toMatchObject({speciesId:pool[0].id,rarity:grade});
+   expect(await credits()).toBe(100-offer.cost);
+   expect(await db.roster60Owned.count({where:{playerId:player.id}})).toBe(countBefore);
+   const reroll={requestId:randomUUID(),sessionId:start.sessionId,revision:start.revision,action:'reroll' as const};
+   const [next,again]=await Promise.all([service.action(player.id,reroll),service.action(player.id,reroll)]);
+   expect(again).toEqual(next);expect(next.rerolls).toBe(1);
+   expect(next.candidate).toMatchObject({speciesId:pool[pool.length-1].id,rarity:grade});
+   expect(await credits()).toBe(100-offer.cost-offer.cost/2);
+   await expect(service.action(player.id,{...reroll,requestId:randomUUID(),revision:next.revision})).rejects.toMatchObject({code:'RECRUIT_REROLL_USED'});
+   const level=({COMMON:1,UNCOMMON:1,RARE:10,EPIC:15,LEGEND:20,HIDDEN:20} as Record<string,number>)[grade];
+   const xp=pool[pool.length-1].growth[level-1].totalXp;
+   expect(next.candidate).toMatchObject({level,totalXp:xp,xp:0});
+   const claim={requestId:randomUUID(),sessionId:start.sessionId,revision:next.revision,action:'claim' as const};
+   const [done,duplicate]=await Promise.all([service.action(player.id,claim),service.action(player.id,claim)]);
+   expect(duplicate).toEqual(done);expect(done.status).toBe('CLAIMED');
+   const owned=await db.roster60Owned.findUniqueOrThrow({where:{id:done.ownedId}});
+   expect(owned.speciesId).toBe(next.candidate.speciesId);expect(owned.totalXp).toBe(BigInt(xp));
+   expect(await db.roster60Owned.count({where:{playerId:player.id}})).toBe(countBefore+1);
+   await expect(service.action(player.id,{...claim,requestId:randomUUID(),revision:done.revision})).rejects.toMatchObject({code:'STALE_REVISION'});
+   expect(await credits()).toBe(100-offer.cost-offer.cost/2);
+   expect(await service.read(player.id,start.sessionId)).toMatchObject({status:'CLAIMED',ownedId:owned.id,candidate:next.candidate});
+  }finally{await db.player.delete({where:{id:player.id}});}
  });
  it('rejects disallowed pools and invalid percentages before changing balances',async()=>{
   const invalid:Record<string,number>[]=[{COMMON:100},{LIMITED:100},{TRANSCEND:100},{IMMORTAL:100},{ETERNAL:100},{RARE:99},{RARE:-1,EPIC:101},{RARE:NaN}];
