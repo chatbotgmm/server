@@ -33,6 +33,9 @@ final class LobbyView extends FrameLayout implements FullBleed {
   final RectF menuPanel = new RectF(), heroStage = new RectF(), tipRegion = new RectF();
   static final int[] MENU_ITEMS = {1, 2, 3, 0, 4, 12, 6, 14};
   boolean menuOpen, dismissGesture, rebirthUnlocked;
+  JSONObject menuAccess;
+  boolean menuAccessLoading;
+  long menuAccessFetchedAt;
   android.app.AlertDialog rebirthIntro;
   Typeface homeHeading;
   final Button gull;
@@ -54,6 +57,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
         public void run() {
           if (!current()) return;
           updateBadges();
+          if(menuOpen&&android.os.SystemClock.elapsedRealtime()-menuAccessFetchedAt>15000)fetchMenuAccess();
           String day = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Seoul")).toString();
           if (!dailyDay.equals(day) && !dailyLoading) fetchDaily();
           postDelayed(this, 1000);
@@ -136,8 +140,8 @@ final class LobbyView extends FrameLayout implements FullBleed {
     buttons.get(12).setTag("lobby-team");
     add("메뉴", () -> setMenuOpen(!menuOpen));
     buttons.get(13).setTag("lobby-menu-toggle");
-    add("환생", () -> {if(rebirthUnlocked)NativeProgression.openRosterRebirth(host);});
-    buttons.get(14).setTag("lobby-rebirth");buttons.get(14).setEnabled(false);buttons.get(14).setContentDescription("환생 잠김 · 제한 이상 개체 첫 획득 시 해제");
+    add("환생", () -> {if(rebirthUnlocked)NativeProgression.openRosterRebirth(host);else host.message("제한·초월·불멸·영원 개체를 먼저 획득해 주세요.");});
+    buttons.get(14).setTag("lobby-rebirth");buttons.get(14).setEnabled(true);buttons.get(14).setContentDescription("환생 잠김 · 제한 이상 개체 첫 획득 시 해제");
     add("우편함", () -> {host.menus.news.tab=0;host.load("news");});
     buttons.get(15).setTag("lobby-news");
     for (Button button : buttons) button.setId(View.generateViewId());
@@ -207,7 +211,11 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
 
   void add(String name, Runnable click) {
+    final int index=buttons.size();
     Button b = host.button(name, () -> {
+      if(featureId(index)!=null && !featureEnabled(index)) {
+        host.message(lockReason(index));fetchMenuAccess();return;
+      }
       if (menuOpen && !name.equals("메뉴")) setMenuOpen(false);
       click.run();
     });
@@ -285,6 +293,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
     if (host.journalTime != null) host.journalTime.addListener(motionChanged);
     live = true;
     liveEpoch = host.epoch;
+    fetchMenuAccess();
     fetchRosterHome();
     refreshBadges.run();
     host.api.call(
@@ -348,6 +357,7 @@ final class LobbyView extends FrameLayout implements FullBleed {
   void setMenuOpen(boolean open) {
     if (menuOpen == open) return;
     menuOpen = open;
+    if(open)fetchMenuAccess();
     parallax.close();
     for (int i : MENU_ITEMS) buttons.get(i).setVisibility(open ? View.VISIBLE : View.GONE);
     updateMenuDescription();
@@ -657,6 +667,8 @@ final class LobbyView extends FrameLayout implements FullBleed {
   void menuTile(Canvas c, int index, String name, String icon) {
     RectF r = boxes[index];
     controlSurface(c, index, r);
+    boolean locked=featureId(index)!=null&&!featureEnabled(index);
+    if(locked){p.setColor(Color.argb(150,55,59,65));c.drawRoundRect(r,host.dp(8),host.dp(8),p);}
     float labelHeight = Math.min(host.dp(26), r.height() * .27f);
     // A wide envelope must not be fitted into a square slot: its visible height
     // would shrink again even after removing transparent padding.
@@ -668,11 +680,12 @@ final class LobbyView extends FrameLayout implements FullBleed {
     }
     else menuArt.navigationIcon(c, index, new RectF(r.centerX()-iconWidth/2,
         r.top+host.dp(7), r.centerX()+iconWidth/2, r.top+host.dp(7)+iconHeight));
+    if(locked)label(c,"🔒",r.right-host.dp(16),r.top+host.dp(22),host.dp(16),true,Color.LTGRAY);
     float font = canvasTextSize(host.dp(16), labelHeight-host.dp(3), true);
     p.setTypeface(homeHeading); p.setTextSize(font);
     font *= Math.min(1, (r.width()-host.dp(20))/Math.max(1,p.measureText(name)));
     label(c, name, r.centerX(), centeredBaseline(r.bottom-labelHeight/2-host.dp(8), font, true),
-        font, true, controlInk(index));
+        font, true, locked?Color.LTGRAY:controlInk(index));
   }
 
   /** A distinct brass bell, not the recruitment envelope asset. */
@@ -1023,14 +1036,42 @@ final class LobbyView extends FrameLayout implements FullBleed {
         });
   }
 
+  static String featureId(int index){
+    switch(index){case 0:return "adventure";case 1:return "recruit";case 2:return "roster";
+      case 3:return "craft";case 4:case 9:case 10:case 11:return "shop";
+      case 6:return "daily";case 12:return "party";case 14:return "rebirth";default:return null;}
+  }
+  boolean featureEnabled(int index){
+    String id=featureId(index);if(id==null)return true;
+    JSONObject features=menuAccess==null?null:menuAccess.optJSONObject("features");
+    JSONObject entry=features==null?null:features.optJSONObject(id);
+    return entry!=null&&entry.optBoolean("enabled",false);
+  }
+  String lockReason(int index){
+    if(menuAccess==null)return "메뉴 권한을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+    JSONObject features=menuAccess.optJSONObject("features"),entry=features==null?null:features.optJSONObject(featureId(index));
+    return entry!=null&&"ACCOUNT_LOCKED".equals(entry.optString("reason"))?
+      "이 계정에서는 잠긴 메뉴입니다.":"테스트 준비 중인 메뉴입니다. 관리자가 계정별로 열 수 있습니다.";
+  }
+  void fetchMenuAccess(){
+    if(menuAccessLoading)return;menuAccessLoading=true;menuAccessFetchedAt=android.os.SystemClock.elapsedRealtime();String owner=host.api.token();
+    host.api.call("native/menu-access",null,(r,e)->{
+      menuAccessLoading=false;if(!current()||!owner.equals(host.api.token()))return;
+      menuAccess=e==null?r:null;
+      for(int index:MENU_ITEMS)buttons.get(index).setContentDescription(
+        buttons.get(index).getText()+ (featureEnabled(index)?"":" · 잠김 · "+lockReason(index)));
+      invalidate();
+    });
+  }
+
   void fetchRosterHome(){
     String owner=host.api.token();
     host.api.call("native/roster60/home",null,(r,e)->{
       if(!current()||!owner.equals(host.api.token())||e!=null||r==null)return;
-      rebirthUnlocked=r.optBoolean("rebirthUnlocked");buttons.get(14).setEnabled(rebirthUnlocked);
+      rebirthUnlocked=r.optBoolean("rebirthUnlocked");buttons.get(14).setEnabled(true);
       buttons.get(14).setContentDescription(rebirthUnlocked?"환생 · 조건과 안내 확인":"환생 잠김 · 제한 이상 개체 첫 획득 시 해제");
       badges[15]=r.optInt("mailUnread")>0||r.optBoolean("mailRewardPending");buttons.get(15).setContentDescription("우편함"+(badges[15]?" · 안 읽은 우편 또는 받을 보상 있음":""));invalidate();
-      if(r.optBoolean("rebirthIntroPending")&&rebirthIntro==null){
+      if(featureEnabled(14)&&r.optBoolean("rebirthIntroPending")&&rebirthIntro==null){
         rebirthIntro=new GameDialog(host).navy().setTitle("환생 기능 해제")
           .setMessage("제한·초월·불멸·영원 개체를 획득해 환생 안내가 열렸습니다. 실제 환생은 60·70·80·90·99레벨 조건을 따릅니다. HP·MP·내구력 기본값이 회당 10% 증가하며 속도·저항력은 유지됩니다. 시험 기본안입니다.")
           .setNegativeButton("나중에",(d,w)->{rebirthIntro=null;})

@@ -49,7 +49,7 @@ export class ReviewAuth {
 }
 // 새 API는 명시적으로 검토하여 추가. 계정 연결/삭제, 관리자, 쿠폰 제외.
 // 실시간 PvP(일반·랭크)는 일반 이용자와 같은 규칙·매칭으로 연다. 심사 계정에만 다른 게임 동작을 두지 않는다.
-const reads=new Set(['who','me','craft','draw','daily','tutorial','story','duel-key','native/news/notices','native/news/events','native/news/inbox','native/catalog','native/state','native/progression','native/battle/current',
+const reads=new Set(['native/menu-access','who','me','craft','draw','daily','tutorial','story','duel-key','native/news/notices','native/news/events','native/news/inbox','native/catalog','native/state','native/progression','native/battle/current',
   'pvp/queue/current','pvp/room/current','pvp/rank']);
 const writes=new Set(['native/news/read','logout','pvp/queue/attempt','pvp/queue/join','pvp/queue/cancel','pvp/room/command','pvp/room/surrender','party','units/protect','expedition/start','expedition/claim','shop','items/buy','items/use-field','items/use','battle-team','craft','mix','claim','attend','draw','tutorial','story','story/battle','native/story/reset','native/team','native/growth','native/heal','native/battle/start','native/battle/turn','native/progression/pass/claim','native/progression/reroll/claim','native/progression/reincarnate','native/progression/reassess']);
 // Equivalent new-roster gameplay routes; no account/admin/coupon capability added.
