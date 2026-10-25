@@ -1,0 +1,1028 @@
+{
+  "version": "registration-v10",
+  "status": "art-delivery-only-not-runtime-integrated",
+  "species_status": "existing-review-draft",
+  "count": 60,
+  "items": [
+    {
+      "id": "u01",
+      "name": "갈매미맨",
+      "grade": "커먼",
+      "species": "태초",
+      "registration": "GMM-001",
+      "source_sha256": "1912113a716cb5d7d580fe0aa29f66950726940927b50f7f72d91824c4295048",
+      "path": "cards/u01.png",
+      "sha256": "b3e73d0cf0992d593da86a0ac23a4b94e9569b4c21f7ca4f1729c9983e9e8e3d",
+      "git_blob_sha": "4a44b2e3eca8610fc5bb44b993812422e99a996b",
+      "size_bytes": 2235098,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u02",
+      "name": "미니",
+      "grade": "커먼",
+      "species": "태초",
+      "registration": "GMM-002",
+      "source_sha256": "89a2bd60220f09c20f6eb63560560b4b2034aedf0b22aaf9823f209732ff38d3",
+      "path": "cards/u02.png",
+      "sha256": "b542d082962d884aa8d89ef59df5d14d262941e78b106c044327e1cd7271eed0",
+      "git_blob_sha": "b7d142a774382063ed22ba578ced6ffe7c7a89c0",
+      "size_bytes": 2253043,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u03",
+      "name": "자이언트",
+      "grade": "커먼",
+      "species": "거인",
+      "registration": "GMM-003",
+      "source_sha256": "c69f44bf79703e1197ac3e23f9bdf4b80d363679a112efe038f7752f3824fa55",
+      "path": "cards/u03.png",
+      "sha256": "9670a0169cace3fa325ac6272e3bc5f5efbd93c2164d195f224b75781c68e923",
+      "git_blob_sha": "15af78d1d6cf93442d27c9d072d63011b8e919a7",
+      "size_bytes": 2188933,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u04",
+      "name": "꽃",
+      "grade": "커먼",
+      "species": "수목",
+      "registration": "GMM-004",
+      "source_sha256": "bbace2cfbdfa0789be7c4a122813f9c393bc8954de9f3e7906b2acc40f7d1efb",
+      "path": "cards/u04.png",
+      "sha256": "7b561075c26fe0f4d96c22913e3b8dfaebbf0410bfe8c35f4a662226ca13a72f",
+      "git_blob_sha": "79d9a0da806fbb5c7b6686dd1445dbbacf4b2092",
+      "size_bytes": 2301835,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u05",
+      "name": "황금",
+      "grade": "커먼",
+      "species": "태초",
+      "registration": "GMM-005",
+      "source_sha256": "580ad54141f3a6b9252cd98019be01022773fe84dbe3d5ca210ecc493655f299",
+      "path": "cards/u05.png",
+      "sha256": "ba3ab6c27dcd41ba12c410c1f426c05a71b9f72587bd8b1ffd57be4f167364c8",
+      "git_blob_sha": "81d2a109b1d068861bba13d8f27883428cb4780b",
+      "size_bytes": 2261690,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u06",
+      "name": "물방울",
+      "grade": "커먼",
+      "species": "정령",
+      "registration": "GMM-006",
+      "source_sha256": "42f61ca2cc31d8fc30b4ef88dda05d7401ac3857b46ec24e963d9340d138c12b",
+      "path": "cards/u06.png",
+      "sha256": "343fe8a0896b26a712b34a04bf605afa7a5a5b8d7604d0a3a0f295d551ed67ec",
+      "git_blob_sha": "c84025dd7daa361aecfa6d61aba140ff75c56a1b",
+      "size_bytes": 2352815,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u07",
+      "name": "불씨",
+      "grade": "커먼",
+      "species": "정령",
+      "registration": "GMM-007",
+      "source_sha256": "4b7e58471d33b22aa76b351024e64e324d827c97a069ca2da9a80a04ebb5240c",
+      "path": "cards/u07.png",
+      "sha256": "8a08509dab385243d4ab7dbe57f2045e1293382f600970869cabc59dc78f30f0",
+      "git_blob_sha": "734533fa42ad339c72232e98b9411ab2ee41ae45",
+      "size_bytes": 2319961,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u08",
+      "name": "그림자",
+      "grade": "커먼",
+      "species": "망령",
+      "registration": "GMM-008",
+      "source_sha256": "5d64ea7dcff7530cc2eb2b2eea7675bdf944b61341d019fad982615449e49cf1",
+      "path": "cards/u08.png",
+      "sha256": "c6cc731f38f61fedd7275dad3a10a0f3f10f791a866f491dd8d85d3505503e18",
+      "git_blob_sha": "2eb930b85407a21fccd518a143a3b147147bb9dd",
+      "size_bytes": 2210644,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u09",
+      "name": "노움",
+      "grade": "언커먼",
+      "species": "태초",
+      "registration": "GMM-009",
+      "source_sha256": "1a0d7d1437b6c0aa46a9966d1f14d195c4d467af1e5d2d08d1e236b82bb943fc",
+      "path": "cards/u09.png",
+      "sha256": "e2546eef85f875ca34ebc0335f1fdbf4f61c8c39d02e17b871a568b1c567b977",
+      "git_blob_sha": "f4e1aed13021f182d3ee233bf12ea39e6501144e",
+      "size_bytes": 2197269,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u10",
+      "name": "정령",
+      "grade": "언커먼",
+      "species": "정령",
+      "registration": "GMM-010",
+      "source_sha256": "d84fd0a0d5ff0f5394de8b20cdab002af83a2be25f2e68ee2483b11c09efef12",
+      "path": "cards/u10.png",
+      "sha256": "75c5b615cec713277a0285670b1c5065515193b39498474c83f3f7346decd4df",
+      "git_blob_sha": "2074500573154b0f6b1bffab9ac837b8291938a0",
+      "size_bytes": 2266657,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u11",
+      "name": "고블린",
+      "grade": "언커먼",
+      "species": "태초",
+      "registration": "GMM-011",
+      "source_sha256": "2ea14e8f06a375091cff7f91ea5471bcfb454e64d7c1ae68b08d8616da7cf6a2",
+      "path": "cards/u11.png",
+      "sha256": "e33b14aceb29295dc8cbe490d2c23fa8aa55b0b30ada6009ec6bfd7a88b4d2f0",
+      "git_blob_sha": "3e2860ada27150172486c9f244be9266135ed127",
+      "size_bytes": 2246496,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u12",
+      "name": "어인",
+      "grade": "언커먼",
+      "species": "해인",
+      "registration": "GMM-012",
+      "source_sha256": "e09ccc9e6abfa6986af4bc65cd4f383158a36c2f10b0eb9bf8435511b3d2114b",
+      "path": "cards/u12.png",
+      "sha256": "2b6861bae4e0934082310296e1f010f36a3203fe57755c1a31ab757eb097e04f",
+      "git_blob_sha": "de03fa9f6e5c080cdb3429be072144ad041f03d2",
+      "size_bytes": 2225072,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u13",
+      "name": "도깨비",
+      "grade": "언커먼",
+      "species": "태초",
+      "registration": "GMM-013",
+      "source_sha256": "a343e9bf27358c9fecacada11e738655d12b6d4aad9f51bb53c8951eacb3044b",
+      "path": "cards/u13.png",
+      "sha256": "2eea3b10cad0f77fce171ce8d41447cf116f02ffd1810f4a96c11fb4612571f4",
+      "git_blob_sha": "1284519a9e2536234f9cd62f0b3e54e7e9048bd8",
+      "size_bytes": 2177440,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u14",
+      "name": "서리",
+      "grade": "언커먼",
+      "species": "정령",
+      "registration": "GMM-014",
+      "source_sha256": "afe97832ec7d38427ce7ea26195f259f0068f122ca940f6b3f0bdac433cfc637",
+      "path": "cards/u14.png",
+      "sha256": "dfe3030cd2cb92a032b0451b1728defa53799c41609fb7ed153c28a9f2e11a82",
+      "git_blob_sha": "dc8fd8938d47f43335282528affda016121b3849",
+      "size_bytes": 2232134,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u15",
+      "name": "반딧불",
+      "grade": "언커먼",
+      "species": "요정",
+      "registration": "GMM-015",
+      "source_sha256": "8b7752466fa2cd87ab6f3a94203033a6d1820cdf68d92563fc987fa6d199a382",
+      "path": "cards/u15.png",
+      "sha256": "00fa0f59bea631157f9a34889bebe18b9267579834e09ff997afb5e8d14dbb18",
+      "git_blob_sha": "7bd32b0199332a42b5120a07beb9f1e6519332dc",
+      "size_bytes": 2194419,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u16",
+      "name": "먹구름",
+      "grade": "언커먼",
+      "species": "정령",
+      "registration": "GMM-016",
+      "source_sha256": "85db8ef75a45f7b51d1fcb5566a42be35a55dcb3cf867cd36777b79f14e377b2",
+      "path": "cards/u16.png",
+      "sha256": "ca68303c953a0c66c49cab8b29e77f8957ecb8a183aa963039ecbe53ba9f3a3c",
+      "git_blob_sha": "b881b2bc1734b7d428fa19d289c7785c6a0d6290",
+      "size_bytes": 2197890,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u17",
+      "name": "드워프",
+      "grade": "레어",
+      "species": "태초",
+      "registration": "GMM-017",
+      "source_sha256": "69e775a8a7760404f2ac12c4dd71a732ad9df8a012d7ba6ecbe5abda47f9cda6",
+      "path": "cards/u17.png",
+      "sha256": "4edf226c8d3d97fece049d31f4ad5b3228121e1bd4ff92e1950d874ed27fe748",
+      "git_blob_sha": "673a1f3908f170ebaac7f4310c3d06559fc48ce2",
+      "size_bytes": 2170785,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u18",
+      "name": "요정",
+      "grade": "레어",
+      "species": "요정",
+      "registration": "GMM-018",
+      "source_sha256": "122be777cc45f42fc4a81fc9387a0c43f1f1683cae021528dcc9f04bdb7ba3a8",
+      "path": "cards/u18.png",
+      "sha256": "52340704b90a94c852130ffeb82213cf76136eff0bd0f0acab951434400aad35",
+      "git_blob_sha": "d0fe4b0337f2cc25635f309595b5cd10d3ae60a3",
+      "size_bytes": 2196276,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u19",
+      "name": "트롤",
+      "grade": "레어",
+      "species": "거인",
+      "registration": "GMM-019",
+      "source_sha256": "164738e2b500dd8ee489cb7fac84005b5ee47e598371d0b5efafba68f383adab",
+      "path": "cards/u19.png",
+      "sha256": "f53187ec38b7c2c7bad1b69f0d902025c893519e04621446b147948633b60901",
+      "git_blob_sha": "b04cea748af9878d2baa15b213b1d7d23560a9f9",
+      "size_bytes": 2082651,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u20",
+      "name": "세이렌",
+      "grade": "레어",
+      "species": "해인",
+      "registration": "GMM-020",
+      "source_sha256": "aa73da1d9d52a27896628154c1fd287ac76637775f77e8748316997f539221ca",
+      "path": "cards/u20.png",
+      "sha256": "d3886cc71f8070e526b271eabb77ff642064a10c0d366bce9bc9a4da70191e47",
+      "git_blob_sha": "ac8e29577dfdff383888baaeaf666f7e7608edef",
+      "size_bytes": 2206772,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u21",
+      "name": "설인",
+      "grade": "레어",
+      "species": "거인",
+      "registration": "GMM-021",
+      "source_sha256": "bdb842388d3b49457dfaf406678857ae95475b1223646aa648a7777835d5057d",
+      "path": "cards/u21.png",
+      "sha256": "0589ec774a4de4fd68374a2abab09411612f5697bb62269e2893f146d503dfcd",
+      "git_blob_sha": "72c8c28c0f48d0c4a5738f38efb28b8b60aba234",
+      "size_bytes": 2039976,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u22",
+      "name": "뇌수",
+      "grade": "레어",
+      "species": "야수",
+      "registration": "GMM-022",
+      "source_sha256": "99f02755acdb7b89fcd2c91bc24ae7a9203def4f5b787650bbdd0c9b6f9126fa",
+      "path": "cards/u22.png",
+      "sha256": "f9c206c7ab108c7c254f8fe8f1565801c74758ece084eeeefb9b79a21489ea66",
+      "git_blob_sha": "12c76665f2ca1977619aa51f7d4f239e8983d485",
+      "size_bytes": 2057564,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u23",
+      "name": "가고일",
+      "grade": "레어",
+      "species": "태초",
+      "registration": "GMM-023",
+      "source_sha256": "835480300510ac94320dbab44d0cda96dcf2ae6751ae20b84e4dcfd3a170af0b",
+      "path": "cards/u23.png",
+      "sha256": "f7474e2bd0f4c2c2bbe68b927dbdff80cbb30c99e7fca0b90ff00685731de61e",
+      "git_blob_sha": "85e3d0d75ed5fc7938032599925098ed6633c646",
+      "size_bytes": 2132834,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u24",
+      "name": "불도마뱀",
+      "grade": "레어",
+      "species": "용족",
+      "registration": "GMM-024",
+      "source_sha256": "ff78b49b46f94c2a20940713a51a5f742ad1bff861a77dc138806d9e04135a92",
+      "path": "cards/u24.png",
+      "sha256": "2dec6d1cc885ec92f54f39647aa4ac7785289110f5082784f88256b8afc6f2ab",
+      "git_blob_sha": "986c123014942b379ffa9d85ec846ad3acc2656f",
+      "size_bytes": 2116764,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u25",
+      "name": "룬장인",
+      "grade": "에픽",
+      "species": "태초",
+      "registration": "GMM-025",
+      "source_sha256": "218139c26adcf52b3288ce7f0f576c9d002b7d8164cf2f16150b763dbb0c7fb9",
+      "path": "cards/u25.png",
+      "sha256": "b8c93e17538d79376bd4ba615307878cfda8e78c59872b843bbaa819bd2d12ed",
+      "git_blob_sha": "8ff53795c21b3cd76619e3511a4e8eb3b30b69e0",
+      "size_bytes": 2383908,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u26",
+      "name": "드라이어드",
+      "grade": "에픽",
+      "species": "수목",
+      "registration": "GMM-026",
+      "source_sha256": "94e874b5c3afec3be94bc51474771d01e98d9d4d5379cde5ccca7393aec73076",
+      "path": "cards/u26.png",
+      "sha256": "d4109abd2f936eed2f53869c0abd02974df5e05703209e58c504906e520cbf27",
+      "git_blob_sha": "d9c3f7eaceab9ec24ddb2932aa0746d61a44b6f4",
+      "size_bytes": 2438927,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u27",
+      "name": "미노타우로스",
+      "grade": "에픽",
+      "species": "야수",
+      "registration": "GMM-027",
+      "source_sha256": "e4ba42768981adc3016b50df95e7539c1e329cc49e013f9ff2f59c7bdfe96a84",
+      "path": "cards/u27.png",
+      "sha256": "eaed1d02c1ac12ce53c44d3916f799480fe9f90f684368139e438e76ebd79de0",
+      "git_blob_sha": "ac1286d931985d35208fb9808733575913a22eaf",
+      "size_bytes": 2350461,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u28",
+      "name": "인어기사",
+      "grade": "에픽",
+      "species": "해인",
+      "registration": "GMM-028",
+      "source_sha256": "36a057a3ff447d8fef7bab8976aabe9139b106b09f584a5a52ae93b585d30f02",
+      "path": "cards/u28.png",
+      "sha256": "c3dd381e2c6127255ca67152f2f4d93f192509dd09a77203babd58febd2f8fd9",
+      "git_blob_sha": "37990958e28ac345e7b3aba0092c9c4ac54f5552",
+      "size_bytes": 2414129,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u29",
+      "name": "서리마녀",
+      "grade": "에픽",
+      "species": "태초",
+      "registration": "GMM-029",
+      "source_sha256": "09fd8f12bc2936f074790bc75b51e1f4c7b171dcdd2fe908b96ce5dcd063eb2d",
+      "path": "cards/u29.png",
+      "sha256": "4a19448b520339c0c6d6c1f89732daf9989e4905f431269327212552b8defead",
+      "git_blob_sha": "58d81e396a8f66fd4f47677104063590000cbdf7",
+      "size_bytes": 2407575,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u30",
+      "name": "그리핀",
+      "grade": "에픽",
+      "species": "야수",
+      "registration": "GMM-030",
+      "source_sha256": "b904342fc0c207c45181e1ab604e5e0c96ad8003a49ce5f5320104b28e851593",
+      "path": "cards/u30.png",
+      "sha256": "ddfbc5deebe6965f0adc3915cb3e6b09db38c0b6872fa2cf1349cac0c646cf36",
+      "git_blob_sha": "10dd1fb385dbe0505a56e1f63dd21f1459da6f7b",
+      "size_bytes": 2308048,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u31",
+      "name": "듀라한",
+      "grade": "에픽",
+      "species": "망령",
+      "registration": "GMM-031",
+      "source_sha256": "47ae38672d014d112d39ba4bf2db8354e658d30574ef56f7a4dd5af4650d5be3",
+      "path": "cards/u31.png",
+      "sha256": "bfa3f49b824a778c3f7a350a32f69126eb7f5b3385622ed26a10426419ee4615",
+      "git_blob_sha": "e910b57e1250ff49a6f0d3eea68d26eb2441f404",
+      "size_bytes": 2359120,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u32",
+      "name": "화룡",
+      "grade": "에픽",
+      "species": "용족",
+      "registration": "GMM-032",
+      "source_sha256": "f08e58f893a99df1f5b0097bd3ecb678c53f877138ccb31fe7b66bb90bee88fb",
+      "path": "cards/u32.png",
+      "sha256": "743a3cbbd24cafef890078480b35d614575a781c27ba75e7ea9d3b49b641f0bf",
+      "git_blob_sha": "989d6ef18dcab885d82d0ec5d176564791335812",
+      "size_bytes": 2370469,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u33",
+      "name": "거장",
+      "grade": "전설",
+      "species": "태초",
+      "registration": "GMM-033",
+      "source_sha256": "68c70e999540baac82d99c609ed673e036c9d02a3bcf4727428258e19c806057",
+      "path": "cards/u33.png",
+      "sha256": "9727010a5c736f39a23150a3cdcb84b346f29726100ca84f90353cb3fdacd2ea",
+      "git_blob_sha": "d820d26143749e64be8f20ba144ab22a7875ad16",
+      "size_bytes": 2428578,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u34",
+      "name": "가시여왕",
+      "grade": "전설",
+      "species": "수목",
+      "registration": "GMM-034",
+      "source_sha256": "4eaedee04e5ded918044cfe1c7dd45bbdff9a84ee84c57a497ac1e0f038f8379",
+      "path": "cards/u34.png",
+      "sha256": "3d6ffb5a7ba6a05bcd77c599cf01dd685d17fb19755dad42f1eec97b0140ccc9",
+      "git_blob_sha": "65a191b30b1749da88627be450c49302ebf9a152",
+      "size_bytes": 2520664,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u35",
+      "name": "네레이드",
+      "grade": "전설",
+      "species": "해인",
+      "registration": "GMM-035",
+      "source_sha256": "f951fafbc6ddc2d08843af7ab8356aac3357f40ab28849de733548e302e9cd6b",
+      "path": "cards/u35.png",
+      "sha256": "7913731fcd12ee13d275a008cd0933d7c080302970cac2c63d7dde1269a862a4",
+      "git_blob_sha": "8c653b0d43865f6a5c806e7defa1be1ef6386b14",
+      "size_bytes": 2430322,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u36",
+      "name": "설랑",
+      "grade": "전설",
+      "species": "야수",
+      "registration": "GMM-036",
+      "source_sha256": "0232ecdb6edc93afbd77529587acdccf35a6152fc720fe9769ba49f23ca8c41a",
+      "path": "cards/u36.png",
+      "sha256": "f0b6e86fcb193010025a78b818f71038f4ef4b50f2cdb53f4bd0c64f45e98e78",
+      "git_blob_sha": "f61ae63352fdbf1049a29890a78080fadb61c747",
+      "size_bytes": 2342918,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u37",
+      "name": "뇌호",
+      "grade": "전설",
+      "species": "야수",
+      "registration": "GMM-037",
+      "source_sha256": "2c3e192f83727e6dcb240a7f50ef7f34b224b347e46926b25ad61260c4fc04a8",
+      "path": "cards/u37.png",
+      "sha256": "310e035b524a65ac2df60b3aae3b4a180135877c4e1fce7a502136c7ac3df8de",
+      "git_blob_sha": "658597f0e5bbdf5a4f7e9c9be1935eb8498bc5c3",
+      "size_bytes": 2351798,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u38",
+      "name": "잿불새",
+      "grade": "전설",
+      "species": "천익",
+      "registration": "GMM-038",
+      "source_sha256": "33fed1517925e29bfb7c89794517ab092f4569cbc53e243e771d4cd4105af906",
+      "path": "cards/u38.png",
+      "sha256": "98b1cbb70a79d25b652c375b3b336ae382406ab7b94b3be151eba320e18242d9",
+      "git_blob_sha": "c42569f33cb28d12569cd3e36a9bde61f20f9ada",
+      "size_bytes": 2357826,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u39",
+      "name": "무명",
+      "grade": "히든",
+      "species": "태초",
+      "registration": "GMM-039",
+      "source_sha256": "60c303e3bfcb59e60e97b79ab002b4126050939ee7078d33372faf857c50cd8f",
+      "path": "cards/u39.png",
+      "sha256": "f1caeaf399ca46f221e8f506201cb3a56989e4e53c1bf70eff69d797a2230b5e",
+      "git_blob_sha": "09556b1ca9f8279c439aceb1cf080ddbc99ba2e0",
+      "size_bytes": 2316089,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u40",
+      "name": "몽마",
+      "grade": "히든",
+      "species": "요정",
+      "registration": "GMM-040",
+      "source_sha256": "1c255fcd89f8156f7cdb502b7b289eaeaa968b741b77a649d3128afb89b749f3",
+      "path": "cards/u40.png",
+      "sha256": "c04bb2e8acdfb79dd9ca0265c917b8202af9ce87aabb1b0c42d885d31b24d64d",
+      "git_blob_sha": "53fff877de77c6387ea6d015e7c7e52b34de7ceb",
+      "size_bytes": 2355997,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u41",
+      "name": "수경",
+      "grade": "히든",
+      "species": "정령",
+      "registration": "GMM-041",
+      "source_sha256": "cc84515cd979b6d658d9dca7ebfc0fd6519af3096ceefb6f556895250cd66940",
+      "path": "cards/u41.png",
+      "sha256": "98ce4cae41ad0854fdea7f75aa3fa46e1eeccc2b45276119c4a2b5baefaf582b",
+      "git_blob_sha": "5da68c7af93b43e374c980e8523ddb93b6ceef4e",
+      "size_bytes": 2422710,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u42",
+      "name": "흑등",
+      "grade": "히든",
+      "species": "망령",
+      "registration": "GMM-042",
+      "source_sha256": "5d393222f537519d0f58ad133f45e72fae3822045ab890bb7cf42f536ea7154e",
+      "path": "cards/u42.png",
+      "sha256": "bbf0e81fef8d56d5f596e40e39340d7b2ff7cdc7a3b313f1b3148e5162edb308",
+      "git_blob_sha": "816346b7ac0dc8158910ab8f7d8f0f1ed455b72e",
+      "size_bytes": 2269808,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u43",
+      "name": "금각",
+      "grade": "히든",
+      "species": "태초",
+      "registration": "GMM-043",
+      "source_sha256": "72a44e80c162709ff841f2113bb126b9ed3d0c1b63b81807ceceb21bab490ed6",
+      "path": "cards/u43.png",
+      "sha256": "9e53cc38d24dc77e65088563f588d2fc7ffc9d5b5b2e5ff4539955360c3e1a4b",
+      "git_blob_sha": "bb297abb01c296eaadd2489d1fca128c2fa6e549",
+      "size_bytes": 2343176,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u44",
+      "name": "꽃무덤",
+      "grade": "히든",
+      "species": "수목",
+      "registration": "GMM-044",
+      "source_sha256": "23444d0400985371ff0105f53f7eb577171b10dba4d325a6bbb6a6e2ab4aa317",
+      "path": "cards/u44.png",
+      "sha256": "3cbf3ca979d5984ec95c530bd6d806489a87bc559a18e40ed68dd5be62b9832f",
+      "git_blob_sha": "95327003c8fd63d120dfca4fdf92db00fc12f880",
+      "size_bytes": 2397052,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u45",
+      "name": "타이탄",
+      "grade": "제한",
+      "species": "거인",
+      "registration": "GMM-045",
+      "source_sha256": "84b61256dd2e9c3690aa778d3fb007b55116826ca07df937dbdc923eb42f52d8",
+      "path": "cards/u45.png",
+      "sha256": "813d66addd3502043af49f45e624c1040f4245dac51e0ac1425f998eed56fcc7",
+      "git_blob_sha": "26b5d4a06a9f37887d3fa45d47b3a77098b34e25",
+      "size_bytes": 2249976,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u46",
+      "name": "베히모스",
+      "grade": "제한",
+      "species": "야수",
+      "registration": "GMM-046",
+      "source_sha256": "6a10a38bace581899cb191ae6c1e2ad6f0cd7c0dd07543655cdbe5b40d0f6291",
+      "path": "cards/u46.png",
+      "sha256": "498373a89ce0f5ecb7d4b50ab5ff3fe02400f9451b2a07844671a6703de3dcdf",
+      "git_blob_sha": "12d98564ed06f5a6a73c3346c2653c10ba207e7b",
+      "size_bytes": 2249213,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u47",
+      "name": "이프리트",
+      "grade": "제한",
+      "species": "거인",
+      "registration": "GMM-047",
+      "source_sha256": "1cefacf2adb4f9c9daa9049024b2512748e8fbd4af35f672e1542d0db401a827",
+      "path": "cards/u47.png",
+      "sha256": "4ee4056b4527ec0260661173523ad811e2454cedd5f52ae11a58a65163a2711d",
+      "git_blob_sha": "3810d1edc27936b0c3050df7bcc9e4574fb00414",
+      "size_bytes": 2254995,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u48",
+      "name": "빙령",
+      "grade": "제한",
+      "species": "정령",
+      "registration": "GMM-048",
+      "source_sha256": "07663da99b7a39487608d3dbe16f8d2852dda3222baf81432e82f11f3260ac66",
+      "path": "cards/u48.png",
+      "sha256": "36515db1fec528352ede7afa51f8b909e9a29eafca470d6d25bbc39cd63bf2ae",
+      "git_blob_sha": "27c25cd8d60bc89c172724b930b432710c6c04de",
+      "size_bytes": 2379588,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u49",
+      "name": "가루다",
+      "grade": "초월",
+      "species": "천익",
+      "registration": "GMM-049",
+      "source_sha256": "bcac16fccd3bb02829d016489fc8ad87fe7137a38696414c6de1a75655ebc280",
+      "path": "cards/u49.png",
+      "sha256": "7c2ae3f40c692afd041001e42776a3517d78d3e150c2b6273c9793cac5af5ae5",
+      "git_blob_sha": "0bc975c363a569459fb1cc6f71e5687c54439fc7",
+      "size_bytes": 2339866,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u50",
+      "name": "레비아탄",
+      "grade": "초월",
+      "species": "야수",
+      "registration": "GMM-050",
+      "source_sha256": "7014f668bfcdb684d2716a13f90aa9880d9aca4b1235cfb8fe3b899d9f6c5919",
+      "path": "cards/u50.png",
+      "sha256": "e632b01399e3088cdc8c1879bc7eb44f70d96a3cb40aecb57db53a2735b255dd",
+      "git_blob_sha": "d9b7e6494947d660eb979b322e7ec8f421c7a33a",
+      "size_bytes": 2311245,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u51",
+      "name": "세계수",
+      "grade": "초월",
+      "species": "수목",
+      "registration": "GMM-051",
+      "source_sha256": "8bb6f5f2e6840e9293168aeb447abb8134eb37dd5dbdeee410dd1e728a3bfcdf",
+      "path": "cards/u51.png",
+      "sha256": "29708732bceb031f5b3cdc347a438924650c41b1811b648e45bd6a0564904482",
+      "git_blob_sha": "b071ab209a318af8c4a1f9bdcb9786cc993b0999",
+      "size_bytes": 2475451,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u52",
+      "name": "망령",
+      "grade": "초월",
+      "species": "망령",
+      "registration": "GMM-052",
+      "source_sha256": "64b7772b1896c5a174a755a324577b7ccc887fbf965189d7a5715a80709339f6",
+      "path": "cards/u52.png",
+      "sha256": "92341125d5599b7a3eb326f1211f0d346ed2fde6fad2e73142b9b19ad7bc9cce",
+      "git_blob_sha": "2a8efb7ea913cbbc0ef7d5f863bff9ec7e809fd4",
+      "size_bytes": 2339546,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u53",
+      "name": "피닉스",
+      "grade": "불멸",
+      "species": "천익",
+      "registration": "GMM-053",
+      "source_sha256": "7502ba1f52622ccfde5e0eaf51e68688ca929edb26654c4c370d45d5ca791a78",
+      "path": "cards/u53.png",
+      "sha256": "49f1705a5da967a1baec1caae1755804b114677585c8bb3ca75c74ce5e5dde58",
+      "git_blob_sha": "1de142894526ff35ff9ebea82b45d12e3295f7c3",
+      "size_bytes": 2373128,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u54",
+      "name": "등불정령",
+      "grade": "불멸",
+      "species": "정령",
+      "registration": "GMM-054",
+      "source_sha256": "d4c2442ebb2cae35b5dcd2cedde61509199e6c39eb3d72eece59315287b4fb48",
+      "path": "cards/u54.png",
+      "sha256": "45e82f94b1925b318a9ff976b9d8e03d4e5108b3e12eb128e2a70bbd612cdc7d",
+      "git_blob_sha": "183ca689327006559e33ae3c35f8d28fe3553d55",
+      "size_bytes": 2511720,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u55",
+      "name": "우로보로스",
+      "grade": "불멸",
+      "species": "용족",
+      "registration": "GMM-055",
+      "source_sha256": "a04393ad4cc97de796677d39f4a62669ef7c045feb02f78086c55b5b43ade48d",
+      "path": "cards/u55.png",
+      "sha256": "cd13376ac1f3edb2865d11bf31a2b2a5c6d79497fb2eef74f351d05868d4d002",
+      "git_blob_sha": "7dd1ac8923fed52ae66a5bb1f4f4ae9c7f2c3609",
+      "size_bytes": 2418895,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u56",
+      "name": "리치",
+      "grade": "불멸",
+      "species": "태초",
+      "registration": "GMM-056",
+      "source_sha256": "e49c1f667fcb5979af64457dde5d8caa15d5e51c14c44faadc311b41c921292e",
+      "path": "cards/u56.png",
+      "sha256": "4d9dd158735a22a52dfedb988466ea3571e42d38c8a0881004de50718dca4445",
+      "git_blob_sha": "95b0776a2d161883ad39fef6539adac8982fc15d",
+      "size_bytes": 2440418,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "v10"
+    },
+    {
+      "id": "u57",
+      "name": "여명",
+      "grade": "영원",
+      "species": "천익",
+      "registration": "GMM-057",
+      "source_sha256": "b41a3ebb0a1f3c737fe53681d1c99fd56fdf168d7c137d5e2a1a5d5b921c3e82",
+      "path": "cards/u57.png",
+      "sha256": "53740e8d0fce44d392b4ac9e28764f1aaf5f031433a32f400c3440c853c28cb5",
+      "git_blob_sha": "b44008cdb283356a8b5bea34e24a495b91b8e785",
+      "size_bytes": 2202862,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u58",
+      "name": "설왕",
+      "grade": "영원",
+      "species": "거인",
+      "registration": "GMM-058",
+      "source_sha256": "89a08580fb7701b3c520fa518a42fbba1272e5da5b151af2e34e665c3c229934",
+      "path": "cards/u58.png",
+      "sha256": "2f1142378d4115a12789622ca93652a09cce7f0ecb82d4dd74561e8e8cb67474",
+      "git_blob_sha": "52a3cc80dbbbb812384c33315dfedc1d519c59c2",
+      "size_bytes": 2200271,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u59",
+      "name": "영야",
+      "grade": "영원",
+      "species": "망령",
+      "registration": "GMM-059",
+      "source_sha256": "9ad796a9cad553c4244f4ad790fa506736c2575fef7d046a69d7cbf467c3c054",
+      "path": "cards/u59.png",
+      "sha256": "7eb1a1d0b1a4f9afcf68c05be84a381945760bd61e7771afac6d5e6a1d2cdae4",
+      "git_blob_sha": "15420b39d8708ce800f401852848955c645081b6",
+      "size_bytes": 2231618,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    },
+    {
+      "id": "u60",
+      "name": "해룡",
+      "grade": "영원",
+      "species": "용족",
+      "registration": "GMM-060",
+      "source_sha256": "a1f705b14854663878ca4f7232196bb9c5d306dd62432a9fd90384ba80f2622a",
+      "path": "cards/u60.png",
+      "sha256": "8438a73cd386918b5f35a9cdb5f288c5a04a8fda0bed75f67bc060165c524373",
+      "git_blob_sha": "eec4e1aec818195bf0e488e56fe0c6c6cd17a448",
+      "size_bytes": 2291227,
+      "dimensions": [
+        900,
+        1200
+      ],
+      "revision": "unchanged_v9"
+    }
+  ]
+}

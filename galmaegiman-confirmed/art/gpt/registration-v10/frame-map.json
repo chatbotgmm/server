@@ -1,0 +1,292 @@
+{
+  "커먼": {
+    "representative_id": "u01",
+    "canvas": [
+      900,
+      1200
+    ],
+    "text_areas": {
+      "species": [
+        270,
+        150,
+        360,
+        56
+      ],
+      "name": [
+        160,
+        978,
+        490,
+        100
+      ],
+      "registration": [
+        340,
+        1127,
+        220,
+        48
+      ]
+    },
+    "display_mode": "precomposed_flat_png",
+    "suggested_android_asset_root": "assets/gmm/registration/v10"
+  },
+  "언커먼": {
+    "representative_id": "u09",
+    "canvas": [
+      900,
+      1200
+    ],
+    "text_areas": {
+      "species": [
+        270,
+        150,
+        360,
+        56
+      ],
+      "name": [
+        160,
+        978,
+        490,
+        100
+      ],
+      "registration": [
+        340,
+        1127,
+        220,
+        48
+      ]
+    },
+    "display_mode": "precomposed_flat_png",
+    "suggested_android_asset_root": "assets/gmm/registration/v10"
+  },
+  "레어": {
+    "representative_id": "u17",
+    "canvas": [
+      900,
+      1200
+    ],
+    "text_areas": {
+      "species": [
+        270,
+        150,
+        360,
+        56
+      ],
+      "name": [
+        160,
+        978,
+        490,
+        100
+      ],
+      "registration": [
+        340,
+        1127,
+        220,
+        48
+      ]
+    },
+    "display_mode": "precomposed_flat_png",
+    "suggested_android_asset_root": "assets/gmm/registration/v10"
+  },
+  "에픽": {
+    "representative_id": "u25",
+    "canvas": [
+      900,
+      1200
+    ],
+    "text_areas": {
+      "species": [
+        270,
+        150,
+        360,
+        56
+      ],
+      "name": [
+        160,
+        978,
+        490,
+        100
+      ],
+      "registration": [
+        340,
+        1127,
+        220,
+        48
+      ]
+    },
+    "display_mode": "precomposed_flat_png",
+    "suggested_android_asset_root": "assets/gmm/registration/v10"
+  },
+  "전설": {
+    "representative_id": "u33",
+    "canvas": [
+      900,
+      1200
+    ],
+    "text_areas": {
+      "species": [
+        270,
+        150,
+        360,
+        56
+      ],
+      "name": [
+        160,
+        978,
+        490,
+        100
+      ],
+      "registration": [
+        340,
+        1127,
+        220,
+        48
+      ]
+    },
+    "display_mode": "precomposed_flat_png",
+    "suggested_android_asset_root": "assets/gmm/registration/v10"
+  },
+  "히든": {
+    "representative_id": "u39",
+    "canvas": [
+      900,
+      1200
+    ],
+    "text_areas": {
+      "species": [
+        270,
+        150,
+        360,
+        56
+      ],
+      "name": [
+        160,
+        978,
+        490,
+        100
+      ],
+      "registration": [
+        340,
+        1127,
+        220,
+        48
+      ]
+    },
+    "display_mode": "precomposed_flat_png",
+    "suggested_android_asset_root": "assets/gmm/registration/v10"
+  },
+  "제한": {
+    "representative_id": "u45",
+    "canvas": [
+      900,
+      1200
+    ],
+    "text_areas": {
+      "species": [
+        270,
+        150,
+        360,
+        56
+      ],
+      "name": [
+        160,
+        978,
+        490,
+        100
+      ],
+      "registration": [
+        340,
+        1127,
+        220,
+        48
+      ]
+    },
+    "display_mode": "precomposed_flat_png",
+    "suggested_android_asset_root": "assets/gmm/registration/v10"
+  },
+  "초월": {
+    "representative_id": "u49",
+    "canvas": [
+      900,
+      1200
+    ],
+    "text_areas": {
+      "species": [
+        270,
+        150,
+        360,
+        56
+      ],
+      "name": [
+        160,
+        978,
+        490,
+        100
+      ],
+      "registration": [
+        340,
+        1127,
+        220,
+        48
+      ]
+    },
+    "display_mode": "precomposed_flat_png",
+    "suggested_android_asset_root": "assets/gmm/registration/v10"
+  },
+  "불멸": {
+    "representative_id": "u53",
+    "canvas": [
+      900,
+      1200
+    ],
+    "text_areas": {
+      "species": [
+        270,
+        150,
+        360,
+        56
+      ],
+      "name": [
+        160,
+        978,
+        490,
+        100
+      ],
+      "registration": [
+        340,
+        1127,
+        220,
+        48
+      ]
+    },
+    "display_mode": "precomposed_flat_png",
+    "suggested_android_asset_root": "assets/gmm/registration/v10"
+  },
+  "영원": {
+    "representative_id": "u57",
+    "canvas": [
+      900,
+      1200
+    ],
+    "text_areas": {
+      "species": [
+        270,
+        150,
+        360,
+        56
+      ],
+      "name": [
+        160,
+        978,
+        490,
+        100
+      ],
+      "registration": [
+        340,
+        1127,
+        220,
+        48
+      ]
+    },
+    "display_mode": "precomposed_flat_png",
+    "suggested_android_asset_root": "assets/gmm/registration/v10"
+  }
+}
