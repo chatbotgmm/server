@@ -32,7 +32,7 @@ public class RegistrationV10CardTest {
     helper.png(NativeHomePartyFeedbackTest.render(h.root),"registration-v10-candidate-"+p.name+".png");
 
     // 실제 일반 모집 화면(하급 2·중급 3·고급 5장 버튼과 기타 버튼 포함)에서 수령 결과를 보인다.
-    NativeRoster60Library library=new NativeRoster60Library(h);library.recruitLegacy();
+    NativeRoster60Library library=new NativeRoster60Library(h);library.recruitList();
     assertNotNull(NativeRoster60ProductBattleTest.named(h.root,"하급 · 2장"));assertNotNull(NativeRoster60ProductBattleTest.named(h.root,"고급 · 5장"));
     library.showReceipt(MainActivity.obj("credits",8,"items",new JSONArray().put(MainActivity.obj("speciesId","u60","name","결과","level",15))));
     library.showReceipt(MainActivity.obj("credits",8,"items",new JSONArray().put(MainActivity.obj("speciesId","u60","name","결과","level",15))));

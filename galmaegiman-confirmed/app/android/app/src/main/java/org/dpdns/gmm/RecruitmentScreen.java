@@ -39,9 +39,14 @@ final class RecruitmentScreen extends ViewGroup {
   int measuredWidth = -1, measuredHeight = -1, contentRevision, measuredRevision = -1;
   float measuredFontScale = -1;
   int measuredDensity = -1;
+  // 새 60종 모집: 같은 화면·트레이를 쓰고 요청만 새 API로 보낸다. null이면 기존 모집.
+  final Roster60RecruitPurchase roster;
 
-  RecruitmentScreen(NativeEconomy owner, JSONObject response) {
+  RecruitmentScreen(NativeEconomy owner, JSONObject response) { this(owner, response, null); }
+
+  RecruitmentScreen(NativeEconomy owner, JSONObject response, Roster60RecruitPurchase roster) {
     super(owner.h);
+    this.roster = roster;
     this.owner = owner; h = owner.h; this.response = response;
     regularFont = recruitmentFont(h, false); boldFont = recruitmentFont(h, true);
     setTag("recruitment-stations");
@@ -70,6 +75,8 @@ final class RecruitmentScreen extends ViewGroup {
     info.setTypeface(regularFont); info.setTextSize(14); info.setTag("draw-pity");
     info.setBackground(pityStates()); info.setContentDescription("천장 보장 안내 · " + RecruitmentProbabilityView.pityText(response));
     information.addView(info, new LinearLayout.LayoutParams(-1, -2));
+    // 새 60종에는 천장(보장) 규칙이 정해지지 않았다. 없는 규칙을 안내하지 않는다.
+    if (roster != null) { info.setVisibility(GONE); roster.changed = () -> setAmount(amount); }
     pity = label(RecruitmentProbabilityView.pityText(response), 14, false); pity.setTag("draw-pity-detail");
     pity.setVisibility(GONE); information.addView(pity);
     lowerDivider = new AnchorDivider(); lowerDivider.setTag("draw-information-divider");
@@ -106,7 +113,8 @@ final class RecruitmentScreen extends ViewGroup {
     owner.tick(this, () -> {
       long remaining = Math.max(0, ready - android.os.SystemClock.elapsedRealtime());
       claim.setEnabled(remaining == 0 && !h.busy);
-      String status = remaining > 0 ? "다음 지급 " + owner.duration(remaining) : "지금 " + response.optInt("claim") + "장 받기";
+      // 받을 수량을 모르면(새 60종 상태 응답) 수량을 지어내지 않고 "지금 받기"만 표시한다.
+      String status = remaining > 0 ? "다음 지급 " + owner.duration(remaining) : response.has("claim") ? "지금 " + response.optInt("claim") + "장 받기" : "지금 받기";
       if (!status.contentEquals(wait.getText())) { wait.setText(status); contentRevision++; }
       claim.setContentDescription("지원서 받기 · " + status);
     });
@@ -202,18 +210,23 @@ final class RecruitmentScreen extends ViewGroup {
     if (amount != nextAmount) contentRevision++;
     amount = nextAmount;
     editing = true; String number = String.valueOf(amount); if (!number.contentEquals(count.getText())) count.setText(number); editing = false;
-    boolean available = selected != null && limit > 0;
+    // 새 60종: 서버가 비활성으로 보낸 등급(확률 승인 대기)과 결과 확인 중인 요청은 모집할 수 없다.
+    boolean approved = roster == null || (selected != null && selected.optBoolean("enabled"));
+    boolean waiting = roster != null && roster.pending();
+    boolean available = selected != null && limit > 0 && approved && !waiting;
     minus.setEnabled(available); plus.setEnabled(available); count.setEnabled(available); maximum.setEnabled(limit > 1);
     total.setText("필요 " + ((long) unitCost * amount) + (compact ? " · 보유 " : "장 · 보유 ") + response.optInt("credits") + (compact ? "" : "장"));
-    go.setEnabled(available); go.setText(available ? "모집하기" : "지원서 부족");
+    go.setEnabled(available); go.setText(available ? "모집하기" : !approved ? "승인 대기" : waiting ? "결과 확인 중" : "지원서 부족");
     go.setContentDescription((selected == null ? "" : NativeEconomy.recruitmentLabel(selected)) + " · " + go.getText() + " · " + amount + "회 · 지원서 " + ((long) unitCost * amount) + "장");
   }
   private void confirmDraw() {
     if (h.busy || selected == null || limit <= 0 || (h.visibleDialog != null && h.visibleDialog.isShowing())) return;
-    int epoch = h.epoch, times = amount; String account = h.api.token(), kind = selected.optString("kind");
+    if (roster != null && (roster.pending() || !selected.optBoolean("enabled"))) return;
+    int epoch = h.epoch, times = amount; String account = h.api.token(), kind = selected.optString("kind"); JSONObject chosen = selected;
     h.confirm(NativeEconomy.recruitmentLabel(selected) + " " + times + "회 · 지원서 " + ((long) unitCost * times) + "장을 사용할까요?", () -> {
       if (!isAttachedToWindow() || h.epoch != epoch || !account.equals(h.api.token()) || h.busy) return;
-      owner.performDraw("draw", MainActivity.obj("kind", kind, "times", times), "draw");
+      if (roster != null) roster.buy(chosen, times);
+      else owner.performDraw("draw", MainActivity.obj("kind", kind, "times", times), "draw");
     });
   }
 

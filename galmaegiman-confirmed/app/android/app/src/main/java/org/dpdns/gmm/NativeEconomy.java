@@ -77,7 +77,8 @@ final class NativeEconomy {
     View air = new View(h);
     air.setTag("draw-header-space");
     header.addView(air, 2, new LinearLayout.LayoutParams(0, 1, 1));
-    if (m.lastDraw != null) {
+    boolean roster60 = h.roster60Menus();
+    if (!roster60 && m.lastDraw != null) {
       Button previous = k.action(null, "↺", () -> reveal(m.lastDraw, () -> h.load("draw"), true));
       previous.setTag("draw-last-result");
       previous.setTextSize(22);
@@ -88,12 +89,40 @@ final class NativeEconomy {
     // A response from another account must not attach to this screen, even at the same epoch.
     final int drawEpoch = h.epoch;
     final String drawAccount = h.api.token();
+    // 새 60종은 예전 모집 API(draw)를 부르지 않는다. 지원서 받기 시각은 이미 받은 상태(me)에서 읽는다.
+    if (roster60) { drawRoster60(header, drawEpoch, drawAccount); return; }
     m.fetch("draw", r -> {
       if (h.isFinishing() || h.isDestroyed() || h.epoch != drawEpoch
           || !drawAccount.equals(h.api.token())) return;
       LinearLayout counter = economyBody("recruitment-counter");
       counter.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(4));
       counter.addView(new RecruitmentScreen(this, r), new LinearLayout.LayoutParams(-1, -1));
+    });
+  }
+
+  /** 새 60종: 같은 모집소 화면에 새 모집 API의 등급·비용·활성 여부를 얹고, 결과는 방범대 등록증으로 보인다. */
+  void drawRoster60(LinearLayout header, int drawEpoch, String drawAccount) {
+    h.api.call("native/roster60/recruit", null, (roster, error) -> {
+      if (h.isFinishing() || h.isDestroyed() || h.epoch != drawEpoch || !drawAccount.equals(h.api.token())) return;
+      LinearLayout counter = economyBody("recruitment-counter");
+      counter.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(4));
+      if (error != null || roster == null) { counter.addView(k.note("모집 준비 중 · " + error)); return; }
+      try {
+        Roster60RecruitPurchase purchase = new Roster60RecruitPurchase(h, roster);
+        JSONObject last = purchase.receipt();
+        if (last != null) {
+          Button previous = k.action(null, "↺", () -> Roster60RecruitPurchase.showCards(h, last, null));
+          previous.setTag("draw-last-result");
+          previous.setTextSize(22);
+          previous.setContentDescription("지난 모집 결과 다시 보기");
+          previous.setPadding(0, 0, 0, 0);
+          header.addView(previous, 2, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+        }
+        counter.addView(new RecruitmentScreen(this, Roster60RecruitPurchase.merge(h.me(), roster, System.currentTimeMillis()), purchase),
+            new LinearLayout.LayoutParams(-1, -1));
+        // 결과를 확인하지 못한 요청이 있으면 같은 요청 번호로 다시 확인한다(새로 차감하지 않음).
+        if (purchase.pending()) purchase.send();
+      } catch (JSONException bad) { counter.addView(k.note("모집 정보를 읽지 못했어요.")); }
     });
   }
 
