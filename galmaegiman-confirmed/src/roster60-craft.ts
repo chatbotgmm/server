@@ -64,7 +64,7 @@ export class RosterCraft {
     // with an unchanged version must not silently change the confirmed level.
     const previewFingerprint=hash([canonical(input),materials.map(m=>[m.id,m.speciesId,m.totalXp.toString()]),target.name,target.rarity,recipe,result]);
     return {resultId:target.id,resultName:target.name,resultRarity:target.rarity,catalogVersion:catalog.version,materialIds:materials.map(m=>m.id),
-      inheritedTotalXp:result.totalXp,expectedLevel:result.level,maxLevel:result.maxLevel,reincarnation:0,previewFingerprint};
+      inheritedTotalXp:result.totalXp,remainingXp:result.xp,xpToNext:result.xpToNext,expectedLevel:result.level,maxLevel:result.maxLevel,reincarnation:0,previewFingerprint};
   }
   preview(playerId:string,input:CraftSelection){return this.db.$transaction(tx=>this.plan(tx,playerId,input));}
   async confirm(playerId:string,input:CraftConfirmation){

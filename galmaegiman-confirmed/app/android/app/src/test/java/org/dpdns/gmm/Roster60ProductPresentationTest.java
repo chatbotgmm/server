@@ -31,4 +31,14 @@ public class Roster60ProductPresentationTest {
  @Test public void craftCarouselBindsMaterialAndRecipeSpecies()throws Exception{
   try(var c=fixtures.start()){MainActivity h=c.get();authenticate(h);NativeRoster60Craft craft=new NativeRoster60Craft(h.menus.economy);craft.open(true);craft.loading=false;craft.units=new JSONArray().put(new JSONObject().put("ownedId","owned-u05").put("speciesId","u05").put("name","황금").put("level",1));craft.recipes=new JSONArray().put(new JSONObject().put("resultId","u21").put("name","설인"));craft.render();ImageView material=h.root.findViewWithTag("craft-material-portrait"),result=h.root.findViewWithTag("craft-result-portrait");assertNotNull(material.getDrawable());assertNotNull(result.getDrawable());craft.toggle(craft.units.getJSONObject(0));assertEquals(1,craft.selected.size());((Button)h.root.findViewWithTag("roster60-slot-0")).performClick();assertTrue(craft.selected.isEmpty());craft.leave();}
  }
+ @Test public void formationKeepsSixSlotsFocusedPortraitAndExplicitStart()throws Exception{
+  try(var c=fixtures.start()){MainActivity h=c.get();authenticate(h);JSONArray units=new JSONArray();for(int i=0;i<7;i++)units.put(new JSONObject().put("ownedId","o"+i).put("speciesId","u01").put("name","대원 "+i));int[] submissions={0};Roster60FormationView editor=new Roster60FormationView(h,units,ids->{assertEquals(6,ids.length());assertEquals("o0",ids.optString(0));submissions[0]++;},()->{});
+   for(int i=0;i<7;i++)editor.toggle(units.getJSONObject(i));assertEquals(6,editor.selected.size());assertNotNull(editor.focus.getDrawable());assertEquals(0,submissions[0]);editor.start.performClick();editor.start.performClick();assertEquals(1,submissions[0]);
+  }
+ }
+ @Test public void switchPanelShowsCurrentAndFallenWithoutAllowingEitherTarget()throws Exception{
+  try(var c=fixtures.start()){MainActivity h=c.get();authenticate(h);NativeRoster60Battle b=new NativeRoster60Battle(h){@Override void resume(){}};b.open();JSONObject value=snapshot("ACTIVE"),s=value.getJSONObject("state");s.getJSONArray("fighters").getJSONObject(0).put("ownedId","current");s.put("reserves",new JSONArray().put(fighter("u07").put("ownedId","fallen").put("hp",0)).put(fighter("u01").put("ownedId","live")));b.bind(value);b.chooseSwitch();assertEquals(View.GONE,b.panel.getVisibility());assertFalse(b.choicePanel.findViewWithTag("battle-switch-current").isEnabled());assertFalse(b.choicePanel.findViewWithTag("battle-switch-fallen").isEnabled());assertTrue(b.choicePanel.findViewWithTag("battle-switch-live").isEnabled());b.back();assertEquals(View.GONE,b.choicePanel.getVisibility());assertEquals(View.VISIBLE,b.panel.getVisibility());b.pause();
+  }
+ }
+
 }

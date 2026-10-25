@@ -956,7 +956,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void team() {
-    if(roster60Menus()){openRosterPvp();return;}
+    if(roster60Menus()){rosterPvp=new NativeRoster60Pvp(this,true);rosterPvp.open();return;}
     menus.team();
   }
 

@@ -58,7 +58,7 @@ suite('roster60 transactional combination',()=>{
  it('preview floors average cumulative XP then calculates result level, never consumes',async()=>{
    const a=await material(11),b=await material(16);
    const p=await service.preview(owner,selection([a.id,b.id]));
-   expect(p).toMatchObject({inheritedTotalXp:13,expectedLevel:2});
+   expect(p).toMatchObject({inheritedTotalXp:13,expectedLevel:2,remainingXp:1,xpToNext:null});
    expect(await db.roster60Owned.count({where:{id:{in:[a.id,b.id]},status:'AVAILABLE'}})).toBe(2);
  });
  it('rejects duplicate IDs, foreign/locked material, low level, and wrong recipe',async()=>{

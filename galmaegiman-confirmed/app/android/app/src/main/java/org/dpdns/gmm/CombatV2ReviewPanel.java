@@ -92,7 +92,7 @@ final class CombatV2ReviewPanel extends LinearLayout {
         if(product && getContext() instanceof MainActivity){
           MainActivity host=(MainActivity)getContext();String kind=entry.optString("kind");
           String surface=skillPage?"attack":"escape".equals(kind)?"surrender":"item".equals(kind)?"item":"switch".equals(kind)?"switch":"attack";
-          button.setBackground(new BattleSkin(host,"button-"+surface));button.setTypeface(host.headline);
+          button.setBackground(new BattleSkin(host,"button-"+surface));CombatV2ReviewStyle.text(button);
           button.setTextColor("surrender".equals(surface)?JournalTheme.INK:0xfffff8e8);
           button.setCompoundDrawables(null,null,null,null);
         }

@@ -23,5 +23,5 @@ final class NativeRoster60PvpBattle extends NativeRoster60Battle {
  }
  void schedule(){poll.removeCallbacksAndMessages(null);if(current()&&!paused)poll.postDelayed(this::resume,1500);}
  @Override void pause(){paused=true;poll.removeCallbacksAndMessages(null);super.pause();}
- @Override boolean back(){if(panel!=null){panel.cancelInteraction();if(panel.showCommands())return true;}pause();h.home();return true;}
+ @Override boolean back(){if(!choiceKind.isEmpty()){closeChoices();return true;}if(panel!=null){panel.cancelInteraction();if(panel.showCommands())return true;}pause();h.home();return true;}
 }
