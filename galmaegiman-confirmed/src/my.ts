@@ -1,3 +1,4 @@
+import {ordinarySessionLifetimeSeconds,sessionPredatesReset} from './game-reset-session.js';
 // 웹 「내 갈매미」(/my): 카톡에서 받은 6자리 코드로 로그인 → 내 갈매미 목록·전투 편성·탐험 편성
 // 로그인 상태는 서명된 쿠키(30일). 쿠키에는 플레이어 id와 만료 시각만, 서명 키는 SKILL_SECRET에서 따로 계산
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
@@ -24,10 +25,10 @@ const COOKIE='gmm_s',DAYS=30,KSTATE='gmm_ks',KPEND='gmm_kp',KAPP='gmm_ka',KLINK=
 // 안드로이드 앱(Capacitor) 화면 주소. 앱에서 오는 요청만 다른 주소에서 받음(CORS)
 const APP_ORIGINS=new Set(['https://localhost','capacitor://localhost','http://localhost']);
 export interface KakaoLogin {restKey:string;clientSecret?:string}
-export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaClient;root:string;secret:string;baseUrl:()=>Promise<string>;kakao?:KakaoLogin;fetch?:typeof fetch;reviewLogin?:ReviewConfig}){
+export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaClient;root:string;secret:string;baseUrl:()=>Promise<string>;kakao?:KakaoLogin;fetch?:typeof fetch;reviewLogin?:ReviewConfig;gameResetSessionCutoff?:number}){
   const key=createHmac('sha256',opt.secret).update('web-session').digest();
   const sign=(v:string)=>createHmac('sha256',key).update(v).digest('base64url');
-  const issue=(playerId:string)=>{const exp=Math.floor(Date.now()/1000)+DAYS*86400,v=`${playerId}.${exp}`;return `${v}.${sign(v)}`;};
+  const issue=(playerId:string)=>{const exp=Math.floor(Date.now()/1000)+ordinarySessionLifetimeSeconds,v=`${playerId}.${exp}`;return `${v}.${sign(v)}`;};
   const cookie=(req:FastifyRequest,name:string)=>(req.headers.cookie??'').split(/;\s*/).find(c=>c.startsWith(`${name}=`))?.slice(name.length+1);
   // 서명된 값 `${값}.${만료}.${서명}` 확인(쓰임새마다 다른 머리말로 서명해 서로 바꿔 쓰지 못하게)
   const signed=(prefix:string,v:string,secs:number)=>{const exp=Math.floor(Date.now()/1000)+secs,b=`${v}.${exp}`;return `${b}.${sign(prefix+b)}`;};
@@ -59,6 +60,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
       checked.set(req,id);return;
     }
     const id=unsign('',raw);if(!id)return;
+    if(sessionPredatesReset(raw,opt.gameResetSessionCutoff??0)){setCookie(req,reply,'',0);return reply.code(401).send({error:'login',code:'GAME_PROGRESS_RESET_RELOGIN'});}
     // 과거 REVIEW_CODE로 발급한 30일 쿠키도 차단. 전용 계정은 전용 세션으로만 접근.
     const p=await opt.db.player.findUnique({where:{id},select:{identity:true}});
     if(p&&!p.identity.startsWith('review:'))checked.set(req,id);

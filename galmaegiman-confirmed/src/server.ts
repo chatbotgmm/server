@@ -1,3 +1,4 @@
+import {gameResetMarkerKey,resetSessionCutoff} from './game-reset-session.js';
 import { PrismaClient } from '@prisma/client';
 import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
@@ -29,7 +30,9 @@ async function baseUrl(){
   if(!value)return '';
   try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&u.pathname==='/'&&!u.search&&!u.hash?u.origin:'';}catch{return '';}
 }
-const app=await buildApp(db,new GameService(db,content,undefined,undefined,undefined,undefined,env.ADMIN_CODE),{secret:env.SKILL_SECRET,botId:env.KAKAO_BOT_ID,baseUrl,log:env.LOG_ENABLED==='true',
+// Offline reset requires a stopped service; restart also discards in-memory review/app exchange sessions.
+const gameResetSessionCutoff=resetSessionCutoff((await db.appMeta.findUnique({where:{key:gameResetMarkerKey}}))?.value);
+const app=await buildApp(db,new GameService(db,content,undefined,undefined,undefined,undefined,env.ADMIN_CODE),{gameResetSessionCutoff,secret:env.SKILL_SECRET,botId:env.KAKAO_BOT_ID,baseUrl,log:env.LOG_ENABLED==='true',
   reviewLogin:reviewConfig(process.env),kakaoLogin:env.KAKAO_REST_KEY?{restKey:env.KAKAO_REST_KEY,clientSecret:env.KAKAO_CLIENT_SECRET}:undefined});
 let closing=false;
 const close=async()=>{if(closing)return;closing=true;await app.close();await db.$disconnect();};
