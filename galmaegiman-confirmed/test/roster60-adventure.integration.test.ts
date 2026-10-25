@@ -44,6 +44,27 @@ suite('authenticated adventure escrow and escape',()=>{
   const b={requestId:randomUUID(),adventureId:run.adventureId,revision:0};expect((await post('adventure/return',b)).json().error).toBe('REWARD_CAPACITY_REQUIRED');expect((await db.player.findUniqueOrThrow({where:{id:player}})).credits).toBe(before.credits);expect((await read(run)).pendingRewards.items.potion).toBe(2);
   await db.playerItem.update({where:{playerId_itemId:{playerId:player,itemId:'potion'}},data:{count:1}});const paid=await ok('adventure/return',b);expect(await ok('adventure/return',b)).toEqual(paid);const after=await db.player.findUniqueOrThrow({where:{id:player}});expect(after.credits).toBe(before.credits+3);expect(after.snack).toBe(before.snack+7);expect(after.peanut).toBe(before.peanut+1);expect((await db.playerItem.findUniqueOrThrow({where:{playerId_itemId:{playerId:player,itemId:'potion'}}})).count).toBe(3);
  });
+ it('normal return reserves item capacity for another active battle refund and rolls back all rewards',async()=>{
+  const {u,run}=await start();const before=await db.player.findUniqueOrThrow({where:{id:player}});
+  await db.playerItem.upsert({where:{playerId_itemId:{playerId:player,itemId:'potion'}},create:{playerId:player,itemId:'potion',count:19},update:{count:19}});
+  // Separate battle owns this escrow; it must remain untouched by adventure return.
+  const roomId=randomUUID(),phaseId='roster-v1:0';await db.realtimeItemEscrow.create({data:{roomId,phaseId,side:0,playerId:player,itemId:'potion',state:'HELD'}});
+  try{
+   await db.roster60Adventure.update({where:{id:run.adventureId},data:{pendingRewards:JSON.stringify({xp:{[u.id]:10},currencies:{snack:7},items:{potion:1}})}});
+   const request={requestId:randomUUID(),adventureId:run.adventureId,revision:0};
+   expect((await post('adventure/return',request)).json().error).toBe('REWARD_CAPACITY_REQUIRED');
+   expect((await db.player.findUniqueOrThrow({where:{id:player}})).snack).toBe(before.snack);
+   expect((await db.roster60Owned.findUniqueOrThrow({where:{id:u.id}})).totalXp).toBe(0n);
+   expect((await read(run)).pendingRewards.items.potion).toBe(1);expect((await read(run)).status).toBe('ACTIVE');
+   expect((await db.realtimeItemEscrow.findUniqueOrThrow({where:{roomId_phaseId_side:{roomId,phaseId,side:0}}})).state).toBe('HELD');
+   // The other battle consumes its item: capacity becomes available, same failed request can now commit once.
+   await db.realtimeItemEscrow.update({where:{roomId_phaseId_side:{roomId,phaseId,side:0}},data:{state:'CONSUMED'}});
+   const paid=await ok('adventure/return',request);expect(await ok('adventure/return',request)).toEqual(paid);
+   expect((await db.playerItem.findUniqueOrThrow({where:{playerId_itemId:{playerId:player,itemId:'potion'}}})).count).toBe(20);
+   expect((await db.roster60Owned.findUniqueOrThrow({where:{id:u.id}})).totalXp).toBe(10n);
+   expect((await db.player.findUniqueOrThrow({where:{id:player}})).snack).toBe(before.snack+7);
+  }finally{await db.realtimeItemEscrow.deleteMany({where:{roomId}});}
+ });
  it('records voluntary/forced entries per battle, floors reserve XP, escrows each share and settles once',async()=>{
   const units=[];for(let i=0;i<4;i++)units.push(await db.roster60Owned.create({data:{playerId:player,speciesId:'u01',source:randomUUID()}}));
   const ids=units.map(u=>u.id);let run=await ok('adventure/start',{requestId:randomUUID(),ownedIds:ids}),v=await battle(run,'adventure-odd');
