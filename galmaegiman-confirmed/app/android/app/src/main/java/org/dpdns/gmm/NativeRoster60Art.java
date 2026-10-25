@@ -31,20 +31,23 @@ final class NativeRoster60Art extends View {
   }
   if(snapshot!=null){JSONArray f=snapshot.optJSONArray("fighters");if(f!=null&&f.length()==2){hud(c,f.optJSONObject(1),false,w,h);hud(c,f.optJSONObject(0),true,w,h);}}
  }
+ // 화면 배율(휴대폰 가로=1). HP/MP 패널과 글자를 같은 비율로 키운다.
+ float scale=1;
+ void setScale(float s){if(Math.abs(s-scale)<.01f)return;scale=s;invalidate();}
  void hud(Canvas c,JSONObject fighter,boolean self,float w,float h){
   if(fighter==null)return;float d=getResources().getDisplayMetrics().density;
-  float width=Math.min(w*.46f,290*d),height=Math.min(72*d,h*.26f),x=self?w-width-6*d:6*d,y=self?h-height-4*d:4*d;
+  float width=Math.min(w*.46f,290*d*scale),height=Math.min(72*d*scale,h*.26f),x=self?w-width-6*d:6*d,y=self?h-height-4*d:4*d;
   RectF box=new RectF(x,y,x+width,y+height);if(hpSkin!=null)hpSkin.surface(c,box);else{paint.setColor(0xfff4e4ba);c.drawRoundRect(box,6*d,6*d,paint);}
-  float font=Math.min(13*getResources().getDisplayMetrics().scaledDensity,height*.23f);paint.setColor(JournalTheme.INK);paint.setTextSize(font);paint.setTypeface(android.graphics.Typeface.create(NavyWorkbenchTheme.font((MainActivity)getContext()),android.graphics.Typeface.BOLD));
-  String name=(self?"출전 · ":"상대 · ")+fighter.optString("name")+"  Lv"+fighter.optInt("level",1);float fit=Math.min(1,(width-32*d)/Math.max(1,paint.measureText(name)));paint.setTextSize(font*fit);c.drawText(name,x+16*d,y+height*.30f,paint);
+  float font=Math.min(13*scale*getResources().getDisplayMetrics().scaledDensity,height*.23f);paint.setColor(JournalTheme.INK);paint.setTextSize(font);paint.setTypeface(android.graphics.Typeface.create(NavyWorkbenchTheme.font((MainActivity)getContext()),android.graphics.Typeface.BOLD));
+  String name=(self?"출전 · ":"상대 · ")+fighter.optString("name")+"  Lv"+fighter.optInt("level",1);float fit=Math.min(1,(width-32*d*scale)/Math.max(1,paint.measureText(name)));paint.setTextSize(font*fit);c.drawText(name,x+16*d*scale,y+height*.30f,paint);
   JSONObject stats=fighter.optJSONObject("stats");if(stats==null)return;
-  meter(c,"HP",fighter.optInt("hp"),stats.optInt("hp"),x+16*d,y+height*.48f,width-32*d,height*.16f,0xff72c98b);
-  meter(c,"MP",fighter.optInt("mp"),stats.optInt("mp"),x+16*d,y+height*.73f,width-32*d,height*.16f,0xff76b9eb);
+  meter(c,"HP",fighter.optInt("hp"),stats.optInt("hp"),x+16*d*scale,y+height*.48f,width-32*d*scale,height*.16f,0xff72c98b);
+  meter(c,"MP",fighter.optInt("mp"),stats.optInt("mp"),x+16*d*scale,y+height*.73f,width-32*d*scale,height*.16f,0xff76b9eb);
  }
  void meter(Canvas c,String label,int value,int max,float x,float y,float w,float h,int color){
-  float d=getResources().getDisplayMetrics().density;paint.setTypeface(NavyWorkbenchTheme.font((MainActivity)getContext()));paint.setTextSize(10*getResources().getDisplayMetrics().scaledDensity);paint.setColor(JournalTheme.INK);c.drawText(label,x,y+h*.65f,paint);
+  float d=getResources().getDisplayMetrics().density;paint.setTypeface(NavyWorkbenchTheme.font((MainActivity)getContext()));paint.setTextSize(Math.min(10*scale*getResources().getDisplayMetrics().scaledDensity,h*1.25f));paint.setColor(JournalTheme.INK);c.drawText(label,x,y+h*.65f,paint);
   String amount=value+"/"+max;float amountWidth=paint.measureText(amount);c.drawText(amount,x+w-amountWidth,y+h*.65f,paint);
-  float left=x+20*d,right=Math.max(left,x+w-amountWidth-4*d),top=y+h*.05f,bottom=y+h*.8f;paint.setColor(0xff263f4d);c.drawRoundRect(new RectF(left,top,right,bottom),h/3,h/3,paint);
+  float left=x+20*d*scale,right=Math.max(left,x+w-amountWidth-4*d),top=y+h*.05f,bottom=y+h*.8f;paint.setColor(0xff263f4d);c.drawRoundRect(new RectF(left,top,right,bottom),h/3,h/3,paint);
   paint.setColor(color);c.drawRoundRect(new RectF(left+1,top+1,left+1+Math.max(0,right-left-2)*Math.max(0,Math.min(1,value/(float)Math.max(1,max))),bottom-1),h/3,h/3,paint);
  }
 

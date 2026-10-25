@@ -33,6 +33,9 @@ final class CombatV2ReviewPanel extends LinearLayout {
   private void hideDetails(){details.setVisibility(INVISIBLE);if(holdOverlay!=null)holdOverlay.setVisibility(INVISIBLE);}
   private JSONObject dto;
   private boolean skills, pending;
+  // 제품 화면 배율(휴대폰 가로=1). 큰 화면에서 버튼만 커지고 글자·아이콘은 그대로인 문제를 막는다.
+  private float scale=1;
+  void setScale(float s){if(Math.abs(s-scale)<.01f)return;scale=s;if(product){status.setTextSize(14*s);back.setTextSize(12*s);back.getLayoutParams().height=dp(48*s);}if(dto!=null)render();}
 
   CombatV2ReviewPanel(Context context, Transport transport) {
     this(context,transport,CombatV2ReviewStyle::icon);
@@ -54,7 +57,7 @@ final class CombatV2ReviewPanel extends LinearLayout {
 
   private ProgressBar bar(String name){ProgressBar b=new ProgressBar(getContext(),null,android.R.attr.progressBarStyleHorizontal);b.setProgressDrawable(getResources().getDrawable(CombatV2ReviewStyle.resource(getContext(),"drawable",name)));addView(b,new LayoutParams(-1,dp(4)));return b;}
   private int productDetailsHeight(){return (int)Math.ceil(28*getResources().getConfiguration().fontScale);}
-  private int dp(int n){return (int)(n*getResources().getDisplayMetrics().density+.5f);}
+  private int dp(float n){return (int)(n*getResources().getDisplayMetrics().density+.5f);}
   void lock(){pending=true;render();}
   void cancelInteraction(){cancelHolds();}
   boolean isSkillPage(){return skills;}
@@ -85,7 +88,7 @@ final class CombatV2ReviewPanel extends LinearLayout {
       rows.addView(line,new LayoutParams(-1,0,1));
       for(int col=0;col<(product?2:3);col++) {
         JSONObject entry=entries.optJSONObject(row*(product?2:3)+col);
-        Button button=new Button(getContext());button.setMinHeight(0);button.setMinimumHeight(0);button.setPadding(dp(2),0,dp(2),0);button.setTextSize(product?12:10);button.setMaxLines(2);CombatV2ReviewStyle.button(button);
+        Button button=new Button(getContext());button.setMinHeight(0);button.setMinimumHeight(0);button.setPadding(dp(2),0,dp(2),0);button.setTextSize(product?12*scale:10);button.setMaxLines(2);CombatV2ReviewStyle.button(button);
         line.addView(button,new LayoutParams(0,-1,1));
         if(entry==null){button.setText(CombatV2ReviewStyle.label(getContext(),"empty"));button.setEnabled(false);continue;}
         boolean skillPage=skills;
@@ -100,7 +103,7 @@ final class CombatV2ReviewPanel extends LinearLayout {
           button.setBackground(new BattleSkin(host,"button-"+surface));CombatV2ReviewStyle.text(button);
           button.setTextColor("surrender".equals(surface)?JournalTheme.INK:0xfffff8e8);
           button.setCompoundDrawables(null,null,null,null);
-          if(!skillPage){String icon="skills".equals(kind)?"goldenstrike":"focus".equals(kind)?"shield":"escape".equals(kind)?"surrender":kind;android.graphics.Bitmap image=BattleSkin.bitmap(host,"icon-"+icon);if(image!=null){android.graphics.drawable.BitmapDrawable draw=new android.graphics.drawable.BitmapDrawable(getResources(),image);draw.setBounds(0,0,dp(24),dp(24));button.setCompoundDrawables(draw,null,null,null);button.setCompoundDrawablePadding(dp(2));button.setPadding(dp(8),dp(2),dp(6),dp(2));}}
+          if(!skillPage){String icon="skills".equals(kind)?"goldenstrike":"focus".equals(kind)?"shield":"escape".equals(kind)?"surrender":kind;android.graphics.Bitmap image=BattleSkin.bitmap(host,"icon-"+icon);if(image!=null){android.graphics.drawable.BitmapDrawable draw=new android.graphics.drawable.BitmapDrawable(getResources(),image);draw.setBounds(0,0,dp(24*scale),dp(24*scale));button.setCompoundDrawables(draw,null,null,null);button.setCompoundDrawablePadding(dp(2*scale));button.setPadding(dp(8*scale),dp(2),dp(6*scale),dp(2));}}
 
         }
         button.setText(label+(shownWhy.isEmpty()?"":"\n"+shownWhy));button.setContentDescription(label+" "+why);
@@ -131,9 +134,11 @@ final class CombatV2ReviewPanel extends LinearLayout {
     SkillHoldGesture gesture=new SkillHoldGesture(timeout,config.getScaledTouchSlop());gestures.add(gesture);
     Runnable timer=()->{if(gesture.hold(SystemClock.uptimeMillis())){button.setPressed(false);button.setSelected(true);
       details.setText(entry.optString("name")+" · "+elementName(entry.optString("element"))+" · MP "+entry.optInt("mpCost")
-          +" · "+CombatV2ReviewStyle.label(getContext(),"suitability")+" "+dto.optJSONObject("self").optJSONObject("suitability").optDouble(entry.optString("element"))+"\n"+entry.optString("description")+(product?" · ":"\n")+entry.optString("reason"));details.setVisibility(VISIBLE);if(holdOverlay!=null){holdOverlay.setText(details.getText());holdOverlay.setVisibility(VISIBLE);}
+          +" · "+CombatV2ReviewStyle.label(getContext(),"suitability")+" "+dto.optJSONObject("self").optJSONObject("suitability").optDouble(entry.optString("element"))+"\n"+entry.optString("description")+(entry.optString("reason").isEmpty()?"":(product?" · ":"\n")+entry.optString("reason")));details.setVisibility(VISIBLE);if(holdOverlay!=null){holdOverlay.setText(details.getText());holdOverlay.setVisibility(VISIBLE);}
     }};timers.add(timer);
     button.setOnTouchListener((v,event)->{
+      // 다시 그려진 뒤 남은 옛 버튼은 어떤 터치에도 시전·설명을 일으키지 않는다(배율·서버 갱신 중 누르고 있던 경우).
+      if(!holdButtons.contains(button)){gesture.cancel();removeCallbacks(timer);button.setPressed(false);return true;}
       switch(event.getActionMasked()) {
         case MotionEvent.ACTION_DOWN:cancelHolds();button.setPressed(true);gesture.down(SystemClock.uptimeMillis(),event.getX(),event.getY());postDelayed(timer,timeout);return true;
         case MotionEvent.ACTION_MOVE:if(gesture.move(event.getX(),event.getY())){removeCallbacks(timer);button.setPressed(false);button.setSelected(false);hideDetails();}return true;

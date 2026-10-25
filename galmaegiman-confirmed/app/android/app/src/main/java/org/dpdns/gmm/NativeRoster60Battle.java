@@ -11,7 +11,9 @@ class NativeRoster60Battle {
  String owner,key,autoSettled="",settlementError=""; int epoch; LinearLayout container; TextView message,stats; Button retry,settle,returnAdventure,home;
  Roster60FormationView formation;LinearLayout arena;
  LinearLayout choicePanel;String choiceKind="",switchTarget="",targetItem="";int itemPage;
- NativeRoster60Art art; CombatV2ReviewPanel panel; JSONObject view,adventure; boolean reading; android.app.AlertDialog selection;
+ NativeRoster60Art art; CombatV2ReviewPanel panel; LinearLayout toolbar; TextView hold;
+ // 휴대폰 가로(약 760×300dp)=1. 큰 화면에서는 글자·아이콘·버튼 높이를 같은 비율로 키운다(Roster60Scale).
+ float scale=1; JSONObject view,adventure; boolean reading; android.app.AlertDialog selection;
  final Roster60BattleMode requestedMode;
  NativeRoster60Battle(MainActivity host){this(host,Roster60BattleMode.ALL);}
  NativeRoster60Battle(MainActivity host,Roster60BattleMode mode){h=host;requestedMode=mode;prefs=h.getSharedPreferences("roster60_product_battle",Context.MODE_PRIVATE);}
@@ -21,16 +23,19 @@ class NativeRoster60Battle {
   if(h.api.token().isEmpty()){h.login();return;}
   h.base("전투","roster60Battle");owner=h.api.token();key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner+storageScope());epoch=h.epoch;
   h.page.removeAllViews();
-  container=new LinearLayout(h);container.setOrientation(LinearLayout.VERTICAL);container.setBackgroundColor(NavyWorkbenchTheme.HEADER);h.page.addView(container,new LinearLayout.LayoutParams(-1,0,1));
-  LinearLayout toolbar=new LinearLayout(h);home=h.button("‹ 홈",()->back());home.setTextSize(12);toolbar.addView(home,new LinearLayout.LayoutParams(h.dp(72),h.dp(48)));
-  message=h.text("전투 확인 중…",12);message.setTextColor(NavyWorkbenchTheme.TEXT);message.setMaxLines(2);toolbar.addView(message,new LinearLayout.LayoutParams(0,h.dp(48),1));container.addView(toolbar);
+  Roster60Scale.Column column=new Roster60Scale.Column(h,760,300);column.changed=this::rescale;container=column;container.setBackgroundColor(NavyWorkbenchTheme.HEADER);h.page.addView(container,new LinearLayout.LayoutParams(-1,0,1));
+  FrameLayout top=new FrameLayout(h);toolbar=new LinearLayout(h);top.addView(toolbar,new FrameLayout.LayoutParams(-1,-1));home=h.button("‹ 홈",()->back());home.setTextSize(12);toolbar.addView(home,new LinearLayout.LayoutParams(h.dp(72),h.dp(48)));
+  message=h.text("전투 확인 중…",12);message.setTextColor(NavyWorkbenchTheme.TEXT);message.setMaxLines(2);toolbar.addView(message,new LinearLayout.LayoutParams(0,h.dp(48),1));container.addView(top,new LinearLayout.LayoutParams(-1,h.dp(48)));
   // Same field/right-hand command split as production BattleView.onMeasure().
   arena=new LinearLayout(h);arena.setOrientation(LinearLayout.HORIZONTAL);arena.setBaselineAligned(false);container.addView(arena,new LinearLayout.LayoutParams(-1,0,1));
   FrameLayout stage=new FrameLayout(h);arena.addView(stage,new LinearLayout.LayoutParams(0,-1,.625f));
   art=new NativeRoster60Art(h);art.setTag("roster60-battle-art");stage.addView(art,new FrameLayout.LayoutParams(-1,-1));
-  TextView hold=new TextView(h);hold.setTag("battle-hold-description");CombatV2ReviewStyle.text(hold);hold.setTextColor(JournalTheme.INK);hold.setTextSize(12);hold.setPadding(h.dp(12),h.dp(8),h.dp(12),h.dp(8));hold.setBackground(new BattleSkin(h,"panel-hp"));hold.setVisibility(android.view.View.INVISIBLE);
-  FrameLayout.LayoutParams holdBox=new FrameLayout.LayoutParams(0,h.dp(94),android.view.Gravity.TOP|android.view.Gravity.RIGHT);stage.addView(hold,holdBox);stage.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{int width=(int)((r-l)*.49f);if(hold.getLayoutParams().width!=width){hold.getLayoutParams().width=width;hold.requestLayout();}});
-  LinearLayout commandRail=new LinearLayout(h);commandRail.setOrientation(LinearLayout.VERTICAL);commandRail.setTag("roster60-command-rail");commandRail.setPadding(h.dp(8),h.dp(8),h.dp(8),h.dp(8));commandRail.setBackground(new BattleSkin(h,"panel-command"));arena.addView(commandRail,new LinearLayout.LayoutParams(0,-1,.375f));
+  // 기술 설명(누르는 동안): 전장 위가 아니라 상단 안내줄 자리에 띄운다. 얼굴·HP/MP 패널·명령 칸을 가리지 않고,
+  // 긴 설명은 칸 안에서 글자를 줄이고 그래도 넘치면 말줄임으로 끝낸다(화면 밖 잘림 없음).
+  hold=new TextView(h){@Override protected void onTextChanged(CharSequence t,int a,int b,int c){super.onTextChanged(t,a,b,c);if(getWidth()>0)Roster60Scale.fit(this,12*scale,9);}};hold.setTag("battle-hold-description");CombatV2ReviewStyle.text(hold);hold.setTextColor(JournalTheme.INK);hold.setTextSize(12);hold.setGravity(android.view.Gravity.CENTER_VERTICAL);hold.setPadding(h.dp(12),h.dp(6),h.dp(12),h.dp(6));hold.setBackground(new BattleSkin(h,"panel-hp"));hold.setVisibility(android.view.View.INVISIBLE);
+  FrameLayout.LayoutParams holdBox=new FrameLayout.LayoutParams(-1,-1);holdBox.leftMargin=h.dp(74);top.addView(hold,holdBox);
+  // 큰 화면에서는 명령 칸이 남는 높이 전체로 늘지 않게 높이를 너비×1.3까지만 쓰고 가운데에 둔다(휴대폰 가로에서는 제한에 닿지 않음).
+  LinearLayout commandRail=new Roster60Scale.Capped(h,1.3f);commandRail.setOrientation(LinearLayout.VERTICAL);commandRail.setTag("roster60-command-rail");commandRail.setPadding(h.dp(8),h.dp(8),h.dp(8),h.dp(8));commandRail.setBackground(new BattleSkin(h,"panel-command"));LinearLayout.LayoutParams railBox=new LinearLayout.LayoutParams(0,-1,.375f);railBox.gravity=android.view.Gravity.CENTER_VERTICAL;arena.addView(commandRail,railBox);
   stats=h.text("",12);stats.setTextColor(NavyWorkbenchTheme.TEXT);stats.setMaxLines(3);stats.setVisibility(android.view.View.GONE);commandRail.addView(stats);
   LinearLayout controls=new LinearLayout(h);controls.setOrientation(LinearLayout.HORIZONTAL);commandRail.addView(controls);
   retry=h.button("연결 재시도",()->{if(adventure!=null&&"ACTIVE".equals(adventure.optString("status")))chooseAdventureBattle();else resume();});retry.setTag("roster60-battle-retry");controls.addView(retry,new LinearLayout.LayoutParams(0,h.dp(48),1));
@@ -38,6 +43,12 @@ class NativeRoster60Battle {
   returnAdventure=h.button("모험 정상 복귀",()->{if(adventure!=null)mutate("adventure/return",h.obj("adventureId",adventure.optString("adventureId"),"revision",adventure.optInt("revision")));});controls.addView(returnAdventure,new LinearLayout.LayoutParams(0,h.dp(48),1));
   for(Button button:new Button[]{retry,settle,returnAdventure}){button.setVisibility(android.view.View.GONE);NavyWorkbenchTheme.tab(h,button,false);button.setTextSize(12);button.setMinWidth(0);button.setMinimumWidth(0);button.setMaxLines(2);}
   panel=new CombatV2ReviewPanel(h,this::command,CombatV2ReviewStyle::icon,true);panel.setTag("roster60-battle-panel");panel.setHoldOverlay(hold);commandRail.addView(panel,new LinearLayout.LayoutParams(-1,0,1));choicePanel=new LinearLayout(h);choicePanel.setOrientation(1);choicePanel.setTag("roster60-battle-choices");choicePanel.setVisibility(android.view.View.GONE);commandRail.addView(choicePanel,new LinearLayout.LayoutParams(-1,0,1));resume();
+ }
+ void rescale(float s){
+  scale=s;int bar=h.dp(48*s);container.getChildAt(0).getLayoutParams().height=bar;
+  home.getLayoutParams().width=h.dp(72*s);home.getLayoutParams().height=bar;home.setTextSize(12*s);message.getLayoutParams().height=bar;message.setTextSize(12*s);
+  ((FrameLayout.LayoutParams)hold.getLayoutParams()).leftMargin=h.dp(74*s);hold.setTextSize(12*s);
+  art.setScale(s);panel.setScale(s);if(choicePanel.getVisibility()==android.view.View.VISIBLE)renderChoices();
  }
  void resume(){
   if(!current()||reading||(selection!=null&&selection.isShowing()))return;
@@ -90,17 +101,19 @@ class NativeRoster60Battle {
  JSONObject state=view.optJSONObject("state");ArrayList<JSONObject> entries=new ArrayList<>();boolean reviving="revive".equals(choiceKind),switching="switch".equals(choiceKind)||reviving;
  if(switching){entries.add(state.optJSONArray("fighters").optJSONObject(0));JSONArray reserves=state.optJSONArray("reserves");if(reserves!=null)for(int i=0;i<reserves.length();i++)entries.add(reserves.optJSONObject(i));}
  else{JSONArray inventory=state.optJSONArray("inventory");JSONObject defs=view.optJSONObject("itemDefinitions");if(inventory!=null&&defs!=null)for(int i=0;i<inventory.length();i++){JSONObject item=inventory.optJSONObject(i);if(item.optInt("count")>0&&defs.has(item.optString("itemId")))entries.add(item);}}
+ TextView heading=h.text(reviving?"회복할 대원 선택 · 전투불능만":switching?"대원 교체 · 후보 선택":"아이템 선택",12);CombatV2ReviewStyle.text(heading);heading.setTextSize(13*scale);heading.setTextColor(NavyWorkbenchTheme.TEXT);heading.setSingleLine(true);heading.setPadding(h.dp(4*scale),0,h.dp(4*scale),h.dp(3*scale));heading.setTag("battle-choices-heading");choicePanel.addView(heading,new LinearLayout.LayoutParams(-1,-2));
  int pages=Math.max(1,(entries.size()+5)/6);itemPage=Math.min(itemPage,pages-1);boolean available=prefs.getString(key+":pending","").isEmpty()&&!view.optBoolean("waitingForOpponent");
  for(int row=0;row<3;row++){LinearLayout line=new LinearLayout(h);choicePanel.addView(line,new LinearLayout.LayoutParams(-1,0,1));for(int col=0;col<2;col++){int index=itemPage*6+row*2+col;
  if(index>=entries.size()){line.addView(new android.view.View(h),new LinearLayout.LayoutParams(0,-1,1));continue;}JSONObject item=entries.get(index);
- if(switching){boolean active=index==0,alive=item.optInt("hp")>0;Roster60SwitchTile tile=new Roster60SwitchTile(h,item,active,(reviving?!alive:!active&&alive)&&available,item.optString("ownedId").equals(switchTarget),()->{switchTarget=item.optString("ownedId");renderChoices();});tile.action.setTag("battle-switch-"+item.optString("ownedId"));line.addView(tile,new LinearLayout.LayoutParams(0,-1,1));}
- else{String id=item.optString("itemId");JSONObject def=view.optJSONObject("itemDefinitions").optJSONObject(id);Button button=h.button(def.optString("name")+" ×"+item.optInt("count"),()->{choiceKind="";choicePanel.setVisibility(android.view.View.GONE);if(def.optInt("revive")>0)chooseRevive(id);else action(h.obj("kind","item","itemId",id));});button.setTextSize(12);button.setMinWidth(0);button.setMinimumWidth(0);button.setEnabled(available);button.setBackground(new BattleSkin(h,"button-item"));line.addView(button,new LinearLayout.LayoutParams(0,-1,1));}
+ if(switching){boolean active=index==0,alive=item.optInt("hp")>0;Roster60SwitchTile tile=new Roster60SwitchTile(h,item,active,(reviving?!alive:!active&&alive)&&available,item.optString("ownedId").equals(switchTarget),()->{switchTarget=item.optString("ownedId");renderChoices();},scale);tile.action.setTag("battle-switch-"+item.optString("ownedId"));line.addView(tile,new LinearLayout.LayoutParams(0,-1,1));}
+ else{String id=item.optString("itemId");JSONObject def=view.optJSONObject("itemDefinitions").optJSONObject(id);Button button=h.button(def.optString("name")+" ×"+item.optInt("count"),()->{choiceKind="";choicePanel.setVisibility(android.view.View.GONE);if(def.optInt("revive")>0)chooseRevive(id);else action(h.obj("kind","item","itemId",id));});button.setTextSize(12*scale);button.setMinWidth(0);button.setMinimumWidth(0);button.setEnabled(available);button.setBackground(new BattleSkin(h,"button-item"));line.addView(button,new LinearLayout.LayoutParams(0,-1,1));}
  }}
- LinearLayout footer=new LinearLayout(h);choicePanel.addView(footer,new LinearLayout.LayoutParams(-1,h.dp(48)));
+ LinearLayout footer=new LinearLayout(h);LinearLayout.LayoutParams footerBox=new LinearLayout.LayoutParams(-1,h.dp(48*scale));footerBox.topMargin=h.dp(3*scale);choicePanel.addView(footer,footerBox);
  if(pages>1){Button prev=h.button("‹",()->{itemPage--;renderChoices();}),next=h.button("›",()->{itemPage++;renderChoices();});prev.setEnabled(itemPage>0);next.setEnabled(itemPage<pages-1);footer.addView(prev,new LinearLayout.LayoutParams(0,-1,1));footer.addView(next,new LinearLayout.LayoutParams(0,-1,1));}
- Button back=h.button("돌아가기",this::closeChoices);back.setTag("battle-choices-back");footer.addView(back,new LinearLayout.LayoutParams(0,-1,1));
+ // 취소는 남색 보조 행동(교체 확정과 같은 글자 크기·같은 터치 높이), 확정만 크림색 주행동. 취소는 서버 요청 없이 닫기만 한다.
+ Button back=h.button("취소",this::closeChoices);back.setTag("battle-choices-back");back.setBackground(new BattleSkin(h,"button-switch"));CombatV2ReviewStyle.text(back);back.setTextColor(0xfffff8e8);back.setTextSize(12*scale);back.setMinWidth(0);back.setMinimumWidth(0);back.setPadding(h.dp(4),0,h.dp(4),0);footer.addView(back,new LinearLayout.LayoutParams(0,-1,1));
  if(switching){JSONObject target=null;for(JSONObject candidate:entries)if(candidate.optString("ownedId").equals(switchTarget)&&(reviving?candidate.optInt("hp")==0:candidate.optInt("hp")>0&&candidate!=entries.get(0)))target=candidate;final JSONObject chosen=target;
- Button confirm=h.button(chosen==null?"대원 선택":chosen.optString("name")+(reviving?" 회복":" 교체"),()->{if(chosen==null||!current())return;switchTarget="";choiceKind="";choicePanel.setVisibility(android.view.View.GONE);action(reviving?h.obj("kind","item","itemId",targetItem,"targetOwnedId",chosen.optString("ownedId")):h.obj("kind","switch","targetOwnedId",chosen.optString("ownedId")));});confirm.setTag("battle-switch-confirm");confirm.setEnabled(chosen!=null&&available);confirm.setTextSize(11);confirm.setMinWidth(0);confirm.setMinimumWidth(0);confirm.setBackground(new BattleSkin(h,"button-surrender"));footer.addView(confirm,new LinearLayout.LayoutParams(0,-1,2));}
+ Button confirm=h.button(chosen==null?"대원 선택":chosen.optString("name")+(reviving?" 회복":" 교체"),()->{if(chosen==null||!current())return;switchTarget="";choiceKind="";choicePanel.setVisibility(android.view.View.GONE);action(reviving?h.obj("kind","item","itemId",targetItem,"targetOwnedId",chosen.optString("ownedId")):h.obj("kind","switch","targetOwnedId",chosen.optString("ownedId")));});confirm.setTag("battle-switch-confirm");confirm.setEnabled(chosen!=null&&available);confirm.setBackground(new BattleSkin(h,"button-surrender"));CombatV2ReviewStyle.text(confirm);confirm.setTextColor(chosen!=null&&available?JournalTheme.INK:JournalTheme.MUTED);confirm.setTextSize(12*scale);confirm.setMaxLines(1);confirm.setEllipsize(android.text.TextUtils.TruncateAt.END);confirm.setMinWidth(0);confirm.setMinimumWidth(0);confirm.setPadding(h.dp(4),0,h.dp(4),0);footer.addView(confirm,new LinearLayout.LayoutParams(0,-1,2));}
 
  }
  void chooseRevive(String item){targetItem=item;switchTarget="";choiceKind="revive";itemPage=0;renderChoices();}

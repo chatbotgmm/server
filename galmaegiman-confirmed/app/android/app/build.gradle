@@ -45,6 +45,11 @@ tasks.register('bundleGameArt', Sync) {
         include 'u*.png'
         into 'ui-v3/faces'
     }
+    // 큰 화면에서는 이미 들어 있는 roster60-art 전신에서 같은 focus 좌표로 잘라 쓴다(256px 얼굴 중복 포함 안 함).
+    from('../../../art/gpt/ui-v3-20261025/faces') {
+        include 'focus-manifest.json'
+        into 'ui-v3/faces'
+    }
     from('../../../public/battle') {
         include 'sprites/*.webp', 'sprites/*.png', 'bg/*.jpg', 'bg/*.webp', 'icons/*.png'
         into 'game-art/duel'
