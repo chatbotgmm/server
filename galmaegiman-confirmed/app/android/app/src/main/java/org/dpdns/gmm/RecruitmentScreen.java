@@ -76,7 +76,12 @@ final class RecruitmentScreen extends ViewGroup {
     info.setBackground(pityStates()); info.setContentDescription("천장 보장 안내 · " + RecruitmentProbabilityView.pityText(response));
     information.addView(info, new LinearLayout.LayoutParams(-1, -2));
     // 새 60종에는 천장(보장) 규칙이 정해지지 않았다. 없는 규칙을 안내하지 않는다.
-    if (roster != null) { info.setVisibility(GONE); roster.changed = () -> setAmount(amount); }
+    if (roster != null) {
+      roster.changed = () -> setAmount(amount);
+      // 천장은 정해지지 않아 안내하지 않는다. 대신 서버가 보낸 선택 등급 확률만 보여 준다(없으면 숨김).
+      info.setOnClickListener(v -> { if (selected == null) return; String odds = Roster60RecruitPurchase.oddsText(selected, "\n");
+        if (!odds.isEmpty()) new GameDialog(h).setTitle(NativeEconomy.recruitmentLabel(selected) + " 확률").setMessage(odds + "\n(서버 현재값)").setPositiveButton("닫기", (d, w) -> {}).show(); });
+    }
     pity = label(RecruitmentProbabilityView.pityText(response), 14, false); pity.setTag("draw-pity-detail");
     pity.setVisibility(GONE); information.addView(pity);
     lowerDivider = new AnchorDivider(); lowerDivider.setTag("draw-information-divider");
@@ -351,6 +356,12 @@ final class RecruitmentScreen extends ViewGroup {
     String shortPity = summary.contains(" 보장까지 ") ? summary.substring(0, summary.indexOf(" · ") >= 0 ? summary.indexOf(" · ") : summary.length()).replace(" 보장까지 ", " ")
         : response.has("pity") && response.isNull("pity") ? "보장 없음" : "보장 확인";
     String pityLabel = compact ? shortPity : summary.replace(" · ", "\n");
+    if (roster != null) {
+      String odds = selected == null ? "" : Roster60RecruitPurchase.oddsText(selected, " · ");
+      pityLabel = selected == null ? "" : Roster60RecruitPurchase.oddsLines(selected, compact ? 4 : 2);
+      info.setVisibility(odds.isEmpty() ? GONE : VISIBLE);
+      info.setContentDescription(odds.isEmpty() ? "" : "모집 확률 · " + odds);
+    }
     if (!pityLabel.contentEquals(info.getText())) info.setText(pityLabel);
     if (wasCompact != compact) {
       if (selected != null) cost.setText(compact ? "1회 · 지원서 " + unitCost + "장" : "지원서 " + unitCost + "장 / 1회");

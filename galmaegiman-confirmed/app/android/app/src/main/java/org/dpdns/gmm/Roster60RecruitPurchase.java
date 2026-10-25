@@ -27,11 +27,26 @@ final class Roster60RecruitPurchase {
   JSONArray gachas=new JSONArray(),offers=roster.optJSONArray("offers");
   // 후보 회차 정보에는 등급별 enabled가 없고 전체 enabled만 있다.
   boolean all=roster.has("sessions")&&roster.optBoolean("enabled");
-  if(offers!=null)for(int i=0;i<offers.length();i++){JSONObject o=offers.optJSONObject(i);if(o==null)continue;gachas.put(MainActivity.obj("kind",o.optString("kind"),"label",o.optString("label"),"cost",o.optInt("cost"),"rerollCost",o.opt("rerollCost"),"enabled",all||o.optBoolean("enabled"),"reason",o.optString("reason")));}
+  if(offers!=null)for(int i=0;i<offers.length();i++){JSONObject o=offers.optJSONObject(i);if(o==null)continue;JSONObject g=MainActivity.obj("kind",o.optString("kind"),"label",o.optString("label"),"cost",o.optInt("cost"),"rerollCost",o.opt("rerollCost"),"enabled",all||o.optBoolean("enabled"),"reason",o.optString("reason"));if(o.optJSONObject("weights")!=null)g.put("weights",o.optJSONObject("weights"));gachas.put(g);}
   long wait=0;String ready=me==null?"":me.optString("claimReadyAt","");
   if(!ready.isEmpty())try{wait=Math.max(0,java.time.Instant.parse(ready).toEpochMilli()-now);}catch(Exception ignored){}
   return MainActivity.obj("roster60",true,"gachas",gachas,"credits",roster.optInt("credits",me==null?0:me.optInt("credits")),"wait",wait);
  }
+
+ static final String[][] GRADES={{"COMMON","커먼"},{"UNCOMMON","언커먼"},{"RARE","레어"},{"EPIC","에픽"},{"LEGEND","전설"},{"HIDDEN","히든"},{"LIMITED","제한"},{"TRANSCEND","초월"},{"IMMORTAL","불멸"},{"ETERNAL","영원"}};
+ static String gradeName(String code){for(String[] g:GRADES)if(g[0].equals(code))return g[1];return code;}
+ /** 서버가 보낸 등급별 가중치(합계 100 또는 1000)를 [{tier,tierName,w(%)}]로 바꾼다. 없거나 이상하면 빈 배열(숫자를 만들지 않음). */
+ static JSONArray weightRows(JSONObject offer){
+  JSONArray rows=new JSONArray();JSONObject w=offer==null?null:offer.optJSONObject("weights");if(w==null)return rows;
+  long total=0;Iterator<String> it=w.keys();while(it.hasNext()){Object v=w.opt(it.next());if(!(v instanceof Number)||((Number)v).doubleValue()<0)return new JSONArray();total+=((Number)v).longValue();}
+  if(total!=100&&total!=1000)return rows;
+  // 등급 순서(커먼→영원)로 보여 준다.
+  for(String[] g:GRADES)if(w.has(g[0])){double pct=w.optDouble(g[0])*100.0/total;rows.put(MainActivity.obj("tier",g[0],"tierName",g[1],"w",new java.math.BigDecimal(pct).setScale(1,java.math.RoundingMode.HALF_UP).stripTrailingZeros()));}
+  return rows;
+ }
+ /** 한 줄에 perLine개씩 끊어 등급 이름 중간에서 줄이 바뀌지 않게 한다. */
+ static String oddsLines(JSONObject offer,int perLine){String[] parts=oddsText(offer,"\u0000").split("\u0000");if(parts.length==1&&parts[0].isEmpty())return "";StringBuilder b=new StringBuilder();for(int i=0;i<parts.length;i++){if(i>0)b.append(i%perLine==0?"\n":" · ");b.append(parts[i]);}return b.toString();}
+ static String oddsText(JSONObject offer,String separator){JSONArray rows=weightRows(offer);StringBuilder b=new StringBuilder();for(int i=0;i<rows.length();i++){JSONObject r=rows.optJSONObject(i);if(b.length()>0)b.append(separator);b.append(r.optString("tierName")).append(' ').append(RecruitmentProbabilityView.number((Number)r.opt("w"))).append('%');}return b.toString();}
 
  void buy(JSONObject g,int times){
   if(session!=null){if(!g.optBoolean("enabled"))return;NativeRecruitSession s=new NativeRecruitSession(h);s.fromCounter=true;s.open(session);s.queue("start",MainActivity.obj("kind",g.optString("kind"),"catalogVersion",session.optString("catalogVersion")));return;}

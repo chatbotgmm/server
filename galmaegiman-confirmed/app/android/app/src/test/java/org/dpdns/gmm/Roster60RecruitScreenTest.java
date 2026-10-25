@@ -76,7 +76,9 @@ public class Roster60RecruitScreenTest {
  static class SessionApi extends NativeApi {final List<String> paths=new ArrayList<>();final List<JSONObject> posts=new ArrayList<>();NativeApi.Result pending;SessionApi(Context c){super(c);}@Override String token(){return "roster60-session-counter";}
   @Override void call(String p,JSONObject b,Result cb){paths.add(p);try{
    if(p.equals("native/roster60/recruit/session")){cb.done(MainActivity.obj("enabled",true,"catalogVersion","roster60-fixture","offers",new JSONArray()
-     .put(MainActivity.obj("kind","LOW","label","하급","cost",2,"rerollCost",1)).put(MainActivity.obj("kind","MID","label","중급","cost",6,"rerollCost",3)).put(MainActivity.obj("kind","HIGH","label","고급","cost",10,"rerollCost",5)),"sessions",new JSONArray()),null);return;}
+     .put(MainActivity.obj("kind","LOW","label","하급","cost",2,"rerollCost",1,"weights",MainActivity.obj("COMMON",700,"UNCOMMON",280,"RARE",20)))
+     .put(MainActivity.obj("kind","MID","label","중급","cost",6,"rerollCost",3,"weights",MainActivity.obj("UNCOMMON",700,"RARE",280,"EPIC",20)))
+     .put(MainActivity.obj("kind","HIGH","label","고급","cost",10,"rerollCost",5,"weights",MainActivity.obj("RARE",900,"EPIC",90,"LEGEND",5,"HIDDEN",5))),"sessions",new JSONArray()),null);return;}
    if(p.startsWith("native/roster60/recruit/session/")){posts.add(new JSONObject(b.toString()));pending=cb;return;}
    cb.done(new JSONObject(),null);}catch(JSONException e){throw new RuntimeException(e);}}}
 
@@ -84,10 +86,15 @@ public class Roster60RecruitScreenTest {
   try(ActivityController<MainActivity> c=helper.flow.start()){MainActivity h=c.get();helper.prepare(h);SessionApi api=new SessionApi(h);h.api=api;h.state.put("tutorial",MainActivity.obj("flow","roster60-v1"));h.motionEnabled=false;
    h.getSharedPreferences("roster60_recruit_session",0).edit().clear().commit();h.draw();idle();helper.layout(h,SIZES[0]);
    assertNotNull("예전 모집소 화면",h.root.findViewWithTag("recruitment-stations"));assertFalse(api.paths.contains("draw"));
-   tag(h,"draw-card-MID").performClick();idle();Button go=(Button)tag(h,"draw-submit");assertTrue("승인된 중급",go.isEnabled());
+   tag(h,"draw-card-MID").performClick();idle();helper.layout(h,SIZES[0]);Button go=(Button)tag(h,"draw-submit");assertTrue("승인된 중급",go.isEnabled());
+   // 확률은 서버가 보낸 값 그대로(1000 기준 → %). 앱에 고정된 숫자 없음.
+   Button odds=(Button)tag(h,"draw-pity");assertEquals(View.VISIBLE,odds.getVisibility());assertEquals("언커먼 70% · 레어 28%\n에픽 2%",odds.getText().toString());assertEquals("모집 확률 · 언커먼 70% · 레어 28% · 에픽 2%",odds.getContentDescription().toString());
    assertTrue(((TextView)tag(h,"draw-total")).getText().toString().startsWith("필요 6"));
    described(h.root,"모집 수량 늘리기").performClick();idle();assertTrue(((TextView)tag(h,"draw-total")).getText().toString().startsWith("필요 6"));
-   tag(h,"draw-card-HIGH").performClick();idle();assertTrue(((TextView)tag(h,"draw-total")).getText().toString().startsWith("필요 10"));
+   tag(h,"draw-card-HIGH").performClick();idle();helper.layout(h,SIZES[0]);assertTrue(((TextView)tag(h,"draw-total")).getText().toString().startsWith("필요 10"));
+   assertEquals("레어 90% · 에픽 9%\n전설 0.5% · 히든 0.5%",((Button)tag(h,"draw-pity")).getText().toString());
+   if(System.getProperty("gmm.nativeReviewOutput")==null)System.setProperty("gmm.nativeReviewOutput","build/native-review");
+   helper.review.capture(h,"roster60-session-counter-high-915x412",915,412);
    tag(h,"draw-card-MID").performClick();idle();
    RecruitmentScreen screen=(RecruitmentScreen)tag(h,"recruitment-stations");screen.roster.buy(screen.selected,screen.amount);idle();
    assertEquals(1,api.posts.size());assertEquals("MID",api.posts.get(0).getString("kind"));assertEquals("roster60-fixture",api.posts.get(0).getString("catalogVersion"));
@@ -99,6 +106,16 @@ public class Roster60RecruitScreenTest {
    tag(h,"recruit-claim").performClick();idle();assertEquals("claim",api.posts.get(1).getString("action"));
    api.pending.done(MainActivity.obj("requestId",api.posts.get(1).getString("requestId"),"sessionId","s1","revision",1,"status","CLAIMED","rerolls",0,"rerollCost",3,"candidate",cand,"credits",4),null);idle();
    assertNotNull("수령 뒤 모집소로",h.root.findViewWithTag("recruit-back-counter"));
+  }
+ }
+
+ @Test public void settingsProbabilityTabShowsNewServerOddsNotOldDraw()throws Exception{
+  try(ActivityController<MainActivity> c=helper.flow.start()){MainActivity h=c.get();helper.prepare(h);SessionApi api=new SessionApi(h);h.api=api;h.state.put("tutorial",MainActivity.obj("flow","roster60-v1"));
+   LinearLayout view=RecruitmentProbabilityView.content(h);h.root.removeAllViews();h.root.addView(view,new android.widget.FrameLayout.LayoutParams(-1,-1));
+   helper.review.viewport(h,915,412);h.root.getViewTreeObserver().dispatchOnPreDraw();idle();
+   String text=labels(view);assertFalse("예전 모집 확률을 부르지 않음",api.paths.contains("draw"));
+   for(String expected:new String[]{"하급 모집","1회 · 지원서 2장","커먼","70%","언커먼","28%","중급 모집","1회 · 지원서 6장","에픽","2%","고급 모집","1회 · 지원서 10장","전설","0.5%","히든"})assertTrue(expected+" · "+text,text.contains(expected));
+   assertFalse("예전 등급 이름 변환(언커먼→레어) 없음",text.contains("특별"));
   }
  }
 }

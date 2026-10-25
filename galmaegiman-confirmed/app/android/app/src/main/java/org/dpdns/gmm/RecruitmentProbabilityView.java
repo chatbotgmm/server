@@ -6,6 +6,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import java.math.BigDecimal;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 /** Read-only, current server probabilities in Settings. Never issues a claim or recruitment POST. */
@@ -102,6 +103,7 @@ final class RecruitmentProbabilityView extends LinearLayout {
     NativeApi api = host.api;
     String account = api.token();
     showStatus("서버에서 현재 모집 확률을 불러오는 중이에요.");
+    if (host.roster60Menus()) { loadRoster60(request, epoch, api, account); return; }
     api.call("draw", null, (draw, error) -> {
       if (request != generation || !connected || !visible) return;
       loading = false;
@@ -117,6 +119,41 @@ final class RecruitmentProbabilityView extends LinearLayout {
       }
       render(draw);
     });
+  }
+
+  // 새 60종: 예전 모집(draw) 확률을 보여 주지 않는다. 후보 회차 응답을 먼저, 꺼져 있으면 일반 모집 응답을 쓴다.
+  private void loadRoster60(int request, int epoch, NativeApi api, String account) {
+    api.call("native/roster60/recruit/session", null, (session, error) -> {
+      if (request != generation || !connected || !visible) return;
+      if (session != null && error == null && session.optBoolean("enabled")) { finishRoster60(session, null, epoch, api, account); return; }
+      api.call("native/roster60/recruit", null, (direct, directError) -> {
+        if (request != generation || !connected || !visible) return;
+        finishRoster60(direct, directError, epoch, api, account);
+      });
+    });
+  }
+
+  private void finishRoster60(JSONObject response, String error, int epoch, NativeApi api, String account) {
+    loading = false;
+    if (host.isFinishing() || host.isDestroyed() || host.epoch != epoch || host.api != api || !account.equals(api.token())) {
+      showStatus("화면이나 계정이 변경됐어요. 설정을 다시 열어 확인해 주세요."); return;
+    }
+    if (error != null || response == null) { showStatus("모집 확률을 불러오지 못했어요." + (error == null ? "" : "\n" + RecruitmentText.display(error))); return; }
+    try {
+      JSONArray gachas = new JSONArray(), offers = response.optJSONArray("offers");
+      if (offers != null) for (int i = 0; i < offers.length(); i++) {
+        JSONObject o = offers.optJSONObject(i); if (o == null) continue;
+        JSONObject g = MainActivity.obj("kind", o.optString("kind"), "label", o.optString("label"), "cost", o.opt("cost"));
+        // 예전 등급 표시 변환(TierDisplay: 예전 언커먼→레어 등)을 거치지 않도록 새 60종 등급명만 넘긴다.
+        JSONArray rows = Roster60RecruitPurchase.weightRows(o);
+        for (int r = 0; r < rows.length(); r++) { JSONObject row = rows.getJSONObject(r); row.put("code", row.optString("tier")); row.put("tier", ""); }
+        if (rows.length() > 0) g.put("weights", rows);
+        gachas.put(g);
+      }
+      render(MainActivity.obj("gachas", gachas));
+      summary.setText("서버 현재값");
+      summary.setContentDescription("서버에서 방금 확인한 새 60종 모집 비용과 확률. 실제 모집 시점의 서버 설정이 적용돼요.");
+    } catch (JSONException bad) { showStatus("모집 확률을 읽지 못했어요."); }
   }
 
   private TextView compactText(String text, float size) {

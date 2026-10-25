@@ -19,8 +19,7 @@ export class RecruitSessions {
  constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private policy:()=>RecruitSessionPolicy|null,private roll:(max:number)=>number=randomInt){}
  private ready(){const p=this.policy();if(!p||p.pity===null)throw new RosterError(503,'RECRUIT_SESSION_POLICY_PENDING');
  if(p.pity!=='none'||!p.version||!Array.isArray(p.offers)||![null,'ceil','floor'].includes(p.halfRounding))throw new RosterError(503,'RECRUIT_POLICY_INVALID');
- // 2026-10-25 사용자 승인: 예전 중급·고급 확률을 등급 순서로 옮겨 중급에 커먼, 고급에 커먼·언커먼을 허용한다. 제한 이상 최상위 등급은 계속 막는다.
- const allowed:Record<string,string[]>={LOW:['COMMON','UNCOMMON','RARE'],MID:['COMMON','UNCOMMON','RARE','EPIC'],HIGH:['COMMON','UNCOMMON','RARE','EPIC','LEGEND','HIDDEN']};
+ const allowed:Record<string,string[]>={LOW:['COMMON','UNCOMMON','RARE'],MID:['UNCOMMON','RARE','EPIC'],HIGH:['RARE','EPIC','LEGEND','HIDDEN']};
  if(new Set(p.offers.map(o=>o.kind)).size!==p.offers.length||p.offers.some(o=>!allowed[o.kind]||Object.keys(o.weights).some(g=>!allowed[o.kind].includes(g))))throw new RosterError(503,'RECRUIT_POLICY_INVALID');
  return p;}
  private view(row:{id:string;revision:number;status:string;snapshot:string}){const s:Snapshot=JSON.parse(row.snapshot);return {sessionId:row.id,revision:row.revision,status:row.status,kind:s.kind,baseCost:s.baseCost,rerollCost:s.rerollCost,rerolls:s.rerolls,candidate:s.candidate,ownedId:s.ownedId,catalogVersion:s.catalogVersion};}
