@@ -15,17 +15,29 @@ export function halfRecruitCost(cost:number,rounding:RecruitSessionPolicy['halfR
  if(cost%2&&!rounding)throw new RosterError(503,'RECRUIT_ROUNDING_PENDING');
  return rounding==='floor'?Math.floor(cost/2):Math.ceil(cost/2);
 }
+// Integer basis-point tickets avoid passing fractional bounds to crypto.randomInt.
+export function recruitWeightTickets(weights:Record<string,number>):[string,number][]{
+ if(!weights||typeof weights!=='object'||Array.isArray(weights))throw new RosterError(503,'RECRUIT_POLICY_INVALID');
+ const entries=Object.entries(weights).map(([g,w]):[string,number]=>{
+  const scaled=w*100,tickets=Math.round(scaled);
+  if(typeof w!=='number'||!Number.isFinite(w)||w<=0||w>100||!Number.isSafeInteger(tickets)||Math.abs(scaled-tickets)>1e-8)throw new RosterError(503,'RECRUIT_POLICY_INVALID');
+  return [g,tickets];
+ });
+ if(!entries.length||entries.reduce((sum,[,n])=>sum+n,0)!==10000)throw new RosterError(503,'RECRUIT_POLICY_INVALID');
+ return entries;
+}
 export class RecruitSessions {
  constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private policy:()=>RecruitSessionPolicy|null,private roll:(max:number)=>number=randomInt){}
  private ready(){const p=this.policy();if(!p||p.pity===null)throw new RosterError(503,'RECRUIT_SESSION_POLICY_PENDING');
  if(p.pity!=='none'||!p.version||!Array.isArray(p.offers)||![null,'ceil','floor'].includes(p.halfRounding))throw new RosterError(503,'RECRUIT_POLICY_INVALID');
- // 2026-10-25 사용자 승인: 예전 중급·고급 확률을 등급 순서로 옮겨 중급에 커먼, 고급에 커먼·언커먼을 허용한다. 제한 이상 최상위 등급은 계속 막는다.
- const allowed:Record<string,string[]>={LOW:['COMMON','UNCOMMON','RARE'],MID:['COMMON','UNCOMMON','RARE','EPIC'],HIGH:['COMMON','UNCOMMON','RARE','EPIC','LEGEND','HIDDEN']};
+ // Latest pools: no COMMON in MID, no COMMON/UNCOMMON in HIGH; top four remain excluded.
+ const allowed:Record<string,string[]>={LOW:['COMMON','UNCOMMON','RARE'],MID:['UNCOMMON','RARE','EPIC'],HIGH:['RARE','EPIC','LEGEND','HIDDEN']};
  if(new Set(p.offers.map(o=>o.kind)).size!==p.offers.length||p.offers.some(o=>!allowed[o.kind]||Object.keys(o.weights).some(g=>!allowed[o.kind].includes(g))))throw new RosterError(503,'RECRUIT_POLICY_INVALID');
+ for(const o of p.offers){halfRecruitCost(o.cost,p.halfRounding);recruitWeightTickets(o.weights);}
  return p;}
  private view(row:{id:string;revision:number;status:string;snapshot:string}){const s:Snapshot=JSON.parse(row.snapshot);return {sessionId:row.id,revision:row.revision,status:row.status,kind:s.kind,baseCost:s.baseCost,rerollCost:s.rerollCost,rerolls:s.rerolls,candidate:s.candidate,ownedId:s.ownedId,catalogVersion:s.catalogVersion};}
  async read(id:string,sessionId:string){const row=await this.db.roster60RecruitSession.findFirst({where:{id:sessionId,playerId:id}});if(!row)throw new RosterError(404,'RECRUIT_SESSION_NOT_FOUND');return this.view(row);}
- async info(id:string){const p=this.policy();return {catalogVersion:this.catalog()?.version,enabled:!!p&&p.pity!==null,reason:p&&p.pity!==null?'':'RECRUIT_SESSION_POLICY_PENDING',offers:p?.offers.map(o=>({kind:o.kind,label:o.label,cost:o.cost,rerollCost:o.cost%2&&!p.halfRounding?null:halfRecruitCost(o.cost,p.halfRounding)}))??[],sessions:(await this.db.roster60RecruitSession.findMany({where:{playerId:id,status:'PENDING'},orderBy:{createdAt:'asc'}})).map(r=>this.view(r))};}
+ async info(id:string){const configured=this.policy();const p=configured&&configured.pity!==null?this.ready():configured;return {catalogVersion:this.catalog()?.version,enabled:!!p&&p.pity!==null,reason:p&&p.pity!==null?'':'RECRUIT_SESSION_POLICY_PENDING',offers:p?.offers.map(o=>({kind:o.kind,label:o.label,cost:o.cost,weights:{...o.weights},rerollCost:o.cost%2&&!p.halfRounding?null:halfRecruitCost(o.cost,p.halfRounding)}))??[],sessions:(await this.db.roster60RecruitSession.findMany({where:{playerId:id,status:'PENDING'},orderBy:{createdAt:'asc'}})).map(r=>this.view(r))};}
  private async transact(playerId:string,requestId:string,payload:unknown,run:(tx:Prisma.TransactionClient)=>Promise<unknown>){
  const fingerprint=createHash('sha256').update(JSON.stringify(['candidate-v1',payload])).digest('hex');
  const once=()=>this.db.$transaction(async tx=>{
@@ -47,12 +59,11 @@ export class RecruitSessions {
   if(c.version!==b.catalogVersion)throw new RosterError(409,'CATALOG_CHANGED');
   if(!await tx.roster60State.findUnique({where:{playerId:id}}))throw new RosterError(409,'ROSTER_START_REQUIRED');
   const o=p.offers.find(o=>o.kind===b.kind);if(!o)throw new RosterError(409,'RECRUIT_GRADE_POLICY_PENDING');
-  const rerollCost=halfRecruitCost(o.cost,p.halfRounding),weights=Object.entries(o.weights);
-  if(weights.length===0||weights.some(([,w])=>!Number.isSafeInteger(w)||w<=0)||weights.reduce((a,[,w])=>a+w,0)!==100)throw new RosterError(503,'RECRUIT_POLICY_INVALID');
+  const rerollCost=halfRecruitCost(o.cost,p.halfRounding),weights=recruitWeightTickets(o.weights);
   // Account lock prevents parallel starts from creating two open rounds.
   const credits=await this.charge(tx,id,o.cost);
   if(await tx.roster60RecruitSession.findFirst({where:{playerId:id,status:'PENDING'}}))throw new RosterError(409,'RECRUIT_SESSION_PENDING');
-  let n=this.roll(100),grade=weights[0][0];for(const [g,w] of weights){if(n<w){grade=g;break;}n-=w;}
+  let n=this.roll(10000),grade=weights[0][0];for(const [g,w] of weights){if(n<w){grade=g;break;}n-=w;}
   const pool=c.characters.filter(u=>u.rarity===grade).map(u=>({speciesId:u.id,name:u.name,rarity:u.rarity,...recruitmentGrowth(u)}));
   if(!pool.length)throw new RosterError(503,'RECRUIT_POLICY_INVALID');
   const candidate=pool[this.roll(pool.length)];

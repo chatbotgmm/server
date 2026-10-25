@@ -1,11 +1,39 @@
 {
-  "version": "roster60-recruit-20261025-user-approved",
-  "note": "사용자 승인(2026-10-25): 모집권(credits) 사용. 하급2·중급6·고급10장, 새로고침은 비용의 절반(1·3·5장, 정수라 반올림 규칙 불필요). 확률은 예전 모집과 같게 등급 순서로 대응(흔함→커먼, 안흔함→언커먼, 특별→레어, 희귀→에픽, 전설→전설). 천장 없음.",
+  "version": "roster60-recruit-20261025-pools-v2",
+  "note": "모집 비용 2/6/10, 새로고침 1/3/5. 등급 내 균등, 천장 없음. 최신 모집풀과 확률 적용. 레어/전설/히든 지급 레벨은 별도 정책 승인 필요.",
   "halfRounding": null,
   "pity": "none",
   "offers": [
-    { "kind": "LOW", "label": "하급", "cost": 2, "weights": { "COMMON": 70, "UNCOMMON": 30 } },
-    { "kind": "MID", "label": "중급", "cost": 6, "weights": { "COMMON": 20, "UNCOMMON": 50, "RARE": 30 } },
-    { "kind": "HIGH", "label": "고급", "cost": 10, "weights": { "COMMON": 10, "UNCOMMON": 15, "RARE": 54, "EPIC": 20, "LEGEND": 1 } }
+    {
+      "kind": "LOW",
+      "label": "하급",
+      "cost": 2,
+      "weights": {
+        "COMMON": 70,
+        "UNCOMMON": 28,
+        "RARE": 2
+      }
+    },
+    {
+      "kind": "MID",
+      "label": "중급",
+      "cost": 6,
+      "weights": {
+        "UNCOMMON": 70,
+        "RARE": 28,
+        "EPIC": 2
+      }
+    },
+    {
+      "kind": "HIGH",
+      "label": "고급",
+      "cost": 10,
+      "weights": {
+        "RARE": 90,
+        "EPIC": 9,
+        "LEGEND": 0.5,
+        "HIDDEN": 0.5
+      }
+    }
   ]
 }
