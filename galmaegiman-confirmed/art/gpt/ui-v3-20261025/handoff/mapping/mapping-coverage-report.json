@@ -1,0 +1,66 @@
+{
+  "screen_ids_expected": 36,
+  "screen_ids_actual": 36,
+  "screen_ids_unique": 36,
+  "base_states": 36,
+  "supplemental_states": 14,
+  "rendered_states_total": 50,
+  "route_count": 95,
+  "unique_route_count": 95,
+  "semantic_component_count": 163,
+  "action_binding_count": 131,
+  "asset_alias_count": 76,
+  "asset_file_references_checked": 75,
+  "preview_hashes_checked": 50,
+  "unmapped_ids": [],
+  "invalid_or_missing_references": [],
+  "checks_passed": true,
+  "runtime_validation": "not performed",
+  "dp_touch_validation": "not performed",
+  "latest_B_selection": true,
+  "unresolved_route_policies": [
+    "R032 not emitted by latest S10",
+    "R073 no automatic transition after management save",
+    "R056 reward delivery target TBD"
+  ],
+  "artifacts": {
+    "screen-state-bindings.json": {
+      "bytes": 339977,
+      "sha256": "4f54202a171f28d8889ef22147dab0492a6a657070b5db2777c67db7eebdca94"
+    },
+    "IMPLEMENTATION_NOTES.ko.md": {
+      "bytes": 11712,
+      "sha256": "3845012605d3aa7b100604fdd608476d326c6575f46933f87d8dad17aaad0082"
+    }
+  },
+  "canonical_asset_inventory_unique_count": 64,
+  "asset_aliases_matched_to_canonical_inventory": 51,
+  "additional_local_asset_aliases_not_in_subset": [
+    "art.rear.u02",
+    "art.front.u03",
+    "art.rear.u03",
+    "art.rear.u04",
+    "art.rear.u05",
+    "art.rear.u06",
+    "art.rear.u07",
+    "art.front.u08",
+    "art.rear.u08",
+    "card.u02",
+    "card.u03",
+    "card.u04",
+    "card.u06",
+    "card.u07",
+    "card.u08",
+    "card.u09",
+    "card.u10",
+    "card.u16",
+    "card.u33",
+    "card.u41",
+    "card.u45",
+    "card.u49",
+    "card.u53",
+    "icon.close"
+  ],
+  "canonical_inventory_entries_indexed": 64,
+  "path_validation_scope": "Source workspace validation; package layout/source paths adjusted to handoff package, not all external previews/assets are bundled."
+}

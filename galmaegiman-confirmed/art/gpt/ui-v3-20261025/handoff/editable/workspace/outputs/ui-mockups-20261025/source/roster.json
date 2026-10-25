@@ -1,0 +1,482 @@
+[
+  {
+    "id": "u01",
+    "name": "갈매미맨",
+    "grade": "커먼",
+    "registration": "GMM-001",
+    "species": "태초",
+    "source": "registration-full-v9/source-cards/001_갈매미맨_입사등록증.png"
+  },
+  {
+    "id": "u02",
+    "name": "미니",
+    "grade": "커먼",
+    "registration": "GMM-002",
+    "species": "태초",
+    "source": "registration-full-v9/source-cards/002_미니_입사등록증.png"
+  },
+  {
+    "id": "u03",
+    "name": "자이언트",
+    "grade": "커먼",
+    "registration": "GMM-003",
+    "species": "거인",
+    "source": "registration-full-v9/source-cards/003_자이언트_입사등록증.png"
+  },
+  {
+    "id": "u04",
+    "name": "꽃",
+    "grade": "커먼",
+    "registration": "GMM-004",
+    "species": "수목",
+    "source": "registration-full-v9/source-cards/004_꽃_입사등록증.png"
+  },
+  {
+    "id": "u05",
+    "name": "황금",
+    "grade": "커먼",
+    "registration": "GMM-005",
+    "species": "태초",
+    "source": "registration-full-v9/source-cards/005_황금_입사등록증.png"
+  },
+  {
+    "id": "u06",
+    "name": "물방울",
+    "grade": "커먼",
+    "registration": "GMM-006",
+    "species": "정령",
+    "source": "registration-full-v9/source-cards/006_물방울_입사등록증.png"
+  },
+  {
+    "id": "u07",
+    "name": "불씨",
+    "grade": "커먼",
+    "registration": "GMM-007",
+    "species": "정령",
+    "source": "registration-full-v9/source-cards/007_불씨_입사등록증.png"
+  },
+  {
+    "id": "u08",
+    "name": "그림자",
+    "grade": "커먼",
+    "registration": "GMM-008",
+    "species": "망령",
+    "source": "registration-full-v9/source-cards/008_그림자_입사등록증.png"
+  },
+  {
+    "id": "u09",
+    "name": "노움",
+    "grade": "언커먼",
+    "registration": "GMM-009",
+    "species": "태초",
+    "source": "registration-full-v9/source-cards/009_노움_입사등록증.png"
+  },
+  {
+    "id": "u10",
+    "name": "정령",
+    "grade": "언커먼",
+    "registration": "GMM-010",
+    "species": "정령",
+    "source": "registration-full-v9/source-cards/010_정령_입사등록증.png"
+  },
+  {
+    "id": "u11",
+    "name": "고블린",
+    "grade": "언커먼",
+    "registration": "GMM-011",
+    "species": "태초",
+    "source": "registration-full-v9/source-cards/011_고블린_입사등록증.png"
+  },
+  {
+    "id": "u12",
+    "name": "어인",
+    "grade": "언커먼",
+    "registration": "GMM-012",
+    "species": "해인",
+    "source": "registration-full-v9/source-cards/012_어인_입사등록증.png"
+  },
+  {
+    "id": "u13",
+    "name": "도깨비",
+    "grade": "언커먼",
+    "registration": "GMM-013",
+    "species": "태초",
+    "source": "registration-full-v9/source-cards/013_도깨비_입사등록증.png"
+  },
+  {
+    "id": "u14",
+    "name": "서리",
+    "grade": "언커먼",
+    "registration": "GMM-014",
+    "species": "정령",
+    "source": "registration-full-v9/source-cards/014_서리_입사등록증.png"
+  },
+  {
+    "id": "u15",
+    "name": "반딧불",
+    "grade": "언커먼",
+    "registration": "GMM-015",
+    "species": "요정",
+    "source": "registration-full-v9/source-cards/015_반딧불_입사등록증.png"
+  },
+  {
+    "id": "u16",
+    "name": "먹구름",
+    "grade": "언커먼",
+    "registration": "GMM-016",
+    "species": "정령",
+    "source": "registration-full-v9/source-cards/016_먹구름_입사등록증.png"
+  },
+  {
+    "id": "u17",
+    "name": "드워프",
+    "grade": "레어",
+    "registration": "GMM-017",
+    "species": "태초",
+    "source": "registration-full-v9/source-cards/017_드워프_입사등록증.png"
+  },
+  {
+    "id": "u18",
+    "name": "요정",
+    "grade": "레어",
+    "registration": "GMM-018",
+    "species": "요정",
+    "source": "registration-full-v9/source-cards/018_요정_입사등록증.png"
+  },
+  {
+    "id": "u19",
+    "name": "트롤",
+    "grade": "레어",
+    "registration": "GMM-019",
+    "species": "거인",
+    "source": "registration-full-v9/source-cards/019_트롤_입사등록증.png"
+  },
+  {
+    "id": "u20",
+    "name": "세이렌",
+    "grade": "레어",
+    "registration": "GMM-020",
+    "species": "해인",
+    "source": "registration-full-v9/source-cards/020_세이렌_입사등록증.png"
+  },
+  {
+    "id": "u21",
+    "name": "설인",
+    "grade": "레어",
+    "registration": "GMM-021",
+    "species": "거인",
+    "source": "registration-full-v9/source-cards/021_설인_입사등록증.png"
+  },
+  {
+    "id": "u22",
+    "name": "뇌수",
+    "grade": "레어",
+    "registration": "GMM-022",
+    "species": "야수",
+    "source": "registration-full-v9/source-cards/022_뇌수_입사등록증.png"
+  },
+  {
+    "id": "u23",
+    "name": "가고일",
+    "grade": "레어",
+    "registration": "GMM-023",
+    "species": "태초",
+    "source": "registration-full-v9/source-cards/023_가고일_입사등록증.png"
+  },
+  {
+    "id": "u24",
+    "name": "불도마뱀",
+    "grade": "레어",
+    "registration": "GMM-024",
+    "species": "용족",
+    "source": "registration-full-v9/source-cards/024_불도마뱀_입사등록증.png"
+  },
+  {
+    "id": "u25",
+    "name": "룬장인",
+    "grade": "에픽",
+    "registration": "GMM-025",
+    "species": "태초",
+    "source": "registration-full-v9/source-cards/025_룬장인_입사등록증.png"
+  },
+  {
+    "id": "u26",
+    "name": "드라이어드",
+    "grade": "에픽",
+    "registration": "GMM-026",
+    "species": "수목",
+    "source": "registration-full-v9/source-cards/026_드라이어드_입사등록증.png"
+  },
+  {
+    "id": "u27",
+    "name": "미노타우로스",
+    "grade": "에픽",
+    "registration": "GMM-027",
+    "species": "야수",
+    "source": "registration-full-v9/source-cards/027_미노타우로스_입사등록증.png"
+  },
+  {
+    "id": "u28",
+    "name": "인어기사",
+    "grade": "에픽",
+    "registration": "GMM-028",
+    "species": "해인",
+    "source": "registration-full-v9/source-cards/028_인어기사_입사등록증.png"
+  },
+  {
+    "id": "u29",
+    "name": "서리마녀",
+    "grade": "에픽",
+    "registration": "GMM-029",
+    "species": "태초",
+    "source": "registration-full-v9/source-cards/029_서리마녀_입사등록증.png"
+  },
+  {
+    "id": "u30",
+    "name": "그리핀",
+    "grade": "에픽",
+    "registration": "GMM-030",
+    "species": "야수",
+    "source": "registration-full-v9/source-cards/030_그리핀_입사등록증.png"
+  },
+  {
+    "id": "u31",
+    "name": "듀라한",
+    "grade": "에픽",
+    "registration": "GMM-031",
+    "species": "망령",
+    "source": "registration-full-v9/source-cards/031_듀라한_입사등록증.png"
+  },
+  {
+    "id": "u32",
+    "name": "화룡",
+    "grade": "에픽",
+    "registration": "GMM-032",
+    "species": "용족",
+    "source": "registration-full-v9/source-cards/032_화룡_입사등록증.png"
+  },
+  {
+    "id": "u33",
+    "name": "거장",
+    "grade": "전설",
+    "registration": "GMM-033",
+    "species": "태초",
+    "source": "registration-full-v9/source-cards/033_거장_입사등록증.png"
+  },
+  {
+    "id": "u34",
+    "name": "가시여왕",
+    "grade": "전설",
+    "registration": "GMM-034",
+    "species": "수목",
+    "source": "registration-full-v9/source-cards/034_가시여왕_입사등록증.png"
+  },
+  {
+    "id": "u35",
+    "name": "네레이드",
+    "grade": "전설",
+    "registration": "GMM-035",
+    "species": "해인",
+    "source": "registration-full-v9/source-cards/035_네레이드_입사등록증.png"
+  },
+  {
+    "id": "u36",
+    "name": "설랑",
+    "grade": "전설",
+    "registration": "GMM-036",
+    "species": "야수",
+    "source": "registration-full-v9/source-cards/036_설랑_입사등록증.png"
+  },
+  {
+    "id": "u37",
+    "name": "뇌호",
+    "grade": "전설",
+    "registration": "GMM-037",
+    "species": "야수",
+    "source": "registration-full-v9/source-cards/037_뇌호_입사등록증.png"
+  },
+  {
+    "id": "u38",
+    "name": "잿불새",
+    "grade": "전설",
+    "registration": "GMM-038",
+    "species": "천익",
+    "source": "registration-full-v9/source-cards/038_잿불새_입사등록증.png"
+  },
+  {
+    "id": "u39",
+    "name": "무명",
+    "grade": "히든",
+    "registration": "GMM-039",
+    "species": "태초",
+    "source": "registration-full-v9/source-cards/039_무명_입사등록증.png"
+  },
+  {
+    "id": "u40",
+    "name": "몽마",
+    "grade": "히든",
+    "registration": "GMM-040",
+    "species": "요정",
+    "source": "registration-full-v9/source-cards/040_몽마_입사등록증.png"
+  },
+  {
+    "id": "u41",
+    "name": "수경",
+    "grade": "히든",
+    "registration": "GMM-041",
+    "species": "정령",
+    "source": "registration-full-v9/source-cards/041_수경_입사등록증.png"
+  },
+  {
+    "id": "u42",
+    "name": "흑등",
+    "grade": "히든",
+    "registration": "GMM-042",
+    "species": "망령",
+    "source": "registration-full-v9/source-cards/042_흑등_입사등록증.png"
+  },
+  {
+    "id": "u43",
+    "name": "금각",
+    "grade": "히든",
+    "registration": "GMM-043",
+    "species": "태초",
+    "source": "registration-full-v9/source-cards/043_금각_입사등록증.png"
+  },
+  {
+    "id": "u44",
+    "name": "꽃무덤",
+    "grade": "히든",
+    "registration": "GMM-044",
+    "species": "수목",
+    "source": "registration-full-v9/source-cards/044_꽃무덤_입사등록증.png"
+  },
+  {
+    "id": "u45",
+    "name": "타이탄",
+    "grade": "제한",
+    "registration": "GMM-045",
+    "species": "거인",
+    "source": "registration-full-v9/source-cards/045_타이탄_입사등록증.png"
+  },
+  {
+    "id": "u46",
+    "name": "베히모스",
+    "grade": "제한",
+    "registration": "GMM-046",
+    "species": "야수",
+    "source": "registration-full-v9/source-cards/046_베히모스_입사등록증.png"
+  },
+  {
+    "id": "u47",
+    "name": "이프리트",
+    "grade": "제한",
+    "registration": "GMM-047",
+    "species": "거인",
+    "source": "registration-full-v9/source-cards/047_이프리트_입사등록증.png"
+  },
+  {
+    "id": "u48",
+    "name": "빙령",
+    "grade": "제한",
+    "registration": "GMM-048",
+    "species": "정령",
+    "source": "registration-full-v9/source-cards/048_빙령_입사등록증.png"
+  },
+  {
+    "id": "u49",
+    "name": "가루다",
+    "grade": "초월",
+    "registration": "GMM-049",
+    "species": "천익",
+    "source": "registration-full-v9/source-cards/049_가루다_입사등록증.png"
+  },
+  {
+    "id": "u50",
+    "name": "레비아탄",
+    "grade": "초월",
+    "registration": "GMM-050",
+    "species": "야수",
+    "source": "registration-full-v9/source-cards/050_레비아탄_입사등록증.png"
+  },
+  {
+    "id": "u51",
+    "name": "세계수",
+    "grade": "초월",
+    "registration": "GMM-051",
+    "species": "수목",
+    "source": "registration-full-v9/source-cards/051_세계수_입사등록증.png"
+  },
+  {
+    "id": "u52",
+    "name": "망령",
+    "grade": "초월",
+    "registration": "GMM-052",
+    "species": "망령",
+    "source": "registration-full-v9/source-cards/052_망령_입사등록증.png"
+  },
+  {
+    "id": "u53",
+    "name": "피닉스",
+    "grade": "불멸",
+    "registration": "GMM-053",
+    "species": "천익",
+    "source": "registration-full-v9/source-cards/053_피닉스_입사등록증.png"
+  },
+  {
+    "id": "u54",
+    "name": "등불정령",
+    "grade": "불멸",
+    "registration": "GMM-054",
+    "species": "정령",
+    "source": "registration-full-v9/source-cards/054_등불정령_입사등록증.png"
+  },
+  {
+    "id": "u55",
+    "name": "우로보로스",
+    "grade": "불멸",
+    "registration": "GMM-055",
+    "species": "용족",
+    "source": "registration-full-v9/source-cards/055_우로보로스_입사등록증.png"
+  },
+  {
+    "id": "u56",
+    "name": "리치",
+    "grade": "불멸",
+    "registration": "GMM-056",
+    "species": "태초",
+    "source": "registration-full-v9/source-cards/056_리치_입사등록증.png"
+  },
+  {
+    "id": "u57",
+    "name": "여명",
+    "grade": "영원",
+    "registration": "GMM-057",
+    "species": "천익",
+    "source": "registration-full-v9/source-cards/057_여명_입사등록증.png"
+  },
+  {
+    "id": "u58",
+    "name": "설왕",
+    "grade": "영원",
+    "registration": "GMM-058",
+    "species": "거인",
+    "source": "registration-full-v9/source-cards/058_설왕_입사등록증.png"
+  },
+  {
+    "id": "u59",
+    "name": "영야",
+    "grade": "영원",
+    "registration": "GMM-059",
+    "species": "망령",
+    "source": "registration-full-v9/source-cards/059_영야_입사등록증.png"
+  },
+  {
+    "id": "u60",
+    "name": "해룡",
+    "grade": "영원",
+    "registration": "GMM-060",
+    "species": "용족",
+    "source": "registration-full-v9/source-cards/060_해룡_입사등록증.png"
+  }
+]

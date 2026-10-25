@@ -1,0 +1,33 @@
+{
+  "method": "u01 approximate visible silhouette height; old opaque card silhouette bounds manually estimated at [170,250,735,840] on 900x1200; new sprite alpha>8 bounds from views metadata, minus nameplate occlusion. This is pixel-level visual comparison, not Android dp or interaction validation.",
+  "values": [
+    {
+      "area": "formation",
+      "old_visible_silhouette_height_px_approx": 57.5,
+      "new_visible_silhouette_height_px_approx": 143.4,
+      "enlargement_approx": 2.49,
+      "old_height_at_960px_view": 28.8,
+      "new_height_at_960px_view": 71.7
+    },
+    {
+      "area": "owned_list",
+      "old_visible_silhouette_height_px_approx": 73.3,
+      "new_visible_silhouette_height_px_approx": 177.2,
+      "enlargement_approx": 2.42,
+      "old_height_at_960px_view": 36.6,
+      "new_height_at_960px_view": 88.6
+    }
+  ],
+  "selected_preview": "previous S05 right column had no character image; new source sprite preview approx231px silhouette height at1920 canvas",
+  "primary_cta_canvas_px_height": 82,
+  "primary_cta_960px_preview_height": 41,
+  "actual_device_dp_verified": false,
+  "safe_area_canvas_px": {
+    "left": 40,
+    "right": 40,
+    "bottom_main_panels": 40
+  },
+  "mini_portrait": "Native sourceRect view of original sprite; original bytes and actual battle size unchanged",
+  "party_state": "6/6 example; each visible roster unit labelled 출전 or 후보; selected unit additionally outlined and labelled 선택",
+  "call_context": "S05 story entry uses 편성 확정 · 전투 시작; management/dueI contexts described in external footer; S28 remains mode selection"
+}

@@ -1,0 +1,18 @@
+전투 UI 런타임 최소팩 v1
+
+앱 담당자 우선 입력용입니다. 전체 보존팩 Library ID: libfile_2b40b38fe18c8191aa42928b58a74d53
+
+포함: 현재 B/v3에서 쓰는 무손실 WebP(배경·아이콘·장식·검수된 대원), 버튼/패널 .9.png 소스 6개, 상태 SVG와 투명 PNG, 9-slice/focus/배치 설정, 라이선스.
+제외: 모든 원본 복사본, TTF 중복, contact sheet, 미리 합성된 상태 배경, 동일 버튼/패널의 WebP 중복, 현재 미사용 shell/wheel/stance/stonecrack. 이들은 전체 보존팩에 있습니다.
+
+버튼/패널은 android-ninepatch의 .9.png를 사용합니다. Android 리소스로 컴파일하거나, 직접 Canvas로 읽을 경우 config/runtime-asset-map.json의 canvasSourceInteriorRect로 1px marker를 제외한 내부를 사용하세요. 검은 marker가 화면에 보이면 잘못 읽은 것입니다.
+SourceInsets는 원본 픽셀입니다. renderInsets/contentPadding은 1920×800 디자인 좌표계이고 dp가 아닙니다.
+
+폰트는 기존 앱 NotoSansKR와 해시를 대조해 재사용하세요. 파일이 없으면 전체 보존팩에서 가져오세요. 라이선스는 이 최소팩에도 있습니다.
+상태는 기본 배경 + SVG/PNG overlay 또는 base opacity로 조합합니다. 비활성 opacity와 scrim을 중복 적용하지 마세요. 텍스트·아이콘·수치는 별도 네이티브 레이어입니다.
+HP/MP fill은 좌우 9px cap을 유지하는 3-slice 또는 네이티브 rounded gradient를 쓰세요.
+
+이미지는 원본 크기와 lossless 색/알파를 유지하며, 캐릭터 재생성·재작화는 없습니다. 6종 focus만 검수됐고 나머지 60종 후보는 별도 미검증 확장입니다.
+Android 빌드 도구가 없는 디자인 환경에서 패키징했습니다. .9.png source 내부 원본 동일성은 검증했으나 AAPT 컴파일·실기기 동작 검증은 앱 담당자가 진행해야 합니다.
+
+참고: https://developer.android.com/studio/write/draw9patch

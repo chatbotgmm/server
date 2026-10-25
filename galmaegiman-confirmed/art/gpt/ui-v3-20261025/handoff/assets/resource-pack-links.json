@@ -1,0 +1,576 @@
+{
+  "runtime_minimal_pack": {
+    "library_file_id": "libfile_285f318822f88191baef46422579f018",
+    "version": 0,
+    "bytes": 14511344,
+    "purpose": "App-facing battle UI resources; use its own manifest/insets/state contracts"
+  },
+  "full_preservation_pack": {
+    "library_file_id": "libfile_2b40b38fe18c8191aa42928b58a74d53",
+    "version": 0,
+    "purpose": "Original source preservation, not required to attach or install the full archive"
+  },
+  "full_manifest": {
+    "library_file_id": "libfile_0e432536c5148191b1ebd4bb9fac98db",
+    "version": 0
+  },
+  "sha_matched_original_entries": 27,
+  "links": [
+    {
+      "source_sha256": "e645d4dd88323728c7ae7670435db9848464d7c651110d29b9a4e9057dded44c",
+      "handoff_aliases": [
+        "backgrounds/bg-harbor.png",
+        "battle/bg-harbor"
+      ],
+      "full_pack_original": "original/ui/bg-harbor.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/ui/bg-harbor.webp",
+          "sha256": "4d05c46e757ed5ec438d7cf8d29c2d9cb466598f318f42b69137b8b8f7fceca9",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/ui/bg-harbor.png",
+            "optimized": "optimized/ui/bg-harbor.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 0,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "dae19c7760f1090b6c5dc09f5354ed1dd7d5f4b1e8a0a2a9df7cb4a714a2e40b",
+      "handoff_aliases": [
+        "icons/icon-attack.png",
+        "battle/icon-attack"
+      ],
+      "full_pack_original": "original/ui/icon-attack.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/ui/icon-attack.webp",
+          "sha256": "34953836eb71fa06c23f325b23f477f0750d9d5440867b351d832bb118c8ccbd",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/ui/icon-attack.png",
+            "optimized": "optimized/ui/icon-attack.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 36687,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "d9cf5cd4ad36aa823aa6d1290db025eb437620c2f03d7e69290a92ad496ba24e",
+      "handoff_aliases": [
+        "icons/icon-shield.png",
+        "battle/icon-shield"
+      ],
+      "full_pack_original": "original/ui/icon-shield.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/ui/icon-shield.webp",
+          "sha256": "cffa4bbbbd6c454db752214d3553bcaa35a423094c7ba90fb33c966b5b838fd4",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/ui/icon-shield.png",
+            "optimized": "optimized/ui/icon-shield.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 22017,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "dfb19fcde7a0b2cc2ed00dd7d106206ac68b2e3b0c486b568724b981a0457122",
+      "handoff_aliases": [
+        "sprites/u01-front.png"
+      ],
+      "full_pack_original": "original/characters/u01-front.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/characters/u01-front.webp",
+          "sha256": "84c608b08174cc3a7a381a5b4bf7b29bbcf1c8749debae3d4b07aa5e5754de04",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/characters/u01-front.png",
+            "optimized": "optimized/characters/u01-front.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 276003,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "6b0d8362c6d4d33a9679a14e937767ae1880f827d4db961d97c0a56827eeea43",
+      "handoff_aliases": [
+        "sprites/u02-front.png"
+      ],
+      "full_pack_original": "original/characters/u02-front.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/characters/u02-front.webp",
+          "sha256": "04299a9e92b8eb422f238b36c203bfc412c620c278a2f5d33098a126c3094558",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/characters/u02-front.png",
+            "optimized": "optimized/characters/u02-front.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 434615,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "d92d505e0eccf5fcaf4fd8d1ec9f39b3b039a12a68bada738cccd6032da4303c",
+      "handoff_aliases": [
+        "sprites/u04-front.png"
+      ],
+      "full_pack_original": "original/characters/u04-front.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/characters/u04-front.webp",
+          "sha256": "907e892d17c891d940528982f3010f247b0644e597477677f409def2cdbb9686",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/characters/u04-front.png",
+            "optimized": "optimized/characters/u04-front.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 347161,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "71ef995a5c19caf401e9522a7df139cbb7a368094795b58ecbb467cad33eabc3",
+      "handoff_aliases": [
+        "sprites/u05-front.png"
+      ],
+      "full_pack_original": "original/characters/u05-front.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/characters/u05-front.webp",
+          "sha256": "29b144f23b79fb85f9300cb39376fd16d63b5db8a7b1d333c451a8944013cd43",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/characters/u05-front.png",
+            "optimized": "optimized/characters/u05-front.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 459493,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "f36c40c9860fa42cca5daee60a1cf839310a3fd355a49de2eb0ac80229654ee5",
+      "handoff_aliases": [
+        "sprites/u06-front.png"
+      ],
+      "full_pack_original": "original/characters/u06-front.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/characters/u06-front.webp",
+          "sha256": "9acc3865aeb50ff484fa54f7a0ae9e4e6707fe87e10378de35522e12939386ff",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/characters/u06-front.png",
+            "optimized": "optimized/characters/u06-front.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 1105932,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "da0b49b4410437d2643f1816c63bbfed3aaaa60cfdd12cdc94cf476a48071cc5",
+      "handoff_aliases": [
+        "sprites/u07-front.png",
+        "battle/enemy-u07-front"
+      ],
+      "full_pack_original": "original/characters/u07-front.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/characters/u07-front.webp",
+          "sha256": "8f188cf66f9009a5d99aa2d827c2e42eb80a7602f07d0ec2b6f466669d5ae90d",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/characters/u07-front.png",
+            "optimized": "optimized/characters/u07-front.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 503925,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "a516a09bb7351dc6254e0920b2ab6d21131a8f10213d45e5cf990af3b777695b",
+      "handoff_aliases": [
+        "font/NotoSansKR-Regular.ttf",
+        "battle-font/NotoSansKR-Regular.ttf"
+      ],
+      "full_pack_original": "original/fonts/NotoSansKR-Regular.ttf",
+      "runtime_variants": []
+    },
+    {
+      "source_sha256": "8440245279bc3819589f99dc8ddee6372d3481816d2ccdb052f2f1d1eb26b86c",
+      "handoff_aliases": [
+        "font/NotoSansKR-Bold.ttf",
+        "battle-font/NotoSansKR-Bold.ttf"
+      ],
+      "full_pack_original": "original/fonts/NotoSansKR-Bold.ttf",
+      "runtime_variants": []
+    },
+    {
+      "source_sha256": "0c729083d93dd15bcc6b1a17eaef468dc89d48ffc64966916b1f88460f268a12",
+      "handoff_aliases": [
+        "battle/panel-command"
+      ],
+      "full_pack_original": "original/ui/panel-command.png",
+      "runtime_variants": [
+        {
+          "path": "android-ninepatch/panel_command.9.png",
+          "sha256": "ab4b959baa1c3a5d64c012be391bbe40d623ac8a136ef028b15904830387a5f5",
+          "kind": "android-ninepatch-source",
+          "source_sha_identical": false,
+          "pixel_check": null
+        }
+      ]
+    },
+    {
+      "source_sha256": "18248af2535151c48d0c25f171997311e9f084ee01c50fb762ac39e60bbf9d09",
+      "handoff_aliases": [
+        "battle/panel-hp"
+      ],
+      "full_pack_original": "original/ui/panel-hp.png",
+      "runtime_variants": [
+        {
+          "path": "android-ninepatch/panel_hp.9.png",
+          "sha256": "f6677ca39f92d8e386c26b8e397be8d8a2e486316fe201d3f4bf78c3a7ba077e",
+          "kind": "android-ninepatch-source",
+          "source_sha_identical": false,
+          "pixel_check": null
+        }
+      ]
+    },
+    {
+      "source_sha256": "360d05f214331b748f4b66c112b543e4c0a45f0050b24267ae3e3d00f51a6c21",
+      "handoff_aliases": [
+        "battle/button-attack"
+      ],
+      "full_pack_original": "original/ui/button-attack.png",
+      "runtime_variants": [
+        {
+          "path": "android-ninepatch/button_attack.9.png",
+          "sha256": "43d366a7df028b5067af59689afee006247e9db619ef157dc50b3afa3b5deb17",
+          "kind": "android-ninepatch-source",
+          "source_sha_identical": false,
+          "pixel_check": null
+        }
+      ]
+    },
+    {
+      "source_sha256": "efb98a3b2e8940457a09319ab35488d8bd1c94c12d3c0dbc5cab6115fb458fc2",
+      "handoff_aliases": [
+        "battle/button-item"
+      ],
+      "full_pack_original": "original/ui/button-item.png",
+      "runtime_variants": [
+        {
+          "path": "android-ninepatch/button_item.9.png",
+          "sha256": "ce4c2026b033050dd3fbe53abd143e0f8192631824f731412a0fb7d7f8085489",
+          "kind": "android-ninepatch-source",
+          "source_sha_identical": false,
+          "pixel_check": null
+        }
+      ]
+    },
+    {
+      "source_sha256": "11d400907965666672c3209a4566163606f9204c2345694d376bd8fa7765ea2c",
+      "handoff_aliases": [
+        "battle/button-switch"
+      ],
+      "full_pack_original": "original/ui/button-switch.png",
+      "runtime_variants": [
+        {
+          "path": "android-ninepatch/button_switch.9.png",
+          "sha256": "954899c922dc7b7446b4cd7b864a54d809adb8761a1e945b2bb802bacb4f70ee",
+          "kind": "android-ninepatch-source",
+          "source_sha_identical": false,
+          "pixel_check": null
+        }
+      ]
+    },
+    {
+      "source_sha256": "25b2f5defb6decc79f8ec87d2fdffcc4f898f3e95a5d60b1ed332ba664ed252f",
+      "handoff_aliases": [
+        "battle/button-surrender"
+      ],
+      "full_pack_original": "original/ui/button-surrender.png",
+      "runtime_variants": [
+        {
+          "path": "android-ninepatch/button_surrender.9.png",
+          "sha256": "01543e29e58d4509d6ffabc94fdf2db9362c64214f7077c6dc68cc2d2d34bf59",
+          "kind": "android-ninepatch-source",
+          "source_sha_identical": false,
+          "pixel_check": null
+        }
+      ]
+    },
+    {
+      "source_sha256": "eec8140e83d089faa30775585d686672adf113f029bfc13d7106b820359e1c25",
+      "handoff_aliases": [
+        "battle/icon-item"
+      ],
+      "full_pack_original": "original/ui/icon-item.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/ui/icon-item.webp",
+          "sha256": "b2d5eedb4b9d25500276d4c4db1f1d6e04a780e1e51df71d04d07c801e0c3d01",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/ui/icon-item.png",
+            "optimized": "optimized/ui/icon-item.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 806,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "57ea8f410b8a3ce9b291bf504b00e39ce5b328359e89df53d7afac98d0bb1c25",
+      "handoff_aliases": [
+        "battle/icon-switch"
+      ],
+      "full_pack_original": "original/ui/icon-switch.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/ui/icon-switch.webp",
+          "sha256": "19423b0fb7345176ffffbaae1156679db21d9f236e4e8f8aba012aae9eb39c9c",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/ui/icon-switch.png",
+            "optimized": "optimized/ui/icon-switch.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 6538,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "bad165fcd6166ef6145dc9867d2883039e34f6b67a630a4fd9eacf57d9d4b967",
+      "handoff_aliases": [
+        "battle/icon-surrender"
+      ],
+      "full_pack_original": "original/ui/icon-surrender.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/ui/icon-surrender.webp",
+          "sha256": "164110da38e084718553bad811db697cb65b717a63651df6fd4f239cd056f2c1",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/ui/icon-surrender.png",
+            "optimized": "optimized/ui/icon-surrender.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 2272,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "5a9725d2f1808f7afc7f1336ebb36b4cbc7ed0bdc279f926f57c395766955ce2",
+      "handoff_aliases": [
+        "battle/icon-goldenstrike"
+      ],
+      "full_pack_original": "original/ui/icon-goldenstrike.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/ui/icon-goldenstrike.webp",
+          "sha256": "1e109e51754a55cfe39eec4c127b9eb37eb81ba3f86182438a7af70894b8983b",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/ui/icon-goldenstrike.png",
+            "optimized": "optimized/ui/icon-goldenstrike.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 11574,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "bcfac4934de9c27793db38354e839d3759e4cff198e0f43fc3c7816170754515",
+      "handoff_aliases": [
+        "battle/decor-corner-tl"
+      ],
+      "full_pack_original": "original/ui/decor-corner-tl.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/ui/decor-corner-tl.webp",
+          "sha256": "ddb1586df998f7336bac6ae02f4258d0d39e48a16a7d24745c4ff0275d34a35e",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/ui/decor-corner-tl.png",
+            "optimized": "optimized/ui/decor-corner-tl.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 509710,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "dd4648ba5067d1b70c0ac7241803bdaa36b827c45bb0fe44323e13bf56b4a594",
+      "handoff_aliases": [
+        "battle/decor-corner-tr"
+      ],
+      "full_pack_original": "original/ui/decor-corner-tr.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/ui/decor-corner-tr.webp",
+          "sha256": "373965f09aa5add42d258fc183bc58cb648b19a7a5d17d294c450f92f956f733",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/ui/decor-corner-tr.png",
+            "optimized": "optimized/ui/decor-corner-tr.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 509831,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "a7ba39099c251a97ea2a5c12e8970d0d9736073cd0205db686c99a5677b81c0c",
+      "handoff_aliases": [
+        "battle/decor-corner-bl"
+      ],
+      "full_pack_original": "original/ui/decor-corner-bl.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/ui/decor-corner-bl.webp",
+          "sha256": "f72d30721258016225df586db7f2946ff8e831e0224f9741f17f1a2846af0e67",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/ui/decor-corner-bl.png",
+            "optimized": "optimized/ui/decor-corner-bl.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 508942,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "0899c49a51b8a0ed8033426ea3efc8709a6b36a769b9ef2e237279d4cfc02f0e",
+      "handoff_aliases": [
+        "battle/decor-corner-br"
+      ],
+      "full_pack_original": "original/ui/decor-corner-br.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/ui/decor-corner-br.webp",
+          "sha256": "b00435f54aff2286f0b161c8be15ae2ca1df4738435873a873afb2ccf026413c",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/ui/decor-corner-br.png",
+            "optimized": "optimized/ui/decor-corner-br.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 483345,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "4f72eec3c323937e25da12bfbd36eb3e6dc1e34fc9b86ebc8cb95b88956e7280",
+      "handoff_aliases": [
+        "battle/icon-back"
+      ],
+      "full_pack_original": "original/ui/icon-back.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/ui/icon-back.webp",
+          "sha256": "bc528675062ee7928bf4b9df1d30e1e5ca62f7e93ca15fa1e8f1eaf60af78d72",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/ui/icon-back.png",
+            "optimized": "optimized/ui/icon-back.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 21454,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "source_sha256": "e38512508cde1e6b9beddb5b42d33ddcc3b3ff0295739291c52079dd2c839652",
+      "handoff_aliases": [
+        "battle/ally-u01-rear"
+      ],
+      "full_pack_original": "original/characters/u01-rear.png",
+      "runtime_variants": [
+        {
+          "path": "optimized/characters/u01-rear.webp",
+          "sha256": "fb6c8b59125d715d7c6a6b429794ded7956126ef4194852c02b15def9961ff64",
+          "kind": "optimized-lossless-webp",
+          "source_sha_identical": false,
+          "pixel_check": {
+            "source": "original/characters/u01-rear.png",
+            "optimized": "optimized/characters/u01-rear.webp",
+            "alphaDiff": 0,
+            "visibleRGBDiff": 0,
+            "hiddenRGBDiff": 618130,
+            "passed": true
+          }
+        }
+      ]
+    }
+  ],
+  "coverage_note": "These packs focus on battle UI. They do not contain every general-screen card/background/font alias needed to replay all 50 states. Existing approved project originals remain the source for missing aliases. Optimized WebP byte SHA differs from PNG; do not feed it to original-byte hydration as if identical."
+}

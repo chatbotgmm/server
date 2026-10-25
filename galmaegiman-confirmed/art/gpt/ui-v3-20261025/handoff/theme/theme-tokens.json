@@ -1,0 +1,87 @@
+{
+  "schema": "galmaegiman.theme.v3.1",
+  "coordinate_reference": {
+    "viewport": [
+      1920,
+      800
+    ],
+    "review_footer": [
+      0,
+      800,
+      1920,
+      100
+    ],
+    "unit": "reference pixels, never dp"
+  },
+  "colors": {
+    "navy": "#193047",
+    "content_panel": "#193047F5",
+    "heading_cream": "#F5E2B5",
+    "body": "#F4F2EB",
+    "muted": "#C8D0D6",
+    "ink": "#17334A",
+    "border": "#62738366",
+    "error": "#EFA79B"
+  },
+  "font": {
+    "regular": "NotoSansKR-Regular.ttf",
+    "bold": "NotoSansKR-Bold.ttf",
+    "legacy_Jua_alias": "NotoBold in renderer; do not ship Jua for this approved visual direction"
+  },
+  "roles": {
+    "action": "Original navy/cream textured 9-slice + text",
+    "tab": "48 reference-px high selected area + underline; actual dp must be validated",
+    "status": "Noninteractive pill, no action gold frame",
+    "disabled": "Muted surface + reason, never color alone"
+  },
+  "nine_slice": {
+    "general_primary_cream": {
+      "asset_alias": "icons/button-secondary.png",
+      "source_bounds_xyxy": [
+        8,
+        11,
+        589,
+        251
+      ],
+      "source_caps": [
+        70,
+        60
+      ],
+      "destination_cap_reference_px": 16
+    },
+    "general_secondary_navy": {
+      "asset_alias": "icons/button-primary.png",
+      "source_bounds_xyxy": [
+        41,
+        30,
+        621,
+        269
+      ],
+      "source_caps": [
+        70,
+        60
+      ],
+      "destination_cap_reference_px": 16
+    },
+    "battle": "See battle-base.cjs nine(name,x,y,w,h,sourceInset,destInset) and captured component args"
+  },
+  "responsive_constraints": [
+    "1920x800 is the approved landscape reference, not a bitmap to stretch over app",
+    "Exclude review footer from runtime",
+    "Keep interactive viewport inside Android system insets and display cutouts",
+    "No whole-screen vertical scroll; lists may page/swipe within allocated region",
+    "Measure native touch targets in dp; >=48dp target guideline is not verified by these PNGs",
+    "Preserve original sprite/card aspect ratio and source rectangle; no automatic legacy-art substitution"
+  ],
+  "mini_ui_portrait_crop": {
+    "source": "sprites/u02-front.png",
+    "source_rect_xywh": [
+      105,
+      105,
+      1040,
+      910
+    ],
+    "scope": "list/detail UI crop only; do not change mini battle-body scale"
+  },
+  "battle_portrait_crops": "reference/battle-state-contracts.json"
+}

@@ -1,0 +1,195 @@
+{
+  "edition": "v3.1",
+  "files": [
+    {
+      "path": "README.ko.md",
+      "bytes": 8506,
+      "sha256": "b1868caa120da635ca4524593b7559aee2bd52ae18d4f9357fb945debd7e110e"
+    },
+    {
+      "path": "assets/asset-references.json",
+      "bytes": 36322,
+      "sha256": "0a358365961d726c8cecf17e8827609156b9188f4bcd237868511873e628c5b6"
+    },
+    {
+      "path": "assets/resource-pack-links.json",
+      "bytes": 20182,
+      "sha256": "303d1ab75659c721d15ad0972ddd0442cdf66876b7836027582f1a80a1bad70a"
+    },
+    {
+      "path": "editable/workspace/outputs/ui-mockups-20261025/battle-v3/battle-base.cjs",
+      "bytes": 8316,
+      "sha256": "d3df3bdd179cc1504ee51d2541c705925ec0eb45a81c470fafa9d0f8eb7c34f9"
+    },
+    {
+      "path": "editable/workspace/outputs/ui-mockups-20261025/battle-v3/build-battle-v3.cjs",
+      "bytes": 12685,
+      "sha256": "9d1d6a88c245f87aa86e8b2b22f570db4386f5579888c46e8eeeba2d355e22bd"
+    },
+    {
+      "path": "editable/workspace/outputs/ui-mockups-20261025/party-v3/render-party-v3.cjs",
+      "bytes": 3846,
+      "sha256": "20ce137fe288a31ece37a4c8d0416d15a660722942c4e3afbc05c33a9473012c"
+    },
+    {
+      "path": "editable/workspace/outputs/ui-mockups-20261025/recruit-v2/render.cjs",
+      "bytes": 6263,
+      "sha256": "34e91047af03f42ccaf89a860e91cc8b57ff95d9c865761d901636b04eec4c90"
+    },
+    {
+      "path": "editable/workspace/outputs/ui-mockups-20261025/source/roster.json",
+      "bytes": 12800,
+      "sha256": "eb49726e9a16f50b403221916a540b6901d4db9db4a4798342c4890f4a95023e"
+    },
+    {
+      "path": "editable/workspace/outputs/ui-mockups-20261025/v2/canvas-ui.cjs",
+      "bytes": 9310,
+      "sha256": "d9ff2a5d4840ffc7bf0c89f49be7f65d5d5da4f100d8a8b70fa7643170f500a4"
+    },
+    {
+      "path": "editable/workspace/outputs/ui-mockups-20261025/v3/battle-base.json",
+      "bytes": 93,
+      "sha256": "33ab528236885006c7a6aa388955d273c645122a240e532c69fedfb6c2272a96"
+    },
+    {
+      "path": "editable/workspace/outputs/ui-mockups-20261025/v3/canvas-core.cjs",
+      "bytes": 3304,
+      "sha256": "9801e31843b1fbb3203750293c0029e0055458e30f2ab0a7b9b61aed8535bd69"
+    },
+    {
+      "path": "editable/workspace/outputs/ui-mockups-20261025/v3/canvas-modals.cjs",
+      "bytes": 4202,
+      "sha256": "0ec26b8ab43077f75391bf1924b07aaf4ed3dac25259aef7a9554a0104760a7e"
+    },
+    {
+      "path": "editable/workspace/outputs/ui-mockups-20261025/v3/canvas-secondary.cjs",
+      "bytes": 19964,
+      "sha256": "aa599389fc4442d680317d75e0128aaf066b20bdfc1aebe65478bbc2c4878efa"
+    },
+    {
+      "path": "editable/workspace/outputs/ui-mockups-20261025/v3/canvas-start.cjs",
+      "bytes": 12267,
+      "sha256": "a87a323402a56fbacbfb18abaf05bbaef13b2a51b417ead885d4a508e2c6156f"
+    },
+    {
+      "path": "editable/workspace/outputs/ui-mockups-20261025/v3/canvas-ui.cjs",
+      "bytes": 10531,
+      "sha256": "f8086c8796fb742532beb691e7def108bce64410d67bf3f5fd7037dbfbe3f755"
+    },
+    {
+      "path": "editable/workspace/outputs/ui-mockups-20261025/v3/render-canvas.cjs",
+      "bytes": 2482,
+      "sha256": "b4075487c68b093fbfc96e9fb94746f0ad642a3f95099940fa8613ceef91b4e8"
+    },
+    {
+      "path": "layout/battle-recruit-layouts.json",
+      "bytes": 112618,
+      "sha256": "56d06e3751f6eee7805706b7ecbdae9f33c2a831b37fc233ecc60a80058a4fc8"
+    },
+    {
+      "path": "layout/native-component-layouts.json",
+      "bytes": 857793,
+      "sha256": "f296fad33d2afc177e8284cfc023b7dcc29eeca849c01901c57fcc580796a6db"
+    },
+    {
+      "path": "mapping/IMPLEMENTATION_NOTES.ko.md",
+      "bytes": 11712,
+      "sha256": "3845012605d3aa7b100604fdd608476d326c6575f46933f87d8dad17aaad0082"
+    },
+    {
+      "path": "mapping/mapping-coverage-report.json",
+      "bytes": 1858,
+      "sha256": "70e53a51cf2c3c398c545d79ce90f83fcc7ce5af7f5ec521a58408dbc2a2d2d8"
+    },
+    {
+      "path": "mapping/screen-state-bindings.json",
+      "bytes": 339977,
+      "sha256": "4f54202a171f28d8889ef22147dab0492a6a657070b5db2777c67db7eebdca94"
+    },
+    {
+      "path": "package.json",
+      "bytes": 446,
+      "sha256": "a08e3e18e85a8b31857a6c282a9180bd0b5bd98a25a15828b66f7372830e9947"
+    },
+    {
+      "path": "qa/battle-base-pixel-check.json",
+      "bytes": 132,
+      "sha256": "addb6eeb496b2ee5b277fef70385e4287973cc2da3e0cb1310bbca2ac023a613"
+    },
+    {
+      "path": "qa/content-check.json",
+      "bytes": 286,
+      "sha256": "7037dc322a87a87b0e454f1c7c1e527e56938153a020eaf7ffce2fccf46bc5f4"
+    },
+    {
+      "path": "qa/flow-validation.json",
+      "bytes": 26669,
+      "sha256": "c0e19fb3682a71b9eca12a91424e43239008ab7a206eaad4535069f9033ea34f"
+    },
+    {
+      "path": "qa/package-check.json",
+      "bytes": 355,
+      "sha256": "53e6f1685902a2d9a0e4e8637ca07dcebd96994358434a0256a3679725c6759b"
+    },
+    {
+      "path": "qa/party-readable-size-comparison.json",
+      "bytes": 1616,
+      "sha256": "8e0cce4b23e9dafba8813212f1baff0b92dc26f52a9a8faf16e51e213388c28d"
+    },
+    {
+      "path": "qa/pdf-export-qa.json",
+      "bytes": 3124,
+      "sha256": "f37df1b654b60d1bb1cc21936420dc57f7df6ec85b4a452081d3897530dc2204"
+    },
+    {
+      "path": "qa/source-replay-check.json",
+      "bytes": 9633,
+      "sha256": "14122fcdfffc218525bc77a819372bd17e2aacf22648a05a4d48cb287c529658"
+    },
+    {
+      "path": "reference/S05_전투 편성.png",
+      "bytes": 1786402,
+      "sha256": "2625060360420d993b307e607d639a8f87195c8d58c3bd401c3615c275e6b53c"
+    },
+    {
+      "path": "reference/S06_전투.png",
+      "bytes": 2936966,
+      "sha256": "86192411afdc59c1c52726a9510cae32ad632427151faa3660200c2b0fcc4b21"
+    },
+    {
+      "path": "reference/S12_조합.png",
+      "bytes": 1896863,
+      "sha256": "ed839145e50079a90fd67e56da619b0172b97eba56f2df7aa23a9cd3b3a439b7"
+    },
+    {
+      "path": "reference/authoritative-delivery.json",
+      "bytes": 1506,
+      "sha256": "45f59530a8eae11c59fab6d76a35cc64401f71011119f4e782c9f085f5aa6485"
+    },
+    {
+      "path": "reference/battle-state-contracts.json",
+      "bytes": 6237,
+      "sha256": "11efc572b5b2822759953e57fcdb70d670ef34d5784ecd6517eb472241d5b270"
+    },
+    {
+      "path": "reference/page-manifest.json",
+      "bytes": 14102,
+      "sha256": "087c9308505140ebc166fe0018e9d5a2d48e4ecbe80ac21770d8d31ef775d8dc"
+    },
+    {
+      "path": "scripts/hydrate-original-assets.cjs",
+      "bytes": 1946,
+      "sha256": "1080ac8261336493b60b024d515ebe2000fc8218bb70fd35ccde14441a5e3490"
+    },
+    {
+      "path": "scripts/render-reference.cjs",
+      "bytes": 1471,
+      "sha256": "713c93977bcc46bd8345ec5a5e8d2b53a1cfe16c6516dff0f48eb1c6692a0315"
+    },
+    {
+      "path": "theme/theme-tokens.json",
+      "bytes": 2444,
+      "sha256": "38d96364ebaef41585e785d9fec36997ca8bdd26fb8195ce2c0d6d5a0231d371"
+    }
+  ]
+}

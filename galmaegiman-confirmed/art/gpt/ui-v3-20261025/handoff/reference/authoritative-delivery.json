@@ -1,0 +1,43 @@
+{
+  "edition": "v3",
+  "unique_screens": 36,
+  "pages": 50,
+  "full_pdf_included": false,
+  "full_pdf": {
+    "filename": "갈매미맨_방범대_전체36화면_시안집_v3.pdf",
+    "library_file_id": "libfile_3100600207c881919eb4d74ca7c52445",
+    "version": 1,
+    "file_id": "file_00000000a79481f58322911f5832b3aa",
+    "sha256": "efabc51d6375fa747c9c24dcb166db8e5294bdf387801bf1a2d2ac6b0b627d91",
+    "bytes": 19194832
+  },
+  "overview": {
+    "library_file_id": "libfile_02d2a1ccd8e4819184942fc6747505eb",
+    "version": 1
+  },
+  "included_core_references": [
+    {
+      "id": "S05",
+      "file": "reference/S05_전투 편성.png",
+      "sha256": "2625060360420d993b307e607d639a8f87195c8d58c3bd401c3615c275e6b53c",
+      "bytes": 1786402,
+      "use": "visual-reference-only; not a runtime background or screen image"
+    },
+    {
+      "id": "S06",
+      "file": "reference/S06_전투.png",
+      "sha256": "86192411afdc59c1c52726a9510cae32ad632427151faa3660200c2b0fcc4b21",
+      "bytes": 2936966,
+      "use": "visual-reference-only; not a runtime background or screen image"
+    },
+    {
+      "id": "S12",
+      "file": "reference/S12_조합.png",
+      "sha256": "ed839145e50079a90fd67e56da619b0172b97eba56f2df7aa23a9cd3b3a439b7",
+      "bytes": 1896863,
+      "use": "visual-reference-only; not a runtime background or screen image"
+    }
+  ],
+  "selected_battle_background": "B 항구",
+  "S12_primary": "full registration card on left; isolated character alternative is not canonical"
+}

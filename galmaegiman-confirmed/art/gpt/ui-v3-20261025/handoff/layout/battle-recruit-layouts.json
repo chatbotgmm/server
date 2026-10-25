@@ -1,0 +1,5686 @@
+{
+  "schema": "galmaegiman.layout.v3.1",
+  "note": "Approved B base bounds and exact overlay helper calls; S14 source coordinates converted to common reference viewport. Decorative corner/glyph primitives remain in source.",
+  "pages": [
+    {
+      "id": "S06",
+      "state": "default",
+      "components": [
+        {
+          "component": "battlefield",
+          "bounds_reference_px": [
+            0,
+            0,
+            1190,
+            800
+          ],
+          "asset": "outdoor"
+        },
+        {
+          "component": "enemy_sprite",
+          "bounds_reference_px": [
+            744,
+            241,
+            322,
+            322
+          ],
+          "asset": "enemy"
+        },
+        {
+          "component": "ally_sprite",
+          "bounds_reference_px": [
+            224,
+            317,
+            420,
+            420
+          ],
+          "asset": "ally"
+        },
+        {
+          "component": "enemy_hud",
+          "bounds_reference_px": [
+            45,
+            60,
+            545,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "ally_hud",
+          "bounds_reference_px": [
+            633,
+            606,
+            520,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "command_panel",
+          "bounds_reference_px": [
+            1190,
+            16,
+            712,
+            770
+          ],
+          "asset": "panel-command"
+        },
+        {
+          "component": "battle_command",
+          "bounds_reference_px": [
+            1237,
+            186,
+            297,
+            158
+          ],
+          "label": "공격"
+        },
+        {
+          "component": "battle_command",
+          "bounds_reference_px": [
+            1553,
+            186,
+            297,
+            158
+          ],
+          "label": "기술"
+        },
+        {
+          "component": "battle_command",
+          "bounds_reference_px": [
+            1237,
+            359,
+            297,
+            158
+          ],
+          "label": "집중"
+        },
+        {
+          "component": "battle_command",
+          "bounds_reference_px": [
+            1553,
+            359,
+            297,
+            158
+          ],
+          "label": "아이템"
+        },
+        {
+          "component": "battle_command",
+          "bounds_reference_px": [
+            1237,
+            532,
+            297,
+            158
+          ],
+          "label": "교체"
+        },
+        {
+          "component": "battle_command",
+          "bounds_reference_px": [
+            1553,
+            532,
+            297,
+            158
+          ],
+          "label": "도망"
+        }
+      ],
+      "page": 6,
+      "source_sha256": "86192411afdc59c1c52726a9510cae32ad632427151faa3660200c2b0fcc4b21",
+      "coordinate_space": {
+        "width": 1920,
+        "height": 800,
+        "unit": "reference_px_not_dp",
+        "review_footer_excluded": true
+      }
+    },
+    {
+      "id": "S06",
+      "state": "skills",
+      "components": [
+        {
+          "component": "battlefield",
+          "bounds_reference_px": [
+            0,
+            0,
+            1190,
+            800
+          ],
+          "asset": "outdoor"
+        },
+        {
+          "component": "enemy_sprite",
+          "bounds_reference_px": [
+            744,
+            241,
+            322,
+            322
+          ],
+          "asset": "enemy"
+        },
+        {
+          "component": "ally_sprite",
+          "bounds_reference_px": [
+            224,
+            317,
+            420,
+            420
+          ],
+          "asset": "ally"
+        },
+        {
+          "component": "enemy_hud",
+          "bounds_reference_px": [
+            45,
+            60,
+            545,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "ally_hud",
+          "bounds_reference_px": [
+            633,
+            606,
+            520,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "command_panel",
+          "bounds_reference_px": [
+            1190,
+            16,
+            712,
+            770
+          ],
+          "asset": "panel-command"
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-command",
+            1190,
+            16,
+            712,
+            770,
+            75,
+            43
+          ],
+          "bounds_reference_px": [
+            1190,
+            16,
+            712,
+            770
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-tl",
+            1185,
+            10,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1185,
+            10,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-tr",
+            1803,
+            10,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1803,
+            10,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-bl",
+            1185,
+            700,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1185,
+            700,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-br",
+            1803,
+            700,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1803,
+            700,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-surrender",
+            1235,
+            47,
+            58,
+            58,
+            72,
+            17
+          ],
+          "bounds_reference_px": [
+            1235,
+            47,
+            58,
+            58
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "back",
+            1248,
+            60,
+            31,
+            31
+          ],
+          "bounds_reference_px": [
+            1248,
+            60,
+            31,
+            31
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "기술 선택",
+            1313,
+            53,
+            32,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "26초",
+            1852,
+            59,
+            27,
+            "#efd296",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "갈매미맨 · 현재 MP 38 / 38",
+            1239,
+            115,
+            21,
+            "#c7d4d7"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "line",
+          "args": [
+            1234,
+            159,
+            619
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1237,
+            181,
+            297,
+            145,
+            72,
+            26
+          ],
+          "bounds_reference_px": [
+            1237,
+            181,
+            297,
+            145
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "1",
+            1282,
+            214,
+            25,
+            "#efd296",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "기술 슬롯 1",
+            1321,
+            206,
+            28,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "이름·MP 미정",
+            1321,
+            254,
+            20,
+            "#efd296"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1553,
+            181,
+            297,
+            145,
+            72,
+            26
+          ],
+          "bounds_reference_px": [
+            1553,
+            181,
+            297,
+            145
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "2",
+            1598,
+            214,
+            25,
+            "#efd296",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "기술 슬롯 2",
+            1637,
+            206,
+            28,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "이름·MP 미정",
+            1637,
+            254,
+            20,
+            "#efd296"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1237,
+            340,
+            297,
+            145,
+            72,
+            26
+          ],
+          "bounds_reference_px": [
+            1237,
+            340,
+            297,
+            145
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "3",
+            1282,
+            373,
+            25,
+            "#efd296",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "기술 슬롯 3",
+            1321,
+            365,
+            28,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "이름·MP 미정",
+            1321,
+            413,
+            20,
+            "#efd296"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1553,
+            340,
+            297,
+            145,
+            72,
+            26
+          ],
+          "bounds_reference_px": [
+            1553,
+            340,
+            297,
+            145
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "4",
+            1598,
+            373,
+            25,
+            "#efd296",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "기술 슬롯 4",
+            1637,
+            365,
+            28,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "이름·MP 미정",
+            1637,
+            413,
+            20,
+            "#efd296"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1237,
+            499,
+            297,
+            145,
+            72,
+            26
+          ],
+          "bounds_reference_px": [
+            1237,
+            499,
+            297,
+            145
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "5",
+            1282,
+            532,
+            25,
+            "#efd296",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "기술 슬롯 5",
+            1321,
+            524,
+            28,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "이름·MP 미정",
+            1321,
+            572,
+            20,
+            "#efd296"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1553,
+            499,
+            297,
+            145,
+            72,
+            26
+          ],
+          "bounds_reference_px": [
+            1553,
+            499,
+            297,
+            145
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "6",
+            1598,
+            532,
+            25,
+            "#efd296",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "기술 슬롯 6",
+            1637,
+            524,
+            28,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "이름·MP 미정",
+            1637,
+            572,
+            20,
+            "#efd296"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "line",
+          "args": [
+            1237,
+            683,
+            613
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "짧게 눌러 선택 · 길게 눌러 설명",
+            1544,
+            706,
+            22,
+            "#efd296",
+            false,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "설명을 본 뒤 손을 떼어도 시전하지 않아요.",
+            1544,
+            742,
+            18,
+            "#c7d4d7",
+            false,
+            "center"
+          ],
+          "bounds_reference_px": null
+        }
+      ],
+      "page": 45,
+      "source_sha256": "f2289dd0c2cdae79e1b57a9946062e7f132a1c6808adcb058130ce746b8cef29",
+      "coordinate_space": {
+        "width": 1920,
+        "height": 800,
+        "unit": "reference_px_not_dp",
+        "review_footer_excluded": true
+      }
+    },
+    {
+      "id": "M02",
+      "state": "default",
+      "components": [
+        {
+          "component": "battlefield",
+          "bounds_reference_px": [
+            0,
+            0,
+            1190,
+            800
+          ],
+          "asset": "outdoor"
+        },
+        {
+          "component": "enemy_sprite",
+          "bounds_reference_px": [
+            744,
+            241,
+            322,
+            322
+          ],
+          "asset": "enemy"
+        },
+        {
+          "component": "ally_sprite",
+          "bounds_reference_px": [
+            224,
+            317,
+            420,
+            420
+          ],
+          "asset": "ally"
+        },
+        {
+          "component": "enemy_hud",
+          "bounds_reference_px": [
+            45,
+            60,
+            545,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "ally_hud",
+          "bounds_reference_px": [
+            633,
+            606,
+            520,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "command_panel",
+          "bounds_reference_px": [
+            1190,
+            16,
+            712,
+            770
+          ],
+          "asset": "panel-command"
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-command",
+            1190,
+            16,
+            712,
+            770,
+            75,
+            43
+          ],
+          "bounds_reference_px": [
+            1190,
+            16,
+            712,
+            770
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-tl",
+            1185,
+            10,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1185,
+            10,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-tr",
+            1803,
+            10,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1803,
+            10,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-bl",
+            1185,
+            700,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1185,
+            700,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-br",
+            1803,
+            700,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1803,
+            700,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-surrender",
+            1235,
+            47,
+            58,
+            58,
+            72,
+            17
+          ],
+          "bounds_reference_px": [
+            1235,
+            47,
+            58,
+            58
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "back",
+            1248,
+            60,
+            31,
+            31
+          ],
+          "bounds_reference_px": [
+            1248,
+            60,
+            31,
+            31
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "기술 선택",
+            1313,
+            53,
+            32,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "26초",
+            1852,
+            59,
+            27,
+            "#efd296",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "갈매미맨 · 현재 MP 38 / 38",
+            1239,
+            115,
+            21,
+            "#c7d4d7"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "line",
+          "args": [
+            1234,
+            159,
+            619
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1237,
+            181,
+            297,
+            145,
+            72,
+            26
+          ],
+          "bounds_reference_px": [
+            1237,
+            181,
+            297,
+            145
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "1",
+            1282,
+            214,
+            25,
+            "#efd296",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "기술 슬롯 1",
+            1321,
+            206,
+            28,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "이름·MP 미정",
+            1321,
+            254,
+            20,
+            "#efd296"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1553,
+            181,
+            297,
+            145,
+            72,
+            26
+          ],
+          "bounds_reference_px": [
+            1553,
+            181,
+            297,
+            145
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "2",
+            1598,
+            214,
+            25,
+            "#efd296",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "기술 슬롯 2",
+            1637,
+            206,
+            28,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "이름·MP 미정",
+            1637,
+            254,
+            20,
+            "#efd296"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "누르는 중",
+            1820,
+            294,
+            16,
+            "#efd296",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1237,
+            340,
+            297,
+            145,
+            72,
+            26
+          ],
+          "bounds_reference_px": [
+            1237,
+            340,
+            297,
+            145
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "3",
+            1282,
+            373,
+            25,
+            "#efd296",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "기술 슬롯 3",
+            1321,
+            365,
+            28,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "이름·MP 미정",
+            1321,
+            413,
+            20,
+            "#efd296"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1553,
+            340,
+            297,
+            145,
+            72,
+            26
+          ],
+          "bounds_reference_px": [
+            1553,
+            340,
+            297,
+            145
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "4",
+            1598,
+            373,
+            25,
+            "#efd296",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "기술 슬롯 4",
+            1637,
+            365,
+            28,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "이름·MP 미정",
+            1637,
+            413,
+            20,
+            "#efd296"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1237,
+            499,
+            297,
+            145,
+            72,
+            26
+          ],
+          "bounds_reference_px": [
+            1237,
+            499,
+            297,
+            145
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "5",
+            1282,
+            532,
+            25,
+            "#efd296",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "기술 슬롯 5",
+            1321,
+            524,
+            28,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "이름·MP 미정",
+            1321,
+            572,
+            20,
+            "#efd296"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1553,
+            499,
+            297,
+            145,
+            72,
+            26
+          ],
+          "bounds_reference_px": [
+            1553,
+            499,
+            297,
+            145
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "6",
+            1598,
+            532,
+            25,
+            "#efd296",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "기술 슬롯 6",
+            1637,
+            524,
+            28,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "이름·MP 미정",
+            1637,
+            572,
+            20,
+            "#efd296"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "line",
+          "args": [
+            1237,
+            683,
+            613
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "짧게 눌러 선택 · 길게 눌러 설명",
+            1544,
+            706,
+            22,
+            "#efd296",
+            false,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "설명을 본 뒤 손을 떼어도 시전하지 않아요.",
+            1544,
+            742,
+            18,
+            "#c7d4d7",
+            false,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-hp",
+            611,
+            24,
+            560,
+            229,
+            46,
+            28
+          ],
+          "bounds_reference_px": [
+            611,
+            24,
+            560,
+            229
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "기술 슬롯 2",
+            639,
+            47,
+            28,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "MP 미정",
+            1142,
+            52,
+            20,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "대상 · 효과 · 소모 MP",
+            639,
+            95,
+            21,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "확정된 기술 데이터가 연결되면",
+            639,
+            131,
+            21,
+            "#173443"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "이 자리에서 설명을 확인합니다.",
+            639,
+            161,
+            21,
+            "#173443"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "손을 떼면 닫힘 · 시전하지 않음",
+            639,
+            204,
+            18,
+            "#6d4f29",
+            true
+          ],
+          "bounds_reference_px": null
+        }
+      ],
+      "page": 32,
+      "source_sha256": "a592bca218aa8a45f54e0f12ff1637096aa9c3c6b34f0a738579f0a2c839c8ca",
+      "coordinate_space": {
+        "width": 1920,
+        "height": 800,
+        "unit": "reference_px_not_dp",
+        "review_footer_excluded": true
+      }
+    },
+    {
+      "id": "M03",
+      "state": "default",
+      "components": [
+        {
+          "component": "battlefield",
+          "bounds_reference_px": [
+            0,
+            0,
+            1190,
+            800
+          ],
+          "asset": "outdoor"
+        },
+        {
+          "component": "enemy_sprite",
+          "bounds_reference_px": [
+            744,
+            241,
+            322,
+            322
+          ],
+          "asset": "enemy"
+        },
+        {
+          "component": "ally_sprite",
+          "bounds_reference_px": [
+            224,
+            317,
+            420,
+            420
+          ],
+          "asset": "ally"
+        },
+        {
+          "component": "enemy_hud",
+          "bounds_reference_px": [
+            45,
+            60,
+            545,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "ally_hud",
+          "bounds_reference_px": [
+            633,
+            606,
+            520,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "command_panel",
+          "bounds_reference_px": [
+            1190,
+            16,
+            712,
+            770
+          ],
+          "asset": "panel-command"
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-command",
+            1190,
+            16,
+            712,
+            770,
+            75,
+            43
+          ],
+          "bounds_reference_px": [
+            1190,
+            16,
+            712,
+            770
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-tl",
+            1185,
+            10,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1185,
+            10,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-tr",
+            1803,
+            10,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1803,
+            10,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-bl",
+            1185,
+            700,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1185,
+            700,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-br",
+            1803,
+            700,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1803,
+            700,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-surrender",
+            1235,
+            47,
+            58,
+            58,
+            72,
+            17
+          ],
+          "bounds_reference_px": [
+            1235,
+            47,
+            58,
+            58
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "back",
+            1248,
+            60,
+            31,
+            31
+          ],
+          "bounds_reference_px": [
+            1248,
+            60,
+            31,
+            31
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "대원 교체",
+            1313,
+            53,
+            32,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "26초",
+            1852,
+            59,
+            27,
+            "#efd296",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "후보 5명 중 선택 · 출전 1명 + 후보 5명",
+            1239,
+            115,
+            21,
+            "#c7d4d7"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "line",
+          "args": [
+            1234,
+            159,
+            619
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-hp",
+            1237,
+            181,
+            297,
+            141,
+            46,
+            21
+          ],
+          "bounds_reference_px": [
+            1237,
+            181,
+            297,
+            141
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "출전",
+            1262,
+            191,
+            14,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "갈매미맨",
+            1344,
+            193,
+            24,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "Lv.12",
+            1510,
+            199,
+            15,
+            "#50636b",
+            false,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "HP",
+            1344,
+            230,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "154 / 154",
+            1511,
+            230,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1344,
+            253,
+            167,
+            10,
+            1,
+            "HP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "MP",
+            1344,
+            270,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "38 / 38",
+            1511,
+            270,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1344,
+            293,
+            167,
+            10,
+            1,
+            "MP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "출전 중",
+            1293,
+            296,
+            14,
+            "#173443",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-hp",
+            1553,
+            181,
+            297,
+            141,
+            46,
+            21
+          ],
+          "bounds_reference_px": [
+            1553,
+            181,
+            297,
+            141
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "후보",
+            1578,
+            191,
+            14,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "물방울",
+            1660,
+            193,
+            24,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "Lv.12",
+            1826,
+            199,
+            15,
+            "#50636b",
+            false,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "HP",
+            1660,
+            230,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "92 / 132",
+            1827,
+            230,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1660,
+            253,
+            167,
+            10,
+            0.696969696969697,
+            "HP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "MP",
+            1660,
+            270,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "26 / 45",
+            1827,
+            270,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1660,
+            293,
+            167,
+            10,
+            0.5777777777777777,
+            "MP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "선택됨",
+            1609,
+            296,
+            14,
+            "#173443",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "✓",
+            1643.5,
+            193,
+            16,
+            "#fff3ce",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-hp",
+            1237,
+            334,
+            297,
+            141,
+            46,
+            21
+          ],
+          "bounds_reference_px": [
+            1237,
+            334,
+            297,
+            141
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "후보",
+            1262,
+            344,
+            14,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "불씨",
+            1344,
+            346,
+            24,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "Lv.12",
+            1510,
+            352,
+            15,
+            "#50636b",
+            false,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "HP",
+            1344,
+            383,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "165 / 165",
+            1511,
+            383,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1344,
+            406,
+            167,
+            10,
+            1,
+            "HP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "MP",
+            1344,
+            423,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "41 / 41",
+            1511,
+            423,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1344,
+            446,
+            167,
+            10,
+            1,
+            "MP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "후보",
+            1293,
+            449,
+            14,
+            "#173443",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-hp",
+            1553,
+            334,
+            297,
+            141,
+            46,
+            21
+          ],
+          "bounds_reference_px": [
+            1553,
+            334,
+            297,
+            141
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "후보",
+            1578,
+            344,
+            14,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "미니",
+            1660,
+            346,
+            24,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "Lv.12",
+            1826,
+            352,
+            15,
+            "#50636b",
+            false,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "HP",
+            1660,
+            383,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "66 / 98",
+            1827,
+            383,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1660,
+            406,
+            167,
+            10,
+            0.673469387755102,
+            "HP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "MP",
+            1660,
+            423,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "28 / 42",
+            1827,
+            423,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1660,
+            446,
+            167,
+            10,
+            0.6666666666666666,
+            "MP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "후보",
+            1609,
+            449,
+            14,
+            "#173443",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-hp",
+            1237,
+            487,
+            297,
+            141,
+            46,
+            21
+          ],
+          "bounds_reference_px": [
+            1237,
+            487,
+            297,
+            141
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "후보",
+            1262,
+            497,
+            14,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "꽃",
+            1344,
+            499,
+            24,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "Lv.12",
+            1510,
+            505,
+            15,
+            "#50636b",
+            false,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "HP",
+            1344,
+            536,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "114 / 114",
+            1511,
+            536,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1344,
+            559,
+            167,
+            10,
+            1,
+            "HP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "MP",
+            1344,
+            576,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "31 / 31",
+            1511,
+            576,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1344,
+            599,
+            167,
+            10,
+            1,
+            "MP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "후보",
+            1293,
+            602,
+            14,
+            "#173443",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-hp",
+            1553,
+            487,
+            297,
+            141,
+            46,
+            21
+          ],
+          "bounds_reference_px": [
+            1553,
+            487,
+            297,
+            141
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "후보",
+            1578,
+            497,
+            14,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "황금",
+            1660,
+            499,
+            24,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "Lv.12",
+            1826,
+            505,
+            15,
+            "#50636b",
+            false,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "HP",
+            1660,
+            536,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "0 / 140",
+            1827,
+            536,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1660,
+            559,
+            167,
+            10,
+            0,
+            "HP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "MP",
+            1660,
+            576,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "0 / 35",
+            1827,
+            576,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1660,
+            599,
+            167,
+            10,
+            0,
+            "MP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "전투불능",
+            1609,
+            602,
+            14,
+            "#842f25",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "물방울 선택 · HP 92 / 132 · MP 26 / 45",
+            1238,
+            656,
+            21,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1237,
+            709,
+            205,
+            58,
+            72,
+            23
+          ],
+          "bounds_reference_px": [
+            1237,
+            709,
+            205,
+            58
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "취소",
+            1339.5,
+            722,
+            25,
+            "#fff1cc",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-surrender",
+            1460,
+            709,
+            390,
+            58,
+            72,
+            23
+          ],
+          "bounds_reference_px": [
+            1460,
+            709,
+            390,
+            58
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "물방울로 교체",
+            1655,
+            722,
+            25,
+            "#173443",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        }
+      ],
+      "page": 33,
+      "source_sha256": "b27bcd0836164c8b7b73748889539963cfe6d6fa0a23d2da2564565455522980",
+      "coordinate_space": {
+        "width": 1920,
+        "height": 800,
+        "unit": "reference_px_not_dp",
+        "review_footer_excluded": true
+      }
+    },
+    {
+      "id": "M03",
+      "state": "items",
+      "components": [
+        {
+          "component": "battlefield",
+          "bounds_reference_px": [
+            0,
+            0,
+            1190,
+            800
+          ],
+          "asset": "outdoor"
+        },
+        {
+          "component": "enemy_sprite",
+          "bounds_reference_px": [
+            744,
+            241,
+            322,
+            322
+          ],
+          "asset": "enemy"
+        },
+        {
+          "component": "ally_sprite",
+          "bounds_reference_px": [
+            224,
+            317,
+            420,
+            420
+          ],
+          "asset": "ally"
+        },
+        {
+          "component": "enemy_hud",
+          "bounds_reference_px": [
+            45,
+            60,
+            545,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "ally_hud",
+          "bounds_reference_px": [
+            633,
+            606,
+            520,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "command_panel",
+          "bounds_reference_px": [
+            1190,
+            16,
+            712,
+            770
+          ],
+          "asset": "panel-command"
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-command",
+            1190,
+            16,
+            712,
+            770,
+            75,
+            43
+          ],
+          "bounds_reference_px": [
+            1190,
+            16,
+            712,
+            770
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-tl",
+            1185,
+            10,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1185,
+            10,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-tr",
+            1803,
+            10,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1803,
+            10,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-bl",
+            1185,
+            700,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1185,
+            700,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-br",
+            1803,
+            700,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1803,
+            700,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-surrender",
+            1235,
+            47,
+            58,
+            58,
+            72,
+            17
+          ],
+          "bounds_reference_px": [
+            1235,
+            47,
+            58,
+            58
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "back",
+            1248,
+            60,
+            31,
+            31
+          ],
+          "bounds_reference_px": [
+            1248,
+            60,
+            31,
+            31
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "아이템 선택",
+            1313,
+            53,
+            32,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "26초",
+            1852,
+            59,
+            27,
+            "#efd296",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "아이템 선택 → 대상 확인 → 사용",
+            1239,
+            115,
+            21,
+            "#c7d4d7"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "line",
+          "args": [
+            1234,
+            159,
+            619
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-item",
+            1237,
+            181,
+            613,
+            126,
+            72,
+            25
+          ],
+          "bounds_reference_px": [
+            1237,
+            181,
+            613,
+            126
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "icon-item",
+            1256,
+            209,
+            67,
+            67
+          ],
+          "bounds_reference_px": [
+            1256,
+            209,
+            67,
+            67
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "HP 회복 아이템",
+            1347,
+            202,
+            27,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "3개 · 예시",
+            1817,
+            205,
+            20,
+            "#efd296",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "효과 수치 미정",
+            1348,
+            251,
+            21,
+            "#c7d4d7"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-item",
+            1237,
+            320,
+            613,
+            126,
+            72,
+            25
+          ],
+          "bounds_reference_px": [
+            1237,
+            320,
+            613,
+            126
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "icon-item",
+            1256,
+            348,
+            67,
+            67
+          ],
+          "bounds_reference_px": [
+            1256,
+            348,
+            67,
+            67
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "MP 회복 아이템",
+            1347,
+            341,
+            27,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "2개 · 예시",
+            1817,
+            344,
+            20,
+            "#efd296",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "효과 수치 미정",
+            1348,
+            390,
+            21,
+            "#c7d4d7"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-item",
+            1237,
+            459,
+            613,
+            126,
+            72,
+            25
+          ],
+          "bounds_reference_px": [
+            1237,
+            459,
+            613,
+            126
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "icon-item",
+            1256,
+            487,
+            67,
+            67
+          ],
+          "bounds_reference_px": [
+            1256,
+            487,
+            67,
+            67
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "회복 아이템",
+            1347,
+            480,
+            27,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "0개 · 예시",
+            1817,
+            483,
+            20,
+            "#efd296",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "보유 수량 0 · 사용 불가",
+            1348,
+            529,
+            21,
+            "#c7d4d7"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "선택 · HP 회복 아이템",
+            1238,
+            623,
+            23,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "아이템명·회복량·대상 규칙은 데이터 연결 필요",
+            1238,
+            660,
+            19,
+            "#efd296"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1237,
+            710,
+            205,
+            57,
+            72,
+            23
+          ],
+          "bounds_reference_px": [
+            1237,
+            710,
+            205,
+            57
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "취소",
+            1339.5,
+            722.5,
+            25,
+            "#fff1cc",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-surrender",
+            1460,
+            710,
+            390,
+            57,
+            72,
+            23
+          ],
+          "bounds_reference_px": [
+            1460,
+            710,
+            390,
+            57
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "대상 선택",
+            1655,
+            722.5,
+            25,
+            "#173443",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        }
+      ],
+      "page": 46,
+      "source_sha256": "1a0014c54c025251d7657cb3e8dfe5996ead89c818d17fea0b7dbac9530cc1a9",
+      "coordinate_space": {
+        "width": 1920,
+        "height": 800,
+        "unit": "reference_px_not_dp",
+        "review_footer_excluded": true
+      }
+    },
+    {
+      "id": "M03",
+      "state": "item_target",
+      "components": [
+        {
+          "component": "battlefield",
+          "bounds_reference_px": [
+            0,
+            0,
+            1190,
+            800
+          ],
+          "asset": "outdoor"
+        },
+        {
+          "component": "enemy_sprite",
+          "bounds_reference_px": [
+            744,
+            241,
+            322,
+            322
+          ],
+          "asset": "enemy"
+        },
+        {
+          "component": "ally_sprite",
+          "bounds_reference_px": [
+            224,
+            317,
+            420,
+            420
+          ],
+          "asset": "ally"
+        },
+        {
+          "component": "enemy_hud",
+          "bounds_reference_px": [
+            45,
+            60,
+            545,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "ally_hud",
+          "bounds_reference_px": [
+            633,
+            606,
+            520,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "command_panel",
+          "bounds_reference_px": [
+            1190,
+            16,
+            712,
+            770
+          ],
+          "asset": "panel-command"
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-command",
+            1190,
+            16,
+            712,
+            770,
+            75,
+            43
+          ],
+          "bounds_reference_px": [
+            1190,
+            16,
+            712,
+            770
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-tl",
+            1185,
+            10,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1185,
+            10,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-tr",
+            1803,
+            10,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1803,
+            10,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-bl",
+            1185,
+            700,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1185,
+            700,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-br",
+            1803,
+            700,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1803,
+            700,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-surrender",
+            1235,
+            47,
+            58,
+            58,
+            72,
+            17
+          ],
+          "bounds_reference_px": [
+            1235,
+            47,
+            58,
+            58
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "back",
+            1248,
+            60,
+            31,
+            31
+          ],
+          "bounds_reference_px": [
+            1248,
+            60,
+            31,
+            31
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "아이템 대상 선택",
+            1313,
+            53,
+            32,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "26초",
+            1852,
+            59,
+            27,
+            "#efd296",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "HP 회복 아이템 · 보유 3개 · 효과 수치 미정",
+            1239,
+            115,
+            21,
+            "#c7d4d7"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "line",
+          "args": [
+            1234,
+            159,
+            619
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-hp",
+            1237,
+            181,
+            297,
+            141,
+            46,
+            21
+          ],
+          "bounds_reference_px": [
+            1237,
+            181,
+            297,
+            141
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "출전",
+            1262,
+            191,
+            14,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "갈매미맨",
+            1344,
+            193,
+            24,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "Lv.12",
+            1510,
+            199,
+            15,
+            "#50636b",
+            false,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "HP",
+            1344,
+            230,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "154 / 154",
+            1511,
+            230,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1344,
+            253,
+            167,
+            10,
+            1,
+            "HP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "MP",
+            1344,
+            270,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "38 / 38",
+            1511,
+            270,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1344,
+            293,
+            167,
+            10,
+            1,
+            "MP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "출전 중",
+            1293,
+            296,
+            14,
+            "#173443",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-hp",
+            1553,
+            181,
+            297,
+            141,
+            46,
+            21
+          ],
+          "bounds_reference_px": [
+            1553,
+            181,
+            297,
+            141
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "후보",
+            1578,
+            191,
+            14,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "물방울",
+            1660,
+            193,
+            24,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "Lv.12",
+            1826,
+            199,
+            15,
+            "#50636b",
+            false,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "HP",
+            1660,
+            230,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "92 / 132",
+            1827,
+            230,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1660,
+            253,
+            167,
+            10,
+            0.696969696969697,
+            "HP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "MP",
+            1660,
+            270,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "26 / 45",
+            1827,
+            270,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1660,
+            293,
+            167,
+            10,
+            0.5777777777777777,
+            "MP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "선택됨",
+            1609,
+            296,
+            14,
+            "#173443",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "✓",
+            1643.5,
+            193,
+            16,
+            "#fff3ce",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-hp",
+            1237,
+            334,
+            297,
+            141,
+            46,
+            21
+          ],
+          "bounds_reference_px": [
+            1237,
+            334,
+            297,
+            141
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "후보",
+            1262,
+            344,
+            14,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "불씨",
+            1344,
+            346,
+            24,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "Lv.12",
+            1510,
+            352,
+            15,
+            "#50636b",
+            false,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "HP",
+            1344,
+            383,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "165 / 165",
+            1511,
+            383,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1344,
+            406,
+            167,
+            10,
+            1,
+            "HP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "MP",
+            1344,
+            423,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "41 / 41",
+            1511,
+            423,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1344,
+            446,
+            167,
+            10,
+            1,
+            "MP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "후보",
+            1293,
+            449,
+            14,
+            "#173443",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-hp",
+            1553,
+            334,
+            297,
+            141,
+            46,
+            21
+          ],
+          "bounds_reference_px": [
+            1553,
+            334,
+            297,
+            141
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "후보",
+            1578,
+            344,
+            14,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "미니",
+            1660,
+            346,
+            24,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "Lv.12",
+            1826,
+            352,
+            15,
+            "#50636b",
+            false,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "HP",
+            1660,
+            383,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "66 / 98",
+            1827,
+            383,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1660,
+            406,
+            167,
+            10,
+            0.673469387755102,
+            "HP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "MP",
+            1660,
+            423,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "28 / 42",
+            1827,
+            423,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1660,
+            446,
+            167,
+            10,
+            0.6666666666666666,
+            "MP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "후보",
+            1609,
+            449,
+            14,
+            "#173443",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-hp",
+            1237,
+            487,
+            297,
+            141,
+            46,
+            21
+          ],
+          "bounds_reference_px": [
+            1237,
+            487,
+            297,
+            141
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "후보",
+            1262,
+            497,
+            14,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "꽃",
+            1344,
+            499,
+            24,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "Lv.12",
+            1510,
+            505,
+            15,
+            "#50636b",
+            false,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "HP",
+            1344,
+            536,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "114 / 114",
+            1511,
+            536,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1344,
+            559,
+            167,
+            10,
+            1,
+            "HP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "MP",
+            1344,
+            576,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "31 / 31",
+            1511,
+            576,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1344,
+            599,
+            167,
+            10,
+            1,
+            "MP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "후보",
+            1293,
+            602,
+            14,
+            "#173443",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-hp",
+            1553,
+            487,
+            297,
+            141,
+            46,
+            21
+          ],
+          "bounds_reference_px": [
+            1553,
+            487,
+            297,
+            141
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "후보",
+            1578,
+            497,
+            14,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "황금",
+            1660,
+            499,
+            24,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "Lv.12",
+            1826,
+            505,
+            15,
+            "#50636b",
+            false,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "HP",
+            1660,
+            536,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "0 / 140",
+            1827,
+            536,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1660,
+            559,
+            167,
+            10,
+            0,
+            "HP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "MP",
+            1660,
+            576,
+            16,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "0 / 35",
+            1827,
+            576,
+            16,
+            "#173443",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "bar",
+          "args": [
+            1660,
+            599,
+            167,
+            10,
+            0,
+            "MP"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "전투불능",
+            1609,
+            602,
+            14,
+            "#842f25",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "선택 대상 · 물방울 · 현재 HP 92 / 132",
+            1238,
+            656,
+            21,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1237,
+            709,
+            205,
+            58,
+            72,
+            23
+          ],
+          "bounds_reference_px": [
+            1237,
+            709,
+            205,
+            58
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "취소",
+            1339.5,
+            722,
+            25,
+            "#fff1cc",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-surrender",
+            1460,
+            709,
+            390,
+            58,
+            72,
+            23
+          ],
+          "bounds_reference_px": [
+            1460,
+            709,
+            390,
+            58
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "물방울에게 사용",
+            1655,
+            722,
+            25,
+            "#173443",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        }
+      ],
+      "page": 47,
+      "source_sha256": "e0b32c9ef3cf1a6fd81be0e7a68df091214dc4923a29ec6225468427fdfa0036",
+      "coordinate_space": {
+        "width": 1920,
+        "height": 800,
+        "unit": "reference_px_not_dp",
+        "review_footer_excluded": true
+      }
+    },
+    {
+      "id": "M03",
+      "state": "adventure_flee",
+      "components": [
+        {
+          "component": "battlefield",
+          "bounds_reference_px": [
+            0,
+            0,
+            1190,
+            800
+          ],
+          "asset": "outdoor"
+        },
+        {
+          "component": "enemy_sprite",
+          "bounds_reference_px": [
+            744,
+            241,
+            322,
+            322
+          ],
+          "asset": "enemy"
+        },
+        {
+          "component": "ally_sprite",
+          "bounds_reference_px": [
+            224,
+            317,
+            420,
+            420
+          ],
+          "asset": "ally"
+        },
+        {
+          "component": "enemy_hud",
+          "bounds_reference_px": [
+            45,
+            60,
+            545,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "ally_hud",
+          "bounds_reference_px": [
+            633,
+            606,
+            520,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "command_panel",
+          "bounds_reference_px": [
+            1190,
+            16,
+            712,
+            770
+          ],
+          "asset": "panel-command"
+        },
+        {
+          "component": "image",
+          "args": [
+            "outdoor",
+            0,
+            0,
+            1920,
+            800,
+            "cover"
+          ],
+          "bounds_reference_px": [
+            0,
+            0,
+            1920,
+            800
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "모험 · 전투",
+            51,
+            18,
+            22,
+            "#fff1cc",
+            true,
+            "left",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-command",
+            1190,
+            16,
+            712,
+            770,
+            75,
+            43
+          ],
+          "bounds_reference_px": [
+            1190,
+            16,
+            712,
+            770
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-tl",
+            1185,
+            10,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1185,
+            10,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-tr",
+            1803,
+            10,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1803,
+            10,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-bl",
+            1185,
+            700,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1185,
+            700,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-br",
+            1803,
+            700,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1803,
+            700,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-surrender",
+            1235,
+            47,
+            58,
+            58,
+            72,
+            17
+          ],
+          "bounds_reference_px": [
+            1235,
+            47,
+            58,
+            58
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "back",
+            1248,
+            60,
+            31,
+            31
+          ],
+          "bounds_reference_px": [
+            1248,
+            60,
+            31,
+            31
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "도망 확인",
+            1313,
+            53,
+            32,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "26초",
+            1852,
+            59,
+            27,
+            "#efd296",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "모험 · 결정 전에 결과를 확인하세요",
+            1239,
+            115,
+            21,
+            "#c7d4d7"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "line",
+          "args": [
+            1234,
+            159,
+            619
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "image",
+          "args": [
+            "icon-surrender",
+            1479,
+            186,
+            132,
+            132
+          ],
+          "bounds_reference_px": [
+            1479,
+            186,
+            132,
+            132
+          ]
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-hp",
+            1237,
+            335,
+            613,
+            225,
+            46,
+            25
+          ],
+          "bounds_reference_px": [
+            1237,
+            335,
+            613,
+            225
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "도망 성공 확률 70%",
+            1262,
+            358,
+            25,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "실패하면 상대가 1회 행동합니다.",
+            1262,
+            394,
+            20,
+            "#173443",
+            false
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "결정하기 전에는 행동을 소비하지 않습니다.",
+            1262,
+            430,
+            20,
+            "#173443",
+            false
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "정말 도망치시겠어요?",
+            1545,
+            607,
+            28,
+            "#fff1cc",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1237,
+            704,
+            297,
+            63,
+            72,
+            23
+          ],
+          "bounds_reference_px": [
+            1237,
+            704,
+            297,
+            63
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "취소 · 전투 계속",
+            1385.5,
+            719.5,
+            25,
+            "#fff1cc",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-surrender",
+            1553,
+            704,
+            297,
+            63,
+            72,
+            23
+          ],
+          "bounds_reference_px": [
+            1553,
+            704,
+            297,
+            63
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "도망 시도",
+            1701.5,
+            719.5,
+            25,
+            "#173443",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        }
+      ],
+      "page": 48,
+      "source_sha256": "d101623e4ccb0cba4c9cd6df15f3173a0436fc75943f75edd3df7979499f2678",
+      "coordinate_space": {
+        "width": 1920,
+        "height": 800,
+        "unit": "reference_px_not_dp",
+        "review_footer_excluded": true
+      }
+    },
+    {
+      "id": "M03",
+      "state": "story_forfeit",
+      "components": [
+        {
+          "component": "battlefield",
+          "bounds_reference_px": [
+            0,
+            0,
+            1190,
+            800
+          ],
+          "asset": "outdoor"
+        },
+        {
+          "component": "enemy_sprite",
+          "bounds_reference_px": [
+            744,
+            241,
+            322,
+            322
+          ],
+          "asset": "enemy"
+        },
+        {
+          "component": "ally_sprite",
+          "bounds_reference_px": [
+            224,
+            317,
+            420,
+            420
+          ],
+          "asset": "ally"
+        },
+        {
+          "component": "enemy_hud",
+          "bounds_reference_px": [
+            45,
+            60,
+            545,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "ally_hud",
+          "bounds_reference_px": [
+            633,
+            606,
+            520,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "command_panel",
+          "bounds_reference_px": [
+            1190,
+            16,
+            712,
+            770
+          ],
+          "asset": "panel-command"
+        },
+        {
+          "component": "image",
+          "args": [
+            "outdoor",
+            0,
+            0,
+            1920,
+            800,
+            "cover"
+          ],
+          "bounds_reference_px": [
+            0,
+            0,
+            1920,
+            800
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "스토리 · 기본 훈련",
+            51,
+            18,
+            22,
+            "#fff1cc",
+            true,
+            "left",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-command",
+            1190,
+            16,
+            712,
+            770,
+            75,
+            43
+          ],
+          "bounds_reference_px": [
+            1190,
+            16,
+            712,
+            770
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-tl",
+            1185,
+            10,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1185,
+            10,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-tr",
+            1803,
+            10,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1803,
+            10,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-bl",
+            1185,
+            700,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1185,
+            700,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-br",
+            1803,
+            700,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1803,
+            700,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-surrender",
+            1235,
+            47,
+            58,
+            58,
+            72,
+            17
+          ],
+          "bounds_reference_px": [
+            1235,
+            47,
+            58,
+            58
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "back",
+            1248,
+            60,
+            31,
+            31
+          ],
+          "bounds_reference_px": [
+            1248,
+            60,
+            31,
+            31
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "항복 확인",
+            1313,
+            53,
+            32,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "26초",
+            1852,
+            59,
+            27,
+            "#efd296",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "스토리 · 결정 전에 결과를 확인하세요",
+            1239,
+            115,
+            21,
+            "#c7d4d7"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "line",
+          "args": [
+            1234,
+            159,
+            619
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "image",
+          "args": [
+            "icon-surrender",
+            1479,
+            186,
+            132,
+            132
+          ],
+          "bounds_reference_px": [
+            1479,
+            186,
+            132,
+            132
+          ]
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-hp",
+            1237,
+            335,
+            613,
+            225,
+            46,
+            25
+          ],
+          "bounds_reference_px": [
+            1237,
+            335,
+            613,
+            225
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "항복 시 경험치 0",
+            1262,
+            358,
+            25,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "항복하면 이 전투를 종료합니다.",
+            1262,
+            394,
+            20,
+            "#173443",
+            false
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "취소하면 현재 전투로 돌아갑니다.",
+            1262,
+            430,
+            20,
+            "#173443",
+            false
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "정말 항복하시겠어요?",
+            1545,
+            607,
+            28,
+            "#fff1cc",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1237,
+            704,
+            297,
+            63,
+            72,
+            23
+          ],
+          "bounds_reference_px": [
+            1237,
+            704,
+            297,
+            63
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "취소 · 전투 계속",
+            1385.5,
+            719.5,
+            25,
+            "#fff1cc",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-surrender",
+            1553,
+            704,
+            297,
+            63,
+            72,
+            23
+          ],
+          "bounds_reference_px": [
+            1553,
+            704,
+            297,
+            63
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "항복하기",
+            1701.5,
+            719.5,
+            25,
+            "#173443",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        }
+      ],
+      "page": 49,
+      "source_sha256": "49b33697248e1829ef1fb9a345c799877292cd6292cc36bb1d9f47dea8cd5b11",
+      "coordinate_space": {
+        "width": 1920,
+        "height": 800,
+        "unit": "reference_px_not_dp",
+        "review_footer_excluded": true
+      }
+    },
+    {
+      "id": "M03",
+      "state": "pvp_forfeit",
+      "components": [
+        {
+          "component": "battlefield",
+          "bounds_reference_px": [
+            0,
+            0,
+            1190,
+            800
+          ],
+          "asset": "outdoor"
+        },
+        {
+          "component": "enemy_sprite",
+          "bounds_reference_px": [
+            744,
+            241,
+            322,
+            322
+          ],
+          "asset": "enemy"
+        },
+        {
+          "component": "ally_sprite",
+          "bounds_reference_px": [
+            224,
+            317,
+            420,
+            420
+          ],
+          "asset": "ally"
+        },
+        {
+          "component": "enemy_hud",
+          "bounds_reference_px": [
+            45,
+            60,
+            545,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "ally_hud",
+          "bounds_reference_px": [
+            633,
+            606,
+            520,
+            167
+          ],
+          "asset": "panel-hp"
+        },
+        {
+          "component": "command_panel",
+          "bounds_reference_px": [
+            1190,
+            16,
+            712,
+            770
+          ],
+          "asset": "panel-command"
+        },
+        {
+          "component": "image",
+          "args": [
+            "outdoor",
+            0,
+            0,
+            1920,
+            800,
+            "cover"
+          ],
+          "bounds_reference_px": [
+            0,
+            0,
+            1920,
+            800
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "PvP · 전투",
+            51,
+            18,
+            22,
+            "#fff1cc",
+            true,
+            "left",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-command",
+            1190,
+            16,
+            712,
+            770,
+            75,
+            43
+          ],
+          "bounds_reference_px": [
+            1190,
+            16,
+            712,
+            770
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-tl",
+            1185,
+            10,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1185,
+            10,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-tr",
+            1803,
+            10,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1803,
+            10,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-bl",
+            1185,
+            700,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1185,
+            700,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "decor-corner-br",
+            1803,
+            700,
+            104,
+            88
+          ],
+          "bounds_reference_px": [
+            1803,
+            700,
+            104,
+            88
+          ]
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-surrender",
+            1235,
+            47,
+            58,
+            58,
+            72,
+            17
+          ],
+          "bounds_reference_px": [
+            1235,
+            47,
+            58,
+            58
+          ]
+        },
+        {
+          "component": "image",
+          "args": [
+            "back",
+            1248,
+            60,
+            31,
+            31
+          ],
+          "bounds_reference_px": [
+            1248,
+            60,
+            31,
+            31
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "항복 확인",
+            1313,
+            53,
+            32,
+            "#fff1cc",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "26초",
+            1852,
+            59,
+            27,
+            "#efd296",
+            true,
+            "right"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "PvP · 결정 전에 결과를 확인하세요",
+            1239,
+            115,
+            21,
+            "#c7d4d7"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "line",
+          "args": [
+            1234,
+            159,
+            619
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "image",
+          "args": [
+            "icon-surrender",
+            1479,
+            186,
+            132,
+            132
+          ],
+          "bounds_reference_px": [
+            1479,
+            186,
+            132,
+            132
+          ]
+        },
+        {
+          "component": "nine",
+          "args": [
+            "panel-hp",
+            1237,
+            335,
+            613,
+            225,
+            46,
+            25
+          ],
+          "bounds_reference_px": [
+            1237,
+            335,
+            613,
+            225
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "항복 시 경험치 0",
+            1262,
+            358,
+            25,
+            "#173443",
+            true
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "항복하면 이 전투를 종료합니다.",
+            1262,
+            394,
+            20,
+            "#173443",
+            false
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "취소하면 현재 전투로 돌아갑니다.",
+            1262,
+            430,
+            20,
+            "#173443",
+            false
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "text",
+          "args": [
+            "정말 항복하시겠어요?",
+            1545,
+            607,
+            28,
+            "#fff1cc",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-switch",
+            1237,
+            704,
+            297,
+            63,
+            72,
+            23
+          ],
+          "bounds_reference_px": [
+            1237,
+            704,
+            297,
+            63
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "취소 · 전투 계속",
+            1385.5,
+            719.5,
+            25,
+            "#fff1cc",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        },
+        {
+          "component": "nine",
+          "args": [
+            "button-surrender",
+            1553,
+            704,
+            297,
+            63,
+            72,
+            23
+          ],
+          "bounds_reference_px": [
+            1553,
+            704,
+            297,
+            63
+          ]
+        },
+        {
+          "component": "text",
+          "args": [
+            "항복하기",
+            1701.5,
+            719.5,
+            25,
+            "#173443",
+            true,
+            "center"
+          ],
+          "bounds_reference_px": null
+        }
+      ],
+      "page": 50,
+      "source_sha256": "bc426b22f93af88daf71951fbddc38414df9330fd78168a42615c5470cbdd3b2",
+      "coordinate_space": {
+        "width": 1920,
+        "height": 800,
+        "unit": "reference_px_not_dp",
+        "review_footer_excluded": true
+      }
+    },
+    {
+      "id": "S14",
+      "state": "default",
+      "coordinate_conversion": {
+        "source": [
+          2048,
+          838
+        ],
+        "target": [
+          1920,
+          800
+        ]
+      },
+      "components": [
+        {
+          "component": "header",
+          "bounds_reference_px": [
+            95.625,
+            39.140811455847256,
+            1772.8125,
+            115.51312649164677
+          ]
+        },
+        {
+          "component": "recruit_category",
+          "bounds_reference_px": [
+            129.375,
+            188.06682577565633,
+            441.5625,
+            105.96658711217184
+          ],
+          "label": "저급"
+        },
+        {
+          "component": "recruit_category",
+          "bounds_reference_px": [
+            129.375,
+            303.5799522673031,
+            441.5625,
+            105.96658711217184
+          ],
+          "label": "중급"
+        },
+        {
+          "component": "recruit_category",
+          "bounds_reference_px": [
+            129.375,
+            420.04773269689736,
+            441.5625,
+            105.96658711217184
+          ],
+          "label": "고급"
+        },
+        {
+          "component": "original_recruitment_tray",
+          "bounds_reference_px": [
+            655.3125,
+            261.57517899761336,
+            605.625,
+            352.2673031026253
+          ],
+          "asset": "tray-high.png"
+        },
+        {
+          "component": "cost",
+          "bounds_reference_px": [
+            1389.375,
+            232.93556085918854,
+            398.4375,
+            61.097852028639615
+          ]
+        },
+        {
+          "component": "quantity_container",
+          "bounds_reference_px": [
+            1344.375,
+            445.82338902147967,
+            490.3125,
+            292.1241050119332
+          ]
+        },
+        {
+          "component": "decrement",
+          "bounds_reference_px": [
+            1365.9375,
+            473.508353221957,
+            103.125,
+            77.32696897374701
+          ]
+        },
+        {
+          "component": "quantity",
+          "bounds_reference_px": [
+            1479.375,
+            473.508353221957,
+            103.125,
+            77.32696897374701
+          ]
+        },
+        {
+          "component": "increment",
+          "bounds_reference_px": [
+            1592.8125,
+            473.508353221957,
+            103.125,
+            77.32696897374701
+          ]
+        },
+        {
+          "component": "max",
+          "bounds_reference_px": [
+            1706.25,
+            473.508353221957,
+            103.125,
+            77.32696897374701
+          ]
+        },
+        {
+          "component": "recruit_action",
+          "bounds_reference_px": [
+            1365.9375,
+            621.4797136038186,
+            444.375,
+            104.05727923627684
+          ]
+        },
+        {
+          "component": "claim_application",
+          "bounds_reference_px": [
+            129.375,
+            632.9355608591885,
+            272.8125,
+            105.96658711217184
+          ]
+        }
+      ],
+      "page": 14,
+      "source_sha256": "962f7881458b0025fabbefe5806128928278bc60fd786de699042b6104f06b70",
+      "coordinate_space": {
+        "width": 1920,
+        "height": 800,
+        "unit": "reference_px_not_dp",
+        "review_footer_excluded": true
+      }
+    }
+  ]
+}

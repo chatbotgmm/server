@@ -1,0 +1,2767 @@
+{
+  "status": "manual_visual_reviewed_draft_game_unapplied",
+  "source_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+  "coordinate_system": "absolute source PNG pixels, LTRB exclusive; not midpoint split",
+  "items": [
+    {
+      "id": "u01",
+      "name": "갈매미맨",
+      "grade": "커먼",
+      "repo_file": "u01/front.png",
+      "sha256": "dfb19fcde7a0b2cc2ed00dd7d106206ac68b2e3b0c486b568724b981a0457122",
+      "git_blob_sha": "6e0cb21e1e0017411b4c505c5ca795efbce144e1",
+      "source_rect": [
+        0,
+        0,
+        1254,
+        1254
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        176,
+        0,
+        970,
+        794
+      ],
+      "focus_rect_normalized_to_source": [
+        0.14035087719298245,
+        0.0,
+        0.773524720893142,
+        0.6331738437001595
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        62,
+        47,
+        1197,
+        1206
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u01.png",
+      "thumb256": "thumbs/256/u01.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u01/front.png",
+      "thumbnail_sha256": {
+        "128": "53602ce0998cc25453fdfb0a539fa52d96f1683487c04219813d3cab029858c8",
+        "256": "3ccb9f0362801caec875335e62c49279f47b9716952495007542912f9082ed95"
+      }
+    },
+    {
+      "id": "u02",
+      "name": "미니",
+      "grade": "커먼",
+      "repo_file": "u02/front.png",
+      "sha256": "6b0d8362c6d4d33a9679a14e937767ae1880f827d4db961d97c0a56827eeea43",
+      "git_blob_sha": "5ca5e2ca140ca9fa20a796e0167c0e7b8d7f9fa1",
+      "source_rect": [
+        0,
+        0,
+        1254,
+        1254
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        199,
+        38,
+        939,
+        777
+      ],
+      "focus_rect_normalized_to_source": [
+        0.15869218500797447,
+        0.030303030303030304,
+        0.7488038277511961,
+        0.6196172248803827
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        115,
+        93,
+        1171,
+        1178
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u02.png",
+      "thumb256": "thumbs/256/u02.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u02/front.png",
+      "thumbnail_sha256": {
+        "128": "d2d0727031000cc95647501a33953abfe3624608d075230715f8f4ad9e69ac11",
+        "256": "481e2773a95f22e8b16d9ca66bcb56a26dce1f9175740bb67daaf51f4d3e45a6"
+      }
+    },
+    {
+      "id": "u03",
+      "name": "자이언트",
+      "grade": "커먼",
+      "repo_file": "u03/front.png",
+      "sha256": "70109328358ba8e2ff1e9853854f2d4e1fba91d89b46df46ceeb14ab751366ba",
+      "git_blob_sha": "9853fe169b797bd68321ff6691b3788cf1e4207a",
+      "source_rect": [
+        0,
+        0,
+        1254,
+        1254
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        311,
+        351,
+        650,
+        690
+      ],
+      "focus_rect_normalized_to_source": [
+        0.24800637958532695,
+        0.2799043062200957,
+        0.518341307814992,
+        0.5502392344497608
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        186,
+        348,
+        1078,
+        964
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u03.png",
+      "thumb256": "thumbs/256/u03.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u03/front.png",
+      "thumbnail_sha256": {
+        "128": "80b5eb39120d9dc687cdf1722c0399420902ada219fd498aaa6dfeeb507d3bb5",
+        "256": "f6ac80fcd83891d4c75a67dcac6e97392901de272000aa62d7a8e87a6d15a103"
+      }
+    },
+    {
+      "id": "u04",
+      "name": "꽃",
+      "grade": "커먼",
+      "repo_file": "u04/front.png",
+      "sha256": "d92d505e0eccf5fcaf4fd8d1ec9f39b3b039a12a68bada738cccd6032da4303c",
+      "git_blob_sha": "623465f1112871a68bdb9ea0f4c37ee3020837d3",
+      "source_rect": [
+        0,
+        0,
+        1254,
+        1254
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        229,
+        0,
+        924,
+        696
+      ],
+      "focus_rect_normalized_to_source": [
+        0.18261562998405104,
+        0.0,
+        0.7368421052631579,
+        0.5550239234449761
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        149,
+        60,
+        1143,
+        1205
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u04.png",
+      "thumb256": "thumbs/256/u04.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u04/front.png",
+      "thumbnail_sha256": {
+        "128": "ac2cdb207e19f368c311896d4e8efdb677feb2e807d4f585d0f6691f3dc1aff8",
+        "256": "dafdeaa93fd20e3bcf0c46526984432d3f88afe06b85fd06637a8aa34cab356d"
+      }
+    },
+    {
+      "id": "u05",
+      "name": "황금",
+      "grade": "커먼",
+      "repo_file": "u05/front.png",
+      "sha256": "71ef995a5c19caf401e9522a7df139cbb7a368094795b58ecbb467cad33eabc3",
+      "git_blob_sha": "f9f788e5826956bada4214f1f9d4c9d3b723dc5c",
+      "source_rect": [
+        0,
+        0,
+        1254,
+        1254
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        199,
+        110,
+        898,
+        809
+      ],
+      "focus_rect_normalized_to_source": [
+        0.15869218500797447,
+        0.08771929824561403,
+        0.7161084529505582,
+        0.6451355661881978
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        48,
+        122,
+        1212,
+        1177
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u05.png",
+      "thumb256": "thumbs/256/u05.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u05/front.png",
+      "thumbnail_sha256": {
+        "128": "10c66c1e1e73fffad6c0239d7f78c4d4a1ebfe90a74b435cd9ded366ad7f2486",
+        "256": "0af8992b2707edcdb14baf318e96de3df9495443f60fde66c0d746c4357edc84"
+      }
+    },
+    {
+      "id": "u06",
+      "name": "물방울",
+      "grade": "커먼",
+      "repo_file": "u06/front.png",
+      "sha256": "f36c40c9860fa42cca5daee60a1cf839310a3fd355a49de2eb0ac80229654ee5",
+      "git_blob_sha": "e64197fee740e37b63b1d86af65631e2b26f85fe",
+      "source_rect": [
+        0,
+        0,
+        1254,
+        1254
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        180,
+        0,
+        829,
+        649
+      ],
+      "focus_rect_normalized_to_source": [
+        0.14354066985645933,
+        0.0,
+        0.6610845295055822,
+        0.5175438596491229
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        165,
+        32,
+        1163,
+        1227
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u06.png",
+      "thumb256": "thumbs/256/u06.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u06/front.png",
+      "thumbnail_sha256": {
+        "128": "8d5868ccbc603fc54302a6c70e2603290319374a556c6b3eab7be938ed8a111d",
+        "256": "8158cdb84474a2ae691dfac73abebb6ae787e003dc54423079a0de09b8433835"
+      }
+    },
+    {
+      "id": "u07",
+      "name": "불씨",
+      "grade": "커먼",
+      "repo_file": "u07/front.png",
+      "sha256": "da0b49b4410437d2643f1816c63bbfed3aaaa60cfdd12cdc94cf476a48071cc5",
+      "git_blob_sha": "4640f682cf23345a9cd28917ae6d556b9fb03536",
+      "source_rect": [
+        0,
+        0,
+        1254,
+        1254
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        205,
+        69,
+        939,
+        803
+      ],
+      "focus_rect_normalized_to_source": [
+        0.1634768740031898,
+        0.05502392344497608,
+        0.7488038277511961,
+        0.6403508771929824
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        56,
+        98,
+        1203,
+        1188
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u07.png",
+      "thumb256": "thumbs/256/u07.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u07/front.png",
+      "thumbnail_sha256": {
+        "128": "d27a78da7cbb9fe4bfe573aabd43a740fd59cd62ba10b36135f074f2098f2f08",
+        "256": "d56576c8d110f5cfec8160b27af63b40cd8630ce3d4ea4dfdd9fd582872aedc8"
+      }
+    },
+    {
+      "id": "u08",
+      "name": "그림자",
+      "grade": "커먼",
+      "repo_file": "u08/front.png",
+      "sha256": "088f86d89112ac50ed3594a640907f9a3f55dc66fce2e43bde7a75b6bf86459f",
+      "git_blob_sha": "7f399c4bd957a5afde53d874d692b49bfbdfe61e",
+      "source_rect": [
+        0,
+        0,
+        1254,
+        1254
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        5,
+        237,
+        687,
+        919
+      ],
+      "focus_rect_normalized_to_source": [
+        0.003987240829346092,
+        0.18899521531100477,
+        0.5478468899521531,
+        0.7328548644338118
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        35,
+        245,
+        1232,
+        1038
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u08.png",
+      "thumb256": "thumbs/256/u08.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u08/front.png",
+      "thumbnail_sha256": {
+        "128": "98ba303c3a4b59312f8cc7e4b4030b128b6d2c89ddc051d2cadb49de65f452bd",
+        "256": "6cf0c935989ea0c9cee3d805310552344f4991911a7a132a24c5a19d91bb40e5"
+      }
+    },
+    {
+      "id": "u09",
+      "name": "노움",
+      "grade": "언커먼",
+      "repo_file": "u09/turnaround-original.png",
+      "sha256": "376404486a2fa7a6bfb83e408442b06a35ae8928557a30fc7c9c1c74288dc7bc",
+      "git_blob_sha": "2a568487f4b8556164ef0e0a0e3f2396e62bcf43",
+      "source_rect": [
+        0,
+        0,
+        924,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        181,
+        0,
+        746,
+        565
+      ],
+      "focus_rect_normalized_to_source": [
+        0.1020293122886133,
+        0.0,
+        0.4205186020293123,
+        0.636978579481398
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        135,
+        33,
+        899,
+        861
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u09.png",
+      "thumb256": "thumbs/256/u09.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u09/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "0b893320b3ac962b024308cd32be28f36698de38043a4687ce9d99e412873ba3",
+        "256": "f567002c5ad5f58d02233515689962d9e9ab70131acbcbde85b50b9583c92806"
+      }
+    },
+    {
+      "id": "u10",
+      "name": "정령",
+      "grade": "언커먼",
+      "repo_file": "u10/turnaround-original.png",
+      "sha256": "83399efa405b4a31304e945a881a326e80b471f2ebdb5f70a71a6987dc5ad109",
+      "git_blob_sha": "19a1c5ebe96efdfc23e269a9c63119bbf61dbde2",
+      "source_rect": [
+        0,
+        0,
+        918,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        196,
+        14,
+        661,
+        479
+      ],
+      "focus_rect_normalized_to_source": [
+        0.1104847801578354,
+        0.015783540022547914,
+        0.37260428410372043,
+        0.5400225479143179
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        95,
+        20,
+        870,
+        860
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u10.png",
+      "thumb256": "thumbs/256/u10.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u10/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "37d6590f06324a23b1332c002e4b10002fd90afb3cbc28c0cfd60900b4c80872",
+        "256": "fa78a04c879145b3b875e136609c375543a1b7d223d9eb573f2e44681a0ca826"
+      }
+    },
+    {
+      "id": "u11",
+      "name": "고블린",
+      "grade": "언커먼",
+      "repo_file": "u11/turnaround-original.png",
+      "sha256": "22fa5b512e8e469fc0259483aeb5d704db1df8ccef30be44da4311f81282e656",
+      "git_blob_sha": "fbabb6392545da3c834e254edb86a999fe886649",
+      "source_rect": [
+        0,
+        0,
+        909,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        147,
+        9,
+        657,
+        520
+      ],
+      "focus_rect_normalized_to_source": [
+        0.08286358511837655,
+        0.010146561443066516,
+        0.37034949267192785,
+        0.5862457722660653
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        96,
+        18,
+        881,
+        868
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u11.png",
+      "thumb256": "thumbs/256/u11.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u11/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "bb41610eb1f4e812aae2204fc8970d302a348aee55fac5b48717fe4d4963bd37",
+        "256": "d9010fb42bb4b0c65748cc3ba9ab5b523b9bf5d7603d3a5656fe0b3d836ad62b"
+      }
+    },
+    {
+      "id": "u12",
+      "name": "어인",
+      "grade": "언커먼",
+      "repo_file": "u12/turnaround-original.png",
+      "sha256": "55c938ae49ec3dc3ba30d257ca856d15b782aeeba921b9e626ee957a64b4ba90",
+      "git_blob_sha": "e775ad8c92062764c18fde9e638b1a7e409815d7",
+      "source_rect": [
+        0,
+        0,
+        898,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        262,
+        63,
+        651,
+        451
+      ],
+      "focus_rect_normalized_to_source": [
+        0.14768883878241262,
+        0.07102593010146561,
+        0.366967305524239,
+        0.5084554678692221
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        68,
+        78,
+        878,
+        824
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u12.png",
+      "thumb256": "thumbs/256/u12.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u12/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "7802f641146f20371e97bc59b3d2c0f8171e6fe882bc2eadac5bc3695e19b495",
+        "256": "9a71118c469f761127a92cfad3d3d087daa88071850ae0e300af8afe9944ce9f"
+      }
+    },
+    {
+      "id": "u13",
+      "name": "도깨비",
+      "grade": "언커먼",
+      "repo_file": "u13/turnaround-original.png",
+      "sha256": "045bc5310bdfb76ec551c6c0eebe9c664b6159cf60e5cf39f514523d8c2c54b5",
+      "git_blob_sha": "a0933514b57e3718b79b6b2435aa921e8f803502",
+      "source_rect": [
+        0,
+        0,
+        879,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        143,
+        26,
+        659,
+        542
+      ],
+      "focus_rect_normalized_to_source": [
+        0.080608793686584,
+        0.029312288613303268,
+        0.3714768883878241,
+        0.6110484780157835
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        20,
+        19,
+        867,
+        874
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u13.png",
+      "thumb256": "thumbs/256/u13.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u13/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "55aec684bdbb261a9da2a8cace192894d3bb2294109b63ecd03fa8d41fc2c32b",
+        "256": "df77a221ace679851393b33ef7fe6f9dcfdc9ab445e6a2bf3d3c999fa59e0d6f"
+      }
+    },
+    {
+      "id": "u14",
+      "name": "서리",
+      "grade": "언커먼",
+      "repo_file": "u14/turnaround-original.png",
+      "sha256": "e7489dc0cc1c449da8a61d88a65ded69c99126d1293a20ed69e11f1b4a8aca80",
+      "git_blob_sha": "3b20c7c4ef76a966418dfe2d362442ae6e3b4246",
+      "source_rect": [
+        0,
+        0,
+        911,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        210,
+        42,
+        704,
+        535
+      ],
+      "focus_rect_normalized_to_source": [
+        0.11837655016910936,
+        0.04735062006764374,
+        0.3968432919954904,
+        0.6031567080045096
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        110,
+        32,
+        881,
+        859
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u14.png",
+      "thumb256": "thumbs/256/u14.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u14/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "aefb2e55a96f2f905efdd581eb309a78419c399c4430018d7b30355ffaae48cc",
+        "256": "17d42922c05371c6ceac97723f18de99da6b78b085e6f8ee27a1a494770f9f6c"
+      }
+    },
+    {
+      "id": "u15",
+      "name": "반딧불",
+      "grade": "언커먼",
+      "repo_file": "u15/turnaround-original.png",
+      "sha256": "9376fce33e55ccb65626780cd052054d323ccc46891ab9d7dcc62e9f0b83b298",
+      "git_blob_sha": "5c0ef4fa4fbef347440f79584f19b6edaad32c9b",
+      "source_rect": [
+        0,
+        0,
+        912,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        61,
+        0,
+        749,
+        688
+      ],
+      "focus_rect_normalized_to_source": [
+        0.034385569334836524,
+        0.0,
+        0.4222096956031567,
+        0.7756482525366404
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        35,
+        10,
+        895,
+        814
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u15.png",
+      "thumb256": "thumbs/256/u15.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u15/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "e29eb2b37306f457d51d265e64f3e7129f8ee5059d65daa8748fbea68043fdbb",
+        "256": "efdef2b2b6540f1e52848cc3d73fc9b1e4cb1f250de8fb8001cb7d2961b570ee"
+      }
+    },
+    {
+      "id": "u16",
+      "name": "먹구름",
+      "grade": "언커먼",
+      "repo_file": "u16/turnaround-original.png",
+      "sha256": "69f3437294fbcb4ef80a6e055a179f61766cc025be60f44352a686eaa86baa03",
+      "git_blob_sha": "deeeb103a02e653fcea09a45df6b047489a53146",
+      "source_rect": [
+        0,
+        0,
+        922,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        140,
+        0,
+        751,
+        611
+      ],
+      "focus_rect_normalized_to_source": [
+        0.07891770011273957,
+        0.0,
+        0.423337091319053,
+        0.6888387824126269
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        93,
+        17,
+        876,
+        880
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u16.png",
+      "thumb256": "thumbs/256/u16.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u16/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "f7132003ca7c404477165ba4660c1648703cf92fb3b89a69e992ec6f19c7dc41",
+        "256": "aa0e6ebab99cb2383d537882a07f2c33a7018d480f2980326d070b49d858eb7d"
+      }
+    },
+    {
+      "id": "u17",
+      "name": "드워프",
+      "grade": "레어",
+      "repo_file": "u17/turnaround-original.png",
+      "sha256": "850e3b62cb7bb7d5a6daee21be033933135dcab136c1e1800995f3fb484de63b",
+      "git_blob_sha": "2e98a17de3ac68756659deca20a15fd97ff63242",
+      "source_rect": [
+        0,
+        0,
+        916,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        135,
+        26,
+        695,
+        586
+      ],
+      "focus_rect_normalized_to_source": [
+        0.07609921082299888,
+        0.029312288613303268,
+        0.39177001127395716,
+        0.6606538895152199
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        42,
+        17,
+        890,
+        868
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u17.png",
+      "thumb256": "thumbs/256/u17.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u17/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "dd984655e2b31430ac7206f59b12aaf920c4d5750f65865d3714c33976a1648d",
+        "256": "0a010780370218cabe4165a30cdfc88f5dc66816f101b90fa2108b08b88b99e6"
+      }
+    },
+    {
+      "id": "u18",
+      "name": "요정",
+      "grade": "레어",
+      "repo_file": "u18/turnaround-original.png",
+      "sha256": "77f70924bc3a371694da0b2ef14aaa79ca37ffa420b4176873198d0f06c63248",
+      "git_blob_sha": "9cfa1a1bfdc671bf15540ff7895471da4c3c7a31",
+      "source_rect": [
+        0,
+        0,
+        894,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        183,
+        82,
+        600,
+        499
+      ],
+      "focus_rect_normalized_to_source": [
+        0.10315670800450959,
+        0.09244644870349493,
+        0.3382187147688839,
+        0.5625704622322435
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        81,
+        46,
+        839,
+        834
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u18.png",
+      "thumb256": "thumbs/256/u18.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u18/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "88ec0607301e8c930ce5c35a537feaefd40123b1e77d432dfdf5de91fea356b5",
+        "256": "7598d8ff07424aaf16e0138737dfc7454515595a31f2e906c0d71bab7a6a2306"
+      }
+    },
+    {
+      "id": "u19",
+      "name": "트롤",
+      "grade": "레어",
+      "repo_file": "u19/turnaround-original.png",
+      "sha256": "0fa5eeea509daad5c76aad01c9cb9ede32ad4dac99dd43a06cc2c24579095676",
+      "git_blob_sha": "5cf8636f5d2d4dfc17d0b2eacbab4fcb6c77b22c",
+      "source_rect": [
+        0,
+        0,
+        919,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        151,
+        49,
+        643,
+        541
+      ],
+      "focus_rect_normalized_to_source": [
+        0.08511837655016911,
+        0.0552423900789177,
+        0.3624577226606539,
+        0.6099210822998873
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        49,
+        64,
+        897,
+        834
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u19.png",
+      "thumb256": "thumbs/256/u19.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u19/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "589a4031715d249abe6c0c0b13d9056c6d8fb207e57756fdb418589a8b98bfa9",
+        "256": "40b6cc855115d2f3499962c22ff10da2f6277520f19a199ee6bc72d42c436f7b"
+      }
+    },
+    {
+      "id": "u20",
+      "name": "세이렌",
+      "grade": "레어",
+      "repo_file": "u20/turnaround-original.png",
+      "sha256": "b2745a49e575727d326b4f596c18b6c412dd65607c561202c4cf24167dead579",
+      "git_blob_sha": "c9c85fae3b4a53c320de6ee4db22918e68925aa6",
+      "source_rect": [
+        0,
+        0,
+        910,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        259,
+        50,
+        612,
+        403
+      ],
+      "focus_rect_normalized_to_source": [
+        0.1459977452085682,
+        0.05636978579481398,
+        0.34498308906426156,
+        0.45434047350620066
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        82,
+        61,
+        803,
+        813
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u20.png",
+      "thumb256": "thumbs/256/u20.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u20/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "daf7962dcf21ccd3411dbe360124d85bf8526b80c53132ee0494590cc674c05b",
+        "256": "3b3ed8595655ae7983321f245dd509e20b60c4888c361b72f3ef1d257cf01bff"
+      }
+    },
+    {
+      "id": "u21",
+      "name": "설인",
+      "grade": "레어",
+      "repo_file": "u21/turnaround-original.png",
+      "sha256": "8790554ce77ddef24e5bdfea2b356b1524cf0baab02737f5eace06e8e75221c7",
+      "git_blob_sha": "6f3de468d29aabafa79fe83604b9e155a0775e53",
+      "source_rect": [
+        0,
+        0,
+        890,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        151,
+        21,
+        655,
+        525
+      ],
+      "focus_rect_normalized_to_source": [
+        0.08511837655016911,
+        0.02367531003382187,
+        0.3692220969560316,
+        0.5918827508455468
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        18,
+        17,
+        873,
+        870
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u21.png",
+      "thumb256": "thumbs/256/u21.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u21/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "f3d8e7687eac27c126ca633912985e0afdea42e3367f7b505b074c64f7e535c6",
+        "256": "b3ac68eeb14e4f34faf0c9d98947e050a8e1df790f2e533705c962de7ae5b265"
+      }
+    },
+    {
+      "id": "u22",
+      "name": "뇌수",
+      "grade": "레어",
+      "repo_file": "u22/turnaround-original.png",
+      "sha256": "93a10bf8df8ad62911fdd38fc272303c7470b59637e8ef0f450ebc96f2580a37",
+      "git_blob_sha": "024c97ddee5dfa78762d229217753929d775bc5e",
+      "source_rect": [
+        0,
+        0,
+        939,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        48,
+        164,
+        511,
+        628
+      ],
+      "focus_rect_normalized_to_source": [
+        0.02705749718151071,
+        0.18489289740698986,
+        0.28804960541149943,
+        0.7080045095828635
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        64,
+        160,
+        863,
+        750
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u22.png",
+      "thumb256": "thumbs/256/u22.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u22/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "9c9b1d2e12fdef064b038dc545eda8a242cc763b3beae5403b00a25eb0d525ce",
+        "256": "1f752eb39beaebbdf545c0065e9f1d483bed676a2d482f4471179825b9a61e16"
+      }
+    },
+    {
+      "id": "u23",
+      "name": "가고일",
+      "grade": "레어",
+      "repo_file": "u23/turnaround-original.png",
+      "sha256": "e7ebfc60ccf9277bdd6085d17b7f61cc9157e7c71f465b709ddebc37743bd84a",
+      "git_blob_sha": "02cc50652eed47da0cc414a15d0e56f26211892e",
+      "source_rect": [
+        0,
+        0,
+        933,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        190,
+        11,
+        721,
+        542
+      ],
+      "focus_rect_normalized_to_source": [
+        0.10710259301014656,
+        0.012401352874859075,
+        0.4064261555806088,
+        0.6110484780157835
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        46,
+        18,
+        917,
+        851
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u23.png",
+      "thumb256": "thumbs/256/u23.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u23/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "148deb6a085124c4ebada5bcd5b4a977800cf5fa02c7eef51174b89a52ab4ed9",
+        "256": "b5836a9a1a93e8d618bda4167b763aa07ba643e357290fa509d6d9f57a0d717e"
+      }
+    },
+    {
+      "id": "u24",
+      "name": "불도마뱀",
+      "grade": "레어",
+      "repo_file": "u24/turnaround-original.png",
+      "sha256": "ee9e50fff31c320ccde502864e9f3188ced7494ef80788073131331104517cb4",
+      "git_blob_sha": "ce7d05c54725c268d152bc4f5355980b2337be66",
+      "source_rect": [
+        0,
+        0,
+        901,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        99,
+        0,
+        621,
+        522
+      ],
+      "focus_rect_normalized_to_source": [
+        0.05580608793686584,
+        0.0,
+        0.3500563697857948,
+        0.588500563697858
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        55,
+        60,
+        858,
+        852
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u24.png",
+      "thumb256": "thumbs/256/u24.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u24/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "c95526f827357a5d257dd317c0f3a4b4ba01771f2bc73eec40aa56850466f96e",
+        "256": "a437ee3b647423efcb5a018a4eeac86ebf1dccee6dfb017cefc335689b9eb996"
+      }
+    },
+    {
+      "id": "u25",
+      "name": "룬장인",
+      "grade": "에픽",
+      "repo_file": "u25/turnaround-original.png",
+      "sha256": "2db739e2927477a7cf98644299097518876da31127c7802d2f9dea5f62321c48",
+      "git_blob_sha": "fbbe51f450d330134831cae50363aded4e2484aa",
+      "source_rect": [
+        0,
+        0,
+        893,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        144,
+        39,
+        673,
+        567
+      ],
+      "focus_rect_normalized_to_source": [
+        0.08117249154453213,
+        0.043968432919954906,
+        0.37936865839909806,
+        0.6392333709131905
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        45,
+        35,
+        871,
+        872
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u25.png",
+      "thumb256": "thumbs/256/u25.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u25/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "c52f5e72fe8feb5c77ff3cfe01ec83dd1d038bfe1a58cc70255006013c46929c",
+        "256": "ee1b83af0ac6a40097386a7d643e3718727b933397633b454157a80720e5b200"
+      }
+    },
+    {
+      "id": "u26",
+      "name": "드라이어드",
+      "grade": "에픽",
+      "repo_file": "u26/turnaround-original.png",
+      "sha256": "4de07afbb1a01bcba32f649651005dcd94c9820f5267758166dfb43b2802defa",
+      "git_blob_sha": "3c0fb02ec58b7a675cd76d185c47b4fc95a39b8a",
+      "source_rect": [
+        0,
+        0,
+        926,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        151,
+        2,
+        679,
+        530
+      ],
+      "focus_rect_normalized_to_source": [
+        0.08511837655016911,
+        0.002254791431792559,
+        0.3827508455467869,
+        0.5975197294250282
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        19,
+        19,
+        899,
+        870
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u26.png",
+      "thumb256": "thumbs/256/u26.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u26/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "9292724679954fcb64dda4793afa818a0390263f7d8dc713755e6445d59edf86",
+        "256": "b5bde41f9d58fced57267c9685cdc580557030f7510dfee49d3b18a8722de865"
+      }
+    },
+    {
+      "id": "u27",
+      "name": "미노타우로스",
+      "grade": "에픽",
+      "repo_file": "u27/turnaround-original.png",
+      "sha256": "de152bbb607dff3ff823477ad5a5112e75ab1bd067112f0d33668d07da5a547f",
+      "git_blob_sha": "deb1114b712638f05f273e97a972f683a1e7cd6e",
+      "source_rect": [
+        0,
+        0,
+        887,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        89,
+        0,
+        783,
+        694
+      ],
+      "focus_rect_normalized_to_source": [
+        0.050169109357384445,
+        0.0,
+        0.4413754227733935,
+        0.7824126268320181
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        11,
+        32,
+        878,
+        856
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u27.png",
+      "thumb256": "thumbs/256/u27.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u27/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "a6656fb304beededc621785b60fbcb97d8d66175dd81b16d651d91989e8dff0e",
+        "256": "b2460834170fc9d829394ac01db5cb9f2bdf263e6397c7ad6521f3c939c89b0d"
+      }
+    },
+    {
+      "id": "u28",
+      "name": "인어기사",
+      "grade": "에픽",
+      "repo_file": "u28/turnaround-original.png",
+      "sha256": "61732bac09f9517169a9e0336a11f70c557b25539d5ff38e1d031101dd96eef9",
+      "git_blob_sha": "7ad37440f2931a4964ede56fce1d2922482a44e5",
+      "source_rect": [
+        0,
+        0,
+        884,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        250,
+        27,
+        718,
+        495
+      ],
+      "focus_rect_normalized_to_source": [
+        0.14092446448703494,
+        0.030439684329199548,
+        0.4047350620067644,
+        0.5580608793686584
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        33,
+        13,
+        868,
+        869
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u28.png",
+      "thumb256": "thumbs/256/u28.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u28/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "60146739fa4fb48c1ab519d7c52690f62b7e077e258d3289cfd53e674677fc32",
+        "256": "fa722c561f22a91812c74c2727b699ee74a34b197d396c319b5b66fc390ac324"
+      }
+    },
+    {
+      "id": "u29",
+      "name": "서리마녀",
+      "grade": "에픽",
+      "repo_file": "u29/turnaround-original.png",
+      "sha256": "22e2e755f7f9db1462997e04f832e654c4c4c7b16c1a4a77bcf33fc454bd2920",
+      "git_blob_sha": "aed91805b94c5d32e90986b2b6dd0bdc48f9f611",
+      "source_rect": [
+        0,
+        0,
+        884,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        62,
+        0,
+        636,
+        574
+      ],
+      "focus_rect_normalized_to_source": [
+        0.03494926719278467,
+        0.0,
+        0.35851183765501693,
+        0.6471251409244645
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        39,
+        8,
+        814,
+        884
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u29.png",
+      "thumb256": "thumbs/256/u29.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u29/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "326c9ed9835d8243e456e16e206f0070d08f845151b2631e01c85f57fea51275",
+        "256": "a1cc57a6a41f58963eedd61c6e62e65793004eb6325fd9ffe9ff1559caca5e61"
+      }
+    },
+    {
+      "id": "u30",
+      "name": "그리핀",
+      "grade": "에픽",
+      "repo_file": "u30/turnaround-original.png",
+      "sha256": "0aa6fd5d793f0ab5bd2afb7f8d1fc7bd32df5ad8a47c68592801c20fd1a8b238",
+      "git_blob_sha": "5999404bb82c747fba046b3f3e4c4d3afda64fb3",
+      "source_rect": [
+        0,
+        0,
+        926,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        73,
+        0,
+        558,
+        486
+      ],
+      "focus_rect_normalized_to_source": [
+        0.04114994363021421,
+        0.0,
+        0.314543404735062,
+        0.5479143179255919
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        33,
+        19,
+        916,
+        853
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u30.png",
+      "thumb256": "thumbs/256/u30.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u30/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "2bd2b3f388b3c2e21ddd0ddcdb46268049ddc070cd851049626aee75789cd554",
+        "256": "04ab451bf0c03af48e3eb53a69a8c9182cd101ef4a720c14bb72138f85aed0ad"
+      }
+    },
+    {
+      "id": "u31",
+      "name": "듀라한",
+      "grade": "에픽",
+      "repo_file": "u31/turnaround-v6-direction.png",
+      "sha256": "4543932cf05dbbebbc1597fb1e279a77b20e9017d70f1562d0d363d006625c99",
+      "git_blob_sha": "f36a527cb2729c06fda85e4070b3ec4fccf38c53",
+      "source_rect": [
+        0,
+        0,
+        906,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        378,
+        272,
+        750,
+        644
+      ],
+      "focus_rect_normalized_to_source": [
+        0.21307779030439683,
+        0.30665163472378804,
+        0.4227733934611049,
+        0.7260428410372041
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        83,
+        89,
+        858,
+        813
+      ],
+      "focus_note": "손에 든 머리와 손을 중심으로; 목의 연기는 얼굴로 취급하지 않음",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u31.png",
+      "thumb256": "thumbs/256/u31.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u31/turnaround-v6-direction.png",
+      "thumbnail_sha256": {
+        "128": "37bbd6e79882cdce75d8e3957d8c1622f590201616861e547ed11932c37b6ea8",
+        "256": "b5ef02deea0e41df841b7ddba21be7d7fe84876862251ab043649dd608f2e08b"
+      }
+    },
+    {
+      "id": "u32",
+      "name": "화룡",
+      "grade": "에픽",
+      "repo_file": "u32/turnaround-original.png",
+      "sha256": "61b8aa73c42233508685b5bc351b8312ddb1add1ef5c99186c7824837ef7dff0",
+      "git_blob_sha": "24a19629bad35bad27a61eb6bc3b025d2d390f52",
+      "source_rect": [
+        0,
+        0,
+        946,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        123,
+        0,
+        630,
+        507
+      ],
+      "focus_rect_normalized_to_source": [
+        0.0693348365276212,
+        0.0,
+        0.3551296505073281,
+        0.5715896279594137
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        53,
+        19,
+        927,
+        882
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u32.png",
+      "thumb256": "thumbs/256/u32.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u32/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "29e7a494583bbf66056e1ce7d28c677ce732d6ad1e6e6b0aacd703cfaf96fd65",
+        "256": "11bd25da6fe292991dc54498220dbfa041c9ec93d0350e284bd19113ccf7dc72"
+      }
+    },
+    {
+      "id": "u33",
+      "name": "거장",
+      "grade": "전설",
+      "repo_file": "u33/turnaround-original.png",
+      "sha256": "2de976efd10f7009cfda28d3683fe27226a0e9668972a78b27a55f5f821e7cd2",
+      "git_blob_sha": "4b00dd7abf2f3759377dc585b129ce201bf1db23",
+      "source_rect": [
+        0,
+        0,
+        910,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        228,
+        50,
+        667,
+        489
+      ],
+      "focus_rect_normalized_to_source": [
+        0.12852311161217586,
+        0.05636978579481398,
+        0.37598647125140927,
+        0.5512965050732808
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        17,
+        12,
+        895,
+        871
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u33.png",
+      "thumb256": "thumbs/256/u33.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u33/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "1acb6946f7305237824411adda68880f4166f9ce33ee5c1088460b3b62707772",
+        "256": "e6f1b7ae42bf2725c06de33b9e9863625dc180aa8f9afedd2d87da6586549b44"
+      }
+    },
+    {
+      "id": "u34",
+      "name": "가시여왕",
+      "grade": "전설",
+      "repo_file": "u34/turnaround-original.png",
+      "sha256": "09d627826f438e24ad60323377ac4a928091282ed97d1658412a0eea744f065d",
+      "git_blob_sha": "8ff4533135f9bcd5387a06e01671a1b57c9c0da4",
+      "source_rect": [
+        0,
+        0,
+        947,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        151,
+        19,
+        648,
+        516
+      ],
+      "focus_rect_normalized_to_source": [
+        0.08511837655016911,
+        0.02142051860202931,
+        0.3652762119503946,
+        0.5817361894024803
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        11,
+        38,
+        915,
+        858
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u34.png",
+      "thumb256": "thumbs/256/u34.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u34/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "2afb5e8c1814ae9cdcab94584c8bb71959e6bab45f7499779f4920b84e1a5f7b",
+        "256": "1f116a1c89901ae05f8428442de505d8cbe04332ba94b41aea01c9e392383f86"
+      }
+    },
+    {
+      "id": "u35",
+      "name": "네레이드",
+      "grade": "전설",
+      "repo_file": "u35/turnaround-original.png",
+      "sha256": "564ae46d305a037bc45c10bf0e4f1c6da407b317ff29a7188a603609bf042d4f",
+      "git_blob_sha": "2fb5213a866338703ec37491305369c8c244cad4",
+      "source_rect": [
+        0,
+        0,
+        968,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        181,
+        0,
+        620,
+        438
+      ],
+      "focus_rect_normalized_to_source": [
+        0.1020293122886133,
+        0.0,
+        0.34949267192784667,
+        0.49379932356257045
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        17,
+        18,
+        930,
+        873
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u35.png",
+      "thumb256": "thumbs/256/u35.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u35/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "1c96c5c8e5fd9a39b90bff70ce871c9f74d79c3afdfc063024bdb965df159d3b",
+        "256": "0a31c3706a407918bc6dccba8642f63c9408d7f2e8dd5db88da1675ece0906d4"
+      }
+    },
+    {
+      "id": "u36",
+      "name": "설랑",
+      "grade": "전설",
+      "repo_file": "u36/turnaround-original.png",
+      "sha256": "43e826c08045faa21a8f77bc28a60618e983ce641702ad669e9520e445dc1c71",
+      "git_blob_sha": "8e9aceb52625a3a081e8c6a69f473d5541f261d1",
+      "source_rect": [
+        0,
+        0,
+        965,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        13,
+        58,
+        570,
+        614
+      ],
+      "focus_rect_normalized_to_source": [
+        0.007328072153325817,
+        0.06538895152198422,
+        0.32130777903043967,
+        0.6922209695603156
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        22,
+        54,
+        950,
+        860
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u36.png",
+      "thumb256": "thumbs/256/u36.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u36/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "4ae80d4d133a7f8367124604b4d861a34c75553a3b02cc17f843c55bfb8aa2b7",
+        "256": "591888b194c8cac890e9d44c59386fe9221d6730fda04e6947c16fad126596d9"
+      }
+    },
+    {
+      "id": "u37",
+      "name": "뇌호",
+      "grade": "전설",
+      "repo_file": "u37/turnaround-original.png",
+      "sha256": "26d7329364b304f908978ae0215747886d1c0eec506a95e75446533568d3b215",
+      "git_blob_sha": "fdfd3a25d88085cc5c7df88a57c1d9d059c7117d",
+      "source_rect": [
+        0,
+        0,
+        962,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        0,
+        7,
+        566,
+        573
+      ],
+      "focus_rect_normalized_to_source": [
+        0.0,
+        0.007891770011273957,
+        0.31905298759864714,
+        0.6459977452085682
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        9,
+        56,
+        952,
+        837
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u37.png",
+      "thumb256": "thumbs/256/u37.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u37/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "fb226684d22daf2020c1bc6a09d0a12281d0b048654f5f230303db6e9cf36528",
+        "256": "ce3a37ed5bb310b3e8f3eaba8af8ab017a1b89d725ed6cd222c233e8160e017f"
+      }
+    },
+    {
+      "id": "u38",
+      "name": "잿불새",
+      "grade": "전설",
+      "repo_file": "u38/turnaround-original.png",
+      "sha256": "0dbce386d74013ad234690b6d333459340a7a88c479ab82a063abd28e44dd79f",
+      "git_blob_sha": "9bc36519f173d7e91bf342ddd5ac2bb394c54c6b",
+      "source_rect": [
+        0,
+        0,
+        936,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        164,
+        0,
+        648,
+        484
+      ],
+      "focus_rect_normalized_to_source": [
+        0.09244644870349493,
+        0.0,
+        0.3652762119503946,
+        0.5456595264937993
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        30,
+        18,
+        926,
+        865
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u38.png",
+      "thumb256": "thumbs/256/u38.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u38/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "e0277068532225b10f2f93793d9320afb680d3812c8e587be27faa7579a22005",
+        "256": "c5391bbcd7d020d7002ef39e261ca2144b380fab147649639c2262ee7ccb99ca"
+      }
+    },
+    {
+      "id": "u39",
+      "name": "무명",
+      "grade": "히든",
+      "repo_file": "u39/turnaround-original.png",
+      "sha256": "47e2c902e03f753142a016b560cb537669f23a09d439640b8369c75d32c20c0e",
+      "git_blob_sha": "ef5b52a79e1c8c8a4f891878263a21e524a0ac87",
+      "source_rect": [
+        0,
+        0,
+        909,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        98,
+        0,
+        690,
+        592
+      ],
+      "focus_rect_normalized_to_source": [
+        0.0552423900789177,
+        0.0,
+        0.38895152198421645,
+        0.6674182638105975
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        32,
+        37,
+        854,
+        859
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u39.png",
+      "thumb256": "thumbs/256/u39.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u39/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "100d6e626406d06906357ed7bf035a0f1ee3e98217f8988da0d5b3fe42c56d6e",
+        "256": "1c3716ab6a7b43fa6e14dea8cdff47ff6b653074bca17da765540b49088be87f"
+      }
+    },
+    {
+      "id": "u40",
+      "name": "몽마",
+      "grade": "히든",
+      "repo_file": "u40/turnaround-original.png",
+      "sha256": "9de193198c42a8cae59d0fc38137a9693174ff67d250925a9fc3ee27b3eb307d",
+      "git_blob_sha": "aa0b7b53e191a677b15258bede8fb16be19ca542",
+      "source_rect": [
+        0,
+        0,
+        934,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        97,
+        0,
+        652,
+        556
+      ],
+      "focus_rect_normalized_to_source": [
+        0.05467869222096956,
+        0.0,
+        0.36753100338218714,
+        0.6268320180383314
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        1,
+        17,
+        912,
+        817
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u40.png",
+      "thumb256": "thumbs/256/u40.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u40/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "41412bafb5e1912100086fc4f2e338e94eae262ea948f3fcebe5cf4776331b2e",
+        "256": "ff4b63c07167e568c91d2b5867e1d2751d03987654426b7b3b0d029f5c2fa48e"
+      }
+    },
+    {
+      "id": "u41",
+      "name": "수경",
+      "grade": "히든",
+      "repo_file": "u41/turnaround-original.png",
+      "sha256": "8c15e5bd011c02dac7a5059755a41a9fd819c45aab68ba464daf3ce6767e9e70",
+      "git_blob_sha": "23cc4ac9ff3a482c86ac64f40b412e4d14b650b1",
+      "source_rect": [
+        0,
+        0,
+        901,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        258,
+        33,
+        652,
+        427
+      ],
+      "focus_rect_normalized_to_source": [
+        0.14543404735062007,
+        0.03720405862457723,
+        0.36753100338218714,
+        0.4813979706877114
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        188,
+        15,
+        856,
+        876
+      ],
+      "focus_note": "얼굴 대신 거울 머리와 물결 표식",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u41.png",
+      "thumb256": "thumbs/256/u41.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u41/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "20d8c9902209f0afc0bcd43bd0a6b7e323dab98783f0ca5498b61a2e89cf52ab",
+        "256": "6ed467e4794219e6416a0a455a783cf0a839b23ae03f5d8b6e3d581f08a4ca28"
+      }
+    },
+    {
+      "id": "u42",
+      "name": "흑등",
+      "grade": "히든",
+      "repo_file": "u42/turnaround-original.png",
+      "sha256": "039857807c0fa0685f4ce208eb5b9c83e4acef100f2cc0f8e994e9511b1d6495",
+      "git_blob_sha": "2d4be5d4c44b22eeebb1aaefa94cae0c0fe3b20b",
+      "source_rect": [
+        0,
+        0,
+        951,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        157,
+        87,
+        700,
+        630
+      ],
+      "focus_rect_normalized_to_source": [
+        0.08850056369785794,
+        0.09808342728297632,
+        0.3945885005636979,
+        0.7102593010146562
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        55,
+        95,
+        944,
+        807
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u42.png",
+      "thumb256": "thumbs/256/u42.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u42/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "d1445141cb880eb27b1ef9dcf4fd82a91967bb2000a185d8984aa677c97e2216",
+        "256": "8c1ed61bda3d5a875d57469dfbc36dbc32901381e98a0e344446e301c45983c3"
+      }
+    },
+    {
+      "id": "u43",
+      "name": "금각",
+      "grade": "히든",
+      "repo_file": "u43/turnaround-original.png",
+      "sha256": "abc03a1f4a20b84571ee910a558dd403542b0dfa46576e0907ebfafdb67a556f",
+      "git_blob_sha": "cb6f176bba56e4cfe8e6094a7f12514a850f3f83",
+      "source_rect": [
+        0,
+        0,
+        914,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        132,
+        0,
+        764,
+        631
+      ],
+      "focus_rect_normalized_to_source": [
+        0.07440811724915446,
+        0.0,
+        0.4306651634723788,
+        0.7113866967305524
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        85,
+        75,
+        874,
+        837
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u43.png",
+      "thumb256": "thumbs/256/u43.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u43/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "fa97987d594e700a3b7a5e05e9367c9df032623639607cc368efa3046636d9db",
+        "256": "98d225760386f3929d9ad1d2d674b8c2a5ce462bc62bcbdf23f31920534163bf"
+      }
+    },
+    {
+      "id": "u44",
+      "name": "꽃무덤",
+      "grade": "히든",
+      "repo_file": "u44/turnaround-original.png",
+      "sha256": "c2487ac40e54217ab29f6011822e73e2b45b0bc1949f5540d0003c64099a1fe7",
+      "git_blob_sha": "37adb31fb220e618d7516ec04724abc687ffd1af",
+      "source_rect": [
+        0,
+        0,
+        940,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        110,
+        0,
+        836,
+        726
+      ],
+      "focus_rect_normalized_to_source": [
+        0.06200676437429538,
+        0.0,
+        0.47125140924464487,
+        0.818489289740699
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        63,
+        50,
+        917,
+        839
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u44.png",
+      "thumb256": "thumbs/256/u44.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u44/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "7f8c20568cb075672693d84cdee5aa6d39b90d15495df358a6595ef8f36a67ad",
+        "256": "c944a53b36af8f78e5cb39975254f58090dc2a9a7849fc967900a41addab716c"
+      }
+    },
+    {
+      "id": "u45",
+      "name": "타이탄",
+      "grade": "제한",
+      "repo_file": "u45/turnaround-original.png",
+      "sha256": "2894c3184b15535e1eeca63e7beb64647fea03e5a933e9d0e2958bba20ead1b1",
+      "git_blob_sha": "78fc79a9b54215018b9e48158bcaf62144a454f0",
+      "source_rect": [
+        0,
+        0,
+        923,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        131,
+        20,
+        667,
+        555
+      ],
+      "focus_rect_normalized_to_source": [
+        0.07384441939120631,
+        0.02254791431792559,
+        0.37598647125140927,
+        0.6257046223224352
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        9,
+        29,
+        916,
+        864
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u45.png",
+      "thumb256": "thumbs/256/u45.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u45/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "7649487cd9352a7bed7310a3b236d0b60edcdfb3bb593ac1a754cb1a90ab29fd",
+        "256": "b87eb0b5dd2dead02a707451403848bf09f040362c3d5302dcc75923549feaf2"
+      }
+    },
+    {
+      "id": "u46",
+      "name": "베히모스",
+      "grade": "제한",
+      "repo_file": "u46/turnaround-original.png",
+      "sha256": "4701faad53901796fa1cb0b98456e014f2d095d2cd9794af3d5637888e7f2f3d",
+      "git_blob_sha": "6b752dda9d8c6808d403c8c78f00ec295e0bcbeb",
+      "source_rect": [
+        0,
+        0,
+        912,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        58,
+        199,
+        558,
+        698
+      ],
+      "focus_rect_normalized_to_source": [
+        0.03269447576099211,
+        0.22435174746335965,
+        0.314543404735062,
+        0.7869222096956031
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        82,
+        93,
+        888,
+        804
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u46.png",
+      "thumb256": "thumbs/256/u46.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u46/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "34fdbf0b92b9e2f50c07bc3b2a3d51fe303b8aeca5335b09df73c0a9cda7f351",
+        "256": "62d9c7faadb515b4bb898a2e01f9e80437847fe190a966e038b06c2ddcbb4c90"
+      }
+    },
+    {
+      "id": "u47",
+      "name": "이프리트",
+      "grade": "제한",
+      "repo_file": "u47/turnaround-original.png",
+      "sha256": "3870c73fc74e860f46308e16d0c8b4c7b4d7444df4d03f754a04a69c28407201",
+      "git_blob_sha": "f5d2f9e97e40a3ceeb0312de9d1f3258cf9c558d",
+      "source_rect": [
+        0,
+        0,
+        926,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        152,
+        0,
+        694,
+        542
+      ],
+      "focus_rect_normalized_to_source": [
+        0.08568207440811725,
+        0.0,
+        0.39120631341600903,
+        0.6110484780157835
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        47,
+        39,
+        922,
+        858
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u47.png",
+      "thumb256": "thumbs/256/u47.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u47/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "6ed836bea7d62cd8cfe3fc3691d896de6d27cdc1f254a4ae1ad95e42485958c2",
+        "256": "dbdfe1093f07e48dd54d8a593c3242709093fe7f42ae6479df6fa0ac6c672439"
+      }
+    },
+    {
+      "id": "u48",
+      "name": "빙령",
+      "grade": "제한",
+      "repo_file": "u48/turnaround-original.png",
+      "sha256": "c791fa762fd562ec9227cb28668902ca84dfe6142e0e3831ae5a53387e48306e",
+      "git_blob_sha": "4903ac5a14f7308bf94cf6da55391e7b9e75299e",
+      "source_rect": [
+        0,
+        0,
+        939,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        214,
+        15,
+        686,
+        487
+      ],
+      "focus_rect_normalized_to_source": [
+        0.12063134160090191,
+        0.016910935738444193,
+        0.38669673055242393,
+        0.5490417136414881
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        62,
+        24,
+        905,
+        865
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u48.png",
+      "thumb256": "thumbs/256/u48.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u48/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "15f8c3da126e5e3e37fd79eff18d2a176fc64a7cbc1b4dcaaa4096ecd9e4f025",
+        "256": "d9cfb9d5197e913cf1a8255aa0714206862d81955c1d58f5a1ebd2c93eb7d8ce"
+      }
+    },
+    {
+      "id": "u49",
+      "name": "가루다",
+      "grade": "초월",
+      "repo_file": "u49/turnaround-original.png",
+      "sha256": "a7022cf5a71062105a41933dfc8c352efa79a86f2d52953e1b018ce4b7bcfb0a",
+      "git_blob_sha": "0ad9e2ab669771d3d7c6e2bd469b5ced38d54276",
+      "source_rect": [
+        0,
+        0,
+        894,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        253,
+        103,
+        552,
+        402
+      ],
+      "focus_rect_normalized_to_source": [
+        0.14261555806087936,
+        0.1161217587373168,
+        0.3111612175873732,
+        0.4532130777903044
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        27,
+        8,
+        881,
+        880
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u49.png",
+      "thumb256": "thumbs/256/u49.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u49/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "27206e3e65e3d441ac17d37a10cc40b03e6a48325edb8a3d8b18fd510e3e1585",
+        "256": "70b51fdc6f77caf9b13b91d67030440c5bf4d1cb6c0c5aaad54ff0b446eb8cba"
+      }
+    },
+    {
+      "id": "u50",
+      "name": "레비아탄",
+      "grade": "초월",
+      "repo_file": "u50/turnaround-original.png",
+      "sha256": "e22674195ddedd805a01a1342fce5d2005bb4fd36e4eb925515e16bbb99b4ee3",
+      "git_blob_sha": "cb4d7c48e9330404ae0d98335087f19e0ec369f5",
+      "source_rect": [
+        0,
+        0,
+        904,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        9,
+        90,
+        490,
+        572
+      ],
+      "focus_rect_normalized_to_source": [
+        0.005073280721533258,
+        0.10146561443066517,
+        0.2762119503945885,
+        0.644870349492672
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        13,
+        110,
+        888,
+        801
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u50.png",
+      "thumb256": "thumbs/256/u50.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u50/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "b4018917b6714a690789328cf28e62ce02c8051252673cb9f0d3c0cbcf1c4699",
+        "256": "ccb15663373e4fed0d8e2f13987bdc0deea9fcdddafb60d4bc73f78e388a45ce"
+      }
+    },
+    {
+      "id": "u51",
+      "name": "세계수",
+      "grade": "초월",
+      "repo_file": "u51/turnaround-original.png",
+      "sha256": "2ccd891168f47bdbfd34767cc5ba9ea94a9952ed4d89ad0e6b321747e56b3714",
+      "git_blob_sha": "ee64885e0d967861ba3eff1efaa06e0e13def6ff",
+      "source_rect": [
+        0,
+        0,
+        907,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        156,
+        0,
+        698,
+        542
+      ],
+      "focus_rect_normalized_to_source": [
+        0.08793686583990981,
+        0.0,
+        0.39346110484780156,
+        0.6110484780157835
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        16,
+        13,
+        891,
+        873
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u51.png",
+      "thumb256": "thumbs/256/u51.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u51/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "b222cb9b230d8a2da65a28c92f329237c115c77c8ae3c190c634c93296b1751b",
+        "256": "b39775781a6e9b8fdd091cf37bc061cee177036e9cceafe9f70e542d7e6f642e"
+      }
+    },
+    {
+      "id": "u52",
+      "name": "망령",
+      "grade": "초월",
+      "repo_file": "u52/turnaround-original.png",
+      "sha256": "49dde8146c2fd2bab50a1c110b0709da9a6a05d08df6af2254b9be64ee76470f",
+      "git_blob_sha": "16d4e32adf457f73514ccb6bfa1c8aaf359c5c46",
+      "source_rect": [
+        0,
+        0,
+        935,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        145,
+        0,
+        666,
+        521
+      ],
+      "focus_rect_normalized_to_source": [
+        0.08173618940248027,
+        0.0,
+        0.3754227733934611,
+        0.5873731679819617
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        19,
+        26,
+        918,
+        863
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u52.png",
+      "thumb256": "thumbs/256/u52.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u52/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "f6de69d0797f949f7028414338d83c051b001e431b97dae798314f270d27e824",
+        "256": "4a29c4c2300a1487c7cd92a3357e8069bed9530dafbe5bd946f0fc0cdc86c1b1"
+      }
+    },
+    {
+      "id": "u53",
+      "name": "피닉스",
+      "grade": "불멸",
+      "repo_file": "u53/turnaround-original.png",
+      "sha256": "7ff19eb42c52c322652e749f483b5089b9454156a1251248d5a5fe2582922f27",
+      "git_blob_sha": "9653b5a96b995f31eb057cbf476ac82000ff054d",
+      "source_rect": [
+        0,
+        0,
+        889,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        25,
+        0,
+        542,
+        517
+      ],
+      "focus_rect_normalized_to_source": [
+        0.014092446448703494,
+        0.0,
+        0.3055242390078918,
+        0.5828635851183765
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        25,
+        13,
+        859,
+        879
+      ],
+      "focus_note": "얼굴과 붉은 불꽃 날개 일부를 함께 보여 피닉스 특징 유지",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u53.png",
+      "thumb256": "thumbs/256/u53.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u53/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "0397db8fa60c1bb7f9297e286eeb9e45a87dcba0757e62513b58f6e858095a5b",
+        "256": "d173e22f369e6f566a4d44baffcc09a7392e1f6eab1bf60d0fe2c15ad4e91a0f"
+      }
+    },
+    {
+      "id": "u54",
+      "name": "등불정령",
+      "grade": "불멸",
+      "repo_file": "u54/turnaround-original.png",
+      "sha256": "b7d3d4e419104dfdb3ef1111407eb11c6271ee6f1c1f298475a6248d6e99d1f2",
+      "git_blob_sha": "b5d147ac90bed865cf464a4de6527966e7e3a2b9",
+      "source_rect": [
+        0,
+        0,
+        924,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        153,
+        56,
+        610,
+        512
+      ],
+      "focus_rect_normalized_to_source": [
+        0.08624577226606539,
+        0.06313416009019165,
+        0.3438556933483653,
+        0.5772266065388951
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        59,
+        40,
+        846,
+        853
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u54.png",
+      "thumb256": "thumbs/256/u54.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u54/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "6bdf5fb932a4baa4a1bf8e442079e4332daa03a8ffaef72229b61ca1b4b44873",
+        "256": "7fee82d462f33a937c554055d099c5a2e05beac3970bb0605b63998b2b9a6009"
+      }
+    },
+    {
+      "id": "u55",
+      "name": "우로보로스",
+      "grade": "불멸",
+      "repo_file": "u55/turnaround-original.png",
+      "sha256": "b269d9fae442395666421a8127b350e617e65613be0c36d88e175871e57b24a8",
+      "git_blob_sha": "3e670fff17de077727be9b3d51f146fc95f094aa",
+      "source_rect": [
+        0,
+        0,
+        880,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        178,
+        18,
+        627,
+        467
+      ],
+      "focus_rect_normalized_to_source": [
+        0.10033821871476889,
+        0.020293122886133032,
+        0.35343855693348364,
+        0.5264937993235626
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        33,
+        65,
+        836,
+        837
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u55.png",
+      "thumb256": "thumbs/256/u55.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u55/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "204bcc1a6c2d55aa38314c37756c8ee020828b933e998c76b919197d772c035d",
+        "256": "f4e6aa2a47249964448e26e5396887a65ac9d462dcadd96079f116af04be5293"
+      }
+    },
+    {
+      "id": "u56",
+      "name": "리치",
+      "grade": "불멸",
+      "repo_file": "u56/turnaround-original.png",
+      "sha256": "3771a975c9e126d84da73f5b6411cef36124ee0852315e11ded615c9a862a169",
+      "git_blob_sha": "684ac93314fc87b461682586dd126b9af3959cd6",
+      "source_rect": [
+        0,
+        0,
+        894,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        145,
+        32,
+        628,
+        514
+      ],
+      "focus_rect_normalized_to_source": [
+        0.08173618940248027,
+        0.036076662908680945,
+        0.35400225479143177,
+        0.5794813979706878
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        44,
+        67,
+        823,
+        830
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u56.png",
+      "thumb256": "thumbs/256/u56.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u56/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "efffb001007924b5b745c160b22278861ce6bc1d8e7e497d20fa8bcc0be54b8f",
+        "256": "16220e93e8f888e9727c8a8b92f3f1e1a4e97099171bf4f192e12d74bb0de768"
+      }
+    },
+    {
+      "id": "u57",
+      "name": "여명",
+      "grade": "영원",
+      "repo_file": "u57/turnaround-original.png",
+      "sha256": "18c073b6bc0d9d91e8658517a66164e870554fca31720563603800d9cb1696d6",
+      "git_blob_sha": "db8af87cd4056d1122c4b1fb29779ae884c16930",
+      "source_rect": [
+        0,
+        0,
+        926,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        240,
+        73,
+        648,
+        481
+      ],
+      "focus_rect_normalized_to_source": [
+        0.13528748590755355,
+        0.08229988726042842,
+        0.3652762119503946,
+        0.5422773393461104
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        60,
+        54,
+        860,
+        852
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u57.png",
+      "thumb256": "thumbs/256/u57.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u57/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "e125a7816b7ff51798342376bddb3941fdae97bf4a3593a310c7add0ea3913fb",
+        "256": "f109e8dcd039bb286c58f0e60d56908fcb0c99d6751df3709c6be6e3143475ae"
+      }
+    },
+    {
+      "id": "u58",
+      "name": "설왕",
+      "grade": "영원",
+      "repo_file": "u58/turnaround-original.png",
+      "sha256": "b514e9b4ad82c047e894ccf33248bb1a25d473e03373721084716bac88807ce3",
+      "git_blob_sha": "10dc4b1790616113c754a76674e7e17842540263",
+      "source_rect": [
+        0,
+        0,
+        874,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        74,
+        40,
+        590,
+        556
+      ],
+      "focus_rect_normalized_to_source": [
+        0.04171364148816235,
+        0.04509582863585118,
+        0.33258173618940245,
+        0.6268320180383314
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        45,
+        83,
+        864,
+        825
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u58.png",
+      "thumb256": "thumbs/256/u58.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u58/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "690d9f4c4a4b31bd6b62f5c5b9f0a788fcbc3469fda09197e391d1dedcf6c443",
+        "256": "a5dfb356220745929cbb417b2fab8a1b430d86afc988dcbb7e2ca0d7d8ac8f6b"
+      }
+    },
+    {
+      "id": "u59",
+      "name": "영야",
+      "grade": "영원",
+      "repo_file": "u59/turnaround-original.png",
+      "sha256": "767ff3207a4778a1681796965c65b532bc84f2a80d85a37783cf12ae698a4af3",
+      "git_blob_sha": "90d4b1313de1e2dcf9c7e5d1782439de69a0249e",
+      "source_rect": [
+        0,
+        0,
+        932,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        209,
+        8,
+        668,
+        467
+      ],
+      "focus_rect_normalized_to_source": [
+        0.11781285231116122,
+        0.009019165727170236,
+        0.3765501691093574,
+        0.5264937993235626
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        63,
+        22,
+        898,
+        852
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u59.png",
+      "thumb256": "thumbs/256/u59.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u59/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "b957325bd479a922ab5dadc2540da9bd95b70625afe5254c794b2fd14249cfd6",
+        "256": "2d6074025ba5b6816199de13d8496b42da32b916f95cba7c9404208e0c56c77a"
+      }
+    },
+    {
+      "id": "u60",
+      "name": "해룡",
+      "grade": "영원",
+      "repo_file": "u60/turnaround-original.png",
+      "sha256": "28649ce44b1641fc8687425c6125f39569da60d9028faf260c09ce9eef9c2111",
+      "git_blob_sha": "25ad2f9d798eab6bb4cc3537ae5d48be77538eef",
+      "source_rect": [
+        0,
+        0,
+        910,
+        887
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "verified_commit": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+      "focus_rect_ltrb_exclusive": [
+        33,
+        30,
+        489,
+        486
+      ],
+      "focus_rect_normalized_to_source": [
+        0.018602029312288614,
+        0.033821871476888386,
+        0.2756482525366404,
+        0.5479143179255919
+      ],
+      "silhouette_bbox_alpha_gt8": [
+        29,
+        50,
+        889,
+        849
+      ],
+      "focus_note": "얼굴과 머리 특징",
+      "focus_status": "manual_visual_reviewed_draft",
+      "thumb128": "thumbs/128/u60.png",
+      "thumb256": "thumbs/256/u60.png",
+      "source_file": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60/u60/turnaround-original.png",
+      "thumbnail_sha256": {
+        "128": "31026988a7db80d92a26ca7d58da40b916448428abeb422ab3ed30b582bd5a41",
+        "256": "a6cb46f905af8a6b15c06edc348aab15da123d2d0041256f025800b444d6b903"
+      }
+    }
+  ]
+}

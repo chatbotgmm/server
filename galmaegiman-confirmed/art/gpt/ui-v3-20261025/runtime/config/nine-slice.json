@@ -1,0 +1,171 @@
+{
+  "units": "sourceInsets are original PNG pixels; renderInsets/contentPadding/sampleSize are 1920x800 design pixels; do not treat as dp",
+  "order": "left,top,right,bottom",
+  "androidNinePatch": "android-ninepatch contains uncompiled .9.png sources with 1px marker border; use 9-slice JSON for exact v3 UI scaling",
+  "assets": {
+    "button-attack": {
+      "sourceInsets": [
+        72,
+        72,
+        72,
+        72
+      ],
+      "renderInsets": [
+        28,
+        28,
+        28,
+        28
+      ],
+      "contentPadding": [
+        22,
+        20,
+        22,
+        20
+      ],
+      "sampleSize": [
+        297,
+        158
+      ]
+    },
+    "button-item": {
+      "sourceInsets": [
+        72,
+        72,
+        72,
+        72
+      ],
+      "renderInsets": [
+        28,
+        28,
+        28,
+        28
+      ],
+      "contentPadding": [
+        22,
+        20,
+        22,
+        20
+      ],
+      "sampleSize": [
+        297,
+        158
+      ]
+    },
+    "button-switch": {
+      "sourceInsets": [
+        72,
+        72,
+        72,
+        72
+      ],
+      "renderInsets": [
+        28,
+        28,
+        28,
+        28
+      ],
+      "contentPadding": [
+        22,
+        20,
+        22,
+        20
+      ],
+      "sampleSize": [
+        297,
+        158
+      ]
+    },
+    "button-surrender": {
+      "sourceInsets": [
+        72,
+        72,
+        72,
+        72
+      ],
+      "renderInsets": [
+        28,
+        28,
+        28,
+        28
+      ],
+      "contentPadding": [
+        22,
+        20,
+        22,
+        20
+      ],
+      "sampleSize": [
+        297,
+        158
+      ]
+    },
+    "panel-hp": {
+      "sourceInsets": [
+        46,
+        46,
+        46,
+        46
+      ],
+      "renderInsets": [
+        29,
+        29,
+        29,
+        29
+      ],
+      "contentPadding": [
+        30,
+        19,
+        30,
+        24
+      ],
+      "sampleSize": [
+        545,
+        167
+      ],
+      "variants": {
+        "reserveCard": {
+          "renderInsets": [
+            21,
+            21,
+            21,
+            21
+          ],
+          "contentPadding": [
+            16,
+            12,
+            22,
+            18
+          ],
+          "sampleSize": [
+            297,
+            141
+          ]
+        }
+      }
+    },
+    "panel-command": {
+      "sourceInsets": [
+        75,
+        75,
+        75,
+        75
+      ],
+      "renderInsets": [
+        43,
+        43,
+        43,
+        43
+      ],
+      "contentPadding": [
+        44,
+        39,
+        49,
+        30
+      ],
+      "sampleSize": [
+        712,
+        770
+      ]
+    }
+  }
+}

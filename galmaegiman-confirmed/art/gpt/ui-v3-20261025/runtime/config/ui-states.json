@@ -1,0 +1,54 @@
+{
+  "textAndIcons": "always separate runtime layers; state PNGs have no letters/numbers",
+  "normal": {
+    "baseOpacity": 1
+  },
+  "pressed": {
+    "overlay": "generated/svg/state-pressed-scrim.svg"
+  },
+  "selected": {
+    "overlay": "generated/svg/selection-frame.svg",
+    "badge": "generated/svg/selection-badge.svg"
+  },
+  "disabled": {
+    "preferredBaseOpacity": 0.61,
+    "alternativeOverlay": "generated/svg/state-disabled-scrim.svg",
+    "doNotDoubleApply": true,
+    "reasonTextRequired": true
+  },
+  "locked": {
+    "overlay": "generated/svg/state-locked-scrim.svg",
+    "indicator": "generated/svg/lock-indicator.svg",
+    "reasonTextRequired": true
+  },
+  "gauge": {
+    "track": "generated/svg/gauge-track.svg",
+    "hp": "generated/svg/gauge-hp-fill.svg",
+    "mp": "generated/svg/gauge-mp-fill.svg",
+    "ratio": "clamp(current/max,0,1)",
+    "empty": "draw no fill at ratio 0",
+    "runtime": "Prefer native gradient rounded shape; clip to gauge bounds and do not scale corner radii with fill percentage.",
+    "sourceCapInsetsLTRB": [
+      9,
+      0,
+      9,
+      0
+    ],
+    "scaleRule": "Horizontal 3-slice preserves 9px rounded caps; for width<18 clamp caps to half width. Native rounded gradient preferred."
+  },
+  "palette": {
+    "ink": "#173443",
+    "cream": "#fff1cc",
+    "gold": "#efd296",
+    "navy": "#193047"
+  },
+  "font": {
+    "family": "NotoSansKR",
+    "useExistingAppFont": true,
+    "fullArchiveLibraryId": "libfile_2b40b38fe18c8191aa42928b58a74d53",
+    "regularSha256": "a516a09bb7351dc6254e0920b2ab6d21131a8f10213d45e5cf990af3b777695b",
+    "boldSha256": "8440245279bc3819589f99dc8ddee6372d3481816d2ccdb052f2f1d1eb26b86c",
+    "license": "licenses/OFL-NotoSansKR.txt"
+  },
+  "interaction": "Assets do not implement hit testing, hold-to-describe, targeting or turn submission; those remain app responsibilities."
+}

@@ -1,0 +1,179 @@
+{
+  "verifiedCount": 6,
+  "totalRosterCount": 60,
+  "autoAssignedUnverifiedFocus": false,
+  "portraits": [
+    {
+      "id": "u01",
+      "name": "갈매미맨",
+      "rect": [
+        245,
+        230,
+        600,
+        600
+      ],
+      "source": "optimized/characters/u01-front.webp",
+      "optimized": "optimized/characters/u01-front.webp",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "rectUnits": "source pixels [left,top,width,height]",
+      "normalizedRect": [
+        0.1953748,
+        0.18341308,
+        0.4784689,
+        0.4784689
+      ],
+      "clip": "circle",
+      "allowRegeneration": false,
+      "reviewStatus": "Root visual QA completed; not represented as separate individual user approval.",
+      "archiveOriginalSource": "original/characters/u01-front.png"
+    },
+    {
+      "id": "u06",
+      "name": "물방울",
+      "rect": [
+        245,
+        180,
+        580,
+        580
+      ],
+      "source": "optimized/characters/u06-front.webp",
+      "optimized": "optimized/characters/u06-front.webp",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "rectUnits": "source pixels [left,top,width,height]",
+      "normalizedRect": [
+        0.1953748,
+        0.14354067,
+        0.46251994,
+        0.46251994
+      ],
+      "clip": "circle",
+      "allowRegeneration": false,
+      "reviewStatus": "Root visual QA completed; not represented as separate individual user approval.",
+      "archiveOriginalSource": "original/characters/u06-front.png"
+    },
+    {
+      "id": "u07",
+      "name": "불씨",
+      "rect": [
+        265,
+        290,
+        620,
+        620
+      ],
+      "source": "optimized/characters/u07-front.webp",
+      "optimized": "optimized/characters/u07-front.webp",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "rectUnits": "source pixels [left,top,width,height]",
+      "normalizedRect": [
+        0.21132376,
+        0.23125997,
+        0.49441786,
+        0.49441786
+      ],
+      "clip": "circle",
+      "allowRegeneration": false,
+      "reviewStatus": "Root visual QA completed; not represented as separate individual user approval.",
+      "archiveOriginalSource": "original/characters/u07-front.png"
+    },
+    {
+      "id": "u02",
+      "name": "미니",
+      "rect": [
+        220,
+        100,
+        720,
+        720
+      ],
+      "source": "optimized/characters/u02-front.webp",
+      "optimized": "optimized/characters/u02-front.webp",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "rectUnits": "source pixels [left,top,width,height]",
+      "normalizedRect": [
+        0.1754386,
+        0.07974482,
+        0.57416268,
+        0.57416268
+      ],
+      "clip": "circle",
+      "allowRegeneration": false,
+      "reviewStatus": "Root visual QA completed; not represented as separate individual user approval.",
+      "archiveOriginalSource": "original/characters/u02-front.png"
+    },
+    {
+      "id": "u04",
+      "name": "꽃",
+      "rect": [
+        180,
+        0,
+        870,
+        870
+      ],
+      "source": "optimized/characters/u04-front.webp",
+      "optimized": "optimized/characters/u04-front.webp",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "rectUnits": "source pixels [left,top,width,height]",
+      "normalizedRect": [
+        0.14354067,
+        0,
+        0.6937799,
+        0.6937799
+      ],
+      "clip": "circle",
+      "allowRegeneration": false,
+      "reviewStatus": "Root visual QA completed; not represented as separate individual user approval.",
+      "archiveOriginalSource": "original/characters/u04-front.png"
+    },
+    {
+      "id": "u05",
+      "name": "황금",
+      "rect": [
+        260,
+        280,
+        540,
+        540
+      ],
+      "source": "optimized/characters/u05-front.webp",
+      "optimized": "optimized/characters/u05-front.webp",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "rectUnits": "source pixels [left,top,width,height]",
+      "normalizedRect": [
+        0.20733652,
+        0.22328549,
+        0.43062201,
+        0.43062201
+      ],
+      "clip": "circle",
+      "allowRegeneration": false,
+      "reviewStatus": "Root visual QA completed; not represented as separate individual user approval.",
+      "archiveOriginalSource": "original/characters/u05-front.png"
+    }
+  ],
+  "unverifiedPolicy": "Do not use a registration-card thumbnail or center crop as a verified face. Other roster IDs need a confirmed front art source and manual focus review.",
+  "additionalRemoteCandidate": {
+    "reportedBy": "parent task context",
+    "repository": "gpt-art",
+    "revision": "b4b19815e047b4a8189a084d44f78ae22530d7ed",
+    "path": "galmaegiman-confirmed/art/gpt/android-battle-v2/roster60",
+    "reportedContents": "paired sheets + views.json for 60",
+    "verifiedInThisPack": false,
+    "notIncludedReason": "Separate remote expansion; does not block verified six-character pack."
+  }
+}

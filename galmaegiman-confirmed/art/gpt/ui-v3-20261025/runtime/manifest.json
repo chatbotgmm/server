@@ -1,0 +1,594 @@
+{
+  "version": "1.0-runtime-min",
+  "fullArchiveLibraryId": "libfile_2b40b38fe18c8191aa42928b58a74d53",
+  "allArtUnmodifiedFromFullArchive": true,
+  "androidCompiled": false,
+  "records": [
+    {
+      "path": "USAGE-RUNTIME.ko.txt",
+      "bytes": 1996,
+      "sha256": "af0295b3b15352c756cb842e4f582ea6e4cebcfd80527b0e11593c45bae70430",
+      "kind": "runtime-configuration",
+      "fullArchiveEquivalent": false
+    },
+    {
+      "path": "android-ninepatch/button_attack.9.png",
+      "bytes": 433390,
+      "sha256": "43d366a7df028b5067af59689afee006247e9db619ef157dc50b3afa3b5deb17",
+      "kind": "android-ninepatch-source",
+      "fullArchiveEquivalent": true,
+      "width": 724,
+      "height": 256,
+      "hasAlpha": true
+    },
+    {
+      "path": "android-ninepatch/button_item.9.png",
+      "bytes": 442203,
+      "sha256": "ce4c2026b033050dd3fbe53abd143e0f8192631824f731412a0fb7d7f8085489",
+      "kind": "android-ninepatch-source",
+      "fullArchiveEquivalent": true,
+      "width": 723,
+      "height": 256,
+      "hasAlpha": true
+    },
+    {
+      "path": "android-ninepatch/button_surrender.9.png",
+      "bytes": 417250,
+      "sha256": "01543e29e58d4509d6ffabc94fdf2db9362c64214f7077c6dc68cc2d2d34bf59",
+      "kind": "android-ninepatch-source",
+      "fullArchiveEquivalent": true,
+      "width": 723,
+      "height": 252,
+      "hasAlpha": true
+    },
+    {
+      "path": "android-ninepatch/button_switch.9.png",
+      "bytes": 453404,
+      "sha256": "954899c922dc7b7446b4cd7b864a54d809adb8761a1e945b2bb802bacb4f70ee",
+      "kind": "android-ninepatch-source",
+      "fullArchiveEquivalent": true,
+      "width": 723,
+      "height": 252,
+      "hasAlpha": true
+    },
+    {
+      "path": "android-ninepatch/panel_command.9.png",
+      "bytes": 2084309,
+      "sha256": "ab4b959baa1c3a5d64c012be391bbe40d623ac8a136ef028b15904830387a5f5",
+      "kind": "android-ninepatch-source",
+      "fullArchiveEquivalent": true,
+      "width": 1012,
+      "height": 1385,
+      "hasAlpha": true
+    },
+    {
+      "path": "android-ninepatch/panel_hp.9.png",
+      "bytes": 422809,
+      "sha256": "f6677ca39f92d8e386c26b8e397be8d8a2e486316fe201d3f4bf78c3a7ba077e",
+      "kind": "android-ninepatch-source",
+      "fullArchiveEquivalent": true,
+      "width": 723,
+      "height": 250,
+      "hasAlpha": true
+    },
+    {
+      "path": "config/battle-layout-reference.json",
+      "bytes": 2205,
+      "sha256": "4599880a7352b5f8b1a9ed9941f4c33f41e0782c9c7895049fe7e9a1e54bdb9d",
+      "kind": "documentation-or-audit",
+      "fullArchiveEquivalent": true
+    },
+    {
+      "path": "config/nine-slice.json",
+      "bytes": 2640,
+      "sha256": "dae92ab74dc8e63e845f60442362c8cf2ea6acab770f55dc8b51b1f5ed26cf42",
+      "kind": "configuration",
+      "fullArchiveEquivalent": true
+    },
+    {
+      "path": "config/portrait-focus.json",
+      "bytes": 4950,
+      "sha256": "52231716cb322442ff7669289aeb17faaf108986e59f3facfec54dd03af3f4c0",
+      "kind": "configuration",
+      "fullArchiveEquivalent": false
+    },
+    {
+      "path": "config/runtime-asset-map.json",
+      "bytes": 4467,
+      "sha256": "6787a232b61b99ddfb113e9bab2c11a7375c44454c5a8316dad36e71868ab46c",
+      "kind": "runtime-configuration",
+      "fullArchiveEquivalent": false
+    },
+    {
+      "path": "config/ui-states.json",
+      "bytes": 1862,
+      "sha256": "4e0ad29c522ab3838514d88bf4a1b41551b47cf7e5d4700fc95b0a6e68243bb2",
+      "kind": "configuration",
+      "fullArchiveEquivalent": false
+    },
+    {
+      "path": "generated/png/gauge-hp-fill.png",
+      "bytes": 711,
+      "sha256": "1e87149293ada9c45abbf8e901c8b1e575fa8eb7f09abc312fe761b0494e9f1b",
+      "kind": "vector-raster-export",
+      "fullArchiveEquivalent": true,
+      "width": 600,
+      "height": 18,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/png/gauge-mp-fill.png",
+      "bytes": 752,
+      "sha256": "6d41123a663319e709305833296ab24377f5c01b96553c291b5834bd8fa83351",
+      "kind": "vector-raster-export",
+      "fullArchiveEquivalent": true,
+      "width": 600,
+      "height": 18,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/png/gauge-track.png",
+      "bytes": 1330,
+      "sha256": "ca57fa74dbd337a57e053866aa8a8867c8f011ef8a026a7832d01d00b17de6c3",
+      "kind": "vector-raster-export",
+      "fullArchiveEquivalent": true,
+      "width": 600,
+      "height": 24,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/png/lock-indicator.png",
+      "bytes": 990,
+      "sha256": "7d7d88940796d94446ef0910ac3bde622a4bbf0fe04699c1b80f85457b60efc3",
+      "kind": "vector-raster-export",
+      "fullArchiveEquivalent": true,
+      "width": 64,
+      "height": 64,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/png/portrait-ring.png",
+      "bytes": 2357,
+      "sha256": "602952361c7d1496f100adf90f8c069d3cd0bcf200d3e10c52ad21f5925d6471",
+      "kind": "vector-raster-export",
+      "fullArchiveEquivalent": true,
+      "width": 96,
+      "height": 96,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/png/portrait-selected-ring.png",
+      "bytes": 3696,
+      "sha256": "9269cd3dbc34e9f04a65c3be9d24b74400c89be55ca14e06f5f737e5a3391db1",
+      "kind": "vector-raster-export",
+      "fullArchiveEquivalent": true,
+      "width": 96,
+      "height": 96,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/png/selection-badge.png",
+      "bytes": 1570,
+      "sha256": "9f732b3fa2c5dfa8d7a87a9e50a50eaec1a381e0e8a70df3ce01b8f4b80f59b0",
+      "kind": "vector-raster-export",
+      "fullArchiveEquivalent": true,
+      "width": 48,
+      "height": 48,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/png/selection-frame.png",
+      "bytes": 1675,
+      "sha256": "865906eb697be34f10ee7b360402db1ad79d915792bcbe8952ea0577922e0a3b",
+      "kind": "vector-raster-export",
+      "fullArchiveEquivalent": true,
+      "width": 303,
+      "height": 147,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/png/shadow-contact.png",
+      "bytes": 4581,
+      "sha256": "e9be6fea3c13037be3629cfeb19e17086945a1c1cc42a0e4509d676ce9b2d8f1",
+      "kind": "vector-raster-export",
+      "fullArchiveEquivalent": true,
+      "width": 256,
+      "height": 64,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/png/state-disabled-scrim.png",
+      "bytes": 2915,
+      "sha256": "b835c4b7e57e7c659dc6e51870dbf93f776c676872cfeca922b4c2f086e7c6cf",
+      "kind": "vector-raster-export",
+      "fullArchiveEquivalent": true,
+      "width": 600,
+      "height": 160,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/png/state-locked-scrim.png",
+      "bytes": 2918,
+      "sha256": "bb9d10e9b617d21f7445f357a19a641d931d302efb1e57588260a7414de4b12f",
+      "kind": "vector-raster-export",
+      "fullArchiveEquivalent": true,
+      "width": 600,
+      "height": 160,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/png/state-pressed-scrim.png",
+      "bytes": 2855,
+      "sha256": "83d5291c99d76d7eed0b512d1a9a09639b15b71a7f8ac0a6516c655d88b577ce",
+      "kind": "vector-raster-export",
+      "fullArchiveEquivalent": true,
+      "width": 600,
+      "height": 160,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/png/target-ring.png",
+      "bytes": 5766,
+      "sha256": "8640ca99c59ae790e237842e6b98c05778e01d9cc7ce3a2db0b619cc570eed90",
+      "kind": "vector-raster-export",
+      "fullArchiveEquivalent": true,
+      "width": 256,
+      "height": 72,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/png/unavailable-indicator.png",
+      "bytes": 1320,
+      "sha256": "dedd185f03d8cca19757e7276947c244d18194d31df692285e42faadd79dea40",
+      "kind": "vector-raster-export",
+      "fullArchiveEquivalent": true,
+      "width": 48,
+      "height": 48,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/svg/gauge-hp-fill.svg",
+      "bytes": 318,
+      "sha256": "1a73b3e7664625966d35bc3d551576d0be5f9813005e627438c693ffc7698bde",
+      "kind": "native-vector",
+      "fullArchiveEquivalent": true,
+      "width": 600,
+      "height": 18,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/svg/gauge-mp-fill.svg",
+      "bytes": 318,
+      "sha256": "3fbdc49e99b1f77b50db2f1054e059e6b7f90f977755141b131acb8ff246cd6f",
+      "kind": "native-vector",
+      "fullArchiveEquivalent": true,
+      "width": 600,
+      "height": 18,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/svg/gauge-track.svg",
+      "bytes": 271,
+      "sha256": "eea6da4c10349381b68f1c514c4ef518b8921eeaa9f54e24ea253bb6b6b20075",
+      "kind": "native-vector",
+      "fullArchiveEquivalent": true,
+      "width": 600,
+      "height": 24,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/svg/lock-indicator.svg",
+      "bytes": 411,
+      "sha256": "249a07d1fd5b5e1611b531c56153275c743f1d99207f3cad03f86f42fc076cb3",
+      "kind": "native-vector",
+      "fullArchiveEquivalent": true,
+      "width": 64,
+      "height": 64,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/svg/portrait-ring.svg",
+      "bytes": 180,
+      "sha256": "80610a508b81046659557b9dc643a3147347bcd61c93075d730483937113ec1c",
+      "kind": "native-vector",
+      "fullArchiveEquivalent": true,
+      "width": 96,
+      "height": 96,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/svg/portrait-selected-ring.svg",
+      "bytes": 280,
+      "sha256": "18a90768c29e1fa589d6294dc63d94db4d584b707c79b6b52d040f3bd9b82e39",
+      "kind": "native-vector",
+      "fullArchiveEquivalent": true,
+      "width": 96,
+      "height": 96,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/svg/selection-badge.svg",
+      "bytes": 304,
+      "sha256": "b4f126d4e6d7a5dbd34438cc86f00601db442813d91744d4f0a5e45a46a02598",
+      "kind": "native-vector",
+      "fullArchiveEquivalent": true,
+      "width": 48,
+      "height": 48,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/svg/selection-frame.svg",
+      "bytes": 322,
+      "sha256": "c7e96b0ca9d42b4cf24a720d62af1342d3e409d0b9096ffa8d49db6df19ced37",
+      "kind": "native-vector",
+      "fullArchiveEquivalent": true,
+      "width": 303,
+      "height": 147,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/svg/shadow-contact.svg",
+      "bytes": 366,
+      "sha256": "a6a77eabc6fd9446e25ca7ab02a8eed6c8e56a00abb5cc87886df154aed98f7b",
+      "kind": "native-vector",
+      "fullArchiveEquivalent": true,
+      "width": 256,
+      "height": 64,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/svg/state-disabled-scrim.svg",
+      "bytes": 193,
+      "sha256": "401c280d1882a051cee3a12bdcaa30b88cb85cf03a0873363991486bc00961f2",
+      "kind": "native-vector",
+      "fullArchiveEquivalent": true,
+      "width": 600,
+      "height": 160,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/svg/state-locked-scrim.svg",
+      "bytes": 193,
+      "sha256": "e9ce1038d34a91e22a6159cc0dedbbbcd11d64edb51a2b8500d9faf0a9b9ada3",
+      "kind": "native-vector",
+      "fullArchiveEquivalent": true,
+      "width": 600,
+      "height": 160,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/svg/state-pressed-scrim.svg",
+      "bytes": 193,
+      "sha256": "56cd17d7d2d8d3ff3d48faea3e28ed79f739ac01998cfadfcdd20d8514b0bfbf",
+      "kind": "native-vector",
+      "fullArchiveEquivalent": true,
+      "width": 600,
+      "height": 160,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/svg/target-ring.svg",
+      "bytes": 306,
+      "sha256": "ae3e89d782502ef48f1c2f4cca373c82bd61a480a1569950ee32f225f6edf71f",
+      "kind": "native-vector",
+      "fullArchiveEquivalent": true,
+      "width": 256,
+      "height": 72,
+      "hasAlpha": true
+    },
+    {
+      "path": "generated/svg/unavailable-indicator.svg",
+      "bytes": 264,
+      "sha256": "45efa91b4f68c1b3cb03ce45a3afdf90c599d23f2be9dc6389fb2315948077c2",
+      "kind": "native-vector",
+      "fullArchiveEquivalent": true,
+      "width": 48,
+      "height": 48,
+      "hasAlpha": true
+    },
+    {
+      "path": "licenses/OFL-NotoSansKR.txt",
+      "bytes": 4388,
+      "sha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9",
+      "kind": "font-license",
+      "fullArchiveEquivalent": true
+    },
+    {
+      "path": "licenses/source-license-audit.json",
+      "bytes": 3092,
+      "sha256": "b2e601053c92a5fb2be3d10255524a26eac66e0c76cc8acce053d4ba02ef21d1",
+      "kind": "documentation-or-audit",
+      "fullArchiveEquivalent": true
+    },
+    {
+      "path": "optimized/characters/u01-front.webp",
+      "bytes": 1070040,
+      "sha256": "84c608b08174cc3a7a381a5b4bf7b29bbcf1c8749debae3d4b07aa5e5754de04",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 1254,
+      "height": 1254,
+      "hasAlpha": true
+    },
+    {
+      "path": "optimized/characters/u01-rear.webp",
+      "bytes": 915802,
+      "sha256": "fb6c8b59125d715d7c6a6b429794ded7956126ef4194852c02b15def9961ff64",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 1254,
+      "height": 1254,
+      "hasAlpha": true
+    },
+    {
+      "path": "optimized/characters/u02-front.webp",
+      "bytes": 840294,
+      "sha256": "04299a9e92b8eb422f238b36c203bfc412c620c278a2f5d33098a126c3094558",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 1254,
+      "height": 1254,
+      "hasAlpha": true
+    },
+    {
+      "path": "optimized/characters/u04-front.webp",
+      "bytes": 841924,
+      "sha256": "907e892d17c891d940528982f3010f247b0644e597477677f409def2cdbb9686",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 1254,
+      "height": 1254,
+      "hasAlpha": true
+    },
+    {
+      "path": "optimized/characters/u05-front.webp",
+      "bytes": 1126204,
+      "sha256": "29b144f23b79fb85f9300cb39376fd16d63b5db8a7b1d333c451a8944013cd43",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 1254,
+      "height": 1254,
+      "hasAlpha": true
+    },
+    {
+      "path": "optimized/characters/u06-front.webp",
+      "bytes": 787484,
+      "sha256": "9acc3865aeb50ff484fa54f7a0ae9e4e6707fe87e10378de35522e12939386ff",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 1254,
+      "height": 1254,
+      "hasAlpha": true
+    },
+    {
+      "path": "optimized/characters/u07-front.webp",
+      "bytes": 978458,
+      "sha256": "8f188cf66f9009a5d99aa2d827c2e42eb80a7602f07d0ec2b6f466669d5ae90d",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 1254,
+      "height": 1254,
+      "hasAlpha": true
+    },
+    {
+      "path": "optimized/ui/bg-harbor.webp",
+      "bytes": 2373798,
+      "sha256": "4d05c46e757ed5ec438d7cf8d29c2d9cb466598f318f42b69137b8b8f7fceca9",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 1672,
+      "height": 941,
+      "hasAlpha": false
+    },
+    {
+      "path": "optimized/ui/decor-corner-bl.webp",
+      "bytes": 139452,
+      "sha256": "f72d30721258016225df586db7f2946ff8e831e0224f9741f17f1a2846af0e67",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 537,
+      "height": 454,
+      "hasAlpha": true
+    },
+    {
+      "path": "optimized/ui/decor-corner-br.webp",
+      "bytes": 140342,
+      "sha256": "b00435f54aff2286f0b161c8be15ae2ca1df4738435873a873afb2ccf026413c",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 536,
+      "height": 454,
+      "hasAlpha": true
+    },
+    {
+      "path": "optimized/ui/decor-corner-tl.webp",
+      "bytes": 126278,
+      "sha256": "ddb1586df998f7336bac6ae02f4258d0d39e48a16a7d24745c4ff0275d34a35e",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 529,
+      "height": 447,
+      "hasAlpha": true
+    },
+    {
+      "path": "optimized/ui/decor-corner-tr.webp",
+      "bytes": 126542,
+      "sha256": "373965f09aa5add42d258fc183bc58cb648b19a7a5d17d294c450f92f956f733",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 529,
+      "height": 448,
+      "hasAlpha": true
+    },
+    {
+      "path": "optimized/ui/icon-attack.webp",
+      "bytes": 93948,
+      "sha256": "34953836eb71fa06c23f325b23f477f0750d9d5440867b351d832bb118c8ccbd",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 290,
+      "height": 266,
+      "hasAlpha": true
+    },
+    {
+      "path": "optimized/ui/icon-back.webp",
+      "bytes": 75866,
+      "sha256": "bc528675062ee7928bf4b9df1d30e1e5ca62f7e93ca15fa1e8f1eaf60af78d72",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 292,
+      "height": 260,
+      "hasAlpha": true
+    },
+    {
+      "path": "optimized/ui/icon-goldenstrike.webp",
+      "bytes": 174324,
+      "sha256": "1e109e51754a55cfe39eec4c127b9eb37eb81ba3f86182438a7af70894b8983b",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 332,
+      "height": 324,
+      "hasAlpha": true
+    },
+    {
+      "path": "optimized/ui/icon-item.webp",
+      "bytes": 94468,
+      "sha256": "b2d5eedb4b9d25500276d4c4db1f1d6e04a780e1e51df71d04d07c801e0c3d01",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 274,
+      "height": 271,
+      "hasAlpha": true
+    },
+    {
+      "path": "optimized/ui/icon-shield.webp",
+      "bytes": 162306,
+      "sha256": "cffa4bbbbd6c454db752214d3553bcaa35a423094c7ba90fb33c966b5b838fd4",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 332,
+      "height": 328,
+      "hasAlpha": true
+    },
+    {
+      "path": "optimized/ui/icon-surrender.webp",
+      "bytes": 76038,
+      "sha256": "164110da38e084718553bad811db697cb65b717a63651df6fd4f239cd056f2c1",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 278,
+      "height": 302,
+      "hasAlpha": true
+    },
+    {
+      "path": "optimized/ui/icon-switch.webp",
+      "bytes": 57840,
+      "sha256": "19423b0fb7345176ffffbaae1156679db21d9f236e4e8f8aba012aae9eb39c9c",
+      "kind": "optimized-lossless-webp",
+      "fullArchiveEquivalent": true,
+      "width": 266,
+      "height": 228,
+      "hasAlpha": true
+    }
+  ]
+}

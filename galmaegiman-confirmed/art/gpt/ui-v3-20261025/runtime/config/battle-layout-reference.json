@@ -1,0 +1,174 @@
+{
+  "designViewport": [
+    1920,
+    800
+  ],
+  "coordinateUnits": "design pixels, not dp",
+  "footerIsNotRuntime": true,
+  "background": {
+    "file": "optimized/ui/bg-harbor.webp",
+    "fit": "cover"
+  },
+  "ally": {
+    "file": "optimized/characters/u01-rear.webp",
+    "rect": [
+      224,
+      317,
+      420,
+      420
+    ]
+  },
+  "enemy": {
+    "file": "optimized/characters/u07-front.webp",
+    "rect": [
+      744,
+      241,
+      322,
+      322
+    ]
+  },
+  "hud": {
+    "enemy": [
+      45,
+      60,
+      545,
+      167
+    ],
+    "ally": [
+      633,
+      606,
+      520,
+      167
+    ]
+  },
+  "commandPanel": [
+    1190,
+    16,
+    712,
+    770
+  ],
+  "rootCommands": {
+    "columns": 2,
+    "rows": 3,
+    "origin": [
+      1237,
+      186
+    ],
+    "stride": [
+      316,
+      173
+    ],
+    "cell": [
+      297,
+      158
+    ]
+  },
+  "skillSlots": {
+    "columns": 2,
+    "rows": 3,
+    "origin": [
+      1237,
+      181
+    ],
+    "stride": [
+      316,
+      159
+    ],
+    "cell": [
+      297,
+      145
+    ]
+  },
+  "reserveCards": {
+    "count": 6,
+    "activeCount": 1,
+    "reserveCount": 5,
+    "origin": [
+      1237,
+      181
+    ],
+    "stride": [
+      316,
+      153
+    ],
+    "cell": [
+      297,
+      141
+    ]
+  },
+  "holdDescription": [
+    611,
+    24,
+    560,
+    229
+  ],
+  "shadowEllipses": [
+    {
+      "center": [
+        440,
+        716
+      ],
+      "radius": [
+        113,
+        27
+      ],
+      "opacity": 0.51
+    },
+    {
+      "center": [
+        905,
+        548
+      ],
+      "radius": [
+        101,
+        22
+      ],
+      "opacity": 0.48
+    },
+    {
+      "center": [
+        390,
+        705
+      ],
+      "radius": [
+        34,
+        8
+      ],
+      "opacity": 0.44
+    },
+    {
+      "center": [
+        493,
+        712
+      ],
+      "radius": [
+        37,
+        8
+      ],
+      "opacity": 0.46
+    },
+    {
+      "center": [
+        832,
+        544
+      ],
+      "radius": [
+        33,
+        7
+      ],
+      "opacity": 0.43
+    },
+    {
+      "center": [
+        994,
+        531
+      ],
+      "radius": [
+        31,
+        7
+      ],
+      "opacity": 0.41
+    }
+  ],
+  "behaviorImplementation": false
+}

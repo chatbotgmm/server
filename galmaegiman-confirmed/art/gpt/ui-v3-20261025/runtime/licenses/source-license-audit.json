@@ -1,0 +1,50 @@
+{
+  "scope": "Local evidence recording, not a legal ownership certification.",
+  "battleUI": {
+    "sourceRoot": "app-design/battle-assets-v1/assets",
+    "count": 23,
+    "evidence": "app-design/battle-assets-v1/source/GENERATION-NOTES.md",
+    "generationHistory": "Built-in image_gen modular artwork based on app-design/polished-battle/battle-root-final.png; not recovered PSD layers and not pixel-identical extraction.",
+    "textStatus": "Original UI surfaces and icons are documented as text-free.",
+    "licenseStatus": "No separate image license/grant document was located within the audited battle-assets-v1 directory. Do not label these images CC0, public domain, MIT, or OFL.",
+    "reuseScope": "User has authorized design resource reuse for this project task; external redistribution rights were not independently verified."
+  },
+  "characters": {
+    "standaloneSpriteRoot": "outputs/ui-mockups-20261025/source/assets/sprites",
+    "registrationCardRoot": "registration-full-v9/source-cards",
+    "evidence": [
+      "outputs/ui-mockups-20261025/assets/roster/*/views.json",
+      "registration-full-v9/roster.json",
+      "registration-full-v9/source-sha256.json"
+    ],
+    "licenseStatus": "No distinct image copyright/license grant was established from the audited manifests. Preserve project/user source attribution; do not invent an open-source license.",
+    "focusStatus": "Only six face-focus rectangles in battle-v3 were manually reviewed; remaining 54 are not represented as approved."
+  },
+  "fonts": {
+    "sourceRoot": "recruitment-v3-correction-r3/source/galmaegiman-confirmed/app/android/app/src/main/assets/native/recruitment/fonts",
+    "licenseFile": "OFL-NotoSansKR.txt",
+    "license": "SIL Open Font License 1.1",
+    "copyright": "2014–2021 Adobe; Reserved Font Name 'Source'",
+    "fontFamily": "Noto Sans KR",
+    "fontVersion": "Version 2.004-H2;hotconv 1.0.118;makeotfexe 2.5.65603",
+    "verifiedMethod": "Read internal TTF name IDs 0,1,2,5,13,14 and compared the bundled license text.",
+    "files": [
+      {
+        "path": "recruitment-v3-correction-r3/source/galmaegiman-confirmed/app/android/app/src/main/assets/native/recruitment/fonts/NotoSansKR-Regular.ttf",
+        "bytes": 6224868,
+        "sha256": "a516a09bb7351dc6254e0920b2ab6d21131a8f10213d45e5cf990af3b777695b"
+      },
+      {
+        "path": "recruitment-v3-correction-r3/source/galmaegiman-confirmed/app/android/app/src/main/assets/native/recruitment/fonts/NotoSansKR-Bold.ttf",
+        "bytes": 6222712,
+        "sha256": "8440245279bc3819589f99dc8ddee6372d3481816d2ccdb052f2f1d1eb26b86c"
+      },
+      {
+        "path": "recruitment-v3-correction-r3/source/galmaegiman-confirmed/app/android/app/src/main/assets/native/recruitment/fonts/OFL-NotoSansKR.txt",
+        "bytes": 4388,
+        "sha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9"
+      }
+    ]
+  },
+  "distributionNote": "Retain source/originals and license files separately from optimized runtime copies. Nine-slice recommendations are configuration, not Android-compiled .9.png files."
+}

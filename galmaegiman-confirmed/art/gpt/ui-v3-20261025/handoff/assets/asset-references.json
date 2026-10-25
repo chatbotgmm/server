@@ -1,0 +1,870 @@
+{
+  "schema": "galmaegiman.original-assets.v3.1",
+  "source_rasters_modified": false,
+  "separate_asset_pack": true,
+  "unique_asset_count": 64,
+  "assets": [
+    {
+      "sha256": "790429e3853f5bb8a76280f6403e29c744b6dc48920215bd5986aef053f16fee",
+      "bytes": 2736842,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/backgrounds/bg-collection.png",
+      "aliases": [
+        "backgrounds/bg-collection.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/backgrounds/bg-collection.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "e645d4dd88323728c7ae7670435db9848464d7c651110d29b9a4e9057dded44c",
+      "bytes": 3019452,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/backgrounds/bg-harbor.png",
+      "aliases": [
+        "backgrounds/bg-harbor.png",
+        "battle/bg-harbor"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/backgrounds/bg-harbor.png",
+        "app-design/battle-assets-v1/assets/bg-harbor.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "adce04f6958598d4b6c1382909f7012d0ad880eb5f32aecf671e4ba8796900ea",
+      "bytes": 3047052,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/backgrounds/bg-home.png",
+      "aliases": [
+        "backgrounds/bg-home.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/backgrounds/bg-home.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "53dbeaca57cc970c35a829581500fbba4b3d35e921f6a8fa950c987f8a7ee6fd",
+      "bytes": 2712725,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/backgrounds/bg-market-canopy-v1.png",
+      "aliases": [
+        "backgrounds/bg-market-canopy-v1.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/backgrounds/bg-market-canopy-v1.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "2e68774067bda86fee5bab928743f3f4fbab627275fbc68397231a3ff3b1fcfb",
+      "bytes": 2971456,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/backgrounds/bg-navigation-workshop-v1.png",
+      "aliases": [
+        "backgrounds/bg-navigation-workshop-v1.png",
+        "battle/indoor-inactive-reference"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/backgrounds/bg-navigation-workshop-v1.png",
+        "background-sources/bg-navigation-workshop-v1.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "d8a42cc3b6d86e5003f8dd829ea710f3f2ee390a7ff11de83ed1f46b1c8853c8",
+      "bytes": 2583451,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/backgrounds/bg-recruitment-counter-v1.png",
+      "aliases": [
+        "backgrounds/bg-recruitment-counter-v1.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/backgrounds/bg-recruitment-counter-v1.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "47b95d2a0db8d41255c51d1aeb95bbb4890bb0eccf1bdb9317257b0c7a4c8a91",
+      "bytes": 2475116,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/backgrounds/bg-settings-harbor-office-v1.png",
+      "aliases": [
+        "backgrounds/bg-settings-harbor-office-v1.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/backgrounds/bg-settings-harbor-office-v1.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "f4248c5200a51fd47e56a604ecb46a28d6d44cd8ffbd40bc5b0f6df57202c090",
+      "bytes": 3116567,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/backgrounds/bg-team.png",
+      "aliases": [
+        "backgrounds/bg-team.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/backgrounds/bg-team.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "b3e73d0cf0992d593da86a0ac23a4b94e9569b4c21f7ca4f1729c9983e9e8e3d",
+      "bytes": 2235098,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/cards/u01.png",
+      "aliases": [
+        "cards/u01.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/cards/u01.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "ba3ab6c27dcd41ba12c410c1f426c05a71b9f72587bd8b1ffd57be4f167364c8",
+      "bytes": 2261690,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/cards/u05.png",
+      "aliases": [
+        "cards/u05.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/cards/u05.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "4edf226c8d3d97fece049d31f4ad5b3228121e1bd4ff92e1950d874ed27fe748",
+      "bytes": 2170785,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/cards/u17.png",
+      "aliases": [
+        "cards/u17.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/cards/u17.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "52340704b90a94c852130ffeb82213cf76136eff0bd0f0acab951434400aad35",
+      "bytes": 2196276,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/cards/u18.png",
+      "aliases": [
+        "cards/u18.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/cards/u18.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "b8c93e17538d79376bd4ba615307878cfda8e78c59872b843bbaa819bd2d12ed",
+      "bytes": 2383908,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/cards/u25.png",
+      "aliases": [
+        "cards/u25.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/cards/u25.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "53740e8d0fce44d392b4ac9e28764f1aaf5f031433a32f400c3440c853c28cb5",
+      "bytes": 2202862,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/cards/u57.png",
+      "aliases": [
+        "cards/u57.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/cards/u57.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "4b6be92d315ce89bb6c518dd15136c896904a49c18b7a4afbdbba5c9985c6153",
+      "bytes": 451424,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/icons/book.png",
+      "aliases": [
+        "icons/book.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/icons/book.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "c7a74565dbad1d52a556c07be520250743603b3d97a06ab12598891ebc5df6c2",
+      "bytes": 242520,
+      "original_source": "outputs/ui-mockups-20261025/v3/assets/icons/button-primary.png",
+      "aliases": [
+        "icons/button-primary.png",
+        "native/back",
+        "party/button-primary.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/v3/assets/icons/button-primary.png",
+        "outputs/ui-mockups-20261025/recruit-v2-assets/button-primary.png",
+        "outputs/ui-mockups-20261025/v2/assets/icons/button-primary.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "ed079d7b868084d9bd9e6e08c770c5aad105ce8c6f7b92f11fbb5f9298f7d2b9",
+      "bytes": 252640,
+      "original_source": "outputs/ui-mockups-20261025/v3/assets/icons/button-secondary.png",
+      "aliases": [
+        "icons/button-secondary.png",
+        "party/button-secondary.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/v3/assets/icons/button-secondary.png",
+        "outputs/ui-mockups-20261025/v2/assets/icons/button-secondary.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "37da5fced81515e2b95b132882a0421ce6bb9184e6b3739df2ec3690b4742cfa",
+      "bytes": 363138,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/icons/currency-application.png",
+      "aliases": [
+        "icons/currency-application.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/icons/currency-application.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "80e7b2b7f7dbe3afecc1b2a2a573a8a670df90fffbe4af944d0b4d761aa3e895",
+      "bytes": 336360,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/icons/currency-peanut.png",
+      "aliases": [
+        "icons/currency-peanut.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/icons/currency-peanut.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "73bad2b20b29b6a0dd3d2bb799c31372d6d6cfee07c3dbbe124a843ed2bf08a1",
+      "bytes": 351136,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/icons/currency-shrimp.png",
+      "aliases": [
+        "icons/currency-shrimp.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/icons/currency-shrimp.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "954d4f6eba938e4086ad12d41301ef664022210ec246124e6f77c03cc4763a77",
+      "bytes": 1564255,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/icons/home-guide-map.png",
+      "aliases": [
+        "icons/home-guide-map.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/icons/home-guide-map.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "dae19c7760f1090b6c5dc09f5354ed1dd7d5f4b1e8a0a2a9df7cb4a714a2e40b",
+      "bytes": 131446,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/icons/icon-attack.png",
+      "aliases": [
+        "icons/icon-attack.png",
+        "battle/icon-attack"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/icons/icon-attack.png",
+        "app-design/battle-assets-v1/assets/icon-attack.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "34d3b449c46193c659c2ce166b25dd56386e68d1281b9406b80a6ce81fef7971",
+      "bytes": 176024,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/icons/icon-collection.png",
+      "aliases": [
+        "icons/icon-collection.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/icons/icon-collection.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "8a8b517d98b516ee27eca39e08fb8d3c31726a1dbd1bc3e4bb921fdd2d1cc4de",
+      "bytes": 241337,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/icons/icon-combine.png",
+      "aliases": [
+        "icons/icon-combine.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/icons/icon-combine.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "2f52e0a510214452d827f178ff10b79df6cdda32b0c4705a00a64fd07b28aef5",
+      "bytes": 186712,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/icons/icon-daily.png",
+      "aliases": [
+        "icons/icon-daily.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/icons/icon-daily.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "fe71d4295945c8ad3ad7e5c7f2d8c8c4fb985ae5dac5789853b95456631f10d4",
+      "bytes": 189428,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/icons/icon-draw.png",
+      "aliases": [
+        "icons/icon-draw.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/icons/icon-draw.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "ff1dac9296bac7311d5e87525b7a5aa08f309b3467a240d11eb5989b5993459e",
+      "bytes": 217135,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/icons/icon-explore.png",
+      "aliases": [
+        "icons/icon-explore.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/icons/icon-explore.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "d9cf5cd4ad36aa823aa6d1290db025eb437620c2f03d7e69290a92ad496ba24e",
+      "bytes": 211165,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/icons/icon-shield.png",
+      "aliases": [
+        "icons/icon-shield.png",
+        "battle/icon-shield"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/icons/icon-shield.png",
+        "app-design/battle-assets-v1/assets/icon-shield.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "b33aefc10e1fd9ea186fe4feec4ca7833ba5932028a2dcf9724a06fce82426b5",
+      "bytes": 229013,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/icons/icon-shop.png",
+      "aliases": [
+        "icons/icon-shop.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/icons/icon-shop.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "27441d9058e977e9d70ad682f88de6b2098cefd3d1285a05cc7da73ba69f9f63",
+      "bytes": 200050,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/icons/icon-team.png",
+      "aliases": [
+        "icons/icon-team.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/icons/icon-team.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "cf1e7fb17607235c6a68a6f121991e74c1fd767b7ed1dd8cb9073ec3dbf0c462",
+      "bytes": 405010,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/icons/mail.png",
+      "aliases": [
+        "icons/mail.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/icons/mail.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "a7f802d0291bbe446b5bef5e3fb6b0d14126dfbd44fecd61a9c56da782d1e01b",
+      "bytes": 495850,
+      "original_source": "outputs/ui-mockups-20261025/v3/assets/icons/menu.png",
+      "aliases": [
+        "icons/menu.png",
+        "party/menu.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/v3/assets/icons/menu.png",
+        "outputs/ui-mockups-20261025/v2/assets/icons/menu.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "8c2c433e944fbde42a97202db7098f8fcbc07e633d63864926b53d23930214e6",
+      "bytes": 646611,
+      "original_source": "outputs/ui-mockups-20261025/v3/assets/icons/panel.png",
+      "aliases": [
+        "icons/panel.png",
+        "party/panel.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/v3/assets/icons/panel.png",
+        "outputs/ui-mockups-20261025/v2/assets/icons/panel.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "81d4e00ac60ddc250b910661e8eada44d8b44654e04623a55373fee91cbaf3e6",
+      "bytes": 400229,
+      "original_source": "outputs/ui-mockups-20261025/v3/assets/icons/play.png",
+      "aliases": [
+        "icons/play.png",
+        "party/play.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/v3/assets/icons/play.png",
+        "outputs/ui-mockups-20261025/v2/assets/icons/play.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "076ea1ba628498564487bd8e3024ec0459d3e750d8755b56ee1a68e1c69e4825",
+      "bytes": 397366,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/icons/settings.png",
+      "aliases": [
+        "icons/settings.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/icons/settings.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "6bf436943bd5d054a303f395df79b15e4b7f32cc994d59700791a72524808d41",
+      "bytes": 424570,
+      "original_source": "outputs/ui-mockups-20261025/v3/assets/icons/tile.png",
+      "aliases": [
+        "icons/tile.png",
+        "party/tile.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/v3/assets/icons/tile.png",
+        "outputs/ui-mockups-20261025/v2/assets/icons/tile.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "c06c5c753dce8f5750065a6cb310bf0846de86d3f43f8329d8f6b43637b277c7",
+      "bytes": 6569,
+      "original_source": "outputs/ui-mockups-20261025/v3/assets/icons/u-profile-native.png",
+      "aliases": [
+        "icons/u-profile-native.png",
+        "party/u-profile-native.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/v3/assets/icons/u-profile-native.png",
+        "outputs/ui-mockups-20261025/v2/assets/icons/u-profile-native.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "868f41bad9278acf54b1c51674a5fc92730bbd0110ea3b3e9dcb8d3865158547",
+      "bytes": 123799,
+      "original_source": "outputs/ui-mockups-20261025/recruit-v2-assets/native-peanut.png",
+      "aliases": [
+        "native/peanut"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/recruit-v2-assets/native-peanut.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "3ebb44354ba85338e53ae31b24990812f5e2088ba3b4d4613697616ede5502b0",
+      "bytes": 145934,
+      "original_source": "outputs/ui-mockups-20261025/recruit-v2-assets/native-shrimp.png",
+      "aliases": [
+        "native/shrimp"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/recruit-v2-assets/native-shrimp.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "dfb19fcde7a0b2cc2ed00dd7d106206ac68b2e3b0c486b568724b981a0457122",
+      "bytes": 1593030,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/sprites/u01-front.png",
+      "aliases": [
+        "sprites/u01-front.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/sprites/u01-front.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "6b0d8362c6d4d33a9679a14e937767ae1880f827d4db961d97c0a56827eeea43",
+      "bytes": 1273845,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/sprites/u02-front.png",
+      "aliases": [
+        "sprites/u02-front.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/sprites/u02-front.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "d92d505e0eccf5fcaf4fd8d1ec9f39b3b039a12a68bada738cccd6032da4303c",
+      "bytes": 1307784,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/sprites/u04-front.png",
+      "aliases": [
+        "sprites/u04-front.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/sprites/u04-front.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "71ef995a5c19caf401e9522a7df139cbb7a368094795b58ecbb467cad33eabc3",
+      "bytes": 1654904,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/sprites/u05-front.png",
+      "aliases": [
+        "sprites/u05-front.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/sprites/u05-front.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "f36c40c9860fa42cca5daee60a1cf839310a3fd355a49de2eb0ac80229654ee5",
+      "bytes": 1175745,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/sprites/u06-front.png",
+      "aliases": [
+        "sprites/u06-front.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/sprites/u06-front.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "da0b49b4410437d2643f1816c63bbfed3aaaa60cfdd12cdc94cf476a48071cc5",
+      "bytes": 1430457,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/sprites/u07-front.png",
+      "aliases": [
+        "sprites/u07-front.png",
+        "battle/enemy-u07-front"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/sprites/u07-front.png",
+        "outputs/ui-mockups-20261025/assets/roster/u07/front.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "6c319981a800974133746817e5d29403cd1c3edff0e0c8005a954b4c1150f5d0",
+      "bytes": 1892045,
+      "original_source": "outputs/ui-mockups-20261025/source/assets/tray-high.png",
+      "aliases": [
+        "tray-high.png"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/source/assets/tray-high.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "a516a09bb7351dc6254e0920b2ab6d21131a8f10213d45e5cf990af3b777695b",
+      "bytes": 6224868,
+      "original_source": "outputs/ui-mockups-20261025/recruit-v2-assets/NotoSansKR-Regular.ttf",
+      "aliases": [
+        "font/NotoSansKR-Regular.ttf",
+        "battle-font/NotoSansKR-Regular.ttf"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/recruit-v2-assets/NotoSansKR-Regular.ttf",
+        "recruitment-v3-correction-r3/source/galmaegiman-confirmed/app/android/app/src/main/assets/native/recruitment/fonts/NotoSansKR-Regular.ttf"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "8440245279bc3819589f99dc8ddee6372d3481816d2ccdb052f2f1d1eb26b86c",
+      "bytes": 6222712,
+      "original_source": "outputs/ui-mockups-20261025/recruit-v2-assets/NotoSansKR-Bold.ttf",
+      "aliases": [
+        "font/NotoSansKR-Bold.ttf",
+        "battle-font/NotoSansKR-Bold.ttf"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/recruit-v2-assets/NotoSansKR-Bold.ttf",
+        "recruitment-v3-correction-r3/source/galmaegiman-confirmed/app/android/app/src/main/assets/native/recruitment/fonts/NotoSansKR-Bold.ttf"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "0c729083d93dd15bcc6b1a17eaef468dc89d48ffc64966916b1f88460f268a12",
+      "bytes": 1933531,
+      "original_source": "app-design/battle-assets-v1/assets/panel-command.png",
+      "aliases": [
+        "battle/panel-command"
+      ],
+      "hydrate_targets": [
+        "app-design/battle-assets-v1/assets/panel-command.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "18248af2535151c48d0c25f171997311e9f084ee01c50fb762ac39e60bbf9d09",
+      "bytes": 323348,
+      "original_source": "app-design/battle-assets-v1/assets/panel-hp.png",
+      "aliases": [
+        "battle/panel-hp"
+      ],
+      "hydrate_targets": [
+        "app-design/battle-assets-v1/assets/panel-hp.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "360d05f214331b748f4b66c112b543e4c0a45f0050b24267ae3e3d00f51a6c21",
+      "bytes": 320109,
+      "original_source": "app-design/battle-assets-v1/assets/button-attack.png",
+      "aliases": [
+        "battle/button-attack"
+      ],
+      "hydrate_targets": [
+        "app-design/battle-assets-v1/assets/button-attack.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "efb98a3b2e8940457a09319ab35488d8bd1c94c12d3c0dbc5cab6115fb458fc2",
+      "bytes": 326412,
+      "original_source": "app-design/battle-assets-v1/assets/button-item.png",
+      "aliases": [
+        "battle/button-item"
+      ],
+      "hydrate_targets": [
+        "app-design/battle-assets-v1/assets/button-item.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "11d400907965666672c3209a4566163606f9204c2345694d376bd8fa7765ea2c",
+      "bytes": 330145,
+      "original_source": "app-design/battle-assets-v1/assets/button-switch.png",
+      "aliases": [
+        "battle/button-switch"
+      ],
+      "hydrate_targets": [
+        "app-design/battle-assets-v1/assets/button-switch.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "25b2f5defb6decc79f8ec87d2fdffcc4f898f3e95a5d60b1ed332ba664ed252f",
+      "bytes": 314410,
+      "original_source": "app-design/battle-assets-v1/assets/button-surrender.png",
+      "aliases": [
+        "battle/button-surrender"
+      ],
+      "hydrate_targets": [
+        "app-design/battle-assets-v1/assets/button-surrender.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "eec8140e83d089faa30775585d686672adf113f029bfc13d7106b820359e1c25",
+      "bytes": 131210,
+      "original_source": "app-design/battle-assets-v1/assets/icon-item.png",
+      "aliases": [
+        "battle/icon-item"
+      ],
+      "hydrate_targets": [
+        "app-design/battle-assets-v1/assets/icon-item.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "57ea8f410b8a3ce9b291bf504b00e39ce5b328359e89df53d7afac98d0bb1c25",
+      "bytes": 81154,
+      "original_source": "app-design/battle-assets-v1/assets/icon-switch.png",
+      "aliases": [
+        "battle/icon-switch"
+      ],
+      "hydrate_targets": [
+        "app-design/battle-assets-v1/assets/icon-switch.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "bad165fcd6166ef6145dc9867d2883039e34f6b67a630a4fd9eacf57d9d4b967",
+      "bytes": 105608,
+      "original_source": "app-design/battle-assets-v1/assets/icon-surrender.png",
+      "aliases": [
+        "battle/icon-surrender"
+      ],
+      "hydrate_targets": [
+        "app-design/battle-assets-v1/assets/icon-surrender.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "5a9725d2f1808f7afc7f1336ebb36b4cbc7ed0bdc279f926f57c395766955ce2",
+      "bytes": 224345,
+      "original_source": "app-design/battle-assets-v1/assets/icon-goldenstrike.png",
+      "aliases": [
+        "battle/icon-goldenstrike"
+      ],
+      "hydrate_targets": [
+        "app-design/battle-assets-v1/assets/icon-goldenstrike.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "bcfac4934de9c27793db38354e839d3759e4cff198e0f43fc3c7816170754515",
+      "bytes": 298749,
+      "original_source": "app-design/battle-assets-v1/assets/decor-corner-tl.png",
+      "aliases": [
+        "battle/decor-corner-tl"
+      ],
+      "hydrate_targets": [
+        "app-design/battle-assets-v1/assets/decor-corner-tl.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "dd4648ba5067d1b70c0ac7241803bdaa36b827c45bb0fe44323e13bf56b4a594",
+      "bytes": 296841,
+      "original_source": "app-design/battle-assets-v1/assets/decor-corner-tr.png",
+      "aliases": [
+        "battle/decor-corner-tr"
+      ],
+      "hydrate_targets": [
+        "app-design/battle-assets-v1/assets/decor-corner-tr.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "a7ba39099c251a97ea2a5c12e8970d0d9736073cd0205db686c99a5677b81c0c",
+      "bytes": 319919,
+      "original_source": "app-design/battle-assets-v1/assets/decor-corner-bl.png",
+      "aliases": [
+        "battle/decor-corner-bl"
+      ],
+      "hydrate_targets": [
+        "app-design/battle-assets-v1/assets/decor-corner-bl.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "0899c49a51b8a0ed8033426ea3efc8709a6b36a769b9ef2e237279d4cfc02f0e",
+      "bytes": 316709,
+      "original_source": "app-design/battle-assets-v1/assets/decor-corner-br.png",
+      "aliases": [
+        "battle/decor-corner-br"
+      ],
+      "hydrate_targets": [
+        "app-design/battle-assets-v1/assets/decor-corner-br.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "4f72eec3c323937e25da12bfbd36eb3e6dc1e34fc9b86ebc8cb95b88956e7280",
+      "bytes": 106271,
+      "original_source": "app-design/battle-assets-v1/assets/icon-back.png",
+      "aliases": [
+        "battle/icon-back"
+      ],
+      "hydrate_targets": [
+        "app-design/battle-assets-v1/assets/icon-back.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    },
+    {
+      "sha256": "e38512508cde1e6b9beddb5b42d33ddcc3b3ff0295739291c52079dd2c839652",
+      "bytes": 1402458,
+      "original_source": "outputs/ui-mockups-20261025/assets/roster/u01/rear.png",
+      "aliases": [
+        "battle/ally-u01-rear"
+      ],
+      "hydrate_targets": [
+        "outputs/ui-mockups-20261025/assets/roster/u01/rear.png"
+      ],
+      "usage": "runtime-art-reference",
+      "asset_pack_resolution": "Match SHA-256 in separately supplied original asset pack; relative pack path may differ."
+    }
+  ]
+}

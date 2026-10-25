@@ -1,0 +1,14 @@
+{
+  "name": "galmaegiman-ui-v3-developer-handoff",
+  "version": "3.1.0",
+  "private": true,
+  "description": "Editable design references, semantic bindings, and original asset aliases; not application implementation",
+  "scripts": {
+    "prepare:assets": "node scripts/hydrate-original-assets.cjs",
+    "render:reference": "node scripts/render-reference.cjs"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "0.1.100",
+    "sharp": "0.35.5"
+  }
+}

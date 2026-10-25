@@ -1,0 +1,10 @@
+{
+  "checks": {
+    "Google/구글": true,
+    "S16 별도 모집크레딧": true,
+    "기본유닛 legacy D1": true,
+    "새우 단독": true
+  },
+  "all_passed": true,
+  "scope": "active v3 UI canvas code and explicit latest-decision manifest; original historical files preserved"
+}

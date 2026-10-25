@@ -1,0 +1,223 @@
+{
+  "baseSurfaces": {
+    "button-attack": {
+      "file": "android-ninepatch/button_attack.9.png",
+      "androidMode": "compile as NinePatch resource",
+      "canvasMode": "Treat [1,1,width,height] as the source image; exclude the 1px marker perimeter before applying generic sourceInsets.",
+      "canvasSourceInteriorRect": [
+        1,
+        1,
+        722,
+        254
+      ],
+      "sourceInsets": [
+        72,
+        72,
+        72,
+        72
+      ],
+      "renderInsets": [
+        28,
+        28,
+        28,
+        28
+      ],
+      "contentPadding": [
+        22,
+        20,
+        22,
+        20
+      ],
+      "sampleSize": [
+        297,
+        158
+      ]
+    },
+    "button-item": {
+      "file": "android-ninepatch/button_item.9.png",
+      "androidMode": "compile as NinePatch resource",
+      "canvasMode": "Treat [1,1,width,height] as the source image; exclude the 1px marker perimeter before applying generic sourceInsets.",
+      "canvasSourceInteriorRect": [
+        1,
+        1,
+        721,
+        254
+      ],
+      "sourceInsets": [
+        72,
+        72,
+        72,
+        72
+      ],
+      "renderInsets": [
+        28,
+        28,
+        28,
+        28
+      ],
+      "contentPadding": [
+        22,
+        20,
+        22,
+        20
+      ],
+      "sampleSize": [
+        297,
+        158
+      ]
+    },
+    "button-switch": {
+      "file": "android-ninepatch/button_switch.9.png",
+      "androidMode": "compile as NinePatch resource",
+      "canvasMode": "Treat [1,1,width,height] as the source image; exclude the 1px marker perimeter before applying generic sourceInsets.",
+      "canvasSourceInteriorRect": [
+        1,
+        1,
+        721,
+        250
+      ],
+      "sourceInsets": [
+        72,
+        72,
+        72,
+        72
+      ],
+      "renderInsets": [
+        28,
+        28,
+        28,
+        28
+      ],
+      "contentPadding": [
+        22,
+        20,
+        22,
+        20
+      ],
+      "sampleSize": [
+        297,
+        158
+      ]
+    },
+    "button-surrender": {
+      "file": "android-ninepatch/button_surrender.9.png",
+      "androidMode": "compile as NinePatch resource",
+      "canvasMode": "Treat [1,1,width,height] as the source image; exclude the 1px marker perimeter before applying generic sourceInsets.",
+      "canvasSourceInteriorRect": [
+        1,
+        1,
+        721,
+        250
+      ],
+      "sourceInsets": [
+        72,
+        72,
+        72,
+        72
+      ],
+      "renderInsets": [
+        28,
+        28,
+        28,
+        28
+      ],
+      "contentPadding": [
+        22,
+        20,
+        22,
+        20
+      ],
+      "sampleSize": [
+        297,
+        158
+      ]
+    },
+    "panel-hp": {
+      "file": "android-ninepatch/panel_hp.9.png",
+      "androidMode": "compile as NinePatch resource",
+      "canvasMode": "Treat [1,1,width,height] as the source image; exclude the 1px marker perimeter before applying generic sourceInsets.",
+      "canvasSourceInteriorRect": [
+        1,
+        1,
+        721,
+        248
+      ],
+      "sourceInsets": [
+        46,
+        46,
+        46,
+        46
+      ],
+      "renderInsets": [
+        29,
+        29,
+        29,
+        29
+      ],
+      "contentPadding": [
+        30,
+        19,
+        30,
+        24
+      ],
+      "sampleSize": [
+        545,
+        167
+      ],
+      "variants": {
+        "reserveCard": {
+          "renderInsets": [
+            21,
+            21,
+            21,
+            21
+          ],
+          "contentPadding": [
+            16,
+            12,
+            22,
+            18
+          ],
+          "sampleSize": [
+            297,
+            141
+          ]
+        }
+      }
+    },
+    "panel-command": {
+      "file": "android-ninepatch/panel_command.9.png",
+      "androidMode": "compile as NinePatch resource",
+      "canvasMode": "Treat [1,1,width,height] as the source image; exclude the 1px marker perimeter before applying generic sourceInsets.",
+      "canvasSourceInteriorRect": [
+        1,
+        1,
+        1010,
+        1383
+      ],
+      "sourceInsets": [
+        75,
+        75,
+        75,
+        75
+      ],
+      "renderInsets": [
+        43,
+        43,
+        43,
+        43
+      ],
+      "contentPadding": [
+        44,
+        39,
+        49,
+        30
+      ],
+      "sampleSize": [
+        712,
+        770
+      ]
+    }
+  },
+  "fontHandling": "Existing app NotoSansKR required; TTF duplicates intentionally excluded."
+}

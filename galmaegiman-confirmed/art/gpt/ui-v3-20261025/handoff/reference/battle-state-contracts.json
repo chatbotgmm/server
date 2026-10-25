@@ -1,0 +1,285 @@
+{
+  "type": "mockup-only",
+  "productionChanges": false,
+  "viewport": [
+    1920,
+    800
+  ],
+  "canvas": [
+    1920,
+    900
+  ],
+  "selectedBackground": "B 항구",
+  "selectionEvidence": "Sentinel_31c5900de73c819180bfba2e552afa42: B",
+  "backgroundSource": "app-design/battle-assets-v1/assets/bg-harbor.png",
+  "approvedBase": "../battle-v2/S06_전투_B_항구전장_v2.png",
+  "invariant": "Same B backdrop, ally/enemy placement and size, contact shadows, HP/MP panels, command panel coordinates.",
+  "confirmedRules": {
+    "party": "1 active + 5 reserves",
+    "skills": 6,
+    "attackMP": 0,
+    "focus": "restore 25% of maximum MP",
+    "adventureEscape": "70% success; failure gives opponent 1 action",
+    "storyAndPvPForfeit": "XP 0"
+  },
+  "unknownData": [
+    "Six skills equipped on this unit",
+    "Skill names, MP, effects, targeting",
+    "Item catalog, effect values and eligibility rules"
+  ],
+  "exampleData": [
+    "Reserve HP/MP, item quantity and disabled examples are layout-only."
+  ],
+  "holdContract": {
+    "onHold": "Show description only, positioned above the battlefield and left of the pressed command.",
+    "onRelease": "Hide description; suppress click/cast.",
+    "onPointerCancel": "Hide description; do not cast, spend MP, or commit a turn.",
+    "shortTap": "Select a skill only; target/confirm before committing."
+  },
+  "itemContract": {
+    "flow": [
+      "item",
+      "eligible target",
+      "effect/quantity check",
+      "explicit use"
+    ],
+    "cancel": "No use, quantity loss, or turn commit.",
+    "eligibility": "Runtime item data must decide legal targets; mockup does not establish revive/full-HP policy."
+  },
+  "switchContract": {
+    "flow": [
+      "choose 1 of 5 reserves",
+      "explicit switch"
+    ],
+    "disabled": [
+      "already active",
+      "battle-incapacitated"
+    ],
+    "after": "Former active moves to reserves; total remains 1 + 5.",
+    "cancel": "Keep original active unit."
+  },
+  "integration": {
+    "S06": "../battle-v2/S06_전투_B_항구전장_v2.png",
+    "M02": "M02_전투기술설명_누르는동안_v3.png",
+    "M03": "M03-3_대원교체_v3.png",
+    "additionalStates": "All other outputs belong in battle-flow appendix; do not replace S22.",
+    "reviewFooter": "The lower 100px is review-only and not game runtime UI."
+  },
+  "verificationScope": "Static visual mockup and unchanged-pixel QA only; no runtime touch behavior is implemented or claimed tested.",
+  "portraitFocus": [
+    {
+      "id": "u01",
+      "sourceRect": [
+        245,
+        230,
+        600,
+        600
+      ],
+      "review": "Both eyes and beak visible; u02 head shape and u04 flower bud included."
+    },
+    {
+      "id": "u06",
+      "sourceRect": [
+        245,
+        180,
+        580,
+        580
+      ],
+      "review": "Both eyes and beak visible; u02 head shape and u04 flower bud included."
+    },
+    {
+      "id": "u07",
+      "sourceRect": [
+        265,
+        290,
+        620,
+        620
+      ],
+      "review": "Both eyes and beak visible; u02 head shape and u04 flower bud included."
+    },
+    {
+      "id": "u02",
+      "sourceRect": [
+        220,
+        100,
+        720,
+        720
+      ],
+      "review": "Both eyes and beak visible; u02 head shape and u04 flower bud included."
+    },
+    {
+      "id": "u04",
+      "sourceRect": [
+        180,
+        0,
+        870,
+        870
+      ],
+      "review": "Both eyes and beak visible; u02 head shape and u04 flower bud included."
+    },
+    {
+      "id": "u05",
+      "sourceRect": [
+        260,
+        280,
+        540,
+        540
+      ],
+      "review": "Both eyes and beak visible; u02 head shape and u04 flower bud included."
+    }
+  ],
+  "partyExamples": [
+    {
+      "id": "u01",
+      "name": "갈매미맨",
+      "role": "출전",
+      "hp": [
+        154,
+        154
+      ],
+      "mp": [
+        38,
+        38
+      ]
+    },
+    {
+      "id": "u06",
+      "name": "물방울",
+      "role": "후보",
+      "hp": [
+        92,
+        132
+      ],
+      "mp": [
+        26,
+        45
+      ]
+    },
+    {
+      "id": "u07",
+      "name": "불씨",
+      "role": "후보",
+      "hp": [
+        165,
+        165
+      ],
+      "mp": [
+        41,
+        41
+      ]
+    },
+    {
+      "id": "u02",
+      "name": "미니",
+      "role": "후보",
+      "hp": [
+        66,
+        98
+      ],
+      "mp": [
+        28,
+        42
+      ]
+    },
+    {
+      "id": "u04",
+      "name": "꽃",
+      "role": "후보",
+      "hp": [
+        114,
+        114
+      ],
+      "mp": [
+        31,
+        31
+      ]
+    },
+    {
+      "id": "u05",
+      "name": "황금",
+      "role": "후보",
+      "hp": [
+        0,
+        140
+      ],
+      "mp": [
+        0,
+        35
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "file": "S06-1_전투_기술6칸선택_v3.png",
+      "kind": "skill-selection",
+      "canvas": [
+        1920,
+        900
+      ],
+      "background": "B 항구"
+    },
+    {
+      "file": "M02_전투기술설명_누르는동안_v3.png",
+      "kind": "hold-description",
+      "canvas": [
+        1920,
+        900
+      ],
+      "background": "B 항구"
+    },
+    {
+      "file": "M03-1_아이템선택_v3.png",
+      "kind": "item-selection",
+      "canvas": [
+        1920,
+        900
+      ],
+      "background": "B 항구"
+    },
+    {
+      "file": "M03-2_아이템대상선택_v3.png",
+      "kind": "item-target",
+      "canvas": [
+        1920,
+        900
+      ],
+      "background": "B 항구"
+    },
+    {
+      "file": "M03-3_대원교체_v3.png",
+      "kind": "reserve-switch",
+      "canvas": [
+        1920,
+        900
+      ],
+      "background": "B 항구"
+    },
+    {
+      "file": "M03-4_모험_도망확인_v3.png",
+      "kind": "mode-exit-confirm",
+      "canvas": [
+        1920,
+        900
+      ],
+      "background": "B 항구"
+    },
+    {
+      "file": "M03-5_스토리_항복확인_v3.png",
+      "kind": "mode-exit-confirm",
+      "canvas": [
+        1920,
+        900
+      ],
+      "background": "B 항구"
+    },
+    {
+      "file": "M03-6_PvP_항복확인_v3.png",
+      "kind": "mode-exit-confirm",
+      "canvas": [
+        1920,
+        900
+      ],
+      "background": "B 항구"
+    }
+  ]
+}

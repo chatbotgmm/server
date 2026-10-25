@@ -1,0 +1,13 @@
+{
+  "unique_screen_ids": 36,
+  "layout_states": 50,
+  "flow_routes": 95,
+  "included_reference_pngs": 3,
+  "included_pdf_files": 0,
+  "original_asset_sha_count": 64,
+  "independent_source_replay_matches": 50,
+  "all_json_parse": true,
+  "no_legacy_unused_S05_M02_M03_functions": true,
+  "runtime_device_validation": false,
+  "production_changes": false
+}
