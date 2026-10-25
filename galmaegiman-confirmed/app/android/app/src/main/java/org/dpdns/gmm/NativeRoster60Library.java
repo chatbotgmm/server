@@ -12,7 +12,7 @@ final class NativeRoster60Library {
  JSONObject catalog,offer;JSONArray visible=new JSONArray();LinearLayout root,details;ImageView art;TextView title,message;boolean busy;
  NativeRoster60Library(MainActivity h){this.h=h;prefs=h.getSharedPreferences("roster60_recruit",Context.MODE_PRIVATE);}
  boolean current(){return epoch==h.epoch&&owner.equals(h.api.token())&&!h.isDestroyed();}
- void base(String name,String screen){h.base(name,screen);owner=h.api.token();epoch=h.epoch;key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner);h.page.removeViewAt(h.page.getChildCount()-1);root=new LinearLayout(h);root.setOrientation(1);root.setPadding(h.dp(8),0,h.dp(8),0);root.setBackground(NavyWorkbenchTheme.surface(h,0xee102433,NavyWorkbenchTheme.EDGE,10));h.page.addView(root,new LinearLayout.LayoutParams(-1,0,1));message=h.text("불러오는 중…",12);root.addView(message);}
+ void base(String name,String screen){h.base(name,screen);owner=h.api.token();epoch=h.epoch;key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner);h.page.removeViewAt(h.page.getChildCount()-1);root=new LinearLayout(h);root.setOrientation(1);root.setPadding(h.dp(8),0,h.dp(8),0);root.setBackground(NavyWorkbenchTheme.surface(h,0xee102433,NavyWorkbenchTheme.EDGE,10));h.page.addView(root,new LinearLayout.LayoutParams(-1,0,1));message=h.text("불러오는 중…",12);message.setTextColor(NavyWorkbenchTheme.TEXT);root.addView(message);}
  void collection(){base("도감","collection");h.api.call("native/roster60/collection",null,(r,e)->{if(!current())return;if(e!=null){message.setText("도감 준비 중 · "+e);return;}catalog=r;showCollection();});}
  void showCollection(){message.setText(catalog.optBoolean("testBaseline")?"60종 · 실기기 테스트 기본안 (최종 밸런스 아님)":"60종 도감");
   LinearLayout nav=new LinearLayout(h);root.addView(nav);nav.addView(h.button("등급",()->{JSONObject gs=catalog.optJSONObject("grades");ArrayList<String> ids=new ArrayList<>(),names=new ArrayList<>();ids.add("");names.add("전체");Iterator<String> it=gs.keys();while(it.hasNext()){String k=it.next();ids.add(k);names.add(gs.optString(k));}new GameDialog(h).navy().setTitle("등급 필터").setItems(names.toArray(new String[0]),(d,i)->{grade=ids.get(i);filter();}).show();}));nav.addView(h.button("보유 필터",()->{ownedOnly=!ownedOnly;filter();}));nav.addView(h.button("이전",()->{if(visible.length()>0){index=(index+visible.length()-1)%visible.length();bind();}}));nav.addView(h.button("다음",()->{if(visible.length()>0){index=(index+1)%visible.length();bind();}}));
@@ -31,7 +31,15 @@ final class NativeRoster60Library {
  void confirm(JSONObject o){if(busy||!prefs.getString(key,"").isEmpty()){message.setText("이전 요청 결과를 먼저 확인하세요.");return;}new GameDialog(h).navy().setTitle("모집 확인").setMessage("지원서 "+o.optInt("cost")+"장 · 1회\n커먼 70% / 언커먼 30% · 등급 내 균등").setPositiveButton("모집",(d,w)->{if(!current()||busy||!prefs.getString(key,"").isEmpty())return;JSONObject body=h.obj("kind",o.optString("kind"),"times",1,"catalogVersion",offer.optString("catalogVersion"),"requestId",UUID.randomUUID().toString());if(prefs.edit().putString(key,body.toString()).commit())retry();}).setNegativeButton("취소",null).show();}
  // A receipt is committed locally before the pending request is cleared, including off-screen success.
  // This is result recovery, never a paid reroll or deletion of an already granted unit.
- void showReceipt(JSONObject r){JSONArray items=r.optJSONArray("items");if(items==null||items.length()==0)return;message.setText("영구 지급: "+items.optJSONObject(0).optString("name")+"\n지원서 "+r.optInt("credits")+" · 저장된 모집 결과 (무료 조회)");}
+ // 실제 수령 결과에도 같은 등록증 카드를 보여 준다(후보 화면만 바꾸면 활성 모집 결과에는 안 보이므로). 카드가 없으면 글자만.
+ ImageView receiptCard;
+ void showReceipt(JSONObject r){JSONArray items=r.optJSONArray("items");if(items==null||items.length()==0)return;JSONObject first=items.optJSONObject(0);message.setText("영구 지급: "+first.optString("name")+" · Lv"+first.optInt("level")+"\n지원서 "+r.optInt("credits")+" · 저장된 모집 결과 (무료 조회)");
+  // 버튼(48dp×여러 개) 아래에 카드를 쌓으면 짧은 가로 화면에서 카드 높이가 0이 된다. 후보 화면처럼 왼쪽 카드 | 오른쪽 버튼 목록으로 나눈다.
+  if(receiptCard==null||receiptCard.getParent()==null||receiptCard.getParent().getParent()!=root){receiptCard=new ImageView(h);receiptCard.setTag("recruit-receipt-card");
+   LinearLayout columns=new LinearLayout(h),list=new LinearLayout(h);list.setOrientation(1);ScrollView side=new ScrollView(h);side.addView(list);
+   while(root.getChildCount()>1){View v=root.getChildAt(1);root.removeViewAt(1);list.addView(v,v.getLayoutParams());}
+   columns.addView(receiptCard,new LinearLayout.LayoutParams(0,-1,1));columns.addView(side,new LinearLayout.LayoutParams(0,-1,1));root.addView(columns,new LinearLayout.LayoutParams(-1,0,1));}
+  if(RegistrationV10Art.bind(h,receiptCard,first.optString("speciesId"))){receiptCard.setVisibility(View.VISIBLE);receiptCard.setContentDescription("방범대 등록증 · "+first.optString("name")+" · 영구 지급");}else receiptCard.setVisibility(View.GONE);}
  void restoreReceipt(){try{String raw=prefs.getString(key+".receipt","");if(!raw.isEmpty())showReceipt(new JSONObject(raw));}catch(JSONException bad){message.setText("저장된 결과를 읽지 못했습니다. 보유 개체는 도감에서 확인하세요.");}}
  void retry(){
   if(busy||!current())return;

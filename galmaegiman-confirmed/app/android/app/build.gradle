@@ -228,3 +228,25 @@ if (project.findProperty('gmmApplicationId') != 'org.gmm.producttest') {
         from(upper33Generated) { into 'native/upper33-v1' }
     }
 }
+
+// 방범대 등록증 v10: 원본 60장(약 132MB PNG)은 Git에만 두고, APK에는 720×960 WebP 파생본만 넣는다.
+// 모집 후보·수령 결과 화면에서만 쓴다. 전투용 roster60-art 앞뒤 그림은 그대로다.
+def registrationV10Source = file('../../../art/gpt/registration-v10')
+def registrationV10Script = file('../../../scripts/registration-v10-webp.py')
+def registrationV10Generated = layout.buildDirectory.dir('generated/registration-v10')
+tasks.register('prepareRegistrationV10Art') {
+    inputs.dir registrationV10Source
+    inputs.file registrationV10Script
+    outputs.dir registrationV10Generated
+    doLast {
+        def out = registrationV10Generated.get().asFile
+        delete out
+        exec {
+            commandLine 'python3', registrationV10Script.absolutePath, registrationV10Source.absolutePath, out.absolutePath
+        }
+    }
+}
+tasks.named('bundleGameArt').configure {
+    dependsOn 'prepareRegistrationV10Art'
+    from(registrationV10Generated) { into 'native/registration-v10' }
+}
