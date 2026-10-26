@@ -1,4 +1,5 @@
-import {opponentIntel,opponentFighter,selectEnemySpecies} from './battle/roster60-opponent-intel.js';
+import {opponentFighter,selectEnemySpecies} from './battle/roster60-opponent-intel.js';
+import {captureDefenseSnapshot,battleKnowledge,observedOpponentIntel,resolvedDefenseObservation,addDefenseObservation,persistDefenseObservations,publicDefenseObservation,publicDefenseSafe,safeKnowledgeCatalog,type DefenseSnapshot,type DefenseObservation} from './battle/roster60-observed-defense.js';
 import {capturePresentation,presentStep} from './battle/roster60-presentation.js';
 import {adventureEscapePolicy,adventureEscapeSucceeds,settleAdventureBattle} from './roster60-adventure.js';
 import {loadBattleRules} from './battle/load.js';
@@ -44,19 +45,25 @@ export function formationUnit(c:RosterCatalog,u:{id:string;speciesId:string;tota
 }
 
 function order(id:string,state:Pick<State,'turn'|'fighters'>,seed:string){const f=(i:number)=>({id:state.fighters[i].id,baseSpeed:state.fighters[i].stats.speed,modifiers:[] as number[]});return decideTurnOrder(id,state.turn,[f(0),f(1)],seed);}
-function dto(row:{id:string;revision:number;status:string;state:string;settlement:string|null;snapshot?:string;seed:string}){
- const s=JSON.parse(row.state) as State;const policy=row.snapshot?JSON.parse(row.snapshot).policy:null;
- const intel=opponentIntel(s.fighters[1],s.turn,row.seed,row.id,'self');
+function dto(row:{id:string;revision:number;status:string;state:string;settlement:string|null;snapshot?:string;seed:string},catalog:RosterCatalog|null){
+ const s=JSON.parse(row.state) as State,snapshot=row.snapshot?JSON.parse(row.snapshot):null;const policy=snapshot?.policy;
+ const intel=observedOpponentIntel(s.fighters[1],s.turn,snapshot?.observedDefense,battleKnowledge(snapshot?.observedDefense,s.events,'self'),catalog);
  const {speeds,...publicDecision}=s.decision;
- const publicState={...s,opponentIntel:intel,fighters:[s.fighters[0],opponentFighter(s.fighters[1],intel)],decision:{...publicDecision,...(intel.statsKnown?{speeds}:{})}};
+ const events=s.events.map((round:any)=>({...round,events:round.events.map((event:any)=>{
+  const {defenseObservation,intelBefore,intelAfter,...visible}=event;
+  return {...visible,...(event.actor==='self'&&defenseObservation?{observedDefense:publicDefenseObservation(defenseObservation)}:{}),
+   ...(event.presentation?{presentation:{...event.presentation,...(intelBefore?{opponentIntelBefore:intelBefore}:{}),...(intelAfter?{opponentIntelAfter:intelAfter}:{})}}:{})};
+ })}));
+ const publicState={...s,events,opponentIntel:intel,fighters:[publicDefenseSafe(s.fighters[0]),opponentFighter(s.fighters[1],intel)],reserves:(s.reserves??[]).map(publicDefenseSafe),decision:{...publicDecision,...(intel.statsKnown?{speeds}:{})}};
  return {balanceProfile:policy?.version??null,testBaseline:policy?.profileKind==='user-authorized-test-baseline',battleId:row.id,revision:row.revision,status:row.status,state:publicState,settlement:row.settlement?JSON.parse(row.settlement):null,itemDefinitions:policy&&row.snapshot?JSON.parse(row.snapshot).items??{}:{},disabledCommands:{item:s.fighters[0].hp<=0?'FORCED_SWITCH_REQUIRED':s.rulesVersion?'':'ITEM_POLICY_PENDING',switch:s.rulesVersion?'':'SWITCH_POLICY_PENDING',escape:s.fighters[0].hp<=0?'FORCED_SWITCH_REQUIRED':['story','duel','adventure'].includes(s.mode??'')?'':'ESCAPE_POLICY_PENDING'}};
 }
 export class RosterBattle {
  constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private policy:()=>BattlePolicy|null){}
+ private view(row:Parameters<typeof dto>[0]){return dto(row,safeKnowledgeCatalog(this.catalog));}
  private async request(playerId:string,requestId:string,payload:unknown,run:(tx:Prisma.TransactionClient)=>Promise<unknown>){
   const fingerprint=hash(payload);const once=()=>this.db.$transaction(async tx=>{
    const prior=await tx.roster60BattleReceipt.findUnique({where:{playerId_requestId:{playerId,requestId}}});
-   if(prior){if(prior.fingerprint!==fingerprint)return fail('REQUEST_ID_REUSED');return JSON.parse(prior.result);}
+   if(prior){if(prior.fingerprint!==fingerprint)return fail('REQUEST_ID_REUSED');return publicDefenseSafe(JSON.parse(prior.result));}
    const result=await run(tx);await tx.roster60BattleReceipt.create({data:{playerId,requestId,fingerprint,result:JSON.stringify(result)}});return result;
   });
   try{return await once();}catch(e){if(['P2002','P2034'].includes((e as {code?:string}).code??''))return once();throw e;}
@@ -104,35 +111,40 @@ export class RosterBattle {
    f[0].ownedId=owned.id;
    if(runState)for(const next of [f[0],...reserves]){const prior=runState.party.find((x:Fighter)=>x.ownedId===next.ownedId);if(!prior)return fail('INVALID_PARTY');next.hp=prior.hp;}
    const items=loadBattleRules().data.items;
+   const observedDefense=await captureDefenseSnapshot(tx,c!,{self:{playerId,targets:[f[1]]}});
    const state:State={participation:[{ownedId:owned.id,kind:'start',turn:0}],rulesVersion:'party-actions-v2',adventureId:run?.id,reserves,mode:encounter.mode,inventory:await tx.playerItem.findMany({where:{playerId},select:{itemId:true,count:true}}),version:'five-battle-v1',turn:0,fighters:f,decision:order(id,{turn:0,fighters:f},seed),outcome:null,events:[]};
    const lock=await tx.roster60Owned.updateMany({where:{id:owned.id,playerId,status:sourceStatus,locked:false,totalXp:owned.totalXp},data:{status:'BATTLE'}});if(lock.count!==1)return fail('UNIT_UNAVAILABLE');
    for(const member of members.slice(1)){const locked=await tx.roster60Owned.updateMany({where:{id:member.ownedId,playerId,status:sourceStatus,locked:false,totalXp:BigInt(member.startingXp)},data:{status:'BATTLE'}});if(locked.count!==1)return fail('UNIT_UNAVAILABLE');}
-   const row=await tx.roster60Battle.create({data:{id,playerId,ownedId:owned.id,seed,snapshot:JSON.stringify({policy:p,encounter,items,members,adventureId:run?.id,escapePolicy:adventureEscapePolicy,xpRecipient:run?'adventure-participation-100-reserve-50-v1':'initial-owned-existing-v1',growth:def.growth,startingXp:owned.totalXp.toString()}),state:JSON.stringify(state)}});
+   const row=await tx.roster60Battle.create({data:{id,playerId,ownedId:owned.id,seed,snapshot:JSON.stringify({policy:p,encounter,items,members,observedDefense,adventureId:run?.id,escapePolicy:adventureEscapePolicy,xpRecipient:run?'adventure-participation-100-reserve-50-v1':'initial-owned-existing-v1',growth:def.growth,startingXp:owned.totalXp.toString()}),state:JSON.stringify(state)}});
    if(run){const claimed=await tx.roster60Adventure.updateMany({where:{id:run.id,playerId,revision:run.revision,status:'ACTIVE',activeBattleId:null},data:{activeBattleId:id,revision:{increment:1}}});if(claimed.count!==1)return fail('ADVENTURE_STATE_CHANGED');}
-   return dto(row);
+   return this.view(row);
   });
  }
- async read(playerId:string,id:string){const row=await this.db.roster60Battle.findFirst({where:{id,playerId}});if(!row)return fail('BATTLE_NOT_FOUND',404);return dto(row);}
- async active(playerId:string){return {battles:(await this.db.roster60Battle.findMany({where:{playerId,status:{in:['ACTIVE','FINISHED']}},orderBy:{createdAt:'desc'},take:20})).map(dto)};}
+ async read(playerId:string,id:string){const row=await this.db.roster60Battle.findFirst({where:{id,playerId}});if(!row)return fail('BATTLE_NOT_FOUND',404);return this.view(row);}
+ async active(playerId:string){return {battles:(await this.db.roster60Battle.findMany({where:{playerId,status:{in:['ACTIVE','FINISHED']}},orderBy:{createdAt:'desc'},take:20})).map(row=>this.view(row))};}
  async action(playerId:string,b:{requestId:string;battleId:string;revision:number;action:BattleAction}){
   return this.request(playerId,b.requestId,['action',b.battleId,b.revision,b.action.kind,b.action.skillId??null,b.action.targetOwnedId??null,b.action.itemId??null],async tx=>{
    const row=await tx.roster60Battle.findFirst({where:{id:b.battleId,playerId}});if(!row)return fail('BATTLE_NOT_FOUND',404);
    if(row.revision!==b.revision)return fail('STALE_REVISION');if(row.status!=='ACTIVE')return fail('BATTLE_FINISHED');
-   const state=JSON.parse(row.state) as State,snap=JSON.parse(row.snapshot) as {policy:BattlePolicy;items?:ReturnType<typeof loadBattleRules>['data']['items']};
+   const state=JSON.parse(row.state) as State,snap=JSON.parse(row.snapshot) as {policy:BattlePolicy;items?:ReturnType<typeof loadBattleRules>['data']['items'];observedDefense?:DefenseSnapshot};
+   const knowledge=battleKnowledge(snap.observedDefense,state.events,'self'),observations:DefenseObservation[]=[];
+   const currentCatalog=safeKnowledgeCatalog(this.catalog);
+   const intel=()=>observedOpponentIntel(state.fighters[1],state.turn,snap.observedDefense,knowledge,currentCatalog);
    if(state.fighters[0].hp<=0&&b.action.kind!=='switch')return fail('FORCED_SWITCH_REQUIRED');
    const events:unknown[]=[];let actionConsumed=false;
    const commandBefore=capturePresentation(state.fighters);
+   const commandIntel=intel();
    if(b.action.kind==='escape'){
     if(!['story','duel','adventure'].includes(state.mode??''))return fail('ESCAPE_POLICY_PENDING');
     const adventure=state.mode==='adventure';
     if(adventure&&state.fighters[0].hp<=0)return fail('FORCED_SWITCH_POLICY_PENDING');
     const escaped=adventure&&adventureEscapeSucceeds(row.seed,row.id,state.turn);
     if(!adventure||escaped){
-     state.surrendered=!adventure;state.outcome=adventure?'escaped':'loss';state.events.push({turn:state.turn,events:[{actor:'self',kind:adventure?'escape-success':'surrender',presentation:presentStep(commandBefore,state.fighters)}]});
+     state.surrendered=!adventure;state.outcome=adventure?'escaped':'loss';state.events.push({turn:state.turn,events:[{actor:'self',kind:adventure?'escape-success':'surrender',presentation:presentStep(commandBefore,state.fighters),intelBefore:commandIntel,intelAfter:intel()}]});
      const changed=await tx.roster60Battle.updateMany({where:{id:row.id,playerId,revision:row.revision,status:'ACTIVE'},data:{state:JSON.stringify(state),revision:{increment:1},status:'FINISHED'}});if(changed.count!==1)return fail('STALE_REVISION');
-     return dto({...row,state:JSON.stringify(state),revision:row.revision+1,status:'FINISHED'});
+     return this.view({...row,state:JSON.stringify(state),revision:row.revision+1,status:'FINISHED'});
     }
-    actionConsumed=true;events.push({actor:'self',kind:'escape-failed',presentation:presentStep(commandBefore,state.fighters)});
+    actionConsumed=true;events.push({actor:'self',kind:'escape-failed',presentation:presentStep(commandBefore,state.fighters),intelBefore:commandIntel,intelAfter:intel()});
    }
    if(b.action.kind==='switch'){
     const forced=state.fighters[0].hp<=0;
@@ -140,8 +152,8 @@ export class RosterBattle {
     if(ix<0||!state.reserves![ix].hp)return fail('INVALID_SWITCH');
     const outgoing=state.fighters[0];state.participation??=[{ownedId:row.ownedId,kind:'start',turn:0}];state.fighters[0]=state.reserves![ix];state.reserves![ix]=outgoing;actionConsumed=true;
     state.participation.push({ownedId:state.fighters[0].ownedId!,kind:forced?'forced-switch':'switch',turn:state.turn});
-    events.push({actor:'self',kind:forced?'forced-switch':'switch',from:outgoing.ownedId,to:state.fighters[0].ownedId,presentation:presentStep(commandBefore,state.fighters)});
-    if(forced){state.decision=order(row.id,state,row.seed);state.events.push({turn:state.turn,events});const changed=await tx.roster60Battle.updateMany({where:{id:row.id,playerId,revision:row.revision,status:'ACTIVE'},data:{state:JSON.stringify(state),revision:{increment:1}}});if(changed.count!==1)return fail('STALE_REVISION');return dto({...row,state:JSON.stringify(state),revision:row.revision+1});}
+    events.push({actor:'self',kind:forced?'forced-switch':'switch',from:outgoing.ownedId,to:state.fighters[0].ownedId,presentation:presentStep(commandBefore,state.fighters),intelBefore:commandIntel,intelAfter:intel()});
+    if(forced){state.decision=order(row.id,state,row.seed);state.events.push({turn:state.turn,events});const changed=await tx.roster60Battle.updateMany({where:{id:row.id,playerId,revision:row.revision,status:'ACTIVE'},data:{state:JSON.stringify(state),revision:{increment:1}}});if(changed.count!==1)return fail('STALE_REVISION');return this.view({...row,state:JSON.stringify(state),revision:row.revision+1});}
    }
    if(b.action.kind==='item'){
     const itemId=b.action.itemId??'',it=Object.prototype.hasOwnProperty.call(snap.items??{},itemId)?snap.items![itemId]:null;if(!it)return fail('INVALID_ITEM');
@@ -153,7 +165,7 @@ export class RosterBattle {
     if(active.hp<=0&&target!==active)return fail('ACTIVE_UNIT_FAINTED');
     const used=await tx.playerItem.updateMany({where:{playerId,itemId,count:{gt:0}},data:{count:{decrement:1}}});if(used.count!==1)return fail('ITEM_UNAVAILABLE');
     const before=target.hp;target.hp=it.revive?Math.round(target.stats.hp*it.revive/100):Math.min(target.stats.hp,target.hp+Math.round(target.stats.hp*it.heal!/100));
-    events.push({actor:'self',kind:'item',itemId,targetOwnedId:target.ownedId,recovered:target.hp-before,presentation:presentStep(commandBefore,state.fighters)});actionConsumed=true;
+    events.push({actor:'self',kind:'item',itemId,targetOwnedId:target.ownedId,recovered:target.hp-before,presentation:presentStep(commandBefore,state.fighters),intelBefore:commandIntel,intelAfter:intel()});actionConsumed=true;
    }
    const self=state.fighters[0],enemy=state.fighters[1];
    const playerSkill=b.action.kind==='attack'?self.attack:b.action.kind==='skill'?self.skills.find(s=>s.id===b.action.skillId):null;
@@ -177,11 +189,14 @@ export class RosterBattle {
     const actor=who==='self'?self:enemy,target=who==='self'?enemy:self;if(!actor.hp||!target.hp)continue;
     const skill=who==='self'?playerSkill:enemySkill;
     const stepBefore=capturePresentation(state.fighters);
-    if(!skill){const next=focusMp(actor.mp,actor.stats.mp);actor.mp=next.mp;events.push({actor:who,kind:'focus',recovered:next.recovered,presentation:presentStep(stepBefore,state.fighters)});continue;}
+    const intelBefore=intel();
+    if(!skill){const next=focusMp(actor.mp,actor.stats.mp);actor.mp=next.mp;events.push({actor:who,kind:'focus',recovered:next.recovered,presentation:presentStep(stepBefore,state.fighters),intelBefore,intelAfter:intel()});continue;}
     actor.mp=spendMp(actor.mp,skill.mpCost);
     const hit=fiveStatAttack({power:skill.power,level:actor.level,durability:target.stats.durability,suitability:actor.suitability[skill.element],defense:target.defense[skill.element],attackerHp:actor.hp,defenderHp:target.hp},snap.policy.calculation,(base,fit)=>base*fit);
     if(hit.target==='attacker')actor.hp-=hit.damage;else target.hp-=hit.damage;
-    events.push({actor:who,kind:'skill',skillId:skill.id,...hit,presentation:presentStep(stepBefore,state.fighters,skill)});
+    const defenseObservation=who==='self'?resolvedDefenseObservation(target,skill.element,hit,'self',snap.observedDefense,currentCatalog,knowledge):null;
+    if(defenseObservation){observations.push(defenseObservation);addDefenseObservation(knowledge,defenseObservation,snap.observedDefense);}
+    events.push({actor:who,kind:'skill',skillId:skill.id,...hit,presentation:presentStep(stepBefore,state.fighters,skill),...(defenseObservation?{defenseObservation}:{}),intelBefore,intelAfter:intel()});
    }
    state.events.push({turn:state.turn,decision,events});state.turn++;
    state.outcome=self.hp<=0&&!(state.reserves??[]).some(f=>f.hp>0)?'loss':enemy.hp<=0?'win':state.turn>=snap.policy.maxRounds?'draw':null;
@@ -190,19 +205,20 @@ export class RosterBattle {
    const status=state.outcome?'FINISHED':'ACTIVE';
    const updated=await tx.roster60Battle.updateMany({where:{id:row.id,playerId,revision:row.revision,status:'ACTIVE'},data:{state:JSON.stringify(state),revision:{increment:1},status}});
    if(updated.count!==1)return fail('STALE_REVISION');
-   return dto({...row,state:JSON.stringify(state),revision:row.revision+1,status});
+   await persistDefenseObservations(tx,{self:playerId},observations);
+   return this.view({...row,state:JSON.stringify(state),revision:row.revision+1,status});
   });
  }
  async settle(playerId:string,b:{requestId:string;battleId:string;revision:number}){
   return this.request(playerId,b.requestId,['settle',b.battleId,b.revision],async tx=>{
    const row=await tx.roster60Battle.findFirst({where:{id:b.battleId,playerId}});if(!row)return fail('BATTLE_NOT_FOUND',404);
-   if(row.status==='SETTLED')return dto(row); // same battle never awards twice, even with a new request ID
+   if(row.status==='SETTLED')return this.view(row); // same battle never awards twice, even with a new request ID
    if(row.revision!==b.revision)return fail('STALE_REVISION');if(row.status!=='FINISHED')return fail('BATTLE_NOT_FINISHED');
    const state=JSON.parse(row.state) as State,snap=JSON.parse(row.snapshot);
    if(snap.adventureId){
     const settlement=await settleAdventureBattle(tx,row,state,snap);
     const changed=await tx.roster60Battle.updateMany({where:{id:row.id,playerId,revision:row.revision,status:'FINISHED'},data:{status:'SETTLED',revision:{increment:1},settlement:JSON.stringify(settlement)}});if(changed.count!==1)return fail('STALE_REVISION');
-    return dto({...row,revision:row.revision+1,status:'SETTLED',settlement:JSON.stringify(settlement)});
+    return this.view({...row,revision:row.revision+1,status:'SETTLED',settlement:JSON.stringify(settlement)});
    }
    const xp=state.surrendered?0:state.outcome==='win'?snap.encounter.winXp:state.outcome==='loss'?snap.encounter.lossXp:0;
    const owned=await tx.roster60Owned.findFirst({where:{id:row.ownedId,playerId,status:'BATTLE'}});if(!owned)return fail('UNIT_UNAVAILABLE');
@@ -215,7 +231,7 @@ export class RosterBattle {
    for(const member of (snap.members??[]).filter((m:{ownedId:string})=>m.ownedId!==row.ownedId)){const released=await tx.roster60Owned.updateMany({where:{id:member.ownedId,playerId,status:'BATTLE',totalXp:BigInt(member.startingXp)},data:{status:'AVAILABLE'}});if(released.count!==1)return fail('UNIT_STATE_CHANGED');}
    await tx.player.update({where:{id:playerId},data:{revision:{increment:1}}});
    if(state.outcome==='win'&&snap.encounter.tutorial)await verifyRosterTutorial(tx,playerId,row.id);
-   return dto({...row,revision:row.revision+1,status:'SETTLED',settlement:JSON.stringify(settlement)});
+   return this.view({...row,revision:row.revision+1,status:'SETTLED',settlement:JSON.stringify(settlement)});
   });
  }
 }

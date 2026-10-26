@@ -57,6 +57,9 @@ suite('roster60 real authenticated routes and atomic rewards',()=>{
     const inbox=await app.inject({url:'/my/api/native/news/inbox',headers});expect(inbox.statusCode).toBe(200);expect(inbox.body).toContain(ticketId);
     expect((await post('preview',{ticketId})).statusCode).toBe(503); // no approved product catalog installed
     expect((await service.preview(owner,ticketId) as any).characters).toHaveLength(7);
+    const choices=(await service.preview(owner,ticketId) as any).characters;
+    expect(choices.every((u:any)=>u.defense===undefined)).toBe(true);
+    expect(choices[0].suitability).toEqual(catalog.characters[0].suitability);expect(catalog.characters[0].defense).toBeDefined();
     expect((await service.preview(owner,ticketId) as any).ticket.quantity).toBe(1);
     await expect(service.preview(other,ticketId)).rejects.toThrow('TICKET_NOT_FOUND');
     expect(await db.nativeInboxMessage.count({where:{playerId:owner}})).toBe(1);

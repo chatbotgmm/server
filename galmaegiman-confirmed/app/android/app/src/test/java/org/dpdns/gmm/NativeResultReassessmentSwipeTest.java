@@ -25,7 +25,7 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.*;
 import org.robolectric.shadows.ShadowAlertDialog;
 
-/** 실제 터치·등록증·서버 응답으로 결과 재심사와 세 장 단위 넘기기를 함께 검증한다. */
+/** 실제 터치·등록증·서버 응답으로 결과 재심사와 연속 가로 탐색을 함께 검증한다. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35, qualifiers = "w915dp-h412dp-land-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -358,40 +358,52 @@ public class NativeResultReassessmentSwipeTest {
     }
   }
 
-  @Test public void horizontalSwipesMoveThreeCardsWithoutDossierAndKeepBackSelection() throws Exception {
+  @Test public void horizontalSwipesBrowseContinuouslyWithoutChangingSelectionOrOpeningDossier() throws Exception {
     try (Session s = new Session()) {
       s.attach(payload());
       String original = s.reveal.result.toString();
+      NativeReveal.RevealStrip strip = s.reveal.resultStrip;
       gesture(s, -s.h.dp(160), s.h.dp(4), false);
-      assertEquals(1, s.reveal.resultPage); assertEquals(3, s.flow.selected);
-      assertNull(s.reveal.dossier); assertEquals(3, records.revealFixture.cards(s.reveal).size());
+      assertTrue(strip.getScrollX() > 0); assertEquals(0, s.flow.selected);
+      assertNull(s.reveal.dossier); assertEquals(6, records.revealFixture.cards(s.reveal).size());
       assertNotNull(s.reveal.findViewWithTag("acquisition-card-S4"));
-      assertNull(s.reveal.findViewWithTag("acquisition-card-R13"));
-      gesture(s, -s.h.dp(160), 0, false);
-      assertEquals("최종 페이지를 넘어서지 않는다", 1, s.reveal.resultPage);
-      gesture(s, s.h.dp(160), 0, false);
-      assertEquals(0, s.reveal.resultPage); assertNull(s.reveal.dossier);
+      assertNotNull("전체 결과 슬롯은 이어져 있다", s.reveal.findViewWithTag("acquisition-card-R13"));
+      strip.stopMotion();
+      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(250));
+      int before = strip.getScrollX();
+      gesture(s, s.h.dp(100), 0, false);
+      assertTrue("반대로 밀면 연속 위치가 줄어든다", strip.getScrollX() < before);
+      assertEquals(0, s.flow.selected); assertNull(s.reveal.dossier);
       assertEquals(Collections.singletonList("native/progression"), s.api.reads);
+      strip.stopMotion();
+      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(250));
       button(s.h, "acquisition-next-page").performClick(); s.layout();
       Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(250));
       View tapped = s.reveal.findViewWithTag("acquisition-card-I3"); tapped.performClick();
       assertNull("카드는 새 창 없이 뒤집힌다", s.reveal.dossier);
       tapped.findViewWithTag("acquisition-card-record").performClick();
       assertNotNull(s.reveal.dossier); assertEquals(5, s.flow.selected);
+      int selectedOffset = strip.getScrollX();
       s.h.getOnBackPressedDispatcher().onBackPressed();
-      assertNull(s.reveal.dossier); assertEquals(1, s.reveal.resultPage); assertEquals(5, s.flow.selected);
+      assertNull(s.reveal.dossier); assertEquals(selectedOffset, strip.getScrollX()); assertEquals(5, s.flow.selected);
       assertSame(tapped, s.reveal.findViewWithTag("acquisition-card-I3"));
       assertEquals(original, s.reveal.result.toString()); assertTrue(s.api.bodies.isEmpty());
     }
   }
 
-  @Test public void cancelledAndVerticalGesturesDoNotPageOrOpenDossier() throws Exception {
+  @Test public void cancelledAndVerticalGesturesDoNotSelectFlipOrOpenDossier() throws Exception {
     try (Session s = new Session()) {
       s.attach(payload());
       gesture(s, -s.h.dp(160), 0, true);
-      assertEquals(0, s.reveal.resultPage); assertNull(s.reveal.dossier);
+      assertEquals(0, s.flow.selected); assertNull(s.reveal.dossier);
+      for (NativeReveal.RevealCard card : s.reveal.pageCards) assertFalse(card.infoShown);
+      s.reveal.resultStrip.stopMotion();
+      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(250));
+      int before = s.reveal.resultStrip.getScrollX();
       gesture(s, s.h.dp(4), s.h.dp(100), false);
-      assertEquals(0, s.reveal.resultPage); assertNull(s.reveal.dossier);
+      assertEquals(before, s.reveal.resultStrip.getScrollX());
+      assertEquals(0, s.flow.selected); assertNull(s.reveal.dossier);
+      for (NativeReveal.RevealCard card : s.reveal.pageCards) assertFalse(card.infoShown);
       assertEquals(Collections.singletonList("native/progression"), s.api.reads);
       assertTrue(s.api.bodies.isEmpty());
     }
@@ -448,9 +460,11 @@ public class NativeResultReassessmentSwipeTest {
     }
   }
 
-  @Test public void successRefreshesAuthoritativeStateAndArtWithoutLosingPageOrSelection() throws Exception {
+  @Test public void successRefreshesAuthoritativeStateAndArtWithoutLosingOffsetOrSelection() throws Exception {
     try (Session s = new Session()) {
       s.attach(secondPagePayload()); button(s.h, "acquisition-next-page").performClick(); s.layout();
+      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(250));
+      int savedOffset = s.reveal.resultStrip.getScrollX();
       openReassessment(s, 4, "o2"); confirm(s, "o2", true);
       String before = s.reveal.result.toString(); s.api.holdState = true;
       s.api.progression = progression();
@@ -463,7 +477,7 @@ public class NativeResultReassessmentSwipeTest {
       View close = s.h.root.findViewWithTag("progression-close"); if (close != null) close.performClick();
       s.layout();
       assertSame(s.api.snapshot, s.h.state);
-      assertEquals(1, s.reveal.resultPage); assertEquals(4, s.flow.selected);
+      assertEquals(savedOffset, s.reveal.resultStrip.getScrollX()); assertEquals(4, s.flow.selected);
       JSONObject replaced = s.reveal.units.getJSONObject(4);
       assertEquals("R14", replaced.optString("id")); assertEquals(1, replaced.optInt("n", 1));
       NativeReveal.RevealCard card = s.reveal.findViewWithTag("acquisition-card-R14"); assertNotNull(card);
@@ -471,6 +485,7 @@ public class NativeResultReassessmentSwipeTest {
       assertEquals("R14", artwork.id);
       records.review.await(() -> artwork.bitmap != null); assertNotNull(artwork.bitmap);
       assertNull(icon(s.reveal, 4)); assertEquals(1, s.api.bodies.size());
+      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(200));
       button(s.h, "acquisition-confirm").performClick(); button(s.h, "acquisition-confirm").performClick();
       assertEquals(1, s.finished.get());
     }
@@ -663,7 +678,9 @@ public class NativeResultReassessmentSwipeTest {
     Files.createDirectories(output);
     records.captures.writeScreenshot(session.h, output.resolve(name + ".png"), size[0], size[1]);
     JSONArray species = new JSONArray(), refreshTargets = new JSONArray(), newBadges = new JSONArray();
+    Rect visibleRail = records.bounds(session.reveal.resultStrip, session.h.root);
     for (NativeReveal.RevealCard card : records.revealFixture.cards(session.reveal)) {
+      if (!Rect.intersects(visibleRail, records.bounds(card, session.h.root))) continue;
       species.put(acquisition.registrationArtwork(card).id);
       if (card.newBadge != null) {
         float density = session.h.getResources().getDisplayMetrics().density;
@@ -688,7 +705,7 @@ public class NativeResultReassessmentSwipeTest {
         "viewport", new JSONArray(Arrays.asList(session.h.root.getWidth(), session.h.root.getHeight())),
         "densityDpi", session.h.getResources().getDisplayMetrics().densityDpi,
         "fontScale", session.h.getResources().getConfiguration().fontScale,
-        "resultPage", session.reveal.resultPage, "selectedIndex", session.flow.selected,
+        "scrollX", session.reveal.resultStrip.getScrollX(), "selectedIndex", session.flow.selected,
         "visibleSpecies", species, "visibleCardCount", species.length(),
         "translationX", strip.cardsRow.getTranslationX(), "mutationCount", session.api.bodies.size(),
         "dossierOpen", session.reveal.dossier != null, "refreshTargets", refreshTargets,
@@ -748,11 +765,17 @@ public class NativeResultReassessmentSwipeTest {
               assertFalse("NEW·수량 배지가 재심사 버튼을 가리지 않는다: " + label,
                   Rect.intersects(target, records.bounds(view, s.h.root)));
           }
+          Rect visibleRail = records.bounds(s.reveal.resultStrip, s.h.root);
+          int fullyVisible = 0;
           for (NativeReveal.RevealCard shown : records.revealFixture.cards(s.reveal)) {
+            Rect shownBounds = records.bounds(shown, s.h.root);
+            if (!visibleRail.contains(shownBounds)) continue;
+            fullyVisible++;
             records.fullyVisible(shown, s.h);
             RegistrationCardView.Artwork art = acquisition.registrationArtwork(shown);
             assertNotNull(art.bitmap); assertEquals(.75f, art.target.width() / art.target.height(), .01f);
           }
+          assertTrue("연속 레일에 복수 카드가 함께 보인다", fullyVisible >= 2);
           // 실제 밀도에서는 mdpi 고정 layout 헬퍼를 거치지 않고 스트립 터치를 전달한다.
           View strip = s.reveal.findViewWithTag("acquisition-cards-scroll");
           long time = SystemClock.uptimeMillis(); float x = strip.getWidth() * .7f, y = strip.getHeight() * .55f;
@@ -760,13 +783,14 @@ public class NativeResultReassessmentSwipeTest {
           touch(strip, MotionEvent.ACTION_MOVE, time, time + 32, x - s.h.dp(80), y);
           touch(strip, MotionEvent.ACTION_MOVE, time, time + 64, x - s.h.dp(160), y);
           NativeReveal.RevealStrip moving = (NativeReveal.RevealStrip) strip;
-          assertTrue("놓기 전에도 손가락을 따라 카드가 이동한다", moving.cardsRow.getTranslationX() <= -s.h.dp(100));
+          assertTrue("놓기 전에도 손가락을 따라 카드가 이동한다", moving.getScrollX() >= s.h.dp(70));
           assertEquals(0, s.reveal.resultPage); assertNull(s.reveal.dossier);
           capture(s, name + "-mid-drag", size);
           touch(strip, MotionEvent.ACTION_UP, time, time + 96, x - s.h.dp(160), y);
           frame(); capture(s, name + "-swiped", size);
-          assertEquals(1, s.reveal.resultPage); assertNull(s.reveal.dossier);
-          assertEquals("놓은 뒤 새 페이지는 기준 위치로 정렬", 0, moving.cardsRow.getTranslationX(), .5f);
+          assertEquals(0, s.flow.selected); assertNull(s.reveal.dossier);
+          assertTrue("놓은 위치에서 네이티브 관성으로 이어진다", moving.getScrollX() > 0);
+          assertEquals("별도 페이지 전환 변형을 적용하지 않는다", 0, moving.cardsRow.getTranslationX(), .5f);
           assertEquals(size[2], s.h.getResources().getDisplayMetrics().densityDpi);
           assertEquals(font, s.h.getResources().getConfiguration().fontScale, .01f);
           for (String tag : new String[] {"acquisition-previous-page", "acquisition-next-page", "acquisition-confirm"})
@@ -774,7 +798,6 @@ public class NativeResultReassessmentSwipeTest {
           assertTrue(s.api.bodies.isEmpty());
         }
       }
-    assertEquals("모든 밀도·글꼴의 정지/드래그/다음 페이지 캡처 관측", 24, screenshotObservations.length());
+    assertEquals("모든 밀도·글꼴의 정지/드래그/관성 탐색 캡처 관측", 24, screenshotObservations.length());
   }
 }
-

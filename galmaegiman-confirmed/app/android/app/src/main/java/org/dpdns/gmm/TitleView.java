@@ -7,7 +7,7 @@ import android.widget.*;
 
 /** G 항구의 수호자. 전투 원본과 현지 시간·단일 장면 시계, 고정 UI를 함께 쓴다. */
 final class TitleView extends FrameLayout implements FullBleed {
-  static final String GUARDIAN_PATH = "/roster60-art/u01-front.webp";
+  static final String GUARDIAN_PATH = "roster60-art/u01-front.webp";
   final MainActivity host;
   final Button enter, settings, account;
   final boolean loggedIn, loginBackdrop;
@@ -36,9 +36,10 @@ final class TitleView extends FrameLayout implements FullBleed {
         () -> {
           if (!SceneMotion.enabled(host)) parallax.close();
         };
-    // NativeArt가 APK 원본과 알파 범위를 작업 스레드에서 준비한다.
-    guardianArt = host.art.get(GUARDIAN_PATH, this::guardianReady);
-    if (guardianArt != null) guardianSource = host.art.alpha(guardianArt, GUARDIAN_PATH);
+    // 새 60종의 잘린 투명 전신을 APK 공통 캐시에서 준비한다. 원격 이미지 경로를 거치지 않는다.
+    guardianArt = LocalGameArt.peek(GUARDIAN_PATH, 1);
+    if (guardianArt != null) guardianReady(guardianArt);
+    else LocalGameArt.load(host, GUARDIAN_PATH, 1, this::guardianReady);
     LobbyView.warm(host);
     setWillNotDraw(false);
 
@@ -63,15 +64,10 @@ final class TitleView extends FrameLayout implements FullBleed {
     addView(titleSecond);
     enter =
         host.button(
-            loggedIn ? "게임 시작" : "로그인",
-            () -> {
-              if (loggedIn) host.load("home");
-              else host.login();
-            });
-    enter.setBackground(new TitleHarborDrawable(host, true));
-    enter.setTextColor(TitleHarborDrawable.TEXT);
-    enter.setTextSize(host.uiText(22));
-    enter.setPadding(host.dp(34), host.dp(4), host.dp(14), host.dp(8));
+            "게임 시작",
+            () -> { if (loginBackdrop) host.loginKakaoEntry(this); else host.startFromTitle(this, loggedIn); });
+    EntryActionUi.style(host, enter, false);
+    if (!loginBackdrop) host.entryActions().bind(enter, false);
     enter.setTag("title-enter");
     addView(enter);
     settings = host.button("설정", () -> NativeSettingsSheet.show(host));
@@ -112,9 +108,11 @@ final class TitleView extends FrameLayout implements FullBleed {
     }
   }
 
-  void guardianReady() {
-    guardianArt = host.art.peek(GUARDIAN_PATH);
-    guardianSource = guardianArt == null ? null : host.art.alpha(guardianArt, GUARDIAN_PATH);
+  void guardianReady(Bitmap bitmap) {
+    if (host.isFinishing() || host.isDestroyed()) return;
+    guardianArt = bitmap;
+    // roster60-art 파생본은 이미 원본 알파 경계로 잘려 있다. 그리는 중에 픽셀을 재탐색하지 않는다.
+    guardianSource = bitmap == null ? null : new Rect(0, 0, bitmap.getWidth(), bitmap.getHeight());
     invalidate();
   }
 
@@ -283,6 +281,7 @@ final class TitleView extends FrameLayout implements FullBleed {
         firstRect.bottom + gap + (float) Math.ceil(fontHeight(secondSize)) + host.dp(2));
     measure(titleFirst, firstRect);
     measure(titleSecond, secondRect);
+    EntryActionUi.fit(host, enter, Math.round(main.width()), Math.round(main.height()));
     measure(enter, main);
     measure(settings, gearBox());
     if (account != null) measure(account, accountBox());
@@ -324,21 +323,28 @@ final class TitleView extends FrameLayout implements FullBleed {
           safe.right - host.dp(16),
           Math.min(safe.bottom - host.dp(12), foot));
     }
-    return new RectF(
+    RectF stage = new RectF(
         safe.left + safe.width() * .039f,
         safe.top + safe.height() * .12f,
-        safe.left + safe.width() * .58f,
+        Math.min(safe.left + safe.width() * .58f,
+            column(getWidth(), getHeight()).left - Math.max(host.dp(12), safe.width() * .025f)),
         safe.top + safe.height() * .875f);
+    return stage;
   }
 
   RectF guardianDrawBox(RectF bounds, float depth, float pulse) {
-    if (guardianSource == null) return new RectF();
+    if (guardianSource == null || bounds.width() <= 0 || bounds.height() <= 0) return new RectF();
     float fit =
         Math.min(
             bounds.width() / guardianSource.width(), bounds.height() / guardianSource.height());
+    // 호흡·드래그가 가장 커도 안전영역과 오른쪽 고정 UI 쪽으로 그림이 넘지 않는다.
+    fit /= 1.004f;
     float width = guardianSource.width() * fit * (1 + .003f * pulse);
     float height = guardianSource.height() * fit * (1 + .004f * pulse);
-    float x = bounds.centerX() + parallax.x * depth, foot = bounds.bottom + parallax.y * depth;
+    float x = Math.max(bounds.left + width / 2,
+        Math.min(bounds.right - width / 2, bounds.centerX() + parallax.x * depth));
+    float foot = Math.max(bounds.top + height,
+        Math.min(bounds.bottom, bounds.bottom + parallax.y * depth));
     return new RectF(x - width / 2, foot - height, x + width / 2, foot);
   }
 

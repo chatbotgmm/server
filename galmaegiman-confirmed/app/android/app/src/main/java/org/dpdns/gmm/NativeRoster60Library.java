@@ -27,10 +27,16 @@ final class NativeRoster60Library {
   JSONObject stats=u.optJSONObject("levelOneStats");StringBuilder body=new StringBuilder();
   if(detailPage==0&&stats!=null)body.append("Lv1 기본 능력치\n체력 ").append(stats.optInt("hp")).append(" · MP ").append(stats.optInt("mp")).append("\n내구력 ").append(stats.optInt("durability")).append("\n저항력 ").append(stats.optInt("statusResistance")).append(" · 속도 ").append(stats.optInt("speed"));
   else if(detailPage==1)body.append("적합도\n").append(map(u.optJSONObject("suitability")));
-  else if(detailPage==2)body.append("속성 방어\n").append(map(u.optJSONObject("defense")));
+  else if(detailPage==2)body.append(observedDefenseText(u));
   else if(detailPage==3){JSONArray skills=u.optJSONArray("skills");if(skills!=null)for(int i=0;i<skills.length();i++){JSONObject sk=skills.optJSONObject(i);body.append("Lv").append(sk.optInt("learnLevel",1)).append(" ").append(sk.optString("name")).append(" · MP ").append(sk.optInt("mpCost")).append('\n');}}
   detailBody.setText(body.length()==0?"준비 중":body.toString());
 
+ }
+ String observedDefenseText(JSONObject species){
+  String[] values=Roster60OpponentIntel.collectionDefenses(species);int known=0;for(String value:values)if(!"unknown".equals(value))known++;
+  StringBuilder text=new StringBuilder("내 공격으로 확인한 반응 "+known+" / 8\n");
+  for(int i=0;i<values.length;i++)text.append(Roster60OpponentIntel.ELEMENT_NAMES[i]).append(' ').append(Roster60OpponentIntel.defenseLabel(values[i])).append(i%2==0?" / ":"\n");
+  return text.toString();
  }
  String map(JSONObject obj){if(obj==null)return "준비 중";String[] ids={"normal","fire","water","lightning","ice","nature","holy","dark"},labels={"일반","불","물","번개","얼음","자연","성","어둠"};StringBuilder b=new StringBuilder();for(int i=0;i<ids.length;i++){String v=obj.optString(ids[i].toUpperCase(java.util.Locale.ROOT)).toLowerCase(java.util.Locale.ROOT);v=v.replace("reflect","반사").replace("resist","내성").replace("weak","약점").replace("normal","보통").replace("null","무효").replace("immune","무효");b.append(labels[i]).append(' ').append(v).append(i%2==0?" / ":"\n");}return b.toString();}
  // 미확인 요청이나 수령하지 않은 후보가 있으면 후보 화면에서 먼저 정리한다.

@@ -91,29 +91,18 @@ final class NativeExtras {
 
   void daily() {
     h.base("출석 · 미션", "daily");
-    Button progression = k.action(null, "성장 · 패스", () -> new NativeProgression(h).open());
-    progression.setTag("daily-progression");
-    progression.setContentDescription("성장 · 플레이 패스 열기");
-    progression.setTextSize(16);
-    progression.setSingleLine(false);
-    progression.setMaxLines(1);
-    progression.setHorizontallyScrolling(false);
-    progression.setEllipsize(null);
-    progression.setPadding(h.dp(8), h.dp(4), h.dp(8), h.dp(4));
-    progression.setMinHeight(h.dp(48));
-    progression.setMinimumHeight(h.dp(48));
-    // Header rail keeps the attendance ledger and mission viewport unchanged.
-    LinearLayout header = (LinearLayout) h.page.findViewWithTag("theme-page-header");
-    if (header != null) header.addView(progression, new LinearLayout.LayoutParams(h.dp(164), h.dp(48)));
+    NavyWorkbenchTheme.page(h);
     LinearLayout[] cols = fixedSplit(.40f);
     m.fetch("daily", r -> {
       JSONObject attendance = r.optJSONObject("attend");
       if (attendance != null)
-        cols[0].addView(attendanceLedger(attendance), new LinearLayout.LayoutParams(-1, -2));
+        cols[0].addView(attendanceLedger(attendance), new LinearLayout.LayoutParams(-1, -1));
       DailyMissionBoard missions = new DailyMissionBoard(h.list(r, "missions"));
       cols[1].addView(missions, new LinearLayout.LayoutParams(-1, -1));
     });
   }
+
+  private static final int DAILY_RECEIVED = 0xff9fdbc8;
 
   /** 서버가 내려 준 이번 주 7칸을 그대로 보여 준다. 보상/주차를 클라이언트에서 계산하지 않는다. */
   LinearLayout attendanceLedger(JSONObject attendance) {
@@ -124,7 +113,7 @@ final class NativeExtras {
     LinearLayout ledger = k.column();
     ledger.setTag("daily-attendance-summary");
     ledger.setPadding(h.dp(6), h.dp(6), h.dp(6), h.dp(6));
-    ledger.setBackground(new GamePaperDrawable(h));
+    ledger.setBackground(NavyWorkbenchTheme.surface(h, NavyWorkbenchTheme.PANEL, NavyWorkbenchTheme.EDGE, 8));
 
     LinearLayout summary = k.row();
     summary.addView(sceneIcon("daily", 28));
@@ -134,7 +123,7 @@ final class NativeExtras {
     summary.addView(week, new LinearLayout.LayoutParams(0, -2, 1));
     TextView streak = dailyText(attendance.optInt("streak") + "일 연속", 11, false);
     streak.setTag("daily-streak");
-    streak.setTextColor(JournalTheme.MUTED);
+    streak.setTextColor(NavyWorkbenchTheme.MUTED);
     summary.addView(streak);
     ledger.addView(summary, new LinearLayout.LayoutParams(-1, -2));
 
@@ -149,14 +138,15 @@ final class NativeExtras {
         LinearLayout cell = k.column();
         cell.setTag("daily-day-" + day);
         cell.setGravity(Gravity.CENTER);
+        // 짧은 가로 화면·큰 글꼴에서 출석 버튼까지 한 화면에 들어가도록 칸 크기·여백은 패치 전 값을 유지하고 색만 남색 테마로 바꾼다.
         cell.setPadding(h.dp(3), h.dp(2), h.dp(3), h.dp(2));
         cell.setSelected(day == current);
-        android.graphics.drawable.GradientDrawable surface = new android.graphics.drawable.GradientDrawable();
-        surface.setCornerRadius(h.dp(5));
-        surface.setColor(day == current ? JournalTheme.NAVY : got ? JournalTheme.STONE : 0xfffff8e8);
-        surface.setStroke(h.dp(day == current ? 2 : 1), day == current ? JournalTheme.BRASS : JournalTheme.LINE);
+        android.graphics.drawable.GradientDrawable surface = NavyWorkbenchTheme.surface(h,
+            day == current ? 0xff24465a : got ? NavyWorkbenchTheme.HEADER : NavyWorkbenchTheme.SLOT,
+            day == current ? NavyWorkbenchTheme.GOLD : NavyWorkbenchTheme.LINE, 6);
+        if (day == current) surface.setStroke(h.dp(2), NavyWorkbenchTheme.GOLD);
         cell.setBackground(surface);
-        int ink = day == current ? JournalTheme.WHITE : JournalTheme.INK;
+        int ink = NavyWorkbenchTheme.TEXT;
         LinearLayout dayHeading = k.row();
         TextView dayLabel = dailyText(String.valueOf(day), 12, true);
         dayLabel.setContentDescription(day + "일째");
@@ -166,7 +156,8 @@ final class NativeExtras {
         TextView state = dailyText(status, 10, false);
         state.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         state.setPadding(h.dp(2), 0, 0, 0);
-        state.setTag("daily-day-state-" + day); state.setTextColor(ink);
+        state.setTag("daily-day-state-" + day);
+        state.setTextColor(day == current ? NavyWorkbenchTheme.GOLD : got ? DAILY_RECEIVED : NavyWorkbenchTheme.MUTED);
         dayHeading.addView(state, new LinearLayout.LayoutParams(0, -2, 1));
         cell.addView(dayHeading, new LinearLayout.LayoutParams(-1, -2));
         LinearLayout amount = k.row(); amount.setGravity(Gravity.CENTER);
@@ -180,29 +171,31 @@ final class NativeExtras {
         cell.setContentDescription(day + "일째, 지원서 " + rewards.optInt(i) + "장, "
             + (day == current ? "오늘, " : "") + (got ? "받음" : day == current ? "받을 수 있음" : "예정"));
         cell.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
-        // 마지막 주간 보상은 2칸 너비로 강조한다. 세로 높이나 보상량은 바꾸지 않는다.
-        LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, -2, day == 7 ? 2 : 1);
+        // 마지막 주간 보상의 2칸 너비를 유지한다. 같은 줄의 칸은 같은 높이(내용 기준)로 맞춘다.
+        LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, -1, day == 7 ? 2 : 1);
         if (i > start) slot.leftMargin = h.dp(4);
         row.addView(cell, slot);
       }
+      // 출석 줄은 내용 높이를 먼저 확보한다(짧은 화면·큰 글꼴에서 보상 글자가 잘리지 않게). 남는 높이는 미션 영역이 쓴다.
       LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(-1, -2);
-      slot.topMargin = h.dp(4); grid.addView(row, slot);
+      // 큰 글꼴·짧은 화면(약 780×319dp, 글꼴 130%)에서 주간 안내 줄까지 들어가도록 줄 간격은 2dp로 둔다.
+      slot.topMargin = h.dp(2); grid.addView(row, slot);
     }
-    ledger.addView(grid);
+    ledger.addView(grid, new LinearLayout.LayoutParams(-1, -2));
 
     View claim;
     if (today) {
       TextView received = dailyText("✓ 오늘 지원서 " + reward + "장 받음", 14, true);
-      received.setTextColor(JournalTheme.POSITIVE_INFO);
+      received.setTextColor(DAILY_RECEIVED);
+      received.setBackground(NavyWorkbenchTheme.surface(h, NavyWorkbenchTheme.HEADER, NavyWorkbenchTheme.LINE, 6));
       received.setGravity(Gravity.CENTER);
       received.setEnabled(false);
-      received.setMinimumHeight(h.dp(30));
-        claim = received;
+      received.setMinimumHeight(h.dp(48));
+      claim = received;
     } else {
       Button attend = k.primary(null, "지원서 " + reward + "장 받기",
           () -> h.mutate("attend", MainActivity.obj(), "daily"));
-      attend.setTextSize(h.uiText(14));
-      attend.setPadding(h.dp(8), 0, h.dp(8), 0);
+      dailyButton(attend, true);
       claim = attend;
     }
     claim.setTag("daily-attend");
@@ -210,7 +203,7 @@ final class NativeExtras {
     LinearLayout.LayoutParams claimSlot = new LinearLayout.LayoutParams(-1, today ? -2 : h.dp(48));
     claimSlot.topMargin = h.dp(4); ledger.addView(claim, claimSlot);
     TextView rule = dailyText("주마다 보상 증가 · 결석 시 1일째", 10, false);
-    rule.setTag("daily-attendance-rule"); rule.setTextColor(JournalTheme.MUTED);
+    rule.setTag("daily-attendance-rule"); rule.setTextColor(NavyWorkbenchTheme.MUTED);
     rule.setGravity(Gravity.CENTER); rule.setPadding(0, h.dp(3), 0, 0); ledger.addView(rule);
     return ledger;
   }
@@ -218,8 +211,27 @@ final class NativeExtras {
   TextView dailyText(String value, float size, boolean strong) {
     TextView text = h.text(value, size);
     text.setPadding(0, 0, 0, 0);
-    text.setTypeface(strong ? h.headline : h.prose);
+    NavyWorkbenchTheme.text(h, text, Math.round(size), strong, NavyWorkbenchTheme.TEXT);
+    text.setTextSize(h.uiText(size));
+    // 작업대 글꼴은 기본 위아래 여백이 커서 짧은 화면·큰 글꼴에서 줄이 넘친다. 글자 크기는 두고 여백만 뺀다.
+    text.setIncludeFontPadding(false);
     return text;
+  }
+
+  void dailyButton(Button button, boolean primary) {
+    NavyWorkbenchTheme.button(h, button, primary);
+    button.setTextSize(h.uiText(14));
+    android.graphics.drawable.StateListDrawable states = new android.graphics.drawable.StateListDrawable();
+    states.addState(new int[] {-android.R.attr.state_enabled},
+        NavyWorkbenchTheme.surface(h, NavyWorkbenchTheme.SLOT, NavyWorkbenchTheme.LINE, 6));
+    states.addState(new int[] {android.R.attr.state_pressed},
+        NavyWorkbenchTheme.surface(h, 0xff315266, NavyWorkbenchTheme.GOLD, 6));
+    states.addState(new int[] {}, NavyWorkbenchTheme.surface(h,
+        primary ? 0xff24465a : NavyWorkbenchTheme.HEADER,
+        primary ? NavyWorkbenchTheme.GOLD : NavyWorkbenchTheme.LINE, 6));
+    button.setBackground(states);
+    button.setTextColor(new android.content.res.ColorStateList(new int[][] {{-android.R.attr.state_enabled}, {}},
+        new int[] {NavyWorkbenchTheme.MUTED, NavyWorkbenchTheme.TEXT}));
   }
 
   /** 완성/진행/지급 중을 서버 상태 그대로 표시한다. 카드는 수령 버튼이 아니다. */
@@ -227,35 +239,40 @@ final class NativeExtras {
     LinearLayout card = k.column();
     String key = mission.optString("key", mission.optString("id", mission.optString("label")));
     card.setTag("daily-mission-" + key);
-    card.setPadding(h.dp(6), h.dp(5), h.dp(6), h.dp(5));
-    card.setBackground(new GamePaperDrawable(h));
+    card.setPadding(h.dp(8), h.dp(8), h.dp(8), h.dp(8));
+    card.setBackground(NavyWorkbenchTheme.surface(h, NavyWorkbenchTheme.HEADER,
+        mission.optBoolean("done") ? DAILY_RECEIVED : NavyWorkbenchTheme.LINE, 6));
     TextView label = dailyText(RecruitmentText.display(mission.optString("label")), 14, true);
     label.setTag("daily-mission-label-" + key);
     card.addView(label, new LinearLayout.LayoutParams(-1, -2));
+    card.addView(new View(h), new LinearLayout.LayoutParams(-1, 0, 1));
     int goal = Math.max(1, mission.optInt("goal"));
     int value = Math.min(goal, Math.max(0, mission.optInt("value")));
     LinearLayout detail = k.row();
     detail.setPadding(0, h.dp(3), 0, h.dp(2));
-    TextView progress = dailyText(value + "/" + goal, 11, false);
+    TextView progress = dailyText(value + "/" + goal, 12, false);
     progress.setTag("daily-mission-progress-" + key);
     progress.setContentDescription("진행 " + value + "/" + goal);
     progress.setPadding(0, 0, h.dp(4), 0); detail.addView(progress);
-    TextView status = dailyText(mission.optBoolean("done") ? "✓ 지급 완료" : value >= goal ? "지급 중" : "진행 중", 11, false);
+    TextView status = dailyText(mission.optBoolean("done") ? "✓ 지급 완료" : value >= goal ? "지급 중" : "진행 중", 12, false);
     status.setTag("daily-mission-state-" + key);
-    status.setTextColor(mission.optBoolean("done") ? JournalTheme.POSITIVE_INFO : JournalTheme.MUTED);
+    status.setTextColor(mission.optBoolean("done") ? DAILY_RECEIVED : NavyWorkbenchTheme.MUTED);
     detail.addView(status, new LinearLayout.LayoutParams(0, -2, 1));
     ImageView ticket = k.image("/duel/icons/u-ticket.png", 14, 14);
     ticket.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO); detail.addView(ticket);
+    // 미션 보상 글자는 짧은 화면·큰 글꼴에서 칸 높이를 넘지 않도록 기존 12 크기를 유지한다.
     TextView reward = dailyText(String.format(Locale.KOREA, "%,d장", mission.optInt("tickets")), 12, true);
     reward.setTag("native-mission-reward"); reward.setPadding(h.dp(2), 0, 0, 0);
+    reward.setTextColor(NavyWorkbenchTheme.GOLD);
     reward.setSingleLine(true); reward.setContentDescription("지원서 " + reward.getText());
     detail.addView(reward); card.addView(detail);
     ProgressBar bar = new ProgressBar(h, null, android.R.attr.progressBarStyleHorizontal);
     bar.setTag("daily-mission-bar-" + key); bar.setMax(goal); bar.setProgress(value);
     bar.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     bar.setProgressTintList(android.content.res.ColorStateList.valueOf(
-        mission.optBoolean("done") ? JournalTheme.TEAL : JournalTheme.BRASS));
-    card.addView(bar, new LinearLayout.LayoutParams(-1, h.dp(3)));
+        mission.optBoolean("done") ? DAILY_RECEIVED : NavyWorkbenchTheme.GOLD));
+    bar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(NavyWorkbenchTheme.SLOT));
+    card.addView(bar, new LinearLayout.LayoutParams(-1, h.dp(4)));
     return card;
   }
 
@@ -269,8 +286,8 @@ final class NativeExtras {
 
     DailyMissionBoard(JSONArray missions) {
       super(NativeExtras.this.h); setOrientation(VERTICAL); setTag("daily-mission-pages");
-      setPadding(h.dp(6), h.dp(5), h.dp(6), h.dp(5));
-      setBackground(new GamePaperDrawable(h));
+      setPadding(h.dp(8), h.dp(8), h.dp(8), h.dp(8));
+      setBackground(NavyWorkbenchTheme.surface(h, NavyWorkbenchTheme.PANEL, NavyWorkbenchTheme.LINE, 8));
       int done = 0;
       for (int i = 0; i < missions.length(); i++) {
         JSONObject mission = missions.optJSONObject(i);
@@ -286,6 +303,7 @@ final class NativeExtras {
       navigation = k.row(); navigation.setGravity(Gravity.CENTER);
       navigation.setTag("daily-missions-navigation"); addView(navigation, new LayoutParams(-1, -2));
       reset = dailyText("달성 시 자동 지급 · 한국 시간 밤 12시 초기화", 11, false);
+      // 배경 그림 위 안내 글자는 기존처럼 종이 읽기 면 + 진한 잉크로 둔다(색 규칙 검사 대상).
       reset.setTag("daily-reset-note"); reset.setTextColor(JournalTheme.INK);
       reset.setBackground(new GamePaperDrawable(h));
       reset.setPadding(h.dp(2), h.dp(4), h.dp(2), 0);
@@ -313,7 +331,13 @@ final class NativeExtras {
         int first = page * perPage;
         perPage = newPerPage; pageCount = Math.max(1, (cards.size() + perPage - 1) / perPage);
         page = Math.min(pageCount - 1, first / perPage);
-        paint(tallest);
+        // 글자 크기는 유지하고, 화면에 들어가는 행만 남은 높이를 나눠 쓴다.
+        // 좁거나 큰 글씨인 화면은 기존 페이지 전환을 사용한다. 전체 화면 스크롤은 만들지 않는다.
+        int visibleRows = Math.min(fittingRows, (cards.size() - page * perPage + 1) / 2);
+        int rowsHeight = Math.max(0, available - (pageCount > 1 ? h.dp(48) : 0));
+        int filledHeight = visibleRows > 0
+            ? Math.max(tallest, rowsHeight / visibleRows - h.dp(5)) : tallest;
+        paint(filledHeight);
         previousWidth = width; previousHeight = height; dirty = false;
       }
       super.onMeasure(widthSpec, heightSpec);
@@ -328,7 +352,12 @@ final class NativeExtras {
       rows.removeAllViews(); navigation.removeAllViews();
       for (LinearLayout card : cards)
         if (card.getParent() instanceof ViewGroup) ((ViewGroup) card.getParent()).removeView(card);
-      if (cards.isEmpty()) rows.addView(k.notice("오늘의 미션이 없어요."));
+      if (cards.isEmpty()) {
+        TextView empty = dailyText("오늘의 미션이 없어요.", 14, false);
+        empty.setTag("daily-missions-empty"); empty.setGravity(Gravity.CENTER);
+        empty.setTextColor(NavyWorkbenchTheme.MUTED);
+        rows.addView(empty, new LayoutParams(-1, -1));
+      }
       for (int start = page * perPage; start < Math.min(cards.size(), (page + 1) * perPage); start += 2) {
         LinearLayout row = k.row(); row.setBaselineAligned(false);
         for (int i = start; i < Math.min(start + 2, cards.size()); i++) {
@@ -344,14 +373,19 @@ final class NativeExtras {
       if (pageCount > 1) {
         Button previous = k.action(null, "‹", () -> change(page - 1));
         previous.setTag("daily-missions-previous"); previous.setContentDescription("이전 미션");
+        dailyButton(previous, false);
+        previous.setTextSize(h.uiText(16));
         previous.setPadding(0, 0, 0, 0); previous.setEnabled(page > 0);
         navigation.addView(previous, new LayoutParams(h.dp(48), h.dp(48)));
         TextView number = dailyText((page + 1) + " / " + pageCount, 12, false);
         number.setTag("daily-missions-number"); number.setGravity(Gravity.CENTER);
-        number.setTextColor(JournalTheme.INK); number.setBackground(new GamePaperDrawable(h));
+        number.setTextColor(NavyWorkbenchTheme.TEXT);
+        number.setBackground(NavyWorkbenchTheme.surface(h, NavyWorkbenchTheme.SLOT, 0, 6));
         navigation.addView(number, new LayoutParams(h.dp(56), h.dp(48)));
         Button next = k.action(null, "›", () -> change(page + 1));
         next.setTag("daily-missions-next"); next.setContentDescription("다음 미션");
+        dailyButton(next, false);
+        next.setTextSize(h.uiText(16));
         next.setPadding(0, 0, 0, 0); next.setEnabled(page + 1 < pageCount);
         navigation.addView(next, new LayoutParams(h.dp(48), h.dp(48)));
       }

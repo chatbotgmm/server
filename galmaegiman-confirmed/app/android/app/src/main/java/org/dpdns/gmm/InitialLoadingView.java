@@ -11,7 +11,9 @@ final class InitialLoadingView extends FrameLayout {
   private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
   private final RectF imageBox = new RectF(), bar = new RectF();
   private final LinearLayout footer;
+  private final TextView status;
   private final SceneMotion motion;
+  private float progress = -1;
 
   InitialLoadingView(MainActivity host, String message, Runnable retry) {
     super(host);
@@ -24,7 +26,7 @@ final class InitialLoadingView extends FrameLayout {
     footer = new LinearLayout(host);
     footer.setOrientation(LinearLayout.VERTICAL);
     footer.setGravity(Gravity.CENTER);
-    TextView status = host.text(message, 15);
+    status = host.text(message, 15);
     status.setGravity(Gravity.CENTER);
     status.setTextColor(0xfffff4db);
     status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
@@ -34,6 +36,29 @@ final class InitialLoadingView extends FrameLayout {
       footer.addView(button, new LinearLayout.LayoutParams(host.dp(160), host.dp(48)));
     }
     addView(footer);
+  }
+
+  void setMessage(String message) { status.setText(message); }
+
+  void setProgress(GameResourcePreparation.Progress prepared) {
+    progress = prepared.total <= 0 ? -1 : prepared.completed / (float) prepared.total;
+    status.setText("게임 리소스 준비 · " + prepared.succeeded + " / " + prepared.total
+        + (prepared.failed == 0 ? "" : " · 실패 " + prepared.failed)
+        + (prepared.deferred == 0 ? "" : " · 배경 " + prepared.deferred + "개는 화면에서 준비"));
+    invalidate();
+  }
+
+  /** Failed resources stay visible as failures; retry or continue is an explicit choice. */
+  void setActions(Runnable retry, Runnable proceed) {
+    while (footer.getChildCount() > 1) footer.removeViewAt(1);
+    LinearLayout actions = new LinearLayout(host);
+    actions.setGravity(Gravity.CENTER);
+    if (retry != null) actions.addView(host.button("리소스 다시 준비", retry),
+        new LinearLayout.LayoutParams(host.dp(180), host.dp(48)));
+    if (proceed != null) actions.addView(host.button("준비된 자료로 계속", proceed),
+        new LinearLayout.LayoutParams(host.dp(180), host.dp(48)));
+    footer.addView(actions, new LinearLayout.LayoutParams(-1, -2));
+    requestLayout();
   }
 
   @Override protected void onMeasure(int widthSpec, int heightSpec) {
@@ -65,10 +90,16 @@ final class InitialLoadingView extends FrameLayout {
     if (artwork != null && !imageBox.isEmpty()) canvas.drawBitmap(artwork, null, imageBox, paint);
     paint.setColor(0xff547481);
     canvas.drawRoundRect(bar, host.dp(2), host.dp(2), paint);
-    // 수치 진행률이 없는 작업: 백분율을 꾸미지 않고 밝기만 천천히 바꾼다.
     paint.setColor(0xffedcf8c);
-    paint.setAlpha(150 + Math.round(105 * motion.pulse(2200, 0)));
-    canvas.drawRoundRect(bar, host.dp(2), host.dp(2), paint);
+    if (progress < 0) {
+      // Account/update requests have no known work count.
+      paint.setAlpha(150 + Math.round(105 * motion.pulse(2200, 0)));
+      canvas.drawRoundRect(bar, host.dp(2), host.dp(2), paint);
+    } else {
+      paint.setAlpha(255);
+      canvas.drawRoundRect(new RectF(bar.left, bar.top, bar.left + bar.width()
+          * Math.max(0, Math.min(1, progress)), bar.bottom), host.dp(2), host.dp(2), paint);
+    }
     paint.setAlpha(255);
   }
 

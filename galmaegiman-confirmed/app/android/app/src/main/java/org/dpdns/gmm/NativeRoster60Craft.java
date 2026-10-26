@@ -14,6 +14,10 @@ final class NativeRoster60Craft {
  // 휴대폰 가로(작업대 약 760×250dp)=1. 큰 화면에서 글자·재료 칸·버튼을 같은 비율로 키운다.
  float scale=1;
  boolean mix=true,loading,submitting;LinearLayout[] cols;Button previewButton,confirmButton;
+ String renderedLeft="",renderedRight="";float renderedSlotScale=Float.NaN;
+ TextView selectedCount,statusLabel;LinearLayout craftActions;
+ final Button[] materialButtons=new Button[6];final ImageView[] materialPictures=new ImageView[6];
+ final JSONObject[] slotUnits=new JSONObject[6];final String[] slotSpecies=new String[6];
  NativeRoster60Craft(NativeEconomy e){economy=e;h=e.h;k=e.k;}
  String text(int id,Object... args){return h.getString(id,args);}
  SharedPreferences preferences(){return h.getSharedPreferences("roster60-craft-"+NativeBackend.accountPreferences(BuildConfig.SERVER_URL),0);}
@@ -26,6 +30,7 @@ final class NativeRoster60Craft {
   if(!owner.equals(h.api.token())){selected.clear();pending=null;units=new JSONArray();recipes=new JSONArray();owner=h.api.token();}
   if(owner.isEmpty()){h.login();return;}
   try{String saved=preferences().getString(ownerKey(),null);pending=saved==null?null:new JSONObject(saved);}catch(Exception invalid){pending=null;savePending();}
+  if(cols!=null)for(LinearLayout column:cols)clearArtwork(column);resetRendering();
   h.base(text(R.string.roster60_craft_title),mix?"mix":"craftRecipes");screenEpoch=h.epoch;economy.economyScene("workshop");NavyWorkbenchTheme.page(h);
   LinearLayout tools=k.row();tools.setTag("craft-inline-tools");
   for(boolean materials:new boolean[]{false,true}){Button tab=k.action(null,text(materials?R.string.roster60_craft_material_tab:R.string.roster60_craft_recipe_tab),()->open(materials));NavyWorkbenchTheme.tab(h,tab,mix!=materials);tab.setSelected(mix==materials);tab.setTag(materials?"craft-tab-material":"craft-tab-result");tab.setTextSize(12);tab.setSingleLine(false);tab.setMaxLines(1);tab.setEllipsize(android.text.TextUtils.TruncateAt.END);tab.setMinWidth(h.dp(120));tab.setMinimumWidth(h.dp(120));tools.addView(tab,new LinearLayout.LayoutParams(-2,h.dp(48)));}
@@ -53,16 +58,51 @@ final class NativeRoster60Craft {
   card.addView(face,new FrameLayout.LayoutParams(-1,-1));card.setContentDescription(title);card.actionLabel=text(R.string.roster60_craft_tap);card.tap=()->{if(material)toggle(current);};parent.addView(card,new LinearLayout.LayoutParams(-1,0,1));parent.addView(label(text(R.string.roster60_craft_position,items.length()==0?0:page+1,items.length())),new LinearLayout.LayoutParams(-1,h.dp(24*scale)));
  }
  String conditions(){JSONObject recipe=current(recipes,recipePage);if(recipe==null)return "";JSONArray ingredients=recipe.optJSONArray("ingredients");if(ingredients==null)return "";ArrayList<String> parts=new ArrayList<>();for(int i=0;i<ingredients.length();i++){JSONObject ingredient=ingredients.optJSONObject(i);String id=ingredient.optString("unitId"),name=id;for(int j=0;j<units.length();j++)if(id.equals(units.optJSONObject(j).optString("speciesId")))name=units.optJSONObject(j).optString("name");for(int j=0;j<recipes.length();j++)if(id.equals(recipes.optJSONObject(j).optString("resultId")))name=recipes.optJSONObject(j).optString("name");parts.add(name+" ×"+ingredient.optInt("count")+" Lv"+ingredient.optInt("minLevel"));}return android.text.TextUtils.join(" · ",parts);}
- void render(){if(cols==null)return;for(LinearLayout c:cols)c.removeAllViews();unitPage=Math.max(0,Math.min(unitPage,units.length()-1));recipePage=Math.max(0,Math.min(recipePage,recipes.length()-1));
-  if(mix)carousel(cols[0],units,unitPage,true,d->{if(loading||submitting||pending!=null)return;unitPage=Math.max(0,Math.min(unitPage+d,units.length()-1));render();});else carousel(cols[0],recipes,recipePage,false,d->{if(loading||submitting||pending!=null)return;recipePage=Math.max(0,Math.min(recipePage+d,recipes.length()-1));changed();});
-  ArrayList<JSONObject> chosen=new ArrayList<>(selected.values());// 두 줄 재료 칸을 한 묶음으로 가운데에 둔다(큰 화면에서 줄 사이가 벌어지지 않게).
-  cols[1].setGravity(Gravity.CENTER_VERTICAL);TextView count=label("재료 "+chosen.size()+" / 6");count.setTag("roster60-craft-count");cols[1].addView(count,new LinearLayout.LayoutParams(-1,-2));for(int row=0;row<2;row++){LinearLayout line=k.row();cols[1].addView(line,new LinearLayout.LayoutParams(-1,-2));for(int col=0;col<3;col++){int i=row*3+col;JSONObject unit=i<chosen.size()?chosen.get(i):null;Button slot=k.action(null,unit==null?text(R.string.roster60_craft_slot,i+1):unit.optString("name"),()->toggle(unit));slot.setTag("roster60-slot-"+i);slot.setEnabled(unit!=null&&!loading&&!submitting&&pending==null);NavyWorkbenchTheme.tab(h,slot,unit!=null);slot.setTextSize(12*scale);// 큰 화면에서 재료 칸이 세로로만 길어지지 않게 높이를 너비×1.3까지만 쓴다.
-   FrameLayout cell=new FrameLayout(h){@Override protected void onMeasure(int w,int hs){int width=MeasureSpec.getSize(w),limit=(int)(width*1.3f);hs=MeasureSpec.makeMeasureSpec(MeasureSpec.getMode(hs)==MeasureSpec.UNSPECIFIED?limit:Math.min(limit,MeasureSpec.getSize(hs)),MeasureSpec.EXACTLY);Roster60Scale.fitLine(slot,width-h.dp(4),12*scale,9*scale);super.onMeasure(w,hs);}};ImageView picture=new ImageView(h);picture.setPadding(h.dp(4*scale),h.dp(4*scale),h.dp(4*scale),h.dp(25*scale));picture.setContentDescription(unit==null?"빈 재료 슬롯":unit.optString("name")+" 정면");if(unit!=null)Roster60Portrait.bindFace(h,picture,unit.optString("speciesId"));cell.setBackground(NavyWorkbenchTheme.surface(h,NavyWorkbenchTheme.SLOT,NavyWorkbenchTheme.LINE,6));cell.addView(picture,new FrameLayout.LayoutParams(-1,-1));slot.setBackgroundColor(android.graphics.Color.TRANSPARENT);slot.setTextColor(unit==null?0xff9caebb:NavyWorkbenchTheme.TEXT);slot.setSingleLine(true);slot.setEllipsize(android.text.TextUtils.TruncateAt.END);slot.setGravity(Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);slot.setPadding(2,0,2,h.dp(3*scale));cell.addView(slot,new FrameLayout.LayoutParams(-1,-1));line.addView(cell,new LinearLayout.LayoutParams(0,-1,1));}}
-  if(mix)carousel(cols[2],recipes,recipePage,false,d->{if(loading||submitting||pending!=null)return;recipePage=Math.max(0,Math.min(recipePage+d,recipes.length()-1));changed();});else carousel(cols[2],units,unitPage,true,d->{if(loading||submitting||pending!=null)return;unitPage=Math.max(0,Math.min(unitPage+d,units.length()-1));render();});
-  TextView state=label(preview==null?message+(conditions().isEmpty()?"":"\n"+conditions()):text(R.string.roster60_craft_prediction,preview.optInt("expectedLevel"),preview.optString("maxLevel","—"),preview.optString("inheritedTotalXp")));state.setTag("roster60-craft-status");state.setTextSize(11*scale);if(preview!=null&&preview.has("remainingXp"))state.append("\n현재 XP "+preview.optString("remainingXp")+(preview.isNull("xpToNext")?"":" · 다음 "+preview.optString("xpToNext")));state.setMaxLines(3);cols[2].addView(state,new LinearLayout.LayoutParams(-1,-2));
-  previewButton=k.action(null,text(version.isEmpty()?R.string.roster60_craft_reload:R.string.roster60_craft_preview),()->{if(version.isEmpty())load();else requestPreview();});previewButton.setTag("roster60-craft-preview");previewButton.setEnabled(!loading&&!submitting&&pending==null&&(version.isEmpty()||(!selected.isEmpty()&&recipes.length()>0)));
-  confirmButton=k.action(null,text(pending==null?R.string.roster60_craft_confirm:R.string.roster60_craft_retry),this::confirm);confirmButton.setTag("roster60-craft-confirm");confirmButton.setEnabled(!loading&&!submitting&&(preview!=null||pending!=null));
-  LinearLayout actions=k.row();cols[2].addView(actions,new LinearLayout.LayoutParams(-1,h.dp(48*scale)));for(Button b:new Button[]{previewButton,confirmButton}){NavyWorkbenchTheme.tab(h,b,b==previewButton);b.setTextSize(11*scale);b.setMinWidth(0);b.setMinimumWidth(0);actions.addView(b,new LinearLayout.LayoutParams(0,-1,1));}
+ void resetRendering(){renderedLeft=renderedRight="";renderedSlotScale=Float.NaN;selectedCount=statusLabel=null;craftActions=null;Arrays.fill(materialButtons,null);Arrays.fill(materialPictures,null);Arrays.fill(slotUnits,null);Arrays.fill(slotSpecies,null);}
+ void clearArtwork(View view){if(view instanceof ImageView){RegistrationV10Art.clear((ImageView)view);Roster60Portrait.clear((ImageView)view);}else if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++)clearArtwork(group.getChildAt(i));}}
+ String carouselRevision(JSONArray items,int page,boolean material){JSONObject item=current(items,page);return owner+"|"+mix+"|"+scale+"|"+material+"|"+page+"|"+items.length()+"|"+(item==null?"":item.toString());}
+ void ensureSelectionViews(){
+  if(selectedCount!=null)return;
+  cols[1].setGravity(Gravity.CENTER_VERTICAL);selectedCount=label("");selectedCount.setTag("roster60-craft-count");cols[1].addView(selectedCount,new LinearLayout.LayoutParams(-1,-2));
+  for(int row=0;row<2;row++){LinearLayout line=k.row();cols[1].addView(line,new LinearLayout.LayoutParams(-1,-2));
+   for(int col=0;col<3;col++){final int index=row*3+col;
+    Button slot=k.action(null,"",()->toggle(slotUnits[index]));materialButtons[index]=slot;slot.setTag("roster60-slot-"+index);NavyWorkbenchTheme.tab(h,slot,false);
+    FrameLayout cell=new FrameLayout(h){@Override protected void onMeasure(int w,int hs){int width=MeasureSpec.getSize(w),limit=(int)(width*1.3f);hs=MeasureSpec.makeMeasureSpec(MeasureSpec.getMode(hs)==MeasureSpec.UNSPECIFIED?limit:Math.min(limit,MeasureSpec.getSize(hs)),MeasureSpec.EXACTLY);Roster60Scale.fitLine(slot,width-h.dp(4),12*scale,9*scale);super.onMeasure(w,hs);}};
+    ImageView picture=new ImageView(h);materialPictures[index]=picture;cell.setBackground(NavyWorkbenchTheme.surface(h,NavyWorkbenchTheme.SLOT,NavyWorkbenchTheme.LINE,6));cell.addView(picture,new FrameLayout.LayoutParams(-1,-1));
+    slot.setBackgroundColor(android.graphics.Color.TRANSPARENT);slot.setSingleLine(true);slot.setEllipsize(android.text.TextUtils.TruncateAt.END);slot.setGravity(Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);cell.addView(slot,new FrameLayout.LayoutParams(-1,-1));line.addView(cell,new LinearLayout.LayoutParams(0,-1,1));
+   }
+  }
+ }
+ void updateSelectionViews(){
+  ensureSelectionViews();ArrayList<JSONObject> chosen=new ArrayList<>(selected.values());setText(selectedCount,"재료 "+chosen.size()+" / 6");
+  boolean resized=Float.compare(renderedSlotScale,scale)!=0;selectedCount.setTextSize(12*scale);
+  for(int i=0;i<6;i++){JSONObject unit=i<chosen.size()?chosen.get(i):null;slotUnits[i]=unit;Button slot=materialButtons[i];ImageView picture=materialPictures[i];
+   setText(slot,unit==null?text(R.string.roster60_craft_slot,i+1):unit.optString("name"));slot.setEnabled(unit!=null&&!loading&&!submitting&&pending==null);slot.setTextColor(unit==null?0xff9caebb:NavyWorkbenchTheme.TEXT);
+   if(resized){slot.setTextSize(12*scale);slot.setPadding(2,0,2,h.dp(3*scale));picture.setPadding(h.dp(4*scale),h.dp(4*scale),h.dp(4*scale),h.dp(25*scale));}
+   picture.setContentDescription(unit==null?"빈 재료 슬롯":unit.optString("name")+" 정면");String species=unit==null?"":unit.optString("speciesId");
+   if(!species.equals(slotSpecies[i])){if(species.isEmpty())clearArtwork(picture);else Roster60Portrait.bindFace(h,picture,species);slotSpecies[i]=species;}
+  }
+  renderedSlotScale=scale;
+ }
+ void ensureActions(){
+  if(craftActions!=null)return;
+  statusLabel=label("");statusLabel.setTag("roster60-craft-status");statusLabel.setMaxLines(3);
+  previewButton=k.action(null,"",()->{if(version.isEmpty())load();else requestPreview();});previewButton.setTag("roster60-craft-preview");
+  confirmButton=k.action(null,"",this::confirm);confirmButton.setTag("roster60-craft-confirm");craftActions=k.row();
+  for(Button b:new Button[]{previewButton,confirmButton}){NavyWorkbenchTheme.tab(h,b,b==previewButton);b.setMinWidth(0);b.setMinimumWidth(0);craftActions.addView(b,new LinearLayout.LayoutParams(0,-1,1));}
+ }
+ void setText(TextView view,String value){if(!value.contentEquals(view.getText()))view.setText(value);}
+ void render(){if(cols==null)return;unitPage=Math.max(0,Math.min(unitPage,units.length()-1));recipePage=Math.max(0,Math.min(recipePage,recipes.length()-1));
+  JSONArray left=mix?units:recipes,right=mix?recipes:units;int leftPage=mix?unitPage:recipePage,rightPage=mix?recipePage:unitPage;
+  String leftRevision=carouselRevision(left,leftPage,mix),rightRevision=carouselRevision(right,rightPage,!mix);
+  if(!leftRevision.equals(renderedLeft)){clearArtwork(cols[0]);cols[0].removeAllViews();if(mix)carousel(cols[0],units,unitPage,true,d->{if(loading||submitting||pending!=null)return;unitPage=Math.max(0,Math.min(unitPage+d,units.length()-1));render();});else carousel(cols[0],recipes,recipePage,false,d->{if(loading||submitting||pending!=null)return;recipePage=Math.max(0,Math.min(recipePage+d,recipes.length()-1));changed();});renderedLeft=leftRevision;}
+  updateSelectionViews();ensureActions();
+  if(!rightRevision.equals(renderedRight)){clearArtwork(cols[2]);cols[2].removeAllViews();if(mix)carousel(cols[2],recipes,recipePage,false,d->{if(loading||submitting||pending!=null)return;recipePage=Math.max(0,Math.min(recipePage+d,recipes.length()-1));changed();});else carousel(cols[2],units,unitPage,true,d->{if(loading||submitting||pending!=null)return;unitPage=Math.max(0,Math.min(unitPage+d,units.length()-1));render();});cols[2].addView(statusLabel,new LinearLayout.LayoutParams(-1,-2));cols[2].addView(craftActions,new LinearLayout.LayoutParams(-1,h.dp(48*scale)));renderedRight=rightRevision;}
+  String status=preview==null?message+(conditions().isEmpty()?"":"\n"+conditions()):text(R.string.roster60_craft_prediction,preview.optInt("expectedLevel"),preview.optString("maxLevel","—"),preview.optString("inheritedTotalXp"));
+  if(preview!=null&&preview.has("remainingXp"))status+="\n현재 XP "+preview.optString("remainingXp")+(preview.isNull("xpToNext")?"":" · 다음 "+preview.optString("xpToNext"));setText(statusLabel,status);statusLabel.setTextSize(11*scale);
+  setText(previewButton,text(version.isEmpty()?R.string.roster60_craft_reload:R.string.roster60_craft_preview));previewButton.setEnabled(!loading&&!submitting&&pending==null&&(version.isEmpty()||(!selected.isEmpty()&&recipes.length()>0)));
+  setText(confirmButton,text(pending==null?R.string.roster60_craft_confirm:R.string.roster60_craft_retry));confirmButton.setEnabled(!loading&&!submitting&&(preview!=null||pending!=null));
+  for(Button b:new Button[]{previewButton,confirmButton})b.setTextSize(11*scale);
  }
  JSONObject selection(){JSONObject recipe=current(recipes,recipePage);return MainActivity.obj("resultId",recipe==null?"":recipe.optString("resultId"),"materialIds",new JSONArray(selected.keySet()),"catalogVersion",version);}
  void requestPreview(){if(loading||submitting||pending!=null)return;loading=true;preview=null;render();int ticket=++generation;JSONObject request=selection();h.api.call("native/roster60/craft/preview",request,(r,e)->{if(!valid(ticket))return;loading=false;preview=e==null?r:null;message=text(R.string.roster60_craft_preview_failed);render();});}

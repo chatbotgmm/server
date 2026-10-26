@@ -329,33 +329,35 @@ public class RegistrationRevealTest {
         NativeReveal reveal = attach(host, payload, () -> {}, true, null);
         int quantity = 0, visited = 0;
         List<RegistrationCardView.Artwork> oldArt = new ArrayList<>();
-        for (int page = 0; page < (itemCount + 2) / 3; page++) {
-          List<NativeReveal.RevealCard> shown = cards(reveal);
-          assertEquals(Math.min(3, itemCount - page * 3), shown.size());
-          for (int i = 0; i < shown.size(); i++) {
-            JSONObject expected = items.getJSONObject(page * 3 + i);
-            RegistrationCardView.Artwork art = acquisition.registrationArtwork(shown.get(i));
-            assertEquals(expected.getString("id"), art.id);
-            assertNull("Identity is printed only once", text(shown.get(i), expected.getString("name")));
-            assertTrue(shown.get(i).getContentDescription().toString().contains(expected.getString("name")));
-            assertEquals(expected.getBoolean("first"), text(shown.get(i), "NEW") != null);
-            if (expected.getInt("n") > 1)
-              assertNotNull(text(shown.get(i), "×" + expected.getInt("n")));
-            quantity += expected.getInt("n");
-            visited++;
-            oldArt.add(art);
-          }
-          if ((page + 1) * 3 < itemCount) {
-            reveal.findViewWithTag("acquisition-next-page").performClick();
-            review.viewport(host, host.root.getWidth(), host.root.getHeight());
-            for (RegistrationCardView.Artwork detached : oldArt) {
-              assertFalse("Previous page is detached", detached.isAttachedToWindow());
-              assertNull("Detached page does not retain 768px full bitmaps", detached.bitmap);
-            }
+        List<NativeReveal.RevealCard> slots = cards(reveal);
+        assertEquals("Every authoritative result has one continuous slot", itemCount, slots.size());
+        int released = 0;
+        for (int i = 0; i < slots.size(); i++) {
+          NativeReveal.RevealCard card = slots.get(i);
+          reveal.resultStrip.revealIndex(i);
+          Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(200));
+          review.viewport(host, host.root.getWidth(), host.root.getHeight());
+          JSONObject expected = items.getJSONObject(i);
+          RegistrationCardView.Artwork art = acquisition.registrationArtwork(card);
+          assertNotNull("The browsed result is attached", art);
+          assertEquals(expected.getString("id"), art.id);
+          assertNull("Identity is printed only once", text(card, expected.getString("name")));
+          assertTrue(card.getContentDescription().toString().contains(expected.getString("name")));
+          assertEquals(expected.getBoolean("first"), text(card, "NEW") != null);
+          if (expected.getInt("n") > 1) assertNotNull(text(card, "×" + expected.getInt("n")));
+          quantity += expected.getInt("n");
+          visited++;
+          oldArt.add(art);
+          released = 0;
+          for (RegistrationCardView.Artwork earlier : oldArt) {
+            if (earlier.isAttachedToWindow()) continue;
+            released++;
+            assertNull("Artwork outside the viewport buffer releases its bitmap", earlier.bitmap);
           }
           assertTrue("The global image cache stays bounded", host.registrationArt().cachedBytes()
               <= RegistrationArt.MAX_CACHE_BYTES);
         }
+        if (itemCount > 10) assertTrue("Long batches release earlier artwork while keeping slots", released > 0);
         assertEquals(itemCount, visited);
         assertEquals(drawCount, quantity);
         assertEquals(untouched, payload.toString());

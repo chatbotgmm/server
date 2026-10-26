@@ -157,13 +157,25 @@ public class TitleGTest {
           textFits(title.titleSecond);
           textFits(title.enter);
           assertTrue("캐릭터는 고정 UI의 왼쪽", title.guardianBox(null).right < title.mainBox().left);
+          RectF stage = title.guardianBox(null);
+          for (float dragX : new float[] {-host.dp(18), 0, host.dp(18)})
+            for (float dragY : new float[] {-host.dp(12), 0, host.dp(12)})
+              for (float pulse : new float[] {0, 1}) {
+                title.parallax.x = dragX;
+                title.parallax.y = dragY;
+                RectF drawn = title.guardianDrawBox(stage, .9f, pulse);
+                assertTrue("전신은 안전한 책상 영역 안에 표시", safe.contains(drawn));
+                assertTrue("드래그·호흡 중에도 오른쪽 UI와 분리", drawn.right < title.mainBox().left);
+              }
+          title.parallax.x = title.parallax.y = 0;
           assertEquals(0, api.calls.size());
         }
       }
       TitleView title = (TitleView) host.root.getChildAt(0);
-      try (InputStream input = host.getAssets().open("game-art/duel/sprites/D1_s0_front.webp")) {
+      try (InputStream input = host.getAssets().open(TitleView.GUARDIAN_PATH)) {
         Bitmap original = BitmapFactory.decodeStream(input);
-        assertTrue("t2 캐릭터가 아닌 정확한 전투 D1 원본", original.sameAs(title.guardianArt));
+        assertEquals("최신 기본 갈매미맨의 투명 전신 경로", "roster60-art/u01-front.webp", TitleView.GUARDIAN_PATH);
+        assertTrue("별도 생성·옛 캐릭터 대체 없이 APK u01 원본", original.sameAs(title.guardianArt));
         original.recycle();
       }
     }
@@ -176,7 +188,7 @@ public class TitleGTest {
       Api api = api(host);
       TitleView out = title(host, false);
       review.viewport(host, 915, 412);
-      assertEquals("로그인", out.enter.getText().toString());
+      assertEquals("게임 시작", out.enter.getText().toString());
       assertNull(out.account);
       out.enter.performClick();
       assertEquals("login", host.screen);
@@ -184,12 +196,13 @@ public class TitleGTest {
       ready(backdrop);
       review.viewport(host, 915, 412);
       assertTrue(backdrop.loginBackdrop);
+      assertEquals(View.VISIBLE, backdrop.enter.getVisibility());
+      assertEquals(EntryActionUi.KAKAO_LABEL, backdrop.enter.getText().toString());
       for (View view :
           new View[] {
             backdrop.caption,
             backdrop.titleFirst,
             backdrop.titleSecond,
-            backdrop.enter,
             backdrop.settings
           }) assertEquals("로그인 폼 뒤에 제목/CTA를 중복 표시하지 않음", View.GONE, view.getVisibility());
       assertTrue(
@@ -229,7 +242,9 @@ public class TitleGTest {
       title.parallax.x = 12;
       title.parallax.y = 7;
       RectF dragged = title.guardianDrawBox(bounds, .9f, 0);
-      assertEquals(resting.bottom + 6.3f, dragged.bottom, .001f);
+      assertTrue("접지선 아래로 드래그하지 않음", dragged.bottom <= bounds.bottom);
+      assertTrue("전경 영역의 왼쪽 경계 보존", dragged.left >= bounds.left);
+      assertTrue("전경 영역의 오른쪽 경계 보존", dragged.right <= bounds.right);
       Rect after = new Rect();
       title.enter.getHitRect(after);
       assertEquals(fixed, after);

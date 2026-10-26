@@ -167,13 +167,15 @@ public class NativeResultDossierTest {
         <= button.getHeight() - button.getCompoundPaddingTop() - button.getCompoundPaddingBottom());
   }
 
-  @Test public void tapIsReadOnlyAndBackKeepsExactPageSelectionAndConfirmationOnce() throws Exception {
+  @Test public void tapIsReadOnlyAndBackKeepsExactOffsetSelectionAndConfirmationOnce() throws Exception {
     try (var controller = fixtures.start()) {
       MainActivity host = controller.get(); FakeApi api = prepare(host);
       AtomicInteger finished = new AtomicInteger();
       NativeReveal reveal = attach(host, finished);
       String original = reveal.result.toString(), originalState = host.state.toString();
       reveal.findViewWithTag("acquisition-next-page").performClick();
+      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(250));
+      int savedOffset = reveal.resultStrip.getScrollX();
       View selected = reveal.findViewWithTag("acquisition-card-D1");
       selected.performClick();
       assertNull("카드를 눌러도 새 창을 띄우지 않고 뒤집는다", reveal.dossier);
@@ -182,7 +184,7 @@ public class NativeResultDossierTest {
       record.performClick(); record.performClick();
       NativeUnitDossier dossier = reveal.dossier;
       assertNotNull(dossier);
-      assertEquals(1, reveal.resultPage); assertEquals(4, reveal.flow.selected);
+      assertEquals(savedOffset, reveal.resultStrip.getScrollX()); assertEquals(4, reveal.flow.selected);
       assertEquals(Arrays.asList("native/catalog", "native/catalog", "native/state"), api.reads);
       assertEquals(item("D1").getString("intro"),
           ((TextView) dossier.findViewWithTag("acquisition-dossier-intro")).getText().toString());
@@ -197,7 +199,7 @@ public class NativeResultDossierTest {
       host.getOnBackPressedDispatcher().onBackPressed();
       assertNull(reveal.dossier);
       assertSame(selected, reveal.findViewWithTag("acquisition-card-D1"));
-      assertEquals(1, reveal.resultPage); assertEquals(4, reveal.flow.selected);
+      assertEquals(savedOffset, reveal.resultStrip.getScrollX()); assertEquals(4, reveal.flow.selected);
       assertEquals(original, reveal.result.toString()); assertEquals(originalState, host.state.toString());
       Button confirm = reveal.findViewWithTag("acquisition-confirm");
       confirm.performClick(); confirm.performClick();
@@ -256,18 +258,20 @@ public class NativeResultDossierTest {
     }
   }
 
-  @Test public void recipeRouteAndAllResultPagesRemainReachable() throws Exception {
+  @Test public void recipeRouteAndAllResultSlotsRemainReachable() throws Exception {
     try (var controller = fixtures.start()) {
       MainActivity host = controller.get(); FakeApi api = prepare(host);
       NativeReveal reveal = attach(host, new AtomicInteger());
       List<String> seen = new ArrayList<>();
-      for (int page = 0; page < 2; page++) {
-        for (NativeReveal.RevealCard card : revealFixture.cards(reveal))
-          seen.add(acquisition.registrationArtwork(card).id);
-        if (page == 0) reveal.findViewWithTag("acquisition-next-page").performClick();
+      for (NativeReveal.RevealCard card : revealFixture.cards(reveal)) {
+        reveal.resultStrip.revealIndex(card.serverIndex);
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(250));
+        seen.add(acquisition.registrationArtwork(card).id);
+        fullyVisible(card, host);
       }
       assertEquals(Arrays.asList("R13", "R14", "S3", "S4", "D1", "I3"), seen);
-      reveal.findViewWithTag("acquisition-previous-page").performClick();
+      reveal.resultStrip.revealIndex(0);
+      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(250));
       openRecord(reveal, "R14");
       NativeUnitDossier dossier = reveal.dossier;
       api.deferred = true;
@@ -355,8 +359,12 @@ public class NativeResultDossierTest {
             }
           }
           HorizontalScrollView strip = reveal.findViewWithTag("acquisition-cards-scroll");
-          assertFalse(strip.canScrollHorizontally(1)); assertFalse(strip.canScrollVertically(1));
+          assertTrue(strip.canScrollHorizontally(1)); assertFalse(strip.canScrollVertically(1));
+          Rect railBounds = bounds(strip, host.root);
+          int visibleCards = 0;
           for (NativeReveal.RevealCard card : revealFixture.cards(reveal)) {
+            if (!railBounds.contains(bounds(card, host.root))) continue;
+            visibleCards++;
             fullyVisible(card, host);
             RegistrationCardView.Artwork art = acquisition.registrationArtwork(card);
             assertNotNull(art.bitmap);
@@ -365,6 +373,7 @@ public class NativeResultDossierTest {
                 + art.target.height() / host.getResources().getDisplayMetrics().density + "dp",
                 art.target.height() >= host.dp(215));
           }
+          assertTrue("복수 결과 카드가 함께 보인다", visibleCards >= 2);
           for (String tag : new String[] {"acquisition-previous-page", "acquisition-next-page",
               "acquisition-result-picker", "acquisition-craft", "acquisition-confirm"})
             readable(reveal.findViewWithTag(tag), host);

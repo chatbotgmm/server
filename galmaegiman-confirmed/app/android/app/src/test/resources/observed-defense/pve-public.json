@@ -1,0 +1,1770 @@
+{
+  "battle": {
+    "balanceProfile": "observation-test",
+    "testBaseline": false,
+    "battleId": "cf2902a5-0c26-4cdb-917b-b0ee76ca0e98",
+    "revision": 5,
+    "status": "ACTIVE",
+    "state": {
+      "participation": [
+        {
+          "ownedId": "01c9761a-197b-49f6-828b-975274ff61eb",
+          "kind": "start",
+          "turn": 0
+        }
+      ],
+      "rulesVersion": "party-actions-v2",
+      "reserves": [],
+      "mode": "story",
+      "inventory": [],
+      "version": "five-battle-v1",
+      "turn": 5,
+      "fighters": [
+        {
+          "id": "self",
+          "speciesId": "u01",
+          "name": "갈매미맨",
+          "level": 1,
+          "stats": {
+            "hp": 1000,
+            "mp": 100,
+            "durability": 0,
+            "statusResistance": 0,
+            "speed": 30
+          },
+          "hp": 994,
+          "mp": 100,
+          "attack": {
+            "id": "basic",
+            "name": "basic",
+            "element": "NORMAL",
+            "mpCost": 0,
+            "power": 1
+          },
+          "skills": [
+            {
+              "id": "FIRE",
+              "name": "FIRE",
+              "element": "FIRE",
+              "mpCost": 0,
+              "power": 1
+            },
+            {
+              "id": "WATER",
+              "name": "WATER",
+              "element": "WATER",
+              "mpCost": 0,
+              "power": 1
+            },
+            {
+              "id": "LIGHTNING",
+              "name": "LIGHTNING",
+              "element": "LIGHTNING",
+              "mpCost": 0,
+              "power": 1
+            },
+            {
+              "id": "ICE",
+              "name": "ICE",
+              "element": "ICE",
+              "mpCost": 0,
+              "power": 1
+            },
+            {
+              "id": "NATURE",
+              "name": "NATURE",
+              "element": "NATURE",
+              "mpCost": 0,
+              "power": 1
+            },
+            {
+              "id": "HOLY",
+              "name": "HOLY",
+              "element": "HOLY",
+              "mpCost": 0,
+              "power": 1
+            }
+          ],
+          "suitability": {
+            "NORMAL": 0,
+            "FIRE": 0,
+            "WATER": 0,
+            "LIGHTNING": 0,
+            "ICE": 0,
+            "NATURE": 0,
+            "HOLY": 0,
+            "DARK": 0
+          },
+          "ownedId": "01c9761a-197b-49f6-828b-975274ff61eb"
+        },
+        {
+          "id": "enemy",
+          "speciesId": "u02",
+          "name": "u02",
+          "level": 1,
+          "hp": 998,
+          "mp": 100,
+          "stats": {
+            "hp": 1000,
+            "mp": 100,
+            "durability": 0,
+            "statusResistance": 0,
+            "speed": 10
+          },
+          "attack": {
+            "id": "basic",
+            "name": "basic",
+            "element": "NORMAL",
+            "mpCost": 0,
+            "power": 1
+          },
+          "skills": [
+            {
+              "id": "FIRE",
+              "name": "FIRE",
+              "element": "FIRE",
+              "mpCost": 0,
+              "power": 1
+            },
+            {
+              "id": "WATER",
+              "name": "WATER",
+              "element": "WATER",
+              "mpCost": 0,
+              "power": 1
+            },
+            {
+              "id": "LIGHTNING",
+              "name": "LIGHTNING",
+              "element": "LIGHTNING",
+              "mpCost": 0,
+              "power": 1
+            },
+            {
+              "id": "ICE",
+              "name": "ICE",
+              "element": "ICE",
+              "mpCost": 0,
+              "power": 1
+            },
+            {
+              "id": "NATURE",
+              "name": "NATURE",
+              "element": "NATURE",
+              "mpCost": 0,
+              "power": 1
+            },
+            {
+              "id": "HOLY",
+              "name": "HOLY",
+              "element": "HOLY",
+              "mpCost": 0,
+              "power": 1
+            }
+          ]
+        }
+      ],
+      "decision": {
+        "version": "five-speed-v1",
+        "battleId": "cf2902a5-0c26-4cdb-917b-b0ee76ca0e98",
+        "turn": 5,
+        "fighters": [
+          "enemy",
+          "self"
+        ],
+        "order": [
+          "self",
+          "enemy"
+        ],
+        "tie": false,
+        "speeds": [
+          10,
+          30
+        ]
+      },
+      "outcome": null,
+      "events": [
+        {
+          "turn": 0,
+          "decision": {
+            "version": "five-speed-v1",
+            "battleId": "cf2902a5-0c26-4cdb-917b-b0ee76ca0e98",
+            "turn": 0,
+            "fighters": [
+              "enemy",
+              "self"
+            ],
+            "speeds": [
+              10,
+              30
+            ],
+            "order": [
+              "self",
+              "enemy"
+            ],
+            "tie": false
+          },
+          "events": [
+            {
+              "actor": "self",
+              "kind": "skill",
+              "skillId": "basic",
+              "target": "defender",
+              "damage": 1,
+              "suitabilityMultiplier": 1,
+              "defense": "normal",
+              "extraTurn": false,
+              "reflected": false,
+              "canReflectAgain": false,
+              "levelMultiplier": 1,
+              "durabilityMultiplier": 1,
+              "policyVersion": "test",
+              "presentation": {
+                "version": 1,
+                "before": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 1000,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 1000,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "after": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 1000,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 999,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "skill": {
+                  "id": "basic",
+                  "name": "basic",
+                  "element": "NORMAL",
+                  "mpCost": 0
+                },
+                "opponentIntelBefore": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 0,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": false,
+                  "stats": null,
+                  "defenses": {
+                    "NORMAL": "unknown",
+                    "FIRE": "unknown",
+                    "WATER": "unknown",
+                    "LIGHTNING": "unknown",
+                    "ICE": "unknown",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 0,
+                  "totalDefenseCount": 8
+                },
+                "opponentIntelAfter": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 0,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": false,
+                  "stats": null,
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "unknown",
+                    "WATER": "unknown",
+                    "LIGHTNING": "unknown",
+                    "ICE": "unknown",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 1,
+                  "totalDefenseCount": 8
+                }
+              },
+              "observedDefense": {
+                "speciesId": "u02",
+                "element": "NORMAL",
+                "reaction": "normal"
+              }
+            },
+            {
+              "actor": "enemy",
+              "kind": "skill",
+              "skillId": "basic",
+              "target": "defender",
+              "damage": 1,
+              "suitabilityMultiplier": 1,
+              "defense": "normal",
+              "extraTurn": false,
+              "reflected": false,
+              "canReflectAgain": false,
+              "levelMultiplier": 1,
+              "durabilityMultiplier": 1,
+              "policyVersion": "test",
+              "presentation": {
+                "version": 1,
+                "before": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 1000,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 999,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "after": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 999,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 999,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "skill": {
+                  "id": "basic",
+                  "name": "basic",
+                  "element": "NORMAL",
+                  "mpCost": 0
+                },
+                "opponentIntelBefore": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 0,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": false,
+                  "stats": null,
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "unknown",
+                    "WATER": "unknown",
+                    "LIGHTNING": "unknown",
+                    "ICE": "unknown",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 1,
+                  "totalDefenseCount": 8
+                },
+                "opponentIntelAfter": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 0,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": false,
+                  "stats": null,
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "unknown",
+                    "WATER": "unknown",
+                    "LIGHTNING": "unknown",
+                    "ICE": "unknown",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 1,
+                  "totalDefenseCount": 8
+                }
+              }
+            }
+          ]
+        },
+        {
+          "turn": 1,
+          "decision": {
+            "version": "five-speed-v1",
+            "battleId": "cf2902a5-0c26-4cdb-917b-b0ee76ca0e98",
+            "turn": 1,
+            "fighters": [
+              "enemy",
+              "self"
+            ],
+            "speeds": [
+              10,
+              30
+            ],
+            "order": [
+              "self",
+              "enemy"
+            ],
+            "tie": false
+          },
+          "events": [
+            {
+              "actor": "self",
+              "kind": "skill",
+              "skillId": "FIRE",
+              "target": "defender",
+              "damage": 1,
+              "suitabilityMultiplier": 1,
+              "defense": "weak",
+              "extraTurn": false,
+              "reflected": false,
+              "canReflectAgain": false,
+              "levelMultiplier": 1,
+              "durabilityMultiplier": 1,
+              "policyVersion": "test",
+              "presentation": {
+                "version": 1,
+                "before": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 999,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 999,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "after": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 999,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "skill": {
+                  "id": "FIRE",
+                  "name": "FIRE",
+                  "element": "FIRE",
+                  "mpCost": 0
+                },
+                "opponentIntelBefore": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 1,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": true,
+                  "stats": {
+                    "hp": 1000,
+                    "mp": 100,
+                    "durability": 0,
+                    "statusResistance": 0,
+                    "speed": 10
+                  },
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "unknown",
+                    "WATER": "unknown",
+                    "LIGHTNING": "unknown",
+                    "ICE": "unknown",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 1,
+                  "totalDefenseCount": 8
+                },
+                "opponentIntelAfter": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 1,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": true,
+                  "stats": {
+                    "hp": 1000,
+                    "mp": 100,
+                    "durability": 0,
+                    "statusResistance": 0,
+                    "speed": 10
+                  },
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "weak",
+                    "WATER": "unknown",
+                    "LIGHTNING": "unknown",
+                    "ICE": "unknown",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 2,
+                  "totalDefenseCount": 8
+                }
+              },
+              "observedDefense": {
+                "speciesId": "u02",
+                "element": "FIRE",
+                "reaction": "weak"
+              }
+            },
+            {
+              "actor": "enemy",
+              "kind": "skill",
+              "skillId": "basic",
+              "target": "defender",
+              "damage": 1,
+              "suitabilityMultiplier": 1,
+              "defense": "normal",
+              "extraTurn": false,
+              "reflected": false,
+              "canReflectAgain": false,
+              "levelMultiplier": 1,
+              "durabilityMultiplier": 1,
+              "policyVersion": "test",
+              "presentation": {
+                "version": 1,
+                "before": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 999,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "after": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "skill": {
+                  "id": "basic",
+                  "name": "basic",
+                  "element": "NORMAL",
+                  "mpCost": 0
+                },
+                "opponentIntelBefore": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 1,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": true,
+                  "stats": {
+                    "hp": 1000,
+                    "mp": 100,
+                    "durability": 0,
+                    "statusResistance": 0,
+                    "speed": 10
+                  },
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "weak",
+                    "WATER": "unknown",
+                    "LIGHTNING": "unknown",
+                    "ICE": "unknown",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 2,
+                  "totalDefenseCount": 8
+                },
+                "opponentIntelAfter": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 1,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": true,
+                  "stats": {
+                    "hp": 1000,
+                    "mp": 100,
+                    "durability": 0,
+                    "statusResistance": 0,
+                    "speed": 10
+                  },
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "weak",
+                    "WATER": "unknown",
+                    "LIGHTNING": "unknown",
+                    "ICE": "unknown",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 2,
+                  "totalDefenseCount": 8
+                }
+              }
+            }
+          ]
+        },
+        {
+          "turn": 2,
+          "decision": {
+            "version": "five-speed-v1",
+            "battleId": "cf2902a5-0c26-4cdb-917b-b0ee76ca0e98",
+            "turn": 2,
+            "fighters": [
+              "enemy",
+              "self"
+            ],
+            "speeds": [
+              10,
+              30
+            ],
+            "order": [
+              "self",
+              "enemy"
+            ],
+            "tie": false
+          },
+          "events": [
+            {
+              "actor": "self",
+              "kind": "skill",
+              "skillId": "WATER",
+              "target": "defender",
+              "damage": 0,
+              "suitabilityMultiplier": 1,
+              "defense": "resist",
+              "extraTurn": false,
+              "reflected": false,
+              "canReflectAgain": false,
+              "levelMultiplier": 1,
+              "durabilityMultiplier": 1,
+              "policyVersion": "test",
+              "presentation": {
+                "version": 1,
+                "before": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "after": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "skill": {
+                  "id": "WATER",
+                  "name": "WATER",
+                  "element": "WATER",
+                  "mpCost": 0
+                },
+                "opponentIntelBefore": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 2,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": true,
+                  "stats": {
+                    "hp": 1000,
+                    "mp": 100,
+                    "durability": 0,
+                    "statusResistance": 0,
+                    "speed": 10
+                  },
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "weak",
+                    "WATER": "unknown",
+                    "LIGHTNING": "unknown",
+                    "ICE": "unknown",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 2,
+                  "totalDefenseCount": 8
+                },
+                "opponentIntelAfter": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 2,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": true,
+                  "stats": {
+                    "hp": 1000,
+                    "mp": 100,
+                    "durability": 0,
+                    "statusResistance": 0,
+                    "speed": 10
+                  },
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "weak",
+                    "WATER": "resist",
+                    "LIGHTNING": "unknown",
+                    "ICE": "unknown",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 3,
+                  "totalDefenseCount": 8
+                }
+              },
+              "observedDefense": {
+                "speciesId": "u02",
+                "element": "WATER",
+                "reaction": "resist"
+              }
+            },
+            {
+              "actor": "enemy",
+              "kind": "skill",
+              "skillId": "basic",
+              "target": "defender",
+              "damage": 1,
+              "suitabilityMultiplier": 1,
+              "defense": "normal",
+              "extraTurn": false,
+              "reflected": false,
+              "canReflectAgain": false,
+              "levelMultiplier": 1,
+              "durabilityMultiplier": 1,
+              "policyVersion": "test",
+              "presentation": {
+                "version": 1,
+                "before": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "after": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 997,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "skill": {
+                  "id": "basic",
+                  "name": "basic",
+                  "element": "NORMAL",
+                  "mpCost": 0
+                },
+                "opponentIntelBefore": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 2,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": true,
+                  "stats": {
+                    "hp": 1000,
+                    "mp": 100,
+                    "durability": 0,
+                    "statusResistance": 0,
+                    "speed": 10
+                  },
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "weak",
+                    "WATER": "resist",
+                    "LIGHTNING": "unknown",
+                    "ICE": "unknown",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 3,
+                  "totalDefenseCount": 8
+                },
+                "opponentIntelAfter": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 2,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": true,
+                  "stats": {
+                    "hp": 1000,
+                    "mp": 100,
+                    "durability": 0,
+                    "statusResistance": 0,
+                    "speed": 10
+                  },
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "weak",
+                    "WATER": "resist",
+                    "LIGHTNING": "unknown",
+                    "ICE": "unknown",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 3,
+                  "totalDefenseCount": 8
+                }
+              }
+            }
+          ]
+        },
+        {
+          "turn": 3,
+          "decision": {
+            "version": "five-speed-v1",
+            "battleId": "cf2902a5-0c26-4cdb-917b-b0ee76ca0e98",
+            "turn": 3,
+            "fighters": [
+              "enemy",
+              "self"
+            ],
+            "speeds": [
+              10,
+              30
+            ],
+            "order": [
+              "self",
+              "enemy"
+            ],
+            "tie": false
+          },
+          "events": [
+            {
+              "actor": "self",
+              "kind": "skill",
+              "skillId": "LIGHTNING",
+              "target": "defender",
+              "damage": 0,
+              "suitabilityMultiplier": 1,
+              "defense": "immune",
+              "extraTurn": false,
+              "reflected": false,
+              "canReflectAgain": false,
+              "levelMultiplier": 1,
+              "durabilityMultiplier": 1,
+              "policyVersion": "test",
+              "presentation": {
+                "version": 1,
+                "before": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 997,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "after": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 997,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "skill": {
+                  "id": "LIGHTNING",
+                  "name": "LIGHTNING",
+                  "element": "LIGHTNING",
+                  "mpCost": 0
+                },
+                "opponentIntelBefore": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 3,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": true,
+                  "stats": {
+                    "hp": 1000,
+                    "mp": 100,
+                    "durability": 0,
+                    "statusResistance": 0,
+                    "speed": 10
+                  },
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "weak",
+                    "WATER": "resist",
+                    "LIGHTNING": "unknown",
+                    "ICE": "unknown",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 3,
+                  "totalDefenseCount": 8
+                },
+                "opponentIntelAfter": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 3,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": true,
+                  "stats": {
+                    "hp": 1000,
+                    "mp": 100,
+                    "durability": 0,
+                    "statusResistance": 0,
+                    "speed": 10
+                  },
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "weak",
+                    "WATER": "resist",
+                    "LIGHTNING": "immune",
+                    "ICE": "unknown",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 4,
+                  "totalDefenseCount": 8
+                }
+              },
+              "observedDefense": {
+                "speciesId": "u02",
+                "element": "LIGHTNING",
+                "reaction": "immune"
+              }
+            },
+            {
+              "actor": "enemy",
+              "kind": "skill",
+              "skillId": "basic",
+              "target": "defender",
+              "damage": 1,
+              "suitabilityMultiplier": 1,
+              "defense": "normal",
+              "extraTurn": false,
+              "reflected": false,
+              "canReflectAgain": false,
+              "levelMultiplier": 1,
+              "durabilityMultiplier": 1,
+              "policyVersion": "test",
+              "presentation": {
+                "version": 1,
+                "before": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 997,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "after": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 996,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "skill": {
+                  "id": "basic",
+                  "name": "basic",
+                  "element": "NORMAL",
+                  "mpCost": 0
+                },
+                "opponentIntelBefore": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 3,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": true,
+                  "stats": {
+                    "hp": 1000,
+                    "mp": 100,
+                    "durability": 0,
+                    "statusResistance": 0,
+                    "speed": 10
+                  },
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "weak",
+                    "WATER": "resist",
+                    "LIGHTNING": "immune",
+                    "ICE": "unknown",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 4,
+                  "totalDefenseCount": 8
+                },
+                "opponentIntelAfter": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 3,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": true,
+                  "stats": {
+                    "hp": 1000,
+                    "mp": 100,
+                    "durability": 0,
+                    "statusResistance": 0,
+                    "speed": 10
+                  },
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "weak",
+                    "WATER": "resist",
+                    "LIGHTNING": "immune",
+                    "ICE": "unknown",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 4,
+                  "totalDefenseCount": 8
+                }
+              }
+            }
+          ]
+        },
+        {
+          "turn": 4,
+          "decision": {
+            "version": "five-speed-v1",
+            "battleId": "cf2902a5-0c26-4cdb-917b-b0ee76ca0e98",
+            "turn": 4,
+            "fighters": [
+              "enemy",
+              "self"
+            ],
+            "speeds": [
+              10,
+              30
+            ],
+            "order": [
+              "self",
+              "enemy"
+            ],
+            "tie": false
+          },
+          "events": [
+            {
+              "actor": "self",
+              "kind": "skill",
+              "skillId": "ICE",
+              "target": "attacker",
+              "damage": 1,
+              "suitabilityMultiplier": 1,
+              "defense": "reflect",
+              "extraTurn": false,
+              "reflected": true,
+              "canReflectAgain": false,
+              "levelMultiplier": 1,
+              "durabilityMultiplier": 1,
+              "policyVersion": "test",
+              "presentation": {
+                "version": 1,
+                "before": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 996,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "after": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 995,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "skill": {
+                  "id": "ICE",
+                  "name": "ICE",
+                  "element": "ICE",
+                  "mpCost": 0
+                },
+                "opponentIntelBefore": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 4,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": true,
+                  "stats": {
+                    "hp": 1000,
+                    "mp": 100,
+                    "durability": 0,
+                    "statusResistance": 0,
+                    "speed": 10
+                  },
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "weak",
+                    "WATER": "resist",
+                    "LIGHTNING": "immune",
+                    "ICE": "unknown",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 4,
+                  "totalDefenseCount": 8
+                },
+                "opponentIntelAfter": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 4,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": true,
+                  "stats": {
+                    "hp": 1000,
+                    "mp": 100,
+                    "durability": 0,
+                    "statusResistance": 0,
+                    "speed": 10
+                  },
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "weak",
+                    "WATER": "resist",
+                    "LIGHTNING": "immune",
+                    "ICE": "reflect",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 5,
+                  "totalDefenseCount": 8
+                }
+              },
+              "observedDefense": {
+                "speciesId": "u02",
+                "element": "ICE",
+                "reaction": "reflect"
+              }
+            },
+            {
+              "actor": "enemy",
+              "kind": "skill",
+              "skillId": "basic",
+              "target": "defender",
+              "damage": 1,
+              "suitabilityMultiplier": 1,
+              "defense": "normal",
+              "extraTurn": false,
+              "reflected": false,
+              "canReflectAgain": false,
+              "levelMultiplier": 1,
+              "durabilityMultiplier": 1,
+              "policyVersion": "test",
+              "presentation": {
+                "version": 1,
+                "before": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 995,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "after": [
+                  {
+                    "id": "self",
+                    "speciesId": "u01",
+                    "name": "갈매미맨",
+                    "level": 1,
+                    "hp": 994,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  },
+                  {
+                    "id": "enemy",
+                    "speciesId": "u02",
+                    "name": "u02",
+                    "level": 1,
+                    "hp": 998,
+                    "mp": 100,
+                    "stats": {
+                      "hp": 1000,
+                      "mp": 100
+                    }
+                  }
+                ],
+                "skill": {
+                  "id": "basic",
+                  "name": "basic",
+                  "element": "NORMAL",
+                  "mpCost": 0
+                },
+                "opponentIntelBefore": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 4,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": true,
+                  "stats": {
+                    "hp": 1000,
+                    "mp": 100,
+                    "durability": 0,
+                    "statusResistance": 0,
+                    "speed": 10
+                  },
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "weak",
+                    "WATER": "resist",
+                    "LIGHTNING": "immune",
+                    "ICE": "reflect",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 5,
+                  "totalDefenseCount": 8
+                },
+                "opponentIntelAfter": {
+                  "version": "opponent-intel-v2",
+                  "speciesId": "u02",
+                  "name": "u02",
+                  "level": 1,
+                  "completedTurns": 4,
+                  "defenseKnowledgeScope": "base-observed",
+                  "statsKnown": true,
+                  "stats": {
+                    "hp": 1000,
+                    "mp": 100,
+                    "durability": 0,
+                    "statusResistance": 0,
+                    "speed": 10
+                  },
+                  "defenses": {
+                    "NORMAL": "normal",
+                    "FIRE": "weak",
+                    "WATER": "resist",
+                    "LIGHTNING": "immune",
+                    "ICE": "reflect",
+                    "NATURE": "unknown",
+                    "HOLY": "unknown",
+                    "DARK": "unknown"
+                  },
+                  "knownDefenseCount": 5,
+                  "totalDefenseCount": 8
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "opponentIntel": {
+        "version": "opponent-intel-v2",
+        "speciesId": "u02",
+        "name": "u02",
+        "level": 1,
+        "completedTurns": 5,
+        "defenseKnowledgeScope": "base-observed",
+        "statsKnown": true,
+        "stats": {
+          "hp": 1000,
+          "mp": 100,
+          "durability": 0,
+          "statusResistance": 0,
+          "speed": 10
+        },
+        "defenses": {
+          "NORMAL": "normal",
+          "FIRE": "weak",
+          "WATER": "resist",
+          "LIGHTNING": "immune",
+          "ICE": "reflect",
+          "NATURE": "unknown",
+          "HOLY": "unknown",
+          "DARK": "unknown"
+        },
+        "knownDefenseCount": 5,
+        "totalDefenseCount": 8
+      }
+    },
+    "settlement": null,
+    "itemDefinitions": {
+      "potion": {
+        "name": "치료약",
+        "price": 60,
+        "desc": "지금 나와 있는 갈매미의 체력을 35% 회복해요",
+        "heal": 35
+      },
+      "big": {
+        "name": "큰 치료약",
+        "price": 150,
+        "desc": "지금 나와 있는 갈매미의 체력을 75% 회복해요",
+        "heal": 75
+      },
+      "clear": {
+        "name": "정신 차리기 물",
+        "price": 80,
+        "desc": "지금 나와 있는 갈매미의 상태 이상(화상·빙결·잠·묶임·폭주)을 풀어요",
+        "cleanse": true
+      },
+      "feather": {
+        "name": "다시 출근 깃털",
+        "price": 300,
+        "desc": "쓰러진 아군 하나를 체력 50%로 다시 일으켜요",
+        "revive": 50
+      }
+    },
+    "disabledCommands": {
+      "item": "",
+      "switch": "",
+      "escape": ""
+    }
+  },
+  "collection": {
+    "id": "u02",
+    "name": "u02",
+    "rarity": "COMMON",
+    "levelOneStats": {
+      "hp": 1000,
+      "mp": 100,
+      "durability": 0,
+      "statusResistance": 0,
+      "speed": 10
+    },
+    "suitability": {
+      "NORMAL": 0,
+      "FIRE": 0,
+      "WATER": 0,
+      "LIGHTNING": 0,
+      "ICE": 0,
+      "NATURE": 0,
+      "HOLY": 0,
+      "DARK": 0
+    },
+    "defenseKnowledge": {
+      "version": "observed-defense-v1",
+      "speciesId": "u02",
+      "defenses": {
+        "NORMAL": "normal",
+        "FIRE": "weak",
+        "WATER": "resist",
+        "LIGHTNING": "immune",
+        "ICE": "reflect",
+        "NATURE": "unknown",
+        "HOLY": "unknown",
+        "DARK": "unknown"
+      },
+      "knownDefenseCount": 5,
+      "totalDefenseCount": 8
+    },
+    "skills": [
+      {
+        "id": "FIRE",
+        "name": "FIRE",
+        "element": "FIRE",
+        "mpCost": 0,
+        "power": 1
+      },
+      {
+        "id": "WATER",
+        "name": "WATER",
+        "element": "WATER",
+        "mpCost": 0,
+        "power": 1
+      },
+      {
+        "id": "LIGHTNING",
+        "name": "LIGHTNING",
+        "element": "LIGHTNING",
+        "mpCost": 0,
+        "power": 1
+      },
+      {
+        "id": "ICE",
+        "name": "ICE",
+        "element": "ICE",
+        "mpCost": 0,
+        "power": 1
+      },
+      {
+        "id": "NATURE",
+        "name": "NATURE",
+        "element": "NATURE",
+        "mpCost": 0,
+        "power": 1
+      },
+      {
+        "id": "HOLY",
+        "name": "HOLY",
+        "element": "HOLY",
+        "mpCost": 0,
+        "power": 1
+      }
+    ],
+    "ownedCount": 0,
+    "discovered": false
+  }
+}

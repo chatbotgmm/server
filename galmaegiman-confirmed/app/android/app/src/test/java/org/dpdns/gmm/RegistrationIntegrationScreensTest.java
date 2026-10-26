@@ -124,6 +124,24 @@ public class RegistrationIntegrationScreensTest {
     return art;
   }
 
+  boolean assertCandidateGeometry(MainActivity host, ViewGroup rail, View view) {
+    android.graphics.Rect own = geometry.bounds(view, host.root), viewport = geometry.bounds(rail, host.root);
+    assertTrue("Continuous candidates retain vertical room", own.top >= viewport.top && own.bottom <= viewport.bottom);
+    assertTrue("Every candidate has a positive measured width", own.width() > 0);
+    boolean fullyVisible = own.left >= viewport.left && own.right <= viewport.right;
+    if (fullyVisible) NativeNoScrollReviewTest.assertFullyVisible(view, host.root);
+    return fullyVisible;
+  }
+
+  void revealCandidate(MainActivity host, View candidate) {
+    InertialCardScrollView rail = NativeHomePartyFeedbackTest.teamCandidateRail(candidate);
+    assertNotNull(rail);
+    rail.stopMotion();
+    rail.scrollTo(Math.max(0, candidate.getLeft() - (rail.getWidth() - candidate.getWidth()) / 2), 0);
+    org.robolectric.shadows.ShadowLooper.idleMainLooper(200, java.util.concurrent.TimeUnit.MILLISECONDS);
+    NativeNoScrollReviewTest.assertFullyVisible(candidate, host.root);
+  }
+
   void layout(MainActivity host, int width, int height) {
     review.viewport(host, width, height);
     review.preparePreDraw(host.root, () -> {
@@ -259,18 +277,20 @@ public class RegistrationIntegrationScreensTest {
           assertTrue(handle.getHeight() >= host.dp(48));
         }
         ViewGroup grid = host.root.findViewWithTag("team-inline-candidates");
-        int count = 0;
+        int count = 0, fullyVisible = 0;
         for (View view : geometry.descendants(grid))
           if (view instanceof PartyCharacterView.Artwork) {
-            character(host, view, "D" + (count + 1));
-            NativeNoScrollReviewTest.assertFullyVisible(view, host.root);
+            character(host, view, count < 8 ? "D" + (count + 1) : "E" + (count - 7));
+            if (assertCandidateGeometry(host, grid, view)) fullyVisible++;
             count++;
           }
-        assertEquals(3, count);
+        assertEquals("Every owned candidate shares one continuous rail", 10, count);
+        assertTrue("Multiple full candidates are visible together", fullyVisible >= 2);
         String fourth = pvp ? "D4" : "o4";
-        host.root.findViewWithTag("team-candidates-next").performClick();
         View replacement = host.root.findViewWithTag("team-candidate-character-" + fourth);
-        ((View) replacement.getParent()).performClick();
+        View replacementTile = (View) replacement.getParent();
+        revealCandidate(host, replacementTile);
+        replacementTile.performClick();
         assertEquals(fourth, host.menus.teamDraft.get(0));
         assertTrue("후보 선택은 저장 전 초안만 변경", api.writes.isEmpty());
         layout(host, 915, 412);
@@ -284,7 +304,7 @@ public class RegistrationIntegrationScreensTest {
   }
 
   @Test
-  public void largeFontTeamsKeepThreeFullCandidatesAndReadableInlineActions() throws Exception {
+  public void largeFontTeamsKeepMultipleContinuousCandidatesAndReadableInlineActions() throws Exception {
     RuntimeEnvironment.setFontScale(1.3f);
     for (String mode : new String[] {"story", "pvp"}) {
       try (ActivityController<MainActivity> controller = flow.start()) {
@@ -314,17 +334,18 @@ public class RegistrationIntegrationScreensTest {
             Math.ceil(remove.getLayout().getLineWidth(0))
                 <= remove.getWidth() - remove.getCompoundPaddingLeft() - remove.getCompoundPaddingRight());
         ViewGroup grid = host.root.findViewWithTag("team-inline-candidates");
-        int count = 0;
+        int count = 0, fullyVisible = 0;
         for (View view : geometry.descendants(grid))
           if (view instanceof PartyCharacterView.Artwork) {
-            character(host, view, "D" + (count + 1));
-            NativeNoScrollReviewTest.assertFullyVisible(view, host.root);
+            character(host, view, count < 8 ? "D" + (count + 1) : "E" + (count - 7));
+            assertCandidateGeometry(host, grid, view);
             View tile = (View) view.getParent();
             assertTrue("Large-font candidate remains a 48dp touch target", tile.getHeight() >= host.dp(48));
-            NativeNoScrollReviewTest.assertFullyVisible(tile, host.root);
+            if (assertCandidateGeometry(host, grid, tile)) fullyVisible++;
             count++;
           }
-        assertEquals(3, count);
+        assertEquals(10, count);
+        assertTrue("Large fonts retain multiple full cards", fullyVisible >= 2);
         assertTrue(api.writes.isEmpty());
       }
     }
@@ -455,6 +476,8 @@ public class RegistrationIntegrationScreensTest {
       MainActivity host = controller.get();
       FixtureApi api = prepare(host);
       host.guide.enabled = true;
+      // 레거시 안내는 서버에 저장된 단계에서 진행한다(완료=9 계정에서 메모리 단계만 바꾸면 저장하지 않는다).
+      try { host.state.put("tutorial", MainActivity.obj("step", 2)); } catch (org.json.JSONException impossible) { throw new AssertionError(impossible); }
       host.guide.progress.step = 2;
       host.guide.onAction("draw-complete");
       assertTrue(host.guide.progress.drew);

@@ -56,15 +56,20 @@ public class NativeTeamCharacterPanelTest {
         MainActivity h = controller.get(); Api api = helper.prepare(h); helper.show(h, p, scene);
         for (String page : new String[] {"first", "last"}) {
           if (page.equals("last")) {
-            while (required(h, "team-candidates-next").isEnabled()) required(h, "team-candidates-next").performClick();
+            InertialCardScrollView rail = (InertialCardScrollView) required(h, "team-inline-candidates");
+            rail.stopMotion(); rail.scrollTo(rail.getChildAt(0).getWidth(), 0);
             helper.settle(h, p);
+            assertFalse("Last candidate edge is reached without page stepping", rail.canScrollHorizontally(1));
           }
           String file = p.name + "-" + scene + "-" + page + ".png";
           JSONArray errors = new JSONArray(); JSONObject observed = helper.inspect(h, p, scene, api, errors);
           int artCount = 0;
           for (View v : all(h.root)) {
-            check(!(v instanceof ScrollView || v instanceof HorizontalScrollView) || v.getHeight() == 0,
-                "Main selection introduces scrolling", errors);
+            check(!(v instanceof ScrollView) || v.getHeight() == 0,
+                "Main selection must stay fixed vertically", errors);
+            if (v instanceof HorizontalScrollView && v.getHeight() > 0)
+              check(v instanceof InertialCardScrollView && "team-inline-candidates".equals(v.getTag()),
+                  "Only the candidate rail scrolls horizontally", errors);
             if (v instanceof PartyCharacterView.Artwork) {
               artCount++;
               check(v.getBackground() instanceof ColorDrawable, "Portrait background is not solid", errors);

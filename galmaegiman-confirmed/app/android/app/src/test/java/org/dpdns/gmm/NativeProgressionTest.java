@@ -65,7 +65,26 @@ public class NativeProgressionTest {
     api.close(); controller.pause().stop().destroy();
   }
   Button button(String tag) { Button b = h.root.findViewWithTag(tag); assertNotNull(tag, b); return b; }
-  void tab(String name) { button("progression-tab-" + name).performClick(); }
+  // 변환 경로의 계약 시험은 직접 대상 화면을 고른다. 패스에는 변환 탭을 노출하지 않는다.
+  void tab(String name) { screen.tab = name; screen.selectedKey = ""; screen.receipt = null; screen.notice = ""; screen.render(); }
+
+  @Test public void playPassIsIndependentAndHasNoConversionTabs() throws Exception {
+    JSONArray rewards = api.response.getJSONObject("pass").getJSONArray("milestones");
+    rewards.put(MainActivity.obj("id", "m2", "points", 200, "credits", 4, "claimable", false, "claimed", false));
+    rewards.put(MainActivity.obj("id", "m3", "points", 300, "credits", 5, "claimable", false, "claimed", true));
+    rewards.put(MainActivity.obj("id", "m4", "points", 400, "credits", 6, "claimable", false, "claimed", false));
+    screen.open();
+    assertEquals("플레이 패스", h.title.getText().toString());
+    for (String name : new String[] {"pass", "reroll", "reincarnation", "reassessment"})
+      assertNull(h.root.findViewWithTag("progression-tab-" + name));
+    assertNotNull(h.root.findViewWithTag("play-pass-points"));
+    assertNotNull(h.root.findViewWithTag("play-pass-reward-m4"));
+    assertTrue(button("progression-pass-m1").isEnabled());
+    assertFalse(button("progression-pass-m2").isEnabled());
+    assertFalse(button("progression-pass-m3").isEnabled());
+    assertNull(h.root.findViewWithTag("progression-pagination"));
+    assertTrue(api.bodies.isEmpty());
+  }
 
   @Test public void repeatedTapSendsOneDurableIntent() {
     screen.open(); Button claim = button("progression-pass-m1"); claim.performClick(); claim.performClick();

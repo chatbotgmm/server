@@ -26,6 +26,7 @@ final class NativeReveal extends FrameLayout {
   final Glow glow;
   boolean opening, detached, revealed, leaving;
   static final int RESULT_PAGE_SIZE = 3;
+  // Retained for older result review callers; touch scrolling no longer changes pages.
   int resultPage;
   Runnable repaintResults;
   RevealStrip resultStrip;
@@ -341,7 +342,7 @@ final class NativeReveal extends FrameLayout {
         flow.selected = Math.max(0, Math.min(flow.selected, units.length() - 1));
         selectedLabel.setText("모집 결과 " + speciesCount() + "종");
         for (int j = 0; j < shown.size(); j++) {
-          int serverIndex = resultPage * RESULT_PAGE_SIZE + j;
+          int serverIndex = shown.get(j).serverIndex;
           RevealCard card = shown.get(j);
           boolean selected = serverIndex == flow.selected;
           card.setSelected(selected);
@@ -355,27 +356,22 @@ final class NativeReveal extends FrameLayout {
       finish.setGravity(Gravity.CENTER_VERTICAL);
       if (units.length() > RESULT_PAGE_SIZE) {
         Button previous = k.action(null, "‹", () -> {
-          if (!canTurnResults() || resultPage <= 0) return;
+          if (!canTurnResults()) return;
           scroll.turn(-1);
         });
         h.menus.pagerChevron(previous, false);
         previous.setTag("acquisition-previous-page");
-        previous.setContentDescription("이전 모집 결과 페이지");
-        previous.setEnabled(resultPage > 0);
+        previous.setContentDescription("이전 모집 결과 쪽으로 스크롤");
+        scroll.previous = previous;
         finish.addView(previous, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
-        TextView pageNumber = RegistrationCardView.stateLabel(h,
-            (resultPage + 1) + "/" + ((units.length() + RESULT_PAGE_SIZE - 1) / RESULT_PAGE_SIZE));
-        pageNumber.setIncludeFontPadding(false);
-        pageNumber.setGravity(Gravity.CENTER);
-        finish.addView(pageNumber, new LinearLayout.LayoutParams(h.dp(52), h.dp(48)));
         Button nextPage = k.action(null, "›", () -> {
-          if (!canTurnResults() || (resultPage + 1) * RESULT_PAGE_SIZE >= units.length()) return;
+          if (!canTurnResults()) return;
           scroll.turn(1);
         });
         h.menus.pagerChevron(nextPage, true);
         nextPage.setTag("acquisition-next-page");
-        nextPage.setContentDescription("다음 모집 결과 페이지");
-        nextPage.setEnabled((resultPage + 1) * RESULT_PAGE_SIZE < units.length());
+        nextPage.setContentDescription("다음 모집 결과 쪽으로 스크롤");
+        scroll.next = nextPage;
         finish.addView(nextPage, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
       }
       if ((!reassessmentNotice.isEmpty() && hasReceiptIdentity()) || !savedReassessmentKey().isEmpty() || pendingReassessment != null
@@ -393,45 +389,46 @@ final class NativeReveal extends FrameLayout {
       }
       Button all = k.action(null, "목록 · " + units.length(), () -> resultPicker(index -> {
         if (flow != null) flow.selected = index;
-        resultPage = index / RESULT_PAGE_SIZE;
-        paint[0].run();
+        selection[0].run();
+        scroll.revealIndex(index);
       }));
       all.setTag("acquisition-result-picker");
       all.setContentDescription("전체 결과 목록 · " + speciesCount() + "종");
       h.cell(finish, all);
       if (flow != null && units.length() > 0) {
         LinearLayout actions = NativeUnitDossier.actions(h, flow,
-            units.optJSONObject(flow.selected), () -> current() && !h.busy && dossier == null);
+            units.optJSONObject(flow.selected), () -> canTurnResults() && !scroll.blocksClick());
         finish.addView(actions, new LinearLayout.LayoutParams(0, h.dp(48),
             NativeAcquisitionFlow.battleSpecies(units.optJSONObject(flow.selected)) ? 2 : 1));
       }
-      Button ok = k.primary(null, "확인", this::finish);
+      Button ok = k.primary(null, "확인", () -> { if (!scroll.blocksClick()) finish(); });
       ok.setTag("acquisition-confirm");
       h.cell(finish, ok);
       LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
       lp.topMargin = h.dp(4);
       footer.addView(finish, lp);
+      scroll.updateNavigation();
     };
     paint[0] = () -> {
-      // 페이지 밖 FULL 뷰는 분리해 큰 비트맵 참조도 해제한다. 50회 결과도 동시에 최대 세 장이다.
+      int savedScroll = scroll.getScrollX();
+      scroll.stopMotion();
+      // 슬롯은 전체를 이어 놓고 화면 근처 등록증만 부착해 큰 비트맵 참조를 제한한다.
       row.removeAllViews();
       shown.clear();
       pageCards.clear();
-      int pages = Math.max(1, (units.length() + RESULT_PAGE_SIZE - 1) / RESULT_PAGE_SIZE);
-      resultPage = Math.max(0, Math.min(resultPage, pages - 1));
-      int start = resultPage * RESULT_PAGE_SIZE;
-      for (int i = start; i < Math.min(units.length(), start + RESULT_PAGE_SIZE); i++) {
+      for (int i = 0; i < units.length(); i++) {
         JSONObject unit = units.optJSONObject(i);
         if (unit == null) continue;
         RevealCard card = new RevealCard(unit, 240);
         shown.add(card);
         pageCards.add(card);
         int index = i;
+        card.serverIndex = index;
         bindReassessment(card, unit, index);
         card.setTag("acquisition-card-" + unit.optString("id"));
         // 새 창을 띄우지 않고 그 자리에서 뒤집어 소개를 보여 준다. 다시 누르면 앞면으로 돌아온다.
         card.setOnClickListener(v -> {
-          if (!canTurnResults() || scroll.suppressClick || card.turning != null) return;
+          if (!canTurnResults() || scroll.blocksClick() || card.turning != null) return;
           if (card.infoShown) { card.turn(false); return; }
           if (card.front.getVisibility() != VISIBLE) return;
           if (flow != null) flow.selected = index;
@@ -441,11 +438,12 @@ final class NativeReveal extends FrameLayout {
         });
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(h.dp(240), card.preferredHeight);
         lp.setMargins(h.dp(6), h.dp(3), h.dp(6), h.dp(3));
+        card.setArtworkVisible(false);
         row.addView(card, lp);
-        if (firstPaint[0] && playEffect && motion()) {
+        if (firstPaint[0] && playEffect && motion() && i < RESULT_PAGE_SIZE) {
           ValueAnimator flip = ValueAnimator.ofFloat(0, 1);
           flip.setDuration(500);
-          flip.setStartDelay((i - start) * 120L);
+          flip.setStartDelay(Math.min(i, RESULT_PAGE_SIZE - 1) * 120L);
           flip.addUpdateListener(a -> card.flip((Float) a.getAnimatedValue()));
           animate(flip);
         } else card.flip(1);
@@ -453,11 +451,15 @@ final class NativeReveal extends FrameLayout {
       firstPaint[0] = false;
       updateReassessmentStatus();
       selection[0].run();
+      scroll.post(() -> {
+        scroll.scrollTo(savedScroll, 0);
+        scroll.refreshVisibleArtwork();
+      });
     };
     repaintResults = paint[0];
     page.addView(footer, new LinearLayout.LayoutParams(-1, -2));
-    if (flow != null) resultPage = Math.max(0, flow.selected) / RESULT_PAGE_SIZE;
     paint[0].run();
+    if (flow != null && flow.selected > 0) scroll.revealIndex(flow.selected);
     if (isAttachedToWindow()) loadReassessment();
     if (motion()) {
       ValueAnimator rays = ValueAnimator.ofFloat(0, 360);
@@ -649,7 +651,7 @@ final class NativeReveal extends FrameLayout {
   }
 
   void chooseReassessment(JSONObject unit, int index) {
-    if (!canTurnResults() || (resultStrip != null && resultStrip.suppressClick)) return;
+    if (!canTurnResults() || (resultStrip != null && resultStrip.blocksClick())) return;
     List<JSONObject> candidates = eligibleInstances(unit);
     if (candidates.isEmpty() || reassessmentNextAt > reassessmentServerNow) return;
     if (flow != null) flow.selected = index;
@@ -874,7 +876,7 @@ final class NativeReveal extends FrameLayout {
   }
 
   void openDossier(JSONObject unit, View returnFocus) {
-    if (!canTurnResults() || pickerShowing()) return;
+    if (!canTurnResults() || pickerShowing() || (resultStrip != null && resultStrip.blocksClick())) return;
     for (int i = 0; i < getChildCount(); i++)
       getChildAt(i).setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
     dossier = new NativeUnitDossier(h, unit, flow, this::current, () -> {
@@ -890,7 +892,7 @@ final class NativeReveal extends FrameLayout {
 
   void resultPicker(java.util.function.IntConsumer select) {
     if (!current() || leaving || dossier != null || h.busy
-        || pickerShowing()) return;
+        || pickerShowing() || (resultStrip != null && resultStrip.blocksClick())) return;
     android.app.AlertDialog[] dialog = {null};
     dialog[0] =
         k.openSheet(
@@ -1028,137 +1030,111 @@ final class NativeReveal extends FrameLayout {
     super.onDetachedFromWindow();
   }
 
-  /** 하단 행동과 큰 글자가 먼저 차지한 뒤의 실제 카드 영역에 초상만 맞춘다. */
-  final class RevealStrip extends HorizontalScrollView {
+  /** Native fling owns release velocity; scrolling never changes the selected result. */
+  final class RevealStrip extends InertialCardScrollView {
     final LinearLayout cardsRow = k.row();
-    float downX, downY, dragX;
-    boolean dragging, suppressClick, transitioning, verticalGesture;
-    final int touchSlop = ViewConfiguration.get(h).getScaledTouchSlop();
+    Button previous, next;
 
     RevealStrip() {
       super(h);
       setFillViewport(true);
-      setHorizontalScrollBarEnabled(false);
       cardsRow.setGravity(Gravity.CENTER);
       cardsRow.setPadding(h.dp(3), h.dp(3), h.dp(3), h.dp(3));
-      addView(cardsRow, new HorizontalScrollView.LayoutParams(-2, -2, Gravity.CENTER));
+      addView(cardsRow, new HorizontalScrollView.LayoutParams(-2, -2, Gravity.CENTER_VERTICAL));
     }
 
     @Override public boolean onInterceptTouchEvent(MotionEvent event) {
-      if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-        downX = event.getX(); downY = event.getY(); dragX = 0;
-        dragging = false; verticalGesture = false;
-        if (!transitioning) suppressClick = false;
-        return transitioning;
-      }
-      if (event.getActionMasked() == MotionEvent.ACTION_MOVE && !transitioning && canTurnResults()) {
-        float dx = event.getX() - downX, dy = event.getY() - downY;
-        if (Math.abs(dx) > touchSlop && Math.abs(dx) > Math.abs(dy) * 1.25f) {
-          dragging = true; suppressClick = true;
-          getParent().requestDisallowInterceptTouchEvent(true);
-          return true;
-        }
-        if (Math.abs(dy) > touchSlop) {
-          verticalGesture = true; suppressClick = true;
-          return true;
-        }
-      }
-      return dragging || transitioning || verticalGesture;
+      return canTurnResults() && super.onInterceptTouchEvent(event);
     }
 
     @Override public boolean onTouchEvent(MotionEvent event) {
-      if (transitioning) return true;
-      if (!canTurnResults()) return false;
-      switch (event.getActionMasked()) {
-        case MotionEvent.ACTION_DOWN:
-          downX = event.getX(); downY = event.getY(); dragX = 0; return true;
-        case MotionEvent.ACTION_MOVE:
-          if (verticalGesture) return true;
-          dragX = event.getX() - downX;
-          if (Math.abs(dragX) > touchSlop) { dragging = true; suppressClick = true; }
-          boolean edge = dragX > 0 ? resultPage == 0 : (resultPage + 1) * RESULT_PAGE_SIZE >= units.length();
-          cardsRow.setTranslationX(dragX * (edge ? .22f : 1f));
-          return true;
-        case MotionEvent.ACTION_UP:
-          if (!verticalGesture && dragging && Math.abs(dragX) >= Math.max(h.dp(48), getWidth() * .12f)) turn(dragX < 0 ? 1 : -1);
-          else settle();
-          dragging = false; return true;
-        case MotionEvent.ACTION_CANCEL:
-          dragging = false; settle(); return true;
-        default: return true;
-      }
-    }
-
-    void settle() {
-      if (motion()) cardsRow.animate().translationX(0).setDuration(140).start();
-      else cardsRow.setTranslationX(0);
-      postDelayed(() -> suppressClick = false, 200);
+      return canTurnResults() && super.onTouchEvent(event);
     }
 
     void turn(int direction) {
-      if (!canTurnResults() || transitioning) { settle(); return; }
-      int destination = resultPage + direction;
-      if (destination < 0 || destination * RESULT_PAGE_SIZE >= units.length()) { settle(); return; }
-      suppressClick = dragging || motion();
-      Runnable change = () -> {
+      if (!canTurnResults()) return;
+      int distance = Math.max(1, getWidth() - h.dp(48));
+      if (motion()) smoothScrollBy(direction * distance, 0);
+      else scrollBy(direction * distance, 0);
+    }
+
+    void revealIndex(int index) {
+      post(() -> {
         if (!current()) return;
-        resultPage = destination;
-        if (flow != null) flow.selected = resultPage * RESULT_PAGE_SIZE;
-        repaintResults.run();
-        if (motion()) {
-          cardsRow.setTranslationX(direction * getWidth() * .30f);
-          cardsRow.animate().translationX(0).setDuration(160).withEndAction(() -> {
-            transitioning = false; suppressClick = false;
-          }).start();
-        } else { cardsRow.setTranslationX(0); transitioning = false; postDelayed(() -> suppressClick = false, 200); }
-      };
-      transitioning = true;
-      if (motion()) cardsRow.animate().translationX(-direction * getWidth()).setDuration(140).withEndAction(change).start();
-      else change.run();
+        View target = null;
+        for (int i = 0; i < cardsRow.getChildCount(); i++) {
+          View child = cardsRow.getChildAt(i);
+          if (child instanceof RevealCard && ((RevealCard) child).serverIndex == index) {
+            target = child;
+            break;
+          }
+        }
+        if (target == null) return;
+        stopMotion();
+        int left = target.getLeft() - h.dp(6), right = target.getRight() + h.dp(6);
+        if (left < getScrollX()) scrollTo(left, 0);
+        else if (right > getScrollX() + getWidth()) scrollTo(right - getWidth(), 0);
+        refreshVisibleArtwork();
+      });
     }
 
-    @Override protected void onDetachedFromWindow() {
-      cardsRow.animate().cancel();
-      super.onDetachedFromWindow();
+    void updateNavigation() {
+      if (previous != null) previous.setEnabled(canScrollHorizontally(-1));
+      if (next != null) next.setEnabled(canScrollHorizontally(1));
     }
 
-    @Override
-    protected void onMeasure(int widthSpec, int heightSpec) {
+    void refreshVisibleArtwork() {
+      if (getWidth() <= 0 || cardsRow == null) return;
+      int start = getScrollX() - getWidth(), end = getScrollX() + getWidth() * 2;
+      for (int i = 0; i < cardsRow.getChildCount(); i++) {
+        View child = cardsRow.getChildAt(i);
+        if (child instanceof RevealCard)
+          ((RevealCard) child).setArtworkVisible(child.getRight() >= start && child.getLeft() <= end);
+      }
+      updateNavigation();
+    }
+
+    @Override protected void onScrollChanged(int x, int y, int oldX, int oldY) {
+      super.onScrollChanged(x, y, oldX, oldY);
+      refreshVisibleArtwork();
+    }
+
+    @Override protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+      super.onLayout(changed, left, top, right, bottom);
+      refreshVisibleArtwork();
+    }
+
+    @Override protected void onMeasure(int widthSpec, int heightSpec) {
       super.onMeasure(widthSpec, heightSpec);
       if (MeasureSpec.getMode(heightSpec) == MeasureSpec.UNSPECIFIED) return;
-      int room =
-          getMeasuredHeight()
-              - getPaddingTop()
-              - getPaddingBottom()
-              - cardsRow.getPaddingTop()
-              - cardsRow.getPaddingBottom();
+      int room = getMeasuredHeight() - getPaddingTop() - getPaddingBottom()
+          - cardsRow.getPaddingTop() - cardsRow.getPaddingBottom();
       if (room <= 0) return;
       for (int i = 0; i < cardsRow.getChildCount(); i++) {
         View child = cardsRow.getChildAt(i);
         if (!(child instanceof RevealCard)) continue;
         LinearLayout.LayoutParams slot = (LinearLayout.LayoutParams) child.getLayoutParams();
         int budget = Math.max(0, room - slot.topMargin - slot.bottomMargin);
-        int columns = Math.max(1, cardsRow.getChildCount());
+        int columns = Math.max(1, Math.min(RESULT_PAGE_SIZE, cardsRow.getChildCount()));
         int availableWidth = getMeasuredWidth() - getPaddingLeft() - getPaddingRight()
             - cardsRow.getPaddingLeft() - cardsRow.getPaddingRight();
         int widthBudget = Math.max(1, availableWidth / columns - slot.leftMargin - slot.rightMargin);
-        slot.width = Math.max(1, Math.min(widthBudget, (int) Math.floor(budget * .75f)));
+        slot.width = Math.max(1, Math.min(h.dp(240), Math.min(widthBudget, (int) Math.floor(budget * .75f))));
         slot.height = ((RevealCard) child).fitToSize(slot.width, budget);
         child.forceLayout();
       }
-      // 동일 사양의 측정 캐시를 재사용하지 않도록 실제 앞면 높이로 한 번 더 정렬한다.
       cardsRow.forceLayout();
       super.onMeasure(widthSpec, heightSpec);
     }
   }
 
   final class RevealCard extends FrameLayout {
-    final View front, back;
+    final View front, back, artwork;
     final int preferredHeight;
     final FrameLayout photo;
     final JSONObject unit;
     TextView newBadge, countBadge;
-    int cardWidth, portraitHeight;
+    int cardWidth, portraitHeight, serverIndex;
     LinearLayout info, infoBody, infoMeta;
     boolean infoShown;
     ValueAnimator turning;
@@ -1177,9 +1153,9 @@ final class NativeReveal extends FrameLayout {
       face.setGravity(Gravity.CENTER);
       // 원본에 종이·프레임·이름·등급이 모두 있으므로 외부 크림 판과 중복 문자를 두지 않는다.
       photo = new FrameLayout(h);
-      View art = RegistrationCardView.art(h, unit, RegistrationCardView.FULL);
-      art.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-      photo.addView(art, new LayoutParams(-1, -1));
+      artwork = RegistrationCardView.art(h, unit, RegistrationCardView.FULL);
+      artwork.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+      photo.addView(artwork, new LayoutParams(-1, -1));
       if (unit.optBoolean("first")) {
         TextView badge = h.text("NEW", 10);
         newBadge = badge;
@@ -1239,6 +1215,11 @@ final class NativeReveal extends FrameLayout {
       addView(back, new LayoutParams(-1, -1));
       if (rank(unit.optString("tier")) >= 6) setElevation(h.dp(6));
       flip(0);
+    }
+
+    void setArtworkVisible(boolean visible) {
+      if (visible && artwork.getParent() == null) photo.addView(artwork, 0, new LayoutParams(-1, -1));
+      else if (!visible && artwork.getParent() == photo) photo.removeView(artwork);
     }
 
     int fitToSize(int width, int budget) {
@@ -1417,6 +1398,3 @@ final class NativeReveal extends FrameLayout {
   }
 
 }
-
-
-

@@ -3,13 +3,12 @@ package org.dpdns.gmm;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** 서버가 공개한 상대 정보만 표시한다. 원본 fighter의 숨은 스탯/상성으로 보충하지 않는다. */
+/** Reads only the server's public attack-observation projection; never reconstructs a defense table. */
 final class Roster60OpponentIntel {
-  static final String VERSION="opponent-intel-v1";
+  static final String VERSION="opponent-intel-v2", COLLECTION_VERSION="observed-defense-v1";
   static final String[] ELEMENTS={"NORMAL","FIRE","WATER","LIGHTNING","ICE","NATURE","HOLY","DARK"};
   static final String[] ELEMENT_NAMES={"일반","불","물","번개","얼음","자연","성","어둠"};
-  static final String[] ELEMENT_ICONS={"○","♨","≈","ϟ","❄","♧","✧","☾"};
-  final String name,speciesId;
+  final String name,speciesId,defenseKnowledgeScope;
   final int level,completedTurns,knownCount;
   final boolean statsKnown,changing;
   final int[] stats=new int[5];
@@ -37,19 +36,36 @@ final class Roster60OpponentIntel {
       stats[i]=n>=0&&n<=Integer.MAX_VALUE?(int)n:0;
     }
     statsKnown=usable;
-    JSONObject known=valid?intel.optJSONObject("defenses"):null;int count=0;
+    defenseKnowledgeScope=valid?intel.optString("defenseKnowledgeScope","unverified"):"unverified";
+    boolean observed="base-observed".equals(defenseKnowledgeScope)||"battle-observed".equals(defenseKnowledgeScope);
+    JSONObject known=valid&&observed?intel.optJSONObject("defenses"):null;int count=0;
     for(int i=0;i<ELEMENTS.length;i++){
-      String value=known==null?"unknown":known.optString(ELEMENTS[i],"unknown");
-      if(!java.util.Arrays.asList("weak","normal","resist","immune","reflect").contains(value))value="unknown";
-      defenses[i]=value;if(!"unknown".equals(value))count++;
+      defenses[i]=reaction(known==null?"unknown":known.optString(ELEMENTS[i],"unknown"));
+      if(!"unknown".equals(defenses[i]))count++;
     }
     knownCount=count;
   }
+
+  static String reaction(String value){
+    return java.util.Arrays.asList("weak","normal","resist","immune","reflect").contains(value)?value:"unknown";
+  }
+
+  /** Collection knowledge belongs to this account's server response and this exact species. */
+  static String[] collectionDefenses(JSONObject species){
+    JSONObject knowledge=species==null?null:species.optJSONObject("defenseKnowledge");
+    boolean valid=knowledge!=null&&COLLECTION_VERSION.equals(knowledge.optString("version"))
+        &&!species.optString("id").isEmpty()&&species.optString("id").equals(knowledge.optString("speciesId"));
+    JSONObject map=valid?knowledge.optJSONObject("defenses"):null;
+    String[] values=new String[ELEMENTS.length];
+    for(int i=0;i<values.length;i++)values[i]=reaction(map==null?"unknown":map.optString(ELEMENTS[i],"unknown"));
+    return values;
+  }
+
   static String defenseLabel(String value){
     switch(value){case "weak":return "약점";case "normal":return "보통";case "resist":return "내성";
       case "immune":return "무효";case "reflect":return "반사";default:return "?";}
   }
   String statsNotice(){
-    return changing?"새 상대를 확인하고 있어요.":completedTurns<1?"한 턴이 끝나면 상대 스탯을 볼 수 있어요.":"상대 스탯 정보가 아직 도착하지 않았어요.";
+    return changing?"새 상대를 확인하고 있어요.":completedTurns<1?"한 턴 뒤 스탯 공개":"스탯 정보 확인 중";
   }
 }

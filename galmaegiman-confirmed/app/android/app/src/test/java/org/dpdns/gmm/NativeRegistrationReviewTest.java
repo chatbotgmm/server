@@ -179,6 +179,8 @@ public class NativeRegistrationReviewTest {
     assertNotNull("Approved source independently decodes", reference);
     try { RegistrationArtTest.samePixels("Whole sprite " + art.id, reference, art.bitmap); }
     finally { reference.recycle(); }
+    Bitmap standalone = Bitmap.createBitmap(art.getWidth(), art.getHeight(), Bitmap.Config.ARGB_8888);
+    try { art.draw(new Canvas(standalone)); } finally { standalone.recycle(); }
     assertFalse(art.target.isEmpty());
     assertTrue("Entire sprite contained", new RectF(0, 0, art.getWidth(), art.getHeight()).contains(art.target));
     assertTrue("Readable character height", art.target.height() >= host.dp(24));
@@ -197,7 +199,7 @@ public class NativeRegistrationReviewTest {
     if (page.startsWith("team-")) {
       assertTrue("Party must not show registration frames", artworks(host.root).isEmpty());
       List<PartyCharacterView.Artwork> sprites = partyArtworks(host.root);
-      assertEquals("Three server slots and three current candidates", 6, sprites.size());
+      assertEquals("Three server slots and every continuous candidate", 3 + IDS.length, sprites.size());
       for (PartyCharacterView.Artwork sprite : sprites) assertPartyArt(host, sprite);
     } else if (!page.equals("recruit")) {
       List<RegistrationCardView.Artwork> cards = artworks(host.root);
@@ -288,6 +290,18 @@ public class NativeRegistrationReviewTest {
     assertTrue("Inside safe insets: " + view.getTag() + " " + box, safe.contains(new RectF(box)));
   }
 
+  void partySpriteVisibility(MainActivity host, PartyCharacterView.Artwork sprite) {
+    InertialCardScrollView rail = NativeHomePartyFeedbackTest.teamCandidateRail(sprite);
+    if (rail == null) { visible(host, sprite); return; }
+    visible(host, rail);
+    Rect own = geometry.bounds(sprite, host.root), viewport = geometry.bounds(rail, host.root);
+    assertTrue("Rail may clip horizontally, never vertically", own.top >= viewport.top && own.bottom <= viewport.bottom);
+    Rect exposed = geometry.visibleIntersection(sprite, host.root);
+    if (!exposed.isEmpty()) {
+      assertEquals(own.top, exposed.top); assertEquals(own.bottom, exposed.bottom);
+    }
+  }
+
   void action(MainActivity host, String tag) {
     View view = tag(host, tag);
     assertTrue("Action is an actual Button: " + tag, view instanceof Button);
@@ -373,10 +387,11 @@ public class NativeRegistrationReviewTest {
       }
     List<PartyCharacterView.Artwork> sprites = partyArtworks(host.root);
     if (page.startsWith("team-")) {
-      assertEquals(6, sprites.size()); assertTrue(cards.isEmpty());
+      assertEquals(3 + IDS.length, sprites.size()); assertTrue(cards.isEmpty());
       for (PartyCharacterView.Artwork sprite : sprites) {
-        assertPartyArt(host, sprite); visible(host, sprite);
+        assertPartyArt(host, sprite); partySpriteVisibility(host, sprite);
         Rect own = geometry.bounds(sprite, host.root);
+        Rect exposed = geometry.visibleIntersection(sprite, host.root);
         characterBounds.put(MainActivity.obj("id", sprite.id, "mode", "CHARACTER", "spritePath", sprite.path,
             "left", own.left, "top", own.top, "right", own.right, "bottom", own.bottom,
             "bitmapWidth", sprite.bitmap == null ? 0 : sprite.bitmap.getWidth(),
@@ -385,12 +400,12 @@ public class NativeRegistrationReviewTest {
             "targetRight", sprite.target.right, "targetBottom", sprite.target.bottom,
             "pixelIdentityVerified", sprite.bitmap != null, "imageStatus", sprite.status));
         for (View action : activeViews) if (action instanceof Button && action.isShown()) {
-          assertFalse("Sprite cannot cover an action", Rect.intersects(own, geometry.bounds(action, host.root)));
+          assertFalse("Visible sprite cannot cover an action", Rect.intersects(exposed, geometry.bounds(action, host.root)));
           overlapChecks++;
         }
       }
       for (int i = 0; i < sprites.size(); i++) for (int j = i + 1; j < sprites.size(); j++) {
-        assertFalse("Party sprites cannot overlap", Rect.intersects(geometry.bounds(sprites.get(i), host.root), geometry.bounds(sprites.get(j), host.root)));
+        assertFalse("Visible party sprites cannot overlap", Rect.intersects(geometry.visibleIntersection(sprites.get(i), host.root), geometry.visibleIntersection(sprites.get(j), host.root)));
         overlapChecks++;
       }
     }

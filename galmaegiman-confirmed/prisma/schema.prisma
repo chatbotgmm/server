@@ -13,6 +13,7 @@ model AppMeta {
 }
 
 model Player {
+  roster60ObservedDefenses Roster60ObservedDefense[]
   roster60Adventures Roster60Adventure[]
   roster60AdventureReceipts Roster60AdventureReceipt[]
   roster60RecruitReceipts Roster60RecruitReceipt[]
@@ -557,6 +558,20 @@ model Roster60BattleReceipt {
   createdAt DateTime @default(now())
   player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
   @@id([playerId, requestId])
+}
+
+// Account knowledge contains only reactions actually observed against a verified base profile.
+model Roster60ObservedDefense {
+ playerId String
+ speciesId String
+ profileKey String
+ element String
+ reaction String
+ firstObservedAt DateTime @default(now())
+ lastObservedAt DateTime @updatedAt
+ player Player @relation(fields:[playerId],references:[id],onDelete:Cascade)
+ @@id([playerId,speciesId,profileKey,element])
+ @@index([playerId,speciesId])
 }
 
 model Roster60Home {

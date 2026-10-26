@@ -1,8 +1,8 @@
-import {recordRebirthUnlock} from './roster60-home.js';
 import {createHash,randomUUID} from 'node:crypto';
 import type {Prisma,PrismaClient} from '@prisma/client';
 import {combinationGrowth,growthAt,rosterMaxLevel,validateRosterDefinition} from './battle/roster60-rules.js';
 import {RosterError,type RosterCatalog} from './roster60-onboarding.js';
+import {recordRosterDailyProgress} from './roster60-daily-progress.js';
 type Tx=Prisma.TransactionClient;
 export type CraftSelection={resultId:string;materialIds:string[];catalogVersion:string};
 export type CraftConfirmation=CraftSelection&{requestId:string;previewFingerprint:string};
@@ -10,7 +10,7 @@ const fail=(code:string,status=409):never=>{throw new RosterError(status,code);}
 const hash=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const canonical=(b:CraftSelection)=>[b.resultId,[...b.materialIds].sort(),b.catalogVersion];
 export class RosterCraft {
-  constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null){}
+  constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private completionTime=()=>new Date()){}
   async options(playerId:string){
     const c=this.catalog();
     if(c?.approved!==true||!Array.isArray(c.characters)||!Array.isArray(c.recipes))return fail('ROSTER_CATALOG_PENDING',503);
@@ -78,7 +78,7 @@ export class RosterCraft {
       const consumed=await tx.roster60Owned.updateMany({where:{playerId,id:{in:plan.materialIds},status:'AVAILABLE',locked:false},data:{status:'CONSUMED'}});
       if(consumed.count!==plan.materialIds.length)return fail('MATERIALS_UNAVAILABLE');
       const unit=await tx.roster60Owned.create({data:{id:randomUUID(),playerId,speciesId:plan.resultId,totalXp:BigInt(plan.inheritedTotalXp),source:'craft:'+input.requestId}});
-      await recordRebirthUnlock(tx,playerId,plan.resultRarity);
+      await recordRosterDailyProgress(tx,playerId,'CRAFT',1,this.completionTime(),plan.resultRarity);
       const result={...plan,ownedId:unit.id};
       await tx.roster60CraftReceipt.create({data:{playerId,requestId:input.requestId,fingerprint,result:JSON.stringify(result)}});
       return result;

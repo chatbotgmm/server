@@ -25,7 +25,7 @@ const COOKIE='gmm_s',DAYS=30,KSTATE='gmm_ks',KPEND='gmm_kp',KAPP='gmm_ka',KLINK=
 // 안드로이드 앱(Capacitor) 화면 주소. 앱에서 오는 요청만 다른 주소에서 받음(CORS)
 const APP_ORIGINS=new Set(['https://localhost','capacitor://localhost','http://localhost']);
 export interface KakaoLogin {restKey:string;clientSecret?:string}
-export function registerMy(app:FastifyInstance,game:GameService,opt:{menuLocks?:boolean;db:PrismaClient;root:string;secret:string;baseUrl:()=>Promise<string>;kakao?:KakaoLogin;fetch?:typeof fetch;reviewLogin?:ReviewConfig;gameResetSessionCutoff?:number}){
+export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaClient;root:string;secret:string;baseUrl:()=>Promise<string>;kakao?:KakaoLogin;fetch?:typeof fetch;reviewLogin?:ReviewConfig;gameResetSessionCutoff?:number}){
   const key=createHmac('sha256',opt.secret).update('web-session').digest();
   const sign=(v:string)=>createHmac('sha256',key).update(v).digest('base64url');
   const issue=(playerId:string)=>{const exp=Math.floor(Date.now()/1000)+ordinarySessionLifetimeSeconds,v=`${playerId}.${exp}`;return `${v}.${sign(v)}`;};
@@ -394,7 +394,7 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{menuLocks?:
   });
 
   const native=registerNative(app,game,opt.root,session,guard,realtime);
-  registerRoster60(app,opt.db,opt.root,session,guard,opt.menuLocks);
+  registerRoster60(app,opt.db,opt.root,session,guard);
   registerRealtimePvp(app,realtime,session,guard);
   registerNews(app,new NewsService(prismaNewsStore(opt.db),newsSources(opt.root,()=>game.content.economy.events)),session,guard);
 

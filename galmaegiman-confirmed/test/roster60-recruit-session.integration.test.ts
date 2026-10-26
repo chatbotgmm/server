@@ -8,7 +8,7 @@ suite('candidate recruitment; fixture policy only',()=>{
  const p:RecruitSessionPolicy={version:'TEST-NOT-PRODUCT',halfRounding:null,pity:'none',offers:[{kind:'LOW',label:'fixture',cost:2,weights:{COMMON:100}}]};
  const start=()=>({requestId:randomUUID(),kind:'LOW',catalogVersion:c.version});
  beforeAll(async()=>{const url=process.env.TEST_DB_URL!;if(!/^file:\/tmp\/galmaegiman-tests-[^/]+\/test.db$/.test(url))throw Error('isolated DB only');db=new PrismaClient({datasources:{db:{url}}});id=(await db.player.create({data:{identity:randomUUID(),credits:100}})).id;await new RosterOnboarding(db,()=>c).start(id);service=new RecruitSessions(db,()=>c,()=>p,()=>0);});
- afterAll(async()=>{await db.player.delete({where:{id}});await db.$disconnect();});
+ afterAll(async()=>{await db.auditEvent.deleteMany({where:{playerId:id}});await db.dailyProgress.deleteMany({where:{playerId:id}});await db.player.delete({where:{id}});await db.$disconnect();});
  it('policy absent rejects before charge; product is not silently activated',async()=>{const svc=new RecruitSessions(db,()=>c,()=>null);expect((await svc.info(id)).enabled).toBe(false);await expect(svc.start(id,start())).rejects.toMatchObject({code:'RECRUIT_SESSION_POLICY_PENDING'});});
  it('start grants nothing, duplicate fixed, same-grade reroll once, claim exactly once',async()=>{
  const initial=await db.roster60Owned.count({where:{playerId:id}}),b=start();const s=await service.start(id,b);expect(await service.start(id,b)).toEqual(s);expect(await db.roster60Owned.count({where:{playerId:id}})).toBe(initial);

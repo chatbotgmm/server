@@ -44,7 +44,7 @@ public class NativeProgressionReviewTest {
     RuntimeEnvironment.setQualifiers("w915dp-h412dp-land-mdpi");
   }
 
-  @Test public void captureFourTabsWithoutScrollAtFiveProfiles() throws Exception {
+  @Test public void capturePassAndSeparateConversionViewsAtFiveProfiles() throws Exception {
     frames.render.scheduledFramesUseThePausedLooperClock();
     JSONObject geometry = new JSONObject(), findings = new JSONObject();
     for (int[] size : new int[][] {{915,374,160}, {780,319,160}, {2048,838,420}}) {
@@ -72,6 +72,18 @@ public class NativeProgressionReviewTest {
                 assertTrue(image.compress(Bitmap.CompressFormat.PNG, 100, out));
               }
             } finally { image.recycle(); }
+            if (tab.equals("pass")) {
+              assertEquals("플레이 패스", f.h.title.getText().toString());
+              assertNotNull(f.h.root.findViewWithTag("play-pass-rewards"));
+              assertNotNull(f.h.root.findViewWithTag("play-pass-reward-m1"));
+              assertNotNull(f.h.root.findViewWithTag("play-pass-reward-m4"));
+              TextView points = f.h.root.findViewWithTag("play-pass-points");
+              assertTrue(points.getText().toString().contains("100점"));
+              assertEquals(NavyWorkbenchTheme.TEXT, points.getCurrentTextColor());
+              TextView page = f.h.root.findViewWithTag("progression-page-label");
+              assertNotNull(page); assertEquals("1 / 2", page.getText().toString());
+              for (String removed : TABS) assertNull(f.h.root.findViewWithTag("progression-tab-" + removed));
+            } else {
             TextView summary = f.h.root.findViewWithTag("progression-summary");
             assertNotNull(name + " actual server summary", summary);
             View card = f.h.root.findViewWithTag("progression-feature-card");
@@ -88,13 +100,6 @@ public class NativeProgressionReviewTest {
             assertEquals(f.h.dp(64), illustration.getWidth()); assertEquals(f.h.dp(64), illustration.getHeight());
             assertEquals("Canonical art stays inside its card", frames.bounds(illustration, f.h.root), frames.visible(illustration, f.h.root));
             assertEquals(name + " readable ink", JournalTheme.INK, summary.getCurrentTextColor());
-            if (tab.equals("pass")) {
-              assertTrue(headline.getText().toString().contains("100점"));
-              assertTrue(summary.getText().toString().contains("100점 달성 보상"));
-              assertTrue(headline.getText().toString().contains("지원서 3장"));
-              TextView page = f.h.root.findViewWithTag("progression-page-label");
-              assertNotNull(page); assertEquals("1 / 5", page.getText().toString());
-              assertTrue(page.getBackground() instanceof GamePaperDrawable);
             }
             Bitmap capturedPixels = BitmapFactory.decodeFile(output().resolve(name + ".png").toString());
             assertNotNull(capturedPixels);
@@ -158,18 +163,27 @@ public class NativeProgressionReviewTest {
     assertEquals("native text clipped " + view.getText(), bounds, visible);
     assertEquals("native text ellipsized " + view.getText(), 0, ellipsis);
     assertEquals("native text incomplete", view.length(), end);
-    assertTrue("native text height", layout.getHeight() <= contentHeight);
+    assertTrue("native text height "+view.getTag()+" "+view.getText()+" layout="+layout.getHeight()+" room="+contentHeight, layout.getHeight() <= contentHeight);
     assertFalse("nonempty native glyphs " + view.getText(), worldGlyphs.isEmpty());
     assertTrue("native glyph ink " + view.getText() + " viewport=" + host.root.getWidth() + "x" + host.root.getHeight()
         + " density=" + host.getResources().getDisplayMetrics().densityDpi
         + " font=" + host.getResources().getConfiguration().fontScale
         + " visible=" + visible + " glyphs=" + worldGlyphs + " baseline=" + view.getBaseline(), visible.contains(worldGlyphs));
     int inkPixels = 0;
-    if ("progression-summary".equals(view.getTag()) || "progression-headline".equals(view.getTag()) || "progression-page-label".equals(view.getTag())) {
+    if ("progression-summary".equals(view.getTag()) || "progression-headline".equals(view.getTag()) || "progression-page-label".equals(view.getTag())
+        || "play-pass-points".equals(view.getTag()) || "play-pass-reward-label".equals(view.getTag())) {
+      int textColor = view.getCurrentTextColor();
       for (int y = Math.max(0, worldGlyphs.top); y < Math.min(capturedPixels.getHeight(), worldGlyphs.bottom); y++)
         for (int x = Math.max(0, worldGlyphs.left); x < Math.min(capturedPixels.getWidth(), worldGlyphs.right); x++) {
           int color = capturedPixels.getPixel(x, y);
-          if (Color.alpha(color) > 200 && Color.red(color) < 100 && Color.green(color) < 130 && Color.blue(color) < 130) inkPixels++;
+          // Keep the original antialiased dark-ink predicate for legacy paper text.
+          // The new navy pass uses light text and needs its separate color predicate.
+          boolean painted = textColor == JournalTheme.INK
+              ? Color.red(color) < 100 && Color.green(color) < 130 && Color.blue(color) < 130
+              : Math.abs(Color.red(color) - Color.red(textColor))
+                  + Math.abs(Color.green(color) - Color.green(textColor))
+                  + Math.abs(Color.blue(color) - Color.blue(textColor)) < 90;
+          if (Color.alpha(color) > 200 && painted) inkPixels++;
         }
       assertTrue("actual PNG contains painted summary/page ink " + view.getText(), inkPixels > 8);
     }

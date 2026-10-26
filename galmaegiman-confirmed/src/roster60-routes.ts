@@ -1,5 +1,4 @@
-import {testMenuDefaultLock} from './menu-policy.js';
-import {MenuAccess,menuFeatureFor,menuChangeSchema} from './menu-access.js';
+import {MenuAccess,menuChangeSchema} from './menu-access.js';
 import {RosterPvp} from './roster60-pvp.js';
 import {RecruitSessions,type RecruitSessionPolicy} from './roster60-recruit-session.js';
 import {RosterAdventure} from './roster60-adventure.js';
@@ -15,43 +14,18 @@ import {RosterReincarnation} from './roster60-reincarnation.js';
 import {validateFiveStatCatalog} from './battle/roster60-five-stats.js';
 import {RosterBattle,fighter,type BattlePolicy} from './roster60-battle.js';
 import {RosterCraft} from './roster60-craft.js';
-export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string,auth:(r:FastifyRequest)=>string|null,guard:(r:FastifyRequest,p:FastifyReply)=>boolean,menuLocks=false){
+import {publicDefenseSafe} from './battle/roster60-observed-defense.js';
+export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string,auth:(r:FastifyRequest)=>string|null,guard:(r:FastifyRequest,p:FastifyReply)=>boolean,_menuLocks?:boolean){
   const profile=process.env.ROSTER60_PROFILE;
   if(profile && profile!=='five-stat-device-test-v1')throw Error('UNKNOWN_ROSTER60_PROFILE');
   const file=resolve(root,profile?'data/test-profiles/'+profile+'/catalog.json':'data/roster60-approved.json');
   // No fallback to review fixtures or legacy character definitions.
   const catalog=()=>{if(!existsSync(file))return null;try{const c=JSON.parse(readFileSync(file,'utf8'));validateFiveStatCatalog(c);return c as RosterCatalog;}catch(e){throw new RosterError(503,e instanceof Error&&['FIVE_STAT_CATALOG_REQUIRED','FIVE_STAT_CATALOG_INVALID','FIVE_STATS_REQUIRED','INVALID_FIVE_STATS','BASE_MP_MISMATCH'].includes(e.message)?e.message:'ROSTER_CATALOG_INVALID');}};
-  const menus=new MenuAccess(db,catalog,testMenuDefaultLock(process.env));
-  // Production server opts in explicitly; isolated legacy suites can test their own policies independently.
-  if(menuLocks){
-    app.addHook('preHandler',async(req,reply)=>{
-      if(!req.url.startsWith('/my/api/'))return;
-      let feature=menuFeatureFor(decodeURIComponent(req.url.split('?')[0]));
-      if(req.url.split('?')[0]==='/my/api/native/roster60/battle/create'){
-        const body=req.body as {adventureId?:unknown;encounterId?:unknown}|undefined;
-        if(body?.adventureId)feature='adventure';
-        else if(typeof body?.encounterId==='string'){
-          const policy=battlePolicy();if(policy?.encounters?.some(e=>e.id===body.encounterId&&e.mode==='adventure'))feature='adventure';
-        }
-      }
-      // Legacy story-save also carries an editable party. Preserve same-party progress saves,
-      // but do not let it bypass a locked party editor (including clearing the saved team).
-      if(req.method==='POST'&&req.url.split('?')[0]==='/my/api/story'){
-        const owner=auth(req);if(!owner)return reply.code(401).send({error:'login'});
-        const saved=await db.storySave.findUnique({where:{playerId:owner}});
-        const before=saved?JSON.parse(saved.data).team??[]:[];
-        const data=(req.body as {data?:{team?:unknown}|null}|undefined)?.data;
-        if(JSON.stringify(data?.team??[])!==JSON.stringify(before))feature='party';
-      }
-      if(!feature)return;
-      const id=auth(req);if(!id)return reply.code(401).send({error:'login'});
-      try{await menus.require(id,feature);}catch(e){if(e instanceof RosterError)return reply.code(e.status).send({error:e.code,code:'MENU_LOCKED',featureId:feature});throw e;}
-    });
-  }
+  const menus=new MenuAccess(db);
   app.get('/my/api/native/menu-access',async(req,reply)=>{
     reply.header('Cache-Control','no-store');if(!guard(req,reply))return;
     const id=auth(req);if(!id)return reply.code(401).send({error:'login'});
-    return {...await menus.read(id),enforcementEnabled:menuLocks};
+    return await menus.read(id);
   });
   app.get('/my/api/admin/menu-access',async(req,reply)=>{
     reply.header('Cache-Control','no-store');if(!guard(req,reply))return;
@@ -87,7 +61,7 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   const route=(method:'GET'|'POST',path:string,run:(id:string,r:FastifyRequest)=>Promise<unknown>)=>app.route({method,url:'/my/api/native/roster60/'+path,bodyLimit:2048,config:{rateLimit:{max:60,timeWindow:'1 minute',...(path.startsWith('pvp/')?{keyGenerator:(req:FastifyRequest)=>'roster-pvp:'+(auth(req)??'ip:'+req.ip)}:{})}},handler:async(req,reply)=>{
     reply.header('Cache-Control','no-store');if(!guard(req,reply))return;
     const id=auth(req);if(!id)return reply.code(401).send({error:'login'});
-    try{return await run(id,req);}catch(e){
+    try{return publicDefenseSafe(await run(id,req));}catch(e){
       if(e instanceof RosterError)return reply.code(e.status).send({error:e.code});
       if(e instanceof z.ZodError)return reply.code(400).send({error:'INVALID_REQUEST'});
       throw e;

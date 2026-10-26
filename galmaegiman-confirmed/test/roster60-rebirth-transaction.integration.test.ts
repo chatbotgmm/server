@@ -18,6 +18,10 @@ suite('rebirth account cost transaction (synthetic eligibility only)',()=>{
  it('first free, retries identical, then one peanut; cap5 and no compound',async()=>{
   const p=await account(),u=await owned(p),r=await request(p,u.id),first=await service.confirm(p,r);
   expect(first.paidPeanut).toBe(0);expect(await service.confirm(p,r)).toEqual(first);
+  const old=await db.roster60RebirthReceipt.findUniqueOrThrow({where:{playerId_requestId:{playerId:p,requestId:r.requestId}}});
+  const archived=JSON.parse(old.result);archived.preview.defense={...unit.defense};archived.previewFingerprint='old-secret-table-digest';
+  await db.roster60RebirthReceipt.update({where:{playerId_requestId:{playerId:p,requestId:r.requestId}},data:{result:JSON.stringify(archived)}});
+  const safeReplay=await service.confirm(p,r);expect(safeReplay.preview.defense).toBeUndefined();expect(safeReplay.previewFingerprint).toBeUndefined();
   for(let n=2;n<=5;n++){await reach(u.id,n-1);const result=await service.confirm(p,await request(p,u.id));expect(result.paidPeanut).toBe(1);expect(result.preview.afterLevelOneStats.hp).toBe(100+n*10);}
   expect((await db.player.findUniqueOrThrow({where:{id:p}})).peanut).toBe(1);
   expect((await db.roster60Owned.findUniqueOrThrow({where:{id:u.id}})).totalXp).toBe(0n);

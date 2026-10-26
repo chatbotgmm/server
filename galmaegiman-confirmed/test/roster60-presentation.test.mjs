@@ -25,11 +25,14 @@ const stubs={
 const cache=new Map();
 function synthetic(id,values){return new SyntheticModule(Object.keys(values),function(){for(const [key,value] of Object.entries(values))this.setExport(key,value);},{identifier:id});}
 function source(path){let file=resolve(root,path);if(!existsSync(file)&&process.env.ROSTER_PRESENTATION_SOURCE_FALLBACK)file=resolve(process.env.ROSTER_PRESENTATION_SOURCE_FALLBACK,path);return readFileSync(file,'utf8');}
-async function load(path){
+function moduleFor(path){
  if(cache.has(path))return cache.get(path);
  const module=path==='node:crypto'?synthetic(path,crypto):stubs[path]?synthetic(path,stubs[path]):new SourceTextModule(stripTypeScriptTypes(source(path),{mode:'transform'}),{identifier:path});
- cache.set(path,module);
- await module.link((specifier,referencing)=>load(specifier.startsWith('node:')?specifier:resolve('/',dirname(referencing.identifier),specifier).slice(1).replace(/\.js$/,'.ts')));
+ cache.set(path,module);return module;
+}
+async function load(path){
+ const module=moduleFor(path);
+ if(module.status==='unlinked')await module.link((specifier,referencing)=>moduleFor(specifier.startsWith('node:')?specifier:resolve('/',dirname(referencing.identifier),specifier).slice(1).replace(/\.js$/,'.ts')));
  return module;
 }
 const battleModule=await load('src/roster60-battle.ts');await battleModule.evaluate();
@@ -62,7 +65,7 @@ function chained(events,initial,final){
 function pvp({a=fighter('a',10),b=fighter('b',20),reserveA=[],reserveB=[],actions=[{kind:'attack'},{kind:'attack'}],items={}}={}){
  const state={turn:0,parties:[[a,...reserveA],[b,...reserveB]],pending:actions,accepted:[true,true],ack:[false,false],misses:[0,0],winner:null,events:[]};
  const row={id:'pvp',revision:1,status:'ACTIVE',player0Id:'player0',player1Id:'player1',seed:'seed',createdAt:new Date(),deadline:new Date(Date.now()+30000),state:JSON.stringify(state),snapshot:JSON.stringify({policy,items,members:[]}),settlement:null};
- const tx={roster60PvpMatch:{update:async({data})=>{Object.assign(row,data,{revision:data.revision?row.revision+1:row.revision});return {...row};},findUnique:async()=>({...row})},playerItem:{findMany:async()=>[],upsert:async()=>{}},realtimeItemEscrow:{updateMany:async()=>({count:1})}};
+ const tx={roster60PvpMatch:{updateMany:async({data})=>{Object.assign(row,data);return {count:1};},update:async({data})=>{Object.assign(row,data,{revision:data.revision?row.revision+1:row.revision});return {...row};},findUnique:async()=>({...row})},playerItem:{findMany:async()=>[],upsert:async()=>{}},realtimeItemEscrow:{updateMany:async()=>({count:1})}};
  const service=new RosterPvp({},()=>null,()=>null);
  // Isolate presentation contract from settlement DB/economy; resolver and view are real methods.
  service.finish=async(_tx,r,s,winner)=>{s.winner=winner;Object.assign(row,r,{state:JSON.stringify(s),status:'FINISHED',revision:r.revision+1});return {...row};};

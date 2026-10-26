@@ -56,27 +56,20 @@ final class NativeProgression {
 
   void open() {
     if (h.api.token().isEmpty()) { h.login(); return; }
-    h.base("성장 · 플레이 패스", "progression");
+    h.base(tab.equals("pass") ? "플레이 패스" : tab.equals("reincarnation") ? "환생" : "성장", "progression");
     account = h.api.token(); owner = accountKey(account.split("\\.")[0]); epoch = h.epoch;
-    LinearLayout tabs = k.row();
-    String[][] options = {{"pass", "플레이 패스"}, {"reroll", "다시뽑기"},
-        {"reincarnation", "환생"}, {"reassessment", "재심사"}};
-    for (String[] option : options) {
-      Button b = k.action(null, option[1], () -> { tab = option[0]; selectedKey = ""; receipt = null; notice = ""; if(roster60()){loading=false;refresh();}else render(); });
-      fixedButton(b);
-      b.setTag("progression-tab-" + option[0]);
-      tabs.addView(b, new LinearLayout.LayoutParams(0, h.dp(48), 1));
-    }
-    refreshButton = k.action(null, "↻", this::refresh);
+    refreshButton = k.action(null, "새로 확인", this::refresh);
     fixedButton(refreshButton); refreshButton.setTag("progression-refresh"); refreshButton.setContentDescription("서버 진행 새로 확인");
-    tabs.addView(refreshButton, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
+    if (tab.equals("pass")) NativePlayPass.button(h, refreshButton, false);
+    LinearLayout header = h.page.findViewWithTag("theme-page-header");
+    header.addView(refreshButton, new LinearLayout.LayoutParams(h.dp(100), h.dp(48)));
     // Fixed viewport: one server candidate per page, never a scrolling main panel.
     h.page.removeViewAt(h.page.getChildCount() - 1);
     LinearLayout panel = k.column(); panel.setTag("progression-panel");
     h.page.addView(panel, new LinearLayout.LayoutParams(-1, 0, 1));
-    panel.addView(tabs, new LinearLayout.LayoutParams(-1, h.dp(48)));
     contents = k.column(); contents.setTag("progression-content");
     panel.addView(contents, new LinearLayout.LayoutParams(-1, 0, 1));
+    if (tab.equals("pass")) NavyWorkbenchTheme.page(h);
     refresh();
   }
 
@@ -170,13 +163,13 @@ final class NativeProgression {
       return;
     }
     if (snapshot == null) { summary(notice.isEmpty() ? "서버 진행을 새로 확인해 주세요." : notice, 4); return; }
+    if (tab.equals("pass")) { pass(); return; }
     if (!notice.isEmpty()) {
       summary(notice, 4);
       action("progression-dismiss-notice", "진행 보기", true, () -> { notice = ""; render(); });
       return;
     }
-    if (tab.equals("pass")) pass();
-    else if (tab.equals("reroll")) reroll();
+    if (tab.equals("reroll")) reroll();
     else candidates(tab);
   }
 
@@ -211,8 +204,8 @@ final class NativeProgression {
     TextView view = k.note(text); view.setSingleLine(false); view.setHorizontallyScrolling(false); view.setMaxLines(lines); view.setMinimumHeight(h.dp(48));
     view.setEllipsize(null);
     view.setTag("progression-summary");
-    view.setTextColor(JournalTheme.INK);
-    view.setBackground(new GamePaperDrawable(h));
+    view.setTextColor(tab.equals("pass") ? NavyWorkbenchTheme.TEXT : JournalTheme.INK);
+    view.setBackground(tab.equals("pass") ? NavyWorkbenchTheme.surface(h, NavyWorkbenchTheme.PANEL, 0, 10) : new GamePaperDrawable(h));
     view.setPadding(h.dp(12), h.dp(6), h.dp(12), h.dp(6));
     view.setGravity(android.view.Gravity.CENTER_VERTICAL);
     view.setContentDescription(text); view.setOnClickListener(v -> h.message(text));
@@ -266,12 +259,14 @@ final class NativeProgression {
     row.addView(previous, new LinearLayout.LayoutParams(h.dp(64), h.dp(48)));
     TextView label = k.note((index + 1) + " / " + count); label.setGravity(android.view.Gravity.CENTER);
     label.setTag("progression-page-label");
-    label.setBackground(new GamePaperDrawable(h)); label.setTextColor(JournalTheme.INK);
+    label.setBackground(tab.equals("pass") ? NavyWorkbenchTheme.surface(h, NavyWorkbenchTheme.SLOT, 0, 8) : new GamePaperDrawable(h));
+    label.setTextColor(tab.equals("pass") ? NavyWorkbenchTheme.TEXT : JournalTheme.INK);
     label.setSingleLine(false); label.setMaxLines(1); label.setHorizontallyScrolling(false);
     row.addView(label, new LinearLayout.LayoutParams(0, h.dp(48), 1));
     Button next = k.action(null, "›", () -> { pages.put(tab, index + 1); render(); });
     fixedButton(next); next.setTag("progression-next"); next.setContentDescription("다음 개체 또는 보상"); next.setEnabled(index + 1 < count);
     row.addView(next, new LinearLayout.LayoutParams(h.dp(64), h.dp(48)));
+    if (tab.equals("pass")) { NativePlayPass.button(h, previous, false); NativePlayPass.button(h, next, false); }
     contents.addView(row, new LinearLayout.LayoutParams(-1, h.dp(48)));
   }
 
@@ -288,23 +283,12 @@ final class NativeProgression {
 
   void action(String tag, String label, boolean enabled, Runnable run) {
     Button button = k.action(null, label, run); fixedButton(button); button.setTag(tag); button.setEnabled(enabled);
+    if (tab.equals("pass")) NativePlayPass.button(h, button, false);
     contents.addView(button, new LinearLayout.LayoutParams(-1, h.dp(48)));
   }
 
   void pass() {
-    JSONObject pass = object(snapshot, "pass");
-    JSONArray rewards = pass.optJSONArray("milestones");
-    if (rewards == null || rewards.length() == 0) { summary("등록된 패스 보상이 없어요.", 2); return; }
-    JSONObject reward = rewards.optJSONObject(page(rewards.length()));
-    if (reward == null) return;
-    String id = reward.optString("id");
-    featureCard("지원서 " + reward.optInt("credits") + "장 · " + pass.optInt("points") + "점",
-        reward.optInt("points") + "점 달성 보상\n" + (reward.optBoolean("claimed") ? "수령 완료" : reward.optBoolean("claimable") ? "수령 가능" : "점수 부족"),
-        "u-ticket", null);
-    String label = reward.optBoolean("claimed") ? "수령 완료" : reward.optBoolean("claimable") ? "단계 보상 받기" : "점수 부족";
-    action("progression-pass-" + id, label, !blocked() && !id.isEmpty() && reward.optBoolean("claimable")
-        && !reward.optBoolean("claimed"), () -> submit("pass/claim", h.obj("milestoneId", id)));
-    pagination(rewards.length());
+    NativePlayPass.render(this);
   }
 
   void reroll() {
@@ -370,7 +354,10 @@ final class NativeProgression {
     if (id.isEmpty() || body == null || (!path.startsWith("native/progression/")&&!path.equals("native/roster60/reincarnation/confirm")) || !IN_FLIGHT.add(id)) return;
     final String requestOwner = owner;
     render();
-    h.api.call(path, body, (data, error) -> {
+    NativeApi sender = h.api;
+    Runnable releaseWatch = sender.whenClosed(() -> IN_FLIGHT.remove(id));
+    sender.call(path, body, (data, error) -> {
+      releaseWatch.run();
       IN_FLIGHT.remove(id);
       boolean conversionProof = !path.equals("native/progression/reassess") || (data != null
           && data.optString("key").matches("o[1-9]\\d*") && !data.optString("key").equals(body.optString("key"))

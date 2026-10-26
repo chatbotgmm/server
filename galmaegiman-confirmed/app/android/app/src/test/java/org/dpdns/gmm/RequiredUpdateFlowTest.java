@@ -97,6 +97,7 @@ public class RequiredUpdateFlowTest {
     assertNotNull(retry);
     retry.performClick();
     idle();
+    NativeGameFlowTest.awaitStartupResources(h);
     assertEquals(View.VISIBLE, h.root.getVisibility());
     assertEquals("title", h.screen);
     assertNull("차단 창 닫힘", shown());
@@ -118,6 +119,7 @@ public class RequiredUpdateFlowTest {
     h.motionEnabled = false;
     c.start().resume().visible();
     idle();
+    NativeGameFlowTest.awaitStartupResources(h);
     assertEquals(View.VISIBLE, h.root.getVisibility());
     assertEquals("title", h.screen);
 

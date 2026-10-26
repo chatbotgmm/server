@@ -99,6 +99,7 @@ final class NativeArt {
 
   void close() {
     closed = true;
+    cancelOpaqueAssets();
     scenes.shutdownNow();
     images.shutdownNow();
     synchronized (this) {
@@ -125,7 +126,7 @@ final class NativeArt {
   private final Map<String, java.util.List<java.util.function.Consumer<Bitmap>>> opaqueWaiters = new HashMap<>();
 
   synchronized void localOpaqueAsset(String path, java.util.function.Consumer<Bitmap> ready) {
-    if (closed) return;
+    if (closed) { api.ui.post(() -> ready.accept(null)); return; }
     Bitmap cached = bitmaps.get("asset:" + path);
     if (cached != null) { ready.accept(cached); return; }
     java.util.List<java.util.function.Consumer<Bitmap>> waiting = opaqueWaiters.get(path);
@@ -133,15 +134,37 @@ final class NativeArt {
     waiting = new ArrayList<>(); waiting.add(ready); opaqueWaiters.put(path, waiting);
     String pending = "opaque:" + path;
     loading.add(pending);
-    images.execute(() -> {
-      Bitmap bitmap = closed ? null : asset(path);
-      api.ui.post(() -> {
-        java.util.List<java.util.function.Consumer<Bitmap>> callbacks;
-        synchronized (NativeArt.this) { callbacks = opaqueWaiters.remove(path); }
-        loading.remove(pending);
-        if (!closed && callbacks != null)
-          for (java.util.function.Consumer<Bitmap> callback : callbacks) callback.accept(bitmap);
+    try {
+      images.execute(() -> {
+        Bitmap bitmap = null;
+        try { if (!closed) bitmap = asset(path); }
+        catch (Exception invalidAsset) { /* A failed resource is reported to its waiters. */ }
+        catch (OutOfMemoryError insufficientMemory) { bitmaps.evictAll(); }
+        finally { finishOpaqueAsset(path, pending, bitmap); }
       });
+    } catch (java.util.concurrent.RejectedExecutionException cancelled) {
+      finishOpaqueAsset(path, pending, null);
+    }
+  }
+
+  private void finishOpaqueAsset(String path, String pending, Bitmap bitmap) {
+    api.ui.post(() -> {
+      java.util.List<java.util.function.Consumer<Bitmap>> callbacks;
+      synchronized (NativeArt.this) { callbacks = opaqueWaiters.remove(path); }
+      loading.remove(pending);
+      if (callbacks != null) for (java.util.function.Consumer<Bitmap> callback : callbacks)
+        callback.accept(closed ? null : bitmap);
+    });
+  }
+
+  private synchronized void cancelOpaqueAssets() {
+    java.util.List<java.util.function.Consumer<Bitmap>> callbacks = new ArrayList<>();
+    for (Map.Entry<String, java.util.List<java.util.function.Consumer<Bitmap>>> entry : opaqueWaiters.entrySet()) {
+      loading.remove("opaque:" + entry.getKey()); callbacks.addAll(entry.getValue());
+    }
+    opaqueWaiters.clear();
+    if (!callbacks.isEmpty()) api.ui.post(() -> {
+      for (java.util.function.Consumer<Bitmap> callback : callbacks) callback.accept(null);
     });
   }
 

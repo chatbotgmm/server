@@ -20,7 +20,7 @@ suite('roster60 transactional combination',()=>{
    other=(await db.player.create({data:{identity:'craft-other-'+randomUUID()}})).id;
    service=new RosterCraft(db,()=>catalog);
  });
- afterAll(async()=>{if(db){await db.player.deleteMany({where:{id:{in:[owner,other]}}});await db.$disconnect();}});
+ afterAll(async()=>{if(db){await db.auditEvent.deleteMany({where:{playerId:{in:[owner,other]}}});await db.dailyProgress.deleteMany({where:{playerId:{in:[owner,other]}}});await db.player.deleteMany({where:{id:{in:[owner,other]}}});await db.$disconnect();}});
  async function material(xp=11,playerId=owner){return db.roster60Owned.create({data:{playerId,speciesId:'u02',totalXp:BigInt(xp),source:randomUUID()}});}
  const selection=(ids:string[])=>({materialIds:ids,resultId:'u09',catalogVersion:catalog.version});
  it('options only expose available owned units and receipt is owner scoped',async()=>{
@@ -47,12 +47,17 @@ suite('roster60 transactional combination',()=>{
  await expect(service.confirm(other,{ownedId:a.id,requestId:'foreign-test',catalogVersion:catalog.version,previewFingerprint:'0'.repeat(64)})).rejects.toThrow('UNIT_NOT_FOUND');
  const after=await db.roster60Owned.findUniqueOrThrow({where:{id:a.id}});expect(after.totalXp).toBe(11n);expect(after.reincarnation).toBe(0);
  });
- it('real preview service provides all six baseline fields and preserves profiles',async()=>{
+ it('real preview service preserves baseline stats and suitability while hiding unobserved defense',async()=>{
  const a=await material(11),d=catalog.characters.find(u=>u.id==='u02')!;
  (d as any).levelOneStats={hp:100,mp:7,patk:20,matk:30,pdef:40,mdef:50};
  try{const response=await new RosterReincarnation(db,()=>catalog).preview(owner);
  const c=response.candidates.find(x=>x.ownedId===a.id)!;expect(c.eligible).toBe(false);
- expect(c.preview).toMatchObject({next:{level:1,totalXp:0,maxLevel:99},afterLevelOneStats:{hp:110,mp:8,patk:22,matk:33,pdef:44,mdef:55},suitability:d.suitability,defense:d.defense});
+ expect(c.preview).toMatchObject({next:{level:1,totalXp:0,maxLevel:99},afterLevelOneStats:{hp:110,mp:8,patk:22,matk:33,pdef:44,mdef:55},suitability:d.suitability});
+ expect(c.preview?.defense).toBeUndefined();expect(d.defense).toBeDefined();
+ if(!('previewFingerprint' in c))throw Error('EXPECTED_REBIRTH_PREVIEW');
+ const before=c.previewFingerprint,original=d.defense.FIRE;d.defense.FIRE=original==='normal'?'immune':'normal';
+ try{const after=(await new RosterReincarnation(db,()=>catalog).preview(owner)).candidates.find(x=>x.ownedId===a.id)!;if(!('previewFingerprint' in after))throw Error('EXPECTED_REBIRTH_PREVIEW');expect(after.previewFingerprint).toBe(before);}
+ finally{d.defense.FIRE=original;}
  }finally{delete (d as any).levelOneStats;}
  });
  it('preview floors average cumulative XP then calculates result level, never consumes',async()=>{

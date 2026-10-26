@@ -26,8 +26,9 @@ public class RegistrationV10CardTest {
     JSONObject candidate=MainActivity.obj("sessionId","round","revision",0,"status","PENDING","rerolls",0,"rerollCost",1,"candidate",MainActivity.obj("speciesId","u25","name","후보","rarity","EPIC","level",7));
     JSONObject info=MainActivity.obj("enabled",true,"catalogVersion","fixture","offers",new JSONArray(),"sessions",new JSONArray().put(candidate));
     h.api=new Api(h,info);NativeRecruitSession session=new NativeRecruitSession(h);session.open(info);helper.layout(h,p);
-    ImageView card=h.root.findViewWithTag("recruit-registration-card");assertNotNull(card);Bitmap art=drawn(card);assertEquals(720*art.getHeight()/960,art.getWidth());
-    assertTrue("카드 칸이 실제로 보임 · "+p.name,card.getWidth()>0&&card.getHeight()>h.dp(100));
+    LocalGameArtTest.drain();ImageView card=h.root.findViewWithTag("recruit-registration-card");assertNotNull(card);Bitmap art=drawn(card);assertEquals(720*art.getHeight()/960,art.getWidth());
+    assertTrue("연속 후보 레일 안의 실제 그림 공간 · "+p.name,card.getWidth()>0&&card.getHeight()>=h.dp(72));
+    NativeNoScrollReviewTest.assertFullyVisible(card,h.root);
     assertTrue("등록증 이름 중복 대신 상태·레벨만",NativeNoScrollReviewTest.descendants(h.root).stream().anyMatch(v->v instanceof TextView&&"Lv7".equals(((TextView)v).getText().toString())));
     helper.png(NativeHomePartyFeedbackTest.render(h.root),"registration-v10-candidate-"+p.name+".png");
 
@@ -36,7 +37,7 @@ public class RegistrationV10CardTest {
     assertNotNull(NativeRoster60ProductBattleTest.named(h.root,"하급 · 2장"));assertNotNull(NativeRoster60ProductBattleTest.named(h.root,"고급 · 5장"));
     library.showReceipt(MainActivity.obj("credits",8,"items",new JSONArray().put(MainActivity.obj("speciesId","u60","name","결과","level",15))));
     library.showReceipt(MainActivity.obj("credits",8,"items",new JSONArray().put(MainActivity.obj("speciesId","u60","name","결과","level",15))));
-    helper.layout(h,p);ImageView receipt=h.root.findViewWithTag("recruit-receipt-card");assertNotNull(receipt);drawn(receipt);assertEquals(View.VISIBLE,receipt.getVisibility());
+    helper.layout(h,p);LocalGameArtTest.drain();ImageView receipt=h.root.findViewWithTag("recruit-receipt-card");assertNotNull(receipt);drawn(receipt);assertEquals(View.VISIBLE,receipt.getVisibility());
     assertEquals("같은 결과를 다시 보여도 카드는 하나",1,NativeNoScrollReviewTest.descendants(h.root).stream().filter(v->"recruit-receipt-card".equals(v.getTag())).count());
     assertTrue("수령 결과 카드가 실제로 보임 · "+p.name,receipt.getHeight()>h.dp(80));
     helper.png(NativeHomePartyFeedbackTest.render(h.root),"registration-v10-receipt-"+p.name+".png");

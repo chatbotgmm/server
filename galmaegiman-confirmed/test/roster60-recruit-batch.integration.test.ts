@@ -1,7 +1,7 @@
 import {describe,it,expect,beforeAll,afterAll,beforeEach} from 'vitest';
 import {PrismaClient} from '@prisma/client';import {randomUUID,createHmac} from 'node:crypto';import {readFileSync} from 'node:fs';
 import {RecruitSessions,type RecruitSessionPolicy} from '../src/roster60-recruit-session.js';import {RosterOnboarding} from '../src/roster60-onboarding.js';
-import {buildApp} from '../src/app.js';import {GameService} from '../src/game.js';import {loadContent} from '../src/content.js';import {MenuAccess} from '../src/menu-access.js';import {reviewRouteAllowed} from '../src/review-auth.js';
+import {buildApp} from '../src/app.js';import {GameService} from '../src/game.js';import {loadContent} from '../src/content.js';import {reviewRouteAllowed} from '../src/review-auth.js';
 const suite=process.env.TEST_DB_URL?describe:describe.skip;
 suite('atomic candidate batches',()=>{
  let db:PrismaClient,id:string,svc:RecruitSessions;const ids:string[]=[];
@@ -10,7 +10,7 @@ suite('atomic candidate batches',()=>{
  const input=(times=3)=>({requestId:randomUUID(),kind:'LOW',catalogVersion:c.version,times});
  beforeAll(()=>{const url=process.env.TEST_DB_URL!;if(!/^file:\/tmp\/galmaegiman-tests-[^/]+\/test.db$/.test(url))throw Error('isolated only');db=new PrismaClient({datasources:{db:{url}}});});
  beforeEach(async()=>{id=(await db.player.create({data:{identity:randomUUID(),credits:200}})).id;ids.push(id);await new RosterOnboarding(db,()=>c).start(id);svc=new RecruitSessions(db,()=>c,()=>p,()=>0);});
- afterAll(async()=>{await db.player.deleteMany({where:{id:{in:ids}}});await db.$disconnect();});
+ afterAll(async()=>{await db.auditEvent.deleteMany({where:{playerId:{in:ids}}});await db.dailyProgress.deleteMany({where:{playerId:{in:ids}}});await db.player.deleteMany({where:{id:{in:ids}}});await db.$disconnect();});
  const credit=async()=>(await db.player.findUniqueOrThrow({where:{id}})).credits;
  const rows=(s:any)=>s.sessions.map((x:any)=>({sessionId:x.sessionId,revision:x.revision}));
  it('charges quantity once with concurrent same request, restores all candidates, rejects changed payload',async()=>{
@@ -45,15 +45,12 @@ suite('atomic candidate batches',()=>{
   const results=await Promise.allSettled([svc.start(id,input(3)),svc.start(id,input(3))]);expect(results.filter(r=>r.status==='fulfilled')).toHaveLength(1);expect(await credit()).toBe(194);
   const pending=(await svc.info(id)).sessions;await svc.action(id,{requestId:randomUUID(),sessionId:pending[0].sessionId,revision:0,action:'claim'});expect((await svc.info(id)).sessions).toHaveLength(2);expect(await credit()).toBe(194);
  });
- it('authenticated batch endpoints honor quantity validation, account unlock and bulk receipts',async()=>{
+ it('authenticated batch endpoints need no menu unlock and retain quantity validation and bulk receipts',async()=>{
   const previous=process.env.ROSTER60_PROFILE,secret='isolated-batch-api-test-secret-only-not-production';process.env.ROSTER60_PROFILE='five-stat-device-test-v1';
   const app=await buildApp(db,new GameService(db,loadContent()),{menuLocks:true,secret,baseUrl:async()=>'https://example.com'});
   const key=createHmac('sha256',secret).update('web-session').digest(),v=`${id}.${Math.floor(Date.now()/1000)+3600}`,headers={'x-gmm':'1','x-gmm-s':`${v}.${createHmac('sha256',key).update(v).digest('base64url')}`};
   const call=(path:string,payload:any)=>app.inject({method:'POST',url:'/my/api/native/roster60/recruit/session/'+path,headers,payload});
   try{
-   expect((await call('start',input(3))).statusCode).toBe(403);expect(await credit()).toBe(200);
-   const admin=(await db.player.create({data:{identity:randomUUID(),isAdmin:true}})).id;ids.push(admin);
-   await new MenuAccess(db,()=>c).change(admin,{requestId:randomUUID(),targetPlayerId:id,featureId:'recruit',mode:'force_unlock',expectedRevision:0});
    for(const times of [0,51,1.5,'3'])expect((await call('start',{...input(),times})).statusCode).toBe(400);
    const request=input(3),response=await call('start',request);expect(response.statusCode,response.body).toBe(200);const result=response.json();expect(result.sessions).toHaveLength(3);expect(await credit()).toBe(194);expect((await call('start',request)).json()).toEqual(result);
    const claim={requestId:randomUUID(),sessions:rows(result)},done=await call('claim-all',claim);expect(done.statusCode,done.body).toBe(200);expect((await call('claim-all',claim)).json()).toEqual(done.json());expect(await db.roster60Owned.count({where:{playerId:id}})).toBe(4);

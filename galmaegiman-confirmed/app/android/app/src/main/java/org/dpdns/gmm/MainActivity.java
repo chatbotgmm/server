@@ -30,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
   LinearLayout page, body;
   TextView title;
   View loginScroll;
+  private EntryActionUi.Guard loginEntryActions;
   ArrayList<String> expeditionDraft;
   boolean expeditionDirty;
   String storyScene = "harbor", storyFoe = "", lobbyRoom;
@@ -48,6 +49,12 @@ public class MainActivity extends AppCompatActivity {
   NativeStarterLoans starterLoans;
   private RegistrationArt registrationCards;
   NativeRequiredUpdate requiredUpdate;
+  private GameResourcePreparation.Run resourcePreparation;
+  private GameResourcePreparation.Progress resourceProgress;
+  private InitialLoadingView resourceLoading;
+  private Runnable resourceContinuation;
+  private boolean resourcesAccepted;
+  private int resourceGeneration;
 
   RegistrationArt registrationArt() {
     if (registrationCards == null) registrationCards = new RegistrationArt(this);
@@ -65,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
     NativeMotion.migrateLegacyPreference(this);
     motionEnabled = true;
     journalTime = new JournalTimeController(this);
-    api = new NativeApi(this);
+    api = new NativeApi(this, () -> epoch);
     realtime = new NativeRealtime(this);
     sound = new NativeSound(this);
     art = new NativeArt(this, api);
@@ -113,14 +120,69 @@ public class MainActivity extends AppCompatActivity {
     }
     immersive();
     requiredUpdate = new NativeRequiredUpdate(this);
+    startGameResourcePreparation();
     // onResume에서 Play 확인을 마친 뒤 로그인/닉네임/튜토리얼을 시작한다.
+  }
+
+  private void startGameResourcePreparation() {
+    if (resourcePreparation != null) resourcePreparation.cancel();
+    final int generation = ++resourceGeneration;
+    resourcesAccepted = false;
+    resourceProgress = null;
+    if (resourceLoading != null) {
+      resourceLoading.setMessage("게임 리소스를 준비하고 있어요.");
+      resourceLoading.setActions(null, null);
+    }
+    resourcePreparation = GameResourcePreparation.start(this, progress -> {
+      if (generation != resourceGeneration || isFinishing() || isDestroyed()) return;
+      resourceProgress = progress;
+      if (resourceLoading != null) resourceLoading.setProgress(progress);
+      if (progress.done && progress.failed == 0) {
+        resourcesAccepted = true;
+        continueAfterResources();
+      } else if (progress.done && resourceLoading != null) {
+        showResourceFailure();
+      }
+    });
+  }
+
+  /** Called after Play's update gate. Public art is prepared independently of account reads. */
+  boolean prepareGameResources(Runnable continuation) {
+    if (resourcesAccepted) return true;
+    resourceContinuation = continuation;
+    if (resourceLoading == null || resourceLoading.getParent() != root) {
+      resourceLoading = new InitialLoadingView(this, "게임 리소스를 준비하고 있어요.", null);
+      root.removeAllViews();
+      root.addView(resourceLoading, new FrameLayout.LayoutParams(-1, -1));
+    }
+    if (resourceProgress != null) {
+      resourceLoading.setProgress(resourceProgress);
+      if (resourceProgress.done) showResourceFailure();
+    }
+    return false;
+  }
+
+  private void showResourceFailure() {
+    resourceLoading.setMessage("일부 게임 리소스를 준비하지 못했어요 · 실패 " + resourceProgress.failed
+        + "개\n다시 준비하거나, 준비된 자료로 계속할 수 있습니다.");
+    resourceLoading.setActions(this::startGameResourcePreparation, () -> {
+      resourcesAccepted = true;
+      continueAfterResources();
+    });
+  }
+
+  private void continueAfterResources() {
+    Runnable next = resourceContinuation;
+    resourceContinuation = null;
+    resourceLoading = null;
+    if (next != null) next.run();
   }
 
   @Override
   protected void onNewIntent(Intent i) {
     super.onNewIntent(i);
     setIntent(i);
-    if (requiredUpdate != null && requiredUpdate.blocks()) {
+    if (requiredUpdate != null && (requiredUpdate.blocks() || !resourcesAccepted)) {
       requiredUpdate.deferIntent();
       return;
     }
@@ -283,20 +345,26 @@ public class MainActivity extends AppCompatActivity {
           new FrameLayout.LayoutParams(-1, -1));
     }
     final int destination = ++epoch;
+    final String requestSession = api.token();
+    final boolean needsKey = art.key.isEmpty();
     busy = true;
     final int operation = operations.begin("진행 불러오는 중…", actionButton, !screen.equals("loading"));
-    api.call(
-        "native/state",
-        null,
-        (r, e) -> {
+    InitialReadBarrier<JSONObject> reads = new InitialReadBarrier<>(needsKey, (r, key, e, keyError) -> {
           if (isFinishing() || isDestroyed() || destination != epoch
               || (requiredUpdate != null && requiredUpdate.required())) {
             if (operations.finish(operation)) busy = false;
             return;
           }
+          // A successful late read must never restore data after logout/account switching.
+          if (!requestSession.equals(api.token())) {
+            if (operations.finish(operation)) busy = false;
+            if (api.token().isEmpty() && e != null) { login(); message(e); }
+            return;
+          }
           if (e != null) {
             operations.finish(operation);
             busy = false;
+            if (keyError) { message(e); return; }
             if (api.token().isEmpty()) {
               login();
               message(e);
@@ -310,31 +378,14 @@ public class MainActivity extends AppCompatActivity {
           }
           state = r;
           stateUpdated();
-          if (!art.key.isEmpty()) {
-            operations.finish(operation);
-            busy = false;
-            show(target);
-            return;
-          }
-          api.call(
-              "duel-key",
-              null,
-              (key, error) -> {
-                if (isFinishing() || isDestroyed() || destination != epoch
-              || (requiredUpdate != null && requiredUpdate.required())) {
-                  if (operations.finish(operation)) busy = false;
-                  return;
-                }
-                operations.finish(operation);
-                busy = false;
-                if (error != null) {
-                  message(error);
-                  return;
-                }
-                art.key = key.optString("k");
-                show(target);
-              });
+          if (needsKey) art.key = key.optString("k");
+          operations.finish(operation);
+          busy = false;
+          show(target);
         });
+    // Both are read-only and independent. Do not add a state TTL or merge any command.
+    api.call("native/state", null, reads::state);
+    if (needsKey) api.call("duel-key", null, reads::key);
   }
 
   void refreshProgress(String current) {
@@ -367,6 +418,7 @@ public class MainActivity extends AppCompatActivity {
         (r, e) -> {
           Object result = r.opt("result");
           int operationEpoch = epoch;
+          final String resultAccount = api.token();
           busy = true;
           int operation = operations.begin("결과 확인 중…", null);
           api.call(
@@ -375,6 +427,11 @@ public class MainActivity extends AppCompatActivity {
               (fresh, error) -> {
                 if (isFinishing() || isDestroyed() || epoch != operationEpoch) {
                   if (operations.finish(operation)) busy = false;
+                  return;
+                }
+                if (!resultAccount.equals(api.token())) {
+                  if (operations.finish(operation)) busy = false;
+                  if (api.token().isEmpty()) login();
                   return;
                 }
                 operations.finish(operation);
@@ -386,8 +443,12 @@ public class MainActivity extends AppCompatActivity {
                 }
                 state = fresh;
                 stateUpdated();
-                show(target);
-                showResult(result, () -> show(target));
+                // Card results own the page until the user leaves them. Ordinary
+                // receipts are dialogs over the destination, so render/fetch that
+                // destination once rather than again on a null result or dismissal.
+                boolean cardResult = result instanceof JSONObject && ((JSONObject) result).has("items");
+                if (!cardResult) show(target);
+                showResult(result, cardResult ? () -> show(target) : () -> {});
               });
         });
   }
@@ -646,6 +707,9 @@ public class MainActivity extends AppCompatActivity {
       return;
     }
     switch (s) {
+      case "playMenu":
+        openPlayMenu();
+        break;
       case "modes":
         menus.modes();
         break;
@@ -708,6 +772,10 @@ public class MainActivity extends AppCompatActivity {
       case "daily":
         daily();
         break;
+      case "playPass":
+      case "progression":
+        new NativeProgression(this).open();
+        break;
       case "pvp":
         pvp();
         break;
@@ -723,6 +791,20 @@ public class MainActivity extends AppCompatActivity {
       default:
         home();
     }
+  }
+
+  EntryActionUi.Guard entryActions() {
+    if (loginEntryActions == null) loginEntryActions = new EntryActionUi.Guard(this);
+    return loginEntryActions;
+  }
+
+  void startFromTitle(TitleView owner, boolean loggedIn) {
+    if (!entryActions().title(owner)) return;
+    if (loggedIn) load("home"); else login();
+  }
+
+  void loginKakaoEntry(TitleView owner) {
+    if (entryActions().oauth(owner)) kakao();
   }
 
   void titleScreen() {
@@ -748,7 +830,12 @@ public class MainActivity extends AppCompatActivity {
     screen = "login";
     root.removeAllViews();
     TitleView background = new TitleView(this, false);
-    background.enter.setVisibility(View.GONE);
+    background.enter.setText(EntryActionUi.KAKAO_LABEL);
+    EntryActionUi.style(this, background.enter, true);
+    background.enter.setContentDescription("카카오톡으로 로그인 · 카카오 공식 인증");
+    background.enter.setTag("login-kakao");
+    background.enter.setVisibility(View.VISIBLE);
+    entryActions().bind(background.enter, true);
     background.settings.setVisibility(View.GONE);
     root.addView(background, new FrameLayout.LayoutParams(-1, -1));
     View shade = new GameShade(this);
@@ -784,9 +871,6 @@ public class MainActivity extends AppCompatActivity {
             });
     close.setBackground(new GameButtonDrawable(this, GameButtonDrawable.PAPER));
     head.addView(close, new LinearLayout.LayoutParams(dp(48), dp(48)));
-    Button kakao = button("카카오로 로그인", this::kakao);
-    kakao.setBackground(new GameButtonDrawable(this, 0xfffee500));
-    form.addView(kakao, new LinearLayout.LayoutParams(-1, dp(48)));
     form.addView(text("카카오 공식 인증 후 게임으로 돌아와요. 별도 채팅 코드는 필요하지 않아요.", 14));
   }
 
@@ -919,8 +1003,13 @@ public class MainActivity extends AppCompatActivity {
 
   NativeRoster60Battle rosterBattle;
   NativeRoster60Pvp rosterPvp;
-  void openRosterPvp(){rosterPvp=new NativeRoster60Pvp(this);rosterPvp.open();}
-  void openRosterHumanBattle(JSONObject state){rosterBattle=new NativeRoster60PvpBattle(this,state);rosterBattle.open();}
+  NativeRoster60StoryEntry storyEntry;
+  String rosterPvpMode="";
+  void openPlayMenu(){if(rosterPvp!=null)rosterPvp.pause();new NativePlayMenu(this).open();}
+  void openRosterStoryEntry(){storyEntry=new NativeRoster60StoryEntry(this);storyEntry.open();}
+  void openRosterPvp(){openRosterPvp(rosterPvpMode);}
+  void openRosterPvp(String mode){rosterPvpMode=NativeRoster60Pvp.validMode(mode)?mode:"";rosterPvp=new NativeRoster60Pvp(this,false,rosterPvpMode);rosterPvp.open();}
+  void openRosterHumanBattle(JSONObject state){String mode=state.optString("mode");if(NativeRoster60Pvp.validMode(mode))rosterPvpMode=mode;rosterBattle=new NativeRoster60PvpBattle(this,state);rosterBattle.open();}
   void openRosterBattle(){openRosterBattle(Roster60BattleMode.ALL);}
   void openRosterBattle(Roster60BattleMode mode){rosterBattle=new NativeRoster60Battle(this,mode);rosterBattle.open();}
 
@@ -1139,7 +1228,7 @@ public class MainActivity extends AppCompatActivity {
 
   void startFight(String mode, String stage) {
     if (mode.equals("normal") || mode.equals("rank")) {
-      if(roster60Menus()){openRosterPvp();return;}
+      if(roster60Menus()){openRosterPvp(mode);return;}
       realtime.begin(mode);
       return;
     }
@@ -1375,6 +1464,8 @@ public class MainActivity extends AppCompatActivity {
 
   void back() {
     if (updateBlocks()) return;
+    if(screen.equals("playMenu")){home();return;}
+    if(screen.equals("roster60StoryEntry")&&storyEntry!=null&&storyEntry.back())return;
     if(screen.equals("roster60Pvp")&&rosterPvp!=null){rosterPvp.back();return;}
     if(screen.equals("roster60Battle")&&rosterBattle!=null){rosterBattle.back();return;}
     if((screen.equals("mix")||screen.equals("craftRecipes"))&&menus.economy.roster60Craft!=null)menus.economy.roster60Craft.leave();
@@ -1491,6 +1582,8 @@ public class MainActivity extends AppCompatActivity {
   @Override
   public void onTrimMemory(int level) {
     super.onTrimMemory(level);
+    if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW
+        && level != android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) LocalGameArt.trim();
     if (backgroundEffects != null) backgroundEffects.trim();
   }
 
@@ -1519,6 +1612,9 @@ public class MainActivity extends AppCompatActivity {
 
   @Override
   protected void onDestroy() {
+    resourceGeneration++;
+    if (resourcePreparation != null) resourcePreparation.cancel();
+    resourceContinuation = null;
     if (requiredUpdate != null) requiredUpdate.close();
     if (backgroundEffects != null) backgroundEffects.close();
     if (realtime != null) realtime.close();

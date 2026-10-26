@@ -81,7 +81,8 @@ public class NativeRoster60PlaybackTest {
    MainActivity h=c.get();Api api=open(h);NativeRoster60Battle ui=h.rosterBattle;
    JSONObject terminal=response(api.state,true);api.state=terminal;ui.bind(terminal);
    assertTrue(ui.presenting());assertEquals(0,api.settlements);finish(ui);
-   ShadowLooper.idleMainLooper();assertEquals(1,api.settlements);
+   // The final render schedules layout; View.post settlement waits for the next UI frame.
+   ShadowLooper.idleMainLooper(16,TimeUnit.MILLISECONDS);assertEquals(1,api.settlements);
    ui.pause();h.getSharedPreferences("roster60_product_battle",0).edit().clear().commit();
    h.openRosterBattle();assertFalse(h.rosterBattle.presenting());
   }

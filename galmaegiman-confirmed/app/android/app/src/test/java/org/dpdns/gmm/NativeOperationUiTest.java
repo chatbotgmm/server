@@ -163,6 +163,8 @@ public class NativeOperationUiTest {
     host.api.close();
     PendingApi api = new PendingApi(host);
     host.api = api;
+    // These header tests measure one warm navigation read; the cold-key barrier is exercised below.
+    host.art.key = "operation-ui-warm-art-key";
     host.guide.enabled = false;
     host.state =
         MainActivity.obj(
@@ -175,6 +177,8 @@ public class NativeOperationUiTest {
     int calls;
     String lastPath;
     Result pending;
+    final java.util.Map<String, Result> pendingByPath = new java.util.HashMap<>();
+    final java.util.List<String> paths = new java.util.ArrayList<>();
 
     PendingApi(MainActivity host) {
       super(host);
@@ -190,12 +194,47 @@ public class NativeOperationUiTest {
       calls++;
       lastPath = path;
       pending = callback;
+      paths.add(path);
+      assertNull("A pending path must not be issued twice", pendingByPath.put(path, callback));
     }
 
     void fail(String error) {
       Result callback = pending;
       pending = null;
+      pendingByPath.clear();
       callback.done(null, error);
+    }
+
+    void complete(String path, org.json.JSONObject data, String error) {
+      Result callback = pendingByPath.remove(path);
+      assertNotNull("Expected pending read " + path, callback);
+      callback.done(data, error);
+    }
+  }
+
+  @Test public void coldHeaderNavigationWaitsForBothReadsAndRepeatedTapsCannotDuplicateThem() {
+    try (ActivityController<MainActivity> controller = new NativeGameFlowTest().start()) {
+      MainActivity host = controller.get();
+      PendingApi api = prepareHeader(host);
+      host.art.key = "";
+      Button back = (Button) ((android.view.ViewGroup) host.page.getChildAt(0)).getChildAt(0);
+      org.json.JSONObject stateBefore = host.state;
+      back.performClick();
+      assertEquals(java.util.Arrays.asList("native/state", "duel-key"), api.paths);
+      assertTrue(host.busy);
+      assertFalse(back.isEnabled());
+      api.complete("duel-key", MainActivity.obj("k", "prepared-cold-key"), null);
+      assertTrue("The key alone cannot finish authoritative navigation", host.busy);
+      assertFalse(back.isEnabled());
+      back.performClick();
+      assertEquals(2, api.calls);
+      assertEquals("", host.art.key);
+      api.complete("native/state", null, "테스트 연결 오류");
+      assertFalse(host.busy);
+      assertTrue(back.isEnabled());
+      assertSame(stateBefore, host.state);
+      assertEquals("Failed state verification cannot install a partial key", "", host.art.key);
+      assertEquals(2, api.calls);
     }
   }
 

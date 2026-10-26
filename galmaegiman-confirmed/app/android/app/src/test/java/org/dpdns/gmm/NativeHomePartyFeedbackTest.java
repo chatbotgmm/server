@@ -185,7 +185,7 @@ public class NativeHomePartyFeedbackTest {
     layout(h, p); Bitmap kickoff = render(h.root);
     kickoff.recycle();
     RegistrationArtTest.await(() -> {
-      if (!h.art.idle() || !h.registrationArt().idle()) return false;
+      if (!h.art.idle() || !h.registrationArt().idle() || !LocalGameArt.idle()) return false;
       // NativeArt clears decoder loading before posting UI callbacks. Wait for the
       // actual visible portrait callback too, not just the worker's idle flag.
       for (View view : all(h.root)) if (view instanceof PartyCharacterView.Artwork && view.isShown()) {
@@ -214,6 +214,20 @@ public class NativeHomePartyFeedbackTest {
       current = (View) current.getParent(); x -= current.getScrollX(); y -= current.getScrollY();
     }
     return new Rect(x, y, x + v.getWidth(), y + v.getHeight());
+  }
+  static InertialCardScrollView teamCandidateRail(View view) {
+    for (ViewParent parent = view.getParent(); parent instanceof View; parent = parent.getParent()) {
+      View ancestor = (View) parent;
+      if (ancestor instanceof InertialCardScrollView && "team-inline-candidates".equals(ancestor.getTag()))
+        return (InertialCardScrollView) ancestor;
+    }
+    return null;
+  }
+  static boolean teamRailFitsVertically(View view, MainActivity host) {
+    InertialCardScrollView rail = teamCandidateRail(view);
+    if (rail == null) return bounds(view, host.root).equals(visible(view, host));
+    Rect own = bounds(view, host.root), viewport = bounds(rail, host.root);
+    return own.width() > 0 && own.height() > 0 && own.top >= viewport.top && own.bottom <= viewport.bottom;
   }
   static void intersect(Rect r, Rect clip) { if (!r.intersect(clip)) r.setEmpty(); }
   static Rect visible(View v, MainActivity h) {
@@ -290,7 +304,11 @@ public class NativeHomePartyFeedbackTest {
       if (v instanceof PartyCharacterView.Artwork) {
         PartyCharacterView.Artwork a = (PartyCharacterView.Artwork) v; sprites.add(a);
         Rect outer = bounds(a, h.root); boolean unknown = UNKNOWN.equals(a.id);
-        check(outer.width() > 0 && outer.height() > 0 && outer.equals(visible(a, h)), "Sprite view clipped: " + a.id + " " + outer, findings);
+        if (teamCandidateRail(a) != null && outer.width() > 0 && outer.height() > 0) {
+          Bitmap standalone = Bitmap.createBitmap(a.getWidth(), a.getHeight(), Bitmap.Config.ARGB_8888);
+          try { a.draw(new Canvas(standalone)); } finally { standalone.recycle(); }
+        }
+        check(outer.width() > 0 && outer.height() > 0 && teamRailFitsVertically(a, h), "Sprite view clipped outside its horizontal rail: " + a.id + " " + outer, findings);
         if (unknown) {
           missing++; check(a.bitmap == null, "Unknown identity used a substitute bitmap", findings);
           check(!a.status.isEmpty(), "Missing identity has no text fallback", findings);
@@ -320,7 +338,7 @@ public class NativeHomePartyFeedbackTest {
       }
       if (v instanceof TextView && !(v instanceof Button) && v.isShown() && !((TextView) v).getText().toString().isEmpty()) {
         TextView t = (TextView) v; Rect r = bounds(t, h.root);
-        check(r.equals(visible(t, h)), "Live label clipped: " + t.getTag() + " " + t.getText(), findings);
+        check(teamRailFitsVertically(t, h), "Live label clipped outside its horizontal rail: " + t.getTag() + " " + t.getText(), findings);
         if (t.getLayout() != null) {
           check(t.getHeight() - t.getCompoundPaddingTop() - t.getCompoundPaddingBottom() >= t.getLayout().getHeight(), "Live label lacks vertical room: " + t.getText(), findings);
         }
@@ -328,11 +346,12 @@ public class NativeHomePartyFeedbackTest {
       }
     }
     check(registration == 0, "Registration card remains in approved party/home scope", findings);
-    int expected = scene.equals("home") ? 0 : scene.equals("modes") ? 3 : 6;
+    boolean teamScene = scene.equals("party-story") || scene.equals("party-pvp") || scene.equals("missing-sprite");
+    int expected = scene.equals("home") ? 0 : scene.equals("modes") ? 3 : teamScene ? 3 + IDS.length : 6;
     check(sprites.size() == expected, "Expected " + expected + " actual production sprites on " + scene + ", found " + sprites.size(), findings);
     check(missing == (scene.equals("missing-sprite") ? 2 : 0), "Incorrect missing-identity coverage", findings);
     for (int i = 0; i < sprites.size(); i++) for (int j = i + 1; j < sprites.size(); j++)
-      check(!Rect.intersects(bounds(sprites.get(i), h.root), bounds(sprites.get(j), h.root)), "Party artwork overlaps", findings);
+      check(!Rect.intersects(visible(sprites.get(i), h), visible(sprites.get(j), h)), "Visible party artwork overlaps", findings);
     if (scene.equals("home")) {
       LobbyView lobby = (LobbyView) h.root.getChildAt(0);
       check(lobby.buttons.size() == 16, "HOME keeps original controls plus rebirth and independent mail", findings);
@@ -508,6 +527,17 @@ public class NativeHomePartyFeedbackTest {
   }
 
   View candidate(MainActivity h, String key) { return (View) required(h, "team-candidate-character-" + key).getParent(); }
+  View settledCandidate(MainActivity h, String key, Profile profile) throws Exception {
+    settle(h, profile);
+    View tile = candidate(h, key);
+    InertialCardScrollView rail = teamCandidateRail(tile);
+    assertNotNull(rail);
+    rail.stopMotion();
+    rail.scrollTo(Math.max(0, tile.getLeft() - (rail.getWidth() - tile.getWidth()) / 2), 0);
+    org.robolectric.shadows.ShadowLooper.idleMainLooper(200, java.util.concurrent.TimeUnit.MILLISECONDS);
+    NativeNoScrollReviewTest.assertFullyVisible(tile, h.root);
+    return tile;
+  }
   @Test public void partyReplacementOrderDiscardAndSaveKeepOriginalPayloadsAndBusyLock() throws Exception {
     configure(PROFILES[0]); JSONObject evidence = new JSONObject();
     for (boolean pvp : new boolean[] {false, true}) try (ActivityController<MainActivity> controller = flow.start()) {
@@ -520,7 +550,7 @@ public class NativeHomePartyFeedbackTest {
       assertEquals(Arrays.asList(initial.get(1), initial.get(0), initial.get(2)), h.menus.teamDraft);
       assertTrue(h.menus.isTeamDirty()); assertTrue(api.writes.isEmpty());
       label(h, "변경 취소").performClick(); assertEquals(initial, h.menus.teamDraft); assertFalse(h.menus.isTeamDirty());
-      required(h, "team-candidates-next").performClick(); candidate(h, pvp ? "D8" : "o4").performClick();
+      settledCandidate(h, pvp ? "D8" : "o4", PROFILES[0]).performClick();
       List<String> submitted = new ArrayList<>(h.menus.teamDraft); assertEquals(pvp ? "D8" : "o4", submitted.get(1));
       required(h, "team-save").performClick(); assertTrue(h.busy); assertNotNull(api.pending);
       int epoch = h.epoch; View page = h.page;

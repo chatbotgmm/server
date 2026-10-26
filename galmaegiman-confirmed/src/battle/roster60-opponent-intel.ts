@@ -2,26 +2,20 @@ import {createHmac} from 'node:crypto';
 import {skillElements,type SkillElement,type Defense} from './roster60-rules.js';
 import type {Fighter} from '../roster60-battle.js';
 
-// User-approved reveal cadence (2 initially, +2 per completed turn); not combat/balance policy.
-export const opponentIntelTuning = Object.freeze({initialDefenses:2,defensesPerCompletedTurn:2,statsAfterCompletedTurns:1});
+// Stats remain battle-local. Defense knowledge comes exclusively from actual attacks.
+export const opponentIntelTuning = Object.freeze({statsAfterCompletedTurns:1});
 export type OpponentIntel = {
- version:'opponent-intel-v1';speciesId:string;name:string;level:number;completedTurns:number;
+ version:'opponent-intel-v2';speciesId:string;name:string;level:number;completedTurns:number;
+ defenseKnowledgeScope:'base-observed'|'battle-observed'|'unverified';
  statsKnown:boolean;stats:Fighter['stats']|null;
  defenses:Record<SkillElement,Defense|'unknown'>;knownDefenseCount:number;totalDefenseCount:number;
 };
-/** Deterministic keyed ranking: polling, retries, reconnect and forced replacement cannot reroll. */
-export function opponentIntel(enemy:Fighter,completedTurns:number,seed:string,battleId:string,viewer:string):OpponentIntel {
+export function opponentIntel(enemy:Fighter,completedTurns:number,known:Partial<Record<SkillElement,Defense>>={},scope:OpponentIntel['defenseKnowledgeScope']='unverified'):OpponentIntel {
  const turns=Math.max(0,Math.floor(completedTurns));
- const identity=enemy.ownedId??enemy.speciesId;
- const ranked=[...skillElements].sort((a,b)=>{
-  const rank=(element:string)=>createHmac('sha256',seed).update(JSON.stringify(['opponent-intel-v1',battleId,viewer,identity,element])).digest('hex');
-  return rank(a).localeCompare(rank(b));
- });
- const count=Math.min(skillElements.length,opponentIntelTuning.initialDefenses+turns*opponentIntelTuning.defensesPerCompletedTurn);
- const known=new Set(ranked.slice(0,count)),statsKnown=turns>=opponentIntelTuning.statsAfterCompletedTurns;
- return {version:'opponent-intel-v1',speciesId:enemy.speciesId,name:enemy.name,level:enemy.level,completedTurns:turns,
+ const count=skillElements.filter(e=>known[e]!==undefined).length,statsKnown=turns>=opponentIntelTuning.statsAfterCompletedTurns;
+ return {version:'opponent-intel-v2',speciesId:enemy.speciesId,name:enemy.name,level:enemy.level,completedTurns:turns,defenseKnowledgeScope:scope,
   statsKnown,stats:statsKnown?{...enemy.stats}:null,
-  defenses:Object.fromEntries(skillElements.map(e=>[e,known.has(e)?enemy.defense[e]:'unknown'])) as OpponentIntel['defenses'],
+  defenses:Object.fromEntries(skillElements.map(e=>[e,known[e]??'unknown'])) as OpponentIntel['defenses'],
   knownDefenseCount:count,totalDefenseCount:skillElements.length};
 }
 /** Whitelisted public opponent: full combat values stay only in server persistence. */

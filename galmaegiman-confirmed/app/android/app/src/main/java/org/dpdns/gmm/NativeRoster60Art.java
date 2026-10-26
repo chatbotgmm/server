@@ -8,6 +8,7 @@ import java.io.*;
 final class NativeRoster60Art extends View {
  final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);final JSONObject index;
  final Bitmap[] images=new Bitmap[2];final float[] heights={1,1};final String[] ids={"",""};
+ final int[] imageGeneration={0,0},shownSample={Integer.MAX_VALUE,Integer.MAX_VALUE};
  String problem="";JSONObject snapshot;Bitmap background;BattleSkin hpSkin;
  // Display-only state: the presenter owns time, ordering, cancellation and final reconciliation.
  JSONObject frameBefore,frameAfter,frameEvent;float progress;
@@ -34,16 +35,20 @@ final class NativeRoster60Art extends View {
   return Math.round(a.optInt(field,fallback)+(b.optInt(field,fallback)-a.optInt(field,fallback))*impact());
  }
 
- NativeRoster60Art(Context c){super(c);JSONObject loaded;try(InputStream in=c.getAssets().open("roster60-art/index.json")){loaded=new JSONObject(new String(in.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));}catch(Exception e){loaded=new JSONObject();problem="전투 아트 준비 중";}index=loaded;if(c instanceof MainActivity){background=BattleSkin.bitmap((MainActivity)c,"bg-harbor");hpSkin=new BattleSkin((MainActivity)c,"panel-hp");}setContentDescription("아군 후면 · 적 정면");}
+ NativeRoster60Art(Context c){super(c);JSONObject loaded;try{loaded=Roster60Portrait.index(c);}catch(Exception e){loaded=new JSONObject();problem="전투 아트 준비 중";}index=loaded;if(c instanceof MainActivity){background=BattleSkin.bitmap((MainActivity)c,"bg-harbor");hpSkin=new BattleSkin((MainActivity)c,"panel-hp");}setContentDescription("아군 후면 · 적 정면");}
  JSONObject entry(String id)throws Exception {JSONArray all=index.getJSONArray("entries");for(int i=0;i<all.length();i++)if(all.getJSONObject(i).getString("id").equals(id))return all.getJSONObject(i);throw new IOException("unknown art");}
  void bind(JSONObject state){clearFrame();loadState(state);}
  void loadState(JSONObject state){snapshot=state;JSONArray fighters=state.optJSONArray("fighters");if(fighters==null)return;
-  for(int side=0;side<2;side++){String id=fighters.optJSONObject(side).optString("speciesId");if(id.equals(ids[side]))continue;ids[side]=id;images[side]=null;
+  for(int side=0;side<2;side++){String id=fighters.optJSONObject(side).optString("speciesId");if(id.equals(ids[side]))continue;ids[side]=id;images[side]=null;shownSample[side]=Integer.MAX_VALUE;int generation=++imageGeneration[side];
    try{JSONObject v=entry(id).getJSONObject("views").getJSONObject(side==0?"rear":"front");String path=v.getString("file");if(path.contains("/")||path.contains(".."))throw new IOException("path");
-    BitmapFactory.Options o=new BitmapFactory.Options();o.inSampleSize=2;try(InputStream in=getContext().getAssets().open("roster60-art/"+path)){images[side]=BitmapFactory.decodeStream(in,null,o);}heights[side]=(float)v.getDouble("relativeHeight");
+    heights[side]=(float)v.getDouble("relativeHeight");String asset="roster60-art/"+path;Bitmap preview=LocalGameArt.peek(asset,4);if(preview!=null){images[side]=preview;shownSample[side]=4;}
+    JSONArray size=v.optJSONArray("size");int sample=getWidth()>0&&getHeight()>0?LocalGameArt.sampleForFit(size==null?512:size.optInt(0,512),size==null?512:size.optInt(1,512),Math.max(1,(int)(getWidth()*.64f)),Math.max(1,(int)(getHeight()*.49f*heights[side]))):2;
+    requestImage(side,id,asset,4,generation);if(sample!=4)requestImage(side,id,asset,sample,generation);
    }catch(Exception bad){problem="전투 아트 준비 중";}
   }StringBuilder accessible=new StringBuilder();for(int i=0;i<fighters.length();i++){if(uncertain(i)){accessible.append(i==0?"출전 교체 확인 중. ":"상대 교체 확인 중. ");continue;}JSONObject f=fighters.optJSONObject(i),s=f.optJSONObject("stats");if(s!=null)accessible.append(f.optString("name")).append(" Lv").append(f.optInt("level")).append(" HP ").append(f.optInt("hp")).append("/").append(s.optInt("hp")).append(" MP ").append(f.optInt("mp")).append("/").append(s.optInt("mp")).append(". ");}setContentDescription(accessible);invalidate();
  }
+ void requestImage(int side,String id,String path,int sample,int generation){LocalGameArt.load(getContext(),path,sample,bitmap->{if(imageGeneration[side]!=generation||!id.equals(ids[side]))return;if(bitmap!=null&&sample<=shownSample[side]){images[side]=bitmap;shownSample[side]=sample;}else if(bitmap==null&&images[side]==null)problem="전투 아트를 준비하지 못했습니다. 다시 열어 확인하세요.";invalidate();});}
+ @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){super.onSizeChanged(w,h,oldw,oldh);if(snapshot!=null&&w>0&&h>0){ids[0]="";ids[1]="";loadState(snapshot);}}
  RectF destination(int side,float w,float h){
   float widest=1;for(int i=0;i<2;i++)if(images[i]!=null)widest=Math.max(widest,heights[i]*images[i].getWidth()/images[i].getHeight());
   float base=Math.min(h*.49f,w*.64f/widest),height=base*heights[side],width=images[side]==null?0:height*images[side].getWidth()/images[side].getHeight();

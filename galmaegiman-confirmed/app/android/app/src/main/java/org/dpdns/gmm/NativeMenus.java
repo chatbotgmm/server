@@ -317,7 +317,7 @@ final class NativeMenus {
   }
 
   void pvpModes() {
-    if(h.roster60Menus()){h.openRosterPvp();return;}
+    if(h.roster60Menus()){h.openPlayMenu();return;}
     ModesLayout panes = modePage("대전", "modesPvp");
     LinearLayout team = k.column(), pvp = k.column();
     LinearLayout.LayoutParams teamSlot = new LinearLayout.LayoutParams(0, -1, .46f);
@@ -1315,12 +1315,19 @@ final class NativeMenus {
     status.setPadding(h.dp(4), 0, h.dp(4), 0);
     status.setIncludeFontPadding(false);
     Button[] save = {null};
-    final int[] activeSlot = {0}, candidatePage = {0};
+    final int[] activeSlot = {0};
+    final InertialCardScrollView[] candidateRail = {null};
     Runnable[] render = new Runnable[1];
     render[0] =
         () -> {
+          InertialCardScrollView previousRail = candidateRail[0];
+          final int preservedCandidateScroll = previousRail == null ? teamScrollX : previousRail.getScrollX();
+          // Detached native scroll callbacks cannot replace the captured offset.
+          candidateRail[0] = null;
+          if (previousRail != null) previousRail.stopMotion();
           podium.removeAllViews();
           summary.removeAllViews();
+          teamScrollX = preservedCandidateScroll;
           ArrayList<View> slots = new ArrayList<>();
           ArrayList<String> slotIds = new ArrayList<>();
           ArrayList<JSONObject> picked = new ArrayList<>();
@@ -1441,28 +1448,32 @@ final class NativeMenus {
           targetLabel.setTextSize(h.uiText(13));
           int targetWidth = Math.max(h.dp(68), (int) Math.ceil(targetLabel.getPaint().measureText(targetLabel.getText().toString())) + h.dp(12));
           paging.addView(targetLabel, new LinearLayout.LayoutParams(targetWidth, h.dp(48)));
-          int pageCount = Math.max(1, (candidates.size() + 2) / 3);
-          candidatePage[0] = Math.max(0, Math.min(candidatePage[0], pageCount - 1));
-          Button previous = k.action(null, "‹", () -> { candidatePage[0]--; render[0].run(); });
+          Button previous = k.action(null, "‹", () -> {
+            InertialCardScrollView rail = candidateRail[0];
+            if (rail != null) rail.smoothScrollBy(-Math.max(h.dp(100), rail.getWidth() * 3 / 4), 0);
+          });
           pagerChevron(previous, false);
-          previous.setContentDescription("이전 후보 페이지");
+          previous.setContentDescription("교체 후보 왼쪽으로 이동");
           previous.setTag("team-candidates-previous");
-          previous.setEnabled(candidatePage[0] > 0);
+          previous.setEnabled(teamScrollX > 0);
           paging.addView(previous, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
-          TextView pageLabel = PartyCharacterView.stateLabel(h, (candidatePage[0] + 1) + " / " + pageCount);
+          TextView pageLabel = PartyCharacterView.stateLabel(h, candidates.size() + "명");
           pageLabel.setBackgroundColor(Color.TRANSPARENT);
           pageLabel.setTextColor(JournalTheme.WHITE);
-          pageLabel.setContentDescription("교체 후보 " + (candidatePage[0] + 1) + " / " + pageCount + " 페이지");
+          pageLabel.setContentDescription("교체 후보 " + candidates.size() + "명 · 좌우로 밀어 탐색");
           pageLabel.setTextSize(h.uiText(14));
           pageLabel.setTag("team-candidate-page");
           pageLabel.setGravity(Gravity.CENTER);
           int pageWidth = Math.max(h.dp(48), (int) Math.ceil(pageLabel.getPaint().measureText(pageLabel.getText().toString())) + h.dp(8));
           paging.addView(pageLabel, new LinearLayout.LayoutParams(pageWidth, h.dp(48)));
-          Button next = k.action(null, "›", () -> { candidatePage[0]++; render[0].run(); });
+          Button next = k.action(null, "›", () -> {
+            InertialCardScrollView rail = candidateRail[0];
+            if (rail != null) rail.smoothScrollBy(Math.max(h.dp(100), rail.getWidth() * 3 / 4), 0);
+          });
           pagerChevron(next, true);
-          next.setContentDescription("다음 후보 페이지");
+          next.setContentDescription("교체 후보 오른쪽으로 이동");
           next.setTag("team-candidates-next");
-          next.setEnabled(candidatePage[0] < pageCount - 1);
+          next.setEnabled(candidates.size() > 2);
           paging.addView(next, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
           Button remove = k.action(null, "비우기", () -> {
             if (activeSlot[0] < teamDraft.size()) teamDraft.remove(activeSlot[0]);
@@ -1479,23 +1490,60 @@ final class NativeMenus {
           LinearLayout.LayoutParams toolbarSlot = new LinearLayout.LayoutParams(-2, h.dp(48));
           toolbarSlot.gravity = Gravity.RIGHT;
           summary.addView(paging, toolbarSlot);
-          LinearLayout grid = k.column();
-          grid.setTag("team-inline-candidates");
-          summary.addView(grid, new LinearLayout.LayoutParams(-1, 0, 1));
           LinearLayout strip = k.row();
-          // CENTER_VERTICAL + 비대칭 위 여백은 MATCH_PARENT 후보를 1px 아래로 밀 수 있다.
           strip.setGravity(Gravity.TOP);
           strip.setBaselineAligned(false);
-          grid.addView(strip, new LinearLayout.LayoutParams(-1, -1));
-          for (int column = 0; column < 3; column++) {
-            int index = candidatePage[0] * 3 + column;
+          InertialCardScrollView rail = new InertialCardScrollView(h) {
+            int restoreOffset = preservedCandidateScroll, previousWidth;
+            boolean restorePending = true;
+            @Override protected void onMeasure(int widthSpec, int heightSpec) {
+              int width = MeasureSpec.getSize(widthSpec);
+              if (previousWidth != width) {
+                // Weighted parents may measure several widths before the first layout.
+                // Keep the captured offset until it has actually been restored once.
+                if (!restorePending && previousWidth != 0) restoreOffset = getScrollX();
+                restorePending = true;
+                previousWidth = width;
+              }
+              // Two full cards and the next edge keep the continuous rail discoverable.
+              int cardWidth = Math.max(h.dp(100), Math.min(h.dp(176), Math.round(width / 2.6f))) - h.dp(6);
+              for (int i = 0; i < strip.getChildCount(); i++) {
+                View child = strip.getChildAt(i);
+                LinearLayout.LayoutParams slot = (LinearLayout.LayoutParams) child.getLayoutParams();
+                if (slot.width != cardWidth) { slot.width = cardWidth; child.setLayoutParams(slot); }
+              }
+              super.onMeasure(widthSpec, heightSpec);
+            }
+            @Override protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+              super.onLayout(changed, left, top, right, bottom);
+              if (restorePending) {
+                scrollTo(restoreOffset, 0);
+                restorePending = false;
+                teamScrollX = getScrollX();
+              }
+              previous.setEnabled(canScrollHorizontally(-1));
+              next.setEnabled(canScrollHorizontally(1));
+            }
+            @Override protected void onScrollChanged(int x, int y, int oldx, int oldy) {
+              super.onScrollChanged(x, y, oldx, oldy);
+              if (candidateRail[0] != this) return;
+              if (!restorePending) teamScrollX = x;
+              previous.setEnabled(canScrollHorizontally(-1));
+              next.setEnabled(canScrollHorizontally(1));
+            }
+          };
+          candidateRail[0] = rail;
+          rail.setTag("team-inline-candidates");
+          rail.setContentDescription("교체 후보 · 좌우로 밀어 탐색하고 카드를 눌러 배치");
+          rail.addView(strip, new HorizontalScrollView.LayoutParams(-2, -1));
+          summary.addView(rail, new LinearLayout.LayoutParams(-1, 0, 1));
+          for (int index = 0; index < candidates.size(); index++) {
             LinearLayout tile = k.column();
             tile.setPadding(h.dp(3), h.dp(3), h.dp(3), h.dp(3));
             tile.setGravity(Gravity.CENTER);
-            LinearLayout.LayoutParams cell = new LinearLayout.LayoutParams(0, -1, 1);
+            LinearLayout.LayoutParams cell = new LinearLayout.LayoutParams(h.dp(140), -1);
             cell.setMargins(h.dp(3), h.dp(3), h.dp(3), 0);
             strip.addView(tile, cell);
-            if (index >= candidates.size()) { tile.setVisibility(View.INVISIBLE); continue; }
             JSONObject candidate = candidates.get(index);
             String key = candidate.optString(pvp ? "id" : "key");
             View portrait = PartyCharacterView.art(h, candidate);
@@ -1515,7 +1563,7 @@ final class NativeMenus {
             tile.setContentDescription(PartyCharacterView.description(candidate) + " · " + state
                 + " · " + (activeSlot[0] + 1) + "번에 배치");
             tile.setOnClickListener(v -> {
-              if (h.busy) return;
+              if (h.busy || rail.blocksClick()) return;
               int target = Math.min(activeSlot[0], teamDraft.size());
               int old = teamDraft.indexOf(key);
               if (old >= 0 && old != target && target < teamDraft.size()) {

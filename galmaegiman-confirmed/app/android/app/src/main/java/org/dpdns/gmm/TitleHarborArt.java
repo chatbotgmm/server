@@ -47,14 +47,14 @@ final class TitleHarborArt {
     oval(
         canvas,
         contact,
-        hero.left + hero.width() * .335f,
+        hero.left + hero.width() * .29f,
         hero.bottom - hero.height() * .022f,
         hero.width() * .105f,
         hero.height() * .015f);
     oval(
         canvas,
         contact,
-        hero.left + hero.width() * .585f,
+        hero.left + hero.width() * .57f,
         hero.bottom,
         hero.width() * .095f,
         hero.height() * .015f);

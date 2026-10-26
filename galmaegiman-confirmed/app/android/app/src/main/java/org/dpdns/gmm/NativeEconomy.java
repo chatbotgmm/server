@@ -78,14 +78,6 @@ final class NativeEconomy {
     air.setTag("draw-header-space");
     header.addView(air, 2, new LinearLayout.LayoutParams(0, 1, 1));
     boolean roster60 = h.roster60Menus();
-    if (!roster60 && m.lastDraw != null) {
-      Button previous = k.action(null, "↺", () -> reveal(m.lastDraw, () -> h.load("draw"), true));
-      previous.setTag("draw-last-result");
-      previous.setTextSize(22);
-      previous.setContentDescription("지난 모집 결과 다시 보기");
-      previous.setPadding(0, 0, 0, 0);
-      header.addView(previous, 2, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
-    }
     // A response from another account must not attach to this screen, even at the same epoch.
     final int drawEpoch = h.epoch;
     final String drawAccount = h.api.token();
@@ -112,13 +104,6 @@ final class NativeEconomy {
       try {
         Roster60RecruitPurchase purchase = new Roster60RecruitPurchase(h, session);
         purchase.session = session;
-        NativeRecruitSession history = new NativeRecruitSession(h);
-        if (history.hasSavedResult()) {
-          Button previous = k.action(null, "↺", () -> { history.fromCounter = true; history.open(session); });
-          previous.setTag("draw-last-result"); previous.setTextSize(22);
-          previous.setContentDescription("지난 모집 결과 다시 보기"); previous.setPadding(0, 0, 0, 0);
-          header.addView(previous, 2, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
-        }
         counter.addView(new RecruitmentScreen(this, Roster60RecruitPurchase.merge(h.me(), session, System.currentTimeMillis()), purchase),
             new LinearLayout.LayoutParams(-1, -1));
       } catch (JSONException bad) { counter.addView(k.note("모집 정보를 읽지 못했어요.")); }
@@ -131,15 +116,6 @@ final class NativeEconomy {
       if (error != null || roster == null) { counter.addView(k.note("모집 준비 중 · " + error)); return; }
       try {
         Roster60RecruitPurchase purchase = new Roster60RecruitPurchase(h, roster);
-        JSONObject last = purchase.receipt();
-        if (last != null) {
-          Button previous = k.action(null, "↺", () -> Roster60RecruitPurchase.showCards(h, last, null));
-          previous.setTag("draw-last-result");
-          previous.setTextSize(22);
-          previous.setContentDescription("지난 모집 결과 다시 보기");
-          previous.setPadding(0, 0, 0, 0);
-          header.addView(previous, 2, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
-        }
         counter.addView(new RecruitmentScreen(this, Roster60RecruitPurchase.merge(h.me(), roster, System.currentTimeMillis()), purchase),
             new LinearLayout.LayoutParams(-1, -1));
         // 결과를 확인하지 못한 요청이 있으면 같은 요청 번호로 다시 확인한다(새로 차감하지 않음).
@@ -319,7 +295,7 @@ final class NativeEconomy {
         k.note(message);
     details.setTextSize(17);
     reward.addView(details);
-    new GameDialog(h)
+    new GameDialog(h).navy()
         .setScrollBody(reward)
         .setPositiveButton(
             "확인",

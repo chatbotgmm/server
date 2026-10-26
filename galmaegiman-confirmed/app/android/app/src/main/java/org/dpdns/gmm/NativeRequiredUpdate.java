@@ -170,6 +170,14 @@ final class NativeRequiredUpdate {
     }
     dismiss();
     a.root.setVisibility(View.VISIBLE);
+    final int resourceEpoch = a.epoch;
+    if (!started && !a.prepareGameResources(() -> {
+      if (closed || a.isFinishing() || a.isDestroyed()) return;
+      // Resource warming is account-independent, but its startup navigation owns
+      // only the screen epoch that asked for it. A later screen already took over.
+      if (a.epoch != resourceEpoch) { started = true; return; }
+      settle(error);
+    })) return;
     if (suspendedDialog != null) {
       suspendedDialog.show();
       a.visibleDialog = suspendedDialog;

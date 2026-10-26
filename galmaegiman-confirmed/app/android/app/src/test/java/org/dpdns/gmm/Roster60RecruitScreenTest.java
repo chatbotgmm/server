@@ -68,7 +68,7 @@ public class Roster60RecruitScreenTest {
    View decor=h.visibleDialog.getWindow().getDecorView();decor.measure(View.MeasureSpec.makeMeasureSpec(h.dp(560),View.MeasureSpec.AT_MOST),View.MeasureSpec.makeMeasureSpec(412,View.MeasureSpec.AT_MOST));decor.layout(0,0,decor.getMeasuredWidth(),decor.getMeasuredHeight());
    helper.png(NativeHomePartyFeedbackTest.render(decor),"roster60-recruit-result-cards.png");
    assertEquals("결과 저장 후 요청 정리","",h.getSharedPreferences("roster60_recruit",0).getString(new Roster60RecruitPurchase(h,new JSONObject()).key,""));
-   h.visibleDialog.dismiss();idle();h.draw();idle();assertEquals("재진입해도 새 요청 없음",2,api.posts.size());assertNotNull("지난 결과 다시 보기",h.root.findViewWithTag("draw-last-result"));
+   h.visibleDialog.dismiss();idle();h.draw();idle();assertEquals("재진입해도 새 요청 없음",2,api.posts.size());assertNull("과거 결과 직접 열기 진입 제거",h.root.findViewWithTag("draw-last-result"));
   }
  }
 

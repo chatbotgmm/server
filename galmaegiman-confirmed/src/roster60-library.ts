@@ -3,6 +3,8 @@ import {randomInt,createHash} from 'node:crypto';
 import type {PrismaClient} from '@prisma/client';
 import {RosterError,type RosterCatalog} from './roster60-onboarding.js';
 import {loadContent} from './content.js';
+import {collectionDefenseKnowledge,defenseKnowledgeProjection} from './battle/roster60-observed-defense.js';
+import {recordRosterDailyProgress} from './roster60-daily-progress.js';
 export const rosterGrades={COMMON:'커먼',UNCOMMON:'언커먼',RARE:'레어',EPIC:'에픽',LEGEND:'전설',HIDDEN:'히든',LIMITED:'제한',TRANSCEND:'초월',IMMORTAL:'불멸',ETERNAL:'영원'};
 // Approved grant levels, independent of unapproved offer prices/grade weights.
 export const recruitGrantLevels=Object.freeze({COMMON:1,UNCOMMON:1,RARE:10,EPIC:15,LEGEND:20,HIDDEN:20});
@@ -15,10 +17,10 @@ export function recruitmentGrowth(unit:RosterCatalog['characters'][number]){
  catch{throw new RosterError(503,'RECRUIT_GROWTH_INVALID');}
 }
 export class RosterLibrary {
- constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private roll:(max:number)=>number=randomInt){}
+ constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private roll:(max:number)=>number=randomInt,private completionTime=()=>new Date()){}
  private ready(){const c=this.catalog();if(!c?.approved)throw new RosterError(503,'ROSTER_CATALOG_PENDING');return c;}
- async collection(playerId:string){const c=this.ready(),owned=await this.db.roster60Owned.findMany({where:{playerId}});
-  return {flow:'roster60-v1',catalogVersion:c.version,testBaseline:c.profileKind==='user-authorized-test-baseline',grades:rosterGrades,characters:c.characters.map(u=>({id:u.id,name:u.name,rarity:u.rarity,role:(u as any).role,levelOneStats:(u as any).levelOneStats,growthPerLevel:(u as any).growthPerLevel,suitability:u.suitability,defense:u.defense,skills:u.skills,ownedCount:owned.filter(o=>o.speciesId===u.id&&o.status!=='CONSUMED').length,discovered:owned.some(o=>o.speciesId===u.id)}))};
+ async collection(playerId:string){const c=this.ready(),owned=await this.db.roster60Owned.findMany({where:{playerId}}),knowledge=await collectionDefenseKnowledge(this.db,playerId,c);
+  return {flow:'roster60-v1',catalogVersion:c.version,testBaseline:c.profileKind==='user-authorized-test-baseline',grades:rosterGrades,characters:c.characters.map(u=>({id:u.id,name:u.name,rarity:u.rarity,role:(u as any).role,levelOneStats:(u as any).levelOneStats,growthPerLevel:(u as any).growthPerLevel,suitability:u.suitability,defenseKnowledge:defenseKnowledgeProjection(u.id,knowledge[u.id]??{}),skills:u.skills,ownedCount:owned.filter(o=>o.speciesId===u.id&&o.status!=='CONSUMED').length,discovered:owned.some(o=>o.speciesId===u.id)}))};
  }
  private offers(c:RosterCatalog){return Object.entries(loadContent().economy.gachas).map(([kind,g])=>({kind,label:g.label,cost:g.cost,weights:g.weights,enabled:kind==='LOW'&&Object.keys(g.weights).every(t=>c.characters.some(u=>u.rarity===t)),reason:kind==='LOW'?'':'새 등급 확률 승인 대기 (기존 SPECIAL 등급 없음)'}));}
  async info(playerId:string){const c=this.ready(),p=await this.db.player.findUniqueOrThrow({where:{id:playerId}});return {flow:'roster60-v1',catalogVersion:c.version,credits:p.credits,grantLevels:recruitGrantLevels,offers:this.offers(c)};}
@@ -43,7 +45,9 @@ export class RosterLibrary {
     const growth=recruitmentGrowth(u);
     const o=await tx.roster60Owned.create({data:{playerId,speciesId:u.id,totalXp:BigInt(growth.totalXp),source:'recruit:'+input.requestId+':'+i}});items.push({ownedId:o.id,speciesId:u.id,name:u.name,rarity:u.rarity,level:growth.level,totalXp:growth.totalXp});
    }
-   const result={flow:'roster60-v1',requestId:input.requestId,catalogVersion:c.version,charged:unlimited?0:cost,credits:unlimited?p.credits:p.credits-cost,items};
+   await recordRosterDailyProgress(tx,playerId,'DRAW',items.length,this.completionTime());
+   const credits=(await tx.player.findUniqueOrThrow({where:{id:playerId},select:{credits:true}})).credits;
+   const result={flow:'roster60-v1',requestId:input.requestId,catalogVersion:c.version,charged:unlimited?0:cost,credits,items};
    await tx.roster60RecruitReceipt.create({data:{playerId,requestId:input.requestId,fingerprint,result:JSON.stringify(result)}});return result;
   });
   try{return await run();}catch(e){if(['P2002','P2034'].includes((e as {code?:string}).code??''))return run();throw e;}

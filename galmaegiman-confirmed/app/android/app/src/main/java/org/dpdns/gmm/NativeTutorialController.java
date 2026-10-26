@@ -51,6 +51,9 @@ final class NativeTutorialController {
   NativeTutorialState progress = new NativeTutorialState();
   NativeTutorialOverlay overlay;
   String overlayKey = "", account = "";
+  String tutorialFlow;
+  long contextGeneration;
+  final ArrayDeque<Integer> pendingSteps = new ArrayDeque<>();
   boolean active, saving, rewardCard, augmentSeen;
   boolean enabled = true;
   JSONObject lastBattle;
@@ -60,7 +63,7 @@ final class NativeTutorialController {
         public void run() {
           if (!active || h.isFinishing()) return;
           update();
-          h.api.ui.postDelayed(this, 350);
+          if (active) h.api.ui.postDelayed(this, 350);
         }
       };
   final Runnable hintClose = this::removeOverlay;
@@ -70,20 +73,55 @@ final class NativeTutorialController {
   }
 
   void onStateUpdated() {
+    onStateUpdated(true);
+  }
+
+  // A missing tutorial or unknown flow is not permission to write legacy progress. Old responses
+  // have a tutorial object without a flow marker; roster60 owns its own progression.
+  boolean canGuide() {
     String token = h.api.token();
-    String player = token.isEmpty() ? "" : token.split("\\.")[0];
-    if (!player.equals(account)) {
+    JSONObject saved = h.state.optJSONObject("tutorial");
+    String flow = saved == null ? null : saved.optString("flow");
+    if (!token.equals(account) || !Objects.equals(flow, tutorialFlow)) {
       close();
       progress = new NativeTutorialState();
-      account = player;
+      // Match the whole session, not just the player prefix (logout/re-login matters).
+      account = token;
+      tutorialFlow = flow;
+      // 새 세션의 진행은 기본값(완료)이 아니라 서버가 저장한 레거시 단계에서 시작한다.
+      // onStateUpdated보다 tick/행동이 먼저 와도 안내가 사라지거나 단계 판정이 틀리지 않게 한다.
+      if (saved != null && "".equals(flow) && !saving) {
+        ArrayList<String> seen = new ArrayList<>();
+        JSONArray list = h.list(saved, "seen");
+        for (int i = 0; i < list.length(); i++) seen.add(list.optString(i));
+        progress.sync(saved.optInt("step", 9), seen);
+      }
     }
+    if (token.isEmpty() || !"".equals(flow) || !enabled
+        || h.nicknameRequired() || h.isFinishing()) {
+      removeOverlay();
+      return false;
+    }
+    return true;
+  }
+
+  boolean canPersist() {
+    return canGuide() && !progress.replay;
+  }
+
+  boolean currentRequest(long generation, String session) {
+    return canPersist() && generation == contextGeneration && session.equals(account);
+  }
+
+  void onStateUpdated(boolean recordSeen) {
+    if (!canGuide()) return;
     JSONObject saved = h.state.optJSONObject("tutorial");
-    if (saved != null && !saving) {
+    if (!saving) {
       ArrayList<String> seen = new ArrayList<>();
       JSONArray list = h.list(saved, "seen");
       for (int i = 0; i < list.length(); i++) seen.add(list.optString(i));
       progress.sync(saved.optInt("step", 9), seen);
-      if (!h.nicknameRequired() && progress.step == 1 && !progress.seen.contains("tut") && !progress.replay) {
+      if (recordSeen && progress.step == 1 && !progress.seen.contains("tut") && canPersist()) {
         progress.seen.add("tut");
         h.api.call("tutorial", MainActivity.obj("step", 1, "seen", "tut"), (r, e) -> {});
       }
@@ -92,10 +130,7 @@ final class NativeTutorialController {
 
   void onScreenShown(String screen) {
     onStateUpdated();
-    if (!enabled || h.nicknameRequired() || h.api.token().isEmpty()) {
-      removeOverlay();
-      return;
-    }
+    if (!canGuide()) return;
     if (!active) {
       active = true;
       h.api.ui.removeCallbacks(tick);
@@ -106,14 +141,15 @@ final class NativeTutorialController {
   }
 
   void onAction(String action) {
-    if (!enabled) return;
-    if (action.equals("draw-complete") && progress.step == 2) {
+    if (!canGuide()) return;
+    int step = effectiveStep();
+    if (action.equals("draw-complete") && step == 2) {
       progress.drew = true;
       advance(3);
-    } else if (action.equals("team-saved") && progress.step == 3) advance(4);
+    } else if (action.equals("team-saved") && step == 3) advance(4);
     else if (action.equals("skill-used")) progress.attacked = true;
     else if (action.equals("battle-complete")
-        && progress.step == 4
+        && step == 4
         && lastBattle != null
         && lastBattle.optString("stage").equals("P-1")
         && lastBattle.optInt("winner", -1) == 0) advance(5);
@@ -121,11 +157,13 @@ final class NativeTutorialController {
   }
 
   void onBattleShown(JSONObject battle, View attack, View skill, View hp, boolean augmentVisible) {
+    onStateUpdated();
+    if (!canGuide()) return;
     lastBattle = battle;
     this.attack = attack;
     this.skill = skill;
     this.hp = hp;
-    if (progress.step == 4 && augmentVisible && !augmentSeen) {
+    if (effectiveStep() == 4 && augmentVisible && !augmentSeen) {
       augmentSeen = true;
       Toast.makeText(h, "증강체 · 이번 전투에만 쓰는 힘이에요. 3개 중 하나를 골라요.", Toast.LENGTH_LONG).show();
     }
@@ -133,11 +171,20 @@ final class NativeTutorialController {
   }
 
   boolean needsStoryTeam() {
-    return enabled && progress.step == 3;
+    return canGuide() && effectiveStep() == 3;
+  }
+
+  int effectiveStep() {
+    return pendingSteps.isEmpty() ? progress.step : Math.max(progress.step, pendingSteps.peekLast());
   }
 
   void startReplay() {
-    onStateUpdated();
+    onStateUpdated(false);
+    if (!canGuide()) return;
+    // Invalidate live-save callbacks before switching to this local-only replay.
+    contextGeneration++;
+    saving = false;
+    pendingSteps.clear();
     removeOverlay();
     progress.replay();
     rewardCard = augmentSeen = false;
@@ -146,9 +193,12 @@ final class NativeTutorialController {
   }
 
   void close() {
+    contextGeneration++;
     active = false;
     saving = false;
+    pendingSteps.clear();
     account = "";
+    tutorialFlow = null;
     h.api.ui.removeCallbacks(tick);
     h.api.ui.removeCallbacks(hintClose);
     removeOverlay();
@@ -165,8 +215,17 @@ final class NativeTutorialController {
   }
 
   void advance(int next) {
+    if (!canGuide()) return;
+    if (saving) {
+      // Keep real follow-up actions while one legacy save is in flight. Do not
+      // collapse steps: the first draw's step 3 must still reach the server.
+      if (next != 9 && (next < 1 || next > 5)) throw new IllegalArgumentException("안내 단계");
+      if (next > effectiveStep()) pendingSteps.addLast(next);
+      return;
+    }
     int old = progress.step;
     if (!progress.advance(next)) return;
+    contextGeneration++;
     removeOverlay();
     if (!progress.persist()) {
       if (next == 3) rewardCard = true;
@@ -174,14 +233,16 @@ final class NativeTutorialController {
       return;
     }
     saving = true;
-    final String player = account;
+    final String session = account;
+    final long generation = contextGeneration;
     h.api.call(
         "tutorial",
         MainActivity.obj("step", next),
         (response, error) -> {
-          if (!player.equals(account) || h.isFinishing()) return;
+          if (!currentRequest(generation, session)) return;
           if (error != null) {
             saving = false;
+            pendingSteps.clear();
             progress.step = old;
             Toast.makeText(h, "안내 진행을 저장하지 못했어요. 다시 눌러 주세요.", Toast.LENGTH_LONG).show();
             update();
@@ -191,33 +252,41 @@ final class NativeTutorialController {
               "native/state",
               null,
               (fresh, failure) -> {
-                if (!player.equals(account) || h.isFinishing()) return;
+                if (!currentRequest(generation, session)) return;
                 saving = false;
-                if (failure == null) h.state = fresh;
-                if (next == 3) rewardCard = true;
-                if ((next == 4 || next == 9) && failure == null) ensureStarterTeam();
+                if (failure == null && fresh != null) h.state = fresh;
                 onStateUpdated();
-                if (next == 9 && !progress.replay) { h.load("home"); return; }
+                // The refreshed response can transfer ownership to a new flow.
+                if (!currentRequest(generation, session)) return;
+                if (next == 3) rewardCard = true;
+                if ((next == 4 || next == 9) && failure == null && fresh != null) ensureStarterTeam();
+                if (next == 9 && !progress.replay) {
+                  pendingSteps.clear();
+                  h.load("home");
+                  return;
+                }
+                while (!saving && !pendingSteps.isEmpty()) advance(pendingSteps.removeFirst());
                 update();
               });
         });
   }
 
   void ensureStarterTeam() {
-    if (progress.replay
+    if (!canPersist()
         || h.state.optBoolean("activeBattle")
         || h.list(h.state, "team").length() > 0) return;
     JSONArray units = h.list(h.state, "units");
     for (int i = 0; i < units.length(); i++) {
       JSONObject unit = units.optJSONObject(i);
       if (unit != null && unit.optString("id").equals("D1")) {
-        String player = account;
+        final String session = account;
+        final long generation = contextGeneration;
         JSONArray keys = new JSONArray().put(unit.optString("key"));
         h.api.call(
             "native/team",
             MainActivity.obj("keys", keys),
             (r, e) -> {
-              if (e == null && player.equals(account)) {
+              if (e == null && currentRequest(generation, session)) {
                 try {
                   h.state.put("team", keys);
                 } catch (JSONException ignored) {
@@ -230,8 +299,7 @@ final class NativeTutorialController {
   }
 
   void update() {
-    JSONObject flow = h.state.optJSONObject("tutorial");
-    if (flow != null && "roster60-v1".equals(flow.optString("flow"))) { removeOverlay(); return; }
+    if (!canGuide()) return;
     if (h.nicknameRequired() || !enabled
         || saving
         || h.api.token().isEmpty()
@@ -503,6 +571,7 @@ final class NativeTutorialController {
   }
 
   void showHint() {
+    if (!canPersist() || saving) return;
     String key = h.screen.equals("craftRecipes") ? "craft" : h.screen;
     String savedKey = key.equals("expedition") ? "party" : key;
     if (overlay != null && overlay.hint) return;
@@ -547,6 +616,7 @@ final class NativeTutorialController {
       String confirm,
       Runnable action,
       boolean hint) {
+    if (!canGuide()) return;
     if (key.equals(overlayKey) && overlay != null && overlay.getParent() == h.root) return;
     removeOverlay();
     overlayKey = key;
@@ -558,14 +628,25 @@ final class NativeTutorialController {
             title,
             text,
             confirm,
-            action,
+            currentAction(action),
             hint
-                ? this::removeOverlay
-                : () -> h.confirm("안내를 건너뛸까요? 설정에서 다시 볼 수 있어요.", () -> advance(9)),
-            confirm == null ? action : null,
+                ? currentAction(this::removeOverlay)
+                : currentAction(
+                    () -> h.confirm(
+                        "안내를 건너뛸까요? 설정에서 다시 볼 수 있어요.", currentAction(() -> advance(9)))),
+            confirm == null ? currentAction(action) : null,
             hint,
             false);
     h.root.addView(overlay, new FrameLayout.LayoutParams(-1, -1));
+  }
+
+  Runnable currentAction(Runnable action) {
+    if (action == null) return null;
+    final String session = account;
+    final long generation = contextGeneration;
+    return () -> {
+      if (canGuide() && generation == contextGeneration && session.equals(account)) action.run();
+    };
   }
 
   View find(String key, String text) {

@@ -59,13 +59,12 @@ final class NativeRoster60Onboarding {
     if(skills!=null)for(int i=0;i<skills.length();i++){JSONObject sk=skills.optJSONObject(i);if(sk!=null)description.append(sk.optString("name")).append(" · MP ").append(sk.optInt("mpCost")).append('\n');}
     String[] elements={"NORMAL","FIRE","WATER","LIGHTNING","ICE","NATURE","HOLY","DARK"};
     String[] names=h.getResources().getStringArray(R.array.roster60_element_names);
-    String[] defenseCodes={"weak","normal","resist","immune","reflect"};
-    String[] defenseNames=h.getResources().getStringArray(R.array.roster60_defense_names);
-    JSONObject suitability=unit.optJSONObject("suitability"),defense=unit.optJSONObject("defense");
+    JSONObject suitability=unit.optJSONObject("suitability");
+    String[] observed=Roster60OpponentIntel.collectionDefenses(unit);
     description.append('\n').append(h.getString(R.string.roster60_suitability)).append('\n');
     for(int i=0;i<elements.length;i++)if(suitability!=null)description.append(names[i]).append(": ").append(suitability.opt(elements[i])).append('\n');
     description.append('\n').append(h.getString(R.string.roster60_defense)).append('\n');
-    for(int i=0;i<elements.length;i++)if(defense!=null){String code=defense.optString(elements[i]);for(int j=0;j<defenseCodes.length;j++)if(defenseCodes[j].equals(code))description.append(names[i]).append(": ").append(defenseNames[j]).append('\n');}
+    for(int i=0;i<elements.length;i++)description.append(names[i]).append(": ").append(Roster60OpponentIntel.defenseLabel(observed[i])).append('\n');
     String details=description.toString();
     TextView text=new TextView(h);text.setText(details);text.setTextColor(0xfff5ead0);text.setPadding(h.dp(16),h.dp(12),h.dp(16),h.dp(12));
     ScrollView scroll=new ScrollView(h);scroll.setBackgroundColor(0xe8102433);scroll.addView(text);

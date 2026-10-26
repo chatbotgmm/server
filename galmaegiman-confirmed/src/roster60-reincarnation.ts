@@ -1,4 +1,5 @@
 import {fiveRebirthPolicy,fiveRebirthStats,type FiveStats} from './battle/roster60-five-stats.js';
+import {publicDefenseSafe} from './battle/roster60-observed-defense.js';
 import {previewReincarnation} from './battle/roster60-reincarnation.js';
 import type {PrismaClient,Prisma} from '@prisma/client';
 import {createHash} from 'node:crypto';
@@ -30,19 +31,26 @@ export class RosterReincarnation {
   const policy=rebirthGradePolicy;let reason='';
   if(!policy.grades.includes(d.rarity))reason='REINCARNATION_GRADE_NOT_ALLOWED';
   else if(before.level<requiredLevel)reason='REINCARNATION_REQUIREMENTS_NOT_MET';
-  const fingerprint=hash([c.version,u.id,u.speciesId,u.totalXp.toString(),u.reincarnation,successes,cost,policy,requiredLevel,preview]);
+  // The public proof must not become a brute-force oracle for the hidden defense table.
+  const fingerprint=hash([c.version,u.id,u.speciesId,u.totalXp.toString(),u.reincarnation,successes,cost,policy,requiredLevel,publicDefenseSafe(preview)]);
   return {ownedId:u.id,speciesId:u.speciesId,name:d.name,catalogVersion:c.version,eligible:!reason,reason,requiredLevel,preview,costPeanut:cost,accountFreeAvailable:successes===0,successes,previewFingerprint:fingerprint};
  }
  async preview(playerId:string){
   const c=this.catalog();if(!c?.approved)return fail('ROSTER_CATALOG_PENDING',503);
   const units=await this.db.roster60Owned.findMany({where:{playerId,status:'AVAILABLE'},take:1000,orderBy:{id:'asc'}});
   const candidates=[];for(const u of units){try{candidates.push(await this.plan(this.db,playerId,u.id));}catch(e){candidates.push({ownedId:u.id,name:c.characters.find(d=>d.id===u.speciesId)?.name??u.speciesId,eligible:false,reason:e instanceof RosterError?e.code:(e as Error).message,preview:null});}}
-  return {serverNow:Date.now(),flow:'roster60-v1',catalogVersion:c.version,candidates};
+  return publicDefenseSafe({serverNow:Date.now(),flow:'roster60-v1',catalogVersion:c.version,candidates});
  }
  async confirm(playerId:string,input:RebirthRequest){
   const fingerprint=hash(input),run=()=>this.db.$transaction(async tx=>{
    const prior=await tx.roster60RebirthReceipt.findUnique({where:{playerId_requestId:{playerId,requestId:input.requestId}}});
-   if(prior){if(prior.fingerprint!==fingerprint)return fail('REQUEST_ID_REUSED');return JSON.parse(prior.result);}
+   if(prior){
+    if(prior.fingerprint!==fingerprint)return fail('REQUEST_ID_REUSED');
+    const result=JSON.parse(prior.result);
+    // Older completed receipts hashed the secret table. Do not replay that public oracle.
+    if(result.preview?.defense&&typeof result.preview.defense==='object')delete result.previewFingerprint;
+    return publicDefenseSafe(result);
+   }
    const p=await this.plan(tx,playerId,input.ownedId);if(!p.eligible)return fail(p.reason);
    if(input.catalogVersion!==p.catalogVersion||input.previewFingerprint!==p.previewFingerprint)return fail('PREVIEW_CHANGED');
    if(await tx.realtimeActivity.findFirst({where:{playerId,OR:[{kind:'ROOM'},{expiresAt:{gt:new Date()}}]}}))return fail('BATTLE_ACTIVE');
@@ -50,7 +58,7 @@ export class RosterReincarnation {
    const account=await tx.roster60RebirthAccount.updateMany({where:{playerId,successes:p.successes},data:{successes:{increment:1}}});if(account.count!==1)return fail('PREVIEW_CHANGED');
    const paid=await tx.player.updateMany({where:{id:playerId,peanut:{gte:p.costPeanut}},data:{peanut:{decrement:p.costPeanut},revision:{increment:1}}});if(paid.count!==1)return fail('INSUFFICIENT_PEANUT');
    const updated=await tx.roster60Owned.updateMany({where:{id:input.ownedId,playerId,status:'AVAILABLE',locked:false,totalXp:BigInt(p.preview.previousCycleTotalXp),reincarnation:p.preview.next.reincarnation-1},data:{reincarnation:p.preview.next.reincarnation,totalXp:0n}});if(updated.count!==1)return fail('UNIT_CHANGED');
-   const result={...p,paidPeanut:p.costPeanut,completed:true};
+   const result=publicDefenseSafe({...p,paidPeanut:p.costPeanut,completed:true});
    await tx.roster60RebirthReceipt.create({data:{playerId,requestId:input.requestId,fingerprint,result:JSON.stringify(result)}});return result;
   });
   try{return await run();}catch(e){if(['P2002','P2034'].includes((e as {code?:string}).code??''))return run();throw e;}

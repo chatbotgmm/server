@@ -35,7 +35,29 @@ public class NativeGameFlowTest {
     ActivityController<MainActivity> controller =
         Robolectric.buildActivity(MainActivity.class).create();
     controller.get().motionEnabled = false;
-    return controller.start().resume().visible();
+    controller.start().resume().visible();
+    awaitStartupResources(controller.get());
+    return controller;
+  }
+
+  /** Install per-screen fake APIs only after the real public-art startup gate settles. */
+  static void awaitStartupResources(MainActivity host) {
+    long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(30);
+    while (System.nanoTime() < deadline) {
+      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(16));
+      GameResourcePreparation.Progress progress = org.robolectric.util.ReflectionHelpers.getField(host, "resourceProgress");
+      if (progress != null && progress.done && progress.failed > 0)
+        fail("Bundled startup resources failed: " + progress.failures);
+      boolean accepted = org.robolectric.util.ReflectionHelpers.getField(host, "resourcesAccepted");
+      Runnable continuation = org.robolectric.util.ReflectionHelpers.getField(host, "resourceContinuation");
+      if (accepted && continuation == null && !host.updateBlocks()) return;
+      try { Thread.sleep(5); }
+      catch (InterruptedException interrupted) {
+        Thread.currentThread().interrupt();
+        throw new AssertionError("Interrupted while awaiting real startup resources", interrupted);
+      }
+    }
+    fail("Timed out waiting for real startup preparation and its navigation callback");
   }
 
   void measure(View view) {
@@ -137,13 +159,31 @@ public class NativeGameFlowTest {
     try {
       MainActivity host = controller.get();
       assertEquals("", host.api.token());
+      host.api.close();
+      final String session = "readonly-legacy-tutorial-replay";
+      final int[] writes = {0};
+      host.api = new NativeApi(host) {
+        @Override String token() { return session; }
+        @Override void call(String path, JSONObject body, Result done) {
+          if (body != null) {
+            writes[0]++;
+            fail("Tutorial replay must never persist an action: " + path);
+          }
+          assertEquals("Only the existing read-only starter check is permitted", "starter-loans", path);
+          done.done(StarterLoanTestFixture.ineligible(), null);
+        }
+      };
       androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(host.root, null);
       host.state =
           MainActivity.obj(
-              "tutorial", MainActivity.obj("step", 4, "seen", new JSONArray().put("tut")));
+              "tutorial", MainActivity.obj("flow", "", "step", 4, "seen", new JSONArray().put("tut")));
       host.battle = battle("guided-battle");
+      host.guide.onStateUpdated(false);
+      assertTrue("The authenticated legacy context may show guidance", host.guide.canGuide());
+      host.guide.progress.replay = true;
       host.guide.progress.step = 4;
       host.guide.progress.typeSeen = true;
+      assertFalse("Replay guidance cannot save progress", host.guide.canPersist());
       host.battleScreen();
       measure(host.root);
       Shadows.shadowOf(Looper.getMainLooper()).idle();
@@ -153,7 +193,7 @@ public class NativeGameFlowTest {
         if (host.root.getChildAt(i) instanceof BattleView)
           battleView = (BattleView) host.root.getChildAt(i);
       assertNotNull(battleView);
-      // 빈 토큰 fixture에서는 자동 안내가 숨겨진다. 현재 단계의 전투 안내만 직접 평가한다.
+      // Authenticated local replay exercises the real guide without writing tutorial progress.
       host.guide.battleGuide();
       measure(host.root);
       NativeTutorialOverlay overlay = host.guide.overlay;
@@ -169,7 +209,8 @@ public class NativeGameFlowTest {
       down.recycle();
       up.recycle();
       assertEquals("skills", battleView.pane);
-      assertEquals("", host.api.token());
+      assertEquals(session, host.api.token());
+      assertEquals(0, writes[0]);
     } finally {
       controller.pause().stop().destroy();
     }

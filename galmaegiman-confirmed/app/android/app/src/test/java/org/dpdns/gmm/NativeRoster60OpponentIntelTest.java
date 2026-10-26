@@ -19,9 +19,9 @@ public class NativeRoster60OpponentIntelTest {
  @Before public void setup(){helper.setup();}
  @After public void restore(){helper.restore();}
  static JSONObject intel(int turns){
-  return MainActivity.obj("version","opponent-intel-v1","speciesId","u02","completedTurns",turns,"statsKnown",turns>=1,
+  return MainActivity.obj("version","opponent-intel-v2","speciesId","u02","defenseKnowledgeScope","base-observed","completedTurns",turns,"statsKnown",turns>=1,
     "stats",MainActivity.obj("hp",10,"mp",10,"durability",1,"statusResistance",2,"speed",3),
-    "defenses",MainActivity.obj("NORMAL","normal","FIRE","resist","WATER",turns>=1?"weak":"unknown","ICE",turns>=1?"immune":"unknown"));
+    "defenses",MainActivity.obj("NORMAL","normal","FIRE",turns>=1?"normal":"unknown"));
  }
  static String text(View view){
   StringBuilder s=new StringBuilder();if(view instanceof TextView)s.append(((TextView)view).getText()).append("\n");
@@ -35,11 +35,11 @@ public class NativeRoster60OpponentIntelTest {
    // Real server redaction must not invalidate the command widget.
    api.state.getJSONObject("state").getJSONArray("fighters").getJSONObject(1).remove("suitability");
    ui.bind(api.state);assertTrue(NativeRoster60ProductBattleTest.named(ui.panel,"공격").isEnabled());
-   int calls=api.paths.size();ui.opponentInfo.performClick();assertEquals(calls,api.paths.size());
-   assertTrue(text(ui.opponentDetails).contains("2 / 8"));assertTrue(text(ui.opponentDetails).contains("한 턴"));
+   int calls=api.paths.size();assertTrue(ui.opponentDetails.isShown());assertNull(h.root.findViewWithTag("roster60-opponent-info"));ui.showOpponentInfo();assertEquals(calls,api.paths.size());assertNull(h.visibleDialog);
+   assertTrue(text(ui.opponentDetails).contains("1 / 8"));assertTrue(text(ui.opponentDetails).contains("한 턴"));
    JSONObject next=NativeRoster60PlaybackTest.response(api.state,false);next.getJSONObject("state").put("opponentIntel",intel(1));
-   ui.bind(next);assertTrue(ui.presenting());assertTrue(text(ui.opponentDetails).contains("2 / 8"));assertFalse(text(ui.opponentDetails).contains("속도  3"));
-   NativeRoster60PlaybackTest.finish(ui);assertTrue(text(ui.opponentDetails).contains("4 / 8"));assertTrue(text(ui.opponentDetails).contains("속도  3"));
+   ui.bind(next);assertTrue(ui.presenting());assertTrue(text(ui.opponentDetails).contains("1 / 8"));assertFalse(text(ui.opponentDetails).contains("속도  3"));
+   NativeRoster60PlaybackTest.finish(ui);assertTrue(text(ui.opponentDetails).contains("2 / 8"));assertTrue(text(ui.opponentDetails).contains("속도  3"));
    ui.closeOpponentInfo();assertNull(h.visibleDialog);
   }
  }
@@ -51,7 +51,7 @@ public class NativeRoster60OpponentIntelTest {
    assertTrue(text(ui.opponentDetails).contains("속도  3"));
    ui.opponentEvent(MainActivity.obj("actor","enemy","kind","switch"));
    assertTrue(text(ui.opponentDetails).contains("교체 확인 중"));assertTrue(text(ui.opponentDetails).contains("0 / 8"));assertFalse(text(ui.opponentDetails).contains("속도  3"));
-   ui.pause();assertNull(ui.opponentDialog);
+   ui.pause();assertNull(h.visibleDialog);
   }
  }
  @Test public void successfulSkillClosesListButRejectionAndHoldDoNot()throws Exception{

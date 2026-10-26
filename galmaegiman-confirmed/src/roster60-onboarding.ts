@@ -1,5 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import type {Prisma,PrismaClient} from '@prisma/client';
+import {publicDefenseSafe} from './battle/roster60-observed-defense.js';
 import {validateRosterDefinition,type RosterDefinition} from './battle/roster60-rules.js';
 export const commonChoices=['u02','u03','u04','u05','u06','u07','u08'] as const;
 export type RosterRecipe={resultId:string;ingredients:{unitId:string;count:number;minLevel:number}[];visibility:'public'|'hidden'};
@@ -16,7 +17,7 @@ function choices(catalog:RosterCatalog|null){
     const unit=matches[0];
     try{validateRosterDefinition(unit);}catch{return fail('ROSTER_CATALOG_INVALID',503);}
     if(unit.rarity!=='COMMON'||!unit.stats||!Object.keys(unit.stats).length||Object.values(unit.stats).some(v=>!Number.isFinite(v)||v<0))return fail('ROSTER_CATALOG_INVALID',503);
-    return structuredClone(unit);
+    return publicDefenseSafe(structuredClone(unit));
   });
   return {statSchema:catalog.statSchema,catalogVersion:catalog.version,characters:list};
 }

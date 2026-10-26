@@ -4,26 +4,47 @@ import android.graphics.*;
 import android.widget.ImageView;
 import org.json.*;
 import java.io.*;
+import java.lang.ref.WeakReference;
+import java.util.WeakHashMap;
 /** 방범대 등록증 v10 완성 카드(프레임·제목 포함). 모집 후보·수령 결과 전용, 전투 앞뒤 그림과 별개. */
 final class RegistrationV10Art {
  static final String ROOT="native/registration-v10/";
  private static JSONObject cards;
+ private static final WeakHashMap<ImageView,Binding> bindings=new WeakHashMap<>();
  private RegistrationV10Art(){}
  static synchronized JSONObject cards(Context c){
   // InputStream.readAllBytes는 Android 13부터라 최소 지원(API 24)을 위해 직접 읽는다.
-  if(cards==null){try(InputStream in=c.getAssets().open(ROOT+"index.json")){ByteArrayOutputStream bytes=new ByteArrayOutputStream();byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1)bytes.write(buffer,0,n);cards=new JSONObject(bytes.toString("UTF-8")).getJSONObject("cards");}catch(Exception e){cards=new JSONObject();}}
+  if(cards==null){try(InputStream in=c.getAssets().open(ROOT+"index.json")){ByteArrayOutputStream bytes=new ByteArrayOutputStream();byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1)bytes.write(buffer,0,n);cards=new JSONObject(bytes.toString("UTF-8")).getJSONObject("cards");}catch(Exception e){return new JSONObject();}}
   return cards;
  }
- /** 화면 높이에 맞춰 줄여 읽는다(60장을 한꺼번에 풀지 않음). 없거나 잘못된 ID면 null. */
+ /** Worker-only compatibility loader. Bind never decodes on the UI thread. */
  static Bitmap load(Context c,String id,int targetHeight){
-  String file=cards(c).optString(id,"");if(file.isEmpty()||file.contains("/")||file.contains(".."))return null;
-  BitmapFactory.Options o=new BitmapFactory.Options();o.inSampleSize=1;
-  while(targetHeight>0&&960/(o.inSampleSize*2)>=targetHeight)o.inSampleSize*=2;
-  try(InputStream in=c.getAssets().open(ROOT+file)){return BitmapFactory.decodeStream(in,null,o);}catch(Exception e){return null;}
+  String file=file(c,id);if(file==null)return null;
+  int sample=targetHeight<=0?1:LocalGameArt.sampleForFit(720,960,Math.max(1,targetHeight)*3/4,targetHeight);
+  try{return LocalGameArt.decode(c,ROOT+file,sample);}catch(Exception e){return null;}
  }
+ static String file(Context c,String id){if(id==null||!id.matches("u[0-9]{2}"))return null;String file=cards(c).optString(id,"");return file.isEmpty()||file.contains("/")||file.contains("..")?null:file;}
+ static void clear(ImageView view){Binding old=bindings.remove(view);if(old!=null)view.removeOnLayoutChangeListener(old);view.setImageDrawable(null);}
  /** 카드가 있으면 원본 비율 그대로(FIT_CENTER) 표시하고 true. 없으면 아무것도 바꾸지 않고 false. */
  static boolean bind(MainActivity h,ImageView view,String id){
-  Bitmap card=load(h,id,h.getResources().getDisplayMetrics().heightPixels);if(card==null)return false;
-  view.setScaleType(ImageView.ScaleType.FIT_CENTER);view.setImageBitmap(card);return true;
+  clear(view);Roster60Portrait.clear(view);
+  String file=file(h,id);if(file==null){view.setImageDrawable(null);return false;}
+  Binding binding=new Binding(view,ROOT+file);bindings.put(view,binding);
+  view.setScaleType(ImageView.ScaleType.FIT_CENTER);view.setImageDrawable(null);
+  Bitmap preview=LocalGameArt.peek(ROOT+file,4);if(preview!=null){view.setImageBitmap(preview);binding.displayed=4;}
+  view.addOnLayoutChangeListener(binding);binding.request(h,4);binding.layout(view);return true;
+ }
+ private static final class Binding implements android.view.View.OnLayoutChangeListener{
+  final WeakReference<ImageView> target;final String path;int requested=-1,displayed=Integer.MAX_VALUE;
+  Binding(ImageView view,String path){target=new WeakReference<>(view);this.path=path;}
+  void request(Context context,int sample){
+   if(requested==sample)return;requested=sample;
+   LocalGameArt.load(context,path,sample,bitmap->{ImageView view=target.get();if(view==null||bindings.get(view)!=this)return;
+    if(bitmap!=null&&sample<=displayed){displayed=sample;view.setImageBitmap(bitmap);}
+    if(bitmap==null){requested=-1;if(displayed==Integer.MAX_VALUE)view.setContentDescription("등록증 이미지를 준비하지 못했습니다. 다시 열어 확인하세요.");}
+   });
+  }
+  void layout(ImageView view){int width=view.getWidth()-view.getPaddingLeft()-view.getPaddingRight(),height=view.getHeight()-view.getPaddingTop()-view.getPaddingBottom();if(width>0&&height>0)request(view.getContext(),LocalGameArt.sampleForFit(720,960,width,height));}
+  @Override public void onLayoutChange(android.view.View view,int l,int t,int r,int b,int ol,int ot,int or,int ob){layout((ImageView)view);}
  }
 }

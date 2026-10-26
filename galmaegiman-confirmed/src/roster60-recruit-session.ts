@@ -2,6 +2,7 @@ import {createHash,randomInt} from 'node:crypto';
 import type {PrismaClient,Prisma} from '@prisma/client';
 import {RosterError,type RosterCatalog} from './roster60-onboarding.js';
 import {recruitmentGrowth} from './roster60-library.js';
+import {recordRosterDailyProgress} from './roster60-daily-progress.js';
 export interface RecruitSessionPolicy {
  version:string;
  offers:{kind:string;label:string;cost:number;weights:Record<string,number>}[];
@@ -27,7 +28,7 @@ export function recruitWeightTickets(weights:Record<string,number>):[string,numb
  return entries;
 }
 export class RecruitSessions {
- constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private policy:()=>RecruitSessionPolicy|null,private roll:(max:number)=>number=randomInt){}
+ constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private policy:()=>RecruitSessionPolicy|null,private roll:(max:number)=>number=randomInt,private completionTime=()=>new Date()){}
  private ready(){const p=this.policy();if(!p||p.pity===null)throw new RosterError(503,'RECRUIT_SESSION_POLICY_PENDING');
  if(p.pity!=='none'||!p.version||!Array.isArray(p.offers)||![null,'ceil','floor'].includes(p.halfRounding))throw new RosterError(503,'RECRUIT_POLICY_INVALID');
  // Latest pools: no COMMON in MID, no COMMON/UNCOMMON in HIGH; top four remain excluded.
@@ -88,6 +89,7 @@ export class RecruitSessions {
  const owned=await tx.roster60Owned.create({data:{playerId:id,speciesId:s.candidate.speciesId,totalXp:BigInt(s.candidate.totalXp),source:'recruit-session:'+row.id}});s.ownedId=owned.id;
  const next=await tx.roster60RecruitSession.update({where:{id:row.id},data:{snapshot:JSON.stringify(s)}});results.push(this.view(next));
  }
+ await recordRosterDailyProgress(tx,id,'DRAW',results.length,this.completionTime());
  return {sessions:results,credits:(await tx.player.findUniqueOrThrow({where:{id}})).credits};
  });
  }
@@ -104,6 +106,10 @@ export class RecruitSessions {
    const owned=await tx.roster60Owned.create({data:{playerId:id,speciesId:s.candidate.speciesId,totalXp:BigInt(s.candidate.totalXp),source:'recruit-session:'+row.id}});s.ownedId=owned.id;
   }
   const next=await tx.roster60RecruitSession.update({where:{id:row.id},data:{snapshot:JSON.stringify(s),status:b.action==='claim'?'CLAIMED':'PENDING'}});
+  if(b.action==='claim'){
+   await recordRosterDailyProgress(tx,id,'DRAW',1,this.completionTime());
+   credits=(await tx.player.findUniqueOrThrow({where:{id},select:{credits:true}})).credits;
+  }
   return {...this.view(next),credits};
  });}
 }
