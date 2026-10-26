@@ -80,6 +80,8 @@ public class MainActivity extends AppCompatActivity {
     root = new GameRootLayout(this);
     backgroundEffects = new BackgroundMotionBinding(this);
     setContentView(root);
+    root.addView(new InitialLoadingView(this, "게임을 준비하고 있어요.", null),
+        new FrameLayout.LayoutParams(-1, -1));
     operations = new NativeOperationUi(this);
     menus = new NativeMenus(this);
     getOnBackPressedDispatcher()
@@ -272,13 +274,17 @@ public class MainActivity extends AppCompatActivity {
     if (target.equals("battleRecords")) { NativeBattleReplay.records(this); return; }
     if (!state.has("me") && target.equals("title")) titleScreen();
     else if (!state.has("me")) {
-      base("방범대 연결", "loading");
-      body.addView(text("계정과 진행을 불러오고 있어요.", 22));
-      addButton("다시 연결", () -> load(target));
+      epoch++;
+      screen = "loading";
+      loginScroll = null;
+      actionButton = null;
+      root.removeAllViews();
+      root.addView(new InitialLoadingView(this, "계정과 진행을 불러오고 있어요.", () -> load(target)),
+          new FrameLayout.LayoutParams(-1, -1));
     }
     final int destination = ++epoch;
     busy = true;
-    final int operation = operations.begin("진행 불러오는 중…", actionButton);
+    final int operation = operations.begin("진행 불러오는 중…", actionButton, !screen.equals("loading"));
     api.call(
         "native/state",
         null,
@@ -1527,6 +1533,7 @@ public class MainActivity extends AppCompatActivity {
     sound.close();
   }
 }
+
 
 
 

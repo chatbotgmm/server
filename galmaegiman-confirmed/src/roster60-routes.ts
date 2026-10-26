@@ -1,3 +1,4 @@
+import {testMenuDefaultLock} from './menu-policy.js';
 import {MenuAccess,menuFeatureFor,menuChangeSchema} from './menu-access.js';
 import {RosterPvp} from './roster60-pvp.js';
 import {RecruitSessions,type RecruitSessionPolicy} from './roster60-recruit-session.js';
@@ -20,7 +21,7 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   const file=resolve(root,profile?'data/test-profiles/'+profile+'/catalog.json':'data/roster60-approved.json');
   // No fallback to review fixtures or legacy character definitions.
   const catalog=()=>{if(!existsSync(file))return null;try{const c=JSON.parse(readFileSync(file,'utf8'));validateFiveStatCatalog(c);return c as RosterCatalog;}catch(e){throw new RosterError(503,e instanceof Error&&['FIVE_STAT_CATALOG_REQUIRED','FIVE_STAT_CATALOG_INVALID','FIVE_STATS_REQUIRED','INVALID_FIVE_STATS','BASE_MP_MISMATCH'].includes(e.message)?e.message:'ROSTER_CATALOG_INVALID');}};
-  const menus=new MenuAccess(db,catalog);
+  const menus=new MenuAccess(db,catalog,testMenuDefaultLock(process.env));
   // Production server opts in explicitly; isolated legacy suites can test their own policies independently.
   if(menuLocks){
     app.addHook('preHandler',async(req,reply)=>{
@@ -135,3 +136,4 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   route('POST','craft/receipt',(id,r)=>{const b=z.object({requestId:z.string().min(1).max(100)}).strict().parse(r.body);return craft.receipt(id,b.requestId);});
   route('POST','craft/confirm',(id,r)=>craft.confirm(id,selection.extend({requestId:z.string().min(1).max(100),previewFingerprint:z.string().regex(/^[a-f0-9]{64}$/)}).strict().parse(r.body)));
 }
+

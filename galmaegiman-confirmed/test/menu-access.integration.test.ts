@@ -5,16 +5,16 @@ import {MenuAccess,menuFeatures,menuFeatureFor} from '../src/menu-access.js';
 import {reviewRouteAllowed} from '../src/review-auth.js';
 const suite=process.env.TEST_DB_URL?describe:describe.skip;
 suite('server authoritative account menu locks',()=>{
- let db:PrismaClient,app:Awaited<ReturnType<typeof buildApp>>,user:string,admin:string,other:string;const ids:string[]=[],old=process.env.ROSTER60_PROFILE;
+ let db:PrismaClient,app:Awaited<ReturnType<typeof buildApp>>,user:string,admin:string,other:string;const ids:string[]=[],old=process.env.ROSTER60_PROFILE,oldDefault=process.env.GMM_TEST_MENU_DEFAULT;
  const secret='menu-access-isolated-test-secret-only',catalog=JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/catalog.json','utf8'));
  function headers(id:string){const key=createHmac('sha256',secret).update('web-session').digest(),v=`${id}.${Math.floor(Date.now()/1000)+3600}`;return {'x-gmm':'1','x-gmm-s':`${v}.${createHmac('sha256',key).update(v).digest('base64url')}`};}
  const request=(id:string,path:string,payload?:any)=>app.inject({method:payload===undefined?'GET':'POST',url:'/my/api/'+path,headers:headers(id),...(payload===undefined?{}:{payload})});
  const change=(targetPlayerId:string,featureId:string,mode:string,expectedRevision:number)=>({requestId:randomUUID(),targetPlayerId,featureId,mode,expectedRevision});
  beforeAll(async()=>{const url=process.env.TEST_DB_URL!;if(!/^file:\/tmp\/galmaegiman-tests-[^/]+\/test.db$/.test(url))throw Error('disposable only');db=new PrismaClient({datasources:{db:{url}}});
  for(let i=0;i<3;i++)ids.push((await db.player.create({data:{identity:randomUUID(),isAdmin:i===1,credits:215}})).id);
- [user,admin,other]=ids;process.env.ROSTER60_PROFILE='five-stat-device-test-v1';app=await buildApp(db,new GameService(db,loadContent()),{menuLocks:true,secret,baseUrl:async()=>'https://example.com'});
+ [user,admin,other]=ids;process.env.GMM_TEST_MENU_DEFAULT='locked';process.env.ROSTER60_PROFILE='five-stat-device-test-v1';app=await buildApp(db,new GameService(db,loadContent()),{menuLocks:true,secret,baseUrl:async()=>'https://example.com'});
  });
- afterAll(async()=>{await app.close();if(old===undefined)delete process.env.ROSTER60_PROFILE;else process.env.ROSTER60_PROFILE=old;await db.auditEvent.deleteMany({where:{playerId:{in:ids}}});await db.player.deleteMany({where:{id:{in:ids}}});await db.$disconnect();});
+ afterAll(async()=>{await app.close();if(oldDefault===undefined)delete process.env.GMM_TEST_MENU_DEFAULT;else process.env.GMM_TEST_MENU_DEFAULT=oldDefault;if(old===undefined)delete process.env.ROSTER60_PROFILE;else process.env.ROSTER60_PROFILE=old;await db.auditEvent.deleteMany({where:{playerId:{in:ids}}});await db.player.deleteMany({where:{id:{in:ids}}});await db.$disconnect();});
  it('eight defaults fail closed, unrelated home/mail/play remain outside the map',async()=>{
  const r=await request(user,'native/menu-access');expect(r.statusCode,r.body).toBe(200);expect(r.json().representativeLevel).toBe(0);expect(r.json().enforcementEnabled).toBe(true);
  expect(Object.keys(r.json().features)).toEqual(menuFeatures);expect(Object.values(r.json().features).every((v:any)=>!v.enabled&&v.requiredLevel===null)).toBe(true);
@@ -67,5 +67,27 @@ suite('server authoritative account menu locks',()=>{
  expect((await service.read(other)).revision).toBe(1);expect(await service.change(admin,input)).toMatchObject({revision:1});
  const concurrent=await Promise.allSettled([service.change(admin,change(other,'shop','force_lock',1) as any),service.change(admin,change(other,'roster','force_unlock',1) as any)]);
  expect(concurrent.filter(r=>r.status==='fulfilled')).toHaveLength(1);expect((await service.read(other)).revision).toBe(2);
+ });
+});
+
+
+suite('explicit test-profile open default preserves administrator overrides',()=>{
+ it('new accounts auto-open; later force_lock wins; auto reopens; default rollback closes auto',async()=>{
+  const url=process.env.TEST_DB_URL!;if(!/^file:\/tmp\/galmaegiman-tests-[^/]+\/test.db$/.test(url))throw Error('disposable only');
+  const db=new PrismaClient({datasources:{db:{url}}});const ids:string[]=[];
+  try{
+   const admin=await db.player.create({data:{identity:randomUUID(),isAdmin:true}});ids.push(admin.id);
+   const player=await db.player.create({data:{identity:randomUUID(),credits:215}});ids.push(player.id);
+   const open=new MenuAccess(db,()=>null,false);
+   expect(Object.values((await open.read(player.id)).features).every(f=>f.enabled&&f.mode==='auto')).toBe(true);
+   await expect(open.require(player.id,'rebirth')).resolves.toBeUndefined();
+   await open.change(admin.id,{requestId:randomUUID(),targetPlayerId:player.id,featureId:'rebirth',mode:'force_lock',expectedRevision:0});
+   expect((await open.read(player.id)).features.rebirth).toMatchObject({enabled:false,reason:'ACCOUNT_LOCKED'});
+   await expect(open.require(player.id,'rebirth')).rejects.toMatchObject({status:403});
+   await open.change(admin.id,{requestId:randomUUID(),targetPlayerId:player.id,featureId:'rebirth',mode:'auto',expectedRevision:1});
+   expect((await open.read(player.id)).features.rebirth.enabled).toBe(true);
+   expect((await new MenuAccess(db,()=>null,true).read(player.id)).features.rebirth.enabled).toBe(false);
+   expect((await db.player.findUniqueOrThrow({where:{id:player.id}})).credits).toBe(215);
+  }finally{await db.auditEvent.deleteMany({where:{playerId:{in:ids}}});await db.player.deleteMany({where:{id:{in:ids}}});await db.$disconnect();}
  });
 });

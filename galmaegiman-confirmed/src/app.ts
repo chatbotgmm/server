@@ -1,3 +1,4 @@
+import { registerWebMaintenance } from './web-maintenance.js';
 import { statSync } from 'node:fs';
 import Fastify, { type FastifyReply } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
@@ -17,10 +18,11 @@ import { registerDuel } from './duel.js';
 import { registerMy, type KakaoLogin } from './my.js';
 import { registerDesignReview } from './design-review.js';
 export const VERSION='0.16.2';
-export interface AppOptions {menuLocks?:boolean;gameResetSessionCutoff?:number;secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string;kakaoLogin?:KakaoLogin;fetch?:typeof fetch;reviewLogin?:import('./review-auth.js').ReviewConfig}
+export interface AppOptions {webGameMaintenance?:boolean;menuLocks?:boolean;gameResetSessionCutoff?:number;secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string;kakaoLogin?:KakaoLogin;fetch?:typeof fetch;reviewLogin?:import('./review-auth.js').ReviewConfig}
 export async function buildApp(db:PrismaClient,game:GameService,options:AppOptions){
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
   const app=Fastify({logger:options.log?{redact:['req.headers.cookie','req.headers["x-gmm-s"]','req.body.password','req.body.username','res.headers["set-cookie"]']}:false,bodyLimit:32_768,trustProxy:false});
+  registerWebMaintenance(app,options.webGameMaintenance??false);
   await app.register(rateLimit,{global:false});
   registerDesignReview(app,{root:options.root??process.cwd()});
   app.get('/health',async()=>({ok:true,mode:'KAKAO_CHANNEL',edition:'GALMAEMI_118',version:VERSION}));
@@ -143,3 +145,4 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
   });
   return app;
 }
+

@@ -40,6 +40,7 @@ class NativeApi {
           JSONObject result = null;
           String error = null;
           HttpURLConnection conn = null;
+          int responseStatus = -1;
           try {
             conn =
                 (HttpURLConnection)
@@ -64,6 +65,7 @@ class NativeApi {
               }
             }
             int status = conn.getResponseCode();
+            responseStatus = status;
             NativeBackend.requireDirectResponse(status);
             if (BuildConfig.DEBUG && BuildConfig.SERVER_URL.startsWith("http://10.0.2.2"))
               android.util.Log.i("GmmNative", path + " HTTP " + status);
@@ -92,6 +94,8 @@ class NativeApi {
           } finally {
             if (conn != null) conn.disconnect();
           }
+          // 메뉴 구버전 호환에만 실제 HTTP 상태를 전달한다. 401/403/네트워크 오류는 표식이 아니다.
+          error = NativeMenuTestPolicy.classify(path, responseStatus, error);
           JSONObject d = result;
           String e = error;
           ui.post(() -> callback.done(d, e));

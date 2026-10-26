@@ -34,7 +34,14 @@ final class LobbyView extends FrameLayout implements FullBleed {
   static final int[] MENU_ITEMS = {1, 2, 3, 0, 4, 12, 6, 14};
   boolean menuOpen, dismissGesture, rebirthUnlocked;
   JSONObject menuAccess;
-  boolean menuAccessLoading;
+  boolean menuAccessLoading, legacyMenuEntries;
+  String menuAccessOwner="";
+  final Set<String> rememberedMenuLocks=new HashSet<>();
+  // 표시상 진입 호환만 제공하며 서버 기능 인증·재화·환생 조건은 변경하지 않는다.
+  String menuLockScope(String owner){return NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner);}
+  android.content.SharedPreferences menuLockPrefs(){
+    return host.getSharedPreferences("roster60_menu_test_compat",android.content.Context.MODE_PRIVATE);
+  }
   long menuAccessFetchedAt;
   android.app.AlertDialog rebirthIntro;
   Typeface homeHeading;
@@ -1043,11 +1050,15 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
   boolean featureEnabled(int index){
     String id=featureId(index);if(id==null)return true;
+    if(menuAccessOwner.isEmpty()||!menuAccessOwner.equals(host.api.token()))return false;
     JSONObject features=menuAccess==null?null:menuAccess.optJSONObject("features");
     JSONObject entry=features==null?null:features.optJSONObject(id);
-    return entry!=null&&entry.optBoolean("enabled",false);
+    return NativeMenuTestPolicy.entryEnabled(entry!=null,entry!=null&&entry.optBoolean("enabled",false),
+        entry==null?"":entry.optString("mode"),entry==null?"":entry.optString("reason"),
+        legacyMenuEntries,rememberedMenuLocks.contains(id));
   }
   String lockReason(int index){
+    if(rememberedMenuLocks.contains(featureId(index)))return "이 계정에서는 잠긴 메뉴입니다.";
     if(menuAccess==null)return "메뉴 권한을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.";
     JSONObject features=menuAccess.optJSONObject("features"),entry=features==null?null:features.optJSONObject(featureId(index));
     return entry!=null&&"ACCOUNT_LOCKED".equals(entry.optString("reason"))?
@@ -1055,9 +1066,23 @@ final class LobbyView extends FrameLayout implements FullBleed {
   }
   void fetchMenuAccess(){
     if(menuAccessLoading)return;menuAccessLoading=true;menuAccessFetchedAt=android.os.SystemClock.elapsedRealtime();String owner=host.api.token();
+    if(!owner.equals(menuAccessOwner)){menuAccessOwner=owner;menuAccess=null;legacyMenuEntries=false;rememberedMenuLocks.clear();}
     host.api.call("native/menu-access",null,(r,e)->{
       menuAccessLoading=false;if(!current()||!owner.equals(host.api.token()))return;
       menuAccess=e==null?r:null;
+      rememberedMenuLocks.clear();
+      rememberedMenuLocks.addAll(menuLockPrefs().getStringSet(menuLockScope(owner),Collections.emptySet()));
+      if(menuAccess!=null){
+        JSONObject features=menuAccess.optJSONObject("features");
+        for(int index:MENU_ITEMS){
+          String id=featureId(index);JSONObject entry=features==null?null:features.optJSONObject(id);
+          if(entry==null)continue;
+          if(NativeMenuTestPolicy.explicitLock(entry.optString("mode"),entry.optString("reason")))rememberedMenuLocks.add(id);
+          else rememberedMenuLocks.remove(id);
+        }
+        menuLockPrefs().edit().putStringSet(menuLockScope(owner),new HashSet<>(rememberedMenuLocks)).apply();
+      }
+      legacyMenuEntries=!owner.isEmpty()&&menuAccess==null&&NativeMenuTestPolicy.allowLegacyEntries(BuildConfig.APPLICATION_ID,e);
       for(int index:MENU_ITEMS)buttons.get(index).setContentDescription(
         buttons.get(index).getText()+ (featureEnabled(index)?"":" · 잠김 · "+lockReason(index)));
       invalidate();

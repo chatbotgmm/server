@@ -18,7 +18,9 @@ final class CombatV2ReviewContract {
     for(String side:new String[]{"self","foe"}) {
       JSONObject f=dto.getJSONObject(side);
       if(f.getInt("hp")<0||f.getInt("maxHp")<1||f.getInt("hp")>f.getInt("maxHp")||f.getInt("mp")<0||f.getInt("maxMp")<(product?0:1)||f.getInt("mp")>f.getInt("maxMp"))throw new IllegalArgumentException("Invalid vitals");
-      f.getString("name");f.getJSONObject("suitability");
+      f.getString("name");
+      // 제품 상대의 숨은 적합도는 서버가 제거한다. 기술 설명은 자기 적합도만 사용한다.
+      if(!product||"self".equals(side))f.getJSONObject("suitability");
     }
     dto.getJSONArray("events");
     JSONObject self=dto.getJSONObject("self");
@@ -42,3 +44,4 @@ final class CombatV2ReviewContract {
     return dto;
   }
 }
+

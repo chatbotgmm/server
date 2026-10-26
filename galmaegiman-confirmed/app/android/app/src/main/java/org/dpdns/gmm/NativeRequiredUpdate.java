@@ -202,6 +202,15 @@ final class NativeRequiredUpdate {
       dialog.setCancelable(false);
       dialog.setCanceledOnTouchOutside(false);
     }
+    if (!started && policy.isChecking() && !policy.required()) {
+      dialog.setContentView(new InitialLoadingView(a, "Play 스토어 업데이트를 확인하고 있어요.", null));
+      if (!dialog.isShowing()) dialog.show();
+      if (dialog.getWindow() != null) {
+        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        dialog.getWindow().setLayout(-1, -1);
+      }
+      return;
+    }
     ScrollView scroll = new ScrollView(a);
     scroll.setFillViewport(true);
     scroll.setBackgroundColor(JournalTheme.PAPER);

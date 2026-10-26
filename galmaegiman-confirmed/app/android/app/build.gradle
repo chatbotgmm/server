@@ -28,6 +28,10 @@ def releaseServerLiteral = checkedServerLiteral(configuredServer != null ? confi
 def debugServerLiteral = configuredServer != null ? releaseServerLiteral : checkedServerLiteral(legacyDebugServer != null ? legacyDebugServer : defaultServer, true)
 // END REVIEWED BACKEND TARGET
 
+// 구서버 메뉴 진입 테스트 전용. debug/release/preview 모두 기본 false.
+// 승인된 테스트 APK에만 -PgmmLegacyMenuCompat=true 를 명시한다. 권한 API 자체는 우회하지 않는다.
+def legacyMenuCompatLiteral = 'true'.equals(project.findProperty('gmmLegacyMenuCompat')?.toString()) ? 'true' : 'false'
+
 
 // 원본 이미지 파일을 복제·편집하지 않고 APK 생성 시에만 함께 묶는다.
 def bundledArt = layout.buildDirectory.dir('generated/game-art')
@@ -130,6 +134,7 @@ android {
     buildFeatures { buildConfig true }
     defaultConfig {
         buildConfigField "String", "SERVER_URL", releaseServerLiteral
+        buildConfigField "boolean", "GMM_LEGACY_MENU_TEST_COMPAT", legacyMenuCompatLiteral
     }
     // 기존 앱과 업데이트 서명을 이어가기 위한 외부 키. 키·암호는 저장소에 넣지 않는다.
     def nativeKeystore = System.getenv('GMM_ANDROID_KEYSTORE')

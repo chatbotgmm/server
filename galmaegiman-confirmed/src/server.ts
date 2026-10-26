@@ -8,6 +8,7 @@ import {assertProgressionSchema} from './progression.js';
 import {reviewConfig} from './review-auth.js';
 import { buildApp } from './app.js';
 const env=z.object({
+  GMM_WEB_GAME_MAINTENANCE:z.enum(['true','false']).default('true'),
   DATABASE_URL:z.string().startsWith('file:'),
   HOST:z.literal('127.0.0.1').default('127.0.0.1'),
   PORT:z.coerce.number().int().min(1024).max(65535).default(3000),
@@ -32,10 +33,11 @@ async function baseUrl(){
 }
 // Offline reset requires a stopped service; restart also discards in-memory review/app exchange sessions.
 const gameResetSessionCutoff=resetSessionCutoff((await db.appMeta.findUnique({where:{key:gameResetMarkerKey}}))?.value);
-const app=await buildApp(db,new GameService(db,content,undefined,undefined,undefined,undefined,env.ADMIN_CODE),{menuLocks:true,gameResetSessionCutoff,secret:env.SKILL_SECRET,botId:env.KAKAO_BOT_ID,baseUrl,log:env.LOG_ENABLED==='true',
+const app=await buildApp(db,new GameService(db,content,undefined,undefined,undefined,undefined,env.ADMIN_CODE),{webGameMaintenance:env.GMM_WEB_GAME_MAINTENANCE==='true',menuLocks:true,gameResetSessionCutoff,secret:env.SKILL_SECRET,botId:env.KAKAO_BOT_ID,baseUrl,log:env.LOG_ENABLED==='true',
   reviewLogin:reviewConfig(process.env),kakaoLogin:env.KAKAO_REST_KEY?{restKey:env.KAKAO_REST_KEY,clientSecret:env.KAKAO_CLIENT_SECRET}:undefined});
 let closing=false;
 const close=async()=>{if(closing)return;closing=true;await app.close();await db.$disconnect();};
 process.on('SIGTERM',()=>void close());process.on('SIGINT',()=>void close());
 await app.listen({host:env.HOST,port:env.PORT});
+
 

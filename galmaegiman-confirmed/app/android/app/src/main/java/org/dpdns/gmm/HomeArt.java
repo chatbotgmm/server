@@ -12,6 +12,7 @@ final class HomeArt {
   private final Map<String, Bitmap> images = new HashMap<>();
   private final Map<String, Rect> bounds = new HashMap<>();
   final HomeWater water = new HomeWater();
+  private HomeHarborMotion harbor;
   private final RectF backgroundTarget = new RectF(), drawTarget = new RectF();
   private final RectF drawableTarget = new RectF();
   private final Rect drawSource = new Rect();
@@ -60,6 +61,8 @@ final class HomeArt {
     backgroundTarget.set((width-w)/2, (height-h)/2, (width+w)/2, (height+h)/2);
     canvas.drawBitmap(b, null, backgroundTarget, paint);
     water.draw(canvas, b, backgroundTarget, seconds, moving);
+    if (harbor == null) harbor = new HomeHarborMotion(host);
+    harbor.draw(canvas, backgroundTarget, seconds, moving);
     if (host.backgroundEffects != null)
       host.backgroundEffects.draw(canvas, "native/release-v1/backgrounds/bg-home.png", backgroundTarget, owner, owner::invalidate);
   }

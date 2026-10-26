@@ -1,3 +1,5 @@
+import {opponentIntel,opponentFighter,selectEnemySpecies} from './battle/roster60-opponent-intel.js';
+import {capturePresentation,presentStep} from './battle/roster60-presentation.js';
 import {adventureEscapePolicy,adventureEscapeSucceeds,settleAdventureBattle} from './roster60-adventure.js';
 import {loadBattleRules} from './battle/load.js';
 import {createHash,randomBytes,randomUUID} from 'node:crypto';
@@ -6,7 +8,7 @@ import {RosterError,verifyRosterTutorial,type RosterCatalog} from './roster60-on
 import {growthAt,focusMp,spendMp,validateRosterDefinition,type SkillElement,type ElementProfile,type Defense} from './battle/roster60-rules.js';
 import {validateFiveStats,fiveRebirthStats,fiveRebirthPolicy,type FiveStats} from './battle/roster60-five-stats.js';
 import {validateFiveCombatPolicy,fiveStatAttack,decideTurnOrder,reuseTurnOrder,type FiveCombatPolicy,type TurnOrderDecision} from './battle/roster60-five-combat.js';
-export type BattlePolicy={approved:boolean;version:string;catalogVersion:string;calculation:FiveCombatPolicy;reflection:'return-post-durability';enemyStrategy:'first-affordable'|'best-affordable';maxRounds:number;encounters:{id:string;speciesId:string;level:number;tutorial:boolean;winXp:number;lossXp:number;mode?:'story'|'duel'|'adventure'}[]};
+export type BattlePolicy={approved:boolean;version:string;catalogVersion:string;calculation:FiveCombatPolicy;reflection:'return-post-durability';enemyStrategy:'first-affordable'|'best-affordable';maxRounds:number;encounters:{id:string;speciesId:string;level:number;tutorial:boolean;winXp:number;lossXp:number;mode?:'story'|'duel'|'adventure';enemySpeciesIds?:string[];fixedEnemy?:boolean}[]};
 type Skill={id:string;name:string;element:SkillElement;mpCost:number;power:number};
 export type Fighter={ownedId?:string;id:string;speciesId:string;name:string;level:number;stats:FiveStats;hp:number;mp:number;attack:Skill;skills:Skill[];suitability:ElementProfile<number>;defense:ElementProfile<Defense>};
 export type State={version:'five-battle-v1';turn:number;fighters:[Fighter,Fighter];decision:TurnOrderDecision;outcome:'win'|'loss'|'draw'|'escaped'|null;events:unknown[];adventureId?:string;reserves?:Fighter[];mode?:'story'|'duel'|'adventure';surrendered?:boolean;rulesVersion?:'party-actions-v2';inventory?:{itemId:string;count:number}[];participation?:{ownedId:string;kind:'start'|'switch'|'forced-switch';turn:number}[]};
@@ -18,6 +20,7 @@ export function validatePolicy(p:BattlePolicy|null,c:RosterCatalog|null):asserts
  try{validateFiveCombatPolicy(p.calculation);}catch{return fail('BATTLE_POLICY_INVALID',503);}
  if(typeof p.version!=='string'||!p.version||p.reflection!=='return-post-durability'||!['first-affordable','best-affordable'].includes(p.enemyStrategy)||!Number.isSafeInteger(p.maxRounds)||p.maxRounds<1||p.maxRounds>1000||!Array.isArray(p.encounters))return fail('BATTLE_POLICY_INVALID',503);
  for(const e of p.encounters)if((e.mode!==undefined&&!['story','duel','adventure'].includes(e.mode))||!e.id||typeof e.tutorial!=='boolean'||!Number.isInteger(e.level)||e.level<1||e.level>60||[e.winXp,e.lossXp].some(n=>!Number.isSafeInteger(n)||n<0))return fail('BATTLE_POLICY_INVALID',503);
+ for(const e of p.encounters)if((e.fixedEnemy!==undefined&&typeof e.fixedEnemy!=='boolean')||(e.enemySpeciesIds!==undefined&&(!Array.isArray(e.enemySpeciesIds)||!e.enemySpeciesIds.length||new Set(e.enemySpeciesIds).size!==e.enemySpeciesIds.length||e.enemySpeciesIds.some(id=>!c.characters.some(u=>u.id===id)))))return fail('BATTLE_POLICY_INVALID',503);
  if(new Set(p.encounters.map(e=>e.id)).size!==p.encounters.length)return fail('BATTLE_POLICY_INVALID',503);
 }
 export function fighter(c:RosterCatalog,speciesId:string,level:number,id:string,cycle=0):Fighter{
@@ -41,9 +44,12 @@ export function formationUnit(c:RosterCatalog,u:{id:string;speciesId:string;tota
 }
 
 function order(id:string,state:Pick<State,'turn'|'fighters'>,seed:string){const f=(i:number)=>({id:state.fighters[i].id,baseSpeed:state.fighters[i].stats.speed,modifiers:[] as number[]});return decideTurnOrder(id,state.turn,[f(0),f(1)],seed);}
-function dto(row:{id:string;revision:number;status:string;state:string;settlement:string|null;snapshot?:string}){
+function dto(row:{id:string;revision:number;status:string;state:string;settlement:string|null;snapshot?:string;seed:string}){
  const s=JSON.parse(row.state) as State;const policy=row.snapshot?JSON.parse(row.snapshot).policy:null;
- return {balanceProfile:policy?.version??null,testBaseline:policy?.profileKind==='user-authorized-test-baseline',battleId:row.id,revision:row.revision,status:row.status,state:s,settlement:row.settlement?JSON.parse(row.settlement):null,itemDefinitions:policy&&row.snapshot?JSON.parse(row.snapshot).items??{}:{},disabledCommands:{item:s.fighters[0].hp<=0?'FORCED_SWITCH_REQUIRED':s.rulesVersion?'':'ITEM_POLICY_PENDING',switch:s.rulesVersion?'':'SWITCH_POLICY_PENDING',escape:s.fighters[0].hp<=0?'FORCED_SWITCH_REQUIRED':['story','duel','adventure'].includes(s.mode??'')?'':'ESCAPE_POLICY_PENDING'}};
+ const intel=opponentIntel(s.fighters[1],s.turn,row.seed,row.id,'self');
+ const {speeds,...publicDecision}=s.decision;
+ const publicState={...s,opponentIntel:intel,fighters:[s.fighters[0],opponentFighter(s.fighters[1],intel)],decision:{...publicDecision,...(intel.statsKnown?{speeds}:{})}};
+ return {balanceProfile:policy?.version??null,testBaseline:policy?.profileKind==='user-authorized-test-baseline',battleId:row.id,revision:row.revision,status:row.status,state:publicState,settlement:row.settlement?JSON.parse(row.settlement):null,itemDefinitions:policy&&row.snapshot?JSON.parse(row.snapshot).items??{}:{},disabledCommands:{item:s.fighters[0].hp<=0?'FORCED_SWITCH_REQUIRED':s.rulesVersion?'':'ITEM_POLICY_PENDING',switch:s.rulesVersion?'':'SWITCH_POLICY_PENDING',escape:s.fighters[0].hp<=0?'FORCED_SWITCH_REQUIRED':['story','duel','adventure'].includes(s.mode??'')?'':'ESCAPE_POLICY_PENDING'}};
 }
 export class RosterBattle {
  constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private policy:()=>BattlePolicy|null){}
@@ -79,7 +85,7 @@ export class RosterBattle {
    const level=growthAt(Number(owned.totalXp),def.growth,owned.reincarnation,def.reincarnationXpPolicy).level;
    // Unknown cap-overflow policy must not trap a unit in an un-settleable battle.
    try{growthAt(Number(owned.totalXp)+(run?JSON.parse(run.pendingRewards).xp[owned.id]??0:0)+Math.max(encounter.winXp,encounter.lossXp),def.growth,owned.reincarnation,def.reincarnationXpPolicy);}catch(e){return fail((e as Error).message);}
-   if(encounter.tutorial&&owned.speciesId!=='u01')return fail('TUTORIAL_STARTER_REQUIRED');
+   // Tutorial uses any eligible owned party member; starter grants remain an onboarding concern.
    const ids=[b.ownedId,...(b.reserveIds??[])];if(ids.length>6||new Set(ids).size!==ids.length)return fail('INVALID_PARTY',400);
    const reserves:Fighter[]=[];const members=[{ownedId:owned.id,startingXp:owned.totalXp.toString()}];
    for(const reserveId of ids.slice(1)){
@@ -94,7 +100,7 @@ export class RosterBattle {
     reserves.push({...fighter(c!,unit.speciesId,lv,'self',unit.reincarnation),ownedId:unit.id});members.push({ownedId:unit.id,startingXp:unit.totalXp.toString()});
    }
    const id=randomUUID(),seed=randomBytes(32).toString('hex');
-   const f:[Fighter,Fighter]=[fighter(c!,owned.speciesId,level,'self',owned.reincarnation),fighter(c!,encounter.speciesId,encounter.level,'enemy')];
+   const f:[Fighter,Fighter]=[fighter(c!,owned.speciesId,level,'self',owned.reincarnation),fighter(c!,selectEnemySpecies(encounter,p.encounters,seed),encounter.level,'enemy')];
    f[0].ownedId=owned.id;
    if(runState)for(const next of [f[0],...reserves]){const prior=runState.party.find((x:Fighter)=>x.ownedId===next.ownedId);if(!prior)return fail('INVALID_PARTY');next.hp=prior.hp;}
    const items=loadBattleRules().data.items;
@@ -115,17 +121,18 @@ export class RosterBattle {
    const state=JSON.parse(row.state) as State,snap=JSON.parse(row.snapshot) as {policy:BattlePolicy;items?:ReturnType<typeof loadBattleRules>['data']['items']};
    if(state.fighters[0].hp<=0&&b.action.kind!=='switch')return fail('FORCED_SWITCH_REQUIRED');
    const events:unknown[]=[];let actionConsumed=false;
+   const commandBefore=capturePresentation(state.fighters);
    if(b.action.kind==='escape'){
     if(!['story','duel','adventure'].includes(state.mode??''))return fail('ESCAPE_POLICY_PENDING');
     const adventure=state.mode==='adventure';
     if(adventure&&state.fighters[0].hp<=0)return fail('FORCED_SWITCH_POLICY_PENDING');
     const escaped=adventure&&adventureEscapeSucceeds(row.seed,row.id,state.turn);
     if(!adventure||escaped){
-     state.surrendered=!adventure;state.outcome=adventure?'escaped':'loss';state.events.push({turn:state.turn,events:[{actor:'self',kind:adventure?'escape-success':'surrender'}]});
+     state.surrendered=!adventure;state.outcome=adventure?'escaped':'loss';state.events.push({turn:state.turn,events:[{actor:'self',kind:adventure?'escape-success':'surrender',presentation:presentStep(commandBefore,state.fighters)}]});
      const changed=await tx.roster60Battle.updateMany({where:{id:row.id,playerId,revision:row.revision,status:'ACTIVE'},data:{state:JSON.stringify(state),revision:{increment:1},status:'FINISHED'}});if(changed.count!==1)return fail('STALE_REVISION');
      return dto({...row,state:JSON.stringify(state),revision:row.revision+1,status:'FINISHED'});
     }
-    actionConsumed=true;events.push({actor:'self',kind:'escape-failed'});
+    actionConsumed=true;events.push({actor:'self',kind:'escape-failed',presentation:presentStep(commandBefore,state.fighters)});
    }
    if(b.action.kind==='switch'){
     const forced=state.fighters[0].hp<=0;
@@ -133,7 +140,7 @@ export class RosterBattle {
     if(ix<0||!state.reserves![ix].hp)return fail('INVALID_SWITCH');
     const outgoing=state.fighters[0];state.participation??=[{ownedId:row.ownedId,kind:'start',turn:0}];state.fighters[0]=state.reserves![ix];state.reserves![ix]=outgoing;actionConsumed=true;
     state.participation.push({ownedId:state.fighters[0].ownedId!,kind:forced?'forced-switch':'switch',turn:state.turn});
-    events.push({actor:'self',kind:forced?'forced-switch':'switch',from:outgoing.ownedId,to:state.fighters[0].ownedId});
+    events.push({actor:'self',kind:forced?'forced-switch':'switch',from:outgoing.ownedId,to:state.fighters[0].ownedId,presentation:presentStep(commandBefore,state.fighters)});
     if(forced){state.decision=order(row.id,state,row.seed);state.events.push({turn:state.turn,events});const changed=await tx.roster60Battle.updateMany({where:{id:row.id,playerId,revision:row.revision,status:'ACTIVE'},data:{state:JSON.stringify(state),revision:{increment:1}}});if(changed.count!==1)return fail('STALE_REVISION');return dto({...row,state:JSON.stringify(state),revision:row.revision+1});}
    }
    if(b.action.kind==='item'){
@@ -146,7 +153,7 @@ export class RosterBattle {
     if(active.hp<=0&&target!==active)return fail('ACTIVE_UNIT_FAINTED');
     const used=await tx.playerItem.updateMany({where:{playerId,itemId,count:{gt:0}},data:{count:{decrement:1}}});if(used.count!==1)return fail('ITEM_UNAVAILABLE');
     const before=target.hp;target.hp=it.revive?Math.round(target.stats.hp*it.revive/100):Math.min(target.stats.hp,target.hp+Math.round(target.stats.hp*it.heal!/100));
-    events.push({actor:'self',kind:'item',itemId,targetOwnedId:target.ownedId,recovered:target.hp-before});actionConsumed=true;
+    events.push({actor:'self',kind:'item',itemId,targetOwnedId:target.ownedId,recovered:target.hp-before,presentation:presentStep(commandBefore,state.fighters)});actionConsumed=true;
    }
    const self=state.fighters[0],enemy=state.fighters[1];
    const playerSkill=b.action.kind==='attack'?self.attack:b.action.kind==='skill'?self.skills.find(s=>s.id===b.action.skillId):null;
@@ -169,11 +176,12 @@ export class RosterBattle {
     if(who==='self'&&actionConsumed)continue;
     const actor=who==='self'?self:enemy,target=who==='self'?enemy:self;if(!actor.hp||!target.hp)continue;
     const skill=who==='self'?playerSkill:enemySkill;
-    if(!skill){const next=focusMp(actor.mp,actor.stats.mp);actor.mp=next.mp;events.push({actor:who,kind:'focus',recovered:next.recovered});continue;}
+    const stepBefore=capturePresentation(state.fighters);
+    if(!skill){const next=focusMp(actor.mp,actor.stats.mp);actor.mp=next.mp;events.push({actor:who,kind:'focus',recovered:next.recovered,presentation:presentStep(stepBefore,state.fighters)});continue;}
     actor.mp=spendMp(actor.mp,skill.mpCost);
     const hit=fiveStatAttack({power:skill.power,level:actor.level,durability:target.stats.durability,suitability:actor.suitability[skill.element],defense:target.defense[skill.element],attackerHp:actor.hp,defenderHp:target.hp},snap.policy.calculation,(base,fit)=>base*fit);
     if(hit.target==='attacker')actor.hp-=hit.damage;else target.hp-=hit.damage;
-    events.push({actor:who,kind:'skill',skillId:skill.id,...hit});
+    events.push({actor:who,kind:'skill',skillId:skill.id,...hit,presentation:presentStep(stepBefore,state.fighters,skill)});
    }
    state.events.push({turn:state.turn,decision,events});state.turn++;
    state.outcome=self.hp<=0&&!(state.reserves??[]).some(f=>f.hp>0)?'loss':enemy.hp<=0?'win':state.turn>=snap.policy.maxRounds?'draw':null;

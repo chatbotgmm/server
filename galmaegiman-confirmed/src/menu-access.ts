@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {menuDecision} from './menu-policy.js';
 import {createHash} from 'node:crypto';
 import type {PrismaClient} from '@prisma/client';
 import {growthAt} from './battle/roster60-rules.js';
@@ -23,7 +24,7 @@ export function menuFeatureFor(path:string):MenuFeature|null{
  return null;
 }
 export class MenuAccess {
- constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null){}
+ constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private testDefaultLock=true){}
  async read(id:string){
   if(!await this.db.player.findUnique({where:{id},select:{id:true}}))throw new RosterError(401,'login');
   const row=await this.db.appMeta.findUnique({where:{key:accountKey(id)}});
@@ -32,8 +33,8 @@ export class MenuAccess {
   const owned=await this.db.roster60Owned.findMany({where:{playerId:id,status:{not:'CONSUMED'}},select:{speciesId:true,totalXp:true,reincarnation:true}});
   try{if(owned.length){const c=this.catalog();if(!c?.approved)throw Error('LEVEL_CATALOG_UNAVAILABLE');for(const u of owned){const d=c.characters.find(v=>v.id===u.speciesId);if(!d||u.totalXp<0n||u.totalXp>BigInt(Number.MAX_SAFE_INTEGER))throw Error('LEVEL_DATA_INVALID');representativeLevel=Math.max(representativeLevel!,growthAt(Number(u.totalXp),d.growth,u.reincarnation,d.reincarnationXpPolicy).level);}}}
   catch{representativeLevel=null;levelReason='LEVEL_DATA_UNAVAILABLE';}
-  const features=Object.fromEntries(menuFeatures.map(featureId=>{const mode:MenuMode=saved.overrides[featureId]??'auto';return [featureId,{featureId,mode,enabled:mode==='force_unlock',reason:mode==='force_unlock'?'':mode==='force_lock'?'ACCOUNT_LOCKED':'TEST_DEFAULT_LOCK',requiredLevel:null}];}));
-  return {version:'menu-access-v1',revision:saved.revision,representativeLevel,levelReason,testDefaultLock:true,levelPolicy:'PENDING',levelDecreasePolicy:'PENDING',features};
+  const features=Object.fromEntries(menuFeatures.map(featureId=>{const mode:MenuMode=saved.overrides[featureId]??'auto';return [featureId,{featureId,mode,...menuDecision(mode,this.testDefaultLock),requiredLevel:null}];}));
+  return {version:'menu-access-v1',revision:saved.revision,representativeLevel,levelReason,testDefaultLock:this.testDefaultLock,levelPolicy:'PENDING',levelDecreasePolicy:'PENDING',features};
  }
  async require(id:string,feature:MenuFeature){const state=await this.read(id);if(!state.features[feature].enabled)throw new RosterError(403,'MENU_LOCKED:'+feature);}
  async change(actor:string,input:{requestId:string;targetPlayerId:string;featureId:MenuFeature;mode:MenuMode;expectedRevision:number}){
@@ -55,3 +56,4 @@ export class MenuAccess {
   });
  }
 }
+

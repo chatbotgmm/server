@@ -50,8 +50,7 @@ final class HomeWater {
 
   void draw(Canvas canvas, Bitmap bitmap, RectF bounds, double seconds, boolean moving) {
     if (!moving || bitmap == null) return;
-    // Source motion of 4–6px becomes roughly 2–3px on a landscape phone.
-    // The old subpixel output disappeared after downscaling under menu artwork.
+    // 작은 세로 리플만 적용한다. 바다 전체를 좌우로 옮기지 않는다.
     // Keep the original mask and edge taper: architecture and shore never move.
     update(seconds);
     int saved = canvas.save();
@@ -68,10 +67,9 @@ final class HomeWater {
       float x = base[coordinate], y = base[coordinate + 1];
       float depth = Math.max(0, Math.min(1, (y - 325) / 245f));
       float weight = weights[point] * (.35f + depth * .65f);
-      vertices[coordinate] = x + (float) (Math.sin(y * .075 - seconds * 1.25)
-          + .3 * Math.sin(x * .04 + seconds * .77)) * 4.2f * weight;
-      vertices[coordinate + 1] = y + (float) (Math.sin(x * .047 - seconds * 1.45)
-          + .25 * Math.sin(y * .05 + seconds * .95)) * 5.2f * weight;
+      // 좌우로 미는 굴절을 없앤다. 수면의 높이만 느리게 변화한다.
+      vertices[coordinate] = x;
+      vertices[coordinate + 1] = y + HomeWave.height(x, y, seconds) * weight;
     }
   }
 

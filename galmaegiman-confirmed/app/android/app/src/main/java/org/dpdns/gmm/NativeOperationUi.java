@@ -23,6 +23,10 @@ final class NativeOperationUi {
   }
 
   int begin(String label, Button button) {
+    return begin(label, button, true);
+  }
+
+  int begin(String label, Button button, boolean showOverlay) {
     clear();
     int operation = ++sequence;
     trigger = button;
@@ -38,6 +42,8 @@ final class NativeOperationUi {
       }
       button.setEnabled(false);
     }
+    // 초기 로딩은 자체 하단 표시가 있으므로 그림 위에 중복 진행판을 올리지 않는다.
+    if (!showOverlay) return operation;
     pending =
         () -> {
           if (operation != sequence || host.isFinishing() || host.isDestroyed()) return;

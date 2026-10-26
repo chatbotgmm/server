@@ -31,7 +31,15 @@
       "tutorial": false,
       "winXp": 60,
       "lossXp": 20,
-      "mode": "duel"
+      "mode": "duel",
+      "enemySpeciesIds": [
+        "u07",
+        "u09",
+        "u17",
+        "u31",
+        "u45",
+        "u57"
+      ]
     },
     {
       "id": "training-5",
@@ -40,7 +48,15 @@
       "tutorial": false,
       "winXp": 300,
       "lossXp": 100,
-      "mode": "duel"
+      "mode": "duel",
+      "enemySpeciesIds": [
+        "u07",
+        "u09",
+        "u17",
+        "u31",
+        "u45",
+        "u57"
+      ]
     },
     {
       "id": "training-10",
@@ -49,7 +65,15 @@
       "tutorial": false,
       "winXp": 600,
       "lossXp": 200,
-      "mode": "duel"
+      "mode": "duel",
+      "enemySpeciesIds": [
+        "u07",
+        "u09",
+        "u17",
+        "u31",
+        "u45",
+        "u57"
+      ]
     },
     {
       "id": "training-20",
@@ -58,7 +82,15 @@
       "tutorial": false,
       "winXp": 1200,
       "lossXp": 400,
-      "mode": "duel"
+      "mode": "duel",
+      "enemySpeciesIds": [
+        "u07",
+        "u09",
+        "u17",
+        "u31",
+        "u45",
+        "u57"
+      ]
     },
     {
       "id": "training-40",
@@ -67,7 +99,15 @@
       "tutorial": false,
       "winXp": 2400,
       "lossXp": 800,
-      "mode": "duel"
+      "mode": "duel",
+      "enemySpeciesIds": [
+        "u07",
+        "u09",
+        "u17",
+        "u31",
+        "u45",
+        "u57"
+      ]
     },
     {
       "id": "training-60",
@@ -76,7 +116,15 @@
       "tutorial": false,
       "winXp": 3600,
       "lossXp": 1200,
-      "mode": "duel"
+      "mode": "duel",
+      "enemySpeciesIds": [
+        "u07",
+        "u09",
+        "u17",
+        "u31",
+        "u45",
+        "u57"
+      ]
     },
     {
       "id": "adventure-1",
@@ -85,7 +133,15 @@
       "tutorial": false,
       "mode": "adventure",
       "winXp": 60,
-      "lossXp": 0
+      "lossXp": 0,
+      "enemySpeciesIds": [
+        "u07",
+        "u09",
+        "u17",
+        "u31",
+        "u45",
+        "u57"
+      ]
     }
   ]
 }
