@@ -204,7 +204,7 @@ public class NativeVillageHomeArtTest {
           view.moveCameraUnits(-view.layout.worldUnits);assertEquals(camera,view.camera.cameraUnits(),1e-9);
         }
         if(profile==NativeVillageHomeTest.PHONE){
-          String[] districts={"companions","memory","harbor","market"};double[] positions={.25,2.25,4.38,6.05};JSONArray districtFrames=new JSONArray();
+          String[] districts={"companions","memory","harbor","market"};double[] positions={.25,2.25,4.38,5.98};JSONArray districtFrames=new JSONArray();
           for(int i=0;i<positions.length;i++){
             view.moveCameraUnits(positions[i]-view.camera.cameraUnits());helper.layout(h,profile);Bitmap image=NativeHomePartyFeedbackTest.render(h.root);
             try{assertEquals(915,image.getWidth());assertEquals(412,image.getHeight());png(out.resolve("phone-915x412-district-"+districts[i]+".png"),image);}finally{image.recycle();}

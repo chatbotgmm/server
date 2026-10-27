@@ -105,10 +105,10 @@ public class VillageLayoutTest {
   }
   @Test public void sceneScaleRatiosAreExplicitAndInvalidOrMissingRatiosAreRejected()throws Exception{
     VillageLayout layout=VillageLayout.parse(raw()),fallback=VillageLayout.referenceLayout();
-    String[] ids={"recruit","hideout","archive","market","mailbox","harbor"};double[] heights={.38,.67,.40,.38,.23,.56};
+    String[] ids={"recruit","hideout","archive","market","mailbox","harbor"};double[] heights={.56,.70,.58,.56,.145,.65};
     for(int i=0;i<ids.length;i++){assertEquals(heights[i],layout.building(ids[i]).heightRatio,0);assertEquals(heights[i],fallback.building(ids[i]).heightRatio,0);}
-    assertEquals(.21,layout.resident("blacksmith").heightRatio,0);assertEquals(.19,layout.resident("librarian").heightRatio,0);
-    assertEquals(.17,layout.resident("guard").heightRatio,0);assertEquals(.17,layout.resident("merchant").heightRatio,0);
+    assertEquals(.32,layout.resident("blacksmith").heightRatio,0);assertEquals(.28,layout.resident("librarian").heightRatio,0);
+    assertEquals(.26,layout.resident("guard").heightRatio,0);assertEquals(.26,layout.resident("merchant").heightRatio,0);
     JSONObject absent=raw();absent.getJSONArray("buildings").getJSONObject(0).remove("heightRatio");assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(absent));
     JSONObject excessive=raw();excessive.getJSONArray("residents").getJSONObject(0).put("heightRatio",.8);assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(excessive));
   }

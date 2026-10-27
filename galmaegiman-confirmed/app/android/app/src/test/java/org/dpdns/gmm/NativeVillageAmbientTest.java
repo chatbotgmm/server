@@ -163,7 +163,7 @@ public class NativeVillageAmbientTest {
               if(android.graphics.Color.alpha(atlas.getPixel(x,y))>127)count++;
           assertTrue("Every image label/status source cell contains real opaque artwork: "+cell,count>100);
         }
-        for(double position:new double[]{.25,2.25,4.38,6.077}){
+        for(double position:new double[]{.25,2.25,4.38,5.98}){
           v.moveCameraUnits(position-v.camera.cameraUnits());helper.layout(h,profile);
           for(android.widget.Button button:NativeVillageHomeTest.worldTargets(v)){
             android.graphics.RectF object=new android.graphics.RectF(button.getLeft(),button.getTop(),button.getRight(),button.getBottom());
@@ -200,7 +200,7 @@ public class NativeVillageAmbientTest {
     }
   }
 
-  @Test public void explicitSceneHeightsAlignDoorScaleAndFitTargetsInChosenDistrictFrontViews()throws Exception{
+  @Test public void collectivelyEnlargedSceneKeepsOriginalAspectAndSmallerMailboxInChosenFrontViews()throws Exception{
     NativeHomePartyFeedbackTest.Profile[] profiles={NativeVillageHomeTest.PHONE,new NativeHomePartyFeedbackTest.Profile("village-1280x720",1280,720,160,1,0,0,0,0)};
     for(NativeHomePartyFeedbackTest.Profile profile:profiles){
       helper.configure(profile);
@@ -215,12 +215,19 @@ public class NativeVillageAmbientTest {
           assertEquals("NPC scene height is independent of old widthU and species aspect: "+resident.id,v.field.height()*resident.heightRatio,art.height(),1.1);
           assertTrue(v.residentButtons.get(resident.id).getWidth()>=h.dp(48));assertTrue(v.residentButtons.get(resident.id).getHeight()>=h.dp(48));
         }
-        String[] doorIds={"recruit","hideout","archive","market"};double[] doorFractions={421.0/956,271.0/1159,355.0/851,389.0/843};double min=Double.MAX_VALUE,max=0;
-        for(int i=0;i<doorIds.length;i++){double height=NativeVillageHomeTest.shownArt(v,v.buildingButtons.get(doorIds[i])).height()*doorFractions[i];min=Math.min(min,height);max=Math.max(max,height);}
-        assertTrue("Shared front-door scale stays within 25 percent despite different storey counts",max/min<=1.25);
-        assertEquals("Guard is about 70px at the phone reference height",70.04,v.layout.resident("guard").heightRatio*412,.1);
+        // Latest user direction supersedes the earlier equal-door-size proposal: enlarge the group, not the mailbox.
+        for(String id:new String[]{"recruit","archive","market"})assertTrue("Single-floor buildings regain substantial presence",v.layout.building(id).heightRatio/("archive".equals(id)?.40:.38)+1e-9>=1.45);
+        for(VillageLayout.Resident resident:v.layout.residents)assertTrue("Residents enlarge together with the architecture",resident.heightRatio/("blacksmith".equals(resident.id)?.21:"librarian".equals(resident.id)?.19:.17)+1e-9>=1.45);
+        assertTrue("Mailbox is independently reduced, not included in the group enlargement",v.layout.building("mailbox").heightRatio/.23<.65);
+        assertEquals("Common resident reference height is now visibly about 107px",107.12,v.layout.resident("guard").heightRatio*412,.1);
+        assertEquals("Mailbox is about 60px, clearly smaller than a resident",59.74,v.layout.building("mailbox").heightRatio*412,.1);
+        for(VillageLayout.Building building:v.layout.buildings){
+          android.graphics.RectF art=NativeVillageHomeTest.shownArt(v,v.buildingButtons.get(building.id));Bitmap bitmap=v.assets.get(building.asset);double[] crop=v.layout.assets.get(building.asset).crop;
+          double aspect=(crop[2]-crop[0])*bitmap.getWidth()/((crop[3]-crop[1])*bitmap.getHeight());
+          assertEquals("Enlargement never stretches the original building",aspect,art.width()/art.height(),.01);
+        }
         // Deliberately chosen front views. Partial objects during free scrolling remain valid and are tested separately.
-        double[] cameras={.25,2.25,4.25,6.077};String[][] buildingIds={{"recruit","hideout"},{"archive","mailbox"},{"harbor"},{"market"}};String[][] residentIds={{"guard"},{"librarian"},{},{"blacksmith","merchant"}};
+        double[] cameras={.25,2.25,4.25,5.98};String[][] buildingIds={{"recruit","hideout"},{"archive","mailbox"},{"harbor"},{"market"}};String[][] residentIds={{"guard"},{"librarian"},{},{"blacksmith","merchant"}};
         for(int district=0;district<4;district++){
           v.moveCameraUnits(cameras[district]-v.camera.cameraUnits());helper.layout(h,profile);
           for(String id:buildingIds[district])assertTrue("Full building and below-image plaque fit district view: "+profile.name+" / "+id,v.safe.contains(v.buildingBounds.get(id)));

@@ -867,14 +867,14 @@
       "asset": "recruit",
       "x": 0.48,
       "width": 0.468,
-      "baseline": 0.83,
+      "baseline": 0.86,
       "menu": [
         "동료 모집"
       ],
       "actionIds": [
         "recruit"
       ],
-      "heightRatio": 0.38
+      "heightRatio": 0.56
     },
     {
       "id": "hideout",
@@ -883,23 +883,23 @@
       "asset": "hideout",
       "x": 1.04,
       "width": 0.546,
-      "baseline": 0.83,
+      "baseline": 0.86,
       "menu": [
         "방범대 편성"
       ],
       "actionIds": [
         "party"
       ],
-      "heightRatio": 0.67
+      "heightRatio": 0.7
     },
     {
       "id": "archive",
       "name": "기록소",
       "sub": "도감 · 조합",
       "asset": "archive",
-      "x": 2.5,
+      "x": 2.54,
       "width": 0.546,
-      "baseline": 0.83,
+      "baseline": 0.86,
       "menu": [
         "도감",
         "조합"
@@ -908,7 +908,7 @@
         "collection",
         "craft"
       ],
-      "heightRatio": 0.4
+      "heightRatio": 0.58
     },
     {
       "id": "mailbox",
@@ -917,7 +917,7 @@
       "asset": "mailbox",
       "x": 3.05,
       "width": 0.13,
-      "baseline": 0.83,
+      "baseline": 0.86,
       "menu": [
         "우편",
         "이벤트 소식",
@@ -928,7 +928,7 @@
         "events",
         "notices"
       ],
-      "heightRatio": 0.23
+      "heightRatio": 0.145
     },
     {
       "id": "harbor",
@@ -937,7 +937,7 @@
       "asset": "harbor",
       "x": 4.6,
       "width": 0.676,
-      "baseline": 0.83,
+      "baseline": 0.86,
       "menu": [
         "탐험",
         "스토리",
@@ -950,7 +950,7 @@
         "normal",
         "rank"
       ],
-      "heightRatio": 0.56
+      "heightRatio": 0.65
     },
     {
       "id": "market",
@@ -959,7 +959,7 @@
       "asset": "market",
       "x": 6.55,
       "width": 0.715,
-      "baseline": 0.83,
+      "baseline": 0.86,
       "menu": [
         "아이템",
         "패스",
@@ -970,7 +970,7 @@
         "pass",
         "currency"
       ],
-      "heightRatio": 0.38
+      "heightRatio": 0.56
     }
   ],
   "props": [
@@ -989,10 +989,10 @@
       "role": "대장장이",
       "silhouette": "large-blacksmith",
       "asset": "blacksmith",
-      "x": 6.25,
+      "x": 6.15,
       "width": 0.17,
       "baseline": 0.91,
-      "heightRatio": 0.21
+      "heightRatio": 0.32
     },
     {
       "id": "merchant",
@@ -1002,27 +1002,27 @@
       "x": 6.9,
       "width": 0.1,
       "baseline": 0.91,
-      "heightRatio": 0.17
+      "heightRatio": 0.26
     },
     {
       "id": "librarian",
       "role": "사서",
       "silhouette": "stooped-elder-librarian",
       "asset": "librarian",
-      "x": 2.85,
+      "x": 2.88,
       "width": 0.105,
       "baseline": 0.91,
-      "heightRatio": 0.19
+      "heightRatio": 0.28
     },
     {
       "id": "guard",
       "role": "방범대원",
       "silhouette": "angular-stone-wing-patrol",
       "asset": "patrol",
-      "x": 0.79,
+      "x": 0.76,
       "width": 0.13,
       "baseline": 0.91,
-      "heightRatio": 0.17
+      "heightRatio": 0.26
     }
   ],
   "decorations": [
