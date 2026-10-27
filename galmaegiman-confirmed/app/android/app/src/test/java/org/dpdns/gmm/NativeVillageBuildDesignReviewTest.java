@@ -146,23 +146,23 @@ public class NativeVillageBuildDesignReviewTest {
 
   JSONArray checkHome(MainActivity h) throws Exception {
     NativeVillageHomeView view = h.villageHome.view;
-    assertTrue("All twenty-two core assets and the current statue must load before the APK design gate", view.assets.ready());
-    assertEquals(27, view.layout.assets.size());
-    assertEquals(23, view.assets.images.size());
+    assertTrue("All current viewport assets and the current statue must load before the APK design gate", view.assets.ready());
+    assertEquals(34, view.layout.assets.size());
+    assertTrue(view.assets.images.keySet().containsAll(view.assets.requiredImages));
     assertEquals(0, view.assets.pending);
     assertEquals(0, view.assets.missing);
     java.util.Set<String> decorationAssets = new java.util.HashSet<>();
     for (VillageLayout.Asset asset : view.layout.assets.values()) {
       if(!asset.required&&!asset.id.equals(view.layout.landmark.asset(view.owner.statueStage))){assertTrue(asset.id.startsWith("statue-stage-"));assertNull(view.assets.get(asset.id));continue;}
       assertTrue("Unverified art cannot pass the build design gate: " + asset.id, asset.verified);
-      assertNotNull("Missing decoded local art: " + asset.id, view.assets.get(asset.id));
+      if(view.assets.requiredImages.contains(asset.id)||!asset.required)assertNotNull("Missing current viewport art: " + asset.id, view.assets.get(asset.id));
       String file = asset.path.substring(asset.path.lastIndexOf('/') + 1);
       if (file.startsWith("decor-") && file.endsWith(".png")) decorationAssets.add(asset.id);
     }
     assertEquals("Three separately bundled assets are scenery only", 3, decorationAssets.size());
     java.util.Set<String> originalIds=new java.util.HashSet<>(java.util.Arrays.asList("sea","terrain","ship","recruit","hideout","archive","mailbox","market","harbor","blacksmith","merchant","librarian","patrol"));
-    assertEquals(13,originalIds.size());for(String id:originalIds)assertNotNull("All original interactive/core asset IDs remain loaded: "+id,view.assets.get(id));
-    assertNotNull(view.assets.get("companions-background"));assertNotNull(view.assets.get("companions-terrace"));
+    assertEquals(13,originalIds.size());for(String id:originalIds)assertTrue("All original interactive/core asset IDs remain available: "+id,view.layout.assets.containsKey(id));
+    assertTrue(view.layout.assets.containsKey("companions-background"));assertTrue(view.layout.assets.containsKey("companions-terrace"));
     assertEquals("The village starts at the full viewport left", 0, view.field.left, .01f);
     assertEquals("The village starts at the full viewport top", 0, view.field.top, .01f);
     assertEquals("The village reaches the full viewport right", view.getWidth(), view.field.right, .01f);
@@ -342,7 +342,7 @@ public class NativeVillageBuildDesignReviewTest {
             "text", checkTitle(h, true)), evidence);
         h.home();
         helper.settle(h, profile);
-        h.villageHome.view.moveCameraUnits(.25 - h.villageHome.view.camera.cameraUnits());
+        h.villageHome.view.moveCameraUnits(.25 - h.villageHome.view.camera.cameraUnits());LocalGameArtTest.drain();
         helper.layout(h, profile);
         capture(h, profile, "home", MainActivity.obj("fonts", fonts, "text", checkHome(h),
             "loadedLocalImages", h.villageHome.view.assets.images.size()), evidence);

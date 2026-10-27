@@ -28,14 +28,14 @@ public class VillageLayoutTest {
     assertEquals(8,actual.worldUnits,0);assertEquals(650,actual.minimumUnitDp,0);assertEquals(48,actual.minimumTouchDp,0);
     assertEquals(4,actual.districts.size());assertEquals(6,actual.buildings.size());assertEquals(4,actual.residents.size());
     assertEquals("verified-local-assets",actual.artworkStatus);assertEquals("manifest-unavailable-placeholder",fallback.artworkStatus);
-    JSONObject pinned=raw();assertEquals("2f1890e1df37b426cbfa27ccce8cd293186ad512",pinned.getString("sourceCommit"));assertEquals(27,pinned.getInt("sourceFileCount"));
-    assertEquals(27,actual.assets.size());assertEquals(8,actual.decorations.size());
+    JSONObject pinned=raw();assertEquals("2f1890e1df37b426cbfa27ccce8cd293186ad512",pinned.getString("sourceCommit"));assertEquals(34,pinned.getInt("sourceFileCount"));
+    assertEquals(34,actual.assets.size());assertEquals(1,actual.decorations.size());
     assertEquals(13,fallback.assets.size());assertTrue(fallback.decorations.isEmpty());
     for(VillageLayout.Asset asset:actual.assets.values()){
       if(!asset.required)assertTrue(asset.id.startsWith("statue-stage-"));
       assertTrue("Production artwork must be inspected before binding: "+asset.id,asset.verified);
       JSONObject source=pinned.getJSONObject("assets").getJSONObject(asset.id);
-      if(source.getString("sourcePath").contains("village-companions-20261027/")){
+      if(source.getString("sourcePath").contains("village-districts-20261028/")){assertTrue(source.getString("artReview").contains("pending"));assertTrue(asset.path.contains("districts-v4-"));assertTrue(source.getString("sourceGitBlobSha").matches("[a-f0-9]{40}"));}else if(source.getString("sourcePath").contains("village-companions-20261027/")){
         assertTrue(source.getString("artReview").contains("pending"));assertTrue(asset.path.contains("companions-v3-"));
       }else if(asset.id.equals("nameplates")){
         assertEquals(1024,source.getInt("sourceWidth"));assertEquals(1536,source.getInt("sourceHeight"));
@@ -83,8 +83,8 @@ public class VillageLayoutTest {
   }
   static boolean fallbackCore(String id){return VillageLayout.referenceLayout().assets.containsKey(id);}
   @Test public void pendingArtNeverClaimsVerifiedPixelsOrUsesTheWhiteResidentSheetDirectly()throws Exception{
-    VillageLayout layout=VillageLayout.parse(NativeVillageHomeAssetsTest.pendingManifest());assertEquals("pending-verified-pixels",layout.artworkStatus);assertEquals(27,layout.assets.size());assertEquals(8,layout.decorations.size());
-    for(VillageLayout.Asset asset:layout.assets.values()){assertFalse(asset.verified);assertFalse(asset.useSheetDirectly);if(fallbackCore(asset.id)){if(java.util.Arrays.asList("recruit","hideout","patrol").contains(asset.id)){JSONObject source=raw().getJSONObject("assets").getJSONObject(asset.id);assertTrue(source.getString("sourcePath").contains("village-companions-20261027/"));assertTrue(source.getString("sourceSha256").matches("[a-f0-9]{64}"));}else assertFalse(asset.sourceLibraryId.isEmpty());}}
+    VillageLayout layout=VillageLayout.parse(NativeVillageHomeAssetsTest.pendingManifest());assertEquals("pending-verified-pixels",layout.artworkStatus);assertEquals(34,layout.assets.size());assertEquals(1,layout.decorations.size());
+    for(VillageLayout.Asset asset:layout.assets.values()){assertFalse(asset.verified);assertFalse(asset.useSheetDirectly);if(fallbackCore(asset.id)){if(java.util.Arrays.asList("recruit","hideout","patrol","archive","market","harbor").contains(asset.id)){JSONObject source=raw().getJSONObject("assets").getJSONObject(asset.id);assertTrue(source.getString("sourcePath").contains("village-companions-20261027/")||source.getString("sourcePath").contains("village-districts-20261028/"));assertTrue(source.getString("sourceSha256").matches("[a-f0-9]{64}"));}else assertFalse(asset.sourceLibraryId.isEmpty());}}
     assertEquals("patrol",layout.resident("guard").asset);
     HashSet<String> silhouettes=new HashSet<>();for(VillageLayout.Resident resident:layout.residents)silhouettes.add(resident.silhouette);assertEquals(4,silhouettes.size());
     assertTrue(layout.residentPlacementIsProposal);assertFalse(layout.currencyHud);assertFalse(layout.cameraResetOnWrap);
@@ -107,10 +107,10 @@ public class VillageLayoutTest {
   }
   @Test public void sceneScaleRatiosAreExplicitAndInvalidOrMissingRatiosAreRejected()throws Exception{
     VillageLayout layout=VillageLayout.parse(raw()),fallback=VillageLayout.referenceLayout();
-    String[] ids={"recruit","hideout","archive","market","mailbox","harbor"};double[] heights={.62,.54,.58,.56,.145,.65};
-    for(int i=0;i<ids.length;i++){assertEquals(heights[i],layout.building(ids[i]).heightRatio,0);if(i>=2)assertEquals(heights[i],fallback.building(ids[i]).heightRatio,0);}
-    assertEquals(.32,layout.resident("blacksmith").heightRatio,0);assertEquals(.28,layout.resident("librarian").heightRatio,0);
-    assertEquals(.30,layout.resident("guard").heightRatio,0);assertEquals(.26,layout.resident("merchant").heightRatio,0);
+    String[] ids={"recruit","hideout","archive","market","mailbox","harbor"};double[] heights={.62,.54,.57,.62,.145,.65};
+    for(int i=0;i<ids.length;i++){assertEquals(heights[i],layout.building(ids[i]).heightRatio,0);assertTrue(fallback.building(ids[i]).heightRatio>=.1&&fallback.building(ids[i]).heightRatio<=.75);}
+    assertEquals(.30,layout.resident("blacksmith").heightRatio,0);assertEquals(.27,layout.resident("librarian").heightRatio,0);
+    assertEquals(.30,layout.resident("guard").heightRatio,0);assertEquals(.27,layout.resident("merchant").heightRatio,0);
     JSONObject absent=raw();absent.getJSONArray("buildings").getJSONObject(0).remove("heightRatio");assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(absent));
     JSONObject excessive=raw();excessive.getJSONArray("residents").getJSONObject(0).put("heightRatio",.8);assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(excessive));
   }

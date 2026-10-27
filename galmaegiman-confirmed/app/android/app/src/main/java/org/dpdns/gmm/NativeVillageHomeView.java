@@ -146,7 +146,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   }
   RectF buildingRect(VillageLayout.Building building) {
     double unit=unitPixels();Bitmap bitmap=assets.get(building.asset);double[] crop=layout.assets.get(building.asset).crop;
-    float aspect=bitmap==null?1:(float)((crop[2]-crop[0])*bitmap.getWidth()/Math.max(1,(crop[3]-crop[1])*bitmap.getHeight()));
+    float aspect=assetAspect(building.asset,bitmap);
     Button button=buildingButtons.get(building.id);int caption=labelHeight(button);actorPosition(building,button);float feet=actorPoint.y;
     // The manifest defines scene scale; the original aspect supplies width, never the legacy widthU slot.
     float imageHeight=Math.max(1,Math.min(field.height()*(float)building.heightRatio,feet-safe.top-h.dp((int)building.topClearanceDp))),imageWidth=imageHeight*aspect;
@@ -155,14 +155,16 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   }
   RectF residentRect(VillageLayout.Resident resident) {
     Bitmap bitmap=assets.get(resident.asset);double[] crop=layout.assets.get(resident.asset).crop;
-    float aspect=bitmap==null?1:(float)((crop[2]-crop[0])*bitmap.getWidth()/Math.max(1,(crop[3]-crop[1])*bitmap.getHeight()));
+    float aspect=assetAspect(resident.asset,bitmap);
     Button button=residentButtons.get(resident.id);int caption=labelHeight(button);actorPosition(resident,button);float feet=actorPoint.y;
     float portrait=Math.max(1,Math.min(field.height()*(float)resident.heightRatio,feet-safe.top-h.dp(64)));
     float width=Math.max(h.dp(48),Math.max(portrait*aspect,labelWidth(button))),x=field.left+actorPoint.x;
     return new RectF(x-width/2,feet-portrait,x+width/2,feet+labelGap()+caption);
   }
+  float assetAspect(String id,Bitmap bitmap){VillageLayout.Asset asset=layout.assets.get(id);double[] crop=asset.crop;int w=bitmap==null?asset.sourceWidth:bitmap.getWidth(),h=bitmap==null?asset.sourceHeight:bitmap.getHeight();return w<=0||h<=0?1:(float)((crop[2]-crop[0])*w/Math.max(1,(crop[3]-crop[1])*h));}
   void layoutWorld(){
     if(getWidth()==0)return;
+    assets.setViewport(camera.cameraUnits(),field.width()/unitPixels());
     for(VillageLayout.Building building:layout.buildings){RectF r=buildingRect(building);buildingBounds.get(building.id).set(r);place(buildingButtons.get(building.id),r);}
     for(VillageLayout.Resident resident:layout.residents){RectF r=residentRect(resident);residentBounds.get(resident.id).set(r);place(residentButtons.get(resident.id),r);}
     int current=(int)Math.floor(VillageLoopCamera.modulo(camera.cameraUnits()+.5,layout.worldUnits)/2)%4;
@@ -180,12 +182,13 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     // Boats sit beyond the quay; the foreground terrain can cover the lower hull.
     for(VillageLayout.Prop prop:layout.props)drawProp(canvas,prop);
     for(VillageLayout.Layer layer:layout.layers)if("terrain".equals(layer.id))drawLayer(canvas,layer);
+    for(VillageLayout.Building building:layout.buildings)if(building.behindTerrace)drawBuilding(canvas,building);
     districtScene.draw(canvas,this,"terrace");
     // Rear structures now stand ON the walkable soil/quay rather than hovering above the water.
     for(VillageLayout.Decoration decoration:layout.decorations)drawDecoration(canvas,decoration);
     drawLandmark(canvas);
     groundShadows.draw(canvas,this);
-    for(VillageLayout.Placed actor:depthActors)if(actor instanceof VillageLayout.Building)drawBuilding(canvas,(VillageLayout.Building)actor);else drawResident(canvas,(VillageLayout.Resident)actor);
+    for(VillageLayout.Placed actor:depthActors)if(actor instanceof VillageLayout.Building){if(!((VillageLayout.Building)actor).behindTerrace)drawBuilding(canvas,(VillageLayout.Building)actor);}else drawResident(canvas,(VillageLayout.Resident)actor);
     districtScene.draw(canvas,this,"foreground");
     canvas.restoreToCount(save);
     if(animating&&ambient.fixedTime==null)postInvalidateDelayed(33); // Local foam is deliberately 30 fps.
@@ -193,6 +196,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   void drawLandmark(Canvas canvas){
     VillageLayout.Landmark landmark=layout.landmark;if(landmark==null||owner.statueStage==0)return;
     float width=(float)(landmark.width*unitPixels()),x=(float)camera.projectX(landmark.x,1,unitPixels(),field.width()),feet=(float)landmark.baseline*field.height();
+    if(!landmark.surface.isEmpty()&&districtScene.point(this,landmark.surface,landmark.sourceX,landmark.sourceY,actorPoint)){x=actorPoint.x;feet=actorPoint.y;}
     float canvasHeight=Math.min(field.height()*.58f,width*1.5f),bottom=feet+canvasHeight*(1-(float)landmark.groundAnchor);
     RectF slot=new RectF(x-width/2,bottom-canvasHeight,x+width/2,bottom);if(!RectF.intersects(slot,field))return;
     String id=landmark.asset(owner.statueStage);Bitmap bitmap=assets.get(id);
@@ -253,6 +257,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   boolean rawAlphaHitWorldButton(Button button,float localX,float localY){
     if(!(button instanceof WorldTarget))return false;float x=button.getLeft()+localX,y=button.getTop()+localY;if(!safe.contains(x,y))return false;
     RectF outer=new RectF(button.getLeft(),button.getTop(),button.getRight(),button.getBottom());if(labelRect(outer,button).contains(x,y))return true;
+    VillageLayout.Building harbor=layout.building("harbor");if(button==buildingButtons.get("harbor")&&harbor.behindTerrace&&districtScene.covers(this,"terrace",x,y))return false;
     String asset=((WorldTarget)button).asset;Bitmap bitmap=assets.get(asset);RectF slot=imageSlot(button);if(bitmap==null)return slot.contains(x,y);
     RectF shown=fittedObjectRect(bitmap,slot,asset);if(!shown.contains(x,y))return false;double[] crop=layout.assets.get(asset).crop;
     int l=(int)(crop[0]*bitmap.getWidth()),t=(int)(crop[1]*bitmap.getHeight()),r=(int)(crop[2]*bitmap.getWidth()),b=(int)(crop[3]*bitmap.getHeight());
@@ -271,6 +276,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   RectF decorationRect(VillageLayout.Decoration decoration){
     float width=(float)(decoration.width*unitPixels()),x=field.left+(float)camera.projectX(decoration.x,decoration.parallax,unitPixels(),field.width());
     float feet=field.top+field.height()*(float)decoration.baseline;
+    if(!decoration.surface.isEmpty()&&districtScene.point(this,decoration.surface,decoration.sourceX,decoration.sourceY,actorPoint)){x=actorPoint.x;feet=actorPoint.y;}
     return new RectF(x-width/2,feet-field.height()*(float)decoration.heightRatio,x+width/2,feet);
   }
   void drawDecoration(Canvas canvas,VillageLayout.Decoration decoration){

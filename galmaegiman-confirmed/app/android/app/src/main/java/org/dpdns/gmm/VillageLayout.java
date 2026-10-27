@@ -37,18 +37,18 @@ final class VillageLayout {
     District(JSONObject o) throws Exception { id=word(o,"id");title=word(o,"title");copy=o.optString("copy");nav=o.optString("nav");x=number(o,"x"); }
   }
   static final class Asset {
-    final String id,path,sourceLibraryId; final boolean verified,useSheetDirectly,required; final double[] crop;
+    final String id,path,sourceLibraryId; final boolean verified,useSheetDirectly,required; final double[] crop;final int sourceWidth,sourceHeight;
     Asset(String id,JSONObject o) throws Exception {
-      this.id=id;path=word(o,"path");sourceLibraryId=o.optString("sourceLibraryId");verified=o.optBoolean("verified",false);required=o.optBoolean("required",true);useSheetDirectly=o.optBoolean("useSheetDirectly",false);crop=crop(o,"crop");
+      sourceWidth=o.optInt("sourceWidth",0);sourceHeight=o.optInt("sourceHeight",0);if(sourceWidth<0||sourceHeight<0||(sourceWidth==0)!=(sourceHeight==0))throw invalid();this.id=id;path=word(o,"path");sourceLibraryId=o.optString("sourceLibraryId");verified=o.optBoolean("verified",false);required=o.optBoolean("required",true);useSheetDirectly=o.optBoolean("useSheetDirectly",false);crop=crop(o,"crop");
       if(!required&&!id.matches("statue-stage-[1-5]"))throw invalid();
       if(!path.matches("native/village-loop-v2/(assets|residents)/[a-z0-9-]+\\.png")||useSheetDirectly)throw invalid();
     }
   }
   /** Optional restoration art: stage comes from the authenticated story response, never this manifest. */
   static final class Landmark {
-    final double x,width,baseline,groundAnchor;final String[] stageAssets;
+    final double x,width,baseline,groundAnchor,sourceX,sourceY;final String surface;final String[] stageAssets;
     Landmark(JSONObject o)throws Exception{
-      x=number(o,"x");width=number(o,"width");baseline=number(o,"baseline");groundAnchor=o.has("groundAnchor")?number(o,"groundAnchor"):1;stageAssets=strings(o.getJSONArray("stageAssets"));
+      surface=o.optString("surface","");sourceX=surface.isEmpty()?0:number(o,"sourceX");sourceY=surface.isEmpty()?0:number(o,"sourceY");if(sourceX<0||sourceX>1||sourceY<0||sourceY>1)throw invalid();x=number(o,"x");width=number(o,"width");baseline=number(o,"baseline");groundAnchor=o.has("groundAnchor")?number(o,"groundAnchor"):1;stageAssets=strings(o.getJSONArray("stageAssets"));
       if(groundAnchor<=0||groundAnchor>1||x<0||x>=8||width<=0||width>.7||baseline<.7||baseline>.94||stageAssets.length!=5)throw invalid();
       unique(stageAssets);for(int i=0;i<5;i++)if(!stageAssets[i].equals("statue-stage-"+(i+1)))throw invalid();
     }
@@ -75,8 +75,8 @@ final class VillageLayout {
     Placed(JSONObject o) throws Exception {shadow=o.has("shadow")?new GroundShadow(o.getJSONObject("shadow")):null;id=word(o,"id");asset=word(o,"asset");x=number(o,"x");width=number(o,"width");baseline=number(o,"baseline");surface=o.optString("surface","");sourceX=surface.isEmpty()?0:number(o,"sourceX");sourceY=surface.isEmpty()?0:number(o,"sourceY");occludes=o.has("occludes")?strings(o.getJSONArray("occludes")):new String[0];if(sourceX<0||sourceX>1||sourceY<0||sourceY>1)throw invalid();if(width<=0||width>2||baseline<0||baseline>1)throw invalid();}
   }
   static final class Building extends Placed {
-    final String name,sub; final String[] menu,actionIds;final double heightRatio;final double topClearanceDp;
-    Building(JSONObject o) throws Exception {super(o);topClearanceDp=o.has("topClearanceDp")?number(o,"topClearanceDp"):64;if(topClearanceDp<24||topClearanceDp>96)throw invalid();heightRatio=number(o,"heightRatio");if(heightRatio<.1||heightRatio>.75)throw invalid();name=word(o,"name");sub=o.optString("sub");menu=strings(o.getJSONArray("menu"));actionIds=strings(o.getJSONArray("actionIds"));if(menu.length==0||menu.length!=actionIds.length)throw invalid();}
+    final String name,sub; final String[] menu,actionIds;final boolean behindTerrace;final double heightRatio;final double topClearanceDp;
+    Building(JSONObject o) throws Exception {super(o);behindTerrace=o.optBoolean("behindTerrace",false);if(behindTerrace&&!"harbor".equals(id))throw invalid();topClearanceDp=o.has("topClearanceDp")?number(o,"topClearanceDp"):64;if(topClearanceDp<24||topClearanceDp>96)throw invalid();heightRatio=number(o,"heightRatio");if(heightRatio<.1||heightRatio>.75)throw invalid();name=word(o,"name");sub=o.optString("sub");menu=strings(o.getJSONArray("menu"));actionIds=strings(o.getJSONArray("actionIds"));if(menu.length==0||menu.length!=actionIds.length)throw invalid();}
   }
   static final class Prop extends Placed {
     final double parallax;
@@ -91,22 +91,22 @@ final class VillageLayout {
     final double parallax,heightRatio;
     Decoration(JSONObject o) throws Exception {
       super(o);parallax=number(o,"parallax");heightRatio=o.has("heightRatio")?number(o,"heightRatio"):.28;
-      if(heightRatio<.12||heightRatio>.36)throw invalid();
-      Set<String> allowed=new HashSet<>(java.util.Arrays.asList("id","asset","x","width","baseline","parallax","heightRatio"));
+      if(heightRatio<.12||heightRatio>.65)throw invalid();
+      Set<String> allowed=new HashSet<>(java.util.Arrays.asList("id","asset","x","width","baseline","parallax","heightRatio","surface","sourceX","sourceY"));
       for(Iterator<String> it=o.keys();it.hasNext();)if(!allowed.contains(it.next()))throw invalid();
-      if(width>.35||parallax!=1)throw invalid();
+      if(width>(surface.isEmpty()?.35:.75)||parallax!=1)throw invalid();
     }
   }
 
   /** Separately composited illustration pieces; never a menu/quest/hit-target replacement. */
   static final class DistrictScenery {
-    final String id,district,asset,depth;final double x,heightRatio,baseline,groundAnchor,fadeUnits,clipTop,minimumViewportWidth;
+    final String id,district,asset,depth;final boolean repeatToDistrict;final double x,heightRatio,baseline,groundAnchor,fadeUnits,clipTop,minimumViewportWidth,minimumWorldWidth,tileOverlapUnits;
     DistrictScenery(JSONObject o)throws Exception{
-      minimumViewportWidth=o.optDouble("minimumViewportWidth",0);if(!Double.isFinite(minimumViewportWidth)||minimumViewportWidth<0||minimumViewportWidth>1.2)throw invalid();id=word(o,"id");district=word(o,"district");asset=word(o,"asset");depth=word(o,"depth");
+      tileOverlapUnits=o.optDouble("tileOverlapUnits",0);if(!Double.isFinite(tileOverlapUnits)||tileOverlapUnits<0||tileOverlapUnits>.25)throw invalid();repeatToDistrict=o.optBoolean("repeatToDistrict",false);minimumWorldWidth=o.optDouble("minimumWorldWidth",0);if(!Double.isFinite(minimumWorldWidth)||minimumWorldWidth<0||minimumWorldWidth>2.5)throw invalid();minimumViewportWidth=o.optDouble("minimumViewportWidth",0);if(!Double.isFinite(minimumViewportWidth)||minimumViewportWidth<0||minimumViewportWidth>1.2)throw invalid();id=word(o,"id");district=word(o,"district");asset=word(o,"asset");depth=word(o,"depth");
       x=number(o,"x");heightRatio=number(o,"heightRatio");baseline=number(o,"baseline");
       groundAnchor=number(o,"groundAnchor");fadeUnits=number(o,"fadeUnits");clipTop=o.has("clipTop")?number(o,"clipTop"):0;
       if(!("backdrop".equals(depth)||"terrace".equals(depth)||"foreground".equals(depth))||heightRatio<=0||heightRatio>2.5||baseline<0||baseline>1||groundAnchor<=0||groundAnchor>1||fadeUnits<.02||fadeUnits>.5||clipTop<0||clipTop>1)throw invalid();
-      Set<String> allowed=new HashSet<>(java.util.Arrays.asList("id","district","asset","depth","x","heightRatio","baseline","groundAnchor","fadeUnits","clipTop","minimumViewportWidth"));
+      Set<String> allowed=new HashSet<>(java.util.Arrays.asList("id","district","asset","depth","x","heightRatio","baseline","groundAnchor","fadeUnits","clipTop","minimumViewportWidth","minimumWorldWidth","repeatToDistrict","tileOverlapUnits"));
       for(Iterator<String> it=o.keys();it.hasNext();)if(!allowed.contains(it.next()))throw invalid();
     }
   }
@@ -126,7 +126,8 @@ final class VillageLayout {
     ArrayList<Decoration> dec=new ArrayList<>();a=o.has("decorations")?o.getJSONArray("decorations"):new JSONArray();
     Set<String> sceneIds=new HashSet<>(),usedAssets=new HashSet<>();
     for(Building v:bs){sceneIds.add(v.id);usedAssets.add(v.asset);}for(Prop v:ps){sceneIds.add(v.id);usedAssets.add(v.asset);}for(Resident v:rs){sceneIds.add(v.id);usedAssets.add(v.asset);}for(Layer v:ls)if(!v.asset.isEmpty())usedAssets.add(v.asset);
-    for(int i=0;i<a.length();i++){Decoration v=new Decoration(a.getJSONObject(i));check(v);if(!sceneIds.add(v.id)||usedAssets.contains(v.asset))throw invalid();dec.add(v);}
+    usedAssets.addAll(java.util.Arrays.asList("sea","terrain","ship","recruit","hideout","archive","mailbox","market","harbor","blacksmith","merchant","librarian","patrol"));
+    for(int i=0;i<a.length();i++){Decoration v=new Decoration(a.getJSONObject(i));check(v);if(!sceneIds.add(v.id)||assets.containsKey(v.id)||usedAssets.contains(v.asset))throw invalid();dec.add(v);}
     decorations=Collections.unmodifiableList(dec);
     landmark=o.has("landmark")?new Landmark(o.getJSONObject("landmark")):null;
     if(landmark!=null)for(String id:landmark.stageAssets)if(!assets.containsKey(id))throw invalid();
@@ -137,6 +138,8 @@ final class VillageLayout {
       scenery.add(item);
     }
     districtScenery=Collections.unmodifiableList(scenery);
+    if(landmark!=null&&!landmark.surface.isEmpty()&&districtScenery(landmark.surface)==null)throw invalid();
+    for(Decoration item:decorations)if(!item.surface.isEmpty()&&districtScenery(item.surface)==null)throw invalid();
     ArrayList<Placed> actors=new ArrayList<>();actors.addAll(buildings);actors.addAll(residents);
     for(Placed actor:actors){
       if(actor.shadow!=null&&!assets.containsKey(actor.shadow.asset))throw invalid();

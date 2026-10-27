@@ -40,7 +40,7 @@ public class NativeVillageHomeArtTest {
   final NativeVillageHomeTest fixture=new NativeVillageHomeTest();
   final NativeHomePartyFeedbackTest helper=fixture.helper;
   static final Set<String> ASSETS=new HashSet<>(Arrays.asList(
-      "companions-shadows","companions-background","companions-terrace","nameplates","grove","neighborhood","sea","terrain","ship","recruit","hideout","archive","mailbox","market","harbor",
+      "records-background","records-terrace","harbor-background","harbor-terrace","market-background","market-terrace","market-forge","companions-shadows","companions-background","companions-terrace","nameplates","grove","neighborhood","sea","terrain","ship","recruit","hideout","archive","mailbox","market","harbor",
       "blacksmith","merchant","librarian","patrol","decor_cottage","decor_warehouse","decor_closed_shop"));
   static final Set<String> DECORATIONS=new HashSet<>(Arrays.asList("decor_cottage","decor_warehouse","decor_closed_shop"));
   static final Set<String> NPCS=new HashSet<>(Arrays.asList("blacksmith","merchant","librarian","patrol"));
@@ -82,7 +82,7 @@ public class NativeVillageHomeArtTest {
     LocalGameArtTest.drain();helper.layout(h,profile);
     assertTrue("Real PNG decode did not finish; pending="+view.assets.pending+" missing="+view.assets.missing,
         view.assets.ready());
-    assertEquals(23,view.assets.images.size());assertEquals(0,view.assets.pending);assertEquals(0,view.assets.missing);
+    assertTrue(view.assets.images.keySet().containsAll(view.assets.requiredImages));assertEquals(0,view.assets.pending);assertEquals(0,view.assets.missing);
     NativeVillageHomeTest.assertFullBleed(view,h);assertFalse(view.settings.getContentDescription().toString().contains("그림을 불러오는 중"));
     return view;
   }
@@ -90,7 +90,7 @@ public class NativeVillageHomeArtTest {
     JSONArray rows=new JSONArray();long total=0;
     for(VillageLayout.Asset asset:view.layout.assets.values()){
       if(!asset.required&&!asset.id.equals(view.layout.landmark.asset(view.owner.statueStage))){assertNull("Future statue stages are not eagerly decoded",view.assets.get(asset.id));continue;}
-      Bitmap bitmap=view.assets.get(asset.id);assertNotNull("Missing actual decoded PNG: "+asset.id,bitmap);
+      Bitmap bitmap=view.assets.get(asset.id);if(bitmap==null){assertFalse("Visible viewport asset may not be omitted: "+asset.id,view.assets.requiredImages.contains(asset.id));continue;}
       int width=bitmap.getWidth(),height=bitmap.getHeight();assertTrue(width>0&&height>0);
       long transparent=0,opaque=0,nonTransparent=0,transparentBorder=0;int[] row=new int[width];
       for(int y=0;y<height;y++){
@@ -173,7 +173,7 @@ public class NativeVillageHomeArtTest {
         NativeVillageHomeView view=openActual(h,profile);view.stopMotion();view.ambient.fixedTime=1400L;
         json(out.resolve(profile.name+"-bitmap-inventory.json"),bitmapInventory(view));
         for(int unit=0;unit<8;unit++){
-          double camera=unit+.25;view.moveCameraUnits(camera-view.camera.cameraUnits());helper.layout(h,profile);
+          double camera=unit+.25;view.moveCameraUnits(camera-view.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);
           JSONArray bounds=null;RectF field=new RectF(view.field);
           Bitmap before=NativeHomePartyFeedbackTest.render(h.root),after=null;
           String name=profile.name+"-unit-"+unit;
@@ -190,7 +190,7 @@ public class NativeVillageHomeArtTest {
                 "field",NativeHomePartyFeedbackTest.box(field.left,field.top,field.right,field.bottom),"unpaintedHorizontalRows",uncovered,"controls",bounds));
             json(out.resolve("geometry.json"),frames);
             assertEquals("Loaded sky, sea and terrain cover the world without a blank horizontal strip: "+name,0,uncovered);
-            view.moveCameraUnits(view.layout.worldUnits);helper.layout(h,profile);
+            view.moveCameraUnits(view.layout.worldUnits);LocalGameArtTest.drain();helper.layout(h,profile);
             assertEquals(camera+8,view.camera.cameraUnits(),1e-9);
             after=NativeHomePartyFeedbackTest.render(h.root);boolean same=before.sameAs(after);
             long difference=same?0:differentPixels(before,after);
@@ -201,12 +201,12 @@ public class NativeVillageHomeArtTest {
             if(!same)png(out.resolve(name+"-after-one-turn.png"),after);
             assertTrue("Actual village pixels changed after one whole turn: "+name+" differentPixels="+difference,same);
           }finally{before.recycle();if(after!=null)after.recycle();}
-          view.moveCameraUnits(-view.layout.worldUnits);assertEquals(camera,view.camera.cameraUnits(),1e-9);
+          view.moveCameraUnits(-view.layout.worldUnits);LocalGameArtTest.drain();assertEquals(camera,view.camera.cameraUnits(),1e-9);
         }
         if(profile==NativeVillageHomeTest.PHONE){
-          String[] districts={"companions","memory","harbor","market"};double[] positions={.25,2.25,4.38,5.98};JSONArray districtFrames=new JSONArray();
+          String[] districts={"companions","memory","harbor","market"};double[] positions={.25,2.25,4.25,6.25};JSONArray districtFrames=new JSONArray();
           for(int i=0;i<positions.length;i++){
-            view.moveCameraUnits(positions[i]-view.camera.cameraUnits());helper.layout(h,profile);Bitmap image=NativeHomePartyFeedbackTest.render(h.root);
+            view.moveCameraUnits(positions[i]-view.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);Bitmap image=NativeHomePartyFeedbackTest.render(h.root);
             try{assertEquals(915,image.getWidth());assertEquals(412,image.getHeight());png(out.resolve("phone-915x412-district-"+districts[i]+".png"),image);}finally{image.recycle();}
             geometry(view,h);JSONArray visible=new JSONArray();for(String id:view.residentButtons.keySet())if(view.residentButtons.get(id).isShown())visible.put(id);
             if(i==0)assertTrue(view.residentButtons.get("guard").isShown());if(i==1)assertTrue(view.residentButtons.get("librarian").isShown());if(i==3){NativeNoScrollReviewTest.assertFullyVisible(view.residentButtons.get("blacksmith"),h.root);NativeNoScrollReviewTest.assertFullyVisible(view.residentButtons.get("merchant"),h.root);}

@@ -34,7 +34,7 @@ final class NativeVillageHomeController {
     if(owner.isEmpty()){h.login();return;}
     view=new NativeVillageHomeView(h,this,layout);h.root.addView(view,new FrameLayout.LayoutParams(-1,-1));
     try{savedCamera=preferences.getString(scope+":camera","0");double saved=Double.parseDouble(savedCamera);if(Double.isFinite(saved))view.camera.setCameraUnits(saved);}catch(Exception invalid){savedCamera="";}
-    view.assets.load(layout,this::current,()->{if(current()){view.updateNotice();view.invalidate();}});
+    view.assets.setViewport(view.camera.cameraUnits(),view.field.width()>0?view.field.width()/view.unitPixels():1);view.assets.load(layout,this::current,()->{if(current()){view.updateNotice();view.invalidate();}});
     refresh();
   }
   boolean current() { return !paused&&view!=null&&epoch==h.epoch&&owner.equals(h.api.token())&&!owner.isEmpty()
@@ -79,7 +79,7 @@ final class NativeVillageHomeController {
       return;
     }
     if(epoch!=h.epoch)return;
-    paused=false;if(view!=null){view.assets.load(layout,this::current,()->{if(current()){view.updateNotice();view.invalidate();}});loadCurrentStatue();refresh();}
+    paused=false;if(view!=null){view.assets.setViewport(view.camera.cameraUnits(),view.field.width()>0?view.field.width()/view.unitPixels():1);view.assets.load(layout,this::current,()->{if(current()){view.updateNotice();view.invalidate();}});loadCurrentStatue();refresh();}
   }
   void resident(String id){
     if(!current()||h.busy||h.updateBlocks()||view.blocksClick())return;saveCamera();pause();
