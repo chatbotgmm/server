@@ -66,7 +66,18 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   }
   final class WorldTarget extends androidx.appcompat.widget.AppCompatButton {
     final String asset;
+    final Paint plate=new Paint(Paint.ANTI_ALIAS_FLAG);
     WorldTarget(String asset){super(NativeVillageHomeView.this.h);this.asset=asset;}
+    // 하늘·바다 위에서도 이름이 읽히게 양피지 이름표(황동 테두리)를 글자 뒤에 깐다.
+    @Override protected void onDraw(Canvas canvas){
+      if(getText().length()>0){
+        float w=Math.min(getWidth(),labelWidth(this)),l=(getWidth()-w)/2,r=h.dp(9);RectF tag=new RectF(l+1,1,l+w-1,labelHeight(this)-h.dp(3));
+        tag.offset(getScrollX(),getScrollY());// 한 줄 TextView는 캔버스를 scroll만큼 옮겨 그린다.
+        plate.setStyle(Paint.Style.FILL);plate.setColor(0xf2f5efdc);canvas.drawRoundRect(tag,r,r,plate);
+        plate.setStyle(Paint.Style.STROKE);plate.setStrokeWidth(Math.max(1,h.dp(1)));plate.setColor(0xffb68b45);canvas.drawRoundRect(tag,r,r,plate);
+      }
+      super.onDraw(canvas);
+    }
     @Override public boolean dispatchTouchEvent(MotionEvent event){
       if(event.getActionMasked()==MotionEvent.ACTION_DOWN&&!alphaHitWorldButton(this,event.getX(),event.getY()))return false;
       return super.dispatchTouchEvent(event);
