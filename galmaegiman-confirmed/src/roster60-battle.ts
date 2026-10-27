@@ -1,3 +1,5 @@
+import {createStoryUnitXpPlan,storyUnitXpPlan,calculateStoryUnitXp,type StoryUnitXpMember} from './progression/story-unit-xp.js';
+import {serializeRoster60Write} from './roster60-write-queue.js';
 import {opponentFighter,selectEnemySpecies} from './battle/roster60-opponent-intel.js';
 import {settleStoryBattle} from './story/settlement.js';
 import {captureDefenseSnapshot,battleKnowledge,observedOpponentIntel,resolvedDefenseObservation,addDefenseObservation,persistDefenseObservations,publicDefenseObservation,publicDefenseSafe,safeKnowledgeCatalog,type DefenseSnapshot,type DefenseObservation} from './battle/roster60-observed-defense.js';
@@ -65,11 +67,12 @@ export class RosterBattle {
  private view(row:Parameters<typeof dto>[0]){return dto(row,safeKnowledgeCatalog(this.catalog));}
  private async request(playerId:string,requestId:string,payload:unknown,run:(tx:Prisma.TransactionClient)=>Promise<unknown>){
   const fingerprint=hash(payload);const once=()=>this.db.$transaction(async tx=>{
+   await tx.appMeta.upsert({where:{key:'realtime-pvp-write-lock'},create:{key:'realtime-pvp-write-lock',value:'1'},update:{value:'1'}});
    const prior=await tx.roster60BattleReceipt.findUnique({where:{playerId_requestId:{playerId,requestId}}});
    if(prior){if(prior.fingerprint!==fingerprint)return fail('REQUEST_ID_REUSED');return publicDefenseSafe(JSON.parse(prior.result));}
    const result=await run(tx);await tx.roster60BattleReceipt.create({data:{playerId,requestId,fingerprint,result:JSON.stringify(result)}});return result;
   });
-  try{return await once();}catch(e){if(['P2002','P2034'].includes((e as {code?:string}).code??''))return once();throw e;}
+  return serializeRoster60Write(this.db,async()=>{try{return await once();}catch(e){if(['P2002','P2034'].includes((e as {code?:string}).code??''))return once();throw e;}});
  }
  async options(playerId:string){
   const c=this.catalog(),p=this.policy();validatePolicy(p,c);
@@ -98,6 +101,7 @@ export class RosterBattle {
    // Tutorial uses any eligible owned party member; starter grants remain an onboarding concern.
    const ids=[b.ownedId,...(b.reserveIds??[])];if(ids.length>6||new Set(ids).size!==ids.length)return fail('INVALID_PARTY',400);
    const reserves:Fighter[]=[];const members=[{ownedId:owned.id,startingXp:owned.totalXp.toString()}];
+   let unitXpMembers:StoryUnitXpMember[]=[{ownedId:owned.id,playerId,startingXp:owned.totalXp.toString(),growth:def.growth,reincarnation:owned.reincarnation,reincarnationXpPolicy:def.reincarnationXpPolicy}];
    for(const reserveId of ids.slice(1)){
     const unit=await tx.roster60Owned.findFirst({where:{id:reserveId,playerId}});if(!unit)return fail('UNIT_NOT_FOUND',404);
     if(unit.status!==sourceStatus||unit.locked)return fail('UNIT_UNAVAILABLE');
@@ -108,19 +112,25 @@ export class RosterBattle {
     // Any reserve may enter: preflight the full award so normal return cannot be trapped by growth limits.
     if(run)try{const next=Number(unit.totalXp)+(JSON.parse(run.pendingRewards).xp[unit.id]??0)+encounter.winXp;if(!Number.isSafeInteger(next))return fail('INVALID_XP');growthAt(next,d.growth,unit.reincarnation,d.reincarnationXpPolicy);}catch(e){return fail((e as Error).message);}
     reserves.push({...fighter(c!,unit.speciesId,lv,'self',unit.reincarnation),ownedId:unit.id});members.push({ownedId:unit.id,startingXp:unit.totalXp.toString()});
+    unitXpMembers.push({ownedId:unit.id,playerId,startingXp:unit.totalXp.toString(),growth:d.growth,reincarnation:unit.reincarnation,reincarnationXpPolicy:d.reincarnationXpPolicy});
    }
    const id=randomUUID(),seed=randomBytes(32).toString('hex');
    const f:[Fighter,Fighter]=[fighter(c!,owned.speciesId,level,'self',owned.reincarnation),(this.storyEnemy??fighter)(c!,selectEnemySpecies(encounter,p.encounters,seed),encounter.level,'enemy')];
    f[0].ownedId=owned.id;
    const storyExtension=this.storyCreate?await this.storyCreate(tx,{battleId:id,playerId,encounter,enemy:f[1],adventureId:run?.id}):null;
    if(storyExtension?.enemy)f[1]=storyExtension.enemy;
+   const storyContext=storyExtension?.story as any;
+   if(runState&&storyContext?.unitXpPolicy){
+    unitXpMembers=unitXpMembers.map(member=>{const saved=runState.members.find((m:any)=>m.ownedId===member.ownedId);if(!saved||saved.startingXp!==member.startingXp||saved.reincarnation!==member.reincarnation)return fail('UNIT_STATE_CHANGED');return {...member,growth:saved.growth,reincarnationXpPolicy:saved.reincarnationXpPolicy};});
+   }
+   const unitXpPlan=createStoryUnitXpPlan(playerId,id,storyContext,encounter,c!.version,unitXpMembers);
    if(runState)for(const next of [f[0],...reserves]){const prior=runState.party.find((x:Fighter)=>x.ownedId===next.ownedId);if(!prior)return fail('INVALID_PARTY');next.hp=prior.hp;}
    const items=loadBattleRules().data.items;
    const observedDefense=await captureDefenseSnapshot(tx,c!,{self:{playerId,targets:[f[1]]}});
    const state:State={participation:[{ownedId:owned.id,kind:'start',turn:0}],rulesVersion:'party-actions-v2',adventureId:run?.id,reserves,mode:encounter.mode,inventory:await tx.playerItem.findMany({where:{playerId},select:{itemId:true,count:true}}),version:'five-battle-v1',turn:0,fighters:f,decision:order(id,{turn:0,fighters:f},seed),outcome:null,events:[]};
    const lock=await tx.roster60Owned.updateMany({where:{id:owned.id,playerId,status:sourceStatus,locked:false,totalXp:owned.totalXp},data:{status:'BATTLE'}});if(lock.count!==1)return fail('UNIT_UNAVAILABLE');
    for(const member of members.slice(1)){const locked=await tx.roster60Owned.updateMany({where:{id:member.ownedId,playerId,status:sourceStatus,locked:false,totalXp:BigInt(member.startingXp)},data:{status:'BATTLE'}});if(locked.count!==1)return fail('UNIT_UNAVAILABLE');}
-   const row=await tx.roster60Battle.create({data:{id,playerId,ownedId:owned.id,seed,snapshot:JSON.stringify({policy:p,encounter,items,members,observedDefense,...(storyExtension?{story:storyExtension.story}:{}),adventureId:run?.id,escapePolicy:adventureEscapePolicy,xpRecipient:run?'adventure-participation-100-reserve-50-v1':'initial-owned-existing-v1',growth:def.growth,startingXp:owned.totalXp.toString()}),state:JSON.stringify(state)}});
+   const row=await tx.roster60Battle.create({data:{id,playerId,ownedId:owned.id,seed,snapshot:JSON.stringify({policy:p,encounter,items,members,observedDefense,...(storyExtension?{story:storyExtension.story}:{}),...(unitXpPlan?{storyUnitXp:unitXpPlan}:{}),adventureId:run?.id,escapePolicy:adventureEscapePolicy,xpRecipient:run?'adventure-participation-100-reserve-50-v1':'initial-owned-existing-v1',growth:def.growth,startingXp:owned.totalXp.toString()}),state:JSON.stringify(state)}});
    if(run){const claimed=await tx.roster60Adventure.updateMany({where:{id:run.id,playerId,revision:run.revision,status:'ACTIVE',activeBattleId:null},data:{activeBattleId:id,revision:{increment:1}}});if(claimed.count!==1)return fail('ADVENTURE_STATE_CHANGED');}
    return this.view(row);
   });
@@ -226,6 +236,14 @@ export class RosterBattle {
     const settlement={...adventureSettlement,...(storyReward?{story:storyReward}:{})};
     const changed=await tx.roster60Battle.updateMany({where:{id:row.id,playerId,revision:row.revision,status:'FINISHED'},data:{status:'SETTLED',revision:{increment:1},settlement:JSON.stringify(settlement)}});if(changed.count!==1)return fail('STALE_REVISION');
     return this.view({...row,revision:row.revision+1,status:'SETTLED',settlement:JSON.stringify(settlement)});
+   }
+   const unitPlan=storyUnitXpPlan(row,snap);
+   if(unitPlan){
+    const reward=calculateStoryUnitXp(unitPlan,row,state),storyReward=await settleStoryBattle(tx,row,state,snap),primary=reward.units.find(unit=>unit.ownedId===row.ownedId)!;
+    const settlement={outcome:state.outcome,xpAwarded:reward.xpAccepted,xpDiscarded:reward.xpDiscarded,xpDeferred:0,xpByOwnedId:reward.xpByOwnedId,totalXp:primary.endingXp,policyVersion:unitPlan.policy.version,unitXp:{...reward,delivery:'immediate'},...(storyReward?{story:storyReward}:{})};
+    const changed=await tx.roster60Battle.updateMany({where:{id:row.id,playerId,revision:row.revision,status:'FINISHED'},data:{status:'SETTLED',revision:{increment:1},settlement:JSON.stringify(settlement)}});if(changed.count!==1)return fail('STALE_REVISION');
+    for(const unit of reward.units){const member=unitPlan.members.find(m=>m.ownedId===unit.ownedId)!;const released=await tx.roster60Owned.updateMany({where:{id:unit.ownedId,playerId,status:'BATTLE',totalXp:BigInt(member.startingXp),reincarnation:member.reincarnation},data:{status:'AVAILABLE',totalXp:BigInt(unit.endingXp)}});if(released.count!==1)return fail('UNIT_STATE_CHANGED');}
+    await tx.player.update({where:{id:playerId},data:{revision:{increment:1}}});return this.view({...row,revision:row.revision+1,status:'SETTLED',settlement:JSON.stringify(settlement)});
    }
    const xp=state.surrendered?0:state.outcome==='win'?snap.encounter.winXp:state.outcome==='loss'?snap.encounter.lossXp:0;
    const owned=await tx.roster60Owned.findFirst({where:{id:row.ownedId,playerId,status:'BATTLE'}});if(!owned)return fail('UNIT_UNAVAILABLE');

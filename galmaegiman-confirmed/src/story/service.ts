@@ -9,6 +9,7 @@ import {initialStoryProgress,type StoryContent,type StoryProgress,type StoryQues
 import type {StoryBattleContext} from './settlement.js';
 import {awardCommanderXp,readCommanderState,type CommanderPolicy,type CommanderXpResult} from '../progression/commander.js';
 import {serializeRoster60Write} from '../roster60-write-queue.js';
+import {validateStoryUnitXpPolicy,type StoryUnitXpPolicy} from '../progression/story-unit-xp.js';
 
 type Tx=Prisma.TransactionClient;
 type QuestView={id:string;title:string;kind:'main'|'resident';chapter:number;status:'AVAILABLE'|'ACTIVE'|'READY'|'COMPLETED';recommendedLevel:[number,number];npcId?:string;objective:{kind:'adventure_win'|'scene';wins:number;requiredWins:number};canDepart:boolean;adventureId:string|null;battleId:string|null};
@@ -40,7 +41,7 @@ export function validateStoryContent(c:StoryContent):StoryContent{
 export class RosterStory{
  readonly content:StoryContent;
  private adventure:RosterAdventure;
- constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private policy:()=>BattlePolicy|null,content:StoryContent=storyContent,private commanderPolicy:()=>CommanderPolicy|null=()=>null){this.content=validateStoryContent(content);this.adventure=new RosterAdventure(db,catalog,fighter,undefined,commanderPolicy);}
+ constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private policy:()=>BattlePolicy|null,content:StoryContent=storyContent,private commanderPolicy:()=>CommanderPolicy|null=()=>null,private unitXpPolicy:()=>StoryUnitXpPolicy|null=()=>null){this.content=validateStoryContent(content);this.adventure=new RosterAdventure(db,catalog,fighter,undefined,commanderPolicy);}
  private async transaction<T>(run:(tx:Tx)=>Promise<T>):Promise<T>{return serializeRoster60Write(this.db,async()=>{const transaction=()=>this.db.$transaction(async tx=>{
   // Claim the shared SQLite writer before domain reads; PvP and adventure use the same lock.
   await tx.appMeta.upsert({where:{key:'realtime-pvp-write-lock'},create:{key:'realtime-pvp-write-lock',value:'1'},update:{value:'1'}});
@@ -62,7 +63,7 @@ export class RosterStory{
   if(row.contentVersion!==this.content.version)return fail('STORY_CONTENT_CHANGED');
   const p=progressOf(row),quests:QuestView[]=[];
   for(const q of this.content.quests){const status=await this.status(tx,row,q);if(status==='LOCKED')continue;const active=p.accepted[q.id];let activeBattleId:string|null=null;if(active?.battles.length){const latest=await tx.roster60Battle.findFirst({where:{id:{in:active.battles},playerId:row.playerId,status:{in:['ACTIVE','FINISHED']}},orderBy:{createdAt:'desc'}});activeBattleId=latest?.id??null;}
-   quests.push({id:q.id,title:q.title,kind:q.kind,chapter:q.chapter,status,recommendedLevel:q.recommendedLevel,npcId:q.npcId,objective:{kind:q.objective.kind,wins:active?.wins??0,requiredWins:q.objective.wins},canDepart:status==='ACTIVE'&&q.objective.kind==='adventure_win'&&!activeBattleId,adventureId:active?.adventureId??null,battleId:activeBattleId});}
+   quests.push({id:q.id,title:q.title,kind:q.kind,chapter:q.chapter,status,recommendedLevel:q.recommendedLevel,npcId:q.npcId,objective:{kind:q.objective.kind,wins:active?.wins??0,requiredWins:q.objective.wins},canDepart:status==='ACTIVE'&&q.objective.kind==='adventure_win'&&(active?.wins??0)<q.objective.wins&&!activeBattleId,adventureId:active?.adventureId??null,battleId:activeBattleId});}
   const currentQuest=quests.find(q=>q.kind==='main'&&q.status!=='COMPLETED')??null;
   const residents=this.content.residents.map(npc=>{const q=this.content.quests.find(q=>q.npcId===npc.id),visible=q?quests.find(v=>v.id===q.id):null;return {id:npc.id,name:npc.name,role:npc.role,status:visible?.status??'LOCKED',questId:visible?.id??null,dailyDialogue:npc.dailyDialogue,proposal:true};});
   const scene=p.scene?this.sceneData(p.scene):null,line=scene?.lines[p.scene!.cursor];
@@ -103,7 +104,8 @@ export class RosterStory{
  });}
  async accept(playerId:string,b:{requestId:string;revision:number;questId:string}){return this.mutate(playerId,b,['accept',b.questId,b.revision],async(tx,row,p)=>{
   const q=this.quest(b.questId);if(await this.status(tx,row,q)!=='AVAILABLE'||p.scene?.phase!=='intro'||p.scene.questId!==q.id||p.scene.cursor!==this.sceneData(p.scene).lines.length-1)return fail('STORY_ACCEPT_NOT_READY');
-  p.accepted[q.id]={token:randomUUID(),wins:0,battles:[],commanderPolicy:structuredClone(this.commanderPolicy())};if(q.fragmentBundleOnAccept)p.fragments[q.fragmentBundleOnAccept.id]=q.fragmentBundleOnAccept.count;if(q.statueStageOnAccept)p.statueStage=Math.max(p.statueStage,q.statueStageOnAccept);
+  const unitPolicy=this.unitXpPolicy();if(unitPolicy!==null)validateStoryUnitXpPolicy(unitPolicy,this.catalog()?.version??'',this.content.version,[...new Set(this.content.quests.flatMap(q=>q.objective.encounterIds))]);
+  p.accepted[q.id]={token:randomUUID(),wins:0,battles:[],commanderPolicy:structuredClone(this.commanderPolicy()),unitXpPolicy:structuredClone(unitPolicy)};if(q.fragmentBundleOnAccept)p.fragments[q.fragmentBundleOnAccept.id]=q.fragmentBundleOnAccept.count;if(q.statueStageOnAccept)p.statueStage=Math.max(p.statueStage,q.statueStageOnAccept);
   const scene=this.sceneData(p.scene);if(!p.readScenes.includes(scene.id))p.readScenes.push(scene.id);delete p.checkpoints[checkpoint(p.scene)];p.scene=null;
  });}
  async close(playerId:string,b:{requestId:string;revision:number}){return this.mutate(playerId,b,['close',b.revision],async(_tx,_row,p)=>{if(p.scene){p.checkpoints[checkpoint(p.scene)]=p.scene.cursor;p.scene=null;}});}
@@ -114,10 +116,10 @@ export class RosterStory{
  private battleHook(requestId:string,questId:string|undefined,acceptToken:string|undefined,encounter:StoryEncounter):StoryBattleCreateHook{return async(tx,ctx)=>{
   const row=await this.account(tx,ctx.playerId),p=progressOf(row);if(row.contentVersion!==this.content.version)return fail('STORY_CONTENT_CHANGED');
   if(p.departure?.requestId!==requestId)return fail('STORY_DEPARTURE_CHANGED');
-  if(questId){const q=this.quest(questId),accepted=p.accepted[questId];if(!accepted||accepted.token!==acceptToken||await this.status(tx,row,q)!=='ACTIVE')return fail('STORY_QUEST_NOT_ACTIVE');const expected=q.objective.encounterIds[Math.min(accepted.wins,q.objective.encounterIds.length-1)];if(expected!==encounter.id)return fail('STORY_ENCOUNTER_LOCKED');
+  if(questId){const q=this.quest(questId),accepted=p.accepted[questId];if(!accepted||accepted.token!==acceptToken||await this.status(tx,row,q)!=='ACTIVE')return fail('STORY_QUEST_NOT_ACTIVE');if(accepted.unitXpPolicy&&accepted.wins>=q.objective.wins)return fail('STORY_OBJECTIVE_AWAITING_RETURN');const expected=q.objective.encounterIds[Math.min(accepted.wins,q.objective.encounterIds.length-1)];if(expected!==encounter.id)return fail('STORY_ENCOUNTER_LOCKED');
    const active=await tx.roster60Battle.findFirst({where:{id:{in:accepted.battles},playerId:ctx.playerId,status:{in:['ACTIVE','FINISHED']}}});if(active)return fail('STORY_BATTLE_ACTIVE');accepted.battles.push(ctx.battleId);if(ctx.adventureId)accepted.adventureId=ctx.adventureId;
   }else if(!this.content.quests.some(q=>q.objective.encounterIds.includes(encounter.id)&&(p.accepted[q.id]||p.completed.includes(q.id))))return fail('STORY_ENCOUNTER_LOCKED');
-  const story:StoryBattleContext={version:'story-battle-v1',contentVersion:this.content.version,encounterId:encounter.id,speciesId:encounter.speciesId,kind:encounter.kind,mode:encounter.mode,questId,acceptToken,dropAmount:this.content.policy.darkGangPerWin,maxBalance:this.content.policy.maxBalance};
+  const story:StoryBattleContext={version:'story-battle-v1',contentVersion:this.content.version,encounterId:encounter.id,speciesId:encounter.speciesId,kind:encounter.kind,mode:encounter.mode,questId,acceptToken,dropAmount:this.content.policy.darkGangPerWin,maxBalance:this.content.policy.maxBalance,unitXpPolicy:questId?p.accepted[questId]?.unitXpPolicy??null:null};
   const enemy=structuredClone(ctx.enemy);enemy.name=(encounter.kind==='black'?'흑화 ':'')+enemy.name;enemy.stats.hp=Math.round(enemy.stats.hp*(encounter.hpMultiplier??1));enemy.hp=enemy.stats.hp;
   for(const skill of [enemy.attack,...enemy.skills])skill.power=Math.round(skill.power*(encounter.powerMultiplier??1));
   delete p.departure;
@@ -148,7 +150,7 @@ export class RosterStory{
    const active=await tx.roster60Battle.findMany({where:{playerId,status:{in:['ACTIVE','FINISHED']}},select:{snapshot:true}});
    if(active.some(r=>JSON.parse(r.snapshot).story))return fail('STORY_BATTLE_ACTIVE');
    let quest:StoryQuest|undefined,encounter:StoryEncounter|undefined,token:string|undefined;
-   if(b.questId){quest=this.quest(b.questId);if(await this.status(tx,row,quest)!=='ACTIVE'||quest.objective.kind!=='adventure_win')return fail('STORY_QUEST_NOT_ACTIVE');const accepted=p.accepted[quest.id];token=accepted.token;encounter=this.content.encounters.find(e=>e.id===quest!.objective.encounterIds[Math.min(accepted.wins,quest!.objective.encounterIds.length-1)]);}
+   if(b.questId){quest=this.quest(b.questId);if(await this.status(tx,row,quest)!=='ACTIVE'||quest.objective.kind!=='adventure_win')return fail('STORY_QUEST_NOT_ACTIVE');const accepted=p.accepted[quest.id];if(accepted.unitXpPolicy&&accepted.wins>=quest.objective.wins)return fail('STORY_OBJECTIVE_AWAITING_RETURN');token=accepted.token;encounter=this.content.encounters.find(e=>e.id===quest!.objective.encounterIds[Math.min(accepted.wins,quest!.objective.encounterIds.length-1)]);}
    else{encounter=this.content.encounters.find(e=>e.id===b.encounterId&&e.kind==='black'&&e.mode==='adventure');if(!encounter||!this.content.quests.some(q=>q.objective.encounterIds.includes(encounter!.id)&&(p.accepted[q.id]||p.completed.includes(q.id))))return fail('STORY_ENCOUNTER_LOCKED');}
    if(!encounter||prior&&prior.encounterId!==encounter.id)return fail('STORY_ENCOUNTER_LOCKED');
    const pending=prior??{pending:true,contentVersion:this.content.version,questId:quest?.id,acceptToken:token,encounterId:encounter.id};

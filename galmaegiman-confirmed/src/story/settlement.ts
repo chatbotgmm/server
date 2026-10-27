@@ -4,7 +4,7 @@ import {RosterError} from '../roster60-onboarding.js';
 import type {StoryProgress} from './types.js';
 
 /** Private, server-pinned battle metadata; there is no HTTP route accepting it. */
-export type StoryBattleContext={version:'story-battle-v1';contentVersion:string;encounterId:string;speciesId:string;kind:'black'|'villain'|'ordinary';mode:'story'|'adventure';questId?:string;acceptToken?:string;dropAmount:number;maxBalance:number};
+export type StoryBattleContext={version:'story-battle-v1';contentVersion:string;encounterId:string;speciesId:string;kind:'black'|'villain'|'ordinary';mode:'story'|'adventure';questId?:string;acceptToken?:string;dropAmount:number;maxBalance:number;unitXpPolicy?:import('../progression/story-unit-xp.js').StoryUnitXpPolicy|null};
 const fail=(code:string):never=>{throw new RosterError(409,code);};
 
 /** Runs in the same transaction as the authoritative battle settlement, even after feature disable. */

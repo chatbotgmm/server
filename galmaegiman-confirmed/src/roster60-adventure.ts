@@ -1,3 +1,4 @@
+import {storyUnitXpPlan,calculateStoryUnitXp,addStoryUnitXpEscrow,storyUnitXpReturn,type StoryUnitXpResult} from './progression/story-unit-xp.js';
 import {checkedAdventureRewards,validateRewardRecipients,checkedRewardTotal} from './roster60-adventure-rewards.js';
 import {loadBattleRules} from './battle/load.js';
 import {createHash} from 'node:crypto';
@@ -36,7 +37,7 @@ export class RosterAdventure{
  });}
  async return(playerId:string,b:{requestId:string;adventureId:string;revision:number}){return this.request(playerId,b.requestId,['return',b.adventureId,b.revision],async tx=>{
   const row=await tx.roster60Adventure.findFirst({where:{id:b.adventureId,playerId}});if(!row)return fail('ADVENTURE_NOT_FOUND',404);if(row.status!=='ACTIVE'){const dto=adventureDto(row);return {...dto,commander:await readCommanderState(tx,playerId,this.commanderPolicy()),commanderReward:dto.settlement?.commanderReward??null};}if(row.revision!==b.revision)return fail('STALE_REVISION');if(row.activeBattleId)return fail('RETURN_ONLY_OUTSIDE_BATTLE');
-  const state=JSON.parse(row.state),rules=loadBattleRules().data;let rewards;try{rewards=checkedAdventureRewards(JSON.parse(row.pendingRewards),Object.keys(rules.items));validateRewardRecipients(rewards,state.members.map((m:{ownedId:string})=>m.ownedId));}catch(e){return fail((e as Error).message);}
+  const state=JSON.parse(row.state),rules=loadBattleRules().data;let rewards;let unitReturn:ReturnType<typeof storyUnitXpReturn>=null;try{rewards=checkedAdventureRewards(JSON.parse(row.pendingRewards),Object.keys(rules.items));validateRewardRecipients(rewards,state.members.map((m:{ownedId:string})=>m.ownedId));unitReturn=storyUnitXpReturn(state,rewards);if(unitReturn)rewards=unitReturn.rewards;}catch(e){return fail((e as Error).message);}
   const player=await tx.player.findUniqueOrThrow({where:{id:playerId}});
   for(const key of ['credits','snack','peanut'] as const){const amount=rewards.currencies?.[key]??0;try{checkedRewardTotal(player[key],amount,2_000_000_000);}catch(e){return fail((e as Error).message);}if(amount)await tx.player.update({where:{id:playerId},data:{[key]:{increment:amount}}});}
   for(const [itemId,amount] of Object.entries(rewards.items??{})){const prior=await tx.playerItem.findUnique({where:{playerId_itemId:{playerId,itemId}}});const held=await tx.realtimeItemEscrow.count({where:{playerId,itemId,state:'HELD'}});try{checkedRewardTotal((prior?.count??0)+held,amount,rules.itemRules.maxStack);}catch(e){return fail((e as Error).message);}if(amount)await tx.playerItem.upsert({where:{playerId_itemId:{playerId,itemId}},create:{playerId,itemId,count:amount},update:{count:{increment:amount}}});}
@@ -47,7 +48,7 @@ export class RosterAdventure{
   const receivedReward=[...Object.values(rewards.xp),...Object.values(rewards.currencies??{}),...Object.values(rewards.items??{})].some(amount=>amount>0);
   const evidence=state.commanderReturnEvidence,verified=evidence?.version===commanderReturnEvidenceVersion&&Number.isSafeInteger(evidence.wins)&&evidence.wins>=0;
   const commanderReward=await awardCommanderXp(tx,playerId,{kind:'ADVENTURE_RETURN',eventId:row.id,outcome:'completed',reason:verified&&evidence.wins>0?'WIN_RETURN':verified?'NO_CLEAR_RETURN':'CLEAR_EVIDENCE_MISSING',linkedQuestId:typeof state.storyQuestId==='string'&&state.storyQuestId?state.storyQuestId:null},state.commanderPolicy??null);
-  const settlement={kind:'normal-return',rewards,commanderReward};const changed=await tx.roster60Adventure.updateMany({where:{id:row.id,playerId,revision:row.revision,status:'ACTIVE',activeBattleId:null},data:{status:'RETURNED',revision:{increment:1},pendingRewards:JSON.stringify({xp:{}}),settlement:JSON.stringify(settlement)}});if(changed.count!==1)return fail('STALE_REVISION');await tx.player.update({where:{id:playerId},data:{revision:{increment:1}}});if(receivedReward)await recordRosterDailyProgress(tx,playerId,'EXPEDITION',1,this.completionTime());return {...adventureDto({...row,status:'RETURNED',revision:row.revision+1,pendingRewards:JSON.stringify({xp:{}}),settlement:JSON.stringify(settlement)}),commander:commanderReward.commander,commanderReward};
+  const settlement={kind:'normal-return',rewards,commanderReward,...(unitReturn?{storyUnitXp:unitReturn.summary}:{})};const changed=await tx.roster60Adventure.updateMany({where:{id:row.id,playerId,revision:row.revision,status:'ACTIVE',activeBattleId:null},data:{status:'RETURNED',revision:{increment:1},pendingRewards:JSON.stringify({xp:{}}),settlement:JSON.stringify(settlement)}});if(changed.count!==1)return fail('STALE_REVISION');await tx.player.update({where:{id:playerId},data:{revision:{increment:1}}});if(receivedReward)await recordRosterDailyProgress(tx,playerId,'EXPEDITION',1,this.completionTime());return {...adventureDto({...row,status:'RETURNED',revision:row.revision+1,pendingRewards:JSON.stringify({xp:{}}),settlement:JSON.stringify(settlement)}),commander:commanderReward.commander,commanderReward};
  });}
 }
 /** Approved per-battle awards, never divided by party size. Fractional reserve XP is floored. */
@@ -62,10 +63,17 @@ export async function settleAdventureBattle(tx:Prisma.TransactionClient,row:{id:
  // Recover the quest marker from a server-created battle snapshot for an older active run.
  if(snap.story?.version==='story-battle-v1'&&snap.story.questId){if(saved.storyQuestId&&saved.storyQuestId!==snap.story.questId)return fail('ADVENTURE_STORY_CONTEXT_CHANGED');if(!saved.storyQuestId){saved.storyQuestId=snap.story.questId;saved.commanderPolicy=null;}}
  if(saved.party.length!==party.length||saved.party.some((f:Fighter)=>!party.some(x=>x.ownedId===f.ownedId)))return fail('ADVENTURE_STATE_CHANGED');
- const lost=party.every(f=>f.hp<=0);let xp=0;let xpByOwnedId:Record<string,number>={};
+ const lost=party.every(f=>f.hp<=0),unitPlan=storyUnitXpPlan(row,snap);let xp=0;let xpByOwnedId:Record<string,number>={};let unitReward:StoryUnitXpResult|null=null;
  if(!lost&&state.outcome==='win'&&!state.surrendered){
   const evidence=saved.commanderReturnEvidence,wins=evidence?.version===commanderReturnEvidenceVersion&&Number.isSafeInteger(evidence.wins)&&evidence.wins>=0?evidence.wins:0;
   if(!Number.isSafeInteger(wins+1))return fail('INVALID_REWARD');saved.commanderReturnEvidence={version:commanderReturnEvidenceVersion,wins:wins+1};
+ }
+ if(unitPlan){
+  if(saved.storyQuestId!==unitPlan.questId)return fail('STORY_UNIT_XP_CONTEXT_INVALID');
+  const effective:Record<string,string>={};for(const member of unitPlan.members){const original=saved.members.find((m:any)=>m.ownedId===member.ownedId),amount=pending.xp[member.ownedId]??0;if(!original||original.startingXp!==member.startingXp||original.reincarnation!==member.reincarnation||JSON.stringify(original.growth)!==JSON.stringify(member.growth)||JSON.stringify(original.reincarnationXpPolicy??null)!==JSON.stringify(member.reincarnationXpPolicy??null))return fail('ADVENTURE_STATE_CHANGED');if(!Number.isSafeInteger(amount)||amount<0)return fail('INVALID_REWARD');const next=BigInt(member.startingXp)+BigInt(amount);if(next>BigInt(Number.MAX_SAFE_INTEGER))return fail('INVALID_XP');effective[member.ownedId]=next.toString();}
+  unitReward=calculateStoryUnitXp(unitPlan,row,state,effective);xp=unitReward.xpAccepted;xpByOwnedId=unitReward.xpByOwnedId;
+  if(!lost)addStoryUnitXpEscrow(saved,pending,unitPlan,unitReward);
+ }else if(!lost&&state.outcome==='win'&&!state.surrendered){
   xp=snap.encounter.winXp;
   // Before participation was added, persisted server switch events are the authoritative fallback.
   const entered=[row.ownedId,...(state.participation??[]).map(p=>p.ownedId)];
@@ -76,5 +84,5 @@ export async function settleAdventureBattle(tx:Prisma.TransactionClient,row:{id:
  for(const m of saved.members){const changed=await tx.roster60Owned.updateMany({where:{id:m.ownedId,playerId:row.playerId,status:'BATTLE',totalXp:BigInt(m.startingXp)},data:{status:lost?'AVAILABLE':'ADVENTURE'}});if(changed.count!==1)return fail('UNIT_STATE_CHANGED');}
  const settlement=lost?{kind:'forced-return',lostRewards:pending}:null;
  const changed=await tx.roster60Adventure.updateMany({where:{id:run.id,playerId:row.playerId,revision:run.revision,status:'ACTIVE',activeBattleId:row.id},data:{activeBattleId:null,revision:{increment:1},state:JSON.stringify({...saved,party}),pendingRewards:JSON.stringify(lost?{xp:{}}:pending),status:lost?'LOST':'ACTIVE',settlement:settlement?JSON.stringify(settlement):null}});if(changed.count!==1)return fail('ADVENTURE_STATE_CHANGED');
- return {outcome:state.outcome,xpAwarded:0,xpEscrowed:xp,xpByOwnedId,xpPolicy:'adventure-participation-100-reserve-50-v1',adventureId:run.id,adventureStatus:lost?'LOST':'ACTIVE',pendingRewards:lost?{xp:{}}:pending};
+ return {outcome:state.outcome,xpAwarded:0,xpEscrowed:xp,xpByOwnedId,xpPolicy:unitPlan?'story-unit-equal-entered-v1':'adventure-participation-100-reserve-50-v1',...(unitReward?{xpDiscarded:unitReward.xpDiscarded,xpDeferred:0,unitXp:{...unitReward,delivery:'pending-return'}}:{}),adventureId:run.id,adventureStatus:lost?'LOST':'ACTIVE',pendingRewards:lost?{xp:{}}:pending};
 }

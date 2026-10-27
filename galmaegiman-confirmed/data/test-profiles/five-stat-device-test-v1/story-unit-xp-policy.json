@@ -1,0 +1,136 @@
+{
+  "approved": true,
+  "version": "story-unit-xp-campaign-test-v1",
+  "profileKind": "user-authorized-test-baseline",
+  "productionBalanceApproved": false,
+  "testValues": true,
+  "catalogVersion": "five-stat-device-test-v1",
+  "contentVersion": "story-progression-test-v1",
+  "scope": "accepted-quest-battles-only",
+  "distribution": "equal-actually-entered",
+  "loss": "zero-existing-story",
+  "surrender": "zero",
+  "draw": "zero",
+  "capOverflow": "discard-overflow",
+  "questCompletionUnitXp": "none",
+  "rewards": {
+    "STORY_01_01": {
+      "winXp": 1695,
+      "lossXp": 0
+    },
+    "STORY_02_01": {
+      "winXp": 1992,
+      "lossXp": 0
+    },
+    "STORY_03_01": {
+      "winXp": 7065,
+      "lossXp": 0
+    },
+    "STORY_04_01": {
+      "winXp": 5304,
+      "lossXp": 0
+    },
+    "RESIDENT_BLACKSMITH_01_01": {
+      "winXp": 1572,
+      "lossXp": 0
+    },
+    "RESIDENT_BLACKSMITH_01_02": {
+      "winXp": 1572,
+      "lossXp": 0
+    },
+    "STORY_05_01": {
+      "winXp": 7326,
+      "lossXp": 0
+    },
+    "STORY_06_01": {
+      "winXp": 13755,
+      "lossXp": 0
+    },
+    "STORY_07_01": {
+      "winXp": 17334,
+      "lossXp": 0
+    },
+    "RESIDENT_MERCHANT_01_01": {
+      "winXp": 3309,
+      "lossXp": 0
+    },
+    "RESIDENT_MERCHANT_01_02": {
+      "winXp": 3309,
+      "lossXp": 0
+    },
+    "STORY_08_01": {
+      "winXp": 14556,
+      "lossXp": 0
+    },
+    "STORY_09_01": {
+      "winXp": 25260,
+      "lossXp": 0
+    },
+    "STORY_10_01": {
+      "winXp": 29583,
+      "lossXp": 0
+    },
+    "STORY_11_01": {
+      "winXp": 34128,
+      "lossXp": 0
+    },
+    "STORY_12_01": {
+      "winXp": 57411,
+      "lossXp": 0
+    },
+    "STORY_12_02": {
+      "winXp": 57408,
+      "lossXp": 0
+    },
+    "STORY_15_01": {
+      "winXp": 71259,
+      "lossXp": 0
+    },
+    "RESIDENT_LIBRARIAN_01_01": {
+      "winXp": 9666,
+      "lossXp": 0
+    },
+    "RESIDENT_LIBRARIAN_01_02": {
+      "winXp": 9666,
+      "lossXp": 0
+    },
+    "STORY_16_01": {
+      "winXp": 40533,
+      "lossXp": 0
+    },
+    "STORY_17_01": {
+      "winXp": 65565,
+      "lossXp": 0
+    },
+    "RESIDENT_GUARD_01_01": {
+      "winXp": 11577,
+      "lossXp": 0
+    },
+    "RESIDENT_GUARD_01_02": {
+      "winXp": 11574,
+      "lossXp": 0
+    },
+    "STORY_18_01": {
+      "winXp": 73425,
+      "lossXp": 0
+    },
+    "STORY_19_01": {
+      "winXp": 52323,
+      "lossXp": 0
+    },
+    "STORY_20_01": {
+      "winXp": 27192,
+      "lossXp": 0
+    }
+  },
+  "notes": [
+    "All amounts and the +3-level reward pacing buffer are isolated test proposals, not production balance approval.",
+    "Uses the original non-reincarnated u01 growth thresholds: three actually entered sample units share 655359 XP, 218453 each at level 60. This is not a promise that all owned units reach 60.",
+    "The three-member sample starts u01/u02/u03 at level 1 with zero XP as an explicit ownership fixture; the third member is not a guaranteed onboarding grant.",
+    "Also check the guaranteed-ownership u01 plus common-choice u02 sample with the same rewards; two entered units receive larger shares and may reach the cap earlier.",
+    "After each rewarding quest, target the next actual encounter level plus 3, advance at least one level when equal, reach level 59 before the last boss and level 60 after it.",
+    "Two-fight adventures split a quest reward into multiples of three; HP carries between fights and unit levels change only on normal return. No mid-adventure XP level-up is assumed.",
+    "Enemy HP, power, level, defense, encounter order, prerequisites and Gang gates are unchanged. No repeat quest, extra normal battle, random drop, healing item or automatic reincarnation is budgeted.",
+    "Main commander events remain 4200 XP/level 43 and the existing four residents add 1800, total 6000/level 61, independently of this unit XP policy."
+  ]
+}

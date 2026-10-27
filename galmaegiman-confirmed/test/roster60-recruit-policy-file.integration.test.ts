@@ -13,8 +13,20 @@ it('approved policy: costs 2/6/10, reroll half 1/3/5, latest pools with 0.5% leg
 const suite=process.env.TEST_DB_URL?describe:describe.skip;
 suite('approved recruit policy file on isolated DB',()=>{
  let db:PrismaClient,id:string;const c=JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/catalog.json','utf8'));
- beforeAll(async()=>{const url=process.env.TEST_DB_URL!;if(!/^file:\/tmp\/galmaegiman-tests-[^/]+\/test.db$/.test(url))throw Error('isolated DB only');db=new PrismaClient({datasources:{db:{url}}});id=(await db.player.create({data:{identity:randomUUID(),credits:30}})).id;await new RosterOnboarding(db,()=>c).start(id);});
- afterAll(async()=>{await db.player.delete({where:{id}});await db.$disconnect();});
+ const fixtureIds=new Set<string>();
+ async function cleanupFixture(playerId:string){
+  if(!fixtureIds.has(playerId))throw Error('unknown recruit test fixture');
+  await db.$transaction(async tx=>{
+   // Successful claims record daily progress and may complete a mission. These
+   // legacy Player FKs do not cascade; roster-owned rows below do cascade.
+   await tx.dailyProgress.deleteMany({where:{playerId}});
+   await tx.auditEvent.deleteMany({where:{playerId}});
+   await tx.player.delete({where:{id:playerId}});
+  });
+  fixtureIds.delete(playerId);
+ }
+ beforeAll(async()=>{const url=process.env.TEST_DB_URL!;if(!/^file:\/tmp\/galmaegiman-tests-[^/]+\/test.db$/.test(url))throw Error('isolated DB only');db=new PrismaClient({datasources:{db:{url}}});id=(await db.player.create({data:{identity:randomUUID(),credits:30}})).id;fixtureIds.add(id);await new RosterOnboarding(db,()=>c).start(id);});
+ afterAll(async()=>{try{for(const playerId of [...fixtureIds])await cleanupFixture(playerId);}finally{await db?.$disconnect();}});
  it('info shows the same costs the server charges; start and reroll debit exactly once',async()=>{
   const service=new RecruitSessions(db,()=>c,()=>policy,()=>0);
   const info=await service.info(id);expect(info.enabled).toBe(true);
@@ -47,7 +59,7 @@ suite('approved recruit policy file on isolated DB',()=>{
  // Both ends of every positive probability band, across all three offers.
  const draws=policy.offers.flatMap(offer=>{let offset=0;return recruitWeightTickets(offer.weights).flatMap(([grade,count])=>{const start=offset;offset+=count;return [start,offset-1].map(ticket=>({offer,grade,ticket}));});});
  it.each(draws)('$offer.kind ticket $ticket grants $grade at its approved level exactly once',async({offer,grade,ticket})=>{
-  const player=await db.player.create({data:{identity:randomUUID(),credits:100}});
+  const player=await db.player.create({data:{identity:randomUUID(),credits:100}});fixtureIds.add(player.id);
   try{
    await new RosterOnboarding(db,()=>c).start(player.id);
    const pool=c.characters.filter((u:any)=>u.rarity===grade);
@@ -81,7 +93,7 @@ suite('approved recruit policy file on isolated DB',()=>{
    await expect(service.action(player.id,{...claim,requestId:randomUUID(),revision:done.revision})).rejects.toMatchObject({code:'STALE_REVISION'});
    expect(await credits()).toBe(100-offer.cost-offer.cost/2);
    expect(await service.read(player.id,start.sessionId)).toMatchObject({status:'CLAIMED',ownedId:owned.id,candidate:next.candidate});
-  }finally{await db.player.delete({where:{id:player.id}});}
+  }finally{await cleanupFixture(player.id);}
  });
  it('rejects disallowed pools and invalid percentages before changing balances',async()=>{
   const invalid:Record<string,number>[]=[{COMMON:100},{LIMITED:100},{TRANSCEND:100},{IMMORTAL:100},{ETERNAL:100},{RARE:99},{RARE:-1,EPIC:101},{RARE:NaN}];
