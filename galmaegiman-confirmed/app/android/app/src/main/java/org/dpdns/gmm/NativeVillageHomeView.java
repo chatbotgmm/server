@@ -19,6 +19,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   final Map<String,RectF> buildingBounds=new LinkedHashMap<>(),residentBounds=new LinkedHashMap<>();
   final VillageAmbientScene ambient=new VillageAmbientScene();
   final VillageDistrictScene districtScene=new VillageDistrictScene();
+  final VillageGroundShadows groundShadows=new VillageGroundShadows();
   final PointF actorPoint=new PointF();
   final java.util.List<VillageLayout.Placed> depthActors=new java.util.ArrayList<>();
   final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
@@ -183,6 +184,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     // Rear structures now stand ON the walkable soil/quay rather than hovering above the water.
     for(VillageLayout.Decoration decoration:layout.decorations)drawDecoration(canvas,decoration);
     drawLandmark(canvas);
+    groundShadows.draw(canvas,this);
     for(VillageLayout.Placed actor:depthActors)if(actor instanceof VillageLayout.Building)drawBuilding(canvas,(VillageLayout.Building)actor);else drawResident(canvas,(VillageLayout.Resident)actor);
     districtScene.draw(canvas,this,"foreground");
     canvas.restoreToCount(save);

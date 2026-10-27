@@ -95,7 +95,7 @@ tasks.register('bundleGameArt', Sync) {
         into 'native/village-loop-v2/assets'
     }
     from('../../../art/gpt/village-companions-20261027') {
-        include 'background.png', 'terrace.png', 'recruit.png', 'hideout.png'
+        include 'background.png', 'terrace.png', 'recruit.png', 'hideout.png', 'shadows.png'
         rename { 'companions-v3-' + it }
         into 'native/village-loop-v2/assets'
     }

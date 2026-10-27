@@ -61,9 +61,18 @@ final class VillageLayout {
       if(parallax<=0||parallax>1||repeatUnits<=0||top<0||bottom>1||top>=bottom)throw invalid();
     }
   }
+  /** Separate inspected bitmap ground shadow; never contributes an interactive mask. */
+  static final class GroundShadow {
+    final String asset;final double[] crop;final double anchorX,anchorY,widthRatio,opacity;
+    GroundShadow(JSONObject o)throws Exception{
+      asset=word(o,"asset");crop=crop(o,"crop");anchorX=number(o,"anchorX");anchorY=number(o,"anchorY");widthRatio=number(o,"widthRatio");opacity=number(o,"opacity");
+      if(anchorX<0||anchorX>1||anchorY<0||anchorY>1||widthRatio<=0||widthRatio>2||opacity<=0||opacity>1)throw invalid();
+      Set<String> allowed=new HashSet<>(java.util.Arrays.asList("asset","crop","anchorX","anchorY","widthRatio","opacity"));for(Iterator<String> it=o.keys();it.hasNext();)if(!allowed.contains(it.next()))throw invalid();
+    }
+  }
   static class Placed {
-    final String id,asset,surface; final double x,width,baseline,sourceX,sourceY;final String[] occludes;
-    Placed(JSONObject o) throws Exception {id=word(o,"id");asset=word(o,"asset");x=number(o,"x");width=number(o,"width");baseline=number(o,"baseline");surface=o.optString("surface","");sourceX=surface.isEmpty()?0:number(o,"sourceX");sourceY=surface.isEmpty()?0:number(o,"sourceY");occludes=o.has("occludes")?strings(o.getJSONArray("occludes")):new String[0];if(sourceX<0||sourceX>1||sourceY<0||sourceY>1)throw invalid();if(width<=0||width>2||baseline<0||baseline>1)throw invalid();}
+    final String id,asset,surface; final double x,width,baseline,sourceX,sourceY;final String[] occludes;final GroundShadow shadow;
+    Placed(JSONObject o) throws Exception {shadow=o.has("shadow")?new GroundShadow(o.getJSONObject("shadow")):null;id=word(o,"id");asset=word(o,"asset");x=number(o,"x");width=number(o,"width");baseline=number(o,"baseline");surface=o.optString("surface","");sourceX=surface.isEmpty()?0:number(o,"sourceX");sourceY=surface.isEmpty()?0:number(o,"sourceY");occludes=o.has("occludes")?strings(o.getJSONArray("occludes")):new String[0];if(sourceX<0||sourceX>1||sourceY<0||sourceY>1)throw invalid();if(width<=0||width>2||baseline<0||baseline>1)throw invalid();}
   }
   static final class Building extends Placed {
     final String name,sub; final String[] menu,actionIds;final double heightRatio;final double topClearanceDp;
@@ -130,6 +139,7 @@ final class VillageLayout {
     districtScenery=Collections.unmodifiableList(scenery);
     ArrayList<Placed> actors=new ArrayList<>();actors.addAll(buildings);actors.addAll(residents);
     for(Placed actor:actors){
+      if(actor.shadow!=null&&!assets.containsKey(actor.shadow.asset))throw invalid();
       if(!actor.surface.isEmpty()&&districtScenery(actor.surface)==null)throw invalid();
       for(String back:actor.occludes){boolean found=false;for(Placed other:actors)if(other.id.equals(back)&&other!=actor){found=true;for(String reverse:other.occludes)if(reverse.equals(actor.id))throw invalid();}if(!found)throw invalid();}
     }

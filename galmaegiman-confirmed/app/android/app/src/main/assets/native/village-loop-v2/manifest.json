@@ -11,8 +11,8 @@
   "sourceNote": "개별 건물·주민·지면과 내륙 배경2개를 유지한다. 동상5단계는 공통1024×1536캔버스 원본과 현재 서버단계 지연로딩을 사용한다. stage2는 재검토된 construction 후보이며 사용자 최종승인 대기. native 전체5단계 합성 재검토 필요.",
   "sourceCommit": "2f1890e1df37b426cbfa27ccce8cd293186ad512",
   "sourceParentCommit": "c37c24ecb9399abf0cb438b25412924ffbe921db",
-  "sourceFileCount": 26,
-  "sourceTotalBytes": 52714353,
+  "sourceFileCount": 27,
+  "sourceTotalBytes": 53990875,
   "pixelReview": {
     "reviewedBy": "root",
     "all13Opened": true,
@@ -892,6 +892,28 @@
       ],
       "renderBoundsAlphaThreshold": 128,
       "artReview": "root-technical-review-user-style-approval-pending"
+    },
+    "companions-shadows": {
+      "path": "native/village-loop-v2/assets/companions-v3-shadows.png",
+      "verified": true,
+      "crop": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-companions-20261027/shadows.png",
+      "sourceSha256": "10e07f017a038711fc9721507dd9044e9ddd9df59264f5d22d12401e353dd247",
+      "sourceGitBlob": "0f19f98a07a7d9bfe354932cecd451ad03703ac4",
+      "sourceBytes": 1276522,
+      "sourceWidth": 1536,
+      "sourceHeight": 1024,
+      "sourceMode": "RGBA",
+      "sourceAlphaRange": [
+        0,
+        253
+      ],
+      "artReview": "root-technical-review-user-shadow-approval-pending"
     }
   },
   "buildings": [
@@ -912,7 +934,20 @@
       "heightRatio": 0.62,
       "surface": "companions-terrace",
       "sourceX": 0.20992822966507177,
-      "sourceY": 0.8
+      "sourceY": 0.8,
+      "shadow": {
+        "asset": "companions-shadows",
+        "crop": [
+          0,
+          0.0,
+          1,
+          0.3330078125
+        ],
+        "anchorX": 0.36,
+        "anchorY": 0.7,
+        "widthRatio": 1.8,
+        "opacity": 0.26
+      }
     },
     {
       "id": "hideout",
@@ -932,7 +967,20 @@
       "surface": "companions-terrace",
       "sourceX": 0.5651913875598086,
       "sourceY": 0.6404255319148936,
-      "topClearanceDp": 24
+      "topClearanceDp": 24,
+      "shadow": {
+        "asset": "companions-shadows",
+        "crop": [
+          0,
+          0.3330078125,
+          1,
+          0.666015625
+        ],
+        "anchorX": 0.39,
+        "anchorY": 0.54,
+        "widthRatio": 1.6,
+        "opacity": 0.36
+      }
     },
     {
       "id": "archive",
@@ -1071,7 +1119,20 @@
       "occludes": [
         "recruit",
         "hideout"
-      ]
+      ],
+      "shadow": {
+        "asset": "companions-shadows",
+        "crop": [
+          0,
+          0.666015625,
+          1,
+          1.0
+        ],
+        "anchorX": 0.5,
+        "anchorY": 0.56,
+        "widthRatio": 1.1,
+        "opacity": 0.48
+      }
     }
   ],
   "decorations": [

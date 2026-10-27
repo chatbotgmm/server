@@ -42,28 +42,28 @@ public class NativeVillageHomeAssetsTest {
  @Test public void statuesLoadOnlyAuthenticatedCurrentStageAndDoNotBlockCoreReady()throws Exception{
   VillageLayout layout=VillageLayout.parse(manifest());Delayed source=new Delayed();NativeVillageHomeAssets assets=new NativeVillageHomeAssets(source);
   boolean[] current={true};int[] changes={0};assets.load(layout,()->current[0],()->changes[0]++);
-  assertEquals("Initial request set is only the twenty-one scene assets including image nameplates",21,source.paths.size());
+  assertEquals("Initial request set is only the twenty-two scene assets including image nameplates",22,source.paths.size());
   for(String path:source.paths)assertFalse(path.contains("statue-stage-"));
   Bitmap image=Bitmap.createBitmap(8,12,Bitmap.Config.ARGB_8888);
-  for(int i=0;i<21;i++)source.callbacks.get(i).accept(image);
+  for(int i=0;i<22;i++)source.callbacks.get(i).accept(image);
   assertTrue(assets.ready());assertEquals(0,assets.pending);
-  assets.loadStatue(layout,1,()->current[0],()->changes[0]++);assertEquals(22,source.paths.size());
+  assets.loadStatue(layout,1,()->current[0],()->changes[0]++);assertEquals(23,source.paths.size());
   assertTrue(assets.statuePending.contains("statue-stage-1"));assertTrue("Core ready never waits for statue",assets.ready());
-  assets.loadStatue(layout,1,()->current[0],()->changes[0]++);assertEquals(22,source.paths.size());
-  source.callbacks.get(21).accept(image);assertSame(image,assets.get("statue-stage-1"));
-  assets.loadStatue(layout,1,()->current[0],()->changes[0]++);assertEquals(22,source.paths.size());
-  assets.loadStatue(layout,3,()->current[0],()->changes[0]++);assertEquals(23,source.paths.size());
-  source.callbacks.get(22).accept(null);assertTrue(assets.statueErrors.contains("statue-stage-3"));assertTrue(assets.ready());
-  assets.loadStatue(layout,3,()->current[0],()->changes[0]++);assertEquals("Repeated state does not spin failed decode",23,source.paths.size());
+  assets.loadStatue(layout,1,()->current[0],()->changes[0]++);assertEquals(23,source.paths.size());
+  source.callbacks.get(22).accept(image);assertSame(image,assets.get("statue-stage-1"));
+  assets.loadStatue(layout,1,()->current[0],()->changes[0]++);assertEquals(23,source.paths.size());
+  assets.loadStatue(layout,3,()->current[0],()->changes[0]++);assertEquals(24,source.paths.size());
+  source.callbacks.get(23).accept(null);assertTrue(assets.statueErrors.contains("statue-stage-3"));assertTrue(assets.ready());
+  assets.loadStatue(layout,3,()->current[0],()->changes[0]++);assertEquals("Repeated state does not spin failed decode",24,source.paths.size());
   JSONObject rejectedManifest=manifest();rejectedManifest.getJSONObject("assets").getJSONObject("statue-stage-2").put("verified",false);
   VillageLayout rejectedFixture=VillageLayout.parse(rejectedManifest);
-  assets.loadStatue(rejectedFixture,2,()->current[0],()->changes[0]++);assertEquals("Explicitly unverified stage fixture is never attempted",23,source.paths.size());
-  assets.loadStatue(layout,2,()->current[0],()->changes[0]++);assertEquals("Current verified server stage 2 loads only itself",24,source.paths.size());
-  assertEquals("native/village-loop-v2/assets/statue-stage-2.png",source.paths.get(23));source.callbacks.get(23).accept(image);
-  assertSame(image,assets.get("statue-stage-2"));assets.loadStatue(layout,2,()->current[0],()->changes[0]++);assertEquals(24,source.paths.size());
-  assets.loadStatue(layout,4,()->current[0],()->changes[0]++);assertEquals(25,source.paths.size());
-  assets.cancel();source.callbacks.get(24).accept(image);assertNull("Cancelled generation cannot install art",assets.get("statue-stage-4"));
-  current[0]=false;assets.loadStatue(layout,5,()->current[0],()->changes[0]++);assertEquals("Inactive account cannot request future art",25,source.paths.size());
+  assets.loadStatue(rejectedFixture,2,()->current[0],()->changes[0]++);assertEquals("Explicitly unverified stage fixture is never attempted",24,source.paths.size());
+  assets.loadStatue(layout,2,()->current[0],()->changes[0]++);assertEquals("Current verified server stage 2 loads only itself",25,source.paths.size());
+  assertEquals("native/village-loop-v2/assets/statue-stage-2.png",source.paths.get(24));source.callbacks.get(24).accept(image);
+  assertSame(image,assets.get("statue-stage-2"));assets.loadStatue(layout,2,()->current[0],()->changes[0]++);assertEquals(25,source.paths.size());
+  assets.loadStatue(layout,4,()->current[0],()->changes[0]++);assertEquals(26,source.paths.size());
+  assets.cancel();source.callbacks.get(25).accept(image);assertNull("Cancelled generation cannot install art",assets.get("statue-stage-4"));
+  current[0]=false;assets.loadStatue(layout,5,()->current[0],()->changes[0]++);assertEquals("Inactive account cannot request future art",26,source.paths.size());
  }
 
 }

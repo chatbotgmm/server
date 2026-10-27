@@ -146,9 +146,9 @@ public class NativeVillageBuildDesignReviewTest {
 
   JSONArray checkHome(MainActivity h) throws Exception {
     NativeVillageHomeView view = h.villageHome.view;
-    assertTrue("All twenty-one core assets and the current statue must load before the APK design gate", view.assets.ready());
-    assertEquals(26, view.layout.assets.size());
-    assertEquals(22, view.assets.images.size());
+    assertTrue("All twenty-two core assets and the current statue must load before the APK design gate", view.assets.ready());
+    assertEquals(27, view.layout.assets.size());
+    assertEquals(23, view.assets.images.size());
     assertEquals(0, view.assets.pending);
     assertEquals(0, view.assets.missing);
     java.util.Set<String> decorationAssets = new java.util.HashSet<>();

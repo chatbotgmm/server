@@ -28,8 +28,8 @@ public class VillageLayoutTest {
     assertEquals(8,actual.worldUnits,0);assertEquals(650,actual.minimumUnitDp,0);assertEquals(48,actual.minimumTouchDp,0);
     assertEquals(4,actual.districts.size());assertEquals(6,actual.buildings.size());assertEquals(4,actual.residents.size());
     assertEquals("verified-local-assets",actual.artworkStatus);assertEquals("manifest-unavailable-placeholder",fallback.artworkStatus);
-    JSONObject pinned=raw();assertEquals("2f1890e1df37b426cbfa27ccce8cd293186ad512",pinned.getString("sourceCommit"));assertEquals(26,pinned.getInt("sourceFileCount"));
-    assertEquals(26,actual.assets.size());assertEquals(8,actual.decorations.size());
+    JSONObject pinned=raw();assertEquals("2f1890e1df37b426cbfa27ccce8cd293186ad512",pinned.getString("sourceCommit"));assertEquals(27,pinned.getInt("sourceFileCount"));
+    assertEquals(27,actual.assets.size());assertEquals(8,actual.decorations.size());
     assertEquals(13,fallback.assets.size());assertTrue(fallback.decorations.isEmpty());
     for(VillageLayout.Asset asset:actual.assets.values()){
       if(!asset.required)assertTrue(asset.id.startsWith("statue-stage-"));
@@ -83,7 +83,7 @@ public class VillageLayoutTest {
   }
   static boolean fallbackCore(String id){return VillageLayout.referenceLayout().assets.containsKey(id);}
   @Test public void pendingArtNeverClaimsVerifiedPixelsOrUsesTheWhiteResidentSheetDirectly()throws Exception{
-    VillageLayout layout=VillageLayout.parse(NativeVillageHomeAssetsTest.pendingManifest());assertEquals("pending-verified-pixels",layout.artworkStatus);assertEquals(26,layout.assets.size());assertEquals(8,layout.decorations.size());
+    VillageLayout layout=VillageLayout.parse(NativeVillageHomeAssetsTest.pendingManifest());assertEquals("pending-verified-pixels",layout.artworkStatus);assertEquals(27,layout.assets.size());assertEquals(8,layout.decorations.size());
     for(VillageLayout.Asset asset:layout.assets.values()){assertFalse(asset.verified);assertFalse(asset.useSheetDirectly);if(fallbackCore(asset.id)){if(java.util.Arrays.asList("recruit","hideout","patrol").contains(asset.id)){JSONObject source=raw().getJSONObject("assets").getJSONObject(asset.id);assertTrue(source.getString("sourcePath").contains("village-companions-20261027/"));assertTrue(source.getString("sourceSha256").matches("[a-f0-9]{64}"));}else assertFalse(asset.sourceLibraryId.isEmpty());}}
     assertEquals("patrol",layout.resident("guard").asset);
     HashSet<String> silhouettes=new HashSet<>();for(VillageLayout.Resident resident:layout.residents)silhouettes.add(resident.silhouette);assertEquals(4,silhouettes.size());

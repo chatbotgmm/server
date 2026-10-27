@@ -74,4 +74,27 @@ public class NativeVillageDistrictSceneTest {
       assertTrue("Fixture genuinely exercises sprite over visible caption lane",overlaps>0);NativeVillageHomeTest.tapAt(v,hitX,hitY);assertEquals(java.util.Collections.singletonList("party"),h.routes);
     }
   }
+  @Test public void groundShadowContractAddsNoTargetOrGeometryAndRejectsInvalidReferences()throws Exception{
+    JSONObject data=NativeVillageHomeAssetsTest.manifest();VillageLayout before=VillageLayout.parse(data);
+    JSONObject shadow=MainActivity.obj("asset","nameplates","crop",new JSONArray().put(0).put(0).put(1).put(1.0/6),"anchorX",.375,"anchorY",.3125,"widthRatio",1.1,"opacity",.5);
+    data.getJSONArray("buildings").getJSONObject(0).put("shadow",shadow);VillageLayout after=VillageLayout.parse(data);
+    assertEquals(before.buildings.size(),after.buildings.size());assertEquals(before.residents.size(),after.residents.size());
+    for(VillageLayout.Building actor:before.buildings){VillageLayout.Building copy=after.building(actor.id);assertEquals(actor.heightRatio,copy.heightRatio,0);assertEquals(actor.sourceX,copy.sourceX,0);assertEquals(actor.sourceY,copy.sourceY,0);assertArrayEquals(actor.actionIds,copy.actionIds);}
+    shadow.put("asset","not-an-asset");assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(data));shadow.put("asset","nameplates").put("opacity",2);assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(data));shadow.put("opacity",.5).put("actionIds",new JSONArray().put("party"));assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(data));
+  }
+  @Test public void captureGroundShadowCorrectionWithoutMovingActorsAndWithExactEightUnitLoop()throws Exception{
+    for(NativeHomePartyFeedbackTest.Profile profile:new NativeHomePartyFeedbackTest.Profile[]{NativeVillageHomeTest.PHONE,new NativeHomePartyFeedbackTest.Profile("village-1280x720",1280,720,160,1,0,0,0,0)}){
+      helper.configure(profile);try(ActivityController<MainActivity> activity=helper.flow.start()){
+        MainActivity h=activity.get();fixture.prepare(h);NativeVillageHomeView v=fixture.open(h,profile);LocalGameArtTest.drain();helper.layout(h,profile);v.ambient.fixedTime=0L;v.moveCameraUnits(.25-v.camera.cameraUnits());helper.layout(h,profile);
+        assertTrue(v.assets.ready());assertEquals(6,v.buildingButtons.size());assertEquals(4,v.residentButtons.size());
+        Bitmap atlas=v.assets.images.remove("companions-shadows");assertNotNull(atlas);Bitmap before=NativeHomePartyFeedbackTest.render(h.root);v.assets.images.put("companions-shadows",atlas);Bitmap after=NativeHomePartyFeedbackTest.render(h.root);
+        try{
+          int changed=0;for(int y=0;y<after.getHeight();y++)for(int x=0;x<after.getWidth();x++)if(before.getPixel(x,y)!=after.getPixel(x,y)){changed++;assertTrue("Shadow alters only the ground half, never sky/roof",y>after.getHeight()*.45);}
+          assertTrue("Imported shadow mask visibly affects real ground pixels",changed>100);
+          NativeVillageHomeArtTest.png(NativeVillageHomeArtTest.output().resolve(profile.name+"-companions-shadow-before.png"),before);NativeVillageHomeArtTest.png(NativeVillageHomeArtTest.output().resolve(profile.name+"-companions-shadow-after.png"),after);
+          v.moveCameraUnits(8);helper.layout(h,profile);Bitmap repeated=NativeHomePartyFeedbackTest.render(h.root);try{assertTrue("Ground shadows preserve exact full-frame 8U closure",after.sameAs(repeated));}finally{repeated.recycle();}
+        }finally{before.recycle();after.recycle();}
+      }
+    }
+  }
 }
