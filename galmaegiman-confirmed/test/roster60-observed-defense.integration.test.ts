@@ -1,12 +1,14 @@
 import {beforeAll,afterAll,describe,it,expect} from 'vitest';
 import {PrismaClient} from '@prisma/client';
 import {randomUUID} from 'node:crypto';
-import {writeFileSync} from 'node:fs';
+import {readFileSync,writeFileSync} from 'node:fs';
 import {RosterBattle} from '../src/roster60-battle.js';
 import {RosterPvp} from '../src/roster60-pvp.js';
 import {RosterLibrary} from '../src/roster60-library.js';
 import {skillElements} from '../src/battle/roster60-rules.js';
 const suite=process.env.TEST_DB_URL?describe:describe.skip;
+const normalXpPolicy=JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/normal-xp-policy.json','utf8'));
+
 suite('account observed reactions commit with actual battle transitions (isolated SQLite)',()=>{
  let db:PrismaClient;const players:string[]=[];
  const makeUnit=(id:string)=>({id,name:id==='u01'?'갈매미맨':id,rarity:'COMMON',stats:{hp:1000,mp:100,durability:0,statusResistance:0,speed:id==='u01'?30:10},
@@ -130,7 +132,18 @@ suite('account observed reactions commit with actual battle transitions (isolate
   expect(await db.roster60ObservedDefense.count({where:{playerId:id}})).toBe(1);
  });
  async function pair(e:ReturnType<typeof environment>){
-  const a=await account(),b=await account(),pvp=new RosterPvp(db,()=>e.catalog,()=>e.policy);
+  // Only the PvP observation fixture needs a complete normal-XP cap curve.
+  // Preserve every existing growth point and combat stat; appended thresholds
+  // are synthetic test data and do not change the short PvE fixtures above.
+  for(const unit of e.catalog.characters){
+   const growth=structuredClone(unit.growth),combat=structuredClone(unit.combatGrowth),lastGrowth=growth.at(-1),lastCombat=combat.at(-1);
+   while(unit.growth.length<99)unit.growth.push({totalXp:lastGrowth.totalXp+(unit.growth.length-growth.length+1)*1000,maxMp:lastGrowth.maxMp});
+   while(unit.combatGrowth.length<99)unit.combatGrowth.push({...lastCombat});
+   expect(unit.growth.slice(0,growth.length)).toEqual(growth);expect(unit.combatGrowth.slice(0,combat.length)).toEqual(combat);
+  }
+  // 관측 경계 시험용의 명시적 일반게임 경험치 원본이다. 운영 수치가 아니다.
+  const pvpPolicy={...e.policy,encounters:[...e.policy.encounters,{id:'observation-normal-xp-fixture',speciesId:'u02',level:1,tutorial:false,mode:'duel',winXp:1,lossXp:1}]};
+  const a=await account(),b=await account(),pvp=new RosterPvp(db,()=>e.catalog,()=>pvpPolicy,Date.now,()=>({...normalXpPolicy,catalogVersion:e.catalog.version}));
   await pvp.party(a,[(await owned(a)).id]);await pvp.party(b,[(await owned(b,'u02')).id]);
   await pvp.join(a,{requestId:randomUUID(),mode:'normal'});const matched:any=await pvp.join(b,{requestId:randomUUID(),mode:'normal'}),battleId=matched.battle.battleId;
   await pvp.accept(a,{requestId:randomUUID(),battleId,revision:0,accept:true});const v:any=await pvp.accept(b,{requestId:randomUUID(),battleId,revision:0,accept:true});

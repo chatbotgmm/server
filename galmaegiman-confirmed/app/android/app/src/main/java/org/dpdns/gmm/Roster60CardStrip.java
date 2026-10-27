@@ -40,23 +40,37 @@ final class Roster60CardStrip extends InertialCardScrollView {
   requestLayout();
  }
  @Override protected void onMeasure(int widthSpec,int heightSpec){
-  int width=MeasureSpec.getSize(widthSpec)-getPaddingLeft()-getPaddingRight();
+  // Weighted parents probe several widths before committing the same viewport.
+  // Never resize cards or stop a finger/fling for those intermediate probes.
+  int viewport=getWidth()>0?getWidth():MeasureSpec.getSize(widthSpec);
+  int width=viewport-getPaddingLeft()-getPaddingRight();
   if(width>0){
    int card=Roster60StripPosition.cardWidth(width,minimum,gap);
    if(measuredCardWidth!=card||measuredCount!=cards.getChildCount()){
-    if(cards.getChildCount()>0&&cards.getChildAt(0).getLayoutParams().width!=card){remember();stopMotion();restoring=true;}
     for(int i=0;i<cards.getChildCount();i++){cards.getChildAt(i).getLayoutParams().width=card;widthAssignments++;}
     measuredCardWidth=card;measuredCount=cards.getChildCount();
    }
   }
   super.onMeasure(widthSpec,heightSpec);
  }
+ @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){
+  if(w!=oldw){
+   // Child positions still describe the old viewport here. Save that anchor
+   // once, then let the next real layout measure against the committed width.
+   if(oldw>0){remember();stopMotion();restoring=true;}
+   measuredCardWidth=-1;requestLayout();
+  }
+  super.onSizeChanged(w,h,oldw,oldh);
+ }
  @Override protected void onLayout(boolean changed,int l,int t,int r,int b){
   super.onLayout(changed,l,t,r,b);
   if(restoring){
    int width=cards.getChildCount()==0?minimum:cards.getChildAt(0).getWidth();
-   int index=Roster60StripPosition.index(ids.toArray(new String[0]),anchor,anchorIndex);
-   scrollTo(Roster60StripPosition.scroll(index,offset,width,gap,getWidth(),ids.size()),0);restoring=false;
+   int expected=Roster60StripPosition.cardWidth(getWidth()-getPaddingLeft()-getPaddingRight(),minimum,gap);
+   if(cards.getChildCount()==0||width==expected){
+    int index=Roster60StripPosition.index(ids.toArray(new String[0]),anchor,anchorIndex);
+    scrollTo(Roster60StripPosition.scroll(index,offset,width,gap,getWidth(),ids.size()),0);restoring=false;
+   }else requestLayout();
   }
   visibleArt();
  }

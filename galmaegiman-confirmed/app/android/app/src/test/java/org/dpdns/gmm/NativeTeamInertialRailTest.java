@@ -27,12 +27,22 @@ public class NativeTeamInertialRailTest {
   @Before public void setup() { helper.isolate(); }
   @After public void restore() { helper.restore(); }
 
+  void openLegacyTeam(MainActivity h, Profile profile) throws Exception {
+    // MainActivity.team() now opens the new-60 product editor, covered by
+    // Roster60CardStripInertialTest. Exercise this retained legacy rail explicitly.
+    helper.layout(h, profile);
+    h.selectionMode = "story";
+    h.menus.teamDraft = null;
+    h.menus.team();
+    helper.settle(h, profile);
+  }
+
   @Test public void allCandidatesShareOneRailWithMultipleCardsVisible() throws Exception {
     for (Profile profile : PROFILES) {
       helper.configure(profile);
       try (ActivityController<MainActivity> controller = helper.flow.start()) {
         MainActivity h = controller.get(); Api api = helper.prepare(h);
-        helper.show(h, profile, "party-story");
+        openLegacyTeam(h, profile);
         InertialCardScrollView rail = (InertialCardScrollView) required(h, "team-inline-candidates");
         ViewGroup row = (ViewGroup) rail.getChildAt(0);
         assertEquals("Every candidate stays in the same continuous strip", IDS.length, row.getChildCount());
@@ -48,7 +58,7 @@ public class NativeTeamInertialRailTest {
     Profile profile = PROFILES[0]; helper.configure(profile);
     try (ActivityController<MainActivity> controller = helper.flow.start()) {
       MainActivity h = controller.get(); Api api = helper.prepare(h);
-      helper.show(h, profile, "party-story");
+      openLegacyTeam(h, profile);
       InertialCardScrollView rail = (InertialCardScrollView) required(h, "team-inline-candidates");
       List<String> before = new ArrayList<>(h.menus.teamDraft);
       long start = SystemClock.uptimeMillis();

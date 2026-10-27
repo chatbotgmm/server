@@ -91,6 +91,78 @@ public class NativeRevealInertialRailTest {
     }
   }
 
+  @Test public void delayedReassessmentReadKeepsReleasedNativeMotionAndExistingCards() throws Exception {
+    try (NativeResultReassessmentSwipeTest.Session s = fixture.new Session()) {
+      s.api.holdProgression = true;
+      JSONObject result = fixture.payload(); String original = result.toString();
+      s.attach(result); idle(200); s.layout();
+      assertEquals("The actual metadata read is still pending", 1, s.api.progressionReads.size());
+      NativeReveal.RevealStrip strip = s.reveal.resultStrip;
+      NativeReveal.RevealCard first = s.reveal.pageCards.get(0);
+      long down = SystemClock.uptimeMillis();
+      float x = strip.getWidth() * .75f, y = strip.getHeight() * .5f;
+      fixture.touch(strip, MotionEvent.ACTION_DOWN, down, down, x, y);
+      for (int step = 1; step <= 3; step++) {
+        idle(16);
+        fixture.touch(strip, MotionEvent.ACTION_MOVE, down, SystemClock.uptimeMillis(), x - step * 12, y);
+      }
+      idle(16);
+      fixture.touch(strip, MotionEvent.ACTION_UP, down, SystemClock.uptimeMillis(), x - 48, y);
+      int released = strip.getScrollX();
+      assertTrue("Real touch movement must precede the release", released > 0);
+      for (int frame = 0; frame < 3; frame++) { idle(16); strip.computeScroll(); }
+      int beforeRead = strip.getScrollX();
+      assertTrue("Release advances through native frames before the response", beforeRead > released);
+
+      s.api.deliverProgression(); s.layout();
+      int last = beforeRead, advances = 0;
+      for (int frame = 0; frame < 6; frame++) {
+        idle(16); strip.computeScroll();
+        int current = strip.getScrollX();
+        assertTrue("A metadata response cannot jump backwards", current >= last);
+        if (current > last) advances++;
+        last = current;
+      }
+      assertTrue("The response must not abort an ongoing native trajectory", advances >= 2);
+      assertSame("Metadata refresh keeps the same card views", first, s.reveal.pageCards.get(0));
+      assertNotNull("Server-approved reassessment still appears", fixture.icon(s.reveal, 0));
+      assertEquals(original, result.toString());
+      assertEquals(0, s.flow.selected); assertTrue(s.api.bodies.isEmpty());
+    }
+  }
+
+  @Test public void delayedMetadataCannotCancelEitherDirectionOfAnActiveFingerDrag() throws Exception {
+    for (int direction : new int[] {-1, 1}) {
+      try (NativeResultReassessmentSwipeTest.Session s = fixture.new Session()) {
+        s.api.holdProgression = true;
+        JSONObject result = fixture.payload(); String original = result.toString();
+        s.attach(result); idle(200); s.layout();
+        NativeReveal.RevealStrip strip = s.reveal.resultStrip;
+        NativeReveal.RevealCard first = s.reveal.pageCards.get(0);
+        strip.scrollTo((strip.cardsRow.getWidth() - strip.getWidth()) / 2, 0); idle(200);
+        int start = strip.getScrollX();
+        long down = SystemClock.uptimeMillis();
+        float x = strip.getWidth() * .5f, y = strip.getHeight() * .5f;
+        fixture.touch(strip, MotionEvent.ACTION_DOWN, down, down, x, y);
+        for (int step = 1; step <= 2; step++) {
+          idle(16);
+          fixture.touch(strip, MotionEvent.ACTION_MOVE, down, SystemClock.uptimeMillis(), x + direction * step * 40, y);
+        }
+        int beforeRead = strip.getScrollX();
+        assertTrue("The finger owns the row before the read", (beforeRead - start) * direction < 0);
+        s.api.deliverProgression(); s.layout();
+        assertEquals("Metadata does not reset the current finger offset", beforeRead, strip.getScrollX());
+        idle(16);
+        fixture.touch(strip, MotionEvent.ACTION_MOVE, down, SystemClock.uptimeMillis(), x + direction * 120, y);
+        assertTrue("The same finger keeps tracking after the response", (strip.getScrollX() - beforeRead) * direction < 0);
+        fixture.touch(strip, MotionEvent.ACTION_CANCEL, down, SystemClock.uptimeMillis(), x + direction * 120, y);
+        assertSame(first, s.reveal.pageCards.get(0));
+        assertEquals(original, result.toString());
+        assertEquals(0, s.flow.selected); assertTrue(s.api.bodies.isEmpty());
+      }
+    }
+  }
+
   @Test public void fiftyResultsKeepEverySlotButOnlyNearbyArtworkAttached() throws Exception {
     try (NativeResultReassessmentSwipeTest.Session s = fixture.new Session()) {
       JSONArray items = new JSONArray();

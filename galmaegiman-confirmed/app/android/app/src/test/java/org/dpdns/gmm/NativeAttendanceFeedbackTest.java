@@ -98,6 +98,7 @@ public class NativeAttendanceFeedbackTest {
       if(path.equals("daily")) done.done(daily,null);
       else if(path.equals("native/state")) done.done(state,null);
       else if(path.equals("native/roster60/home")) done.done(MainActivity.obj("rebirthUnlocked",false,"rebirthIntroPending",false,"mailUnread",0),null);
+      else if (path.equals("native/roster60/commander")) done.done(NativeCommander.pending("POLICY_PENDING"),null);
       else if(path.equals("pvp/rank")) done.done(NativeThemeReviewTest.rank(),null);
       else if(path.equals("draw")) done.done(NativeRecruitmentProbabilityTest.serverEconomyFixture(),null);
       else if(path.equals("me")) done.done(state.optJSONObject("me"),null);

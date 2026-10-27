@@ -11,16 +11,16 @@ final class NativePlayMenu {
   if(h.api.token().isEmpty()){h.login();return;}
   LinearLayout choices=h.menus.modePage("플레이","playMenu");choices.setTag("play-menu-choices");
   final int epoch=h.epoch;final String owner=h.api.token();
-  String[] labels={"스토리","일반게임","랭크게임"},tags={"play-story","play-normal","play-rank"};
+  String[] labels={"탐험","스토리","일반게임","랭크게임"},tags={"play-explore","play-story","play-normal","play-rank"};
   for(int i=0;i<labels.length;i++){
    final int choice=i;
    Button button=h.menus.modeCard(labels[i],i==0?0:1,()->{
     if(h.busy||h.updateBlocks()||h.isDestroyed()||epoch!=h.epoch||!"playMenu".equals(h.screen)||!owner.equals(h.api.token()))return;
-    if(choice==0)h.openRosterStoryEntry();else h.openRosterPvp(choice==1?"normal":"rank");
+    if(choice==0)h.openRosterBattle(Roster60BattleMode.ADVENTURE);else if(choice==1)h.openRosterStory();else h.openRosterPvp(choice==2?"normal":"rank");
    });
    button.setTag(tags[i]);
-   if(i==0)NativeTutorialController.anchorPreservingTag(button,"story");
-   LinearLayout.LayoutParams slot=new LinearLayout.LayoutParams(0,-1,1);if(i<2)slot.rightMargin=h.dp(12);choices.addView(button,slot);
+   if(i==1)NativeTutorialController.anchorPreservingTag(button,"story");
+   LinearLayout.LayoutParams slot=new LinearLayout.LayoutParams(0,-1,1);if(i<labels.length-1)slot.rightMargin=h.dp(8);choices.addView(button,slot);
   }
  }
 }

@@ -35,6 +35,7 @@ public class NativeRoster60ProductBattleTest {
    if(p.endsWith("adventure/active")){cb.done(MainActivity.obj("adventures",run==null?new JSONArray():new JSONArray().put(run)),null);return;}
    if(p.endsWith("adventure/return")){actions.add(b);pending=cb;return;}
    if(p.endsWith("battle/options")){cb.done(null,"BATTLE_POLICY_PENDING");return;}
+   if(p.equals("native/roster60/story/state")){cb.done(NativeRoster60StoryTest.state(),null);return;}
    if(p.equals("native/menu-access")){cb.done(MainActivity.obj("features",MainActivity.obj("rebirth",MainActivity.obj("enabled",unlocked))),null);return;}
    if(p.endsWith("roster60/home")){cb.done(MainActivity.obj("rebirthUnlocked",unlocked,"rebirthIntroPending",introPending,"mailUnread",1),null);return;}
    if(p.endsWith("rebirth-intro/complete")){intros++;introPending=false;cb.done(MainActivity.obj("complete",true),null);return;}
@@ -45,17 +46,17 @@ public class NativeRoster60ProductBattleTest {
  // native layout is measured separately and is not a physical-device rendering claim.
  void home(MainActivity h){
   if(h.root.getChildCount()>0&&h.root.getChildAt(0) instanceof LobbyView){LobbyView old=(LobbyView)h.root.getChildAt(0);if(old.live&&!old.isAttachedToWindow())old.onDetachedFromWindow();}
-  h.home();helper.layout(h,NativeHomePartyFeedbackTest.PROFILES[0]);LobbyView lobby=(LobbyView)h.root.getChildAt(0);if(!lobby.isAttachedToWindow())lobby.onAttachedToWindow();
+  NativeHomePartyFeedbackTest.legacyHome(h);helper.layout(h,NativeHomePartyFeedbackTest.PROFILES[0]);LobbyView lobby=(LobbyView)h.root.getChildAt(0);if(!lobby.isAttachedToWindow())lobby.onAttachedToWindow();
  }
  static void touch(Button b,int action,long down){MotionEvent e=MotionEvent.obtain(down,android.os.SystemClock.uptimeMillis(),action,5,5,0);b.dispatchTouchEvent(e);e.recycle();}
  static List<Button> buttons(View v){List<Button> out=new ArrayList<>();if(v instanceof Button)out.add((Button)v);if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)out.addAll(buttons(((ViewGroup)v).getChildAt(i)));return out;}
  static Button named(View root,String label){for(Button b:buttons(root))if(b.getText().toString().startsWith(label))return b;throw new AssertionError(label);}
  @Test public void homePlayOpensChoicesAndAuthenticatedBattleKeepsSixthSkillRequestOnRetry()throws Exception{
   try(ActivityController<MainActivity> c=helper.flow.start()){
-   MainActivity h=c.get();helper.prepare(h);Api api=new Api(h);h.api=api;helper.layout(h,NativeHomePartyFeedbackTest.PROFILES[0]);h.getSharedPreferences("roster60_product_battle",0).edit().clear().commit();home(h);
-   ((Button)h.root.findViewWithTag("lobby-play")).performClick();assertEquals("playMenu",h.screen);assertFalse(api.paths.contains("native/roster60/battle/active"));h.root.findViewWithTag("play-story").performClick();assertEquals("roster60StoryEntry",h.screen);assertTrue(api.actions.isEmpty());assertFalse(api.paths.contains("native/roster60/battle/active"));
-   // The new story entry waits for authored content. Exercise the existing authenticated
-   // combat/retry contract separately rather than pretending the tutorial is that story.
+   MainActivity h=c.get();helper.prepare(h);Api api=new Api(h);h.api=api;helper.layout(h,NativeHomePartyFeedbackTest.PROFILES[0]);h.getSharedPreferences("roster60_product_battle",0).edit().clear().commit();h.home();helper.layout(h,NativeHomePartyFeedbackTest.PROFILES[0]);
+   assertTrue(h.root.getChildAt(0) instanceof NativeVillageHomeView);h.villageHome.view.moveCameraUnits(4);h.root.findViewWithTag("village-building-harbor").performClick();org.robolectric.Shadows.shadowOf(h.villageHome.menu).clickOnItem(1);assertEquals(NativeRoster60StoryController.SCREEN,h.screen);assertTrue(api.actions.isEmpty());assertFalse(api.paths.contains("native/roster60/battle/active"));
+   // Story entry reads progress. Exercise the shared authenticated combat/retry
+   // contract separately from quest acceptance and the authored story flow.
    h.openRosterBattle(Roster60BattleMode.STORY);assertEquals("roster60Battle",h.screen);assertTrue(api.paths.contains("native/roster60/battle/active"));assertFalse("Complete authorized active DTO needs no duplicate read",api.paths.contains("native/roster60/battle/read"));
    NativeRoster60Battle battle=h.rosterBattle;assertEquals(View.GONE,battle.stats.getVisibility());assertEquals(2,battle.view.getJSONObject("state").getJSONArray("fighters").getJSONObject(0).getJSONObject("stats").getInt("statusResistance"));named(battle.panel,"기술").performClick();
    Button sixth=named(battle.panel,"시험기술5");assertNotNull(sixth);
@@ -71,7 +72,7 @@ public class NativeRoster60ProductBattleTest {
    named(h.rosterBattle.panel,"집중").performClick();assertEquals("focus",api.actions.get(2).getJSONObject("action").getString("kind"));api.pending.done(null,"STALE_REVISION");
   }
  }
- @Test public void homeKeepsRebirthEntryAndMailWhileBattlePolicyPendingIsVisible()throws Exception{
+ @Test public void preservedLegacyLobbyKeepsRebirthEntryAndMailWhileBattlePolicyPendingIsVisible()throws Exception{
   try(ActivityController<MainActivity> c=helper.flow.start()){
    MainActivity h=c.get();helper.prepare(h);Api api=new Api(h);h.api=api;helper.layout(h,NativeHomePartyFeedbackTest.PROFILES[0]);h.getSharedPreferences("roster60_product_battle",0).edit().clear().commit();home(h);
    org.robolectric.shadows.ShadowLooper.idleMainLooper();LobbyView lobby=(LobbyView)h.root.getChildAt(0);lobby.fetchRosterHome();assertFalse(lobby.rebirthUnlocked);assertEquals("환생 · 조건과 안내 확인",lobby.buttons.get(14).getContentDescription());assertTrue(lobby.buttons.get(15).isEnabled());assertTrue("mail badge live="+lobby.live+" current="+lobby.current()+" rootAttached="+h.root.isAttachedToWindow()+" decorAttached="+h.getWindow().getDecorView().isAttachedToWindow()+" screen="+h.screen,lobby.badges[15]);

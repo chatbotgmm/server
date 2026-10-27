@@ -186,6 +186,47 @@ public class NativeRecruitInertialRailTest {
     }
   }
 
+  @Test public void aSeparateTapImmediatelyAfterStoppingFlingSelectsWithoutASecondDeadPeriod() throws Exception {
+    try (ActivityController<MainActivity> controller = helper.flow.start()) {
+      MainActivity h = controller.get(); Api api = new Api(h);
+      NativeRecruitSession screen = open(h, api, 12);
+      screen.rail.fling(1800);
+      tap(screen, 1);
+      assertEquals("The first gesture only stops the fling", 0, screen.selected);
+      assertTrue("The native trajectory is actually stopped", scroller(screen).isFinished());
+      tap(screen, 1);
+      assertEquals("The next separate deliberate tap works as soon as the rail is stopped", 1, screen.selected);
+      assertTrue("A selection still sends no claim or reroll", api.paths.isEmpty());
+    }
+  }
+
+  @Test public void releasedOffsetKeepsAdvancingThroughActualPortraitAndLayoutCallbacks() throws Exception {
+    try (ActivityController<MainActivity> controller = helper.flow.start()) {
+      MainActivity h = controller.get(); Api api = new Api(h);
+      NativeRecruitSession screen = open(h, api, 30);
+      float x = screen.rail.getWidth() * .8f, y = screen.rail.getHeight() * .65f;
+      long down = SystemClock.uptimeMillis();
+      touch(screen.rail, MotionEvent.ACTION_DOWN, down, down, x, y);
+      for (int i = 1; i <= 4; i++) {
+        ShadowLooper.idleMainLooper(16, TimeUnit.MILLISECONDS);
+        touch(screen.rail, MotionEvent.ACTION_MOVE, down, SystemClock.uptimeMillis(), x - i * 50, y);
+      }
+      assertTrue("The actual candidate rail follows the drag", screen.rail.getScrollX() > 0);
+      ShadowLooper.idleMainLooper(16, TimeUnit.MILLISECONDS);
+      touch(screen.rail, MotionEvent.ACTION_UP, down, SystemClock.uptimeMillis(), x - 240, y);
+      int last = screen.rail.getScrollX(), advancing = 0;
+      for (int i = 0; i < 16; i++) {
+        ShadowLooper.idleMainLooper(16, TimeUnit.MILLISECONDS); screen.rail.computeScroll();
+        if (h.root.isLayoutRequested()) helper.layout(h, PHONE);
+        int current = screen.rail.getScrollX();
+        assertTrue("Visible-image callbacks cannot jump the released row backwards", current >= last);
+        if (current > last) advancing++; last = current;
+      }
+      assertTrue("The actual candidate rail continues over native frames", advancing >= 5);
+      assertEquals(0, screen.selected); assertTrue(api.paths.isEmpty());
+    }
+  }
+
   @Test public void rendersThreeCandidateScreensAtPhoneAndShortSizesWithUnclippedActions() throws Exception {
     NativeHomePartyFeedbackTest.Profile[] profiles = {PHONE,
         new NativeHomePartyFeedbackTest.Profile("recruit-inertial-640x320", 640, 320, 160, 1, 0, 0, 0, 0)};

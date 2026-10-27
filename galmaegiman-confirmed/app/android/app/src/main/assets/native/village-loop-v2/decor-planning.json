@@ -1,0 +1,24 @@
+{
+  "version": "village-decor-proposal-20261027",
+  "appliesAtRuntime": false,
+  "requiresRuntimeAndPixelValidation": true,
+  "sourceCommit": "78660ff70397434751a4aaa1b4fce85b10cc72ab",
+  "worldUnits": 8,
+  "renderPlane": "after-sea-before-foreground-terrain",
+  "note": "별도 검증 원본을 위한 배치 제안이다. 이 계획 파일은 런타임 manifest가 아니며 자산 검증이나 실제 렌더 완료를 대신하지 않는다. 장식은 UI 이름표·의뢰 표시·메뉴·입력 타깃을 갖지 않는다.",
+  "proposedAssets": {
+    "decor_cottage": {"sourceGitPath":"galmaegiman-confirmed/art/gpt/village-npc-20261027/decor/cottage.png","apkPath":"native/village-loop-v2/assets/decor-cottage.png"},
+    "decor_warehouse": {"sourceGitPath":"galmaegiman-confirmed/art/gpt/village-npc-20261027/decor/warehouse.png","apkPath":"native/village-loop-v2/assets/decor-warehouse.png"},
+    "decor_closed_shop": {"sourceGitPath":"galmaegiman-confirmed/art/gpt/village-npc-20261027/decor/closed_shop.png","apkPath":"native/village-loop-v2/assets/decor-closed-shop.png"}
+  },
+  "proposedDecorations": [
+    {"id":"decor-companions-cottage","asset":"decor_cottage","x":1.60,"width":0.20,"baseline":0.71,"parallax":1},
+    {"id":"decor-companions-shop","asset":"decor_closed_shop","x":1.91,"width":0.16,"baseline":0.70,"parallax":1},
+    {"id":"decor-memory-warehouse","asset":"decor_warehouse","x":3.50,"width":0.22,"baseline":0.72,"parallax":1},
+    {"id":"decor-memory-cottage","asset":"decor_cottage","x":3.85,"width":0.18,"baseline":0.70,"parallax":1},
+    {"id":"decor-harbor-warehouse","asset":"decor_warehouse","x":5.55,"width":0.24,"baseline":0.73,"parallax":1},
+    {"id":"decor-harbor-shop","asset":"decor_closed_shop","x":5.86,"width":0.16,"baseline":0.70,"parallax":1},
+    {"id":"decor-market-cottage","asset":"decor_cottage","x":7.50,"width":0.20,"baseline":0.71,"parallax":1},
+    {"id":"decor-market-shop","asset":"decor_closed_shop","x":7.88,"width":0.16,"baseline":0.70,"parallax":1}
+  ]
+}

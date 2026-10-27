@@ -13,6 +13,12 @@ model AppMeta {
 }
 
 model Player {
+  commanderAccount CommanderAccount?
+  commanderXpLedger CommanderXpLedger[]
+  roster60NormalXp Roster60NormalXpLedger[]
+  roster60Story Roster60StoryAccount?
+  roster60StoryReceipts Roster60StoryReceipt[]
+  roster60StoryAwards Roster60StoryBattleAward[]
   roster60ObservedDefenses Roster60ObservedDefense[]
   roster60Adventures Roster60Adventure[]
   roster60AdventureReceipts Roster60AdventureReceipt[]
@@ -69,6 +75,37 @@ model Player {
   kakao         KakaoLink?
   story         StorySave?
   chatApp       ChatAppUser?
+}
+
+// Account story and materials survive owned-unit reincarnation. No unit-level reset hook.
+model Roster60StoryAccount {
+ playerId String @id
+ revision Int @default(0)
+ contentVersion String
+ state String
+ darkGangBalance Int @default(0)
+ darkGangLifetime Int @default(0)
+ updatedAt DateTime @updatedAt
+ player Player @relation(fields:[playerId],references:[id],onDelete:Cascade)
+}
+model Roster60StoryReceipt {
+ playerId String
+ requestId String
+ fingerprint String
+ result String
+ createdAt DateTime @default(now())
+ player Player @relation(fields:[playerId],references:[id],onDelete:Cascade)
+ @@id([playerId,requestId])
+}
+model Roster60StoryBattleAward {
+ playerId String
+ battleId String
+ questId String?
+ amount Int
+ outcome String
+ createdAt DateTime @default(now())
+ player Player @relation(fields:[playerId],references:[id],onDelete:Cascade)
+ @@id([playerId,battleId])
 }
 
 // New-system identities are separate from legacy C/D/etc definitions. No destructive migration.
@@ -640,8 +677,45 @@ model Roster60PvpQueue {
  ownedIds String
  queuedAt DateTime
  leaseUntil DateTime
+ normalXpSnapshot String?
+ commanderXpSnapshot String?
+ normalXpCatalogVersion String?
+ // Nullable legacy queues have no verified ranked admission or history pool.
+ rankPolicyVersion String?
+ reincarnationPool String?
+ matchPoolPolicyVersion String?
+ // Null count is an honest unknown, never a zero-count match class.
+ reincarnationCount Int?
+ reincarnationCountSource String?
+ reincarnationHistoryStamp String?
+ rankAdmissionSnapshot String?
+ @@index([mode,normalXpCatalogVersion,leaseUntil,queuedAt])
+ @@index([mode,rankPolicyVersion,reincarnationPool,leaseUntil,queuedAt])
+ @@index([mode,matchPoolPolicyVersion,reincarnationPool,normalXpCatalogVersion,leaseUntil,queuedAt])
+}
+
+// Exactly one auditable normal-game XP decision per account, room and real owned unit.
+model Roster60NormalXpLedger {
+ playerId String
+ roomId String
+ ownedId String
+ policyVersion String?
+ outcome String
+ reason String
+ status String
+ requestedXp Int
+ appliedXp Int
+ deferredXp Int
+ startingXp String
+ endingXp String
+ sourceEncounterId String?
+ createdAt DateTime @default(now())
+ player Player @relation(fields:[playerId],references:[id],onDelete:Cascade)
+ @@id([playerId,roomId,ownedId])
+ @@index([playerId,createdAt])
 }
 model Roster60PvpMatch {
+ presence String?
  id String @id
  player0Id String
  player1Id String
@@ -656,4 +730,37 @@ model Roster60PvpMatch {
  createdAt DateTime @default(now())
  @@index([player0Id,status])
  @@index([player1Id,status])
+}
+
+// Independent account progression; owned-unit XP and rebirth never reset this row.
+model CommanderAccount {
+ playerId String @id
+ totalXp BigInt @default(0)
+ policyVersion String
+ policyFingerprint String
+ revision Int @default(0)
+ createdAt DateTime @default(now())
+ player Player @relation(fields:[playerId],references:[id],onDelete:Cascade)
+}
+
+// One immutable account decision per authoritative domain event, irrespective of party size.
+model CommanderXpLedger {
+ playerId String
+ eventKind String
+ eventId String
+ fingerprint String
+ policyVersion String
+ policyFingerprint String
+ outcome String
+ reason String
+ status String
+ requestedXp Int
+ appliedXp Int
+ startingXp BigInt
+ endingXp BigInt
+ result String
+ createdAt DateTime @default(now())
+ player Player @relation(fields:[playerId],references:[id],onDelete:Cascade)
+ @@id([playerId,eventKind,eventId])
+ @@index([playerId,createdAt])
 }

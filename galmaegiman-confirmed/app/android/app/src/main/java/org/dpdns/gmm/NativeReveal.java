@@ -28,7 +28,7 @@ final class NativeReveal extends FrameLayout {
   static final int RESULT_PAGE_SIZE = 3;
   // Retained for older result review callers; touch scrolling no longer changes pages.
   int resultPage;
-  Runnable repaintResults;
+  Runnable repaintResults, refreshReassessmentControls;
   RevealStrip resultStrip;
   final java.util.Map<String, JSONObject> reassessmentCandidates = new java.util.LinkedHashMap<>();
   NativeProgression reassessment;
@@ -409,6 +409,13 @@ final class NativeReveal extends FrameLayout {
       footer.addView(finish, lp);
       scroll.updateNavigation();
     };
+    refreshReassessmentControls = () -> {
+      // Eligibility is metadata: keep the live cards and native scroll trajectory.
+      updateReassessmentStatus();
+      for (RevealCard card : pageCards)
+        bindReassessment(card, card.unit, card.serverIndex);
+      selection[0].run();
+    };
     paint[0] = () -> {
       int savedScroll = scroll.getScrollX();
       scroll.stopMotion();
@@ -577,7 +584,7 @@ final class NativeReveal extends FrameLayout {
             reassessmentCandidates.put(candidate.optString("key"), candidate);
         }
       }
-      if (repaintResults != null) repaintResults.run();
+      if (refreshReassessmentControls != null) refreshReassessmentControls.run();
     });
   }
 
@@ -593,6 +600,8 @@ final class NativeReveal extends FrameLayout {
   }
 
   void bindReassessment(RevealCard card, JSONObject unit, int index) {
+    View previous = card.photo.findViewWithTag("acquisition-reassess-card-" + index);
+    if (previous != null) card.photo.removeView(previous);
     List<JSONObject> candidates = eligibleInstances(unit);
     if (candidates.isEmpty()) return;
     Button button = k.action(null, "↻", () -> chooseReassessment(unit, index));
@@ -1054,7 +1063,7 @@ final class NativeReveal extends FrameLayout {
     void turn(int direction) {
       if (!canTurnResults()) return;
       int distance = Math.max(1, getWidth() - h.dp(48));
-      if (motion()) smoothScrollBy(direction * distance, 0);
+      if (motion()) smoothScrollCardsBy(direction * distance);
       else scrollBy(direction * distance, 0);
     }
 

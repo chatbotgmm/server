@@ -14,7 +14,7 @@ type Transport='http'|'inject';
 type Reply={status:number;body:any};
 suite('normal/rank: real localhost HTTP, ordinary login and disposable SQLite',()=>{
  let db:PrismaClient,app:Awaited<ReturnType<typeof buildApp>>|undefined,game:GameService,root:string,baseUrl:string;
- let catalog:any,policy:any,actors:Actor[],caseIds:string[];
+ let catalog:any,policy:any,actors:Actor[],caseIds:string[];const rankAccountLevels=new Map<string,number>();
  const content=loadContent(),secret='localhost-play-modes-test-secret-not-production-2026';
  const previousProfile=process.env.ROSTER60_PROFILE;
  const trace:{transport:string;actor:string;method:string;path:string;status:number}[]=[],completed:any[]=[];
@@ -24,12 +24,12 @@ suite('normal/rank: real localhost HTTP, ordinary login and disposable SQLite',(
  });
  async function open(){
   game=new GameService(db,content);
-  app=await buildApp(db,game,{secret,root,baseUrl:async()=>''});
+  app=await buildApp(db,game,{secret,root,baseUrl:async()=>'',roster60AccountLevelReader:async(_tx,id)=>rankAccountLevels.get(id)??null});
   baseUrl=await app.listen({host:'127.0.0.1',port:0});
  }
  async function restart(){await app!.close();await open();}
  beforeEach(async()=>{
-  actors=[];caseIds=[];root=mkdtempSync(join(tmpdir(),'gmm-http-play-modes-'));cpSync('data',join(root,'data'),{recursive:true});
+  actors=[];caseIds=[];rankAccountLevels.clear();root=mkdtempSync(join(tmpdir(),'gmm-http-play-modes-'));cpSync('data',join(root,'data'),{recursive:true});
   // Explicit test-only files under /tmp. No product catalog, environment file or policy is promoted.
   catalog=JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/catalog.json','utf8'));
   policy=JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/battle-policy.json','utf8'));
@@ -41,7 +41,8 @@ suite('normal/rank: real localhost HTTP, ordinary login and disposable SQLite',(
    if(species==='u02'){unit.stats.hp=50;unit.levelOneStats.hp=50;for(const stats of unit.combatGrowth)stats.hp=50;}
   }
   writeFileSync(join(root,'data/roster60-approved.json'),JSON.stringify(catalog));
-  writeFileSync(join(root,'data/roster60-battle-policy.json'),JSON.stringify(policy));await open();
+  writeFileSync(join(root,'data/roster60-battle-policy.json'),JSON.stringify(policy));
+  writeFileSync(join(root,'data/roster60-normal-xp-policy.json'),readFileSync('data/test-profiles/five-stat-device-test-v1/normal-xp-policy.json','utf8'));await open();
  });
  afterEach(async()=>{
   if(app){await app.close();app=undefined;}
@@ -77,6 +78,11 @@ suite('normal/rank: real localhost HTTP, ordinary login and disposable SQLite',(
  async function ok(actor:Actor,path:string,payload?:unknown,transport:Transport='inject'){
   const result=await request(actor,path,payload,transport);expect(result.status,path+':'+JSON.stringify(result.body)).toBe(200);return result.body;
  }
+ async function pvpTerminalDiagnostic(view:any){
+  const room=await db.roster60PvpMatch.findUnique({where:{id:view.battleId},select:{status:true,revision:true,deadline:true,presence:true}});
+  const monitor=await db.appMeta.findUnique({where:{key:'roster60-presence-monitor-v1'}});
+  return JSON.stringify({status:view.status,outcome:view.state?.outcome,turn:view.state?.turn,reason:view.settlement?.reason,terminationKind:view.settlement?.terminationKind,serverNow:view.serverNow,observedAt:Date.now(),room,monitor:monitor?.value});
+ }
  async function user(label:string,count:number,species='u01',transport:Transport='inject'){
   const identity='play-mode-http-'+randomUUID();await game.handle(identity,'내정보');
   const player=await db.player.findUniqueOrThrow({where:{identity}});caseIds.push(player.id);
@@ -88,10 +94,22 @@ suite('normal/rank: real localhost HTTP, ordinary login and disposable SQLite',(
   for(let i=0;i<count;i++)actor.ownedIds.push((await db.roster60Owned.create({data:{playerId:actor.id,speciesId:species,totalXp:definition.growth[7].totalXp,source:'http-fixture-'+i}})).id);
   expect((await ok(actor,'/my/api/who',undefined,transport)).nickname).toBeDefined();return actor;
  }
+ async function prepareRank(actor:Actor,transport:Transport='inject'){
+  // This internal reader is a server fixture, never a client header or a bypass of unit admission.
+  rankAccountLevels.set(actor.id,60);
+  for(const unit of await db.roster60Owned.findMany({where:{playerId:actor.id,id:{in:actor.ownedIds}}})){
+   const definition=catalog.characters.find((d:any)=>d.id===unit.speciesId)!;
+   await db.roster60Owned.update({where:{id:unit.id},data:{totalXp:BigInt(definition.growth[59].totalXp)}});
+  }
+  const options=await ok(actor,'options',undefined,transport),units=options.units.filter((u:any)=>actor.ownedIds.includes(u.ownedId));
+  expect(options.rankEligibility).toMatchObject({accountLevel:60,eligible:true});expect(units).toHaveLength(actor.ownedIds.length);
+  expect(units.every((u:any)=>u.level===60&&u.rankEligible)).toBe(true);
+ }
  async function pair(mode:'normal'|'rank',size:number,transport:Transport){
   const a=await user('A',size,'u01',transport),b=await user('B',size,'u02',transport);
   for(const actor of [a,b]){
-   const options=await ok(actor,'options',undefined,transport);expect(options.units.filter((u:any)=>actor.ownedIds.includes(u.ownedId)).every((u:any)=>u.level===8)).toBe(true);
+   if(mode==='rank')await prepareRank(actor,transport);
+   const options=await ok(actor,'options',undefined,transport);expect(options.units.filter((u:any)=>actor.ownedIds.includes(u.ownedId)).every((u:any)=>u.level===(mode==='rank'?60:8))).toBe(true);
    expect((await ok(actor,'party',{ownedIds:actor.ownedIds},transport)).partyIds).toEqual(actor.ownedIds);
   }
   expect((await ok(a,'join',{requestId:randomUUID(),mode},transport)).status).toBe('waiting');
@@ -108,7 +126,8 @@ suite('normal/rank: real localhost HTTP, ordinary login and disposable SQLite',(
  it.each([1,2,3,4,5,6])('sets %i actual owned party members and queues/cancels both modes through authenticated routes',async size=>{
   const actor=await user('party-'+size,size);
   expect((await ok(actor,'party',{ownedIds:actor.ownedIds})).partyIds).toHaveLength(size);
-  for(const mode of ['normal','rank']){
+  for(const mode of ['normal','rank'] as const){
+   if(mode==='rank')await prepareRank(actor);
    const requestId=randomUUID(),waiting=await ok(actor,'join',{requestId,mode});expect(waiting.status).toBe('waiting');expect(waiting.mode).toBe(mode);
    expect(await db.roster60Owned.count({where:{id:{in:actor.ownedIds},status:'PVP_QUEUE'}})).toBe(size);
    expect(await ok(actor,'join',{requestId,mode})).toEqual(waiting);
@@ -143,13 +162,16 @@ suite('normal/rank: real localhost HTTP, ordinary login and disposable SQLite',(
    }
    expect(current.state.turn).toBeLessThanOrEqual(size);
   }
-  expect(current.status).toBe('FINISHED');expect(current.state.outcome).toBe('win');expect(current.state.turn).toBe(size);expect(current.settlement.reason).toBe('BATTLE');
-  expect(current.settlement.xpAwarded).toBe(0);expect(current.state.opponentIntel.defenses.NORMAL).toBe('normal');
+  const terminalDiagnostic=current.state.outcome==='win'?undefined:await pvpTerminalDiagnostic(current);
+  expect(current.status,terminalDiagnostic).toBe('FINISHED');expect(current.state.outcome,terminalDiagnostic).toBe('win');expect(current.state.turn).toBe(size);expect(current.settlement.reason).toBe('BATTLE');
+  expect(current.settlement.xpAwarded).toBe(mode==='normal'?600:0);expect(current.state.opponentIntel.defenses.NORMAL).toBe('normal');
   const collection=(await ok(a,'/my/api/native/roster60/collection',undefined,transport)).characters.find((u:any)=>u.id==='u02');
   expect(collection.defense).toBeUndefined();expect(collection.defenseKnowledge.defenses.NORMAL).toBe('normal');
   expect(await db.roster60ObservedDefense.count({where:{playerId:a.id,speciesId:'u02',element:'NORMAL'}})).toBe(1);
   expect(await db.roster60ObservedDefense.count({where:{playerId:b.id}})).toBe(0);
-  const rows=await db.roster60Owned.findMany({where:{playerId:{in:[a.id,b.id]}},select:{id:true,totalXp:true},orderBy:{id:'asc'}});expect(rows).toEqual(ownXp);
+  const rows=await db.roster60Owned.findMany({where:{playerId:{in:[a.id,b.id]}},select:{id:true,totalXp:true},orderBy:{id:'asc'}});
+  // 일반게임의 레벨8 단독 출전은 기존 레벨10 승리 원천600을 쓰고, 확정된 정상 패배50%로300을 받는다.
+  expect(rows).toEqual(mode==='rank'?ownXp:ownXp.map(u=>({...u,totalXp:u.totalXp+BigInt(a.ownedIds.includes(u.id)?600:300)})));
   const rating=mode==='rank'?await db.rankedProfile.findMany({where:{playerId:{in:[a.id,b.id]}},orderBy:{playerId:'asc'}}):await db.casualHumanRating.findMany({where:{playerId:{in:[a.id,b.id]}},orderBy:{playerId:'asc'}});
   const winner=rating.find(r=>r.playerId===a.id)!,loser=rating.find(r=>r.playerId===b.id)!;
   expect(winner.games).toBe(1);expect(winner.wins).toBe(1);expect(loser.games).toBe(1);expect(loser.losses).toBe(1);
@@ -169,6 +191,7 @@ suite('normal/rank: real localhost HTTP, ordinary login and disposable SQLite',(
   expect((await ok(b,'current',undefined,transport)).battle.status).toBe('FINISHED');await ok(b,'settle',{...settle,requestId:randomUUID()},transport);
   expect((await ok(b,'current',undefined,transport)).status).toBe('idle');
   const after=mode==='rank'?await db.rankedProfile.findMany({where:{playerId:{in:[a.id,b.id]}},orderBy:{playerId:'asc'}}):await db.casualHumanRating.findMany({where:{playerId:{in:[a.id,b.id]}},orderBy:{playerId:'asc'}});expect(after).toEqual(rating);
+  expect(await db.roster60Owned.findMany({where:{playerId:{in:[a.id,b.id]}},select:{id:true,totalXp:true},orderBy:{id:'asc'}})).toEqual(rows);
   expect(await db.roster60Owned.count({where:{playerId:{in:[a.id,b.id]},status:'AVAILABLE'}})).toBe(size*2);
   completed.push({case:'natural-battle-through-http',mode,size,rounds:finished.state.turn,restartedAccepting:true,restartedPending:true,restartedTerminal:true,settlementExactlyOnce:true,ratings:{winnerGames:winner.games,winnerWins:winner.wins,loserGames:loser.games,loserLosses:loser.losses}});
  },30000);

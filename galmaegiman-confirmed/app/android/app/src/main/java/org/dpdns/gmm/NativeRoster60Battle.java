@@ -25,7 +25,7 @@ class NativeRoster60Battle {
   h.base("전투","roster60Battle");owner=h.api.token();key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner+storageScope());epoch=h.epoch;
   h.page.removeAllViews();
   Roster60Scale.Column column=new Roster60Scale.Column(h,760,300);column.changed=this::rescale;container=column;container.setBackgroundColor(NavyWorkbenchTheme.HEADER);h.page.addView(container,new LinearLayout.LayoutParams(-1,0,1));
-  FrameLayout top=new FrameLayout(h);toolbar=new LinearLayout(h);top.addView(toolbar,new FrameLayout.LayoutParams(-1,-1));home=h.button("‹ 홈",()->back());home.setTextSize(12);toolbar.addView(home,new LinearLayout.LayoutParams(h.dp(72),h.dp(48)));
+  FrameLayout top=new FrameLayout(h);toolbar=new LinearLayout(h);toolbar.setBaselineAligned(false);top.addView(toolbar,new FrameLayout.LayoutParams(-1,-1));home=h.button("‹ 홈",()->back());home.setTextSize(12);toolbar.addView(home,new LinearLayout.LayoutParams(h.dp(72),h.dp(48)));
   message=h.text("전투 확인 중…",12);message.setTextColor(NavyWorkbenchTheme.TEXT);message.setMaxLines(2);toolbar.addView(message,new LinearLayout.LayoutParams(0,h.dp(48),1));container.addView(top,new LinearLayout.LayoutParams(-1,h.dp(48)));
   // Same field/right-hand command split as production BattleView.onMeasure().
   arena=new LinearLayout(h);arena.setOrientation(LinearLayout.HORIZONTAL);arena.setBaselineAligned(false);container.addView(arena,new LinearLayout.LayoutParams(-1,0,1));

@@ -656,6 +656,9 @@ final class NativeTutorialController {
         if (h.root.getChildAt(i) instanceof LobbyView) {
           View target = ((LobbyView) h.root.getChildAt(i)).tutorialMenuTarget(key);
           if (target != null) return target;
+        } else if (h.root.getChildAt(i) instanceof NativeVillageHomeView) {
+          View target = ((NativeVillageHomeView) h.root.getChildAt(i)).tutorialMenuTarget(key);
+          if (target != null) return target;
         }
     // 목록 선택은 별도 창에 있어도 실제 원본 버튼을 찾는다. 모달에는 중복 안내막을 올리지 않는다.
     if (h.visibleDialog != null

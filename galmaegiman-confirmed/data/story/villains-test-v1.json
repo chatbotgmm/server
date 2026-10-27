@@ -1,0 +1,95 @@
+{
+  "version": "story-villains-test-v1",
+  "productionBalanceApproved": false,
+  "statSchema": "gmm-five-stats-v1",
+  "namesAreProposals": true,
+  "numericValuesAreTestValues": true,
+  "notes": [
+    "5스탯과 성장값, 적성, 내성은 지정된 기존 60종 테스트 기준을 복제한다. 기존 로스터에는 등록하지 않는다.",
+    "개체 자체 속성이나 별도 ATK 스탯을 만들지 않는다. 기술 속성만 사용한다.",
+    "모든 기술은 단일 대상 피해 공격이다. 회복·충전·priority·상태·행동 봉쇄 효과를 갖지 않는다.",
+    "HP와 공격 위력 배율은 조우 데이터에서 한 번만 적용한다. 이 프로필은 배율 전 값이다.",
+    "인간 및 고유 빌런의 새우Gang 지급 분류는 일반 흑화 갈매미와 분리한다.",
+    "첫깃 기본형은 본편 전투가 없다. 이름과 최종 외형은 제안이다."
+  ],
+  "profiles": [
+    {
+      "id": "first",
+      "name": "첫깃",
+      "baselineSpeciesId": "u01",
+      "combatAllowed": false,
+      "classification": "unique-villain",
+      "skills": [
+        {"id":"story_first_basic","name":"첫 번째 깃","element":"NORMAL","power":16,"mpCost":0,"learnLevel":1},
+        {"id":"story_first_1","name":"날개 밀치기","element":"NORMAL","power":24,"mpCost":4,"learnLevel":1},
+        {"id":"story_first_2","name":"되돌려 줘","element":"NORMAL","power":36,"mpCost":8,"learnLevel":10},
+        {"id":"story_first_3","name":"나를 봐","element":"NORMAL","power":50,"mpCost":14,"learnLevel":24}
+      ]
+    },
+    {
+      "id": "dark_first",
+      "name": "어둠의 태초 갈매미맨 · 첫깃의 변신",
+      "baselineSpeciesId": "u31",
+      "combatAllowed": true,
+      "classification": "unique-villain",
+      "skills": [
+        {"id":"story_dark_first_basic","name":"독점의 날개","element":"DARK","power":16,"mpCost":0,"learnLevel":1},
+        {"id":"story_dark_first_1","name":"빼앗는 연결","element":"DARK","power":36,"mpCost":8,"learnLevel":10},
+        {"id":"story_dark_first_2","name":"모방의 파동","element":"NORMAL","power":50,"mpCost":14,"learnLevel":24},
+        {"id":"story_dark_first_3","name":"마지막 강탈","element":"DARK","power":68,"mpCost":22,"learnLevel":40}
+      ]
+    },
+    {
+      "id": "record",
+      "name": "묵인",
+      "baselineSpeciesId": "u01",
+      "combatAllowed": true,
+      "classification": "human-villain",
+      "skills": [
+        {"id":"story_record_basic","name":"집게 타격","element":"NORMAL","power":16,"mpCost":0,"learnLevel":1},
+        {"id":"story_record_1","name":"도장 타격","element":"NORMAL","power":24,"mpCost":4,"learnLevel":1},
+        {"id":"story_record_2","name":"기록가방 타격","element":"NORMAL","power":36,"mpCost":8,"learnLevel":10},
+        {"id":"story_record_3","name":"반려 통보","element":"NORMAL","power":50,"mpCost":14,"learnLevel":24}
+      ]
+    },
+    {
+      "id": "engineer",
+      "name": "철심",
+      "baselineSpeciesId": "u22",
+      "combatAllowed": true,
+      "classification": "human-villain",
+      "skills": [
+        {"id":"story_engineer_basic","name":"접점 타격","element":"NORMAL","power":16,"mpCost":0,"learnLevel":1},
+        {"id":"story_engineer_1","name":"축전 접점","element":"LIGHTNING","power":24,"mpCost":4,"learnLevel":1},
+        {"id":"story_engineer_2","name":"수집 방출","element":"LIGHTNING","power":36,"mpCost":8,"learnLevel":10},
+        {"id":"story_engineer_3","name":"절연 장치 타격","element":"NORMAL","power":50,"mpCost":14,"learnLevel":24}
+      ]
+    },
+    {
+      "id": "escort",
+      "name": "닻날",
+      "baselineSpeciesId": "u03",
+      "combatAllowed": true,
+      "classification": "unique-villain",
+      "skills": [
+        {"id":"story_escort_basic","name":"닻부리","element":"NORMAL","power":16,"mpCost":0,"learnLevel":1},
+        {"id":"story_escort_1","name":"호위 밀치기","element":"NORMAL","power":24,"mpCost":4,"learnLevel":1},
+        {"id":"story_escort_2","name":"무거운 약속","element":"NORMAL","power":36,"mpCost":8,"learnLevel":10},
+        {"id":"story_escort_3","name":"정박 내려치기","element":"NORMAL","power":50,"mpCost":14,"learnLevel":24}
+      ]
+    },
+    {
+      "id": "guide",
+      "name": "돌비",
+      "baselineSpeciesId": "u02",
+      "combatAllowed": true,
+      "classification": "unique-villain",
+      "skills": [
+        {"id":"story_guide_basic","name":"표식 튕기기","element":"NORMAL","power":16,"mpCost":0,"learnLevel":1},
+        {"id":"story_guide_1","name":"지도 모서리","element":"NORMAL","power":24,"mpCost":4,"learnLevel":1},
+        {"id":"story_guide_2","name":"거짓 이정표","element":"NORMAL","power":36,"mpCost":8,"learnLevel":10},
+        {"id":"story_guide_3","name":"막다른 길","element":"NORMAL","power":50,"mpCost":14,"learnLevel":24}
+      ]
+    }
+  ]
+}

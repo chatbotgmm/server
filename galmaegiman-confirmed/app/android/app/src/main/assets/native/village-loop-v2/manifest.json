@@ -1,0 +1,837 @@
+{
+  "version": "village-loop-v2-art-20261027",
+  "worldUnits": 8,
+  "minimumUnitDp": 650,
+  "minimumTouchDp": 48,
+  "artworkStatus": "verified-local-assets",
+  "architectureStyle": "cream-stone-rounded-arches-columns-ivy",
+  "currencyHud": false,
+  "cameraResetOnWrap": false,
+  "residentPlacementIsProposal": true,
+  "sourceNote": "기존 13 PNG와 별도 장식 3 PNG의 실제 픽셀을 확인했다. 원본 바이트를 보존하고 런타임 표시 영역과 지면 기준점만 적용한다. 석상 이미지는 포함하지 않는다.",
+  "sourceCommit": "2f1890e1df37b426cbfa27ccce8cd293186ad512",
+  "sourceParentCommit": "c37c24ecb9399abf0cb438b25412924ffbe921db",
+  "sourceFileCount": 16,
+  "sourceTotalBytes": 32348091,
+  "pixelReview": {
+    "reviewedBy": "root",
+    "all13Opened": true,
+    "reviewedAtUtc": "2026-10-27T01:16:24.894403+00:00",
+    "sourceBytesAltered": false,
+    "all3DecorationOpened": true
+  },
+  "districts": [
+    {
+      "id": "companions",
+      "title": "동료의 거리",
+      "copy": "새로운 인연과 우리 팀의 시작점",
+      "nav": "모집 · 팀",
+      "x": 0
+    },
+    {
+      "id": "memory",
+      "title": "기억의 정원",
+      "copy": "모은 이야기와 도착한 소식을 만나는 곳",
+      "nav": "도감 · 우편",
+      "x": 2
+    },
+    {
+      "id": "harbor",
+      "title": "푸른 출항길",
+      "copy": "탐험과 대결, 모든 모험이 시작되는 바다",
+      "nav": "플레이",
+      "x": 4
+    },
+    {
+      "id": "market",
+      "title": "바람의 시장",
+      "copy": "모험에 필요한 작은 준비와 새로운 발견",
+      "nav": "시장",
+      "x": 6
+    }
+  ],
+  "layers": [
+    {
+      "id": "background",
+      "asset": "sea",
+      "parallax": 0.25,
+      "sourceCrop": [
+        0,
+        0,
+        1,
+        0.51
+      ],
+      "repeatUnits": 2,
+      "mirrorAlternating": true,
+      "top": 0,
+      "bottom": 0.51
+    },
+    {
+      "id": "sea",
+      "asset": "sea",
+      "parallax": 0.5,
+      "sourceCrop": [
+        0,
+        0.51,
+        1,
+        1
+      ],
+      "repeatUnits": 4,
+      "mirrorAlternating": true,
+      "top": 0.42,
+      "bottom": 0.88
+    },
+    {
+      "id": "terrain",
+      "asset": "terrain",
+      "parallax": 1,
+      "sourceCrop": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "repeatUnits": 8,
+      "mirrorAlternating": true,
+      "top": 0.64,
+      "bottom": 1
+    },
+    {
+      "id": "buildings",
+      "asset": "",
+      "parallax": 1,
+      "sourceCrop": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "repeatUnits": 8,
+      "mirrorAlternating": false,
+      "top": 0,
+      "bottom": 1
+    },
+    {
+      "id": "ships",
+      "asset": "",
+      "parallax": 1,
+      "sourceCrop": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "repeatUnits": 8,
+      "mirrorAlternating": false,
+      "top": 0,
+      "bottom": 1
+    },
+    {
+      "id": "residents",
+      "asset": "",
+      "parallax": 1,
+      "sourceCrop": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "repeatUnits": 8,
+      "mirrorAlternating": false,
+      "top": 0,
+      "bottom": 1
+    }
+  ],
+  "assets": {
+    "sea": {
+      "path": "native/village-loop-v2/assets/sea.png",
+      "verified": true,
+      "sourceLibraryId": "libfile_0119284ec7988191bbec33c5159bfd1a",
+      "crop": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "sourceCommit": "2f1890e1df37b426cbfa27ccce8cd293186ad512",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-npc-20261027/sea.png",
+      "sourceSha256": "a425ff7e8bf235db9410bc20af95bf4b2c63c97ee1ee8b580f752588f68acf67",
+      "sourceGitBlob": "ae8396d06c09eaa9d78a248eb284a17c4d9eb42e",
+      "sourceBytes": 1705221,
+      "sourceWidth": 2172,
+      "sourceHeight": 724,
+      "sourceMode": "RGB",
+      "sourceAlphaRange": null
+    },
+    "terrain": {
+      "path": "native/village-loop-v2/assets/terrain.png",
+      "verified": true,
+      "sourceLibraryId": "libfile_0119284ec7988191bbec33c5159bfd1a",
+      "crop": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "sourceCommit": "2f1890e1df37b426cbfa27ccce8cd293186ad512",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-npc-20261027/terrain.png",
+      "sourceSha256": "fd57f9e84e6a18b57fdb6784df9f77cc214355e813b863b1cdc8f8941abdebeb",
+      "sourceGitBlob": "a04607d479317c8c3dec2ac9b3a7be5b7dbadfa6",
+      "sourceBytes": 1824660,
+      "sourceWidth": 2172,
+      "sourceHeight": 724,
+      "sourceMode": "RGBA",
+      "sourceAlphaRange": [
+        0,
+        255
+      ]
+    },
+    "recruit": {
+      "path": "native/village-loop-v2/assets/recruit.png",
+      "verified": true,
+      "sourceLibraryId": "libfile_0119284ec7988191bbec33c5159bfd1a",
+      "crop": [
+        0.02972560975609756,
+        0.11259382819015847,
+        0.975609756097561,
+        0.9099249374478732
+      ],
+      "sourceCommit": "2f1890e1df37b426cbfa27ccce8cd293186ad512",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-npc-20261027/recruit.png",
+      "sourceSha256": "3dc96e5457285adf5b62cdc300dfd60511220970ddad524fc5873af342430e61",
+      "sourceGitBlob": "a6d53879d4c0cc08ecae71b762b4a90dcdc8e506",
+      "sourceBytes": 2227097,
+      "sourceWidth": 1312,
+      "sourceHeight": 1199,
+      "sourceMode": "RGBA",
+      "sourceAlphaRange": [
+        0,
+        255
+      ],
+      "renderContentBoundsPx": [
+        39,
+        135,
+        1280,
+        1091
+      ],
+      "renderBoundsAlphaThreshold": 32
+    },
+    "hideout": {
+      "path": "native/village-loop-v2/assets/hideout.png",
+      "verified": true,
+      "sourceLibraryId": "libfile_0119284ec7988191bbec33c5159bfd1a",
+      "crop": [
+        0.04954268292682927,
+        0.009174311926605505,
+        0.9839939024390244,
+        0.97581317764804
+      ],
+      "sourceCommit": "2f1890e1df37b426cbfa27ccce8cd293186ad512",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-npc-20261027/hideout.png",
+      "sourceSha256": "58f2b5ea5b4fbcb5a2cdaa3514a72302490ea39e69e523fa0d4e094903b3714c",
+      "sourceGitBlob": "83994987c75c58143aca58e4ac5a2a051f02f8eb",
+      "sourceBytes": 1958393,
+      "sourceWidth": 1312,
+      "sourceHeight": 1199,
+      "sourceMode": "RGBA",
+      "sourceAlphaRange": [
+        0,
+        255
+      ],
+      "renderContentBoundsPx": [
+        65,
+        11,
+        1291,
+        1170
+      ],
+      "renderBoundsAlphaThreshold": 32
+    },
+    "archive": {
+      "path": "native/village-loop-v2/assets/archive.png",
+      "verified": true,
+      "sourceLibraryId": "libfile_0119284ec7988191bbec33c5159bfd1a",
+      "crop": [
+        0.022786458333333332,
+        0.087890625,
+        0.974609375,
+        0.9189453125
+      ],
+      "sourceCommit": "2f1890e1df37b426cbfa27ccce8cd293186ad512",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-npc-20261027/archive.png",
+      "sourceSha256": "b880ae1d5945c6f3e6df7404117abe7664817e20c31a7435ee9e325c7d1a69c9",
+      "sourceGitBlob": "8eb82c91e2a80e6955b1c3f11073e589cf805489",
+      "sourceBytes": 2757441,
+      "sourceWidth": 1536,
+      "sourceHeight": 1024,
+      "sourceMode": "RGBA",
+      "sourceAlphaRange": [
+        0,
+        254
+      ],
+      "renderContentBoundsPx": [
+        35,
+        90,
+        1497,
+        941
+      ],
+      "renderBoundsAlphaThreshold": 32
+    },
+    "mailbox": {
+      "path": "native/village-loop-v2/assets/mailbox.png",
+      "verified": true,
+      "sourceLibraryId": "libfile_0119284ec7988191bbec33c5159bfd1a",
+      "crop": [
+        0.1368507831821929,
+        0.032407407407407406,
+        0.9150865622423743,
+        0.9745370370370371
+      ],
+      "sourceCommit": "2f1890e1df37b426cbfa27ccce8cd293186ad512",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-npc-20261027/mailbox.png",
+      "sourceSha256": "fa3caf311b7e18d94d5d81852436eccc3dc0cce3933bd6cdfebcc5e84c339995",
+      "sourceGitBlob": "94ad0e682a77427e79dab47b09bbb82ec631bb87",
+      "sourceBytes": 1618641,
+      "sourceWidth": 1213,
+      "sourceHeight": 1296,
+      "sourceMode": "RGBA",
+      "sourceAlphaRange": [
+        0,
+        255
+      ],
+      "renderContentBoundsPx": [
+        166,
+        42,
+        1110,
+        1263
+      ],
+      "renderBoundsAlphaThreshold": 32
+    },
+    "market": {
+      "path": "native/village-loop-v2/assets/market.png",
+      "verified": true,
+      "sourceLibraryId": "libfile_0119284ec7988191bbec33c5159bfd1a",
+      "crop": [
+        0.028645833333333332,
+        0.08984375,
+        0.974609375,
+        0.9130859375
+      ],
+      "sourceCommit": "2f1890e1df37b426cbfa27ccce8cd293186ad512",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-npc-20261027/market.png",
+      "sourceSha256": "cf17e104cc3f620debc0c8e68d0a5712cd8b3d2ffb0d2878ce8c90c6d71b7f39",
+      "sourceGitBlob": "ed566aa7f5ae548768ebeb408ab650a19793c8db",
+      "sourceBytes": 2617340,
+      "sourceWidth": 1536,
+      "sourceHeight": 1024,
+      "sourceMode": "RGBA",
+      "sourceAlphaRange": [
+        0,
+        254
+      ],
+      "renderContentBoundsPx": [
+        44,
+        92,
+        1497,
+        935
+      ],
+      "renderBoundsAlphaThreshold": 32
+    },
+    "ship": {
+      "path": "native/village-loop-v2/assets/ship.png",
+      "verified": true,
+      "sourceLibraryId": "libfile_0119284ec7988191bbec33c5159bfd1a",
+      "crop": [
+        0.03784570596797671,
+        0.013100436681222707,
+        0.980349344978166,
+        0.9851528384279477
+      ],
+      "sourceCommit": "2f1890e1df37b426cbfa27ccce8cd293186ad512",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-npc-20261027/ship.png",
+      "sourceSha256": "34b40ed1c170cab8af4ff071ad971d972dba1d0dfad0ae9338b464e685d503ec",
+      "sourceGitBlob": "171e767df1af78f82d7ad1d9c0969f3bbba55f4b",
+      "sourceBytes": 1502632,
+      "sourceWidth": 1374,
+      "sourceHeight": 1145,
+      "sourceMode": "RGBA",
+      "sourceAlphaRange": [
+        0,
+        255
+      ],
+      "renderContentBoundsPx": [
+        52,
+        15,
+        1347,
+        1128
+      ],
+      "renderBoundsAlphaThreshold": 32
+    },
+    "harbor": {
+      "path": "native/village-loop-v2/assets/harbor.png",
+      "verified": true,
+      "sourceLibraryId": "libfile_0119284ec7988191bbec33c5159bfd1a",
+      "crop": [
+        0.05078125,
+        0.056640625,
+        0.9609375,
+        0.953125
+      ],
+      "sourceCommit": "2f1890e1df37b426cbfa27ccce8cd293186ad512",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-npc-20261027/harbor.png",
+      "sourceSha256": "452d43851c0892c8fbb3aee25f199396e2d6904575b158e032847dd2d42b6df7",
+      "sourceGitBlob": "36ab69e492326c0a1b5f220601e025331dc22640",
+      "sourceBytes": 2400866,
+      "sourceWidth": 1536,
+      "sourceHeight": 1024,
+      "sourceMode": "RGBA",
+      "sourceAlphaRange": [
+        0,
+        254
+      ],
+      "renderContentBoundsPx": [
+        78,
+        58,
+        1476,
+        976
+      ],
+      "renderBoundsAlphaThreshold": 32
+    },
+    "blacksmith": {
+      "path": "native/village-loop-v2/residents/blacksmith.png",
+      "verified": true,
+      "sourceLibraryId": "libfile_1cabae0c853081919aecea033cd7210e",
+      "crop": [
+        0.049215406562054205,
+        0.03208556149732621,
+        0.948644793152639,
+        0.9572192513368984
+      ],
+      "useSheetDirectly": false,
+      "sourceCommit": "2f1890e1df37b426cbfa27ccce8cd293186ad512",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-npc-20261027/blacksmith.png",
+      "sourceSha256": "4dcae1778285eb91d48b013519a028ea08268612674d026300e1d1f3d9b7f11c",
+      "sourceGitBlob": "48f6d8cdc1174a51d07a78c0b0e2e12e5e721ec6",
+      "sourceBytes": 2192637,
+      "sourceWidth": 1402,
+      "sourceHeight": 1122,
+      "sourceMode": "RGBA",
+      "sourceAlphaRange": [
+        0,
+        255
+      ],
+      "renderContentBoundsPx": [
+        69,
+        36,
+        1330,
+        1074
+      ],
+      "renderBoundsAlphaThreshold": 32
+    },
+    "merchant": {
+      "path": "native/village-loop-v2/residents/merchant.png",
+      "verified": true,
+      "sourceLibraryId": "libfile_1cabae0c853081919aecea033cd7210e",
+      "crop": [
+        0.13024850042844902,
+        0.055637982195845696,
+        0.8903170522707797,
+        0.9443620178041543
+      ],
+      "useSheetDirectly": false,
+      "sourceCommit": "2f1890e1df37b426cbfa27ccce8cd293186ad512",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-npc-20261027/merchant.png",
+      "sourceSha256": "93380f6f44b18c03b7de7b098a4a9de71f9a8f02b2a92e934e775f57979e5469",
+      "sourceGitBlob": "3bb84b53f49eb2f36a40950e3de5c022756f8f2b",
+      "sourceBytes": 1435946,
+      "sourceWidth": 1167,
+      "sourceHeight": 1348,
+      "sourceMode": "RGBA",
+      "sourceAlphaRange": [
+        0,
+        255
+      ],
+      "renderContentBoundsPx": [
+        152,
+        75,
+        1039,
+        1273
+      ],
+      "renderBoundsAlphaThreshold": 32
+    },
+    "librarian": {
+      "path": "native/village-loop-v2/residents/librarian.png",
+      "verified": true,
+      "sourceLibraryId": "libfile_1cabae0c853081919aecea033cd7210e",
+      "crop": [
+        0.1552734375,
+        0.013671875,
+        0.8681640625,
+        0.96875
+      ],
+      "useSheetDirectly": false,
+      "sourceCommit": "2f1890e1df37b426cbfa27ccce8cd293186ad512",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-npc-20261027/librarian.png",
+      "sourceSha256": "d2f9c67ada98e3852d782171cc1bce6aeb25362dac8c5acd4893c22ce9e28709",
+      "sourceGitBlob": "f8de017ef9cd6917aa50312fea37356108875d0f",
+      "sourceBytes": 2090635,
+      "sourceWidth": 1024,
+      "sourceHeight": 1536,
+      "sourceMode": "RGBA",
+      "sourceAlphaRange": [
+        0,
+        254
+      ],
+      "renderContentBoundsPx": [
+        159,
+        21,
+        889,
+        1488
+      ],
+      "renderBoundsAlphaThreshold": 32
+    },
+    "patrol": {
+      "path": "native/village-loop-v2/residents/patrol.png",
+      "verified": true,
+      "sourceLibraryId": "libfile_1cabae0c853081919aecea033cd7210e",
+      "crop": [
+        0.07391304347826087,
+        0.019005847953216373,
+        0.9643478260869566,
+        0.9707602339181286
+      ],
+      "useSheetDirectly": false,
+      "sourceCommit": "2f1890e1df37b426cbfa27ccce8cd293186ad512",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-npc-20261027/patrol.png",
+      "sourceSha256": "f1bd8fd49c02ebb85c350ff53841b0c2566ae4463b73c3bf6d47d9b557e10eb5",
+      "sourceGitBlob": "bc04453127906dc8f397de4092800d39e4d4b4a6",
+      "sourceBytes": 1853195,
+      "sourceWidth": 1150,
+      "sourceHeight": 1368,
+      "sourceMode": "RGBA",
+      "sourceAlphaRange": [
+        0,
+        255
+      ],
+      "renderContentBoundsPx": [
+        85,
+        26,
+        1109,
+        1328
+      ],
+      "renderBoundsAlphaThreshold": 32
+    },
+    "decor_cottage": {
+      "path": "native/village-loop-v2/assets/decor-cottage.png",
+      "verified": true,
+      "crop": [
+        0.038109756097560975,
+        0.12176814011676397,
+        0.975609756097561,
+        0.9416180150125104
+      ],
+      "sourceCommit": "78660ff70397434751a4aaa1b4fce85b10cc72ab",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-npc-20261027/decor/cottage.png",
+      "sourceFile": "decor/cottage.png",
+      "sourceSha256": "d5184d08b5a74cc8749b1c5b62481e2cbbf5c080eee01c5ffcd48d72fdc8dfd3",
+      "sourceGitBlob": "2adbd307d98d7ac7075d5a749f7d716dc21ddfd4",
+      "sourceBytes": 2164471,
+      "sourceWidth": 1312,
+      "sourceHeight": 1199,
+      "sourceMode": "RGBA",
+      "sourceAlphaRange": [
+        0,
+        255
+      ],
+      "renderContentBoundsPx": [
+        50,
+        146,
+        1280,
+        1129
+      ],
+      "renderBoundsAlphaThreshold": 32
+    },
+    "decor_warehouse": {
+      "path": "native/village-loop-v2/assets/decor-warehouse.png",
+      "verified": true,
+      "crop": [
+        0.039634146341463415,
+        0.14678899082568808,
+        0.9908536585365854,
+        0.9424520433694745
+      ],
+      "sourceCommit": "78660ff70397434751a4aaa1b4fce85b10cc72ab",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-npc-20261027/decor/warehouse.png",
+      "sourceFile": "decor/warehouse.png",
+      "sourceSha256": "a71b2a31f3f875d514ec929dc8b0e283073c1465a3fa52417ea459dee6535994",
+      "sourceGitBlob": "235d28ac77c1ee5084c3d81ed7e9bb17aa7869fb",
+      "sourceBytes": 2025174,
+      "sourceWidth": 1312,
+      "sourceHeight": 1199,
+      "sourceMode": "RGBA",
+      "sourceAlphaRange": [
+        0,
+        255
+      ],
+      "renderContentBoundsPx": [
+        52,
+        176,
+        1300,
+        1130
+      ],
+      "renderBoundsAlphaThreshold": 32
+    },
+    "decor_closed_shop": {
+      "path": "native/village-loop-v2/assets/decor-closed-shop.png",
+      "verified": true,
+      "crop": [
+        0.028201219512195123,
+        0.1609674728940784,
+        0.9801829268292683,
+        0.9399499582985822
+      ],
+      "sourceCommit": "78660ff70397434751a4aaa1b4fce85b10cc72ab",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-npc-20261027/decor/closed_shop.png",
+      "sourceFile": "decor/closed_shop.png",
+      "sourceSha256": "89a7c01286efd8b3514cfd353f80a8b814b68efbf49ab1a643214213d2ea22e9",
+      "sourceGitBlob": "9e985c594ed6d7d83b23072df79929cb7b34790b",
+      "sourceBytes": 1973742,
+      "sourceWidth": 1312,
+      "sourceHeight": 1199,
+      "sourceMode": "RGBA",
+      "sourceAlphaRange": [
+        0,
+        255
+      ],
+      "renderContentBoundsPx": [
+        37,
+        193,
+        1286,
+        1127
+      ],
+      "renderBoundsAlphaThreshold": 32
+    }
+  },
+  "buildings": [
+    {
+      "id": "recruit",
+      "name": "방범대 지원소",
+      "sub": "새 동료 만나기",
+      "asset": "recruit",
+      "x": 0.48,
+      "width": 0.468,
+      "baseline": 0.83,
+      "menu": [
+        "동료 모집"
+      ],
+      "actionIds": [
+        "recruit"
+      ]
+    },
+    {
+      "id": "hideout",
+      "name": "방범대 아지트",
+      "sub": "우리 팀의 쉼터",
+      "asset": "hideout",
+      "x": 1.1,
+      "width": 0.546,
+      "baseline": 0.83,
+      "menu": [
+        "방범대 편성"
+      ],
+      "actionIds": [
+        "party"
+      ]
+    },
+    {
+      "id": "archive",
+      "name": "기록소",
+      "sub": "도감 · 조합",
+      "asset": "archive",
+      "x": 2.5,
+      "width": 0.546,
+      "baseline": 0.83,
+      "menu": [
+        "도감",
+        "조합"
+      ],
+      "actionIds": [
+        "collection",
+        "craft"
+      ]
+    },
+    {
+      "id": "mailbox",
+      "name": "우편함",
+      "sub": "우편 · 이벤트 · 소식",
+      "asset": "mailbox",
+      "x": 3.05,
+      "width": 0.17,
+      "baseline": 0.83,
+      "menu": [
+        "우편",
+        "이벤트 소식",
+        "공지사항"
+      ],
+      "actionIds": [
+        "mail",
+        "events",
+        "notices"
+      ]
+    },
+    {
+      "id": "harbor",
+      "name": "플레이",
+      "sub": "바다로 떠나기",
+      "asset": "harbor",
+      "x": 4.6,
+      "width": 0.676,
+      "baseline": 0.83,
+      "menu": [
+        "탐험",
+        "스토리",
+        "일반전",
+        "랭크전"
+      ],
+      "actionIds": [
+        "explore",
+        "story",
+        "normal",
+        "rank"
+      ]
+    },
+    {
+      "id": "market",
+      "name": "시장",
+      "sub": "아이템 · 패스 · 재화",
+      "asset": "market",
+      "x": 6.55,
+      "width": 0.715,
+      "baseline": 0.83,
+      "menu": [
+        "아이템",
+        "패스",
+        "유료 재화 관리"
+      ],
+      "actionIds": [
+        "items",
+        "pass",
+        "currency"
+      ]
+    }
+  ],
+  "props": [
+    {
+      "id": "ship",
+      "asset": "ship",
+      "x": 5.2,
+      "width": 0.38,
+      "baseline": 0.65,
+      "parallax": 1
+    }
+  ],
+  "residents": [
+    {
+      "id": "blacksmith",
+      "role": "대장장이",
+      "silhouette": "large-blacksmith",
+      "asset": "blacksmith",
+      "x": 6.16,
+      "width": 0.17,
+      "baseline": 0.91
+    },
+    {
+      "id": "merchant",
+      "role": "상인",
+      "silhouette": "slender-merchant",
+      "asset": "merchant",
+      "x": 6.98,
+      "width": 0.1,
+      "baseline": 0.91
+    },
+    {
+      "id": "librarian",
+      "role": "사서",
+      "silhouette": "stooped-elder-librarian",
+      "asset": "librarian",
+      "x": 2.85,
+      "width": 0.105,
+      "baseline": 0.91
+    },
+    {
+      "id": "guard",
+      "role": "방범대원",
+      "silhouette": "angular-stone-wing-patrol",
+      "asset": "patrol",
+      "x": 0.84,
+      "width": 0.13,
+      "baseline": 0.91
+    }
+  ],
+  "decorations": [
+    {
+      "id": "decor-companions-cottage",
+      "asset": "decor_cottage",
+      "x": 1.6,
+      "width": 0.2,
+      "baseline": 0.71,
+      "parallax": 1
+    },
+    {
+      "id": "decor-companions-shop",
+      "asset": "decor_closed_shop",
+      "x": 1.91,
+      "width": 0.16,
+      "baseline": 0.7,
+      "parallax": 1
+    },
+    {
+      "id": "decor-memory-warehouse",
+      "asset": "decor_warehouse",
+      "x": 3.5,
+      "width": 0.22,
+      "baseline": 0.72,
+      "parallax": 1
+    },
+    {
+      "id": "decor-memory-cottage",
+      "asset": "decor_cottage",
+      "x": 3.85,
+      "width": 0.18,
+      "baseline": 0.7,
+      "parallax": 1
+    },
+    {
+      "id": "decor-harbor-warehouse",
+      "asset": "decor_warehouse",
+      "x": 5.55,
+      "width": 0.24,
+      "baseline": 0.73,
+      "parallax": 1
+    },
+    {
+      "id": "decor-harbor-shop",
+      "asset": "decor_closed_shop",
+      "x": 5.86,
+      "width": 0.16,
+      "baseline": 0.7,
+      "parallax": 1
+    },
+    {
+      "id": "decor-market-cottage",
+      "asset": "decor_cottage",
+      "x": 7.5,
+      "width": 0.2,
+      "baseline": 0.71,
+      "parallax": 1
+    },
+    {
+      "id": "decor-market-shop",
+      "asset": "decor_closed_shop",
+      "x": 7.88,
+      "width": 0.16,
+      "baseline": 0.7,
+      "parallax": 1
+    }
+  ],
+  "decorationSourceCommit": "78660ff70397434751a4aaa1b4fce85b10cc72ab"
+}

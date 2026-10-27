@@ -368,6 +368,21 @@ public class NativeApiPendingReadTest {
     assertEquals(1, retained.get()); assertEquals(0, removed.get()); assertEquals(1, late.get());
   }
 
+  @Test public void craftDiscoveryHeaderIsExplicitAndScopedToOptions() throws Exception {
+    Replies replies = new Replies();
+    for (String path : new String[] {"native/roster60/craft/options", "native/roster60/pvp/options"}) {
+      Response response = api.enqueue(200, "{}");
+      api.call(path, null, replies::add);
+      response.awaitStarted();
+      FakeConnection connection = api.connections.get(api.connections.size() - 1);
+      assertEquals(path.endsWith("craft/options") ? "1" : null,
+          connection.getRequestProperty("X-GMM-Craft-Discovery"));
+      assertRequestContract(connection, path, "GET");
+      response.release();
+      awaitReplies(replies, api.connections.size());
+    }
+  }
+
   void assertRequestContract(FakeConnection connection, String path, String method) {
     assertEquals(BuildConfig.SERVER_URL + "/my/api/" + path, connection.getURL().toString());
     assertEquals(method, connection.getRequestMethod());

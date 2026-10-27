@@ -41,11 +41,11 @@ final class NativeRoster60Library {
  String map(JSONObject obj){if(obj==null)return "준비 중";String[] ids={"normal","fire","water","lightning","ice","nature","holy","dark"},labels={"일반","불","물","번개","얼음","자연","성","어둠"};StringBuilder b=new StringBuilder();for(int i=0;i<ids.length;i++){String v=obj.optString(ids[i].toUpperCase(java.util.Locale.ROOT)).toLowerCase(java.util.Locale.ROOT);v=v.replace("reflect","반사").replace("resist","내성").replace("weak","약점").replace("normal","보통").replace("null","무효").replace("immune","무효");b.append(labels[i]).append(' ').append(v).append(i%2==0?" / ":"\n");}return b.toString();}
  // 미확인 요청이나 수령하지 않은 후보가 있으면 후보 화면에서 먼저 정리한다.
  // 후보 회차 정책이 켜져 있으면 예전 모집소 화면에서 등급을 고르고 후보 화면(수령·새로고침)으로 넘어간다.
- void recruit(){base("모집","draw");h.api.call("native/roster60/recruit/session",null,(r,e)->{if(!current())return;
+ void recruit(){RecruitEntryRead entry=h.recruitEntryRead;h.recruitEntryRead=null;if(entry!=null&&!entry.matches(h.api.token(),h.epoch))entry=null;base("모집","draw");NativeApi.Result completed=(r,e)->{if(!current())return;
   boolean unresolved=e==null&&r!=null&&(!h.getSharedPreferences("roster60_recruit_session",0).getString(key,"").isEmpty()||(r.optJSONArray("sessions")!=null&&r.optJSONArray("sessions").length()>0));
   if(unresolved){NativeRecruitSession s=new NativeRecruitSession(h);s.fromCounter=true;s.open(r);return;}
   if(e==null&&r!=null&&r.optBoolean("enabled")){h.menus.economy.roster60Session=r;h.menus.economy.draw();return;}
-  recruitLegacy();});}
+  recruitLegacy();};if(entry!=null)entry.consume(completed);else h.api.call("native/roster60/recruit/session",null,completed);}
  // 후보 회차 정책이 꺼져 있으면 예전 모집소 화면(트레이·수량·지원서 받기)으로 새 60종을 모집한다.
  void recruitLegacy(){h.menus.economy.draw();}
  void recruitList(){base("모집","draw");h.api.call("native/roster60/recruit",null,(r,e)->{if(!current())return;if(e!=null){message.setText("모집 준비 중 · "+e);return;}offer=r;message.setText("지원서 "+r.optInt("credits")+" · 새 60종 모집\n중급·고급: 새 등급 확률 승인 대기 · 후보 새로고침 정책 준비 중");JSONArray offers=r.optJSONArray("offers");for(int i=0;i<offers.length();i++){JSONObject o=offers.optJSONObject(i);Button b=h.button(o.optString("label")+" · "+o.optInt("cost")+"장",()->confirm(o));b.setEnabled(o.optBoolean("enabled"));b.setContentDescription(b.getText()+" "+o.optString("reason"));root.addView(b,new LinearLayout.LayoutParams(-1,h.dp(48)));}root.addView(h.button("지원서 받기",()->{if(busy)return;busy=true;h.api.call("claim",h.obj(),(reward,error)->{busy=false;if(!current())return;if(error!=null){message.setText(error);return;}recruit();});}));root.addView(h.button("전송 결과 다시 확인",this::retry));root.addView(h.button("도감",()->h.collection()));restoreReceipt();if(!prefs.getString(key,"").isEmpty())retry();});}

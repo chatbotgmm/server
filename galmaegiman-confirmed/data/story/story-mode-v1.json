@@ -1,0 +1,2120 @@
+{
+  "version": "story-progression-test-v1",
+  "productionBalanceApproved": false,
+  "chapters": [
+    {
+      "id": 1,
+      "title": "돌이 된 태초 갈매미",
+      "recommendedLevel": [
+        1,
+        8
+      ]
+    },
+    {
+      "id": 2,
+      "title": "인간들이 기억하는 갈매미",
+      "recommendedLevel": [
+        9,
+        16
+      ]
+    },
+    {
+      "id": 3,
+      "title": "사라진 기록",
+      "recommendedLevel": [
+        17,
+        25
+      ]
+    },
+    {
+      "id": 4,
+      "title": "말하지 않는 노인",
+      "recommendedLevel": [
+        26,
+        34
+      ]
+    },
+    {
+      "id": 5,
+      "title": "죽은 적이 없는 친구",
+      "recommendedLevel": [
+        35,
+        43
+      ]
+    },
+    {
+      "id": 6,
+      "title": "함께 돌아오는 길",
+      "recommendedLevel": [
+        44,
+        52
+      ]
+    },
+    {
+      "id": 7,
+      "title": "최초의 균열",
+      "recommendedLevel": [
+        53,
+        60
+      ]
+    }
+  ],
+  "residents": [
+    {
+      "id": "blacksmith",
+      "name": "두드림",
+      "role": "대장장이",
+      "dailyDialogue": "작은 표지판도 길을 잃은 녀석한테는 큰일이지.",
+      "proposal": true
+    },
+    {
+      "id": "merchant",
+      "name": "모아",
+      "role": "상인",
+      "dailyDialogue": "물건 말고 이야기만 두고 가도 돼. 잠깐 앉을래?",
+      "proposal": true
+    },
+    {
+      "id": "librarian",
+      "name": "서온",
+      "role": "사서",
+      "dailyDialogue": "오늘 기억하고 싶은 일이 있나요? 짧게 적어도 괜찮아요.",
+      "proposal": true
+    },
+    {
+      "id": "guard",
+      "name": "담돌",
+      "role": "방범대원",
+      "dailyDialogue": "돌아온 얼굴을 확인하는 것도 순찰의 일부지.",
+      "proposal": true
+    }
+  ],
+  "scenes": [
+    {
+      "id": "STORY_01_intro",
+      "background": "village_statue",
+      "lines": [
+        {
+          "speakerId": "narrator",
+          "text": "갈매미맨이 등을 보인 채 석상 터를 바라본다. 받침대 곁에 흩어진 조각이 햇빛을 받는다."
+        },
+        {
+          "speakerId": "hero",
+          "text": "이 조각들이 원래 어떤 모습이었는지, 기억하는 사람은 없어요?"
+        },
+        {
+          "speakerId": "resident",
+          "text": "우리가 태어나기 전부터 지켜왔지. 그런데 왜 지키는지는… 아는 이가 없구나."
+        },
+        {
+          "speakerId": "hero",
+          "text": "그럼 찾아볼게요. 조각도, 그 이유도."
+        },
+        {
+          "speakerId": "first",
+          "text": "바깥 길표식부터 살펴봐. 남은 흔적은 가까운 곳에도 있으니까."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "그는 석상을 오래 바라보다가 먼저 자리를 떠난다. 길에서는 그와 다른 흑화 갈매미가 앞을 막는다."
+        }
+      ],
+      "camera": "back-view-hero"
+    },
+    {
+      "id": "STORY_01_return",
+      "background": "village_statue",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "길표식 아래에서 조각을 찾았어요. 떨어진 곳도 기록해 뒀고요."
+        },
+        {
+          "speakerId": "resident",
+          "text": "작은 조각 하나라도 함부로 다루지 말자. 아직 모르는 것이 많으니."
+        },
+        {
+          "speakerId": "hero",
+          "text": "오늘은 여기까지. 다음 길은 준비하고 나갈게요."
+        }
+      ]
+    },
+    {
+      "id": "STORY_02_intro",
+      "background": "village_statue",
+      "lines": [
+        {
+          "speakerId": "narrator",
+          "text": "길가의 행인이 넘어진 짐을 붙잡고 있다."
+        },
+        {
+          "speakerId": "traveler",
+          "text": "잠깐. 너희… 정말 갈매미였어?"
+        },
+        {
+          "speakerId": "companion",
+          "text": "이제 믿겠어요? 짐부터 같이 옮겨요."
+        },
+        {
+          "speakerId": "traveler",
+          "text": "믿고 말고. 내가 본 옛 그림에도 너희 같은 모습이 있었거든."
+        },
+        {
+          "speakerId": "hero",
+          "text": "그림이 있는 곳까지 갈 수 있게, 앞의 길을 살펴볼게요."
+        }
+      ]
+    },
+    {
+      "id": "STORY_02_return",
+      "background": "village_statue",
+      "lines": [
+        {
+          "speakerId": "traveler",
+          "text": "덕분에 지나왔어. 그림을 가진 사람에게 너희 이야기를 전해 둘게."
+        },
+        {
+          "speakerId": "hero",
+          "text": "인간도 우리를 기억하고 있었네요."
+        },
+        {
+          "speakerId": "companion",
+          "text": "그 기억을 직접 만나러 가자."
+        }
+      ]
+    },
+    {
+      "id": "STORY_03_intro",
+      "background": "village_statue",
+      "lines": [
+        {
+          "speakerId": "librarian",
+          "text": "남은 기록을 봐 주세요. 같은 시기의 다른 글과 비교하면 이상한 빈자리가 있어요."
+        },
+        {
+          "speakerId": "hero",
+          "text": "내용이 없는 부분도 그대로 적어 올게요. 누가 지웠다고 단정하지 않고요."
+        },
+        {
+          "speakerId": "first",
+          "text": "빈자리에도 이유는 있겠지. 무엇을 찾는지는 잊지 마."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "기록 쪽으로 향하자 흑화 갈매미가 길을 막는다. 첫깃은 전투에 나서지 않는다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_03_return",
+      "background": "village_statue",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "기록은 남아 있는데, 석상에 관한 부분은 거의 없었어요."
+        },
+        {
+          "speakerId": "librarian",
+          "text": "없는 내용을 마음대로 채우지는 말아요. 빈자리도 조사 결과니까요."
+        },
+        {
+          "speakerId": "hero",
+          "text": "다음에는 인간들이 가진 그림과 비교해 볼게요."
+        }
+      ]
+    },
+    {
+      "id": "STORY_04_intro",
+      "background": "human_records",
+      "lines": [
+        {
+          "speakerId": "pictureKeeper",
+          "text": "너희에게 그림을 보여 줘도 괜찮을까? 오래 간직한 물건이라서."
+        },
+        {
+          "speakerId": "hero",
+          "text": "가져가려는 게 아니에요. 무엇이 그려졌는지 함께 보고 싶어요."
+        },
+        {
+          "speakerId": "pictureKeeper",
+          "text": "싸우는 그림인 줄 알았는데, 다시 보니 함께 짐을 나르고 있네."
+        },
+        {
+          "speakerId": "companion",
+          "text": "우리 사이가 처음부터 나빴던 건 아니었어요."
+        },
+        {
+          "speakerId": "hero",
+          "text": "그 기억을 전해 준 사람의 길부터 안전하게 만들어요."
+        }
+      ]
+    },
+    {
+      "id": "STORY_04_return",
+      "background": "human_records",
+      "lines": [
+        {
+          "speakerId": "pictureKeeper",
+          "text": "그림 속 모습과 너희 모습이 정말 닮았구나."
+        },
+        {
+          "speakerId": "hero",
+          "text": "기록이 더 남아 있다면, 석상에 대해서도 알 수 있겠죠."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "마을의 대장장이가 바깥 길표식을 살펴봐 달라는 부탁을 준비한다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_05_intro",
+      "background": "human_records",
+      "lines": [
+        {
+          "speakerId": "blacksmith",
+          "text": "조력자가 마을까지 오려면 돌아갈 길도 보여야지. 돈보다 길 상태를 알아 와 주게."
+        },
+        {
+          "speakerId": "hero",
+          "text": "특별한 재료가 있어야 하나요?"
+        },
+        {
+          "speakerId": "blacksmith",
+          "text": "아니. 무너진 표식을 바로 세우고, 어디가 위험한지 알려 주면 돼."
+        },
+        {
+          "speakerId": "guideVillain",
+          "text": "내가 알려 주는 쪽이 더 빠를 텐데. 목적지는 어디지?"
+        },
+        {
+          "speakerId": "hero",
+          "text": "우선 우리가 확인한 길부터 이어 볼게요."
+        }
+      ]
+    },
+    {
+      "id": "STORY_05_return",
+      "background": "human_records",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "표식을 세우고 위험한 구간도 표시했어요."
+        },
+        {
+          "speakerId": "blacksmith",
+          "text": "좋아. 누군가 돌아올 때 헤매지 않겠군."
+        },
+        {
+          "speakerId": "companion",
+          "text": "길이 생기니까, 만나러 갈 사람도 더 가까워진 것 같아."
+        }
+      ]
+    },
+    {
+      "id": "STORY_06_intro",
+      "background": "human_records",
+      "lines": [
+        {
+          "speakerId": "librarian",
+          "text": "한 그림만 보지 말고 서로 다른 자료를 나란히 놓아 봐요."
+        },
+        {
+          "speakerId": "hero",
+          "text": "모습이 다른 갈매미들이 함께 있네요. 석상과 닮은 흔적도 있어요."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "돌아오는 길에서 확인할 조각 묶음의 위치를 기록한다."
+        },
+        {
+          "speakerId": "first",
+          "text": "모두에게 자리를 내주던 모습이지. 너희는 그게 당연하다고 생각하나?"
+        },
+        {
+          "speakerId": "hero",
+          "text": "먼저 함께 있었다는 사실부터 기억하고 싶어요."
+        }
+      ]
+    },
+    {
+      "id": "STORY_06_return",
+      "background": "human_records",
+      "lines": [
+        {
+          "speakerId": "resident",
+          "text": "다리가 보인다. 정말 조금씩 돌아오는구나."
+        },
+        {
+          "speakerId": "hero",
+          "text": "모양은 찾았어요. 아직 이야기는 모르지만요."
+        },
+        {
+          "speakerId": "librarian",
+          "text": "자료와 조각은 따로 기록해 둘게요. 모습만으로 과거를 단정하지 않도록요."
+        }
+      ]
+    },
+    {
+      "id": "STORY_07_intro",
+      "background": "human_records",
+      "lines": [
+        {
+          "speakerId": "librarian",
+          "text": "같은 사건을 적은 자료를 모아 봤어요. 빠진 곳이 서로 달라요."
+        },
+        {
+          "speakerId": "hero",
+          "text": "무엇이 없는지도 조사해 올게요."
+        },
+        {
+          "speakerId": "recordVillain",
+          "text": "공개되지 않은 기록을 찾는다고 모두 진실이 되지는 않습니다."
+        },
+        {
+          "speakerId": "hero",
+          "text": "그렇다면 남아 있는 기록부터 확인하겠습니다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_07_return",
+      "background": "human_records",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "없어진 부분을 비교했어요. 하지만 누가 지웠는지는 아직 몰라요."
+        },
+        {
+          "speakerId": "librarian",
+          "text": "그렇게 적어 둘게요. 모르는 것을 안다고 쓰지는 말아야 하니까요."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "소문 경로를 더 살피는 동안 탐험이나 일반전으로 준비할 수 있다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_08_intro",
+      "background": "human_records",
+      "lines": [
+        {
+          "speakerId": "messenger",
+          "text": "너희 말고도 그 노인을 찾는 자들이 있어."
+        },
+        {
+          "speakerId": "companion",
+          "text": "왜 이 이름만 나오면 다들 말을 멈추는 걸까?"
+        },
+        {
+          "speakerId": "messenger",
+          "text": "크레갈스. 오래된 석상을 아는 인간이라고 들었어."
+        },
+        {
+          "speakerId": "hero",
+          "text": "우리가 찾았다고 알려지면, 그 사람도 위험해지겠네."
+        },
+        {
+          "speakerId": "recordVillain",
+          "text": "거짓말은 안 했습니다. 보여주지 않았을 뿐이지."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "전달자가 벗어날 시간을 벌기 위해 기록관리인과 마주 선다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_08_return",
+      "background": "human_records",
+      "lines": [
+        {
+          "speakerId": "messenger",
+          "text": "덕분에 무사해. 노인이 옮겨 간 거처의 흔적을 알려 줄게."
+        },
+        {
+          "speakerId": "hero",
+          "text": "위치는 함부로 퍼뜨리지 않을게요."
+        },
+        {
+          "speakerId": "companion",
+          "text": "사람부터 안전하게 한 다음, 다음 흔적을 찾자."
+        }
+      ]
+    },
+    {
+      "id": "STORY_09_intro",
+      "background": "human_records",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "도구를 정리하고 떠난 흔적이 있어요. 급하게 버린 집 같지는 않네요."
+        },
+        {
+          "speakerId": "companion",
+          "text": "사라졌다고 모두 납치된 건 아니겠지."
+        },
+        {
+          "speakerId": "guideVillain",
+          "text": "길은 맞아. 네가 가고 싶던 곳이 아닐 뿐이지."
+        },
+        {
+          "speakerId": "hero",
+          "text": "길표식이 바뀌어 있네요. 네가 알려 준 길도 다시 확인하겠어요."
+        }
+      ]
+    },
+    {
+      "id": "STORY_09_return",
+      "background": "human_records",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "새 은신처로 이어지는 방향을 찾았어요. 조각도 하나 확보했고요."
+        },
+        {
+          "speakerId": "librarian",
+          "text": "위치는 조용히 남겨 둘게요. 만나기 전까지는 그 사람의 사정도 모르니까요."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "석상은 두 번째 모습 그대로다. 찾은 조각은 안전하게 보관한다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_10_intro",
+      "background": "hideout",
+      "lines": [
+        {
+          "speakerId": "narrator",
+          "text": "백발의 노년 인간이 조각 도구를 내려놓는다. 크레갈스다."
+        },
+        {
+          "speakerId": "cregals",
+          "text": "여긴 너희가 찾을 것이 없다. 돌아가거라."
+        },
+        {
+          "speakerId": "hero",
+          "text": "알겠어요. 대신, 뒤에 따라오던 녀석들은 다른 길로 돌려보낼게요."
+        },
+        {
+          "speakerId": "cregals",
+          "text": "답도 못 들었는데?"
+        },
+        {
+          "speakerId": "hero",
+          "text": "쫓기는 사람을 그냥 넘길 수는 없잖아요."
+        }
+      ]
+    },
+    {
+      "id": "STORY_10_return",
+      "background": "hideout",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "은신처 이야기는 하지 않았어요. 쫓아오는 길도 확인했고요."
+        },
+        {
+          "speakerId": "cregals",
+          "text": "…연락할 곳은 남겨 두고 가거라."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "연락을 기다리며, 다음 길을 위한 준비를 시작한다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_11_intro",
+      "background": "hideout",
+      "lines": [
+        {
+          "speakerId": "cregals",
+          "text": "바깥에 두고 온 도구가 있다. 찾으면, 그 길의 사람도 살펴봐 주겠니."
+        },
+        {
+          "speakerId": "hero",
+          "text": "도구도 사람도 확인하고 올게요."
+        },
+        {
+          "speakerId": "engineerVillain",
+          "text": "태어날 때 정해진 힘을 평생 받아들이라고? 그게 공평한가?"
+        },
+        {
+          "speakerId": "hero",
+          "text": "누군가를 동의 없이 다루는 것이 답은 아니에요."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "위험에 처한 조력자가 지나갈 틈을 만든다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_11_return",
+      "background": "hideout",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "도구를 찾았어요. 길에 있던 조력자도 무사하고요."
+        },
+        {
+          "speakerId": "cregals",
+          "text": "도구보다 먼저 사람을 챙겼구나."
+        },
+        {
+          "speakerId": "hero",
+          "text": "답은 돌아와서 들어도 되니까요."
+        }
+      ]
+    },
+    {
+      "id": "STORY_12_intro",
+      "background": "hideout",
+      "lines": [
+        {
+          "speakerId": "cregals",
+          "text": "그 녀석의 힘이 아니라, 그 녀석을 지키고 싶은 게냐?"
+        },
+        {
+          "speakerId": "hero",
+          "text": "우리가 무엇을 지켜왔는지 알고 싶어요."
+        },
+        {
+          "speakerId": "cregals",
+          "text": "마지막으로 길을 확인하자. 돌아갈 사람이 다치지 않도록."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "조우는 한 번에 한 상대와 진행한다. 동료들은 안전한 길을 안내한다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_12_return",
+      "background": "hideout",
+      "lines": [
+        {
+          "speakerId": "resident",
+          "text": "몸통의 윤곽이 이어졌어. 가져온 조각을 잘 정리해 두었구나."
+        },
+        {
+          "speakerId": "hero",
+          "text": "크레갈스도 함께 이야기해 주기로 했어요."
+        },
+        {
+          "speakerId": "cregals",
+          "text": "그러면… 아주 오래된 이야기부터 해야겠구나."
+        }
+      ]
+    },
+    {
+      "id": "STORY_13_intro",
+      "background": "memory_workshop",
+      "lines": [
+        {
+          "speakerId": "cregals",
+          "text": "살아 있는 동안 계속 조각했지. 어느 날은… 혼자가 아니고 싶더구나."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "신비의 새우깡을 만난 뒤 길어진 삶. 혼자 남은 인간의 손이 돌을 깎는다."
+        },
+        {
+          "speakerId": "hero",
+          "text": "그래서 만든 거예요? 태초를?"
+        },
+        {
+          "speakerId": "cregals",
+          "text": "내 손으로 깎았지만, 제 마음으로 살던 녀석이었지."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "도구를 내려놓자, 완성된 조각의 눈이 천천히 열린다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_13_return",
+      "background": "memory_workshop",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "그림 속의 서로 다른 모습들도, 누군가의 친구였던 거네요."
+        },
+        {
+          "speakerId": "cregals",
+          "text": "그 녀석은 받은 생명을 혼자만 가지려 하지 않았어."
+        },
+        {
+          "speakerId": "hero",
+          "text": "조금 더 들려주세요."
+        }
+      ]
+    },
+    {
+      "id": "STORY_14_intro",
+      "background": "memory_workshop",
+      "lines": [
+        {
+          "speakerId": "cregals",
+          "text": "니들이 살릴 방법을 찾아다녔던 그 녀석 말이다."
+        },
+        {
+          "speakerId": "cregals",
+          "text": "애초에 죽은 적이 없어."
+        },
+        {
+          "speakerId": "hero",
+          "text": "그럼 지금 석상은…"
+        },
+        {
+          "speakerId": "cregals",
+          "text": "그 녀석은 지금도 돌 안에서 변하고 있는 거야."
+        },
+        {
+          "speakerId": "cregals",
+          "text": "가진 힘도 컸고, 다른 존재들에게 나누어 준 힘도 많았지. 그래서 긴 시간이 필요한 거다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_14_return",
+      "background": "memory_workshop",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "우리가 해야 할 건 깨우는 게 아니라…"
+        },
+        {
+          "speakerId": "cregals",
+          "text": "기다릴 수 있게 지키는 거다."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "여행의 목적이 달라진다. 잠을 끝내라고 재촉하는 대신, 스스로 나올 때까지 지킨다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_15_intro",
+      "background": "memory_workshop",
+      "lines": [
+        {
+          "speakerId": "first",
+          "text": "나는 처음이었어. 그런데 왜 끝내 모두 중 하나여야 했지?"
+        },
+        {
+          "speakerId": "hero",
+          "text": "태초가 나누어 준 마음이, 네 몫을 없앤 건 아니잖아요."
+        },
+        {
+          "speakerId": "cregals",
+          "text": "그들은 부화하기 전에 힘을 빼앗으려 한다. 인간 동맹도 그 일에 손을 보탰지."
+        },
+        {
+          "speakerId": "hero",
+          "text": "마을로 돌아가요. 이제 무엇을 지킬지 알았으니까요."
+        },
+        {
+          "speakerId": "cregals",
+          "text": "손에 들어온 힘이라고 곧바로 써야 하는 건 아니다. 모은 것도 잘 보관해 두거라."
+        }
+      ]
+    },
+    {
+      "id": "STORY_15_return",
+      "background": "memory_workshop",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "돌아갈 준비와 조각 기록을 마쳤어요."
+        },
+        {
+          "speakerId": "cregals",
+          "text": "조각을 맞추는 일과 그 녀석의 환생은 같은 일이 아니다. 우리는 기다릴 자리를 지키는 거다."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "석상은 세 번째 모습으로 남아 있다. 새우Gang은 소비하지 않고 보관한다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_16_intro",
+      "background": "defense_village",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "마을을 지키는 데 힘을 보태 줄 수 있나요?"
+        },
+        {
+          "speakerId": "traveler",
+          "text": "너희가 열어 준 길로 왔어. 이번엔 우리 차례지."
+        },
+        {
+          "speakerId": "companion",
+          "text": "인간도, 갈매미도… 우리 편이 이렇게 많았네."
+        },
+        {
+          "speakerId": "first",
+          "text": "함께한다는 말은 쉬워. 끝까지 남는 사람은 누굴까?"
+        },
+        {
+          "speakerId": "hero",
+          "text": "각자가 고른 마음을 믿을 거예요."
+        }
+      ]
+    },
+    {
+      "id": "STORY_16_return",
+      "background": "defense_village",
+      "lines": [
+        {
+          "speakerId": "traveler",
+          "text": "모두에게 연락했어. 마을에서 만날 수 있겠어."
+        },
+        {
+          "speakerId": "cregals",
+          "text": "녀석도 이 모습을 보면 좋아하겠구나."
+        },
+        {
+          "speakerId": "hero",
+          "text": "직접 볼 수 있게 지킬게요."
+        }
+      ]
+    },
+    {
+      "id": "STORY_17_intro",
+      "background": "defense_village",
+      "lines": [
+        {
+          "speakerId": "guard",
+          "text": "누가 강한지만 정하면 되는 줄 알았지. 대피할 길도, 기다릴 자리도 필요하군."
+        },
+        {
+          "speakerId": "hero",
+          "text": "싸우는 사람과 주민을 안내하는 사람, 맡을 일을 나눠요."
+        },
+        {
+          "speakerId": "merchant",
+          "text": "보급은 내가 챙길게. 누구도 혼자 다 들고 가지 않게."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "전투는 여전히 한 번에 한 상대와 한다. 여러 동료의 역할은 마을 준비로 이어진다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_17_return",
+      "background": "defense_village",
+      "lines": [
+        {
+          "speakerId": "guard",
+          "text": "대피 경로 확인 완료. 돌아올 사람도 함께 세어 둘게."
+        },
+        {
+          "speakerId": "hero",
+          "text": "빠뜨린 사람 없이 준비했네요."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "공격이 시작되기 전, 남은 순찰과 주민 부탁을 확인할 수 있다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_18_intro",
+      "background": "defense_village",
+      "lines": [
+        {
+          "speakerId": "escortVillain",
+          "text": "그분이 내 편이었으니, 이번에는 내가 그분 편이다."
+        },
+        {
+          "speakerId": "hero",
+          "text": "그 마음 때문에 다른 사람의 돌아갈 곳을 빼앗아도 되나요?"
+        },
+        {
+          "speakerId": "escortVillain",
+          "text": "길을 비켜라."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "넓은 장구를 갖춘 호위대장이 앞을 막는다. 직접 마주하는 상대는 한 명이다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_18_return",
+      "background": "defense_village",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "접근 경로를 확인했어요. 모두 마을로 돌아가요."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "조각 묶음을 정리하자 머리와 한쪽 팔의 윤곽이 이어진다. 네 번째 모습이다."
+        },
+        {
+          "speakerId": "cregals",
+          "text": "친구를 기다릴 자리가 되었구나."
+        },
+        {
+          "speakerId": "hero",
+          "text": "아직 끝나지 않았어요. 마지막 준비도 함께해요."
+        }
+      ]
+    },
+    {
+      "id": "STORY_19_intro",
+      "background": "final_statue",
+      "lines": [
+        {
+          "speakerId": "narrator",
+          "text": "기록해 둔 마지막 조각 묶음을 꺼낸다. 공격이 시작되기 전에 온전한 모습을 되찾을 준비가 끝났다."
+        },
+        {
+          "speakerId": "hero",
+          "text": "모두 제자리에 있어요. 이제 돌아올 사람들의 길을 지켜요."
+        },
+        {
+          "speakerId": "cregals",
+          "text": "온전해졌다고 지금 깨우려 하지는 마라. 기다릴 시간은 그 녀석의 것이다."
+        },
+        {
+          "speakerId": "first",
+          "text": "그 시간을 너희가 지킬 수 있을까?"
+        },
+        {
+          "speakerId": "narrator",
+          "text": "외곽 통로로 흑화 갈매미가 다가온다. 첫깃 본인과는 아직 싸우지 않는다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_19_return",
+      "background": "final_statue",
+      "lines": [
+        {
+          "speakerId": "companion",
+          "text": "막았어. 이 길로는 더 못 들어와."
+        },
+        {
+          "speakerId": "hero",
+          "text": "안쪽 길로 돌아가요. 준비한 대피로도 확인하고요."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "마을 안쪽에서 사람들의 귀환을 알리는 목소리가 들린다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_20_intro",
+      "background": "final_statue",
+      "lines": [
+        {
+          "speakerId": "narrator",
+          "text": "안쪽 길에서 첫깃이 멈춰 선다. 그가 어둠을 흡수하자 커다란 날개 윤곽이 작은 몸을 감싼다."
+        },
+        {
+          "speakerId": "companion",
+          "text": "태초가 아니야. 첫깃이… 그 모습을 닮은 거야."
+        },
+        {
+          "speakerId": "darkFirst",
+          "text": "이렇게 닮았는데도… 나를 보지 않는 거야?"
+        },
+        {
+          "speakerId": "hero",
+          "text": "그건 태초의 마음이 아니에요. 여기서 멈추겠어요."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "처음이자 마지막으로 첫깃과 직접 싸운다. 석상은 따로 타격할 대상이 아니다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_20_return",
+      "background": "final_statue",
+      "lines": [
+        {
+          "speakerId": "narrator",
+          "text": "승리하자 첫깃이 석상에 닿으려 한다. 앞서 어둠을 흡수한 일과 다른, 마지막 강탈 시도다."
+        },
+        {
+          "speakerId": "hero",
+          "text": "석상 쪽이야!"
+        },
+        {
+          "speakerId": "companion",
+          "text": "지금이야. 연결을 막아!"
+        },
+        {
+          "speakerId": "narrator",
+          "text": "주인공이 힘을 빼앗으려는 시도를 막아 낸다. 새로운 전투는 시작되지 않는다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_21_intro",
+      "background": "final_statue",
+      "lines": [
+        {
+          "speakerId": "narrator",
+          "text": "쩌억."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "짧은 정적. 크레갈스가 고개를 든다."
+        },
+        {
+          "speakerId": "cregals",
+          "text": "……이제야 나오는구나."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "돌 안에서 눈이 열린다. 태초가 스스로 첫걸음을 내딛는다."
+        },
+        {
+          "speakerId": "hero",
+          "text": "기다리고 있었어요."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "긴 환생의 끝. 조각을 맞춘 힘으로 깨운 것이 아니라, 스스로 나올 때까지 지켜 낸 순간이다."
+        }
+      ]
+    },
+    {
+      "id": "STORY_21_return",
+      "background": "final_statue",
+      "lines": [
+        {
+          "speakerId": "cregals",
+          "text": "오래 걸렸구나, 친구야."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "긴 기다림 끝에, 함께 돌아갈 사람이 하나 더 늘었다."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "길 위의 모험과 마을의 일상은 계속된다."
+        }
+      ]
+    },
+    {
+      "id": "RESIDENT_BLACKSMITH_01_intro",
+      "background": "human_records",
+      "lines": [
+        {
+          "speakerId": "blacksmith",
+          "text": "예전엔 내 이름을 크게 새겼지. 지금은 길부터 잘 보여야겠더군."
+        },
+        {
+          "speakerId": "hero",
+          "text": "마을 밖 표지판 이야기인가요?"
+        },
+        {
+          "speakerId": "blacksmith",
+          "text": "밖의 길이 아직 맞는지 봐 주겠나. 돌아오는 방향을 제대로 새기고 싶네."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "수락하면 옛 갈림길의 표식을 확인하고 돌아온다. 주민은 마을 작업대에 남는다."
+        }
+      ]
+    },
+    {
+      "id": "RESIDENT_BLACKSMITH_01_return",
+      "background": "human_records",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "갈림길 표식을 확인했어요. 돌아오는 방향도 정확히 적어 왔고요."
+        },
+        {
+          "speakerId": "blacksmith",
+          "text": "잘 봐 왔군. 이번엔 돌아오는 길도 선명하게 새겨 두지."
+        },
+        {
+          "speakerId": "blacksmith",
+          "text": "이번 건 오래 남았으면 좋겠어. 내가 아니라, 돌아오는 길이."
+        }
+      ]
+    },
+    {
+      "id": "RESIDENT_MERCHANT_01_intro",
+      "background": "human_records",
+      "lines": [
+        {
+          "speakerId": "merchant",
+          "text": "오늘만큼은 뭘 사러 오지 않아도 앉을 수 있는 자리를 만들려고."
+        },
+        {
+          "speakerId": "hero",
+          "text": "저녁 모임을 준비하는 거예요?"
+        },
+        {
+          "speakerId": "merchant",
+          "text": "응. 팔 물건은 챙겼는데 같이 앉을 자리가 빠졌네. 밖에 두고 온 꾸러미 좀 부탁해."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "상인은 장부를 펴고 기다린다. 꾸러미가 놓인 길을 찾아 나선다."
+        }
+      ]
+    },
+    {
+      "id": "RESIDENT_MERCHANT_01_return",
+      "background": "human_records",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "장식 꾸러미를 가져왔어요. 오늘은 어떤 값표를 붙일 거예요?"
+        },
+        {
+          "speakerId": "merchant",
+          "text": "이번 꾸러미는 안 팔아. 오늘은 다 같이 쓰는 거니까."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "상인이 장부를 덮고 의자를 하나 더 내놓는다."
+        },
+        {
+          "speakerId": "merchant",
+          "text": "계산은 내일 해도 돼. 오늘은 이야기부터 하자."
+        }
+      ]
+    },
+    {
+      "id": "RESIDENT_LIBRARIAN_01_intro",
+      "background": "memory_workshop",
+      "lines": [
+        {
+          "speakerId": "librarian",
+          "text": "돌려받지 못한 책이 있어요. 책보다, 그 안의 메모가 마음에 걸려요."
+        },
+        {
+          "speakerId": "hero",
+          "text": "어떤 비밀이 있는 건가요?"
+        },
+        {
+          "speakerId": "librarian",
+          "text": "비밀이 아니어도 소중할 수 있죠. 역사에 안 나오는 이름도 누군가에게는 가장 중요한 이름이니까요."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "사서는 반납 기록을 정리하며 마을에 남는다. 바깥 쉼터에서 책을 찾는다."
+        }
+      ]
+    },
+    {
+      "id": "RESIDENT_LIBRARIAN_01_return",
+      "background": "memory_workshop",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "책 사이에 메모가 남아 있었어요. “다음에 같이 오자.”"
+        },
+        {
+          "speakerId": "librarian",
+          "text": "짧은 문장이네요. 그래도 남겨 둘 이유는 충분해요."
+        },
+        {
+          "speakerId": "librarian",
+          "text": "이름이 남아 있네요. 이제 이 추억도 잊히지 않겠어요."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "큰 역사의 새로운 증거가 아닌, 평범한 약속 하나가 기록에 남는다."
+        }
+      ]
+    },
+    {
+      "id": "RESIDENT_GUARD_01_intro",
+      "background": "defense_village",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "당번표에 대원님 이름이 너무 많아요."
+        },
+        {
+          "speakerId": "guard",
+          "text": "내 이름이 많이 적혔다고? 지우는 걸 깜빡했나 보군."
+        },
+        {
+          "speakerId": "hero",
+          "text": "동료들이 쉬는 동안 계속 혼자 돈 거죠?"
+        },
+        {
+          "speakerId": "guard",
+          "text": "오늘은 바깥 순찰길을 봐 주겠나. 여기 당번은 내가 지키고 있을 테니."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "방범대원은 마을에 남는다. 공격이 시작되기 전에 순찰길을 확인한다."
+        },
+        {
+          "speakerId": "guard",
+          "text": "인어기사는 물 공격이 통하지 않아. 번개나 자연 공격, 다른 보통 피해 기술로 대비해 줘."
+        }
+      ]
+    },
+    {
+      "id": "RESIDENT_GUARD_01_return",
+      "background": "defense_village",
+      "lines": [
+        {
+          "speakerId": "hero",
+          "text": "순찰길을 확인했어요. 돌아오니 동료들이 기다리고 있네요."
+        },
+        {
+          "speakerId": "guard",
+          "text": "혼자 다 맡는 게 지키는 일인 줄 알았는데… 다음엔 나도 동료에게 맡겨 보지."
+        },
+        {
+          "speakerId": "narrator",
+          "text": "방범대원이 당번표의 빈칸을 동료와 나눈다."
+        },
+        {
+          "speakerId": "guard",
+          "text": "누가 돌아올 때까지 기다리는 것도 당번이겠지. 다음은 같이 돌자."
+        }
+      ]
+    }
+  ],
+  "quests": [
+    {
+      "id": "STORY_01",
+      "kind": "main",
+      "chapter": 1,
+      "recommendedLevel": [
+        1,
+        8
+      ],
+      "title": "우리는 무엇을 지키고 있나",
+      "unlockAfter": [],
+      "acceptScene": "STORY_01_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_01_01"
+        ],
+        "wins": 1
+      },
+      "returnScene": "STORY_01_return",
+      "darkGangLifetimeRequired": 0,
+      "fragmentBundle": {
+        "id": "STORY_01_fragments",
+        "count": 1
+      }
+    },
+    {
+      "id": "STORY_02",
+      "kind": "main",
+      "chapter": 1,
+      "recommendedLevel": [
+        1,
+        8
+      ],
+      "title": "갈매미는 정말 있었네",
+      "unlockAfter": [
+        "STORY_01"
+      ],
+      "acceptScene": "STORY_02_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_02_01"
+        ],
+        "wins": 1
+      },
+      "returnScene": "STORY_02_return",
+      "darkGangLifetimeRequired": 0
+    },
+    {
+      "id": "STORY_03",
+      "kind": "main",
+      "chapter": 1,
+      "recommendedLevel": [
+        1,
+        8
+      ],
+      "title": "중요한 부분만 없다",
+      "unlockAfter": [
+        "STORY_02"
+      ],
+      "acceptScene": "STORY_03_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_03_01"
+        ],
+        "wins": 1
+      },
+      "returnScene": "STORY_03_return",
+      "darkGangLifetimeRequired": 0
+    },
+    {
+      "id": "STORY_04",
+      "kind": "main",
+      "chapter": 2,
+      "recommendedLevel": [
+        9,
+        16
+      ],
+      "title": "그림 속의 이웃",
+      "unlockAfter": [
+        "STORY_03"
+      ],
+      "acceptScene": "STORY_04_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_04_01"
+        ],
+        "wins": 1
+      },
+      "returnScene": "STORY_04_return",
+      "darkGangLifetimeRequired": 0
+    },
+    {
+      "id": "STORY_05",
+      "kind": "main",
+      "chapter": 2,
+      "recommendedLevel": [
+        9,
+        16
+      ],
+      "title": "돌아갈 길을 고치자",
+      "unlockAfter": [
+        "STORY_04"
+      ],
+      "acceptScene": "STORY_05_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_05_01"
+        ],
+        "wins": 1
+      },
+      "returnScene": "STORY_05_return",
+      "darkGangLifetimeRequired": 0
+    },
+    {
+      "id": "STORY_06",
+      "kind": "main",
+      "chapter": 2,
+      "recommendedLevel": [
+        9,
+        16
+      ],
+      "title": "서로 다른 모습의 흔적",
+      "unlockAfter": [
+        "STORY_05"
+      ],
+      "acceptScene": "STORY_06_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_06_01"
+        ],
+        "wins": 1
+      },
+      "returnScene": "STORY_06_return",
+      "darkGangLifetimeRequired": 2,
+      "fragmentBundle": {
+        "id": "STORY_06_fragments",
+        "count": 2
+      },
+      "statueStageAfter": 2
+    },
+    {
+      "id": "STORY_07",
+      "kind": "main",
+      "chapter": 3,
+      "recommendedLevel": [
+        17,
+        25
+      ],
+      "title": "남은 글과 빈자리",
+      "unlockAfter": [
+        "STORY_06"
+      ],
+      "acceptScene": "STORY_07_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_07_01"
+        ],
+        "wins": 1
+      },
+      "returnScene": "STORY_07_return",
+      "darkGangLifetimeRequired": 0
+    },
+    {
+      "id": "STORY_08",
+      "kind": "main",
+      "chapter": 3,
+      "recommendedLevel": [
+        17,
+        25
+      ],
+      "title": "그 이름을 묻는 자들",
+      "unlockAfter": [
+        "STORY_07"
+      ],
+      "acceptScene": "STORY_08_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_08_01"
+        ],
+        "wins": 1
+      },
+      "returnScene": "STORY_08_return",
+      "darkGangLifetimeRequired": 0
+    },
+    {
+      "id": "STORY_09",
+      "kind": "main",
+      "chapter": 3,
+      "recommendedLevel": [
+        17,
+        25
+      ],
+      "title": "남겨진 발자취",
+      "unlockAfter": [
+        "STORY_08"
+      ],
+      "acceptScene": "STORY_09_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_09_01"
+        ],
+        "wins": 1
+      },
+      "returnScene": "STORY_09_return",
+      "darkGangLifetimeRequired": 0,
+      "fragmentBundle": {
+        "id": "STORY_09_fragments",
+        "count": 1
+      }
+    },
+    {
+      "id": "STORY_10",
+      "kind": "main",
+      "chapter": 4,
+      "recommendedLevel": [
+        26,
+        34
+      ],
+      "title": "돌아가라는 말",
+      "unlockAfter": [
+        "STORY_09"
+      ],
+      "acceptScene": "STORY_10_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_10_01"
+        ],
+        "wins": 1
+      },
+      "returnScene": "STORY_10_return",
+      "darkGangLifetimeRequired": 0
+    },
+    {
+      "id": "STORY_11",
+      "kind": "main",
+      "chapter": 4,
+      "recommendedLevel": [
+        26,
+        34
+      ],
+      "title": "답보다 먼저",
+      "unlockAfter": [
+        "STORY_10"
+      ],
+      "acceptScene": "STORY_11_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_11_01"
+        ],
+        "wins": 1
+      },
+      "returnScene": "STORY_11_return",
+      "darkGangLifetimeRequired": 0
+    },
+    {
+      "id": "STORY_12",
+      "kind": "main",
+      "chapter": 4,
+      "recommendedLevel": [
+        26,
+        34
+      ],
+      "title": "문을 여는 사람",
+      "unlockAfter": [
+        "STORY_11"
+      ],
+      "acceptScene": "STORY_12_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_12_01",
+          "STORY_12_02"
+        ],
+        "wins": 2
+      },
+      "returnScene": "STORY_12_return",
+      "darkGangLifetimeRequired": 4,
+      "fragmentBundle": {
+        "id": "STORY_12_fragments",
+        "count": 2
+      },
+      "statueStageAfter": 3
+    },
+    {
+      "id": "STORY_13",
+      "kind": "main",
+      "chapter": 5,
+      "recommendedLevel": [
+        35,
+        43
+      ],
+      "title": "조각가와 첫 친구",
+      "unlockAfter": [
+        "STORY_12"
+      ],
+      "acceptScene": "STORY_13_intro",
+      "objective": {
+        "kind": "scene",
+        "encounterIds": [],
+        "wins": 0
+      },
+      "returnScene": "STORY_13_return",
+      "darkGangLifetimeRequired": 0
+    },
+    {
+      "id": "STORY_14",
+      "kind": "main",
+      "chapter": 5,
+      "recommendedLevel": [
+        35,
+        43
+      ],
+      "title": "애초에 죽은 적이 없어",
+      "unlockAfter": [
+        "STORY_13"
+      ],
+      "acceptScene": "STORY_14_intro",
+      "objective": {
+        "kind": "scene",
+        "encounterIds": [],
+        "wins": 0
+      },
+      "returnScene": "STORY_14_return",
+      "darkGangLifetimeRequired": 0
+    },
+    {
+      "id": "STORY_15",
+      "kind": "main",
+      "chapter": 5,
+      "recommendedLevel": [
+        35,
+        43
+      ],
+      "title": "찾는 여행에서 지키는 여행으로",
+      "unlockAfter": [
+        "STORY_14"
+      ],
+      "acceptScene": "STORY_15_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_15_01"
+        ],
+        "wins": 1
+      },
+      "returnScene": "STORY_15_return",
+      "darkGangLifetimeRequired": 0,
+      "fragmentBundle": {
+        "id": "STORY_15_fragments",
+        "count": 1
+      }
+    },
+    {
+      "id": "STORY_16",
+      "kind": "main",
+      "chapter": 6,
+      "recommendedLevel": [
+        44,
+        52
+      ],
+      "title": "함께 돌아갈 사람들",
+      "unlockAfter": [
+        "STORY_15"
+      ],
+      "acceptScene": "STORY_16_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_16_01"
+        ],
+        "wins": 1
+      },
+      "returnScene": "STORY_16_return",
+      "darkGangLifetimeRequired": 0
+    },
+    {
+      "id": "STORY_17",
+      "kind": "main",
+      "chapter": 6,
+      "recommendedLevel": [
+        44,
+        52
+      ],
+      "title": "모두가 설 자리",
+      "unlockAfter": [
+        "STORY_16"
+      ],
+      "acceptScene": "STORY_17_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_17_01"
+        ],
+        "wins": 1
+      },
+      "returnScene": "STORY_17_return",
+      "darkGangLifetimeRequired": 0
+    },
+    {
+      "id": "STORY_18",
+      "kind": "main",
+      "chapter": 6,
+      "recommendedLevel": [
+        44,
+        52
+      ],
+      "title": "마을로 향하는 발소리",
+      "unlockAfter": [
+        "STORY_17"
+      ],
+      "acceptScene": "STORY_18_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_18_01"
+        ],
+        "wins": 1
+      },
+      "returnScene": "STORY_18_return",
+      "darkGangLifetimeRequired": 6,
+      "fragmentBundle": {
+        "id": "STORY_18_fragments",
+        "count": 2
+      },
+      "statueStageAfter": 4
+    },
+    {
+      "id": "STORY_19",
+      "kind": "main",
+      "chapter": 7,
+      "recommendedLevel": [
+        53,
+        60
+      ],
+      "title": "돌아갈 곳을 지키는 싸움",
+      "unlockAfter": [
+        "STORY_18"
+      ],
+      "acceptScene": "STORY_19_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_19_01"
+        ],
+        "wins": 1
+      },
+      "returnScene": "STORY_19_return",
+      "darkGangLifetimeRequired": 0,
+      "fragmentBundleOnAccept": {
+        "id": "STORY_19_fragments",
+        "count": 2
+      },
+      "statueStageOnAccept": 5,
+      "statueStageAfter": 5
+    },
+    {
+      "id": "STORY_20",
+      "kind": "main",
+      "chapter": 7,
+      "recommendedLevel": [
+        53,
+        60
+      ],
+      "title": "석상 앞의 마지막 길",
+      "unlockAfter": [
+        "STORY_19"
+      ],
+      "acceptScene": "STORY_20_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "STORY_20_01"
+        ],
+        "wins": 1
+      },
+      "returnScene": "STORY_20_return",
+      "darkGangLifetimeRequired": 0
+    },
+    {
+      "id": "STORY_21",
+      "kind": "main",
+      "chapter": 7,
+      "recommendedLevel": [
+        53,
+        60
+      ],
+      "title": "최초의 균열",
+      "unlockAfter": [
+        "STORY_20"
+      ],
+      "acceptScene": "STORY_21_intro",
+      "objective": {
+        "kind": "scene",
+        "encounterIds": [],
+        "wins": 0
+      },
+      "returnScene": "STORY_21_return",
+      "darkGangLifetimeRequired": 0
+    },
+    {
+      "id": "RESIDENT_BLACKSMITH_01",
+      "kind": "resident",
+      "chapter": 2,
+      "recommendedLevel": [
+        9,
+        16
+      ],
+      "title": "돌아오는 길표",
+      "unlockAfter": [
+        "STORY_04"
+      ],
+      "acceptScene": "RESIDENT_BLACKSMITH_01_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "RESIDENT_BLACKSMITH_01_01",
+          "RESIDENT_BLACKSMITH_01_02"
+        ],
+        "wins": 2
+      },
+      "returnScene": "RESIDENT_BLACKSMITH_01_return",
+      "darkGangLifetimeRequired": 0,
+      "npcId": "blacksmith"
+    },
+    {
+      "id": "RESIDENT_MERCHANT_01",
+      "kind": "resident",
+      "chapter": 3,
+      "recommendedLevel": [
+        17,
+        25
+      ],
+      "title": "같이 켜는 저녁",
+      "unlockAfter": [
+        "STORY_07"
+      ],
+      "acceptScene": "RESIDENT_MERCHANT_01_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "RESIDENT_MERCHANT_01_01",
+          "RESIDENT_MERCHANT_01_02"
+        ],
+        "wins": 2
+      },
+      "returnScene": "RESIDENT_MERCHANT_01_return",
+      "darkGangLifetimeRequired": 0,
+      "npcId": "merchant"
+    },
+    {
+      "id": "RESIDENT_LIBRARIAN_01",
+      "kind": "resident",
+      "chapter": 5,
+      "recommendedLevel": [
+        35,
+        43
+      ],
+      "title": "책 사이의 이름",
+      "unlockAfter": [
+        "STORY_15"
+      ],
+      "acceptScene": "RESIDENT_LIBRARIAN_01_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "RESIDENT_LIBRARIAN_01_01",
+          "RESIDENT_LIBRARIAN_01_02"
+        ],
+        "wins": 2
+      },
+      "returnScene": "RESIDENT_LIBRARIAN_01_return",
+      "darkGangLifetimeRequired": 0,
+      "npcId": "librarian"
+    },
+    {
+      "id": "RESIDENT_GUARD_01",
+      "kind": "resident",
+      "chapter": 6,
+      "recommendedLevel": [
+        44,
+        52
+      ],
+      "title": "함께 도는 밤",
+      "unlockAfter": [
+        "STORY_17"
+      ],
+      "acceptScene": "RESIDENT_GUARD_01_intro",
+      "objective": {
+        "kind": "adventure_win",
+        "encounterIds": [
+          "RESIDENT_GUARD_01_01",
+          "RESIDENT_GUARD_01_02"
+        ],
+        "wins": 2
+      },
+      "returnScene": "RESIDENT_GUARD_01_return",
+      "darkGangLifetimeRequired": 0,
+      "npcId": "guard"
+    }
+  ],
+  "encounters": [
+    {
+      "id": "STORY_01_01",
+      "speciesId": "u01",
+      "level": 1,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "STORY_02_01",
+      "speciesId": "u02",
+      "level": 3,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "STORY_03_01",
+      "speciesId": "u01",
+      "level": 5,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "STORY_04_01",
+      "speciesId": "u02",
+      "level": 9,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "STORY_05_01",
+      "speciesId": "u01",
+      "level": 11,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "STORY_06_01",
+      "speciesId": "u06",
+      "level": 14,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "STORY_07_01",
+      "speciesId": "u07",
+      "level": 17,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "STORY_08_01",
+      "speciesId": "story_record",
+      "level": 20,
+      "kind": "villain",
+      "mode": "story",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.5,
+      "powerMultiplier": 1.5,
+      "villainProfileId": "record"
+    },
+    {
+      "id": "STORY_09_01",
+      "speciesId": "story_guide",
+      "level": 23,
+      "kind": "villain",
+      "mode": "story",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.5,
+      "powerMultiplier": 1.5,
+      "villainProfileId": "guide"
+    },
+    {
+      "id": "STORY_10_01",
+      "speciesId": "u14",
+      "level": 26,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "STORY_11_01",
+      "speciesId": "story_engineer",
+      "level": 29,
+      "kind": "villain",
+      "mode": "story",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.5,
+      "powerMultiplier": 1.5,
+      "villainProfileId": "engineer"
+    },
+    {
+      "id": "STORY_12_01",
+      "speciesId": "u23",
+      "level": 32,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "STORY_12_02",
+      "speciesId": "u14",
+      "level": 32,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "STORY_15_01",
+      "speciesId": "u07",
+      "level": 40,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "STORY_16_01",
+      "speciesId": "u06",
+      "level": 44,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "STORY_17_01",
+      "speciesId": "u28",
+      "level": 47,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "STORY_18_01",
+      "speciesId": "story_escort",
+      "level": 50,
+      "kind": "villain",
+      "mode": "story",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.5,
+      "powerMultiplier": 1.5,
+      "villainProfileId": "escort"
+    },
+    {
+      "id": "STORY_19_01",
+      "speciesId": "u31",
+      "level": 54,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "STORY_20_01",
+      "speciesId": "story_dark_first",
+      "level": 58,
+      "kind": "villain",
+      "mode": "story",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.5,
+      "powerMultiplier": 1.5,
+      "villainProfileId": "dark_first"
+    },
+    {
+      "id": "RESIDENT_BLACKSMITH_01_01",
+      "speciesId": "u01",
+      "level": 11,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "RESIDENT_BLACKSMITH_01_02",
+      "speciesId": "u02",
+      "level": 11,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "RESIDENT_MERCHANT_01_01",
+      "speciesId": "u06",
+      "level": 20,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "RESIDENT_MERCHANT_01_02",
+      "speciesId": "u07",
+      "level": 20,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "RESIDENT_LIBRARIAN_01_01",
+      "speciesId": "u14",
+      "level": 44,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "RESIDENT_LIBRARIAN_01_02",
+      "speciesId": "u23",
+      "level": 44,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "RESIDENT_GUARD_01_01",
+      "speciesId": "u28",
+      "level": 50,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.1,
+      "powerMultiplier": 1.1
+    },
+    {
+      "id": "RESIDENT_GUARD_01_02",
+      "speciesId": "u31",
+      "level": 50,
+      "kind": "black",
+      "mode": "adventure",
+      "winXp": 0,
+      "lossXp": 0,
+      "hpMultiplier": 1.3,
+      "powerMultiplier": 1.3
+    }
+  ],
+  "policy": {
+    "darkGangPerWin": 1,
+    "maxBalance": 2000000000,
+    "mainLifetimeGates": {
+      "STORY_06": 2,
+      "STORY_12": 4,
+      "STORY_18": 6
+    },
+    "thresholdsAreTestValues": true
+  }
+}

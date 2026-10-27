@@ -1,3 +1,6 @@
+import {commanderPolicyReader,readCommanderState} from './progression/commander.js';
+import {RosterError} from './roster60-onboarding.js';
+import type {AccountLevelReader} from './progression/roster60-rank.js';
 import {ordinarySessionLifetimeSeconds,sessionPredatesReset} from './game-reset-session.js';
 // 웹 「내 갈매미」(/my): 카톡에서 받은 6자리 코드로 로그인 → 내 갈매미 목록·전투 편성·탐험 편성
 // 로그인 상태는 서명된 쿠키(30일). 쿠키에는 플레이어 id와 만료 시각만, 서명 키는 SKILL_SECRET에서 따로 계산
@@ -25,7 +28,7 @@ const COOKIE='gmm_s',DAYS=30,KSTATE='gmm_ks',KPEND='gmm_kp',KAPP='gmm_ka',KLINK=
 // 안드로이드 앱(Capacitor) 화면 주소. 앱에서 오는 요청만 다른 주소에서 받음(CORS)
 const APP_ORIGINS=new Set(['https://localhost','capacitor://localhost','http://localhost']);
 export interface KakaoLogin {restKey:string;clientSecret?:string}
-export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaClient;root:string;secret:string;baseUrl:()=>Promise<string>;kakao?:KakaoLogin;fetch?:typeof fetch;reviewLogin?:ReviewConfig;gameResetSessionCutoff?:number}){
+export function registerMy(app:FastifyInstance,game:GameService,opt:{roster60AccountLevelReader?:AccountLevelReader;db:PrismaClient;root:string;secret:string;baseUrl:()=>Promise<string>;kakao?:KakaoLogin;fetch?:typeof fetch;reviewLogin?:ReviewConfig;gameResetSessionCutoff?:number}){
   const key=createHmac('sha256',opt.secret).update('web-session').digest();
   const sign=(v:string)=>createHmac('sha256',key).update(v).digest('base64url');
   const issue=(playerId:string)=>{const exp=Math.floor(Date.now()/1000)+ordinarySessionLifetimeSeconds,v=`${playerId}.${exp}`;return `${v}.${sign(v)}`;};
@@ -393,8 +396,10 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
     return {left};
   });
 
-  const native=registerNative(app,game,opt.root,session,guard,realtime);
-  registerRoster60(app,opt.db,opt.root,session,guard);
+  const commanderPolicy=commanderPolicyReader(opt.root,process.env.ROSTER60_PROFILE);
+  const commanderRead=async(id:string)=>{try{return await readCommanderState(opt.db,id,commanderPolicy());}catch(error){if(error instanceof RosterError)return {...await readCommanderState(opt.db,id,null),status:'DATA_INVALID' as const};throw error;}};
+  const native=registerNative(app,game,opt.root,session,guard,realtime,undefined,commanderRead);
+  registerRoster60(app,opt.db,opt.root,session,guard,undefined,opt.roster60AccountLevelReader,commanderPolicy);
   registerRealtimePvp(app,realtime,session,guard);
   registerNews(app,new NewsService(prismaNewsStore(opt.db),newsSources(opt.root,()=>game.content.economy.events)),session,guard);
 

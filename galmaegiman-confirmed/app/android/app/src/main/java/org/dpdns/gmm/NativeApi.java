@@ -113,6 +113,8 @@ class NativeApi {
             conn.setReadTimeout(20000);
             conn.setRequestProperty("x-gmm", "1");
             conn.setRequestProperty("x-gmm-app", "1");
+            if ("native/roster60/craft/options".equals(path))
+              conn.setRequestProperty("X-GMM-Craft-Discovery", "1");
             // 클라이언트 표시 능력만 알린다. V2 활성화는 서버 설정이 결정한다.
             conn.setRequestProperty("x-gmm-augment-version", "2");
             // 표시/입력 지원 선언일 뿐 인증이나 서버 규칙 우회가 아니다.

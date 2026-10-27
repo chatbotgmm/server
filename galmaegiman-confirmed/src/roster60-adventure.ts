@@ -8,14 +8,20 @@ import {growthAt} from './battle/roster60-rules.js';
 import type {Fighter,State} from './roster60-battle.js';
 import {publicDefenseSafe} from './battle/roster60-observed-defense.js';
 import {recordRosterDailyProgress} from './roster60-daily-progress.js';
+import {awardCommanderXp,readCommanderState,type CommanderPolicy} from './progression/commander.js';
+import {serializeRoster60Write} from './roster60-write-queue.js';
 const fail=(code:string,status=409):never=>{throw new RosterError(status,code);};
 export const adventureEscapePolicy=Object.freeze({version:'adventure-escape-70-v1',successPercent:70});
+const commanderReturnEvidenceVersion='commander-adventure-evidence-v1';
 // Server seed and turn determine one draw. Different request IDs cannot reroll a stale revision.
 export function adventureEscapeSucceeds(seed:string,battleId:string,turn:number){if(!seed||!battleId||!Number.isSafeInteger(turn)||turn<0)throw Error('INVALID_ESCAPE_SEED');return createHash('sha256').update(JSON.stringify([adventureEscapePolicy.version,seed,battleId,turn])).digest().readUInt32BE(0)/4294967296<.7;}
 export function adventureDto(row:Roster60Adventure){const state=JSON.parse(row.state);return {adventureId:row.id,revision:row.revision,status:row.status,activeBattleId:row.activeBattleId,party:publicDefenseSafe(state.party),pendingRewards:JSON.parse(row.pendingRewards),settlement:row.settlement?JSON.parse(row.settlement):null,escapePolicy:adventureEscapePolicy};}
 export class RosterAdventure{
- constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private fighter:(c:RosterCatalog,species:string,level:number,id:string,cycle:number)=>Fighter,private completionTime=()=>new Date()){}
- private async request(playerId:string,requestId:string,payload:unknown,fn:(tx:Prisma.TransactionClient)=>Promise<unknown>){const fingerprint=createHash('sha256').update(JSON.stringify(payload)).digest('hex');const run=()=>this.db.$transaction(async tx=>{const old=await tx.roster60AdventureReceipt.findUnique({where:{playerId_requestId:{playerId,requestId}}});if(old){if(old.fingerprint!==fingerprint)return fail('REQUEST_ID_REUSED');return publicDefenseSafe(JSON.parse(old.result));}const result=await fn(tx);await tx.roster60AdventureReceipt.create({data:{playerId,requestId,fingerprint,result:JSON.stringify(result)}});return result;});try{return await run();}catch(e){if(['P2002','P2034'].includes((e as {code?:string}).code??''))return run();throw e;}}
+ constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private fighter:(c:RosterCatalog,species:string,level:number,id:string,cycle:number)=>Fighter,private completionTime=()=>new Date(),private commanderPolicy:()=>CommanderPolicy|null=()=>null){}
+ private async request(playerId:string,requestId:string,payload:unknown,fn:(tx:Prisma.TransactionClient)=>Promise<unknown>){const fingerprint=createHash('sha256').update(JSON.stringify(payload)).digest('hex');const run=()=>this.db.$transaction(async tx=>{
+  // Claim the shared SQLite writer before receipt/domain reads, including cross-client returns.
+  await tx.appMeta.upsert({where:{key:'realtime-pvp-write-lock'},create:{key:'realtime-pvp-write-lock',value:'1'},update:{value:'1'}});
+  const old=await tx.roster60AdventureReceipt.findUnique({where:{playerId_requestId:{playerId,requestId}}});if(old){if(old.fingerprint!==fingerprint)return fail('REQUEST_ID_REUSED');return publicDefenseSafe(JSON.parse(old.result));}const result=await fn(tx);await tx.roster60AdventureReceipt.create({data:{playerId,requestId,fingerprint,result:JSON.stringify(result)}});return result;});return serializeRoster60Write(this.db,async()=>{try{return await run();}catch(e){if(['P2002','P2034','COMMANDER_CONCURRENT_WRITE'].includes((e as {code?:string}).code??''))return run();throw e;}});}
  async active(playerId:string){return {adventures:(await this.db.roster60Adventure.findMany({where:{playerId,status:'ACTIVE'},orderBy:{createdAt:'desc'}})).map(adventureDto)};}
  async read(playerId:string,id:string){const row=await this.db.roster60Adventure.findFirst({where:{id,playerId}});if(!row)return fail('ADVENTURE_NOT_FOUND',404);return adventureDto(row);}
  async start(playerId:string,b:{requestId:string;ownedIds:string[]}){return this.request(playerId,b.requestId,['start',b.ownedIds],async tx=>{
@@ -26,10 +32,10 @@ export class RosterAdventure{
    const lv=growthAt(Number(u.totalXp),d.growth,u.reincarnation,d.reincarnationXpPolicy).level;party.push({...this.fighter(c,u.speciesId,lv,'self',u.reincarnation),ownedId:id});members.push({ownedId:id,startingXp:u.totalXp.toString(),growth:d.growth,reincarnation:u.reincarnation,reincarnationXpPolicy:d.reincarnationXpPolicy});
    const changed=await tx.roster60Owned.updateMany({where:{id,playerId,status:'AVAILABLE',locked:false,totalXp:u.totalXp},data:{status:'ADVENTURE'}});if(changed.count!==1)return fail('UNIT_UNAVAILABLE');
   }
-  return adventureDto(await tx.roster60Adventure.create({data:{playerId,catalogVersion:c.version,state:JSON.stringify({party,members}),pendingRewards:JSON.stringify({xp:{}})}}));
+  return adventureDto(await tx.roster60Adventure.create({data:{playerId,catalogVersion:c.version,state:JSON.stringify({party,members,commanderPolicy:structuredClone(this.commanderPolicy()),commanderReturnEvidence:{version:commanderReturnEvidenceVersion,wins:0}}),pendingRewards:JSON.stringify({xp:{}})}}));
  });}
  async return(playerId:string,b:{requestId:string;adventureId:string;revision:number}){return this.request(playerId,b.requestId,['return',b.adventureId,b.revision],async tx=>{
-  const row=await tx.roster60Adventure.findFirst({where:{id:b.adventureId,playerId}});if(!row)return fail('ADVENTURE_NOT_FOUND',404);if(row.status!=='ACTIVE')return adventureDto(row);if(row.revision!==b.revision)return fail('STALE_REVISION');if(row.activeBattleId)return fail('RETURN_ONLY_OUTSIDE_BATTLE');
+  const row=await tx.roster60Adventure.findFirst({where:{id:b.adventureId,playerId}});if(!row)return fail('ADVENTURE_NOT_FOUND',404);if(row.status!=='ACTIVE'){const dto=adventureDto(row);return {...dto,commander:await readCommanderState(tx,playerId,this.commanderPolicy()),commanderReward:dto.settlement?.commanderReward??null};}if(row.revision!==b.revision)return fail('STALE_REVISION');if(row.activeBattleId)return fail('RETURN_ONLY_OUTSIDE_BATTLE');
   const state=JSON.parse(row.state),rules=loadBattleRules().data;let rewards;try{rewards=checkedAdventureRewards(JSON.parse(row.pendingRewards),Object.keys(rules.items));validateRewardRecipients(rewards,state.members.map((m:{ownedId:string})=>m.ownedId));}catch(e){return fail((e as Error).message);}
   const player=await tx.player.findUniqueOrThrow({where:{id:playerId}});
   for(const key of ['credits','snack','peanut'] as const){const amount=rewards.currencies?.[key]??0;try{checkedRewardTotal(player[key],amount,2_000_000_000);}catch(e){return fail((e as Error).message);}if(amount)await tx.player.update({where:{id:playerId},data:{[key]:{increment:amount}}});}
@@ -39,7 +45,9 @@ export class RosterAdventure{
   }
   // Mission completion requires a positive reward actually delivered by the successful payout above.
   const receivedReward=[...Object.values(rewards.xp),...Object.values(rewards.currencies??{}),...Object.values(rewards.items??{})].some(amount=>amount>0);
-  const settlement={kind:'normal-return',rewards};const changed=await tx.roster60Adventure.updateMany({where:{id:row.id,playerId,revision:row.revision,status:'ACTIVE',activeBattleId:null},data:{status:'RETURNED',revision:{increment:1},pendingRewards:JSON.stringify({xp:{}}),settlement:JSON.stringify(settlement)}});if(changed.count!==1)return fail('STALE_REVISION');await tx.player.update({where:{id:playerId},data:{revision:{increment:1}}});if(receivedReward)await recordRosterDailyProgress(tx,playerId,'EXPEDITION',1,this.completionTime());return adventureDto({...row,status:'RETURNED',revision:row.revision+1,pendingRewards:JSON.stringify({xp:{}}),settlement:JSON.stringify(settlement)});
+  const evidence=state.commanderReturnEvidence,verified=evidence?.version===commanderReturnEvidenceVersion&&Number.isSafeInteger(evidence.wins)&&evidence.wins>=0;
+  const commanderReward=await awardCommanderXp(tx,playerId,{kind:'ADVENTURE_RETURN',eventId:row.id,outcome:'completed',reason:verified&&evidence.wins>0?'WIN_RETURN':verified?'NO_CLEAR_RETURN':'CLEAR_EVIDENCE_MISSING',linkedQuestId:typeof state.storyQuestId==='string'&&state.storyQuestId?state.storyQuestId:null},state.commanderPolicy??null);
+  const settlement={kind:'normal-return',rewards,commanderReward};const changed=await tx.roster60Adventure.updateMany({where:{id:row.id,playerId,revision:row.revision,status:'ACTIVE',activeBattleId:null},data:{status:'RETURNED',revision:{increment:1},pendingRewards:JSON.stringify({xp:{}}),settlement:JSON.stringify(settlement)}});if(changed.count!==1)return fail('STALE_REVISION');await tx.player.update({where:{id:playerId},data:{revision:{increment:1}}});if(receivedReward)await recordRosterDailyProgress(tx,playerId,'EXPEDITION',1,this.completionTime());return {...adventureDto({...row,status:'RETURNED',revision:row.revision+1,pendingRewards:JSON.stringify({xp:{}}),settlement:JSON.stringify(settlement)}),commander:commanderReward.commander,commanderReward};
  });}
 }
 /** Approved per-battle awards, never divided by party size. Fractional reserve XP is floored. */
@@ -51,9 +59,13 @@ export function adventureBattleXp(baseXp:number,ownedIds:string[],enteredIds:str
 export async function settleAdventureBattle(tx:Prisma.TransactionClient,row:{id:string;playerId:string;ownedId:string},state:State,snap:any){
  const run=await tx.roster60Adventure.findFirst({where:{id:snap.adventureId,playerId:row.playerId,status:'ACTIVE',activeBattleId:row.id}});if(!run)return fail('ADVENTURE_STATE_CHANGED');
  const saved=JSON.parse(run.state),pending=JSON.parse(run.pendingRewards);const party=[state.fighters[0],...(state.reserves??[])];
+ // Recover the quest marker from a server-created battle snapshot for an older active run.
+ if(snap.story?.version==='story-battle-v1'&&snap.story.questId){if(saved.storyQuestId&&saved.storyQuestId!==snap.story.questId)return fail('ADVENTURE_STORY_CONTEXT_CHANGED');if(!saved.storyQuestId){saved.storyQuestId=snap.story.questId;saved.commanderPolicy=null;}}
  if(saved.party.length!==party.length||saved.party.some((f:Fighter)=>!party.some(x=>x.ownedId===f.ownedId)))return fail('ADVENTURE_STATE_CHANGED');
  const lost=party.every(f=>f.hp<=0);let xp=0;let xpByOwnedId:Record<string,number>={};
- if(!lost&&state.outcome==='win'){
+ if(!lost&&state.outcome==='win'&&!state.surrendered){
+  const evidence=saved.commanderReturnEvidence,wins=evidence?.version===commanderReturnEvidenceVersion&&Number.isSafeInteger(evidence.wins)&&evidence.wins>=0?evidence.wins:0;
+  if(!Number.isSafeInteger(wins+1))return fail('INVALID_REWARD');saved.commanderReturnEvidence={version:commanderReturnEvidenceVersion,wins:wins+1};
   xp=snap.encounter.winXp;
   // Before participation was added, persisted server switch events are the authoritative fallback.
   const entered=[row.ownedId,...(state.participation??[]).map(p=>p.ownedId)];

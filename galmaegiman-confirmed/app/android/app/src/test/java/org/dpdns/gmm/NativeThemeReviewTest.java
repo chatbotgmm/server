@@ -70,7 +70,8 @@ public class NativeThemeReviewTest {
     @Override void call(String path, JSONObject body, Result done) {
       if (body != null) { writes++; throw new AssertionError("표시 검토에서 API 쓰기 금지: " + path); }
       reads++;
-      if (path.equals("pvp/rank")) done.done(rank(), null);
+      if (path.equals("native/roster60/commander")) done.done(NativeCommander.pending("POLICY_PENDING"),null);
+      else if (path.equals("pvp/rank")) done.done(rank(), null);
       else if (path.equals("daily")) done.done(daily(), null);
       else if (path.equals("draw")) {
         drawReads++;

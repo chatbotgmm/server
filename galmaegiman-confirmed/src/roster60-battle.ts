@@ -1,4 +1,5 @@
 import {opponentFighter,selectEnemySpecies} from './battle/roster60-opponent-intel.js';
+import {settleStoryBattle} from './story/settlement.js';
 import {captureDefenseSnapshot,battleKnowledge,observedOpponentIntel,resolvedDefenseObservation,addDefenseObservation,persistDefenseObservations,publicDefenseObservation,publicDefenseSafe,safeKnowledgeCatalog,type DefenseSnapshot,type DefenseObservation} from './battle/roster60-observed-defense.js';
 import {capturePresentation,presentStep} from './battle/roster60-presentation.js';
 import {adventureEscapePolicy,adventureEscapeSucceeds,settleAdventureBattle} from './roster60-adventure.js';
@@ -14,6 +15,8 @@ type Skill={id:string;name:string;element:SkillElement;mpCost:number;power:numbe
 export type Fighter={ownedId?:string;id:string;speciesId:string;name:string;level:number;stats:FiveStats;hp:number;mp:number;attack:Skill;skills:Skill[];suitability:ElementProfile<number>;defense:ElementProfile<Defense>};
 export type State={version:'five-battle-v1';turn:number;fighters:[Fighter,Fighter];decision:TurnOrderDecision;outcome:'win'|'loss'|'draw'|'escaped'|null;events:unknown[];adventureId?:string;reserves?:Fighter[];mode?:'story'|'duel'|'adventure';surrendered?:boolean;rulesVersion?:'party-actions-v2';inventory?:{itemId:string;count:number}[];participation?:{ownedId:string;kind:'start'|'switch'|'forced-switch';turn:number}[]};
 export type BattleAction={kind:'attack'|'skill'|'focus'|'switch'|'item'|'escape';skillId?:string;targetOwnedId?:string;itemId?:string};
+export type StoryBattleCreateHook=(tx:Prisma.TransactionClient,context:{battleId:string;playerId:string;encounter:BattlePolicy['encounters'][number];enemy:Fighter;adventureId?:string})=>Promise<{story:unknown;enemy?:Fighter}>;
+export type StoryEnemyFactory=(c:RosterCatalog,speciesId:string,level:number,id:string)=>Fighter;
 const fail=(code:string,status=409):never=>{throw new RosterError(status,code);};
 const hash=(v:unknown)=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
 export function validatePolicy(p:BattlePolicy|null,c:RosterCatalog|null):asserts p is BattlePolicy{
@@ -58,7 +61,7 @@ function dto(row:{id:string;revision:number;status:string;state:string;settlemen
  return {balanceProfile:policy?.version??null,testBaseline:policy?.profileKind==='user-authorized-test-baseline',battleId:row.id,revision:row.revision,status:row.status,state:publicState,settlement:row.settlement?JSON.parse(row.settlement):null,itemDefinitions:policy&&row.snapshot?JSON.parse(row.snapshot).items??{}:{},disabledCommands:{item:s.fighters[0].hp<=0?'FORCED_SWITCH_REQUIRED':s.rulesVersion?'':'ITEM_POLICY_PENDING',switch:s.rulesVersion?'':'SWITCH_POLICY_PENDING',escape:s.fighters[0].hp<=0?'FORCED_SWITCH_REQUIRED':['story','duel','adventure'].includes(s.mode??'')?'':'ESCAPE_POLICY_PENDING'}};
 }
 export class RosterBattle {
- constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private policy:()=>BattlePolicy|null){}
+ constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private policy:()=>BattlePolicy|null,private storyCreate?:StoryBattleCreateHook,private storyEnemy?:StoryEnemyFactory){}
  private view(row:Parameters<typeof dto>[0]){return dto(row,safeKnowledgeCatalog(this.catalog));}
  private async request(playerId:string,requestId:string,payload:unknown,run:(tx:Prisma.TransactionClient)=>Promise<unknown>){
   const fingerprint=hash(payload);const once=()=>this.db.$transaction(async tx=>{
@@ -107,15 +110,17 @@ export class RosterBattle {
     reserves.push({...fighter(c!,unit.speciesId,lv,'self',unit.reincarnation),ownedId:unit.id});members.push({ownedId:unit.id,startingXp:unit.totalXp.toString()});
    }
    const id=randomUUID(),seed=randomBytes(32).toString('hex');
-   const f:[Fighter,Fighter]=[fighter(c!,owned.speciesId,level,'self',owned.reincarnation),fighter(c!,selectEnemySpecies(encounter,p.encounters,seed),encounter.level,'enemy')];
+   const f:[Fighter,Fighter]=[fighter(c!,owned.speciesId,level,'self',owned.reincarnation),(this.storyEnemy??fighter)(c!,selectEnemySpecies(encounter,p.encounters,seed),encounter.level,'enemy')];
    f[0].ownedId=owned.id;
+   const storyExtension=this.storyCreate?await this.storyCreate(tx,{battleId:id,playerId,encounter,enemy:f[1],adventureId:run?.id}):null;
+   if(storyExtension?.enemy)f[1]=storyExtension.enemy;
    if(runState)for(const next of [f[0],...reserves]){const prior=runState.party.find((x:Fighter)=>x.ownedId===next.ownedId);if(!prior)return fail('INVALID_PARTY');next.hp=prior.hp;}
    const items=loadBattleRules().data.items;
    const observedDefense=await captureDefenseSnapshot(tx,c!,{self:{playerId,targets:[f[1]]}});
    const state:State={participation:[{ownedId:owned.id,kind:'start',turn:0}],rulesVersion:'party-actions-v2',adventureId:run?.id,reserves,mode:encounter.mode,inventory:await tx.playerItem.findMany({where:{playerId},select:{itemId:true,count:true}}),version:'five-battle-v1',turn:0,fighters:f,decision:order(id,{turn:0,fighters:f},seed),outcome:null,events:[]};
    const lock=await tx.roster60Owned.updateMany({where:{id:owned.id,playerId,status:sourceStatus,locked:false,totalXp:owned.totalXp},data:{status:'BATTLE'}});if(lock.count!==1)return fail('UNIT_UNAVAILABLE');
    for(const member of members.slice(1)){const locked=await tx.roster60Owned.updateMany({where:{id:member.ownedId,playerId,status:sourceStatus,locked:false,totalXp:BigInt(member.startingXp)},data:{status:'BATTLE'}});if(locked.count!==1)return fail('UNIT_UNAVAILABLE');}
-   const row=await tx.roster60Battle.create({data:{id,playerId,ownedId:owned.id,seed,snapshot:JSON.stringify({policy:p,encounter,items,members,observedDefense,adventureId:run?.id,escapePolicy:adventureEscapePolicy,xpRecipient:run?'adventure-participation-100-reserve-50-v1':'initial-owned-existing-v1',growth:def.growth,startingXp:owned.totalXp.toString()}),state:JSON.stringify(state)}});
+   const row=await tx.roster60Battle.create({data:{id,playerId,ownedId:owned.id,seed,snapshot:JSON.stringify({policy:p,encounter,items,members,observedDefense,...(storyExtension?{story:storyExtension.story}:{}),adventureId:run?.id,escapePolicy:adventureEscapePolicy,xpRecipient:run?'adventure-participation-100-reserve-50-v1':'initial-owned-existing-v1',growth:def.growth,startingXp:owned.totalXp.toString()}),state:JSON.stringify(state)}});
    if(run){const claimed=await tx.roster60Adventure.updateMany({where:{id:run.id,playerId,revision:run.revision,status:'ACTIVE',activeBattleId:null},data:{activeBattleId:id,revision:{increment:1}}});if(claimed.count!==1)return fail('ADVENTURE_STATE_CHANGED');}
    return this.view(row);
   });
@@ -216,7 +221,9 @@ export class RosterBattle {
    if(row.revision!==b.revision)return fail('STALE_REVISION');if(row.status!=='FINISHED')return fail('BATTLE_NOT_FINISHED');
    const state=JSON.parse(row.state) as State,snap=JSON.parse(row.snapshot);
    if(snap.adventureId){
-    const settlement=await settleAdventureBattle(tx,row,state,snap);
+    const adventureSettlement=await settleAdventureBattle(tx,row,state,snap);
+    const storyReward=await settleStoryBattle(tx,row,state,snap);
+    const settlement={...adventureSettlement,...(storyReward?{story:storyReward}:{})};
     const changed=await tx.roster60Battle.updateMany({where:{id:row.id,playerId,revision:row.revision,status:'FINISHED'},data:{status:'SETTLED',revision:{increment:1},settlement:JSON.stringify(settlement)}});if(changed.count!==1)return fail('STALE_REVISION');
     return this.view({...row,revision:row.revision+1,status:'SETTLED',settlement:JSON.stringify(settlement)});
    }
@@ -225,7 +232,8 @@ export class RosterBattle {
    if(owned.totalXp.toString()!==snap.startingXp)return fail('UNIT_STATE_CHANGED');
    const nextXp=owned.totalXp+BigInt(xp);if(nextXp>BigInt(Number.MAX_SAFE_INTEGER))return fail('INVALID_XP');
    try{growthAt(Number(nextXp),snap.growth,owned.reincarnation);}catch(e){return fail((e as Error).message);}
-   const settlement={outcome:state.outcome,xpAwarded:xp,totalXp:nextXp.toString(),policyVersion:snap.policy.version};
+   const storyReward=await settleStoryBattle(tx,row,state,snap);
+   const settlement={outcome:state.outcome,xpAwarded:xp,totalXp:nextXp.toString(),policyVersion:snap.policy.version,...(storyReward?{story:storyReward}:{})};
    const changed=await tx.roster60Battle.updateMany({where:{id:row.id,playerId,revision:row.revision,status:'FINISHED'},data:{status:'SETTLED',revision:{increment:1},settlement:JSON.stringify(settlement)}});if(changed.count!==1)return fail('STALE_REVISION');
    const released=await tx.roster60Owned.updateMany({where:{id:owned.id,playerId,status:'BATTLE',totalXp:owned.totalXp},data:{status:'AVAILABLE',totalXp:nextXp}});if(released.count!==1)return fail('UNIT_STATE_CHANGED');
    for(const member of (snap.members??[]).filter((m:{ownedId:string})=>m.ownedId!==row.ownedId)){const released=await tx.roster60Owned.updateMany({where:{id:member.ownedId,playerId,status:'BATTLE',totalXp:BigInt(member.startingXp)},data:{status:'AVAILABLE'}});if(released.count!==1)return fail('UNIT_STATE_CHANGED');}

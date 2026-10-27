@@ -19,6 +19,15 @@ import org.robolectric.annotation.LooperMode;
 
 @RunWith(RobolectricTestRunner.class) @Config(sdk=35) @LooperMode(LooperMode.Mode.PAUSED)
 public class LocalGameArtTest {
+  static String pendingDiagnostic() {
+    try {
+      java.lang.reflect.Field waitingField=LocalGameArt.class.getDeclaredField("WAITING"), deliveriesField=LocalGameArt.class.getDeclaredField("deliveries");
+      waitingField.setAccessible(true);deliveriesField.setAccessible(true);
+      Object waiting=waitingField.get(null);
+      synchronized(waiting){return "local waiting="+waiting+", deliveries="+deliveriesField.getInt(null);}
+    } catch(Exception error){return "local diagnostic unavailable: "+error;}
+  }
+
   static void drain() throws Exception {
     long end = System.nanoTime() + TimeUnit.SECONDS.toNanos(8);
     do {

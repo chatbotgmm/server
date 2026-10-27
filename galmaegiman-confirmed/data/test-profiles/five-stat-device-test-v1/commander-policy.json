@@ -1,0 +1,463 @@
+{
+  "approved": true,
+  "version": "commander-account-xp-test-v1",
+  "profileKind": "user-authorized-test-baseline",
+  "productionBalanceApproved": false,
+  "testValues": true,
+  "name": "방범대장",
+  "eventBasis": "one-account-event",
+  "unitXpRelationship": "independent-not-sum-not-split",
+  "unitReincarnation": "account-retained",
+  "initialization": "test-only-zero-no-backfill",
+  "legacyEvents": "no-retroactive-reconstruction",
+  "totalXpPolicy": "retain-lifetime-total",
+  "curveOverflow": "last-known-level-extension-pending",
+  "growth": [
+    {
+      "level": 1,
+      "totalXp": 0
+    },
+    {
+      "level": 2,
+      "totalXp": 100
+    },
+    {
+      "level": 3,
+      "totalXp": 200
+    },
+    {
+      "level": 4,
+      "totalXp": 300
+    },
+    {
+      "level": 5,
+      "totalXp": 400
+    },
+    {
+      "level": 6,
+      "totalXp": 500
+    },
+    {
+      "level": 7,
+      "totalXp": 600
+    },
+    {
+      "level": 8,
+      "totalXp": 700
+    },
+    {
+      "level": 9,
+      "totalXp": 800
+    },
+    {
+      "level": 10,
+      "totalXp": 900
+    },
+    {
+      "level": 11,
+      "totalXp": 1000
+    },
+    {
+      "level": 12,
+      "totalXp": 1100
+    },
+    {
+      "level": 13,
+      "totalXp": 1200
+    },
+    {
+      "level": 14,
+      "totalXp": 1300
+    },
+    {
+      "level": 15,
+      "totalXp": 1400
+    },
+    {
+      "level": 16,
+      "totalXp": 1500
+    },
+    {
+      "level": 17,
+      "totalXp": 1600
+    },
+    {
+      "level": 18,
+      "totalXp": 1700
+    },
+    {
+      "level": 19,
+      "totalXp": 1800
+    },
+    {
+      "level": 20,
+      "totalXp": 1900
+    },
+    {
+      "level": 21,
+      "totalXp": 2000
+    },
+    {
+      "level": 22,
+      "totalXp": 2100
+    },
+    {
+      "level": 23,
+      "totalXp": 2200
+    },
+    {
+      "level": 24,
+      "totalXp": 2300
+    },
+    {
+      "level": 25,
+      "totalXp": 2400
+    },
+    {
+      "level": 26,
+      "totalXp": 2500
+    },
+    {
+      "level": 27,
+      "totalXp": 2600
+    },
+    {
+      "level": 28,
+      "totalXp": 2700
+    },
+    {
+      "level": 29,
+      "totalXp": 2800
+    },
+    {
+      "level": 30,
+      "totalXp": 2900
+    },
+    {
+      "level": 31,
+      "totalXp": 3000
+    },
+    {
+      "level": 32,
+      "totalXp": 3100
+    },
+    {
+      "level": 33,
+      "totalXp": 3200
+    },
+    {
+      "level": 34,
+      "totalXp": 3300
+    },
+    {
+      "level": 35,
+      "totalXp": 3400
+    },
+    {
+      "level": 36,
+      "totalXp": 3500
+    },
+    {
+      "level": 37,
+      "totalXp": 3600
+    },
+    {
+      "level": 38,
+      "totalXp": 3700
+    },
+    {
+      "level": 39,
+      "totalXp": 3800
+    },
+    {
+      "level": 40,
+      "totalXp": 3900
+    },
+    {
+      "level": 41,
+      "totalXp": 4000
+    },
+    {
+      "level": 42,
+      "totalXp": 4100
+    },
+    {
+      "level": 43,
+      "totalXp": 4200
+    },
+    {
+      "level": 44,
+      "totalXp": 4300
+    },
+    {
+      "level": 45,
+      "totalXp": 4400
+    },
+    {
+      "level": 46,
+      "totalXp": 4500
+    },
+    {
+      "level": 47,
+      "totalXp": 4600
+    },
+    {
+      "level": 48,
+      "totalXp": 4700
+    },
+    {
+      "level": 49,
+      "totalXp": 4800
+    },
+    {
+      "level": 50,
+      "totalXp": 4900
+    },
+    {
+      "level": 51,
+      "totalXp": 5000
+    },
+    {
+      "level": 52,
+      "totalXp": 5100
+    },
+    {
+      "level": 53,
+      "totalXp": 5200
+    },
+    {
+      "level": 54,
+      "totalXp": 5300
+    },
+    {
+      "level": 55,
+      "totalXp": 5400
+    },
+    {
+      "level": 56,
+      "totalXp": 5500
+    },
+    {
+      "level": 57,
+      "totalXp": 5600
+    },
+    {
+      "level": 58,
+      "totalXp": 5700
+    },
+    {
+      "level": 59,
+      "totalXp": 5800
+    },
+    {
+      "level": 60,
+      "totalXp": 5900
+    },
+    {
+      "level": 61,
+      "totalXp": 6000
+    },
+    {
+      "level": 62,
+      "totalXp": 6100
+    },
+    {
+      "level": 63,
+      "totalXp": 6200
+    },
+    {
+      "level": 64,
+      "totalXp": 6300
+    },
+    {
+      "level": 65,
+      "totalXp": 6400
+    },
+    {
+      "level": 66,
+      "totalXp": 6500
+    },
+    {
+      "level": 67,
+      "totalXp": 6600
+    },
+    {
+      "level": 68,
+      "totalXp": 6700
+    },
+    {
+      "level": 69,
+      "totalXp": 6800
+    },
+    {
+      "level": 70,
+      "totalXp": 6900
+    },
+    {
+      "level": 71,
+      "totalXp": 7000
+    },
+    {
+      "level": 72,
+      "totalXp": 7100
+    },
+    {
+      "level": 73,
+      "totalXp": 7200
+    },
+    {
+      "level": 74,
+      "totalXp": 7300
+    },
+    {
+      "level": 75,
+      "totalXp": 7400
+    },
+    {
+      "level": 76,
+      "totalXp": 7500
+    },
+    {
+      "level": 77,
+      "totalXp": 7600
+    },
+    {
+      "level": 78,
+      "totalXp": 7700
+    },
+    {
+      "level": 79,
+      "totalXp": 7800
+    },
+    {
+      "level": 80,
+      "totalXp": 7900
+    },
+    {
+      "level": 81,
+      "totalXp": 8000
+    },
+    {
+      "level": 82,
+      "totalXp": 8100
+    },
+    {
+      "level": 83,
+      "totalXp": 8200
+    },
+    {
+      "level": 84,
+      "totalXp": 8300
+    },
+    {
+      "level": 85,
+      "totalXp": 8400
+    },
+    {
+      "level": 86,
+      "totalXp": 8500
+    },
+    {
+      "level": 87,
+      "totalXp": 8600
+    },
+    {
+      "level": 88,
+      "totalXp": 8700
+    },
+    {
+      "level": 89,
+      "totalXp": 8800
+    },
+    {
+      "level": 90,
+      "totalXp": 8900
+    },
+    {
+      "level": 91,
+      "totalXp": 9000
+    },
+    {
+      "level": 92,
+      "totalXp": 9100
+    },
+    {
+      "level": 93,
+      "totalXp": 9200
+    },
+    {
+      "level": 94,
+      "totalXp": 9300
+    },
+    {
+      "level": 95,
+      "totalXp": 9400
+    },
+    {
+      "level": 96,
+      "totalXp": 9500
+    },
+    {
+      "level": 97,
+      "totalXp": 9600
+    },
+    {
+      "level": 98,
+      "totalXp": 9700
+    },
+    {
+      "level": 99,
+      "totalXp": 9800
+    }
+  ],
+  "story": {
+    "contentVersion": "story-progression-test-v1",
+    "mainQuestIds": [
+      "STORY_01",
+      "STORY_02",
+      "STORY_03",
+      "STORY_04",
+      "STORY_05",
+      "STORY_06",
+      "STORY_07",
+      "STORY_08",
+      "STORY_09",
+      "STORY_10",
+      "STORY_11",
+      "STORY_12",
+      "STORY_13",
+      "STORY_14",
+      "STORY_15",
+      "STORY_16",
+      "STORY_17",
+      "STORY_18",
+      "STORY_19",
+      "STORY_20",
+      "STORY_21"
+    ],
+    "residentQuestIds": [
+      "RESIDENT_BLACKSMITH_01",
+      "RESIDENT_MERCHANT_01",
+      "RESIDENT_LIBRARIAN_01",
+      "RESIDENT_GUARD_01"
+    ]
+  },
+  "rewards": {
+    "storyQuest": 200,
+    "residentQuest": 450,
+    "independentAdventureReturn": 100,
+    "normalWin": 100,
+    "normalLoss": 50,
+    "normalProvenTimeoutSurvivor": 100
+  },
+  "budget": {
+    "requiredIndependentAdventures": 0
+  },
+  "notes": [
+    "All amounts, the 99-row growth curve and zero-XP initialization are local test proposals, not production balance approval.",
+    "Main quests alone: 21 x 200 = 4200 XP, level 43. Main plus the existing four resident stories: 6000 XP, level 61.",
+    "Quest-linked adventure returns award zero commander XP because the quest completion is the same account reward event. Required adventures are still played.",
+    "No proposed twelve resident stories are implemented. No historical player XP is reconstructed from unit XP.",
+    "At the last configured threshold, keep the lifetime total and display curve extension pending; this is not a spendable balance or a promised future-level reward."
+  ]
+}

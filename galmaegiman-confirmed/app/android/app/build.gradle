@@ -71,6 +71,21 @@ tasks.register('bundleGameArt', Sync) {
         include 'resources/fonts/Noto-CJK-LICENSE.txt'
         into 'native/registration-v1'
     }
+    // 마을 v2는 확인된 로컬 원본만 묶는다. 파일 존재는 manifest의 verified 승인과 별개다.
+    // 원본 바이트를 보존하고 검증된 manifest와 함께 앱에 포함한다.
+    from('../../../art/gpt/village-npc-20261027') {
+        include 'terrain.png', 'sea.png', 'ship.png', 'recruit.png', 'hideout.png', 'archive.png', 'mailbox.png', 'market.png', 'harbor.png'
+        into 'native/village-loop-v2/assets'
+    }
+    from('../../../art/gpt/village-npc-20261027') {
+        include 'blacksmith.png', 'merchant.png', 'librarian.png', 'patrol.png'
+        into 'native/village-loop-v2/residents'
+    }
+    from('../../../art/gpt/village-npc-20261027/decor') {
+        include 'cottage.png', 'warehouse.png', 'closed_shop.png'
+        rename { 'decor-' + it.replace('_', '-') }
+        into 'native/village-loop-v2/assets'
+    }
 }
 
 android {

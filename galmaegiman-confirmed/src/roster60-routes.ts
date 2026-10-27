@@ -1,4 +1,8 @@
+import {commanderPolicyReader,readCommanderState,type CommanderPolicy} from './progression/commander.js';
 import {MenuAccess,menuChangeSchema} from './menu-access.js';
+import {registerStoryRoutes} from './story/routes.js';
+import type {NormalXpPolicy} from './progression/normal-xp.js';
+import {unknownAccountLevel,type AccountLevelReader} from './progression/roster60-rank.js';
 import {RosterPvp} from './roster60-pvp.js';
 import {RecruitSessions,type RecruitSessionPolicy} from './roster60-recruit-session.js';
 import {RosterAdventure} from './roster60-adventure.js';
@@ -15,7 +19,7 @@ import {validateFiveStatCatalog} from './battle/roster60-five-stats.js';
 import {RosterBattle,fighter,type BattlePolicy} from './roster60-battle.js';
 import {RosterCraft} from './roster60-craft.js';
 import {publicDefenseSafe} from './battle/roster60-observed-defense.js';
-export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string,auth:(r:FastifyRequest)=>string|null,guard:(r:FastifyRequest,p:FastifyReply)=>boolean,_menuLocks?:boolean){
+export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string,auth:(r:FastifyRequest)=>string|null,guard:(r:FastifyRequest,p:FastifyReply)=>boolean,_menuLocks?:boolean,accountLevelReader:AccountLevelReader=unknownAccountLevel,commanderPolicyOverride?:()=>CommanderPolicy|null,clock:()=>number=Date.now){
   const profile=process.env.ROSTER60_PROFILE;
   if(profile && profile!=='five-stat-device-test-v1')throw Error('UNKNOWN_ROSTER60_PROFILE');
   const file=resolve(root,profile?'data/test-profiles/'+profile+'/catalog.json':'data/roster60-approved.json');
@@ -44,12 +48,15 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   const policyFile=resolve(root,profile?'data/test-profiles/'+profile+'/battle-policy.json':'data/roster60-battle-policy.json');
   const battlePolicy=()=>{if(!existsSync(policyFile))return null;try{return JSON.parse(readFileSync(policyFile,'utf8')) as BattlePolicy;}catch{throw new RosterError(503,'BATTLE_POLICY_INVALID');}};
   const battle=new RosterBattle(db,catalog,battlePolicy);
-  const pvp=new RosterPvp(db,catalog,battlePolicy);
+  const normalXpFile=resolve(root,profile?'data/test-profiles/'+profile+'/normal-xp-policy.json':'data/roster60-normal-xp-policy.json');
+  const normalXpPolicy=()=>{if(!existsSync(normalXpFile))return null;try{return JSON.parse(readFileSync(normalXpFile,'utf8')) as NormalXpPolicy;}catch{throw new RosterError(503,'NORMAL_XP_POLICY_INVALID');}};
+  const commanderPolicy=commanderPolicyOverride??commanderPolicyReader(root,profile);
+  const pvp=new RosterPvp(db,catalog,battlePolicy,clock,normalXpPolicy,accountLevelReader,undefined,commanderPolicy);
   let pvpTimer:ReturnType<typeof setInterval>|undefined,pvpWork:Promise<unknown>|undefined;
-  app.addHook('onReady',async()=>{pvpTimer=setInterval(()=>{if(pvpWork)return;pvpWork=pvp.tick().catch(e=>app.log.error({err:e},'roster pvp deadline sweep')).finally(()=>{pvpWork=undefined;});},1000);pvpTimer.unref();});
+  app.addHook('onReady',async()=>{pvp.notePresenceRestart();pvpTimer=setInterval(()=>{if(pvpWork)return;pvpWork=pvp.tick().catch(e=>app.log.error({err:e},'roster pvp deadline sweep')).finally(()=>{pvpWork=undefined;});},1000);pvpTimer.unref();});
   app.addHook('onClose',async()=>{if(pvpTimer)clearInterval(pvpTimer);await pvpWork;});
   const service=new RosterOnboarding(db,catalog);
-  const adventure=new RosterAdventure(db,catalog,fighter);
+  const adventure=new RosterAdventure(db,catalog,fighter,undefined,commanderPolicy);
   const library=new RosterLibrary(db,catalog);
   // No implicit prices, odds, rounding or pity. Explicit reviewed policy file required.
   const recruitPolicy=()=>{const path=resolve(root,'data/roster60-recruit-policy.json');return existsSync(path)?JSON.parse(readFileSync(path,'utf8')) as RecruitSessionPolicy:null;};
@@ -68,6 +75,8 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
     }
   }});
   const requestId=z.string().min(1).max(100),battleId=z.string().uuid(),revision=z.number().int().nonnegative();
+  route('GET','commander',id=>readCommanderState(db,id,commanderPolicy()));
+  registerStoryRoutes(route,db,root,catalog,battlePolicy,commanderPolicy);
   route('GET','adventure/active',id=>adventure.active(id));
   route('POST','adventure/read',(id,r)=>adventure.read(id,z.object({adventureId:z.string().uuid()}).strict().parse(r.body).adventureId));
   route('POST','adventure/start',(id,r)=>adventure.start(id,z.object({requestId,ownedIds:z.array(z.string().min(1).max(100)).min(1).max(6)}).strict().parse(r.body)));
@@ -88,7 +97,7 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   route('GET','battle/active',id=>battle.active(id));
   const action=z.discriminatedUnion('kind',[z.object({kind:z.literal('attack')}).strict(),z.object({kind:z.literal('focus')}).strict(),z.object({kind:z.literal('switch'),targetOwnedId:z.string().min(1).max(100)}).strict(),z.object({kind:z.literal('item'),itemId:z.string().min(1).max(100),targetOwnedId:z.string().min(1).max(100).optional()}).strict(),z.object({kind:z.literal('escape')}).strict(),z.object({kind:z.literal('skill'),skillId:z.string().min(1).max(100)}).strict()]);
   route('GET','pvp/options',id=>pvp.options(id));
-  route('POST','pvp/party',(id,r)=>pvp.party(id,z.object({ownedIds:z.array(z.string().min(1).max(100)).min(1).max(6)}).strict().parse(r.body).ownedIds));
+  route('POST','pvp/party',(id,r)=>{const b=z.object({ownedIds:z.array(z.string().min(1).max(100)).min(1).max(6),mode:z.enum(['normal','rank']).optional()}).strict().parse(r.body);return pvp.party(id,b.ownedIds,b.mode);});
   route('POST','pvp/join',(id,r)=>pvp.join(id,z.object({requestId,mode:z.enum(['normal','rank'])}).strict().parse(r.body)));
   route('POST','pvp/cancel',(id,r)=>pvp.cancel(id,z.object({requestId}).strict().parse(r.body)));
   route('GET','pvp/current',id=>pvp.current(id));
@@ -106,7 +115,8 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   route('POST','confirm',(id,r)=>{const b=z.object({ticketId:z.string().min(1).max(100),characterId:z.string(),catalogVersion:z.string().min(1).max(100)}).strict().parse(r.body);return service.confirm(id,b.ticketId,b.characterId,b.catalogVersion);});
   const selection=z.object({resultId:z.string().regex(/^u\d{2}$/),materialIds:z.array(z.string().min(1).max(100)).min(1).max(6),catalogVersion:z.string().min(1).max(100)}).strict();
   route('POST','craft/preview',(id,r)=>craft.preview(id,selection.parse(r.body)));
-  route('GET','craft/options',id=>craft.options(id));
+  // Old apps bind every returned resultId to art. Hidden outcomes require masking-aware clients.
+  route('GET','craft/options',(id,r)=>craft.options(id,r.headers['x-gmm-craft-discovery']==='1'));
   route('POST','craft/receipt',(id,r)=>{const b=z.object({requestId:z.string().min(1).max(100)}).strict().parse(r.body);return craft.receipt(id,b.requestId);});
   route('POST','craft/confirm',(id,r)=>craft.confirm(id,selection.extend({requestId:z.string().min(1).max(100),previewFingerprint:z.string().regex(/^[a-f0-9]{64}$/)}).strict().parse(r.body)));
 }

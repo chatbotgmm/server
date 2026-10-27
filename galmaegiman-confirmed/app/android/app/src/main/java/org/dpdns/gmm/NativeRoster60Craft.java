@@ -18,6 +18,7 @@ final class NativeRoster60Craft {
  TextView selectedCount,statusLabel;LinearLayout craftActions;
  final Button[] materialButtons=new Button[6];final ImageView[] materialPictures=new ImageView[6];
  final JSONObject[] slotUnits=new JSONObject[6];final String[] slotSpecies=new String[6];
+ NativeRoster60CraftWorkbench workbench;
  NativeRoster60Craft(NativeEconomy e){economy=e;h=e.h;k=e.k;}
  String text(int id,Object... args){return h.getString(id,args);}
  SharedPreferences preferences(){return h.getSharedPreferences("roster60-craft-"+NativeBackend.accountPreferences(BuildConfig.SERVER_URL),0);}
@@ -26,7 +27,7 @@ final class NativeRoster60Craft {
  boolean valid(int t){return t==generation&&screenEpoch==h.epoch&&owner.equals(h.api.token())&&!h.isFinishing()&&!h.isDestroyed()&&(h.screen.equals("mix")||h.screen.equals("craftRecipes"));}
  void leave(){generation++;loading=false;submitting=false;preview=null;if(pending==null)selected.clear();}
  void open(boolean materialMode){
-  generation++;mix=materialMode;loading=false;submitting=false;preview=null;
+  generation++;mix=materialMode;loading=false;submitting=false;preview=null;workbench=null;
   if(!owner.equals(h.api.token())){selected.clear();pending=null;units=new JSONArray();recipes=new JSONArray();owner=h.api.token();}
   if(owner.isEmpty()){h.login();return;}
   try{String saved=preferences().getString(ownerKey(),null);pending=saved==null?null:new JSONObject(saved);}catch(Exception invalid){pending=null;savePending();}
@@ -40,8 +41,9 @@ final class NativeRoster60Craft {
  }
  void load(){loading=true;preview=null;message=text(R.string.roster60_craft_loading);render();final int ticket=generation;
   h.api.call("native/roster60/craft/options",null,(r,e)->{if(!valid(ticket))return;loading=false;
-   if(e!=null){units=new JSONArray();recipes=new JSONArray();version="";message=text(R.string.roster60_craft_unavailable);render();return;}
+   if(e!=null){units=new JSONArray();recipes=new JSONArray();if(workbench!=null)workbench.allRecipes=recipes;version="";message=text(R.string.roster60_craft_unavailable);render();return;}
    units=r.optJSONArray("units");recipes=r.optJSONArray("recipes");if(units==null)units=new JSONArray();if(recipes==null)recipes=new JSONArray();version=r.optString("catalogVersion");
+   if("craft-discovery-v1".equals(r.optString("discoveryVersion")))workbench=new NativeRoster60CraftWorkbench(this);
    Set<String> present=new HashSet<>();for(int i=0;i<units.length();i++)present.add(units.optJSONObject(i).optString("ownedId"));selected.keySet().retainAll(present);
    message=text(r.optBoolean("truncated")?R.string.roster60_craft_inventory_limit:R.string.roster60_craft_hint);render();});
  }
@@ -93,6 +95,7 @@ final class NativeRoster60Craft {
  }
  void setText(TextView view,String value){if(!value.contentEquals(view.getText()))view.setText(value);}
  void render(){if(cols==null)return;unitPage=Math.max(0,Math.min(unitPage,units.length()-1));recipePage=Math.max(0,Math.min(recipePage,recipes.length()-1));
+  if(workbench!=null){workbench.render();return;}
   JSONArray left=mix?units:recipes,right=mix?recipes:units;int leftPage=mix?unitPage:recipePage,rightPage=mix?recipePage:unitPage;
   String leftRevision=carouselRevision(left,leftPage,mix),rightRevision=carouselRevision(right,rightPage,!mix);
   if(!leftRevision.equals(renderedLeft)){clearArtwork(cols[0]);cols[0].removeAllViews();if(mix)carousel(cols[0],units,unitPage,true,d->{if(loading||submitting||pending!=null)return;unitPage=Math.max(0,Math.min(unitPage+d,units.length()-1));render();});else carousel(cols[0],recipes,recipePage,false,d->{if(loading||submitting||pending!=null)return;recipePage=Math.max(0,Math.min(recipePage+d,recipes.length()-1));changed();});renderedLeft=leftRevision;}

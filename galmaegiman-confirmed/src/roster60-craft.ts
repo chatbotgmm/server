@@ -3,6 +3,7 @@ import type {Prisma,PrismaClient} from '@prisma/client';
 import {combinationGrowth,growthAt,rosterMaxLevel,validateRosterDefinition} from './battle/roster60-rules.js';
 import {RosterError,type RosterCatalog} from './roster60-onboarding.js';
 import {recordRosterDailyProgress} from './roster60-daily-progress.js';
+import {discoveredRosterSpecies} from './roster60-discovery.js';
 type Tx=Prisma.TransactionClient;
 export type CraftSelection={resultId:string;materialIds:string[];catalogVersion:string};
 export type CraftConfirmation=CraftSelection&{requestId:string;previewFingerprint:string};
@@ -11,20 +12,32 @@ const hash=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).d
 const canonical=(b:CraftSelection)=>[b.resultId,[...b.materialIds].sort(),b.catalogVersion];
 export class RosterCraft {
   constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private completionTime=()=>new Date()){}
-  async options(playerId:string){
+  async options(playerId:string,discovery=false){
     const c=this.catalog();
     if(c?.approved!==true||!Array.isArray(c.characters)||!Array.isArray(c.recipes))return fail('ROSTER_CATALOG_PENDING',503);
     const definitions=new Map(c.characters.map(u=>[u.id,u]));
     try{for(const u of c.characters)validateRosterDefinition(u);}catch{return fail('ROSTER_CATALOG_INVALID',503);}
-    const rows=await this.db.roster60Owned.findMany({where:{playerId,status:'AVAILABLE',locked:false},orderBy:{id:'asc'},take:1001});
-    return {catalogVersion:c.version,truncated:rows.length>1000,units:rows.slice(0,1000).map(u=>{
+    const [rows,discovered]=await Promise.all([this.db.roster60Owned.findMany({where:{playerId,status:'AVAILABLE',locked:false},orderBy:{id:'asc'},take:1001}),discovery?discoveredRosterSpecies(this.db,playerId):Promise.resolve(new Set<string>())]);
+    const units=rows.slice(0,1000).map(u=>{
       const d=definitions.get(u.speciesId);if(!d)return fail('ROSTER_CATALOG_INVALID',503);
       if(u.totalXp<0n||u.totalXp>BigInt(Number.MAX_SAFE_INTEGER))return fail('INVALID_STORED_XP');
       let level:number;
       try{level=growthAt(Number(u.totalXp),d.growth,u.reincarnation,d.reincarnationXpPolicy).level;}
       catch(e){return fail((e as Error).message,503);}
       return {ownedId:u.id,speciesId:u.speciesId,name:d.name,totalXp:u.totalXp.toString(),level,maxLevel:rosterMaxLevel(u.reincarnation),reincarnation:u.reincarnation};
-    }),recipes:c.recipes.filter(r=>r.visibility==='public').map(r=>({resultId:r.resultId,name:definitions.get(r.resultId)?.name??r.resultId,ingredients:r.ingredients}))};
+    });
+    const recipes=c.recipes.filter(r=>discovery||r.visibility==='public').map((r,index)=>{
+      const ingredients=r.ingredients.map(ingredient=>{
+        const available=units.filter(u=>u.speciesId===ingredient.unitId&&u.reincarnation===0);
+        const ready=available.filter(u=>u.level>=ingredient.minLevel);
+        return {...ingredient,name:discovered.has(ingredient.unitId)?(definitions.get(ingredient.unitId)?.name??ingredient.unitId):'???',imageVisible:discovered.has(ingredient.unitId),availableCount:available.length,readyCount:ready.length};
+      });
+      const materialsReady=ingredients.every(i=>i.availableCount>=i.count),craftable=ingredients.every(i=>i.readyCount>=i.count);
+      const found=discovered.has(r.resultId),nameVisible=!discovery||found||materialsReady;
+      return {resultId:r.resultId,name:nameVisible?(definitions.get(r.resultId)?.name??r.resultId):'???',discovered:found,imageVisible:found,
+        nameVisible,materialsReady,craftable,levelRestricted:ingredients.some(i=>Math.min(i.availableCount,i.count)>i.readyCount),hidden:r.visibility==='hidden',ingredients,index};
+    }).sort((a,b)=>discovery?(Number(b.materialsReady)-Number(a.materialsReady)||Number(b.craftable)-Number(a.craftable)||a.index-b.index):a.index-b.index).map(({index,...recipe})=>recipe);
+    return {catalogVersion:c.version,discoveryVersion:discovery?'craft-discovery-v1':undefined,truncated:rows.length>1000,units,recipes};
   }
   async receipt(playerId:string,requestId:string){
     const r=await this.db.roster60CraftReceipt.findUnique({where:{playerId_requestId:{playerId,requestId}}});

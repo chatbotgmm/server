@@ -3,6 +3,7 @@ import {PrismaClient} from '@prisma/client';
 import {randomUUID} from 'node:crypto';
 import {RosterReincarnation} from '../src/roster60-reincarnation.js';
 import {RosterCraft} from '../src/roster60-craft.js';
+import {RosterLibrary} from '../src/roster60-library.js';
 import type {RosterCatalog} from '../src/roster60-onboarding.js';
 import {skillElements} from '../src/battle/roster60-rules.js';
 const suite=process.env.TEST_DB_URL?describe:describe.skip;
@@ -34,6 +35,54 @@ suite('roster60 transactional combination',()=>{
    const result=await service.confirm(owner,{...sel,requestId,previewFingerprint:p.previewFingerprint});
    expect(await service.receipt(owner,requestId)).toEqual({status:'completed',result});
    expect(await service.receipt(other,requestId)).toEqual({status:'unknown'});
+ });
+ it('hidden recipe names require discovery or complete materials; prepared materials sort first without consumption',async()=>{
+   const player=(await db.player.create({data:{identity:'craft-discovery-'+randomUUID()}})).id;
+   const extra={...catalog.characters[1],id:'u10',name:'hidden-not-found'};
+   const c:RosterCatalog={...catalog,characters:[...catalog.characters,extra],recipes:[
+     {resultId:'u10',visibility:'hidden',ingredients:[{unitId:'u09',count:1,minLevel:2}]},
+     {resultId:'u09',visibility:'public',ingredients:[{unitId:'u02',count:2,minLevel:2}]}
+   ]};
+   const craft=new RosterCraft(db,()=>c);
+   try{
+     const legacy=await craft.options(player);expect(legacy.discoveryVersion).toBeUndefined();expect(legacy.recipes.some(r=>r.resultId==='u10')).toBe(false);
+     let options=await craft.options(player,true);
+     expect(options.recipes.find(r=>r.resultId==='u10')).toMatchObject({name:'???',nameVisible:false,imageVisible:false,discovered:false});
+     const a=await material(11,player),b=await material(0,player);
+     options=await craft.options(player,true);
+     expect(options.recipes[0]).toMatchObject({resultId:'u09',name:'u09',materialsReady:true,craftable:false,levelRestricted:true,imageVisible:false});
+     expect(options.recipes[0].ingredients[0]).toMatchObject({availableCount:2,readyCount:1,minLevel:2});
+     expect(await db.roster60Owned.count({where:{id:{in:[a.id,b.id]},status:'AVAILABLE'}})).toBe(2);
+     expect(await db.roster60CraftReceipt.count({where:{playerId:player}})).toBe(0);
+     await db.roster60Owned.update({where:{id:b.id},data:{totalXp:11n}});
+     expect((await craft.options(player,true)).recipes[0]).toMatchObject({craftable:true,levelRestricted:false});
+   }finally{await db.player.delete({where:{id:player}});}
+ });
+ it('discovered outcomes include consumed acquisitions and encountered opponents without exposing defense tables',async()=>{
+   const player=(await db.player.create({data:{identity:'craft-encounter-'+randomUUID()}})).id;
+   try{
+     await db.roster60Owned.create({data:{playerId:player,speciesId:'u02',status:'CONSUMED',source:'synthetic'}});
+     await db.roster60Battle.create({data:{id:randomUUID(),playerId:player,ownedId:'archived-synthetic',seed:'private',snapshot:'{}',state:JSON.stringify({fighters:[{speciesId:'u02'},{speciesId:'u09',defense:{secret:true}}],events:[]})}});
+     const options=await service.options(player,true);
+     expect(options.recipes[0]).toMatchObject({resultId:'u09',name:'u09',discovered:true,imageVisible:true,materialsReady:false});
+     expect(JSON.stringify(options)).not.toContain('secret');
+     expect(options.units).toHaveLength(0);
+     expect((await new RosterLibrary(db,()=>catalog).collection(player)).characters.find(u=>u.id==='u09')?.discovered).toBe(true);
+   }finally{await db.player.delete({where:{id:player}});}
+ });
+ it('discovery projects long history without forgetting encounters or revealing private reserves',async()=>{
+   const player=(await db.player.create({data:{identity:'craft-history-'+randomUUID()}})).id;
+   try{
+     const history=Array.from({length:200},(_,i)=>({id:'history-'+player+'-'+String(i).padStart(3,'0'),playerId:player,ownedId:'synthetic',seed:'private',snapshot:'{}',state:JSON.stringify({fighters:[{speciesId:'u02'},{speciesId:'u02'}],reserves:[{speciesId:'u10'}],padding:'x'.repeat(16384),events:i===199?[{events:[{presentation:{before:[{speciesId:'u02'},{speciesId:'u09'}],after:[{speciesId:'u02'},{speciesId:'u02'}]}}]}]:[]})}));
+     await db.roster60Battle.createMany({data:history});
+     await db.roster60Battle.createMany({data:['invalid-json',JSON.stringify({events:['bad',{events:['bad',3]}]})].map(state=>({id:randomUUID(),playerId:player,ownedId:'synthetic',seed:'private',snapshot:'{}',state}))});
+     const extra={...catalog.characters[1],id:'u10',name:'private reserve'};
+     const c:RosterCatalog={...catalog,characters:[...catalog.characters,extra],recipes:[...(catalog.recipes??[]),{resultId:'u10',visibility:'hidden',ingredients:[{unitId:'u09',count:1,minLevel:2}]}]};
+     const began=performance.now(),options=await new RosterCraft(db,()=>c).options(player,true);
+     console.log('조합 발견 투영 호스트 측정',JSON.stringify({historyRows:history.length,historicalJsonBytes:history.reduce((n,row)=>n+Buffer.byteLength(row.state),0),elapsedMs:Math.round(performance.now()-began),returnedRecipeCount:options.recipes.length}));
+     expect(options.recipes.find(r=>r.resultId==='u09')).toMatchObject({discovered:true,imageVisible:true});
+     expect(options.recipes.find(r=>r.resultId==='u10')).toMatchObject({discovered:false,name:'???',imageVisible:false});
+   }finally{await db.player.delete({where:{id:player}});}
  });
  it('reborn materials cannot implicitly transfer eligibility',async()=>{
  const a=await material(),b=await material();await db.roster60Owned.update({where:{id:a.id},data:{reincarnation:1}});

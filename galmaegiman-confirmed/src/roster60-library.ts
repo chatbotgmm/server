@@ -5,6 +5,7 @@ import {RosterError,type RosterCatalog} from './roster60-onboarding.js';
 import {loadContent} from './content.js';
 import {collectionDefenseKnowledge,defenseKnowledgeProjection} from './battle/roster60-observed-defense.js';
 import {recordRosterDailyProgress} from './roster60-daily-progress.js';
+import {discoveredRosterSpecies} from './roster60-discovery.js';
 export const rosterGrades={COMMON:'커먼',UNCOMMON:'언커먼',RARE:'레어',EPIC:'에픽',LEGEND:'전설',HIDDEN:'히든',LIMITED:'제한',TRANSCEND:'초월',IMMORTAL:'불멸',ETERNAL:'영원'};
 // Approved grant levels, independent of unapproved offer prices/grade weights.
 export const recruitGrantLevels=Object.freeze({COMMON:1,UNCOMMON:1,RARE:10,EPIC:15,LEGEND:20,HIDDEN:20});
@@ -19,8 +20,8 @@ export function recruitmentGrowth(unit:RosterCatalog['characters'][number]){
 export class RosterLibrary {
  constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private roll:(max:number)=>number=randomInt,private completionTime=()=>new Date()){}
  private ready(){const c=this.catalog();if(!c?.approved)throw new RosterError(503,'ROSTER_CATALOG_PENDING');return c;}
- async collection(playerId:string){const c=this.ready(),owned=await this.db.roster60Owned.findMany({where:{playerId}}),knowledge=await collectionDefenseKnowledge(this.db,playerId,c);
-  return {flow:'roster60-v1',catalogVersion:c.version,testBaseline:c.profileKind==='user-authorized-test-baseline',grades:rosterGrades,characters:c.characters.map(u=>({id:u.id,name:u.name,rarity:u.rarity,role:(u as any).role,levelOneStats:(u as any).levelOneStats,growthPerLevel:(u as any).growthPerLevel,suitability:u.suitability,defenseKnowledge:defenseKnowledgeProjection(u.id,knowledge[u.id]??{}),skills:u.skills,ownedCount:owned.filter(o=>o.speciesId===u.id&&o.status!=='CONSUMED').length,discovered:owned.some(o=>o.speciesId===u.id)}))};
+ async collection(playerId:string){const c=this.ready(),[owned,knowledge,discovered]=await Promise.all([this.db.roster60Owned.findMany({where:{playerId}}),collectionDefenseKnowledge(this.db,playerId,c),discoveredRosterSpecies(this.db,playerId)]);
+  return {flow:'roster60-v1',catalogVersion:c.version,testBaseline:c.profileKind==='user-authorized-test-baseline',grades:rosterGrades,characters:c.characters.map(u=>({id:u.id,name:u.name,rarity:u.rarity,role:(u as any).role,levelOneStats:(u as any).levelOneStats,growthPerLevel:(u as any).growthPerLevel,suitability:u.suitability,defenseKnowledge:defenseKnowledgeProjection(u.id,knowledge[u.id]??{}),skills:u.skills,ownedCount:owned.filter(o=>o.speciesId===u.id&&o.status!=='CONSUMED').length,discovered:discovered.has(u.id)}))};
  }
  private offers(c:RosterCatalog){return Object.entries(loadContent().economy.gachas).map(([kind,g])=>({kind,label:g.label,cost:g.cost,weights:g.weights,enabled:kind==='LOW'&&Object.keys(g.weights).every(t=>c.characters.some(u=>u.rarity===t)),reason:kind==='LOW'?'':'새 등급 확률 승인 대기 (기존 SPECIAL 등급 없음)'}));}
  async info(playerId:string){const c=this.ready(),p=await this.db.player.findUniqueOrThrow({where:{id:playerId}});return {flow:'roster60-v1',catalogVersion:c.version,credits:p.credits,grantLevels:recruitGrantLevels,offers:this.offers(c)};}

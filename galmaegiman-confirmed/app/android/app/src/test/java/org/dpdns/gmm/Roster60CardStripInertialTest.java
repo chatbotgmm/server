@@ -166,6 +166,43 @@ public class Roster60CardStripInertialTest {
     }
   }
 
+  @Test public void releasedOffsetKeepsAdvancingThroughActualPortraitAndLayoutCallbacks() throws Exception {
+    try (ActivityController<MainActivity> controller = helper.flow.start()) {
+      MainActivity h = controller.get(); Api api = new Api(h);
+      NativeRoster60Pvp editor = open(h, api); Roster60CardStrip strip = editor.ownedStrip;
+      float x = strip.getWidth() * .8f, y = strip.getHeight() / 2f;
+      List<String> movement = new ArrayList<>();
+      long down = SystemClock.uptimeMillis();
+      touch(strip, down, down, MotionEvent.ACTION_DOWN, x, y);
+      movement.add(movementSample(h, strip));
+      for (int i = 1; i <= 4; i++) {
+        ShadowLooper.idleMainLooper(16, TimeUnit.MILLISECONDS);
+        touch(strip, down, SystemClock.uptimeMillis(), MotionEvent.ACTION_MOVE, x - i * 40, y);
+        movement.add(movementSample(h, strip));
+      }
+      assertTrue("The actual owned-card rail follows the drag: " + movement, strip.getScrollX() > 0);
+      ShadowLooper.idleMainLooper(16, TimeUnit.MILLISECONDS);
+      touch(strip, down, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, x - 200, y);
+      int last = strip.getScrollX(), advancing = 0;
+      for (int i = 0; i < 16; i++) {
+        ShadowLooper.idleMainLooper(16, TimeUnit.MILLISECONDS); strip.computeScroll();
+        if (h.root.isLayoutRequested()) helper.layout(h, PHONE);
+        int current = strip.getScrollX();
+        assertTrue("Portrait layout cannot reset the trajectory to an old offset", current >= last);
+        if (current > last) advancing++; last = current;
+      }
+      assertTrue("The actual owned-card rail continues over native frames", advancing >= 5);
+      assertTrue(editor.selected.isEmpty()); assertTrue(api.writes.isEmpty());
+    }
+  }
+
+  static String movementSample(MainActivity h, Roster60CardStrip strip) {
+    return "at="+SystemClock.uptimeMillis()+" x="+strip.getScrollX()+" rail="+strip.getWidth()+"x"+strip.getHeight()
+        +" root="+h.root.getWidth()+"x"+h.root.getHeight()+" card="+strip.cards.getChildAt(0).getWidth()
+        +" measured="+ReflectionHelpers.getField(strip,"measuredCardWidth")+" assignments="+strip.widthAssignments
+        +" pointer="+ReflectionHelpers.getField(strip,"mActivePointerId")+" dragging="+ReflectionHelpers.getField(strip,"mIsBeingDragged");
+  }
+
   @Test public void resizingDuringFlingPreservesTheRelativeOffsetWithinTheAnchoredMember() throws Exception {
     try (ActivityController<MainActivity> controller = helper.flow.start()) {
       MainActivity h = controller.get(); Api api = new Api(h);

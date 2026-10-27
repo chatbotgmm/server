@@ -326,6 +326,8 @@ public class MainActivity extends AppCompatActivity {
         });
   }
 
+  RecruitEntryRead recruitEntryRead;
+
   void load(String target) {
     if (updateBlocks()) { requiredUpdate.deferLoad(target); return; }
     if (busy) return;
@@ -377,12 +379,17 @@ public class MainActivity extends AppCompatActivity {
             return;
           }
           state = r;
+          NativeCommander.sync(this,r.optJSONObject("commander"),requestSession,destination);
           stateUpdated();
           if (needsKey) art.key = key.optString("k");
           operations.finish(operation);
           busy = false;
           show(target);
         });
+    // Recruitment session and account state are independent reads. Keep the current
+    // state refresh, while handing this single session response to the destination.
+    recruitEntryRead = target.equals("draw") && roster60Menus()
+        ? new RecruitEntryRead(api, destination) : null;
     // Both are read-only and independent. Do not add a state TTL or merge any command.
     api.call("native/state", null, reads::state);
     if (needsKey) api.call("duel-key", null, reads::key);
@@ -1004,9 +1011,13 @@ public class MainActivity extends AppCompatActivity {
   NativeRoster60Battle rosterBattle;
   NativeRoster60Pvp rosterPvp;
   NativeRoster60StoryEntry storyEntry;
+  NativeRoster60StoryController rosterStory;
+  NativeVillageHomeController villageHome;
   String rosterPvpMode="";
   void openPlayMenu(){if(rosterPvp!=null)rosterPvp.pause();new NativePlayMenu(this).open();}
   void openRosterStoryEntry(){storyEntry=new NativeRoster60StoryEntry(this);storyEntry.open();}
+  void openRosterStory(){if(rosterStory!=null)rosterStory.pause();rosterStory=new NativeRoster60StoryController(this);rosterStory.open();}
+  void openRosterStoryResident(String id){if(rosterStory!=null)rosterStory.pause();rosterStory=new NativeRoster60StoryController(this,id);rosterStory.open();}
   void openRosterPvp(){openRosterPvp(rosterPvpMode);}
   void openRosterPvp(String mode){rosterPvpMode=NativeRoster60Pvp.validMode(mode)?mode:"";rosterPvp=new NativeRoster60Pvp(this,false,rosterPvpMode);rosterPvp.open();}
   void openRosterHumanBattle(JSONObject state){String mode=state.optString("mode");if(NativeRoster60Pvp.validMode(mode))rosterPvpMode=mode;rosterBattle=new NativeRoster60PvpBattle(this,state);rosterBattle.open();}
@@ -1015,12 +1026,14 @@ public class MainActivity extends AppCompatActivity {
 
   void home() {
     if (nicknameRequired()) { NativeNicknameSetup.show(this); return; }
+    if (villageHome != null) villageHome.pause();
     epoch++;
     screen = "home";
     sound.play("title");
     loginScroll = null;
     root.removeAllViews();
-    root.addView(new LobbyView(this), new FrameLayout.LayoutParams(-1, -1));
+    villageHome = new NativeVillageHomeController(this);
+    villageHome.attach();
     screenShown();
   }
 
@@ -1466,6 +1479,7 @@ public class MainActivity extends AppCompatActivity {
     if (updateBlocks()) return;
     if(screen.equals("playMenu")){home();return;}
     if(screen.equals("roster60StoryEntry")&&storyEntry!=null&&storyEntry.back())return;
+    if(screen.equals(NativeRoster60StoryController.SCREEN)&&rosterStory!=null&&rosterStory.back())return;
     if(screen.equals("roster60Pvp")&&rosterPvp!=null){rosterPvp.back();return;}
     if(screen.equals("roster60Battle")&&rosterBattle!=null){rosterBattle.back();return;}
     if((screen.equals("mix")||screen.equals("craftRecipes"))&&menus.economy.roster60Craft!=null)menus.economy.roster60Craft.leave();
@@ -1505,6 +1519,7 @@ public class MainActivity extends AppCompatActivity {
       titleScreen();
       return;
     }
+    if (screen.equals("home") && villageHome != null && villageHome.back()) return;
     if (screen.equals("home")) for (int i = 0; i < root.getChildCount(); i++)
       if (root.getChildAt(i) instanceof LobbyView
           && ((LobbyView) root.getChildAt(i)).closeMenuOnBack()) return;
@@ -1559,6 +1574,8 @@ public class MainActivity extends AppCompatActivity {
     if (realtime != null && !updateBlocks() && !roster60Menus()) realtime.resume();
     if(rosterPvp!=null&&screen.equals("roster60Pvp"))rosterPvp.resume();
     if(rosterBattle!=null&&screen.equals("roster60Battle"))rosterBattle.resume();
+    if(rosterStory!=null&&screen.equals(NativeRoster60StoryController.SCREEN))rosterStory.refresh();
+    if(villageHome!=null&&screen.equals("home"))villageHome.resume();
     motionResumed = true;
     if (backgroundEffects != null) backgroundEffects.resumed(true);
     journalTime.resume();
@@ -1570,6 +1587,8 @@ public class MainActivity extends AppCompatActivity {
     if (requiredUpdate != null) requiredUpdate.pause();
     NativeBattleReplay.pause(this);
     if(rosterBattle!=null)rosterBattle.pause();
+    if(rosterStory!=null)rosterStory.pause();
+    if(villageHome!=null)villageHome.pause();
     if(rosterPvp!=null)rosterPvp.pause();
     if (sound != null) sound.pause();
     if (realtime != null) realtime.pause();

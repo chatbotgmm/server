@@ -28,7 +28,8 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.*;
 import org.robolectric.shadows.ShadowDisplayManager;
 
-/** Approved HOME/PARTY/BUTTON feedback, using production Views and packaged art only.
+/** Preserved LobbyView component / PARTY / BUTTON feedback, using production Views and packaged art only.
+ * The actual default village home is covered by NativeVillageHomeTest; legacy HOME captures are not its evidence.
  * No live account, network fixture, replacement art, or skipped rendering assertions.
  * Requires Android SDK/native Robolectric graphics; source inspection is not a test pass. */
 @RunWith(RobolectricTestRunner.class)
@@ -137,6 +138,7 @@ public class NativeHomePartyFeedbackTest {
       if (path.equals("native/state")) done.done(stored, null);
       else if (path.equals("starter-loans")) done.done(StarterLoanTestFixture.ineligible(), null);
       else if (path.equals("native/catalog")) done.done(MainActivity.obj("units", stored.optJSONObject("me").optJSONArray("units")), null);
+      else if (path.equals("native/roster60/commander")) done.done(NativeCommander.pending("POLICY_PENDING"),null);
       else if (path.equals("pvp/rank")) done.done(NativeThemeReviewTest.rank(), null);
       else if(path.equals("native/roster60/home"))done.done(MainActivity.obj("rebirthUnlocked",false,"rebirthIntroPending",false,"mailUnread",0),null);
       else if (path.equals("draw")) done.done(MainActivity.obj("wait", 3600000, "credits", 30), null);
@@ -166,7 +168,7 @@ public class NativeHomePartyFeedbackTest {
   }
   void show(MainActivity h, Profile p, String scene) throws Exception {
     layout(h, p);
-    if (scene.equals("home")) h.home();
+    if (scene.equals("home")) legacyHome(h);
     // 기존 modes 캡처 파일은 이제 실제 대전 하위 화면의 편성을 검증한다.
     else if (scene.equals("modes")) h.menus.pvpModes();
     else if (scene.equals("realtime")) showRealtime(h);
@@ -181,10 +183,16 @@ public class NativeHomePartyFeedbackTest {
     }
     settle(h, p);
   }
+  /** Explicit old LobbyView fixture. Production MainActivity.home() now opens the continuous village. */
+  static void legacyHome(MainActivity h) {
+    if(h.villageHome!=null)h.villageHome.pause();
+    h.epoch++;h.screen="home";h.sound.play("title");h.loginScroll=null;h.root.removeAllViews();
+    h.root.addView(new LobbyView(h),new FrameLayout.LayoutParams(-1,-1));h.screenShown();
+  }
   void settle(MainActivity h, Profile p) throws Exception {
     layout(h, p); Bitmap kickoff = render(h.root);
     kickoff.recycle();
-    RegistrationArtTest.await(() -> {
+    try { RegistrationArtTest.await(() -> {
       if (!h.art.idle() || !h.registrationArt().idle() || !LocalGameArt.idle()) return false;
       // NativeArt clears decoder loading before posting UI callbacks. Wait for the
       // actual visible portrait callback too, not just the worker's idle flag.
@@ -193,7 +201,10 @@ public class NativeHomePartyFeedbackTest {
         if (!art.path.isEmpty() && "이미지 준비 중".equals(art.status)) return false;
       }
       return true;
-    });
+    }); } catch(AssertionError timedOut) {
+      Object loading=org.robolectric.util.ReflectionHelpers.getField(h.art,"loading");
+      throw new AssertionError(timedOut.getMessage()+"; native loading="+loading+", registration pending="+h.registrationArt().pendingCount()+", "+LocalGameArtTest.pendingDiagnostic(),timedOut);
+    }
     layout(h, p);
     Bitmap last = render(h.root); last.recycle();
   }

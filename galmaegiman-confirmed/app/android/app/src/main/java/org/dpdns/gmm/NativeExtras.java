@@ -675,6 +675,7 @@ final class NativeExtras {
 
   void profile(View anchor) {
     if (profilePopup != null) profilePopup.dismiss();
+    final String profileOwner=h.api.token();final int profileEpoch=h.epoch;
     LinearLayout panel = k.paper();
     panel.setTag("profile-popup");
     panel.setPadding(h.dp(12), h.dp(10), h.dp(12), h.dp(12));
@@ -685,6 +686,7 @@ final class NativeExtras {
     name.setPadding(h.dp(16), h.dp(10), h.dp(16), h.dp(10));
     name.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.HEADER));
     panel.addView(name, new LinearLayout.LayoutParams(-1, -2));
+    TextView commander=h.text("",13);commander.setTag("profile-commander");commander.setMaxLines(3);commander.setTextColor(JournalTheme.INK);commander.setPadding(h.dp(6),h.dp(6),h.dp(6),0);commander.setText(NativeCommander.styled(NativeCommander.profileText(NativeCommander.state(h))));panel.addView(commander,new LinearLayout.LayoutParams(-1,-2));
     TextView rank = k.note("랭크를 불러오고 있어요…");
     rank.setTag("profile-rank");
     rank.setPadding(h.dp(6), h.dp(8), h.dp(6), h.dp(8));
@@ -709,6 +711,7 @@ final class NativeExtras {
               null,
               entry[1],
               () -> {
+                if(!NativeCommander.current(h,profileOwner,profileEpoch)){popup.dismiss();return;}
                 popup.dismiss();
                 h.load(entry[2]);
               });
@@ -719,11 +722,12 @@ final class NativeExtras {
       panel.addView(button, row);
     }
     popup.showAsDropDown(anchor, 0, h.dp(8));
+    NativeCommander.refresh(h,value->{if(popup.isShowing()&&NativeCommander.current(h,profileOwner,profileEpoch))commander.setText(NativeCommander.styled(NativeCommander.profileText(value)));});
     h.api.call(
         "pvp/rank",
         null,
         (r, e) -> {
-          if (!popup.isShowing()) return;
+          if (!popup.isShowing()||!NativeCommander.current(h,profileOwner,profileEpoch)) return;
           JSONObject me = r == null ? null : r.optJSONObject("me");
           if (e != null || me == null) rank.setText("랭크 정보를 불러오지 못했어요.");
           else

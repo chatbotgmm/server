@@ -1450,7 +1450,7 @@ final class NativeMenus {
           paging.addView(targetLabel, new LinearLayout.LayoutParams(targetWidth, h.dp(48)));
           Button previous = k.action(null, "‹", () -> {
             InertialCardScrollView rail = candidateRail[0];
-            if (rail != null) rail.smoothScrollBy(-Math.max(h.dp(100), rail.getWidth() * 3 / 4), 0);
+            if (rail != null) rail.smoothScrollCardsBy(-Math.max(h.dp(100), rail.getWidth() * 3 / 4));
           });
           pagerChevron(previous, false);
           previous.setContentDescription("교체 후보 왼쪽으로 이동");
@@ -1468,7 +1468,7 @@ final class NativeMenus {
           paging.addView(pageLabel, new LinearLayout.LayoutParams(pageWidth, h.dp(48)));
           Button next = k.action(null, "›", () -> {
             InertialCardScrollView rail = candidateRail[0];
-            if (rail != null) rail.smoothScrollBy(Math.max(h.dp(100), rail.getWidth() * 3 / 4), 0);
+            if (rail != null) rail.smoothScrollCardsBy(Math.max(h.dp(100), rail.getWidth() * 3 / 4));
           });
           pagerChevron(next, true);
           next.setContentDescription("교체 후보 오른쪽으로 이동");
