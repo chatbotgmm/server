@@ -23,11 +23,17 @@ test('immune never calls reflection policy; reflection must have explicit policy
   assert.throws(()=>resolveElementDamage({...input,defense:'normal',baseDamage:Infinity}),/INVALID/);
   assert.throws(()=>resolveElementDamage({...input,defense:'reflect'},()=>-1),/INVALID/);
 });
-test('full starting MP, focus floors quarter and caps without integer overflow',()=>{
+test('full starting MP, focus restores half with floor and caps without integer overflow',()=>{
   assert.deepEqual(startMp(12,curve),{mp:13,maxMp:13});
-  assert.deepEqual(focusMp(2,13),{mp:5,recovered:3});
+  assert.deepEqual(focusMp(2,13),{mp:8,recovered:6});
   assert.deepEqual(focusMp(12,13),{mp:13,recovered:1});
-  assert.deepEqual(focusMp(0,3),{mp:0,recovered:0});
+  assert.deepEqual(focusMp(0,3),{mp:1,recovered:1});
+  assert.deepEqual(focusMp(0,1),{mp:0,recovered:0});
+  assert.deepEqual(focusMp(2,31),{mp:17,recovered:15});
+  assert.deepEqual(focusMp(8,42),{mp:29,recovered:21});
+  assert.deepEqual(focusMp(31,31),{mp:31,recovered:0});
+  assert.throws(()=>focusMp(-1,31),/INVALID/);
+  assert.throws(()=>focusMp(32,31),/MP_EXCEEDS_MAX/);
   assert.equal(focusMp(Number.MAX_SAFE_INTEGER-1,Number.MAX_SAFE_INTEGER).mp,Number.MAX_SAFE_INTEGER);
   assert.equal(spendMp(7,7),0);
   assert.throws(()=>spendMp(7,8),/INSUFFICIENT/);

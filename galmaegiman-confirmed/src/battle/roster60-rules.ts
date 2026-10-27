@@ -88,8 +88,10 @@ export function startMp(totalXp:number,curve:readonly GrowthPoint[],reincarnatio
 }
 export function focusMp(mp:number,maxMp:number) {
   integer(mp,'MP');integer(maxMp,'MAX_MP');if(mp>maxMp)throw new Error('MP_EXCEEDS_MAX');
-  // Floor recovery, including 0 for maxMp<4. Addition cannot overflow safe integers.
-  const recovered=Math.min(maxMp-mp,Math.floor(maxMp/4));
+  // Confirmed policy: restore 50% of maximum MP, rounded down and capped.
+  // Keep the existing integer convention, including 0 for maxMp<2.
+  // Addition cannot overflow safe integers because recovery is bounded by the deficit.
+  const recovered=Math.min(maxMp-mp,Math.floor(maxMp/2));
   return {mp:mp+recovered,recovered};
 }
 export function spendMp(mp:number,cost:number) {
