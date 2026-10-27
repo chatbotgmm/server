@@ -15,7 +15,8 @@ final class NativeVillageHomeAssets {
   final Source source;
   final Set<String> statueRequests=new HashSet<>(),statuePending=new HashSet<>(),statueErrors=new HashSet<>();
   int generation, pending, missing;
-  NativeVillageHomeAssets(MainActivity h) { this((path, ready) -> LocalGameArt.load(h,path,2,ready)); }
+  NativeVillageHomeAssets(MainActivity h) { this((path, ready) -> LocalGameArt.load(h,path,decodeSample(path),ready)); }
+  static int decodeSample(String path){return 2;}
   NativeVillageHomeAssets(Source source) { this.source=source; }
   void load(VillageLayout layout, BooleanSupplier current, Runnable changed) {
     int ticket=++generation;pending=0;missing=0;images.clear();statueRequests.clear();statuePending.clear();statueErrors.clear();

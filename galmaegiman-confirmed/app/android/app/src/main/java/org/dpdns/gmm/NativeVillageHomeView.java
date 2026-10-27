@@ -18,6 +18,9 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   final Map<String,Button> buildingButtons=new LinkedHashMap<>(),residentButtons=new LinkedHashMap<>();
   final Map<String,RectF> buildingBounds=new LinkedHashMap<>(),residentBounds=new LinkedHashMap<>();
   final VillageAmbientScene ambient=new VillageAmbientScene();
+  final VillageDistrictScene districtScene=new VillageDistrictScene();
+  final PointF actorPoint=new PointF();
+  final java.util.List<VillageLayout.Placed> depthActors=new java.util.ArrayList<>();
   final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
   final RectF field=new RectF(),safe=new RectF();
   final Button settings,daily;
@@ -54,6 +57,9 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     }
     settings=iconControl("마을 메뉴", "settings", owner::more);settings.setTag("village-settings");addView(settings);
     daily=iconControl("출석·미션", "attendance", ()->owner.navigate("daily"));daily.setTag("village-daily");NativeTutorialController.anchorPreservingTag(daily,"daily");addView(daily);
+    depthActors.addAll(layout.buildings);depthActors.addAll(layout.residents);
+    depthActors.sort(java.util.Comparator.comparingDouble(a->a.surface.isEmpty()?a.baseline:a.sourceY));
+    for(VillageLayout.Placed actor:depthActors)actorButton(actor).bringToFront();daily.bringToFront();settings.bringToFront();
     bindResidents();
   }
   Button control(String text,Runnable action) {
@@ -132,21 +138,26 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     settings.layout(edge-h.dp(48),y,edge,y+h.dp(48));
     daily.layout(settings.getLeft()-h.dp(56),y,settings.getLeft()-h.dp(8),y+h.dp(48));layoutWorld();
   }
+  Button actorButton(VillageLayout.Placed actor){return actor instanceof VillageLayout.Building?buildingButtons.get(actor.id):residentButtons.get(actor.id);}
+  void actorPosition(VillageLayout.Placed actor,Button button){
+    if(actor.surface.isEmpty()||!districtScene.point(this,actor.surface,actor.sourceX,actor.sourceY,actorPoint))actorPoint.set((float)camera.projectX(actor.x,1,unitPixels(),field.width()),field.height()*(float)actor.baseline);
+    actorPoint.y=Math.min(actorPoint.y,safe.bottom-h.dp(6)-labelHeight(button)-labelGap());
+  }
   RectF buildingRect(VillageLayout.Building building) {
     double unit=unitPixels();Bitmap bitmap=assets.get(building.asset);double[] crop=layout.assets.get(building.asset).crop;
     float aspect=bitmap==null?1:(float)((crop[2]-crop[0])*bitmap.getWidth()/Math.max(1,(crop[3]-crop[1])*bitmap.getHeight()));
-    Button button=buildingButtons.get(building.id);int caption=labelHeight(button);float feet=groundedFeet(building.baseline,button);
+    Button button=buildingButtons.get(building.id);int caption=labelHeight(button);actorPosition(building,button);float feet=actorPoint.y;
     // The manifest defines scene scale; the original aspect supplies width, never the legacy widthU slot.
-    float imageHeight=Math.max(1,Math.min(field.height()*(float)building.heightRatio,feet-safe.top-h.dp(64))),imageWidth=imageHeight*aspect;
-    float width=Math.max(h.dp(48),Math.max(imageWidth,labelWidth(button))),x=field.left+(float)camera.projectX(building.x,1,unit,field.width());
+    float imageHeight=Math.max(1,Math.min(field.height()*(float)building.heightRatio,feet-safe.top-h.dp((int)building.topClearanceDp))),imageWidth=imageHeight*aspect;
+    float width=Math.max(h.dp(48),Math.max(imageWidth,labelWidth(button))),x=field.left+actorPoint.x;
     return new RectF(x-width/2,feet-imageHeight,x+width/2,feet+labelGap()+caption);
   }
   RectF residentRect(VillageLayout.Resident resident) {
     Bitmap bitmap=assets.get(resident.asset);double[] crop=layout.assets.get(resident.asset).crop;
     float aspect=bitmap==null?1:(float)((crop[2]-crop[0])*bitmap.getWidth()/Math.max(1,(crop[3]-crop[1])*bitmap.getHeight()));
-    Button button=residentButtons.get(resident.id);int caption=labelHeight(button);float feet=groundedFeet(resident.baseline,button);
+    Button button=residentButtons.get(resident.id);int caption=labelHeight(button);actorPosition(resident,button);float feet=actorPoint.y;
     float portrait=Math.max(1,Math.min(field.height()*(float)resident.heightRatio,feet-safe.top-h.dp(64)));
-    float width=Math.max(h.dp(48),Math.max(portrait*aspect,labelWidth(button))),x=field.left+(float)camera.projectX(resident.x,1,unitPixels(),field.width());
+    float width=Math.max(h.dp(48),Math.max(portrait*aspect,labelWidth(button))),x=field.left+actorPoint.x;
     return new RectF(x-width/2,feet-portrait,x+width/2,feet+labelGap()+caption);
   }
   void layoutWorld(){
@@ -161,17 +172,19 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     super.onDraw(canvas);canvas.drawColor(0xffd8e7e4);int save=canvas.save();canvas.clipRect(field);
     for(VillageLayout.Layer layer:layout.layers)if(!layer.asset.isEmpty()&&!"terrain".equals(layer.id))drawLayer(canvas,layer);
     ambient.drawInland(canvas,this);
+    districtScene.draw(canvas,this,"backdrop");
     boolean animating=owner.current()&&isShown()&&hasWindowFocus()&&assets.get("sea")!=null&&ambient.waterVisible(this);
     long waterTime=ambient.time(SystemClock.uptimeMillis(),animating);
     ambient.drawFoam(canvas,this,waterTime);
     // Boats sit beyond the quay; the foreground terrain can cover the lower hull.
     for(VillageLayout.Prop prop:layout.props)drawProp(canvas,prop);
     for(VillageLayout.Layer layer:layout.layers)if("terrain".equals(layer.id))drawLayer(canvas,layer);
+    districtScene.draw(canvas,this,"terrace");
     // Rear structures now stand ON the walkable soil/quay rather than hovering above the water.
     for(VillageLayout.Decoration decoration:layout.decorations)drawDecoration(canvas,decoration);
     drawLandmark(canvas);
-    for(VillageLayout.Building building:layout.buildings)drawBuilding(canvas,building);
-    for(VillageLayout.Resident resident:layout.residents)drawResident(canvas,resident);
+    for(VillageLayout.Placed actor:depthActors)if(actor instanceof VillageLayout.Building)drawBuilding(canvas,(VillageLayout.Building)actor);else drawResident(canvas,(VillageLayout.Resident)actor);
+    districtScene.draw(canvas,this,"foreground");
     canvas.restoreToCount(save);
     if(animating&&ambient.fixedTime==null)postInvalidateDelayed(33); // Local foam is deliberately 30 fps.
   }
@@ -225,6 +238,17 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   }
   RectF imageSlot(Button button){return new RectF(button.getLeft(),button.getTop(),button.getRight(),button.getBottom()-labelHeight(button)-labelGap());}
   boolean alphaHitWorldButton(Button button,float localX,float localY){
+    float x=button.getLeft()+localX,y=button.getTop()+localY;
+    // Child bitmap captions paint after every world sprite: their visible lane owns the tap.
+    for(int i=depthActors.size()-1;i>=0;i--){Button caption=actorButton(depthActors.get(i));if(caption.getVisibility()!=VISIBLE)continue;RectF bounds=new RectF(caption.getLeft(),caption.getTop(),caption.getRight(),caption.getBottom());if(safe.contains(x,y)&&labelRect(bounds,caption).contains(x,y))return caption==button;}
+    if(!rawAlphaHitWorldButton(button,localX,localY))return false;
+    for(VillageLayout.Placed front:depthActors)for(String back:front.occludes){
+      Button behind=buildingButtons.containsKey(back)?buildingButtons.get(back):residentButtons.get(back);
+      Button above=actorButton(front);if(behind==button&&above.getVisibility()==VISIBLE&&rawAlphaHitWorldButton(above,x-above.getLeft(),y-above.getTop()))return false;
+    }
+    return true;
+  }
+  boolean rawAlphaHitWorldButton(Button button,float localX,float localY){
     if(!(button instanceof WorldTarget))return false;float x=button.getLeft()+localX,y=button.getTop()+localY;if(!safe.contains(x,y))return false;
     RectF outer=new RectF(button.getLeft(),button.getTop(),button.getRight(),button.getBottom());if(labelRect(outer,button).contains(x,y))return true;
     String asset=((WorldTarget)button).asset;Bitmap bitmap=assets.get(asset);RectF slot=imageSlot(button);if(bitmap==null)return slot.contains(x,y);

@@ -40,7 +40,7 @@ public class NativeVillageHomeArtTest {
   final NativeVillageHomeTest fixture=new NativeVillageHomeTest();
   final NativeHomePartyFeedbackTest helper=fixture.helper;
   static final Set<String> ASSETS=new HashSet<>(Arrays.asList(
-      "nameplates","grove","neighborhood","sea","terrain","ship","recruit","hideout","archive","mailbox","market","harbor",
+      "companions-background","companions-terrace","nameplates","grove","neighborhood","sea","terrain","ship","recruit","hideout","archive","mailbox","market","harbor",
       "blacksmith","merchant","librarian","patrol","decor_cottage","decor_warehouse","decor_closed_shop"));
   static final Set<String> DECORATIONS=new HashSet<>(Arrays.asList("decor_cottage","decor_warehouse","decor_closed_shop"));
   static final Set<String> NPCS=new HashSet<>(Arrays.asList("blacksmith","merchant","librarian","patrol"));
@@ -82,7 +82,7 @@ public class NativeVillageHomeArtTest {
     LocalGameArtTest.drain();helper.layout(h,profile);
     assertTrue("Real PNG decode did not finish; pending="+view.assets.pending+" missing="+view.assets.missing,
         view.assets.ready());
-    assertEquals(20,view.assets.images.size());assertEquals(0,view.assets.pending);assertEquals(0,view.assets.missing);
+    assertEquals(22,view.assets.images.size());assertEquals(0,view.assets.pending);assertEquals(0,view.assets.missing);
     NativeVillageHomeTest.assertFullBleed(view,h);assertFalse(view.settings.getContentDescription().toString().contains("그림을 불러오는 중"));
     return view;
   }

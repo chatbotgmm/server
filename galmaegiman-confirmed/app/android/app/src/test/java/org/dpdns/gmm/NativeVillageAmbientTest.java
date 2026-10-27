@@ -219,7 +219,7 @@ public class NativeVillageAmbientTest {
         for(String id:new String[]{"recruit","archive","market"})assertTrue("Single-floor buildings regain substantial presence",v.layout.building(id).heightRatio/("archive".equals(id)?.40:.38)+1e-9>=1.45);
         for(VillageLayout.Resident resident:v.layout.residents)assertTrue("Residents enlarge together with the architecture",resident.heightRatio/("blacksmith".equals(resident.id)?.21:"librarian".equals(resident.id)?.19:.17)+1e-9>=1.45);
         assertTrue("Mailbox is independently reduced, not included in the group enlargement",v.layout.building("mailbox").heightRatio/.23<.65);
-        assertEquals("Common resident reference height is now visibly about 107px",107.12,v.layout.resident("guard").heightRatio*412,.1);
+        assertEquals("Front patrol and desk retain substantial 124px presence",123.6,v.layout.resident("guard").heightRatio*412,.1);
         assertEquals("Mailbox is about 60px, clearly smaller than a resident",59.74,v.layout.building("mailbox").heightRatio*412,.1);
         for(VillageLayout.Building building:v.layout.buildings){
           android.graphics.RectF art=NativeVillageHomeTest.shownArt(v,v.buildingButtons.get(building.id));Bitmap bitmap=v.assets.get(building.asset);double[] crop=v.layout.assets.get(building.asset).crop;

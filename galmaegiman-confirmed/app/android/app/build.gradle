@@ -94,6 +94,16 @@ tasks.register('bundleGameArt', Sync) {
         include 'nameplates.png'
         into 'native/village-loop-v2/assets'
     }
+    from('../../../art/gpt/village-companions-20261027') {
+        include 'background.png', 'terrace.png', 'recruit.png', 'hideout.png'
+        rename { 'companions-v3-' + it }
+        into 'native/village-loop-v2/assets'
+    }
+    from('../../../art/gpt/village-companions-20261027') {
+        include 'patrol.png'
+        rename { 'companions-v3-' + it }
+        into 'native/village-loop-v2/residents'
+    }
     // 승인된 속성 원화는 공통 다운샘플 RAM 캐시로 내성/기술 양쪽에서 재사용한다.
     from('../../../art/gpt/element-illustrations-20261027') {
         include 'normal.png', 'fire.png', 'water.png', 'lightning.png'

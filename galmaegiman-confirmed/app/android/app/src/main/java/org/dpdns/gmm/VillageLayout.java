@@ -30,6 +30,7 @@ final class VillageLayout {
   final List<Resident> residents;
   final List<Decoration> decorations;
   final Landmark landmark;
+  final List<DistrictScenery> districtScenery;
 
   static final class District {
     final String id,title,copy,nav; final double x;
@@ -61,12 +62,12 @@ final class VillageLayout {
     }
   }
   static class Placed {
-    final String id,asset; final double x,width,baseline;
-    Placed(JSONObject o) throws Exception {id=word(o,"id");asset=word(o,"asset");x=number(o,"x");width=number(o,"width");baseline=number(o,"baseline");if(width<=0||width>2||baseline<0||baseline>1)throw invalid();}
+    final String id,asset,surface; final double x,width,baseline,sourceX,sourceY;final String[] occludes;
+    Placed(JSONObject o) throws Exception {id=word(o,"id");asset=word(o,"asset");x=number(o,"x");width=number(o,"width");baseline=number(o,"baseline");surface=o.optString("surface","");sourceX=surface.isEmpty()?0:number(o,"sourceX");sourceY=surface.isEmpty()?0:number(o,"sourceY");occludes=o.has("occludes")?strings(o.getJSONArray("occludes")):new String[0];if(sourceX<0||sourceX>1||sourceY<0||sourceY>1)throw invalid();if(width<=0||width>2||baseline<0||baseline>1)throw invalid();}
   }
   static final class Building extends Placed {
-    final String name,sub; final String[] menu,actionIds;final double heightRatio;
-    Building(JSONObject o) throws Exception {super(o);heightRatio=number(o,"heightRatio");if(heightRatio<.1||heightRatio>.75)throw invalid();name=word(o,"name");sub=o.optString("sub");menu=strings(o.getJSONArray("menu"));actionIds=strings(o.getJSONArray("actionIds"));if(menu.length==0||menu.length!=actionIds.length)throw invalid();}
+    final String name,sub; final String[] menu,actionIds;final double heightRatio;final double topClearanceDp;
+    Building(JSONObject o) throws Exception {super(o);topClearanceDp=o.has("topClearanceDp")?number(o,"topClearanceDp"):64;if(topClearanceDp<24||topClearanceDp>96)throw invalid();heightRatio=number(o,"heightRatio");if(heightRatio<.1||heightRatio>.75)throw invalid();name=word(o,"name");sub=o.optString("sub");menu=strings(o.getJSONArray("menu"));actionIds=strings(o.getJSONArray("actionIds"));if(menu.length==0||menu.length!=actionIds.length)throw invalid();}
   }
   static final class Prop extends Placed {
     final double parallax;
@@ -85,6 +86,19 @@ final class VillageLayout {
       Set<String> allowed=new HashSet<>(java.util.Arrays.asList("id","asset","x","width","baseline","parallax","heightRatio"));
       for(Iterator<String> it=o.keys();it.hasNext();)if(!allowed.contains(it.next()))throw invalid();
       if(width>.35||parallax!=1)throw invalid();
+    }
+  }
+
+  /** Separately composited illustration pieces; never a menu/quest/hit-target replacement. */
+  static final class DistrictScenery {
+    final String id,district,asset,depth;final double x,heightRatio,baseline,groundAnchor,fadeUnits,clipTop,minimumViewportWidth;
+    DistrictScenery(JSONObject o)throws Exception{
+      minimumViewportWidth=o.optDouble("minimumViewportWidth",0);if(!Double.isFinite(minimumViewportWidth)||minimumViewportWidth<0||minimumViewportWidth>1.2)throw invalid();id=word(o,"id");district=word(o,"district");asset=word(o,"asset");depth=word(o,"depth");
+      x=number(o,"x");heightRatio=number(o,"heightRatio");baseline=number(o,"baseline");
+      groundAnchor=number(o,"groundAnchor");fadeUnits=number(o,"fadeUnits");clipTop=o.has("clipTop")?number(o,"clipTop"):0;
+      if(!("backdrop".equals(depth)||"terrace".equals(depth)||"foreground".equals(depth))||heightRatio<=0||heightRatio>2.5||baseline<0||baseline>1||groundAnchor<=0||groundAnchor>1||fadeUnits<.02||fadeUnits>.5||clipTop<0||clipTop>1)throw invalid();
+      Set<String> allowed=new HashSet<>(java.util.Arrays.asList("id","district","asset","depth","x","heightRatio","baseline","groundAnchor","fadeUnits","clipTop","minimumViewportWidth"));
+      for(Iterator<String> it=o.keys();it.hasNext();)if(!allowed.contains(it.next()))throw invalid();
     }
   }
 
@@ -107,6 +121,18 @@ final class VillageLayout {
     decorations=Collections.unmodifiableList(dec);
     landmark=o.has("landmark")?new Landmark(o.getJSONObject("landmark")):null;
     if(landmark!=null)for(String id:landmark.stageAssets)if(!assets.containsKey(id))throw invalid();
+    ArrayList<DistrictScenery> scenery=new ArrayList<>();a=o.optJSONArray("districtScenery");
+    if(a!=null)for(int i=0;i<a.length();i++){
+      DistrictScenery item=new DistrictScenery(a.getJSONObject(i));District district=district(item.district);
+      if(district==null||!assets.containsKey(item.asset)||item.x<district.x||item.x>=district.x+2||!sceneIds.add(item.id))throw invalid();
+      scenery.add(item);
+    }
+    districtScenery=Collections.unmodifiableList(scenery);
+    ArrayList<Placed> actors=new ArrayList<>();actors.addAll(buildings);actors.addAll(residents);
+    for(Placed actor:actors){
+      if(!actor.surface.isEmpty()&&districtScenery(actor.surface)==null)throw invalid();
+      for(String back:actor.occludes){boolean found=false;for(Placed other:actors)if(other.id.equals(back)&&other!=actor){found=true;for(String reverse:other.occludes)if(reverse.equals(actor.id))throw invalid();}if(!found)throw invalid();}
+    }
   }
   static VillageLayout load(Context context) {
     try(InputStream input=context.getAssets().open(MANIFEST)) {
@@ -118,6 +144,7 @@ final class VillageLayout {
   static VillageLayout parse(JSONObject value) {
     try{return new VillageLayout(value);}catch(Exception bad){throw new IllegalArgumentException("VILLAGE_LAYOUT_INVALID",bad);}
   }
+  DistrictScenery districtScenery(String id){for(DistrictScenery v:districtScenery)if(v.id.equals(id))return v;return null;}
   District district(String id){for(District v:districts)if(v.id.equals(id))return v;return null;}
   Layer layer(String id){for(Layer v:layers)if(v.id.equals(id))return v;return null;}
   Building building(String id){for(Building v:buildings)if(v.id.equals(id))return v;return null;}
