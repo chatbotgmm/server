@@ -873,14 +873,15 @@
       ],
       "actionIds": [
         "recruit"
-      ]
+      ],
+      "heightRatio": 0.38
     },
     {
       "id": "hideout",
       "name": "방범대 아지트",
       "sub": "우리 팀의 쉼터",
       "asset": "hideout",
-      "x": 1.1,
+      "x": 1.04,
       "width": 0.546,
       "baseline": 0.83,
       "menu": [
@@ -888,7 +889,8 @@
       ],
       "actionIds": [
         "party"
-      ]
+      ],
+      "heightRatio": 0.67
     },
     {
       "id": "archive",
@@ -905,7 +907,8 @@
       "actionIds": [
         "collection",
         "craft"
-      ]
+      ],
+      "heightRatio": 0.4
     },
     {
       "id": "mailbox",
@@ -924,7 +927,8 @@
         "mail",
         "events",
         "notices"
-      ]
+      ],
+      "heightRatio": 0.23
     },
     {
       "id": "harbor",
@@ -945,7 +949,8 @@
         "story",
         "normal",
         "rank"
-      ]
+      ],
+      "heightRatio": 0.56
     },
     {
       "id": "market",
@@ -964,7 +969,8 @@
         "items",
         "pass",
         "currency"
-      ]
+      ],
+      "heightRatio": 0.38
     }
   ],
   "props": [
@@ -983,18 +989,20 @@
       "role": "대장장이",
       "silhouette": "large-blacksmith",
       "asset": "blacksmith",
-      "x": 6.16,
+      "x": 6.25,
       "width": 0.17,
-      "baseline": 0.91
+      "baseline": 0.91,
+      "heightRatio": 0.21
     },
     {
       "id": "merchant",
       "role": "상인",
       "silhouette": "slender-merchant",
       "asset": "merchant",
-      "x": 6.98,
+      "x": 6.9,
       "width": 0.1,
-      "baseline": 0.91
+      "baseline": 0.91,
+      "heightRatio": 0.17
     },
     {
       "id": "librarian",
@@ -1003,16 +1011,18 @@
       "asset": "librarian",
       "x": 2.85,
       "width": 0.105,
-      "baseline": 0.91
+      "baseline": 0.91,
+      "heightRatio": 0.19
     },
     {
       "id": "guard",
       "role": "방범대원",
       "silhouette": "angular-stone-wing-patrol",
       "asset": "patrol",
-      "x": 0.84,
+      "x": 0.79,
       "width": 0.13,
-      "baseline": 0.91
+      "baseline": 0.91,
+      "heightRatio": 0.17
     }
   ],
   "decorations": [

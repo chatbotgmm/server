@@ -133,19 +133,20 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     daily.layout(settings.getLeft()-h.dp(56),y,settings.getLeft()-h.dp(8),y+h.dp(48));layoutWorld();
   }
   RectF buildingRect(VillageLayout.Building building) {
-    double unit=unitPixels();float available=Math.max(h.dp("mailbox".equals(building.id)?72:120),(float)(building.width*unit));Bitmap bitmap=assets.get(building.asset);double[] crop=layout.assets.get(building.asset).crop;
-    float aspect=bitmap==null?available/Math.max(1,field.height()*.52f):(float)((crop[2]-crop[0])*bitmap.getWidth()/Math.max(1,(crop[3]-crop[1])*bitmap.getHeight()));
+    double unit=unitPixels();Bitmap bitmap=assets.get(building.asset);double[] crop=layout.assets.get(building.asset).crop;
+    float aspect=bitmap==null?1:(float)((crop[2]-crop[0])*bitmap.getWidth()/Math.max(1,(crop[3]-crop[1])*bitmap.getHeight()));
     Button button=buildingButtons.get(building.id);int caption=labelHeight(button);float feet=groundedFeet(building.baseline,button);
-    float limit=Math.max(h.dp(50),Math.min(field.height()*.62f,feet-safe.top-h.dp(64)));
-    float imageHeight=Math.max(h.dp(50),Math.min(limit,available/aspect)),imageWidth=imageHeight*aspect;
+    // The manifest defines scene scale; the original aspect supplies width, never the legacy widthU slot.
+    float imageHeight=Math.max(1,Math.min(field.height()*(float)building.heightRatio,feet-safe.top-h.dp(64))),imageWidth=imageHeight*aspect;
     float width=Math.max(h.dp(48),Math.max(imageWidth,labelWidth(button))),x=field.left+(float)camera.projectX(building.x,1,unit,field.width());
     return new RectF(x-width/2,feet-imageHeight,x+width/2,feet+labelGap()+caption);
   }
   RectF residentRect(VillageLayout.Resident resident) {
-    float available=Math.max(h.dp(48),(float)(resident.width*unitPixels()));Bitmap bitmap=assets.get(resident.asset);double[] crop=layout.assets.get(resident.asset).crop;
+    Bitmap bitmap=assets.get(resident.asset);double[] crop=layout.assets.get(resident.asset).crop;
     float aspect=bitmap==null?1:(float)((crop[2]-crop[0])*bitmap.getWidth()/Math.max(1,(crop[3]-crop[1])*bitmap.getHeight()));
-    float portrait=Math.max(h.dp(42),Math.min(field.height()*.40f,available/aspect));Button button=residentButtons.get(resident.id);int caption=labelHeight(button);
-    float width=Math.max(h.dp(48),Math.max(portrait*aspect,labelWidth(button))),x=field.left+(float)camera.projectX(resident.x,1,unitPixels(),field.width()),feet=groundedFeet(resident.baseline,button);
+    Button button=residentButtons.get(resident.id);int caption=labelHeight(button);float feet=groundedFeet(resident.baseline,button);
+    float portrait=Math.max(1,Math.min(field.height()*(float)resident.heightRatio,feet-safe.top-h.dp(64)));
+    float width=Math.max(h.dp(48),Math.max(portrait*aspect,labelWidth(button))),x=field.left+(float)camera.projectX(resident.x,1,unitPixels(),field.width());
     return new RectF(x-width/2,feet-portrait,x+width/2,feet+labelGap()+caption);
   }
   void layoutWorld(){

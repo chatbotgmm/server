@@ -102,7 +102,8 @@ public class NativeVillageAmbientTest {
         v.stopMotion();
         String[] scenes={"plaza-stage-1","harbor"};
         // Same world coordinate and angle for every timestamp; the statue is centered in the plaza shot.
-        double[] positions={v.layout.landmark.x-v.field.width()/v.unitPixels()/2,4.38};
+        // Representative front view only; the existing actual-art district suite keeps the 4.38 offset capture.
+        double[] positions={v.layout.landmark.x-v.field.width()/v.unitPixels()/2,4.25};
         for(int scene=0;scene<scenes.length;scene++){
           v.moveCameraUnits(positions[scene]-v.camera.cameraUnits());helper.layout(h,profile);
           for(long millis:new long[]{0,500,1000}){
@@ -196,6 +197,37 @@ public class NativeVillageAmbientTest {
         if(cell<0)assertEquals("No invisible badge lane shifts an inactive plaque",plateWidth,label.width(),.1f);
       }
       assertTrue(api.writes.isEmpty());
+    }
+  }
+
+  @Test public void explicitSceneHeightsAlignDoorScaleAndFitTargetsInChosenDistrictFrontViews()throws Exception{
+    NativeHomePartyFeedbackTest.Profile[] profiles={NativeVillageHomeTest.PHONE,new NativeHomePartyFeedbackTest.Profile("village-1280x720",1280,720,160,1,0,0,0,0)};
+    for(NativeHomePartyFeedbackTest.Profile profile:profiles){
+      helper.configure(profile);
+      try(ActivityController<MainActivity> activity=helper.flow.start()){
+        MainActivity h=activity.get();fixture.prepare(h);NativeVillageHomeView v=fixture.open(h,profile);LocalGameArtTest.drain();helper.layout(h,profile);
+        for(VillageLayout.Building building:v.layout.buildings){
+          android.graphics.RectF art=NativeVillageHomeTest.shownArt(v,v.buildingButtons.get(building.id));
+          assertEquals("Explicit height must not collapse back to the uniform .62H cap: "+building.id,v.field.height()*building.heightRatio,art.height(),1.1);
+        }
+        for(VillageLayout.Resident resident:v.layout.residents){
+          android.graphics.RectF art=NativeVillageHomeTest.shownArt(v,v.residentButtons.get(resident.id));
+          assertEquals("NPC scene height is independent of old widthU and species aspect: "+resident.id,v.field.height()*resident.heightRatio,art.height(),1.1);
+          assertTrue(v.residentButtons.get(resident.id).getWidth()>=h.dp(48));assertTrue(v.residentButtons.get(resident.id).getHeight()>=h.dp(48));
+        }
+        String[] doorIds={"recruit","hideout","archive","market"};double[] doorFractions={421.0/956,271.0/1159,355.0/851,389.0/843};double min=Double.MAX_VALUE,max=0;
+        for(int i=0;i<doorIds.length;i++){double height=NativeVillageHomeTest.shownArt(v,v.buildingButtons.get(doorIds[i])).height()*doorFractions[i];min=Math.min(min,height);max=Math.max(max,height);}
+        assertTrue("Shared front-door scale stays within 25 percent despite different storey counts",max/min<=1.25);
+        assertEquals("Guard is about 70px at the phone reference height",70.04,v.layout.resident("guard").heightRatio*412,.1);
+        // Deliberately chosen front views. Partial objects during free scrolling remain valid and are tested separately.
+        double[] cameras={.25,2.25,4.25,6.077};String[][] buildingIds={{"recruit","hideout"},{"archive","mailbox"},{"harbor"},{"market"}};String[][] residentIds={{"guard"},{"librarian"},{},{"blacksmith","merchant"}};
+        for(int district=0;district<4;district++){
+          v.moveCameraUnits(cameras[district]-v.camera.cameraUnits());helper.layout(h,profile);
+          for(String id:buildingIds[district])assertTrue("Full building and below-image plaque fit district view: "+profile.name+" / "+id,v.safe.contains(v.buildingBounds.get(id)));
+          for(String id:residentIds[district])assertTrue("Full resident and below-image plaque fit district view: "+profile.name+" / "+id,v.safe.contains(v.residentBounds.get(id)));
+          NativeVillageHomeTest.assertNoOpaqueNeighborOverlap(v);
+        }
+      }
     }
   }
 
