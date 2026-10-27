@@ -66,6 +66,20 @@ suite('account observed reactions commit with actual battle transitions (isolate
   const serialized=JSON.stringify(v);for(const hidden of ['profileKey','targetKey','defenseObservation','"initial"','"profiles"','"seed"','"snapshot"'])expect(serialized).not.toContain(hidden);
   if(process.env.OBSERVED_DEFENSE_FIXTURE_DIR)writeFileSync(process.env.OBSERVED_DEFENSE_FIXTURE_DIR+'/pve-public.json',JSON.stringify({battle:v,collection:await collection(e,id)},null,2));
  });
+ it('same defense profile survives a different-level reencounter while stats and account knowledge stay isolated',async()=>{
+  const e=environment(),id=await account(),other=await account();
+  const first=await create(e,id);await action(e,id,first,'FIRE');
+  const enemy=e.catalog.characters[1];
+  enemy.growth.push({totalXp:1000,maxMp:120});
+  enemy.combatGrowth.push({...enemy.combatGrowth[0],hp:1200,mp:120,speed:20});
+  e.policy.encounters[0].level=2;
+  const next=await create(e,id);
+  expect(next.state.fighters[1].level).toBe(2);
+  expect(knowledge(next)).toMatchObject({knownDefenseCount:1,statsKnown:false,stats:null,defenses:{FIRE:'weak',WATER:'unknown'}});
+  expect(next.state.fighters[1].stats).toEqual({hp:1200,mp:120});
+  expect(knowledge(await create(e,other))).toMatchObject({knownDefenseCount:0,statsKnown:false});
+  expect((await collection(e,id)).defenseKnowledge).toMatchObject({knownDefenseCount:1,defenses:{FIRE:'weak'}});
+ });
  it('temporary profiles and provenance-free old battles show actual battle-only knowledge without poisoning base collection',async()=>{
   const e=environment(),id=await account();let v=await create(e,id);v=await action(e,id,v);
   const row=await db.roster60Battle.findUniqueOrThrow({where:{id:v.battleId}}),state=JSON.parse(row.state);state.fighters[1].defense.FIRE='reflect';
@@ -173,3 +187,4 @@ suite('account observed reactions commit with actual battle transitions (isolate
   await p.pvp.action(p.b,request);expect(await db.roster60ObservedDefense.count({where:{playerId:p.a}})).toBe(1);
  });
 });
+

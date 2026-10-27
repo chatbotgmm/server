@@ -49,9 +49,9 @@ suite('authenticated persisted five-stat battle (synthetic server policy only)',
   expect((await post('action',{...action,requestId:randomUUID()})).json().error).toBe('STALE_REVISION');
   expect((await post('action',{...action,requestId:randomUUID(),revision:1})).json().error).toBe('INSUFFICIENT_MP');
   expect((await post('read',{battleId:id})).json()).toEqual(view);
-  for(const mp of [4,6]){view=(await post('action',{requestId:randomUUID(),battleId:id,revision:view.revision,action:{kind:'focus'}})).json();expect(view.state.fighters[0].mp).toBe(mp);}
+  for(const mp of [7,10]){view=(await post('action',{requestId:randomUUID(),battleId:id,revision:view.revision,action:{kind:'focus'}})).json();expect(view.state.fighters[0].mp).toBe(mp);}
   const kill={requestId:randomUUID(),battleId:id,revision:view.revision,action:{kind:'skill',skillId:'skill5'}};
-  view=(await post('action',kill)).json();expect(view.status).toBe('FINISHED');expect(view.state.outcome).toBe('win');expect(view.state.fighters[0].mp).toBe(1);
+  view=(await post('action',kill)).json();expect(view.status).toBe('FINISHED');expect(view.state.outcome).toBe('win');expect(view.state.fighters[0].mp).toBe(5);
   // Pinned policy means removal/replacement cannot change a retry or settlement.
   write('roster60-battle-policy.json',{approved:false});expect((await post('action',kill)).json()).toEqual(view);
   const settle={requestId:randomUUID(),battleId:id,revision:view.revision};const settled=(await post('settle',settle)).json();expect(settled.status).toBe('SETTLED');expect(settled.settlement.xpAwarded).toBe(10);
