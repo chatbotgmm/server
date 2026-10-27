@@ -18,7 +18,7 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.*;
 import org.robolectric.shadows.ShadowLooper;
 
-/** Public projection, playback timing and measured nonmodal layout; no client defense discovery. */
+/** Public projection, playback timing and measured compact button/modal layout; no client defense discovery. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk=35,qualifiers="w915dp-h412dp-land-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -86,7 +86,7 @@ public class OpponentProjectionPanelTest {
       assertTrue("Current attack's After is still hidden during wind-up",text(ui.opponentDetails).contains("0 / 8"));
       assertFalse(text(ui.opponentDetails).contains("속도  3"));
       NativeRoster60PlaybackTest.finish(ui);
-      assertTrue(text(ui.opponentDetails).contains("1 / 8"));assertEquals("불 보통",ui.opponentReactions[1].getText());
+      assertTrue(text(ui.opponentDetails).contains("1 / 8"));assertEquals("불\n보통",ui.opponentReactions[1].getText());
       assertTrue(text(ui.opponentDetails).contains("속도  3"));assertNull(h.visibleDialog);
       assertTrue(api.actions.isEmpty());
     }
@@ -108,21 +108,16 @@ public class OpponentProjectionPanelTest {
         MainActivity h=controller.get();NativeRoster60PlaybackTest.Api api=openAtProfile(h,profile);NativeRoster60Battle ui=h.rosterBattle;
         api.state.getJSONObject("state").put("opponentIntel",projection("u02",1,"battle-observed",MainActivity.obj("FIRE","reflect","WATER","immune")));
         ui.bind(api.state);fixture.helper.layout(h,profile);
-        assertEquals(View.VISIBLE,ui.opponentDetails.getVisibility());assertTrue(text(ui.opponentDetails).contains("이번 전투"));
-        assertNull(h.root.findViewWithTag("roster60-opponent-info"));assertNull(h.visibleDialog);
-        Rect info=NativeHomePartyFeedbackTest.bounds(ui.opponentDetails,h.root),art=NativeHomePartyFeedbackTest.bounds(ui.art,h.root);
+        assertEquals(View.VISIBLE,ui.opponentInfo.getVisibility());assertNull(ui.opponentDetails.getParent());assertTrue(text(ui.opponentDetails).contains("이번 전투"));
+        assertNotNull(h.root.findViewWithTag("roster60-opponent-info"));assertNull(h.visibleDialog);
+        Rect info=NativeHomePartyFeedbackTest.bounds(ui.opponentInfo,h.root),art=NativeHomePartyFeedbackTest.bounds(ui.art,h.root);
         Rect commands=NativeHomePartyFeedbackTest.bounds(h.root.findViewWithTag("roster60-command-rail"),h.root);
         Rect hold=NativeHomePartyFeedbackTest.bounds(ui.hold,h.root);
-        assertFalse(Rect.intersects(info,art));assertFalse(Rect.intersects(info,commands));assertFalse(Rect.intersects(info,hold));
-        assertTrue("Footer reserves real measured space",info.height()>0);assertTrue("Battle art/vitals retain their own viewport",ui.art.getHeight()>=h.dp(100));
+        assertTrue(art.contains(info));assertFalse(Rect.intersects(info,commands));assertFalse(Rect.intersects(info,hold));
+        assertTrue(info.left>=art.left+h.dp(6)+Roster60HudGeometry.enemyWidth(ui.art.getWidth(),h.getResources().getDisplayMetrics().density,ui.scale));
+        assertTrue("Info has a real minimum tap target",info.width()>=h.dp(48)&&info.height()>=h.dp(48));assertEquals("No bottom panel consumes stage height",ui.stageOverlay.getHeight(),ui.art.getHeight());
         assertTrue(info.left>=h.root.getPaddingLeft()&&info.right<=h.root.getWidth()-h.root.getPaddingRight());
         assertTrue(info.bottom<=h.root.getHeight()-h.root.getPaddingBottom());
-        List<TextView> labels=new ArrayList<>();labels.add(ui.opponentSummary);Collections.addAll(labels,ui.opponentReactions);
-        for(TextView label:labels){
-          assertNotNull(label.getLayout());assertTrue(label.getWidth()>0);
-          assertTrue("No measured text clipping: "+label.getText(),label.getLayout().getHeight()<=label.getHeight()-label.getPaddingTop()-label.getPaddingBottom());
-          for(int line=0;line<label.getLineCount();line++)assertEquals(0,label.getLayout().getEllipsisCount(line));
-        }
         ui.chooseSwitch();fixture.helper.layout(h,profile);
         assertEquals(View.VISIBLE,ui.choicePanel.getVisibility());assertFalse(Rect.intersects(info,NativeHomePartyFeedbackTest.bounds(ui.choicePanel,h.root)));
         assertTrue(api.actions.isEmpty());
@@ -130,19 +125,31 @@ public class OpponentProjectionPanelTest {
         Path output=Path.of(System.getProperty("gmm.nativeReviewOutput","build/native-review"),"opponent-panel");Files.createDirectories(output);
         try(java.io.OutputStream stream=Files.newOutputStream(output.resolve(profile.name+".png"))){assertTrue(screenshot.compress(Bitmap.CompressFormat.PNG,100,stream));}
         finally{screenshot.recycle();}
+        ui.showOpponentInfo();View dialog=new NativeDialogLayoutReviewTest().layoutDialog(h);
+        LocalGameArtTest.drain();new NativeDialogLayoutReviewTest().layoutDialog(h);
+        List<TextView> labels=new ArrayList<>();labels.add(ui.opponentSummary);Collections.addAll(labels,ui.opponentReactions);
+        for(TextView label:labels){
+          assertNotNull(label.getLayout());assertTrue(label.getWidth()>0);
+          assertTrue("No modal text clipping: "+label.getText(),label.getLayout().getHeight()<=label.getHeight()-label.getCompoundPaddingTop()-label.getCompoundPaddingBottom());
+          for(int line=0;line<label.getLineCount();line++)assertEquals(0,label.getLayout().getEllipsisCount(line));
+        }
+        Bitmap modal=NativeHomePartyFeedbackTest.render(dialog);
+        try(java.io.OutputStream stream=Files.newOutputStream(output.resolve(profile.name+"-modal.png"))){assertTrue(modal.compress(Bitmap.CompressFormat.PNG,100,stream));}
+        finally{modal.recycle();}
+        ui.dismissOpponentDialog();assertNull(h.visibleDialog);
       }
     }
   }
 
-  @Test public void humanPvpUsesTheSameAlwaysVisibleReadOnlyPanel()throws Exception{
+  @Test public void humanPvpUsesTheSameCompactReadOnlyInfo()throws Exception{
     try(ActivityController<MainActivity> controller=fixture.helper.flow.start()){
       MainActivity h=controller.get();fixture.helper.prepare(h).close();NativeRoster60HumanPvpTest.Api api=new NativeRoster60HumanPvpTest.Api(h);h.api=api;
       h.getSharedPreferences("roster60_product_battle",0).edit().clear().commit();
       JSONObject dto=NativeRoster60HumanPvpTest.battle();dto.getJSONObject("state").put("opponentIntel",projection("u01",0,"base-observed",MainActivity.obj("LIGHTNING","resist")));
       h.openRosterHumanBattle(dto);NativeRoster60PvpBattle ui=(NativeRoster60PvpBattle)h.rosterBattle;
       fixture.helper.layout(h,NativeHomePartyFeedbackTest.PROFILES[0]);
-      assertEquals(View.VISIBLE,ui.opponentDetails.getVisibility());assertEquals("번개 내성",ui.opponentReactions[3].getText());
-      int requests=api.paths.size();ui.showOpponentInfo();assertEquals(requests,api.paths.size());assertNull(h.visibleDialog);
+      assertEquals(View.VISIBLE,ui.opponentInfo.getVisibility());assertEquals("번개\n내성",ui.opponentReactions[3].getText());
+      int requests=api.paths.size();ui.showOpponentInfo();assertEquals(requests,api.paths.size());assertNotNull(h.visibleDialog);
       assertTrue(api.writes.isEmpty());ui.pause();
     }
   }

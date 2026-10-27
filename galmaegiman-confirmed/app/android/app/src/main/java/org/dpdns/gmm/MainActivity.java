@@ -327,6 +327,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   RecruitEntryRead recruitEntryRead;
+  PartyEntryRead partyEntryRead;
 
   void load(String target) {
     if (updateBlocks()) { requiredUpdate.deferLoad(target); return; }
@@ -360,7 +361,11 @@ public class MainActivity extends AppCompatActivity {
           // A successful late read must never restore data after logout/account switching.
           if (!requestSession.equals(api.token())) {
             if (operations.finish(operation)) busy = false;
-            if (api.token().isEmpty() && e != null) { login(); message(e); }
+            String partyError = partyEntryRead != null && partyEntryRead.matches(requestSession, destination)
+                ? partyEntryRead.failure() : null;
+            if (api.token().isEmpty() && (e != null || partyError != null)) {
+              login(); message(e != null ? e : partyError);
+            }
             return;
           }
           if (e != null) {
@@ -390,6 +395,10 @@ public class MainActivity extends AppCompatActivity {
     // state refresh, while handing this single session response to the destination.
     recruitEntryRead = target.equals("draw") && roster60Menus()
         ? new RecruitEntryRead(api, destination) : null;
+    // Formation still refreshes account/currency/nickname state. Overlap its independent
+    // options read; this removes a serial wait, not either authoritative request.
+    partyEntryRead = target.equals("team") && roster60Menus() && !requestSession.isEmpty()
+        ? new PartyEntryRead(api, destination) : null;
     // Both are read-only and independent. Do not add a state TTL or merge any command.
     api.call("native/state", null, reads::state);
     if (needsKey) api.call("duel-key", null, reads::key);

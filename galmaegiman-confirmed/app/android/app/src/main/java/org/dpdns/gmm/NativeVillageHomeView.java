@@ -17,6 +17,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   final android.widget.OverScroller scroller;
   final Map<String,Button> buildingButtons=new LinkedHashMap<>(),residentButtons=new LinkedHashMap<>();
   final Map<String,RectF> buildingBounds=new LinkedHashMap<>(),residentBounds=new LinkedHashMap<>();
+  final VillageAmbientScene ambient=new VillageAmbientScene();
   final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
   final RectF field=new RectF(),safe=new RectF();
   final Button settings,daily;
@@ -66,17 +67,26 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   }
   final class WorldTarget extends androidx.appcompat.widget.AppCompatButton {
     final String asset;
-    final Paint plate=new Paint(Paint.ANTI_ALIAS_FLAG);
+    final VillageNameplates nameplate=new VillageNameplates();
+    final RectF plateBounds=new RectF(),statusBounds=new RectF();
     WorldTarget(String asset){super(NativeVillageHomeView.this.h);this.asset=asset;}
-    // 하늘·바다 위에서도 이름이 읽히게 양피지 이름표(황동 테두리)를 글자 뒤에 깐다.
+    boolean resident(){return VillageNameplates.cell(asset)>=6;}
+    int statusCell(){return resident()?VillageNameplates.statusCell(owner.residentStatus("patrol".equals(asset)?"guard":asset)):-1;}
+    float statusLane(){int status=statusCell();return status<0?0:h.dp(3)+h.dp(18)*VillageNameplates.aspect(status);}
     @Override protected void onDraw(Canvas canvas){
-      if(getText().length()>0){
-        float w=Math.min(getWidth(),labelWidth(this)),l=(getWidth()-w)/2,r=h.dp(9);RectF tag=new RectF(l+1,1,l+w-1,labelHeight(this)-h.dp(3));
-        tag.offset(getScrollX(),getScrollY());// 한 줄 TextView는 캔버스를 scroll만큼 옮겨 그린다.
-        plate.setStyle(Paint.Style.FILL);plate.setColor(0xf2f5efdc);canvas.drawRoundRect(tag,r,r,plate);
-        plate.setStyle(Paint.Style.STROKE);plate.setStrokeWidth(Math.max(1,h.dp(1)));plate.setColor(0xffb68b45);canvas.drawRoundRect(tag,r,r,plate);
+      // Text remains available to accessibility/tests, but the visible letters are atlas pixels only.
+      Bitmap atlas=assets.get("nameplates");if(atlas==null)return;
+      float height=labelHeight(this),width=height*VillageNameplates.aspect(VillageNameplates.cell(asset)),total=labelWidth(this),left=(getWidth()-total)/2;
+      plateBounds.set(left,getHeight()-height,left+width,getHeight());
+      int save=canvas.save();canvas.translate(getScrollX(),getScrollY());
+      nameplate.draw(canvas,atlas,VillageNameplates.cell(asset),plateBounds);
+      int status=statusCell();
+      if(status>=0){
+        float badge=h.dp(18),top=plateBounds.centerY()-badge/2;
+        statusBounds.set(plateBounds.right+h.dp(3),top,plateBounds.right+h.dp(3)+badge*VillageNameplates.aspect(status),top+badge);
+        nameplate.draw(canvas,atlas,status,statusBounds);
       }
-      super.onDraw(canvas);
+      canvas.restoreToCount(save);
     }
     @Override public boolean dispatchTouchEvent(MotionEvent event){
       if(event.getActionMasked()==MotionEvent.ACTION_DOWN&&!alphaHitWorldButton(this,event.getX(),event.getY()))return false;
@@ -85,12 +95,14 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   }
   Button worldButton(String label,String asset,Runnable action) {
     Button b=new WorldTarget(asset);b.setText(label);b.setAllCaps(false);b.setTypeface(h.font);b.setIncludeFontPadding(false);b.setTextColor(JournalTheme.INK);b.setTextSize(h.uiText(12));b.setSingleLine(true);
-    b.setGravity(Gravity.TOP|Gravity.CENTER_HORIZONTAL);b.setBackgroundColor(Color.TRANSPARENT);b.setBackgroundTintList(null);b.setStateListAnimator(null);b.setMinWidth(0);b.setMinimumWidth(0);b.setMinHeight(0);b.setMinimumHeight(0);b.setPadding(h.dp(4),h.dp(4),h.dp(4),0);b.setShadowLayer(h.dp(2),0,0,0xfff5efdc);
+    b.setGravity(Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);b.setBackgroundColor(Color.TRANSPARENT);b.setBackgroundTintList(null);b.setStateListAnimator(null);b.setMinWidth(0);b.setMinimumWidth(0);b.setMinHeight(0);b.setMinimumHeight(0);b.setPadding(0,0,0,0);
     b.setOnClickListener(v->{if(!owner.current()||blocksClick()||h.busy||h.updateBlocks())return;h.sound.click();Button previous=h.actionButton;h.actionButton=null;try{action.run();}finally{h.actionButton=previous;}});return b;
   }
-  int labelHeight(Button b){return Math.max(h.dp(26),(int)Math.ceil(b.getPaint().getFontSpacing())+h.dp(8));}
-  float labelWidth(Button b){return b.getPaint().measureText(b.getText().toString())+h.dp(16);}
-  RectF labelRect(RectF object,Button button){float width=Math.min(object.width(),labelWidth(button));return new RectF(object.centerX()-width/2,object.top,object.centerX()+width/2,object.top+labelHeight(button));}
+  int labelHeight(Button b){return h.dp(b instanceof WorldTarget&&((WorldTarget)b).resident()?32:45);}
+  int labelGap(){return h.dp(4);}
+  float groundedFeet(double baseline,Button b){return Math.min(field.top+field.height()*(float)baseline,safe.bottom-h.dp(6)-labelHeight(b)-labelGap());}
+  float labelWidth(Button b){WorldTarget target=(WorldTarget)b;return labelHeight(b)*VillageNameplates.aspect(VillageNameplates.cell(target.asset))+target.statusLane();}
+  RectF labelRect(RectF object,Button button){float width=Math.min(object.width(),labelWidth(button));return new RectF(object.centerX()-width/2,object.bottom-labelHeight(button),object.centerX()+width/2,object.bottom);}
   double unitPixels(){return VillageLoopCamera.unitPixels(getMeasuredWidth()>0?getMeasuredWidth():getWidth(),getResources().getDisplayMetrics().density);}
   void bindResidents() {
     for(VillageLayout.Resident resident:layout.residents) {
@@ -100,7 +112,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
       String shortState="ACTIVE".equals(status)?" · 진행":"READY".equals(status)?" · 보고":"COMPLETED".equals(status)?" · 완료":"";
       Button b=residentButtons.get(resident.id);b.setText(marker+resident.role+shortState);b.setTextColor("AVAILABLE".equals(status)?0xff245b61:JournalTheme.INK);b.setContentDescription(resident.role+" · "+name+" · "+marker+detail);
     }
-    invalidate();
+    requestLayout();invalidate();
   }
   void updateNotice(){
     String state=!assets.ready()?"그림을 불러오는 중":owner.problem;
@@ -121,20 +133,20 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     daily.layout(settings.getLeft()-h.dp(56),y,settings.getLeft()-h.dp(8),y+h.dp(48));layoutWorld();
   }
   RectF buildingRect(VillageLayout.Building building) {
-    double unit=unitPixels();float available=Math.max(h.dp(120),(float)(building.width*unit));Bitmap bitmap=assets.get(building.asset);double[] crop=layout.assets.get(building.asset).crop;
+    double unit=unitPixels();float available=Math.max(h.dp("mailbox".equals(building.id)?72:120),(float)(building.width*unit));Bitmap bitmap=assets.get(building.asset);double[] crop=layout.assets.get(building.asset).crop;
     float aspect=bitmap==null?available/Math.max(1,field.height()*.52f):(float)((crop[2]-crop[0])*bitmap.getWidth()/Math.max(1,(crop[3]-crop[1])*bitmap.getHeight()));
-    Button button=buildingButtons.get(building.id);int caption=labelHeight(button);float feet=Math.min(field.bottom,field.top+field.height()*(float)building.baseline);
-    float limit=Math.max(h.dp(50),Math.min(field.height()*.62f,feet-safe.top-h.dp(64)-caption));
+    Button button=buildingButtons.get(building.id);int caption=labelHeight(button);float feet=groundedFeet(building.baseline,button);
+    float limit=Math.max(h.dp(50),Math.min(field.height()*.62f,feet-safe.top-h.dp(64)));
     float imageHeight=Math.max(h.dp(50),Math.min(limit,available/aspect)),imageWidth=imageHeight*aspect;
     float width=Math.max(h.dp(48),Math.max(imageWidth,labelWidth(button))),x=field.left+(float)camera.projectX(building.x,1,unit,field.width());
-    return new RectF(x-width/2,feet-imageHeight-caption,x+width/2,feet);
+    return new RectF(x-width/2,feet-imageHeight,x+width/2,feet+labelGap()+caption);
   }
   RectF residentRect(VillageLayout.Resident resident) {
     float available=Math.max(h.dp(48),(float)(resident.width*unitPixels()));Bitmap bitmap=assets.get(resident.asset);double[] crop=layout.assets.get(resident.asset).crop;
     float aspect=bitmap==null?1:(float)((crop[2]-crop[0])*bitmap.getWidth()/Math.max(1,(crop[3]-crop[1])*bitmap.getHeight()));
     float portrait=Math.max(h.dp(42),Math.min(field.height()*.40f,available/aspect));Button button=residentButtons.get(resident.id);int caption=labelHeight(button);
-    float width=Math.max(h.dp(48),Math.max(portrait*aspect,labelWidth(button))),x=field.left+(float)camera.projectX(resident.x,1,unitPixels(),field.width()),feet=Math.min(field.bottom,field.top+field.height()*(float)resident.baseline);
-    return new RectF(x-width/2,feet-portrait-caption,x+width/2,feet);
+    float width=Math.max(h.dp(48),Math.max(portrait*aspect,labelWidth(button))),x=field.left+(float)camera.projectX(resident.x,1,unitPixels(),field.width()),feet=groundedFeet(resident.baseline,button);
+    return new RectF(x-width/2,feet-portrait,x+width/2,feet+labelGap()+caption);
   }
   void layoutWorld(){
     if(getWidth()==0)return;
@@ -147,15 +159,32 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   @Override protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);canvas.drawColor(0xffd8e7e4);int save=canvas.save();canvas.clipRect(field);
     for(VillageLayout.Layer layer:layout.layers)if(!layer.asset.isEmpty()&&!"terrain".equals(layer.id))drawLayer(canvas,layer);
-    // Distant houses have no View, label or hit target. The quay covers their feet.
-    for(VillageLayout.Decoration decoration:layout.decorations)drawDecoration(canvas,decoration);
+    ambient.drawInland(canvas,this);
+    boolean animating=owner.current()&&isShown()&&hasWindowFocus()&&assets.get("sea")!=null&&ambient.waterVisible(this);
+    long waterTime=ambient.time(SystemClock.uptimeMillis(),animating);
+    ambient.drawFoam(canvas,this,waterTime);
     // Boats sit beyond the quay; the foreground terrain can cover the lower hull.
     for(VillageLayout.Prop prop:layout.props)drawProp(canvas,prop);
     for(VillageLayout.Layer layer:layout.layers)if("terrain".equals(layer.id))drawLayer(canvas,layer);
+    // Rear structures now stand ON the walkable soil/quay rather than hovering above the water.
+    for(VillageLayout.Decoration decoration:layout.decorations)drawDecoration(canvas,decoration);
+    drawLandmark(canvas);
     for(VillageLayout.Building building:layout.buildings)drawBuilding(canvas,building);
     for(VillageLayout.Resident resident:layout.residents)drawResident(canvas,resident);
     canvas.restoreToCount(save);
+    if(animating&&ambient.fixedTime==null)postInvalidateDelayed(33); // Local foam is deliberately 30 fps.
   }
+  void drawLandmark(Canvas canvas){
+    VillageLayout.Landmark landmark=layout.landmark;if(landmark==null||owner.statueStage==0)return;
+    float width=(float)(landmark.width*unitPixels()),x=(float)camera.projectX(landmark.x,1,unitPixels(),field.width()),feet=(float)landmark.baseline*field.height();
+    float canvasHeight=Math.min(field.height()*.58f,width*1.5f),bottom=feet+canvasHeight*(1-(float)landmark.groundAnchor);
+    RectF slot=new RectF(x-width/2,bottom-canvasHeight,x+width/2,bottom);if(!RectF.intersects(slot,field))return;
+    String id=landmark.asset(owner.statueStage);Bitmap bitmap=assets.get(id);
+    if(bitmap!=null)drawObject(canvas,bitmap,slot,id);
+    else label(canvas,"동상 복원 "+owner.statueStage+"단계 · "+assets.statueStatus(id),x,feet-h.dp(5),11,JournalTheme.INK);
+  }
+  @Override public void onWindowFocusChanged(boolean focused){super.onWindowFocusChanged(focused);ambient.pause();if(focused)invalidate();}
+  @Override protected void onWindowVisibilityChanged(int visibility){super.onWindowVisibilityChanged(visibility);if(ambient!=null)ambient.pause();if(visibility==VISIBLE)invalidate();}
   void drawLayer(Canvas canvas,VillageLayout.Layer layer) {
     Bitmap image=assets.get(layer.asset);float top=field.top+field.height()*(float)layer.top,bottom=field.top+field.height()*(float)layer.bottom;
     int tiles=2;float aspect=1;
@@ -193,7 +222,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     float scale=Math.min(slot.width()/Math.max(1,sourceWidth),slot.height()/Math.max(1,sourceHeight));float width=sourceWidth*scale,height=sourceHeight*scale;
     return new RectF(slot.centerX()-width/2,slot.bottom-height,slot.centerX()+width/2,slot.bottom);
   }
-  RectF imageSlot(Button button){return new RectF(button.getLeft(),button.getTop()+labelHeight(button),button.getRight(),button.getBottom());}
+  RectF imageSlot(Button button){return new RectF(button.getLeft(),button.getTop(),button.getRight(),button.getBottom()-labelHeight(button)-labelGap());}
   boolean alphaHitWorldButton(Button button,float localX,float localY){
     if(!(button instanceof WorldTarget))return false;float x=button.getLeft()+localX,y=button.getTop()+localY;if(!safe.contains(x,y))return false;
     RectF outer=new RectF(button.getLeft(),button.getTop(),button.getRight(),button.getBottom());if(labelRect(outer,button).contains(x,y))return true;
@@ -204,7 +233,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   }
   void drawObject(Canvas canvas,Bitmap image,RectF slot,String asset){drawImage(canvas,image,layout.assets.get(asset).crop,fittedObjectRect(image,slot,asset),false);}
   void drawBuilding(Canvas canvas,VillageLayout.Building building){
-    RectF r=buildingBounds.get(building.id);if(!RectF.intersects(r,field))return;RectF image=new RectF(r.left,r.top+labelHeight(buildingButtons.get(building.id)),r.right,r.bottom);
+    RectF r=buildingBounds.get(building.id);if(!RectF.intersects(r,field))return;RectF image=imageSlot(buildingButtons.get(building.id));
     Bitmap bitmap=assets.get(building.asset);if(bitmap!=null)drawObject(canvas,bitmap,image,building.asset);
     else {paint.setColor(0xffede2c7);canvas.drawRoundRect(image,h.dp(14),h.dp(14),paint);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(h.dp(2));paint.setColor(0xff8c8066);canvas.drawRoundRect(image,h.dp(14),h.dp(14),paint);paint.setStyle(Paint.Style.FILL);label(canvas,"건물 자리",image.centerX(),image.centerY(),12,0xff6a6558);}
   }
@@ -215,14 +244,14 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   RectF decorationRect(VillageLayout.Decoration decoration){
     float width=(float)(decoration.width*unitPixels()),x=field.left+(float)camera.projectX(decoration.x,decoration.parallax,unitPixels(),field.width());
     float feet=field.top+field.height()*(float)decoration.baseline;
-    return new RectF(x-width/2,feet-field.height()*.28f,x+width/2,feet);
+    return new RectF(x-width/2,feet-field.height()*(float)decoration.heightRatio,x+width/2,feet);
   }
   void drawDecoration(Canvas canvas,VillageLayout.Decoration decoration){
     Bitmap bitmap=assets.get(decoration.asset);if(bitmap==null)return;RectF slot=decorationRect(decoration);
     if(RectF.intersects(slot,field))drawObject(canvas,bitmap,slot,decoration.asset);
   }
   void drawResident(Canvas canvas,VillageLayout.Resident resident){
-    RectF r=residentBounds.get(resident.id);if(!RectF.intersects(r,field))return;Bitmap bitmap=assets.get(resident.asset);RectF portrait=new RectF(r.left,r.top+labelHeight(residentButtons.get(resident.id)),r.right,r.bottom);
+    RectF r=residentBounds.get(resident.id);if(!RectF.intersects(r,field))return;Bitmap bitmap=assets.get(resident.asset);RectF portrait=imageSlot(residentButtons.get(resident.id));
     if(bitmap!=null)drawObject(canvas,bitmap,portrait,resident.asset);
     else {paint.setColor(0xff8b8575);float half=portrait.width()*("blacksmith".equals(resident.id)?.46f:"merchant".equals(resident.id)?.22f:.32f);RectF token=new RectF(portrait.centerX()-half,portrait.top,portrait.centerX()+half,portrait.bottom);if("guard".equals(resident.id))canvas.drawRect(token,paint);else canvas.drawOval(token,paint);}
   }
@@ -261,5 +290,5 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     if(action==MotionEvent.ACTION_CANCEL){stopMotion();moved=true;return true;}return true;
   }
   @Override public boolean performClick(){super.performClick();return true;}
-  @Override protected void onDetachedFromWindow(){owner.saveCamera();stopMotion();if(velocity!=null){velocity.recycle();velocity=null;}super.onDetachedFromWindow();}
+  @Override protected void onDetachedFromWindow(){owner.saveCamera();stopMotion();ambient.pause();if(velocity!=null){velocity.recycle();velocity=null;}super.onDetachedFromWindow();}
 }

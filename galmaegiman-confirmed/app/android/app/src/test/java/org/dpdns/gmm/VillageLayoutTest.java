@@ -28,13 +28,21 @@ public class VillageLayoutTest {
     assertEquals(8,actual.worldUnits,0);assertEquals(650,actual.minimumUnitDp,0);assertEquals(48,actual.minimumTouchDp,0);
     assertEquals(4,actual.districts.size());assertEquals(6,actual.buildings.size());assertEquals(4,actual.residents.size());
     assertEquals("verified-local-assets",actual.artworkStatus);assertEquals("manifest-unavailable-placeholder",fallback.artworkStatus);
-    JSONObject pinned=raw();assertEquals("2f1890e1df37b426cbfa27ccce8cd293186ad512",pinned.getString("sourceCommit"));assertEquals(16,pinned.getInt("sourceFileCount"));
-    assertEquals(16,actual.assets.size());assertEquals(8,actual.decorations.size());
+    JSONObject pinned=raw();assertEquals("2f1890e1df37b426cbfa27ccce8cd293186ad512",pinned.getString("sourceCommit"));assertEquals(24,pinned.getInt("sourceFileCount"));
+    assertEquals(24,actual.assets.size());assertEquals(8,actual.decorations.size());
     assertEquals(13,fallback.assets.size());assertTrue(fallback.decorations.isEmpty());
     for(VillageLayout.Asset asset:actual.assets.values()){
+      if(!asset.required)assertTrue(asset.id.startsWith("statue-stage-"));
       assertTrue("Production artwork must be inspected before binding: "+asset.id,asset.verified);
       JSONObject source=pinned.getJSONObject("assets").getJSONObject(asset.id);
-      if(asset.id.startsWith("decor_")){
+      if(asset.id.equals("nameplates")){
+        assertEquals(1024,source.getInt("sourceWidth"));assertEquals(1536,source.getInt("sourceHeight"));
+      }else if(asset.id.startsWith("statue-stage-")){
+        assertEquals(1024,source.getInt("sourceWidth"));assertEquals(1536,source.getInt("sourceHeight"));assertArrayEquals(new double[]{0,0,1,1},asset.crop,0);
+      }else if(asset.id.equals("grove")||asset.id.equals("neighborhood")){
+        assertEquals("49834c6b315aeecda0d4226c543995266466fb5f",source.getString("sourceCommit"));
+        assertEquals(1536,source.getInt("sourceWidth"));assertEquals(1024,source.getInt("sourceHeight"));
+      }else if(asset.id.startsWith("decor_")){
         assertEquals("78660ff70397434751a4aaa1b4fce85b10cc72ab",source.getString("sourceCommit"));
         assertEquals("decor/"+asset.id.substring("decor_".length())+".png",source.getString("sourceFile"));
         assertEquals("galmaegiman-confirmed/art/gpt/village-npc-20261027/"+source.getString("sourceFile"),source.getString("sourcePath"));
@@ -71,9 +79,10 @@ public class VillageLayoutTest {
     for(String id:new String[]{"background","sea","terrain"})assertTrue(layout.layer(id).mirrorAlternating);
     for(String id:new String[]{"buildings","ships","residents"})assertNotNull(layout.layer(id));
   }
+  static boolean fallbackCore(String id){return VillageLayout.referenceLayout().assets.containsKey(id);}
   @Test public void pendingArtNeverClaimsVerifiedPixelsOrUsesTheWhiteResidentSheetDirectly()throws Exception{
-    VillageLayout layout=VillageLayout.parse(NativeVillageHomeAssetsTest.pendingManifest());assertEquals("pending-verified-pixels",layout.artworkStatus);assertEquals(16,layout.assets.size());assertEquals(8,layout.decorations.size());
-    for(VillageLayout.Asset asset:layout.assets.values()){assertFalse(asset.verified);assertFalse(asset.useSheetDirectly);if(!asset.id.startsWith("decor_"))assertFalse(asset.sourceLibraryId.isEmpty());}
+    VillageLayout layout=VillageLayout.parse(NativeVillageHomeAssetsTest.pendingManifest());assertEquals("pending-verified-pixels",layout.artworkStatus);assertEquals(24,layout.assets.size());assertEquals(8,layout.decorations.size());
+    for(VillageLayout.Asset asset:layout.assets.values()){assertFalse(asset.verified);assertFalse(asset.useSheetDirectly);if(fallbackCore(asset.id))assertFalse(asset.sourceLibraryId.isEmpty());}
     assertEquals("patrol",layout.resident("guard").asset);
     HashSet<String> silhouettes=new HashSet<>();for(VillageLayout.Resident resident:layout.residents)silhouettes.add(resident.silhouette);assertEquals(4,silhouettes.size());
     assertTrue(layout.residentPlacementIsProposal);assertFalse(layout.currencyHud);assertFalse(layout.cameraResetOnWrap);

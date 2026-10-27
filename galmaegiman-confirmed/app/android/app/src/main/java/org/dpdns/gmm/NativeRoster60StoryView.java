@@ -36,17 +36,24 @@ final class NativeRoster60StoryView extends LinearLayout {
 
   NativeRoster60StoryView(MainActivity host, NativeRoster60StoryController controller) {
     super(host); h = host; owner = controller; setOrientation(VERTICAL); setTag("roster60-story-live");
-    setPadding(h.dp(10), h.dp(4), h.dp(10), h.dp(6)); setBackgroundColor(0xff152d40);
-    status = text("이야기를 확인하고 있어요.", 13); status.setMaxLines(2); status.setTag("story-save-status");
+    setPadding(h.dp(10), h.dp(4), h.dp(10), h.dp(6)); setBackground(NavyWorkbenchTheme.surface(h,0xcc102433,NavyWorkbenchTheme.EDGE,8));
+    status = text("이야기를 확인하고 있어요.", 11); status.setMaxLines(2); status.setTag("story-save-status");
     addView(status, new LayoutParams(-1, -2));
     LinearLayout tabs = row();
     continueTab = action("이어하기", () -> { tab = "main"; owner.render(); });
     residentTab = action("마을 주민", () -> { tab = "residents"; owner.render(); });
     historyTab = action("이야기 기록", () -> { tab = "history"; owner.render(); });
-    for (Button button : new Button[]{continueTab, residentTab, historyTab}) tabs.addView(button, new LayoutParams(0, h.dp(44), 1));
+    for (Button button : new Button[]{continueTab, residentTab, historyTab}) tabs.addView(button, new LayoutParams(0, h.dp(48), 1));
     continueTab.setTag("story-tab-main"); residentTab.setTag("story-tab-residents"); historyTab.setTag("story-tab-history");
-    addView(tabs, new LayoutParams(-1, h.dp(44)));
+    addView(tabs, new LayoutParams(-1, h.dp(48)));
     notice = text("", 12); notice.setMaxLines(2); notice.setTag("story-connection-notice");
+    notice.addTextChangedListener(new android.text.TextWatcher(){
+      public void beforeTextChanged(CharSequence text,int start,int count,int after){}
+      public void onTextChanged(CharSequence text,int start,int before,int count){notice.setVisibility(text.length()==0?GONE:VISIBLE);}
+      public void afterTextChanged(android.text.Editable text){}
+    });
+    notice.setOnClickListener(v->{if(owner.current()&&!owner.reading)owner.refresh();});
+    notice.setContentDescription("연결 안내 · 문제가 있을 때 눌러 다시 확인");notice.setVisibility(GONE);
     addView(notice, new LayoutParams(-1, -2));
     content = new FrameLayout(h); content.setTag("story-content"); addView(content, new LayoutParams(-1, 0, 1));
   }
@@ -63,7 +70,7 @@ final class NativeRoster60StoryView extends LinearLayout {
     result.setEllipsize(TextUtils.TruncateAt.END); result.setPadding(h.dp(6), 0, h.dp(6), 0);
     NavyWorkbenchTheme.tab(h, result, false); return result;
   }
-  void loading(String message) { notice.setText(message); enabled(false); }
+  void loading(String message) { notice.setText(message); notice.setVisibility(VISIBLE); enabled(false); }
   void enabled(boolean enabled) {
     continueTab.setEnabled(enabled); residentTab.setEnabled(enabled); historyTab.setEnabled(enabled);
     for (View view : descendants(content)) if (view instanceof Button) view.setEnabled(enabled);
@@ -79,7 +86,10 @@ final class NativeRoster60StoryView extends LinearLayout {
     boolean hatched = statue != null && statue.optBoolean("hatched");
     status.setText(hatched ? "본편 완료 · 읽은 이야기와 마을의 기록이 저장되어 있어요."
         : "석상 복원 " + (statue == null ? 1 : statue.optInt("stage", 1)) + "단계 · 진행은 계정에 저장돼요.");
-    notice.setText(owner.problem); enabled(!owner.waiting());
+    notice.setText(owner.problem);notice.setVisibility(owner.problem.isEmpty()?GONE:VISIBLE); enabled(!owner.waiting());
+    NavyWorkbenchTheme.tab(h,continueTab,"main".equals(tab));
+    NavyWorkbenchTheme.tab(h,residentTab,"residents".equals(tab));
+    NavyWorkbenchTheme.tab(h,historyTab,"history".equals(tab));
     JSONObject scene = state.optJSONObject("scene");
     if (scene != null) scene(scene, state); else if ("residents".equals(tab)) residents(state); else if ("history".equals(tab)) history(state); else main(state);
     enabled(!owner.waiting());
@@ -103,31 +113,54 @@ final class NativeRoster60StoryView extends LinearLayout {
     LinearLayout controls = row();
     String label = "READY".equals(quest.optString("status")) ? "귀환 이야기" : "ACTIVE".equals(quest.optString("status")) ? "현재 의뢰 계속" : "대화 이어가기";
     Button primary = action(label, () -> owner.continueQuest(quest)); primary.setTag("story-continue");controls.addView(primary,new LayoutParams(0,h.dp(48),1));
-    Button retry = action("서버 저장 확인",owner::refresh);retry.setTag("story-refresh");controls.addView(retry,new LayoutParams(0,h.dp(48),1));
     panel.addView(controls,new LayoutParams(-1,h.dp(48)));
     growthControls(panel,state);
   }
   void growthControls(LinearLayout panel,JSONObject state){
     JSONObject active=state.optJSONObject("materialAdventure");JSONArray places=state.optJSONArray("adventures");
-    if(active!=null){Button resume=action(NativeRoster60StoryController.reference(active,"activeBattleId").isEmpty()?"재료 모험 귀환":"재료 모험 이어가기",owner::resumeMaterialAdventure);resume.setTag("story-material-resume");panel.addView(resume,new LayoutParams(-1,h.dp(48)));}
-    else if(places!=null&&places.length()>0){Button black=action("흑화 갈매미 모험",owner::chooseMaterialAdventure);black.setTag("story-material-adventure");panel.addView(black,new LayoutParams(-1,h.dp(44)));}
-    LinearLayout growth=row();Button adventure=action("자유 모험",owner::freeAdventure),play=action("플레이 메뉴로",owner::playMenu);
-    adventure.setTag("story-free-adventure");play.setTag("story-play-menu");growth.addView(adventure,new LayoutParams(0,h.dp(48),1));growth.addView(play,new LayoutParams(0,h.dp(48),1));panel.addView(growth,new LayoutParams(-1,h.dp(48)));
-    TextView hint = text("자유 모험에서 성장하고, 일반게임에서 전투를 익힌 뒤 의뢰를 이어가요.",12);hint.setMaxLines(2);panel.addView(hint,new LayoutParams(-1,-2));
+    LinearLayout routes=row();routes.setTag("story-adventure-routes");
+    if(active!=null){Button resume=action(NativeRoster60StoryController.reference(active,"activeBattleId").isEmpty()?"재료 모험 귀환":"재료 모험 이어가기",owner::resumeMaterialAdventure);resume.setTag("story-material-resume");routes.addView(resume,new LayoutParams(0,h.dp(48),1));}
+    else if(places!=null&&places.length()>0){Button black=action("흑화 갈매미 모험",owner::chooseMaterialAdventure);black.setTag("story-material-adventure");routes.addView(black,new LayoutParams(0,h.dp(48),1));}
+    // 자유 모험과 플레이 메뉴는 서로 다른 목적지다. 없애지 않고 보조 이동 줄에 모은다.
+    Button adventure=action("자유 모험",owner::freeAdventure),play=action("플레이 메뉴로",owner::playMenu);
+    adventure.setTag("story-free-adventure");play.setTag("story-play-menu");
+    routes.addView(adventure,new LayoutParams(0,h.dp(48),1));routes.addView(play,new LayoutParams(0,h.dp(48),1));
+    LayoutParams routesBox=new LayoutParams(-1,h.dp(48));routesBox.topMargin=h.dp(6);panel.addView(routes,routesBox);
   }
   void residents(JSONObject state) {
-    JSONArray residents = state.optJSONArray("residents"); LinearLayout grid = column();content.addView(grid,new FrameLayout.LayoutParams(-1,-1));
-    for (int r=0;r<2;r++) {
-      LinearLayout line = row();grid.addView(line,new LayoutParams(-1,0,1));
-      for(int c=0;c<2;c++) {
-        JSONObject npc=residents==null?null:residents.optJSONObject(r*2+c);if(npc==null)continue;
-        String s=npc.optString("status"),marker="AVAILABLE".equals(s)?"! ":"READY".equals(s)?"보고 가능 · ":"";
-        String detail="AVAILABLE".equals(s)?"새 부탁 듣기":"READY".equals(s)?"귀환 대화":"ACTIVE".equals(s)?"부탁 진행 중":"일상 이야기";
-        Button card=action(marker+npc.optString("name")+" · "+npc.optString("role")+"\n"+detail,()->owner.resident(npc));
-        card.setTag("story-resident-"+npc.optString("id"));card.setContentDescription(marker+npc.optString("role")+" "+detail);
-        LayoutParams box=new LayoutParams(0,-1,1);box.setMargins(h.dp(3),h.dp(3),h.dp(3),h.dp(3));line.addView(card,box);
-      }
+    JSONArray residents = state.optJSONArray("residents");LinearLayout gallery=row();gallery.setTag("story-resident-gallery");
+    content.addView(gallery,new FrameLayout.LayoutParams(-1,-1));
+    VillageLayout village;try{village=VillageLayout.load(h);}catch(IllegalStateException unavailable){village=null;}
+    for(int i=0;residents!=null&&i<residents.length();i++) {
+      JSONObject npc=residents.optJSONObject(i);if(npc==null)continue;
+      String stateName=npc.optString("status"),marker="AVAILABLE".equals(stateName)?"! ":"READY".equals(stateName)?"보고 가능 · ":"";
+      String detail="AVAILABLE".equals(stateName)?"새 부탁 듣기":"READY".equals(stateName)?"귀환 대화":"ACTIVE".equals(stateName)?"부탁 진행 중":"일상 이야기";
+      FrameLayout card=new FrameLayout(h);card.setBackground(NavyWorkbenchTheme.surface(h,0xb8102433,NavyWorkbenchTheme.EDGE,8));
+      String id=npc.optString("id"),assetId="guard".equals(id)?"patrol":id;
+      ResidentPortrait portrait=new ResidentPortrait(h,village==null?null:village.assets.get(assetId),owner::current);
+      portrait.setTag("story-resident-portrait-"+id);portrait.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+      FrameLayout.LayoutParams art=new FrameLayout.LayoutParams(-1,-1);art.bottomMargin=h.dp(60);card.addView(portrait,art);
+      Button talk=action(marker+npc.optString("name")+" · "+npc.optString("role")+"\n"+detail,()->owner.resident(npc));
+      talk.setTag("story-resident-"+id);talk.setContentDescription(npc.optString("name")+" · "+npc.optString("role")+" · "+marker+detail);
+      talk.setBackgroundColor(Color.TRANSPARENT);talk.setTextColor(NavyWorkbenchTheme.TEXT);talk.setGravity(Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);talk.setPadding(h.dp(4),0,h.dp(4),h.dp(8));talk.setMaxLines(3);
+      card.addView(talk,new FrameLayout.LayoutParams(-1,-1));
+      LayoutParams box=new LayoutParams(0,-1,1);box.setMargins(h.dp(3),h.dp(6),h.dp(3),h.dp(3));gallery.addView(card,box);
     }
+  }
+  /** 마을에서 검증해 사용하는 동일한 주민 자산만 보여 준다. 누락 때 임의 대원 얼굴로 대체하지 않는다. */
+  static final class ResidentPortrait extends View {
+    final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);final VillageLayout.Asset asset;
+    Bitmap bitmap;int generation;
+    ResidentPortrait(MainActivity h,VillageLayout.Asset asset,BooleanSupplier current){
+      super(h);this.asset=asset;
+      if(asset!=null&&asset.verified&&!asset.useSheetDirectly){int ticket=++generation;LocalGameArt.load(h,asset.path,2,b->{if(ticket==generation&&current.getAsBoolean()){bitmap=b;invalidate();}});}
+    }
+    @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);if(bitmap==null||asset==null)return;
+      android.graphics.Rect source=new android.graphics.Rect((int)(bitmap.getWidth()*asset.crop[0]),(int)(bitmap.getHeight()*asset.crop[1]),(int)(bitmap.getWidth()*asset.crop[2]),(int)(bitmap.getHeight()*asset.crop[3]));
+      if(source.width()<=0||source.height()<=0)return;float scale=Math.min(getWidth()/(float)source.width(),getHeight()/(float)source.height());float w=source.width()*scale,z=source.height()*scale;
+      canvas.drawBitmap(bitmap,source,new RectF((getWidth()-w)/2,getHeight()-z,(getWidth()+w)/2,getHeight()),paint);
+    }
+    @Override protected void onDetachedFromWindow(){generation++;bitmap=null;super.onDetachedFromWindow();}
   }
   void history(JSONObject state) {
     JSONArray history=state.optJSONArray("history");ScrollView scroll=new ScrollView(h);scroll.setTag("story-history-scroll");LinearLayout list=column();scroll.addView(list,new ScrollView.LayoutParams(-1,-2));content.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
@@ -182,3 +215,4 @@ final class NativeRoster60StoryView extends LinearLayout {
     static String placeName(String place){switch(place){case "human_records":return "인간의 기록 장소";case "hideout":return "은신처";case "memory_workshop":return "기억 속 작업장";case "defense_village":return "마을 방어 준비";case "final_statue":return "석상 앞";default:return "마을 석상 터";}}
   }
 }
+

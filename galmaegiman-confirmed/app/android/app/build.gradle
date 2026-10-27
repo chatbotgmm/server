@@ -86,6 +86,26 @@ tasks.register('bundleGameArt', Sync) {
         rename { 'decor-' + it.replace('_', '-') }
         into 'native/village-loop-v2/assets'
     }
+    from('../../../art/gpt/village-npc-20261027/backgrounds') {
+        include 'grove.png', 'neighborhood.png'
+        into 'native/village-loop-v2/assets'
+    }
+    from('../../../art/gpt/village-nameplates-20261027') {
+        include 'nameplates.png'
+        into 'native/village-loop-v2/assets'
+    }
+    // 승인된 속성 원화는 공통 다운샘플 RAM 캐시로 내성/기술 양쪽에서 재사용한다.
+    from('../../../art/gpt/element-illustrations-20261027') {
+        include 'normal.png', 'fire.png', 'water.png', 'lightning.png'
+        include 'ice.png', 'nature.png', 'holy.png', 'dark.png'
+        into 'art/gpt/element-illustrations-20261027'
+    }
+    // 재검토한 2단계 construction 후보를 포함한다. 모든 단계는 서버 현재 단계만 지연 로딩한다.
+    from('../../../art/gpt/statue-canonical-stages-20261027') {
+        include 'stage-1.png', 'stage-2.png', 'stage-3.png', 'stage-4.png', 'stage-5.png'
+        rename { 'statue-' + it }
+        into 'native/village-loop-v2/assets'
+    }
 }
 
 android {

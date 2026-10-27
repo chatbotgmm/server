@@ -28,7 +28,7 @@ import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.annotation.LooperMode;
 
 /** Actual packaged PNG checks; pending artwork must fail rather than become a skipped success.
- * Core13 plus3noninteractive decoration PNGs are required; world touch targets remain6buildings+4residents.
+ * Core13 plus 3 noninteractive decoration and 2 inland backdrop PNGs are required; world touch targets remain6buildings+4residents.
  * Original-file SHA/provenance verification is a separate import gate owned by the integration task.
  * Existing NativeVillageHomeTest covers routes, real gestures, delayed callbacks and owner changes.
  * These are host native-Skia captures, never physical-device or live-account evidence. */
@@ -40,7 +40,7 @@ public class NativeVillageHomeArtTest {
   final NativeVillageHomeTest fixture=new NativeVillageHomeTest();
   final NativeHomePartyFeedbackTest helper=fixture.helper;
   static final Set<String> ASSETS=new HashSet<>(Arrays.asList(
-      "sea","terrain","ship","recruit","hideout","archive","mailbox","market","harbor",
+      "nameplates","grove","neighborhood","sea","terrain","ship","recruit","hideout","archive","mailbox","market","harbor",
       "blacksmith","merchant","librarian","patrol","decor_cottage","decor_warehouse","decor_closed_shop"));
   static final Set<String> DECORATIONS=new HashSet<>(Arrays.asList("decor_cottage","decor_warehouse","decor_closed_shop"));
   static final Set<String> NPCS=new HashSet<>(Arrays.asList("blacksmith","merchant","librarian","patrol"));
@@ -62,8 +62,9 @@ public class NativeVillageHomeArtTest {
   static void requireVerified(VillageLayout layout){
     assertEquals("Real PNG import and pixel review must finish before this suite runs",
         "verified-local-assets",layout.artworkStatus);
-    assertEquals(ASSETS,layout.assets.keySet());
+    Set<String> required=new HashSet<>();for(VillageLayout.Asset a:layout.assets.values())if(a.required)required.add(a.id);assertEquals(ASSETS,required);
     for(VillageLayout.Asset asset:layout.assets.values()){
+      if(!asset.required){assertTrue(asset.id.startsWith("statue-stage-"));assertTrue("All five technical candidates have inspected original pixels",asset.verified);continue;}
       assertTrue("Actual-art suite cannot accept an unverified reference: "+asset.id,asset.verified);
       assertFalse("An individual NPC PNG must replace the white-background sheet",asset.useSheetDirectly);
     }
@@ -81,13 +82,14 @@ public class NativeVillageHomeArtTest {
     LocalGameArtTest.drain();helper.layout(h,profile);
     assertTrue("Real PNG decode did not finish; pending="+view.assets.pending+" missing="+view.assets.missing,
         view.assets.ready());
-    assertEquals(16,view.assets.images.size());assertEquals(0,view.assets.pending);assertEquals(0,view.assets.missing);
+    assertEquals(20,view.assets.images.size());assertEquals(0,view.assets.pending);assertEquals(0,view.assets.missing);
     NativeVillageHomeTest.assertFullBleed(view,h);assertFalse(view.settings.getContentDescription().toString().contains("그림을 불러오는 중"));
     return view;
   }
   static JSONObject bitmapInventory(NativeVillageHomeView view)throws Exception{
     JSONArray rows=new JSONArray();long total=0;
     for(VillageLayout.Asset asset:view.layout.assets.values()){
+      if(!asset.required&&!asset.id.equals(view.layout.landmark.asset(view.owner.statueStage))){assertNull("Future statue stages are not eagerly decoded",view.assets.get(asset.id));continue;}
       Bitmap bitmap=view.assets.get(asset.id);assertNotNull("Missing actual decoded PNG: "+asset.id,bitmap);
       int width=bitmap.getWidth(),height=bitmap.getHeight();assertTrue(width>0&&height>0);
       long transparent=0,opaque=0,nonTransparent=0,transparentBorder=0;int[] row=new int[width];
@@ -112,12 +114,12 @@ public class NativeVillageHomeArtTest {
           "nonTransparentPixels",nonTransparent,"opaquePixels",opaque,"transparentBorderPixels",transparentBorder));
     }
     return MainActivity.obj("environment","Robolectric SDK35 native graphics; host only","assetCount",rows.length(),
-        "allReady",view.assets.ready(),"coreAssetCount",13,"decorationAssetCount",3,"residentAssetCount",4,"totalDecodedAllocationBytes",total,"sharedCacheBudgetBytes",LocalGameArt.budgetBytes(),
+        "allReady",view.assets.ready(),"coreAssetCount",13,"decorationAssetCount",3,"inlandBackdropCount",2,"imageNameplateAtlasCount",1,"verifiedStatueStages",5,"userFinalStatueApproval","pending","residentAssetCount",4,"totalDecodedAllocationBytes",total,"sharedCacheBudgetBytes",LocalGameArt.budgetBytes(),
         "sharedCachedBytes",LocalGameArt.cachedBytes(),"viewKeepsStrongBitmapReferences",true,
         "originalFileShaVerification","separate import gate; not inferred from decoded pixels","assets",rows);
   }
 
-  @Test public void verifiedPackagedPngsDecodeAllSixteenAndIndividualNpcsAndDecorationsHaveTransparentMargins()throws Exception{
+  @Test public void verifiedPackagedPngsDecodeCoreAndCurrentStageOnlyAndIndividualNpcsAndDecorationsHaveTransparentMargins()throws Exception{
     try(ActivityController<MainActivity> activity=helper.flow.start()){
       MainActivity h=activity.get();NativeVillageHomeTest.Api api=fixture.prepare(h);
       NativeVillageHomeView view=openActual(h,NativeVillageHomeTest.PHONE);
@@ -168,7 +170,7 @@ public class NativeVillageHomeArtTest {
       helper.configure(profile);
       try(ActivityController<MainActivity> activity=helper.flow.start()){
         MainActivity h=activity.get();NativeVillageHomeTest.Api api=fixture.prepare(h);
-        NativeVillageHomeView view=openActual(h,profile);view.stopMotion();
+        NativeVillageHomeView view=openActual(h,profile);view.stopMotion();view.ambient.fixedTime=1400L;
         json(out.resolve(profile.name+"-bitmap-inventory.json"),bitmapInventory(view));
         for(int unit=0;unit<8;unit++){
           double camera=unit+.25;view.moveCameraUnits(camera-view.camera.cameraUnits());helper.layout(h,profile);

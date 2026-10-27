@@ -24,7 +24,9 @@ final class NativeRoster60Pvp {
  void modeUi(){if(normal==null)return;normal.setVisibility(management||pendingModeUnknown||"rank".equals(selectedMode)?View.GONE:View.VISIBLE);rank.setVisibility(management||pendingModeUnknown||"normal".equals(selectedMode)?View.GONE:View.VISIBLE);h.title.setText(pendingModeUnknown?"대전 확인 중":modeLabel()+" · 편성");rankNotice();}
  void restoreMode(String mode){if(!validMode(mode))return;pendingModeUnknown=false;selectedMode=mode;h.rosterPvpMode=mode;modeUi();}
  boolean current(){return epoch==h.epoch&&"roster60Pvp".equals(h.screen)&&owner.equals(h.api.token())&&!h.isDestroyed();}
- void open(){h.base(management?"전투 편성":"대전 편성","roster60Pvp");epoch=h.epoch;owner=h.api.token();key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner);optionsGeneration++;currentGeneration++;currentRead=false;optionsInFlight=false;optionsRefreshQueued=false;busy=false;waiting=false;queueClock.clear();queueError="";normalXpCondition="";rankCondition="";matchPoolCondition="";rankEligibility=null;selectionRevision++;selected.clear();units=new JSONArray();focused="";renderedUnits="";renderedSlots="";renderedTileState="";focusSpecies="";renderedSource=null;catalogueDirty=true;catalogueRevision=0;ownedTiles.clear();ownedState.clear();Arrays.fill(slotContent,null);Arrays.fill(slotState,null);h.page.removeViewAt(h.page.getChildCount()-1);
+ void open(){PartyEntryRead entry=management?h.partyEntryRead:null;if(management)h.partyEntryRead=null;
+ if(entry!=null&&!entry.matches(h.api.token(),h.epoch))entry=null;
+ h.base(management?"전투 편성":"대전 편성","roster60Pvp");epoch=h.epoch;owner=h.api.token();key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner);optionsGeneration++;currentGeneration++;currentRead=false;optionsInFlight=false;optionsRefreshQueued=false;busy=false;waiting=false;queueClock.clear();queueError="";normalXpCondition="";rankCondition="";matchPoolCondition="";rankEligibility=null;selectionRevision++;selected.clear();units=new JSONArray();focused="";renderedUnits="";renderedSlots="";renderedTileState="";focusSpecies="";renderedSource=null;catalogueDirty=true;catalogueRevision=0;ownedTiles.clear();ownedState.clear();Arrays.fill(slotContent,null);Arrays.fill(slotState,null);h.page.removeViewAt(h.page.getChildCount()-1);
  root=new LinearLayout(h);root.setOrientation(1);h.page.addView(root,new LinearLayout.LayoutParams(-1,0,1));status=h.text("서버 편성 확인 중…",12);status.setSingleLine(true);status.setEllipsize(android.text.TextUtils.TruncateAt.END);root.addView(status);
  root.setBackground(NavyWorkbenchTheme.surface(h,NavyWorkbenchTheme.PANEL,NavyWorkbenchTheme.LINE,10));
  root.setPadding(h.dp(8),h.dp(4),h.dp(8),h.dp(4));status.setTextColor(NavyWorkbenchTheme.TEXT);
@@ -48,17 +50,25 @@ final class NativeRoster60Pvp {
  if(management)buttons=new Button[]{buttons[0],buttons[1],buttons[5]};
  for(int row=0;row<(buttons.length+1)/2;row++){LinearLayout line=new LinearLayout(h);actions.addView(line,new LinearLayout.LayoutParams(-1,h.dp(48)));for(int col=0;col<2&&row*2+col<buttons.length;col++){Button button=buttons[row*2+col];style(button);line.addView(button,new LinearLayout.LayoutParams(0,-1,1));}}
 
- if(management){normal.setVisibility(View.GONE);rank.setVisibility(View.GONE);cancel.setVisibility(View.GONE);}else restoreMode(selectedMode);fetchOptions();if(!management)resume();}
- void fetchOptions(){
+ if(management){normal.setVisibility(View.GONE);rank.setVisibility(View.GONE);cancel.setVisibility(View.GONE);}else restoreMode(selectedMode);fetchOptions(entry);if(!management)resume();}
+ void fetchOptions(){fetchOptions(null);}
+ void fetchOptions(PartyEntryRead entry){
   if(!current()||optionsInFlight)return;optionsInFlight=true;final long requestedRevision=selectionRevision;final int requestedGeneration=++optionsGeneration,requestedEpoch=epoch;final String requestedOwner=owner;
-  h.api.call("native/roster60/pvp/options",null,(r,e)->{
+  NativeApi.Result completed=(r,e)->{
    if(requestedGeneration!=optionsGeneration||requestedEpoch!=epoch||!requestedOwner.equals(owner))return;
-   optionsInFlight=false;if(!current())return;if(e!=null){rankEligibility=null;status.setText("편성 확인 필요 · "+normalXpNotice(e));enable();finishOptionsRead();return;}
+   optionsInFlight=false;
+   // NativeApi clears an expired token before delivery. Handle that current-screen
+   // failure before current(), while rejecting old epoch/account callbacks as usual.
+   if(e!=null&&!requestedOwner.isEmpty()&&h.api.token().isEmpty()&&requestedEpoch==h.epoch
+       &&"roster60Pvp".equals(h.screen)&&!h.isFinishing()&&!h.isDestroyed()&&!h.updateBlocks()){
+    h.login();h.message(e);return;
+   }
+   if(!current())return;if(e!=null){rankEligibility=null;status.setText("편성 확인 필요 · "+normalXpNotice(e));enable();finishOptionsRead();return;}
    NativeCommander.sync(h,r.optJSONObject("commander"),owner,epoch);rankEligibility=r.optJSONObject("rankEligibility");units=r.optJSONArray("units");if(units==null)units=new JSONArray();catalogueDirty=true;
    if(selectionRevision==requestedRevision){selected.clear();JSONArray ids=r.optJSONArray("partyIds");if(ids!=null)for(int i=0;i<ids.length();i++)selected.add(ids.optString(i));}
    else{for(Iterator<String> it=selected.iterator();it.hasNext();)if(unit(it.next())==null)it.remove();}
    if(management&&(status.getText().toString().equals("서버 편성 확인 중…")||status.getText().toString().startsWith("편성 확인 필요 · ")))status.setText("탭으로 추가/해제 · 먼저 선택한 대원이 첫 출전합니다.");drawParty();finishOptionsRead();
-  });
+  };if(entry!=null)entry.consume(completed);else h.api.call("native/roster60/pvp/options",null,completed);
  }
  void finishOptionsRead(){if(optionsRefreshQueued){optionsRefreshQueued=false;fetchOptions();}}
  void refreshOptionsAfterSave(){if(optionsInFlight)optionsRefreshQueued=true;else fetchOptions();}
@@ -132,11 +142,11 @@ final class NativeRoster60Pvp {
   if(state.equals(renderedTileState))return;
   for(int i=0;i<slots.getChildCount();i++){
    String id=i<selected.size()?selected.get(i):"";boolean active=!id.isEmpty()&&focused.equals(id),enabled=!id.isEmpty()&&!busy&&!waiting;String tuple=active+"|"+enabled;
-   if(!tuple.equals(slotState[i])){((Roster60MemberTile)slots.getChildAt(i)).state(Roster60FormationView.role(i),active,enabled);slotState[i]=tuple;tileStateUpdates++;}
+   if(!tuple.equals(slotState[i])){((Roster60MemberTile)slots.getChildAt(i)).state(Roster60FormationView.role(i),active,enabled,management?Roster60FormationView.levelBadge(unit(id)):Roster60FormationView.role(i));slotState[i]=tuple;tileStateUpdates++;}
   }
   for(Map.Entry<String,Roster60MemberTile> entry:ownedTiles.entrySet()){
    String id=entry.getKey();int slot=selected.indexOf(id);String role=slot<0?(rankMode()&&!rankUnitAllowed(unit(id))?"랭크 불가":null):"✓ "+Roster60FormationView.role(slot);boolean active=focused.equals(id),enabled=!busy&&!waiting;String tuple=role+"|"+active+"|"+enabled;
-   if(!tuple.equals(ownedState.get(id))){entry.getValue().state(role,active,enabled);ownedState.put(id,tuple);tileStateUpdates++;}
+   if(!tuple.equals(ownedState.get(id))){entry.getValue().state(role,active,enabled,management?Roster60FormationView.levelBadge(unit(id)):role);ownedState.put(id,tuple);tileStateUpdates++;}
   }
   renderedTileState=state;
  }

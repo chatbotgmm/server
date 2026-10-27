@@ -13,6 +13,12 @@ public class Roster60ProductPresentationTest {
  @Before public void isolate(){fixtures.isolate();new NativeRenderReviewTest().scheduledFramesUseThePausedLooperClock();}
  @After public void settleImageCallbacksBeforeRobolectricClearsItsQueue() throws Exception {LocalGameArtTest.drain();}
  void authenticate(MainActivity h){h.api.close();h.api=new NativeReviewDeepLinkTest.Recording(h);h.api.token("presentation-fixture");}
+ static void measureFormation(Roster60FormationView formation){
+  // Detached test views need the same nonzero measure/layout pass as a visible screen.
+  int width=formation.h.dp(760),height=formation.h.dp(260);
+  formation.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));
+  formation.layout(0,0,width,height);
+ }
  JSONObject fighter(String id)throws Exception {JSONArray skills=new JSONArray();for(int i=0;i<6;i++)skills.put(new JSONObject().put("id","s"+i).put("name","기술 "+i).put("element","NORMAL").put("mpCost",2).put("power",12));return new JSONObject().put("speciesId",id).put("name",id.equals("u01")?"갈매미맨":id.equals("u07")?"불씨":id.equals("u06")?"서리날개 수호대원":id.equals("u05")?"황금":"먹구름").put("rarity",id.equals("u01")?"COMMON":"EPIC").put("level",10).put("hp",120).put("mp",23).put("stats",new JSONObject().put("hp",150).put("mp",30).put("durability",15).put("statusResistance",10).put("speed",20)).put("suitability",new JSONObject().put("NORMAL",2)).put("skills",skills);}
  JSONObject snapshot(String status)throws Exception{return new JSONObject().put("battleId","fixture-battle").put("revision",1).put("status",status).put("testBaseline",true).put("balanceProfile","not-for-player-screen").put("state",new JSONObject().put("version","five-battle-v1").put("turn",2).put("outcome","win").put("mode","story").put("fighters",new JSONArray().put(fighter("u01")).put(fighter("u07")))).put("settlement",new JSONObject().put("xpAwarded",10));}
  @Test public void battlefieldHasAttachedVitalsAndCompactCommandsWithoutDebugControls()throws Exception{
@@ -35,7 +41,7 @@ public class Roster60ProductPresentationTest {
  }
  @Test public void formationKeepsSixSlotsFocusedPortraitAndExplicitStart()throws Exception{
   try(var c=fixtures.start()){MainActivity h=c.get();authenticate(h);JSONArray units=new JSONArray();for(int i=0;i<7;i++)units.put(new JSONObject().put("ownedId","o"+i).put("speciesId","u01").put("name","대원 "+i));int[] submissions={0};Roster60FormationView editor=new Roster60FormationView(h,units,ids->{assertEquals(6,ids.length());assertEquals("o0",ids.optString(0));submissions[0]++;},()->{});
-   for(int i=0;i<7;i++)editor.toggle(units.getJSONObject(i));LocalGameArtTest.drain();assertEquals(6,editor.selected.size());assertNotNull(editor.focus.getDrawable());assertEquals(0,submissions[0]);editor.start.performClick();editor.start.performClick();assertEquals(1,submissions[0]);
+   for(int i=0;i<7;i++)editor.toggle(units.getJSONObject(i));measureFormation(editor);LocalGameArtTest.drain();assertEquals(6,editor.selected.size());assertNotNull(editor.focus.getDrawable());assertEquals(0,submissions[0]);editor.start.performClick();editor.start.performClick();assertEquals(1,submissions[0]);
   }
  }
  @Test public void switchPanelShowsCurrentAndFallenWithoutAllowingEitherTarget()throws Exception{
@@ -55,12 +61,13 @@ public class Roster60ProductPresentationTest {
   }
  }
 
- @Test public void formationShowsPartyRoleSeparatelyFromCurrentFocus()throws Exception{
-  try(var c=fixtures.start()){MainActivity h=c.get();authenticate(h);JSONArray units=new JSONArray();for(int i=0;i<3;i++)units.put(fighter(i==0?"u01":"u07").put("ownedId","o"+i));Roster60FormationView f=new Roster60FormationView(h,units,ids->{},()->{});
-   f.toggle(units.getJSONObject(0));f.toggle(units.getJSONObject(1));f.focused="o2";f.draw();
+ @Test public void formationShowsOwnedLevelAndKeepsPartyRoleAccessibleSeparatelyFromFocus()throws Exception{
+  try(var c=fixtures.start()){MainActivity h=c.get();authenticate(h);JSONArray units=new JSONArray();for(int i=0;i<3;i++)units.put(fighter(i==0?"u01":"u07").put("ownedId","o"+i).put("level",10+i));Roster60FormationView f=new Roster60FormationView(h,units,ids->{},()->{});
+   f.toggle(units.getJSONObject(0));f.toggle(units.getJSONObject(1));f.focused="o2";f.draw();measureFormation(f);
    Roster60MemberTile party=(Roster60MemberTile)f.findViewWithTag("formation-unit-o0").getParent(),reserve=(Roster60MemberTile)f.findViewWithTag("formation-unit-o1").getParent(),focus=(Roster60MemberTile)f.findViewWithTag("formation-unit-o2").getParent();
-   assertEquals("출전",party.role.getText().toString());assertNull("편성됐지만 선택 아님",party.focus);assertEquals("예비 1",reserve.role.getText().toString());assertNull(reserve.focus);
-   assertNull("편성 안 됨",focus.role);assertEquals("선택",focus.focus.getText().toString());assertNotNull("선택 테두리",focus.getForeground());assertNull(party.getForeground());
+   assertEquals("Lv. 10",party.role.getText().toString());assertNull("편성됐지만 선택 아님",party.focus);assertEquals("Lv. 11",reserve.role.getText().toString());assertNull(reserve.focus);
+   assertTrue(party.action.getContentDescription().toString().contains("편성됨 출전"));assertTrue(reserve.action.getContentDescription().toString().contains("편성됨 예비 1"));
+   assertEquals("Lv. 12",focus.role.getText().toString());assertFalse("미편성 대원에 편성 역할을 붙이지 않음",focus.action.getContentDescription().toString().contains("편성됨"));assertEquals("선택",focus.focus.getText().toString());assertNotNull("선택 테두리",focus.getForeground());assertNull(party.getForeground());
   }
  }
  @Test public void switchTilesKeepReasonReadableAndCancelIsSecondary()throws Exception{

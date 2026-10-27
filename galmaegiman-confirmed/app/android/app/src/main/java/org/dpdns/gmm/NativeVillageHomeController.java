@@ -20,6 +20,7 @@ final class NativeVillageHomeController {
   String problem="";
   String savedCamera="";
   int readGeneration;
+  int statueStage; // 0 means no authenticated stage has been read for this controller/account.
   boolean reading,paused;
   android.app.AlertDialog menu;
   NativeVillageHomeController(MainActivity h) {
@@ -45,7 +46,12 @@ final class NativeVillageHomeController {
         pause();h.operations.close();h.busy=false;if(h.menus.extras.profilePopup!=null)h.menus.extras.profilePopup.dismiss();h.login();return;
       }
       if(!current()||generation!=readGeneration)return;reading=false;
-      if(error==null)NativeCommander.sync(h,result==null?null:result.optJSONObject("commander"),owner,epoch);
+      if(error==null){
+        NativeCommander.sync(h,result==null?null:result.optJSONObject("commander"),owner,epoch);
+        JSONObject statue=result==null?null:result.optJSONObject("statue");
+        int stage=validatedStatueStage(statue);
+        if(stage>=1&&stage<=5){statueStage=stage;loadCurrentStatue();}
+      }
       residents.clear();
       JSONArray list=result==null?null:result.optJSONArray("residents");
       if(error!=null||list==null)problem="주민 부탁 상태를 불러오지 못했어요. 다시 확인할 수 있어요.";
@@ -53,10 +59,15 @@ final class NativeVillageHomeController {
       view.bindResidents();view.updateNotice();
     });
   }
+  void loadCurrentStatue(){if(view!=null)view.assets.loadStatue(layout,statueStage,this::current,()->{if(current())view.invalidate();});}
+  static int validatedStatueStage(JSONObject statue){
+    Object raw=statue==null?null:statue.opt("stage");if(!(raw instanceof Number))return 0;
+    double stage=((Number)raw).doubleValue();return stage>=1&&stage<=5&&stage==Math.rint(stage)?(int)stage:0;
+  }
   String residentStatus(String id){JSONObject npc=residents.get(id);return npc==null?"LOCKED":npc.optString("status","LOCKED");}
   String residentName(String id,String fallback){JSONObject npc=residents.get(id);return npc==null?fallback:npc.optString("name",fallback);}
   void saveCamera(){if(view!=null&&!owner.isEmpty()){String position=Double.toString(view.camera.cameraUnits());if(!position.equals(savedCamera)&&preferences.edit().putString(scope+":camera",position).commit())savedCamera=position;}}
-  void pause(){saveCamera();paused=true;readGeneration++;reading=false;if(view!=null){view.stopMotion();view.assets.cancel();}if(menu!=null){menu.dismiss();menu=null;}}
+  void pause(){saveCamera();paused=true;readGeneration++;reading=false;if(view!=null){view.stopMotion();view.ambient.pause();view.assets.cancel();}if(menu!=null){menu.dismiss();menu=null;}}
   void resume(){
     if(!"home".equals(h.screen)||h.villageHome!=this)return;
     if(!owner.equals(h.api.token())){
@@ -68,7 +79,7 @@ final class NativeVillageHomeController {
       return;
     }
     if(epoch!=h.epoch)return;
-    paused=false;if(view!=null){view.assets.load(layout,this::current,()->{if(current()){view.updateNotice();view.invalidate();}});refresh();}
+    paused=false;if(view!=null){view.assets.load(layout,this::current,()->{if(current()){view.updateNotice();view.invalidate();}});loadCurrentStatue();refresh();}
   }
   void resident(String id){
     if(!current()||h.busy||h.updateBlocks()||view.blocksClick())return;saveCamera();pause();

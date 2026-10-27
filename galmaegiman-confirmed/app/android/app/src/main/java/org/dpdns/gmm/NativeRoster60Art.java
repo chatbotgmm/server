@@ -9,14 +9,19 @@ final class NativeRoster60Art extends View {
  final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);final JSONObject index;
  final Bitmap[] images=new Bitmap[2];final float[] heights={1,1};final String[] ids={"",""};
  final int[] imageGeneration={0,0},shownSample={Integer.MAX_VALUE,Integer.MAX_VALUE};
+ long stateBindings; // Deterministic UI-work probe, not telemetry.
  String problem="";JSONObject snapshot;Bitmap background;BattleSkin hpSkin;
  // Display-only state: the presenter owns time, ordering, cancellation and final reconciliation.
  JSONObject frameBefore,frameAfter,frameEvent;float progress;
  final Paint fx=new Paint(Paint.ANTI_ALIAS_FLAG);
  void clearFrame(){frameBefore=null;frameAfter=null;frameEvent=null;progress=0;invalidate();}
  void frame(JSONObject before,JSONObject after,JSONObject event,float value){
+  boolean eventChanged=frameEvent!=event;
   frameBefore=before;frameAfter=after;frameEvent=event;progress=clamp(value);
-  loadState(isSwitch()&&progress>=.45f?after:before);invalidate();
+  JSONObject visible=isSwitch()&&progress>=.45f?after:before;
+  // Progress drives onDraw interpolation. Bind images/accessibility only at state/event edges.
+  if(snapshot!=visible||eventChanged)loadState(visible);
+  invalidate();
  }
  static float clamp(float n){return Math.max(0,Math.min(1,n));}
  boolean legacyFrame(){JSONObject meta=frameEvent==null?null:frameEvent.optJSONObject("presentation");return meta!=null&&meta.optInt("version",-1)==0;}
@@ -38,7 +43,7 @@ final class NativeRoster60Art extends View {
  NativeRoster60Art(Context c){super(c);JSONObject loaded;try{loaded=Roster60Portrait.index(c);}catch(Exception e){loaded=new JSONObject();problem="전투 아트 준비 중";}index=loaded;if(c instanceof MainActivity){background=BattleSkin.bitmap((MainActivity)c,"bg-harbor");hpSkin=new BattleSkin((MainActivity)c,"panel-hp");}setContentDescription("아군 후면 · 적 정면");}
  JSONObject entry(String id)throws Exception {JSONArray all=index.getJSONArray("entries");for(int i=0;i<all.length();i++)if(all.getJSONObject(i).getString("id").equals(id))return all.getJSONObject(i);throw new IOException("unknown art");}
  void bind(JSONObject state){clearFrame();loadState(state);}
- void loadState(JSONObject state){snapshot=state;JSONArray fighters=state.optJSONArray("fighters");if(fighters==null)return;
+ void loadState(JSONObject state){stateBindings++;snapshot=state;JSONArray fighters=state.optJSONArray("fighters");if(fighters==null)return;
   for(int side=0;side<2;side++){String id=fighters.optJSONObject(side).optString("speciesId");if(id.equals(ids[side]))continue;ids[side]=id;images[side]=null;shownSample[side]=Integer.MAX_VALUE;int generation=++imageGeneration[side];
    try{JSONObject v=entry(id).getJSONObject("views").getJSONObject(side==0?"rear":"front");String path=v.getString("file");if(path.contains("/")||path.contains(".."))throw new IOException("path");
     heights[side]=(float)v.getDouble("relativeHeight");String asset="roster60-art/"+path;Bitmap preview=LocalGameArt.peek(asset,4);if(preview!=null){images[side]=preview;shownSample[side]=4;}
@@ -90,7 +95,7 @@ final class NativeRoster60Art extends View {
  void setScale(float s){if(Math.abs(s-scale)<.01f)return;scale=s;invalidate();}
  void hud(Canvas c,JSONObject fighter,boolean self,float w,float h){
   if(fighter==null||uncertain(self?0:1))return;float d=getResources().getDisplayMetrics().density;
-  float width=Math.min(w*.46f,290*d*scale),height=Math.min(72*d*scale,h*.26f),x=self?w-width-6*d:6*d,y=self?h-height-4*d:4*d;
+  float width=Roster60HudGeometry.enemyWidth(w,d,scale),height=Math.min(72*d*scale,h*.26f),x=self?w-width-6*d:6*d,y=self?h-height-4*d:4*d;
   RectF box=new RectF(x,y,x+width,y+height);if(hpSkin!=null)hpSkin.surface(c,box);else{paint.setColor(0xfff4e4ba);c.drawRoundRect(box,6*d,6*d,paint);}
   float font=Math.min(13*scale*getResources().getDisplayMetrics().scaledDensity,height*.23f);paint.setColor(JournalTheme.INK);paint.setTextSize(font);paint.setTypeface(android.graphics.Typeface.create(NavyWorkbenchTheme.font((MainActivity)getContext()),android.graphics.Typeface.BOLD));
   String name=(self?"출전 · ":"상대 · ")+fighter.optString("name")+"  Lv"+fighter.optInt("level",1);float fit=Math.min(1,(width-32*d*scale)/Math.max(1,paint.measureText(name)));paint.setTextSize(font*fit);c.drawText(name,x+16*d*scale,y+height*.30f,paint);
@@ -184,3 +189,4 @@ final class NativeRoster60Art extends View {
   fx.setAlpha(255);fx.setStyle(Paint.Style.STROKE);fx.setStrokeWidth(3*d);fx.setColor(0xff142b39);c.drawText(text,x,y,fx);fx.setStyle(Paint.Style.FILL);fx.setColor(color);c.drawText(text,x,y,fx);fx.setTextAlign(Paint.Align.LEFT);
  }
 }
+

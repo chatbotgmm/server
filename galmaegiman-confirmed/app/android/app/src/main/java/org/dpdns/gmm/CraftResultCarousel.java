@@ -15,14 +15,19 @@ final class CraftResultCarousel extends InertialCardScrollView {
   cards=new LinearLayout(h);cards.setOrientation(LinearLayout.HORIZONTAL);cards.setClipChildren(false);
   addView(cards,new LayoutParams(-2,-1));
  }
+ // 이동 중 이웃 카드 진입은 유지하되 스크롤 영역 밖에는 그림을 남기지 않는다.
+ @Override protected void dispatchDraw(android.graphics.Canvas canvas){
+  int save=canvas.save();canvas.clipRect(getScrollX(),getScrollY(),getScrollX()+getWidth(),getScrollY()+getHeight());
+  super.dispatchDraw(canvas);canvas.restoreToCount(save);
+ }
  void addCard(View card,int index){
   card.setClickable(true);card.setFocusable(true);card.setOnClickListener(v->{if(!blocksClick())choose.accept(index);});
   cards.addView(card,new LinearLayout.LayoutParams(h.dp(160),-1));
  }
  void select(int index){selected=index;for(int i=0;i<cards.getChildCount();i++)cards.getChildAt(i).setSelected(i==index);}
  @Override protected void onMeasure(int ws,int hs){
-  int width=MeasureSpec.getSize(ws),next=Math.max(h.dp(88),Math.round(width*.58f));
-  if(next!=cardWidth){cardWidth=next;for(int i=0;i<cards.getChildCount();i++)cards.getChildAt(i).getLayoutParams().width=next;int side=Math.max(0,(width-next)/2);setPadding(side,0,side,0);centerPending=true;}
+  int width=MeasureSpec.getSize(ws),next=Math.max(1,width);
+  if(next!=cardWidth){cardWidth=next;for(int i=0;i<cards.getChildCount();i++)cards.getChildAt(i).getLayoutParams().width=next;setPadding(0,0,0,0);centerPending=true;}
   super.onMeasure(ws,hs);
  }
  @Override protected void onLayout(boolean changed,int l,int t,int r,int b){
@@ -38,3 +43,4 @@ final class CraftResultCarousel extends InertialCardScrollView {
   }
  }
 }
+

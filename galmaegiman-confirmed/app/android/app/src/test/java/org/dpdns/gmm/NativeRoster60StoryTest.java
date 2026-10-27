@@ -170,7 +170,10 @@ public class NativeRoster60StoryTest {
       h.openRosterStory();NativeRoster60StoryController story=h.rosterStory;
       JSONArray units=new JSONArray().put(MainActivity.obj("ownedId","departure-owned","speciesId","u01","name","갈매미맨","level",1));
       story.view.content.removeAllViews();story.formation=new Roster60FormationView(h,units,ids->story.mutate("battle/create",MainActivity.obj("questId","STORY_01","ownedIds",ids)),()->{});
-      story.view.content.addView(story.formation,new android.widget.FrameLayout.LayoutParams(-1,-1));story.formation.toggle(units.getJSONObject(0));story.formation.start.performClick();
+      story.view.content.addView(story.formation,new android.widget.FrameLayout.LayoutParams(-1,-1));story.formation.toggle(units.getJSONObject(0));
+      // The start button is actionable only after the formation has its real first layout.
+      int width=h.dp(915),height=h.dp(412);h.root.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));h.root.layout(0,0,width,height);
+      assertTrue(story.formation.start.isEnabled());story.formation.start.performClick();
       assertEquals(1,api.bodies.size());assertEquals("native/roster60/story/battle/create",api.paths.get(api.paths.size()-1));api.respond(0,null,"UNIT_UNAVAILABLE");assertNull(story.journal.pending());
       button(h,"story-tab-main").performClick();assertNull("A successful authoritative refresh replaces invalid departure choices",story.formation);
       assertNull(h.root.findViewWithTag("roster60-formation"));assertTrue(button(h,"story-continue").isEnabled());assertEquals("ACTIVE",story.state.getJSONObject("currentQuest").getString("status"));

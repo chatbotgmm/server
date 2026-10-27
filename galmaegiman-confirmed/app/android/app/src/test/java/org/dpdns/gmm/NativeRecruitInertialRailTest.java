@@ -135,9 +135,9 @@ public class NativeRecruitInertialRailTest {
       touch(screen.rail, MotionEvent.ACTION_MOVE, time, time + 25, x - 70, y);
       touch(screen.rail, MotionEvent.ACTION_MOVE, time, time + 50, x - 170, y);
       assertTrue("Actual drag must change horizontal offset", screen.rail.getScrollX() > 0);
-      ((Button) h.root.findViewWithTag("recruit-claim")).performClick();
+      ((Button) h.root.findViewWithTag("recruit-confirm")).performClick();
       ((Button) h.root.findViewWithTag("recruit-reroll")).performClick();
-      ((Button) h.root.findViewWithTag("recruit-claim-all")).performClick();
+      ((Button) h.root.findViewWithTag("recruit-confirm")).performClick();
       touch(screen.rail, MotionEvent.ACTION_UP, time, time + 65, x - 210, y);
       assertEquals(0, screen.selected);
       assertTrue("A drag must never send a mutation", api.paths.isEmpty());
@@ -165,7 +165,7 @@ public class NativeRecruitInertialRailTest {
     }
   }
 
-  @Test public void tapSelectsOnlyThenExplicitClaimUsesThatSessionsRevision() throws Exception {
+  @Test public void tapSelectsOnlyThenConfirmClaimsEveryPendingSessionsRevision() throws Exception {
     try (ActivityController<MainActivity> controller = helper.flow.start()) {
       MainActivity h = controller.get(); Api api = new Api(h);
       NativeRecruitSession screen = open(h, api, 8);
@@ -173,16 +173,36 @@ public class NativeRecruitInertialRailTest {
       assertEquals(1, screen.selected);
       assertEquals("session-1", screen.state.getString("sessionId"));
       assertTrue("Selecting a card must not claim it", api.paths.isEmpty());
-      ((Button) h.root.findViewWithTag("recruit-claim")).performClick();
+      ((Button) h.root.findViewWithTag("recruit-confirm")).performClick();
       assertEquals(1, api.paths.size());
-      assertEquals("native/roster60/recruit/session/action", api.paths.get(0));
+      assertEquals("native/roster60/recruit/session/claim-all", api.paths.get(0));
       JSONObject request = api.bodies.get(0);
-      assertEquals("claim", request.getString("action"));
-      assertEquals("session-1", request.getString("sessionId"));
-      assertEquals(0, request.getInt("revision"));
+      JSONArray sessions=request.getJSONArray("sessions");
+      assertEquals("선택한 카드뿐 아니라 미수령 회차 전체를 확인",8,sessions.length());
+      for(int i=0;i<sessions.length();i++){
+        assertEquals("session-"+i,sessions.getJSONObject(i).getString("sessionId"));
+        assertEquals(screen.candidates.getJSONObject(i).getInt("revision"),sessions.getJSONObject(i).getInt("revision"));
+      }
+      assertFalse("일괄 수령은 선택 후보를 교체하지 않음",request.has("action"));
       assertFalse(request.getString("requestId").isEmpty());
-      ((Button) h.root.findViewWithTag("recruit-claim")).performClick();
+      ((Button) h.root.findViewWithTag("recruit-confirm")).performClick();
       assertEquals("Pending lock must still prevent duplicate claims", 1, api.paths.size());
+    }
+  }
+
+  @Test public void confirmWithOnePendingKeepsSingleClaimIdentityAndRevision() throws Exception {
+    try(ActivityController<MainActivity> controller=helper.flow.start()){
+      MainActivity h=controller.get();Api api=new Api(h);NativeRecruitSession screen=open(h,api,3);
+      screen.candidates.getJSONObject(0).put("status","CLAIMED");
+      screen.candidates.getJSONObject(2).put("status","CLAIMED");
+      screen.candidates.getJSONObject(1).put("revision",7);screen.render(false);helper.layout(h,PHONE);
+      tap(screen,1);assertEquals(1,screen.selected);assertTrue(api.paths.isEmpty());
+      ((Button)h.root.findViewWithTag("recruit-confirm")).performClick();
+      assertEquals(1,api.paths.size());assertEquals("native/roster60/recruit/session/action",api.paths.get(0));
+      JSONObject request=api.bodies.get(0);assertEquals("claim",request.getString("action"));
+      assertEquals("session-1",request.getString("sessionId"));assertEquals(7,request.getInt("revision"));
+      assertFalse(request.getString("requestId").isEmpty());
+      ((Button)h.root.findViewWithTag("recruit-confirm")).performClick();assertEquals(1,api.paths.size());
     }
   }
 

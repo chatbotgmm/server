@@ -65,6 +65,29 @@ public class PartyUiWorkPerformanceTest {
    p.busy=true;p.enable();assertFalse(p.ownedTiles.get("o0").action.isEnabled());p.busy=false;p.enable();assertTrue(p.ownedTiles.get("o0").action.isEnabled());
   }
  }
+ @Test public void firstCommittedLayoutKeepsMeasuredWidthsAndRealResizeAssignsOnce()throws Exception{
+  try(ActivityController<MainActivity> c=helper.flow.start()){
+   MainActivity h=c.get();helper.prepare(h);Roster60CardStrip strip=new Roster60CardStrip(h);
+   ArrayList<String> ids=new ArrayList<>();ArrayList<Roster60MemberTile> tiles=new ArrayList<>();JSONArray units=roster(60);
+   for(int i=0;i<60;i++){JSONObject u=units.getJSONObject(i);ids.add(u.getString("ownedId"));tiles.add(new Roster60MemberTile(h,u,u.getString("name"),true,()->{},null,false,1,0,true));}
+   strip.replace(ids,tiles);int width=h.dp(600),height=h.dp(100);
+   strip.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));
+   long first=strip.widthAssignments;assertEquals(60,first);
+   strip.layout(0,0,width,height);
+   for(int i=0;i<20;i++){strip.forceLayout();strip.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));}
+   assertEquals("First committed layout must not discard already-correct widths",first,strip.widthAssignments);
+   int narrower=h.dp(450);
+   assertTrue("The fixture must cross a real card-width boundary, not the minimum clamp",Roster60StripPosition.cardWidth(narrower,strip.minimum,strip.gap)<Roster60StripPosition.cardWidth(width,strip.minimum,strip.gap));
+   strip.forceLayout();strip.measure(View.MeasureSpec.makeMeasureSpec(narrower,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));strip.layout(0,0,narrower,height);
+   // A detached view has no ViewRoot traversal to perform the layout-requested second pass.
+   // Force that real measure instead of reusing View's previous same-spec measurement cache.
+   strip.forceLayout();strip.measure(View.MeasureSpec.makeMeasureSpec(narrower,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));strip.layout(0,0,narrower,height);
+   assertEquals("A different real card width still updates every card once",first+60,strip.widthAssignments);
+   assertEquals(Roster60StripPosition.cardWidth(narrower,strip.minimum,strip.gap),strip.cards.getChildAt(0).getWidth());
+   for(int i=0;i<20;i++){strip.forceLayout();strip.measure(View.MeasureSpec.makeMeasureSpec(narrower,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));}
+   assertEquals(first+60,strip.widthAssignments);
+  }
+ }
  @Test public void lateOptionsCannotReplaceTheNewEpochOrAccount()throws Exception{
   try(ActivityController<MainActivity> c=helper.flow.start()){
    MainActivity h=c.get();Api api=new Api(h);NativeRoster60Pvp p=open(h,helper,api);JSONArray original=p.units;Object tile=p.ownedTiles.get("o0");api.delay=80;api.units=roster(2);p.fetchOptions();h.base("다른 화면","collection");ShadowLooper.idleMainLooper(100,TimeUnit.MILLISECONDS);assertSame(original,p.units);assertSame(tile,p.ownedTiles.get("o0"));

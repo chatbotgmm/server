@@ -1492,88 +1492,55 @@ final class NativeEconomy {
           // Give the short safe-area shelf four more dp without changing the
           // calibrated card frame inset, text sizes, purchase controls or artwork.
           panel.setPadding(panel.getPaddingLeft(), h.dp(4), panel.getPaddingRight(), h.dp(4));
-          int perPage = 3;
+          final LinearLayout products = k.row();
+          products.setTag("market-display");products.setBaselineAligned(false);
+          final InertialCardScrollView shelf = new InertialCardScrollView(h) {
+            @Override protected void onMeasure(int widthSpec,int heightSpec) {
+              int width=View.MeasureSpec.getSize(widthSpec);
+              int cardWidth=Math.max(h.dp(180),Math.round(width*.32f));
+              for(int i=0;i<products.getChildCount();i++) {
+                LinearLayout.LayoutParams lp=(LinearLayout.LayoutParams)products.getChildAt(i).getLayoutParams();
+                lp.width=cardWidth;
+              }
+              super.onMeasure(widthSpec,heightSpec);
+            }
+          };
+          shelf.setTag("shop-product-rail");shelf.setContentDescription("상품 · 좌우로 밀어 탐색하고 탭하여 선택");
+          shelf.setClipToPadding(true);
+          shelf.addView(products,new HorizontalScrollView.LayoutParams(-2,-1));
+          panel.addView(shelf,new LinearLayout.LayoutParams(-1,0,1));
+          final FrameLayout purchase=new FrameLayout(h);
+          panel.addView(purchase,new LinearLayout.LayoutParams(-1,-2));
+          final ArrayList<View> cards=new ArrayList<>();
           Runnable[] paint = new Runnable[1];
-          paint[0] =
-              () -> {
-                panel.removeAllViews();
-                shopActions.clear();
-                shopCards.clear();
-                JSONObject selected = null;
-                for (JSONObject offer : offers)
-                  if (shopFocus.equals(offer.optString("key"))) selected = offer;
-                if (selected == null)
-                  for (JSONObject offer : offers)
-                    if (offer.optInt("limit") > 0) {
-                      selected = offer;
-                      break;
-                    }
-                if (selected == null && !offers.isEmpty()) selected = offers.get(0);
-                if (selected == null) {
-                  panel.addView(k.notice("판매 중인 상품이 없어요."));
-                  return;
-                }
-                shopFocus = selected.optString("key");
-                int index = Math.max(0, offers.indexOf(selected));
-                int pages = (offers.size() + perPage - 1) / perPage, page = index / perPage;
-                LinearLayout grid = k.column();
-                grid.setTag("market-display");
-                grid.setGravity(Gravity.BOTTOM);
-                for (int row = 0; row < perPage / 3; row++) {
-                  LinearLayout line = k.row();
-                  line.setBaselineAligned(false);
-                  line.setGravity(Gravity.BOTTOM);
-                  for (int col = 0; col < 3; col++) {
-                    int at = page * perPage + row * 3 + col;
-                    View cell =
-                        at < offers.size()
-                            ? shopCard(offers.get(at), offers.get(at) == selected, paint[0])
-                            : new View(h);
-                    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1);
-                    lp.setMargins(h.dp(compact() ? 8 : 26), h.dp(4), h.dp(compact() ? 8 : 26), h.dp(4));
-                    line.addView(cell, lp);
-                  }
-                  grid.addView(line, new LinearLayout.LayoutParams(-1, -2));
-                }
-                LinearLayout shelf = k.row();
-                shelf.setBaselineAligned(false);
-                shelf.addView(grid, new LinearLayout.LayoutParams(0, -1, 1));
-                if (pages > 1) {
-                  LinearLayout pager = k.column();
-                  pager.setTag("shop-inline-pages");
-                  pager.setGravity(Gravity.CENTER);
-                  Button previous = k.action(null, "‹", () -> {
-                    shopFocus = offers.get((page - 1) * perPage).optString("key");
-                    paint[0].run();
-                  });
-                  m.pagerChevron(previous, false, JournalTheme.NAVY);
-                  previous.setTag("shop-page-previous");
-                  previous.setEnabled(page > 0);
-                  previous.setContentDescription("이전 상품 쪽");
-                  pager.addView(previous, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
-                  TextView count = caption((page + 1) + "/" + pages);
-                  count.setGravity(Gravity.CENTER);
-                  count.setPadding(0, h.dp(4), 0, h.dp(4));
-                  pager.addView(count, new LinearLayout.LayoutParams(-1, -2));
-                  Button next = k.action(null, "›", () -> {
-                    shopFocus = offers.get((page + 1) * perPage).optString("key");
-                    paint[0].run();
-                  });
-                  m.pagerChevron(next, true, JournalTheme.NAVY);
-                  next.setTag("shop-page-next");
-                  next.setEnabled(page + 1 < pages);
-                  next.setContentDescription("다음 상품 쪽");
-                  pager.addView(next, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
-                  shelf.addView(pager, new LinearLayout.LayoutParams(h.dp(52), -1));
-                }
-                panel.addView(shelf, new LinearLayout.LayoutParams(-1, 0, 1));
-                panel.addView(shopBuyBar(selected));
-              };          paint[0].run();
+          paint[0] = () -> {
+            JSONObject selected=null;
+            for(JSONObject offer:offers)if(shopFocus.equals(offer.optString("key")))selected=offer;
+            if(selected==null)for(JSONObject offer:offers)if(offer.optInt("limit")>0){selected=offer;break;}
+            if(selected==null&&!offers.isEmpty())selected=offers.get(0);
+            if(selected==null){purchase.removeAllViews();purchase.addView(k.notice("판매 중인 상품이 없어요."));return;}
+            shopFocus=selected.optString("key");
+            // 레일과 상품 뷰는 유지한다. 선택만 바꿔도 관성/스크롤 위치가 초기화되지 않는다.
+            if(cards.isEmpty()){for(JSONObject offer:offers){
+              View card=shopCard(offer,offer==selected,paint[0],shelf);cards.add(card);
+              LinearLayout.LayoutParams box=new LinearLayout.LayoutParams(h.dp(220),-1);
+              box.setMargins(h.dp(6),h.dp(4),h.dp(6),h.dp(4));products.addView(card,box);
+            }
+              final View initialCard=cards.get(offers.indexOf(selected));
+              shelf.post(()->{if(shelf.isAttachedToWindow())shelf.scrollTo(Math.max(0,initialCard.getLeft()-h.dp(6)),0);});
+            }
+            for(int i=0;i<cards.size();i++){
+              View card=cards.get(i);JSONObject offer=offers.get(i);boolean active=offer==selected;
+              card.setSelected(active);card.setForeground(active?NavyWorkbenchTheme.surface(h,Color.TRANSPARENT,JournalTheme.SELECTED_EDGE,4):null);card.setContentDescription(offer.optString("title")+" · 결제 "+offer.optString("currency")+" "+offer.optInt("price")+"개 · "+(offer.optInt("limit")<=0?offer.optString("blocked"):offer.optString("holding"))+(active?" · 선택됨":""));
+            }
+            shopActions.clear();purchase.removeAllViews();purchase.addView(shopBuyBar(selected));
+          };
+          shopCards.clear();paint[0].run();
         });
   }
 
   /** 상품 카드: 아이콘·이름·가격·보유. 누르면 선택만 바꾸고 구매는 아래 막대에서 한다. */
-  View shopCard(JSONObject o, boolean selected, Runnable repaint) {
+  View shopCard(JSONObject o, boolean selected, Runnable repaint, InertialCardScrollView rail) {
     ShopCardLayout card = new ShopCardLayout(h);
     card.setBackground(ThemeArt.of(h).drawable(ThemeArt.Surface.PAPER));
     card.setSelected(selected);
@@ -1616,7 +1583,7 @@ final class NativeEconomy {
             + (state.isEmpty() ? "" : " · " + state) + (selected ? " · 선택됨" : ""));
     card.setOnClickListener(
         v -> {
-          if (h.busy) return;
+          if (h.busy || rail.blocksClick()) return;
           shopFocus = o.optString("key");
           repaint.run();
         });
@@ -2788,6 +2755,7 @@ final class NativeEconomy {
     return MainActivity.obj("id", id, "name", id);
   }
 }
+
 
 
 

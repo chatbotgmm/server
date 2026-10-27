@@ -33,7 +33,7 @@ import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.annotation.LooperMode;
 import org.robolectric.shadows.ShadowLooper;
 
-/** 실제 제품 전투 패널과 기존 벡터·글꼴을 사용한다. 서버 명령·기술 비용은 변경하지 않는다. */
+/** 실제 제품 전투 패널과 승인된 일러스트·기존 글꼴을 사용한다. 서버 명령·기술 비용은 변경하지 않는다. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35, qualifiers = "w915dp-h412dp-land-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -49,7 +49,7 @@ public class CombatV2ProductSkillIconTest {
   final NativeHomePartyFeedbackTest helper = new NativeHomePartyFeedbackTest();
 
   @Before public void prepare() { helper.isolate(); helper.configure(NativeHomePartyFeedbackTest.PROFILES[0]); }
-  @After public void restore() { helper.restore(); }
+  @After public void restore() throws Exception { LocalGameArtTest.drain();helper.restore(); }
 
   static JSONObject state(int firstElement) throws Exception {
     JSONObject snapshot = NativeRoster60PlaybackTest.baseline();
@@ -83,26 +83,17 @@ public class CombatV2ProductSkillIconTest {
     drawable.draw(new Canvas(bitmap)); return bitmap;
   }
 
-  static void assertExactVector(Button button, int expectedResource, int expectedSize) {
-    Drawable[] icons = button.getCompoundDrawables();
-    assertNotNull("속성 아이콘은 기술명 왼쪽에 표시", icons[0]);
-    assertNull(icons[1]); assertNull(icons[2]); assertNull(icons[3]);
-    assertEquals(expectedSize, icons[0].getBounds().width());
-    assertEquals(expectedSize, icons[0].getBounds().height());
-    Drawable expected = button.getResources().getDrawable(expectedResource).mutate();
-    expected.setBounds(0, 0, expectedSize, expectedSize);
-    Bitmap actualPixels = pixels(icons[0]), expectedPixels = pixels(expected);
-    try {
-      int[] actual = new int[expectedSize * expectedSize];
-      actualPixels.getPixels(actual, 0, expectedSize, 0, 0, expectedSize, expectedSize);
-      boolean visible = false;
-      for (int pixel : actual) visible |= (pixel >>> 24) != 0;
-      assertTrue("실제 벡터 픽셀이 보여야 함", visible);
-      assertTrue("서버 기술 속성에 맞는 기존 벡터", NativeHomePartyFeedbackTest.samePixels(actualPixels, expectedPixels));
-    } finally { actualPixels.recycle(); expectedPixels.recycle(); }
+  static void assertExactIllustration(Button button,String element,int expectedSize) throws Exception {
+    LocalGameArtTest.drain();Drawable[] icons=button.getCompoundDrawables();
+    assertTrue("실제 PNG 속성 일러스트",icons[0] instanceof BitmapDrawable);
+    assertNull(icons[1]);assertNull(icons[2]);assertNull(icons[3]);
+    assertEquals(expectedSize,icons[0].getBounds().width());assertEquals(expectedSize,icons[0].getBounds().height());
+    Bitmap bitmap=((BitmapDrawable)icons[0]).getBitmap();
+    assertSame("서버 element에 정확히 대응하는 공유 캐시",LocalGameArt.peek(Roster60ElementArt.path(element),8),bitmap);
+    assertTrue("원본 전체 크기 디코딩 금지",bitmap.getWidth()<=157&&bitmap.getHeight()<=157);
   }
 
-  @Test public void allEightServerElementsSurviveProductSkinAndUseTheirExactVectors() throws Exception {
+  @Test public void allEightServerElementsSurviveProductSkinAndUseTheirExactIllustrations() throws Exception {
     try (ActivityController<MainActivity> controller = helper.flow.start()) {
       MainActivity host = controller.get();
       NativeRoster60ProductBattleTest.Api api = open(host, state(0));
@@ -117,23 +108,23 @@ public class CombatV2ProductSkillIconTest {
           JSONObject skill = skills.getJSONObject(i);
           Button button = named(host.rosterBattle.panel, skill.getString("name"));
           assertTrue(button.getText().toString().contains("MP " + skill.getInt("mpCost")));
-          assertExactVector(button, VECTORS[first + i], host.dp(18 * scale));
+          assertExactIllustration(button, ELEMENTS[first + i], host.dp(28 * scale));
         }
       }
       assertTrue(api.actions.isEmpty());
     }
   }
 
-  @Test public void unknownAttributesClearStaleIconsWithoutGuessingNormalOrUsingCommandArt() {
+  @Test public void unknownAttributesClearStaleIconsWithoutGuessingNormalOrUsingCommandArt() throws Exception {
     Button button = new Button(RuntimeEnvironment.getApplication());
     for (String unknown : new String[] {"", "WIND", "fire-fox", "attack", "badge_normal", null}) {
-      CombatV2ReviewStyle.skillIcon(button, "FIRE", 1);
+      Roster60ElementArt.bind(button, "FIRE", 28,false);LocalGameArtTest.drain();
       assertNotNull(button.getCompoundDrawables()[0]);
-      CombatV2ReviewStyle.skillIcon(button, unknown, 1);
+      Roster60ElementArt.bind(button, unknown, 28,false);LocalGameArtTest.drain();
       for (Drawable icon : button.getCompoundDrawables()) assertNull(icon);
     }
-    CombatV2ReviewStyle.skillIcon(button, "water", 1.5f);
-    assertExactVector(button, R.drawable.combat_v2_water, 27);
+    Roster60ElementArt.bind(button, "water", 42,false);
+    assertExactIllustration(button, "WATER", 42);
   }
 
   @Test public void commandArtAndTwoColumnThreeRowLayoutRemainUnchanged() throws Exception {
@@ -169,7 +160,7 @@ public class CombatV2ProductSkillIconTest {
       NativeRoster60ProductBattleTest.Api api = open(host, snapshot);
       NativeRoster60Battle battle = host.rosterBattle;
       named(battle.panel, "기술").performClick();
-      Button blocked = named(battle.panel, NAMES[1]);
+      LocalGameArtTest.drain();Button blocked = named(battle.panel, NAMES[1]);
       assertTrue(blocked.getText().toString().contains("MP 2"));
       assertTrue(blocked.getText().toString().contains("MP 부족"));
       assertNotNull(blocked.getCompoundDrawables()[0]);
@@ -195,7 +186,7 @@ public class CombatV2ProductSkillIconTest {
       assertEquals(1, battle.view.getJSONObject("state").getJSONArray("fighters").getJSONObject(0).getInt("mp"));
       api.pending.done(null, "INSUFFICIENT_MP");
       assertTrue(battle.panel.isSkillPage());
-      assertNotNull(named(battle.panel, NAMES[0]).getCompoundDrawables()[0]);
+      LocalGameArtTest.drain();assertNotNull(named(battle.panel, NAMES[0]).getCompoundDrawables()[0]);
       assertTrue(battle.message.getText().toString().startsWith("MP가 부족"));
     }
   }
@@ -208,12 +199,12 @@ public class CombatV2ProductSkillIconTest {
       MainActivity host = controller.get(); open(host, state(0));
       named(host.rosterBattle.panel, "기술").performClick();
       for (NativeHomePartyFeedbackTest.Profile profile : profiles) {
-        helper.configure(profile); helper.layout(host, profile);
+        helper.configure(profile); helper.layout(host, profile);LocalGameArtTest.drain();helper.layout(host, profile);
         CombatV2ReviewPanel panel = host.rosterBattle.panel;
         JSONArray cards = new JSONArray();
         for (int i = 0; i < 6; i++) {
           Button button = named(panel, NAMES[i]);
-          assertExactVector(button, VECTORS[i], host.dp(18 * host.rosterBattle.scale));
+          assertExactIllustration(button, ELEMENTS[i], host.dp(28 * host.rosterBattle.scale));
           Layout text = button.getLayout(); assertNotNull(text);
           int textWidth = button.getWidth() - button.getCompoundPaddingLeft() - button.getCompoundPaddingRight();
           int textHeight = button.getHeight() - button.getCompoundPaddingTop() - button.getCompoundPaddingBottom();

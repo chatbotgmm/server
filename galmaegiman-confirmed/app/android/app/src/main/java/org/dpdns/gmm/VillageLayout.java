@@ -29,17 +29,29 @@ final class VillageLayout {
   final List<Prop> props;
   final List<Resident> residents;
   final List<Decoration> decorations;
+  final Landmark landmark;
 
   static final class District {
     final String id,title,copy,nav; final double x;
     District(JSONObject o) throws Exception { id=word(o,"id");title=word(o,"title");copy=o.optString("copy");nav=o.optString("nav");x=number(o,"x"); }
   }
   static final class Asset {
-    final String id,path,sourceLibraryId; final boolean verified,useSheetDirectly; final double[] crop;
+    final String id,path,sourceLibraryId; final boolean verified,useSheetDirectly,required; final double[] crop;
     Asset(String id,JSONObject o) throws Exception {
-      this.id=id;path=word(o,"path");sourceLibraryId=o.optString("sourceLibraryId");verified=o.optBoolean("verified",false);useSheetDirectly=o.optBoolean("useSheetDirectly",false);crop=crop(o,"crop");
+      this.id=id;path=word(o,"path");sourceLibraryId=o.optString("sourceLibraryId");verified=o.optBoolean("verified",false);required=o.optBoolean("required",true);useSheetDirectly=o.optBoolean("useSheetDirectly",false);crop=crop(o,"crop");
+      if(!required&&!id.matches("statue-stage-[1-5]"))throw invalid();
       if(!path.matches("native/village-loop-v2/(assets|residents)/[a-z0-9-]+\\.png")||useSheetDirectly)throw invalid();
     }
+  }
+  /** Optional restoration art: stage comes from the authenticated story response, never this manifest. */
+  static final class Landmark {
+    final double x,width,baseline,groundAnchor;final String[] stageAssets;
+    Landmark(JSONObject o)throws Exception{
+      x=number(o,"x");width=number(o,"width");baseline=number(o,"baseline");groundAnchor=o.has("groundAnchor")?number(o,"groundAnchor"):1;stageAssets=strings(o.getJSONArray("stageAssets"));
+      if(groundAnchor<=0||groundAnchor>1||x<0||x>=8||width<=0||width>.7||baseline<.7||baseline>.94||stageAssets.length!=5)throw invalid();
+      unique(stageAssets);for(int i=0;i<5;i++)if(!stageAssets[i].equals("statue-stage-"+(i+1)))throw invalid();
+    }
+    String asset(int stage){return stage>=1&&stage<=5?stageAssets[stage-1]:"";}
   }
   static final class Layer {
     final String id,asset; final double parallax,repeatUnits,top,bottom; final boolean mirrorAlternating;final double[] sourceCrop;
@@ -66,10 +78,11 @@ final class VillageLayout {
   }
   /** Small background artwork only. It never defines a label, quest or input target. */
   static final class Decoration extends Placed {
-    final double parallax;
+    final double parallax,heightRatio;
     Decoration(JSONObject o) throws Exception {
-      super(o);parallax=number(o,"parallax");
-      Set<String> allowed=new HashSet<>(java.util.Arrays.asList("id","asset","x","width","baseline","parallax"));
+      super(o);parallax=number(o,"parallax");heightRatio=o.has("heightRatio")?number(o,"heightRatio"):.28;
+      if(heightRatio<.12||heightRatio>.36)throw invalid();
+      Set<String> allowed=new HashSet<>(java.util.Arrays.asList("id","asset","x","width","baseline","parallax","heightRatio"));
       for(Iterator<String> it=o.keys();it.hasNext();)if(!allowed.contains(it.next()))throw invalid();
       if(width>.35||parallax!=1)throw invalid();
     }
@@ -92,6 +105,8 @@ final class VillageLayout {
     for(Building v:bs){sceneIds.add(v.id);usedAssets.add(v.asset);}for(Prop v:ps){sceneIds.add(v.id);usedAssets.add(v.asset);}for(Resident v:rs){sceneIds.add(v.id);usedAssets.add(v.asset);}for(Layer v:ls)if(!v.asset.isEmpty())usedAssets.add(v.asset);
     for(int i=0;i<a.length();i++){Decoration v=new Decoration(a.getJSONObject(i));check(v);if(!sceneIds.add(v.id)||usedAssets.contains(v.asset))throw invalid();dec.add(v);}
     decorations=Collections.unmodifiableList(dec);
+    landmark=o.has("landmark")?new Landmark(o.getJSONObject("landmark")):null;
+    if(landmark!=null)for(String id:landmark.stageAssets)if(!assets.containsKey(id))throw invalid();
   }
   static VillageLayout load(Context context) {
     try(InputStream input=context.getAssets().open(MANIFEST)) {
@@ -124,7 +139,7 @@ final class VillageLayout {
       String[] ids={"companions","memory","harbor","market"},titles={"동료의 거리","기억의 정원","푸른 출항길","바람의 시장"},nav={"모집 · 팀","도감 · 우편","플레이","시장"};JSONArray ds=new JSONArray();for(int i=0;i<4;i++)ds.put(new JSONObject().put("id",ids[i]).put("title",titles[i]).put("copy","").put("nav",nav[i]).put("x",i*2));o.put("districts",ds);
       JSONObject assets=new JSONObject();for(String id:new String[]{"sea","terrain","recruit","hideout","archive","mailbox","market","ship","harbor","blacksmith","merchant","librarian","patrol"})assets.put(id,new JSONObject().put("path","native/village-loop-v2/"+(java.util.Arrays.asList("blacksmith","merchant","librarian","patrol").contains(id)?"residents/":"assets/")+id+".png").put("verified",false).put("useSheetDirectly",false).put("crop",array(0,0,1,1)));o.put("assets",assets);
       JSONArray ls=new JSONArray();String[] layerIds={"background","sea","terrain","buildings","ships","residents"};double[] factors={.25,.5,1,1,1,1};for(int i=0;i<6;i++)ls.put(new JSONObject().put("id",layerIds[i]).put("asset",i<2?"sea":i==2?"terrain":"").put("parallax",factors[i]).put("repeatUnits",8*factors[i]).put("mirrorAlternating",i<3).put("sourceCrop",i==0?array(0,0,1,.51):i==1?array(0,.51,1,1):array(0,0,1,1)).put("top",i==0?0:i==1?.42:i==2?.64:0).put("bottom",i==0?.51:i==1?.88:1));o.put("layers",ls);
-      JSONArray bs=new JSONArray();bs.put(buildingJson("recruit","방범대 지원소","새 동료 만나기",.48,.468,new String[]{"동료 모집"},new String[]{"recruit"}));bs.put(buildingJson("hideout","방범대 아지트","우리 팀의 쉼터",1.1,.546,new String[]{"방범대 편성"},new String[]{"party"}));bs.put(buildingJson("archive","기록소","도감 · 조합",2.5,.546,new String[]{"도감","조합"},new String[]{"collection","craft"}));bs.put(buildingJson("mailbox","우편함","우편 · 이벤트 · 소식",3.05,.17,new String[]{"우편","이벤트 소식","공지사항"},new String[]{"mail","events","notices"}));bs.put(buildingJson("harbor","플레이","바다로 떠나기",4.6,.676,new String[]{"탐험","스토리","일반전","랭크전"},new String[]{"explore","story","normal","rank"}));bs.put(buildingJson("market","시장","아이템 · 패스 · 재화",6.55,.715,new String[]{"아이템","패스","유료 재화 관리"},new String[]{"items","pass","currency"}));o.put("buildings",bs);
+      JSONArray bs=new JSONArray();bs.put(buildingJson("recruit","방범대 지원소","새 동료 만나기",.48,.468,new String[]{"동료 모집"},new String[]{"recruit"}));bs.put(buildingJson("hideout","방범대 아지트","우리 팀의 쉼터",1.1,.546,new String[]{"방범대 편성"},new String[]{"party"}));bs.put(buildingJson("archive","기록소","도감 · 조합",2.5,.546,new String[]{"도감","조합"},new String[]{"collection","craft"}));bs.put(buildingJson("mailbox","우편함","우편 · 이벤트 · 소식",3.05,.13,new String[]{"우편","이벤트 소식","공지사항"},new String[]{"mail","events","notices"}));bs.put(buildingJson("harbor","플레이","바다로 떠나기",4.6,.676,new String[]{"탐험","스토리","일반전","랭크전"},new String[]{"explore","story","normal","rank"}));bs.put(buildingJson("market","시장","아이템 · 패스 · 재화",6.55,.715,new String[]{"아이템","패스","유료 재화 관리"},new String[]{"items","pass","currency"}));o.put("buildings",bs);
       o.put("props",new JSONArray().put(new JSONObject().put("id","ship").put("asset","ship").put("x",5.2).put("width",.38).put("baseline",.65).put("parallax",1)));
       JSONArray rs=new JSONArray();rs.put(residentJson("blacksmith","대장장이","large-blacksmith","blacksmith",6.16,.17));rs.put(residentJson("merchant","상인","slender-merchant","merchant",6.98,.10));rs.put(residentJson("librarian","사서","stooped-elder-librarian","librarian",2.85,.105));rs.put(residentJson("guard","방범대원","angular-stone-wing-patrol","patrol",.84,.13));o.put("residents",rs);
       return parse(o);

@@ -224,10 +224,13 @@ final class NativeRoster60Playback {
 
   /** 중단은 마지막 확정 응답을 기준선으로 삼는다. 복귀 시 지난 이력을 다시 재생하지 않는다. */
   void suspend() {
+    // 확정 화면 그대로의 일시 정지는 이미 본 정보를 지우지 않는다.
+    // 재생 중이거나 백그라운드에서 새 응답을 받은 경우에는 최종 상태를 미리 공개하지 않는다.
+    boolean keepDisplayed=!playing&&latest!=null&&latest==host.view&&!host.opponentInfoChanging;
     generation++;playing=false;queue.clear();
     if(advancePending!=null){host.art.removeCallbacks(advancePending);advancePending=null;}
     ValueAnimator old=animator;animator=null;if(old!=null)old.cancel();
-    host.art.clearFrame();host.suspendOpponentInfo();
+    host.art.clearFrame();if(!keepDisplayed)host.suspendOpponentInfo();
     if(latest!=null&&latest.optJSONObject("state")!=null)host.art.bind(latest.optJSONObject("state"));
   }
   private void synchronize(){suspend();if(host.current())host.renderSnapshot(latest);}

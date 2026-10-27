@@ -6,7 +6,7 @@ final class Roster60FormationView extends LinearLayout {
  final LinearLayout left,right,slots;final ImageView focus;final TextView caption,title,level,selectedHeading,ownedHeading,indicator;final Button start;
  final Roster60CardStrip ownedStrip;final LinkedHashMap<String,Roster60MemberTile> ownedTiles=new LinkedHashMap<>();
  final String[] slotContent=new String[6],slotState=new String[6];final HashMap<String,String> ownedState=new HashMap<>();
- String focused="",focusSpecies="",renderedState="";boolean locked;float scale=1,renderedScale=-1;
+ String focused="",focusSpecies="",renderedState="";boolean locked,measured;float scale=1,renderedScale=-1;
  long slotReplacements,focusBindings,tileStateUpdates;
  Roster60FormationView(MainActivity h,JSONArray units,Consumer<JSONArray> confirm,Runnable cancel){
   super(h);this.h=h;this.units=units;this.confirm=confirm;setOrientation(HORIZONTAL);setTag("roster60-formation");setBackground(ThemeArt.of(h).background("backgrounds/bg-navigation-workshop-v1.png"));
@@ -20,11 +20,14 @@ final class Roster60FormationView extends LinearLayout {
   title=h.text("대원을 선택하세요",16);CombatV2ReviewStyle.text(title);title.setTextColor(NavyWorkbenchTheme.TEXT);title.setMaxLines(1);title.setEllipsize(android.text.TextUtils.TruncateAt.END);right.addView(title);level=h.text("출전 1 + 예비 5",12);CombatV2ReviewStyle.text(level);level.setTextColor(NavyWorkbenchTheme.MUTED);right.addView(level);
   focus=new ImageView(h);focus.setTag("formation-focused-portrait");right.addView(focus,new LayoutParams(-1,0,1));caption=h.text("출전 1 + 예비 최대 5",12);CombatV2ReviewStyle.text(caption);caption.setTextColor(NavyWorkbenchTheme.TEXT);right.addView(caption);
   start=h.button("편성 확정 · 전투 시작",this::submit);start.setTag("formation-confirm");start.setTextSize(12);start.setBackground(new BattleSkin(h,"button-surrender"));CombatV2ReviewStyle.text(start);start.setTextColor(JournalTheme.INK);right.addView(start,new LayoutParams(-1,h.dp(48)));
-  if(units.length()>0)focused=units.optJSONObject(0).optString("ownedId");draw();
+  if(units.length()>0)focused=units.optJSONObject(0).optString("ownedId");start.setEnabled(false);
  }
  @Override protected void onMeasure(int w,int hs){
   float s=Roster60Scale.of(this,MeasureSpec.getSize(w),MeasureSpec.getSize(hs),760,260);
-  if(MeasureSpec.getMode(w)==MeasureSpec.EXACTLY&&MeasureSpec.getMode(hs)==MeasureSpec.EXACTLY&&MeasureSpec.getSize(w)>0&&MeasureSpec.getSize(hs)>0&&Math.abs(s-scale)>.01f){scale=s;draw();}
+  // Build cards at the first measured scale, not once at 1 and again before first paint.
+  boolean sized=MeasureSpec.getSize(w)>0&&MeasureSpec.getSize(hs)>0;
+  boolean exact=MeasureSpec.getMode(w)==MeasureSpec.EXACTLY&&MeasureSpec.getMode(hs)==MeasureSpec.EXACTLY&&sized;
+  if((!measured&&sized)||(exact&&Math.abs(s-scale)>.01f)){if(exact)scale=s;measured=true;draw();}
   super.onMeasure(w,hs);
  }
  static String grade(String grade){switch(grade){case "COMMON":return "커먼";case "UNCOMMON":return "언커먼";case "RARE":return "레어";case "EPIC":return "에픽";case "LEGEND":return "전설";case "HIDDEN":return "히든";case "LIMITED":return "제한";case "TRANSCENDENT":return "초월";case "IMMORTAL":return "불멸";case "ETERNAL":return "영원";default:return grade;}}
@@ -33,9 +36,11 @@ final class Roster60FormationView extends LinearLayout {
  void toggle(JSONObject u){if(locked||u==null||ownedStrip.blocksClick())return;String id=u.optString("ownedId");focused=id;if(selected.contains(id))selected.remove(id);else if(selected.size()<6)selected.add(id);draw();}
  void submit(){if(locked||selected.isEmpty()||ownedStrip.blocksClick())return;locked=true;draw();confirm.accept(new JSONArray(selected));}
  void unlock(){locked=false;draw();}
+ static String levelBadge(JSONObject unit){if(unit==null)return null;int level=unit.optInt("level",0);return "Lv. "+(level>0?String.valueOf(level):"?");}
  static String role(int slot){return slot==0?"출전":"예비 "+slot;}
  TextView section(String text){TextView v=h.text(text,12);CombatV2ReviewStyle.text(v);v.setTextColor(NavyWorkbenchTheme.TEXT);v.setSingleLine(true);return v;}
  void draw(){
+  if(!measured)return; // Pre-layout selection is rendered by the first measure.
   boolean scaleChanged=renderedScale!=scale;
   if(scaleChanged){
    renderedScale=scale;renderedState="";Arrays.fill(slotContent,null);Arrays.fill(slotState,null);ownedState.clear();
@@ -64,20 +69,21 @@ final class Roster60FormationView extends LinearLayout {
    for(int i=0;i<slots.getChildCount();i++){
     String id=i<selected.size()?selected.get(i):"";boolean active=!id.isEmpty()&&focused.equals(id),enabled=!id.isEmpty()&&!locked;
     String tuple=active+"|"+enabled;
-    if(!tuple.equals(slotState[i])){((Roster60MemberTile)slots.getChildAt(i)).state(id.isEmpty()?null:role(i),active,enabled);slotState[i]=tuple;tileStateUpdates++;}
+    if(!tuple.equals(slotState[i])){((Roster60MemberTile)slots.getChildAt(i)).state(id.isEmpty()?null:role(i),active,enabled,levelBadge(unit(id)));slotState[i]=tuple;tileStateUpdates++;}
    }
    for(Map.Entry<String,Roster60MemberTile> entry:ownedTiles.entrySet()){
     String id=entry.getKey();int at=selected.indexOf(id);String role=at<0?null:role(at);boolean active=focused.equals(id);
     String tuple=role+"|"+active+"|"+locked;
-    if(!tuple.equals(ownedState.get(id))){entry.getValue().state(role,active,!locked);ownedState.put(id,tuple);tileStateUpdates++;}
+    if(!tuple.equals(ownedState.get(id))){entry.getValue().state(role,active,!locked,levelBadge(unit(id)));ownedState.put(id,tuple);tileStateUpdates++;}
    }
    renderedState=state;
   }
   JSONObject u=unit(focused);
   if(u!=null){String species=u.optString("speciesId");if(!species.equals(focusSpecies)){Roster60Portrait.bind(h,focus,species);focusSpecies=species;focusBindings++;}
-   text(title,u.optString("name"));int at=selected.indexOf(focused);text(level,grade(u.optString("rarity"))+" · Lv"+u.optInt("level",1)+"/"+u.optInt("maxLevel",60)+(at<0?"":" · "+role(at)));JSONObject stats=u.optJSONObject("stats");text(caption,stats==null?"편성 "+selected.size()+"/6":"HP "+stats.optInt("hp")+" · MP "+stats.optInt("mp")+"\n내구 "+stats.optInt("durability")+" · 저항 "+stats.optInt("statusResistance")+" · 속도 "+stats.optInt("speed"));
+   text(title,u.optString("name"));int at=selected.indexOf(focused);text(level,grade(u.optString("rarity"))+" · Lv"+u.optInt("level",1)+"/"+u.optInt("maxLevel",60));level.setContentDescription(level.getText()+(at<0?"":" · "+role(at)));JSONObject stats=u.optJSONObject("stats");text(caption,stats==null?"편성 "+selected.size()+"/6":"HP "+stats.optInt("hp")+" · MP "+stats.optInt("mp")+"\n내구 "+stats.optInt("durability")+" · 저항 "+stats.optInt("statusResistance")+" · 속도 "+stats.optInt("speed"));
   }
   start.setEnabled(!locked&&!selected.isEmpty());
  }
  static void text(TextView view,String value){if(!value.contentEquals(view.getText()))view.setText(value);}
 }
+

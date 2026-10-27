@@ -22,9 +22,10 @@ public class NativeRoster60PlaybackTest {
  @After public void restore(){helper.restore();}
 
  static class Api extends NativeRoster60ProductBattleTest.Api {
-  int settlements;
+  int settlements;boolean failReads;
   Api(Context c)throws Exception{super(c);state=baseline();}
   @Override void call(String path,JSONObject body,Result cb){
+   if(failReads&&(path.endsWith("battle/active")||path.endsWith("battle/read"))){cb.done(null,"연결하지 못했어요.");return;}
    if(path.endsWith("battle/settle")){settlements++;pending=cb;return;}
    super.call(path,body,cb);
   }
@@ -94,6 +95,29 @@ public class NativeRoster60PlaybackTest {
    ui.pause();assertFalse(ui.presenting());ui.bind(next);assertFalse(ui.presenting());
    api.state=next;ui.resume();assertFalse(ui.presenting());assertEquals(1,ui.view.getInt("revision"));
    ui.bind(initial);assertEquals(1,ui.view.getInt("revision"));
+  }
+ }
+ @Test public void idlePauseAndFailedResumeKeepOnlyAlreadyDisplayedKnowledge()throws Exception{
+  try(ActivityController<MainActivity> c=helper.flow.start()){
+   MainActivity h=c.get();Api api=open(h);NativeRoster60Battle ui=h.rosterBattle;
+   api.state.getJSONObject("state").put("opponentIntel",NativeRoster60OpponentIntelTest.intel(0));ui.bind(api.state);
+   assertFalse(ui.opponentInfoChanging);assertTrue(NativeRoster60OpponentIntelTest.text(ui.opponentDetails).contains("1 / 8"));
+   ui.pause();api.failReads=true;ui.resume();
+   assertFalse(ui.opponentInfoChanging);assertTrue(NativeRoster60OpponentIntelTest.text(ui.opponentDetails).contains("1 / 8"));
+   assertFalse(NativeRoster60OpponentIntelTest.text(ui.opponentDetails).contains("속도  3"));
+  }
+ }
+ @Test public void interruptedOrBackgroundUpdatedPlaybackStaysMaskedUntilAuthorizedRefresh()throws Exception{
+  try(ActivityController<MainActivity> c=helper.flow.start()){
+   MainActivity h=c.get();Api api=open(h);NativeRoster60Battle ui=h.rosterBattle;
+   api.state.getJSONObject("state").put("opponentIntel",NativeRoster60OpponentIntelTest.intel(0));ui.bind(api.state);
+   JSONObject next=response(api.state,false);next.getJSONObject("state").put("opponentIntel",NativeRoster60OpponentIntelTest.intel(1));
+   ui.bind(next);assertTrue(ui.presenting());ui.pause();api.failReads=true;ui.resume();
+   assertTrue(ui.opponentInfoChanging);assertTrue(NativeRoster60OpponentIntelTest.text(ui.opponentDetails).contains("0 / 8"));
+   api.failReads=false;api.state=next;ui.resume();assertFalse(ui.opponentInfoChanging);
+   assertTrue(NativeRoster60OpponentIntelTest.text(ui.opponentDetails).contains("2 / 8"));
+   ui.pause();JSONObject newer=new JSONObject(next.toString());newer.put("revision",2);ui.bind(newer);
+   assertTrue(ui.opponentInfoChanging);assertTrue(NativeRoster60OpponentIntelTest.text(ui.opponentDetails).contains("0 / 8"));
   }
  }
  @Test public void legacyServerStillPlaysEffectsWithoutInventingIntermediateHp()throws Exception{

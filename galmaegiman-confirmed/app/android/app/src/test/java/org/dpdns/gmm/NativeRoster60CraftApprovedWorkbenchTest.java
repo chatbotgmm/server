@@ -84,9 +84,40 @@ public class NativeRoster60CraftApprovedWorkbenchTest {
     Button restricted=ui.workbench.slots[1];assertNotNull(restricted.getLayout());assertTrue("three explicit lines fit",restricted.getLayout().getLineCount()<=3);
     for(int line=0;line<restricted.getLayout().getLineCount();line++)assertTrue("level information fits its material slot",restricted.getLayout().getLineWidth(line)<=restricted.getWidth()-restricted.getCompoundPaddingLeft()-restricted.getCompoundPaddingRight()+1);
     assertTrue("portrait reserves the caption band at the actual font size",ui.workbench.pictures[1].getPaddingBottom()>=restricted.getLayout().getHeight());
-    android.graphics.Bitmap bitmap=NativeHomePartyFeedbackTest.render(h.root);java.nio.file.Path out=java.nio.file.Path.of("/workspace/scratch/craft-review");java.nio.file.Files.createDirectories(out);try(java.io.OutputStream png=java.nio.file.Files.newOutputStream(out.resolve("approved-craft-"+(p.font>1?"font130":p.name)+".png"))){assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,png));}finally{bitmap.recycle();}
+    android.graphics.Bitmap bitmap=NativeHomePartyFeedbackTest.render(h.root);java.nio.file.Path out=java.nio.file.Path.of(System.getProperty("gmm.nativeReviewOutput","build/native-review"),"craft-review");java.nio.file.Files.createDirectories(out);try(java.io.OutputStream png=java.nio.file.Files.newOutputStream(out.resolve("approved-craft-"+(p.font>1?"font130":p.name)+".png"))){assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,png));}finally{bitmap.recycle();}
    }finally{api.pool.shutdownNow();}
   }
   }
  }
+ @Test public void alignedResultHasZeroNeighborIntersectionButFreeOffsetsShowIncomingCard()throws Exception{
+  for(NativeHomePartyFeedbackTest.Profile profile:new NativeHomePartyFeedbackTest.Profile[]{NativeHomePartyFeedbackTest.PROFILES[0],new NativeHomePartyFeedbackTest.Profile("craft-fullwidth-1280x720",1280,720,160,1,0,0,0,0)}){
+   helper.configure(profile);
+   try(ActivityController<MainActivity> c=helper.flow.start()){
+    MainActivity h=c.get();helper.prepare(h);Api api=new Api(h);h.api=api;
+    try{
+     h.state.put("tutorial",MainActivity.obj("flow","roster60-v1"));helper.layout(h,profile);h.mix();helper.settle(h,profile);
+     NativeRoster60Craft ui=h.menus.economy.roster60Craft;CraftResultCarousel rail=ui.workbench.carousel;
+     assertEquals("한 카드의 폭이 실제 viewport와 같음",rail.getWidth(),rail.cardWidth);
+     assertEquals(0,rail.getPaddingLeft());assertEquals(0,rail.getPaddingRight());
+     for(int target=0;target<rail.cards.getChildCount();target++){
+      ui.workbench.choose(target);rail.stopMotion();rail.scrollTo(target*rail.cardWidth,0);helper.settle(h,profile);
+      android.graphics.Rect viewport=new android.graphics.Rect();assertTrue(rail.getGlobalVisibleRect(viewport));
+      for(int i=0;i<rail.cards.getChildCount();i++){
+       View card=rail.cards.getChildAt(i);android.graphics.Rect visible=new android.graphics.Rect();boolean shown=card.getGlobalVisibleRect(visible);
+       if(i==target){assertTrue(shown);assertEquals(1f,card.getScaleX(),.001f);assertTrue(android.graphics.Rect.intersects(viewport,visible));}
+       else{boolean intersects=shown&&visible.intersect(viewport);assertFalse("정렬한 결과 옆의 유령 패널 교차영역은 0: "+profile.name+" / "+i,intersects);assertTrue(card.getScaleX()<1f);}
+      }
+      assertEquals(target,ui.recipePage);assertNull(api.confirmed);
+     }
+     int selected=ui.recipePage,free=rail.cardWidth/3;rail.stopMotion();rail.scrollTo(free,0);helper.layout(h,profile);
+     assertEquals("레이아웃은 자유 스크롤 오프셋을 스냅하지 않음",free,rail.getScrollX());assertNotEquals(0,rail.getScrollX()%rail.cardWidth);
+     android.graphics.Rect viewport=new android.graphics.Rect();assertTrue(rail.getGlobalVisibleRect(viewport));int incoming=0;
+     for(int i=0;i<rail.cards.getChildCount();i++){android.graphics.Rect visible=new android.graphics.Rect();if(rail.cards.getChildAt(i).getGlobalVisibleRect(visible)&&visible.intersect(viewport))incoming++;}
+     assertEquals("이동 중에는 양쪽 카드가 정상 진입",2,incoming);assertEquals("스크롤만으로 재료/결과를 선택하지 않음",selected,ui.recipePage);
+     assertEquals(java.util.Collections.singletonList("native/roster60/craft/options"),api.calls);assertNull(api.confirmed);
+    }finally{api.close();}
+   }
+  }
+ }
+
 }

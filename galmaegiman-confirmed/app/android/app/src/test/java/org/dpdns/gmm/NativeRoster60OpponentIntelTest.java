@@ -35,7 +35,7 @@ public class NativeRoster60OpponentIntelTest {
    // Real server redaction must not invalidate the command widget.
    api.state.getJSONObject("state").getJSONArray("fighters").getJSONObject(1).remove("suitability");
    ui.bind(api.state);assertTrue(NativeRoster60ProductBattleTest.named(ui.panel,"공격").isEnabled());
-   int calls=api.paths.size();assertTrue(ui.opponentDetails.isShown());assertNull(h.root.findViewWithTag("roster60-opponent-info"));ui.showOpponentInfo();assertEquals(calls,api.paths.size());assertNull(h.visibleDialog);
+   int calls=api.paths.size();assertNull(ui.opponentDetails.getParent());assertNotNull(h.root.findViewWithTag("roster60-opponent-info"));ui.showOpponentInfo();assertEquals(calls,api.paths.size());assertNotNull(h.visibleDialog);
    assertTrue(text(ui.opponentDetails).contains("1 / 8"));assertTrue(text(ui.opponentDetails).contains("한 턴"));
    JSONObject next=NativeRoster60PlaybackTest.response(api.state,false);next.getJSONObject("state").put("opponentIntel",intel(1));
    ui.bind(next);assertTrue(ui.presenting());assertTrue(text(ui.opponentDetails).contains("1 / 8"));assertFalse(text(ui.opponentDetails).contains("속도  3"));
@@ -66,6 +66,26 @@ public class NativeRoster60OpponentIntelTest {
    skill.performClick();api.pending.done(null,"INSUFFICIENT_MP");assertTrue(ui.panel.isSkillPage());assertTrue(ui.message.getText().toString().startsWith("MP가 부족"));
    NativeRoster60ProductBattleTest.named(ui.panel,"시험기술0").performClick();
    api.pending.done(api.state,null);assertFalse(ui.panel.isSkillPage());
+  }
+ }
+
+ @Test public void compactInfoDoesNotConsumeStageAndDismissesWithoutNavigation()throws Exception{
+  try(ActivityController<MainActivity> c=helper.helper.flow.start()){
+   MainActivity h=c.get();helper.open(h);NativeRoster60Battle ui=h.rosterBattle;
+   assertSame(ui.stageOverlay,ui.art.getParent());assertEquals(ui.stageOverlay.getHeight(),ui.art.getHeight());
+   assertTrue(ui.opponentInfo.getWidth()>=h.dp(48));assertTrue(ui.opponentInfo.getHeight()>=h.dp(48));
+   assertTrue(ui.opponentInfo.getLeft()>=h.dp(6)+Roster60HudGeometry.enemyWidth(ui.art.getWidth(),h.getResources().getDisplayMetrics().density,ui.scale));
+   assertTrue(ui.opponentInfo.getRight()<=ui.stageOverlay.getWidth());
+   ui.opponentInfo.performClick();android.app.AlertDialog first=ui.opponentDialog;assertNotNull(first);
+   ui.opponentInfo.performClick();assertSame(first,ui.opponentDialog);
+   assertTrue(ui.back());assertNull(ui.opponentDialog);assertEquals("roster60Battle",h.screen);
+   ui.opponentInfo.performClick();assertNotNull(ui.opponentDialog);ui.pause();assertNull(ui.opponentDialog);assertNull(h.visibleDialog);
+  }
+ }
+ @Test public void staleAccountCannotOpenOpponentDialog()throws Exception{
+  try(ActivityController<MainActivity> c=helper.helper.flow.start()){
+   MainActivity h=c.get();helper.open(h);NativeRoster60Battle ui=h.rosterBattle;
+   ui.owner="different-account";ui.opponentInfo.performClick();assertNull(ui.opponentDialog);
   }
  }
 }

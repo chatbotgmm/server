@@ -47,7 +47,12 @@ final class Roster60CardStrip extends InertialCardScrollView {
   if(width>0){
    int card=Roster60StripPosition.cardWidth(width,minimum,gap);
    if(measuredCardWidth!=card||measuredCount!=cards.getChildCount()){
-    for(int i=0;i<cards.getChildCount();i++){cards.getChildAt(i).getLayoutParams().width=card;widthAssignments++;}
+    for(int i=0;i<cards.getChildCount();i++){
+     View child=cards.getChildAt(i);android.view.ViewGroup.LayoutParams params=child.getLayoutParams();
+     // Mutating width alone leaves the child/row measurement cache valid after resize.
+     // setLayoutParams requests layout up that chain, only when a real width changes.
+     if(params.width!=card){params.width=card;child.setLayoutParams(params);widthAssignments++;}
+    }
     measuredCardWidth=card;measuredCount=cards.getChildCount();
    }
   }
@@ -58,7 +63,10 @@ final class Roster60CardStrip extends InertialCardScrollView {
    // Child positions still describe the old viewport here. Save that anchor
    // once, then let the next real layout measure against the committed width.
    if(oldw>0){remember();stopMotion();restoring=true;}
-   measuredCardWidth=-1;requestLayout();
+   // First layout often commits the same viewport already used by onMeasure.
+   // Do not discard those widths and assign every card again on the next pass.
+   int expected=Roster60StripPosition.cardWidth(w-getPaddingLeft()-getPaddingRight(),minimum,gap);
+   if(measuredCardWidth!=expected){measuredCardWidth=-1;requestLayout();}
   }
   super.onSizeChanged(w,h,oldw,oldh);
  }

@@ -26,16 +26,18 @@ final class Roster60MemberTile extends FrameLayout {
   else if(!visible){Roster60Portrait.clear(portrait);portraitBound=false;}
  }
  /** Selection updates keep the scroll strip and its fling intact. */
- void state(String roleLabel,boolean focused,boolean enabled){
+ void state(String roleLabel,boolean focused,boolean enabled){state(roleLabel,focused,enabled,roleLabel);}
+ /** Visible badges can show owned-unit level while accessibility retains party position. */
+ void state(String roleLabel,boolean focused,boolean enabled,String visibleBadge){
   MainActivity h=host;
   setBackground(NavyWorkbenchTheme.surface(h,NavyWorkbenchTheme.SLOT,focused?0xfff5e2b5:NavyWorkbenchTheme.LINE,6));
   setForeground(null);
   if(focused){android.graphics.drawable.GradientDrawable edge=new android.graphics.drawable.GradientDrawable();edge.setColor(0);edge.setCornerRadius(h.dp(6));edge.setStroke(Math.max(2,h.dp(2*scale)),0xfff5e2b5);setForeground(edge);}
   action.setEnabled(enabled);action.setTextColor(enabled?NavyWorkbenchTheme.TEXT:NavyWorkbenchTheme.MUTED);
-  action.setContentDescription(caption+(roleLabel==null?"":" · 편성됨 "+roleLabel)+(focused?" · 선택":""));
+  action.setContentDescription(caption+(visibleBadge!=null&&!visibleBadge.equals(roleLabel)?" · "+visibleBadge:"")+(roleLabel==null?"":" · 편성됨 "+roleLabel)+(focused?" · 선택":""));
   if(role!=null)removeView(role);if(focus!=null)removeView(focus);
   int inset=h.dp(3*scale);
-  role=roleLabel==null?null:Roster60Scale.chip(h,roleLabel,false,scale);
+  role=visibleBadge==null?null:Roster60Scale.chip(h,visibleBadge,false,scale);
   if(role!=null){role.setBackground(NavyWorkbenchTheme.surface(h,0xff193047,NavyWorkbenchTheme.LINE,6));LayoutParams p=new LayoutParams(-2,-2,Gravity.TOP|Gravity.LEFT);p.setMargins(inset,inset,0,0);role.setTag("member-role");addView(role,p);}
   focus=focused?Roster60Scale.chip(h,"선택",true,scale):null;
   if(focus!=null){LayoutParams p=new LayoutParams(-2,-2,Gravity.TOP|Gravity.RIGHT);p.setMargins(0,inset,inset,0);focus.setTag("member-focus");addView(focus,p);}

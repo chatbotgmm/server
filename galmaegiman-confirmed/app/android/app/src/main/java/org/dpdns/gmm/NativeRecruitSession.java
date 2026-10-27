@@ -9,7 +9,7 @@ import java.io.*;
 import java.util.*;
 /** Server-owned, unclaimed candidate rounds. No legacy owned unit is ever replaced. */
 final class NativeRecruitSession {
- static final String CANDIDATE_HINT="후보 확인 후 수령 · 새로고침은 후보마다 1회, 동일 등급";
+ static final String CANDIDATE_HINT="확인하면 남은 후보 수령 · 새로고침은 현재 후보 포기, 같은 등급 1회";
  final MainActivity h;final SharedPreferences prefs;final String owner,key;int epoch;boolean busy;JSONObject state,info;
  JSONArray candidates=new JSONArray();int selected;
  LinearLayout root;ActionFlow controls;TextView message,selectedCandidate,emptyTitle,emptyDetail;RecruitCardTransition card,emptyStage;CandidateRail rail;
@@ -41,17 +41,25 @@ final class NativeRecruitSession {
  void render(boolean shred){controls.removeAllViews();
  boolean awaiting=!prefs.getString(key,"").isEmpty();JSONObject candidate=state==null?null:state.optJSONObject("candidate");
  message.setVisibility(candidate==null||CANDIDATE_HINT.contentEquals(message.getText())?View.GONE:View.VISIBLE);selectedCandidate.setVisibility(candidate==null?View.GONE:View.VISIBLE);
- selectedCandidate.setText(candidate==null?"":("선택 "+(selected+1)+"/"+candidates.length()+" · "+candidate.optString("name")+" · Lv"+candidate.optInt("level")+" · 탭하여 선택"));selectedCandidate.setContentDescription(selectedCandidate.getText()+" · "+CANDIDATE_HINT);
+ selectedCandidate.setText(candidate==null?"":("후보 "+(selected+1)+"/"+candidates.length()+" · "+(hasPending()?"확인 시 모두 합류":"모두 합류 완료")));selectedCandidate.setContentDescription(selectedCandidate.getText()+" · "+CANDIDATE_HINT);
  renderCandidates(shred);
  if(candidate==null){rail.setVisibility(View.GONE);emptyStage.setVisibility(View.VISIBLE);emptyStage.replace(emptyView(),false);card=emptyStage;}
  else{rail.setVisibility(View.VISIBLE);emptyStage.setVisibility(View.GONE);emptyTitle=null;emptyDetail=null;}
-if(state!=null){
- if("PENDING".equals(state.optString("status"))){Button claim=button("이 후보 수령",()->action("claim"));claim.setTag("recruit-claim");claim.setEnabled(!busy&&prefs.getString(key,"").isEmpty());controls.addView(claim);
- }else controls.addView(label("영구 지급 완료",12));}
- if(fromCounter&&!hasPending()){Button back=button("모집소로 돌아가기",h::draw);back.setTag("recruit-back-counter");back.setEnabled(!busy&&prefs.getString(key,"").isEmpty());controls.addView(back);}
- else if(!hasPending()){JSONArray offers=info.optJSONArray("offers");if(offers!=null)for(int i=0;i<offers.length();i++){JSONObject o=offers.optJSONObject(i);Button start=button(o.optString("label")+" 모집 · 지원서 "+o.optInt("cost")+"장",()->start(o));start.setEnabled(info.optBoolean("enabled")&&!busy&&prefs.getString(key,"").isEmpty());controls.addView(start);}}
- if(pendingRows().length()>1){Button all=button("남은 후보 모두 수령",()->queue("claim-all",h.obj("sessions",pendingRows())));all.setTag("recruit-claim-all");all.setEnabled(!busy&&prefs.getString(key,"").isEmpty());controls.addView(all);}
+ if(candidate!=null){
+  Button confirm=button("확인",this::confirmCandidates);confirm.setTag("recruit-confirm");
+  confirm.setContentDescription(hasPending()?"확인 · 남은 후보 모두 수령":"확인 · 모집소로 돌아가기");
+  confirm.setTooltipText(confirm.getContentDescription());
+  confirm.setEnabled(!busy&&!awaiting);controls.addView(confirm);
+ }else if(!hasPending()){JSONArray offers=info.optJSONArray("offers");if(offers!=null)for(int i=0;i<offers.length();i++){JSONObject o=offers.optJSONObject(i);Button start=button(o.optString("label")+" 모집 · 지원서 "+o.optInt("cost")+"장",()->start(o));start.setEnabled(info.optBoolean("enabled")&&!busy&&!awaiting);controls.addView(start);}}
  if(awaiting){Button retry=button("전송 결과 다시 확인 (무료)",this::send);retry.setTag("recruit-retry");retry.setEnabled(!busy);controls.addView(retry);}
+ }
+ // 확인은 표시된 회차의 미수령 후보만 지급한다. 닫기/뒤로가기로 후보를 포기하지 않는다.
+ void confirmCandidates(){
+  if(busy||!current()||(rail!=null&&rail.blocksClick())||!prefs.getString(key,"").isEmpty())return;
+  JSONArray pending=pendingRows();
+  if(pending.length()==0){h.draw();return;}
+  if(pending.length()==1){JSONObject row=pending.optJSONObject(0);queue("action",h.obj("sessionId",row.optString("sessionId"),"revision",row.optInt("revision"),"action","claim"));}
+  else queue("claim-all",h.obj("sessions",pending));
  }
  View emptyView(){LinearLayout empty=new LinearLayout(h);empty.setTag("recruit-unresolved-state");empty.setOrientation(1);empty.setGravity(Gravity.CENTER);empty.setPadding(h.dp(12),h.dp(4),h.dp(12),h.dp(4));
  emptyTitle=label("",18);emptyTitle.setGravity(Gravity.CENTER);empty.addView(emptyTitle,new LinearLayout.LayoutParams(-1,-2));emptyDetail=label("",13);emptyDetail.setGravity(Gravity.CENTER);empty.addView(emptyDetail,new LinearLayout.LayoutParams(-1,-2));updateEmpty();return empty;}
@@ -116,9 +124,9 @@ if(state!=null){
   LinearLayout view=new LinearLayout(h);view.setOrientation(1);view.setPadding(h.dp(4),h.dp(4),h.dp(4),h.dp(4));view.setBackground(NavyWorkbenchTheme.surface(h,0xee102433,NavyWorkbenchTheme.EDGE,8));
   String status=candidateState!=null&&"CLAIMED".equals(candidateState.optString("status"))?"수령 완료":"미수령";
   FrameLayout illustration=new FrameLayout(h);view.addView(illustration,new LinearLayout.LayoutParams(-1,0,1));
-  ImageView image=new ImageView(h);image.setScaleType(ImageView.ScaleType.FIT_CENTER);image.setTag("recruit-registration-card");image.setPadding(0,h.dp(52),0,0);illustration.addView(image,new FrameLayout.LayoutParams(-1,-1));
+  ImageView image=new ImageView(h);image.setScaleType(ImageView.ScaleType.FIT_CENTER);image.setTag("recruit-registration-card");image.setPadding(0,0,0,0);illustration.addView(image,new FrameLayout.LayoutParams(-1,-1));
   final JSONObject rerollTarget=copyCandidate(candidateState);final Button[] source={null};Button refresh=button("",()->rerollCandidate(source[0],rerollTarget));source[0]=refresh;refresh.setTag("recruit-reroll");refresh.setTextSize(11);refresh.setMinWidth(0);refresh.setMinimumWidth(0);refresh.setPadding(h.dp(2),h.dp(2),h.dp(2),h.dp(2));refresh.setMaxLines(2);refresh.setGravity(Gravity.CENTER);updateRerollButton(refresh,candidateState);
-  FrameLayout.LayoutParams refreshBox=new FrameLayout.LayoutParams(-1,h.dp(48),Gravity.TOP|Gravity.CENTER_HORIZONTAL);refreshBox.leftMargin=h.dp(2);refreshBox.rightMargin=h.dp(2);illustration.addView(refresh,refreshBox);
+  FrameLayout.LayoutParams refreshBox=new FrameLayout.LayoutParams(h.dp(48),h.dp(48),Gravity.TOP|Gravity.RIGHT);refreshBox.leftMargin=h.dp(2);refreshBox.rightMargin=h.dp(2);illustration.addView(refresh,refreshBox);
   // Keep receipt status outside the printed registration header without taking another art row.
   LinearLayout caption=new LinearLayout(h);caption.setTag("recruit-candidate-caption");caption.setGravity(Gravity.CENTER);view.addView(caption,new LinearLayout.LayoutParams(-1,-2));
   TextView level=label("Lv"+u.optInt("level"),13);level.setGravity(Gravity.CENTER);level.setPadding(h.dp(2),h.dp(4),h.dp(2),h.dp(4));level.setMaxLines(2);caption.addView(level,new LinearLayout.LayoutParams(0,-2,1));
@@ -130,7 +138,7 @@ if(state!=null){
  Integer knownCount(JSONObject row,String field){Object value=row==null?null:row.opt(field);if(!(value instanceof Number))return null;double n=((Number)value).doubleValue();return Double.isFinite(n)&&n>=0&&n<=Integer.MAX_VALUE&&n==Math.floor(n)?(int)n:null;}
  JSONObject copyCandidate(JSONObject row){try{return row==null?null:new JSONObject(row.toString());}catch(JSONException invalid){return null;}}
  void updateRerollButton(Button button,JSONObject row){Integer cost=knownCount(row,"rerollCost"),used=knownCount(row,"rerolls"),revision=knownCount(row,"revision"),credits=knownCount(info,"credits");boolean pending=row!=null&&"PENDING".equals(row.optString("status"));boolean metadata=cost!=null&&used!=null&&used<=1&&revision!=null&&!row.optString("sessionId").isEmpty();boolean enough=cost==null||credits==null||credits>=cost;
-  String detail=(cost==null?"비용 ?":cost+"장")+" · "+(used==null||used>1?"회수 ?":"잔여"+(1-used));String title=!pending?"수령 완료":!enough?"지원서 부족":"새로고침";button.setText(title+"\n"+detail);JSONObject candidate=row==null?null:row.optJSONObject("candidate");button.setContentDescription((candidate==null?"후보":candidate.optString("name"))+" · 새로고침 · "+title+" · 지원서 "+(cost==null?"확인 필요":cost+"장")+" · 남은 "+(used==null||used>1?"회수 확인 필요":(1-used)+"회")+" · 같은 등급 후보로 1회 새로고침");
+  String title=!pending?"수령 완료":!enough?"지원서 부족":"새로고침";button.setText(!pending?"✓":used!=null&&used==1?"↻\n완료":"↻\n"+(cost==null?"?장":cost+"장"));JSONObject candidate=row==null?null:row.optJSONObject("candidate");button.setContentDescription((candidate==null?"후보":candidate.optString("name"))+" · 새로고침 · "+title+" · 지원서 "+(cost==null?"확인 필요":cost+"장")+" · 남은 "+(used==null||used>1?"회수 확인 필요":(1-used)+"회")+" · 같은 등급 후보로 1회 새로고침 · 현재 후보를 포기하고 교체합니다");button.setTooltipText(button.getContentDescription());
   button.setEnabled(current()&&pending&&metadata&&used==0&&enough&&!busy&&prefs.getString(key,"").isEmpty());
  }
  void rerollCandidate(Button source,JSONObject displayed){if(source==null||!source.isAttachedToWindow()||displayed==null||busy||!current()||(rail!=null&&rail.blocksClick())||!prefs.getString(key,"").isEmpty())return;String id=displayed.optString("sessionId");if(id.isEmpty())return;JSONObject actual=null;for(int i=0;i<candidates.length();i++){JSONObject row=candidates.optJSONObject(i);if(row!=null&&id.equals(row.optString("sessionId"))){actual=row;break;}}
@@ -151,3 +159,4 @@ if(state!=null){
  boolean changed="reroll".equals(body.optString("action"))&&body.optString("sessionId").equals(r.optString("sessionId"))&&body.optInt("revision")<r.optInt("revision");if(knownCount(r,"credits")!=null)try{info.put("credits",r.get("credits"));}catch(JSONException ignored){}shredSessionId=changed?body.optString("sessionId"):"";acceptResult(r);render(changed);notice("지원서 "+r.optInt("credits")+" · "+(!hasPending()?"수령 완료":"미수령 후보 · 새로고침 시 이 후보 포기"),false);
  });}catch(JSONException bad){notice("저장된 요청 확인이 필요합니다.",true);}}
 }
+

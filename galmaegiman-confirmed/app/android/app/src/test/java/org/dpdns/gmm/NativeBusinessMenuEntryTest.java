@@ -59,6 +59,15 @@ public class NativeBusinessMenuEntryTest {
       } else if (path.equals("native/state")) {
         if (holdState) { pendingState = done; return; }
         done.done(state, null);
+      } else if (path.equals("native/roster60/recruit/session")) {
+        assertFalse("Recruitment entry requires an authenticated session", session.isEmpty());
+        done.done(MainActivity.obj("enabled", true, "catalogVersion", "menu-entry-recruit-fixture",
+            "sessions", new JSONArray(), "offers", new JSONArray()), null);
+      } else if (path.equals("native/roster60/story/state")) {
+        assertFalse("Home story projection requires the authenticated fixture account", session.isEmpty());
+        done.done(MainActivity.obj("contentVersion", "menu-entry-story-fixture", "revision", 1,
+            "statue", MainActivity.obj("stage", 1, "fragments", 0, "hatched", false),
+            "residents", new JSONArray(), "quests", new JSONArray(), "adventures", new JSONArray()), null);
       } else if (path.equals("native/roster60/home")) {
         done.done(MainActivity.obj("rebirthUnlocked", rebirthUnlocked, "rebirthIntroPending", false, "mailUnread", 1), null);
       } else if (path.equals("draw")) {
@@ -97,6 +106,14 @@ public class NativeBusinessMenuEntryTest {
     }
     host.record = false;
     host.home();
+    assertTrue("The actual home is now the village, not the legacy menu surface",
+        host.root.getChildAt(0) instanceof NativeVillageHomeView);
+    assertEquals("Use only the authenticated server's current statue stage", 1, host.villageHome.statueStage);
+    // These tests intentionally retain the legacy menu admission/input safety contract.
+    // Mount that component explicitly after checking the real home's authorized projection.
+    host.villageHome.pause();
+    host.root.removeAllViews();
+    host.root.addView(new LobbyView(host), new android.widget.FrameLayout.LayoutParams(-1, -1));
     helper.layout(host, NativeHomePartyFeedbackTest.PROFILES[0]);
     LobbyView lobby = (LobbyView) host.root.getChildAt(0);
     if (!lobby.isAttachedToWindow()) lobby.onAttachedToWindow();
@@ -145,16 +162,19 @@ public class NativeBusinessMenuEntryTest {
     }
   }
 
-  @Test public void homeAttachmentMakesThreeStatusReadsAndMenuOpeningAddsNone() throws Exception {
+  @Test public void authenticatedHomeAndLegacyMenuMakeFourStatusReadsAndMenuOpeningAddsNone() throws Exception {
     try (ActivityController<NativeHomePartyFeedbackTest.RouteHost> controller = helper.routeHost()) {
       NativeHomePartyFeedbackTest.RouteHost host = controller.get();
       Api api = prepare(host, "PENDING");
       LobbyView lobby = home(host);
-      assertEquals(Arrays.asList("native/roster60/home", "daily", "draw"), api.reads);
+      List<String> expected = Arrays.asList("native/roster60/story/state", "native/roster60/home", "daily", "draw");
+      assertEquals(expected, api.reads);
+      for (String path : expected) assertEquals("Exactly one authorized entry read: " + path, 1, Collections.frequency(api.reads, path));
       lobby.setMenuOpen(true);
       lobby.setMenuOpen(false);
       lobby.setMenuOpen(true);
-      assertEquals(3, api.reads.size());
+      assertEquals(expected, api.reads);
+      assertEquals(4, api.reads.size());
       assertEquals(0, api.menuReads);
       assertTrue(api.writes.isEmpty());
     }
@@ -220,10 +240,16 @@ public class NativeBusinessMenuEntryTest {
       assertTrue(host.busy);
       lobby.buttons.get(1).performClick();
       assertEquals(1, Collections.frequency(api.reads, "native/state"));
+      assertEquals("The parallel recruitment read is single-use despite the repeated tap", 1,
+          Collections.frequency(api.reads, "native/roster60/recruit/session"));
+      assertEquals("Four home reads plus exactly two fresh entry reads", 6, api.reads.size());
       assertNotNull(api.pendingState);
       api.pendingState.done(null, "ACTION_DATA_UNAVAILABLE");
       assertEquals("home", host.screen);
       assertSame(before, host.state);
+      assertEquals("An already successful session read cannot turn failed account state into entry", 6, api.reads.size());
+      assertEquals(1, Collections.frequency(api.reads, "native/state"));
+      assertEquals(1, Collections.frequency(api.reads, "native/roster60/recruit/session"));
       AlertDialog dialog = host.visibleDialog;
       assertNotNull(dialog);
       assertTrue(helper.flow.labels(dialog.getWindow().getDecorView()).contains("ACTION_DATA_UNAVAILABLE"));

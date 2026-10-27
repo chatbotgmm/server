@@ -10,6 +10,7 @@ class NativeRoster60Battle {
  static final Set<String> IN_FLIGHT=new HashSet<>();
  String owner,key,autoSettled="",settlementError="",rejectionNotice=""; int epoch; LinearLayout container; TextView message,stats; Button retry,settle,returnAdventure,home;
  Roster60FormationView formation;LinearLayout arena;
+ android.app.AlertDialog opponentDialog;Button opponentInfo;FrameLayout stageOverlay;
  android.app.AlertDialog conditionDialog;LinearLayout opponentDetails;TextView opponentSummary;final TextView[] opponentReactions=new TextView[8];boolean opponentInfoChanging;JSONObject opponentProjection;
  LinearLayout choicePanel;String choiceKind="",switchTarget="",targetItem="";int itemPage;
  NativeRoster60Art art; NativeRoster60Playback playback; CombatV2ReviewPanel panel; LinearLayout toolbar; TextView hold;
@@ -30,8 +31,12 @@ class NativeRoster60Battle {
   // Same field/right-hand command split as production BattleView.onMeasure().
   arena=new LinearLayout(h);arena.setOrientation(LinearLayout.HORIZONTAL);arena.setBaselineAligned(false);container.addView(arena,new LinearLayout.LayoutParams(-1,0,1));
   LinearLayout stage=new LinearLayout(h);stage.setOrientation(LinearLayout.VERTICAL);stage.setTag("roster60-battle-stage");arena.addView(stage,new LinearLayout.LayoutParams(0,-1,.625f));
-  art=new NativeRoster60Art(h);art.setTag("roster60-battle-art");stage.addView(art,new LinearLayout.LayoutParams(-1,0,1));
-  createOpponentPanel(stage);
+  stageOverlay=new FrameLayout(h){
+   @Override protected void onLayout(boolean changed,int left,int top,int right,int bottom){positionOpponentInfo();super.onLayout(changed,left,top,right,bottom);}
+   @Override protected void onDetachedFromWindow(){dismissOpponentDialog();super.onDetachedFromWindow();}
+  };stage.addView(stageOverlay,new LinearLayout.LayoutParams(-1,0,1));
+  art=new NativeRoster60Art(h);art.setTag("roster60-battle-art");stageOverlay.addView(art,new FrameLayout.LayoutParams(-1,-1));
+  createOpponentPanel(stageOverlay);
 
   // 기술 설명(누르는 동안): 전장 위가 아니라 상단 안내줄 자리에 띄운다. 얼굴·HP/MP 패널·명령 칸을 가리지 않고,
   // 긴 설명은 칸 안에서 글자를 줄이고 그래도 넘치면 말줄임으로 끝낸다(화면 밖 잘림 없음).
@@ -94,7 +99,7 @@ class NativeRoster60Battle {
   });
  }
  void showFormation(JSONArray units,JSONObject encounter){
-  if(formation!=null)container.removeView(formation);panel.cancelInteraction();arena.setVisibility(android.view.View.GONE);home.setText("‹ 뒤로");message.setText("전투 편성 · "+("adventure".equals(encounter.optString("mode"))?"모험":"스토리")+" · 출전 1 + 예비 5");
+  closeOpponentInfo();if(formation!=null)container.removeView(formation);panel.cancelInteraction();arena.setVisibility(android.view.View.GONE);home.setText("‹ 뒤로");message.setText("전투 편성 · "+("adventure".equals(encounter.optString("mode"))?"모험":"스토리")+" · 출전 1 + 예비 5");
   formation=new Roster60FormationView(h,units,ids->{if(!current())return;if(!prefs.getString(key+":pending","").isEmpty()){resume();return;}if("adventure".equals(encounter.optString("mode")))mutate("adventure/start",h.obj("ownedIds",ids));else{JSONArray reserves=new JSONArray();for(int i=1;i<ids.length();i++)reserves.put(ids.optString(i));mutate("create",h.obj("ownedId",ids.optString(0),"reserveIds",reserves,"encounterId",encounter.optString("id")));}},()->{clearFormation();options();});container.addView(formation,new LinearLayout.LayoutParams(-1,0,1));
  }
  void clearFormation(){if(formation!=null){container.removeView(formation);formation=null;}arena.setVisibility(android.view.View.VISIBLE);if(home!=null)home.setText("‹ 홈");}
@@ -190,25 +195,54 @@ class NativeRoster60Battle {
   rejectionNotice="";
   if("action".equals(operation)){panel.cancelInteraction();panel.restoreSkillPage(false);}
  }
- void createOpponentPanel(LinearLayout stage){
+ void createOpponentPanel(FrameLayout stage){
+  opponentInfo=h.button("내성\n0 / 8",this::showOpponentInfo);
+  opponentInfo.setTag("roster60-opponent-info");opponentInfo.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+  opponentInfo.setTextColor(JournalTheme.INK);opponentInfo.setShadowLayer(h.dp(2),0,0,0xfff5efdc);
+  opponentInfo.setPadding(0,0,0,0);opponentInfo.setMinWidth(0);opponentInfo.setMinimumWidth(0);
+  opponentInfo.setMinHeight(h.dp(48));opponentInfo.setMinimumHeight(h.dp(48));opponentInfo.setMaxLines(2);
+  opponentInfo.setVisibility(android.view.View.GONE);stage.addView(opponentInfo,new FrameLayout.LayoutParams(h.dp(64),h.dp(48)));
   opponentDetails=new LinearLayout(h);opponentDetails.setOrientation(LinearLayout.VERTICAL);
-  opponentDetails.setTag("roster60-opponent-panel");opponentDetails.setPadding(h.dp(8),h.dp(3),h.dp(8),h.dp(3));
-  opponentDetails.setBackground(NavyWorkbenchTheme.surface(h,NavyWorkbenchTheme.PANEL,NavyWorkbenchTheme.LINE,6));
-  opponentDetails.setVisibility(android.view.View.GONE);
+  opponentDetails.setTag("roster60-opponent-panel");opponentDetails.setPadding(h.dp(8),h.dp(6),h.dp(8),h.dp(6));
   opponentSummary=intelText();opponentSummary.setTag("roster60-opponent-summary");opponentDetails.addView(opponentSummary,new LinearLayout.LayoutParams(-1,-2));
   for(int row=0;row<2;row++){
    LinearLayout line=new LinearLayout(h);opponentDetails.addView(line,new LinearLayout.LayoutParams(-1,-2));
    for(int col=0;col<4;col++){
-    int index=row*4+col;TextView cell=intelText();cell.setTag("roster60-opponent-reaction-"+Roster60OpponentIntel.ELEMENTS[index]);
+    int index=row*4+col;TextView cell=intelText();cell.setGravity(android.view.Gravity.CENTER);
+    cell.setTag("roster60-opponent-reaction-"+Roster60OpponentIntel.ELEMENTS[index]);
+    cell.setPadding(h.dp(3),h.dp(8),h.dp(3),h.dp(8));
     opponentReactions[index]=cell;line.addView(cell,new LinearLayout.LayoutParams(0,-2,1));
    }
   }
-  stage.addView(opponentDetails,new LinearLayout.LayoutParams(-1,-2));scaleOpponentPanel();
+  scaleOpponentPanel();
+ }
+ void positionOpponentInfo(){
+  if(opponentInfo==null||stageOverlay==null)return;
+  float density=h.getResources().getDisplayMetrics().density;
+  FrameLayout.LayoutParams box=(FrameLayout.LayoutParams)opponentInfo.getLayoutParams();
+  int left=Math.round(Roster60HudGeometry.infoLeft(stageOverlay.getWidth(),density,scale));
+  int top=h.dp(4);int width=h.dp(64),height=h.dp(48);
+  if(box.leftMargin!=left||box.topMargin!=top||box.width!=width||box.height!=height){
+   box.leftMargin=left;box.topMargin=top;box.width=width;box.height=height;opponentInfo.setLayoutParams(box);
+  }
  }
  TextView intelText(){TextView text=h.text("",12);text.setTypeface(h.prose);text.setTextColor(NavyWorkbenchTheme.TEXT);text.setIncludeFontPadding(true);text.setSingleLine(false);text.setHorizontallyScrolling(false);text.setPadding(0,h.dp(1),h.dp(3),h.dp(1));return text;}
- void scaleOpponentPanel(){float size=12*Math.min(1.3f,scale);if(opponentSummary!=null)opponentSummary.setTextSize(size);for(TextView cell:opponentReactions)if(cell!=null)cell.setTextSize(size);}
- // Kept as a read-only refresh entry for existing callers; the panel is already on screen.
- void showOpponentInfo(){if(view==null||view.optJSONObject("state")==null)return;opponentDetails.setVisibility(android.view.View.VISIBLE);refreshOpponentInfo();}
+ void scaleOpponentPanel(){
+  float size=12*Math.min(1.3f,scale);if(opponentSummary!=null)opponentSummary.setTextSize(size);
+  if(opponentInfo!=null)opponentInfo.setTextSize(12);
+  for(int i=0;i<opponentReactions.length;i++)if(opponentReactions[i]!=null){
+   opponentReactions[i].setTextSize(size);Roster60ElementArt.bind(opponentReactions[i],Roster60OpponentIntel.ELEMENTS[i],32*Math.min(1.3f,scale),true);
+  }
+  positionOpponentInfo();
+ }
+ void showOpponentInfo(){
+  if(!current()||view==null||view.optJSONObject("state")==null||presentationPaused)return;
+  refreshOpponentInfo();if(opponentDialog!=null&&opponentDialog.isShowing())return;
+  android.view.ViewParent parent=opponentDetails.getParent();if(parent instanceof android.view.ViewGroup)((android.view.ViewGroup)parent).removeView(opponentDetails);
+  opponentDialog=new GameDialog(h).navy().setTitle("상대 내성").setScrollBody(opponentDetails).setPositiveButton("닫기",null).show();
+  final android.app.AlertDialog shown=opponentDialog;
+  shown.setOnDismissListener(d->{if(h.visibleDialog==shown)h.visibleDialog=null;if(opponentDialog==shown)opponentDialog=null;});
+ }
  void refreshOpponentInfo(){
   if(opponentDetails==null)return;
   Roster60OpponentIntel intel=new Roster60OpponentIntel(opponentProjection==null?view:opponentProjection,opponentInfoChanging);
@@ -216,9 +250,11 @@ class NativeRoster60Battle {
   String headline=intel.changing?"상대 교체 확인 중 · 0 / 8":scope+" "+intel.knownCount+" / 8";
   headline+=" · "+(intel.statsKnown?"내구  "+intel.stats[2]+" · 저항  "+intel.stats[3]+" · 속도  "+intel.stats[4]:intel.statsNotice());
   opponentSummary.setText(headline);StringBuilder accessible=new StringBuilder(headline);
+  opponentInfo.setText("내성\n"+intel.knownCount+" / 8");
+  opponentInfo.setContentDescription("상대 내성 정보 열기 · "+headline);
   for(int i=0;i<opponentReactions.length;i++){
-   String value=Roster60OpponentIntel.ELEMENT_NAMES[i]+" "+Roster60OpponentIntel.defenseLabel(intel.defenses[i]);
-   opponentReactions[i].setText(value);accessible.append(" · ").append(value);
+   String value=Roster60OpponentIntel.ELEMENT_NAMES[i]+"\n"+Roster60OpponentIntel.defenseLabel(intel.defenses[i]);
+   opponentReactions[i].setText(value);opponentReactions[i].setContentDescription(value.replace('\n',' '));accessible.append(" · ").append(value);
   }
   opponentDetails.setContentDescription(accessible);
  }
@@ -234,10 +270,16 @@ class NativeRoster60Battle {
   }
  }
  void suspendOpponentInfo(){opponentProjection=null;opponentInfoChanging=true;refreshOpponentInfo();}
- void closeOpponentInfo(){if(opponentDetails!=null)opponentDetails.setVisibility(android.view.View.GONE);opponentProjection=null;}
+ void dismissOpponentDialog(){
+  android.app.AlertDialog shown=opponentDialog;opponentDialog=null;
+  // Android dispatches OnDismiss asynchronously; lifecycle ownership ends immediately.
+  if(h.visibleDialog==shown)h.visibleDialog=null;
+  if(shown!=null)shown.dismiss();
+ }
+ void closeOpponentInfo(){dismissOpponentDialog();if(opponentInfo!=null)opponentInfo.setVisibility(android.view.View.GONE);opponentProjection=null;}
  boolean presenting(){return playback!=null&&playback.playing();}
  void lockPresentation(){
-  panel.lock();panel.cancelInteraction();panel.restoreSkillPage(false);
+  dismissOpponentDialog();panel.lock();panel.cancelInteraction();panel.restoreSkillPage(false);
   choiceKind="";switchTarget="";choicePanel.setVisibility(android.view.View.GONE);
   panel.setVisibility(android.view.View.VISIBLE);
   retry.setEnabled(false);settle.setEnabled(false);returnAdventure.setEnabled(false);
@@ -264,7 +306,7 @@ class NativeRoster60Battle {
    JSONArray raw=self.getJSONArray("skills");for(int i=0;i<raw.length();i++){JSONObject sk=new JSONObject(raw.getJSONObject(i).toString());boolean enabled=active&&self.optInt("hp")>0&&self.getInt("mp")>=sk.getInt("mpCost");sk.put("enabled",enabled);sk.put("reason",active?(enabled?"":"MP 부족"):"전투 종료");sk.put("description","위력 "+sk.optDouble("power"));skills.put(sk);}
    JSONObject displaySelf=new JSONObject(self.toString());displaySelf.put("maxHp",self.getJSONObject("stats").getInt("hp"));displaySelf.put("maxMp",self.getJSONObject("stats").getInt("mp"));JSONObject displayFoe=new JSONObject(foe.toString());displayFoe.put("maxHp",foe.getJSONObject("stats").getInt("hp"));displayFoe.put("maxMp",foe.getJSONObject("stats").getInt("mp"));
    panel.bind(h.obj("epoch","product-five-battle-v1","battleId",r.getString("battleId"),"revision",r.getInt("revision"),"self",displaySelf,"foe",displayFoe,"commands",commands,"skills",skills,"events",new JSONArray()));
-   adventure=null;returnAdventure.setVisibility(android.view.View.GONE);retry.setVisibility(android.view.View.GONE);settle.setVisibility(android.view.View.GONE);view=r;showOpponentInfo();
+   adventure=null;returnAdventure.setVisibility(android.view.View.GONE);retry.setVisibility(android.view.View.GONE);settle.setVisibility(android.view.View.GONE);view=r;opponentInfo.setVisibility(android.view.View.VISIBLE);refreshOpponentInfo();
    if(!active){choiceKind="";choicePanel.setVisibility(android.view.View.GONE);}
    panel.setVisibility(active?android.view.View.VISIBLE:android.view.View.GONE);
    if(active&&!choiceKind.isEmpty())renderChoices();
@@ -279,7 +321,7 @@ class NativeRoster60Battle {
   }catch(Exception bad){view=null;closeOpponentInfo();panel.lock();settle.setEnabled(false);message.setText("서버 전투 데이터 형식을 확인할 수 없습니다.");}
  }
  static String resultLabel(String outcome){return "win".equals(outcome)?"승리":"loss".equals(outcome)?"패배":"escaped".equals(outcome)?"도망 성공":"전투 종료";}
- boolean back(){if(presenting()){playback.suspend();h.load("home");return true;}if(formation!=null){clearFormation();message.setText("전투를 선택하세요.");options();return true;}if(!choiceKind.isEmpty()){closeChoices();return true;}if(panel!=null){panel.cancelInteraction();if(panel.showCommands())return true;}h.load("home");return true;}
- void pause(){closeCondition();presentationPaused=true;if(playback!=null)playback.suspend();if(panel!=null)panel.cancelInteraction();if(selection!=null){selection.dismiss();selection=null;}}
+ boolean back(){if(opponentDialog!=null&&opponentDialog.isShowing()){dismissOpponentDialog();return true;}if(presenting()){playback.suspend();h.load("home");return true;}if(formation!=null){clearFormation();message.setText("전투를 선택하세요.");options();return true;}if(!choiceKind.isEmpty()){closeChoices();return true;}if(panel!=null){panel.cancelInteraction();if(panel.showCommands())return true;}h.load("home");return true;}
+ void pause(){dismissOpponentDialog();closeCondition();presentationPaused=true;if(playback!=null)playback.suspend();if(panel!=null)panel.cancelInteraction();if(selection!=null){selection.dismiss();selection=null;}}
 }
 

@@ -103,11 +103,11 @@ final class CombatV2ReviewPanel extends LinearLayout {
           button.setBackground(new BattleSkin(host,"button-"+surface));CombatV2ReviewStyle.text(button);
           button.setTextColor("surrender".equals(surface)?JournalTheme.INK:0xfffff8e8);
           button.setCompoundDrawables(null,null,null,null);
-          if(skillPage)CombatV2ReviewStyle.skillIcon(button,entry.optString("element"),scale);
+          if(skillPage){Roster60ElementArt.bind(button,entry.optString("element"),28*scale,false);button.setPadding(dp(6*scale),dp(2),dp(6*scale),dp(2));}
           if(!skillPage){String icon="skills".equals(kind)?"goldenstrike":"focus".equals(kind)?"shield":"escape".equals(kind)?"surrender":kind;android.graphics.Bitmap image=BattleSkin.bitmap(host,"icon-"+icon);if(image!=null){android.graphics.drawable.BitmapDrawable draw=new android.graphics.drawable.BitmapDrawable(getResources(),image);draw.setBounds(0,0,dp(24*scale),dp(24*scale));button.setCompoundDrawables(draw,null,null,null);button.setCompoundDrawablePadding(dp(2*scale));button.setPadding(dp(8*scale),dp(2),dp(6*scale),dp(2));}}
 
         }
-        button.setText(label+(shownWhy.isEmpty()?"":"\n"+shownWhy));button.setContentDescription(label+" "+why);
+        button.setText(label+(shownWhy.isEmpty()?"":"\n"+shownWhy));button.setContentDescription(label+(skillPage?" · "+elementName(entry.optString("element")):"")+" "+why);
         button.setEnabled(!pending && (skillPage || entry.optBoolean("enabled")));
         button.setOnClickListener(v->{
           if(pending || !entry.optBoolean("enabled"))return;

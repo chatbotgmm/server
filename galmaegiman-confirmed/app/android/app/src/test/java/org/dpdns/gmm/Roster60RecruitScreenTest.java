@@ -104,9 +104,9 @@ public class Roster60RecruitScreenTest {
    assertNotNull("후보 등록증",h.root.findViewWithTag("recruit-registration-card"));
    Button reroll=(Button)tag(h,"recruit-reroll");assertTrue("새로고침 = 중급 비용 절반",reroll.getText().toString().contains("3장"));
    helper.png(NativeHomePartyFeedbackTest.render(h.root),"roster60-session-candidate-915x412.png");
-   tag(h,"recruit-claim").performClick();idle();assertEquals("claim",api.posts.get(1).getString("action"));
+   tag(h,"recruit-confirm").performClick();idle();assertEquals("claim",api.posts.get(1).getString("action"));
    api.pending.done(MainActivity.obj("requestId",api.posts.get(1).getString("requestId"),"sessionId","s1","revision",1,"status","CLAIMED","rerolls",0,"rerollCost",3,"candidate",cand,"credits",4),null);idle();
-   assertNotNull("수령 뒤 모집소로",h.root.findViewWithTag("recruit-back-counter"));
+   Button confirm=(Button)tag(h,"recruit-confirm");assertEquals("확인",confirm.getText().toString());assertTrue("수령 뒤 확인으로 모집소로",confirm.getContentDescription().toString().contains("모집소로 돌아가기"));assertTrue(confirm.isEnabled());assertEquals("수령 응답만으로 추가 모집하지 않음",2,api.posts.size());
   }
  }
 
