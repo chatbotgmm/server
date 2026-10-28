@@ -66,7 +66,7 @@ public class NativeVillageHomeTest {
   static JSONArray units(){return new JSONArray().put(MainActivity.obj("ownedId","owned-a","speciesId","u01","name","갈매미맨","level",1,"maxLevel",60,"stats",MainActivity.obj("hp",20,"mp",5,"durability",2,"statusResistance",1,"speed",3)));}
  }
  Api prepare(MainActivity h)throws Exception{helper.prepare(h).close();Api api=new Api(h,h.state);h.api=api;h.getSharedPreferences("native_village_home_v2",0).edit().clear().commit();h.getSharedPreferences("roster60_story_v1",0).edit().clear().commit();h.getSharedPreferences("roster60_product_battle",0).edit().clear().commit();h.getSharedPreferences("roster60_human_queue",0).edit().clear().commit();return api;}
- NativeVillageHomeView open(MainActivity h,NativeHomePartyFeedbackTest.Profile p){h.home();helper.layout(h,p);assertNotNull(h.villageHome);assertTrue(h.villageHome.current());return h.villageHome.view;}
+ NativeVillageHomeView open(MainActivity h,NativeHomePartyFeedbackTest.Profile p){h.home();helper.layout(h,p);try{LocalGameArtTest.drain();helper.layout(h,p);}catch(Exception error){throw new AssertionError(error);}assertNotNull(h.villageHome);assertTrue(h.villageHome.current());return h.villageHome.view;}
  static Button button(MainActivity h,String tag){View value=h.root.findViewWithTag(tag);assertTrue("Missing actual home control "+tag,value instanceof Button);return(Button)value;}
  static void touch(NativeVillageHomeView v,int action,long down,long at,float x,float y){MotionEvent e=MotionEvent.obtain(down,at,action,x,y,0);v.dispatchTouchEvent(e);e.recycle();}
  static void tap(NativeVillageHomeView v,View target){PointF point=target instanceof Button&&(v.buildingButtons.containsValue(target)||v.residentButtons.containsValue(target))?opaqueArtPoint(v,(Button)target):new PointF((target.getLeft()+target.getRight())/2f,(target.getTop()+target.getBottom())/2f);tapAt(v,point.x,point.y);}
@@ -86,10 +86,10 @@ public class NativeVillageHomeTest {
   try(ActivityController<MainActivity> activity=helper.flow.start()){
    MainActivity h=activity.get();Api api=prepare(h);NativeVillageHomeView view=open(h,PHONE);
    assertSame(view,h.root.getChildAt(0));assertFalse(h.root.getChildAt(0) instanceof LobbyView);assertEquals(7,view.buildingButtons.size());assertEquals(4,view.residentButtons.size());
-   assertEquals(Collections.singletonList("native/roster60/story/state"),api.paths);assertTrue(api.writes.isEmpty());assertNull(h.root.findViewWithTag("theme-page-header"));
+   assertEquals(1,Collections.frequency(api.paths,"native/roster60/story/state"));for(String read:api.paths)assertTrue("Home only reads story state and the existing loan reminder",Arrays.asList("native/roster60/story/state","starter-loans").contains(read));assertTrue(api.writes.isEmpty());assertNull(h.root.findViewWithTag("theme-page-header"));
    String labels=helper.flow.labels(h.root);for(String balance:new String[]{"1,240","80","30"})assertFalse("Home must not expose a currency HUD",labels.contains(balance));
    LocalGameArtTest.drain();helper.layout(h,PHONE);assertTrue(view.assets.ready());assertTrue(view.assets.images.keySet().containsAll(view.assets.requiredImages));assertEquals(0,view.assets.missing);assertFalse(view.settings.getContentDescription().toString().contains("그림을 불러오는 중"));assertFullBleed(view,h);
-   assertTrue(view.residentButtons.get("guard").isShown());assertEquals(1.54,view.layout.resident("guard").x,1e-9);assertEquals(1,Collections.frequency(new ArrayList<>(view.residentButtons.keySet()),"guard"));assertTrue(view.residentButtons.get("blacksmith").getText().toString().startsWith("! "));assertFalse(view.residentButtons.get("merchant").getText().toString().contains("!"));assertTrue(view.residentButtons.get("librarian").getText().toString().contains("보고"));assertTrue(view.residentButtons.get("librarian").getContentDescription().toString().contains("보고 가능"));assertTrue(view.residentButtons.get("guard").getText().toString().contains("완료"));
+   assertTrue(view.residentButtons.get("guard").isShown());assertEquals(1.70,view.layout.resident("guard").x,1e-9);assertEquals(1,Collections.frequency(new ArrayList<>(view.residentButtons.keySet()),"guard"));assertTrue(view.residentButtons.get("blacksmith").getText().toString().startsWith("! "));assertFalse(view.residentButtons.get("merchant").getText().toString().contains("!"));assertTrue(view.residentButtons.get("librarian").getText().toString().contains("보고"));assertTrue(view.residentButtons.get("librarian").getContentDescription().toString().contains("보고 가능"));assertTrue(view.residentButtons.get("guard").getText().toString().contains("완료"));
    api.storyError="network";h.villageHome.refresh();assertEquals(4,view.residentButtons.size());for(Button resident:view.residentButtons.values()){assertFalse(resident.getText().toString().contains("!"));assertTrue(resident.getContentDescription().toString().contains("일상"));assertFalse(resident.getText().toString().contains("\n"));}
   }
  }
@@ -112,7 +112,7 @@ public class NativeVillageHomeTest {
    RouteHost h=activity.get();Api api=prepare(h);h.record=true;VillageLayout layout=VillageLayout.load(h);
    for(VillageLayout.Building building:layout.buildings)for(int item=0;item<building.actionIds.length;item++){
     NativeVillageHomeView view=open(h,PHONE);LocalGameArtTest.drain();helper.layout(h,PHONE);view.moveCameraUnits(building.x-.5-view.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,PHONE);Button target=view.buildingButtons.get(building.id);assertTrue(target.isShown());tap(view,target);
-    if(building.actionIds.length>1){assertArrayEquals(building.menu,Shadows.shadowOf(h.villageHome.menu).getItems());Shadows.shadowOf(h.villageHome.menu).clickOnItem(item);}
+    if(building.actionIds.length>1){String[] expectedMenu=building.menu;if("archive".equals(building.id)){expectedMenu=Arrays.copyOf(building.menu,building.menu.length+1);expectedMenu[building.menu.length]="이야기 기록";}assertArrayEquals(expectedMenu,Shadows.shadowOf(h.villageHome.menu).getItems());Shadows.shadowOf(h.villageHome.menu).clickOnItem(item);}
     String action=building.actionIds[item],expected;
     if("explore".equals(action)){assertEquals("home",h.screen);assertTrue(h.rosterStory.villageOverlayOpen());assertTrue(api.writes.isEmpty());h.rosterStory.overlay.finishTyping();h.rosterStory.overlay.choices.getChildAt(0).performClick();}
     if("departure".equals(action)){assertTrue(h.rosterStory.villageOverlayOpen());assertSame(view,h.villageHome.view);assertTrue(api.writes.isEmpty());h.rosterStory.back();continue;}
@@ -140,7 +140,7 @@ public class NativeVillageHomeTest {
   try(ActivityController<MainActivity> activity=helper.flow.start()){
    MainActivity h=activity.get();Api api=prepare(h);NativeVillageHomeView view=open(h,PHONE);fling(view,false);assertTrue("Actual background drag moves camera; U="+view.camera.cameraUnits(),view.camera.cameraUnits()>0);assertFalse("Released native velocity="+view.scroller.getCurrVelocity()+", moved="+view.moved,view.scroller.isFinished());frames(view,2);double before=view.camera.cameraUnits();frames(view,2);assertTrue(view.camera.cameraUnits()>before);
    tap(view,view.settings);assertNull(h.villageHome.menu);assertTrue(view.scroller.isFinished());assertEquals("home",h.screen);
-   tap(view,view.settings);assertNotNull(h.villageHome.menu);assertTrue(h.villageHome.menu.isShowing());h.villageHome.menu.dismiss();
+   LocalGameArtTest.drain();helper.layout(h,PHONE);assertTrue("The newly reached district must finish before controls reopen",view.sceneReady());tap(view,view.settings);assertNotNull(h.villageHome.menu);assertTrue(h.villageHome.menu.isShowing());h.villageHome.menu.dismiss();
    double reverse=view.camera.cameraUnits();fling(view,true);frames(view,3);assertTrue(view.camera.cameraUnits()<reverse);view.stopMotion();
    long t=SystemClock.uptimeMillis();touch(view,MotionEvent.ACTION_DOWN,t,t,600,view.field.centerY());touch(view,MotionEvent.ACTION_MOVE,t,t+40,450,view.field.centerY());double released=view.camera.cameraUnits();touch(view,MotionEvent.ACTION_CANCEL,t,t+50,450,view.field.centerY());frames(view,4);assertTrue(view.scroller.isFinished());assertEquals(released,view.camera.cameraUnits(),1e-9);assertTrue(api.writes.isEmpty());assertEquals("home",h.screen);
   }
@@ -150,13 +150,16 @@ public class NativeVillageHomeTest {
    MainActivity h=activity.get();prepare(h);NativeVillageHomeView view=open(h,PHONE);view.scroller.startScroll(0,0,1,0,1000);frames(view,2);assertTrue(view.scroller.getCurrVelocity()<=view.minFling);tap(view,view.settings);assertNotNull(h.villageHome.menu);assertTrue(h.villageHome.menu.isShowing());
   }
  }
- @Test public void delayedAssetAndRelayoutKeepReleasedNativeMotionAndContinuousCamera()throws Exception{
+ @Test public void delayedAssetsBlockWorldMotionUntilCompleteAndNeverRevealPlaceholderShapes()throws Exception{
   try(ActivityController<MainActivity> activity=helper.flow.start()){
    MainActivity h=activity.get();Api api=prepare(h);h.home();h.villageHome.pause();h.root.removeAllViews();h.epoch++;h.screen="home";
-   VillageLayout fixture=NativeVillageHomeAssetsTest.verifiedFixture();NativeVillageHomeController owner=new NativeVillageHomeController(h);NativeVillageHomeAssetsTest.Delayed source=new NativeVillageHomeAssetsTest.Delayed();NativeVillageHomeAssets assets=new NativeVillageHomeAssets(source);
+   VillageLayout fixture=VillageLayout.parse(NativeVillageHomeAssetsTest.manifest());NativeVillageHomeController owner=new NativeVillageHomeController(h);NativeVillageHomeAssetsTest.Delayed source=new NativeVillageHomeAssetsTest.Delayed();NativeVillageHomeAssets assets=new NativeVillageHomeAssets(source);
    owner.layout=fixture;owner.view=new NativeVillageHomeView(h,owner,fixture,assets);h.villageHome=owner;h.root.addView(owner.view,new FrameLayout.LayoutParams(-1,-1));NativeVillageHomeView view=owner.view;helper.layout(h,PHONE);
-   assets.load(fixture,owner::current,()->{if(owner.current()){view.updateNotice();view.invalidate();}});fling(view,false);frames(view,3);double moving=view.camera.cameraUnits();assertFalse(view.scroller.isFinished());
-   source.callbacks.get(0).accept(Bitmap.createBitmap(40,60,Bitmap.Config.ARGB_8888));helper.layout(h,PHONE);assertTrue("Relayout never resets the continuous camera",view.camera.cameraUnits()>=moving);assertFalse("Released motion survives asset arrival; speed="+view.scroller.getCurrVelocity(),view.scroller.isFinished());double afterLayout=view.camera.cameraUnits();frames(view,3);assertTrue(view.camera.cameraUnits()>afterLayout);assertTrue(api.writes.isEmpty());
+   assets.load(fixture,owner::current,()->{if(owner.current()){view.updateNotice();view.invalidate();}});double before=view.camera.cameraUnits();fling(view,false);frames(view,3);
+   assertFalse(view.sceneReady());assertEquals(View.VISIBLE,view.loadingPanel.getVisibility());assertEquals(View.INVISIBLE,view.settings.getVisibility());assertEquals(before,view.camera.cameraUnits(),0);assertTrue(view.scroller.isFinished());
+   Bitmap loading=NativeHomePartyFeedbackTest.render(view);try{assertEquals("Only loading backdrop, never buildings/ships/tokens",NavyWorkbenchTheme.SLOT,loading.getPixel(12,12));}finally{loading.recycle();}
+   while(!assets.ready()){assertTrue(source.completed<source.callbacks.size());source.callbacks.get(source.completed++).accept(NativeVillageHomeAssetsTest.image());}
+   helper.layout(h,PHONE);assertTrue(view.sceneReady());assertEquals(View.GONE,view.loadingPanel.getVisibility());assertEquals(View.VISIBLE,view.settings.getVisibility());assertEquals(before,view.camera.cameraUnits(),0);assertTrue(api.writes.isEmpty());
   }
  }
  @Test public void ownerChangesIgnoreOldReadsAndResumeRebuildsTokenRotationNewAccountAndLogin()throws Exception{
@@ -182,7 +185,7 @@ public class NativeVillageHomeTest {
  @Test public void cameraRestoresAfterBackReentryAndConfigurationResizeWithoutStartingAQuest()throws Exception{
   try(ActivityController<MainActivity> activity=helper.flow.start()){
    MainActivity h=activity.get();Api api=prepare(h);NativeVillageHomeView before=open(h,PHONE);before.moveCameraUnits(-8001.3);h.villageHome.saveCamera();h.openPlayMenu();h.back();helper.layout(h,PHONE);assertEquals(-8001.3,h.villageHome.view.camera.cameraUnits(),1e-9);
-   helper.configure(PROFILES[1]);helper.layout(h,PROFILES[1]);assertEquals(-8001.3,h.villageHome.view.camera.cameraUnits(),1e-9);assertEquals(640,h.villageHome.view.unitPixels(),.001);assertTrue(api.writes.isEmpty());
+   helper.configure(PROFILES[1]);helper.layout(h,PROFILES[1]);assertEquals(-8001.3,h.villageHome.view.camera.cameraUnits(),1e-9);assertEquals(720,h.villageHome.view.unitPixels(),.001);assertTrue(api.writes.isEmpty());
   }
  }
  @Test public void residentTapOpensOnlyTheEligibleDialogueAndNeverAcceptsOrDeparts()throws Exception{
@@ -194,7 +197,7 @@ public class NativeVillageHomeTest {
   try(ActivityController<MainActivity> activity=helper.flow.start()){
    MainActivity h=activity.get();Api api=prepare(h);
    for(int index=0;index<4;index++){
-    NativeVillageHomeView view=open(h,PHONE);LocalGameArtTest.drain();helper.layout(h,PHONE);view.moveCameraUnits((index<2?4:5)-view.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,PHONE);
+    NativeVillageHomeView view=open(h,PHONE);LocalGameArtTest.drain();helper.layout(h,PHONE);view.moveCameraUnits(view.layout.building(index<2?"harbor":"training").x-view.field.width()/view.unitPixels()/2-view.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,PHONE);
     String facility=index<2?"harbor":"training";tap(view,button(h,"village-building-"+facility));assertArrayEquals(index<2?new CharSequence[]{"탐험","스토리 외부 출항"}:new CharSequence[]{"일반전","랭크전"},Shadows.shadowOf(h.villageHome.menu).getItems());Shadows.shadowOf(h.villageHome.menu).clickOnItem(index%2);
     if(index==0){assertEquals("home",h.screen);assertTrue(h.rosterStory.villageOverlayOpen());assertTrue(api.writes.isEmpty());h.rosterStory.overlay.finishTyping();h.rosterStory.overlay.choices.getChildAt(0).performClick();assertEquals("roster60Battle",h.screen);assertEquals(Roster60BattleMode.ADVENTURE,h.rosterBattle.requestedMode);h.rosterBattle.pause();}
     else if(index==1){assertEquals("home",h.screen);assertTrue(h.rosterStory.villageOverlayOpen());h.rosterStory.back();}
@@ -232,7 +235,7 @@ public class NativeVillageHomeTest {
   assertRect(new RectF(0,0,view.getWidth(),view.getHeight()),view.field);
   assertRect(h.safeBounds(view.getWidth(),view.getHeight()),view.safe);
   for(String tag:new String[]{"village-title","village-art-status","village-prev","village-next","village-district-0","village-district-1","village-district-2","village-district-3"})assertNull("No fixed header, notice or district bar: "+tag,view.findViewWithTag(tag));
-  assertEquals("Seven facilities, four residents, statue and three small overlays",15,view.getChildCount());
+  assertEquals("Seven facilities, four residents, statue, three small overlays and the hidden readiness screen",16,view.getChildCount());assertEquals(View.GONE,view.loadingPanel.getVisibility());
   for(Button fixed:new Button[]{view.pass,view.settings,view.daily}){
    NativeNoScrollReviewTest.assertFullyVisible(fixed,h.root);assertEquals(h.dp(48),fixed.getWidth());assertEquals(h.dp(48),fixed.getHeight());assertEquals("",fixed.getText().toString());assertTrue(fixed.getBackground() instanceof android.graphics.drawable.LayerDrawable);
    assertTrue("Fixed icon stays inside the system safe area",view.safe.contains(new RectF(fixed.getLeft(),fixed.getTop(),fixed.getRight(),fixed.getBottom())));assertFalse(fixed.getContentDescription().toString().isEmpty());
@@ -263,7 +266,9 @@ public class NativeVillageHomeTest {
  }
  static void checkWorld(NativeVillageHomeView view,Button button,RectF rect,JSONArray evidence)throws Exception{
   assertEquals(button.getMeasuredWidth(),Math.round(rect.width()),1);assertEquals(button.getMeasuredHeight(),Math.round(rect.height()),1);assertTrue(rect.width()>=view.h.dp(48));assertTrue(rect.height()>=view.h.dp(48));
-  assertFalse("World name text uses one short line",button.getText().toString().contains("\n"));assertEquals(Gravity.BOTTOM,button.getGravity()&Gravity.VERTICAL_GRAVITY_MASK);assertTrue(button.getBackground() instanceof android.graphics.drawable.ColorDrawable);assertEquals(Color.TRANSPARENT,((android.graphics.drawable.ColorDrawable)button.getBackground()).getColor());assertEquals(1,button.getMaxLines());RectF chip=view.labelRect(rect,button);assertTrue(chip.left>=rect.left-.5f&&chip.right<=rect.right+.5f&&chip.top>=rect.top-.5f&&chip.bottom<=rect.bottom+.5f);assertEquals("Image nameplates sit below the picture",rect.bottom,chip.bottom,.1);assertEquals(view.labelHeight(button),chip.height(),.1);assertTrue("Nameplate does not cover image pixels",chip.top>=view.imageSlot(button).bottom+view.labelGap()-1);assertTrue("Caption stays small instead of filling the building width",chip.height()<=view.h.dp(45));assertEquals("Atlas plaque and status lane keep their proportional width",view.labelWidth(button),chip.width(),1);
+  assertFalse("World name text uses one short line",button.getText().toString().contains("\n"));assertEquals(Gravity.BOTTOM,button.getGravity()&Gravity.VERTICAL_GRAVITY_MASK);assertTrue(button.getBackground() instanceof android.graphics.drawable.ColorDrawable);assertEquals(Color.TRANSPARENT,((android.graphics.drawable.ColorDrawable)button.getBackground()).getColor());assertEquals(1,button.getMaxLines());RectF chip=view.labelRect(rect,button);assertTrue(chip.left>=rect.left-.5f&&chip.right<=rect.right+.5f&&chip.top>=rect.top-.5f&&chip.bottom<=rect.bottom+.5f);assertEquals("Image nameplates sit below the picture",rect.bottom,chip.bottom,.1);assertEquals(view.labelHeight(button),chip.height(),.1);RectF visiblePicture=view.imageSlot(button);NativeVillageHomeView.WorldTarget target=(NativeVillageHomeView.WorldTarget)button;
+  if(target.building!=null&&!target.building.canvasLayer.isEmpty()){double[] content=view.layout.assets.get(target.asset).contentBounds;visiblePicture.bottom=visiblePicture.top+visiblePicture.height()*(float)content[3];}
+  assertTrue("Nameplate does not cover authored visible image pixels",chip.top>=visiblePicture.bottom+view.labelGap()-1);assertTrue("Caption stays small instead of filling the building width",chip.height()<=view.h.dp(45));assertEquals("Atlas plaque and status lane keep their proportional width",view.labelWidth(button),chip.width(),1);
   if(button.getVisibility()==View.VISIBLE&&view.field.contains(rect)){assertNotNull(button.getLayout());for(int i=0;i<button.getLayout().getLineCount();i++)assertEquals("Visible village label should not ellipsize: "+button.getText(),0,button.getLayout().getEllipsisCount(i));int available=button.getHeight()-button.getCompoundPaddingTop()-button.getCompoundPaddingBottom();assertTrue("Village text fits vertically: "+button.getText(),button.getLayout().getHeight()<=available);}
   evidence.put(MainActivity.obj("tag",String.valueOf(button.getTag()),"left",rect.left,"top",rect.top,"right",rect.right,"bottom",rect.bottom,"visible",button.getVisibility()==View.VISIBLE,"nameLeft",chip.left,"nameTop",chip.top,"nameRight",chip.right,"nameBottom",chip.bottom,"nameLines",button.getMaxLines(),"paperNameplate",false,"imageLettering",true));
  }

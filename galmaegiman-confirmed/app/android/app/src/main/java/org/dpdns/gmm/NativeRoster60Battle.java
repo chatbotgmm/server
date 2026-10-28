@@ -10,6 +10,7 @@ class NativeRoster60Battle {
  static final Set<String> IN_FLIGHT=new HashSet<>();
  String owner,key,autoSettled="",settlementError="",rejectionNotice=""; int epoch; LinearLayout container; TextView message,stats; Button retry,settle,returnAdventure,home;
  Roster60FormationView formation;LinearLayout arena;
+ LinearLayout artGate;TextView artGateNotice;Button artGateRetry;boolean artGateWanted,artPausedAnimator,artGateRefreshPosted;
  android.app.AlertDialog opponentDialog;Button opponentInfo;FrameLayout stageOverlay;
  android.app.AlertDialog conditionDialog;LinearLayout opponentDetails;TextView opponentSummary;final TextView[] opponentReactions=new TextView[8];boolean opponentInfoChanging;JSONObject opponentProjection;
  LinearLayout choicePanel;String choiceKind="",switchTarget="",targetItem="";int itemPage;
@@ -23,8 +24,15 @@ class NativeRoster60Battle {
  String storageScope(){return "";}
  void open(){
   if(h.api.token().isEmpty()){h.login();return;}
-  h.base("전투","roster60Battle");owner=h.api.token();key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner+storageScope());epoch=h.epoch;
-  h.page.removeAllViews();
+  // Battle is not a journal/menu page. Do not create then discard its HQ scene,
+  // shade, title/currency controls or journal panel (and their art loads).
+  h.epoch++;h.screen="roster60Battle";h.sound.play("title");h.root.removeAllViews();
+  h.page=new LinearLayout(h);h.page.setOrientation(LinearLayout.VERTICAL);
+  h.page.setTag("roster60-battle-viewport");
+  // Root already supplies actual device cutout/system-bar safe insets. No extra
+  // decorative page padding: field and command rail fill that entire viewport.
+  h.root.addView(h.page,new FrameLayout.LayoutParams(-1,-1));h.screenShown();
+  owner=h.api.token();key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner+storageScope());epoch=h.epoch;
   Roster60Scale.Column column=new Roster60Scale.Column(h,760,300);column.changed=this::rescale;container=column;container.setBackgroundColor(NavyWorkbenchTheme.HEADER);h.page.addView(container,new LinearLayout.LayoutParams(-1,0,1));
   // No top navigation/banner: the battle field owns the reclaimed height.
   home=h.button("‹ 홈",()->back()); // Detached compatibility handle; hardware Back remains authoritative.
@@ -37,8 +45,9 @@ class NativeRoster60Battle {
    @Override protected void onMeasure(int widthSpec,int heightSpec){super.onMeasure(widthSpec,heightSpec);positionOpponentInfo();super.onMeasure(widthSpec,heightSpec);}
    @Override protected void onDetachedFromWindow(){dismissOpponentDialog();super.onDetachedFromWindow();}
   };stage.addView(stageOverlay,new LinearLayout.LayoutParams(-1,0,1));
-  art=new NativeRoster60Art(h);art.setTag("roster60-battle-art");stageOverlay.addView(art,new FrameLayout.LayoutParams(-1,-1));
+  art=new NativeRoster60Art(h);art.setReadinessListener(this::refreshArtGate);artGateWanted=true;art.setTag("roster60-battle-art");stageOverlay.addView(art,new FrameLayout.LayoutParams(-1,-1));
   createOpponentPanel(stageOverlay);
+  refreshArtGate();
 
   // Transient skill explanation overlays the stage; it reserves no permanent header space.
   hold=new TextView(h){@Override protected void onTextChanged(CharSequence t,int a,int b,int c){super.onTextChanged(t,a,b,c);if(getWidth()>0)Roster60Scale.fit(this,12*scale,9);}};hold.setTag("battle-hold-description");CombatV2ReviewStyle.text(hold);hold.setTextColor(JournalTheme.INK);hold.setTextSize(12);hold.setGravity(android.view.Gravity.CENTER_VERTICAL);hold.setPadding(h.dp(12),h.dp(6),h.dp(12),h.dp(6));hold.setBackground(new BattleSkin(h,"panel-hp"));hold.setVisibility(android.view.View.INVISIBLE);
@@ -54,6 +63,31 @@ class NativeRoster60Battle {
   for(Button button:new Button[]{retry,settle,returnAdventure}){button.setVisibility(android.view.View.GONE);NavyWorkbenchTheme.tab(h,button,false);button.setTextSize(12);button.setMinWidth(0);button.setMinimumWidth(0);button.setMaxLines(2);}
   panel=new CombatV2ReviewPanel(h,this::command,CombatV2ReviewStyle::icon,true);panel.setTag("roster60-battle-panel");panel.setHoldOverlay(hold);commandRail.addView(panel,new LinearLayout.LayoutParams(-1,0,1));choicePanel=new LinearLayout(h);choicePanel.setOrientation(1);choicePanel.setTag("roster60-battle-choices");choicePanel.setVisibility(android.view.View.GONE);commandRail.addView(choicePanel,new LinearLayout.LayoutParams(-1,0,1));resume();
  }
+ void refreshArtGate(){
+  if(!current()||presentationPaused||!artGateWanted||art==null)return;
+  if(h.root.isInLayout()){if(!artGateRefreshPosted){artGateRefreshPosted=true;h.root.post(()->{artGateRefreshPosted=false;refreshArtGate();});}return;}
+  if(art.assetsReady()){
+   closeArtGate();
+   if(artPausedAnimator&&playback!=null&&playback.animator!=null&&playback.animator.isPaused())playback.animator.resume();
+   artPausedAnimator=false;return;
+  }
+  if(artGate==null){
+   artGate=new LinearLayout(h);artGate.setTag("roster60-battle-art-gate");artGate.setOrientation(LinearLayout.VERTICAL);artGate.setGravity(android.view.Gravity.CENTER);artGate.setPadding(h.dp(24),h.dp(12),h.dp(24),h.dp(12));artGate.setBackgroundColor(NavyWorkbenchTheme.HEADER);artGate.setClickable(true);
+   artGateNotice=h.text("전투 화면을 준비하고 있어요",16);artGateNotice.setGravity(android.view.Gravity.CENTER);artGateNotice.setTextColor(NavyWorkbenchTheme.TEXT);artGate.addView(artGateNotice,new LinearLayout.LayoutParams(-1,-2));
+   artGateRetry=h.button("다시 준비",()->{if(current()){if(art.snapshot==null)resume();else art.retryAssets();}});artGateRetry.setTag("roster60-battle-art-retry");artGate.addView(artGateRetry,new LinearLayout.LayoutParams(-1,h.dp(48)));
+   Button leave=h.button("뒤로",()->{if(current())back();});leave.setTag("roster60-battle-art-back");artGate.addView(leave,new LinearLayout.LayoutParams(-1,h.dp(48)));
+  }
+  boolean failed=art.assetsFailed();artGateNotice.setText(failed?"전투 그림을 준비하지 못했어요. 다시 시도해 주세요.":"전투 화면을 준비하고 있어요");artGateRetry.setVisibility(failed?android.view.View.VISIBLE:android.view.View.GONE);
+  if(artGate.getParent()==null)h.root.addView(artGate,new FrameLayout.LayoutParams(-1,-1));
+  artGate.setVisibility(android.view.View.VISIBLE);
+  if(arena!=null)arena.setVisibility(android.view.View.INVISIBLE);
+  if(playback!=null&&playback.animator!=null&&playback.animator.isStarted()&&!playback.animator.isPaused()){playback.animator.pause();artPausedAnimator=true;}
+ }
+ void closeArtGate(){
+  if(artGate!=null)artGate.setVisibility(android.view.View.GONE);
+  if(arena!=null&&formation==null)arena.setVisibility(android.view.View.VISIBLE);
+ }
+ void stopArtGate(){artGateWanted=false;closeArtGate();artPausedAnimator=false;}
  void rescale(float s){
   scale=s;message.setTextSize(11*s);
   hold.getLayoutParams().height=h.dp(48*s);hold.setTextSize(12*s);
@@ -80,6 +114,7 @@ class NativeRoster60Battle {
  }
  void adventureResume(){reading=true;h.api.call("native/roster60/adventure/active",null,(r,e)->{if(!current())return;reading=false;if(e!=null){if(e.startsWith("MENU_LOCKED")&&requestedMode!=Roster60BattleMode.ADVENTURE){options();return;}error(e);return;}JSONArray runs=r.optJSONArray("adventures");if(runs!=null&&runs.length()>0)showAdventure(runs.optJSONObject(0));else{adventure=null;returnAdventure.setVisibility(android.view.View.GONE);options();}});}
  void showAdventure(JSONObject run){
+  stopArtGate();
   clearFormation();adventure=run;view=null;closeOpponentInfo();panel.lock();panel.setVisibility(android.view.View.GONE);stats.setVisibility(android.view.View.VISIBLE);retry.setVisibility(android.view.View.VISIBLE);settle.setEnabled(false);boolean active="ACTIVE".equals(run.optString("status"));returnAdventure.setVisibility(active?android.view.View.VISIBLE:android.view.View.GONE);returnAdventure.setEnabled(active&&run.isNull("activeBattleId"));retry.setText(active?"모험 계속":"홈으로");retry.setOnClickListener(v->{if(active)chooseAdventureBattle();else h.load("home");});
   message.setText(active?"모험 전투 밖 · 도망 성공은 복귀가 아닙니다.":"모험 종료");JSONObject rewards=run.optJSONObject("pendingRewards"),xp=rewards==null?null:rewards.optJSONObject("xp");long totalXp=0;if(xp!=null){java.util.Iterator<String> ids=xp.keys();while(ids.hasNext())totalXp+=xp.optLong(ids.next());}stats.setText("누적 경험치 합계 "+totalXp+" · 정상 복귀 시 보상 획득\n전멸하면 이번 모험의 미정산 보상을 잃습니다.");
  }
@@ -89,6 +124,7 @@ class NativeRoster60Battle {
  });}
  void read(String id){reading=true;h.api.call("native/roster60/battle/read",h.obj("battleId",id),(r,e)->{if(!current())return;reading=false;if(e!=null)error(e);else bind(r);});}
  void options(){
+  stopArtGate();
   reading=true;h.api.call("native/roster60/battle/options",null,(r,e)->{
    if(!current())return;reading=false;if(e!=null){error(e);return;}
    JSONArray units=r.optJSONArray("units"),allEncounters=r.optJSONArray("encounters");
@@ -100,6 +136,7 @@ class NativeRoster60Battle {
   });
  }
  void showFormation(JSONArray units,JSONObject encounter){
+  stopArtGate();
   closeOpponentInfo();if(formation!=null)container.removeView(formation);panel.cancelInteraction();arena.setVisibility(android.view.View.GONE);home.setText("‹ 뒤로");message.setText("전투 편성 · "+("adventure".equals(encounter.optString("mode"))?"모험":"스토리")+" · 출전 1 + 예비 5");
   formation=new Roster60FormationView(h,units,ids->{if(!current())return;if(!prefs.getString(key+":pending","").isEmpty()){resume();return;}if("adventure".equals(encounter.optString("mode")))mutate("adventure/start",h.obj("ownedIds",ids));else{JSONArray reserves=new JSONArray();for(int i=1;i<ids.length();i++)reserves.put(ids.optString(i));mutate("create",h.obj("ownedId",ids.optString(0),"reserveIds",reserves,"encounterId",encounter.optString("id")));}},()->{clearFormation();options();});container.addView(formation,new LinearLayout.LayoutParams(-1,0,1));
  }
@@ -144,12 +181,13 @@ class NativeRoster60Battle {
   JSONObject action=h.obj("kind",command.optString("kind"));try{if(command.has("skillId"))action.put("skillId",command.getString("skillId"));}catch(Exception impossible){throw new IllegalStateException(impossible);}
   mutate("action",h.obj("battleId",command.optString("battleId"),"revision",command.optInt("expectedRevision"),"action",action));
  }
- void mutate(String op,JSONObject body){
-  if(!current()||presenting()||!prefs.getString(key+":pending","").isEmpty())return;
+ void mutate(String op,JSONObject body){persistMutation(op,body);}
+ boolean persistMutation(String op,JSONObject body){
+  if(!current()||presenting()||!prefs.getString(key+":pending","").isEmpty())return false;
   if("settle".equals(op))settlementError="";
   try{body.put("requestId",UUID.randomUUID().toString());JSONObject intent=h.obj("operation",op,"body",body);
-   if(!prefs.edit().putString(key+":pending",intent.toString()).commit()){error("요청 저장 실패");return;}send(intent);
-  }catch(Exception bad){error("요청 생성 실패");}
+   if(!prefs.edit().putString(key+":pending",intent.toString()).commit()){error("요청 저장 실패");return false;}send(intent);return true;
+  }catch(Exception bad){error("요청 생성 실패");return false;}
  }
  void send(JSONObject intent){
   JSONObject body=intent.optJSONObject("body");if(body==null)return;String id=body.optString("requestId"),op=intent.optString("operation");
@@ -169,6 +207,7 @@ class NativeRoster60Battle {
   });
  }
  void error(String e){
+  if(art==null||art.snapshot==null)stopArtGate();
   if(formation!=null)formation.unlock();
   if(Roster60BattleErrorText.starter(e)){showStarterCondition();return;}
   String translated=Roster60BattleErrorText.message(e);rejectionNotice=e!=null&&!translated.equals(e)?translated:"";
@@ -302,6 +341,7 @@ class NativeRoster60Battle {
   playback.accept(r);
  }
  void renderSnapshot(JSONObject r){
+  artGateWanted=true;
   opponentProjection=null;opponentInfoChanging=false;retry.setEnabled(true);
   try{
    JSONObject s=r.getJSONObject("state");clearFormation();art.bind(s);if(!"five-battle-v1".equals(s.getString("version")))throw new JSONException("version");
@@ -323,10 +363,10 @@ class NativeRoster60Battle {
     if(!r.optString("battleId").equals(autoSettled)){autoSettled=r.optString("battleId");final String id=autoSettled;h.page.post(()->{if(current()&&view!=null&&id.equals(view.optString("battleId"))&&"FINISHED".equals(view.optString("status")))mutate("settle",h.obj("battleId",id,"revision",view.optInt("revision")));});}
    }else if("SETTLED".equals(r.optString("status"))){stats.setVisibility(android.view.View.VISIBLE);JSONObject receipt=r.optJSONObject("settlement");boolean exploring="adventure".equals(s.optString("mode"));stats.setText(exploring?"LOST".equals(receipt==null?"":receipt.optString("adventureStatus"))?"전멸로 이번 모험의 미정산 보상을 잃었습니다.":"모험 보상은 누적 보관됩니다. 정상 복귀 시 획득합니다.":"경험치 +"+(receipt==null?0:receipt.optInt("xpAwarded"))+" · 결과 저장 완료");retry.setVisibility(android.view.View.VISIBLE);retry.setText(exploring?"모험 확인":"홈으로");retry.setOnClickListener(v->{if(exploring)adventureResume();else h.load("home");});}
 
-  }catch(Exception bad){view=null;closeOpponentInfo();panel.lock();settle.setEnabled(false);message.setText("서버 전투 데이터 형식을 확인할 수 없습니다.");}
+  }catch(Exception bad){view=null;stopArtGate();closeOpponentInfo();panel.lock();settle.setEnabled(false);message.setText("서버 전투 데이터 형식을 확인할 수 없습니다.");}
  }
  static String resultLabel(String outcome){return "win".equals(outcome)?"승리":"loss".equals(outcome)?"패배":"escaped".equals(outcome)?"도망 성공":"전투 종료";}
  boolean back(){if(opponentDialog!=null&&opponentDialog.isShowing()){dismissOpponentDialog();return true;}if(presenting()){playback.suspend();h.load("home");return true;}if(formation!=null){clearFormation();message.setText("전투를 선택하세요.");options();return true;}if(!choiceKind.isEmpty()){closeChoices();return true;}if(panel!=null){panel.cancelInteraction();if(panel.showCommands())return true;}h.load("home");return true;}
- void pause(){dismissOpponentDialog();closeCondition();presentationPaused=true;if(playback!=null)playback.suspend();if(panel!=null)panel.cancelInteraction();if(selection!=null){selection.dismiss();selection=null;}}
+ void pause(){stopArtGate();dismissOpponentDialog();closeCondition();presentationPaused=true;if(playback!=null)playback.suspend();if(panel!=null)panel.cancelInteraction();if(selection!=null){selection.dismiss();selection=null;}}
 }
 

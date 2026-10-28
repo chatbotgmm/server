@@ -12,6 +12,7 @@ final class GameBackdrop extends AppCompatImageView implements FullBleed {
   boolean blurred;
   android.graphics.Bitmap original;
   int preparedWidth;
+  long bitmapPreparations; // Counts actual scaling/blur work, not cache hits.
 
   GameBackdrop(Context c) {
     super(c);
@@ -50,16 +51,19 @@ final class GameBackdrop extends AppCompatImageView implements FullBleed {
     int width = Math.min(600, original.getWidth()),
         height =
             Math.max(1, Math.round(original.getHeight() * width / (float) original.getWidth()));
-    android.graphics.Bitmap small =
-        android.graphics.Bitmap.createScaledBitmap(original, width, height, true);
-
     int radius =
         Math.max(1, Math.round(5 * getResources().getDisplayMetrics().density * width / display));
     java.util.Map<Integer, android.graphics.Bitmap> versions = CACHE.get(original);
     android.graphics.Bitmap result = versions == null ? null : versions.get(radius);
     if (result == null) {
+      // Check the original/radius cache before allocating a scaled temporary.
+      // Rebinding or nearby size changes often share the same prepared blur.
+      bitmapPreparations++;
+      android.graphics.Bitmap small =
+          android.graphics.Bitmap.createScaledBitmap(original, width, height, true);
       int[] pixels = new int[width * height];
       small.getPixels(pixels, 0, width, 0, 0, width, height);
+      if (small != original) small.recycle(); // Private intermediate; never attached to a View.
       for (int pass = 0; pass < 3; pass++) {
         pixels = box(pixels, width, height, radius, true);
         pixels = box(pixels, width, height, radius, false);

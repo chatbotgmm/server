@@ -25,8 +25,12 @@ public class NativeVillageStoryOverlayTest {
   @After public void restore()throws Exception{fixture.restore();NativeRoster60StoryController.IN_FLIGHT.clear();}
   static final class Api extends NativeVillageHomeTest.Api {
     final List<Result> commands=new ArrayList<>();
+    JSONArray savedParty=new JSONArray();
+    boolean holdDepartureOptions;final List<Result> departureReads=new ArrayList<>();
     Api(Context context,JSONObject legacy){super(context,legacy);}
     @Override void call(String path,JSONObject body,Result done){
+      if(holdDepartureOptions&&(path.equals("native/roster60/pvp/options")||path.equals("native/roster60/battle/options"))){paths.add(path);departureReads.add(done);return;}
+      if(path.equals("native/roster60/pvp/options")){paths.add(path);done.done(MainActivity.obj("units",units(),"partyIds",savedParty),null);return;}
       if(body!=null&&(path.startsWith("native/roster60/story/")||path.equals("native/roster60/adventure/read")||path.equals("native/roster60/adventure/return")||path.equals("native/roster60/battle/read"))){paths.add(path);writes.add(NativeVillageHomeTest.copy(body));commands.add(done);return;}
       super.call(path,body,done);
     }
@@ -99,7 +103,7 @@ public class NativeVillageStoryOverlayTest {
   }
 
   static JSONObject side(String id,String status,boolean canDepart){return MainActivity.obj("id",id,"title",id+" 부탁","kind","resident","status",status,"canDepart",canDepart,"objective",MainActivity.obj("wins",0,"requiredWins",1));}
-  NativeRoster60StoryController explore(MainActivity h){h.villageHome.navigate("explore");assertEquals("home",h.screen);assertTrue(h.rosterStory.villageExploration);return h.rosterStory;}
+  NativeRoster60StoryController explore(MainActivity h)throws Exception{LocalGameArtTest.drain();h.villageHome.navigate("explore");assertEquals("home",h.screen);assertTrue(h.rosterStory.villageExploration);return h.rosterStory;}
   Button choice(NativeRoster60StoryController story,String text){for(int i=0;i<story.overlay.choices.getChildCount();i++){Button button=action(story,i);if(button.getText().toString().contains(text))return button;}throw new AssertionError("Missing exploration choice: "+text);}
   @Test public void explorationFiltersSideMainMixedLockedReadyAndEmptyWithoutMutations()throws Exception{
     try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
@@ -161,6 +165,59 @@ public class NativeVillageStoryOverlayTest {
       story=explore(h);story.overlay.finishTyping();choice(story,"재료 모험 귀환").performClick();assertEquals("native/roster60/adventure/read",api.paths.get(api.paths.size()-1));assertEquals("material-run",api.writes.get(1).getString("adventureId"));
       api.commands.get(1).done(MainActivity.obj("status","ACTIVE","activeBattleId",JSONObject.NULL,"revision",9),null);
       assertEquals("native/roster60/adventure/return",api.paths.get(api.paths.size()-1));assertEquals("material-run",api.writes.get(2).getString("adventureId"));assertEquals(9,api.writes.get(2).getInt("revision"));story.closeVillage();
+    }
+  }
+
+  @Test public void publicStoryEntriesNeverOpenObsoleteHubAndHistoryRemainsAtArchive()throws Exception{
+    try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
+      MainActivity h=activity.get();Api api=prepare(h);NativeVillageHomeView village=h.villageHome.view;
+      h.openRosterStory();assertEquals("home",h.screen);assertSame(village,h.villageHome.view);assertTrue(h.rosterStory.villageOverlayOpen());assertNull(h.root.findViewWithTag("story-tab-main"));h.rosterStory.closeVillage();
+      h.openRosterStoryResident("blacksmith");assertEquals("home",h.screen);assertTrue(h.rosterStory.overlay.name.getText().toString().contains("대장장이"));h.rosterStory.closeVillage();
+      api.story.put("history",new JSONArray().put(MainActivity.obj("questId","STORY_OLD","title","남겨진 기록")));LocalGameArtTest.drain();h.villageHome.navigate("story-history");assertEquals("이야기 기록",h.rosterStory.overlay.name.getText().toString());assertEquals(0,api.writes.size());h.rosterStory.overlay.finishTyping();action(h.rosterStory,0).performClick();assertEquals("replay",api.writes.get(0).optString("phase"));h.rosterStory.closeVillage();
+    }
+  }
+  @Test public void savedStoryPartySkipsFormationButInvalidOrEmptyPartyRequiresChoice()throws Exception{
+    try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
+      MainActivity h=activity.get();Api api=prepare(h);api.story.put("quests",new JSONArray().put(side("SIDE","ACTIVE",true)));api.savedParty=new JSONArray().put("owned-a");
+      NativeRoster60StoryController story=explore(h);assertEquals(0,api.writes.size());story.overlay.finishTyping();choice(story,"SIDE").performClick();assertNull(story.formation);assertEquals(1,api.writes.size());assertEquals("SIDE",api.writes.get(0).optString("questId"));assertEquals("owned-a",api.writes.get(0).getJSONArray("ownedIds").getString(0));
+      api.commands.get(0).done(new JSONObject(),null);story.closeVillage();
+      for(JSONArray invalid:new JSONArray[]{new JSONArray(),new JSONArray().put("missing"),new JSONArray().put("owned-a").put("owned-a")}){api.savedParty=invalid;story=explore(h);story.overlay.finishTyping();choice(story,"SIDE").performClick();assertNotNull(story.formation);assertEquals(1,api.writes.size());story.closeVillage();}
+    }
+  }
+  @Test public void authoritativeMainMarkerMovesOnlyBetweenStatueAndBoatAndClearsOnReadError()throws Exception{
+    try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
+      MainActivity h=activity.get();Api api=prepare(h);NativeVillageHomeView view=h.villageHome.view;
+      String[] statuses={"AVAILABLE","ACTIVE","READY","COMPLETED","LOCKED"},expected={"statue","boat","statue","",""};
+      for(int i=0;i<statuses.length;i++){api.story.put("currentQuest",NativeRoster60StoryTest.quest(statuses[i]));h.villageHome.refresh();assertEquals(expected[i],h.villageHome.mainStoryTarget);}
+      JSONObject active=NativeRoster60StoryTest.quest("ACTIVE");JSONObject scene=MainActivity.obj("questId","STORY_01","phase","intro");
+      assertEquals("statue",NativeVillageHomeController.mainStoryTarget(MainActivity.obj("currentQuest",active,"scene",scene)));
+      scene.put("questId","OTHER");assertEquals("boat",NativeVillageHomeController.mainStoryTarget(MainActivity.obj("currentQuest",active,"scene",scene)));
+      scene.put("questId","STORY_01").put("phase","replay");assertEquals("boat",NativeVillageHomeController.mainStoryTarget(MainActivity.obj("currentQuest",active,"scene",scene)));
+      api.story.put("currentQuest",side("SIDE","ACTIVE",true));h.villageHome.refresh();assertEquals("",h.villageHome.mainStoryTarget);
+      for(String target:new String[]{"statue","boat"}){api.story.put("currentQuest",NativeRoster60StoryTest.quest(target.equals("statue")?"AVAILABLE":"ACTIVE"));h.villageHome.refresh();view.moveCameraUnits((target.equals("statue")?2.75:4.2)-view.camera.cameraUnits());LocalGameArtTest.drain();fixture.helper.layout(h,NativeVillageHomeTest.PHONE);assertFalse(view.mainStoryMarkerRect().isEmpty());if(target.equals("statue"))assertTrue("Stage-one marker follows the visible rubble, not transparent canvas sky",view.mainStoryMarkerRect().top>view.landmarkRect().centerY());
+        java.nio.file.Path out=java.nio.file.Path.of(System.getProperty("gmm.nativeReviewOutput","build/native-review"),"village-dialogue");java.nio.file.Files.createDirectories(out);android.graphics.Bitmap image=NativeHomePartyFeedbackTest.render(h.root);try(java.io.OutputStream stream=java.nio.file.Files.newOutputStream(out.resolve("main-"+target+"-marker.png"))){assertTrue(image.compress(android.graphics.Bitmap.CompressFormat.PNG,100,stream));}finally{image.recycle();}
+      }
+      api.storyError="연결 오류";h.villageHome.refresh();assertEquals("",h.villageHome.mainStoryTarget);assertTrue(view.mainStoryMarkerRect().isEmpty());assertEquals(0,api.writes.size());
+    }
+  }
+
+  @Test public void storyBattleLeaveAndLegacyPlayEntryReturnToVillageWithoutLosingCameraOrMutating()throws Exception{
+    try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
+      MainActivity h=activity.get();Api api=prepare(h);h.villageHome.view.camera.setCameraUnits(2.75);
+      new NativeRoster60StoryBattle(h,MainActivity.obj("battleId","settled-server-battle"),"STORY_01").leave();
+      assertEquals("home",h.screen);assertEquals(2.75,h.villageHome.view.camera.cameraUnits(),.00001);assertNull(h.root.findViewWithTag("story-tab-main"));assertNull(h.root.findViewWithTag("play-menu-choices"));assertEquals(0,api.writes.size());
+      h.openPlayMenu();assertEquals("home",h.screen);assertEquals(2.75,h.villageHome.view.camera.cameraUnits(),.00001);assertNull(h.root.findViewWithTag("play-menu-choices"));assertEquals(0,api.writes.size());
+    }
+  }
+
+  @Test public void savedPartyReadsOverlapAndJoinOnceWhileCloseAccountAndFailureRejectLateStart()throws Exception{
+    for(int scenario=0;scenario<4;scenario++)try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
+      MainActivity h=activity.get();Api api=prepare(h);api.story.put("quests",new JSONArray().put(side("SIDE","ACTIVE",true)));api.holdDepartureOptions=true;
+      NativeRoster60StoryController story=explore(h);story.overlay.finishTyping();choice(story,"SIDE").performClick();assertEquals("Both reads launch before either completes",2,api.departureReads.size());assertEquals(0,api.writes.size());
+      JSONObject saved=MainActivity.obj("partyIds",new JSONArray().put("owned-a")),options=MainActivity.obj("units",NativeVillageHomeTest.Api.units());
+      if(scenario==1)story.closeVillage();if(scenario==2)api.account="changed-account";
+      api.departureReads.get(1).done(saved,scenario==3?"network":null);assertEquals(0,api.writes.size());api.departureReads.get(0).done(options,null);api.departureReads.get(0).done(options,null);
+      assertEquals(scenario==0?1:0,api.writes.size());if(scenario==0)assertEquals("SIDE",api.writes.get(0).optString("questId"));story.closeVillage();
     }
   }
 

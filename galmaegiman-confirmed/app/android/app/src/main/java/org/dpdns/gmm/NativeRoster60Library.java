@@ -22,16 +22,17 @@ final class NativeRoster60Library {
   art.setOnLongClickListener(v->{if(visible.length()>0){JSONObject u=visible.optJSONObject(index);message.setText("길게 누르는 동안 설명 · "+u.optString("name")+"\n"+u.optString("concept",u.optString("role","기술 속성·적합도·방어는 오른쪽 정보 참조")));}return true;});art.setOnTouchListener((v,event)->{if(event.getActionMasked()==MotionEvent.ACTION_UP||event.getActionMasked()==MotionEvent.ACTION_CANCEL)message.setText("60종 · "+(ownedOnly?"보유만":"전체")+" · 길게 눌러 설명");return false;});filter();
  }
  void filter(){visible=new JSONArray();JSONArray all=catalog.optJSONArray("characters");for(int i=0;i<all.length();i++){JSONObject u=all.optJSONObject(i);if((grade.isEmpty()||grade.equals(u.optString("rarity")))&&(!ownedOnly||u.optInt("ownedCount")>0))visible.put(u);}index=0;bind();}
- void bind(){LinearLayout tabs=(LinearLayout)details.getChildAt(1);for(int i=0;i<tabs.getChildCount();i++){Button tab=(Button)tabs.getChildAt(i);NavyWorkbenchTheme.tab(h,tab,i==detailPage);tab.setSelected(i==detailPage);}detailBody.setText("");art.setImageDrawable(null);if(visible.length()==0){title.setText("해당 개체 없음");return;}JSONObject u=visible.optJSONObject(index);title.setText(u.optString("name")+" · "+catalog.optJSONObject("grades").optString(u.optString("rarity"))+"\n"+(index+1)+" / "+visible.length()+" · 보유 "+u.optInt("ownedCount"));art.setContentDescription(u.optString("name")+" 정면 · 길게 눌러 설명");
+ void bind(){LinearLayout tabs=(LinearLayout)details.getChildAt(1);for(int i=0;i<tabs.getChildCount();i++){Button tab=(Button)tabs.getChildAt(i);if(tab.isSelected()!=(i==detailPage)){NavyWorkbenchTheme.tab(h,tab,i==detailPage);tab.setSelected(i==detailPage);}}if(visible.length()==0){RegistrationV10Art.clear(art);Roster60Portrait.clear(art);setText(detailBody,"");setText(title,"해당 개체 없음");return;}JSONObject u=visible.optJSONObject(index);setText(title,u.optString("name")+" · "+catalog.optJSONObject("grades").optString(u.optString("rarity"))+"\n"+(index+1)+" / "+visible.length()+" · 보유 "+u.optInt("ownedCount"));art.setContentDescription(u.optString("name")+" 정면 · 길게 눌러 설명");
   if(!Roster60Portrait.bind(h,art,u.optString("id")))message.setText("해당 아트 준비 중 · 기존 캐릭터로 대체하지 않습니다.");
   JSONObject stats=u.optJSONObject("levelOneStats");StringBuilder body=new StringBuilder();
   if(detailPage==0&&stats!=null)body.append("Lv1 기본 능력치\n체력 ").append(stats.optInt("hp")).append(" · MP ").append(stats.optInt("mp")).append("\n내구력 ").append(stats.optInt("durability")).append("\n저항력 ").append(stats.optInt("statusResistance")).append(" · 속도 ").append(stats.optInt("speed"));
   else if(detailPage==1)body.append("적합도\n").append(map(u.optJSONObject("suitability")));
   else if(detailPage==2)body.append(observedDefenseText(u));
   else if(detailPage==3){JSONArray skills=u.optJSONArray("skills");if(skills!=null)for(int i=0;i<skills.length();i++){JSONObject sk=skills.optJSONObject(i);body.append("Lv").append(sk.optInt("learnLevel",1)).append(" ").append(sk.optString("name")).append(" · MP ").append(sk.optInt("mpCost")).append('\n');}}
-  detailBody.setText(body.length()==0?"준비 중":body.toString());
+  setText(detailBody,body.length()==0?"준비 중":body.toString());
 
  }
+ static void setText(TextView view,String text){if(!text.contentEquals(view.getText()))view.setText(text);}
  String observedDefenseText(JSONObject species){
   String[] values=Roster60OpponentIntel.collectionDefenses(species);int known=0;for(String value:values)if(!"unknown".equals(value))known++;
   StringBuilder text=new StringBuilder("내 공격으로 확인한 반응 "+known+" / 8\n");

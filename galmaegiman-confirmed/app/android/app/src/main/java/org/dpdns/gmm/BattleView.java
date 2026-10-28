@@ -68,8 +68,8 @@ final class BattleView extends FrameLayout implements FullBleed {
     }
     panelSkin = new BattleSkin(a, "panel-command");
     hpSkin = new BattleSkin(a, "panel-hp");
-    for(String asset:new String[]{"bg-harbor","decor-shell","decor-wheel"}) BattleSkin.bitmap(a,asset);
     scene = new Scene();
+    for(String asset:new String[]{"bg-harbor","decor-shell","decor-wheel"}) BattleSkin.load(a,asset,scene::invalidate);
     addView(scene, new LayoutParams(-1, -1));
     logBox = new FixedViewport(a);
     logBox.setBackground(new FieldLogPaper());
@@ -598,24 +598,19 @@ final class BattleView extends FrameLayout implements FullBleed {
         b.setTextColor(ix == 3 ? JournalTheme.INK : 0xfffff8e8);
         Paint.FontMetrics metrics = b.getPaint().getFontMetrics();
         float textHeight = metrics.descent - metrics.ascent;
-        int iconHeight = 0, gap = host.dp(4);
-        Bitmap image = BattleSkin.bitmap(host, "icon-" + name);
-        if (image != null && uiHeight >= host.dp(320) && host.getResources().getConfiguration().fontScale < 1.5f) {
-          android.graphics.drawable.BitmapDrawable icon = new android.graphics.drawable.BitmapDrawable(getResources(),image);
-          int bound=Math.min(host.dp(tablet ? 64 : 56), Math.round(height - textHeight - gap - host.dp(16)));
-          if (bound >= host.dp(28)) {
-            float scale=Math.min((float)bound/image.getWidth(),(float)bound/image.getHeight());
-            icon.setBounds(0,0,Math.round(image.getWidth()*scale),Math.round(image.getHeight()*scale));
-            iconHeight = icon.getBounds().height();
-            b.setCompoundDrawables(null,icon,null,null);
-            b.setCompoundDrawablePadding(gap);
-          }
-        }
-        // drawableTop은 위 안쪽 여백에 붙으므로, 아이콘+간격+이름 묶음 높이로 위 여백을 계산해 세로 가운데에 맞춘다.
-        int block = Math.round(iconHeight + (iconHeight > 0 ? gap : 0) + textHeight);
-        int top = Math.max(host.dp(6), (height - block) / 2);
+        final int gap = host.dp(4);
         b.setGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
-        b.setPadding(host.dp(8), top, host.dp(8), 0);
+        b.setPadding(host.dp(8),Math.max(host.dp(6),(height-Math.round(textHeight))/2),host.dp(8),0);
+        BattleSkin.load(host,"icon-"+name,()->{
+          if(b.getParent()!=null&&line.getParent()!=controls)return;
+          Bitmap image=BattleSkin.peek("icon-"+name);int iconHeight=0;
+          if(image!=null&&uiHeight>=host.dp(320)&&host.getResources().getConfiguration().fontScale<1.5f){
+            android.graphics.drawable.BitmapDrawable icon=new android.graphics.drawable.BitmapDrawable(getResources(),image);
+            int bound=Math.min(host.dp(tablet?64:56),Math.round(height-textHeight-gap-host.dp(16)));
+            if(bound>=host.dp(28)){float iconScale=Math.min((float)bound/image.getWidth(),(float)bound/image.getHeight());icon.setBounds(0,0,Math.round(image.getWidth()*iconScale),Math.round(image.getHeight()*iconScale));iconHeight=icon.getBounds().height();b.setCompoundDrawables(null,icon,null,null);b.setCompoundDrawablePadding(gap);}
+          }
+          int block=Math.round(iconHeight+(iconHeight>0?gap:0)+textHeight);b.setPadding(host.dp(8),Math.max(host.dp(6),(height-block)/2),host.dp(8),0);
+        });
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, height, 1);
         p.setMargins(host.dp(3), host.dp(3), host.dp(3), host.dp(3));
         line.addView(b, p);
@@ -942,6 +937,8 @@ final class BattleView extends FrameLayout implements FullBleed {
   }
 
   final class Scene extends View {
+    final Runnable skinReady=this::invalidate;
+    Bitmap skin(String name){Bitmap image=BattleSkin.peek(name);if(image==null&&!BattleSkin.failed(name))BattleSkin.load(host,name,skinReady);return image;}
     Paint p = new Paint(3);
     final JournalBattleLight ambientLight = new JournalBattleLight();
     final Runnable timeChanged = () -> { invalidate(); refreshAnimation(); };
@@ -1048,7 +1045,7 @@ final class BattleView extends FrameLayout implements FullBleed {
       float w = getWidth(), h = getHeight();
       String background = BattleBackground.path(battle.optString("scene", "harbor"));
       Bitmap bg = battle.optString("scene", "harbor").equals("harbor")
-          ? BattleSkin.bitmap(host,"bg-harbor")
+          ? skin("bg-harbor")
           : background == null ? null : host.art.scene(background, this::invalidate);
       if (bg != null) {
         float scale = Math.max((safeLeft + uiWidth * FIELD_WIDTH_FRACTION) / bg.getWidth(), h / bg.getHeight()),
@@ -1098,8 +1095,8 @@ final class BattleView extends FrameLayout implements FullBleed {
       float size=Math.min(host.dp(64),h-gridBottom-host.dp(16)-host.dp(12));
       if(pane.equals("menu") && size>=host.dp(40)) {
         float cx=world+(w-world)*.45f;
-        BattleSkin.contain(c,BattleSkin.bitmap(host,"decor-shell"),new RectF(cx-size/2,h-size-host.dp(12),cx+size/2,h-host.dp(12)),p);
-        BattleSkin.contain(c,BattleSkin.bitmap(host,"decor-wheel"),new RectF(w-size-host.dp(12),h-size-host.dp(12),w-host.dp(12),h-host.dp(12)),p);
+        BattleSkin.contain(c,skin("decor-shell"),new RectF(cx-size/2,h-size-host.dp(12),cx+size/2,h-host.dp(12)),p);
+        BattleSkin.contain(c,skin("decor-wheel"),new RectF(w-size-host.dp(12),h-size-host.dp(12),w-host.dp(12),h-host.dp(12)),p);
       }
       c.restore();
     }

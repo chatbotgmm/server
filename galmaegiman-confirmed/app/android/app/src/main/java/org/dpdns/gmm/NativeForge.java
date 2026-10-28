@@ -269,6 +269,12 @@ final class NativeForge extends FrameLayout {
     final Paint p = new Paint(3);
     final PathInterpolator absorb = new PathInterpolator(.6f, -.3f, .7f, .2f);
     final PathInterpolator scatter = new PathInterpolator(.2f, .8f, .3f, 1);
+    final RectF card = new RectF();
+    final Path clip = new Path();
+    final Matrix glowMatrix = new Matrix();
+    final RadialGradient glowShader = new RadialGradient(0, 0, 1,
+        new int[] {JournalTheme.PAPER, JournalTheme.BRASS & 0x00ffffff | 0x88000000,
+            Color.TRANSPARENT}, new float[] {0, .28f, 1}, Shader.TileMode.CLAMP);
     float progress;
 
     Ring() {
@@ -304,9 +310,9 @@ final class NativeForge extends FrameLayout {
                 - Math.PI / 2
                 + (fail ? 0 : Math.toRadians(200 * move));
         float cx = x + (float) Math.cos(angle) * radius, cy = y + (float) Math.sin(angle) * radius;
-        RectF card = new RectF(cx - size / 2, cy - size / 2, cx + size / 2, cy + size / 2);
+        card.set(cx - size / 2, cy - size / 2, cx + size / 2, cy + size / 2);
         p.setAlpha((int) (opacity * 255));
-        Path clip = new Path();
+        clip.rewind();
         clip.addRoundRect(card, h.dp(10), h.dp(10), Path.Direction.CW);
         c.save();
         c.clipPath(clip);
@@ -337,18 +343,10 @@ final class NativeForge extends FrameLayout {
       }
       if (coreOpacity > 0) {
         float glowRadius = Math.max(1, h.dp(30) * scale);
-        p.setShader(
-            new RadialGradient(
-                x,
-                y,
-                glowRadius,
-                new int[] {
-                  JournalTheme.PAPER,
-                  JournalTheme.BRASS & 0x00ffffff | 0x88000000,
-                  Color.TRANSPARENT
-                },
-                new float[] {0, .28f, 1},
-                Shader.TileMode.CLAMP));
+        glowMatrix.setScale(glowRadius, glowRadius);
+        glowMatrix.postTranslate(x, y);
+        glowShader.setLocalMatrix(glowMatrix);
+        p.setShader(glowShader);
         p.setAlpha((int) (Math.min(1, coreOpacity) * 255));
         c.drawCircle(x, y, glowRadius, p);
         p.setShader(null);

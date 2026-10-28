@@ -71,6 +71,7 @@ public class CombatV2ProductSkillIconTest {
     host.getSharedPreferences("roster60_product_battle", 0).edit().clear().commit();
     host.openRosterBattle();
     helper.layout(host, NativeHomePartyFeedbackTest.PROFILES[0]);
+    LocalGameArtTest.drain();
     return api;
   }
 

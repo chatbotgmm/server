@@ -40,6 +40,22 @@ def bundledArt = layout.buildDirectory.dir('generated/game-art')
 def leanLegacyArt = ['org.gmm', 'org.gmm.producttest'].contains(project.findProperty('gmmApplicationId'))
 tasks.register('bundleGameArt', Sync) {
     into bundledArt
+    // The active manifest is the complete village runtime pack: no retired world is bundled or decoded.
+    def villageManifest = file('src/main/assets/native/village-loop-v2/manifest.json')
+    inputs.file(villageManifest)
+    def villagePaths = new groovy.json.JsonSlurper().parse(villageManifest).assets.values().collect { it.path }.toSet()
+    // CopySpec parent actions run before child rename actions. Filter final output names,
+    // otherwise approved reused assets such as statue-stage-1.png would be removed.
+    doLast {
+        fileTree(destinationDir).matching { include 'native/village-loop-v2/**' }.files.each { image ->
+            def relative = destinationDir.toPath().relativize(image.toPath()).toString().replace('\\', '/')
+            if (!villagePaths.contains(relative)) image.delete()
+        }
+    }
+    from('../../../art/gpt/village-layered-20261028') {
+        include '*.png'
+        into 'native/village-loop-v2/assets'
+    }
     // Only runtime surfaces and 128px focus thumbnails; references/editable sources stay out of APK.
     from('../../../art/gpt/ui-v3-20261025/runtime') {
         include 'optimized/ui/bg-harbor.webp', 'optimized/ui/icon-attack.webp', 'optimized/ui/icon-goldenstrike.webp', 'optimized/ui/icon-shield.webp', 'optimized/ui/icon-item.webp', 'optimized/ui/icon-switch.webp', 'optimized/ui/icon-surrender.webp', 'android-ninepatch/*.9.png', 'config/runtime-asset-map.json'

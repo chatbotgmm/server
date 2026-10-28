@@ -46,10 +46,10 @@ final class NativeVillageStoryOverlay {
     speech=text("",18);speech.setTag("village-dialogue-text");
     ScrollView scroll=new ScrollView(h);scroll.setFillViewport(false);scroll.addView(speech,new ScrollView.LayoutParams(-1,-2));
     int height=Math.max(h.dp(80),Math.min(h.dp(152),h.getResources().getDisplayMetrics().heightPixels/3));
-    panel.addView(scroll,new LinearLayout.LayoutParams(-1,owner.villageExploration?h.dp(56):height));
+    panel.addView(scroll,new LinearLayout.LayoutParams(-1,(owner.villageExploration||owner.villageHistory)?h.dp(56):height));
     notice=text("",12);notice.setTag("village-dialogue-notice");panel.addView(notice);
-    choices=new LinearLayout(h);choices.setOrientation(owner.villageExploration?LinearLayout.VERTICAL:LinearLayout.HORIZONTAL);choices.setTag("village-dialogue-choices");
-    if(owner.villageExploration){ScrollView list=new ScrollView(h);list.setTag("village-exploration-list");list.addView(choices,new ScrollView.LayoutParams(-1,-2));panel.addView(list,new LinearLayout.LayoutParams(-1,h.dp(144)));}else panel.addView(choices);
+    choices=new LinearLayout(h);choices.setOrientation((owner.villageExploration||owner.villageHistory)?LinearLayout.VERTICAL:LinearLayout.HORIZONTAL);choices.setTag("village-dialogue-choices");
+    if(owner.villageExploration||owner.villageHistory){ScrollView list=new ScrollView(h);list.setTag("village-exploration-list");list.addView(choices,new ScrollView.LayoutParams(-1,-2));panel.addView(list,new LinearLayout.LayoutParams(-1,h.dp(144)));}else panel.addView(choices);
     close=h.button("닫기",owner::closeVillage);close.setTag("village-dialogue-close");
     FrameLayout.LayoutParams closeBox=new FrameLayout.LayoutParams(h.dp(72),h.dp(44),Gravity.TOP|Gravity.RIGHT);closeBox.setMargins(0,h.dp(8),h.dp(12),0);root.addView(close,closeBox);
     dialog.setContentView(root);dialog.setCanceledOnTouchOutside(false);dialog.setCancelable(false);
@@ -72,7 +72,7 @@ final class NativeVillageStoryOverlay {
     Button button=h.button(label,()->{if(owner.current()&&!h.busy&&!h.updateBlocks()){if(finishTyping())return;task.run();}});
     button.setTextSize(14);button.setMaxLines(2);button.setMinWidth(0);button.setMinimumWidth(0);
     button.setTag("village-dialogue-action-"+choices.getChildCount());
-    LinearLayout.LayoutParams box=owner.villageExploration?new LinearLayout.LayoutParams(-1,h.dp(48)):new LinearLayout.LayoutParams(0,h.dp(48),1);box.setMargins(h.dp(3),0,h.dp(3),0);choices.addView(button,box);
+    LinearLayout.LayoutParams box=(owner.villageExploration||owner.villageHistory)?new LinearLayout.LayoutParams(-1,h.dp(48)):new LinearLayout.LayoutParams(0,h.dp(48),1);box.setMargins(h.dp(3),0,h.dp(3),0);choices.addView(button,box);
   }
   JSONObject resident(JSONObject state,String id){JSONArray values=state.optJSONArray("residents");for(int i=0;values!=null&&i<values.length();i++){JSONObject item=values.optJSONObject(i);if(item!=null&&id.equals(item.optString("id")))return item;}return null;}
   void portrait(String id){
@@ -90,6 +90,7 @@ final class NativeVillageStoryOverlay {
     if(owner.villageDeparture){departure(state);return;}
     JSONObject scene=state.optJSONObject("scene");
     if(scene!=null){scene(scene,state);return;}
+    if(owner.villageHistory){history(state);return;}
     JSONObject npc=resident(state,owner.villageResidentId);
     if(npc!=null){
       name.setText(npc.optString("name")+" · "+npc.optString("role"));portrait(npc.optString("id"));
@@ -145,6 +146,13 @@ final class NativeVillageStoryOverlay {
       });count++;
     }
     notice.setText(count==0?"출항 가능한 주민 부탁이 없어요. 메인 스토리 출항은 배의 별도 메뉴에서 준비해 주세요.":"주민 부탁은 해당 부탁을 선택해야 진행돼요. 자유 탐험과는 별개예요.");
+  }
+  void history(JSONObject state){
+    name.setText("이야기 기록");portrait("");say("history","마친 이야기를 다시 읽을 수 있어요.");
+    if(owner.waiting()){action("저장된 진행 확인",owner::retrySavedProgress);return;}
+    JSONArray records=state.optJSONArray("history");
+    for(int i=0;records!=null&&i<records.length();i++){JSONObject record=records.optJSONObject(i);if(record==null)continue;String id=record.optString("questId");if(!id.isEmpty())action(record.optString("title","읽은 이야기"),()->owner.openQuest(id,"replay"));}
+    if(choices.getChildCount()==0){notice.setText("아직 완료한 이야기 기록이 없어요.");action("확인",owner::closeVillage);}
   }
   void departure(JSONObject state){
     name.setText("외부 출항");portrait("");JSONObject quest=state.optJSONObject("currentQuest");

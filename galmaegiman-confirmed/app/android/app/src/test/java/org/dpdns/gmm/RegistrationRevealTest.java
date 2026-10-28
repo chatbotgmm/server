@@ -232,7 +232,7 @@ public class RegistrationRevealTest {
   }
 
   @Test
-  public void largeFullCardsAvoidDuplicateIdentityAndKeepBadgesAndInlineActionsAtEveryViewport() throws Exception {
+  public void legacyCardsKeepBadgesActionsAndExplicitUnbundledArtworkAtEveryViewport() throws Exception {
     for (float scale : new float[] {1, 1.3f}) {
       RuntimeEnvironment.setFontScale(scale);
       for (int[] size : new int[][] {{915, 412}, {1006, 411}, {1280, 720}}) {
@@ -250,17 +250,11 @@ public class RegistrationRevealTest {
             acquisition.assertCardTextFits(card.front);
             RegistrationCardView.Artwork image = acquisition.registrationArtwork(card);
             assertEquals(RegistrationCardView.FULL, image.mode);
-            review.await(() -> image.bitmap != null);
-            RectF target = new RectF(image.target);
-            assertTrue(target.width() > 0 && target.height() > 0);
-            assertEquals(.75, target.width() / target.height(), .01);
-            assertTrue(target.left >= 0 && target.top >= 0);
-            assertTrue(target.right <= image.getWidth() + .5f);
-            assertTrue(target.bottom <= image.getHeight() + .5f);
+            NativeAcquisitionFlowTest.assertLegacyArtworkContract(image, review);
             LinearLayout face = (LinearLayout) card.front;
             assertEquals("No name/tier rows outside the printed full card", 1, face.getChildCount());
             assertNull("No second cream card wrapper", face.getBackground());
-            assertTrue("Card uses the recovered name/tier space", target.height() >= host.dp(180));
+            assertTrue("Legacy face retains space despite explicit missing artwork", image.getHeight() >= host.dp(180));
           }
           assertNull("Printed name is not repeated outside the image", text(reveal, "꺼지지 않는 그림자"));
           assertNotNull(text(reveal, "NEW"));
@@ -288,7 +282,7 @@ public class RegistrationRevealTest {
           acquisition.assertAcquisitionActionsVisible(host, size[0], size[1]);
           assertEquals("뒷면 소개와 기록은 catalog와 현재 개체를 읽기만 한다",
               java.util.Arrays.asList("GET native/catalog", "GET native/catalog", "GET native/state"), api.requests);
-          // Native Skia 실제 렌더는 텍스트와 그림이 함께 있는 front 전체를 그린다.
+          // Native Skia renders the explicit missing-art face, never an unrelated replacement image.
           Bitmap output = Bitmap.createBitmap(last.getWidth(), last.getHeight(), Bitmap.Config.ARGB_8888);
           try {
             last.draw(new Canvas(output));

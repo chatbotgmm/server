@@ -1023,10 +1023,10 @@ public class MainActivity extends AppCompatActivity {
   NativeRoster60StoryController rosterStory;
   NativeVillageHomeController villageHome;
   String rosterPvpMode="";
-  void openPlayMenu(){if(rosterPvp!=null)rosterPvp.pause();new NativePlayMenu(this).open();}
+  void openPlayMenu(){if(rosterPvp!=null)rosterPvp.pause();home();}
   void openRosterStoryEntry(){storyEntry=new NativeRoster60StoryEntry(this);storyEntry.open();}
-  void openRosterStory(){if(rosterStory!=null)rosterStory.pause();rosterStory=new NativeRoster60StoryController(this);rosterStory.open();}
-  void openRosterStoryResident(String id){if(rosterStory!=null)rosterStory.pause();rosterStory=new NativeRoster60StoryController(this,id);rosterStory.open();}
+  void openRosterStory(){if(rosterStory!=null)rosterStory.pause();if(!"home".equals(screen)||villageHome==null||!villageHome.current())home();rosterStory=new NativeRoster60StoryController(this);rosterStory.openVillage();}
+  void openRosterStoryResident(String id){if(rosterStory!=null)rosterStory.pause();if(!"home".equals(screen)||villageHome==null||!villageHome.current())home();rosterStory=new NativeRoster60StoryController(this,id);rosterStory.openVillage();}
   void openRosterPvp(){openRosterPvp(rosterPvpMode);}
   void openRosterPvp(String mode){rosterPvpMode=NativeRoster60Pvp.validMode(mode)?mode:"";rosterPvp=new NativeRoster60Pvp(this,false,rosterPvpMode);rosterPvp.open();}
   void openRosterHumanBattle(JSONObject state){String mode=state.optString("mode");if(NativeRoster60Pvp.validMode(mode))rosterPvpMode=mode;rosterBattle=new NativeRoster60PvpBattle(this,state);rosterBattle.open();}

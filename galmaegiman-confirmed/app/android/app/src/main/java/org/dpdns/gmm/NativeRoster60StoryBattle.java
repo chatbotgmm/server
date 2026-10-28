@@ -55,7 +55,7 @@ final class NativeRoster60StoryBattle extends NativeRoster60Battle {
   }
   @Override void options(){leave();}
   @Override void adventureResume(){returnToStory();}
-  void leave(){pause();h.openRosterStory();}
+  void leave(){pause();h.home();}
   @Override void pause(){reconnect.removeCallbacks(checkOwnBattle);super.pause();}
   @Override boolean back(){
     if(!current())return false;

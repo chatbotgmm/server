@@ -119,8 +119,13 @@ final class NativeSettingsSheet {
     TextView restore = k.note("음소거를 풀면 이전 볼륨으로 돌아와요.");
     restore.setPadding(h.dp(4), h.dp(5), h.dp(4), 0);
     left.addView(restore);
+    final boolean[] masterDrawn = {false};
     Runnable sync =
         () -> {
+          // Volume callbacks need not recreate unchanged master-toggle artwork.
+          boolean enabled = !h.sound.masterMuted();
+          if (masterDrawn[0] && all.isSelected() == enabled) return;
+          masterDrawn[0] = true;
           all.setText(h.sound.masterMuted() ? "꺼짐" : "켜짐");
           all.setContentDescription("전체 소리 " + (h.sound.masterMuted() ? "켜기" : "끄기"));
           all.setSelected(!h.sound.masterMuted());

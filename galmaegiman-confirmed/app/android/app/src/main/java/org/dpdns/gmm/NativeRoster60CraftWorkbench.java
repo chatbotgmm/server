@@ -11,9 +11,9 @@ final class NativeRoster60CraftWorkbench {
  final NativeRoster60Craft ui;final MainActivity h;final MenuKit k;JSONArray allRecipes;
  final LinearLayout left,right,grid;final TextView count,status;final Button filter;
  final Button[] slots=new Button[6];final ImageView[] pictures=new ImageView[6];final JSONObject[] displayed=new JSONObject[6];
- final String[] species=new String[6];CraftResultCarousel carousel;boolean discoveredOnly;String revision="";
+ final String[] species=new String[6];CraftResultCarousel carousel;boolean discoveredOnly;JSONArray recipeSource;String recipeContent="",renderedContent="",renderedVersion="",renderedOwner="";float renderedScale=-1;long carouselBuilds,resultArtBinds,recipeSerializations;
  NativeRoster60CraftWorkbench(NativeRoster60Craft ui){
-  this.ui=ui;h=ui.h;k=ui.k;allRecipes=ui.recipes;left=ui.cols[0];right=ui.cols[1];
+  this.ui=ui;h=ui.h;k=ui.k;allRecipes=ui.recipes;rememberRecipePayload();left=ui.cols[0];right=ui.cols[1];
   for(LinearLayout col:ui.cols){ui.clearArtwork(col);col.removeAllViews();}
   ui.cols[2].setVisibility(View.GONE);((LinearLayout.LayoutParams)left.getLayoutParams()).weight=.6f;((LinearLayout.LayoutParams)right.getLayoutParams()).weight=.4f;
   LinearLayout tools=h.page.findViewWithTag("craft-inline-tools");tools.removeAllViews();
@@ -33,10 +33,16 @@ final class NativeRoster60CraftWorkbench {
  }
  boolean busy(){return ui.loading||ui.submitting||ui.pending!=null;}
  JSONObject recipe(){return ui.current(ui.recipes,ui.recipePage);}
+ // 응답/필터 교체 때만 내용 지문을 만든다. 재료 선택·예측 렌더에서는 직렬화하지 않는다.
+ void rememberRecipePayload(){recipeSource=ui.recipes;recipeContent=ui.recipes.toString();recipeSerializations++;}
+ void acceptRecipes(JSONArray incoming){String target=recipe()==null?"":recipe().optString("resultId");allRecipes=incoming;applyFilter(target);}
+ void applyFilter(String target){
+  JSONArray visible=new JSONArray();int page=0;
+  for(int i=0;i<allRecipes.length();i++){JSONObject item=allRecipes.optJSONObject(i);if(!discoveredOnly||item.optBoolean("discovered")){if(target.equals(item.optString("resultId")))page=visible.length();visible.put(item);}}
+  ui.recipes=visible;ui.recipePage=page;rememberRecipePayload();
+ }
  void filterRecipes(){
-  String target=recipe()==null?"":recipe().optString("resultId");JSONArray visible=new JSONArray();int page=0;
-  for(int i=0;i<allRecipes.length();i++){JSONObject recipe=allRecipes.optJSONObject(i);if(!discoveredOnly||recipe.optBoolean("discovered")){if(target.equals(recipe.optString("resultId")))page=visible.length();visible.put(recipe);}}
-  ui.recipes=visible;ui.recipePage=page;ui.preview=null;ui.selected.clear();revision="";ui.changed();
+  String target=recipe()==null?"":recipe().optString("resultId");applyFilter(target);ui.preview=null;ui.selected.clear();ui.changed();
  }
  void choose(int index){
   if(busy())return;ui.recipePage=index;ui.selected.clear();JSONObject recipe=recipe();JSONArray ingredients=recipe==null?null:recipe.optJSONArray("ingredients");
@@ -60,7 +66,10 @@ final class NativeRoster60CraftWorkbench {
   }).setPositiveButton("닫기",null).show();
  }
  void buildCarousel(){
-  String key=ui.recipes.toString()+"|"+ui.scale;if(key.equals(revision))return;revision=key;ui.clearArtwork(left);left.removeAllViews();
+  // 레시피는 응답 스냅샷이다. 테스트/외부 새 배열도 최초 한 번만 지문을 갱신한다.
+  if(recipeSource!=ui.recipes)rememberRecipePayload();
+  if(renderedContent.equals(recipeContent)&&renderedVersion.equals(ui.version)&&renderedOwner.equals(ui.owner)&&renderedScale==ui.scale)return;
+  renderedContent=recipeContent;renderedVersion=ui.version;renderedOwner=ui.owner;renderedScale=ui.scale;carouselBuilds++;ui.clearArtwork(left);left.removeAllViews();
   carousel=new CraftResultCarousel(h,this::choose);for(int i=0;i<ui.recipes.length();i++)carousel.addCard(new ResultCard(ui.recipes.optJSONObject(i)),i);
   if(ui.recipes.length()==0)left.addView(ui.label("발견한 조합 대상이 없습니다."),new LinearLayout.LayoutParams(-1,0,1));else left.addView(carousel,new LinearLayout.LayoutParams(-1,0,1));
   left.addView(status,new LinearLayout.LayoutParams(-1,-2));
@@ -75,7 +84,7 @@ final class NativeRoster60CraftWorkbench {
   }
   @Override public void showArt(boolean visible){
    if(!item.optBoolean("imageVisible")||visible==loaded)return;loaded=visible;
-   if(visible){boolean bound=RegistrationV10Art.bind(h,image,item.optString("resultId"));if(!bound)Roster60Portrait.bind(h,image,item.optString("resultId"));}else ui.clearArtwork(image);
+   if(visible){resultArtBinds++;boolean bound=RegistrationV10Art.bind(h,image,item.optString("resultId"));if(!bound)Roster60Portrait.bind(h,image,item.optString("resultId"));}else ui.clearArtwork(image);
   }
   @Override public void setSelected(boolean selected){
    if(selected==isSelected())return;super.setSelected(selected);

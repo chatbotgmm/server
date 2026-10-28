@@ -133,7 +133,7 @@ public class NativeEffectsPresentationTest {
       assertNotNull(card);
       assertEquals("Reduced motion still reveals the actual full card", View.VISIBLE, card.front.getVisibility());
       assertTrue(card.getContentDescription().toString().contains(unit.getString("name")));
-      assertTrue(card.getContentDescription().toString().contains(unit.getString("tierName")));
+      assertTrue(card.getContentDescription().toString().contains(TierDisplay.name(unit.optString("tier"), unit.optString("tierName"))));
       RegistrationCardView.Artwork art = new NativeAcquisitionFlowTest().registrationArtwork(card);
       assertNotNull(art);
       assertEquals(unit.getString("id"), art.id);

@@ -18,10 +18,11 @@ final class NativeVillageHomeController {
   NativeVillageHomeView view;
   VillageLayout layout;
   String problem="";
+  String mainStoryTarget="";
   String savedCamera="";
   int readGeneration;
   int statueStage; // 0 means no authenticated stage has been read for this controller/account.
-  boolean reading,paused;
+  boolean reading,paused,statueReadFailed;
   android.app.AlertDialog menu;
   NativeVillageHomeController(MainActivity h) {
     this.h=h;owner=h.api.token();epoch=h.epoch;
@@ -41,6 +42,7 @@ final class NativeVillageHomeController {
       &&"home".equals(h.screen)&&!h.isFinishing()&&!h.isDestroyed()&&h.root.indexOfChild(view)>=0; }
   void refresh() {
     if(!current()||reading)return;reading=true;int generation=++readGeneration;
+    if(statueStage==0){statueReadFailed=false;view.updateNotice();}
     h.api.call("native/roster60/story/state",null,(result,error)->{
       if(!paused&&view!=null&&epoch==h.epoch&&"home".equals(h.screen)&&h.api.token().isEmpty()){
         pause();h.operations.close();h.busy=false;if(h.menus.extras.profilePopup!=null)h.menus.extras.profilePopup.dismiss();h.login();return;
@@ -50,16 +52,35 @@ final class NativeVillageHomeController {
         NativeCommander.sync(h,result==null?null:result.optJSONObject("commander"),owner,epoch);
         JSONObject statue=result==null?null:result.optJSONObject("statue");
         int stage=validatedStatueStage(statue);
-        if(stage>=1&&stage<=5){statueStage=stage;loadCurrentStatue();}
-      }
+        if(stage>=1&&stage<=5){statueStage=stage;statueReadFailed=false;loadCurrentStatue();}
+        else if(statueStage==0)statueReadFailed=true;
+      }else if(statueStage==0)statueReadFailed=true;
+      mainStoryTarget=error==null?mainStoryTarget(result):"";
       residents.clear();
       JSONArray list=result==null?null:result.optJSONArray("residents");
       if(error!=null||list==null)problem="주민 부탁 상태를 불러오지 못했어요. 다시 확인할 수 있어요.";
       else {problem="";for(int i=0;i<list.length();i++){JSONObject npc=list.optJSONObject(i);if(npc!=null)residents.put(npc.optString("id"),npc);}}
-      view.bindResidents();view.updateNotice();
+      view.bindResidents();view.updateNotice();view.invalidate();
     });
   }
-  void loadCurrentStatue(){if(view!=null)view.assets.loadStatue(layout,statueStage,this::current,()->{if(current())view.invalidate();});}
+  /** Only the authenticated main quest advertises the next object; never infer unlocks locally. */
+  static String mainStoryTarget(JSONObject state){
+    JSONObject q=state==null?null:state.optJSONObject("currentQuest");
+    if(q==null||!"main".equals(q.optString("kind")))return "";
+    JSONObject scene=state.optJSONObject("scene");
+    if(scene!=null&&!q.optString("id").isEmpty()&&q.optString("id").equals(scene.optString("questId"))&&java.util.Arrays.asList("intro","return").contains(scene.optString("phase")))return "statue";
+    String status=q.optString("status");
+    if("AVAILABLE".equals(status)||"READY".equals(status))return "statue";
+    if(!"ACTIVE".equals(status))return "";
+    if(q.optBoolean("canDepart")||!NativeRoster60StoryController.reference(q,"battleId").isEmpty()||!NativeRoster60StoryController.reference(q,"adventureId").isEmpty())return "boat";
+    JSONObject pending=state.optJSONObject("pendingDeparture"),body=pending==null?null:pending.optJSONObject("body");
+    return body!=null&&!q.optString("id").isEmpty()&&q.optString("id").equals(body.optString("questId"))?"boat":"";
+  }
+  void loadCurrentStatue(){if(view!=null)view.assets.loadStatue(layout,statueStage,this::current,()->{if(current())view.updateNotice();});}
+  void reloadArtwork(){
+    if(!current())return;
+    view.assets.load(layout,this::current,()->{if(current())view.updateNotice();});loadCurrentStatue();if(statueStage==0)refresh();view.updateNotice();
+  }
   static int validatedStatueStage(JSONObject statue){
     Object raw=statue==null?null:statue.opt("stage");if(!(raw instanceof Number))return 0;
     double stage=((Number)raw).doubleValue();return stage>=1&&stage<=5&&stage==Math.rint(stage)?(int)stage:0;
@@ -91,6 +112,10 @@ final class NativeVillageHomeController {
   }
   void building(VillageLayout.Building building){
     if(!current()||h.busy||h.updateBlocks()||view.blocksClick())return;
+    if("archive".equals(building.id)){
+      String[] labels=java.util.Arrays.copyOf(building.menu,building.menu.length+1);labels[labels.length-1]="이야기 기록";
+      menu=new GameDialog(h).navy().setTitle(building.name).setItems(labels,(dialog,index)->{if(current())navigate(index==labels.length-1?"story-history":building.actionIds[index]);}).setNegativeButton("닫기",null).show();return;
+    }
     if(building.actionIds.length==1){navigate(building.actionIds[0]);return;}
     menu=new GameDialog(h).navy().setTitle(building.name).setItems(building.menu,(dialog,index)->{
       if(current()&&index<building.actionIds.length)navigate(building.actionIds[index]);
@@ -106,6 +131,7 @@ final class NativeVillageHomeController {
       case "mail":case "events":case "notices":int tab=id.equals("mail")?0:id.equals("events")?1:2;pause();h.menus.news.tab=tab;h.load("news");break;
       case "explore":view.stopMotion();h.rosterStory=new NativeRoster60StoryController(h);h.rosterStory.openVillageExploration();break;
       case "story":mainStory();break;
+      case "story-history":view.stopMotion();h.rosterStory=new NativeRoster60StoryController(h);h.rosterStory.openVillageHistory();break;
       case "departure":view.stopMotion();h.rosterStory=new NativeRoster60StoryController(h);h.rosterStory.openVillageDeparture();break;
       case "normal":case "rank":pause();h.openRosterPvp(id);break;
       case "items":case "currency":pause();h.load("shop");break;

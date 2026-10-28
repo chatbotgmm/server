@@ -10,14 +10,22 @@ import android.graphics.RectF;
 final class VillageDistrictScene {
   final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
   final Rect source=new Rect();
-  final RectF target=new RectF(),tile=new RectF();
-  final float[] waterVertices=new float[(32+1)*(12+1)*2];long waterTime;
+  final RectF target=new RectF(),tile=new RectF(),waterClip=new RectF();
+  final float[] waterVertices=new float[(32+1)*(24+1)*2];long waterTime;
+  final float[] layeredWaterVertices=new float[(32+1)*(96+1)*2];
+  float layeredMeshWidth=-1,layeredMeshHeight=-1;
   boolean geometry(NativeVillageHomeView view,VillageLayout.DistrictScenery item,Bitmap image){
     VillageLayout.Asset asset=view.layout.assets.get(item.asset);double[] crop=asset.crop;
     int iw=image==null?asset.sourceWidth:image.getWidth(),ih=image==null?asset.sourceHeight:image.getHeight();
     if(iw<=0||ih<=0)return false;
     source.set((int)(crop[0]*iw),(int)(crop[1]*ih),(int)(crop[2]*iw),(int)(crop[3]*ih));
     if(source.width()<=0||source.height()<=0)return false;
+    if(view.layout.layeredWorld){
+      float height=view.field.height()*(float)item.heightRatio,width=(float)(item.worldWidth*view.unitPixels());
+      float center=(float)view.camera.projectX(item.x,1,view.unitPixels(),view.field.width());
+      float top=view.field.height()*(float)item.baseline-height*(float)item.groundAnchor;
+      target.set(center-width/2,top,center+width/2,top+height);return true;
+    }
     float aspect=(float)source.width()/source.height();
     float height=Math.max((float)item.heightRatio*view.field.height(),Math.max(view.field.width()*(float)item.minimumViewportWidth,(float)(item.minimumWorldWidth*view.unitPixels()))/aspect),width=height*aspect;
     VillageLayout.District district=view.layout.district(item.district);double unit=view.unitPixels();
@@ -26,11 +34,15 @@ final class VillageDistrictScene {
     target.set(center-width/2,top,center+width/2,top+height);return true;
   }
   void draw(Canvas canvas,NativeVillageHomeView view,String depth){
+    if(view.layout.layeredWorld){drawLayered(canvas,view,depth);return;}
     if(view.layout.continuousFoundation){
       for(VillageLayout.DistrictScenery item:view.layout.districtScenery){
         Bitmap image=view.assets.get(item.asset);if(!depth.equals(item.depth)||image==null||!geometry(view,item,image)||!RectF.intersects(target,view.field))continue;
         int save=canvas.save();canvas.clipRect(view.field.left,Math.max(view.field.height()*(float)item.clipTop,target.top+target.height()*(float)item.clipSourceTop),view.field.right,view.field.bottom);
-        paint.setAlpha(255);if("harbor-water".equals(item.id))drawWater(canvas,image);else canvas.drawBitmap(image,source,target,paint);canvas.restoreToCount(save);
+        paint.setAlpha(255);if("harbor-water".equals(item.id))drawWater(canvas,image);else {
+          canvas.drawBitmap(image,source,target,paint);
+          if(view.layout.layeredWorld&&"layered-approved".equals(item.id))drawLayeredWater(canvas,image);
+        }canvas.restoreToCount(save);
       }
       return;
     }
@@ -65,7 +77,47 @@ final class VillageDistrictScene {
     }
     paint.setAlpha(255);
   }
-  boolean waterVisible(NativeVillageHomeView view){VillageLayout.DistrictScenery water=view.layout.districtScenery("harbor-water");return water!=null&&view.assets.get(water.asset)!=null&&geometry(view,water,view.assets.get(water.asset))&&RectF.intersects(target,view.field);}
+  void drawLayered(Canvas canvas,NativeVillageHomeView view,String depth){
+    float period=(float)(view.layout.worldUnits*view.unitPixels());
+    for(VillageLayout.DistrictScenery item:view.layout.districtScenery){
+      Bitmap image=view.assets.get(item.asset);if(!depth.equals(item.depth)||image==null||!geometry(view,item,image))continue;
+      float left=target.left,right=target.right,top=target.top,bottom=target.bottom;
+      for(int repeat=-1;repeat<=1;repeat++){
+        target.set(left+repeat*period,top,right+repeat*period,bottom);if(!RectF.intersects(target,view.field))continue;
+        int save=canvas.save();canvas.clipRect(view.field.left,Math.max(view.field.height()*(float)item.clipTop,target.top+target.height()*(float)item.clipSourceTop),view.field.right,view.field.bottom);
+        paint.setAlpha(255);canvas.drawBitmap(image,source,target,paint);
+        if("layered-join-approved-market".equals(item.id))drawLayeredWater(canvas,image);
+        canvas.restoreToCount(save);
+      }
+      target.set(left,top,right,bottom);
+    }
+  }
+  boolean waterVisible(NativeVillageHomeView view){
+    if(view.layout.layeredWorld){VillageLayout.DistrictScenery panel=view.layout.districtScenery("layered-join-approved-market");
+      if(panel==null||view.assets.get(panel.asset)==null||!geometry(view,panel,view.assets.get(panel.asset)))return false;
+      layeredWaterClip();return RectF.intersects(waterClip,view.field);
+    }
+    VillageLayout.DistrictScenery water=view.layout.districtScenery("harbor-water");return water!=null&&view.assets.get(water.asset)!=null&&geometry(view,water,view.assets.get(water.asset))&&RectF.intersects(target,view.field);}
+  void layeredWaterClip(){waterClip.set(target.left+target.width()*13/32f,target.top+target.height()*69/96f,target.left+target.width()*16/32f,target.top+target.height()*72/96f);}
+  /** Cache the regular mesh at layout scale; update only four interior water vertices per frame.
+   * Authored patch x=.40625..5,y=.71875..75 contains no rocks, posts or transparent boundary. */
+  void drawLayeredWater(Canvas canvas,Bitmap image){
+    float width=target.width(),height=target.height();
+    if(width!=layeredMeshWidth||height!=layeredMeshHeight){
+      layeredMeshWidth=width;layeredMeshHeight=height;int at=0;
+      for(int row=0;row<=96;row++)for(int column=0;column<=32;column++){
+        layeredWaterVertices[at++]=column/32f*width;layeredWaterVertices[at++]=row/96f*height;
+      }
+    }
+    double phase=waterTime/1800.0;float amplitude=Math.min(1.2f,height*.002f);
+    for(int row=70;row<=71;row++)for(int column=14;column<=15;column++){
+      double u=column/32.0,v=row/96.0,envelope=Math.sin(Math.PI*(column-13)/3.0)*Math.sin(Math.PI*(row-69)/3.0);int at=(row*33+column)*2;
+      layeredWaterVertices[at]=(float)u*width+amplitude*(float)(envelope*Math.sin(phase+u*20));
+      layeredWaterVertices[at+1]=(float)v*height+amplitude*.35f*(float)(envelope*Math.cos(phase+u*15));
+    }
+    layeredWaterClip();int save=canvas.save();canvas.clipRect(waterClip);canvas.translate(target.left,target.top);
+    canvas.drawBitmapMesh(image,32,96,layeredWaterVertices,0,null,0,paint);canvas.restoreToCount(save);
+  }
   /** Deform only authored interior water pixels. The mesh is fixed at rock/quay and bitmap edges. */
   void drawWater(Canvas canvas,Bitmap image){
     double phase=waterTime/1800.0;float amplitude=Math.min(1.6f,target.height()*.003f);int at=0;
@@ -84,6 +136,11 @@ final class VillageDistrictScene {
     int save=canvas.save();canvas.clipRect(left,view.field.top+view.field.height()*(float)item.clipTop,right,view.field.bottom);
     if(mirror)canvas.scale(-1,1,tile.centerX(),tile.centerY());paint.setAlpha(alpha);canvas.drawBitmap(image,source,tile,paint);canvas.restoreToCount(save);
   }
+  boolean bounds(NativeVillageHomeView view,String id,RectF out){
+    VillageLayout.DistrictScenery item=view.layout.districtScenery(id);
+    if(item==null||!geometry(view,item,view.assets.get(item.asset)))return false;
+    out.set(target);return true;
+  }
   boolean point(NativeVillageHomeView view,String id,double sourceX,double sourceY,android.graphics.PointF out){
     for(VillageLayout.DistrictScenery item:view.layout.districtScenery)if(item.id.equals(id)&&geometry(view,item,view.assets.get(item.asset))){out.set(target.left+target.width()*(float)sourceX,target.top+target.height()*(float)sourceY);return true;}
     return false;
@@ -94,6 +151,16 @@ final class VillageDistrictScene {
     for(VillageLayout.DistrictScenery item:view.layout.districtScenery){
       if(!depth.equals(item.depth)||y<view.field.top+view.field.height()*(float)item.clipTop||y>=view.field.bottom)continue;
       Bitmap image=view.assets.get(item.asset);if(image==null||!geometry(view,item,image)||y<target.top||y>=target.bottom)continue;
+      if(view.layout.layeredWorld){
+        if(y<target.top+target.height()*(float)item.clipSourceTop)continue;
+        float period=(float)(view.layout.worldUnits*view.unitPixels());
+        for(int repeat=-1;repeat<=1;repeat++){
+          float left=target.left+repeat*period;if(x<left||x>=left+target.width())continue;
+          int px=Math.max(source.left,Math.min(source.right-1,source.left+(int)((x-left)/target.width()*source.width()))),py=Math.max(source.top,Math.min(source.bottom-1,source.top+(int)((y-target.top)/target.height()*source.height())));
+          double alpha=(image.getPixel(px,py)>>>24)/255.0;combined=alpha+combined*(1-alpha);if(combined>=.5)return true;
+        }
+        continue;
+      }
       if(view.layout.continuousFoundation){
         if(x<target.left||x>=target.right||y<target.top+target.height()*(float)item.clipSourceTop)continue;
         int px=Math.max(source.left,Math.min(source.right-1,source.left+(int)((x-target.left)/target.width()*source.width()))),py=Math.max(source.top,Math.min(source.bottom-1,source.top+(int)((y-target.top)/target.height()*source.height())));

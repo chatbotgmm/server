@@ -175,11 +175,13 @@ final class NativeBattleReplay {
   }
   static final class Arena extends View {
     final MainActivity h;final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);JSONObject state;
+    final Runnable skinReady=this::invalidate;
+    Bitmap harbor(){Bitmap image=BattleSkin.peek("bg-harbor");if(image==null&&!BattleSkin.failed("bg-harbor"))BattleSkin.load(h,"bg-harbor",skinReady);return image;}
     Arena(MainActivity h,JSONObject state){super(h);this.h=h;this.state=state;setContentDescription("기록된 전투 장면");}
     @Override protected void onDraw(Canvas c){
       super.onDraw(c);float w=getWidth(),height=getHeight();
       String background=BattleBackground.path(state.optString("scene","harbor"));
-      Bitmap bg="harbor".equals(state.optString("scene","harbor"))?BattleSkin.bitmap(h,"bg-harbor"):background==null?null:h.art.scene(background,this::invalidate);if(bg!=null)c.drawBitmap(bg,null,new RectF(0,0,w,height),p);else c.drawColor(0xff244b56);
+      Bitmap bg="harbor".equals(state.optString("scene","harbor"))?harbor():background==null?null:h.art.scene(background,this::invalidate);if(bg!=null)c.drawBitmap(bg,null,new RectF(0,0,w,height),p);else c.drawColor(0xff244b56);
       JSONArray teams=state.optJSONArray("teams");if(teams==null)return;
       for(int side=0;side<2;side++){
         JSONObject t=teams.optJSONObject(side);if(t==null)continue;JSONArray fighters=t.optJSONArray("fighters");if(fighters==null)continue;JSONObject f=fighters.optJSONObject(t.optInt("active"));if(f==null)continue;

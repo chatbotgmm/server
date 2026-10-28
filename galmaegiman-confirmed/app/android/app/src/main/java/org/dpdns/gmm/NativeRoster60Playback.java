@@ -200,6 +200,7 @@ final class NativeRoster60Playback {
     });
     host.art.frame(before,after,event,0);
     animator.start();
+    host.refreshArtGate();
   }
 
   String label(JSONObject event) {

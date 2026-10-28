@@ -21,7 +21,7 @@ public class NativeVillageAmbientTest {
   @After public void restore()throws Exception{LocalGameArtTest.drain();helper.restore();}
   NativeVillageHomeView loaded(MainActivity h)throws Exception{
     NativeVillageHomeView v=fixture.open(h,NativeVillageHomeTest.PHONE);LocalGameArtTest.drain();helper.layout(h,NativeVillageHomeTest.PHONE);
-    assertTrue(v.assets.ready());assertNotNull(v.assets.get("continuous-sky"));assertNotNull(v.assets.get("continuous-ground"));v.ambient.fixedTime=1400L;return v;
+    assertTrue(v.assets.ready());assertNotNull(v.assets.get("layered-sky"));assertNotNull(v.assets.get("layered-patrol"));v.ambient.fixedTime=1400L;return v;
   }
   void settleViewport(MainActivity h,NativeVillageHomeView v)throws Exception{
     for(int i=0;i<4;i++){LocalGameArtTest.drain();helper.layout(h,NativeVillageHomeTest.PHONE);}
@@ -44,14 +44,13 @@ public class NativeVillageAmbientTest {
     try(ActivityController<MainActivity> activity=helper.flow.start()){
       MainActivity h=activity.get();fixture.prepare(h);NativeVillageHomeView v=loaded(h);
       v.moveCameraUnits(3.75-v.camera.cameraUnits());settleViewport(h,v);v.ambient.fixedTime=0L;
-      VillageLayout.DistrictScenery water=v.layout.districtScenery("harbor-water");assertTrue(v.districtScene.geometry(v,water,v.assets.get(water.asset)));
-      android.graphics.RectF region=new android.graphics.RectF(v.districtScene.target);
-      region.set(region.left+region.width()*.18f,region.top+region.height()*.24f,region.left+region.width()*.77f,region.top+region.height()*.81f);
+      VillageLayout.DistrictScenery water=v.layout.districtScenery("layered-join-approved-market");assertTrue(v.districtScene.geometry(v,water,v.assets.get(water.asset)));
+      v.districtScene.layeredWaterClip();android.graphics.RectF region=new android.graphics.RectF(v.districtScene.waterClip);
       Bitmap first=NativeHomePartyFeedbackTest.render(h.root);v.ambient.fixedTime=2100L;Bitmap second=NativeHomePartyFeedbackTest.render(h.root);
       try{
         int changed=0;
         for(int y=0;y<first.getHeight();y++)for(int x=0;x<first.getWidth();x++)if(first.getPixel(x,y)!=second.getPixel(x,y)){
-          changed++;assertTrue("Animation escaped water-only band at "+x+","+y,region.contains(x,y));
+          changed++;assertTrue("Animation escaped water-only band at "+x+","+y,region.contains(x+.5f,y+.5f));
         }
         assertTrue("Authored water ripples must visibly change",changed>10);
       }finally{first.recycle();second.recycle();}
@@ -105,7 +104,7 @@ public class NativeVillageAmbientTest {
         NativeVillageHomeView v=fixture.open(h,profile);LocalGameArtTest.drain();helper.layout(h,profile);
         assertTrue("Core assets must finish before capture",v.assets.ready());
         assertEquals(1,v.owner.statueStage);assertNotNull("Stage 1 must be the real decoded PNG",v.assets.get("statue-stage-1"));
-        assertNotNull(v.assets.get("continuous-sky"));assertNotNull(v.assets.get("continuous-ground"));
+        assertNotNull(v.assets.get("layered-sky"));assertNotNull(v.assets.get("layered-patrol"));
         v.stopMotion();
         String[] scenes={"plaza-stage-1","harbor"};
         // Same world coordinate and angle for every timestamp; the statue is centered in the plaza shot.
@@ -175,6 +174,8 @@ public class NativeVillageAmbientTest {
           for(android.widget.Button button:NativeVillageHomeTest.worldTargets(v)){
             android.graphics.RectF object=new android.graphics.RectF(button.getLeft(),button.getTop(),button.getRight(),button.getBottom());
             android.graphics.RectF label=v.labelRect(object,button),art=NativeVillageHomeTest.shownArt(v,button);
+            NativeVillageHomeView.WorldTarget wt=(NativeVillageHomeView.WorldTarget)button;
+            if(wt.building!=null&&!wt.building.canvasLayer.isEmpty()){double[] content=v.layout.assets.get(wt.asset).contentBounds;art.bottom=art.top+art.height()*(float)content[3];}
             assertTrue("Image nameplate is strictly below sprite feet",label.top>=art.bottom+v.labelGap()-1);
             assertTrue("Image nameplate respects lower safe margin",label.bottom<=v.safe.bottom-h.dp(5));
             assertFalse(button.getContentDescription().toString().isEmpty());
@@ -216,7 +217,7 @@ public class NativeVillageAmbientTest {
         for(VillageLayout.Building building:v.layout.buildings){
           v.moveCameraUnits(Math.floor(building.x/2)*2+.25-v.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);
           android.graphics.RectF art=NativeVillageHomeTest.shownArt(v,v.buildingButtons.get(building.id));
-          v.actorPosition(building,v.buildingButtons.get(building.id));double expected=Math.min(v.field.height()*building.heightRatio,v.actorPoint.y-v.safe.top-h.dp((int)building.topClearanceDp));assertEquals("Scene height honors platform clearance instead of a uniform cap: "+building.id,expected,art.height(),1.1);
+          v.actorPosition(building,v.buildingButtons.get(building.id));double expected=building.canvasLayer.isEmpty()?v.field.height()*building.heightRatio:v.field.height();assertEquals("Authored full-canvas scale and footprint remain fixed: "+building.id,expected,art.height(),1.1);
         }
         for(VillageLayout.Resident resident:v.layout.residents){
           v.moveCameraUnits(Math.floor(resident.x/2)*2+.25-v.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);
@@ -225,11 +226,11 @@ public class NativeVillageAmbientTest {
           assertTrue(v.residentButtons.get(resident.id).getWidth()>=h.dp(48));assertTrue(v.residentButtons.get(resident.id).getHeight()>=h.dp(48));
         }
         // Latest user direction supersedes the earlier equal-door-size proposal: enlarge the group, not the mailbox.
-        for(String id:new String[]{"recruit","archive","market"})assertTrue("Functional buildings retain substantial scene presence",v.layout.building(id).heightRatio>=.50);
-        for(VillageLayout.Resident resident:v.layout.residents)assertTrue("Residents remain readable beside architecture",resident.heightRatio>=.25&&resident.heightRatio<=.35);
+        for(String id:new String[]{"recruit","archive","market"})assertTrue("Functional buildings retain substantial scene presence",v.layout.building(id).heightRatio>=.48);
+        for(VillageLayout.Resident resident:v.layout.residents)assertTrue("Residents remain readable beside architecture",resident.heightRatio>=.20&&resident.heightRatio<=.25);
         assertTrue("Mailbox is independently reduced, not included in the group enlargement",v.layout.building("mailbox").heightRatio>=.15&&v.layout.building("mailbox").heightRatio<=.17);
-        assertEquals("Front patrol remains readable at 111px",111.24,v.layout.resident("guard").heightRatio*412,.1);
-        assertEquals("Mailbox remains below resident size at 70px",70.04,v.layout.building("mailbox").heightRatio*412,.1);
+        assertEquals("Front patrol keeps authored 95px height",94.76,v.layout.resident("guard").heightRatio*412,.1);
+        assertEquals("Mailbox remains below resident size at 66px",65.92,v.layout.building("mailbox").heightRatio*412,.1);
         for(VillageLayout.Building building:v.layout.buildings){
           v.moveCameraUnits(Math.floor(building.x/2)*2+.25-v.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);
           android.graphics.RectF art=NativeVillageHomeTest.shownArt(v,v.buildingButtons.get(building.id));Bitmap bitmap=v.assets.get(building.asset);double[] crop=v.layout.assets.get(building.asset).crop;

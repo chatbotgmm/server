@@ -12,13 +12,29 @@ import org.robolectric.*;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.*;
 
-/** 등록증 연결만 검증한다. 실제 계정·서버·추첨 없이 기존 화면과 콜백 계약을 유지한다. */
+/**
+ * Current product routing uses roster60 DTOs. Retired three-slot/collection interaction contracts
+ * run only on LegacyTestHost; their missing v1 pack is never counted as product visual coverage.
+ * Real v10 portraits and purchase request contracts are checked separately below.
+ */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35, qualifiers = "w915dp-h412dp-land-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @LooperMode(LooperMode.Mode.PAUSED)
 public class RegistrationIntegrationScreensTest {
   final NativeGameFlowTest flow = new NativeGameFlowTest();
+
+  /** Test-only compatibility profile. Never changes BuildConfig or public product routing. */
+  public static class LegacyTestHost extends MainActivity {
+    @Override boolean roster60Menus() { return false; }
+  }
+  ActivityController<LegacyTestHost> legacyHost() {
+    ActivityController<LegacyTestHost> controller = Robolectric.buildActivity(LegacyTestHost.class).create();
+    controller.get().motionEnabled = false;
+    controller.start().resume().visible();
+    NativeGameFlowTest.awaitStartupResources(controller.get());
+    return controller;
+  }
   final NativeRenderReviewTest review = new NativeRenderReviewTest();
   final NativeDialogLayoutReviewTest geometry = new NativeDialogLayoutReviewTest();
 
@@ -66,9 +82,68 @@ public class RegistrationIntegrationScreensTest {
         "pity", MainActivity.obj("tierName", "전설", "left", 9));
   }
 
+
+  static JSONObject productRecruitment() {
+    JSONArray offers = new JSONArray();
+    String[] kinds = {"LOW", "MID", "HIGH"}, labels = {"하급", "중급", "고급"};
+    for (int i = 0; i < kinds.length; i++) offers.put(MainActivity.obj("kind", kinds[i], "label", labels[i],
+        "cost", i == 2 ? 5 : i + 2, "enabled", true, "weights", MainActivity.obj("COMMON", 100)));
+    return MainActivity.obj("credits", 100, "catalogVersion", "product-fixture-v10", "offers", offers);
+  }
+
+  static JSONObject productCollection() {
+    JSONArray characters = new JSONArray();
+    for (int i = 1; i <= 10; i++) characters.put(MainActivity.obj("id", String.format(java.util.Locale.ROOT, "u%02d", i),
+        "name", "현재 도감 대원 " + i, "rarity", i <= 6 ? "COMMON" : "RARE", "ownedCount", i == 2 ? 0 : 1,
+        "levelOneStats", MainActivity.obj("hp", 10, "mp", 5, "durability", 3, "statusResistance", 2, "speed", 1),
+        "suitability", MainActivity.obj("NORMAL", 2), "skills", new JSONArray()));
+    return MainActivity.obj("characters", characters, "grades", MainActivity.obj("COMMON", "커먼", "RARE", "레어"));
+  }
+
+  ImageView productPortrait(MainActivity host) {
+    ImageView found = null;
+    for (View view : geometry.descendants(host.root)) if (view instanceof ImageView
+        && view.getContentDescription() != null && view.getContentDescription().toString().contains(" 정면 · 길게 눌러 설명")) {
+      assertNull("Exactly one current product portrait is shown", found); found = (ImageView) view;
+    }
+    assertNotNull(found); return found;
+  }
+
+  @Test public void actualProductCollectionUsesRoster60DtoRealPortraitAndEveryOwnedMatchingId() throws Exception {
+    for (float scale : new float[] {1, 1.3f}) {
+      RuntimeEnvironment.setFontScale(scale);
+      for (int[] size : new int[][] {{640, 320}, {915, 412}, {1280, 720}}) {
+        try (ActivityController<MainActivity> controller = flow.start()) {
+          MainActivity host = controller.get(); FixtureApi api = prepare(host);
+          assertTrue(host.roster60Menus()); host.collection(); layout(host, size[0], size[1]);
+          LocalGameArtTest.drain(); layout(host, size[0], size[1]);
+          assertEquals(List.of("native/roster60/collection"), api.reads);
+          ImageView art = productPortrait(host);
+          assertNotNull("Product uses real packaged roster60 art, not missing v1 fallback", art.getDrawable());
+          NativeNoScrollReviewTest.assertFullyVisible(art, host.root);
+          for (View view : geometry.descendants(host.root)) assertFalse("Retired v1 card is not a product screen", view instanceof RegistrationCardView.Artwork);
+          Set<String> seen = new HashSet<>();
+          button(host.root, "보유 필터").performClick();
+          for (int i = 0; i < 9; i++) {
+            String shown = art.getContentDescription().toString();
+            assertFalse(shown.contains("대원 2 정면")); assertTrue("Every owned ID appears exactly once", seen.add(shown));
+            button(host.root, "다음").performClick();
+          }
+          assertEquals(9, seen.size()); assertTrue(art.getContentDescription().toString().contains("대원 1 정면"));
+          button(host.root, "보유 필터").performClick();
+          button(host.root, "다음").performClick();
+          assertTrue("Unowned ID is restored when filter is cleared", art.getContentDescription().toString().contains("대원 2 정면"));
+          button(host.root, "기술").performClick();
+          assertSame("Detail tabs retain the same portrait view", art, productPortrait(host));
+          assertTrue("Filters, paging and detail views never save or spend", api.writes.isEmpty());
+        }
+      }
+    }
+  }
+
   final class FixtureApi extends NativeApi {
     final JSONObject stored, offers;
-    final List<String> writes = new ArrayList<>();
+    final List<String> writes = new ArrayList<>(), reads = new ArrayList<>();
     final List<JSONObject> submitted = new ArrayList<>();
 
     FixtureApi(MainActivity host, JSONObject state) {
@@ -86,7 +161,10 @@ public class RegistrationIntegrationScreensTest {
         // 쓰기는 기록만 한다. 완료/결과/지급을 테스트에서 임의 생성하지 않는다.
         return;
       }
-      if (path.equals("draw")) callback.done(offers, null);
+      reads.add(path);
+      if (path.equals("native/roster60/recruit")) callback.done(productRecruitment(), null);
+      else if (path.equals("native/roster60/collection")) callback.done(productCollection(), null);
+      else if (path.equals("draw")) callback.done(offers, null);
       else if (path.equals("native/catalog"))
         callback.done(MainActivity.obj("units", stored.optJSONObject("me").optJSONArray("units")), null);
       else callback.done(stored, null);
@@ -100,6 +178,8 @@ public class RegistrationIntegrationScreensTest {
     host.state = api.stored;
     host.art.key = "registration-fixture";
     host.guide.enabled = false;
+    host.getSharedPreferences("roster60_recruit", 0).edit().clear().commit();
+    host.getSharedPreferences("roster60_recruit_session", 0).edit().clear().commit();
     return api;
   }
 
@@ -118,9 +198,22 @@ public class RegistrationIntegrationScreensTest {
     assertTrue("Party uses whole character art, not registration crops", view instanceof PartyCharacterView.Artwork);
     PartyCharacterView.Artwork art = (PartyCharacterView.Artwork) view;
     assertEquals(id, art.id);
-    new NativeRegistrationReviewTest().assertPartyArt(host, art);
-    assertEquals("Expected approved sprite path", "/duel/sprites/" + id + "_s0_front.webp", art.path);
-    assertNotNull("A disclosed top33 fixture must load its own whole sprite", art.bitmap);
+    assertEquals("Expected identity-specific sprite path", "/duel/sprites/" + id + "_s0_front.webp", art.path);
+    // These five legacy fixture IDs have no source/bundled front sprite in this checkout.
+    // D1-D4/D8 remain actual pixel comparisons below; do not label all legacy art missing.
+    if (Arrays.asList("D5", "D6", "D7", "E1", "E2").contains(id)) {
+      boolean exists;
+      try (java.io.InputStream source = host.getAssets().open("game-art" + art.path)) { exists = true; }
+      catch (java.io.IOException missing) { exists = false; }
+      assertFalse("Explicit absent-asset fixture needs review if its original art is added: " + id, exists);
+      assertNull("An unavailable legacy identity cannot borrow another character", art.bitmap);
+      assertTrue(art.target.isEmpty());
+      assertTrue("No claim of rendered art while unavailable", art.status.equals("이미지 준비 중") || art.status.equals("이미지 없음"));
+      // Do not wait for a remote fallback: this is an offline legacy interaction test, not its artwork evidence.
+    } else {
+      new NativeRegistrationReviewTest().assertPartyArt(host, art);
+      assertNotNull("A packaged fixture must load its exact whole sprite", art.bitmap);
+    }
     return art;
   }
 
@@ -169,11 +262,11 @@ public class RegistrationIntegrationScreensTest {
   }
 
   @Test
-  public void collectionShowsOneFullCardAndAutomaticallySelectsTheVisibleSpecies() throws Exception {
+  public void legacyOnlyCollectionShowsOneFullCardAndAutomaticallySelectsTheVisibleSpecies() throws Exception {
     for (float scale : new float[] {1, 1.3f}) {
       RuntimeEnvironment.setFontScale(scale);
       for (int[] size : new int[][] {{840, 344}, {800, 360}, {640, 320}, {915, 412}, {1280, 720}}) {
-        try (ActivityController<MainActivity> controller = flow.start()) {
+        try (ActivityController<LegacyTestHost> controller = legacyHost()) {
           MainActivity host = controller.get();
           FixtureApi api = prepare(host);
           layout(host, size[0], size[1]);
@@ -192,6 +285,7 @@ public class RegistrationIntegrationScreensTest {
           RegistrationCardView.Artwork selectedArt = artwork(
               host.root.findViewWithTag("collection-registration-" + host.menus.library.selectedCollectionId), RegistrationCardView.FULL);
           NativeNoScrollReviewTest.assertFullyVisible(selectedArt, host.root);
+          NativeAcquisitionFlowTest.assertLegacyArtworkContract(selectedArt, review);
           android.graphics.RectF display = new android.graphics.RectF();
           RegistrationCardView.contain(display, selectedArt.getWidth(), selectedArt.getHeight(), 768, 1024);
           assertTrue("선택 등록증은 최소 135dp 너비", display.width() >= host.dp(135));
@@ -222,14 +316,18 @@ public class RegistrationIntegrationScreensTest {
   }
 
   @Test
-  public void collectionOwnedAndSearchFiltersKeepEveryMatchingIdAcrossInlinePages() throws Exception {
-    try (ActivityController<MainActivity> controller = flow.start()) {
+  public void legacyOnlyCollectionOwnedAndSearchFiltersKeepEveryMatchingIdAcrossInlinePages() throws Exception {
+    try (ActivityController<LegacyTestHost> controller = legacyHost()) {
       MainActivity host = controller.get();
       FixtureApi api = prepare(host);
       host.list(host.me(), "units").getJSONObject(1).put("have", 0);
       host.collection();
       layout(host, 915, 412);
-      button(host.root, "전체").performClick();
+      Button ownedFilter = host.root.findViewWithTag("collection-owned-filter");
+      assertEquals("보유: 전체", ownedFilter.getText().toString());
+      ownedFilter.performClick();
+      assertTrue(host.menus.library.collectionOwned);
+      assertEquals("보유만", ownedFilter.getText().toString());
       Set<String> seen = new HashSet<>();
       do {
         ViewGroup grid = host.root.findViewWithTag("collection-inline-grid");
@@ -247,8 +345,12 @@ public class RegistrationIntegrationScreensTest {
         if (view instanceof EditText) search = (EditText) view;
       assertNotNull(search);
       search.setText("아주 긴 이름");
+      assertEquals("Search updates its filter before dismiss", "아주 긴 이름", host.menus.query);
+      assertNotNull(host.visibleDialog.getWindow().getDecorView().findViewWithTag("collection-choice-C4"));
       host.visibleDialog.dismiss();
-      Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+      // The sheet applies filters from its dismiss callback, behind the scheduled ViewRoot traversal.
+      Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(32));
+      layout(host, 915, 412);
       ViewGroup filtered = host.root.findViewWithTag("collection-inline-grid");
       List<String> matches = new ArrayList<>();
       for (View view : geometry.descendants(filtered))
@@ -260,9 +362,9 @@ public class RegistrationIntegrationScreensTest {
   }
 
   @Test
-  public void teamArtUsesSpeciesWhileStoryAndPvpKeepTheirOwnSaveKeys() throws Exception {
+  public void legacyOnlyTeamArtUsesSpeciesWhileStoryAndPvpKeepTheirOwnSaveKeys() throws Exception {
     for (boolean pvp : new boolean[] {false, true}) {
-      try (ActivityController<MainActivity> controller = flow.start()) {
+      try (ActivityController<LegacyTestHost> controller = legacyHost()) {
         MainActivity host = controller.get();
         FixtureApi api = prepareParty(host);
         host.selectionMode = pvp ? "pvp" : "story";
@@ -304,10 +406,10 @@ public class RegistrationIntegrationScreensTest {
   }
 
   @Test
-  public void largeFontTeamsKeepMultipleContinuousCandidatesAndReadableInlineActions() throws Exception {
+  public void legacyOnlyLargeFontTeamsKeepMultipleContinuousCandidatesAndReadableInlineActions() throws Exception {
     RuntimeEnvironment.setFontScale(1.3f);
     for (String mode : new String[] {"story", "pvp"}) {
-      try (ActivityController<MainActivity> controller = flow.start()) {
+      try (ActivityController<LegacyTestHost> controller = legacyHost()) {
         MainActivity host = controller.get();
         FixtureApi api = prepareParty(host);
         host.selectionMode = mode;
@@ -352,8 +454,8 @@ public class RegistrationIntegrationScreensTest {
   }
 
   @Test
-  public void compatibilityTeamPickerKeepsSelectionBusyGuardAndUpdateCallbacks() throws Exception {
-    try (ActivityController<MainActivity> controller = flow.start()) {
+  public void legacyOnlyCompatibilityTeamPickerKeepsSelectionBusyGuardAndUpdateCallbacks() throws Exception {
+    try (ActivityController<LegacyTestHost> controller = legacyHost()) {
       MainActivity host = controller.get();
       FixtureApi api = prepareParty(host);
       host.selectionMode = "story";
@@ -406,7 +508,9 @@ public class RegistrationIntegrationScreensTest {
     try (ActivityController<MainActivity> controller = flow.start()) {
       MainActivity host = controller.get();
       FixtureApi api = prepare(host);
+      assertTrue("Default org.gmm host must retain product routing", host.roster60Menus());
       host.menus.economy.draw();
+      assertEquals(List.of("native/roster60/recruit"), api.reads);
       layout(host, 915, 412);
       for (String kind : new String[] {"LOW", "MID", "HIGH"}) {
         View card = host.root.findViewWithTag("draw-card-" + kind);
@@ -421,13 +525,19 @@ public class RegistrationIntegrationScreensTest {
         assertSame(quantity.getParent(), total.getParent());
         button(quantity, "＋").performClick();
         int cost = kind.equals("HIGH") ? 5 : kind.equals("MID") ? 3 : 2;
-        assertEquals("Exact actual cost remains visible in the compact total", "총 지원서\n" + cost * 2 + "장", total.getText().toString());
+        assertEquals("Exact actual cost remains visible in the compact total", "필요 " + cost * 2 + "장 · 보유 100장", total.getText().toString());
         assertTrue(submit.getContentDescription().toString().contains("지원서 " + cost * 2 + "장"));
         assertEquals("모집하기", submit.getText().toString());
         assertTrue(submit.getContentDescription().toString().contains("2회"));
-        assertTrue(quantity.getRight() <= total.getLeft());
-        assertTrue(total.getRight() <= submit.getLeft());
-        NativeNoScrollReviewTest.assertFullyVisible(submit, host.root);
+        layout(host, 915, 412);
+        assertEquals("Current product purchase controls use a vertical column", LinearLayout.VERTICAL,
+            ((LinearLayout) quantity.getParent()).getOrientation());
+        assertTrue("Quantity cannot overlap the exact price/balance", quantity.getBottom() <= total.getTop());
+        assertTrue("Exact price/balance cannot overlap confirmation", total.getBottom() <= submit.getTop());
+        for (View control : new View[] {quantity, total, submit}) {
+          assertTrue(control.getWidth() > 0 && control.getHeight() > 0);
+          NativeNoScrollReviewTest.assertFullyVisible(control, host.root);
+        }
       }
       Button low = host.root.findViewWithTag("draw-submit");
       assertSame(low, host.guide.findTag(host.root, "tutorial:draw-go"));
@@ -456,10 +566,18 @@ public class RegistrationIntegrationScreensTest {
       // 클릭 뒤 새 배치와 Handler 전달도 두 프레임 안에서 완료한다. API는 동기 기록한다.
       Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(32));
       assertFalse("확인 콜백 뒤 원래 확인창은 닫힘", confirmation.isShowing());
-      assertEquals(List.of("draw"), api.writes);
+      assertEquals(List.of("native/roster60/recruit"), api.writes);
       assertEquals("HIGH", api.submitted.get(0).getString("kind"));
       assertEquals(2, api.submitted.get(0).getInt("times"));
-      assertTrue("서버 결과를 임의 완료하지 않고 응답 대기", host.busy);
+      JSONObject submitted = api.submitted.get(0);
+      assertEquals("product-fixture-v10", submitted.getString("catalogVersion"));
+      assertEquals(4, submitted.length());
+      assertFalse(submitted.getString("requestId").isEmpty());
+      String key = NativeProgression.accountKey(BuildConfig.SERVER_URL + "|" + api.token());
+      assertEquals("Unresolved request persists unchanged for idempotent recovery", submitted.toString(),
+          host.getSharedPreferences("roster60_recruit", 0).getString(key, ""));
+      high.performClick();
+      assertEquals("Repeated pending taps cannot spend twice", 1, api.writes.size());
       assertNull("확정 응답 전 획득 결과 없음", host.menus.lastDraw);
     }
   }

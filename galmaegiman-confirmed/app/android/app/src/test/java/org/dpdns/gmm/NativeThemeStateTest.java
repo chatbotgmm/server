@@ -237,7 +237,19 @@ public class NativeThemeStateTest {
     try (ActivityController<MainActivity> controller = fixture.flow.start()) {
       MainActivity h = controller.get(); NativeThemeReviewTest.ReviewApi api = fixture.prepare(h);
       assertEquals("사용자 닉네임은 UI 용어 치환 대상이 아님", "뽑기왕", h.text("뽑기왕", 16).getText().toString());
-      h.home(); fixture.layout(h, 915, 412); NativeSettingsSheet.show(h);
+      final int[] homeReads = {0};
+      h.api = new NativeApi(h) {
+        @Override String token() { return api.token(); }
+        @Override void call(String path, org.json.JSONObject body, Result done) {
+          if (body == null && path.equals("native/roster60/story/state")) {
+            homeReads[0]++; done.done(NativeVillageHomeTest.story(), null);
+          } else api.call(path, body, done);
+        }
+      };
+      h.home(); fixture.layout(h, 915, 412); LocalGameArtTest.drain(); fixture.layout(h, 915, 412);
+      assertEquals("Actual village reads authenticated story state once", 1, homeReads[0]);
+      assertNotNull(h.villageHome); assertTrue(h.villageHome.view.sceneReady());
+      NativeSettingsSheet.show(h);
       View root = fixture.geometry.layoutDialog(h);
       assertNull("앱 내 움직임 줄이기 스위치를 다시 만들지 않음", root.findViewWithTag("reduced-motion"));
       assertFalse(fixture.flow.labels(root).contains("움직임 줄이기"));
@@ -267,7 +279,9 @@ public class NativeThemeStateTest {
       fixture.geometry.frame();
       assertNull("dismiss 콜백 후 현재 창 참조도 해제", h.visibleDialog);
       assertEquals("home", h.screen); assertEquals(0, api.writes);
-      View anchor = h.root.findViewWithTag("lobby-profile"); anchor.performClick();
+      // The old lobby profile button no longer exists. Exercise the actual village menu route.
+      View anchor = h.villageHome.view.settings;
+      h.villageHome.navigate("profile");
       PopupWindow first = h.menus.extras.profilePopup; assertNotNull(first);
       h.menus.extras.profile(anchor); assertFalse(first.isShowing());
       assertTrue(h.menus.extras.profilePopup.isShowing());

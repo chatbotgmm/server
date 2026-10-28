@@ -29,7 +29,7 @@ final class NativeRoster60StoryController {
   String residentEntryId="";
   NativeVillageStoryOverlay overlay;
   String villageResidentId="";
-  boolean villageMode,villageDeparture,villageExploration;
+  boolean villageMode,villageDeparture,villageExploration,villageHistory;
 
   NativeRoster60StoryController(MainActivity host) { h = host; }
   NativeRoster60StoryController(MainActivity host,String residentId) {h=host;if(java.util.Arrays.asList("blacksmith","merchant","librarian","guard").contains(residentId))residentEntryId=residentId;}
@@ -53,6 +53,7 @@ final class NativeRoster60StoryController {
     h.villageHome.view.stopMotion();
     overlay=new NativeVillageStoryOverlay(h,this);overlay.open();readState();
   }
+  void openVillageHistory(){villageHistory=true;openVillage();}
   void openVillageExploration(){villageExploration=true;openVillage();}
   void openVillageDeparture(){villageDeparture=true;openVillage();}
   boolean villageOverlayOpen(){return villageMode&&overlay!=null&&overlay.isShowing();}
@@ -208,13 +209,34 @@ final class NativeRoster60StoryController {
     chooseParty(quest,"");
   }
   void chooseParty(JSONObject quest,String encounterId) {
-    if(!current()||waiting())return;reading=true;loading("모험에 나갈 대원을 확인하고 있어요.");
-    h.api.call("native/roster60/battle/options",null,(result,error)->{
-      if(!current())return;reading=false;if(error!=null){error(error);return;}
-      JSONArray units=result==null?null:result.optJSONArray("units");if(units==null||units.length()==0){error("모험에 나갈 수 있는 대원이 없어요. 진행 중인 전투와 편성을 확인해 주세요.");return;}
+    if(!current()||waiting())return;reading=true;loading("출항할 대원과 저장된 편성을 확인하고 있어요.");
+    final int generation=++readGeneration;
+    final JSONObject[] results=new JSONObject[2];final String[] failures=new String[2];
+    final boolean[] ready={false,!villageMode},joined={false};
+    Runnable complete=()->{
+      if(!current()||generation!=readGeneration||joined[0]||!ready[0]||!ready[1])return;
+      joined[0]=true;reading=false;
+      if(failures[0]!=null||failures[1]!=null){error(failures[0]!=null?failures[0]:failures[1]);return;}
+      JSONArray units=results[0]==null?null:results[0].optJSONArray("units");
+      if(units==null||units.length()==0){error("모험에 나갈 수 있는 대원이 없어요. 진행 중인 전투와 편성을 확인해 주세요.");return;}
+      JSONArray ids=results[1]==null?null:results[1].optJSONArray("partyIds");
+      if(villageMode&&validSavedParty(ids,units))mutate(encounterId.isEmpty()?"battle/create":"adventure/create",encounterId.isEmpty()?h.obj("questId",quest.optString("id"),"ownedIds",ids):h.obj("encounterId",encounterId,"ownedIds",ids));
+      else showFormation(units,quest,encounterId);
+    };
+    // Independent authoritative reads overlap; neither response alone can start a battle.
+    h.api.call("native/roster60/battle/options",null,(result,error)->{if(!current()||generation!=readGeneration||ready[0])return;results[0]=result;failures[0]=error;ready[0]=true;complete.run();});
+    if(villageMode)h.api.call("native/roster60/pvp/options",null,(result,error)->{if(!current()||generation!=readGeneration||ready[1])return;results[1]=result;failures[1]=error;ready[1]=true;complete.run();});
+  }
+  static boolean validSavedParty(JSONArray ids,JSONArray units){
+    if(ids==null||ids.length()<1||ids.length()>6||units==null)return false;
+    java.util.HashSet<String> available=new java.util.HashSet<>(),unique=new java.util.HashSet<>();
+    for(int i=0;i<units.length();i++){JSONObject unit=units.optJSONObject(i);if(unit!=null)available.add(unit.optString("ownedId"));}
+    for(int i=0;i<ids.length();i++){String id=ids.optString(i);if(id.isEmpty()||!available.contains(id)||!unique.add(id))return false;}
+    return true;
+  }
+  void showFormation(JSONArray units,JSONObject quest,String encounterId){
       if(view!=null)view.pauseTyping();android.widget.FrameLayout destination=villageMode?overlay.formationContent():view.content;destination.removeAllViews();formation=new Roster60FormationView(h,units,ids->{if(current()&&!waiting())mutate(encounterId.isEmpty()?"battle/create":"adventure/create",encounterId.isEmpty()?h.obj("questId",quest.optString("id"),"ownedIds",ids):h.obj("encounterId",encounterId,"ownedIds",ids));},()->{if(current()){formation=null;render();}});
       destination.addView(formation,new android.widget.FrameLayout.LayoutParams(-1,-1));
-    });
   }
   void chooseMaterialAdventure(){
     if(!current()||waiting())return;JSONArray places=state.optJSONArray("adventures");if(places==null||places.length()==0)return;

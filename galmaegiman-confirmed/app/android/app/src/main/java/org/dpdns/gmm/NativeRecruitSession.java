@@ -15,6 +15,8 @@ final class NativeRecruitSession {
  LinearLayout root;ActionFlow controls;TextView message,selectedCandidate,emptyTitle,emptyDetail;RecruitCardTransition card,emptyStage;CandidateRail rail;
  final ArrayList<CandidateSlot> slots=new ArrayList<>();
  boolean noticeFailed;String shredSessionId="";
+ String controlsSignature="";Button confirmControl,retryControl;final ArrayList<Button> offerControls=new ArrayList<>();
+ long candidateSerializations,cardReplacements,controlRebuilds,selectionRestyles; // Local work probes only.
  // 예전 모집소 화면에서 들어온 경우, 수령 뒤에는 그 화면으로 돌아간다(이 화면의 별도 시작 버튼 대신).
  boolean fromCounter;
  NativeRecruitSession(MainActivity h){this.h=h;owner=h.api.token();key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner);prefs=h.getSharedPreferences("roster60_recruit_session",0);}
@@ -23,7 +25,7 @@ final class NativeRecruitSession {
  Button button(String text,Runnable action){Button b=h.button(text,()->{if(rail==null||!rail.blocksClick())action.run();});NavyWorkbenchTheme.text(h,b,14,true,NavyWorkbenchTheme.TEXT);b.setBackgroundTintList(null);b.setMinHeight(h.dp(48));b.setMinimumHeight(h.dp(48));
  android.graphics.drawable.StateListDrawable bg=new android.graphics.drawable.StateListDrawable();bg.addState(new int[]{-android.R.attr.state_enabled},NavyWorkbenchTheme.surface(h,0xff26343d,0xff43505a,6));bg.addState(new int[]{android.R.attr.state_pressed},NavyWorkbenchTheme.surface(h,0xff34566b,0xff93b3c6,6));bg.addState(new int[]{},NavyWorkbenchTheme.surface(h,0xee173345,0xff607d8b,6));b.setBackground(bg);b.setTextColor(new android.content.res.ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled},new int[]{}},new int[]{0xff91a0aa,NavyWorkbenchTheme.TEXT}));return b;}
  boolean current(){return epoch==h.epoch&&owner.equals(h.api.token())&&!h.isDestroyed();}
- void open(JSONObject response){info=response;emptyTitle=null;emptyDetail=null;noticeFailed=false;slots.clear();h.base("모집","draw");AppSkin.apply(h,"reception");epoch=h.epoch;h.page.removeViewAt(h.page.getChildCount()-1);
+ void open(JSONObject response){info=response;emptyTitle=null;emptyDetail=null;noticeFailed=false;slots.clear();controlsSignature="";confirmControl=retryControl=null;offerControls.clear();h.base("모집","draw");AppSkin.apply(h,"reception");epoch=h.epoch;h.page.removeViewAt(h.page.getChildCount()-1);
  root=new LinearLayout(h);root.setOrientation(1);root.setPadding(h.dp(8),h.dp(4),h.dp(8),h.dp(6));root.setBackground(NavyWorkbenchTheme.surface(h,0xee102433,NavyWorkbenchTheme.EDGE,10));h.page.addView(root,new LinearLayout.LayoutParams(-1,0,1));
  // One compact information row leaves room for the printed card and its local action.
  LinearLayout summary=new LinearLayout(h);root.addView(summary,new LinearLayout.LayoutParams(-1,-2));
@@ -38,20 +40,27 @@ final class NativeRecruitSession {
  if(state==null)try{String saved=prefs.getString(key+".result","");if(!saved.isEmpty()){JSONObject cached=new JSONObject(saved);JSONArray list=cached.optJSONArray("sessions");if(list!=null){candidates=list;state=list.optJSONObject(0);}else{state=cached;candidates.put(cached);}}}catch(JSONException ignored){}
  render(false);if(!prefs.getString(key,"").isEmpty())send();
  }
- void render(boolean shred){controls.removeAllViews();
+ void render(boolean shred){
  boolean awaiting=!prefs.getString(key,"").isEmpty();JSONObject candidate=state==null?null:state.optJSONObject("candidate");
  message.setVisibility(candidate==null||CANDIDATE_HINT.contentEquals(message.getText())?View.GONE:View.VISIBLE);selectedCandidate.setVisibility(candidate==null?View.GONE:View.VISIBLE);
  selectedCandidate.setText(candidate==null?"":("후보 "+(selected+1)+"/"+candidates.length()+" · "+(hasPending()?"확인 시 모두 합류":"모두 합류 완료")));selectedCandidate.setContentDescription(selectedCandidate.getText()+" · "+CANDIDATE_HINT);
  renderCandidates(shred);
- if(candidate==null){rail.setVisibility(View.GONE);emptyStage.setVisibility(View.VISIBLE);emptyStage.replace(emptyView(),false);card=emptyStage;}
+ if(candidate==null){rail.setVisibility(View.GONE);emptyStage.setVisibility(View.VISIBLE);if(emptyTitle==null)emptyStage.replace(emptyView(),false);else updateEmpty();card=emptyStage;}
  else{rail.setVisibility(View.VISIBLE);emptyStage.setVisibility(View.GONE);emptyTitle=null;emptyDetail=null;}
- if(candidate!=null){
-  Button confirm=button("확인",this::confirmCandidates);confirm.setTag("recruit-confirm");
-  confirm.setContentDescription(hasPending()?"확인 · 남은 후보 모두 수령":"확인 · 모집소로 돌아가기");
-  confirm.setTooltipText(confirm.getContentDescription());
-  confirm.setEnabled(!busy&&!awaiting);controls.addView(confirm);
- }else if(!hasPending()){JSONArray offers=info.optJSONArray("offers");if(offers!=null)for(int i=0;i<offers.length();i++){JSONObject o=offers.optJSONObject(i);Button start=button(o.optString("label")+" 모집 · 지원서 "+o.optInt("cost")+"장",()->start(o));start.setEnabled(info.optBoolean("enabled")&&!busy&&!awaiting);controls.addView(start);}}
- if(awaiting){Button retry=button("전송 결과 다시 확인 (무료)",this::send);retry.setTag("recruit-retry");retry.setEnabled(!busy);controls.addView(retry);}
+ renderControls(candidate!=null,awaiting);
+ }
+ void renderControls(boolean hasCandidate,boolean awaiting){
+  JSONArray offers=!hasCandidate&&!hasPending()?info.optJSONArray("offers"):null;
+  String signature=hasCandidate+"|"+awaiting+"|"+(offers==null?"":offers.toString());
+  if(!signature.equals(controlsSignature)){
+   controlsSignature=signature;controlRebuilds++;controls.removeAllViews();confirmControl=retryControl=null;offerControls.clear();
+   if(hasCandidate){confirmControl=button("확인",this::confirmCandidates);confirmControl.setTag("recruit-confirm");controls.addView(confirmControl);}
+   else if(offers!=null)for(int i=0;i<offers.length();i++){JSONObject offer=offers.optJSONObject(i);Button start=button(offer.optString("label")+" 모집 · 지원서 "+offer.optInt("cost")+"장",()->start(offer));offerControls.add(start);controls.addView(start);}
+   if(awaiting){retryControl=button("전송 결과 다시 확인 (무료)",this::send);retryControl.setTag("recruit-retry");controls.addView(retryControl);}
+  }
+  if(confirmControl!=null){confirmControl.setContentDescription(hasPending()?"확인 · 남은 후보 모두 수령":"확인 · 모집소로 돌아가기");confirmControl.setTooltipText(confirmControl.getContentDescription());confirmControl.setEnabled(!busy&&!awaiting);}
+  for(Button start:offerControls)start.setEnabled(info.optBoolean("enabled")&&!busy&&!awaiting);
+  if(retryControl!=null)retryControl.setEnabled(!busy);
  }
  // 확인은 표시된 회차의 미수령 후보만 지급한다. 닫기/뒤로가기로 후보를 포기하지 않는다.
  void confirmCandidates(){
@@ -79,18 +88,19 @@ final class NativeRecruitSession {
   while(slots.size()>candidates.length()){CandidateSlot removed=slots.remove(slots.size()-1);removed.release();rail.row.removeView(removed);}
   for(int i=0;i<candidates.length();i++){
    if(i>=slots.size()){CandidateSlot slot=new CandidateSlot(i);slots.add(slot);rail.row.addView(slot,new LinearLayout.LayoutParams(h.dp(180),-1));}
-   CandidateSlot slot=slots.get(i);JSONObject item=candidates.optJSONObject(i);slot.update(item,shred&&item!=null&&shredSessionId.equals(item.optString("sessionId")));slot.setSelected(i==selected);slot.setBackground(NavyWorkbenchTheme.surface(h,0xee102433,i==selected?0xffffd485:NavyWorkbenchTheme.EDGE,8));
+   CandidateSlot slot=slots.get(i);JSONObject item=candidates.optJSONObject(i);slot.update(item,shred&&item!=null&&shredSessionId.equals(item.optString("sessionId")));slot.selection(i==selected);
   }
   card=selected<slots.size()?slots.get(selected).frame:null;
   if(card!=null&&!slots.get(selected).loaded)slots.get(selected).bind(false);
   rail.requestBind();
  }
  final class CandidateSlot extends FrameLayout{
-  final int index;final RecruitCardTransition frame;JSONObject item;String rendered="";boolean loaded;
+  final int index;final RecruitCardTransition frame;JSONObject item;String rendered="",requestedSignature="";boolean loaded,selectionStyled;
   CandidateSlot(int index){super(h);this.index=index;setPadding(h.dp(3),h.dp(3),h.dp(3),h.dp(3));frame=new RecruitCardTransition(h);addView(frame,new FrameLayout.LayoutParams(-1,-1));setTag("recruit-candidate-"+index);setClickable(true);setFocusable(true);
    setOnClickListener(v->{if(rail.blocksClick()||busy||!prefs.getString(key,"").isEmpty())return;selected=index;state=candidates.optJSONObject(index);render(false);});}
-  void update(JSONObject row,boolean shred){item=row;if(row==null||row.optJSONObject("candidate")==null){release();return;}JSONObject u=row.optJSONObject("candidate");setContentDescription((index+1)+"번째 후보 · "+(u==null?"":u.optString("name"))+" · "+("CLAIMED".equals(row.optString("status"))?"수령 완료":"미수령")+" · 누르면 선택");if(loaded){bind(shred);Button refresh=frame.findViewWithTag("recruit-reroll");if(refresh!=null)updateRerollButton(refresh,row);}}
-  void bind(boolean shred){if(item==null)return;String signature=item.toString();if(loaded&&signature.equals(rendered))return;JSONObject u=item.optJSONObject("candidate");if(u==null)return;frame.replace(candidateView(u,item),shred&&motion());loaded=true;rendered=signature;}
+  void selection(boolean value){if(selectionStyled&&isSelected()==value)return;selectionStyled=true;selectionRestyles++;setSelected(value);setBackground(NavyWorkbenchTheme.surface(h,0xee102433,value?0xffffd485:NavyWorkbenchTheme.EDGE,8));}
+  void update(JSONObject row,boolean shred){item=row;requestedSignature=row==null?"":row.toString();candidateSerializations++;if(row==null||row.optJSONObject("candidate")==null){release();return;}JSONObject u=row.optJSONObject("candidate");setContentDescription((index+1)+"번째 후보 · "+(u==null?"":u.optString("name"))+" · "+("CLAIMED".equals(row.optString("status"))?"수령 완료":"미수령")+" · 누르면 선택");if(loaded){bind(shred);Button refresh=frame.findViewWithTag("recruit-reroll");if(refresh!=null)updateRerollButton(refresh,row);}}
+  void bind(boolean shred){if(item==null)return;String signature=requestedSignature;if(loaded&&signature.equals(rendered))return;JSONObject u=item.optJSONObject("candidate");if(u==null)return;cardReplacements++;frame.replace(candidateView(u,item),shred&&motion());loaded=true;rendered=signature;}
   void release(){if(!loaded)return;clearArtwork(frame);frame.replace(new View(h),false);loaded=false;rendered="";}
   void clearArtwork(View view){if(view instanceof ImageView){RegistrationV10Art.clear((ImageView)view);Roster60Portrait.clear((ImageView)view);}else if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++)clearArtwork(group.getChildAt(i));}}
  }

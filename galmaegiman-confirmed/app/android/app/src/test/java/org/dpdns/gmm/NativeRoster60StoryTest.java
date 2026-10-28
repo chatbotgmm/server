@@ -41,13 +41,21 @@ public class NativeRoster60StoryTest {
         "statue",MainActivity.obj("stage",1,"fragments",0,"hatched",false),"currentQuest",current,"quests",new JSONArray().put(current),"residents",residents,"history",new JSONArray(),"adventures",new JSONArray());
   }
   static final class Api extends NativeApi {
-    String account="story-test-account-a";JSONObject saved=state();
+    final Context context;String account="story-test-account-a";JSONObject saved=state();
     final List<String> paths=new ArrayList<>();final List<JSONObject> bodies=new ArrayList<>();final List<Result> callbacks=new ArrayList<>();
     Result heldRead;boolean holdReads;
-    Api(Context context){super(context);}
+    Api(Context context){super(context);this.context=context;}
     @Override String token(){return account;}
     @Override void call(String path,JSONObject body,Result done){
       paths.add(path);
+      if(body==null){
+        if(path.equals("native/state")){done.done(((MainActivity)context).state,null);return;}
+        if(path.equals("starter-loans")){done.done(StarterLoanTestFixture.ineligible(),null);return;}
+        if(path.equals("native/menu-access")){done.done(MainActivity.obj("features",new JSONObject()),null);return;}
+        if(path.equals("native/roster60/battle/active")){done.done(MainActivity.obj("battles",new JSONArray()),null);return;}
+        if(path.equals("native/roster60/adventure/active")){done.done(MainActivity.obj("adventures",new JSONArray()),null);return;}
+        if(path.equals("native/roster60/pvp/options")){done.done(MainActivity.obj("units",new JSONArray(),"partyIds",new JSONArray()),null);return;}
+      }
       if(body==null){if(holdReads){heldRead=done;return;}if(path.equals("native/roster60/story/state")){done.done(copy(saved),null);return;}throw new AssertionError("Unexpected story read "+path);}
       bodies.add(copy(body));callbacks.add(done);
     }
@@ -58,11 +66,13 @@ public class NativeRoster60StoryTest {
   Api prepare(MainActivity h)throws Exception{
     fixture.prepare(h).close();Api api=new Api(h);h.api=api;h.getSharedPreferences("roster60_story_v1",0).edit().clear().commit();return api;
   }
+  // Transport/journal regression uses the retained legacy presenter directly; public routes are covered by village overlay tests.
+  static void openLegacy(MainActivity h){h.rosterStory=new NativeRoster60StoryController(h);h.rosterStory.open();}
   static Button button(MainActivity h,String tag){View view=h.root.findViewWithTag(tag);assertTrue("Missing story control "+tag,view instanceof Button);return (Button)view;}
 
-  @Test public void realPlayEntryReadsAccountProgressAndResidentMarkersAreSpecific()throws Exception{
+  @Test public void legacyPresenterReadsAccountProgressAndResidentMarkersAreSpecific()throws Exception{
     try(ActivityController<MainActivity> activity=fixture.flow.start()){
-      MainActivity h=activity.get();Api api=prepare(h);h.openPlayMenu();button(h,"play-story").performClick();
+      MainActivity h=activity.get();Api api=prepare(h);openLegacy(h);
       assertEquals(NativeRoster60StoryController.SCREEN,h.screen);assertNotNull(h.rosterStory.state);assertEquals(0,api.bodies.size());
       assertEquals(java.util.Collections.singletonList("native/roster60/story/state"),api.paths);
       assertNull(h.root.findViewWithTag("roster60-story-draft-notice"));assertNull(h.root.findViewWithTag("story-vn-text"));
@@ -74,12 +84,12 @@ public class NativeRoster60StoryTest {
       assertFalse(button(h,"story-resident-resident-3").getText().toString().contains("!"));
       button(h,"story-resident-resident-3").performClick();assertEquals(0,api.bodies.size());
       assertNotNull(h.rosterStory.residentDialogue);h.rosterStory.residentDialogue.dismiss();
-      h.back();assertEquals("playMenu",h.screen);
+      h.back();assertEquals("home",h.screen);
     }
   }
   @Test public void typingFirstTapAndRepeatedNextNeverInventProgressAndRetryUsesIdenticalIntent()throws Exception{
     try(ActivityController<MainActivity> activity=fixture.flow.start()){
-      MainActivity h=activity.get();Api api=prepare(h);api.saved.put("scene",scene(0,false));h.openRosterStory();NativeRoster60StoryController story=h.rosterStory;
+      MainActivity h=activity.get();Api api=prepare(h);api.saved.put("scene",scene(0,false));openLegacy(h);NativeRoster60StoryController story=h.rosterStory;
       assertTrue(story.view.animating);button(h,"story-next").performClick();assertFalse(story.view.animating);assertEquals(0,api.bodies.size());
       button(h,"story-next").performClick();button(h,"story-next").performClick();assertEquals(1,api.bodies.size());
       JSONObject first=copy(api.last());assertEquals(0,first.getInt("cursor"));assertEquals(3,first.getInt("revision"));assertFalse(first.has("progress"));assertFalse(first.has("reward"));
@@ -94,30 +104,30 @@ public class NativeRoster60StoryTest {
   }
   @Test public void forcedCloseAccountSwitchAndOldCallbacksRespectStoredRequestAndScreen()throws Exception{
     try(ActivityController<MainActivity> activity=fixture.flow.start()){
-      MainActivity h=activity.get();Api api=prepare(h);api.saved.put("scene",scene(0,false));h.openRosterStory();NativeRoster60StoryController old=h.rosterStory;
+      MainActivity h=activity.get();Api api=prepare(h);api.saved.put("scene",scene(0,false));openLegacy(h);NativeRoster60StoryController old=h.rosterStory;
       old.view.finishTyping();button(h,"story-next").performClick();JSONObject request=copy(api.last());
-      h.back();assertEquals("playMenu",h.screen);api.respond(0,null,"연결 오류");assertEquals("playMenu",h.screen);assertNotNull(old.journal.pending());
-      api.account="story-test-account-b";h.openRosterStory();NativeRoster60StoryController other=h.rosterStory;
+      h.back();assertEquals("home",h.screen);api.respond(0,null,"연결 오류");assertEquals("home",h.screen);assertNotNull(old.journal.pending());
+      api.account="story-test-account-b";openLegacy(h);NativeRoster60StoryController other=h.rosterStory;
       assertNull(other.journal.pending());assertEquals(1,api.bodies.size());
       api.respond(0,api.saved,null);assertEquals(NativeRoster60StoryController.SCREEN,h.screen);assertNotNull(old.journal.pending());
-      api.account="story-test-account-a";api.close();Api restarted=new Api(h);h.api=restarted;h.openRosterStory();
+      api.account="story-test-account-a";api.close();Api restarted=new Api(h);h.api=restarted;openLegacy(h);
       assertEquals("A fresh controller replays the exact durable command",request.toString(),restarted.last().toString());
       NativeRoster60StoryController resumed=h.rosterStory;h.openPlayMenu();restarted.saved.put("revision",4);restarted.respond(0,restarted.saved,null);
-      assertEquals("playMenu",h.screen);assertFalse(resumed.current());assertNull(resumed.journal.pending());
+      assertEquals("home",h.screen);assertFalse(resumed.current());assertNull(resumed.journal.pending());
     }
   }
   @Test public void staleReadAndOldSceneControlsCannotReplaceAnotherScreenOrAnotherAccount()throws Exception{
     try(ActivityController<MainActivity> activity=fixture.flow.start()){
-      MainActivity h=activity.get();Api api=prepare(h);api.holdReads=true;h.openRosterStory();NativeRoster60StoryController story=h.rosterStory;
+      MainActivity h=activity.get();Api api=prepare(h);api.holdReads=true;openLegacy(h);NativeRoster60StoryController story=h.rosterStory;
       NativeApi.Result response=api.heldRead;h.openPlayMenu();View current=h.page;response.done(api.saved,null);assertSame(current,h.page);assertNull(story.state);
-      api.holdReads=false;api.saved.put("scene",scene(0,true));h.openRosterStory();story=h.rosterStory;story.view.finishTyping();Button accept=button(h,"story-accept");
+      api.holdReads=false;api.saved.put("scene",scene(0,true));openLegacy(h);story=h.rosterStory;story.view.finishTyping();Button accept=button(h,"story-accept");
       api.account="other-account";accept.performClick();assertEquals(0,api.bodies.size());assertFalse(story.current());
     }
   }
   @Test public void reenteringWhileOldWriteRunsRechecksItsOwnStateAfterAcknowledgement()throws Exception{
     try(ActivityController<MainActivity> activity=fixture.flow.start()){
-      MainActivity h=activity.get();Api api=prepare(h);api.saved.put("scene",scene(0,false));h.openRosterStory();h.rosterStory.view.finishTyping();button(h,"story-next").performClick();
-      h.back();h.openRosterStory();NativeRoster60StoryController replacement=h.rosterStory;assertEquals(1,api.bodies.size());assertNull(replacement.state);
+      MainActivity h=activity.get();Api api=prepare(h);api.saved.put("scene",scene(0,false));openLegacy(h);h.rosterStory.view.finishTyping();button(h,"story-next").performClick();
+      h.back();openLegacy(h);NativeRoster60StoryController replacement=h.rosterStory;assertEquals(1,api.bodies.size());assertNull(replacement.state);
       api.saved.put("revision",4).put("scene",scene(1,true));api.respond(0,api.saved,null);
       Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(600));
       assertNotNull(replacement.state);assertEquals(4,replacement.state.getInt("revision"));assertEquals(1,api.bodies.size());assertTrue(replacement.current());
@@ -127,9 +137,9 @@ public class NativeRoster60StoryTest {
     try(ActivityController<MainActivity> activity=fixture.flow.start()){
       MainActivity h=activity.get();Api api=prepare(h);api.account="player-id.222.fresh-signature";
       JSONObject intent=MainActivity.obj("operation","battle/create","body",MainActivity.obj("requestId","original-server-workflow","questId","STORY_01","ownedIds",new JSONArray().put("owned-1")));
-      api.saved.put("pendingDeparture",intent);h.openRosterStory();assertEquals(1,api.bodies.size());
+      api.saved.put("pendingDeparture",intent);openLegacy(h);assertEquals(1,api.bodies.size());
       assertEquals("original-server-workflow",api.last().getString("requestId"));assertEquals(intent.toString(),h.rosterStory.journal.pending().toString());
-      api.respond(0,null,"연결 오류");api.account="player-id.333.rotated-signature";h.openRosterStory();assertEquals(2,api.bodies.size());assertEquals("original-server-workflow",api.last().getString("requestId"));
+      api.respond(0,null,"연결 오류");api.account="player-id.333.rotated-signature";openLegacy(h);assertEquals(2,api.bodies.size());assertEquals("original-server-workflow",api.last().getString("requestId"));
     }
   }
   @Test public void uncertainBattleReturnRecoversExactIntentInStoryHubAfterForcedClose()throws Exception{
@@ -138,16 +148,16 @@ public class NativeRoster60StoryTest {
       String pendingKey=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|stable-player|story-v1")+":pending";
       JSONObject intent=MainActivity.obj("operation","adventure/return","body",MainActivity.obj("requestId","original-return-intent","adventureId","adventure-1","revision",5));
       android.content.SharedPreferences battles=h.getSharedPreferences("roster60_product_battle",0);battles.edit().putString(pendingKey,intent.toString()).commit();
-      h.openRosterStory();assertEquals("native/roster60/adventure/return",api.paths.get(0));assertEquals("original-return-intent",api.last().getString("requestId"));
+      openLegacy(h);assertEquals("native/roster60/adventure/return",api.paths.get(0));assertEquals("original-return-intent",api.last().getString("requestId"));
       api.respond(0,null,"연결 오류");assertNotNull(h.rosterStory.journal.pending());
-      api.account="stable-player.333.rotated-signature";h.openRosterStory();assertEquals(2,api.bodies.size());assertEquals("original-return-intent",api.last().getString("requestId"));
+      api.account="stable-player.333.rotated-signature";openLegacy(h);assertEquals(2,api.bodies.size());assertEquals("original-return-intent",api.last().getString("requestId"));
       api.respond(1,MainActivity.obj("status","RETURNED"),null);assertNull(h.rosterStory.journal.pending());assertEquals("",battles.getString(pendingKey,""));assertNotNull(h.rosterStory.state);
     }
   }
   @Test public void materialAdventureAfterRelaunchResumesBattleOrReturnsThroughItsOwnServerRun()throws Exception{
     try(ActivityController<MainActivity> activity=fixture.flow.start()){
       MainActivity h=activity.get();Api api=prepare(h);api.saved.put("currentQuest",JSONObject.NULL).put("materialAdventure",MainActivity.obj("adventureId","material-run","revision",7,"status","ACTIVE","activeBattleId",JSONObject.NULL));
-      h.openRosterStory();button(h,"story-material-resume").performClick();assertEquals("native/roster60/adventure/read",api.paths.get(api.paths.size()-1));assertEquals("material-run",api.last().getString("adventureId"));
+      openLegacy(h);button(h,"story-material-resume").performClick();assertEquals("native/roster60/adventure/read",api.paths.get(api.paths.size()-1));assertEquals("material-run",api.last().getString("adventureId"));
       api.respond(0,MainActivity.obj("adventureId","material-run","revision",7,"status","ACTIVE","activeBattleId",JSONObject.NULL),null);
       assertEquals("native/roster60/adventure/return",api.paths.get(api.paths.size()-1));assertEquals("material-run",api.last().getString("adventureId"));assertEquals(7,api.last().getInt("revision"));
     }
@@ -167,7 +177,7 @@ public class NativeRoster60StoryTest {
   @Test public void rejectedDepartureAndSuccessfulStateRefreshRestoreUsableQuestHub()throws Exception{
     try(ActivityController<MainActivity> activity=fixture.flow.start()){
       MainActivity h=activity.get();Api api=prepare(h);JSONObject active=quest("ACTIVE");api.saved.put("currentQuest",active).put("quests",new JSONArray().put(active));
-      h.openRosterStory();NativeRoster60StoryController story=h.rosterStory;
+      openLegacy(h);NativeRoster60StoryController story=h.rosterStory;
       JSONArray units=new JSONArray().put(MainActivity.obj("ownedId","departure-owned","speciesId","u01","name","갈매미맨","level",1));
       story.view.content.removeAllViews();story.formation=new Roster60FormationView(h,units,ids->story.mutate("battle/create",MainActivity.obj("questId","STORY_01","ownedIds",ids)),()->{});
       story.view.content.addView(story.formation,new android.widget.FrameLayout.LayoutParams(-1,-1));story.formation.toggle(units.getJSONObject(0));
@@ -194,7 +204,7 @@ public class NativeRoster60StoryTest {
     NativeHomePartyFeedbackTest.Profile[] profiles={NativeHomePartyFeedbackTest.PROFILES[0],new NativeHomePartyFeedbackTest.Profile("large-1280x720",1280,720,160,1,0,0,0,0),new NativeHomePartyFeedbackTest.Profile("phone-915x412-font130",915,412,160,1.3f,0,0,0,0)};
     Path output=Path.of(System.getProperty("gmm.nativeReviewOutput","build/native-review"),"story-mode");Files.createDirectories(output);
     for(NativeHomePartyFeedbackTest.Profile profile:profiles){fixture.configure(profile);try(ActivityController<MainActivity> activity=fixture.flow.start()){
-      MainActivity h=activity.get();Api api=prepare(h);h.openRosterStory();fixture.layout(h,profile);
+      MainActivity h=activity.get();Api api=prepare(h);openLegacy(h);fixture.layout(h,profile);
       capture(h,profile,output,"hub");button(h,"story-tab-residents").performClick();fixture.layout(h,profile);capture(h,profile,output,"residents");
       api.saved.put("scene",scene(0,true));h.rosterStory.refresh();h.rosterStory.view.finishTyping();fixture.review.await(LocalGameArt::idle);fixture.layout(h,profile);
       NativeRoster60StoryView.StoryStage stage=h.root.findViewWithTag("story-vn-stage");assertNotNull("The opening rear-view hero must actually load before capture",stage.rear);

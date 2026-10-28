@@ -21,6 +21,35 @@ import org.robolectric.annotation.*;
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class NativeAcquisitionFlowTest {
   final NativeGameFlowTest fixtures = new NativeGameFlowTest();
+  /** Only legacy three-slot draft invariants use this host; public product routes are not overridden. */
+  public static class LegacyTestHost extends MainActivity {
+    @Override boolean roster60Menus() { return false; }
+  }
+  org.robolectric.android.controller.ActivityController<LegacyTestHost> legacyHost() {
+    var controller=Robolectric.buildActivity(LegacyTestHost.class).create();
+    controller.get().motionEnabled=false;
+    controller.start().resume().visible();
+    NativeGameFlowTest.awaitStartupResources(controller.get());
+    return controller;
+  }
+  static void assertLegacyArtworkContract(RegistrationCardView.Artwork image, NativeRenderReviewTest review) throws Exception {
+    boolean product="org.gmm".equals(BuildConfig.APPLICATION_ID)||"org.gmm.producttest".equals(BuildConfig.APPLICATION_ID);
+    if(product) {
+      // Product deliberately omits the retired pack; do not silently substitute a different character.
+      review.await(() -> "이미지 없음".equals(image.status));
+      assertNull(image.bitmap);
+      assertTrue(image.getContentDescription().toString().contains("이미지를 불러오지 못했어요"));
+      assertTrue(image.target.isEmpty());
+    } else {
+      // The separate legacy packaging profile retains its original real-art assertions.
+      review.await(() -> image.bitmap != null);
+      assertEquals(.75,image.bitmap.getWidth()/(double)image.bitmap.getHeight(),.01);
+      android.graphics.RectF target=new android.graphics.RectF(image.target);
+      assertTrue(target.width()>0 && target.height()>0);
+      assertEquals(.75,target.width()/target.height(),.01);
+      assertTrue(target.left>=-.5f && target.top>=-.5f && target.right<=image.getWidth()+.5f && target.bottom<=image.getHeight()+.5f);
+    }
+  }
 
   @Before
   public void isolate() {
@@ -183,8 +212,8 @@ public class NativeAcquisitionFlowTest {
   }
 
   @Test
-  public void fullTeamRequiresExplicitReplacementAndNeverAutoSaves() {
-    try (var controller = fixtures.start()) {
+  public void legacyFullTeamRequiresExplicitReplacementAndNeverAutoSaves() {
+    try (var controller = legacyHost()) {
       MainActivity h = controller.get();
       JSONObject state =
           state(fighter("o1", 25), fighter("o2", 20), fighter("o3", 15), fighter("o4", 5));
@@ -243,7 +272,48 @@ public class NativeAcquisitionFlowTest {
   }
 
   @Test
-  public void acquiredCardsAndActionsCaptureAtPhoneAndTabletSizes() throws Exception {
+  public void productV10ReceiptRetainsRealArtworkAndPendingReceiptWithoutWritesAtEveryViewport() throws Exception {
+    NativeRenderReviewTest review=new NativeRenderReviewTest();
+    for(float font:new float[]{1,1.3f}) for(int[] size:new int[][]{{915,412},{1280,720},{780,360}}) {
+      RuntimeEnvironment.setQualifiers("w"+size[0]+"dp-h"+size[1]+"dp-land-mdpi");
+      RuntimeEnvironment.setFontScale(font);
+      try(var controller=fixtures.start()) {
+        MainActivity h=controller.get(); FakeApi api=api(h,state(fighter("o20",5)));
+        // Explicit server product flow also exercises the product contract under a legacy package.
+        h.state.put("tutorial",MainActivity.obj("flow","roster60-v1"));
+        assertTrue("Product controller is selected without a host override",h.roster60Menus());
+        NativeRoster60Library library=new NativeRoster60Library(h);
+        library.base("모집 결과","draw");
+        JSONObject receipt=MainActivity.obj("credits",7,"items",new JSONArray().put(
+            MainActivity.obj("ownedId","owned-current-31","speciesId","u31","name","듀라한","level",1)));
+        String raw=receipt.toString(),pending="unresolved-confirmation-key";
+        library.prefs.edit().putString(library.key+".receipt",raw).putString(library.key,pending).commit();
+        library.restoreReceipt();
+        review.viewport(h,size[0],size[1]);
+        review.capture(h,"product-v10-receipt-"+size[0]+"-font"+Math.round(font*100),size[0],size[1]);
+        review.await(()->library.receiptCard.getDrawable() instanceof android.graphics.drawable.BitmapDrawable);
+        ImageView image=library.receiptCard;
+        android.graphics.Bitmap bitmap=((android.graphics.drawable.BitmapDrawable)image.getDrawable()).getBitmap();
+        assertNotNull(bitmap);assertFalse(bitmap.isRecycled());
+        assertEquals(.75,bitmap.getWidth()/(double)bitmap.getHeight(),.01);
+        assertEquals(ImageView.ScaleType.FIT_CENTER,image.getScaleType());
+        android.graphics.RectF target=new android.graphics.RectF(0,0,image.getDrawable().getIntrinsicWidth(),image.getDrawable().getIntrinsicHeight());
+        image.getImageMatrix().mapRect(target);
+        assertTrue(target.width()>0 && target.height()>=h.dp(150));
+        assertEquals(.75,target.width()/target.height(),.01);
+        assertTrue(target.left>=-.5f && target.top>=-.5f && target.right<=image.getWidth()+.5f && target.bottom<=image.getHeight()+.5f);
+        assertTrue(image.getContentDescription().toString().contains("듀라한"));
+        assertTrue(library.message.getText().toString().contains("Lv1"));
+        assertEquals(raw,library.prefs.getString(library.key+".receipt",""));
+        assertEquals(pending,library.prefs.getString(library.key,""));
+        assertTrue("Receipt review does not resend purchase/party writes",api.requests.isEmpty());
+        review.capture(h,"product-v10-receipt-"+size[0]+"-font"+Math.round(font*100),size[0],size[1]);
+      }
+    }
+  }
+
+  @Test
+  public void legacyResultsKeepIdentityActionsAndExplicitMissingArtAtEveryViewport() throws Exception {
     NativeRenderReviewTest review = new NativeRenderReviewTest();
     review.scheduledFramesUseThePausedLooperClock();
     for (int[] size : new int[][] {{915, 412}, {1280, 720}, {780, 360}}) {
@@ -305,25 +375,9 @@ public class NativeAcquisitionFlowTest {
           assertNotNull("서버 종 ID의 등록증 그림 유지: " + id, image);
           assertEquals(id, image.id);
           assertEquals(RegistrationCardView.FULL, image.mode);
-          review.await(() -> image.bitmap != null);
-          assertNotNull("번들 등록증 이미지를 실제로 불러옴: " + id, image.bitmap);
-          assertEquals("완성 등록증 3:4 비율", .75,
-              image.bitmap.getWidth() / (double) image.bitmap.getHeight(), .01);
-          android.graphics.RectF drawn = new android.graphics.RectF(image.target);
-          assertTrue("실제 등록증 표시 영역 존재: " + id, drawn.width() > 0 && drawn.height() > 0);
-          assertEquals(
-              "높이가 낮아도 등록증 전체 원본 비율 유지: " + id,
-              image.bitmap.getWidth() / (double) image.bitmap.getHeight(),
-              drawn.width() / (double) drawn.height(),
-              .01);
-          assertTrue(
-              "완성 등록증을 자르지 않음: " + id + " " + drawn,
-              drawn.left >= -.5f
-                  && drawn.top >= -.5f
-                  && drawn.right <= image.getWidth() + .5f
-                  && drawn.bottom <= image.getHeight() + .5f);
+          assertLegacyArtworkContract(image, review);
         }
-        // 비동기 등록증이 준비된 뒤 같은 검수 캡처를 확정한다.
+        // Retired-card failure is explicit; current product artwork is checked separately below.
         review.capture(h, name, size[0], size[1]);
         HorizontalScrollView cards = h.root.findViewWithTag("acquisition-cards-scroll");
         assertNotNull("전체 카드 목록은 의도한 가로 스트립으로 유지", cards);

@@ -20,15 +20,39 @@ public class NativeVillageDistrictSceneTest {
   final NativeVillageHomeTest fixture=new NativeVillageHomeTest();final NativeHomePartyFeedbackTest helper=fixture.helper;
   @Before public void setup(){helper.isolate();helper.configure(NativeVillageHomeTest.PHONE);}
   @After public void restore()throws Exception{LocalGameArtTest.drain();helper.restore();}
-  static JSONObject scene(){return MainActivity.obj("id","fixture-companions-backdrop","district","companions","asset","grove","depth","backdrop","x",.75,"heightRatio",1.2,"baseline",.8,"groundAnchor",.8,"fadeUnits",.15);}
+  static JSONObject scene(){return MainActivity.obj("id","fixture-companions-backdrop","district","companions","asset","fixture-district-scene","depth","backdrop","x",.75,"heightRatio",1.2,"baseline",.8,"groundAnchor",.8,"fadeUnits",.15);}
   static JSONObject manifest()throws Exception{return plainManifest().put("districtScenery",new JSONArray().put(scene()));}
-  static JSONObject plainManifest()throws Exception{JSONObject d=NativeVillageHomeAssetsTest.manifest();d.put("continuousFoundation",false).put("minimumUnitDp",650);JSONArray legacy=new JSONArray();for(int n=0;n<d.getJSONArray("buildings").length();n++){JSONObject b=d.getJSONArray("buildings").getJSONObject(n);if(!"training".equals(b.getString("id")))legacy.put(b);}d.put("buildings",legacy);for(String group:new String[]{"buildings","residents"})for(int i=0;i<d.getJSONArray(group).length();i++){JSONObject a=d.getJSONArray(group).getJSONObject(i);a.remove("surface");a.remove("sourceX");a.remove("sourceY");a.remove("occludes");}if(d.has("landmark")){d.getJSONObject("landmark").remove("surface");d.getJSONObject("landmark").remove("sourceX");d.getJSONObject("landmark").remove("sourceY");}d.remove("decorations");return d;}
+  /** Explicit legacy geometry fixture: current artwork files are not a retired scene dependency. */
+  static JSONObject plainManifest()throws Exception{
+    JSONObject d=NativeVillageHomeAssetsTest.manifest();VillageLayout reference=VillageLayout.referenceLayout();
+    d.put("layeredWorld",false).put("continuousFoundation",false).put("minimumUnitDp",650);
+    JSONArray legacy=new JSONArray();
+    for(int n=0;n<d.getJSONArray("buildings").length();n++){
+      JSONObject b=d.getJSONArray("buildings").getJSONObject(n);VillageLayout.Building r=reference.building(b.getString("id"));
+      if(r==null)continue;
+      b.put("x",r.x).put("width",r.width).put("baseline",r.baseline).put("heightRatio",r.heightRatio).put("behindTerrace",false);
+      b.remove("canvasLayer");legacy.put(b);
+    }
+    d.put("buildings",legacy);
+    for(String group:new String[]{"buildings","residents"})for(int i=0;i<d.getJSONArray(group).length();i++){
+      JSONObject a=d.getJSONArray(group).getJSONObject(i);a.remove("surface");a.remove("sourceX");a.remove("sourceY");a.remove("occludes");
+      if("residents".equals(group)){VillageLayout.Resident r=reference.resident(a.getString("id"));a.put("x",r.x).put("width",r.width).put("baseline",r.baseline).put("heightRatio",r.heightRatio);}
+    }
+    // The synthetic layer is explicitly supplied by layer(), never decoded from retired artwork.
+    d.getJSONObject("assets").put("fixture-district-scene",MainActivity.obj("path","native/village-loop-v2/assets/fixture-district-scene.png","verified",false,"crop",new JSONArray().put(0).put(0).put(1).put(1),"sourceWidth",32,"sourceHeight",24));
+    d.remove("landmark");d.remove("decorations");d.remove("districtScenery");return d;
+  }
   NativeVillageHomeView open(MainActivity h,VillageLayout layout)throws Exception{
     fixture.prepare(h);h.home();h.villageHome.pause();h.root.removeAllViews();h.epoch++;h.screen="home";
     NativeVillageHomeController owner=new NativeVillageHomeController(h);owner.layout=layout;h.villageHome=owner;owner.attach();
     LocalGameArtTest.drain();helper.layout(h,NativeVillageHomeTest.PHONE);owner.view.ambient.fixedTime=0L;return owner.view;
   }
-  static Bitmap layer(NativeVillageHomeView v,String depth){Bitmap result=Bitmap.createBitmap(v.getWidth(),v.getHeight(),Bitmap.Config.ARGB_8888);v.districtScene.draw(new Canvas(result),v,depth);return result;}
+  static Bitmap layer(NativeVillageHomeView v,String depth){
+    Bitmap synthetic=Bitmap.createBitmap(32,24,Bitmap.Config.ARGB_8888);synthetic.eraseColor(0xff5d947d);
+    Bitmap previous=v.assets.images.put("fixture-district-scene",synthetic);
+    try{Bitmap result=Bitmap.createBitmap(v.getWidth(),v.getHeight(),Bitmap.Config.ARGB_8888);v.districtScene.draw(new Canvas(result),v,depth);return result;}
+    finally{if(previous==null)v.assets.images.remove("fixture-district-scene");else v.assets.images.put("fixture-district-scene",previous);synthetic.recycle();}
+  }
   static int painted(Bitmap bitmap){int count=0;for(int y=0;y<bitmap.getHeight();y++)for(int x=0;x<bitmap.getWidth();x++)if((bitmap.getPixel(x,y)>>>24)>0)count++;return count;}
   @Test public void districtOverlaysDoNotReplaceOrAddAnyInteractiveTargets()throws Exception{
     VillageLayout layout=VillageLayout.parse(manifest());assertEquals(1,layout.districtScenery.size());assertEquals(6,layout.buildings.size());assertEquals(4,layout.residents.size());assertEquals(8,layout.worldUnits,0);
@@ -57,9 +81,9 @@ public class NativeVillageDistrictSceneTest {
     for(NativeHomePartyFeedbackTest.Profile profile:new NativeHomePartyFeedbackTest.Profile[]{NativeVillageHomeTest.PHONE,new NativeHomePartyFeedbackTest.Profile("village-1280x720",1280,720,160,1,0,0,0,0)}){
       helper.configure(profile);try(ActivityController<MainActivity> activity=helper.flow.start()){
         MainActivity h=activity.get();fixture.prepare(h);NativeVillageHomeView v=fixture.open(h,profile);LocalGameArtTest.drain();helper.layout(h,profile);v.ambient.fixedTime=0L;v.moveCameraUnits(.25-v.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);
-        assertTrue(v.assets.ready());assertNotNull(v.layout.districtScenery("town-rear-west"));assertTrue(v.layout.continuousFoundation);
+        assertTrue(v.assets.ready());assertNotNull(v.layout.districtScenery("layered-patrol"));assertTrue(v.layout.continuousFoundation);assertTrue(v.layout.layeredWorld);
         android.graphics.PointF anchor=new android.graphics.PointF();
-        for(String id:new String[]{"recruit","hideout","guard"}){VillageLayout.Placed actor=id.equals("guard")?v.layout.resident(id):v.layout.building(id);android.widget.Button target=v.actorButton(actor);v.actorPosition(actor,target);anchor.set(v.actorPoint);android.graphics.RectF art=NativeVillageHomeTest.shownArt(v,target);assertEquals("Original source floor anchor determines actual feet",anchor.y,art.bottom,1.5);assertEquals(anchor.x,art.centerX(),1.5);}
+        for(String id:new String[]{"recruit","hideout","guard"}){VillageLayout.Placed actor=id.equals("guard")?v.layout.resident(id):v.layout.building(id);android.widget.Button target=v.actorButton(actor);v.actorPosition(actor,target);anchor.set(v.actorPoint);android.graphics.RectF art=NativeVillageHomeTest.shownArt(v,target);assertEquals("Authored floor anchor determines actual feet",anchor.y,art.bottom,1.5);assertEquals(anchor.x,art.centerX(),1.5);}
         NativeVillageHomeTest.assertNoOpaqueNeighborOverlap(v);
         Bitmap frame=NativeHomePartyFeedbackTest.render(h.root);try{NativeVillageHomeArtTest.png(NativeVillageHomeArtTest.output().resolve(profile.name+"-companions-v3.png"),frame);}finally{frame.recycle();}
       }
@@ -68,10 +92,29 @@ public class NativeVillageDistrictSceneTest {
   @Test public void visibleBuildingBitmapCaptionWinsOverFrontPatrolSprite()throws Exception{
     NativeHomePartyFeedbackTest.Profile profile=new NativeHomePartyFeedbackTest.Profile("village-640x320",640,320,160,1,0,0,0,0);helper.configure(profile);
     try(ActivityController<NativeVillageHomeTest.RouteHost> activity=fixture.routeHost()){
-      NativeVillageHomeTest.RouteHost h=activity.get();JSONObject data=NativeVillageHomeAssetsTest.manifest();for(int n=0;n<data.getJSONArray("residents").length();n++){JSONObject r=data.getJSONArray("residents").getJSONObject(n);if("guard".equals(r.getString("id")))r.put("x",1.28).put("baseline",.94);}NativeVillageHomeView v=open(h,VillageLayout.parse(data));h.record=true;LocalGameArtTest.drain();helper.layout(h,profile);v.moveCameraUnits(-v.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);
-      android.widget.Button tower=v.buildingButtons.get("hideout"),guard=v.residentButtons.get("guard");android.graphics.RectF label=v.labelRect(new android.graphics.RectF(tower.getLeft(),tower.getTop(),tower.getRight(),tower.getBottom()),tower);int overlaps=0;float hitX=0,hitY=0;
-      for(float y=label.top;y<label.bottom;y++)for(float x=label.left;x<label.right;x++)if(NativeVillageHomeTest.sourceAlphaAt(v,guard,x,y)>=128){overlaps++;hitX=x;hitY=y;assertTrue(v.alphaHitWorldButton(tower,x-tower.getLeft(),y-tower.getTop()));assertFalse(v.alphaHitWorldButton(guard,x-guard.getLeft(),y-guard.getTop()));}
-      assertTrue("Fixture genuinely exercises sprite over visible caption lane",overlaps>0);NativeVillageHomeTest.tapAt(v,hitX,hitY);assertEquals(java.util.Collections.singletonList("party"),h.routes);
+      NativeVillageHomeTest.RouteHost h=activity.get();JSONObject data=NativeVillageHomeAssetsTest.manifest();
+      double towerX=VillageLayout.parse(data).building("hideout").x;
+      for(int n=0;n<data.getJSONArray("residents").length();n++){
+        JSONObject r=data.getJSONArray("residents").getJSONObject(n);
+        if("guard".equals(r.getString("id")))r.put("x",towerX).put("baseline",.99).put("heightRatio",.26);
+      }
+      NativeVillageHomeView v=open(h,VillageLayout.parse(data));h.record=true;LocalGameArtTest.drain();helper.layout(h,profile);
+      v.moveCameraUnits(towerX-.8-v.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);
+      // Deterministic opaque patrol pixels must overlap the real bitmap caption, regardless of art revisions.
+      Bitmap opaque=Bitmap.createBitmap(32,48,Bitmap.Config.ARGB_8888);opaque.eraseColor(0xff4f7280);
+      Bitmap actualPatrol=v.assets.images.put("patrol",opaque);
+      try{
+        v.layoutWorld();
+        android.widget.Button tower=v.buildingButtons.get("hideout"),guard=v.residentButtons.get("guard");
+        android.graphics.RectF label=v.labelRect(new android.graphics.RectF(tower.getLeft(),tower.getTop(),tower.getRight(),tower.getBottom()),tower);
+        int overlaps=0;float hitX=0,hitY=0;
+        for(float y=Math.max(label.top,v.safe.top);y<Math.min(label.bottom,v.safe.bottom);y++)for(float x=Math.max(label.left,v.safe.left);x<Math.min(label.right,v.safe.right);x++)if(NativeVillageHomeTest.sourceAlphaAt(v,guard,x,y)>=128){
+          overlaps++;hitX=x;hitY=y;assertTrue(v.alphaHitWorldButton(tower,x-tower.getLeft(),y-tower.getTop()));assertFalse(v.alphaHitWorldButton(guard,x-guard.getLeft(),y-guard.getTop()));
+        }
+        assertTrue("Fixture genuinely exercises sprite over visible caption lane",overlaps>0);
+        NativeVillageHomeTest.tapAt(v,hitX,hitY);assertEquals(java.util.Collections.singletonList("party"),h.routes);
+      }finally{if(actualPatrol==null)v.assets.images.remove("patrol");else v.assets.images.put("patrol",actualPatrol);opaque.recycle();}
+
     }
   }
   @Test public void groundShadowContractAddsNoTargetOrGeometryAndRejectsInvalidReferences()throws Exception{

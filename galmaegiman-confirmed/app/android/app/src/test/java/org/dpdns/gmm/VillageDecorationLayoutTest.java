@@ -52,7 +52,7 @@ public class VillageDecorationLayoutTest {
       assertEquals(assets,layout.assets.size());assertEquals(6,layout.layers.size());
       assertEquals(7,layout.buildings.size());assertEquals(4,layout.residents.size());
       assertArrayEquals(new String[]{"recruit"},layout.building("recruit").actionIds);
-      assertEquals(1.54,layout.resident("guard").x,0);assertEquals("patrol",layout.resident("guard").asset);
+      assertEquals(1.70,layout.resident("guard").x,0);assertEquals("patrol",layout.resident("guard").asset);
     }
     VillageLayout fallback=VillageLayout.referenceLayout();assertEquals(13,fallback.assets.size());
     assertTrue(fallback.decorations.isEmpty());for(VillageLayout.Asset asset:fallback.assets.values())assertFalse(asset.verified);

@@ -28,8 +28,9 @@ import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.annotation.LooperMode;
 
 /** Actual packaged PNG checks; pending artwork must fail rather than become a skipped success.
- * Core13 plus 3 noninteractive decoration and 2 inland backdrop PNGs are required; world touch targets remain6buildings+4residents.
- * Original-file SHA/provenance verification is a separate import gate owned by the integration task.
+ * The active layered manifest has 24 required references and five authenticated-stage-only references.
+ * Exact packaged source bytes/dimensions and alpha are checked without reintroducing retired scenery.
+ * Technical verification never implies final user artwork approval.
  * Existing NativeVillageHomeTest covers routes, real gestures, delayed callbacks and owner changes.
  * These are host native-Skia captures, never physical-device or live-account evidence. */
 @RunWith(RobolectricTestRunner.class)
@@ -40,9 +41,12 @@ public class NativeVillageHomeArtTest {
   final NativeVillageHomeTest fixture=new NativeVillageHomeTest();
   final NativeHomePartyFeedbackTest helper=fixture.helper;
   static final Set<String> ASSETS=new HashSet<>(Arrays.asList(
-      "continuous-boundary-wall","continuous-garden-wall","continuous-sky","continuous-ground","continuous-platform","continuous-town-silhouette","continuous-town-silhouette-2","continuous-lane-props","continuous-harbor-inlet","training","training-nameplate","harbor-nameplate","statue-nameplate","records-background","records-terrace","harbor-background","harbor-terrace","market-background","market-terrace","market-forge","companions-shadows","companions-background","companions-terrace","nameplates","grove","neighborhood","sea","terrain","ship","recruit","hideout","archive","mailbox","market","harbor",
-      "blacksmith","merchant","librarian","patrol","decor_cottage","decor_warehouse","decor_closed_shop"));
-  static final Set<String> DECORATIONS=new HashSet<>(Arrays.asList("decor_cottage","decor_warehouse","decor_closed_shop"));
+      "recruit","hideout","archive","mailbox","market","harbor","training",
+      "blacksmith","merchant","librarian","patrol","market-forge","nameplates",
+      "training-nameplate","harbor-nameplate","statue-nameplate","layered-sky",
+      "layered-patrol","layered-approved","layered-market","layered-join-patrol-approved",
+      "layered-join-approved-market","layered-join-market-patrol-wrap","layered-quay"));
+  static final Set<String> DECORATIONS=new HashSet<>(Arrays.asList("market-forge"));
   static final Set<String> NPCS=new HashSet<>(Arrays.asList("blacksmith","merchant","librarian","patrol"));
 
   @Before public void setup(){helper.isolate();helper.configure(NativeVillageHomeTest.PHONE);}
@@ -62,7 +66,10 @@ public class NativeVillageHomeArtTest {
   static void requireVerified(VillageLayout layout){
     assertEquals("Real PNG import and pixel review must finish before this suite runs",
         "verified-local-assets",layout.artworkStatus);
+    assertTrue("The active product world must use the layered layout",layout.layeredWorld);
+    assertEquals("24 active references plus five optional statue stages",29,layout.assets.size());
     Set<String> required=new HashSet<>();for(VillageLayout.Asset a:layout.assets.values())if(a.required)required.add(a.id);assertEquals(ASSETS,required);
+    Set<String> decorations=new HashSet<>();for(VillageLayout.Decoration d:layout.decorations)decorations.add(d.asset);assertEquals(DECORATIONS,decorations);
     for(VillageLayout.Asset asset:layout.assets.values()){
       if(!asset.required){assertTrue(asset.id.startsWith("statue-stage-"));assertTrue("All five technical candidates have inspected original pixels",asset.verified);continue;}
       assertTrue("Actual-art suite cannot accept an unverified reference: "+asset.id,asset.verified);
@@ -110,13 +117,55 @@ public class NativeVillageHomeArtTest {
       }
       long bytes=bitmap.getAllocationByteCount();assertTrue(bytes>0);total+=bytes;
       rows.put(MainActivity.obj("id",asset.id,"packagedPath",asset.path,"decodedWidth",width,"decodedHeight",height,
-          "sample",2,"allocationBytes",bytes,"hasAlpha",bitmap.hasAlpha(),"transparentPixels",transparent,
+          "sample",NativeVillageHomeAssets.decodeSample(asset.path,view.h.getResources().getDisplayMetrics().heightPixels),"allocationBytes",bytes,"hasAlpha",bitmap.hasAlpha(),"transparentPixels",transparent,
           "nonTransparentPixels",nonTransparent,"opaquePixels",opaque,"transparentBorderPixels",transparentBorder));
     }
     return MainActivity.obj("environment","Robolectric SDK35 native graphics; host only","assetCount",rows.length(),
-        "allReady",view.assets.ready(),"coreAssetCount",13,"decorationAssetCount",3,"inlandBackdropCount",2,"imageNameplateAtlasCount",1,"verifiedStatueStages",5,"userFinalStatueApproval","pending","residentAssetCount",4,"totalDecodedAllocationBytes",total,"sharedCacheBudgetBytes",LocalGameArt.budgetBytes(),
+        "allReady",view.assets.ready(),"manifestAssetReferences",view.layout.assets.size(),"requiredAssetReferences",ASSETS.size(),"decorationAssetCount",DECORATIONS.size(),"layeredSceneryCount",view.layout.districtScenery.size(),"imageNameplateAtlasCount",2,"verifiedStatueStages",5,"userFinalStatueApproval","pending","residentAssetCount",4,"totalDecodedAllocationBytes",total,"sharedCacheBudgetBytes",LocalGameArt.budgetBytes(),
         "sharedCachedBytes",LocalGameArt.cachedBytes(),"viewKeepsStrongBitmapReferences",true,
-        "originalFileShaVerification","separate import gate; not inferred from decoded pixels","assets",rows);
+        "originalFileShaVerification","activeSourceFilesKeepDeclaredBytesDimensionsAspectAndAlpha test; source-inventory.json","assets",rows);
+  }
+
+
+  @Test public void activeSourceFilesKeepDeclaredBytesDimensionsAspectAndAlpha()throws Exception{
+    try(ActivityController<MainActivity> activity=helper.flow.start()){
+      MainActivity h=activity.get();VillageLayout layout=VillageLayout.load(h);requireVerified(layout);
+      JSONObject metadata=NativeVillageHomeAssetsTest.manifest().getJSONObject("assets");JSONArray inventory=new JSONArray();
+      for(VillageLayout.Asset asset:layout.assets.values()){
+        JSONObject source=metadata.getJSONObject(asset.id);java.security.MessageDigest digest=java.security.MessageDigest.getInstance("SHA-256");long byteCount=0;
+        try(InputStream in=h.getAssets().open(asset.path)){
+          byte[] buffer=new byte[8192];int count;while((count=in.read(buffer))!=-1){digest.update(buffer,0,count);byteCount+=count;}
+        }
+        StringBuilder hash=new StringBuilder();for(byte b:digest.digest())hash.append(String.format(java.util.Locale.ROOT,"%02x",b&255));
+        assertEquals("Packaged original bytes: "+asset.id,source.getLong("sourceBytes"),byteCount);
+        assertEquals("Packaged original hash: "+asset.id,source.getString("sourceSha256"),hash.toString());
+        Bitmap original;
+        try(InputStream in=h.getAssets().open(asset.path)){original=android.graphics.BitmapFactory.decodeStream(in);}
+        assertNotNull("Every active reference independently decodes: "+asset.id,original);
+        try{
+          assertEquals("Original width: "+asset.id,source.getInt("sourceWidth"),original.getWidth());
+          assertEquals("Original height: "+asset.id,source.getInt("sourceHeight"),original.getHeight());
+          double aspect=original.getWidth()/(double)original.getHeight();
+          assertEquals("No source stretching or replacement: "+asset.id,asset.sourceWidth/(double)asset.sourceHeight,aspect,1e-12);
+          int[] row=new int[original.getWidth()];long visible=0,transparent=0,border=0,opaque=0;int minAlpha=255,maxAlpha=0;
+          for(int y=0;y<original.getHeight();y++){
+            original.getPixels(row,0,row.length,0,y,row.length,1);
+            for(int x=0;x<row.length;x++){int a=Color.alpha(row[x]);minAlpha=Math.min(minAlpha,a);maxAlpha=Math.max(maxAlpha,a);
+              if(a>0)visible++;else{transparent++;if(y==0||y==original.getHeight()-1||x==0||x==row.length-1)border++;}if(a>=250)opaque++;}
+          }
+          assertTrue("Original contains visible pixels: "+asset.id,visible>0);
+          if(NPCS.contains(asset.id)||DECORATIONS.contains(asset.id)){
+            assertTrue("Actor margins are actually transparent, not a white sheet: "+asset.id,original.hasAlpha()&&transparent>0&&border>0);
+            assertTrue("Actor content is opaque: "+asset.id,opaque>0);
+          }
+          inventory.put(MainActivity.obj("id",asset.id,"path",asset.path,"required",asset.required,"sourceBytes",byteCount,
+              "sha256",hash.toString(),"width",original.getWidth(),"height",original.getHeight(),"aspect",aspect,
+              "alphaMin",minAlpha,"alphaMax",maxAlpha,"visiblePixels",visible,"transparentPixels",transparent,
+              "transparentBorderPixels",border,"opaquePixels",opaque));
+        }finally{original.recycle();}
+      }
+      assertEquals(29,inventory.length());json(output().resolve("source-inventory.json"),inventory);
+    }
   }
 
   @Test public void verifiedPackagedPngsDecodeCoreAndCurrentStageOnlyAndIndividualNpcsAndDecorationsHaveTransparentMargins()throws Exception{
@@ -196,7 +245,7 @@ public class NativeVillageHomeArtTest {
             long difference=same?0:differentPixels(before,after);
             loops.put(MainActivity.obj("profile",profile.name,"unit",unit,"cameraBefore",camera,"cameraAfter",view.camera.cameraUnits(),
                 "worldUnits",view.layout.worldUnits,"bitmapSameAs",same,"differentPixels",difference,
-                "layers","background,sea,decorations,terrain,buildings,ships,residents"));
+                "layers","layered-sky,authored-panels,joins,quay,buildings,residents,statue,image-labels"));
             json(out.resolve("loop-pixels.json"),loops);
             if(!same)png(out.resolve(name+"-after-one-turn.png"),after);
             assertTrue("Actual village pixels changed after one whole turn: "+name+" differentPixels="+difference,same);
@@ -204,7 +253,11 @@ public class NativeVillageHomeArtTest {
           view.moveCameraUnits(-view.layout.worldUnits);LocalGameArtTest.drain();assertEquals(camera,view.camera.cameraUnits(),1e-9);
         }
         if(profile==NativeVillageHomeTest.PHONE){
-          String[] districts={"companions","memory","harbor","market"};double[] positions={.25,2.25,4.25,6.25};JSONArray districtFrames=new JSONArray();
+          String[] districts={"companions","memory","harbor","market"};
+          double halfViewport=view.field.width()/view.unitPixels()/2;
+          double[] positions={view.layout.resident("guard").x-halfViewport,view.layout.resident("librarian").x-halfViewport,
+              view.layout.building("harbor").x-halfViewport,(view.layout.resident("blacksmith").x+view.layout.resident("merchant").x)/2-halfViewport};
+          JSONArray districtFrames=new JSONArray();
           for(int i=0;i<positions.length;i++){
             view.moveCameraUnits(positions[i]-view.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);Bitmap image=NativeHomePartyFeedbackTest.render(h.root);
             try{assertEquals(915,image.getWidth());assertEquals(412,image.getHeight());png(out.resolve("phone-915x412-district-"+districts[i]+".png"),image);}finally{image.recycle();}

@@ -34,7 +34,7 @@ final class NativeRoster60Pvp {
  LinearLayout columns=new LinearLayout(h);root.addView(columns,new LinearLayout.LayoutParams(-1,0,1));
  roster=new LinearLayout(h);roster.setOrientation(1);roster.setPadding(0,h.dp(4),h.dp(8),0);columns.addView(roster,new LinearLayout.LayoutParams(0,-1,3));
  // Separate the saved order from the owned catalogue without adding another decorative frame.
- LinearLayout current=new LinearLayout(h);current.setOrientation(1);current.setPadding(h.dp(6),h.dp(3),h.dp(6),h.dp(4));current.setTag("party-current-section");current.setBackground(NavyWorkbenchTheme.surface(h,NavyWorkbenchTheme.HEADER,0,6));roster.addView(current,new LinearLayout.LayoutParams(-1,0,1.3f));
+ LinearLayout current=new LinearLayout(h);current.setOrientation(1);current.setClipChildren(false);current.setPadding(h.dp(6),h.dp(3),h.dp(6),h.dp(4));current.setTag("party-current-section");current.setBackground(NavyWorkbenchTheme.surface(h,NavyWorkbenchTheme.HEADER,0,6));roster.addView(current,new LinearLayout.LayoutParams(-1,0,1.3f));
  summary=heading("현재 편성 · 출전 1 + 예비 5");current.addView(summary,new LinearLayout.LayoutParams(-1,headingHeight(summary)));slots=new Roster60PartySlots(h,()->current()&&!busy&&!waiting,()->selected.size(),this::moveSelected);slots.setTag("party-current-slots");slots.setGravity(Gravity.CENTER_VERTICAL);current.addView(slots,new LinearLayout.LayoutParams(-1,0,1));
  LinearLayout owned=new LinearLayout(h);owned.setOrientation(1);owned.setPadding(h.dp(6),h.dp(3),h.dp(6),h.dp(4));owned.setTag("party-owned-section");owned.setBackground(NavyWorkbenchTheme.surface(h,NavyWorkbenchTheme.SLOT,0,6));LinearLayout.LayoutParams ownedBox=new LinearLayout.LayoutParams(-1,0,1);ownedBox.topMargin=h.dp(8);roster.addView(owned,ownedBox);
  ownedHeading=heading("보유 대원 · 좌우로 밀어보기");owned.addView(ownedHeading,new LinearLayout.LayoutParams(-1,headingHeight(ownedHeading)));
@@ -105,14 +105,19 @@ final class NativeRoster60Pvp {
  }
  int headingHeight(TextView text){return Math.max(h.dp(20),(int)Math.ceil(text.getPaint().getFontSpacing()));}
  TextView heading(String text){TextView v=h.text(text,12);v.setPadding(h.dp(4),0,h.dp(4),0);CombatV2ReviewStyle.text(v);v.setTextColor(NavyWorkbenchTheme.TEXT);v.setSingleLine(true);v.setEllipsize(android.text.TextUtils.TruncateAt.END);v.setGravity(Gravity.CENTER_VERTICAL);return v;}
+ // List.sort는 동레벨의 기존 목록 순서를 보존한다. 실제 selected 편성은 정렬하지 않는다.
+ static ArrayList<JSONObject> levelOrderedCandidates(JSONArray units){
+  ArrayList<JSONObject> candidates=new ArrayList<>();for(int i=0;i<units.length();i++){JSONObject u=units.optJSONObject(i);if(u!=null)candidates.add(u);}
+  candidates.sort((a,b)->Integer.compare(b.optInt("level",0),a.optInt("level",0)));return candidates;
+ }
  void drawParty(){
  // JSON comparison belongs to a catalogue response, never every local badge/focus update.
  if(catalogueDirty||renderedSource!=units){
   String signature=units.toString();catalogueSerializations++;catalogueDirty=false;renderedSource=units;
   if(!signature.equals(renderedUnits)){
    renderedUnits=signature;catalogueRevision++;ownedTiles.clear();ownedState.clear();renderedTileState="";ArrayList<String> ids=new ArrayList<>();ArrayList<Roster60MemberTile> tiles=new ArrayList<>();
-   for(int i=0;i<units.length();i++){
-    JSONObject u=units.optJSONObject(i);String id=u.optString("ownedId");
+   for(JSONObject u:levelOrderedCandidates(units)){
+    String id=u.optString("ownedId");
     Roster60MemberTile tile=new Roster60MemberTile(h,u,u.optString("name"),!busy&&!waiting,()->{if(busy||waiting||ownedStrip.blocksClick())return;focused=id;if(selected.contains(id)){selectionRevision++;selected.remove(id);}else if(rankMode()&&!rankUnitAllowed(u)){status.setText(rankMessage(rankUnitReason(u),rankEligibility));}else if(selected.size()<6){selectionRevision++;selected.add(id);}else status.setText("출전 포함 최대 6마리입니다.");drawParty();},null,false,1,0,true);
     tile.action.setTag("party-unit-"+id);ids.add(id);tiles.add(tile);ownedTiles.put(id,tile);
    }
@@ -125,7 +130,7 @@ final class NativeRoster60Pvp {
    final String id=slot<selected.size()?selected.get(slot):"";JSONObject u=unit(id);String content=id+"|"+(u==null?"":u.toString());
    if(!content.equals(slotContent[slot])){
     Roster60MemberTile tile=new Roster60MemberTile(h,u,u==null?"빈 칸":u.optString("name"),u!=null&&!busy&&!waiting,()->{if(busy||waiting)return;selectionRevision++;focused=id;selected.remove(id);drawParty();},Roster60FormationView.role(slot),u!=null&&focused.equals(id),1,0);
-    tile.setTag("party-selected-"+slot);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-1,1);if(slot<5)p.rightMargin=h.dp(4);
+    tile.setTag("party-selected-"+slot);((Roster60PartySlots)slots).installAccessibility(tile.action,slot);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-1,1);if(slot<5)p.rightMargin=h.dp(4);
     if(slot<slots.getChildCount())slots.removeViewAt(slot);slots.addView(tile,slot,p);slotContent[slot]=content;slotState[slot]=null;slotReplacements++;
    }
   }

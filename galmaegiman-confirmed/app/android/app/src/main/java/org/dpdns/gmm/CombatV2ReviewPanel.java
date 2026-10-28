@@ -33,6 +33,7 @@ final class CombatV2ReviewPanel extends LinearLayout {
   private void hideDetails(){details.setVisibility(INVISIBLE);if(holdOverlay!=null)holdOverlay.setVisibility(INVISIBLE);}
   private JSONObject dto;
   private boolean skills, pending;
+  long rowBuilds, buttonBuilds; // Deterministic UI-work probes, not telemetry.
   // 제품 화면 배율(휴대폰 가로=1). 큰 화면에서 버튼만 커지고 글자·아이콘은 그대로인 문제를 막는다.
   private float scale=1;
   void setScale(float s){if(Math.abs(s-scale)<.01f)return;scale=s;if(product){status.setTextSize(14*s);back.setTextSize(12*s);back.getLayoutParams().height=dp(48*s);}if(dto!=null)render();}
@@ -58,10 +59,19 @@ final class CombatV2ReviewPanel extends LinearLayout {
   private ProgressBar bar(String name){ProgressBar b=new ProgressBar(getContext(),null,android.R.attr.progressBarStyleHorizontal);b.setProgressDrawable(getResources().getDrawable(CombatV2ReviewStyle.resource(getContext(),"drawable",name)));addView(b,new LayoutParams(-1,dp(4)));return b;}
   private int productDetailsHeight(){return (int)Math.ceil(28*getResources().getConfiguration().fontScale);}
   private int dp(float n){return (int)(n*getResources().getDisplayMetrics().density+.5f);}
-  void lock(){pending=true;render();}
+  void lock(){
+    // A command/animation lock changes interaction, not content. Rebuilding six
+    // buttons here also reloads their icons and forces layout at every action edge.
+    pending=true;cancelHolds();
+    for(int row=0;row<rows.getChildCount();row++){
+      LinearLayout line=(LinearLayout)rows.getChildAt(row);
+      for(int col=0;col<line.getChildCount();col++)line.getChildAt(col).setEnabled(false);
+    }
+    back.setEnabled(false);
+  }
   void cancelInteraction(){cancelHolds();}
   boolean isSkillPage(){return skills;}
-  void restoreSkillPage(boolean value){skills=value;render();}
+  void restoreSkillPage(boolean value){if(skills==value)return;skills=value;render();}
   boolean showCommands(){if(skills){skills=false;render();return true;}return false;}
   void bind(JSONObject snapshot) {
     cancelHolds();
@@ -84,17 +94,18 @@ final class CombatV2ReviewPanel extends LinearLayout {
     badge.setVisibility(product?GONE:VISIBLE);badge.setText(CombatV2ReviewStyle.label(getContext(),"badge_"+defense));badge.setBackgroundResource(CombatV2ReviewStyle.resource(getContext(),"drawable","badge_"+defense));
     JSONArray entries=dto.optJSONArray(skills?"skills":"commands");
     for(int row=0;row<(product?3:2);row++) {
-      LinearLayout line=new LinearLayout(getContext());line.setOrientation(HORIZONTAL);
+      rowBuilds++;LinearLayout line=new LinearLayout(getContext());line.setOrientation(HORIZONTAL);
       rows.addView(line,new LayoutParams(-1,0,1));
       for(int col=0;col<(product?2:3);col++) {
         JSONObject entry=entries.optJSONObject(row*(product?2:3)+col);
-        Button button=new Button(getContext());button.setMinHeight(0);button.setMinimumHeight(0);button.setPadding(dp(2),0,dp(2),0);button.setTextSize(product?12*scale:10);button.setMaxLines(2);CombatV2ReviewStyle.button(button);
+        buttonBuilds++;Button button=new Button(getContext());button.setMinHeight(0);button.setMinimumHeight(0);button.setPadding(dp(2),0,dp(2),0);button.setTextSize(product?12*scale:10);button.setMaxLines(2);if(product&&getContext() instanceof MainActivity&&entry!=null)CombatV2ReviewStyle.text(button);else CombatV2ReviewStyle.button(button);
         line.addView(button,new LayoutParams(0,-1,1));
         if(entry==null){button.setText(CombatV2ReviewStyle.label(getContext(),"empty"));button.setEnabled(false);continue;}
         boolean skillPage=skills;
         String label=skillPage?entry.optString("name")+" · MP "+entry.optInt("mpCost"):entry.optString("label");
         String why=entry.optString("reason");
-        icons.bind(button,skillPage?entry.optString("element").toLowerCase(java.util.Locale.ROOT):entry.optString("kind"));
+        // Product skin supplies its own exact icon; do not inflate a discarded vector first.
+        if(!(product&&getContext() instanceof MainActivity))icons.bind(button,skillPage?entry.optString("element").toLowerCase(java.util.Locale.ROOT):entry.optString("kind"));
         String shownWhy=why;
         if(!product&&!skillPage&&("item".equals(entry.optString("kind"))||"switch".equals(entry.optString("kind"))||"escape".equals(entry.optString("kind"))))shownWhy=CombatV2ReviewStyle.label(getContext(),entry.optString("kind")+"_reason");
         if(product && getContext() instanceof MainActivity){
@@ -104,7 +115,7 @@ final class CombatV2ReviewPanel extends LinearLayout {
           button.setTextColor("surrender".equals(surface)?JournalTheme.INK:0xfffff8e8);
           button.setCompoundDrawables(null,null,null,null);
           if(skillPage){Roster60ElementArt.bind(button,entry.optString("element"),28*scale,false);button.setPadding(dp(6*scale),dp(2),dp(6*scale),dp(2));}
-          if(!skillPage){String icon="skills".equals(kind)?"goldenstrike":"focus".equals(kind)?"shield":"escape".equals(kind)?"surrender":kind;android.graphics.Bitmap image=BattleSkin.bitmap(host,"icon-"+icon);if(image!=null){android.graphics.drawable.BitmapDrawable draw=new android.graphics.drawable.BitmapDrawable(getResources(),image);draw.setBounds(0,0,dp(24*scale),dp(24*scale));button.setCompoundDrawables(draw,null,null,null);button.setCompoundDrawablePadding(dp(2*scale));button.setPadding(dp(8*scale),dp(2),dp(6*scale),dp(2));}}
+          if(!skillPage){String icon="skills".equals(kind)?"goldenstrike":"focus".equals(kind)?"shield":"escape".equals(kind)?"surrender":kind;BattleSkin.load(host,"icon-"+icon,()->{if(button.getParent()==null||button.getParent().getParent()!=rows)return;android.graphics.Bitmap image=BattleSkin.peek("icon-"+icon);if(image!=null){android.graphics.drawable.BitmapDrawable draw=new android.graphics.drawable.BitmapDrawable(getResources(),image);draw.setBounds(0,0,dp(24*scale),dp(24*scale));button.setCompoundDrawables(draw,null,null,null);button.setCompoundDrawablePadding(dp(2*scale));button.setPadding(dp(8*scale),dp(2),dp(6*scale),dp(2));}});}
 
         }
         button.setText(label+(shownWhy.isEmpty()?"":"\n"+shownWhy));button.setContentDescription(label+(skillPage?" · "+elementName(entry.optString("element")):"")+" "+why);
@@ -124,7 +135,7 @@ final class CombatV2ReviewPanel extends LinearLayout {
       JSONObject command=new JSONObject();command.put("battleId",dto.getString("battleId"));
       command.put("expectedRevision",dto.getInt("revision"));command.put("requestId",UUID.randomUUID().toString());
       command.put("kind",kind);if(skillId!=null)command.put("skillId",skillId);
-      pending=true;render();transport.submit(command);
+      lock();transport.submit(command);
       // Adapter retains this exact requestId on uncertain network retries, then bind()s server DTO.
     } catch(Exception failure) { status.setText(CombatV2ReviewStyle.label(getContext(),"uncertain")); }
   }
@@ -138,8 +149,9 @@ final class CombatV2ReviewPanel extends LinearLayout {
           +" · "+CombatV2ReviewStyle.label(getContext(),"suitability")+" "+dto.optJSONObject("self").optJSONObject("suitability").optDouble(entry.optString("element"))+"\n"+entry.optString("description")+(entry.optString("reason").isEmpty()?"":(product?" · ":"\n")+entry.optString("reason")));details.setVisibility(VISIBLE);if(holdOverlay!=null){holdOverlay.setText(details.getText());holdOverlay.setVisibility(VISIBLE);}
     }};timers.add(timer);
     button.setOnTouchListener((v,event)->{
-      // 다시 그려진 뒤 남은 옛 버튼은 어떤 터치에도 시전·설명을 일으키지 않는다(배율·서버 갱신 중 누르고 있던 경우).
-      if(!holdButtons.contains(button)){gesture.cancel();removeCallbacks(timer);button.setPressed(false);return true;}
+      // A lock keeps the same buttons, but must reject even manually delivered stale touches.
+      // 다시 그려진 뒤 남은 옛 버튼도 시전·설명을 일으키지 않는다.
+      if(pending||!holdButtons.contains(button)){gesture.cancel();removeCallbacks(timer);button.setPressed(false);return true;}
       switch(event.getActionMasked()) {
         case MotionEvent.ACTION_DOWN:cancelHolds();button.setPressed(true);gesture.down(SystemClock.uptimeMillis(),event.getX(),event.getY());postDelayed(timer,timeout);return true;
         case MotionEvent.ACTION_MOVE:if(gesture.move(event.getX(),event.getY())){removeCallbacks(timer);button.setPressed(false);button.setSelected(false);hideDetails();}return true;

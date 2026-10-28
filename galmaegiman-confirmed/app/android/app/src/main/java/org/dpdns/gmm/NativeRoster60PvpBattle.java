@@ -6,22 +6,73 @@ import java.util.*;
 /** Shared server-owned PvP transport, including the server-created normal-game AI opponent. */
 final class NativeRoster60PvpBattle extends NativeRoster60Battle {
  final Handler poll=new Handler(Looper.getMainLooper());JSONObject initial;boolean paused;Button accept,decline,waitingSurrender;TextView lossFeedback,presenceNotice,commanderStats;
+ boolean preparing;int currentReadGeneration;Roster60MatchReadyView readyView;
  NativeRoster60PvpBattle(MainActivity h,JSONObject initial){super(h);this.initial=initial;}
  @Override String storageScope(){return "|human-pvp";}
- @Override void open(){super.open();if(!current())return;LinearLayout controls=(LinearLayout)settle.getParent();LinearLayout rail=(LinearLayout)controls.getParent();presenceNotice=message;presenceNotice.setTag("roster60-pvp-presence");commanderStats=h.text("",11);commanderStats.setTag("roster60-commander-reward");commanderStats.setTextColor(NavyWorkbenchTheme.TEXT);commanderStats.setMaxLines(3);commanderStats.setVisibility(android.view.View.GONE);rail.addView(commanderStats,rail.indexOfChild(controls),new LinearLayout.LayoutParams(-1,-2));lossFeedback=h.text("",11);lossFeedback.setTag("roster60-loss-feedback");lossFeedback.setTextColor(NavyWorkbenchTheme.TEXT);lossFeedback.setMaxLines(4);lossFeedback.setVisibility(android.view.View.GONE);rail.addView(lossFeedback,rail.indexOfChild(controls),new LinearLayout.LayoutParams(-1,-2));accept=h.button("대전 수락",()->accept(true));decline=h.button("대전 거절",()->accept(false));waitingSurrender=h.button("항복 · 경험치 0",()->command(h.obj("kind","escape")));controls.addView(accept,new LinearLayout.LayoutParams(0,h.dp(48),1));controls.addView(decline,new LinearLayout.LayoutParams(0,h.dp(48),1));controls.addView(waitingSurrender,new LinearLayout.LayoutParams(0,h.dp(48),1));if(view!=null)bind(view);}
- @Override void resume(){paused=false;presentationPaused=false;if(!current()||reading||(selection!=null&&selection.isShowing())){schedule();return;}String pending=prefs.getString(key+":pending","");if(!pending.isEmpty()){try{send(new JSONObject(pending));}catch(JSONException bad){error("저장된 대전 요청 확인 필요");}return;}if(initial!=null){JSONObject value=initial;initial=null;bind(value);schedule();return;}reading=true;h.api.call("native/roster60/pvp/current",null,(r,e)->{reading=false;if(!current())return;if(e!=null){error(e);schedule();return;}JSONObject b=r.optJSONObject("battle");if(b!=null)bind(b);else{pause();h.openRosterPvp();return;}schedule();});}
+ @Override void open(){
+  if(initial!=null&&"ACCEPTING".equals(initial.optString("status"))){openReady();return;}
+  openBattle();
+ }
+ void openReady(){
+  if(h.api.token().isEmpty()){h.login();return;}
+  preparing=true;h.epoch++;h.screen="roster60Battle";h.root.removeAllViews();
+  owner=h.api.token();epoch=h.epoch;key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner+storageScope());
+  readyView=new Roster60MatchReadyView(h,()->accept(true),()->accept(false),this::resume);
+  h.root.addView(readyView,new FrameLayout.LayoutParams(-1,-1));
+  message=readyView.notice;accept=readyView.accept;decline=readyView.decline;retry=readyView.retry;
+  view=initial;readyView.bind(initial,!prefs.getString(key+":pending","").isEmpty());
+  initial=null;h.screenShown();if(!prefs.getString(key+":pending","").isEmpty())resume();else schedule();
+ }
+ @Override void bind(JSONObject snapshot){
+  // A delayed pre-accept poll must never put acceptance controls into the field.
+  if(!preparing){if(snapshot!=null&&"ACCEPTING".equals(snapshot.optString("status")))return;super.bind(snapshot);return;}
+  if(snapshot==null||!current())return;
+  JSONObject baseline=(paused||presentationPaused)&&initial!=null?initial:view;
+  if(baseline!=null&&baseline.optString("battleId").equals(snapshot.optString("battleId"))){
+   if(snapshot.optInt("revision",-1)<baseline.optInt("revision",-1))return;
+   String previous=baseline.optString("status"),next=snapshot.optString("status");
+   if("ACTIVE".equals(previous)&&"ACCEPTING".equals(next))return;
+   if(("FINISHED".equals(previous)||"SETTLED".equals(previous))&&("ACTIVE".equals(next)||"ACCEPTING".equals(next)))return;
+   if("SETTLED".equals(previous)&&"FINISHED".equals(next))return;
+   if(snapshot.optInt("revision")==baseline.optInt("revision")&&baseline.optBoolean("accepted"))try{snapshot=new JSONObject(snapshot.toString());snapshot.put("accepted",true);}catch(JSONException bad){return;}
+  }
+  if(paused||presentationPaused){initial=snapshot;currentReadGeneration++;reading=false;return;}
+  if(NativeRoster60Pvp.validMode(snapshot.optString("mode")))h.rosterPvpMode=snapshot.optString("mode");
+  if(snapshot.optBoolean("requeued")){pause();h.openRosterPvp();return;}
+  if("ACTIVE".equals(snapshot.optString("status"))){
+   readyView.stop();poll.removeCallbacksAndMessages(null);currentReadGeneration++;reading=false;preparing=false;view=null;initial=snapshot;openBattle();return;
+  }
+  view=snapshot;readyView.bind(snapshot,!prefs.getString(key+":pending","").isEmpty());
+  String status=snapshot.optString("status");
+  if("FINISHED".equals(status)){
+   message.setText("대전 준비가 종료됐어요 · 서버 결과 저장 중");
+   if(!snapshot.optString("battleId").equals(autoSettled)&&prefs.getString(key+":pending","").isEmpty()){String id=snapshot.optString("battleId");if(persistMutation("settle",h.obj("battleId",id,"revision",snapshot.optInt("revision"))))autoSettled=id;}
+  }else if("SETTLED".equals(status)){
+   String condition=terminalCondition(snapshot,"rankCondition"),pool=terminalCondition(snapshot,"matchPoolCondition");
+   message.setText(NativeRoster60Pvp.poolRejection(pool)?NativeRoster60Pvp.poolMessage(pool):NativeRoster60Pvp.rankRejection(condition)?NativeRoster60Pvp.rankMessage(condition,null):"거절 또는 수락 시간 종료로 대전이 시작되지 않았어요.");
+   retry.setText("매칭으로 돌아가기");retry.setOnClickListener(v->{pause();h.openRosterPvp();});
+  }
+ }
+ @Override void error(String error){
+  if(!preparing){super.error(error);return;}
+  readyView.stop();message.setText(error);retry.setVisibility(android.view.View.VISIBLE);retry.setEnabled(true);
+  retry.setText("다시 확인");retry.setOnClickListener(v->{if(view!=null&&"FINISHED".equals(view.optString("status"))&&prefs.getString(key+":pending","").isEmpty())mutate("settle",h.obj("battleId",view.optString("battleId"),"revision",view.optInt("revision")));else resume();});
+ }
+ void openBattle(){accept=null;decline=null;waitingSurrender=null;super.open();if(!current())return;LinearLayout controls=(LinearLayout)settle.getParent();LinearLayout rail=(LinearLayout)controls.getParent();presenceNotice=message;presenceNotice.setTag("roster60-pvp-presence");commanderStats=h.text("",11);commanderStats.setTag("roster60-commander-reward");commanderStats.setTextColor(NavyWorkbenchTheme.TEXT);commanderStats.setMaxLines(3);commanderStats.setVisibility(android.view.View.GONE);rail.addView(commanderStats,rail.indexOfChild(controls),new LinearLayout.LayoutParams(-1,-2));lossFeedback=h.text("",11);lossFeedback.setTag("roster60-loss-feedback");lossFeedback.setTextColor(NavyWorkbenchTheme.TEXT);lossFeedback.setMaxLines(4);lossFeedback.setVisibility(android.view.View.GONE);rail.addView(lossFeedback,rail.indexOfChild(controls),new LinearLayout.LayoutParams(-1,-2));accept=h.button("대전 수락",()->accept(true));decline=h.button("대전 거절",()->accept(false));waitingSurrender=h.button("항복 · 경험치 0",()->command(h.obj("kind","escape")));controls.addView(accept,new LinearLayout.LayoutParams(0,h.dp(48),1));controls.addView(decline,new LinearLayout.LayoutParams(0,h.dp(48),1));controls.addView(waitingSurrender,new LinearLayout.LayoutParams(0,h.dp(48),1));if(view!=null)bind(view);}
+ @Override void resume(){paused=false;presentationPaused=false;if(!current()||reading||(selection!=null&&selection.isShowing())){schedule();return;}String pending=prefs.getString(key+":pending","");if(!pending.isEmpty()){try{send(new JSONObject(pending));}catch(JSONException bad){error("저장된 대전 요청 확인 필요");}return;}if(initial!=null){JSONObject value=initial;initial=null;bind(value);schedule();return;}reading=true;final int requestedRead=++currentReadGeneration,requestedEpoch=epoch;h.api.call("native/roster60/pvp/current",null,(r,e)->{if(requestedRead!=currentReadGeneration||requestedEpoch!=epoch)return;reading=false;if(!current())return;if(e!=null){error(e);schedule();return;}JSONObject b=r.optJSONObject("battle");if(b!=null)bind(b);else{pause();h.openRosterPvp();return;}schedule();});}
  @Override void read(String id){resume();}
  @Override void options(){h.openRosterPvp();}
- void accept(boolean value){if(view!=null)mutate("accept",h.obj("battleId",view.optString("battleId"),"revision",view.optInt("revision"),"accept",value));}
- @Override void send(JSONObject intent){JSONObject body=intent.optJSONObject("body");if(body==null)return;String id=body.optString("requestId"),op=intent.optString("operation");if(!Arrays.asList("action","settle","accept").contains(op)||id.isEmpty()){error("저장된 대전 요청 확인 필요");return;}if(!IN_FLIGHT.add(id)){message.setText("대전 요청 결과 확인 중…");schedule();return;}panel.lock();settle.setEnabled(false);if(accept!=null){accept.setEnabled(false);decline.setEnabled(false);waitingSurrender.setEnabled(false);}
+ void accept(boolean value){if(view!=null&&"ACCEPTING".equals(view.optString("status"))&&(!value||!view.optBoolean("accepted")))mutate("accept",h.obj("battleId",view.optString("battleId"),"revision",view.optInt("revision"),"accept",value));}
+ @Override void send(JSONObject intent){JSONObject body=intent.optJSONObject("body");if(body==null)return;String id=body.optString("requestId"),op=intent.optString("operation");if(!Arrays.asList("action","settle","accept").contains(op)||id.isEmpty()){error("저장된 대전 요청 확인 필요");return;}if(!IN_FLIGHT.add(id)){message.setText("대전 요청 결과 확인 중…");schedule();return;}if(panel!=null)panel.lock();if(settle!=null)settle.setEnabled(false);if(readyView!=null&&preparing)readyView.pending();if(accept!=null){accept.setEnabled(false);decline.setEnabled(false);if(waitingSurrender!=null)waitingSurrender.setEnabled(false);}
  NativeApi sender=h.api;Runnable releaseWatch=sender.whenClosed(()->IN_FLIGHT.remove(id));
  sender.call("native/roster60/pvp/"+op,body,(r,e)->{releaseWatch.run();IN_FLIGHT.remove(id);if(!owner.equals(h.api.token()))return;boolean rejected=e!=null&&(e.contains("PENDING")||NativeRoster60Pvp.rankRejection(e)||NativeRoster60Pvp.poolRejection(e)||Arrays.asList("STALE_REVISION","PVP_NOT_FOUND","BATTLE_NOT_FOUND","BATTLE_FINISHED","BATTLE_NOT_FINISHED","INVALID_ACTION","INVALID_REQUEST","REQUEST_ID_REUSED","FORCED_SWITCH_REQUIRED","INVALID_SWITCH","INVALID_ITEM","INVALID_ITEM_TARGET","ITEM_UNAVAILABLE","NO_STATUS_TO_CLEANSE","HP_FULL","INSUFFICIENT_MP","SKILL_NOT_EQUIPPED","ACTION_ALREADY_SUBMITTED","ACCEPTANCE_REQUIRED","OPPONENT_FORCED_SWITCH","PVP_BUSY","PARTY_REQUIRED").contains(e));if(e==null||rejected)prefs.edit().remove(key+":pending").commit();if(!current())return;if(e!=null){String shown=NativeRoster60Pvp.poolRejection(e)?NativeRoster60Pvp.poolMessage(e):NativeRoster60Pvp.rankRejection(e)?NativeRoster60Pvp.rankMessage(e,null):e;if("settle".equals(op))settlementError=shown;error(shown);if(rejected&&!"settle".equals(op))resume();else schedule();return;}actionAcknowledged(op);JSONObject b=r.optJSONObject("battle");bind(b==null?r:b);schedule();});}
  @Override void renderSnapshot(JSONObject r){
  if(NativeRoster60Pvp.validMode(r.optString("mode")))h.rosterPvpMode=r.optString("mode");
  if(r.optBoolean("requeued")){pause();h.openRosterPvp();return;}
- if("ACCEPTING".equals(r.optString("status"))){view=r;panel.lock();panel.setVisibility(android.view.View.GONE);stats.setVisibility(android.view.View.VISIBLE);settle.setEnabled(false);settle.setVisibility(android.view.View.GONE);retry.setVisibility(android.view.View.GONE);stats.setText("normal".equals(r.optString("mode"))&&"AI".equals(r.optString("opponentKind"))?"일반게임 · AI 대전 · 수락 후 전투 시작":"실제 사용자 대전 · 양쪽 수락 후 전투 시작");long seconds=Math.max(0,(r.optLong("deadline")-r.optLong("serverNow",System.currentTimeMillis())+999)/1000);message.setText((r.optBoolean("accepted")?"상대 수락 대기":"대전을 수락해 주세요")+" · "+seconds+"초");if(accept!=null){accept.setVisibility(android.view.View.VISIBLE);decline.setVisibility(android.view.View.VISIBLE);accept.setEnabled(!r.optBoolean("accepted")&&prefs.getString(key+":pending","").isEmpty());decline.setEnabled(prefs.getString(key+":pending","").isEmpty());waitingSurrender.setVisibility(android.view.View.GONE);}return;}
+ if("ACCEPTING".equals(r.optString("status")))return; // Never render acceptance inside combat.
+
  String notice=rejectionNotice;super.renderSnapshot(r);if(view==null)return;boolean active="ACTIVE".equals(r.optString("status")),waiting=r.optBoolean("waitingForOpponent");settle.setVisibility(settlementError.isEmpty()?android.view.View.GONE:android.view.View.VISIBLE);if(accept!=null){accept.setVisibility(android.view.View.GONE);decline.setVisibility(android.view.View.GONE);waitingSurrender.setVisibility(active&&waiting?android.view.View.VISIBLE:android.view.View.GONE);waitingSurrender.setEnabled(active&&prefs.getString(key+":pending","").isEmpty());}
- if(waiting){panel.lock();message.setText(r.optJSONObject("state").optJSONArray("fighters").optJSONObject(1).optInt("hp")<=0?"상대 강제 교체 대기 중":"선택 완료 · 상대 선택 대기\n상대 선택 비공개");}else if(active&&r.optJSONObject("state").optJSONArray("fighters").optJSONObject(0).optInt("hp")>0)message.setText(("normal".equals(r.optString("mode"))&&"AI".equals(r.optString("opponentKind"))?"일반게임 · AI 대전":"대전")+" · 턴 "+r.optJSONObject("state").optInt("turn"));if(!prefs.getString(key+":pending","").isEmpty())panel.lock();if("SETTLED".equals(r.optString("status"))){retry.setText("대전 목록");retry.setOnClickListener(v->{pause();h.openRosterPvp();});}else{retry.setVisibility(android.view.View.GONE);retry.setText("연결 재시도");retry.setOnClickListener(v->resume());}if(active&&!notice.isEmpty())message.setText(notice);
+ if(waiting){panel.lock();message.setText(r.optJSONObject("state").optJSONArray("fighters").optJSONObject(1).optInt("hp")<=0?"상대 강제 교체 대기 중":"선택 완료 · 상대 선택 대기\n상대 선택 비공개");}else if(active&&r.optJSONObject("state").optJSONArray("fighters").optJSONObject(0).optInt("hp")>0)message.setText(("normal".equals(r.optString("mode"))&&"AI".equals(r.optString("opponentKind"))?"일반게임 · AI 대전":"대전")+" · 턴 "+r.optJSONObject("state").optInt("turn"));if(!prefs.getString(key+":pending","").isEmpty())panel.lock();if("SETTLED".equals(r.optString("status"))){retry.setText("마을로");retry.setOnClickListener(v->{pause();h.home();});}else{retry.setVisibility(android.view.View.GONE);retry.setText("연결 재시도");retry.setOnClickListener(v->resume());}if(active&&!notice.isEmpty())message.setText(notice);
  if("normal".equals(r.optString("mode"))&&Arrays.asList("FINISHED","SETTLED").contains(r.optString("status"))){stats.setVisibility(android.view.View.VISIBLE);stats.setText(normalXpText(r.optJSONObject("settlement")));}
  String rankCondition=terminalCondition(r,"rankCondition"),poolCondition=terminalCondition(r,"matchPoolCondition");
  if("rank".equals(r.optString("mode"))&&(NativeRoster60Pvp.rankRejection(rankCondition)||"RANK_OPPONENT_ELIGIBILITY_CHANGED".equals(rankCondition)))message.setText(NativeRoster60Pvp.rankMessage(rankCondition,null));
@@ -96,8 +147,8 @@ final class NativeRoster60PvpBattle extends NativeRoster60Battle {
  }
  static Long serverAmount(JSONObject value,String key){Object amount=value.opt(key);if(!(amount instanceof Number))return null;Number n=(Number)amount;return n.longValue()>=0&&n.doubleValue()==n.longValue()?n.longValue():null;}
  void schedule(){poll.removeCallbacksAndMessages(null);if(current()&&!paused)poll.postDelayed(this::resume,1500);}
- @Override void pause(){paused=true;poll.removeCallbacksAndMessages(null);super.pause();}
+ @Override void pause(){if(readyView!=null)readyView.stop();paused=true;poll.removeCallbacksAndMessages(null);super.pause();}
  @Override void lockPresentation(){super.lockPresentation();if(accept!=null){accept.setEnabled(false);decline.setEnabled(false);waitingSurrender.setEnabled(false);}}
- @Override boolean back(){if(presenting()){pause();h.openPlayMenu();return true;}if(!choiceKind.isEmpty()){closeChoices();return true;}if(panel!=null){panel.cancelInteraction();if(panel.showCommands())return true;}pause();h.openPlayMenu();return true;}
+ @Override boolean back(){if(presenting()){pause();h.home();return true;}if(!choiceKind.isEmpty()){closeChoices();return true;}if(panel!=null){panel.cancelInteraction();if(panel.showCommands())return true;}pause();h.home();return true;}
 }
 

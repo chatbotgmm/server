@@ -41,10 +41,14 @@ final class NativeRoster60Craft {
  }
  void load(){loading=true;preview=null;message=text(R.string.roster60_craft_loading);render();final int ticket=generation;
   h.api.call("native/roster60/craft/options",null,(r,e)->{if(!valid(ticket))return;loading=false;
-   if(e!=null){units=new JSONArray();recipes=new JSONArray();if(workbench!=null)workbench.allRecipes=recipes;version="";message=text(R.string.roster60_craft_unavailable);render();return;}
-   units=r.optJSONArray("units");recipes=r.optJSONArray("recipes");if(units==null)units=new JSONArray();if(recipes==null)recipes=new JSONArray();version=r.optString("catalogVersion");
-   if("craft-discovery-v1".equals(r.optString("discoveryVersion")))workbench=new NativeRoster60CraftWorkbench(this);
+   if(e!=null){units=new JSONArray();recipes=new JSONArray();if(workbench!=null){workbench.allRecipes=recipes;workbench.rememberRecipePayload();}version="";message=text(R.string.roster60_craft_unavailable);render();return;}
+   units=r.optJSONArray("units");JSONArray nextRecipes=r.optJSONArray("recipes");if(units==null)units=new JSONArray();if(nextRecipes==null)nextRecipes=new JSONArray();version=r.optString("catalogVersion");
+   if("craft-discovery-v1".equals(r.optString("discoveryVersion"))){
+    if(workbench==null){recipes=nextRecipes;workbench=new NativeRoster60CraftWorkbench(this);}else workbench.acceptRecipes(nextRecipes);
+   }else{recipes=nextRecipes;}
    Set<String> present=new HashSet<>();for(int i=0;i<units.length();i++)present.add(units.optJSONObject(i).optString("ownedId"));selected.keySet().retainAll(present);
+   // 같은 ownedId의 레벨·정책도 최신 응답으로 교체한다(선택 순서는 보존).
+   for(int i=0;i<units.length();i++){JSONObject latest=units.optJSONObject(i);String id=latest.optString("ownedId");if(selected.containsKey(id))selected.put(id,latest);}
    message=text(r.optBoolean("truncated")?R.string.roster60_craft_inventory_limit:R.string.roster60_craft_hint);render();});
  }
  JSONObject current(JSONArray a,int page){return a.length()==0?null:a.optJSONObject(Math.max(0,Math.min(page,a.length()-1)));}

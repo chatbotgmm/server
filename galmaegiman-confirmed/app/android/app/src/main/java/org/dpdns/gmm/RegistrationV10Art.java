@@ -27,9 +27,18 @@ final class RegistrationV10Art {
  static void clear(ImageView view){Binding old=bindings.remove(view);if(old!=null)view.removeOnLayoutChangeListener(old);view.setImageDrawable(null);}
  /** 카드가 있으면 원본 비율 그대로(FIT_CENTER) 표시하고 true. 없으면 아무것도 바꾸지 않고 false. */
  static boolean bind(MainActivity h,ImageView view,String id){
+  String file=file(h,id),path=file==null?null:ROOT+file;
+  Binding previous=bindings.get(view);
+  if(previous!=null&&previous.path.equals(path)){
+   // Status/receipt/selection refreshes do not replace the same public artwork.
+   // Keep the displayed bitmap even if its shared-cache entry was evicted.
+   if(previous.requested<0)previous.request(h,4);
+   if(view.getDrawable()==null){Bitmap cached=LocalGameArt.peek(path,previous.displayed==Integer.MAX_VALUE?4:previous.displayed);if(cached!=null)view.setImageBitmap(cached);}
+   previous.layout(view);return true;
+  }
   clear(view);Roster60Portrait.clear(view);
-  String file=file(h,id);if(file==null){view.setImageDrawable(null);return false;}
-  Binding binding=new Binding(view,ROOT+file);bindings.put(view,binding);
+  if(file==null){view.setImageDrawable(null);return false;}
+  Binding binding=new Binding(view,path);bindings.put(view,binding);
   view.setScaleType(ImageView.ScaleType.FIT_CENTER);view.setImageDrawable(null);
   Bitmap preview=LocalGameArt.peek(ROOT+file,4);if(preview!=null){view.setImageBitmap(preview);binding.displayed=4;}
   view.addOnLayoutChangeListener(binding);binding.request(h,4);binding.layout(view);return true;

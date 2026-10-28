@@ -11,7 +11,10 @@ import java.util.function.Consumer;
 
 /** Local art is decoded outside drawing, for the visible district and its immediate approach only. */
 final class NativeVillageHomeAssets {
-  interface Source { void load(String path, Consumer<Bitmap> ready); }
+  interface Source {
+    void load(String path, Consumer<Bitmap> ready);
+    default Bitmap peek(String path) { return null; }
+  }
   static final int MAX_IN_FLIGHT=2;
   static final double PREFETCH_UNITS=.35;
   final Map<String, Bitmap> images = new HashMap<>();
@@ -27,8 +30,15 @@ final class NativeVillageHomeAssets {
   boolean active,dispatching;
   int generation, pending, missing;
   int requiredMask=-1,wantedMask=-1;
-  NativeVillageHomeAssets(MainActivity h) { this((path, ready) -> LocalGameArt.load(h,path,decodeSample(path),ready)); }
+  NativeVillageHomeAssets(MainActivity h) { this(new Source(){
+    public void load(String path,Consumer<Bitmap> ready){LocalGameArt.load(h,path,decodeSample(path,h.getResources().getDisplayMetrics().heightPixels),ready);}
+    public Bitmap peek(String path){return LocalGameArt.peek(path,decodeSample(path,h.getResources().getDisplayMetrics().heightPixels));}
+  }); }
   static int decodeSample(String path){return path.endsWith("-shadows.png")?4:2;}
+  static int decodeSample(String path,int height){
+    if(path.contains("/layered-"))return height>=600?1:2;
+    return decodeSample(path);
+  }
   NativeVillageHomeAssets(Source source) { this.source=source; }
 
   /** Call from attach/resume and camera layout, never onDraw. Repeated frames do not restart requests. */
@@ -40,12 +50,21 @@ final class NativeVillageHomeAssets {
   void load(VillageLayout layout, BooleanSupplier current, Runnable changed) {
     boolean sameLayout=activeLayout==layout;
     generation++;this.activeLayout=layout;this.current=current;this.changed=changed;active=true;
-    if(!sameLayout)images.clear();else images.keySet().removeIf(id->id.startsWith("statue-stage-"));
+    if(!sameLayout)images.clear();
     pending=0;missing=0;requiredMask=-1;wantedMask=-1;inFlight.clear();failed.clear();requiredImages.clear();wantedImages.clear();
-    statueRequests.clear();statuePending.clear();statueErrors.clear();currentStatue="";
+    statueRequests.clear();statuePending.clear();statueErrors.clear();if(!sameLayout)currentStatue="";
     refreshWindow();
   }
   void refreshWindow(){
+    if(activeLayout.layeredWorld){
+      int visible=layeredMask(cameraUnits,viewportUnits),nearby=layeredMask(cameraUnits-PREFETCH_UNITS,viewportUnits+2*PREFETCH_UNITS);
+      if(visible==requiredMask&&nearby==wantedMask)return;
+      requiredMask=visible;wantedMask=nearby;
+      Set<String> required=selectLayered(cameraUnits,viewportUnits),wanted=selectLayered(cameraUnits-PREFETCH_UNITS,viewportUnits+2*PREFETCH_UNITS);
+      requiredImages.clear();requiredImages.addAll(required);wantedImages.clear();wantedImages.addAll(wanted);
+      images.keySet().removeIf(id->!wantedImages.contains(id)&&!id.equals(currentStatue));
+      recount();drain();changed.run();return;
+    }
     double apron=activeLayout.continuousFoundation?.5:0;
     int visible=districtMask(cameraUnits-apron,viewportUnits+2*apron),nearby=districtMask(cameraUnits-apron-PREFETCH_UNITS,viewportUnits+2*(apron+PREFETCH_UNITS));
     if(visible==requiredMask&&nearby==wantedMask)return;
@@ -55,6 +74,27 @@ final class NativeVillageHomeAssets {
     // Bitmaps may remain in the bounded shared LRU; this view must not pin all four districts forever.
     images.keySet().removeIf(id->!wantedImages.contains(id)&&!id.equals(currentStatue));
     recount();drain();changed.run();
+  }
+  int layeredMask(double left,double span){
+    int bit=1,mask=0;
+    for(VillageLayout.DistrictScenery item:activeLayout.districtScenery){if(intersectsWorld(left,span,item.x-item.worldWidth/2,item.worldWidth))mask|=bit;bit<<=1;}
+    for(VillageLayout.Building item:activeLayout.buildings){if(intersectsWorld(left,span,item.x-item.width/2-.15,item.width+.3))mask|=bit;bit<<=1;}
+    for(VillageLayout.Resident item:activeLayout.residents){if(intersectsWorld(left,span,item.x-item.width/2-.15,item.width+.3))mask|=bit;bit<<=1;}
+    for(VillageLayout.Decoration item:activeLayout.decorations){if(intersectsWorld(left,span,item.x-item.width/2,item.width))mask|=bit;bit<<=1;}
+    return mask;
+  }
+  Set<String> selectLayered(double left,double span){
+    LinkedHashSet<String> ids=new LinkedHashSet<>();add(ids,"layered-sky");add(ids,"nameplates");add(ids,"statue-nameplate");
+    for(VillageLayout.DistrictScenery item:activeLayout.districtScenery)
+      if(intersectsWorld(left,span,item.x-item.worldWidth/2,item.worldWidth))add(ids,item.asset);
+    for(VillageLayout.Building item:activeLayout.buildings)if(intersectsWorld(left,span,item.x-item.width/2-.15,item.width+.3))addActor(ids,item);
+    for(VillageLayout.Resident item:activeLayout.residents)if(intersectsWorld(left,span,item.x-item.width/2-.15,item.width+.3))addActor(ids,item);
+    for(VillageLayout.Decoration item:activeLayout.decorations)if(intersectsWorld(left,span,item.x-item.width/2,item.width))addActor(ids,item);
+    return ids;
+  }
+  static boolean intersectsWorld(double left,double span,double start,double width){
+    if(span>=8)return true;double l=VillageLoopCamera.modulo(left,8),s=VillageLoopCamera.modulo(start,8);
+    for(int repeat=-1;repeat<=1;repeat++){double a=s+repeat*8;if(l<a+width&&l+span>a)return true;}return false;
   }
   int districtMask(double left,double span){int mask=0;for(int i=0;i<activeLayout.districts.size();i++)if(intersectsDistrict(left,span,activeLayout.districts.get(i).x))mask|=1<<i;return mask;}
   Set<String> select(int mask){
@@ -96,6 +136,8 @@ final class NativeVillageHomeAssets {
     try{
       while(active&&current.getAsBoolean()&&inFlight.size()<MAX_IN_FLIGHT){
         final String id=nextRequest();if(id==null)break;
+        Bitmap cached=source.peek(activeLayout.assets.get(id).path);
+        if(cached!=null){images.put(id,cached);recount();continue;}
         final int ticket=generation;inFlight.add(id);
         try{source.load(activeLayout.assets.get(id).path,bitmap->{
           if(ticket!=generation||!active||!current.getAsBoolean())return;
@@ -106,26 +148,29 @@ final class NativeVillageHomeAssets {
       }
     }finally{dispatching=false;}
   }
-  /** Authenticated state chooses the only retained statue; it never blocks current district readiness. */
+  /** Authenticated state chooses the only retained statue; the view gates it only while visible. */
   void loadStatue(VillageLayout layout,int stage,BooleanSupplier current,Runnable changed){
-    if(!active||!current.getAsBoolean()||layout.landmark==null)return;
+    if(!active||!current.getAsBoolean()||layout.landmark==null||stage<1||stage>5)return;
     String id=layout.landmark.asset(stage);VillageLayout.Asset asset=layout.assets.get(id);
-    if(asset==null||!asset.verified)return;
+    if(!available(asset)){currentStatue=id;statueErrors.add(id);changed.run();return;}
     if(!id.equals(currentStatue)&&!statuePending.contains(id)&&!statueErrors.contains(id))statueRequests.remove(id);
     currentStatue=id;images.keySet().removeIf(key->key.startsWith("statue-stage-")&&!key.equals(id));
     if(images.containsKey(id)||!statueRequests.add(id))return;
+    Bitmap cached=source.peek(asset.path);if(cached!=null){images.put(id,cached);changed.run();return;}
     int ticket=generation;statuePending.add(id);
-    source.load(asset.path,bitmap->{
+    try{source.load(asset.path,bitmap->{
       if(ticket!=generation||!active||!current.getAsBoolean())return;
       statuePending.remove(id);
       if(!id.equals(currentStatue))return;
       if(bitmap==null)statueErrors.add(id);else images.put(id,bitmap);
       changed.run();
-    });
+    });}catch(RuntimeException error){statuePending.remove(id);statueErrors.add(id);}
     changed.run();
   }
   String statueStatus(String id){return statuePending.contains(id)?"그림 불러오는 중":statueErrors.contains(id)?"그림을 불러오지 못했어요":"그림 준비 중";}
   Bitmap get(String id) { return images.get(id); }
   boolean ready() { return active&&pending==0&&missing==0&&!requiredImages.isEmpty(); }
+  boolean ready(String visibleStatue){return ready()&&(visibleStatue.isEmpty()||images.containsKey(visibleStatue));}
+  boolean hasFailure(String visibleStatue){return missing>0||(!visibleStatue.isEmpty()&&statueErrors.contains(visibleStatue));}
   void cancel() { generation++;active=false;pending=0;inFlight.clear();statueRequests.clear();statuePending.clear();statueErrors.clear(); }
 }

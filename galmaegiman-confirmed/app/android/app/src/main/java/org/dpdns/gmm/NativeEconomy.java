@@ -15,6 +15,7 @@ final class NativeEconomy {
   Set<String> drawBefore;
   NativeAcquisitionFlow drawFlow, acquisitionFlow;
   String shopFocus = "";
+  long shopBuyBarBuilds;
   String crewSelectionNote = "";
   int recipePage, mixPage, crewPage, selectedCrewPage;
   Runnable recipeRepaint;
@@ -1512,6 +1513,9 @@ final class NativeEconomy {
           final FrameLayout purchase=new FrameLayout(h);
           panel.addView(purchase,new LinearLayout.LayoutParams(-1,-2));
           final ArrayList<View> cards=new ArrayList<>();
+          // 응답별 캐시: 재진입/구매 후 갱신/계정 변경 시 새 가격·한도로 새로 생성한다.
+          final HashMap<String,View> buyBars=new HashMap<>();
+          final HashMap<String,Button> buyButtons=new HashMap<>();
           Runnable[] paint = new Runnable[1];
           paint[0] = () -> {
             JSONObject selected=null;
@@ -1531,9 +1535,13 @@ final class NativeEconomy {
             }
             for(int i=0;i<cards.size();i++){
               View card=cards.get(i);JSONObject offer=offers.get(i);boolean active=offer==selected;
-              card.setSelected(active);card.setForeground(active?NavyWorkbenchTheme.surface(h,Color.TRANSPARENT,JournalTheme.SELECTED_EDGE,4):null);card.setContentDescription(offer.optString("title")+" · 결제 "+offer.optString("currency")+" "+offer.optInt("price")+"개 · "+(offer.optInt("limit")<=0?offer.optString("blocked"):offer.optString("holding"))+(active?" · 선택됨":""));
+              card.setSelected(active);if(active&&card.getForeground()==null)card.setForeground(NavyWorkbenchTheme.surface(h,Color.TRANSPARENT,JournalTheme.SELECTED_EDGE,4));else if(!active&&card.getForeground()!=null)card.setForeground(null);card.setContentDescription(offer.optString("title")+" · 결제 "+offer.optString("currency")+" "+offer.optInt("price")+"개 · "+(offer.optInt("limit")<=0?offer.optString("blocked"):offer.optString("holding"))+(active?" · 선택됨":""));
             }
-            shopActions.clear();purchase.removeAllViews();purchase.addView(shopBuyBar(selected));
+            String offerKey=selected.optString("key");View bar=buyBars.get(offerKey);
+            if(bar==null){bar=shopBuyBar(selected);buyBars.put(offerKey,bar);buyButtons.put(offerKey,shopActions.get(offerKey));}
+            else resetShopQuantity(bar); // 기존 선택 변경의 수량 1 초기화 계약 유지.
+            shopActions.clear();shopActions.put(offerKey,buyButtons.get(offerKey));
+            if(bar.getParent()!=purchase){if(purchase.getChildCount()>0)purchase.removeViewAt(0);purchase.addView(bar);}
           };
           shopCards.clear();paint[0].run();
         });
@@ -1677,7 +1685,12 @@ final class NativeEconomy {
   }
 
   /** 선택 상품 설명 한 줄 + 수량 + 남색 「선택 상품 구매」. 구매 전 기존 확인창을 그대로 쓴다. */
+  void resetShopQuantity(View view){
+    if(view instanceof EditText){EditText input=(EditText)view;if(!"1".contentEquals(input.getText()))input.setText("1");return;}
+    if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++)resetShopQuantity(group.getChildAt(i));}
+  }
   View shopBuyBar(JSONObject o) {
+    shopBuyBarBuilds++;
     LinearLayout bar = k.paper();
     bar.setTag("shop-purchase-rail");
     bar.setPadding(h.dp(10), h.dp(3), h.dp(10), h.dp(3));

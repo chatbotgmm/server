@@ -12,6 +12,7 @@ final class AudioControlView extends LinearLayout {
   final SeekBar slider;
   final Button mute;
   Runnable onChange = () -> {};
+  private boolean iconReady, renderedMuted;
 
   AudioControlView(MainActivity host, String label, String key) {
     super(host);
@@ -59,6 +60,7 @@ final class AudioControlView extends LinearLayout {
     mute.setMinHeight(host.dp(48));
     mute.setMinimumHeight(host.dp(48));
     mute.setPadding(host.dp(9), host.dp(8), host.dp(9), host.dp(11));
+    mute.setBackground(new GameButtonDrawable(host, GameButtonDrawable.PAPER));
     addView(mute, new LayoutParams(host.dp(48), host.dp(48)));
     slider.setOnSeekBarChangeListener(
         new SeekBar.OnSeekBarChangeListener() {
@@ -83,8 +85,12 @@ final class AudioControlView extends LinearLayout {
 
   void refresh() {
     boolean muted = host.sound.muted(key);
-    value.setText(String.valueOf(host.sound.volume(key)));
+    String volume = String.valueOf(host.sound.volume(key));
+    if (!volume.contentEquals(value.getText())) value.setText(volume);
     slider.setAlpha(muted ? .6f : 1);
+    // Slider ticks change volume, not the speaker or button art.
+    if (iconReady && renderedMuted == muted) return;
+    iconReady = true; renderedMuted = muted;
     SpeakerDrawable icon = new SpeakerDrawable(muted);
     icon.setBounds(0, 0, host.dp(26), host.dp(26));
     mute.setCompoundDrawables(icon, null, null, null);
@@ -92,7 +98,6 @@ final class AudioControlView extends LinearLayout {
     mute.setSelected(muted);
     mute.setContentDescription(label + (muted ? " 음소거 해제" : " 음소거"));
     // 음소거는 실행 CTA가 아닌 선택 토글이며 상태를 별도 저장한다.
-    mute.setBackground(new GameButtonDrawable(host, GameButtonDrawable.PAPER));
   }
 
   static LinearLayout pair(MainActivity host) {

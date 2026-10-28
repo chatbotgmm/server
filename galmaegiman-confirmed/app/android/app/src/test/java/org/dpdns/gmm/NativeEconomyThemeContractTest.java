@@ -57,7 +57,8 @@ public class NativeEconomyThemeContractTest {
         if (path.equals("party")) done.done(new JSONObject(), null);
         return;
       }
-      if (path.equals("draw")) done.done(NativeRecruitmentProbabilityTest.serverEconomyFixture(), null);
+      if (path.equals("native/roster60/recruit")) done.done(RegistrationIntegrationScreensTest.productRecruitment(), null);
+      else if (path.equals("draw")) done.done(NativeRecruitmentProbabilityTest.serverEconomyFixture(), null);
       else if (path.equals("craft")) done.done(craft, null);
       else if (path.equals("me")) done.done(me, null);
       else if (path.equals("starter-loans")) done.done(StarterLoanTestFixture.ineligible(), null);
@@ -71,6 +72,7 @@ public class NativeEconomyThemeContractTest {
     host.api = api;
     host.guide.enabled = false;
     host.motionEnabled = false;
+    host.getSharedPreferences("roster60_recruit", 0).edit().clear().commit();
     host.state = MainActivity.obj("me", api.me, "units", new JSONArray());
     return api;
   }
@@ -78,7 +80,7 @@ public class NativeEconomyThemeContractTest {
   void confirm(MainActivity host) {
     assertNotNull(host.visibleDialog);
     host.visibleDialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
-    Shadows.shadowOf(Looper.getMainLooper()).idle();
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(32));
   }
 
   @Test public void missingTierMetadataCannotInventCraftEligibility() throws Exception {
@@ -99,11 +101,12 @@ public class NativeEconomyThemeContractTest {
   @Test public void everyRecruitmentStationKeepsKindTimesAndOneConfirmedSpend() {
     for (String kind : RecruitmentProbabilityView.KINDS) try (var controller = flow.start()) {
       MainActivity host = controller.get(); Api api = prepare(host);
+      assertTrue("Current product route cannot be bypassed by this fixture", host.roster60Menus());
       host.menus.economy.draw();
       for (String choose : RecruitmentProbabilityView.KINDS)
         host.root.findViewWithTag("draw-card-" + choose).performClick();
       host.root.findViewWithTag("draw-card-" + kind).performClick();
-      assertEquals(List.of("GET draw"), api.requests);
+      assertEquals(List.of("GET native/roster60/recruit"), api.requests);
       assertTrue(api.writes.isEmpty()); assertNull(host.visibleDialog);
       controls.button(host.root.findViewWithTag("draw-quantity"), "＋").performClick();
       Button submit = host.root.findViewWithTag("draw-submit");
@@ -113,10 +116,14 @@ public class NativeEconomyThemeContractTest {
       int cost = kind.equals("LOW") ? 2 : kind.equals("MID") ? 3 : 5;
       assertTrue(flow.labels(host.visibleDialog.getWindow().getDecorView()).contains("지원서 " + cost * 2 + "장"));
       confirm(host);
-      assertEquals(List.of("GET draw", "POST draw"), api.requests);
+      assertEquals(List.of("GET native/roster60/recruit", "POST native/roster60/recruit"), api.requests);
       assertEquals(1, api.writes.size());
       JSONObject body = api.writes.get(0);
-      assertEquals(2, body.length()); assertEquals(kind, body.optString("kind")); assertEquals(2, body.optInt("times"));
+      assertEquals(4, body.length()); assertEquals(kind, body.optString("kind")); assertEquals(2, body.optInt("times"));
+      assertEquals("product-fixture-v10", body.optString("catalogVersion"));
+      assertFalse(body.optString("requestId").isEmpty());
+      String key = NativeProgression.accountKey(BuildConfig.SERVER_URL + "|" + api.token());
+      assertEquals(body.toString(), host.getSharedPreferences("roster60_recruit", 0).getString(key, ""));
       submit.performClick();
       assertEquals("Busy repeated taps never issue a second spend", 1, api.writes.size());
     }

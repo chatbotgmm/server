@@ -27,7 +27,7 @@ public class NativeVillageHomeAssetsTest {
  static JSONObject manifest()throws Exception{try(java.io.InputStream in=RuntimeEnvironment.getApplication().getAssets().open(VillageLayout.MANIFEST)){return new JSONObject(new String(in.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));}}
  static JSONObject pendingManifest()throws Exception{JSONObject data=manifest();data.put("artworkStatus","pending-verified-pixels");JSONObject assets=data.getJSONObject("assets");for(java.util.Iterator<String> ids=assets.keys();ids.hasNext();)assets.getJSONObject(ids.next()).put("verified",false);return data;}
  static VillageLayout verifiedFixture()throws Exception{JSONObject data=pendingManifest();data.getJSONObject("assets").getJSONObject("recruit").put("verified",true);return VillageLayout.parse(data);}
- @Test public void explicitUnverifiedReferencesRemainPlaceholdersAfterProductionArtIsConnected()throws Exception{
+ @Test public void explicitUnverifiedReferencesStayFailedRatherThanExposingPlaceholderArtwork()throws Exception{
   Delayed source=new Delayed();NativeVillageHomeAssets assets=new NativeVillageHomeAssets(source);VillageLayout layout=VillageLayout.parse(pendingManifest());int[] changes={0};
   assets.load(layout,()->true,()->changes[0]++);assertTrue(source.paths.isEmpty());assertTrue(assets.images.isEmpty());assertEquals(assets.requiredImages.size(),assets.missing);assertFalse(assets.ready());assertEquals(1,changes[0]);
  }
@@ -46,12 +46,22 @@ public class NativeVillageHomeAssetsTest {
  }
  @Test public void visibleDistrictLoadsBeforePrefetchAndDoesNotWaitForIt()throws Exception{
   VillageLayout layout=VillageLayout.parse(manifest());Delayed source=new Delayed();NativeVillageHomeAssets assets=new NativeVillageHomeAssets(source);
-  assets.setViewport(.65,1);assets.load(layout,()->true,()->{});assertEquals(2,source.paths.size());
-  assertTrue(assets.requiredImages.contains("recruit"));assertFalse(assets.requiredImages.contains("market"));assertTrue("8U seam prefetch",assets.wantedImages.contains("market"));
-  assertTrue(assets.wantedImages.contains("archive"));assertFalse(assets.wantedImages.contains("harbor"));
-  while(!assets.ready()){assertTrue(source.completed<source.callbacks.size());source.callbacks.get(source.completed++).accept(image());}
+  assertTrue("This is the active layered manifest, not the retired four-panel layout",layout.layeredWorld);
+  assets.setViewport(.5,1);assets.load(layout,()->true,()->{});assertEquals(2,source.paths.size());
+  assertTrue(assets.requiredImages.contains("recruit"));assertFalse(assets.requiredImages.contains("training"));
+  assertTrue("8U seam prefetch reaches the approaching training building",assets.wantedImages.contains("training"));
+  assertFalse(assets.wantedImages.contains("archive"));assertFalse(assets.wantedImages.contains("harbor"));
+  Set<String> requiredPaths=new HashSet<>();for(String id:assets.requiredImages)requiredPaths.add(layout.assets.get(id).path);
+  int requiredCount=assets.requiredImages.size();
+  while(!assets.ready()){
+   assertTrue("At most two scene decodes in flight",assets.inFlight.size()<=2);
+   for(int i=0;i<Math.min(requiredCount,source.paths.size());i++)
+    assertTrue("Visible art is requested before any neighbor prefetch",requiredPaths.contains(source.paths.get(i)));
+   assertTrue(source.completed<source.callbacks.size());source.callbacks.get(source.completed++).accept(image());
+  }
   assertTrue("Neighbor requests may still be decoding",source.completed<source.callbacks.size());
-  int before=source.paths.size();for(int n=0;n<20;n++)assets.setViewport(.65,1);assertEquals("Repeated layout never restarts decode",before,source.paths.size());
+  assertNull("Visible readiness does not wait for the approaching training sprite",assets.get("training"));
+  int before=source.paths.size();for(int n=0;n<20;n++)assets.setViewport(.5,1);assertEquals("Repeated layout never restarts decode",before,source.paths.size());
   source.finishAll(assets);assertTrue(assets.ready());assertFalse(assets.images.containsKey("harbor"));
  }
  @Test public void cameraWrapAndRapidJumpDiscardNoLongerWantedCompletions()throws Exception{
@@ -93,4 +103,27 @@ public class NativeVillageHomeAssetsTest {
   assets.loadStatue(layout,1,()->current[0],()->{});assertEquals("Returning to a successful evicted stage can load again",n+5,source.paths.size());
   assets.cancel();source.callbacks.get(n+4).accept(image());assertNull(assets.get("statue-stage-1"));current[0]=false;assets.loadStatue(layout,5,()->current[0],()->{});assertEquals(n+5,source.paths.size());
  }
+ @Test public void visibleStatueGateDoesNotWaitForOffscreenStatueButFailsAndRetriesCurrentOne()throws Exception{
+  VillageLayout layout=VillageLayout.parse(manifest());Delayed source=new Delayed();NativeVillageHomeAssets assets=new NativeVillageHomeAssets(source);
+  assets.load(layout,()->true,()->{});source.finishAll(assets);assertTrue(assets.ready(""));
+  assets.loadStatue(layout,2,()->true,()->{});assertFalse(assets.ready("statue-stage-2"));assertTrue(assets.ready(""));assertFalse(assets.hasFailure("statue-stage-2"));
+  source.callbacks.get(source.completed++).accept(null);assertTrue(assets.hasFailure("statue-stage-2"));assertFalse(assets.hasFailure(""));
+  assets.load(layout,()->true,()->{});assets.loadStatue(layout,2,()->true,()->{});source.finishAll(assets);assertTrue(assets.ready("statue-stage-2"));assertFalse(assets.hasFailure("statue-stage-2"));
+ }
+ @Test public void cachedVisibleArtAndStatueAreReadySynchronouslyWithoutQueuedLoad()throws Exception{
+  VillageLayout layout=VillageLayout.parse(manifest());Bitmap cached=image();int[] reads={0};
+  NativeVillageHomeAssets assets=new NativeVillageHomeAssets(new NativeVillageHomeAssets.Source(){
+   public Bitmap peek(String path){return cached;}
+   public void load(String path,Consumer<Bitmap> done){reads[0]++;throw new AssertionError("Cached pixels must not enqueue a loading frame");}
+  });
+  assets.load(layout,()->true,()->{});assets.loadStatue(layout,1,()->true,()->{});assertTrue(assets.ready("statue-stage-1"));assertEquals(0,reads[0]);
+  assets.cancel();assets.load(layout,()->true,()->{});assets.loadStatue(layout,1,()->true,()->{});assertTrue(assets.ready("statue-stage-1"));assertEquals(0,reads[0]);
+ }
+
+ @Test public void sameOwnerResumeRetainsTheKnownStatueEvenIfSharedCacheWasEvicted()throws Exception{
+  VillageLayout layout=VillageLayout.parse(manifest());Delayed source=new Delayed();NativeVillageHomeAssets assets=new NativeVillageHomeAssets(source);
+  assets.load(layout,()->true,()->{});source.finishAll(assets);assets.loadStatue(layout,1,()->true,()->{});source.finishAll(assets);Bitmap statue=assets.get("statue-stage-1");int requests=source.paths.size();
+  assets.cancel();assets.load(layout,()->true,()->{});assets.loadStatue(layout,1,()->true,()->{});assertSame(statue,assets.get("statue-stage-1"));assertTrue(assets.ready("statue-stage-1"));assertEquals(requests,source.paths.size());
+ }
+
 }

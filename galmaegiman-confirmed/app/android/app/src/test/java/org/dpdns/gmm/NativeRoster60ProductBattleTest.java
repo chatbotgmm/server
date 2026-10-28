@@ -54,7 +54,7 @@ public class NativeRoster60ProductBattleTest {
  @Test public void homePlayOpensChoicesAndAuthenticatedBattleKeepsSixthSkillRequestOnRetry()throws Exception{
   try(ActivityController<MainActivity> c=helper.flow.start()){
    MainActivity h=c.get();helper.prepare(h);Api api=new Api(h);h.api=api;helper.layout(h,NativeHomePartyFeedbackTest.PROFILES[0]);h.getSharedPreferences("roster60_product_battle",0).edit().clear().commit();h.home();helper.layout(h,NativeHomePartyFeedbackTest.PROFILES[0]);
-   assertTrue(h.root.getChildAt(0) instanceof NativeVillageHomeView);h.villageHome.view.moveCameraUnits(4);h.root.findViewWithTag("village-building-harbor").performClick();org.robolectric.Shadows.shadowOf(h.villageHome.menu).clickOnItem(1);assertEquals("home",h.screen);assertTrue(h.rosterStory.villageOverlayOpen());h.rosterStory.back();assertTrue(api.actions.isEmpty());assertFalse(api.paths.contains("native/roster60/battle/active"));
+   assertTrue(h.root.getChildAt(0) instanceof NativeVillageHomeView);helper.settle(h,NativeHomePartyFeedbackTest.PROFILES[0]);h.root.findViewWithTag("village-statue").performClick();assertEquals("home",h.screen);assertTrue(h.rosterStory.villageOverlayOpen());h.rosterStory.back();assertTrue(api.actions.isEmpty());assertFalse(api.paths.contains("native/roster60/battle/active"));
    // Story entry reads progress. Exercise the shared authenticated combat/retry
    // contract separately from quest acceptance and the authored story flow.
    h.openRosterBattle(Roster60BattleMode.STORY);assertEquals("roster60Battle",h.screen);assertTrue(api.paths.contains("native/roster60/battle/active"));assertFalse("Complete authorized active DTO needs no duplicate read",api.paths.contains("native/roster60/battle/read"));
@@ -78,7 +78,7 @@ public class NativeRoster60ProductBattleTest {
    org.robolectric.shadows.ShadowLooper.idleMainLooper();LobbyView lobby=(LobbyView)h.root.getChildAt(0);lobby.fetchRosterHome();assertFalse(lobby.rebirthUnlocked);assertEquals("환생 · 조건과 안내 확인",lobby.buttons.get(14).getContentDescription());assertTrue(lobby.buttons.get(15).isEnabled());assertTrue("mail badge live="+lobby.live+" current="+lobby.current()+" rootAttached="+h.root.isAttachedToWindow()+" decorAttached="+h.getWindow().getDecorView().isAttachedToWindow()+" screen="+h.screen,lobby.badges[15]);
    lobby.positions(640,320);assertTrue(lobby.boxes[15].width()>=48);assertTrue(lobby.boxes[15].height()>=48);assertFalse(android.graphics.RectF.intersects(lobby.boxes[15],lobby.boxes[5]));assertFalse(android.graphics.RectF.intersects(lobby.boxes[15],lobby.boxes[14]));
    api.unlocked=true;lobby.fetchRosterHome();assertTrue(lobby.buttons.get(14).isEnabled());
-   api.unavailable=true;lobby.buttons.get(5).performClick();assertEquals("playMenu",h.screen);assertFalse(api.paths.contains("native/roster60/battle/active"));h.openRosterBattle(Roster60BattleMode.STORY);assertTrue(h.rosterBattle.message.getText().toString().contains("준비 중"));assertEquals(0,api.actions.size());
+   api.unavailable=true;lobby.buttons.get(5).performClick();assertEquals("home",h.screen);assertFalse(api.paths.contains("native/roster60/battle/active"));h.openRosterBattle(Roster60BattleMode.STORY);assertTrue(h.rosterBattle.message.getText().toString().contains("준비 중"));assertEquals(0,api.actions.size());
   }
  }
  @Test public void rebirthIntroCancelDoesNotCompleteAndRestartRecovers()throws Exception{

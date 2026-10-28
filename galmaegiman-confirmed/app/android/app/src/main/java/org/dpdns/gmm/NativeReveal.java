@@ -1352,11 +1352,35 @@ final class NativeReveal extends FrameLayout {
 
   final class Glow extends View {
     final Paint p = new Paint(3);
+    // Geometry and color stops are invariant during the animator; only the shader matrix moves.
+    final Path[] rays = new Path[17];
+    final Matrix flashMatrix = new Matrix();
+    final RadialGradient flashShader = new RadialGradient(0, 0, 1,
+        new int[] {JournalTheme.PAPER, JournalTheme.BRASS & 0x00ffffff | 0x77000000,
+            Color.TRANSPARENT}, new float[] {0, .4f, 1}, Shader.TileMode.CLAMP);
     float flash, rotation;
     boolean revealed;
 
     Glow() {
       super(h);
+      for (int i = 0; i < rays.length; i++) rays[i] = new Path();
+    }
+
+    @Override protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+      super.onSizeChanged(w, h, oldw, oldh);
+      float x = w / 2f, y = h * .45f;
+      float radius = Math.max(1, Math.max(w, h) * .55f);
+      for (int i = 0; i < rays.length; i++) {
+        int angle = i * 22;
+        Path ray = rays[i];
+        ray.rewind();
+        ray.moveTo(x, y);
+        ray.lineTo(x + radius * 2 * (float) Math.cos(Math.toRadians(angle)),
+            y + radius * 2 * (float) Math.sin(Math.toRadians(angle)));
+        ray.lineTo(x + radius * 2 * (float) Math.cos(Math.toRadians(angle + 8)),
+            y + radius * 2 * (float) Math.sin(Math.toRadians(angle + 8)));
+        ray.close();
+      }
     }
 
     @Override
@@ -1370,34 +1394,16 @@ final class NativeReveal extends FrameLayout {
         c.rotate(rotation, x, y);
         p.setColor(JournalTheme.BRASS);
         p.setAlpha(30);
-        for (int angle = 0; angle < 360; angle += 22) {
-          Path ray = new Path();
-          ray.moveTo(x, y);
-          ray.lineTo(
-              x + radius * 2 * (float) Math.cos(Math.toRadians(angle)),
-              y + radius * 2 * (float) Math.sin(Math.toRadians(angle)));
-          ray.lineTo(
-              x + radius * 2 * (float) Math.cos(Math.toRadians(angle + 8)),
-              y + radius * 2 * (float) Math.sin(Math.toRadians(angle + 8)));
-          ray.close();
-          c.drawPath(ray, p);
-        }
+        for (Path ray : rays) c.drawPath(ray, p);
         c.restore();
         p.setAlpha(255);
       }
       if (flash > 0) {
-        p.setShader(
-            new RadialGradient(
-                x,
-                y,
-                radius * (1.6f - flash * 1.2f),
-                new int[] {
-                  JournalTheme.PAPER,
-                  JournalTheme.BRASS & 0x00ffffff | 0x77000000,
-                  Color.TRANSPARENT
-                },
-                new float[] {0, .4f, 1},
-                Shader.TileMode.CLAMP));
+        float flashRadius = radius * (1.6f - flash * 1.2f);
+        flashMatrix.setScale(flashRadius, flashRadius);
+        flashMatrix.postTranslate(x, y);
+        flashShader.setLocalMatrix(flashMatrix);
+        p.setShader(flashShader);
         p.setAlpha((int) (flash * 255));
         c.drawRect(0, 0, getWidth(), getHeight(), p);
         p.setShader(null);
