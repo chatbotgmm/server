@@ -104,7 +104,7 @@ final class NativeVillageHomeController {
       case "collection":pause();h.collection();break;
       case "craft":pause();h.mix();break;
       case "mail":case "events":case "notices":int tab=id.equals("mail")?0:id.equals("events")?1:2;pause();h.menus.news.tab=tab;h.load("news");break;
-      case "explore":pause();h.openRosterBattle(Roster60BattleMode.ADVENTURE);break;
+      case "explore":view.stopMotion();h.rosterStory=new NativeRoster60StoryController(h);h.rosterStory.openVillageExploration();break;
       case "story":mainStory();break;
       case "departure":view.stopMotion();h.rosterStory=new NativeRoster60StoryController(h);h.rosterStory.openVillageDeparture();break;
       case "normal":case "rank":pause();h.openRosterPvp(id);break;

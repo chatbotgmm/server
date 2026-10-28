@@ -114,6 +114,7 @@ public class NativeVillageHomeTest {
     NativeVillageHomeView view=open(h,PHONE);LocalGameArtTest.drain();helper.layout(h,PHONE);view.moveCameraUnits(building.x-.5-view.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,PHONE);Button target=view.buildingButtons.get(building.id);assertTrue(target.isShown());tap(view,target);
     if(building.actionIds.length>1){assertArrayEquals(building.menu,Shadows.shadowOf(h.villageHome.menu).getItems());Shadows.shadowOf(h.villageHome.menu).clickOnItem(item);}
     String action=building.actionIds[item],expected;
+    if("explore".equals(action)){assertEquals("home",h.screen);assertTrue(h.rosterStory.villageOverlayOpen());assertTrue(api.writes.isEmpty());h.rosterStory.overlay.finishTyping();h.rosterStory.overlay.choices.getChildAt(0).performClick();}
     if("departure".equals(action)){assertTrue(h.rosterStory.villageOverlayOpen());assertSame(view,h.villageHome.view);assertTrue(api.writes.isEmpty());h.rosterStory.back();continue;}
     switch(action){case "recruit":expected="load:draw";break;case "party":expected="party";break;case "collection":expected="collection";break;case "craft":expected="craft";break;case "mail":case "events":case "notices":expected="load:news";assertEquals(action.equals("mail")?0:action.equals("events")?1:2,h.menus.news.tab);break;case "explore":expected="battle:adventure";break;case "story":expected="story";break;case "normal":case "rank":expected="pvp:"+action;break;case "pass":expected="load:playPass";break;default:expected="load:shop";}
     assertEquals("Actual home route for "+action,expected,h.routes.get(h.routes.size()-1));assertTrue(api.writes.isEmpty());
@@ -195,7 +196,7 @@ public class NativeVillageHomeTest {
    for(int index=0;index<4;index++){
     NativeVillageHomeView view=open(h,PHONE);LocalGameArtTest.drain();helper.layout(h,PHONE);view.moveCameraUnits((index<2?4:5)-view.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,PHONE);
     String facility=index<2?"harbor":"training";tap(view,button(h,"village-building-"+facility));assertArrayEquals(index<2?new CharSequence[]{"탐험","스토리 외부 출항"}:new CharSequence[]{"일반전","랭크전"},Shadows.shadowOf(h.villageHome.menu).getItems());Shadows.shadowOf(h.villageHome.menu).clickOnItem(index%2);
-    if(index==0){assertEquals("roster60Battle",h.screen);assertEquals(Roster60BattleMode.ADVENTURE,h.rosterBattle.requestedMode);h.rosterBattle.pause();}
+    if(index==0){assertEquals("home",h.screen);assertTrue(h.rosterStory.villageOverlayOpen());assertTrue(api.writes.isEmpty());h.rosterStory.overlay.finishTyping();h.rosterStory.overlay.choices.getChildAt(0).performClick();assertEquals("roster60Battle",h.screen);assertEquals(Roster60BattleMode.ADVENTURE,h.rosterBattle.requestedMode);h.rosterBattle.pause();}
     else if(index==1){assertEquals("home",h.screen);assertTrue(h.rosterStory.villageOverlayOpen());h.rosterStory.back();}
     else{assertEquals("roster60Pvp",h.screen);assertEquals(index==2?"normal":"rank",h.rosterPvp.selectedMode);h.rosterPvp.pause();}
     assertTrue(api.writes.isEmpty());

@@ -29,7 +29,7 @@ final class NativeRoster60StoryController {
   String residentEntryId="";
   NativeVillageStoryOverlay overlay;
   String villageResidentId="";
-  boolean villageMode,villageDeparture;
+  boolean villageMode,villageDeparture,villageExploration;
 
   NativeRoster60StoryController(MainActivity host) { h = host; }
   NativeRoster60StoryController(MainActivity host,String residentId) {h=host;if(java.util.Arrays.asList("blacksmith","merchant","librarian","guard").contains(residentId))residentEntryId=residentId;}
@@ -53,12 +53,14 @@ final class NativeRoster60StoryController {
     h.villageHome.view.stopMotion();
     overlay=new NativeVillageStoryOverlay(h,this);overlay.open();readState();
   }
+  void openVillageExploration(){villageExploration=true;openVillage();}
   void openVillageDeparture(){villageDeparture=true;openVillage();}
   boolean villageOverlayOpen(){return villageMode&&overlay!=null&&overlay.isShowing();}
   void loading(String message){if(villageMode){if(overlay!=null)overlay.loading(message);}else view.loading(message);}
   void closeVillage(){
     if(!villageMode)return;
     readGeneration++;reading=false;reconnect.removeCallbacks(checkOwnSave);
+    if(residentDialogue!=null){residentDialogue.dismiss();residentDialogue=null;}
     if(overlay!=null){overlay.close();overlay=null;}
     if(h.villageHome!=null&&h.villageHome.current())h.villageHome.refresh();
   }

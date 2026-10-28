@@ -46,9 +46,10 @@ final class NativeVillageStoryOverlay {
     speech=text("",18);speech.setTag("village-dialogue-text");
     ScrollView scroll=new ScrollView(h);scroll.setFillViewport(false);scroll.addView(speech,new ScrollView.LayoutParams(-1,-2));
     int height=Math.max(h.dp(80),Math.min(h.dp(152),h.getResources().getDisplayMetrics().heightPixels/3));
-    panel.addView(scroll,new LinearLayout.LayoutParams(-1,height));
+    panel.addView(scroll,new LinearLayout.LayoutParams(-1,owner.villageExploration?h.dp(56):height));
     notice=text("",12);notice.setTag("village-dialogue-notice");panel.addView(notice);
-    choices=new LinearLayout(h);choices.setOrientation(LinearLayout.HORIZONTAL);choices.setTag("village-dialogue-choices");panel.addView(choices);
+    choices=new LinearLayout(h);choices.setOrientation(owner.villageExploration?LinearLayout.VERTICAL:LinearLayout.HORIZONTAL);choices.setTag("village-dialogue-choices");
+    if(owner.villageExploration){ScrollView list=new ScrollView(h);list.setTag("village-exploration-list");list.addView(choices,new ScrollView.LayoutParams(-1,-2));panel.addView(list,new LinearLayout.LayoutParams(-1,h.dp(144)));}else panel.addView(choices);
     close=h.button("닫기",owner::closeVillage);close.setTag("village-dialogue-close");
     FrameLayout.LayoutParams closeBox=new FrameLayout.LayoutParams(h.dp(72),h.dp(44),Gravity.TOP|Gravity.RIGHT);closeBox.setMargins(0,h.dp(8),h.dp(12),0);root.addView(close,closeBox);
     dialog.setContentView(root);dialog.setCanceledOnTouchOutside(false);dialog.setCancelable(false);
@@ -71,7 +72,7 @@ final class NativeVillageStoryOverlay {
     Button button=h.button(label,()->{if(owner.current()&&!h.busy&&!h.updateBlocks()){if(finishTyping())return;task.run();}});
     button.setTextSize(14);button.setMaxLines(2);button.setMinWidth(0);button.setMinimumWidth(0);
     button.setTag("village-dialogue-action-"+choices.getChildCount());
-    LinearLayout.LayoutParams box=new LinearLayout.LayoutParams(0,h.dp(48),1);box.setMargins(h.dp(3),0,h.dp(3),0);choices.addView(button,box);
+    LinearLayout.LayoutParams box=owner.villageExploration?new LinearLayout.LayoutParams(-1,h.dp(48)):new LinearLayout.LayoutParams(0,h.dp(48),1);box.setMargins(h.dp(3),0,h.dp(3),0);choices.addView(button,box);
   }
   JSONObject resident(JSONObject state,String id){JSONArray values=state.optJSONArray("residents");for(int i=0;values!=null&&i<values.length();i++){JSONObject item=values.optJSONObject(i);if(item!=null&&id.equals(item.optString("id")))return item;}return null;}
   void portrait(String id){
@@ -85,6 +86,7 @@ final class NativeVillageStoryOverlay {
   void show(JSONObject state){
     if(row.getParent()==null){root.removeAllViews();root.addView(row,new FrameLayout.LayoutParams(-1,-1));FrameLayout.LayoutParams closeBox=new FrameLayout.LayoutParams(h.dp(72),h.dp(44),Gravity.TOP|Gravity.RIGHT);closeBox.setMargins(0,h.dp(8),h.dp(12),0);root.addView(close,closeBox);}
     pauseTyping();choices.removeAllViews();notice.setText(owner.problem);
+    if(owner.villageExploration){exploration(state);return;}
     if(owner.villageDeparture){departure(state);return;}
     JSONObject scene=state.optJSONObject("scene");
     if(scene!=null){scene(scene,state);return;}
@@ -118,6 +120,31 @@ final class NativeVillageStoryOverlay {
       String status=quest.optString("status");if("AVAILABLE".equals(status)||"ACTIVE".equals(status)||"READY".equals(status))return quest;
     }
     return null;
+  }
+  /** Server QuestView uses kind=resident. Never infer progress from a free adventure. */
+  static boolean residentDepartureAllowed(JSONObject quest){
+    return quest!=null&&"resident".equals(quest.optString("kind"))&&"ACTIVE".equals(quest.optString("status"))
+        &&(quest.optBoolean("canDepart")||!NativeRoster60StoryController.reference(quest,"battleId").isEmpty()||!NativeRoster60StoryController.reference(quest,"adventureId").isEmpty());
+  }
+  void exploration(JSONObject state){
+    name.setText("탐험 출항");portrait("");
+    say("exploration","자유롭게 탐험하거나, 수락한 주민 부탁을 선택해 출항하세요.");
+    if(owner.waiting()||state.optJSONObject("pendingDeparture")!=null){action("저장된 출항 확인",owner::retrySavedProgress);return;}
+    action("자유 탐험",owner::freeAdventure);
+    JSONObject material=state.optJSONObject("materialAdventure");JSONArray places=state.optJSONArray("adventures");
+    if(material!=null&&(!NativeRoster60StoryController.reference(material,"activeBattleId").isEmpty()||!NativeRoster60StoryController.reference(material,"adventureId").isEmpty()))
+      action(NativeRoster60StoryController.reference(material,"activeBattleId").isEmpty()?"재료 모험 귀환":"재료 모험 이어가기",owner::resumeMaterialAdventure);
+    else if(material==null&&places!=null&&places.length()>0)action("흑화 갈매미 모험",owner::chooseMaterialAdventure);
+    JSONArray quests=state.optJSONArray("quests");int count=0;
+    for(int i=0;quests!=null&&i<quests.length();i++){
+      JSONObject quest=quests.optJSONObject(i);if(!residentDepartureAllowed(quest))continue;
+      String id=quest.optString("id");if(id.isEmpty())continue;
+      boolean resume=!NativeRoster60StoryController.reference(quest,"battleId").isEmpty()||!NativeRoster60StoryController.reference(quest,"adventureId").isEmpty();
+      action((resume?"이어서 진행 · ":"부탁 출항 · ")+quest.optString("title","주민 부탁"),()->{
+        JSONObject latest=owner.quest(id);if(residentDepartureAllowed(latest))owner.continueQuest(latest);
+      });count++;
+    }
+    notice.setText(count==0?"출항 가능한 주민 부탁이 없어요. 메인 스토리 출항은 배의 별도 메뉴에서 준비해 주세요.":"주민 부탁은 해당 부탁을 선택해야 진행돼요. 자유 탐험과는 별개예요.");
   }
   void departure(JSONObject state){
     name.setText("외부 출항");portrait("");JSONObject quest=state.optJSONObject("currentQuest");
