@@ -1306,8 +1306,7 @@ final class NativeMenus {
     cols[0].addView(podium, new LinearLayout.LayoutParams(-1, -1));
     ArrayList<JSONObject> candidates = new ArrayList<>();
     JSONArray source = h.list(pvp ? h.me() : h.state, "units");
-    for (int i = 0; i < source.length(); i++) {
-      JSONObject unit = source.optJSONObject(i);
+    for (JSONObject unit : NativeOwnedRoster.levelOrderedCandidates(source, pvp ? "id" : "key")) {
       if (!pvp || unit.optBoolean("top")) candidates.add(unit);
     }
     TextView status = k.note("");

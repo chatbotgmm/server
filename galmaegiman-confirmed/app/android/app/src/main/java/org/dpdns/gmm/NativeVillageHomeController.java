@@ -123,7 +123,7 @@ final class NativeVillageHomeController {
   String residentStatus(String id){JSONObject npc=residents.get(id);return npc==null?"LOCKED":npc.optString("status","LOCKED");}
   String residentName(String id,String fallback){JSONObject npc=residents.get(id);return npc==null?fallback:npc.optString("name",fallback);}
   void saveCamera(){if(view!=null&&!owner.isEmpty()){String position=Double.toString(view.camera.cameraUnits());if(!position.equals(savedCamera)&&preferences.edit().putString(scope+":camera",position).commit())savedCamera=position;}}
-  void pause(){saveCamera();paused=true;invalidateStorySnapshot();storyWaiters.clear();if(view!=null){view.stopMotion();view.ambient.pause();view.assets.cancel();}if(menu!=null){menu.dismiss();menu=null;}}
+  void pause(){saveCamera();paused=true;invalidateStorySnapshot();storyWaiters.clear();if(view!=null){view.shortcuts.collapse();view.stopMotion();view.ambient.pause();view.assets.cancel();}if(menu!=null){menu.dismiss();menu=null;}}
   void resume(){
     if(!"home".equals(h.screen)||h.villageHome!=this)return;
     if(!owner.equals(h.api.token())){
@@ -184,5 +184,5 @@ final class NativeVillageHomeController {
     String[] actions={"daily","profile","rebirth","settings","refresh"};
     menu=new GameDialog(h).navy().setTitle("마을 메뉴").setItems(labels,(dialog,index)->{if(!current())return;if("refresh".equals(actions[index]))refresh();else navigate(actions[index]);}).setNegativeButton("닫기",null).show();
   }
-  boolean back(){if(!current())return false;if(h.rosterStory!=null&&h.rosterStory.villageOverlayOpen()){h.rosterStory.back();return true;}if(menu!=null&&menu.isShowing()){menu.dismiss();menu=null;return true;}return false;}
+  boolean back(){if(!current())return false;if(h.rosterStory!=null&&h.rosterStory.villageOverlayOpen()){h.rosterStory.back();return true;}if(menu!=null&&menu.isShowing()){menu.dismiss();menu=null;return true;}if(view.shortcuts.expanded){view.shortcuts.collapse();return true;}return false;}
 }

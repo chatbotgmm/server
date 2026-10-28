@@ -28,7 +28,7 @@ public class Roster60ProductRoutingTest {
      else fail("Unexpected party fixture route: "+path);
     }
    };
-   h.api.close();h.api=api;NativeRoster60Pvp editor=new NativeRoster60Pvp(h);editor.open();
+   h.api.close();h.api=api;NativeRoster60Pvp editor=new NativeRoster60Pvp(h);editor.open();if(!editor.editing)editor.editParty();
    assertEquals(java.util.Arrays.asList("native/roster60/pvp/options","native/roster60/pvp/current"),reads);
    assertFalse("The real options/current callbacks completed before selection",editor.busy);
    editor.drawParty();
@@ -38,7 +38,10 @@ public class Roster60ProductRoutingTest {
    assertNotNull(h.root.findViewWithTag("party-unit-unit-0"));assertNotNull(h.root.findViewWithTag("party-unit-unit-12"));
    assertTrue("네이티브 연속 가로 스크롤",strip.canScrollHorizontally(1));
    assertFalse("화면 전체 세로 스크롤 없음",editor.root.canScrollVertically(1));
-   for(View v:NativeReviewDeepLinkTest.all(editor.actions))if(v instanceof Button){assertTrue(v.getHeight()>=48);assertTrue(v.getWidth()>0);}
+   for(View v:NativeReviewDeepLinkTest.all(editor.actions))if(v instanceof Button){
+    if(v==editor.normal||v==editor.rank){assertEquals("편집 중에는 저장 후 준비 화면에서 진행한다",View.GONE,v.getVisibility());assertFalse(v.isEnabled());}
+    else{assertTrue("표시된 행동 버튼의 터치 높이 유지: "+((Button)v).getText(),v.getHeight()>=48);assertTrue("표시된 행동 버튼의 터치 너비 유지",v.getWidth()>=48);}
+   }
    Roster60MemberTile sixth=(Roster60MemberTile)strip.cards.getChildAt(6);strip.scrollTo(sixth.getLeft()+10,0);
    int scrolled=strip.getScrollX();assertTrue("페이지 끝이 아닌 카드 중간 위치",scrolled>0);
    // Programmatic movement shares the rail's brief accidental-click guard; this is a settled tap.

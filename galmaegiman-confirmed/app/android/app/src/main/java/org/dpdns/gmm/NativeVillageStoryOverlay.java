@@ -42,7 +42,8 @@ final class NativeVillageStoryOverlay {
     art=new FrameLayout(h);art.setTag("village-dialogue-portrait");row.addView(art,new LinearLayout.LayoutParams(0,-1,.34f));
     panel=new LinearLayout(h);panel.setOrientation(LinearLayout.VERTICAL);panel.setPadding(h.dp(14),h.dp(10),h.dp(14),h.dp(10));
     panel.setBackground(NavyWorkbenchTheme.surface(h,0xf2102433,NavyWorkbenchTheme.EDGE,12));
-    LinearLayout.LayoutParams panelBox=new LinearLayout.LayoutParams(0,-2,.66f);row.addView(panel,panelBox);
+    LinearLayout.LayoutParams panelBox=new LinearLayout.LayoutParams(0,-2,owner.villageExploration?1:.66f);row.addView(panel,panelBox);
+    if(owner.villageExploration){art.setVisibility(View.GONE);panel.setBackground(NavyWorkbenchTheme.surface(h,NavyWorkbenchTheme.PANEL,NavyWorkbenchTheme.LINE,12));}
     name=text("",18);name.setTextColor(0xffffd58c);name.setTag("village-dialogue-speaker");panel.addView(name);
     speech=text("",18);speech.setTag("village-dialogue-text");
     ScrollView scroll=new ScrollView(h);scroll.setFillViewport(false);scroll.addView(speech,new ScrollView.LayoutParams(-1,-2));
@@ -51,10 +52,11 @@ final class NativeVillageStoryOverlay {
     notice=text("",12);notice.setTag("village-dialogue-notice");panel.addView(notice);
     choices=new LinearLayout(h);choices.setOrientation((owner.villageExploration||owner.villageHistory)?LinearLayout.VERTICAL:LinearLayout.HORIZONTAL);choices.setTag("village-dialogue-choices");
     if(owner.villageExploration||owner.villageHistory){ScrollView list=new ScrollView(h);list.setTag("village-exploration-list");list.addView(choices,new ScrollView.LayoutParams(-1,-2));panel.addView(list,new LinearLayout.LayoutParams(-1,h.dp(144)));}else panel.addView(choices);
-    close=h.button("닫기",owner::closeVillage);close.setTag("village-dialogue-close");
+    close=h.button("닫기",owner::back);close.setTag("village-dialogue-close");
+    if(owner.villageExploration)NativeVillageShortcuts.flatButton(h,close);
     FrameLayout.LayoutParams closeBox=new FrameLayout.LayoutParams(h.dp(72),h.dp(44),Gravity.TOP|Gravity.RIGHT);closeBox.setMargins(0,h.dp(8),h.dp(12),0);root.addView(close,closeBox);
     dialog.setContentView(root);dialog.setCanceledOnTouchOutside(false);dialog.setCancelable(false);
-    dialog.setOnKeyListener((d,key,event)->{if(key==KeyEvent.KEYCODE_BACK){if(event.getAction()==KeyEvent.ACTION_UP)owner.closeVillage();return true;}return false;});
+    dialog.setOnKeyListener((d,key,event)->{if(key==KeyEvent.KEYCODE_BACK){if(event.getAction()==KeyEvent.ACTION_UP)owner.back();return true;}return false;});
     dialog.setOnDismissListener(d->{stop();});
   }
   TextView text(String value,int size){TextView v=h.text(value,size);v.setTextColor(0xfffff1d2);v.setSingleLine(false);v.setHorizontallyScrolling(false);v.setPadding(h.dp(4),h.dp(4),h.dp(4),h.dp(4));return v;}
@@ -69,13 +71,16 @@ final class NativeVillageStoryOverlay {
   final Runnable guard=new Runnable(){public void run(){if(closed)return;if(!owner.current()){owner.closeVillage();return;}handler.postDelayed(this,250);}};
   void stop(){boolean wasOpen=!closed;closed=true;typing=false;handler.removeCallbacksAndMessages(null);clearPortrait();if(wasOpen)refreshVillageHud();}
   void close(){stop();dialog.dismiss();}
-  void loading(String message){notice.setText(message);for(int i=0;i<choices.getChildCount();i++)choices.getChildAt(i).setEnabled(false);}
+  void loading(String message){notice.setText(message);for(int i=0;i<choices.getChildCount();i++)enableChoices(choices.getChildAt(i),false);}
+  void enableChoices(View view,boolean enabled){view.setEnabled(enabled);if(view instanceof android.view.ViewGroup){android.view.ViewGroup group=(android.view.ViewGroup)view;for(int i=0;i<group.getChildCount();i++)enableChoices(group.getChildAt(i),enabled);}}
   void error(String message){pauseTyping();notice.setText(message);choices.removeAllViews();action("연결 다시 확인",owner::retrySavedProgress);}
-  void action(String label,Runnable task){
+  Button action(String label,Runnable task){
     Button button=h.button(label,()->{if(owner.current()&&!h.busy&&!h.updateBlocks()){if(finishTyping())return;task.run();}});
     button.setTextSize(14);button.setMaxLines(2);button.setMinWidth(0);button.setMinimumWidth(0);
     button.setTag("village-dialogue-action-"+choices.getChildCount());
+    if(owner.villageExploration)NativeVillageShortcuts.flatButton(h,button);
     LinearLayout.LayoutParams box=(owner.villageExploration||owner.villageHistory)?new LinearLayout.LayoutParams(-1,h.dp(48)):new LinearLayout.LayoutParams(0,h.dp(48),1);box.setMargins(h.dp(3),0,h.dp(3),0);choices.addView(button,box);
+    return button;
   }
   JSONObject resident(JSONObject state,String id){JSONArray values=state.optJSONArray("residents");for(int i=0;values!=null&&i<values.length();i++){JSONObject item=values.optJSONObject(i);if(item!=null&&id.equals(item.optString("id")))return item;}return null;}
   void clearPortrait(){
@@ -140,6 +145,31 @@ final class NativeVillageStoryOverlay {
     return quest!=null&&"resident".equals(quest.optString("kind"))&&"ACTIVE".equals(quest.optString("status"))
         &&(quest.optBoolean("canDepart")||!NativeRoster60StoryController.reference(quest,"battleId").isEmpty()||!NativeRoster60StoryController.reference(quest,"adventureId").isEmpty());
   }
+  /** npcId is the authoritative relation. questId supports previously cached resident DTOs. */
+  static JSONObject requester(JSONObject state,JSONObject quest){
+    JSONArray residents=state==null?null:state.optJSONArray("residents");String npc=NativeRoster60StoryController.reference(quest,"npcId"),id=quest==null?"":quest.optString("id");
+    for(int i=0;residents!=null&&i<residents.length();i++){JSONObject resident=residents.optJSONObject(i);if(resident==null)continue;
+      if(!npc.isEmpty()?npc.equals(resident.optString("id")):!id.isEmpty()&&id.equals(resident.optString("questId")))return resident;
+    }
+    return null;
+  }
+  void requestAction(JSONObject state,JSONObject quest,String label,Runnable task){
+    JSONObject requester=requester(state,quest);String id=requester==null?"":requester.optString("id");
+    String identity=requester==null?"요청 주민 확인 필요":requester.optString("name","주민");
+    String role=requester==null?"":requester.optString("role");if(!role.isEmpty()&&!role.equals(identity))identity+=" · "+role;
+    Button button=action(identity+"\n"+label,task);choices.removeView(button);button.setGravity(Gravity.CENTER_VERTICAL|Gravity.START);button.setMaxLines(3);
+    button.setContentDescription(identity+"의 부탁 · "+label);button.setTag("village-request-action-"+quest.optString("id"));
+    LinearLayout item=new LinearLayout(h);item.setOrientation(LinearLayout.HORIZONTAL);item.setGravity(Gravity.CENTER_VERTICAL);item.setTag("village-request-"+quest.optString("id"));
+    item.setBackground(NavyWorkbenchTheme.surface(h,NavyWorkbenchTheme.HEADER,NavyWorkbenchTheme.LINE,6));
+    VillageLayout.Asset asset=null;try{asset=VillageLayout.load(h).assets.get("guard".equals(id)?"patrol":id);}catch(IllegalStateException unavailable){/* Keep the actual requester's name; never invent another face. */}
+    View portrait;
+    if(asset==null){TextView missing=text("주민",12);missing.setGravity(Gravity.CENTER);portrait=missing;}
+    else portrait=new NativeRoster60StoryView.ResidentPortrait(h,asset,owner::current);
+    portrait.setTag("village-request-portrait-"+quest.optString("id"));portrait.setContentDescription(identity+" 초상화");
+    portrait.setOnClickListener(v->button.performClick());item.setOnClickListener(v->button.performClick());
+    item.addView(portrait,new LinearLayout.LayoutParams(h.dp(64),h.dp(72)));item.addView(button,new LinearLayout.LayoutParams(0,-1,1));
+    LinearLayout.LayoutParams box=new LinearLayout.LayoutParams(-1,h.dp(80));box.setMargins(h.dp(3),h.dp(4),h.dp(3),h.dp(4));choices.addView(item,box);
+  }
   void exploration(JSONObject state){
     name.setText("탐험 출항");portrait("");
     say("exploration","자유롭게 탐험하거나, 수락한 주민 부탁을 선택해 출항하세요.");
@@ -154,7 +184,7 @@ final class NativeVillageStoryOverlay {
       JSONObject quest=quests.optJSONObject(i);if(!residentDepartureAllowed(quest))continue;
       String id=quest.optString("id");if(id.isEmpty())continue;
       boolean resume=!NativeRoster60StoryController.reference(quest,"battleId").isEmpty()||!NativeRoster60StoryController.reference(quest,"adventureId").isEmpty();
-      action((resume?"이어서 진행 · ":"부탁 출항 · ")+quest.optString("title","주민 부탁"),()->{
+      requestAction(state,quest,(resume?"이어서 진행 · ":"부탁 출항 · ")+quest.optString("title","주민 부탁"),()->{
         JSONObject latest=owner.quest(id);if(residentDepartureAllowed(latest))owner.continueQuest(latest);
       });count++;
     }

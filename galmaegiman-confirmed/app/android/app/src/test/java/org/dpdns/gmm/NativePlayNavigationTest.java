@@ -63,13 +63,14 @@ public class NativePlayNavigationTest {
   }
  }
 
- @Test public void eachMenuModeRequiresExplicitOneToSixMemberPartyThenOneCorrectJoin()throws Exception{
+ @Test public void eachMenuModeUsesSavedPartyOrOptionalOneMemberEditThenOneCorrectJoin()throws Exception{
   for(int count:new int[]{1,6})for(String mode:new String[]{"normal","rank"})try(ActivityController<MainActivity> c=helper.flow.start()){
    MainActivity h=c.get();Api api=prepare(h);h.openPlayMenu();choose(h,mode);NativeRoster60Pvp p=h.rosterPvp;
    assertEquals(mode,p.selectedMode);assertEquals(6,p.selected.size());assertEquals(6,new HashSet<>(p.selected).size());assertTrue(api.writes.isEmpty());
-   if(count==1)for(int i=5;i>0;i--)p.ownedTiles.get("o"+i).action.performClick();assertEquals(count,p.selected.size());assertEquals(6,p.slots.getChildCount());
-   Button target=mode.equals("normal")?p.normal:p.rank,other=mode.equals("normal")?p.rank:p.normal;assertEquals(View.GONE,other.getVisibility());other.performClick();assertTrue(api.writes.isEmpty());
-   target.performClick();target.performClick();assertEquals(2,api.writes.size());assertEquals(count,api.writes.get(0).getJSONArray("ownedIds").length());if(mode.equals("rank"))assertEquals("rank",api.writes.get(0).getString("mode"));else assertFalse(api.writes.get(0).has("mode"));assertEquals(mode,api.writes.get(1).getString("mode"));assertEquals(1,calls(api,"pvp/join"));assertFalse(api.paths.contains("native/team"));
+   int saves=count==1?1:0;
+   if(count==1){p.editParty.performClick();for(int i=5;i>0;i--)p.ownedTiles.get("o"+i).action.performClick();assertFalse(p.normal.isEnabled());assertFalse(p.rank.isEnabled());p.save.performClick();assertFalse(p.editing);}assertEquals(count,p.selected.size());assertEquals(6,p.slots.getChildCount());
+   Button target=mode.equals("normal")?p.normal:p.rank,other=mode.equals("normal")?p.rank:p.normal;assertEquals(View.GONE,other.getVisibility());other.performClick();assertEquals(saves,api.writes.size());
+   target.performClick();target.performClick();assertEquals(2+saves,api.writes.size());assertEquals(count,api.writes.get(saves).getJSONArray("ownedIds").length());if(mode.equals("rank"))assertEquals("rank",api.writes.get(saves).getString("mode"));else assertFalse(api.writes.get(saves).has("mode"));assertEquals(mode,api.writes.get(1+saves).getString("mode"));assertEquals(1,calls(api,"pvp/join"));assertFalse(api.paths.contains("native/team"));
    h.back();assertEquals("home",h.screen);assertEquals(0,calls(api,"pvp/cancel"));
   }
  }
@@ -87,6 +88,7 @@ public class NativePlayNavigationTest {
   for(boolean serverFlag:new boolean[]{true,false})try(ActivityController<MainActivity> c=helper.flow.start()){
    MainActivity h=c.get();Api api=prepare(h);api.unitLevel=serverFlag?1:99;api.unitEligible=serverFlag;h.openRosterPvp("rank");NativeRoster60Pvp p=h.rosterPvp;
    assertFalse("Rank stays locked for unit level="+api.unitLevel+", server eligible="+serverFlag,p.rank.isEnabled());assertFalse("Invalid rank party cannot be saved",p.save.isEnabled());
+   p.editParty.performClick();
    for(int i=0;i<6;i++)p.ownedTiles.get("o"+i).action.performClick();assertTrue("Every existing invalid member remains removable: "+p.selected,p.selected.isEmpty());
    p.ownedTiles.get("o6").action.performClick();assertTrue("Rank cannot add this unit",p.selected.isEmpty());assertTrue("Low-level denial explains the unit threshold: "+p.status.getText(),p.status.getText().toString().contains("Lv.60"));assertTrue("Refused selection never sends a write",api.writes.isEmpty());p.pause();
    h.openRosterPvp("normal");p=h.rosterPvp;assertEquals(6,p.selected.size());assertTrue(p.normal.isEnabled());p.normal.performClick();assertEquals(2,api.writes.size());assertFalse(api.writes.get(0).has("mode"));assertEquals("normal",api.writes.get(1).getString("mode"));p.pause();

@@ -3,13 +3,13 @@ import android.view.*;import android.widget.*;import org.json.*;import java.util
 /** Product party selection before a server battle; no fixture, local combat or grant. */
 final class Roster60FormationView extends LinearLayout {
  final MainActivity h;final JSONArray units;final Consumer<JSONArray> confirm;final ArrayList<String> selected=new ArrayList<>();
- final LinearLayout left,right,slots;final ImageView focus;final TextView caption,title,level,selectedHeading,ownedHeading,indicator;final Button start;
+ final LinearLayout left,right,slots;final ImageView focus;final TextView caption,title,level,selectedHeading,ownedHeading,indicator;final Button start,cancelButton;
  final Roster60CardStrip ownedStrip;final LinkedHashMap<String,Roster60MemberTile> ownedTiles=new LinkedHashMap<>();
  final String[] slotContent=new String[6],slotState=new String[6];final HashMap<String,String> ownedState=new HashMap<>();
  String focused="",focusSpecies="",renderedState="";boolean locked,measured;float scale=1,renderedScale=-1;
  long slotReplacements,focusBindings,tileStateUpdates;
  Roster60FormationView(MainActivity h,JSONArray units,Consumer<JSONArray> confirm,Runnable cancel){
-  super(h);this.h=h;this.units=units;this.confirm=confirm;setOrientation(HORIZONTAL);setTag("roster60-formation");setBackground(ThemeArt.of(h).background("backgrounds/bg-navigation-workshop-v1.png"));
+  super(h);this.h=h;this.units=NativeOwnedRoster.levelOrdered(units);units=this.units;this.confirm=confirm;setOrientation(HORIZONTAL);setTag("roster60-formation");setBackground(ThemeArt.of(h).background("backgrounds/bg-navigation-workshop-v1.png"));
   left=new LinearLayout(h);left.setOrientation(VERTICAL);left.setBackground(NavyWorkbenchTheme.surface(h,NavyWorkbenchTheme.PANEL,NavyWorkbenchTheme.LINE,8));addView(left,new LayoutParams(0,-1,3));
   right=new LinearLayout(h);right.setOrientation(VERTICAL);right.setBackground(NavyWorkbenchTheme.surface(h,NavyWorkbenchTheme.PANEL,NavyWorkbenchTheme.LINE,8));addView(right,new LayoutParams(0,-1,1));
   selectedHeading=section("출전 1명 + 예비 5명");left.addView(selectedHeading);
@@ -20,6 +20,7 @@ final class Roster60FormationView extends LinearLayout {
   title=h.text("대원을 선택하세요",16);CombatV2ReviewStyle.text(title);title.setTextColor(NavyWorkbenchTheme.TEXT);title.setMaxLines(1);title.setEllipsize(android.text.TextUtils.TruncateAt.END);right.addView(title);level=h.text("출전 1 + 예비 5",12);CombatV2ReviewStyle.text(level);level.setTextColor(NavyWorkbenchTheme.MUTED);right.addView(level);
   focus=new ImageView(h);focus.setTag("formation-focused-portrait");right.addView(focus,new LayoutParams(-1,0,1));caption=h.text("출전 1 + 예비 최대 5",12);CombatV2ReviewStyle.text(caption);caption.setTextColor(NavyWorkbenchTheme.TEXT);right.addView(caption);
   start=h.button("편성 확정 · 전투 시작",this::submit);start.setTag("formation-confirm");start.setTextSize(12);start.setBackground(new BattleSkin(h,"button-surrender"));CombatV2ReviewStyle.text(start);start.setTextColor(JournalTheme.INK);right.addView(start,new LayoutParams(-1,h.dp(48)));
+  cancelButton=h.button("취소",()->{if(!locked)cancel.run();});cancelButton.setTag("formation-cancel");NavyWorkbenchTheme.tab(h,cancelButton,false);right.addView(cancelButton,new LayoutParams(-1,h.dp(44)));
   if(units.length()>0)focused=units.optJSONObject(0).optString("ownedId");start.setEnabled(false);
  }
  @Override protected void onMeasure(int w,int hs){
@@ -34,7 +35,7 @@ final class Roster60FormationView extends LinearLayout {
  static String memberDetails(JSONObject u){String text=u.optString("name")+(u.has("level")?" · Lv"+u.optInt("level")+"/"+u.optInt("maxLevel",60):"");JSONObject stats=u.optJSONObject("stats");if(stats!=null)text+="\nHP "+stats.optInt("hp")+" · MP "+stats.optInt("mp")+"\n내구 "+stats.optInt("durability")+" · 저항 "+stats.optInt("statusResistance")+" · 속도 "+stats.optInt("speed");return text;}
  JSONObject unit(String id){for(int i=0;i<units.length();i++)if(id.equals(units.optJSONObject(i).optString("ownedId")))return units.optJSONObject(i);return null;}
  void toggle(JSONObject u){if(locked||u==null||ownedStrip.blocksClick())return;String id=u.optString("ownedId");focused=id;if(selected.contains(id))selected.remove(id);else if(selected.size()<6)selected.add(id);draw();}
- void submit(){if(locked||selected.isEmpty()||ownedStrip.blocksClick())return;locked=true;draw();confirm.accept(new JSONArray(selected));}
+ void submit(){if(locked||selected.isEmpty()||selected.size()>6||new HashSet<>(selected).size()!=selected.size()||ownedStrip.blocksClick())return;locked=true;draw();confirm.accept(new JSONArray(selected));}
  void unlock(){locked=false;draw();}
  static String levelBadge(JSONObject unit){if(unit==null)return null;int level=unit.optInt("level",0);return "Lv. "+(level>0?String.valueOf(level):"?");}
  static String role(int slot){return slot==0?"출전":"예비 "+slot;}
@@ -83,6 +84,7 @@ final class Roster60FormationView extends LinearLayout {
    text(title,u.optString("name"));int at=selected.indexOf(focused);text(level,grade(u.optString("rarity"))+" · Lv"+u.optInt("level",1)+"/"+u.optInt("maxLevel",60));level.setContentDescription(level.getText()+(at<0?"":" · "+role(at)));JSONObject stats=u.optJSONObject("stats");text(caption,stats==null?"편성 "+selected.size()+"/6":"HP "+stats.optInt("hp")+" · MP "+stats.optInt("mp")+"\n내구 "+stats.optInt("durability")+" · 저항 "+stats.optInt("statusResistance")+" · 속도 "+stats.optInt("speed"));
   }
   start.setEnabled(!locked&&!selected.isEmpty());
+  cancelButton.setEnabled(!locked);
  }
  static void text(TextView view,String value){if(!value.contentEquals(view.getText()))view.setText(value);}
 }

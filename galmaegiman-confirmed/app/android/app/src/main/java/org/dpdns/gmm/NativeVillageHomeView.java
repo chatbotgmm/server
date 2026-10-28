@@ -25,6 +25,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
   final RectF field=new RectF(),safe=new RectF();
   final Button settings,daily,pass,statue;
+  final NativeVillageShortcuts shortcuts;
   final LinearLayout loadingPanel;
   final TextView loadingMessage;
   final Button loadingRetry,loadingBack;
@@ -34,7 +35,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   float downX,downY,lastX;
   int activePointer=-1,scrollOffset;
   int shownDistrict=-1;
-  boolean moved,stoppingFling,touching,smoothMotion,edgeGesture;
+  boolean moved,stoppingFling,touching,smoothMotion,edgeGesture,shortcutTouch;
   float observedSpeed;
   long motionSampleAt;
   Button pressedBuilding;
@@ -100,6 +101,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     depthActors.addAll(layout.buildings);depthActors.addAll(layout.residents);
     depthActors.sort(java.util.Comparator.comparingDouble(a->a.surface.isEmpty()?a.baseline:a.sourceY));
     for(VillageLayout.Placed actor:depthActors)actorButton(actor).bringToFront();pass.bringToFront();daily.bringToFront();settings.bringToFront();
+    shortcuts=new NativeVillageShortcuts(this);addView(shortcuts);
     loadingPanel=new LinearLayout(h);loadingPanel.setOrientation(LinearLayout.VERTICAL);loadingPanel.setGravity(Gravity.CENTER);
     loadingPanel.setBackgroundColor(NavyWorkbenchTheme.SLOT);loadingPanel.setClickable(true);loadingPanel.setTag("village-art-loading");
     loadingMessage=h.text("마을 그림을 불러오는 중…",16);loadingMessage.setGravity(Gravity.CENTER);loadingMessage.setTextColor(NavyWorkbenchTheme.TEXT);
@@ -170,13 +172,14 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
       String shortState="ACTIVE".equals(status)?" · 진행":"READY".equals(status)?" · 보고":"COMPLETED".equals(status)?" · 완료":"";
       Button b=residentButtons.get(resident.id);b.setText(marker+resident.role+shortState);b.setTextColor("AVAILABLE".equals(status)?0xff245b61:JournalTheme.INK);b.setContentDescription(resident.role+" · "+name+" · "+marker+detail);
     }
-    requestLayout();invalidate();
+    shortcuts.refresh();requestLayout();invalidate();
   }
   void updateNotice(){
     if(pressedBuilding!=null&&(!owner.current()||(pressedBuilding==statue&&(owner.statueStage<=0||assets.get(layout.landmark.asset(owner.statueStage))!=outlineSource))))clearBuildingPress();
     updateLoadingState();
     String state=!sceneReady()?(assets.hasFailure(visibleStatue())?"그림을 불러오지 못했어요":"그림을 불러오는 중"):owner.problem;
     settings.setContentDescription("마을 메뉴 · 출석, 내 정보, 환생 안내, 설정"+(state.isEmpty()?"":" · "+state));
+    shortcuts.refresh();
     requestLayout();invalidate();
   }
   String visibleStatue(){return layout.landmark!=null&&owner.statueStage>0&&RectF.intersects(landmarkRect(),field)?layout.landmark.asset(owner.statueStage):"";}
@@ -194,6 +197,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     // 마을 대화창이 떠 있는 동안에는 대화창의 닫기 버튼과 겹치지 않게 오른쪽 위 아이콘을 숨긴다(대화창이 터치를 가려 어차피 누를 수 없음).
     boolean hud=ready&&!storyOverlayCoversHud();
     pass.setVisibility(hud?VISIBLE:INVISIBLE);daily.setVisibility(hud?VISIBLE:INVISIBLE);settings.setVisibility(hud?VISIBLE:INVISIBLE);
+    shortcuts.setVisibility(hud?VISIBLE:INVISIBLE);
     for(Button button:buildingButtons.values())button.setVisibility(ready&&RectF.intersects(new RectF(button.getLeft(),button.getTop(),button.getRight(),button.getBottom()),field)?VISIBLE:INVISIBLE);
     for(Button button:residentButtons.values())button.setVisibility(ready&&RectF.intersects(new RectF(button.getLeft(),button.getTop(),button.getRight(),button.getBottom()),field)?VISIBLE:INVISIBLE);
     statue.setVisibility(ready&&!visibleStatue().isEmpty()?VISIBLE:INVISIBLE);
@@ -208,6 +212,9 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     field.set(0,0,width,height);safe.set(h.safeBounds(width,height));
     loadingPanel.measure(exact(width),exact(height));
     statue.measure(exact(h.dp(48)),exact(h.dp(48)));pass.measure(exact(h.dp(48)),exact(h.dp(48)));settings.measure(exact(h.dp(48)),exact(h.dp(48)));daily.measure(exact(h.dp(48)),exact(h.dp(48)));
+    int shortcutWidth=Math.min(h.dp(shortcuts.expanded?240:128),Math.max(h.dp(48),Math.round(safe.width())-h.dp(16)));
+    int shortcutHeight=shortcuts.expanded?Math.max(h.dp(56),Math.round(safe.height())-h.dp(16)):h.dp(56);
+    shortcuts.measure(exact(shortcutWidth),exact(shortcutHeight));
     for(VillageLayout.Building building:layout.buildings) {RectF b=buildingRect(building);buildingButtons.get(building.id).measure(exact(Math.round(b.width())),exact(Math.round(b.height())));}
     for(VillageLayout.Resident resident:layout.residents) {RectF b=residentRect(resident);residentButtons.get(resident.id).measure(exact(Math.round(b.width())),exact(Math.round(b.height())));}
   }
@@ -216,6 +223,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     loadingPanel.layout(0,0,right-left,bottom-top);
     int y=Math.round(safe.top)+h.dp(8),edge=Math.round(safe.right)-h.dp(8);
     settings.layout(edge-h.dp(48),y,edge,y+h.dp(48));
+    int shortcutLeft=Math.round(safe.left)+h.dp(8);shortcuts.layout(shortcutLeft,y,shortcutLeft+shortcuts.getMeasuredWidth(),y+shortcuts.getMeasuredHeight());
     daily.layout(settings.getLeft()-h.dp(56),y,settings.getLeft()-h.dp(8),y+h.dp(48));pass.layout(daily.getLeft()-h.dp(56),y,daily.getLeft()-h.dp(8),y+h.dp(48));layoutWorld();
   }
   Button actorButton(VillageLayout.Placed actor){return actor instanceof VillageLayout.Building?buildingButtons.get(actor.id):residentButtons.get(actor.id);}
@@ -471,6 +479,12 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   @Override public void computeScroll(){if(!owner.current())return;if(scroller.computeScrollOffset()){int x=scroller.getCurrX();long now=SystemClock.uptimeMillis();if(smoothMotion&&now>motionSampleAt)observedSpeed=Math.abs(x-scrollOffset)*1000f/(now-motionSampleAt);motionSampleAt=now;moveCameraUnits((x-scrollOffset)/unitPixels());scrollOffset=x;postInvalidateOnAnimation();}else if(!touching){observedSpeed=0;owner.saveCamera();}}
   @Override public boolean dispatchTouchEvent(MotionEvent e){
     if(!owner.current())return false;if(!sceneReady())return super.dispatchTouchEvent(e);int action=e.getActionMasked();
+    if(action==MotionEvent.ACTION_DOWN)shortcutTouch=shortcuts.contains(e.getX(),e.getY());
+    if(action==MotionEvent.ACTION_DOWN&&shortcutTouch){
+      stopMotion();moved=false;stoppingFling=false;touching=false;activePointer=-1;
+      if(velocity!=null){velocity.recycle();velocity=null;}
+    }
+    if(shortcutTouch){boolean result=super.dispatchTouchEvent(e);if(action==MotionEvent.ACTION_UP||action==MotionEvent.ACTION_CANCEL)shortcutTouch=false;return result;}
     if(action==MotionEvent.ACTION_DOWN){edgeGesture=!safe.contains(e.getX(),e.getY());computeScroll();boolean fast=!scroller.isFinished()&&motionSpeed()>minFling;stopMotion();stoppingFling=fast;moved=false;touching=true;activePointer=e.getPointerId(0);downX=lastX=e.getX();downY=e.getY();if(velocity!=null)velocity.recycle();velocity=VelocityTracker.obtain();}
     if(action==MotionEvent.ACTION_OUTSIDE||action==MotionEvent.ACTION_UP||action==MotionEvent.ACTION_CANCEL||action==MotionEvent.ACTION_POINTER_DOWN||action==MotionEvent.ACTION_POINTER_UP)clearBuildingPress();
     if(action==MotionEvent.ACTION_MOVE&&pressedBuilding!=null){int pointer=e.findPointerIndex(activePointer);if(pointer<0||Math.hypot(e.getX(pointer)-downX,e.getY(pointer)-downY)>slop||!(pressedBuilding==statue?statueHit(e.getX(pointer),e.getY(pointer)):alphaHitWorldButton(pressedBuilding,e.getX(pointer)-pressedBuilding.getLeft(),e.getY(pointer)-pressedBuilding.getTop())))clearBuildingPress();}
@@ -479,7 +493,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     if(action==MotionEvent.ACTION_UP||action==MotionEvent.ACTION_CANCEL){touching=false;activePointer=-1;if(velocity!=null){velocity.recycle();velocity=null;}owner.saveCamera();}
     return result;
   }
-  @Override public boolean onInterceptTouchEvent(MotionEvent e){if(!sceneReady())return false;if(e.getActionMasked()==MotionEvent.ACTION_DOWN)return stoppingFling||edgeGesture;if(e.getActionMasked()==MotionEvent.ACTION_POINTER_DOWN)moved=true;if(e.getActionMasked()==MotionEvent.ACTION_MOVE&&Math.abs(e.getX()-downX)>slop&&Math.abs(e.getX()-downX)>Math.abs(e.getY()-downY))moved=true;return moved||stoppingFling;}
+  @Override public boolean onInterceptTouchEvent(MotionEvent e){if(!sceneReady()||shortcutTouch)return false;if(e.getActionMasked()==MotionEvent.ACTION_DOWN)return stoppingFling||edgeGesture;if(e.getActionMasked()==MotionEvent.ACTION_POINTER_DOWN)moved=true;if(e.getActionMasked()==MotionEvent.ACTION_MOVE&&Math.abs(e.getX()-downX)>slop&&Math.abs(e.getX()-downX)>Math.abs(e.getY()-downY))moved=true;return moved||stoppingFling;}
   @Override public boolean onTouchEvent(MotionEvent e){
     if(!owner.current())return false;if(!sceneReady())return true;int action=e.getActionMasked();
     if(action==MotionEvent.ACTION_DOWN)return true;
