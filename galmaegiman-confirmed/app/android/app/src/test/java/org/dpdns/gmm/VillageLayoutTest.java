@@ -99,7 +99,7 @@ public class VillageLayoutTest {
     String[] ids={"recruit","hideout","archive","market","mailbox","harbor"};double[] heights={.4883188211654387,.5970471633629528,.8080110497237569,.595721476510067,.16,.5136245819397994};
     for(int i=0;i<ids.length;i++){assertEquals(heights[i],layout.building(ids[i]).heightRatio,0);assertTrue(fallback.building(ids[i]).heightRatio>=.1&&fallback.building(ids[i]).heightRatio<=.75);}
     assertEquals(.24,layout.resident("blacksmith").heightRatio,0);assertEquals(.21,layout.resident("librarian").heightRatio,0);
-    assertEquals(.23,layout.resident("guard").heightRatio,0);assertEquals(.23,layout.resident("merchant").heightRatio,0);
+    assertEquals(.23,layout.resident("guard").heightRatio,0);assertEquals(.22493195855474427,layout.resident("merchant").heightRatio,0); // New standing crop preserves the original upper-body scale.
     JSONObject absent=raw();absent.getJSONArray("buildings").getJSONObject(0).remove("heightRatio");assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(absent));
     JSONObject excessive=raw();excessive.getJSONArray("residents").getJSONObject(0).put("heightRatio",.8);assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(excessive));
   }

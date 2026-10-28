@@ -128,7 +128,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     boolean resident(){return java.util.Arrays.asList("blacksmith","merchant","librarian","patrol").contains(asset);}
     String customLabel(){return layout.assets.containsKey(asset+"-nameplate")?asset+"-nameplate":"";}
     float captionAspect(){String label=customLabel();return !label.isEmpty()?assetAspect(label,assets.get(label)):VillageNameplates.cell(asset)<0?3.2f:VillageNameplates.aspect(VillageNameplates.cell(asset));}
-    int statusCell(){return resident()?VillageNameplates.statusCell(owner.residentStatus("patrol".equals(asset)?"guard":asset)):-1;}
+    int statusCell(){if(!resident())return -1;String status=owner.residentStatus("patrol".equals(asset)?"guard":asset);return !"AVAILABLE".equals(status)?VillageNameplates.statusCell(status):-1;}
     float statusLane(){int status=statusCell();return status<0?0:h.dp(3)+h.dp(18)*VillageNameplates.aspect(status);}
     @Override protected void onDraw(Canvas canvas){
       // Text remains available to accessibility/tests, but the visible letters are atlas pixels only.
@@ -274,10 +274,37 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     if(!layout.continuousFoundation)groundShadows.draw(canvas,this);
     for(VillageLayout.Placed actor:depthActors)if(actor instanceof VillageLayout.Building){if(!((VillageLayout.Building)actor).behindTerrace)drawBuilding(canvas,(VillageLayout.Building)actor);}else drawResident(canvas,(VillageLayout.Resident)actor);
     districtScene.draw(canvas,this,"foreground");
+    drawResidentMarkers(canvas);
     drawMainStoryMarker(canvas);
     canvas.restoreToCount(save);
     if(animating&&ambient.fixedTime==null)postInvalidateDelayed(33); // Local foam is deliberately 30 fps.
   }
+  static final class ResidentHead {final java.lang.ref.WeakReference<Bitmap> source;final float x,y;ResidentHead(Bitmap b,float x,float y){source=new java.lang.ref.WeakReference<>(b);this.x=x;this.y=y;}}
+  final Map<String,ResidentHead> residentHeads=new LinkedHashMap<>();
+  final VillageNameplates residentMarkerArt=new VillageNameplates();
+  final RectF residentMarkerScratch=new RectF();
+  RectF residentMarkerRect(VillageLayout.Resident resident){RectF result=new RectF();residentMarkerRect(resident,result);return result;}
+  void residentMarkerRect(VillageLayout.Resident resident,RectF out){
+    out.setEmpty();
+    if(!"AVAILABLE".equals(owner.residentStatus(resident.id)))return;
+    Bitmap image=assets.get(resident.asset);Button b=residentButtons.get(resident.id);
+    if(image==null||image.isRecycled()||b==null||b.getVisibility()!=VISIBLE||b.getRight()<field.left||b.getLeft()>field.right)return;
+    double[] crop=layout.assets.get(resident.asset).crop;ResidentHead head=residentHeads.get(resident.id);
+    if(head==null||head.source.get()!=image){
+      int left=Math.max(0,Math.min(image.getWidth()-1,(int)(crop[0]*image.getWidth()))),right=Math.max(left+1,Math.min(image.getWidth(),(int)(crop[2]*image.getWidth())));
+      int top=Math.max(0,Math.min(image.getHeight()-1,(int)(crop[1]*image.getHeight()))),bottom=Math.max(top+1,Math.min(image.getHeight(),(int)(crop[3]*image.getHeight())));
+      int from=left+Math.round((right-left)*.35f),to=Math.min(right,Math.max(from+1,left+Math.round((right-left)*.75f))),foundY=top,foundX=(left+right)/2;boolean found=false;
+      for(int y=top;y<bottom&&!found;y++){int first=-1,last=-1;for(int x=from;x<to;x++)if(Color.alpha(image.getPixel(x,y))>=128){if(first<0)first=x;last=x;}if(first>=0){foundY=y;foundX=(first+last)/2;found=true;}}
+      head=new ResidentHead(image,found?(foundX-left)/(float)(right-left):Float.NaN,(foundY-top)/(float)(bottom-top));residentHeads.put(resident.id,head);
+    }
+    if(Float.isNaN(head.x))return;
+    float slotWidth=b.getWidth(),slotBottom=b.getBottom()-labelHeight(b)-labelGap(),slotHeight=slotBottom-b.getTop();
+    float sourceWidth=(float)((crop[2]-crop[0])*image.getWidth()),sourceHeight=(float)((crop[3]-crop[1])*image.getHeight());
+    float scale=Math.min(slotWidth/Math.max(1,sourceWidth),slotHeight/Math.max(1,sourceHeight)),width=sourceWidth*scale,height=sourceHeight*scale;
+    float size=Math.min(h.dp(24),field.height()*.05f),x=(b.getLeft()+b.getRight())*.5f-width*.5f+width*head.x,y=slotBottom-height+height*head.y;
+    float top=Math.max(safe.top+h.dp(4),y-size-h.dp(4));out.set(x-size/2,top,x+size/2,top+size);
+  }
+  void drawResidentMarkers(Canvas canvas){Bitmap atlas=assets.get("nameplates");if(atlas==null)return;for(VillageLayout.Resident resident:layout.residents){residentMarkerRect(resident,residentMarkerScratch);if(!residentMarkerScratch.isEmpty()&&RectF.intersects(residentMarkerScratch,field))residentMarkerArt.draw(canvas,atlas,VillageNameplates.statusCell("AVAILABLE"),residentMarkerScratch);}}
   final VillageNameplates mainMarkerArt=new VillageNameplates();
   RectF mainStoryMarkerRect(){
     RectF target=null;
@@ -458,5 +485,5 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     if(action==MotionEvent.ACTION_CANCEL){stopMotion();moved=true;return true;}return true;
   }
   @Override public boolean performClick(){super.performClick();return true;}
-  @Override protected void onDetachedFromWindow(){owner.saveCamera();stopMotion();if(outlineMask!=null){outlineMask.recycle();outlineMask=null;outlineSource=null;}ambient.pause();assets.cancel();if(velocity!=null){velocity.recycle();velocity=null;}super.onDetachedFromWindow();}
+  @Override protected void onDetachedFromWindow(){owner.saveCamera();stopMotion();residentHeads.clear();if(outlineMask!=null){outlineMask.recycle();outlineMask=null;outlineSource=null;}ambient.pause();assets.cancel();if(velocity!=null){velocity.recycle();velocity=null;}super.onDetachedFromWindow();}
 }
