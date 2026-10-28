@@ -36,7 +36,9 @@ public class NativeVillageStoryOverlayTest {
     }
   }
   Api prepare(MainActivity h)throws Exception{fixture.prepare(h).close();Api api=new Api(h,h.state);h.api=api;fixture.open(h,NativeVillageHomeTest.PHONE);return api;}
-  NativeRoster60StoryController open(MainActivity h,String id){h.rosterStory=new NativeRoster60StoryController(h,id);h.rosterStory.openVillage();assertTrue(h.rosterStory.current());return h.rosterStory;}
+  // These scenario fixtures replace the fake server DTO out-of-band; invalidate at their explicit boundary.
+  // Actual fresh reopen/read counts are covered separately by NativeStoryStateReuseTest.
+  NativeRoster60StoryController open(MainActivity h,String id){h.villageHome.invalidateStorySnapshot();h.rosterStory=new NativeRoster60StoryController(h,id);h.rosterStory.openVillage();assertTrue(h.rosterStory.current());return h.rosterStory;}
   Button action(NativeRoster60StoryController story,int index){return (Button)story.overlay.choices.getChildAt(index);}
 
   @Test public void residentOpensOverSameVillageAndClosingPreservesCameraWithoutWrites()throws Exception{
@@ -83,7 +85,7 @@ public class NativeVillageStoryOverlayTest {
       MainActivity h=activity.get();Api api=prepare(h);NativeRoster60StoryController statue=open(h,"");assertEquals(0,api.writes.size());assertEquals("이야기 듣기",action(statue,0).getText().toString());statue.closeVillage();
       h.rosterStory=new NativeRoster60StoryController(h);h.rosterStory.openVillageDeparture();NativeRoster60StoryController ship=h.rosterStory;
       assertEquals("확인",action(ship,0).getText().toString());assertEquals(0,api.writes.size());ship.closeVillage();
-      api.story.put("currentQuest",NativeRoster60StoryTest.quest("ACTIVE"));h.rosterStory=new NativeRoster60StoryController(h);h.rosterStory.openVillageDeparture();ship=h.rosterStory;
+      api.story.put("currentQuest",NativeRoster60StoryTest.quest("ACTIVE"));h.villageHome.invalidateStorySnapshot();h.rosterStory=new NativeRoster60StoryController(h);h.rosterStory.openVillageDeparture();ship=h.rosterStory;
       assertEquals("출항 준비",action(ship,0).getText().toString());assertEquals(0,api.writes.size());ship.closeVillage();
     }
   }
@@ -103,7 +105,7 @@ public class NativeVillageStoryOverlayTest {
   }
 
   static JSONObject side(String id,String status,boolean canDepart){return MainActivity.obj("id",id,"title",id+" 부탁","kind","resident","status",status,"canDepart",canDepart,"objective",MainActivity.obj("wins",0,"requiredWins",1));}
-  NativeRoster60StoryController explore(MainActivity h)throws Exception{LocalGameArtTest.drain();h.villageHome.navigate("explore");assertEquals("home",h.screen);assertTrue(h.rosterStory.villageExploration);return h.rosterStory;}
+  NativeRoster60StoryController explore(MainActivity h)throws Exception{LocalGameArtTest.drain();h.villageHome.invalidateStorySnapshot();h.villageHome.navigate("explore");assertEquals("home",h.screen);assertTrue(h.rosterStory.villageExploration);return h.rosterStory;}
   Button choice(NativeRoster60StoryController story,String text){for(int i=0;i<story.overlay.choices.getChildCount();i++){Button button=action(story,i);if(button.getText().toString().contains(text))return button;}throw new AssertionError("Missing exploration choice: "+text);}
   @Test public void explorationFiltersSideMainMixedLockedReadyAndEmptyWithoutMutations()throws Exception{
     try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
@@ -173,7 +175,7 @@ public class NativeVillageStoryOverlayTest {
       MainActivity h=activity.get();Api api=prepare(h);NativeVillageHomeView village=h.villageHome.view;
       h.openRosterStory();assertEquals("home",h.screen);assertSame(village,h.villageHome.view);assertTrue(h.rosterStory.villageOverlayOpen());assertNull(h.root.findViewWithTag("story-tab-main"));h.rosterStory.closeVillage();
       h.openRosterStoryResident("blacksmith");assertEquals("home",h.screen);assertTrue(h.rosterStory.overlay.name.getText().toString().contains("대장장이"));h.rosterStory.closeVillage();
-      api.story.put("history",new JSONArray().put(MainActivity.obj("questId","STORY_OLD","title","남겨진 기록")));LocalGameArtTest.drain();h.villageHome.navigate("story-history");assertEquals("이야기 기록",h.rosterStory.overlay.name.getText().toString());assertEquals(0,api.writes.size());h.rosterStory.overlay.finishTyping();action(h.rosterStory,0).performClick();assertEquals("replay",api.writes.get(0).optString("phase"));h.rosterStory.closeVillage();
+      api.story.put("history",new JSONArray().put(MainActivity.obj("questId","STORY_OLD","title","남겨진 기록")));LocalGameArtTest.drain();h.villageHome.invalidateStorySnapshot();h.villageHome.navigate("story-history");assertEquals("이야기 기록",h.rosterStory.overlay.name.getText().toString());assertEquals(0,api.writes.size());h.rosterStory.overlay.finishTyping();action(h.rosterStory,0).performClick();assertEquals("replay",api.writes.get(0).optString("phase"));h.rosterStory.closeVillage();
     }
   }
   @Test public void savedStoryPartySkipsFormationButInvalidOrEmptyPartyRequiresChoice()throws Exception{

@@ -44,7 +44,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   final RectF outlineTarget=new RectF();
   void clearBuildingPress(){if(pressedBuilding!=null){pressedBuilding=null;invalidate();}}
   void beginBuildingPress(WorldTarget button,float x,float y){
-    if(button.resident()||blocksClick()||h.busy||h.updateBlocks()||!owner.current())return;
+    if(blocksClick()||h.busy||h.updateBlocks()||!owner.current())return;
     Bitmap source=assets.get(button.asset);
     if(source==null||!imageSlot(button).contains(button.getLeft()+x,button.getTop()+y)||!alphaHitWorldButton(button,x,y))return;
     if(source!=outlineSource){if(outlineMask!=null)outlineMask.recycle();outlineSource=source;outlineMask=source.extractAlpha();}
@@ -56,7 +56,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     outlineCrop.set((int)(crop[0]*bitmap.getWidth()),(int)(crop[1]*bitmap.getHeight()),(int)(crop[2]*bitmap.getWidth()),(int)(crop[3]*bitmap.getHeight()));
     outlinePaint.setColor(Color.BLACK);float radius=h.dp(2);
     // One cached alpha mask, shifted in eight directions. Original art covers the interior.
-    // This pass stays at the building's own depth, so quay/NPC occlusion remains unchanged.
+    // Buildings and residents share this mask at their own depth; occlusion stays unchanged.
     for(int i=0;i<8;i++){double a=i*Math.PI/4;outlineTarget.set(fitted);outlineTarget.offset(radius*(float)Math.cos(a),radius*(float)Math.sin(a));canvas.drawBitmap(outlineMask,outlineCrop,outlineTarget,outlinePaint);}
   }
 
@@ -408,7 +408,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   }
   void drawResident(Canvas canvas,VillageLayout.Resident resident){
     RectF r=residentBounds.get(resident.id);if(!RectF.intersects(r,field))return;Bitmap bitmap=assets.get(resident.asset);RectF portrait=imageSlot(residentButtons.get(resident.id));
-    if(bitmap!=null)drawObject(canvas,bitmap,portrait,resident.asset);
+    if(bitmap!=null){drawBuildingOutline(canvas,bitmap,portrait,resident.asset,residentButtons.get(resident.id));drawObject(canvas,bitmap,portrait,resident.asset);}
   }
   void label(Canvas canvas,String text,float x,float y,int size,int color){paint.setColor(color);paint.setTypeface(h.prose);paint.setTextAlign(Paint.Align.CENTER);paint.setTextSize(h.dp(size));canvas.drawText(text,x,y,paint);}
   void moveCameraUnits(double delta){camera.moveUnits(delta);layoutWorld();invalidate();}

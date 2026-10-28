@@ -50,11 +50,11 @@ public class NativeVillageBuildingPressTest {
    }}
   }
  }
- @Test public void transparentPixelsResidentsDragPauseAndFocusLossNeverKeepSelection()throws Exception{
+ @Test public void transparentPixelsDragPauseAndFocusLossNeverKeepSelection()throws Exception{
   try(ActivityController<MainActivity> a=fixture.helper.flow.start()){
    MainActivity h=a.get();NativeVillageHomeView v=open(h,NativeVillageHomeTest.PHONE);Button b=v.buildingButtons.get("recruit");PointF p=NativeVillageHomeTest.isolatedTransparentArtPoint(v,b);
    event(v,MotionEvent.ACTION_DOWN,p);assertNull(v.pressedBuilding);event(v,MotionEvent.ACTION_CANCEL,p);
-   p=NativeVillageHomeTest.opaqueArtPoint(v,v.residentButtons.get("guard"));event(v,MotionEvent.ACTION_DOWN,p);assertNull(v.pressedBuilding);event(v,MotionEvent.ACTION_CANCEL,p);
+   p=NativeVillageHomeTest.opaqueArtPoint(v,v.residentButtons.get("guard"));event(v,MotionEvent.ACTION_DOWN,p);assertSame(v.residentButtons.get("guard"),v.pressedBuilding);event(v,MotionEvent.ACTION_CANCEL,p);assertNull(v.pressedBuilding);
    p=NativeVillageHomeTest.opaqueArtPoint(v,b);event(v,MotionEvent.ACTION_DOWN,p);event(v,MotionEvent.ACTION_MOVE,new PointF(p.x+v.slop*3,p.y));assertNull(v.pressedBuilding);event(v,MotionEvent.ACTION_CANCEL,p);
    p=NativeVillageHomeTest.opaqueArtPoint(v,b);event(v,MotionEvent.ACTION_DOWN,p);v.onWindowFocusChanged(false);assertNull(v.pressedBuilding);event(v,MotionEvent.ACTION_CANCEL,p);
    event(v,MotionEvent.ACTION_DOWN,p);h.villageHome.pause();assertNull(v.pressedBuilding);

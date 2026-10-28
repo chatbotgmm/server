@@ -51,19 +51,26 @@ final class NativeRoster60StoryController {
     owner=h.api.token();epoch=h.epoch;villageMode=true;villageResidentId=residentEntryId;residentEntryId="";
     journal=new Roster60StoryJournal(h.getSharedPreferences("roster60_story_v1",Context.MODE_PRIVATE),owner);
     h.villageHome.view.stopMotion();
-    overlay=new NativeVillageStoryOverlay(h,this);overlay.open();readState();
+    overlay=new NativeVillageStoryOverlay(h,this);overlay.open();readState(false);
   }
   void openVillageHistory(){villageHistory=true;openVillage();}
   void openVillageExploration(){villageExploration=true;openVillage();}
   void openVillageDeparture(){villageDeparture=true;openVillage();}
   boolean villageOverlayOpen(){return villageMode&&overlay!=null&&overlay.isShowing();}
   void loading(String message){if(villageMode){if(overlay!=null)overlay.loading(message);}else view.loading(message);}
-  void closeVillage(){
+  void closeVillage(){closeVillage(true);}
+  void closeVillage(boolean refreshHome){
     if(!villageMode)return;
     readGeneration++;reading=false;reconnect.removeCallbacks(checkOwnSave);
     if(residentDialogue!=null){residentDialogue.dismiss();residentDialogue=null;}
     if(overlay!=null){overlay.close();overlay=null;}
-    if(h.villageHome!=null&&h.villageHome.current())h.villageHome.refresh();
+    if(refreshHome&&sameVillage())h.villageHome.ensureStoryFresh();
+  }
+  boolean sameVillage(){return villageMode&&h.villageHome!=null&&owner.equals(h.api.token())&&epoch==h.epoch&&h.villageHome.current();}
+  static boolean fullStoryState(JSONObject result){
+    if(result==null||!(result.opt("revision") instanceof Number)||result.optString("contentVersion").isEmpty())return false;
+    double revision=((Number)result.opt("revision")).doubleValue();
+    return Double.isFinite(revision)&&revision>=0&&revision<=9_007_199_254_740_991d&&revision==Math.rint(revision)&&result.optJSONArray("quests")!=null&&result.optJSONArray("residents")!=null&&result.optJSONObject("statue")!=null&&result.optJSONArray("history")!=null&&result.optJSONArray("adventures")!=null;
   }
   boolean current() {
     if(villageMode)return !owner.isEmpty()&&owner.equals(h.api.token())&&epoch==h.epoch
@@ -100,13 +107,26 @@ final class NativeRoster60StoryController {
     try{JSONObject pending=new JSONObject(raw);if(pending.optJSONObject("body")!=null&&pending.optJSONObject("body").optString("requestId").equals(intent.optJSONObject("body").optString("requestId")))prefs.edit().remove(battlePendingKey()).commit();}
     catch(org.json.JSONException ignored){}
   }
-  void readState() {
+  void readState(){readState(true);}
+  void readState(boolean force){
     if(!current()||reading)return;
-    reading=true;int generation=++readGeneration;loading("계정의 저장 위치를 확인하고 있어요.");
-    h.api.call("native/roster60/story/state",null,(result,error)->{
+    boolean pending=false;
+    try{pending=journal!=null&&journal.pending()!=null;}catch(IllegalStateException invalid){pending=true;}
+    pending=pending||!h.getSharedPreferences("roster60_product_battle",Context.MODE_PRIVATE).getString(battlePendingKey(),"").isEmpty();
+    boolean mustRead=force||pending;
+    if(sameVillage()&&!mustRead){JSONObject cached=h.villageHome.freshStorySnapshot();if(cached!=null){acceptStoryState(cached);return;}}
+    reading=true;int generation=++readGeneration;loading("이야기를 불러오는 중…");
+    NativeApi.Result callback=(result,error)->{
       if(!current()||generation!=readGeneration)return;reading=false;
       if(error!=null){error(error);return;}
-      if(result==null||!result.has("revision")||result.optJSONArray("quests")==null){error("이야기 저장 응답을 확인할 수 없습니다.");return;}
+      if(!fullStoryState(result)){error("이야기 저장 응답을 확인할 수 없습니다.");return;}
+      acceptStoryState(result);
+    };
+    if(sameVillage())h.villageHome.requestStoryState(mustRead,callback);else h.api.call("native/roster60/story/state",null,callback);
+  }
+  void acceptStoryState(JSONObject result){
+    if(!current()||!fullStoryState(result))return;
+    if(state!=null&&result.optString("contentVersion").equals(state.optString("contentVersion"))&&result.optLong("revision")<state.optLong("revision")){error("STORY_STATE_CHANGED");return;}
       // A refreshed account snapshot invalidates any disabled departure choices.
       formation=null;state=result;problem="";
       JSONObject recovery=result.optJSONObject("pendingDeparture");
@@ -120,11 +140,10 @@ final class NativeRoster60StoryController {
         if(state.optJSONObject("scene")==null){org.json.JSONArray npcs=state.optJSONArray("residents");for(int i=0;npcs!=null&&i<npcs.length();i++){JSONObject npc=npcs.optJSONObject(i);if(npc!=null&&id.equals(npc.optString("id"))){resident(npc);break;}}}
         else view.notice.setText("읽던 이야기를 마치거나 닫은 뒤 주민의 부탁을 들을 수 있어요.");
       }
-    });
   }
   void render() { if(current()&&state!=null&&formation==null){if(villageMode)overlay.show(state);else view.show(state);} }
   void error(String error) {
-    if(!current())return;problem=message(error);if(villageMode){overlay.error(problem);return;}view.notice.setText(problem);
+    if(!current())return;if(sameVillage())h.villageHome.invalidateStorySnapshot();problem=message(error);if(villageMode){overlay.error(problem);return;}view.notice.setText(problem);
     if(formation!=null)formation.unlock();
     // Even an uncertain write can be safely retried with the durable intent.
     view.enabled(false);view.continueTab.setEnabled(true);view.continueTab.setText("연결 다시 확인");
@@ -157,21 +176,28 @@ final class NativeRoster60StoryController {
     String operation=intent.optString("operation"),requestId=body.optString("requestId"),flight=journal.key+"|"+requestId;
     if(!Roster60StoryJournal.allowed(operation)||requestId.isEmpty()){error("저장된 이야기 요청 확인이 필요합니다.");return;}
     if(("adventure/return".equals(operation)&&NativeRoster60Battle.IN_FLIGHT.contains(requestId))||!IN_FLIGHT.add(flight)){loading("이야기 요청의 결과를 확인하고 있어요.");reconnect.removeCallbacks(checkOwnSave);reconnect.postDelayed(checkOwnSave,500);return;}
+    if(sameVillage())h.villageHome.invalidateStorySnapshot();
     loading("이야기를 저장하고 있어요.");
+    final String requestedContentVersion=state==null?"":state.optString("contentVersion");
     NativeApi api=h.api;Runnable release=api.whenClosed(()->IN_FLIGHT.remove(flight));
     String route="adventure/return".equals(operation)?"native/roster60/adventure/return":"native/roster60/story/"+operation;
     api.call(route,body,(result,error)->{
       release.run();IN_FLIGHT.remove(flight);
       if(!owner.equals(h.api.token()))return;
       if(error==null||Roster60StoryJournal.definitive(error)){journal.acknowledge(intent);acknowledgeBattleReturn(intent);}
+      boolean storyReply=java.util.Arrays.asList("open","advance","accept","close").contains(operation)&&error==null&&fullStoryState(result)&&requestedContentVersion.equals(result.optString("contentVersion"))&&result.optLong("revision")>body.optLong("revision",Long.MAX_VALUE);
+      boolean published=storyReply&&sameVillage()&&h.villageHome.publishStorySnapshot(result);
       if(!current())return;
-      if(error!=null){error(error);return;}
+      if(error!=null){
+        if(error.contains("STALE_REVISION")||"STORY_STATE_CHANGED".equals(error)||"STORY_SCENE_STALE".equals(error)){readState();return;}
+        error(error);return;
+      }
       problem="";
       if("battle/create".equals(operation)||"adventure/create".equals(operation)){
         if(result==null||result.optString("battleId").isEmpty()){error("전투 응답을 확인하지 못했어요. 저장 위치를 다시 확인해 주세요.");return;}
         openBattle(result,body.optString("questId"));return;
       }
-      readState();
+      if(storyReply&&(!villageMode||published))acceptStoryState(result);else readState();
     });
   }
   JSONObject quest(String id) {
@@ -273,7 +299,7 @@ final class NativeRoster60StoryController {
   void openBattle(JSONObject initial,String questId) {
     if(!current())return;pause();h.rosterBattle=new NativeRoster60StoryBattle(h,initial,questId);h.rosterBattle.open();
   }
-  void pause() { if(villageMode){closeVillage();return;}reconnect.removeCallbacks(checkOwnSave);if(view!=null)view.pauseTyping();if(residentDialogue!=null){residentDialogue.dismiss();residentDialogue=null;} }
+  void pause() { if(villageMode){closeVillage(false);return;}reconnect.removeCallbacks(checkOwnSave);if(view!=null)view.pauseTyping();if(residentDialogue!=null){residentDialogue.dismiss();residentDialogue=null;} }
   void freeAdventure(){if(!current()||waiting())return;pause();h.openRosterBattle(Roster60BattleMode.ADVENTURE);}
   void playMenu(){if(!current()||waiting())return;pause();h.openPlayMenu();}
   static String reference(JSONObject value,String name){return value==null||value.isNull(name)?"":value.optString(name);}

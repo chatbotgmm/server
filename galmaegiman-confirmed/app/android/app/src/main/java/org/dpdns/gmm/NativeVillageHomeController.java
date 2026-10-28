@@ -21,6 +21,11 @@ final class NativeVillageHomeController {
   String mainStoryTarget="";
   String savedCamera="";
   int readGeneration;
+  static final long STORY_FRESH_MS=30_000;
+  JSONObject storySnapshot;
+  long storySnapshotAt,storyRevisionFloor=-1;
+  String storyContentVersion="";
+  final java.util.ArrayList<NativeApi.Result> storyWaiters=new java.util.ArrayList<>();
   int statueStage; // 0 means no authenticated stage has been read for this controller/account.
   boolean reading,paused,statueReadFailed;
   android.app.AlertDialog menu;
@@ -48,6 +53,37 @@ final class NativeVillageHomeController {
         pause();h.operations.close();h.busy=false;if(h.menus.extras.profilePopup!=null)h.menus.extras.profilePopup.dismiss();h.login();return;
       }
       if(!current()||generation!=readGeneration)return;reading=false;
+      if(error==null&&NativeRoster60StoryController.fullStoryState(result)){
+        if(!publishStorySnapshot(result)){finishStoryReaders(null,"이야기 상태가 변경됐어요. 다시 확인해 주세요.");}
+      }else{
+        storySnapshot=null;bindStoryState(result,error);finishStoryReaders(result,error);
+      }
+    });
+  }
+  JSONObject freshStorySnapshot(){
+    long age=android.os.SystemClock.elapsedRealtime()-storySnapshotAt;
+    return current()&&!reading&&storySnapshot!=null&&age>=0&&age<STORY_FRESH_MS?copyStory(storySnapshot):null;
+  }
+  static JSONObject copyStory(JSONObject value){try{return value==null?null:new JSONObject(value.toString());}catch(org.json.JSONException invalid){return null;}}
+  void requestStoryState(boolean force,NativeApi.Result callback){
+    if(!current())return;
+    JSONObject cached=force?null:freshStorySnapshot();if(cached!=null){callback.done(cached,null);return;}
+    storyWaiters.add(callback);refresh();
+  }
+  void ensureStoryFresh(){if(current()&&freshStorySnapshot()==null)refresh();}
+  void invalidateStorySnapshot(){storySnapshot=null;readGeneration++;reading=false;}
+  boolean publishStorySnapshot(JSONObject result){
+    if(!current()||!NativeRoster60StoryController.fullStoryState(result))return false;
+    long revision=result.optLong("revision");String version=result.optString("contentVersion");
+    if(version.equals(storyContentVersion)&&revision<storyRevisionFloor)return false;
+    storyContentVersion=version;storyRevisionFloor=revision;storySnapshot=copyStory(result);storySnapshotAt=android.os.SystemClock.elapsedRealtime();
+    readGeneration++;reading=false;bindStoryState(storySnapshot,null);finishStoryReaders(storySnapshot,null);return true;
+  }
+  void finishStoryReaders(JSONObject result,String error){
+    java.util.ArrayList<NativeApi.Result> callbacks=new java.util.ArrayList<>(storyWaiters);storyWaiters.clear();
+    for(NativeApi.Result callback:callbacks)callback.done(copyStory(result),error);
+  }
+  void bindStoryState(JSONObject result,String error){
       if(error==null){
         NativeCommander.sync(h,result==null?null:result.optJSONObject("commander"),owner,epoch);
         JSONObject statue=result==null?null:result.optJSONObject("statue");
@@ -61,7 +97,6 @@ final class NativeVillageHomeController {
       if(error!=null||list==null)problem="주민 부탁 상태를 불러오지 못했어요. 다시 확인할 수 있어요.";
       else {problem="";for(int i=0;i<list.length();i++){JSONObject npc=list.optJSONObject(i);if(npc!=null)residents.put(npc.optString("id"),npc);}}
       view.bindResidents();view.updateNotice();view.invalidate();
-    });
   }
   /** Only the authenticated main quest advertises the next object; never infer unlocks locally. */
   static String mainStoryTarget(JSONObject state){
@@ -88,7 +123,7 @@ final class NativeVillageHomeController {
   String residentStatus(String id){JSONObject npc=residents.get(id);return npc==null?"LOCKED":npc.optString("status","LOCKED");}
   String residentName(String id,String fallback){JSONObject npc=residents.get(id);return npc==null?fallback:npc.optString("name",fallback);}
   void saveCamera(){if(view!=null&&!owner.isEmpty()){String position=Double.toString(view.camera.cameraUnits());if(!position.equals(savedCamera)&&preferences.edit().putString(scope+":camera",position).commit())savedCamera=position;}}
-  void pause(){saveCamera();paused=true;readGeneration++;reading=false;if(view!=null){view.stopMotion();view.ambient.pause();view.assets.cancel();}if(menu!=null){menu.dismiss();menu=null;}}
+  void pause(){saveCamera();paused=true;invalidateStorySnapshot();storyWaiters.clear();if(view!=null){view.stopMotion();view.ambient.pause();view.assets.cancel();}if(menu!=null){menu.dismiss();menu=null;}}
   void resume(){
     if(!"home".equals(h.screen)||h.villageHome!=this)return;
     if(!owner.equals(h.api.token())){
@@ -100,6 +135,7 @@ final class NativeVillageHomeController {
       return;
     }
     if(epoch!=h.epoch)return;
+    if(!paused&&(reading||freshStorySnapshot()!=null))return;
     paused=false;if(view!=null){view.assets.setViewport(view.camera.cameraUnits(),view.field.width()>0?view.field.width()/view.unitPixels():1);view.assets.load(layout,this::current,()->{if(current()){view.updateNotice();view.invalidate();}});loadCurrentStatue();refresh();}
   }
   void resident(String id){
