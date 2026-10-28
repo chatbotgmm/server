@@ -1,7 +1,7 @@
 {
-  "version": "village-loop-v4-four-district-illustrations-20261028",
+  "version": "village-loop-v5-continuous-foundation-review",
   "worldUnits": 8,
-  "minimumUnitDp": 650,
+  "minimumUnitDp": 360,
   "minimumTouchDp": 48,
   "artworkStatus": "verified-local-assets",
   "architectureStyle": "cream-stone-rounded-arches-columns-ivy",
@@ -11,7 +11,7 @@
   "sourceNote": "개별 건물·주민·지면과 내륙 배경2개를 유지한다. 동상5단계는 공통1024×1536캔버스 원본과 현재 서버단계 지연로딩을 사용한다. stage2는 재검토된 construction 후보이며 사용자 최종승인 대기. native 전체5단계 합성 재검토 필요.",
   "sourceCommit": "2f1890e1df37b426cbfa27ccce8cd293186ad512",
   "sourceParentCommit": "c37c24ecb9399abf0cb438b25412924ffbe921db",
-  "sourceFileCount": 34,
+  "sourceFileCount": 47,
   "sourceTotalBytes": 53990875,
   "pixelReview": {
     "reviewedBy": "root",
@@ -56,7 +56,7 @@
   "layers": [
     {
       "id": "background",
-      "asset": "sea",
+      "asset": "",
       "parallax": 0.25,
       "sourceCrop": [
         0,
@@ -71,7 +71,7 @@
     },
     {
       "id": "sea",
-      "asset": "sea",
+      "asset": "",
       "parallax": 0.5,
       "sourceCrop": [
         0,
@@ -86,7 +86,7 @@
     },
     {
       "id": "terrain",
-      "asset": "terrain",
+      "asset": "",
       "parallax": 1,
       "sourceCrop": [
         0,
@@ -190,54 +190,48 @@
       ]
     },
     "recruit": {
-      "path": "native/village-loop-v2/assets/companions-v3-recruit.png",
+      "path": "native/village-loop-v2/assets/continuous-v5-recruit.png",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-continuous-20261028/recruit.png",
+      "sourceWidth": 1536,
+      "sourceHeight": 1024,
+      "sourceBytes": 2926228,
+      "sourceSha256": "1ea6f5c7b9c8e11cd12a8d542030fdda349d35ea959b1bbb3c179229eded3f0c",
+      "sourceGitBlobSha": "fc4452b43c9f8ee69841150bbacdf56081dbedf6",
       "verified": true,
+      "required": true,
+      "useSheetDirectly": false,
       "crop": [
-        0.023923444976076555,
-        0.02073365231259968,
-        0.9912280701754386,
-        0.9585326953748007
+        0.014322916666666666,
+        0.1025390625,
+        0.986328125,
+        0.9208984375
       ],
-      "sourcePath": "galmaegiman-confirmed/art/gpt/village-companions-20261027/recruit.png",
-      "sourceSha256": "f690f28c0094f9ef942861f0e727f5ff06f060e2729eca6bf9e2dd317db04401",
-      "sourceGitBlob": "ba419bc1f72924140fcc45978a92750b58b595b2",
-      "sourceBytes": 2230300,
-      "sourceWidth": 1254,
-      "sourceHeight": 1254,
-      "sourceMode": "RGBA",
-      "renderContentBoundsPx": [
-        30,
-        26,
-        1243,
-        1202
-      ],
-      "renderBoundsAlphaThreshold": 128,
-      "artReview": "root-technical-review-user-style-approval-pending"
+      "artReview": {
+        "status": "pending-user-review",
+        "basis": "Unmodified source; full circumference native review required"
+      }
     },
     "hideout": {
-      "path": "native/village-loop-v2/assets/companions-v3-hideout.png",
+      "path": "native/village-loop-v2/assets/continuous-v5-hideout.png",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-continuous-20261028/hideout.png",
+      "sourceWidth": 1536,
+      "sourceHeight": 1024,
+      "sourceBytes": 2810484,
+      "sourceSha256": "deacfa620075f76b4728cc73dbe503057f695204c60944926b4b996019ae63b9",
+      "sourceGitBlobSha": "52aa056c24c9f1ff78a2679b68bdb32c60c48618",
       "verified": true,
+      "required": true,
+      "useSheetDirectly": false,
       "crop": [
-        0.1379585326953748,
-        0.008771929824561403,
-        0.8644338118022329,
-        0.9441786283891547
+        0.024088541666666668,
+        0.005859375,
+        0.9765625,
+        0.986328125
       ],
-      "sourcePath": "galmaegiman-confirmed/art/gpt/village-companions-20261027/hideout.png",
-      "sourceSha256": "888fb330ee4421f7b61417fb40fb2b7f7fc484fb9f371c146be8ae34c389a246",
-      "sourceGitBlob": "47ed03c2eabb23fb642875aef8cbb80c6a60a0ec",
-      "sourceBytes": 1411404,
-      "sourceWidth": 1254,
-      "sourceHeight": 1254,
-      "sourceMode": "RGBA",
-      "renderContentBoundsPx": [
-        173,
-        11,
-        1084,
-        1184
-      ],
-      "renderBoundsAlphaThreshold": 128,
-      "artReview": "root-technical-review-user-style-approval-pending"
+      "artReview": {
+        "status": "pending-user-review",
+        "basis": "Unmodified source; full circumference native review required"
+      }
     },
     "archive": {
       "path": "native/village-loop-v2/assets/districts-v4-records-records.png",
@@ -1034,6 +1028,292 @@
       "artworkStatus": "generated-local-candidate-user-review-pending",
       "sourceBytes": 1797742,
       "artReview": "technical candidate inspected; user final review pending"
+    },
+    "continuous-sky": {
+      "path": "native/village-loop-v2/assets/continuous-v5-sky.png",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-continuous-20261028/sky.png",
+      "sourceWidth": 2172,
+      "sourceHeight": 724,
+      "sourceBytes": 2090250,
+      "sourceSha256": "a8642405b0d4047e43fc052f6db7e171fd13bc39fe83fa2619bb6d8f0d13e998",
+      "sourceGitBlobSha": "5baedc18d6c812ea8892484c89f1dcd9a674ae11",
+      "verified": true,
+      "required": true,
+      "useSheetDirectly": false,
+      "crop": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "artReview": {
+        "status": "pending-user-review",
+        "basis": "Unmodified source; full circumference native review required"
+      }
+    },
+    "continuous-ground": {
+      "path": "native/village-loop-v2/assets/continuous-v5-ground.png",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-continuous-20261028/ground.png",
+      "sourceWidth": 2172,
+      "sourceHeight": 724,
+      "sourceBytes": 3319741,
+      "sourceSha256": "bd4f4a3fbb53deb372f84f13b6e53e078973a492ee003f7cac181de41db706c8",
+      "sourceGitBlobSha": "4e8a10a91af89b483a9d76ccc1f3737a5caa8fb0",
+      "verified": true,
+      "required": true,
+      "useSheetDirectly": false,
+      "crop": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "artReview": {
+        "status": "pending-user-review",
+        "basis": "Unmodified source; full circumference native review required"
+      }
+    },
+    "continuous-platform": {
+      "path": "native/village-loop-v2/assets/continuous-v5-platform.png",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-continuous-20261028/platform.png",
+      "sourceWidth": 1774,
+      "sourceHeight": 887,
+      "sourceBytes": 1521078,
+      "sourceSha256": "dd1e7c04faf46a595c864d754b45fdbb4f9c79a3a473a4c056ae74cd37e38fcb",
+      "sourceGitBlobSha": "3981e72d606747416d3d1aad29eec4b19332c3d6",
+      "verified": true,
+      "required": true,
+      "useSheetDirectly": false,
+      "crop": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "artReview": {
+        "status": "pending-user-review",
+        "basis": "Unmodified source; full circumference native review required"
+      }
+    },
+    "continuous-town-silhouette": {
+      "path": "native/village-loop-v2/assets/continuous-v5-town-silhouette.png",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-continuous-20261028/town-silhouette.png",
+      "sourceWidth": 2172,
+      "sourceHeight": 724,
+      "sourceBytes": 2142799,
+      "sourceSha256": "405c2eb16f1bf0b395d2319fe40637858bf0367a627b24cc47a2e55d68f1b2d0",
+      "sourceGitBlobSha": "a86cb0fb1d6aaf92a7f10e1df2dbf10e47f37710",
+      "verified": true,
+      "required": true,
+      "useSheetDirectly": false,
+      "crop": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "artReview": {
+        "status": "pending-user-review",
+        "basis": "Unmodified source; full circumference native review required"
+      }
+    },
+    "continuous-town-silhouette-2": {
+      "path": "native/village-loop-v2/assets/continuous-v5-town-silhouette-2.png",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-continuous-20261028/town-silhouette-2.png",
+      "sourceWidth": 2172,
+      "sourceHeight": 724,
+      "sourceBytes": 2385301,
+      "sourceSha256": "ee5a9597b02a3483f9b1730d85f7abe34372a8e48f169237b335023e505bfd39",
+      "sourceGitBlobSha": "03a2d708217d5f7fd912e1b4390234daf25252f3",
+      "verified": true,
+      "required": true,
+      "useSheetDirectly": false,
+      "crop": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "artReview": {
+        "status": "pending-user-review",
+        "basis": "Unmodified source; full circumference native review required"
+      }
+    },
+    "continuous-lane-props": {
+      "path": "native/village-loop-v2/assets/continuous-v5-lane-props.png",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-continuous-20261028/lane-props.png",
+      "sourceWidth": 2172,
+      "sourceHeight": 724,
+      "sourceBytes": 1859824,
+      "sourceSha256": "8e4860bb378862c27ebcf5ee2037ffd1f005a28bb6fbc85a7f37eebd8de99e68",
+      "sourceGitBlobSha": "f6551f7e38501bff7e884a408ae417ab92532756",
+      "verified": true,
+      "required": true,
+      "useSheetDirectly": false,
+      "crop": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "artReview": {
+        "status": "pending-user-review",
+        "basis": "Unmodified source; full circumference native review required"
+      }
+    },
+    "continuous-harbor-inlet": {
+      "path": "native/village-loop-v2/assets/continuous-v5-harbor-open.png",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-continuous-20261028/harbor-open.png",
+      "sourceWidth": 2172,
+      "sourceHeight": 724,
+      "sourceBytes": 2596829,
+      "sourceSha256": "9d82e4a7f39eb5d76e9f1678ca1bcc895b962a0939e37a31b46947e24ed513f0",
+      "sourceGitBlobSha": "d9928463f1dcb99330d506a8e779501a9bcf1f30",
+      "verified": true,
+      "required": true,
+      "useSheetDirectly": false,
+      "crop": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "artReview": {
+        "status": "pending-user-review",
+        "basis": "Unmodified source; full circumference native review required"
+      }
+    },
+    "training": {
+      "path": "native/village-loop-v2/assets/continuous-v5-training.png",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-continuous-20261028/training.png",
+      "sourceWidth": 1536,
+      "sourceHeight": 1024,
+      "sourceBytes": 2881600,
+      "sourceSha256": "0ca283c9207b80c3ec7e7af156c3c5d79e7df9005bd6db8926e331bcff99ff21",
+      "sourceGitBlobSha": "8e09da981c5b4e915fc6b3581dbaf60b00cc7be6",
+      "verified": true,
+      "required": true,
+      "useSheetDirectly": false,
+      "crop": [
+        0.024088541666666668,
+        0.0517578125,
+        0.9850260416666666,
+        0.93359375
+      ],
+      "artReview": {
+        "status": "pending-user-review",
+        "basis": "Unmodified source; full circumference native review required"
+      }
+    },
+    "training-nameplate": {
+      "path": "native/village-loop-v2/assets/continuous-v5-activity-nameplates.png",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-continuous-20261028/activity-nameplates.png",
+      "sourceWidth": 1024,
+      "sourceHeight": 1536,
+      "sourceBytes": 1933309,
+      "sourceSha256": "d49c805ff8d8ea90d01a2fe4c8bc5aa0ed496b8341a69483242eaed44406bfe0",
+      "sourceGitBlobSha": "896b029528fa5fec81b7d97e55ae1cef1c982b94",
+      "verified": true,
+      "required": true,
+      "useSheetDirectly": false,
+      "crop": [
+        0.03125,
+        0.12174479166666667,
+        0.9677734375,
+        0.3053385416666667
+      ],
+      "artReview": {
+        "status": "pending-user-review",
+        "basis": "Unmodified source; full circumference native review required"
+      }
+    },
+    "harbor-nameplate": {
+      "path": "native/village-loop-v2/assets/continuous-v5-activity-nameplates.png",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-continuous-20261028/activity-nameplates.png",
+      "sourceWidth": 1024,
+      "sourceHeight": 1536,
+      "sourceBytes": 1933309,
+      "sourceSha256": "d49c805ff8d8ea90d01a2fe4c8bc5aa0ed496b8341a69483242eaed44406bfe0",
+      "sourceGitBlobSha": "896b029528fa5fec81b7d97e55ae1cef1c982b94",
+      "verified": true,
+      "required": true,
+      "useSheetDirectly": false,
+      "crop": [
+        0.03125,
+        0.4127604166666667,
+        0.9677734375,
+        0.5963541666666666
+      ],
+      "artReview": {
+        "status": "pending-user-review",
+        "basis": "Unmodified source; full circumference native review required"
+      }
+    },
+    "statue-nameplate": {
+      "path": "native/village-loop-v2/assets/continuous-v5-activity-nameplates.png",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-continuous-20261028/activity-nameplates.png",
+      "sourceWidth": 1024,
+      "sourceHeight": 1536,
+      "sourceBytes": 1933309,
+      "sourceSha256": "d49c805ff8d8ea90d01a2fe4c8bc5aa0ed496b8341a69483242eaed44406bfe0",
+      "sourceGitBlobSha": "896b029528fa5fec81b7d97e55ae1cef1c982b94",
+      "verified": true,
+      "required": true,
+      "useSheetDirectly": false,
+      "crop": [
+        0.03125,
+        0.7044270833333334,
+        0.9677734375,
+        0.8880208333333334
+      ],
+      "artReview": {
+        "status": "pending-user-review",
+        "basis": "Unmodified source; full circumference native review required"
+      }
+    },
+    "continuous-garden-wall": {
+      "path": "native/village-loop-v2/assets/continuous-v5-platform.png",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-continuous-20261028/platform.png",
+      "sourceWidth": 1774,
+      "sourceHeight": 887,
+      "sourceBytes": 1521078,
+      "sourceSha256": "dd1e7c04faf46a595c864d754b45fdbb4f9c79a3a473a4c056ae74cd37e38fcb",
+      "sourceGitBlobSha": "3981e72d606747416d3d1aad29eec4b19332c3d6",
+      "verified": true,
+      "required": true,
+      "useSheetDirectly": false,
+      "crop": [
+        0.06,
+        0.2,
+        0.6,
+        0.44
+      ],
+      "artReview": {
+        "status": "pending-user-review",
+        "basis": "Unmodified source; full circumference native review required"
+      }
+    },
+    "continuous-boundary-wall": {
+      "path": "native/village-loop-v2/assets/continuous-v5-boundary-wall.png",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-continuous-20261028/boundary-wall.png",
+      "sourceWidth": 2172,
+      "sourceHeight": 724,
+      "sourceBytes": 1645780,
+      "sourceSha256": "5cfa3579865ed2f3a4bcf4ee5342141a8e2fcbe0bca3777c28c0803286fa9d89",
+      "sourceGitBlobSha": "20399f500ae2d80d8b013ff2c45d628cef07ade8",
+      "verified": true,
+      "required": true,
+      "useSheetDirectly": false,
+      "crop": [
+        0.0,
+        0.2513812154696133,
+        1.0,
+        0.7665745856353591
+      ],
+      "artReview": {
+        "status": "pending-user-review",
+        "basis": "Unmodified source; full circumference native review required"
+      }
     }
   },
   "buildings": [
@@ -1042,74 +1322,46 @@
       "name": "방범대 지원소",
       "sub": "새 동료 만나기",
       "asset": "recruit",
-      "x": 0.48,
+      "x": 0.45,
       "width": 0.468,
-      "baseline": 0.86,
+      "baseline": 0.8,
       "menu": [
         "동료 모집"
       ],
       "actionIds": [
         "recruit"
       ],
-      "heightRatio": 0.62,
-      "surface": "companions-terrace",
-      "sourceX": 0.20992822966507177,
-      "sourceY": 0.8,
-      "shadow": {
-        "asset": "companions-shadows",
-        "crop": [
-          0,
-          0.0,
-          1,
-          0.3330078125
-        ],
-        "anchorX": 0.36,
-        "anchorY": 0.7,
-        "widthRatio": 1.8,
-        "opacity": 0.26
-      }
+      "heightRatio": 0.55,
+      "topClearanceDp": 24,
+      "occludes": [
+        "hideout"
+      ]
     },
     {
       "id": "hideout",
       "name": "방범대 아지트",
       "sub": "우리 팀의 쉼터",
       "asset": "hideout",
-      "x": 1.04,
+      "x": 1.28,
       "width": 0.546,
-      "baseline": 0.86,
+      "baseline": 0.78,
       "menu": [
         "방범대 편성"
       ],
       "actionIds": [
         "party"
       ],
-      "heightRatio": 0.54,
-      "surface": "companions-terrace",
-      "sourceX": 0.5651913875598086,
-      "sourceY": 0.6404255319148936,
-      "topClearanceDp": 24,
-      "shadow": {
-        "asset": "companions-shadows",
-        "crop": [
-          0,
-          0.3330078125,
-          1,
-          0.666015625
-        ],
-        "anchorX": 0.39,
-        "anchorY": 0.54,
-        "widthRatio": 1.6,
-        "opacity": 0.36
-      }
+      "heightRatio": 0.61,
+      "topClearanceDp": 24
     },
     {
       "id": "archive",
       "name": "기록소",
       "sub": "도감 · 조합",
       "asset": "archive",
-      "x": 2.54,
+      "x": 2.25,
       "width": 0.546,
-      "baseline": 0.86,
+      "baseline": 0.78,
       "menu": [
         "도감",
         "조합"
@@ -1119,32 +1371,19 @@
         "craft"
       ],
       "heightRatio": 0.57,
-      "surface": "records-terrace",
-      "sourceX": 0.25,
-      "sourceY": 0.63,
       "topClearanceDp": 24,
-      "shadow": {
-        "asset": "companions-shadows",
-        "crop": [
-          0,
-          0,
-          1,
-          0.3330078125
-        ],
-        "anchorX": 0.4,
-        "anchorY": 0.7,
-        "widthRatio": 1.25,
-        "opacity": 0.24
-      }
+      "surface": "library-platform",
+      "sourceX": 0.5,
+      "sourceY": 0.6
     },
     {
       "id": "mailbox",
       "name": "우편함",
       "sub": "우편 · 이벤트 · 소식",
       "asset": "mailbox",
-      "x": 3.05,
+      "x": 3.65,
       "width": 0.13,
-      "baseline": 0.86,
+      "baseline": 0.84,
       "menu": [
         "우편",
         "이벤트 소식",
@@ -1155,74 +1394,72 @@
         "events",
         "notices"
       ],
-      "heightRatio": 0.145,
-      "surface": "records-terrace",
-      "sourceX": 0.49,
-      "sourceY": 0.8
+      "heightRatio": 0.17,
+      "topClearanceDp": 24
     },
     {
       "id": "harbor",
-      "name": "플레이",
-      "sub": "바다로 떠나기",
+      "name": "선착장",
+      "sub": "탐험 · 외부 출항",
       "asset": "harbor",
-      "x": 4.6,
+      "x": 4.7,
       "width": 0.676,
-      "baseline": 0.86,
+      "baseline": 0.8,
       "menu": [
         "탐험",
-        "스토리",
-        "일반전",
-        "랭크전"
+        "스토리 외부 출항"
       ],
       "actionIds": [
         "explore",
-        "story",
-        "normal",
-        "rank"
+        "departure"
       ],
-      "heightRatio": 0.65,
-      "surface": "harbor-terrace",
-      "sourceX": 0.46,
-      "sourceY": 0.8,
+      "heightRatio": 0.58,
       "behindTerrace": true,
-      "topClearanceDp": 24
+      "topClearanceDp": 24,
+      "surface": "harbor-water",
+      "sourceX": 0.48,
+      "sourceY": 0.85
     },
     {
       "id": "market",
       "name": "시장",
-      "sub": "아이템 · 패스 · 재화",
+      "sub": "아이템 · 재화",
       "asset": "market",
-      "x": 6.55,
+      "x": 6.35,
       "width": 0.715,
-      "baseline": 0.86,
+      "baseline": 0.8,
       "menu": [
         "아이템",
-        "패스",
         "유료 재화 관리"
       ],
       "actionIds": [
         "items",
-        "pass",
         "currency"
       ],
-      "heightRatio": 0.62,
-      "surface": "market-terrace",
-      "sourceX": 0.31100478468899523,
-      "sourceY": 0.84,
+      "heightRatio": 0.59,
+      "topClearanceDp": 24
+    },
+    {
+      "id": "training",
+      "name": "전투연습장",
+      "sub": "일반전 · 랭크전",
+      "asset": "training",
+      "x": 5.55,
+      "width": 0.65,
+      "baseline": 0.82,
+      "heightRatio": 0.49,
       "topClearanceDp": 24,
-      "shadow": {
-        "asset": "companions-shadows",
-        "crop": [
-          0,
-          0,
-          1,
-          0.3330078125
-        ],
-        "anchorX": 0.4,
-        "anchorY": 0.7,
-        "widthRatio": 1.25,
-        "opacity": 0.24
-      }
+      "occludes": [
+        "market"
+      ],
+      "menu": [
+        "일반전",
+        "랭크전"
+      ],
+      "actionIds": [
+        "normal",
+        "rank"
+      ]
     }
   ],
   "props": [],
@@ -1232,136 +1469,77 @@
       "role": "대장장이",
       "silhouette": "large-blacksmith",
       "asset": "blacksmith",
-      "x": 6.15,
+      "x": 7.48,
       "width": 0.17,
-      "baseline": 0.91,
-      "heightRatio": 0.3,
-      "surface": "market-terrace",
-      "sourceX": 0.8,
-      "sourceY": 0.85,
-      "shadow": {
-        "asset": "companions-shadows",
-        "crop": [
-          0,
-          0.666015625,
-          1,
-          1
-        ],
-        "anchorX": 0.5,
-        "anchorY": 0.56,
-        "widthRatio": 1.15,
-        "opacity": 0.3
-      }
+      "baseline": 0.84,
+      "heightRatio": 0.28,
+      "surface": "forge-platform",
+      "sourceX": 0.69,
+      "sourceY": 0.77
     },
     {
       "id": "merchant",
       "role": "상인",
       "silhouette": "slender-merchant",
       "asset": "merchant",
-      "x": 6.9,
+      "x": 6.61,
       "width": 0.1,
-      "baseline": 0.91,
-      "heightRatio": 0.27,
-      "surface": "market-terrace",
-      "sourceX": 0.51,
-      "sourceY": 0.86,
+      "baseline": 0.84,
+      "heightRatio": 0.26,
       "occludes": [
         "market"
-      ],
-      "shadow": {
-        "asset": "companions-shadows",
-        "crop": [
-          0,
-          0.666015625,
-          1,
-          1
-        ],
-        "anchorX": 0.5,
-        "anchorY": 0.56,
-        "widthRatio": 1.15,
-        "opacity": 0.3
-      }
+      ]
     },
     {
       "id": "librarian",
       "role": "사서",
       "silhouette": "stooped-elder-librarian",
       "asset": "librarian",
-      "x": 2.88,
+      "x": 2.48,
       "width": 0.105,
-      "baseline": 0.91,
-      "heightRatio": 0.27,
-      "surface": "records-terrace",
-      "sourceX": 0.36,
-      "sourceY": 0.82,
+      "baseline": 0.82,
+      "heightRatio": 0.25,
+      "surface": "library-platform",
+      "sourceX": 0.82,
+      "sourceY": 0.73,
       "occludes": [
         "archive"
-      ],
-      "shadow": {
-        "asset": "companions-shadows",
-        "crop": [
-          0,
-          0.666015625,
-          1,
-          1
-        ],
-        "anchorX": 0.5,
-        "anchorY": 0.56,
-        "widthRatio": 1.15,
-        "opacity": 0.3
-      }
+      ]
     },
     {
       "id": "guard",
       "role": "방범대원",
       "silhouette": "angular-stone-wing-patrol",
       "asset": "patrol",
-      "x": 0.76,
+      "x": 1.54,
       "width": 0.13,
-      "baseline": 0.91,
-      "heightRatio": 0.3,
-      "surface": "companions-terrace",
-      "sourceX": 0.37978468899521534,
-      "sourceY": 0.8595744680851064,
+      "baseline": 0.84,
+      "heightRatio": 0.27,
       "occludes": [
-        "recruit",
         "hideout"
-      ],
-      "shadow": {
-        "asset": "companions-shadows",
-        "crop": [
-          0,
-          0.666015625,
-          1,
-          1.0
-        ],
-        "anchorX": 0.5,
-        "anchorY": 0.56,
-        "widthRatio": 1.1,
-        "opacity": 0.48
-      }
+      ]
     }
   ],
   "decorations": [
     {
       "id": "market-forge-workshop",
       "asset": "market-forge",
-      "x": 7.05,
+      "x": 7.35,
       "width": 0.55,
-      "baseline": 0.81,
+      "baseline": 0.79,
+      "heightRatio": 0.52,
       "parallax": 1,
-      "heightRatio": 0.54,
-      "surface": "market-terrace",
-      "sourceX": 0.7057416267942583,
-      "sourceY": 0.6429330499468651
+      "surface": "forge-platform",
+      "sourceX": 0.5,
+      "sourceY": 0.6
     }
   ],
   "decorationSourceCommit": "78660ff70397434751a4aaa1b4fce85b10cc72ab",
   "landmark": {
     "id": "restoration-plaza",
-    "x": 3.58,
+    "x": 3.25,
     "width": 0.42,
-    "baseline": 0.88,
+    "baseline": 0.8,
     "stageAssets": [
       "statue-stage-1",
       "statue-stage-2",
@@ -1372,123 +1550,267 @@
     "stateSource": "native/roster60/story/state:statue.stage",
     "artworkStatus": "all-five-technical-candidates-integrated-user-final-approval-pending",
     "groundAnchor": 0.9778645833333334,
-    "surface": "records-terrace",
-    "sourceX": 0.71,
-    "sourceY": 0.74
+    "surface": "statue-platform",
+    "sourceX": 0.5,
+    "sourceY": 0.6
   },
   "districtScenery": [
     {
-      "id": "records-backdrop",
-      "district": "memory",
-      "asset": "records-background",
-      "depth": "backdrop",
-      "x": 2.75,
-      "heightRatio": 1.25,
-      "baseline": 1,
-      "groundAnchor": 0.8,
-      "fadeUnits": 0.08,
-      "minimumViewportWidth": 1.08,
-      "repeatToDistrict": true,
-      "tileOverlapUnits": 0.12
-    },
-    {
-      "id": "records-terrace",
-      "district": "memory",
-      "asset": "records-terrace",
-      "depth": "terrace",
-      "x": 2.75,
-      "heightRatio": 1,
-      "baseline": 0.98,
-      "groundAnchor": 0.93,
-      "fadeUnits": 0.08,
-      "minimumViewportWidth": 1.08,
-      "repeatToDistrict": true,
-      "tileOverlapUnits": 0.12
-    },
-    {
-      "id": "harbor-backdrop",
-      "district": "harbor",
-      "asset": "harbor-background",
-      "depth": "backdrop",
-      "x": 4.75,
-      "heightRatio": 1.25,
-      "baseline": 1,
-      "groundAnchor": 0.8,
-      "fadeUnits": 0.08,
-      "minimumViewportWidth": 1.08,
-      "repeatToDistrict": true,
-      "tileOverlapUnits": 0.12
-    },
-    {
-      "id": "harbor-terrace",
-      "district": "harbor",
-      "asset": "harbor-terrace",
-      "depth": "terrace",
-      "x": 4.75,
-      "heightRatio": 1,
-      "baseline": 0.98,
-      "groundAnchor": 0.93,
-      "fadeUnits": 0.08,
-      "minimumViewportWidth": 1.08,
-      "repeatToDistrict": true,
-      "tileOverlapUnits": 0.12
-    },
-    {
-      "id": "market-backdrop",
-      "district": "market",
-      "asset": "market-background",
-      "depth": "backdrop",
-      "x": 6.75,
-      "heightRatio": 1.25,
-      "baseline": 1,
-      "groundAnchor": 0.8,
-      "fadeUnits": 0.08,
-      "minimumViewportWidth": 1.08,
-      "repeatToDistrict": true,
-      "tileOverlapUnits": 0.12
-    },
-    {
-      "id": "market-terrace",
-      "district": "market",
-      "asset": "market-terrace",
-      "depth": "terrace",
-      "x": 6.75,
-      "heightRatio": 1,
-      "baseline": 0.98,
-      "groundAnchor": 0.93,
-      "fadeUnits": 0.08,
-      "minimumViewportWidth": 1.08,
-      "repeatToDistrict": true,
-      "tileOverlapUnits": 0.12
-    },
-    {
-      "id": "companions-backdrop",
+      "id": "town-rear-west",
       "district": "companions",
-      "asset": "companions-background",
+      "asset": "continuous-town-silhouette",
       "depth": "backdrop",
-      "x": 0.75,
-      "heightRatio": 1.25,
-      "baseline": 1,
-      "groundAnchor": 0.8,
-      "fadeUnits": 0.08,
-      "minimumViewportWidth": 1.08,
-      "repeatToDistrict": true,
-      "tileOverlapUnits": 0.12
+      "x": 1.05,
+      "heightRatio": 0.43,
+      "baseline": 0.73,
+      "groundAnchor": 1,
+      "fadeUnits": 0,
+      "clipTop": 0,
+      "clipSourceTop": 0,
+      "minimumViewportWidth": 0,
+      "minimumWorldWidth": 0,
+      "repeatToDistrict": false,
+      "tileOverlapUnits": 0
     },
     {
-      "id": "companions-terrace",
+      "id": "town-rear-east",
+      "district": "market",
+      "asset": "continuous-town-silhouette-2",
+      "depth": "backdrop",
+      "x": 6.95,
+      "heightRatio": 0.42,
+      "baseline": 0.78,
+      "groundAnchor": 1,
+      "fadeUnits": 0,
+      "clipTop": 0,
+      "clipSourceTop": 0,
+      "minimumViewportWidth": 0,
+      "minimumWorldWidth": 0,
+      "repeatToDistrict": false,
+      "tileOverlapUnits": 0
+    },
+    {
+      "id": "boundary-west",
       "district": "companions",
-      "asset": "companions-terrace",
+      "asset": "continuous-boundary-wall",
+      "depth": "backdrop",
+      "x": 0.3,
+      "heightRatio": 0.14,
+      "baseline": 0.735,
+      "groundAnchor": 1,
+      "fadeUnits": 0,
+      "clipTop": 0,
+      "clipSourceTop": 0,
+      "minimumViewportWidth": 0,
+      "minimumWorldWidth": 0,
+      "repeatToDistrict": false,
+      "tileOverlapUnits": 0
+    },
+    {
+      "id": "boundary-library-return",
+      "district": "memory",
+      "asset": "continuous-boundary-wall",
+      "depth": "backdrop",
+      "x": 2.45,
+      "heightRatio": 0.14,
+      "baseline": 0.735,
+      "groundAnchor": 1,
+      "fadeUnits": 0,
+      "clipTop": 0,
+      "clipSourceTop": 0,
+      "minimumViewportWidth": 0,
+      "minimumWorldWidth": 0,
+      "repeatToDistrict": false,
+      "tileOverlapUnits": 0
+    },
+    {
+      "id": "boundary-library",
+      "district": "memory",
+      "asset": "continuous-boundary-wall",
+      "depth": "backdrop",
+      "x": 3.15,
+      "heightRatio": 0.14,
+      "baseline": 0.735,
+      "groundAnchor": 1,
+      "fadeUnits": 0,
+      "clipTop": 0,
+      "clipSourceTop": 0,
+      "minimumViewportWidth": 0,
+      "minimumWorldWidth": 0,
+      "repeatToDistrict": false,
+      "tileOverlapUnits": 0
+    },
+    {
+      "id": "boundary-market",
+      "district": "market",
+      "asset": "continuous-boundary-wall",
+      "depth": "backdrop",
+      "x": 6.8,
+      "heightRatio": 0.14,
+      "baseline": 0.735,
+      "groundAnchor": 1,
+      "fadeUnits": 0,
+      "clipTop": 0,
+      "clipSourceTop": 0,
+      "minimumViewportWidth": 0,
+      "minimumWorldWidth": 0,
+      "repeatToDistrict": false,
+      "tileOverlapUnits": 0
+    },
+    {
+      "id": "boundary-wrap",
+      "district": "market",
+      "asset": "continuous-boundary-wall",
+      "depth": "backdrop",
+      "x": 7.8,
+      "heightRatio": 0.14,
+      "baseline": 0.735,
+      "groundAnchor": 1,
+      "fadeUnits": 0,
+      "clipTop": 0,
+      "clipSourceTop": 0,
+      "minimumViewportWidth": 0,
+      "minimumWorldWidth": 0,
+      "repeatToDistrict": false,
+      "tileOverlapUnits": 0
+    },
+    {
+      "id": "library-platform",
+      "district": "memory",
+      "asset": "continuous-platform",
       "depth": "terrace",
-      "x": 0.75,
-      "heightRatio": 1,
-      "baseline": 0.98,
-      "groundAnchor": 0.93,
-      "fadeUnits": 0.08,
-      "minimumViewportWidth": 1.04,
-      "repeatToDistrict": true,
-      "tileOverlapUnits": 0.12
+      "x": 2.25,
+      "heightRatio": 0.45,
+      "baseline": 0.9,
+      "groundAnchor": 0.9,
+      "fadeUnits": 0,
+      "clipTop": 0,
+      "clipSourceTop": 0,
+      "minimumViewportWidth": 0,
+      "minimumWorldWidth": 0,
+      "repeatToDistrict": false,
+      "tileOverlapUnits": 0
+    },
+    {
+      "id": "library-garden-return",
+      "district": "memory",
+      "asset": "continuous-garden-wall",
+      "depth": "backdrop",
+      "x": 2.45,
+      "heightRatio": 0.16,
+      "baseline": 0.74,
+      "groundAnchor": 1,
+      "fadeUnits": 0,
+      "clipTop": 0,
+      "clipSourceTop": 0,
+      "minimumViewportWidth": 0,
+      "minimumWorldWidth": 0,
+      "repeatToDistrict": false,
+      "tileOverlapUnits": 0
+    },
+    {
+      "id": "library-garden-wall",
+      "district": "memory",
+      "asset": "continuous-garden-wall",
+      "depth": "backdrop",
+      "x": 3.15,
+      "heightRatio": 0.16,
+      "baseline": 0.74,
+      "groundAnchor": 1,
+      "fadeUnits": 0,
+      "clipTop": 0,
+      "clipSourceTop": 0,
+      "minimumViewportWidth": 0,
+      "minimumWorldWidth": 0,
+      "repeatToDistrict": false,
+      "tileOverlapUnits": 0
+    },
+    {
+      "id": "statue-platform",
+      "district": "memory",
+      "asset": "continuous-platform",
+      "depth": "terrace",
+      "x": 3.25,
+      "heightRatio": 0.32,
+      "baseline": 0.88,
+      "groundAnchor": 0.9,
+      "fadeUnits": 0,
+      "clipTop": 0,
+      "clipSourceTop": 0,
+      "minimumViewportWidth": 0,
+      "minimumWorldWidth": 0,
+      "repeatToDistrict": false,
+      "tileOverlapUnits": 0
+    },
+    {
+      "id": "forge-platform",
+      "district": "market",
+      "asset": "continuous-platform",
+      "depth": "terrace",
+      "x": 7.35,
+      "heightRatio": 0.42,
+      "baseline": 0.89,
+      "groundAnchor": 0.9,
+      "fadeUnits": 0,
+      "clipTop": 0,
+      "clipSourceTop": 0,
+      "minimumViewportWidth": 0,
+      "minimumWorldWidth": 0,
+      "repeatToDistrict": false,
+      "tileOverlapUnits": 0
+    },
+    {
+      "id": "harbor-water",
+      "district": "harbor",
+      "asset": "continuous-harbor-inlet",
+      "depth": "backdrop",
+      "x": 4.7,
+      "heightRatio": 0.55,
+      "baseline": 0.87,
+      "groundAnchor": 0.98,
+      "fadeUnits": 0,
+      "clipTop": 0,
+      "clipSourceTop": 0,
+      "minimumViewportWidth": 0,
+      "minimumWorldWidth": 0,
+      "repeatToDistrict": false,
+      "tileOverlapUnits": 0
+    },
+    {
+      "id": "shore-rest",
+      "district": "harbor",
+      "asset": "continuous-lane-props",
+      "depth": "backdrop",
+      "x": 4.15,
+      "heightRatio": 0.39,
+      "baseline": 0.81,
+      "groundAnchor": 1,
+      "fadeUnits": 0,
+      "clipTop": 0,
+      "clipSourceTop": 0,
+      "minimumViewportWidth": 0,
+      "minimumWorldWidth": 0,
+      "repeatToDistrict": false,
+      "tileOverlapUnits": 0
+    },
+    {
+      "id": "harbor-quay",
+      "district": "harbor",
+      "asset": "continuous-harbor-inlet",
+      "depth": "terrace",
+      "x": 4.7,
+      "heightRatio": 0.55,
+      "baseline": 0.87,
+      "groundAnchor": 0.98,
+      "fadeUnits": 0,
+      "clipTop": 0,
+      "clipSourceTop": 0.8,
+      "minimumViewportWidth": 0,
+      "minimumWorldWidth": 0,
+      "repeatToDistrict": false,
+      "tileOverlapUnits": 0
     }
   ],
-  "compositionBaseCommit": "235db63768e67d737af4b6eb53612ab980c51d19"
+  "compositionBaseCommit": "235db63768e67d737af4b6eb53612ab980c51d19",
+  "continuousFoundation": true
 }

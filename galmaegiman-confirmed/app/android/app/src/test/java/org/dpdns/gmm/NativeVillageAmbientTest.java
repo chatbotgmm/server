@@ -21,7 +21,7 @@ public class NativeVillageAmbientTest {
   @After public void restore()throws Exception{LocalGameArtTest.drain();helper.restore();}
   NativeVillageHomeView loaded(MainActivity h)throws Exception{
     NativeVillageHomeView v=fixture.open(h,NativeVillageHomeTest.PHONE);LocalGameArtTest.drain();helper.layout(h,NativeVillageHomeTest.PHONE);
-    assertTrue(v.assets.ready());assertNotNull(v.assets.get("grove"));assertNotNull(v.assets.get("neighborhood"));v.ambient.fixedTime=1400L;return v;
+    assertTrue(v.assets.ready());assertNotNull(v.assets.get("continuous-sky"));assertNotNull(v.assets.get("continuous-ground"));v.ambient.fixedTime=1400L;return v;
   }
   void settleViewport(MainActivity h,NativeVillageHomeView v)throws Exception{
     for(int i=0;i<4;i++){LocalGameArtTest.drain();helper.layout(h,NativeVillageHomeTest.PHONE);}
@@ -43,16 +43,19 @@ public class NativeVillageAmbientTest {
   @Test public void timeChangesLocalWaterPixelsButNeverSkyGroundBuildingsOrInland()throws Exception{
     try(ActivityController<MainActivity> activity=helper.flow.start()){
       MainActivity h=activity.get();fixture.prepare(h);NativeVillageHomeView v=loaded(h);
-      v.moveCameraUnits(4.875-v.camera.cameraUnits());LocalGameArtTest.drain();v.ambient.fixedTime=0L;
+      v.moveCameraUnits(3.75-v.camera.cameraUnits());settleViewport(h,v);v.ambient.fixedTime=0L;
+      VillageLayout.DistrictScenery water=v.layout.districtScenery("harbor-water");assertTrue(v.districtScene.geometry(v,water,v.assets.get(water.asset)));
+      android.graphics.RectF region=new android.graphics.RectF(v.districtScene.target);
+      region.set(region.left+region.width()*.18f,region.top+region.height()*.24f,region.left+region.width()*.77f,region.top+region.height()*.81f);
       Bitmap first=NativeHomePartyFeedbackTest.render(h.root);v.ambient.fixedTime=2100L;Bitmap second=NativeHomePartyFeedbackTest.render(h.root);
       try{
         int changed=0;
         for(int y=0;y<first.getHeight();y++)for(int x=0;x<first.getWidth();x++)if(first.getPixel(x,y)!=second.getPixel(x,y)){
-          changed++;assertTrue("Animation escaped water-only band at "+x+","+y,y>=v.field.height()*.52&&y<v.field.height()*.68);
+          changed++;assertTrue("Animation escaped water-only band at "+x+","+y,region.contains(x,y));
         }
-        assertTrue("Idle foam must visibly change actual water pixels",changed>10);
+        assertTrue("Authored water ripples must visibly change",changed>10);
       }finally{first.recycle();second.recycle();}
-      v.moveCameraUnits(.25-v.camera.cameraUnits());LocalGameArtTest.drain();v.ambient.fixedTime=0L;first=NativeHomePartyFeedbackTest.render(h.root);
+      v.moveCameraUnits(.25-v.camera.cameraUnits());settleViewport(h,v);v.ambient.fixedTime=0L;first=NativeHomePartyFeedbackTest.render(h.root);
       v.ambient.fixedTime=2100L;second=NativeHomePartyFeedbackTest.render(h.root);
       try{assertTrue("Inland scenery cannot shimmer or drift",first.sameAs(second));}finally{first.recycle();second.recycle();}
     }
@@ -102,7 +105,7 @@ public class NativeVillageAmbientTest {
         NativeVillageHomeView v=fixture.open(h,profile);LocalGameArtTest.drain();helper.layout(h,profile);
         assertTrue("Core assets must finish before capture",v.assets.ready());
         assertEquals(1,v.owner.statueStage);assertNotNull("Stage 1 must be the real decoded PNG",v.assets.get("statue-stage-1"));
-        assertNotNull(v.assets.get("grove"));assertNotNull(v.assets.get("neighborhood"));assertNotNull(v.assets.get("sea"));
+        assertNotNull(v.assets.get("continuous-sky"));assertNotNull(v.assets.get("continuous-ground"));
         v.stopMotion();
         String[] scenes={"plaza-stage-1","harbor"};
         // Same world coordinate and angle for every timestamp; the statue is centered in the plaza shot.
@@ -224,9 +227,9 @@ public class NativeVillageAmbientTest {
         // Latest user direction supersedes the earlier equal-door-size proposal: enlarge the group, not the mailbox.
         for(String id:new String[]{"recruit","archive","market"})assertTrue("Functional buildings retain substantial scene presence",v.layout.building(id).heightRatio>=.50);
         for(VillageLayout.Resident resident:v.layout.residents)assertTrue("Residents remain readable beside architecture",resident.heightRatio>=.25&&resident.heightRatio<=.35);
-        assertTrue("Mailbox is independently reduced, not included in the group enlargement",v.layout.building("mailbox").heightRatio/.23<.65);
-        assertEquals("Front patrol and desk retain substantial 124px presence",123.6,v.layout.resident("guard").heightRatio*412,.1);
-        assertEquals("Mailbox is about 60px, clearly smaller than a resident",59.74,v.layout.building("mailbox").heightRatio*412,.1);
+        assertTrue("Mailbox is independently reduced, not included in the group enlargement",v.layout.building("mailbox").heightRatio>=.15&&v.layout.building("mailbox").heightRatio<=.17);
+        assertEquals("Front patrol remains readable at 111px",111.24,v.layout.resident("guard").heightRatio*412,.1);
+        assertEquals("Mailbox remains below resident size at 70px",70.04,v.layout.building("mailbox").heightRatio*412,.1);
         for(VillageLayout.Building building:v.layout.buildings){
           v.moveCameraUnits(Math.floor(building.x/2)*2+.25-v.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);
           android.graphics.RectF art=NativeVillageHomeTest.shownArt(v,v.buildingButtons.get(building.id));Bitmap bitmap=v.assets.get(building.asset);double[] crop=v.layout.assets.get(building.asset).crop;
@@ -234,11 +237,13 @@ public class NativeVillageAmbientTest {
           assertEquals("Enlargement never stretches the original building",aspect,art.width()/art.height(),.01);
         }
         // Deliberately chosen front views. Partial objects during free scrolling remain valid and are tested separately.
-        double[] cameras={.25,2.25,4.25,6.25};String[][] buildingIds={{"recruit","hideout"},{"archive","mailbox"},{"harbor"},{"market"}};String[][] residentIds={{"guard"},{"librarian"},{},{"blacksmith","merchant"}};
-        for(int district=0;district<4;district++){
-          v.moveCameraUnits(cameras[district]-v.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);
-          for(String id:buildingIds[district])assertTrue("Full building and below-image plaque fit district view: "+profile.name+" / "+id,v.safe.contains(v.buildingBounds.get(id)));
-          for(String id:residentIds[district])assertTrue("Full resident and below-image plaque fit district view: "+profile.name+" / "+id,v.safe.contains(v.residentBounds.get(id)));
+        for(VillageLayout.Placed actor:v.depthActors){
+          v.actorPosition(actor,v.actorButton(actor));
+          double focus=actor.x-v.field.width()/v.unitPixels()/2;
+          v.moveCameraUnits(focus-v.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);
+          android.widget.Button target=v.actorButton(actor);
+          android.graphics.RectF bounds=new android.graphics.RectF(target.getLeft(),target.getTop(),target.getRight(),target.getBottom());
+          assertTrue("Focused full artwork and image nameplate fit: "+profile.name+" / "+actor.id,v.safe.contains(bounds));
           NativeVillageHomeTest.assertNoOpaqueNeighborOverlap(v);
         }
       }

@@ -61,6 +61,7 @@ public class PerformanceEvidenceTest {
     }
     JSONObject response(String path,JSONObject body) throws Exception {
       if(path.equals("native/state"))return stored;
+      if(path.equals("native/roster60/story/state"))return NativeVillageHomeTest.story();
       if(path.equals("native/menu-access"))return MainActivity.obj("features",new JSONObject());
       if(path.equals("native/roster60/home"))return MainActivity.obj("rebirthUnlocked",true,"rebirthIntroPending",false,"mailUnread",0);
       if(path.equals("daily"))return NativeThemeReviewTest.daily();
@@ -159,7 +160,7 @@ public class PerformanceEvidenceTest {
   @Test public void homeAttachRequestsAndUiWork() throws Exception {
     try(ActivityController<MainActivity> c=helper.flow.start()) {
       MainActivity h=c.get();Api api=prepare(h);Hierarchy hierarchy=new Hierarchy(h);JSONArray samples=new JSONArray();
-      try {for(int i=0;i<3;i++)samples.put(sample(h,api,hierarchy,"home-open-"+i,()->{h.home();LobbyView lobby=(LobbyView)h.root.getChildAt(0);if(!lobby.live)lobby.onAttachedToWindow();},true));assertEquals("home",h.screen);write("home",h,samples);}
+      try {for(int i=0;i<3;i++)samples.put(sample(h,api,hierarchy,"home-open-"+i,()->{h.home();assertTrue(h.root.getChildAt(0) instanceof NativeVillageHomeView);assertNotNull(h.villageHome);},true));assertEquals("home",h.screen);write("home",h,samples);}
       finally {hierarchy.close();api.close();}
     }
   }

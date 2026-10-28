@@ -46,7 +46,8 @@ final class NativeVillageHomeAssets {
     refreshWindow();
   }
   void refreshWindow(){
-    int visible=districtMask(cameraUnits,viewportUnits),nearby=districtMask(cameraUnits-PREFETCH_UNITS,viewportUnits+2*PREFETCH_UNITS);
+    double apron=activeLayout.continuousFoundation?.5:0;
+    int visible=districtMask(cameraUnits-apron,viewportUnits+2*apron),nearby=districtMask(cameraUnits-apron-PREFETCH_UNITS,viewportUnits+2*(apron+PREFETCH_UNITS));
     if(visible==requiredMask&&nearby==wantedMask)return;
     requiredMask=visible;wantedMask=nearby;
     Set<String> required=select(visible),wanted=select(nearby);
@@ -59,7 +60,7 @@ final class NativeVillageHomeAssets {
   Set<String> select(int mask){
     LinkedHashSet<String> ids=new LinkedHashSet<>();
     for(VillageLayout.Layer layer:activeLayout.layers)if(!layer.asset.isEmpty())add(ids,layer.asset);
-    add(ids,"grove");add(ids,"neighborhood");add(ids,"nameplates");
+    if(!activeLayout.continuousFoundation){add(ids,"grove");add(ids,"neighborhood");}add(ids,"nameplates");if(activeLayout.continuousFoundation){add(ids,"continuous-sky");add(ids,"continuous-ground");add(ids,"statue-nameplate");}
     for(int index=0;index<activeLayout.districts.size();index++){
       if((mask&(1<<index))==0)continue;
       VillageLayout.District district=activeLayout.districts.get(index);
@@ -77,7 +78,7 @@ final class NativeVillageHomeAssets {
     for(int wrap=-1;wrap<=1;wrap++){double s=start+wrap*8;if(l<s+2&&l+span>s)return true;}
     return false;
   }
-  void addActor(Set<String> ids,VillageLayout.Placed actor){add(ids,actor.asset);if(actor.shadow!=null)add(ids,actor.shadow.asset);}
+  void addActor(Set<String> ids,VillageLayout.Placed actor){add(ids,actor.asset);if(activeLayout.assets.containsKey(actor.asset+"-nameplate"))add(ids,actor.asset+"-nameplate");if(actor.shadow!=null)add(ids,actor.shadow.asset);}
   void add(Set<String> ids,String id){VillageLayout.Asset asset=activeLayout.assets.get(id);if(asset!=null&&asset.required)ids.add(id);}
   boolean available(VillageLayout.Asset asset){return asset!=null&&asset.verified&&asset.path.startsWith("native/village-loop-v2/")&&!asset.path.contains("..")&&asset.path.matches("[A-Za-z0-9_./-]+");}
   void recount(){

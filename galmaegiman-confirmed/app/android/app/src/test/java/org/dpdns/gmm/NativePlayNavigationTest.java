@@ -51,11 +51,11 @@ public class NativePlayNavigationTest {
  static void choose(MainActivity h,String mode){h.root.findViewWithTag("play-"+mode).performClick();}
  static int calls(Api api,String suffix){int n=0;for(String p:api.paths)if(p.endsWith(suffix))n++;return n;}
 
- @Test public void actualHomeHarborAndPlayMenuOfferFourChoicesWithoutStartingCombat()throws Exception{
+ @Test public void actualHomeSeparatesHarborAndTrainingWithoutStartingCombat()throws Exception{
   try(ActivityController<MainActivity> c=helper.flow.start()){
    MainActivity h=c.get();Api api=prepare(h);h.home();helper.layout(h,NativeHomePartyFeedbackTest.PROFILES[0]);
    assertNotNull(h.villageHome);assertTrue(h.root.getChildAt(0) instanceof NativeVillageHomeView);int homeReads=calls(api,"story/state");assertEquals(1,homeReads);
-   h.villageHome.view.moveCameraUnits(4);h.root.findViewWithTag("village-building-harbor").performClick();assertArrayEquals(new CharSequence[]{"탐험","스토리","일반전","랭크전"},org.robolectric.Shadows.shadowOf(h.villageHome.menu).getItems());h.villageHome.menu.dismiss();
+   h.villageHome.view.moveCameraUnits(4);h.root.findViewWithTag("village-building-harbor").performClick();assertArrayEquals(new CharSequence[]{"탐험","스토리 외부 출항"},org.robolectric.Shadows.shadowOf(h.villageHome.menu).getItems());h.villageHome.menu.dismiss();h.villageHome.view.moveCameraUnits(1);h.root.findViewWithTag("village-building-training").performClick();assertArrayEquals(new CharSequence[]{"일반전","랭크전"},org.robolectric.Shadows.shadowOf(h.villageHome.menu).getItems());h.villageHome.menu.dismiss();assertTrue(api.writes.isEmpty());
    h.openPlayMenu();assertEquals("playMenu",h.screen);int before=api.paths.size();
    ViewGroup choices=h.root.findViewWithTag("play-menu-choices");assertEquals(4,choices.getChildCount());
    String[] expectedLabels={"탐험","스토리","일반게임","랭크게임"},expectedTags={"play-explore","play-story","play-normal","play-rank"};for(int i=0;i<4;i++){assertEquals(expectedLabels[i],((Button)choices.getChildAt(i)).getText().toString());assertEquals(expectedTags[i],choices.getChildAt(i).getTag());}

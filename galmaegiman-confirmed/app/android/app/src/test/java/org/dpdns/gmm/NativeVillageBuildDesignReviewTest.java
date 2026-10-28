@@ -147,7 +147,7 @@ public class NativeVillageBuildDesignReviewTest {
   JSONArray checkHome(MainActivity h) throws Exception {
     NativeVillageHomeView view = h.villageHome.view;
     assertTrue("All current viewport assets and the current statue must load before the APK design gate", view.assets.ready());
-    assertEquals(34, view.layout.assets.size());
+    assertEquals(47, view.layout.assets.size());
     assertTrue(view.assets.images.keySet().containsAll(view.assets.requiredImages));
     assertEquals(0, view.assets.pending);
     assertEquals(0, view.assets.missing);
@@ -170,8 +170,8 @@ public class NativeVillageBuildDesignReviewTest {
     assertEquals("The village background is not letterboxed inside OS safe areas",
         new Rect(0, 0, h.root.getWidth(), h.root.getHeight()),
         NativeHomePartyFeedbackTest.bounds(view, h.root));
-    assertEquals("Only ten world targets and two overlay icons remain", 12, view.getChildCount());
-    assertEquals("Decorations add no building actions", 6, view.buildingButtons.size());
+    assertEquals("Seven facilities, four residents, statue and three overlay icons", 15, view.getChildCount());
+    assertEquals("Training is the seventh facility; decorations add no actions", 7, view.buildingButtons.size());
     assertEquals("Decorations add no residents or quest markers", 4, view.residentButtons.size());
     for (String tag : new String[] {"village-title", "village-art-status", "village-prev", "village-next",
         "village-district-0", "village-district-1", "village-district-2", "village-district-3"})

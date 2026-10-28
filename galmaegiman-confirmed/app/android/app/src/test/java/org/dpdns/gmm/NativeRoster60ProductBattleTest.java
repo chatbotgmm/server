@@ -54,7 +54,7 @@ public class NativeRoster60ProductBattleTest {
  @Test public void homePlayOpensChoicesAndAuthenticatedBattleKeepsSixthSkillRequestOnRetry()throws Exception{
   try(ActivityController<MainActivity> c=helper.flow.start()){
    MainActivity h=c.get();helper.prepare(h);Api api=new Api(h);h.api=api;helper.layout(h,NativeHomePartyFeedbackTest.PROFILES[0]);h.getSharedPreferences("roster60_product_battle",0).edit().clear().commit();h.home();helper.layout(h,NativeHomePartyFeedbackTest.PROFILES[0]);
-   assertTrue(h.root.getChildAt(0) instanceof NativeVillageHomeView);h.villageHome.view.moveCameraUnits(4);h.root.findViewWithTag("village-building-harbor").performClick();org.robolectric.Shadows.shadowOf(h.villageHome.menu).clickOnItem(1);assertEquals(NativeRoster60StoryController.SCREEN,h.screen);assertTrue(api.actions.isEmpty());assertFalse(api.paths.contains("native/roster60/battle/active"));
+   assertTrue(h.root.getChildAt(0) instanceof NativeVillageHomeView);h.villageHome.view.moveCameraUnits(4);h.root.findViewWithTag("village-building-harbor").performClick();org.robolectric.Shadows.shadowOf(h.villageHome.menu).clickOnItem(1);assertEquals("home",h.screen);assertTrue(h.rosterStory.villageOverlayOpen());h.rosterStory.back();assertTrue(api.actions.isEmpty());assertFalse(api.paths.contains("native/roster60/battle/active"));
    // Story entry reads progress. Exercise the shared authenticated combat/retry
    // contract separately from quest acceptance and the authored story flow.
    h.openRosterBattle(Roster60BattleMode.STORY);assertEquals("roster60Battle",h.screen);assertTrue(api.paths.contains("native/roster60/battle/active"));assertFalse("Complete authorized active DTO needs no duplicate read",api.paths.contains("native/roster60/battle/read"));

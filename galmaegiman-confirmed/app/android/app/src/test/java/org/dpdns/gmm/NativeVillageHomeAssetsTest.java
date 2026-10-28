@@ -46,20 +46,20 @@ public class NativeVillageHomeAssetsTest {
  }
  @Test public void visibleDistrictLoadsBeforePrefetchAndDoesNotWaitForIt()throws Exception{
   VillageLayout layout=VillageLayout.parse(manifest());Delayed source=new Delayed();NativeVillageHomeAssets assets=new NativeVillageHomeAssets(source);
-  assets.setViewport(0,1);assets.load(layout,()->true,()->{});assertEquals(2,source.paths.size());
+  assets.setViewport(.65,1);assets.load(layout,()->true,()->{});assertEquals(2,source.paths.size());
   assertTrue(assets.requiredImages.contains("recruit"));assertFalse(assets.requiredImages.contains("market"));assertTrue("8U seam prefetch",assets.wantedImages.contains("market"));
-  assertFalse(assets.wantedImages.contains("archive"));assertFalse(assets.wantedImages.contains("harbor"));
+  assertTrue(assets.wantedImages.contains("archive"));assertFalse(assets.wantedImages.contains("harbor"));
   while(!assets.ready()){assertTrue(source.completed<source.callbacks.size());source.callbacks.get(source.completed++).accept(image());}
   assertTrue("Neighbor requests may still be decoding",source.completed<source.callbacks.size());
-  int before=source.paths.size();for(int n=0;n<20;n++)assets.setViewport(0,1);assertEquals("Repeated layout never restarts decode",before,source.paths.size());
-  source.finishAll(assets);assertTrue(assets.ready());assertFalse(assets.images.containsKey("archive"));
+  int before=source.paths.size();for(int n=0;n<20;n++)assets.setViewport(.65,1);assertEquals("Repeated layout never restarts decode",before,source.paths.size());
+  source.finishAll(assets);assertTrue(assets.ready());assertFalse(assets.images.containsKey("harbor"));
  }
  @Test public void cameraWrapAndRapidJumpDiscardNoLongerWantedCompletions()throws Exception{
   VillageLayout layout=VillageLayout.parse(manifest());Delayed source=new Delayed();NativeVillageHomeAssets assets=new NativeVillageHomeAssets(source);
   assets.setViewport(.5,1);assets.load(layout,()->true,()->{});source.finishAll(assets);
   Set<String> first=new HashSet<>(assets.wantedImages);assets.setViewport(8.5,1);assertEquals(first,assets.wantedImages);assertTrue(assets.ready());
-  int before=source.paths.size();assets.setViewport(2.5,1);assertFalse(assets.ready());assertFalse(assets.images.containsKey("recruit"));assertTrue(source.paths.size()>before);
-  assets.setViewport(4.5,1);assertTrue(assets.requiredImages.contains("harbor"));source.finishAll(assets);
+  int before=source.paths.size();assets.setViewport(4.5,1);assertFalse(assets.ready());assertFalse(assets.images.containsKey("recruit"));assertTrue(source.paths.size()>before);
+  assets.setViewport(5.1,1);assertTrue(assets.requiredImages.contains("harbor"));source.finishAll(assets);
   assertTrue(assets.ready());assertFalse("Old window completion cannot pin archive",assets.images.containsKey("archive"));assertFalse(assets.images.containsKey("recruit"));assertNotNull(assets.get("harbor"));
   for(String id:assets.images.keySet())assertTrue("Only current window assets retained",assets.wantedImages.contains(id));
  }
@@ -72,7 +72,7 @@ public class NativeVillageHomeAssetsTest {
  @Test public void synchronousCacheHitsDrainWithoutRecursionAndKeepSamplingQuality()throws Exception{
   VillageLayout layout=VillageLayout.parse(manifest());List<String> requested=new ArrayList<>();
   NativeVillageHomeAssets assets=new NativeVillageHomeAssets((path,done)->{requested.add(path);done.accept(image());});
-  assets.setViewport(2.5,1);assets.load(layout,()->true,()->{});assertTrue(assets.ready());assertTrue(assets.inFlight.isEmpty());assertFalse(requested.contains(layout.assets.get("harbor").path));
+  assets.setViewport(2.5,1);assets.load(layout,()->true,()->{});assertTrue(assets.ready());assertTrue(assets.inFlight.isEmpty());assertFalse(requested.contains(layout.assets.get("market").path));
   assertEquals(2,NativeVillageHomeAssets.decodeSample("native/village-loop-v2/assets/companions-v3-background.png"));assertEquals(4,NativeVillageHomeAssets.decodeSample("native/village-loop-v2/assets/market-v4-shadows.png"));
  }
  @Test public void unchangedResumeKeepsReadyStaticBitmapsWithoutAnotherDecode()throws Exception{

@@ -1,11 +1,12 @@
+import {publicBattleAppearance,type BattleArtVariant} from './roster60-appearance.js';
 /** Display-only snapshots. Never copy owned IDs, reserves, pending actions or combat policy. */
-type FighterView = {speciesId:string;name:string;level:number;hp:number;mp:number;stats:{hp:number;mp:number}};
+type FighterView = {artVariant?:BattleArtVariant;speciesId:string;name:string;level:number;hp:number;mp:number;stats:{hp:number;mp:number}};
 type SkillView = {id:string;name:string;element:string;mpCost:number};
 export type PresentedFighter = FighterView & {id:'self'|'enemy'};
 export type Presentation = {version:1;before:PresentedFighter[];after:PresentedFighter[];skill?:SkillView};
 
 export function capturePresentation(fighters:readonly FighterView[]):PresentedFighter[] {
- return fighters.map((f,i)=>({id:i===0?'self':'enemy',speciesId:f.speciesId,name:f.name,level:f.level,
+ return fighters.map((f,i)=>({id:i===0?'self':'enemy',...publicBattleAppearance(f),speciesId:f.speciesId,name:f.name,level:f.level,
   hp:f.hp,mp:f.mp,stats:{hp:f.stats.hp,mp:f.stats.mp}}));
 }
 
@@ -20,3 +21,4 @@ export function presentationForViewer(value:Presentation|undefined,side:0|1):Pre
  const order=(pair:PresentedFighter[])=>capturePresentation([pair[side],pair[1-side]]);
  return {...presentStep(order(value.before),order(value.after),value.skill)};
 }
+

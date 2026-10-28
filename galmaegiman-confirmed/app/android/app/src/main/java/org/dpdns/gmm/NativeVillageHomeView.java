@@ -24,7 +24,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   final java.util.List<VillageLayout.Placed> depthActors=new java.util.ArrayList<>();
   final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
   final RectF field=new RectF(),safe=new RectF();
-  final Button settings,daily;
+  final Button settings,daily,pass,statue;
   final int slop,minFling,maxFling;
   VelocityTracker velocity;
   float downX,downY,lastX;
@@ -56,11 +56,14 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
       Button button=worldButton(resident.role,resident.asset,()->owner.resident(resident.id));
       button.setTag("village-resident-"+resident.id);residentButtons.put(resident.id,button);residentBounds.put(resident.id,new RectF());addView(button);
     }
+    statue=new androidx.appcompat.widget.AppCompatButton(h){@Override public boolean dispatchTouchEvent(MotionEvent event){if(event.getActionMasked()==MotionEvent.ACTION_DOWN&&!statueHit(getLeft()+event.getX(),getTop()+event.getY()))return false;return super.dispatchTouchEvent(event);}};
+    statue.setBackgroundColor(Color.TRANSPARENT);statue.setBackgroundTintList(null);statue.setStateListAnimator(null);statue.setText("");statue.setContentDescription("태초 갈매미맨 석상 · 메인 스토리");statue.setTag("village-statue");statue.setOnClickListener(v->owner.mainStory());addView(statue);
+    pass=iconControl("패스", "ticket", ()->owner.navigate("pass"));pass.setTag("village-pass");addView(pass);
     settings=iconControl("마을 메뉴", "settings", owner::more);settings.setTag("village-settings");addView(settings);
     daily=iconControl("출석·미션", "attendance", ()->owner.navigate("daily"));daily.setTag("village-daily");NativeTutorialController.anchorPreservingTag(daily,"daily");addView(daily);
     depthActors.addAll(layout.buildings);depthActors.addAll(layout.residents);
     depthActors.sort(java.util.Comparator.comparingDouble(a->a.surface.isEmpty()?a.baseline:a.sourceY));
-    for(VillageLayout.Placed actor:depthActors)actorButton(actor).bringToFront();daily.bringToFront();settings.bringToFront();
+    for(VillageLayout.Placed actor:depthActors)actorButton(actor).bringToFront();pass.bringToFront();daily.bringToFront();settings.bringToFront();
     bindResidents();
   }
   Button control(String text,Runnable action) {
@@ -77,16 +80,18 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     final VillageNameplates nameplate=new VillageNameplates();
     final RectF plateBounds=new RectF(),statusBounds=new RectF();
     WorldTarget(String asset){super(NativeVillageHomeView.this.h);this.asset=asset;}
-    boolean resident(){return VillageNameplates.cell(asset)>=6;}
+    boolean resident(){return java.util.Arrays.asList("blacksmith","merchant","librarian","patrol").contains(asset);}
+    String customLabel(){return layout.assets.containsKey(asset+"-nameplate")?asset+"-nameplate":"";}
+    float captionAspect(){String label=customLabel();return !label.isEmpty()?assetAspect(label,assets.get(label)):VillageNameplates.cell(asset)<0?3.2f:VillageNameplates.aspect(VillageNameplates.cell(asset));}
     int statusCell(){return resident()?VillageNameplates.statusCell(owner.residentStatus("patrol".equals(asset)?"guard":asset)):-1;}
     float statusLane(){int status=statusCell();return status<0?0:h.dp(3)+h.dp(18)*VillageNameplates.aspect(status);}
     @Override protected void onDraw(Canvas canvas){
       // Text remains available to accessibility/tests, but the visible letters are atlas pixels only.
-      Bitmap atlas=assets.get("nameplates");if(atlas==null)return;
-      float height=labelHeight(this),width=height*VillageNameplates.aspect(VillageNameplates.cell(asset)),total=labelWidth(this),left=(getWidth()-total)/2;
+      Bitmap atlas=assets.get("nameplates");String custom=customLabel();Bitmap labelImage=custom.isEmpty()?null:assets.get(custom);if(atlas==null&&labelImage==null)return;
+      float height=labelHeight(this),width=height*captionAspect(),total=labelWidth(this),left=(getWidth()-total)/2;
       plateBounds.set(left,getHeight()-height,left+width,getHeight());
       int save=canvas.save();canvas.translate(getScrollX(),getScrollY());
-      nameplate.draw(canvas,atlas,VillageNameplates.cell(asset),plateBounds);
+      if(labelImage!=null)drawImage(canvas,labelImage,layout.assets.get(custom).crop,plateBounds,false);else nameplate.draw(canvas,atlas,VillageNameplates.cell(asset),plateBounds);
       int status=statusCell();
       if(status>=0){
         float badge=h.dp(18),top=plateBounds.centerY()-badge/2;
@@ -105,12 +110,12 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     b.setGravity(Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);b.setBackgroundColor(Color.TRANSPARENT);b.setBackgroundTintList(null);b.setStateListAnimator(null);b.setMinWidth(0);b.setMinimumWidth(0);b.setMinHeight(0);b.setMinimumHeight(0);b.setPadding(0,0,0,0);
     b.setOnClickListener(v->{if(!owner.current()||blocksClick()||h.busy||h.updateBlocks())return;h.sound.click();Button previous=h.actionButton;h.actionButton=null;try{action.run();}finally{h.actionButton=previous;}});return b;
   }
-  int labelHeight(Button b){return h.dp(b instanceof WorldTarget&&((WorldTarget)b).resident()?32:45);}
+  int labelHeight(Button b){boolean resident=b instanceof WorldTarget&&((WorldTarget)b).resident();boolean compact=layout.continuousFoundation&&field.height()<=h.dp(480);return h.dp(resident?(compact?26:32):(compact?36:45));}
   int labelGap(){return h.dp(4);}
   float groundedFeet(double baseline,Button b){return Math.min(field.top+field.height()*(float)baseline,safe.bottom-h.dp(6)-labelHeight(b)-labelGap());}
-  float labelWidth(Button b){WorldTarget target=(WorldTarget)b;return labelHeight(b)*VillageNameplates.aspect(VillageNameplates.cell(target.asset))+target.statusLane();}
+  float labelWidth(Button b){WorldTarget target=(WorldTarget)b;return labelHeight(b)*target.captionAspect()+target.statusLane();}
   RectF labelRect(RectF object,Button button){float width=Math.min(object.width(),labelWidth(button));return new RectF(object.centerX()-width/2,object.bottom-labelHeight(button),object.centerX()+width/2,object.bottom);}
-  double unitPixels(){return VillageLoopCamera.unitPixels(getMeasuredWidth()>0?getMeasuredWidth():getWidth(),getResources().getDisplayMetrics().density);}
+  double unitPixels(){int width=getMeasuredWidth()>0?getMeasuredWidth():getWidth();float density=getResources().getDisplayMetrics().density;return layout.continuousFoundation?Math.max(width*.5,layout.minimumUnitDp*density):VillageLoopCamera.unitPixels(width,density);}
   void bindResidents() {
     for(VillageLayout.Resident resident:layout.residents) {
       String status=owner.residentStatus(resident.id),name=owner.residentName(resident.id,resident.role);
@@ -129,7 +134,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   @Override protected void onMeasure(int widthSpec,int heightSpec) {
     int width=MeasureSpec.getSize(widthSpec),height=MeasureSpec.getSize(heightSpec);setMeasuredDimension(width,height);
     field.set(0,0,width,height);safe.set(h.safeBounds(width,height));
-    settings.measure(exact(h.dp(48)),exact(h.dp(48)));daily.measure(exact(h.dp(48)),exact(h.dp(48)));
+    statue.measure(exact(h.dp(48)),exact(h.dp(48)));pass.measure(exact(h.dp(48)),exact(h.dp(48)));settings.measure(exact(h.dp(48)),exact(h.dp(48)));daily.measure(exact(h.dp(48)),exact(h.dp(48)));
     for(VillageLayout.Building building:layout.buildings) {RectF b=buildingRect(building);buildingButtons.get(building.id).measure(exact(Math.round(b.width())),exact(Math.round(b.height())));}
     for(VillageLayout.Resident resident:layout.residents) {RectF b=residentRect(resident);residentButtons.get(resident.id).measure(exact(Math.round(b.width())),exact(Math.round(b.height())));}
   }
@@ -137,7 +142,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   @Override protected void onLayout(boolean changed,int left,int top,int right,int bottom) {
     int y=Math.round(safe.top)+h.dp(8),edge=Math.round(safe.right)-h.dp(8);
     settings.layout(edge-h.dp(48),y,edge,y+h.dp(48));
-    daily.layout(settings.getLeft()-h.dp(56),y,settings.getLeft()-h.dp(8),y+h.dp(48));layoutWorld();
+    daily.layout(settings.getLeft()-h.dp(56),y,settings.getLeft()-h.dp(8),y+h.dp(48));pass.layout(daily.getLeft()-h.dp(56),y,daily.getLeft()-h.dp(8),y+h.dp(48));layoutWorld();
   }
   Button actorButton(VillageLayout.Placed actor){return actor instanceof VillageLayout.Building?buildingButtons.get(actor.id):residentButtons.get(actor.id);}
   void actorPosition(VillageLayout.Placed actor,Button button){
@@ -167,41 +172,61 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     assets.setViewport(camera.cameraUnits(),field.width()/unitPixels());
     for(VillageLayout.Building building:layout.buildings){RectF r=buildingRect(building);buildingBounds.get(building.id).set(r);place(buildingButtons.get(building.id),r);}
     for(VillageLayout.Resident resident:layout.residents){RectF r=residentRect(resident);residentBounds.get(resident.id).set(r);place(residentButtons.get(resident.id),r);}
+    RectF statueSlot=landmarkRect();if(layout.assets.containsKey("statue-nameplate"))statueSlot.union(statueLabelRect());place(statue,statueSlot);statue.setVisibility(owner.statueStage>0&&RectF.intersects(statueSlot,field)?VISIBLE:INVISIBLE);
     int current=(int)Math.floor(VillageLoopCamera.modulo(camera.cameraUnits()+.5,layout.worldUnits)/2)%4;
     if(current!=shownDistrict){shownDistrict=current;setContentDescription("마을 · "+layout.districts.get(current).title+". 좌우로 밀어 이동하고 건물이나 주민을 누르세요.");}
   }
   void place(View button,RectF rect){button.layout(Math.round(rect.left),Math.round(rect.top),Math.round(rect.right),Math.round(rect.bottom));button.setVisibility(RectF.intersects(rect,field)?VISIBLE:INVISIBLE);}
   @Override protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);canvas.drawColor(0xffd8e7e4);int save=canvas.save();canvas.clipRect(field);
-    for(VillageLayout.Layer layer:layout.layers)if(!layer.asset.isEmpty()&&!"terrain".equals(layer.id))drawLayer(canvas,layer);
-    ambient.drawInland(canvas,this);
+    if(layout.continuousFoundation)drawFoundation(canvas);else {for(VillageLayout.Layer layer:layout.layers)if(!layer.asset.isEmpty()&&!"terrain".equals(layer.id))drawLayer(canvas,layer);ambient.drawInland(canvas,this);}
+    boolean animating=owner.current()&&isShown()&&hasWindowFocus()&&(layout.continuousFoundation?districtScene.waterVisible(this):assets.get("sea")!=null&&ambient.waterVisible(this));
+    long waterTime=ambient.time(SystemClock.uptimeMillis(),animating);districtScene.waterTime=waterTime;
     districtScene.draw(canvas,this,"backdrop");
-    boolean animating=owner.current()&&isShown()&&hasWindowFocus()&&assets.get("sea")!=null&&ambient.waterVisible(this);
-    long waterTime=ambient.time(SystemClock.uptimeMillis(),animating);
-    ambient.drawFoam(canvas,this,waterTime);
+    if(!layout.continuousFoundation)ambient.drawFoam(canvas,this,waterTime);
     // Boats sit beyond the quay; the foreground terrain can cover the lower hull.
     for(VillageLayout.Prop prop:layout.props)drawProp(canvas,prop);
-    for(VillageLayout.Layer layer:layout.layers)if("terrain".equals(layer.id))drawLayer(canvas,layer);
+    if(!layout.continuousFoundation)for(VillageLayout.Layer layer:layout.layers)if("terrain".equals(layer.id))drawLayer(canvas,layer);
     for(VillageLayout.Building building:layout.buildings)if(building.behindTerrace)drawBuilding(canvas,building);
     districtScene.draw(canvas,this,"terrace");
     // Rear structures now stand ON the walkable soil/quay rather than hovering above the water.
     for(VillageLayout.Decoration decoration:layout.decorations)drawDecoration(canvas,decoration);
     drawLandmark(canvas);
-    groundShadows.draw(canvas,this);
+    if(!layout.continuousFoundation)groundShadows.draw(canvas,this);
     for(VillageLayout.Placed actor:depthActors)if(actor instanceof VillageLayout.Building){if(!((VillageLayout.Building)actor).behindTerrace)drawBuilding(canvas,(VillageLayout.Building)actor);}else drawResident(canvas,(VillageLayout.Resident)actor);
     districtScene.draw(canvas,this,"foreground");
     canvas.restoreToCount(save);
     if(animating&&ambient.fixedTime==null)postInvalidateDelayed(33); // Local foam is deliberately 30 fps.
   }
-  void drawLandmark(Canvas canvas){
-    VillageLayout.Landmark landmark=layout.landmark;if(landmark==null||owner.statueStage==0)return;
+  RectF landmarkRect(){
+    VillageLayout.Landmark landmark=layout.landmark;if(landmark==null)return new RectF();
     float width=(float)(landmark.width*unitPixels()),x=(float)camera.projectX(landmark.x,1,unitPixels(),field.width()),feet=(float)landmark.baseline*field.height();
     if(!landmark.surface.isEmpty()&&districtScene.point(this,landmark.surface,landmark.sourceX,landmark.sourceY,actorPoint)){x=actorPoint.x;feet=actorPoint.y;}
     float canvasHeight=Math.min(field.height()*.58f,width*1.5f),bottom=feet+canvasHeight*(1-(float)landmark.groundAnchor);
-    RectF slot=new RectF(x-width/2,bottom-canvasHeight,x+width/2,bottom);if(!RectF.intersects(slot,field))return;
-    String id=landmark.asset(owner.statueStage);Bitmap bitmap=assets.get(id);
-    if(bitmap!=null)drawObject(canvas,bitmap,slot,id);
-    else label(canvas,"동상 복원 "+owner.statueStage+"단계 · "+assets.statueStatus(id),x,feet-h.dp(5),11,JournalTheme.INK);
+    return new RectF(x-width/2,bottom-canvasHeight,x+width/2,bottom);
+  }
+  RectF statueLabelRect(){RectF rect=landmarkRect();float height=h.dp(32),width=height*3.4f,top=Math.min(safe.bottom-height-h.dp(4),rect.bottom+h.dp(4));return new RectF(rect.centerX()-width/2,top,rect.centerX()+width/2,top+height);}
+  boolean statueHit(float x,float y){
+    if(owner.statueStage==0||!safe.contains(x,y))return false;for(VillageLayout.Placed actor:depthActors){Button b=actorButton(actor);if(b.getVisibility()==VISIBLE&&rawAlphaHitWorldButton(b,x-b.getLeft(),y-b.getTop()))return false;}if(layout.assets.containsKey("statue-nameplate")&&statueLabelRect().contains(x,y))return true;String id=layout.landmark.asset(owner.statueStage);Bitmap image=assets.get(id);if(image==null)return false;
+    RectF rect=fittedObjectRect(image,landmarkRect(),id);if(!rect.contains(x,y))return false;
+    int px=Math.min(image.getWidth()-1,(int)((x-rect.left)/rect.width()*image.getWidth())),py=Math.min(image.getHeight()-1,(int)((y-rect.top)/rect.height()*image.getHeight()));return Color.alpha(image.getPixel(px,py))>=32;
+  }
+  void drawLandmark(Canvas canvas){
+    if(layout.landmark==null||owner.statueStage==0)return;RectF slot=landmarkRect();if(!RectF.intersects(slot,field))return;
+    String id=layout.landmark.asset(owner.statueStage);Bitmap bitmap=assets.get(id);if(bitmap!=null)drawObject(canvas,bitmap,slot,id);Bitmap caption=assets.get("statue-nameplate");if(caption!=null)drawImage(canvas,caption,layout.assets.get("statue-nameplate").crop,statueLabelRect(),false);
+  }
+  /** Only texture-only common foundations repeat: no district pictures or building silhouettes. */
+  void drawFoundation(Canvas canvas){
+    Bitmap sky=assets.get("continuous-sky");if(sky!=null){float height=field.height()*.74f;double aspect=(double)sky.getWidth()/sky.getHeight(),desired=field.width()/height;double[] crop={0,0,1,1};if(desired<aspect){double span=desired/aspect;crop[0]=(1-span)/2;crop[2]=1-crop[0];}else{double span=aspect/desired;crop[1]=(1-span)/2;crop[3]=1-crop[1];}drawImage(canvas,sky,crop,new RectF(0,0,field.width(),height),false);}
+    foundationBand(canvas,"continuous-ground",.70f,1,1);
+  }
+  void foundationBand(Canvas canvas,String id,float topRatio,float bottomRatio,double parallax){
+    Bitmap bitmap=assets.get(id);if(bitmap==null)return;float top=field.height()*topRatio,bottom=field.height()*bottomRatio,height=bottom-top;
+    float aspect=(float)bitmap.getWidth()/bitmap.getHeight();double period=8*parallax;
+    int count=Math.max(2,2*Math.round((float)(period*unitPixels())/(height*aspect)/2));double stride=period/count,phase=camera.layerPhaseUnits(parallax);int first=(int)Math.floor(phase/stride);
+    float width=(float)(stride*unitPixels()),start=-(float)((phase-first*stride)*unitPixels());double desired=width/height;
+    double[] crop={0,0,1,1};if(desired<aspect){double span=desired/aspect;crop[0]=(1-span)/2;crop[2]=1-crop[0];}else{double span=aspect/desired;crop[1]=(1-span)/2;crop[3]=1-crop[1];}
+    for(int i=-1;start+i*width<field.right;i++)drawImage(canvas,bitmap,crop,new RectF(start+i*width-.5f,top,start+(i+1)*width+.5f,bottom),false);
   }
   @Override public void onWindowFocusChanged(boolean focused){super.onWindowFocusChanged(focused);ambient.pause();if(focused)invalidate();}
   @Override protected void onWindowVisibilityChanged(int visibility){super.onWindowVisibilityChanged(visibility);if(ambient!=null)ambient.pause();if(visibility==VISIBLE)invalidate();}

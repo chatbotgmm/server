@@ -26,7 +26,7 @@ public class NativeVillageFourDistrictReviewTest {
  @Test public void optionalSurfaceAndWorldCoverageMetadataFailClosed()throws Exception{
   JSONObject data=NativeVillageHomeAssetsTest.manifest();data.getJSONArray("districtScenery").getJSONObject(0).put("minimumWorldWidth",3);
   assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(data));
-  data.getJSONArray("districtScenery").getJSONObject(0).put("minimumWorldWidth",2.2);data.getJSONObject("landmark").put("surface","unknown").put("sourceX",.5).put("sourceY",.8);
+  data.getJSONArray("districtScenery").getJSONObject(0).put("minimumWorldWidth",0);data.getJSONObject("landmark").put("surface","unknown").put("sourceX",.5).put("sourceY",.8);
   assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(data));
   JSONObject invalid=NativeVillageHomeAssetsTest.manifest();invalid.getJSONArray("decorations").getJSONObject(0).put("surface","unknown").put("sourceX",.5).put("sourceY",.8);
   assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(invalid));
@@ -35,7 +35,7 @@ public class NativeVillageFourDistrictReviewTest {
   for(NativeHomePartyFeedbackTest.Profile profile:new NativeHomePartyFeedbackTest.Profile[]{NativeVillageHomeTest.PHONE,new NativeHomePartyFeedbackTest.Profile("village-1280x720",1280,720,160,1,0,0,0,0)}){
    helper.configure(profile);try(ActivityController<MainActivity> activity=helper.flow.start()){
     MainActivity h=activity.get();fixture.prepare(h);NativeVillageHomeView v=fixture.open(h,profile);v.ambient.fixedTime=0L;
-    assertEquals(6,v.buildingButtons.size());assertEquals(4,v.residentButtons.size());assertFalse(v.layout.currencyHud);
+    assertEquals(7,v.buildingButtons.size());assertEquals(4,v.residentButtons.size());assertFalse(v.layout.currencyHud);
     String[] labels={"companions","records","harbor","market","seam-0","seam-2","seam-4","seam-6","join-0","join-2","join-4","join-6"};
     double[] cameras={.25,2.25,4.25,6.25,0,2,4,6,7.5,1.5,3.5,5.5};
     for(int i=0;i<cameras.length;i++){

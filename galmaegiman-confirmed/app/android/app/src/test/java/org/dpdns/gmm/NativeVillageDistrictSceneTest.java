@@ -22,7 +22,7 @@ public class NativeVillageDistrictSceneTest {
   @After public void restore()throws Exception{LocalGameArtTest.drain();helper.restore();}
   static JSONObject scene(){return MainActivity.obj("id","fixture-companions-backdrop","district","companions","asset","grove","depth","backdrop","x",.75,"heightRatio",1.2,"baseline",.8,"groundAnchor",.8,"fadeUnits",.15);}
   static JSONObject manifest()throws Exception{return plainManifest().put("districtScenery",new JSONArray().put(scene()));}
-  static JSONObject plainManifest()throws Exception{JSONObject d=NativeVillageHomeAssetsTest.manifest();for(String group:new String[]{"buildings","residents"})for(int i=0;i<d.getJSONArray(group).length();i++){JSONObject a=d.getJSONArray(group).getJSONObject(i);a.remove("surface");a.remove("sourceX");a.remove("sourceY");a.remove("occludes");}if(d.has("landmark")){d.getJSONObject("landmark").remove("surface");d.getJSONObject("landmark").remove("sourceX");d.getJSONObject("landmark").remove("sourceY");}d.remove("decorations");return d;}
+  static JSONObject plainManifest()throws Exception{JSONObject d=NativeVillageHomeAssetsTest.manifest();d.put("continuousFoundation",false).put("minimumUnitDp",650);JSONArray legacy=new JSONArray();for(int n=0;n<d.getJSONArray("buildings").length();n++){JSONObject b=d.getJSONArray("buildings").getJSONObject(n);if(!"training".equals(b.getString("id")))legacy.put(b);}d.put("buildings",legacy);for(String group:new String[]{"buildings","residents"})for(int i=0;i<d.getJSONArray(group).length();i++){JSONObject a=d.getJSONArray(group).getJSONObject(i);a.remove("surface");a.remove("sourceX");a.remove("sourceY");a.remove("occludes");}if(d.has("landmark")){d.getJSONObject("landmark").remove("surface");d.getJSONObject("landmark").remove("sourceX");d.getJSONObject("landmark").remove("sourceY");}d.remove("decorations");return d;}
   NativeVillageHomeView open(MainActivity h,VillageLayout layout)throws Exception{
     fixture.prepare(h);h.home();h.villageHome.pause();h.root.removeAllViews();h.epoch++;h.screen="home";
     NativeVillageHomeController owner=new NativeVillageHomeController(h);owner.layout=layout;h.villageHome=owner;owner.attach();
@@ -57,9 +57,9 @@ public class NativeVillageDistrictSceneTest {
     for(NativeHomePartyFeedbackTest.Profile profile:new NativeHomePartyFeedbackTest.Profile[]{NativeVillageHomeTest.PHONE,new NativeHomePartyFeedbackTest.Profile("village-1280x720",1280,720,160,1,0,0,0,0)}){
       helper.configure(profile);try(ActivityController<MainActivity> activity=helper.flow.start()){
         MainActivity h=activity.get();fixture.prepare(h);NativeVillageHomeView v=fixture.open(h,profile);LocalGameArtTest.drain();helper.layout(h,profile);v.ambient.fixedTime=0L;v.moveCameraUnits(.25-v.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);
-        assertTrue(v.assets.ready());assertNotNull(v.layout.districtScenery("companions-terrace"));assertNotNull(v.layout.districtScenery("companions-backdrop"));
+        assertTrue(v.assets.ready());assertNotNull(v.layout.districtScenery("town-rear-west"));assertTrue(v.layout.continuousFoundation);
         android.graphics.PointF anchor=new android.graphics.PointF();
-        for(String id:new String[]{"recruit","hideout","guard"}){VillageLayout.Placed actor=id.equals("guard")?v.layout.resident(id):v.layout.building(id);assertTrue(v.districtScene.point(v,actor.surface,actor.sourceX,actor.sourceY,anchor));android.widget.Button target=v.actorButton(actor);android.graphics.RectF art=NativeVillageHomeTest.shownArt(v,target);assertEquals("Original source floor anchor determines actual feet",anchor.y,art.bottom,1.5);assertEquals(anchor.x,art.centerX(),1.5);}
+        for(String id:new String[]{"recruit","hideout","guard"}){VillageLayout.Placed actor=id.equals("guard")?v.layout.resident(id):v.layout.building(id);android.widget.Button target=v.actorButton(actor);v.actorPosition(actor,target);anchor.set(v.actorPoint);android.graphics.RectF art=NativeVillageHomeTest.shownArt(v,target);assertEquals("Original source floor anchor determines actual feet",anchor.y,art.bottom,1.5);assertEquals(anchor.x,art.centerX(),1.5);}
         NativeVillageHomeTest.assertNoOpaqueNeighborOverlap(v);
         Bitmap frame=NativeHomePartyFeedbackTest.render(h.root);try{NativeVillageHomeArtTest.png(NativeVillageHomeArtTest.output().resolve(profile.name+"-companions-v3.png"),frame);}finally{frame.recycle();}
       }
@@ -68,7 +68,7 @@ public class NativeVillageDistrictSceneTest {
   @Test public void visibleBuildingBitmapCaptionWinsOverFrontPatrolSprite()throws Exception{
     NativeHomePartyFeedbackTest.Profile profile=new NativeHomePartyFeedbackTest.Profile("village-640x320",640,320,160,1,0,0,0,0);helper.configure(profile);
     try(ActivityController<NativeVillageHomeTest.RouteHost> activity=fixture.routeHost()){
-      NativeVillageHomeTest.RouteHost h=activity.get();JSONObject data=NativeVillageHomeAssetsTest.manifest();for(int n=0;n<data.getJSONArray("districtScenery").length();n++){JSONObject scene=data.getJSONArray("districtScenery").getJSONObject(n);if("companions-terrace".equals(scene.getString("id")))scene.put("minimumViewportWidth",0).put("groundAnchor",1);}NativeVillageHomeView v=open(h,VillageLayout.parse(data));h.record=true;LocalGameArtTest.drain();helper.layout(h,profile);v.moveCameraUnits(-v.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);
+      NativeVillageHomeTest.RouteHost h=activity.get();JSONObject data=NativeVillageHomeAssetsTest.manifest();for(int n=0;n<data.getJSONArray("residents").length();n++){JSONObject r=data.getJSONArray("residents").getJSONObject(n);if("guard".equals(r.getString("id")))r.put("x",1.28).put("baseline",.94);}NativeVillageHomeView v=open(h,VillageLayout.parse(data));h.record=true;LocalGameArtTest.drain();helper.layout(h,profile);v.moveCameraUnits(-v.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);
       android.widget.Button tower=v.buildingButtons.get("hideout"),guard=v.residentButtons.get("guard");android.graphics.RectF label=v.labelRect(new android.graphics.RectF(tower.getLeft(),tower.getTop(),tower.getRight(),tower.getBottom()),tower);int overlaps=0;float hitX=0,hitY=0;
       for(float y=label.top;y<label.bottom;y++)for(float x=label.left;x<label.right;x++)if(NativeVillageHomeTest.sourceAlphaAt(v,guard,x,y)>=128){overlaps++;hitX=x;hitY=y;assertTrue(v.alphaHitWorldButton(tower,x-tower.getLeft(),y-tower.getTop()));assertFalse(v.alphaHitWorldButton(guard,x-guard.getLeft(),y-guard.getTop()));}
       assertTrue("Fixture genuinely exercises sprite over visible caption lane",overlaps>0);NativeVillageHomeTest.tapAt(v,hitX,hitY);assertEquals(java.util.Collections.singletonList("party"),h.routes);
@@ -82,19 +82,12 @@ public class NativeVillageDistrictSceneTest {
     for(VillageLayout.Building actor:before.buildings){VillageLayout.Building copy=after.building(actor.id);assertEquals(actor.heightRatio,copy.heightRatio,0);assertEquals(actor.sourceX,copy.sourceX,0);assertEquals(actor.sourceY,copy.sourceY,0);assertArrayEquals(actor.actionIds,copy.actionIds);}
     shadow.put("asset","not-an-asset");assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(data));shadow.put("asset","nameplates").put("opacity",2);assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(data));shadow.put("opacity",.5).put("actionIds",new JSONArray().put("party"));assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(data));
   }
-  @Test public void captureGroundShadowCorrectionWithoutMovingActorsAndWithExactEightUnitLoop()throws Exception{
-    for(NativeHomePartyFeedbackTest.Profile profile:new NativeHomePartyFeedbackTest.Profile[]{NativeVillageHomeTest.PHONE,new NativeHomePartyFeedbackTest.Profile("village-1280x720",1280,720,160,1,0,0,0,0)}){
-      helper.configure(profile);try(ActivityController<MainActivity> activity=helper.flow.start()){
-        MainActivity h=activity.get();fixture.prepare(h);NativeVillageHomeView v=fixture.open(h,profile);LocalGameArtTest.drain();helper.layout(h,profile);v.ambient.fixedTime=0L;v.moveCameraUnits(.25-v.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);
-        assertTrue(v.assets.ready());assertEquals(6,v.buildingButtons.size());assertEquals(4,v.residentButtons.size());
-        Bitmap atlas=v.assets.images.remove("companions-shadows");assertNotNull(atlas);Bitmap before=NativeHomePartyFeedbackTest.render(h.root);v.assets.images.put("companions-shadows",atlas);Bitmap after=NativeHomePartyFeedbackTest.render(h.root);
-        try{
-          int changed=0;for(int y=0;y<after.getHeight();y++)for(int x=0;x<after.getWidth();x++)if(before.getPixel(x,y)!=after.getPixel(x,y)){changed++;assertTrue("Shadow alters only the ground half, never sky/roof",y>after.getHeight()*.45);}
-          assertTrue("Imported shadow mask visibly affects real ground pixels",changed>100);
-          NativeVillageHomeArtTest.png(NativeVillageHomeArtTest.output().resolve(profile.name+"-companions-shadow-before.png"),before);NativeVillageHomeArtTest.png(NativeVillageHomeArtTest.output().resolve(profile.name+"-companions-shadow-after.png"),after);
-          v.moveCameraUnits(8);LocalGameArtTest.drain();helper.layout(h,profile);Bitmap repeated=NativeHomePartyFeedbackTest.render(h.root);try{assertTrue("Ground shadows preserve exact full-frame 8U closure",after.sameAs(repeated));}finally{repeated.recycle();}
-        }finally{before.recycle();after.recycle();}
-      }
+  @Test public void sharedFoundationDoesNotUseObsoleteShadowBlobsAndClosesAtEightUnits()throws Exception{
+    try(ActivityController<MainActivity> activity=helper.flow.start()){
+      MainActivity h=activity.get();fixture.prepare(h);NativeVillageHomeView v=fixture.open(h,NativeVillageHomeTest.PHONE);LocalGameArtTest.drain();helper.layout(h,NativeVillageHomeTest.PHONE);v.ambient.fixedTime=0L;
+      assertTrue(v.assets.ready());assertEquals(7,v.buildingButtons.size());assertEquals(4,v.residentButtons.size());assertNull(v.assets.get("companions-shadows"));
+      Bitmap before=NativeHomePartyFeedbackTest.render(h.root);Bitmap fake=Bitmap.createBitmap(8,8,Bitmap.Config.ARGB_8888);fake.eraseColor(android.graphics.Color.BLACK);v.assets.images.put("companions-shadows",fake);Bitmap after=NativeHomePartyFeedbackTest.render(h.root);
+      try{assertTrue("Floor planes must not be simulated by the rejected shadow atlas",before.sameAs(after));v.moveCameraUnits(8);for(int n=0;n<4;n++){LocalGameArtTest.drain();helper.layout(h,NativeVillageHomeTest.PHONE);}Bitmap repeat=NativeHomePartyFeedbackTest.render(h.root);try{assertTrue(after.sameAs(repeat));}finally{repeat.recycle();}}finally{before.recycle();after.recycle();v.assets.images.remove("companions-shadows");fake.recycle();}
     }
   }
 }

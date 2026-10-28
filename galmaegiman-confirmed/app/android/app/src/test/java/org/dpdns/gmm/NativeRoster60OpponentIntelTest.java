@@ -74,18 +74,66 @@ public class NativeRoster60OpponentIntelTest {
    MainActivity h=c.get();helper.open(h);NativeRoster60Battle ui=h.rosterBattle;
    assertSame(ui.stageOverlay,ui.art.getParent());assertEquals(ui.stageOverlay.getHeight(),ui.art.getHeight());
    assertTrue(ui.opponentInfo.getWidth()>=h.dp(48));assertTrue(ui.opponentInfo.getHeight()>=h.dp(48));
-   assertTrue(ui.opponentInfo.getLeft()>=h.dp(6)+Roster60HudGeometry.enemyWidth(ui.art.getWidth(),h.getResources().getDisplayMetrics().density,ui.scale));
+   assertEquals(h.dp(6),ui.opponentInfo.getLeft());
+   assertEquals(Math.round(Roster60HudGeometry.enemyWidth(ui.art.getWidth(),h.getResources().getDisplayMetrics().density,ui.scale)),ui.opponentInfo.getWidth());
+   assertEquals("",ui.opponentInfo.getText().toString());
+   assertNull(ui.home.getParent());assertSame(ui.arena,ui.container.getChildAt(0));
+   assertEquals(ui.container.getHeight(),ui.arena.getHeight());
    assertTrue(ui.opponentInfo.getRight()<=ui.stageOverlay.getWidth());
-   ui.opponentInfo.performClick();android.app.AlertDialog first=ui.opponentDialog;assertNotNull(first);
-   ui.opponentInfo.performClick();assertSame(first,ui.opponentDialog);
+   ui.opponentInfo.performClick();assertNull(ui.opponentDialog);
+   ui.opponentInfo.performLongClick();android.app.AlertDialog first=ui.opponentDialog;assertNotNull(first);
+   ui.opponentInfo.performLongClick();assertSame(first,ui.opponentDialog);
    assertTrue(ui.back());assertNull(ui.opponentDialog);assertEquals("roster60Battle",h.screen);
-   ui.opponentInfo.performClick();assertNotNull(ui.opponentDialog);ui.pause();assertNull(ui.opponentDialog);assertNull(h.visibleDialog);
+   ui.opponentInfo.performLongClick();assertNotNull(ui.opponentDialog);ui.pause();assertNull(ui.opponentDialog);assertNull(h.visibleDialog);
   }
  }
  @Test public void staleAccountCannotOpenOpponentDialog()throws Exception{
   try(ActivityController<MainActivity> c=helper.helper.flow.start()){
    MainActivity h=c.get();helper.open(h);NativeRoster60Battle ui=h.rosterBattle;
-   ui.owner="different-account";ui.opponentInfo.performClick();assertNull(ui.opponentDialog);
+   ui.opponentInfo.performLongClick();assertNotNull(ui.opponentDialog);
+   ui.owner="different-account";ui.opponentInfo.performLongClick();assertNull(ui.opponentDialog);assertNull(h.visibleDialog);
+  }
+ }
+
+ @Test public void allEightIllustrationsAreMaskedAndOutsideDismissDoesNotAttack()throws Exception{
+  try(ActivityController<MainActivity> c=helper.helper.flow.start()){
+   MainActivity h=c.get();NativeRoster60PlaybackTest.Api api=helper.open(h);NativeRoster60Battle ui=h.rosterBattle;
+   api.state.getJSONObject("state").put("opponentIntel",intel(0));ui.bind(api.state);
+   int calls=api.paths.size();ui.opponentInfo.performLongClick();assertNotNull(ui.opponentDialog);
+   RegistrationArtTest.await(()->LocalGameArt.idle());
+   for(int i=0;i<8;i++){
+    TextView cell=ui.opponentReactions[i];assertNotNull(cell.getCompoundDrawables()[1]);
+    assertTrue(cell.getText().toString().contains(Roster60OpponentIntel.ELEMENT_NAMES[i]));
+    assertTrue(cell.getText().toString().contains(i==0?"보통":"?"));
+   }
+   assertEquals(calls,api.paths.size());assertEquals(0,api.actions.size());
+   android.app.AlertDialog shown=ui.opponentDialog;
+   long now=android.os.SystemClock.uptimeMillis();MotionEvent outside=MotionEvent.obtain(now,now,MotionEvent.ACTION_OUTSIDE,-100,-100,0);
+   shown.onTouchEvent(outside);outside.recycle();
+   RegistrationArtTest.await(()->ui.opponentDialog==null);
+   assertFalse(shown.isShowing());assertNull(ui.opponentDialog);assertEquals(0,api.actions.size());
+   assertEquals("roster60Battle",h.screen);
+  }
+ }
+
+ @Test public void captureHeaderlessBattleAndVisualIntelAtBothSizes()throws Exception{
+  NativeHomePartyFeedbackTest.Profile[] profiles={NativeHomePartyFeedbackTest.PROFILES[0],new NativeHomePartyFeedbackTest.Profile("large-1280x720",1280,720,160,1,0,0,0,0)};
+  for(NativeHomePartyFeedbackTest.Profile profile:profiles){
+   helper.helper.configure(profile);
+   try(ActivityController<MainActivity> c=helper.helper.flow.start()){
+    MainActivity h=c.get();NativeRoster60PlaybackTest.Api api=helper.open(h);NativeRoster60Battle ui=h.rosterBattle;
+    api.state.getJSONObject("state").put("opponentIntel",intel(1));ui.bind(api.state);
+    helper.helper.settle(h,profile);
+    android.graphics.Bitmap battle=NativeHomePartyFeedbackTest.render(h.root);
+    helper.helper.png(battle,"battle-headerless-"+profile.name+".png");battle.recycle();
+    ui.opponentInfo.performLongClick();RegistrationArtTest.await(()->LocalGameArt.idle());
+    View decor=ui.opponentDialog.getWindow().getDecorView();
+    decor.measure(View.MeasureSpec.makeMeasureSpec(ui.opponentDialog.getWindow().getAttributes().width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(profile.height,View.MeasureSpec.AT_MOST));
+    decor.layout(0,0,decor.getMeasuredWidth(),decor.getMeasuredHeight());
+    android.graphics.Bitmap intel=NativeHomePartyFeedbackTest.render(decor);
+    helper.helper.png(intel,"battle-intel-"+profile.name+".png");intel.recycle();
+    assertEquals(ui.container.getHeight(),ui.arena.getHeight());ui.dismissOpponentDialog();
+   }
   }
  }
 }

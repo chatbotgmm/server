@@ -1,3 +1,4 @@
+import {restoreBlackStoryAppearance,type BattleArtVariant} from './battle/roster60-appearance.js';
 import {createStoryUnitXpPlan,storyUnitXpPlan,calculateStoryUnitXp,type StoryUnitXpMember} from './progression/story-unit-xp.js';
 import {serializeRoster60Write} from './roster60-write-queue.js';
 import {opponentFighter,selectEnemySpecies} from './battle/roster60-opponent-intel.js';
@@ -14,7 +15,7 @@ import {validateFiveStats,fiveRebirthStats,fiveRebirthPolicy,type FiveStats} fro
 import {validateFiveCombatPolicy,fiveStatAttack,decideTurnOrder,reuseTurnOrder,type FiveCombatPolicy,type TurnOrderDecision} from './battle/roster60-five-combat.js';
 export type BattlePolicy={approved:boolean;version:string;catalogVersion:string;calculation:FiveCombatPolicy;reflection:'return-post-durability';enemyStrategy:'first-affordable'|'best-affordable';maxRounds:number;encounters:{id:string;speciesId:string;level:number;tutorial:boolean;winXp:number;lossXp:number;mode?:'story'|'duel'|'adventure';enemySpeciesIds?:string[];fixedEnemy?:boolean}[]};
 type Skill={id:string;name:string;element:SkillElement;mpCost:number;power:number};
-export type Fighter={ownedId?:string;id:string;speciesId:string;name:string;level:number;stats:FiveStats;hp:number;mp:number;attack:Skill;skills:Skill[];suitability:ElementProfile<number>;defense:ElementProfile<Defense>};
+export type Fighter={artVariant?:BattleArtVariant;ownedId?:string;id:string;speciesId:string;name:string;level:number;stats:FiveStats;hp:number;mp:number;attack:Skill;skills:Skill[];suitability:ElementProfile<number>;defense:ElementProfile<Defense>};
 export type State={version:'five-battle-v1';turn:number;fighters:[Fighter,Fighter];decision:TurnOrderDecision;outcome:'win'|'loss'|'draw'|'escaped'|null;events:unknown[];adventureId?:string;reserves?:Fighter[];mode?:'story'|'duel'|'adventure';surrendered?:boolean;rulesVersion?:'party-actions-v2';inventory?:{itemId:string;count:number}[];participation?:{ownedId:string;kind:'start'|'switch'|'forced-switch';turn:number}[]};
 export type BattleAction={kind:'attack'|'skill'|'focus'|'switch'|'item'|'escape';skillId?:string;targetOwnedId?:string;itemId?:string};
 export type StoryBattleCreateHook=(tx:Prisma.TransactionClient,context:{battleId:string;playerId:string;encounter:BattlePolicy['encounters'][number];enemy:Fighter;adventureId?:string})=>Promise<{story:unknown;enemy?:Fighter}>;
@@ -52,6 +53,7 @@ export function formationUnit(c:RosterCatalog,u:{id:string;speciesId:string;tota
 function order(id:string,state:Pick<State,'turn'|'fighters'>,seed:string){const f=(i:number)=>({id:state.fighters[i].id,baseSpeed:state.fighters[i].stats.speed,modifiers:[] as number[]});return decideTurnOrder(id,state.turn,[f(0),f(1)],seed);}
 function dto(row:{id:string;revision:number;status:string;state:string;settlement:string|null;snapshot?:string;seed:string},catalog:RosterCatalog|null){
  const s=JSON.parse(row.state) as State,snapshot=row.snapshot?JSON.parse(row.snapshot):null;const policy=snapshot?.policy;
+ restoreBlackStoryAppearance(s,snapshot?.story);
  const intel=observedOpponentIntel(s.fighters[1],s.turn,snapshot?.observedDefense,battleKnowledge(snapshot?.observedDefense,s.events,'self'),catalog);
  const {speeds,...publicDecision}=s.decision;
  const events=s.events.map((round:any)=>({...round,events:round.events.map((event:any)=>{
@@ -261,3 +263,4 @@ export class RosterBattle {
   });
  }
 }
+

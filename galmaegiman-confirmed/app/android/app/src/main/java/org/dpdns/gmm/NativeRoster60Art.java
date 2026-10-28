@@ -44,11 +44,11 @@ final class NativeRoster60Art extends View {
  JSONObject entry(String id)throws Exception {JSONArray all=index.getJSONArray("entries");for(int i=0;i<all.length();i++)if(all.getJSONObject(i).getString("id").equals(id))return all.getJSONObject(i);throw new IOException("unknown art");}
  void bind(JSONObject state){clearFrame();loadState(state);}
  void loadState(JSONObject state){stateBindings++;snapshot=state;JSONArray fighters=state.optJSONArray("fighters");if(fighters==null)return;
-  for(int side=0;side<2;side++){String id=fighters.optJSONObject(side).optString("speciesId");if(id.equals(ids[side]))continue;ids[side]=id;images[side]=null;shownSample[side]=Integer.MAX_VALUE;int generation=++imageGeneration[side];
+  for(int side=0;side<2;side++){JSONObject fighter=fighters.optJSONObject(side);String id=fighter.optString("speciesId"),variant=fighter.optString("artVariant"),key=Roster60BattleAppearance.key(side,id,variant);if(key.equals(ids[side]))continue;ids[side]=key;images[side]=null;shownSample[side]=Integer.MAX_VALUE;int generation=++imageGeneration[side];
    try{JSONObject v=entry(id).getJSONObject("views").getJSONObject(side==0?"rear":"front");String path=v.getString("file");if(path.contains("/")||path.contains(".."))throw new IOException("path");
-    heights[side]=(float)v.getDouble("relativeHeight");String asset="roster60-art/"+path;Bitmap preview=LocalGameArt.peek(asset,4);if(preview!=null){images[side]=preview;shownSample[side]=4;}
+    heights[side]=(float)v.getDouble("relativeHeight");String asset=Roster60BattleAppearance.asset(side,id,variant,path);Bitmap preview=LocalGameArt.peek(asset,4);if(preview!=null){images[side]=preview;shownSample[side]=4;}
     JSONArray size=v.optJSONArray("size");int sample=getWidth()>0&&getHeight()>0?LocalGameArt.sampleForFit(size==null?512:size.optInt(0,512),size==null?512:size.optInt(1,512),Math.max(1,(int)(getWidth()*.64f)),Math.max(1,(int)(getHeight()*.49f*heights[side]))):2;
-    requestImage(side,id,asset,4,generation);if(sample!=4)requestImage(side,id,asset,sample,generation);
+    requestImage(side,key,asset,4,generation);if(sample!=4)requestImage(side,key,asset,sample,generation);
    }catch(Exception bad){problem="전투 아트 준비 중";}
   }StringBuilder accessible=new StringBuilder();for(int i=0;i<fighters.length();i++){if(uncertain(i)){accessible.append(i==0?"출전 교체 확인 중. ":"상대 교체 확인 중. ");continue;}JSONObject f=fighters.optJSONObject(i),s=f.optJSONObject("stats");if(s!=null)accessible.append(f.optString("name")).append(" Lv").append(f.optInt("level")).append(" HP ").append(f.optInt("hp")).append("/").append(s.optInt("hp")).append(" MP ").append(f.optInt("mp")).append("/").append(s.optInt("mp")).append(". ");}setContentDescription(accessible);invalidate();
  }

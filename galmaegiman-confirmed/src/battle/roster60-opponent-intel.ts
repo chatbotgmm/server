@@ -1,3 +1,4 @@
+import {publicBattleAppearance} from './roster60-appearance.js';
 import {createHmac} from 'node:crypto';
 import {skillElements,type SkillElement,type Defense} from './roster60-rules.js';
 import type {Fighter} from '../roster60-battle.js';
@@ -20,7 +21,7 @@ export function opponentIntel(enemy:Fighter,completedTurns:number,known:Partial<
 }
 /** Whitelisted public opponent: full combat values stay only in server persistence. */
 export function opponentFighter(enemy:Fighter,intel:OpponentIntel) {
- return {id:'enemy',speciesId:enemy.speciesId,name:enemy.name,level:enemy.level,hp:enemy.hp,mp:enemy.mp,
+ return {id:'enemy',...publicBattleAppearance(enemy),speciesId:enemy.speciesId,name:enemy.name,level:enemy.level,hp:enemy.hp,mp:enemy.mp,
   stats:intel.statsKnown?{...enemy.stats}:{hp:enemy.stats.hp,mp:enemy.stats.mp},
   attack:{...enemy.attack},skills:enemy.skills.map(s=>({...s}))};
 }
@@ -37,3 +38,4 @@ export function selectEnemySpecies(encounter:EnemyEncounter,encounters:readonly 
   return rank(a).localeCompare(rank(b));
  })[0];
 }
+

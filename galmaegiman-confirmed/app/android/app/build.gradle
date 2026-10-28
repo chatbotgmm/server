@@ -104,6 +104,16 @@ tasks.register('bundleGameArt', Sync) {
         rename { 'companions-v3-' + it }
         into 'native/village-loop-v2/residents'
     }
+    from('../../../art/gpt/blackened-gulls-20261028') {
+        include '*-black-front.png'
+        rename { it.replace('-black-front.png', '-front.png') }
+        into 'roster60-art/black'
+    }
+    from('../../../art/gpt/village-continuous-20261028') {
+        include '*.png'
+        rename { 'continuous-v5-' + it }
+        into 'native/village-loop-v2/assets'
+    }
     from('../../../art/gpt/village-districts-20261028') {
         include '*.png'
         rename { 'districts-v4-' + it }

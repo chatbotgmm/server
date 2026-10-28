@@ -21,7 +21,7 @@ final class VillageLayout {
   static final String ARCHITECTURE = "cream-stone-rounded-arches-columns-ivy";
   final String version, artworkStatus, architectureStyle;
   final double worldUnits, minimumUnitDp, minimumTouchDp;
-  final boolean currencyHud, cameraResetOnWrap, residentPlacementIsProposal;
+  final boolean currencyHud, cameraResetOnWrap, residentPlacementIsProposal, continuousFoundation;
   final List<District> districts;
   final List<Layer> layers;
   final Map<String,Asset> assets;
@@ -100,24 +100,24 @@ final class VillageLayout {
 
   /** Separately composited illustration pieces; never a menu/quest/hit-target replacement. */
   static final class DistrictScenery {
-    final String id,district,asset,depth;final boolean repeatToDistrict;final double x,heightRatio,baseline,groundAnchor,fadeUnits,clipTop,minimumViewportWidth,minimumWorldWidth,tileOverlapUnits;
+    final String id,district,asset,depth;final boolean repeatToDistrict;final double x,heightRatio,baseline,groundAnchor,fadeUnits,clipTop,minimumViewportWidth,minimumWorldWidth,tileOverlapUnits,clipSourceTop;
     DistrictScenery(JSONObject o)throws Exception{
-      tileOverlapUnits=o.optDouble("tileOverlapUnits",0);if(!Double.isFinite(tileOverlapUnits)||tileOverlapUnits<0||tileOverlapUnits>.25)throw invalid();repeatToDistrict=o.optBoolean("repeatToDistrict",false);minimumWorldWidth=o.optDouble("minimumWorldWidth",0);if(!Double.isFinite(minimumWorldWidth)||minimumWorldWidth<0||minimumWorldWidth>2.5)throw invalid();minimumViewportWidth=o.optDouble("minimumViewportWidth",0);if(!Double.isFinite(minimumViewportWidth)||minimumViewportWidth<0||minimumViewportWidth>1.2)throw invalid();id=word(o,"id");district=word(o,"district");asset=word(o,"asset");depth=word(o,"depth");
+      clipSourceTop=o.optDouble("clipSourceTop",0);if(!Double.isFinite(clipSourceTop)||clipSourceTop<0||clipSourceTop>=1)throw invalid();tileOverlapUnits=o.optDouble("tileOverlapUnits",0);if(!Double.isFinite(tileOverlapUnits)||tileOverlapUnits<0||tileOverlapUnits>.25)throw invalid();repeatToDistrict=o.optBoolean("repeatToDistrict",false);minimumWorldWidth=o.optDouble("minimumWorldWidth",0);if(!Double.isFinite(minimumWorldWidth)||minimumWorldWidth<0||minimumWorldWidth>2.5)throw invalid();minimumViewportWidth=o.optDouble("minimumViewportWidth",0);if(!Double.isFinite(minimumViewportWidth)||minimumViewportWidth<0||minimumViewportWidth>1.2)throw invalid();id=word(o,"id");district=word(o,"district");asset=word(o,"asset");depth=word(o,"depth");
       x=number(o,"x");heightRatio=number(o,"heightRatio");baseline=number(o,"baseline");
       groundAnchor=number(o,"groundAnchor");fadeUnits=number(o,"fadeUnits");clipTop=o.has("clipTop")?number(o,"clipTop"):0;
-      if(!("backdrop".equals(depth)||"terrace".equals(depth)||"foreground".equals(depth))||heightRatio<=0||heightRatio>2.5||baseline<0||baseline>1||groundAnchor<=0||groundAnchor>1||fadeUnits<.02||fadeUnits>.5||clipTop<0||clipTop>1)throw invalid();
-      Set<String> allowed=new HashSet<>(java.util.Arrays.asList("id","district","asset","depth","x","heightRatio","baseline","groundAnchor","fadeUnits","clipTop","minimumViewportWidth","minimumWorldWidth","repeatToDistrict","tileOverlapUnits"));
+      if(!("backdrop".equals(depth)||"terrace".equals(depth)||"foreground".equals(depth))||heightRatio<=0||heightRatio>2.5||baseline<0||baseline>1||groundAnchor<=0||groundAnchor>1||fadeUnits<0||fadeUnits>.5||clipTop<0||clipTop>1)throw invalid();
+      Set<String> allowed=new HashSet<>(java.util.Arrays.asList("id","district","asset","depth","x","heightRatio","baseline","groundAnchor","fadeUnits","clipTop","minimumViewportWidth","minimumWorldWidth","repeatToDistrict","tileOverlapUnits","clipSourceTop"));
       for(Iterator<String> it=o.keys();it.hasNext();)if(!allowed.contains(it.next()))throw invalid();
     }
   }
 
   private VillageLayout(JSONObject o) throws Exception {
-    version=word(o,"version");worldUnits=number(o,"worldUnits");minimumUnitDp=number(o,"minimumUnitDp");minimumTouchDp=number(o,"minimumTouchDp");artworkStatus=word(o,"artworkStatus");architectureStyle=word(o,"architectureStyle");currencyHud=o.getBoolean("currencyHud");cameraResetOnWrap=o.getBoolean("cameraResetOnWrap");residentPlacementIsProposal=o.optBoolean("residentPlacementIsProposal");
-    if(worldUnits!=8||minimumUnitDp<650||minimumTouchDp<48||currencyHud||cameraResetOnWrap||!ARCHITECTURE.equals(architectureStyle)||!("pending-verified-pixels".equals(artworkStatus)||"manifest-unavailable-placeholder".equals(artworkStatus)||"verified-local-assets".equals(artworkStatus)))throw invalid();
+    continuousFoundation=o.optBoolean("continuousFoundation",false);version=word(o,"version");worldUnits=number(o,"worldUnits");minimumUnitDp=number(o,"minimumUnitDp");minimumTouchDp=number(o,"minimumTouchDp");artworkStatus=word(o,"artworkStatus");architectureStyle=word(o,"architectureStyle");currencyHud=o.getBoolean("currencyHud");cameraResetOnWrap=o.getBoolean("cameraResetOnWrap");residentPlacementIsProposal=o.optBoolean("residentPlacementIsProposal");
+    if(worldUnits!=8||minimumUnitDp<(continuousFoundation?360:650)||minimumTouchDp<48||currencyHud||cameraResetOnWrap||!ARCHITECTURE.equals(architectureStyle)||!("pending-verified-pixels".equals(artworkStatus)||"manifest-unavailable-placeholder".equals(artworkStatus)||"verified-local-assets".equals(artworkStatus)))throw invalid();
     ArrayList<District> ds=new ArrayList<>();JSONArray a=o.getJSONArray("districts");for(int i=0;i<a.length();i++)ds.add(new District(a.getJSONObject(i)));unique(ds.stream().map(v->v.id).toArray(String[]::new));if(ds.size()!=4)throw invalid();for(int i=0;i<4;i++)if(ds.get(i).x!=i*2)throw invalid();districts=Collections.unmodifiableList(ds);
     LinkedHashMap<String,Asset> as=new LinkedHashMap<>();JSONObject raw=o.getJSONObject("assets");for(Iterator<String> it=raw.keys();it.hasNext();){String id=it.next();as.put(id,new Asset(id,raw.getJSONObject(id)));}assets=Collections.unmodifiableMap(as);
     ArrayList<Layer> ls=new ArrayList<>();a=o.getJSONArray("layers");for(int i=0;i<a.length();i++){Layer v=new Layer(a.getJSONObject(i));if(Math.abs(v.repeatUnits-worldUnits*v.parallax)>1e-9||(!v.asset.isEmpty()&&!assets.containsKey(v.asset)))throw invalid();ls.add(v);}unique(ls.stream().map(v->v.id).toArray(String[]::new));if(ls.size()!=6||!has(ls,"background")||!has(ls,"sea")||!has(ls,"terrain")||!has(ls,"buildings")||!has(ls,"ships")||!has(ls,"residents"))throw invalid();layers=Collections.unmodifiableList(ls);
-    ArrayList<Building> bs=new ArrayList<>();a=o.getJSONArray("buildings");for(int i=0;i<a.length();i++){Building v=new Building(a.getJSONObject(i));check(v);bs.add(v);}unique(bs.stream().map(v->v.id).toArray(String[]::new));if(bs.size()!=6)throw invalid();buildings=Collections.unmodifiableList(bs);
+    ArrayList<Building> bs=new ArrayList<>();a=o.getJSONArray("buildings");for(int i=0;i<a.length();i++){Building v=new Building(a.getJSONObject(i));check(v);bs.add(v);}unique(bs.stream().map(v->v.id).toArray(String[]::new));if(bs.size()!=(continuousFoundation?7:6))throw invalid();buildings=Collections.unmodifiableList(bs);
     ArrayList<Prop> ps=new ArrayList<>();a=o.getJSONArray("props");for(int i=0;i<a.length();i++){Prop v=new Prop(a.getJSONObject(i));check(v);ps.add(v);}unique(ps.stream().map(v->v.id).toArray(String[]::new));props=Collections.unmodifiableList(ps);
     ArrayList<Resident> rs=new ArrayList<>();a=o.getJSONArray("residents");for(int i=0;i<a.length();i++){Resident v=new Resident(a.getJSONObject(i));check(v);rs.add(v);}unique(rs.stream().map(v->v.id).toArray(String[]::new));if(rs.size()!=4)throw invalid();residents=Collections.unmodifiableList(rs);
     Set<String> roles=new HashSet<>();for(Resident v:rs)roles.add(v.id);if(!roles.equals(new HashSet<>(java.util.Arrays.asList("blacksmith","merchant","librarian","guard"))))throw invalid();
@@ -126,7 +126,7 @@ final class VillageLayout {
     ArrayList<Decoration> dec=new ArrayList<>();a=o.has("decorations")?o.getJSONArray("decorations"):new JSONArray();
     Set<String> sceneIds=new HashSet<>(),usedAssets=new HashSet<>();
     for(Building v:bs){sceneIds.add(v.id);usedAssets.add(v.asset);}for(Prop v:ps){sceneIds.add(v.id);usedAssets.add(v.asset);}for(Resident v:rs){sceneIds.add(v.id);usedAssets.add(v.asset);}for(Layer v:ls)if(!v.asset.isEmpty())usedAssets.add(v.asset);
-    usedAssets.addAll(java.util.Arrays.asList("sea","terrain","ship","recruit","hideout","archive","mailbox","market","harbor","blacksmith","merchant","librarian","patrol"));
+    usedAssets.addAll(java.util.Arrays.asList("continuous-sky","continuous-ground","sea","terrain","ship","recruit","hideout","archive","mailbox","market","harbor","blacksmith","merchant","librarian","patrol"));
     for(int i=0;i<a.length();i++){Decoration v=new Decoration(a.getJSONObject(i));check(v);if(!sceneIds.add(v.id)||assets.containsKey(v.id)||usedAssets.contains(v.asset))throw invalid();dec.add(v);}
     decorations=Collections.unmodifiableList(dec);
     landmark=o.has("landmark")?new Landmark(o.getJSONObject("landmark")):null;
@@ -135,9 +135,11 @@ final class VillageLayout {
     if(a!=null)for(int i=0;i<a.length();i++){
       DistrictScenery item=new DistrictScenery(a.getJSONObject(i));District district=district(item.district);
       if(district==null||!assets.containsKey(item.asset)||item.x<district.x||item.x>=district.x+2||!sceneIds.add(item.id))throw invalid();
+      if(continuousFoundation&&(item.repeatToDistrict||item.fadeUnits!=0||item.minimumWorldWidth!=0||item.minimumViewportWidth!=0||item.tileOverlapUnits!=0))throw invalid();
       scenery.add(item);
     }
     districtScenery=Collections.unmodifiableList(scenery);
+    for(Decoration decorative:decorations)for(DistrictScenery background:scenery)if(decorative.asset.equals(background.asset))throw invalid();
     if(landmark!=null&&!landmark.surface.isEmpty()&&districtScenery(landmark.surface)==null)throw invalid();
     for(Decoration item:decorations)if(!item.surface.isEmpty()&&districtScenery(item.surface)==null)throw invalid();
     ArrayList<Placed> actors=new ArrayList<>();actors.addAll(buildings);actors.addAll(residents);

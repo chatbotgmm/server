@@ -40,7 +40,7 @@ public class NativeVillageHomeArtTest {
   final NativeVillageHomeTest fixture=new NativeVillageHomeTest();
   final NativeHomePartyFeedbackTest helper=fixture.helper;
   static final Set<String> ASSETS=new HashSet<>(Arrays.asList(
-      "records-background","records-terrace","harbor-background","harbor-terrace","market-background","market-terrace","market-forge","companions-shadows","companions-background","companions-terrace","nameplates","grove","neighborhood","sea","terrain","ship","recruit","hideout","archive","mailbox","market","harbor",
+      "continuous-boundary-wall","continuous-garden-wall","continuous-sky","continuous-ground","continuous-platform","continuous-town-silhouette","continuous-town-silhouette-2","continuous-lane-props","continuous-harbor-inlet","training","training-nameplate","harbor-nameplate","statue-nameplate","records-background","records-terrace","harbor-background","harbor-terrace","market-background","market-terrace","market-forge","companions-shadows","companions-background","companions-terrace","nameplates","grove","neighborhood","sea","terrain","ship","recruit","hideout","archive","mailbox","market","harbor",
       "blacksmith","merchant","librarian","patrol","decor_cottage","decor_warehouse","decor_closed_shop"));
   static final Set<String> DECORATIONS=new HashSet<>(Arrays.asList("decor_cottage","decor_warehouse","decor_closed_shop"));
   static final Set<String> NPCS=new HashSet<>(Arrays.asList("blacksmith","merchant","librarian","patrol"));

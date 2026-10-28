@@ -82,8 +82,12 @@ final class NativeVillageHomeController {
     paused=false;if(view!=null){view.assets.setViewport(view.camera.cameraUnits(),view.field.width()>0?view.field.width()/view.unitPixels():1);view.assets.load(layout,this::current,()->{if(current()){view.updateNotice();view.invalidate();}});loadCurrentStatue();refresh();}
   }
   void resident(String id){
-    if(!current()||h.busy||h.updateBlocks()||view.blocksClick())return;saveCamera();pause();
-    h.openRosterStoryResident(id);
+    if(!current()||h.busy||h.updateBlocks()||view.blocksClick())return;saveCamera();view.stopMotion();
+    h.rosterStory=new NativeRoster60StoryController(h,id);h.rosterStory.openVillage();
+  }
+  void mainStory(){
+    if(!current()||h.busy||h.updateBlocks()||view.blocksClick()||statueStage==0)return;saveCamera();view.stopMotion();
+    h.rosterStory=new NativeRoster60StoryController(h);h.rosterStory.openVillage();
   }
   void building(VillageLayout.Building building){
     if(!current()||h.busy||h.updateBlocks()||view.blocksClick())return;
@@ -101,7 +105,8 @@ final class NativeVillageHomeController {
       case "craft":pause();h.mix();break;
       case "mail":case "events":case "notices":int tab=id.equals("mail")?0:id.equals("events")?1:2;pause();h.menus.news.tab=tab;h.load("news");break;
       case "explore":pause();h.openRosterBattle(Roster60BattleMode.ADVENTURE);break;
-      case "story":pause();h.openRosterStory();break;
+      case "story":mainStory();break;
+      case "departure":view.stopMotion();h.rosterStory=new NativeRoster60StoryController(h);h.rosterStory.openVillageDeparture();break;
       case "normal":case "rank":pause();h.openRosterPvp(id);break;
       case "items":case "currency":pause();h.load("shop");break;
       case "pass":pause();h.load("playPass");break;
@@ -117,5 +122,5 @@ final class NativeVillageHomeController {
     String[] actions={"daily","profile","rebirth","settings","refresh"};
     menu=new GameDialog(h).navy().setTitle("마을 메뉴").setItems(labels,(dialog,index)->{if(!current())return;if("refresh".equals(actions[index]))refresh();else navigate(actions[index]);}).setNegativeButton("닫기",null).show();
   }
-  boolean back(){if(!current())return false;if(menu!=null&&menu.isShowing()){menu.dismiss();menu=null;return true;}return false;}
+  boolean back(){if(!current())return false;if(h.rosterStory!=null&&h.rosterStory.villageOverlayOpen()){h.rosterStory.back();return true;}if(menu!=null&&menu.isShowing()){menu.dismiss();menu=null;return true;}return false;}
 }

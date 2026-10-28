@@ -120,7 +120,7 @@ export class RosterStory{
    const active=await tx.roster60Battle.findFirst({where:{id:{in:accepted.battles},playerId:ctx.playerId,status:{in:['ACTIVE','FINISHED']}}});if(active)return fail('STORY_BATTLE_ACTIVE');accepted.battles.push(ctx.battleId);if(ctx.adventureId)accepted.adventureId=ctx.adventureId;
   }else if(!this.content.quests.some(q=>q.objective.encounterIds.includes(encounter.id)&&(p.accepted[q.id]||p.completed.includes(q.id))))return fail('STORY_ENCOUNTER_LOCKED');
   const story:StoryBattleContext={version:'story-battle-v1',contentVersion:this.content.version,encounterId:encounter.id,speciesId:encounter.speciesId,kind:encounter.kind,mode:encounter.mode,questId,acceptToken,dropAmount:this.content.policy.darkGangPerWin,maxBalance:this.content.policy.maxBalance,unitXpPolicy:questId?p.accepted[questId]?.unitXpPolicy??null:null};
-  const enemy=structuredClone(ctx.enemy);enemy.name=(encounter.kind==='black'?'흑화 ':'')+enemy.name;enemy.stats.hp=Math.round(enemy.stats.hp*(encounter.hpMultiplier??1));enemy.hp=enemy.stats.hp;
+  const enemy=structuredClone(ctx.enemy);if(encounter.kind==='black')enemy.artVariant='black';enemy.name=(encounter.kind==='black'?'흑화 ':'')+enemy.name;enemy.stats.hp=Math.round(enemy.stats.hp*(encounter.hpMultiplier??1));enemy.hp=enemy.stats.hp;
   for(const skill of [enemy.attack,...enemy.skills])skill.power=Math.round(skill.power*(encounter.powerMultiplier??1));
   delete p.departure;
   const changed=await tx.roster60StoryAccount.updateMany({where:{playerId:ctx.playerId,revision:row.revision},data:{state:JSON.stringify(p),revision:{increment:1}}});if(changed.count!==1)return fail('STORY_STALE_REVISION');
@@ -200,3 +200,4 @@ export class RosterStory{
   }
  }
 }
+

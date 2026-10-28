@@ -50,9 +50,9 @@ public class VillageDecorationLayoutTest {
       VillageLayout layout=VillageLayout.parse(data);
       assertTrue(layout.decorations.isEmpty());assertNull(layout.decoration("missing"));
       assertEquals(assets,layout.assets.size());assertEquals(6,layout.layers.size());
-      assertEquals(6,layout.buildings.size());assertEquals(4,layout.residents.size());
+      assertEquals(7,layout.buildings.size());assertEquals(4,layout.residents.size());
       assertArrayEquals(new String[]{"recruit"},layout.building("recruit").actionIds);
-      assertEquals(.76,layout.resident("guard").x,0);assertEquals("patrol",layout.resident("guard").asset);
+      assertEquals(1.54,layout.resident("guard").x,0);assertEquals("patrol",layout.resident("guard").asset);
     }
     VillageLayout fallback=VillageLayout.referenceLayout();assertEquals(13,fallback.assets.size());
     assertTrue(fallback.decorations.isEmpty());for(VillageLayout.Asset asset:fallback.assets.values())assertFalse(asset.verified);
@@ -84,11 +84,11 @@ public class VillageDecorationLayoutTest {
     }
   }
   @Test public void duplicateIdsAndExistingSceneSilhouettesCannotBecomeDecorations()throws Exception{
-    for(String asset:new String[]{"recruit","patrol","ship","sea","terrain","missing-asset"}){
+    for(String asset:new String[]{"recruit","patrol","training","continuous-ground","continuous-sky","continuous-boundary-wall","missing-asset"}){
       JSONObject data=fixture();data.getJSONArray("decorations").getJSONObject(0).put("asset",asset);
       assertThrows("Main artwork must not be copied into decorative menus: "+asset,IllegalArgumentException.class,()->VillageLayout.parse(data));
     }
-    for(String id:new String[]{"recruit","guard","ship","test-warehouse"}){
+    for(String id:new String[]{"recruit","guard","training","test-warehouse"}){
       JSONObject data=fixture();data.getJSONArray("decorations").getJSONObject(0).put("id",id);
       assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(data));
     }
@@ -107,14 +107,15 @@ public class VillageDecorationLayoutTest {
     for(VillageLayout.Decoration d:layout.decorations){
       districtCount[(int)(d.x/2)]++;footprint+=d.width;types.add(d.asset);
       assertTrue(d.width>=.16&&d.width<=.24);assertTrue(d.baseline>=.70&&d.baseline<=.73);
-      for(VillageLayout.Building b:layout.buildings)assertTrue("Nominal building corridor: "+d.id+" / "+b.id,clearance(d.x,d.width,b.x,b.width,8)>=.10);
-      for(VillageLayout.Resident r:layout.residents)assertTrue("Nominal resident corridor: "+d.id+" / "+r.id,clearance(d.x,d.width,r.x,r.width,8)>=.10);
+      for(VillageLayout.Building b:VillageLayout.referenceLayout().buildings)assertTrue("Nominal building corridor: "+d.id+" / "+b.id,clearance(d.x,d.width,b.x,b.width,8)>=.10);
+      for(VillageLayout.Resident r:VillageLayout.referenceLayout().residents)assertTrue("Nominal resident corridor: "+d.id+" / "+r.id,clearance(d.x,d.width,r.x,r.width,8)>=.10);
     }
     assertArrayEquals(new int[]{2,2,2,2},districtCount);assertEquals(3,types.size());assertTrue(footprint<=8*.20);
     for(int i=0;i<layout.decorations.size();i++)for(int j=i+1;j<layout.decorations.size();j++){
       VillageLayout.Decoration a=layout.decorations.get(i),b=layout.decorations.get(j);
       assertTrue("Nominal decorative breathing space including the wrap",clearance(a.x,a.width,b.x,b.width,8)>=.10);
     }
+    // This archived proposal is compared only with its legacy reference, never applied to the denser continuous village.
     // These are normalized proposal intervals, not proof of actual alpha overlap or final artwork readiness.
   }
 }

@@ -11,6 +11,7 @@ final class VillageDistrictScene {
   final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
   final Rect source=new Rect();
   final RectF target=new RectF(),tile=new RectF();
+  final float[] waterVertices=new float[(32+1)*(12+1)*2];long waterTime;
   boolean geometry(NativeVillageHomeView view,VillageLayout.DistrictScenery item,Bitmap image){
     VillageLayout.Asset asset=view.layout.assets.get(item.asset);double[] crop=asset.crop;
     int iw=image==null?asset.sourceWidth:image.getWidth(),ih=image==null?asset.sourceHeight:image.getHeight();
@@ -25,6 +26,14 @@ final class VillageDistrictScene {
     target.set(center-width/2,top,center+width/2,top+height);return true;
   }
   void draw(Canvas canvas,NativeVillageHomeView view,String depth){
+    if(view.layout.continuousFoundation){
+      for(VillageLayout.DistrictScenery item:view.layout.districtScenery){
+        Bitmap image=view.assets.get(item.asset);if(!depth.equals(item.depth)||image==null||!geometry(view,item,image)||!RectF.intersects(target,view.field))continue;
+        int save=canvas.save();canvas.clipRect(view.field.left,Math.max(view.field.height()*(float)item.clipTop,target.top+target.height()*(float)item.clipSourceTop),view.field.right,view.field.bottom);
+        paint.setAlpha(255);if("harbor-water".equals(item.id))drawWater(canvas,image);else canvas.drawBitmap(image,source,target,paint);canvas.restoreToCount(save);
+      }
+      return;
+    }
     // Render left-to-right in projected world order, including the 8U wrap. Each new
     // panel fades over the previous opaque panel, not over the rejected old background.
     for(int rank=0;rank<view.layout.districtScenery.size();rank++)for(int index=0;index<view.layout.districtScenery.size();index++){
@@ -56,6 +65,17 @@ final class VillageDistrictScene {
     }
     paint.setAlpha(255);
   }
+  boolean waterVisible(NativeVillageHomeView view){VillageLayout.DistrictScenery water=view.layout.districtScenery("harbor-water");return water!=null&&view.assets.get(water.asset)!=null&&geometry(view,water,view.assets.get(water.asset))&&RectF.intersects(target,view.field);}
+  /** Deform only authored interior water pixels. The mesh is fixed at rock/quay and bitmap edges. */
+  void drawWater(Canvas canvas,Bitmap image){
+    double phase=waterTime/1800.0;float amplitude=Math.min(1.6f,target.height()*.003f);int at=0;
+    for(int row=0;row<=12;row++)for(int column=0;column<=32;column++){
+      double u=column/32.0,v=row/12.0,envelope=u>.22&&u<.72&&v>.30&&v<.75?Math.sin(Math.PI*(u-.22)/.5)*Math.sin(Math.PI*(v-.30)/.45):0;
+      waterVertices[at++]=target.left+(float)u*target.width()+amplitude*(float)(envelope*Math.sin(phase+v*18));
+      waterVertices[at++]=target.top+(float)v*target.height()+amplitude*.45f*(float)(envelope*Math.cos(phase+u*21));
+    }
+    canvas.drawBitmapMesh(image,32,12,waterVertices,0,null,0,paint);
+  }
   double opacity(VillageLayout.DistrictScenery item,float x,float left,float right,float fade){
     float span=item.repeatToDistrict?2*fade:fade;
     return VillageAmbientScene.smooth((x-left)/span)*(item.repeatToDistrict?1:VillageAmbientScene.smooth((right-x)/span));
@@ -74,6 +94,11 @@ final class VillageDistrictScene {
     for(VillageLayout.DistrictScenery item:view.layout.districtScenery){
       if(!depth.equals(item.depth)||y<view.field.top+view.field.height()*(float)item.clipTop||y>=view.field.bottom)continue;
       Bitmap image=view.assets.get(item.asset);if(image==null||!geometry(view,item,image)||y<target.top||y>=target.bottom)continue;
+      if(view.layout.continuousFoundation){
+        if(x<target.left||x>=target.right||y<target.top+target.height()*(float)item.clipSourceTop)continue;
+        int px=Math.max(source.left,Math.min(source.right-1,source.left+(int)((x-target.left)/target.width()*source.width()))),py=Math.max(source.top,Math.min(source.bottom-1,source.top+(int)((y-target.top)/target.height()*source.height())));
+        double alpha=(image.getPixel(px,py)>>>24)/255.0;combined=alpha+combined*(1-alpha);if(combined>=.5)return true;continue;
+      }
       VillageLayout.District district=view.layout.district(item.district);float unit=(float)view.unitPixels(),center=(float)view.camera.projectX(district.x+1,1,unit,view.field.width()),fade=(float)item.fadeUnits*unit;
       float left=item.repeatToDistrict?center-unit-fade:Math.max(center-unit,target.left),right=item.repeatToDistrict?center+unit+fade:Math.min(center+unit,target.right);if(x<left||x>=right)continue;
       float overlap=Math.min(target.width()*.45f,(float)item.tileOverlapUnits*unit),stride=target.width()-overlap;

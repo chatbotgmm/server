@@ -27,6 +27,9 @@ final class NativeRoster60StoryController {
   Roster60FormationView formation;
   android.app.AlertDialog residentDialogue;
   String residentEntryId="";
+  NativeVillageStoryOverlay overlay;
+  String villageResidentId="";
+  boolean villageMode,villageDeparture;
 
   NativeRoster60StoryController(MainActivity host) { h = host; }
   NativeRoster60StoryController(MainActivity host,String residentId) {h=host;if(java.util.Arrays.asList("blacksmith","merchant","librarian","guard").contains(residentId))residentEntryId=residentId;}
@@ -42,7 +45,27 @@ final class NativeRoster60StoryController {
     h.page.removeViewAt(h.page.getChildCount()-1);view=new NativeRoster60StoryView(h,this);h.body=view;
     h.page.addView(view,new LinearLayout.LayoutParams(-1,0,1));refresh();
   }
+  /** Modal entry: never replaces the village or executes a quest mutation on opening. */
+  void openVillage() {
+    if(h.busy||h.updateBlocks()||h.isFinishing()||h.isDestroyed()||h.villageHome==null||!h.villageHome.current())return;
+    owner=h.api.token();epoch=h.epoch;villageMode=true;villageResidentId=residentEntryId;residentEntryId="";
+    journal=new Roster60StoryJournal(h.getSharedPreferences("roster60_story_v1",Context.MODE_PRIVATE),owner);
+    h.villageHome.view.stopMotion();
+    overlay=new NativeVillageStoryOverlay(h,this);overlay.open();readState();
+  }
+  void openVillageDeparture(){villageDeparture=true;openVillage();}
+  boolean villageOverlayOpen(){return villageMode&&overlay!=null&&overlay.isShowing();}
+  void loading(String message){if(villageMode){if(overlay!=null)overlay.loading(message);}else view.loading(message);}
+  void closeVillage(){
+    if(!villageMode)return;
+    readGeneration++;reading=false;reconnect.removeCallbacks(checkOwnSave);
+    if(overlay!=null){overlay.close();overlay=null;}
+    if(h.villageHome!=null&&h.villageHome.current())h.villageHome.refresh();
+  }
   boolean current() {
+    if(villageMode)return !owner.isEmpty()&&owner.equals(h.api.token())&&epoch==h.epoch
+        &&"home".equals(h.screen)&&!h.isFinishing()&&!h.isDestroyed()&&overlay!=null&&overlay.isShowing()
+        &&h.villageHome!=null&&h.villageHome.current();
     return !owner.isEmpty() && owner.equals(h.api.token()) && epoch==h.epoch && SCREEN.equals(h.screen)
         && !h.isFinishing() && !h.isDestroyed() && view!=null && h.root.indexOfChild(h.page)>=0;
   }
@@ -52,7 +75,13 @@ final class NativeRoster60StoryController {
   }
   void refresh() {
     if(!current()||reading)return;
-    try{JSONObject pending=journal.pending();if(pending==null){recoverBattleReturn();pending=journal.pending();}if(pending!=null){send(pending);return;}}
+    if(villageMode){readState();return;}
+    retrySavedProgress();
+  }
+  /** Explicit user action only in village mode; preserves durable request ids. */
+  void retrySavedProgress() {
+    if(!current()||reading)return;
+    try{JSONObject pending=journal.pending();if(pending==null){recoverBattleReturn();pending=journal.pending();}if(pending==null&&villageMode&&state!=null){JSONObject recovery=state.optJSONObject("pendingDeparture");if(recovery!=null){if(!journal.restore(recovery))throw new IllegalStateException("출발 요청을 복구하지 못했어요.");pending=journal.pending();}}if(pending!=null){send(pending);return;}}
     catch(IllegalStateException invalid){error(invalid.getMessage());return;}
     readState();
   }
@@ -70,7 +99,7 @@ final class NativeRoster60StoryController {
   }
   void readState() {
     if(!current()||reading)return;
-    reading=true;int generation=++readGeneration;view.loading("계정의 저장 위치를 확인하고 있어요.");
+    reading=true;int generation=++readGeneration;loading("계정의 저장 위치를 확인하고 있어요.");
     h.api.call("native/roster60/story/state",null,(result,error)->{
       if(!current()||generation!=readGeneration)return;reading=false;
       if(error!=null){error(error);return;}
@@ -78,7 +107,7 @@ final class NativeRoster60StoryController {
       // A refreshed account snapshot invalidates any disabled departure choices.
       formation=null;state=result;problem="";
       JSONObject recovery=result.optJSONObject("pendingDeparture");
-      if(recovery!=null&&java.util.Arrays.asList("battle/create","adventure/create").contains(recovery.optString("operation"))){
+      if(!villageMode&&recovery!=null&&java.util.Arrays.asList("battle/create","adventure/create").contains(recovery.optString("operation"))){
         try{if(journal.pending()==null&&!journal.restore(recovery)){error("출발 요청을 기기에 저장하지 못했어요. 다시 확인해 주세요.");return;}send(journal.pending());return;}
         catch(IllegalStateException invalid){error(invalid.getMessage());return;}
       }
@@ -90,9 +119,9 @@ final class NativeRoster60StoryController {
       }
     });
   }
-  void render() { if(current()&&state!=null&&formation==null)view.show(state); }
+  void render() { if(current()&&state!=null&&formation==null){if(villageMode)overlay.show(state);else view.show(state);} }
   void error(String error) {
-    if(!current())return;problem=message(error);view.notice.setText(problem);
+    if(!current())return;problem=message(error);if(villageMode){overlay.error(problem);return;}view.notice.setText(problem);
     if(formation!=null)formation.unlock();
     // Even an uncertain write can be safely retried with the durable intent.
     view.enabled(false);view.continueTab.setEnabled(true);view.continueTab.setText("연결 다시 확인");
@@ -124,8 +153,8 @@ final class NativeRoster60StoryController {
     JSONObject body=intent.optJSONObject("body");if(body==null)return;
     String operation=intent.optString("operation"),requestId=body.optString("requestId"),flight=journal.key+"|"+requestId;
     if(!Roster60StoryJournal.allowed(operation)||requestId.isEmpty()){error("저장된 이야기 요청 확인이 필요합니다.");return;}
-    if(("adventure/return".equals(operation)&&NativeRoster60Battle.IN_FLIGHT.contains(requestId))||!IN_FLIGHT.add(flight)){view.loading("이야기 요청의 결과를 확인하고 있어요.");reconnect.removeCallbacks(checkOwnSave);reconnect.postDelayed(checkOwnSave,500);return;}
-    view.loading("이야기를 저장하고 있어요.");
+    if(("adventure/return".equals(operation)&&NativeRoster60Battle.IN_FLIGHT.contains(requestId))||!IN_FLIGHT.add(flight)){loading("이야기 요청의 결과를 확인하고 있어요.");reconnect.removeCallbacks(checkOwnSave);reconnect.postDelayed(checkOwnSave,500);return;}
+    loading("이야기를 저장하고 있어요.");
     NativeApi api=h.api;Runnable release=api.whenClosed(()->IN_FLIGHT.remove(flight));
     String route="adventure/return".equals(operation)?"native/roster60/adventure/return":"native/roster60/story/"+operation;
     api.call(route,body,(result,error)->{
@@ -164,6 +193,7 @@ final class NativeRoster60StoryController {
   void closeScene() { if(!current()||waiting())return;mutate("close",h.obj()); }
   void resident(JSONObject resident) {
     if(!current()||waiting())return;
+    if(villageMode){overlay.show(state);return;}
     String status=resident.optString("status"),questId=resident.optString("questId");
     if("AVAILABLE".equals(status)){openQuest(questId,"intro");return;}
     if("READY".equals(status)){openQuest(questId,"return");return;}
@@ -176,12 +206,12 @@ final class NativeRoster60StoryController {
     chooseParty(quest,"");
   }
   void chooseParty(JSONObject quest,String encounterId) {
-    if(!current()||waiting())return;reading=true;view.loading("모험에 나갈 대원을 확인하고 있어요.");
+    if(!current()||waiting())return;reading=true;loading("모험에 나갈 대원을 확인하고 있어요.");
     h.api.call("native/roster60/battle/options",null,(result,error)->{
       if(!current())return;reading=false;if(error!=null){error(error);return;}
       JSONArray units=result==null?null:result.optJSONArray("units");if(units==null||units.length()==0){error("모험에 나갈 수 있는 대원이 없어요. 진행 중인 전투와 편성을 확인해 주세요.");return;}
-      view.pauseTyping();view.content.removeAllViews();formation=new Roster60FormationView(h,units,ids->{if(current()&&!waiting())mutate(encounterId.isEmpty()?"battle/create":"adventure/create",encounterId.isEmpty()?h.obj("questId",quest.optString("id"),"ownedIds",ids):h.obj("encounterId",encounterId,"ownedIds",ids));},()->{if(current()){formation=null;render();}});
-      view.content.addView(formation,new android.widget.FrameLayout.LayoutParams(-1,-1));
+      if(view!=null)view.pauseTyping();android.widget.FrameLayout destination=villageMode?overlay.formationContent():view.content;destination.removeAllViews();formation=new Roster60FormationView(h,units,ids->{if(current()&&!waiting())mutate(encounterId.isEmpty()?"battle/create":"adventure/create",encounterId.isEmpty()?h.obj("questId",quest.optString("id"),"ownedIds",ids):h.obj("encounterId",encounterId,"ownedIds",ids));},()->{if(current()){formation=null;render();}});
+      destination.addView(formation,new android.widget.FrameLayout.LayoutParams(-1,-1));
     });
   }
   void chooseMaterialAdventure(){
@@ -192,7 +222,7 @@ final class NativeRoster60StoryController {
   void resumeMaterialAdventure(){
     if(!current()||waiting())return;JSONObject active=state.optJSONObject("materialAdventure");if(active==null)return;
     String battleId=reference(active,"activeBattleId");if(!battleId.isEmpty()){resumeBattle("",battleId);return;}
-    String adventureId=reference(active,"adventureId");if(adventureId.isEmpty())return;reading=true;view.loading("모험 귀환 위치를 확인하고 있어요.");
+    String adventureId=reference(active,"adventureId");if(adventureId.isEmpty())return;reading=true;loading("모험 귀환 위치를 확인하고 있어요.");
     h.api.call("native/roster60/adventure/read",h.obj("adventureId",adventureId),(result,error)->{
       if(!current())return;reading=false;if(error!=null){error(error);return;}
       String nextBattle=reference(result,"activeBattleId");if(!nextBattle.isEmpty()){resumeBattle("",nextBattle);return;}
@@ -200,11 +230,11 @@ final class NativeRoster60StoryController {
     });
   }
   void resumeBattle(String questId,String battleId) {
-    if(!current()||waiting())return;reading=true;view.loading("진행 중인 전투를 이어서 확인하고 있어요.");
+    if(!current()||waiting())return;reading=true;loading("진행 중인 전투를 이어서 확인하고 있어요.");
     h.api.call("native/roster60/battle/read",h.obj("battleId",battleId),(result,error)->{if(!current())return;reading=false;if(error!=null){error(error);return;}openBattle(result,questId);});
   }
   void resumeAdventure(JSONObject quest,String adventureId) {
-    if(!current()||waiting())return;reading=true;view.loading("모험의 귀환 위치를 확인하고 있어요.");
+    if(!current()||waiting())return;reading=true;loading("모험의 귀환 위치를 확인하고 있어요.");
     h.api.call("native/roster60/adventure/read",h.obj("adventureId",adventureId),(result,error)->{
       if(!current())return;reading=false;if(error!=null){error(error);return;}
       String battleId=result.optString("activeBattleId");if("null".equals(battleId))battleId="";
@@ -219,11 +249,12 @@ final class NativeRoster60StoryController {
   void openBattle(JSONObject initial,String questId) {
     if(!current())return;pause();h.rosterBattle=new NativeRoster60StoryBattle(h,initial,questId);h.rosterBattle.open();
   }
-  void pause() { reconnect.removeCallbacks(checkOwnSave);if(view!=null)view.pauseTyping();if(residentDialogue!=null){residentDialogue.dismiss();residentDialogue=null;} }
+  void pause() { if(villageMode){closeVillage();return;}reconnect.removeCallbacks(checkOwnSave);if(view!=null)view.pauseTyping();if(residentDialogue!=null){residentDialogue.dismiss();residentDialogue=null;} }
   void freeAdventure(){if(!current()||waiting())return;pause();h.openRosterBattle(Roster60BattleMode.ADVENTURE);}
   void playMenu(){if(!current()||waiting())return;pause();h.openPlayMenu();}
   static String reference(JSONObject value,String name){return value==null||value.isNull(name)?"":value.optString(name);}
   boolean back() {
+    if(villageMode){if(!villageOverlayOpen())return false;closeVillage();return true;}
     if(!current())return false;if(h.busy||h.updateBlocks())return true;
     if(formation!=null){formation=null;render();return true;}
     pause();h.openPlayMenu();return true;
