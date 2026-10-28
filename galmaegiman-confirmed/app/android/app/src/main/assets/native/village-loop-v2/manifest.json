@@ -902,6 +902,30 @@
         "status": "pending-native-join-correction",
         "basis": "Unmodified original; first native full-loop captures exposed cut panel edges"
       }
+    },
+    "companions-shadows": {
+      "path": "native/village-loop-v2/assets/companions-v3-shadows.png",
+      "verified": true,
+      "crop": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-companions-20261027/shadows.png",
+      "sourceSha256": "10e07f017a038711fc9721507dd9044e9ddd9df59264f5d22d12401e353dd247",
+      "sourceBytes": 1276522,
+      "sourceWidth": 1536,
+      "sourceHeight": 1024,
+      "sourceMode": "RGBA",
+      "sourceAlphaRange": [
+        0,
+        253
+      ],
+      "artReview": "root-technical-review-user-shadow-approval-pending",
+      "sourceGitBlobSha": "0f19f98a07a7d9bfe354932cecd451ad03703ac4",
+      "required": true,
+      "useSheetDirectly": false
     }
   },
   "buildings": [
@@ -1055,7 +1079,20 @@
       "x": 7.1033333333329995,
       "width": 0.2915606936416185,
       "baseline": 0.91,
-      "heightRatio": 0.24
+      "heightRatio": 0.24,
+      "shadow": {
+        "asset": "companions-shadows",
+        "crop": [
+          0,
+          0.666015625,
+          1,
+          1
+        ],
+        "anchorX": 0.47,
+        "anchorY": 0.56,
+        "widthRatio": 1.03,
+        "opacity": 0.4
+      }
     },
     {
       "id": "merchant",
@@ -1068,7 +1105,20 @@
       "heightRatio": 0.23,
       "occludes": [
         "market"
-      ]
+      ],
+      "shadow": {
+        "asset": "companions-shadows",
+        "crop": [
+          0,
+          0.666015625,
+          1,
+          1
+        ],
+        "anchorX": 0.47,
+        "anchorY": 0.56,
+        "widthRatio": 1.03,
+        "opacity": 0.4
+      }
     },
     {
       "id": "librarian",
@@ -1081,7 +1131,20 @@
       "heightRatio": 0.21,
       "occludes": [
         "archive"
-      ]
+      ],
+      "shadow": {
+        "asset": "companions-shadows",
+        "crop": [
+          0,
+          0.666015625,
+          1,
+          1
+        ],
+        "anchorX": 0.47,
+        "anchorY": 0.56,
+        "widthRatio": 1.15,
+        "opacity": 0.4
+      }
     },
     {
       "id": "guard",
@@ -1094,7 +1157,20 @@
       "heightRatio": 0.23,
       "occludes": [
         "hideout"
-      ]
+      ],
+      "shadow": {
+        "asset": "companions-shadows",
+        "crop": [
+          0,
+          0.666015625,
+          1,
+          1
+        ],
+        "anchorX": 0.47,
+        "anchorY": 0.56,
+        "widthRatio": 1.03,
+        "opacity": 0.4
+      }
     }
   ],
   "decorations": [

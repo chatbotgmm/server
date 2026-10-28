@@ -28,7 +28,7 @@ import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.annotation.LooperMode;
 
 /** Actual packaged PNG checks; pending artwork must fail rather than become a skipped success.
- * The active layered manifest has 24 required references and five authenticated-stage-only references.
+ * The active layered manifest has 25 required references and five authenticated-stage-only references.
  * Exact packaged source bytes/dimensions and alpha are checked without reintroducing retired scenery.
  * Technical verification never implies final user artwork approval.
  * Existing NativeVillageHomeTest covers routes, real gestures, delayed callbacks and owner changes.
@@ -45,7 +45,7 @@ public class NativeVillageHomeArtTest {
       "blacksmith","merchant","librarian","patrol","market-forge","nameplates",
       "training-nameplate","harbor-nameplate","statue-nameplate","layered-sky",
       "layered-patrol","layered-approved","layered-market","layered-join-patrol-approved",
-      "layered-join-approved-market","layered-join-market-patrol-wrap","layered-quay"));
+      "layered-join-approved-market","layered-join-market-patrol-wrap","layered-quay","companions-shadows"));
   static final Set<String> DECORATIONS=new HashSet<>(Arrays.asList("market-forge"));
   static final Set<String> NPCS=new HashSet<>(Arrays.asList("blacksmith","merchant","librarian","patrol"));
 
@@ -67,7 +67,7 @@ public class NativeVillageHomeArtTest {
     assertEquals("Real PNG import and pixel review must finish before this suite runs",
         "verified-local-assets",layout.artworkStatus);
     assertTrue("The active product world must use the layered layout",layout.layeredWorld);
-    assertEquals("24 active references plus five optional statue stages",29,layout.assets.size());
+    assertEquals("25 active references plus five optional statue stages",30,layout.assets.size());
     Set<String> required=new HashSet<>();for(VillageLayout.Asset a:layout.assets.values())if(a.required)required.add(a.id);assertEquals(ASSETS,required);
     Set<String> decorations=new HashSet<>();for(VillageLayout.Decoration d:layout.decorations)decorations.add(d.asset);assertEquals(DECORATIONS,decorations);
     for(VillageLayout.Asset asset:layout.assets.values()){
@@ -164,7 +164,7 @@ public class NativeVillageHomeArtTest {
               "transparentBorderPixels",border,"opaquePixels",opaque));
         }finally{original.recycle();}
       }
-      assertEquals(29,inventory.length());json(output().resolve("source-inventory.json"),inventory);
+      assertEquals(30,inventory.length());json(output().resolve("source-inventory.json"),inventory);
     }
   }
 

@@ -28,7 +28,7 @@ public class VillageLayoutTest {
     assertEquals(8,actual.worldUnits,0);assertEquals(360,actual.minimumUnitDp,0);assertEquals(48,actual.minimumTouchDp,0);
     assertEquals(4,actual.districts.size());assertEquals(7,actual.buildings.size());assertEquals(4,actual.residents.size());
     assertEquals("verified-local-assets",actual.artworkStatus);assertEquals("manifest-unavailable-placeholder",fallback.artworkStatus);
-    JSONObject pinned=raw();assertTrue(actual.layeredWorld);assertEquals(29,actual.assets.size());assertEquals(1,actual.decorations.size());
+    JSONObject pinned=raw();assertTrue(actual.layeredWorld);assertEquals(30,actual.assets.size());assertEquals(1,actual.decorations.size());
     assertEquals(13,fallback.assets.size());assertTrue(fallback.decorations.isEmpty());
     for(VillageLayout.Asset asset:actual.assets.values()){
       if(!asset.required)assertTrue(asset.id.startsWith("statue-stage-"));
@@ -69,7 +69,7 @@ public class VillageLayoutTest {
   }
   static boolean fallbackCore(String id){return VillageLayout.referenceLayout().assets.containsKey(id);}
   @Test public void pendingArtNeverClaimsVerifiedPixelsOrUsesTheWhiteResidentSheetDirectly()throws Exception{
-    VillageLayout layout=VillageLayout.parse(NativeVillageHomeAssetsTest.pendingManifest());assertEquals("pending-verified-pixels",layout.artworkStatus);assertEquals(29,layout.assets.size());assertEquals(1,layout.decorations.size());
+    VillageLayout layout=VillageLayout.parse(NativeVillageHomeAssetsTest.pendingManifest());assertEquals("pending-verified-pixels",layout.artworkStatus);assertEquals(30,layout.assets.size());assertEquals(1,layout.decorations.size());
     for(VillageLayout.Asset asset:layout.assets.values()){assertFalse(asset.verified);assertFalse(asset.useSheetDirectly);JSONObject source=raw().getJSONObject("assets").getJSONObject(asset.id);assertTrue(source.getString("sourceSha256").matches("[a-f0-9]{64}"));}
     assertEquals("patrol",layout.resident("guard").asset);
     HashSet<String> silhouettes=new HashSet<>();for(VillageLayout.Resident resident:layout.residents)silhouettes.add(resident.silhouette);assertEquals(4,silhouettes.size());

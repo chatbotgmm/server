@@ -147,8 +147,8 @@ public class NativeVillageBuildDesignReviewTest {
   JSONArray checkHome(MainActivity h) throws Exception {
     NativeVillageHomeView view = h.villageHome.view;
     assertTrue("All current viewport assets and the current statue must load before the APK design gate", view.assets.ready());
-    // 2.5D 순환 마을 manifest(village-layered-20261028)의 활성 자산 수. 옛 47개 월드는 더 이상 묶지 않는다.
-    assertEquals(29, view.layout.assets.size());
+    // 2.5D 순환 마을 manifest(village-layered-20261028)의 활성 자산 수(v4 주민 접지 그림자 포함). 옛 47개 월드는 더 이상 묶지 않는다.
+    assertEquals(30, view.layout.assets.size());
     assertTrue(view.assets.images.keySet().containsAll(view.assets.requiredImages));
     assertEquals(0, view.assets.pending);
     assertEquals(0, view.assets.missing);

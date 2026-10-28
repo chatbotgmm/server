@@ -47,8 +47,18 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     if(blocksClick()||h.busy||h.updateBlocks()||!owner.current())return;
     Bitmap source=assets.get(button.asset);
     if(source==null||!imageSlot(button).contains(button.getLeft()+x,button.getTop()+y)||!alphaHitWorldButton(button,x,y))return;
+    prepareOutline(button,source);
+  }
+  void prepareOutline(Button target,Bitmap source){
     if(source!=outlineSource){if(outlineMask!=null)outlineMask.recycle();outlineSource=source;outlineMask=source.extractAlpha();}
-    pressedBuilding=button;invalidate();
+    pressedBuilding=target;invalidate();
+  }
+  void beginStatuePress(float x,float y){
+    if(blocksClick()||h.busy||h.updateBlocks()||!owner.current()||owner.statueStage<=0||!statueHit(x,y))return;
+    String id=layout.landmark.asset(owner.statueStage);Bitmap source=assets.get(id);if(source==null)return;
+    RectF rect=fittedObjectRect(source,landmarkRect(),id);if(!rect.contains(x,y))return;
+    int px=Math.min(source.getWidth()-1,(int)((x-rect.left)/rect.width()*source.getWidth())),py=Math.min(source.getHeight()-1,(int)((y-rect.top)/rect.height()*source.getHeight()));
+    if(Color.alpha(source.getPixel(px,py))>=32)prepareOutline(statue,source);
   }
   void drawBuildingOutline(Canvas canvas,Bitmap bitmap,RectF slot,String asset,Button button){
     if(pressedBuilding!=button||outlineSource!=bitmap||outlineMask==null)return;
@@ -82,7 +92,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
       Button button=worldButton(resident.role,resident.asset,()->owner.resident(resident.id));
       button.setTag("village-resident-"+resident.id);residentButtons.put(resident.id,button);residentBounds.put(resident.id,new RectF());addView(button);
     }
-    statue=new androidx.appcompat.widget.AppCompatButton(h){@Override public boolean dispatchTouchEvent(MotionEvent event){if(event.getActionMasked()==MotionEvent.ACTION_DOWN&&!statueHit(getLeft()+event.getX(),getTop()+event.getY()))return false;return super.dispatchTouchEvent(event);}};
+    statue=new androidx.appcompat.widget.AppCompatButton(h){@Override public boolean dispatchTouchEvent(MotionEvent event){if(event.getActionMasked()==MotionEvent.ACTION_DOWN){float x=getLeft()+event.getX(),y=getTop()+event.getY();if(!statueHit(x,y))return false;beginStatuePress(x,y);}return super.dispatchTouchEvent(event);}};
     statue.setBackgroundColor(Color.TRANSPARENT);statue.setBackgroundTintList(null);statue.setStateListAnimator(null);statue.setText("");statue.setContentDescription("태초 갈매미맨 석상 · 메인 스토리");statue.setTag("village-statue");statue.setOnClickListener(v->owner.mainStory());addView(statue);
     pass=iconControl("패스", "ticket", ()->owner.navigate("pass"));pass.setTag("village-pass");addView(pass);
     settings=iconControl("마을 메뉴", "settings", owner::more);settings.setTag("village-settings");addView(settings);
@@ -162,6 +172,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     requestLayout();invalidate();
   }
   void updateNotice(){
+    if(pressedBuilding!=null&&(!owner.current()||(pressedBuilding==statue&&(owner.statueStage<=0||assets.get(layout.landmark.asset(owner.statueStage))!=outlineSource))))clearBuildingPress();
     updateLoadingState();
     String state=!sceneReady()?(assets.hasFailure(visibleStatue())?"그림을 불러오지 못했어요":"그림을 불러오는 중"):owner.problem;
     settings.setContentDescription("마을 메뉴 · 출석, 내 정보, 환생 안내, 설정"+(state.isEmpty()?"":" · "+state));
@@ -299,7 +310,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   }
   void drawLandmark(Canvas canvas){
     if(layout.landmark==null||owner.statueStage==0)return;RectF slot=landmarkRect();if(!RectF.intersects(slot,field))return;
-    String id=layout.landmark.asset(owner.statueStage);Bitmap bitmap=assets.get(id);if(bitmap!=null)drawObject(canvas,bitmap,slot,id);Bitmap caption=assets.get("statue-nameplate");if(caption!=null)drawImage(canvas,caption,layout.assets.get("statue-nameplate").crop,statueLabelRect(),false);
+    String id=layout.landmark.asset(owner.statueStage);Bitmap bitmap=assets.get(id);if(bitmap!=null){drawBuildingOutline(canvas,bitmap,slot,id,statue);drawObject(canvas,bitmap,slot,id);}Bitmap caption=assets.get("statue-nameplate");if(caption!=null)drawImage(canvas,caption,layout.assets.get("statue-nameplate").crop,statueLabelRect(),false);
   }
   /** Only texture-only common foundations repeat: no district pictures or building silhouettes. */
   void drawLayeredSky(Canvas canvas){
@@ -408,7 +419,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   }
   void drawResident(Canvas canvas,VillageLayout.Resident resident){
     RectF r=residentBounds.get(resident.id);if(!RectF.intersects(r,field))return;Bitmap bitmap=assets.get(resident.asset);RectF portrait=imageSlot(residentButtons.get(resident.id));
-    if(bitmap!=null){drawBuildingOutline(canvas,bitmap,portrait,resident.asset,residentButtons.get(resident.id));drawObject(canvas,bitmap,portrait,resident.asset);}
+    if(bitmap!=null){if(layout.continuousFoundation)groundShadows.drawActor(canvas,this,resident);drawBuildingOutline(canvas,bitmap,portrait,resident.asset,residentButtons.get(resident.id));drawObject(canvas,bitmap,portrait,resident.asset);}
   }
   void label(Canvas canvas,String text,float x,float y,int size,int color){paint.setColor(color);paint.setTypeface(h.prose);paint.setTextAlign(Paint.Align.CENTER);paint.setTextSize(h.dp(size));canvas.drawText(text,x,y,paint);}
   void moveCameraUnits(double delta){camera.moveUnits(delta);layoutWorld();invalidate();}
@@ -431,7 +442,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     if(!owner.current())return false;if(!sceneReady())return super.dispatchTouchEvent(e);int action=e.getActionMasked();
     if(action==MotionEvent.ACTION_DOWN){edgeGesture=!safe.contains(e.getX(),e.getY());computeScroll();boolean fast=!scroller.isFinished()&&motionSpeed()>minFling;stopMotion();stoppingFling=fast;moved=false;touching=true;activePointer=e.getPointerId(0);downX=lastX=e.getX();downY=e.getY();if(velocity!=null)velocity.recycle();velocity=VelocityTracker.obtain();}
     if(action==MotionEvent.ACTION_OUTSIDE||action==MotionEvent.ACTION_UP||action==MotionEvent.ACTION_CANCEL||action==MotionEvent.ACTION_POINTER_DOWN||action==MotionEvent.ACTION_POINTER_UP)clearBuildingPress();
-    if(action==MotionEvent.ACTION_MOVE&&pressedBuilding!=null){int pointer=e.findPointerIndex(activePointer);if(pointer<0||Math.hypot(e.getX(pointer)-downX,e.getY(pointer)-downY)>slop||!alphaHitWorldButton(pressedBuilding,e.getX(pointer)-pressedBuilding.getLeft(),e.getY(pointer)-pressedBuilding.getTop()))clearBuildingPress();}
+    if(action==MotionEvent.ACTION_MOVE&&pressedBuilding!=null){int pointer=e.findPointerIndex(activePointer);if(pointer<0||Math.hypot(e.getX(pointer)-downX,e.getY(pointer)-downY)>slop||!(pressedBuilding==statue?statueHit(e.getX(pointer),e.getY(pointer)):alphaHitWorldButton(pressedBuilding,e.getX(pointer)-pressedBuilding.getLeft(),e.getY(pointer)-pressedBuilding.getTop())))clearBuildingPress();}
     if(velocity!=null)velocity.addMovement(e);
     boolean result=super.dispatchTouchEvent(e);
     if(action==MotionEvent.ACTION_UP||action==MotionEvent.ACTION_CANCEL){touching=false;activePointer=-1;if(velocity!=null){velocity.recycle();velocity=null;}owner.saveCamera();}
