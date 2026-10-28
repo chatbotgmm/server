@@ -42,6 +42,19 @@ public class NativeRoster60BattleArtGateTest {
    NativeRoster60PlaybackTest.finish(ui);assertFalse(ui.presenting());
   }
  }
+ @Test public void allFiveApprovedStoryAliasesClearTheSameRequiredArtGateAndRetryLocally()throws Exception{
+  try(ActivityController<MainActivity> c=helper.helper.flow.start()){
+   MainActivity h=c.get();NativeRoster60PlaybackTest.Api api=helper.open(h);ready(h);NativeRoster60Battle ui=h.rosterBattle;int requests=api.paths.size();
+   for(String id:new String[]{"story_record","story_guide","story_engineer","story_escort","story_dark_first"}){
+    org.json.JSONObject state=new org.json.JSONObject(api.state.getJSONObject("state").toString());
+    state.getJSONArray("fighters").getJSONObject(1).put("speciesId",id);
+    ui.art.bind(state);RegistrationArtTest.await(()->ui.art.assetsReady());
+    assertFalse(id,ui.art.assetsFailed());assertEquals(id,View.GONE,ui.artGate.getVisibility());assertEquals(View.VISIBLE,ui.arena.getVisibility());
+    ui.art.retryAssets();RegistrationArtTest.await(()->ui.art.assetsReady());assertEquals(requests,api.paths.size());
+    assertEquals(id,state.getJSONArray("fighters").getJSONObject(1).getString("speciesId"));
+   }
+  }
+ }
 
  @Test public void authorizedUnknownReplaySideDoesNotWaitForOrRevealAnotherArt()throws Exception{
   try(ActivityController<MainActivity> c=helper.helper.flow.start()){

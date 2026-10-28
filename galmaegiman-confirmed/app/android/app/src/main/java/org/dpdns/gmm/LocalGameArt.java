@@ -58,8 +58,8 @@ final class LocalGameArt {
     }
     WORKERS.execute(() -> {
       Bitmap decoded = null;
-      try { decoded = decode.call(); } catch (Exception ignored) { }
-      catch (OutOfMemoryError insufficientMemory) { CACHE.evictAll(); }
+      try { decoded = decode.call(); } catch (Exception failed) { LocalArtDiagnostics.failed(assetFromWorkKey(key), failed); }
+      catch (OutOfMemoryError insufficientMemory) { LocalArtDiagnostics.failed(assetFromWorkKey(key), insufficientMemory); CACHE.evictAll(); }
       final Bitmap result = decoded;
       final List<Consumer<Bitmap>> listeners;
       synchronized (WAITING) {
@@ -70,6 +70,11 @@ final class LocalGameArt {
     });
   }
 
+  private static String assetFromWorkKey(String key) {
+    int start = key.indexOf(':') + 1, end = key.lastIndexOf('@');
+    return end > start ? key.substring(start, end) : "<invalid>";
+  }
+
   static Bitmap decode(Context context, String path, int sample) throws java.io.IOException {
     if (path.startsWith("/") || path.contains("..") || !path.matches("[A-Za-z0-9_./-]+")) return null;
     BitmapFactory.Options options = new BitmapFactory.Options();
@@ -78,6 +83,7 @@ final class LocalGameArt {
     try (InputStream in = context.getAssets().open(path)) {
       Bitmap bitmap = BitmapFactory.decodeStream(in, null, options);
       if (bitmap != null) bitmap.setDensity(Bitmap.DENSITY_NONE);
+      else LocalArtDiagnostics.failed(path, null);
       return bitmap;
     }
   }

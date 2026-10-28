@@ -47,7 +47,7 @@ final class NativeRoster60Art extends View {
   return Math.round(a.optInt(field,fallback)+(b.optInt(field,fallback)-a.optInt(field,fallback))*impact());
  }
 
- NativeRoster60Art(Context c){super(c);regular=c instanceof MainActivity?NavyWorkbenchTheme.font((MainActivity)c):Typeface.DEFAULT;bold=Typeface.create(regular,Typeface.BOLD);JSONObject loaded;try{loaded=Roster60Portrait.index(c);}catch(Exception e){loaded=new JSONObject();problem="전투 아트 준비 중";}index=loaded;if(c instanceof MainActivity){background=BattleSkin.bitmap((MainActivity)c,"bg-harbor");hpSkin=new BattleSkin((MainActivity)c,"panel-hp");prepareSkins();}setContentDescription("아군 후면 · 적 정면");}
+ NativeRoster60Art(Context c){super(c);regular=c instanceof MainActivity?NavyWorkbenchTheme.font((MainActivity)c):Typeface.DEFAULT;bold=Typeface.create(regular,Typeface.BOLD);JSONObject loaded;try{loaded=Roster60Portrait.index(c);}catch(Exception e){LocalArtDiagnostics.failed("roster60-art/index.json",e);loaded=new JSONObject();problem="전투 아트 준비 중";}index=loaded;if(c instanceof MainActivity){background=BattleSkin.bitmap((MainActivity)c,"bg-harbor");hpSkin=new BattleSkin((MainActivity)c,"panel-hp");prepareSkins();}setContentDescription("아군 후면 · 적 정면");}
  void prepareSkins(){if(getContext() instanceof MainActivity)for(String name:BattleSkin.REQUIRED)BattleSkin.load((MainActivity)getContext(),name,()->{background=BattleSkin.peek("bg-harbor");invalidate();readinessChanged();});}
  void setReadinessListener(Runnable listener){readinessListener=listener;}
  void readinessChanged(){if(readinessListener!=null)readinessListener.run();}
@@ -67,7 +67,7 @@ final class NativeRoster60Art extends View {
   for(String name:BattleSkin.REQUIRED)BattleSkin.retryMissing(name);prepareSkins();
   problem="";ids[0]="";ids[1]="";if(snapshot!=null)loadState(snapshot);else readinessChanged();
  }
- JSONObject entry(String id)throws Exception {JSONArray all=index.getJSONArray("entries");for(int i=0;i<all.length();i++)if(all.getJSONObject(i).getString("id").equals(id))return all.getJSONObject(i);throw new IOException("unknown art");}
+ JSONObject entry(String id)throws Exception {if(StoryBattleArt.supported(id))return StoryBattleArt.entry(getContext(),id);JSONArray all=index.getJSONArray("entries");for(int i=0;i<all.length();i++)if(all.getJSONObject(i).getString("id").equals(id))return all.getJSONObject(i);throw new IOException("unknown art");}
  void bind(JSONObject state){clearFrame();loadState(state);}
  void loadState(JSONObject state){stateBindings++;snapshot=state;JSONArray fighters=state.optJSONArray("fighters");if(fighters==null)return;
   for(int side=0;side<2;side++){JSONObject fighter=fighters.optJSONObject(side);String id=fighter.optString("speciesId"),variant=fighter.optString("artVariant"),key=Roster60BattleAppearance.key(side,id,variant);if(key.equals(ids[side]))continue;ids[side]=key;images[side]=null;shownSample[side]=Integer.MAX_VALUE;int generation=++imageGeneration[side];imagePending[side]=0;
@@ -75,7 +75,7 @@ final class NativeRoster60Art extends View {
     heights[side]=(float)v.getDouble("relativeHeight");String asset=Roster60BattleAppearance.asset(side,id,variant,path);Bitmap preview=LocalGameArt.peek(asset,4);if(preview!=null){images[side]=preview;shownSample[side]=4;}
     JSONArray size=v.optJSONArray("size");int sample=getWidth()>0&&getHeight()>0?LocalGameArt.sampleForFit(size==null?512:size.optInt(0,512),size==null?512:size.optInt(1,512),Math.max(1,(int)(getWidth()*.64f)),Math.max(1,(int)(getHeight()*.49f*heights[side]))):2;
     requestImage(side,key,asset,4,generation);if(sample!=4)requestImage(side,key,asset,sample,generation);
-   }catch(Exception bad){problem="전투 아트 준비 중";}
+   }catch(Exception bad){LocalArtDiagnostics.failed(id+"/"+(side==0?"rear":"front"),bad);problem="전투 아트 준비 중";}
   }StringBuilder accessible=new StringBuilder();for(int i=0;i<fighters.length();i++){if(uncertain(i)){accessible.append(i==0?"출전 교체 확인 중. ":"상대 교체 확인 중. ");continue;}JSONObject f=fighters.optJSONObject(i),s=f.optJSONObject("stats");if(s!=null)accessible.append(f.optString("name")).append(" Lv").append(f.optInt("level")).append(" HP ").append(f.optInt("hp")).append("/").append(s.optInt("hp")).append(" MP ").append(f.optInt("mp")).append("/").append(s.optInt("mp")).append(". ");}setContentDescription(accessible);invalidate();readinessChanged();
  }
  void requestImage(int side,String id,String path,int sample,int generation){imagePending[side]++;LocalGameArt.load(getContext(),path,sample,bitmap->{if(imageGeneration[side]!=generation||!id.equals(ids[side]))return;imagePending[side]=Math.max(0,imagePending[side]-1);if(bitmap!=null&&sample<=shownSample[side]){images[side]=bitmap;shownSample[side]=sample;}else if(bitmap==null&&images[side]==null)problem="전투 아트를 준비하지 못했습니다. 다시 열어 확인하세요.";invalidate();readinessChanged();});}

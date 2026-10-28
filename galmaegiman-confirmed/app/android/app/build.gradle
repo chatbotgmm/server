@@ -38,8 +38,28 @@ def bundledArt = layout.buildDirectory.dir('generated/game-art')
 // 2026-10-25 사용자 승인: 출시 패키지(org.gmm)와 제품 시험판에는 예전 등록증 카드 145장과 33종 애니메이션을 넣지 않는다(약 55MB).
 // 저장소 원본은 그대로 두며, 기본 시험 빌드에는 계속 넣어 기존 화면 시험을 유지한다. 앱은 그림이 없으면 글자 카드·정지 그림으로 대체한다.
 def leanLegacyArt = ['org.gmm', 'org.gmm.producttest'].contains(project.findProperty('gmmApplicationId'))
+def storyArtManifest = file('../../../data/story/battle-art-v1.json')
+def storyArtGenerator = file('../../../scripts/bundle-story-battle-art.py')
+def storyArtGenerated = layout.buildDirectory.dir('generated/story-battle-art')
+tasks.register('prepareStoryBattleArt') {
+    inputs.file(storyArtManifest)
+    inputs.file(storyArtGenerator)
+    inputs.file(file('../../../data/story/villains-test-v1.json'))
+    inputs.file(file('src/main/assets/roster60-art/index.json'))
+    // Exact aliases reuse these existing bundled fronts; no duplicate or edited image is generated.
+    new groovy.json.JsonSlurper().parse(storyArtManifest).entries.each { entry ->
+        if (entry.sourceSpeciesId) inputs.file(file('src/main/assets/roster60-art/' + entry.sourceSpeciesId + '-front.webp'))
+    }
+    outputs.dir(storyArtGenerated)
+    doLast {
+        exec { commandLine 'python3', storyArtGenerator.absolutePath,
+            file('../../..').absolutePath, storyArtManifest.absolutePath, storyArtGenerated.get().asFile.absolutePath }
+    }
+}
 tasks.register('bundleGameArt', Sync) {
+    dependsOn 'prepareStoryBattleArt'
     into bundledArt
+    from(storyArtGenerated)
     // The active manifest is the complete village runtime pack: no retired world is bundled or decoded.
     def villageManifest = file('src/main/assets/native/village-loop-v2/manifest.json')
     inputs.file(villageManifest)

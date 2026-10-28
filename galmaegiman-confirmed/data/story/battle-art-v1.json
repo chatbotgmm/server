@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "story_record",
+      "status": "approved-temporary-alias",
+      "sourceSpeciesId": "u01",
+      "approvalReference": "2026-10-28 사용자 승인: 그러면 이미지 먼저 쓰자",
+      "assetSha256": "1ee3781a6434c340f208d07e6c9d9057fc737166845568f65524971d95df7549"
+    },
+    {
+      "id": "story_guide",
+      "status": "approved-temporary-alias",
+      "sourceSpeciesId": "u02",
+      "approvalReference": "2026-10-28 사용자 승인: 그러면 이미지 먼저 쓰자",
+      "assetSha256": "d54656c1b71a6f2db3e2e42544336d9d11db876f1958ab59a3a417d349d917f0"
+    },
+    {
+      "id": "story_engineer",
+      "status": "approved-temporary-alias",
+      "sourceSpeciesId": "u22",
+      "approvalReference": "2026-10-28 사용자 승인: 그러면 이미지 먼저 쓰자",
+      "assetSha256": "fc3b4dfa5f7a2038ea27c11a2a5f0a0dc28aa32bfec2e9355be3d4f885c1b830"
+    },
+    {
+      "id": "story_escort",
+      "status": "approved-temporary-alias",
+      "sourceSpeciesId": "u03",
+      "approvalReference": "2026-10-28 사용자 승인: 그러면 이미지 먼저 쓰자",
+      "assetSha256": "b0c2ec69992f1a59abd4adde026895801491fa56fec4ffe23e8904b967bc9896"
+    },
+    {
+      "id": "story_dark_first",
+      "status": "approved-temporary-alias",
+      "sourceSpeciesId": "u31",
+      "approvalReference": "2026-10-28 사용자 승인: 그러면 이미지 먼저 쓰자",
+      "assetSha256": "8c976ed96fadbc2bbb72183830b50eeef3c871c4a3b26729e5fd83fe5086f96d"
+    }
+  ]
+}
