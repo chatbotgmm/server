@@ -104,9 +104,25 @@ public class NativeVillageStoryOverlayTest {
     }
   }
 
-  static JSONObject side(String id,String status,boolean canDepart){return MainActivity.obj("id",id,"title",id+" 부탁","kind","resident","status",status,"canDepart",canDepart,"objective",MainActivity.obj("wins",0,"requiredWins",1));}
+  /** 실제 story-mode-v1 주민 의뢰 제목을 쓴다. 화면에 내부 ID(SIDE 등)가 제목처럼 보이지 않게 한다. */
+  static String sideTitle(String id){return "SIDE".equals(id)?"함께 도는 밤":"RESIDENT_01".equals(id)?"돌아오는 길표":"주민 부탁";}
+  static JSONObject side(String id,String status,boolean canDepart){return MainActivity.obj("id",id,"title",sideTitle(id),"kind","resident","status",status,"canDepart",canDepart,"objective",MainActivity.obj("wins",0,"requiredWins",1));}
   NativeRoster60StoryController explore(MainActivity h)throws Exception{LocalGameArtTest.drain();h.villageHome.invalidateStorySnapshot();h.villageHome.navigate("explore");assertEquals("home",h.screen);assertTrue(h.rosterStory.villageExploration);return h.rosterStory;}
   Button choice(NativeRoster60StoryController story,String text){for(int i=0;i<story.overlay.choices.getChildCount();i++){Button button=action(story,i);if(button.getText().toString().contains(text))return button;}throw new AssertionError("Missing exploration choice: "+text);}
+  /** 대화창의 닫기 버튼과 마을 오른쪽 위 아이콘이 겹치지 않게, 열려 있는 동안만 아이콘을 숨기고 닫으면 되살린다. */
+  @Test public void openDialogueHidesVillageCornerIconsAndClosingRestoresThem()throws Exception{
+    try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
+      MainActivity h=activity.get();Api api=prepare(h);api.story.put("quests",new JSONArray().put(side("SIDE","ACTIVE",true)));
+      NativeVillageHomeView view=h.villageHome.view;
+      for(Button icon:new Button[]{view.pass,view.daily,view.settings})assertEquals("Corner icons are visible on the village",View.VISIBLE,icon.getVisibility());
+      NativeRoster60StoryController story=explore(h);assertTrue(story.villageOverlayOpen());
+      for(Button icon:new Button[]{view.pass,view.daily,view.settings})assertEquals("Dialogue close button has the corner to itself",View.INVISIBLE,icon.getVisibility());
+      view.updateLoadingState();for(Button icon:new Button[]{view.pass,view.daily,view.settings})assertEquals("A readiness refresh keeps them hidden while open",View.INVISIBLE,icon.getVisibility());
+      story.closeVillage();assertFalse(story.villageOverlayOpen());
+      for(Button icon:new Button[]{view.pass,view.daily,view.settings})assertEquals("Closing the dialogue restores the corner icons",View.VISIBLE,icon.getVisibility());
+      assertTrue(api.writes.isEmpty());
+    }
+  }
   @Test public void explorationFiltersSideMainMixedLockedReadyAndEmptyWithoutMutations()throws Exception{
     try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
       MainActivity h=activity.get();Api api=prepare(h);
@@ -133,13 +149,13 @@ public class NativeVillageStoryOverlayTest {
       api.commands.get(0).done(api.story,null);npc.overlay.finishTyping();action(npc,1).performClick();
       JSONObject accepted=side("RESIDENT_01","ACTIVE",true);api.story.put("revision",5).put("scene",JSONObject.NULL).put("quests",new JSONArray().put(accepted));api.story.getJSONArray("residents").getJSONObject(0).put("status","ACTIVE");
       api.commands.get(1).done(api.story,null);npc.closeVillage();assertEquals(2,api.writes.size());
-      NativeRoster60StoryController story=explore(h);assertEquals(2,api.writes.size());story.overlay.finishTyping();choice(story,"RESIDENT_01").performClick();
+      NativeRoster60StoryController story=explore(h);assertEquals(2,api.writes.size());story.overlay.finishTyping();choice(story,sideTitle("RESIDENT_01")).performClick();
       assertNotNull(story.formation);assertEquals(2,api.writes.size());story.formation.selected.add("owned-a");story.formation.submit();
       assertEquals("native/roster60/story/battle/create",api.paths.get(api.paths.size()-1));assertEquals("RESIDENT_01",api.writes.get(2).getString("questId"));assertFalse(api.writes.get(2).has("wins"));
       // The controlled server reply acknowledges departure; client cannot invent a battle or victory.
       api.commands.get(2).done(new JSONObject(),null);story.closeVillage();
       accepted.put("canDepart",false).put("adventureId","server-run").put("objective",MainActivity.obj("wins",1,"requiredWins",1));
-      story=explore(h);story.overlay.finishTyping();choice(story,"RESIDENT_01").performClick();assertEquals("server-run",api.writes.get(3).getString("adventureId"));
+      story=explore(h);story.overlay.finishTyping();choice(story,sideTitle("RESIDENT_01")).performClick();assertEquals("server-run",api.writes.get(3).getString("adventureId"));
       api.commands.get(3).done(MainActivity.obj("status","ACTIVE","revision",7,"party",new JSONArray()),null);
       assertEquals("native/roster60/adventure/return",api.paths.get(api.paths.size()-1));assertEquals("server-run",api.writes.get(4).getString("adventureId"));assertEquals(7,api.writes.get(4).getInt("revision"));
       assertEquals("ACTIVE",accepted.getString("status")); // only the next server state may mark READY
@@ -181,9 +197,9 @@ public class NativeVillageStoryOverlayTest {
   @Test public void savedStoryPartySkipsFormationButInvalidOrEmptyPartyRequiresChoice()throws Exception{
     try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
       MainActivity h=activity.get();Api api=prepare(h);api.story.put("quests",new JSONArray().put(side("SIDE","ACTIVE",true)));api.savedParty=new JSONArray().put("owned-a");
-      NativeRoster60StoryController story=explore(h);assertEquals(0,api.writes.size());story.overlay.finishTyping();choice(story,"SIDE").performClick();assertNull(story.formation);assertEquals(1,api.writes.size());assertEquals("SIDE",api.writes.get(0).optString("questId"));assertEquals("owned-a",api.writes.get(0).getJSONArray("ownedIds").getString(0));
+      NativeRoster60StoryController story=explore(h);assertEquals(0,api.writes.size());story.overlay.finishTyping();choice(story,sideTitle("SIDE")).performClick();assertNull(story.formation);assertEquals(1,api.writes.size());assertEquals("SIDE",api.writes.get(0).optString("questId"));assertEquals("owned-a",api.writes.get(0).getJSONArray("ownedIds").getString(0));
       api.commands.get(0).done(new JSONObject(),null);story.closeVillage();
-      for(JSONArray invalid:new JSONArray[]{new JSONArray(),new JSONArray().put("missing"),new JSONArray().put("owned-a").put("owned-a")}){api.savedParty=invalid;story=explore(h);story.overlay.finishTyping();choice(story,"SIDE").performClick();assertNotNull(story.formation);assertEquals(1,api.writes.size());story.closeVillage();}
+      for(JSONArray invalid:new JSONArray[]{new JSONArray(),new JSONArray().put("missing"),new JSONArray().put("owned-a").put("owned-a")}){api.savedParty=invalid;story=explore(h);story.overlay.finishTyping();choice(story,sideTitle("SIDE")).performClick();assertNotNull(story.formation);assertEquals(1,api.writes.size());story.closeVillage();}
     }
   }
   @Test public void authoritativeMainMarkerMovesOnlyBetweenStatueAndBoatAndClearsOnReadError()throws Exception{
@@ -215,7 +231,7 @@ public class NativeVillageStoryOverlayTest {
   @Test public void savedPartyReadsOverlapAndJoinOnceWhileCloseAccountAndFailureRejectLateStart()throws Exception{
     for(int scenario=0;scenario<4;scenario++)try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
       MainActivity h=activity.get();Api api=prepare(h);api.story.put("quests",new JSONArray().put(side("SIDE","ACTIVE",true)));api.holdDepartureOptions=true;
-      NativeRoster60StoryController story=explore(h);story.overlay.finishTyping();choice(story,"SIDE").performClick();assertEquals("Both reads launch before either completes",2,api.departureReads.size());assertEquals(0,api.writes.size());
+      NativeRoster60StoryController story=explore(h);story.overlay.finishTyping();choice(story,sideTitle("SIDE")).performClick();assertEquals("Both reads launch before either completes",2,api.departureReads.size());assertEquals(0,api.writes.size());
       JSONObject saved=MainActivity.obj("partyIds",new JSONArray().put("owned-a")),options=MainActivity.obj("units",NativeVillageHomeTest.Api.units());
       if(scenario==1)story.closeVillage();if(scenario==2)api.account="changed-account";
       api.departureReads.get(1).done(saved,scenario==3?"network":null);assertEquals(0,api.writes.size());api.departureReads.get(0).done(options,null);api.departureReads.get(0).done(options,null);

@@ -61,11 +61,13 @@ final class NativeVillageStoryOverlay {
   void open(){
     dialog.show();Window window=dialog.getWindow();
     if(window!=null){window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));window.setDimAmount(0);window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);window.setLayout(-1,-1);window.getDecorView().setSystemUiVisibility(h.getWindow().getDecorView().getSystemUiVisibility());}
-    handler.postDelayed(guard,250);
+    handler.postDelayed(guard,250);refreshVillageHud();
   }
+  /** 대화창이 열리고 닫힐 때 마을 오른쪽 위 아이콘 표시를 다시 맞춘다. */
+  void refreshVillageHud(){if(h.villageHome!=null&&h.villageHome.view!=null)h.villageHome.view.updateLoadingState();}
   boolean isShowing(){return !closed&&dialog.isShowing();}
   final Runnable guard=new Runnable(){public void run(){if(closed)return;if(!owner.current()){owner.closeVillage();return;}handler.postDelayed(this,250);}};
-  void stop(){closed=true;typing=false;handler.removeCallbacksAndMessages(null);clearPortrait();}
+  void stop(){boolean wasOpen=!closed;closed=true;typing=false;handler.removeCallbacksAndMessages(null);clearPortrait();if(wasOpen)refreshVillageHud();}
   void close(){stop();dialog.dismiss();}
   void loading(String message){notice.setText(message);for(int i=0;i<choices.getChildCount();i++)choices.getChildAt(i).setEnabled(false);}
   void error(String message){pauseTyping();notice.setText(message);choices.removeAllViews();action("연결 다시 확인",owner::retrySavedProgress);}

@@ -155,7 +155,8 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     b.setGravity(Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);b.setBackgroundColor(Color.TRANSPARENT);b.setBackgroundTintList(null);b.setStateListAnimator(null);b.setMinWidth(0);b.setMinimumWidth(0);b.setMinHeight(0);b.setMinimumHeight(0);b.setPadding(0,0,0,0);
     b.setOnClickListener(v->{if(!owner.current()||blocksClick()||h.busy||h.updateBlocks())return;h.sound.click();Button previous=h.actionButton;h.actionButton=null;try{action.run();}finally{h.actionButton=previous;}});return b;
   }
-  int labelHeight(Button b){boolean resident=b instanceof WorldTarget&&((WorldTarget)b).resident();if(layout.layeredWorld)return Math.max(1,Math.round(Math.min(h.dp(resident?32:45),field.height()*(resident?.05f:.065f))));boolean compact=layout.continuousFoundation&&field.height()<=h.dp(480);return h.dp(resident?(compact?26:32):(compact?36:45));}
+  // 휴대폰 가로(약 412dp)에서 주민 이름표 글자가 읽히도록 .05→.062(약 21→26dp). 큰 화면은 32dp 상한이라 그대로다.
+  int labelHeight(Button b){boolean resident=b instanceof WorldTarget&&((WorldTarget)b).resident();if(layout.layeredWorld)return Math.max(1,Math.round(Math.min(h.dp(resident?32:45),field.height()*(resident?.062f:.065f))));boolean compact=layout.continuousFoundation&&field.height()<=h.dp(480);return h.dp(resident?(compact?26:32):(compact?36:45));}
   int labelGap(){return layout.layeredWorld?Math.max(1,Math.round(Math.min(h.dp(4),field.height()*.006f))):h.dp(4);}
   float groundedFeet(double baseline,Button b){return Math.min(field.top+field.height()*(float)baseline,safe.bottom-h.dp(6)-labelHeight(b)-labelGap());}
   float labelWidth(Button b){WorldTarget target=(WorldTarget)b;return labelHeight(b)*target.captionAspect()+target.statusLane();}
@@ -181,6 +182,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   String visibleStatue(){return layout.landmark!=null&&owner.statueStage>0&&RectF.intersects(landmarkRect(),field)?layout.landmark.asset(owner.statueStage):"";}
   boolean needsInitialStatueState(){return owner.statueStage==0&&layout.landmark!=null&&RectF.intersects(landmarkRect(),field);}
   boolean sceneReady(){return !needsInitialStatueState()&&assets.ready(visibleStatue());}
+  boolean storyOverlayCoversHud(){return h.rosterStory!=null&&h.rosterStory.villageOverlayOpen();}
   void updateLoadingState(){
     if(loadingPanel==null)return;
     boolean ready=sceneReady(),waitingState=needsInitialStatueState(),failed=assets.hasFailure(visibleStatue())||(waitingState&&owner.statueReadFailed);
@@ -189,7 +191,9 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     String notice=waitingState&&owner.statueReadFailed?"마을 상태를 확인하지 못했어요.\n다시 확인해 주세요.":failed?"마을 그림을 불러오지 못했어요.\n다시 불러와 주세요.":waitingState?"마을 상태를 확인하는 중…":"마을 그림을 불러오는 중…";
     if(!android.text.TextUtils.equals(loadingMessage.getText(),notice))loadingMessage.setText(notice);
     String retryLabel=waitingState?"다시 확인":"다시 불러오기";if(!android.text.TextUtils.equals(loadingRetry.getText(),retryLabel))loadingRetry.setText(retryLabel);loadingRetry.setVisibility(failed?VISIBLE:GONE);loadingBack.setVisibility(failed?VISIBLE:GONE);
-    pass.setVisibility(ready?VISIBLE:INVISIBLE);daily.setVisibility(ready?VISIBLE:INVISIBLE);settings.setVisibility(ready?VISIBLE:INVISIBLE);
+    // 마을 대화창이 떠 있는 동안에는 대화창의 닫기 버튼과 겹치지 않게 오른쪽 위 아이콘을 숨긴다(대화창이 터치를 가려 어차피 누를 수 없음).
+    boolean hud=ready&&!storyOverlayCoversHud();
+    pass.setVisibility(hud?VISIBLE:INVISIBLE);daily.setVisibility(hud?VISIBLE:INVISIBLE);settings.setVisibility(hud?VISIBLE:INVISIBLE);
     for(Button button:buildingButtons.values())button.setVisibility(ready&&RectF.intersects(new RectF(button.getLeft(),button.getTop(),button.getRight(),button.getBottom()),field)?VISIBLE:INVISIBLE);
     for(Button button:residentButtons.values())button.setVisibility(ready&&RectF.intersects(new RectF(button.getLeft(),button.getTop(),button.getRight(),button.getBottom()),field)?VISIBLE:INVISIBLE);
     statue.setVisibility(ready&&!visibleStatue().isEmpty()?VISIBLE:INVISIBLE);
